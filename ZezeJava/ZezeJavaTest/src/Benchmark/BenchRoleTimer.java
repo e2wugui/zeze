@@ -112,7 +112,9 @@ public class BenchRoleTimer {
 					var client = env.clients.get(loginI);
 					int finalLoginI = loginI;
 					loginFutures.add(TaskSpec.ofAction(() -> {
-						Zezex.ZezexTestEnv.auth(client.onLinkConnectedFuture.get(), client, "account" + finalLoginI);
+						// token 等待必须有超时兜底：LoginQueue 未接纳（backlog 溢出且不重连）或 token 排队滞留时，
+						// 无超时 get() 要挂到 task-timeout 看门狗 interrupt（~2分钟）才解脱，且 OfAction 吞异常后静默继续。
+						Zezex.ZezexTestEnv.auth(client.onLinkConnectedFuture.get(30, TimeUnit.SECONDS), client, "account" + finalLoginI);
 						var role = Zezex.ZezexTestEnv.getRole(client);
 						var roleId = null != role ? role.getId() : Zezex.ZezexTestEnv.createRole(client, "role" + finalLoginI);
 						Zezex.ZezexTestEnv.login(client, roleId);

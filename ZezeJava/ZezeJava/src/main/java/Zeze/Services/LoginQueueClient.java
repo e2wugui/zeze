@@ -15,7 +15,9 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
     }
 
     public void connect(String hostNameOrAddress, int port) {
-        service.connect(hostNameOrAddress, port, false);
+        // autoReconnect：客户端并发拨号（或 LoginQueue 短暂不可达）可能撞 accept backlog 溢出被 RST，
+        // 不重连则本客户端永远拿不到 token；Connector.stop（close/Service.stop）会取消重连任务。
+        service.connect(hostNameOrAddress, port, true);
     }
 
     public void close() throws Exception {

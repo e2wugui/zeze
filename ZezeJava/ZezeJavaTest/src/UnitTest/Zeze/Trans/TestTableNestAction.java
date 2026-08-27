@@ -169,7 +169,6 @@ public class TestTableNestAction {
 			return Procedure.Exception;
 		}, "nest procedure").call();
 
-		//noinspection SpellCheckingInspection
 		Assertions.assertEquals("02478BDFHJLNPQTVXZ", sb.toString());
 	}
 }

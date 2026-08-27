@@ -69,8 +69,9 @@ public final class ZezexTestEnv {
 		loginQueue = new LoginQueue();
 		loginQueue.start();
 
-		for (int i = 0; i < clientCount; ++i)
-			clients.add(new ClientGame.App());
+		// 客户端实例由 startClients 统一创建（调用前 clients 已 clear），此处不再预创建，
+		// 否则 bench 的 250 客户端会翻倍成 500：多出的 250 个幽灵客户端并发抢占 LoginQueue 的
+		// accept backlog 与 token，真实客户端等不到 token 卡死在 onLinkConnectedFuture.get()。
 		for (int i = 0; i < linkCount; ++i)
 			links.add(new Zezex.App());
 		for (int i = 0; i < serverCount; ++i)
@@ -98,7 +99,7 @@ public final class ZezexTestEnv {
 		clients.clear();
 	}
 
-	private void startClients(int clientCount, ClientStartMode mode) throws InterruptedException {
+	private void startClients(int clientCount, ClientStartMode mode) {
 		for (int i = 0; i < clientCount; ++i)
 			clients.add(new ClientGame.App());
 		var clientsSize = new AtomicInteger(clients.size());

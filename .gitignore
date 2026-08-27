@@ -12,6 +12,7 @@ x64/
 ~$*
 
 /*.lnk
+/tutor/
 /confcs/confcs
 /Gen/Properties
 /TypeScript/**/*.js
