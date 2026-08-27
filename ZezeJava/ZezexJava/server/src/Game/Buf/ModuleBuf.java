@@ -4,6 +4,8 @@ import java.util.concurrent.Future;
 import Game.Equip.IModuleEquip;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Component.TimerSpec;
+import Zeze.Game.OnlineSpec;
 import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
@@ -59,7 +61,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 
 		TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
 			hotTimerId = App.Zeze.getTimer().schedule(
-					rand.nextLong(3000) + 1000, rand.nextLong(3000) + 1000,
+					TimerSpec.ofDelay(rand.nextLong(3000) + 1000).period(rand.nextLong(3000) + 1000),
 					HotTimer.class, new BBuf());
 			return 0;
 		}, "hotTimer")).call();
@@ -135,7 +137,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 				changed1.Argument.setChangeTag(BBufChanged.ChangeTagRecordChanged);
 				changed1.Argument.getReplace().putAll(record.getBufs());
 
-				Game.App.Instance.getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed1);
+				OnlineSpec.ofReliableNotify(Game.App.Instance.getProvider().getOnline(), (Long)key, getName()).send(changed1);
 				break;
 			case Changes.Record.Edit:
 				// 增量变化，通知变更。
@@ -149,13 +151,13 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 					for (var p : notemap2.getRemoved()) {
 						changed2.Argument.getRemove().add(p);
 					}
-					Game.App.getInstance().getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed2);
+					OnlineSpec.ofReliableNotify(Game.App.getInstance().getProvider().getOnline(), (Long)key, getName()).send(changed2);
 				}
 				break;
 			case Changes.Record.Remove:
 				SChanged changed3 = new SChanged();
 				changed3.Argument.setChangeTag(BBufChanged.ChangeTagRecordIsRemoved);
-				Game.App.getInstance().getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed3);
+				OnlineSpec.ofReliableNotify(Game.App.getInstance().getProvider().getOnline(), (Long)key, getName()).send(changed3);
 				break;
 			}
 		}

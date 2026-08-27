@@ -13,7 +13,6 @@ import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderImplement;
-import Zeze.Arch.ProviderWithOnline;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.Timer.BCronTimer;
 import Zeze.Builtin.Timer.BIndex;
@@ -157,10 +156,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		ProviderImplement impl;
 		//noinspection ConstantValue
 		if (providerApp != null && (impl = providerApp.providerImplement) != null) {
-			if (impl instanceof ProviderWithOnline)
-				timerAccount = new TimerAccount(((ProviderWithOnline)impl).getOnline());
-			else if (impl instanceof Zeze.Game.ProviderWithOnline)
-				defaultOnline = ((Zeze.Game.ProviderWithOnline)impl).getOnline();
+			if (impl instanceof Zeze.Arch.ProviderWithOnline p)
+				timerAccount = new TimerAccount(p.getOnline());
+			else if (impl instanceof Zeze.Game.ProviderWithOnline p)
+				defaultOnline = p.getOnline();
 		}
 	}
 

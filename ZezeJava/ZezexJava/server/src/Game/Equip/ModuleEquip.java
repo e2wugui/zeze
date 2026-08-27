@@ -4,6 +4,8 @@ import Game.Fight.*;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Component.TimerSpec;
+import Zeze.Game.OnlineSpec;
 import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
@@ -78,13 +80,11 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			if (!isHotUpgrade()) {
 				var rand = Zeze.Util.Random.getInstance();
 				timer.scheduleNamed(timerNamed,
-						rand.nextLong(3000) + 1000,
-						rand.nextLong(3000) + 1000,
+						TimerSpec.ofDelay(rand.nextLong(3000) + 1000).period(rand.nextLong(3000) + 1000),
 						HotTimer.class, new BEquipExtra(0, 2, 0));
 
 				timerHot = timer.schedule(
-						rand.nextLong(3000) + 1000,
-						rand.nextLong(3000) + 1000,
+						TimerSpec.ofDelay(rand.nextLong(3000) + 1000).period(rand.nextLong(3000) + 1000),
 						HotTimer.class, new BEquipExtra(0, 1, 0));
 				resetCollections();
 			}
@@ -119,7 +119,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	public static class HotTimer implements TimerHandle {
 		@Override
-		public void onTimer(@NotNull TimerContext context) throws Exception {
+		public void onTimer(@NotNull TimerContext context) {
 			var mc = context.timer.zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 			var equip = mc.getService();
 			var count = 1; // default is 1
@@ -335,7 +335,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 				changed.Argument.setChangeTag(BChangedResult.ChangeTagRecordChanged);
 				changed.Argument.getItemsReplace().putAll(bequips.getItems());
 
-				Game.App.Instance.getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed);
+				OnlineSpec.ofReliableNotify(Game.App.Instance.getProvider().getOnline(), (Long)key, getName()).send(changed);
 				break;
 			case Changes.Record.Edit:
 				// 增量变化，通知变更。
@@ -349,13 +349,13 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 					for (var p : notemap2.getRemoved()) {
 						changed2.Argument.getItemsRemove().add(p);
 					}
-					Game.App.Instance.getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed2);
+					OnlineSpec.ofReliableNotify(Game.App.Instance.getProvider().getOnline(), (Long)key, getName()).send(changed2);
 				}
 				break;
 			case Changes.Record.Remove:
 				SEquipement changed3 = new SEquipement();
 				changed3.Argument.setChangeTag(BChangedResult.ChangeTagRecordIsRemoved);
-				Game.App.Instance.getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed3);
+				OnlineSpec.ofReliableNotify(Game.App.Instance.getProvider().getOnline(), (Long)key, getName()).send(changed3);
 				break;
 			}
 		}
@@ -497,8 +497,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	private void startOnlineTimer(long roleId) {
 		this.roleId = roleId;
 		timerOnline = App.Zeze.getTimer().getRoleTimer().scheduleOnlineHot(
-				this.roleId, 2000, 2000,
-				-1, -1, HotTimer.class, new BEquipExtra(0, 3, 0));
+				this.roleId, TimerSpec.ofDelay(2000).period(2000).times(-1).endTime(-1),
+				HotTimer.class, new BEquipExtra(0, 3, 0));
 		logger.info("timerOnline=" + timerOnline);
 	}
 

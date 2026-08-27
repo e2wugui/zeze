@@ -11,6 +11,7 @@ import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Component.TimerSpec;
 import Zeze.Config;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderWithOnline;
@@ -118,7 +119,7 @@ public final class App extends Zeze.AppBase {
 
 		counterColdTimer = 0;
 		TaskSpec.ofProcedure(Zeze.newProcedure(() -> {
-			coldTimerId = Zeze.getTimer().schedule(2000, 2000, ColdTimer.class, new BKick());
+			coldTimerId = Zeze.getTimer().schedule(TimerSpec.ofDelay(2000).period(2000), ColdTimer.class, new BKick());
 			//logger.info("XYZ Schedule={}", coldTimerId);
 			return 0;
 		}, "coldTimer")).call();
