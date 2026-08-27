@@ -452,6 +452,7 @@ public final class Raft {
 		receiveSnapshottingLock.lock();
 		try {
 			RandomAccessFile outputFileStream = receiveSnapshotting.get(r.Argument.getLastIncludedIndex());
+			var bNewFile = false;
 			if (outputFileStream == null) {
 				if (r.Argument.getOffset() != 0) {
 					// 肯定是旧的被丢弃的安装，Discard And Ignore。
@@ -460,9 +461,13 @@ public final class Raft {
 				}
 				receiveSnapshotting.put(r.Argument.getLastIncludedIndex(),
 						outputFileStream = new RandomAccessFile(path, "rw"));
+				bNewFile = true;
 			}
-			if (r.Argument.getOffset() == 0)
+			if (r.Argument.getOffset() == 0) {
+				if (bNewFile)
+					outputFileStream.setLength(0); // 上面的new RandomAccessFile(path, "rw")对于已经存在的文件不会覆盖。
 				outputFileStream.seek(0);
+			}
 
 			r.Result.setOffset(-1); // 默认让Leader继续传输，不用重新定位。
 			long fileLength = outputFileStream.length();
@@ -1016,13 +1021,13 @@ public final class Raft {
 	}
 
 	private long processStartServer(StartServerConnector r) {
-		server.getConfig().forEachConnector(Connector::stop);
+		server.getConfig().forEachConnector(Connector::start);
 		r.SendResult();
 		return 0;
 	}
 
 	private long processStopServer(StopServerConnector r) {
-		server.getConfig().forEachConnector(Connector::start);
+		server.getConfig().forEachConnector(Connector::stop);
 		r.SendResult();
 		return 0;
 	}
