@@ -212,9 +212,10 @@ public final class RelativeRecordSet extends ReentrantLock {
 						checkpoint.relativeRecordSetMap.add(mergedSet);
 					}
 				}
+			} else {
+				// 本次事务没有访问任何数据，也要执行提交，否则 whileCommit 回调会丢失。
+				commit.run();
 			}
-			// else
-			// 本次事务没有访问任何数据。
 		} finally {
 			locked.forEach(ReentrantLock::unlock);
 		}

@@ -190,7 +190,7 @@ public class Dbh2Test {
 		}
 	}
 
-	private static Zeze.Dbh2.Dbh2 start(String config, String raftName, RocksDatabase database) throws Exception {
+	private static Zeze.Dbh2.Dbh2 start(String config, String raftName, RocksDatabase database) {
 		var raftConfig = RaftConfig.loadFromString(config);
 		return new Zeze.Dbh2.Dbh2(null, raftName, database, raftConfig, null, false, taskOneByOne);
 	}

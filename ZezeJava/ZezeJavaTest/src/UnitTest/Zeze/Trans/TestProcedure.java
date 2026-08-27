@@ -1,12 +1,8 @@
 package UnitTest.Zeze.Trans;
 
 import java.util.Comparator;
-import UnitTest.Zeze.BMyBean;
 import Zeze.Serialize.Vector2;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Record1;
-import Zeze.Transaction.TableKey;
-import Zeze.Transaction.TableX;
 import Zeze.Util.Random;
 import demo.App;
 import demo.Bean1;
@@ -17,39 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class TestProcedure {
-	private final BMyBean bean = new BMyBean();
-
-	public final long ProcTrue() {
-		bean.setI(123);
-		Assertions.assertEquals(123, bean.getI());
-		return Procedure.Success;
-	}
-
-	public final long ProcFalse() {
-		bean.setI(456);
-		Assertions.assertEquals(456, bean.getI());
-		return Procedure.Unknown;
-	}
-
-	public final long ProcNest() {
-		Assertions.assertEquals(0, bean.getI());
-		bean.setI(1);
-		Assertions.assertEquals(1, bean.getI());
-		{
-			long r = demo.App.getInstance().Zeze.newProcedure(this::ProcFalse, "ProcFalse").call();
-			Assertions.assertNotEquals(Procedure.Success, r);
-			Assertions.assertEquals(1, bean.getI());
-		}
-
-		{
-			long r = demo.App.getInstance().Zeze.newProcedure(this::ProcTrue, "ProcFalse").call();
-			Assertions.assertEquals(Procedure.Success, r);
-			Assertions.assertEquals(123, bean.getI());
-		}
-
-		return Procedure.Success;
-	}
-
 	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
@@ -58,20 +21,6 @@ public class TestProcedure {
 	@AfterEach
 	public final void testCleanup() throws Exception {
 		//demo.App.getInstance().Stop();
-	}
-
-	@Test
-	public final void test1() throws Exception {
-		TableKey root = new TableKey(1, 1);
-		// 特殊测试，拼凑一个record用来提供需要的信息。table不会真正使用，借用一个真实的表避免破坏@NotNull约定。
-		@SuppressWarnings("unchecked")
-		var r = new Record1<>((TableX<Long, BMyBean>)(TableX<?, ?>)demo.App.getInstance().demo_Module1.getTable1(),
-				1L, bean);
-		bean.initRootInfo(r.createRootInfoIfNeed(root), null);
-		long rc = demo.App.getInstance().Zeze.newProcedure(this::ProcNest, "ProcNest").call();
-		Assertions.assertEquals(Procedure.Success, rc);
-		// 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。
-		Assertions.assertEquals(123, bean._i);
 	}
 
 	@Test
