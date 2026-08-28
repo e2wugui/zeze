@@ -328,7 +328,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				DatabaseMetaData meta = connection.getMetaData();
 				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
-				isNew = resultSet.next();
+				isNew = !resultSet.next();
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			}
