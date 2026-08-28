@@ -54,7 +54,6 @@ public class ConcurrentLruLike<K, V> {
 	private int lruInitialCapacity;
 	private int cleanPeriod;
 	private @Nullable BiPredicate<K, V> tryRemoveCallback;
-	private int cleanPeriodWhenExceedCapacity = 1000;
 	private boolean continueWhenTryRemoveCallbackFail = true;
 
 	public final int getCapacity() {
@@ -87,14 +86,6 @@ public class ConcurrentLruLike<K, V> {
 
 	public final void setTryRemoveCallback(@Nullable BiPredicate<K, V> value) {
 		tryRemoveCallback = value;
-	}
-
-	public final int getCleanPeriodWhenExceedCapacity() {
-		return cleanPeriodWhenExceedCapacity;
-	}
-
-	public final void setCleanPeriodWhenExceedCapacity(int value) {
-		cleanPeriodWhenExceedCapacity = value;
 	}
 
 	public final boolean getContinueWhenTryRemoveCallbackFail() {
@@ -269,20 +260,28 @@ public class ConcurrentLruLike<K, V> {
 		if (capacity > 0) {
 			var timeBegin = System.nanoTime();
 			int recordCount = 0, nodeCount = 0;
-			while (dataMap.size() > capacity) { // 超出容量，循环尝试
-				var node = lruQueue.peek();
-				if (node == lruHot || node == null) // 热点不回收
+			// 从最老到最新逐个node尝试驱逐。不对最老node忙等：回调失败（如队列忙）时继续尝试下一个node，
+			// 遍历完仍超容量的等下一次周期调度重试（scheduleWithFixedDelay本身就是重试机制）。
+			for (var node : lruQueue) {
+				if (dataMap.size() <= capacity)
+					break;
+				if (node == lruHot) // 热点不回收
 					break;
 
 				var tryRemoveCallback = this.tryRemoveCallback;
 				if (tryRemoveCallback != null) {
+					var strictFail = false;
 					for (var e : node.entrySet()) {
 						var removed = tryRemoveCallback.test(e.getKey(), e.getValue().value);
-						if (!removed && !continueWhenTryRemoveCallbackFail)
+						if (!removed && !continueWhenTryRemoveCallbackFail) {
+							strictFail = true;
 							break;
+						}
 						if (removed)
 							recordCount++; // 只统计成功删除的，回调失败(队列忙)时不计数。
 					}
+					if (strictFail)
+						break; // 严格模式：任何回调失败即终止本轮清理。
 				} else {
 					recordCount += node.size();
 					for (var k : node.keySet())
@@ -290,16 +289,10 @@ public class ConcurrentLruLike<K, V> {
 				}
 
 				if (node.isEmpty()) {
-					lruQueue.poll();
+					lruQueue.remove(node);
 					nodeCount++;
 				} else {
-					logger.warn("remain record when clean oldest lruNode.");
-					try {
-						//noinspection BusyWait
-						Thread.sleep(cleanPeriodWhenExceedCapacity);
-					} catch (InterruptedException e) {
-						logger.error("CleanNow Interrupted", e);
-					}
+					logger.warn("remain record when clean lruNode.");
 				}
 			}
 			if (recordCount > 0 || nodeCount > 0) {
