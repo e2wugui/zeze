@@ -38,8 +38,10 @@ public class HttpSession extends AbstractHttpSession {
 
 		public void setProperty(@NotNull String key, @NotNull String value) {
 			var tValue = _tSession.get(cookieSessionId);
-			if (tValue != null)
+			if (tValue != null) {
 				tValue.getProperties().put(key, value);
+				return;
+			}
 			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
 		}
 
@@ -66,8 +68,10 @@ public class HttpSession extends AbstractHttpSession {
 
 		public void setExpireTime(long expireTime) {
 			var value = _tSession.get(cookieSessionId);
-			if (value != null)
+			if (value != null) {
 				value.setExpireTime(expireTime);
+				return;
+			}
 			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
 		}
 	}
