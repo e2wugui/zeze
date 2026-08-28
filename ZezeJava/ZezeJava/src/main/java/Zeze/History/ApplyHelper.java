@@ -42,7 +42,7 @@ public class ApplyHelper extends FastLock {
 		try {
 			var endTime = System.currentTimeMillis() - beforeTimeMs;
 			var result = new HashMap<ApplyTable<?, ?>, Set<Object>>();
-			exclusiveStartKey = historyTable.walkDatabase(exclusiveStartKey, count, (key, value) -> {
+			var newExclusiveStartKey = historyTable.walkDatabase(exclusiveStartKey, count, (key, value) -> {
 				if (value.getTimestamp() >= endTime)
 					return false;
 
@@ -61,6 +61,10 @@ public class ApplyHelper extends FastLock {
 				}
 				return true;
 			});
+			// walkDatabase 返回 null 表示本次已走到表尾：保留原游标即可，新纪录加入后仍会被正确读到；
+			// 置 null 会让下次 apply 从表头全量重扫并重复回放已应用过的变更。
+			if (newExclusiveStartKey != null)
+				exclusiveStartKey = newExclusiveStartKey;
 			return result;
 		} finally {
 			unlock();
