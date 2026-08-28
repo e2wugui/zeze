@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.function.Supplier;
 import Zeze.Application;
 import Zeze.Component.AutoKey;
@@ -520,7 +521,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	final void reduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
 		var globalAgent = getZeze().getGlobalAgent();
 		var locks = getZeze().getLocks();
-		var remain = new ArrayList<KV<Lockey, Record1<K, V>>>(cache.getDataMap().size());
+		// 第一轮parallelStream的多个worker会并发add拿锁失败的记录，必须线程安全。
+		var remain = Collections.synchronizedList(new ArrayList<KV<Lockey, Record1<K, V>>>(cache.getDataMap().size()));
 		logger.info("ReduceInvalidAllLocalOnly Table={} CacheSize={}", getName(), cache.getDataMap().size());
 		cache.getDataMap().entrySet().parallelStream().forEach((e) -> {
 			var k = e.getKey();
