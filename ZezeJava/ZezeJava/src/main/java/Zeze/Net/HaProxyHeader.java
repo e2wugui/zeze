@@ -128,7 +128,7 @@ public class HaProxyHeader {
 					break;
 				}
 			}
-			bb.ReadIndex += line.length() + 2; // 再跳过line后的\r\n
+			bb.ReadIndex += v1sig.length + line.length() + 2; // 跳过"PROXY "前缀、line和line后的CRLF
 			done = true;
 			return true;
 		}
