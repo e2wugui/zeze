@@ -78,6 +78,9 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		private final ConcurrentHashMap<String, Object> linkedMaps = new ConcurrentHashMap<>();
 		public final @NotNull Zeze.Application zeze;
 		public static final String eClearJobHandleName = "Zeze.Collections.LinkedMap.Clear";
+		// delayClearJob每个事务清理的节点数：事务数降为1/K（行删除日志只记key，K个节点的事务仍然小）。
+		// K越大，与"clear后立刻按旧id重建"的并发写冲突窗口越大（映射行读写交叉），失败整批回滚重试，自愈。
+		public static final int clearJobBatchNodes = 16;
 
 		public Module(@NotNull Zeze.Application zeze) {
 			this.zeze = zeze;
@@ -188,37 +191,38 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 				return;
 			}
 			while (state.getHeadNodeId() != 0) {
-				// 本轮处理的头节点固定为head，lambda第一行把state复位到head：
+				// 本批次头节点固定为head，lambda第一行把state复位到head：
 				// perform的redo会从头重放lambda，若上次执行已推进过state，重放会处理下一个节点、
-				// 跳过当前节点（当前节点的删除已回滚），该节点永久泄漏。
+				// 跳过当前节点（当前节点的删除已回滚），该节点永久泄漏。批次内全部推进只依赖
+				// head和链表本身的getNextNodeId，重放任意次数都处理同一批节点，幂等。
 				final var head = state.getHeadNodeId();
 				var result = zeze.newProcedure(() -> {
 					state.setHeadNodeId(head); // redo重放时复位，保证幂等
+					var mapName = state.getLinkedMapName();
 					var nodeId = head;
-					var node = _tLinkedMapNodes.get(new BLinkedMapNodeKey(state.getLinkedMapName(), nodeId));
-					if (null == node) {
-						state.setHeadNodeId(0);
-						delayRemove.setJobState(jobId, null); // remove job
-						return 0;
-					}
+					for (var processed = 0; nodeId != 0 && processed < clearJobBatchNodes; processed++) {
+						var node = _tLinkedMapNodes.get(new BLinkedMapNodeKey(mapName, nodeId));
+						if (null == node) {
+							nodeId = 0; // 链断（节点不存在）：结束job，否则会无限循环在缺失节点上
+							break;
+						}
 
-					// 这里是清理已摘链的旧代节点：不调整count（clear已归零）、不动链表指针（已摘链），
-					// 只删数据行和仍指向本节点的旧映射——clear后用旧id重建的映射指向新节点，不能误删。
-					for (var e : node.getValues()) {
-						var key = new BLinkedMapKey(state.getLinkedMapName(), e.getId());
-						var current = _tValueIdToNodeId.get(key);
-						if (null != current && current.getNodeId() == nodeId)
-							_tValueIdToNodeId.remove(key);
+						// 这里是清理已摘链的旧代节点：不调整count（clear已归零）、不动链表指针（已摘链），
+						// 只删数据行和仍指向本节点的旧映射——clear后用旧id重建的映射指向新节点，不能误删。
+						for (var e : node.getValues()) {
+							var key = new BLinkedMapKey(mapName, e.getId());
+							var current = _tValueIdToNodeId.get(key);
+							if (null != current && current.getNodeId() == nodeId)
+								_tValueIdToNodeId.remove(key);
+						}
+						node.getValues().clear(); // gc
+						// clear中的删除节点，马上删除，不需要delayRemove。
+						_tLinkedMapNodes.remove(new BLinkedMapNodeKey(mapName, nodeId));
+						nodeId = node.getNextNodeId();
 					}
-					node.getValues().clear(); // gc
-					// clear中的删除节点，马上删除，不需要delayRemove。
-					_tLinkedMapNodes.remove(new BLinkedMapNodeKey(state.getLinkedMapName(), nodeId));
-
-					// save state in this procedure
-					var next = node.getNextNodeId();
-					state.setHeadNodeId(next);
+					state.setHeadNodeId(nodeId);
 					// 链走完删除job行：否则每次clear泄漏一行，重启时continueJobs还会空跑一遍
-					if (next == 0)
+					if (nodeId == 0)
 						delayRemove.setJobState(jobId, null); // remove job
 					else
 						delayRemove.setJobState(jobId, state);
