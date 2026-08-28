@@ -25,7 +25,9 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	public static void clear() {
 		lock.writeLock().lock();
 		try {
-			databaseTables.clear();
+			for (var db : databaseTables.values())
+				for (var table : db.values())
+					table.clear();
 		} finally {
 			lock.writeLock().unlock();
 		}
