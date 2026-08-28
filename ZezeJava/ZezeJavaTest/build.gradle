@@ -101,7 +101,6 @@ tasks.register('integrationTest', Test) {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform {
-        // 本项目的模式过滤(includeTestsMatching/--tests)不工作，标签过滤可用，故用 @Bench 标签
         excludeTags 'bench','fast'
     }
     workingDir = projectDir

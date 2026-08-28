@@ -10,3 +10,5 @@ gradlew.bat :ZezeJavaTest:test             :: 快速自包含测试（@Fast 标�
 gradlew.bat :ZezeJavaTest:integrationTest  :: 全量功能测试（自动在进程内启动 SM/GCM，不含fast和bench）
 gradlew.bat :ZezeJavaTest:bench            :: 吞吐基准（@Bench 标注的类）
 ```
+
+--tests "*TestCsQueue" 通配符形式可用于单类验证
