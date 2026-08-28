@@ -167,7 +167,7 @@ public class HttpSession extends AbstractHttpSession {
 					for (var key : keys)
 						tSession.remove(key);
 					return 0;
-				}, "remove http session");
+				}, "remove http session").call();
 				keys.clear();
 			}
 		}
