@@ -25,7 +25,7 @@ public class FileBin {
 			this.relativeCanonicalFileName = relativeCanonicalFileName;
 			canonicalFile = new File(baseDir, path).getCanonicalFile();
 			md5CurrentData();
-			randFile = new RandomAccessFile(canonicalFile, "w");
+			randFile = new RandomAccessFile(canonicalFile, "rw");
 			os = new BufferedOutputStream(new FileOutputStream(randFile.getFD()));
 		} catch (Exception ex) {
 			Task.forceThrow(ex);
@@ -70,11 +70,12 @@ public class FileBin {
 			length = randFile.getChannel().size(); // truncate will change length
 			md5CurrentData();
 		}
-		var newLength = offset + data.size();
-		if (newLength > length) {
-			var newDataLength = (int)(newLength - length);
-			md5.update(data.bytesUnsafe(), data.getOffset() + newDataLength, newDataLength);
-		}
+			var newLength = offset + data.size();
+			if (newLength > length) {
+				var newDataLength = (int)(newLength - length);
+				// 只hash新增部分：是data的尾部newDataLength字节（data前面length-offset字节属于已存在的旧数据）。
+				md5.update(data.bytesUnsafe(), data.getOffset() + (int)(length - offset), newDataLength);
+			}
 		os.write(data.bytesUnsafe(), data.getOffset(), data.size());
 	}
 
