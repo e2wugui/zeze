@@ -281,6 +281,24 @@ public class TestLinkedMap {
 	}
 
 	@Test
+	public void test11_CraftedJobStateNullNode() throws Exception {
+		// 通过addJob用构造的state直接驱动已注册的clear handle（走真实的delayClearJob）：
+		// head指向不存在的节点时，null-node分支必须删job行并正常结束循环。
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			App.Instance.Zeze.getDelayRemove().addJob(
+					Zeze.Collections.LinkedMap.Module.eClearJobHandleName,
+					new Zeze.Builtin.Collections.LinkedMap.BClearJobState(999999, 999999, "testNoSuchMap"));
+			return 0;
+		}, "test11.addJob").call());
+
+		Thread.sleep(1500);
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(0, App.Instance.Zeze.getDelayRemove().jobCount(), "null节点分支必须删除job行");
+			return 0;
+		}, "test11.verify").call());
+	}
+
+	@Test
 	public void test6_ClearThenPut() throws Exception {
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var map = App.Instance.LinkedMapModule.open("test1", BMyBean.class);

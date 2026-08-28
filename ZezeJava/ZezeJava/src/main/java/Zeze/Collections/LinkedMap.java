@@ -188,8 +188,13 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 				return;
 			}
 			while (state.getHeadNodeId() != 0) {
-				zeze.newProcedure(() -> {
-					var nodeId = state.getHeadNodeId();
+				// 本轮处理的头节点固定为head，lambda第一行把state复位到head：
+				// perform的redo会从头重放lambda，若上次执行已推进过state，重放会处理下一个节点、
+				// 跳过当前节点（当前节点的删除已回滚），该节点永久泄漏。
+				final var head = state.getHeadNodeId();
+				var result = zeze.newProcedure(() -> {
+					state.setHeadNodeId(head); // redo重放时复位，保证幂等
+					var nodeId = head;
 					var node = _tLinkedMapNodes.get(new BLinkedMapNodeKey(state.getLinkedMapName(), nodeId));
 					if (null == node) {
 						state.setHeadNodeId(0);
@@ -210,14 +215,20 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 					_tLinkedMapNodes.remove(new BLinkedMapNodeKey(state.getLinkedMapName(), nodeId));
 
 					// save state in this procedure
-					state.setHeadNodeId(node.getNextNodeId());
+					var next = node.getNextNodeId();
+					state.setHeadNodeId(next);
 					// 链走完删除job行：否则每次clear泄漏一行，重启时continueJobs还会空跑一遍
-					if (state.getHeadNodeId() == 0)
+					if (next == 0)
 						delayRemove.setJobState(jobId, null); // remove job
 					else
 						delayRemove.setJobState(jobId, state);
 					return 0;
 				}, "LinkedMap.clear").call();
+				if (result != 0) {
+					// 失败即停，不推进：job行保留最后一次成功提交的状态，等重启continueJobs续跑。
+					// 忽略错误继续跑会带着与DB不一致的内存state跳过当前节点。
+					break;
+				}
 			}
 		}
 	}
