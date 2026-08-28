@@ -54,7 +54,7 @@ public class IntHashMap<V> implements Cloneable {
 	}
 
 	private int tableSize(int cap) {
-		cap = Math.min(Math.max((int)Math.ceil(cap / loadFactor), 2), 1 << 30);
+		cap = Math.clamp((int)Math.ceil(cap / loadFactor), 2, 1 << 30);
 		return 1 << (32 - Integer.numberOfLeadingZeros(cap - 1)); // [0,1<<30] => [0,1,2,4,8,...,1<<30]
 	}
 
@@ -597,15 +597,18 @@ public class IntHashMap<V> implements Cloneable {
 			if (k != 0) {
 				final V oldV = vt[i];
 				final V v = func.apply(k, oldV);
-				if (v != oldV) {
-					if (v == null) {
-						if (removedKeys == null)
-							removedKeys = new int[size()];
-						removedKeys[removedCount++] = k;
-					} else {
-						vt[i] = v;
+					if (v != oldV) {
+						if (v == null) {
+							// 小容量起步+倍增：内存正比于删除条目数而不是map大小。
+							if (removedKeys == null)
+								removedKeys = new int[8];
+							else if (removedCount == removedKeys.length)
+								removedKeys = Arrays.copyOf(removedKeys, removedCount * 2);
+							removedKeys[removedCount++] = k;
+						} else {
+							vt[i] = v;
+						}
 					}
-				}
 			}
 		}
 		for (int i = 0; i < removedCount; i++) {

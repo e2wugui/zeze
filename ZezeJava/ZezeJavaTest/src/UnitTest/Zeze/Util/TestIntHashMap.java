@@ -61,4 +61,38 @@ public class TestIntHashMap {
 		Assertions.assertEquals("v3", map.get(k3));
 		Assertions.assertEquals(2, map.size());
 	}
+
+	@Test
+	public void testForeachUpdateDeleteMany() {
+		// 批量删除回归：覆盖removedKeys缓冲的倍增扩容路径，并验证混合"删除+更新+保留"后状态一致。
+		// 100个条目装入128槽（负载~78%，探测链充分），threshold=102不会触发rehash。
+		var map = new IntHashMap<String>(64);
+		for (int k = 1; k <= 100; k++)
+			map.put(k, "v" + k);
+
+		var seen = new HashSet<Integer>();
+		map.foreachUpdate((k, v) -> {
+			seen.add(k);
+			if (k % 3 == 0)
+				return null; // 删除
+			if (k % 5 == 0)
+				return v + "!"; // 更新
+			return v; // 保留
+		});
+
+		Assertions.assertEquals(100, seen.size(), "func必须访问全部条目");
+		int expectedSize = 0;
+		for (int k = 1; k <= 100; k++) {
+			if (k % 3 == 0) {
+				Assertions.assertNull(map.get(k), "被删除: " + k);
+			} else {
+				expectedSize++;
+				if (k % 5 == 0)
+					Assertions.assertEquals("v" + k + "!", map.get(k), "被更新: " + k);
+				else
+					Assertions.assertEquals("v" + k, map.get(k));
+			}
+		}
+		Assertions.assertEquals(expectedSize, map.size());
+	}
 }
