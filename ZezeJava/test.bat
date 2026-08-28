@@ -1,5 +1,7 @@
 @echo off
 
+cd /d %~dp0
+
 @rem :: 快速自包含测试（@Fast 标注的类，无外部依赖）
 call gradlew.bat :ZezeJavaTest:test
 
