@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -22,6 +23,7 @@ public class Cache extends ReentrantLock {
 	private final @NotNull BiFunction<String, ByteBuffer, CacheObject> decoder;
 	private RocksDB db;
 	private ConcurrentLruLike<String, CacheObject> lru;
+	private ScheduledFuture<?> cleanTimer;
 	private volatile long todayDays;
 	private volatile FileOutputStream todayFile;
 
@@ -43,11 +45,14 @@ public class Cache extends ReentrantLock {
 		new File(name).mkdirs();
 		db = RocksDB.open(name);
 		lru = new ConcurrentLruLike<>(name, lruCapacity);
-		// 每天6:30尝试删除旧的项。
-		TaskSpec.ofAction(this::tryRemove).scheduleAt(6, 30);
+		// 每天6:30尝试删除旧的项。period>0才是周期调度（scheduleAt(hour,minute)默认只触发一次）；
+		// 用scheduleAtNow拿到句柄，close时取消。
+		cleanTimer = TaskSpec.ofAction(this::tryRemove).scheduleAtNow(6, 30, 24 * 60 * 60 * 1000);
 	}
 
 	public void close() throws IOException {
+		if (cleanTimer != null)
+			cleanTimer.cancel(false);
 		if (todayFile != null)
 			todayFile.close();
 
@@ -137,6 +142,10 @@ public class Cache extends ReentrantLock {
 	}
 
 	private void tryRemove() throws IOException, RocksDBException {
+		var db = this.db;
+		var lru = this.lru;
+		if (db == null || lru == null)
+			return; // 已close（cancel与正在执行的任务之间的窗口），不再访问。
 		var prefix = "days_";
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
 		var files = new File(name).listFiles();
@@ -146,13 +155,14 @@ public class Cache extends ReentrantLock {
 					var days = Long.parseLong(file.getName().substring(prefix.length()));
 					// a month ago && not today
 					if (nowDays - days > 30 && days != todayDays)
-						tryRemove(file);
+						tryRemove(db, lru, file);
 				}
 			}
 		}
 	}
 
-	private void tryRemove(@NotNull File file) throws IOException, RocksDBException {
+	private static void tryRemove(@NotNull RocksDB db, @NotNull ConcurrentLruLike<String, CacheObject> lru,
+								  @NotNull File file) throws IOException, RocksDBException {
 		try (var r = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
 			for (var id = r.readLine(); id != null; id = r.readLine()) {
 				if (lru.get(id) != null)
