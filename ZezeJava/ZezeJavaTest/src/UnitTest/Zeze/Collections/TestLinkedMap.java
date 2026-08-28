@@ -1,7 +1,9 @@
 package UnitTest.Zeze.Collections;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import UnitTest.Zeze.BMyBean;
 import Zeze.Transaction.Procedure;
@@ -100,5 +102,40 @@ public class TestLinkedMap {
 		}, "clear").call());
 
 		Thread.sleep(2000);
+	}
+
+	@Test
+	public void test6_ClearThenPut() throws Exception {
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("test1", BMyBean.class);
+			for (int i = 100; i < 110; i++) {
+				var bean = new BMyBean();
+				bean.setI(i);
+				map.put(i, bean);
+			}
+			return 0;
+		}, "test6.put").call());
+
+		// clear和put放在同一个事务内：delayClearJob只能在commit之后启动，稳定覆盖清理窗口。
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("test1", BMyBean.class);
+			map.clear();
+			var bean = new BMyBean();
+			bean.setI(999);
+			map.put(100, bean); // clear后立刻用旧id重建，数据必须存活
+			return 0;
+		}, "test6.clearPut").call());
+
+		var map = App.Instance.LinkedMapModule.open("test1", BMyBean.class);
+		var values = new ArrayList<Integer>();
+		map.walk((key, value) -> values.add(value.getI()));
+		Assertions.assertEquals(List.of(999), values);
+
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(1, map.size());
+			Assertions.assertNotNull(map.get(100));
+			Assertions.assertEquals(999, map.get(100).getI());
+			return 0;
+		}, "test6.verify").call());
 	}
 }

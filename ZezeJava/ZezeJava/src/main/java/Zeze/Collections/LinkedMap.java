@@ -182,7 +182,8 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			state.decode(ByteBuffer.Wrap(jobState));
 			while (state.getHeadNodeId() != 0) {
 				zeze.newProcedure(() -> {
-					var node = _tLinkedMapNodes.get(new BLinkedMapNodeKey(state.getLinkedMapName(), state.getHeadNodeId()));
+					var nodeId = state.getHeadNodeId();
+					var node = _tLinkedMapNodes.get(new BLinkedMapNodeKey(state.getLinkedMapName(), nodeId));
 					if (null == node) {
 						state.setHeadNodeId(0);
 						delayRemove.setJobState(jobId, null); // remove job
@@ -190,11 +191,16 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 					}
 
 					// removeNode 必须另写，不能直接使用LinkedMap.removeNode。
-					for (var e : node.getValues())
-						_tValueIdToNodeId.remove(new BLinkedMapKey(state.getLinkedMapName(), e.getId()));
+					// 只删除仍指向本节点的映射：clear后用旧id重建的映射指向新节点，不能误删。
+					for (var e : node.getValues()) {
+						var key = new BLinkedMapKey(state.getLinkedMapName(), e.getId());
+						var current = _tValueIdToNodeId.get(key);
+						if (null != current && current.getNodeId() == nodeId)
+							_tValueIdToNodeId.remove(key);
+					}
 					node.getValues().clear(); // gc
 					// clear中的删除节点，马上删除，不需要delayRemove。
-					_tLinkedMapNodes.remove(new BLinkedMapNodeKey(state.getLinkedMapName(), state.getHeadNodeId()));
+					_tLinkedMapNodes.remove(new BLinkedMapNodeKey(state.getLinkedMapName(), nodeId));
 
 					// save state in this procedure
 					state.setHeadNodeId(node.getNextNodeId());
@@ -435,6 +441,17 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		if (null != root) {
 			var headerNodeId = root.getHeadNodeId();
 			var tailNodeId = root.getTailNodeId();
+			// 同步删除全部id->节点映射，关闭clear到延迟清理任务完成之间的窗口：
+			// 窗口内put(旧id)会写进已摘链的节点、随后被清理任务静默删除；remove(旧id)会把count减成负数。
+			// 节点和bean数据的删除仍由delayClearJob分批处理；那里删映射的代码保留，幂等兜底。
+			for (var nodeId = headerNodeId; nodeId != 0; ) {
+				var node = module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
+				if (null == node)
+					break;
+				for (var e : node.getValues())
+					module._tValueIdToNodeId.remove(new BLinkedMapKey(name, e.getId()));
+				nodeId = node.getNextNodeId();
+			}
 			root.setHeadNodeId(0);
 			root.setTailNodeId(0);
 			root.setCount(0);
