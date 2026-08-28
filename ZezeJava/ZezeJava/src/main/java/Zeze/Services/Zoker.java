@@ -59,7 +59,7 @@ public class Zoker extends AbstractZoker {
 	}
 
 	public void stop() throws Exception {
-		serverWithConnector.start();
+		serverWithConnector.stop();
 	}
 
 	@Override
