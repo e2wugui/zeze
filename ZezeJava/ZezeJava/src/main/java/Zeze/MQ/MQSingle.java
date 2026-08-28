@@ -120,7 +120,7 @@ public class MQSingle extends ReentrantLock {
 			pendingPushMessage.Argument.setSessionId(bindSessionId);
 			var message = messageQueue.peek();
 			pendingPushMessage.Argument.setMessage(message);
-			pendingPushMessage.Send(bindSocket, (p) -> {
+			if (!pendingPushMessage.Send(bindSocket, (p) -> {
 				lock();
 				try {
 					loadCounter.incrementAndGet(); // 处理失败也进行计数。
@@ -138,7 +138,11 @@ public class MQSingle extends ReentrantLock {
 					unlock();
 				}
 				return 0;
-			});
+			})) {
+				// Send失败（连接失效）时回调不会被调用，必须在这里清理，
+				// 否则pendingPushMessage永久悬挂，该分区消息投递永久停止，bind()也无法恢复。
+				pendingPushMessage = null;
+			}
 		}
 	}
 
