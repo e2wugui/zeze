@@ -195,38 +195,7 @@
 				<table name="tQueueNodes" key="BQueueNodeKey" value="BQueueNode"/>
 			</module>
 
-			<!-- 有向无环图 -->
-			<module name="DAG" id="11017">
-				<bean name="BDAG">
-					<variable id="1" name="NodeSum" type="long" /> 有向图的结点数
-					<variable id="2" name="EdgeSum" type="long" /> 有向图的边数
-					<variable id="3" name="StartNode" type="string" /> 有向图的起点ValueId（如果有的话），没有则置空（一般来说，对于任务Task都有起点与终点）
-					<variable id="4" name="EndNode" type="string" /> 有向图的终点（如果有的话），没有则置空（一般来说，对于任务Task都有起点与终点）
-				</bean>
-				<table name="tDAGs" key="string" value="BDAG" /> Key: 有向图自己的名字
-
-				<beankey name="BDAGNodeKey"> 有向图的结点Key
-					<variable id="1" name="Name" type="string" /> 有向图自己的名字
-					<variable id="2" name="ValueId" type="string" /> 有向图结点的Key转成字符串类型（如：任务的id）
-				</beankey>
-				<bean name="BDAGNode"> 有向图的结点类型（如：一个任务Task）
-					<variable id="1" name="Value" type="dynamic">
-						<GetSpecialTypeIdFromBean value="Zeze.Collections.DAG::getSpecialTypeIdFromBean"/>
-						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DAG::createBeanFromSpecialTypeId"/>
-					</variable>
-				</bean>
-				<table name="tNode" key="BDAGNodeKey" value="BDAGNode" /> Table: 有向图节点表
-
-				<beankey name="BDAGEdgeKey"> 有向图的边Key
-					<variable id="1" name="Name" type="string" /> 有向图的自己的名字
-					<variable id="2" name="ValueId" type="string" /> 有向图边的Key转成字符串类型
-				</beankey>
-				<bean name="BDAGEdge"> 有向图的边类型（如：任务的连接方式）
-					<variable id="1" name="From" type="BDAGNodeKey" /> 有向图中有向边的起点
-					<variable id="2" name="To" type="BDAGNodeKey" /> 有向图中有向边的终点
-				</bean>
-				<table name="tEdge" key="BDAGEdgeKey" value="BDAGEdge" /> Table: 有向图边表
-			</module> DAG 11017
+			<!-- 有向无环图 <module name="DAG" id="11017"> 【【【已经删除】】】 -->
 
 			<!-- 部门树-->
 			<module name="DepartmentTree" id="11101">
@@ -2552,15 +2521,6 @@
 		PackagePath="Zeze/Collections" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Collections.LinkedMap"/>
-		</service>
-	</component>
-
-	<component name="DAG"
-		GenDir="src/main/java"
-		SrcDir="src/main/java"
-		PackagePath="Zeze/Collections" platform="zeze+java">
-		<service name="" handle="server">
-			<module ref="Zeze.Builtin.Collections.DAG"/>
 		</service>
 	</component>
 
