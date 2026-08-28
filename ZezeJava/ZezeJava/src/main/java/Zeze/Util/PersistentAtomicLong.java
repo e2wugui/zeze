@@ -85,7 +85,7 @@ public class PersistentAtomicLong {
 
 		for (; ; ) {
 			var current = currentId.get();
-			if (current >= allocatedEnd) {
+			if (current + count > allocatedEnd) { // 剩余预算必须覆盖整块[current+1,current+count]，不够先分配
 				allocate(count);
 				continue;
 			}
@@ -135,8 +135,8 @@ public class PersistentAtomicLong {
 						continue;
 					}
 					try (var ignored = channel.lock()) {
-						if (currentId.get() < allocatedEnd)
-							return; // has allocated. concurrent.
+						if (currentId.get() + count <= allocatedEnd)
+							return; // has allocated. concurrent. 其他线程分配的预算已足够覆盖本次count。
 						fs.seek(0);
 						var line = fs.readLine();
 						var last = (line == null || line.isEmpty()) ? 0L : Long.parseLong(line);
