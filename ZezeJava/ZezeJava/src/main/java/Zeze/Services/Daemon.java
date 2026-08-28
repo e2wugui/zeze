@@ -137,8 +137,9 @@ public class Daemon {
 				} catch (SocketTimeoutException ex) {
 					// skip
 				}
-				if (subprocess.waitFor(0, TimeUnit.MILLISECONDS))
-					return subprocess.exitValue();
+				// subprocess 可能已被Monitor（idle超时）或DeadlockReport路径销毁并置null，此时返回非0让main重启子进程。
+				if (subprocess == null || subprocess.waitFor(0, TimeUnit.MILLISECONDS))
+					return subprocess != null ? subprocess.exitValue() : 1;
 			} catch (Throwable ex) { // print stacktrace.
 				logger.fatal("Daemon.mainRun", ex);
 				fatalExit();
@@ -148,7 +149,8 @@ public class Daemon {
 	}
 
 	private static void fatalExit() {
-		subprocess.destroy();
+		if (subprocess != null)
+			subprocess.destroy();
 		LogManager.shutdown();
 		Runtime.getRuntime().halt(-1);
 	}
@@ -333,7 +335,8 @@ public class Daemon {
 
 		public void stopAndJoin() throws InterruptedException {
 			running = false;
-			join();
+			if (Thread.currentThread() != this) // join自己会永久等待；Monitor.run会经由destroySubprocess->joinMonitors间接调用到这里
+				join();
 			try {
 				channel.close();
 			} catch (Exception e) {
