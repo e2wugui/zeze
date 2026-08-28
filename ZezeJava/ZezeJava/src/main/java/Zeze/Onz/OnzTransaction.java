@@ -50,7 +50,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		lock();
 		try {
 			this.pendingAsync = pending;
-			this.notify();
+			thisCond.signal();
 		} finally {
 			unlock();
 		}
@@ -133,6 +133,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		var futures = new ArrayList<TaskCompletionSource<?>>();
 		for (var e : zezeSagas.entrySet()) {
 			var r = new FuncSagaEnd();
+			r.Argument.setOnzTid(onzTid);
 			r.Argument.setCancel(false);
 			futures.add(r.SendForWait(e.getKey()));
 		}
@@ -157,6 +158,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			try {
 				if (e.getValue().get() != null) { // 成功的发送cancel。
 					var r = new FuncSagaEnd();
+					r.Argument.setOnzTid(onzTid);
 					r.Argument.setCancel(true);
 					futures.add(r.SendForWait(e.getKey()));
 				}
