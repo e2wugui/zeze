@@ -268,7 +268,7 @@ public final class TaskSpec<R> {
 	public void scheduleAt(int hour, int minute) {
 		consumeSchedule();
 		var timeout = timeoutOrDefault();
-		Task.runTxnAware(() -> Task.scheduleAtCore(hour, minute, -1, body, name, timeout));
+		Task.runTxnAware(() -> Task.scheduleCore(Task.delayUntilNextDaily(hour, minute), body, name, timeout));
 	}
 
 	/**
@@ -288,7 +288,7 @@ public final class TaskSpec<R> {
 	 */
 	public @NotNull ScheduledFuture<R> scheduleAtNow(int hour, int minute) {
 		consumeSchedule();
-		return Task.scheduleAtCore(hour, minute, -1, body, name, timeoutOrDefault());
+		return Task.scheduleCore(Task.delayUntilNextDaily(hour, minute),body, name, timeoutOrDefault());
 	}
 
 	/**
