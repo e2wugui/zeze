@@ -288,7 +288,8 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		case Control.Ack:
 			for (var it = control.serialIds.iterator(); it.moveToNext(); ) {
 				var p = session.sendWindow.remove(it.value());
-				p.resendTimerTask.cancel(false);
+				if (p != null) // 可能收到重复的Ack：超时重发后对端会再次确认。
+					p.resendTimerTask.cancel(false);
 			}
 			break;
 
