@@ -297,10 +297,10 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			throw new IllegalStateException("root is null. maybe operate before create.");
 
 		if (ahead) {
-			if (values.get(0).getId().equals(id) && root.getHeadNodeId() == nodeIdLong) // HeadNode && List.Last
+			if (values.getFirst().getId().equals(id) && root.getHeadNodeId() == nodeIdLong) // HeadNode && List.Last
 				return nodeIdLong;
 		} else {
-			if (values.get(values.size() - 1).getId().equals(id) && root.getTailNodeId() == nodeIdLong) // TailNode && List.Last
+			if (values.getLast().getId().equals(id) && root.getTailNodeId() == nodeIdLong) // TailNode && List.Last
 				return nodeIdLong;
 		}
 

@@ -2,8 +2,7 @@
 setlocal
 pushd %~dp0
 
-rem ..\..\publish\Gen.exe
+..\..\publish\Gen.exe
 
-..\..\Gen\bin\Debug\net10.0\Gen.exe
 
 pause
