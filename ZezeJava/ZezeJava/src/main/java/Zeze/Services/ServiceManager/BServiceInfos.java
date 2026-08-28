@@ -13,7 +13,9 @@ public final class BServiceInfos implements Serializable {
 	public static final Comparator<BServiceInfo> comparer = (si1, si2) -> {
 		var id1 = si1.getServiceIdentity();
 		var id2 = si2.getServiceIdentity();
-		if (id1.isEmpty() || id1.charAt(0) == '@' || id2.isEmpty() || id2.charAt(0) == '@')
+		// '#'（如LogService）和'@'前缀一样不是数字identity，走字符串比较。参见AbstractAgent.verify。
+		if (id1.isEmpty() || id1.charAt(0) == '@' || id1.charAt(0) == '#'
+				|| id2.isEmpty() || id2.charAt(0) == '@' || id2.charAt(0) == '#')
 			return id1.compareTo(id2);
 		return Long.compare(Long.parseLong(id1), Long.parseLong(id2));
 	};
