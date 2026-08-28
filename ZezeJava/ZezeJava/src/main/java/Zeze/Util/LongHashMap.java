@@ -588,29 +588,29 @@ public class LongHashMap<V> implements Cloneable {
 		}
 		final long[] kt = keyTable;
 		final V[] vt = valueTable;
+		// 两遍：第一遍只应用func（更新值、记录返回null的待删除key），第二遍用remove统一做结构删除。
+		// 原实现就地backward-shift删除会把同探测链的后续条目搬进已遍历区域，导致func跳过它们。
+		long[] removedKeys = null;
+		int removedCount = 0;
 		for (int i = 0, n = kt.length; i < n; i++) {
-			long k = kt[i];
+			final long k = kt[i];
 			if (k != 0) {
 				final V oldV = vt[i];
 				final V v = func.apply(k, oldV);
 				if (v != oldV) {
-					vt[i] = v;
 					if (v == null) {
-						final int m = mask;
-						for (int j = (i + 1) & m; (k = kt[j]) != 0; j = (j + 1) & m) {
-							final int h = hash(k);
-							if (((j - h) & m) > ((i - h) & m)) {
-								kt[i] = k;
-								vt[i] = vt[j];
-								i = j;
-							}
-						}
-						kt[i] = 0;
-						vt[i] = null;
-						size--;
+						if (removedKeys == null)
+							removedKeys = new long[size()];
+						removedKeys[removedCount++] = k;
+					} else {
+						vt[i] = v;
 					}
 				}
 			}
+		}
+		for (int i = 0; i < removedCount; i++) {
+			final long k = removedKeys[i];
+			remove(k, get(k));
 		}
 	}
 
