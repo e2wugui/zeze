@@ -394,11 +394,15 @@ public class Rank extends AbstractRank {
 			return pos;
 
 		var list = total.value.getTableValue().getRankListReadOnly();
+		if (list.isEmpty())
+			return totalUser; // 空榜无法估计，按排在所有人之后处理（原代码此时取list.get(-1)会越界崩溃）。
 		var bean = list.get(list.size() - 1).getDynamicReadOnly().getBean();
 		if (bean.typeId() != BValueLong.TYPEID)
 			throw new RuntimeException("only value long has guess.");
-		var lastRankScore = list.isEmpty() ? 0 : ((BValueLong)bean).getValue();
+		var lastRankScore = ((BValueLong)bean).getValue();
 		var lastRankPosition = list.size();
+		if (lastRankScore == 0)
+			return totalUser; // 防除零：score/0 得Infinity，结果为负数。
 
 		return totalUser - (long)((double)score / lastRankScore * (totalUser - lastRankPosition));
 	}
