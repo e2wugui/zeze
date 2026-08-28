@@ -304,12 +304,10 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					if (!ex.getMessage().contains("already exist"))
 						throw ex;
 				}
-				//noinspection SpellCheckingInspection
 				var tableInstancesSql = "CREATE TABLE IF NOT EXISTS _ZezeInstances_(localid int NOT NULL PRIMARY KEY)";
 				try (var ps = conn.prepareStatement(tableInstancesSql)) {
 					ps.executeUpdate();
 				}
-				//noinspection SpellCheckingInspection
 				var procSetInUseSql = "CREATE PROCEDURE _ZezeSetInUse_(\n" +
 						"    IN  in_local_id INT,\n" +
 						"    IN  in_global LONGBLOB,\n" +

@@ -136,7 +136,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(false);
 
-				//noinspection SpellCheckingInspection
 				String TableDataWithVersion = "if not exists (select * from sysobjects where name='_ZezeDataWithVersion_' and xtype='U')"
 						+ " CREATE TABLE _ZezeDataWithVersion_ (id VARBINARY("
 						+ eMaxKeyLength
@@ -201,7 +200,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				}
 				// zeze_global 使用 _ZezeDataWithVersion_ 存储。
 
-				//noinspection SpellCheckingInspection
 				String ProcSetInUse = "Create or Alter procedure _ZezeSetInUse_" + "\r\n" +
 						"                        @localid int," + "\r\n" +
 						"                        @global VARBINARY(MAX)," + "\r\n" +
@@ -336,7 +334,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				//noinspection SpellCheckingInspection
 				String sql = "if not exists (select * from sysobjects where name='"
 						+ getName() + "' and xtype='U') CREATE TABLE "
 						+ getName() + "(id VARBINARY("
