@@ -9,13 +9,16 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
     public static final long TYPEID = -6424218657633143196L;
 
     private long _NodeId; // KeyValue对所属的节点ID. 每个节点有多个KeyValue对共享
+    private long _SerialNo; // 建立本映射时的代际号(BLinkedMap.SerialNo)，与root不相等即为clear前旧代映射，当作不存在
 
     private static final java.lang.invoke.VarHandle vh_NodeId;
+    private static final java.lang.invoke.VarHandle vh_SerialNo;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
             vh_NodeId = _l_.findVarHandle(BLinkedMapNodeId.class, "_NodeId", long.class);
+            vh_SerialNo = _l_.findVarHandle(BLinkedMapNodeId.class, "_SerialNo", long.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -41,23 +44,46 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
         _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_NodeId, _v_));
     }
 
+    @Override
+    public long getSerialNo() {
+        if (!isManaged())
+            return _SerialNo;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _SerialNo;
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
+        return log != null ? log.value : _SerialNo;
+    }
+
+    public void setSerialNo(long _v_) {
+        if (!isManaged()) {
+            _SerialNo = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_SerialNo, _v_));
+    }
+
     @SuppressWarnings("deprecation")
     public BLinkedMapNodeId() {
     }
 
     @SuppressWarnings("deprecation")
-    public BLinkedMapNodeId(long _NodeId_) {
+    public BLinkedMapNodeId(long _NodeId_, long _SerialNo_) {
         _NodeId = _NodeId_;
+        _SerialNo = _SerialNo_;
     }
 
     @Override
     public void reset() {
         setNodeId(0);
+        setSerialNo(0);
         _unknown_ = null;
     }
 
     public void assign(BLinkedMapNodeId _o_) {
         setNodeId(_o_.getNodeId());
+        setSerialNo(_o_.getSerialNo());
         _unknown_ = _o_._unknown_;
     }
 
@@ -94,7 +120,8 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         _s_.append("Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId: {\n");
-        _s_.append(_i1_).append("NodeId=").append(getNodeId()).append('\n');
+        _s_.append(_i1_).append("NodeId=").append(getNodeId()).append(",\n");
+        _s_.append(_i1_).append("SerialNo=").append(getSerialNo()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -133,6 +160,13 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            long _x_ = getSerialNo();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -144,6 +178,10 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             setNodeId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            setSerialNo(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -160,12 +198,16 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
         var _b_ = (BLinkedMapNodeId)_o_;
         if (getNodeId() != _b_.getNodeId())
             return false;
+        if (getSerialNo() != _b_.getSerialNo())
+            return false;
         return true;
     }
 
     @Override
     public boolean negativeCheck() {
         if (getNodeId() < 0)
+            return true;
+        if (getSerialNo() < 0)
             return true;
         return false;
     }
@@ -180,6 +222,7 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
                 case 1: _NodeId = _v_.longValue(); break;
+                case 2: _SerialNo = _v_.longValue(); break;
             }
         }
     }
@@ -188,18 +231,21 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setNodeId(_r_.getLong(_pn_ + "NodeId"));
+        setSerialNo(_r_.getLong(_pn_ + "SerialNo"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendLong(_pn_ + "NodeId", getNodeId());
+        _s_.appendLong(_pn_ + "SerialNo", getSerialNo());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "NodeId", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "SerialNo", "long", "", ""));
         return _v_;
     }
 }

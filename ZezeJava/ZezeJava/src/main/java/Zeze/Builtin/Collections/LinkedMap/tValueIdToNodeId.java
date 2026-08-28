@@ -27,6 +27,7 @@ public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.Link
     }
 
     public static final int VAR_NodeId = 1;
+    public static final int VAR_SerialNo = 2;
 
     @Override
     public Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey decodeKey(ByteBuffer _os_) {

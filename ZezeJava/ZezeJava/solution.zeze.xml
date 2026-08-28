@@ -107,6 +107,7 @@
 					<variable id="2" name="TailNodeId" type="long" />
 					<variable id="3" name="Count" type="long" />
 					<variable id="4" name="LastNodeId" type="long" /> 最近分配过的NodeId, 用于下次分配
+					<variable id="5" name="SerialNo" type="long" /> clear时递增的代际号：使旧代映射(_tValueIdToNodeId)整体失效，clear保持O(1)
 				</bean>
 				<table name="tLinkedMaps" key="string" value="BLinkedMap" /> key: LinkedMap的Name
 
@@ -116,6 +117,7 @@
 				</beankey>
 				<bean name="BLinkedMapNodeId">
 					<variable id="1" name="NodeId" type="long" /> KeyValue对所属的节点ID. 每个节点有多个KeyValue对共享
+					<variable id="2" name="SerialNo" type="long" /> 建立本映射时的代际号(BLinkedMap.SerialNo)，与root不相等即为clear前旧代映射，当作不存在
 				</bean>
 				<table name="tValueIdToNodeId" key="BLinkedMapKey" value="BLinkedMapNodeId" />
 

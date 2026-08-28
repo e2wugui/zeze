@@ -19,4 +19,5 @@ public interface BLinkedMapReadOnly {
     long getTailNodeId();
     long getCount();
     long getLastNodeId();
+    long getSerialNo();
 }

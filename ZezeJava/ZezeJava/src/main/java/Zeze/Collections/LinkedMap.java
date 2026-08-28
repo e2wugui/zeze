@@ -283,7 +283,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	private long move(@NotNull String id, boolean ahead) {
-		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		var nodeId = getValidNodeId(id);
 		if (nodeId == null)
 			return 0;
 
@@ -325,6 +325,18 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	// map
+	// 查索引并验代际：索引缺失或SerialNo与root不相等（clear前旧代映射）都返回null（当作不存在）。
+	// 必须在同一事务内读root验章：root进入read-set后与并发clear的提交冲突重试，消灭"事务跨clear窗口"的幽灵读。
+	private @Nullable BLinkedMapNodeId getValidNodeId(@NotNull String id) {
+		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		if (nodeId == null)
+			return null;
+		var root = getRoot();
+		if (null == root || root.getSerialNo() != nodeId.getSerialNo())
+			return null;
+		return nodeId;
+	}
+
 	@SuppressWarnings("unchecked")
 	public @NotNull V getOrAdd(@NotNull String id) {
 		var value = get(id);
@@ -345,34 +357,43 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 
 	public @Nullable V put(@NotNull String id, @NotNull V value, boolean ahead) {
 		var nodeIdKey = new BLinkedMapKey(name, id);
-		var nodeId = module._tValueIdToNodeId.get(nodeIdKey);
-		if (nodeId == null) {
-			var newNodeValue = new BLinkedMapNodeValue();
-			newNodeValue.setId(id);
-			newNodeValue.getValue().setBean(value);
-			nodeId = new BLinkedMapNodeId();
-			nodeId.setNodeId(ahead ? addHeadUnsafe(newNodeValue) : addTailUnsafe(newNodeValue));
-			module._tValueIdToNodeId.insert(nodeIdKey, nodeId);
-			var root = getRoot();
-			if (null == root)
-				throw new IllegalStateException("root is null. maybe operate before create.");
-			root.setCount(root.getCount() + 1);
-			return null;
-		}
-		var node = getNode(nodeId.getNodeId());
-		for (var e : node.getValues()) {
-			if (e.getId().equals(id)) {
-				@SuppressWarnings("unchecked")
-				var old = (V)e.getValue().getBean();
-				e.getValue().setBean(value);
-				return old;
+		var mappedNodeId = module._tValueIdToNodeId.get(nodeIdKey);
+		var root = getRoot();
+		var stale = null != mappedNodeId
+				&& (null == root || root.getSerialNo() != mappedNodeId.getSerialNo());
+		if (null != mappedNodeId && !stale) {
+			var node = getNode(mappedNodeId.getNodeId());
+			for (var e : node.getValues()) {
+				if (e.getId().equals(id)) {
+					@SuppressWarnings("unchecked")
+					var old = (V)e.getValue().getBean();
+					e.getValue().setBean(value);
+					return old;
+				}
 			}
+			throw new IllegalStateException("NodeId Exist. But Value Not Found.");
 		}
-		throw new IllegalStateException("NodeId Exist. But Value Not Found.");
+
+		// 无映射或clear前旧代映射：当作不存在，全新插入，绝不复用已摘链的旧NodeId。
+		var newNodeValue = new BLinkedMapNodeValue();
+		newNodeValue.setId(id);
+		newNodeValue.getValue().setBean(value);
+		var newNodeId = new BLinkedMapNodeId();
+		newNodeId.setNodeId(ahead ? addHeadUnsafe(newNodeValue) : addTailUnsafe(newNodeValue));
+		root = getRoot(); // addHeadUnsafe内部getOrAdd保证root存在（处理首个put的情况）
+		if (null == root)
+			throw new IllegalStateException("root is null. maybe operate before create.");
+		newNodeId.setSerialNo(root.getSerialNo());
+		if (stale)
+			mappedNodeId.assign(newNodeId); // 旧映射行还在（延迟任务未删到），原地改写；insert会因key已存在抛异常
+		else
+			module._tValueIdToNodeId.insert(nodeIdKey, newNodeId);
+		root.setCount(root.getCount() + 1);
+		return null;
 	}
 
 	public @Nullable Long getNodeId(@NotNull String id) {
-		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		var nodeId = getValidNodeId(id);
 		if (nodeId == null)
 			return null;
 		return nodeId.getNodeId();
@@ -383,7 +404,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	public @Nullable BLinkedMapNode getNodeById(@NotNull String id) {
-		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		var nodeId = getValidNodeId(id);
 		if (nodeId == null)
 			return null;
 		return getNode(nodeId.getNodeId());
@@ -398,7 +419,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	public @Nullable V get(@NotNull String id) {
-		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		var nodeId = getValidNodeId(id);
 		if (nodeId == null)
 			return null;
 
@@ -420,7 +441,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	@SuppressWarnings("unchecked")
 	public @Nullable V remove(@NotNull String id) {
 		var nodeKey = new BLinkedMapKey(name, id);
-		var nodeId = module._tValueIdToNodeId.get(nodeKey);
+		var nodeId = getValidNodeId(id); // 旧代映射当作不存在：不再把count减成负数、不再写已摘链节点
 		if (nodeId == null)
 			return null;
 
@@ -461,17 +482,10 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		if (null != root) {
 			var headerNodeId = root.getHeadNodeId();
 			var tailNodeId = root.getTailNodeId();
-			// 同步删除全部id->节点映射，关闭clear到延迟清理任务完成之间的窗口：
-			// 窗口内put(旧id)会写进已摘链的节点、随后被清理任务静默删除；remove(旧id)会把count减成负数。
-			// 节点和bean数据的删除仍由delayClearJob分批处理；那里删映射的代码保留，幂等兜底。
-			for (var nodeId = headerNodeId; nodeId != 0; ) {
-				var node = module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
-				if (null == node)
-					break;
-				for (var e : node.getValues())
-					module._tValueIdToNodeId.remove(new BLinkedMapKey(name, e.getId()));
-				nodeId = node.getNextNodeId();
-			}
+			// O(1) clear：递增代际号使全部旧映射整体失效（读侧按SerialNo验章识别旧代、当作不存在，
+			// 见getValidNodeId），节点行、bean数据、旧映射由delayClearJob逐节点分批删除。
+			// LastNodeId不重置：NodeId永不复用，delayClearJob按NodeId归属判断映射是否可删依赖这一点。
+			root.setSerialNo(root.getSerialNo() + 1);
 			root.setHeadNodeId(0);
 			root.setTailNodeId(0);
 			root.setCount(0);

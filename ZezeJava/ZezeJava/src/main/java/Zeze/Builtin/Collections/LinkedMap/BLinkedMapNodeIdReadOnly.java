@@ -16,4 +16,5 @@ public interface BLinkedMapNodeIdReadOnly {
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 
     long getNodeId();
+    long getSerialNo();
 }

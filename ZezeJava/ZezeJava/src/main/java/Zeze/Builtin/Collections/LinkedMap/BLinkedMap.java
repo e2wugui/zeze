@@ -12,11 +12,13 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
     private long _TailNodeId;
     private long _Count;
     private long _LastNodeId; // 最近分配过的NodeId, 用于下次分配
+    private long _SerialNo; // clear时递增的代际号：使旧代映射(_tValueIdToNodeId)整体失效，clear保持O(1)
 
     private static final java.lang.invoke.VarHandle vh_HeadNodeId;
     private static final java.lang.invoke.VarHandle vh_TailNodeId;
     private static final java.lang.invoke.VarHandle vh_Count;
     private static final java.lang.invoke.VarHandle vh_LastNodeId;
+    private static final java.lang.invoke.VarHandle vh_SerialNo;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
@@ -25,6 +27,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
             vh_TailNodeId = _l_.findVarHandle(BLinkedMap.class, "_TailNodeId", long.class);
             vh_Count = _l_.findVarHandle(BLinkedMap.class, "_Count", long.class);
             vh_LastNodeId = _l_.findVarHandle(BLinkedMap.class, "_LastNodeId", long.class);
+            vh_SerialNo = _l_.findVarHandle(BLinkedMap.class, "_SerialNo", long.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -110,16 +113,37 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_LastNodeId, _v_));
     }
 
+    @Override
+    public long getSerialNo() {
+        if (!isManaged())
+            return _SerialNo;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _SerialNo;
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
+        return log != null ? log.value : _SerialNo;
+    }
+
+    public void setSerialNo(long _v_) {
+        if (!isManaged()) {
+            _SerialNo = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_SerialNo, _v_));
+    }
+
     @SuppressWarnings("deprecation")
     public BLinkedMap() {
     }
 
     @SuppressWarnings("deprecation")
-    public BLinkedMap(long _HeadNodeId_, long _TailNodeId_, long _Count_, long _LastNodeId_) {
+    public BLinkedMap(long _HeadNodeId_, long _TailNodeId_, long _Count_, long _LastNodeId_, long _SerialNo_) {
         _HeadNodeId = _HeadNodeId_;
         _TailNodeId = _TailNodeId_;
         _Count = _Count_;
         _LastNodeId = _LastNodeId_;
+        _SerialNo = _SerialNo_;
     }
 
     @Override
@@ -128,6 +152,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         setTailNodeId(0);
         setCount(0);
         setLastNodeId(0);
+        setSerialNo(0);
         _unknown_ = null;
     }
 
@@ -136,6 +161,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         setTailNodeId(_o_.getTailNodeId());
         setCount(_o_.getCount());
         setLastNodeId(_o_.getLastNodeId());
+        setSerialNo(_o_.getSerialNo());
         _unknown_ = _o_._unknown_;
     }
 
@@ -175,7 +201,8 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         _s_.append(_i1_).append("HeadNodeId=").append(getHeadNodeId()).append(",\n");
         _s_.append(_i1_).append("TailNodeId=").append(getTailNodeId()).append(",\n");
         _s_.append(_i1_).append("Count=").append(getCount()).append(",\n");
-        _s_.append(_i1_).append("LastNodeId=").append(getLastNodeId()).append('\n');
+        _s_.append(_i1_).append("LastNodeId=").append(getLastNodeId()).append(",\n");
+        _s_.append(_i1_).append("SerialNo=").append(getSerialNo()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -235,6 +262,13 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            long _x_ = getSerialNo();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -260,6 +294,10 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
             setLastNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 5) {
+            setSerialNo(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -280,6 +318,8 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
             return false;
         if (getLastNodeId() != _b_.getLastNodeId())
             return false;
+        if (getSerialNo() != _b_.getSerialNo())
+            return false;
         return true;
     }
 
@@ -292,6 +332,8 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         if (getCount() < 0)
             return true;
         if (getLastNodeId() < 0)
+            return true;
+        if (getSerialNo() < 0)
             return true;
         return false;
     }
@@ -309,6 +351,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
                 case 2: _TailNodeId = _v_.longValue(); break;
                 case 3: _Count = _v_.longValue(); break;
                 case 4: _LastNodeId = _v_.longValue(); break;
+                case 5: _SerialNo = _v_.longValue(); break;
             }
         }
     }
@@ -320,6 +363,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         setTailNodeId(_r_.getLong(_pn_ + "TailNodeId"));
         setCount(_r_.getLong(_pn_ + "Count"));
         setLastNodeId(_r_.getLong(_pn_ + "LastNodeId"));
+        setSerialNo(_r_.getLong(_pn_ + "SerialNo"));
     }
 
     @Override
@@ -329,6 +373,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         _s_.appendLong(_pn_ + "TailNodeId", getTailNodeId());
         _s_.appendLong(_pn_ + "Count", getCount());
         _s_.appendLong(_pn_ + "LastNodeId", getLastNodeId());
+        _s_.appendLong(_pn_ + "SerialNo", getSerialNo());
     }
 
     @Override
@@ -338,6 +383,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TailNodeId", "long", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Count", "long", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LastNodeId", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SerialNo", "long", "", ""));
         return _v_;
     }
 }

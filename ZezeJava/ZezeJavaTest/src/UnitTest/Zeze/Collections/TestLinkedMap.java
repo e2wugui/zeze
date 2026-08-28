@@ -178,6 +178,107 @@ public class TestLinkedMap {
 	}
 
 	@Test
+	public void test9_ClearInvalidatesStaleMappings() throws Exception {
+		final long[] oldNodeId = new long[1];
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testSerial", BMyBean.class);
+			map.clear(); // 幂等
+			for (int i = 0; i < 40; i++) {
+				var bean = new BMyBean();
+				bean.setI(i);
+				map.put(String.valueOf(i), bean);
+			}
+			oldNodeId[0] = map.getNodeId("5");
+			Assertions.assertTrue(oldNodeId[0] > 0);
+			return 0;
+		}, "test9.put").call());
+
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			App.Instance.LinkedMapModule.open("testSerial", BMyBean.class).clear();
+			return 0;
+		}, "test9.clear").call());
+
+		// clear返回后、延迟清理任务完成前：所有走索引的操作必须立即一致（旧代映射当作不存在）
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testSerial", BMyBean.class);
+			Assertions.assertNull(map.get("5"), "clear后get旧id必须为null");
+			Assertions.assertNull(map.getNodeId("5"), "clear后getNodeId旧id必须为null");
+			Assertions.assertNull(map.getNodeById("5"), "clear后getNodeById旧id必须为null");
+			Assertions.assertNull(map.remove("5"), "clear后remove旧id必须为null");
+			Assertions.assertEquals(0, map.size(), "clear后size必须为0");
+
+			// 窗口内用旧id重建：数据必须存活，且不得复用旧NodeId
+			var bean = new BMyBean();
+			bean.setI(999);
+			Assertions.assertNull(map.put("5", bean));
+			Assertions.assertEquals(999, map.get("5").getI());
+			Assertions.assertEquals(1, map.size());
+			var newId = map.getNodeId("5");
+			Assertions.assertNotNull(newId);
+			Assertions.assertNotEquals(oldNodeId[0], newId, "clear后重建不得复用旧NodeId");
+			return 0;
+		}, "test9.windowVerify").call());
+
+		// 等延迟清理任务跑完：重建的数据不能被误删（映射已指向新节点，job按NodeId归属校验跳过）
+		Thread.sleep(3000);
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testSerial", BMyBean.class);
+			Assertions.assertEquals(999, map.get("5").getI(), "延迟清理不得删除重建数据");
+			Assertions.assertEquals(1, map.size());
+			Assertions.assertEquals(0, App.Instance.Zeze.getDelayRemove().jobCount());
+			return 0;
+		}, "test9.afterJob").call());
+
+		var walked = new ArrayList<Integer>();
+		App.Instance.LinkedMapModule.open("testSerial", BMyBean.class).walk((k, v) -> walked.add(v.getI()));
+		Assertions.assertEquals(List.of(999), walked);
+	}
+
+	@Test
+	public void test10_DoubleClearAndRebuild() throws Exception {
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testSerial2", BMyBean.class);
+			map.clear(); // 幂等
+			for (int i = 0; i < 35; i++) {
+				var bean = new BMyBean();
+				bean.setI(i);
+				map.put(String.valueOf(i), bean);
+			}
+			return 0;
+		}, "test10.put").call());
+
+		// 连续两次clear：代际号连增两次，跨代旧映射都必须失效
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testSerial2", BMyBean.class);
+			map.clear();
+			map.clear();
+			return 0;
+		}, "test10.doubleClear").call());
+
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testSerial2", BMyBean.class);
+			Assertions.assertNull(map.get("7"));
+			Assertions.assertEquals(0, map.size());
+			// 双clear后旧id重建
+			var bean = new BMyBean();
+			bean.setI(777);
+			map.put("7", bean);
+			Assertions.assertEquals(777, map.get("7").getI());
+			Assertions.assertEquals(1, map.size());
+			return 0;
+		}, "test10.verify").call());
+
+		Thread.sleep(3000);
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testSerial2", BMyBean.class);
+			Assertions.assertEquals(777, map.get("7").getI());
+			Assertions.assertEquals(1, map.size());
+			Assertions.assertEquals(0, App.Instance.Zeze.getDelayRemove().jobCount(), "两个clear job都必须跑完删行");
+			return 0;
+		}, "test10.afterJob").call());
+	}
+
+	@Test
 	public void test6_ClearThenPut() throws Exception {
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var map = App.Instance.LinkedMapModule.open("test1", BMyBean.class);
