@@ -15,15 +15,16 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
     }
 
     public void connect(String hostNameOrAddress, int port) {
-        // 绝不能 autoReconnect：与 LoginQueue 之间是一次性服务——排队拿一次 token，服务端发完直接关闭连接，
-        // 客户端拿 token 去 linkd 登录。重连会重新排队再拿 token（等于自己攻击 LoginQueue 队列），
-        // 且重复触发 setLoginToken 回调会重启连 linkd 的流程，其后果未定义。
-        service.connect(hostNameOrAddress, port, false);
+        service.connect(hostNameOrAddress, port, true);
     }
 
-    public void close() throws Exception {
+    public void stop() throws Exception {
         service.stop();
     }
+
+	public void start() throws Exception {
+		service.start();
+	}
 
     public static class LoginQueueClientService extends Service {
         public LoginQueueClientService()
@@ -71,7 +72,7 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
     protected long ProcessPutLoginToken(Zeze.Builtin.LoginQueue.PutLoginToken p) throws Exception {
         if (null != loginToken)
             loginToken.run(p.Argument);
-        close();
+        stop();
         return 0;
     }
 
@@ -79,7 +80,7 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
     protected long ProcessPutQueueFull(Zeze.Builtin.LoginQueue.PutQueueFull p) throws Exception {
         if (null != queueFull)
             queueFull.run();
-        close();
+        stop();
         return 0;
     }
 }
