@@ -85,11 +85,15 @@ public class CsQueue<V extends Bean> {
 
 			// splice 单向链表，新接管的数据拼到开头。
 			srcTail.setNextNodeKey(dstRoot.getHeadNodeKey());
+			if (dstRoot.getHeadNodeKey().getNodeId() == 0) // dst是空队列：接管后链尾就是src的尾，否则后续add产生不可达的孤岛节点。
+				dstRoot.setTailNodeKey(srcTailNodeKey);
 			dstRoot.setHeadNodeKey(src.getHeadNodeKey());
+			dstRoot.setCount(dstRoot.getCount() + src.getCount()); // 接管过来的值计入dst。
 			// clear src
 			var nullKey = new BQueueNodeKey();
 			src.setHeadNodeKey(nullKey);
 			src.setTailNodeKey(nullKey);
+			src.setCount(0);
 			return 0L;
 		}, "CsQueue.splice")).call();
 	}
