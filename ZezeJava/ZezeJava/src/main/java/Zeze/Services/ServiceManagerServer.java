@@ -288,7 +288,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 						else
 							logger.error("ServiceManager.KeepAlive", ex);
 					}
-				}).scheduleNow(
+				}).schedulePeriodNow(
 						Random.getInstance().nextInt(serviceManager.conf.keepAlivePeriod),
 						serviceManager.conf.keepAlivePeriod);
 			} else

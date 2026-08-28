@@ -40,9 +40,9 @@ public class ModuleEquip extends AbstractModule {
 	Future<?> timerSendHotAdd;
 
 	public void startTimer() {
-		timerSendHot = TaskSpec.ofAction(this::testSendHot).scheduleNow(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
-		timerSendHotRemove = TaskSpec.ofAction(this::testSendHotRemove).scheduleNow(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
-		timerSendHotAdd = TaskSpec.ofAction(this::testSendHotAdd).scheduleNow(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
+		timerSendHot = TaskSpec.ofAction(this::testSendHot).schedulePeriodNow(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
+		timerSendHotRemove = TaskSpec.ofAction(this::testSendHotRemove).schedulePeriodNow(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
+		timerSendHotAdd = TaskSpec.ofAction(this::testSendHotAdd).schedulePeriodNow(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
 	}
 
 	public void reportLogin(long roleId) {

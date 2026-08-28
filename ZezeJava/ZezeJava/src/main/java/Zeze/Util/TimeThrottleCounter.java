@@ -17,7 +17,7 @@ public class TimeThrottleCounter implements TimeThrottle {
 
 		this.limit = limit * seconds;
 		this.bandwidthLimit = bandwidthLimit * seconds;
-		timer = TaskSpec.ofAction(this::onTimer).scheduleNow(seconds * 1000L, seconds * 1000L);
+		timer = TaskSpec.ofAction(this::onTimer).schedulePeriodNow(seconds * 1000L, seconds * 1000L);
 	}
 
 	private void onTimer() {

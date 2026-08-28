@@ -170,7 +170,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		if (null == timer) {
 			var period = getRaft().getRaftConfig().getAppendEntriesTimeout() + 200;
 			var delay = Random.getInstance().nextLong(period);
-			timer = TaskSpec.ofAction(this::onTimer).scheduleNow(delay, period);
+			timer = TaskSpec.ofAction(this::onTimer).schedulePeriodNow(delay, period);
 		}
 
 		if (null == commitAgent)

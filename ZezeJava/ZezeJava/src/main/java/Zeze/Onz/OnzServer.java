@@ -134,7 +134,7 @@ public class OnzServer extends AbstractOnz {
 			logger.error("first try.", ex);
 		}
 		// 1 minute?
-		redoTimer = TaskSpec.ofAction(this::redoTimer).scheduleNow(60000, 60000);
+		redoTimer = TaskSpec.ofAction(this::redoTimer).schedulePeriodNow(60000, 60000);
 	}
 
 	private void redoTimer() throws RocksDBException {
@@ -394,12 +394,12 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	@Override
-	protected long ProcessCheckpointRequest(Checkpoint r) throws Exception {
+	protected long ProcessCheckpointRequest(Checkpoint r) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected long ProcessCommitRequest(Commit r) throws Exception {
+	protected long ProcessCommitRequest(Commit r) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -424,17 +424,17 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	@Override
-	protected long ProcessFuncSagaRequest(FuncSaga r) throws Exception {
+	protected long ProcessFuncSagaRequest(FuncSaga r) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected long ProcessFuncSagaEndRequest(FuncSagaEnd r) throws Exception {
+	protected long ProcessFuncSagaEndRequest(FuncSagaEnd r) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected long ProcessRollbackRequest(Rollback r) throws Exception {
+	protected long ProcessRollbackRequest(Rollback r) {
 		throw new UnsupportedOperationException();
 	}
 }

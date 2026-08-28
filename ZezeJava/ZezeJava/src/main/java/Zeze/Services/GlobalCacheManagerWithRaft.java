@@ -122,7 +122,7 @@ public class GlobalCacheManagerWithRaft
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing, this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
-		TaskSpec.ofAction(this::achillesHeelDaemon).schedule(5000, 5000);
+		TaskSpec.ofAction(this::achillesHeelDaemon).schedulePeriod(5000, 5000);
 	}
 
 	private void achillesHeelDaemon() {

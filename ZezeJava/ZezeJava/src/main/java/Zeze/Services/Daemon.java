@@ -210,7 +210,7 @@ public class Daemon {
 									pending.socket.send(pending.packet);
 								}
 							}
-						}).scheduleNow(1000, 1000);
+						}).schedulePeriodNow(1000, 1000);
 						//noinspection DataFlowIssue
 						ShutdownHook.add(() -> timer.cancel(false));
 					}

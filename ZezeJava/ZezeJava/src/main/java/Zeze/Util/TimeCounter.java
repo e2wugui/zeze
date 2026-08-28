@@ -64,7 +64,7 @@ public class TimeCounter extends ReentrantLock {
 
 		// 目前这个用于provider，数量不会很多，简单起见，每个计数启用一个定时任务。
 		if (enableDiscardTask)
-			TaskSpec.ofAction(this::discard).scheduleNow(Random.getInstance().nextLong(1000), 1000);
+			TaskSpec.ofAction(this::discard).schedulePeriodNow(Random.getInstance().nextLong(1000), 1000);
 	}
 
 	public void discard() {

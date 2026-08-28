@@ -253,7 +253,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			if (f != null && !f.isCancelled())
 				cancelStartStatisticLog();
 			this.periodSec = periodSec;
-			f = TaskSpec.ofAction(this).scheduleNow(Random.getInstance().nextLong(periodSec * 1000L), periodSec * 1000L);
+			f = TaskSpec.ofAction(this).schedulePeriodNow(Random.getInstance().nextLong(periodSec * 1000L), periodSec * 1000L);
 			statisticLogFuture = f;
 			return f;
 		}
@@ -599,7 +599,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			var f = scheduleFuture;
 			if (f == null || f.isCancelled()) {
 				var periodMs = Math.max(PERF_PERIOD, 1) * 1000L;
-				scheduleFuture = f = TaskSpec.ofAction(() -> logger.info(getLogAndReset())).scheduleNow(periodMs, periodMs);
+				scheduleFuture = f = TaskSpec.ofAction(() -> logger.info(getLogAndReset())).schedulePeriodNow(periodMs, periodMs);
 			}
 			return f;
 		} finally {

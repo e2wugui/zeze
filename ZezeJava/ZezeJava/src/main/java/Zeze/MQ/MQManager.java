@@ -77,7 +77,7 @@ public class MQManager extends AbstractMQManager {
         masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), queueCount());
         proxyServer.start();
 
-        loadMonitorTimer = TaskSpec.ofAction(this::loadMonitor).scheduleNow(120_000, 120_000);
+        loadMonitorTimer = TaskSpec.ofAction(this::loadMonitor).schedulePeriodNow(120_000, 120_000);
     }
 
     public void stop() throws Exception {
@@ -99,7 +99,7 @@ public class MQManager extends AbstractMQManager {
         masterAgent.reportLoad(loadManager);
     }
 
-    private void loadMQ() throws IOException {
+    private void loadMQ() {
         var topics = new File(home).listFiles();
         if (null == topics)
             return ;
@@ -131,7 +131,7 @@ public class MQManager extends AbstractMQManager {
         cp.createPartitions(topic, partitionIndexes);
     }
 
-    protected long createPartition(CreatePartition r) throws IOException {
+    protected long createPartition(CreatePartition r) {
         createPartition(r.Argument.getTopic(), r.Argument.getPartitionIndexes());
         r.SendResult();
         return 0;

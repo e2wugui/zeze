@@ -338,7 +338,7 @@ public class PrometheusCounter implements ZezeCounter {
 			DistributionDataPoint outputObserve = service_output_buffer_bytes.labelValues(name);
 			long milliSec = ServiceOutputObserveInterval * 1000L;
 			ScheduledFuture<?> scheduler = TaskSpec.ofAction(new ServiceOutputObserve(service, outputObserve))
-					.scheduleNow(Random.getInstance().nextLong(milliSec), milliSec);
+					.schedulePeriodNow(Random.getInstance().nextLong(milliSec), milliSec);
 
 			serviceMap.put(name, new ServiceMetric(service, outputObserve, scheduler));
 		} finally {

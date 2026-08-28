@@ -24,7 +24,7 @@ public final class GlobalTimer {
 		TaskSpec.ofAction(() -> {
 			vhCurMs.setOpaque(System.currentTimeMillis());
 			vhCurSec.setOpaque(System.nanoTime() / 1_000_000_000);
-		}).scheduleNow(1000, 1000);
+		}).schedulePeriodNow(1000, 1000);
 	}
 
 	// 精度只有1秒

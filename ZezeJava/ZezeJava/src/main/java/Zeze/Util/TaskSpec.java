@@ -31,7 +31,8 @@ import org.jetbrains.annotations.Nullable;
  * </ul>
  * <p>
  * 动词约定：无标记动词 = 事务感知（在运行中的事务内延迟到提交后执行/注册，rollback 不执行）；
- * Now 后缀 = 不等事务提交，立即入池/注册（scheduleNow 的 "now" 指注册不等提交，delay 后触发照旧）。
+ * Now 后缀 = 不等事务提交，立即入池/注册（scheduleNow 的 "now" 指注册不等提交，delay 后触发照旧）；
+ * Period 后缀 = 固定延迟周期调度（上次执行结束到下次开始），period 必须 &gt; 0，否则抛 IllegalArgumentException。
  * OneByOne 天然立即语义，故 executeOneByOne 无事务感知变体。
  *
  * <p>spec 实例是一次性的、非线程安全：任何终结方法执行后实例失效，再调 setter/终结方法抛
@@ -43,7 +44,8 @@ import org.jetbrains.annotations.Nullable;
  * <li>{@link #run} 在运行中的事务内且 ofProcedure + dispatchMode(Direct) → IllegalArgumentException
  *     （Direct 延迟时在 commit 回调中同步执行，无法再开事务）；</li>
  * <li>run 族（{@link #run}/{@link #runNow}/{@link #submitNow}）显式设置过 onCancel → IllegalArgumentException；</li>
- * <li>schedule 族显式设置过 dispatchMode/onCancel → IllegalArgumentException；</li>
+ * <li>schedule 族显式设置过 dispatchMode/onCancel → IllegalArgumentException；
+ *     Period 后缀方法 period &lt;= 0 → IllegalArgumentException；</li>
  * <li>executeOneByOne 显式设置过 timeout → IllegalArgumentException；
  *     onCancel 仅 base 家族（含全局队列）支持，Key2 + onCancel → IllegalArgumentException。</li>
  * </ul>
@@ -230,11 +232,12 @@ public final class TaskSpec<R> {
 	}
 
 	/**
-	 * 事务感知注册固定延迟周期调度(毫秒)。忽略 dispatchMode/onCancel（显式设置抛错）。
+	 * 事务感知注册固定延迟周期调度(毫秒)。period &lt;= 0 时抛 IllegalArgumentException。
+	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
 	 * 周期任务无法携带返回值，ofFunc/ofProcedure/ofFunc0 的结果丢弃，日志与统计照常。
 	 */
-	public void schedule(long delay, long period) {
-		consumeSchedule();
+	public void schedulePeriod(long delay, long period) {
+		consumeSchedulePeriod(period);
 		var timeout = timeoutOrDefault();
 		Task.runTxnAware(() -> Task.schedulePeriodCore(delay, period, body, name, timeout));
 	}
@@ -249,56 +252,65 @@ public final class TaskSpec<R> {
 	}
 
 	/**
-	 * 立即注册固定延迟周期调度(毫秒)，不等事务提交，返回句柄。
+	 * 立即注册固定延迟周期调度(毫秒)，不等事务提交，返回句柄。period &lt;= 0 时抛 IllegalArgumentException。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
 	 * 周期任务无法携带返回值，ofFunc/ofProcedure/ofFunc0 的结果丢弃，日志与统计照常。
 	 */
-	public @NotNull TimerFuture<R> scheduleNow(long delay, long period) {
-		consumeSchedule();
+	public @NotNull TimerFuture<R> schedulePeriodNow(long delay, long period) {
+		consumeSchedulePeriod(period);
 		return Task.schedulePeriodCore(delay, period, body, name, timeoutOrDefault());
 	}
 
 	/**
-	 * 事务感知注册每天 hour:minute 调度，默认只触发一次。
+	 * 事务感知注册每天 hour:minute 单次调度（周期版见 {@link #scheduleAtPeriod}）。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
 	 */
 	public void scheduleAt(int hour, int minute) {
-		scheduleAt(hour, minute, -1);
-	}
-
-	/**
-	 * 事务感知注册每天 hour:minute 调度；period &gt; 0 时按该周期(毫秒)重复触发（结果丢弃，见
-	 * {@link #schedule(long, long)}）。忽略 dispatchMode/onCancel（显式设置抛错）。
-	 */
-	public void scheduleAt(int hour, int minute, long period) {
 		consumeSchedule();
 		var timeout = timeoutOrDefault();
-		Task.runTxnAware(() -> Task.scheduleAtCore(hour, minute, period, body, name, timeout));
+		Task.runTxnAware(() -> Task.scheduleAtCore(hour, minute, -1, body, name, timeout));
 	}
 
 	/**
-	 * 立即注册每天 hour:minute 调度，不等事务提交，返回句柄，默认只触发一次。
+	 * 事务感知注册每天 hour:minute 首发后按 period(毫秒)固定延迟周期重复触发（结果丢弃，见
+	 * {@link #schedulePeriod}）。period &lt;= 0 时抛 IllegalArgumentException。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
 	 */
-	public @NotNull ScheduledFuture<R> scheduleAtNow(int hour, int minute) {
-		return scheduleAtNow(hour, minute, -1);
+	public void scheduleAtPeriod(int hour, int minute, long period) {
+		consumeSchedulePeriod(period);
+		var timeout = timeoutOrDefault();
+		Task.runTxnAware(() -> Task.schedulePeriodCore(Task.delayUntilNextDaily(hour, minute), period, body, name, timeout));
 	}
 
 	/**
-	 * 立即注册每天 hour:minute 调度，不等事务提交，返回句柄；period &gt; 0 时按该周期(毫秒)重复触发
-	 * （结果丢弃，见 {@link #schedule(long, long)}）。忽略 dispatchMode/onCancel（显式设置抛错）。
-	 * 实际返回对象取决于 period：period &gt; 0 时为 {@link TimerFuture}（固定延迟周期调度），
-	 * 单次触发时为普通 ScheduledFuture，故声明返回类型保持 ScheduledFuture。
+	 * 立即注册每天 hour:minute 单次调度，不等事务提交，返回句柄（周期版见 {@link #scheduleAtPeriodNow}）。
+	 * 忽略 dispatchMode/onCancel（显式设置抛错）；ofFunc/ofProcedure 的结果码经 Future 传播。
 	 */
-	public @NotNull ScheduledFuture<R> scheduleAtNow(int hour, int minute, long period) {
+	public @NotNull ScheduledFuture<R> scheduleAtNow(int hour, int minute) {
 		consumeSchedule();
-		return Task.scheduleAtCore(hour, minute, period, body, name, timeoutOrDefault());
+		return Task.scheduleAtCore(hour, minute, -1, body, name, timeoutOrDefault());
+	}
+
+	/**
+	 * 立即注册每天 hour:minute 首发后按 period(毫秒)固定延迟周期重复触发（结果丢弃，见
+	 * {@link #schedulePeriodNow}），不等事务提交，返回句柄。
+	 * period &lt;= 0 时抛 IllegalArgumentException。忽略 dispatchMode/onCancel（显式设置抛错）。
+	 */
+	public @NotNull TimerFuture<R> scheduleAtPeriodNow(int hour, int minute, long period) {
+		consumeSchedulePeriod(period);
+		return Task.schedulePeriodCore(Task.delayUntilNextDaily(hour, minute), period, body, name, timeoutOrDefault());
 	}
 
 	private void consumeSchedule() {
 		if (dispatchModeSet || onCancelSet)
 			throw new IllegalArgumentException("schedule family does not consume dispatchMode/onCancel");
 		consume();
+	}
+
+	private void consumeSchedulePeriod(long period) {
+		if (period <= 0)
+			throw new IllegalArgumentException("period must be > 0");
+		consumeSchedule();
 	}
 
 	/**

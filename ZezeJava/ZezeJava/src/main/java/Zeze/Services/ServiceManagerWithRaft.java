@@ -175,7 +175,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 						else
 							logger.error("ServiceManager.KeepAlive", ex);
 					}
-				}).scheduleNow(
+				}).schedulePeriodNow(
 						Random.getInstance().nextInt(conf.keepAlivePeriod),
 						conf.keepAlivePeriod);
 			} else

@@ -59,9 +59,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			// 访问很少的时候不创建新的热点。这个选项没什么意思。
 			if (lruHot.size() > table.getTableConf().getCacheNewAccessHotThreshold())
 				newLruHot();
-		}).scheduleNow(newLruHotPeriod, newLruHotPeriod);
+		}).schedulePeriodNow(newLruHotPeriod, newLruHotPeriod);
 		var cleanPeriod = this.table.getTableConf().getCacheCleanPeriod();
-		timerClean = TaskSpec.ofAction(this::cleanNow).scheduleNow(cleanPeriod, cleanPeriod);
+		timerClean = TaskSpec.ofAction(this::cleanNow).schedulePeriodNow(cleanPeriod, cleanPeriod);
 	}
 
 	final @NotNull ConcurrentHashMap<K, Record1<K, V>> getDataMap() {

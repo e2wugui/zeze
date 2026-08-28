@@ -6,7 +6,6 @@ import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Future;
@@ -336,12 +335,12 @@ public final class Raft {
 	}
 
 	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Config config, String name,
-				Func3<Raft, String, Config, Server> serverFactory, @NotNull TaskOneByOneByKey taskOneByOne) throws Exception {
+	            Func3<Raft, String, Config, Server> serverFactory, @NotNull TaskOneByOneByKey taskOneByOne) throws Exception {
 		this(sm, RaftName, null, raftConf, config, name, serverFactory, taskOneByOne);
 	}
 
 	public Raft(StateMachine sm, String RaftName, RocksDatabase database, RaftConfig raftConf, Config config, String name,
-				Func3<Raft, String, Config, Server> serverFactory, @NotNull TaskOneByOneByKey taskOneByOne) throws Exception {
+	            Func3<Raft, String, Config, Server> serverFactory, @NotNull TaskOneByOneByKey taskOneByOne) throws Exception {
 
 		if (raftConf == null)
 			raftConf = RaftConfig.load();
@@ -396,7 +395,7 @@ public final class Raft {
 			logger.info("Raft {} ShutdownHook end", getName());
 		});
 
-		timerTask = TaskSpec.ofAction(this::onTimer).scheduleNow(20, 20);
+		timerTask = TaskSpec.ofAction(this::onTimer).schedulePeriodNow(20, 20);
 	}
 
 	private long processAppendEntries(AppendEntries r) throws Exception {
@@ -586,7 +585,7 @@ public final class Raft {
 		}
 	}
 
-	private void onLowPrecisionTimer() throws ParseException, Exception {
+	private void onLowPrecisionTimer() throws Exception {
 		server.getConfig().forEachConnector(Connector::start); // Connector Reconnect Bug?
 		logSequence.removeExpiredUniqueRequestSet();
 	}

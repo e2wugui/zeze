@@ -57,7 +57,7 @@ public class TestTaskSpec {
 			futureEx.get(1, TimeUnit.SECONDS);
 			Assertions.fail();
 		} catch (java.util.concurrent.CompletionException e) {
-			Assertions.assertTrue(e.getCause() instanceof IllegalStateException);
+			Assertions.assertInstanceOf(IllegalStateException.class, e.getCause());
 		}
 	}
 
@@ -110,7 +110,7 @@ public class TestTaskSpec {
 		var count = new AtomicInteger();
 		var future = TaskSpec.ofAction(count::incrementAndGet)
 				.name("testOfActionScheduleNowPeriodCancel")
-				.scheduleNow(10, 50);
+				.schedulePeriodNow(10, 50);
 		try {
 			long begin = System.currentTimeMillis();
 			while (count.get() < 3 && System.currentTimeMillis() - begin < 10_000)
@@ -131,7 +131,7 @@ public class TestTaskSpec {
 		var now = java.util.Calendar.getInstance();
 		var future = TaskSpec.ofAction(Assertions::fail)
 				.name("testOfActionScheduleAtNow")
-				.scheduleAtNow(now.get(java.util.Calendar.HOUR_OF_DAY),
+				.scheduleAtPeriodNow(now.get(java.util.Calendar.HOUR_OF_DAY),
 						(now.get(java.util.Calendar.MINUTE) + 1) % 60, 60_000);
 		Assertions.assertFalse(future.isDone());
 		Assertions.assertTrue(future.cancel(false));
@@ -189,7 +189,7 @@ public class TestTaskSpec {
 			futureEx.get(10, TimeUnit.SECONDS);
 			Assertions.fail();
 		} catch (ExecutionException e) {
-			Assertions.assertTrue(e.getCause() instanceof IllegalStateException);
+			Assertions.assertInstanceOf(IllegalStateException.class, e.getCause());
 		}
 	}
 
@@ -206,7 +206,7 @@ public class TestTaskSpec {
 			futureEx.get(10, TimeUnit.SECONDS);
 			Assertions.fail();
 		} catch (ExecutionException e) {
-			Assertions.assertTrue(e.getCause() instanceof IllegalStateException);
+			Assertions.assertInstanceOf(IllegalStateException.class, e.getCause());
 		}
 	}
 
@@ -391,7 +391,7 @@ public class TestTaskSpec {
 		var period = TaskSpec.ofFunc(() -> {
 			count.incrementAndGet();
 			return 0L;
-		}).scheduleNow(10, 30);
+		}).schedulePeriodNow(10, 30);
 		try {
 			for (int i = 0; i < 100 && count.get() < 2; i++)
 				Thread.sleep(20);

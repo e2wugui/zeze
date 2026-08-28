@@ -23,7 +23,7 @@ public class Cache extends ReentrantLock {
 	private final @NotNull BiFunction<String, ByteBuffer, CacheObject> decoder;
 	private RocksDB db;
 	private ConcurrentLruLike<String, CacheObject> lru;
-	private ScheduledFuture<?> cleanTimer;
+	private final ScheduledFuture<?> cleanTimer;
 	private volatile long todayDays;
 	private volatile FileOutputStream todayFile;
 
@@ -47,7 +47,7 @@ public class Cache extends ReentrantLock {
 		lru = new ConcurrentLruLike<>(name, lruCapacity);
 		// 每天6:30尝试删除旧的项。period>0才是周期调度（scheduleAt(hour,minute)默认只触发一次）；
 		// 用scheduleAtNow拿到句柄，close时取消。
-		cleanTimer = TaskSpec.ofAction(this::tryRemove).scheduleAtNow(6, 30, 24 * 60 * 60 * 1000);
+		cleanTimer = TaskSpec.ofAction(this::tryRemove).scheduleAtPeriodNow(6, 30, 24 * 60 * 60 * 1000);
 	}
 
 	public void close() throws IOException {

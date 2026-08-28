@@ -589,7 +589,7 @@ public final class Task {
 		return scheduleAtCore(hour, minute, period, new TaskBody.OfAction(action), null, timeout);
 	}
 
-	static long scheduleAtDelay(int hour, int minute) {
+	static long delayUntilNextDaily(int hour, int minute) {
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, hour);
 		firstTime.set(Calendar.MINUTE, minute);
@@ -603,7 +603,7 @@ public final class Task {
 	static <R> @NotNull ScheduledFuture<R> scheduleAtCore(int hour, int minute, long period,
 	                                                     @NotNull TaskBody<R> body, @Nullable String name,
 	                                                     long timeout) {
-		var delay = scheduleAtDelay(hour, minute);
+		var delay = delayUntilNextDaily(hour, minute);
 		if (period > 0)
 			return schedulePeriodCore(delay, period, body, name, timeout);
 		return scheduleCore(delay, body, name, timeout);

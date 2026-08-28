@@ -176,7 +176,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			sendWindow.put(packet.serialId, packet);
 
 			// start auto resend timer.
-			packet.resendTimerTask = TaskSpec.ofAction(() -> sendTo(peer, packet)).scheduleNow(3000, 3000);
+			packet.resendTimerTask = TaskSpec.ofAction(() -> sendTo(peer, packet)).schedulePeriodNow(3000, 3000);
 			return sendTo(peer, packet);
 		}
 	}

@@ -127,10 +127,10 @@ public class ConcurrentLruLike<K, V> {
 		TaskSpec.ofAction(() -> {
 			if (lruHot.size() > lruInitialCapacity / 2) // 访问很少的时候不创建新的热点
 				newLruHot();
-		}).schedule(newLruHotPeriod, newLruHotPeriod);
+		}).schedulePeriod(newLruHotPeriod, newLruHotPeriod);
 		// 下面这个清理任务的执行时间可能很长；schedule(delay, period) 是固定延迟调度(scheduleWithFixedDelay)，
 		// 本次执行完才开始计时下一次，执行时间长只会推迟后续执行，不会并发重入或堆积。
-		TaskSpec.ofAction(this::cleanNow).schedule(this.cleanPeriod, this.cleanPeriod);
+		TaskSpec.ofAction(this::cleanNow).schedulePeriod(this.cleanPeriod, this.cleanPeriod);
 	}
 
 	public long walkKey(@NotNull TableWalkKey<K> callback) throws Exception {

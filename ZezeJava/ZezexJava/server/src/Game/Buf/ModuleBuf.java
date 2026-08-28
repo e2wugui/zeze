@@ -55,7 +55,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 					var module = App.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 					var service = module.getService();
 					oldAccess = service.hotHelloWorld(oldAccess);
-				}).scheduleNow(
+				}).schedulePeriodNow(
 				rand.nextLong(3000) + 1000,
 				rand.nextLong(3000) + 1000);
 

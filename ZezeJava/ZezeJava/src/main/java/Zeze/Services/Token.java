@@ -537,7 +537,7 @@ public final class Token extends AbstractToken {
 			}
 			service.start();
 
-			cleanTokenMapFuture = TaskSpec.ofAction(this::cleanTokenMap).scheduleNow(1000, 1000);
+			cleanTokenMapFuture = TaskSpec.ofAction(this::cleanTokenMap).schedulePeriodNow(1000, 1000);
 			cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtNow(3, 14);
 			return this;
 		} finally {

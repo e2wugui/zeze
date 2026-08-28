@@ -112,7 +112,7 @@ public class BenchClient {
 				lastReportCount.value = countNow;
 
 				System.out.println("transaction/s: " + diff / elapse);
-			}).scheduleNow(2000, 2000);
+			}).schedulePeriodNow(2000, 2000);
 
 			var inputReader = new BufferedReader(new InputStreamReader(System.in));
 			while (true) {

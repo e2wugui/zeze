@@ -20,7 +20,6 @@ import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
@@ -368,7 +367,7 @@ public class Test {
 		logger.fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		logger.fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
-		snapshotTimer = TaskSpec.ofAction(this::randomSnapshotTimer).scheduleNow(60 * 1000, 60 * 1000);
+		snapshotTimer = TaskSpec.ofAction(this::randomSnapshotTimer).schedulePeriodNow(60 * 1000, 60 * 1000);
 
 		setLogLevel(Level.INFO);
 

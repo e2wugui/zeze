@@ -380,7 +380,7 @@ public final class Agent {
 		this.client.AddFactoryHandle(StopServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
 				StopServerConnector::new, null, TransactionLevel.None, DispatchMode.Normal));
 		// ugly
-		resendTask = TaskSpec.ofAction(this::resend).scheduleNow(1000, 1000);
+		resendTask = TaskSpec.ofAction(this::resend).schedulePeriodNow(1000, 1000);
 	}
 
 	private Connector getRandomConnector(Connector except) {
@@ -645,7 +645,7 @@ public final class Agent {
 		}
 	}
 
-	public static Connector waitForLeader(Agent agent, RaftConfig raftConfig, long timeoutMs) throws Exception {
+	public static Connector waitForLeader(Agent agent, RaftConfig raftConfig, long timeoutMs) {
 		var future = new TaskCompletionSource<Connector>();
 		agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader().getConnector()));
 		var netConfig = agent.getClient().getConfig();

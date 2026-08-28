@@ -5,7 +5,6 @@ import java.util.concurrent.Future;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Component.AutoKey;
 import Zeze.Hot.HotService;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Action2;
 import Zeze.Util.LongConcurrentHashMap;
@@ -162,7 +161,7 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 	private void ScheduleLocal(int serverId, long timerId, long nodeId, long delay, long period, String name) {
 		if (period > 0) {
 			TimersLocal.put(timerId, TaskSpec.ofAction(() -> TriggerTimerLocal(serverId, timerId, nodeId, name))
-					.scheduleNow(delay, period));
+					.schedulePeriodNow(delay, period));
 		} else {
 			TimersLocal.put(timerId, TaskSpec.ofFunc0(() -> TriggerTimerLocal(serverId, timerId, nodeId, name))
 					.scheduleNow(delay));

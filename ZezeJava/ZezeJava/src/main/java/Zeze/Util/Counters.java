@@ -47,7 +47,7 @@ public class Counters extends ReentrantLock {
 		if (future != null)
 			future.cancel(false);
 		this.period = period;
-		future = TaskSpec.ofAction(this::report).scheduleNow(period, period);
+		future = TaskSpec.ofAction(this::report).schedulePeriodNow(period, period);
 	}
 
 	public void increment(@NotNull String name) {

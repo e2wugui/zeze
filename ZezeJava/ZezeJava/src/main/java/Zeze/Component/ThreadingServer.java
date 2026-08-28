@@ -42,7 +42,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 	public ThreadingServer(Service service, ServiceManagerServer.Conf conf) {
 		this.service = service;
 		this.conf = conf;
-		this.timeoutReleaseTask = TaskSpec.ofAction(this::timeoutRelease).scheduleNow(60_000, 60_000);
+		this.timeoutReleaseTask = TaskSpec.ofAction(this::timeoutRelease).schedulePeriodNow(60_000, 60_000);
 	}
 
 	public void close() {
@@ -191,7 +191,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 	}
 
 	@Override
-	protected long ProcessKeepAlive(KeepAlive p) throws Exception {
+	protected long ProcessKeepAlive(KeepAlive p) {
 		var threads = simulateThreadsByServerId.computeIfAbsent(p.Argument.getServerId(), SimulateThreads::new);
 		threads.activeTime = System.currentTimeMillis();
 		if (null == threads.lastAppSerial) {
@@ -302,7 +302,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 	}
 
 	@Override
-	protected long ProcessReadWriteLockOperateRequest(ReadWriteLockOperate r) throws Exception {
+	protected long ProcessReadWriteLockOperateRequest(ReadWriteLockOperate r) {
 		switch (r.Argument.getOperateType()) {
 		case Threading.eEnterRead:
 			simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
@@ -386,7 +386,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 	}
 
 	@Override
-	protected long ProcessSemaphoreCreateRequest(SemaphoreCreate r) throws Exception {
+	protected long ProcessSemaphoreCreateRequest(SemaphoreCreate r) {
 		semaphores.computeIfAbsent(r.Argument.getLockName().getName(),
 				(key) -> new Semaphore(r.Argument.getPermits()));
 		r.SendResult();
@@ -394,7 +394,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 	}
 
 	@Override
-	protected long ProcessSemaphoreReleaseRequest(SemaphoreRelease r) throws Exception {
+	protected long ProcessSemaphoreReleaseRequest(SemaphoreRelease r) {
 		simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
 				(This) -> {
 					var semaphoreAcq = This.semaphoreRefs.get(r.Argument.getLockName().getName());
@@ -421,7 +421,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 	}
 
 	@Override
-	protected long ProcessSemaphoreTryAcquireRequest(SemaphoreTryAcquire r) throws Exception {
+	protected long ProcessSemaphoreTryAcquireRequest(SemaphoreTryAcquire r) {
 		simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
 				(This) -> {
 					var semaphoreAcq = This.getSemaphore(r.Argument.getLockName().getName());
