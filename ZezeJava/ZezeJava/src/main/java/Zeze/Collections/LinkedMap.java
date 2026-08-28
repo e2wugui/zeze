@@ -180,6 +180,14 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		private void delayClearJob(@NotNull DelayRemove delayRemove, @NotNull String jobId, @NotNull Binary jobState) {
 			var state = new BClearJobState();
 			state.decode(ByteBuffer.Wrap(jobState));
+			// 空map的clear会提交head=0的job，立即删除job行
+			if (state.getHeadNodeId() == 0) {
+				zeze.newProcedure(() -> {
+					delayRemove.setJobState(jobId, null); // remove job
+					return 0;
+				}, "LinkedMap.clear").call();
+				return;
+			}
 			while (state.getHeadNodeId() != 0) {
 				zeze.newProcedure(() -> {
 					var nodeId = state.getHeadNodeId();
@@ -204,7 +212,11 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 
 					// save state in this procedure
 					state.setHeadNodeId(node.getNextNodeId());
-					delayRemove.setJobState(jobId, state);
+					// 链走完删除job行：否则每次clear泄漏一行，重启时continueJobs还会空跑一遍
+					if (state.getHeadNodeId() == 0)
+						delayRemove.setJobState(jobId, null); // remove job
+					else
+						delayRemove.setJobState(jobId, state);
 					return 0;
 				}, "LinkedMap.clear").call();
 			}

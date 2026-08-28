@@ -139,6 +139,45 @@ public class TestLinkedMap {
 	}
 
 	@Test
+	public void test8_ClearJobRowCleanup() throws Exception {
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testJobLeak", BMyBean.class);
+			map.clear(); // 幂等
+			for (int i = 0; i < 35; i++) {
+				var bean = new BMyBean();
+				bean.setI(i);
+				map.put(String.valueOf(i), bean);
+			}
+			return 0;
+		}, "test8.put").call());
+
+		// clear触发delayClearJob（commit后异步逐节点删除），等它跑完
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			App.Instance.LinkedMapModule.open("testJobLeak", BMyBean.class).clear();
+			return 0;
+		}, "test8.clear").call());
+		Thread.sleep(3000);
+
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(0, App.Instance.Zeze.getDelayRemove().jobCount(),
+					"clear任务跑完后job行必须删除，否则每次clear泄漏一行且重启空跑");
+			return 0;
+		}, "test8.verifyJobRemoved").call());
+
+		// 空map的clear会提交head=0的job，也必须被立即清掉
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			App.Instance.LinkedMapModule.open("testJobLeak", BMyBean.class).clear();
+			return 0;
+		}, "test8.clearEmpty").call());
+		Thread.sleep(1500);
+
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(0, App.Instance.Zeze.getDelayRemove().jobCount(), "空map clear的job行也必须删除");
+			return 0;
+		}, "test8.verifyEmptyRemoved").call());
+	}
+
+	@Test
 	public void test6_ClearThenPut() throws Exception {
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var map = App.Instance.LinkedMapModule.open("test1", BMyBean.class);

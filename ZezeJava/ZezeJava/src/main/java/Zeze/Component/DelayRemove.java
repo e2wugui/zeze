@@ -146,6 +146,14 @@ public class DelayRemove extends AbstractDelayRemove {
 		}
 	}
 
+	/**
+	 * 当前未完成的Job数量。需要在事务内调用。
+	 */
+	public int jobCount() {
+		var jobs = _tJobs.get(zeze.getConfig().getServerId());
+		return null != jobs ? jobs.getJobs().size() : 0;
+	}
+
 	private void onTimer() {
 		// delayRemove可能需要删除很多记录，不能在一个事务内完成全部删除。
 		// 这里按每个节点的记录的删除在一个事务中执行，节点间用不同的事务。
