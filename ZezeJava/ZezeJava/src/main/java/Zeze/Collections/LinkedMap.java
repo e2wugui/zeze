@@ -167,13 +167,27 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			// concurrencyLevel 应该持久化？因为现在写法，本进程访问会忽略后续不一样的concurrencyLevel，
 			//  但是多进程，没有保护到，会出错。
 			//  但是如果concurrencyLevel持久化，要不要提供修改它的能力？
-			//  题外话，LinkedMap的nodeSize是可以随时改的，它只影响新的node的大小，node大小不一样是可以的。
+			//  题外话：LinkedMap的nodeSize是可以随时改的，它只影响新的node的大小，node大小不一样是可以的。
 			//  先不直接暴露这个方法，只暴露固定级别的方法。
 			if (name.contains("@"))
 				throw new IllegalArgumentException("name contains '@', that is reserved.");
 			// CHashMap和LinkedMap共享一个名字空间，并且CHashMap内部还会创建一批LinkedMap。
-			return (CHashMap<T>)linkedMaps.computeIfAbsent(name,
-					k -> new CHashMap<>(this, k, valueClass, concurrencyLevel, nodeSize));
+			// 不能在linkedMaps.computeIfAbsent的mapping function内构造CHashMap：
+			// 其构造函数会_open(name@i)对同一个map做嵌套computeIfAbsent，JDK抛Recursive update。
+			// 先get，未命中则构造后putIfAbsent竞速（构造幂等：分片_open与initSize都可重入）。
+			var exist = linkedMaps.get(name);
+			if (exist instanceof CHashMap)
+				return (CHashMap<T>)exist;
+			if (null != exist)
+				throw new IllegalArgumentException("name '" + name + "' already opened as LinkedMap.");
+			var created = new CHashMap<>(this, name, valueClass, concurrencyLevel, nodeSize);
+			var prev = linkedMaps.putIfAbsent(name, created);
+			if (null != prev) {
+				if (prev instanceof CHashMap)
+					return (CHashMap<T>)prev;
+				throw new IllegalArgumentException("name '" + name + "' already opened as LinkedMap.");
+			}
+			return created;
 		}
 
 		public final ConcurrentHashMap<String, ChangeListener> NodeListeners = new ConcurrentHashMap<>();
