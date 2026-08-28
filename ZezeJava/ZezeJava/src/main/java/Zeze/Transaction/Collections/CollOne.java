@@ -40,7 +40,6 @@ public final class CollOne<V extends Bean> extends Collection {
 			throw new NullPointerException("value");
 
 		if (isManaged()) {
-			//noinspection DataFlowIssue
 			value.initRootInfoWithRedo(rootInfo, this);
 			//noinspection DataFlowIssue
 			@SuppressWarnings("unchecked")
@@ -100,9 +99,10 @@ public final class CollOne<V extends Bean> extends Collection {
 	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogOne<V>)_log;
-		if (log.value != null) // value是否真的可以为null,目前没看到哪里可以让它为null
+		if (log.value != null) { // value是否真的可以为null,目前没看到哪里可以让它为null
+			log.value.initRootInfo(rootInfo, this); // 与PList2/PMap2等全部同类实现保持一致
 			value = log.value;
-		else if (log.logBean != null)
+		} else if (log.logBean != null)
 			value.followerApply(log.logBean);
 	}
 
