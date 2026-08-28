@@ -21,7 +21,6 @@ import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.OutLong;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -198,8 +197,8 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 						return 0;
 					}
 
-					// removeNode 必须另写，不能直接使用LinkedMap.removeNode。
-					// 只删除仍指向本节点的映射：clear后用旧id重建的映射指向新节点，不能误删。
+					// 这里是清理已摘链的旧代节点：不调整count（clear已归零）、不动链表指针（已摘链），
+					// 只删数据行和仍指向本节点的旧映射——clear后用旧id重建的映射指向新节点，不能误删。
 					for (var e : node.getValues()) {
 						var key = new BLinkedMapKey(state.getLinkedMapName(), e.getId());
 						var current = _tValueIdToNodeId.get(key);
@@ -248,21 +247,14 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	// list
-	public @Nullable BLinkedMap getRoot() {
+	// NodeId是存储布局的内部细节（move会搬迁、clear会摘链、节点空了会被GC），只在当前事务内有意义，
+	// 不作为公共API暴露；外部一律按id操作。getRoot/getNode仅内部使用。
+	private @Nullable BLinkedMap getRoot() {
 		return module._tLinkedMaps.get(name);
 	}
 
-	public BLinkedMapNode getNode(long nodeId) {
+	private BLinkedMapNode getNode(long nodeId) {
 		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
-	}
-
-	public BLinkedMapNode getFirstNode(OutLong nodeId) {
-		var root = getRoot();
-		if (null != root) {
-			nodeId.value = root.getHeadNodeId();
-			return getNode(root.getHeadNodeId());
-		}
-		return null;
 	}
 
 	public boolean isEmpty() {
@@ -392,28 +384,6 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		return null;
 	}
 
-	public @Nullable Long getNodeId(@NotNull String id) {
-		var nodeId = getValidNodeId(id);
-		if (nodeId == null)
-			return null;
-		return nodeId.getNodeId();
-	}
-
-	public @Nullable Long getNodeId(long id) {
-		return getNodeId(String.valueOf(id));
-	}
-
-	public @Nullable BLinkedMapNode getNodeById(@NotNull String id) {
-		var nodeId = getValidNodeId(id);
-		if (nodeId == null)
-			return null;
-		return getNode(nodeId.getNodeId());
-	}
-
-	public @Nullable BLinkedMapNode getNodeById(long id) {
-		return getNodeById(String.valueOf(id));
-	}
-
 	public @Nullable V get(long id) {
 		return get(String.valueOf(id));
 	}
@@ -462,18 +432,6 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			}
 		}
 		throw new IllegalStateException("NodeId Exist. But Value Not Found.");
-	}
-
-	public void removeNode(long nodeId) {
-		BLinkedMapNode node = getNode(nodeId);
-		for (var e : node.getValues())
-			module._tValueIdToNodeId.remove(new BLinkedMapKey(name, e.getId()));
-		var root = getRoot();
-		if (null == root)
-			throw new IllegalStateException("root is null. maybe operate before create.");
-		root.setCount(root.getCount() - node.getValues().size());
-		node.getValues().clear();
-		removeNodeUnsafe(nodeId, node);
 	}
 
 	// foreach

@@ -179,7 +179,6 @@ public class TestLinkedMap {
 
 	@Test
 	public void test9_ClearInvalidatesStaleMappings() throws Exception {
-		final long[] oldNodeId = new long[1];
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var map = App.Instance.LinkedMapModule.open("testSerial", BMyBean.class);
 			map.clear(); // 幂等
@@ -188,8 +187,6 @@ public class TestLinkedMap {
 				bean.setI(i);
 				map.put(String.valueOf(i), bean);
 			}
-			oldNodeId[0] = map.getNodeId("5");
-			Assertions.assertTrue(oldNodeId[0] > 0);
 			return 0;
 		}, "test9.put").call());
 
@@ -202,36 +199,41 @@ public class TestLinkedMap {
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var map = App.Instance.LinkedMapModule.open("testSerial", BMyBean.class);
 			Assertions.assertNull(map.get("5"), "clear后get旧id必须为null");
-			Assertions.assertNull(map.getNodeId("5"), "clear后getNodeId旧id必须为null");
-			Assertions.assertNull(map.getNodeById("5"), "clear后getNodeById旧id必须为null");
 			Assertions.assertNull(map.remove("5"), "clear后remove旧id必须为null");
 			Assertions.assertEquals(0, map.size(), "clear后size必须为0");
+			// clear前已存在的id走getOrAdd必须新建（BMyBean默认i=0），旧代数据(i=6)不得复活
+			Assertions.assertEquals(0, map.getOrAdd("6").getI());
+			Assertions.assertNotNull(map.get("6"));
+			return 0;
+		}, "test9.windowVerify").call());
 
-			// 窗口内用旧id重建：数据必须存活，且不得复用旧NodeId
+		// 窗口内用旧id重建：数据必须存活。NodeId不复用是内部不变量（delayClearJob按NodeId归属校验依赖它），
+		// 其可观察后果就是下面的断言：延迟清理跑完后重建数据不能被误删。
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testSerial", BMyBean.class);
 			var bean = new BMyBean();
 			bean.setI(999);
 			Assertions.assertNull(map.put("5", bean));
 			Assertions.assertEquals(999, map.get("5").getI());
-			Assertions.assertEquals(1, map.size());
-			var newId = map.getNodeId("5");
-			Assertions.assertNotNull(newId);
-			Assertions.assertNotEquals(oldNodeId[0], newId, "clear后重建不得复用旧NodeId");
+			Assertions.assertEquals(2, map.size());
 			return 0;
-		}, "test9.windowVerify").call());
+		}, "test9.rebuild").call());
 
 		// 等延迟清理任务跑完：重建的数据不能被误删（映射已指向新节点，job按NodeId归属校验跳过）
 		Thread.sleep(3000);
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var map = App.Instance.LinkedMapModule.open("testSerial", BMyBean.class);
 			Assertions.assertEquals(999, map.get("5").getI(), "延迟清理不得删除重建数据");
-			Assertions.assertEquals(1, map.size());
+			Assertions.assertNotNull(map.get("6"), "延迟清理不得删除重建数据");
+			Assertions.assertEquals(2, map.size());
 			Assertions.assertEquals(0, App.Instance.Zeze.getDelayRemove().jobCount());
 			return 0;
 		}, "test9.afterJob").call());
 
 		var walked = new ArrayList<Integer>();
 		App.Instance.LinkedMapModule.open("testSerial", BMyBean.class).walk((k, v) -> walked.add(v.getI()));
-		Assertions.assertEquals(List.of(999), walked);
+		Collections.sort(walked);
+		Assertions.assertEquals(List.of(0, 999), walked);
 	}
 
 	@Test
