@@ -35,14 +35,17 @@ public class DAG<V extends Bean> {
 	final DirectedAcyclicGraph<BDAGNodeKey, DefaultEdge> graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 
 	public void addNode(long id, V value) throws Exception {
+		// 未实现：抛出而不是静默丢弃，保留原草稿代码待实现。
+		throw new UnsupportedOperationException("DAG.addNode is not implemented.");
 //		var nodeIdKey = new BDAGNodeKey(name, Long.toString(id));
-		var nodeNode = new BDAGNode();
-		nodeNode.getValue().setBean(value);
-		checkValid();
+//		var nodeNode = new BDAGNode();
+//		nodeNode.getValue().setBean(value);
+//		checkValid();
 	}
 
 	public void addEdge(long from, long to) throws Exception {
-		checkValid();
+		throw new UnsupportedOperationException("DAG.addEdge is not implemented.");
+//		checkValid();
 	}
 
 	public void checkValid() throws Exception {
@@ -72,7 +75,7 @@ public class DAG<V extends Bean> {
 
 		@SuppressWarnings("unchecked")
 		public <BNodeType extends Bean> DAG<BNodeType> open(String dagName, Class<BNodeType> nodeType) {
-			return (DAG<BNodeType>)DAGs.computeIfAbsent("1", key -> new DAG<>(this, key, nodeType));
+			return (DAG<BNodeType>)DAGs.computeIfAbsent(dagName, key -> new DAG<>(this, key, nodeType));
 		}
 	}
 
