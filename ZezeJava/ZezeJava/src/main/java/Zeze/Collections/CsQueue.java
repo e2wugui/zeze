@@ -30,7 +30,7 @@ public class CsQueue<V extends Bean> {
 		var out = new OutLong();
 		TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 			var root = queue.getOrAddRoot();
-			root.setLastNodeId(root.getLoadSerialNo() + 1);
+			root.setLoadSerialNo(root.getLoadSerialNo() + 1);
 			out.value = root.getLoadSerialNo();
 			return 0;
 		}, "increaseLoadSerialNo")).call();
