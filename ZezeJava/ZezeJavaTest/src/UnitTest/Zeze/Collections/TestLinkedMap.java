@@ -105,6 +105,40 @@ public class TestLinkedMap {
 	}
 
 	@Test
+	public void test7_MoveKeepsIndexConsistent() throws Exception {
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testMove", BMyBean.class);
+			map.clear(); // 幂等：清掉上次运行可能残留的状态
+			for (int i = 0; i < 35; i++) { // nodeSize默认30，35个条目必然跨两个节点
+				var bean = new BMyBean();
+				bean.setI(i);
+				map.put(String.valueOf(i), bean);
+			}
+			return 0;
+		}, "test7.put").call());
+
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testMove", BMyBean.class);
+			Assertions.assertEquals(35, map.size());
+			// 头插模式下node1(先建,持有"0".."29")是尾节点，node2是头节点。
+			// moveAhead把"0"从尾节点深处搬到头节点node2，_tValueIdToNodeId必须跟随更新。
+			map.moveAhead("0");
+			return 0;
+		}, "test7.move").call());
+
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testMove", BMyBean.class);
+			Assertions.assertNotNull(map.get("0"), "move后索引仍指向旧节点，get找不到");
+			Assertions.assertEquals(0, map.get("0").getI());
+			// put原地更新分支同样走索引，索引不对会抛"NodeId Exist. But Value Not Found."
+			var old = map.put("0", new BMyBean());
+			Assertions.assertNotNull(old);
+			Assertions.assertEquals(35, map.size());
+			return 0;
+		}, "test7.verify").call());
+	}
+
+	@Test
 	public void test6_ClearThenPut() throws Exception {
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var map = App.Instance.LinkedMapModule.open("test1", BMyBean.class);

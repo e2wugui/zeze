@@ -298,7 +298,15 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 				values.remove(i);
 				if (values.isEmpty())
 					removeNodeUnsafe(nodeId.getNodeId(), node);
-				return ahead ? addHeadUnsafe(e.copy()) : addTailUnsafe(e.copy());
+				// 不能用e.copy()：Bean.copy默认实现抛UnsupportedOperationException，绝大多数value bean未实现。
+				// 也不能直接搬value bean引用：受管bean跨容器移动抛HasManagedException。序列化往返得到未受管副本。
+				var bb = ByteBuffer.Allocate(e.preAllocSize());
+				e.encode(bb);
+				var newNodeValue = new BLinkedMapNodeValue();
+				newNodeValue.decode(ByteBuffer.Wrap(bb.Bytes, 0, bb.WriteIndex));
+				var newNodeId = ahead ? addHeadUnsafe(newNodeValue) : addTailUnsafe(newNodeValue);
+				nodeId.setNodeId(newNodeId); // 索引必须跟随搬迁指向新节点，否则get/remove找不到、put误判重复
+				return newNodeId;
 			}
 		}
 		throw new IllegalStateException("Node Exist But Value Not Found.");
