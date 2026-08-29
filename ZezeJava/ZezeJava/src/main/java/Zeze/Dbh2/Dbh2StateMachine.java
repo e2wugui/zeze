@@ -441,6 +441,12 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					var key = e.getKey();
 					var value = e.getValue();
 
+					if (value.size() == 0) {
+						// 分桶期间的delete被编码为Binary.Empty的put（见Dbh2.onCommitBatch），这里解码回delete。
+						table.delete(key.bytesUnsafe(), key.getOffset(), key.size());
+						continue;
+					}
+
 					// replace
 					table.put(key.bytesUnsafe(), key.getOffset(), key.size(),
 							value.bytesUnsafe(), value.getOffset(), value.size());
