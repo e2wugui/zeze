@@ -176,7 +176,7 @@ public class DatagramSession extends AsyncSocket {
 
 	@Override
 	public boolean isClosed() {
-		return socket.containsSession(this);
+		return !socket.containsSession(this);
 	}
 
 	@Override

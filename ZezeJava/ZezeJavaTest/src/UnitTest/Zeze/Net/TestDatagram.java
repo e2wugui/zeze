@@ -58,6 +58,22 @@ public class TestDatagram {
 		return 0;
 	}
 
+	// N-3缺陷: isClosed()语义颠倒——存活返回true、close()之后返回false,
+	// 对照TcpSocket/Websocket全家族(closed != 0),所有按!isClosed()判断的调用方语义反转。
+	@Test
+	public void testIsClosed() throws Exception {
+		Task.tryInitThreadPool();
+		var service = new TestDatagramService();
+		var server = service.bindUdp(new InetSocketAddress(0));
+		var session = server.createSessionServer(
+				new InetSocketAddress("127.0.0.1", server.getLocal().getPort()),
+				null, ReplayAttackPolicy.AllowDisorder);
+		Assertions.assertFalse(session.isClosed(), "alive session reported closed");
+		session.close(null);
+		Assertions.assertTrue(session.isClosed(), "closed session reported alive");
+		service.Stop();
+	}
+
 	@Test
 	public void testReplay() {
 		var r = new ReplayAttackGrowRange(2);
