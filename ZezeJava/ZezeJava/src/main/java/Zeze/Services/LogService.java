@@ -95,6 +95,8 @@ public class LogService extends AbstractLogService {
 
 	public void stop() throws Exception {
 		this.server.stop();
+		for (var manager : logManagers.values())
+			manager.stop(); // 停掉日志文件监视线程与索引定时器（stopAndJoin不再挂起）
 		if (serviceManager != null)
 			serviceManager.close();
 	}

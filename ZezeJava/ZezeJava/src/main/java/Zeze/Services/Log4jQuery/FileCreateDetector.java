@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchService;
+import java.nio.file.ClosedWatchServiceException;
 import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,7 +47,11 @@ public class FileCreateDetector {
 				}
 				if (!key.reset())
 					break;
+			} catch (ClosedWatchServiceException ex) {
+				break; // stopAndJoin关闭了watchService，正常退出
 			} catch (Exception ex) {
+				if (!running)
+					break; // 停止过程中出现的异常不当错误处理
 				logger.error("", ex);
 			}
 		}
@@ -54,6 +59,12 @@ public class FileCreateDetector {
 
 	public void stopAndJoin() {
 		running = false;
+		try {
+			// take()无超时阻塞，必须先关闭watchService解除阻塞（抛ClosedWatchServiceException），否则join永久挂起。
+			watchService.close();
+		} catch (IOException e) {
+			logger.error("close watchService failed", e);
+		}
 		try {
 			watchThread.join();
 		} catch (InterruptedException e) {
