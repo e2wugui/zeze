@@ -317,7 +317,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 
 			// offline notify，开启一个线程执行，避免互等造成麻烦。
-			// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
+			// 延迟 eOfflineNotifyDelay 发送：期间同 serverId 重新注册（进程重启或断线重连）会取消延迟通知，
+			// 避免把短暂掉线误判为宕机；发送前的最终防线见 offlineNotify 的活会话检查。
 			if (offlineRegisterServerId >= 0) {
 				serviceManager.lock();
 				try {
@@ -333,8 +334,20 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 
 		private void offlineNotify(boolean delay) {
-			if (delay && null == serviceManager.offlineNotifyFutures.remove(offlineRegisterServerId))
-				return; // 此serverId的新连接已经连上或者通知已经执行。
+			if (delay) {
+				serviceManager.lock();
+				try {
+					if (null == serviceManager.offlineNotifyFutures.remove(offlineRegisterServerId))
+						return; // 此serverId的新连接已经连上或者通知已经执行。
+
+					// 关闭事件的检测可能晚于断线重连完成（如keepalive超时才判定），此时取消已错过，
+					// 且断线重连不改变loadSerialNo、接收端的serial校验失效，必须在发送前确认没有同serverId的活会话。
+					if (anyLiveSessionSameOfflineServerId())
+						return; // 服务器实际在线（断线重连成功），不广播离线。
+				} finally {
+					serviceManager.unlock();
+				}
+			}
 
 			BOfflineNotify[] notifyIds;
 			offlineRegisterNotifiesLock.lock();
@@ -369,6 +382,31 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				}
 			}
 			logger.info("offlineNotify: serverId={} end", offlineRegisterServerId);
+		}
+
+		// 持有serviceManager.lock时调用：当前是否存在注册了同offlineRegisterServerId的其他活会话。
+		// 本会话的连接已关闭，不在server的连接表中，扫描自然排除自己。
+		// 锁序为serviceManager.lock -> session.offlineRegisterNotifiesLock单向，
+		// processOfflineRegister不得在持session锁时获取serviceManager.lock，否则死锁。
+		private boolean anyLiveSessionSameOfflineServerId() {
+			var found = new boolean[1];
+			try {
+				serviceManager.server.foreach(socket -> {
+					var session = (Session)socket.getUserState();
+					if (session == null || session == this)
+						return;
+					session.offlineRegisterNotifiesLock.lock();
+					try {
+						if (session.offlineRegisterServerId == offlineRegisterServerId)
+							found[0] = true;
+					} finally {
+						session.offlineRegisterNotifiesLock.unlock();
+					}
+				});
+			} catch (Exception e) {
+				throw Task.forceThrow(e);
+			}
+			return found[0];
 		}
 
 		// 从注册了这个notifyId的其他session中随机选择一个。【实际实现是从连接里面按顺序挑选的】
@@ -520,14 +558,21 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				r.getSender(), r.Argument.serverId, r.Argument.notifyId);
 		var session = (Session)r.getSender().getUserState();
 		// 允许重复注册：简化server注册逻辑。
-		Future<?> future;
 		session.offlineRegisterNotifiesLock.lock();
 		try {
 			session.offlineRegisterServerId = r.Argument.serverId;
 			session.offlineRegisterNotifies.put(r.Argument.notifyId, r.Argument);
-			future = offlineNotifyFutures.remove(session.offlineRegisterServerId);
 		} finally {
 			session.offlineRegisterNotifiesLock.unlock();
+		}
+		// 取消旧连接的延迟离线通知。remove必须与onClose的containsKey/put在同一把锁下互斥；
+		// 不能嵌套在session锁内（offlineNotify持serviceManager.lock时会取session锁，反向嵌套死锁）。
+		Future<?> future;
+		lock();
+		try {
+			future = offlineNotifyFutures.remove(r.Argument.serverId);
+		} finally {
+			unlock();
 		}
 		if (future != null)
 			future.cancel(true);

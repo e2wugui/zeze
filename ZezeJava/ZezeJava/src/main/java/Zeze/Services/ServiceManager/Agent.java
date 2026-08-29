@@ -34,6 +34,8 @@ public final class Agent extends AbstractAgent {
 
 	private final @NotNull AgentClient client;
 	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
+	// 断线重连后需要重发的离线注册参数。仅保存handle不够：重发必须携带serverId/serialId才能取消服务端的延迟离线通知。
+	private final ConcurrentHashMap<String, BOfflineNotify> offlineRegisters = new ConcurrentHashMap<>(); // key:notifyId
 
 	private Threading threading;
 
@@ -134,6 +136,7 @@ public final class Agent extends AbstractAgent {
 	public void offlineRegister(@NotNull BOfflineNotify argument, @NotNull Action1<BOfflineNotify> handle) {
 		waitConnectorReady();
 		onOfflineNotifies.putIfAbsent(argument.notifyId, handle);
+		offlineRegisters.put(argument.notifyId, argument);
 		new OfflineRegister(argument).SendAndWaitCheckResultCode(client.getSocket());
 	}
 
@@ -176,6 +179,17 @@ public final class Agent extends AbstractAgent {
 		} catch (Throwable ex) { // logger.debug
 			// skip and continue.
 			logger.debug("OnConnected.Register", ex);
+		}
+
+		// 重放离线注册：取消旧连接onClose安排的延迟离线通知。断线重连时进程还活着，
+		// 不重发的话延迟通知必然触发，且loadSerialNo未变、接收端serial校验失效，活服务器会被误接管。
+		// 同时恢复本服务器作为离线通知目标（服务端按notifyId在会话上找通知对象）。
+		for (var argument : offlineRegisters.values()) {
+			try {
+				new OfflineRegister(argument).SendAndWaitCheckResultCode(client.getSocket());
+			} catch (Throwable ex) { // logger.error
+				logger.error("OnConnected.OfflineRegister", ex);
+			}
 		}
 
 		var subArg = new BSubscribeArgument();
