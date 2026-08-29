@@ -854,30 +854,55 @@ public class HttpExchange {
 		var fn = file.getName();
 		var fc = FileChannel.open(file.toPath(), readOnlyOpenOptions);
 		var fsize = fc.size();
-		var r = parseRange(req, HttpHeaderNames.RANGE);
-		var from = r[0];
-		var to = r[1];
-		if (from < 0 && to >= 0) { // 后缀形式 bytes=-N: 最后N字节(N>=fsize时整个文件)
-			from = Math.max(fsize - to, 0);
-			to = fsize - 1;
-		} else {
-			if (from < 0)
-				from = 0;
-			if (to < 0 || to >= fsize) // RFC 7233: to是inclusive右端点，超出文件尾按fsize-1截断
-				to = fsize - 1;
-		}
-		var contentLen = Math.max(to - from + 1, 0L);
+		var rangeHeader = req.headers().get(HttpHeaderNames.RANGE);
+		// RFC 7233: 多段Range需multipart/byteranges（暂不支持），降级为200全量（服务器可忽略Range）
+		var r = rangeHeader != null && rangeHeader.indexOf(',') < 0 ? parseRange(req, HttpHeaderNames.RANGE) : null;
 
-		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, headersFactory);
-		HttpServer.setDate(res.headers())
+		var from = 0L;
+		var to = fsize - 1L;
+		var partial = false;
+		if (r != null && (r[0] >= 0 || r[1] >= 0)) { // 语法有效的单段Range
+			var satisfiable = false;
+			if (r[0] >= 0) { // bytes=from-[to]；可满足: from在文件内且(to缺失或to>=from)
+				satisfiable = r[0] < fsize && (r[1] < 0 || r[1] >= r[0]);
+				if (satisfiable) {
+					from = r[0];
+					if (r[1] >= 0)
+						to = Math.min(r[1], fsize - 1); // to是inclusive右端点，超出文件尾按fsize-1截断
+				}
+			} else { // 后缀形式 bytes=-N；可满足: N>0且文件非空（bytes=-0按RFC不可满足）
+				satisfiable = r[1] > 0 && fsize > 0;
+				if (satisfiable)
+					from = Math.max(fsize - r[1], 0);
+			}
+			if (!satisfiable) { // RFC要求416 + Content-Range: bytes */fsize（客户端据此检测远端文件截断）
+				var res416 = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+						HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, Unpooled.EMPTY_BUFFER,
+						headersFactory, trailersFactory);
+				HttpServer.setDate(res416.headers())
+						.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+						.set(HttpHeaderNames.CONTENT_LENGTH, 0)
+						.set(HttpHeaderNames.CONTENT_RANGE, "bytes */" + fsize);
+				fc.close();
+				close(context.writeAndFlush(res416));
+				return;
+			}
+			partial = true;
+		}
+		var contentLen = partial ? to - from + 1 : fsize;
+
+		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1,
+				partial ? HttpResponseStatus.PARTIAL_CONTENT : HttpResponseStatus.OK, headersFactory);
+		var headers = HttpServer.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 				.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')
 				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
 				.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
-				.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + (from + contentLen - 1) + '/' + fsize)
 				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
 				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + fileCacheSeconds)
 				.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
+		if (partial) // Content-Range只属于206/416，200不带
+			headers.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + to + '/' + fsize);
 		context.write(res, context.voidPromise());
 
 		if (contentLen > 0 && !HttpMethod.HEAD.equals(req.method())) // 发文件任务全部交给Netty，并且发送完毕时关闭。

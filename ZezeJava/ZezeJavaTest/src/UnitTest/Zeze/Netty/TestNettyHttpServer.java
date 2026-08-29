@@ -203,11 +203,13 @@ public class TestNettyHttpServer {
 		Assertions.assertEquals("streamBody", res.body());
 	}
 
-	private static byte @NotNull [] rangeGet(@Nullable String range, long from, long toExcl) throws Exception {
+	private static byte @NotNull [] rangeGet(@Nullable String range, int expectStatus, long from, long toExcl)
+			throws Exception {
 		var b = HttpRequest.newBuilder().uri(URI.create("http://127.0.0.1:" + port + "/testSendFile")).GET();
 		if (range != null)
 			b.header("Range", range);
 		var res = HttpClient.newHttpClient().send(b.build(), HttpResponse.BodyHandlers.ofByteArray());
+		Assertions.assertEquals(expectStatus, res.statusCode(), "status, range=" + range);
 		Assertions.assertEquals(toExcl - from, res.body().length, "body length, range=" + range);
 		Assertions.assertArrayEquals(java.util.Arrays.copyOfRange(sendFileData, (int)from, (int)toExcl), res.body(),
 				"body content, range=" + range);
@@ -216,35 +218,64 @@ public class TestNettyHttpServer {
 
 	// N-4缺陷: sendFile把Range的to按exclusive处理（RFC 7233为inclusive闭区间右端点），
 	// bytes=0-499只发499字节且Content-Range不匹配；to不截断到fsize-1；后缀bytes=-N解析错误。
+	// RFC 7233状态码合规: 部分内容必须206（200语义为完整文件，严格客户端会把半截body当全量写坏本地文件）；
+	// 不可满足范围必须416+Content-Range: bytes */fsize（客户端据此检测远端文件截断）；
+	// 多段Range需multipart/byteranges（暂不支持），降级200全量；无Range不发Content-Range。
 	@Test
 	public void testSendFileRange() throws Exception {
-		// bytes=0-499: 闭区间前500字节
+		// bytes=0-499: 闭区间前500字节，206
 		var res = HttpClient.newHttpClient().send(HttpRequest.newBuilder()
 				.uri(URI.create("http://127.0.0.1:" + port + "/testSendFile"))
 				.header("Range", "bytes=0-499").GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+		Assertions.assertEquals(206, res.statusCode());
 		Assertions.assertEquals(500, res.body().length);
 		Assertions.assertArrayEquals(java.util.Arrays.copyOfRange(sendFileData, 0, 500), res.body());
 		Assertions.assertEquals("bytes 0-499/1000", res.headers().firstValue("content-range").orElse(""));
 
 		// bytes=100-199: 100字节
-		rangeGet("bytes=100-199", 100, 200);
+		rangeGet("bytes=100-199", 206, 100, 200);
 
 		// bytes=100-: 到文件尾
-		rangeGet("bytes=100-", 100, 1000);
+		rangeGet("bytes=100-", 206, 100, 1000);
 
-		// 无Range: 整个文件
-		rangeGet(null, 0, 1000);
+		// 无Range: 200整个文件，且不发Content-Range（该头只属于206/416）
+		var resFull = HttpClient.newHttpClient().send(HttpRequest.newBuilder()
+				.uri(URI.create("http://127.0.0.1:" + port + "/testSendFile")).GET().build(),
+				HttpResponse.BodyHandlers.ofByteArray());
+		Assertions.assertEquals(200, resFull.statusCode());
+		Assertions.assertEquals(1000, resFull.body().length);
+		Assertions.assertTrue(resFull.headers().firstValue("content-range").isEmpty(),
+				"200 must not carry content-range");
 
 		// bytes=0-999999: to按RFC截断到fsize-1，仍为整个文件
-		rangeGet("bytes=0-999999", 0, 1000);
+		rangeGet("bytes=0-999999", 206, 0, 1000);
 
 		// bytes=-300: 后缀形式，最后300字节
 		var res2 = HttpClient.newHttpClient().send(HttpRequest.newBuilder()
 				.uri(URI.create("http://127.0.0.1:" + port + "/testSendFile"))
 				.header("Range", "bytes=-300").GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+		Assertions.assertEquals(206, res2.statusCode());
 		Assertions.assertEquals(300, res2.body().length);
 		Assertions.assertArrayEquals(java.util.Arrays.copyOfRange(sendFileData, 700, 1000), res2.body());
 		Assertions.assertEquals("bytes 700-999/1000", res2.headers().firstValue("content-range").orElse(""));
+
+		// bytes=1500-: 起始超出文件尾，416 + Content-Range: bytes */1000 + 空body
+		var res416 = HttpClient.newHttpClient().send(HttpRequest.newBuilder()
+				.uri(URI.create("http://127.0.0.1:" + port + "/testSendFile"))
+				.header("Range", "bytes=1500-").GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+		Assertions.assertEquals(416, res416.statusCode());
+		Assertions.assertEquals(0, res416.body().length);
+		Assertions.assertEquals("bytes */1000", res416.headers().firstValue("content-range").orElse(""));
+
+		// bytes=500-200: to<from无交集，RFC规定不可满足，416
+		var res416b = HttpClient.newHttpClient().send(HttpRequest.newBuilder()
+				.uri(URI.create("http://127.0.0.1:" + port + "/testSendFile"))
+				.header("Range", "bytes=500-200").GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+		Assertions.assertEquals(416, res416b.statusCode());
+		Assertions.assertEquals("bytes */1000", res416b.headers().firstValue("content-range").orElse(""));
+
+		// bytes=0-99,200-299: 多段暂不支持multipart，降级200全量（服务器可忽略Range）
+		rangeGet("bytes=0-99,200-299", 200, 0, 1000);
 	}
 
 	@Test
