@@ -21,11 +21,14 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 
 		@Override
 		public void update(byte @NotNull [] b, int off, int len) {
-			while (len >= 0x80) {
-				sink.update((byte)(len | 0x80));
-				len >>= 7;
+			if (len <= 0)
+				return; // 0是flush标记（见flush），不能作为长度前缀写出
+			int v = len; // varint编码用副本，写数据必须用原始len
+			while (v >= 0x80) {
+				sink.update((byte)(v | 0x80));
+				v >>= 7;
 			}
-			sink.update((byte)len);
+			sink.update((byte)v);
 			sink.update(b, off, len);
 		}
 

@@ -5,9 +5,12 @@ import org.junit.jupiter.api.Test;
 import Zeze.Serialize.*;
 import Zeze.Net.BufferCodec;
 import Zeze.Net.Compress;
+import Zeze.Net.CompressMppcZstd;
 import Zeze.Net.Decompress;
+import Zeze.Net.DecompressMppcZstd;
 import Zeze.Net.Decrypt;
 import Zeze.Net.Encrypt;
+import Zeze.Util.ZstdFactory;
 import org.junit.jupiter.api.Assertions;
 import java.util.*;
 
@@ -92,6 +95,58 @@ public class TestCodec{
 			dp.update(bufcp.getBuffer().Bytes, bufcp.getBuffer().ReadIndex, bufcp.getBuffer().size());
 			dp.flush();
 			Assertions.assertEquals(ByteBuffer.Wrap(buffer), bufdp.getBuffer());
+		}
+	}
+
+	// N-2缺陷: SinkWrapper.update的varint编码用len本体移位,最后写数据用的是移位后的残余长度,
+	// len>=0x80时向解码方声明了完整长度却只写残余字节,流错位。帧格式: [varint len][len字节数据]。
+	@Test
+	public final void testMppcZstdSinkWrapperVarint() {
+		var data = new byte[200];
+		new Random(1234).nextBytes(data);
+
+		var sink = new BufferCodec();
+		var wrapper = new CompressMppcZstd.SinkWrapper(sink);
+		wrapper.update((byte)0xAB); // 单字节帧: [0x01][0xAB]
+		wrapper.update(data, 0, data.length); // 200=0b11001000 -> varint [0xC8, 0x01] + 全部200字节
+
+		var expected = ByteBuffer.Allocate(3 + 200);
+		expected.WriteByte(0x01);
+		expected.WriteByte((byte)0xAB);
+		expected.WriteByte((byte)(200 | 0x80));
+		expected.WriteByte((byte)(200 >> 7));
+		expected.Append(data, 0, data.length);
+		Assertions.assertEquals(expected, sink.getBuffer());
+
+		// len==0: 不能写出任何字节(0是解码侧的flush标记)
+		int sizeBefore = sink.getBuffer().size();
+		wrapper.update(data, 0, 0);
+		Assertions.assertEquals(sizeBefore, sink.getBuffer().size());
+	}
+
+	@Test
+	public final void testMppcZstdRoundTrip() {
+		var rand = new Random();
+		int[] sizes = {1, 100, 127, 128, 300, 64 * 1024};
+		for (int size : sizes) {
+			var data = new byte[size];
+			rand.nextBytes(data);
+
+			var bufcp = new BufferCodec();
+			var cp = new CompressMppcZstd(bufcp,
+					ZstdFactory.ZstdCompressStream.DEFAULT_DST_BUF_SIZE,
+					ZstdFactory.ZstdCompressStream.DEFAULT_COMPRESS_LEVEL,
+					ZstdFactory.ZstdCompressStream.DEFAULT_WINDOW_LOG);
+			cp.updateBlock(data, 0, size);
+			cp.flushBlock();
+
+			var bufdp = new BufferCodec();
+			var dp = new DecompressMppcZstd(bufdp,
+					ZstdFactory.ZstdDecompressStream.DEFAULT_DST_BUF_SIZE,
+					ZstdFactory.ZstdDecompressStream.DEFAULT_DST_BUF_SIZE);
+			dp.update(bufcp.getBuffer().Bytes, bufcp.getBuffer().ReadIndex, bufcp.getBuffer().size());
+			dp.flush();
+			Assertions.assertEquals(ByteBuffer.Wrap(data), bufdp.getBuffer());
 		}
 	}
 }
