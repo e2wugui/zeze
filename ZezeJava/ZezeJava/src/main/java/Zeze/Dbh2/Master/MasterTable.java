@@ -23,6 +23,21 @@ public class MasterTable {
 			return buckets;
 		}
 
+		// 持锁深拷贝快照：Master读路径（GetBuckets/LocateBucket/Register）返回或遍历快照，
+		// 避免rpc序列化遍历TreeMap与endSplit/endMove的持锁写并发（CME/脏结构）。
+		public MasterTable.Data snapshot() {
+			lock();
+			try {
+				var copy = new MasterTable.Data();
+				copy.created = created;
+				for (var e : buckets.entrySet())
+					copy.buckets.put(e.getKey(), e.getValue().copy());
+				return copy;
+			} finally {
+				unlock();
+			}
+		}
+
 		public BBucketMeta.Data locate(Binary key) {
 			var lower = buckets.floorEntry(key);
 			return lower.getValue();

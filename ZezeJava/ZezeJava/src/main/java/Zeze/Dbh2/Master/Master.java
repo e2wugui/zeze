@@ -221,7 +221,7 @@ public class Master extends AbstractMaster {
 		var table = database.getTable(r.Argument.getTable());
 		if (null == table)
 			return errorCode(eTableNotFound);
-		r.Result = table;
+		r.Result = table.snapshot(); // 快照：rpc序列化遍历与分桶写入并发
 		r.SendResult();
 		return 0;
 	}
@@ -234,7 +234,16 @@ public class Master extends AbstractMaster {
 		var table = database.getTable(r.Argument.getTable());
 		if (null == table)
 			return errorCode(eTableNotFound);
-		r.Result = table.locate(r.Argument.getKey()); // 初始桶保证肯定找得到。
+		// floorEntry对并发写不是线程安全（红黑树重组中途读），持锁定位。
+		// 拿到的bucket引用不会被写路径原地修改（endSplit/endMove都是整体替换），锁外发送安全。
+		Zeze.Builtin.Dbh2.BBucketMeta.Data bucket;
+		table.lock();
+		try {
+			bucket = table.locate(r.Argument.getKey()); // 初始桶保证肯定找得到。
+		} finally {
+			table.unlock();
+		}
+		r.Result = bucket;
 		r.SendResult();
 		return 0;
 	}
@@ -246,9 +255,10 @@ public class Master extends AbstractMaster {
 			var managerHostPort = r.Argument.getDbh2RaftAcceptorName() + "_" + r.Argument.getPort();
 			managers.add(new Manager(r.getSender(), r.Argument));
 			// 搜索所有的桶，返回在这个manager上的所有桶的配置。
+			// 逐表取快照再遍历：master.lock不保护table.buckets（写方持table.lock），无锁遍历会与分桶写并发。
 			for (var db : databases.values()) {
 				for (var table : db.getTables().entrySet()) {
-					for (var bucket : table.getValue().getBuckets().values()) {
+					for (var bucket : table.getValue().snapshot().getBuckets().values()) {
 						var raftName = bucket.getHost2Raft().get(managerHostPort);
 						if (raftName != null) {
 							var dbh2Config = new BDbh2Config.Data();
