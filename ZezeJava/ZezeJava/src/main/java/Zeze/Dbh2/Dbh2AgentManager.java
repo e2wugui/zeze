@@ -318,52 +318,14 @@ public class Dbh2AgentManager extends ReentrantLock {
 		}
 	}
 
-	public long walk(MasterAgent masterAgent,
-					 String masterName, String databaseName, String tableName,
-					 TableWalkHandleRaw callback,
-					 boolean desc,
-					 byte @Nullable [] prefix) throws Exception {
-		var table = buckets.get(masterName).get(databaseName).get(tableName);
-		var allBuckets = desc ? table.getBuckets().descendingMap().values() : table.buckets();
-		var count = 0L;
-		for (var bucketIt = allBuckets.iterator(); bucketIt.hasNext(); /* nothing */) {
-			var exclusiveStartKey = Binary.Empty;
-			var proposeLimit = 5000;
-			var bucket = bucketIt.next();
-			while (true) {
-				var r = openBucket(bucket.getRaftConfig()).walk(exclusiveStartKey, proposeLimit, desc, prefix);
-				// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
-				if (r.getResultCode() != 0)
-					throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
-				if (r.Result.isBucketRefuse()) {
-					// 分桶但是本地信息没有更新会出现这种情况，此时重新装载桶的信息，再次定位。
-					reload(masterAgent, masterName, databaseName, tableName);
-					bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveStartKey, desc);
-					if (bucketIt.hasNext()) {
-						bucket = bucketIt.next();
-						continue; // refused and redirect success.
-					}
-					break; // no more bucket
-				}
-				for (var keyValue : r.Result.getKeyValues()) {
-					callback.handle(keyValue.getKey().bytesUnsafe(), keyValue.getValue().bytesUnsafe());
-					exclusiveStartKey = keyValue.getKey();
-					count++;
-				}
-				if (r.Result.isBucketEnd() || r.Result.getKeyValues().isEmpty())
-					break; // no more record in this bucket
-			}
-		}
-		return count;
-	}
-
 	// 把全局游标换算成针对目标桶的游标：桶外时asc从桶头、desc从桶尾开始；
 	// 返回null表示该桶整体已在游标走过的范围内，跳过。
 	private static @Nullable Binary bucketExclusive(Binary exclusiveKey, BBucketMeta.Data bucket, boolean desc) {
 		if (exclusiveKey.size() == 0)
 			return Binary.Empty;
 		if (desc) {
-			if (exclusiveKey.compareTo(bucket.getKeyFirst()) < 0)
+			// desc交付严格小于游标的key：游标<=keyFirst时本桶无keyFirst..游标之间的可交付key，整桶跳过。
+			if (exclusiveKey.compareTo(bucket.getKeyFirst()) <= 0)
 				return null;
 			var keyLast = bucket.getKeyLast();
 			return keyLast.size() > 0 && exclusiveKey.compareTo(keyLast) >= 0 ? Binary.Empty : exclusiveKey;
@@ -373,33 +335,49 @@ public class Dbh2AgentManager extends ReentrantLock {
 		return bucket.getKeyLast().size() > 0 && exclusiveKey.compareTo(bucket.getKeyLast()) >= 0 ? null : exclusiveKey;
 	}
 
-	public ByteBuffer walk(MasterAgent masterAgent,
-						   String masterName, String databaseName, String tableName,
-						   ByteBuffer exclusiveStartKey, int proposeLimit,
-						   TableWalkHandleRaw callback,
-						   boolean desc,
-						   byte @Nullable [] prefix) throws Exception {
-		var exclusiveKey = exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty;
+	// 一页抓取结果：refused表示分桶拒绝需重定位；count为本页交付条数；lastKey为最后交付key（count>0时有效）。
+	private static final class FetchResult {
+		final boolean refused;
+		final boolean bucketEnd;
+		final int count;
+		final Binary lastKey;
+
+		FetchResult(boolean refused, boolean bucketEnd, int count, Binary lastKey) {
+			this.refused = refused;
+			this.bucketEnd = bucketEnd;
+			this.count = count;
+			this.lastKey = lastKey;
+		}
+	}
+
+	private static final FetchResult REFUSED = new FetchResult(true, false, 0, null);
+
+	@FunctionalInterface
+	private interface PageFetcher {
+		FetchResult fetch(Dbh2Agent agent, Binary exclusiveKey, int limit) throws Exception;
+	}
+
+	// 抓取一页（可跨桶）：从exclusiveKey起按方向交付最多proposeLimit条（交付由fetcher执行），
+	// 返回下一页游标；null表示全表走完。
+	private ByteBuffer walkPage(MasterAgent masterAgent, String masterName, String databaseName, String tableName,
+								Binary exclusiveKey, int proposeLimit, boolean desc, byte @Nullable [] prefix,
+								PageFetcher fetch) throws Exception {
 		var bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey, desc);
 		if (!bucketIt.hasNext())
 			return null;
 		var bucket = bucketIt.next();
 		var limit = proposeLimit;
 		while (true) {
-			var bucketExclusive = bucketExclusive(exclusiveKey, bucket, desc);
-			if (bucketExclusive == null) {
+			var exclusiveForBucket = bucketExclusive(exclusiveKey, bucket, desc);
+			if (exclusiveForBucket == null) {
 				// 桶整体已在游标走过的范围：跳过。
 				if (!bucketIt.hasNext())
 					return null; // no more bucket
 				bucket = bucketIt.next();
 				continue;
 			}
-			Binary lastKey = null;
-			var r = openBucket(bucket.getRaftConfig()).walk(bucketExclusive, limit, desc, prefix);
-			// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
-			if (r.getResultCode() != 0)
-				throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
-			if (r.Result.isBucketRefuse()) {
+			var result = fetch.fetch(openBucket(bucket.getRaftConfig()), exclusiveForBucket, limit);
+			if (result.refused) {
 				// 分桶但是本地信息没有更新会出现这种情况，此时重新装载桶的信息，再次定位。
 				reload(masterAgent, masterName, databaseName, tableName);
 				bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey, desc);
@@ -409,17 +387,13 @@ public class Dbh2AgentManager extends ReentrantLock {
 				}
 				return null; // no more bucket
 			}
-			for (var keyValue : r.Result.getKeyValues()) {
-				callback.handle(keyValue.getKey().copyIf(), keyValue.getValue().copyIf());
-				lastKey = keyValue.getKey();
-			}
-			if (lastKey != null) {
-				exclusiveKey = lastKey;
-				limit -= r.Result.getKeyValues().size();
+			if (result.lastKey != null) {
+				exclusiveKey = result.lastKey;
+				limit -= result.count;
 				if (limit <= 0)
 					return ByteBuffer.Wrap(exclusiveKey); // 页满
 			}
-			if (!r.Result.isBucketEnd() && !r.Result.getKeyValues().isEmpty()) {
+			if (!result.bucketEnd && result.count > 0) {
 				// 非桶尾但未填满页（服务端不会发生，防御）：返回游标，避免死循环。
 				return ByteBuffer.Wrap(exclusiveKey);
 			}
@@ -430,43 +404,85 @@ public class Dbh2AgentManager extends ReentrantLock {
 		}
 	}
 
+	public long walk(MasterAgent masterAgent,
+					 String masterName, String databaseName, String tableName,
+					 TableWalkHandleRaw callback,
+					 boolean desc,
+					 byte @Nullable [] prefix) throws Exception {
+		var total = new long[1];
+		var exclusiveKey = Binary.Empty;
+		while (true) {
+			var cursor = walkPage(masterAgent, masterName, databaseName, tableName, exclusiveKey, 5000, desc, prefix,
+					(agent, exclusive, limit) -> {
+						var r = agent.walk(exclusive, limit, desc, prefix);
+						if (r.getResultCode() != 0)
+							throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
+						if (r.Result.isBucketRefuse())
+							return REFUSED;
+						Binary lastKey = null;
+						for (var keyValue : r.Result.getKeyValues()) {
+							callback.handle(keyValue.getKey().bytesUnsafe(), keyValue.getValue().bytesUnsafe());
+							lastKey = keyValue.getKey();
+						}
+						total[0] += r.Result.getKeyValues().size();
+						return new FetchResult(false, r.Result.isBucketEnd(), r.Result.getKeyValues().size(), lastKey);
+					});
+			if (cursor == null)
+				return total[0];
+			exclusiveKey = new Binary(cursor);
+		}
+	}
+
+	public ByteBuffer walk(MasterAgent masterAgent,
+						   String masterName, String databaseName, String tableName,
+						   ByteBuffer exclusiveStartKey, int proposeLimit,
+						   TableWalkHandleRaw callback,
+						   boolean desc,
+						   byte @Nullable [] prefix) throws Exception {
+		return walkPage(masterAgent, masterName, databaseName, tableName,
+				exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty, proposeLimit, desc, prefix,
+				(agent, exclusive, limit) -> {
+					var r = agent.walk(exclusive, limit, desc, prefix);
+					if (r.getResultCode() != 0)
+						throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
+					if (r.Result.isBucketRefuse())
+						return REFUSED;
+					Binary lastKey = null;
+					for (var keyValue : r.Result.getKeyValues()) {
+						callback.handle(keyValue.getKey().copyIf(), keyValue.getValue().copyIf());
+						lastKey = keyValue.getKey();
+					}
+					return new FetchResult(false, r.Result.isBucketEnd(), r.Result.getKeyValues().size(), lastKey);
+				});
+	}
+
 	public long walkKey(MasterAgent masterAgent,
 						String masterName, String databaseName, String tableName,
 						TableWalkKeyRaw callback,
 						boolean desc,
 						byte @Nullable [] prefix) throws Exception {
-		var table = buckets.get(masterName).get(databaseName).get(tableName);
-		var allBuckets = desc ? table.getBuckets().descendingMap().values() : table.buckets();
-		var count = 0L;
-		for (var bucketIt = allBuckets.iterator(); bucketIt.hasNext(); /* nothing */) {
-			var exclusiveStartKey = Binary.Empty;
-			var proposeLimit = 5000;
-			var bucket = bucketIt.next();
-			while (true) {
-				var r = openBucket(bucket.getRaftConfig()).walkKey(exclusiveStartKey, proposeLimit, desc, prefix);
-				// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
-				if (r.getResultCode() != 0)
-					throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
-				if (r.Result.isBucketRefuse()) {
-					// 分桶但是本地信息没有更新会出现这种情况，此时重新装载桶的信息，再次定位。
-					reload(masterAgent, masterName, databaseName, tableName);
-					bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveStartKey, desc);
-					if (bucketIt.hasNext()) {
-						bucket = bucketIt.next();
-						continue; // refused and redirect success.
-					}
-					break; // no more bucket
-				}
-				for (var key : r.Result.getKeys()) {
-					callback.handle(key.bytesUnsafe());
-					exclusiveStartKey = key;
-					count++;
-				}
-				if (r.Result.isBucketEnd() || r.Result.getKeys().isEmpty())
-					break; // no more record in this bucket
-			}
+		var total = new long[1];
+		var exclusiveKey = Binary.Empty;
+		while (true) {
+			var cursor = walkPage(masterAgent, masterName, databaseName, tableName, exclusiveKey, 5000, desc, prefix,
+					(agent, exclusive, limit) -> {
+						var r = agent.walkKey(exclusive, limit, desc, prefix);
+						if (r.getResultCode() != 0)
+							throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
+						if (r.Result.isBucketRefuse())
+							return REFUSED;
+						Binary lastKey = null;
+						for (var key : r.Result.getKeys()) {
+							callback.handle(key.bytesUnsafe());
+							lastKey = key;
+						}
+						total[0] += r.Result.getKeys().size();
+						return new FetchResult(false, r.Result.isBucketEnd(), r.Result.getKeys().size(), lastKey);
+					});
+			if (cursor == null)
+				return total[0];
+			exclusiveKey = new Binary(cursor);
 		}
-		return count;
 	}
 
 	public ByteBuffer walkKey(MasterAgent masterAgent,
@@ -475,54 +491,20 @@ public class Dbh2AgentManager extends ReentrantLock {
 							  TableWalkKeyRaw callback,
 							  boolean desc,
 							  byte @Nullable [] prefix) throws Exception {
-		var exclusiveKey = exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty;
-		var bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey, desc);
-		if (!bucketIt.hasNext())
-			return null;
-		var bucket = bucketIt.next();
-		var limit = proposeLimit;
-		while (true) {
-			var bucketExclusive = bucketExclusive(exclusiveKey, bucket, desc);
-			if (bucketExclusive == null) {
-				// 桶整体已在游标走过的范围：跳过。
-				if (!bucketIt.hasNext())
-					return null; // no more bucket
-				bucket = bucketIt.next();
-				continue;
-			}
-			Binary lastKey = null;
-			var r = openBucket(bucket.getRaftConfig()).walkKey(bucketExclusive, limit, desc, prefix);
-			// 处理错误：1. 需要处理分桶的拒绝；2. 其他错误抛出异常。
-			if (r.getResultCode() != 0)
-				throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
-			if (r.Result.isBucketRefuse()) {
-				// 分桶但是本地信息没有更新会出现这种情况，此时重新装载桶的信息，再次定位。
-				reload(masterAgent, masterName, databaseName, tableName);
-				bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey, desc);
-				if (bucketIt.hasNext()) {
-					bucket = bucketIt.next();
-					continue; // refused and redirect success.
-				}
-				return null; // no more bucket
-			}
-			for (var key : r.Result.getKeys()) {
-				callback.handle(key.copyIf());
-				lastKey = key;
-			}
-			if (lastKey != null) {
-				exclusiveKey = lastKey;
-				limit -= r.Result.getKeys().size();
-				if (limit <= 0)
-					return ByteBuffer.Wrap(exclusiveKey); // 页满
-			}
-			if (!r.Result.isBucketEnd() && !r.Result.getKeys().isEmpty()) {
-				// 非桶尾但未填满页（服务端不会发生，防御）：返回游标，避免死循环。
-				return ByteBuffer.Wrap(exclusiveKey);
-			}
-			// 桶尾或空页：推进到下一个桶继续填页，全部桶走完才算表尾。
-			if (!bucketIt.hasNext())
-				return null; // no more bucket
-			bucket = bucketIt.next();
-		}
+		return walkPage(masterAgent, masterName, databaseName, tableName,
+				exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty, proposeLimit, desc, prefix,
+				(agent, exclusive, limit) -> {
+					var r = agent.walkKey(exclusive, limit, desc, prefix);
+					if (r.getResultCode() != 0)
+						throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
+					if (r.Result.isBucketRefuse())
+						return REFUSED;
+					Binary lastKey = null;
+					for (var key : r.Result.getKeys()) {
+						callback.handle(key.copyIf());
+						lastKey = key;
+					}
+					return new FetchResult(false, r.Result.isBucketEnd(), r.Result.getKeys().size(), lastKey);
+				});
 	}
 }
