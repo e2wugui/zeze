@@ -426,7 +426,7 @@ public class LogSequence {
 		if (this.database == null)
 			this.database = new RocksDatabase(Paths.get(raft.getRaftConfig().getDbHome(), "db").toString());
 
-		this.rafts = database.getOrAddTable(raft.getName() + ".rafts");
+		this.rafts = this.database.getOrAddTable(raft.getName() + ".rafts");
 		{
 			// Read Term
 			raftsTermKey = makeRaftsKey(0);
@@ -457,7 +457,7 @@ public class LogSequence {
 			lastSnapshotIndex = lastSnapshotIndexValue != null ? ByteBuffer.Wrap(lastSnapshotIndexValue).ReadLong() : 0;
 		}
 
-		logs = database.getOrAddTable(raft.getName() + ".logs");
+		logs = this.database.getOrAddTable(raft.getName() + ".logs");
 		{
 			// Read Last Log Index
 			try (var itLast = logs.iterator()) {

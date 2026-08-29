@@ -60,14 +60,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	private void raftOnSetLeader(@NotNull Agent agent) {
-		var client = agent.getClient();
-		if (client == null)
-			return;
-		var zeze = client.getZeze();
-		if (zeze == null)
-			return;
-		var config = zeze.getConfig();
-
+		// 直接使用自身持有的config。raftClient以Config构造（无Application），getClient().getZeze()为null，
+		// 原来经zeze round-trip取配置会在null检查处直接return，Login永远不发送。
 		var future = startNewLogin();
 		var login = new Login();
 		login.Argument.setSessionName(config.getServiceManagerConf().getSessionName());
@@ -187,19 +181,21 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	private void waitLoginReady() {
-		var volatileTmp = loginFuture;
-		if (volatileTmp.isDone()) {
-			if (volatileTmp.get())
-				return;
-			throw new IllegalStateException("login fail.");
+		var deadline = System.currentTimeMillis() + super.config.getServiceManagerConf().getLoginTimeout();
+		for (; ; ) {
+			var volatileTmp = loginFuture;
+			if (!volatileTmp.isDone())
+				volatileTmp.await(Math.max(1, deadline - System.currentTimeMillis()));
+			try {
+				if (volatileTmp.get())
+					return;
+			} catch (Throwable ignored) { // ignored
+				// 等待期间raftOnSetLeader执行startNewLogin，cancel旧future并替换；
+				// 被替换不是失败，重读最新future继续等。
+			}
+			if (System.currentTimeMillis() >= deadline)
+				throw new IllegalStateException("login timeout.");
 		}
-		if (!volatileTmp.await(super.config.getServiceManagerConf().getLoginTimeout()))
-			throw new IllegalStateException("login timeout.");
-		// 再次查看结果。
-		if (volatileTmp.isDone() && volatileTmp.get())
-			return;
-		// 只等待一次，不成功则失败。
-		throw new IllegalStateException("login timeout.");
 	}
 
 	private @NotNull TaskCompletionSource<Boolean> startNewLogin() {

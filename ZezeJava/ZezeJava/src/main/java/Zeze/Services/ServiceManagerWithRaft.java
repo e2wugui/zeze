@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Builtin.ServiceManagerWithRaft.*;
 import Zeze.Config;
@@ -49,7 +50,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	private final @NotNull Table<String, BSession> tableSession;
 	private final @NotNull Table<String, BLoadObservers> tableLoadObservers;
 	private final @NotNull Table<String, BServerState> tableServerState;
-	private final HashMap<Integer, Future<?>> offlineNotifyFutures = new HashMap<>();
+	// 跨线程读写：raft派发线程（持锁）的put/remove与延迟通知任务线程（无锁）的remove并发，必须用并发容器。
+	private final ConcurrentHashMap<Integer, Future<?>> offlineNotifyFutures = new ConcurrentHashMap<>();
 
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
 	private final ServiceManagerServer.Conf conf = new ServiceManagerServer.Conf();
@@ -156,6 +158,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		private final String name;
 		private final long sessionId;
 		private final Future<?> keepAliveTimerTask;
+		// 本连接注册过的离线通知id。randomFor挑选通知目标时校验候选者是否注册了该notifyId；
+		// 行数据在rocks里，通知任务线程无事务上下文不能读表，在连接对象上内存记录一份。
+		public final HashSet<String> offlineNotifyIds = new HashSet<>();
 		public static final long eOfflineNotifyDelay = 600 * 1000;
 
 		public Session(String name, long sessionId) {
@@ -187,6 +192,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				keepAliveTimerTask.cancel(false);
 
 			var session = tableSession.get(name);
+			// 关闭事件的检测可能晚于同名新连接的Login（keepalive超时等），此时行已被新连接接管，
+			// 校验归属后跳过清理，否则新连接的注册/订阅被误清并删行，其后续请求NPE。
+			if (null != session && session.getSessionId() != sessionId)
+				return;
 			if (null != session) {
 				for (var info : session.getSubscribes().values())
 					unSubscribeNow(name, info.getServiceName());
@@ -209,7 +218,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				ServiceManagerWithRaft.sendNotifies(notifies);
 
 				// offline notify，开启一个线程执行，避免互等造成麻烦。
-				// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
+				// 延迟 eOfflineNotifyDelay 发送：期间同 serverId 重新注册（Login或OfflineRegister）会取消延迟通知，
+				// 避免把短暂掉线误判为宕机。
 				var serverId = session.getOfflineRegisterServerId();
 				if (serverId >= 0) {
 					if (!offlineNotifyFutures.containsKey(serverId))
@@ -224,7 +234,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 
 		private void tryNotifyOffline(OfflineNotify notify, BSession session, BOfflineNotifyRocks notifyId, HashSet<Session> skips) {
-			var selected = randomFor(session, notifyId.getNotifyId(), skips);
+			var selected = randomFor(notifyId.getNotifyId(), skips);
 			if (selected == null)
 				return; // 没有找到可用的通知对象，放弃通知。
 
@@ -263,15 +273,15 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 
 		// 从注册了这个notifyId的其他session中随机选择一个。【实际实现是从连接里面按顺序挑选的】
-		private KV<Session, AsyncSocket> randomFor(BSession session, String notifyId, HashSet<Session> skips) {
+		private KV<Session, AsyncSocket> randomFor(String notifyId, HashSet<Session> skips) {
 			var sessions = new ArrayList<KV<Session, AsyncSocket>>();
 			try {
 				rocks.getRaft().getServer().foreach(socket -> {
 					var netSession = (Session)socket.getUserState();
-					if (netSession != null && netSession != this && !skips.contains(netSession)) {
-						if (session.getOfflineRegisterNotifies().containsKey(notifyId))
-							sessions.add(KV.create(netSession, socket));
-					}
+					// 校验候选者自己注册过这个notifyId（原来是检查死者行的注册表，恒真，会把通知发给任意会话）
+					if (netSession != null && netSession != this && !skips.contains(netSession)
+							&& netSession.offlineNotifyIds.contains(notifyId))
+						sessions.add(KV.create(netSession, socket));
 				});
 			} catch (Exception e) {
 				Task.forceThrow(e);
@@ -287,6 +297,14 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var session = tableSession.getOrAdd(r.Argument.getSessionName());
 		r.getSender().setUserState(new Session(r.Argument.getSessionName(), r.getSender().getSessionId()));
 		session.setSessionId(r.getSender().getSessionId());
+		// 同名重连：取消旧连接onClose安排的延迟离线通知。断线重连时进程还活着，
+		// loadSerialNo未变、接收端serial校验失效，不取消的话600秒后活服务器被广播离线误接管。
+		var offlineServerId = session.getOfflineRegisterServerId();
+		if (offlineServerId >= 0) {
+			var future = offlineNotifyFutures.remove(offlineServerId);
+			if (null != future)
+				future.cancel(true);
+		}
 		r.SendResult();
 		return 0;
 	}
@@ -331,6 +349,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var session = tableSession.get(netSession.name);
 		// 允许重复注册：简化server注册逻辑。
 		session.setOfflineRegisterServerId(r.Argument.serverId);
+		netSession.offlineNotifyIds.add(r.Argument.notifyId);
 
 		var bOfflineNotifyRocks = new BOfflineNotifyRocks();
 		bOfflineNotifyRocks.setServerId(r.Argument.serverId);
