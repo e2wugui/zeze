@@ -623,7 +623,7 @@ public class HttpExchange {
 		}
 	}
 
-	// 下载请求/上传回复: range: bytes=[from]-[to] 范围是[from,to)
+	// 下载请求/上传回复: range: bytes=[from]-[to]，闭区间[from,to]；bytes=-N为最后N字节
 	// 上传请求/下载回复: content-range: bytes from-to/size 范围是[from,to]
 	// 参考: https://www.jianshu.com/p/acca9656e250
 	// 返回: [from, to, size]
@@ -855,9 +855,18 @@ public class HttpExchange {
 		var fc = FileChannel.open(file.toPath(), readOnlyOpenOptions);
 		var fsize = fc.size();
 		var r = parseRange(req, HttpHeaderNames.RANGE);
-		var from = Math.max(r[0], 0);
+		var from = r[0];
 		var to = r[1];
-		var contentLen = Math.max((to >= 0 ? to : fsize) - from, 0L);
+		if (from < 0 && to >= 0) { // 后缀形式 bytes=-N: 最后N字节(N>=fsize时整个文件)
+			from = Math.max(fsize - to, 0);
+			to = fsize - 1;
+		} else {
+			if (from < 0)
+				from = 0;
+			if (to < 0 || to >= fsize) // RFC 7233: to是inclusive右端点，超出文件尾按fsize-1截断
+				to = fsize - 1;
+		}
+		var contentLen = Math.max(to - from + 1, 0L);
 
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, headersFactory);
 		HttpServer.setDate(res.headers())

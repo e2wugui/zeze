@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Netty;
 
 import harness.Fast;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -31,6 +32,7 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AttributeKey;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -41,10 +43,17 @@ public class TestNettyHttpServer {
 	private static Netty netty;
 	private static HttpServer server;
 	private static int port;
+	private static File sendFileTmp;
+	private static byte @NotNull [] sendFileData;
 
 	@Http.Get(transactionLevel = TransactionLevel.Serializable, dispatchMode = DispatchMode.Direct)
 	public static void testFull(@NotNull HttpExchange x) {
 		x.sendPlainText(HttpResponseStatus.OK, "fullBody");
+	}
+
+	@Http.Get(transactionLevel = TransactionLevel.Serializable, dispatchMode = DispatchMode.Direct)
+	public static void testSendFile(@NotNull HttpExchange x) throws Exception {
+		x.sendFile(sendFileTmp, 10);
 	}
 
 	@BeforeAll
@@ -52,6 +61,14 @@ public class TestNettyHttpServer {
 		Task.tryInitThreadPool();
 		netty = new Netty(1);
 		server = new HttpServer();
+
+		sendFileTmp = File.createTempFile("zeze-test-sendfile", ".bin");
+		sendFileData = new byte[1000];
+		for (int i = 0; i < sendFileData.length; i++)
+			sendFileData[i] = (byte)i;
+		try (var out = new java.io.FileOutputStream(sendFileTmp)) {
+			out.write(sendFileData);
+		}
 
 		Http.register(server, TestNettyHttpServer.class);
 
@@ -86,6 +103,8 @@ public class TestNettyHttpServer {
 	public static void tearDown() {
 		server.close();
 		netty.close();
+		//noinspection ResultOfMethodCallIgnored
+		sendFileTmp.delete();
 	}
 
 	public static final class HttpResponseStringBody implements HttpResponse.BodySubscriber<String> {
@@ -182,6 +201,50 @@ public class TestNettyHttpServer {
 			return new HttpResponseStringBody();
 		});
 		Assertions.assertEquals("streamBody", res.body());
+	}
+
+	private static byte @NotNull [] rangeGet(@Nullable String range, long from, long toExcl) throws Exception {
+		var b = HttpRequest.newBuilder().uri(URI.create("http://127.0.0.1:" + port + "/testSendFile")).GET();
+		if (range != null)
+			b.header("Range", range);
+		var res = HttpClient.newHttpClient().send(b.build(), HttpResponse.BodyHandlers.ofByteArray());
+		Assertions.assertEquals(toExcl - from, res.body().length, "body length, range=" + range);
+		Assertions.assertArrayEquals(java.util.Arrays.copyOfRange(sendFileData, (int)from, (int)toExcl), res.body(),
+				"body content, range=" + range);
+		return res.body();
+	}
+
+	// N-4缺陷: sendFile把Range的to按exclusive处理（RFC 7233为inclusive闭区间右端点），
+	// bytes=0-499只发499字节且Content-Range不匹配；to不截断到fsize-1；后缀bytes=-N解析错误。
+	@Test
+	public void testSendFileRange() throws Exception {
+		// bytes=0-499: 闭区间前500字节
+		var res = HttpClient.newHttpClient().send(HttpRequest.newBuilder()
+				.uri(URI.create("http://127.0.0.1:" + port + "/testSendFile"))
+				.header("Range", "bytes=0-499").GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+		Assertions.assertEquals(500, res.body().length);
+		Assertions.assertArrayEquals(java.util.Arrays.copyOfRange(sendFileData, 0, 500), res.body());
+		Assertions.assertEquals("bytes 0-499/1000", res.headers().firstValue("content-range").orElse(""));
+
+		// bytes=100-199: 100字节
+		rangeGet("bytes=100-199", 100, 200);
+
+		// bytes=100-: 到文件尾
+		rangeGet("bytes=100-", 100, 1000);
+
+		// 无Range: 整个文件
+		rangeGet(null, 0, 1000);
+
+		// bytes=0-999999: to按RFC截断到fsize-1，仍为整个文件
+		rangeGet("bytes=0-999999", 0, 1000);
+
+		// bytes=-300: 后缀形式，最后300字节
+		var res2 = HttpClient.newHttpClient().send(HttpRequest.newBuilder()
+				.uri(URI.create("http://127.0.0.1:" + port + "/testSendFile"))
+				.header("Range", "bytes=-300").GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+		Assertions.assertEquals(300, res2.body().length);
+		Assertions.assertArrayEquals(java.util.Arrays.copyOfRange(sendFileData, 700, 1000), res2.body());
+		Assertions.assertEquals("bytes 700-999/1000", res2.headers().firstValue("content-range").orElse(""));
 	}
 
 	@Test
