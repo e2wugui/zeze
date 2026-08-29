@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import Zeze.Util.TimeThrottle;
 import org.apache.logging.log4j.LogManager;
@@ -20,7 +21,8 @@ public class WebsocketClient extends AsyncSocket {
 	private static final @NotNull Logger logger = LogManager.getLogger(WebsocketClient.class);
 	private static final @NotNull VarHandle closedHandle;
 
-	private WebSocket webSocket;
+	private volatile @Nullable WebSocket webSocket;
+	private final @NotNull HttpClient httpClient;
 	private final @Nullable TimeThrottle timeThrottle;
 	private final @NotNull SocketAddress remote;
 	private final @Nullable Connector connector;
@@ -44,11 +46,16 @@ public class WebsocketClient extends AsyncSocket {
 		var uri = URI.create(wsUrl);
 		remote = new InetSocketAddress(uri.getHost(), uri.getPort());
 		timeThrottle = TimeThrottle.create(getService().getSocketOptions());
-		HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(uri, new WebSocket.Listener() {
+		httpClient = HttpClient.newHttpClient();
+		httpClient.newWebSocketBuilder().buildAsync(uri, new WebSocket.Listener() {
 			final @NotNull Zeze.Serialize.ByteBuffer input = Zeze.Serialize.ByteBuffer.Allocate();
 
 			@Override
 			public void onOpen(WebSocket webSocket) {
+				if (isClosed()) { // 关闭先于握手完成（如Connector.stop）时废弃迟到的连接
+					webSocket.abort();
+					return;
+				}
 				webSocket.request(1);
 				WebsocketClient.this.webSocket = webSocket;
 				service.addSocket(WebsocketClient.this);
@@ -81,6 +88,15 @@ public class WebsocketClient extends AsyncSocket {
 				WebsocketClient.this.close(ex);
 				return null;
 			}
+
+			@Override
+			public void onError(WebSocket webSocket, Throwable error) {
+				WebsocketClient.this.close(error);
+			}
+		}).whenComplete((webSocket, ex) -> {
+			// 握手失败时future以异常完成，必须close走OnSocketClose，否则Connector永远收不到通知
+			if (ex != null)
+				close(ex instanceof CompletionException && ex.getCause() != null ? ex.getCause() : ex);
 		});
 	}
 
@@ -107,6 +123,13 @@ public class WebsocketClient extends AsyncSocket {
 		} else
 			logger.info("close: {}{}", this, gracefully ? " gracefully" : "");
 
+		if (connector != null) { // 对齐TcpSocket：先通知Connector安排重连，再通知Service
+			try {
+				connector.OnSocketClose(this, ex);
+			} catch (Exception e) {
+				logger.error("Connector.OnSocketClose exception:", e);
+			}
+		}
 		try {
 			getService().OnSocketClose(this, ex);
 		} catch (Exception e) {
@@ -115,6 +138,11 @@ public class WebsocketClient extends AsyncSocket {
 
 		if (timeThrottle != null)
 			timeThrottle.close();
+		try {
+			httpClient.shutdownNow(); // 释放HttpClient的selector线程与executor
+		} catch (Exception e) {
+			logger.warn("httpClient.shutdownNow exception:", e);
+		}
 		if (null != webSocket)
 			webSocket.abort();
 		return false;
@@ -122,7 +150,10 @@ public class WebsocketClient extends AsyncSocket {
 
 	@Override
 	public boolean Send(byte @NotNull [] bytes, int offset, int length) {
-		webSocket.sendBinary(ByteBuffer.wrap(bytes, offset, length), true);
+		var ws = webSocket;
+		if (ws == null) // 握手未完成或已关闭
+			return false;
+		ws.sendBinary(ByteBuffer.wrap(bytes, offset, length), true);
 		return true;
 	}
 
