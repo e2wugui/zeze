@@ -156,8 +156,8 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		// 级联关闭所有会话：清空tokens表并为每会话触发一次OnSocketClose
 		// （快照后关闭，避免回调过程中并发修改迭代；exactly-once由session.close的closed保证）
 		var sessions = new ArrayList<DatagramSession>();
-		for (var it = tokens.iterator(); it.hasNext(); )
-			sessions.add(it.next());
+		for (DatagramSession token : tokens)
+			sessions.add(token);
 		for (var session : sessions)
 			session.close(null);
 	}
