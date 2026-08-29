@@ -52,6 +52,12 @@ public class WebsocketClient extends AsyncSocket {
 
 			@Override
 			public void onOpen(WebSocket webSocket) {
+				// 已知接受的残余竞态：close()恰在本检查与addSocket之间完整执行完时，
+				// 其socketMap.remove因条目尚未注册而空转，随后addSocket留下closed=1的
+				// 僵尸条目（有界：泄漏至Service对象废弃；该socket的OnSocketClose已随
+				// close发出过一次）。触发需stop与握手完成微秒级精确交错。不修的原因：
+				// synchronized(this)是公共对象monitor且持锁跨用户回调，锁序风险不可审计；
+				// 事后补调OnSocketClose则破坏"恰好一次"契约（调用方清理按一次编写）。
 				if (isClosed()) { // 关闭先于握手完成（如Connector.stop）时废弃迟到的连接
 					webSocket.abort();
 					return;
@@ -143,8 +149,10 @@ public class WebsocketClient extends AsyncSocket {
 		} catch (Exception e) {
 			logger.warn("httpClient.shutdownNow exception:", e);
 		}
-		if (null != webSocket)
-			webSocket.abort();
+		var ws = webSocket;
+		if (ws != null) {
+			ws.abort();
+		}
 		return false;
 	}
 
