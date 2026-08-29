@@ -10,6 +10,7 @@ import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Builtin.Dbh2.Master.EndMove;
 import Zeze.Builtin.Dbh2.Master.EndSplit;
 import Zeze.Dbh2.Dbh2Agent;
+import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
@@ -118,7 +119,6 @@ public class MasterDatabase {
 			bucket.setTableName(tableName);
 			bucket.setKeyFirst(Binary.Empty);
 			bucket.setKeyLast(Binary.Empty);
-			table.buckets.put(bucket.getKeyFirst(), bucket);
 
 			// allocate first bucket service and setup table
 			var managers = master.choiceManagers();
@@ -129,10 +129,18 @@ public class MasterDatabase {
 			}
 
 			var raftNames = buildRaftConfig(bucket, managers);
-			createBucketRafts(managers, bucket, raftNames);
-			setBucketMeta(bucket);
-			table.created = true;
-			saveRocks(rocksTables, tableName, table);
+			table.buckets.put(bucket.getKeyFirst(), bucket);
+			try {
+				createBucketRafts(managers, bucket, raftNames);
+				setBucketMeta(bucket);
+				table.created = true;
+				saveRocks(rocksTables, tableName, table);
+			} catch (Exception e) {
+				// 失败回滚，否则半初始化bucket残留在内存表中。
+				table.buckets.remove(bucket.getKeyFirst());
+				table.created = false;
+				throw e;
+			}
 		} finally {
 			table.unlock();
 		}
@@ -169,7 +177,9 @@ public class MasterDatabase {
 		return raftNames;
 	}
 
-	private static void createBucketRafts(ArrayList<Master.Manager> managers, BBucketMeta.Data bucket, ArrayList<String> raftNames) {
+	private static void createBucketRafts(ArrayList<Master.Manager> managers,
+										  BBucketMeta.Data bucket, ArrayList<String> raftNames) {
+		var rpcs = new ArrayList<CreateBucket>();
 		var futures = new ArrayList<TaskCompletionSource<?>>();
 		var i = 0;
 		for (var e : managers) {
@@ -179,10 +189,17 @@ public class MasterDatabase {
 			//noinspection DynamicRegexReplaceableByCompiledPattern
 			r.Argument.setRaftConfig(r.Argument.getRaftConfig().replaceAll("RaftName", raftNames.get(i++)));
 			//System.out.println(r.Argument.getRaftConfig());
+			rpcs.add(r);
 			futures.add(r.SendForWait(e.socket, 30_000));
 		}
-		for (var future : futures)
-			future.await();
+		for (var j = 0; j < futures.size(); ++j) {
+			futures.get(j).await();
+			// rpc失败不能静默：继续走saveRocks会让Master认为桶创建成功。
+			var rc = rpcs.get(j).getResultCode();
+			if (rc != 0)
+				throw new RuntimeException("CreateBucket fail. manager=" + managers.get(j).data.getDbh2RaftAcceptorName()
+						+ " rc=" + IModule.getErrorCode(rc));
+		}
 	}
 
 	private static void setBucketMeta(BBucketMeta.Data bucket) throws Exception {
@@ -292,8 +309,6 @@ public class MasterDatabase {
 				return master.errorCode(Master.eSplittingBucketExist);
 			}
 
-			table.buckets.put(bucket.getKeyFirst(), bucket);
-
 			// allocate first bucket service and setup table
 			var managers = master.choiceSmallLoadManagers();
 			if (managers.size() < master.getDbh2Config().getRaftClusterCount()) {
@@ -302,8 +317,15 @@ public class MasterDatabase {
 			}
 
 			var raftNames = buildRaftConfig(bucket, managers);
-			createBucketRafts(managers, bucket, raftNames);
-			saveRocks(rocksSplitting, tableName, table);
+			table.buckets.put(bucket.getKeyFirst(), bucket);
+			try {
+				createBucketRafts(managers, bucket, raftNames);
+				saveRocks(rocksSplitting, tableName, table);
+			} catch (Exception e) {
+				// 失败回滚内存表，否则脏entry让之后所有重试被eSplittingBucketExist拒绝，分桶卡死直到Master重启。
+				table.buckets.remove(bucket.getKeyFirst());
+				throw e;
+			}
 
 			r.Result = bucket;
 			r.SendResult();
