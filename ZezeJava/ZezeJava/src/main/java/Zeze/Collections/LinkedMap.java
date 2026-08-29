@@ -20,6 +20,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.TableWalkHandle;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -205,15 +206,12 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 				return;
 			}
 			while (state.getHeadNodeId() != 0) {
-				// 本批次头节点固定为head，lambda第一行把state复位到head：
-				// perform的redo会从头重放lambda，若上次执行已推进过state，重放会处理下一个节点、
-				// 跳过当前节点（当前节点的删除已回滚），该节点永久泄漏。批次内全部推进只依赖
-				// head和链表本身的getNextNodeId，重放任意次数都处理同一批节点，幂等。
-				final var head = state.getHeadNodeId();
 				var result = zeze.newProcedure(() -> {
-					state.setHeadNodeId(head); // redo重放时复位，保证幂等
+					// lambda只做表操作，不改共享的内存state：perform的redo会重放lambda，
+					// 非DB副作用一律走whileCommit（仅在最终提交后执行，redo重放时被丢弃），
+					// 重放读到的head不变，天然幂等，不存在跳节点泄漏。
 					var mapName = state.getLinkedMapName();
-					var nodeId = head;
+					var nodeId = state.getHeadNodeId();
 					for (var processed = 0; nodeId != 0 && processed < clearJobBatchNodes; processed++) {
 						var node = _tLinkedMapNodes.get(new BLinkedMapNodeKey(mapName, nodeId));
 						if (null == node) {
@@ -234,17 +232,21 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 						_tLinkedMapNodes.remove(new BLinkedMapNodeKey(mapName, nodeId));
 						nodeId = node.getNextNodeId();
 					}
-					state.setHeadNodeId(nodeId);
 					// 链走完删除job行：否则每次clear泄漏一行，重启时continueJobs还会空跑一遍
-					if (nodeId == 0)
+					if (nodeId == 0) {
 						delayRemove.setJobState(jobId, null); // remove job
-					else
-						delayRemove.setJobState(jobId, state);
+					} else {
+						// job行必须在本事务内记录推进后的head（setJobState是即时序列化），
+						// 此时共享state还没推进，落库用副本，内存推进交给whileCommit。
+						delayRemove.setJobState(jobId, new BClearJobState(nodeId, state.getTailNodeId(), mapName));
+					}
+					final var next = nodeId;
+					Transaction.whileCommit(() -> state.setHeadNodeId(next));
 					return 0;
 				}, "LinkedMap.clear").call();
 				if (result != 0) {
-					// 失败即停，不推进：job行保留最后一次成功提交的状态，等重启continueJobs续跑。
-					// 忽略错误继续跑会带着与DB不一致的内存state跳过当前节点。
+					// 失败即停：job行保留最后一次成功提交的状态，等重启continueJobs续跑。
+					// 内存state没被碰过（推进只发生在whileCommit），继续循环会在同一head上无限重试。
 					break;
 				}
 			}
