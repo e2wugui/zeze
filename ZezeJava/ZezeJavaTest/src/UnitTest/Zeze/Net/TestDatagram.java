@@ -3,6 +3,8 @@ package UnitTest.Zeze.Net;
 import harness.Fast;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Net.AsyncSocket;
+import Zeze.Net.DatagramSession;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Transaction.Bean;
@@ -13,6 +15,7 @@ import Zeze.Util.ReplayAttackGrowRange2;
 import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
 import demo.Module1.BValue;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -71,6 +74,45 @@ public class TestDatagram {
 		Assertions.assertFalse(session.isClosed(), "alive session reported closed");
 		session.close(null);
 		Assertions.assertTrue(session.isClosed(), "closed session reported alive");
+		service.Stop();
+	}
+
+	// P2缺口: DatagramSession.close()从不回调Service.OnSocketClose（对照TcpSocket/WebsocketClient家族），
+	// 用户挂在OnSocketClose上的清理对UDP会话永不执行；且必须exactly-once，重入close不能双发回调。
+	@Test
+	public void testSessionCloseCallback() throws Exception {
+		Task.tryInitThreadPool();
+		var service = new TestDatagramOnCloseService();
+		var server = service.bindUdp(new InetSocketAddress(0));
+		var session = server.createSessionServer(
+				new InetSocketAddress("127.0.0.1", 1), null, ReplayAttackPolicy.AllowDisorder);
+		Assertions.assertEquals(0, service.closedSessions.size());
+		session.close(null);
+		Assertions.assertEquals(1, service.closedSessions.size(), "OnSocketClose not fired on session close");
+		Assertions.assertSame(session, service.closedSessions.get(0));
+		session.close(null); // 重入：回调不能双发
+		Assertions.assertEquals(1, service.closedSessions.size(), "OnSocketClose fired twice");
+		Assertions.assertTrue(session.isClosed());
+		service.Stop();
+	}
+
+	// P2缺口: DatagramSocket.close()只关channel不清tokens表，会话对象永久残留、
+	// socket整体关闭的OnSocketClose级联缺失、isClosed恒false。
+	@Test
+	public void testSocketCloseCascade() throws Exception {
+		Task.tryInitThreadPool();
+		var service = new TestDatagramOnCloseService();
+		var server = service.bindUdp(new InetSocketAddress(0));
+		var s1 = server.createSessionServer(
+				new InetSocketAddress("127.0.0.1", 1), null, ReplayAttackPolicy.AllowDisorder);
+		var s2 = server.createSessionServer(
+				new InetSocketAddress("127.0.0.1", 1), null, ReplayAttackPolicy.AllowDisorder);
+		server.close();
+		Assertions.assertEquals(2, service.closedSessions.size(), "sessions not cascaded on socket close");
+		Assertions.assertTrue(s1.isClosed() && s2.isClosed(), "sessions still alive after socket close");
+		Assertions.assertFalse(server.containsSession(s1) || server.containsSession(s2), "tokens not cleared");
+		server.close(); // 重入幂等
+		Assertions.assertEquals(2, service.closedSessions.size());
 		service.Stop();
 	}
 
@@ -167,6 +209,21 @@ public class TestDatagram {
 class TestDatagramService extends Service {
 	public TestDatagramService() {
 		super("test.datagram.service");
+	}
+}
+
+class TestDatagramOnCloseService extends Service {
+	public final java.util.List<DatagramSession> closedSessions = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+	public TestDatagramOnCloseService() {
+		super("test.datagram.onclose.service");
+	}
+
+	@Override
+	public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
+		if (so instanceof DatagramSession ds)
+			closedSessions.add(ds);
+		super.OnSocketClose(so, e);
 	}
 }
 

@@ -1,8 +1,11 @@
 package Zeze.Net;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
@@ -11,10 +14,23 @@ import Zeze.Util.ReplayAttackGrowRange;
 import Zeze.Util.ReplayAttackMax;
 import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.TimeThrottle;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class DatagramSession extends AsyncSocket {
+	private static final @NotNull Logger logger = LogManager.getLogger(DatagramSession.class);
+	private static final @NotNull VarHandle closedHandle;
+
+	static {
+		try {
+			closedHandle = MethodHandles.lookup().findVarHandle(DatagramSession.class, "closed", byte.class);
+		} catch (ReflectiveOperationException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
+
 	private final @NotNull DatagramSocket socket;
 	private @NotNull InetSocketAddress remote;
 	private final long tokenId;
@@ -22,6 +38,8 @@ public class DatagramSession extends AsyncSocket {
 	private final @Nullable Encrypt2 encrypt;
 	private final @Nullable Decrypt2 decrypt;
 	private final @NotNull ReplayAttack replayAttack;
+	@SuppressWarnings("unused")
+	private byte closed;
 
 	public @NotNull DatagramSocket getSocket() {
 		return socket;
@@ -165,7 +183,14 @@ public class DatagramSession extends AsyncSocket {
 
 	@Override
 	public boolean close(@Nullable Throwable ex, boolean gracefully) {
+		if (!closedHandle.compareAndSet(this, (byte)0, (byte)1)) // 阻止重入：OnSocketClose恰好回调一次
+			return false;
 		socket.removeSession(this);
+		try {
+			getService().OnSocketClose(this, ex); // 对齐TcpSocket/WebsocketClient家族的关闭契约
+		} catch (Exception e) {
+			logger.error("OnSocketClose exception:", e);
+		}
 		return true;
 	}
 
