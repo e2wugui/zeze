@@ -231,16 +231,26 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		 * @return 只读, 禁止修改
 		 */
 		public @Nullable BServiceInfos findNewestInfos() {
-			return serviceInfos.getNewestInfos();
+			lock();
+			try {
+				return serviceInfos.getNewestInfos(); // 按需迭代，与onRegister/onUnRegister的修改互斥
+			} finally {
+				unlock();
+			}
 		}
 
 		public @Nullable BServiceInfo findServiceInfoByIdentity(@NotNull String identity) {
-			for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
-				var info = it.value().findServiceInfoByIdentity(identity);
-				if (info != null)
-					return info;
+			lock();
+			try {
+				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
+					var info = it.value().findServiceInfoByIdentity(identity);
+					if (info != null)
+						return info;
+				}
+				return null;
+			} finally {
+				unlock();
 			}
-			return null;
 		}
 
 		public @Nullable BServiceInfo findServiceInfoByServerId(int serverId) {

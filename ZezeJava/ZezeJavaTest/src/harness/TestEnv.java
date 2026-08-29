@@ -29,8 +29,10 @@ public final class TestEnv {
 	/**
 	 * 轮询等待 app 的 ServiceManager 订阅状态中出现全部给定 serverId 的服务注册。
 	 * 替代“起完服务盲等固定时长”：provider 注册的订阅推送本身就是就绪信号，通常几百毫秒内满足，
-	 * 慢机器上也不会出现 1 秒不够导致后续 RPC 超时连锁。identity 即 String.valueOf(serverId)。
+	 * 慢机器上也不会 1 秒不够导致后续 RPC 超时连锁。identity 即 String.valueOf(serverId)。
 	 * 带 60 秒超时兜底，超时抛异常并列出缺失项；轮询间隔 100ms。
+	 * 使用 findServiceInfoByIdentity 而非 findNewestInfos：后者只取最高 version 桶，
+	 * 混布版本集群里低版本服务器查不到。
 	 */
 	public static void waitServerRegistered(Application app, int... serverIds) throws InterruptedException {
 		var missing = new HashSet<Integer>();
@@ -41,11 +43,8 @@ public final class TestEnv {
 		while (!missing.isEmpty()) {
 			Thread.sleep(100);
 			for (var state : app.getServiceManager().getSubscribeStates().values()) {
-				var infos = state.findNewestInfos();
-				if (infos == null)
-					continue;
 				for (var it = missing.iterator(); it.hasNext(); ) {
-					if (infos.findServiceInfoByIdentity(String.valueOf(it.next())) != null)
+					if (state.findServiceInfoByIdentity(String.valueOf(it.next())) != null)
 						it.remove();
 				}
 				if (missing.isEmpty())

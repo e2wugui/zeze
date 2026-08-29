@@ -13,15 +13,12 @@ import org.jetbrains.annotations.Nullable;
 
 public class BServiceInfosVersion implements Serializable {
 	private final LongHashMap<BServiceInfos> infosVersion = new LongHashMap<>(); // key:version
-	private final transient @Nullable BServiceInfos newestInfos;
 
 	public BServiceInfosVersion() {
-		newestInfos = null;
 	}
 
 	public BServiceInfosVersion(@NotNull IByteBuffer bb) {
 		decode(bb);
-		newestInfos = findNewestInfos();
 	}
 
 	public BServiceInfosVersion(long hopeVersion, @NotNull ServiceManagerServer.ServiceState state) {
@@ -33,7 +30,6 @@ public class BServiceInfosVersion implements Serializable {
 			for (var e : state.getServiceInfos().entrySet())
 				copyAndSortIdentityMap(e.getKey(), e.getValue());
 		}
-		newestInfos = findNewestInfos();
 	}
 
 	public BServiceInfosVersion(long hopeVersion, @NotNull BServerState state) {
@@ -45,7 +41,6 @@ public class BServiceInfosVersion implements Serializable {
 			for (var e : state.getServiceInfosVersion().entrySet())
 				copyAndSortIdentityMap(e.getKey(), e.getValue());
 		}
-		newestInfos = findNewestInfos();
 	}
 
 	private void copyAndSortIdentityMap(long version, @NotNull HashMap<String, BServiceInfo> identityMap) {
@@ -69,11 +64,14 @@ public class BServiceInfosVersion implements Serializable {
 		}
 	}
 
+	// 按需计算，不缓存：订阅后的增量注册/注销（SubscribeState.onRegister/onUnRegister）只修改
+	// infosVersion，构造时机的快照永远看不到；调用方（SubscribeState）需持锁保证与修改互斥。
 	private @Nullable BServiceInfos findNewestInfos() {
 		BServiceInfos resultInfos = null;
 		var maxVersion = Long.MIN_VALUE;
 		for (var it = infosVersion.iterator(); it.moveToNext(); ) {
-			if (maxVersion <= it.key()) {
+			// onUnRegister移空最后一个条目后空桶仍残留在map里，跳过，避免"最新版本"指向空列表。
+			if (!it.value().getSortedIdentities().isEmpty() && maxVersion <= it.key()) {
 				maxVersion = it.key();
 				resultInfos = it.value();
 			}
@@ -94,7 +92,7 @@ public class BServiceInfosVersion implements Serializable {
 	}
 
 	public @Nullable BServiceInfos getNewestInfos() {
-		return newestInfos;
+		return findNewestInfos();
 	}
 
 	@Override
