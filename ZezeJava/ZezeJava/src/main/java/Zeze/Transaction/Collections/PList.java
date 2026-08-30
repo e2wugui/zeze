@@ -254,6 +254,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 	@Override
 	public boolean containsAll(@NotNull java.util.Collection<?> c) {
+		//noinspection SlowListContainsAll
 		return getList().containsAll(c);
 	}
 

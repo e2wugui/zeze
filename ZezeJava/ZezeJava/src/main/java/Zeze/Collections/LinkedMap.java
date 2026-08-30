@@ -333,12 +333,9 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 				values.remove(i);
 				if (values.isEmpty())
 					removeNodeUnsafe(nodeId.getNodeId(), node);
-				// 不能用e.copy()：Bean.copy默认实现抛UnsupportedOperationException，绝大多数value bean未实现。
-				// 也不能直接搬value bean引用：受管bean跨容器移动抛HasManagedException。序列化往返得到未受管副本。
-				var bb = ByteBuffer.Allocate(e.preAllocSize());
-				e.encode(bb);
-				var newNodeValue = new BLinkedMapNodeValue();
-				newNodeValue.decode(ByteBuffer.Wrap(bb.Bytes, 0, bb.WriteIndex));
+				// 不能直接搬value bean引用：受管bean跨容器移动抛HasManagedException。
+				// e.copy()深拷贝得到非受管副本；生成bean的copy()由生成器无条件实现（含DynamicBean内部经setBean保持typeId）。
+				var newNodeValue = e.copy();
 				var newNodeId = ahead ? addHeadUnsafe(newNodeValue) : addTailUnsafe(newNodeValue);
 				nodeId.setNodeId(newNodeId); // 索引必须跟随搬迁指向新节点，否则get/remove找不到、put误判重复
 				return newNodeId;

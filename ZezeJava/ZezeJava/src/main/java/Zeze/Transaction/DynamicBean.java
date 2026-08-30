@@ -9,6 +9,7 @@ import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	@NotNull Bean bean = new EmptyBean();
@@ -57,7 +58,6 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			this.bean = bean;
 			return;
 		}
-		//noinspection DataFlowIssue
 		bean.initRootInfoWithRedo(rootInfo, this);
 		bean.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
@@ -185,7 +185,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public Object mapKey() {
+	public @NonNull Object mapKey() {
 		return mapKey;
 	}
 

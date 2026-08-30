@@ -4,6 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Transaction;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Assertions;
 
 public class BMyBean extends Bean {
@@ -15,6 +16,13 @@ public class BMyBean extends Bean {
 	@Override
 	public void encode(ByteBuffer bb) {
 		bb.WriteInt(_i);
+	}
+
+	@Override
+	public @NonNull BMyBean copy() {
+		var copy = new BMyBean();
+		copy._i = getI();
+		return copy;
 	}
 
 	public int _i;
