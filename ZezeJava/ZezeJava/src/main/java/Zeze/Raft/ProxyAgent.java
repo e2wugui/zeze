@@ -105,6 +105,16 @@ public class ProxyAgent extends Service {
 	}
 
 	/**
+	 * Agent.stop 时注销节点注册；同一JVM内重建同配置agent（环境重建/重跑）不再误报duplicate。
+	 * 只移除属于该agent的注册，不影响后来者已接管的注册。
+	 */
+	public void removeAgent(Agent agent) {
+		var raftConfig = agent.getRaftConfig();
+		for (var node : raftConfig.getNodes().values())
+			agents.remove(node.getName(), agent);
+	}
+
+	/**
 	 * 如果启用了代理，则把rpc包装成代理协议，发送出去；
 	 * 否则按原始raft请求发送出去。
 	 *

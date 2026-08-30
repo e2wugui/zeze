@@ -22,10 +22,10 @@ public class Main {
 		return service;
 	}
 
-	public Main(String configXml) throws RocksDBException {
+	public Main(String home, String configXml) throws RocksDBException {
 		var config = Config.load(configXml);
 		service = new MasterService(this, config);
-		master = new Master("master", config);
+		master = new Master(home, config);
 		master.RegisterProtocols(service);
 	}
 
@@ -60,7 +60,7 @@ public class Main {
 			Zeze.Net.Selectors.getInstance().add(selector - 1);
 			ZezeCounter.tryInit();
 
-			new Main(args[0]).start();
+			new Main("master", args[0]).start();
 
 			synchronized (Thread.currentThread()) {
 				Thread.currentThread().wait();

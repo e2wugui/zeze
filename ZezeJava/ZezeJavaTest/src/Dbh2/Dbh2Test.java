@@ -89,7 +89,8 @@ public class Dbh2Test {
 		assert serviceManager != null;
 		serviceManager.start();
 		serviceManager.waitReady();
-		Application.renameAndDeleteDirectory(new File("CommitRocks"));
+		// CommitRocks home 重定向到临时目录（默认会落在cwd下CommitRocks{serverId}）。
+		System.setProperty("Dbh2CommitRocksHome", tempDir.resolve("CommitRocks").toString());
 		var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null, 101);
 		try {
 			final var db = "database";
@@ -189,6 +190,7 @@ public class Dbh2Test {
 			bucket2.close();
 			dbh2AgentManager.stop();
 			database.close();
+			System.clearProperty("Dbh2CommitRocksHome");
 		}
 	}
 

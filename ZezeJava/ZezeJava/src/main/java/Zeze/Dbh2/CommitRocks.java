@@ -14,6 +14,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Func2;
+import Zeze.Util.PropertiesHelper;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Str;
 import Zeze.Util.TaskCompletionSource;
@@ -36,7 +37,8 @@ public class CommitRocks {
 
 	public CommitRocks(Dbh2AgentManager manager, int serverId) throws RocksDBException {
 		this.manager = manager;
-		database = new RocksDatabase("CommitRocks" + serverId);
+		// home前缀可配（默认cwd下CommitRocks{serverId}），测试重定向到临时目录。
+		database = new RocksDatabase(PropertiesHelper.getString("Dbh2CommitRocksHome", "CommitRocks") + serverId);
 		commitPoint = database.getOrAddTable("CommitPoint");
 		commitIndex = database.getOrAddTable("CommitIndex");
 	}

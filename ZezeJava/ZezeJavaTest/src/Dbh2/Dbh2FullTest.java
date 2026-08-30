@@ -62,4 +62,22 @@ public class Dbh2FullTest {
 			env.stopAll();
 		}
 	}
+
+	// 回归：同一JVM内第二次环境循环（模拟IDE在同一JVM里重跑测试；也守护tempHome自包含）。
+	@Test
+	public void testFullSecondCycleProbe() throws Exception {
+		var env = new Dbh2TestEnv();
+		env.prepareNewEnvironment();
+		try {
+			var table1 = env.tables.getFirst();
+			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
+			try (var trans = env.database.beginTransaction()) {
+				table1.replace(trans, key, env.value);
+				trans.commit();
+			}
+			Assertions.assertEquals(env.value, table1.find(key));
+		} finally {
+			env.stopAll();
+		}
+	}
 }

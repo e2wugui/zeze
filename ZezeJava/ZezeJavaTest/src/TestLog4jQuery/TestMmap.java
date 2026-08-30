@@ -1,6 +1,5 @@
 package TestLog4jQuery;
 
-import harness.Fast;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.RandomAccessFile;
@@ -9,23 +8,19 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.junit.jupiter.api.Test;
 
 /**
- * 测试一些mmap特性。
+ * 手工实验一些mmap特性（无断言，不是单元测试，main方式在IDE里运行）：
  * 1. 如果mmap.append采用预分配页的方式减少重建mmap。最好在开头(mmap.array())保留一段空间记录长度信息，
  * 2. mmap没有关闭操作，只能依赖垃圾回收。
  * 3. mmap打开时会限制一些文件操作不能执行，比如channel.truncate.
  */
-@Fast
 public class TestMmap {
 	public final static int ePageSize = 16;
 	public final static int ePageMask = ePageSize - 1;
 
-	// 不用@TempDir：本测试的主旨就是验证mmap句柄在GC前不释放，方法结束后临时目录会因句柄未关而删不掉，
-	// JUnit收尾删除失败会把测试搞红。固定文件每次运行截断重建，不累积。
-	@Test
-	public void testMmap() throws Exception {
+	// 固定文件在cwd下，每次运行截断重建，不累积。
+	public static void main(String[] args) throws Exception {
 		var file = new File("testMmapFile");
 		new FileOutputStream(file).close(); // create or truncate 0
 		var pExists = file.toPath();
@@ -33,7 +28,7 @@ public class TestMmap {
 		if (!pMmap.toFile().exists())
 			Files.createLink(pMmap, pExists);
 		var fileMmap = pMmap.toFile();
-		try (var channel = new RandomAccessFile(fileMmap, "rw").getChannel()) {
+		try (var raf = new RandomAccessFile(fileMmap, "rw"); var channel = raf.getChannel()) {
 			final var fileSize = channel.size();
 			if (fileSize > 0) {
 				var dst = ByteBuffer.allocate((int)fileSize);
@@ -58,7 +53,7 @@ public class TestMmap {
 			System.out.println("delete link ok.");
 
 		MappedByteBuffer last;
-		try (var channel = new RandomAccessFile(fileMmap, "rw").getChannel()) {
+		try (var raf = new RandomAccessFile(fileMmap, "rw"); var channel = raf.getChannel()) {
 			final var fileSize = channel.size();
 			if (fileSize > 0) {
 				var dst = ByteBuffer.allocate((int)fileSize);
@@ -80,7 +75,7 @@ public class TestMmap {
 			last = mmap;
 		}
 
-		try (var channel = new RandomAccessFile(fileMmap, "rw").getChannel()) {
+		try (var raf = new RandomAccessFile(fileMmap, "rw"); var channel = raf.getChannel()) {
 			final var fileSize = channel.size();
 			if (fileSize > 0) {
 				var dst = ByteBuffer.allocate((int)fileSize);

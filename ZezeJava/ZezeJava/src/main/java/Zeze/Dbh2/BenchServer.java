@@ -17,7 +17,7 @@ public class BenchServer {
 	public static void main(String[] args) throws Exception {
 		Task.tryInitThreadPool();
 
-		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
+		var master = new Zeze.Dbh2.Master.Main("master", "zeze.xml");
 		var managers = new ArrayList<Dbh2Manager>();
 		try {
 			master.start();

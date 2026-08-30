@@ -122,7 +122,8 @@ public class TestDbh2MultiBucketWalk {
 		assert serviceManager != null;
 		serviceManager.start();
 		serviceManager.waitReady();
-		Application.renameAndDeleteDirectory(new File("CommitRocks"));
+		// CommitRocks home 重定向到临时目录（默认会落在cwd下CommitRocks{serverId}）。
+		System.setProperty("Dbh2CommitRocksHome", tempDir.resolve("CommitRocks").toString());
 		var manager = new Dbh2AgentManager(serviceManager, null, 103);
 		try {
 			var db = "database";
@@ -211,6 +212,7 @@ public class TestDbh2MultiBucketWalk {
 			stopBucket(nodesA, agentA);
 			stopBucket(nodesB, agentB);
 			database.close();
+			System.clearProperty("Dbh2CommitRocksHome");
 		}
 	}
 

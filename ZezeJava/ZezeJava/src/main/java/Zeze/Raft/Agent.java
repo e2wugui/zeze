@@ -268,6 +268,9 @@ public final class Agent {
 			client.stop();
 			client = null;
 
+			if (null != proxyAgent)
+				proxyAgent.removeAgent(this);
+
 			leader = null;
 
 			trigger(pending, "stopPending");

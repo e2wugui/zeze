@@ -43,7 +43,7 @@ public class LogIndex {
 
 	public LogIndex(File file) throws Exception {
 		// 修正由于文件系统刷新不是原子导致的索引记录可能不完整的问题。
-		try (var channel = new FileOutputStream(file, true).getChannel()) {
+		try (var fos = new FileOutputStream(file, true); var channel = fos.getChannel()) {
 			var fileSize = channel.size();
 			if ((fileSize & (eIndexRecordSize - 1)) != 0)
 				channel.truncate(fileSize / eIndexRecordSize * eIndexRecordSize);
@@ -71,7 +71,7 @@ public class LogIndex {
 	}
 
 	private int mmap(int newAllocateSize) throws IOException {
-		try (var channel = new RandomAccessFile(file, "rw").getChannel()) {
+		try (var raf = new RandomAccessFile(file, "rw"); var channel = raf.getChannel()) {
 			var currentSize = channel.size();
 			mmap = channel.map(FileChannel.MapMode.READ_WRITE, 0, currentSize + newAllocateSize);
 			return (int)currentSize;
