@@ -17,10 +17,9 @@ public class Main {
 		return master;
 	}
 
-	public Main(String configXml) throws RocksDBException {
-		var config = Config.load(configXml);
+	public Main(String home, Config config) throws RocksDBException {
 		service = new MasterService(this, config);
-		master = new Master("mqmaster", config);
+		master = new Master(home, config);
 		master.RegisterProtocols(service);
 	}
 
@@ -40,12 +39,16 @@ public class Main {
 			Task.tryInitThreadPool();
 
 			var selector = 1;
+			var home = "mqmaster";
 
 			for (int i = 1; i < args.length; ++i) {
-				//noinspection SwitchStatementWithTooFewBranches,EnhancedSwitchMigration
+				// noinspection EnhancedSwitchMigration
 				switch (args[i]) {
 				case "-selector":
 					selector = Integer.parseInt(args[++i]);
+					break;
+				case "-home":
+					home = args[++i];
 					break;
 				default:
 					throw new RuntimeException("unknown option: " + args[i]);
@@ -55,7 +58,7 @@ public class Main {
 			Zeze.Net.Selectors.getInstance().add(selector - 1);
 			ZezeCounter.tryInit();
 
-			new Main(args[0]).start();
+			new Main(home, Config.load(args[0])).start();
 
 			synchronized (Thread.currentThread()) {
 				Thread.currentThread().wait();

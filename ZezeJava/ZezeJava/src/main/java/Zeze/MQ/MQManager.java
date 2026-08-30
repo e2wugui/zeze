@@ -1,7 +1,6 @@
 package Zeze.MQ;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -38,10 +37,9 @@ public class MQManager extends AbstractMQManager {
     // { topic -> { partitionIndex -> MQFile } }
     private final ConcurrentHashMap<String, MQPartition> queues = new ConcurrentHashMap<>();
 
-    public MQManager(String home, String configXml) throws RocksDBException {
+    public MQManager(String home, Config config) throws RocksDBException {
         this.home = home;
         this.rocksDatabase = new RocksDatabase(this.home);
-        var config = Config.load(configXml);
         config.parseCustomize(this.mqConfig);
         proxyServer = new ProxyServer(config, mqConfig.getRpcTimeout());
         masterService = new Service(config, proxyServer);
