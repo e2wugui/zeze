@@ -16,6 +16,5 @@ public interface BClearJobStateReadOnly {
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 
     long getHeadNodeId();
-    long getTailNodeId();
     String getLinkedMapName();
 }

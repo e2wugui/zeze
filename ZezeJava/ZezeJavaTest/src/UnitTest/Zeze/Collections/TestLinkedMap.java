@@ -287,7 +287,7 @@ public class TestLinkedMap {
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.Zeze.getDelayRemove().addJob(
 					Zeze.Collections.LinkedMap.Module.eClearJobHandleName,
-					new Zeze.Builtin.Collections.LinkedMap.BClearJobState(999999, 999999, "testNoSuchMap"));
+					new Zeze.Builtin.Collections.LinkedMap.BClearJobState(999999, "testNoSuchMap"));
 			return 0;
 		}, "test11.addJob").call());
 

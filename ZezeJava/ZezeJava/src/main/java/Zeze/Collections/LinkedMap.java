@@ -238,7 +238,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 					} else {
 						// job行必须在本事务内记录推进后的head（setJobState是即时序列化），
 						// 此时共享state还没推进，落库用副本，内存推进交给whileCommit。
-						delayRemove.setJobState(jobId, new BClearJobState(nodeId, state.getTailNodeId(), mapName));
+						delayRemove.setJobState(jobId, new BClearJobState(nodeId, mapName));
 					}
 					final var next = nodeId;
 					Transaction.whileCommit(() -> state.setHeadNodeId(next));
@@ -467,7 +467,6 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		var root = module._tLinkedMaps.get(name);
 		if (null != root) {
 			var headerNodeId = root.getHeadNodeId();
-			var tailNodeId = root.getTailNodeId();
 			// O(1) clear：递增代际号使全部旧映射整体失效（读侧按SerialNo验章识别旧代、当作不存在，
 			// 见getValidNodeId），节点行、bean数据、旧映射由delayClearJob逐节点分批删除。
 			// LastNodeId不重置：NodeId永不复用，delayClearJob按NodeId归属判断映射是否可删依赖这一点。
@@ -475,7 +474,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			root.setHeadNodeId(0);
 			root.setTailNodeId(0);
 			root.setCount(0);
-			module.zeze.getDelayRemove().addJob(Module.eClearJobHandleName, new BClearJobState(headerNodeId, tailNodeId, name));
+			module.zeze.getDelayRemove().addJob(Module.eClearJobHandleName, new BClearJobState(headerNodeId, name));
 		}
 	}
 

@@ -141,7 +141,6 @@
 
 				<bean name="BClearJobState">
 					<variable id="1" name="HeadNodeId" type="long" />
-					<variable id="2" name="TailNodeId" type="long" />
 					<variable id="3" name="LinkedMapName" type="string" />
 				</bean>
 			</module>

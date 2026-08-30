@@ -9,18 +9,15 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     public static final long TYPEID = 8599835992466746563L;
 
     private long _HeadNodeId;
-    private long _TailNodeId;
     private String _LinkedMapName;
 
     private static final java.lang.invoke.VarHandle vh_HeadNodeId;
-    private static final java.lang.invoke.VarHandle vh_TailNodeId;
     private static final java.lang.invoke.VarHandle vh_LinkedMapName;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
             vh_HeadNodeId = _l_.findVarHandle(BClearJobState.class, "_HeadNodeId", long.class);
-            vh_TailNodeId = _l_.findVarHandle(BClearJobState.class, "_TailNodeId", long.class);
             vh_LinkedMapName = _l_.findVarHandle(BClearJobState.class, "_LinkedMapName", String.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
@@ -45,26 +42,6 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_HeadNodeId, _v_));
-    }
-
-    @Override
-    public long getTailNodeId() {
-        if (!isManaged())
-            return _TailNodeId;
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (_t_ == null)
-            return _TailNodeId;
-        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _TailNodeId;
-    }
-
-    public void setTailNodeId(long _v_) {
-        if (!isManaged()) {
-            _TailNodeId = _v_;
-            return;
-        }
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_TailNodeId, _v_));
     }
 
     @Override
@@ -95,9 +72,8 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     }
 
     @SuppressWarnings("deprecation")
-    public BClearJobState(long _HeadNodeId_, long _TailNodeId_, String _LinkedMapName_) {
+    public BClearJobState(long _HeadNodeId_, String _LinkedMapName_) {
         _HeadNodeId = _HeadNodeId_;
-        _TailNodeId = _TailNodeId_;
         if (_LinkedMapName_ == null)
             _LinkedMapName_ = "";
         _LinkedMapName = _LinkedMapName_;
@@ -106,14 +82,12 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     @Override
     public void reset() {
         setHeadNodeId(0);
-        setTailNodeId(0);
         setLinkedMapName("");
         _unknown_ = null;
     }
 
     public void assign(BClearJobState _o_) {
         setHeadNodeId(_o_.getHeadNodeId());
-        setTailNodeId(_o_.getTailNodeId());
         setLinkedMapName(_o_.getLinkedMapName());
         _unknown_ = _o_._unknown_;
     }
@@ -152,7 +126,6 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         _s_.append("Zeze.Builtin.Collections.LinkedMap.BClearJobState: {\n");
         _s_.append(_i1_).append("HeadNodeId=").append(getHeadNodeId()).append(",\n");
-        _s_.append(_i1_).append("TailNodeId=").append(getTailNodeId()).append(",\n");
         _s_.append(_i1_).append("LinkedMapName=").append(getLinkedMapName()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
@@ -192,12 +165,9 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
                 _o_.WriteLong(_x_);
             }
         }
-        {
-            long _x_ = getTailNodeId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
+        while (_ui_ < 3) {
+            _i_ = _o_.writeUnknownField(_i_, _ui_, _u_);
+            _ui_ = _u_.readUnknownIndex();
         }
         {
             String _x_ = getLinkedMapName();
@@ -219,8 +189,8 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
             setHeadNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 2) {
-            setTailNodeId(_o_.ReadLong(_t_));
+        while ((_t_ & 0xff) > 1 && _i_ < 3) {
+            _u_ = _o_.readUnknownField(_i_, _t_, _u_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
@@ -241,8 +211,6 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         var _b_ = (BClearJobState)_o_;
         if (getHeadNodeId() != _b_.getHeadNodeId())
             return false;
-        if (getTailNodeId() != _b_.getTailNodeId())
-            return false;
         if (!getLinkedMapName().equals(_b_.getLinkedMapName()))
             return false;
         return true;
@@ -251,8 +219,6 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     @Override
     public boolean negativeCheck() {
         if (getHeadNodeId() < 0)
-            return true;
-        if (getTailNodeId() < 0)
             return true;
         return false;
     }
@@ -267,7 +233,6 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
                 case 1: _HeadNodeId = _v_.longValue(); break;
-                case 2: _TailNodeId = _v_.longValue(); break;
                 case 3: _LinkedMapName = _v_.stringValue(); break;
             }
         }
@@ -277,7 +242,6 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setHeadNodeId(_r_.getLong(_pn_ + "HeadNodeId"));
-        setTailNodeId(_r_.getLong(_pn_ + "TailNodeId"));
         setLinkedMapName(_r_.getString(_pn_ + "LinkedMapName"));
         if (getLinkedMapName() == null)
             setLinkedMapName("");
@@ -287,7 +251,6 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendLong(_pn_ + "HeadNodeId", getHeadNodeId());
-        _s_.appendLong(_pn_ + "TailNodeId", getTailNodeId());
         _s_.appendString(_pn_ + "LinkedMapName", getLinkedMapName());
     }
 
@@ -295,7 +258,6 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "HeadNodeId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TailNodeId", "long", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LinkedMapName", "string", "", ""));
         return _v_;
     }
