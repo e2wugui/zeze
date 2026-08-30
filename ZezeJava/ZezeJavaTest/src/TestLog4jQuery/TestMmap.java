@@ -22,6 +22,8 @@ public class TestMmap {
 	public final static int ePageSize = 16;
 	public final static int ePageMask = ePageSize - 1;
 
+	// 不用@TempDir：本测试的主旨就是验证mmap句柄在GC前不释放，方法结束后临时目录会因句柄未关而删不掉，
+	// JUnit收尾删除失败会把测试搞红。固定文件每次运行截断重建，不累积。
 	@Test
 	public void testMmap() throws Exception {
 		var file = new File("testMmapFile");

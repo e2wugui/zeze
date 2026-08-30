@@ -2,6 +2,7 @@ package UnitTest.Zeze.Component;
 
 import harness.Fast;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import Zeze.Net.Binary;
@@ -12,14 +13,17 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 @Fast
 public class TestToken {
 	private static final Logger logger = LogManager.getLogger(TestToken.class);
 
+	// Token 的 RocksDB 目录由系统属性 token.rocksdb 指定（默认cwd下的token_db），重定向到临时目录。
 	@Test
-	public void testToken() throws Exception {
+	public void testToken(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
+		System.setProperty("token.rocksdb", tempDir.resolve("token_db").toString());
 		var tokenServer = new Token().start(null, null, 5003);
 		try {
 			var tokenClient = new Token.TokenClient(null).start("127.0.0.1", 5003);
@@ -49,8 +53,9 @@ public class TestToken {
 	}
 
 	@Test
-	public void testTopic() throws Exception {
+	public void testTopic(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
+		System.setProperty("token.rocksdb", tempDir.resolve("token_db").toString());
 		var tokenServer = new Token().start(null, null, 5003);
 		try {
 			var tokenClient = new Token.TokenClient(null).start("127.0.0.1", 5003);

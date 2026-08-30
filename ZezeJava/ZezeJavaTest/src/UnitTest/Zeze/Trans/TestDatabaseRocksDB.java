@@ -1,7 +1,12 @@
 package UnitTest.Zeze.Trans;
 
 import harness.Fast;
+import java.nio.file.Path;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.io.TempDir;
 import Zeze.Config;
 import Zeze.Config.DatabaseConf;
 import Zeze.Config.DbType;
@@ -12,9 +17,14 @@ import Zeze.Transaction.DatabaseRocksDb;
 import org.junit.jupiter.api.Assertions;
 import java.net.InetAddress;
 
+// test2 验证 test1 写入的数据重启db后仍在，依赖同一目录：类级共享临时目录 + 显式方法顺序。
 @Fast
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestDatabaseRocksDB {
 
+	static @TempDir Path tempDir;
+
+	@Order(1)
 	@Test
 	public final void test1() throws Exception {
 		var hostName = InetAddress.getLocalHost().getHostName();
@@ -84,6 +94,7 @@ public class TestDatabaseRocksDB {
 	/**
 	 * 执行test1插入数据后 ,再次启动db查看数据是否依然存在
 	 */
+	@Order(2)
 	@Test
 	public final void test2() throws Exception {
 		var hostName = InetAddress.getLocalHost().getHostName();
@@ -100,7 +111,7 @@ public class TestDatabaseRocksDB {
 	}
 
 	private static DatabaseRocksDb getDatabaseRocksDb() {
-		String dbHome = "dbhome";
+		String dbHome = tempDir.resolve("dbhome").toString();
 		DatabaseConf databaseConf = new DatabaseConf();
 		databaseConf.setDatabaseType(DbType.RocksDb);
 		databaseConf.setDatabaseUrl(dbHome);

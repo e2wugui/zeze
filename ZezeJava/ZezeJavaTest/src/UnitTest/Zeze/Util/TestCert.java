@@ -4,7 +4,6 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -23,6 +22,7 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAKey;
 import java.util.Date;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.io.TempDir;
 import sun.security.x509.AlgorithmId;
 import sun.security.x509.CertificateAlgorithmId;
 import sun.security.x509.CertificateSerialNumber;
@@ -74,25 +74,26 @@ public class TestCert {
 
 	@Test
 
-	public void testAll() throws Exception {
-		var pkcs12File = "test.ks";
+	public void testAll(@TempDir Path tempDir) throws Exception {
+		var pkcs12File = tempDir.resolve("test.ks");
 		var passwd = "123";
 		var alias = "test";
 		var data = "data".getBytes(StandardCharsets.UTF_8);
 
-		if (!new File(pkcs12File).exists()) {
+		if (!Files.exists(pkcs12File)) {
 			var keyPair = generateRsaKeyPair();
-			try (var fs = new FileOutputStream(pkcs12File)) {
+			try (var fs = new FileOutputStream(pkcs12File.toFile())) {
 				saveKeyStore(fs, passwd, alias, keyPair.getPublic(), keyPair.getPrivate(), "test", 365);
 			}
 		}
 
-		var keyStore = loadKeyStore(new FileInputStream(pkcs12File), passwd);
+		var keyStore = loadKeyStore(new FileInputStream(pkcs12File.toFile()), passwd);
 		var publicKey = getPublicKey(keyStore, alias);
 		var privateKey = getPrivateKey(keyStore, null, alias);
 
-		if (new File("signature").exists()) {
-			var signature = Files.readAllBytes(Path.of("signature"));
+		var signatureFile = tempDir.resolve("signature");
+		if (Files.exists(signatureFile)) {
+			var signature = Files.readAllBytes(signatureFile);
 			var verify = verifySignRsa(publicKey, data, signature);
 			Assertions.assertEquals(RSA_BLOCK_SIZE, signature.length);
 			Assertions.assertTrue(verify);
@@ -178,6 +179,6 @@ public class TestCert {
 
 	public static void main(String[] args) throws Exception {
 		for (int i = 0; i < 100; i++)
-			new TestCert().testAll();
+			new TestCert().testAll(Files.createTempDirectory("testCert"));
 	}
 }

@@ -2,6 +2,7 @@ package Dbh2;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
@@ -15,6 +16,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * 分桶同步（SplitPut）的 apply 语义：
@@ -26,28 +28,25 @@ public class TestSplitPutTombstone {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 
 	// 进程内启动一个3节点raft桶（镜像Dbh2Test.Bucket，端口错开不与其冲突）。
-	// 注意：每个节点必须独立loadFromString一份RaftConfig（Raft构造会改写配置对象，共享会导致节点身份错乱）。
-	private static ArrayList<Zeze.Dbh2.Dbh2> startBucket(RocksDatabase database, String raftConfigString) {
+	// 每个节点必须独立loadFromString一份RaftConfig（Raft构造会改写配置对象，共享会导致节点身份错乱）；
+	// 显式设置DbHome后Raft不再按节点名在cwd下建目录，所有节点目录落在tempDir下，由@TempDir统一清理。
+	private static ArrayList<Zeze.Dbh2.Dbh2> startBucket(RocksDatabase database, String raftConfigString, Path tempDir) {
 		var nodes = new ArrayList<Zeze.Dbh2.Dbh2>();
-		for (var config : RaftConfig.loadFromString(raftConfigString).getNodes().values())
+		for (var config : RaftConfig.loadFromString(raftConfigString).getNodes().values()) {
+			var nodeConfig = raftConfigString.replaceFirst("<raft ",
+					"<raft DbHome=\"" + tempDir.resolve(config.getName().replace(':', '_')) + "\" ");
 			nodes.add(new Zeze.Dbh2.Dbh2(null, config.getName(), database,
-					RaftConfig.loadFromString(raftConfigString), null, false, taskOneByOne));
+					RaftConfig.loadFromString(nodeConfig), null, false, taskOneByOne));
+		}
 		return nodes;
-	}
-
-	// Windows下测试收尾删除目录可能因句柄延迟释放而部分失败（RocksDB native层），
-	// 启动前先清理一次，保证每次运行都是全新状态（残留日志会让raft行为不可复现）。
-	private static void cleanDirs() {
-		LogSequence.deleteDirectory(new File("dbh2TestSplitTombstone"));
-		for (int port = 19100; port <= 19102; ++port)
-			LogSequence.deleteDirectory(new File("127.0.0.1_" + port));
 	}
 
 	private static void stopBucket(ArrayList<Zeze.Dbh2.Dbh2> nodes, Dbh2Agent agent, RocksDatabase database)
 			throws IOException, Exception {
 		for (var dbh2 : nodes) {
 			dbh2.close();
-			// 测试不持久化，删除数据目录，避免影响其他测试。
+			// 目录最终由@TempDir清理；这里close后先删一次，给Windows下句柄延迟释放留出重试缓冲，
+			// 降低JUnit收尾删除失败把测试搞红的概率。
 			LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
 		}
 		agent.close();
@@ -71,10 +70,9 @@ public class TestSplitPutTombstone {
 	}
 
 	@Test
-	public void testTombstone() throws Exception {
+	public void testTombstone(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
-		cleanDirs();
-		var database = new RocksDatabase("dbh2TestSplitTombstone");
+		var database = new RocksDatabase(tempDir.resolve("dbh2TestSplitTombstone").toString());
 		var nodes = startBucket(database, """
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">
@@ -82,7 +80,7 @@ public class TestSplitPutTombstone {
 					<node Host="127.0.0.1" Port="19101"/>
 					<node Host="127.0.0.1" Port="19102"/>
 				</raft>
-				""");
+				""", tempDir);
 		var agent = new Dbh2Agent("""
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">

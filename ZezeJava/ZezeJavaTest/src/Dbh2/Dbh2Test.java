@@ -2,6 +2,7 @@ package Dbh2;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import Zeze.Application;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -20,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 // 测试桶(raft)，在同一个进程内构建3个桶，通过Dbh2Agent访问。
 public class Dbh2Test {
@@ -34,10 +36,10 @@ public class Dbh2Test {
 		private final ArrayList<Zeze.Dbh2.Dbh2> raftNodes = new ArrayList<>();
 		private final Dbh2Agent agent;
 
-		public Bucket(String raftConfigString, RocksDatabase database) throws Exception {
+		public Bucket(String raftConfigString, RocksDatabase database, Path tempDir) throws Exception {
 			var raftConfig = RaftConfig.loadFromString(raftConfigString);
 			for (var config : raftConfig.getNodes().values())
-				raftNodes.add(start(raftConfigString, config.getName(), database));
+				raftNodes.add(start(raftConfigString, config.getName(), database, tempDir));
 			agent = new Dbh2Agent(raftConfigString);
 		}
 
@@ -64,9 +66,9 @@ public class Dbh2Test {
 	}
 
 	@Test
-	public void testDbh2() throws Exception {
+	public void testDbh2(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
-		var database = new RocksDatabase("dbh2TestSimple");
+		var database = new RocksDatabase(tempDir.resolve("dbh2TestSimple").toString());
 		var bucket1 = new Bucket("""
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">
@@ -74,7 +76,7 @@ public class Dbh2Test {
 					<node Host="127.0.0.1" Port="19001"/>
 					<node Host="127.0.0.1" Port="19002"/>
 				</raft>
-				""", database);
+				""", database, tempDir);
 		var bucket2 = new Bucket("""
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">
@@ -82,7 +84,7 @@ public class Dbh2Test {
 					<node Host="127.0.0.1" Port="19004"/>
 					<node Host="127.0.0.1" Port="19005"/>
 				</raft>
-				""", database);
+				""", database, tempDir);
 		var serviceManager = Application.createServiceManager(Config.load(), "Dbh2ServiceManager");
 		assert serviceManager != null;
 		serviceManager.start();
@@ -190,8 +192,12 @@ public class Dbh2Test {
 		}
 	}
 
-	private static Zeze.Dbh2.Dbh2 start(String config, String raftName, RocksDatabase database) {
-		var raftConfig = RaftConfig.loadFromString(config);
+	// 每个节点独立loadFromString一份RaftConfig（Raft构造会改写配置对象，共享会导致节点身份错乱）；
+	// 显式设置DbHome后Raft不再按节点名改写目录，所有节点目录落在tempDir下，由@TempDir统一清理。
+	private static Zeze.Dbh2.Dbh2 start(String config, String raftName, RocksDatabase database, Path tempDir) {
+		var nodeConfig = config.replaceFirst("<raft ",
+				"<raft DbHome=\"" + tempDir.resolve(raftName.replace(':', '_')) + "\" ");
+		var raftConfig = RaftConfig.loadFromString(nodeConfig);
 		return new Zeze.Dbh2.Dbh2(null, raftName, database, raftConfig, null, false, taskOneByOne);
 	}
 }

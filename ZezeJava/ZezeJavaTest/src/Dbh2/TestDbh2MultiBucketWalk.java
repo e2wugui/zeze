@@ -3,6 +3,7 @@ package Dbh2;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,6 +22,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * 多桶表的 walk 语义（Dbh2AgentManager）：
@@ -53,29 +55,28 @@ public class TestDbh2MultiBucketWalk {
 		return new Binary(new byte[]{(byte)i});
 	}
 
-	// 每个节点独立loadFromString一份RaftConfig（Raft构造会改写配置对象，共享导致节点身份错乱）。
-	private static List<Zeze.Dbh2.Dbh2> startBucket(RocksDatabase database, String raftConfigString) {
+	// 每个节点独立loadFromString一份RaftConfig（Raft构造会改写配置对象，共享导致节点身份错乱）；
+	// 显式设置DbHome后Raft不再按节点名在cwd下建目录，所有节点目录落在tempDir下，由@TempDir统一清理。
+	// RAFT_A/RAFT_B 原样用于agent与bucket meta（桶身份=节点集合，与DbHome无关）。
+	private static List<Zeze.Dbh2.Dbh2> startBucket(RocksDatabase database, String raftConfigString, Path tempDir) {
 		var nodes = new ArrayList<Zeze.Dbh2.Dbh2>();
-		for (var config : RaftConfig.loadFromString(raftConfigString).getNodes().values())
+		for (var config : RaftConfig.loadFromString(raftConfigString).getNodes().values()) {
+			var nodeConfig = raftConfigString.replaceFirst("<raft ",
+					"<raft DbHome=\"" + tempDir.resolve(config.getName().replace(':', '_')) + "\" ");
 			nodes.add(new Zeze.Dbh2.Dbh2(null, config.getName(), database,
-					RaftConfig.loadFromString(raftConfigString), null, false, taskOneByOne));
+					RaftConfig.loadFromString(nodeConfig), null, false, taskOneByOne));
+		}
 		return nodes;
 	}
 
 	private static void stopBucket(List<Zeze.Dbh2.Dbh2> nodes, Dbh2Agent agent) throws IOException, Exception {
 		for (var dbh2 : nodes) {
 			dbh2.close();
+			// 目录最终由@TempDir清理；这里close后先删一次，给Windows下句柄延迟释放留出重试缓冲，
+			// 降低JUnit收尾删除失败把测试搞红的概率。
 			LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
 		}
 		agent.close();
-	}
-
-	private static void cleanDirs() {
-		LogSequence.deleteDirectory(new File("dbh2TestMultiBucketWalk"));
-		for (int port = 19110; port <= 19112; ++port)
-			LogSequence.deleteDirectory(new File("127.0.0.1_" + port));
-		for (int port = 19120; port <= 19122; ++port)
-			LogSequence.deleteDirectory(new File("127.0.0.1_" + port));
 	}
 
 	private static void setBucketMeta(Dbh2Agent agent, String db, String table, Binary keyFirst, Binary keyLast) {
@@ -110,12 +111,11 @@ public class TestDbh2MultiBucketWalk {
 	}
 
 	@Test
-	public void testMultiBucketWalk() throws Exception {
+	public void testMultiBucketWalk(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
-		cleanDirs();
-		var database = new RocksDatabase("dbh2TestMultiBucketWalk");
-		var nodesA = startBucket(database, RAFT_A);
-		var nodesB = startBucket(database, RAFT_B);
+		var database = new RocksDatabase(tempDir.resolve("dbh2TestMultiBucketWalk").toString());
+		var nodesA = startBucket(database, RAFT_A, tempDir);
+		var nodesB = startBucket(database, RAFT_B, tempDir);
 		var agentA = new Dbh2Agent(RAFT_A);
 		var agentB = new Dbh2Agent(RAFT_B);
 		var serviceManager = Application.createServiceManager(Zeze.Config.load(), "Dbh2ServiceManager");
