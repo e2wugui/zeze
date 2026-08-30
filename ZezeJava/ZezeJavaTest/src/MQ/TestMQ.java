@@ -17,6 +17,32 @@ import Zeze.Util.Task;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+/**
+ * MQ 集群（1 master + 3 manager）进程内自包含测试：配置代码构造（见 masterConfig/managerConfig），
+ * home 用一次性临时目录，不依赖任何 mq*.xml，可重复运行。
+ * <p>
+ * 下面的注释保留原 mq*.xml 的内容，仅供部署/手工 demo 配置时参考：
+ * <pre>{@code
+ * <!-- mqmaster.xml -->
+ * <zeze GlobalCacheManagerPort="5002" CheckpointPeriod="0" ServerId="-1" ServiceManager="disable">
+ *     <ServiceConf Name="Zeze.MQ.Master" InputBufferMaxProtocolSize="2M">
+ *         <!-- 26000段：Windows动态端口范围（默认49152+，异常扩到1024-15000的机器也有）之外的
+ *              WinNAT保留盲区，固定测试端口选这里不会被随机圈占；manager0/1/2对应26001-26003 -->
+ *         <Acceptor Port="26000"/>
+ *     </ServiceConf>
+ * </zeze>
+ *
+ * <!-- mqmanager0.xml（manager1/2 仅 ProxyServer 的端口为 26002/26003） -->
+ * <zeze GlobalCacheManagerPort="5002" CheckpointPeriod="0" ServerId="-1" ServiceManager="disable">
+ *     <ServiceConf Name="Zeze.MQ.Master.Agent">
+ *         <Connector HostNameOrAddress="127.0.0.1" Port="26000"/>
+ *     </ServiceConf>
+ *     <ServiceConf Name="Zeze.Raft.ProxyServer">
+ *         <Acceptor Ip="127.0.0.1" Port="26001"/>
+ *     </ServiceConf>
+ * </zeze>
+ * }</pre>
+ */
 @Fast
 public class TestMQ {
 	// MQ 客户端（MQProducer/MQConsumer 内的静态 agent）仍从默认配置 zeze.xml 读取

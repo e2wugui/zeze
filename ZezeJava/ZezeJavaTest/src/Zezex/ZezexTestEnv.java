@@ -7,6 +7,9 @@ import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.LoginQueue.BLoginToken;
+import Zeze.Config;
+import Zeze.Net.Acceptor;
+import Zeze.Net.ServiceConf;
 import Zeze.Services.LoginQueue;
 import Zeze.Transaction.DatabaseMemory;
 import Zezex.Linkd.Auth;
@@ -66,7 +69,7 @@ public final class ZezexTestEnv {
 		// integrationTest 串行执行无并发库使用者（先例：Infinite.Simulate 循环 clear）。
 		DatabaseMemory.clear();
 
-		loginQueue = new LoginQueue();
+		loginQueue = new LoginQueue(loginQueueConfig(), 100, false);
 		loginQueue.start();
 
 		// 客户端实例由 startClients 统一创建（调用前 clients 已 clear），此处不再预创建，
@@ -91,6 +94,30 @@ public final class ZezexTestEnv {
 	public void rebuildClients(int clientCount, ClientStartMode mode) throws Exception {
 		stopClients();
 		startClients(clientCount, mode);
+	}
+
+	// 代码构造 LoginQueue 配置，不依赖 loginQueue.xml；5020 需与 ClientGame.App 硬编码的
+	// loginQueueClient.connect("127.0.0.1", 5020) 保持一致。
+	// <zeze>
+	//	<!-- LoginQueue 给登录用户开放的端口 -->
+	//	<ServiceConf Name="LoginQueue">
+	//		<Acceptor Ip="127.0.0.1" Port="5020"/>
+	//	</ServiceConf>
+	//
+	//	<!-- LoginQueue 给内部服务开放的端口 -->
+	//	<ServiceConf Name="LoginQueueServer">
+	//		<Acceptor Ip="127.0.0.1" Port="5021"/>
+	//	</ServiceConf>
+	// </zeze>
+	private static Config loginQueueConfig() {
+		var queueConf = new ServiceConf();
+		queueConf.addAcceptor(new Acceptor(5020, "127.0.0.1"));
+		var serverConf = new ServiceConf();
+		serverConf.addAcceptor(new Acceptor(5021, "127.0.0.1"));
+		var config = new Config();
+		config.getServiceConfMap().put("LoginQueue", queueConf);
+		config.getServiceConfMap().put("LoginQueueServer", serverConf);
+		return config;
 	}
 
 	public void stopClients() throws Exception {

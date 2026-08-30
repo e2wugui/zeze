@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+
 import Zeze.Builtin.LoginQueue.BToken;
 import Zeze.Builtin.LoginQueue.PutLoginToken;
 import Zeze.Builtin.LoginQueue.PutQueueFull;
@@ -55,12 +56,11 @@ public class LoginQueue extends AbstractLoginQueue {
 	// expire 因为排队完成客户端要登陆（输密码），所以这个时间不能太短。
 	public static final int eLoginTokenExpireTime = 30 * 60 * 1000;
 
-	public LoginQueue() {
-		this(100, false);
+	public LoginQueue(Config config) {
+		this(config, 100, false);
 	}
 
-	public LoginQueue(int maxOnlineNew, boolean choiceLinkOnly) {
-		var config = Config.load("loginQueue.xml");
+	public LoginQueue(Config config, int maxOnlineNew, boolean choiceLinkOnly) {
 		this.maxOnlineNew = maxOnlineNew;
 		this.choiceLinkOnly = choiceLinkOnly;
 		this.server = new LoginQueueServer(this, config);
@@ -202,22 +202,25 @@ public class LoginQueue extends AbstractLoginQueue {
 		// 高吞吐下退化为 O(n²)；排队期间断开的连接由 drainQueue 的队头清理统一负责。
 	}
 
-	public static void main(String [] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		int maxOnlineNew = 100;
 		boolean choiceLinkOnly = false;
+		var configXml = "loginQueue.xml";
 		for (var i = 0; i < args.length; ++i) {
-			switch (args[i])
-			{
+			switch (args[i]) {
 			case "-maxOnlineNew":
 				maxOnlineNew = Integer.parseInt(args[++i]);
 				break;
 			case "-choiceLinkOnly":
 				choiceLinkOnly = Boolean.parseBoolean(args[++i]);
 				break;
+			case "-config":
+				configXml = args[++i];
+				break;
 			}
 		}
 		Task.tryInitThreadPool();
-		var lq = new LoginQueue(maxOnlineNew, choiceLinkOnly);
+		var lq = new LoginQueue(Config.load(configXml), maxOnlineNew, choiceLinkOnly);
 		lq.start();
 		synchronized (Thread.currentThread()) {
 			Thread.currentThread().wait();
