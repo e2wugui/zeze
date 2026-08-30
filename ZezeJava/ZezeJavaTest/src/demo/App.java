@@ -85,6 +85,8 @@ public class App extends Zeze.AppBase {
 	}
 
 	public void Start() throws Exception {
+		if (started)
+			return;
 		Start(Config.load("./zeze.xml"));
 	}
 

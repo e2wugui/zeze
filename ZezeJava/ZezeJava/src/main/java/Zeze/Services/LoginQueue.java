@@ -73,7 +73,9 @@ public class LoginQueue extends AbstractLoginQueue {
 	synchronized void tryResetTimeThrottle(int providerSize) {
 		if (this.providerSize != providerSize) {
 			this.providerSize = providerSize;
+			var old = timeThrottle;
 			timeThrottle = new TimeThrottleCounter(1, maxOnlineNew * providerSize, maxOnlineNew * providerSize);
+			old.close(); // 先更新引用再关闭，减小并发checkNow拿到已关闭实例的窗口
 		}
 	}
 
@@ -86,6 +88,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		allocateTimer.cancel(true);
 		server.getService().stop();
 		service.stop();
+		timeThrottle.close(); // 放在service.stop之后：关闭过程中onClose还可能触发tryResetTimeThrottle替换实例
 	}
 
 	private void allocateTimer() throws Exception {

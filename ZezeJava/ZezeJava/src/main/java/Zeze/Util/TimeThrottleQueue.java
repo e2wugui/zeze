@@ -13,14 +13,7 @@ public class TimeThrottleQueue implements TimeThrottle {
 	private int bandwidth;
 	private final ReentrantLock mutex = new ReentrantLock();
 
-	public static final class Packet {
-		public final long timestamp;
-		public final int size;
-
-		public Packet(long t, int s) {
-			timestamp = t;
-			size = s;
-		}
+	public record Packet(long timestamp, int size) {
 	}
 
 	/**

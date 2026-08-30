@@ -614,45 +614,4 @@ public class TestTaskSpec {
 			Thread.sleep(10);
 		Assertions.assertEquals(expected, counter.get());
 	}
-
-	public static void main(String[] args) throws Exception {
-		Task.tryInitThreadPool();
-		var test = new TestTaskSpec();
-		test.testOfActionCall();
-		test.testOfActionSubmitNowDirect();
-		test.testOfActionRunNowDirect();
-		test.testOfActionSubmitNowCritical();
-		test.testOfActionRunNow();
-		test.testOfActionScheduleNow();
-		test.testOfActionSchedule();
-		test.testOfActionScheduleNowPeriodCancel();
-		test.testOfActionScheduleAtNow();
-		test.testOfFuncCall();
-		test.testOfFuncErrorHandle();
-		test.testOfFuncSubmitNowDirect();
-		test.testOfFuncRunNow();
-		test.testOfFunc0ScheduleNow();
-		test.testOfFunc0SubmitNow();
-		test.testOfProcedure();
-		test.testRunDeferInTransaction();
-		test.testOfProcedureRunDeferInTransaction();
-		test.testRunDirectDeferInTransaction();
-		test.testRunDirectProcedureInTxnRejected();
-		test.testConsumedSingleUse();
-		test.testCallRejectsAsyncOptions();
-		test.testScheduleRejectsDispatchMode();
-		test.testOneByOneValidation();
-		test.testOneByOne3KeyTypes();
-		test.testOneByOneSerialBySameKey();
-		test.testOneByOneByLru();
-		test.testOneByOneOfFunc();
-		test.testOneByOneModeCritical();
-		test.testOneByOneNameDefaultExplicitAndProcedure();
-		test.testOneByOneOnCancelAndShutdown();
-		test.testOneByOneKey2();
-		test.testOneByOneGlobal();
-		test.testOneByOneIntLongKeyNegative();
-		demo.App.Instance.Stop(); // App.Start 创建非守护线程，需要显式停止进程才能退出
-		System.out.println("TestTaskSpec OK");
-	}
 }

@@ -21,6 +21,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+
 import java.util.List;
 
 public final class Agent extends AbstractAgent {
@@ -151,7 +153,7 @@ public final class Agent extends AbstractAgent {
 
 	@Override
 	protected boolean allocateAsync(@NotNull String globalName, int allocCount,
-									ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+									@NonNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 		if (allocCount < 1)
 			throw new IllegalArgumentException();
 		var r = new AllocateId();
@@ -241,7 +243,9 @@ public final class Agent extends AbstractAgent {
 		if (onSetServerLoad != null) {
 			Task.getCriticalThreadPool().execute(() -> {
 				try {
-					onSetServerLoad.run(setServerLoad.Argument);
+					if (onSetServerLoad != null) {
+						onSetServerLoad.run(setServerLoad.Argument);
+					}
 				} catch (Throwable e) { // logger.error
 					// run handle.
 					logger.error("", e);
@@ -316,7 +320,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public Threading getThreading() {
+	public @NonNull Threading getThreading() {
 		return threading;
 	}
 

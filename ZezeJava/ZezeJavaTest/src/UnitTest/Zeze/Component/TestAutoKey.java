@@ -36,21 +36,19 @@ public class TestAutoKey {
 		return ByteBuffer.ToLongBE(bb.Bytes, bb.ReadIndex, bb.size());
 	}
 
-	@SuppressWarnings("deprecation")
 	@Test
 	public final void test1_AutoKey() {
-		Assertions.assertTrue(demo.App.getInstance().Zeze.getAutoKey("test1").resetSeedUnsafe());
 		System.out.println("testAutoKey1");
+		var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
+		var seed = autoKey.getSeed();
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
-			Assertions.assertEquals(makeId(1), id);
+			Assertions.assertEquals(makeId(seed + 1), id);
 			return Procedure.Success;
 		}, "test1_AutoKey").call());
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
-			Assertions.assertEquals(makeId(2), id);
+			Assertions.assertEquals(makeId(seed + 2), id);
 			return Procedure.Success;
 		}, "test1_AutoKey").call());
 	}
@@ -58,36 +56,40 @@ public class TestAutoKey {
 	@Test
 	public final void test2_AutoKey() {
 		System.out.println("testAutoKey2");
-		var allocCount = demo.App.getInstance().Zeze.getAutoKey("test1").getAllocateCount();
+		var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
+		var seed = autoKey.getSeed();
+		var allocCount = autoKey.getAllocateCount();
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
-			Assertions.assertEquals(makeId(allocCount + 1), id);
+			Assertions.assertEquals(makeId(seed + 1), id);
 			return Procedure.Success;
 		}, "test2_AutoKey").call());
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
-			Assertions.assertEquals(makeId(allocCount + 2), id);
+			Assertions.assertEquals(makeId(seed + 2), id);
 			return Procedure.Success;
 		}, "test2_AutoKey").call());
+		// 重启后从持久化的种子继续分配，首次分配一个allocCount大小的范围
+		Assertions.assertEquals(seed + allocCount, autoKey.getSeed());
 	}
 
 	@Test
 	public final void test3_AutoKey() {
-		System.out.println("testAutoKey2");
-		var allocCount = demo.App.getInstance().Zeze.getAutoKey("test1").getAllocateCount();
+		System.out.println("testAutoKey3");
+		var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
+		var seed = autoKey.getSeed();
+		var allocCount = autoKey.getAllocateCount();
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
-			Assertions.assertEquals(makeId(allocCount * 2L + 1), id);
+			Assertions.assertEquals(makeId(seed + 1), id);
 			return Procedure.Success;
 		}, "test3_AutoKey").call());
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
-			var autoKey = demo.App.getInstance().Zeze.getAutoKey("test1");
 			var id = autoKey.nextId();
-			Assertions.assertEquals(makeId(allocCount * 2L + 2), id);
+			Assertions.assertEquals(makeId(seed + 2), id);
 			return Procedure.Success;
 		}, "test3_AutoKey").call());
+		// 重启后从持久化的种子继续分配，首次分配一个allocCount大小的范围
+		Assertions.assertEquals(seed + allocCount, autoKey.getSeed());
 	}
 }

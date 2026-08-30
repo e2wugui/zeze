@@ -167,25 +167,6 @@ public class AutoKey extends ReentrantLock {
 	}
 
 	/**
-	 * 设置当前serverId的种子，新种子必须比当前值大。
-	 *
-	 * @return true if success.
-	 */
-	@Deprecated // 仅用于测试
-	public boolean resetSeedUnsafe() {
-		try {
-			return Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
-				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
-				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
-				bAutoKey.setNextId(0);
-				return 0;
-			}, "AutoKey.setSeed")).dispatchMode(DispatchMode.Critical).submitNow().get();
-		} catch (InterruptedException | ExecutionException e) {
-			throw Task.forceThrow(e);
-		}
-	}
-
-	/**
 	 * 增加当前serverId的种子。只能增加，如果溢出，返回失败。
 	 *
 	 * @param delta delta
