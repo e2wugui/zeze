@@ -103,4 +103,32 @@ public class TestCsQueue {
 		Assertions.assertEquals(List.of(3, 4, 9), walk(csq0));
 		Assertions.assertEquals(3, size(csq0));
 	}
+
+	@Test
+	public void testCsQueueSpliceRejectsStaleSerial() throws Exception {
+		// 方案甲的接收端防线：代际号不匹配（对方已重连/重启用出新代，在途通知携带旧代）时必须拒绝接管。
+		// 这就是"已经活过来了"分支，2022年起存在但此前零测试覆盖。
+		var qm = demo.App.getInstance().Zeze.getQueueModule();
+		var csq0 = new CsQueue<>(qm, "TestCsQueueSerial", 0, BEquipExtra.class, 100);
+		clear(csq0); // 接管方保持为空
+
+		var csq1 = new CsQueue<>(qm, "TestCsQueueSerial", 1, BEquipExtra.class, 100);
+		clear(csq1);
+		demo.App.getInstance().Zeze.newProcedure(() -> {
+			csq1.add(new BEquipExtra(3, 3, 3));
+			csq1.add(new BEquipExtra(4, 4, 4));
+			return 0;
+		}, "csq1.add").call();
+
+		long current = csq1.getLoadSerialNo();
+		// 旧代际：不得接管
+		csq0.splice(1, current - 1);
+		Assertions.assertEquals(List.of(3, 4), walk(csq1));
+		Assertions.assertEquals(List.of(), walk(csq0));
+		Assertions.assertEquals(0, size(csq0));
+		// 当前代际：正常接管（对照组，验证测试装置有效）
+		csq0.splice(1, current);
+		Assertions.assertEquals(List.of(), walk(csq1));
+		Assertions.assertEquals(List.of(3, 4), walk(csq0));
+	}
 }

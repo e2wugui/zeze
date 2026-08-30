@@ -1254,24 +1254,32 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	private void loadTimer() throws Exception {
 		var serverId = zeze.getConfig().getServerId();
-		var outRoot = new BNodeRoot();
-		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
-			var root = _tNodeRoot.getOrAdd(serverId);
-			// 本地每次load都递增。用来处理和接管的并发。
-			root.setLoadSerialNo(root.getLoadSerialNo() + 1);
-			outRoot.assign(root);
-			return 0;
-		}, "Timer.loadTimerLocal")).call();
-		if (r == Procedure.Success) {
-			var offlineNotify = new BOfflineNotify();
-			offlineNotify.serverId = serverId;
-			offlineNotify.notifyId = "Zeze.Component.Timer.OfflineNotify";
-			offlineNotify.notifySerialId = outRoot.getLoadSerialNo();
-			zeze.getServiceManager().offlineRegister(offlineNotify,
-					notify -> spliceLoadTimer(notify.serverId, notify.notifySerialId));
-			loadTimer(outRoot.getHeadNodeId(), outRoot.getHeadNodeId()); // last也填头节点是因为链表是循环的
-		} else
-			logger.error("loadTimer failed: r={}", r);
+		var headNodeId = new long[1]; // 工厂首次执行时带出头节点供本地调度；重连重放时不再使用
+		try {
+			zeze.getServiceManager().offlineRegister(() -> {
+				var outRoot = new BNodeRoot();
+				var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
+					var root = _tNodeRoot.getOrAdd(serverId);
+					// 本地每次load都递增。用来处理和接管的并发。
+					// 启动与每次SM重连都会执行（连接代际）：重连后仍在途的旧代际离线通知据此被接收端拒绝。
+					root.setLoadSerialNo(root.getLoadSerialNo() + 1);
+					outRoot.assign(root);
+					return 0;
+				}, "Timer.loadTimerLocal")).call();
+				if (r != Procedure.Success)
+					throw new IllegalStateException("Timer.loadTimerLocal failed: r=" + r);
+				headNodeId[0] = outRoot.getHeadNodeId();
+				var offlineNotify = new BOfflineNotify();
+				offlineNotify.serverId = serverId;
+				offlineNotify.notifyId = "Zeze.Component.Timer.OfflineNotify";
+				offlineNotify.notifySerialId = outRoot.getLoadSerialNo();
+				return offlineNotify;
+			}, notify -> spliceLoadTimer(notify.serverId, notify.notifySerialId));
+		} catch (Throwable ex) {
+			logger.error("Timer offlineRegister failed", ex);
+		}
+		// last也填头节点是因为链表是循环的；headNodeId为0即空扫描（失败路径等价于原来的跳过调度）
+		loadTimer(headNodeId[0], headNodeId[0]);
 
 		var agent = zeze.getServiceManager();
 		if (agent instanceof Agent) { // 暂时只支持非Raft的ServiceManager

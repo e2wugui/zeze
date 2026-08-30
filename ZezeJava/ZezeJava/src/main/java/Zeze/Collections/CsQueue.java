@@ -27,19 +27,21 @@ public class CsQueue<V extends Bean> {
 		this.name = name;
 		this.queue = module._open(name + "@" + serverId, valueClass, nodeSize);
 
-		var out = new OutLong();
-		TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
-			var root = queue.getOrAddRoot();
-			root.setLoadSerialNo(root.getLoadSerialNo() + 1);
-			out.value = root.getLoadSerialNo();
-			return 0;
-		}, "increaseLoadSerialNo")).call();
-		var offlineNotify = new BOfflineNotify();
-		offlineNotify.serverId = module.zeze.getConfig().getServerId();
-		offlineNotify.notifySerialId = out.value;
-		offlineNotify.notifyId = "Zeze.Collections.CsQueue.OfflineNotify";
-		module.zeze.getServiceManager().offlineRegister(offlineNotify,
-				(notify) -> splice(notify.serverId, notify.notifySerialId));
+		module.zeze.getServiceManager().offlineRegister(() -> {
+			var out = new OutLong();
+			TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
+				var root = queue.getOrAddRoot();
+				// 启动与每次SM重连都递增（连接代际）：重连后仍在途的旧代际离线通知据此被接收端拒绝。
+				root.setLoadSerialNo(root.getLoadSerialNo() + 1);
+				out.value = root.getLoadSerialNo();
+				return 0;
+			}, "increaseLoadSerialNo")).call();
+			var offlineNotify = new BOfflineNotify();
+			offlineNotify.serverId = module.zeze.getConfig().getServerId();
+			offlineNotify.notifySerialId = out.value;
+			offlineNotify.notifyId = "Zeze.Collections.CsQueue.OfflineNotify";
+			return offlineNotify;
+		}, (notify) -> splice(notify.serverId, notify.notifySerialId));
 	}
 
 	public long getLoadSerialNo() {

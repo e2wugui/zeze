@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
 import Zeze.Builtin.ServiceManagerWithRaft.Login;
@@ -24,6 +25,7 @@ import Zeze.Services.ServiceManager.BAllocateIdArgument;
 import Zeze.Services.ServiceManager.BAllocateIdResult;
 import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BOfflineNotify;
+import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BSubscribeArgument;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
@@ -32,6 +34,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -40,6 +43,11 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
 	private final @NotNull Agent raftClient;
 	private volatile @NotNull TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
+	// 断线（换leader）重连后重放用：服务端行按name持久化，但flap时行可能已被onClose删除，
+	// 重放注册/订阅/离线注册才能恢复服务端状态（对齐非raft版Agent.onConnected）。
+	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, java.util.function.Supplier<BOfflineNotify>> offlineRegisters
+			= new ConcurrentHashMap<>(); // key:notifyId
 
 	@Override
 	public @NotNull Threading getThreading() {
@@ -74,9 +82,48 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				logger.error("Login Timeout Or ResultCode != 0. Code={}", rpc.getResultCode());
 			} else {
 				future.setResult(true);
+				// 异步重放，不在rpc回调线程里阻塞等待重放的响应。
+				TaskSpec.ofAction(this::onLoginSuccess).name("ServiceManager.AgentWithRaft.OnLoginSuccess").run();
 			}
 			return 0;
 		});
+	}
+
+	/**
+	 * 每次Login成功后执行（含断线重连/换leader）：重放全部注册、订阅、离线注册，
+	 * 恢复服务端状态。服务端幂等（AddOrUpdate、允许重复注册），重复重放无害。
+	 */
+	private void onLoginSuccess() {
+		// 先重放离线注册：取消旧连接onClose安排的延迟离线通知；重新执行工厂递增代际号，
+		// 使在途的旧代际通知被接收端拒绝。同时恢复本服务器作为通知目标。
+		for (var argumentFactory : offlineRegisters.values()) {
+			try {
+				raftClient.sendForWait(new OfflineRegister(argumentFactory.get())).await();
+			} catch (Throwable ex) { // logger.error
+				logger.error("OnLoginSuccess.OfflineRegister", ex);
+			}
+		}
+
+		var edit = new BEditService();
+		edit.getAdd().addAll(registers.keySet());
+		if (!edit.getAdd().isEmpty()) {
+			try {
+				editService(edit);
+			} catch (Throwable ex) { // logger.error
+				logger.error("OnLoginSuccess.Register", ex);
+			}
+		}
+
+		var subArg = new BSubscribeArgument();
+		for (var e : subscribeStates.values())
+			subArg.subs.add(e.getSubscribeInfo());
+		if (!subArg.subs.isEmpty()) {
+			try {
+				subscribeServicesAsync(subArg);
+			} catch (Throwable ex) { // logger.error
+				logger.error("OnLoginSuccess.Subscribe", ex);
+			}
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////
@@ -212,6 +259,11 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	public void editService(@NotNull BEditService arg) {
 		for (var info : arg.getAdd())
 			verify(info.getServiceIdentity());
+		// 先更新本地记录再发送远程请求（重连重放的数据来源）
+		for (var unReg : arg.getRemove())
+			registers.remove(unReg);
+		for (var reg : arg.getAdd())
+			registers.put(reg, reg);
 		waitLoginReady();
 
 		var edit = new Edit(arg);
@@ -275,9 +327,12 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void offlineRegister(@NotNull BOfflineNotify argument, @NotNull Action1<BOfflineNotify> handle) {
+	public void offlineRegister(@NotNull java.util.function.Supplier<BOfflineNotify> argumentFactory,
+								@NotNull Action1<BOfflineNotify> handle) {
 		waitLoginReady();
+		var argument = argumentFactory.get(); // 启动：工厂执行一次（bump代际+构造参数）
 		onOfflineNotifies.putIfAbsent(argument.notifyId, handle);
+		offlineRegisters.put(argument.notifyId, argumentFactory);
 		raftClient.sendForWait(new OfflineRegister(argument)).await();
 	}
 

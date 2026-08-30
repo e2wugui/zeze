@@ -93,7 +93,7 @@ public class TestOfflineNotifyReconnect {
 		arg.serverId = serverId;
 		arg.notifyId = notifyId;
 		arg.notifySerialId = 1;
-		agent.offlineRegister(arg, handle);
+		agent.offlineRegister(() -> arg, handle);
 		return arg;
 	}
 
@@ -148,6 +148,66 @@ public class TestOfflineNotifyReconnect {
 	}
 
 	/** 模拟延迟任务触发（跳过 600 秒等待）。 */
+	@Test
+	@Timeout(60)
+	public void test4_reconnectReplaysWithNewGenerationSerial() throws Exception {
+		var receiver = newAgent(false);
+		try {
+			registerOffline(receiver, 8804, "UnitTest.S1.notify4", n -> {
+			});
+
+			var flapped = newAgent(true);
+			try {
+				// 工厂模拟应用的代际号：启动与每次重连各递增一次（真实实现见CsQueue/Timer的工厂闭包）
+				var generation = new java.util.concurrent.atomic.AtomicLong();
+				flapped.offlineRegister(() -> {
+					var arg = new BOfflineNotify();
+					arg.serverId = 7704;
+					arg.notifyId = "UnitTest.S1.notify4";
+					arg.notifySerialId = generation.incrementAndGet();
+					return arg;
+				}, n -> {
+				});
+				Assertions.assertEquals(1, generation.get());
+				Assertions.assertNotNull(waitSession(7704, 5000), "offline register not seen on server");
+
+				flapped.getClient().getSocket().close();
+				Assertions.assertTrue(waitFutureScheduled(7704, 5000), "delayed notify not scheduled after close");
+				Assertions.assertTrue(waitReconnected(flapped, 10_000), "no reconnect after flap");
+
+				// 重连重放必须再次执行工厂（bump出新代际）并以新serial注册——
+				// 在途的旧代际通知据此被接收端拒绝（残余窗口的关闭机制）。
+				Assertions.assertTrue(waitSessionSerial(7704, "UnitTest.S1.notify4", 2, 5000),
+						"reconnect replay must re-invoke factory and register bumped serial");
+				Assertions.assertEquals(2, generation.get());
+			} finally {
+				flapped.close();
+			}
+		} finally {
+			receiver.close();
+		}
+	}
+
+	/** 等待服务端存在指定 serverId 的活会话，且其登记的指定 notifyId 的 serial 达到期望值。 */
+	private static boolean waitSessionSerial(int serverId, String notifyId, long expectedSerial, long timeoutMs)
+			throws Exception {
+		var notifiesField = ServiceManagerServer.Session.class.getDeclaredField("offlineRegisterNotifies");
+		notifiesField.setAccessible(true);
+		long deadline = System.currentTimeMillis() + timeoutMs;
+		while (System.currentTimeMillis() < deadline) {
+			var session = waitSession(serverId, 200);
+			if (session != null) {
+				@SuppressWarnings("unchecked")
+				var notifies = (java.util.HashMap<String, BOfflineNotify>)notifiesField.get(session);
+				var arg = notifies.get(notifyId);
+				if (arg != null && arg.notifySerialId == expectedSerial)
+					return true;
+			}
+			Thread.sleep(50);
+		}
+		return false;
+	}
+
 	private static void fireDelayedNotify(Object session) throws Exception {
 		offlineNotifyMethod.invoke(session, true);
 	}

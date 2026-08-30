@@ -165,7 +165,9 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		if (onChanged != null) {
 			TaskSpec.ofAction(() -> {
 				try {
-					onChanged.run(edit);
+					if (onChanged != null) {
+						onChanged.run(edit);
+					}
 				} catch (Throwable e) { // logger.error
 					logger.error("", e);
 				}
@@ -332,7 +334,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	public @NotNull SubscribeState subscribeService(@NotNull BSubscribeInfo info) {
 		var infos = new BSubscribeArgument();
 		infos.subs.add(info);
-		return subscribeServices(infos).get(0);
+		return subscribeServices(infos).getFirst();
 	}
 
 	public @NotNull List<SubscribeState> subscribeServices(@NotNull BSubscribeArgument infos) {
@@ -360,7 +362,13 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public abstract boolean setServerLoad(@NotNull BServerLoad load);
 
-	public abstract void offlineRegister(@NotNull BOfflineNotify argument, @NotNull Action1<BOfflineNotify> handle);
+	/**
+	 * 注册离线通知。参数通过工厂产生：工厂在启动注册和每次SM重连重放时都会执行，
+	 * 应用应在工厂内递增共享库中的代际号（loadSerialNo）并构造参数——
+	 * 重连后仍在途的旧代际离线通知据此被接收端拒绝。
+	 */
+	public abstract void offlineRegister(@NotNull java.util.function.Supplier<BOfflineNotify> argumentFactory,
+										 @NotNull Action1<BOfflineNotify> handle);
 
 	protected static void setCurrentAndCount(@NotNull AutoKey autoKey, long current, int count) {
 		autoKey.setCurrentAndCount(current, count);

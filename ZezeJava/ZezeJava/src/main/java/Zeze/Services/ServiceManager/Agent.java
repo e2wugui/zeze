@@ -36,8 +36,10 @@ public final class Agent extends AbstractAgent {
 
 	private final @NotNull AgentClient client;
 	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
-	// 断线重连后需要重发的离线注册参数。仅保存handle不够：重发必须携带serverId/serialId才能取消服务端的延迟离线通知。
-	private final ConcurrentHashMap<String, BOfflineNotify> offlineRegisters = new ConcurrentHashMap<>(); // key:notifyId
+	// 断线重连后需要重发的离线注册参数工厂。工厂在启动与每次重连时执行，内部递增共享库代际号，
+	// 使重连后仍在途的旧代际离线通知被接收端拒绝（关闭残余窗口的关键）。
+	private final ConcurrentHashMap<String, java.util.function.Supplier<BOfflineNotify>> offlineRegisters
+			= new ConcurrentHashMap<>(); // key:notifyId
 
 	private Threading threading;
 
@@ -135,10 +137,12 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public void offlineRegister(@NotNull BOfflineNotify argument, @NotNull Action1<BOfflineNotify> handle) {
+	public void offlineRegister(@NotNull java.util.function.Supplier<BOfflineNotify> argumentFactory,
+								@NotNull Action1<BOfflineNotify> handle) {
 		waitConnectorReady();
+		var argument = argumentFactory.get(); // 启动：工厂执行一次（bump代际+构造参数）
 		onOfflineNotifies.putIfAbsent(argument.notifyId, handle);
-		offlineRegisters.put(argument.notifyId, argument);
+		offlineRegisters.put(argument.notifyId, argumentFactory);
 		new OfflineRegister(argument).SendAndWaitCheckResultCode(client.getSocket());
 	}
 
@@ -184,10 +188,12 @@ public final class Agent extends AbstractAgent {
 		}
 
 		// 重放离线注册：取消旧连接onClose安排的延迟离线通知。断线重连时进程还活着，
-		// 不重发的话延迟通知必然触发，且loadSerialNo未变、接收端serial校验失效，活服务器会被误接管。
+		// 不重发的话延迟通知必然触发，且代际号未变、接收端serial校验失效，活服务器会被误接管。
+		// 重放时重新执行工厂递增代际号——正在发送中的旧代际通知据此被接收端拒绝（残余窗口的关闭机制）。
 		// 同时恢复本服务器作为离线通知目标（服务端按notifyId在会话上找通知对象）。
-		for (var argument : offlineRegisters.values()) {
+		for (var argumentFactory : offlineRegisters.values()) {
 			try {
+				var argument = argumentFactory.get();
 				new OfflineRegister(argument).SendAndWaitCheckResultCode(client.getSocket());
 			} catch (Throwable ex) { // logger.error
 				logger.error("OnConnected.OfflineRegister", ex);
