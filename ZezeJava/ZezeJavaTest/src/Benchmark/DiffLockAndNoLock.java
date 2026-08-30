@@ -1,6 +1,7 @@
 package Benchmark;
 
 import harness.Bench;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -9,6 +10,7 @@ import Zeze.Util.RocksDatabase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.rocksdb.RocksDBException;
 
 @Bench
@@ -17,10 +19,11 @@ public class DiffLockAndNoLock {
 	RocksDatabase.Table table;
 	final AtomicLong atomicKey = new AtomicLong();
 	final ReentrantLock lock = new ReentrantLock();
+	@TempDir Path tempDir;
 
 	@BeforeEach
 	public void before() throws RocksDBException {
-		db = new Zeze.Util.RocksDatabase("DiffLockAndNoLock");
+		db = new Zeze.Util.RocksDatabase(tempDir.resolve("DiffLockAndNoLock").toString());
 		table = db.getOrAddTable("testDiff");
 	}
 
