@@ -124,7 +124,7 @@ public class Log4jFileManager extends ReentrantLock {
 			case 0: // current log file created
 				var currentLogFileName = getCurrentLogFileName();
 				if (fileName.equals(currentLogFileName)
-						&& (files.isEmpty() || !files.get(files.size() - 1).file.getName().equals(currentLogFileName))) {
+						&& (files.isEmpty() || !files.getLast().file.getName().equals(currentLogFileName))) {
 					var logFile = new File(logConf.logDir, fileName);
 					files.add(Log4jFile.of(logFile, loadIndex(logFile, getCurrentIndexFileName())));
 				}
@@ -134,7 +134,7 @@ public class Log4jFileManager extends ReentrantLock {
 				if (files.isEmpty())
 					return;
 
-				var last = files.get(files.size() - 1);
+				var last = files.getLast();
 				if (last.file.getName().equals(getCurrentLogFileName())) {
 					// rename index file
 					var indexFile = Path.of(logConf.logDir, getCurrentIndexFileName()).toFile();
@@ -266,7 +266,7 @@ public class Log4jFileManager extends ReentrantLock {
 					indexes.add(LogIndex.Record.of(next.getTime(), next.getOffset()));
 					if (indexes.size() >= 100) {
 						index.addIndex(indexes);
-						lastIndexTime = indexes.get(indexes.size() - 1).time;
+						lastIndexTime = indexes.getLast().time;
 						indexes.clear();
 					}
 				}
@@ -283,7 +283,7 @@ public class Log4jFileManager extends ReentrantLock {
 			if (files.isEmpty())
 				return;
 
-			var last = files.get(files.size() - 1);
+			var last = files.getLast();
 			if (!last.file.getName().equals(getCurrentLogFileName()))
 				return;
 

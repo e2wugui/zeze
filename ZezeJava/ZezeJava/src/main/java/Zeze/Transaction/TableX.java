@@ -774,6 +774,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	// Key 都是简单变量，系列化方法都不一样，需要生成。
+	@SuppressWarnings("NullableProblems")
 	public abstract @NotNull ByteBuffer encodeKey(@NotNull K key);
 
 	@Override
@@ -787,11 +788,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return decodeKey(ByteBuffer.Wrap(bytes, keyOffset, bytes.length - keyOffset));
 	}
 
+	@SuppressWarnings("NullableProblems")
 	@Override
 	public abstract @NotNull K decodeKey(@NotNull ByteBuffer bb);
 
+	@SuppressWarnings("NullableProblems")
 	public abstract @NotNull K decodeKeyResultSet(@NotNull ResultSet rs) throws SQLException;
 
+	@SuppressWarnings("NullableProblems")
 	public abstract void encodeKeySQLStatement(@NotNull SQLStatement st, @NotNull K _v_);
 
 	private Schemas.RelationalTable relationalTable;
@@ -810,6 +814,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		getZeze().getDelayRemove().remove(this, key);
 	}
 
+	@SuppressWarnings("NullableProblems")
 	@Override
 	public abstract @NotNull V newValue();
 
