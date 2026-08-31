@@ -250,33 +250,37 @@ public class Master extends AbstractMaster {
 
 	@Override
 	protected long ProcessRegisterRequest(Register r) throws Exception {
+		var managerHostPort = r.Argument.getDbh2RaftAcceptorName() + "_" + r.Argument.getPort();
 		lock();
 		try {
-			var managerHostPort = r.Argument.getDbh2RaftAcceptorName() + "_" + r.Argument.getPort();
 			managers.add(new Manager(r.getSender(), r.Argument));
-			// 搜索所有的桶，返回在这个manager上的所有桶的配置。
-			// 逐表取快照再遍历：master.lock不保护table.buckets（写方持table.lock），无锁遍历会与分桶写并发。
-			for (var db : databases.values()) {
-				for (var table : db.getTables().entrySet()) {
-					for (var bucket : table.getValue().snapshot().getBuckets().values()) {
-						var raftName = bucket.getHost2Raft().get(managerHostPort);
-						if (raftName != null) {
-							var dbh2Config = new BDbh2Config.Data();
-							dbh2Config.setDatabase(db.getDatabaseName());
-							dbh2Config.setTable(table.getKey());
-							// 设置raftName
-							dbh2Config.setRaftConfig(bucket.getRaftConfig().replace("RaftName", raftName));
-							r.Result.getDbh2Configs().add(dbh2Config);
-						}
-					}
-				}
-			}
-			//logger.info("{}, rafts=\n{}", managerHostPort, r.Result);
-			r.SendResult();
-			return 0;
 		} finally {
 			unlock();
 		}
+		// 搜索所有的桶，返回在这个manager上的所有桶的配置。
+		// 逐表取快照必须在master.lock之外：master.lock内调用snapshot()（取table.lock）会与
+		// createTable的table.lock→master.choiceManagers()（取master.lock）构成AB-BA——Register(manager连接)
+		// 与CreateTable(app客户端)跨派发线程并发是常态，createTable持table.lock期间含30s超时rpc。
+		// databases/tables均为ConcurrentHashMap（弱一致遍历安全）；Data引用不被写路径替换，
+		// 锁外snapshot取到的是不早于注册时刻的状态，语义只增不减。
+		for (var db : databases.values()) {
+			for (var table : db.getTables().entrySet()) {
+				for (var bucket : table.getValue().snapshot().getBuckets().values()) {
+					var raftName = bucket.getHost2Raft().get(managerHostPort);
+					if (raftName != null) {
+						var dbh2Config = new BDbh2Config.Data();
+						dbh2Config.setDatabase(db.getDatabaseName());
+						dbh2Config.setTable(table.getKey());
+						// 设置raftName
+						dbh2Config.setRaftConfig(bucket.getRaftConfig().replace("RaftName", raftName));
+						r.Result.getDbh2Configs().add(dbh2Config);
+					}
+				}
+			}
+		}
+		//logger.info("{}, rafts=\n{}", managerHostPort, r.Result);
+		r.SendResult();
+		return 0;
 	}
 
 	private Manager findManager(AsyncSocket sender) {
