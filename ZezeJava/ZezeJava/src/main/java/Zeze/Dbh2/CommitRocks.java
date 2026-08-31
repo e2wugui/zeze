@@ -83,12 +83,17 @@ public class CommitRocks {
 
 		var tid = ByteBuffer.ToLongBE(key, 0);
 		try {
-			var futures = new ArrayList<TaskCompletionSource<?>>();
+			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>>>();
 			for (var e : state.getBuckets()) {
 				futures.add(func.call(manager.openBucket(e), tid));
 			}
-			for (var e : futures)
-				e.await();
+			for (var e : futures) {
+				var r = e.get();
+				// appendLog失败（丢leader/多数派未达成）时服务端以非零码正常回包（Dbh2.ProcessCommitBatchRequest），
+				// 不检查就删重做索引会使该桶的事务永久滞留在eCommitting，客户端却已拿到成功。对齐prepare路径的检查。
+				if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
+					throw new RuntimeException("redo error=" + IModule.getErrorCode(r.getResultCode()));
+			}
 			removeCommitIndex(key);
 		} catch (Throwable ex) {
 			// timer will redo
@@ -227,12 +232,16 @@ public class CommitRocks {
 
 		// commit
 		try {
-			var futures = new ArrayList<TaskCompletionSource<?>>();
+			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>>>();
 			for (var e : state.getBuckets()) {
 				futures.add(manager.openBucket(e).commitBatch(tid));
 			}
-			for (var e : futures)
-				e.await();
+			for (var e : futures) {
+				var r = e.get();
+				// 同redo：非零回包（raft appendLog失败）不抛异常但事务未apply，必须留给redoTimer重试
+				if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
+					throw new RuntimeException("commit error=" + IModule.getErrorCode(r.getResultCode()));
+			}
 			removeCommitIndex(tidBytes);
 		} catch (Throwable ex) {
 			// timer will redo
