@@ -41,7 +41,14 @@ public class MQManager extends AbstractMQManager {
         this.home = home;
         this.rocksDatabase = new RocksDatabase(this.home);
         config.parseCustomize(this.mqConfig);
-        proxyServer = new ProxyServer(config, mqConfig.getRpcTimeout());
+        // 消费者连接落在proxyServer上（见onSocketClose注释），关闭清理钩子挂这里。
+        proxyServer = new ProxyServer(config, mqConfig.getRpcTimeout()) {
+            @Override
+            public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) throws Exception {
+                super.OnSocketClose(so, e);
+                MQManager.this.onSocketClose(so);
+            }
+        };
         masterService = new Service(config, proxyServer);
         masterAgent = new MasterAgent(config, masterService, this::createPartition);
         RegisterProtocols(proxyServer);
@@ -166,6 +173,16 @@ public class MQManager extends AbstractMQManager {
         queue.unsubscribe(r.getSender(), r.Argument.getSessionId());
         r.SendResult();
         return 0;
+    }
+
+    // 消费者连接关闭：清理所有topic上该socket的订阅并重排分区。
+    // 客户端close()走显式Unsubscribe，这里只兜底非正常死亡（崩溃/断网）——否则死socket永久占槽，
+    // 绑到它的分区消息永久积压（arrangeConsumer仅由订阅变更事件触发）。
+    // 注意钩子必须挂在proxyServer上：消费者连的是proxyServer端口（getAcceptorAddress优先返回proxy地址，
+    // MQAgent经manager.GetReadySocket直连），masterService是连向Master的纯连接器服务，永远见不到消费者socket。
+    public void onSocketClose(Zeze.Net.AsyncSocket so) {
+        for (var queue : queues.values())
+            queue.onSocketClose(so);
     }
 
     public static class Service extends Zeze.MQ.Master.MasterAgent.Service {

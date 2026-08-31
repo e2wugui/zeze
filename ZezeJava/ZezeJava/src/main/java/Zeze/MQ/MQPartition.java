@@ -55,6 +55,20 @@ public class MQPartition extends ReentrantLock {
 		}
 	}
 
+	// 消费者socket关闭：按socket身份清理其全部sessionId订阅（socket死亡使其上所有订阅失效）。
+	// 不清理则死socket永久占槽，绑到它的分区消息永久积压。
+	public void onSocketClose(AsyncSocket sender) {
+		boolean changed = false;
+		for (var it = subscribes.entrySet().iterator(); it.hasNext(); ) {
+			if (it.next().getValue() == sender) {
+				it.remove();
+				changed = true;
+			}
+		}
+		if (changed)
+			arrangeConsumer();
+	}
+
 	private void arrangeConsumer() {
 		lock();
 		try {
