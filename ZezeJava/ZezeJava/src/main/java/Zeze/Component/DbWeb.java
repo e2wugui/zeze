@@ -252,9 +252,10 @@ public class DbWeb extends AbstractDbWeb {
 
 	public <K extends Comparable<K>, V extends Bean> void clearTable(TableX<K, V> table, Predicate<K> batchCallback) throws Exception {
 		final var DELETE_BATCH_COUNT = 100;
-		var keys = new ArrayList<K>();
 		K lastKey = null;
 		do {
+			// keys必须每轮重建：否则callback从第二轮起恒返回false，每轮只交付1个key且事务重删全部累积（O(n²)）。
+			var keys = new ArrayList<K>();
 			lastKey = table.walkKey(lastKey, DELETE_BATCH_COUNT, k -> {
 				keys.add(k);
 				return keys.size() < DELETE_BATCH_COUNT;
