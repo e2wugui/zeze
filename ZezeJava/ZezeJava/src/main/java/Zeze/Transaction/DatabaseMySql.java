@@ -8,6 +8,7 @@ import java.sql.SQLWarning;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.StringJoiner;
 import java.util.Map;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
@@ -512,7 +513,20 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			return "";
 
 		table.encodeKeySQLStatement(st, exclusiveStartKey);
-		return " WHERE " + st.getSql().toString().replace(",", " AND ").replace('=', asc ? '>' : '<');
+		// 复合key必须按元组字典序比较：游标(1,"zzz")之后是(2,"aaa")而非两者都大于。
+		// 原AND形式(col1>? AND col2>?)整块漏掉跨段数据；行值比较(col1,col2)>(v1,v2)与ORDER BY语义一致。
+		// 列值对为 col=?（参数）或 col=字面量（数值内联），按首个'='拆分，params占位符相对顺序不变。
+		var sql = st.getSql().toString();
+		if (!sql.contains(", "))
+			return " WHERE " + sql.replace('=', asc ? '>' : '<'); // 单列保持原样
+		var columns = new StringJoiner(", ");
+		var values = new StringJoiner(", ");
+		for (var pair : sql.split(", ")) {
+			var eq = pair.indexOf('=');
+			columns.add(pair.substring(0, eq));
+			values.add(pair.substring(eq + 1));
+		}
+		return " WHERE (" + columns + ") " + (asc ? '>' : '<') + " (" + values + ")";
 	}
 
 	private static @NotNull String buildKeyWhere(@NotNull SQLStatement st) {
