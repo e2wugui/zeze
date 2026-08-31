@@ -157,7 +157,13 @@ public class HotModule extends ClassLoader implements Closeable {
 
 	private Class<?> loadModuleClass(String className) {
 		String classFileName = className.replace('.', '/') + ".class";
-		var entry = jar.getEntry(classFileName);
+		ZipEntry entry;
+		try {
+			// 构造器会调loadClass，此时jar可能尚未打开（7e8403ab8延迟打开），必须走lazy的getJarFile
+			entry = getJarFile().getEntry(classFileName);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		if (entry == null)
 			logger.error("loadModuleClass: not found entry: '{}'", classFileName);
 		return loadModuleClass(className, entry);
@@ -168,7 +174,7 @@ public class HotModule extends ClassLoader implements Closeable {
 //		var loaded = findLoadedClass(className);
 //		if (null != loaded)
 //			return loaded;
-		try (var inputStream = jar.getInputStream(entry)) {
+		try (var inputStream = getJarFile().getInputStream(entry)) {
 			var bytes = inputStream.readAllBytes();
 			return defineClass(className, bytes, 0, bytes.length);
 		} catch (IOException e) {
@@ -179,8 +185,8 @@ public class HotModule extends ClassLoader implements Closeable {
 	public static final String eModuleConfigName = "META-INF/module.config";
 
 	public BModule.Data loadModuleConfig() throws Exception {
-		var entry = jar.getEntry(eModuleConfigName);
-		try (var inputStream = jar.getInputStream(entry)) {
+		var entry = getJarFile().getEntry(eModuleConfigName);
+		try (var inputStream = getJarFile().getInputStream(entry)) {
 			var bytes = inputStream.readAllBytes();
 			var bbConfig = ByteBuffer.Wrap(bytes);
 			var config = new BModule.Data();
