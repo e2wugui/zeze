@@ -2275,9 +2275,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var link = bean.getLink();
 
 		Transaction.whileCommit(() -> {
-			var bind = new Zeze.Builtin.Provider.Bind();
 			var connector = providerApp.providerService.getLinks().get(link.getLinkName());
-			var socket = connector.getSocket();
+			var socket = connector == null ? null : connector.getSocket();
+			if (socket == null) {
+				// linkd连接已不在（注销/断开），link会话已死，bind无意义；stale login由link broken机制清理。
+				logger.warn("bindDynamic: link miss. linkName={}, roleId={}", link.getLinkName(), roleId);
+				return;
+			}
+			var bind = new Zeze.Builtin.Provider.Bind();
 			bind.Argument.getLinkSids().add(link.getLinkSid());
 			for (var moduleId : moduleIds) {
 				bind.Argument.getModules().put(moduleId, new BModule.Data(
