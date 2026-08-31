@@ -161,10 +161,11 @@ public class Daemon {
 		monitors.clear();
 	}
 
-	private static void destroySubprocess() throws InterruptedException {
-		// 幂等：Monitor.run对同一快照可能多个global同轮超时重复进入（多GCM部署下服务器hang时同步冻结
-		// 恰是本组件的目标场景），DeadlockReport与Monitor也可能跨线程并发。先原子占坑置空，
-		// 后来者拿到null直接返回；destroy对同一Process重复调用本身安全，joinMonitors对空表安全。
+	// synchronized彻底串行化（含占坑的读-置空两步）：Monitor.run对同一快照可能多个global同轮超时
+	// 重复进入（多GCM部署下服务器hang时同步冻结恰是本组件的目标场景），DeadlockReport与Monitor
+	// 也可能跨线程并发。串行后后来者拿到null直接幂等返回；不串行时并发joinMonitors会互相join
+	// 对方成死锁（守护进程整体冻结）。destroy对同一Process重复调用本身安全。
+	private static synchronized void destroySubprocess() throws InterruptedException {
 		var p = subprocess;
 		subprocess = null;
 		if (p == null)
