@@ -10,6 +10,7 @@ import Zeze.Builtin.HistoryModule.tHistory;
 import Zeze.Transaction.TableKey;
 import Zeze.Util.FastLock;
 import Zeze.Util.Id128;
+import Zeze.Util.OutObject;
 
 public class ApplyHelper extends FastLock {
 	private final Application zeze;
@@ -42,7 +43,8 @@ public class ApplyHelper extends FastLock {
 		try {
 			var endTime = System.currentTimeMillis() - beforeTimeMs;
 			var result = new HashMap<ApplyTable<?, ?>, Set<Object>>();
-			var newExclusiveStartKey = historyTable.walkDatabase(exclusiveStartKey, count, (key, value) -> {
+			var lastProcessed = new OutObject<Id128>();
+			historyTable.walkDatabase(exclusiveStartKey, count, (key, value) -> {
 				if (value.getTimestamp() >= endTime)
 					return false;
 
@@ -59,12 +61,15 @@ public class ApplyHelper extends FastLock {
 					var affectKeys = result.computeIfAbsent(applyTable, __ -> new HashSet<>());
 					affectKeys.add(applyTable.apply(r.getKey(), r.getValue()));
 				}
+				lastProcessed.value = key;
 				return true;
 			});
-			// walkDatabase 返回 null 表示本次已走到表尾：保留原游标即可，新纪录加入后仍会被正确读到；
-			// 置 null 会让下次 apply 从表头全量重扫并重复回放已应用过的变更。
-			if (newExclusiveStartKey != null)
-				exclusiveStartKey = newExclusiveStartKey;
+			// 游标只推进到最后一条"已成功处理"的记录，不使用walkDatabase的返回值：
+			// 各实现都在callback之前记录lastKey，返回false停止时返回的是未处理记录的key，直接当游标会把它永久跳过；
+			// 且走到表尾时返回值不一致（RocksDb为null，Memory/Jdbc为最后交付的key）。本轮零处理时保留原游标，
+			// 停在时间边界的记录下次apply重新交付，endTime推进后即被处理。
+			if (lastProcessed.value != null)
+				exclusiveStartKey = lastProcessed.value;
 			return result;
 		} finally {
 			unlock();
