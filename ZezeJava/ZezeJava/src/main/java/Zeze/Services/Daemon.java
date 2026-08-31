@@ -41,7 +41,7 @@ public class Daemon {
 	// 写成支持多个Server是为了跑Simulate测试。
 	private static final LongConcurrentHashMap<Monitor> monitors = new LongConcurrentHashMap<>();
 	private static DatagramSocket udpSocket;
-	private static Process subprocess;
+	private static volatile @Nullable Process subprocess;
 
 	private static final LongConcurrentHashMap<PendingPacket> pendings = new LongConcurrentHashMap<>();
 	private static final FastLock pendingsLock = new FastLock();
@@ -162,9 +162,16 @@ public class Daemon {
 	}
 
 	private static void destroySubprocess() throws InterruptedException {
+		// 幂等：Monitor.run对同一快照可能多个global同轮超时重复进入（多GCM部署下服务器hang时同步冻结
+		// 恰是本组件的目标场景），DeadlockReport与Monitor也可能跨线程并发。先原子占坑置空，
+		// 后来者拿到null直接返回；destroy对同一Process重复调用本身安全，joinMonitors对空表安全。
+		var p = subprocess;
+		subprocess = null;
+		if (p == null)
+			return;
 		// run jstack
 		try {
-			var pid = String.valueOf(subprocess.pid());
+			var pid = String.valueOf(p.pid());
 			var cmd = new String[]{"jstack", "-e", "-l", pid};
 			var process = Runtime.getRuntime().exec(cmd);
 			Files.copy(new BufferedInputStream(process.getInputStream()), Path.of("jstack." + pid));
@@ -172,8 +179,7 @@ public class Daemon {
 		} catch (Exception ex) {
 			logger.error("", ex);
 		}
-		subprocess.destroy();
-		subprocess = null;
+		p.destroy();
 		joinMonitors();
 	}
 
