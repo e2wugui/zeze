@@ -7,6 +7,7 @@ import Zeze.Builtin.RedoQueue.BTaskId;
 import Zeze.Builtin.RedoQueue.RunTask;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -99,6 +100,9 @@ public class RedoQueue extends HandshakeClient {
 			task.setPrevTaskId(lastTaskId - 1);
 			task.setTaskId(lastTaskId);
 			task.setTaskType(taskType);
+			var param = ByteBuffer.Allocate(1024 + 16);
+			taskParam.encode(param);
+			task.setTaskParam(new Binary(param.Bytes, 0, param.WriteIndex));
 			var value = ByteBuffer.Allocate(1024 + 16);
 			task.encode(value);
 
