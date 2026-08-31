@@ -293,11 +293,14 @@ abstract class TimerOnlineBase<I> {
 					identityString(id), timerId);
 	}
 
-	private static @Nullable Bean decodeCustom(@NotNull String customClass, @NotNull Binary customBean)
+	private @Nullable Bean decodeCustom(@NotNull String customClass, @NotNull Binary customBean)
 			throws ReflectiveOperationException {
 		if (customClass.isEmpty())
 			return null;
-		var custom = (Bean)Class.forName(customClass).getConstructor((Class<?>[])null).newInstance((Object[])null);
+		// 必须与handleClass一样走HotHandle.findClass：热更模块的custom bean在hot类加载器里，
+		// Class.forName（框架类加载器）找不到类，跨服转发的定时器会因此丢失。
+		var custom = (Bean)HotHandle.findClass(zeze(), customClass)
+				.getConstructor((Class<?>[])null).newInstance((Object[])null);
 		custom.decode(ByteBuffer.Wrap(customBean));
 		return custom;
 	}
