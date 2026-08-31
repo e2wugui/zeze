@@ -14,7 +14,7 @@ public class LinkdProviderSession extends ProviderSession {
 	 * moduleId －＞ LinkSids
 	 * 多线程：主要由LinkSession回调.  需要保护。
 	 */
-	protected final IntHashMap<LongHashSet> linkSessionIds = new IntHashMap<>();
+	protected IntHashMap<LongHashSet> linkSessionIds = new IntHashMap<>();
 	protected final ReentrantLock linkSessionIdsLock = new ReentrantLock();
 
 	/**
@@ -38,14 +38,6 @@ public class LinkdProviderSession extends ProviderSession {
 		info = value;
 	}
 
-	public IntHashMap<LongHashSet> getLinkSessionIds() {
-		return linkSessionIds;
-	}
-
-	public ReentrantLock getLinkSessionIdsLock() {
-		return linkSessionIdsLock;
-	}
-
 	public ConcurrentHashSet<Integer> getStaticBinds() {
 		return staticBinds;
 	}
@@ -54,6 +46,22 @@ public class LinkdProviderSession extends ProviderSession {
 		linkSessionIdsLock.lock();
 		try {
 			linkSessionIds.computeIfAbsent(moduleId, __ -> new LongHashSet()).add(linkSessionId);
+		} finally {
+			linkSessionIdsLock.unlock();
+		}
+	}
+
+	/**
+	 * 锁内换出整个map，O(1)临界区。onProviderClose后续的unbind与发送必须在锁外进行
+	 * （unbind会获取LinkdUserSession.bindsLock，与bind路径的锁序相反，持锁调用会死锁），
+	 * 因此这里只能换出快照，不能在锁内遍历处理。
+	 */
+	public IntHashMap<LongHashSet> swapLinkSessionIds() {
+		linkSessionIdsLock.lock();
+		try {
+			var old = linkSessionIds;
+			linkSessionIds = new IntHashMap<>();
+			return old;
 		} finally {
 			linkSessionIdsLock.unlock();
 		}

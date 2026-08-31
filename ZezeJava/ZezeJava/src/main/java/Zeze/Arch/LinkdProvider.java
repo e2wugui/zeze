@@ -273,29 +273,25 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		providerSession.getStaticBinds().clear();
 
 		// unbind LinkSession
-		var linkSessionIds = providerSession.getLinkSessionIds();
-		providerSession.getLinkSessionIdsLock().lock();
-		try {
-			for (var it = linkSessionIds.iterator(); it.moveToNext(); ) {
-				int moduleId = it.key();
-				var p = moduleId == Online.ModuleId || moduleId == Zeze.Game.Online.ModuleId
-						? new ReportError(new BReportError.Data(BReportError.FromLink, BReportError.CodeProviderBroken,
-						null)) : null;
-				for (var it2 = it.value().iterator(); it2.moveToNext(); ) {
-					var link = linkdApp.linkdService.GetSocket(it2.value());
-					if (link != null) {
-						var linkSession = (LinkdUserSession)link.getUserState();
-						if (linkSession != null) {
-							linkSession.unbind(linkdApp.linkdProviderService, link, moduleId, provider, true);
-							if (p != null)
-								p.Send(link);
-						}
+		// unbind会获取LinkdUserSession.bindsLock，与bind路径（bindsLock->linkSessionIdsLock）锁序相反，
+		// 持有linkSessionIdsLock调用会AB-BA死锁。同LinkdUserSession.onClose：锁内只换出快照，锁外执行unbind与发送。
+		var linkSessionIds = providerSession.swapLinkSessionIds();
+		for (var it = linkSessionIds.iterator(); it.moveToNext(); ) {
+			int moduleId = it.key();
+			var p = moduleId == Online.ModuleId || moduleId == Zeze.Game.Online.ModuleId
+					? new ReportError(new BReportError.Data(BReportError.FromLink, BReportError.CodeProviderBroken,
+					null)) : null;
+			for (var it2 = it.value().iterator(); it2.moveToNext(); ) {
+				var link = linkdApp.linkdService.GetSocket(it2.value());
+				if (link != null) {
+					var linkSession = (LinkdUserSession)link.getUserState();
+					if (linkSession != null) {
+						linkSession.unbind(linkdApp.linkdProviderService, link, moduleId, provider, true);
+						if (p != null)
+							p.Send(link);
 					}
 				}
 			}
-			linkSessionIds.clear();
-		} finally {
-			providerSession.getLinkSessionIdsLock().unlock();
 		}
 	}
 
