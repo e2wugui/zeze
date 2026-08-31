@@ -115,10 +115,15 @@ public class OnzProcedure implements FuncLong {
 				future.setResult(0L);
 				return 0;
 			}
+			// 两条失败路径都必须完成future（setException）：sendFlushAndWait用无超时await且被Checkpoint.flush
+			// 在提交路径调用，不完成future会永久卡死zeze事务线程。异常让该事务提交失败走redo，
+			// 对端未确认flush时静默继续会破坏两段式提交（Onz saga补偿兜底）。
 			logger.warn("waitFlushReady timeout, {}", funcArgument);
+			future.setException(new RuntimeException("waitFlushReady timeout"));
 			return 0;
 		}, funcArgument.getFlushTimeout())) {
 			logger.warn("sendFlushReady fail, {}", funcArgument);
+			future.setException(new RuntimeException("sendFlushReady fail"));
 		}
 		return future;
 	}
