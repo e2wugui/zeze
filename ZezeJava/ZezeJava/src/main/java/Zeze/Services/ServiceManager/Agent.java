@@ -24,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 public final class Agent extends AbstractAgent {
 	static final @NotNull Logger logger = LogManager.getLogger(Agent.class);
@@ -137,7 +138,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public void offlineRegister(@NotNull java.util.function.Supplier<BOfflineNotify> argumentFactory,
+	public void offlineRegister(@NotNull Supplier<BOfflineNotify> argumentFactory,
 								@NotNull Action1<BOfflineNotify> handle) {
 		waitConnectorReady();
 		var argument = argumentFactory.get(); // 启动：工厂执行一次（bump代际+构造参数）

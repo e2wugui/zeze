@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.List;
+import java.util.function.Supplier;
 
 /*
  * Agent发起协议	ServiceManager处理后通知		Agent接收通知后回调
@@ -367,7 +368,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	 * 应用应在工厂内递增共享库中的代际号（loadSerialNo）并构造参数——
 	 * 重连后仍在途的旧代际离线通知据此被接收端拒绝。
 	 */
-	public abstract void offlineRegister(@NotNull java.util.function.Supplier<BOfflineNotify> argumentFactory,
+	public abstract void offlineRegister(@NotNull Supplier<BOfflineNotify> argumentFactory,
 										 @NotNull Action1<BOfflineNotify> handle);
 
 	protected static void setCurrentAndCount(@NotNull AutoKey autoKey, long current, int count) {
