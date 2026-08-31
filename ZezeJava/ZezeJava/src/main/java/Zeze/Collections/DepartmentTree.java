@@ -264,7 +264,7 @@ public class DepartmentTree<
 		var departmentMemberClass = (Class<TDepartmentMember>)BeanFactory.findClass(departmentMemberBeanTypeId);
 		if (null == departmentMemberClass)
 			throw new IllegalArgumentException("departmentMemberClass not found");
-		return module.linkedMaps.open(departmentId + "@" + name, departmentMemberClass);
+		return module.linkedMaps._open(departmentId + "@" + name, departmentMemberClass, 30);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -272,7 +272,7 @@ public class DepartmentTree<
 		var memberClass = (Class<TMember>)BeanFactory.findClass(memberBeanTypeId);
 		if (null == memberClass)
 			throw new IllegalArgumentException("memberClass not found");
-		return module.linkedMaps.open("0@" + name, memberClass);
+		return module.linkedMaps._open("0@" + name, memberClass, 30);
 	}
 
 	public BDepartmentRoot selectRoot() {
