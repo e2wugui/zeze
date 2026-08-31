@@ -135,4 +135,54 @@ public class TestSplitPutTombstone {
 			stopBucket(nodes, agent, database);
 		}
 	}
+
+	// 复活回归：事务同步的墓碑先到、复制流（T0钉定视图，仍含旧值）后到时，
+	// putIfAbsent必须被墓碑标记挡住——硬delete解码会使get返回null而复活旧值。
+	@Test
+	public void testTombstoneBlocksLateCopy(@TempDir Path tempDir) throws Exception {
+		Task.tryInitThreadPool();
+		var database = new RocksDatabase(tempDir.resolve("dbh2TestTombstoneLateCopy").toString());
+		var nodes = startBucket(database, """
+				<?xml version="1.0" encoding="utf-8"?>
+				<raft Name="">
+					<node Host="127.0.0.1" Port="19110"/>
+					<node Host="127.0.0.1" Port="19111"/>
+					<node Host="127.0.0.1" Port="19112"/>
+				</raft>
+				""", tempDir);
+		var agent = new Dbh2Agent("""
+				<?xml version="1.0" encoding="utf-8"?>
+				<raft Name="">
+					<node Host="127.0.0.1" Port="19110"/>
+					<node Host="127.0.0.1" Port="19111"/>
+					<node Host="127.0.0.1" Port="19112"/>
+				</raft>
+				""");
+		try {
+			var meta = new BBucketMeta.Data();
+			meta.setDatabaseName("database");
+			meta.setTableName("table1");
+			meta.setRaftConfig("");
+			meta.setKeyFirst(Binary.Empty);
+			meta.setKeyLast(Binary.Empty);
+			agent.setBucketMeta(meta);
+
+			var key1 = new Binary(new byte[]{1});
+			var oldValue = new Binary(new byte[]{9});
+
+			// 复制视图中的旧值先落新桶（模拟复制流先经过该key）。
+			splitPut(agent, false, key1, oldValue);
+			Assertions.assertEquals(oldValue, get(agent, key1));
+
+			// 事务同步的墓碑后到（分桶期间delete）。
+			splitPut(agent, true, key1, Binary.Empty);
+			Assertions.assertNull(get(agent, key1));
+
+			// 复制流（T0视图仍含旧值）迟到再到达该key：putIfAbsent必须被墓碑挡住，不得复活。
+			splitPut(agent, false, key1, oldValue);
+			Assertions.assertNull(get(agent, key1));
+		} finally {
+			stopBucket(nodes, agent, database);
+		}
+	}
 }

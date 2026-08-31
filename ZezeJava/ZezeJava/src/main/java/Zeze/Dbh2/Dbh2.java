@@ -218,7 +218,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
 			return errorCode(eBucketMismatch);
 		var value = bucket.get(r.Argument.getKey());
-		if (null == value)
+		if (null == value || value.size() == 0) // 空值是分桶墓碑标记，逻辑上不存在（存储不变量：空value==墓碑）
 			r.Result.setNull(true);
 		else {
 			r.Result.setValue(value);
@@ -335,13 +335,16 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 			var count = proposeLimit;
 			var bucketEnd = false;
-			for (; it.isValid() && count > 0; it.prev(), count--) {
+			for (; it.isValid() && count > 0; it.prev()) {
 				var key = new Binary(it.key());
 				if (prefix.size() > 0 && !key.startsWith(prefix)) {
 					bucketEnd = true;
 					break;
 				}
+				if (it.value().length == 0) // 分桶墓碑标记，逻辑上不存在（walkKey也跳过：标记key等于已删除）
+					continue; // 不消耗页配额：整页墓碑若计数退出会以0条+非桶尾返回，客户端walkPage将跳桶丢数据
 				fill.run(key, it);
+				count--;
 			}
 
 			return bucketEnd || !it.isValid();
@@ -370,7 +373,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			var count = proposeLimit;
 			var bucketEnd = false;
 			var keyLast = stateMachine.getBucket().getBucketMeta().getKeyLast();
-			for (; it.isValid() && count > 0; it.next(), count--) {
+			for (; it.isValid() && count > 0; it.next()) {
 				var key = new Binary(it.key());
 				if (keyLast.size() > 0 && key.compareTo(keyLast) >= 0) {
 					// 分桶中刚完成时，数据可能超过Last，此时应该检查出来并结束walk。
@@ -382,7 +385,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 					bucketEnd = true;
 					break;
 				}
+				if (it.value().length == 0) // 分桶墓碑标记，逻辑上不存在（walkKey也跳过：标记key等于已删除）
+					continue; // 不消耗页配额：整页墓碑若计数退出会以0条+非桶尾返回，客户端walkPage将跳桶丢数据
 				fill.run(key, it);
+				count--;
 			}
 
 			return bucketEnd || !it.isValid();
@@ -507,6 +513,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	private volatile long splitSerialNo;
 	private volatile Dbh2Agent dbh2Splitting;
+	// 分桶事务同步的过滤器（见onCommitBatch注释：先于dbh2Splitting置位，与复制迭代器的创建同线程排序）。
+	private volatile BBucketMeta.Data splittingSync;
 
 	private RocksIterator locateFirst() {
 		var bucket = stateMachine.getBucket();
@@ -573,61 +581,86 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			var bucket = stateMachine.getBucket();
 			RocksIterator it = null;
 			try {
-				var splitting = bucket.getSplittingMeta(); // 对于timer，这个会调用两次。
-				if (null == splitting) {
-					// 第一次开始分桶，准备阶段。
-					// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
-					// 先去manager查一下可用的manager是否够，简单判断，不原子化。
-					if (manager.getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
-						logger.warn("splitting not enough free manager. isMove={}", isMove);
-						return;
-					}
-					// 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
-					bucket.getData().compact();
-
-					it = isMove ? locateFirst() : locateMiddle();
-					if (null == it) {
-						logger.info("splitting break start: it is null. isMove={}", isMove);
-						return; // empty？不需要执行后续操作。break progress.
-					}
-					var newMeta = stateMachine.getBucket().getBucketMeta().copy();
-					newMeta.setRaftConfig("");
-					if (!isMove)
-						newMeta.setKeyFirst(new Binary(it.key()));
-					splitting = manager.getMasterAgent().createSplitBucket(newMeta);
-
-					// 设置分桶进行中的标记到raft集群中。
-					getRaft().appendLog(new LogSetSplittingMeta(splitting));
-					// 创建到分桶目标的客户端。
-					logger.info("splitting start... isMove={} {}->{}",
-							isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
+			var splitting = bucket.getSplittingMeta(); // 对于timer，这个会调用两次。
+			if (null == splitting) {
+				// 第一次开始分桶，准备阶段。
+				// 这个阶段在timer回调中执行，可以同步调用一些网络接口。
+				// 先去manager查一下可用的manager是否够，简单判断，不原子化。
+				if (manager.getMasterAgent().checkFreeManager() < dbh2Config.getRaftClusterCount()) {
+					logger.warn("splitting not enough free manager. isMove={}", isMove);
+					return;
 				}
+				// 上一次分桶结束的deleteRange可能还没compact，此时keyNumbers不准确，这里总是执行一次。
+				bucket.getData().compact();
 
-				// 重启的时候，需要重建到分桶的连接。
-				if (null == dbh2Splitting) {
-					dbh2Splitting = new Dbh2Agent(splitting.getRaftConfig(), RaftAgentNetClient::new);
-					dbh2Splitting.getRaftAgent().setPendingLimit(Integer.MAX_VALUE);
+				// 定位middle只用临时迭代器，取到key立即关闭：迭代器钉定创建时刻的视图，
+				// 跨createSplitBucket rpc（分钟级）持有的话，rpc期间提交的事务会落在
+				// 复制视图之外（详见下面【同步先于复制视图】的注释）。
+				var locateIt = isMove ? locateFirst() : locateMiddle();
+				if (null == locateIt) {
+					logger.info("splitting break start: it is null. isMove={}", isMove);
+					return; // empty？不需要执行后续操作。break progress.
 				}
+				var newMeta = stateMachine.getBucket().getBucketMeta().copy();
+				newMeta.setRaftConfig("");
+				if (!isMove)
+					newMeta.setKeyFirst(new Binary(locateIt.key()));
+				locateIt.close(); // 不跨rpc持有钉定视图
 
-				var server = (Dbh2RaftServer)getRaft().getServer();
-				performPrepareQueue(server.takePrepareQueue());
+				splitting = manager.getMasterAgent().createSplitBucket(newMeta);
 
-				if (null == it) {
-					// 重新开始分桶时走这个分支，根据上次找到的middle，定位it。
-					it = isMove ? locateFirst() : locateMiddle(splitting.getKeyFirst());
-					if (null == it) {
-						logger.info("splitting break restart: it is null. isMove={}", isMove);
-						return;
+				// 设置分桶进行中的标记到raft集群中。
+				getRaft().appendLog(new LogSetSplittingMeta(splitting));
+				// 创建到分桶目标的客户端。
+				logger.info("splitting start... isMove={} {}->{}",
+						isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
+			}
+
+			// 【同步先于复制视图】onCommitBatch的同步条件（splittingSync+dbh2Splitting非空）
+			// 必须在创建复制迭代器之前全部就位：复制迭代器钉定创建时刻的视图，同步就位与迭代器
+			// 创建之间提交的事务将既不在复制视图中、也不被同步——永久丢失。
+			// LogSetSplittingMeta的apply是异步的，同步过滤器不能依赖stateMachine的splittingMeta
+			// （apply前为null），故用本进程volatile成员（先写splittingSync再写dbh2Splitting）。
+			splittingSync = splitting;
+			if (null == dbh2Splitting) {
+				dbh2Splitting = new Dbh2Agent(splitting.getRaftConfig(), RaftAgentNetClient::new);
+				dbh2Splitting.getRaftAgent().setPendingLimit(Integer.MAX_VALUE);
+			}
+
+			var server = (Dbh2RaftServer)getRaft().getServer();
+			performPrepareQueue(server.takePrepareQueue());
+
+			// 复制迭代器总是同步就位之后新建（首轮也走这里，不再复用定位middle的旧迭代器）。
+			it = isMove ? locateFirst() : locateMiddle(splitting.getKeyFirst());
+			if (null == it) {
+				// 无可复制数据（如定位与重定位之间分界key及以右被全部删除）：
+				// 复制空完成，走splitPutNext同款收尾路径（不能return——tryStartSplit对
+				// splitting!=null早退，无人重试会永久卡住分桶）。
+				// 必须先等LogSetSplittingMeta apply：本分支无网络往返，append到收尾仅毫秒级，
+				// 未apply就进endSplit0会读到splittingMeta==null（setBucketMetaAsync(null)必NPE，
+				// 且one-shot被消耗后prepare队列永久积压）。等待期间仅阻塞其它startSplit重入
+				// （Dbh2.lock不被raft apply路径持有），不影响正常读写。
+				var waitCount = 0;
+				while (null == stateMachine.getBucket().getSplittingMeta()) {
+					if (++waitCount > 1500) { // 30s：apply需多数派往返，正常毫秒级；超时属raft异常
+						logger.warn("splitting wait splittingMeta apply timeout. isMove={}", isMove);
+						return; // 放弃本轮，桶保持可写；换主后recoverSplitting自愈
 					}
-					logger.info("splitting restart... isMove={} {}->{}",
-							isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
+					Thread.sleep(20);
 				}
+				logger.info("splitting nothing to copy, go end. isMove={}", isMove);
+				blockPrepareUntilNoTransaction(isMove);
+				return;
+			}
+			if (bucket.getSplittingMeta() != null)
+				logger.info("splitting restart... isMove={} {}->{}",
+						isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
 
-				// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
-				var puts = buildSplitPut(it);
-				var fit = it;
-				dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, fit, serialNo));
-				it = null;
+			// 开始同步数据，这个阶段对于rocks时同步访问的，对于网络是异步的。
+			var puts = buildSplitPut(it);
+			var fit = it;
+			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, fit, serialNo));
+			it = null;
 			} finally {
 				if (null != it)
 					it.close();
@@ -707,8 +740,19 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	private void endSplit0(boolean isMove) {
+		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
+		if (null == splittingMeta) {
+			// 安全网：任何路径在LogSetSplittingMeta apply前触达这里都不能带null继续——
+			// setBucketMetaAsync(null)必NPE，且one-shot已被消耗、prepare队列永久积压。
+			// 延迟重试而非直接重排：transactions为空时setupOneShotIfNoTransaction会立即内联执行，
+			// 直接重排等于热自旋（已提交日志必会apply；未提交则换主后recoverSplitting自愈）。
+			logger.warn("endSplit0 wait splittingMeta apply. isMove={}", isMove);
+			TaskSpec.ofAction(() -> getRaft().executeUserTask(
+					() -> stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove)))).schedule(1000);
+			return;
+		}
 		// 第一步，设置新桶的meta
-		dbh2Splitting.setBucketMetaAsync(stateMachine.getBucket().getSplittingMeta(), (p) -> endSplit1(p, isMove));
+		dbh2Splitting.setBucketMetaAsync(splittingMeta, (p) -> endSplit1(p, isMove));
 	}
 
 	private long endSplit1(Protocol<?> p, boolean isMove) {
@@ -760,6 +804,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			logger.error("", ex);
 		}
 		dbh2Splitting = null;
+		splittingSync = null;
 
 		var meta = stateMachine.getBucket().getBucketMeta();
 		if (isMove) {
@@ -774,7 +819,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	public void onCommitBatch(Dbh2Transaction txn) {
-		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
+		// 同步过滤器用本进程volatile成员（startSplit里先于dbh2Splitting置位、先于复制迭代器创建），
+		// 不能用stateMachine的splittingMeta：后者要等LogSetSplittingMeta异步apply，
+		// apply前提交的事务不在（后建的）复制迭代器视图中，若再跳过同步就永久丢失了。
+		var splittingMeta = splittingSync;
 		if (splittingMeta == null || dbh2Splitting == null)
 			return;
 

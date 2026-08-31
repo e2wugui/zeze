@@ -436,18 +436,17 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		try {
 			var table = bucket.getData();
 			if (puts.isFromTransaction()) {
-				// 事务同步流程
+				// 事务同步流程：分桶期间的delete被编码为Binary.Empty的put（见Dbh2.onCommitBatch）。
+				// 空值必须作为墓碑标记原样落盘，不能解码成硬delete：复制流（fromTransaction=false，
+				// 钉定T0视图、可能仍含旧值）晚于墓碑到达时，putIfAbsent靠"get非null"被标记挡住；
+				// 硬delete会使get返回null而复活旧值（已删记录在新桶以旧值重现）。
+				// 读路径（get/walk/walkKey）统一把空值当不存在（客户端replace本就禁止空value，
+				// 存储不变量：空value==墓碑标记）。
 				for (var e : puts.getPuts().entrySet()) {
 					var key = e.getKey();
 					var value = e.getValue();
 
-					if (value.size() == 0) {
-						// 分桶期间的delete被编码为Binary.Empty的put（见Dbh2.onCommitBatch），这里解码回delete。
-						table.delete(key.bytesUnsafe(), key.getOffset(), key.size());
-						continue;
-					}
-
-					// replace
+					// replace（空值=墓碑标记）
 					table.put(key.bytesUnsafe(), key.getOffset(), key.size(),
 							value.bytesUnsafe(), value.getOffset(), value.size());
 				}
@@ -459,7 +458,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				var key = e.getKey();
 				var value = e.getValue();
 
-				// putIfAbsent
+				// putIfAbsent（墓碑标记非null，恰好阻止迟到的复制复活已删key）
 				if (table.get(key.bytesUnsafe(), key.getOffset(), key.size()) == null) {
 					table.put(key.bytesUnsafe(), key.getOffset(), key.size(),
 							value.bytesUnsafe(), value.getOffset(), value.size());
