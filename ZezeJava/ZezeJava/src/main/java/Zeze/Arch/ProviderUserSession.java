@@ -51,7 +51,9 @@ public class ProviderUserSession {
 	}
 
 	public boolean isLogin() {
-		return getContext().isEmpty();
+		// 全仓约定 context 非空 == 已登录（getRoleId、LinkdProvider 广播、ProviderWithOnline.LinkBroken、
+		// sendOnline 同向）；Arch.Online.ProcessLogoutRequest 是唯一调用点，反转使已登录用户的 Logout 永远被拒。
+		return !getContext().isEmpty();
 	}
 
 	public @Nullable Long getRoleId() {
