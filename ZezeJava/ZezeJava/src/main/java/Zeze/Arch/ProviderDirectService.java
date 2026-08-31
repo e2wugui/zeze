@@ -273,6 +273,8 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (ps != null) {
 			for (var service : ps.ServiceReadyStates.entrySet()) {
 				var subs = getZeze().getServiceManager().getSubscribeStates().get(service.getKey());
+				if (subs == null)
+					continue; // 服务已取消订阅（subscribeStates条目已移除）。不判空会在下面NPE，跳过后面的清理。
 				for (var identity : service.getValue().keySet()) {
 					subs.setIdentityLocalState(identity, null);
 				}
