@@ -87,7 +87,10 @@ public class TestCert {
 			}
 		}
 
-		var keyStore = loadKeyStore(new FileInputStream(pkcs12File.toFile()), passwd);
+		final KeyStore keyStore;
+		try (var fs = new FileInputStream(pkcs12File.toFile())) {
+			keyStore = loadKeyStore(fs, passwd);
+		}
 		var publicKey = getPublicKey(keyStore, alias);
 		var privateKey = getPrivateKey(keyStore, null, alias);
 
