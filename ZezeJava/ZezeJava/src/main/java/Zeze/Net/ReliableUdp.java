@@ -313,7 +313,9 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			var buffer = java.nio.ByteBuffer.allocate(MaxPacketLength);
 			var source = datagramChannel.receive(buffer);
 			if (source != null) {
-				var bb = ByteBuffer.Wrap(buffer.array(), buffer.position(), buffer.limit());
+				// 两参Wrap=（数组,长度）：position是收到的字节数。三参误用（offset=position,length=limit=capacity）
+				// 使VerifyArrayIndex恒抛IllegalArgumentException，收包从未工作过（对照DatagramSocket.java:124同型）
+				var bb = ByteBuffer.Wrap(buffer.array(), buffer.position());
 				var type = bb.ReadUInt();
 				switch (type) {
 				case TypePacket:
