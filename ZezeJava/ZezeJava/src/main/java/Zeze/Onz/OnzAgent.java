@@ -8,6 +8,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Data;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.TaskCompletionSource;
 
@@ -73,7 +74,8 @@ public class OnzAgent extends AbstractOnzAgent {
 		argument.encode(bbArgument);
 		r.Argument.setFuncArgument(new Binary(bbArgument));
 
-		r.Send(zezeOnzInstance, (p) ->{
+		// Send false（socket断开窗口）时回调不注册、无超时调度，future必须完成，否则perform的future.get()永久挂起
+		if (!r.Send(zezeOnzInstance, (p) ->{
 			if (r.getResultCode() == 0) {
 				var bbResult = ByteBuffer.Wrap(r.Result.getFuncResult());
 				result.decode(bbResult);
@@ -84,7 +86,10 @@ public class OnzAgent extends AbstractOnzAgent {
 						+ " code=" + r.getResultCode()));
 			}
 			return 0;
-		});
+		})) {
+			future.setException(new RuntimeException(
+					"call error: " + onzProcedureName + " code=" + Procedure.ErrorSendFail));
+		}
 		return future;
 	}
 
@@ -103,7 +108,8 @@ public class OnzAgent extends AbstractOnzAgent {
 		argument.encode(bbArgument);
 		r.Argument.setFuncArgument(new Binary(bbArgument));
 
-		r.Send(zezeOnzInstance, (p) ->{
+		// 同上：Send false必须完成future
+		if (!r.Send(zezeOnzInstance, (p) ->{
 			if (r.getResultCode() == 0) {
 				var bbResult = ByteBuffer.Wrap(r.Result.getFuncResult());
 				result.decode(bbResult);
@@ -114,7 +120,10 @@ public class OnzAgent extends AbstractOnzAgent {
 								+ " code=" + r.getResultCode()));
 			}
 			return 0;
-		});
+		})) {
+			future.setException(new RuntimeException(
+					"call error: " + onzProcedureName + " code=" + Procedure.ErrorSendFail));
+		}
 		return future;
 	}
 }
