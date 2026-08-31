@@ -77,7 +77,8 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 		private boolean acquireNothing() {
 			// 增加其他类型的同步机制，需要修改这里。
-			return mutexRefs.isEmpty() && semaphoreRefs.isEmpty();
+			// 漏检会导致持锁的模拟线程被判空闲退出：锁悬挂且无法释放（release只能offer给已退出的线程）。
+			return mutexRefs.isEmpty() && semaphoreRefs.isEmpty() && rwLockRefs.isEmpty();
 		}
 
 		public ReentrantLock getMutex(String name) {
