@@ -501,7 +501,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				String sql = "SELECT top ? id,value FROM " + getName()
+				String sql = "SELECT top (?) id,value FROM " + getName()
 						+ (exclusiveStartKey != null ? " WHERE id > ?" : "")
 						+ " ORDER BY id";
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -532,7 +532,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				String sql = "SELECT top ? id FROM " + getName()
+				String sql = "SELECT top (?) id FROM " + getName()
 						+ (exclusiveStartKey != null ? " WHERE id > ?" : "")
 						+ " ORDER BY id";
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -563,7 +563,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				String sql = "SELECT top ? id,value FROM " + getName()
+				String sql = "SELECT top (?) id,value FROM " + getName()
 						+ (exclusiveStartKey != null ? " WHERE id < ?" : "")
 						+ " ORDER BY id DESC";
 				try (var cmd = connection.prepareStatement(sql)) {
@@ -594,7 +594,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				String sql = "SELECT top ? id FROM " + getName()
+				String sql = "SELECT top (?) id FROM " + getName()
 						+ (exclusiveStartKey != null ? " WHERE id < ?" : "")
 						+ " ORDER BY id DESC";
 				try (var cmd = connection.prepareStatement(sql)) {
