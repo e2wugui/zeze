@@ -1,6 +1,7 @@
 package Zeze.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Future;
 import Zeze.Builtin.RedoQueue.BQueueTask;
 import Zeze.Builtin.RedoQueue.BTaskId;
 import Zeze.Builtin.RedoQueue.RunTask;
@@ -13,6 +14,7 @@ import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.jspecify.annotations.NonNull;
 import org.rocksdb.RocksDBException;
 
@@ -23,6 +25,8 @@ import org.rocksdb.RocksDBException;
  * 3.【可选】使用ServiceManager动态发现zeze-server。感觉没有必要。
  */
 public class RedoQueue extends HandshakeClient {
+	private static final org.apache.logging.log4j.Logger logger =
+			org.apache.logging.log4j.LogManager.getLogger(RedoQueue.class);
 	private RocksDatabase db;
 	private RocksDatabase.Table tableLastDoneTaskId;
 	private RocksDatabase.Table tableTaskQueue;
@@ -31,6 +35,9 @@ public class RedoQueue extends HandshakeClient {
 	private final byte[] lastDoneTaskIdKey = "LastDoneTaskId".getBytes(StandardCharsets.UTF_8);
 	private RunTask pending;
 	private AsyncSocket socket;
+	// 失败/超时后的延迟重试，单flight（已在途则不重复排）。stop必须取消，否则触发时tableTaskQueue已close。
+	private Future<?> retryTask;
+	private static final long RETRY_DELAY_MS = 5_000;
 
 	public RedoQueue(String name, Config config) {
 		super(name, config);
@@ -65,6 +72,10 @@ public class RedoQueue extends HandshakeClient {
 	public void stop() throws Exception {
 		lock();
 		try {
+			if (retryTask != null) {
+				retryTask.cancel(false);
+				retryTask = null;
+			}
 			super.stop();
 			if (db != null) {
 				db.close();
@@ -148,10 +159,35 @@ public class RedoQueue extends HandshakeClient {
 				return 0L;
 			}
 
+			// 失败或超时：连接仍在时没有事件再驱动泵（仅add/重连会），队列会永久停摆。
+			// 协议按prevTaskId幂等：超时后任务可能已被服务端应用，重发会得到ErrorRequestId并采纳服务端进度，安全。
+			// NotImplement等永久配置错误下持续重试并刷warn，运维修复后队列自动继续。
+			logger.warn("task fail, schedule retry. queue={}, taskId={}, resultCode={}",
+					getName(), rpc.Argument.getTaskId(), rpc.getResultCode());
+			scheduleRetry();
 			return rpc.getResultCode();
 		} finally {
 			unlock();
 		}
+	}
+
+	private void scheduleRetry() {
+		if (retryTask != null)
+			return; // 单flight：已在途的重试足够驱动泵
+
+		retryTask = TaskSpec.ofAction(() -> {
+			lock();
+			try {
+				retryTask = null;
+				if (null == tableTaskQueue)
+					return; // stop与已触发的重试竞态：stop持锁先完成（cancel拦不住已启动的任务），db已关闭
+				tryStartSendNextTask(null, null);
+			} catch (RocksDBException e) {
+				Task.forceThrow(e);
+			} finally {
+				unlock();
+			}
+		}).scheduleNow(RETRY_DELAY_MS);
 	}
 
 	@Override
