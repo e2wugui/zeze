@@ -315,8 +315,10 @@ public class Rank extends AbstractRank {
 	}
 
 	public static class RankTotal extends ReentrantLock {
-		private long BuildTime;
-		private BRankListReadOnly TableValue;
+		// volatile：TableValue在getRankPosition等处锁外读。写序必须先TableValue后BuildTime，
+		// volatile写读序保证读者看到新BuildTime必见新TableValue（"旧time+新value"只会被判过期重建，无害）。
+		private volatile long BuildTime;
+		private volatile BRankListReadOnly TableValue;
 		private final BConcurrentKey keyHint;
 
 		public RankTotal(BConcurrentKey keyHint) {
@@ -352,17 +354,17 @@ public class Rank extends AbstractRank {
 
 	public RankTotal getRankTotal(BConcurrentKey keyHint, int countNeed) {
 		var rank = rankCached.computeIfAbsent(keyHint, __ -> new RankTotal(keyHint));
-		long now = System.currentTimeMillis();
-		rank.lock(); // 这个锁好像不是很必要。
+		var now = System.currentTimeMillis();
+		rank.lock();
 		try {
-			if (now - rank.getBuildTime() < getRankCacheTimeout(keyHint.getRankType())) {
+			// 锁的职责：freshness双检查 + 重建single-flight（并发miss不重复执行getRankDirect的跨段查询归并）。
+			if (now - rank.getBuildTime() < getRankCacheTimeout(keyHint.getRankType()))
 				return rank;
-			}
+			rank.setTableValue(getRankDirect(keyHint, countNeed));
+			rank.setBuildTime(now);
 		} finally {
 			rank.unlock();
 		}
-		rank.setTableValue(getRankDirect(keyHint, countNeed));
-		rank.setBuildTime(now);
 		return rank;
 	}
 
