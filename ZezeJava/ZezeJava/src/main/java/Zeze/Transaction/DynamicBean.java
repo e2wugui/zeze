@@ -194,11 +194,17 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		this.mapKey = mapKey;
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public void followerApply(@NotNull Log log) {
 		var dLog = (LogDynamic)log;
 		if (dLog.value != null) {
 			typeId = dLog.specialTypeId;
+			// dLog.value是decode反射新建的非受管bean，必须对齐写路径setBeanWithSpecialTypeId的
+			// 初始化集（initRootInfo+variableId(1)），与C-4(CollOne)/PMap2等全部同类实现一致。
+			// rootInfo为null（非受管）时initRootInfo内部保持子bean非受管，安全。
+			dLog.value.initRootInfo(rootInfo, this);
+			dLog.value.variableId(1); // 只有一个变量
 			bean = dLog.value;
 		} else if (dLog.logBean != null)
 			bean.followerApply(dLog.logBean);
