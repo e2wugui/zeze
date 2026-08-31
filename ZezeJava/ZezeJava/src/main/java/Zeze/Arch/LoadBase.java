@@ -15,9 +15,14 @@ public abstract class LoadBase {
 	private int reportDelaySeconds;
 	private int timeoutDelaySeconds;
 	private Future<?> timerTask;
+	// 停机标志。定时器是onTimerTask自续的链条：stop置位后，已排定的下一次触发进门即返回、不再重排，
+	// 链最多多醒一次即自然终止，stop无需与重排竞争取消。volatile保证定时线程醒来即见。
+	private volatile boolean stopped;
 	private final Application zeze;
 	private final ProviderOverload overload = new ProviderOverload();
-	private LoginQueueAgent loginQueueAgent;
+	// volatile：setup线程写一次（如ProviderApp.startLast中的setLoginQueueAgent），定时线程(report)、
+	// 停机线程(stop)、choiceProvider等多线程读，无锁发布。
+	private volatile LoginQueueAgent loginQueueAgent;
 
 	public Application getZeze() {
 		return zeze;
@@ -45,7 +50,8 @@ public abstract class LoadBase {
 		start(getLoadConfig().getDigestionDelayExSeconds());
 	}
 
-	public final void start(int delaySeconds) {
+	public final synchronized void start(int delaySeconds) {
+		stopped = false; // 先复位标志再重排，支持stop后重启。
 		timeoutDelaySeconds = delaySeconds;
 		if (null != timerTask)
 			timerTask.cancel(false);
@@ -53,10 +59,8 @@ public abstract class LoadBase {
 	}
 
 	public final void stop() throws Exception {
-		if (timerTask != null) {
-			timerTask.cancel(true);
-			timerTask = null;
-		}
+		// 零锁：不与onTimerTask的重排竞争，靠stopped让链条自灭。停机后最多多醒一次（进门即返回）。
+		stopped = true;
 		overload.close();
 		if (null != loginQueueAgent)
 			loginQueueAgent.stop();
@@ -82,12 +86,14 @@ public abstract class LoadBase {
 	}
 
 	private synchronized void onTimerTask() {
+		if (stopped)
+			return; // 链在此断开：不再重排。
 		var overload = this.overload.getOverload();
 		int online = getOnlineLocalCount();
 		long loginTimes = getOnlineLoginTimes();
 		int onlineNew = (int)(loginTimes - lastLoginTime);
 		lastLoginTime = loginTimes;
-		int onlineNewPerSecond = onlineNew / timeoutDelaySeconds;
+		int onlineNewPerSecond = onlineNew / Math.max(1, timeoutDelaySeconds); // 除零防护，对齐reportNow
 		var config = getLoadConfig();
 		if (overload != BLoad.eWorkFine) {
 			// fast report
@@ -122,6 +128,8 @@ public abstract class LoadBase {
 	}
 
 	public void report(int overload, int online, int onlineNew) {
+		if (stopped)
+			return; // 停机窗口内不再上报（向已停的ServiceManager/LoginQueue发送只会刷错误日志）。
 		var load = new BLoad.Data();
 
 		load.setOverload(overload);
