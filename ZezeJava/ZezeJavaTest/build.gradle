@@ -14,6 +14,12 @@ dependencies {
 
     // for test (JUnit 6 / Jupiter)
     testImplementation 'org.junit.jupiter:junit-jupiter-api:6.1.3'
+
+    // for BenchPersistentCollectionsCompare（pcollections 替代评估：显式声明以便测试代码直接引用）
+    testImplementation 'org.pcollections:pcollections:4.0.2'
+    testImplementation 'io.vavr:vavr:0.10.5'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.7'
+    testImplementation 'org.openjdk.jol:jol-core:0.17'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:6.1.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-console:6.1.3'
     // TestEnvLauncherListener（ServiceLoader 注册）编译/运行都需要 launcher api
