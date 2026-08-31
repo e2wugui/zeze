@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.MQ.Master.CreateMQ;
@@ -34,7 +35,6 @@ public class Master extends AbstractMaster {
         private final AsyncSocket socket;
         private final BMQServer.Data info;
         private double load;
-        private final HashSet<Integer> partitionIndexes = new HashSet<>();
 
         public Manager(AsyncSocket socket, BMQServer.Data data) {
             this.socket = socket;
@@ -116,18 +116,27 @@ public class Master extends AbstractMaster {
 
         // 分配manager
         var managers = choiceManager(r.Argument.getPartition());
+        if (managers.length == 0)
+            return errorCode(eManagerNotFound); // 无manager注册；否则下面 i % managers.length 除零。错误码在生成的AbstractMaster中定义，复用manager缺失语义，不改生成文件
+
+        // 分区号必须按请求局部累积：挂在Manager上跨请求累积不清理，会把旧topic的分区号
+        // 下发给新topic，manager上创建出多余分区并随目录持久化残留。
+        var managerPartitionIndexes = new HashMap<Manager, HashSet<Integer>>();
         for (var i = 0; i < r.Argument.getPartition(); ++i) {
             var manager = managers[i % managers.length];
             var info = manager.info.copy();
             info.setPartitionIndex(i);
             info.setTopic(r.Argument.getTopic());
             servers.getServers().add(info);
-            manager.partitionIndexes.add(i);
+            managerPartitionIndexes.computeIfAbsent(manager, __ -> new HashSet<>()).add(i);
         }
         for (var manager : managers) {
+            var indexes = managerPartitionIndexes.get(manager);
+            if (indexes == null)
+                continue;
             var cp = new CreatePartition();
             cp.Argument.setTopic(r.Argument.getTopic());
-            cp.Argument.setPartitionIndexes(manager.partitionIndexes);
+            cp.Argument.setPartitionIndexes(indexes);
             cp.SendForWait(manager.socket).await();
             if (cp.getResultCode() != 0) {
                 logger.error("create partition error={} r={}", IModule.getErrorCode(cp.getResultCode()), cp);
