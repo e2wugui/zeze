@@ -74,7 +74,7 @@ public class HaProxyHeader {
 		if (bb.size() >= 16 && startWithV2sig(bb.Bytes, bb.ReadIndex) && ((bb.Bytes[bb.ReadIndex + v2sig.length] & 0xF0) == 0x20)) {
 			var javaBb = java.nio.ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.size());
 			javaBb.order(ByteOrder.BIG_ENDIAN);
-			int size = 16 + (javaBb.getShort(14) & 0xffff); // offset 14 是个 uint16_t，需要 ntohs。
+			int size = 16 + (javaBb.getShort(bb.ReadIndex + 14) & 0xffff); // offset 14 是个 uint16_t，需要 ntohs。
 			if (bb.size() < size)
 				return false; // not enough data
 			int cmd = bb.Bytes[bb.ReadIndex + v2sig.length] & 0xF;
@@ -85,15 +85,15 @@ public class HaProxyHeader {
 				case 0x11: // TCPv4
 					// port读出来，再拼成InetSocketAddress吧。当然拼成Inet，就不需要单独保存了。
 					var remoteInet4Address = Inet4Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 16, bb.ReadIndex + 20));
-					remoteAddress = new InetSocketAddress(remoteInet4Address, javaBb.getShort(bb.ReadIndex + 24));
+					remoteAddress = new InetSocketAddress(remoteInet4Address, javaBb.getShort(bb.ReadIndex + 24) & 0xffff); // 端口是uint16
 					var targetInet4Address = Inet4Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 20, bb.ReadIndex + 24));
-					targetAddress = new InetSocketAddress(targetInet4Address, javaBb.getShort(bb.ReadIndex + 26));
+					targetAddress = new InetSocketAddress(targetInet4Address, javaBb.getShort(bb.ReadIndex + 26) & 0xffff); // 端口是uint16
 					break;
 				case 0x21: // TCPv6
 					var remoteInet6Address = Inet6Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 16, bb.ReadIndex + 32));
-					remoteAddress = new InetSocketAddress(remoteInet6Address, javaBb.getShort(bb.ReadIndex + 48));
+					remoteAddress = new InetSocketAddress(remoteInet6Address, javaBb.getShort(bb.ReadIndex + 48) & 0xffff); // 端口是uint16
 					var targetInet6Address = Inet6Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 32, bb.ReadIndex + 48));
-					targetAddress = new InetSocketAddress(targetInet6Address, javaBb.getShort(bb.ReadIndex + 50));
+					targetAddress = new InetSocketAddress(targetInet6Address, javaBb.getShort(bb.ReadIndex + 50) & 0xffff); // 端口是uint16
 					break;
 				}
 				break;
