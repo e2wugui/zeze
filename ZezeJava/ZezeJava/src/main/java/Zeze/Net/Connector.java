@@ -27,13 +27,13 @@ public class Connector extends ReentrantLock {
 	private final @Nullable String url;
 	private final @NotNull String name;
 	private Service service;
-	private AsyncSocket socket;
+	private volatile AsyncSocket socket; // getSocket()无锁读，需要可见性保证
 	private volatile @NotNull TaskCompletionSource<AsyncSocket> futureSocket = new TaskCompletionSource<>();
 
 	public volatile @Nullable Object userState;
 
 	private boolean isAutoReconnect;
-	private boolean isConnected;
+	private volatile boolean isConnected; // isConnected()无锁读，需要可见性保证
 	private @Nullable Future<?> reconnectTask;
 	private int maxReconnectDelay = 8000; // 毫秒
 	private int reConnectDelay;
