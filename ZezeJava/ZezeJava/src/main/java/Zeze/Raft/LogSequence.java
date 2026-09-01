@@ -1042,7 +1042,7 @@ public class LogSequence {
 			// 这一般的情况是snapshot文件被删除了。
 			// 【注意】这种情况也许报错更好？
 			// 内部会判断，不会启动多个snapshot。
-			snapshot();
+			TaskSpec.ofAction(this::snapshot).name("Snapshot").run();
 		}
 	}
 
