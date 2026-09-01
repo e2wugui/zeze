@@ -325,8 +325,9 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
 			try (var connection = dataSource.getConnection()) {
 				DatabaseMetaData meta = connection.getMetaData();
-				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
-				isNew = !resultSet.next();
+				try (ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"})) {
+					isNew = !resultSet.next();
+				}
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			}
