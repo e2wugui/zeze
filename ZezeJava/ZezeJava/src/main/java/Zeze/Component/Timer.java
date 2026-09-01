@@ -1376,6 +1376,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					//noinspection BusyWait
 					Thread.sleep(1000); // 避免因FastErrorPeriod导致过于频繁的事务失败
 				} catch (InterruptedException ignored) {
+					Thread.currentThread().interrupt();
+					return; // 中断意味着停止，退出重试循环（否则恢复的标记使后续sleep立即再抛，形成忙等）
 				}
 			}
 		} while (node.value != last);
