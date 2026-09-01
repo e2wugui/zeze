@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
 public class LinkdService extends HandshakeServer {
 	private static final @NotNull Logger logger = LogManager.getLogger(LinkdService.class);
 	protected LinkdApp linkdApp;
-	protected long curSendSpeed; // bytes/sec
+	protected volatile long curSendSpeed; // bytes/sec
 	private final AtomicLong loginTimes = new AtomicLong();
 
 	public LinkdService(@NotNull String name, Application zeze) {
