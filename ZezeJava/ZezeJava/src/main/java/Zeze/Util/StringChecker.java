@@ -136,7 +136,8 @@ public final class StringChecker {
 		}
 	}
 
-	private @Nullable Trie root;
+	// volatile: reload 锁外构建后一次性发布，保证读线程安全可见
+	private volatile @Nullable Trie root;
 	private final HashSet<String> newAdds = new HashSet<>(); // 动态添加的部分
 	private final FastLock newAddsLock = new FastLock();
 
