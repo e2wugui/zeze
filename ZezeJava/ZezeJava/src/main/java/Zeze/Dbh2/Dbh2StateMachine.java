@@ -362,22 +362,40 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void close() throws Exception {
-		for (var tran : transactions.values())
-			tran.close();
+		// 各清理步骤独立捕获异常，保证后续清理继续执行。
+		for (var tran : transactions.values()) {
+			try {
+				tran.close();
+			} catch (Exception e) {
+				logger.error("", e);
+			}
+		}
 		transactions.clear();
 
 		if (bucket != null) {
-			bucket.close();
+			try {
+				bucket.close();
+			} catch (Exception e) {
+				logger.error("", e);
+			}
 			bucket = null;
 		}
 
 		if (null != timer) {
-			timer.cancel(true);
+			try {
+				timer.cancel(true);
+			} catch (Exception e) {
+				logger.error("", e);
+			}
 			timer = null;
 		}
 
 		if (null != commitAgent) {
-			commitAgent.stop();
+			try {
+				commitAgent.stop();
+			} catch (Exception e) {
+				logger.error("", e);
+			}
 			commitAgent = null;
 		}
 	}
