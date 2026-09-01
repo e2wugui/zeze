@@ -124,6 +124,49 @@ public class TestCodec{
 		Assertions.assertEquals(sizeBefore, sink.getBuffer().size());
 	}
 
+	// N-?缺陷: DecompressMppcZstd.update(byte[],int pos,int len) 的参数 pos 遮蔽基类位计数字段 pos，
+	// 进块模式分支 int p = pos 取到数组下标、pos = 0 把循环下标清零。
+	// 旧 testMppcZstdRoundTrip 未命中：块标记在流头部时，重扫恰好把 [DF FF 长度] 吃成废 varint，
+	// 其后 zstd 载荷字节序碰巧不错位。必须在块之前先有常规 MPPC 数据，让进块事件发生在数组中段。
+	@Test
+	public final void testMppcZstdEnterBlockAfterMppc() {
+		var rand = new Random(1234);
+		var raw1 = new byte[1000]; // 常规MPPC段（块模式之前）
+		rand.nextBytes(raw1);
+		var block = new byte[4096]; // 块模式段（zstd）
+		rand.nextBytes(block);
+		var raw2 = new byte[777]; // 块结束后回到常规MPPC段
+		rand.nextBytes(raw2);
+
+		var bufcp = new BufferCodec();
+		var expected = ByteBuffer.Allocate(raw1.length + block.length + raw2.length);
+		expected.Append(raw1, 0, raw1.length);
+		expected.Append(block, 0, block.length);
+		expected.Append(raw2, 0, raw2.length);
+		{
+			var cp = new CompressMppcZstd(bufcp,
+					ZstdFactory.ZstdCompressStream.DEFAULT_DST_BUF_SIZE,
+					ZstdFactory.ZstdCompressStream.DEFAULT_COMPRESS_LEVEL,
+					ZstdFactory.ZstdCompressStream.DEFAULT_WINDOW_LOG);
+			cp.update(raw1, 0, raw1.length);
+			cp.flush();
+			cp.updateBlock(block, 0, block.length);
+			cp.flushBlock();
+			cp.update(raw2, 0, raw2.length);
+			cp.flush();
+			cp.close();
+		}
+
+		var bufdp = new BufferCodec();
+		var dp = new DecompressMppcZstd(bufdp,
+				ZstdFactory.ZstdDecompressStream.DEFAULT_DST_BUF_SIZE,
+				ZstdFactory.ZstdDecompressStream.DEFAULT_DST_BUF_SIZE);
+		dp.update(bufcp.getBuffer().Bytes, bufcp.getBuffer().ReadIndex, bufcp.getBuffer().size());
+		dp.flush();
+		dp.close();
+		Assertions.assertEquals(expected, bufdp.getBuffer());
+	}
+
 	@Test
 	public final void testMppcZstdRoundTrip() {
 		var rand = new Random();
