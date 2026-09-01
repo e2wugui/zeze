@@ -10,7 +10,7 @@ public class Tool {
 		for (String arg : args) {
 			if (arg.equals("-dropMysqlOperatesProcedures"))
 				dropMysqlOperatesProcedures = true;
-			if (arg.equals("-clearOpenDatabaseFlag"))
+			else if (arg.equals("-clearOpenDatabaseFlag"))
 				clearOpenDatabaseFlag = true;
 			else
 				zezeXml = arg;
