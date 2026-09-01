@@ -764,7 +764,9 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 
 		public void clear() throws RocksDBException {
-			deleteToEnd(iterator());
+			try (var it = iterator()) {
+				deleteToEnd(it);
+			}
 		}
 
 		public void deleteToEnd(RocksIterator it) throws RocksDBException {
