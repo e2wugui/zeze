@@ -122,7 +122,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	private volatile @Nullable Action1<R> onResult;
 	private volatile @Nullable Action1<RedirectAllContext<R>> onAllDone;
 	private volatile @Nullable RedirectAllContext<R> ctx;
-	private @Nullable IntHashSet finishedHashes; // lazy-init
+	private volatile @Nullable IntHashSet finishedHashes; // lazy-init
 	private final @NotNull Condition cond = newCondition();
 
 	private @NotNull IntHashSet getFinishedHashes() {
