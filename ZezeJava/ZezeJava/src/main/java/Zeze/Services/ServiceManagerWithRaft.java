@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Builtin.ServiceManagerWithRaft.*;
@@ -160,7 +161,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		private final Future<?> keepAliveTimerTask;
 		// 本连接注册过的离线通知id。randomFor挑选通知目标时校验候选者是否注册了该notifyId；
 		// 行数据在rocks里，通知任务线程无事务上下文不能读表，在连接对象上内存记录一份。
-		public final HashSet<String> offlineNotifyIds = new HashSet<>();
+		public final Set<String> offlineNotifyIds = ConcurrentHashMap.newKeySet();
 		public static final long eOfflineNotifyDelay = 600 * 1000;
 
 		public Session(String name, long sessionId) {
