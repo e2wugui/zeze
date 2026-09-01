@@ -487,11 +487,12 @@ public final class Token extends AbstractToken {
 	private final Random tokenRandom = new SecureRandom();
 	private final ConcurrentHashMap<String, TokenState> tokenMap = new ConcurrentHashMap<>();
 	private final LongAdder newCounter = new LongAdder(); // 分配计数
-	private RocksDatabase rocksdb;
-	private RocksDatabase.Table tokenMapTable;
+	// volatile：start/closeDb在锁内写，协议任务与cleanTokenMapTable线程无锁读。
+	private volatile RocksDatabase rocksdb;
+	private volatile RocksDatabase.Table tokenMapTable;
 	private TokenServer service;
 	private TimerFuture<?> cleanTokenMapFuture;
-	private ScheduledFuture<?> cleanTokenMapTableFuture;
+	private volatile ScheduledFuture<?> cleanTokenMapTableFuture;
 
 	public TokenServer getService() {
 		return service;
@@ -623,7 +624,14 @@ public final class Token extends AbstractToken {
 			logger.error("cleanTokenMapTable exception:", e);
 		} finally {
 			logger.info("cleanTokenMapTable: {} => {} ({} ms)", n, n - d, System.currentTimeMillis() - now);
-			cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtNow(3, 14);
+			lock();
+			try {
+				// stop已取消并置空任务（或closeDb已置空rocksdb）时不再重调度，避免任务"复活"后访问已关闭的资源。
+				if (rocksdb != null && cleanTokenMapTableFuture != null)
+					cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtNow(3, 14);
+			} finally {
+				unlock();
+			}
 		}
 	}
 
