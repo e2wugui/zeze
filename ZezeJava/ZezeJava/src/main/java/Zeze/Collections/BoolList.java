@@ -75,8 +75,9 @@ public class BoolList {
 			throw new IllegalArgumentException("index < 0");
 
 		var key = new BKey(name, index >>> RECORD_BOOLS_SHIFT); // /RECORD_BOOLS_COUNT
-		var value = module._tBoolList.getOrAdd(key);
-		clear(value, index);
+		var value = module._tBoolList.get(key); // 不能用getOrAdd,否则未set过的index会产生全零残留记录
+		if (value != null)
+			clear(value, index);
 	}
 
 	private static boolean get(BValue value, int index) {
