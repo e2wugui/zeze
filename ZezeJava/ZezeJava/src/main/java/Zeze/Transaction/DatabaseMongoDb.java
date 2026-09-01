@@ -4,8 +4,6 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
-import Zeze.Util.OutLong;
-import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoNamespace;
@@ -108,6 +106,7 @@ public class DatabaseMongoDb extends Database {
 		}
 	}
 
+	@SuppressWarnings("ClassCanBeRecord")
 	public static class MongoTrans implements Transaction {
 		private final @NotNull ClientSession session;
 
@@ -138,13 +137,13 @@ public class DatabaseMongoDb extends Database {
 
 	public static byte @NotNull [] getByteArray(@NotNull Document doc, @NotNull String fieldName) {
 		Object value = doc.get(fieldName);
-		if (value == null)
-			throw new NullPointerException(fieldName + " is null");
-		if (value instanceof byte[])
-			return (byte[])value;
-		if (value instanceof Binary)
-			return ((Binary)value).getData();
-		throw new ClassCastException("field '" + fieldName + "' type " + value.getClass() + " cast to byte[]");
+		return switch (value) {
+			case null -> throw new NullPointerException(fieldName + " is null");
+			case byte[] bytes -> bytes;
+			case Binary binary -> binary.getData();
+			default ->
+					throw new ClassCastException("field '" + fieldName + "' type " + value.getClass() + " cast to byte[]");
+		};
 	}
 
 	public final class TableMongoDb extends AbstractKVTable {

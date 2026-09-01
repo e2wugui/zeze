@@ -13,7 +13,7 @@ public class Log4jSession {
 	/**
 	 * 构造一个搜索会话。
 	 */
-	public Log4jSession(Log4jFileManager files) throws IOException {
+	public Log4jSession(Log4jFileManager files) {
 		this.files = new Log4jFileWalker(files);
 	}
 

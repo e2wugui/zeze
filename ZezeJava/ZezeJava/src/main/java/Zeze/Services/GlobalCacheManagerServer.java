@@ -189,8 +189,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 								++releaseCount;
 							} catch (InterruptedException ex) {
 								Thread.currentThread().interrupt();
-								logger.error("", ex);
-								return; // 中断后不再继续release
+								logger.warn("achillesHeelDaemon interrupted, abort remaining release. session={} key={}", session, k, ex);
+								return; // 看门狗中断超时任务，退出本轮，Timeout.close 会清标志
 							}
 						}
 						session.setActiveTime(System.currentTimeMillis());

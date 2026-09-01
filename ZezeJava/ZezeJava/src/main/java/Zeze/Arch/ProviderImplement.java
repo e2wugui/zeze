@@ -165,6 +165,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				var r = ProtocolDispatch.ofProcedure(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
 					var p3 = factoryHandle.Factory.create();
 					var t = Transaction.getCurrent();
+					@SuppressWarnings("DataFlowIssue")
 					var proc = t.getTopProcedure();
 					//noinspection DataFlowIssue
 					proc.setActionName(p3.getClass().getName());

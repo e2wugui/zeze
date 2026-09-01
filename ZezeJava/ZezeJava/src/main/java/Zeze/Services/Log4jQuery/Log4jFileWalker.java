@@ -14,7 +14,7 @@ public class Log4jFileWalker {
 	private int currentIndex = -1;
 	private Log4jFileSession current;
 
-	public Log4jFileWalker(@NotNull Log4jFileManager files) throws IOException {
+	public Log4jFileWalker(@NotNull Log4jFileManager files) {
 		Objects.requireNonNull(files);
 		this.files = files;
 	}
