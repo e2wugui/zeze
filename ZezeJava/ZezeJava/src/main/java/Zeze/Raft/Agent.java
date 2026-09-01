@@ -369,6 +369,9 @@ public final class Agent {
 		} else {
 			proxyAgent.addAgent(this);
 			leader = proxyAgent.getLeader(raftConfig.getNodes().values().iterator().next());
+			if (leader == null)
+				throw new IllegalStateException("proxy leader not found, node not configured with proxy: "
+						+ raftConfig.getNodes().values().iterator().next().getName());
 			logger.info("proxy first leader {} {}_{}",
 					leader.getName(), leader.getConnector().getHostNameOrAddress(), leader.getConnector().getPort());
 		}
