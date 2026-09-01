@@ -118,7 +118,11 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	}
 
 	public static long parseDate(@NotNull String dateStr) {
-		return LocalDateTime.parse(dateStr, DateTimeFormatter.RFC_1123_DATE_TIME).toEpochSecond(ZoneOffset.UTC);
+		try {
+			return LocalDateTime.parse(dateStr, DateTimeFormatter.RFC_1123_DATE_TIME).toEpochSecond(ZoneOffset.UTC);
+		} catch (Exception ignored) { // 无法解析的日期按RFC7232忽略，返回-1使调用方比较永不命中
+			return -1;
+		}
 	}
 
 	public static long getLastDateSecond() {
