@@ -97,10 +97,12 @@ public class DatagramSession extends AsyncSocket {
 			var bc = new BufferCodec(8 + 8 + 8 + size);
 			bc.WriteLong8s(tokenId, serialId);
 			// 下面的数据需要加密
-			encrypt.reset(bc, bc.Bytes);
-			encrypt.update(packet, offset, size);
-			encrypt.update(bc.Bytes, 0, 16); // [8]tokenId | [8]serialId
-			encrypt.flush();
+			synchronized (encrypt) { // Encrypt2有可变状态且非线程安全，而Send允许并发调用
+				encrypt.reset(bc, bc.Bytes);
+				encrypt.update(packet, offset, size);
+				encrypt.update(bc.Bytes, 0, 16); // [8]tokenId | [8]serialId
+				encrypt.flush();
+			}
 			bb = bc;
 		}
 		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送。这是udp，不解决这个问题了。
@@ -127,12 +129,14 @@ public class DatagramSession extends AsyncSocket {
 			var bc = new BufferCodec(Math.min(8 + 8 + 8 + Protocol.HEADER_SIZE + preAllocSize, 65536));
 			bc.WriteLong8s(tokenId, serialId);
 			// 下面的数据需要加密
-			encrypt.reset(bc, bc.Bytes);
-			var tmp = ByteBuffer.Allocate(Math.min(Protocol.HEADER_SIZE + preAllocSize, 65536));
-			p.encodeWithHead(tmp);
-			encrypt.update(tmp.Bytes, 0, tmp.WriteIndex);
-			encrypt.update(bc.Bytes, 0, 16); // [8]tokenId | [8]serialId
-			encrypt.flush();
+			synchronized (encrypt) { // Encrypt2有可变状态且非线程安全，而Send允许并发调用
+				encrypt.reset(bc, bc.Bytes);
+				var tmp = ByteBuffer.Allocate(Math.min(Protocol.HEADER_SIZE + preAllocSize, 65536));
+				p.encodeWithHead(tmp);
+				encrypt.update(tmp.Bytes, 0, tmp.WriteIndex);
+				encrypt.update(bc.Bytes, 0, 16); // [8]tokenId | [8]serialId
+				encrypt.flush();
+			}
 			bb = bc;
 		}
 		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送。这是udp，不解决这个问题了。
