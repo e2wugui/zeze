@@ -19,7 +19,9 @@ public final class ZstdFactory {
 	private static final @NotNull Field fCStream, fCSrcPos, fCDstPos;
 	private static final @NotNull Field fDStream, fDSrcPos, fDDstPos;
 	private static final @NotNull MethodHandle mhResetCStream, mhCompressStream, mhFlushStream;
+	private static final @NotNull MethodHandle mhFreeCStream;
 	private static final @NotNull MethodHandle mhDecompressStream;
+	private static final @NotNull MethodHandle mhFreeDStream;
 
 	private static @NotNull Field getField(@NotNull Class<?> cls,
 										   @NotNull String fieldName) throws ReflectiveOperationException {
@@ -47,12 +49,14 @@ public final class ZstdFactory {
 			mhCompressStream = getMethodHandle(lookup, cls, "compressStream", long.class, byte[].class, int.class,
 					byte[].class, int.class); // stream, dst, dstSize, src, srcEnd (read srcPos, write srcPos & dstPos)
 			mhFlushStream = getMethodHandle(lookup, cls, "flushStream", long.class, byte[].class, int.class);
+			mhFreeCStream = getMethodHandle(lookup, cls, "freeCStream", long.class);
 			cls = ZstdInputStreamNoFinalizer.class; // stream, dst, dstSize (write dstPos)
 			fDStream = getField(cls, "stream"); // long
 			fDSrcPos = getField(cls, "srcPos"); // long
 			fDDstPos = getField(cls, "dstPos"); // long
 			mhDecompressStream = getMethodHandle(lookup, cls, "decompressStream", long.class, byte[].class, int.class,
 					byte[].class, int.class); // stream, dst, dstSize, src, srcEnd (read srcPos & dstPos, write srcPos & dstPos)
+			mhFreeDStream = getMethodHandle(lookup, cls, "freeDStream", long.class);
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
 		}
@@ -192,11 +196,19 @@ public final class ZstdFactory {
 
 		@Override
 		public void close() {
+			// 不能调基类close()：它会往DummyBufferPool的0长缓冲写帧尾字节（越过数组末端的native写），
+			// 再经OutputStream.write的边界检查抛IndexOutOfBoundsException；本包装的输出都走调用方
+			// 传入的dst，close只负责释放native上下文。帧不收尾是既有线格式，流式解码端兼容。
+			long ptr = ctxPtr;
+			if (ptr == 0)
+				return; // 幂等
 			ctxPtr = 0;
 			try {
-				super.close();
-			} catch (IOException e) {
-				Task.forceThrow(e);
+				int r = (int)mhFreeCStream.invokeExact(ptr);
+				if (r != 0)
+					throw new IllegalStateException("mhFreeCStream = " + r);
+			} catch (Throwable e) { // MethodHandle.invoke
+				throw Task.forceThrow(e);
 			}
 		}
 	}
@@ -278,11 +290,18 @@ public final class ZstdFactory {
 
 		@Override
 		public void close() {
+			// 与压缩侧同理：基类close()会调 in.close()（DummyInputStream共享单例）和池release，
+			// 这些都是被架空的内部管线，安全性依赖Dummy组件的偶然实现；这里只释放native上下文。
+			long ptr = ctxPtr;
+			if (ptr == 0)
+				return; // 幂等
 			ctxPtr = 0;
 			try {
-				super.close();
-			} catch (IOException e) {
-				Task.forceThrow(e);
+				int r = (int)mhFreeDStream.invokeExact(ptr);
+				if (r != 0)
+					throw new IllegalStateException("mhFreeDStream = " + r);
+			} catch (Throwable e) { // MethodHandle.invoke
+				throw Task.forceThrow(e);
 			}
 		}
 	}
