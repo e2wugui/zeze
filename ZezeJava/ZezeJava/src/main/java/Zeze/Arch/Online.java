@@ -148,7 +148,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
-	private @Nullable Future<?> verifyLocalTimer;
+	private final Object timerLock = new Object(); // 保护verifyLocalTimer与stopped
+	private @Nullable Future<?> verifyLocalTimer; // timerLock保护
+	private boolean stopped; // timerLock保护；stop置位后verifyLocal的finally不再重调度
 
 	public static @NotNull Online create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Online.class, app);
@@ -185,6 +187,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public void start() {
+		synchronized (timerLock) {
+			stopped = false; // 支持同实例stop后重新start
+		}
 		startLocalCheck();
 		providerApp.builtinModules.put(this.getFullName(), this);
 		var hotManager = providerApp.zeze.getHotManager();
@@ -213,17 +218,26 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private void startLocalCheck() {
-		if (verifyLocalTimer != null)
-			verifyLocalTimer.cancel(false);
-		verifyLocalTimer = TaskSpec.ofAction(this::verifyLocal).scheduleNow(localCheckPeriod);
+		synchronized (timerLock) {
+			if (stopped) // 停机后不再重调度，封住定时任务复活口
+				return;
+			var timer = verifyLocalTimer;
+			if (timer != null)
+				timer.cancel(false);
+			verifyLocalTimer = TaskSpec.ofAction(this::verifyLocal).scheduleNow(localCheckPeriod);
+		}
 	}
 
 	public void stop() {
 		var hotManager = providerApp.zeze.getHotManager();
 		if (null != hotManager)
 			hotManager.removeHotUpgrade(this);
-		if (verifyLocalTimer != null)
-			verifyLocalTimer.cancel(false);
+		synchronized (timerLock) {
+			stopped = true;
+			var timer = verifyLocalTimer;
+			if (timer != null)
+				timer.cancel(false);
+		}
 	}
 
 	@Override

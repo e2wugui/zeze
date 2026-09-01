@@ -108,7 +108,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
-	private volatile @Nullable Future<?> verifyLocalTimer; // startLocalCheck(定时任务线程)与stop(停机线程)并发访问
+	private final Object timerLock = new Object(); // 保护verifyLocalTimer与stopped
+	private @Nullable Future<?> verifyLocalTimer; // timerLock保护
+	private boolean stopped; // timerLock保护；stop置位后verifyLocal的finally不再重调度
 
 	public @NotNull ProviderApp getProviderApp() {
 		return providerApp;
@@ -135,9 +137,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private void startLocalCheck() {
-		if (verifyLocalTimer != null)
-			verifyLocalTimer.cancel(false);
-		verifyLocalTimer = TaskSpec.ofAction(this::verifyLocal).scheduleNow(localCheckPeriod);
+		synchronized (timerLock) {
+			if (stopped) // 停机后不再重调度，封住定时任务复活口
+				return;
+			var timer = verifyLocalTimer;
+			if (timer != null)
+				timer.cancel(false);
+			verifyLocalTimer = TaskSpec.ofAction(this::verifyLocal).scheduleNow(localCheckPeriod);
+		}
 	}
 
 	private void onHotModuleStop(HotModule hot) {
@@ -333,6 +340,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 					online.start();
 			});
 		}
+		synchronized (timerLock) {
+			stopped = false; // 支持同实例stop后重新start
+		}
 		startLocalCheck();
 		var hotManager = providerApp.zeze.getHotManager();
 		if (hotManager != null) {
@@ -442,8 +452,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 					online.stop();
 			});
 		}
-		if (verifyLocalTimer != null)
-			verifyLocalTimer.cancel(false);
+		synchronized (timerLock) {
+			stopped = true;
+			var timer = verifyLocalTimer;
+			if (timer != null)
+				timer.cancel(false);
+		}
 	}
 
 	@Override
