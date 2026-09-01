@@ -29,19 +29,45 @@ public class LinkdProviderService extends HandshakeServer {
 	protected final ConcurrentHashMap<String, ProviderSession> providerSessions = new ConcurrentHashMap<>();
 	protected FileOutputStream dumpFile;
 	protected AsyncSocket dumpSocket;
+	// 私有锁对象: 避免暴露this监视器,Service实例被外部广泛共享,synchronized(this)会与外部同步块互相干扰
+	private final Object dumpLock = new Object();
+	private boolean dumpClosed;
 
 	public LinkdProviderService(String name, Application zeze) {
 		super(name, zeze);
 		setNoProcedure(true);
 	}
 
+	// dumpLock: 懒初始化存在check-then-act竞争,且多IO线程并发写需要串行化(仅调试属性开启时生效)
 	protected void tryDump(AsyncSocket s, ByteBuffer input) throws IOException {
-		if (dumpFile == null) {
-			dumpFile = new FileOutputStream(dumpFilename);
-			dumpSocket = s;
+		synchronized (dumpLock) {
+			if (dumpClosed)
+				return;
+			if (dumpFile == null) {
+				dumpFile = new FileOutputStream(dumpFilename);
+				dumpSocket = s;
+			}
+			if (dumpSocket == s)
+				dumpFile.write(input.Bytes, input.ReadIndex, input.size());
 		}
-		if (dumpSocket == s)
-			dumpFile.write(input.Bytes, input.ReadIndex, input.size());
+	}
+
+	@Override
+	public void stop() throws Exception {
+		super.stop();
+		// dumpClosed: 关闭后不再重建,重建的FileOutputStream会截断已dump的文件
+		synchronized (dumpLock) {
+			dumpClosed = true;
+			dumpSocket = null;
+			if (dumpFile != null) {
+				try {
+					dumpFile.close();
+				} catch (IOException e) {
+					logger.error("LinkdProviderService close dumpFile failed", e);
+				}
+				dumpFile = null;
+			}
+		}
 	}
 
 	@Override

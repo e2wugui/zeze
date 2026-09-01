@@ -54,6 +54,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	protected @Nullable FileOutputStream dumpFile;
 	protected @Nullable AsyncSocket dumpSocket;
+	// 私有锁对象: 避免暴露this监视器,Service/Module实例被外部广泛共享,synchronized(this)会与外部同步块互相干扰
+	private final Object dumpLock = new Object();
+	private boolean dumpClosed;
 	private final ConcurrentHashMap<Integer, AsyncSocket> serverId2ProviderSocket = new ConcurrentHashMap<>();
 
 	public ProviderDistributeVersion getDistributes() {
@@ -399,14 +402,36 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return Procedure.Success;
 	}
 
+	// dumpLock: 懒初始化存在check-then-act竞争,且多IO线程并发写需要串行化(仅调试属性开启时生效)
 	protected void tryDump(@NotNull AsyncSocket s, @NotNull Binary pdata) throws IOException {
-		if (dumpFile == null) {
-			assert dumpFilename != null;
-			dumpFile = new FileOutputStream(dumpFilename);
-			dumpSocket = s;
+		synchronized (dumpLock) {
+			if (dumpClosed)
+				return;
+			if (dumpFile == null) {
+				assert dumpFilename != null;
+				dumpFile = new FileOutputStream(dumpFilename);
+				dumpSocket = s;
+			}
+			if (dumpSocket == s)
+				dumpFile.write(pdata.bytesUnsafe(), pdata.getOffset(), pdata.size());
 		}
-		if (dumpSocket == s)
-			dumpFile.write(pdata.bytesUnsafe(), pdata.getOffset(), pdata.size());
+	}
+
+	@Override
+	public void UnRegister() {
+		// dumpClosed: 关闭后不再重建,重建的FileOutputStream会截断已dump的文件
+		synchronized (dumpLock) {
+			dumpClosed = true;
+			dumpSocket = null;
+			if (dumpFile != null) {
+				try {
+					dumpFile.close();
+				} catch (IOException e) {
+					logger.error("LinkdProvider close dumpFile failed", e);
+				}
+				dumpFile = null;
+			}
+		}
 	}
 
 	private static final boolean canLogSend = AsyncSocket.ENABLE_PROTOCOL_LOG
