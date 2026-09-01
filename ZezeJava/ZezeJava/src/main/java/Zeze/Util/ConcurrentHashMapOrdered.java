@@ -121,16 +121,21 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public @Nullable V put(@NotNull K key, @NotNull V value) {
-		V old = map.put(key, value);
-		if (old == null) {
-			queue.add(key); // 第一次加入。只保持第一次的顺序，重复put不加入queue。
-			size.incrementAndGet();
-		}
-		if (old == deleted) {
-			size.incrementAndGet();
-			return null;
-		}
-		return old;
+		var oldValue = new OutObject<V>();
+		map.compute(key, (k, v) -> {
+			if (v == null) {
+				queue.add(key); // 第一次加入。只保持第一次的顺序，重复put不加入queue。
+				size.incrementAndGet();
+				return value;
+			}
+			if (v == deleted) {
+				size.incrementAndGet();
+				return value;
+			}
+			oldValue.value = v;
+			return value;
+		});
+		return oldValue.value;
 	}
 
 	public @Nullable V putIfAbsent(@NotNull K key, @NotNull V value) {
