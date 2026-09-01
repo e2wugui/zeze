@@ -196,15 +196,16 @@ public final class StringChecker {
 	}
 
 	public boolean contains(@NotNull String str) {
-		return root != null && root.contains(str);
+		var trie = root; // volatile字段先拷贝到局部，避免判空与使用间被并发修改
+		return trie != null && trie.contains(str);
 	}
 
 	public @NotNull String replace(@NotNull String str, char replaceChar) {
-		if (!contains(str))
+		var trie = root; // 快照一次，让检查与替换落在同一代trie上
+		if (trie == null || !trie.contains(str))
 			return str;
 		char[] chars = str.toCharArray();
-		//noinspection DataFlowIssue
-		root.replace(chars, replaceChar);
+		trie.replace(chars, replaceChar);
 		return new String(chars);
 	}
 }
