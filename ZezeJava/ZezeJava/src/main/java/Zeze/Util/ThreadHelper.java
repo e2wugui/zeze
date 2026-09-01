@@ -87,6 +87,7 @@ public class ThreadHelper extends Thread {
 			}
 		} catch (InterruptedException ex) {
 			logger.warn("{} sleepOut. ex:", getClass().getName(), ex);
+			Thread.currentThread().interrupt();
 		} finally {
 			idle = true;
 			thisLock.unlock();
