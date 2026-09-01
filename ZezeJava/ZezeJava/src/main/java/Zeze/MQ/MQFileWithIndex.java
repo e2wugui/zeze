@@ -79,8 +79,8 @@ public class MQFileWithIndex {
 					var index = Long.parseLong(partIndex[1]);
 					indexes.put(index, database.getOrAddTable(
 							topic + "." + partitionId + "." + index));
-				} catch (Exception ex) {
-					// continue;
+				} catch (NumberFormatException ex) {
+					// continue; 忽略无法解析为"分区号.消息号"的杂散文件名。
 				}
 			}
 		}
