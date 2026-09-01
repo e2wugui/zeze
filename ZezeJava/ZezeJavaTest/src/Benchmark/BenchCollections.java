@@ -14,6 +14,11 @@ public class BenchCollections {
 	@BeforeAll
 	public static void testInit() throws Exception {
 		App.Instance.Start();
+		App.Instance.Zeze.newProcedure(() -> {
+			App.Instance.demo_Module1.getTable1().getOrAdd(123L);
+			return 0;
+
+		}, "createRecordAndLoad").call();
 	}
 
 	@Test
