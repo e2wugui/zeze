@@ -734,7 +734,8 @@ public final class Token extends AbstractToken {
 					if (maxCount > 0 && count >= maxCount && !tokenMap.remove(token, state))
 						res.setTime(-3);
 					else {
-						state.count = count;
+						// 达到maxCount被成功移除后置-1（与"移除即置-1"约定一致），防止软引用清理时moveToDB写回复活耗尽token。
+						state.count = (maxCount > 0 && count >= maxCount) ? -1 : count;
 						res.setContext(state.context);
 						res.setCount(count);
 						res.setTime(time - state.createTime);
