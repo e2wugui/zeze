@@ -28,3 +28,23 @@ gradlew.bat :ZezeJavaTest:bench --tests "*DiffLockAndNoLock"     :: 单类（类
 
 另外类的标签必须匹配任务的标签过滤，否则通配符形式同样报 No tests found：
 test 只跑 @Fast；integrationTest 只跑不带 fast/bench 标签的；bench 只跑 @Bench。
+
+## 修复提交的信息格式
+
+一个 bug 一个提交。格式：
+
+```
+<类别>：<符号> <缺陷本质>，<后果>
+
+问题：
+- 证据：位置、触发路径、线程模型。
+
+修复：
+- 关键修法。
+
+验证：
+- 真实证据：测试命令+结果 / 编译门禁 / 具体核查；没跑过的不写。
+```
+
+- 类别用模块名（transaction/util/raft/net/dbh2/game…），不带编号；主题不写修法。
+- bullet `- ` 结尾带"。"，续行缩进两空格，约 64 列换行。
