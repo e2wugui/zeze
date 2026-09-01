@@ -410,8 +410,10 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			public void close() {
 				RocksDatabase.this.lock();
 				try {
-					clear();
-					batchPool.add(this);
+					if (!batchPool.contains(this)) { // 防止double-close导致同一Batch重复入池
+						clear();
+						batchPool.add(this);
+					}
 				} finally {
 					RocksDatabase.this.unlock();
 				}
