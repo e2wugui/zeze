@@ -311,7 +311,7 @@ public final class Rocks extends StateMachine implements Closeable {
 			Path sourcePath = Paths.get(sourceDir);
 			try (var stream = Files.walk(sourcePath)) {
 				stream.filter(path -> !Files.isDirectory(path)).forEach(path -> {
-					ZipEntry ze = new ZipEntry(sourcePath.relativize(path).toString());
+					ZipEntry ze = new ZipEntry(sourcePath.relativize(path).toString().replace(File.separatorChar, '/'));
 					try {
 						zos.putNextEntry(ze);
 						Files.copy(path, zos);
