@@ -4,9 +4,12 @@ import demo.App;
 import demo.Bean1;
 import harness.Bench;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 @SuppressWarnings({"unused", "NewClassNamingConvention"})
+@TestMethodOrder(MethodOrderer.MethodName.class)
 @Bench
 public class BenchCollections {
 	private final static int totalCount = 10_0000;
