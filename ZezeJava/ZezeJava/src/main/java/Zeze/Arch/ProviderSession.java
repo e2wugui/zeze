@@ -10,12 +10,12 @@ public class ProviderSession {
 	protected volatile @NotNull BLoad load = new BLoad();
 	protected final TimeCounter timeCounter = new TimeCounter(5);
 
-	protected int serverId;
-	protected long sessionId;
-	protected @NotNull String serverLoadIp = "";
-	protected long appVersion;
-	protected int serverLoadPort;
-	protected boolean disableChoice = false;
+	protected volatile int serverId;
+	protected volatile long sessionId;
+	protected volatile @NotNull String serverLoadIp = "";
+	protected volatile long appVersion;
+	protected volatile int serverLoadPort;
+	protected volatile boolean disableChoice = false;
 
 	/**
 	 * 下面维护和本Session相关的订阅Ready状态。在Session关闭时需要取消Ready状态。
