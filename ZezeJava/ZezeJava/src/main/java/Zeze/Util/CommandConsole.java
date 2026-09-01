@@ -103,6 +103,10 @@ public class CommandConsole {
 			// run command
 			if (!words.isEmpty()) {
 				var cmd = commands.get(words.get(0));
+				if (cmd == null) {
+					sender.Send("unknown command: " + words.get(0) + "\r\n");
+					continue;
+				}
 				try {
 					cmd.run(sender, words.subList(1, words.size()));
 				} catch (Throwable ex) { // print stacktrace.
