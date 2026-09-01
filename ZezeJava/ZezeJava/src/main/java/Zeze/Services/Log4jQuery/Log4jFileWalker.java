@@ -69,7 +69,11 @@ public class Log4jFileWalker {
 		current = files.get(currentIndex);
 	}
 
-	public void close() {
-		// walker 目前不需要实现关闭。
+	public void close() throws IOException {
+		// 关闭最后一个打开的日志文件句柄。
+		if (current != null) {
+			current.close();
+			current = null;
+		}
 	}
 }
