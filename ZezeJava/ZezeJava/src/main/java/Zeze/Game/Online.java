@@ -108,7 +108,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
-	private @Nullable Future<?> verifyLocalTimer;
+	private volatile @Nullable Future<?> verifyLocalTimer; // startLocalCheck(定时任务线程)与stop(停机线程)并发访问
 
 	public @NotNull ProviderApp getProviderApp() {
 		return providerApp;
