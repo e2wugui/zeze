@@ -48,18 +48,18 @@ public class LinksInfo extends AbstractLinksInfo {
 
 	public static void main(String @NotNull [] args) throws Exception {
 		var linksInfo = new LinksInfo();
-		linksInfo.start();
-		for (var i = 0; i < args.length; ++i) {
-			switch (args[i]) {
-			case "-link":
-				linksInfo.subscribeLinkService(args[++i]);
-				break;
-			case "-default":
-				linksInfo.defaultLinkServiceName = args[++i];
-				break;
-			}
-		}
 		try {
+			linksInfo.start(); // start失败也要stop,释放已部分启动的资源
+			for (var i = 0; i < args.length; ++i) {
+				switch (args[i]) {
+				case "-link":
+					linksInfo.subscribeLinkService(args[++i]);
+					break;
+				case "-default":
+					linksInfo.defaultLinkServiceName = args[++i];
+					break;
+				}
+			}
 			if (linksInfo.defaultLinkServiceName == null)
 				throw new IllegalArgumentException("no link service present.");
 			synchronized (Thread.currentThread()) {
