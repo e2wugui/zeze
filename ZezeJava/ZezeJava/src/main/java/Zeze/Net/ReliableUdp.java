@@ -164,7 +164,18 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		public Session(SocketAddress peer, ReliableUdpHandle handle) {
 			this.handle = handle;
 			this.peer = peer;
-			sessions.put(peer, this);
+			var old = sessions.put(peer, this);
+			if (old != null) // 覆盖旧会话时取消其重发定时器，避免泄漏
+				old.cancelResendTimers();
+		}
+
+		// 取消发送窗口内所有包的重发定时器
+		private void cancelResendTimers() {
+			for (var it = sendWindow.entryIterator(); it.moveToNext(); ) {
+				var p = it.value();
+				if (p != null && p.resendTimerTask != null)
+					p.resendTimerTask.cancel(false);
+			}
 		}
 
 		public boolean send(byte[] bytes, int offset, int length) {
@@ -348,6 +359,9 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			} catch (IOException skip) {
 				logger.error("", skip);
 			}
+			// 取消所有会话的重发定时器，避免泄漏
+			for (var session : sessions.values())
+				session.cancelResendTimers();
 			selectionKey = null;
 		} finally {
 			unlock();
