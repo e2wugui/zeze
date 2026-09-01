@@ -54,6 +54,8 @@ class InstallSnapshotState {
 
 			var buffer = new byte[32 * 1024];
 			int rc = file.read(buffer);
+			if (rc < 0)
+				rc = 0; // EOF：发0字节收尾块（done=true），完成协议
 			pending.Argument.setOffset(offset);
 			pending.Argument.setData(new Binary(buffer, rc));
 			pending.Argument.setDone(rc < buffer.length);
