@@ -188,7 +188,10 @@ public class CharHashMap<V> implements Cloneable {
 
 	public void putAll(@NotNull CharHashMap<? extends V> map) {
 		if (map.hasZeroValue) {
-			hasZeroValue = true;
+			if (!hasZeroValue) {
+				hasZeroValue = true;
+				size++;
+			}
 			zeroValue = map.zeroValue;
 		}
 		final char[] mapKt = map.keyTable;

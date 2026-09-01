@@ -204,7 +204,10 @@ public class IntHashMap<V> implements Cloneable {
 
 	public void putAll(@NotNull IntHashMap<? extends V> map) {
 		if (map.hasZeroKey) {
-			hasZeroKey = true;
+			if (!hasZeroKey) {
+				hasZeroKey = true;
+				size++;
+			}
 			zeroValue = map.zeroValue;
 		}
 		final int[] mapKt = map.keyTable;

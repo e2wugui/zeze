@@ -107,8 +107,10 @@ public class IntHashSet implements Cloneable {
 	}
 
 	public void addAll(@NotNull IntHashSet set) {
-		if (set.hasZeroKey)
+		if (set.hasZeroKey && !hasZeroKey) {
 			hasZeroKey = true;
+			size++;
+		}
 		for (int k : set.keyTable)
 			if (k != 0)
 				add(k);

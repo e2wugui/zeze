@@ -109,8 +109,10 @@ public class LongHashSet implements Cloneable {
 	}
 
 	public void addAll(@NotNull LongHashSet set) {
-		if (set.hasZeroKey)
+		if (set.hasZeroKey && !hasZeroKey) {
 			hasZeroKey = true;
+			size++;
+		}
 		for (long k : set.keyTable)
 			if (k != 0)
 				add(k);

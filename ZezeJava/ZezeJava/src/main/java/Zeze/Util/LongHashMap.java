@@ -204,7 +204,10 @@ public class LongHashMap<V> implements Cloneable {
 
 	public void putAll(@NotNull LongHashMap<? extends V> map) {
 		if (map.hasZeroKey) {
-			hasZeroKey = true;
+			if (!hasZeroKey) {
+				hasZeroKey = true;
+				size++;
+			}
 			zeroValue = map.zeroValue;
 		}
 		final long[] mapKt = map.keyTable;
