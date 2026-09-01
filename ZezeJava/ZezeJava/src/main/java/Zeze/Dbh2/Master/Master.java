@@ -152,9 +152,15 @@ public class Master extends AbstractMaster {
 	}
 
 	public ArrayList<Manager> choiceSmallLoadManagers() {
-		Manager[] shadow = shadowReadyManager();
-		Arrays.sort(shadow, new ManagerLoadComparator());
-		return choiceSmallLoadManagers(shadow);
+		// 排序和筛选会读manager.load/bucketCount，与写路径（ReportLoad/ReportBucketCount）同锁，对齐choiceManagers。
+		lock();
+		try {
+			Manager[] shadow = shadowReadyManager();
+			Arrays.sort(shadow, new ManagerLoadComparator());
+			return choiceSmallLoadManagers(shadow);
+		} finally {
+			unlock();
+		}
 	}
 
 	static class ManagerBucketCountComparator implements Comparator<Manager> {
