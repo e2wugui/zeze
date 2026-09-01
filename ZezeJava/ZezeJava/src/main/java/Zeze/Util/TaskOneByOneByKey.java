@@ -94,6 +94,7 @@ public final class TaskOneByOneByKey extends TaskOneByOneBase {
 				ts.waitComplete();
 		} catch (InterruptedException e) {
 			logger.error("Shutdown interrupted", e);
+			Thread.currentThread().interrupt();
 		}
 	}
 
