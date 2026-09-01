@@ -867,7 +867,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		private volatile long activeTime = System.currentTimeMillis();
 		private volatile long lastErrorTime;
 		private boolean logined = false;
-		private boolean debugMode;
+		private volatile boolean debugMode;
 
 		// not under lock
 		void kick() {

@@ -988,7 +988,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		private volatile long activeTime = System.currentTimeMillis();
 		private volatile long lastErrorTime;
 		private boolean logined = false; // 改成State，也能表示已经kick过，下一次不再kick？
-		private boolean debugMode;
+		private volatile boolean debugMode;
 
 		long getActiveTime() {
 			return activeTime;

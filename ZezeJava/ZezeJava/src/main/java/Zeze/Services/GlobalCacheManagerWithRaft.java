@@ -834,7 +834,7 @@ public class GlobalCacheManagerWithRaft
 		private int globalCacheManagerHashIndex;
 		private volatile long activeTime = System.currentTimeMillis();
 		private volatile long lastErrorTime;
-		private boolean debugMode;
+		private volatile boolean debugMode;
 
 		// not under lock
 		void kick() {
