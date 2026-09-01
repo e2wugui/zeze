@@ -679,7 +679,8 @@ public class IntHashMap<V> implements Cloneable {
 			return false;
 		@SuppressWarnings("unchecked")
 		IntHashMap<V> im = (IntHashMap<V>)o;
-		if (size != im.size || hasZeroKey != im.hasZeroKey)
+		if (size != im.size || hasZeroKey != im.hasZeroKey
+				|| hasZeroKey && !Objects.equals(zeroValue, im.zeroValue))
 			return false;
 		final int[] kt = keyTable;
 		final V[] vt = valueTable;

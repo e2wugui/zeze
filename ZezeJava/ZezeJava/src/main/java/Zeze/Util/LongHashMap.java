@@ -679,7 +679,8 @@ public class LongHashMap<V> implements Cloneable {
 			return false;
 		@SuppressWarnings("unchecked")
 		LongHashMap<V> im = (LongHashMap<V>)o;
-		if (size != im.size || hasZeroKey != im.hasZeroKey)
+		if (size != im.size || hasZeroKey != im.hasZeroKey
+				|| hasZeroKey && !Objects.equals(zeroValue, im.zeroValue))
 			return false;
 		final long[] kt = keyTable;
 		final V[] vt = valueTable;
