@@ -26,11 +26,11 @@ public class Zoker extends AbstractZoker {
 		zokerDir = new File(baseDir);
 		Files.createDirectories(zokerDir.toPath());
 		serviceDir = Path.of(baseDir, "services").toFile();
-		Files.createDirectory(serviceDir.toPath());
+		Files.createDirectories(serviceDir.toPath());
 		distributeDir = Path.of(baseDir, "distributes").toFile();
-		Files.createDirectory(distributeDir.toPath());
+		Files.createDirectories(distributeDir.toPath());
 		serviceOldDir = Path.of(baseDir, "servicesOld").toFile();
-		Files.createDirectory(serviceOldDir.toPath());
+		Files.createDirectories(serviceOldDir.toPath());
 
 		// implement
 		distributeManager = new DistributeManager(this);
