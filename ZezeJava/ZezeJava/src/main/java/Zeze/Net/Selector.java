@@ -171,11 +171,13 @@ public class Selector extends Thread implements ByteBufferAllocator {
 			var thread = new Thread("WakeupThread") {
 				@Override
 				public void run() {
-					try {
-						for (; ; )
+					// try/catch 放在循环内：中断等异常只记录并继续，线程不能永久死亡
+					for (; ; ) {
+						try {
 							wakeupQueue.take().wakeup();
-					} catch (InterruptedException e) {
-						logger.error("WakeupThread interrupted:", e);
+						} catch (InterruptedException e) {
+							logger.error("WakeupThread interrupted:", e);
+						}
 					}
 				}
 			};
