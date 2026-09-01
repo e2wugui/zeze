@@ -62,10 +62,19 @@ public class HistoryModule extends AbstractHistoryModule {
 		var queryMap = x.queryMap();
 		var count = queryMap.get("count");
 
+		var countValue = 1;
+		if (null != count) {
+			try {
+				countValue = Integer.parseInt(count);
+			} catch (NumberFormatException e) {
+				// 非法count参数按默认值1处理。
+			}
+		}
+
 		// todo 结果丢失了类型；
 		//  根据需求，调整 ApplyHelper 吧。
 		// var affects =
-		applyHelper.apply(count != null ? Integer.parseInt(count) : 1);
+		applyHelper.apply(countValue);
 
 		x.sendPlainText(HttpResponseStatus.OK, "OK");
 	}
