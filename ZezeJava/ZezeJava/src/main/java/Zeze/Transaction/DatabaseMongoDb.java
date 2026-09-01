@@ -217,18 +217,18 @@ public class DatabaseMongoDb extends Database {
 				return 0;
 			var iterable = collection.find();
 			iterable.sort(Sorts.ascending("_id"));
-			var countWalked = new OutLong();
-			iterable.forEach(document -> {
-				try {
+			long countWalked = 0;
+			try (var cursor = iterable.iterator()) {
+				while (cursor.hasNext()) {
+					var document = cursor.next();
 					var key = getByteArray(document, "_id");
 					var value = getByteArray(document, "value");
-					countWalked.value++;
-					callback.handle(key, value);
-				} catch (Exception e) {
-					Task.forceThrow(e);
+					countWalked++;
+					if (!callback.handle(key, value))
+						break;
 				}
-			});
-			return countWalked.value;
+			}
+			return countWalked;
 		}
 
 		@Override
@@ -238,17 +238,17 @@ public class DatabaseMongoDb extends Database {
 			var iterable = collection.find();
 			iterable.projection(Projections.include("_id"));
 			iterable.sort(Sorts.ascending("_id"));
-			var countWalked = new OutLong();
-			iterable.forEach(document -> {
-				try {
+			long countWalked = 0;
+			try (var cursor = iterable.iterator()) {
+				while (cursor.hasNext()) {
+					var document = cursor.next();
 					var key = getByteArray(document, "_id");
-					countWalked.value++;
-					callback.handle(key);
-				} catch (Exception e) {
-					Task.forceThrow(e);
+					countWalked++;
+					if (!callback.handle(key))
+						break;
 				}
-			});
-			return countWalked.value;
+			}
+			return countWalked;
 		}
 
 		@Override
@@ -257,18 +257,18 @@ public class DatabaseMongoDb extends Database {
 				return 0;
 			var iterable = collection.find();
 			iterable.sort(Sorts.descending("_id"));
-			var countWalked = new OutLong();
-			iterable.forEach(document -> {
-				try {
+			long countWalked = 0;
+			try (var cursor = iterable.iterator()) {
+				while (cursor.hasNext()) {
+					var document = cursor.next();
 					var key = getByteArray(document, "_id");
 					var value = getByteArray(document, "value");
-					countWalked.value++;
-					callback.handle(key, value);
-				} catch (Exception e) {
-					Task.forceThrow(e);
+					countWalked++;
+					if (!callback.handle(key, value))
+						break;
 				}
-			});
-			return countWalked.value;
+			}
+			return countWalked;
 		}
 
 		@Override
@@ -278,17 +278,17 @@ public class DatabaseMongoDb extends Database {
 			var iterable = collection.find();
 			iterable.projection(Projections.include("_id"));
 			iterable.sort(Sorts.descending("_id"));
-			var countWalked = new OutLong();
-			iterable.forEach(document -> {
-				try {
+			long countWalked = 0;
+			try (var cursor = iterable.iterator()) {
+				while (cursor.hasNext()) {
+					var document = cursor.next();
 					var key = getByteArray(document, "_id");
-					countWalked.value++;
-					callback.handle(key);
-				} catch (Exception e) {
-					Task.forceThrow(e);
+					countWalked++;
+					if (!callback.handle(key))
+						break;
 				}
-			});
-			return countWalked.value;
+			}
+			return countWalked;
 		}
 
 		@Override
@@ -301,18 +301,18 @@ public class DatabaseMongoDb extends Database {
 			var iterable = start == null ? collection.find() : collection.find(Filters.gt("_id", start));
 			iterable.limit(proposeLimit);
 			iterable.sort(Sorts.ascending("_id"));
-			var lastKey = new OutObject<byte[]>();
-			iterable.forEach(document -> {
-				try {
+			byte[] lastKey = null;
+			try (var cursor = iterable.iterator()) {
+				while (cursor.hasNext()) {
+					var document = cursor.next();
 					var key = getByteArray(document, "_id");
 					var value = getByteArray(document, "value");
-					lastKey.value = key;
-					callback.handle(key, value);
-				} catch (Exception e) {
-					Task.forceThrow(e);
+					lastKey = key;
+					if (!callback.handle(key, value))
+						break;
 				}
-			});
-			return lastKey.value != null ? ByteBuffer.Wrap(lastKey.value) : null;
+			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
 
 		@Override
@@ -326,17 +326,17 @@ public class DatabaseMongoDb extends Database {
 			iterable.projection(Projections.include("_id"));
 			iterable.sort(Sorts.ascending("_id"));
 			iterable.limit(proposeLimit);
-			var lastKey = new OutObject<byte[]>();
-			iterable.forEach(document -> {
-				try {
+			byte[] lastKey = null;
+			try (var cursor = iterable.iterator()) {
+				while (cursor.hasNext()) {
+					var document = cursor.next();
 					var key = getByteArray(document, "_id");
-					lastKey.value = key;
-					callback.handle(key);
-				} catch (Exception e) {
-					Task.forceThrow(e);
+					lastKey = key;
+					if (!callback.handle(key))
+						break;
 				}
-			});
-			return lastKey.value != null ? ByteBuffer.Wrap(lastKey.value) : null;
+			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
 
 		@Override
@@ -349,18 +349,18 @@ public class DatabaseMongoDb extends Database {
 			var iterable = start == null ? collection.find() : collection.find(Filters.lt("_id", start));
 			iterable.limit(proposeLimit);
 			iterable.sort(Sorts.descending("_id"));
-			var lastKey = new OutObject<byte[]>();
-			iterable.forEach(document -> {
-				try {
+			byte[] lastKey = null;
+			try (var cursor = iterable.iterator()) {
+				while (cursor.hasNext()) {
+					var document = cursor.next();
 					var key = getByteArray(document, "_id");
 					var value = getByteArray(document, "value");
-					lastKey.value = key;
-					callback.handle(key, value);
-				} catch (Exception e) {
-					Task.forceThrow(e);
+					lastKey = key;
+					if (!callback.handle(key, value))
+						break;
 				}
-			});
-			return lastKey.value != null ? ByteBuffer.Wrap(lastKey.value) : null;
+			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
 
 		@Override
@@ -374,17 +374,17 @@ public class DatabaseMongoDb extends Database {
 			iterable.projection(Projections.include("_id"));
 			iterable.sort(Sorts.descending("_id"));
 			iterable.limit(proposeLimit);
-			var lastKey = new OutObject<byte[]>();
-			iterable.forEach(document -> {
-				try {
+			byte[] lastKey = null;
+			try (var cursor = iterable.iterator()) {
+				while (cursor.hasNext()) {
+					var document = cursor.next();
 					var key = getByteArray(document, "_id");
-					lastKey.value = key;
-					callback.handle(key);
-				} catch (Exception e) {
-					Task.forceThrow(e);
+					lastKey = key;
+					if (!callback.handle(key))
+						break;
 				}
-			});
-			return lastKey.value != null ? ByteBuffer.Wrap(lastKey.value) : null;
+			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
 
 		public @NotNull String getName() {
