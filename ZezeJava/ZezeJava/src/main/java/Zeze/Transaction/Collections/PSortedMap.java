@@ -302,7 +302,10 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 
 					@Override
 					public void remove() {
+						if (next == null)
+							throw new IllegalStateException("iterator remove() before next()");
 						PSortedMap.this.remove(next.getKey());
+						next = null;
 					}
 				};
 			}

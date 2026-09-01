@@ -160,7 +160,10 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 
 					@Override
 					public void remove() {
+						if (next == null)
+							throw new IllegalStateException("iterator remove() before next()");
 						PMap.this.remove(next.getKey());
+						next = null;
 					}
 				};
 			}

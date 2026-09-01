@@ -96,7 +96,10 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 
 			@Override
 			public void remove() {
+				if (next == null)
+					throw new IllegalStateException("iterator remove() before next()");
 				PSet.this.remove(next);
+				next = null;
 			}
 		};
 	}
