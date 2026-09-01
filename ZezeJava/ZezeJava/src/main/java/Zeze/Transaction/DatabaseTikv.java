@@ -385,6 +385,8 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public void commit() {
+			if (datas == null || datas.isEmpty())
+				return;
 			var es = datas.entrySet(); // 注意要求对es两次遍历的顺序一致
 			var it = es.iterator();
 			if (!it.hasNext())
