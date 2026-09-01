@@ -97,7 +97,7 @@ public final class Binary implements Comparable<Binary> {
 	}
 
 	public byte get(int index) {
-		return bytes[index];
+		return bytes[offset + index];
 	}
 
 	public int getOffset() {
