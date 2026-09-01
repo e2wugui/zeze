@@ -2,6 +2,7 @@ package Zeze.Services;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
@@ -21,6 +22,7 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 	private final @NotNull String perfName;
 	private final @NotNull AtomicLong serialIdGenerator;
 	private long lastSerialId;
+	private final @NotNull Future<?> reportTimer;
 
 	private final ConcurrentHashMap<Protocol<?>, Long> acquires = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Protocol<?>, Long> reduces = new ConcurrentHashMap<>();
@@ -46,7 +48,12 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 			maxAcquireTimes[i] = new AtomicLong();
 			totalAcquireResults[i] = new ConcurrentSkipListMap<>();
 		}
-		TaskSpec.ofAction(this::report).schedulePeriod(1000, 1000);
+		reportTimer = TaskSpec.ofAction(this::report).schedulePeriodNow(1000, 1000);
+	}
+
+	// 取消周期报告任务，由所属 GlobalCacheManager 的 stop/close 调用。
+	void close() {
+		reportTimer.cancel(false);
 	}
 
 	void onAcquireBegin(@NotNull Protocol<?> rpc, int state) {

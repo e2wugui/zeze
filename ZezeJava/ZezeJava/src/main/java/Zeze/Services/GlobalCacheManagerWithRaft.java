@@ -2,6 +2,7 @@ package Zeze.Services;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
@@ -79,6 +80,7 @@ public class GlobalCacheManagerWithRaft
 
 	private final GlobalCacheManagerServer.GCMConfig gcmConfig = new GlobalCacheManagerServer.GCMConfig();
 	private final AchillesHeelConfig achillesHeelConfig;
+	private final Future<?> achillesHeelTimer;
 	private final GlobalCacheManagerPerf perf;
 	private final AtomicLong serialId = new AtomicLong();
 
@@ -122,7 +124,7 @@ public class GlobalCacheManagerWithRaft
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing, this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
-		TaskSpec.ofAction(this::achillesHeelDaemon).schedulePeriod(5000, 5000);
+		achillesHeelTimer = TaskSpec.ofAction(this::achillesHeelDaemon).schedulePeriodNow(5000, 5000);
 	}
 
 	private void achillesHeelDaemon() {
@@ -816,6 +818,9 @@ public class GlobalCacheManagerWithRaft
 	@Override
 	public void close() {
 		try {
+			// 先取消守护任务和性能统计任务，避免rocks关闭后继续访问。
+			achillesHeelTimer.cancel(false);
+			perf.close();
 			rocks.close();
 		} catch (Exception e) {
 			Task.forceThrow(e);

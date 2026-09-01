@@ -6,6 +6,7 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Arch.RedirectFuture;
@@ -81,6 +82,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private LongConcurrentHashMap<CacheHolder> sessions;
 	private final GlobalCacheManagerServer.GCMConfig gcmConfig = new GlobalCacheManagerServer.GCMConfig();
 	private AchillesHeelConfig achillesHeelConfig;
+	private Future<?> achillesHeelTimer;
 	private GlobalCacheManagerPerf perf;
 
 	// 每个实例都是独立的服务器（无共享静态状态），可同 JVM 启动多个监听不同端口；
@@ -139,7 +141,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 			achillesHeelConfig = new AchillesHeelConfig(gcmConfig.maxNetPing, gcmConfig.serverProcessTime,
 					gcmConfig.serverReleaseTimeout);
-			TaskSpec.ofAction(this::achillesHeelDaemon).schedulePeriod(5000, 5000);
+			achillesHeelTimer = TaskSpec.ofAction(this::achillesHeelDaemon).schedulePeriodNow(5000, 5000);
 		} finally {
 			unlock();
 		}
@@ -182,6 +184,13 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			serverSocket = null;
 			server.stop();
 			server = null;
+			// 取消守护任务和性能统计任务，避免stop后继续访问已关闭的资源。
+			if (achillesHeelTimer != null) {
+				achillesHeelTimer.cancel(false);
+				achillesHeelTimer = null;
+			}
+			if (perf != null) // 不置null：极端情况下并发的协议派发还会引用perf对象
+				perf.close();
 		} finally {
 			unlock();
 		}
