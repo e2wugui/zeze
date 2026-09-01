@@ -1,6 +1,7 @@
 package Zeze.Hot;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import Zeze.Builtin.HotDistribute.AppendFile;
 import Zeze.Builtin.HotDistribute.CloseFile;
@@ -52,7 +53,7 @@ public class HotDistribute extends AbstractHotDistribute {
         return 0;
     }
 
-    public void sendTryDistributeResultAndWaitCommit(long rc) throws InterruptedException {
+    public void sendTryDistributeResultAndWaitCommit(long rc) throws InterruptedException, TimeoutException {
         lock.lock();
         try {
             if (null != tryDistribute) {
@@ -63,7 +64,7 @@ public class HotDistribute extends AbstractHotDistribute {
                     // 成功的结果才等待后续步骤。
                     while (state != eCommit && state != eTryRollback) {
                         if (!cond.await(10_000, TimeUnit.MILLISECONDS))
-                            throw new InterruptedException("timeout");
+                            throw new TimeoutException("timeout"); // 超时不是中断，不能用InterruptedException伪装
                     }
 
                     if (state == eTryRollback)
@@ -130,7 +131,7 @@ public class HotDistribute extends AbstractHotDistribute {
         return 0;
     }
 
-    public void sendCommitResultAndWaitCommit2(long rc) throws InterruptedException {
+    public void sendCommitResultAndWaitCommit2(long rc) throws InterruptedException, TimeoutException {
         lock.lock();
         try {
             if (null != commit) {
@@ -141,7 +142,7 @@ public class HotDistribute extends AbstractHotDistribute {
                     // 成功的结果才等待后续步骤。
                     while (state != eCommit2) {
                         if (!cond.await(10_000, TimeUnit.MILLISECONDS))
-                            throw new InterruptedException("timeout");
+                            throw new TimeoutException("timeout"); // 超时不是中断，不能用InterruptedException伪装
                     }
                 }
             }
