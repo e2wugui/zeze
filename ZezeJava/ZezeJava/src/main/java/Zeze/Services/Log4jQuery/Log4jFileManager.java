@@ -16,6 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Util.OutInt;
 import org.jetbrains.annotations.NotNull;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -40,7 +41,8 @@ public class Log4jFileManager extends ReentrantLock {
 		}
 	}
 
-	private final ArrayList<Log4jFile> files = new ArrayList<>();
+	// 持锁写（onFileCreated/buildIndex）、无锁读（seek/size/get），用COW保证读安全。
+	private final CopyOnWriteArrayList<Log4jFile> files = new CopyOnWriteArrayList<>();
 	private final FileCreateDetector fileCreateDetector;
 	private final String logFileBegin;
 	private final String logFileEnd;
