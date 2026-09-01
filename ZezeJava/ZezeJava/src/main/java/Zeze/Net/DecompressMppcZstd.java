@@ -110,9 +110,9 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 				if (off == 0x1fff + 320) { // enter block mode
 					off = -1;
 					int r = rem;
-					int p = pos;
+					int p = this.pos; // 参数pos是数组下标，遮蔽了基类位计数字段，这里必须用this.pos
 					rem = 0;
-					pos = 0;
+					this.pos = 0;
 					blockState = 0;
 					for (p &= ~7; (p -= 8) >= 0; )
 						update((byte)(r >> p));
