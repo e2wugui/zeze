@@ -53,9 +53,10 @@ public final class Task {
 	@SuppressWarnings("CanBeFinal")
 	public static volatile long defaultTimeout = 120_000; // 2 minutes
 
-	private static ExecutorService threadPoolDefault;
-	private static ScheduledExecutorService threadPoolScheduled;
-	private static ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
+	// volatile: shutdown 会将字段置 null，需保证对其他线程可见
+	private static volatile ExecutorService threadPoolDefault;
+	private static volatile ScheduledExecutorService threadPoolScheduled;
+	private static volatile ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
 	@SuppressWarnings("CanBeFinal")
 	public static @Nullable ILogAction logAction = Task::DefaultLogAction;
 
