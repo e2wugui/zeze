@@ -150,6 +150,9 @@ public class Selector extends Thread implements ByteBufferAllocator {
 
 		try {
 			join();
+		} catch (InterruptedException e) {
+			logger.error("wait selector thread {} interrupted:", getClass().getName(), e);
+			Thread.currentThread().interrupt(); // 恢复中断标志，让调用方能感知
 		} catch (Exception e) {
 			logger.error("wait selector thread {} exception:", getClass().getName(), e);
 		}
