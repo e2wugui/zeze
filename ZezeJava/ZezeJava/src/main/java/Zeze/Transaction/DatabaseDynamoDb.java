@@ -198,6 +198,7 @@ public class DatabaseDynamoDb extends Database {
 			attributesToGet.add("key");
 			attributesToGet.add("value");
 			var req = new ScanRequest();
+			req.setTableName(name);
 			req.setAttributesToGet(attributesToGet);
 			long count = 0;
 			while (true) {
@@ -213,6 +214,7 @@ public class DatabaseDynamoDb extends Database {
 					break;
 
 				req = new ScanRequest();
+				req.setTableName(name);
 				req.setAttributesToGet(attributesToGet);
 				req.setExclusiveStartKey(scanResult.getLastEvaluatedKey());
 			}
@@ -224,6 +226,7 @@ public class DatabaseDynamoDb extends Database {
 			var attributesToGet = new ArrayList<String>();
 			attributesToGet.add("key");
 			var req = new ScanRequest();
+			req.setTableName(name);
 			req.setAttributesToGet(attributesToGet);
 			long count = 0;
 			while (true) {
@@ -238,6 +241,7 @@ public class DatabaseDynamoDb extends Database {
 					break;
 
 				req = new ScanRequest();
+				req.setTableName(name);
 				req.setAttributesToGet(attributesToGet);
 				req.setExclusiveStartKey(scanResult.getLastEvaluatedKey());
 			}
@@ -270,6 +274,7 @@ public class DatabaseDynamoDb extends Database {
 				return null;
 
 			var req = new ScanRequest();
+			req.setTableName(name);
 			req.setAttributesToGet(List.of("key", "value"));
 			if (exclusiveStartKey != null) {
 				req.setExclusiveStartKey(Map.of("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(
@@ -291,6 +296,7 @@ public class DatabaseDynamoDb extends Database {
 				return null;
 
 			var req = new ScanRequest();
+			req.setTableName(name);
 			req.setAttributesToGet(List.of("key"));
 			if (exclusiveStartKey != null) {
 				req.setExclusiveStartKey(Map.of("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(
