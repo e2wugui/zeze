@@ -169,8 +169,10 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	public class SimulateThreads {
 		private final HashSet<SimulateThread> threads = new HashSet<>();
-		private long activeTime = System.currentTimeMillis();
+		// activeTime由KeepAlive处理线程写、timeoutRelease定时器线程读，需要volatile保证可见性。
+		private volatile long activeTime = System.currentTimeMillis();
 		private final int serverId;
+		// lastAppSerial仅在KeepAlive处理线程读写（同一连接的KeepAlive有序处理），无需volatile。
 		private BKeepAlive.Data lastAppSerial;
 
 		public SimulateThreads(int serverId) {
