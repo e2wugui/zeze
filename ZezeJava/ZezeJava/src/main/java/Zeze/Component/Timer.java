@@ -178,6 +178,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			for (var future : timerFutures.values()) {
 				try {
 					future.get(1, TimeUnit.SECONDS);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break; // 停止线程被中断，不再空等剩余任务
 				} catch (Exception ignored) {
 					// ignored
 				}
