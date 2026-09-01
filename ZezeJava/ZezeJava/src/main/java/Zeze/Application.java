@@ -864,8 +864,11 @@ public final class Application extends ReentrantLock {
 		try {
 			if (startState == StartState.eStarted && checkpointFuture == null)
 				checkpointFuture = TaskSpec.ofAction(() -> {
-					checkpoint.runOnce();
-					checkpointFuture = null;
+					try {
+						checkpoint.runOnce();
+					} finally {
+						checkpointFuture = null; // runOnce 抛异常也必须清空,否则后续checkpointRunThread永久失效
+					}
 				}).name("CheckpointRunThread").submitNow();
 		} finally {
 			unlock();
