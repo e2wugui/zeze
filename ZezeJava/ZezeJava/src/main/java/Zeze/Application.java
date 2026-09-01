@@ -703,6 +703,8 @@ public final class Application extends ReentrantLock {
 					serviceManager.waitReady();
 				} catch (Exception ignored) {
 					// raft 版第一次等待由于选择leader原因肯定会失败一次。
+					if (ignored instanceof InterruptedException)
+						Thread.currentThread().interrupt(); // 恢复被底层清除的中断标志
 					serviceManager.waitReady();
 				}
 			}
