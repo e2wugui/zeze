@@ -174,9 +174,13 @@ public class Daemon {
 		try {
 			var pid = String.valueOf(p.pid());
 			var cmd = new String[]{"jstack", "-e", "-l", pid};
-			var process = Runtime.getRuntime().exec(cmd);
-			Files.copy(new BufferedInputStream(process.getInputStream()), Path.of("jstack." + pid));
-			process.destroy();
+			// 合并stderr避免缓冲区填满阻塞子进程；显式关闭输入流；限时等待退出，超时强杀。
+			var process = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+			try (var input = new BufferedInputStream(process.getInputStream())) {
+				Files.copy(input, Path.of("jstack." + pid));
+			}
+			if (!process.waitFor(30, TimeUnit.SECONDS))
+				process.destroyForcibly();
 		} catch (Exception ex) {
 			logger.error("", ex);
 		}
