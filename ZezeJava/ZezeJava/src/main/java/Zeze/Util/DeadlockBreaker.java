@@ -113,7 +113,7 @@ public class DeadlockBreaker extends ThreadHelper {
 					deadlockedThreads.put(tInfo.getThreadId(), tInfo);
 			} catch (Exception e) {
 				// 并发访问： 在构建过程中，线程发生了变动。忽略这种错误。
-				logger.debug("critical exception");
+				logger.debug("concurrent thread change", e);
 			}
 		}
 
