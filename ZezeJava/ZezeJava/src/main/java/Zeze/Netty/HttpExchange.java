@@ -648,10 +648,12 @@ public class HttpExchange {
 		} else if (headerName == HttpHeaderNames.CONTENT_RANGE) { // 如果没找到content-range可能只用content-length大小上传
 			var len = headers.get(HttpHeaderNames.CONTENT_LENGTH);
 			if (len != null) {
-				var n = Integer.parseInt(len);
-				r[0] = 0;
-				r[1] = n - 1;
-				r[2] = n;
+				var n = parse(len); // 复用容错解析：畸形或超int范围的值按无range处理
+				if (n >= 0) {
+					r[0] = 0;
+					r[1] = n - 1;
+					r[2] = n;
+				}
 			}
 		}
 		return r;
