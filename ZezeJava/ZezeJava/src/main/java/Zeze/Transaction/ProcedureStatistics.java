@@ -45,7 +45,7 @@ public final class ProcedureStatistics {
 
 		void check() {
 			long total = getTotalCount(procedureName);
-			if ((total - last) / CheckPeriod >= reach) {
+			if ((total - last) * 1000 / CheckPeriod >= reach) {
 				try {
 					reachHandle.run();
 				} catch (Throwable e) { // logger.error
