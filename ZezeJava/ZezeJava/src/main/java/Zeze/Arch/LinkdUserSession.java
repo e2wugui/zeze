@@ -139,6 +139,7 @@ public class LinkdUserSession {
 	public void unbind(LinkdProviderService linkdProviderService, AsyncSocket link,
 					   Iterable<Integer> moduleIds, AsyncSocket provider, boolean isOnProviderClose) {
 		int removeCount = 0;
+		int leftCount;
 		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
 		try {
@@ -160,11 +161,12 @@ public class LinkdUserSession {
 					}
 				}
 			}
+			leftCount = binds.size(); // onClose会在写锁内整体换出binds引用,size必须在锁内取
 		} finally {
 			writeLock.unlock();
 		}
 		logger.info("unbind: account={}, moduleIds={}, removeCount={}, leftCount={}",
-				account, moduleIds, removeCount, binds.size());
+				account, moduleIds, removeCount, leftCount);
 	}
 
 	/*
