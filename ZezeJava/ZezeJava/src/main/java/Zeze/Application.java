@@ -96,7 +96,7 @@ public final class Application extends ReentrantLock {
 		eStarted,
 	}
 
-	private @NotNull StartState startState = StartState.eStopped;
+	private volatile @NotNull StartState startState = StartState.eStopped;
 	public RedirectBase redirect;
 
 	private Onz onz;
