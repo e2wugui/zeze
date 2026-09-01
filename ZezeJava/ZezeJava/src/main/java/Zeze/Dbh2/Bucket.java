@@ -116,18 +116,28 @@ public class Bucket {
 	}
 
 	public void addMoveMetaHistory(BBucketMeta.Data to) throws RocksDBException {
-		this.splitMetaHistory.getBuckets().put(to.getKeyFirst(), to);
-		var bb = ByteBuffer.Allocate();
-		this.splitMetaHistory.encode(bb);
-		meta.put(writeOptions, metaSplitKeyHistory, 0, metaSplitKeyHistory.length, bb.Bytes, 0, bb.WriteIndex);
+		splitMetaHistory.lock(); // 与读路径locate()互斥：写在raft apply线程，读在user-task线程
+		try {
+			this.splitMetaHistory.getBuckets().put(to.getKeyFirst(), to);
+			var bb = ByteBuffer.Allocate();
+			this.splitMetaHistory.encode(bb);
+			meta.put(writeOptions, metaSplitKeyHistory, 0, metaSplitKeyHistory.length, bb.Bytes, 0, bb.WriteIndex);
+		} finally {
+			splitMetaHistory.unlock();
+		}
 	}
 
 	public void addSplitMetaHistory(BBucketMeta.Data from, BBucketMeta.Data to) throws RocksDBException {
-		this.splitMetaHistory.getBuckets().put(from.getKeyFirst(), from);
-		this.splitMetaHistory.getBuckets().put(to.getKeyFirst(), to);
-		var bb = ByteBuffer.Allocate();
-		this.splitMetaHistory.encode(bb);
-		meta.put(writeOptions, metaSplitKeyHistory, 0, metaSplitKeyHistory.length, bb.Bytes, 0, bb.WriteIndex);
+		splitMetaHistory.lock(); // 与读路径locate()互斥：写在raft apply线程，读在user-task线程
+		try {
+			this.splitMetaHistory.getBuckets().put(from.getKeyFirst(), from);
+			this.splitMetaHistory.getBuckets().put(to.getKeyFirst(), to);
+			var bb = ByteBuffer.Allocate();
+			this.splitMetaHistory.encode(bb);
+			meta.put(writeOptions, metaSplitKeyHistory, 0, metaSplitKeyHistory.length, bb.Bytes, 0, bb.WriteIndex);
+		} finally {
+			splitMetaHistory.unlock();
+		}
 	}
 
 	public MasterTable.Data getSplitMetaHistory() {

@@ -38,14 +38,27 @@ public class MasterTable {
 			}
 		}
 
+		// floorEntry对并发写不是线程安全（红黑树重组中途读）。Dbh2分桶历史（Bucket.splitMetaHistory）
+		// 的写在raft apply线程、读在user-task线程，内部持锁保护；Master调用方已持锁，可重入无副作用。
 		public BBucketMeta.Data locate(Binary key) {
-			var lower = buckets.floorEntry(key);
-			return lower.getValue();
+			lock();
+			try {
+				var lower = buckets.floorEntry(key);
+				return lower.getValue();
+			} finally {
+				unlock();
+			}
 		}
 
+		// 返回的是live视图：仅Dbh2AgentManager使用，其操作的实例是rpc返回的快照拷贝，无并发写。
 		public SortedMap<Binary, BBucketMeta.Data> tailMap(Binary key) {
 			var bucket = locate(key);
-			return buckets.tailMap(bucket.getKeyFirst());
+			lock();
+			try {
+				return buckets.tailMap(bucket.getKeyFirst());
+			} finally {
+				unlock();
+			}
 		}
 
 		@Override
