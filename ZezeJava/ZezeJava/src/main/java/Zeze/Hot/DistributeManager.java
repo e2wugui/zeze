@@ -37,6 +37,8 @@ public class DistributeManager {
 		var file = new File(fileName);
 		var relativeCanonicalFileName = file.getCanonicalFile().toString();
 		var fileBin = files.get(relativeCanonicalFileName);
+		if (null == fileBin)
+			throw new IOException("file not opened: " + fileName);
 		fileBin.append(offset, data);
 	}
 
