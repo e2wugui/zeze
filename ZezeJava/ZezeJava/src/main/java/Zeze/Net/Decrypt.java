@@ -38,7 +38,7 @@ public class Decrypt implements Codec {
 			ivr.clear();
 			ivw.clear();
 		} catch (ShortBufferException e) {
-			// skip
+			throw new CodecException(e); // 解密状态已错位，必须让链路失败可见
 		}
 	}
 

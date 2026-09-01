@@ -36,7 +36,7 @@ public class Encrypt implements Codec {
 			ivr.clear();
 			ivw.clear();
 		} catch (ShortBufferException e) {
-			// skip
+			throw new CodecException(e); // 加密状态已错位，必须让链路失败可见
 		}
 	}
 
