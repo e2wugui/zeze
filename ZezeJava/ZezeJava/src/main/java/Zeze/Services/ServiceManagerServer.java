@@ -302,10 +302,11 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 			var notifies = new HashMap<AsyncSocket, EditService>();
 			serviceManager.editLock.lock();
-			for (var info : subscribes.values())
-				serviceManager.unSubscribeNow(sessionId, info.getServiceName());
 
 			try {
+				for (var info : subscribes.values())
+					serviceManager.unSubscribeNow(sessionId, info.getServiceName());
+
 				for (var unReg : registers) {
 					var state = serviceManager.serviceStates.get(unReg.getServiceName());
 					if (state != null)
