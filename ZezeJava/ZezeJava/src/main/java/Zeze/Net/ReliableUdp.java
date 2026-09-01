@@ -185,7 +185,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		try {
 			var bb = ByteBuffer.Allocate(512);
 			p.encode(bb);
-			return datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.WriteIndex), peer)
+			return datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.size()), peer)
 					== bb.size();
 		} catch (IOException e) {
 			throw Task.forceThrow(e);
