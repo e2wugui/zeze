@@ -342,7 +342,11 @@ public final class RaftConfig {
 
 	public static @NotNull RaftConfig load(String xmlFile) throws Exception {
 		if (new File(xmlFile).isFile()) {
-			Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new File(xmlFile));
+			var factory = DocumentBuilderFactory.newInstance();
+			// 与 save() 安全设置一致；合法配置不含 DOCTYPE，行为不变
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+			Document doc = factory.newDocumentBuilder().parse(new File(xmlFile));
 			return new RaftConfig(doc, xmlFile, doc.getDocumentElement());
 		}
 
@@ -356,7 +360,11 @@ public final class RaftConfig {
 	public static @NotNull RaftConfig loadFromString(String content) {
 		try {
 			var is = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
-			var doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
+			var factory = DocumentBuilderFactory.newInstance();
+			// 与 save() 安全设置一致；合法配置不含 DOCTYPE，行为不变
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+			var doc = factory.newDocumentBuilder().parse(is);
 			return new RaftConfig(doc, null, doc.getDocumentElement());
 		} catch (Exception e) {
 			throw Task.forceThrow(e);
