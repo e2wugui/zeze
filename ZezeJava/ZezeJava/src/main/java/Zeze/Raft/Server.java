@@ -193,7 +193,7 @@ public class Server extends HandshakeBoth {
 			try {
 				Raft.executeImportantTask(() -> ProtocolDispatch.ofFunc(() -> responseHandle.handle(p), p).call());
 			} catch (RejectedExecutionException e) {
-				logger.debug("RejectedExecutionException for {}", p);
+				logger.warn("RejectedExecutionException for {}", p);
 			}
 			return;
 		}
