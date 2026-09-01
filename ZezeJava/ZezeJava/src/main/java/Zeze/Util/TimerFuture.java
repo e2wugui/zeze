@@ -10,7 +10,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> {
 	private ScheduledFuture<V> future;
-	private boolean canceled;
+	// volatile: isCancelled() 在任务线程中无锁轮询，需与 cancel() 的写入保持可见性
+	private volatile boolean canceled;
 
 	@SuppressWarnings("unchecked")
 	public void setFuture(@NotNull ScheduledFuture<?> future) {
