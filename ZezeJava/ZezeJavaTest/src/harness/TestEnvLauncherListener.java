@@ -1,5 +1,6 @@
 package harness;
 
+import java.util.HashSet;
 import Zeze.Config;
 import Zeze.Services.GlobalCacheManagerAsyncServer;
 import Zeze.Services.ServiceManagerServer;
@@ -8,6 +9,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.platform.launcher.LauncherSession;
 import org.junit.platform.launcher.LauncherSessionListener;
+import org.junit.platform.launcher.TestExecutionListener;
+import org.junit.platform.launcher.TestIdentifier;
+import org.junit.platform.launcher.TestPlan;
 
 /**
  * 在测试 JVM 内自动启动两对基础服务（本 listener 即启动机制，无需手工运行任何外部进程）。通过 ServiceLoader 自动注册
@@ -15,12 +19,17 @@ import org.junit.platform.launcher.LauncherSessionListener;
  * IDEA / gradle / ConsoleLauncher 三个入口统一生效。
  *
  * <ul>
+ * <li>懒启动：会话开启时不启动（此时还不知道要跑哪些测试），注册 TestExecutionListener，
+ *     等测试计划就绪（testPlanExecutionStarted，先于任何用例执行）后按标签决定——
+ *     计划内存在非 fast 标签的测试才启动环境；纯 @Fast 计划（如 IDEA 单独运行单元测试）零环境开销；</li>
  * <li>第一对：ServiceManager(5001) + GlobalCacheManagerAsyncServer(5002)；</li>
  * <li>第二对：ServiceManager(5011, 独立 autokeys 目录) + GlobalCacheManagerAsyncServer(5012)，
  *     仅 Onz.TestOnz 需要（两个独立 zeze 集群）；GCM 支持多实例，与第一对互不影响；</li>
  * <li>端口已被占用（比如已有外部启动的同端口服务在跑）时不启动、直接复用，会话结束时也不负责关闭；</li>
- * <li>仅关闭自己启动的服务；</li>
- * <li>gradle test（@Fast 自包含测试）不需要环境，由 build.gradle 设 -Dzeze.test.env=off 跳过。</li>
+ * <li>仅关闭自己启动的服务；同一 JVM 内多次执行测试计划只启动一次；</li>
+ * <li>@Bench 的 A/B/C 事务场景同样依赖 SM/Global（见 build.gradle bench 任务），故免环境只认 fast 标签；</li>
+ * <li>gradle test（@Fast 自包含测试）由 build.gradle 设 -Dzeze.test.env=off 显式跳过；
+ *     懒启动机制下该属性退化为强制逃生门（设了就永不启动，与计划内容无关）。</li>
  * </ul>
  */
 public class TestEnvLauncherListener implements LauncherSessionListener {
@@ -37,11 +46,41 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 	private static ServiceManagerServer serviceManager2;
 	private static GlobalCacheManagerAsyncServer globalCacheManager2;
 	private static boolean globalCacheManager2Started;
+	private static boolean envStarted;
 
 	@Override
 	public void launcherSessionOpened(LauncherSession session) {
 		if ("off".equalsIgnoreCase(System.getProperty(ENV_OFF_PROPERTY)))
 			return;
+		session.getLauncher().registerTestExecutionListeners(new TestExecutionListener() {
+			@Override
+			public void testPlanExecutionStarted(TestPlan testPlan) {
+				if (!envStarted && hasNonFastTest(testPlan))
+					startEnv();
+			}
+		});
+	}
+
+	// @Fast 的契约是自包含（不依赖 SM/GCM/外部数据库）；fast 之外的测试（含 @Bench）按约定需要环境。
+	// 按 isTest() 粒度判断：类级标签会落到每个方法标识上，非 fast 类里的 fast 方法不会误触发。
+	private static boolean hasNonFastTest(TestPlan testPlan) {
+		var pending = testPlan.getRoots();
+		while (!pending.isEmpty()) {
+			var next = new HashSet<TestIdentifier>();
+			for (var id : pending) {
+				if (id.isTest() && id.getTags().stream().noneMatch(tag -> "fast".equals(tag.getName())))
+					return true;
+				next.addAll(testPlan.getChildren(id));
+			}
+			pending = next;
+		}
+		return false;
+	}
+
+	private static synchronized void startEnv() {
+		if (envStarted)
+			return;
+		envStarted = true;
 		try {
 			Task.tryInitThreadPool();
 			if (!TestEnv.portReachable("127.0.0.1", SERVICE_MANAGER_PORT)) {
