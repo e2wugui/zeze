@@ -350,6 +350,7 @@ public class LogSequence {
 			try {
 				Thread.sleep(300);
 			} catch (InterruptedException ignored) {
+				Thread.currentThread().interrupt();
 			}
 		}
 		throw new IllegalStateException("delete '" + path + "' failed");
