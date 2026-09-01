@@ -28,6 +28,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private Future<?> timer;
 	private CommitAgent commitAgent;
 	private final Dbh2 dbh2;
+	// 访问由noTransactionLock保护：setupOneShotIfNoTransaction在user-task线程，triggerNoTransactionIf在raft apply线程。
+	private final Object noTransactionLock = new Object();
 	private Runnable noTransactionHandle;
 
 	final AtomicLong counterGet = new AtomicLong();
@@ -132,20 +134,26 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void setupOneShotIfNoTransaction(Runnable handle) {
-		if (transactions.isEmpty())
-			handle.run();
-		else
-			noTransactionHandle = handle;
+		synchronized (noTransactionLock) {
+			if (transactions.isEmpty())
+				handle.run(); // 异步网络调用，持锁执行无阻塞风险
+			else
+				noTransactionHandle = handle;
+		}
 	}
 
 	public boolean hasNoTransactionHandle() {
-		return noTransactionHandle != null;
+		synchronized (noTransactionLock) {
+			return noTransactionHandle != null;
+		}
 	}
 
 	private void triggerNoTransactionIf() {
-		if (transactions.isEmpty() && null != noTransactionHandle) {
-			noTransactionHandle.run();
-			noTransactionHandle = null;
+		synchronized (noTransactionLock) {
+			if (transactions.isEmpty() && null != noTransactionHandle) {
+				noTransactionHandle.run();
+				noTransactionHandle = null;
+			}
 		}
 	}
 
