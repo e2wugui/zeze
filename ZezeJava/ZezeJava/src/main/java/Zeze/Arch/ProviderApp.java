@@ -40,9 +40,9 @@ public class ProviderApp extends ReentrantLock {
 	public final IntHashMap<BModule.Data> dynamicModules = new IntHashMap<>();
 	public final IntHashMap<BModule.Data> modules = new IntHashMap<>();
 	public final HashMap<String, IModule> builtinModules = new HashMap<>();
-	private boolean startLast;
-	private boolean isOnlineReady = false;
-	private boolean isUserDisableChoice = true;
+	private volatile boolean startLast;
+	private volatile boolean isOnlineReady = false;
+	private volatile boolean isUserDisableChoice = true;
 
 	public boolean isOnlineReady() {
 		return isOnlineReady;
