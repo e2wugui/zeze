@@ -531,8 +531,10 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		var it = bucket.getData().iterator();
 		var keyNumbers = bucket.getData().getKeyNumbers();
 		var count = keyNumbers / 2;
-		if (count <= 0) // 这里可以考虑配置一个较大的值，即记录数很少的时候不分桶。
+		if (count <= 0) { // 这里可以考虑配置一个较大的值，即记录数很少的时候不分桶。
+			it.close();
 			return null;
+		}
 		for (it.seekToFirst(); it.isValid() && count > 0; it.next(), --count) {
 			// searching middle
 		}
