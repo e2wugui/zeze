@@ -36,7 +36,7 @@ public class LogSequence {
 	public static final String snapshotFileName = "snapshot.dat";
 
 	private final Raft raft;
-	private long term;
+	private volatile long term; // getTerm()存在锁外读取（Server.trySendLeaderIs），需要可见性
 	private long lastIndex;
 	private long firstIndex; // 用来处理NextIndex回溯时限制搜索。snapshot需要修订这个值。
 	private long commitIndex;

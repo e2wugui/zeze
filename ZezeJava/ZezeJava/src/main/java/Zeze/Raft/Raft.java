@@ -45,7 +45,7 @@ public final class Raft {
 	private static final Logger logger = LogManager.getLogger(Raft.class);
 	// private static final AtomicLong threadPoolCounter = new AtomicLong();
 
-	private String leaderId;
+	private volatile String leaderId;
 	private final RaftConfig raftConfig;
 	private final LogSequence logSequence;
 	private final Server server;
