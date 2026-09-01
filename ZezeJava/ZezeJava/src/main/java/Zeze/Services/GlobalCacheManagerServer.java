@@ -186,7 +186,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 								release(session, k, false);
 								++releaseCount;
 							} catch (InterruptedException ex) {
+								Thread.currentThread().interrupt();
 								logger.error("", ex);
+								return; // 中断后不再继续release
 							}
 						}
 						session.setActiveTime(System.currentTimeMillis());
