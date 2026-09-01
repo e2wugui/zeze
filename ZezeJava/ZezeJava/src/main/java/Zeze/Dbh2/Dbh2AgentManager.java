@@ -244,7 +244,14 @@ public class Dbh2AgentManager extends ReentrantLock {
 			Binary key) {
 		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
 		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
-		var table = database.computeIfAbsent(tableName, tbName -> masterAgent.getBuckets(databaseName, tbName));
+		var table = database.get(tableName);
+		if (null == table) {
+			// getBuckets是阻塞RPC，不能放进computeIfAbsent的映射函数（持bin锁会阻塞同bin其他键的访问）；重复RPC幂等无害。
+			table = masterAgent.getBuckets(databaseName, tableName);
+			var old = database.putIfAbsent(tableName, table);
+			if (null != old)
+				table = old;
+		}
 		return table.locate(key).getRaftConfig();
 	}
 
@@ -254,7 +261,14 @@ public class Dbh2AgentManager extends ReentrantLock {
 			Binary key, boolean desc) {
 		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
 		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
-		var table = database.computeIfAbsent(tableName, tbName -> masterAgent.getBuckets(databaseName, tbName));
+		var table = database.get(tableName);
+		if (null == table) {
+			// 同locateBucket：阻塞RPC不能放进computeIfAbsent的映射函数。
+			table = masterAgent.getBuckets(databaseName, tableName);
+			var old = database.putIfAbsent(tableName, table);
+			if (null != old)
+				table = old;
+		}
 		// 从key所在桶（含）开始迭代：asc向后（keyFirst递增），desc向前（keyFirst递减）。
 		// desc且key为空表示从表尾开始：直接全表降序。
 		if (desc)
