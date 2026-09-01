@@ -123,58 +123,59 @@ public class MQFileWithIndex {
 				if (null != floor) {
 					var headMessageIdValue = new byte[8];
 					ByteBuffer.longBeHandler.set(headMessageIdValue, 0, headMessageId);
-					var floorIt = floor.getValue().iterator();
-					floorIt.seekForPrev(headMessageIdValue);
-					if (floorIt.isValid()) {
-						var topicDir = new File(home, topic);
-						var file = new File(topicDir, partitionId + "." + floor.getKey());
-						try (var fileInput = new RandomAccessFile(file, "r")) {
-							var fileSize = fileInput.getChannel().size();
-							var filePosition = 0;
-							var offset = ByteBuffer.ToLongBE(floorIt.value(), 0);
-							fileInput.seek(offset);
-							filePosition += offset;
-							long messageId;
-							int messageSize;
-							var messageHead = new byte[12];
-							// locate headMessageId
-							while (true) {
-								filePosition += messageHead.length;
-								if (filePosition > fileSize)
-									throw new RuntimeException("locate message eof.");
-								fileInput.read(messageHead);
-								var bbHead = ByteBuffer.Wrap(messageHead);
-								messageId = bbHead.ReadLong8();
-								messageSize = bbHead.ReadInt4();
-								if (messageId == headMessageId)
-									break; // message found.
-								if (fileInput.skipBytes(messageSize) < messageSize)
-									throw new RuntimeException("message not found"); // 忽略的长度不够，表示数据文件被截断了。
-								filePosition += messageSize;
-							}
+					try (var floorIt = floor.getValue().iterator()) {
+						floorIt.seekForPrev(headMessageIdValue);
+						if (floorIt.isValid()) {
+							var topicDir = new File(home, topic);
+							var file = new File(topicDir, partitionId + "." + floor.getKey());
+							try (var fileInput = new RandomAccessFile(file, "r")) {
+								var fileSize = fileInput.getChannel().size();
+								var filePosition = 0;
+								var offset = ByteBuffer.ToLongBE(floorIt.value(), 0);
+								fileInput.seek(offset);
+								filePosition += offset;
+								long messageId;
+								int messageSize;
+								var messageHead = new byte[12];
+								// locate headMessageId
+								while (true) {
+									filePosition += messageHead.length;
+									if (filePosition > fileSize)
+										throw new RuntimeException("locate message eof.");
+									fileInput.read(messageHead);
+									var bbHead = ByteBuffer.Wrap(messageHead);
+									messageId = bbHead.ReadLong8();
+									messageSize = bbHead.ReadInt4();
+									if (messageId == headMessageId)
+										break; // message found.
+									if (fileInput.skipBytes(messageSize) < messageSize)
+										throw new RuntimeException("message not found"); // 忽略的长度不够，表示数据文件被截断了。
+									filePosition += messageSize;
+								}
 
-							// fill now
-							while (true) {
-								var messageBuffer = new byte[messageSize];
-								filePosition += messageBuffer.length;
-								if (filePosition > fileSize)
-									throw new RuntimeException("read message body eof.");
-								fileInput.read(messageBuffer);
-								var message = new BMessage.Data();
-								message.decode(ByteBuffer.Wrap(messageBuffer));
-								messageQueue.add(message);
+								// fill now
+								while (true) {
+									var messageBuffer = new byte[messageSize];
+									filePosition += messageBuffer.length;
+									if (filePosition > fileSize)
+										throw new RuntimeException("read message body eof.");
+									fileInput.read(messageBuffer);
+									var message = new BMessage.Data();
+									message.decode(ByteBuffer.Wrap(messageBuffer));
+									messageQueue.add(message);
 
-								headMessageId++;
-								if (filePosition >= fileSize || headMessageId >= endMessageId)
-									break; // eof or enough
+									headMessageId++;
+									if (filePosition >= fileSize || headMessageId >= endMessageId)
+										break; // eof or enough
 
-								filePosition += messageHead.length;
-								if (filePosition > fileSize)
-									throw new RuntimeException("read message head eof.");
-								fileInput.read(messageHead);
-								var bbHead = ByteBuffer.Wrap(messageHead);
-								bbHead.ReadLong8(); // skip result
-								messageSize = bbHead.ReadInt4();
+									filePosition += messageHead.length;
+									if (filePosition > fileSize)
+										throw new RuntimeException("read message head eof.");
+									fileInput.read(messageHead);
+									var bbHead = ByteBuffer.Wrap(messageHead);
+									bbHead.ReadLong8(); // skip result
+									messageSize = bbHead.ReadInt4();
+								}
 							}
 						}
 					}
