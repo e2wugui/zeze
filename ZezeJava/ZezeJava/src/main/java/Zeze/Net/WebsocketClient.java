@@ -153,7 +153,7 @@ public class WebsocketClient extends AsyncSocket {
 		if (ws != null) {
 			ws.abort();
 		}
-		return false;
+		return true; // 对齐TcpSocket/Websocket家族：本次调用完成了关闭
 	}
 
 	@Override
