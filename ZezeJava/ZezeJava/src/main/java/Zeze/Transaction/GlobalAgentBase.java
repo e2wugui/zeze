@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Services.AchillesHeelConfig;
@@ -74,6 +75,8 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 		public final long startTime = System.currentTimeMillis();
 		public final @Nullable Runnable endAction;
 		private volatile boolean done;
+		// endAction 的一次性执行标记：isCompletedSuccessfully 会被多个守护线程并发/重复调用。
+		private final AtomicBoolean endActionRan = new AtomicBoolean();
 
 		public Releaser(@NotNull Application zeze, int index, @Nullable Runnable endAction) {
 			super("Global.Releaser");
@@ -86,7 +89,8 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 
 		public final boolean isCompletedSuccessfully() {
 			if (done) {
-				if (endAction != null)
+				// 保证 endAction 并发下只执行一次。
+				if (endAction != null && endActionRan.compareAndSet(false, true))
 					endAction.run();
 				return true;
 			}
