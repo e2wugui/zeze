@@ -83,9 +83,10 @@ public final class HttpResponseWithBodyStream {
 				return;
 			closed = true;
 			if (buffer.writableBytes() > 0) {
+				int expected = buffer.capacity();
+				int actual = buffer.readableBytes();
 				buffer.release(); // 异常路径也要释放pooled ByteBuf
-				throw new IOException("Incomplete content: Expected " +
-						buffer.capacity() + " bytes, actual " + buffer.readableBytes());
+				throw new IOException("Incomplete content: Expected " + expected + " bytes, actual " + actual);
 			}
 			ctx.writeAndFlush(new DefaultLastHttpContent(buffer));
 		}
@@ -98,8 +99,11 @@ public final class HttpResponseWithBodyStream {
 
 		private void ensureCapacity(int len) {
 			if (buffer.writableBytes() < len) {
+				int remaining = buffer.writableBytes();
+				closed = true; // 溢出后流作废，后续write/close不再触碰已释放的buffer
+				buffer.release();
 				throw new IllegalStateException("Overflow: Attempt to write " + len +
-						" bytes, remaining capacity " + buffer.writableBytes());
+						" bytes, remaining capacity " + remaining);
 			}
 		}
 	}
