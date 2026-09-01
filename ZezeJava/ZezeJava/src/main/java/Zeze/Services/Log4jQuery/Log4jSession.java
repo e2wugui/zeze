@@ -88,12 +88,12 @@ public class Log4jSession {
 		if (limit <= 0)
 			return false; // end search
 
+		var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE); // 循环外编译一次复用
 		while (files.hasNext()) {
 			var log = files.next();
 			if (endTime != -1 && log.getTime() > endTime)
 				return false; // end search
 
-			var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
 			var matcher = regex.matcher(log.getLog());
 			if (matcher.find()) {
 				result.add(log);
@@ -163,6 +163,7 @@ public class Log4jSession {
 			throw new IllegalArgumentException("offset factor too big.");
 
 		var locate = false;
+		var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE); // 循环外编译一次复用
 		while (files.hasNext()) {
 			var log = files.next();
 			if (endTime != -1 && log.getTime() > endTime)
@@ -174,7 +175,6 @@ public class Log4jSession {
 				if (limit <= 0)
 					break;
 			} else {
-				var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
 				var matcher = regex.matcher(log.getLog());
 				if (matcher.find()) {
 					locate = true;
