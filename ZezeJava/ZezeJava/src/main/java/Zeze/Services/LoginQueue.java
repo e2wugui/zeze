@@ -191,12 +191,15 @@ public class LoginQueue extends AbstractLoginQueue {
 			so.closeGracefully();
 			return false;
 		}
-		if (queue.isEmpty() && timeThrottle.checkNow(1)) {
-			if (tryAllocateServer(so))
-				return false; // 新连接，直接分配成功，done
+		// 与drainQueue同锁：choiceServer里setOnline(getOnline()+1)非原子，accept线程与timer线程串行化。
+		synchronized (this) {
+			if (queue.isEmpty() && timeThrottle.checkNow(1)) {
+				if (tryAllocateServer(so))
+					return false; // 新连接，直接分配成功，done
+			}
+			queue.add(so);
+			return true;
 		}
-		queue.add(so);
-		return true;
 	}
 
 	void onClose(AsyncSocket so) {
