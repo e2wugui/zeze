@@ -231,6 +231,9 @@ public final class Raft {
 			logSequence.appendLog(log, callback);
 		} catch (RaftRetryException | TaskCanceledException er) {
 			throw er;
+		} catch (InterruptedException ie) { // 先恢复中断标志，再按重试语义包装
+			Thread.currentThread().interrupt();
+			throw new RaftRetryException("Interrupted", ie);
 		} catch (Throwable ex) { // rethrow RaftRetryException
 			throw new RaftRetryException("Inner Exception", ex);
 		}
@@ -247,6 +250,9 @@ public final class Raft {
 			logSequence.appendLog(log);
 		} catch (RaftRetryException | TaskCanceledException er) {
 			throw er;
+		} catch (InterruptedException ie) { // 先恢复中断标志，再按重试语义包装
+			Thread.currentThread().interrupt();
+			throw new RaftRetryException("Interrupted", ie);
 		} catch (Throwable ex) { // rethrow RaftRetryException
 			throw new RaftRetryException("Inner Exception", ex);
 		}
