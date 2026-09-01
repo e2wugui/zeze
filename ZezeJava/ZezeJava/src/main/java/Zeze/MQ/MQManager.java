@@ -119,8 +119,14 @@ public class MQManager extends AbstractMQManager {
                     if (partition.isFile()) {
                         // 相同分区的文件可能有多个，这里使用HashSet会去重。
                         var pa = partition.getName().split("\\.");
-                        if (pa.length == 2)
-                            partitionIndexes.add(Integer.parseInt(pa[0]));
+                        if (pa.length == 2) {
+                            try {
+                                partitionIndexes.add(Integer.parseInt(pa[0]));
+                            } catch (NumberFormatException e) {
+                                // 忽略目录下混入了非"分区号.消息号"命名的杂散文件。
+                                logger.warn("loadMQ skip unrecognized partition file: {}", partition.getName());
+                            }
+                        }
                     }
                 }
                 createPartition(topic.getName(), partitionIndexes);
