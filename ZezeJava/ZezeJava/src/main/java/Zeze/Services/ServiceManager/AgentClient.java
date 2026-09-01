@@ -15,8 +15,9 @@ public final class AgentClient extends HandshakeClient {
 	private final Agent agent;
 	/**
 	 * 和注册服务器之间只保持一个连接。并且不处理任何协议状态。
+	 * 网络线程写、其他线程通过getSocket()读，需要volatile保证可见性。
 	 */
-	private AsyncSocket socket;
+	private volatile AsyncSocket socket;
 
 	public AgentClient(Agent agent, Config config) {
 		super(Agent.defaultServiceName, config);
