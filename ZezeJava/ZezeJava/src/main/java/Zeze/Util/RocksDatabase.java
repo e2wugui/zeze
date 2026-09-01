@@ -226,6 +226,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 					//noinspection BusyWait
 					Thread.sleep(1000);
 				} catch (InterruptedException ignored) {
+					Thread.currentThread().interrupt();
 					throw e;
 				}
 			}
@@ -256,6 +257,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 					//noinspection BusyWait
 					Thread.sleep(1000);
 				} catch (InterruptedException ignored) {
+					Thread.currentThread().interrupt();
 					throw e;
 				}
 			}
