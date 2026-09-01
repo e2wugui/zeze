@@ -8,7 +8,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 
 public class OnzSaga extends OnzProcedure {
-	private boolean end = false;
+	private volatile boolean end = false; // setEnd在协议线程，isEnd在Checkpoint flush线程
 	private final long startTime = System.currentTimeMillis();
 
 	public OnzSaga(Rpc<?, ?> rpc,
