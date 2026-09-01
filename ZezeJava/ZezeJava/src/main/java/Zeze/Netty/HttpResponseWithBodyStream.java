@@ -83,6 +83,7 @@ public final class HttpResponseWithBodyStream {
 				return;
 			closed = true;
 			if (buffer.writableBytes() > 0) {
+				buffer.release(); // 异常路径也要释放pooled ByteBuf
 				throw new IOException("Incomplete content: Expected " +
 						buffer.capacity() + " bytes, actual " + buffer.readableBytes());
 			}
