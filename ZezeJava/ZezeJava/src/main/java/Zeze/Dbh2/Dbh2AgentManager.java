@@ -47,7 +47,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private Commit commit;
 	private CommitAgent commitAgent;
-	private Future<?> refreshMasterTableTask;
+	private volatile Future<?> refreshMasterTableTask; // 任务线程会置null（见startRefreshMasterTable），需要可见性
 	private final AbstractAgent serviceManager;
 	private final AutoKey tidAutoKey;
 
@@ -59,7 +59,12 @@ public class Dbh2AgentManager extends ReentrantLock {
 
 			refreshMasterTableTask = TaskSpec.ofAction(() -> {
 						reload(openMasterAgent(masterName), masterName, databaseName, tableName);
-						refreshMasterTableTask = null;
+						lock(); // 置null与startRefreshMasterTable的检查-调度原子，避免与重新调度交错
+						try {
+							refreshMasterTableTask = null;
+						} finally {
+							unlock();
+						}
 					}).scheduleNow(200);
 		} finally {
 			unlock();
