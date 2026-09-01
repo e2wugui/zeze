@@ -84,6 +84,7 @@ public class FileBin {
 	}
 
 	public void close() throws IOException {
-		os.close();
+		os.close(); // 关闭前flush缓冲数据
+		randFile.close();
 	}
 }
