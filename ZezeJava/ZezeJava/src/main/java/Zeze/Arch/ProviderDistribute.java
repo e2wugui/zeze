@@ -324,7 +324,10 @@ public class ProviderDistribute extends ReentrantLock {
 		var si = serviceInfos.findServiceInfoByServerId(serverId);
 		if (si == null)
 			return false;
-		provider.value = ((ProviderModuleState)providers.getLocalStates().get(si.getServiceIdentity())).sessionId;
+		var localState = (ProviderModuleState)providers.getLocalStates().get(si.getServiceIdentity());
+		if (localState == null)
+			return false;
+		provider.value = localState.sessionId;
 		return true;
 	}
 }
