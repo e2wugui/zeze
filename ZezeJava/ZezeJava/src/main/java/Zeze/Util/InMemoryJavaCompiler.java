@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -90,9 +91,13 @@ public class InMemoryJavaCompiler {
 		if (sourceCodes.isEmpty())
 			return null;
 		DiagnosticCollector<JavaFileObject> collector = new DiagnosticCollector<>();
-		javac.getTask(null, new ExtendedJavaFileManager(
-						javac.getStandardFileManager(null, null, null), classLoader),
-				collector, options, null, sourceCodes).call();
+		// try-with-resources 确保 close 释放（close 声明抛 IOException，需在此捕获）
+		try (var fm = new ExtendedJavaFileManager(
+				javac.getStandardFileManager(null, null, null), classLoader)) {
+			javac.getTask(null, fm, collector, options, null, sourceCodes).call();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		if (!collector.getDiagnostics().isEmpty()) {
 			StringBuilder exceptionMsg = new StringBuilder("Unable to compile the source");
 			int warningLevel = 0;
