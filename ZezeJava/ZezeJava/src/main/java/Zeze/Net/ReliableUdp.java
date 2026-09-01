@@ -74,7 +74,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			datagramChannel.configureBlocking(false);
 			datagramChannel.bind(local);
 			selector = Selectors.getInstance().choice();
-			selector.register(datagramChannel, SelectionKey.OP_READ, this);
+			selectionKey = selector.register(datagramChannel, SelectionKey.OP_READ, this);
 		} catch (IOException e) {
 			throw Task.forceThrow(e);
 		}
