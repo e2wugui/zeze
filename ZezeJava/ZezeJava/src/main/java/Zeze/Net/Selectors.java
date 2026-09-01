@@ -55,6 +55,7 @@ public class Selectors extends ReentrantLock {
 	private final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池,需要考虑并发访问
 	private final FastLock bbGlobalPoolLock = new FastLock(); // 全局池的锁
 	private volatile @NotNull Selector[] selectorList;
+	private volatile boolean closed;
 	private final AtomicLong choiceCount = new AtomicLong();
 
 	public Selectors(@NotNull String name) {
@@ -123,6 +124,8 @@ public class Selectors extends ReentrantLock {
 	}
 
 	public @NotNull Selectors add(int count) {
+		if (closed) // close后不允许重建线程（choice()对closed同样抛IllegalStateException）
+			throw new IllegalStateException("closed");
 		try {
 			int i, n;
 			var tmp = selectorList;
@@ -160,6 +163,7 @@ public class Selectors extends ReentrantLock {
 	public void close() {
 		lock();
 		try {
+			closed = true;
 			Selector[] tmp = selectorList;
 			if (tmp != null) {
 				selectorList = null;
