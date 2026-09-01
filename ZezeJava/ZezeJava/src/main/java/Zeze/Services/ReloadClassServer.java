@@ -48,8 +48,9 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 			return;
 		if (files.length != 1)
 			throw new RuntimeException("too many patch file.");
-		var zipFile = new ZipFile(files[0]);
-		ClassReloader.reloadClasses(zipFile);
+		try (var zipFile = new ZipFile(files[0])) {
+			ClassReloader.reloadClasses(zipFile);
+		}
 	}
 
 	@Override
@@ -61,8 +62,9 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 		var destFile = new File(uploadDir, patchFileName);
 		destFile.delete(); // 只保存一份path_all; skip result.
 		if (fileUpload.renameTo(destFile)) {
-			var zipFile = new ZipFile(destFile);
-			ClassReloader.reloadClasses(zipFile);
+			try (var zipFile = new ZipFile(destFile)) {
+				ClassReloader.reloadClasses(zipFile);
+			}
 			x.close(x.sendPlainText(HttpResponseStatus.OK, ""));
 			return;
 		}
