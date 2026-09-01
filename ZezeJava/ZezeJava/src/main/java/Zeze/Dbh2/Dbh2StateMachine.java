@@ -52,12 +52,13 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private long lastReportTime = System.currentTimeMillis();
 	private boolean loadSwitch = false;
 
-	public void setLoadSwitch(boolean value) {
+	// load被loadMonitor定时器线程与setLoadSwitch（raft回调线程）并发调用，last*统计字段需要同步保护。
+	public synchronized void setLoadSwitch(boolean value) {
 		load(); // 修改loadSwitch强制报告一次，达到清理旧的load的目的。
 		loadSwitch = value;
 	}
 
-	public double load() {
+	public synchronized double load() {
 		var now = System.currentTimeMillis();
 		var elapse = (now - lastReportTime) / 1000.0f;
 		lastReportTime = now;
