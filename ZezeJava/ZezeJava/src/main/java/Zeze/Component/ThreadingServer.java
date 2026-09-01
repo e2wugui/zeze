@@ -118,7 +118,8 @@ public class ThreadingServer extends AbstractThreadingServer {
 		public void run() {
 			while (true) {
 				try {
-					var action = actions.poll();
+					// 持有资源期间也必须带超时等待，否则无超时poll会空转占满CPU。
+					var action = actions.poll(200, TimeUnit.MILLISECONDS);
 					if (null != action) {
 						action.run(this);
 					}
