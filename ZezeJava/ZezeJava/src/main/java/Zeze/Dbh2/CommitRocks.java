@@ -203,7 +203,11 @@ public class CommitRocks {
 			}
 
 		} catch (Throwable ex) {
-			undo(tid, state);
+			try {
+				undo(tid, state);
+			} catch (Throwable undoEx) {
+				ex.addSuppressed(undoEx); // undo失败不能掩盖原始异常
+			}
 			removeCommitIndex(tidBytes);
 			throw new RuntimeException(ex);
 		}
@@ -225,7 +229,11 @@ public class CommitRocks {
 			// 保存 commit-point，如果失败，则 undo。
 			saveCommitPoint(tidBytes, state, Commit.eCommitting);
 		} catch (Throwable ex) {
-			undo(tid, state);
+			try {
+				undo(tid, state);
+			} catch (Throwable undoEx) {
+				ex.addSuppressed(undoEx); // undo失败不能掩盖原始异常
+			}
 			removeCommitIndex(tidBytes);
 			throw new RuntimeException(ex);
 		}
