@@ -4,11 +4,16 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jetbrains.annotations.NotNull;
 
 public class PersistentAtomicLong {
+	// 水位文件定宽：20字节（long最大19位数字+至少1个空格）。覆盖写长度恒定，
+	// i-size不参与落盘，数据与元数据没有先后顺序窗口。
+	private static final int VALUE_WIDTH = 20;
+
 	private final AtomicLong currentId = new AtomicLong();
 	private volatile long allocatedEnd;
 
@@ -42,12 +47,9 @@ public class PersistentAtomicLong {
 			try {
 				var lock = fs.getChannel().lock();
 				try {
-					fs.seek(0);
-					var line = fs.readLine();
-					if (line != null && !line.isEmpty()) {
-						allocatedEnd = Long.parseLong(line);
-						currentId.set(allocatedEnd);
-					}
+					var last = readWatermark(fs);
+					allocatedEnd = last;
+					currentId.set(last);
 					// 初始化的时候不allocate，如果程序启动，没有分配就退出，保持原来的值。
 				} finally {
 					lock.release();
@@ -137,9 +139,7 @@ public class PersistentAtomicLong {
 					try (var ignored = channel.lock()) {
 						if (currentId.get() + count <= allocatedEnd)
 							return; // has allocated. concurrent. 其他线程分配的预算已足够覆盖本次count。
-						fs.seek(0);
-						var line = fs.readLine();
-						var last = (line == null || line.isEmpty()) ? 0L : Long.parseLong(line);
+						var last = readWatermark(fs);
 						var allocateSize = fund.next();
 						if (allocateSize < count)
 							allocateSize += count;
@@ -147,11 +147,20 @@ public class PersistentAtomicLong {
 						var reset = newLast < 0;
 						if (reset)
 							newLast = allocateSize;
+						var fileLen = fs.length();
+						if (fileLen != 0 && fileLen < VALUE_WIDTH) {
+							// 旧格式（变长数字）一次性迁移：先在尾部追加空格扩展到定宽并force。
+							// 空格会被读取时的trim去掉，数值不变，迁移过程中任何崩溃点
+							// 解析出来的都仍是完整旧值（追加数字会把数值放大，不可行）。
+							var pads = new byte[(int) (VALUE_WIDTH - fileLen)];
+							Arrays.fill(pads, (byte) ' ');
+							fs.seek(fileLen);
+							fs.write(pads);
+							channel.force(false);
+						}
 						fs.seek(0);
-						var newLastBytes = String.valueOf(newLast).getBytes(StandardCharsets.UTF_8);
-						fs.write(newLastBytes); // 先覆盖写：新值位数>=旧值，任何崩溃点文件中都保有旧值或新值，不会变空
+						fs.write(toFixedWidthBytes(newLast)); // 定宽覆盖写不改变文件长度，崩溃点只可能是完整旧值或完整新值
 						channel.force(false);
-						fs.setLength(newLastBytes.length); // 新值安全落盘后才截断到实际写入长度
 						allocatedEnd = newLast; // first
 						if (reset)
 							currentId.set(0); // second
@@ -164,5 +173,28 @@ public class PersistentAtomicLong {
 		} catch (IOException e) {
 			Task.forceThrow(e);
 		}
+	}
+
+	/**
+	 * 读取水位，兼容两种格式：旧格式为变长十进制数字，新格式为右对齐、
+	 * 空格补齐到VALUE_WIDTH字节的定宽数字。trim后统一解析；
+	 * 空文件或纯空白（新文件首次定宽写未完成时的前缀状态）解析为0。
+	 */
+	private static long readWatermark(RandomAccessFile fs) throws IOException {
+		fs.seek(0);
+		var line = fs.readLine();
+		if (line == null)
+			return 0;
+		line = line.trim();
+		return line.isEmpty() ? 0 : Long.parseLong(line);
+	}
+
+	// 值>=0时数字最长19位，宽度20保证至少1个空格；宽度与VALUE_WIDTH由构造保证同步。
+	private static byte[] toFixedWidthBytes(long value) {
+		var digits = String.valueOf(value).getBytes(StandardCharsets.UTF_8);
+		var bytes = new byte[VALUE_WIDTH];
+		Arrays.fill(bytes, (byte) ' ');
+		System.arraycopy(digits, 0, bytes, VALUE_WIDTH - digits.length, digits.length);
+		return bytes;
 	}
 }
