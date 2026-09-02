@@ -98,7 +98,7 @@ public class MQAgent extends AbstractMQAgent {
 	public static void sendMessageTo(BSendMessage.Data message, Connector connector) {
 		var r = new SendMessage();
 		r.Argument = message;
-		r.SendForWait(connector.GetReadySocket());
+		r.SendForWait(connector.GetReadySocket()).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("sendMessage error=" + IModule.getErrorCode(r.getResultCode()));
 	}
