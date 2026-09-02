@@ -18,8 +18,12 @@ public final class StringChecker {
 	private static final class Trie extends CharHashMap<Trie> {
 		private int deep;
 		private Trie fail;
+		private int maxWordLen; // 仅根节点使用：已添加的最大词条长度
 
 		void add(@NotNull String str, int i, int e) {
+			int len = e - i;
+			if (len > maxWordLen) // add总是从根节点进入，在根上跟踪最大词条长度
+				maxWordLen = len;
 			for (Trie trie = this, next; ; trie = next) {
 				trie.deep = i;
 				char c = str.charAt(i);
@@ -173,7 +177,7 @@ public final class StringChecker {
 		} finally {
 			newAddsLock.unlock();
 		}
-		trie.calFail(trie, new char[1000], 0);
+		trie.calFail(trie, new char[Math.max(trie.maxWordLen, 1) + 1], 0); // 按最大词条长度分配calFail递归栈，避免固定栈越界
 		root = trie;
 		return n;
 	}
