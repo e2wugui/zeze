@@ -315,7 +315,9 @@ public class OnzServer extends AbstractOnz {
 				connector = new Connector(ip, port);
 				connector.SetService(onzAgent.getService());
 				connector.start();
-				instances.put(zezeName, connector);
+				var old = instances.put(zezeName, connector);
+				if (old != null && old != connector)
+					old.stop(); // 被替换的旧connector不再使用，停止它的自动重连，避免泄漏。
 				break;
 			}
 		}
