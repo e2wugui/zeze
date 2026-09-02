@@ -257,12 +257,16 @@ public final class Json implements Cloneable {
 			this.json = json;
 			this.klass = klass;
 			ctor = getDefCtor(klass);
+			final BiFunction<Class<?>, Field, String> fieldNameFilter = json.fieldNameFilter;
 			int size = 0;
 			for (Class<?> c = klass; c != null; c = c.getSuperclass())
 				for (Field field : getDeclaredFields(c))
 					if ((field.getModifiers() & (Modifier.STATIC | Modifier.TRANSIENT)) == 0
-							&& !field.getName().startsWith("this$"))
-						size++;
+							&& !field.getName().startsWith("this$")) {
+						final String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : field.getName();
+						if (fn != null) // 统计循环与填充循环一致应用fieldNameFilter，被过滤的字段不计入size
+							size++;
+					}
 			valueTable = new FieldMeta[1 << (32 - Integer.numberOfLeadingZeros(size * 2 - 1))];
 			fieldMetas = new FieldMeta[size];
 			ArrayList<Class<? super T>> classes = new ArrayList<>(2);
@@ -276,7 +280,6 @@ public final class Json implements Cloneable {
 					final String fieldName = field.getName();
 					if (fieldName.startsWith("this$")) // closure field
 						continue;
-					final BiFunction<Class<?>, Field, String> fieldNameFilter = json.fieldNameFilter;
 					final String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : fieldName;
 					if (fn == null)
 						continue;
