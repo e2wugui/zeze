@@ -321,6 +321,9 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			break;
 
 		case Control.NoSession:
+			// 对端已没有本端的会话（如对端重启），不会再Ack；取消重发定时器并清空发送窗口，避免永久重发。
+			session.cancelResendTimers();
+			session.sendWindow.clear();
 			break;
 		}
 	}
