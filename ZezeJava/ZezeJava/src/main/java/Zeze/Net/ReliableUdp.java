@@ -35,9 +35,12 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	public static final int TypePacket = 0;
 	public static final int TypeControl = 1;
 
-	// 接收乱序窗口上界：packet.serialId 与 lastDispatchedSerialId 的差值超过这个值的包直接丢弃。
+	// 接收乱序窗口上界：packet.serialId 与 lastDispatchedSerialId 的差值超过这个值的包直接丢弃（不回 Ack）。
 	// serialId 来自网络输入，不校验的话，伪造的超大 serialId 会抬高 maxRecvPacketSerialId，导致构造海量 Resend 条目（单包DoS）。
-	private static final long MaxRecvSerialIdWindow = 1L << 20;
+	// 取 1<<14：单个 Resend 控制包在 MaxPacketLength(2048) 下最多携带约 250 个 serialId（8字节/个），
+	// 窗口取其 64 倍，覆盖约 5k 包/秒 × 3 秒兜底重发窗口的合法在途差值；伪造单包的残余成本
+	// 相应被压到 1.6 万次条目构造 + 128KB 编码（亚毫秒级）。
+	private static final long MaxRecvSerialIdWindow = 1L << 14;
 
 	private final DatagramChannel datagramChannel;
 	private SelectionKey selectionKey;
@@ -237,22 +240,26 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		var packet = new Packet();
 		packet.decode(bb);
 
-		// 只要收到包就发送ack，不需要判断其他条件，这样让发送者能更好的的清除SendWindow。
-		var ack = new Control();
-		ack.command = Control.Ack;
-		ack.serialIds.add(packet.serialId);
-		sendTo(source, ack);
-
 		var session = sessions.get(source);
 		if (session == null)
 			session = dynamicCreateSession(source);
 
 		if (session != null) {
-			if (packet.serialId <= session.lastDispatchedSerialId)
-				return; // skip duplicate packet.
-
+			// 窗口校验必须放在 Ack 之前：超窗包丢弃时不能回 Ack，否则发送方会把它从 SendWindow
+			// 清除并停止重发，合法但暂时超窗的包（丢包+高速发送把差值顶过窗口）就永久丢了；
+			// 不回 Ack，发送方 3 秒兜底重发会在缺口填上、lastDispatchedSerialId 追平后正常接收。
+			// 重复包（serialId - lastDispatchedSerialId <= 0）不会被此检查误伤，会走到下面正常回 Ack。
 			if (packet.serialId - session.lastDispatchedSerialId > MaxRecvSerialIdWindow)
 				return; // skip packet beyond recv window. 超出乱序窗口上界，直接丢弃，防止抬高 maxRecvPacketSerialId。
+
+			// 剩下的包（含重复包）只要收到就发送ack，不需要判断其他条件，这样让发送者能更好的的清除SendWindow。
+			var ack = new Control();
+			ack.command = Control.Ack;
+			ack.serialIds.add(packet.serialId);
+			sendTo(source, ack);
+
+			if (packet.serialId <= session.lastDispatchedSerialId)
+				return; // skip duplicate packet.
 
 			if (packet.serialId > session.maxRecvPacketSerialId)
 				session.maxRecvPacketSerialId = packet.serialId;
