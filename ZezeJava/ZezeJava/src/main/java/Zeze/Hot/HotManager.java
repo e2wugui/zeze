@@ -656,6 +656,7 @@ public class HotManager extends ClassLoader {
 					return 0;
 				} catch (Throwable ex) {
 					logger.error("", ex);
+					rc = Procedure.Exception; // 安装过程抛异常，必须以错误码报告，不能让setIdle(rc)以成功码应答。
 					renameDistributes();
 				}
 			}
