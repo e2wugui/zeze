@@ -287,6 +287,8 @@ public final class Config {
 	}
 
 	public void setCheckpointMode(@Nullable CheckpointMode value) {
+		if (value == CheckpointMode.Immediately)
+			throw new UnsupportedOperationException("CheckpointMode.Immediately is not implemented.");
 		checkpointMode = value != null ? value : CheckpointMode.Table;
 	}
 
@@ -602,8 +604,6 @@ public final class Config {
 //			Application.logger.warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
 //			checkpointMode = CheckpointMode.Table;
 //		}
-		if (checkpointMode == CheckpointMode.Immediately)
-			throw new UnsupportedOperationException();
 
 		attr = self.getAttribute("AutoResetTable");
 		if (!attr.isBlank())
