@@ -154,6 +154,8 @@ public class RedoQueue extends HandshakeClient {
 				return Procedure.LogicError;
 
 			pending = null;
+			if (null == tableTaskQueue)
+				return Procedure.LogicError; // stop与响应回调竞态：stop持锁清理时未清pending，表已置null（同scheduleRetry内的守卫）
 			if (rpc.getResultCode() == 0L || rpc.getResultCode() == Procedure.ErrorRequestId) {
 				lastDoneTaskId = rpc.Result.getTaskId();
 				var value = ByteBuffer.Allocate(9);
