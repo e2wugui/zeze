@@ -197,14 +197,16 @@ public final class Transaction {
 		savepoints.get(savepoints.size() - 1).putLog(log);
 	}
 
-	private void triggerRedoActions() {
+	private void triggerRedoActions(boolean willRetry) {
 		profiler.onRedo();
 		redoBeans.forEach(Bean::resetRootInfo);
 		// 确认问题：
 		//  1. triggerRedoActions 上面两个分支调用，第一个分支异常，会导致catch里面再次执行。是不是应该吧两个调回统一到下面的for循环继续的地方？
 		//  2. redo不跟savepoint打交道，总是事务级别的，这个定义应该是正确的吧。
-		//  3. 现在下面的tryWhileRedo只有Rpc使用了，确认使用方式是否正确。
-		if (null != redoActions)
+		//  3. 【已确认】tryWhileRedo 目前只有 Rpc 使用（handle 移除上下文后注册重加，重试的 handle 才能再次取到）。
+		//     用法正确，但动作只在还要重试时执行：最后一次尝试失败后不再重试，
+		//     此时重加上下文将无人移除（一次性超时任务可能早已消耗），泄漏在 Service.rpcContexts 中。
+		if (willRetry && null != redoActions)
 			redoActions.forEach(Runnable::run); // redo action 不能抛出异常，否则终止事务。
 	}
 
@@ -337,7 +339,7 @@ public final class Transaction {
 						if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
 							checkResult = CheckResult.RedoAndReleaseLock;
 						logger.info("perform({}): {}", procedure, checkResult);
-						triggerRedoActions();
+						triggerRedoActions(tryCount + 1 < 256);
 					} catch (Throwable e) { // logger.error, logger.warn, rethrow AssertionError, ignored
 						// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
 						// 在 unit test 下，异常日志会被记录两次。
@@ -386,7 +388,7 @@ public final class Transaction {
 								throw (AssertionError)e;
 							logger.error("perform({}) {} exception. run count:{}", procedure, state, tryCount, e);
 						}
-						triggerRedoActions();
+						triggerRedoActions(tryCount + 1 < 256);
 						// retry
 					} finally {
 						reuseTransactionForRedo(checkResult);
