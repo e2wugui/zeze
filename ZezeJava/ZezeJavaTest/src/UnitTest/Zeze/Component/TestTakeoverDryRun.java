@@ -54,13 +54,9 @@ public class TestTakeoverDryRun {
 
 	@Test
 	public void testDryRun() throws Exception {
-		var conf = new Config();
-		conf.setServiceManager("disable");
-		conf.setDefaultTableConf(new Config.TableConf());
-		conf.getDatabaseConfMap().putIfAbsent("", new Config.DatabaseConf()); // 默认Memory库
-		conf.setTakeoverMode("dryrun");
-		conf.setTakeoverTtl(600_000);
-		conf.setTakeoverScanPeriod(600_000); // 不依赖周期扫描，手动tryTransfer
+		// serverId必须经TakeoverTestEnv唯一分配：默认0会与demo.App（zeze.xml ServerId=0）
+		// 撞 zeze_cache_0 的RocksDB锁（IDEA全模块单JVM运行时两者同进程）。
+		var conf = TakeoverTestEnv.newConf("dryrun", 600_000, 600_000); // 不依赖周期扫描，手动tryTransfer
 		var app = new Application("TestTakeoverDryRun", conf);
 		try {
 			app.start();

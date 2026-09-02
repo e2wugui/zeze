@@ -35,13 +35,9 @@ public class TestTakeoverLease {
 
 	@Test
 	public void testClaimRenewRelease() throws Exception {
-		var conf = new Config();
-		conf.setServiceManager("disable");
-		conf.setDefaultTableConf(new Config.TableConf());
-		conf.getDatabaseConfMap().putIfAbsent("", new Config.DatabaseConf()); // 默认Memory库
-		conf.setTakeoverMode("on");
-		conf.setTakeoverTtl(600); // 600ms，renew周期200ms
-		conf.setTakeoverScanPeriod(600_000); // 不依赖周期扫描
+		// serverId必须经TakeoverTestEnv唯一分配：默认0会与demo.App（zeze.xml ServerId=0）
+		// 撞 zeze_cache_0 的RocksDB锁（IDEA全模块单JVM运行时两者同进程）。
+		var conf = TakeoverTestEnv.newConf("on", 600, 600_000); // ttl=600ms，renew周期200ms；不依赖周期扫描
 		var app = new Application("TestTakeoverLease1", conf);
 		try {
 			app.start();
