@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.List;
-import java.util.function.Supplier;
 
 /*
  * Agent发起协议	ServiceManager处理后通知		Agent接收通知后回调
@@ -43,11 +42,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	 */
 	protected @Nullable Action1<BEditService> onChanged;
 	protected @Nullable Action1<BServerLoad> onSetServerLoad;
-
-	// 【仅raft遗留】非raft版已切换到Takeover租约接管（Identify/Suspect提示+租约裁决），
-	// 不再使用离线通知；raft版AgentWithRaft仍实现旧机制，共享簿记保留在这里。
-	// 返回是否处理成功且不需要其它notifier继续处理
-	protected final ConcurrentHashMap<String, Action1<BOfflineNotify>> onOfflineNotifies = new ConcurrentHashMap<>();
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -80,20 +74,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public void setOnSetServerLoad(@Nullable Action1<BServerLoad> value) {
 		onSetServerLoad = value;
-	}
-
-	// 【仅raft遗留】 raft版AgentWithRaft通过它触发离线通知回调；非raft版无调用方。
-	protected boolean triggerOfflineNotify(@NotNull BOfflineNotify notify) {
-		var handle = onOfflineNotifies.get(notify.notifyId);
-		if (handle != null) {
-			try {
-				handle.run(notify);
-				return true;
-			} catch (Exception ex) {
-				logger.error("triggerOfflineNotify exception:", ex);
-			}
-		}
-		return false;
 	}
 
 	public @Nullable Runnable getOnKeepAlive() {
@@ -375,15 +355,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	}
 
 	public abstract boolean setServerLoad(@NotNull BServerLoad load);
-
-	/**
-	 * 【仅raft遗留】注册离线通知（旧机制）。raft版AgentWithRaft覆盖实现；
-	 * 非raft版由Takeover租约接管（Identify/Suspect提示+租约裁决），不实现也不调用。
-	 */
-	public void offlineRegister(@NotNull Supplier<BOfflineNotify> argumentFactory,
-								@NotNull Action1<BOfflineNotify> handle) {
-		throw new UnsupportedOperationException("offlineRegister is raft-only legacy; non-raft uses Takeover");
-	}
 
 	protected static void setCurrentAndCount(@NotNull AutoKey autoKey, long current, int count) {
 		autoKey.setCurrentAndCount(current, count);

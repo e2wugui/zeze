@@ -750,9 +750,9 @@ public final class Application extends ReentrantLock {
 				// 此后Timer.start/startLast、CsQueue构造全走addScope晚注册stamp。
 				if (takeover != null) {
 					takeover.start();
-					// SM Suspect提示→tryTransfer（raft版SM不广播Suspect，设了也不受影响）。
-					if (serviceManager instanceof Agent agent)
-						agent.setOnSuspect(deadServerId -> takeover.tryTransfer(deadServerId));
+					// SM Suspect提示→tryTransfer（非raft与raft版SM都会在会话断开时广播Suspect）。
+					if (serviceManager != null)
+						serviceManager.setOnSuspect(deadServerId -> takeover.tryTransfer(deadServerId));
 				}
 
 				delayRemove.start();
