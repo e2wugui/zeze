@@ -146,10 +146,14 @@ public class LogSet1<V> extends LogSet<V> {
 	public final void merge(@NotNull LogSet1<V> from) {
 		// add,remove 需要确认有没有顺序问题
 		// this: add 1,3 remove 2,4 nest: add 2 remove 1
-		for (V v : from.added)
-			add(v); // replace 1,2,3 remove 4
-		for (V v : from.removed)
-			remove(v); // replace 2,3 remove 1,4
+		for (V v : from.added) {
+			removed.remove(v); // replace 1,2,3 remove 4
+			added.add(v);
+		}
+		for (V v : from.removed) {
+			added.remove(v); // replace 2,3 remove 1,4
+			removed.add(v);
+		}
 	}
 
 	@Override
