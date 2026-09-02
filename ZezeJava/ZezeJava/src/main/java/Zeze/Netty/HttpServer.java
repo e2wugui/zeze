@@ -151,13 +151,21 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		thisLock.unlock();
 	}
 
-	// before start
+	// 建议在 zeze.start() 之前调用；zeze 已启动时走动态建表。
 	public void enableHttpSession() {
 		if (zeze == null)
 			throw new IllegalStateException("zeze is null");
 		if (zeze.isNoDatabase())
 			throw new IllegalStateException("zeze is noDatabase");
+		if (httpSession != null)
+			return;
 		httpSession = new HttpSession(zeze);
+		// 注册会话表：不注册的话 _tSession 不属于任何Database，表访问必失败。
+		var dbName = zeze.getConfig().getTableConf(httpSession.tSession().getName()).getDatabaseName();
+		if (zeze.isStart())
+			zeze.openDynamicTable(dbName, httpSession.tSession());
+		else
+			httpSession.RegisterZezeTables(zeze);
 	}
 
 	public @Nullable HttpSession getHttpSession() {

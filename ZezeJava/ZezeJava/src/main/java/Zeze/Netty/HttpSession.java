@@ -9,7 +9,9 @@ import Zeze.Application;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerSpec;
+import Zeze.IModule;
 import Zeze.Services.Token;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -84,29 +86,39 @@ public class HttpSession extends AbstractHttpSession {
 		this.httpSessionExpire = httpSessionExpire;
 	}
 
-	private @NotNull String makeSessionid() {
+	private @NotNull String makeSessionId() {
 		return Token.genToken(tokenRandom);
 	}
 
 	public @NotNull CookieSession getCookieSession(@NotNull HttpExchange x) {
 		// 这个不缓存了，也不共享，http请求结束就可以释放。
-		var isAdd = new OutObject<>(false);
 		var cookieSessionId = x.getCookie(ZEZE_SESSION_ID_NAME);
 		if (cookieSessionId == null) {
-			cookieSessionId = makeSessionid();
-			isAdd.value = true;
+			cookieSessionId = makeSessionId();
 		}
-		var value = _tSession.getOrAdd(cookieSessionId, isAdd);
-		var now = System.currentTimeMillis();
-		var expire = httpSessionExpire;
-		if (isAdd.value || value.getExpireTime() <= now) {
-			// 初始化 HttpSession
-			value.setCreateTime(now);
-			value.setExpireTime(now + expire);
-			value.getProperties().clear();
-			x.setCookie(ZEZE_SESSION_ID_NAME, cookieSessionId, null, null, expire / 1000);
-		}
-		return new CookieSession(cookieSessionId); // value 不能记住，每次访问重新从表中读取。
+		final var finalId = cookieSessionId;
+		final var needSetCookie = new OutObject<>(false);
+		// initCookieSession 由 channelRead 在 eventLoop 线程调用，没有当前事务，
+		// 表访问包一个短 Procedure（模式同 HttpExchange 的 Direct 派发）。
+		var rc = zeze.newProcedure(() -> {
+			var isAdd = new OutObject<>(false);
+			var value = _tSession.getOrAdd(finalId, isAdd);
+			var now = System.currentTimeMillis();
+			var expire = httpSessionExpire;
+			if (isAdd.value || value.getExpireTime() <= now) {
+				// 初始化 HttpSession
+				value.setCreateTime(now);
+				value.setExpireTime(now + expire);
+				value.getProperties().clear();
+				needSetCookie.value = true;
+			}
+			return Procedure.Success;
+		}, "initCookieSession").call();
+		if (rc != 0L)
+			throw new RuntimeException("initCookieSession error=" + IModule.getErrorCode(rc));
+		if (needSetCookie.value)
+			x.setCookie(ZEZE_SESSION_ID_NAME, finalId, null, null, httpSessionExpire / 1000);
+		return new CookieSession(finalId); // value 不能记住，每次访问重新从表中读取。
 	}
 
 	public HttpSession(@NotNull Application zeze) {
@@ -117,9 +129,15 @@ public class HttpSession extends AbstractHttpSession {
 	public void start() throws ParseException {
 		// 全局一个timer实例，会忽略重复注册调用。
 		// 不取消。
-		zeze.getTimer().scheduleNamed(GlobalHttpSessionExpiredTimer,
-				TimerSpec.ofCron("0 0 5 * * ?"),
-				ExpiredTimer.class);
+		// scheduleNamed 是表操作，需要在事务内执行；HttpServer.start 调用时没有事务，这里包一个短Procedure。
+		var rc = zeze.newProcedure(() -> {
+			zeze.getTimer().scheduleNamed(GlobalHttpSessionExpiredTimer,
+					TimerSpec.ofCron("0 0 5 * * ?"),
+					ExpiredTimer.class);
+			return Procedure.Success;
+		}, "enableHttpSessionExpiredTimer").call();
+		if (rc != 0L)
+			throw new RuntimeException("enableHttpSessionExpiredTimer error=" + IModule.getErrorCode(rc));
 	}
 
 	public void stop() {

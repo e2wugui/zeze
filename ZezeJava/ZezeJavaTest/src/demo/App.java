@@ -121,6 +121,7 @@ public class App extends Zeze.AppBase {
 		provider.create(this);
 		HttpServer = new MyHttpServer(Zeze);
 		createModules();
+		HttpServer.enableHttpSession(); // 点亮 Netty.HttpSession Cookie 会话（含表注册）；需在 initialize 之后、start 之前
 		LinkedMapModule = new LinkedMap.Module(Zeze);
 		BoolListModule = new BoolList.Module(Zeze);
 		BagModule = new Bag.Module(providerApp, null);
