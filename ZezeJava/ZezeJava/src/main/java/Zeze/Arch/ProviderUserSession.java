@@ -5,7 +5,6 @@ import Zeze.Arch.Beans.BSend;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.ProviderDirect.BLoginKey;
-import Zeze.Game.ProviderWithOnline;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -58,7 +57,13 @@ public class ProviderUserSession {
 
 	public @Nullable Long getRoleId() {
 		var context = getContext();
-		return context.isEmpty() ? null : Long.parseLong(context);
+		if (context.isEmpty())
+			return null;
+		try {
+			return Long.parseLong(context);
+		} catch (NumberFormatException e) {
+			return null; // 账号在线模式下context是clientId(任意字符串,见Arch.Online登录setContext)，没有roleId
+		}
 	}
 
 	public long getRoleIdNotNull() {
@@ -117,11 +122,11 @@ public class ProviderUserSession {
 
 	protected boolean sendOnline(AsyncSocket link, @NotNull Send send) {
 		var providerImpl = getService().providerApp.providerImplement;
-		if (providerImpl instanceof ProviderWithOnline) {
+		if (providerImpl instanceof Zeze.Game.ProviderWithOnline gameProvider) {
 			var roleId = getRoleId();
 			if (roleId != null) {
 				var name = dispatch.Argument.getOnlineSetName();
-				var online = ((ProviderWithOnline)providerImpl).getOnline(name);
+				var online = gameProvider.getOnline(name);
 				if (online != null)
 					return online.send(link, Map.of(getLinkSid(), roleId), send);
 				logger.error("unknown onlineSetName: {}", name);
@@ -130,8 +135,8 @@ public class ProviderUserSession {
 			// 这种情况下，忽略发送结果。
 			return send.Send(link);
 		}
-		if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
-			var online = ((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline();
+		if (providerImpl instanceof Zeze.Arch.ProviderWithOnline archProvider) {
+			var online = archProvider.getOnline();
 			var context = getContext();
 			var loginKey = new BLoginKey(getAccount(), context);
 			if (!context.isEmpty())

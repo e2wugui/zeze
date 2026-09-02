@@ -73,7 +73,14 @@ public class LinkdUserSession {
 	}
 
 	public Long getRoleId() {
-		return userState.getContext().isEmpty() ? null : Long.parseLong(userState.getContext());
+		var context = userState.getContext();
+		if (context.isEmpty())
+			return null;
+		try {
+			return Long.parseLong(context);
+		} catch (NumberFormatException e) {
+			return null; // 账号在线模式下context是clientId(任意字符串,见Arch.Online登录setContext)，没有roleId
+		}
 	}
 
 	public long getSessionId() {
