@@ -131,7 +131,7 @@ public class Helper {
 			try {
 				jr.buf(jsonStr).parse(json, bean, dynamicBeanMeta);
 			} catch (ReflectiveOperationException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				jr.reset();
 			}
@@ -146,7 +146,7 @@ public class Helper {
 			try {
 				jr.buf(jsonStr).parseArray(json, list, valueClass);
 			} catch (ReflectiveOperationException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				jr.reset();
 			}
@@ -160,7 +160,7 @@ public class Helper {
 			try {
 				jr.buf(jsonStr).parseArray(json, set, valueClass);
 			} catch (ReflectiveOperationException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				jr.reset();
 			}
@@ -177,7 +177,7 @@ public class Helper {
 				jr.buf('{' + fieldName + ':' + jsonStr + '}').parse(json, parentBean,
 						(Class<? super Bean>)parentBean.getClass());
 			} catch (ReflectiveOperationException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				jr.reset();
 			}
@@ -194,7 +194,7 @@ public class Helper {
 				jr.buf('{' + fieldName + ':' + jsonStr + '}').parse(json, parentBean,
 						(Class<? super Bean>)parentBean.getClass());
 			} catch (ReflectiveOperationException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				jr.reset();
 			}
@@ -211,7 +211,7 @@ public class Helper {
 				jr.buf('{' + fieldName + ':' + jsonStr + '}').parse(json, parentBean,
 						(Class<? super Bean>)parentBean.getClass());
 			} catch (ReflectiveOperationException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				jr.reset();
 			}

@@ -290,7 +290,7 @@ public class PList2<V extends Bean> extends PList<V> {
 				add(v);
 			}
 		} catch (Throwable e) { // MethodHandle.invoke
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

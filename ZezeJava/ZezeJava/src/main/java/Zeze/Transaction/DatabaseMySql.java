@@ -138,7 +138,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			}
 			conn.commit();
 		} catch (SQLException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -174,7 +174,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					}
 				} catch (SQLException e) {
 					if (!e.getMessage().contains("Deadlock"))
-						Task.forceThrow(e);
+						throw Task.forceThrow(e);
 				}
 			}
 			throw new IllegalStateException("setInUse Deadlock");
@@ -410,7 +410,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						throw ex;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -446,7 +446,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					ps.executeUpdate();
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 	}
@@ -589,7 +589,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				ResultSet rs = meta.getTables(null, null, this.name, new String[]{"TABLE"});
 				isNew = !rs.next();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			*/
 			var table = getDatabase().getTable(name);
@@ -604,7 +604,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				}
 			} catch (SQLException e) {
 				if (!e.getMessage().contains("already exist"))
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				isNew = false;
 			}
 		}
@@ -653,7 +653,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				}
 			} catch (SQLException e) {
 				dropped = false; // rollback
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -708,7 +708,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					ps.executeUpdate();
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -776,7 +776,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				setParams(ps, stKey.getParams().size() + 1, stValue.getParams());
 				ps.executeUpdate();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				if (mysqlReplaceCounter != null)
 					mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
@@ -795,7 +795,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				setParams(ps, 1, stKey.getParams());
 				ps.executeUpdate();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				if (mysqlDeleteCounter != null)
 					mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
@@ -817,7 +817,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return callback.endWalk(count);
 		}
@@ -837,7 +837,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return callback.endWalk(count);
 		}
@@ -889,7 +889,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			callback.endWalk(proposeLimit);
 			return lastKey.value;
@@ -918,7 +918,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			callback.endWalk(proposeLimit);
 			return lastKey.value;
@@ -972,7 +972,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return callback.endWalk(count);
 		}
@@ -992,7 +992,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return callback.endWalk(count);
 		}
@@ -1050,7 +1050,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			callback.endWalk(proposeLimit);
 			return lastKey.value;
@@ -1082,7 +1082,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			callback.endWalk(proposeLimit);
 			return lastKey.value;
@@ -1148,7 +1148,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				}
 			} catch (SQLException e) {
 				if (!e.getMessage().contains("already exist"))
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				isNew = false;
 			}
 
@@ -1202,7 +1202,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				}
 			} catch (SQLException e) {
 				dropped = false; // rollback
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -1221,7 +1221,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						v = rs.getBytes(1);
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				if (mysqlSelectCounter != null)
 					mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
@@ -1240,7 +1240,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				ps.setBytes(1, k);
 				ps.executeUpdate();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				if (mysqlDeleteCounter != null)
 					mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
@@ -1260,7 +1260,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				ps.setBytes(2, v);
 				ps.executeUpdate();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				if (mysqlReplaceCounter != null)
 					mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
@@ -1300,7 +1300,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return count;
 		}
@@ -1318,7 +1318,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return count;
 		}
@@ -1345,7 +1345,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
@@ -1372,7 +1372,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
@@ -1399,7 +1399,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
@@ -1426,7 +1426,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}

@@ -147,7 +147,7 @@ public class Mimes {
 			if (file.exists())
 				load(new FileReader(file, StandardCharsets.UTF_8));
 		} catch (IOException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

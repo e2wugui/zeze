@@ -140,7 +140,7 @@ public class Id128UdpServer {
 					c.current.assign(c.max);
 				}
 			} catch (RocksDBException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return c;
 		});

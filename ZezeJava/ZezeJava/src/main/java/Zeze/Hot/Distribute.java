@@ -219,7 +219,7 @@ public class Distribute {
 			config.encode(bbConfig);
 			moduleJar.write(bbConfig.Bytes, bbConfig.ReadIndex, bbConfig.size());
 		} catch (Exception ex) {
-			Task.forceThrow(ex);
+			throw Task.forceThrow(ex);
 		}
 	}
 

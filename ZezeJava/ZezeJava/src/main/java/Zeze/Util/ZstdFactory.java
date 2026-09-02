@@ -137,7 +137,7 @@ public final class ZstdFactory {
 					srcPos = (int)fCSrcPos.getLong(this);
 				}
 			} catch (Throwable e) { // MethodHandle.invoke
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -155,7 +155,7 @@ public final class ZstdFactory {
 					srcPos = (int)fCSrcPos.getLong(this);
 				}
 			} catch (Throwable e) { // MethodHandle.invoke
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -172,7 +172,7 @@ public final class ZstdFactory {
 					dst.Append(dstBuf, 0, (int)fCDstPos.getLong(this));
 				} while (r > 0);
 			} catch (Throwable e) { // MethodHandle.invoke
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -190,7 +190,7 @@ public final class ZstdFactory {
 				} while (r > 0);
 				dst.flush();
 			} catch (Throwable e) { // MethodHandle.invoke
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -230,7 +230,7 @@ public final class ZstdFactory {
 				if (dstBufSize > 0)
 					dstBuf = new byte[dstBufSize];
 			} catch (IllegalAccessException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
@@ -263,7 +263,7 @@ public final class ZstdFactory {
 				}
 				dst.WriteIndex = dstPos;
 			} catch (Throwable e) { // MethodHandle.invoke
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -284,7 +284,7 @@ public final class ZstdFactory {
 					srcPos = (int)fDSrcPos.getLong(this);
 				}
 			} catch (Throwable e) { // MethodHandle.invoke
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 

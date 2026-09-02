@@ -61,7 +61,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 			try {
 				onS.run(r);
 			} catch (Exception e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 	}
@@ -75,7 +75,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 			try {
 				onF.run(e);
 			} catch (Exception ex) {
-				Task.forceThrow(ex);
+				throw Task.forceThrow(ex);
 			}
 		}
 	}

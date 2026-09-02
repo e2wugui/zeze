@@ -183,7 +183,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		try {
 			stop();
 		} catch (Exception e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

@@ -813,7 +813,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				mhWriteBatchPutCf.invokeExact(batch, batch.getNativeHandle(), key, keyLen, value, valueLen,
 						cfh.getNativeHandle());
 			} catch (Throwable e) { // rethrow
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -825,7 +825,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			try {
 				mhWriteBatchDeleteCf.invokeExact(batch, batch.getNativeHandle(), key, keyLen, cfh.getNativeHandle());
 			} catch (Throwable e) { // rethrow
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -878,7 +878,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 					(long)mhWriteBatchNativeNew.invokeExact(bb.Bytes, bb.WriteIndex), true)) {
 				rocksDb.write(options, wb);
 			} catch (Throwable e) { // rethrow
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			if (rocksDbWriteObserver != null)
 				rocksDbWriteObserver.observe(System.nanoTime() - timeBegin);

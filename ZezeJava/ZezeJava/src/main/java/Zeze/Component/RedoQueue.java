@@ -110,7 +110,7 @@ public class RedoQueue extends HandshakeClient {
 			tableTaskQueue.put(key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 			tryStartSendNextTask(task, null);
 		} catch (RocksDBException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		} finally {
 			unlock();
 		}
@@ -189,7 +189,7 @@ public class RedoQueue extends HandshakeClient {
 					return; // stop与已触发的重试竞态：stop持锁先完成（cancel拦不住已启动的任务），db已关闭
 				tryStartSendNextTask(null, null);
 			} catch (RocksDBException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				unlock();
 			}

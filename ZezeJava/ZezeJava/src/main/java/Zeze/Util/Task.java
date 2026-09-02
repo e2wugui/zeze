@@ -1357,7 +1357,7 @@ public final class Task {
 			try {
 				task.get();
 			} catch (InterruptedException | ExecutionException e) {
-				forceThrow(e);
+				throw forceThrow(e);
 			}
 		}
 	}
@@ -1367,7 +1367,7 @@ public final class Task {
 			try {
 				task.get();
 			} catch (InterruptedException | ExecutionException e) {
-				forceThrow(e);
+				throw forceThrow(e);
 			}
 		}
 	}

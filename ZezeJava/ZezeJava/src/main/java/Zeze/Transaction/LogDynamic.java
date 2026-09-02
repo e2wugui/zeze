@@ -111,7 +111,7 @@ public class LogDynamic extends LogBean {
 				bean.decode(bb);
 				value = bean;
 			} catch (Exception e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		} else if (bb.ReadBool()) { // hasLogBean
 			logBean = new LogBean(null, 0, null); // XXX 确认直接可以使用这个类？

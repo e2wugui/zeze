@@ -134,7 +134,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 					do {
 						LockSupport.park();
 						if (Thread.interrupted())
-							Task.forceThrow(new InterruptedException());
+							throw Task.forceThrow(new InterruptedException());
 					} while ((r = result) == null);
 				}
 			}
@@ -157,10 +157,10 @@ public class TaskCompletionSource<R> implements Future<R> {
 				try (var ignored = Profiler.begin("TaskCompletionSource")) {
 					do {
 						if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
-							Task.forceThrow(new TimeoutException());
+							throw Task.forceThrow(new TimeoutException());
 						LockSupport.parkNanos(timeout);
 						if (Thread.interrupted())
-							Task.forceThrow(new InterruptedException());
+							throw Task.forceThrow(new InterruptedException());
 						timeout = deadline - System.nanoTime();
 					} while ((r = result) == null);
 				}
@@ -176,7 +176,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 				return null;
 			if (e instanceof CancellationException)
 				throw (CancellationException)e;
-			Task.forceThrow(new CompletionException(e));
+			throw Task.forceThrow(new CompletionException(e));
 		}
 		@SuppressWarnings("unchecked")
 		R r = (R)o;

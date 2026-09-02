@@ -64,7 +64,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -295,7 +295,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				}
 				connection.commit();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 	}
@@ -344,7 +344,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -388,7 +388,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				cmd.setBytes(1, key.CopyIf());
 				cmd.executeUpdate();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -408,7 +408,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				cmd.setBytes(4, valueCopy);
 				cmd.executeUpdate();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -632,7 +632,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				}
 			} catch (SQLException e) {
 				dropped = false; // rollback
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 

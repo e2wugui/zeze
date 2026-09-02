@@ -103,7 +103,7 @@ public final class Checkpoint {
 		try {
 			checkpointThread.join();
 		} catch (InterruptedException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

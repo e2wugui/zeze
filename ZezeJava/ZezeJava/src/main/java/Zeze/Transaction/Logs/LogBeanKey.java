@@ -61,7 +61,7 @@ public class LogBeanKey<T extends Serializable> extends Log {
 		try {
 			value = (T)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 		value.decode(bb);
 	}

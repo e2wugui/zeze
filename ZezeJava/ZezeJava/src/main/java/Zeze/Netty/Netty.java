@@ -42,7 +42,7 @@ public class Netty implements Closeable {
 		try {
 			closeAsync().sync();
 		} catch (InterruptedException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

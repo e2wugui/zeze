@@ -89,7 +89,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 			try {
 				((Action1<R>)a).run(r);
 			} catch (Exception e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 	}
@@ -164,7 +164,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 			try {
 				onRes.run(result);
 			} catch (Exception e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 	}
@@ -235,7 +235,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 				try {
 					onA.run(ctx);
 				} catch (Exception e) {
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				}
 			}
 		}
@@ -290,7 +290,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 					while ((c = ctx) == null || !c.isCompleted())
 						cond.await();
 				} catch (InterruptedException e) {
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				}
 			} finally {
 				unlock();

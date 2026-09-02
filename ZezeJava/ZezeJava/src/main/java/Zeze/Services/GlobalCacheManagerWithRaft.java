@@ -823,7 +823,7 @@ public class GlobalCacheManagerWithRaft
 			perf.close();
 			rocks.close();
 		} catch (Exception e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

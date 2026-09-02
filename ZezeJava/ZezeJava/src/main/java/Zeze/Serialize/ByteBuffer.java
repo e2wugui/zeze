@@ -1090,7 +1090,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			os.writeObject(obj);
 			WriteBytes(bs.toByteArray());
 		} catch (IOException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

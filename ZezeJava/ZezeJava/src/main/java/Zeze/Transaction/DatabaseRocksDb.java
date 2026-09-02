@@ -99,7 +99,7 @@ public class DatabaseRocksDb extends Database {
 			try {
 				table.put(getBatch(), key, value);
 			} catch (RocksDBException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -107,7 +107,7 @@ public class DatabaseRocksDb extends Database {
 			try {
 				table.delete(getBatch(), key);
 			} catch (RocksDBException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -121,7 +121,7 @@ public class DatabaseRocksDb extends Database {
 				try {
 					batch.commit(RocksDatabase.getDefaultWriteOptions());
 				} catch (RocksDBException e) {
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				} finally {
 					unlock();
 				}
@@ -129,7 +129,7 @@ public class DatabaseRocksDb extends Database {
 				try {
 					batch.commit(RocksDatabase.getDefaultWriteOptions());
 				} catch (RocksDBException e) {
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				}
 			}
 		}
@@ -197,7 +197,7 @@ public class DatabaseRocksDb extends Database {
 			try {
 				table.clear();
 			} catch (RocksDBException ex) {
-				Task.forceThrow(ex);
+				throw Task.forceThrow(ex);
 			}
 		}
 

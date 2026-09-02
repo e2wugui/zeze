@@ -430,7 +430,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					}
 				});
 			} catch (Exception e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			if (sessions.isEmpty())
 				return null;
@@ -738,7 +738,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		try {
 			stop();
 		} catch (Exception e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -809,7 +809,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				var value = sms.autoKeyTable.get(key);
 				current.set(max = (value != null ? ByteBuffer.Wrap(value).ReadLong() : 1)); // 默认从1开始
 			} catch (RocksDBException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -837,7 +837,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 							try {
 								sms.autoKeyTable.put(key, bb.Bytes);
 							} catch (RocksDBException e) {
-								Task.forceThrow(e);
+								throw Task.forceThrow(e);
 							}
 							max = m; // 确保数据库记下了再更新max,此时其它并发的allocate就可以分配了
 						}

@@ -175,7 +175,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 				opLogs.add(new OpLog<>(op, index, v));
 			}
 		} catch (Throwable e) { // MethodHandle.invoke
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

@@ -63,7 +63,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 				txn.commit();
 			} catch (Exception ex) {
 				txn.rollback();
-				Task.forceThrow(ex);
+				throw Task.forceThrow(ex);
 			} finally {
 				txn.close();
 			}
@@ -77,7 +77,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 				txn.commit();
 			} catch (Exception ex) {
 				txn.rollback();
-				Task.forceThrow(ex);
+				throw Task.forceThrow(ex);
 			} finally {
 				txn.close();
 			}

@@ -85,7 +85,7 @@ public class DatabaseDynamoDb extends Database {
 				dataWithVersion.replace(trans, key, value);
 				trans.commit();
 			} catch (Exception e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return KV.create(version, true);
 		}

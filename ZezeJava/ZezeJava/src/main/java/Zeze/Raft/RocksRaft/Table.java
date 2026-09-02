@@ -52,7 +52,7 @@ public final class Table<K, V extends Bean> {
 		try {
 			rocksTable = rocks.openTable(name);
 		} catch (RocksDBException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 		lruCache = new ConcurrentLruLike<>(name, cacheCapacity, lruTryRemoveCallback, 200, 2000, 1024);
 	}

@@ -58,7 +58,7 @@ public class PersistentAtomicLong {
 				fs.unlock();
 			}
 		} catch (IOException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -171,7 +171,7 @@ public class PersistentAtomicLong {
 				break;
 			}
 		} catch (IOException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

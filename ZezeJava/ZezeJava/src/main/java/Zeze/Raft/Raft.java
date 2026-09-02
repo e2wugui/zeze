@@ -138,7 +138,7 @@ public final class Raft {
 			condition.await();
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

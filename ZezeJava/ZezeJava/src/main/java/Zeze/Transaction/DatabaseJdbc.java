@@ -95,7 +95,7 @@ public abstract class DatabaseJdbc extends Database {
 			try {
 				conn.commit();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -104,7 +104,7 @@ public abstract class DatabaseJdbc extends Database {
 			try {
 				conn.rollback();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 

@@ -83,7 +83,7 @@ public class ProviderService extends HandshakeClient {
 					outC.value.start();
 					isNew.value = true;
 				} catch (Exception e) {
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				}
 			}
 			return outC.value;

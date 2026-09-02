@@ -105,7 +105,7 @@ public class DatabaseTikv extends Database {
 					table.replace(txn, key, bb);
 					txn.commit();
 				} catch (Exception e) {
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				}
 				return KV.create(version, true);
 			} finally {
@@ -428,7 +428,7 @@ public class DatabaseTikv extends Database {
 					}
 				}, ver, 1000);
 			} catch (Exception e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				version = ver;
 			}

@@ -515,7 +515,7 @@ public final class Config {
 				Document doc = db.newDocumentBuilder().parse(xmlFile);
 				parse(doc.getDocumentElement());
 			} catch (Exception ex) {
-				Task.forceThrow(ex);
+				throw Task.forceThrow(ex);
 			}
 		}
 		if (getDefaultTableConf() == null)

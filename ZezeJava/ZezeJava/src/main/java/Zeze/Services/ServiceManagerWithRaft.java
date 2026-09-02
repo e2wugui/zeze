@@ -284,7 +284,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 						sessions.add(KV.create(netSession, socket));
 				});
 			} catch (Exception e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			if (sessions.isEmpty())
 				return null;

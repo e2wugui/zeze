@@ -104,7 +104,7 @@ public final class ClassReloader {
 			}
 			System.out.println(new String(proc.getErrorStream().readAllBytes(), System.getProperty("sun.jnu.encoding")));
 		} catch (Exception e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 		return inst;
 	}

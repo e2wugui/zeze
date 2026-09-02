@@ -279,7 +279,7 @@ public class DatabaseRedis extends Database {
 				try {
 					Thread.sleep(150);
 				} catch (InterruptedException e) {
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				}
 			}
 			throw new IllegalStateException("setInUse tryLock fail.");
@@ -310,7 +310,7 @@ public class DatabaseRedis extends Database {
 					//noinspection BusyWait
 					Thread.sleep(150);
 				} catch (InterruptedException e) {
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				}
 			}
 		}

@@ -820,7 +820,7 @@ public class HotManager extends ClassLoader {
 				var bytes = inputStream.readAllBytes();
 				return defineClass(className, bytes, 0, bytes.length);
 			} catch (IOException ex) {
-				Task.forceThrow(ex);
+				throw Task.forceThrow(ex);
 			}
 		}
 		return super.findClass(className);

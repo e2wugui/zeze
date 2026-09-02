@@ -128,7 +128,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	////////////////////////////////////////////////////////////////////////
 	@Override
-	protected long ProcessKeepAliveRequest(@NotNull KeepAlive r) throws Exception {
+	protected long ProcessKeepAliveRequest(@NotNull KeepAlive r) {
 		if (onKeepAlive != null)
 			Task.getCriticalThreadPool().execute(onKeepAlive);
 		r.SendResult();
@@ -136,7 +136,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessOfflineNotifyRequest(@NotNull OfflineNotify r) throws Exception {
+	protected long ProcessOfflineNotifyRequest(@NotNull OfflineNotify r) {
 		try {
 			if (triggerOfflineNotify(r.Argument)) {
 				r.SendResult();
@@ -181,12 +181,15 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessSetServerLoadRequest(@NotNull SetServerLoad r) throws Exception {
+	protected long ProcessSetServerLoadRequest(@NotNull SetServerLoad r) {
 		loads.put(r.Argument.getName(), r.Argument);
 		if (onSetServerLoad != null) {
 			Task.getCriticalThreadPool().execute(() -> {
 				try {
-					onSetServerLoad.run(r.Argument);
+					var onSetLoad = onSetServerLoad;
+					if (onSetLoad != null){
+						onSetLoad.run(r.Argument);
+					}
 				} catch (Throwable e) { // logger.error
 					logger.error("", e);
 				}
@@ -208,9 +211,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			try {
 				return callback.handle(r);
 			} catch (Exception ex) {
-				Task.forceThrow(ex);
+				throw Task.forceThrow(ex);
 			}
-			return 0;
 		});
 		return true;
 	}
@@ -343,7 +345,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			raftClient.sendForWait(new NormalClose()).await();
 			raftClient.stop();
 		} catch (Throwable e) { // rethrow
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

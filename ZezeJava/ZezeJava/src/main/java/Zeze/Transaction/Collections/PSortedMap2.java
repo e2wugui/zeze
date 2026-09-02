@@ -241,7 +241,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 				put(k, v);
 			}
 		} catch (Throwable e) { // MethodHandle.invoke
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

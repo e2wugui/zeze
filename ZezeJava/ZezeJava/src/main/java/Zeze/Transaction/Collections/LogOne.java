@@ -91,7 +91,7 @@ public class LogOne<V extends Bean> extends LogBean {
 			try {
 				value = (V)meta.valueFactory.invoke();
 			} catch (Throwable e) { // MethodHandle.invoke
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			value.decode(bb);
 		} else if (bb.ReadBool()) { // hasLogBean

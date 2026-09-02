@@ -85,7 +85,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		try {
 			stop();
 		} catch (Exception e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -182,7 +182,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			agent.setFastFail();
 			Transaction trans = Transaction.getCurrent();
 			if (trans == null)
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			trans.throwAbort("WaitLoginSuccess", e);
 			// never run here
 		}

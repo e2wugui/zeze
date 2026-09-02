@@ -91,7 +91,7 @@ public class DatabaseMongoDb extends Database {
 				dataWithVersion.replace(trans, key, value);
 				trans.commit();
 			} catch (Exception e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return KV.create(version, true);
 		}
@@ -413,7 +413,7 @@ public class DatabaseMongoDb extends Database {
 				collection.drop();
 			} catch (Exception e) {
 				dropped = false; // rollback;
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 

@@ -34,7 +34,7 @@ public final class ProviderModuleBinds {
 				Document doc = db.newDocumentBuilder().parse(xmlFile);
 				return new ProviderModuleBinds(doc.getDocumentElement());
 			} catch (Exception ex) {
-				Task.forceThrow(ex);
+				throw Task.forceThrow(ex);
 			}
 		}
 		return new ProviderModuleBinds();

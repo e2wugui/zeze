@@ -138,7 +138,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			}
 			conn.commit();
 		} catch (SQLException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -174,7 +174,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					}
 				} catch (SQLException e) {
 					if (!e.getMessage().contains("deadlock detected"))
-						Task.forceThrow(e);
+						throw Task.forceThrow(e);
 				}
 			}
 			throw new IllegalStateException("setInUse deadlock");
@@ -406,7 +406,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						throw ex;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -442,7 +442,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					ps.executeUpdate();
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 	}
@@ -607,7 +607,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				ResultSet rs = meta.getTables(null, null, this.name, new String[]{"TABLE"});
 				isNew = !rs.next();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			*/
 			var table = getDatabase().getTable(name);
@@ -622,7 +622,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				}
 			} catch (SQLException e) {
 				if (!e.getMessage().contains("tuple concurrently updated"))
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				isNew = false;
 			}
 		}
@@ -670,7 +670,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				}
 			} catch (SQLException e) {
 				dropped = false; // rollback
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -763,7 +763,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				}
 				conn.commit();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -854,7 +854,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				setParams(ps, stKey.getParams().size() + 1, stValue.getParams());
 				ps.executeUpdate();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				if (postgreReplaceCounter != null)
 					postgreReplaceCounter.observe(System.nanoTime() - timeBegin);
@@ -873,7 +873,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				setParams(ps, 1, stKey.getParams());
 				ps.executeUpdate();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				if (postgreDeleteCounter != null)
 					postgreDeleteCounter.observe(System.nanoTime() - timeBegin);
@@ -895,7 +895,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return callback.endWalk(count);
 		}
@@ -915,7 +915,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return callback.endWalk(count);
 		}
@@ -967,7 +967,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			callback.endWalk(proposeLimit);
 			return lastKey.value;
@@ -996,7 +996,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			callback.endWalk(proposeLimit);
 			return lastKey.value;
@@ -1050,7 +1050,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return callback.endWalk(count);
 		}
@@ -1070,7 +1070,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return callback.endWalk(count);
 		}
@@ -1128,7 +1128,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			callback.endWalk(proposeLimit);
 			return lastKey.value;
@@ -1160,7 +1160,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			callback.endWalk(proposeLimit);
 			return lastKey.value;
@@ -1226,7 +1226,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				}
 			} catch (SQLException e) {
 				if (!e.getMessage().contains("tuple concurrently updated"))
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				isNew = false;
 			}
 
@@ -1279,7 +1279,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				}
 			} catch (SQLException e) {
 				dropped = false; // rollback
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -1298,7 +1298,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						v = rs.getBytes(1);
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				if (postgreSelectCounter != null)
 					postgreSelectCounter.observe(System.nanoTime() - timeBegin);
@@ -1317,7 +1317,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				ps.setBytes(1, k);
 				ps.executeUpdate();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				if (postgreDeleteCounter != null)
 					postgreDeleteCounter.observe(System.nanoTime() - timeBegin);
@@ -1337,7 +1337,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				ps.setBytes(2, v);
 				ps.executeUpdate();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				if (postgreReplaceCounter != null)
 					postgreReplaceCounter.observe(System.nanoTime() - timeBegin);
@@ -1377,7 +1377,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return count;
 		}
@@ -1395,7 +1395,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						break;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return count;
 		}
@@ -1422,7 +1422,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
@@ -1449,7 +1449,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
@@ -1476,7 +1476,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
@@ -1503,7 +1503,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}

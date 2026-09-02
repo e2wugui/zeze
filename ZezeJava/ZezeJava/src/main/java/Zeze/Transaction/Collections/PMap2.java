@@ -224,7 +224,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				put(k, v);
 			}
 		} catch (Throwable e) { // MethodHandle.invoke
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 

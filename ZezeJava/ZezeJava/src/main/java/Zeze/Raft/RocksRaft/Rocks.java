@@ -261,7 +261,7 @@ public final class Rocks extends StateMachine implements Closeable {
 					batch.commit(writeOptions);
 			}
 		} catch (RocksDBException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -317,7 +317,7 @@ public final class Rocks extends StateMachine implements Closeable {
 						Files.copy(path, zos);
 						zos.closeEntry();
 					} catch (IOException e) {
-						Task.forceThrow(e);
+						throw Task.forceThrow(e);
 					}
 				});
 			}
@@ -392,7 +392,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				if (raft != null)
 					raft.shutdown();
 			} catch (Exception e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			} finally {
 				setRaft(null);
 				if (storage != null) {

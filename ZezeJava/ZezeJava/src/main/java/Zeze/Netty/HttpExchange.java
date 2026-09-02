@@ -679,7 +679,7 @@ public class HttpExchange {
 				} else
 					fireEndStreamHandle();
 			} catch (Exception e) {
-				Task.forceThrow(e);
+				throw Task.forceThrow(e);
 			}
 		}
 		releaseContent();
@@ -796,7 +796,7 @@ public class HttpExchange {
 				try {
 					freeMarker.sendResponse(this, model);
 				} catch (Exception e) {
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				}
 			});
 		} else
@@ -822,7 +822,7 @@ public class HttpExchange {
 				try {
 					thymeleaf.sendResponse(this, context);
 				} catch (Exception e) {
-					Task.forceThrow(e);
+					throw Task.forceThrow(e);
 				}
 			});
 		} else

@@ -28,7 +28,7 @@ public class FileBin {
 			randFile = new RandomAccessFile(canonicalFile, "rw");
 			os = new BufferedOutputStream(new FileOutputStream(randFile.getFD()));
 		} catch (Exception ex) {
-			Task.forceThrow(ex);
+			throw Task.forceThrow(ex);
 		}
 	}
 

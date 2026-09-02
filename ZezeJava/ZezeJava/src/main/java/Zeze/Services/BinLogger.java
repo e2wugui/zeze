@@ -577,7 +577,7 @@ public final class BinLogger extends ReentrantLock {
 						//noinspection BusyWait
 						Thread.sleep(WRITE_THREAD_IDLE_SLEEP);
 					} catch (InterruptedException ex) {
-						Task.forceThrow(ex);
+						throw Task.forceThrow(ex);
 					}
 				}
 			}
