@@ -2041,8 +2041,17 @@
 			</bean>
 		</module>
 
+		<module name="Takeover" id="11045"> 接管租约模块
+			<bean name="BTakeoverLease">
+				<variable id="1" name="Epoch" type="long" />   代际号：claim时 old+1，抢占式，重启不等旧租约过期
+				<variable id="2" name="ExpireAt" type="long" /> 毫秒时间戳；owner周期续约；0=墓碑(已被接管或正常关闭)
+			</bean>
+
+			<table name="tTakeoverLease" key="int" value="BTakeoverLease" /> key是serverId，与数据表同库：裁决与搬运同一zeze事务
+		</module>
+
 		<!--
-		可用id范围 [11045, 11100) [11102, 11999]
+		可用id范围 [11046, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
@@ -2053,6 +2062,14 @@
 		>
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.SafeBatch"/>
+		</service>
+	</component>
+
+	<component name="Takeover" GenDir="src/main/java" SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java"
+		>
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Takeover"/>
 		</service>
 	</component>
 

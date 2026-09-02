@@ -44,12 +44,16 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	protected @Nullable Action1<BEditService> onChanged;
 	protected @Nullable Action1<BServerLoad> onSetServerLoad;
 
+	// 【仅raft遗留】非raft版已切换到Takeover租约接管（Identify/Suspect提示+租约裁决），
+	// 不再使用离线通知；raft版AgentWithRaft仍实现旧机制，共享簿记保留在这里。
 	// 返回是否处理成功且不需要其它notifier继续处理
 	protected final ConcurrentHashMap<String, Action1<BOfflineNotify>> onOfflineNotifies = new ConcurrentHashMap<>();
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
 	protected @Nullable Runnable onKeepAlive;
+	// SM Suspect提示回调：参数=疑似死者的serverId。应用转化为takeover.tryTransfer。
+	protected volatile @Nullable Action1<Integer> onSuspect;
 	private volatile @Nullable TaskCompletionSource<TidCache> lastTidCacheFuture;
 	private volatile @Nullable Id128UdpClient.FutureNode lastTid128CacheFuture;
 	protected @Nullable Id128UdpClient tid128UdpClient; // 子类初始化。
@@ -78,6 +82,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		onSetServerLoad = value;
 	}
 
+	// 【仅raft遗留】 raft版AgentWithRaft通过它触发离线通知回调；非raft版无调用方。
 	protected boolean triggerOfflineNotify(@NotNull BOfflineNotify notify) {
 		var handle = onOfflineNotifies.get(notify.notifyId);
 		if (handle != null) {
@@ -97,6 +102,14 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public void setOnKeepAlive(@Nullable Runnable value) {
 		onKeepAlive = value;
+	}
+
+	public @Nullable Action1<Integer> getOnSuspect() {
+		return onSuspect;
+	}
+
+	public void setOnSuspect(@Nullable Action1<Integer> value) {
+		onSuspect = value;
 	}
 
 	protected abstract void allocate(@NotNull AutoKey autoKey, int pool);
@@ -364,12 +377,13 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	public abstract boolean setServerLoad(@NotNull BServerLoad load);
 
 	/**
-	 * 注册离线通知。参数通过工厂产生：工厂在启动注册和每次SM重连重放时都会执行，
-	 * 应用应在工厂内递增共享库中的代际号（loadSerialNo）并构造参数——
-	 * 重连后仍在途的旧代际离线通知据此被接收端拒绝。
+	 * 【仅raft遗留】注册离线通知（旧机制）。raft版AgentWithRaft覆盖实现；
+	 * 非raft版由Takeover租约接管（Identify/Suspect提示+租约裁决），不实现也不调用。
 	 */
-	public abstract void offlineRegister(@NotNull Supplier<BOfflineNotify> argumentFactory,
-										 @NotNull Action1<BOfflineNotify> handle);
+	public void offlineRegister(@NotNull Supplier<BOfflineNotify> argumentFactory,
+								@NotNull Action1<BOfflineNotify> handle) {
+		throw new UnsupportedOperationException("offlineRegister is raft-only legacy; non-raft uses Takeover");
+	}
 
 	protected static void setCurrentAndCount(@NotNull AutoKey autoKey, long current, int count) {
 		autoKey.setCurrentAndCount(current, count);

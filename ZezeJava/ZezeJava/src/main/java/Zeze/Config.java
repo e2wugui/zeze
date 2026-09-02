@@ -110,12 +110,41 @@ public final class Config {
 	private int checkpointTransactionPeriod = 30_0000;
 	private boolean enableGlobalFastFail = false;
 
+	// Takeover 接管租约（attr: TakeoverTtl/TakeoverScanPeriod/TakeoverMode）。
+	private long takeoverTtl = 600 * 1000; // 租约TTL(毫秒)，保守起步，可配小。
+	private long takeoverScanPeriod = 30 * 1000; // 扫描兜底周期(毫秒)。
+	private @NotNull String takeoverMode = "on"; // off|dryrun|on；off完全关闭，dryrun只做租约簿记+dry-run日志，on全量接管（默认）。
+
 	public boolean getEnableGlobalFastFail() {
 		return enableGlobalFastFail;
 	}
 
 	public void setEnableGlobalFastFail(boolean b) {
 		enableGlobalFastFail = b;
+	}
+
+	public long getTakeoverTtl() {
+		return takeoverTtl;
+	}
+
+	public void setTakeoverTtl(long value) {
+		takeoverTtl = value;
+	}
+
+	public long getTakeoverScanPeriod() {
+		return takeoverScanPeriod;
+	}
+
+	public void setTakeoverScanPeriod(long value) {
+		takeoverScanPeriod = value;
+	}
+
+	public @NotNull String getTakeoverMode() {
+		return takeoverMode;
+	}
+
+	public void setTakeoverMode(@Nullable String value) {
+		takeoverMode = value != null ? value.trim() : "on";
 	}
 
 	public int getCheckpointTransactionPeriod() {
@@ -548,6 +577,18 @@ public final class Config {
 		attr = self.getAttribute("ServerId");
 		if (!attr.isBlank())
 			serverId = Integer.parseInt(attr);
+
+		attr = self.getAttribute("TakeoverTtl");
+		if (!attr.isBlank())
+			takeoverTtl = Long.parseLong(attr);
+
+		attr = self.getAttribute("TakeoverScanPeriod");
+		if (!attr.isBlank())
+			takeoverScanPeriod = Long.parseLong(attr);
+
+		attr = self.getAttribute("TakeoverMode");
+		if (!attr.isBlank())
+			setTakeoverMode(attr);
 
 		noDatabase = self.getAttribute("NoDatabase").trim().equalsIgnoreCase("true");
 
