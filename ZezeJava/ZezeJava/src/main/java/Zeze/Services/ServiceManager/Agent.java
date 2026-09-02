@@ -13,7 +13,6 @@ import Zeze.Net.Service.ProtocolFactoryHandle;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.Action1;
 import Zeze.Util.OutInt;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -23,7 +22,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.function.Supplier;
 
 public final class Agent extends AbstractAgent {
 	static final @NotNull Logger logger = LogManager.getLogger(Agent.class);
@@ -36,10 +34,6 @@ public final class Agent extends AbstractAgent {
 
 	private final @NotNull AgentClient client;
 	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
-	// 断线重连后需要重发的离线注册参数工厂。工厂在启动与每次重连时执行，内部递增共享库代际号，
-	// 使重连后仍在途的旧代际离线通知被接收端拒绝（关闭残余窗口的关键）。
-	private final ConcurrentHashMap<String, java.util.function.Supplier<BOfflineNotify>> offlineRegisters
-			= new ConcurrentHashMap<>(); // key:notifyId
 
 	private Threading threading;
 
@@ -137,20 +131,6 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public void offlineRegister(@NotNull Supplier<BOfflineNotify> argumentFactory,
-								@NotNull Action1<BOfflineNotify> handle) {
-		waitConnectorReady();
-		var argument = argumentFactory.get(); // 启动：工厂执行一次（bump代际+构造参数）
-		onOfflineNotifies.putIfAbsent(argument.notifyId, handle);
-		offlineRegisters.put(argument.notifyId, argumentFactory);
-		new OfflineRegister(argument).SendAndWaitCheckResultCode(client.getSocket());
-	}
-
-	public void offlineRegister(@NotNull String notifyId, @NotNull Action1<BOfflineNotify> handle) {
-		onOfflineNotifies.put(notifyId, handle);
-	}
-
-	@Override
 	public boolean setServerLoad(@NotNull BServerLoad load) {
 		return new SetServerLoad(load).Send(client.getSocket());
 	}
@@ -178,6 +158,16 @@ public final class Agent extends AbstractAgent {
 	}
 
 	public void onConnected() {
+		// 先上报Identify：SM据此把serverId记在会话上，断线时广播Suspect。
+		// 重连重发=恢复提示资格（与正确性无关，正确性由租约裁决）。
+		try {
+			var identify = new Identify();
+			identify.Argument.serverId = config.getServerId();
+			identify.Send(client.getSocket());
+		} catch (Throwable ex) { // logger.debug
+			logger.debug("OnConnected.Identify", ex);
+		}
+
 		var edit = new BEditService();
 		edit.getAdd().addAll(registers.keySet());
 		try {
@@ -185,19 +175,6 @@ public final class Agent extends AbstractAgent {
 		} catch (Throwable ex) { // logger.debug
 			// skip and continue.
 			logger.debug("OnConnected.Register", ex);
-		}
-
-		// 重放离线注册：取消旧连接onClose安排的延迟离线通知。断线重连时进程还活着，
-		// 不重发的话延迟通知必然触发，且代际号未变、接收端serial校验失效，活服务器会被误接管。
-		// 重放时重新执行工厂递增代际号——正在发送中的旧代际通知据此被接收端拒绝（残余窗口的关闭机制）。
-		// 同时恢复本服务器作为离线通知目标（服务端按notifyId在会话上找通知对象）。
-		for (var argumentFactory : offlineRegisters.values()) {
-			try {
-				var argument = argumentFactory.get();
-				new OfflineRegister(argument).SendAndWaitCheckResultCode(client.getSocket());
-			} catch (Throwable ex) { // logger.error
-				logger.error("OnConnected.OfflineRegister", ex);
-			}
 		}
 
 		var subArg = new BSubscribeArgument();
@@ -261,16 +238,16 @@ public final class Agent extends AbstractAgent {
 		return Procedure.Success;
 	}
 
-	private long processOfflineNotify(@NotNull OfflineNotify r) {
-		try {
-			if (triggerOfflineNotify(r.Argument)) {
-				r.SendResult();
-				return 0;
+	// Suspect仅是提示：转化为onSuspect回调（应用接takeover.tryTransfer），
+	// 租约未过期时tryTransfer内部安排到过期时刻精确重试，不会误接管。
+	private long processSuspect(@NotNull Suspect r) {
+		var on = onSuspect;
+		if (on != null) {
+			try {
+				on.run(r.Argument.serverId);
+			} catch (Throwable e) { // logger.error
+				logger.error("processSuspect serverId=" + r.Argument.serverId, e);
 			}
-			r.trySendResultCode(2);
-		} catch (Throwable ignored) { // ignored
-			// rpc response any.
-			r.trySendResultCode(3);
 		}
 		return 0;
 	}
@@ -298,15 +275,8 @@ public final class Agent extends AbstractAgent {
 				AllocateId::new, null, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(SetServerLoad.TypeId_, new ProtocolFactoryHandle<>(
 				SetServerLoad::new, this::processSetServerLoad, TransactionLevel.None, DispatchMode.Direct));
-
-		client.AddFactoryHandle(OfflineNotify.TypeId_, new ProtocolFactoryHandle<>(
-				OfflineNotify::new, this::processOfflineNotify, TransactionLevel.None, DispatchMode.Critical));
-		client.AddFactoryHandle(OfflineRegister.TypeId_, new ProtocolFactoryHandle<>(
-				OfflineRegister::new, null, TransactionLevel.None, DispatchMode.Normal));
-		client.AddFactoryHandle(NormalClose.TypeId_, new ProtocolFactoryHandle<>(
-				NormalClose::new, null, TransactionLevel.None, DispatchMode.Critical));
-		client.AddFactoryHandle(AnnounceServers.TypeId_, new ProtocolFactoryHandle<>(
-				AnnounceServers::new, null, TransactionLevel.None, DispatchMode.Critical));
+		client.AddFactoryHandle(Suspect.TypeId_, new ProtocolFactoryHandle<>(
+				Suspect::new, this::processSuspect, TransactionLevel.None, DispatchMode.Critical));
 
 		threading = new Threading(client, config.getServerId());
 		threading.RegisterProtocols(client);
@@ -337,9 +307,6 @@ public final class Agent extends AbstractAgent {
 				tid128UdpClient.stop();
 				tid128UdpClient = null;
 			}
-			var so = client.getSocket();
-			if (so != null) // 有可能提前关闭,so==null时执行下面这行会抛异常
-				new NormalClose().SendAndWaitCheckResultCode(so);
 			client.stop();
 			if (threading != null) {
 				threading.close();

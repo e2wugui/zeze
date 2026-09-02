@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.List;
-import java.util.function.Supplier;
 
 /*
  * Agent发起协议	ServiceManager处理后通知		Agent接收通知后回调
@@ -44,12 +43,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	protected @Nullable Action1<BEditService> onChanged;
 	protected @Nullable Action1<BServerLoad> onSetServerLoad;
 
-	// 返回是否处理成功且不需要其它notifier继续处理
-	protected final ConcurrentHashMap<String, Action1<BOfflineNotify>> onOfflineNotifies = new ConcurrentHashMap<>();
-
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
 	protected @Nullable Runnable onKeepAlive;
+	// SM Suspect提示回调：参数=疑似死者的serverId。应用转化为takeover.tryTransfer。
+	protected volatile @Nullable Action1<Integer> onSuspect;
 	private volatile @Nullable TaskCompletionSource<TidCache> lastTidCacheFuture;
 	private volatile @Nullable Id128UdpClient.FutureNode lastTid128CacheFuture;
 	protected @Nullable Id128UdpClient tid128UdpClient; // 子类初始化。
@@ -78,25 +76,20 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		onSetServerLoad = value;
 	}
 
-	protected boolean triggerOfflineNotify(@NotNull BOfflineNotify notify) {
-		var handle = onOfflineNotifies.get(notify.notifyId);
-		if (handle != null) {
-			try {
-				handle.run(notify);
-				return true;
-			} catch (Exception ex) {
-				logger.error("triggerOfflineNotify exception:", ex);
-			}
-		}
-		return false;
-	}
-
 	public @Nullable Runnable getOnKeepAlive() {
 		return onKeepAlive;
 	}
 
 	public void setOnKeepAlive(@Nullable Runnable value) {
 		onKeepAlive = value;
+	}
+
+	public @Nullable Action1<Integer> getOnSuspect() {
+		return onSuspect;
+	}
+
+	public void setOnSuspect(@Nullable Action1<Integer> value) {
+		onSuspect = value;
 	}
 
 	protected abstract void allocate(@NotNull AutoKey autoKey, int pool);
@@ -362,14 +355,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	}
 
 	public abstract boolean setServerLoad(@NotNull BServerLoad load);
-
-	/**
-	 * 注册离线通知。参数通过工厂产生：工厂在启动注册和每次SM重连重放时都会执行，
-	 * 应用应在工厂内递增共享库中的代际号（loadSerialNo）并构造参数——
-	 * 重连后仍在途的旧代际离线通知据此被接收端拒绝。
-	 */
-	public abstract void offlineRegister(@NotNull Supplier<BOfflineNotify> argumentFactory,
-										 @NotNull Action1<BOfflineNotify> handle);
 
 	protected static void setCurrentAndCount(@NotNull AutoKey autoKey, long current, int count) {
 		autoKey.setCurrentAndCount(current, count);

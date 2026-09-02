@@ -5,13 +5,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
+import Zeze.Builtin.ServiceManagerWithRaft.Identify;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
 import Zeze.Builtin.ServiceManagerWithRaft.Login;
-import Zeze.Builtin.ServiceManagerWithRaft.NormalClose;
-import Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify;
-import Zeze.Builtin.ServiceManagerWithRaft.OfflineRegister;
 import Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad;
 import Zeze.Builtin.ServiceManagerWithRaft.Subscribe;
+import Zeze.Builtin.ServiceManagerWithRaft.Suspect;
 import Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe;
 import Zeze.Builtin.ServiceManagerWithRaft.Edit;
 import Zeze.Component.Threading;
@@ -24,14 +23,12 @@ import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Services.ServiceManager.BAllocateIdArgument;
 import Zeze.Services.ServiceManager.BAllocateIdResult;
 import Zeze.Services.ServiceManager.BEditService;
-import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BSubscribeArgument;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Services.ServiceManager.BUnSubscribeArgument;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
@@ -44,10 +41,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	private final @NotNull Agent raftClient;
 	private volatile @NotNull TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	// 断线（换leader）重连后重放用：服务端行按name持久化，但flap时行可能已被onClose删除，
-	// 重放注册/订阅/离线注册才能恢复服务端状态（对齐非raft版Agent.onConnected）。
+	// 重放注册/订阅才能恢复服务端状态（对齐非raft版Agent.onConnected）。
 	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<String, java.util.function.Supplier<BOfflineNotify>> offlineRegisters
-			= new ConcurrentHashMap<>(); // key:notifyId
 
 	@Override
 	public @NotNull Threading getThreading() {
@@ -90,18 +85,18 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	/**
-	 * 每次Login成功后执行（含断线重连/换leader）：重放全部注册、订阅、离线注册，
+	 * 每次Login成功后执行（含断线重连/换leader）：上报Identify、重放全部注册、订阅，
 	 * 恢复服务端状态。服务端幂等（AddOrUpdate、允许重复注册），重复重放无害。
 	 */
 	private void onLoginSuccess() {
-		// 先重放离线注册：取消旧连接onClose安排的延迟离线通知；重新执行工厂递增代际号，
-		// 使在途的旧代际通知被接收端拒绝。同时恢复本服务器作为通知目标。
-		for (var argumentFactory : offlineRegisters.values()) {
-			try {
-				raftClient.sendForWait(new OfflineRegister(argumentFactory.get())).await();
-			} catch (Throwable ex) { // logger.error
-				logger.error("OnLoginSuccess.OfflineRegister", ex);
-			}
+		// 先上报Identify：SM据此把serverId记在会话上，断线时广播Suspect（对齐非raft版onConnected）。
+		// 重发=恢复提示资格（与正确性无关，正确性由Takeover租约裁决）。
+		try {
+			var identify = new Identify();
+			identify.Argument.serverId = config.getServerId();
+			raftClient.send(identify, __ -> 0L);
+		} catch (Throwable ex) { // logger.error
+			logger.error("OnLoginSuccess.Identify", ex);
 		}
 
 		var edit = new BEditService();
@@ -135,17 +130,19 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		return Procedure.Success;
 	}
 
+	// Suspect仅是提示：转化为onSuspect回调（应用接takeover.tryTransfer），
+	// 租约未过期时tryTransfer内部安排到过期时刻精确重试，不会误接管。
 	@Override
-	protected long ProcessOfflineNotifyRequest(@NotNull OfflineNotify r) {
-		try {
-			if (triggerOfflineNotify(r.Argument)) {
-				r.SendResult();
-				return 0;
+	protected long ProcessSuspectRequest(@NotNull Suspect r) throws Exception {
+		var on = onSuspect;
+		if (on != null) {
+			try {
+				on.run(r.Argument.serverId);
+			} catch (Throwable e) { // logger.error
+				logger.error("ProcessSuspectRequest serverId=" + r.Argument.serverId, e);
 			}
-			r.trySendResultCode(2);
-		} catch (Throwable ignored) { // ignored
-			r.trySendResultCode(3);
 		}
+		r.SendResult();
 		return 0;
 	}
 
@@ -329,20 +326,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void offlineRegister(@NotNull java.util.function.Supplier<BOfflineNotify> argumentFactory,
-								@NotNull Action1<BOfflineNotify> handle) {
-		waitLoginReady();
-		var argument = argumentFactory.get(); // 启动：工厂执行一次（bump代际+构造参数）
-		onOfflineNotifies.putIfAbsent(argument.notifyId, handle);
-		offlineRegisters.put(argument.notifyId, argumentFactory);
-		raftClient.sendForWait(new OfflineRegister(argument)).await();
-	}
-
-	@Override
 	public void close() {
 		try {
 			loginFuture.cancel(true);
-			raftClient.sendForWait(new NormalClose()).await();
 			raftClient.stop();
 		} catch (Throwable e) { // rethrow
 			throw Task.forceThrow(e);

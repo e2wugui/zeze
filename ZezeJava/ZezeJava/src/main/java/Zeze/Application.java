@@ -18,6 +18,7 @@ import Zeze.Arch.RedirectBase;
 import Zeze.Component.AutoKey;
 import Zeze.Component.DelayRemove;
 import Zeze.Component.SafeBatch;
+import Zeze.Component.Takeover;
 import Zeze.Component.Timer;
 import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.History.HistoryModule;
@@ -80,6 +81,7 @@ public final class Application extends ReentrantLock {
 	private SafeBatch safeBatch;
 	private Zeze.Collections.Queue.Module queueModule;
 	private DelayRemove delayRemove;
+	private volatile Takeover takeover;
 	private HistoryModule historyModule;
 	private IGlobalAgent globalAgent;
 	private AchillesHeelDaemon achillesHeelDaemon;
@@ -220,6 +222,7 @@ public final class Application extends ReentrantLock {
 			queueModule = new Zeze.Collections.Queue.Module(this);
 			historyModule = new HistoryModule(this);
 			delayRemove = new DelayRemove(this);
+			takeover = new Takeover(this);
 			onz = new Onz(this);
 		}
 	}
@@ -462,6 +465,10 @@ public final class Application extends ReentrantLock {
 
 	public DelayRemove getDelayRemove() {
 		return delayRemove;
+	}
+
+	public Takeover getTakeover() {
+		return takeover;
 	}
 
 	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName) {
@@ -739,6 +746,15 @@ public final class Application extends ReentrantLock {
 					achillesHeelDaemon.start();
 				startState = StartState.eStarted;
 
+				// 接管租约：Application.start()返回前claim完成（需Checkpoint已建立），
+				// 此后Timer.start/startLast、CsQueue构造全走addScope晚注册stamp。
+				if (takeover != null) {
+					takeover.start();
+					// SM Suspect提示→tryTransfer（非raft与raft版SM都会在会话断开时广播Suspect）。
+					if (serviceManager != null)
+						serviceManager.setOnSuspect(deadServerId -> takeover.tryTransfer(deadServerId));
+				}
+
 				delayRemove.start();
 				if (timer != null)
 					timer.loadCustomClassAnd();
@@ -782,6 +798,9 @@ public final class Application extends ReentrantLock {
 			startState = StartState.eStartingOrStopping;
 			ShutdownHook.remove(this);
 			logger.info("Stop ServerId={}", conf.getServerId());
+
+			if (takeover != null) // 早期释放：正常关闭写租约墓碑（数据库尚未关闭）。
+				takeover.release();
 
 			if (achillesHeelDaemon != null) {
 				achillesHeelDaemon.stopAndJoin();
@@ -838,6 +857,10 @@ public final class Application extends ReentrantLock {
 				autoKey.UnRegister();
 				autoKey = null;
 				transactionIdAutoKey = null;
+			}
+			if (takeover != null) {
+				takeover.UnRegisterZezeTables(this);
+				takeover = null;
 			}
 			if (!isNoDatabase())
 				conf.clearInUseAndIAmSureAppStopped(this, databases);

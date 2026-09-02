@@ -6,7 +6,7 @@
 
 	<external bean="Zeze.Services.ServiceManager.BAllocateIdArgument"/>
 	<external bean="Zeze.Services.ServiceManager.BAllocateIdResult"/>
-	<external bean="Zeze.Services.ServiceManager.BOfflineNotify"/>
+	<external bean="Zeze.Services.ServiceManager.BIdentify"/>
 	<external bean="Zeze.Services.ServiceManager.BServerLoad"/>
 	<external bean="Zeze.Services.ServiceManager.BServiceInfo"/>
 	<external bean="Zeze.Services.ServiceManager.BServiceInfos"/>
@@ -1113,8 +1113,9 @@
 
 			<rpc name="AllocateId" argument="Zeze.Services.ServiceManager.BAllocateIdArgument" result="Zeze.Services.ServiceManager.BAllocateIdResult" base="Zeze.Raft.RaftRpc" handle="server"/>
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="client"/>
-			<rpc name="OfflineNotify" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="client"/>
-			<rpc name="OfflineRegister" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<!-- Takeover租约接管（对齐非raft版）：Identify上报serverId，断线广播Suspect提示；裁决在应用库tTakeoverLease -->
+			<rpc name="Identify" argument="Zeze.Services.ServiceManager.BIdentify" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="Suspect" argument="Zeze.Services.ServiceManager.BIdentify" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="Edit" argument="Zeze.Services.ServiceManager.BEditService" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="SetServerLoad" argument="Zeze.Services.ServiceManager.BServerLoad" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="Subscribe" argument="Zeze.Services.ServiceManager.BSubscribeArgument" result="Zeze.Services.ServiceManager.BSubscribeResult" base="Zeze.Raft.RaftRpc" handle="server">
@@ -1125,7 +1126,6 @@
 				<enum name="Success" value="0"/>
 				<enum name="NotExist" value="1"/>
 			</rpc>
-			<rpc name="NormalClose" base="Zeze.Raft.RaftRpc" handle="server"/>
 			<rpc name="AllocateId128" argument="Zeze.Services.ServiceManager.BAllocateId128Argument" result="Zeze.Services.ServiceManager.BAllocateId128Result" base="Zeze.Raft.RaftRpc" handle="server"/>
 
 			<!-- autokey -->
@@ -1140,16 +1140,8 @@
 			<table name="tId128" key="string" value="BId128" kind="rocks"/>
 
 			<!-- session -->
-			<bean name="BOfflineNotifyRocks" kind="rocks">
-				<variable id="1" name="ServerId" type="int"/>
-				<variable id="2" name="NotifyId" type="string"/>
-				<variable id="3" name="NotifySerialId" type="long"/>
-				<variable id="4" name="NotifyContext" type="binary"/>
-			</bean>
 			<bean name="BSession" kind="rocks">
 				<variable id="1" name="SessionId" type="long"/>
-				<variable id="2" name="OfflineRegisterServerId" type="int"/>
-				<variable id="3" name="OfflineRegisterNotifies" type="map[string, BOfflineNotifyRocks]"/>
 				<variable id="4" name="Registers" type="map[BServiceInfoKeyRocks, BServiceInfoRocks]"/>
 				<variable id="5" name="Subscribes" type="map[string, BSubscribeInfoRocks]"/>
 			</bean>
@@ -2041,8 +2033,17 @@
 			</bean>
 		</module>
 
+		<module name="Takeover" id="11045"> 接管租约模块
+			<bean name="BTakeoverLease">
+				<variable id="1" name="Epoch" type="long" />   代际号：claim时 old+1，抢占式，重启不等旧租约过期
+				<variable id="2" name="ExpireAt" type="long" /> 毫秒时间戳；owner周期续约；0=墓碑(已被接管或正常关闭)
+			</bean>
+
+			<table name="tTakeoverLease" key="int" value="BTakeoverLease" /> key是serverId，与数据表同库：裁决与搬运同一zeze事务
+		</module>
+
 		<!--
-		可用id范围 [11045, 11100) [11102, 11999]
+		可用id范围 [11046, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
@@ -2053,6 +2054,14 @@
 		>
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.SafeBatch"/>
+		</service>
+	</component>
+
+	<component name="Takeover" GenDir="src/main/java" SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java"
+		>
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Takeover"/>
 		</service>
 	</component>
 

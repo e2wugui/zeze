@@ -2,7 +2,7 @@ package Zeze.Collections;
 
 import Zeze.Builtin.Collections.Queue.BQueueNode;
 import Zeze.Builtin.Collections.Queue.BQueueNodeKey;
-import Zeze.Services.ServiceManager.BOfflineNotify;
+import Zeze.Component.TakeoverScope;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.OutLong;
@@ -11,7 +11,7 @@ import Zeze.Util.TaskSpec;
 /**
  * Concurrent Server Queue.
  * 每个server拥有自己私有的队列，只能操作自己的队列。
- * server宕机的时候，其他server会接管它的队列数据。
+ * server宕机的时候，其他server会接管它的队列数据（接管裁决走Takeover租约：see TakeoverScope）。
  * @param <V>
  */
 public class CsQueue<V extends Bean> {
@@ -27,21 +27,60 @@ public class CsQueue<V extends Bean> {
 		this.name = name;
 		this.queue = module._open(name + "@" + serverId, valueClass, nodeSize);
 
-		module.zeze.getServiceManager().offlineRegister(() -> {
-			var out = new OutLong();
-			TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
-				var root = queue.getOrAddRoot();
-				// 启动与每次SM重连都递增（连接代际）：重连后仍在途的旧代际离线通知据此被接收端拒绝。
-				root.setLoadSerialNo(root.getLoadSerialNo() + 1);
-				out.value = root.getLoadSerialNo();
-				return 0;
-			}, "increaseLoadSerialNo")).call();
-			var offlineNotify = new BOfflineNotify();
-			offlineNotify.serverId = module.zeze.getConfig().getServerId();
-			offlineNotify.notifySerialId = out.value;
-			offlineNotify.notifyId = "Zeze.Collections.CsQueue.OfflineNotify";
-			return offlineNotify;
-		}, (notify) -> splice(notify.serverId, notify.notifySerialId));
+		// 接管租约注册：claim/晚注册时stamp自己root行的epoch（替代旧offlineRegister的bump serial），
+		// 死者数据由takeover.tryTransfer在同一事务内裁决+搬运（附带修复：SM=disable时原ctor NPE）。
+		var takeover = module.zeze.getTakeover();
+		if (takeover != null)
+			takeover.addScope(new CsQueueTakeoverScope());
+	}
+
+	/**
+	 * 本队列的接管作用域：scope.name=队列名；数据行=tQueues[name@serverId]。
+	 * stamp写root.loadSerialNo=epoch（fence对账值）；transferAll搬运死者整条链并给死者root立墓碑stamp=0。
+	 */
+	private final class CsQueueTakeoverScope implements TakeoverScope {
+		@Override
+		public String name() {
+			return "CsQueue(" + getInnerName() + ")";
+		}
+
+		@Override
+		public void stamp(long epoch) {
+			queue.getOrAddRoot().setLoadSerialNo(epoch);
+		}
+
+		@Override
+		public long transferAll(int deadServerId, long deadEpoch) {
+			var srcName = name + "@" + deadServerId;
+			var src = Queue.compatible(module._tQueues.get(srcName), srcName);
+			if (null == src || src.getHeadNodeKey().getNodeId() == 0 || src.getTailNodeKey().getNodeId() == 0)
+				return 0; // 死者没有这个队列/空队列。
+
+			if (src.getLoadSerialNo() != deadEpoch)
+				return 0; // 幂等/已被搬走（墓碑stamp=0或旧epoch不匹配）。
+
+			// splice 单向链表，新接管的数据拼到开头。
+			var dstName = name + "@" + module.zeze.getConfig().getServerId();
+			var dstRoot = Queue.compatible(module._tQueues.getOrAdd(dstName), dstName);
+			var srcTailNodeKey = src.getTailNodeKey();
+			var srcTail = Queue.compatible(srcTailNodeKey, module._tQueueNodes.get(srcTailNodeKey));
+			if (null == srcTail)
+				throw new IllegalStateException("maybe operate before entry created.");
+
+			srcTail.setNextNodeKey(dstRoot.getHeadNodeKey());
+			if (dstRoot.getHeadNodeKey().getNodeId() == 0) // dst是空队列：接管后链尾就是src的尾，否则后续add产生不可达的孤岛节点。
+				dstRoot.setTailNodeKey(srcTailNodeKey);
+			dstRoot.setHeadNodeKey(src.getHeadNodeKey());
+			var count = src.getCount();
+			dstRoot.setCount(dstRoot.getCount() + count); // 接管过来的值计入dst。
+			// clear src
+			var nullKey = new BQueueNodeKey();
+			src.setHeadNodeKey(nullKey);
+			src.setTailNodeKey(nullKey);
+			src.setCount(0);
+			src.setLoadSerialNo(0); // 死者root立墓碑stamp：同epoch重复tryTransfer幂等退出。
+			return count;
+		}
 	}
 
 	public long getLoadSerialNo() {
@@ -112,11 +151,20 @@ public class CsQueue<V extends Bean> {
 		return queue.isEmpty();
 	}
 
+	// 写路径fence：root行本就在事务工作集内，零额外IO。被接管（root.epoch != myEpoch）→致命退出。
+	private void checkFence() {
+		var takeover = module.zeze.getTakeover();
+		if (takeover != null)
+			takeover.checkFence(queue.getOrAddRoot().getLoadSerialNo());
+	}
+
 	public BQueueNode pollNode() {
+		checkFence();
 		return queue.pollNode();
 	}
 
 	public void clear() {
+		checkFence();
 		queue.clear();
 	}
 
@@ -125,6 +173,7 @@ public class CsQueue<V extends Bean> {
 	}
 
 	public V poll() {
+		checkFence();
 		return queue.poll();
 	}
 
@@ -137,14 +186,17 @@ public class CsQueue<V extends Bean> {
 	}
 
 	public void add(V value) {
+		checkFence();
 		queue.add(value);
 	}
 
 	public void push(V value) {
+		checkFence();
 		queue.push(value);
 	}
 
 	public V pop() {
+		checkFence();
 		return queue.pop();
 	}
 

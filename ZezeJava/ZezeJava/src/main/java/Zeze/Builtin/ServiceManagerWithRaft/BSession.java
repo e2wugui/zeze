@@ -4,13 +4,12 @@ package Zeze.Builtin.ServiceManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
+// session
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BSession extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = -1467883983153477901L;
 
     private long _SessionId;
-    private int _OfflineRegisterServerId;
-    private final Zeze.Raft.RocksRaft.CollMap2<String, Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks> _OfflineRegisterNotifies;
     private final Zeze.Raft.RocksRaft.CollMap2<Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks> _Registers;
     private final Zeze.Raft.RocksRaft.CollMap2<String, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks> _Subscribes;
 
@@ -35,31 +34,6 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
         txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogLong(this, 1, value));
     }
 
-    public int getOfflineRegisterServerId() {
-        if (!isManaged())
-            return _OfflineRegisterServerId;
-        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        if (txn == null)
-            return _OfflineRegisterServerId;
-        var log = txn.getLog(objectId() + 2);
-        if (log == null)
-            return _OfflineRegisterServerId;
-        return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).value;
-    }
-
-    public void setOfflineRegisterServerId(int value) {
-        if (!isManaged()) {
-            _OfflineRegisterServerId = value;
-            return;
-        }
-        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 2, value));
-    }
-
-    public Zeze.Raft.RocksRaft.CollMap2<String, Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks> getOfflineRegisterNotifies() {
-        return _OfflineRegisterNotifies;
-    }
-
     public Zeze.Raft.RocksRaft.CollMap2<Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks> getRegisters() {
         return _Registers;
     }
@@ -69,19 +43,14 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public BSession() {
-        _OfflineRegisterNotifies = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks.class);
-        _OfflineRegisterNotifies.variableId(3);
         _Registers = new Zeze.Raft.RocksRaft.CollMap2<>(Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks.class, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks.class);
         _Registers.variableId(4);
         _Subscribes = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks.class);
         _Subscribes.variableId(5);
     }
 
-    public BSession(long _SessionId_, int _OfflineRegisterServerId_) {
+    public BSession(long _SessionId_) {
         _SessionId = _SessionId_;
-        _OfflineRegisterServerId = _OfflineRegisterServerId_;
-        _OfflineRegisterNotifies = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks.class);
-        _OfflineRegisterNotifies.variableId(3);
         _Registers = new Zeze.Raft.RocksRaft.CollMap2<>(Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks.class, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks.class);
         _Registers.variableId(4);
         _Subscribes = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks.class);
@@ -90,10 +59,6 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
 
     public void assign(BSession other) {
         setSessionId(other.getSessionId());
-        setOfflineRegisterServerId(other.getOfflineRegisterServerId());
-        _OfflineRegisterNotifies.clear();
-        for (var e : other._OfflineRegisterNotifies.entrySet())
-            _OfflineRegisterNotifies.put(e.getKey(), e.getValue());
         _Registers.clear();
         for (var e : other._Registers.entrySet())
             _Registers.put(e.getKey(), e.getValue());
@@ -137,15 +102,6 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
         var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
         _s_.append("Zeze.Builtin.ServiceManagerWithRaft.BSession: {\n");
         _s_.append(_i1_).append("SessionId=").append(getSessionId()).append(",\n");
-        _s_.append(_i1_).append("OfflineRegisterServerId=").append(getOfflineRegisterServerId()).append(",\n");
-        _s_.append(_i1_).append("OfflineRegisterNotifies=[\n");
-        for (var _kv_ : getOfflineRegisterNotifies().entrySet()) {
-            _s_.append(_i2_).append("Key=").append(_kv_.getKey()).append(",\n");
-            _s_.append(_i2_).append("Value=");
-            _kv_.getValue().buildString(_s_, _l_ + 12);
-            _s_.append(",\n");
-        }
-        _s_.append(_i1_).append("],\n");
         _s_.append(_i1_).append("Registers=[\n");
         for (var _kv_ : getRegisters().entrySet()) {
             _s_.append(_i2_).append("Key=");
@@ -190,28 +146,6 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
             }
         }
         {
-            int _x_ = getOfflineRegisterServerId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
-        {
-            var _x_ = getOfflineRegisterNotifies();
-            int _n_ = _x_.size();
-            if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.MAP);
-                _o_.WriteMapType(_n_, ByteBuffer.BYTES, ByteBuffer.BEAN);
-                for (var _e_ : _x_.entrySet()) {
-                    _o_.WriteString(_e_.getKey());
-                    _e_.getValue().encode(_o_);
-                    _n_--;
-                }
-                if (_n_ != 0)
-                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
-            }
-        }
-        {
             var _x_ = getRegisters();
             int _n_ = _x_.size();
             if (_n_ != 0) {
@@ -252,22 +186,8 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
             _SessionId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 2) {
-            _OfflineRegisterServerId = _o_.ReadInt(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            var _x_ = getOfflineRegisterNotifies();
-            _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
-                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadString(_s_);
-                    var _v_ = _o_.ReadBean(new Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks(), _t_);
-                    _x_.put(_k_, _v_);
-                }
-            } else
-                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+        while (_t_ != 0 && _i_ < 4) {
+            _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -306,7 +226,6 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
-        _OfflineRegisterNotifies.initRootInfo(root, this);
         _Registers.initRootInfo(root, this);
         _Subscribes.initRootInfo(root, this);
     }
@@ -315,8 +234,6 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
     public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
         switch (vlog.getVariableId()) {
             case 1: _SessionId = ((Zeze.Raft.RocksRaft.Log1.LogLong)vlog).value; break;
-            case 2: _OfflineRegisterServerId = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
-            case 3: _OfflineRegisterNotifies.leaderApplyNoRecursive(vlog); break;
             case 4: _Registers.leaderApplyNoRecursive(vlog); break;
             case 5: _Subscribes.leaderApplyNoRecursive(vlog); break;
         }
@@ -331,8 +248,6 @@ public final class BSession extends Zeze.Raft.RocksRaft.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _SessionId = ((Zeze.Raft.RocksRaft.Log1.LogLong)vlog).value; break;
-                case 2: _OfflineRegisterServerId = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
-                case 3: _OfflineRegisterNotifies.followerApply(vlog); break;
                 case 4: _Registers.followerApply(vlog); break;
                 case 5: _Subscribes.followerApply(vlog); break;
             }

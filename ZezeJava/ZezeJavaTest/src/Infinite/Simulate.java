@@ -100,8 +100,14 @@ public final class Simulate {
 			Tasks.prepare();
 			++BatchNumber;
 			logger.fatal("Run {}", BatchNumber);
-			if (Apps.getFirst().app.Zeze.getConfig().isHistory())
+			if (Apps.getFirst().app.Zeze.getConfig().isHistory()) {
 				Apps.getFirst().clearTables();
+				// Takeover租约行是启动期簿记（claim不受History管控）：批间一并清掉，且每个app的缓存都要清，
+				// 否则各自的renew会用缓存里的旧行复活存储；renew对缺行会自愈重写（重写会被History记录，verify一致）。
+				for (var a : Apps)
+					App.clearDbTable((Zeze.Transaction.TableX<?, ?>)a.app.getZeze()
+							.getTable("Zeze_Builtin_Takeover_tTakeoverLease"));
+			}
 			for (var app : Apps) {
 				if (!app.app.Zeze.getConfig().isHistory())
 					logger.info("app {} history disable.", app.app.Zeze.getConfig().getServerId());

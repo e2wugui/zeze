@@ -32,9 +32,6 @@ import Zeze.Hot.HotManager;
 import Zeze.Hot.HotModule;
 import Zeze.Serialize.RawBean;
 import Zeze.Serialize.Serializable;
-import Zeze.Services.ServiceManager.Agent;
-import Zeze.Services.ServiceManager.AnnounceServers;
-import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
@@ -112,8 +109,16 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	protected Timer(@NotNull AppBase app) {
 		zeze = app.getZeze();
-		if (zeze != null) // 只生成Redirect代码时zeze可能为null
+		if (zeze != null) { // 只生成Redirect代码时zeze可能为null
 			RegisterZezeTables(zeze);
+			// 接管作用域必须在构造期（claim之前）注册：Takeover.start()会对已注册scope补stamp。
+			// 若推迟到Timer.start()/loadTimer()（ProviderApp.startLast），startModules阶段
+			// （如hot模块ModuleEquip.Start里scheduleNamed）就会在未stamp的root上被checkFence
+			// 误判为已接管而致命退出（root.serial=0 != myEpoch）。
+			var takeover = zeze.getTakeover();
+			if (takeover != null)
+				takeover.addScope(timerTakeoverScope);
+		}
 	}
 
 	static void register(@NotNull Serializable s) {
@@ -362,6 +367,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		var serverId = zeze.getConfig().getServerId();
 		var appVer = zeze.getConfig().getAppVersion();
 		var root = _tNodeRoot.getOrAdd(serverId);
+		checkTimerFence(serverId, root); // 插链前fence：被接管则致命退出，不再写链
 		if (root.getVersion() < appVer)
 			root.setVersion(appVer);
 		var nodeId = root.getHeadNodeId();
@@ -561,6 +567,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		var serverId = zeze.getConfig().getServerId();
 		var appVer = zeze.getConfig().getAppVersion();
 		var root = _tNodeRoot.getOrAdd(serverId);
+		checkTimerFence(serverId, root); // 插链前fence：被接管则致命退出，不再写链
 		if (root.getVersion() < appVer)
 			root.setVersion(appVer);
 		var nodeId = root.getHeadNodeId();
@@ -1016,6 +1023,14 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			local.cancel(false);
 	}
 
+	// 写路径fence：仅当root属于本进程时校验（cancel摘链可能碰到尚未重指向的死者root，不校验）。
+	// root行本就在事务工作集内，零额外IO。被接管（root.epoch != myEpoch）→致命退出。
+	private void checkTimerFence(int serverId, @NotNull BNodeRoot root) {
+		var takeover = zeze.getTakeover();
+		if (takeover != null && serverId == zeze.getConfig().getServerId())
+			takeover.checkFence(root.getLoadSerialNo());
+	}
+
 	private void cancel(int serverId, @NotNull String timerId, long nodeId, @Nullable BNode node,
 	                    @Nullable TimerHandle handle) {
 		// 事务成功时，总是尝试cancel future
@@ -1035,6 +1050,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					next.setPrevNodeId(prevNodeId);
 				var root = _tNodeRoot.get(serverId);
 				if (root != null) {
+					checkTimerFence(serverId, root); // 仅当root属于本进程时校验：serverId可能是尚未重指向的死者
 					if (root.getHeadNodeId() == nodeId) {
 						if (root.getTailNodeId() == nodeId) {
 							root.setHeadNodeId(0);
@@ -1257,87 +1273,65 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	private void loadTimer() throws Exception {
 		var serverId = zeze.getConfig().getServerId();
-		var headNodeId = new long[1]; // 工厂首次执行时带出头节点供本地调度；重连重放时不再使用
-		try {
-			zeze.getServiceManager().offlineRegister(() -> {
-				var outRoot = new BNodeRoot();
-				var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
-					var root = _tNodeRoot.getOrAdd(serverId);
-					// 本地每次load都递增。用来处理和接管的并发。
-					// 启动与每次SM重连都会执行（连接代际）：重连后仍在途的旧代际离线通知据此被接收端拒绝。
-					root.setLoadSerialNo(root.getLoadSerialNo() + 1);
-					outRoot.assign(root);
-					return 0;
-				}, "Timer.loadTimerLocal")).call();
-				if (r != Procedure.Success)
-					throw new IllegalStateException("Timer.loadTimerLocal failed: r=" + r);
-				headNodeId[0] = outRoot.getHeadNodeId();
-				var offlineNotify = new BOfflineNotify();
-				offlineNotify.serverId = serverId;
-				offlineNotify.notifyId = "Zeze.Component.Timer.OfflineNotify";
-				offlineNotify.notifySerialId = outRoot.getLoadSerialNo();
-				return offlineNotify;
-			}, notify -> spliceLoadTimer(notify.serverId, notify.notifySerialId));
-		} catch (Throwable ex) {
-			logger.error("Timer offlineRegister failed", ex);
-		}
+		// 接管作用域已在ctor注册（claim前），stamp由Takeover.start()完成；死者链表由
+		// takeover.tryTransfer在同一事务内裁决+搬运，afterTransfer里对搬来的链重调度本地
+		// （附带修复：SM=disable时旧代码无处注册工厂，接管通道整个缺失）。
+		var headNodeId = new long[1];
+		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
+			headNodeId[0] = _tNodeRoot.getOrAdd(serverId).getHeadNodeId();
+			return 0;
+		}, "Timer.loadTimerLocal")).call();
+		if (r != Procedure.Success)
+			throw new IllegalStateException("Timer.loadTimerLocal failed: r=" + r);
 		// last也填头节点是因为链表是循环的；headNodeId为0即空扫描（失败路径等价于原来的跳过调度）
 		loadTimer(headNodeId[0], headNodeId[0]);
-
-		var agent = zeze.getServiceManager();
-		if (agent instanceof Agent) { // 暂时只支持非Raft的ServiceManager
-			var p = new AnnounceServers();
-			p.Argument.notifyId = "Zeze.Component.Timer.NotifyOffline";
-			p.Argument.serverId = serverId;
-			_tNodeRoot.walk((k, v) -> {
-				if (v.getHeadNodeId() != 0) {
-					p.Argument.watchServerIds.add(k);
-					p.Argument.watchSerialIds.add(v.getLoadSerialNo());
-				}
-				return true;
-			});
-			((Agent)agent).offlineRegister(p.Argument.notifyId,
-					notify -> spliceLoadTimer(notify.serverId, notify.notifySerialId));
-			agent.waitReady();
-			p.SendAndWaitCheckResultCode(((Agent)agent).getClient().getSocket());
-		}
 	}
 
 	/**
-	 * 收到接管通知的服务器调用这个函数进行接管处理。
-	 *
-	 * @param serverId 需要接管的服务器Id
-	 * @return 事务执行结果. 0表示成功
+	 * 本进程定时器链表的接管作用域：数据行=tNodeRoot[serverId]双链表。
+	 * stamp写root.loadSerialNo=epoch（fence对账值）；transferAll搬运死者整条链
+	 * （版本高于本进程时veto，不立碑留给高版本）；afterTransfer在事务提交成功后对搬来的链重调度本地。
 	 */
-	private long spliceLoadTimer(int serverId, long loadSerialNo) {
-		final var localServerId = zeze.getConfig().getServerId();
-		if (serverId == localServerId)
-			return 0; // skip self
+	private final class TimerTakeoverScope implements TakeoverScope {
+		private long transferredFirst; // 事务内写入、afterTransfer消费；tryTransfer的OneByOne串行保证无并发
+		private long transferredLast;
 
-		var first = new OutLong();
-		var last = new OutLong();
-		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
-			// 当接管别的服务器的定时器时，有可能那台服务器有新的CustomData，这个时候重新加载一次。
-			var src = _tNodeRoot.get(serverId);
+		@Override
+		public String name() {
+			return "Timer";
+		}
+
+		@Override
+		public void stamp(long epoch) {
+			_tNodeRoot.getOrAdd(zeze.getConfig().getServerId()).setLoadSerialNo(epoch);
+		}
+
+		@Override
+		public long transferAll(int deadServerId, long deadEpoch) {
+			// 每次调用先重置：失败（回滚）事务设置的残留值不泄漏到后续无关的afterTransfer。
+			transferredFirst = 0;
+			transferredLast = 0;
+			// 接管别的服务器的定时器时，有可能那台服务器有新的CustomData，接管后重新加载一次。
+			var src = _tNodeRoot.get(deadServerId);
 			long srcHeadNodeId, srcTailNodeId;
 			if (src == null || (srcHeadNodeId = src.getHeadNodeId()) == 0 || (srcTailNodeId = src.getTailNodeId()) == 0)
-				return 0;
-			if (src.getVersion() > zeze.getConfig().getAppVersion()) // 不接管版本高的,让相同或高版本的接管
-				return 0;
-			if (src.getLoadSerialNo() != loadSerialNo) // 需要接管的机器已经活过来了
-				return 0;
+				return 0; // 死者没有定时器链/空链。
+			if (src.getVersion() > zeze.getConfig().getAppVersion())
+				return -1; // 不接管版本高的：veto，不立碑，留给相同或高版本的进程。
+			if (src.getLoadSerialNo() != deadEpoch)
+				return 0; // 幂等/已被搬走（墓碑stamp=0或epoch不匹配）。
 			var srcHead = _tNodes.get(srcHeadNodeId);
 			var srcTail = _tNodes.get(srcTailNodeId);
 			if (srcHead == null || srcTail == null)
 				throw new IllegalStateException("maybe operate before timer created.");
 
-			var root = _tNodeRoot.getOrAdd(localServerId);
+			var root = _tNodeRoot.getOrAdd(zeze.getConfig().getServerId());
 			var headNodeId = root.getHeadNodeId();
 			var tailNodeId = root.getTailNodeId();
 			var head = _tNodes.get(headNodeId);
 			var tail = _tNodes.get(tailNodeId);
 			if (head == null || tail == null)
-				root.setTailNodeId(srcTailNodeId);
+				root.setTailNodeId(srcTailNodeId); // 本地是空链：接管后链尾就是src的尾。
 			else {
 				srcHead.setPrevNodeId(tailNodeId);
 				srcTail.setNextNodeId(headNodeId);
@@ -1348,15 +1342,25 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			src.setHeadNodeId(0);
 			src.setTailNodeId(0);
 			src.setVersion(0);
-			first.value = srcHeadNodeId;
-			last.value = headNodeId;
-			return 0;
-		}, "Timer.spliceAndLoadTimerLocal")).call();
+			src.setLoadSerialNo(0); // 死者root立墓碑stamp：同epoch重复tryTransfer幂等退出。
+			transferredFirst = srcHeadNodeId;
+			transferredLast = headNodeId;
+			return 1;
+		}
 
-		if (r == 0)
-			loadTimer(first.value, last.value); // 这里应该使用本地接管者的ServerId。
-		return r;
+		@Override
+		public void afterTransfer(int deadServerId) {
+			if (transferredFirst == 0)
+				return; // 本scope本次没有搬运（总回调会对所有scope触发）
+			var first = transferredFirst;
+			var last = transferredLast;
+			transferredFirst = 0;
+			transferredLast = 0;
+			loadTimer(first, last); // 对搬来的节点链重新调度本地（仿旧spliceLoadTimer的事务外重调度）
+		}
 	}
+
+	private final TimerTakeoverScope timerTakeoverScope = new TimerTakeoverScope();
 
 	// 如果存在node，至少执行一次循环。
 	private void loadTimer(long first, long last) {
