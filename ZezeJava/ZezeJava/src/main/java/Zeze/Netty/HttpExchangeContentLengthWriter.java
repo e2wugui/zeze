@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 public class HttpExchangeContentLengthWriter extends Writer {
 	private final @NotNull HttpExchange x;
 	private final @NotNull ByteBuf html = PooledByteBufAllocator.DEFAULT.buffer(64 * 1024);
+	private boolean closed; // send会转移html所有权(netty发送完释放),Closeable契约要求close幂等,二次close不得重复发送已释放的ByteBuf
 
 	public HttpExchangeContentLengthWriter(@NotNull HttpExchange x) {
 		this.x = x;
@@ -32,6 +33,9 @@ public class HttpExchangeContentLengthWriter extends Writer {
 
 	@Override
 	public void close() throws IOException {
+		if (closed)
+			return;
+		closed = true;
 		x.send(HttpResponseStatus.OK, "text/html; charset=utf-8", html);
 	}
 }
