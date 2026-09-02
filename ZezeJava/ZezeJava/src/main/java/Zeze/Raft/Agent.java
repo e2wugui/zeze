@@ -405,7 +405,10 @@ public final class Agent {
 
 		// 启用代理（多个raft共享连接）。
 		if (null != proxyAgent) {
-			var newLeader = proxyAgent.getLeader(raftConfig.getNodes().get(r.Argument.getLeaderId()));
+			var leaderNode = raftConfig.getNodes().get(r.Argument.getLeaderId());
+			if (null == leaderNode)
+				return 0; // 没有Leader的节点配置（如扩容后配置未同步）。等配置广播以后，请求重定向会再次发送LeaderIs。
+			var newLeader = proxyAgent.getLeader(leaderNode);
 			if (null != newLeader) {
 				if (setLeader(r, newLeader))
 					resend(true);
@@ -429,6 +432,7 @@ public final class Agent {
 			OutObject<Connector> outNode = new OutObject<>();
 			if (client.getConfig().tryGetOrAddConnector(address[0], Integer.parseInt(address[1]), true, outNode))
 				outNode.value.start();
+			node = outNode.value;
 		} else {
 			//noinspection DataFlowIssue
 			if (!r.Argument.isLeader() && r.Argument.getLeaderId().equals(r.getSender().getConnector().getName())) {
