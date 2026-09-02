@@ -110,6 +110,14 @@ public class MQSingle extends ReentrantLock {
 		// 这里有一个时间窗口：刚刚fill的消息全部都消费完毕，下面才置空，导致fill停止。
 		messageFillFuture = null; // 这个清除没加锁
 		tryStartBackgroundFill(); // 这个调用是为了解决上面的时间窗口的。
+		// fill 装载完成后，消息队列从空变为非空时（例如ack回调触发fill时队列已空），无人驱动推送，
+		// 这里主动尝试推送；构造函数路径 bindSocket==null 时自然短路。
+		lock();
+		try {
+			tryPushMessage();
+		} finally {
+			unlock();
+		}
 	}
 
 	private void tryPushMessage() {
