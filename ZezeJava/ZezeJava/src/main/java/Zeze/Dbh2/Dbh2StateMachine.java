@@ -6,6 +6,7 @@ import java.nio.file.Paths;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BSplitPut;
@@ -29,7 +30,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private CommitAgent commitAgent;
 	private final Dbh2 dbh2;
 	// 访问由noTransactionLock保护：setupOneShotIfNoTransaction在user-task线程，triggerNoTransactionIf在raft apply线程。
-	private final Object noTransactionLock = new Object();
+	// 两个线程默认都是虚拟线程,ReentrantLock保证handle将来混入阻塞调用时也不pin载体(JDK21-23)。
+	private final ReentrantLock noTransactionLock = new ReentrantLock();
 	private Runnable noTransactionHandle;
 
 	final AtomicLong counterGet = new AtomicLong();
@@ -51,71 +53,82 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private long lastUndoBatch;
 	private long lastReportTime = System.currentTimeMillis();
 	private boolean loadSwitch = false;
-
 	// load被loadMonitor定时器线程与setLoadSwitch（raft回调线程）并发调用，last*统计字段需要同步保护。
-	public synchronized void setLoadSwitch(boolean value) {
-		load(); // 修改loadSwitch强制报告一次，达到清理旧的load的目的。
-		loadSwitch = value;
+	private final ReentrantLock loadLock = new ReentrantLock();
+
+	public void setLoadSwitch(boolean value) {
+		loadLock.lock();
+		try {
+			load(); // 修改loadSwitch强制报告一次，达到清理旧的load的目的。loadLock可重入，持锁调用load()安全
+			loadSwitch = value;
+		} finally {
+			loadLock.unlock();
+		}
 	}
 
-	public synchronized double load() {
-		var now = System.currentTimeMillis();
-		var elapse = (now - lastReportTime) / 1000.0f;
-		lastReportTime = now;
+	public double load() {
+		loadLock.lock();
+		try {
+			var now = System.currentTimeMillis();
+			var elapse = (now - lastReportTime) / 1000.0f;
+			lastReportTime = now;
 
-		var nowGet = counterGet.get();
-		var nowPut = counterPut.get();
-		var nowSizeGet = sizeGet.get();
-		var nowSizePut = sizePut.get();
-		var nowDelete = counterDelete.get();
-		var nowPrepareBatch = counterPrepareBatch.get();
-		var nowCommitBatch = counterCommitBatch.get();
-		var nowUndoBatch = counterUndoBatch.get();
+			var nowGet = counterGet.get();
+			var nowPut = counterPut.get();
+			var nowSizeGet = sizeGet.get();
+			var nowSizePut = sizePut.get();
+			var nowDelete = counterDelete.get();
+			var nowPrepareBatch = counterPrepareBatch.get();
+			var nowCommitBatch = counterCommitBatch.get();
+			var nowUndoBatch = counterUndoBatch.get();
 
-		var diffGet = nowGet - lastGet;
-		var diffPut = nowPut - lastPut;
-		var diffSizeGet = nowSizeGet - lastSizeGet;
-		var diffSizePut = nowSizePut - lastSizePut;
-		var diffDelete = nowDelete - lastDelete;
-		var diffPrepareBatch = nowPrepareBatch - lastPrepareBatch;
-		var diffCommitBatch = nowCommitBatch - lastCommitBatch;
-		var diffUndoBatch = nowUndoBatch - lastUndoBatch;
+			var diffGet = nowGet - lastGet;
+			var diffPut = nowPut - lastPut;
+			var diffSizeGet = nowSizeGet - lastSizeGet;
+			var diffSizePut = nowSizePut - lastSizePut;
+			var diffDelete = nowDelete - lastDelete;
+			var diffPrepareBatch = nowPrepareBatch - lastPrepareBatch;
+			var diffCommitBatch = nowCommitBatch - lastCommitBatch;
+			var diffUndoBatch = nowUndoBatch - lastUndoBatch;
 
-		if (diffGet > 0 || diffPut > 0 || diffDelete > 0 || diffSizeGet > 0 || diffSizePut > 0
-				|| diffPrepareBatch > 0 || diffCommitBatch > 0 || diffUndoBatch > 0) {
-			lastGet = nowGet;
-			lastPut = nowPut;
-			lastSizeGet = nowSizeGet;
-			lastSizePut = nowSizePut;
-			lastDelete = nowDelete;
-			lastPrepareBatch = nowPrepareBatch;
-			lastCommitBatch = nowCommitBatch;
-			lastUndoBatch = nowUndoBatch;
+			if (diffGet > 0 || diffPut > 0 || diffDelete > 0 || diffSizeGet > 0 || diffSizePut > 0
+					|| diffPrepareBatch > 0 || diffCommitBatch > 0 || diffUndoBatch > 0) {
+				lastGet = nowGet;
+				lastPut = nowPut;
+				lastSizeGet = nowSizeGet;
+				lastSizePut = nowSizePut;
+				lastDelete = nowDelete;
+				lastPrepareBatch = nowPrepareBatch;
+				lastCommitBatch = nowCommitBatch;
+				lastUndoBatch = nowUndoBatch;
 
-			var avgGet = diffGet / elapse;
-			var avgPut = diffPut / elapse;
-			var avgDelete = diffDelete / elapse;
+				var avgGet = diffGet / elapse;
+				var avgPut = diffPut / elapse;
+				var avgDelete = diffDelete / elapse;
 
-			//noinspection StringBufferReplaceableByString
-			var sb = new StringBuilder();
-			sb.append("load: ");
-			sb.append(Dbh2.formatMeta(getBucket().getBucketMeta()));
-			sb.append(" get=").append(avgGet);
-			sb.append(" put=").append(avgPut);
-			sb.append(" getSize=").append(diffSizeGet / elapse);
-			sb.append(" putSize=").append(diffSizePut / elapse);
-			sb.append(" delete=").append(avgDelete);
-			sb.append(" prepare=").append(diffPrepareBatch / elapse);
-			sb.append(" commit=").append(diffCommitBatch / elapse);
-			sb.append(" undo=").append(diffUndoBatch / elapse);
+				//noinspection StringBufferReplaceableByString
+				var sb = new StringBuilder();
+				sb.append("load: ");
+				sb.append(Dbh2.formatMeta(getBucket().getBucketMeta()));
+				sb.append(" get=").append(avgGet);
+				sb.append(" put=").append(avgPut);
+				sb.append(" getSize=").append(diffSizeGet / elapse);
+				sb.append(" putSize=").append(diffSizePut / elapse);
+				sb.append(" delete=").append(avgDelete);
+				sb.append(" prepare=").append(diffPrepareBatch / elapse);
+				sb.append(" commit=").append(diffCommitBatch / elapse);
+				sb.append(" undo=").append(diffUndoBatch / elapse);
 
-			logger.info("{}", sb.toString());
+				logger.info("{}", sb.toString());
 
-			// 负载，put，delete全算，get算1%。
-			return loadSwitch ? (avgPut + avgDelete) + avgGet * 0.01 : 0.0;
-			// loadSwitch 没有生效前总是报告负载为0，但是上面的日志还是记录了。
+				// 负载，put，delete全算，get算1%。
+				return loadSwitch ? (avgPut + avgDelete) + avgGet * 0.01 : 0.0;
+				// loadSwitch 没有生效前总是报告负载为0，但是上面的日志还是记录了。
+			}
+			return 0.0;
+		} finally {
+			loadLock.unlock();
 		}
-		return 0.0;
 	}
 
 	public Dbh2StateMachine(Dbh2 dbh2) {
@@ -135,26 +148,35 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void setupOneShotIfNoTransaction(Runnable handle) {
-		synchronized (noTransactionLock) {
+		noTransactionLock.lock();
+		try {
 			if (transactions.isEmpty())
 				handle.run(); // 异步网络调用，持锁执行无阻塞风险
 			else
 				noTransactionHandle = handle;
+		} finally {
+			noTransactionLock.unlock();
 		}
 	}
 
 	public boolean hasNoTransactionHandle() {
-		synchronized (noTransactionLock) {
+		noTransactionLock.lock();
+		try {
 			return noTransactionHandle != null;
+		} finally {
+			noTransactionLock.unlock();
 		}
 	}
 
 	private void triggerNoTransactionIf() {
-		synchronized (noTransactionLock) {
+		noTransactionLock.lock();
+		try {
 			if (transactions.isEmpty() && null != noTransactionHandle) {
 				noTransactionHandle.run();
 				noTransactionHandle = null;
 			}
+		} finally {
+			noTransactionLock.unlock();
 		}
 	}
 

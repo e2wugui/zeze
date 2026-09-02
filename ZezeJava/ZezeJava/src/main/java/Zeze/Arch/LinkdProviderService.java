@@ -4,6 +4,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Builtin.Provider.AnnounceLinkInfo;
 import Zeze.Builtin.Provider.Bind;
@@ -29,8 +30,8 @@ public class LinkdProviderService extends HandshakeServer {
 	protected final ConcurrentHashMap<String, ProviderSession> providerSessions = new ConcurrentHashMap<>();
 	protected FileOutputStream dumpFile;
 	protected AsyncSocket dumpSocket;
-	// 私有锁对象: 避免暴露this监视器,Service实例被外部广泛共享,synchronized(this)会与外部同步块互相干扰
-	private final Object dumpLock = new Object();
+	// 私有锁: 避免暴露this监视器,Service实例被外部广泛共享;锁内做文件IO,ReentrantLock避免虚拟线程持锁阻塞时pin载体(JDK21-23)
+	private final ReentrantLock dumpLock = new ReentrantLock();
 	private boolean dumpClosed;
 
 	public LinkdProviderService(String name, Application zeze) {
@@ -40,7 +41,8 @@ public class LinkdProviderService extends HandshakeServer {
 
 	// dumpLock: 懒初始化存在check-then-act竞争,且多IO线程并发写需要串行化(仅调试属性开启时生效)
 	protected void tryDump(AsyncSocket s, ByteBuffer input) throws IOException {
-		synchronized (dumpLock) {
+		dumpLock.lock();
+		try {
 			if (dumpClosed)
 				return;
 			if (dumpFile == null) {
@@ -49,6 +51,8 @@ public class LinkdProviderService extends HandshakeServer {
 			}
 			if (dumpSocket == s)
 				dumpFile.write(input.Bytes, input.ReadIndex, input.size());
+		} finally {
+			dumpLock.unlock();
 		}
 	}
 
@@ -56,7 +60,8 @@ public class LinkdProviderService extends HandshakeServer {
 	public void stop() throws Exception {
 		super.stop();
 		// dumpClosed: 关闭后不再重建,重建的FileOutputStream会截断已dump的文件
-		synchronized (dumpLock) {
+		dumpLock.lock();
+		try {
 			dumpClosed = true;
 			dumpSocket = null;
 			if (dumpFile != null) {
@@ -67,6 +72,8 @@ public class LinkdProviderService extends HandshakeServer {
 				}
 				dumpFile = null;
 			}
+		} finally {
+			dumpLock.unlock();
 		}
 	}
 

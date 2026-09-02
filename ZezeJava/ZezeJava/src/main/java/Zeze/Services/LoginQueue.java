@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import Zeze.Builtin.LoginQueue.BToken;
 import Zeze.Builtin.LoginQueue.PutLoginToken;
@@ -44,6 +45,8 @@ public class LoginQueue extends AbstractLoginQueue {
 
 	private final LoginQueueServer server;
 	private final ConcurrentLinkedQueue<AsyncSocket> queue = new ConcurrentLinkedQueue<>();
+	// 私有锁: 串行化tryOnAccept/drainQueue/tryResetTimeThrottle;取代原先共用的this监视器,不暴露实例监视器
+	private final ReentrantLock allocateLock = new ReentrantLock();
 	private final Future<?> allocateTimer;
 	private int broadcastCount;
 	private final int maxOnlineNew;
@@ -70,12 +73,17 @@ public class LoginQueue extends AbstractLoginQueue {
 		timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
 	}
 
-	synchronized void tryResetTimeThrottle(int providerSize) {
-		if (this.providerSize != providerSize) {
-			this.providerSize = providerSize;
-			var old = timeThrottle;
-			timeThrottle = new TimeThrottleCounter(1, maxOnlineNew * providerSize, maxOnlineNew * providerSize);
-			old.close(); // 先更新引用再关闭，减小并发checkNow拿到已关闭实例的窗口
+	void tryResetTimeThrottle(int providerSize) {
+		allocateLock.lock();
+		try {
+			if (this.providerSize != providerSize) {
+				this.providerSize = providerSize;
+				var old = timeThrottle;
+				timeThrottle = new TimeThrottleCounter(1, maxOnlineNew * providerSize, maxOnlineNew * providerSize);
+				old.close(); // 先更新引用再关闭，减小并发checkNow拿到已关闭实例的窗口
+			}
+		} finally {
+			allocateLock.unlock();
 		}
 	}
 
@@ -114,29 +122,34 @@ public class LoginQueue extends AbstractLoginQueue {
 	/**
 	 * 给排队连接分配server。timer周期调用；LoginQueueServer收到provider/link上报时也立即调用，
 	 * 让刚变得可分配的排队连接不用等下一个1秒tick。
-	 * synchronized：两个调用方在不同线程，串行化避免同一排队连接被并发分配（putLoginToken+closeGracefully）两次。
+	 * allocateLock：两个调用方在不同线程，串行化避免同一排队连接被并发分配（putLoginToken+closeGracefully）两次。
 	 */
-	synchronized void drainQueue() throws Exception {
-		// 每个server分配OnlineNew，随机一半以上的分配量。
-		var max = server.providerSize() * maxOnlineNew;
-		var half = max / 2;
-		if (half > 0)
-			max = half + Zeze.Util.Random.getInstance().nextInt(half);
-		var allocate = 0;
-		// peek/poll 而非 for-each+poll：队头排队期间断开的连接直接清掉，不占本轮分配配额，
-		// 且不依赖分配是否成功（providerSize()==0 时 max==0，for-each 版本会什么都不做，
-		// closed 残留越积越多，虚高 queue.size 导致 tryOnAccept 误发 PutQueueFull）。
-		for (var e = queue.peek(); e != null; e = queue.peek()) {
-			if (e.isClosed()) {
+	void drainQueue() throws Exception {
+		allocateLock.lock();
+		try {
+			// 每个server分配OnlineNew，随机一半以上的分配量。
+			var max = server.providerSize() * maxOnlineNew;
+			var half = max / 2;
+			if (half > 0)
+				max = half + Zeze.Util.Random.getInstance().nextInt(half);
+			var allocate = 0;
+			// peek/poll 而非 for-each+poll：队头排队期间断开的连接直接清掉，不占本轮分配配额，
+			// 且不依赖分配是否成功（providerSize()==0 时 max==0，for-each 版本会什么都不做，
+			// closed 残留越积越多，虚高 queue.size 导致 tryOnAccept 误发 PutQueueFull）。
+			for (var e = queue.peek(); e != null; e = queue.peek()) {
+				if (e.isClosed()) {
+					queue.poll();
+					continue;
+				}
+				if (allocate >= max)
+					break;
+				if (!tryAllocateServer(e))
+					break; // 分配失败
 				queue.poll();
-				continue;
+				++allocate;
 			}
-			if (allocate >= max)
-				break;
-			if (!tryAllocateServer(e))
-				break; // 分配失败
-			queue.poll();
-			++allocate;
+		} finally {
+			allocateLock.unlock();
 		}
 	}
 
@@ -192,17 +205,20 @@ public class LoginQueue extends AbstractLoginQueue {
 			return false;
 		}
 		// 与drainQueue同锁：choiceServer里setOnline(getOnline()+1)非原子，accept线程与timer线程串行化。
-		synchronized (this) {
+		allocateLock.lock();
+		try {
 			if (queue.isEmpty() && timeThrottle.checkNow(1)) {
 				if (tryAllocateServer(so))
 					return false; // 新连接，直接分配成功，done
 			}
 			queue.add(so);
 			return true;
+		} finally {
+			allocateLock.unlock();
 		}
 	}
 
-	void onClose(AsyncSocket so) {
+	void onClose(AsyncSocket ignoredSo) {
 		// 不在这里 queue.remove(so)：remove 是 O(n)，且每次分配成功 putLoginToken 后的
 		// closeGracefully 也会触发 onClose（此时连接已出队，remove 是无效全量扫描），
 		// 高吞吐下退化为 O(n²)；排队期间断开的连接由 drainQueue 的队头清理统一负责。

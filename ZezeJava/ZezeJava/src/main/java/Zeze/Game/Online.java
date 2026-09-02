@@ -11,6 +11,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -108,7 +109,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
-	private final Object timerLock = new Object(); // 保护verifyLocalTimer与stopped
+	private final ReentrantLock timerLock = new ReentrantLock(); // 保护verifyLocalTimer与stopped
 	private @Nullable Future<?> verifyLocalTimer; // timerLock保护
 	private boolean stopped; // timerLock保护；stop置位后verifyLocal的finally不再重调度
 
@@ -137,13 +138,16 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private void startLocalCheck() {
-		synchronized (timerLock) {
+		timerLock.lock();
+		try {
 			if (stopped) // 停机后不再重调度，封住定时任务复活口
 				return;
 			var timer = verifyLocalTimer;
 			if (timer != null)
 				timer.cancel(false);
 			verifyLocalTimer = TaskSpec.ofAction(this::verifyLocal).scheduleNow(localCheckPeriod);
+		} finally {
+			timerLock.unlock();
 		}
 	}
 
@@ -340,8 +344,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 					online.start();
 			});
 		}
-		synchronized (timerLock) {
+		timerLock.lock();
+		try {
 			stopped = false; // 支持同实例stop后重新start
+		} finally {
+			timerLock.unlock();
 		}
 		startLocalCheck();
 		var hotManager = providerApp.zeze.getHotManager();
@@ -452,11 +459,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 					online.stop();
 			});
 		}
-		synchronized (timerLock) {
+		timerLock.lock();
+		try {
 			stopped = true;
 			var timer = verifyLocalTimer;
 			if (timer != null)
 				timer.cancel(false);
+		} finally {
+			timerLock.unlock();
 		}
 	}
 
