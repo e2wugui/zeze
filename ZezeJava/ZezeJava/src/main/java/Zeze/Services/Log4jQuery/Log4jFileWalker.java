@@ -10,8 +10,11 @@ import org.jetbrains.annotations.NotNull;
  * 用于Log4jFileSession搜索，具有局部状态。
  */
 public class Log4jFileWalker {
+	// 状态约定：current==null 表示未打开任何文件（初始/reset后/close后/文件列表为空），此时 currentIndex 恒为0；
+	// current!=null 时 current 是 files.get(currentIndex) 的已打开会话，currentIndex==files.size() 表示遍历耗尽。
+	// 文件列表会动态增长（onFileCreated），hasNext() 对未打开状态按需打开第一个文件。
 	private final @NotNull Log4jFileManager files;
-	private int currentIndex = -1;
+	private int currentIndex;
 	private Log4jFileSession current;
 
 	public Log4jFileWalker(@NotNull Log4jFileManager files) {
@@ -20,13 +23,12 @@ public class Log4jFileWalker {
 	}
 
 	public void reset() throws IOException {
-		if (currentIndex == 0)
-			current.reset();
-		else {
-			currentIndex = 0;
-			if (!files.isEmpty())
-				nextCurrent();
+		if (current != null && currentIndex == 0) {
+			current.reset(); // 已持有第一个文件的会话，复用。
+			return;
 		}
+		closeCurrent();
+		currentIndex = 0; // 空列表时hasNext()的循环条件(0<size)不成立，保持无会话。
 	}
 
 	public void seek(long time) throws IOException {
@@ -38,8 +40,7 @@ public class Log4jFileWalker {
 		}
 
 		currentIndex = out.value;
-		if (current != null)
-			current.close();
+		closeCurrent();
 		current = log4jFileSession;
 	}
 
@@ -51,6 +52,9 @@ public class Log4jFileWalker {
 	public boolean hasNext() throws IOException {
 		// 循环写法，可以跳过空文件。
 		while (currentIndex < files.size()) {
+			if (current == null)
+				// reset后尚未打开第一个文件，或空列表期间文件被创建（onFileCreated）；currentIndex已在[0,size)内。
+				nextCurrent();
 			if (current.hasNext())
 				return true;
 			if (++currentIndex < files.size())
@@ -64,16 +68,20 @@ public class Log4jFileWalker {
 	}
 
 	private void nextCurrent() throws IOException {
-		if (current != null)
-			current.close();
+		closeCurrent();
 		current = files.get(currentIndex);
 	}
 
-	public void close() throws IOException {
-		// 关闭最后一个打开的日志文件句柄。
+	private void closeCurrent() throws IOException {
 		if (current != null) {
 			current.close();
 			current = null;
 		}
+	}
+
+	public void close() throws IOException {
+		// 关闭最后一个打开的日志文件句柄。
+		closeCurrent();
+		currentIndex = 0;
 	}
 }
