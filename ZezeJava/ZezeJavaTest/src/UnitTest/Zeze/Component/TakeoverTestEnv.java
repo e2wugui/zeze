@@ -26,9 +26,15 @@ final class TakeoverTestEnv {
 	static Config newConf(String mode, long ttl, long scanPeriod) {
 		var conf = new Config();
 		conf.setServiceManager("disable");
-		conf.setServerId(NextServerId.getAndIncrement());
+		int serverId = NextServerId.getAndIncrement();
+		conf.setServerId(serverId);
 		conf.setDefaultTableConf(new Config.TableConf());
-		conf.getDatabaseConfMap().putIfAbsent("", new Config.DatabaseConf()); // 默认Memory库
+		// DatabaseMemory 的表存储是JVM级静态Map、按DatabaseUrl分桶：默认空url的桶被所有
+		// Memory库App共享（含常驻的demo.App——zeze.xml即Memory+空url，其Takeover默认on，
+		// 每30s walk共享租约表并对外来过期租约无声立碑）。每个测试App独占一个桶才能隔离。
+		var dbConf = new Config.DatabaseConf();
+		dbConf.setDatabaseUrl("takeover_test_" + serverId);
+		conf.getDatabaseConfMap().putIfAbsent("", dbConf); // Memory库，独立url=独立存储
 		conf.setTakeoverMode(mode);
 		conf.setTakeoverTtl(ttl);
 		conf.setTakeoverScanPeriod(scanPeriod);
@@ -74,17 +80,22 @@ final class TakeoverTestEnv {
 		Assertions.assertEquals(0L, rc);
 	}
 
+	// 行缺失与墓碑(expireAt=0)不可区分时返回{0,0}会造成假通过/假墓碑读数——这里大声失败。
 	static long[] readLease(Application app, int serverId) {
 		var out = new long[2];
+		var exists = new boolean[1];
 		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
 			var lease = app.getTakeover().getTable().get(serverId);
 			if (lease != null) {
+				exists[0] = true;
 				out[0] = lease.getEpoch();
 				out[1] = lease.getExpireAt();
 			}
 			return 0L;
 		}, "TakeoverTestEnv.readLease@" + serverId)).call();
 		Assertions.assertEquals(0L, rc);
+		Assertions.assertTrue(exists[0], "租约行必须存在：serverId=" + serverId
+				+ "（行缺失曾被误读为墓碑{0,0}）");
 		return out;
 	}
 }

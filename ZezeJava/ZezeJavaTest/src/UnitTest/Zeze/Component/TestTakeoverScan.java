@@ -46,6 +46,9 @@ public class TestTakeoverScan {
 			Assertions.assertEquals(0L, rc);
 			// 租约最后伪造：lease存在之前扫描walk会跳过777，避免【空数据+过期租约】竞态被立空碑。
 			TakeoverTestEnv.forgeLease(app, 777, 5, System.currentTimeMillis() - 1_000);
+			// TableX.walk只看底层存储（未见checkpoint的新增记录不可见）：伪造后必须强制checkpoint，
+			// 否则扫描通道永远看不见租约行，测试只能靠跨App共享存储的污染行"借光"通过。
+			app.checkpointRun();
 
 			// 等扫描周期接管完成（最多5秒）。
 			var deadline = System.currentTimeMillis() + 5_000;
@@ -65,6 +68,7 @@ public class TestTakeoverScan {
 			// 未过期的租约：扫描不动（flap保护由tryTransfer内部实现，这里验证扫描入口不误报）。
 			var liveExpireAt = System.currentTimeMillis() + 60_000;
 			TakeoverTestEnv.forgeLease(app, 888, 5, liveExpireAt);
+			app.checkpointRun(); // 同上：让888对扫描walk可见，断言"可见但不误动"才有意义
 			Thread.sleep(500); // 至少两个扫描周期
 			var lease888 = TakeoverTestEnv.readLease(app, 888);
 			Assertions.assertEquals(liveExpireAt, lease888[1], "未过期租约不得被扫描立碑");
