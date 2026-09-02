@@ -51,7 +51,7 @@ public class TaskGraphics {
 					return taskSet;
 				taskSet.decode(ByteBuffer.Wrap(value));
 			} catch (RocksDBException ex) {
-				Task.forceThrow(ex);
+				throw Task.forceThrow(ex);
 			}
 			return taskSet;
 		});
@@ -100,7 +100,7 @@ public class TaskGraphics {
 				data.decode(ByteBuffer.Wrap(value));
 				return data;
 			} catch (RocksDBException ex) {
-				Task.forceThrow(ex);
+				throw Task.forceThrow(ex);
 			}
 			throw new NullPointerException();
 		});
@@ -133,7 +133,7 @@ public class TaskGraphics {
 					return new TaskConfig();
 				return new TaskConfig(data);
 			} catch (Exception ex) {
-				Task.forceThrow(ex);
+				throw Task.forceThrow(ex);
 			}
 			throw new NullPointerException();
 		//});

@@ -330,7 +330,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			raftClient.stop();
 		}
 
-		public final void waitLoginSuccess() throws ExecutionException, InterruptedException {
+		public final void waitLoginSuccess() {
 			var volatileTmp = loginFuture;
 			if (volatileTmp.isDone()) {
 				if (volatileTmp.get())

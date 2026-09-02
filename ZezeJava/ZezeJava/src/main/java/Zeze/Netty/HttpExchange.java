@@ -598,28 +598,29 @@ public class HttpExchange {
 
 	@SuppressWarnings("ConstantConditions")
 	protected void fireWebSocket0(@NotNull WebSocketFrame frame) throws Exception {
-		if (frame instanceof BinaryWebSocketFrame) {
+		switch (frame) {
+		case BinaryWebSocketFrame ignored -> {
 			isWebSocketTextContent = false;
 			handler.WebSocketHandle.onContent(this, frame.content(), false, frame.isFinalFragment());
-		} else if (frame instanceof TextWebSocketFrame) {
+		}
+		case TextWebSocketFrame ignored -> {
 			isWebSocketTextContent = true;
 			handler.WebSocketHandle.onContent(this, frame.content(), true, frame.isFinalFragment());
-		} else if (frame instanceof ContinuationWebSocketFrame)
-			handler.WebSocketHandle.onContent(this, frame.content(), isWebSocketTextContent, frame.isFinalFragment());
-		else if (frame instanceof CloseWebSocketFrame) {
+		}
+		case ContinuationWebSocketFrame ignored ->
+				handler.WebSocketHandle.onContent(this, frame.content(), isWebSocketTextContent, frame.isFinalFragment());
+		case CloseWebSocketFrame closeFrame -> {
 			inStreamMode = false;
-			//noinspection PatternVariableCanBeUsed
-			var closeFrame = (CloseWebSocketFrame)frame;
 			handler.WebSocketHandle.onClose(this, closeFrame.statusCode(), closeFrame.reasonText());
 			closeConnectionOnFlush(null);
-		} else if (frame instanceof PingWebSocketFrame)
-			handler.WebSocketHandle.onPing(this, frame.content());
-		else if (frame instanceof PongWebSocketFrame)
-			handler.WebSocketHandle.onPong(this, frame.content());
-		else {
+		}
+		case PingWebSocketFrame ignored -> handler.WebSocketHandle.onPing(this, frame.content());
+		case PongWebSocketFrame ignored -> handler.WebSocketHandle.onPong(this, frame.content());
+		default -> {
 			Netty.logger.error("unknown websocket message type = {} from {}",
 					frame.getClass().getName(), context.channel().remoteAddress());
 			closeConnectionNow();
+		}
 		}
 	}
 

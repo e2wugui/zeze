@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.StringJoiner;
 import java.util.Map;
+import java.util.regex.Pattern;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Net.Binary;
@@ -39,6 +40,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			= mysqlObserverCreator != null ? mysqlObserverCreator.labelValues("delete") : null;
 	private static final @Nullable ZezeCounter.LongObserver mysqlReplaceCounter
 			= mysqlObserverCreator != null ? mysqlObserverCreator.labelValues("replace") : null;
+	private static final Pattern SPLIT_PATTERN = Pattern.compile(", ");
 
 	public DatabaseMySql(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
@@ -521,7 +523,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			return " WHERE " + sql.replace('=', asc ? '>' : '<'); // 单列保持原样
 		var columns = new StringJoiner(", ");
 		var values = new StringJoiner(", ");
-		for (var pair : sql.split(", ")) {
+		for (var pair : SPLIT_PATTERN.split(sql)) {
 			var eq = pair.indexOf('=');
 			columns.add(pair.substring(0, eq));
 			values.add(pair.substring(eq + 1));

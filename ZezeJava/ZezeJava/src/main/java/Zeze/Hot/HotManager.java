@@ -696,7 +696,7 @@ public class HotManager extends ClassLoader {
 			throw new RuntimeException("throwExceptionIfMatch " + step + ", " + getReadyLines().get(0));
 	}
 
-	public void renameDistributes() throws IOException {
+	public void renameDistributes() {
 		var files = new File(distributeDir).listFiles();
 		var formatter = new SimpleDateFormat("yyyy-MM-dd_hh-mm-ss-SSS");
 		var backupDir = Path.of(distributeDir, "backup", formatter.format(new Date()));

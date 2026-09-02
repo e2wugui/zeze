@@ -14,9 +14,9 @@ import Zeze.Net.Binary;
 import Zeze.Util.Task;
 
 public class FileBin {
-	private String relativeCanonicalFileName;
-	private File canonicalFile;
-	private RandomAccessFile randFile;
+	private final String relativeCanonicalFileName;
+	private final File canonicalFile;
+	private final RandomAccessFile randFile;
 	private OutputStream os;
 	private MessageDigest md5;
 

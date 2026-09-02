@@ -92,7 +92,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 		@Override
 		public <P extends Protocol<?>> void dispatchRaftRpcResponse(P p, ProtocolHandle<P> responseHandle,
-																	ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+																	ProtocolFactoryHandle<?> factoryHandle) {
 			Raft.executeImportantTask(() -> {
 				try {
 					responseHandle.handle(p);
@@ -199,7 +199,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	@Override
-	protected long ProcessSetBucketMetaRequest(SetBucketMeta r) throws Exception {
+	protected long ProcessSetBucketMetaRequest(SetBucketMeta r) {
 		var log = new LogSetBucketMeta(r);
 		raft.appendLog(log, r.Result, (raftLog, result)
 				-> r.SendResultCode(result ? 0 : Procedure.CancelException)); // result is empty
@@ -207,7 +207,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	@Override
-	protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException, InterruptedException {
+	protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException {
 		stateMachine.counterGet.incrementAndGet();
 //		var lock = getLocks().get(r.Argument.getKey());
 //		lock.lock(this);
@@ -231,7 +231,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	@Override
-	protected long ProcessKeepAliveRequest(KeepAlive r) throws Exception {
+	protected long ProcessKeepAliveRequest(KeepAlive r) {
 		r.SendResult();
 		return 0;
 	}
@@ -299,14 +299,14 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	@Override
-	protected long ProcessCommitBatchRequest(CommitBatch r) throws Exception {
+	protected long ProcessCommitBatchRequest(CommitBatch r) {
 		getRaft().appendLog(new LogCommitBatch(r), r.Result,
 				(raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 		return 0;
 	}
 
 	@Override
-	protected long ProcessUndoBatchRequest(UndoBatch r) throws Exception {
+	protected long ProcessUndoBatchRequest(UndoBatch r) {
 		getRaft().appendLog(new LogUndoBatch(r), r.Result,
 				(raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 		return 0;
@@ -856,7 +856,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 	}
 
 	@Override
-	protected long ProcessSplitPutRequest(SplitPut r) throws Exception {
+	protected long ProcessSplitPutRequest(SplitPut r) {
 		raft.appendLog(new LogSplitPut(r),
 				(raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 		return 0;
