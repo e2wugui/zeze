@@ -19,7 +19,7 @@ import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 同时配置 Acceptor 和 Connector。
@@ -186,8 +186,8 @@ public class Server extends HandshakeBoth {
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatchRpcResponse(@NonNull P p, @NonNull ProtocolHandle<P> responseHandle,
-															@NonNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P p, @NotNull ProtocolHandle<P> responseHandle,
+															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			try {
@@ -234,7 +234,7 @@ public class Server extends HandshakeBoth {
 	 * Raft.Server的线程派发模式总是完全
 	 */
 	@Override
-	public void dispatchProtocol(long typeId, @NonNull ByteBuffer bb, @NonNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
+	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
 			throws Exception {
 		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
@@ -242,7 +242,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	@Override
-	public void dispatchProtocol(@NonNull Protocol<?> p, @NonNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
@@ -303,7 +303,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	@Override
-	public void OnHandshakeDone(@NonNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
 
 		// 没有判断是否和其他Raft-Node的连接。

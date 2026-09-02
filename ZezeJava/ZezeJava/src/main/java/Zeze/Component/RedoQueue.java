@@ -16,7 +16,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
 
 /**
@@ -197,7 +197,7 @@ public class RedoQueue extends HandshakeClient {
 	}
 
 	@Override
-	public void OnHandshakeDone(@NonNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
 		lock();
 		try {
@@ -208,7 +208,7 @@ public class RedoQueue extends HandshakeClient {
 	}
 
 	@Override
-	public void OnSocketClose(@NonNull AsyncSocket so, Throwable ex) throws Exception {
+	public void OnSocketClose(@NotNull AsyncSocket so, Throwable ex) throws Exception {
 		super.OnSocketClose(so, ex);
 		lock();
 		try {

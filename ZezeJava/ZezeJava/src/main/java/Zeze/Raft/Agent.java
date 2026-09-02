@@ -37,7 +37,6 @@ import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.jspecify.annotations.NonNull;
 
 public final class Agent {
 	private static final Logger logger = LogManager.getLogger(Agent.class);
@@ -575,8 +574,8 @@ public final class Agent {
 		}
 
 		@Override
-		public <P extends Protocol<?>> void dispatchRpcResponse(@NonNull P rpc, @NonNull ProtocolHandle<P> responseHandle,
-																@NonNull ProtocolFactoryHandle<?> factoryHandle) {
+		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
+																@NotNull ProtocolFactoryHandle<?> factoryHandle) {
 			// Raft RPC 的回复处理应该都不是block的,直接在IO线程处理,避免线程池堆满等待又无法唤醒导致死锁
 			try {
 				responseHandle.handle(rpc);
@@ -586,7 +585,7 @@ public final class Agent {
 		}
 
 		@Override
-		public void dispatchProtocol(long typeId, @NonNull ByteBuffer bb, @NonNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
 			// 不支持事务
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			p.dispatch(this, factoryHandle);

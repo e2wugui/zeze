@@ -13,7 +13,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 
 // K必须可比较：内部TreeMap默认按自然排序（Comparator构造器只覆盖排序方式，不豁免可比性）。
 public class FewModifySortedMap<K extends Comparable<? super K>, V> implements NavigableMap<K, V>, Cloneable {
@@ -377,7 +376,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	}
 
 	@Override
-	public @Nullable V merge(K key, @NonNull V value, @NotNull BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+	public @Nullable V merge(K key, @NotNull V value, @NotNull BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.merge(key, value, remappingFunction);

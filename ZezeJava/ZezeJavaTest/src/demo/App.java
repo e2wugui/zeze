@@ -25,10 +25,7 @@ import org.apache.rocketmq.client.ClientConfig;
 import org.jetbrains.annotations.Nullable;
 
 public class App extends Zeze.AppBase {
-	@Override
-	public HttpServer getHttpServer() {
-		return HttpServer;
-	}
+
 
 	public static void main(String[] args) throws Exception {
 		System.err.println(System.getProperties().get("user.dir"));
@@ -63,6 +60,11 @@ public class App extends Zeze.AppBase {
 	public Bag.Module BagModule;
 	public Producer RocketMQProducer;
 	public HttpServer HttpServer;
+
+	@Override
+	public HttpServer getHttpServer() {
+		return HttpServer;
+	}
 
 	public static class MyHttpServer extends HttpServer {
 		private final @Nullable FreeMarker freeMarker;
@@ -272,7 +274,7 @@ public class App extends Zeze.AppBase {
         }
     }
 
-    public void destroyModules() throws Exception {
+    public void destroyModules()  {
         lock();
         try {
             demo_ModuleGTable = null;

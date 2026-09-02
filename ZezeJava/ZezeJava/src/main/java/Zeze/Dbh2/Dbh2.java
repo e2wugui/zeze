@@ -39,7 +39,6 @@ import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.jspecify.annotations.NonNull;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
@@ -441,8 +440,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		}
 
 		@Override
-		public <P extends Protocol<?>> void dispatchRpcResponse(@NonNull P rpc, @NonNull ProtocolHandle<P> responseHandle,
-																@NonNull ProtocolFactoryHandle<?> factoryHandle) {
+		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
+																@NotNull ProtocolFactoryHandle<?> factoryHandle) {
 			raft.executeUserTask(() -> {
 				try {
 					responseHandle.handle(rpc);
@@ -463,7 +462,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		}
 
 		@Override
-		public void dispatchProtocol(long typeId, @NonNull ByteBuffer bb, @NonNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
 			// 不支持事务，传统dispatch即可。
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			p.dispatch(this, factoryHandle);

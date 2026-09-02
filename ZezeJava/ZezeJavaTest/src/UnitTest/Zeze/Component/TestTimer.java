@@ -5,7 +5,7 @@ import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerSpec;
 import Zeze.Transaction.Procedure;
 import demo.App;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +31,7 @@ public class TestTimer {
 
 	public static class TestTimerHandle1 implements TimerHandle {
 		@Override
-		public void onTimer(@NonNull TimerContext timerContext) {
+		public void onTimer(@NotNull TimerContext timerContext) {
 			System.out.println(">> Name: " + timerContext.timerName
 					+ " ID: " + timerContext.timerId
 					+ " Now: " + System.currentTimeMillis()
@@ -42,7 +42,7 @@ public class TestTimer {
 
 	public static class TestTimerHandle2 implements TimerHandle {
 		@Override
-		public void onTimer(@NonNull TimerContext timerContext) {
+		public void onTimer(@NotNull TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
 			//noinspection DataFlowIssue
 			bean.addValue();
@@ -57,7 +57,7 @@ public class TestTimer {
 
 	public static class TestTimerHandle3 implements TimerHandle {
 		@Override
-		public void onTimer(@NonNull TimerContext timerContext) {
+		public void onTimer(@NotNull TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
 			//noinspection DataFlowIssue
 			if (bean.checkLiving()) {

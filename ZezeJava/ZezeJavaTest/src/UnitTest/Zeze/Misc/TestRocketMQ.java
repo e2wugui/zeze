@@ -19,7 +19,7 @@ import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -67,7 +67,7 @@ public class TestRocketMQ {
 		}
 	}
 
-	private static @NonNull Consumer createConsumer() throws MQClientException {
+	private static @NotNull Consumer createConsumer() throws MQClientException {
 		var consumer = new Consumer(App.Instance.Zeze, "testRocketMQ", new ClientConfig());
 
 		consumer.setMessageListener((MessageListenerConcurrently)(msgs, context) -> {

@@ -9,7 +9,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeClient;
 import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
-import org.jspecify.annotations.NonNull;
 
 public final class AgentClient extends HandshakeClient {
 	private final Agent agent;
@@ -38,7 +37,7 @@ public final class AgentClient extends HandshakeClient {
 	}
 
 	@Override
-	public void OnHandshakeDone(@NonNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 		var firstConnected = socket == null;
 		if (firstConnected)
 			socket = so; // 下面这行可能导致等待future的其它线程开始执行,所以先给socket赋值
@@ -51,7 +50,7 @@ public final class AgentClient extends HandshakeClient {
 	}
 
 	@Override
-	public void OnSocketClose(@NonNull AsyncSocket so, Throwable e) throws Exception {
+	public void OnSocketClose(@NotNull AsyncSocket so, Throwable e) throws Exception {
 		if (socket == so) {
 			socket = null;
 		}
@@ -59,7 +58,7 @@ public final class AgentClient extends HandshakeClient {
 	}
 
 	@Override
-	public void dispatchProtocol(long typeId, @NonNull ByteBuffer bb, @NonNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
+	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
 			throws Exception {
 		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);

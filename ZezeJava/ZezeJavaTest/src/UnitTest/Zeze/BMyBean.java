@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Transaction;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 
 public class BMyBean extends Bean {
@@ -19,7 +19,7 @@ public class BMyBean extends Bean {
 	}
 
 	@Override
-	public @NonNull BMyBean copy() {
+	public @NotNull BMyBean copy() {
 		var copy = new BMyBean();
 		copy._i = getI();
 		return copy;

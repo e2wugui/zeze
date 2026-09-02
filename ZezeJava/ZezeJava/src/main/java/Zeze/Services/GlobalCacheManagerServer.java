@@ -43,7 +43,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 import org.w3c.dom.Element;
 
 public final class GlobalCacheManagerServer extends ReentrantLock implements GlobalCacheManagerConst {
@@ -1015,14 +1014,14 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		}
 
 		@Override
-		public void OnSocketAccept(@NonNull AsyncSocket so) throws Exception {
+		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
 			logger.info("OnSocketAccept {}", so);
 			// so.UserState = new CacheHolder(so.SessionId); // Login ReLogin 的时候初始化。
 			super.OnSocketAccept(so);
 		}
 
 		@Override
-		public void OnSocketClose(@NonNull AsyncSocket so, Throwable e) throws Exception {
+		public void OnSocketClose(@NotNull AsyncSocket so, Throwable e) throws Exception {
 			logger.info("OnSocketClose {}", so);
 			var session = (CacheHolder)so.getUserState();
 			if (session != null)
@@ -1031,8 +1030,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		}
 
 		@Override
-		public <P extends Protocol<?>> void dispatchRpcResponse(@NonNull P rpc, @NonNull ProtocolHandle<P> responseHandle,
-																@NonNull ProtocolFactoryHandle<?> factoryHandle) {
+		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
+																@NotNull ProtocolFactoryHandle<?> factoryHandle) {
 			try {
 				responseHandle.handle(rpc);
 			} catch (Throwable e) { // logger.error

@@ -1,6 +1,6 @@
 package UnitTest.Zeze.Net;
 
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Disabled;
 import Zeze.Serialize.*;
@@ -21,7 +21,7 @@ public class TestAsyncSocket {
 		}
 
 		@Override
-		public void OnSocketConnected(@NonNull AsyncSocket so) throws Exception {
+		public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
 			super.OnSocketConnected(so);
 			System.out.println("OnSocketConnected: " + so.getSessionId());
 			String head = "GET / HTTP/1.1\r\nHost: www.163.com\r\nAccept:*/*\r\n\r\n";
@@ -30,7 +30,7 @@ public class TestAsyncSocket {
 		}
 
 		@Override
-		public boolean OnSocketProcessInputBuffer(@NonNull AsyncSocket so, @NonNull ByteBuffer input) {
+		public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) {
 			System.out.println("input size=" + input.size());
 			System.out.println(new String(input.Bytes, input.ReadIndex, input.size()));
 			input.ReadIndex = input.WriteIndex;

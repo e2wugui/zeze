@@ -9,7 +9,6 @@ import Zeze.Transaction.Collections.Collection;
 import Zeze.Transaction.Collections.LogBean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 
 public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	@NotNull Bean bean = new EmptyBean();
@@ -185,7 +184,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public @NonNull Object mapKey() {
+	public @NotNull Object mapKey() {
 		return mapKey;
 	}
 
