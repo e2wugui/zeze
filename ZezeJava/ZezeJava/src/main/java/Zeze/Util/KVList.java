@@ -291,14 +291,21 @@ public class KVList<K, V> implements Cloneable {
 		int n = count;
 		int s = Math.min(keys.size(), values.size());
 		reserve(n + s);
+		int end = n + s; // 与数组版addAll的min截断语义对齐，集合大小不一致时按s截断，避免越界或错位
 		Object[] buf = this.keys;
-		for (K k : keys)
+		for (K k : keys) {
+			if (n >= end)
+				break;
 			buf[n++] = k;
+		}
 		buf = this.values;
 		n = count;
-		for (V v : values)
+		for (V v : values) {
+			if (n >= end)
+				break;
 			buf[n++] = v;
-		count = n;
+		}
+		count = end;
 		return this;
 	}
 
