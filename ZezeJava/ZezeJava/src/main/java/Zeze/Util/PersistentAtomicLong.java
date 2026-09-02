@@ -148,9 +148,10 @@ public class PersistentAtomicLong {
 						if (reset)
 							newLast = allocateSize;
 						fs.seek(0);
-						fs.setLength(0);
-						fs.write(String.valueOf(newLast).getBytes(StandardCharsets.UTF_8));
+						var newLastBytes = String.valueOf(newLast).getBytes(StandardCharsets.UTF_8);
+						fs.write(newLastBytes); // 先覆盖写：新值位数>=旧值，任何崩溃点文件中都保有旧值或新值，不会变空
 						channel.force(false);
+						fs.setLength(newLastBytes.length); // 新值安全落盘后才截断到实际写入长度
 						allocatedEnd = newLast; // first
 						if (reset)
 							currentId.set(0); // second
