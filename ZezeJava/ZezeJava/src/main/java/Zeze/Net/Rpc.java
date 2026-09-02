@@ -229,6 +229,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			logger.warn("Rpc.SendResult Failed: {} {}", getSender(), this);
 	}
 
+	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
 	public boolean isSendResultDone() {
 		return sendResultDone;
 	}

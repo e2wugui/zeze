@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import Zeze.Serialize.Serializable;
+import org.jetbrains.annotations.NotNull;
 
 final class RaftRpcBridge<TArgument extends Serializable, TResult extends Serializable> extends RaftRpc<TArgument, TResult> {
 	private final RaftRpc<TArgument, TResult> real;
@@ -20,7 +21,7 @@ final class RaftRpcBridge<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return "RaftRpcBridge(" + real.toString() + ')';
 	}
 }

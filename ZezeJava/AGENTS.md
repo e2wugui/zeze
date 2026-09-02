@@ -29,6 +29,11 @@ gradlew.bat :ZezeJavaTest:bench --tests "*DiffLockAndNoLock"     :: 单类（类
 另外类的标签必须匹配任务的标签过滤，否则通配符形式同样报 No tests found：
 test 只跑 @Fast；integrationTest 只跑不带 fast/bench 标签的；bench 只跑 @Bench。
 
+## 空安全注解
+
+用 jetbrains 的 `@NotNull` / `@Nullable`（`org.jetbrains.annotations`），
+不要用 jspecify 的 `@NonNull` / `@Nullable`（`org.jspecify.annotations`）。
+
 ## 修复提交的信息格式
 
 一个 bug 一个提交。格式：
@@ -48,3 +53,4 @@ test 只跑 @Fast；integrationTest 只跑不带 fast/bench 标签的；bench �
 
 - 类别用模块名（transaction/util/raft/net/dbh2/game…），不带编号；主题不写修法。
 - bullet `- ` 结尾带"。"，续行缩进两空格，约 64 列换行。
+- 保持简洁

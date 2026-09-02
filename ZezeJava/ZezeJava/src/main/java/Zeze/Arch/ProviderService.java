@@ -103,7 +103,7 @@ public class ProviderService extends HandshakeClient {
 	}
 
 	public void refreshLinkConnectors() {
-		linkConnectors = links.values().toArray(new Connector[links.size()]);
+		linkConnectors = links.values().toArray(new Connector[0]);
 	}
 
 	public static class LinkSession {

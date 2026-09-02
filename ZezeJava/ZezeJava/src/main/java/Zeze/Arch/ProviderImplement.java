@@ -66,12 +66,12 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		// 注册本provider的静态服务
 		for (var it = providerApp.staticBinds.iterator(); it.moveToNext(); ) {
 			edit.getAdd().add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity, appMainVersion,
-					providerApp.directIp, providerApp.directPort));
+				providerApp.directIp, providerApp.directPort));
 		}
 		// 注册本provider的动态服务
 		for (var it = providerApp.dynamicModules.iterator(); it.moveToNext(); ) {
 			edit.getAdd().add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity, appMainVersion,
-					providerApp.directIp, providerApp.directPort));
+				providerApp.directIp, providerApp.directPort));
 		}
 		//noinspection DataFlowIssue
 		sm.editService(edit);
@@ -94,7 +94,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 								int control) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG) {
 			logger.info("sendKick[{}]: linkSid={}, code={}, desc={}",
-					sender != null ? sender.getSessionId() : null, linkSid, code, desc);
+				sender != null ? sender.getSessionId() : null, linkSid, code, desc);
 		}
 		new Kick(new BKick.Data(linkSid, code, desc, control)).Send(sender);
 	}
@@ -126,7 +126,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			var overload = load.getOverload().getOverload();
 			if (overload != BLoad.eWorkFine) {
 				if (overload == BLoad.eThreshold && factoryHandle.CriticalLevel == Protocol.eSheddable ||
-						overload == BLoad.eOverload && factoryHandle.CriticalLevel != Protocol.eCriticalPlus) {
+					overload == BLoad.eOverload && factoryHandle.CriticalLevel != Protocol.eCriticalPlus) {
 					var pdata = arg.getProtocolData();
 					if (pdata.size() > 0 && (pdata.get(0) & FamilyClass.FamilyClassMask) == FamilyClass.Request) {
 						// 简单构造并回复该RPC
@@ -159,41 +159,43 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			var session = newSession(p);
 			var zeze = sender.getService().getZeze();
 			var txn = Transaction.getCurrent();
-			var outRpcContext = new OutObject<Rpc<?, ?>>();
 			if (txn == null && zeze != null && factoryHandle.Level != TransactionLevel.None) {
 				var outProtocol = new OutObject<Protocol<?>>();
 				var r = ProtocolDispatch.ofProcedure(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
-					var p3 = factoryHandle.Factory.create();
-					var t = Transaction.getCurrent();
-					@SuppressWarnings("DataFlowIssue")
-					var proc = t.getTopProcedure();
-					//noinspection DataFlowIssue
-					proc.setActionName(p3.getClass().getName());
-					p3.decode(ByteBuffer.Wrap(arg.getProtocolData()));
-					p3.setSender(sender);
-					p3.setUserState(session);
-					var isRpcResponse = !p3.isRequest(); // && p3 instanceof Rpc
-					if (isRpcResponse)
-						proc.setActionName(proc.getActionName() + ":Response");
-					if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p3.getTypeId())
+						var p3 = factoryHandle.Factory.create();
+						var t = Transaction.getCurrent();
+						@SuppressWarnings("DataFlowIssue")
+						var proc = t.getTopProcedure();
+						//noinspection DataFlowIssue
+						proc.setActionName(p3.getClass().getName());
+						p3.decode(ByteBuffer.Wrap(arg.getProtocolData()));
+						p3.setSender(sender);
+						p3.setUserState(session);
+						var isRpcResponse = !p3.isRequest(); // && p3 instanceof Rpc
+						if (isRpcResponse)
+							proc.setActionName(proc.getActionName() + ":Response");
+						if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p3.getTypeId())
 							&& outProtocol.value == null) { // redo后不再输出日志
-						var roleId = session.getRoleId();
-						if (roleId == null)
-							roleId = -arg.getLinkSid();
-						AsyncSocket.log("Recv", roleId, arg.getOnlineSetName(), p3);
-					}
-					outProtocol.value = p3;
-					t.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
-					if (isRpcResponse)
-						return processRpcResponse(outRpcContext, p3);
-					// protocol or rpc request
-					@SuppressWarnings("unchecked")
-					var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
-					return handler != null ? handler.handle(p3) : Procedure.NotImplement;
-				}, null, factoryHandle.Level)).outProtocol(outProtocol).onError(session::trySendResponse).call();
+							var roleId = session.getRoleId();
+							if (roleId == null)
+								roleId = -arg.getLinkSid();
+							AsyncSocket.log("Recv", roleId, arg.getOnlineSetName(), p3);
+						}
+						outProtocol.value = p3;
+						t.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
+						if (isRpcResponse)
+							return processRpcResponse(p3);
+						// protocol or rpc request
+						@SuppressWarnings("unchecked")
+						var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
+						return handler != null ? handler.handle(p3) : Procedure.NotImplement;
+					}, null, factoryHandle.Level))
+					.outProtocol(outProtocol)
+					.onError(session::trySendResponse)
+					.call();
 				if (ZezeCounter.instance != null) {
 					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
-							Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
+						Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
 				}
 				return r;
 			}
@@ -218,7 +220,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			var p3 = p2;
 			var r = ProtocolDispatch.ofFunc(() -> {
 				if (isRpcResponse)
-					return processRpcResponse(outRpcContext, p3);
+					return processRpcResponse(p3);
 				// protocol or rpc request
 				@SuppressWarnings("unchecked")
 				var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
@@ -226,7 +228,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			}, p3).onError(session::trySendResponse).call();
 			if (ZezeCounter.instance != null) {
 				ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
-						Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
+					Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
 			}
 			return r;
 		} catch (Exception ex) {
@@ -239,27 +241,28 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 	}
 
-	private long processRpcResponse(@NotNull OutObject<Rpc<?, ?>> outRpcContext, @NotNull Protocol<?> p3)
-			throws Exception {
+	private long processRpcResponse(@NotNull Protocol<?> p3) throws Exception {
 		var res = (Rpc<?, ?>)p3;
-		// 获取context并保存下来，redo的时候继续使用。
-		if (outRpcContext.value == null) {
-			outRpcContext.value = providerApp.providerService.removeRpcContext(res.getSessionId());
-			// 再次检查，因为context可能丢失
-			if (outRpcContext.value == null) {
-				logger.warn("rpc response: lost context, maybe timeout. {}", p3);
-				return Procedure.Unknown;
-			}
+		var service = providerApp.providerService;
+		// 本方法随action在事务redo时整体重跑，会合消费（removeRpcContext）只能发生一次：
+		// 首轮解析并缓存到当前事务（含null判定），重试直接复用，与 Rpc.handle 同一约定。
+		var txn = Transaction.getCurrent();
+		Rpc<?, ?> context = txn != null
+			? txn.resolveOnce(service, res.getSessionId(), service::removeRpcContext)
+			: service.removeRpcContext(res.getSessionId());
+		if (context == null) {
+			// 上下文可能丢失（一般已被超时消费）：立即失败终止。
+			logger.warn("rpc response: lost context, maybe timeout. {}", p3);
+			return Procedure.Unknown;
 		}
-
-		return res.setupRpcResponseContext(outRpcContext.value).setFutureResultOrCallHandle();
+		return res.setupRpcResponseContext(context).setFutureResultOrCallHandle();
 	}
 
 	@Override
 	protected long ProcessAnnounceLinkInfo(@NotNull AnnounceLinkInfo protocol) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG) {
 			logger.info("AnnounceLinkInfo[{}]: {}",
-					protocol.getSender().getSessionId(), AsyncSocket.toStr(protocol.Argument));
+				protocol.getSender().getSessionId(), AsyncSocket.toStr(protocol.Argument));
 		}
 		// var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
 		return Procedure.Success;

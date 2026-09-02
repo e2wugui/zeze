@@ -8,6 +8,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.TaskCompletionSource;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class RaftRpc<TArgument extends Serializable, TResult extends Serializable>
 		extends ProxyableRpc<TArgument, TResult> implements IRaftRpc {
@@ -75,7 +76,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var header = getFamilyClass();
 		if (resultCode == 0)
 			bb.WriteUInt(header);
@@ -95,7 +96,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		var header = bb.ReadUInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
 		if (!FamilyClass.isRaftRpc(familyClass))
@@ -114,7 +115,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		AsyncSocket sender = getSender();
 		return String.format("(Client=%s Unique=%s %s)",
 				sender != null ? sender.getRemoteAddress() : null, unique, super.toString());

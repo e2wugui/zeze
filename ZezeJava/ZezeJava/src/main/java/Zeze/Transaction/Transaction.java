@@ -197,7 +197,7 @@ public final class Transaction {
 
 	public void putLog(@NotNull Log log) {
 		verifyRunning();
-		savepoints.get(savepoints.size() - 1).putLog(log);
+		savepoints.getLast().putLog(log);
 	}
 
 	private void triggerRedoActions() {
@@ -258,7 +258,7 @@ public final class Transaction {
 			return;
 		}
 		verifyRunning();
-		savepoints.get(savepoints.size() - 1).addCommitAction(action);
+		savepoints.getLast().addCommitAction(action);
 	}
 
 	public void runWhileRollback(@NotNull Runnable action) {
@@ -267,7 +267,7 @@ public final class Transaction {
 			return;
 		}
 		verifyRunning();
-		savepoints.get(savepoints.size() - 1).addRollbackAction(action);
+		savepoints.getLast().addRollbackAction(action);
 	}
 
 	void setAlwaysReleaseLockWhenRedo(int tableId) {

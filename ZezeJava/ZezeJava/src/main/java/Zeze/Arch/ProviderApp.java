@@ -180,7 +180,7 @@ public class ProviderApp extends ReentrantLock {
 			providerImplement.registerModulesAndSubscribeLinkd();
 			startLast = true;
 			zeze.getTimer().start();
-			zeze.getSafeBatch().start();;
+			zeze.getSafeBatch().start();
 			zeze.getAppBase().startLastModules();
 
 			if (providerImplement instanceof ProviderWithOnline)
