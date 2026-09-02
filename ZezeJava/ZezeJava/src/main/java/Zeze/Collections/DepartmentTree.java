@@ -302,9 +302,9 @@ public class DepartmentTree<
 	}
 
 	@SuppressWarnings("unchecked")
-	private TManager getOrAddRootManager() {
+	private TManager getOrAddRootManager(String account) {
 		var dRoot = module._tDepartment.getOrAdd(name);
-		return (TManager)dRoot.getManagers().computeIfAbsent(name, key -> {
+		return (TManager)dRoot.getManagers().computeIfAbsent(account, key -> {
 			var value = new DynamicBean(0, DepartmentTree::getSpecialTypeIdFromBean, DepartmentTree::createBeanFromSpecialTypeId);
 			value.setBean(beanFactory.createBeanFromSpecialTypeId(managerTypeId));
 			return value;
@@ -314,7 +314,7 @@ public class DepartmentTree<
 	@SuppressWarnings("unchecked")
 	public TManager getOrAddManager(long departmentId, String name) {
 		if (departmentId == 0)
-			return getOrAddRootManager();
+			return getOrAddRootManager(name);
 
 		var d = getDepartmentTreeNode(departmentId);
 		return (TManager)d.getManagers().computeIfAbsent(name, key -> {
@@ -326,7 +326,8 @@ public class DepartmentTree<
 
 	@SuppressWarnings("unchecked")
 	private TManager deleteRootManager(String name) {
-		var dRoot = module._tDepartment.getOrAdd(name);
+		// 表key是树名(this.name)，managers的key是账号(参数name)。
+		var dRoot = module._tDepartment.getOrAdd(this.name);
 		var m = dRoot.getManagers().remove(name);
 		if (null == m)
 			return null;
