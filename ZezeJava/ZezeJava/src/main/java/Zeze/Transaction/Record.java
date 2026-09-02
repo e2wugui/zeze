@@ -41,7 +41,8 @@ public abstract class Record extends ReentrantLock {
 	 * CheckpointMode.Period
 	 * Snapshot时记住timestamp，Cleanup的时候ClearDirty(snapshot_timestamp)，需要记录锁。
 	 * CheckpointMode.Immediately
-	 * Commit完成以后马上进行不需要锁的ClearDirty. (实际实现为根本不修改Dirty)
+	 * Commit完成以后马上进行不需要锁的ClearDirty.
+	 * (实际实现：Commit设置Dirty，提交流程 Checkpoint.flush(Iterable&lt;Record&gt;) 同步保存后清除)
 	 * CheckpointMode.Table
 	 * Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
 	 */

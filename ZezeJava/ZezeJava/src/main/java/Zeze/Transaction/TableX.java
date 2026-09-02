@@ -234,11 +234,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							if (old != null) {
 								strongRef = old;
 								r.setSoftValue(strongRef);
-								// 从旧表装载时，马上设为脏，使得可以写入新表。
-								// 否则直到被修改前，都不会被保存到当前数据库中。
-								r.setDirty();
-								// Immediately 需要特别在此单独处理。
 								if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
+									// Immediately 模式这里直接保存到 RocksCache 与 OldTable，
+									// 不设置脏标记（脏记录流程不会处理它，会永久滞留强引用）。
 									var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
 									var t = oldTable.getDatabase().beginTransaction();
 									try {
@@ -263,6 +261,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 											logger.error("", e);
 										}
 									}
+								} else {
+									// 从旧表装载时，马上设为脏，使得可以写入新表。
+									// 否则直到被修改前，都不会被保存到当前数据库中。
+									r.setDirty();
 								}
 							}
 						}
@@ -774,7 +776,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	// Key 都是简单变量，系列化方法都不一样，需要生成。
-	@SuppressWarnings("NullableProblems")
 	public abstract @NotNull ByteBuffer encodeKey(@NotNull K key);
 
 	@Override
@@ -788,14 +789,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return decodeKey(ByteBuffer.Wrap(bytes, keyOffset, bytes.length - keyOffset));
 	}
 
-	@SuppressWarnings("NullableProblems")
 	@Override
 	public abstract @NotNull K decodeKey(@NotNull ByteBuffer bb);
 
-	@SuppressWarnings("NullableProblems")
 	public abstract @NotNull K decodeKeyResultSet(@NotNull ResultSet rs) throws SQLException;
 
-	@SuppressWarnings("NullableProblems")
 	public abstract void encodeKeySQLStatement(@NotNull SQLStatement st, @NotNull K _v_);
 
 	private Schemas.RelationalTable relationalTable;
@@ -814,7 +812,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		getZeze().getDelayRemove().remove(this, key);
 	}
 
-	@SuppressWarnings("NullableProblems")
 	@Override
 	public abstract @NotNull V newValue();
 

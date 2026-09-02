@@ -191,23 +191,10 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 	@Override
 	public void setDirty() {
-		//var storage = table.getStorage();
-
-		switch (table.getZeze().getConfig().getCheckpointMode()) {
-//		case Period:
-//			setDirty(true);
-//			if (storage != null)
-//				storage.onRecordChanged(this);
-//			break;
-		case Table:
-			setDirty(true);
-			break;
-		case Immediately:
-			// 立即模式需要马上保存到RocksCache中。在下面两个地方保存：
-			// 1. 在public void Flush(Iterable<Record> rs)流程中直接保存。
-			// 2. TableX.Load。
-			break;
-		}
+		// Table: 后台 Checkpoint.flush(RelativeRecordSet) 保存后清除；
+		// Immediately: 提交流程 Checkpoint.flush(Iterable<Record>) 同步保存后清除。
+		// see Checkpoint.flush(Iterable<Record> rs, Set<OnzProcedure>, History)
+		setDirty(true);
 	}
 
 /*

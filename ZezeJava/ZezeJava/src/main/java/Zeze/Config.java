@@ -287,8 +287,6 @@ public final class Config {
 	}
 
 	public void setCheckpointMode(@Nullable CheckpointMode value) {
-		if (value == CheckpointMode.Immediately)
-			throw new UnsupportedOperationException("CheckpointMode.Immediately is not implemented.");
 		checkpointMode = value != null ? value : CheckpointMode.Table;
 	}
 

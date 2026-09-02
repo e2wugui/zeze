@@ -345,6 +345,10 @@ public final class Checkpoint {
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
+			// 保存成功，清除脏标记。
+			// Immediately 模式的记录不进入 RelativeRecordSet，这里是它唯一的清除点。
+			for (var r : rs)
+				r.setDirty(false);
 		} catch (Throwable e) { // rethrow
 			for (var t : dts.values()) {
 				try {
@@ -378,10 +382,7 @@ public final class Checkpoint {
 	// under lock(rs)
 	public void flush(@NotNull RelativeRecordSet rs) {
 		// rs.MergeTo == null &&  check outside
-		if (rs.getRecordSet() != null) {
-			flush(rs.getRecordSet(), rs.getOnzProcedures(), rs.getHistory());
-			for (var r : rs.getRecordSet())
-				r.setDirty(false);
-		}
+		if (rs.getRecordSet() != null)
+			flush(rs.getRecordSet(), rs.getOnzProcedures(), rs.getHistory()); // 脏标记在 flush(Iterable) 保存成功后统一清除。
 	}
 }
