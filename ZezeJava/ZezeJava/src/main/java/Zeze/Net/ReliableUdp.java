@@ -35,6 +35,10 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	public static final int TypePacket = 0;
 	public static final int TypeControl = 1;
 
+	// 接收乱序窗口上界：packet.serialId 与 lastDispatchedSerialId 的差值超过这个值的包直接丢弃。
+	// serialId 来自网络输入，不校验的话，伪造的超大 serialId 会抬高 maxRecvPacketSerialId，导致构造海量 Resend 条目（单包DoS）。
+	private static final long MaxRecvSerialIdWindow = 1L << 20;
+
 	private final DatagramChannel datagramChannel;
 	private SelectionKey selectionKey;
 	private final Selector selector;
@@ -246,6 +250,9 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		if (session != null) {
 			if (packet.serialId <= session.lastDispatchedSerialId)
 				return; // skip duplicate packet.
+
+			if (packet.serialId - session.lastDispatchedSerialId > MaxRecvSerialIdWindow)
+				return; // skip packet beyond recv window. 超出乱序窗口上界，直接丢弃，防止抬高 maxRecvPacketSerialId。
 
 			if (packet.serialId > session.maxRecvPacketSerialId)
 				session.maxRecvPacketSerialId = packet.serialId;
