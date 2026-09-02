@@ -1,9 +1,11 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import Zeze.History.History;
 import Zeze.Onz.Onz;
@@ -20,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 public final class Transaction {
 	private static final @NotNull Logger logger = LogManager.getLogger(Transaction.class);
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
+	private static final @NotNull Object NULL_VALUE = new Object(); // resolveOnce 已解析为 null 的哨兵
 
 	public static @NotNull Transaction create(@NotNull Locks locks) {
 		var t = threadLocal.get();
@@ -65,7 +68,7 @@ public final class Transaction {
 	private boolean created;
 	private boolean alwaysReleaseLockWhenRedo;
 	private final ArrayList<Bean> redoBeans = new ArrayList<>();
-	private @Nullable ArrayList<Runnable> redoActions; // 延迟初始化
+	private @Nullable HashMap<ResolveKey, Object> onceResolved; // resolveOnce 缓存，延迟初始化
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
 	private final AtomicLong totalTransaction = new AtomicLong();
@@ -131,8 +134,8 @@ public final class Transaction {
 		created = false;
 		alwaysReleaseLockWhenRedo = false;
 		redoBeans.clear();
-		if (null != redoActions)
-			redoActions.clear();
+		if (null != onceResolved)
+			onceResolved.clear();
 		onzProcedure = null;
 		profiler.reset();
 	}
@@ -151,8 +154,8 @@ public final class Transaction {
 		accessedRecords.clear();
 		state = TransactionState.Running; // prepare to retry
 		redoBeans.clear();
-		if (null != redoActions)
-			redoActions.clear();
+		// onceResolved 不清除：它的生命周期是一次 perform（含全部redo重试），
+		// 重试时必须继续复用首轮解析的结果，只在 perform 入口和 reuseTransaction 中清。
 		// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
 	}
 
@@ -197,26 +200,38 @@ public final class Transaction {
 		savepoints.get(savepoints.size() - 1).putLog(log);
 	}
 
-	private void triggerRedoActions(boolean willRetry) {
+	private void triggerRedoActions() {
 		profiler.onRedo();
 		redoBeans.forEach(Bean::resetRootInfo);
 		// 确认问题：
 		//  1. triggerRedoActions 上面两个分支调用，第一个分支异常，会导致catch里面再次执行。是不是应该吧两个调回统一到下面的for循环继续的地方？
 		//  2. redo不跟savepoint打交道，总是事务级别的，这个定义应该是正确的吧。
-		//  3. 【已确认】tryWhileRedo 目前只有 Rpc 使用（handle 移除上下文后注册重加，重试的 handle 才能再次取到）。
-		//     用法正确，但动作只在还要重试时执行：最后一次尝试失败后不再重试，
-		//     此时重加上下文将无人移除（一次性超时任务可能早已消耗），泄漏在 Service.rpcContexts 中。
-		if (willRetry && null != redoActions)
-			redoActions.forEach(Runnable::run); // redo action 不能抛出异常，否则终止事务。
+		//  3. 不要在这里重新引入"为重试做准备"的动作机制（原 tryWhileRedo 已删除）：
+		//     补偿点无法预知"是否还有下一次重试"，一次性资源请用 resolveOnce。
 	}
 
-	public static void tryWhileRedo(@NotNull Runnable action) {
-		var txn = getCurrent();
-		if (txn != null) {
-			if (null == txn.redoActions)
-				txn.redoActions = new ArrayList<>();
-			txn.redoActions.add(action);
-		}
+	/**
+	 * 在整个事务生命周期内（含 perform 的全部 redo 重试），同一个 (owner, key) 只向 resolver 求解一次。
+	 * 供 handler 内消费"一次性"的外部资源（如 Rpc 会合：removeRpcContext 只能发生一次）：
+	 * 首轮求解结果（包括 null，表示已输给并发消费者）缓存在事务上，重试直接复用，不再触碰外部资源。
+	 * owner 是资源的属主（Rpc.handle 传 Service）：不同属主即使 key 相同也是不同资源，不会串；
+	 * 同一属主内要求 key 唯一标识资源（默认 sessionId 生成器进程内唯一，满足此约束）。
+	 */
+	@SuppressWarnings("unchecked")
+	public <T> T resolveOnce(@NotNull Object owner, long key, @NotNull LongFunction<T> resolver) {
+		var cache = onceResolved;
+		if (cache == null)
+			onceResolved = cache = new HashMap<>();
+		var cacheKey = new ResolveKey(owner, key);
+		var cached = cache.get(cacheKey);
+		if (cached != null)
+			return cached != NULL_VALUE ? (T)cached : null;
+		var value = resolver.apply(key);
+		cache.put(cacheKey, value != null ? value : NULL_VALUE);
+		return value;
+	}
+
+	private record ResolveKey(@NotNull Object owner, long key) {
 	}
 
 	static void whileRedo(@NotNull Bean b) {
@@ -267,6 +282,8 @@ public final class Transaction {
 	 * @param procedure first procedure
 	 */
 	public long perform(@NotNull Procedure procedure) {
+		if (null != onceResolved)
+			onceResolved.clear(); // 一次性解析缓存的生命周期 = 一次 perform（含redo重试），不跨事务
 		try {
 			var checkpoint = procedure.getZeze().getCheckpoint();
 			if (checkpoint == null)
@@ -339,7 +356,7 @@ public final class Transaction {
 						if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
 							checkResult = CheckResult.RedoAndReleaseLock;
 						logger.info("perform({}): {}", procedure, checkResult);
-						triggerRedoActions(tryCount + 1 < 256);
+						triggerRedoActions();
 					} catch (Throwable e) { // logger.error, logger.warn, rethrow AssertionError, ignored
 						// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
 						// 在 unit test 下，异常日志会被记录两次。
@@ -388,7 +405,7 @@ public final class Transaction {
 								throw (AssertionError)e;
 							logger.error("perform({}) {} exception. run count:{}", procedure, state, tryCount, e);
 						}
-						triggerRedoActions(tryCount + 1 < 256);
+						triggerRedoActions();
 						// retry
 					} finally {
 						reuseTransactionForRedo(checkResult);

@@ -294,13 +294,17 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			return super.handle(service, factoryHandle);
 
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
-		Rpc<TArgument, TResult> context = service.removeRpcContext(sessionId);
+		// 本方法随action在事务redo时整体重跑，会合消费（removeRpcContext）只能发生一次：
+		// 首轮解析并缓存到当前事务，重试直接复用。
+		var txn = Transaction.getCurrent();
+		Rpc<TArgument, TResult> context = txn != null
+				? txn.resolveOnce(service, sessionId, service::removeRpcContext)
+				: service.removeRpcContext(sessionId);
 		if (context == null) {
 			service.onRpcLostContext(this);
-			return 0;
+			// 上下文丢失（一般已被超时消费）：立即失败终止，不空转剩余重试、不以Success提交空事务。
+			return Procedure.Unknown;
 		}
-
-		Transaction.tryWhileRedo(() -> service.addRpcContext(sessionId, context));
 
 		context.setSender(getSender());
 		context.resultCode = resultCode;

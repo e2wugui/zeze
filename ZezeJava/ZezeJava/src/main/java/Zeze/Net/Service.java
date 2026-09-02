@@ -662,10 +662,6 @@ public class Service extends ReentrantLock {
 		}
 	}
 
-	void addRpcContext(long sessionId, @NotNull Protocol<?> p) {
-		rpcContexts.putIfAbsent(sessionId, p);
-	}
-
 	@SuppressWarnings("unchecked")
 	public final <T extends Protocol<?>> @Nullable T removeRpcContext(long sid) {
 		return (T)rpcContexts.remove(sid);
