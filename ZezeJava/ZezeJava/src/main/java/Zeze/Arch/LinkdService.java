@@ -71,11 +71,16 @@ public class LinkdService extends HandshakeServer {
 
 			// 开始响应rpc.response.
 			// 【注意】复用了上面的变量 bb，compress。
-			bb = ByteBuffer.Allocate(12);
+			// 写完整协议帧头 moduleId[4]+protocolId[4]+size[4]，参见 ProviderImplement.ProcessDispatch。
+			var typeId = dispatch.Argument.getProtocolType();
+			bb = ByteBuffer.Allocate(24);
+			bb.WriteInt4s(Protocol.getModuleId(typeId), Protocol.getProtocolId(typeId));
+			int saveSize = bb.BeginWriteWithSize4();
 			bb.WriteUInt(FamilyClass.Response | FamilyClass.BitResultCode);
 			bb.WriteLong(Procedure.Busy);
 			bb.WriteLong(sessionId);
 			EmptyBean.instance.encode(bb); // emptyBean对应任意bean的默认值状态。
+			bb.EndWriteWithSize4(saveSize);
 			so.Send(bb);
 		}
 		// 报告服务器繁忙，但不关闭连接。
