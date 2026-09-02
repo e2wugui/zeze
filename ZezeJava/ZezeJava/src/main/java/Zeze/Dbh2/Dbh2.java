@@ -693,6 +693,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			}
 
 			if (hasError) {
+				it.close(); // 目标桶错误但本机仍leader：先释放钉定的迭代器再重试，避免泄漏
 				startSplit(isMove);
 				return 0;
 			}
@@ -707,6 +708,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 			dbh2Splitting.getRaftAgent().send(puts, (p) -> splitPutNext(isMove, (SplitPut)p, it, serialNo));
 		} catch (Exception ex) {
+			it.close(); // 异常路径统一释放迭代器；close幂等，前面分支已关闭过时安全
 			logger.error("isMove={}", isMove, ex);
 		}
 		return 0;
