@@ -28,8 +28,18 @@ public class HotTransaction {
 	}
 
 	public void commit() throws Exception {
-		for (var commit : commits)
-			commit.run();
+		// commit 动作是安装已成功后的清理步骤（删除备份等）。单个动作失败（如Windows下
+		// 备份jar被AV占用导致deleteIfExists抛出）不能把异常抛出去：install的catch会对
+		// 全部命名空间执行rollback——前面已执行的动作（备份已被删除）的补偿必然失败，
+		// 文件层面留下部分新版部分旧版的混杂状态。与rollback()的best-effort语义对称：
+		// 失败仅记日志，继续执行其余清理动作。
+		for (var commit : commits) {
+			try {
+				commit.run();
+			} catch (Exception ex) {
+				logger.error(name, ex);
+			}
+		}
 		commits.clear();
 		rollbacks.clear();
 	}
