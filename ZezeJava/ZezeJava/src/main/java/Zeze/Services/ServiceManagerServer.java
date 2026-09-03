@@ -373,7 +373,29 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
+	// 服务端注册入口校验identity（对齐客户端AbstractAgent.verify与BServiceInfos.comparer的
+	// 排序前提，FND-S2-6）：非'@'/'#'前缀必须是可Long.parseLong的数字，否则订阅者侧
+	// insert的binarySearch在Long.parseLong上抛NumberFormatException，打断同批全部合法
+	// 变更的处理。畸形请求整批拒绝（错误码经派发层onError应答，客户端SendAndWait感知失败）。
+	private static boolean isLegalServiceIdentity(@NotNull String identity) {
+		if (identity.startsWith("@") || identity.startsWith("#"))
+			return true;
+		try {
+			Long.parseLong(identity);
+			return true;
+		} catch (NumberFormatException e) {
+			logger.warn("illegal service identity: '{}'", identity);
+			return false;
+		}
+	}
+
 	private long processEditService(@NotNull EditService r) {
+		for (var info : r.Argument.getAdd())
+			if (!isLegalServiceIdentity(info.getServiceIdentity()))
+				return Procedure.ErrorRequestId;
+		for (var info : r.Argument.getRemove())
+			if (!isLegalServiceIdentity(info.getServiceIdentity()))
+				return Procedure.ErrorRequestId;
 		var session = (Session)r.getSender().getUserState();
 		var notifies = new HashMap<AsyncSocket, EditService>();
 		// 原子的完成所有编辑的修改和通知。

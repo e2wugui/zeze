@@ -356,6 +356,21 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				sessionName, serverInfo.getVersion());
 	}
 
+	// 对齐非raft版ServiceManagerServer.isLegalServiceIdentity（FND-S2-6）：
+	// 非'@'/'#'前缀必须是可Long.parseLong的数字，否则订阅者侧BServiceInfos.comparer
+	// 在排序上抛NumberFormatException，打断同批全部合法变更的处理。
+	private static boolean isLegalServiceIdentity(@NotNull String identity) {
+		if (identity.startsWith("@") || identity.startsWith("#"))
+			return true;
+		try {
+			Long.parseLong(identity);
+			return true;
+		} catch (NumberFormatException e) {
+			logger.warn("illegal service identity: '{}'", identity);
+			return false;
+		}
+	}
+
 	private static BServiceInfoKeyRocks toRocksKey(BServiceInfo serverInfo) {
 		return new BServiceInfoKeyRocks(serverInfo.getServiceName(), serverInfo.getServiceIdentity());
 	}
@@ -373,6 +388,15 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessEditRequest(Edit r) {
+		// 服务端注册入口校验identity（FND-S2-6，对齐非raft版isLegalServiceIdentity）：
+		// 非法identity会令订阅者侧BServiceInfos.comparer的Long.parseLong抛NumberFormatException，
+		// 打断同批全部合法变更的处理。畸形请求整批拒绝（错误码经派发层onError应答）。
+		for (var info : r.Argument.getAdd())
+			if (!isLegalServiceIdentity(info.getServiceIdentity()))
+				return Zeze.Transaction.Procedure.ErrorRequestId;
+		for (var info : r.Argument.getRemove())
+			if (!isLegalServiceIdentity(info.getServiceIdentity()))
+				return Zeze.Transaction.Procedure.ErrorRequestId;
 		var netSession = (Session)r.getSender().getUserState();
 		var notifies = new HashMap<AsyncSocket, Edit>();
 
