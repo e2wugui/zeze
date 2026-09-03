@@ -20,7 +20,6 @@ public class Verify {
 
 	public static void run(Application zeze) throws Exception {
 		var applyDb = new ApplyDatabaseMemory();
-		var defaultDb = zeze.getDatabase("");
 		var applyTables = new ConcurrentHashMap<Integer, ApplyTable<?, ?>>();
 		zeze.checkpointRun(); // 【注意】如果存在多个app，需要所有app都checkpoint，这里只保证当前app提交。
 		var counter = new AtomicLong();
@@ -39,7 +38,10 @@ public class Verify {
 					if (tableName == null)
 						throw new RuntimeException("table id not found. id=" + r.getKey().getTableId());
 					logger.info("history apply table {}", tableName);
-					var originTable = defaultDb.getTable(tableName);
+					// 与ApplyHelper一致用全库查表（zeze.getTable）：业务表配置在命名数据库
+					// （<DatabaseConf Name="xxx">）时，getDatabase("").getTable只查默认库
+					// 必然返回null，Verify全量校验确定性中断。
+					var originTable = zeze.getTable(tableName);
 					if (originTable == null)
 						throw new RuntimeException("table not found. name=" + tableName);
 					return originTable.createApplyTable(applyDb);
