@@ -272,6 +272,13 @@ public class ThreadingServer extends AbstractThreadingServer {
 				r.Argument.getLockName().getGlobalThreadId().getServerId(),
 				r.Argument.getLockName().getGlobalThreadId().getThreadId(),
 				r.Argument.getLockName().getName());
+		// FND-C1-8：tryLock(timeoutMs<0)按JDK契约抛IllegalArgumentException，若在SimulateThread
+		// 动作内抛出会被run()吞掉且不再补发结果码（客户端挂满超时后以异常呈现）。入队前校验
+		// 直接应答（结果码见C1-7引入的ResultCodeInvalidArgument，本patch依赖其先行应用）。
+		if (r.Argument.getTimeoutMs() < 0) {
+			r.SendResultCode(ResultCodeInvalidArgument);
+			return 0;
+		}
 		simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
 				(This) -> {
 					var mutex = This.getMutex(r.Argument.getLockName().getName());
@@ -313,6 +320,14 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	@Override
 	protected long ProcessReadWriteLockOperateRequest(ReadWriteLockOperate r) {
+		// FND-C1-8：eEnterRead/eEnterWrite的动作内tryLock(timeoutMs<0)抛IllegalArgumentException
+		// 会被SimulateThread.run()吞掉且不补发结果码。入队前校验直接应答。
+		if ((r.Argument.getOperateType() == Threading.eEnterRead
+				|| r.Argument.getOperateType() == Threading.eEnterWrite)
+				&& r.Argument.getTimeoutMs() < 0) {
+			r.SendResultCode(ResultCodeInvalidArgument);
+			return 0;
+		}
 		switch (r.Argument.getOperateType()) {
 		case Threading.eEnterRead:
 			simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
@@ -443,6 +458,12 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	@Override
 	protected long ProcessSemaphoreTryAcquireRequest(SemaphoreTryAcquire r) {
+		// FND-C1-8：tryAcquire(permits<=0)按JDK契约抛IllegalArgumentException，动作内抛出会被
+		// SimulateThread.run()吞掉且不补发结果码。入队前校验直接应答。
+		if (r.Argument.getPermits() <= 0 || r.Argument.getTimeoutMs() < 0) {
+			r.SendResultCode(ResultCodeInvalidArgument);
+			return 0;
+		}
 		simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
 				(This) -> {
 					var semaphoreAcq = This.getSemaphore(r.Argument.getLockName().getName());
