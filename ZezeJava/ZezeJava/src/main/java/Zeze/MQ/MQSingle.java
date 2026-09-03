@@ -38,14 +38,27 @@ public class MQSingle extends ReentrantLock {
 	}
 
 	public MQSingle(MQPartition partition, String topic, int partitionId) {
+		this(partition, topic, partitionId, createFileWithIndex(partition, topic, partitionId));
+	}
+
+	private static MQFileWithIndex createFileWithIndex(MQPartition partition, String topic, int partitionId) {
+		try {
+			return new MQFileWithIndex(
+					partition.getManager().getHome(),
+					partition.getManager().getRocksDatabase(),
+					topic, partitionId);
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+
+	// 包内可见：测试注入MQFileWithIndex（见ZezeJavaTest的TestMQSingleDirectEnqueue）；行为与公有构造一致。
+	MQSingle(MQPartition partition, String topic, int partitionId, MQFileWithIndex fileWithIndex) {
 		this.mqPartition = partition;
 		this.topic = topic;
 		this.partitionIndex = partitionId;
 		try {
-			this.fileWithIndex = new MQFileWithIndex(
-					partition.getManager().getHome(),
-					partition.getManager().getRocksDatabase(),
-					topic, partitionId);
+			this.fileWithIndex = fileWithIndex;
 			this.highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
 			pullMessage(); // 构造的时候还没有绑定网络，所以只装载进来，不需要tryPushMessage.
 			//fillGuardTimer = Task.scheduleNow(5_000, 5_000, this::tryStartBackgroundFill);
@@ -70,9 +83,21 @@ public class MQSingle extends ReentrantLock {
 	public void sendMessage(BSendMessage.Data message) {
 		lock();
 		try {
+			// 【不变量】内存队列必须恰好是盘上积压[firstMessageId,nextMessageId)的连续前缀
+			// （队头id==firstMessageId）。仅当队列已装载全部积压时才允许直入：此时盘上没有
+			// 待回填消息，也不存在还会向队尾追加的后台回填（回填一旦还有消息未装载完，
+			// 队列大小必小于积压数，条件不成立），直入不会破坏顺序。判断必须在appendMessage
+			// 之前做（append会推进nextMessageId）。
+			// 旧条件highLoad==0在"pullMessage已用calculateFill把highLoad减到0、但锁外
+			// fillMessage还没装载完盘上积压"的窗口内也成立，此时直入会插到积压之前：
+			// 分区内乱序，且ack后increaseFirstMessageId盲目+1越过未投递消息，重启后消息永久丢失。
+			// nextMessageId/firstMessageId的所有写点（appendMessage/increaseFirstMessageId）
+			// 都在本锁内执行，这里锁内读取是精确的。
+			var directEnqueue = messageQueue.size() < maxFillMessageCount
+					&& messageQueue.size() == fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
 			fileWithIndex.appendMessage(message.getMessage());
-			if (highLoad == 0 && messageQueue.size() < maxFillMessageCount) {
-				// 低负载，缓冲足够大，直接进入缓冲，保持highLoad为0.
+			if (directEnqueue) {
+				// 低负载，缓冲足够大，直接进入缓冲。
 				messageQueue.offer(message.getMessage());
 			} else {
 				highLoad++;
@@ -93,7 +118,8 @@ public class MQSingle extends ReentrantLock {
 		}
 	}
 
-	private void pullMessage() {
+	// 包内可见：测试在确定位置同步驱动一次后台回填（见ZezeJavaTest的TestMQSingleDirectEnqueue）。
+	void pullMessage() {
 		// 在另一个线程中调用，但只有一个线程任务。
 		var first = new OutLong();
 		var last = new OutLong();
