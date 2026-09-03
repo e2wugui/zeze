@@ -503,9 +503,21 @@ public final class JsonReader {
 			case TYPE_STRING:
 				unsafe.putObject(obj, offset, parseString(false));
 				break;
-			case TYPE_OBJECT:
-				unsafe.putObject(obj, offset, parse(unsafe.getObject(obj, offset), b));
+			case TYPE_OBJECT: {
+				if (b == 'n') { // null（与下方 WRAP 各分支的 b=='n' 判定一致）
+					unsafe.putObject(obj, offset, null);
+					break;
+				}
+				// 与 typed 集合/Map 字段路径（c.clear()/m.clear()）保持一致：对同一对象重复解析时
+				// 先清空容器字段的旧内容，否则 Object 字段的 List 元素翻倍、Map 残留旧键。
+				Object oldObj = unsafe.getObject(obj, offset);
+				if (oldObj instanceof Collection<?>)
+					((Collection<?>)oldObj).clear();
+				else if (oldObj instanceof Map<?, ?>)
+					((Map<?, ?>)oldObj).clear();
+				unsafe.putObject(obj, offset, parse(oldObj, b));
 				break;
+			}
 			case TYPE_POS:
 				Pos p = (Pos)unsafe.getObject(obj, offset);
 				if (p == null)
