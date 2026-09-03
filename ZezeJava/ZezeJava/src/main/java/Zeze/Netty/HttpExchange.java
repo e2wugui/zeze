@@ -130,8 +130,21 @@ public class HttpExchange {
 		this.userState = userState;
 	}
 
+	// lazy初始化:首次调用时在调用方线程完成(通常已运行在用户handler的事务内,同事务访问session表)。
+	// 不再由channelRead在EventLoop上同步执行DB事务:那会让DB延迟/乐观锁redo直接阻塞IO线程,
+	// DB抖动期间该EventLoop上所有连接的读写/握手/心跳全部停摆。未启用httpSession时返回null。
 	public @Nullable HttpSession.CookieSession getCookieSession() {
-		return cookieSession;
+		var cs = cookieSession;
+		if (cs != null)
+			return cs;
+		var httpSession = server.getHttpSession();
+		if (httpSession == null)
+			return null;
+		try {
+			return cookieSession = httpSession.getCookieSession(this);
+		} catch (Exception e) {
+			throw Task.forceThrow(e);
+		}
 	}
 
 	/**
@@ -345,19 +358,12 @@ public class HttpExchange {
 		return parseQuery(content().toString(HttpServer.defaultCharset));
 	}
 
-	public void initCookieSession() {
-		var httpSession = server.getHttpSession();
-		if (httpSession != null)
-			cookieSession = httpSession.getCookieSession(this);
-	}
-
 	protected void channelRead(@Nullable Object msg) throws Exception {
 		var channel = context.channel();
 		channel.attr(HttpServer.idleTimeKey).set(null);
 		if (msg instanceof HttpRequest) {
 			var req = ReferenceCountUtil.retain((HttpRequest)msg);
 			request = req;
-			initCookieSession();
 			var path = path();
 			handler = server.getHandler(path);
 			if (handler == null) {

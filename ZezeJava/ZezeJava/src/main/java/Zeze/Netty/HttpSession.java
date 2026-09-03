@@ -12,6 +12,8 @@ import Zeze.Component.TimerSpec;
 import Zeze.IModule;
 import Zeze.Services.Token;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
+import Zeze.Util.FuncLong;
 import Zeze.Util.OutObject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -90,7 +92,7 @@ public class HttpSession extends AbstractHttpSession {
 		return Token.genToken(tokenRandom);
 	}
 
-	public @NotNull CookieSession getCookieSession(@NotNull HttpExchange x) {
+	public @NotNull CookieSession getCookieSession(@NotNull HttpExchange x) throws Exception {
 		// 这个不缓存了，也不共享，http请求结束就可以释放。
 		var cookieSessionId = x.getCookie(ZEZE_SESSION_ID_NAME);
 		if (cookieSessionId == null) {
@@ -98,9 +100,7 @@ public class HttpSession extends AbstractHttpSession {
 		}
 		final var finalId = cookieSessionId;
 		final var needSetCookie = new OutObject<>(false);
-		// initCookieSession 由 channelRead 在 eventLoop 线程调用，没有当前事务，
-		// 表访问包一个短 Procedure（模式同 HttpExchange 的 Direct 派发）。
-		var rc = zeze.newProcedure(() -> {
+		FuncLong initAction = () -> {
 			var isAdd = new OutObject<>(false);
 			var value = _tSession.getOrAdd(finalId, isAdd);
 			var now = System.currentTimeMillis();
@@ -113,7 +113,18 @@ public class HttpSession extends AbstractHttpSession {
 				needSetCookie.value = true;
 			}
 			return Procedure.Success;
-		}, "initCookieSession").call();
+		};
+		// 本方法不再由channelRead在EventLoop线程同步调用(DB事务阻塞IO线程,DB抖动期间该EventLoop上
+		// 所有连接的读写全部停摆),而是延迟到用户handler内首次调用HttpExchange.getCookieSession()时执行:
+		// 此时通常已运行在派发到池的用户事务里,直接同事务访问表(连独立事务的开销都省了);
+		// 无事务上下文时(Level=None的处理器等)在调用线程包一个短Procedure。
+		var t = Transaction.getCurrent();
+		long rc;
+		if (t != null && t.isRunning()) {
+			initAction.call();
+			rc = Procedure.Success;
+		} else
+			rc = zeze.newProcedure(initAction, "initCookieSession").call();
 		if (rc != 0L)
 			throw new RuntimeException("initCookieSession error=" + IModule.getErrorCode(rc));
 		if (needSetCookie.value)
