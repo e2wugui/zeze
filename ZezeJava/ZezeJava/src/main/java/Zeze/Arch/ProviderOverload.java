@@ -1,6 +1,6 @@
 package Zeze.Arch;
 
-import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -19,7 +19,10 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 	private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
 			new ThreadFactoryWithName("ZezeLoadThread", Thread.MAX_PRIORITY));
 
-	private final ArrayList<ThreadPoolMonitor> threadPools = new ArrayList<>(); // 为方便不加锁读取,只增不减
+	// FND-A1-8：getOverload位于ProcessDispatch热路径且无锁遍历，而register/set（含close置null）
+	// 会结构性修改ArrayList——普通ArrayList无happens-before，无锁读侧可见旧数组。
+	// CopyOnWriteArrayList读无锁安全；写只发生在启动/热更期，复制成本可忽略。
+	private final CopyOnWriteArrayList<ThreadPoolMonitor> threadPools = new CopyOnWriteArrayList<>();
 
 	public boolean register(@NotNull ExecutorService threadPool, @NotNull Config config) {
 		lock();
