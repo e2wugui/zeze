@@ -16,7 +16,10 @@ public class LinkdUserSession {
 	protected static final Logger logger = LogManager.getLogger(LinkdUserSession.class);
 
 	protected String account;
-	protected BUserState.Data userState = new BUserState.Data();
+	// FND-A1-3：写者LinkdProvider.ProcessSetUserState跑在LinkdProviderService的IO线程，
+	// 读者LinkdService.createDispatch跑在LinkdService的IO线程（两套EventLoop），无volatile时
+	// 引用替换与读取之间无happens-before。对照ProviderSession.load等同场景字段均标volatile。
+	protected volatile BUserState.Data userState = new BUserState.Data();
 	protected final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
 	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
 	protected long sessionId; // Linkd.SessionId
