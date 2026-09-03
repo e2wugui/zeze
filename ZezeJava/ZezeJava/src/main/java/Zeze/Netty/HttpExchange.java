@@ -596,19 +596,39 @@ public class HttpExchange {
 		}
 	}
 
+	// WebSocket分片消息(首帧isFinal=false+后续Continuation帧)会在content无上限累积,单连接即可耗尽堆内存。
+	// 以handler.MaxContentLength(即maxFramePayloadLength的同一配置)作为分片消息的总大小上限:
+	// 单帧本身已受maxFramePayloadLength限制,这里挡的是分片累积总量。超限按RFC6455回1009(Message Too Big)并关闭连接。
+	// 返回false表示已超限并关闭连接,调用方不应再继续分发本帧。
+	protected boolean checkWebSocketContentSize(@NotNull WebSocketFrame frame) {
+		var n = frame.content().readableBytes();
+		if (content.readableBytes() + n > handler.MaxContentLength) {
+			Netty.logger.error("websocket content size = {} + {} > {} from {}",
+					content.readableBytes(), n, handler.MaxContentLength, context.channel().remoteAddress());
+			closeConnectionOnFlush(context.writeAndFlush(
+					new CloseWebSocketFrame(WebSocketCloseStatus.MESSAGE_TOO_BIG, "message too big")));
+			return false;
+		}
+		return true;
+	}
+
 	@SuppressWarnings("ConstantConditions")
 	protected void fireWebSocket0(@NotNull WebSocketFrame frame) throws Exception {
 		switch (frame) {
 		case BinaryWebSocketFrame ignored -> {
 			isWebSocketTextContent = false;
-			handler.WebSocketHandle.onContent(this, frame.content(), false, frame.isFinalFragment());
+			if (checkWebSocketContentSize(frame))
+				handler.WebSocketHandle.onContent(this, frame.content(), false, frame.isFinalFragment());
 		}
 		case TextWebSocketFrame ignored -> {
 			isWebSocketTextContent = true;
-			handler.WebSocketHandle.onContent(this, frame.content(), true, frame.isFinalFragment());
+			if (checkWebSocketContentSize(frame))
+				handler.WebSocketHandle.onContent(this, frame.content(), true, frame.isFinalFragment());
 		}
-		case ContinuationWebSocketFrame ignored ->
+		case ContinuationWebSocketFrame ignored -> {
+			if (checkWebSocketContentSize(frame))
 				handler.WebSocketHandle.onContent(this, frame.content(), isWebSocketTextContent, frame.isFinalFragment());
+		}
 		case CloseWebSocketFrame closeFrame -> {
 			inStreamMode = false;
 			handler.WebSocketHandle.onClose(this, closeFrame.statusCode(), closeFrame.reasonText());
