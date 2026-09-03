@@ -152,9 +152,9 @@ public class CsQueue<V extends Bean> {
 	}
 
 	// 写路径fence：root行本就在事务工作集内，零额外IO。被接管（root.epoch != myEpoch）→致命退出。
-	// root.stamp==0 是无主新行（本事务getOrAdd创建/外部清表后重建）：认领（stamp=myEpoch）而非
-	// 误判被接管——0=无主，与Takeover.stampScope/renewOnce对缺行的自愈语义一致；
-	// 认领的是新建空链，不会复活已被搬运走的数据。
+	// root.stamp==0（无主新行/外部清表重建/被接管后的墓碑）一律认领（stamp=myEpoch）而非致命：
+	// 被接管者醒来在空链上复活并继续新写（需求语义）；fence只杀同serverId双进程/外部篡改
+	// （stamp为别人的epoch）。
 	private void checkFence() {
 		var takeover = module.zeze.getTakeover();
 		if (takeover != null) {

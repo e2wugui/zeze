@@ -1028,8 +1028,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	private void checkTimerFence(int serverId, @NotNull BNodeRoot root) {
 		var takeover = zeze.getTakeover();
 		if (takeover != null && serverId == zeze.getConfig().getServerId()) {
-			// stamp==0 是无主新行（本事务getOrAdd创建/外部清表后重建）：认领而非误判被接管
-			// （0=无主，与Takeover.stampScope/renewOnce对缺行的自愈语义一致；认领的是新建空链）。
+			// stamp==0（无主新行/外部清表重建/被接管后的墓碑）一律认领（stamp=myEpoch）而非致命：
+			// 被接管者醒来在空链上复活并继续新写（需求语义）；fence只杀同serverId双进程/外部
+			// 篡改（stamp为别人的epoch）。
 			var stamp = root.getLoadSerialNo();
 			if (stamp == 0) {
 				stamp = takeover.getMyEpoch();

@@ -195,7 +195,11 @@ public class Takeover extends AbstractTakeover {
 
 	/**
 	 * 写路径fence：owner在事务内写自己root/链数据前调用（root行本就在事务工作集内，零额外IO）。
-	 * mode==on 且 rootEpoch != myEpoch（被接管/serial被覆盖）→ 致命退出+告警。
+	 * mode==on 且 rootEpoch != myEpoch → 致命退出+告警。击杀场景=同serverId双进程（后启动者
+	 * claim epoch+1并stampScope覆盖前者的root）或stamp被外部篡改。
+	 * 【需求语义】被接管后醒来不在击杀之列：transferAll留下的墓碑stamp=0由调用方认领
+	 * （stamp=myEpoch后继续写），被接管者在空链上复活、写新数据并提供新数据的服务；其renew
+	 * 会把墓碑租约续上复活（epoch保留），下次真死租约可再次过期被接管，生命周期闭环。
 	 */
 	public void checkFence(long rootEpoch) {
 		if (!ModeOn.equals(mode) || !started)
