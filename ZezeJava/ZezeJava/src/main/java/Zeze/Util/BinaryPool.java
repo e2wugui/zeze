@@ -45,6 +45,11 @@ public class BinaryPool {
 		b = new Binary(Arrays.copyOfRange(bytes, beginIndex, endIndex));
 		wLock.lock();
 		try {
+			// 探测与插入之间存在窗口：并发 intern 相同内容时后写者直接覆盖先写者，两个调用方拿到不同实例，
+			// 破坏“同一内容→同一引用”的 intern 契约。写入前复查，命中等值实例则复用。
+			var exist = pool.get(hash64);
+			if (exist != null && Arrays.equals(exist.bytesUnsafe(), 0, exist.size(), bytes, beginIndex, endIndex))
+				return exist;
 			pool.put(hash64, b);
 		} finally {
 			wLock.unlock();
@@ -81,6 +86,10 @@ public class BinaryPool {
 		b = new Binary(bytes);
 		wLock.lock();
 		try {
+			// 同 byte[] 版：写入前复查，并发 intern 相同内容时复用先插入的实例，保证 intern 契约。
+			var exist = pool.get(hash64);
+			if (exist != null && equals(exist, bb, beginIndex, endIndex))
+				return exist;
 			pool.put(hash64, b);
 		} finally {
 			wLock.unlock();
