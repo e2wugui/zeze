@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import java.util.ArrayDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
@@ -26,6 +27,10 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 		return config;
 	}
 
+	// startRelease防重入期间排队的endAction（GlobalClient重连收尾等）：
+	// 当前Releaser完成后由checkReleaseTimeout取出执行。仅在本对象ReentrantLock内访问。
+	private final @NotNull ArrayDeque<Runnable> pendingEndActions = new ArrayDeque<>();
+
 	public final long getActiveTime() {
 		return activeTime;
 	}
@@ -51,22 +56,40 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 	}
 
 	public @NotNull CheckReleaseResult checkReleaseTimeout(long now, int timeout) {
-		var r = releaser;
-		if (r == null)
-			return CheckReleaseResult.NoRelease;
+		@Nullable Runnable[] drained = null;
+		lock();
+		try {
+			var r = releaser;
+			if (r == null)
+				return CheckReleaseResult.NoRelease;
 
-		if (r.isCompletedSuccessfully()) {
-			logger.info("Global.Releaser End.");
-			releaser = null;
-			// 每次成功Release，设置一次活动时间，阻止AchillesHeelDaemon马上再次触发Release。
-			setActiveTime(System.currentTimeMillis());
-			return CheckReleaseResult.NoRelease;
+			if (r.isCompletedSuccessfully()) {
+				logger.info("Global.Releaser End.");
+				releaser = null;
+				if (!pendingEndActions.isEmpty()) {
+					drained = pendingEndActions.toArray(new Runnable[0]);
+					pendingEndActions.clear();
+				}
+			} else if (now - r.startTime > timeout)
+				return CheckReleaseResult.Timeout;
+			else
+				return CheckReleaseResult.Releasing;
+		} finally {
+			unlock();
 		}
-
-		if (now - r.startTime > timeout)
-			return CheckReleaseResult.Timeout;
-
-		return CheckReleaseResult.Releasing;
+		// 排队的endAction在锁外执行（如GlobalClient的连接重启，不持锁等待网络相关操作）。
+		if (drained != null) {
+			for (var action : drained) {
+				try {
+					action.run();
+				} catch (Throwable ex) { // logger.error
+					logger.error("Global.Releaser pending endAction", ex);
+				}
+			}
+		}
+		// 每次成功Release，设置一次活动时间，阻止AchillesHeelDaemon马上再次触发Release。
+		setActiveTime(System.currentTimeMillis());
+		return CheckReleaseResult.NoRelease;
 	}
 
 	public static class Releaser extends Thread {
@@ -118,9 +141,17 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 	public void startRelease(@NotNull Application zeze, @Nullable Runnable endAction) {
 		lock();
 		try {
-			var r = new Releaser(zeze, globalCacheManagerHashIndex, endAction);
-			releaser = r;
-			r.start();
+			if (releaser == null) {
+				var r = new Releaser(zeze, globalCacheManagerHashIndex, endAction);
+				releaser = r;
+				r.start();
+			} else if (endAction != null) {
+				// 防重入：已有Releaser在运行（可能由守护线程的Release命令先启动）时不重复启动——
+				// 双Releaser并发执行reduce/checkpoint无设计保证，且releaser字段被覆盖后先启动者的
+				// 完成状态无人观察。AchillesHeelDaemon的调用点均有rr!=Releasing判断，GlobalClient
+				// 的重连路径没有；调用方的endAction（连接重启等收尾）排队到当前Releaser完成后执行。
+				pendingEndActions.add(endAction);
+			}
 		} finally {
 			unlock();
 		}
