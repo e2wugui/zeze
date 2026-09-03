@@ -372,19 +372,30 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 
 	/**
 	 * func 第一个参数是当前Value所在的Node.Id。
+	 * 并发删除导致的链断会从头重启遍历（已回调过的值会重复执行，教程已声明；count每轮归零，
+	 * 只统计最后一轮，避免重复计数虚高）；同一缺失节点重启后仍缺失=持久断链（数据损坏），
+	 * 抛IllegalStateException终止而不是无限忙转。
 	 */
 	@SuppressWarnings("unchecked")
 	public long walk(TableWalkHandle<BQueueNodeKey, V> func) throws Exception {
 		long count = 0L;
+		BQueueNodeKey missingKey = null; // 上一次断链位置：重启后仍断在同一节点=持久断链
 		while (true) {
 			var root = compatibleDirty(module._tQueues.selectDirty(name), name);
 			if (null == root)
 				return func.endWalk(count); // error break
 			var nodeKey = root.getHeadNodeKey();
+			count = 0L; // 重启从头重走，计数只保留最后一轮（回调重复执行见方法注释）
 			while (nodeKey.getNodeId() != 0) {
 				var node = compatibleDirty(nodeKey, module._tQueueNodes.selectDirty(nodeKey));
-				if (null == node)
+				if (null == node) {
+					// 上一轮也断在同一个节点：重启后拿到的仍是新鲜root/前驱，还指向这个缺失节点
+					// =持久断链（并发删除的重启会绕过已删节点，走不到这里），宁停不错。
+					if (nodeKey.equals(missingKey))
+						throw new IllegalStateException("Queue.walk broken chain at " + nodeKey);
+					missingKey = nodeKey;
 					break; // concurrent node remove, restart walk.
+				}
 				for (var value : node.getValues()) {
 					++count;
 					if (!func.handle(nodeKey, (V)value.getValue().getBean()))
