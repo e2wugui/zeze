@@ -58,8 +58,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			autoKey = app.getAutoKey(getName());
 
 		setTableConf(exist.getTableConf()); // Old
-		if (!isMemory() || cache == null) // 如果时内存表，并且是已经存在的表的回滚，保持cache不变。
+		if (!isMemory() || cache == null) { // 如果时内存表，并且是已经存在的表的回滚，保持cache不变。
+			// 防御：正常流程到这里cache为null（新表，或旧表已被disable）；
+			// 万一非null（重复open），必须关闭旧cache的定时器，防止热更泄漏。
+			var oldCache = cache;
 			cache = new TableCache<>(app, this); // New
+			if (oldCache != null)
+				oldCache.close();
+		}
 		relationalTable = isRelationalMapping() ? getZeze().getSchemas().newRelationalTable(getZeze(), this) : null;
 		storage = isMemory() ? null : new Storage<>(this, database, getName()); // New
 		database.replaceStorage(exist.getStorage(), storage);
@@ -78,7 +84,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	@Override
 	public void disable() {
 		// 去掉这些，应该所有的操作都无法完成了。
-		this.cache = null;
+		var c = cache;
+		if (c != null) {
+			// 关闭旧cache的周期定时器（newLruHot/cleanNow）：
+			// 否则定时任务闭包强引用旧cache的dataMap，整表缓存无法GC，
+			// 且旧cache的cleanNow仍会对旧记录执行无效操作。每次热更泄漏累积。
+			c.close();
+			cache = null;
+		}
 		this.storage = null; // 【这里不处理storage的关闭】
 	}
 
