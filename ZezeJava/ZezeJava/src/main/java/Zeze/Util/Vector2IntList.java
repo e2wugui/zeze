@@ -270,14 +270,14 @@ public class Vector2IntList extends IntList {
 		return this;
 	}
 
-	public int indexOfVector(int x, int y, int z) {
-		return indexOfVector(x, y, z, 0);
+	public int indexOfVector(int x, int y) {
+		return indexOfVector(x, y, 0);
 	}
 
-	public int indexOfVector(int x, int y, int z, int fromIdx) {
+	public int indexOfVector(int x, int y, int fromIdx) {
 		int[] buf = buffer;
 		for (int i = fromIdx * 2, n = count - 1; i < n; i += 2) {
-			if (buf[i] == x && buf[i + 1] == y && buf[i + 2] == z)
+			if (buf[i] == x && buf[i + 1] == y)
 				return i >> 1;
 		}
 		return -1;
