@@ -201,7 +201,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	// 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。
 	// 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
 	public static final class SubscribeState extends ReentrantLock {
-		private final @NotNull BSubscribeInfo subscribeInfo;
+		private volatile @NotNull BSubscribeInfo subscribeInfo;
 		private volatile @NotNull BServiceInfosVersion serviceInfos = new BServiceInfosVersion();
 
 		// 服务准备好。
@@ -230,6 +230,19 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 		public @NotNull BSubscribeInfo getSubscribeInfo() {
 			return subscribeInfo;
+		}
+
+		// 同名重订阅时同步本地过滤版本（FND-S2-8）：请求subs里携带的是新version，服务器simple表
+		// 已被本次请求覆盖，但computeIfAbsent命中旧state保留旧subscribeInfo——断线重连的
+		// onConnected会用它重放，把服务器订阅过滤回退到旧版本桶（灰度切换被重连悄悄回滚）。
+		public void updateSubscribeInfo(@NotNull BSubscribeInfo info) {
+			lock();
+			try {
+				if (subscribeInfo != info)
+					subscribeInfo = info;
+			} finally {
+				unlock();
+			}
 		}
 
 		public @NotNull String getServiceName() {

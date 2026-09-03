@@ -299,6 +299,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				var states = new ArrayList<SubscribeState>(r.Argument.subs.size());
 				for (var info : r.Argument.subs) {
 					var state = subscribeStates.computeIfAbsent(info.getServiceName(), ___ -> new SubscribeState(info));
+					state.updateSubscribeInfo(info); // 同名重订阅同步过滤版本（FND-S2-8），防重连重放回退
 					states.add(state);
 					var result = r.Result.map.get(info.getServiceName());
 					if (result != null)
