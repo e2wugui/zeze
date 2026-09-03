@@ -111,6 +111,7 @@ public class HttpExchange {
 	protected boolean willCloseConnection; // true表示close时会关闭连接
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	protected boolean isWebSocketTextContent;
+	protected long streamContentTotal; // 流模式累计收到的请求body字节数,server.maxUploadSize总量上限检查用
 
 	public HttpExchange(@NotNull HttpServer server, @NotNull ChannelHandlerContext context) {
 		this.server = server;
@@ -412,9 +413,22 @@ public class HttpExchange {
 		var b = c.content();
 		var n = b.readableBytes();
 		if (n > 0) {
-			if (handler.isStreamMode())
+			if (handler.isStreamMode()) {
+				// 流模式不受handler.MaxContentLength约束(全量缓冲才有意义,流式处理本应边收边处理),
+				// 但multipart/raw等默认实现在服务端全量缓冲(堆或临时文件),无总量限制会被单连接打爆堆/磁盘,
+				// 这里以server.maxUploadSize兜底请求body的总量,超限回413并断开连接。
+				streamContentTotal += n;
+				var maxUploadSize = server.getMaxUploadSize();
+				if (streamContentTotal > maxUploadSize) {
+					Netty.logger.error("upload size = {} > {} from {}", streamContentTotal, maxUploadSize,
+							channel.remoteAddress());
+					closeConnectionOnFlush(context.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+							HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
+							headersFactory, trailersFactory)));
+					return;
+				}
 				fireStreamContentHandle(c);
-			else {
+			} else {
 				if (content.readableBytes() + n > handler.MaxContentLength) {
 					Netty.logger.error("content size = {} + {} > {} from {}", content.readableBytes(), n,
 							handler.MaxContentLength, channel.remoteAddress());

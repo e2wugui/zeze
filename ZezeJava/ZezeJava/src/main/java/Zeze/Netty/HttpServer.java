@@ -91,6 +91,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	protected final ConcurrentHashMap<ChannelId, HttpExchange> exchanges = new ConcurrentHashMap<>();
 	protected final TaskOneByOneByKey task11Executor = new TaskOneByOneByKey();
 	protected int writePendingLimit = 64 * 1024; // 写缓冲区的限制大小(字节),超过会立即断开连接,写大量内容需要考虑分片
+	protected int maxUploadSize = 256 * 1024 * 1024; // 流模式上传(如multipart/raw文件上传)的请求body总量限制(字节),超过返回413并断开连接
 	protected int checkIdleInterval = 5; // 检查超时的间隔(秒),只有以下两个超时时间都满足才会触发超时关闭,start之后修改无效
 	protected int readIdleTimeout = 30; // 服务端无接收的超时时间(秒)
 	protected int writeIdleTimeout = 60; // 服务端无发送的超时时间(秒)
@@ -178,6 +179,14 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 
 	public void setWritePendingLimit(int writePendingLimit) {
 		this.writePendingLimit = writePendingLimit;
+	}
+
+	public int getMaxUploadSize() {
+		return maxUploadSize;
+	}
+
+	public void setMaxUploadSize(int maxUploadSize) {
+		this.maxUploadSize = maxUploadSize;
 	}
 
 	public int getCheckIdleInterval() {
