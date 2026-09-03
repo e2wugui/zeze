@@ -45,7 +45,30 @@ public class DatabaseRocksDb extends Database {
 
 	@Override
 	public void renameTable(String oldName, String newName) throws Exception {
-		rocksDb.dropTable(oldName);
+		// RocksDB 不支持列族重命名：把旧表数据拷贝到备份列族后再删除原列族，
+		// 对齐其他后端（MySQL RENAME TABLE / PG ALTER TABLE RENAME / Mongo renameCollection）
+		// "版本升级时备份旧表"的语义。原来的直接 drop 会销毁旧数据，升级后无任何恢复途径。
+		var oldTable = rocksDb.getTable(oldName);
+		if (oldTable == null) // 不存在的表保持与 dropTable 相同的 no-op 行为
+			return;
+		var newTable = rocksDb.getOrAddTable(newName);
+		try (var batch = rocksDb.borrowBatch()) {
+			int n = 0;
+			try (var it = oldTable.iterator()) {
+				for (it.seekToFirst(); it.isValid(); it.next()) {
+					newTable.put(batch, it.key(), it.value());
+					if (++n >= 10000) { // 分批提交，避免大表时单个 WriteBatch 无界增长
+						batch.commit();
+						batch.clear();
+						n = 0;
+					}
+				}
+			}
+			if (n > 0)
+				batch.commit();
+			// 拷贝中断（异常上抛）时旧表未被 drop，下次启动重跑本方法重新全量拷贝（put 幂等），自愈。
+			rocksDb.dropTable(oldName);
+		}
 	}
 
 	@Override
