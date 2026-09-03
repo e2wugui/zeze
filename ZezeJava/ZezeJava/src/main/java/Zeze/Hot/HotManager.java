@@ -529,6 +529,11 @@ public class HotManager extends ClassLoader {
 		// 新的jar的entry会完全覆盖旧的，所以不用考虑删除。
 		for (var e = jar.entries(); e.hasMoreElements(); ) {
 			var entry = e.nextElement();
+			// 只索引.class条目：第三方工具打包的jar可能带目录条目（如"Game/"），
+			// 对非.class后缀盲目截断会StringIndexOutOfBounds（启动即崩）；
+			// META-INF/MANIFEST.MF等资源条目截断后只会产生垃圾key。
+			if (!entry.getName().endsWith(".class"))
+				continue;
 			var eName = entry.getName().replace('\\', '/').replace('/', '.');
 			var javaClassName = eName.substring(0, eName.length() - ".class".length());
 			zipEntries.put(javaClassName, new JarEntry(jar, entry));
@@ -551,8 +556,15 @@ public class HotManager extends ClassLoader {
 		var interfaceDst = Path.of(workingDir, "interfaces", namespace + ".interface.jar").toFile().getCanonicalFile();
 		{
 			var oldI = jars.remove(interfaceDst);
-			if (null != oldI)
+			if (null != oldI) {
+				// 新jar中已删除的类名仍映射旧（即将close的）JarFile：先移除这些残留条目，
+				// 否则后续findClass读到的是IllegalStateException("zip file closed")而非ClassNotFoundException。
+				for (var e : zipEntries.entrySet()) {
+					if (e.getValue().jar == oldI)
+						zipEntries.remove(e.getKey(), e.getValue());
+				}
 				oldI.close();
+			}
 		}
 		var interfaceDstBackup = Path.of(workingDir, "interfaces", namespace + ".interface.jar.backup").toFile();
 		if (!interfaceDst.renameTo(interfaceDstBackup))
