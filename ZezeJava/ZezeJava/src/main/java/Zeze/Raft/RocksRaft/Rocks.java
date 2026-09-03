@@ -382,6 +382,33 @@ public final class Rocks extends StateMachine implements Closeable {
 		restore(backupDir);
 	}
 
+	/**
+	 * 没有快照的时候，Raft 重启后会从头重放全部日志，状态机必须从空库开始，
+	 * 否则 list 等按索引增量 apply 的非幂等日志会在残留的旧数据上被重复应用。
+	 * 参考 loadSnapshot 的 restore+openDb 机械：关句柄→删数据→重开空库。
+	 * 【注意】Raft 构造过程中（无快照）调用到这里时 storage==null（openDb 尚未执行），
+	 * 此时只删除旧数据库目录即可，随后的 openDb 会创建空库。
+	 */
+	@Override
+	public void reset() {
+		getRaft().lock();
+		try {
+			if (storage != null) {
+				storage.close(); // close current
+				storage = null;
+			}
+			atomicLongs.clear();
+			lastUpdated.clear();
+			LogSequence.deletedDirectoryAndCheck(
+					Paths.get(getDbHome(), "statemachine").toFile(), 100);
+			openDb(); // reopen empty
+		} catch (RocksDBException e) {
+			throw Task.forceThrow(e);
+		} finally {
+			getRaft().unlock();
+		}
+	}
+
 	@Override
 	public void close() { // 简单保护一下。
 		ShutdownHook.remove(this);
