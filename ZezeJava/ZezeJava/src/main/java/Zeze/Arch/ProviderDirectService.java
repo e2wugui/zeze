@@ -226,8 +226,14 @@ public class ProviderDirectService extends HandshakeBoth {
 			ps.serverLoadIp = ip;
 			ps.serverLoadPort = port;
 			// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
-			if (providerByLoadName.putIfAbsent(ps.getServerLoadName(), ps) != null)
+			if (providerByLoadName.putIfAbsent(ps.getServerLoadName(), ps) != null) {
+				// 非本机的同名会话一般是旧连接未关闭时的重连：新会话在此被忽略后，
+				// 旧会话关闭将清空路由注册且无自动恢复，记录warn以便观测该竞态窗口。
+				if (ps.getServerId() != getZeze().getConfig().getServerId())
+					logger.warn("setRelativeServiceReady: exist session for {}, ignore new {}",
+							ps.getServerLoadName(), ps);
 				return;
+			}
 			providerByServerId.put(ps.getServerId(), ps);
 
 			// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
@@ -275,12 +281,16 @@ public class ProviderDirectService extends HandshakeBoth {
 				var subs = getZeze().getServiceManager().getSubscribeStates().get(service.getKey());
 				if (subs == null)
 					continue; // 服务已取消订阅（subscribeStates条目已移除）。不判空会在下面NPE，跳过后面的清理。
-				for (var identity : service.getValue().keySet()) {
-					subs.setIdentityLocalState(identity, null);
+				for (var stateEntry : service.getValue().entrySet()) {
+					// 条件删除：重连后的新会话可能已重新setReady覆盖该identity，
+					// 只清除仍属于当前关闭会话的localState，避免误删新会话的路由状态。
+					subs.getLocalStates().remove(stateEntry.getKey(), stateEntry.getValue());
 				}
 			}
-			providerByLoadName.remove(ps.getServerLoadName());
-			providerByServerId.remove(ps.getServerId());
+			// 条件删除：迟到的关闭事件不得误删同loadName/serverId的新会话注册
+			// （remove+add churn时新会话先完成握手，旧连接的关闭回调后到）。
+			providerByLoadName.remove(ps.getServerLoadName(), ps);
+			providerByServerId.remove(ps.getServerId(), ps);
 		}
 		super.OnSocketClose(socket, ex);
 	}
