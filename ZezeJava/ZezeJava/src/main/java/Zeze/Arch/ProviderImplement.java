@@ -191,7 +191,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						return handler != null ? handler.handle(p3) : Procedure.NotImplement;
 					}, null, factoryHandle.Level))
 					.outProtocol(outProtocol)
-					.onError(session::trySendResponse)
+					.onError(session::tryRespondErrorNow)
 					.call();
 				if (ZezeCounter.instance != null) {
 					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
@@ -225,7 +225,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				@SuppressWarnings("unchecked")
 				var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 				return handler != null ? handler.handle(p3) : Procedure.NotImplement;
-			}, p3).onError(session::trySendResponse).call();
+			}, p3).onError(session::tryRespondErrorNow).call();
 			if (ZezeCounter.instance != null) {
 				ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
 					Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);

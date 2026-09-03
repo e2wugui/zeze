@@ -20,7 +20,7 @@ public class WorldStatic extends AbstractWorldStatic {
         var instanceId = world.getMapManager().enterMap(session, r.Argument);
         r.Result.setMapInstanceId(instanceId);
 
-        session.sendResponseDirect(r);
+        session.respondFireAndForget(r);
         return 0;
     }
 }

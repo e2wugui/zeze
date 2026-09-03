@@ -51,7 +51,7 @@ public class ModuleMessage extends AbstractModule {
         messageRoot.setMessageTotalBytes(messageRoot.getMessageTotalBytes() + r.Argument.getMessage().getSecureMessage().size());
 
         r.Result.setMessageId(messageId);
-        session.sendResponseWhileCommit(r);
+        session.respond(r);
         Program.counters.increment("GroupMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
         return 0;
     }
@@ -124,7 +124,7 @@ public class ModuleMessage extends AbstractModule {
             notify.Argument = r.Argument.getMessage();
             App.Provider.getOnline().sendAccountWhileCommit(r.Argument.getFriend(), notify);
         }
-        session.sendResponseWhileCommit(r);
+        session.respond(r);
         Program.counters.increment("FriendMessage");
         return Procedure.Success;
     }
@@ -158,7 +158,7 @@ public class ModuleMessage extends AbstractModule {
         r.Result.setNextMessageIdNotRead(messageRoot.getNextMessageIdNotRead());
         r.Result.setNextMessageId(messageRoot.getNextMessageId());
         r.Result.setReachEnd(messageRoot.getNextMessageId() == to.value);
-        session.sendResponseWhileCommit(r);
+        session.respond(r);
         return Procedure.Success;
     }
 
@@ -216,7 +216,7 @@ public class ModuleMessage extends AbstractModule {
         r.Result.setNextMessageIdNotRead(messageRoot.getNextMessageIdNotRead());
         r.Result.setNextMessageId(messageRoot.getNextMessageId());
         r.Result.setReachEnd(messageRoot.getNextMessageId() == to.value);
-        session.sendResponseWhileCommit(r);
+        session.respond(r);
         return Procedure.Success;
     }
 
@@ -239,7 +239,7 @@ public class ModuleMessage extends AbstractModule {
         messageRoot.setNextMessageIdNotRead(r.Argument.getMessageIdHashRead() + 1);
 
         // todo 广播已读消息Id给当前登录的所有客户端。
-        session.sendResponseWhileCommit(r);
+        session.respond(r);
         return Procedure.Success;
     }
 
@@ -266,7 +266,7 @@ public class ModuleMessage extends AbstractModule {
         messageRoot.setNextMessageIdNotRead(r.Argument.getMessageIdHashRead() + 1);
 
         // todo 广播已读消息Id给当前登录的所有客户端。
-        session.sendResponseWhileCommit(r);
+        session.respond(r);
         return Procedure.Success;
     }
 

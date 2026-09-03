@@ -2075,7 +2075,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		online.setServerId(providerApp.zeze.getConfig().getServerId());
 
 		// Login的结果先提交进事务，然后再触发loginTrigger，这样loginTrigger中发送的协议排在后面。
-		session.sendResponseWhileCommit(rpc);
+		session.respond(rpc);
 		return loginTrigger(session.getAccount(), roleId);
 	}
 
@@ -2164,7 +2164,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
-		session.sendResponseWhileCommit(rpc);
+		session.respond(rpc);
 
 		var ret = reloginTrigger(session.getAccount(), roleId);
 		if (ret != 0)
@@ -2192,7 +2192,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			return errorCode(ResultCodeNotLogin);
 
 		localLogout(session.getRoleId(), rpc.getSender(), session.getLinkSid());
-		session.sendResponseWhileCommit(rpc);
+		session.respond(rpc);
 		// 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
 		// App.Load.LogoutCount.IncrementAndGet();
 		return Procedure.Success;
@@ -2255,7 +2255,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				notify.Argument.getNotifies().add(bNotify.getFullEncodedProtocol());
 				return true;
 			});
-			session.sendResponseWhileCommit(notify);
+			session.respond(notify);
 		}
 		//online.getReliableNotifyQueue().RemoveRange(0, confirmCount);
 		online.setReliableNotifyConfirmIndex(index);
@@ -2282,7 +2282,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (online == null)
 			return errorCode(ResultCodeNotLogin);
 
-		session.sendResponseWhileCommit(rpc); // 同步前提交。
+		session.respond(rpc); // 同步前提交。
 
 		var syncResultCode = reliableNotifySync(session.getRoleId(), session,
 				rpc.Argument.getReliableNotifyConfirmIndex(), rpc.Argument.isSync());

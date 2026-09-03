@@ -34,7 +34,7 @@ public class ModuleLogin extends AbstractModule {
 				roleList.add(new BRole(roleId, role.getRoleName()));
 		}
 		res.setLastLoginRoleId(account.getLastLoginRoleId());
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -57,7 +57,7 @@ public class ModuleLogin extends AbstractModule {
 		var res = r.Result;
 		res.setRoleId(roleId);
 		res.setRoleName(roleName);
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -83,7 +83,7 @@ public class ModuleLogin extends AbstractModule {
 
 		//TODO
 
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 

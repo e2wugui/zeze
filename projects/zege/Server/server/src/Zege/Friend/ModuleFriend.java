@@ -98,7 +98,7 @@ public class ModuleFriend extends AbstractModule {
 		// 请求已经接受，删除通知。
 		var n = App.Zege_Notify.getNotify(session.getAccount());
 		n.remove(ModuleNotify.makeNotifyId(BNotify.eTypeAddFriend, r.Argument.getAccount()));
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -114,7 +114,7 @@ public class ModuleFriend extends AbstractModule {
 		n.remove(ModuleNotify.makeNotifyId(BNotify.eTypeAddFriend, r.Argument.getAccount()));
 
 		// 总是成功。
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -150,7 +150,7 @@ public class ModuleFriend extends AbstractModule {
 			var n = App.Zege_Notify.getNotify(r.Argument.getAccount());
 			n.put(ModuleNotify.makeNotifyId(BNotify.eTypeAddFriend, session.getAccount()), notify);
 		}
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -206,7 +206,7 @@ public class ModuleFriend extends AbstractModule {
 		r.Result.setGroup(r.Argument.getGroup());
 		r.Result.setDepartmentId(out.value);
 
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		// todo 创建部门客户端自己根据rpc结果更新数据？这样的话需要在Result里带上新创建的部门的数据。
 		// todo 或者重新刷新一次parent-department？
 		return Procedure.Success;
@@ -223,7 +223,7 @@ public class ModuleFriend extends AbstractModule {
 
 		// delete
 		r.setResultCode(group.deleteDepartment(r.Argument.getDepartmentId(), true));
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 
 		// 客户端根据rpc结果自己修改（同步）部门树。
 		return Procedure.Success;
@@ -247,7 +247,7 @@ public class ModuleFriend extends AbstractModule {
 		for (var manager : department.getManagers()) {
 			r.Result.getManagers().put(manager.getKey(), (BManager)manager.getValue().getBean());
 		}
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -271,7 +271,7 @@ public class ModuleFriend extends AbstractModule {
 		r.Result.setNodeKey(new BLinkedMapNodeKey(friends.getName(), nodeId.value));
 		r.Result.setNode(friendNode);
 
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -292,7 +292,7 @@ public class ModuleFriend extends AbstractModule {
 
 		// 执行移动。
 		r.setResultCode(group.moveDepartment(r.Argument.getDepartmentId(), r.Argument.getNewParent()));
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		// 客户端根据rpc结果自己修改（同步）部门树。
 		return Procedure.Success;
 	}
@@ -315,7 +315,7 @@ public class ModuleFriend extends AbstractModule {
 		for (var manager : root.getManagers()) {
 			r.Result.getManagers().put(manager.getKey(), (BManager)manager.getValue().getBean());
 		}
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -339,7 +339,7 @@ public class ModuleFriend extends AbstractModule {
 		r.Result.setNodeId(nodeId.value);
 		r.Result.setNode(node);
 
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -361,7 +361,7 @@ public class ModuleFriend extends AbstractModule {
 		r.Result.setNodeId(nodeId.value);
 		r.Result.setNode(node);
 
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -416,7 +416,7 @@ public class ModuleFriend extends AbstractModule {
 			getFriends(r.Argument.getAccount()).getOrAdd(departmentToAccount(r.Argument.getGroup(), r.Argument.getDepartmentId()));
 			group.getDepartmentMembers(r.Argument.getDepartmentId()).getOrAdd(r.Argument.getAccount());
 		}
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -459,7 +459,7 @@ public class ModuleFriend extends AbstractModule {
 		if (r.getResultCode() != 0)
 			return r.getResultCode();
 		quitMember(group, r.Argument.getAccount(), r.Argument.getGroup(), r.Argument.getDepartmentId());
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -474,7 +474,7 @@ public class ModuleFriend extends AbstractModule {
 			return r.getResultCode();
 
 		group.getOrAddManager(r.Argument.getDepartmentId(), r.Argument.getAccount()).assign(r.Argument.getManager());
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -489,7 +489,7 @@ public class ModuleFriend extends AbstractModule {
 			return r.getResultCode();
 
 		group.deleteManager(r.Argument.getDepartmentId(), r.Argument.getAccount());
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -536,7 +536,7 @@ public class ModuleFriend extends AbstractModule {
 				getFriends(session.getAccount()).getOrAdd(groupId);
 			}
 
-			session.sendResponseWhileCommit(r);
+			session.respond(r);
 			return Procedure.Success;
 		}
 
@@ -555,7 +555,7 @@ public class ModuleFriend extends AbstractModule {
 		r.Result.setNick(user.getNick());
 		r.Result.setLastCertIndex(user.getLastCertIndex());
 		r.Result.setCert(user.getCert());
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -570,7 +570,7 @@ public class ModuleFriend extends AbstractModule {
 		r.Result.setAccount(r.Argument.getAccount());
 		r.Result.setPhoto(userPhoto.getPhoto());
 
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -591,7 +591,7 @@ public class ModuleFriend extends AbstractModule {
 			trySetFriendState(r.Argument.getAccount(), session.getAccount(), BFriend.eRemove);
 		}
 
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -617,7 +617,7 @@ public class ModuleFriend extends AbstractModule {
 			friends.getOrAdd(r.Argument.getAccount()).assign(removeTopmost);
 		}
 
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return Procedure.Success;
 	}
 
@@ -637,7 +637,7 @@ public class ModuleFriend extends AbstractModule {
 
 			r.Result.getInfos().put(account, info);
 		}
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
         return 0;
     }
 

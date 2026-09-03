@@ -365,7 +365,7 @@ public class Bag {
 			if (0 != moduleCode) {
 				return errorCode(moduleCode);
 			}
-			session.sendResponseWhileCommit(r);
+			session.respond(r);
 			return 0;
 		}
 
@@ -378,7 +378,7 @@ public class Bag {
 			if (moduleCode != 0) {
 				return errorCode(moduleCode);
 			}
-			session.sendResponseWhileCommit(r);
+			session.respond(r);
 			return 0;
 		}
 	}

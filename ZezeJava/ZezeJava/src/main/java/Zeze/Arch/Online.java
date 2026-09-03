@@ -1792,7 +1792,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		// var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
 		loginOnline.setServerId(providerApp.zeze.getConfig().getServerId());
 
-		session.sendResponseWhileCommit(rpc);
+		session.respond(rpc);
 		return loginTrigger(account, rpc.Argument.getClientId());
 	}
 
@@ -1865,7 +1865,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		/////////////////////////////////////////////////////////////
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
-		session.sendResponseWhileCommit(rpc);
+		session.respond(rpc);
 		var ret = reloginTrigger(account, rpc.Argument.getClientId());
 		if (0 != ret)
 			return ret;
@@ -1904,7 +1904,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
-		session.sendResponseWhileCommit(rpc);
+		session.respond(rpc);
 		// 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
 		// App.Load.LogoutCount.IncrementAndGet();
 		return Procedure.Success;
@@ -1932,7 +1932,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				notify.Argument.getNotifies().add(bNotify.getFullEncodedProtocol());
 				return true;
 			});
-			session.sendResponseWhileCommit(notify);
+			session.respond(notify);
 		}
 		return ResultCodeSuccess;
 	}
@@ -1948,7 +1948,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 		var syncResultCode = reliableNotifySync(session.getAccount(), clientId,
 				session, rpc.Argument.getReliableNotifyConfirmIndex(), rpc.Argument.isSync());
-		session.sendResponseWhileCommit(rpc); // 同步前提交。
+		session.respond(rpc); // 同步前提交。
 
 		if (ResultCodeSuccess != syncResultCode)
 			return errorCode((short)syncResultCode);

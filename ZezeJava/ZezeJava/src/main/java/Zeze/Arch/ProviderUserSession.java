@@ -11,6 +11,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -85,7 +86,36 @@ public class ProviderUserSession {
 		return dispatch.getSender();
 	}
 
-	private void sendResponseDirectReal(@NotNull Rpc<?, ?> rpc) {
+	// ---------------- respond 家族 ----------------
+	// 词汇表与 OnlineSpec 同构：无标记=事务感知（运行中的事务内延迟到 commit 发送，回滚不发；无事务立即发送）；
+	// Now=立即发送；WhileRollback=事务回滚时发送。除 fireAndForget 外均经 Online 失败记账（onSendError）触发下线流程。
+
+	/** 事务感知发送响应/推送：运行中的事务内延迟到 commit 发送（回滚不发），否则立即发送。 */
+	public void respond(@NotNull Protocol<?> p) {
+		Task.runTxnAware(() -> respondNow(p));
+	}
+
+	/** 立即发送，不等事务提交（即使在事务内；之后 rollback/redo 无法撤销）。 */
+	public void respondNow(@NotNull Protocol<?> p) {
+		p.setRequest(false);
+		protocolLogSend(p);
+		sendAccounted(p.getTypeId(), new Binary(p.encode()));
+	}
+
+	/** 事务回滚时发送。要求当前存在运行中的事务。 */
+	public void respondWhileRollback(@NotNull Protocol<?> p) {
+		Transaction.whileRollback(() -> respondNow(p));
+	}
+
+	/**
+	 * 事务感知发送 rpc 响应，fire-and-forget：绕过 Online 失败记账，发送失败静默丢弃，不触发 onSendError 下线流程。
+	 * 下线感知主路径是 LinkBroken 协议，记账只是加速/兜底。适用：Rpc 响应 ack、高频推送等不需要失败追责的场景。
+	 */
+	public void respondFireAndForget(@NotNull Rpc<?, ?> rpc) {
+		Task.runTxnAware(() -> sendFireAndForgetReal(rpc));
+	}
+
+	protected void sendFireAndForgetReal(@NotNull Rpc<?, ?> rpc) {
 		rpc.setRequest(false);
 		protocolLogSend(rpc);
 		var send = new Send(new BSend(rpc.getTypeId(), new Binary(rpc.encode())));
@@ -104,14 +134,18 @@ public class ProviderUserSession {
 		}
 	}
 
+	/** @deprecated 使用 {@link #respondFireAndForget(Rpc)} 替代（语义不变：事务感知 + 绕过 Online 失败记账）。 */
+	@Deprecated
 	public void sendResponseDirect(@NotNull Rpc<?, ?> rpc) {
 		var t = Transaction.getCurrent();
 		if (t != null)
-			t.runWhileCommit(() -> sendResponseDirectReal(rpc));
+			t.runWhileCommit(() -> sendFireAndForgetReal(rpc));
 		else
-			sendResponseDirectReal(rpc);
+			sendFireAndForgetReal(rpc);
 	}
 
+	/** @deprecated 使用 {@link #respondNow(Protocol)}（内部自行编码）或 respond 家族替代。 */
+	@Deprecated
 	public void sendResponse(@NotNull Binary fullEncodedProtocol) {
 		var bytes = fullEncodedProtocol.bytesUnsafe();
 		var offset = fullEncodedProtocol.getOffset();
@@ -148,7 +182,7 @@ public class ProviderUserSession {
 		return send.Send(link);
 	}
 
-	public boolean sendResponse(long typeId, @NotNull Binary fullEncodedProtocol) {
+	protected boolean sendAccounted(long typeId, @NotNull Binary fullEncodedProtocol) {
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(getLinkSid());
 
@@ -164,6 +198,12 @@ public class ProviderUserSession {
 		return false;
 	}
 
+	/** @deprecated 使用 {@link #respondNow(Protocol)}（内部自行编码）或 respond 家族替代。 */
+	@Deprecated
+	public boolean sendResponse(long typeId, @NotNull Binary fullEncodedProtocol) {
+		return sendAccounted(typeId, fullEncodedProtocol);
+	}
+
 	private void protocolLogSend(@NotNull Protocol<?> p) {
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId())) {
 			var roleId = getRoleId();
@@ -173,42 +213,66 @@ public class ProviderUserSession {
 		}
 	}
 
-	public void trySendResponse(@NotNull Protocol<?> p, long resultCode) {
+	/**
+	 * onError 钩子配套：仅当 p 是尚未回复的 Rpc 请求时，以 resultCode 立即回错误响应
+	 * （Now：不等外层事务）；handler 已回复过或非 Rpc 则静默跳过。
+	 */
+	public void tryRespondErrorNow(@NotNull Protocol<?> p, long resultCode) {
 		if (p instanceof Rpc && p.isRequest()) {
 			p.setResultCode(resultCode);
-			sendResponse(p);
+			respondNow(p);
 		}
 	}
 
+	/** @deprecated 使用 {@link #tryRespondErrorNow(Protocol, long)} 替代。 */
+	@Deprecated
+	public void trySendResponse(@NotNull Protocol<?> p, long resultCode) {
+		tryRespondErrorNow(p, resultCode);
+	}
+
+	/**
+	 * @deprecated 立即发送语义不变，使用 {@link #respondNow(Protocol)} 替代；事务感知请用 {@link #respond(Protocol)}。
+	 */
+	@Deprecated
 	public void sendResponse(@NotNull Protocol<?> p) {
 		p.setRequest(false);
 		protocolLogSend(p);
 		sendResponse(p.getTypeId(), new Binary(p.encode()));
 	}
 
+	/** @deprecated 使用 {@link #respond(Protocol)} 替代（事务感知：无事务时立即发送，不再要求事务存在）。 */
+	@Deprecated
 	public void sendResponseWhileCommit(long typeId, @NotNull Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
+	/** @deprecated 使用 {@link #respond(Protocol)} 替代（事务感知：无事务时立即发送，不再要求事务存在）。 */
+	@Deprecated
 	public void sendResponseWhileCommit(@NotNull Binary fullEncodedProtocol) {
 		Transaction.whileCommit(() -> sendResponse(fullEncodedProtocol));
 	}
 
+	/** @deprecated 使用 {@link #respond(Protocol)} 替代（事务感知：无事务时立即发送，不再要求事务存在）。 */
+	@Deprecated
 	public void sendResponseWhileCommit(@NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> sendResponse(p));
 	}
 
 	// 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
 	@SuppressWarnings("unused")
+	@Deprecated
 	protected void sendResponseWhileRollback(long typeId, @NotNull Binary fullEncodedProtocol) {
 		Transaction.whileRollback(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
 	@SuppressWarnings("unused")
+	@Deprecated
 	protected void sendResponseWhileRollback(@NotNull Binary fullEncodedProtocol) {
 		Transaction.whileRollback(() -> sendResponse(fullEncodedProtocol));
 	}
 
+	/** @deprecated 使用 {@link #respondWhileRollback(Protocol)} 替代。 */
+	@Deprecated
 	public void sendResponseWhileRollback(@NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> sendResponse(p));
 	}

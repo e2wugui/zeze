@@ -45,7 +45,7 @@ public class ModuleNotify extends AbstractModule {
         r.Result.setNodeKey(new BLinkedMapNodeKey(notify.getName(), nodeId.value));
         r.Result.setNode(node);
 
-        session.sendResponseWhileCommit(r);
+        session.respond(r);
         return Procedure.Success;
     }
 
@@ -64,7 +64,7 @@ public class ModuleNotify extends AbstractModule {
                 notify.put(makeNotifyId(BNotify.eTypeGroupCert, r.Argument.getGroup()), e.getValue());
         }
 
-        session.sendResponseWhileCommit(r);
+        session.respond(r);
         return 0;
     }
 
@@ -75,7 +75,7 @@ public class ModuleNotify extends AbstractModule {
         var n = getNotify(session.getAccount());
         n.remove(makeNotifyId(r.Argument.getType(), r.Argument.getAccount()));
 
-        session.sendResponseWhileCommit(r);
+        session.respond(r);
         return 0;
     }
 

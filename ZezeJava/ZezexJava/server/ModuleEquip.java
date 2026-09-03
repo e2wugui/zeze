@@ -411,7 +411,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			bEquipAdd.setNumber(1);
 			bEquipAdd.setExtra(bItem.getExtra_Game_Equip_BEquipExtra().Copy());
 			equips.getItems().put(equipPos, bEquipAdd);
-			session.sendResponseWhileCommit(rpc);
+			session.respond(rpc);
 			return Procedure.Success;
 		}
 		*/
@@ -434,7 +434,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			if (0 != bag.Add(-1, bItemAdd)) {
 				return errorCode(ResultCodeBagIsFull); // bag is full
 			}
-			session.sendResponseWhileCommit(rpc);
+			session.respond(rpc);
 			return Procedure.Success;
 		}
 		*/
@@ -477,14 +477,14 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	@Override
 	protected long ProcessSendHotRequest(Game.Equip.SendHot r) {
 		var session = ProviderUserSession.get(r);
-		session.sendResponseDirect(r);
+		session.respondFireAndForget(r);
 		return 0;
 	}
 
 	@Override
 	protected long ProcessSendHotRemoveRequest(Game.Equip.SendHotRemove r) {
 		var session = ProviderUserSession.get(r);
-		session.sendResponseDirect(r);
+		session.respondFireAndForget(r);
 		return 0;
 	}
 
@@ -495,7 +495,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		if (roleId == null || roleId != r.Argument.getRoleId() || timerOnline != null)
 			return Procedure.LogicError;
 		startOnlineTimer(r.Argument.getRoleId());
-		session.sendResponseWhileCommit(r);
+		session.respond(r);
 		return 0;
 	}
 
