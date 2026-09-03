@@ -56,6 +56,7 @@ public class StableRandom2 {
 	}
 
 	public @NotNull StableRandom2 setSeed(long s1, long s2, long s3, long s4, long s5) {
+		bits = 0; // 清空位缓存(nextBits/nextBits64的剩余位)，保证重置种子后输出与全新实例一致，不依赖对象历史
 		this.s1 = ensureLarger(s1, 1);
 		this.s2 = ensureLarger(s2, 0x1ff);
 		this.s3 = ensureLarger(s3, 0xfff);
