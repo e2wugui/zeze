@@ -106,7 +106,10 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	protected @Nullable HttpSession httpSession;
 	protected final boolean noProcedure;
 
-	public static @NotNull String getDate() {
+	// 各EventLoop/池线程并发调用：两个静态字段的检查-更新无同步时，读者可观察到
+	// 新lastSecond配旧lastDateStr（两写之间无happens-before），返回错位的Date串。
+	// 竞争窗口每秒一次、临界区为一次缓存比较，synchronized开销可忽略。
+	public static synchronized @NotNull String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
 		if (second == lastSecond)
 			return lastDateStr;
