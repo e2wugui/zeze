@@ -97,10 +97,14 @@ public class ProviderDistribute extends ReentrantLock {
 
 	public @Nullable BServiceInfo choiceHash(@NotNull Agent.SubscribeState providers, int hash,
 											 int dataConcurrentLevel) {
-		var serviceName = providers.getServiceName();
-		var consistentHash = consistentHashes.get(serviceName);
+		var consistentHash = consistentHashes.get(providers.getServiceName());
+		// FND-A1-4：订阅状态先于一致性哈希环构建可见（Agent同步更新serviceInfos，
+		// onChanged→applyOnChanged→addServer异步排队），窗口期内环可能尚未建好；此时
+		// 返回null与Request/Load/FeedFull路径的“未找到”语义一致：linkd侧choiceBindSend
+		// 走错误码→ReportError(NoProvider)通告客户端（自愈），不再抛IllegalStateException
+		// 落回TcpSocket读循环→doException→close断开无辜客户端连接。
 		if (consistentHash == null)
-			throw new IllegalStateException("ChoiceHash: not found ConsistentHash for serviceName=" + serviceName);
+			return null;
 		if (dataConcurrentLevel < 1)
 			return consistentHash.get(hash);
 
