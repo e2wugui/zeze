@@ -230,14 +230,16 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		var deadline = System.currentTimeMillis() + super.config.getServiceManagerConf().getLoginTimeout();
 		for (; ; ) {
 			var volatileTmp = loginFuture;
-			if (!volatileTmp.isDone())
-				volatileTmp.await(Math.max(1, deadline - System.currentTimeMillis()));
-			try {
-				if (volatileTmp.get())
-					return;
-			} catch (Throwable ignored) { // ignored
-				// 等待期间raftOnSetLeader执行startNewLogin，cancel旧future并替换；
-				// 被替换不是失败，重读最新future继续等。
+			// await超时或被取消都返回false，此时不能再调get()：未完成的future上get()会无限期park，
+			// 下面的deadline检查将不可达；被取消则重读最新loginFuture继续等。
+			if (volatileTmp.isDone() || volatileTmp.await(Math.max(1, deadline - System.currentTimeMillis()))) {
+				try {
+					if (volatileTmp.get()) // 到这里future已完成，get()不会park。
+						return;
+				} catch (Throwable ignored) { // ignored
+					// 等待期间raftOnSetLeader执行startNewLogin，cancel旧future并替换；
+					// 被替换不是失败，重读最新future继续等。
+				}
 			}
 			if (System.currentTimeMillis() >= deadline)
 				throw new IllegalStateException("login timeout.");
