@@ -34,7 +34,8 @@ public class Client extends Service {
 	}
 
 	public void onSmRemoved(BServiceInfo si) {
-		var conn = logServers.get(si.getServiceIdentity());
+		// remove必须与stop同时发生：残留死条目会让newSessionAll对其GetReadySocket超时，构造必失败。
+		var conn = logServers.remove(si.getServiceIdentity());
 		if (conn != null) {
 			conn.stop();
 			getConfig().removeConnector(conn);

@@ -10,17 +10,39 @@ import Zeze.Services.LogAgent;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Func1;
 import Zeze.Util.KV;
+import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class SessionAll implements AutoCloseable {
+	private static final @NotNull Logger logger = LogManager.getLogger(SessionAll.class);
+
 	private final LogAgent agent;
 	private final ConcurrentHashMap<String, Session> alls = new ConcurrentHashMap<>();
 	private final ConcurrentHashSet<String> finishedSession = new ConcurrentHashSet<>();
 
 	public SessionAll(LogAgent agent, String logName) {
 		this.agent = agent;
-		for (var serverName : agent.getLogServers())
-			alls.put(serverName, agent.newSession(serverName, logName));
+		try {
+			for (var serverName : agent.getLogServers()) {
+				try {
+					alls.put(serverName, agent.newSession(serverName, logName));
+				} catch (Exception e) {
+					// 单台不可用（摘除残留条目、连接失败/超时等）：告警并跳过，查全服降级为部分结果。
+					logger.warn("newSession fail, skip log server '{}', logName '{}'", serverName, logName, e);
+				}
+			}
+		} catch (Throwable e) {
+			// 防御兜底：非单台失败的意外异常，关闭已建会话后重抛，构造中途夭折不泄漏服务端查询句柄。
+			try {
+				close();
+			} catch (Exception closeEx) {
+				e.addSuppressed(closeEx);
+			}
+			throw Task.forceThrow(e);
+		}
 	}
 
 	public LogAgent getAgent() {
@@ -130,9 +152,21 @@ public class SessionAll implements AutoCloseable {
 
 	@Override
 	public void close() throws Exception {
-		for (var session : alls.values())
-			session.close();
+		// 逐台关闭并收集异常：单台close失败（连接已死等）不能中断其余，否则服务端会话句柄泄漏。
+		Exception first = null;
+		for (var session : alls.values()) {
+			try {
+				session.close();
+			} catch (Exception e) {
+				if (first == null)
+					first = e;
+				else
+					first.addSuppressed(e);
+			}
+		}
 		alls.clear();
 		finishedSession.clear();
+		if (first != null)
+			throw first;
 	}
 }
