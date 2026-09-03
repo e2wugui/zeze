@@ -152,9 +152,11 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		float[] buffer = this.buffer;
 		if (count > buffer.length) {
 			int cap;
-			for (cap = DEFAULT_SIZE; count > cap; cap <<= 1) {
+			for (cap = DEFAULT_SIZE; count > cap && cap > 0; cap <<= 1) {
 				// empty
 			}
+			if (cap < 0) // count > 2^30：倍增 cap 溢出为负，原实现死循环
+				throw new OutOfMemoryError("FloatList reserve count too large: " + count);
 			float[] buf = new float[cap];
 			int n = this.count;
 			if (n > 0)
@@ -166,9 +168,11 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 	public void reserveSpace(int count) {
 		if (count > buffer.length) {
 			int cap;
-			for (cap = 8; count > cap; cap <<= 1) {
+			for (cap = 8; count > cap && cap > 0; cap <<= 1) {
 				// empty
 			}
+			if (cap < 0) // 同 reserve：防倍增溢出死循环
+				throw new OutOfMemoryError("FloatList reserveSpace count too large: " + count);
 			buffer = new float[cap];
 		}
 	}

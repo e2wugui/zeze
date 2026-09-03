@@ -154,9 +154,11 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		int[] buffer = this.buffer;
 		if (count > buffer.length) {
 			int cap;
-			for (cap = DEFAULT_SIZE; count > cap; cap <<= 1) {
+			for (cap = DEFAULT_SIZE; count > cap && cap > 0; cap <<= 1) {
 				// empty
 			}
+			if (cap < 0) // count > 2^30：倍增 cap 溢出为负，原实现死循环
+				throw new OutOfMemoryError("IntList reserve count too large: " + count);
 			int[] buf = new int[cap];
 			int n = this.count;
 			if (n > 0)
@@ -168,9 +170,11 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	public void reserveSpace(int count) {
 		if (count > buffer.length) {
 			int cap;
-			for (cap = 8; count > cap; cap <<= 1) {
+			for (cap = 8; count > cap && cap > 0; cap <<= 1) {
 				// empty
 			}
+			if (cap < 0) // 同 reserve：防倍增溢出死循环
+				throw new OutOfMemoryError("IntList reserveSpace count too large: " + count);
 			buffer = new int[cap];
 		}
 	}

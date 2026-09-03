@@ -168,37 +168,45 @@ public class KVList<K, V> implements Cloneable {
 	}
 
 	public void reserve(int count) {
-		int cap;
-		for (cap = DEFAULT_SIZE; count > cap; cap <<= 1) {
-			// empty
-		}
-		Object[] buffer = keys;
-		if (count > buffer.length) {
-			Object[] buf = new Object[cap];
-			int n = this.count;
-			if (n > 0)
-				System.arraycopy(buffer, 0, buf, 0, n);
-			keys = buf;
-		}
-		buffer = values;
-		if (count > buffer.length) {
-			Object[] buf = new Object[cap];
-			int n = this.count;
-			if (n > 0)
-				System.arraycopy(buffer, 0, buf, 0, n);
-			values = buf;
+		if (count > keys.length || count > values.length) {
+			int cap;
+			for (cap = DEFAULT_SIZE; count > cap && cap > 0; cap <<= 1) {
+				// empty
+			}
+			if (cap < 0) // count > 2^30：倍增 cap 溢出为负，原实现死循环
+				throw new OutOfMemoryError("KVList reserve count too large: " + count);
+			Object[] buffer = keys;
+			if (count > buffer.length) {
+				Object[] buf = new Object[cap];
+				int n = this.count;
+				if (n > 0)
+					System.arraycopy(buffer, 0, buf, 0, n);
+				keys = buf;
+			}
+			buffer = values;
+			if (count > buffer.length) {
+				Object[] buf = new Object[cap];
+				int n = this.count;
+				if (n > 0)
+					System.arraycopy(buffer, 0, buf, 0, n);
+				values = buf;
+			}
 		}
 	}
 
 	public void reserveSpace(int count) {
-		int cap;
-		for (cap = 8; count > cap; cap <<= 1) {
-			// empty
+		if (count > keys.length || count > values.length) {
+			int cap;
+			for (cap = 8; count > cap && cap > 0; cap <<= 1) {
+				// empty
+			}
+			if (cap < 0) // 同 reserve：防倍增溢出死循环
+				throw new OutOfMemoryError("KVList reserveSpace count too large: " + count);
+			if (count > keys.length)
+				keys = new Object[cap];
+			if (count > values.length)
+				values = new Object[cap];
 		}
-		if (count > keys.length)
-			keys = new Object[cap];
-		if (count > values.length)
-			values = new Object[cap];
 	}
 
 	public void resize(int count) {
