@@ -24,6 +24,13 @@ public class App {
 		config.setCheckpointPeriod(1000);
 		config.getServiceConfMap().remove("Zeze.Onz.Server");
 		config.setHistory("ZezeTest");
+		// DatabaseMemory的表存储按DatabaseUrl静态分桶：zeze.xml默认空url桶与demo.App等
+		// 其他App共享，Simulate批间清表会误清别的App的行（曾把常驻demo.App的Takeover租约
+		// 清掉，后续CsQueue构造stampScope读到行缺失被误判为被接管，System.exit(-1)杀掉
+		// 整个测试JVM，IDEA表现为后续用例永久卡住）。Simulate自足集群，独占桶隔离。
+		var simDbConf = config.getDatabaseConfMap().get("");
+		if (simDbConf != null)
+			simDbConf.setDatabaseUrl("infinite_simulate_db");
 
 		var tdef = config.getDefaultTableConf();
 		// 提高并发

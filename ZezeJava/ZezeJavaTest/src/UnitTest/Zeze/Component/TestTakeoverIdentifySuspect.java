@@ -45,6 +45,10 @@ public class TestTakeoverIdentifySuspect {
 			var suspected = new LinkedBlockingQueue<Integer>();
 			agent2.setOnSuspect(suspected::add);
 
+			// 等Identify在SM侧生效（onConnected异步发送；负载下未处理即断线会话上无serverId，
+			// SM不广播Suspect，用例flaky——全量单JVM运行实证过）。
+			Thread.sleep(1000);
+
 			// agent1正常关闭：连接断开→SM onClose→Suspect(serverId=11)广播→agent2回调。
 			agent1.stop();
 			agent1 = null;
