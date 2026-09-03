@@ -246,8 +246,12 @@ public class PList2<V extends Bean> extends PList<V> {
 
 		// apply changed
 		for (var e : log.getChanged().entrySet()) {
-			V v = tmp.get(e.getValue().value);
-			v.followerApply(e.getKey());
+			var index = e.getValue().value;
+			V v = index >= 0 && index < tmp.size() ? tmp.get(index) : null;
+			// index可能因日志丢失/重复/交错应用而失效，防御对齐PMap2.followerApply的null检查：
+			// 越界直接get会抛IndexOutOfBoundsException（或v为null时下一行NPE），重放中断且无诊断信息。
+			if (null != v)
+				v.followerApply(e.getKey());
 		}
 		list = tmp;
 	}
