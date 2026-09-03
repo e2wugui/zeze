@@ -159,9 +159,23 @@ public class Takeover extends AbstractTakeover {
 
 	private void stampScope(@NotNull TakeoverScope scope) {
 		var lost = new boolean[1];
+		var healed = new boolean[1];
 		var r = callDirect(() -> {
-			var lease = _tTakeoverLease.get(zeze.getConfig().getServerId());
-			if (lease == null || lease.getEpoch() != myEpoch) {
+			var serverId = zeze.getConfig().getServerId();
+			var lease = _tTakeoverLease.get(serverId);
+			if (lease == null) {
+				// 行缺失（外部清表等）不是被接管：与renewOnce同款自愈重写自己的租约。
+				// 并发自愈由行冲突串行化；若期间已被新owner claim（含墓碑行），getOrAdd
+				// 看到别人的epoch→致命退出，不会覆盖新owner。
+				lease = _tTakeoverLease.getOrAdd(serverId);
+				if (lease.getEpoch() != 0 && lease.getEpoch() != myEpoch) {
+					lost[0] = true;
+					return Procedure.LogicError;
+				}
+				lease.setEpoch(myEpoch);
+				lease.setExpireAt(System.currentTimeMillis() + ttl);
+				healed[0] = true;
+			} else if (lease.getEpoch() != myEpoch) {
 				lost[0] = true;
 				return Procedure.LogicError;
 			}
@@ -172,6 +186,9 @@ public class Takeover extends AbstractTakeover {
 			fenceFailed("addScope: lease lost, scope=" + scope.name() + " myEpoch=" + myEpoch);
 			return;
 		}
+		if (healed[0])
+			logger.warn("Takeover.stamp: lease row missing, rewritten (self-heal), serverId={} scope={}",
+					zeze.getConfig().getServerId(), scope.name());
 		if (r != 0)
 			logger.error("Takeover.stamp scope={} rc={}", scope.name(), r);
 	}
@@ -190,7 +207,8 @@ public class Takeover extends AbstractTakeover {
 
 	private void fenceFailed(@NotNull String reason) {
 		fenceFatal = true; // release不得写墓碑：不能打掉新owner的租约
-		logger.fatal("Takeover: {}", reason);
+		// 带触发点栈：fence失败必须致命退出，现场只此一条日志，没有栈无法定位是哪条写路径触发。
+		logger.fatal("Takeover: " + reason, new Exception("Takeover fence trigger stack"));
 		var action = fatalAction;
 		if (action != null)
 			action.run();
