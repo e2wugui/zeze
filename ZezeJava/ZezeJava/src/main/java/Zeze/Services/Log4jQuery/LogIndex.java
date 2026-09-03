@@ -160,7 +160,7 @@ public class LogIndex {
 		try {
 			var size = mmap.limit() / eIndexRecordSize;
 			var idx = upperBoundIndex(time, size);
-			if (idx > size)
+			if (idx >= size) // 与lowerBound一致：upperBoundIndex返回size表示全部记录时间<=time，越界须判>=
 				return -1;
 			return mmap.getLong(idx * eIndexRecordSize + 8);
 		} finally {
