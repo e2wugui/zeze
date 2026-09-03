@@ -268,7 +268,13 @@ public interface IByteBuffer {
 
 	default int ReadTagSize(int tagByte) {
 		int deltaId = (tagByte & ID_MASK) >> TAG_SHIFT;
-		return deltaId < 0xf ? deltaId : 0xf + ReadUInt();
+		if (deltaId < 0xf)
+			return deltaId;
+		long id = 0xfL + (ReadUInt() & 0xffff_ffffL); // ReadUInt()按无符号解释，直接int相加会溢出回绕为负idx
+		if (id > Integer.MAX_VALUE)
+			throw new IllegalStateException("ReadTagSize overflow: 0xf + " + (id - 0xf)
+					+ " at " + getReadIndex() + '/' + getWriteIndex());
+		return (int)id;
 	}
 
 	default boolean ReadBool(int tag) {
@@ -419,6 +425,9 @@ public interface IByteBuffer {
 
 	default byte @Nullable [] readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
 		while ((tag & ~1) != 0) { // (tag != 0 && tag != 1)
+			if (idx < 0) // 非负id累加仍溢出为负，说明流损坏；拒绝收集，防止负idx回写伪装tag字节
+				throw new IllegalStateException("readAllUnknownFields: negative idx " + idx
+						+ " at " + getReadIndex() + '/' + getWriteIndex());
 			unknown = readUnknownField(idx, tag, unknown);
 			idx += ReadTagSize(tag = ReadByte());
 		}

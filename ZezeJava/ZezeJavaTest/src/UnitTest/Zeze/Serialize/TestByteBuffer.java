@@ -706,6 +706,54 @@ public class TestByteBuffer {
 	}
 
 	@Test
+	public void testUnknownTagSizeOverflow() {
+		// 扩展delta的上限边界：0xf + 0x7FFFFFF0 = Integer.MAX_VALUE，合法接受
+		// (varint编码：≥2^28的值用 F0 + 4字节大端，见testUInt的F0-10-00-00-00)
+		var bb = ByteBuffer.Wrap(new byte[]{(byte)0xF1, (byte)0xF0, 0x7F, (byte)0xFF, (byte)0xFF, (byte)0xF0});
+		assertEquals(Integer.MAX_VALUE, bb.ReadTagSize(bb.ReadByte()));
+		// 0xf + 0x7FFFFFF1 溢出为负（0x80000000）：decode侧必须抛异常而不是静默收集负idx
+		var bb2 = ByteBuffer.Wrap(new byte[]{(byte)0xF1, (byte)0xF0, 0x7F, (byte)0xFF, (byte)0xFF, (byte)0xF1});
+		assertThrows(IllegalStateException.class, () -> bb2.ReadTagSize(bb2.ReadByte()));
+		// 回绕到小正数的变体：0xf + 0xFFFFFFFF(int相加=14)同样是溢出流，拒绝
+		var bb3 = ByteBuffer.Wrap(new byte[]{(byte)0xF1, (byte)0xF0, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF});
+		assertThrows(IllegalStateException.class, () -> bb3.ReadTagSize(bb3.ReadByte()));
+
+		// 恶意/损坏bean流（Bean1 schema={1,2}）：首tag 0xF1(扩展delta+FLOAT)，varint 0x7FFFFFF1，
+		// 修复前decode静默成功并把负idx收进unknown，再encode写出伪装tag字节；修复后decode即抛异常。
+		var malicious = new byte[]{(byte)0xF1, (byte)0xF0, 0x7F, (byte)0xFF, (byte)0xFF, (byte)0xF1, 0, 0, 0, 0, 0};
+		assertThrows(IllegalStateException.class, () -> new Bean1().decode(ByteBuffer.Wrap(malicious.clone())));
+		// NioByteBuffer走同一个default ReadTagSize，同样拒绝
+		var nio1 = NioByteBuffer.Wrap(malicious.clone(), malicious.length);
+		assertThrows(IllegalStateException.class, () -> new Bean1().decode(nio1));
+
+		// 单个delta合法(=Integer.MAX_VALUE)但与已知字段id累加回绕为负的变体：
+		// {1:1(0x11 0x01)} + tag 0xF1 + varint 0x7FFFFFF0 → _i_ = 1 + 0x7FFFFFFF = 0x80000000
+		var wrap = new byte[]{0x11, 0x01, (byte)0xF1, (byte)0xF0, 0x7F, (byte)0xFF, (byte)0xFF, (byte)0xF0, 0, 0, 0, 0, 0};
+		assertThrows(IllegalStateException.class, () -> new Bean1().decode(ByteBuffer.Wrap(wrap.clone())));
+		var nio2 = NioByteBuffer.Wrap(wrap.clone(), wrap.length);
+		assertThrows(IllegalStateException.class, () -> new Bean1().decode(nio2));
+
+		// WriteTag纵深防御：负delta(降序id/负idx)不再写出伪装tag字节而是抛错
+		var wb = ByteBuffer.Allocate();
+		assertThrows(IllegalStateException.class, () -> wb.WriteTag(5, 3, ByteBuffer.INTEGER));
+		assertThrows(IllegalStateException.class, () -> wb.WriteTag(0, Integer.MIN_VALUE, ByteBuffer.FLOAT));
+		assertEquals(0, wb.WriteIndex); // 抛错时不写入任何字节
+	}
+
+	@Test
+	public void testUnknownExtendedTagSize() {
+		// 合法扩展delta（0xf+85=100，越过Bean1最大已知id 2）：decode收集unknown，encode原样回写，字节不变
+		var bytes = new byte[]{(byte)0xF2, 0x55, 1, 2, 3, 4, 5, 6, 7, 8, 0}; // tag=扩展delta+DOUBLE, varint=85, 8字节double负载, 结束符
+		var b = new Bean1();
+		b.decode(ByteBuffer.Wrap(bytes.clone()));
+		assertNotNull(b.unknown());
+		assertTrue(b.unknown().length > 0);
+		var bb = ByteBuffer.Allocate();
+		b.encode(bb);
+		assertArrayEquals(bytes, bb.Copy()); // 编码格式不变（协议兼容红线）
+	}
+
+	@Test
 
 	public void testCollections() {
 		var r = Random.getInstance();

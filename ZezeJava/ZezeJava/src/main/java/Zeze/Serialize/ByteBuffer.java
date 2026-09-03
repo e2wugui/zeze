@@ -1176,6 +1176,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	public int WriteTag(int lastVarId, int varId, int type) {
 		int deltaId = varId - lastVarId;
+		if (deltaId < 0) // 负delta(降序id/负idx)会写出高位为1的伪装tag字节，静默损坏输出流
+			throw new IllegalStateException("WriteTag: varId " + varId + " < lastVarId " + lastVarId);
 		if (deltaId < 0xf)
 			WriteByte((deltaId << TAG_SHIFT) + type);
 		else {
