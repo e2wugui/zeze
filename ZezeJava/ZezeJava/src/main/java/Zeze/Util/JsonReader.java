@@ -1373,6 +1373,14 @@ public final class JsonReader {
 				b = buffer[++p];
 			} else if (b == '+')
 				b = buffer[++p];
+			c = b | 0x20;
+			if (c == 'i' || c == 'n') { // Infinity NaN (same as parseNumber; JsonWriter writes them for non-finite doubles)
+				do
+					b = buffer[++p];
+				while ((((b | 0x20) - 'a') & 0xff) < 26);
+				pos = p;
+				return c == 'n' ? Double.NaN : minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+			}
 			if (b == '0')
 				b = buffer[++p];
 			else if ((i = (b - '0') & 0xff) < 10) {
