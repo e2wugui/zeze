@@ -221,15 +221,23 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	@Override
 	public void SendResult(@Nullable Binary result) {
-		if (sendResultDone) {
+		if (!tryMarkSendResultDone()) {
 			logger.warn("Rpc.SendResult Already Done: {} {}", getSender(), this, new Exception("only for stack trace"));
 			return;
 		}
-		sendResultDone = true;
 		resultEncoded = result;
 		isRequest = false;
 		if (!super.Send(getSender()))
 			logger.warn("Rpc.SendResult Failed: {} {}", getSender(), this);
+	}
+
+	// sendResultDone的检查-设置必须原子：responseHandle回调线程与派发层onError兜底（trySendResultCode）
+	// 可能并发应答，两线程都读到false时会双重发送Result，破坏"最多一次"语义。
+	private synchronized boolean tryMarkSendResultDone() {
+		if (sendResultDone)
+			return false;
+		sendResultDone = true;
+		return true;
 	}
 
 	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -239,10 +247,13 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	@Override
 	public boolean trySendResultCode(long code) {
-		if (sendResultDone)
+		if (!tryMarkSendResultDone())
 			return false;
 		setResultCode(code);
-		SendResult(null);
+		resultEncoded = null;
+		isRequest = false;
+		if (!super.Send(getSender()))
+			logger.warn("Rpc.trySendResultCode Failed: {} {}", getSender(), this);
 		return true;
 	}
 
