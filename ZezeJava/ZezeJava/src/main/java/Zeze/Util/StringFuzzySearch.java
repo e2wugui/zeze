@@ -91,6 +91,8 @@ public final class StringFuzzySearch {
 	public int search(final @NotNull String s, final @NotNull String @NotNull [] res) {
 		final int max = res.length;
 		final int n = s.length();
+		if (n == 0) // 空串不参与索引合并，后面 0x1_0000_0000L / n 会除零
+			return 0;
 		final var m = new LongHashMap<OutInt>();
 		if (n >= 4) {
 			var k = ((long)s.charAt(0) << 32) + ((long)s.charAt(1) << 16) + s.charAt(2);
