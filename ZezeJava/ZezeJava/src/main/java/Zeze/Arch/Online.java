@@ -1941,6 +1941,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	protected long ProcessReliableNotifyConfirmRequest(@NotNull ReliableNotifyConfirm rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
+		// FND-A1-5：未登录会话的context为""，直接放行会向tonline注入clientId=""的幽灵登录条目
+		// （reliableNotifySync内getLogins().getOrAdd("")）并收到空SReliableNotify，与
+		// ProcessLogoutRequest的防护对齐。
+		if (!session.isLogin())
+			return errorCode(ResultCodeNotLogin);
+
 		var clientId = session.getContext();
 		var online = getOnline(session.getAccount());
 		if (online == null)
