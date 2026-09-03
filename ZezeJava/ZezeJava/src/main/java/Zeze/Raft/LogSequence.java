@@ -474,6 +474,23 @@ public class LogSequence {
 				logger.info("{}-{} {} LastIndex={} Count={}", raft.getName(), raft.isLeader(),
 						raft.getRaftConfig().getDbHome(), lastIndex, getTestStateMachineCount());
 
+				// 【FND-R1-5】崩溃自愈：endReceiveInstallSnapshot在logs.drop()之后、边界日志
+				// saveLog()之前崩溃（两次sync写之间的窗口），重启后日志空表种子lastIndex=0，
+				// 而rafts表持久化的firstIndex仍是旧值：lastIndex < firstIndex破坏不变式且
+				// 无法自愈——复制回退到firstIndex时startInstallSnapshot的readLog(firstIndex)
+				// 返回null而NPE，且connector已进入installSnapshotting拦截心跳，该follower
+				// 复制永久楔死（需人工清理DbHome）。此时快照边界日志已不可用，重置回无快照
+				// 状态：firstIndex由下面的空表种子重算为0，由leader的InstallSnapshot重新同步。
+				// 正常流程日志截断只会到firstIndex为止（冲突截断含commitIndex防御fatalKill），
+				// lastIndex < firstIndex只可能由上述崩溃窗口产生。
+				if (lastIndex < firstIndex) {
+					logger.warn("{} crash recovery: lastIndex({}) < firstIndex({}), reset to no-snapshot state."
+							+ " endReceiveInstallSnapshot crashed between logs.drop() and saveLog?",
+							raft.getName(), lastIndex, firstIndex);
+					saveFirstIndex(-1);
+					firstIndex = -1;
+				}
+
 				// 【注意】snapshot 以后 FirstIndex 会推进，不再是从-1开始。
 				if (firstIndex == -1) { // no committed snapshot
 					try (var itFirst = logs.iterator()) {
@@ -1166,6 +1183,18 @@ public class LogSequence {
 			var st = c.getInstallSnapshotState();
 			st.setFile(new RandomAccessFile(path, "r"));
 			st.setFirstLog(readLog(firstIndex));
+			if (st.getFirstLog() == null) {
+				// 【FND-R1-5防御】firstIndex处没有边界日志（如endReceiveInstallSnapshot
+				// 崩溃窗口导致的不变式破坏）：继续下去setLastIncludedIndex(st.getFirstLog()
+				// .getIndex())必然NPE，且异常被吞后connector停留在installSnapshotting、
+				// 文件已打开的半初始化状态——心跳被拦截，每次重连重试都再次NPE，follower
+				// 复制永久楔死。取消本次安装（清理installSnapshotting与文件句柄），
+				// 让本地生成新snapshot推进firstIndex后恢复。
+				logger.error("{} startInstallSnapshot: no log at firstIndex={}, cancel install. c={}",
+						raft.getName(), firstIndex, c.getName());
+				endInstallSnapshot(c);
+				return;
+			}
 			st.getPending().Argument.setTerm(term);
 			st.getPending().Argument.setLeaderId(raft.getName());
 			st.getPending().Argument.setLastIncludedIndex(st.getFirstLog().getIndex());
