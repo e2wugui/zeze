@@ -29,6 +29,11 @@ public final class JsonReader {
 	private static final @NotNull Double NEGATIVE_INFINITY = Double.NEGATIVE_INFINITY;
 	private static final @NotNull Double POSITIVE_INFINITY = Double.POSITIVE_INFINITY;
 
+	// 写侧 JsonWriter 默认深度限制为 16，读取上限必须远大于它（应用可用 setMaxDepth 配合更大的写侧深度）；
+	// 同时每层容器递归约 2~3 个栈帧，1024 层距默认线程栈的 StackOverflowError 阈值有一个数量级以上的安全余量，
+	// 与主流解析器（Jackson 默认 1000）同量级。
+	public static final int DEFAULT_MAX_DEPTH = 1024;
+
 	private static final byte[] ESCAPE = { // @formatter:off
 		//   0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
 			' ', '!', '"', '#', '$', '%', '&','\'', '(', ')', '*', '+', ',', '-', '.', '/', // 0x2x
@@ -117,6 +122,8 @@ public final class JsonReader {
 	private byte[] buf; // only support utf-8 encoding
 	private int pos;
 	private char[] tmp; // for parseString & parseStringNoQuot
+	private int depth; // current container nesting depth
+	private int maxDepth = DEFAULT_MAX_DEPTH;
 
 	public JsonReader() {
 	}
@@ -134,6 +141,7 @@ public final class JsonReader {
 		buf = null;
 		pos = 0;
 		tmp = null;
+		depth = 0;
 		return this;
 	}
 
@@ -144,18 +152,21 @@ public final class JsonReader {
 	public @NotNull JsonReader buf(@NotNull String s) {
 		buf = s.getBytes(StandardCharsets.UTF_8);
 		pos = 0;
+		depth = 0;
 		return this;
 	}
 
 	public @NotNull JsonReader buf(byte[] b) {
 		buf = b;
 		pos = 0;
+		depth = 0;
 		return this;
 	}
 
 	public @NotNull JsonReader buf(byte[] b, int p) {
 		buf = b;
 		pos = p;
+		depth = 0;
 		return this;
 	}
 
@@ -170,6 +181,15 @@ public final class JsonReader {
 
 	public @NotNull JsonReader pos(@NotNull Pos p) {
 		pos = p.pos;
+		return this;
+	}
+
+	public int getMaxDepth() {
+		return maxDepth;
+	}
+
+	public @NotNull JsonReader setMaxDepth(int depth) {
+		this.maxDepth = depth;
 		return this;
 	}
 
@@ -325,11 +345,14 @@ public final class JsonReader {
 	}
 
 	@NotNull Collection<Object> parseArray0(@Nullable Collection<Object> c) throws ReflectiveOperationException {
+		if (++depth > maxDepth)
+			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
 		if (c == null)
 			c = new ArrayList<>();
 		for (int b = skipNext(); b != ']'; b = skipVar(']'))
 			c.add(parse(null, b));
 		pos++;
+		depth--;
 		return c;
 	}
 
@@ -342,6 +365,8 @@ public final class JsonReader {
 												  @NotNull Class<T> elemClass) throws ReflectiveOperationException {
 		if (next() != '[')
 			return c;
+		if (++depth > maxDepth)
+			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
 		if (c == null)
 			c = new ArrayList<>();
 		ClassMeta<T> classMeta = json.getClassMeta(elemClass);
@@ -356,6 +381,7 @@ public final class JsonReader {
 				c.add(parse0(classMeta.ctor.create(), classMeta));
 		}
 		pos++;
+		depth--;
 		return c;
 	}
 
@@ -364,6 +390,8 @@ public final class JsonReader {
 	}
 
 	@NotNull Map<String, Object> parseMap0(@Nullable Map<String, Object> m) throws ReflectiveOperationException {
+		if (++depth > maxDepth)
+			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
 		if (m == null)
 			m = new HashMap<>();
 		for (int b = skipNext(); b != '}'; b = skipVar('}')) {
@@ -371,6 +399,7 @@ public final class JsonReader {
 			m.put(k, parse(null, skipColon()));
 		}
 		pos++;
+		depth--;
 		return m;
 	}
 
@@ -434,6 +463,8 @@ public final class JsonReader {
 	public <T> @NotNull T parse0(@NotNull T obj, @NotNull ClassMeta<?> classMeta) throws ReflectiveOperationException {
 		if (next() != '{')
 			return obj;
+		if (++depth > maxDepth)
+			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
 		for (int b = skipNext(); b != '}'; b = skipVar('}')) {
 			FieldMeta fm = classMeta.get(b == '"' || b == '\'' ? parseKeyHash(b) : parseKeyHashNoQuot(b));
 			if (fm == null)
@@ -611,11 +642,14 @@ public final class JsonReader {
 			}
 		}
 		pos++;
+		depth--;
 		return obj;
 	}
 
 	public void parseList0(@NotNull Collection<Object> c, @NotNull ClassMeta<?> classMeta, @NotNull FieldMeta fm)
 			throws ReflectiveOperationException {
+		if (++depth > maxDepth)
+			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
 		int b = skipNext();
 		switch (fm.type & 0xf) {
 		case TYPE_BOOLEAN:
@@ -681,10 +715,13 @@ public final class JsonReader {
 			break;
 		}
 		pos++;
+		depth--;
 	}
 
 	public void parseMap0(@NotNull Map<Object, Object> m, @NotNull ClassMeta<?> classMeta, @NotNull FieldMeta fm)
 			throws ReflectiveOperationException {
+		if (++depth > maxDepth)
+			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
 		int b = skipNext();
 		KeyReader keyParser = ensureNotNull(fm.keyParser);
 		switch (fm.type & 0xf) {
@@ -781,6 +818,7 @@ public final class JsonReader {
 			break;
 		}
 		pos++;
+		depth--;
 	}
 
 	int parseKeyHash(int e) {
