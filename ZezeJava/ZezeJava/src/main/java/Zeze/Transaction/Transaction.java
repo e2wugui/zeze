@@ -62,6 +62,8 @@ public final class Transaction {
 	private @Nullable ArrayList<Runnable> logActions; // 延迟初始化
 	private final ArrayList<Savepoint> savepoints = new ArrayList<>();
 	private final ArrayList<Savepoint.Action> actions = new ArrayList<>();
+	// 最近一个 redo 轮次的 whileRollback 回调，延迟初始化；重做会重新注册，仅重试耗尽（TooManyTry）终局回滚时触发。
+	private @Nullable ArrayList<Savepoint.Action> redoRollbackActions;
 	private final TreeMap<TableKey, RecordAccessed> accessedRecords = new TreeMap<>();
 	private Locks locks;
 	private @NotNull TransactionState state = TransactionState.Running;
@@ -128,6 +130,8 @@ public final class Transaction {
 			logActions.clear();
 		savepoints.clear();
 		actions.clear();
+		if (redoRollbackActions != null)
+			redoRollbackActions.clear();
 		accessedRecords.clear();
 		locks = null;
 		state = TransactionState.Running;
@@ -149,6 +153,15 @@ public final class Transaction {
 		// procedureStack.clear(); // 保留栈底的procedure
 		if (null != logActions)
 			logActions.clear(); // retry 中间的日志不记录。
+		// redo 重做会重新注册本轮回调，但重试耗尽（TooManyTry）终局回滚时最近一轮的
+		// whileRollback 回调仍需触发（Timer 恢复链的节点推进等依赖），先暂存最近一轮的再清空。
+		if (redoRollbackActions == null)
+			redoRollbackActions = new ArrayList<>();
+		else
+			redoRollbackActions.clear();
+		redoRollbackActions.addAll(actions); // rollback() 已汇入事务级的本轮回调
+		for (var sp : savepoints)
+			sp.mergeRollbackActions(redoRollbackActions); // Begin/End 不配对时残留层中的回调
 		savepoints.clear();
 		actions.clear();
 		accessedRecords.clear();
@@ -294,6 +307,8 @@ public final class Transaction {
 	public long perform(@NotNull Procedure procedure) {
 		if (null != onceResolved)
 			onceResolved.clear(); // 一次性解析缓存的生命周期 = 一次 perform（含redo重试），不跨事务
+		if (redoRollbackActions != null)
+			redoRollbackActions.clear(); // 同上，直接调用 perform 时防止读到上个事务的残留
 		try {
 			var checkpoint = procedure.getZeze().getCheckpoint();
 			if (checkpoint == null)
@@ -313,7 +328,7 @@ public final class Transaction {
 									|| (result != Procedure.Success && saveSize > 0)) {
 								// 这个错误不应该重做
 								logger.error("perform({}): savepoints.size != 1", procedure);
-								finalRollback(procedure);
+								finalRollback(procedure, true);
 								return Procedure.ErrorSavepoint;
 							}
 							checkResult = lockAndCheck(procedure);
@@ -351,7 +366,7 @@ public final class Transaction {
 
 						case Abort:
 							logger.warn("perform({}): Abort", procedure);
-							finalRollback(procedure);
+							finalRollback(procedure, true);
 							return Procedure.AbortException;
 
 						case Redo:
@@ -376,12 +391,12 @@ public final class Transaction {
 							if (!savepoints.isEmpty()) {
 								// 这个错误不应该重做
 								logger.error("perform({}) exception. !savepoints.isEmpty", procedure, e);
-								finalRollback(procedure);
+								finalRollback(procedure, true);
 								return Procedure.ErrorSavepoint;
 							}
 							// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
 							if (e instanceof AssertionError) {
-								finalRollback(procedure);
+								finalRollback(procedure, true);
 								throw (AssertionError)e;
 							}
 							checkResult = lockAndCheck(procedure);
@@ -397,7 +412,7 @@ public final class Transaction {
 							// 		!"GlobalAgent In FastErrorPeriod".equals(e.getMessage()))
 							//	logger.warn("perform({}): Abort", procedure, e);
 							logger.warn("perform({}): Abort", procedure, e);
-							finalRollback(procedure);
+							finalRollback(procedure, true);
 							return Procedure.AbortException;
 
 						case Redo:
@@ -443,7 +458,10 @@ public final class Transaction {
 				}
 			}
 			logger.error("perform({}): too many try", procedure);
-			finalRollback(procedure);
+			// 最后一轮回调已被 reuseTransactionForRedo 清空，用暂存的最近一轮回调终局回滚。
+			if (redoRollbackActions != null)
+				actions.addAll(redoRollbackActions);
+			finalRollback(procedure, true);
 			return Procedure.TooManyTry;
 		} finally {
 			state = TransactionState.Completed; // 异常到这里时，可能state没有设置。
@@ -581,13 +599,12 @@ public final class Transaction {
 		}
 	}
 
-	private void finalRollback(@NotNull Procedure procedure) {
-		finalRollback(procedure, false);
-	}
-
 	private void finalRollback(@NotNull Procedure procedure, boolean executeRollbackAction) {
 		for (var ra : accessedRecords.values())
 			ra.atomicTupleRecord.record.setNotFresh();
+		// Begin/End 不配对（ErrorSavepoint 路径）时，savepoints 中可能残留未汇入的 whileRollback 回调，一并触发。
+		for (var sp : savepoints)
+			sp.mergeRollbackActions(actions);
 		savepoints.clear(); // 这里可以安全的清除日志，这样如果 rollback_action 需要读取数据，将读到原始的。
 		state = TransactionState.Completed;
 		try {
