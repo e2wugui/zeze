@@ -9,16 +9,21 @@ import Zeze.Builtin.DelayRemove.BTableKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutObject;
 import Zeze.Util.Random;
 import Zeze.Util.TaskSpec;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * 每个ServerId分配一个独立的GC队列。Server之间不会争抢。如果一个Server一直没有起来，那么它的GC就一直不会执行。
  */
 public class DelayRemove extends AbstractDelayRemove {
+	static final Logger logger = LogManager.getLogger(DelayRemove.class);
+
 	public <K extends Comparable<K>> void remove(TableX<K, ?> table, K key) {
 		var value = new BTableKey();
 		value.setTableName(table.getName());
@@ -164,7 +169,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		var diffMills = days * 24 * 3600 * 1000;
 		var removing = new OutObject<>(true);
 		while (removing.value) {
-			zeze.newProcedure(() -> {
+			var rc = zeze.newProcedure(() -> {
 				var node = queue.peekNode(); // 先peek检查：未到期时节点不出队（pollNode会删行，事务提交后登记就脱离GC追踪）。
 				if (node == null) {
 					removing.value = false;
@@ -199,6 +204,17 @@ public class DelayRemove extends AbstractDelayRemove {
 				removing.value = diffMills < System.currentTimeMillis() - maxTime;
 				return 0;
 			}, "DelayRemove.delayRemoveProcedure").call();
+			if (rc != Procedure.Success) {
+				// 失败的节点事务已回滚（队列无损）。确定性失败（如登记的EncodedKey损坏导致
+				// removeEncodedKey解码异常）立即重试是纯热循环：告警并退出本轮，
+				// 由固定延迟调度在下个周期整体重试（对比Timer.loadTimer的log+sleep(1s)重试，
+				// 这里一天才跑一轮，立即重试没有意义）。
+				logger.warn("DelayRemove.onTimer procedure failed: rc={}. " +
+						"Remaining nodes are deferred to the next period.", rc);
+				break;
+			}
+			if (Thread.currentThread().isInterrupted()) // stop()的cancel(true)：及时退出，剩余节点等下次调度。
+				break;
 		}
 	}
 }
