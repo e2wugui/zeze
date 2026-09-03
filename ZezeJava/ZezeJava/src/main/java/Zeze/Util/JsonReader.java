@@ -333,7 +333,10 @@ public final class JsonReader {
 		case '"': case '\'': return parseString(b, false);
 		case '0': case '1': case '2': case '3': case '4': case '5': case '6':
 		case '7': case '8': case '9': case '-': case '+': case '.':
-		case 'I': case 'i': case 'N': case 'n': return parseNumber();
+		case 'I': case 'i': case 'N': return parseNumber();
+		// 'n' 开头可能是 null 或（lenient 的）nan：null 必须解析成 null 而不是 NaN，
+		// 否则无类型上下文（Object 字段、Map<String,Object>）的 null 往返后变成 NaN。
+		case 'n': return pos + 1 < buf.length && buf[pos + 1] == 'u' ? null : parseNumber();
 		case 'f': case 'F': return false;
 		case 't': case 'T': return true;
 		} //@formatter:on
