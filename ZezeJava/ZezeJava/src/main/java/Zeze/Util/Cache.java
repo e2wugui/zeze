@@ -128,10 +128,14 @@ public class Cache extends ReentrantLock {
 			lock();
 			try {
 				if (todayDays != nowDays) {
+					// 顺序：(1)先开新流并赋值 todayFile（volatile），(2)再写 todayDays（volatile），(3)最后关旧流。
+					// (2)在(1)之后保证快路径读者看到新 todayDays 时必然看到新 todayFile；
+					// 原实现先写 todayDays 再换流，跨天窗口内无锁读者会拿到已 close 的旧流。
+					var oldFile = todayFile;
+					todayFile = new FileOutputStream(Paths.get(name, "days_" + nowDays).toFile());
 					todayDays = nowDays;
-					if (todayFile != null)
-						todayFile.close();
-					todayFile = new FileOutputStream(Paths.get(name, "days_" + todayDays).toFile());
+					if (oldFile != null)
+						oldFile.close();
 				}
 				return todayFile;
 			} finally {
