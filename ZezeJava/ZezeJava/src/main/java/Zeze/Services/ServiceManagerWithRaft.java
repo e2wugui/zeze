@@ -425,6 +425,12 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 		versions.getServiceInfos().put(info.getServiceIdentity(), toRocks(info, sessionName));
 		collectNotify(state, info, true, notifies);
+		// 新注册实例同样要为现有订阅者登记负载观察者（FND-S1-8）：addLoadObserver此前只在
+		// 订阅时登记，观察者集合是订阅时刻的快照——订阅之后注册的实例，其负载上报永不转发
+		// 给订阅者（权重缺失直到重连重订阅）。getSimple的key即订阅会话名；本方法在
+		// ProcessEditRequest事务内，与订阅/退订的simple修改经raft单写者串行，迭代安全。
+		for (var observer : state.getSimple().keys())
+			addLoadObserver(info.getPassiveIp(), info.getPassivePort(), observer);
 	}
 
 	// 通知订阅了info版本的会话（version==0订阅全部版本）。info的版本决定通知过滤。

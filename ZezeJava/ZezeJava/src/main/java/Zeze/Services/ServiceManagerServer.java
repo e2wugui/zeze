@@ -235,6 +235,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 			serviceInfos.computeIfAbsent(info.getVersion(), __ -> new HashMap<>()).put(info.getServiceIdentity(), info);
 			collectNotify(info, true, result);
+			// 新注册实例同样要为现有订阅者登记负载观察者（FND-S1-8）：addLoadObserver此前只在
+			// 订阅时登记，观察者集合是订阅时刻的快照——订阅之后注册的实例，其负载上报永不
+			// 转发给订阅者（权重缺失直到重连重订阅）。simple的key即订阅者sessionId。
+			// 本方法与simple的修改都在editLock内，迭代安全。
+			for (var it = simple.iterator(); it.moveToNext(); )
+				serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), it.key());
 		}
 
 		public void removeAndCollectNotify(@NotNull BServiceInfo info, long sessionId,
@@ -337,8 +343,14 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	private void addLoadObserver(@NotNull String ip, int port, @NotNull AsyncSocket sender) {
+		addLoadObserver(ip, port, sender.getSessionId());
+	}
+
+	// 观察者按sessionId登记（sessionId在连接存活期内稳定；重连产生新id，死观察者由
+	// LoadObservers.setLoad转发失败时惰性剔除）。
+	private void addLoadObserver(@NotNull String ip, int port, long sessionId) {
 		if (!ip.isEmpty() && port != 0)
-			loads.computeIfAbsent(ip + "_" + port, __ -> new LoadObservers(this)).addObserver(sender.getSessionId());
+			loads.computeIfAbsent(ip + "_" + port, __ -> new LoadObservers(this)).addObserver(sessionId);
 	}
 
 	private final ReentrantLock editLock = new ReentrantLock(); // 整个edit使用一把锁。不并发了。
