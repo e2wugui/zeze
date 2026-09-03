@@ -489,11 +489,16 @@ public class HotManager extends ClassLoader {
 							// module.disable(); // stop() has call disable()
 						}
 					}
-					for (var module : newModules) {
-						if (startErrors.contains(module))
-							continue;
-						var moduleConfig = module.loadModuleConfig();
-						zeze.getProviderApp().providerService.addHotModule((IModule)module.getService(), moduleConfig);
+					// 无Provider的进程（网关/工具型热更进程）不需要向providerService注册
+					// 新模块（getProviderApp()为null，直接调用会NPE落入本不可回滚区的halt）。
+					var providerApp = zeze.getProviderApp();
+					if (null != providerApp) {
+						for (var module : newModules) {
+							if (startErrors.contains(module))
+								continue;
+							var moduleConfig = module.loadModuleConfig();
+							providerApp.providerService.addHotModule((IModule)module.getService(), moduleConfig);
+						}
 					}
 
 					// 本来这个代码应该放在下面的final commit point. 那里。
