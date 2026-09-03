@@ -3,6 +3,7 @@ package UnitTest.Zeze.Component;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import harness.Fast;
+import org.junit.jupiter.api.parallel.Isolated;
 import Zeze.Net.Binary;
 import Zeze.Services.Token;
 import Zeze.Util.Task;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 端口用 5013（避开 TestToken 的 5003，防并行车道冲突）。
  */
 @Fast
+@Isolated // Token 经全局 System property(token.rocksdb) 定位 DB 目录，与 TestToken 并行会互相覆盖路径
 public class TestTokenConsumeDeletesDb {
 	@Test
 	public void testConsumeDeletesDbCopy(@TempDir Path tempDir) throws Exception {
