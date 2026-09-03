@@ -226,8 +226,20 @@ public class AchillesHeelDaemon {
 		public void run() {
 			try {
 				while (running) {
+					Daemon.Command cmd;
 					try {
-						var cmd = Daemon.receiveCommand(udpSocket);
+						cmd = Daemon.receiveCommand(udpSocket);
+					} catch (SocketTimeoutException ex) {
+						// skip
+						cmd = null;
+					} catch (Throwable ex) {
+						// 收到未知/截断/损坏的UDP报文（本地任意进程可向该随机端口发送）：
+						// 丢弃并继续，不能让非信任输入触发外层catch的halt杀掉整个进程。
+						// receiveCommand对未知命令号抛UnsupportedOperationException，坏包则解码异常。
+						logger.error("ProcessDaemon.receiveCommand bad packet", ex);
+						cmd = null;
+					}
+					if (cmd != null) {
 						//noinspection SwitchStatementWithTooFewBranches
 						switch (cmd.command()) {
 						case Daemon.Release.Command:
@@ -250,8 +262,6 @@ public class AchillesHeelDaemon {
 							}
 							break;
 						}
-					} catch (SocketTimeoutException ex) {
-						// skip
 					}
 					// 执行KeepAlive
 					var now = System.currentTimeMillis();
