@@ -99,6 +99,14 @@ public class HaProxyHeader {
 		return "";
 	}
 
+	// v2头的length字段声明的是地址部分的实际长度：family要求的地址长度比声明的大时，
+	// 后续按固定offset读地址会越过本帧声明边界，读到同一累积缓冲区的陈旧字节当地址，
+	// 缓冲区数组恰好在边界时直接数组越界。按畸形协议拒绝（连接会被关闭）。
+	private static void checkV2AddressLength(int size, int addressLength) {
+		if (size - 16 < addressLength)
+			throw new RuntimeException("haproxy v2 address length " + (size - 16) + " < " + addressLength);
+	}
+
 	// 保留throws UnknownHostException仅为兼容既有调用方的catch，本方法已不再抛出（解析移到getter）。
 	public boolean decodeHeader(@NotNull ByteBuffer bb) throws UnknownHostException {
 		if (done)
@@ -117,6 +125,7 @@ public class HaProxyHeader {
 				int fam = bb.Bytes[bb.ReadIndex + v2sig.length + 1];
 				switch (fam) {
 				case 0x11: // TCPv4
+					checkV2AddressLength(size, 12); // 4+4地址 + 2+2端口
 					// port读出来，再拼成InetSocketAddress吧。当然拼成Inet，就不需要单独保存了。
 					var remoteInet4Address = Inet4Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 16, bb.ReadIndex + 20));
 					remoteAddress = new InetSocketAddress(remoteInet4Address, javaBb.getShort(bb.ReadIndex + 24) & 0xffff); // 端口是uint16
@@ -124,6 +133,7 @@ public class HaProxyHeader {
 					targetAddress = new InetSocketAddress(targetInet4Address, javaBb.getShort(bb.ReadIndex + 26) & 0xffff); // 端口是uint16
 					break;
 				case 0x21: // TCPv6
+					checkV2AddressLength(size, 36); // 16+16地址 + 2+2端口
 					var remoteInet6Address = Inet6Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 16, bb.ReadIndex + 32));
 					remoteAddress = new InetSocketAddress(remoteInet6Address, javaBb.getShort(bb.ReadIndex + 48) & 0xffff); // 端口是uint16
 					var targetInet6Address = Inet6Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 32, bb.ReadIndex + 48));
