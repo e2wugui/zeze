@@ -101,12 +101,22 @@ public class DatabaseDynamoDb extends Database {
 	}
 
 	private final class TransDynamoDb implements Transaction {
+		// DynamoDb TransactWriteItems 单请求最多 100 个 item（服务端硬限）。
+		private static final int TRANSACT_WRITE_ITEMS_MAX = 100;
 		private final ArrayList<TransactWriteItem> writes = new ArrayList<>();
 
 		@Override
 		public void commit() {
-			// 应该是异常报错。
-			dynamoDbClient.transactWriteItems(new TransactWriteItemsRequest().withTransactItems(writes));
+			// FlushSet 默认攒批阈值（50 rrs / 10000 条记录）远超单事务 100 item 上限，
+			// 一次性提交会让 checkpoint flush 永久失败（脏记录只增不减，直至 OOM）。
+			// 这里按上限分批顺序提交：每批内部保持 transactWriteItems 原子；
+			// 跨批失败时由 Checkpoint 保留 rrs 脏标记、整批幂等重试自愈
+			// （replace/remove 均为最终值覆盖写，重放安全；与 DatabaseTikv raw 模式
+			// batchPut/batchDelete 的非原子批处理同型）。失败时 transactWriteItems 抛异常上抛。
+			for (var begin = 0; begin < writes.size(); begin += TRANSACT_WRITE_ITEMS_MAX) {
+				var items = writes.subList(begin, Math.min(begin + TRANSACT_WRITE_ITEMS_MAX, writes.size()));
+				dynamoDbClient.transactWriteItems(new TransactWriteItemsRequest().withTransactItems(items));
+			}
 		}
 
 		@Override
