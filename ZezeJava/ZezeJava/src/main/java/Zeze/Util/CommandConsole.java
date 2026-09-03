@@ -97,8 +97,17 @@ public class CommandConsole {
 	public void tryParseLine(@NotNull AsyncSocket sender) {
 		for (var lineEnd = buffer.indexOf('\n'); lineEnd >= 0; lineEnd = buffer.indexOf('\n')) {
 			var line = buffer.substring(0, lineEnd);
-			var words = parseWords(line);
-			buffer = buffer.substring(lineEnd + 1);
+			buffer = buffer.substring(lineEnd + 1); // remove the consumed line before parsing,
+			// otherwise a malformed line (unclosed quote) will keep throwing and poison the buffer permanently
+
+			ArrayList<String> words;
+			try {
+				words = parseWords(line);
+			} catch (IllegalStateException ex) { // unclosed quote
+				if (sender != null)
+					sender.Send("error command format: " + line + "\r\n");
+				continue;
+			}
 
 			// run command
 			if (!words.isEmpty()) {
