@@ -113,14 +113,17 @@ public class CommandConsole {
 			if (!words.isEmpty()) {
 				var cmd = commands.get(words.get(0));
 				if (cmd == null) {
-					sender.Send("unknown command: " + words.get(0) + "\r\n");
+					if (sender != null) // sender 可为 null（如类内 main 以 cc.input(null, ...) 驱动）
+						sender.Send("unknown command: " + words.get(0) + "\r\n");
 					continue;
 				}
 				try {
 					cmd.run(sender, words.subList(1, words.size()));
 				} catch (Throwable ex) { // print stacktrace.
-					sender.Send(Str.stacktrace(ex));
-					sender.Send("\r\n" + line + "\r\n");
+					if (sender != null) { // 同上：与上面的判空保持一致
+						sender.Send(Str.stacktrace(ex));
+						sender.Send("\r\n" + line + "\r\n");
+					}
 				}
 			}
 		}
