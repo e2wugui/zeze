@@ -37,7 +37,7 @@ public class TestSafeBatch {
 			table.getOrAdd(2L).setS(2);
 			table.getOrAdd(3L).setS(3);
 			return 0;
-		}, "initsafebatchdata").call();
+		}, "initSafeBatchData").call();
 
 		App.getInstance().getZeze().checkpointRun(); // walk 需要保存数据。
 
@@ -97,7 +97,7 @@ public class TestSafeBatch {
 
 		@Override
 		public @Nullable NavigableMap<Integer, Integer> getSortedMapOutTransaction(
-			@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception {
+			@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) {
 			var tt = (demo.Module1.Table5) table;
 			var value = tt.selectDirty(tt.decodeKey(tableKey));
 			if (null == value) {
@@ -116,7 +116,7 @@ public class TestSafeBatch {
 
 		@Override
 		public @Nullable java.util.List<Integer> getListOutTransaction(@NotNull TableX<?, ?> table,
-		                                                              @NotNull ByteBuffer tableKey) throws Exception {
+		                                                              @NotNull ByteBuffer tableKey) {
 			var tt = (demo.Module1.Table5) table;
 			var value = tt.selectDirty(tt.decodeKey(tableKey));
 			if (null == value) {
