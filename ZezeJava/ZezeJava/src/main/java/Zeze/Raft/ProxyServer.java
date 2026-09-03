@@ -111,14 +111,28 @@ public class ProxyServer extends Service {
 			return proxyRpc.Send(sender, (proxyRpcThis) -> {
 				if (proxyRpc.getResultCode() == 0) {
 					var outFh = new OutObject<ProtocolFactoryHandle<?>>();
-					var resultRpc = Protocol.decode(
+					var resultRpc = (Rpc<?, ?>)Protocol.decode(
 							localService::findProtocolFactoryHandle,
 							ByteBuffer.Wrap(proxyRpc.Result.getData()),
 							outFh);
-					if (null != resultRpc && null != rpc.getResponseHandle()) {
-						@SuppressWarnings("rawtypes")
-						var originHandle = (ProtocolHandle)rpc.getResponseHandle();
-						localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
+					if (null != resultRpc) {
+						if (null != rpc.getResponseHandle()) {
+							@SuppressWarnings("rawtypes")
+							var originHandle = (ProtocolHandle)rpc.getResponseHandle();
+							localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
+						} else if (rpc.getFuture() != null) {
+							// 【FND-R2-7】补全future路径（与ProxyAgent.send对齐）：
+							// 原来无responseHandle的结果被静默丢弃，future等待方永远等不到结果，
+							// 只能等rpc超时；RaftRetry/DuplicateRequest等语义码同样丢失。
+							rpc.setResultCode(resultRpc.getResultCode());
+							@SuppressWarnings({"unchecked", "rawtypes"})
+							Rpc rawRpc = rpc, rawResultRpc = resultRpc;
+							rawRpc.Result = rawResultRpc.Result;
+							rpc.getFuture().setRawResult(rpc);
+						}
+						// 既无responseHandle也无future：调用方明确忽略应答（如Server.trySendLeaderIs），不处理。
+					} else {
+						logger.error("Server ProxyRequest({}) resultRpc decode not found.", proxyArgument.getRaftName());
 					}
 					// todo error handle
 				} else {

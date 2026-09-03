@@ -151,7 +151,15 @@ public class ProxyAgent extends Service {
 								var originHandle = (ProtocolHandle)rpc.getResponseHandle();
 								localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
 							} else if (rpc.getFuture() != null){
-								rpc.getFuture().setRawResult(resultRpc.Result);
+								// 【FND-R2-7】对齐 Agent.sendForWaitHandle 的收尾：结果（含ResultCode）
+								// 拷回原始rpc再完成future。原来只setRawResult(resultRpc.Result)：
+								// RaftRetry/DuplicateRequest等语义码被丢弃，等待方把空Result当成功，
+								// 恰好绕开Agent的pending重发闭环。
+								rpc.setResultCode(resultRpc.getResultCode());
+								@SuppressWarnings({"unchecked", "rawtypes"})
+								Rpc rawRpc = rpc, rawResultRpc = resultRpc;
+								rawRpc.Result = rawResultRpc.Result;
+								rpc.getFuture().setRawResult(rpc);
 							}
 						} else {
 							logger.error("Agent ProxyRequest({}) resultRpc not found.", proxyArgument.getRaftName());
