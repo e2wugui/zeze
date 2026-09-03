@@ -32,7 +32,7 @@ public class Server extends HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(Server.class);
 
 	private final Raft raft;
-	private final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
+	protected final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 	private volatile ProxyServer proxyServer;
 
 	public ProxyServer getProxyServer() {

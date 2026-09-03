@@ -9,12 +9,14 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
+import Zeze.Raft.IRaftRpc;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RocksRaft.Procedure;
 import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Raft.RocksRaft.RocksMode;
 import Zeze.Raft.RocksRaft.Table;
+import Zeze.Raft.RocksRaft.Transaction;
 import Zeze.Raft.Server;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfosVersion;
@@ -107,18 +109,26 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		@Override
 		public void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
 										DispatchMode mode) {
-			lock();
-			try {
-				if (logger.isDebugEnabled()) {
-					var netSession = (Session)p.getSender().getUserState();
-					var ssName = null != netSession ? netSession.name : "";
-					logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
+			// 不能在调用线程（Selector IO 线程）上内联执行：raft 提交的 appendLog 等待期间
+			// 该 IO 线程被冻结，心跳与 AppendEntries 应答处理停摆，负载/抖动下引发选主动摇；
+			// 且 TaskCompletionSource.get 对 Selector 线程有防御断言（测试 JVM 默认 -ea），
+			// 等待即 AssertionError 被包装成 RaftRetry(-15)。按传入的 mode 派发到线程池执行
+			// （对齐 Raft.Server 基类实现），SM 锁移入任务内，保持单写者串行语义不变。
+			TaskSpec.ofFunc(() -> {
+				lock();
+				try {
+					if (logger.isDebugEnabled()) {
+						var netSession = (Session)p.getSender().getUserState();
+						var ssName = null != netSession ? netSession.name : "";
+						logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
+					}
+					var procedure = new Procedure(rocks, func);
+					return ProtocolDispatch.ofFunc(procedure::call, p).onError(Protocol::SendResultCode).call();
+				} finally {
+					unlock();
 				}
-				var procedure = new Procedure(rocks, func);
-				ProtocolDispatch.ofFunc(procedure::call, p).onError(Protocol::SendResultCode).call();
-			} finally {
-				unlock();
-			}
+			}).name(name).onCancel(cancel).dispatchMode(mode)
+					.executeOneByOne(((IRaftRpc)p).getUnique(), taskOneByOne);
 		}
 
 		@Override
@@ -127,16 +137,21 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			if (null != netSession) {
 				if (logger.isDebugEnabled())
 					logger.info("OnSocketClose: {}", netSession.name);
-				lock();
-				try {
-					var procedure = rocks.newProcedure(() -> {
-						netSession.onClose();
-						return 0;
-					});
-					procedure.call();
-				} finally {
-					unlock();
-				}
+				// 同 dispatchRaftRequest：netSession.onClose 的 raft 提交不能在 IO 线程上等待。
+				Raft.executeImportantTask(() -> {
+					lock();
+					try {
+						var procedure = rocks.newProcedure(() -> {
+							netSession.onClose();
+							return 0;
+						});
+						procedure.call();
+					} catch (Throwable ex) {
+						logger.error("OnSocketClose session close failed: {}", netSession.name, ex);
+					} finally {
+						unlock();
+					}
+				});
 			}
 			super.OnSocketClose(so, e);
 		}
