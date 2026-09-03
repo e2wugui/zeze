@@ -38,8 +38,10 @@ public class TestHandshakeMaxConnections {
 
 	// 断言连接被服务端关闭：EOF(-1) 或 connection reset；
 	// 若连接未被关闭（修复缺失时），read 会阻塞到 SO_TIMEOUT 抛 SocketTimeoutException 使测试失败。
+	// SO_TIMEOUT 窗口需容忍慢 accept（30s）：全套件并行跑时全局 Selectors 可能仍是默认单线程
+	// （L5 增加并行测试后实测负载下 accept 处理可远超 5s，曾报 expected:<2> but was:<1>）。
 	private static void assertClosedByServer(Socket so) throws Exception {
-		so.setSoTimeout(5000);
+		so.setSoTimeout(30_000);
 		try {
 			Assertions.assertEquals(-1, so.getInputStream().read(), "connection should be closed by server");
 		} catch (SocketException e) {
@@ -47,9 +49,20 @@ public class TestHandshakeMaxConnections {
 		}
 	}
 
+	// 全局 Selectors 单例默认只有 1 个 selector 线程；JUnit classes 并行下其余测试的网络事件
+	// 与本测试的 accept 排同一个队列，负载下 accept 延迟可超过等待窗（对齐
+	// TestServiceManagerWithRaftCommitThenResponse.setUp 的做法补足到 CPU 数）。
+	private static void ensureCpuSelectors() {
+		int cpuCount = Runtime.getRuntime().availableProcessors();
+		var selectors = Zeze.Net.Selectors.getInstance();
+		if (selectors.getCount() < cpuCount)
+			selectors.add(cpuCount - selectors.getCount());
+	}
+
+	// 等待窗 30s（原 50×100ms=5s 在并行负载下出现过 accept 未及处理，见 assertClosedByServer 注释）。
 	private static void waitSocketCount(HandshakeBase server, int expected) throws InterruptedException {
-		for (int i = 0; i < 50 && server.getSocketCount() < expected; ++i)
-			Thread.sleep(100);
+		for (int i = 0; i < 150 && server.getSocketCount() < expected; ++i)
+			Thread.sleep(200);
 		Assertions.assertEquals(expected, server.getSocketCount());
 	}
 
@@ -63,6 +76,7 @@ public class TestHandshakeMaxConnections {
 	@Test
 	public void testHandshakeServerEnforcesMaxConnections() throws Exception {
 		Task.tryInitThreadPool();
+		ensureCpuSelectors();
 		var conf = new Config();
 		var sconf = new ServiceConf();
 		sconf.getHandshakeOptions().setEncryptType(Constant.eEncryptTypeDisable);
@@ -90,6 +104,7 @@ public class TestHandshakeMaxConnections {
 	@Test
 	public void testHandshakeBothEnforcesMaxConnections() throws Exception {
 		Task.tryInitThreadPool();
+		ensureCpuSelectors();
 		var conf = new Config();
 		var sconf = new ServiceConf();
 		sconf.getHandshakeOptions().setEncryptType(Constant.eEncryptTypeDisable);
@@ -114,6 +129,7 @@ public class TestHandshakeMaxConnections {
 	@Test
 	public void testTokenServerEnforcesMaxConnections(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
+		ensureCpuSelectors();
 		// Token 的 RocksDB 目录重定向到临时目录（参考 TestTokenKeepAlive）。
 		System.setProperty("token.rocksdb", tempDir.resolve("token_db").toString());
 		var conf = new Config();
