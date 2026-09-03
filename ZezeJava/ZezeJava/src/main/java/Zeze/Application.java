@@ -783,7 +783,16 @@ public final class Application extends ReentrantLock {
 			instances.remove(getProjectName(), this);
 
 			if (null != checkpointFuture) {
-				checkpointFuture.get();
+				// FND-A1-10：get()在检查点任务以异常完成时抛ExecutionException并从stop逃逸，
+				// startState滞留eStartingOrStopping、数据库未关，后续start()无法恢复。任务异常
+				// 已由Task框架记录，这里吞掉保证停机流程继续走完。
+				try {
+					checkpointFuture.get();
+				} catch (java.util.concurrent.ExecutionException e) {
+					logger.error("checkpoint task exception (ignored to complete stop)", e);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
 				checkpointFuture = null;
 			}
 			if (onz != null) {
