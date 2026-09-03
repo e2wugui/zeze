@@ -528,6 +528,12 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		var ch = ctx.channel();
 		Netty.logger.info("closed: {}", ch.remoteAddress());
 		channels.remove(ch);
+		// 兜底清理:连接已失活时还留在exchanges里的HttpExchange不会再有人close(如异常路径或连接被强制关闭),
+		// 这里主动结束它。close会把它从exchanges移除并释放retain的request和累积的content,否则永久泄漏。close是幂等的,
+		// 正常完成的请求早已自行移除,此时get为null。当前在EventLoop上,close走CLOSE_PASSIVE分支内联执行closeInEventLoop。
+		var x = exchanges.get(ch.id());
+		if (x != null)
+			x.close(HttpExchange.CLOSE_PASSIVE, null);
 		super.channelInactive(ctx);
 	}
 
@@ -601,6 +607,12 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			}
 		} finally {
 			ctx.flush().close();
+			// 异常路径的HttpExchange不会再有正常的close时机(如畸形uri解码抛出后无人移除),这里主动结束它,
+			// 释放retain的request和累积的content,避免exchanges和池化内存泄漏。close是幂等的,正常路径已移除时get为null。
+			// 先关闭连接再清理:即使清理过程中用户回调抛出异常,连接也已被关闭,close开头的exchanges.remove保证条目已删。
+			var x = exchanges.get(ctx.channel().id());
+			if (x != null)
+				x.close(HttpExchange.CLOSE_PASSIVE, null);
 		}
 	}
 }
