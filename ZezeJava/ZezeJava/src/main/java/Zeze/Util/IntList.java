@@ -411,11 +411,11 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 		int[] buf = buffer;
 		int[] data = il.buffer;
 		for (int i = 0; i < n; i++) {
-			int c = buf[i] - data[i];
-			if (c != 0)
-				return c;
+			int a = buf[i], b = data[i];
+			if (a != b)
+				return a < b ? -1 : 1; // 不能用减法：极值对（如 2e9 与 -2e9）的差会 int 溢出反号
 		}
-		return n0 - n1;
+		return Integer.compare(n0, n1); // 同上，n0 - n1 在极值下溢出
 	}
 
 	@Override
