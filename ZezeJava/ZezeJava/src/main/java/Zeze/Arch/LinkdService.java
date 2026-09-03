@@ -60,9 +60,13 @@ public class LinkdService extends HandshakeServer {
 		// 如果是 rpc.request 直接返回Procedure.Busy错误。
 		// see Zeze.Net.Rpc.decode/encode
 		var bb = ByteBuffer.Wrap(dispatch.Argument.getProtocolData());
-		var header = bb.ReadUInt();
+		// FND-A1-7：protocolData由客户端拼装、长度任意（可为0）。rpc帧布局为
+		// UInt(header)+[Long(resultCode)]+Long(sessionId)（见Rpc.encode）。长度不足时跳过
+		// rpc应答部分（只发下面的ReportError），解析越界异常不再打断IO线程→断开该连接。
+		var header = bb.size() >= 4 ? bb.ReadUInt() : 0;
 		AsyncSocket so;
 		if ((header & FamilyClass.FamilyClassMask) == FamilyClass.Request
+				&& bb.size() >= (((header & FamilyClass.BitResultCode) != 0) ? 16 : 8)
 				&& (so = GetSocket(dispatch.Argument.getLinkSid())) != null) {
 			if ((header & FamilyClass.BitResultCode) != 0)
 				bb.SkipLong();
