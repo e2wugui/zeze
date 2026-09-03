@@ -822,6 +822,16 @@ public final class Raft {
 				return 0;
 			}
 
+			// 与 processRequestVoteResult 对齐（raft §5.1 Rules for Servers）：应答里带回
+			// 更高 term 时更新term并立即退回Follower。PreVote候选者没有自增term，
+			// 多数派其他节点可能已推进到更高term并选出了新leader：不消费Result.term
+			// 会多走一轮携带过期term的无效prevote循环（仍被拒，直到新leader的
+			// AppendEntries/RequestVote直达本节点）。
+			if (logSequence.trySetTerm(rpc.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
+				convertStateTo(RaftState.Follower);
+				return Procedure.Success;
+			}
+
 			if (preVotes.contains(rpc) && rpc.Result.getVoteGranted()) {
 				int granteds = 0;
 				for (var vote : preVotes) {
