@@ -444,6 +444,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.globalKey, CacheState::new);
+			// 申请位占住后异常逃逸（await上的中断等，由processAcquireRequest的catch接走）不复位的话，
+			// 该key上所有后续acquire/release永久等待（key冻结）；finally兜底复位。
+			var ownsPending = false;
 			cs.lock();
 			try { //await 等锁
 				if (cs.acquireStatePending == StateRemoved)
@@ -487,6 +490,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					continue; // concurrent release
 
 				cs.acquireStatePending = StateShare;
+				ownsPending = true;
 				serialIdGenerator.getAndIncrement();
 
 				var gKey = cs.globalKey;
@@ -584,6 +588,11 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				rpc.SendResultCode(0);
 				return;
 			} finally {
+				// 异常逃逸时复位本次占住的申请位并唤醒等待者；正常路径已自行复位为StateInvalid
+				if (ownsPending && (cs.acquireStatePending == StateShare || cs.acquireStatePending == StateModify)) {
+					cs.acquireStatePending = StateInvalid;
+					cs.signalAll(); //notify
+				}
 				cs.unlock();
 			}
 		}
@@ -593,6 +602,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.globalKey, CacheState::new);
+			// 申请位占住后异常逃逸不复位会冻结key（理由同acquireShare）；finally兜底复位。
+			var ownsPending = false;
 			cs.lock();
 			try { //await 等锁
 				if (cs.acquireStatePending == StateRemoved)
@@ -637,6 +648,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					continue; // concurrent release
 
 				cs.acquireStatePending = StateModify;
+				ownsPending = true;
 				serialIdGenerator.getAndIncrement();
 
 				var gKey = cs.globalKey;
@@ -832,6 +844,11 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				// 其他处理已经能包容这个改动，都不用动。
 				return;
 			} finally {
+				// 异常逃逸时复位本次占住的申请位并唤醒等待者；正常路径已自行复位为StateInvalid
+				if (ownsPending && (cs.acquireStatePending == StateShare || cs.acquireStatePending == StateModify)) {
+					cs.acquireStatePending = StateInvalid;
+					cs.signalAll(); //notify
+				}
 				cs.unlock();
 			}
 		}
