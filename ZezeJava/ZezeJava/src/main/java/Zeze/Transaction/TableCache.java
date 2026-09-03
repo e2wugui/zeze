@@ -112,7 +112,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		if (result.getLruNode() != lruHot) {
 			var oldNode = result.getAndSetLruNodeNull();
 			if (oldNode != null) {
-				oldNode.remove(key);
+				// 必须使用 Pair：result可能是并发删除后留下的过期引用，
+				// 此时oldNode里面可能已经是并发新建的记录。see this.Remove
+				oldNode.remove(key, result);
 				if (lruHot.putIfAbsent(key, result) == null)
 					result.setLruNode(lruHot);
 			}
@@ -237,8 +239,15 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				oldNode.remove(k, r);
 			if (removeLocalRocks)
 				table.rocksCacheRemove(k);
-		} else
+		} else {
 			r.setState(StateRemoved); // 也确保已删除状态
+			// dataMap中该key已经不是r（并发删除后新建，see GetOrAdd迁移路径），
+			// r的条目可能滞留在Lru块里面，不摘除的话块永不为空，会导致cleanNow死循环。
+			// 必须使用 Pair，防止误删Lru块里面并发新建的记录。
+			var oldNode = r.getLruNode();
+			if (oldNode != null)
+				oldNode.remove(k, r);
+		}
 	}
 
 	private boolean tryRemoveRecordUnderLock(@NotNull Map.Entry<K, Record1<K, V>> p) {
