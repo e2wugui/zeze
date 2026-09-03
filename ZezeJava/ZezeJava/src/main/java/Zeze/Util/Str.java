@@ -10,7 +10,6 @@ import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Formatter;
 import java.util.Map;
 import java.util.Objects;
@@ -228,13 +227,12 @@ public final class Str {
 			} else if (p instanceof Float || p instanceof Double) {
 				formatSb.append("%f");
 				paramsList.add(p);
-			} else if (p instanceof Date) {
-				formatSb.append("%t");
-				paramsList.add(p);
 			} else if (p instanceof String) {
 				formatSb.append("%s");
 				paramsList.add(p);
 			} else {
+				// Date 及其他类型统一走 %s（Date.toString()）。
+				// 原 Date 分支生成裸 "%t"：Formatter 的 %t 必须带日期后缀（如 %tY），裸 %t 必抛 UnknownFormatConversionException。
 				formatSb.append("%s");
 				paramsList.add(p);
 			}
