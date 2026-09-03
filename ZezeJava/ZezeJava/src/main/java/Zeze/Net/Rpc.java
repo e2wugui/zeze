@@ -109,7 +109,10 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 				if (factoryHandle != null)
 					service.dispatchRpcResponse(context, context.responseHandle, factoryHandle);
 			}
-		}).schedule(timeout);
+		// 超时清理必须立即注册（scheduleNow）：此刻请求字节已发出（SendReturnVoid 也可无 socket 只注册），
+		// 即使所在事务随后回滚，应答仍会到来或永不到来，上下文必须有超时兜底；
+		// 事务感知的 schedule 会随回滚丢弃注册，导致 rpcContexts 条目永驻、SendForWait 永久挂起。
+		}).scheduleNow(timeout);
 	}
 
 	/**

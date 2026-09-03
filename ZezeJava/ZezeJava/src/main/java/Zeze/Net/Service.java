@@ -738,7 +738,9 @@ public class Service extends ReentrantLock {
 			if (manualContexts.putIfAbsent(sessionId, context) == null) {
 				context.setSessionId(sessionId);
 				context.setService(this);
-				TaskSpec.ofAction(() -> tryRemoveManualContext(sessionId, true)).schedule(timeout);
+				// 超时清理必须立即注册（scheduleNow）：上面的 putIfAbsent 注册不随事务回滚撤销，
+				// 回滚后条目仍需超时兜底移除并回调 onRemoved；事务感知的 schedule 会随回滚丢弃注册，导致 manualContexts 条目永驻。
+				TaskSpec.ofAction(() -> tryRemoveManualContext(sessionId, true)).scheduleNow(timeout);
 				return sessionId;
 			}
 		}
