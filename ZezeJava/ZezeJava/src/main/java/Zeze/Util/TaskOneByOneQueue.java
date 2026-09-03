@@ -19,6 +19,8 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	private @NotNull ArrayDeque<Task> queue = new ArrayDeque<>();
 	private final @Nullable Executor executor;
 	private volatile boolean isShutdown;
+	private boolean shutdownCancel; // shutdown(cancel) 的模式，runNext 收尾判断用；锁内读写
+	private boolean pendingCancels; // 存在锁外正在执行的收尾补偿；锁内读写
 	private boolean removed;
 
 	void setRemoved() {
@@ -82,8 +84,8 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				if (!task.process(this))
 					return; // 任务调度终端，当前任务以后完成的时候会触发runNext;
 				if (isShutdown)
-					// shutdown(true)时批量内后续任务已被cancel，不再执行；shutdown(false)时任务仍在队列，
-					// 由下面的runNext重新prepare逐个调度执行。保留的firstTask由runNext的poll计数吸收。
+					// shutdown后批量内后续任务不再连续执行：shutdown(true)时队列剩余(均未运行)由runNext收尾补偿；
+					// shutdown(false)时任务仍在队列，由下面的runNext重新prepare逐个调度执行。
 					break;
 			}
 			TaskOneByOneQueue.this.runNext(processedCount);
@@ -124,6 +126,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	}
 
 	private void runNext(int count) {
+		ArrayDeque<Task> cancels = null;
 		lock();
 		try {
 			while (count-- > 0)
@@ -133,9 +136,28 @@ public class TaskOneByOneQueue extends ReentrantLock {
 					cond.signalAll();
 				return;
 			}
-			batch.prepare();
+			if (isShutdown && shutdownCancel) {
+				// shutdown(true)收尾：此时队列剩余的任务(在飞批量认领区内未执行的部分+认领后新提交的部分)
+				// 均未运行，逐个补偿。补偿回调可能触发其他桶的runNext，必须在锁外执行；
+				// 期间pendingCancels挡住waitComplete，保证shutdown等待者观察到补偿已全部执行。
+				cancels = queue;
+				queue = new ArrayDeque<>();
+				pendingCancels = true;
+			} else
+				batch.prepare();
 		} finally {
 			unlock();
+		}
+		if (cancels != null) {
+			runCancel(cancels);
+			lock();
+			try {
+				pendingCancels = false;
+				cond.signalAll();
+			} finally {
+				unlock();
+			}
+			return;
 		}
 		if (executor != null) {
 			executor.execute(batch);
@@ -147,23 +169,8 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 	}
 
-	public void shutdown(boolean cancel) {
-		ArrayDeque<Task> oldQueue;
-		lock();
-		try {
-			if (isShutdown)
-				return;
-			isShutdown = true;
-			oldQueue = queue;
-			Task firstTask;
-			if (!cancel || (firstTask = oldQueue.pollFirst()) == null)
-				return;
-			queue = new ArrayDeque<>(); // clear
-			queue.addLast(firstTask); // put back running task back
-		} finally {
-			unlock();
-		}
-		for (Task task : oldQueue) {
+	private static void runCancel(@NotNull ArrayDeque<Task> tasks) {
+		for (Task task; (task = tasks.pollFirst()) != null; ) {
 			if (task.cancel != null) {
 				try {
 					task.cancel.run();
@@ -174,10 +181,37 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 	}
 
+	public void shutdown(boolean cancel) {
+		ArrayDeque<Task> oldQueue = null;
+		lock();
+		try {
+			if (isShutdown)
+				return;
+			isShutdown = true;
+			shutdownCancel = cancel;
+			if (!cancel)
+				return;
+			// 补偿边界：只取消"尚未被在飞批量认领"的任务。认领区(队头batch.count个，含已完成未出队与
+			// 正在执行的)必须保留——对已执行成功的任务跑onCancel会造成重复发货/重复扣款类二次处理。
+			// batch.count的写入(prepare)全部发生在queue锁内(submit的0->1转变与runNext)，锁内读取可见。
+			// 保留的认领区由runNext按processedCount对齐出队，未执行部分在那里收尾补偿。
+			oldQueue = queue;
+			queue = new ArrayDeque<>(); // clear
+			int keep = Math.min(batch.count, oldQueue.size());
+			for (int i = 0; i < keep; i++)
+				queue.addLast(oldQueue.pollFirst());
+			if (oldQueue.isEmpty())
+				return;
+		} finally {
+			unlock();
+		}
+		runCancel(oldQueue); // 未认领的任务：未运行，立即补偿
+	}
+
 	public void waitComplete() throws InterruptedException {
 		lock();
 		try {
-			while (!queue.isEmpty())
+			while (!queue.isEmpty() || pendingCancels)
 				cond.await(); // wait running task
 		} finally {
 			unlock();
