@@ -209,10 +209,10 @@ public final class Changes extends Zeze.Raft.Log {
 		if (holder.isLeaderRequest()) {
 			if (Rocks.isDebugEnabled)
 				Rocks.logger.debug("{} LeaderApply", rocks.getRaft().getName());
-			transaction.leaderApply(this);
+			transaction.leaderApply(this, holder);
 		} else {
 			// Rocks.logger.debug("{} followerApply", rocks.getRaft().getName());
-			rocks.followerApply(this);
+			rocks.followerApply(this, holder);
 		}
 	}
 

@@ -14,6 +14,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
+import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
@@ -607,7 +608,8 @@ public class LogSequence {
 	 * 当选 leader，当选后整个集群的写入都卡在同一条日志上（FND-R2-3）。
 	 * 与 StateMachine.logFactory 对未知日志类型的处置一致：宁死不糊，fatalKill。
 	 * RocksDBException（读IO瞬时错误）不在此列，向上传播保持现有的重试语义；
-	 * apply 阶段的异常也保持现有重试语义（结构性错误由状态机内部自行 fatalKill）。
+	 * apply 阶段的异常也保持重试语义（结构性错误由状态机内部自行 fatalKill，
+	 * flush 失败的幂等重试补偿见 Rocks.FlushException 与 pendingFlushApplies）。
 	 */
 	private RaftLog readLogForApply(long index, String where) throws RocksDBException {
 		try {
@@ -753,7 +755,19 @@ public class LogSequence {
 			}
 
 			index = raftLog.getIndex() + 1;
-			raftLog.getLog().apply(raftLog, raft.getStateMachine());
+			try {
+				raftLog.getLog().apply(raftLog, raft.getStateMachine());
+			} catch (Rocks.FlushException e) {
+				// flush失败（FND-R2-4）：状态机已记录"内存已应用"的记录集合（pendingFlush），
+				// lastApplied不推进，重试时只重试flush、不重放增量日志，避免双重应用。
+				// 原始raftLog放回leaderAppendLogs：重试命中它时走leaderApply（flush-only）
+				// 路径，成功后invokeCallback能唤醒等待appendLog的业务线程。
+				if (raftLog.isLeaderRequest() && leaderAppendLogs.putIfAbsent(raftLog.getIndex(), raftLog) != null) {
+					logger.fatal("LeaderAppendLogs.TryAdd Fail. Index={}", raftLog.getIndex(), new Exception());
+					raft.fatalKill();
+				}
+				throw e;
+			}
 			if (raftLog.getLog().getUnique().getRequestId() > 0)
 				openUniqueRequests(raftLog.getLog().getCreateTime()).apply(raftLog);
 			lastApplied = raftLog.getIndex(); // 循环可能退出，在这里修改。
@@ -1424,8 +1438,12 @@ public class LogSequence {
 
 		// 5. If leaderCommit > commitIndex,
 		// set commitIndex = min(leaderCommit, index of last new entry)
-		if (r.Argument.getLeaderCommit() > commitIndex) {
-			commitIndex = Math.min(r.Argument.getLeaderCommit(), lastRaftLogTermIndex().getIndex());
+		// leaderCommit未推进但commitIndex>lastApplied时也要尝试apply：上次apply可能因
+		// flush失败中断（FND-R2-4），此时静默应答会让follower以"健康"状态一直落后；
+		// 在每次AppendEntries（含心跳）上重试，直到追平（apply异常时不发应答）。
+		if (r.Argument.getLeaderCommit() > commitIndex || commitIndex > lastApplied) {
+			if (r.Argument.getLeaderCommit() > commitIndex)
+				commitIndex = Math.min(r.Argument.getLeaderCommit(), lastRaftLogTermIndex().getIndex());
 			tryStartApplyTask(readLogForApply(commitIndex, "followerOnAppendEntries"));
 		}
 		r.Result.setSuccess(true);

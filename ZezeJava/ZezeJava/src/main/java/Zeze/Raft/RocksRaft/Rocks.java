@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -21,6 +22,7 @@ import Zeze.Config;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
+import Zeze.Raft.RaftLog;
 import Zeze.Raft.RocksRaft.Log1.LogBinary;
 import Zeze.Raft.RocksRaft.Log1.LogBool;
 import Zeze.Raft.RocksRaft.Log1.LogByte;
@@ -54,6 +56,53 @@ import org.rocksdb.WriteOptions;
 public final class Rocks extends StateMachine implements Closeable {
 	static final Logger logger = LogManager.getLogger(Rocks.class);
 	static final boolean isDebugEnabled = logger.isDebugEnabled();
+
+	/**
+	 * flush 落盘失败（RocksDBException 的包装）。
+	 * apply 流程是"先改内存、后flush"，flush 失败时内存已是最终状态而 lastApplied
+	 * 未推进，之后会重试（FND-R2-4）。用专门的异常类型把"可重试的落盘失败"与
+	 * decode/结构性错误区分开：前者由 pendingFlushApplies 记录已应用的内存状态、
+	 * 重试时只重试flush；后者不可恢复。
+	 */
+	public static final class FlushException extends RuntimeException {
+		public FlushException(RocksDBException cause) {
+			super(cause);
+		}
+
+		@Override
+		public synchronized RocksDBException getCause() {
+			return (RocksDBException)super.getCause();
+		}
+	}
+
+	// FND-R2-4："内存已应用但flush失败"的日志条目（key=RaftLog.Index，value含条目term）。
+	// leaderApply/followerApply 的内存变更与flush非原子：flush失败时内存已变更而
+	// lastApplied未推进，重试若重新走增量日志重放（如list的OP_ADD按索引追加）会在
+	// 已应用的状态上双重应用并被后续提交复制出去。这里记录已应用的记录集合，
+	// 重试时跳过内存变更只重试flush；term不匹配说明同index已被新term条目复用
+	// （旧条目被截断），丢弃过期记录按全新条目应用。
+	// 仅存在于apply失败到重试成功之间的短窗口，reset/restore/close时清空。
+	private final LongConcurrentHashMap<PendingFlush> pendingFlushApplies = new LongConcurrentHashMap<>();
+
+	static final class PendingFlush {
+		final long term;
+		final List<Record<?>> records;
+
+		PendingFlush(long term, List<Record<?>> records) {
+			this.term = term;
+			this.records = records;
+		}
+	}
+
+	// 取出index对应的待补偿记录；没有或term不匹配（同index已被新term条目复用）返回null。
+	List<Record<?>> takePendingFlush(long index, long term) {
+		var pending = pendingFlushApplies.remove(index);
+		return pending != null && pending.term == term ? pending.records : null;
+	}
+
+	void putPendingFlush(long index, long term, List<Record<?>> records) {
+		pendingFlushApplies.put(index, new PendingFlush(term, records));
+	}
 
 	public static void registerLog(Supplier<Log> s) {
 		Log.register(s);
@@ -229,11 +278,31 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void followerApply(Changes changes) {
+	public void followerApply(Changes changes, RaftLog holder) {
+		var index = holder.getIndex();
+		var pending = takePendingFlush(index, holder.getTerm());
+		if (pending != null) {
+			// 上次followerApply已完成内存变更但flush失败（FND-R2-4）：内存已是最终状态。
+			// 增量日志重放不幂等（如list的OP_ADD按索引追加），重放会双重应用，
+			// 这里跳过内存变更，仅重试flush。
+			try {
+				flush(pending, changes, true);
+			} catch (FlushException e) {
+				putPendingFlush(index, holder.getTerm(), pending);
+				throw e;
+			}
+			return;
+		}
 		var rs = new ArrayList<Record<?>>();
 		for (var e : changes.getRecords().entrySet())
 			rs.add(((Table<Object, Bean>)e.getValue().table).followerApply(e.getKey().key, e.getValue()));
-		flush(rs, changes, true);
+		try {
+			flush(rs, changes, true);
+		} catch (FlushException e) {
+			// 内存已变更但落盘失败：记录已应用的记录集合，等下次apply重试时只flush。
+			putPendingFlush(index, holder.getTerm(), rs);
+			throw e;
+		}
 	}
 
 	public void flush(Iterable<Record<?>> rs, Changes changes) {
@@ -261,7 +330,9 @@ public final class Rocks extends StateMachine implements Closeable {
 					batch.commit(writeOptions);
 			}
 		} catch (RocksDBException e) {
-			throw Task.forceThrow(e);
+			// 专门的异常类型：调用方（leaderApply/followerApply）据此记录已应用的内存状态，
+			// 重试时只重试flush，保证apply对flush失败幂等（FND-R2-4）。
+			throw new FlushException(e);
 		}
 	}
 
@@ -288,6 +359,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	public void restore(String backupDir) throws RocksDBException {
 		getRaft().lock();
 		try {
+			pendingFlushApplies.clear(); // 状态机回退到快照边界，"已应用未flush"记录作废（FND-R2-4）
 			if (storage != null) {
 				storage.close(); // close current
 				storage = null;
@@ -393,6 +465,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	public void reset() {
 		getRaft().lock();
 		try {
+			pendingFlushApplies.clear(); // 清库重放，"已应用未flush"记录作废（FND-R2-4）
 			if (storage != null) {
 				storage.close(); // close current
 				storage = null;
@@ -414,6 +487,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		ShutdownHook.remove(this);
 		mutex.lock();
 		try {
+			pendingFlushApplies.clear(); // 关闭，不再有重试（FND-R2-4）
 			try {
 				Raft raft = getRaft();
 				if (raft != null)

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 import Zeze.Net.Protocol;
+import Zeze.Raft.RaftLog;
 import Zeze.Raft.RaftRetryException;
 import Zeze.Raft.RocksRaft.Log1.LogBeanKey;
 import Zeze.Serialize.ByteBuffer;
@@ -216,7 +217,21 @@ public final class Transaction {
 		}
 	}
 
-	public void leaderApply(Changes changes) {
+	public void leaderApply(Changes changes, RaftLog holder) {
+		var rocks = changes.getRocks();
+		var index = holder.getIndex();
+		var pending = rocks.takePendingFlush(index, holder.getTerm());
+		if (pending != null) {
+			// 上次leaderApply已完成内存变更但flush失败（FND-R2-4）：内存已是最终状态，
+			// 只重试flush。不能重跑下面的日志迭代：业务线程超时回滚后savepoints可能已清空。
+			try {
+				rocks.flush(pending, changes);
+			} catch (Rocks.FlushException e) {
+				rocks.putPendingFlush(index, holder.getTerm(), pending);
+				throw e;
+			}
+			return;
+		}
 		var it = savepoints.get(savepoints.size() - 1).logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
@@ -232,7 +247,14 @@ public final class Transaction {
 				rs.add(ar.origin);
 			}
 		}
-		changes.getRocks().flush(rs, changes);
+		try {
+			rocks.flush(rs, changes);
+		} catch (Rocks.FlushException e) {
+			// 内存已变更但落盘失败：记录已应用的记录集合，等下次apply重试时只flush，
+			// 避免重试经readLog解码走增量followerApply造成双重应用（FND-R2-4）。
+			rocks.putPendingFlush(index, holder.getTerm(), rs);
+			throw e;
+		}
 	}
 
 	public void runWhileCommit(Action0 action) {
