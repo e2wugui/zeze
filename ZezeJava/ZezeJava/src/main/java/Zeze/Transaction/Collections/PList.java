@@ -110,7 +110,8 @@ public abstract class PList<V> extends Collection implements List<V> {
 	@Override
 	public @NotNull Iterator<V> iterator() {
 		return new Iterator<>() {
-			private final Iterator<V> it = getList().iterator();
+			private final @NotNull PVector<V> snapshot = getList(); // 创建时刻的快照，迭代安全
+			private final Iterator<V> it = snapshot.iterator();
 			private int index;
 
 			@Override
@@ -130,7 +131,13 @@ public abstract class PList<V> extends Collection implements List<V> {
 				int i = index;
 				if (i <= 0)
 					throw new IllegalStateException(); // removed or not next
-				PList.this.remove(--i);
+				// 快照index只对"迭代期间无结构性修改"有效：next()之后列表被直接add/remove/set过的话，
+				// index已错位，按index删最新视图会静默删错元素。校验最新视图同index仍是快照返回的
+				// 同一引用（身份相等是删除正确性的充分条件），否则fail-fast（对齐JDK迭代器惯例）。
+				var current = getList();
+				if (i > current.size() || current.get(--i) != snapshot.get(i))
+					throw new ConcurrentModificationException("structural modification during iteration");
+				PList.this.remove(i);
 				index = -i;
 			}
 		};
