@@ -160,7 +160,7 @@ public class Takeover extends AbstractTakeover {
 	private void stampScope(@NotNull TakeoverScope scope) {
 		var lost = new boolean[1];
 		var healed = new boolean[1];
-		var r = callDirect(() -> {
+		var action = (FuncLong)() -> {
 			var serverId = zeze.getConfig().getServerId();
 			var lease = _tTakeoverLease.get(serverId);
 			if (lease == null) {
@@ -181,7 +181,21 @@ public class Takeover extends AbstractTakeover {
 			}
 			scope.stamp(myEpoch);
 			return 0L;
-		}, "Takeover.stamp@" + scope.name());
+		};
+		var r = callDirect(action, "Takeover.stamp@" + scope.name());
+		// FND-C1-11：瞬态失败（乐观冲突重试耗尽等）若只记日志，scope的root行loadSerialNo
+		// 仍为旧值——mode=on下该scope首次写路径checkFence即fenceFailed(System.exit(-1))，
+		// 一次瞬态失败被放大为进程致命退出。有限重试覆盖瞬态失败；确定性失败重试亦耗尽，
+		// 最终仍失败时由error日志+写路径fence兜底（不再无限循环钉死调用线程）。
+		for (var retry = 0; retry < 3 && r != 0 && !lost[0]; retry++) {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				break;
+			}
+			r = callDirect(action, "Takeover.stamp@" + scope.name());
+		}
 		if (lost[0]) {
 			fenceFailed("addScope: lease lost, scope=" + scope.name() + " myEpoch=" + myEpoch);
 			return;
