@@ -173,7 +173,10 @@ public class ProviderDirect extends AbstractProviderDirect {
 					out.value = handle.requestHandle.call(hash, pa.getParams());
 					return Procedure.Success;
 				}, "ProcessModuleRedirectAllRequest").call());
-				future = (RedirectAllFuture<?>)out.value;
+				// 过程失败（含redo后最终轮异常）时out.value可能残留已回滚轮次赋的future，
+				// 不能当作本次处理结果使用，此时future置null，按returnCode错误上报。
+				// 参照ToServer路径ProcessModuleRedirectRequest的写法。
+				future = hashResult.getReturnCode() == Procedure.Success ? (RedirectAllFuture<?>)out.value : null;
 				break;
 			default:
 				try {
