@@ -272,7 +272,16 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		autoKey.setCurrent(current);
 		r.Result.setCount(count);
 
-		r.SendResult();
+		// 号段必须raft提交成功后再应答：appendLog失败（失主RaftRetry/复制异常）会回滚current，
+		// 提交前应答会让客户端把已回滚的号段投入使用，下一次AllocateId重复发放同一号段。
+		// 对齐GCM-raft的proc.autoResponse（响应由_final_commit_在appendLog之后发出）；
+		// result已填的startId/count在回滚路径随错误码一起发送，客户端按resultCode!=0丢弃。
+		// 非事务上下文（不应发生）保持立即应答。
+		var t = Transaction.getCurrent();
+		if (t != null)
+			t.runWhileCommit(r::SendResult);
+		else
+			r.SendResult();
 		return 0;
 	}
 
