@@ -173,6 +173,17 @@ public class Master extends AbstractMaster {
     protected long ProcessRegisterRequest(Register r) {
         lock();
         try {
+            // 幂等：重连/重注册会重复到达（首连时start()注册与连接建立钩子各一次；Master重启后
+            // 重连重注册），同socket重复append会堆积；且新连接的Register可能先于旧socket的
+            // OnSocketClose到达，按host:port替换旧条目，避免死连接滞留managers被choiceManager选中。
+            for (int i = 0; i < managers.size(); ++i) {
+                var e = managers.get(i);
+                if (e.socket == r.getSender()
+                        || (e.info.getHost().equals(r.Argument.getHost()) && e.info.getPort() == r.Argument.getPort())) {
+                    managers.remove(i);
+                    break;
+                }
+            }
             managers.add(new Manager(r.getSender(), r.Argument));
             r.SendResult();
             return 0;

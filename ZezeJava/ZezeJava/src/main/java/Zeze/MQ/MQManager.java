@@ -7,6 +7,7 @@ import java.util.concurrent.Future;
 import Zeze.Builtin.MQ.Master.CreatePartition;
 import Zeze.Config;
 import Zeze.MQ.Master.MasterAgent;
+import Zeze.Net.AsyncSocket;
 import Zeze.Raft.ProxyServer;
 import Zeze.Util.KV;
 import Zeze.Util.RocksDatabase;
@@ -14,6 +15,7 @@ import Zeze.Util.ShutdownHook;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
 import static Zeze.MQ.Master.AbstractMaster.ePartition;
 import static Zeze.MQ.Master.AbstractMaster.eTopicNotExist;
@@ -50,6 +52,7 @@ public class MQManager extends AbstractMQManager {
             }
         };
         masterService = new Service(config, proxyServer);
+        masterService.setManager(this);
         masterAgent = new MasterAgent(config, masterService, this::createPartition);
         RegisterProtocols(proxyServer);
     }
@@ -83,6 +86,17 @@ public class MQManager extends AbstractMQManager {
         proxyServer.start();
 
         loadMonitorTimer = TaskSpec.ofAction(this::loadMonitor).schedulePeriodNow(120_000, 120_000);
+    }
+
+    // Master重启丢失managers注册表后由连接建立钩子重发Register恢复；失败仅记日志，等下次重连再试。
+    // 首连时与start()里的register各发一次，Master端按host:port幂等去重。
+    void reRegister() {
+        try {
+            var acceptorAddress = masterService.getAcceptorAddress();
+            masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), queueCount());
+        } catch (Exception e) {
+            logger.error("re-register to master failed, wait for next reconnect", e);
+        }
     }
 
     public void stop() throws Exception {
@@ -193,6 +207,7 @@ public class MQManager extends AbstractMQManager {
 
     public static class Service extends Zeze.MQ.Master.MasterAgent.Service {
         private final ProxyServer proxyServer;
+        private volatile MQManager manager;
 
         public Service(Config config) {
             super(config);
@@ -202,6 +217,19 @@ public class MQManager extends AbstractMQManager {
         public Service(Config config, ProxyServer proxyServer) {
             super(config);
             this.proxyServer = proxyServer;
+        }
+
+        public void setManager(MQManager manager) {
+            this.manager = manager;
+        }
+
+        @Override
+        protected void OnMasterConnected(@NotNull AsyncSocket so) {
+            var m = manager;
+            if (null == m)
+                return;
+            // IO线程回调，不得同步等待rpc，提交任务池异步重注册。
+            TaskSpec.ofAction(m::reRegister).name("MQManager.reRegister").submitNow();
         }
 
         public KV<String, Integer> getAcceptorAddress() {
