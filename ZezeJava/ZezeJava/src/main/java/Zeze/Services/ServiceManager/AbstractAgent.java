@@ -149,7 +149,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 					allocateCount = Tid128Cache.ALLOCATE_COUNT_MIN;
 				}
 			}
-			//noinspection DataFlowIssue
+			// raft版SM不初始化tid128UdpClient（不支持Id128 UDP发号）：这里给出明确的
+			// 错误而不是裸NPE；该组合应在子类构造时被fail-fast拦截（见ServiceManagerAgentWithRaft）。
+			if (tid128UdpClient == null)
+				throw new IllegalStateException("tid128UdpClient is not available (unsupported combination, " +
+						"e.g. ServiceManager=raft): allocateTid128CacheFuture('" + globalName + "')");
 			lastTid128CacheFuture = future = tid128UdpClient.allocateFuture(globalName, allocateCount);
 			return future;
 		} finally {
