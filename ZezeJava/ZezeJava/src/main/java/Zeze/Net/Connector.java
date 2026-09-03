@@ -37,6 +37,8 @@ public class Connector extends ReentrantLock {
 	private @Nullable Future<?> reconnectTask;
 	private int maxReconnectDelay = 8000; // 毫秒
 	private int reConnectDelay;
+	private boolean connecting; // start()在锁外构造socket期间为true（构造内含阻塞DNS）
+	private boolean abortConnect; // 构造期间Connector被stop，新socket由start()自行丢弃
 
 	public static @NotNull Connector Create(@NotNull Element e) {
 		String className = e.getAttribute("Class");
@@ -212,7 +214,7 @@ public class Connector extends ReentrantLock {
 	public void TryReconnect() {
 		lock();
 		try {
-			if (!isAutoReconnect || socket != null || reconnectTask != null)
+			if (!isAutoReconnect || socket != null || reconnectTask != null || connecting)
 				return;
 
 			reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
@@ -245,18 +247,43 @@ public class Connector extends ReentrantLock {
 				reconnectTask.cancel(false);
 				reconnectTask = null;
 			}
-			if (socket == null) {
-				if (null == url || url.isBlank())
-					socket = service.newClientSocket(hostNameOrAddress, port, userState, this);
-				else
-					socket = service.newWebsocketClient(url, userState, this);
-			}
-		} catch (Exception e) {
-			TryReconnect();
-			throw e;
+			if (socket != null || connecting)
+				return;
+			connecting = true;
 		} finally {
 			unlock();
 		}
+		// 锁外构造：newClientSocket/newWebsocketClient 内的 InetAddress.getByName 是同步DNS
+		// （默认可达5-30秒），持锁进行会卡死并发的OnSocketClose/TryReconnect（最坏拖住selector线程）。
+		AsyncSocket as;
+		try {
+			if (null == url || url.isBlank())
+				as = service.newClientSocket(hostNameOrAddress, port, userState, this);
+			else
+				as = service.newWebsocketClient(url, userState, this);
+		} catch (Exception e) {
+			lock();
+			try {
+				connecting = false;
+			} finally {
+				unlock();
+			}
+			TryReconnect();
+			throw e;
+		}
+		lock();
+		try {
+			connecting = false;
+			if (!abortConnect && socket == null) {
+				socket = as;
+				return;
+			}
+		} finally {
+			unlock();
+		}
+		// 构造期间Connector被stop（或被并发替换）：新socket不是owner，丢弃。
+		abortConnect = false;
+		as.close(new Exception("connector stopped"));
 	}
 
 	public void stop() {
@@ -272,8 +299,19 @@ public class Connector extends ReentrantLock {
 				reconnectTask.cancel(false);
 				reconnectTask = null;
 			}
-			if (socket == null)
+			if (socket == null) {
+				// 构造中的连接无法从外部关闭（socket尚未发布）：标记让start()完成后自行丢弃，
+				// 并立即解除TryGetReadySocket等待者（否则要等到新连接建立再关闭才会有人设置future）。
+				if (connecting && !abortConnect) {
+					abortConnect = true;
+					if (e == null)
+						e = new IOException("Connector Stopped: " + getName());
+					futureSocket.setException(e); // try set
+					futureSocket = new TaskCompletionSource<>(); // prepare future to next connect.
+					isConnected = false;
+				}
 				return; // not start or has stopped.
+			}
 			if (e == null)
 				e = new IOException("Connector Stopped: " + getName());
 			futureSocket.setException(e); // try set
