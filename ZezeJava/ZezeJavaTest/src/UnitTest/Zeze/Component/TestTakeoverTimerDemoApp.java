@@ -191,6 +191,15 @@ public class TestTakeoverTimerDemoApp {
 				"SM广播Suspect后应完成接管并立碑（链路唯一触发源，失败=广播/接收/接线断裂）");
 
 		// 5. 结构校验 + 定时器在本进程真正触发。
+		// 【竞态窗口】tryTransfer的事务只原子完成【搬链+立碑租约】；afterTransfer（index重指向+
+		// 重调度）在事务提交之后才执行——只等租约立碑就断言index会抓到窗口（实测 AssertionFailedError:
+		// expected:<0> but was:<778>）。轮询等index重指向完成后再断言。
+		long indexDeadline = System.currentTimeMillis() + 10_000;
+		while (!indexRepointed(app, suspectTimerId) && System.currentTimeMillis() < indexDeadline)
+			Thread.sleep(50);
+		Assertions.assertTrue(indexRepointed(app, suspectTimerId),
+				"afterTransfer应把index重指向接管者（10s内未完成=链路断裂）");
+
 		var rcAssert = TaskSpec.ofProcedure(app.newProcedure(() -> {
 			var dead = tNodeRoot(app).get(suspectDeadId);
 			Assertions.assertNotNull(dead);
@@ -210,6 +219,18 @@ public class TestTakeoverTimerDemoApp {
 		while (SUSPECT_FIRED.get() == 0 && System.currentTimeMillis() < deadline)
 			Thread.sleep(50);
 		Assertions.assertTrue(SUSPECT_FIRED.get() >= 1, "Suspect通道接管的定时器必须在本进程触发");
+	}
+
+	/** afterTransfer完成后tIndexs会重指向接管者；轮询判定（读表需事务）。 */
+	private boolean indexRepointed(Application app, String timerId) {
+		var repointed = new boolean[1];
+		var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
+			var index = tIndexs(app).get(timerId);
+			repointed[0] = index != null && index.getServerId() == app.getConfig().getServerId();
+			return 0L;
+		}, "TestTakeoverTimerDemoApp.indexRepointed@" + timerId)).call();
+		Assertions.assertEquals(0L, rc);
+		return repointed[0];
 	}
 
 	@SuppressWarnings("unchecked")
