@@ -285,7 +285,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 对齐GCM-raft的proc.autoResponse（响应由_final_commit_在appendLog之后发出）；
 		// result已填的startId/count在回滚路径随错误码一起发送，客户端按resultCode!=0丢弃。
 		// 非事务上下文（不应发生）保持立即应答。
-		var t = Transaction.getCurrent();
+		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
 		else
@@ -387,8 +387,20 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			addAndCollectNotify(state, reg, netSession.name, notifies);
 		}
 
-		sendNotifies(notifies);
-		r.SendResult();
+		// 应答与订阅者通知必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
+		// appendLog之前发送，raft复制失败回滚时客户端已拿到成功码、订阅者已收到幽灵
+		// add/remove推送，而服务端状态回滚（提交前应答，状态不一致）。非事务上下文（不应
+		// 发生）保持立即应答。
+		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		if (t != null) {
+			t.runWhileCommit(() -> {
+				sendNotifies(notifies);
+				r.SendResult();
+			});
+		} else {
+			sendNotifies(notifies);
+			r.SendResult();
+		}
 		return 0;
 	}
 
