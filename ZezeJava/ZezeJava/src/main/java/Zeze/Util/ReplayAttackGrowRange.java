@@ -37,8 +37,8 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 		long grow = serialId - max;
 		if (grow > Integer.MAX_VALUE)
 			return true; // 跳的太远，拒绝掉。
-		int increase = (int)grow;
-		if (increase > 0) { // grow clear
+		if (grow > 0) { // grow clear
+			int increase = (int)grow; // grow <= Integer.MAX_VALUE，转换无损
 			if (increase >= range.length * 8) {
 				// clear all
 				Arrays.fill(range, (byte)0);
@@ -65,8 +65,10 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 			}
 			return false; // allow
 		}
-		if (increase <= -range.length * 8)
+		// 过期判断必须用 long：大负 grow 经 (int) 截断会回绕成正数走到上面的前向分支放行（防重放绕过）。
+		if (grow <= -(long)range.length * 8)
 			return true; // 过期的，拒绝掉。
+		int increase = (int)grow; // grow > -(range.length * 8)，在int范围内，转换无损
 
 		var pos = this.position + increase;
 		if (pos < 0) // 有范围检查，只需要加一次，否则用while
