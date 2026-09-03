@@ -174,9 +174,11 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	 * 不管发送是否成功，总是建立RpcContext。
 	 * 连接(so)可以为null，此时Rpc请求将在Timeout后回调。
 	 */
+	// 不显式传超时的重载统一使用字段timeout（默认5000，setTimeout可改）：
+	// 与Send(so)/Send(so,handle)的语义一致，否则setTimeout设置后这些重载仍按5000误判超时。
 	public final void SendReturnVoid(@NotNull Service service, @Nullable AsyncSocket so,
 	                                 @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
-		SendReturnVoid(service, so, responseHandle, 5000);
+		SendReturnVoid(service, so, responseHandle, timeout);
 	}
 
 	public final void SendReturnVoid(@NotNull Service service, @Nullable AsyncSocket so,
@@ -195,7 +197,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	public final TaskCompletionSource<TResult> SendForWait(@Nullable AsyncSocket so) {
-		return SendForWait(so, 5000);
+		return SendForWait(so, timeout);
 	}
 
 	// 注意这个同步发送方法会覆盖future,而且之后不会自动清除,除非再次调用同步发送
@@ -210,7 +212,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	// 使用异步方式实现的同步等待版本
 
 	public final void SendAndWaitCheckResultCode(@Nullable AsyncSocket so) {
-		SendAndWaitCheckResultCode(so, 5000);
+		SendAndWaitCheckResultCode(so, timeout);
 	}
 
 	public final void SendAndWaitCheckResultCode(@Nullable AsyncSocket so, int millisecondsTimeout) {
