@@ -754,6 +754,57 @@ public class TestByteBuffer {
 	}
 
 	@Test
+	public void testEnsureWriteOverflow() {
+		// FND-Z1-4：newSize = WriteIndex + size 溢出回绕为负（或size本身为负）时，
+		// 必须落入toPower2的无符号上限检查抛IllegalStateException（含ReadIndex/WriteIndex上下文），
+		// 修复前静默不扩容，后续arraycopy抛无上下文的ArrayIndexOutOfBoundsException。
+		var bb = ByteBuffer.Allocate();
+		assertThrows(IllegalStateException.class, () -> bb.EnsureWrite(-1));
+		assertThrows(IllegalStateException.class, () -> bb.EnsureWrite(Integer.MIN_VALUE)); // 溢出回绕结果的当量注入
+		assertThrows(IllegalStateException.class, () -> bb.Append(new byte[0], 0, -8)); // Append(len)负len同路径
+		assertThrows(IllegalStateException.class, () -> bb.ensureWriteNoCompact(-1)); // 同型方法NoCompact版
+
+		// 单次超上限（不溢出，修复前后均抛）：锁定错误类型为ISE且信息含缓冲区状态，便于排障
+		var bb2 = ByteBuffer.Allocate();
+		var ex = assertThrows(IllegalStateException.class, () -> bb2.EnsureWrite(Integer.MAX_VALUE));
+		assertTrue(ex.getMessage().contains("0/0"), ex.getMessage());
+
+		// 正常路径行为不变：扩容后写入成功
+		var bb3 = ByteBuffer.Allocate();
+		bb3.EnsureWrite(100);
+		assertTrue(bb3.Bytes.length >= 100);
+		assertEquals(0, bb3.WriteIndex);
+	}
+
+	@Test
+	public void testWriteStringLoneSurrogate() {
+		// FND-Z1-5：未配对代理（lone surrogate）无法编码为合法UTF-8。
+		// 修复前WriteString把它按普通BMP字符写出CESU-8式的0xED 0xA0-0xBF ..字节（非法UTF-8，
+		// 严格解码器直接报错，宽松解码器替换），ReadString读回U+FFFD——写读一圈内容静默改变；
+		// 修复后写侧替换为U+FFFD（EF BF BD），输出永远是合法UTF-8且写读对称。
+		var bb = ByteBuffer.Allocate();
+		assertEquals(3, ByteBuffer.utf8Size("\uD800")); // 未配对代理记3字节，与U+FFFD长度恰好一致，utf8Size无需改动
+		bb.WriteString("\uD800"); // 孤立高代理
+		assertArrayEquals(new byte[]{3, (byte)0xEF, (byte)0xBF, (byte)0xBD}, bb.Copy()); // 3=varint长度前缀
+		assertEquals("\uFFFD", bb.ReadString());
+
+		bb.Reset();
+		bb.WriteString("\uDC00"); // 孤立低代理
+		assertArrayEquals(new byte[]{3, (byte)0xEF, (byte)0xBF, (byte)0xBD}, bb.Copy());
+		assertEquals("\uFFFD", bb.ReadString());
+
+		// 混合：合法ASCII/代理对原样不变，孤立高代理与孤立低代理各替换一个U+FFFD
+		// "a\uD800b\uD83D\uDE00c\uDC00"：utf8Size = 1+3+1+4+1+3 = 13
+		bb.Reset();
+		String s = "a\uD800b\uD83D\uDE00c\uDC00";
+		assertEquals(13, ByteBuffer.utf8Size(s));
+		bb.WriteString(s);
+		assertArrayEquals(new byte[]{13, 'a', (byte)0xEF, (byte)0xBF, (byte)0xBD, 'b',
+				(byte)0xF0, (byte)0x9F, (byte)0x98, (byte)0x80, 'c', (byte)0xEF, (byte)0xBF, (byte)0xBD}, bb.Copy());
+		assertEquals("a\uFFFDb\uD83D\uDE00c\uFFFD", bb.ReadString());
+	}
+
+	@Test
 
 	public void testCollections() {
 		var r = Random.getInstance();

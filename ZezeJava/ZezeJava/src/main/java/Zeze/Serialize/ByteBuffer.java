@@ -1001,8 +1001,11 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 							c = (c << 10) + bn + (0x10000 - (0xd800 << 10) - 0xdc00);
 							buf[wi++] = (byte)(0xf0 + (c >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
 							buf[wi++] = (byte)(0x80 + ((c >> 12) & 0x3f));
-						} else
+						} else {
+							if ((c & 0xf800) == 0xd800) // 未配对代理(孤立高/低代理)无法编码为合法UTF-8，原样按3字节写出会产出CESU-8式的非法字节流
+								c = 0xfffd; // 替换为U+FFFD(恰3字节，与utf8Size记数一致)：输出永远是合法UTF-8且写读对称
 							buf[wi++] = (byte)(0xe0 + (c >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
+						}
 						buf[wi++] = (byte)(0x80 + ((c >> 6) & 0x3f));
 					}
 					buf[wi++] = (byte)(0x80 + (c & 0x3f));
