@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.ToLongFunction;
@@ -53,6 +54,8 @@ public final class Agent {
 	public boolean dispatchProtocolToInternalThreadPool;
 	private volatile int pendingLimit = -1; // -1 no limit // 实际上没有进行线程保护。
 	private Future<?> resendTask;
+	// 【R1-2残留缺口】一次性联动校验告警标志，see checkResendWindow。
+	private final AtomicBoolean warnedResendNeverTrigger = new AtomicBoolean();
 
 	private Action1<Agent> onSetLeader;
 	private final Lock mutex = new ReentrantLock();
@@ -117,6 +120,8 @@ public final class Agent {
 		rpc.setSendTime(rpc.getCreateTime());
 		if (rpc.getTimeout() == 0) // set default timeout
 			rpc.setTimeout(raftConfig.getAgentTimeout());
+		else
+			checkResendWindow(rpc);
 
 		rpc.handle = handle;
 		if (pending.putIfAbsent(rpc.getUnique().getRequestId(), rpc) != null)
@@ -201,6 +206,8 @@ public final class Agent {
 		rpc.setSendTime(rpc.getCreateTime());
 		if (rpc.getTimeout() == 0) // set default timeout
 			rpc.setTimeout(raftConfig.getAgentTimeout());
+		else
+			checkResendWindow(rpc);
 
 		var future = new TaskCompletionSourceX<RaftRpc<TArgument, TResult>>();
 		rpc.future = future;
@@ -451,6 +458,24 @@ public final class Agent {
 
 	private void resend() {
 		resend(false);
+	}
+
+	// 【R1-2残留缺口】重发间隔=AppendEntriesTimeout（resend，sendTime基准），rpc判死门槛
+	// =rpc.getTimeout()（createTime基准，判死分支在前）。setTimeout(0)时默认为
+	// AgentTimeout=AppendEntriesTimeout+2000恒大于重发间隔，安全；但显式超时
+	// <=AppendEntriesTimeout时判死先于首次重发成立，重发对这类rpc永不触发——
+	// AppendEntriesTimeout>4000的部署下所有未显式设置超时的rpc（Rpc构造默认5000ms）
+	// 都落入此窗口。无法区分"用户显式设置"与"构造默认5000"（FND-R1-2修复时已评估并
+	// 否决行为侧的硬编码上限），行为不动，给出一次性联动校验告警。
+	// 短超时快速失败（如GCM Acquire）是上层既定设计，重发不触发对其无害，告警仅陈述事实。
+	private void checkResendWindow(RaftRpc<?, ?> rpc) {
+		if (rpc.getTimeout() > 0 && rpc.getTimeout() <= raftConfig.getAppendEntriesTimeout()
+				&& warnedResendNeverTrigger.compareAndSet(false, true)) {
+			logger.warn("RaftRpc timeout({}ms) <= AppendEntriesTimeout({}ms): rpc timeout (createTime based) fires"
+							+ " before the first pending resend (sendTime based), resend never triggers for such rpc."
+							+ " Set rpc timeout=0 (AgentTimeout={}) or > AppendEntriesTimeout. rpc={}",
+					rpc.getTimeout(), raftConfig.getAppendEntriesTimeout(), raftConfig.getAgentTimeout(), rpc);
+		}
 	}
 
 	public void cancelPending() {
