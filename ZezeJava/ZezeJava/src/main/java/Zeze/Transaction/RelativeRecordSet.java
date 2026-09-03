@@ -485,8 +485,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 				*/
 
 				checkpoint.flush(rs, onzProcedures, history);
-				//for (var r : rs)
-				//	r.setDirty(false);
+
 				for (var rrs : sortedRrs.values()) {
 					if (rrs.mergeTo == null)
 						rrs.delete(); // normal rrs: not merged and not deleted.
