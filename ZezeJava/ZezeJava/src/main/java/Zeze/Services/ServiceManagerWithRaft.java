@@ -39,6 +39,15 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	static {
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
+		// 补注册 tId128.current（Zeze.Util.Id128，非内置类型）的修改日志工厂：AbstractServiceManagerWithRaft.
+		// RegisterRocksTables 漏了 Log1.LogBeanKey<Zeze.Util.Id128>（typeId=1751213859）。
+		// 首次 getOrAdd(tId128) 走 Record.Put（整 bean 编码，不需要 Log 工厂）能提交成功；
+		// 第二次起修改已存在行走 Record.Edit，日志写入 WAL 时 encode 不需要工厂，但之后任何
+		// readLog 重读该日志（AppendEntries 复制、apply、重启恢复）都要 Log.create(1751213859)
+		// 抛 UnsupportedOperationException，导致后续所有事务 appendLog→RaftRetry→回滚，
+		// 复制通道卡死（实测 UnSubscribe 应答后订阅未删除即此因）。AbstractGlobalCacheManagerWithRaft
+		// 对 LogSet1<Integer> 是在自己的静态块补注册的，这里对齐该做法。
+		Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.Log1.LogBeanKey<>(Zeze.Util.Id128.class));
 	}
 
 	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
