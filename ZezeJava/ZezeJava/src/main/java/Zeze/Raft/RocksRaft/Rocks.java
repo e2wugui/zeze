@@ -349,6 +349,10 @@ public final class Rocks extends StateMachine implements Closeable {
 
 			try (var cp = storage.newCheckpoint()) {
 				cp.createCheckpoint(checkpointDir);
+			} catch (Throwable e) {
+				// 【FND-R2-5】createCheckpoint中途失败也可能已创建部分目录，删除后再抛。
+				LogSequence.deleteDirectory(new File(checkpointDir));
+				throw e;
 			}
 		} finally {
 			raft.unlock();
@@ -426,7 +430,15 @@ public final class Rocks extends StateMachine implements Closeable {
 		var backupFile = new File(backupDir);
 		if (!backupFile.isDirectory() && !backupFile.mkdirs())
 			logger.error("create backup directory failed: {}", backupDir);
-		RocksDatabase.backup(cpHome, backupDir);
+		try {
+			RocksDatabase.backup(cpHome, backupDir);
+		} catch (Throwable e) {
+			// 【FND-R2-5】backup失败（磁盘满/权限等）时清理checkpoint目录：
+			// checkpoint_<timestamp>是状态机RocksDB的完整物理拷贝，快照每次失败重试
+			// 都会新增一份，残留累积会渐进占满DbHome。成功路径的删除保持在下面原位。
+			LogSequence.deleteDirectory(new File(cpHome));
+			throw e;
+		}
 
 		long t2 = System.nanoTime();
 		LogSequence.deleteDirectory(new File(cpHome));
