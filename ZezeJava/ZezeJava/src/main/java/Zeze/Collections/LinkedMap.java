@@ -312,6 +312,10 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 
 		var nodeIdLong = nodeId.getNodeId();
 		var node = getNode(nodeIdLong);
+		if (null == node)
+			// 索引有效（SerialNo匹配）但节点行缺失=数据损坏。同类异常统一为带语义的ISE，
+			// 而不是裸NPE——同函数对"节点在但值不在"已有ISE，排障时从异常形态分不清是哪层断。
+			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 		var values = node.getValues();
 
 		// activate。优化：这个操作比较多，已经在目标位置，不调整。
@@ -383,6 +387,9 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 				&& (null == root || root.getSerialNo() != mappedNodeId.getSerialNo());
 		if (null != mappedNodeId && !stale) {
 			var node = getNode(mappedNodeId.getNodeId());
+			if (null == node)
+				// 映射有效（SerialNo匹配）但节点行缺失=数据损坏，带语义的ISE而非裸NPE（同move的防护）。
+				throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 			for (var e : node.getValues()) {
 				if (e.getId().equals(id)) {
 					@SuppressWarnings("unchecked")
