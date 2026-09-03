@@ -17,6 +17,8 @@ public class SelectCmdParamHandler implements QueryHandler<String, ClassInfo> {
 				return classInfo;
 			}
 			Class<?> paramClass = queryHandleContainer.getParamClass();
+			if (paramClass == null) // 无参命令（如cmd_list声明为QueryHandler<Object,...>），参数为空，不能取getName()。
+				return classInfo;
 			classInfo.setClassName(paramClass.getName());
 			if (paramClass.isAssignableFrom(Number.class) || paramClass == Boolean.class || paramClass == String.class){
 				classInfo.setBaseType(true);
