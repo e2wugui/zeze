@@ -17,6 +17,14 @@ public class BServiceInfosVersion implements Serializable {
 	public BServiceInfosVersion() {
 	}
 
+	/** 浅拷贝快照：桶集合（LongHashMap）独立，桶内BServiceInfos引用共享（其FewModifyList读为
+	 * copy-on-read快照安全）。供SubscribeState.getServiceInfosVersion()持锁构造，隔离无锁读者
+	 * 与onRegister/onUnRegister对LongHashMap的结构性修改（FND-S2-5）。 */
+	public BServiceInfosVersion(@NotNull BServiceInfosVersion other) {
+		for (var it = other.infosVersion.iterator(); it.moveToNext(); )
+			infosVersion.put(it.key(), it.value());
+	}
+
 	public BServiceInfosVersion(@NotNull IByteBuffer bb) {
 		decode(bb);
 	}
