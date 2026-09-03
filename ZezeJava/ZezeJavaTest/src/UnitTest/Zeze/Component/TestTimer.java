@@ -69,7 +69,7 @@ public class TestTimer {
 						+ " Next: " + timerContext.nextExpectedTimeMills
 						+ " Bean Value: " + bean.getTestValue());
 			} else {
-				timerContext.timer.cancel("3");
+				timerContext.timer.cancel(timerContext.timerId);
 				System.out.println(">> Schedule Canceled");
 			}
 		}
