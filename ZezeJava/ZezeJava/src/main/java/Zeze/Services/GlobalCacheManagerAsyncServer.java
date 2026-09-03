@@ -255,8 +255,11 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		session.setActiveTime(System.currentTimeMillis());
 		session.setDebugMode(rpc.Argument.debugMode);
 		// new login, 比如逻辑服务器重启。release old acquired.
+		// 先快照再逐个释放（理由同processNormalClose）：只回收绑定时刻已存在的旧权限，
+		// 防止迭代期间新到达的Acquire被本循环错误回收。
+		var releaseKeys = new ArrayList<>(session.acquired.keySet());
 		var allReleaseFuture = new CountDownFuture();
-		for (var k : session.acquired.keySet()) {
+		for (var k : releaseKeys) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 			releaseAsync(session, k, allReleaseFuture.createOne());
 		}
@@ -289,6 +292,13 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0; // not login
 		}
+		/*
+		 * 释放集合必须在解绑之前快照（理由见同步版processNormalClose）：解绑后同serverId新进程可
+		 * Login并Acquire新权限写入同一张acquired，本释放循环不能回收它们；旧连接未解绑时新进程
+		 * 无法绑定，故快照内不可能出现新incarnation的权限。异步版迭代本身快，但releaseAsync是
+		 * 异步完成的，弱一致迭代同样可能看到迭代期间新加入的key。
+		 */
+		var releaseKeys = new ArrayList<>(session.acquired.keySet());
 		if (!session.tryUnBindSocket(rpc.getSender())) {
 			logger.warn("ProcessNormalClose: {} RequestId={} result={}",
 					rpc.getSender(), rpc.getSessionId(), NormalCloseUnbindFail);
@@ -296,7 +306,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			return 0;
 		}
 		var allReleaseFuture = new CountDownFuture();
-		for (var k : session.acquired.keySet()) {
+		for (var k : releaseKeys) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 			releaseAsync(session, k, allReleaseFuture.createOne());
 		}

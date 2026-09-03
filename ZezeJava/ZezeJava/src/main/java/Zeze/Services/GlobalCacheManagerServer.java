@@ -277,7 +277,10 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			return 0;
 		}
 		// new login, 比如逻辑服务器重启。release old acquired.
-		for (var k : session.acquired.keySet()) {
+		// 先快照再逐个释放：应答发出前，同会话乐观预发的Acquire（Acquire走Normal池，可与本Critical池
+		// 的Login并发）会写入acquired，弱一致迭代器会看到并错误回收新获取的权限。
+		var releaseKeys = new ArrayList<>(session.acquired.keySet());
+		for (var k : releaseKeys) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 			release(session, k, false);
 		}
@@ -311,12 +314,22 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0; // not login
 		}
+		/*
+		 * 释放集合必须在解绑之前快照：tryUnBindSocket 把 sessionId 置 0 后，同 serverId 的新进程
+		 * 即可 Login 并 Acquire 新权限（写入同一张 acquired）。而 release(session,k,false) 在
+		 * pending 上等待可阻塞数秒（Reduce超时），弱一致迭代器随后会看到新 incarnation 刚获取的
+		 * key 并错误回收——GCM 从未向新进程发 Reduce，其本地仍持 Modify，第三方再获 Modify 形成双写。
+		 * 快照放在解绑之前即可完全关闭该窗口：旧连接未解绑时新进程无法绑定（tryBindSocket 失败），
+		 * 故快照内不可能出现新 incarnation 的权限；解绑后才到达的旧进程在途 acquire 留下的悬挂条目，
+		 * 由后续争用者的 Reduce 自愈（agent 对未缓存记录应答降级成功）。
+		 */
+		var releaseKeys = new ArrayList<>(session.acquired.keySet());
 		if (!session.tryUnBindSocket(rpc.getSender())) {
 			logger.warn("ProcessNormalClose: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), NormalCloseUnbindFail);
 			rpc.SendResultCode(NormalCloseUnbindFail);
 			return 0;
 		}
-		for (var k : session.acquired.keySet()) {
+		for (var k : releaseKeys) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 			release(session, k, false);
 		}
