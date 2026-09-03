@@ -52,8 +52,16 @@ public class OnzAgent extends AbstractOnzAgent {
 	@Override
 	protected long ProcessFlushReadyRequest(FlushReady r) throws Exception {
 		var pending = transactions.get(r.Argument.getOnzTid());
-		if (null == pending)
-			return errorCode(eOnzTidNotFound);
+		if (null == pending) {
+			// 迟到的FlushReady：参与方能走到flush阶段，说明它已收到Commit决策
+			// （sendReadyAndWait已返回）。这里事务不存在说明协调者侧perform已结束
+			// （finally已removeTransaction，含waitFlushDone超时降级路径——降级本来就会
+			// 放行已收到的FlushReady并对参与方主动checkpoint）。
+			// 如果回错误码，参与方sendFlushReady会判定失败，异常上抛进finalCommit
+			// 最终halt(543543)整个进程。幂等放行，允许参与方继续落库。
+			r.SendResult();
+			return 0;
+		}
 
 		pending.trySetFlushReady(r);
 		return 0;
