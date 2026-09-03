@@ -1556,6 +1556,7 @@ public final class JsonReader {
 					do
 						b = buffer[++p];
 					while ((((b | 0x20) - 'a') & 0xff) < 26);
+					pos = p; // 与 parseDouble 的对应分支及 FND-U1-3 确立的“解析结束 pos 指向词后首字符”不变式对齐
 					return c == 'n' ? Double.NaN : minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
 				}
 			}
