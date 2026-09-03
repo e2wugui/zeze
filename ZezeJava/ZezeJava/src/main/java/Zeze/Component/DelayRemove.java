@@ -37,6 +37,12 @@ public class DelayRemove extends AbstractDelayRemove {
 	private Future<?> timer;
 	private AutoKey jobIdAutoKey;
 
+	// 见addJob（FND-C1-10）：start()之前的调用懒初始化。
+	private AutoKey jobIdAutoKey() {
+		var aka = jobIdAutoKey;
+		return aka != null ? aka : (jobIdAutoKey = zeze.getAutoKey("__GCTableJobIdAutoKey"));
+	}
+
 	public DelayRemove(Application zz) {
 		this.zeze = zz;
 
@@ -87,7 +93,12 @@ public class DelayRemove extends AbstractDelayRemove {
 
 	public void addJob(String handleName, Bean state) {
 		var bJob = new BJob();
-		var jobId = jobIdAutoKey.nextString();
+		// FND-C1-10：jobIdAutoKey原仅在start()内初始化，而Application.start先逐模块impl.start()
+		// （Application.java:735）后delayRemove.start()（:758）——模块Start()里触发LinkedMap.clear()
+		// （内部addJob）时字段尚为null，以裸NPE失败且无提示。懒初始化放行合法的早期调用；
+		// start()内的赋值保留（幂等，同一name返回同一实例）。addJob自身要求事务上下文，
+		// 并发懒初始化按getOrAdd语义收敛到同一实例。
+		var jobId = jobIdAutoKey().nextString();
 		bJob.setJobHandleName(handleName);
 		var preAllocSize = state.preAllocSize();
 		var bb = ByteBuffer.Allocate(preAllocSize);
