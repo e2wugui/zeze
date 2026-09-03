@@ -242,8 +242,18 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// 确认事务可以在更新流程中可以使用。
 		// 也许更优化的方法是为这个更新实现一个不是事务的版本。
 		providerApp.zeze.newProcedure(() -> {
-			for (var r : retreats)
-				setLocalBean(r.roleId, r.key, r.bean);
+			for (var r : retreats) {
+				try {
+					setLocalBean(r.roleId, r.key, r.bean);
+				} catch (IllegalStateException e) {
+					// stale-local角色（LoginVersion落后于shared，角色已在别服重登，残留待
+					// verifyLocal清理）：跳过该角色。不catch则一批（最多50个角色）的retreat
+					// 全部失败且.call()错误码被忽略——旧类加载器bean实例滞留内存钉住旧HotModule。
+					// 校验失败发生在写datas之前，catch后事务继续是安全的（getOrAddOnlineShared
+					// 至多产生一个空shared条目，与正常getOrAdd路径一致，由verifyLocal清理）。
+					logger.error("saveRetreats skip stale-local. roleId={}, key={}", r.roleId, r.key, e);
+				}
+			}
 			return 0;
 		}, "saveRetreats").call();
 	}
