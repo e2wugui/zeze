@@ -125,7 +125,10 @@ public class HotAgent extends AbstractHotAgent {
 		var r = new TryDistribute();
 		r.Argument.setDistributeId(id);
 		r.Argument.setAtomicAll(atomicAll);
-		r.SendForWait(hotManager);
+		// 服务端同步执行完整install（checkpointRun+模块stop/start，常超默认的5秒rpc超时），
+		// 5秒超时会把future置异常，控制台（Distribute对futures的await(30_000)）必然误报失败
+		// 而服务端实际继续安装。超时给到60秒：>调用端30秒等待窗口，绝大多数安装拿到真实结果。
+		r.SendForWait(hotManager, 60_000);
 		return r;
 	}
 
