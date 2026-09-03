@@ -347,7 +347,11 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 
 	public void setInputSecurityCodec(int encryptType, byte @Nullable [] encryptParam, int compressType) {
 		submitAction(() -> { // 进selector线程调用
-			Codec chain = inputBuffer;
+			// 压缩开启时解压输出经 InputLimitCodec 流式检查增长上限：processReceive 的
+			// InputBufferMaxProtocolSize 检查发生在整个chunk解压完成之后，恶意压缩数据（放大率
+			// 可达千倍）会在此之前无上限膨胀输入缓冲。不压缩（仅加密或全disable）不扩展，保持原路径。
+			Codec chain = compressType == Constant.eCompressTypeDisable
+					? inputBuffer : new InputLimitCodec(this, inputBuffer);
 			switch (compressType) {
 			case Constant.eCompressTypeDisable:
 				break;
@@ -600,6 +604,50 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			else
 				readAgain = false;
 		} while (readAgain);
+	}
+
+	/**
+	 * 解压输出的流式增长上限（防压缩放大）：processReceive 对 InputBufferMaxProtocolSize 的检查
+	 * 发生在整个 chunk 解压完成之后，恶意压缩数据（MPPC/zstd 放大率可达千倍）会在此之前无上限
+	 * 膨胀输入缓冲（codecBuf 按倍增长直逼百MB）。这里作为解压 sink，边解压边检查总大小
+	 * （含未消费的剩余数据），达到上限即抛异常（连接会被关闭），保持每条连接的输入内存有界。
+	 */
+	private static final class InputLimitCodec implements Codec {
+		private final @NotNull TcpSocket socket;
+		private final @NotNull BufferCodec sink;
+
+		InputLimitCodec(@NotNull TcpSocket socket, @NotNull BufferCodec sink) {
+			this.socket = socket;
+			this.sink = sink;
+		}
+
+		@Override
+		public void update(byte c) {
+			int newSize = sink.size() + 1;
+			int max = socket.getService().getSocketOptions().getInputBufferMaxProtocolSize();
+			if (newSize >= max)
+				throw new IllegalStateException("InputBufferMaxProtocolSize " + newSize + " >= " + max);
+			sink.update(c);
+		}
+
+		@Override
+		public void update(byte @NotNull [] data, int off, int len) {
+			int newSize = sink.size() + len;
+			int max = socket.getService().getSocketOptions().getInputBufferMaxProtocolSize();
+			if (newSize >= max)
+				throw new IllegalStateException("InputBufferMaxProtocolSize " + newSize + " >= " + max);
+			sink.update(data, off, len);
+		}
+
+		@Override
+		public void flush() {
+			sink.flush();
+		}
+
+		@Override
+		public void close() {
+			sink.close();
+		}
 	}
 
 	/*
