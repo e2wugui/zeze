@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.util.Map;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
 import org.jetbrains.annotations.NotNull;
@@ -86,6 +87,9 @@ public final class HttpResponseWithBodyStream {
 				int expected = buffer.capacity();
 				int actual = buffer.readableBytes();
 				buffer.release(); // 异常路径也要释放pooled ByteBuf
+				// Content-Length已承诺但写入不足：不发LastHttpContent也要关闭连接，
+				// 否则客户端按Content-Length等剩余字节，悬挂到服务端空闲超时（默认60秒级）才被掐断。
+				ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
 				throw new IOException("Incomplete content: Expected " + expected + " bytes, actual " + actual);
 			}
 			ctx.writeAndFlush(new DefaultLastHttpContent(buffer));
@@ -102,6 +106,8 @@ public final class HttpResponseWithBodyStream {
 				int remaining = buffer.writableBytes();
 				closed = true; // 溢出后流作废，后续write/close不再触碰已释放的buffer
 				buffer.release();
+				// 溢出同样意味着承诺的Content-Length无法兑现，关闭连接避免客户端悬挂（同close异常路径）。
+				ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
 				throw new IllegalStateException("Overflow: Attempt to write " + len +
 						" bytes, remaining capacity " + remaining);
 			}
