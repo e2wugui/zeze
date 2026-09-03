@@ -600,6 +600,32 @@ public class LogSequence {
 		return value != null ? RaftLog.decode(new Binary(value), raft.getStateMachine()::logFactory) : null;
 	}
 
+	/**
+	 * 读取并解码一条待应用的日志。decode 失败（未知日志类型、未知表模板等）是永久性
+	 * 错误：本节点永远无法应用该日志。静默吞掉会让 lastApplied 永久停滞而日志复制与
+	 * 应答一切正常：follower 以"健康"状态永久落后并继续计入多数派，其日志完整仍可
+	 * 当选 leader，当选后整个集群的写入都卡在同一条日志上（FND-R2-3）。
+	 * 与 StateMachine.logFactory 对未知日志类型的处置一致：宁死不糊，fatalKill。
+	 * RocksDBException（读IO瞬时错误）不在此列，向上传播保持现有的重试语义；
+	 * apply 阶段的异常也保持现有重试语义（结构性错误由状态机内部自行 fatalKill）。
+	 */
+	private RaftLog readLogForApply(long index, String where) throws RocksDBException {
+		try {
+			return readLog(index);
+		} catch (RocksDBException e) {
+			throw e; // 瞬时读失败：lastApplied不推进，下次触发重试
+		} catch (Throwable e) {
+			fatalKillDecodeError(where, index, e);
+			return null; // fatalKill 不会返回；这里防御编译检查。
+		}
+	}
+
+	private void fatalKillDecodeError(String where, long index, Throwable e) {
+		logger.fatal("{} {} decode log({}) failed, can never apply. lastApplied={} commitIndex={}",
+				raft.getName(), where, index, lastApplied, commitIndex, e);
+		raft.fatalKill();
+	}
+
 	public enum SetTermResult {
 		Newer,
 		Same,
@@ -658,7 +684,7 @@ public class LogSequence {
 		followers.sort((a, b) -> Long.compare(b.getMatchIndex(), a.getMatchIndex()));
 		var maxMajorityLogIndex = followers.get(raft.getRaftConfig().getHalfCount() - 1).getMatchIndex();
 		if (maxMajorityLogIndex > commitIndex) {
-			var maxMajorityLog = readLog(maxMajorityLogIndex);
+			var maxMajorityLog = readLogForApply(maxMajorityLogIndex, "tryCommit");
 			if (maxMajorityLog == null || maxMajorityLog.getTerm() != term) {
 				// 如果是上一个 Term 未提交的日志在这一次形成的多数派，
 				// 不自动提交。
@@ -698,7 +724,7 @@ public class LogSequence {
 			raft.lock();
 			try {
 				// ReadLog Again，CommitIndex Maybe Grow.
-				var lastApplicableLog = readLog(commitIndex);
+				var lastApplicableLog = readLogForApply(commitIndex, "backgroundApply");
 				tryApply(lastApplicableLog, raft.getRaftConfig().getBackgroundApplyCount());
 				if (lastApplicableLog != null && lastApplied == lastApplicableLog.getIndex())
 					return 0; // 本次Apply结束。
@@ -717,7 +743,9 @@ public class LogSequence {
 		}
 		for (long index = lastApplied + 1; index <= lastApplicableLog.getIndex() && count > 0; --count) {
 			RaftLog raftLog = leaderAppendLogs.remove(index);
-			if (raftLog == null && (raftLog = readLog(index)) == null) {
+			if (raftLog == null)
+				raftLog = readLogForApply(index, "tryApply");
+			if (raftLog == null) {
 				logger.warn("What Happened! index={} lastApplicableLog={} LastApplied={}",
 						index, lastApplicableLog.getIndex(), lastApplied);
 				// trySnapshot(); // 错误的时候不做这个尝试了。
@@ -1344,7 +1372,16 @@ public class LogSequence {
 		int entryIndex = 0;
 		var copyLogIndex = prevLog.getIndex() + 1;
 		for (; entryIndex < r.Argument.getEntries().size(); ++entryIndex, ++copyLogIndex) {
-			var copyLog = RaftLog.decode(r.Argument.getEntries().get(entryIndex), raft.getStateMachine()::logFactory);
+			RaftLog copyLog;
+			try {
+				copyLog = RaftLog.decode(r.Argument.getEntries().get(entryIndex), raft.getStateMachine()::logFactory);
+			} catch (Throwable e) {
+				// 与readLogForApply同理：无法decode的复制条目（版本偏差等）是永久性错误，
+				// 本节点永远无法保存并应用它。静默传播只会让本节点对AppendEntries永远无应答
+				// （leader无限重发），宁死不糊。
+				fatalKillDecodeError("followerOnAppendEntries.copyLog", copyLogIndex, e);
+				return 0; // fatalKill 不会返回；这里防御编译检查。
+			}
 			if (copyLog.getIndex() != copyLogIndex) {
 				logger.fatal("copyLog.Index({}) != copyLogIndex({}) Leader={} this={}",
 						copyLog.getIndex(), copyLogIndex, r.Argument.getLeaderId(), raft.getName(), new Exception());
@@ -1389,7 +1426,7 @@ public class LogSequence {
 		// set commitIndex = min(leaderCommit, index of last new entry)
 		if (r.Argument.getLeaderCommit() > commitIndex) {
 			commitIndex = Math.min(r.Argument.getLeaderCommit(), lastRaftLogTermIndex().getIndex());
-			tryStartApplyTask(readLog(commitIndex));
+			tryStartApplyTask(readLogForApply(commitIndex, "followerOnAppendEntries"));
 		}
 		r.Result.setSuccess(true);
 		if (isDebugEnabled)
