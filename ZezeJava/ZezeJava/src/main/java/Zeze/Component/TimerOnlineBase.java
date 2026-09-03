@@ -322,12 +322,25 @@ abstract class TimerOnlineBase<I> {
 		});
 	}
 
+	// FND-C1-6：hot句柄解析必须发生在fireOnline保护路径之内。原实参位置直接
+	// timer.findTimerHandle(...)，hot模块停用/类改名后到点抛ClassNotFoundException——
+	// 异常发生在fireOnline之前（实参求值），不进入handle==null→cancelOnlineLocal与
+	// ret!=0→cancel的保护；TaskSpec.ofAction吞异常记日志后future静默消耗，
+	// tRoleTimers行残留成僵尸。解析失败返回null，让fireOnline走既有的清理分支。
+	private @Nullable TimerHandle findTimerHandleSafely(@NotNull String handleClassName) {
+		try {
+			return timer().findTimerHandle(handleClassName);
+		} catch (Throwable e) { // 含NoClassDefFoundError等链接错误
+			logger.error("findTimerHandle({}) exception, online timer will be canceled:", handleClassName, e);
+			return null;
+		}
+	}
+
 	private void scheduleOnlineSimpleHot(@NotNull String timerId, long delay,
 										 @NotNull Class<? extends TimerHandle> handleClass) {
-		var timer = timer();
 		Transaction.whileCommit(() -> {
-			var exist = timer.timerFutures.put(timerId, TaskSpec
-					.ofAction(() -> fireOnlineSimple(timerId, timer.findTimerHandle(handleClass.getName()), true))
+			var exist = timer().timerFutures.put(timerId, TaskSpec
+					.ofAction(() -> fireOnlineSimple(timerId, findTimerHandleSafely(handleClass.getName()), true))
 					.scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
@@ -365,10 +378,9 @@ abstract class TimerOnlineBase<I> {
 
 	private void scheduleOnlineCronNextHot(@NotNull String timerId, long delay,
 										   @NotNull Class<? extends TimerHandle> handleClass) {
-		var timer = timer();
 		Transaction.whileCommit(() -> {
-			var exist = timer.timerFutures.put(timerId, TaskSpec
-					.ofAction(() -> fireOnlineCron(timerId, timer.findTimerHandle(handleClass.getName()), true))
+			var exist = timer().timerFutures.put(timerId, TaskSpec
+					.ofAction(() -> fireOnlineCron(timerId, findTimerHandleSafely(handleClass.getName()), true))
 					.scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
