@@ -80,8 +80,10 @@ public abstract class AsyncSocket {
 		eServerSocket,
 	}
 
-	private int activeRecvTime; // 上次接收的时间戳(秒)
-	private int activeSendTime; // 上次发送的时间戳(秒)
+	// selector线程写（processReceive/Send），KeepAlive定时任务线程读（Service.checkKeepAlive）：
+	// 无volatile时按JMM读者可无限期读到陈旧值，活连接被心跳误判KeepRecvTimeout超时。
+	private volatile int activeRecvTime; // 上次接收的时间戳(秒)
+	private volatile int activeSendTime; // 上次发送的时间戳(秒)
 
 	public abstract Type getType();
 
