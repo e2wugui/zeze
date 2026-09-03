@@ -77,6 +77,9 @@ public class CsQueue<V extends Bean> {
 			var nullKey = new BQueueNodeKey();
 			src.setHeadNodeKey(nullKey);
 			src.setTailNodeKey(nullKey);
+			// 清空时同步清零废弃long字段：空名key+陈旧id并存会让死者重启时compatible复活头指针。
+			src.setHeadNodeId(0);
+			src.setTailNodeId(0);
 			src.setCount(0);
 			src.setLoadSerialNo(0); // 死者root立墓碑stamp：同epoch重复tryTransfer幂等退出。
 			return count;
@@ -134,6 +137,9 @@ public class CsQueue<V extends Bean> {
 			var nullKey = new BQueueNodeKey();
 			src.setHeadNodeKey(nullKey);
 			src.setTailNodeKey(nullKey);
+			// 清空时同步清零废弃long字段：空名key+陈旧id并存会让死者重启时compatible复活头指针。
+			src.setHeadNodeId(0);
+			src.setTailNodeId(0);
 			src.setCount(0);
 			return 0L;
 		}, "CsQueue.splice")).call();

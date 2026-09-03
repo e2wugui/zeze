@@ -145,8 +145,15 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			return null;
 
 		if (root.getHeadNodeKey().getName().isEmpty()) {
-			root.setHeadNodeKey(new BQueueNodeKey(name, root.getHeadNodeId()));
-			root.setTailNodeKey(new BQueueNodeKey(name, root.getTailNodeId()));
+			var headNodeId = root.getHeadNodeId();
+			var tailNodeId = root.getTailNodeId();
+			root.setHeadNodeKey(new BQueueNodeKey(name, headNodeId));
+			root.setTailNodeKey(new BQueueNodeKey(name, tailNodeId));
+			// 迁移严格一次性：用完即清零废弃long字段。否则清空路径写回空名key后
+			// （CsQueue.transferAll/splice用nullKey清空死者root），陈旧的非零id会让
+			// 死者重启时的compatible重建出指向已删除/已被接管节点的头尾指针。
+			root.setHeadNodeId(0);
+			root.setTailNodeId(0);
 		}
 		return root;
 	}
