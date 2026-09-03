@@ -36,6 +36,8 @@ public class DistributeManager {
 		var file = new File(serviceName, fileName);
 		var relativeCanonicalFileName = file.getCanonicalFile().toString();
 		var fileBin = files.get(relativeCanonicalFileName);
+		if (null == fileBin)
+			throw new IOException("file not opened: " + serviceName + "/" + fileName); // 与Hot版一致，未Open直接Append会NPE且无上下文
 		fileBin.append(offset, data);
 	}
 
