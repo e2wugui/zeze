@@ -85,8 +85,16 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 				ds.decompress(srcBuf, 0, srcBufLen, sink);
 				srcBufLen = 0;
 			}
-			if (--blockSize == 0)
+			if (--blockSize == 0) {
 				blockState = 0;
+				// 块数据结束时srcBuf可能仍有未喂给zstd的残留（数组版路径块数据直达ds，无此问题）：
+				// 不在这里排空，后续回到常规MPPC段的输出会越过zstd流顺序，且流结束时（blockState==-1
+				// 走super.flush）残留彻底丢失。zstd流式解压接受任意部分输入，此处排空安全。
+				if (srcBufLen > 0) {
+					ds.decompress(srcBuf, 0, srcBufLen, sink);
+					srcBufLen = 0;
+				}
+			}
 		} else {
 			if (c < 0) {
 				blockSize += (c & 0x7f) << blockState;
