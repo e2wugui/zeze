@@ -391,7 +391,11 @@ public class DatabaseTikv extends Database {
 			var it = es.iterator();
 			if (!it.hasNext())
 				return;
-			long ver = version;
+			// start_ts 必须每个事务从 TSO 现取（全局唯一），不能使用共享的 version：
+			// 并发 flush（MultiThreadMerge+parallelStream）下两个事务会拿到同一个 start_ts，
+			// TiKV 以 start_ts 标识事务（MVCC 可见性、resolveLock 锁归属），共用会导致
+			// 跨事务写入被混同甚至被另一事务的锁恢复误回滚，原子性破坏。
+			long ver = session.getTimestamp().getVersion();
 			try (var tpc = new TwoPhaseCommitter(session, ver)) {
 				var bo = ConcreteBackOffer.newCustomBackOff(1000);
 				var e = it.next();
@@ -430,7 +434,8 @@ public class DatabaseTikv extends Database {
 			} catch (Exception e) {
 				throw Task.forceThrow(e);
 			} finally {
-				version = ver;
+				// version 仅作为 find/walk 的读快照缓存；并发 commit 完成顺序不定，用 max 防止回退。
+				version = Math.max(version, ver);
 			}
 		}
 
