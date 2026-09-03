@@ -29,7 +29,11 @@ public class Master extends AbstractMaster {
     private final RocksDatabase masterDb;
     private final RocksDatabase.Table mqTable; // key:utf8(topic), value:encode(BMQServers)
     private final Config zezeConfig;
-    private final AtomicLong sessionIdGen = new AtomicLong();
+    // 发号基线取当前时间（<<8 留出单次运行内的递增位）：sessionId 不持久化，而 Manager 端订阅跨
+    // Master 重启存活，重启后从 0 重发会与旧 id 重叠，重叠订阅被 MQPartition.subscribe 的
+    // putIfAbsent 静默吞掉（新消费者永久收不到消息）。基线随时间前进，重叠仅在旧进程发号平均
+    // 速率超过 256/ms 时才可能（发号点仅 openMQ/createMQ，远达不到）。
+    private final AtomicLong sessionIdGen = new AtomicLong(System.currentTimeMillis() << 8);
 
     public static class Manager {
         private final AsyncSocket socket;
