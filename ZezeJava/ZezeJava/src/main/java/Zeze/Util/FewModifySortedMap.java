@@ -293,14 +293,31 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		return prepareRead().lastEntry();
 	}
 
+	// poll 是写操作：必须在 writeLock 内从真实数据 write 中取出并置空读快照缓存。
+	// 原实现直接 poll 共享只读快照 prepareRead()：真实数据不变（poll 语义未实现），
+	// 且所有后续读都看到被挖掉条目的损坏快照。
 	@Override
 	public Entry<K, V> pollFirstEntry() {
-		return prepareRead().pollFirstEntry();
+		writeLock.lock();
+		try {
+			var e = write.pollFirstEntry();
+			read = null;
+			return e;
+		} finally {
+			writeLock.unlock();
+		}
 	}
 
 	@Override
 	public Entry<K, V> pollLastEntry() {
-		return prepareRead().pollLastEntry();
+		writeLock.lock();
+		try {
+			var e = write.pollLastEntry();
+			read = null;
+			return e;
+		} finally {
+			writeLock.unlock();
+		}
 	}
 
 	// 必须只读,不允许写,虽然不会抛异常
