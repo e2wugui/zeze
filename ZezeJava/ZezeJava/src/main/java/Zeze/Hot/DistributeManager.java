@@ -7,6 +7,8 @@ import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import Zeze.Net.Binary;
 import Zeze.Services.ZokerImpl.FileBin;
 
@@ -14,6 +16,8 @@ import Zeze.Services.ZokerImpl.FileBin;
  * 管理发布文件，支持命令行直接发布并最终提交。
  */
 public class DistributeManager {
+	private static final Logger logger = LogManager.getLogger(DistributeManager.class);
+
 	private final HotManager hotManager;
 	private final ConcurrentHashMap<String, FileBin> files = new ConcurrentHashMap<>();
 
@@ -28,8 +32,25 @@ public class DistributeManager {
 	public FileBin open(String fileName) throws IOException {
 		var file = new File(fileName);
 		var relativeCanonicalFileName = file.getCanonicalFile().toString();
+		// fileName 直接来自网络rpc（OpenFile请求），必须限制在 distributeDir 之内，
+		// 拒绝"../"逃逸和绝对路径，防止越界写/截断任意文件（FND-G1-3）。
+		checkFileNameInsideDir(hotManager.getDistributeDir(), fileName);
 		return files.computeIfAbsent(relativeCanonicalFileName,
 				(key) -> new FileBin(key, new File(hotManager.getDistributeDir()), file.getPath()));
+	}
+
+	/**
+	 * 校验发布文件名规范化（normalize）后仍位于 distributeDir 之内。
+	 * 越界（含"../"逃逸与绝对路径）时抛出 IOException 拒绝。
+	 */
+	static Path checkFileNameInsideDir(String distributeDir, String fileName) throws IOException {
+		var baseDir = Path.of(distributeDir).toAbsolutePath().normalize();
+		var target = baseDir.resolve(fileName).normalize();
+		if (!target.startsWith(baseDir)) {
+			logger.error("open file rejected: fileName='{}' escape distributeDir='{}'", fileName, distributeDir);
+			throw new IOException("open file rejected, escape distributeDir: " + fileName);
+		}
+		return target;
 	}
 
 	public void append(String fileName, long offset, Binary data)
