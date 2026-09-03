@@ -65,6 +65,11 @@ public class Cache extends ReentrantLock {
 		if (id.isEmpty())
 			throw new IllegalArgumentException();
 
+		var db = this.db;
+		var lru = this.lru;
+		if (db == null || lru == null)
+			throw new IllegalStateException("cache is closed: " + name); // 对齐 tryRemove 的快照防御；close 后继续 get 是使用错误
+
 		var value = lru.get(id);
 		if (value != null) {
 			if (!CacheObject.isNull(value))
