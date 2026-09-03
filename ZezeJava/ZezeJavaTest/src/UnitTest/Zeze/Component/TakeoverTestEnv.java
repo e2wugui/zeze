@@ -63,7 +63,7 @@ final class TakeoverTestEnv {
 	}
 
 	// 与Takeover.tryTransfer同key投递哨兵，等待队列中排在前面的tryTransfer执行完。
-	static void waitTryTransferQueue() throws Exception {
+	static void waitTryTransferQueue() {
 		var done = new TaskCompletionSource<Void>();
 		TaskSpec.ofAction(() -> done.setResult(null)).name("TakeoverTestEnv.sentinel")
 				.executeOneByOne(Takeover.TryTransferOneByOneKey, Task.getOneByOne());

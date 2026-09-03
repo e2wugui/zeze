@@ -152,7 +152,7 @@ public class AutoKey extends ReentrantLock {
 	 */
 	public boolean setSeed(long seed) {
 		try {
-			return Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
+			var success = Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				if (seed > bAutoKey.getNextId()) {
@@ -161,6 +161,9 @@ public class AutoKey extends ReentrantLock {
 				}
 				return Procedure.LogicError;
 			}, "AutoKey.setSeed")).dispatchMode(DispatchMode.Critical).submitNow().get();
+			if (success) // 事务确认成功后才失效内存号段；失败不动现役号段
+				invalidateRange();
+			return success;
 		} catch (InterruptedException | ExecutionException e) {
 			throw Task.forceThrow(e);
 		}
@@ -176,7 +179,7 @@ public class AutoKey extends ReentrantLock {
 		if (delta <= 0)
 			return false;
 		try {
-			return Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
+			var success = Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				var newSeed = bAutoKey.getNextId() + delta;
@@ -187,6 +190,9 @@ public class AutoKey extends ReentrantLock {
 				// 溢出
 				return Procedure.LogicError;
 			}, "AutoKey.increaseSeed")).dispatchMode(DispatchMode.Critical).submitNow().get();
+			if (success)
+				invalidateRange(); // 抬表水位成功，失效内存号段（与setSeed同源同病，同修）
+			return success;
 		} catch (InterruptedException | ExecutionException e) {
 			throw Task.forceThrow(e);
 		}
@@ -215,12 +221,28 @@ public class AutoKey extends ReentrantLock {
 		throw new IllegalStateException("AutoKey.getSeed failed: " + ret);
 	}
 
+	// setSeed/increaseSeed把表水位（tAutoKeys.NextId）抬高后，本地内存中未耗尽的号段已经失效，
+	// 置空让后续nextSeed走慢路径按新水位重新批段；否则合服导数据后继续发放旧段号，与存量id重号。
+	// 持自身锁与nextSeed慢路径串行化：慢路径在锁内"提交批段事务→写回range"，失效若插进这个窗口，
+	// 旧段会在失效后被重新安装。快路径不持锁，由nextSeed内的复核兜住。
+	private void invalidateRange() {
+		lock();
+		try {
+			range = null;
+		} finally {
+			unlock();
+		}
+	}
+
 	private long nextSeed() {
 		while (true) {
 			var localRange = range;
 			if (localRange != null) {
 				var next = localRange.tryNextId();
-				if (next != 0)
+				// 复核号段仍有效再返回：失效可能发生在读取引用与消耗之间，此时旧段号作废成空洞，
+				// 转慢路径按新表水位重新批段。
+				//noinspection NumberEquality
+				if (next != 0 && range == localRange)
 					return next; // allocate in range success
 			}
 
