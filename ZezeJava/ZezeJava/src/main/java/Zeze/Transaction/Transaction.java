@@ -231,6 +231,16 @@ public final class Transaction {
 		return value;
 	}
 
+	/**
+	 * 当前在事务内，执行事务的resolveOnce，否则直接返回resolver.apply(key)。
+	 */
+	public static <T> T resolveOnceOrApply(@NotNull Object owner, long key, @NotNull LongFunction<T> resolver) {
+		var txn = getCurrent();
+		if (null != txn)
+			return txn.resolveOnce(owner, key, resolver);
+		return resolver.apply(key);
+	}
+
 	private record ResolveKey(@NotNull Object owner, long key) {
 	}
 
