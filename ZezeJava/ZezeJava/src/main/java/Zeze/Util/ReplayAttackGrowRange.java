@@ -51,9 +51,10 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 					range[index] &= ~bit;
 				}
 			}
-			position += increase;
-			if (position >= range.length * 8)
-				position %= range.length * 8;
+			long newPosition = (long)position + increase; // int 相加溢出会回绕成负下标
+			if (newPosition >= range.length * 8)
+				newPosition %= range.length * 8;
+			position = (int)newPosition;
 
 			// set last bit
 			{
