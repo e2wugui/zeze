@@ -194,33 +194,38 @@ public class GlobalCacheManagerWithRaft
 		rpc.Result.setState(acquireState); // default success
 
 		long result;
-		if (sender == null) {
-			rpc.Result.setState(StateInvalid);
-			// 没有登录重做。登录是Agent自动流程的一部分，应该稍后重试。
-			rpc.SendResultCode(Zeze.Transaction.Procedure.RaftRetry);
-			result = 0;
-		} else {
-			var proc = new Procedure(rocks, () -> {
-				switch (acquireState) {
-				case StateInvalid: // release
-					rpc.Result.setState(release(sender, rpc.Argument.getGlobalKey(), true));
-					rpc.setResultCode(0);
-					return 0;
-				case StateShare:
-					return acquireShare(rpc);
-				case StateModify:
-					return acquireModify(rpc);
-				default:
-					rpc.Result.setState(StateInvalid);
-					rpc.setResultCode(0);
-					return AcquireErrorState;
-				}
-			});
-			proc.autoResponse = rpc; // 启用自动发送rpc结果，但不做唯一检查。
-			result = proc.call();
+		try {
+			if (sender == null) {
+				rpc.Result.setState(StateInvalid);
+				// 没有登录重做。登录是Agent自动流程的一部分，应该稍后重试。
+				rpc.SendResultCode(Zeze.Transaction.Procedure.RaftRetry);
+				result = 0;
+			} else {
+				var proc = new Procedure(rocks, () -> {
+					switch (acquireState) {
+					case StateInvalid: // release
+						rpc.Result.setState(release(sender, rpc.Argument.getGlobalKey(), true));
+						rpc.setResultCode(0);
+						return 0;
+					case StateShare:
+						return acquireShare(rpc);
+					case StateModify:
+						return acquireModify(rpc);
+					default:
+						rpc.Result.setState(StateInvalid);
+						rpc.setResultCode(0);
+						return AcquireErrorState;
+					}
+				});
+				proc.autoResponse = rpc; // 启用自动发送rpc结果，但不做唯一检查。
+				result = proc.call();
+			}
+		} finally {
+			// proc.call()可抛（ThrowAgainException/AssertionError等）：onAcquireEnd不执行会
+			// 导致perf.acquires条目泄漏（rpc持socket引用，恶意/异常可放大）与计数丢失。
+			if (ENABLE_PERF)
+				perf.onAcquireEnd(rpc, acquireState);
 		}
-		if (ENABLE_PERF)
-			perf.onAcquireEnd(rpc, acquireState);
 		return result; // has handle all error.
 	}
 

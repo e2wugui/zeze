@@ -65,6 +65,11 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 	void onAcquireEnd(@NotNull Protocol<?> rpc, int state) {
 		var beginTime = acquires.remove(rpc);
 		if (beginTime != null) {
+			// 防御式上界检查（对齐onAcquireBegin）：begin只登记合法state的rpc，end与begin的
+			// state来自同一请求，正常不会越界；兜底防止未来调用点变化时totalAcquireCounts[state]
+			// 数组越界（AIOOBE）。remove必须在检查前完成（防条目泄漏）。
+			if (Integer.compareUnsigned(state, ACQUIRE_STATE_COUNT) >= 0)
+				return;
 			var time = System.nanoTime() - beginTime;
 			totalAcquireCounts[state].increment();
 			totalAcquireTimes[state].add(time);
