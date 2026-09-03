@@ -5,8 +5,10 @@ import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.Task;
+import com.mongodb.ErrorCategory;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoNamespace;
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -77,23 +79,41 @@ public class DatabaseMongoDb extends Database {
 
 		@Override
 		public @NotNull KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
-																  long version) {
-			var dv = getDataWithVersion(key);
-			if (dv.version != version)
+																	long version) {
+			// 读-判-写必须原子：多实例并发启动（tryLock 恒真的后端）同时进入 schemasCompatible 时，
+			// 读-判-写会丢失更新，级联出重复 renameTable 丢表数据。
+			// 这里用“完整旧值”做服务端条件写：value 字段是 DataWithVersion 的确定性编码
+			// （decode->encode 字节往返一致），完整值相等蕴含 version 相等；
+			// replaceOne 条件匹配/insertOne 均为单文档原子操作，不依赖副本集事务。
+			var keyBytes = key.CopyIf();
+			var oldValue = dataWithVersion.find(key);
+			var oldBytes = oldValue != null ? oldValue.CopyIf() : null;
+			if (oldBytes != null && DataWithVersion.decode(oldBytes).version != version)
 				return KV.create(version, false);
 
-			dv.version = ++version;
+			var dv = new DataWithVersion();
+			var newVersion = version + 1;
+			dv.version = newVersion;
 			dv.data = data;
 			var value = ByteBuffer.Allocate(5 + 9 + dv.data.size());
 			dv.encode(value);
-
-			try (var trans = beginTransaction()) {
-				dataWithVersion.replace(trans, key, value);
-				trans.commit();
-			} catch (Exception e) {
-				throw Task.forceThrow(e);
+			var newDoc = new Document("_id", new Binary(keyBytes)).append("value", new Binary(value.CopyIf()));
+			if (oldBytes != null) {
+				// 仅当文档仍等于读取时的旧值才替换；并发被修改/删除时 matched 为 0。
+				var result = dataWithVersion.collection.replaceOne(
+						Filters.and(Filters.eq("_id", keyBytes), Filters.eq("value", new Binary(oldBytes))), newDoc);
+				return result.getMatchedCount() > 0
+						? KV.create(newVersion, true)
+						: KV.create(version, false); // 并发被修改：调用方(schemasCompatible)重读重试。
 			}
-			return KV.create(version, true);
+			try {
+				dataWithVersion.collection.insertOne(newDoc);
+				return KV.create(newVersion, true);
+			} catch (MongoWriteException e) {
+				if (e.getError().getCategory() == ErrorCategory.DUPLICATE_KEY)
+					return KV.create(version, false); // 并发插入：调用方(schemasCompatible)重读重试。
+				throw e;
+			}
 		}
 
 		@Override

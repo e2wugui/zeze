@@ -8,17 +8,18 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
-import Zeze.Util.Task;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.ConditionalCheckFailedException;
 import com.amazonaws.services.dynamodbv2.model.Delete;
 import com.amazonaws.services.dynamodbv2.model.GetItemRequest;
 import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
 import com.amazonaws.services.dynamodbv2.model.KeyType;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.model.Put;
+import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
 import com.amazonaws.services.dynamodbv2.model.ResourceInUseException;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.model.ScanRequest;
@@ -72,22 +73,43 @@ public class DatabaseDynamoDb extends Database {
 
 		@Override
 		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-			var dv = getDataWithVersion(key);
-			if (dv.version != version)
+			// 读-判-写必须原子：多实例并发启动（tryLock 恒真的后端）同时进入 schemasCompatible 时，
+			// 读-判-写会丢失更新，级联出重复 renameTable 丢表数据。
+			// 这里用“完整旧值”做服务端条件写（PutItem + ConditionExpression）：
+			// value 是 DataWithVersion 的确定性编码（decode->encode 字节往返一致），
+			// 完整值相等蕴含 version 相等。并发修改/插入时条件失败抛
+			// ConditionalCheckFailedException，返回 false 让调用方(schemasCompatible)重读重试。
+			var oldBb = dataWithVersion.find(key);
+			var oldBytes = oldBb != null ? oldBb.CopyIf() : null;
+			if (oldBytes != null && DataWithVersion.decode(oldBytes).version != version)
 				return KV.create(version, false);
 
-			dv.version = ++version;
+			var dv = new DataWithVersion();
+			var newVersion = version + 1;
+			dv.version = newVersion;
 			dv.data = data;
 			var value = ByteBuffer.Allocate(5 + 9 + dv.data.size());
 			dv.encode(value);
 
-			try (var trans = beginTransaction()) {
-				dataWithVersion.replace(trans, key, value);
-				trans.commit();
-			} catch (Exception e) {
-				throw Task.forceThrow(e);
+			var item = new HashMap<String, AttributeValue>();
+			item.put("key", new AttributeValue().withB(
+					java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.size())));
+			item.put("value", new AttributeValue().withB(
+					java.nio.ByteBuffer.wrap(value.Bytes, value.ReadIndex, value.size())));
+			var req = new PutItemRequest()
+					.withTableName(dataWithVersion.name)
+					.withItem(item)
+					.withConditionExpression(oldBytes != null ? "#v = :oldv" : "attribute_not_exists(#k)")
+					.withExpressionAttributeNames(oldBytes != null ? Map.of("#v", "value") : Map.of("#k", "key"))
+					.withExpressionAttributeValues(oldBytes != null
+							? Map.of(":oldv", new AttributeValue().withB(java.nio.ByteBuffer.wrap(oldBytes)))
+							: null);
+			try {
+				dynamoDbClient.putItem(req);
+			} catch (ConditionalCheckFailedException e) {
+				return KV.create(version, false); // 并发修改/插入：调用方(schemasCompatible)重读重试。
 			}
-			return KV.create(version, true);
+			return KV.create(newVersion, true);
 		}
 
 		@Override
