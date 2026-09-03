@@ -600,16 +600,30 @@ public final class Raft {
 
 	/**
 	 * true，IsLeader && LeaderReady;
-	 * false, !IsLeader
+	 * false, !IsLeader，或等待超时（仍是not-ready的Leader，见内部注释）。
 	 */
 	boolean waitLeaderReady() {
+		// 等待预算为一个完整的选举周期（与Agent.waitForLeader的默认超时同公式：
+		// PreVote引入后选举最坏情况多一轮）。
+		long waitMs = raftConfig.getLeaderHeartbeatTimer()
+				+ raftConfig.getElectionTimeoutMax() * 2L
+				+ raftConfig.getAppendEntriesTimeout();
+		var deadline = System.nanoTime() + waitMs * 1_000_000L;
 		lock();
 		try {
 			var volatileTmp = leaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
 			while (isLeader()) {
 				if (volatileTmp.isDone())
 					return volatileTmp.get();
-				await();
+				// 【FND-R1-8】多数派失联的分区场景下，SetLeaderReadyEvent永远无法提交，
+				// 且没有更高term的消息到达（不会有signalAll唤醒），无期限的await()会让
+				// 派发进来的请求任务无限堆积（每请求占一个unique串行桶+一个线程）。
+				// 等待超出一个选举周期后放弃并返回false：processRequest会走
+				// trySendLeaderIs路径，请求最终由客户端rpc超时/Agent重发闭环处理。
+				var remain = deadline - System.nanoTime();
+				if (remain <= 0)
+					break;
+				await(remain / 1_000_000L);
 			}
 		} finally {
 			unlock();
