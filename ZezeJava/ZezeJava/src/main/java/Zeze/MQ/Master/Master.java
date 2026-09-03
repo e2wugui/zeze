@@ -96,64 +96,74 @@ public class Master extends AbstractMaster {
 
     @Override
     protected long ProcessCreateMQRequest(CreateMQ r) throws Exception {
-        if (r.Argument.getTopic().contains("."))
-            return errorCode(eTopicHasReserveChar);
-        if (r.Argument.getTopic().contains("/"))
-            return errorCode(eTopicHasReserveChar);
-        if (r.Argument.getTopic().contains("\\"))
-            return errorCode(eTopicHasReserveChar);
-        var topicBytes = r.Argument.getTopic().getBytes(StandardCharsets.UTF_8);
-        var mq = mqTable.get(topicBytes);
-        if (null != mq)
-            return errorCode(eTopicExist);
+        // CreateMQ的handler运行在无事务模式（MasterService.setNoProcedure(true)），mqTable的
+        // 存在性检查（get）与登记（put）之间无任何串行化：并发同名请求可双双通过检查，
+        // 双双下发CreatePartition（Manager磁盘上出现两请求分区号并集的残留），put后写覆盖先写。
+        // 模块锁把整个检查-创建-登记流程串行化（管理操作低频，持锁期间CreatePartition rpc
+        // 最长5秒超时，仅推迟并发的Register/ReportLoad，无死锁）。
+        lock();
+        try {
+            if (r.Argument.getTopic().contains("."))
+                return errorCode(eTopicHasReserveChar);
+            if (r.Argument.getTopic().contains("/"))
+                return errorCode(eTopicHasReserveChar);
+            if (r.Argument.getTopic().contains("\\"))
+                return errorCode(eTopicHasReserveChar);
+            var topicBytes = r.Argument.getTopic().getBytes(StandardCharsets.UTF_8);
+            var mq = mqTable.get(topicBytes);
+            if (null != mq)
+                return errorCode(eTopicExist);
 
-        var servers = r.Result;
+            var servers = r.Result;
 
-        // create
-        servers.getInfo().setTopic(r.Argument.getTopic());
-        servers.getInfo().setPartition(r.Argument.getPartition());
-        servers.getInfo().setOptions(r.Argument.getOptions());
-        if (r.Argument.getPartition() < 1)
-            return errorCode(ePartition);
+            // create
+            servers.getInfo().setTopic(r.Argument.getTopic());
+            servers.getInfo().setPartition(r.Argument.getPartition());
+            servers.getInfo().setOptions(r.Argument.getOptions());
+            if (r.Argument.getPartition() < 1)
+                return errorCode(ePartition);
 
-        servers.setSessionId(sessionIdGen.incrementAndGet());
+            servers.setSessionId(sessionIdGen.incrementAndGet());
 
-        // 分配manager
-        var managers = choiceManager(r.Argument.getPartition());
-        if (managers.length == 0)
-            return errorCode(eManagerNotFound); // 无manager注册；否则下面 i % managers.length 除零。错误码在生成的AbstractMaster中定义，复用manager缺失语义，不改生成文件
+            // 分配manager
+            var managers = choiceManager(r.Argument.getPartition());
+            if (managers.length == 0)
+                return errorCode(eManagerNotFound); // 无manager注册；否则下面 i % managers.length 除零。错误码在生成的AbstractMaster中定义，复用manager缺失语义，不改生成文件
 
-        // 分区号必须按请求局部累积：挂在Manager上跨请求累积不清理，会把旧topic的分区号
-        // 下发给新topic，manager上创建出多余分区并随目录持久化残留。
-        var managerPartitionIndexes = new HashMap<Manager, HashSet<Integer>>();
-        for (var i = 0; i < r.Argument.getPartition(); ++i) {
-            var manager = managers[i % managers.length];
-            var info = manager.info.copy();
-            info.setPartitionIndex(i);
-            info.setTopic(r.Argument.getTopic());
-            servers.getServers().add(info);
-            managerPartitionIndexes.computeIfAbsent(manager, __ -> new HashSet<>()).add(i);
-        }
-        for (var manager : managers) {
-            var indexes = managerPartitionIndexes.get(manager);
-            if (indexes == null)
-                continue;
-            var cp = new CreatePartition();
-            cp.Argument.setTopic(r.Argument.getTopic());
-            cp.Argument.setPartitionIndexes(indexes);
-            cp.SendForWait(manager.socket).await();
-            if (cp.getResultCode() != 0) {
-                logger.error("create partition error={} r={}", IModule.getErrorCode(cp.getResultCode()), cp);
-                return errorCode(eCreatePartition);
+            // 分区号必须按请求局部累积：挂在Manager上跨请求累积不清理，会把旧topic的分区号
+            // 下发给新topic，manager上创建出多余分区并随目录持久化残留。
+            var managerPartitionIndexes = new HashMap<Manager, HashSet<Integer>>();
+            for (var i = 0; i < r.Argument.getPartition(); ++i) {
+                var manager = managers[i % managers.length];
+                var info = manager.info.copy();
+                info.setPartitionIndex(i);
+                info.setTopic(r.Argument.getTopic());
+                servers.getServers().add(info);
+                managerPartitionIndexes.computeIfAbsent(manager, __ -> new HashSet<>()).add(i);
             }
-        }
-        // save mq info
-        var value = ByteBuffer.Allocate();
-        servers.encode(value);
-        mqTable.put(topicBytes, 0, topicBytes.length, value.Bytes, value.ReadIndex, value.size());
+            for (var manager : managers) {
+                var indexes = managerPartitionIndexes.get(manager);
+                if (indexes == null)
+                    continue;
+                var cp = new CreatePartition();
+                cp.Argument.setTopic(r.Argument.getTopic());
+                cp.Argument.setPartitionIndexes(indexes);
+                cp.SendForWait(manager.socket).await();
+                if (cp.getResultCode() != 0) {
+                    logger.error("create partition error={} r={}", IModule.getErrorCode(cp.getResultCode()), cp);
+                    return errorCode(eCreatePartition);
+                }
+            }
+            // save mq info
+            var value = ByteBuffer.Allocate();
+            servers.encode(value);
+            mqTable.put(topicBytes, 0, topicBytes.length, value.Bytes, value.ReadIndex, value.size());
 
-        r.SendResult();
-        return 0;
+            r.SendResult();
+            return 0;
+        } finally {
+            unlock();
+        }
     }
 
     @Override
