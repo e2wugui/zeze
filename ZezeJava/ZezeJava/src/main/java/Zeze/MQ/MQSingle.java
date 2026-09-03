@@ -12,9 +12,13 @@ import Zeze.Builtin.MQ.PushMessage;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.OutLong;
 import Zeze.Util.TaskSpec;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 public class MQSingle extends ReentrantLock {
+	private static final Logger logger = LogManager.getLogger();
+
 	private final String topic;
 	private final int partitionIndex;
 	private long bindSessionId;
@@ -101,6 +105,9 @@ public class MQSingle extends ReentrantLock {
 				messageQueue.offer(message.getMessage());
 			} else {
 				highLoad++;
+				// 盘上出现未装载积压：尝试启动回填。fill 失败复位后的重试事件源除了 ack 回调，
+				// 还需要这里——队列耗尽后 ack 链不再产生事件，只有新消息能重新驱动回填。
+				tryStartBackgroundFill();
 			}
 			tryPushMessage();
 		} finally {
@@ -123,19 +130,36 @@ public class MQSingle extends ReentrantLock {
 		// 在另一个线程中调用，但只有一个线程任务。
 		var first = new OutLong();
 		var last = new OutLong();
-		lock();
 		try {
-			if (highLoad > 0) {
-				// calculateFill 里面还会加fileWithIndex的锁. 两把锁得到一个快照。
-				highLoad -= fileWithIndex.calculateFill(messageQueue, first, last, maxFillMessageCount);
+			lock();
+			try {
+				if (highLoad > 0) {
+					// calculateFill 里面还会加fileWithIndex的锁. 两把锁得到一个快照。
+					highLoad -= fileWithIndex.calculateFill(messageQueue, first, last, maxFillMessageCount);
+				}
+			} finally {
+				unlock();
 			}
-		} finally {
-			unlock();
+			fileWithIndex.fillMessage(messageQueue, first.value, last.value);
+			// 这里有一个时间窗口：刚刚fill的消息全部都消费完毕，下面才置空，导致fill停止。
+			messageFillFuture = null; // 这个清除没加锁
+			tryStartBackgroundFill(); // 这个调用是为了解决上面的时间窗口的。
+		} catch (RuntimeException e) {
+			// fill 失败必须复位 messageFillFuture 并重算 highLoad，否则 tryStartBackgroundFill 永远
+			// 看到非null而跳过，该分区回填永久停摆。calculateFill 已按快照扣减 highLoad 但装载
+			// 未完成，按盘上真实积压重算；next/first 的所有写点（appendMessage/increaseFirstMessageId）
+			// 都在本锁内执行，锁内读取是精确的。不在此立即重启 fill（确定性数据损坏时避免紧密
+			// 循环），由后续 sendMessage/ack 事件驱动重试。
+			lock();
+			try {
+				highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId() - messageQueue.size();
+				messageFillFuture = null;
+			} finally {
+				unlock();
+			}
+			logger.error("pullMessage fill failed. topic={} partition={}", topic, partitionIndex, e);
+			throw e; // 后台任务路径异常由 TaskBody 记日志后吞掉；构造路径保持创建失败的响亮语义。
 		}
-		fileWithIndex.fillMessage(messageQueue, first.value, last.value);
-		// 这里有一个时间窗口：刚刚fill的消息全部都消费完毕，下面才置空，导致fill停止。
-		messageFillFuture = null; // 这个清除没加锁
-		tryStartBackgroundFill(); // 这个调用是为了解决上面的时间窗口的。
 		// fill 装载完成后，消息队列从空变为非空时（例如ack回调触发fill时队列已空），无人驱动推送，
 		// 这里主动尝试推送；构造函数路径 bindSocket==null 时自然短路。
 		lock();
