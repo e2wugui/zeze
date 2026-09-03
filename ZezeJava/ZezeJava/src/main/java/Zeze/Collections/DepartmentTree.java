@@ -355,6 +355,8 @@ public class DepartmentTree<
 				return module.errorCode(Module.ErrorDepartmentDuplicate);
 		} else {
 			var parent = getDepartmentTreeNode(departmentParent);
+			if (null == parent)
+				return module.errorCode(Module.ErrorDepartmentParentNotExist); // 对齐moveDepartment的同类检查，原实现直接NPE
 			if (parent.getChildren().size() > childrenLimit)
 				return module.errorCode(Module.ErrorTooManyChildren);
 			if (null != parent.getChildren().putIfAbsent(dName, dId))
@@ -386,7 +388,8 @@ public class DepartmentTree<
 				root.getChildren().remove(department.getName());
 		} else {
 			var parent = getDepartmentTreeNode(department.getParentDepartment());
-			parent.getChildren().remove(department.getName());
+			if (null != parent) // 旧父行缺失（孤儿部门）：跳过摘除继续删除，避免NPE阻断清理
+				parent.getChildren().remove(department.getName());
 		}
 		getDepartmentMembers(departmentId).clear();
 		module._tDepartmentTree.remove(new BDepartmentKey(name, departmentId));
@@ -414,10 +417,12 @@ public class DepartmentTree<
 			return module.errorCode(Module.ErrorDepartmentNotExist);
 		if (department.getParentDepartment() == 0)
 			return module.errorCode(Module.ErrorDepartmentSameParent);
-		var oldParent = getDepartmentTreeNode(department.getParentDepartment());
-		oldParent.getChildren().remove(department.getName());
+		// 先验证目标处不重名，再从旧父摘除：验证失败路径零改动——调用方吞掉错误码时也不会留下孤儿部门。
 		if (null != newParent.getChildren().putIfAbsent(department.getName(), departmentId))
 			return module.errorCode(Module.ErrorDepartmentDuplicate);
+		var oldParent = getDepartmentTreeNode(department.getParentDepartment());
+		if (null != oldParent) // 旧父行缺失（孤儿部门）时跳过摘除，继续修复归属
+			oldParent.getChildren().remove(department.getName());
 		department.setParentDepartment(0);
 		return 0;
 	}
@@ -436,10 +441,12 @@ public class DepartmentTree<
 		var newParent = getDepartmentTreeNode(parent);
 		if (null == newParent)
 			return module.errorCode(Module.ErrorDepartmentParentNotExist);
-		var oldParent = getDepartmentTreeNode(department.getParentDepartment());
-		oldParent.getChildren().remove(department.getName());
+		// 先验证目标处不重名，再从旧父摘除：验证失败路径零改动——调用方吞掉错误码时也不会留下孤儿部门。
 		if (null != newParent.getChildren().putIfAbsent(department.getName(), departmentId))
 			return module.errorCode(Module.ErrorDepartmentDuplicate);
+		var oldParent = getDepartmentTreeNode(department.getParentDepartment());
+		if (null != oldParent) // 旧父行缺失（孤儿部门）时跳过摘除，继续修复归属
+			oldParent.getChildren().remove(department.getName());
 		department.setParentDepartment(parent);
 		return 0;
 	}
