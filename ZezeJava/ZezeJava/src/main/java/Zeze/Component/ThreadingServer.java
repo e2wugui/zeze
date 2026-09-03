@@ -25,6 +25,12 @@ import org.apache.logging.log4j.Logger;
 
 public class ThreadingServer extends AbstractThreadingServer {
 	static final Logger logger = LogManager.getLogger(ThreadingServer.class);
+
+	// FND-C1-7/C1-8：锁操作rpc的结果码约定为非负小整数（0=成功，1=失败/未持有，2=超时未获取）。
+	// 参数非法或操作类型未知时用-1应答：客户端getResultCode()!=0按false处理（exit类走debug日志），
+	// 不再无应答挂满超时（≥5s后以CompletionException抛出，错误形态不可诊断）。
+	public static final int ResultCodeInvalidArgument = -1;
+
 	private final Service service;
 	private final ServiceManagerServer.Conf conf;
 	private final HashMap<BGlobalThreadId, SimulateThread> simulateThreads = new HashMap<>();
@@ -384,6 +390,17 @@ public class ThreadingServer extends AbstractThreadingServer {
 						}
 						r.SendResultCode(0);
 					});
+			break;
+
+		default:
+			// FND-C1-7：未知OperateType（buggy客户端/异版本/恶意包）原实现无任何应答，
+			// 客户端等满rpc超时后以CompletionException抛出。
+			logger.error("ReadWriteLockOperate: unknown operateType={} (thread=({}, {}), name={})",
+					r.Argument.getOperateType(),
+					r.Argument.getLockName().getGlobalThreadId().getServerId(),
+					r.Argument.getLockName().getGlobalThreadId().getThreadId(),
+					r.Argument.getLockName().getName());
+			r.SendResultCode(ResultCodeInvalidArgument);
 			break;
 		}
 		return 0;
