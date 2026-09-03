@@ -3,6 +3,9 @@ package MQ;
 import harness.Fast;
 import java.nio.file.Path;
 import java.util.HashSet;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.Isolated;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.Config;
 import Zeze.MQ.MQ;
@@ -28,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  * master 端口必须保持 26000。
  */
 @Fast
+@Isolated // master 端口 26000 与 TestMQ 相同（MQConsumer 静态 agent 读默认 zeze.xml），类级并发下会端口冲突，独占运行
 public class TestMQMasterSessionIdUnique {
     private static final int masterPort = 26000;
 

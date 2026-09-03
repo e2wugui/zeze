@@ -37,17 +37,18 @@ public class TestTaskShutdown {
 
 	@Test
 	public void testShutdownIdempotentWhenPoolsNull() throws Exception {
-		// 第一次：正常停机，三池关闭并置 null
-		Task.shutdown(10_000);
+		// 第一次：正常停机，三池关闭并置 null。全套件环境下其他测试遗留的周期/长任务可能令
+		// 终止等待超时——shutdownPools 先置 null 再等待，超时不妨碍本用例验证的幂等语义。
+		shutdownIgnoringTerminationTimeout(false);
 		// 此后三池为 null（等价于"从未初始化"和"已停机"两种状态），重复停机必须幂等（原来此处 NPE）
-		Task.shutdown(10_000);
-		Task.shutdownNow(10_000);
-		Task.shutdownNow(10_000);
+		shutdownIgnoringTerminationTimeout(false);
+		shutdownIgnoringTerminationTimeout(true);
+		shutdownIgnoringTerminationTimeout(true);
 	}
 
 	@Test
 	public void testSubmitAfterShutdownThrowsIllegalState() throws Exception {
-		Task.shutdown(10_000); // 前置：进入停机后状态（三池 null）
+		shutdownIgnoringTerminationTimeout(false); // 前置：进入停机后状态（三池 null，与终止等待结果无关）
 		// 提交/执行/调度各路径必须抛明确 IllegalStateException（原来 null.submit NPE）
 		assertThrowsIllegalState("default submit", () -> TaskSpec.ofAction(() -> {
 		}).name("submitDefault").submitNow());
@@ -60,6 +61,19 @@ public class TestTaskShutdown {
 		}).name("schedule").scheduleNow(1));
 		assertThrowsIllegalState("schedulePeriod", () -> TaskSpec.ofAction(() -> {
 		}).name("schedulePeriod").schedulePeriodNow(1, 1));
+	}
+
+	// 停机并忽略终止等待超时：静态池字段在等待前已置 null（shutdownPools 先置 null 再关池），
+	// 用例验证的"null 池幂等/提交报错"不依赖池内遗留任务全部结束。
+	private static void shutdownIgnoringTerminationTimeout(boolean now) throws InterruptedException {
+		try {
+			if (now)
+				Task.shutdownNow(10_000);
+			else
+				Task.shutdown(10_000);
+		} catch (java.util.concurrent.TimeoutException expected) {
+			// 全套件环境下其他测试类遗留的周期任务（如 GlobalTimer tick）令终止等待超时，忽略。
+		}
 	}
 
 	private static void assertThrowsIllegalState(String what, Runnable submit) {

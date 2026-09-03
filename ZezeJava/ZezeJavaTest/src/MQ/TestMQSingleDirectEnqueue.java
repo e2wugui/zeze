@@ -103,6 +103,13 @@ public class TestMQSingleDirectEnqueue {
 			for (long id = 0; id < 5; ++id)
 				file.appendMessage(sendMessageOf(id).getMessage());
 
+			// 忠实模拟窗口：真实竞态里后台回填任务正在执行（messageFillFuture 非空）。
+			// G2-2 修复后 sendMessage 的未直入分支会经 tryStartBackgroundFill 自行启动回填，
+			// 不占位的话测试将有一个异步 pullMessage 与下面的同步步骤 ②③ 竞争，失去确定性。
+			var fillFutureField = MQSingle.class.getDeclaredField("messageFillFuture");
+			fillFutureField.setAccessible(true);
+			fillFutureField.set(single, new java.util.concurrent.CompletableFuture<Void>());
+
 			// ① 窗口内 sendMessage(id5)：不得直入（旧代码此处 offer(id5)，队列变 [5]）。
 			single.sendMessage(sendMessageOf(5));
 
