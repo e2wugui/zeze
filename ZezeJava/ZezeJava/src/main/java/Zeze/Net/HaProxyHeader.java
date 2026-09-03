@@ -9,6 +9,8 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import Zeze.Serialize.ByteBuffer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,10 +21,19 @@ import org.jetbrains.annotations.Nullable;
  * https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt
  */
 public class HaProxyHeader {
+	private static final @NotNull Logger logger = LogManager.getLogger(HaProxyHeader.class);
+
 	private boolean done = false;
 	private final String key;
-	private @Nullable InetSocketAddress remoteAddress;
-	private @Nullable InetSocketAddress targetAddress;
+	private volatile @Nullable InetSocketAddress remoteAddress;
+	private volatile @Nullable InetSocketAddress targetAddress;
+	// v1 懒解析：decodeHeader 在 selector 线程调用，InetAddress.getByName 对非字面量主机名会
+	// 同步DNS解析（默认可达5-30秒），攻击者可用伪造的PROXY行卡死整个Selector线程上的所有连接。
+	// 因此v1的TCP4/TCP6地址只在这里记录主机名和端口，推迟到getter首次访问时再解析。
+	private volatile @Nullable String remoteHost;
+	private volatile @Nullable String targetHost;
+	private int remotePort;
+	private int targetPort;
 
 	public HaProxyHeader(String key) {
 		this.key = key;
@@ -33,11 +44,33 @@ public class HaProxyHeader {
 	}
 
 	public @Nullable InetSocketAddress getRemoteAddress() {
-		return remoteAddress;
+		var addr = remoteAddress;
+		if (addr != null)
+			return addr;
+		var host = remoteHost;
+		if (host == null)
+			return null;
+		return remoteAddress = resolve(host, remotePort);
 	}
 
 	public @Nullable InetSocketAddress getTargetAddress() {
-		return targetAddress;
+		var addr = targetAddress;
+		if (addr != null)
+			return addr;
+		var host = targetHost;
+		if (host == null)
+			return null;
+		return targetAddress = resolve(host, targetPort);
+	}
+
+	private static @Nullable InetSocketAddress resolve(@NotNull String host, int port) {
+		try {
+			// 字面量IP不查DNS；主机名会同步解析，调用方线程需容忍可能的阻塞（但绝不能是selector线程）。
+			return new InetSocketAddress(InetAddress.getByName(host), port);
+		} catch (UnknownHostException e) {
+			logger.warn("HaProxyHeader resolve failed: {}:{}", host, port, e);
+			return null;
+		}
 	}
 
 	public static final byte[] v2sig = {0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A};
@@ -66,6 +99,7 @@ public class HaProxyHeader {
 		return "";
 	}
 
+	// 保留throws UnknownHostException仅为兼容既有调用方的catch，本方法已不再抛出（解析移到getter）。
 	public boolean decodeHeader(@NotNull ByteBuffer bb) throws UnknownHostException {
 		if (done)
 			return true;
@@ -123,8 +157,11 @@ public class HaProxyHeader {
 				case "TCP4":
 				case "TCP6":
 					// 两个协议都用InetAddress.getByName，实现内部会区分。
-					remoteAddress = new InetSocketAddress(InetAddress.getByName(tokens[1]), Integer.parseInt(tokens[3]));
-					targetAddress = new InetSocketAddress(InetAddress.getByName(tokens[2]), Integer.parseInt(tokens[4]));
+					// 【N1-3】不在selector线程解析（见字段remoteHost处的说明），只记录，getter懒解析。
+					remotePort = Integer.parseInt(tokens[3]);
+					remoteHost = tokens[1];
+					targetPort = Integer.parseInt(tokens[4]);
+					targetHost = tokens[2];
 					break;
 				}
 			}
