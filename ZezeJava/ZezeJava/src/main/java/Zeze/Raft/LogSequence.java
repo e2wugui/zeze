@@ -1019,6 +1019,23 @@ public class LogSequence {
 		raft.lock();
 		try {
 			try {
+				// 【FND-R1-4】上面的removeLogBeforeFuture.await()与本处raft.lock()都可能长时间等待，
+				// 期间term/leader/state可任意变化（新leader当选/本节点发起选举；term的写点全在Raft锁内）。
+				// 拿到锁后term在本轮重置完成前不会再变：与进入时（processInstallSnapshot锁内
+				// 校验通过的r.Argument.getTerm()）不一致，说明这是为旧term准备的快照重置，必须放弃。
+				// 否则：1) commitIndex已被新leader推进时误触发下面的fatalKill防御分支杀死健康节点；
+				// 2) logs.drop()丢弃新leader已复制的日志，lastIndex/commitIndex/lastApplied回退重放；
+				// 3) setVoteFor(当前leaderId="")抹掉等待期间的自投票，破坏"每term至多一票"。
+				// 放弃时在应答中带回当前term，旧leader收到更高term即自行退位/回溯重试。
+				if (r.Argument.getTerm() != term) {
+					logger.warn("{} InstallSnapshot stale: rpcTerm={} != currentTerm={}, leaderId={},"
+									+ " LastIncludedIndex={}, term changed while waiting outside raft lock;"
+									+ " discard received snapshot.",
+							raft.getName(), r.Argument.getTerm(), term, r.Argument.getLeaderId(),
+							r.Argument.getLastIncludedIndex());
+					r.Result.setTerm(term);
+					return;
+				}
 				// 6. If existing log entry has same index and term as snapshot's
 				// last included entry, retain log entries following it and reply
 				var last = readLog(r.Argument.getLastIncludedIndex());
