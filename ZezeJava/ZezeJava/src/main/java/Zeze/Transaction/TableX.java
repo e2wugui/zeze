@@ -1116,7 +1116,16 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		r.setState(state);
 		r.setSoftValue(value);
 		r.setTimestamp(Record.getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
-		r.setDirty(); // 这个目前仅由内存表使用，本来不需要调用这个。
+		// 直接写入本地Rocks镜像（walkMemory与软引用回收后loadValue恢复的数据源），不设置脏标记：
+		// 脏记录必须进入rrs才能被checkpoint flush，这里的记录不在任何rrs中，置脏后
+		// checkpoint永远flush不到它（数据永不落localRocks），受限容量时cleanNow也永远清不掉（死循环）。
+		// 写失败直接抛出中止热更，静默吞掉会丢失内存表的唯一持久副本。
+		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
+			localRocksCacheTable.replace(t, encodeKey(kk), ByteBuffer.encode(value));
+			t.commit();
+		} catch (Exception e) {
+			throw new RuntimeException("__direct_put_cache__ write localRocks failed: " + this + " " + key, e);
+		}
 		//logger.info("__direct_put_cache__ " + key + ", " + value);
 	}
 
