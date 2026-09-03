@@ -21,6 +21,7 @@ import io.prometheus.metrics.exporter.common.PrometheusHttpExchange;
 import io.prometheus.metrics.exporter.common.PrometheusHttpRequest;
 import io.prometheus.metrics.exporter.common.PrometheusHttpResponse;
 import io.prometheus.metrics.exporter.common.PrometheusScrapeHandler;
+import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import io.prometheus.metrics.model.snapshots.Unit;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -263,7 +264,7 @@ public class PrometheusCounter implements ZezeCounter {
 
 	@Override
 	public @NotNull LongCounter allocCounter(@NotNull String name) {
-		Counter counter = Counter.builder().name(name).register();
+		Counter counter = Counter.builder().name(PrometheusNaming.sanitizeMetricName(name)).register();
 		return counter::inc;
 	}
 
@@ -272,7 +273,9 @@ public class PrometheusCounter implements ZezeCounter {
 		if (labelNames.length == 0) {
 			throw new IllegalArgumentException("labelNames empty");
 		}
-		Counter counter = Counter.builder().name(name).labelNames(labelNames).register();
+		// sanitizeMetricName：调用方传入的 name（如带点号的类名）含非法字符时，Prometheus 的
+		// MetricMetadata.validate() 会抛 IllegalArgumentException 进调用方热路径；这里统一替换非法字符。
+		Counter counter = Counter.builder().name(PrometheusNaming.sanitizeMetricName(name)).labelNames(labelNames).register();
 		return labels -> {
 			CounterDataPoint dp = counter.labelValues(labels);
 			return dp::inc;
@@ -284,7 +287,7 @@ public class PrometheusCounter implements ZezeCounter {
 		if (labelNames.length == 0) {
 			throw new IllegalArgumentException("labelNames empty");
 		}
-		Histogram histogram = Histogram.builder().name(name).unit(Unit.SECONDS).labelNames(labelNames).register();
+		Histogram histogram = Histogram.builder().name(PrometheusNaming.sanitizeMetricName(name)).unit(Unit.SECONDS).labelNames(labelNames).register();
 		return labels -> {
 			DistributionDataPoint dp = histogram.labelValues(labels);
 			return (amount) -> dp.observe(Unit.nanosToSeconds(amount));
@@ -295,7 +298,7 @@ public class PrometheusCounter implements ZezeCounter {
 	public @NotNull LongObserver getRunTimeObserver(@NotNull Object key) {
 		return fastGetOrAdd(runTimeMap, key, (k) -> {
 			String name = k instanceof Class ? ((Class<?>)k).getName() : String.valueOf(k);
-			Histogram histogram = Histogram.builder().name(name).unit(Unit.SECONDS).register();
+			Histogram histogram = Histogram.builder().name(PrometheusNaming.sanitizeMetricName(name)).unit(Unit.SECONDS).register();
 			return (amount) -> histogram.observe(Unit.nanosToSeconds(amount));
 		});
 	}
