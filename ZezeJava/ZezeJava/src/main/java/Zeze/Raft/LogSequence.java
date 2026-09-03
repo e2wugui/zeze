@@ -859,9 +859,62 @@ public class LogSequence {
 		});
 		if (!future.await(raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000)) {
 			leaderAppendLogs.remove(result.index);
+			// 超时/取消后条目仍留在日志中（lastIndex不回退，see appendLog(Log,Action2) 的注释），
+			// 命运未定：可能稍后被多数派确认并应用，也可能被新leader截断。
+			// 调用方（如 RocksRaft Transaction.perform）将按失败返回并在 finally 释放悲观锁；
+			// 若在条目应用前放锁，后续同key的事务会基于应用前的旧值计算并提交新日志，
+			// 随后本条目又被应用，造成丢失更新。这里先等待条目命运确定再抛出重试异常，
+			// 使调用方在窗口期内继续持锁。
+			waitLogFateDetermined(result.index);
 			throw new RaftRetryException("timeout or canceled");
 		}
 		return result;
+	}
+
+	/**
+	 * 等待 index 日志条目的命运确定：已应用（lastApplied &gt;= index，状态已可见）或
+	 * 已从日志删除（被新leader截断/丢弃，变更不会生效）。用于 appendLog 超时路径，
+	 * 保证调用方在条目未决期间不释放悲观锁。
+	 * 与 appendLog 的 await 一样必须在 Raft 锁外调用：本方法内部只在检查时短暂持锁，
+	 * 等待期间不持锁，apply/截断在其它线程持锁进行，不会互相死锁。
+	 * waitMs 超时后放弃等待并记录错误：此时集群可能长时间选不出leader，条目命运长期
+	 * 无法确定，继续持锁等待会无限期挂住业务线程（该场景下其它事务同样无法提交）。
+	 */
+	void waitLogFateDetermined(long index) {
+		waitLogFateDetermined(index, raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000);
+	}
+
+	// package-private with explicit timeout for tests.
+	@SuppressWarnings("SameParameterValue")
+	void waitLogFateDetermined(long index, long waitMs) {
+		var deadline = System.nanoTime() + waitMs * 1_000_000L;
+		while (!raft.isShutdown) {
+			raft.lock();
+			try {
+				// lastApplied 不是volatile，在Raft锁内读取保证可见性。
+				if (lastApplied >= index)
+					return; // applied
+				if (readLog(index) == null)
+					return; // truncated or discarded
+			} catch (RocksDBException e) {
+				return; // 读取失败（如db已关闭），不再等待
+			} finally {
+				raft.unlock();
+			}
+			try {
+				//noinspection BusyWait
+				Thread.sleep(20);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
+			if (System.nanoTime() - deadline >= 0) {
+				logger.error("{} waitLogFateDetermined({}) timeout after {}ms, release pending entry. " +
+						"pessimism locks will be released while the log entry is still pending.",
+						raft.getName(), index, waitMs);
+				return;
+			}
+		}
 	}
 
 	public AppendLogResult appendLog(Log log, Action2<RaftLog, Boolean> callback) throws Exception {
