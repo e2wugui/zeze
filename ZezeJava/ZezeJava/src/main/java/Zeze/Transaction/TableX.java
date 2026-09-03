@@ -71,9 +71,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		database.replaceStorage(exist.getStorage(), storage);
 
 		oldTable = exist.getOldTable(); // Old
-		// Old 但是需要清除
 		localRocksCacheTable = exist.getLocalRocksCacheTable();
-		localRocksCacheTable.clear();
+		// 内存表（新表与旧表都是内存表：升级或回滚）不能清除本地Rocks：
+		// 它是dataMap软引用被GC回收后的唯一恢复源（Record1.loadValue），
+		// 也是受限容量walkMemory的数据源，清除后记录永久丢失。
+		// 非内存表（或内存表配置改变）清除是安全的：数据在后台库，镜像可重新装载。
+		if (!isMemory() || !exist.isMemory())
+			localRocksCacheTable.clear();
 	}
 
 	@Override
