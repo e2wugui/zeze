@@ -57,13 +57,20 @@ public class Log4jFileManager extends ReentrantLock {
 
 		this.fileCreateDetector = new FileCreateDetector(logConf.logDir, this::onFileCreated);
 
-		loadRotates(logConf.logDir);
-		var active = new File(logConf.logDir, logConf.logActive);
-		if (active.exists()) {
-			// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile，
-			// 搜索的时候忽略文件不存在的错误？
-			// 暂时先不处理！
-			files.add(Log4jFile.of(active, loadIndex(active, logConf.logActive + ".index")));
+		// 装载期间持有锁：onFileCreated跑在监视线程（构造即启动），不持锁装载会与其交错，
+		// 产生幽灵条目或索引未随行改名；持锁后启动瞬间的create事件排队到装载完成后按序处理（FND-S3-13）。
+		lock();
+		try {
+			loadRotates(logConf.logDir);
+			var active = new File(logConf.logDir, logConf.logActive);
+			if (active.exists()) {
+				// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile，
+				// 搜索的时候忽略文件不存在的错误？
+				// 暂时先不处理！（WatchService对rename的CREATE事件乱序时仍可能漏登新active，见挂档记录）
+				files.add(Log4jFile.of(active, loadIndex(active, logConf.logActive + ".index")));
+			}
+		} finally {
+			unlock();
 		}
 		var period = 300_000L;
 		buildIndexTimer = TaskSpec.ofAction(this::buildIndex)
