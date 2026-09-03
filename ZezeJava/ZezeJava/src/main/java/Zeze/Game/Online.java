@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -70,6 +71,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.Action1;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
@@ -104,6 +106,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private final AtomicBoolean freshStopModuleLocal = new AtomicBoolean();
 	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
 	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
+
+	// FND-G1-8：this::方法引用每次求值都产生新实例，而 ConcurrentHashSet（键=元素自身）按实例判等，
+	// 直接 add/remove 会导致 stopEvents 重复登记无界增长、remove 永远失败。
+	// 固定为实例字段只求值一次：同一 Online 的登记幂等，注销真正生效。
+	private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
+	private final Consumer<Class<?>> tryRecordHotModuleRef = this::tryRecordHotModule;
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
@@ -174,12 +182,22 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		_tOnlineShared.__ClearTableCacheUnsafe__();
 	}
 
+	/**
+	 * FND-G1-8：向 hotModule 登记本 Online 的模块停止回调。
+	 * 必须复用字段 onHotModuleStopRef：this::onHotModuleStop 每次求值都是新实例，
+	 * ConcurrentHashSet（键=元素自身）按实例判等，直接 add 会随调用次数无界增长，
+	 * 且模块停止时同一回调被重复执行多次。
+	 */
+	private void addHotModuleStopEvent(HotModule hotModule, ConcurrentHashSet<HotModule> hotModulesHave) {
+		hotModule.stopEvents.add(onHotModuleStopRef);
+		hotModulesHave.add(hotModule);
+	}
+
 	private void tryRecordHotModule(Class<?> customClass) {
 		var cl = customClass.getClassLoader();
 		if (HotManager.isHotModule(cl)) {
 			var hotModule = (HotModule)cl;
-			hotModule.stopEvents.add(this::onHotModuleStop);
-			hotModulesHaveDynamic.add(hotModule);
+			addHotModuleStopEvent(hotModule, hotModulesHaveDynamic);
 		}
 	}
 
@@ -355,8 +373,21 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (hotManager != null) {
 			hotManager.addHotUpgrade(this);
 			hotManager.addHotBeanFactory(this);
-			beanFactory.registerWatch(this::tryRecordHotModule);
+			registerBeanFactoryWatch();
 		}
+	}
+
+	/**
+	 * FND-G1-8：注册/注销必须复用同一 tryRecordHotModuleRef（this::每次求值都是新实例，
+	 * ConcurrentHashSet 按实例判等，remove 新实例永远失败）。
+	 * 提取为方法保证 start/stop 两侧对称。
+	 */
+	void registerBeanFactoryWatch() {
+		beanFactory.registerWatch(tryRecordHotModuleRef);
+	}
+
+	void unregisterBeanFactoryWatch() {
+		beanFactory.unregisterWatch(tryRecordHotModuleRef);
 	}
 
 	private boolean processOffline(Long roleId, @NotNull BLocal local, boolean serverStart) {
@@ -449,7 +480,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (hotManager != null) {
 			hotManager.removeHotUpgrade(this);
 			hotManager.removeHotBeanFactory(this);
-			beanFactory.unregisterWatch(this::tryRecordHotModule);
+			unregisterBeanFactoryWatch();
 		}
 
 		// default online 负责停止所有的online set。
@@ -546,10 +577,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var cl = data.getClass().getClassLoader();
 		if (HotManager.isHotModule(cl)) {
 			var hotModule = (HotModule)cl;
-			Transaction.whileCommit(() -> {
-				hotModule.stopEvents.add(this::onHotModuleStop);
-				hotModulesHaveDynamic.add(hotModule);
-			});
+			Transaction.whileCommit(() -> addHotModuleStopEvent(hotModule, hotModulesHaveDynamic));
 		}
 		getOrAddOnline(roleId).getUserData().setBean(data);
 	}
@@ -631,10 +659,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		bLocal.getDatas().put(key, bAny);
 		if (HotManager.isHotModule(bean.getClass().getClassLoader())) {
 			var hotModule = (HotModule)bean.getClass().getClassLoader();
-			Transaction.whileCommit(() -> {
-				hotModule.stopEvents.add(this::onHotModuleStop);
-				hotModulesHaveLocal.add(hotModule);
-			});
+			Transaction.whileCommit(() -> addHotModuleStopEvent(hotModule, hotModulesHaveLocal));
 		}
 	}
 
@@ -664,10 +689,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		data.getAny().setBean(defaultHint);
 		if (HotManager.isHotModule(defaultHint.getClass().getClassLoader())) {
 			var hotModule = (HotModule)defaultHint.getClass().getClassLoader();
-			Transaction.whileCommit(() -> {
-				hotModule.stopEvents.add(this::onHotModuleStop);
-				hotModulesHaveLocal.add(hotModule);
-			});
+			Transaction.whileCommit(() -> addHotModuleStopEvent(hotModule, hotModulesHaveLocal));
 		}
 		return defaultHint;
 	}
