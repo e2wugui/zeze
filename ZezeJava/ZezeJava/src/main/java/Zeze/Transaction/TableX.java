@@ -216,60 +216,69 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 					var storage = this.storage;
 					if (storage != null) {
-						if (ZezeCounter.instance != null)
-							ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
-						strongRef = storage.getDatabaseTable().find(this, key);
-						if (strongRef != null)
-							rocksCachePut(key, strongRef);
-						else
-							rocksCacheRemove(key);
-						r.setSoftValue(strongRef); // r.Value still maybe null
-						// 【注意】这个变量不管 OldTable 中是否存在的情况。
-//						r.setExistInBackDatabase(strongRef != null);
+						if (r.getDirty()) {
+							// GCM reduce的flush失败或Releaser降级窗口会留下Invalid+dirty的记录，
+							// 后台库中还是旧值（脏数据尚未checkpoint），装载会覆盖丢失内存中已提交的修改。
+							// see Record1.loadValue 的dirty检查。
+							@SuppressWarnings("unchecked")
+							var dirtyValue = (V)r.strongDirtyValue;
+							strongRef = dirtyValue;
+						} else {
+							if (ZezeCounter.instance != null)
+								ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
+							strongRef = storage.getDatabaseTable().find(this, key);
+							if (strongRef != null)
+								rocksCachePut(key, strongRef);
+							else
+								rocksCacheRemove(key);
+							r.setSoftValue(strongRef); // r.Value still maybe null
+							// 【注意】这个变量不管 OldTable 中是否存在的情况。
+//							r.setExistInBackDatabase(strongRef != null);
 
-						// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
-						// see Record1.Flush
-						if (strongRef == null && oldTable != null) {
-							var old = oldTable.find(this, key);
-							if (old != null) {
-								strongRef = old;
-								r.setSoftValue(strongRef);
-								if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
-									// Immediately 模式这里直接保存到 RocksCache 与 OldTable，
-									// 不设置脏标记（脏记录流程不会处理它，会永久滞留强引用）。
-									var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
-									var t = oldTable.getDatabase().beginTransaction();
-									try {
-										oldTable.replace(t, key, old);
-										localRocksCacheTable.replace(lct, key, old);
-										lct.commit();
-										t.commit();
-									} catch (Throwable ex) { // logger.error
-										logger.error("", ex);
-										// rollback.
-										lct.rollback();
-										t.rollback();
-									} finally {
+							// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
+							// see Record1.Flush
+							if (strongRef == null && oldTable != null) {
+								var old = oldTable.find(this, key);
+								if (old != null) {
+									strongRef = old;
+									r.setSoftValue(strongRef);
+									if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
+										// Immediately 模式这里直接保存到 RocksCache 与 OldTable，
+										// 不设置脏标记（脏记录流程不会处理它，会永久滞留强引用）。
+										var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
+										var t = oldTable.getDatabase().beginTransaction();
 										try {
-											t.close();
-										} catch (Throwable e) { // logger.error
-											logger.error("", e);
+											oldTable.replace(t, key, old);
+											localRocksCacheTable.replace(lct, key, old);
+											lct.commit();
+											t.commit();
+										} catch (Throwable ex) { // logger.error
+											logger.error("", ex);
+											// rollback.
+											lct.rollback();
+											t.rollback();
+										} finally {
+											try {
+												t.close();
+											} catch (Throwable e) { // logger.error
+												logger.error("", e);
+											}
+											try {
+												lct.close();
+											} catch (Throwable e) { // logger.error
+												logger.error("", e);
+											}
 										}
-										try {
-											lct.close();
-										} catch (Throwable e) { // logger.error
-											logger.error("", e);
-										}
+									} else {
+										// 从旧表装载时，马上设为脏，使得可以写入新表。
+										// 否则直到被修改前，都不会被保存到当前数据库中。
+										r.setDirty();
 									}
-								} else {
-									// 从旧表装载时，马上设为脏，使得可以写入新表。
-									// 否则直到被修改前，都不会被保存到当前数据库中。
-									r.setDirty();
 								}
 							}
+							if (strongRef != null)
+								strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 						}
-						if (strongRef != null)
-							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 					} else {
 						// 内存表如果限制了内存（capacity）大小，执行了clean，才会执行这里的逻辑。
 						// 从本地硬盘缓存装载数据。
@@ -1265,7 +1274,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (r.getState() == StateInvalid) {
 						var now = System.currentTimeMillis();
 						var ts = r.getTimestamp();
-						if (ts >= 0 || now + ts >= cacheTTL) { // 距上次selectDirty超过cacheTTL则从数据库里加载最新值
+						// Invalid+dirty的记录（GCM reduce的flush失败或Releaser降级窗口遗留）：
+						// 后台库中还是旧值（脏数据尚未checkpoint），装载会覆盖丢失内存中已提交的修改。
+						// see TableX.load 的dirty检查。
+						if (!r.getDirty() && (ts >= 0 || now + ts >= cacheTTL)) { // 距上次selectDirty超过cacheTTL则从数据库里加载最新值
 							if (ZezeCounter.instance != null)
 								ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
 							V strongRef = storage.getDatabaseTable().find(this, key);
