@@ -151,11 +151,11 @@ public class HotModule extends ClassLoader implements Closeable {
 	}
 
 	@Override
-	protected Class<?> findClass(String className) {
+	protected Class<?> findClass(String className) throws ClassNotFoundException {
 		return loadModuleClass(className);
 	}
 
-	private Class<?> loadModuleClass(String className) {
+	private Class<?> loadModuleClass(String className) throws ClassNotFoundException {
 		String classFileName = className.replace('.', '/') + ".class";
 		ZipEntry entry;
 		try {
@@ -165,7 +165,10 @@ public class HotModule extends ClassLoader implements Closeable {
 			throw new RuntimeException(e);
 		}
 		if (entry == null)
-			logger.error("loadModuleClass: not found entry: '{}'", classFileName);
+			// 必须按loadClass契约抛ClassNotFoundException而不是继续走下去：
+			// getInputStream(null)只会得到NullPointerException，调用方按CNFE写的
+			// 回退逻辑（拼错类名、反射探测、编译器探测）全部失效。
+			throw new ClassNotFoundException(className);
 		return loadModuleClass(className, entry);
 	}
 
