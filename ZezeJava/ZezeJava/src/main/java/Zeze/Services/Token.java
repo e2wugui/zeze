@@ -735,8 +735,20 @@ public final class Token extends AbstractToken {
 					if (maxCount > 0 && count >= maxCount && !tokenMap.remove(token, state))
 						res.setTime(-3);
 					else {
-						// 达到maxCount被成功移除后置-1（与"移除即置-1"约定一致），防止软引用清理时moveToDB写回复活耗尽token。
-						state.count = (maxCount > 0 && count >= maxCount) ? -1 : count;
+						if (maxCount > 0 && count >= maxCount) {
+							// 达到maxCount被成功移除后置-1（与"移除即置-1"约定一致），防止软引用清理时moveToDB写回复活耗尽token。
+							state.count = -1;
+							// 核销还必须删除RocksDB中已落库的副本：核销前saveDB/moveToDB写入的旧count
+							// 会在重启/软引用回收后经DB回载重新起算，同一token可无限次重放
+							// （707a0eff1只封住了核销后被moveToDB写回，未清核销前已落库的副本）。
+							// moveToDB/saveDB都持state.lock且跳过count==-1的state，删后不会被写回。
+							try {
+								tokenMapTable.delete(token.getBytes(StandardCharsets.UTF_8));
+							} catch (Exception e) {
+								logger.warn("tokenMapTable.delete on consume exception:", e);
+							}
+						} else
+							state.count = count;
 						res.setContext(state.context);
 						res.setCount(count);
 						res.setTime(time - state.createTime);
