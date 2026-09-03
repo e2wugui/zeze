@@ -127,22 +127,25 @@ public class LogService extends AbstractLogService {
 		var result = new LinkedList<Log4jLog>();
 
 		boolean remain;
-		if (!r.Argument.getCondition().getWords().isEmpty()) {
-			if (r.Argument.isReset())
-				logSession.reset();
-			remain = logSession.browseContains(result,
-					r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
-					r.Argument.getCondition().getWords(), r.Argument.getCondition().getContainsType(),
-					r.Argument.getLimit(), r.Argument.getOffsetFactor());
-		} else if (!r.Argument.getCondition().getPattern().isEmpty()) {
-			if (r.Argument.isReset())
-				logSession.reset();
-			remain = logSession.browseRegex(result,
-					r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
-					r.Argument.getCondition().getPattern(),
-					r.Argument.getLimit(), r.Argument.getOffsetFactor());
-		} else
-			throw new IllegalArgumentException("no condition.");
+		// Log4jFileWalker非线程安全（currentIndex/current无锁），同sid并发Browse/Search会损坏游标并泄漏文件句柄，按会话串行化。
+		synchronized (logSession) {
+			if (!r.Argument.getCondition().getWords().isEmpty()) {
+				if (r.Argument.isReset())
+					logSession.reset();
+				remain = logSession.browseContains(result,
+						r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
+						r.Argument.getCondition().getWords(), r.Argument.getCondition().getContainsType(),
+						r.Argument.getLimit(), r.Argument.getOffsetFactor());
+			} else if (!r.Argument.getCondition().getPattern().isEmpty()) {
+				if (r.Argument.isReset())
+					logSession.reset();
+				remain = logSession.browseRegex(result,
+						r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
+						r.Argument.getCondition().getPattern(),
+						r.Argument.getLimit(), r.Argument.getOffsetFactor());
+			} else
+				throw new IllegalArgumentException("no condition.");
+		}
 
 		r.Result.setRemain(remain);
 		for (var log : result)
@@ -159,22 +162,25 @@ public class LogService extends AbstractLogService {
 			return Procedure.LogicError;
 		var result = new ArrayList<Log4jLog>();
 		boolean remain;
-		if (!r.Argument.getCondition().getWords().isEmpty()) {
-			if (r.Argument.isReset())
-				logSession.reset();
-			remain = logSession.searchContains(result,
-					r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
-					r.Argument.getCondition().getWords(), r.Argument.getCondition().getContainsType(),
-					r.Argument.getLimit());
-		} else if (!r.Argument.getCondition().getPattern().isEmpty()) {
-			if (r.Argument.isReset())
-				logSession.reset();
-			remain = logSession.searchRegex(result,
-					r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
-					r.Argument.getCondition().getPattern(),
-					r.Argument.getLimit());
-		} else
-			throw new IllegalArgumentException("no condition.");
+		// 同Browse：walker非线程安全，按会话串行化（FND-S3-9）。
+		synchronized (logSession) {
+			if (!r.Argument.getCondition().getWords().isEmpty()) {
+				if (r.Argument.isReset())
+					logSession.reset();
+				remain = logSession.searchContains(result,
+						r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
+						r.Argument.getCondition().getWords(), r.Argument.getCondition().getContainsType(),
+						r.Argument.getLimit());
+			} else if (!r.Argument.getCondition().getPattern().isEmpty()) {
+				if (r.Argument.isReset())
+					logSession.reset();
+				remain = logSession.searchRegex(result,
+						r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
+						r.Argument.getCondition().getPattern(),
+						r.Argument.getLimit());
+			} else
+				throw new IllegalArgumentException("no condition.");
+		}
 
 		r.Result.setRemain(remain);
 		for (var log : result)
