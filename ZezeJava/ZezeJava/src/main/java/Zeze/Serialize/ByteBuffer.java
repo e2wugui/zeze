@@ -310,7 +310,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	public void EnsureWrite(int size) {
 		int newSize = WriteIndex + size;
-		if (newSize > Bytes.length)
+		if (newSize < 0 || newSize > Bytes.length) // 溢出回绕为负(或size为负)需落入toPower2的无符号上限检查抛ISE，静默跳过会让后续写抛无上下文的AIOOBE
 			growCapacity(newSize);
 	}
 
@@ -322,7 +322,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	public void ensureWriteNoCompact(int size) {
 		int newSize = WriteIndex + size;
-		if (newSize > Bytes.length)
+		if (newSize < 0 || newSize > Bytes.length) // 同EnsureWrite：拦截溢出回绕/负size，统一由toPower2抛上限ISE
 			growCapacityNoCompact(newSize);
 	}
 
