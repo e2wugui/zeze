@@ -24,6 +24,8 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 	}
 
 	public ReplayAttackGrowRange(int limit) {
+		if (limit > (1 << 30))
+			throw new IllegalArgumentException("limit too large: " + limit); // 再倍增会 int 溢出为负，原实现死循环
 		int capacity = 1;
 		while (limit > capacity)
 			capacity <<= 1;

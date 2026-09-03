@@ -18,7 +18,9 @@ public class ReplayAttackGrowRange2 extends FastLock implements ReplayAttack {
 	public ReplayAttackGrowRange2(int windowSize) {
 		if (windowSize <= 0)
 			throw new IllegalArgumentException("windowSize <= 0: " + windowSize);
-		int capacity = 1 << (32 - (Integer.numberOfLeadingZeros((windowSize + BITS_MASK - 1) >> BITS_SHIFT))); // 1=>1; 2~65=>2; ...
+		// 中间量用 long 计算：windowSize 接近 Integer.MAX_VALUE 时 windowSize+BITS_MASK-1 会 int 溢出为负，
+		// 导致 nlz=0、capacity=1<<32==1<<0==1，窗口声称极大而实际只有 64 位（静默语义错误）。
+		int capacity = 1 << (64 - Long.numberOfLeadingZeros(((long)windowSize + BITS_MASK - 1) >> BITS_SHIFT)); // 1=>1; 2~65=>2; ...
 		bits = new long[capacity];
 		indexMask = capacity - 1;
 		this.windowSize = windowSize;
