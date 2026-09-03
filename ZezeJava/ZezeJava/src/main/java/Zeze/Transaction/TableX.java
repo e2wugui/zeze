@@ -546,7 +546,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							try {
 								// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
 								v.setState(StateInvalid);
-								// flushWhenReduce(v); // 改成使用全服checkpoint.
+								// 脏记录必须先落库再降级（durability-before-downgrade）：
+								// 调用方Releaser在降级之后才执行全服checkpoint，如果降级不flush，
+								// GCM可能已把权限授予其他进程，本进程稍后的checkpoint会用
+								// 旧事务的脏值覆盖别人的修改（跨进程丢更新）。see reduceInvalid。
+								if (v.getDirty())
+									flushWhenReduce(v);
 							} finally {
 								v.exitFairLock();
 							}
@@ -572,7 +577,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					v.enterFairLock();
 					try {
 						v.setState(StateInvalid);
-						// flushWhenReduce(v); // 改成使用全服checkpoint.
+						// 同上：脏记录先落库再降级。
+						if (v.getDirty())
+							flushWhenReduce(v);
 					} finally {
 						v.exitFairLock();
 					}
