@@ -20,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.params.SetParams;
 
@@ -93,7 +94,15 @@ public class DatabaseRedis extends Database {
 		public void commit() {
 			if (n >= 10000)
 				logger.warn("RedisTransaction commit too many records: {}", n);
-			jedisTrans.exec();
+			// MULTI/EXEC 中命令级错误（WRONGTYPE、内存超限等）不打断 exec，
+			// 而是作为异常元素出现在 exec 的返回列表里（已核 Jedis 5.2.0 Transaction.exec 源码）。
+			// 丢弃返回值会让部分写失败被静默吞掉：checkpoint 误判 flush 成功并清除脏标记，已提交数据无声丢失。
+			// 抛出让 checkpoint 走失败重试（hset/hdel 幂等，重放安全）。
+			var results = jedisTrans.exec();
+			if (results != null)
+				for (var r : results)
+					if (r instanceof JedisDataException e)
+						throw e;
 		}
 
 		@Override
