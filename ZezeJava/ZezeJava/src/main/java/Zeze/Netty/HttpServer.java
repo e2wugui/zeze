@@ -54,13 +54,17 @@ import io.netty.channel.socket.ChannelInputShutdownReadComplete;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.unix.Errors;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.HttpDecoderConfig;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.util.AttributeKey;
@@ -557,6 +561,12 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	public void channelRead(@NotNull ChannelHandlerContext ctx, @Nullable Object msg) throws Exception {
 		try {
 			var channelId = ctx.channel().id();
+			// 拦截解码失败的消息(如畸形chunk size):Netty对此类错误不抛异常,而是产出带失败DecoderResult的
+			// 空LastHttpContent或invalid message,不拦截的话截断的body会被当成完整请求交给handler处理。
+			if (msg instanceof HttpObject httpObj && httpObj.decoderResult().isFailure()) {
+				onDecodeFailure(ctx, httpObj);
+				return;
+			}
 			HttpExchange x;
 			if (msg instanceof HttpRequest) {
 				if ((x = createHttpExchange(ctx)) == null)
@@ -568,6 +578,20 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		} finally {
 			ReferenceCountUtil.release(msg);
 		}
+	}
+
+	// 畸形http消息(非法chunk size/坏头等):解码器产出DecoderResult.failure的HttpObject而不是抛异常。
+	// 统一记录日志,回400并关闭连接;同时清理可能已半处理的exchange(release retain的request和已累积的content)。
+	protected void onDecodeFailure(@NotNull ChannelHandlerContext ctx, @NotNull HttpObject obj) {
+		var ch = ctx.channel();
+		Netty.logger.error("http decode failure from {}: {}", ch.remoteAddress(), obj.decoderResult().cause());
+		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST,
+				Unpooled.EMPTY_BUFFER, HttpExchange.headersFactory, HttpExchange.trailersFactory);
+		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+		var cf = ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
+		var x = exchanges.remove(ch.id()); // 先移除,后续消息不再派发
+		if (x != null)
+			x.close(HttpExchange.CLOSE_ON_FLUSH, cf);
 	}
 
 	@Override
