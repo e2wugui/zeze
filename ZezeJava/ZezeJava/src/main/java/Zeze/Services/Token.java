@@ -318,6 +318,7 @@ public final class Token extends AbstractToken {
 
 		@Override
 		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+			checkMaxConnections(); // 覆写丢掉了 Service.OnSocketAccept 的连接数上限检查，这里补回（FND-S3-2）
 			addSocket(so);
 			OnHandshakeDone(so);
 		}

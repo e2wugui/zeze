@@ -56,6 +56,18 @@ public class HandshakeBase extends Service {
 		super(name, app);
 	}
 
+	/**
+	 * 连接数上限检查。
+	 * 覆写 OnSocketAccept 的握手服务子类（HandshakeServer/HandshakeBoth/TokenServer 等）不再走
+	 * Service.OnSocketAccept 的默认实现，会丢失其中的 maxConnections 检查（FND-S3-2）；
+	 * 这些覆写点必须在第一行调用本方法恢复强制。超限时抛出 IllegalStateException，
+	 * 由 accept 流程（TcpSocket 构造的 catch）关闭新连接。
+	 */
+	protected final void checkMaxConnections() {
+		if (getSocketCount() >= getConfig().getMaxConnections())
+			throw new IllegalStateException("too many connections");
+	}
+
 	@Override
 	public boolean isHandshakeProtocol(long typeId) {
 		return handshakeProtocols.contains(typeId);

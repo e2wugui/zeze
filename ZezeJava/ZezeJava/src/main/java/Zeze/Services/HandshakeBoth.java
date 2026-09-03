@@ -23,6 +23,7 @@ public class HandshakeBoth extends HandshakeBase {
 	@Override
 	public void OnSocketAccept(@NotNull AsyncSocket so) {
 		// 重载这个方法，推迟OnHandshakeDone调用
+		checkMaxConnections(); // 覆写丢掉了 Service.OnSocketAccept 的连接数上限检查，这里补回（FND-S3-2）
 		addSocket(so);
 
 		var hand0 = new SHandshake0();
