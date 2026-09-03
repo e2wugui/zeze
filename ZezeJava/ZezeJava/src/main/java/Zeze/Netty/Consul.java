@@ -17,7 +17,12 @@ public class Consul {
 	private final ConcurrentHashMap<HttpServer, String> services = new ConcurrentHashMap<>();
 
 	public Consul(@NotNull String consulHost) {
-		client = new ConsulClient(consulHost);
+		this(new ConsulClient(consulHost));
+	}
+
+	// 复用外部构建的client(也便于测试注入mock)
+	public Consul(@NotNull ConsulClient client) {
+		this.client = client;
 	}
 
 	public @NotNull ConsulClient getClient() {
@@ -40,8 +45,12 @@ public class Consul {
 		newService.setId(serviceId); // todo 估计需要唯一。
 		newService.setName(serviceName); // todo 这是服务名，一个服务名下有多个Id？
 
+		// Consul健康检查的http URL必须是标准形式"schema://host[:port]/path":host只能是ip或主机名,
+		// 不能把serviceId拼进去(原实现"http://@ip:port@serviceName/path"的host部分非法,探活必然失败,服务持续被判不健康)。
+		// IPv6字面量地址在URL里必须加方括号。
+		var host = ip.contains(":") ? "[" + ip + "]" : ip;
 		var checker = new NewService.Check();
-		checker.setHttp("http://" + serviceId + PassiveKeepAlivePath);
+		checker.setHttp("http://" + host + ":" + port + PassiveKeepAlivePath);
 		newService.setCheck(checker);
 		/* checker 网上的配置，需要都设置？
 			{
