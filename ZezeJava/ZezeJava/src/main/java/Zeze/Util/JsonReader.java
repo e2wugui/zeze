@@ -783,19 +783,57 @@ public final class JsonReader {
 		pos++;
 	}
 
-	@SuppressWarnings("UnnecessaryLocalVariable")
 	int parseKeyHash(int e) {
+		final byte[] buffer = buf;
 		pos++; // skip the first '"' or '\''
-		int b = buf[pos++];
+		int b = buffer[pos++];
 		if (b == e)
 			return 0;
-		if (b == '\\')
-			b = buf[pos++];
-		for (int h = b, m = keyHashMultiplier; ; h = h * m + b) {
-			if ((b = buf[pos++]) == e)
+		//noinspection UnnecessaryLocalVariable
+		final int m = keyHashMultiplier;
+		int h = 0;
+		for (; ; ) {
+			if (b == '\\') { // decode escapes and hash the decoded utf-8 bytes, so that the hash matches
+				// getKeyHash() over the raw utf-8 bytes of the field name (same decoding as parseString)
+				int c = buffer[pos++];
+				if (c == 'u') {
+					c = parseHex4(buffer, pos);
+					pos += 4;
+					if (c >= 0xd800 && c < 0xdc00 && buffer[pos] == '\\' && buffer[pos + 1] == 'u') {
+						int c2 = parseHex4(buffer, pos + 2);
+						if ((c2 & 0xfc00) == 0xdc00) { // utf-16 surrogate pair -> 4-bytes utf-8
+							pos += 6;
+							c = (c << 10) + c2 + (0x10000 - (0xd800 << 10) - 0xdc00);
+							h = h * m + (byte)(0xf0 + (c >> 18));
+							h = h * m + (byte)(0x80 + ((c >> 12) & 0x3f));
+							h = h * m + (byte)(0x80 + ((c >> 6) & 0x3f));
+							h = h * m + (byte)(0x80 + (c & 0x3f));
+							c = -1; // all bytes hashed
+						}
+					}
+					if (c >= 0) {
+						if (c >= 0x800) { // 3-bytes utf-8 (incl. lone surrogate)
+							h = h * m + (byte)(0xe0 + (c >> 12));
+							h = h * m + (byte)(0x80 + ((c >> 6) & 0x3f));
+							h = h * m + (byte)(0x80 + (c & 0x3f));
+						} else if (c >= 0x80) { // 2-bytes utf-8
+							h = h * m + (byte)(0xc0 + (c >> 6));
+							h = h * m + (byte)(0x80 + (c & 0x3f));
+						} else // 1-byte
+							h = h * m + (byte)c;
+					}
+				} else {
+					c = c >= 0x20 ? ESCAPE[c - 0x20] : (c & 0xff);
+					if (c >= 0x80) { // same lenient decoding as parseString(): U+0080..U+00FF -> 2-bytes utf-8
+						h = h * m + (byte)(0xc0 + (c >> 6));
+						h = h * m + (byte)(0x80 + (c & 0x3f));
+					} else
+						h = h * m + (byte)c;
+				}
+			} else
+				h = h * m + b;
+			if ((b = buffer[pos++]) == e)
 				return h;
-			if (b == '\\')
-				b = buf[pos++];
 		}
 	}
 
