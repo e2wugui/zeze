@@ -24,10 +24,21 @@ public class TestTakeoverIdentifySuspect {
 	@Test
 	public void testSuspectBroadcastOnClose() throws Exception {
 		// 动态分配空闲端口（@Fast禁固定端口；端口0的绑定结果无法从SM取出，用预探测）。
-		int port;
-		try (var ss = new ServerSocket(0)) {
-			port = ss.getLocalPort();
+		// 必须TCP+UDP双探测：SM的Id128UdpServer要在同端口号绑UDP，全量单JVM运行时
+		// 残留的Id128Udp实例可能占着该UDP端口（TCP空闲≠UDP空闲，实测BindException）。
+		int port = -1;
+		for (int attempt = 0; attempt < 32 && port < 0; ++attempt) {
+			int candidate;
+			try (var ss = new ServerSocket(0)) {
+				candidate = ss.getLocalPort();
+			}
+			try (var ds = new java.net.DatagramSocket(candidate)) {
+				port = candidate; // TCP+UDP都空闲才使用
+			} catch (java.net.BindException ignore) {
+				// UDP被占（如残留Id128UdpClient的临时端口），换下一个
+			}
 		}
+		Assertions.assertTrue(port > 0, "32次尝试内未找到TCP+UDP同时空闲的端口");
 		// autokeys目录放在已被gitignore的autokeys/下，避免污染仓库；RocksDB需要父目录存在。
 		Files.createDirectories(Path.of("autokeys"));
 
