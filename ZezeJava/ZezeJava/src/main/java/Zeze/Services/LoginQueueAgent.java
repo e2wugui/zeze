@@ -19,7 +19,8 @@ public class LoginQueueAgent extends AbstractLoginQueueAgent {
 	}
 
 	private final LoginQueueAgentService service;
-	private BSecret.Data secret;
+	// 协议处理线程写、linkd的Auth处理线程读，跨线程发布需要volatile（与onConnected一致）。
+	private volatile BSecret.Data secret;
 	private final int serverId;
 	private final String serviceIp;
 	private final int servicePort;
