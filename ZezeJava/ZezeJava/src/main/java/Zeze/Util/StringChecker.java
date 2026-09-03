@@ -94,12 +94,14 @@ public final class StringChecker {
 				Trie next = trie.get(chars[i]);
 				if (next == null) {
 					if (iLast < eLast) {
+						// 贪心长词失败，替换积累的短词区间。不回退i、不回到根：
+						// 沿fail保持积累词的后缀状态(此时尚未写入替换的chars[i]读取安全)，
+						// 否则重叠词(前词后缀=后词前缀)的后缀起点被消费丢失。
 						do
 							chars[iLast++] = replaceChar;
 						while (iLast < eLast);
-						i = iLast;
 						replaced = true;
-						trie = this;
+						trie = trie.fail;
 						continue;
 					}
 					if (trie == this) {
@@ -110,9 +112,25 @@ public final class StringChecker {
 					continue;
 				}
 				if (next == trie) {
+					// 叶子命中(父节点自引用)：词区间[i-trie.deep, i]。替换后需要恢复后缀状态，
+					// 否则构成重叠词的已消费字符(如词表{ab,bc}的b)永远没有机会作为起点。
+					// 此时chars[i]已被替换，用保存的原字符c沿fail链查找后缀转移(等效AC自动机
+					// 虚拟叶子节点的fail)；后缀本身是完整词(叶自引用)时已被上面的替换区间覆盖，继续找更短后缀。
+					char c = chars[i];
+					Trie parent = trie; // 词尾字符的父节点，fail链从它的fail(最长后缀)开始枚举
 					for (int j = i - trie.deep; j <= i; j++)
 						chars[j] = replaceChar;
 					replaced = true;
+					trie = this;
+					for (Trie t = parent.fail; ; t = t.fail) {
+						Trie suffixNext = t.get(c);
+						if (suffixNext != null && suffixNext != t) {
+							trie = suffixNext;
+							break;
+						}
+						if (t == t.fail) // root：后缀枚举完，回到根
+							break;
+					}
 					i++;
 					continue;
 				}
