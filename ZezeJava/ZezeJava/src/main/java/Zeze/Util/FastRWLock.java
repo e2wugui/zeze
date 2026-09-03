@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * 适合读极多写极少的场合,也就是需要等锁的场合极少,让读锁的开销最小化,一旦需要等锁则使用sleep忙等,只支持读锁与读锁的重入
  */
 public class FastRWLock extends AtomicLong {
-	private static final long LOCK_MASK = 0x7fff_ffff_ffff_ffffL;
 	private static final long WRITE_WAIT_FLAG = 0x8000_0000_0000_0000L;
 	private static final long WRITE_LOCK_FLAG = 0xc000_0000_0000_0000L;
 
@@ -66,7 +65,8 @@ public class FastRWLock extends AtomicLong {
 	public void writeLock() {
 		for (; ; ) {
 			final long s = get();
-			if ((s & LOCK_MASK) == 0) { // 如果没有读标记和写独占
+			if (s == 0 || s == WRITE_WAIT_FLAG) { // 完全空闲，或读者已退出只剩写等待标记：可升级为写独占。
+				// 不能用 (s & LOCK_MASK) == 0 判断：它把写独占标志也掩掉，写锁持有时 CAS(s, WRITE_LOCK_FLAG) 平凡成功，写-写不互斥。
 				if (compareAndSet(s, WRITE_LOCK_FLAG))
 					return; // 加写独占标记,阻止其它读写操作
 			} else if (s < 0 || compareAndSet(s, s | WRITE_WAIT_FLAG)) { // 如果只有读标记,那么加写等待标记,阻止读锁
