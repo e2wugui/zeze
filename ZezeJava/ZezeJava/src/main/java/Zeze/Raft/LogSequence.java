@@ -820,8 +820,9 @@ public class LogSequence {
 	}
 
 	public long getTestStateMachineCount() {
-		StateMachine stateMachine = raft.getStateMachine();
-		return stateMachine instanceof Test.TestStateMachine ? ((Test.TestStateMachine)stateMachine).getCount() : -1;
+		// 状态机自己提供的观测计数（FND-R1-7）：不再instanceof Test.TestStateMachine，
+		// 主源码与主源码目录里的测试壳类解耦；默认-1表示无。
+		return raft.getStateMachine().getDebugCount();
 	}
 
 	public void sendHeartbeatTo(Server.ConnectorEx connector) {

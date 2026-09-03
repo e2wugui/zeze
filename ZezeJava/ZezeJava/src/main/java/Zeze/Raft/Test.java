@@ -651,6 +651,12 @@ public class Test {
 			return count;
 		}
 
+		// 日志输出用的观测计数（FND-R1-7：主源码不再instanceof本类取count）。
+		@Override
+		public long getDebugCount() {
+			return count;
+		}
+
 		public void setCount(long value) {
 			count = value;
 		}
