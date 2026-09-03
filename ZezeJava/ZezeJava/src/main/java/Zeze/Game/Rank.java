@@ -32,6 +32,7 @@ public class Rank extends AbstractRank {
 	private volatile IntUnaryOperator funcRankSize;
 	private volatile IntUnaryOperator funcConcurrentLevel;
 	private volatile LongUnaryOperator funcRankCacheTimeout;
+	private volatile IntUnaryOperator funcRankCacheCapacity;
 
 	@SuppressWarnings("CanBeFinal")
 	private volatile float computeFactor = 2.5f;
@@ -60,6 +61,14 @@ public class Rank extends AbstractRank {
 
 	public LongUnaryOperator getFuncRankCacheTimeout() {
 		return funcRankCacheTimeout;
+	}
+
+	public void setFuncRankCacheCapacity(IntUnaryOperator funcRankCacheCapacity) {
+		this.funcRankCacheCapacity = funcRankCacheCapacity;
+	}
+
+	public IntUnaryOperator getFuncRankCacheCapacity() {
+		return funcRankCacheCapacity;
 	}
 
 	public void setFuncRankSize(IntUnaryOperator funcRankSize) {
@@ -207,6 +216,24 @@ public class Rank extends AbstractRank {
 	}
 
 	/**
+	 * rankCached 缓存的容量上限。【有默认值】
+	 * FND-G1-7：周期榜（Day/Week/Season/Year）每个新周期 key、自定义榜（TimeTypeCustomize）
+	 * 每个 customizeId 首次访问都会新建 RankTotal 并持有全量合并快照，旧 key 不再被查询。
+	 * 超过上限时先淘汰已过期的条目，仍超限则按 BuildTime 淘汰最旧的（近似 LRU）。
+	 * 返回 &lt;=0 表示不淘汰（不设上限）。
+	 */
+	public final int getRankCacheCapacity(int rankType) {
+		var volatileTmp = funcRankCacheCapacity;
+		if (null != volatileTmp)
+			return volatileTmp.applyAsInt(rankType);
+		// default：默认值与 rankSize(100)/concurrentLevel(128) 同量级。
+		// 每条目一份全量快照（默认 <=100 条，约 1-3KB），256 条常驻上限 <1MB；
+		// 足够容纳总榜+当期周期榜+典型规模的活跃自定义榜（公会/活动），
+		// 避免活跃榜被挤出后每次访问都触发 getRankDirect 全量合并（默认 128 段）的性能反噬。
+		return 256;
+	}
+
+	/**
 	 * 排行榜中间数据的数量。【有默认值】
 	 */
 	public final int getComputeCount(int rankType) {
@@ -348,12 +375,52 @@ public class Rank extends AbstractRank {
 
 	private final ConcurrentHashMap<BConcurrentKey, RankTotal> rankCached = new ConcurrentHashMap<>();
 
+	/**
+	 * FND-G1-7：rankCached 超过容量上限时的淘汰。
+	 * 先淘汰已过期的条目（下次访问自动重建，无功能影响），仍超限则按 BuildTime 淘汰最旧的
+	 * （近似 LRU）；当前正在服务的 keep（刚 computeIfAbsent 得到/重建的）受保护，
+	 * 避免新条目因 BuildTime 尚未设置被立即淘汰。
+	 * 不同 rankType 共用本 map，统一使用当前 rankType 的配置，只影响淘汰早晚，不影响正确性。
+	 * 淘汰仅移除 map 条目：已拿到旧 RankTotal 引用的读者不受影响（快照仍在对象内），
+	 * 并发竞争（其他线程先移除/替换同 key）时本轮放弃，等待下次访问再触发。
+	 */
+	private void evictRankCacheIfOver(int rankType, RankTotal keep) {
+		int capacity = getRankCacheCapacity(rankType);
+		if (capacity <= 0 || rankCached.size() <= capacity)
+			return;
+		long now = System.currentTimeMillis();
+		long timeout = getRankCacheTimeout(rankType);
+		for (var it = rankCached.entrySet().iterator(); it.hasNext(); ) {
+			if (rankCached.size() <= capacity)
+				return;
+			var total = it.next().getValue();
+			if (total != keep && now - total.getBuildTime() >= timeout)
+				it.remove();
+		}
+		while (rankCached.size() > capacity) {
+			BConcurrentKey oldestKey = null;
+			RankTotal oldestTotal = null;
+			for (var entry : rankCached.entrySet()) {
+				var total = entry.getValue();
+				if (total == keep)
+					continue;
+				if (oldestTotal == null || total.getBuildTime() < oldestTotal.getBuildTime()) {
+					oldestTotal = total;
+					oldestKey = entry.getKey();
+				}
+			}
+			if (oldestKey == null || !rankCached.remove(oldestKey, oldestTotal))
+				return; // 只剩 keep 或并发竞争：交给下次访问
+		}
+	}
+
 	public RankTotal getRankTotal(BConcurrentKey keyHint) {
 		return getRankTotal(keyHint, getRankSize(keyHint.getRankType()));
 	}
 
 	public RankTotal getRankTotal(BConcurrentKey keyHint, int countNeed) {
 		var rank = rankCached.computeIfAbsent(keyHint, __ -> new RankTotal(keyHint));
+		evictRankCacheIfOver(keyHint.getRankType(), rank);
 		var now = System.currentTimeMillis();
 		rank.lock();
 		try {
