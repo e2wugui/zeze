@@ -2128,13 +2128,17 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	protected long ProcessReLoginRequestOnlineSet(@NotNull ReLogin rpc) {
 		var done = new OutObject<>(false);
-		while (!done.value) {
+		// 与Login相同的重做上限（for 3次）：无上限的while在多端互踢风暴/脚本客户端下，
+		// 每轮循环都成功执行完整登录+登出事务并再次进入顶号分支，线程在handler内无限自旋。
+		for (var i = 0; i < 3 && !done.value; ++i) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done),
 					"ProcessReLoginRequest")).call();
 			if (r != 0)
 				return r;
 		}
-		return 0;
+		if (done.value)
+			return 0; // 正常完成。
+		return Procedure.LogicError;
 	}
 
 	private long ProcessReLoginRequest(@NotNull ReLogin rpc, @NotNull OutObject<Boolean> done) throws Exception {
