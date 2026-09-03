@@ -777,7 +777,10 @@ public final class Application extends ReentrantLock {
 	public void stop() throws Exception {
 		lock();
 		try {
-			instances.remove(getProjectName());
+			// FND-A1-6：同名实例时putIfAbsent只保留先注册者，无条件remove会错删他人的注册，
+			// 导致幸存实例的Online.findOnline失效（延迟登出静默丢失）。remove(key,value)
+			// 只删属于自己的注册（Application按引用判等）。
+			instances.remove(getProjectName(), this);
 
 			if (null != checkpointFuture) {
 				checkpointFuture.get();
