@@ -238,10 +238,7 @@ public class AchillesHeelDaemon {
 							var rr = agent.checkReleaseTimeout(System.currentTimeMillis(), config.serverReleaseTimeout);
 							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 								// 本地发现超时，先自杀，不用等进程守护来杀。
-								logger.fatal("ProcessDaemon.AchillesHeelDaemon global release timeout. index={}", r.globalIndex);
-								zeze.checkpointRun();
-								LogManager.shutdown();
-								Runtime.getRuntime().halt(123123);
+								haltOnReleaseTimeout(r.globalIndex);
 							}
 							if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
 								// 这个判断只能避免正在Releasing时不要启动新的Release。
@@ -258,8 +255,18 @@ public class AchillesHeelDaemon {
 					}
 					// 执行KeepAlive
 					var now = System.currentTimeMillis();
-					for (GlobalAgentBase agent : agents) {
+					for (int i = 0; i < agents.length; i++) {
+						var agent = agents[i];
 						var config = agent.getConfig();
+						// 周期检查Release状态（与ThreadDaemon一致）：
+						// 1. 已完成的Releaser必须及时清理，否则isReleasing永真导致acquire永久abort。
+						//    Release命令是checkReleaseTimeout唯一入口时，keepAlive恢复会刷新activeTime，
+						//    daemon不再发Release，已完成的releaser就永远没人清理。
+						// 2. Releaser超时自行处置，不等daemon的Release命令到达。
+						// 这里只观察已有Releaser的状态，不startRelease——开启新Release仍只能由Release命令触发。
+						var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
+						if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
+							haltOnReleaseTimeout(i);
 						var idle = now - agent.getActiveTime();
 						if (idle > config.serverKeepAliveIdleTimeout) {
 							//logger.debug("KeepAlive ServerKeepAliveIdleTimeout={}", config.ServerKeepAliveIdleTimeout);
@@ -274,6 +281,14 @@ public class AchillesHeelDaemon {
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(321321);
 			}
+		}
+
+		// 本地发现Releaser超时，先自杀，不用等进程守护来杀（Release命令分支与周期检查共用）。
+		private void haltOnReleaseTimeout(int globalIndex) {
+			logger.fatal("ProcessDaemon.AchillesHeelDaemon global release timeout. index={}", globalIndex);
+			zeze.checkpointRun();
+			LogManager.shutdown();
+			Runtime.getRuntime().halt(123123);
 		}
 
 		public void stopAndJoin() {
