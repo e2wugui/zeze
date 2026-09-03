@@ -186,6 +186,10 @@ public final class Transaction {
 
 	public void rollback() {
 		int lastIndex = savepoints.size() - 1;
+		if (lastIndex < 0)
+			// 空栈时savepoints.remove(-1)抛无消息的IndexOutOfBoundsException，掩盖配对错误
+			// （如finalRollback清空savepoints后，回调内误调rollback）。显式报错，风格对齐verifyRunning。
+			throw new IllegalStateException("rollback: savepoints is empty. begin/rollback not paired.");
 		Savepoint last = savepoints.remove(lastIndex);
 		// last.Rollback();
 		if (lastIndex > 0)
