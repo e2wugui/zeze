@@ -102,6 +102,8 @@ public class LogOne<V extends Bean> extends LogBean {
 
 	@Override
 	public @NotNull String toString() {
-		return value.toString();
+		// decode可构造出value==null的LogOne（hasValue=false&&hasLogBean=true，见decode），
+		// encode/commit都处理了null，这里不处理的话日志打印级联调用会抛NPE掩盖原始异常。
+		return value != null ? value.toString() : "LogOne(logBean=" + logBean + ")";
 	}
 }
