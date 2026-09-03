@@ -136,69 +136,97 @@ public final class Task {
 		return threadPoolScheduled;
 	}
 
-	public static @NotNull ExecutorService getCriticalThreadPool() {
+	// 注意：shutdown 后返回 null（与 getThreadPool/getScheduledThreadPool 一致），调用方需判空
+	public static ExecutorService getCriticalThreadPool() {
 		return threadPoolCritical;
 	}
 
 	/**
 	 * 停止Task里面包含的默认的三个线程池,default,scheduled,critical。
+	 * 幂等：池未初始化或已停止（字段为null）时跳过，不抛异常。
 	 *
 	 * @param maxAwait 等待任务结束的毫秒数。
 	 * @throws InterruptedException await被中断异常
 	 * @throws TimeoutException     await超时异常
 	 */
 	public static void shutdownNow(long maxAwait) throws InterruptedException, TimeoutException {
-
-		threadPoolScheduled.shutdownNow();
-		threadPoolDefault.shutdownNow();
-		threadPoolCritical.shutdownNow();
-
-		var threadPoolScheduledTmp = threadPoolScheduled;
-		var threadPoolDefaultTmp = threadPoolDefault;
-		var threadPoolCriticalTmp = threadPoolCritical;
-		threadPoolScheduled = null;
-		threadPoolDefault = null;
-		threadPoolCritical = null;
-
-		var timeout = "";
-		if (!threadPoolScheduledTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
-			timeout += "await threadPoolScheduled timeout,";
-		if (!threadPoolDefaultTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
-			timeout += "await threadPoolDefault timeout,";
-		if (!threadPoolCriticalTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
-			timeout += "await threadPoolCritical timeout,";
-		if (!timeout.isEmpty())
-			throw new TimeoutException(timeout);
+		shutdownPools(true, maxAwait);
 	}
 
 	/**
 	 * 停止Task里面包含的默认的三个线程池,default,scheduled,critical。
+	 * 幂等：池未初始化或已停止（字段为null）时跳过，不抛异常。
 	 *
 	 * @param maxAwait 等待任务结束的毫秒数。
 	 * @throws InterruptedException await被中断异常
 	 * @throws TimeoutException     await超时异常
 	 */
 	public static void shutdown(long maxAwait) throws InterruptedException, TimeoutException {
-		threadPoolScheduled.shutdown();
-		threadPoolDefault.shutdown();
-		threadPoolCritical.shutdown();
+		shutdownPools(false, maxAwait);
+	}
 
-		var threadPoolScheduledTmp = threadPoolScheduled;
-		var threadPoolDefaultTmp = threadPoolDefault;
-		var threadPoolCriticalTmp = threadPoolCritical;
-		threadPoolScheduled = null;
-		threadPoolDefault = null;
-		threadPoolCritical = null;
+	// 与 tryInitThreadPool 同锁互斥：避免"读到旧池→并发初始化建新池→置null"竞态把新池引用抹掉却不关闭。
+	// 先置null再等待：等待期间新提交立即走 poolOrThrow 的明确失败路径，而不是进入已 shutdown 的池被静默拒绝。
+	private static void shutdownPools(boolean now, long maxAwait) throws InterruptedException, TimeoutException {
+		ScheduledExecutorService scheduledTmp;
+		ExecutorService defaultTmp;
+		ExecutorService criticalTmp;
+		taskLock.lock();
+		try {
+			scheduledTmp = threadPoolScheduled;
+			defaultTmp = threadPoolDefault;
+			criticalTmp = threadPoolCritical;
+			if (scheduledTmp != null) {
+				threadPoolScheduled = null;
+				if (now)
+					scheduledTmp.shutdownNow();
+				else
+					scheduledTmp.shutdown();
+			}
+			if (defaultTmp != null) {
+				threadPoolDefault = null;
+				if (now)
+					defaultTmp.shutdownNow();
+				else
+					defaultTmp.shutdown();
+			}
+			if (criticalTmp != null) {
+				threadPoolCritical = null;
+				if (now)
+					criticalTmp.shutdownNow();
+				else
+					criticalTmp.shutdown();
+			}
+		} finally {
+			taskLock.unlock();
+		}
 
 		var timeout = "";
-		if (!threadPoolScheduledTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
+		if (scheduledTmp != null && !scheduledTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
 			timeout += "await threadPoolScheduled timeout,";
-		if (!threadPoolDefaultTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
+		if (defaultTmp != null && !defaultTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
 			timeout += "await threadPoolDefault timeout,";
-		if (!threadPoolCriticalTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
+		if (criticalTmp != null && !criticalTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
 			timeout += "await threadPoolCritical timeout,";
 		if (!timeout.isEmpty())
 			throw new TimeoutException(timeout);
+	}
+
+	// 提交/执行/调度路径的池选择：池未初始化或已 shutdown（字段为null）时抛明确异常，替代裸NPE。
+	// 不自动重建池：停机后的提交应显式失败，静默复活可能吞掉停机语义（如 ShutdownHook 内的 flush 任务派发）。
+	private static @NotNull ExecutorService poolOrThrow(boolean critical) {
+		var pool = critical ? threadPoolCritical : threadPoolDefault;
+		if (pool == null)
+			throw new IllegalStateException("Task thread pools not initialized or shut down: "
+					+ (critical ? "critical" : "default") + " pool is null");
+		return pool;
+	}
+
+	private static @NotNull ScheduledExecutorService scheduledPoolOrThrow() {
+		var pool = threadPoolScheduled;
+		if (pool == null)
+			throw new IllegalStateException("Task thread pools not initialized or shut down: scheduled pool is null");
+		return pool;
 	}
 
 	// 固定数量的线程池, 普通优先级, 自动优先使用支持虚拟线程(不限制数量), 用于处理普通任务
@@ -421,7 +449,7 @@ public final class Task {
 			return future;
 		}
 
-		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
+		return poolOrThrow(mode == DispatchMode.Critical).submit(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return body.call(name);
@@ -469,7 +497,7 @@ public final class Task {
 			return;
 		}
 
-		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
+		poolOrThrow(mode == DispatchMode.Critical).execute(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				body.call(name);
@@ -507,7 +535,7 @@ public final class Task {
 
 	static <R> @NotNull ScheduledFuture<R> scheduleCore(long initialDelay, @NotNull TaskBody<R> body,
 														@Nullable String name, long timeout) {
-		return threadPoolScheduled.schedule(() -> {
+		return scheduledPoolOrThrow().schedule(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return body.call(name);
@@ -536,7 +564,7 @@ public final class Task {
 	static <R> @NotNull TimerFuture<R> schedulePeriodCore(long initialDelay, long period, @NotNull TaskBody<R> body,
 														  @Nullable String name, long timeout) {
 		var future = new TimerFuture<R>();
-		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
+		future.setFuture(scheduledPoolOrThrow().scheduleWithFixedDelay(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			future.lock();
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
@@ -861,7 +889,7 @@ public final class Task {
 			return future;
 		}
 
-		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
+		return poolOrThrow(mode == DispatchMode.Critical).submit(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return callFuncCore(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
@@ -916,7 +944,7 @@ public final class Task {
 			return;
 		}
 
-		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
+		poolOrThrow(mode == DispatchMode.Critical).execute(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				callFuncCore(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
@@ -1094,7 +1122,7 @@ public final class Task {
 			return future;
 		}
 
-		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
+		return poolOrThrow(mode == DispatchMode.Critical).submit(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return callProcCore(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
@@ -1133,7 +1161,7 @@ public final class Task {
 			return future;
 		}
 
-		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
+		return poolOrThrow(mode == DispatchMode.Critical).submit(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return callProcOutCore(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
@@ -1192,7 +1220,7 @@ public final class Task {
 			return;
 		}
 
-		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
+		poolOrThrow(mode == DispatchMode.Critical).execute(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				callProcCore(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
@@ -1225,7 +1253,7 @@ public final class Task {
 			return;
 		}
 
-		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
+		poolOrThrow(mode == DispatchMode.Critical).execute(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				callProcOutCore(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
