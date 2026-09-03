@@ -656,10 +656,17 @@ public class HotManager extends ClassLoader {
 		var rc = 0L;
 		// 互斥整个安装流程：ready 存在性检查放在锁内，等待互斥后重查
 		// （前一个安装成功删除 ready 或失败清理挪走后，本调用空转返回）。
+		// setIdle 仅在本调用确实处理了 ready（执行了安装流程）时才调用：
+		// 定时器空转（ready 不存在）时不能复位 HotDistribute 状态机——远程发布处于
+		// ePrepare/上传阶段（ready 尚未创建，由 TryDistribute 里的 commitDistribute 创建）时，
+		// 10 秒定时器的空转 setIdle(0) 会把状态机复位 eIdle，上传超过一个定时器周期的
+		// 发布在 TryDistribute 时因 state!=ePrepare 被 eTryDistribute 错误码拒绝。
+		var handled = false;
 		distributeLock.lock();
 		try {
 			var ready = Path.of(distributeDir, "ready");
 			if (Files.exists(ready)) {
+				handled = true;
 				try {
 					readyLines = Files.readAllLines(ready);
 					if (null != installReadies(atomicAll))
@@ -682,7 +689,8 @@ public class HotManager extends ClassLoader {
 			rc = Procedure.Exception;
 		} finally {
 			distributeLock.unlock();
-			hotDistribute.setIdle(rc);
+			if (handled)
+				hotDistribute.setIdle(rc);
 		}
 		return Procedure.Exception;
 	}
