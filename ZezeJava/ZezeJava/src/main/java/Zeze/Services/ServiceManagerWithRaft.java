@@ -229,20 +229,13 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				for (var info : session.getSubscribes().values())
 					unSubscribeNow(name, info.getServiceName());
 
+				// 注销跨全部版本桶（会话registers以name+id为key只保留最后一次注册，
+				// 若按unReg.getVersion()单桶删，跨版本重注册后旧版本桶残留幽灵地址）。
 				var notifies = new HashMap<AsyncSocket, Edit>();
 				for (var unReg : session.getRegisters().values()) {
 					var state = tableServerState.get(unReg.getServiceName());
-					if (state != null) {
-						var versions = state.getServiceInfosVersion().get(unReg.getVersion());
-						if (null != versions) {
-							var exist = versions.getServiceInfos().get(unReg.getServiceIdentity());
-							versions.getServiceInfos().remove(unReg.getServiceIdentity());
-							if (exist != null && exist.getSessionName().equals(name)) {
-								// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-								removeAndCollectNotify(state, fromRocks(exist), notifies);
-							}
-						}
-					}
+					if (state != null)
+						removeAndCollectNotifyAllVersions(state, unReg.getServiceIdentity(), name, notifies);
 				}
 				ServiceManagerWithRaft.sendNotifies(notifies);
 			}
@@ -377,17 +370,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// step 1: remove
 		for (var unReg : r.Argument.getRemove()) {
 			var state = tableServerState.get(unReg.getServiceName());
-			if (state != null) {
-				var versions = state.getServiceInfosVersion().get(unReg.getVersion());
-				if (null != versions) {
-					var exist = versions.getServiceInfos().get(unReg.getServiceIdentity());
-					versions.getServiceInfos().remove(unReg.getServiceIdentity());
-					if (exist != null && exist.getSessionName().equals(netSession.name)) {
-						// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-						removeAndCollectNotify(state, fromRocks(exist), notifies);
-					}
-				}
-			}
+			if (state != null)
+				removeAndCollectNotifyAllVersions(state, unReg.getServiceIdentity(), netSession.name, notifies);
 			var session = tableSession.get(netSession.name);
 			session.getRegisters().remove(toRocksKey(unReg)); // ignore remove failed
 		}
@@ -400,12 +384,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			var state = tableServerState.getOrAdd(reg.getServiceName());
 			if (!state.getServiceName().equals(reg.getServiceName()))
 				state.setServiceName(reg.getServiceName());
-			var versions = state.getServiceInfosVersion().get(reg.getVersion());
-			if (null == versions)
-				state.getServiceInfosVersion().put(reg.getVersion(), versions = new BServiceInfosVersionRocks());
-			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-			versions.getServiceInfos().put(reg.getServiceIdentity(), toRocks(reg, netSession.name));
-			addAndCollectNotify(state, reg, notifies);
+			addAndCollectNotify(state, reg, netSession.name, notifies);
 		}
 
 		sendNotifies(notifies);
@@ -413,7 +392,32 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return 0;
 	}
 
-	private void addAndCollectNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
+	private void addAndCollectNotify(BServerState state, BServiceInfo info, String sessionName,
+									 HashMap<AsyncSocket, Edit> notifies) {
+		// BEditService.add声明AddOrUpdate以name+id为key：同identity重注册到新版本时，
+		// 先从其他版本桶移除旧记录并通知其版本订阅者remove（对齐非raft版ServiceManagerServer），
+		// 否则实例下线后旧版本桶残留幽灵地址（会话registers以name+id为key只保留最后一次注册）。
+		for (var e : state.getServiceInfosVersion().entrySet()) {
+			if (e.getKey() == info.getVersion())
+				continue;
+			// CollMap2.remove 返回 void：先取旧值再移除，有旧值才通知其版本订阅者。
+			var old = e.getValue().getServiceInfos().get(info.getServiceIdentity());
+			if (old != null) {
+				e.getValue().getServiceInfos().remove(info.getServiceIdentity());
+				collectNotify(state, fromRocks(old), false, notifies);
+			}
+		}
+		var versions = state.getServiceInfosVersion().get(info.getVersion());
+		if (null == versions)
+			state.getServiceInfosVersion().put(info.getVersion(), versions = new BServiceInfosVersionRocks());
+		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
+		versions.getServiceInfos().put(info.getServiceIdentity(), toRocks(info, sessionName));
+		collectNotify(state, info, true, notifies);
+	}
+
+	// 通知订阅了info版本的会话（version==0订阅全部版本）。info的版本决定通知过滤。
+	private void collectNotify(BServerState state, BServiceInfo info, boolean isAdd,
+							   HashMap<AsyncSocket, Edit> notifies) {
 		for (var e : state.getSimple().entrySet()) {
 			var subVersion = e.getValue().getVersion();
 			if (subVersion == 0 || subVersion == info.getVersion()) {
@@ -426,7 +430,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					continue;
 
 				var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
-				notify.Argument.getAdd().add(info);
+				if (isAdd)
+					notify.Argument.getAdd().add(info);
+				else
+					notify.Argument.getRemove().add(info);
 			}
 		}
 	}
@@ -454,20 +461,20 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	}
 
 	public void removeAndCollectNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
-		for (var e : state.getSimple().entrySet()) {
-			var subVersion = e.getValue().getVersion();
-			if (subVersion == 0 || subVersion == info.getVersion()) {
-				var sessionName = e.getKey();
-				var session = tableSession.get(sessionName);
-				if (null == session)
-					continue;
-				var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
-				if (null == peer)
-					continue;
+		collectNotify(state, info, false, notifies);
+	}
 
-				var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
-				notify.Argument.getRemove().add(info);
-			}
+	// 注销以name+id为key跨全部版本桶收敛（与addAndCollectNotify、非raft版onClose一致）：
+	// 仅移除属于本会话的记录；归属不符时不删不通知（新会话的AddOrUpdate注册不被静默删除）。
+	private void removeAndCollectNotifyAllVersions(BServerState state, String serviceIdentity, String sessionName,
+												   HashMap<AsyncSocket, Edit> notifies) {
+		for (var e : state.getServiceInfosVersion().entrySet()) {
+			var exist = e.getValue().getServiceInfos().get(serviceIdentity);
+			// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
+			if (exist == null || !exist.getSessionName().equals(sessionName))
+				continue;
+			e.getValue().getServiceInfos().remove(serviceIdentity);
+			removeAndCollectNotify(state, fromRocks(exist), notifies);
 		}
 	}
 
