@@ -492,9 +492,16 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	public @Nullable HttpHandler getHandler(@NotNull String path) {
 		var handler = handlers.get(path);
 		if (handler == null) {
+			// 从字典序最大的候选(floorEntry(path))向下回退,第一个是path前缀的键即最长匹配前缀。
+			// 只查一次floorEntry不够:字典序落在真实前缀与请求路径之间的更长非前缀键会挡住匹配,
+			// 如注册"/a"和"/abc"后请求"/abd",floorEntry是"/abc"(不是前缀),必须继续回退才能命中"/a"。
+			// 回退不会错过更长的匹配:path的任意两个前缀键中,短的是长的真前缀,字典序必更小。
 			var e = prefixHandlers.floorEntry(path);
-			if (e != null && path.startsWith(e.getKey()))
-				handler = e.getValue();
+			while (e != null) {
+				if (path.startsWith(e.getKey()))
+					return e.getValue();
+				e = prefixHandlers.lowerEntry(e.getKey());
+			}
 		}
 		return handler;
 	}
