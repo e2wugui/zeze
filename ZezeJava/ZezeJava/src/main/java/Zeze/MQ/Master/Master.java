@@ -25,6 +25,9 @@ import org.rocksdb.RocksDBException;
 public class Master extends AbstractMaster {
     private static final Logger logger = LogManager.getLogger();
     public static final String MasterDbName = "__mq_master__";
+    // 错误码8：topic名为空串（会作为Manager home根目录本身写入，重启loadMQ只扫子目录，
+    // 该topic全部数据成死数据且需人工清目录）。定义在手写子类，不改生成的AbstractMaster。
+    public static final int eTopicEmpty = 8;
     private final String home;
     private final RocksDatabase masterDb;
     private final RocksDatabase.Table mqTable; // key:utf8(topic), value:encode(BMQServers)
@@ -103,6 +106,8 @@ public class Master extends AbstractMaster {
         // 最长5秒超时，仅推迟并发的Register/ReportLoad，无死锁）。
         lock();
         try {
+            if (r.Argument.getTopic().isEmpty())
+                return errorCode(eTopicEmpty);
             if (r.Argument.getTopic().contains("."))
                 return errorCode(eTopicHasReserveChar);
             if (r.Argument.getTopic().contains("/"))
