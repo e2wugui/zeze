@@ -163,8 +163,13 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap2<K, V>)_log;
 		var tmp = map;
-		for (V v : log.getReplaced().values())
-			v.initRootInfo(rootInfo, this);
+		for (var e : log.getReplaced().entrySet()) {
+			// 对齐put/decode/putAllData全部写路径：进map的bean必须带mapKey。
+			// followerApply加入的replaced bean若不带，后续本地事务修改collect时
+			// buildChangedWithKey会拿到null key，containsKey(null)/编码行为未定义。
+			e.getValue().initRootInfo(rootInfo, this);
+			e.getValue().mapKey(e.getKey());
+		}
 		tmp = tmp.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 
 		// apply changed

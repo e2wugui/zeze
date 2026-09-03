@@ -180,8 +180,11 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		@SuppressWarnings("unchecked")
 		var log = (LogSortedMap2<K, V>)_log;
 		var tmp = map;
-		for (V v : log.getReplaced().values())
-			v.initRootInfo(rootInfo, this);
+		for (var e : log.getReplaced().entrySet()) {
+			// 对齐put/decode/putAllData全部写路径：进map的bean必须带mapKey（同PMap2.followerApply）。
+			e.getValue().initRootInfo(rootInfo, this);
+			e.getValue().mapKey(e.getKey());
+		}
 		tmp = tmp.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 
 		// apply changed
