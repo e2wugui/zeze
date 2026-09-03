@@ -13,6 +13,19 @@ import org.junit.jupiter.api.Assertions;
 public class TestDatabaseSqlServer {
 
 	@Test
+	public final void testSaveDataWithSameVersionCallPlaceholders() throws Exception {
+		// FND-T3-5：调用串占位符个数必须与存储过程 _ZezeSaveDataWithSameVersion_ 的参数个数一致(4)。
+		// 少一个占位符时 registerOutParameter(4)/getInt(4) 参数索引越界
+		// (mssql-jdbc: "The index 4 is out of range")，带 schemas 启动即失败。
+		// 不依赖真实 SqlServer，仅校验调用串契约。
+		var field = DatabaseSqlServer.class.getDeclaredField("saveDataWithSameVersionCall");
+		field.setAccessible(true);
+		var call = (String)field.get(null);
+		var placeholders = call.split("\\?", -1).length - 1;
+		Assertions.assertEquals(4, placeholders, call);
+	}
+
+	@Test
 	public final void test1() throws Exception {
 		System.out.println(System.getProperties().get("user.home"));
 		System.err.println("sqlserver jdbc 不能连接 vs 自带的 LocalDB(不用配置的）。所以这个测试先不管了。");

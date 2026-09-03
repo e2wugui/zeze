@@ -14,6 +14,11 @@ import com.alibaba.druid.pool.DruidDataSource;
 import org.jetbrains.annotations.NotNull;
 
 public final class DatabaseSqlServer extends DatabaseJdbc {
+	// 存储过程 _ZezeSaveDataWithSameVersion_ 有 4 个参数（@id,@data,@version,@ReturnValue），
+	// 调用串占位符必须与之相同：registerOutParameter(4)/getInt(4) 操作第 4 个参数（@ReturnValue），
+	// 少一个占位符会导致参数索引越界（mssql-jdbc: "The index 4 is out of range"），带 schemas 启动即失败。
+	private static final String saveDataWithSameVersionCall = "{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?, ?)}";
+
 	public DatabaseSqlServer(Application zeze, DatabaseConf conf) {
 		super(zeze, conf);
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesSqlServer());
@@ -114,12 +119,12 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
-				try (var cmd = connection.prepareCall("{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?)}")) {
-					cmd.setBytes(1, key.CopyIf());
-					cmd.setBytes(2, data.CopyIf());
-					cmd.registerOutParameter(3, Types.BIGINT);
+				try (var cmd = connection.prepareCall(saveDataWithSameVersionCall)) {
+					cmd.setBytes(1, key.CopyIf()); // @id
+					cmd.setBytes(2, data.CopyIf()); // @data
+					cmd.registerOutParameter(3, Types.BIGINT); // @version
 					cmd.setLong(3, version);
-					cmd.registerOutParameter(4, Types.INTEGER); // return code
+					cmd.registerOutParameter(4, Types.INTEGER); // @ReturnValue return code
 					cmd.executeUpdate();
 					return switch (cmd.getInt(4)) {
 						case 0 -> KV.create(cmd.getLong(3), true);
