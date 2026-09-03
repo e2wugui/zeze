@@ -32,10 +32,11 @@ public final class PropertiesHelper {
 	 * props 格式为： -key [value] -key2 [value] ...
 	 * 1. -key不能重名，重复时，保留第一个，其他丢弃。
 	 * 2. value 不存在时，设为""写入Properties。
-	 * 3. 只支持按空格简单分割，不支持双引号括起来的值。
+	 * 3. 只支持按空白简单分割，不支持双引号括起来的值。
 	 */
 	public static @NotNull Properties parse(@NotNull String props) {
-		var args = props.split(" ");
+		// trim+\\s+：容忍连续/首尾空白。split(" ") 会把连续空格产生的空 token 当作“无 -key 的 value”误报。
+		var args = props.trim().split("\\s+");
 		//System.out.println(Arrays.toString(args));
 
 		var result = new Properties();
