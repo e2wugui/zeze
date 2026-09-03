@@ -137,13 +137,36 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		lock();
 		try {
 			var future = lastTid128CacheFuture;
-			var allocateCount = future == null ? Tid128Cache.ALLOCATE_COUNT_MIN : future.get().allocateCount();
+			var allocateCount = Tid128Cache.ALLOCATE_COUNT_MIN;
+			if (future != null) {
+				try {
+					allocateCount = future.get().allocateCount();
+				} catch (RuntimeException e) {
+					// 上一次分配异常完成（如Udp超时）：get()抛出且发生在替换lastTid128CacheFuture之前，
+					// 而这里是它唯一的写入点，异常传播出去会导致毒化状态永久保留
+					// （冷写事务持续失败/热写事务finalCommit halt）。不再传播，以默认档位重新分配并替换（自愈）。
+					logger.warn("allocateTid128CacheFuture('{}'): last future failed, re-allocate with default count", globalName, e);
+					allocateCount = Tid128Cache.ALLOCATE_COUNT_MIN;
+				}
+			}
 			//noinspection DataFlowIssue
 			lastTid128CacheFuture = future = tid128UdpClient.allocateFuture(globalName, allocateCount);
 			return future;
 		} finally {
 			unlock();
 		}
+	}
+
+	/**
+	 * finalCommit等只读入口使用：返回可用的tid128分配future。
+	 * 上一次分配异常完成（Udp超时等毒化状态）或尚未分配过时，发起新分配并替换（自愈），
+	 * 避免读取毒化的future后get()抛异常，导致finalCommit失败halt。
+	 */
+	public @NotNull Id128UdpClient.FutureNode getUsableTid128CacheFuture(@NotNull String globalName) {
+		var future = getLastTid128CacheFuture();
+		if (future == null || future.isCompletedExceptionally())
+			return allocateTid128CacheFuture(globalName);
+		return future;
 	}
 
 	protected abstract boolean allocateAsync(@NotNull String globalName, int allocCount,

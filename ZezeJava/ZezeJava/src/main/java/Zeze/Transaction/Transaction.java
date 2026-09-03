@@ -553,9 +553,9 @@ public final class Transaction {
 
 			var zeze = proc.getZeze();
 			if (zeze.getConfig().isHistory() && !cc.getRecords().isEmpty()) {
-				//noinspection DataFlowIssue
-				var future = zeze.getServiceManager().getLastTid128CacheFuture();
-				assert future != null;
+				// 热记录事务不经_check_预热直达这里：上一次分配可能已异常完成（Udp超时毒化），
+				// 直接get()会抛异常导致finalCommit失败halt(543543)。毒化时兜底发起新分配替换。
+				var future = zeze.getServiceManager().getUsableTid128CacheFuture(zeze.getConfig().getHistory());
 				if (proc instanceof ProtocolProcedure pp) {
 					return History.buildLogChanges(future, cc, pp.getProtocolClassName(), pp.getProtocolRawArgument());
 				}
