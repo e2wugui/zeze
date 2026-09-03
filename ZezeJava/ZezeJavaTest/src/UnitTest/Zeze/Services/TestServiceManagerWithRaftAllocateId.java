@@ -126,9 +126,16 @@ public class TestServiceManagerWithRaftAllocateId {
 		return sb.append("</raft>\n").toString();
 	}
 
+	private static final java.util.HashSet<Integer> usedPorts = new java.util.HashSet<>();
+
 	private static int freePort() throws Exception {
-		try (var socket = new ServerSocket(0)) {
-			return socket.getLocalPort();
+		// Windows 上快速关闭重开可能拿到同一个临时端口：去重，否则同一 raft 配置内
+		// 出现 duplicate node，集群装配直接失败（3 节点测试并行时实测触发）。
+		while (true) {
+			try (var socket = new ServerSocket(0)) {
+				if (usedPorts.add(socket.getLocalPort()))
+					return socket.getLocalPort();
+			}
 		}
 	}
 
