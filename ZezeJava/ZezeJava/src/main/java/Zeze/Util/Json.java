@@ -1062,7 +1062,16 @@ public final class Json implements Cloneable {
 				obj = new IntHashMap<>();
 			else
 				obj.clear();
-			Class<?> valueClass = fieldMeta != null ? ((Class<?>)fieldMeta.paramTypes[0]) : null;
+			Class<?> valueClass = null;
+			if (fieldMeta != null) {
+				// 字段声明为 raw（如 IntHashMap map;）时 paramTypes 为 null、泛型变量（IntHashMap<T>）时
+				// paramTypes[0] 不是 Class：原实现直接强转，抛出无上下文的 NPE/CCE。这里显式报字段与类名。
+				Type[] params = fieldMeta.paramTypes;
+				if (params == null || params.length == 0 || !(params[0] instanceof Class<?>))
+					throw new InstantiationException("map field without concrete value type: " + fieldMeta.getName()
+							+ " in " + classMeta.klass.getName());
+				valueClass = (Class<?>)params[0];
+			}
 			ClassMeta<?> valueMeta = valueClass != null ? instance.getClassMeta(valueClass) : null;
 			for (int b = reader.skipNext(); b != '}'; b = reader.skipVar('}')) {
 				int k = JsonReader.parseIntegerKey(reader, b);
@@ -1146,7 +1155,16 @@ public final class Json implements Cloneable {
 				obj = new LongHashMap<>();
 			else
 				obj.clear();
-			Class<?> valueClass = fieldMeta != null ? ((Class<?>)fieldMeta.paramTypes[0]) : null;
+			Class<?> valueClass = null;
+			if (fieldMeta != null) {
+				// 字段声明为 raw（如 IntHashMap map;）时 paramTypes 为 null、泛型变量（IntHashMap<T>）时
+				// paramTypes[0] 不是 Class：原实现直接强转，抛出无上下文的 NPE/CCE。这里显式报字段与类名。
+				Type[] params = fieldMeta.paramTypes;
+				if (params == null || params.length == 0 || !(params[0] instanceof Class<?>))
+					throw new InstantiationException("map field without concrete value type: " + fieldMeta.getName()
+							+ " in " + classMeta.klass.getName());
+				valueClass = (Class<?>)params[0];
+			}
 			ClassMeta<?> valueMeta = valueClass != null ? instance.getClassMeta(valueClass) : null;
 			for (int b = reader.skipNext(); b != '}'; b = reader.skipVar('}')) {
 				long k = JsonReader.parseLongKey(reader, b);
@@ -1230,7 +1248,16 @@ public final class Json implements Cloneable {
 				obj = new LongConcurrentHashMap<>();
 			else
 				obj.clear();
-			Class<?> valueClass = fieldMeta != null ? ((Class<?>)fieldMeta.paramTypes[0]) : null;
+			Class<?> valueClass = null;
+			if (fieldMeta != null) {
+				// 字段声明为 raw（如 IntHashMap map;）时 paramTypes 为 null、泛型变量（IntHashMap<T>）时
+				// paramTypes[0] 不是 Class：原实现直接强转，抛出无上下文的 NPE/CCE。这里显式报字段与类名。
+				Type[] params = fieldMeta.paramTypes;
+				if (params == null || params.length == 0 || !(params[0] instanceof Class<?>))
+					throw new InstantiationException("map field without concrete value type: " + fieldMeta.getName()
+							+ " in " + classMeta.klass.getName());
+				valueClass = (Class<?>)params[0];
+			}
 			ClassMeta<?> valueMeta = valueClass != null ? instance.getClassMeta(valueClass) : null;
 			for (int b = reader.skipNext(); b != '}'; b = reader.skipVar('}')) {
 				long k = JsonReader.parseLongKey(reader, b);
