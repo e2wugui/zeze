@@ -1229,11 +1229,14 @@ public final class JsonReader {
 					final int maxExp = expMinus ? (expFrac + 0x7FFF_FFF7) / 10 : 308 - expFrac;
 					while ((b = (buffer[++p] - '0') & 0xff) < 10) {
 						if ((exp = exp * 10 + b) > maxExp) {
-							if (!expMinus)
-								return minus ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 							do
 								b = buffer[++p];
 							while (((b - '0') & 0xff) < 10);
+							if (!expMinus) {
+								pos = p;
+								return minus ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+							}
+							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
 						}
 					}
 				}
@@ -1328,11 +1331,14 @@ public final class JsonReader {
 					final int maxExp = expMinus ? (expFrac + 0x7FFF_FFF7) / 10 : 308 - expFrac;
 					while ((b = (buffer[++p] - '0') & 0xff) < 10) {
 						if ((exp = exp * 10 + b) > maxExp) {
-							if (!expMinus)
-								return minus ? Long.MIN_VALUE : Long.MAX_VALUE;
 							do
 								b = buffer[++p];
 							while (((b - '0') & 0xff) < 10);
+							if (!expMinus) {
+								pos = p;
+								return minus ? Long.MIN_VALUE : Long.MAX_VALUE;
+							}
+							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
 						}
 					}
 				}
@@ -1427,11 +1433,14 @@ public final class JsonReader {
 					final int maxExp = expMinus ? (expFrac + 0x7FFF_FFF7) / 10 : 308 - expFrac;
 					while ((b = (buffer[++p] - '0') & 0xff) < 10) {
 						if ((exp = exp * 10 + b) > maxExp) {
-							if (!expMinus)
-								return minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
 							do
 								b = buffer[++p];
 							while (((b - '0') & 0xff) < 10);
+							if (!expMinus) {
+								pos = p;
+								return minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+							}
+							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
 						}
 					}
 				}
@@ -1547,11 +1556,14 @@ public final class JsonReader {
 					final int maxExp = expMinus ? (expFrac + 0x7FFF_FFF7) / 10 : 308 - expFrac;
 					while ((b = (buffer[++p] - '0') & 0xff) < 10) {
 						if ((exp = exp * 10 + b) > maxExp) {
-							if (!expMinus)
-								return minus ? NEGATIVE_INFINITY : POSITIVE_INFINITY;
 							do
 								b = buffer[++p];
 							while (((b - '0') & 0xff) < 10);
+							if (!expMinus) {
+								pos = p;
+								return minus ? NEGATIVE_INFINITY : POSITIVE_INFINITY;
+							}
+							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
 						}
 					}
 				}
