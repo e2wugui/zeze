@@ -803,7 +803,9 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			closePending = true;
 			if (addInterestOps(SelectionKey.OP_WRITE))
 				selector.wakeup();
-			TaskSpec.ofAction(this::realClose).schedule(120 * 1000); // 最多给2分钟清空输出队列。
+			// scheduleNow：closed 的 CAS 已即时生效（closePending/OP_WRITE 已设置），兜底注册不能
+			// 随事务回滚丢弃，否则对端不读时 realClose 永不执行、连接永滞（与 Rpc 超时清理同型）。
+			TaskSpec.ofAction(this::realClose).scheduleNow(120 * 1000); // 最多给2分钟清空输出队列。
 		} else
 			realClose();
 		return true;
