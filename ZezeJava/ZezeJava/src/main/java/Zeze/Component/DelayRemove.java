@@ -44,7 +44,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		if (null != timer)
 			return;
 
-		// start timer to gc. work on queue.pollNode? peekNode? poll? peek?
+		// start timer to gc. onTimer 采用"先peekNode检查头节点、到期才pollNode出队"的策略。
 		// 根据配置的Timer的时间范围，按分钟精度随机出每天的开始时间，最后计算延迟，然后按24小时间隔执行。
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, zeze.getConfig().getDelayRemoveHourStart());
@@ -154,7 +154,8 @@ public class DelayRemove extends AbstractDelayRemove {
 		return null != jobs ? jobs.getJobs().size() : 0;
 	}
 
-	private void onTimer() {
+	// 包内可见：测试在确定位置同步驱动一轮GC（见ZezeJavaTest的TestDelayRemoveOnTimer）。
+	void onTimer() {
 		// delayRemove可能需要删除很多记录，不能在一个事务内完成全部删除。
 		// 这里按每个节点的记录的删除在一个事务中执行，节点间用不同的事务。
 		var days = zeze.getConfig().getDelayRemoveDays();
@@ -164,7 +165,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		var removing = new OutObject<>(true);
 		while (removing.value) {
 			zeze.newProcedure(() -> {
-				var node = queue.pollNode();
+				var node = queue.peekNode(); // 先peek检查：未到期时节点不出队（pollNode会删行，事务提交后登记就脱离GC追踪）。
 				if (node == null) {
 					removing.value = false;
 					return 0;
@@ -178,9 +179,11 @@ public class DelayRemove extends AbstractDelayRemove {
 					var first = (BTableKey)node.getValues().getFirst().getValue().getBean();
 					if (diffMills > System.currentTimeMillis() - first.getEnqueueTime()) {
 						removing.value = false;
-						return 0;
+						return 0; // 未到期：本事务无任何写，直接提交即可，节点仍留在队列里。
 					}
 				}
+
+				queue.pollNode(); // 确认到期后才真正出队删除。同一事务内快照一致，peek看到的头节点即本次删除的节点。
 
 				// node.getValues().isEmpty，这一项将保持0，循环后设置removing.value将基本是true。
 				// 即，空节点总是尝试继续删除。
