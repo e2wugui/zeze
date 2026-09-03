@@ -347,6 +347,7 @@ public final class Checkpoint {
 			}
 			// 保存成功，清除脏标记。
 			// Immediately 模式的记录不进入 RelativeRecordSet，这里是它唯一的清除点。
+			// Talbe 模式现在也在这里清除。
 			for (var r : rs)
 				r.setDirty(false);
 		} catch (Throwable e) { // rethrow
