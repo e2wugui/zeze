@@ -1179,10 +1179,10 @@ public final class Json implements Cloneable {
 						writer.writeNewLineTabs();
 						long k = it.key();
 						if (noQuote) {
-							writer.ensure(13);
+							writer.ensure(22); // write(long) writes up to 20 bytes, plus ':' and ' '
 							writer.write(k);
 						} else {
-							writer.ensure(15);
+							writer.ensure(24); // '"'+20+'"' + ':' + ' '
 							writer.writeByteUnsafe((byte)'"');
 							writer.write(k);
 							writer.writeByteUnsafe((byte)'"');
@@ -1205,10 +1205,10 @@ public final class Json implements Cloneable {
 							writer.writeByteUnsafe((byte)',');
 						long k = it.key();
 						if (noQuote) {
-							writer.ensure(12);
+							writer.ensure(21); // write(long) writes up to 20 bytes, plus ':'
 							writer.write(k);
 						} else {
-							writer.ensure(14);
+							writer.ensure(23); // '"'+20+'"' + ':'
 							writer.writeByteUnsafe((byte)'"');
 							writer.write(k);
 							writer.writeByteUnsafe((byte)'"');
@@ -1263,10 +1263,10 @@ public final class Json implements Cloneable {
 						writer.writeNewLineTabs();
 						long k = it.key();
 						if (noQuote) {
-							writer.ensure(13);
+							writer.ensure(22); // write(long) writes up to 20 bytes, plus ':' and ' '
 							writer.write(k);
 						} else {
-							writer.ensure(15);
+							writer.ensure(24); // '"'+20+'"' + ':' + ' '
 							writer.writeByteUnsafe((byte)'"');
 							writer.write(k);
 							writer.writeByteUnsafe((byte)'"');
@@ -1289,10 +1289,10 @@ public final class Json implements Cloneable {
 							writer.writeByteUnsafe((byte)',');
 						long k = it.key();
 						if (noQuote) {
-							writer.ensure(12);
+							writer.ensure(21); // write(long) writes up to 20 bytes, plus ':'
 							writer.write(k);
 						} else {
-							writer.ensure(14);
+							writer.ensure(23); // '"'+20+'"' + ':'
 							writer.writeByteUnsafe((byte)'"');
 							writer.write(k);
 							writer.writeByteUnsafe((byte)'"');
