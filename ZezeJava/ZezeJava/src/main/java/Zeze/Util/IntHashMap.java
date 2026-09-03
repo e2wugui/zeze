@@ -338,16 +338,19 @@ public class IntHashMap<V> implements Cloneable {
 
 	public V compute(int key, @NotNull IntObjectFunction<V> op) {
 		if (key == 0) {
-			final V oldV = zeroValue;
+			final V oldV = hasZeroKey ? zeroValue : null;
 			final V v = op.apply(key, oldV);
-			if (v != oldV) {
+			// 用“是否存在”而不是引用相等判定变更：既有条目的值为 null 时，remapping 返回 null
+			// 应删除条目（Map.compute 契约），引用相等 v==oldV==null 会误判为“无变化”而永久保留条目。
+			if (v == null) {
+				if (hasZeroKey) {
+					hasZeroKey = false;
+					zeroValue = null;
+					size--;
+				}
+			} else {
 				zeroValue = v;
-				if (v == null) {
-					if (hasZeroKey) {
-						hasZeroKey = false;
-						size--;
-					}
-				} else if (!hasZeroKey) {
+				if (!hasZeroKey) {
 					hasZeroKey = true;
 					size++;
 				}
@@ -361,22 +364,20 @@ public class IntHashMap<V> implements Cloneable {
 			if (k == key) {
 				final V oldV = vt[i];
 				final V v = op.apply(key, oldV);
-				if (v != oldV) {
-					vt[i] = v;
-					if (v == null) {
-						for (int j = (i + 1) & m; (key = kt[j]) != 0; j = (j + 1) & m) {
-							final int h = hash(key);
-							if (((j - h) & m) > ((i - h) & m)) {
-								kt[i] = key;
-								vt[i] = vt[j];
-								i = j;
-							}
+				if (v == null) { // 条目存在即删除，同 Map.compute 契约
+					for (int j = (i + 1) & m; (key = kt[j]) != 0; j = (j + 1) & m) {
+						final int h = hash(key);
+						if (((j - h) & m) > ((i - h) & m)) {
+							kt[i] = key;
+							vt[i] = vt[j];
+							i = j;
 						}
-						kt[i] = 0;
-						vt[i] = null;
-						size--;
 					}
-				}
+					kt[i] = 0;
+					vt[i] = null;
+					size--;
+				} else
+					vt[i] = v;
 				return v;
 			}
 			if (k == 0) {
@@ -581,13 +582,13 @@ public class IntHashMap<V> implements Cloneable {
 		if (hasZeroKey) {
 			final V oldV = zeroValue;
 			final V v = func.apply(0, oldV);
-			if (v != oldV) {
+			// 与 compute 一致：用存在性判删除。null 值既有条目经 func->null 必须删除（原引用相等判定会保留）。
+			if (v == null) {
+				hasZeroKey = false;
+				zeroValue = null;
+				size--;
+			} else
 				zeroValue = v;
-				if (v == null) {
-					hasZeroKey = false;
-					size--;
-				}
-			}
 		}
 		final int[] kt = keyTable;
 		final V[] vt = valueTable;
@@ -600,18 +601,16 @@ public class IntHashMap<V> implements Cloneable {
 			if (k != 0) {
 				final V oldV = vt[i];
 				final V v = func.apply(k, oldV);
-					if (v != oldV) {
-						if (v == null) {
-							// 小容量起步+倍增：内存正比于删除条目数而不是map大小。
-							if (removedKeys == null)
-								removedKeys = new int[8];
-							else if (removedCount == removedKeys.length)
-								removedKeys = Arrays.copyOf(removedKeys, removedCount * 2);
-							removedKeys[removedCount++] = k;
-						} else {
-							vt[i] = v;
-						}
-					}
+				if (v == null) {
+					// 小容量起步+倍增：内存正比于删除条目数而不是map大小。
+					if (removedKeys == null)
+						removedKeys = new int[8];
+					else if (removedCount == removedKeys.length)
+						removedKeys = Arrays.copyOf(removedKeys, removedCount * 2);
+					removedKeys[removedCount++] = k;
+				} else {
+					vt[i] = v;
+				}
 			}
 		}
 		for (int i = 0; i < removedCount; i++) {
