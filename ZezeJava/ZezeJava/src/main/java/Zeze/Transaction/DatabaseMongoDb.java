@@ -315,6 +315,8 @@ public class DatabaseMongoDb extends Database {
 										 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return null;
+			if (proposeLimit <= 0) // mongo 驱动 limit(0) 表示"不限制"，必须防护，否则一次调用扫全表
+				return null;
 
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
 			var iterable = start == null ? collection.find() : collection.find(Filters.gt("_id", start));
@@ -338,6 +340,8 @@ public class DatabaseMongoDb extends Database {
 		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
 											@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
+				return null;
+			if (proposeLimit <= 0)
 				return null;
 
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
@@ -363,6 +367,8 @@ public class DatabaseMongoDb extends Database {
 											 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return null;
+			if (proposeLimit <= 0)
+				return null;
 
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
 			var iterable = start == null ? collection.find() : collection.find(Filters.lt("_id", start));
@@ -386,6 +392,8 @@ public class DatabaseMongoDb extends Database {
 		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
 												@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
+				return null;
+			if (proposeLimit <= 0)
 				return null;
 
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
