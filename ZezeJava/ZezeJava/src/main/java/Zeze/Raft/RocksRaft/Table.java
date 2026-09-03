@@ -110,9 +110,21 @@ public final class Table<K, V extends Bean> {
 		}
 	}
 
+	// 【FND-R2-8】RocksRaft的Table要求显式事务（rocks.newProcedure(...)内部）：
+	// 无事务时Transaction.getCurrent()返回null，直接解引用只会NPE且堆栈指向框架内部，
+	// 迁移自经典Zeze Table（自动隐式建事务）的代码很容易在启动初始化/后台线程/定时器
+	// 任务体里踩中；给出带表名与用法的明确错误。selectDirty是唯一例外：无事务时降级直读存储。
+	private Transaction requireCurrentTransaction() {
+		var currentT = Transaction.getCurrent();
+		if (currentT == null)
+			throw new IllegalStateException(
+					"no current transaction: RocksRaft table '" + name + "' requires rocks.newProcedure(...)");
+		return currentT;
+	}
+
 	@SuppressWarnings("unchecked")
 	public V get(K key) {
-		Transaction currentT = Transaction.getCurrent();
+		Transaction currentT = requireCurrentTransaction();
 		TableKey tkey = new TableKey(name, key);
 
 		var cr = currentT.getRecordAccessed(tkey);
@@ -126,7 +138,7 @@ public final class Table<K, V extends Bean> {
 
 	@SuppressWarnings("unchecked")
 	public V getOrAdd(K key) {
-		Transaction currentT = Transaction.getCurrent();
+		Transaction currentT = requireCurrentTransaction();
 		TableKey tkey = new TableKey(name, key);
 
 		var cr = currentT.getRecordAccessed(tkey);
@@ -222,7 +234,7 @@ public final class Table<K, V extends Bean> {
 		if (get(key) != null)
 			return false;
 
-		Transaction currentT = Transaction.getCurrent();
+		Transaction currentT = requireCurrentTransaction();
 		TableKey tkey = new TableKey(name, key);
 		var cr = currentT.getRecordAccessed(tkey);
 		value.initRootInfo(cr.getOrigin().createRootInfoIfNeed(tkey), null);
@@ -236,7 +248,7 @@ public final class Table<K, V extends Bean> {
 	}
 
 	public void put(K key, V value) {
-		Transaction currentT = Transaction.getCurrent();
+		Transaction currentT = requireCurrentTransaction();
 		TableKey tkey = new TableKey(name, key);
 
 		var cr = currentT.getRecordAccessed(tkey);
@@ -251,7 +263,7 @@ public final class Table<K, V extends Bean> {
 
 	// 几乎和Put一样，还是独立开吧。
 	public void remove(K key) {
-		Transaction currentT = Transaction.getCurrent();
+		Transaction currentT = requireCurrentTransaction();
 		TableKey tkey = new TableKey(name, key);
 
 		var cr = currentT.getRecordAccessed(tkey);
