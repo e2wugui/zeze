@@ -257,7 +257,15 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var session = tableSession.getOrAdd(r.Argument.getSessionName());
 		r.getSender().setUserState(new Session(r.Argument.getSessionName(), r.getSender().getSessionId()));
 		session.setSessionId(r.getSender().getSessionId());
-		r.SendResult();
+		// 应答必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d、
+		// ProcessEditRequest的修复47ec96e18）：tSession的getOrAdd/setSessionId依赖raft提交，
+		// 提交前应答在复制失败回滚后客户端已拿到成功码（假成功），其后续Edit/Subscribe读到
+		// 回滚的会话状态（tableSession无行NPE转错误码）。非事务上下文（不应发生）保持立即应答。
+		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		if (t != null)
+			t.runWhileCommit(r::SendResult);
+		else
+			r.SendResult();
 		return 0;
 	}
 
@@ -272,7 +280,13 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var count = r.Argument.getCount();
 		id128.setCurrent(id128.getCurrent().add(count)); // 不能直接修改当前值,因为没有受事务保护.
 		r.Result.setCount(count);
-		r.SendResult();
+		// 号段必须raft提交成功后再应答（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
+		// appendLog失败回滚current，提交前应答会让客户端把已回滚的号段投入使用，重复发放。
+		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		if (t != null)
+			t.runWhileCommit(r::SendResult);
+		else
+			r.SendResult();
 		return 0;
 	}
 
@@ -346,7 +360,14 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			for (var remove : removed)
 				observers.remove(remove);
 		}
-		r.SendResult();
+		// 应答必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
+		// observers的死条目清理依赖raft提交，提交前应答在复制失败回滚后客户端已拿到成功码。
+		// set.Send的负载转发是对观察者的数据推送（无状态语义），保持在handler内立即发送。
+		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		if (t != null)
+			t.runWhileCommit(r::SendResult);
+		else
+			r.SendResult();
 		return 0;
 	}
 
@@ -501,7 +522,15 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				state.setServiceName(info.getServiceName());
 			subscribeAndCollect(state, r, info, netSession.name);
 		}
-		r.SendResult();
+		// 应答必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
+		// 会话subscribes与state.simple的写入、Result.map的快照依赖raft提交，提交前应答在
+		// 复制失败回滚后客户端已拿到成功码与快照（假成功），订阅未生效将收不到增量推送。
+		// 回滚路径Result已填的map随错误码一起发送，客户端按resultCode!=0丢弃。
+		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		if (t != null)
+			t.runWhileCommit(r::SendResult);
+		else
+			r.SendResult();
 		return 0;
 	}
 
@@ -541,7 +570,14 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				unSubscribeNow(netSession.name, serviceName);
 			}
 		}
-		r.SendResult();
+		// 应答必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
+		// 会话subscribes与state.simple的移除依赖raft提交，提交前应答在复制失败回滚后
+		// 客户端已拿到成功码（假成功），实际订阅仍生效。
+		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		if (t != null)
+			t.runWhileCommit(r::SendResult);
+		else
+			r.SendResult();
 		return 0;
 	}
 
