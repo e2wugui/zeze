@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.Queue;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Serialize.ByteBuffer;
@@ -20,7 +20,10 @@ import org.rocksdb.RocksDBException;
 // index表名: {topic}.{partitionId}.{nextMessageId}
 public class MQFileWithIndex {
 	private final ReentrantLock lock = new ReentrantLock();
-	private final TreeMap<Long, RocksDatabase.Table> indexes = new TreeMap<>(); // key:nextMessageId, value.key:Long8BE(messageId), value.value:Long8BE(offset)
+	// ConcurrentSkipListMap：fillMessage在MQSingle锁外（本类lock外）读floorEntry，
+	// appendMessage滚段时在lock内put——TreeMap并发读写是未定义行为（可能CME/读到旋转中间态），
+	// 一次竞态异常就会杀死fill后台任务使分区投递永久假死。
+	private final ConcurrentSkipListMap<Long, RocksDatabase.Table> indexes = new ConcurrentSkipListMap<>(); // key:nextMessageId, value.key:Long8BE(messageId), value.value:Long8BE(offset)
 	private final RocksDatabase.Table meta;
 	private final String home;
 	private final RocksDatabase database;
