@@ -375,10 +375,19 @@ public class HotManager extends ClassLoader {
 
 				var txn = new HotTransaction("HotManager.install");
 				app.getZeze().__install_prepare__();
-				var old = app.getZeze().__upgrade_schemas__(loadSchemas());
-
+				// 回滚动作必须先于 loadSchemas/__upgrade_schemas__ 注册：
+				// 坏包（缺 schemas jar、jar 损坏、schema 不兼容抛异常）时，
+				// 已 stop 并从 modules 移除的旧模块要能通过回滚恢复（教程 §3.6/§5.2 的约定）。
+				var old = app.getZeze().getSchemas();
 				var mainRollbackAction = new MainRollbackAction(zeze, exists, old);
 				txn.whileRollback(mainRollbackAction);
+				try {
+					app.getZeze().__upgrade_schemas__(loadSchemas());
+				} catch (Throwable ex) {
+					logger.error("install load/upgrade schemas fail. namespaces={}", namespaces, ex);
+					txn.rollback(); // 恢复旧 schemas 并重启已停止的旧模块。
+					return null;
+				}
 
 				ArrayList<JarFile> hotJarFiles;
 				ArrayList<HotModule> newModules;
