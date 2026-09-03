@@ -648,8 +648,10 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public long getSizeApproximation() {
+			// pg_class.reltuples 记录的是实际存储的表名：建表 DDL 未加引号时
+			// PG 把标识符折叠为小写（与 tryAlter 查询 information_schema 的写法一致），必须小写化再比较。
 			return dropped ? -1 :
-					queryLong1(dataSource, "SELECT reltuples::bigint AS row_count FROM pg_class WHERE relname = '" + name + "';");
+					queryLong1(dataSource, "SELECT reltuples::bigint AS row_count FROM pg_class WHERE relname = '" + name.toLowerCase() + "';");
 		}
 
 		@Override
@@ -1257,8 +1259,9 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public long getSizeApproximation() {
+			// 同上：未加引号建表的标识符在 PG 中折叠为小写存储。
 			return dropped ? -1 :
-					queryLong1(dataSource, "SELECT reltuples FROM pg_class WHERE relname = '" + name + "';");
+					queryLong1(dataSource, "SELECT reltuples FROM pg_class WHERE relname = '" + name.toLowerCase() + "';");
 		}
 
 		@Override
