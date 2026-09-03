@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
@@ -68,6 +69,10 @@ public class HotManager extends ClassLoader {
 	// module namespace -> HotModule
 	private final FewModifySortedMap<String, HotModule> modules = new FewModifySortedMap<>();
 	private final ReentrantReadWriteLock hotLock = new ReentrantReadWriteLock();
+	// 串行化 tryDistribute 的两个安装通道（10 秒定时器与远程 TryDistribute rpc），
+	// 防止并发安装同一个 ready 包（双份 stop/把刚上线的新模块当旧模块停掉）。
+	// 锁序：distributeLock -> hotLock 写锁 -> HotDistribute.lock，无反向获取点。
+	private final ReentrantLock distributeLock = new ReentrantLock();
 	private final Application zeze;
 	private final HotRedirect hotRedirect;
 
@@ -649,6 +654,9 @@ public class HotManager extends ClassLoader {
 	 */
 	public long tryDistribute(boolean atomicAll) {
 		var rc = 0L;
+		// 互斥整个安装流程：ready 存在性检查放在锁内，等待互斥后重查
+		// （前一个安装成功删除 ready 或失败清理挪走后，本调用空转返回）。
+		distributeLock.lock();
 		try {
 			var ready = Path.of(distributeDir, "ready");
 			if (Files.exists(ready)) {
@@ -673,6 +681,7 @@ public class HotManager extends ClassLoader {
 			logger.error("distributeDir = '{}'", distributeDir, ex);
 			rc = Procedure.Exception;
 		} finally {
+			distributeLock.unlock();
 			hotDistribute.setIdle(rc);
 		}
 		return Procedure.Exception;
