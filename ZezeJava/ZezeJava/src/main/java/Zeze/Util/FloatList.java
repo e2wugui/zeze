@@ -517,6 +517,8 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 	}
 
 	public void decode(@NotNull IByteBuffer bb, int n) {
+		if (n < 0) // 同 IntList.decode：负长度会把 count 毒化成负数
+			throw new IllegalArgumentException("negative count: " + n);
 		reserveSpace(n);
 		bb.ReadFloats(buffer, 0, n);
 		count = n;

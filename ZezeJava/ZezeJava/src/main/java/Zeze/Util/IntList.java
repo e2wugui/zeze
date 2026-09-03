@@ -517,6 +517,8 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	}
 
 	public void decode(@NotNull IByteBuffer bb, int n) {
+		if (n < 0) // 长度来自流内容（decode(bb) 用 ReadUInt 读入），负值会把 count 毒化成负数，此后 add 恒 AIOOBE
+			throw new IllegalArgumentException("negative count: " + n);
 		reserveSpace(n);
 		int[] buf = buffer;
 		for (int i = 0; i < n; i++)
