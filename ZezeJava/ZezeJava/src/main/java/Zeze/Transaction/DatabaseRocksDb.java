@@ -16,10 +16,17 @@ import org.rocksdb.RocksDBException;
 
 public class DatabaseRocksDb extends Database {
 	private final @NotNull RocksDatabase rocksDb;
+	// Application 启动时以 "zeze_cache_<serverId>" 命名创建 LocalRocksCacheDb（Application.java），
+	// 它是纯本地缓存：每次启动前整目录删除重建，数据可随时从后端库重读，写路径不需要也不应付出 fsync 代价。
+	// 而主库的 flush 要求 WAL 落盘：CheckpointWhenCommit 表"提交即物理落库"的承诺必须覆盖掉电场景
+	// （非 sync 写只写 OS 页缓存，进程崩溃可由 WAL 恢复，主机掉电则丢失 WAL 尾部，如 AutoKey 水位回退重发已发出的号）。
+	// RocksDatabase.Batch.commit() 无参版本即为 sync 写；Services/Token 等需要强持久的路径也是既有实践。
+	private final boolean isLocalRocksCache;
 
 	public DatabaseRocksDb(@Nullable Application zeze, @NotNull Config.DatabaseConf conf) {
 		super(zeze, conf);
 
+		isLocalRocksCache = conf.getName().startsWith("zeze_cache_");
 		var homePath = getDatabaseUrl().isEmpty() ? "db" : getDatabaseUrl();
 		try {
 			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
@@ -139,10 +146,12 @@ public class DatabaseRocksDb extends Database {
 			if (batch == null)
 				return;
 
+			// 主库 sync 写（见 isLocalRocksCache 注释），本地缓存库维持非 sync 的默认写。
+			var options = isLocalRocksCache ? RocksDatabase.getDefaultWriteOptions() : RocksDatabase.getSyncWriteOptions();
 			if (verifyAction != null) {
 				lock();
 				try {
-					batch.commit(RocksDatabase.getDefaultWriteOptions());
+					batch.commit(options);
 				} catch (RocksDBException e) {
 					throw Task.forceThrow(e);
 				} finally {
@@ -150,7 +159,7 @@ public class DatabaseRocksDb extends Database {
 				}
 			} else {
 				try {
-					batch.commit(RocksDatabase.getDefaultWriteOptions());
+					batch.commit(options);
 				} catch (RocksDBException e) {
 					throw Task.forceThrow(e);
 				}
