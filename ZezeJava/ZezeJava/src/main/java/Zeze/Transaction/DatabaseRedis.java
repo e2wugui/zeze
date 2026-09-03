@@ -21,9 +21,10 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.params.ScanParams;
+import redis.clients.jedis.params.SetParams;
 
 // 需要redis支持以下命令(Redis 2.8+, Kvrocks 2.02+, Pika 3.5.2+)
-// get, set, setnx, del
+// get, set(含 set key value nx ex), del
 // hget, hset, hdel, hscan
 // multi, exec, discard
 public class DatabaseRedis extends Database {
@@ -244,6 +245,11 @@ public class DatabaseRedis extends Database {
 		private static final byte @NotNull [] keyDataVersion = "_ZezeDataWithVersion_".getBytes(StandardCharsets.UTF_8);
 		private static final byte @NotNull [] keyInUse = "_ZezeInstances_".getBytes(StandardCharsets.UTF_8);
 		private static final String lockKey = "_Zeze_Redis_Global_Lock_";
+		// 全局锁的租期：必须显著大于持锁窗口的最坏耗时（atomicOpenDatabase 全程，含 renameTable
+		// 与大表 tryAlter，分钟级），避免正常启动期间锁被误过期导致两实例并发进入 schemasCompatible；
+		// 同时给崩溃（kill -9/OOM/断电）后残留的锁一个自动恢复上限：调用方 atomicOpenDatabase
+		// 每秒轮询 tryLock，锁到期后自动获取，无需再人工 redis-cli DEL。
+		private static final int LOCK_LEASE_SECONDS = 600;
 
 		private final @NotNull JedisPool pool;
 		private final ReentrantLockHelper lockHelper = new ReentrantLockHelper();
@@ -320,7 +326,12 @@ public class DatabaseRedis extends Database {
 			if (lockHelper.tryLock())
 				return true;
 			try (var jedis = pool.getResource()) {
-				var success = 1 == jedis.setnx(lockKey, "1");
+				// set nx ex：获取锁的同时设置租期。持锁进程在持锁窗口内崩溃后，
+				// 锁最多残留 LOCK_LEASE_SECONDS，后续实例不会再无限挂死。
+				// 注：不做续期与持有者校验（unlock 直接 del），慢启动超过租期时存在
+				// 锁误过期与误删他人锁的理论窗口，取舍理由见 review-2026-09/l4/T3-4.md。
+				var success = "OK".equals(jedis.set(lockKey, "1",
+						SetParams.setParams().nx().ex(LOCK_LEASE_SECONDS)));
 				if (success)
 					lockHelper.lockSuccess();
 				return success;
@@ -331,9 +342,10 @@ public class DatabaseRedis extends Database {
 		public void unlock() {
 			if (lockHelper.tryUnlock()) {
 				try (var jedis = pool.getResource()) {
-					var success = 1 == jedis.del(lockKey);
-					if (success)
-						lockHelper.unlockSuccess();
+					// 锁可能已因租期到期被 redis 清除（del 返回 0），本地计数同样需要清理。
+					jedis.del(lockKey);
+				} finally {
+					lockHelper.unlockSuccess();
 				}
 			}
 		}
