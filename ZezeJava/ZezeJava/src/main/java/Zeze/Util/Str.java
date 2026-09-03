@@ -159,6 +159,8 @@ public final class Str {
 		buf[pos] = ' ';
 		Number num;
 		var jr = JsonReader.local();
+		if (jr.buf() != null) // 重入保护：外层解析进行中时改用独立实例，避免内层 buf()/reset() 破坏外层状态（同 Json 静态入口）
+			jr = new JsonReader();
 		try {
 			num = (Number)jr.buf(buf).parseNumber();
 			if (num instanceof Long || num instanceof Integer)

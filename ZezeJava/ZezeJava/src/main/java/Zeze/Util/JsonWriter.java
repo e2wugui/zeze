@@ -127,6 +127,14 @@ public final class JsonWriter {
 	private int size; // sum of len in all blocks except tail
 	private int flags = 0x10_0000; // (depth=16) << 16
 	private int tabs; // current depth
+	boolean inUse; // Json 静态入口（toCompactString 等）的占用标记，用于嵌套重入检测
+
+	// 供 Json 静态入口的重入保护：writer 被 Json 静态入口占用，或已有半成品输出
+	// （直接使用 JsonWriter.local() 的调用方，如 DbWeb/AsyncSocket，序列化中途）。
+	// 此时嵌套调用 Json.toCompact* 必须改用独立实例，否则 clear() 会清掉外层半成品。
+	boolean busy() {
+		return inUse || size != 0 || pos != 0;
+	}
 
 	public JsonWriter() {
 		this(null);

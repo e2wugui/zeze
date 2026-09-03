@@ -560,8 +560,21 @@ public final class Json implements Cloneable {
 		classMetas.clear();
 	}
 
-	public static <T> @Nullable T parse(@NotNull String jsonStr, @Nullable Class<T> klass) {
+	// ThreadLocal 实例复用的重入保护：外层解析/序列化进行中时，嵌套调用静态入口（典型场景：自定义
+	// Parser/Writer 内部再调 Json.parse/toCompactString）会通过同一个 ThreadLocal 实例的
+	// buf()/reset()/clear() 覆盖或清空外层状态，导致外层 NPE/输出损坏。此时改用独立实例。
+	private static @NotNull JsonReader acquireLocalReader() {
 		JsonReader jr = JsonReader.local();
+		return jr.buf() != null ? new JsonReader() : jr; // buf 非空 = 外层解析进行中
+	}
+
+	private static @NotNull JsonWriter acquireLocalWriter() {
+		JsonWriter jw = JsonWriter.local();
+		return jw.busy() ? new JsonWriter() : jw;
+	}
+
+	public static <T> @Nullable T parse(@NotNull String jsonStr, @Nullable Class<T> klass) {
+		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr).parse(klass);
 		} catch (ReflectiveOperationException e) {
@@ -572,7 +585,7 @@ public final class Json implements Cloneable {
 	}
 
 	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, @Nullable Class<T> klass) {
-		JsonReader jr = JsonReader.local();
+		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr).parse(klass);
 		} catch (ReflectiveOperationException e) {
@@ -583,7 +596,7 @@ public final class Json implements Cloneable {
 	}
 
 	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, int pos, @Nullable Class<T> klass) {
-		JsonReader jr = JsonReader.local();
+		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr, pos).parse(klass);
 		} catch (ReflectiveOperationException e) {
@@ -594,7 +607,7 @@ public final class Json implements Cloneable {
 	}
 
 	public static <T> @Nullable T parse(@NotNull String jsonStr, @Nullable T obj) {
-		JsonReader jr = JsonReader.local();
+		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr).parse(obj);
 		} catch (ReflectiveOperationException e) {
@@ -605,7 +618,7 @@ public final class Json implements Cloneable {
 	}
 
 	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, @Nullable T obj) {
-		JsonReader jr = JsonReader.local();
+		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr).parse(obj);
 		} catch (ReflectiveOperationException e) {
@@ -616,7 +629,7 @@ public final class Json implements Cloneable {
 	}
 
 	public static <T> @Nullable T parse(byte @NotNull [] jsonStr, int pos, @Nullable T obj) {
-		JsonReader jr = JsonReader.local();
+		JsonReader jr = acquireLocalReader();
 		try {
 			return jr.buf(jsonStr, pos).parse(obj);
 		} catch (ReflectiveOperationException e) {
@@ -627,19 +640,23 @@ public final class Json implements Cloneable {
 	}
 
 	public static @NotNull String toCompactString(@Nullable Object obj) {
-		JsonWriter jw = JsonWriter.local();
+		JsonWriter jw = acquireLocalWriter();
 		try {
+			jw.inUse = true; // 标记占用：嵌套静态入口会通过 busy() 检测并改用独立实例
 			return jw.clear().setFlagsAndDepthLimit(0, 16).write(obj).toString();
 		} finally {
+			jw.inUse = false;
 			jw.clear();
 		}
 	}
 
 	public static byte @NotNull [] toCompactBytes(@Nullable Object obj) {
-		JsonWriter jw = JsonWriter.local();
+		JsonWriter jw = acquireLocalWriter();
 		try {
+			jw.inUse = true;
 			return jw.clear().setFlagsAndDepthLimit(0, 16).write(obj).toBytes();
 		} finally {
+			jw.inUse = false;
 			jw.clear();
 		}
 	}
