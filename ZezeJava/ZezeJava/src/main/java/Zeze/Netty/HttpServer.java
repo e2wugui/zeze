@@ -352,14 +352,17 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	public void close() {
 		lock();
 		try {
+			// 先关exchanges再shutdown派发队列：closeConnectionNow→closeInEventLoop→fireEndStreamHandle/
+			// fireWebSocket产生的收尾任务（onEndStream、retain的content/frame的release、multipart decoder
+			// destroy、上传临时文件清理）必须在队列置isShutdown之前进入队列，否则提交被丢弃/仅cancel补偿。
+			exchanges.values().forEach(HttpExchange::closeConnectionNow);
+			exchanges.clear();
 			task11Executor.shutdown(true);
 			if (scheduler == null)
 				return;
 			Netty.logger.info("close {}", getClass().getName());
 			scheduler.cancel(true);
 			scheduler = null;
-			exchanges.values().forEach(HttpExchange::closeConnectionNow);
-			exchanges.clear();
 			if (channelFuture != null) {
 				var ch = channelFuture.channel();
 				channelFuture = null;
