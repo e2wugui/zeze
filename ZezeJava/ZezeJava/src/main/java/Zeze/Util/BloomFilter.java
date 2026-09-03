@@ -44,7 +44,7 @@ public class BloomFilter {
 
 	public long getTotalBits() {
 		long n = 0;
-		for (int i = 0; i < capacity; i++)
+		for (long i = 0; i < capacity; i++) // capacity 是 long：int 循环变量在 >2^31 位容量下回绕为负，越界/死循环
 			if (bitArray.getBit(i))
 				n++;
 		return n;
