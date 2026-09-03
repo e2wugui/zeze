@@ -640,6 +640,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 							if (isDebugEnabled)
 								logger.debug("5 {} {} {}", sender, StateShare, cs);
 							state.stage = 2;
+							ownsPending = false; // 挂起不是退出：回调稍后重入（stage==2重新持有ownsPending），finally不能复位申请位
 							cs.lock.leaveAndWaitNotify();
 							return;
 						}
@@ -842,6 +843,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 							if (isDebugEnabled)
 								logger.debug("5 {} {} {}", sender, StateModify, cs);
 							state.stage = 2;
+							ownsPending = false; // 挂起不是退出：回调稍后重入（stage==2重新持有ownsPending），finally不能复位申请位
 							cs.lock.leaveAndWaitNotify();
 							return;
 						}
@@ -972,13 +974,14 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					// 其他处理已经能包容这个改动，都不用动。
 				};
 
-				// 两种情况不需要发reduce
-				// 1. share是空的, 可以直接升为Modify
-				// 2. sender是share, 而且reducePending的size是0
-				if (!cs.share.isEmpty() && (!senderIsShare || !reducePending.isEmpty())) {
-					if (isDebugEnabled)
-						logger.debug("7 {} {} {}", sender, StateModify, cs);
-					allReduceFuture.then(__ -> {
+			// 两种情况不需要发reduce
+			// 1. share是空的, 可以直接升为Modify
+			// 2. sender是share, 而且reducePending的size是0
+			if (!cs.share.isEmpty() && (!senderIsShare || !reducePending.isEmpty())) {
+				if (isDebugEnabled)
+					logger.debug("7 {} {} {}", sender, StateModify, cs);
+				ownsPending = false; // 注册then后回调即退出（等reduce期间申请位仍需持有），后续由cs.lock.enter(lastStage)重入，finally不能复位
+				allReduceFuture.then(__ -> {
 						// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
 						// 应该也会等待所有任务结束（包括错误）。
 						var freshAcquire = false;
