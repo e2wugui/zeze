@@ -603,9 +603,14 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	@Override
 	public void userEventTriggered(@NotNull ChannelHandlerContext ctx, @Nullable Object evt) throws Exception {
 		if (evt == ChannelInputShutdownEvent.INSTANCE) {
+			// 客户端半关闭（发完请求即FIN，合法的HTTP半双工用法，childOption已开ALLOW_HALF_CLOSURE）：
+			// 只标记willCloseConnection，让在途handler的响应发送完再关连接（响应完成后closeInEventLoop
+			// 会context.close()）；不再强制结束exchange丢弃响应。请求不完整、永远等不到剩余body的连接
+			// 由checkTimeout的读写空闲超时（默认30/60秒）兜底关闭。与下面ChannelInputShutdownReadComplete
+			// 分支的处置一致。
 			var x = exchanges.get(ctx.channel().id());
 			if (x != null)
-				x.close(HttpExchange.CLOSE_PASSIVE, null);
+				x.willCloseConnection = true;
 			else if (!ctx.channel().closeFuture().isDone()) {
 				Netty.logger.info("disconnect: {}", ctx.channel().remoteAddress());
 				ctx.close();
