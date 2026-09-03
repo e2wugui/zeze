@@ -478,7 +478,14 @@ public final class Agent {
 		var leaderSocket = leader != null ? leader.getConnector().TryGetReadySocket() : null;
 		ArrayList<RaftRpc<?, ?>> removed = null;
 		long now = System.currentTimeMillis();
-		long timeout = raftConfig.getAppendEntriesTimeout() * 3L; // 比一次raft-rpc超时大一倍。
+		// 【FND-R1-2】重发间隔必须小于 rpc 判死门槛（rpc.getTimeout()：Rpc 构造默认 5000ms；
+		// setTimeout(0) 时为 AgentTimeout=AppendEntriesTimeout+2000）。原来取 *3（默认6000ms）
+		// 大于全部常见 rpc 超时：判死分支（以 createTime 为基准）先于重发成立，
+		// 默认配置下重发永不触发，请求超时即报 RpcTimeoutException，上层只能用新
+		// requestId 重试，服务器去重失效。单次发送 AppendEntriesTimeout 无应答即可判定
+		// 该次发送无法完成（leader 切换/未 ready/分区），与配置注释"发送失败重试超时"一致；
+		// 服务器按 UniqueRequestId 去重，重发幂等。
+		long timeout = raftConfig.getAppendEntriesTimeout();
 		for (var rpc : pending) {
 			if (rpc.getTimeout() > 0 && now - rpc.getCreateTime() > rpc.getTimeout()) {
 				rpc = pending.remove(rpc.getUnique().getRequestId());
