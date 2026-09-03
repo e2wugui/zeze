@@ -906,16 +906,60 @@ public final class JsonReader {
 	int parseKeyHashNoQuot(int b) {
 		if (b == ':')
 			return 0;
-		if (b == '\\')
-			b = buf[++pos];
-		for ( //noinspection UnnecessaryLocalVariable
-				int h = b, m = keyHashMultiplier; ; h = h * m + b) {
+		// 解码转义并按解码后的 utf-8 字节计算 hash（与 parseKeyHash/parseStringNoQuot 的解码语义一致），
+		// 否则 {\u0061bc:1} 之类无引号转义 key 匹配不到字段 abc（FND-U1-2 的同构缺陷）。
+		//noinspection UnnecessaryLocalVariable
+		final int m = keyHashMultiplier;
+		int h = 0;
+		for (; ; ) {
+			if (b == '\\') {
+				int c = buf[++pos]; // c 为转义字符，pos 停在它上面
+				if (c == 'u') {
+					c = parseHex4(buf, pos + 1); // 4 个 hex 从 'u' 之后开始（对齐 parseKeyHash 的 pos++ 语义）
+					pos += 5; // 'u' + 4 hex，pos 停在转义序列后的第一个字符
+					if (c >= 0xd800 && c < 0xdc00 && buf[pos] == '\\' && buf[pos + 1] == 'u') {
+						int c2 = parseHex4(buf, pos + 2);
+						if ((c2 & 0xfc00) == 0xdc00) { // utf-16 代理对 -> 4字节 utf-8
+							pos += 6;
+							c = (c << 10) + c2 + (0x10000 - (0xd800 << 10) - 0xdc00);
+							h = h * m + (byte)(0xf0 + (c >> 18));
+							h = h * m + (byte)(0x80 + ((c >> 12) & 0x3f));
+							h = h * m + (byte)(0x80 + ((c >> 6) & 0x3f));
+							h = h * m + (byte)(0x80 + (c & 0x3f));
+							c = -1; // 所有字节已掺入 hash
+						}
+					}
+					if (c >= 0) {
+						if (c >= 0x800) { // 3字节 utf-8（含孤立代理，lenient）
+							h = h * m + (byte)(0xe0 + (c >> 12));
+							h = h * m + (byte)(0x80 + ((c >> 6) & 0x3f));
+							h = h * m + (byte)(0x80 + (c & 0x3f));
+						} else if (c >= 0x80) { // 2字节 utf-8
+							h = h * m + (byte)(0xc0 + (c >> 6));
+							h = h * m + (byte)(0x80 + (c & 0x3f));
+						} else // 1字节
+							h = h * m + (byte)c;
+					}
+				} else {
+					c = c >= 0x20 ? ESCAPE[c - 0x20] : (c & 0xff);
+					if (c >= 0x80) { // 与 parseString() 一致的 lenient 解码：U+0080..U+00FF -> 2字节 utf-8
+						h = h * m + (byte)(0xc0 + (c >> 6));
+						h = h * m + (byte)(0x80 + (c & 0x3f));
+					} else
+						h = h * m + (byte)c;
+				}
+				// 转义解码后 pos 已停在"下一个未读字符"：读取它但不前进（下一轮哈希或
+				// 继续识别转义）；直接走循环尾部的 buf[++pos] 会跳过该字符漏哈希。
+				b = buf[pos];
+				if (((((b & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) || b == '/')
+					return h;
+				continue;
+			} else
+				h = h * m + b;
 			if (((((b = buf[++pos]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) // (b & 0xff) <= ' ' || b == ':'
 				return h;
 			if (b == '/') // check comment
 				return h;
-			if (b == '\\')
-				b = buf[++pos];
 		}
 	}
 
