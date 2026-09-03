@@ -262,6 +262,25 @@ public final class ZstdFactory {
 					dstPos = (int)fDDstPos.getLong(this);
 				}
 				dst.WriteIndex = dstPos;
+				// drain：同 Codec 版本，输入耗尽时排空上下文内滞留的输出（最多一个批次，无进展即止）
+				fDSrcPos.set(this, srcEnd);
+				for (int lastPos = -1; dstPos != lastPos; ) {
+					lastPos = dstPos;
+					r = Math.max(r, 16);
+					if (dstEnd - dstPos < r) {
+						dst.WriteIndex = dstPos;
+						dst.ensureWriteNoCompact(r);
+						dstBytes = dst.Bytes;
+						dstEnd = dstBytes.length;
+					}
+					fDDstPos.set(this, dstPos);
+					r = (int)mhDecompressStream.invokeExact((ZstdInputStreamNoFinalizer)this,
+							ctxPtr, dstBytes, dstEnd, src, srcEnd);
+					if (r < 0)
+						throw new IllegalStateException("mhDecompressStream = " + r);
+					dstPos = (int)fDDstPos.getLong(this);
+				}
+				dst.WriteIndex = dstPos;
 			} catch (Throwable e) { // MethodHandle.invoke
 				throw Task.forceThrow(e);
 			}
@@ -282,6 +301,23 @@ public final class ZstdFactory {
 						throw new IllegalStateException("mhDecompressStream = " + r);
 					dst.update(dstBuf, 0, (int)fDDstPos.getLong(this));
 					srcPos = (int)fDSrcPos.getLong(this);
+				}
+				// 输入耗尽时，native 上下文内可能滞留最多一个 dstBuf 的已解压输出（dstBuf 满载时
+				// 写不下的部分留在上下文里，仅当再次调用时才吐出）。空输入（srcPos==srcEnd）继续
+				// 调用直到无产出，否则解压流尾部最后一批（≤dstBufSize）会在流结束/flush 时静默丢失
+				// ——压缩开启的连接表现为尾部协议帧丢失或后续帧字节错位。官方
+				// ZstdInputStreamNoFinalizer.readInternal 的 while 循环同样以"无进展"退出覆盖此场景。
+				fDSrcPos.set(this, srcEnd);
+				while (true) {
+					fDDstPos.set(this, 0);
+					int r = (int)mhDecompressStream.invokeExact((ZstdInputStreamNoFinalizer)this,
+							ctxPtr, dstBuf, dstBuf.length, src, srcEnd);
+					if (r < 0)
+						throw new IllegalStateException("mhDecompressStream = " + r);
+					long dstPos = fDDstPos.getLong(this);
+					if (dstPos <= 0)
+						break;
+					dst.update(dstBuf, 0, (int)dstPos);
 				}
 			} catch (Throwable e) { // MethodHandle.invoke
 				throw Task.forceThrow(e);
