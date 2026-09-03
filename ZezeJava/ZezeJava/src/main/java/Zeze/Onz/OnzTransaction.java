@@ -200,19 +200,41 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			throw new RuntimeException(ex);
 		}
 
+		// saveCommitPoint(eCommitting)成功以后，commit决策已持久化。
+		// 此后Commit/FuncSagaEnd应答超时或发送失败不能把异常抛出去转成rollback()
+		// （OnzServer.perform的catch会执行rollback）：参与方可能已按Commit提交，
+		// 再发Rollback会让未决的参与方回滚，造成一边已提交一边已回滚的部分提交（破坏2pc决策）。
+		// 正确的方向是维持commit决策并保留commitIndex，由redoTimer周期重发Commit（幂等）直到全部完成。
+		var commitFail = false;
 		for (var zeze : zezeProcedures.keySet()) {
 			var r = new Commit();
 			r.Argument.setOnzTid(onzTid);
-			r.SendForWait(zeze).await();
-			if (r.getResultCode() != 0)
+			try {
+				r.SendForWait(zeze).await();
+			} catch (Exception ex) { // await 不声明受检异常（中断在内部分理），统一捕获
+				commitFail = true;
+				logger.fatal("commit await fail. tid={}, keep eCommitting for redo.", onzTid, ex);
+				continue; // 继续通知其余参与方
+			}
+			if (r.getResultCode() != 0) {
+				// 参与方未决（ready条目还在），保留索引重发是唯一收敛路径。
+				commitFail = true;
 				logger.fatal("commit error {}", IModule.getErrorCode(r.getResultCode()));
+			}
 		}
 
 		// 对于procedure，下面函数里面访问的zezeSagas是空的。
-		endSaga();
+		// saga同样已过决策点（成功步骤已提交）：endSaga失败不能转rollback，
+		// 否则cancelSaga会把已成功的步骤补偿掉。滞留的saga上下文由参与方超时清理兜底（Onz.cleanupTimeoutSagas）。
+		try {
+			endSaga();
+		} catch (Exception ex) {
+			logger.fatal("endSaga fail. tid={}", onzTid, ex);
+		}
 
-		// commit success
-		onzServer.removeCommitIndex(tidBytes);
+		if (!commitFail)
+			onzServer.removeCommitIndex(tidBytes);
+		// else: 保留eCommitting索引，redoTimer重发Commit，全部应答后由redo清理。
 	}
 
 	void rollback() {
