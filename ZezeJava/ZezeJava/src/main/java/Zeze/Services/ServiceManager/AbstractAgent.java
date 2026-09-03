@@ -295,9 +295,22 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public @Nullable BServiceInfo onRegister(@NotNull BServiceInfo info) {
 			lock();
 			try {
+				// BEditService.add声明AddOrUpdate以name+id为key：同identity重注册到新版本时，
+				// 先从其他版本桶移除旧记录，保证一个identity最多存在于一个版本桶，
+				// 否则实例下线后旧版本桶残留幽灵地址（与服务端addAndCollectNotify一致）。
+				BServiceInfo oldNotSame = null;
+				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
+					if (it.key() == info.getVersion())
+						continue;
+					var old = it.value().remove(info);
+					if (old != null && !old.fullEquals(info) && oldNotSame == null)
+						oldNotSame = old;
+				}
 				var versions = serviceInfos.getOrAddInfos(info.getVersion());
 				var exist = versions.insert(info);
-				return null != exist && !exist.fullEquals(info) ? exist : null;
+				if (oldNotSame == null && null != exist && !exist.fullEquals(info))
+					oldNotSame = exist;
+				return oldNotSame;
 			} finally {
 				unlock();
 			}
@@ -306,10 +319,14 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public boolean onUnRegister(@NotNull BServiceInfo info) {
 			lock();
 			try {
-				var versions = serviceInfos.getInfos(info.getVersion());
-				if (null != versions)
-					return (null != versions.remove(info));
-				return false;
+				// 注销同样以name+id为key跨全部版本桶收敛（与onRegister、服务端removeAndCollectNotify
+				// 一致），移除同identity的全部残留，避免死地址留存在任何版本桶里。
+				var removed = false;
+				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
+					if (it.value().remove(info) != null)
+						removed = true;
+				}
+				return removed;
 			} finally {
 				unlock();
 			}

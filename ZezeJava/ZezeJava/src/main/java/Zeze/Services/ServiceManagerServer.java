@@ -203,36 +203,50 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			return serviceInfos;
 		}
 
-		public void addAndCollectNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, EditService> result) {
-			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-			serviceInfos.computeIfAbsent(info.getVersion(), __ -> new HashMap<>()).put(info.getServiceIdentity(), info);
+		// 通知订阅了info版本的会话（version==0订阅全部版本）。info的版本决定通知过滤。
+		private void collectNotify(@NotNull BServiceInfo info, boolean isAdd,
+								   @NotNull HashMap<AsyncSocket, EditService> result) {
 			for (var it = simple.iterator(); it.moveToNext(); ) {
 				var itVersion = it.value().getVersion();
 				if (itVersion == 0 || itVersion == info.getVersion()) {
 					var peer = serviceManager.server.GetSocket(it.key());
-					if (peer != null)
-						result.computeIfAbsent(peer, __ -> new EditService()).Argument.getAdd().add(info);
+					if (peer != null) {
+						var notify = result.computeIfAbsent(peer, __ -> new EditService());
+						if (isAdd)
+							notify.Argument.getAdd().add(info);
+						else
+							notify.Argument.getRemove().add(info);
+					}
 				}
 			}
 		}
 
+		public void addAndCollectNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, EditService> result) {
+			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
+			// 更新以name+id为key（BEditService.add声明的语义）：同identity重注册到新版本时，
+			// 先从其他版本桶移除旧记录并通知其版本订阅者remove，
+			// 否则实例下线后旧版本桶残留幽灵地址（会话registers只保留最后一次注册）。
+			for (var e : serviceInfos.entrySet()) {
+				if (e.getKey() == info.getVersion())
+					continue;
+				var old = e.getValue().remove(info.getServiceIdentity());
+				if (old != null)
+					collectNotify(old, false, result);
+			}
+			serviceInfos.computeIfAbsent(info.getVersion(), __ -> new HashMap<>()).put(info.getServiceIdentity(), info);
+			collectNotify(info, true, result);
+		}
+
 		public void removeAndCollectNotify(@NotNull BServiceInfo info, long sessionId,
 										   @NotNull HashMap<AsyncSocket, EditService> result) {
-			var versions = serviceInfos.get(info.getVersion());
-			if (null == versions)
-				return; // version not found
-
-			var exist = versions.remove(info.getServiceIdentity());
-			// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-			if (exist != null && exist.getSessionId() != null && exist.getSessionId() == sessionId) {
-				for (var it = simple.iterator(); it.moveToNext(); ) {
-					var itVersion = it.value().getVersion();
-					if (itVersion == 0 || itVersion == info.getVersion()) {
-						var peer = serviceManager.server.GetSocket(it.key());
-						if (peer != null)
-							result.computeIfAbsent(peer, __ -> new EditService()).Argument.getRemove().add(info);
-					}
-				}
+			// 注销同样以name+id为key跨全部版本桶收敛（与addAndCollectNotify、客户端onUnRegister一致）。
+			for (var e : serviceInfos.entrySet()) {
+				var exist = e.getValue().get(info.getServiceIdentity());
+				// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
+				if (exist == null || exist.getSessionId() == null || exist.getSessionId() != sessionId)
+					continue;
+				e.getValue().remove(info.getServiceIdentity());
+				collectNotify(exist, false, result);
 			}
 		}
 
