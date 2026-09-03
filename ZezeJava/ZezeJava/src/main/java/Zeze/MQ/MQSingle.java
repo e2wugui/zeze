@@ -179,27 +179,40 @@ public class MQSingle extends ReentrantLock {
 			var message = messageQueue.peek();
 			pendingPushMessage.Argument.setMessage(message);
 			if (!pendingPushMessage.Send(bindSocket, (p) -> {
-				lock();
-				try {
-					loadCounter.incrementAndGet(); // 处理失败也进行计数。
-
-					if (pendingPushMessage.getResultCode() == 0) {
-						messageQueue.poll();
-						fileWithIndex.increaseFirstMessageId();
-						tryStartBackgroundFill();
-					}
-
-					// 不管是否失败，都尝试重新pushMessage。出错的时候要不要随机延迟一下再重试？
-					pendingPushMessage = null;
-					tryPushMessage();
-				} finally {
-					unlock();
-				}
+				handlePushResult();
 				return 0;
 			})) {
 				// Send失败（连接失效）时回调不会被调用，必须在这里清理，
 				// 否则pendingPushMessage永久悬挂，该分区消息投递永久停止，bind()也无法恢复。
 				pendingPushMessage = null;
+			}
+		}
+	}
+
+	// 包内可见：推送ack回调体（测试同步模拟回调到达，见ZezeJavaTest的TestMQSingleAckCallbackStall）。
+	// 持本锁执行，锁内再进fileWithIndex锁，与calculateFill的锁序一致。
+	void handlePushResult() {
+		lock();
+		try {
+			loadCounter.incrementAndGet(); // 处理失败也进行计数。
+
+			if (pendingPushMessage.getResultCode() == 0) {
+				// 先持久化推进位点再出队：increaseFirstMessageId 抛异常（如rocksdb写失败）时消息
+				// 留在队首、位点未推进（内存位点在持久化成功后才前移），下面finally重推的就是
+				// 同一条（at-least-once），位点不会跳过它。
+				fileWithIndex.increaseFirstMessageId();
+				messageQueue.poll();
+				tryStartBackgroundFill();
+			}
+		} finally {
+			// 不管推送成功失败，都复位pending并尝试重新pushMessage（出错时是否随机延迟再重试？）。
+			// 必须必达：本次rpc上下文已消费、不会再有第二次回调，上面任何异常跳过这里都会使
+			// pending永久悬挂，该分区推送永久停止。
+			try {
+				pendingPushMessage = null;
+				tryPushMessage();
+			} finally {
+				unlock();
 			}
 		}
 	}

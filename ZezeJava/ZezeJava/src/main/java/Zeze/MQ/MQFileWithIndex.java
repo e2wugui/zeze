@@ -190,10 +190,14 @@ public class MQFileWithIndex {
 		lock.lock();
 		try {
 			if (firstMessageId < nextMessageId) {
-				firstMessageId++;
+				var newFirstMessageId = firstMessageId + 1;
 				var bbFirstMessageId = new byte[8];
-				ByteBuffer.longBeHandler.set(bbFirstMessageId, 0, firstMessageId);
+				ByteBuffer.longBeHandler.set(bbFirstMessageId, 0, newFirstMessageId);
 				meta.put(firstMessageIdName, bbFirstMessageId);
+				// 持久化成功后才推进内存位点：meta.put 抛异常时保持"未推进"（否则内存位点越过
+				// 未持久化的值，调用方重推后再次推进会跳过一条消息），调用方（推送ack回调）才能
+				// 以消息留队首+位点未动重推同一条。
+				firstMessageId = newFirstMessageId;
 			}
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
