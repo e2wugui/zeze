@@ -953,6 +953,23 @@ public class HttpExchange {
 		close(context.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT).addListener(__ -> fc.close()));
 	}
 
+	// sendPath的目录列表把文件名/目录名直接拼进HTML的title/h1与<a href>属性：
+	// 含"、<、>、&等字符的文件名（目录内容或请求路径可被控制）可注入脚本。统一转义。
+	private static @NotNull String htmlEscape(@NotNull String s) {
+		var sb = new StringBuilder(s.length());
+		for (int i = 0; i < s.length(); i++) {
+			switch (s.charAt(i)) {
+			case '<' -> sb.append("&lt;");
+			case '>' -> sb.append("&gt;");
+			case '&' -> sb.append("&amp;");
+			case '"' -> sb.append("&quot;");
+			case '\'' -> sb.append("&#39;");
+			default -> sb.append(s.charAt(i));
+			}
+		}
+		return sb.toString();
+	}
+
 	@SuppressWarnings("deprecation")
 	public void sendPath(@NotNull File file) {
 		if (!file.isDirectory() || file.isHidden()) {
@@ -961,7 +978,7 @@ public class HttpExchange {
 		}
 
 		int fileLimit = 10000; // 限制最多列出多少目录+文件,避免开销太大
-		var fn = file.getName();
+		var fn = htmlEscape(file.getName());
 		var sb = new StringBuilder("<html><head><title>Index of ").append(fn)
 				.append("/</title></head><body><h1>Index of ").append(fn)
 				.append("/</h1><hr><pre><a href=\"../\">../</a>\n");
@@ -973,7 +990,7 @@ public class HttpExchange {
 						sb.append("......\n");
 						break;
 					}
-					fn = f.getName();
+					fn = htmlEscape(f.getName());
 					var date = new Date(f.lastModified());
 					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %18s <a href=\"%s/\">%s/</a>\n",
 							date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
@@ -987,7 +1004,7 @@ public class HttpExchange {
 						sb.append("......\n");
 						break;
 					}
-					fn = f.getName();
+					fn = htmlEscape(f.getName());
 					var date = new Date(f.lastModified());
 					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %,18d <a href=\"%s\">%s</a>\n",
 							date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
