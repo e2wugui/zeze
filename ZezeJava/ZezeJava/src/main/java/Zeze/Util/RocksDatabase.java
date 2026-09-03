@@ -769,6 +769,8 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 
 		public void clear() throws RocksDBException {
 			try (var it = iterator()) {
+				// 新建的迭代器未定位，isValid()恒false，不seek则deleteToEnd什么都不删（clear退化为no-op）。
+				it.seekToFirst();
 				deleteToEnd(it);
 			}
 		}
