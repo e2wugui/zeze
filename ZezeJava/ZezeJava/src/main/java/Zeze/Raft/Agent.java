@@ -629,6 +629,10 @@ public final class Agent {
 			var randName = new byte[32];
 			Zeze.Util.Random.getInstance().nextBytes(randName);
 			var agent = new Agent(Arrays.toString(randName), raftConfig);
+			// 【FND-R1-3】创建即回填out：调用方（driveOutNotSuggestMajorityLeader）需要agent
+			// 查询活跃建议多数派连接并继续等待后续leader。回填与等待结果无关。
+			if (out != null)
+				out.value = agent;
 			try {
 				var future = new TaskCompletionSource<Connector>();
 				agent.setOnSetLeader((_agent) -> future.setResult(_agent.getLeader().getConnector()));
@@ -653,7 +657,10 @@ public final class Agent {
 				}
 				return future.get(timeoutMs, TimeUnit.MILLISECONDS); // 这里使用用户超时，需要确保超时大于选举需要的时间。
 			} finally {
-				agent.stop();
+				// 【FND-R1-3】out非null时agent生命周期移交调用方：
+				// stop()会回收client，回填出去的将是无法查询连接状态的失效agent。
+				if (out == null)
+					agent.stop();
 			}
 		} catch (Exception ex) {
 			logger.warn("", ex);
@@ -700,18 +707,18 @@ public final class Agent {
 	 */
 	public static String driveOutNotSuggestMajorityLeader(RaftConfig raftConfig) {
 		var agentOut = new OutObject<Agent>();
-		var leader = waitForLeader(raftConfig, 0, agentOut);
-		if (null == leader)
-			return "no leader.";
-		var leaderNode = raftConfig.getNodes().get(leader.getName());
-		if (leaderNode.isSuggestMajority())
-			return null;
-
-		// 检测活跃的建议的节点数量足够，达到多数派；
-		if (agentOut.value.getActiveSuggestMajorityConnectors().size() < raftConfig.getMajorityCount())
-			return "active suggest majority count not enough.";
 		var stoppeds = new ArrayList<Connector>();
 		try {
+			var leader = waitForLeader(raftConfig, 0, agentOut);
+			if (null == leader)
+				return "no leader.";
+			var leaderNode = raftConfig.getNodes().get(leader.getName());
+			if (leaderNode.isSuggestMajority())
+				return null;
+
+			// 检测活跃的建议的节点数量足够，达到多数派；
+			if (agentOut.value.getActiveSuggestMajorityConnectors().size() < raftConfig.getMajorityCount())
+				return "active suggest majority count not enough.";
 			// 停止非建议的节点的Leader；
 			// 不能一下子停止所有的非建议节点；
 			// 需要一步一步驱赶，其他非建议节点可能是最新的，需要它传播下去。
@@ -738,6 +745,14 @@ public final class Agent {
 				if (startServer.getResultCode() != 0)
 					logger.error("stop server for {}  error={}",
 							stopped.getName(), IModule.getErrorCode(startServer.getResultCode()));
+			}
+			// 【FND-R1-3】out模式下agent生命周期归本方法，用完释放（含"no leader."等提前返回路径）。
+			if (agentOut.value != null) {
+				try {
+					agentOut.value.stop();
+				} catch (Exception e) {
+					logger.error("driveOutNotSuggestMajorityLeader stop agent error.", e);
+				}
 			}
 		}
 	}
