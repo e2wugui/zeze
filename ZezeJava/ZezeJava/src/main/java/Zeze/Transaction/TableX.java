@@ -1388,7 +1388,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public void __ClearTableCacheUnsafe__() {
 		//System.out.println(getName() + " __ClearTableCacheUnsafe__");
 		// 直接new一个更加干净。
+		var oldCache = cache;
 		cache = new TableCache<>(getZeze(), this);
+		if (oldCache != null)
+			oldCache.close(); // 关闭旧cache的周期定时器（newLruHot/cleanNow），否则定时任务泄漏且强引用旧dataMap无法GC。
 	}
 
 	@Override
