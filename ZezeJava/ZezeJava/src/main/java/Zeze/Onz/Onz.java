@@ -1,6 +1,7 @@
 package Zeze.Onz;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import Zeze.Application;
 import Zeze.Builtin.Onz.Checkpoint;
 import Zeze.Builtin.Onz.Commit;
@@ -9,17 +10,35 @@ import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.TaskSpec;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Onz extends AbstractOnz {
 	public static final String eServiceName = "Onz";
+
+	private static final Logger logger = LogManager.getLogger(Onz.class);
 
 	private final ConcurrentHashMap<String, OnzProcedureStub<?, ?>> procedureStubs = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<OnzProcedure> readyProcedures = new LongConcurrentHashMap<>();
 	private final LongConcurrentHashMap<OnzSaga> sagas = new LongConcurrentHashMap<>();
 	private final OnzService service;
 	private final Application zeze;
+	// saga上下文兜底清理：正常流程FuncSagaEnd在步骤成功后数秒内到达；
+	// 协调者崩溃（saga无持久化状态，重启后不会重发FuncSagaEnd）或FuncSagaEnd
+	// 发送失败时，超时清理是参与方唯一的回收路径（FND-G1-6）。
+	private long sagaContextTimeoutMs = 3600_000;
+	private Future<?> sagaCleanupTimer;
+
+	public long getSagaContextTimeoutMs() {
+		return sagaContextTimeoutMs;
+	}
+
+	public void setSagaContextTimeoutMs(long sagaContextTimeoutMs) {
+		this.sagaContextTimeoutMs = sagaContextTimeoutMs;
+	}
 
 	void markReadyProcedure(OnzProcedure procedure) {
 		if (null != readyProcedures.putIfAbsent(procedure.getOnzTid(), procedure))
@@ -60,11 +79,34 @@ public class Onz extends AbstractOnz {
 			var identity = String.valueOf(config.getServerId());
 			zeze.getServiceManager().registerService(new BServiceInfo(eServiceName, identity, 0, ip, port));
 		}
+		sagaCleanupTimer = TaskSpec.ofAction(this::cleanupTimeoutSagas).schedulePeriodNow(60_000, 60_000);
 	}
 
 	public void stop() throws Exception {
+		if (null != sagaCleanupTimer) {
+			sagaCleanupTimer.cancel(false);
+			sagaCleanupTimer = null;
+		}
 		if (null != service)
 			service.stop();
+	}
+
+	/**
+	 * 清理超时仍未收到FuncSagaEnd的saga上下文。定时器周期调用，测试可直接调用。
+	 */
+	public void cleanupTimeoutSagas() {
+		var now = System.currentTimeMillis();
+		for (var it = sagas.iterator(); it.hasNext(); ) {
+			var saga = it.next();
+			if (!saga.isEnd() && now - saga.getStartTime() >= sagaContextTimeoutMs) {
+				// 协调者已不可能再发FuncSagaEnd：正常流程成功后数秒内到达；
+				// 协调者崩溃时saga无持久化事务状态（buildSavedCommits为空），
+				// 重启后的redoTimer不会重发FuncSagaEnd。滞留条目持有rpc
+				// （sender socket引用）与业务bean，且end=false会扭曲flush语义判断。
+				if (sagas.remove(saga.getOnzTid(), saga))
+					logger.warn("cleanup timeout saga context. tid={}, name={}", saga.getOnzTid(), saga.getName());
+			}
+		}
 	}
 
 	public <A extends Bean, R extends Bean> void register(
@@ -131,7 +173,17 @@ public class Onz extends AbstractOnz {
 		if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), (OnzSaga)procedure))
 			return errorCode(eSagaTidExist);
 
-		return TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
+		// 步骤失败（业务返回非0或异常）时本地事务已回滚：协调者cancelSaga只对成功的
+		// 步骤发FuncSagaEnd（失败步骤被跳过），正常结束路径endSaga也只在成功时到达，
+		// 这里不清理则条目永久滞留（持有rpc与业务bean，FND-G1-6）。
+		var rc = Procedure.Exception;
+		try {
+			rc = TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
+		} finally {
+			if (rc != 0)
+				sagas.remove(r.Argument.getOnzTid(), procedure); // 两参remove防御tid条目被替换
+		}
+		return rc;
 	}
 
 	@Override
