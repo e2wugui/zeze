@@ -318,7 +318,10 @@ public class Bag {
 			var tmp = funcItemPileMax;
 			if (null == tmp)
 				return 1;
-			return tmp.applyAsInt(itemId);
+			// 下界1：自定义函数返回0/负数（配置缺项映射成0是常见写法）时，
+			// add的堆叠循环条件number>pileMax恒真且每次扣减0，会把背包全部空格
+			// 填成number=0的物品堆并污染持久化数据。
+			return Math.max(1, tmp.applyAsInt(itemId));
 		}
 
 		@Override
