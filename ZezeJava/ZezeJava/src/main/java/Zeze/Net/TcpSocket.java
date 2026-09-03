@@ -389,6 +389,14 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		});
 	}
 
+	/**
+	 * 自定义输入codec链扩展点（如 KeyExchange 挂自定义解密）。
+	 * 【安全约束】creator 返回的链中若包含解压器（Decompress/DecompressZstd 等），必须自行施加
+	 * 流式输入增长上限（参考 {@link #setInputSecurityCodec(int, byte[], int)} 对
+	 * InputBufferMaxProtocolSize 的 sink 侧流式检查）：本变体签名收 BufferCodec，框架无法在
+	 * 解压输出侧替你插入 InputLimitCodec——恶意压缩数据可在此无上限膨胀（压缩放大）。
+	 * 仅解密（如 Decrypt2，1:1 不扩展）或纯透传的链无此要求。
+	 */
 	public void setInputSecurityCodec(BiFunction<AsyncSocket, BufferCodec, Codec> creator) {
 		submitAction(() -> { // 进selector线程调用
 			inputCodecChain = creator.apply(this, inputBuffer);
