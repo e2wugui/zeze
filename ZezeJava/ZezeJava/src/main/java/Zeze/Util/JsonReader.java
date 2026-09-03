@@ -418,6 +418,19 @@ public final class JsonReader {
 		return parse((T)null, classMeta);
 	}
 
+	// Json 注册的容器 parser（IntHashMap/LongHashMap/LongConcurrentHashMap）的 value 递归解析入口：
+	// 这条路径不经过 parse0/parseList0/parseMap0 等自带深度检查的容器函数，
+	// 嵌套声明（如 LongHashMap<LongHashMap<...>> 字段）配深嵌套输入仍可递归爆栈，这里补上深度计数。
+	@Nullable Object parseNested(@Nullable ClassMeta<?> classMeta) throws ReflectiveOperationException {
+		if (++depth > maxDepth)
+			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
+		try {
+			return parse(classMeta);
+		} finally {
+			depth--;
+		}
+	}
+
 	public <T> @Nullable T parse(@Nullable T obj) throws ReflectiveOperationException {
 		return parse(obj, (ClassMeta<T>)null);
 	}

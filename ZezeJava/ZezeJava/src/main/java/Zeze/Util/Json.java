@@ -1077,7 +1077,7 @@ public final class Json implements Cloneable {
 				int k = JsonReader.parseIntegerKey(reader, b);
 				reader.skipColon();
 				@SuppressWarnings({"unchecked", "unused"})
-				Object __ = obj.put(k, reader.parse(valueMeta));
+				Object __ = obj.put(k, reader.parseNested(valueMeta));
 			}
 			reader.skip(1);
 			return obj;
@@ -1170,7 +1170,7 @@ public final class Json implements Cloneable {
 				long k = JsonReader.parseLongKey(reader, b);
 				reader.skipColon();
 				@SuppressWarnings({"unchecked", "unused"})
-				Object __ = obj.put(k, reader.parse(valueMeta));
+				Object __ = obj.put(k, reader.parseNested(valueMeta));
 			}
 			reader.skip(1);
 			return obj;
@@ -1263,7 +1263,7 @@ public final class Json implements Cloneable {
 				long k = JsonReader.parseLongKey(reader, b);
 				reader.skipColon();
 				@SuppressWarnings({"unchecked", "unused"})
-				Object __ = obj.put(k, reader.parse(valueMeta));
+				Object __ = obj.put(k, reader.parseNested(valueMeta));
 			}
 			reader.skip(1);
 			return obj;
