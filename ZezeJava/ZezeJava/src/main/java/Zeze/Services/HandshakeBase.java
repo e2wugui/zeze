@@ -36,10 +36,12 @@ public class HandshakeBase extends Service {
 
 	static class Context {
 		final @NotNull Object context;
+		final int encryptType; // 本次握手请求使用的加密类型（CHandshake.Argument.encryptType），用于校验SHandshake回显一致
 		@Nullable Future<?> timeoutTask;
 
-		Context(@NotNull Object context) {
+		Context(@NotNull Object context, int encryptType) {
 			this.context = context;
+			this.encryptType = encryptType;
 		}
 	}
 
@@ -106,6 +108,12 @@ public class HandshakeBase extends Service {
 
 	private long processCHandshake(@NotNull CHandshake p) {
 		try {
+			// 协商一致性检查：客户端上报的加密类型必须与服务器配置（即SHandshake0发出的推荐值）一致，
+			// 否则握手可能已被篡改（如RsaAes被降级成匿名DH），拒绝（FND-S3-1 部分缓解）。
+			if (p.Argument.encryptType != getConfig().getHandshakeOptions().getEncryptType())
+				throw new IllegalStateException("encryptType mismatch: " + p.Argument.encryptType
+						+ " expect " + getConfig().getHandshakeOptions().getEncryptType());
+
 			byte[] inputKey = null;
 			byte[] outputKey = null;
 			byte[] response = ByteBuffer.Empty;
@@ -218,6 +226,11 @@ public class HandshakeBase extends Service {
 		try {
 			ctx = dhContext.remove(p.getSender().getSessionId());
 			if (ctx != null) {
+				// 协商一致性检查：SHandshake回显的加密类型必须与CHandshake请求的一致，否则握手可能已被篡改，拒绝（FND-S3-1 部分缓解）。
+				if (p.Argument.encryptType != ctx.encryptType)
+					throw new IllegalStateException("encryptType mismatch: " + p.Argument.encryptType
+							+ " expect " + ctx.encryptType);
+
 				byte[] inputKey = null;
 				byte[] outputKey = null;
 				switch (p.Argument.encryptType) {
@@ -300,7 +313,7 @@ public class HandshakeBase extends Service {
 				break;
 			}
 
-			var ctx = new Context(context);
+			var ctx = new Context(context, arg.encryptType);
 			if (null != dhContext.putIfAbsent(so.getSessionId(), ctx)) {
 				throw new IllegalStateException("handshake duplicate context for same session.");
 			}
