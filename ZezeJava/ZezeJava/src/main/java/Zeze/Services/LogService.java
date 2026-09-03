@@ -111,6 +111,9 @@ public class LogService extends AbstractLogService {
 
 	@Override
 	protected long ProcessNewSessionRequest(NewSession r) throws Exception {
+		// 未知logName直接返回错误码；不校验的话getLogManager返回null，walker构造Objects.requireNonNull抛NPE。
+		if (null == getLogManager(r.Argument.getLogName()))
+			return Procedure.LogicError;
 		var agent = (ServerUserState)r.getSender().getUserState();
 		r.Result.setId(sidSeed.incrementAndGet());
 		agent.newLogSession(r.Argument.getLogName(), r.Result.getId());
