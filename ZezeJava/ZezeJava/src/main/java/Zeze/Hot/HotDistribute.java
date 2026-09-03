@@ -39,6 +39,8 @@ public class HotDistribute extends AbstractHotDistribute {
             if (state != eIdle)
                 return errorCode(ePrepare);
 
+            // 新发布会话开始：上一会话崩溃/断链遗留的未CloseFile的FileBin在此回收。
+            distributeManager.closeAll();
             state = ePrepare;
             this.distributeId = distributeId;
             return 0;
@@ -172,6 +174,8 @@ public class HotDistribute extends AbstractHotDistribute {
     public void setIdle(long rc) {
         lock.lock();
         try {
+            // 会话结束：本会话中未走到CloseFile的残留FileBin（上传中断、md5失败）在此回收。
+            distributeManager.closeAll();
             state = eIdle;
             distributeId = 0;
 

@@ -79,4 +79,23 @@ public class DistributeManager {
 		var ready = Path.of(hotManager.getDistributeDir(), "ready");
 		Files.createFile(ready);
 	}
+
+	/**
+	 * 关闭并清除全部打开的 FileBin。
+	 * 发布会话边界调用（setPrepare 新会话开始 / setIdle 会话结束）：
+	 * 控制台在 OpenFile 之后、CloseFile 之前崩溃/断链时，残留的 RandomAccessFile
+	 * 没有任何超时清理路径——句柄常驻泄漏，Windows 上还锁住 distributes 下的文件，
+	 * 使 renameDistributes/安装的 rename 失败。发布不能并发，会话边界回收是安全的。
+	 */
+	public void closeAll() {
+		for (var e : files.entrySet()) {
+			if (files.remove(e.getKey(), e.getValue())) {
+				try {
+					e.getValue().close();
+				} catch (IOException ex) {
+					logger.error("closeAll {}", e.getKey(), ex);
+				}
+			}
+		}
+	}
 }
