@@ -295,24 +295,34 @@ public final class Token extends AbstractToken {
 		boolean subTopic(@NotNull Session session, @NotNull String topic) {
 			if (!session.subTopics.add(topic))
 				return false;
-			topicMap.computeIfAbsent(topic, __ -> new CopyOnWriteArrayList<>()).add(session);
+			// compute的remapping对同一key互斥执行：退订的"remove+isEmpty删条目"与订阅的"建表+add"若各自拆成
+			// computeIfAbsent/computeIfPresent两步，交错时订阅会落在已被删条的孤儿列表上，静默丢失订阅（FND-S3-15）。
+			topicMap.compute(topic, (__, ss) -> {
+				if (null == ss)
+					ss = new CopyOnWriteArrayList<>();
+				ss.add(session);
+				return ss;
+			});
 			return true;
 		}
 
 		boolean unsubTopic(@NotNull Session session, @NotNull String topic) {
 			if (!session.subTopics.remove(topic))
 				return false;
-			var sessions = topicMap.get(topic);
-			if (sessions != null && sessions.remove(session) && sessions.isEmpty())
-				topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
+			// remove+isEmpty判定放进同一remapping原子段，与subTopic的compute互斥，消除静默丢失窗口。
+			topicMap.computeIfPresent(topic, (__, ss) -> {
+				ss.remove(session);
+				return ss.isEmpty() ? null : ss;
+			});
 			return true;
 		}
 
 		void unsubAllTopics(@NotNull Session session) {
 			for (var topic : session.subTopics) {
-				var sessions = topicMap.get(topic);
-				if (sessions != null && sessions.remove(session) && sessions.isEmpty())
-					topicMap.computeIfPresent(topic, (__, ss) -> ss.isEmpty() ? null : ss);
+				topicMap.computeIfPresent(topic, (__, ss) -> {
+					ss.remove(session);
+					return ss.isEmpty() ? null : ss;
+				});
 			}
 		}
 
