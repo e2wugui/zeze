@@ -197,8 +197,14 @@ public class Onz extends AbstractOnz {
 			var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
 			var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
 			var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> stub.end(context, cancelArgument), context.getName())).call();
-			if (rc != 0)
+			if (rc != 0) {
+				// 补偿失败：上下文必须放回sagas，否则协调者（cancelSaga只记错误日志不重试）
+				// 或人工重发FuncSagaEnd时只能得到eSagaNotFound，补偿永久丢失且不可重试。
+				// 放回后由cleanupTimeoutSagas超时兜底（默认1小时，可配置）。
+				if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), context))
+					logger.error("saga context re-insert conflict. tid={}", r.Argument.getOnzTid());
 				return rc;
+			}
 		}
 		context.setEnd();
 
