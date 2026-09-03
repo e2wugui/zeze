@@ -58,7 +58,6 @@ public class LogSequence {
 	private final boolean sharedDatabase;
 	private RocksDatabase.Table rafts;
 	private final LongConcurrentHashMap<UniqueRequestSet> uniqueRequestSets = new LongConcurrentHashMap<>();
-	private final SimpleDateFormat uniqueDateFormat = new SimpleDateFormat("yyyy.M.d");
 
 	private final byte[] raftsTermKey;
 	private final byte[] raftsVoteForKey;
@@ -360,21 +359,22 @@ public class LogSequence {
 		deletedDirectoryAndCheck(path, 10);
 	}
 
-	void removeExpiredUniqueRequestSet() throws ParseException, Exception {
+	void removeExpiredUniqueRequestSet() throws Exception {
 		RaftConfig raftConf = raft.getRaftConfig();
 		long expired = System.currentTimeMillis() - (raftConf.getUniqueRequestExpiredDays() + 1) * 86400_000L;
 
+		// unique表名实际是 <raftName>.unique.<yyyy>.<M>.<d>（see makeUniqueRequestTableName），
+		// 必须按本raft的名字过滤；多raft共享同一database时，database里还有其他raft的表，
+		// 只能清理本raft的（其他raft由自己的清理任务负责）。
 		for (var tableName : database.getTableMap().keySet()) {
-			if (!tableName.startsWith("unique."))
+			var date = parseUniqueRequestDate(raft.getName(), tableName);
+			if (date == null || date.getTime() >= expired)
 				continue;
-			var db = uniqueDateFormat.parse(tableName.substring("unique.".length()));
-			if (db.getTime() < expired) {
-				var opened = uniqueRequestSets.remove(toUniqueRequestKey(db));
-				if (null != opened)
-					opened.table.drop(); // 包含opened.close。
-				else
-					database.getOrAddTable(tableName).drop();
-			}
+			var opened = uniqueRequestSets.remove(toUniqueRequestKey(date));
+			if (null != opened)
+				opened.table.drop(); // 包含opened.close。
+			else
+				database.getOrAddTable(tableName).drop();
 		}
 	}
 
@@ -528,11 +528,33 @@ public class LogSequence {
 
 	private UniqueRequestSet openUniqueRequests(long time) {
 		return uniqueRequestSets.computeIfAbsent(toUniqueRequestKey(new Date(time)),
-				k -> new UniqueRequestSet(raft.getName() + ".unique." + (k >> 16) + '.' + ((k >> 8) & 0xff) + '.' + (k & 0xff)));
+				k -> new UniqueRequestSet(makeUniqueRequestTableName(raft.getName(), k)));
+	}
+
+	// 唯一请求存根按天建表，表名：<raftName>.unique.<yyyy>.<M>.<d>，key由toUniqueRequestKey生成。
+	static String makeUniqueRequestTableName(String raftName, long key) {
+		return raftName + ".unique." + (key >> 16) + '.' + ((key >> 8) & 0xff) + '.' + (key & 0xff);
+	}
+
+	// 解析唯一请求存根表名中的日期（当天0点）；不是本raft的unique表（前缀不匹配或日期非法）返回null。
+	static Date parseUniqueRequestDate(String raftName, String tableName) {
+		var prefix = raftName + ".unique.";
+		if (!tableName.startsWith(prefix))
+			return null;
+		var dateText = tableName.substring(prefix.length());
+		var format = new SimpleDateFormat("yyyy.M.d");
+		format.setLenient(false);
+		try {
+			var date = format.parse(dateText);
+			// parse允许尾随垃圾，这里要求全量匹配，防止误认其他raft的表或非法日期（如2026.2.30）。
+			return format.format(date).equals(dateText) ? date : null;
+		} catch (ParseException e) {
+			return null;
+		}
 	}
 
 	@SuppressWarnings("deprecation")
-	private static long toUniqueRequestKey(Date date) {
+	static long toUniqueRequestKey(Date date) {
 		return ((date.getYear() + 1900L) << 16) + ((date.getMonth() + 1) << 8) + date.getDate();
 	}
 
