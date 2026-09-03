@@ -776,8 +776,12 @@ public final class Transaction {
 						continue;
 
 					var tkey = belong.tableKey();
-					if (tkey == null)
+					if (tkey == null) {
+						// 非受管bean没有tableKey（注释：只有测试代码会把非Managed的Bean的日志加进来）。
+						// 必须跳过：继续走下去TreeMap.get(null)必然NPE，防御分支自己先崩，掩盖真实诊断信息。
 						logger.error("impossible! log bean({}): {}", belong.getClass().getName(), belong);
+						continue;
+					}
 					var record = accessedRecords.get(tkey);
 					if (record != null) {
 						record.dirty = true;
