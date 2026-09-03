@@ -151,9 +151,12 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		var now = System.currentTimeMillis();
 
 		sessions.forEach(session -> {
-			if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
-				session.lock();
-				try {
+			session.lock();
+			try {
+				// 超时检查必须在锁内复查（理由同同步版FND-S1-6）：检查在锁外时，同serverId新
+				// incarnation恰在"检查→加锁"窗口内Login（bind持锁刷新activeTime），daemon会
+				// kick新连接并回收其新获取的权限。
+				if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
 					session.kick();
 					if (!session.acquired.isEmpty()) {
 						var releaseCount = 0L;
@@ -168,9 +171,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 							logger.info("AchillesHeelDaemon.Release session={} count={}", session, releaseCount);
 						// skip allReleaseFuture result
 					}
-				} finally {
-					session.unlock();
 				}
+			} finally {
+				session.unlock();
 			}
 		});
 	}
@@ -1110,6 +1113,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					sessionId = newSocket.getSessionId();
 					newSocket.setUserState(this);
 					this.globalCacheManagerHashIndex = globalCacheManagerHashIndex;
+					// 绑定即刷新活跃时刻（持锁）：achillesHeelDaemon的锁内复查据此识别
+					// 新incarnation，避免旧超时判定kick掉刚Login的新连接。
+					activeTime = System.currentTimeMillis();
 					return true;
 				}
 				// 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。

@@ -175,9 +175,13 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		var now = System.currentTimeMillis();
 
 		sessions.forEach(session -> {
-			if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
-				session.lock();
-				try {
+			session.lock();
+			try {
+				// 超时检查必须在锁内复查：检查在锁外时，同serverId新incarnation恰在"检查→加锁"
+				// 窗口内Login（tryBindSocket持锁绑定并刷新activeTime），daemon会kick新连接并回收
+				// 其新获取的权限（双Modify窗口，同FND-S1-1后果）。锁内复查与bind内的activeTime
+				// 更新构成同锁全序：bind完成后daemon必读到新值而跳过。
+				if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
 					session.kick();
 					if (!session.acquired.isEmpty()) {
 						var releaseCount = 0L;
@@ -196,9 +200,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						if (releaseCount > 0)
 							logger.info("AchillesHeelDaemon.Release session={} count={}", session, releaseCount);
 					}
-				} finally {
-					session.unlock();
 				}
+			} finally {
+				session.unlock();
 			}
 		});
 	}
@@ -942,6 +946,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					sessionId = newSocket.getSessionId();
 					newSocket.setUserState(this);
 					globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+					// 绑定即刷新活跃时刻（持锁）：achillesHeelDaemon的锁内复查据此识别
+					// 新incarnation，避免旧超时判定kick掉刚Login的新连接。
+					activeTime = System.currentTimeMillis();
 					return true;
 				}
 				// 每个AutoKeyLocalId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
