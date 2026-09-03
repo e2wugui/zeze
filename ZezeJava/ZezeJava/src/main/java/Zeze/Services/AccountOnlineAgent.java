@@ -58,7 +58,9 @@ public class AccountOnlineAgent extends AbstractAccountOnlineAgent {
 		r.Argument.setKickOld(isKickOld);
 		var index = Integer.remainderUnsigned(account.hashCode(), connectors.size());
 		var socket = connectors.get(index).TryGetReadySocket();
-		r.Send(socket, handle);
+		// Send对null socket直接return false且回调永不触发，上层Auth流程吊死到自身超时；
+		// SendReturnVoid总是建立上下文，socket为null时handle在超时后以Procedure.Timeout回调，快速失败。
+		r.SendReturnVoid(service, socket, handle);
 	}
 
 	public void logout(String account, String linkName, long linkSid,
@@ -69,7 +71,7 @@ public class AccountOnlineAgent extends AbstractAccountOnlineAgent {
 		r.Argument.setLinkSid(linkSid);
 		var index = Integer.remainderUnsigned(account.hashCode(), connectors.size());
 		var socket = connectors.get(index).TryGetReadySocket();
-		r.Send(socket, handle);
+		r.SendReturnVoid(service, socket, handle); // 同login：发送失败也要回调（FND-S3-11）
 	}
 
 	@Override
