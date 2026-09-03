@@ -30,7 +30,6 @@ public class DatabaseTikv extends Database {
 	private final RawKVClient client;
 	private final KVClient txnClient;
 	private final boolean distTxn; // 是否启用分布式事务. 注意两种模式的数据不能互通
-	private volatile long version; // only for distTxn
 
 	public DatabaseTikv(Application zeze, Config.DatabaseConf conf) {
 		super(zeze, conf);
@@ -40,7 +39,6 @@ public class DatabaseTikv extends Database {
 			session = TiSession.create(config);
 			client = null;
 			txnClient = session.createKVClient();
-			version = session.getTimestamp().getVersion();
 		} else {
 			config = TiConfiguration.createRawDefault(getDatabaseUrl());
 			session = TiSession.create(config);
@@ -166,7 +164,11 @@ public class DatabaseTikv extends Database {
 		public ByteBuffer find(ByteBuffer key) {
 			ByteString value;
 			if (distTxn) {
-				value = txnClient.get(addKeyPrefixBS(key), version);
+				// 快照读必须现取 TSO 时间戳：本进程缓存的快照永远看不到其他进程已提交的数据
+				// （多进程接管记录时 cache miss 读到旧值，之后基于旧值覆盖写会丢失对方的更新）。
+				// find 仅在本地 cache miss、记录失效重载、selectFromDatabase 时被调用，
+				// 一次 TSO 往返（PD get_tso，无批量，约一次小 RPC）的代价换取读到最新已提交数据。
+				value = txnClient.get(addKeyPrefixBS(key), session.getTimestamp().getVersion());
 				if (value == null)
 					return null;
 			} else {
@@ -201,8 +203,9 @@ public class DatabaseTikv extends Database {
 			var startKey = ByteString.copyFrom(keyPrefix);
 			var endKey = Key.toRawKey(keyPrefix).nextPrefix().toByteString();
 			Iterator<Kvrpcpb.KvPair> it;
-			if (distTxn)
-				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey, version);
+			if (distTxn) // 与 find 相同：现取 TSO 快照，保证看到其他进程已提交的数据
+				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey,
+						session.getTimestamp().getVersion());
 			else
 				it = client.scan0(startKey, endKey);
 			while (it.hasNext()) {
@@ -224,8 +227,9 @@ public class DatabaseTikv extends Database {
 			var startKey = ByteString.copyFrom(keyPrefix);
 			var endKey = Key.toRawKey(keyPrefix).nextPrefix().toByteString();
 			Iterator<Kvrpcpb.KvPair> it;
-			if (distTxn)
-				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey, version);
+			if (distTxn) // 与 find 相同：现取 TSO 快照，保证看到其他进程已提交的数据
+				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey,
+						session.getTimestamp().getVersion());
 			else
 				it = client.scan0(startKey, endKey);
 			while (it.hasNext()) {
@@ -433,9 +437,6 @@ public class DatabaseTikv extends Database {
 				}, ver, 1000);
 			} catch (Exception e) {
 				throw Task.forceThrow(e);
-			} finally {
-				// version 仅作为 find/walk 的读快照缓存；并发 commit 完成顺序不定，用 max 防止回退。
-				version = Math.max(version, ver);
 			}
 		}
 
