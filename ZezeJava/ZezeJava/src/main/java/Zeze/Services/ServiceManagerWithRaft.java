@@ -184,12 +184,13 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 						// 异步等待应答（FND-S1-10，对齐非raft版）：SendAndWaitCheckResultCode在
 						// 调度池线程上同步阻塞，半开连接堆积时可耗尽调度池拖停全部周期任务。
 						// 回调判活：超时/失败码在回调中关闭连接触发重连。
-						if (!r.Send(s, response -> {
+						final var sock = s;
+					if (!r.Send(s, response -> {
 							if (response.isTimeout() || response.getResultCode() != 0)
-								s.close(new java.io.IOException("KeepAlive fail: " + response));
+								sock.close(new java.io.IOException("KeepAlive fail: " + response));
 							return 0;
 						}))
-							s.close(new java.io.IOException("KeepAlive send fail"));
+							sock.close(new java.io.IOException("KeepAlive send fail"));
 					} catch (Throwable ex) { // logger.error
 						if (s != null)
 							s.close(ex);
