@@ -286,7 +286,17 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					try {
 						s = serviceManager.server.GetSocket(sessionId);
 						var r = new KeepAlive();
-						r.SendAndWaitCheckResultCode(s);
+						// 异步等待应答（FND-S1-10）：SendAndWaitCheckResultCode在调度池线程上同步阻塞
+						// 等待，半开连接（无FIN）堆积时每个KeepAlive各占一个rpc超时时长，数百会话
+						// 即可耗尽调度池，拖停同JVM全部周期任务（含死会话检测本身，恶性循环）。
+						// 改为回调判活：超时/失败码在回调中关闭连接触发重连——对端假死检测语义
+						// 不变（只发不等同样测不出假死），调度线程不再被占用。
+						if (!r.Send(s, response -> {
+							if (response.isTimeout() || response.getResultCode() != KeepAlive.Success)
+								s.close(new java.io.IOException("KeepAlive fail: " + response));
+							return 0;
+						}))
+							s.close(new java.io.IOException("KeepAlive send fail"));
 					} catch (Throwable ex) { // resource close. logger.error
 						if (s != null)
 							s.close(ex);
