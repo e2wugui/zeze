@@ -328,7 +328,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	@Override
 	public void ensureRead(int size) {
-		if (ReadIndex + size > WriteIndex)
+		// 溢出安全：ReadIndex+size会回绕为负(或size本身为负，如Skip(-1))，使旧检查不成立而静默放行
+		if (size < 0 || size > WriteIndex - ReadIndex)
 			throwEnsureReadException(size);
 	}
 

@@ -259,7 +259,11 @@ public interface IByteBuffer {
 	}
 
 	default <T extends Serializable> void decode(@NotNull Collection<T> c, @NotNull Supplier<T> factory) {
-		for (int n = ReadUInt(); n > 0; n--) {
+		int n = ReadUInt();
+		if (n < 0) // 损坏/恶意流的无符号长度落在[2^31,2^32)，读回为负：静默返回空集合会导致日志/数据丢失
+			throw new IllegalStateException("invalid collection size for decode: " + n
+					+ " at " + getReadIndex() + '/' + getWriteIndex());
+		for (; n > 0; n--) {
 			T v = factory.get();
 			v.decode(this);
 			c.add(v);
@@ -684,7 +688,27 @@ public interface IByteBuffer {
 		SkipUnknownField(type | 0x10); // ensure high bits not zero
 	}
 
+	// SkipUnknownField递归族(BEAN/LIST/MAP相互递归)的嵌套深度上限(对齐protobuf惯例)：
+	// 恶意深嵌套流(每层最少2-3字节)可让无界递归触发StackOverflowError穿透catch(Exception)
+	int MAX_SKIP_UNKNOWN_FIELD_DEPTH = 100;
+
+	// 递归族嵌套深度计数(线程封闭，解码本身单线程)；接口字段只能公开，仅框架内部使用，外部不要读写
+	ThreadLocal<Integer> SKIP_UNKNOWN_FIELD_DEPTH = ThreadLocal.withInitial(() -> 0);
+
 	default void SkipUnknownField(int tag) {
+		int depth = SKIP_UNKNOWN_FIELD_DEPTH.get() + 1;
+		if (depth > MAX_SKIP_UNKNOWN_FIELD_DEPTH)
+			throw new IllegalStateException("SkipUnknownField: depth > " + MAX_SKIP_UNKNOWN_FIELD_DEPTH
+					+ " at " + getReadIndex() + '/' + getWriteIndex());
+		SKIP_UNKNOWN_FIELD_DEPTH.set(depth);
+		try {
+			skipUnknownFieldBody(tag);
+		} finally {
+			SKIP_UNKNOWN_FIELD_DEPTH.set(depth - 1); // 异常路径也复位：计数泄漏会让本线程后续skip全部误抛
+		}
+	}
+
+	private void skipUnknownFieldBody(int tag) {
 		int type = tag & TAG_MASK;
 		switch (type) {
 		case INTEGER:

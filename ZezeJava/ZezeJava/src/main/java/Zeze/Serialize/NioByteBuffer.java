@@ -116,7 +116,8 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public void ensureRead(int size) {
-		if (bb.position() + size > bb.limit())
+		// 溢出安全：position()+size会回绕为负(或size本身为负，如Skip(-1))，使旧检查不成立而静默放行
+		if (size < 0 || size > bb.limit() - bb.position())
 			throwEnsureReadException(size);
 	}
 
