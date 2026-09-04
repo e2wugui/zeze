@@ -16,6 +16,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
+import static Zeze.MQ.Master.AbstractMaster.eConsumerNotFound;
+
 public class MQSingle extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger();
 
@@ -178,10 +180,13 @@ public class MQSingle extends ReentrantLock {
 			pendingPushMessage.Argument.setSessionId(bindSessionId);
 			var message = messageQueue.peek();
 			pendingPushMessage.Argument.setMessage(message);
+			// 推送超时必须走 MQConfig.RpcTimeout（默认 20s）：此前不传超时固定按 Rpc 字段默认
+			// 5000ms，慢消费者场景每 5 秒被重推一次，配置的 RpcTimeout 只流入 Raft ProxyServer
+			// 的代理路径、从不作用于 MQ 数据面。
 			if (!pendingPushMessage.Send(bindSocket, (p) -> {
 				handlePushResult();
 				return 0;
-			})) {
+			}, mqPartition.getManager().getMqConfig().getRpcTimeout())) {
 				// Send失败（连接失效）时回调不会被调用，必须在这里清理，
 				// 否则pendingPushMessage永久悬挂，该分区消息投递永久停止，bind()也无法恢复。
 				pendingPushMessage = null;
@@ -203,6 +208,18 @@ public class MQSingle extends ReentrantLock {
 				fileWithIndex.increaseFirstMessageId();
 				messageQueue.poll();
 				tryStartBackgroundFill();
+			} else if (pendingPushMessage.getResultCode() == eConsumerNotFound) {
+				// 幽灵订阅自愈：消费端条目已删（退订 best-effort 失败/超时遗留），继续重推只会
+				// 永远收到 eConsumerNotFound 空转，该分区位点永不推进——清掉 Manager 侧订阅并重排。
+				// 必须异步执行：arrangeConsumer 持 MQPartition 锁后经 partition.bind() 进各 MQSingle
+				// 锁，这里正持本 MQSingle 锁，同步反向取 MQPartition 锁构成 AB-BA 死锁。
+				// 会话标识取 pending 里发送时记录的值而非当前 bind 字段：推送在途期间分区可能已
+				// 重绑到新会话，按当前字段清理会误杀新订阅。
+				var ghostSessionId = pendingPushMessage.Argument.getSessionId();
+				var ghostSocket = pendingPushMessage.getSender();
+				TaskSpec.ofAction(() -> mqPartition.unsubscribe(ghostSocket, ghostSessionId))
+						.name("MQSingle.unsubscribeGhost")
+						.submitNow();
 			}
 		} finally {
 			// 不管推送成功失败，都复位pending并尝试重新pushMessage（出错时是否随机延迟再重试？）。
