@@ -2,6 +2,7 @@ package Zeze.Collections;
 
 import Zeze.Builtin.Collections.Queue.BQueueNode;
 import Zeze.Builtin.Collections.Queue.BQueueNodeKey;
+import Zeze.Component.Takeover;
 import Zeze.Component.TakeoverScope;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
@@ -166,7 +167,10 @@ public class CsQueue<V extends Bean> {
 		if (takeover != null) {
 			var root = queue.getOrAddRoot();
 			var stamp = root.getLoadSerialNo();
-			if (stamp == 0) {
+			// FND2-C0-4：认领写（setLoadSerialNo）仅mode=on——与Takeover.start自己stampScope的
+			// 前置一致。dryrun必须守住"纯簿记不动数据行"的灰度契约；off避免0→0冗余写。
+			// 不认领时stamp保持0，checkFence对mode!=on恒通过，不影响早退路径。
+			if (stamp == 0 && Takeover.ModeOn.equals(takeover.getMode())) {
 				stamp = takeover.getMyEpoch();
 				root.setLoadSerialNo(stamp);
 			}
