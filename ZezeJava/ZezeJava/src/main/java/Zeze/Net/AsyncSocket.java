@@ -82,29 +82,31 @@ public abstract class AsyncSocket {
 
 	// selector线程写（processReceive/Send），KeepAlive定时任务线程读（Service.checkKeepAlive）：
 	// 无volatile时按JMM读者可无限期读到陈旧值，活连接被心跳误判KeepRecvTimeout超时。
-	private volatile int activeRecvTime; // 上次接收的时间戳(秒)
-	private volatile int activeSendTime; // 上次发送的时间戳(秒)
+	// 用long秒存储：int秒在时间源超过2^31秒后回绕，checkKeepAlive的 now-activeTime 变大负数，
+	// 超时判定恒false，静默死连接永不回收、永不探测。
+	private volatile long activeRecvTime; // 上次接收的时间戳(秒)
+	private volatile long activeSendTime; // 上次发送的时间戳(秒)
 
 	public abstract Type getType();
 
-	public int getActiveRecvTime() {
+	public long getActiveRecvTime() {
 		return activeRecvTime;
 	}
 
-	public int getActiveSendTime() {
+	public long getActiveSendTime() {
 		return activeSendTime;
 	}
 
 	public void setActiveRecvTime() {
-		activeRecvTime = (int)GlobalTimer.getCurrentSeconds();
+		activeRecvTime = GlobalTimer.getCurrentSeconds();
 	}
 
 	public void setActiveSendTime() {
-		activeSendTime = (int)GlobalTimer.getCurrentSeconds();
+		activeSendTime = GlobalTimer.getCurrentSeconds();
 	}
 
 	public void resetActiveSendRecvTime() {
-		activeSendTime = activeRecvTime = (int)GlobalTimer.getCurrentSeconds();
+		activeSendTime = activeRecvTime = GlobalTimer.getCurrentSeconds();
 	}
 
 	private final long sessionId = sessionIdGenFunc.getAsLong(); // 只在setSessionId里修改

@@ -881,10 +881,12 @@ public class Service extends ReentrantLock {
 		var conf = getConfig().getHandshakeOptions();
 		var keepRecvTimeout = conf.getKeepRecvTimeout() > 0 ? conf.getKeepRecvTimeout() : Integer.MAX_VALUE;
 		var keepSendTimeout = conf.getKeepSendTimeout() > 0 ? conf.getKeepSendTimeout() : Integer.MAX_VALUE;
-		int now = (int)GlobalTimer.getCurrentSeconds();
+		// long秒：与AsyncSocket.activeRecvTime/activeSendTime的long存储配套，int截断会在
+		// 时间源越过2^31秒后使差值变大负数，超时判定恒false（静默死连接永不回收）。
+		long now = GlobalTimer.getCurrentSeconds();
 		foreach(socket -> {
 			if (socket instanceof TcpSocket) {
-				int recvTime = now - socket.getActiveRecvTime();
+				long recvTime = now - socket.getActiveRecvTime();
 				if (recvTime > keepRecvTimeout) {
 					try {
 						onKeepAliveTimeout(socket);
