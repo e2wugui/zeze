@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -13,12 +14,16 @@ import Zeze.Builtin.MQ.BMessage;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutLong;
 import Zeze.Util.RocksDatabase;
+import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
 // 文件路径: {ManagerHome}/{topic}/{partitionId}.{nextMessageId}
 // meta表名: {topic}.{partitionId}
 // index表名: {topic}.{partitionId}.{nextMessageId}
 public class MQFileWithIndex {
+	private static final Logger logger = LogManager.getLogger();
 	private final ReentrantLock lock = new ReentrantLock();
 	// ConcurrentSkipListMap：fillMessage在MQSingle锁外（本类lock外）读floorEntry，
 	// appendMessage滚段时在lock内put——TreeMap并发读写是未定义行为（可能CME/读到旋转中间态），
@@ -94,7 +99,124 @@ public class MQFileWithIndex {
 		} else {
 			lastFile = new File(topicDir, partitionId + "." + lastEntry.getKey());
 		}
+		// 【FND2-G2-1】追加流打开前先恢复撕裂尾：一旦放任孤儿字节，之后的 appendMessage 会把
+		// 新消息接在垃圾后面，错位被固化进文件，fillMessage 的按 id 跳扫从此确定性失败。
+		recoverTornTail();
 		lastFileOutputStream = new FileOutputStream(lastFile, true); // todo 没有buffer是不是很慢？
+	}
+
+	// 【FND2-G2-1】撕裂尾恢复（类 WAL recovery，仅构造时执行一次，在打开追加流之前）。
+	// appendMessage 先写文件后写 meta：崩溃/掉电/磁盘满会把"半条记录"留在文件尾（掉电丢页缓存时
+	// 甚至连已提交记录都会缺尾）；无恢复时下一条消息接在孤儿字节之后，fillMessage 按 12 字节头
+	// 跳扫从错位处步步读歪——回填确定性永久失败，分区投递停摆（70a4f65cd 的失败-复位-重试
+	// 对确定性损坏无能为力，每条新消息触发一次失败）。
+	// 策略：从最近已提交索引项（无则段首）顺序校验记录头连续性，按 meta 的 next 截断未提交
+	// 尾巴（含撕裂字节与未提交的完好孤儿记录）并回拨位点与索引；只处理"尾部撕裂"——
+	// 中间损坏（记录完整存在但 id 错位，其后可能还有完好数据）fatal 抛出，防自动截断静默丢中间消息。
+	private void recoverTornTail() {
+		try {
+			var lastEntry = indexes.lastEntry(); // 构造器保证非 null
+			var segBase = lastEntry.getKey();
+			if (nextMessageId < segBase)
+				// 写序（滚段发生在 meta.put 之后）下不可达；到达即 meta/文件状态损坏（如 rocksdb
+				// 丢失而段文件残留），此时段内 id 空间已不可信，不自愈，响亮报错。
+				throw new IllegalStateException("mq file inconsistent: nextMessageId(" + nextMessageId
+						+ ") < segment base(" + segBase + "), meta lost while segment files kept?"
+						+ " topic=" + topic + " partition=" + partitionId + " file=" + lastFile);
+
+			// 锚点=最后段索引表中已提交（id<nextMessageId）的最大索引项：索引项在整条记录写完
+			// 之后才落盘，可信指向一条完好记录；没有则退到段首——每段第一条消息必被索引（滚段
+			// 条件保证），取不到只可能是段刚滚出还没有提交记录（nextMessageId==segBase，下面循环不进入）。
+			var anchorId = segBase;
+			var anchorOffset = 0L;
+			var seekKey = new byte[8];
+			ByteBuffer.longBeHandler.set(seekKey, 0, nextMessageId - 1);
+			try (var it = lastEntry.getValue().iterator()) {
+				it.seekForPrev(seekKey);
+				if (it.isValid()) {
+					var id = ByteBuffer.ToLongBE(it.key(), 0);
+					if (id < nextMessageId) { // nextMessageId==0 时 seekForPrev(-1) 可命中孤儿条目，须排除
+						anchorId = id;
+						anchorOffset = ByteBuffer.ToLongBE(it.value(), 0);
+					}
+				}
+			}
+
+			try (var file = new RandomAccessFile(lastFile, "rw")) {
+				var fileSize = file.getChannel().size();
+				var messageHead = new byte[12]; // Long8(messageId) + Int4(messageSize)，读写序与fillMessage一致
+				var pos = anchorOffset;
+				var expectId = anchorId;
+				while (expectId < nextMessageId) {
+					var remaining = fileSize - pos;
+					if (remaining < 12)
+						break; // 尾巴连头都不完整（含文件短缺/锚点悬垂）：撕裂尾形态
+					file.seek(pos);
+					file.readFully(messageHead);
+					var bbHead = ByteBuffer.Wrap(messageHead);
+					var messageId = bbHead.ReadLong8();
+					var messageSize = bbHead.ReadInt4();
+					if (messageSize < 0 || messageSize > remaining - 12)
+						break; // 记录体越过文件尾（或负长度）：写了一半的尾巴，头字段同样不可信
+					if (messageId != expectId)
+						// 记录完整落在文件内但 id 错位：撕裂写只能产生记录的"前缀"字节，产生不了这种
+						// 形态——这是中间损坏或索引错指，其后可能还有完好数据，自动截断等于静默丢中间消息。
+						throw new IllegalStateException("mq file corrupted in middle. topic=" + topic
+								+ " partition=" + partitionId + " file=" + lastFile + " position=" + pos
+								+ " expectMessageId=" + expectId + " actualMessageId=" + messageId
+								+ " messageSize=" + messageSize + " fileSize=" + fileSize);
+					pos += 12L + messageSize;
+					++expectId;
+				}
+				// 此处 [anchorId, expectId) 完好，pos==最后一条完好记录的结尾（即截断点）。
+				if (expectId == nextMessageId && pos == fileSize)
+					return; // 干净：提交区完好且无未提交字节，不动文件。
+
+				// 提交区内有缺失（掉电丢页缓存可达）：回拨 next；first 可能已越过回拨点（直入快路径
+				// 的消息不等 fill 即被 ack 推进 first），一并夹回，保持 first<=next。持久化先行。
+				var committedLost = nextMessageId - expectId;
+				if (committedLost > 0) {
+					var bbNext = new byte[8];
+					ByteBuffer.longBeHandler.set(bbNext, 0, expectId);
+					meta.put(nextMessageIdName, bbNext);
+					if (firstMessageId > expectId) {
+						var bbFirst = new byte[8];
+						ByteBuffer.longBeHandler.set(bbFirst, 0, expectId);
+						meta.put(firstMessageIdName, bbFirst);
+						firstMessageId = expectId;
+					}
+					nextMessageId = expectId;
+				}
+				// 索引回拨：撕裂窗口内索引项可能先于 meta 落盘（appendMessage 内索引 put 在
+				// meta.put 之前），截断后悬垂指向不存在的偏移，fillMessage 经它定位必失败。
+				deleteIndexFrom(lastEntry.getValue(), expectId);
+				if (pos < fileSize)
+					file.getChannel().truncate(pos);
+				logger.warn("mq torn tail recovered. topic={} partition={} file={} truncateBytes={}"
+								+ " nextMessageId={}->{} committedLost={} firstMessageId={}",
+						topic, partitionId, lastFile.getName(), fileSize - pos,
+						nextMessageId + committedLost, nextMessageId, committedLost, firstMessageId);
+			}
+		} catch (Exception e) {
+			// 构造失败=分区不可用：向上传播（Manager 启动失败），宁可响亮不可静默。
+			throw Task.forceThrow(e);
+		}
+	}
+
+	// 删除索引表中 id>=fromId 的全部条目（撕裂尾恢复的索引回拨，仅作用于最后段）。
+	private void deleteIndexFrom(RocksDatabase.Table indexTable, long fromId) throws RocksDBException {
+		var keysToDelete = new ArrayList<byte[]>(); // 迭代器是快照，先收集再删，语义清晰
+		var seekKey = new byte[8];
+		ByteBuffer.longBeHandler.set(seekKey, 0, fromId);
+		try (var it = indexTable.iterator()) {
+			it.seek(seekKey); // 定位到 >=fromId 的第一个条目
+			while (it.isValid()) {
+				keysToDelete.add(it.key());
+				it.next();
+			}
+		}
+		for (var key : keysToDelete)
+			indexTable.delete(key);
 	}
 
 	// 需要在MQSingle锁内，首先在外部加锁。执行这个函数需要两把锁。
