@@ -70,12 +70,14 @@ public final class PropertiesHelper {
 		var value = System.getProperty(key);
 		if (value == null || (value = value.trim()).isEmpty())
 			return def;
-		try {
-			return Boolean.parseBoolean(value);
-		} catch (NumberFormatException e) {
-			logger.warn("invalid bool property '{}' = '{}'", key, value);
-			return def;
-		}
+		// Boolean.parseBoolean 只识别忽略大小写的"true"、其余一律返回false且从不抛异常，
+		// 不能用try-catch(NumberFormatException)——那是死代码，垃圾值(-Dx=yes)会被静默当成false。
+		if (value.equalsIgnoreCase("true"))
+			return true;
+		if (value.equalsIgnoreCase("false"))
+			return false;
+		logger.warn("invalid bool property '{}' = '{}'", key, value);
+		return def;
 	}
 
 	public static int getInt(@NotNull String key, int def) {
