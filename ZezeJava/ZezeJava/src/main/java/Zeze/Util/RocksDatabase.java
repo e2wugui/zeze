@@ -468,6 +468,10 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			 var backupOptions = new BackupEngineOptions(backupDir);
 			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
 			backup.createNewBackup(src, true);
+			// 【FND2-R2-3】BackupEngine 按增量链追加，从不删除旧备份会随数据 churn 无界
+			// 增长（调用方 Rocks.snapshot/Dbh2StateMachine 都会把整个 backupDir 打成
+			// 快照 zip，多代备份没有消费方）；只保留最新一份。
+			backup.purgeOldBackups(1);
 		}
 	}
 
