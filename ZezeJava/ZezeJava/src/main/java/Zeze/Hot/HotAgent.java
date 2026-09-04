@@ -136,7 +136,12 @@ public class HotAgent extends AbstractHotAgent {
 		var hotManager = connector.TryGetReadySocket();
 		var r = new Commit();
 		r.Argument.setDistributeId(id);
-		r.SendForWait(hotManager);
+		// Commit的应答要等服务端不可回滚区全部完成（stopInternal+upgrade+模块start，
+		// 见HotManager.install末尾的sendCommitResultAndWaitCommit2）才发出，
+		// 常超默认的5秒rpc超时：超时把future置异常后，控制台不加入commit2名单，
+		// 服务端sendCommitResultAndWaitCommit2等不到Commit2（10秒超时）→halt(111222)。
+		// 对齐tryDistribute（c624db97d）放宽到60秒。
+		r.SendForWait(hotManager, 60_000);
 		return r;
 	}
 
