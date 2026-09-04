@@ -168,9 +168,10 @@ public final class TaskSpec<R> {
 	 * 显式设置过 dispatchMode/timeout/onCancel 时抛 IllegalArgumentException。
 	 */
 	public R call() {
-		consume();
+		// 与 consumeSchedule 家族对齐：先校验后消费，抛错后实例未失效，仍可换 runNow() 等补救调用（见类 javadoc）。
 		if (dispatchModeSet || timeoutSet || onCancelSet)
 			throw new IllegalArgumentException("call() does not consume dispatchMode/timeout/onCancel");
+		consume();
 		return Task.callCore(body, name);
 	}
 
