@@ -407,52 +407,67 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			int stage;
 		};
 		cs.lock.enter(() -> {
-			var gKey = cs.globalKey;
-			if (state.stage == 1) {
-				if (cs.modify != null && !cs.share.isEmpty())
-					throw new IllegalStateException("CacheState state error");
-			} else if (cs.acquireStatePending == StateRemoved && state.stage == 0) {
-				// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
-				cs.lock.leave();
-				releaseAsync(sender, gKey, future); // retry
-				return;
-			}
-
-			if (cs.acquireStatePending != StateInvalid && cs.acquireStatePending != StateRemoved) {
-				switch (cs.acquireStatePending) {
-				case StateShare:
-				case StateModify:
-					if (isDebugEnabled)
-						logger.debug("Release 0 {} {} {}", sender, gKey, cs);
-					break;
-				case StateRemoving:
-					// release 不会导致死锁，等待即可。
-					break;
+			// release置位StateRemoving后不再挂起，异常逃逸只可能发生在本段内；finally兜底复位（理由同acquire*Async）。
+			var ownsRemoving = false;
+			try {
+				var gKey = cs.globalKey;
+				if (state.stage == 1) {
+					if (cs.modify != null && !cs.share.isEmpty())
+						throw new IllegalStateException("CacheState state error");
+				} else if (cs.acquireStatePending == StateRemoved && state.stage == 0) {
+					// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
+					cs.lock.leave();
+					releaseAsync(sender, gKey, future); // retry
+					return;
 				}
-				state.stage = 1;
-				cs.lock.leaveAndWaitNotify();
-				return;
-			}
-			if (cs.acquireStatePending == StateRemoved) {
-				cs.lock.leave();
-				releaseAsync(sender, gKey, future); // retry
-				return;
-			}
-			cs.acquireStatePending = StateRemoving;
 
-			if (cs.modify == sender)
-				cs.modify = null;
-			cs.share.remove(sender); // always try remove
-			sender.acquired.remove(gKey);
+				if (cs.acquireStatePending != StateInvalid && cs.acquireStatePending != StateRemoved) {
+					switch (cs.acquireStatePending) {
+					case StateShare:
+					case StateModify:
+						if (isDebugEnabled)
+							logger.debug("Release 0 {} {} {}", sender, gKey, cs);
+						break;
+					case StateRemoving:
+						// release 不会导致死锁，等待即可。
+						break;
+					}
+					state.stage = 1;
+					cs.lock.leaveAndWaitNotify();
+					return;
+				}
+				if (cs.acquireStatePending == StateRemoved) {
+					cs.lock.leave();
+					releaseAsync(sender, gKey, future); // retry
+					return;
+				}
+				cs.acquireStatePending = StateRemoving;
+				ownsRemoving = true;
 
-			if (cs.modify == null && cs.share.isEmpty()) {
-				// 安全的从global中删除，没有并发问题。
-				cs.acquireStatePending = StateRemoved;
-				global.remove(gKey);
-			} else
-				cs.acquireStatePending = StateInvalid;
-			cs.lock.notifyAllWait();
-			future.finishOne();
+				if (cs.modify == sender)
+					cs.modify = null;
+				cs.share.remove(sender); // always try remove
+				sender.acquired.remove(gKey);
+
+				if (cs.modify == null && cs.share.isEmpty()) {
+					// 安全的从global中删除，没有并发问题。
+					cs.acquireStatePending = StateRemoved;
+					global.remove(gKey);
+				} else
+					cs.acquireStatePending = StateInvalid;
+				cs.lock.notifyAllWait();
+				future.finishOne();
+			} catch (Throwable ex) { // AsyncLock.enter会捕获吞掉异常；异常路径必须落实finishOne，
+				// 否则CountDownFuture永不完成，processLogin/processNormalClose的应答永不发出（客户端超时重试风暴）。
+				logger.error("ReleaseAsync", ex);
+				future.finishOne();
+			} finally {
+				// 异常逃逸时复位本次占住的StateRemoving并唤醒等待者；正常路径已自行复位（StateRemoved或StateInvalid）。
+				if (ownsRemoving && cs.acquireStatePending == StateRemoving) {
+					cs.acquireStatePending = StateInvalid;
+					cs.lock.notifyAllWait();
+				}
+			}
 		});
 	}
 
@@ -472,60 +487,77 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			int stage;
 		};
 		cs.lock.enter(() -> {
-			if (state.stage == 1) {
-				if (cs.modify != null && !cs.share.isEmpty())
-					throw new IllegalStateException("CacheState state error");
-			} else if (cs.acquireStatePending == StateRemoved && state.stage == 0) {
-				// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
-				cs.lock.leave();
-				releaseAsync(rpc); // retry
-				return;
-			}
-
-			var gKey = cs.globalKey;
-			if (cs.acquireStatePending != StateInvalid && cs.acquireStatePending != StateRemoved) {
-				switch (cs.acquireStatePending) {
-				case StateShare:
-				case StateModify:
-					if (isDebugEnabled)
-						logger.debug("Release 1 {} {} {}", sender, gKey, cs);
-					rpc.Result.state = cs.getSenderCacheState(sender);
-					rpc.SendResultCode(0);
-					if (ENABLE_PERF)
-						perf.onAcquireEnd(rpc, StateInvalid);
+			// release置位StateRemoving后不再挂起，异常逃逸只可能发生在本段内；finally兜底复位（理由同acquire*Async）。
+			var ownsRemoving = false;
+			try {
+				if (state.stage == 1) {
+					if (cs.modify != null && !cs.share.isEmpty())
+						throw new IllegalStateException("CacheState state error");
+				} else if (cs.acquireStatePending == StateRemoved && state.stage == 0) {
+					// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
+					cs.lock.leave();
+					releaseAsync(rpc); // retry
 					return;
-				case StateRemoving:
-					// release 不会导致死锁，等待即可。
-					break;
 				}
-				state.stage = 1;
-				cs.lock.leaveAndWaitNotify();
-				return;
+
+				var gKey = cs.globalKey;
+				if (cs.acquireStatePending != StateInvalid && cs.acquireStatePending != StateRemoved) {
+					switch (cs.acquireStatePending) {
+					case StateShare:
+					case StateModify:
+						if (isDebugEnabled)
+							logger.debug("Release 1 {} {} {}", sender, gKey, cs);
+						rpc.Result.state = cs.getSenderCacheState(sender);
+						rpc.SendResultCode(0);
+						if (ENABLE_PERF)
+							perf.onAcquireEnd(rpc, StateInvalid);
+						return;
+					case StateRemoving:
+						// release 不会导致死锁，等待即可。
+						break;
+					}
+					state.stage = 1;
+					cs.lock.leaveAndWaitNotify();
+					return;
+				}
+				if (cs.acquireStatePending == StateRemoved) {
+					cs.lock.leave();
+					releaseAsync(rpc); // retry
+					return;
+				}
+
+				cs.acquireStatePending = StateRemoving;
+				ownsRemoving = true;
+
+				if (cs.modify == sender)
+					cs.modify = null;
+				cs.share.remove(sender); // always try remove
+				sender.acquired.remove(gKey);
+
+				if (cs.modify == null && cs.share.isEmpty()) {
+					// 安全的从global中删除，没有并发问题。
+					cs.acquireStatePending = StateRemoved;
+					global.remove(gKey);
+				} else
+					cs.acquireStatePending = StateInvalid;
+				cs.lock.notifyAllWait();
+				rpc.Result.state = StateInvalid;
+				rpc.SendResultCode(0);
+				if (ENABLE_PERF)
+					perf.onAcquireEnd(rpc, StateInvalid);
+			} catch (Throwable ex) { // AsyncLock.enter会捕获吞掉异常；异常路径也必须应答（对齐acquire*Async）。
+				logger.error("ReleaseAsync", ex);
+				rpc.Result.state = StateInvalid;
+				rpc.SendResultCode(AcquireException);
+				if (ENABLE_PERF)
+					perf.onAcquireEnd(rpc, StateInvalid);
+			} finally {
+				// 异常逃逸时复位本次占住的StateRemoving并唤醒等待者；正常路径已自行复位（StateRemoved或StateInvalid）。
+				if (ownsRemoving && cs.acquireStatePending == StateRemoving) {
+					cs.acquireStatePending = StateInvalid;
+					cs.lock.notifyAllWait();
+				}
 			}
-			if (cs.acquireStatePending == StateRemoved) {
-				cs.lock.leave();
-				releaseAsync(rpc); // retry
-				return;
-			}
-
-			cs.acquireStatePending = StateRemoving;
-
-			if (cs.modify == sender)
-				cs.modify = null;
-			cs.share.remove(sender); // always try remove
-			sender.acquired.remove(gKey);
-
-			if (cs.modify == null && cs.share.isEmpty()) {
-				// 安全的从global中删除，没有并发问题。
-				cs.acquireStatePending = StateRemoved;
-				global.remove(gKey);
-			} else
-				cs.acquireStatePending = StateInvalid;
-			cs.lock.notifyAllWait();
-			rpc.Result.state = StateInvalid;
-			rpc.SendResultCode(0);
-			if (ENABLE_PERF)
-				perf.onAcquireEnd(rpc, StateInvalid);
 		});
 	}
 
