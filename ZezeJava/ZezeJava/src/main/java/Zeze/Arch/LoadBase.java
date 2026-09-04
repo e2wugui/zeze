@@ -51,7 +51,14 @@ public abstract class LoadBase {
 	}
 
 	public final synchronized void start(int delaySeconds) {
-		stopped = false; // 先复位标志再重排，支持stop后重启。
+		stopped = false; // 先复位标志再重排，支持stop后重启。仅外部显式重启允许复位stopped。
+		resume(delaySeconds);
+	}
+
+	// FND2-A1-6：onTimerTask进门检查通过后、尾部重排前，stop()可能并发置位stopped；链内重排若走
+	// start()会把stopped复位为false，链条复活且此后永不停（停机后定时链泄漏）。链内改走本方法：
+	// 不复位stopped，重排的下次触发进门即返回，链自然终止。start()的复位语义保留给外部stop后重启。
+	private synchronized void resume(int delaySeconds) {
 		timeoutDelaySeconds = delaySeconds;
 		if (null != timerTask)
 			timerTask.cancel(false);
@@ -98,14 +105,14 @@ public abstract class LoadBase {
 		if (overload != BLoad.eWorkFine) {
 			// fast report
 			report(overload, online, onlineNewPerSecond);
-			start(config.getDigestionDelayExSeconds());
+			resume(config.getDigestionDelayExSeconds());
 			return;
 		}
 		if (onlineNewPerSecond > config.getMaxOnlineNew()) {
 			// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
 			report(overload, online, onlineNewPerSecond);
 			// new delay for digestion
-			start(onlineNewPerSecond / config.getMaxOnlineNew() + config.getDigestionDelayExSeconds());
+			resume(onlineNewPerSecond / config.getMaxOnlineNew() + config.getDigestionDelayExSeconds());
 			// 消化完后，下一次强迫报告Load。
 			reportDelaySeconds = config.getReportDelaySeconds();
 			return;
@@ -113,7 +120,7 @@ public abstract class LoadBase {
 		if (online > config.getProposeMaxOnline()) {
 			// 在线数量超过建议最大在线，马上报告。
 			report(overload, online, onlineNewPerSecond);
-			start(config.getDigestionDelayExSeconds());
+			resume(config.getDigestionDelayExSeconds());
 			// 超过最大建议值，强迫报告。
 			reportDelaySeconds = config.getReportDelaySeconds();
 			return;
@@ -124,7 +131,7 @@ public abstract class LoadBase {
 			reportDelaySeconds = 0;
 			report(overload, online, onlineNewPerSecond);
 		}
-		start();
+		resume(getLoadConfig().getDigestionDelayExSeconds());
 	}
 
 	public void report(int overload, int online, int onlineNew) {
