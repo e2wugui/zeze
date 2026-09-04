@@ -4,14 +4,10 @@ import java.nio.charset.StandardCharsets;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Serialize.NioByteBuffer;
 import Zeze.Serialize.Serializable;
-import Zeze.Util.BinaryPool;
 import org.jetbrains.annotations.NotNull;
 
 public final class BAllocateId128Argument implements Serializable {
-	private static final BinaryPool namePool = new BinaryPool();
-
 	private @NotNull Binary name;
 	private int count;
 
@@ -46,21 +42,10 @@ public final class BAllocateId128Argument implements Serializable {
 
 	@Override
 	public void decode(@NotNull IByteBuffer ibb) {
-		int size = ibb.ReadUInt();
-		// intern方式获取name
-		if (ibb instanceof NioByteBuffer) {
-			var nbb = ((NioByteBuffer)ibb).getNioByteBuffer();
-			var beginIndex = nbb.position();
-			var endIndex = beginIndex + size;
-			name = namePool.intern(nbb, beginIndex, endIndex);
-			nbb.position(endIndex);
-		} else {
-			var bb = (ByteBuffer)ibb;
-			var beginIndex = bb.ReadIndex;
-			var endIndex = beginIndex + size;
-			name = namePool.intern(bb.Bytes, beginIndex, endIndex);
-			bb.ReadIndex = endIndex;
-		}
+		// 直接拷贝bytes构造Binary，不做intern：name是对端可控数据，intern会把每个唯一name
+		// 永久驻留静态无界BinaryPool（向Id128端口发包即可无界撑堆）；Binary为内容等值语义，
+		// 消费方（Id128UdpServer.cache的computeIfAbsent、getName）不依赖引用同一性。
+		name = ibb.ReadBinary();
 		count = ibb.ReadInt();
 	}
 
