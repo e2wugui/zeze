@@ -317,6 +317,10 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			// 而不是裸NPE——同函数对"节点在但值不在"已有ISE，排障时从异常形态分不清是哪层断。
 			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 		var values = node.getValues();
+		if (values.isEmpty())
+			// FND2-C0-2：节点行在但Values为空是另一种形态的损坏。下面head/tail快路径的
+			// getFirst/getLast会抛NoSuchElementException，统一为同款带语义ISE。
+			throw new IllegalStateException("Node Exist But Values Empty. maybe broken data. id=" + id);
 
 		// activate。优化：这个操作比较多，已经在目标位置，不调整。
 		var root = getRoot();
@@ -429,6 +433,9 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			return null;
 
 		var node = getNode(nodeId.getNodeId());
+		if (null == node)
+			// FND2-C0-2：索引有效但节点行缺失=数据损坏，带语义ISE而非裸NPE（同put/move的防护）。
+			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 		for (var e : node.getValues()) {
 			if (e.getId().equals(id)) {
 				@SuppressWarnings("unchecked")
@@ -451,6 +458,9 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			return null;
 
 		var node = getNode(nodeId.getNodeId());
+		if (null == node)
+			// FND2-C0-2：索引有效但节点行缺失=数据损坏，带语义ISE而非裸NPE（同put/move的防护）。
+			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 		var values = node.getValues();
 		for (int i = 0, n = values.size(); i < n; i++) {
 			var e = values.get(i);
@@ -485,26 +495,42 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		}
 	}
 
+	/**
+	 * 并发删除导致的链断会从头重启遍历（已回调过的值会重复执行，调用方需自知；count每轮归零，
+	 * 只统计最后一轮，避免重复计数虚高）；同一缺失节点重启后仍缺失=持久断链（数据损坏），
+	 * 抛IllegalStateException终止而不是静默返回部分计数——与Queue.walk的"宁停不错"语义对齐。
+	 */
 	@SuppressWarnings("unchecked")
 	public long walk(@NotNull TableWalkHandle<String, V> func) throws Exception {
 		long count = 0L;
-		var root = module._tLinkedMaps.selectDirty(name);
-		if (null == root)
-			return func.endWalk(count);
-
-		var nodeId = root.getHeadNodeId();
-		while (nodeId != 0) {
-			var node = module._tLinkedMapNodes.selectDirty(new BLinkedMapNodeKey(name, nodeId));
-			if (null == node)
-				return func.endWalk(count); // error
-			for (var value : node.getValues()) {
-				++count;
-				if (!func.handle(value.getId(), (V)value.getValue().getBean()))
-					return func.endWalk(count);
+		long missingNodeId = 0; // 上一次断链位置：重启后仍断在同一节点=持久断链（循环内nodeId恒非0）
+		while (true) {
+			var root = module._tLinkedMaps.selectDirty(name);
+			if (null == root)
+				return func.endWalk(count); // map not created
+			var nodeId = root.getHeadNodeId();
+			count = 0L; // 重启从头重走，计数只保留最后一轮（回调重复执行见方法注释）
+			while (nodeId != 0) {
+				var node = module._tLinkedMapNodes.selectDirty(new BLinkedMapNodeKey(name, nodeId));
+				if (null == node) {
+					// 上一轮也断在同一个节点：重启拿到的仍是新鲜root，还指向这个缺失节点
+					// =持久断链（并发删除（clear+delayClearJob）的重启会绕过已删节点），宁停不错。
+					if (missingNodeId == nodeId)
+						throw new IllegalStateException("LinkedMap.walk broken chain at " + name + "#" + nodeId);
+					missingNodeId = nodeId;
+					break; // concurrent node remove, restart walk.
+				}
+				for (var value : node.getValues()) {
+					++count;
+					if (!func.handle(value.getId(), (V)value.getValue().getBean()))
+						return func.endWalk(count); // user break
+				}
+				nodeId = node.getNextNodeId();
 			}
-			nodeId = node.getNextNodeId();
+			if (nodeId == 0)
+				return func.endWalk(count); // tail
+			// concurrent node remove, restart walk.
 		}
-		return func.endWalk(count);
 	}
 
 	// inner
@@ -563,15 +589,25 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		var prevNodeId = node.getPrevNodeId();
 		var nextNodeId = node.getNextNodeId();
 
+		// FND2-C0-2：链上邻接节点行缺失=数据损坏。带语义ISE而非裸NPE，避免把半途事务
+		// 炸成不可诊断的空指针（调用方吞异常时事务整体回滚，无结构损坏）。
 		if (prevNodeId == 0) // is head
 			root.setHeadNodeId(nextNodeId);
-		else
-			getNode(prevNodeId).setNextNodeId(nextNodeId);
+		else {
+			var prev = getNode(prevNodeId);
+			if (null == prev)
+				throw new IllegalStateException("Prev Node Not Found. maybe broken data. nodeId=" + nodeId);
+			prev.setNextNodeId(nextNodeId);
+		}
 
 		if (nextNodeId == 0) // is tail
 			root.setTailNodeId(prevNodeId);
-		else
-			getNode(nextNodeId).setPrevNodeId(prevNodeId);
+		else {
+			var next = getNode(nextNodeId);
+			if (null == next)
+				throw new IllegalStateException("Next Node Not Found. maybe broken data. nodeId=" + nodeId);
+			next.setPrevNodeId(prevNodeId);
+		}
 
 		// 没有马上删除，启动gc延迟删除。
 		module._tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId));
