@@ -17,7 +17,10 @@ public interface HttpWebSocketHandle {
 
 	// 注意参数content需要遵循netty的引用管理(ReferenceCounted),带出方法外需要retain,然后不用时再release
 	default void onPing(@NotNull HttpExchange x, @NotNull ByteBuf content) throws Exception {
-		x.context().write(new PongWebSocketFrame(content.retain()));
+		// 必须writeAndFlush:Zeze管线里WebSocketFrame在HttpServer.channelRead终止(不fireChannelRead),
+		// 尾部的WebSocketServerProtocolHandler收不到帧、自动pong不生效,这里是唯一的pong路径;
+		// 只write不flush时,空闲连接(无业务发送触发flush)的pong无限期滞留outbound队列,客户端ping超时断连。
+		x.context().writeAndFlush(new PongWebSocketFrame(content.retain()));
 	}
 
 	// 注意参数content需要遵循netty的引用管理(ReferenceCounted),带出方法外需要retain,然后不用时再release
