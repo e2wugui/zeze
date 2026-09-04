@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -510,20 +509,8 @@ public final class Raft {
 				} catch (IOException e) {
 					logger.warn("ProcessInstallSnapshot close(1) Exception", e); // 文件关闭异常还是不向上抛了
 				}
-				for (var it = receiveSnapshotting.entrySet().iterator(); it.hasNext(); ) {
-					var e = it.next();
-					if (e.getKey() < r.Argument.getLastIncludedIndex()) {
-						it.remove();
-						try {
-							e.getValue().close();
-						} catch (IOException ex) {
-							logger.warn("ProcessInstallSnapshot close(2) Exception", ex); // 文件关闭异常还是不向上抛了
-						}
-						var pathDelete = Paths.get(raftConfig.getDbHome(),
-								LogSequence.snapshotFileName + ".installing." + e.getKey()).toString();
-						Files.delete(Path.of(pathDelete));
-					}
-				}
+				cleanupStaleReceiveSnapshotting(receiveSnapshotting,
+						raftConfig.getDbHome(), r.Argument.getLastIncludedIndex());
 			}
 		} finally {
 			receiveSnapshottingLock.unlock();
@@ -534,6 +521,38 @@ public final class Raft {
 		}
 		r.SendResultCode(0);
 		return Procedure.Success;
+	}
+
+	/**
+	 * 清理更小 LastIncludedIndex 的中断安装条目及其 .installing 文件（FND2-R1-1）。
+	 * 必须持有 receiveSnapshottingLock 调用。
+	 * 删除失败（Windows 上 close 异常后句柄未释放、杀毒/备份软件短暂锁文件、磁盘 IO
+	 * 错误）仅告警不中断清理：异常一旦传出清理循环，尚未处理到的更旧条目将永久残留
+	 * （正常运维周期内没有其他清理路径），isReceivingSnapshot() 从此恒 true，
+	 * LogSequence.snapshot() 恒提前返回，本地快照与日志压缩永久停摆；本次 done 的
+	 * 应答也发不出去。残留文件本身不损正确性：新安装总是使用新的 LastIncludedIndex
+	 * 文件名，不与残留重叠。
+	 */
+	static void cleanupStaleReceiveSnapshotting(HashMap<Long, RandomAccessFile> receiveSnapshotting,
+												String dbHome, long lastIncludedIndex) {
+		for (var it = receiveSnapshotting.entrySet().iterator(); it.hasNext(); ) {
+			var e = it.next();
+			if (e.getKey() < lastIncludedIndex) {
+				it.remove();
+				try {
+					e.getValue().close();
+				} catch (IOException ex) {
+					logger.warn("ProcessInstallSnapshot close(2) Exception", ex); // 文件关闭异常还是不向上抛了
+				}
+				var pathDelete = Paths.get(dbHome,
+						LogSequence.snapshotFileName + ".installing." + e.getKey());
+				try {
+					Files.deleteIfExists(pathDelete);
+				} catch (IOException ex) {
+					logger.warn("ProcessInstallSnapshot deleteIfExists Exception. path={}", pathDelete, ex);
+				}
+			}
+		}
 	}
 
 	public enum RaftState {
