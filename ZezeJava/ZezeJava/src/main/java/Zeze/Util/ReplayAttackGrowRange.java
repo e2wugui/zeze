@@ -24,8 +24,12 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 	}
 
 	public ReplayAttackGrowRange(int limit) {
-		if (limit > (1 << 30))
-			throw new IllegalArgumentException("limit too large: " + limit); // 再倍增会 int 溢出为负，原实现死循环
+		// 窗口 N=capacity*8 在 replay() 内全程按 int 计算：capacity<=2^27 时 N<=2^30 安全；
+		// capacity>=2^28 时 N 溢出(2^31→MIN_VALUE、2^32→0)，前向分支除零/取模失效，回退分支
+		// (int)grow 截断回绕还可能放行过期 serialId。故 limit 上限必须收紧到 2^27
+		// (2^27<limit<=2^28 时倍增出 capacity=2^28，旧的 1<<30 上限只防了倍增死循环没防这里)。
+		if (limit > (1 << 27))
+			throw new IllegalArgumentException("limit too large: " + limit);
 		int capacity = 1;
 		while (limit > capacity)
 			capacity <<= 1;
