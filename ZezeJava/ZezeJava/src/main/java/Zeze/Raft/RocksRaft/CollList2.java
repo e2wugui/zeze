@@ -141,7 +141,19 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		for (var e : log.getChanged().entrySet()) {
 			if (newest.contains(e.getValue().value))
 				continue;
-			list.get(e.getValue().value).followerApply(e.getKey());
+			// 【FND2-R2-2】changed 携带的 index 越过当前 list 边界（任何来源的先行分歧）时，
+			// 对齐 Table.followerApply 的"宁死不糊"：fatal 记录并 fatalKill。
+			// IndexOutOfBoundsException 不是 FlushException（无补偿）也不是 decode 错误
+			// （fatalKillDecodeError 不覆盖），每次重试都在同一条目抛出，lastApplied
+			// 楔死、apply 卡死循环，节点无法追平。
+			var index = e.getValue().value;
+			if (index < 0 || index >= list.size()) {
+				Rocks.logger.fatal("CollList2.followerApply: changed index out of bounds. index={} size={}",
+						index, list.size(), new Exception());
+				((Table<?, ?>)rootInfo().getRecord().getTable()).getRocks().getRaft().fatalKill();
+				continue;
+			}
+			list.get(index).followerApply(e.getKey());
 		}
 	}
 
