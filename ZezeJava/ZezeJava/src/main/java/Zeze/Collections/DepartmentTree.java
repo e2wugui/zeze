@@ -317,6 +317,10 @@ public class DepartmentTree<
 			return getOrAddRootManager(name);
 
 		var d = getDepartmentTreeNode(departmentId);
+		// FND2-C0-3：部门行缺失（并发已删/调用方传错id）时d==null，原实现裸NPE。
+		// 抛带语义异常（与getDepartmentMembers的not found处理对齐）。
+		if (null == d)
+			throw new IllegalArgumentException("department not found: " + departmentId);
 		return (TManager)d.getManagers().computeIfAbsent(name, key -> {
 			var value = new DynamicBean(0, DepartmentTree::getSpecialTypeIdFromBean, DepartmentTree::createBeanFromSpecialTypeId);
 			value.setBean(beanFactory.createBeanFromSpecialTypeId(managerTypeId));
@@ -340,6 +344,10 @@ public class DepartmentTree<
 			return deleteRootManager(name);
 
 		var d = getDepartmentTreeNode(departmentId);
+		if (null == d)
+			// FND2-C0-3：部门行缺失时按"没有这个管理员"处理返回null，不抛（删除语义幂等，
+			// 与deleteDepartment对旧父行缺失的宽容处理对齐）。
+			return null;
 		var m = d.getManagers().remove(name);
 		return m != null ? (TManager)m.getBean() : null;
 	}
