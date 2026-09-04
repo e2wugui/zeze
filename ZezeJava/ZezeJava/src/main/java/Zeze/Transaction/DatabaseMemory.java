@@ -17,7 +17,10 @@ import org.jetbrains.annotations.Nullable;
  * Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
  */
 public final class DatabaseMemory extends Database implements Database.Operates {
-	private static final HashMap<ByteBuffer, DataWithVersion> dataWithVersions = new HashMap<>();
+	// Operates 的 schemas 版本记录按 DatabaseUrl 分区（对齐下面的 databaseTables）：
+	// 静态共享时同一进程的多个 Memory 库实例互相串扰——库 A 的 schemas 保存让库 B 读到 A 的版本/前像，
+	// B 的兼容检查基于错误前像进行。
+	private static final HashMap<String, HashMap<ByteBuffer, DataWithVersion>> dataWithVersions = new HashMap<>();
 	private static final byte @NotNull [] removed = ByteBuffer.Empty;
 	private static final HashMap<String, HashMap<String, TableMemory>> databaseTables = new HashMap<>();
 	private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -28,6 +31,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 			for (var db : databaseTables.values())
 				for (var table : db.values())
 					table.clear();
+			// KV 表清了而 Operates 数据不清会在测试间残留版本前像，clear 一并清理。
+			dataWithVersions.clear();
 		} finally {
 			lock.writeLock().unlock();
 		}
@@ -56,7 +61,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	public @Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
 		lock();
 		try {
-			var exist = dataWithVersions.get(key);
+			var db = dataWithVersions.get(getDatabaseUrl());
+			var exist = db != null ? db.get(key) : null;
 			if (exist == null)
 				return null;
 			var copy = new DataWithVersion();
@@ -73,7 +79,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 															  long version) {
 		lock();
 		try {
-			var exist = dataWithVersions.get(key);
+			var db = dataWithVersions.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());
+			var exist = db.get(key);
 			if (exist != null) {
 				if (exist.version != version)
 					return KV.create(exist.version, false);
@@ -83,7 +90,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 			DataWithVersion tempVar = new DataWithVersion();
 			tempVar.data = ByteBuffer.Wrap(data.Copy());
 			tempVar.version = version;
-			dataWithVersions.put(ByteBuffer.Wrap(key.Copy()), tempVar);
+			db.put(ByteBuffer.Wrap(key.Copy()), tempVar);
 			return KV.create(version, true);
 		} finally {
 			unlock();
