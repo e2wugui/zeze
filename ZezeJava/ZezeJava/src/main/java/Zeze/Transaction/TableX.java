@@ -1169,19 +1169,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		try {
 			// 这个条件表示本地拥有读或写状态的才能遍历到。对于内存表，能看到全部。
 			if (r.getState() == StateShare || r.getState() == StateModify) {
-				@SuppressWarnings("unchecked")
-				var strongRef = (V)r.getSoftValue();
-				if (strongRef == null) {
-					strongRef = localRocksCacheTable.find(this, r.getObjectKey());
-					if (strongRef == null)
-						return null;
-					// 被交换出去的记录，装载以后临时用，不保存下来。
-					//strongRef.initRootInfo(r.createRootInfoIfNeed(tKey), null);
-					//r.setSoftValue(strongRef);
-				}
-				@SuppressWarnings("unchecked")
-				var v = (V)strongRef.copy();
-				return v;
+				// 拷贝段复用copyValue：事务修改的字段setter通过VarHandle立即应用（仅savepoint存undo），
+				// 只持fairLock挡不住并发事务，直接copy会拷到"字段X已改、字段Y未改"的撕裂中间态。
+				// copyValue在fairLock内先lockey.tryEnterReadLock(0)，成功才copy（与事务写锁互斥）；
+				// 锁忙回退最后落库镜像（可能旧，但完整），与walk()/selectCopy语义对齐。
+				return r.copyValue();
 			}
 			return null;
 		} finally {
