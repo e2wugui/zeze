@@ -151,10 +151,14 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			return false;
 		Service service = so.getService();
 
-		// try remove. 只维护一个上下文。??? sessionId还没生成，没法remove。
-		//service.removeRpcContext(sessionId, this);
+		// 同实例重发（文档支持的用法）只维护一个上下文：记住旧sessionId，新上下文注册后移除旧条目。
+		// 否则旧超时定时器触发时按旧id仍能移除到本实例，把新请求的future/isTimeout错误置为超时，
+		// 新应答到达时future已完成无法生效（假超时+应答丢失）。
+		long oldSessionId = sessionId;
 		this.responseHandle = responseHandle;
 		sessionId = service.addRpcContext(this);
+		if (oldSessionId != 0)
+			service.removeRpcContext(oldSessionId, this); // 旧定时器此后只能移除到null，直接return
 		timeout = millisecondsTimeout;
 		isTimeout = false;
 		isRequest = true;
@@ -187,11 +191,15 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (so != null && so.getService() != service)
 			throw new IllegalStateException("so.Service != service");
 
+		// 同Send：同实例重发先移除旧上下文条目，旧超时定时器此后只能移除到null。
+		long oldSessionId = sessionId;
 		this.responseHandle = responseHandle;
 		timeout = millisecondsTimeout;
 		isTimeout = false;
 		isRequest = true;
 		sessionId = service.addRpcContext(this);
+		if (oldSessionId != 0)
+			service.removeRpcContext(oldSessionId, this);
 		super.Send(so);
 		schedule(service, sessionId, millisecondsTimeout);
 	}
