@@ -776,7 +776,9 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				}
 			}
 		});
-		selector.wakeup();
+		// 非门控唤醒：dispose任务不依赖任何IO事件，被wakeup()的合并门控吞掉时
+		// 在空闲selector上会无限期延迟（buffer池滞留、OnSocketDisposed延迟）。
+		selector.wakeupDirect();
 		if (timeThrottle != null)
 			timeThrottle.close();
 	}

@@ -206,6 +206,17 @@ public class Selector extends Thread implements ByteBufferAllocator {
 //			wakeupCount0.incrementAndGet();
 	}
 
+	/**
+	 * 非门控唤醒：绕过 wakeupNotified 的合并优化直接唤醒 selector。
+	 * wakeup() 在处理窗口（select 返回→动作处理→排空 taskQueue→下轮 set(0)）内 CAS(0,1)
+	 * 失败会静默吞掉本次唤醒，此后若该 selector 上再无 IO 事件，addTask 排入的任务
+	 * 将被无限期延迟（如 TcpSocket.realClose 的 dispose 任务）。本方法调用频率低，
+	 * 不影响 wakeup() 自身的合并优化语义。
+	 */
+	public void wakeupDirect() {
+		selector.wakeup();
+	}
+
 	@Override
 	public void run() {
 //		lastTime = System.nanoTime();
