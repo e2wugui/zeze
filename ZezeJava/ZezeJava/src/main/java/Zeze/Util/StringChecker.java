@@ -24,8 +24,10 @@ public final class StringChecker {
 			int len = e - i;
 			if (len > maxWordLen) // add总是从根节点进入，在根上跟踪最大词条长度
 				maxWordLen = len;
+			int start = i; // 进入时的快照：BOM行start=1。deep必须记录相对深度(i-start)，
+			// 若记录绝对下标i，BOM首行词条的replace区间[i-deep,i]会左扩1个字符(多censor一个无辜前导字符)。
 			for (Trie trie = this, next; ; trie = next) {
-				trie.deep = i;
+				trie.deep = i - start;
 				char c = str.charAt(i);
 				next = trie.get(c);
 				if (++i >= e) {
