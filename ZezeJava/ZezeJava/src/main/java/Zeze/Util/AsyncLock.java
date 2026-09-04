@@ -9,7 +9,8 @@ import org.jetbrains.annotations.Nullable;
 
 // 异步锁. 暂不支持重入
 public final class AsyncLock {
-	public static final boolean tryNextSync = "true".equalsIgnoreCase(System.getProperty("AsyncLock.tryNextSync"));
+	// 非 final：static final boolean 是编译期常量(JIT 常量折叠)，测试无法在运行时切换验证同步模式。
+	public static volatile boolean tryNextSync = "true".equalsIgnoreCase(System.getProperty("AsyncLock.tryNextSync"));
 	private static final @NotNull VarHandle stateHandle;
 
 	static {
@@ -25,6 +26,10 @@ public final class AsyncLock {
 	private final ArrayDeque<Action0> waitQueue = new ArrayDeque<>();
 	private @Nullable Action0 current;
 	private @Nullable Thread ownerThread;
+	// 派发中重入标记(仅同步模式使用)：回调内部或收尾的leave()→tryNextSync检测到后直接返回，
+	// 由外层派发循环继续poll下一个回调，替代旧的嵌套递归执行(深等待队列会StackOverflowError)。
+	// 只有派发线程在持有派发权(state==1)期间读写，无需同步。
+	private boolean dispatching;
 
 	public boolean isLocked() {
 		return state != 0;
@@ -76,9 +81,12 @@ public final class AsyncLock {
 	}
 
 	private void tryNextSync() {
+		if (dispatching)
+			return; // 正在派发循环内(回调里的leave()触发)：释放与后续派发都由外层循环统一处理。
 		for (; ; ) {
 			var onReady = readyQueue.poll(); // onEnter or onNotify
 			if (onReady != null) {
+				dispatching = true;
 				try {
 					ownerThread = Thread.currentThread();
 					current = onReady;
@@ -86,9 +94,10 @@ public final class AsyncLock {
 				} catch (Throwable e) { // print stacktrace.
 					Task.logger.error("AsyncLock.tryNext exception:", e);
 				} finally {
-					leave();
+					leave(); // 内层tryNextSync因dispatching直接返回，不再嵌套递归执行
+					dispatching = false;
 				}
-				return;
+				continue; // 同线程顺序内联执行下一个回调；每回调占用固定栈帧，深队列不再SOE。
 			}
 			state = 0;
 			if (readyQueue.isEmpty() || !stateHandle.compareAndSet(this, 0, 1)) // retry, rare-path
