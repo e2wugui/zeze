@@ -131,6 +131,13 @@ public class Id128UdpServer {
 		var res = rpc.Result;
 		var name = arg.getBinaryName();
 		var count = arg.getCount();
+		// 入口校验（count与name均为对端可控，该UDP端口无认证）：count<=0使号段回退→跨客户端重复tid；
+		// 巨量count或无界唯一name撑爆cache/RocksDB。非法抛出，由run()内层catch记日志丢弃整包
+		// （诚实客户端报文不与攻击报文共用报文段，不受影响）。
+		if (count < 1 || count > Tid128Cache.ALLOCATE_COUNT_MAX)
+			throw new IllegalArgumentException("AllocateId128 invalid count=" + count + " name=" + name);
+		if (name.size() > 128)
+			throw new IllegalArgumentException("AllocateId128 name too long: size=" + name.size());
 		var context = cache.computeIfAbsent(name, k -> {
 			var c = new Id128Context();
 			try {
