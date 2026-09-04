@@ -748,8 +748,13 @@ public final class Config {
 				throw new UnsupportedOperationException("unknown node name: " + e.getNodeName());
 			}
 		}
-		if (globalCacheManagerHostNameOrAddress.equals("GlobalCacheManagersConf"))
+		if (globalCacheManagerHostNameOrAddress.equals("GlobalCacheManagersConf")) {
+			// FND2-A1-7：配置了特殊值但缺少<GlobalCacheManagersConf>子节点时，此前是裸NPE无任何诊断
+			// （对照同文件其它配置错误均抛带名异常）。
+			if (globalCacheManagers == null)
+				throw new IllegalStateException("GlobalCacheManagersConf node missing");
 			globalCacheManagerHostNameOrAddress = globalCacheManagers.toString();
+		}
 	}
 
 	public static final class ServiceManagerConf {
