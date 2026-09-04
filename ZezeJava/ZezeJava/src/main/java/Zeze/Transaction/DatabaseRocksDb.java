@@ -471,7 +471,11 @@ public class DatabaseRocksDb extends Database {
 				dv.data = data;
 				var value = ByteBuffer.Allocate(5 + 9 + dv.data.size());
 				dv.encode(value);
-				table.put(key.Bytes, key.ReadIndex, key.size(), value.Bytes, value.ReadIndex, value.size());
+				// 主库要求 WAL 落盘（对齐 RocksDbTrans.commit 的 sync 写）：schemas 版本记录掉电丢失
+				// 会让下次启动按全新库走兼容检查；本地缓存库（zeze_cache_ 前缀）维持默认非 sync 写。
+				var options = isLocalRocksCache
+						? RocksDatabase.getDefaultWriteOptions() : RocksDatabase.getSyncWriteOptions();
+				table.put(options, key.Bytes, key.ReadIndex, key.size(), value.Bytes, value.ReadIndex, value.size());
 				return KV.create(version, true);
 			} catch (RocksDBException e) {
 				throw Task.forceThrow(e);
