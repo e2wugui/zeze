@@ -1079,7 +1079,7 @@ public final class Json implements Cloneable {
 				obj = new IntHashMap<>();
 			else
 				obj.clear();
-			Class<?> valueClass = null;
+			Class<?> valueClass;
 			if (fieldMeta != null) {
 				// 字段声明为 raw（如 IntHashMap map;）时 paramTypes 为 null、泛型变量（IntHashMap<T>）时
 				// paramTypes[0] 不是 Class：原实现直接强转，抛出无上下文的 NPE/CCE。这里显式报字段与类名。
@@ -1088,8 +1088,13 @@ public final class Json implements Cloneable {
 					throw new InstantiationException("map field without concrete value type: " + fieldMeta.getName()
 							+ " in " + classMeta.klass.getName());
 				valueClass = (Class<?>)params[0];
-			}
-			ClassMeta<?> valueMeta = valueClass != null ? instance.getClassMeta(valueClass) : null;
+			} else
+				// 顶层直接 parse（如 Json.parse(s, IntHashMap.class)）没有字段上下文可取值类型：原实现
+				// valueMeta=null，parseNested(null) 不消费值 token，所有值静默变成 null。对齐 c40b54a93 的
+				// fail-fast 原则显式抛错，不再产出全 null 的错误结果。
+				throw new InstantiationException("top-level parse of " + classMeta.klass.getName()
+						+ " without concrete value type");
+			ClassMeta<?> valueMeta = instance.getClassMeta(valueClass);
 			for (int b = reader.skipNext(); b != '}'; b = reader.skipVar('}')) {
 				int k = JsonReader.parseIntegerKey(reader, b);
 				reader.skipColon();
@@ -1172,7 +1177,7 @@ public final class Json implements Cloneable {
 				obj = new LongHashMap<>();
 			else
 				obj.clear();
-			Class<?> valueClass = null;
+			Class<?> valueClass;
 			if (fieldMeta != null) {
 				// 字段声明为 raw（如 IntHashMap map;）时 paramTypes 为 null、泛型变量（IntHashMap<T>）时
 				// paramTypes[0] 不是 Class：原实现直接强转，抛出无上下文的 NPE/CCE。这里显式报字段与类名。
@@ -1181,8 +1186,13 @@ public final class Json implements Cloneable {
 					throw new InstantiationException("map field without concrete value type: " + fieldMeta.getName()
 							+ " in " + classMeta.klass.getName());
 				valueClass = (Class<?>)params[0];
-			}
-			ClassMeta<?> valueMeta = valueClass != null ? instance.getClassMeta(valueClass) : null;
+			} else
+				// 顶层直接 parse（如 Json.parse(s, LongHashMap.class)）没有字段上下文可取值类型：原实现
+				// valueMeta=null，parseNested(null) 不消费值 token，所有值静默变成 null。对齐 c40b54a93 的
+				// fail-fast 原则显式抛错，不再产出全 null 的错误结果。
+				throw new InstantiationException("top-level parse of " + classMeta.klass.getName()
+						+ " without concrete value type");
+			ClassMeta<?> valueMeta = instance.getClassMeta(valueClass);
 			for (int b = reader.skipNext(); b != '}'; b = reader.skipVar('}')) {
 				long k = JsonReader.parseLongKey(reader, b);
 				reader.skipColon();
@@ -1265,7 +1275,7 @@ public final class Json implements Cloneable {
 				obj = new LongConcurrentHashMap<>();
 			else
 				obj.clear();
-			Class<?> valueClass = null;
+			Class<?> valueClass;
 			if (fieldMeta != null) {
 				// 字段声明为 raw（如 IntHashMap map;）时 paramTypes 为 null、泛型变量（IntHashMap<T>）时
 				// paramTypes[0] 不是 Class：原实现直接强转，抛出无上下文的 NPE/CCE。这里显式报字段与类名。
@@ -1274,8 +1284,13 @@ public final class Json implements Cloneable {
 					throw new InstantiationException("map field without concrete value type: " + fieldMeta.getName()
 							+ " in " + classMeta.klass.getName());
 				valueClass = (Class<?>)params[0];
-			}
-			ClassMeta<?> valueMeta = valueClass != null ? instance.getClassMeta(valueClass) : null;
+			} else
+				// 顶层直接 parse（如 Json.parse(s, LongConcurrentHashMap.class)）没有字段上下文可取值类型：
+				// 原实现 valueMeta=null，parseNested(null) 不消费值 token，所有值静默变成 null。对齐
+				// c40b54a93 的 fail-fast 原则显式抛错，不再产出全 null 的错误结果。
+				throw new InstantiationException("top-level parse of " + classMeta.klass.getName()
+						+ " without concrete value type");
+			ClassMeta<?> valueMeta = instance.getClassMeta(valueClass);
 			for (int b = reader.skipNext(); b != '}'; b = reader.skipVar('}')) {
 				long k = JsonReader.parseLongKey(reader, b);
 				reader.skipColon();
