@@ -24,6 +24,10 @@ public class HotModule extends ClassLoader implements Closeable {
 	private final Class<?> moduleClass;
 	private HotService service;
 	private final boolean isLoadSchemas;
+	// isLoadSchemas时强制从本jar装载的类名（solutionName + ".Schemas"）。
+	// solution名不一定是"Game"，不能硬编码：写死会把非Game命名的solution的
+	// Schemas类走双亲委派命中冷类路径上的旧类，schema热更静默失效。
+	private final String schemasClassName;
 
 	// 每个版本的接口一个上下文。
 	private final ConcurrentHashMap<Class<?>, HotModuleContext<?>> contexts = new ConcurrentHashMap<>();
@@ -39,14 +43,17 @@ public class HotModule extends ClassLoader implements Closeable {
 		var moduleClassName = namespace + ".Module" + last(namespace);
 		this.moduleClass = loadClass(moduleClassName);
 		this.isLoadSchemas = false;
+		this.schemasClassName = null;
 	}
 
 	// 用于装载 Schemas. 借用这个类实现单独的装载。
-	HotModule(File jarFile) throws Exception {
+	// schemasClassName：期望从本jar装载的Schemas类名，loadClass对它绕过双亲委派。
+	HotModule(File jarFile, String schemasClassName) throws Exception {
 		this.jarFile = jarFile;
 		this.jar = new JarFile(jarFile);
 		this.moduleClass = null;
 		this.isLoadSchemas = true;
+		this.schemasClassName = schemasClassName;
 	}
 
 	public String getJarFileName() {
@@ -145,7 +152,7 @@ public class HotModule extends ClassLoader implements Closeable {
 
 	@Override
 	public Class<?> loadClass(String className, boolean resolve) throws ClassNotFoundException {
-		return isLoadSchemas && className.equals("Game.Schemas")
+		return isLoadSchemas && className.equals(schemasClassName)
 				? loadModuleClass(className)
 				: super.loadClass(className, resolve);
 	}

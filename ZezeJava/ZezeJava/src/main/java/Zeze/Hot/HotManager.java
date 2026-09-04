@@ -252,7 +252,9 @@ public class HotManager extends ClassLoader {
 		if (null == schemasJarFile)
 			throw new RuntimeException("__hot_schemas__{SolutionName}.jar not found.");
 
-		try (var schemasCl = new HotModule(schemasJarFile)) {
+		// 期望装载的Schemas类名由jar文件名推导传入（solutionName + ".Schemas"）：
+		// HotModule.loadClass据此对指定类名绕过双亲委派，solution命名任意（不一定是"Game"）。
+		try (var schemasCl = new HotModule(schemasJarFile, solutionName + ".Schemas")) {
 			var schemasClass = Class.forName(solutionName + ".Schemas", true, schemasCl);
 			return (Schemas)schemasClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 		} finally {
