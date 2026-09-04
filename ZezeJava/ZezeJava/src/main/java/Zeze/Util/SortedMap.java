@@ -281,9 +281,10 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 						if (c > 0) {
 							if (jk.equals(lastK)) {
 								int r = lastE.addEntry(e);
-								if (r > 0)
+								if (r > 0) {
 									newElements.set(newElements.size() - 1, e);
-								else if (r < 0)
+									lastE = e; // e成为链新头：lastE必须跟进，否则后续同键条目会挂到已出列的旧头上
+								} else if (r < 0)
 									size--;
 							} else {
 								lastK = jk;
@@ -312,9 +313,10 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 					var e = new Entry<>(jk, value, hashFunc.hash(jk, value, j));
 					if (jk.equals(lastK)) {
 						int r = lastE.addEntry(e);
-						if (r > 0)
+						if (r > 0) {
 							newElements.set(newElements.size() - 1, e);
-						else if (r < 0)
+							lastE = e; // 同上：e成为链新头时lastE必须跟进
+						} else if (r < 0)
 							size--;
 					} else {
 						lastK = jk;
