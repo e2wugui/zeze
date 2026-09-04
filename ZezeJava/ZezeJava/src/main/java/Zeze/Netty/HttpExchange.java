@@ -19,6 +19,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.Action0;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
@@ -249,8 +250,9 @@ public class HttpExchange {
 		var size = c.readableBytes();
 		if (size <= 0)
 			return ByteBuffer.Empty;
-		int offset = c.readerIndex();
-		if (offset == 0 && c.hasArray())
+		// 快路径仅在底层数组与内容严格重合时直接返回数组:池化/预分配缓冲capacity常大于writerIndex,
+		// 直接返回c.array()会把尾随的陈旧字节(可能是上一请求残留)带给调用方,造成解析错乱/信息泄露。
+		if (c.readerIndex() == 0 && c.hasArray() && c.arrayOffset() == 0 && c.writerIndex() == c.capacity())
 			return c.array();
 		var buf = new byte[size];
 		c.getBytes(c.readerIndex(), buf);
@@ -383,7 +385,7 @@ public class HttpExchange {
 				});
 				inStreamMode = true;
 				//noinspection ConstantConditions
-				handler.WebSocketHandle.onOpen(this);
+				fireWebSocketNotify("fireWebSocketOpen", () -> handler.WebSocketHandle.onOpen(this));
 				context.fireChannelRead(msg);
 				return;
 			}
@@ -502,6 +504,8 @@ public class HttpExchange {
 			if (handler.Mode == DispatchMode.Direct)
 				TaskSpec.ofProcedure(p).call();
 			else {
+				// onCancel:HttpServer.close()的shutdown(true)清扫丢弃未运行任务(或提交命中已shutdown队列)时
+				// 补偿release,否则retain的池化content在关停窗口静默泄漏;cancel与执行路径互斥,不会双释放。
 				c.retain();
 				TaskSpec.ofFunc(() -> {
 					try {
@@ -509,7 +513,7 @@ public class HttpExchange {
 					} finally {
 						c.release();
 					}
-				}).name(p.getActionName()).dispatchMode(handler.Mode)
+				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(c::release)
 						.executeOneByOne(context.channel().id(), server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
@@ -522,7 +526,7 @@ public class HttpExchange {
 				} finally {
 					c.release();
 				}
-			}).name("fireStreamContentHandle").dispatchMode(handler.Mode)
+			}).name("fireStreamContentHandle").dispatchMode(handler.Mode).onCancel(c::release)
 					.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
@@ -591,6 +595,7 @@ public class HttpExchange {
 			if (handler.Mode == DispatchMode.Direct)
 				TaskSpec.ofProcedure(p).call();
 			else {
+				// onCancel:同fireStreamContentHandle,shutdown清扫丢弃时补偿release retain的池化frame。
 				frame.retain();
 				TaskSpec.ofFunc(() -> {
 					try {
@@ -598,7 +603,7 @@ public class HttpExchange {
 					} finally {
 						frame.release();
 					}
-				}).name(p.getActionName()).dispatchMode(handler.Mode)
+				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(frame::release)
 						.executeOneByOne(context.channel().id(), server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
@@ -611,7 +616,31 @@ public class HttpExchange {
 				} finally {
 					frame.release();
 				}
-			}).name("fireWebSocket").dispatchMode(handler.Mode)
+			}).name("fireWebSocket").dispatchMode(handler.Mode).onCancel(frame::release)
+					.executeOneByOne(context.channel().id(), server.task11Executor);
+		}
+	}
+
+	// WebSocket的onOpen/onClose通知走与fireWebSocket相同的Mode派发(Direct内联/否则executeOneByOne,
+	// key=channel.id与onContent同队列串行)。修复前channelRead的onOpen与closeInEventLoop的异常关闭onClose
+	// 都在EventLoop上内联执行:用户回调阻塞IO线程,且与在途的onContent派发任务并发访问用户状态,
+	// 绕过了"同连接回调串行"的派发契约(纯非Direct配置也触发)。
+	@SuppressWarnings("ConstantConditions")
+	protected void fireWebSocketNotify(@NotNull String name, @NotNull Action0 notify) {
+		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
+			var p = server.zeze.newProcedure(() -> {
+				notify.run();
+				return Procedure.Success;
+			}, name);
+			if (handler.Mode == DispatchMode.Direct)
+				TaskSpec.ofProcedure(p).call();
+			else
+				TaskSpec.ofProcedure(p)
+						.dispatchMode(handler.Mode).executeOneByOne(context.channel().id(), server.task11Executor);
+		} else if (handler.Mode == DispatchMode.Direct) {
+			TaskSpec.ofAction(notify).name(name).call();
+		} else {
+			TaskSpec.ofAction(notify).name(name).dispatchMode(handler.Mode)
 					.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
@@ -715,8 +744,11 @@ public class HttpExchange {
 			inStreamMode = false;
 			try {
 				if (handler != null && handler.isWebSocketMode()) {
+					// 只在EventLoop上执行(close的listener/execute分支保证)。onClose不能内联在EL执行,
+					// 改走与fireWebSocket相同的Mode派发,与在途onContent派发任务按channel.id串行。
 					//noinspection ConstantConditions
-					handler.WebSocketHandle.onClose(this, WebSocketCloseStatus.ABNORMAL_CLOSURE.code(), "");
+					fireWebSocketNotify("fireWebSocketClose", () -> handler.WebSocketHandle.onClose(
+							this, WebSocketCloseStatus.ABNORMAL_CLOSURE.code(), ""));
 				} else
 					fireEndStreamHandle();
 			} catch (Exception e) {
