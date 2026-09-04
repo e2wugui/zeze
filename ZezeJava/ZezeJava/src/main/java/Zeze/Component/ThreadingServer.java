@@ -370,7 +370,11 @@ public class ThreadingServer extends AbstractThreadingServer {
 						if (null != rwLock) {
 							rwLock.readLock().unlock();
 							var hold = rwLock.getReadHoldCount();
-							if (hold == 0)
+							// FND2-C1-1：rwLockRefs按锁名共享一个条目，读写计数分开持有
+							// （JDK支持写→读降级）。只看本模式计数清零即删条目会让另一模式的持有
+							// 脱离跟踪：之后exit无应答即返回、模拟线程持锁被判空闲退出、
+							// timeoutRelease也遍历不到——锁永久悬挂直到进程重启。双计数都为零才删。
+							if (hold == 0 && rwLock.getWriteHoldCount() == 0)
 								This.rwLockRefs.remove(r.Argument.getLockName().getName());
 							logger.info("RWLock.exitRead(thread=({}, {}), name={} hold={})",
 									r.Argument.getLockName().getGlobalThreadId().getServerId(),
@@ -392,7 +396,9 @@ public class ThreadingServer extends AbstractThreadingServer {
 						if (null != rwLock) {
 							rwLock.writeLock().unlock();
 							var hold = rwLock.getWriteHoldCount();
-							if (hold == 0)
+							// FND2-C1-1：双计数都为零才删（对称场景：先exitRead时writeHold仍>0，
+							// 提前删条目=写锁悬挂、所有写者永久饥饿）。
+							if (hold == 0 && rwLock.getReadHoldCount() == 0)
 								This.rwLockRefs.remove(r.Argument.getLockName().getName());
 
 							logger.info("RWLock.exitWrite(thread=({}, {}), name={}) hold={}",
@@ -431,6 +437,13 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	@Override
 	protected long ProcessSemaphoreReleaseRequest(SemaphoreRelease r) {
+		// FND2-C1-3：release(permits<=0)按JDK契约抛IllegalArgumentException，动作在SimulateThread内
+		// 抛出会被run()吞掉且不补发结果码（客户端挂满rpc超时后以CompletionException呈现）。
+		// 入队前校验直接应答（65c291f2e修了TryAcquire家族，独漏Release，此处补齐同型防护）。
+		if (r.Argument.getPermits() <= 0) {
+			r.SendResultCode(ResultCodeInvalidArgument);
+			return 0;
+		}
 		simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
 				(This) -> {
 					var semaphoreAcq = This.semaphoreRefs.get(r.Argument.getLockName().getName());
