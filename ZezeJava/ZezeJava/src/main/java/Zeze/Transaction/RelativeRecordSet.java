@@ -530,24 +530,47 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	static void flushWhenCheckpoint(@NotNull Checkpoint checkpoint) {
 		// 根据选项执行不同的flush模式。
+		// 单元隔离：任一rrs（Merge模式为FlushSet）flush失败（编码异常、关系库约束冲突、db连接抖动等）
+		// 只记error，失败单元保留在relativeRecordSetMap中（flush成功才会remove），留待下轮checkpoint重试；
+		// 不能让单个坏记录中断整轮，饿死迭代顺序在其后的脏集合（积压不可被cleanNow清理，最终OOM）。
 		switch (checkpoint.zeze.getConfig().getCheckpointFlushMode()) {
 		case SingleThread:
-			for (var rrs : checkpoint.relativeRecordSetMap)
-				flush(checkpoint, rrs);
+			for (var rrs : checkpoint.relativeRecordSetMap) {
+				try {
+					flush(checkpoint, rrs);
+				} catch (Throwable ex) { // logger.error
+					Checkpoint.logger.error("flushWhenCheckpoint(SingleThread) flush fail, keep for next checkpoint", ex);
+				}
+			}
 			break;
 
 		case MultiThread:
-			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> flush(checkpoint, rrs));
+			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> {
+				try {
+					flush(checkpoint, rrs);
+				} catch (Throwable ex) { // logger.error
+					// lambda内必须捕获：逃逸会取消parallelStream尚未启动的任务并传播出去。
+					Checkpoint.logger.error("flushWhenCheckpoint(MultiThread) flush fail, keep for next checkpoint", ex);
+				}
+			});
 			break;
 
 		case SingleThreadMerge: {
 			var flushSet = new FlushSet(checkpoint);
 			for (var rrs : checkpoint.relativeRecordSetMap) {
-				if (flushSet.add(rrs))
-					flushSet.flush();
+				if (flushSet.add(rrs)) {
+					try {
+						flushSet.flush();
+					} catch (Throwable ex) { // logger.error
+						Checkpoint.logger.error("flushWhenCheckpoint(SingleThreadMerge) FlushSet flush fail, keep for next checkpoint", ex);
+						// 失败成员仍留在relativeRecordSetMap中（flush成功才会remove），下轮重试。
+						// 丢弃毒化的积累换新FlushSet：sortedRrs未清空时集合保持"满"，后续每个rrs都会
+						// 立即触发整组重试并继续失败，等于本轮余下集合全部饿死。
+						flushSet = new FlushSet(checkpoint);
+					}
+				}
 			}
-			if (flushSet.size() > 0)
-				flushSet.flush();
+			flushTail(flushSet);
 		}
 		break;
 
@@ -556,15 +579,30 @@ public final class RelativeRecordSet extends ReentrantLock {
 			var flushSetMap = new ConcurrentHashMap<Thread, FlushSet>();
 			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> {
 				var fs = parallelFlushSet(checkpoint, flushSetMap);
-				if (fs.add(rrs))
-					fs.flush();
+				if (fs.add(rrs)) {
+					try {
+						fs.flush();
+					} catch (Throwable ex) { // logger.error
+						Checkpoint.logger.error("flushWhenCheckpoint(MultiThreadMerge) FlushSet flush fail, keep for next checkpoint", ex);
+						// 同SingleThreadMerge：丢弃毒化积累，本线程后续rrs换新FlushSet（computeIfAbsent不会替换，用put）。
+						flushSetMap.put(Thread.currentThread(), new FlushSet(checkpoint));
+					}
+				}
 			});
-			for (var fs : flushSetMap.values()) {
-				if (fs.size() > 0)
-					fs.flush();
-			}
+			for (var fs : flushSetMap.values())
+				flushTail(fs);
 		}
 		break;
+		}
+	}
+
+	private static void flushTail(@NotNull FlushSet flushSet) {
+		if (flushSet.size() <= 0)
+			return;
+		try {
+			flushSet.flush();
+		} catch (Throwable ex) { // logger.error
+			Checkpoint.logger.error("flushWhenCheckpoint flushTail fail, keep for next checkpoint", ex);
 		}
 	}
 
