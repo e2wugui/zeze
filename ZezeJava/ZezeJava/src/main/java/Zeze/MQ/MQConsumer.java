@@ -34,6 +34,12 @@ public class MQConsumer {
 		return sessionId;
 	}
 
+	// 只读约定：该消费者订阅的全部manager连接（构造时确定，不再变更）。
+	// MQAgent重连重订阅由此派生connector→consumers映射，调用方不得修改。
+	public @NotNull HashSet<Connector> getManagers() {
+		return managers;
+	}
+
 	public String getTopic() {
 		return info.getTopic();
 	}
