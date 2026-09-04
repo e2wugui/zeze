@@ -63,21 +63,30 @@ public final class Agent extends AbstractAgent {
 		client.getConfig().forEachConnector(Connector::WaitReady);
 	}
 
+	// editService专用串行锁：把"发送-等待应答-更新本地registers"整个过程串行化。
+	// 同一socket上应答顺序==服务端处理顺序，串行化后"发送序==应答序==本地更新序"，
+	// 并发register/unregister交错产生的"本地registers与服务端分叉→onConnected重连重放
+	// 复活僵尸注册"不可能再发生。不复用agent的ReentrantLock：后者被
+	// allocateTid128CacheFuture（History finalCommit路径）使用，复用会把finalCommit挂在SM RTT上。
+	private final Object editServiceLock = new Object();
+
 	@Override
 	public void editService(@NotNull BEditService arg) {
-		for (var info : arg.getAdd())
-			verify(info.getServiceIdentity());
-		waitConnectorReady();
+		synchronized (editServiceLock) {
+			for (var info : arg.getAdd())
+				verify(info.getServiceIdentity());
+			waitConnectorReady();
 
-		var edit = new EditService(arg);
-		edit.SendAndWaitCheckResultCode(client.getSocket());
+			var edit = new EditService(arg);
+			edit.SendAndWaitCheckResultCode(client.getSocket());
 
-		// 成功以后更新本地信息。
-		for (var unReg : arg.getRemove())
-			registers.remove(unReg);
+			// 成功以后更新本地信息。
+			for (var unReg : arg.getRemove())
+				registers.remove(unReg);
 
-		for (var reg : arg.getAdd())
-			registers.put(reg, reg);
+			for (var reg : arg.getAdd())
+				registers.put(reg, reg);
+		}
 	}
 
 	@Override
