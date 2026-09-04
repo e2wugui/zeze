@@ -128,10 +128,15 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				if (overload == BLoad.eThreshold && factoryHandle.CriticalLevel == Protocol.eSheddable ||
 					overload == BLoad.eOverload && factoryHandle.CriticalLevel != Protocol.eCriticalPlus) {
 					var pdata = arg.getProtocolData();
-					if (pdata.size() > 0 && (pdata.get(0) & FamilyClass.FamilyClassMask) == FamilyClass.Request) {
+					// FND2-A1-8：protocolData是Dispatch透传的客户端可控字节，长度任意。镜像
+					// LinkdService.reportError（a26aa9845）的门卫：rpc帧布局为
+					// UInt(header)+[Long(resultCode)]+Long(sessionId)（见Rpc.encode）。长度不足时
+					// 跳过Busy应答（过载本就丢弃该协议），解析越界异常不再刷oneByOne池线程错误日志。
+					var bb = pdata.Wrap();
+					var header = pdata.size() >= 4 ? bb.ReadUInt() : 0;
+					if ((header & FamilyClass.FamilyClassMask) == FamilyClass.Request
+							&& bb.size() >= (((header & FamilyClass.BitResultCode) != 0) ? 16 : 8)) {
 						// 简单构造并回复该RPC
-						var bb = pdata.Wrap();
-						var header = bb.ReadUInt();
 						if ((header & FamilyClass.BitResultCode) != 0)
 							bb.SkipLong(); // resultCode
 						var sessionId = bb.ReadLong();
