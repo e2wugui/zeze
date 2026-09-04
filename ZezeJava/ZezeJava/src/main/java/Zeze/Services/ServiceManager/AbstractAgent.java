@@ -49,6 +49,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	// SM Suspect提示回调：参数=疑似死者的serverId。应用转化为takeover.tryTransfer。
 	protected volatile @Nullable Action1<Integer> onSuspect;
 	private volatile @Nullable TaskCompletionSource<TidCache> lastTidCacheFuture;
+	// 按globalName记录最近一次分配的tid128 future：原agent级单槽不区分名字，多名字使用时
+	// getUsableTid128CacheFuture(B)会返回为A分配的future，跨名号段串用（静默发错号）。
+	private final ConcurrentHashMap<String, Id128UdpClient.FutureNode> tid128CacheFutures = new ConcurrentHashMap<>();
+	// 最近一次分配的future（无论名字）：仅作为无参getLastTid128CacheFuture()的兼容镜像（供测试/诊断），
+	// 正确性路径一律按名字存取，不读它。
 	private volatile @Nullable Id128UdpClient.FutureNode lastTid128CacheFuture;
 	protected @Nullable Id128UdpClient tid128UdpClient; // 子类初始化。
 
@@ -103,7 +108,19 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		lock();
 		try {
 			var lastFuture = lastTidCacheFuture;
-			var allocateCount = lastFuture == null ? TidCache.ALLOCATE_COUNT_MIN : lastFuture.get().allocateCount();
+			var allocateCount = TidCache.ALLOCATE_COUNT_MIN;
+			if (lastFuture != null) {
+				try {
+					allocateCount = lastFuture.get().allocateCount();
+				} catch (RuntimeException e) {
+					// 上一次分配异常完成（如发送失败）：get()抛出且发生在替换lastTidCacheFuture之前，
+					// 而这里是它唯一的写入点，异常传播出去会导致毒化状态永久保留（与f561f8e41修的
+					// 128版同构）。不再传播，以默认档位重新分配并替换（自愈）。
+					logger.warn("allocateTidCacheFuture('{}'): last future failed, re-allocate with default count",
+							globalName, e);
+					allocateCount = TidCache.ALLOCATE_COUNT_MIN;
+				}
+			}
 			var sent = allocateAsync(globalName, allocateCount, rpc -> {
 				lock();
 				try {
@@ -129,6 +146,15 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		return future;
 	}
 
+	public @Nullable Id128UdpClient.FutureNode getLastTid128CacheFuture(@NotNull String globalName) {
+		return tid128CacheFutures.get(globalName);
+	}
+
+	/**
+	 * @deprecated 单槽遗留查询：返回最近一次分配的future（无论名字），仅供测试/诊断；
+	 *     正确性路径使用 {@link #getLastTid128CacheFuture(String)}。
+	 */
+	@Deprecated
 	public @Nullable Id128UdpClient.FutureNode getLastTid128CacheFuture() {
 		return lastTid128CacheFuture;
 	}
@@ -136,13 +162,13 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	public @NotNull Id128UdpClient.FutureNode allocateTid128CacheFuture(@NotNull String globalName) {
 		lock();
 		try {
-			var future = lastTid128CacheFuture;
+			var future = tid128CacheFutures.get(globalName);
 			var allocateCount = Tid128Cache.ALLOCATE_COUNT_MIN;
 			if (future != null) {
 				try {
 					allocateCount = future.get().allocateCount();
 				} catch (RuntimeException e) {
-					// 上一次分配异常完成（如Udp超时）：get()抛出且发生在替换lastTid128CacheFuture之前，
+					// 上一次分配异常完成（如Udp超时）：get()抛出且发生在替换future之前，
 					// 而这里是它唯一的写入点，异常传播出去会导致毒化状态永久保留
 					// （冷写事务持续失败/热写事务finalCommit halt）。不再传播，以默认档位重新分配并替换（自愈）。
 					logger.warn("allocateTid128CacheFuture('{}'): last future failed, re-allocate with default count", globalName, e);
@@ -154,7 +180,9 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			if (tid128UdpClient == null)
 				throw new IllegalStateException("tid128UdpClient is not available (unsupported combination, " +
 						"e.g. ServiceManager=raft): allocateTid128CacheFuture('" + globalName + "')");
-			lastTid128CacheFuture = future = tid128UdpClient.allocateFuture(globalName, allocateCount);
+			future = tid128UdpClient.allocateFuture(globalName, allocateCount);
+			tid128CacheFutures.put(globalName, future);
+			lastTid128CacheFuture = future; // 无参getLastTid128CacheFuture()的兼容镜像
 			return future;
 		} finally {
 			unlock();
@@ -167,7 +195,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	 * 避免读取毒化的future后get()抛异常，导致finalCommit失败halt。
 	 */
 	public @NotNull Id128UdpClient.FutureNode getUsableTid128CacheFuture(@NotNull String globalName) {
-		var future = getLastTid128CacheFuture();
+		var future = getLastTid128CacheFuture(globalName);
 		if (future == null || future.isCompletedExceptionally())
 			return allocateTid128CacheFuture(globalName);
 		return future;
