@@ -271,15 +271,31 @@ public class Connector extends ReentrantLock {
 			TryReconnect();
 			throw e;
 		}
+		boolean closedInWindow = false; // 构造完成与本锁之间socket已被关闭（非stop所致）
 		lock();
 		try {
 			connecting = false;
 			if (!abortConnect && socket == null) {
+				// 构造返回到重新加锁之间存在窗口：连接完成/握手失败可能已触发关闭
+				// （如OnSocketHandshakeDone因socket尚未赋值而"not owner"误杀健康连接、
+				// TcpSocket构造内立即连接失败、WebsocketClient握手异步快速失败），
+				// 其OnSocketClose因socket尚未赋值而空转，之后不会再有重连触发。
+				// 已死连接不得发布为owner，否则TryReconnect/start被socket!=null永久挡住，
+				// 自动重连静默失效。赋值后再查一次closed：close可能落在检查与赋值之间。
 				socket = as;
-				return;
+				if (!as.isClosed())
+					return;
+				socket = null;
+				closedInWindow = true;
 			}
 		} finally {
 			unlock();
+		}
+		if (closedInWindow) {
+			// socket在本锁段内已死且Connector未被stop：丢弃本条并立即安排重连。
+			// （as已完成close流程，无需再close；abortConnect在本路径必为false。）
+			TryReconnect();
+			return;
 		}
 		// 构造期间Connector被stop（或被并发替换）：新socket不是owner，丢弃。
 		abortConnect = false;
