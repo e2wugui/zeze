@@ -1031,8 +1031,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			// stamp==0（无主新行/外部清表重建/被接管后的墓碑）一律认领（stamp=myEpoch）而非致命：
 			// 被接管者醒来在空链上复活并继续新写（需求语义）；fence只杀同serverId双进程/外部
 			// 篡改（stamp为别人的epoch）。
+			// FND2-C0-4：认领写（setLoadSerialNo）仅mode=on——与Takeover.start自己stampScope的
+			// 前置一致。dryrun守住"纯簿记不动数据行"的灰度契约；off避免0→0冗余写。
 			var stamp = root.getLoadSerialNo();
-			if (stamp == 0) {
+			if (stamp == 0 && Takeover.ModeOn.equals(takeover.getMode())) {
 				stamp = takeover.getMyEpoch();
 				root.setLoadSerialNo(stamp);
 			}
@@ -1057,19 +1059,18 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				var next = _tNodes.get(nextNodeId);
 				if (next != null && next.getPrevNodeId() == nodeId)
 					next.setPrevNodeId(prevNodeId);
-				var root = _tNodeRoot.get(serverId);
-				if (root != null) {
-					checkTimerFence(serverId, root); // 仅当root属于本进程时校验：serverId可能是尚未重指向的死者
-					if (root.getHeadNodeId() == nodeId) {
-						if (root.getTailNodeId() == nodeId) {
-							root.setHeadNodeId(0);
-							root.setTailNodeId(0);
-							root.setVersion(0);
-						} else
-							root.setHeadNodeId(nextNodeId);
-					} else if (root.getTailNodeId() == nodeId)
-						root.setTailNodeId(prevNodeId);
-				}
+				// FND2-C1-2：边界修正对index.serverId与本进程root各做一次（幂等：head/tail匹配才写）。
+				// 接管装载窗口内（transferAll已把死者链splice进本进程root、loadTimer逐节点重写
+				// index.serverId尚未完成），index.serverId仍=死者——只修死者root（墓碑head=0）会让
+				// 本进程root.tail悬挂指向刚摘除且已入GC队列的节点：之后schedule永久"tailNode is null"，
+				// 或GC物理删掉被复用的活节点。
+				var indexRoot = _tNodeRoot.get(serverId);
+				if (indexRoot != null)
+					checkTimerFence(serverId, indexRoot); // 仅当root属于本进程时校验：serverId可能是尚未重指向的死者
+				fixRootBoundary(indexRoot, nodeId, prevNodeId, nextNodeId);
+				var myRoot = _tNodeRoot.get(zeze.getConfig().getServerId());
+				if (myRoot != indexRoot) // serverId==本进程时同一个root，不重复修
+					fixRootBoundary(myRoot, nodeId, prevNodeId, nextNodeId);
 				// 把当前空的Node加入垃圾回收。
 				// 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
 				// 不删除的话就会在数据库留下垃圾。
@@ -1082,6 +1083,22 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				}, "Timer.fireTimerCancel")).call();
 			}
 		}
+	}
+
+	// 幂等链边界修正：仅当root的head/tail确实指向被摘除的节点才改写（不匹配不动），
+	// 因此对多个root重复调用安全（cancel的接管窗口修正依赖这一点）。
+	private static void fixRootBoundary(@Nullable BNodeRoot root, long nodeId, long prevNodeId, long nextNodeId) {
+		if (root == null)
+			return;
+		if (root.getHeadNodeId() == nodeId) {
+			if (root.getTailNodeId() == nodeId) {
+				root.setHeadNodeId(0);
+				root.setTailNodeId(0);
+				root.setVersion(0);
+			} else
+				root.setHeadNodeId(nextNodeId);
+		} else if (root.getTailNodeId() == nodeId)
+			root.setTailNodeId(prevNodeId);
 	}
 
 	private static void dispatchFire(@Nullable String oneByOneKey, @NotNull Runnable fire) {
