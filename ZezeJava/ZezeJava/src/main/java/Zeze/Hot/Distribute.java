@@ -145,7 +145,12 @@ public class Distribute {
 						try {
 							var r = commit2Futures.get(i);
 							assert r.getFuture() != null;
-							r.getFuture().await(30_000);
+							if (!r.getFuture().await(30_000)) {
+								// await超时返回false：resultCode仍是默认0，继续读会被当成成功，
+								// 把结果未知的服务器误加入commit2名单。按未知/失败报告并跳过。
+								System.out.println(hotAgents.get(i).getPeer() + " commit result unknown (timeout)");
+								continue;
+							}
 							if (r.getResultCode() == 0) {
 								hotAgentCommit2.add(hotAgents.get(i)); // 只有成功的才真正commit2。
 							} else {
@@ -181,7 +186,11 @@ public class Distribute {
 				try {
 					var r = futures.get(i);
 					assert r.getFuture() != null;
-					r.getFuture().await(30_000);
+					if (!r.getFuture().await(30_000)) {
+						// await超时返回false：resultCode仍是默认0，不读它，按未知/失败报告。
+						System.out.println(hotAgents.get(i).getPeer() + " tryDistribute result unknown (timeout)");
+						continue;
+					}
 					if (r.getResultCode() != 0) {
 						System.out.println(hotAgents.get(i).getPeer() + "=" + IModule.getErrorCode(r.getResultCode()));
 					}
@@ -197,7 +206,12 @@ public class Distribute {
 		for (var i = 0; i < hotAgents.size(); ++i) {
 			var rpc = tryDistributes.get(i);
 			assert rpc.getFuture() != null;
-			rpc.getFuture().await(30_000);
+			if (!rpc.getFuture().await(30_000)) {
+				// await超时返回false：resultCode仍是默认0，不读它；结果未知按失败处理
+				// （返回false走tryRollback，服务端eTryDistribute状态下回滚是设计路径）。
+				System.out.println(hotAgents.get(i).getPeer() + " tryDistribute result unknown (timeout)");
+				return false;
+			}
 			if (rpc.getResultCode() != 0) {
 				System.out.println(hotAgents.get(i).getPeer() + "=" + IModule.getErrorCode(rpc.getResultCode()));
 				return false;
