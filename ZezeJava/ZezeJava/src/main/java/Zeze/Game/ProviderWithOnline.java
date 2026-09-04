@@ -41,14 +41,31 @@ public class ProviderWithOnline extends ProviderImplement {
 			logger.info("LinkBroken[{}]: {}", p.getSender().getSessionId(), AsyncSocket.toStr(p.Argument));
 		// 目前仅需设置online状态。
 		var online = this.online;
-		if (!p.Argument.getUserState().getContext().isEmpty() && online != null) {
-			var roleId = Long.parseLong(p.Argument.getUserState().getContext());
+		// context是登录身份槽：Game角色模式为roleId数字串（Game/Online.java:2096/2195）；
+		// 混合装配下Arch账号模式登录（同进程Arch/Online.java:1783/1859）会写入clientId
+		// 任意字符串，解析失败（null）视为非角色会话跳过（镜像50e9520d5的getRoleId约定）。
+		var roleId = parseRoleId(p.Argument.getUserState().getContext());
+		if (null != roleId && null != online) {
 			var onlineSet = online.getOnline(p.Argument.getUserState().getOnlineSetName());
 			if (null != onlineSet)
 				onlineSet.linkBroken(p.Argument.getAccount(), roleId,
 						ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;
+	}
+
+	/**
+	 * 解析UserState.context中的roleId。
+	 * 空串或非数字串（如账号在线模式的clientId）返回null，表示非角色会话，没有roleId。
+	 */
+	public static @Nullable Long parseRoleId(@NotNull String context) {
+		if (context.isEmpty())
+			return null;
+		try {
+			return Long.parseLong(context);
+		} catch (NumberFormatException e) {
+			return null;
+		}
 	}
 
 	// 创建默认的Online和指定name的若干Online,重复创建会抛异常
