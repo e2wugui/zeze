@@ -512,6 +512,20 @@ public final class BeanFactory {
 			var ctor = factory.get(typeId);
 			if (ctor != null)
 				return (Bean)ctor.invoke();
+			// FND2-C0-6：volatile读快照竞态——并发register(put+置空readingBeanFactory)之前
+			// 已读到的旧快照miss不等于未注册。锁内重克隆刷新快照并从权威writing表再查一次
+			// （与上面factory==null分支同款），仍miss才走findClass：瞬时竞态不再以
+			// unknown typeId炸掉无辜事务（错误形态误导指向类型缺失）。
+			writingBeanFactoryLock.lock();
+			try {
+				if (readingBeanFactory == null)
+					readingBeanFactory = writingBeanFactory.clone();
+				ctor = writingBeanFactory.get(typeId);
+			} finally {
+				writingBeanFactoryLock.unlock();
+			}
+			if (ctor != null)
+				return (Bean)ctor.invoke();
 			var cls = findClass(typeId);
 			if (cls == null) {
 				if (typeId != EmptyBean.TYPEID)
@@ -545,6 +559,18 @@ public final class BeanFactory {
 				}
 			}
 			var ctor = factory.get(typeId);
+			if (ctor != null)
+				return (Data)ctor.invoke();
+			// FND2-C0-6：同createBeanFromSpecialTypeId——miss后锁内重克隆刷新快照并从权威
+			// writing表再查一次，仍miss才走findDataClass。
+			writingDataFactoryLock.lock();
+			try {
+				if (readingDataFactory == null)
+					readingDataFactory = writingDataFactory.clone();
+				ctor = writingDataFactory.get(typeId);
+			} finally {
+				writingDataFactoryLock.unlock();
+			}
 			if (ctor != null)
 				return (Data)ctor.invoke();
 			var cls = findDataClass(typeId);
