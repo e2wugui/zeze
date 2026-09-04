@@ -70,8 +70,14 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap2<K, V>)_log;
 		var tmp = map;
-		for (var put : log.getPutted().values())
-			put.initRootInfo(rootInfo(), this);
+		// 【FND2-R2-1】putted 安装前补 mapKey（对齐 put/decode 路径）：本节点
+		// failover 当选新 leader 后编辑该条目时，LogMap2.encode 用 mapKey() 作为
+		// changed 条目的 key，null 会让 Long key 拆箱 NPE（事务永久失败）或
+		// String key 编码成 ""（follower 静默丢编辑，状态机分歧）。
+		for (var e : log.getPutted().entrySet()) {
+			e.getValue().mapKey(e.getKey());
+			e.getValue().initRootInfo(rootInfo(), this);
+		}
 		tmp = tmp.plusAll(log.getPutted()).minusAll(log.getRemoved());
 
 		// apply changed
