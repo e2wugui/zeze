@@ -42,6 +42,9 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			= mysqlObserverCreator != null ? mysqlObserverCreator.labelValues("replace") : null;
 	private static final Pattern SPLIT_PATTERN = Pattern.compile(", ");
 
+	// 关系映射表 string key 列建表即固定为 VARCHAR(256)（DatabaseRelationalMapping.getKeyStringType）。
+	private static final int eMaxKeyStringLength = 256;
+
 	public DatabaseMySql(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesMySql());
@@ -772,6 +775,12 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var stValue = (SQLStatement)value;
+			// 超长 string key 不在写入期拒绝的话，flush 落库才触发 MySQL 1406 "Data too long"（不含表名），
+			// 毒化整个 flush 批次且难定位——与 KV 表超长 key 前置检查同型（见 TableMysql.replace）。
+			for (var p : stKey.getParams())
+				if (p instanceof String s && s.length() > eMaxKeyStringLength)
+					throw new IllegalArgumentException("key string too long for mysql relational table '" + name
+							+ "': " + s.length() + " > " + eMaxKeyStringLength);
 			var sql = "REPLACE " + name + " SET " + stKey.getSql() + ", " + stValue.getSql();
 			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sql)) {
 				setParams(ps, 1, stKey.getParams());
