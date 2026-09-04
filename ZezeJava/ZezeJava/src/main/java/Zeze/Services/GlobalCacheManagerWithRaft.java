@@ -693,41 +693,54 @@ public class GlobalCacheManagerWithRaft
 			var lockey = Transaction.getCurrent().addPessimismLock(locks.get(gkey));
 
 			BCacheState cs = globalStates.getOrAdd(gkey);
-			if (cs.getAcquireStatePending() == StateRemoved)
-				continue; // 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
+			// AcquireStatePending是transient（无事务日志），异常回滚不复位；finally兜底复位（理由同acquireShare）。
+			var ownsRemoving = false;
+			try {
+				if (cs.getAcquireStatePending() == StateRemoved)
+					continue; // 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 
-			while (cs.getAcquireStatePending() != StateInvalid && cs.getAcquireStatePending() != StateRemoved) {
-				switch (cs.getAcquireStatePending()) {
-				case StateShare:
-				case StateModify:
-					if (isDebugEnabled)
-						logger.debug("Release 0 {} {} {}", sender, gkey, cs);
-					if (noWait)
-						return getSenderCacheState(cs, sender);
-					break;
-				case StateRemoving:
-					// release 不会导致死锁，等待即可。
-					break;
+				while (cs.getAcquireStatePending() != StateInvalid && cs.getAcquireStatePending() != StateRemoved) {
+					switch (cs.getAcquireStatePending()) {
+					case StateShare:
+					case StateModify:
+						if (isDebugEnabled)
+							logger.debug("Release 0 {} {} {}", sender, gkey, cs);
+						if (noWait)
+							return getSenderCacheState(cs, sender);
+						break;
+					case StateRemoving:
+						// release 不会导致死锁，等待即可。
+						break;
+					}
+					lockey.await();
 				}
-				lockey.await();
+				if (cs.getAcquireStatePending() == StateRemoved)
+					continue;
+				cs.setAcquireStatePending(StateRemoving);
+				ownsRemoving = true;
+
+				if (cs.getModify() == sender.serverId)
+					cs.setModify(-1);
+				cs.getShare().remove(sender.serverId); // always try remove
+				serverAcquiredTemplate.openTable(sender.serverId).remove(gkey);
+
+				if (cs.getModify() == -1 && cs.getShare().size() == 0) {
+					// 1. 安全的从global中删除，没有并发问题。
+					cs.setAcquireStatePending(StateRemoved);
+					globalStates.remove(gkey);
+				} else
+					cs.setAcquireStatePending(StateInvalid);
+				lockey.pulseAll();
+				return StateInvalid;
+			} finally {
+				// 异常逃逸（await上的中断、rocks IO异常等）时复位本次占住的StateRemoving并唤醒等待者，
+				// 否则该key上所有后续acquire/release进入无超时await（key永久冻结、procedure线程与守护停摆）；
+				// 正常路径已自行复位（StateRemoved或StateInvalid），这里不会误伤。
+				if (ownsRemoving && cs.getAcquireStatePending() == StateRemoving) {
+					cs.setAcquireStatePending(StateInvalid);
+					lockey.pulseAll();
+				}
 			}
-			if (cs.getAcquireStatePending() == StateRemoved)
-				continue;
-			cs.setAcquireStatePending(StateRemoving);
-
-			if (cs.getModify() == sender.serverId)
-				cs.setModify(-1);
-			cs.getShare().remove(sender.serverId); // always try remove
-			serverAcquiredTemplate.openTable(sender.serverId).remove(gkey);
-
-			if (cs.getModify() == -1 && cs.getShare().size() == 0) {
-				// 1. 安全的从global中删除，没有并发问题。
-				cs.setAcquireStatePending(StateRemoved);
-				globalStates.remove(gkey);
-			} else
-				cs.setAcquireStatePending(StateInvalid);
-			lockey.pulseAll();
-			return StateInvalid;
 		}
 	}
 
