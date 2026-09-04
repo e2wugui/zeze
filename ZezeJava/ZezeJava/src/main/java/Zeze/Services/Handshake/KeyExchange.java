@@ -154,6 +154,8 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		if ((Argument.clientPubKey == null) != (clientPriKey == null)) // 客户端公私钥必须同时提供
 			throw new IllegalArgumentException();
 		return Send(so, r -> {
+			if (r.getResultCode() != 0)
+				return r.getResultCode(); // 错误应答的Result.encIvKey为null，不能进入密钥推导
 			byte[] serverIvKey;
 			int serverIvKeyLen;
 			if (clientPriKey != null) {
