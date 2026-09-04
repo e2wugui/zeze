@@ -213,9 +213,15 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				keepAliveTimerTask = null;
 		}
 
-		public void onClose() {
+		// 取消keepAlive周期任务。除onClose外，重复Login覆盖socket的userState前也必须调用
+		// （FND2-S1-3）：被覆盖的旧Session的onClose永不执行，其定时器永不取消。
+		public void cancelKeepAlive() {
 			if (keepAliveTimerTask != null)
 				keepAliveTimerTask.cancel(false);
+		}
+
+		public void onClose() {
+			cancelKeepAlive();
 
 			// Suspect广播：立即、不延迟、不挑选目标（对齐非raft版）。仅是提示（hint），
 			// 接收方转化为takeover.tryTransfer，由租约表裁决；未过期租约会被安排到过期时刻精确重试。
@@ -264,13 +270,22 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	@Override
 	protected long ProcessLoginRequest(Login r) {
 		var session = tableSession.getOrAdd(r.Argument.getSessionName());
+		// 重复Login（raftOnSetLeader超时递归重发等）在同一socket上覆盖userState前，先取消旧Session
+		// 的keepAliveTimerTask（FND2-S1-3）：OnSocketClose只回调最后userState的onClose，被覆盖的
+		// Session定时器永不取消——socket关闭后GetSocket(sessionId)恒null，周期性error日志，永不停止。
+		var oldSession = r.getSender().getUserState();
+		if (oldSession instanceof Session old)
+			old.cancelKeepAlive();
 		r.getSender().setUserState(new Session(r.Argument.getSessionName(), r.getSender().getSessionId()));
 		session.setSessionId(r.getSender().getSessionId());
 		// 应答必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d、
 		// ProcessEditRequest的修复47ec96e18）：tSession的getOrAdd/setSessionId依赖raft提交，
 		// 提交前应答在复制失败回滚后客户端已拿到成功码（假成功），其后续Edit/Subscribe读到
 		// 回滚的会话状态（tableSession无行NPE转错误码）。非事务上下文（不应发生）保持立即应答。
-		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
+		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
+		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
+		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
 		else
@@ -291,7 +306,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		r.Result.setCount(count);
 		// 号段必须raft提交成功后再应答（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
 		// appendLog失败回滚current，提交前应答会让客户端把已回滚的号段投入使用，重复发放。
-		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
+		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
+		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
+		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
 		else
@@ -317,7 +335,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 对齐GCM-raft的proc.autoResponse（响应由_final_commit_在appendLog之后发出）；
 		// result已填的startId/count在回滚路径随错误码一起发送，客户端按resultCode!=0丢弃。
 		// 非事务上下文（不应发生）保持立即应答。
-		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
+		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
+		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
+		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
 		else
@@ -372,7 +393,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 应答必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
 		// observers的死条目清理依赖raft提交，提交前应答在复制失败回滚后客户端已拿到成功码。
 		// set.Send的负载转发是对观察者的数据推送（无状态语义），保持在handler内立即发送。
-		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
+		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
+		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
+		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
 		else
@@ -454,7 +478,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// appendLog之前发送，raft复制失败回滚时客户端已拿到成功码、订阅者已收到幽灵
 		// add/remove推送，而服务端状态回滚（提交前应答，状态不一致）。非事务上下文（不应
 		// 发生）保持立即应答。
-		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
+		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
+		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
+		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null) {
 			t.runWhileCommit(() -> {
 				sendNotifies(notifies);
@@ -535,7 +562,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 会话subscribes与state.simple的写入、Result.map的快照依赖raft提交，提交前应答在
 		// 复制失败回滚后客户端已拿到成功码与快照（假成功），订阅未生效将收不到增量推送。
 		// 回滚路径Result已填的map随错误码一起发送，客户端按resultCode!=0丢弃。
-		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
+		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
+		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
+		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
 		else
@@ -582,7 +612,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 应答必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
 		// 会话subscribes与state.simple的移除依赖raft提交，提交前应答在复制失败回滚后
 		// 客户端已拿到成功码（假成功），实际订阅仍生效。
-		var t = Zeze.Transaction.Transaction.getCurrent(); // 全限定：Builtin 通配导入含同名协议类 Transaction
+		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
+		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
+		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
+		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
 		else
