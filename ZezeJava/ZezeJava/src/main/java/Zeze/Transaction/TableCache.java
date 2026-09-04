@@ -32,6 +32,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private static final @NotNull Logger logger = LogManager.getLogger(TableCache.class);
 	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
 	private static final int SHRINK_NODE_COUNT = 8000; // shrink的目标节点数量
+	// cleanNow超容量循环的单次执行时界（CacheCleanPeriod的倍数）：超界即break，剩余留给下一轮调度。
+	private static final int CLEAN_TIME_LIMIT_PERIODS = 3;
 
 	private final @NotNull TableX<K, V> table;
 	private final @NotNull ConcurrentHashMap<K, Record1<K, V>> dataMap;
@@ -172,8 +174,23 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			var capacity = table.getTableConf().getRealCacheCapacity();
 			if (capacity >= 0) {
 				var timeBegin = System.nanoTime();
+				// 单次执行时界：本方法实际由ZezeScheduledPool的周期任务直接执行（timerClean），
+				// 超容量循环在最老块持续清不掉（freshAcquire/脏/记录被并发事务占用）时是while+sleep的
+				// 长期循环，不设界会逐表占满调度池线程（线程数=CPU数），拖停全进程的定时任务。
+				// 超过CacheCleanPeriod的倍数即break，剩余留给下一轮调度（固定延迟周期，下一轮在下一次
+				// 调度点继续）。循环内的sleep会使实际超界至多多一个sleep周期，有界。
+				var cleanPeriod = table.getTableConf().getCacheCleanPeriod();
+				long timeLimitMs = Math.max(cleanPeriod, 1) * (long)CLEAN_TIME_LIMIT_PERIODS;
+				long deadline = System.currentTimeMillis() + timeLimitMs;
 				int recordCount = 0, nodeCount = 0;
 				while (dataMap.size() > capacity && table.getZeze().isStart()) { // 超出容量，循环尝试
+					if (System.currentTimeMillis() >= deadline) {
+						logger.info("({}){}: cleanNow reach time limit {} ms, cleaned {} records, {} nodes, remain {}/{}, wait next schedule",
+								table.getZeze().getConfig().getServerId(), table.getName(),
+								timeLimitMs, recordCount, nodeCount, dataMap.size(), capacity);
+						break;
+					}
+
 					var node = lruQueue.peek();
 					if (node == null || node == lruHot) // 热点。不回收。
 						break;
