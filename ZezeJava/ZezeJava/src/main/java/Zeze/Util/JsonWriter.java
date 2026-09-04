@@ -454,12 +454,14 @@ public final class JsonWriter {
 					else
 						ensure(2);
 				} else {
+					tabs++; // 紧凑模式也计深度（writeNewLineTabs 仅 pretty 模式有输出，递增 tabs 无副作用）
 					for (Object o : (Collection<?>)obj) {
 						if (comma)
 							buf[pos++] = ',';
 						write(json, o);
 						comma = true;
 					}
+					tabs--;
 					ensure(2);
 				}
 				buf[pos++] = ']';
@@ -483,12 +485,14 @@ public final class JsonWriter {
 					else
 						ensure(2);
 				} else {
+					tabs++; // 紧凑模式也计深度（writeNewLineTabs 仅 pretty 模式有输出，递增 tabs 无副作用）
 					for (int i = 0, n = Array.getLength(obj); i < n; i++) {
 						if (comma)
 							buf[pos++] = ',';
 						write(json, Array.get(obj, i));
 						comma = true;
 					}
+					tabs--;
 					ensure(2);
 				}
 				buf[pos++] = ']';
@@ -498,6 +502,7 @@ public final class JsonWriter {
 				ensure(1);
 				buf[pos++] = '{';
 				if ((flags & FLAG_PRETTY_FORMAT) == 0) {
+					tabs++; // 紧凑模式也计深度（writeNewLineTabs 仅 pretty 模式有输出，递增 tabs 无副作用）
 					for (Entry<?, ?> e : ((Map<?, ?>)obj).entrySet()) {
 						Object value = e.getValue();
 						if (value == null && (flags & FLAG_WRITE_NULL) == 0)
@@ -518,6 +523,7 @@ public final class JsonWriter {
 						write(json, value);
 						comma = true;
 					}
+					tabs--;
 					ensure(2);
 				} else {
 					for (Entry<?, ?> e : ((Map<?, ?>)obj).entrySet()) {
