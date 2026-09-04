@@ -947,6 +947,8 @@ public final class JsonReader {
 						h = h * m + (byte)(0x80 + (c & 0x3f));
 					} else
 						h = h * m + (byte)c;
+					pos++; // 转义字母已消费：pos 前进到下一未读字符，与 'u' 路径 pos+=5 的不变式对齐；
+					// 否则下方 buf[pos] 把转义字母再读一次，回循环顶被二次掺入 hash（FND2-U1-1）
 				}
 				// 转义解码后 pos 已停在"下一个未读字符"：读取它但不前进（下一轮哈希或
 				// 继续识别转义）；直接走循环尾部的 buf[++pos] 会跳过该字符漏哈希。
@@ -1279,9 +1281,28 @@ public final class JsonReader {
 				b = buffer[++p];
 			} else if (b == '+')
 				b = buffer[++p];
-			if (b == '0')
+			c = b | 0x20;
+			if (c == 'i' || c == 'n') { // Infinity/NaN 词法：消费整个词（pos 停在词尾），值按 (int)double 强转的饱和语义取值
+				do
+					b = buffer[++p];
+				while ((((b | 0x20) - 'a') & 0xff) < 26);
+				pos = p;
+				return c == 'n' ? 0 : minus ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+			}
+			if (b == '0') {
 				b = buffer[++p];
-			else if ((i = (b - '0') & 0xff) < 10) {
+				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5；与 parseNumber/parseDouble 对齐）
+					for (; ; ) {
+						b = buffer[++p];
+						if ((c = (b - '0') & 0xff) < 10)
+							i = i * 16 + c;
+						else if ((c = ((b | 0x20) - 'a') & 0xff) < 6)
+							i = i * 16 + c + 10;
+						else
+							break;
+					}
+				}
+			} else if ((i = (b - '0') & 0xff) < 10) {
 				while ((c = ((b = buffer[++p]) - '0') & 0xff) < 10) {
 					if (i >= 0xCCC_CCCC) { // 0xCCC_CCCC * 10 = 0x7FFF_FFF8
 						d = i;
@@ -1381,9 +1402,28 @@ public final class JsonReader {
 				b = buffer[++p];
 			} else if (b == '+')
 				b = buffer[++p];
-			if (b == '0')
+			c = b | 0x20;
+			if (c == 'i' || c == 'n') { // Infinity/NaN 词法：消费整个词（pos 停在词尾），值按 (long)double 强转的饱和语义取值
+				do
+					b = buffer[++p];
+				while ((((b | 0x20) - 'a') & 0xff) < 26);
+				pos = p;
+				return c == 'n' ? 0L : minus ? Long.MIN_VALUE : Long.MAX_VALUE;
+			}
+			if (b == '0') {
 				b = buffer[++p];
-			else if ((i = (b - '0') & 0xff) < 10) {
+				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5；与 parseNumber/parseDouble 对齐）
+					for (; ; ) {
+						b = buffer[++p];
+						if ((c = (b - '0') & 0xff) < 10)
+							i = i * 16 + c;
+						else if ((c = ((b | 0x20) - 'a') & 0xff) < 6)
+							i = i * 16 + c + 10;
+						else
+							break;
+					}
+				}
+			} else if ((i = (b - '0') & 0xff) < 10) {
 				while ((c = ((b = buffer[++p]) - '0') & 0xff) < 10) {
 					if (i >= 0xCCC_CCCC_CCCC_CCCCL && (i > 0xCCC_CCCC_CCCC_CCCCL || c > 7)) {
 						d = i; // 0xCCC_CCCC_CCCC_CCCC * 10 = 0x7FFF_FFFF_FFFF_FFF8
