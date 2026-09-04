@@ -25,6 +25,13 @@ public class TimeThrottleQueue implements TimeThrottle {
 	public TimeThrottleQueue(int seconds, int limit, int bandwidthLimit) {
 		if (seconds < 1 || limit < 0 || bandwidthLimit < 0)
 			throw new IllegalArgumentException();
+		// 三个乘积都必须保持在 int 正数范围内：溢出回绕后 expire 为负会让 checkNow 的过期清理
+		// 循环立即break(marks永不淘汰，退化为恒return false的全拒绝)，limit/bandwidthLimit 同理静默失真。
+		if (seconds > Integer.MAX_VALUE / 1000
+				|| limit > Integer.MAX_VALUE / seconds
+				|| bandwidthLimit > Integer.MAX_VALUE / seconds)
+			throw new IllegalArgumentException("TimeThrottleQueue overflow: seconds=" + seconds
+					+ " limit=" + limit + " bandwidthLimit=" + bandwidthLimit);
 		this.expire = seconds * 1000;
 		this.limit = limit * seconds;
 		this.bandwidthLimit = bandwidthLimit * seconds;
