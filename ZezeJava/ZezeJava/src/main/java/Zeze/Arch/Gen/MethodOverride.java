@@ -116,6 +116,13 @@ final class MethodOverride {
 						throw new IllegalStateException("RedirectAll Result Type Must Extend RedirectResult: "
 								+ method.getDeclaringClass().getName() + "::" + method.getName());
 					}
+					// FND2-A1-1：All路径的生成代码对Serializable结果不收集字段（resultFields为空），
+					// 接收端不编码、发起端不解码，分组结果全是空对象且无任何诊断；ToServer/Hash路径
+					// 支持Serializable，All独缺该分支。fail-fast拒绝该组合，对齐上面的签名硬校验。
+					if (Serializable.class.isAssignableFrom(resultClass)) {
+						throw new IllegalStateException("RedirectAll Result Type Can Not Be Serializable: "
+								+ method.getDeclaringClass().getName() + "::" + method.getName());
+					}
 				} else {
 					resultType = null;
 					resultClass = null;

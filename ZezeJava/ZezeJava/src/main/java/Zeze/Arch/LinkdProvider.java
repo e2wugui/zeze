@@ -51,7 +51,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	// 内部的ModuleRedirect ModuleRedirectAll Transmit都携带了ServiceNamePrefix参数，所以，
 	// 内部的Provider可以支持完全不同的solution，不过这个仅仅保留给未来扩展用，
 	// 不建议在一个项目里面使用多个Prefix。
-	private @NotNull String serverServiceNamePrefix = "";
+	// FND2-A1-4：写者ProcessAnnounceProviderInfo（provider连接EL），读者makeServiceName→choice路由
+	// （客户端连接EL），两套EventLoop无同步边；无volatile时客户端EL长期读到""，查不到订阅状态，
+	// 假性"无provider"路由失败。对照ProviderSession跨线程字段全volatile。
+	private volatile @NotNull String serverServiceNamePrefix = "";
 
 	protected @Nullable FileOutputStream dumpFile;
 	protected @Nullable AsyncSocket dumpSocket;

@@ -15,7 +15,9 @@ import org.apache.logging.log4j.Logger;
 public class LinkdUserSession {
 	protected static final Logger logger = LogManager.getLogger(LinkdUserSession.class);
 
-	protected String account;
+	// FND2-A1-3：写者应用Auth处理（如Zezex ModuleLinkd.ProcessAuthRequest，跑在LinkdService客户端
+	// 连接EL），读者ProcessBindRequest动态分支日志（Task线程）跨线程，无happens-before时显示null/陈旧账号。
+	protected volatile String account;
 	// FND-A1-3：写者LinkdProvider.ProcessSetUserState跑在LinkdProviderService的IO线程，
 	// 读者LinkdService.createDispatch跑在LinkdService的IO线程（两套EventLoop），无volatile时
 	// 引用替换与读取之间无happens-before。对照ProviderSession.load等同场景字段均标volatile。
@@ -23,7 +25,10 @@ public class LinkdUserSession {
 	protected final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
 	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
 	protected long sessionId; // Linkd.SessionId
-	protected long clientAppVersion;
+	// FND2-A1-2：写者Auth处理（客户端连接EL），读者ProcessBroadcast（provider连接EL），
+	// 两套EventLoop无同步边；读到陈旧0时checkAppVersion(server,0)==true（0表示不检查），
+	// onlySameVersion广播的版本过滤静默失效。同族先例：userState（e4a488194）、authed。
+	protected volatile long clientAppVersion;
 	protected long lastReportUnbindDynamicModuleTime;
 	protected volatile boolean authed;
 
