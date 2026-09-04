@@ -524,7 +524,8 @@ public class LogSequence {
 
 	/**
 	 * 查询请求的状态。
-	 * 1. return null 表示RaftExpired，这个错误不可忽略。
+	 * 1. return null 表示RaftExpired（createTime过老或过新，see isUniqueRequestCreateTimeValid），
+	 *    这个错误不可忽略。
 	 * 2. return state.NOT_FOUND 第一次收到请求，是合理状态的一种，外面正常处理。
 	 * 3. return state 重复的请求，后面根据状态进行处理。分为RaftApplied，DuplicateRequest两种。
 	 *
@@ -537,11 +538,30 @@ public class LogSequence {
 
 		var create = raftRpc.getCreateTime();
 		var now = System.currentTimeMillis();
-		if ((now - create) / 86400_000 >= raft.getRaftConfig().getUniqueRequestExpiredDays())
+		if (!isUniqueRequestCreateTimeValid(create, now, raft.getRaftConfig().getUniqueRequestExpiredDays()))
 			return null;
 
 		UniqueRequestState state = openUniqueRequests(raftRpc.getCreateTime()).getRequestState(raftRpc);
 		return state != null ? state : UniqueRequestState.NOT_FOUND;
+	}
+
+	/**
+	 * 唯一请求 createTime 的合法区间判定（FND2-R1-3）：过老（超过 expiredDays 天）
+	 * 与过新（超过 1 天的未来时间）都返回 false，调用方按 RaftExpired 拒绝。
+	 * createTime 完全由发送方控制（RaftRpc.decode 自网络字节；Agent.send 会用本地
+	 * 时钟覆盖，但直连 raft 端口说协议的客户端不受此限），客户端时钟故障跳到未来
+	 * 或恶意直连会按 createTime 建当天的存根列族（openUniqueRequests），而
+	 * removeExpiredUniqueRequestSet 的过期判定（当天 0 点 + (N+1) 天）对未来日期
+	 * 永不满足——列族与 uniqueRequestSets 无界增长。1 天上界保留集群内合理的少量
+	 * 时钟偏差，且这 1 天内可建到的表随时间自然过期清理；时钟回拨方向天然安全
+	 * （表按 createTime 选，重发恒同表）。判定是纯函数：同一 createTime 的重发
+	 * 每次同样被拒绝，确定性不变；拒绝发生在 handle 之前，不会产生携带未来
+	 * createTime 的日志条目，apply 路径随之关闭。
+	 */
+	static boolean isUniqueRequestCreateTimeValid(long create, long now, int expiredDays) {
+		if ((now - create) / 86400_000 >= expiredDays)
+			return false;
+		return create <= now + 86400_000L;
 	}
 
 	private UniqueRequestSet openUniqueRequests(long time) {
@@ -690,8 +710,18 @@ public class LogSequence {
 
 		// 旧的 AppendEntries 的结果，不用继续处理了。
 		// 【注意】这个不是必要的，是一个小优化。
-		if (rpc.Argument.getLastEntryIndex() <= commitIndex)
+		if (rpc.Argument.getLastEntryIndex() <= commitIndex) {
+			// 【FND2-R2-5】commitIndex 未推进（无新写入）也要尝试 apply：leader 本地的
+			// apply 可能因 flush 失败中断（lastApplied 停在 commitIndex 之前，8c49419de
+			// 只给 follower 加了重试触发），空闲 leader 的复制应答（超时重发、follower
+			// 追赶触发的旧范围复制）是仅剩的周期性触发点，在此重试直到追平——对齐
+			// followerOnAppendEntries 的 commitIndex>lastApplied 重试分支。
+			// tryStartApplyTask 仅在没有 apply 进行中才启动；tryApply 从 lastApplied+1
+			// 开始，pendingFlush 命中时只重试 flush（幂等，FND-R2-4）。
+			if (commitIndex > lastApplied)
+				tryStartApplyTask(readLogForApply(commitIndex, "tryCommit"));
 			return;
+		}
 
 		// find MaxMajorityLogIndex
 		// Rules for Servers
