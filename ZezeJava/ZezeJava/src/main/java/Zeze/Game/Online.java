@@ -993,25 +993,20 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).withContext().send(p)} 替代。 */
 	@Deprecated
 	public void send(long roleId, @NotNull Protocol<?> p) {
-		getOnlineByContext().sendOnline(roleId, p);
+		OnlineSpec.ofRole(this, roleId).withContext().send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).send(p)} 替代。 */
 	@Deprecated
 	public void sendOnline(long roleId, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-			AsyncSocket.log("Send", roleId, multiInstanceName, p);
-		sendDirect(roleId, typeId, new Binary(p.encode()), false);
+		OnlineSpec.ofRole(this, roleId).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).withContext().sendRpc(rpc, responseHandle)} 替代。 */
 	@Deprecated
 	public <A extends Serializable, R extends Serializable> void sendRpc(
 			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
-		getOnlineByContext().sendOnlineRpc(roleId, rpc, responseHandle);
+		OnlineSpec.ofRole(this, roleId).withContext().sendRpc(rpc, responseHandle);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).withContext().timeout(timeoutMs)
@@ -1019,14 +1014,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@Deprecated
 	public <A extends Serializable, R extends Serializable> void sendRpc(
 			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs) {
-		getOnlineByContext().sendOnlineRpc(roleId, rpc, responseHandle, timeoutMs, false);
+		OnlineSpec.ofRole(this, roleId).withContext().timeout(timeoutMs).sendRpc(rpc, responseHandle);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).sendRpc(rpc, responseHandle)} 替代。 */
 	@Deprecated
 	public <A extends Serializable, R extends Serializable> void sendOnlineRpc(
 			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
-		sendOnlineRpc(roleId, rpc, responseHandle, 5000, false);
+		OnlineSpec.ofRole(this, roleId).sendRpc(rpc, responseHandle);
 	}
 
 	// 在指定Online上发送
@@ -1052,180 +1047,110 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@Deprecated
 	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendOnlineRpcForWait(
 			long roleId, @NotNull Rpc<A, R> rpc) {
-		return sendOnlineRpcForWait(roleId, rpc, 5000);
+		return OnlineSpec.ofRole(this, roleId).sendRpcForWait(rpc);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).timeout(timeoutMs).sendRpcForWait(rpc)} 替代。 */
 	@Deprecated
 	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendOnlineRpcForWait(
 			long roleId, @NotNull Rpc<A, R> rpc, int timeoutMs) {
-		var future = new TaskCompletionSource<R>();
-		rpc.setFuture(future);
-		if (!sendOnlineRpc(roleId, rpc, null, timeoutMs, false))
-			future.setException(new IllegalStateException("sendOnlineRpc fail."));
-		return future;
+		return OnlineSpec.ofRole(this, roleId).timeout(timeoutMs).sendRpcForWait(rpc);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleId).send(p)} 替代。 */
 	@Deprecated
 	public void sendAllOnlines(long roleId, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-			AsyncSocket.log("Send", roleId, "*", p);
-		var data = new Binary(p.encode());
-		getProviderWithOnline().foreachOnline(online -> online.sendDirect(roleId, typeId, data, true));
+		OnlineSpec.ofAllOnline(this, roleId).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().send(p)} 替代。 */
 	@Deprecated
 	public void send(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		getOnlineByContext().sendOnline(roleIds, p);
+		OnlineSpec.ofRoles(this, roleIds).withContext().send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).send(p)} 替代。 */
 	@Deprecated
 	public void sendOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-
-		if (roleIds.isEmpty())
-			return;
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-			var sb = new StringBuilder();
-			for (var roleId : roleIds)
-				sb.append(roleId).append(',');
-			int n = sb.length();
-			if (n > 0)
-				sb.setLength(n - 1);
-			if (!multiInstanceName.isEmpty())
-				sb.append('@').append(multiInstanceName);
-			var idsStr = sb.toString();
-			AsyncSocket.log("Send", idsStr, p);
-		}
-		sendOnline(roleIds, typeId, new Binary(p.encode()));
+		OnlineSpec.ofRoles(this, roleIds).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleIds).send(p)} 替代。 */
 	@Deprecated
 	public void sendAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-
-		if (roleIds.isEmpty())
-			return;
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-			var sb = new StringBuilder();
-			for (var roleId : roleIds)
-				sb.append(roleId).append(',');
-			int n = sb.length();
-			if (n > 0)
-				sb.setLength(n - 1);
-			var idsStr = sb.append("@*").toString();
-			AsyncSocket.log("Send", idsStr, p);
-		}
-		sendAllOnlines(roleIds, typeId, new Binary(p.encode()));
+		OnlineSpec.ofAllOnline(this, roleIds).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).withContext().send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
 	public void sendWhileCommit(long roleId, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileCommit(() -> send(roleId, p));
+		OnlineSpec.ofRole(this, roleId).withContext().send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
 	public void sendWhileCommitOnline(long roleId, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileCommit(() -> sendOnline(roleId, p));
+		OnlineSpec.ofRole(this, roleId).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleId).send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
 	public void sendWhileCommitAllOnlines(long roleId, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileCommit(() -> sendAllOnlines(roleId, p));
+		OnlineSpec.ofAllOnline(this, roleId).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
 	public void sendWhileCommit(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileCommit(() -> send(roleIds, p));
+		OnlineSpec.ofRoles(this, roleIds).withContext().send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
 	public void sendWhileCommitOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileCommit(() -> sendOnline(roleIds, p));
+		OnlineSpec.ofRoles(this, roleIds).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleIds).send(p)} 替代，事务内自动在提交时发送。 */
 	@Deprecated
 	public void sendWhileCommitAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileCommit(() -> sendAllOnlines(roleIds, p));
+		OnlineSpec.ofAllOnline(this, roleIds).send(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).withContext().sendWhileRollback(p)} 替代。 */
 	@Deprecated
 	public void sendWhileRollback(long roleId, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileRollback(() -> send(roleId, p));
+		OnlineSpec.ofRole(this, roleId).withContext().sendWhileRollback(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).sendWhileRollback(p)} 替代。 */
 	@Deprecated
 	public void sendWhileRollbackOnline(long roleId, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileRollback(() -> sendOnline(roleId, p));
+		OnlineSpec.ofRole(this, roleId).sendWhileRollback(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleId).sendWhileRollback(p)} 替代。 */
 	@Deprecated
 	public void sendWhileRollbackAllOnlines(long roleId, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileRollback(() -> sendAllOnlines(roleId, p));
+		OnlineSpec.ofAllOnline(this, roleId).sendWhileRollback(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().sendWhileRollback(p)} 替代。 */
 	@Deprecated
 	public void sendWhileRollback(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileRollback(() -> send(roleIds, p));
+		OnlineSpec.ofRoles(this, roleIds).withContext().sendWhileRollback(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).sendWhileRollback(p)} 替代。 */
 	@Deprecated
 	public void sendWhileRollbackOnline(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileRollback(() -> sendOnline(roleIds, p));
+		OnlineSpec.ofRoles(this, roleIds).sendWhileRollback(p);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleIds).sendWhileRollback(p)} 替代。 */
 	@Deprecated
 	public void sendWhileRollbackAllOnlines(@NotNull Collection<Long> roleIds, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileRollback(() -> sendAllOnlines(roleIds, p));
+		OnlineSpec.ofAllOnline(this, roleIds).sendWhileRollback(p);
 	}
 
 //	public void send(long roleId, long typeId, Binary fullEncodedProtocol) {
@@ -1242,7 +1167,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@Deprecated
 	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
 					boolean trySend) {
-		return getOnlineByContext().sendOnline(roleIds, typeId, fullEncodedProtocol, trySend);
+		return OnlineTarget.dispatch(getOnlineByContext(), roleIds, typeId, fullEncodedProtocol, trySend);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).trying(trySend)
@@ -1250,37 +1175,25 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@Deprecated
 	public int sendOnline(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
 						  boolean trySend) {
-		int roleCount = roleIds.size();
-		if (roleCount == 1) {
-			var it = roleIds.iterator();
-			if (it.hasNext()) // 不确定roleIds是否稳定,所以还是判断一下保险
-				return sendDirect(it.next(), typeId, fullEncodedProtocol, trySend) ? 1 : 0;
-		} else if (roleCount > 1) {
-			return sendDirect(roleIds, typeId, fullEncodedProtocol, trySend);
-//			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(roleIds, providerApp.zeze.newProcedure(() -> {
-//				sendEmbed(roleIds, typeId, fullEncodedProtocol);
-//				return Procedure.Success;
-//			}, "Online.send"), null, DispatchMode.Normal);
-		}
-		return 0;
+		return OnlineTarget.dispatch(this, roleIds, typeId, fullEncodedProtocol, trySend);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().send(typeId, fullEncodedProtocol)} 替代。 */
 	@Deprecated
 	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
-		return getOnlineByContext().sendOnline(roleIds, typeId, fullEncodedProtocol);
+		return OnlineTarget.dispatch(getOnlineByContext(), roleIds, typeId, fullEncodedProtocol, false);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).send(typeId, fullEncodedProtocol)} 替代。 */
 	@Deprecated
 	public int sendOnline(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
-		return sendOnline(roleIds, typeId, fullEncodedProtocol, false);
+		return OnlineTarget.dispatch(this, roleIds, typeId, fullEncodedProtocol, false);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleIds).send(typeId, fullEncodedProtocol)} 替代。 */
 	@Deprecated
 	public void sendAllOnlines(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
-		getProviderWithOnline().foreachOnline(online -> online.sendOnline(roleIds, typeId, fullEncodedProtocol, true));
+		OnlineSpec.ofAllOnline(this, roleIds).send(typeId, fullEncodedProtocol);
 	}
 
 //	public void sendNoBarrier(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
@@ -1598,12 +1511,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 */
 	@Deprecated
 	public void sendReliableNotify(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-			AsyncSocket.log("Send", roleId + ":" + listenerName, p);
-		sendReliableNotify(roleId, listenerName, typeId, new Binary(p.encode()));
+		OnlineSpec.ofReliableNotify(this, roleId, listenerName).send(p);
 	}
 
 	private @NotNull Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
@@ -1621,11 +1529,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 								   @NotNull String listenerName,
 								   long typeId,
 								   @NotNull Binary fullEncodedProtocol) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> sendReliableNotifyDirect(roleId, listenerName, typeId, fullEncodedProtocol, false));
-		else
-			sendReliableNotifyDirect(roleId, listenerName, typeId, fullEncodedProtocol, false);
+		OnlineSpec.ofReliableNotify(this, roleId, listenerName).send(typeId, fullEncodedProtocol);
 	}
 
 	public void sendReliableNotifyDirect(long roleId, @NotNull String listenerName, long typeId, @NotNull Binary fullEncodedProtocol, boolean trySend) {
@@ -1672,13 +1576,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 */
 	@Deprecated
 	public void transmit(long sender, @NotNull String actionName, long roleId, @Nullable Serializable parameter) {
-		transmit(sender, actionName, List.of(roleId), parameter, true);
+		OnlineSpec.ofTransmit(this, sender, actionName, roleId).parameter(parameter).transmit();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId).transmit()} 替代。 */
 	@Deprecated
 	public void transmit(long sender, @NotNull String actionName, long roleId) {
-		transmit(sender, actionName, roleId, null);
+		OnlineSpec.ofTransmit(this, sender, actionName, roleId).transmit();
 	}
 
 	public void processTransmit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
@@ -1788,7 +1692,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds).transmit()} 替代。 */
 	@Deprecated
 	public void transmit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds) {
-		transmit(sender, actionName, roleIds, null, true);
+		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).transmit();
 	}
 
 	public void transmit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
@@ -1814,7 +1718,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId).transmit()} 替代，事务内自动在提交时执行。 */
 	@Deprecated
 	public void transmitWhileCommit(long sender, @NotNull String actionName, long roleId) {
-		transmitWhileCommit(sender, actionName, roleId, null);
+		OnlineSpec.ofTransmit(this, sender, actionName, roleId).transmit();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId)
@@ -1822,15 +1726,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@Deprecated
 	public void transmitWhileCommit(long sender, @NotNull String actionName, long roleId,
 									@Nullable Serializable parameter) {
-		if (!transmitActions.containsKey(actionName))
-			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> transmit(sender, actionName, roleId, parameter));
+		OnlineSpec.ofTransmit(this, sender, actionName, roleId).parameter(parameter).transmit();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds).transmit()} 替代，事务内自动在提交时执行。 */
 	@Deprecated
 	public void transmitWhileCommit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds) {
-		transmitWhileCommit(sender, actionName, roleIds, null);
+		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).transmit();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds)
@@ -1838,15 +1740,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@Deprecated
 	public void transmitWhileCommit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
 									@Nullable Serializable parameter) {
-		if (!transmitActions.containsKey(actionName))
-			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> transmit(sender, actionName, roleIds, parameter, true));
+		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).parameter(parameter).transmit();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId).transmitWhileRollback()} 替代。 */
 	@Deprecated
 	public void transmitWhileRollback(long sender, @NotNull String actionName, long roleId) {
-		transmitWhileRollback(sender, actionName, roleId, null);
+		OnlineSpec.ofTransmit(this, sender, actionName, roleId).transmitWhileRollback();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId)
@@ -1854,15 +1754,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@Deprecated
 	public void transmitWhileRollback(long sender, @NotNull String actionName, long roleId,
 									  @Nullable Serializable parameter) {
-		if (!transmitActions.containsKey(actionName))
-			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileRollback(() -> transmit(sender, actionName, roleId, parameter));
+		OnlineSpec.ofTransmit(this, sender, actionName, roleId).parameter(parameter).transmitWhileRollback();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds).transmitWhileRollback()} 替代。 */
 	@Deprecated
 	public void transmitWhileRollback(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds) {
-		transmitWhileRollback(sender, actionName, roleIds, null);
+		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).transmitWhileRollback();
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds)
@@ -1870,9 +1768,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@Deprecated
 	public void transmitWhileRollback(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
 									  @Nullable Serializable parameter) {
-		if (!transmitActions.containsKey(actionName))
-			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileRollback(() -> transmit(sender, actionName, roleIds, parameter, true));
+		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).parameter(parameter).transmitWhileRollback();
 	}
 
 	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time, boolean onlySameVersion) {

@@ -259,7 +259,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass Timer处理Class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofDelay(delay).period(period), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, long period, @NotNull Class<? extends TimerHandle> handleClass,
@@ -275,7 +275,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass Timer处理Class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofDelay(delay).times(1), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, @NotNull Class<? extends TimerHandle> handleClass,
@@ -293,7 +293,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass Timer处理Class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofDelay(delay).period(period).times(times), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, long period, long times,
@@ -312,7 +312,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass Timer处理Class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, long period, long times, long endTime,
@@ -333,7 +333,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass    Timer处理Class
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime).missfirePolicy(missfirePolicy), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, long period, long times, long endTime, int missfirePolicy,
@@ -343,7 +343,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	}
 
 	/**
-	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime).missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, long period, long times, long endTime, int missfirePolicy,
@@ -433,7 +433,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link CronTimerSpec#ofMonth(int, int, int, int)} + {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofMonth(monthDay,hour,minute,second), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String scheduleMonth(int monthDay, int hour, int minute, int second,
@@ -453,7 +453,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link CronTimerSpec#ofWeek(int, int, int, int)} + {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofWeek(weekDay,hour,minute,second), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String scheduleWeek(int weekDay, int hour, int minute, int second,
@@ -472,7 +472,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link CronTimerSpec#ofDay(int, int, int)} + {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofDay(hour,minute,second), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String scheduleDay(int hour, int minute, int second,
@@ -490,7 +490,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException CronTimer表达式解析异常
-	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofCron(cronExpression), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String schedule(@NotNull String cronExpression,
@@ -510,7 +510,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException cron解析异常
-	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofCron(cronExpression).times(times).endTime(endTime), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime,
@@ -532,7 +532,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException cron解析异常
-	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofCron(cronExpression).times(times).endTime(endTime).missfirePolicy(missfirePolicy), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missfirePolicy,
@@ -543,7 +543,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	}
 
 	/**
-	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code schedule(TimerSpec.ofCron(cronExpression).times(times).endTime(endTime).missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData)}
 	 */
 	@Deprecated
 	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missfirePolicy,
@@ -630,7 +630,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
-	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code scheduleNamed(timerId, TimerSpec.ofDelay(delay), handleClass, customData)}
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, long delay,
@@ -648,7 +648,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
-	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code scheduleNamed(timerId, TimerSpec.ofDelay(delay).period(period), handleClass, customData)}
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period,
@@ -667,7 +667,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
-	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code scheduleNamed(timerId, TimerSpec.ofDelay(delay).period(period).times(times), handleClass, customData)}
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times,
@@ -689,7 +689,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 调度是否成功
-	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code scheduleNamed(timerId, TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime).missfirePolicy(missfirePolicy), handleClass, customData)}
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times, long endTime,
@@ -703,7 +703,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * 调度一个有名的Timer。
 	 * 需要在事务内调用。
 	 *
-	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code scheduleNamed(timerId, TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime).missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData)}
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times, long endTime,
@@ -722,7 +722,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
-	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code scheduleNamed(timerId, TimerSpec.ofCron(cron), handleClass, customData)}
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron,
@@ -742,7 +742,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
-	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code scheduleNamed(timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime), handleClass, customData)}
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
@@ -764,7 +764,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 调度是否成功
-	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code scheduleNamed(timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy), handleClass, customData)}
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
@@ -778,7 +778,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * 调度一个有名的Timer。
 	 * 需要在事务内调用。
 	 *
-	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
+	 * @deprecated 请使用 {@code scheduleNamed(timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData)}
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,

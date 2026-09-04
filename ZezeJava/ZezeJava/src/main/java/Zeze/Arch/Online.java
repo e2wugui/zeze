@@ -632,10 +632,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@Deprecated
 	public void sendReliableNotify(@NotNull String account, @NotNull String clientId,
 	                               @NotNull String listenerName, @NotNull Protocol<?> p) {
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-			AsyncSocket.log("Send", account + ',' + clientId + ':' + listenerName, p);
-		sendReliableNotify(account, clientId, listenerName, typeId, new Binary(p.encode()));
+		OnlineSpec.ofReliableNotify(this, account, clientId, listenerName).send(p);
 	}
 
 	private @NotNull Zeze.Collections.Queue<BNotify> openQueue(@NotNull String account, @NotNull String clientId) {
@@ -653,11 +650,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@Deprecated
 	public void sendReliableNotify(@NotNull String account, @NotNull String clientId, @NotNull String listenerName,
 	                               long typeId, @NotNull Binary fullEncodedProtocol) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> sendReliableNotifyDirect(account, clientId, listenerName, typeId, fullEncodedProtocol));
-		else
-			sendReliableNotifyDirect(account, clientId, listenerName, typeId, fullEncodedProtocol);
+		OnlineSpec.ofReliableNotify(this, account, clientId, listenerName).send(typeId, fullEncodedProtocol);
 	}
 
 	public void sendReliableNotifyDirect(@NotNull String account, @NotNull String clientId,
@@ -1062,26 +1055,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@Deprecated
 	public int send(@NotNull Collection<BLoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
 	                boolean trySend) {
-		int loginCount = loginKeys.size();
-		if (loginCount == 1) {
-			var it = loginKeys.iterator();
-			if (it.hasNext()) { // 不确定loginKeys是否稳定,所以还是判断一下保险
-				var loginKey = it.next();
-				return sendDirect(loginKey.getAccount(), loginKey.getClientId(), typeId, fullEncodedProtocol, trySend) ? 1 : 0;
-			}
-		} else if (loginCount > 1) {
-			return sendDirect(loginKeys instanceof Set ? (Set<BLoginKey>)loginKeys : new HashSet<>(loginKeys),
-					typeId, fullEncodedProtocol, trySend);
-//			var p = providerApp.zeze.newProcedure(() -> {
-//				sendEmbed(loginKeys, typeId, fullEncodedProtocol);
-//				return Procedure.Success;
-//			}, "Online.send");
-//			if (loginKeys.size() > 1)
-//				Task.runNow(p);
-//			else
-//				providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(loginKeys, p, null, DispatchMode.Normal);
-		}
-		return 0;
+		return OnlineTarget.dispatchLogins(this, Set.copyOf(loginKeys), typeId, fullEncodedProtocol, trySend);
 	}
 
 	/**
@@ -1089,10 +1063,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void send(@NotNull String account, @NotNull String clientId, @NotNull Protocol<?> p) {
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-			AsyncSocket.log("Send", account + ',' + clientId, p);
-		sendDirect(account, clientId, typeId, new Binary(p.encode()), false);
+		OnlineSpec.ofLogin(this, account, clientId).send(p);
 	}
 
 	/**
@@ -1100,8 +1071,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendResponse(@NotNull String account, @NotNull String clientId, @NotNull Rpc<?, ?> r) {
-		r.setRequest(false);
-		send(account, clientId, r);
+		OnlineSpec.ofLogin(this, account, clientId).sendResponse(r);
 	}
 
 	/**
@@ -1109,20 +1079,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void send(@NotNull Collection<BLoginKey> logins, @NotNull Protocol<?> p) {
-		if (logins.size() <= 0)
-			return;
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-			var sb = new StringBuilder();
-			for (var login : logins)
-				sb.append(login.getAccount()).append(',').append(login.getClientId()).append(';');
-			int n = sb.length();
-			if (n > 0)
-				sb.setLength(n - 1);
-			var idsStr = sb.toString();
-			AsyncSocket.log("Send", idsStr, p);
-		}
-		send(logins, typeId, new Binary(p.encode()), false);
+		OnlineSpec.ofLogins(this, logins).send(p);
 	}
 
 	/**
@@ -1130,7 +1087,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull Protocol<?> p) {
-		Transaction.whileCommit(() -> send(account, clientId, p));
+		OnlineSpec.ofLogin(this, account, clientId).send(p);
 	}
 
 	/**
@@ -1138,7 +1095,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendWhileCommit(@NotNull Collection<BLoginKey> logins, @NotNull Protocol<?> p) {
-		Transaction.whileCommit(() -> send(logins, p));
+		OnlineSpec.ofLogins(this, logins).send(p);
 	}
 
 	/**
@@ -1146,10 +1103,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendResponseWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull Rpc<?, ?> r) {
-		Transaction.whileCommit(() -> {
-			r.setRequest(false);
-			send(account, clientId, r);
-		});
+		OnlineSpec.ofLogin(this, account, clientId).sendResponse(r);
 	}
 
 	/**
@@ -1157,7 +1111,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull Protocol<?> p) {
-		Transaction.whileRollback(() -> send(account, clientId, p));
+		OnlineSpec.ofLogin(this, account, clientId).sendWhileRollback(p);
 	}
 
 	/**
@@ -1165,7 +1119,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendWhileRollback(@NotNull Collection<BLoginKey> logins, @NotNull Protocol<?> p) {
-		Transaction.whileRollback(() -> send(logins, p));
+		OnlineSpec.ofLogins(this, logins).sendWhileRollback(p);
 	}
 
 //	public Collection<LoginOnLink> groupAccountsByLink(Collection<String> accounts) {
@@ -1327,11 +1281,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendAccount(@NotNull String account, long typeId, @NotNull Binary fullEncodedProtocol) { // OnlineSend sender
-		sendAccountDirect(account, typeId, fullEncodedProtocol, false);
-//		providerApp.zeze.runTaskOneByOneByKey(account, "Online.sendAccount", () -> {
-//			sendAccountsEmbed(List.of(account), typeId, fullEncodedProtocol, sender);
-//			return Procedure.Success;
-//		});
+		OnlineSpec.ofAccount(this, account).send(typeId, fullEncodedProtocol);
 	}
 
 	/**
@@ -1339,24 +1289,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public int sendAccounts(@NotNull Collection<String> accounts, long typeId, @NotNull Binary fullEncodedProtocol) { // OnlineSend sender
-		int accountCount = accounts.size();
-		if (accountCount == 1) {
-			var it = accounts.iterator();
-			if (it.hasNext()) // 不确定accounts是否稳定,所以还是判断一下保险
-				return sendAccountDirect(it.next(), typeId, fullEncodedProtocol, false);
-		} else if (accountCount > 1) {
-			return sendAccountsDirect(accounts instanceof Set ? accounts : new HashSet<>(accounts),
-					typeId, fullEncodedProtocol, false);
-//			var p = providerApp.zeze.newProcedure(() -> {
-//				sendAccountsEmbed(accounts, typeId, fullEncodedProtocol, sender);
-//				return Procedure.Success;
-//			}, "Online.sendAccounts");
-//			if (accounts.size() > 1)
-//				Task.runNow(p);
-//			else
-//				providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(accounts, p, null, DispatchMode.Normal);
-		}
-		return 0;
+		return OnlineTarget.dispatchAccounts(this, Set.copyOf(accounts), typeId, fullEncodedProtocol, false);
 	}
 
 	/**
@@ -1366,10 +1299,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendAccount(@NotNull String account, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-			AsyncSocket.log("Send", account, p);
-		sendAccountDirect(account, typeId, new Binary(p.encode()), false);
+		OnlineSpec.ofAccount(this, account).send(p);
 	}
 
 	/**
@@ -1379,20 +1309,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendAccounts(@NotNull Collection<String> accounts, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
-		if (accounts.size() <= 0)
-			return;
-		var typeId = p.getTypeId();
-		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
-			var sb = new StringBuilder();
-			for (var account : accounts)
-				sb.append(account).append(',');
-			int n = sb.length();
-			if (n > 0)
-				sb.setLength(n - 1);
-			var idsStr = sb.toString();
-			AsyncSocket.log("Send", idsStr, p);
-		}
-		sendAccounts(accounts, typeId, new Binary(p.encode())/*, sender*/);
+		OnlineSpec.ofAccounts(this, accounts).send(p);
 	}
 
 	/**
@@ -1400,7 +1317,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendAccountWhileCommit(@NotNull String account, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
-		Transaction.whileCommit(() -> sendAccount(account, p/*, sender*/));
+		OnlineSpec.ofAccount(this, account).send(p);
 	}
 
 	/**
@@ -1408,7 +1325,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendAccountsWhileCommit(@NotNull Collection<String> accounts, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
-		Transaction.whileCommit(() -> sendAccounts(accounts, p/*, sender*/));
+		OnlineSpec.ofAccounts(this, accounts).send(p);
 	}
 
 	/**
@@ -1416,7 +1333,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendAccountWhileRollback(@NotNull String account, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
-		Transaction.whileRollback(() -> sendAccount(account, p/*, sender*/));
+		OnlineSpec.ofAccount(this, account).sendWhileRollback(p);
 	}
 
 	/**
@@ -1424,7 +1341,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendAccountsWhileRollback(@NotNull Collection<String> accounts, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
-		Transaction.whileRollback(() -> sendAccounts(accounts, p/*, sender*/));
+		OnlineSpec.ofAccounts(this, accounts).sendWhileRollback(p);
 	}
 
 	/**
@@ -1438,7 +1355,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@Deprecated
 	public void transmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 	                     @NotNull String target, @NotNull String targetClientId, @Nullable Serializable parameter) {
-		transmit(account, clientId, actionName, List.of(new BLoginKey(target, targetClientId)), parameter);
+		OnlineSpec.ofTransmit(this, account, clientId, actionName, target, targetClientId).parameter(parameter).transmit();
 	}
 
 	private void processTransmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
@@ -1574,9 +1491,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@Deprecated
 	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 	                                @NotNull String targetAccount, @NotNull String targetClientId, @Nullable Serializable parameter) {
-		if (!transmitActions.containsKey(actionName))
-			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> transmit(account, clientId, actionName, targetAccount, targetClientId, parameter));
+		OnlineSpec.ofTransmit(this, account, clientId, actionName, targetAccount, targetClientId).parameter(parameter).transmit();
 	}
 
 	/**
@@ -1585,9 +1500,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@Deprecated
 	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 	                                @NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
-		if (!transmitActions.containsKey(actionName))
-			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> transmit(account, clientId, actionName, targets, parameter));
+		OnlineSpec.ofTransmit(this, account, clientId, actionName, targets).parameter(parameter).transmit();
 	}
 
 	/**
@@ -1596,9 +1509,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@Deprecated
 	public void transmitWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 	                                  @NotNull String targetAccount, @NotNull String targetClientId, @Nullable Serializable parameter) {
-		if (!transmitActions.containsKey(actionName))
-			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileRollback(() -> transmit(account, clientId, actionName, targetAccount, targetClientId, parameter));
+		OnlineSpec.ofTransmit(this, account, clientId, actionName, targetAccount, targetClientId).parameter(parameter).transmitWhileRollback();
 	}
 
 	/**
@@ -1607,9 +1518,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@Deprecated
 	public void transmitWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 	                                  @NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
-		if (!transmitActions.containsKey(actionName))
-			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileRollback(() -> transmit(account, clientId, actionName, targets, parameter));
+		OnlineSpec.ofTransmit(this, account, clientId, actionName, targets).parameter(parameter).transmitWhileRollback();
 	}
 
 	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time, boolean onlySameVersion) {
