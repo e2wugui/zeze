@@ -22,6 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 自包含（临时目录+本机端口），标 @Fast。
  */
 @Fast
+@org.junit.jupiter.api.parallel.Isolated // 全量套件并行负载下连接计数时序敏感（曾两轮负载偶发），串行执行（TestTaskShutdown 同款先例）
 public class TestHandshakeMaxConnections {
 	// ServiceConf 的 maxConnections 无公开 setter，测试用反射设置。
 	private static void setMaxConnections(ServiceConf conf, int value) throws Exception {
@@ -95,7 +96,10 @@ public class TestHandshakeMaxConnections {
 					}
 				}
 			}
-			Assertions.assertEquals(2, server.getSocketCount());
+			// 上限语义已由 waitSocketCount(2) + assertClosedByServer(s3) 完整证明。
+			// 客户端关闭后服务端计数与服务端异步close处理竞态（N1-2修复realClose的wakeup直达后，
+			// dispose即时执行，计数可能已清零）——只断言不超上限，不断言精确值。
+			Assertions.assertTrue(server.getSocketCount() <= 2, "socketCount=" + server.getSocketCount());
 		} finally {
 			server.stop();
 		}
@@ -120,7 +124,9 @@ public class TestHandshakeMaxConnections {
 					assertClosedByServer(s2); // 第 2 个连接必须被拒（修复前会被接受）
 				}
 			}
-			Assertions.assertEquals(1, server.getSocketCount());
+			// 同testHandshakeServerEnforcesMaxConnections：客户端关闭后计数与异步close处理竞态，
+			// 只断言不超上限。
+			Assertions.assertTrue(server.getSocketCount() <= 1, "socketCount=" + server.getSocketCount());
 		} finally {
 			server.stop();
 		}
@@ -146,7 +152,8 @@ public class TestHandshakeMaxConnections {
 					assertClosedByServer(s2); // 第 2 个连接必须被拒（修复前会被接受）
 				}
 			}
-			Assertions.assertEquals(1, tokenServer.getService().getSocketCount());
+			Assertions.assertTrue(tokenServer.getService().getSocketCount() <= 1,
+					"socketCount=" + tokenServer.getService().getSocketCount());
 		} finally {
 			tokenServer.stop();
 			tokenServer.closeDb();
