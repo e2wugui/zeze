@@ -69,6 +69,9 @@ public class FileBin {
 	}
 
 	public void append(long offset, Binary data) throws IOException, NoSuchAlgorithmException {
+		// 先flush缓冲数据再读channel长度：BufferedOutputStream对len<8192的写只进缓冲，
+		// 不flush时channel.size()滞后，后续小块append会误判offset越界，或truncate重建os丢弃未落盘的缓冲。
+		os.flush();
 		var length = randFile.getChannel().size();
 		if (offset > length)
 			throw new IOException("append out of range. " + offset + " " + length);
@@ -77,13 +80,16 @@ public class FileBin {
 			length = randFile.getChannel().size(); // truncate will change length
 			md5CurrentData();
 		}
-			var newLength = offset + data.size();
-			if (newLength > length) {
-				var newDataLength = (int)(newLength - length);
-				// 只hash新增部分：是data的尾部newDataLength字节（data前面length-offset字节属于已存在的旧数据）。
-				md5.update(data.bytesUnsafe(), data.getOffset() + (int)(length - offset), newDataLength);
-			}
+		var newLength = offset + data.size();
+		if (newLength > length) {
+			var newDataLength = (int)(newLength - length);
+			// 只hash新增部分：是data的尾部newDataLength字节（data前面length-offset字节属于已存在的旧数据）。
+			md5.update(data.bytesUnsafe(), data.getOffset() + (int)(length - offset), newDataLength);
+		}
 		os.write(data.bytesUnsafe(), data.getOffset(), data.size());
+		// 写后也flush：append返回即数据在FD上，getLength()/md5()/后续append读到的长度恒一致
+		//（仅flush在读长一侧的话，最后一次小块append仍滞留缓冲，调用方立刻读文件会看到旧长度）。
+		os.flush();
 	}
 
 	public byte[] md5Digest() {
