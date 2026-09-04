@@ -113,6 +113,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 			private final @NotNull PVector<V> snapshot = getList(); // 创建时刻的快照，迭代安全
 			private final Iterator<V> it = snapshot.iterator();
 			private int index;
+			private @Nullable V lastReturned;
 
 			@Override
 			public boolean hasNext() {
@@ -123,6 +124,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 			public V next() {
 				V v = it.next();
 				index = Math.abs(index) + 1;
+				lastReturned = v;
 				return v;
 			}
 
@@ -131,11 +133,13 @@ public abstract class PList<V> extends Collection implements List<V> {
 				int i = index;
 				if (i <= 0)
 					throw new IllegalStateException(); // removed or not next
-				// 快照index只对"迭代期间无结构性修改"有效：next()之后列表被直接add/remove/set过的话，
-				// index已错位，按index删最新视图会静默删错元素。校验最新视图同index仍是快照返回的
-				// 同一引用（身份相等是删除正确性的充分条件），否则fail-fast（对齐JDK迭代器惯例）。
+				// index是当前列表坐标系的1-based游标：迭代器自身的remove()引起左移后，下一次next()
+				// 的+1恰好补偿，链式删除下依然正确。因此不能拿快照同下标比较（先期删除后快照与当前
+				// 列表错位，第二次remove必抛假阳性CME）。改用next()记录的返回引用做身份比较：
+				// current[i-1]==lastReturned是"按下标删除不会删错元素"的充分条件；不相等说明迭代
+				// 期间发生过外部结构性修改，fail-fast（对齐JDK迭代器惯例）。
 				var current = getList();
-				if (i > current.size() || current.get(--i) != snapshot.get(i))
+				if (i > current.size() || current.get(--i) != lastReturned)
 					throw new ConcurrentModificationException("structural modification during iteration");
 				PList.this.remove(i);
 				index = -i;
