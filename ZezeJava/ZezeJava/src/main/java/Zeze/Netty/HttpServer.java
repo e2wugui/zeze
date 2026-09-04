@@ -93,7 +93,10 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	protected final FewModifySortedMap<String, HttpHandler> prefixHandlers = new FewModifySortedMap<>();
 	protected final ConcurrentHashSet<Channel> channels = new ConcurrentHashSet<>();
 	protected final ConcurrentHashMap<ChannelId, HttpExchange> exchanges = new ConcurrentHashMap<>();
-	protected final TaskOneByOneByKey task11Executor = new TaskOneByOneByKey();
+	// close()的shutdown(true)不可逆:之后的submit被队列静默丢弃(不抛不记日志),非Direct请求全部无响应黑洞。
+	// start()检测task11ExecutorDown则重建,支持close→start重启。派发线程读取引用,须volatile。
+	protected volatile TaskOneByOneByKey task11Executor = new TaskOneByOneByKey();
+	protected boolean task11ExecutorDown; // close()置位,start()重建后复位;仅thisLock(start/close)内读写
 	protected int writePendingLimit = 64 * 1024; // 写缓冲区的限制大小(字节),超过会立即断开连接,写大量内容需要考虑分片
 	protected int maxUploadSize = 256 * 1024 * 1024; // 流模式上传(如multipart/raw文件上传)的请求body总量限制(字节),超过返回413并断开连接
 	protected int checkIdleInterval = 5; // 检查超时的间隔(秒),只有以下两个超时时间都满足才会触发超时关闭,start之后修改无效
@@ -248,6 +251,11 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		try {
 			if (scheduler != null)
 				throw new IllegalStateException("already started");
+			if (task11ExecutorDown) {
+				// close→start重启:已shutdown的task11Executor无法复活,直接复用会让非Direct请求全部黑洞
+				task11Executor = new TaskOneByOneByKey();
+				task11ExecutorDown = false;
+			}
 			var eventLoopGroup = netty.getEventLoopGroup();
 			scheduler = eventLoopGroup.scheduleWithFixedDelay(() -> channels.keySet().forEach(this::checkTimeout),
 					checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
@@ -358,6 +366,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			exchanges.values().forEach(HttpExchange::closeConnectionNow);
 			exchanges.clear();
 			task11Executor.shutdown(true);
+			task11ExecutorDown = true;
 			if (scheduler == null)
 				return;
 			Netty.logger.info("close {}", getClass().getName());
