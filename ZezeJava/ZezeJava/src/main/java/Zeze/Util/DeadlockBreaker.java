@@ -72,8 +72,15 @@ public class DeadlockBreaker extends ThreadHelper {
 				if (detect()) {
 					sleepIdleMs = 2000;
 					detectCount++;
-					if (detectCount >= 3)
-						zeze.getAchillesHeelDaemon().deadlockReport(); // 向 daemon 报告。
+					if (detectCount >= 3) {
+						// 单进程部署(未配置 GlobalCacheManager)时 achillesHeelDaemon 为 null，
+						// 裸调用抛 NPE 会跳过下面的 sleepIdle，导致检测线程零间隔自旋+FATAL 日志洪水。
+						var daemon = zeze.getAchillesHeelDaemon();
+						if (daemon != null)
+							daemon.deadlockReport(); // 向 daemon 报告。
+						else
+							logger.error("deadlock detected but no AchillesHeelDaemon configured");
+					}
 				} else {
 					detectCount = 0;
 					sleepIdleMs *= 2;
