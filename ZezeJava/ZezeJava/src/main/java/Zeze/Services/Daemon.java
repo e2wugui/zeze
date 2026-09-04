@@ -73,9 +73,12 @@ public class Daemon {
 				subprocess = pb.start();
 				var startTime = System.currentTimeMillis();
 				var exitCode = mainRun();
+				// 正常退出也必须停止Monitor：Monitor是非daemon线程，不join会令JVM挂死
+				// （GlobalOn未到达时超时判定被跳过，Monitor纯空转，永不退出）；
+				// stopAndJoin顺带关闭mmap临时文件句柄。
+				joinMonitors();
 				if (exitCode == 0)
 					break;
-				joinMonitors();
 				logger.warn("Subprocess Restart! ExitCode={}", exitCode);
 				if (System.currentTimeMillis() - startTime < minAliveTime) {
 					logger.fatal("subprocess alive too short: {}", minAliveTime);
