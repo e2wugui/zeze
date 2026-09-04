@@ -111,6 +111,16 @@ public class MQFileWithIndex {
 		}
 	}
 
+	// 索引定位失败必须响亮报错，不能静默跳过：fillMessage 外层 while 的推进只发生在成功定位之后，
+	// 跳过会使 headMessageId 永不前进——回填任务在后台线程里不持锁、无 IO、无 sleep 地单核自旋，
+	// 且没有任何日志或异常（触发态：索引 column family 损坏/误删后 getOrAddTable 重建出空表，
+	// 或 topic 目录数据文件被误删导致 indexes 仅含高位键）。抛出后由 MQSingle.pullMessage 的
+	// catch 复位 messageFillFuture 并重算 highLoad，转入 sendMessage/ack 事件驱动的失败-重试路径。
+	private RuntimeException messageIndexNotFound(long headMessageId) {
+		return new RuntimeException("message index not found. topic=" + topic
+				+ " partition=" + partitionId + " headMessageId=" + headMessageId);
+	}
+
 	/**
 	 * 从文件中装载消息填充到队列中。
 	 * 注意：参数未经验证，需要外部确保正确（请使用calculateFill得到参数）。
@@ -133,7 +143,10 @@ public class MQFileWithIndex {
 							var file = new File(topicDir, partitionId + "." + floor.getKey());
 							try (var fileInput = new RandomAccessFile(file, "r")) {
 								var fileSize = fileInput.getChannel().size();
-								var filePosition = 0;
+								// 必须是 long：段文件可越过 2GB（ProxyServer 放行 100MB 协议，滚段还需
+								// 等下一个 100 整除 id），int 累加回绕为负后与 fileSize 的 eof 边界
+								// 判断恒不成立，头/体读全错位。
+								var filePosition = 0L;
 								var offset = ByteBuffer.ToLongBE(floorIt.value(), 0);
 								fileInput.seek(offset);
 								filePosition += offset;
@@ -180,8 +193,14 @@ public class MQFileWithIndex {
 									messageSize = bbHead.ReadInt4();
 								}
 							}
+						} else {
+							// seekForPrev 在空索引表上定位失败：整个循环体被跳过即无进展自旋。
+							throw messageIndexNotFound(headMessageId);
 						}
 					}
+				} else {
+					// 索引段缺失（floorEntry 为 null）：与上面索引项缺失同型的无进展自旋，一并报错。
+					throw messageIndexNotFound(headMessageId);
 				}
 			}
 		} catch (Exception e) {
