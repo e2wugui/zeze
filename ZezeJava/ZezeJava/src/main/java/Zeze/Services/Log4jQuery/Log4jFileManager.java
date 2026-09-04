@@ -153,6 +153,13 @@ public class Log4jFileManager extends ReentrantLock {
 					}
 					// 修改file指向新的logFile。index保持不变。
 					last.file = new File(logConf.logDir, fileName);
+					// 顺序无关补登（FND2-S3-5）：部分平台WatchService对rotate双CREATE事件的递交顺序
+					// 不保证，新active事件先到时被case 0同名守卫跳过漏登。这里在改指后主动补登：
+					// 乱序时由本分支兜底；正序时新active尚未创建或已由case 0登记，守卫去重。
+					var activeName = getCurrentLogFileName();
+					var activeFile = new File(logConf.logDir, activeName);
+					if (activeFile.exists() && !files.getLast().file.getName().equals(activeName))
+						files.add(Log4jFile.of(activeFile, loadIndex(activeFile, getCurrentIndexFileName())));
 				}
 				break;
 			}
