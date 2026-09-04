@@ -99,10 +99,18 @@ public class DatabaseRedis extends Database {
 			// 丢弃返回值会让部分写失败被静默吞掉：checkpoint 误判 flush 成功并清除脏标记，已提交数据无声丢失。
 			// 抛出让 checkpoint 走失败重试（hset/hdel 幂等，重放安全）。
 			var results = jedisTrans.exec();
-			if (results != null)
-				for (var r : results)
-					if (r instanceof JedisDataException e)
-						throw e;
+			if (results == null) {
+				// exec 返回 null（已核 Jedis 5.2.0 Transaction.exec 源码）：RESP2 下服务端因入队期错误
+				// （如 maxmemory 时对 hset/hdel 回错误而非 +QUEUED）中止整个事务，EXEC 回 nil——
+				// 本批命令一条都没有执行。当作成功会让 checkpoint 清除脏标记，整批已提交数据永久丢失。
+				// 本批为空（n==0）时无数据可丢，无需重试。
+				if (n > 0)
+					throw new JedisDataException("redis transaction aborted (queue-time error), n=" + n);
+				return;
+			}
+			for (var r : results)
+				if (r instanceof JedisDataException e)
+					throw e;
 		}
 
 		@Override
@@ -368,11 +376,14 @@ public class DatabaseRedis extends Database {
 					return KV.create(version, false);
 				var dv = new DataWithVersion();
 				dv.data = data;
-				dv.version = version;
+				// 版本必须递增（对齐 RocksDb/Mongo/Dynamo 实现）：schemasCompatible 的重读重试环
+				// 依赖“读到陈旧数据时 exist.version != version 返回 false”这一防线；
+				// 原样写回会让存储的 version 永远停在首次值，版本冲突检测名存实亡。
+				dv.version = version + 1;
 				var dvBb = ByteBuffer.Allocate();
 				dv.encode(dvBb);
 				jedis.hset(keyDataVersion, key.CopyIf(), dvBb.CopyIf());
-				return KV.create(version, true);
+				return KV.create(dv.version, true);
 			}
 		}
 
