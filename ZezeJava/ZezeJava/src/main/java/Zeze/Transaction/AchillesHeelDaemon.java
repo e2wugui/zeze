@@ -245,20 +245,34 @@ public class AchillesHeelDaemon {
 						case Daemon.Release.Command:
 							var r = (Daemon.Release)cmd;
 							logger.info("receiveCommand {}", r.globalIndex);
-							var agent = agents[r.globalIndex];
-							var config = agent.getConfig();
-							var rr = agent.checkReleaseTimeout(System.currentTimeMillis(), config.serverReleaseTimeout);
-							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
-								// 本地发现超时，先自杀，不用等进程守护来杀。
-								haltOnReleaseTimeout(r.globalIndex);
+							// Release解码不校验globalIndex（任意int），正常发送者（daemon进程）不会越界，
+							// 但本地任意进程可向该端口发送合法编码、语义越界的报文：
+							// 越界必须丢弃，不能让AIOOBE逃逸到外层catch的halt杀死整个进程。
+							if (r.globalIndex < 0 || r.globalIndex >= agents.length) {
+								logger.error("ProcessDaemon.receiveCommand Release bad globalIndex={}, agents.length={}",
+										r.globalIndex, agents.length);
+								break;
 							}
-							if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
-								// 这个判断只能避免正在Releasing时不要启动新的Release。
-								// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
-								// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
-								// 在Agent中增加获得的计数是个方案，但挺烦的。
-								logger.warn("ProcessDaemon.startRelease ServerDaemonTimeout={}", config.serverDaemonTimeout);
-								agent.startRelease(zeze, null);
+							try {
+								var agent = agents[r.globalIndex];
+								var config = agent.getConfig();
+								var rr = agent.checkReleaseTimeout(System.currentTimeMillis(), config.serverReleaseTimeout);
+								if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
+									// 本地发现超时，先自杀，不用等进程守护来杀。
+									haltOnReleaseTimeout(r.globalIndex);
+								}
+								if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
+									// 这个判断只能避免正在Releasing时不要启动新的Release。
+									// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
+									// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
+									// 在Agent中增加获得的计数是个方案，但挺烦的。
+									logger.warn("ProcessDaemon.startRelease ServerDaemonTimeout={}", config.serverDaemonTimeout);
+									agent.startRelease(zeze, null);
+								}
+							} catch (Throwable ex) { // logger.error
+								// Release处理体兜底：这里抛出的任何异常都会触发外层catch的halt，
+								// 而Release失败是可重试的（周期checkReleaseTimeout与下一个Release命令都会继续）。
+								logger.error("ProcessDaemon.handle Release globalIndex={}", r.globalIndex, ex);
 							}
 							break;
 						}
