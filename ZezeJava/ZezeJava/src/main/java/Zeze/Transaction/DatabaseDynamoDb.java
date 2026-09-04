@@ -204,6 +204,9 @@ public class DatabaseDynamoDb extends Database {
 			var keyPrimary = new HashMap<String, AttributeValue>();
 			keyPrimary.put("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.size())));
 			var req = new GetItemRequest(name, keyPrimary);
+			// 强一致读（Dynamo 默认最终一致）：记录接管场景（flushWhenReduce 先 flush 后放权）下，
+			// 新持有者冷读时副本未追上会读到旧值甚至 ABSENT，基于旧值覆盖写丢失前一个进程的已提交更新。
+			req.setConsistentRead(true);
 			var item = dynamoDbClient.getItem(req).getItem();
 			if (item == null)
 				return null;
@@ -232,6 +235,8 @@ public class DatabaseDynamoDb extends Database {
 			var req = new ScanRequest();
 			req.setTableName(name);
 			req.setAttributesToGet(attributesToGet);
+			// Scan 与 find 同因：walk 供 checkpoint 与工具路径读取，同样要求强一致读。
+			req.setConsistentRead(true);
 			long count = 0;
 			while (true) {
 				var scanResult = dynamoDbClient.scan(req);
@@ -248,6 +253,7 @@ public class DatabaseDynamoDb extends Database {
 				req = new ScanRequest();
 				req.setTableName(name);
 				req.setAttributesToGet(attributesToGet);
+				req.setConsistentRead(true);
 				req.setExclusiveStartKey(scanResult.getLastEvaluatedKey());
 			}
 			return count;
@@ -260,6 +266,7 @@ public class DatabaseDynamoDb extends Database {
 			var req = new ScanRequest();
 			req.setTableName(name);
 			req.setAttributesToGet(attributesToGet);
+			req.setConsistentRead(true);
 			long count = 0;
 			while (true) {
 				var scanResult = dynamoDbClient.scan(req);
@@ -275,6 +282,7 @@ public class DatabaseDynamoDb extends Database {
 				req = new ScanRequest();
 				req.setTableName(name);
 				req.setAttributesToGet(attributesToGet);
+				req.setConsistentRead(true);
 				req.setExclusiveStartKey(scanResult.getLastEvaluatedKey());
 			}
 			return count;
@@ -308,6 +316,7 @@ public class DatabaseDynamoDb extends Database {
 			var req = new ScanRequest();
 			req.setTableName(name);
 			req.setAttributesToGet(List.of("key", "value"));
+			req.setConsistentRead(true);
 			if (exclusiveStartKey != null) {
 				req.setExclusiveStartKey(Map.of("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(
 						exclusiveStartKey.Bytes, exclusiveStartKey.ReadIndex, exclusiveStartKey.size()))));
@@ -330,6 +339,7 @@ public class DatabaseDynamoDb extends Database {
 			var req = new ScanRequest();
 			req.setTableName(name);
 			req.setAttributesToGet(List.of("key"));
+			req.setConsistentRead(true);
 			if (exclusiveStartKey != null) {
 				req.setExclusiveStartKey(Map.of("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(
 						exclusiveStartKey.Bytes, exclusiveStartKey.ReadIndex, exclusiveStartKey.size()))));
