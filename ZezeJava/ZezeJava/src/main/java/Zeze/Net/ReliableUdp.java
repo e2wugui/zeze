@@ -344,14 +344,22 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 				// 两参Wrap=（数组,长度）：position是收到的字节数。三参误用（offset=position,length=limit=capacity）
 				// 使VerifyArrayIndex恒抛IllegalArgumentException，收包从未工作过（对照DatagramSocket.java:124同型）
 				var bb = ByteBuffer.Wrap(buffer.array(), buffer.position());
-				var type = bb.ReadUInt();
-				switch (type) {
-				case TypePacket:
-					processPacket(source, bb);
-					break;
-				case TypeControl:
-					processPacketControl(source, bb);
-					break;
+				// UDP源地址可伪造，包内字节任意。type本身及Packet/Control的ReadLong/ReadBytes/
+				// ReadUInt(count)都是变长编码，畸形包必抛异常；异常抛到Selector会无条件关闭
+				// 整个channel（Selector对doHandle异常兜底key.channel().close()），单个畸形包
+				// 杀掉全部会话。按包捕获，记日志丢弃。
+				try {
+					var type = bb.ReadUInt();
+					switch (type) {
+					case TypePacket:
+						processPacket(source, bb);
+						break;
+					case TypeControl:
+						processPacketControl(source, bb);
+						break;
+					}
+				} catch (Exception e) {
+					logger.warn("malformed udp packet from {}", source, e);
 				}
 			}
 			return;
