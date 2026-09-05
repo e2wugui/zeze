@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.ReplayAttack;
 import Zeze.Util.ReplayAttackGrowRange;
@@ -37,6 +38,8 @@ public class DatagramSession extends AsyncSocket {
 	private final @Nullable Encrypt2 encrypt;
 	private final @Nullable Decrypt2 decrypt;
 	private final @NotNull ReplayAttack replayAttack;
+	private final LongAdder malformedPackets = new LongAdder();
+	private volatile long lastMalformedWarnTime;
 	@SuppressWarnings("unused")
 	private byte closed;
 
@@ -151,7 +154,23 @@ public class DatagramSession extends AsyncSocket {
 	/**
 	 * @param bb 有效数据范围:[0,WriteIndex]. 方法外绝对不能持有bb.Bytes的引用! 也就是只能在方法内访问bb.
 	 */
-	public void onProcessDatagram(@NotNull InetSocketAddress remote, @NotNull ByteBuffer bb) throws Exception {
+	public void onProcessDatagram(@NotNull InetSocketAddress remote, @NotNull ByteBuffer bb) {
+		// 畸形包（解密CodecException/协议decode异常等）按包捕获：数据报独立成帧、无流失步，
+		// 丢包即可；异常抛到Selector会强制关闭整个channel（全部会话陪葬）。限频warn+计数防日志洪水。
+		try {
+			processDatagram(remote, bb);
+		} catch (Exception e) {
+			malformedPackets.increment();
+			var now = System.currentTimeMillis();
+			if (now - lastMalformedWarnTime >= 1000) {
+				lastMalformedWarnTime = now;
+				logger.warn("malformed datagram: count={} token={} source={}",
+						malformedPackets.sumThenReset(), tokenId, remote, e);
+			}
+		}
+	}
+
+	private void processDatagram(@NotNull InetSocketAddress remote, @NotNull ByteBuffer bb) throws Exception {
 		int endPos = bb.WriteIndex;
 		if (decrypt != null) {
 			if (endPos < 32) // minimal packet size ([8]tokenId + [8]serialId + [8]tokenId + [8]serialId)

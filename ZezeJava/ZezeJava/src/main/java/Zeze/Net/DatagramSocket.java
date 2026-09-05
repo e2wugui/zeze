@@ -122,6 +122,8 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 			var source = datagramChannel.receive(buffer);
 			if (source != null) {
 				var bb = ByteBuffer.Wrap(buffer.array(), buffer.position());
+				if (bb.WriteIndex < 8)
+					return; // 短包连tokenId都不完整，丢弃（不读共享缓冲区陈旧字节）。会话级最小包长16/32由onProcessDatagram按是否加密检查
 				var ssid = ByteBuffer.ToLong(bb.Bytes, 0);
 				var ss = tokens.get(ssid);
 				if (null != ss)
