@@ -1026,7 +1026,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	// 在指定Online上发送
 	public <A extends Serializable, R extends Serializable> boolean sendOnlineRpc(
-			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs, boolean trySend) {
+			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs, boolean quietWhenAbsent) {
 		var service = providerApp.providerService;
 		// try remove. 只维护一个上下文。多次发送相同rpc会如此，这个应该最好报错。沿用老的逻辑吧。see Rpc.Send
 		service.removeRpcContext(rpc.getSessionId(), rpc);
@@ -1037,7 +1037,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		rpc.setIsTimeout(false);
 		rpc.setRequest(true);
 		rpc.schedule(service, sessionId, timeoutMs);
-		var sent = sendDirect(roleId, rpc.getTypeId(), new Binary(rpc.encode()), trySend);
+		var sent = sendDirect(roleId, rpc.getTypeId(), new Binary(rpc.encode()), quietWhenAbsent);
 		if (!sent && rpc.getFuture() != null)
 			rpc.getFuture().setException(new IllegalStateException("sendRpc fail."));
 		return sent;
@@ -1162,20 +1162,20 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 //				}, "Online.send")), DispatchMode.Normal);
 //	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().trying(trySend)
+	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().quietWhenAbsent(quietWhenAbsent)
 	 *         .sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
 	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
-					boolean trySend) {
-		return OnlineSpec.ofRoles(this, roleIds).withContext().trying(trySend).sendNow(typeId, fullEncodedProtocol);
+					boolean quietWhenAbsent) {
+		return OnlineSpec.ofRoles(this, roleIds).withContext().quietWhenAbsent(quietWhenAbsent).sendNow(typeId, fullEncodedProtocol);
 	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).trying(trySend)
+	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).quietWhenAbsent(quietWhenAbsent)
 	 *         .sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
 	public int sendOnline(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
-						  boolean trySend) {
-		return OnlineSpec.ofRoles(this, roleIds).trying(trySend).sendNow(typeId, fullEncodedProtocol);
+						  boolean quietWhenAbsent) {
+		return OnlineSpec.ofRoles(this, roleIds).quietWhenAbsent(quietWhenAbsent).sendNow(typeId, fullEncodedProtocol);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
@@ -1323,7 +1323,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	// 可在事务外执行
 	public int sendDirect(@NotNull Iterable<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
-						  boolean trySend) {
+						  boolean quietWhenAbsent) {
 		var roleIdSet = new LongHashSet();
 		for (var roleId : roleIds)
 			roleIdSet.add(roleId); // 去重
@@ -1335,7 +1335,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			var roleId = it.value();
 			var onlineShared = _tOnlineShared.selectDirty(roleId);
 			if (onlineShared == null) {
-				if (!trySend) {
+				if (!quietWhenAbsent) {
 					logger.info("sendDirects({}): not found roleId={} in _tonline",
 							getTypeId(fullEncodedProtocol), roleId);
 				}
@@ -1344,7 +1344,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			var link = onlineShared.getLink();
 			var state = link.getState();
 			if (state != eLogined) {
-				if (!trySend) {
+				if (!quietWhenAbsent) {
 					logger.debug("sendDirects({}): state={} != eLogined for roleId={}",
 							getTypeId(fullEncodedProtocol), state, roleId);
 				}
@@ -1381,10 +1381,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	// 可在事务外执行
-	public boolean sendDirect(long roleId, long typeId, @NotNull Binary fullEncodedProtocol, boolean trySend) {
+	public boolean sendDirect(long roleId, long typeId, @NotNull Binary fullEncodedProtocol, boolean quietWhenAbsent) {
 		var onlineShared = _tOnlineShared.selectDirty(roleId);
 		if (onlineShared == null) {
-			if (!trySend) {
+			if (!quietWhenAbsent) {
 				logger.info("sendDirect({}): not found roleId={} in _tonline",
 						getTypeId(fullEncodedProtocol), roleId);
 			}
@@ -1393,7 +1393,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var link = onlineShared.getLink();
 		var state = link.getState();
 		if (state != eLogined) {
-			if (!trySend) {
+			if (!quietWhenAbsent) {
 				logger.debug("sendDirect({}): state={} != eLogined for roleId={}",
 						getTypeId(fullEncodedProtocol), state, roleId);
 			}
@@ -1532,7 +1532,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		OnlineSpec.ofReliableNotify(this, roleId, listenerName).send(typeId, fullEncodedProtocol);
 	}
 
-	public void sendReliableNotifyDirect(long roleId, @NotNull String listenerName, long typeId, @NotNull Binary fullEncodedProtocol, boolean trySend) {
+	public void sendReliableNotifyDirect(long roleId, @NotNull String listenerName, long typeId, @NotNull Binary fullEncodedProtocol, boolean quietWhenAbsent) {
 		providerApp.zeze.runTaskOneByOneByKey(
 			listenerName,
 			"Online.sendReliableNotify." + listenerName,
@@ -1558,7 +1558,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			Transaction.whileCommit(() -> {
 				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 					AsyncSocket.log("Send", roleId + ":" + listenerName, notify);
-				sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()), trySend);
+				sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()), quietWhenAbsent);
 			});
 //			sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.encode()));
 			return Procedure.Success;

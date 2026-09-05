@@ -200,7 +200,7 @@ public class TestOnlineSpec {
 			var base11 = sEquipCount0.get();
 			var spec = OnlineSpec.ofRole(online, roleId0);
 			spec.send(new SEquipement());
-			spec.trying(true).timeout(1000); // 残留选项：send 族忽略，不抛异常（spec 可复用）
+			spec.quietWhenAbsent(true).timeout(1000); // 残留选项：send 族忽略，不抛异常（spec 可复用）
 			spec.send(new SEquipement());
 			awaitCount(sEquipCount0, base11 + 2);
 
@@ -209,8 +209,8 @@ public class TestOnlineSpec {
 			var base12 = sEquipCount0.get();
 			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				var s = OnlineSpec.ofRole(online, roleId0);
-				s.trying(false).send(new SEquipement()); // p1 冻结 trying=false
-				s.trying(true).send(new SEquipement()); // p2 冻结 trying=true，不影响已排队的 p1
+				s.quietWhenAbsent(false).send(new SEquipement()); // p1 冻结 quietWhenAbsent=false
+				s.quietWhenAbsent(true).send(new SEquipement()); // p2 冻结 quietWhenAbsent=true，不影响已排队的 p1
 				return Procedure.Success;
 			}, "testFreeze").call());
 			awaitCount(sEquipCount0, base12 + 2);

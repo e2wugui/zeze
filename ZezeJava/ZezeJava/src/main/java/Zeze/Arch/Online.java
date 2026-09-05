@@ -905,7 +905,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	// 可在事务外执行
 	public int sendDirect(@NotNull Set<BLoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
-	                      boolean trySend) {
+	                      boolean quietWhenAbsent) {
 		if (loginKeys.isEmpty())
 			return 0;
 		var groups = new HashMap<String, LinkRoles>();
@@ -915,7 +915,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var clientId = loginKey.getClientId();
 			var online = _tonline.selectDirty(account);
 			if (online == null) {
-				if (!trySend) {
+				if (!quietWhenAbsent) {
 					logger.info("sendDirects({}): not found account={} in _tonline",
 							getTypeId(fullEncodedProtocol), account);
 				}
@@ -923,7 +923,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			}
 			var login = online.getLogins().get(clientId);
 			if (login == null) {
-				if (!trySend) {
+				if (!quietWhenAbsent) {
 					logger.debug("sendDirects({}): not found login for clientId={} account={}",
 							getTypeId(fullEncodedProtocol), clientId, account);
 				}
@@ -932,7 +932,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var link = login.getLink();
 			var state = link.getState();
 			if (state != eLogined) {
-				if (!trySend) {
+				if (!quietWhenAbsent) {
 					logger.debug("sendDirects({}): state={} != eLogined for clientId={} account={}",
 							getTypeId(fullEncodedProtocol), state, clientId, account);
 				}
@@ -968,10 +968,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	// 可在事务外执行
 	public boolean sendDirect(@NotNull String account, @NotNull String clientId, long typeId,
-	                          @NotNull Binary fullEncodedProtocol, boolean trySend) {
+	                          @NotNull Binary fullEncodedProtocol, boolean quietWhenAbsent) {
 		var online = _tonline.selectDirty(account);
 		if (online == null) {
-			if (!trySend) {
+			if (!quietWhenAbsent) {
 				logger.info("sendDirect({}): not found account={} in _tonline",
 						getTypeId(fullEncodedProtocol), account);
 			}
@@ -979,7 +979,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 		var login = online.getLogins().get(clientId);
 		if (login == null) {
-			if (!trySend) {
+			if (!quietWhenAbsent) {
 				logger.debug("sendDirect({}): not found login for clientId={} account={}",
 						getTypeId(fullEncodedProtocol), clientId, account);
 			}
@@ -989,7 +989,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var link = login.getLink();
 		var state = link.getState();
 		if (state != eLogined) {
-			if (!trySend) {
+			if (!quietWhenAbsent) {
 				logger.debug("sendDirect({}): state={} != eLogined for clientId={} account={}",
 						getTypeId(fullEncodedProtocol), state, clientId, account);
 			}
@@ -1048,11 +1048,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 //		});
 //	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofLogins(online, loginKeys).trying(trySend).sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
+	/** @deprecated 使用 {@code OnlineSpec.ofLogins(online, loginKeys).quietWhenAbsent(quietWhenAbsent).sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
 	public int send(@NotNull Collection<BLoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
-	                boolean trySend) {
-		return OnlineSpec.ofLogins(this, loginKeys).trying(trySend).sendNow(typeId, fullEncodedProtocol);
+	                boolean quietWhenAbsent) {
+		return OnlineSpec.ofLogins(this, loginKeys).quietWhenAbsent(quietWhenAbsent).sendNow(typeId, fullEncodedProtocol);
 	}
 
 	/**
@@ -1179,12 +1179,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	// 可在事务外执行
 	public int sendAccountDirect(@NotNull String account, long typeId, @NotNull Binary fullEncodedProtocol,
-	                             boolean trySend) {
+	                             boolean quietWhenAbsent) {
 		var groups = new HashMap<String, LinkRoles>();
 		var links = providerApp.providerService.getLinks();
 		var online = _tonline.selectDirty(account);
 		if (online == null) {
-			if (!trySend) {
+			if (!quietWhenAbsent) {
 				logger.info("sendAccountDirect({}): not found account={} in _tonline",
 						getTypeId(fullEncodedProtocol), account);
 			}
@@ -1224,7 +1224,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	// 可在事务外执行
 	public int sendAccountsDirect(@NotNull Collection<String> accounts, long typeId, @NotNull Binary fullEncodedProtocol,
-	                              boolean trySend) {
+	                              boolean quietWhenAbsent) {
 		if (accounts.isEmpty())
 			return 0;
 		var groups = new HashMap<String, LinkRoles>();
@@ -1232,7 +1232,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		for (var account : accounts) {
 			var online = _tonline.selectDirty(account);
 			if (online == null) {
-				if (!trySend) {
+				if (!quietWhenAbsent) {
 					logger.info("sendAccountsDirect({}): not found account={} in _tonline",
 							getTypeId(fullEncodedProtocol), account);
 				}

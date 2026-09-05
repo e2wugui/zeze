@@ -19,8 +19,8 @@ public final class LoginOnlineSpec extends OnlineSpec {
 	}
 
 	@Override
-	public @NotNull LoginOnlineSpec trying(boolean trying) { // 协变返回，保持链式
-		super.trying(trying);
+	public @NotNull LoginOnlineSpec quietWhenAbsent(boolean quietWhenAbsent) { // 协变返回，保持链式
+		super.quietWhenAbsent(quietWhenAbsent);
 		return this;
 	}
 
@@ -30,7 +30,7 @@ public final class LoginOnlineSpec extends OnlineSpec {
 		send(r); // 走 send 族：非 request 放行守卫
 	}
 
-	/** 直接通过 link 发送（事务感知）；忽略 trying 选项。 */
+	/** 直接通过 link 发送（事务感知）；忽略 quietWhenAbsent 选项。 */
 	public void send(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
 		var ol = online; // 字段读进局部变量：闭包不捕获 spec 实例
 		var key = new BLoginKey(account, clientId);

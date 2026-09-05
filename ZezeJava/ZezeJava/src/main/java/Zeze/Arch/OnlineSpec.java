@@ -24,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 public class OnlineSpec {
 	final @NotNull Online online;
 	final @NotNull OnlineTarget target;
-	boolean trying;
+	boolean quietWhenAbsent;
 
 	OnlineSpec(@NotNull Online online, @NotNull OnlineTarget target) {
 		this.online = online;
@@ -73,9 +73,9 @@ public class OnlineSpec {
 
 	// ---------------- 选项 ----------------
 
-	/** 本次发送是否只是尝试（允许失败），影响错误日志。reliable 目标忽略此选项（底层 sendReliableNotifyDirect 不支持 trySend）。 */
-	public @NotNull OnlineSpec trying(boolean trying) {
-		this.trying = trying;
+	/** 目标缺席（不在线/查无此登录/未登录完成）时是否静默跳过（不记缺席日志）；默认 false 记 info/debug 日志便于排障。reliable 目标忽略此选项（底层 sendReliableNotifyDirect 不支持）。 */
+	public @NotNull OnlineSpec quietWhenAbsent(boolean quietWhenAbsent) {
+		this.quietWhenAbsent = quietWhenAbsent;
 		return this;
 	}
 
@@ -108,8 +108,8 @@ public class OnlineSpec {
 	private void send0(long typeId, @NotNull Binary data) {
 		var ol = online; // 字段读进局部变量：延迟闭包只捕获局部变量，不捕获 spec 实例
 		var tg = target;
-		var tr = trying;
-		Task.runTxnAware(() -> tg.send(ol, typeId, data, tr));
+		var quiet = quietWhenAbsent;
+		Task.runTxnAware(() -> tg.send(ol, typeId, data, quiet));
 	}
 
 	/**
@@ -122,14 +122,14 @@ public class OnlineSpec {
 			return 0; // 空目标不编码
 		var typeId = p.getTypeId();
 		tryLog(typeId, p);
-		return target.send(online, typeId, new Binary(p.encode()), trying);
+		return target.send(online, typeId, new Binary(p.encode()), quietWhenAbsent);
 	}
 
 	/** 同 {@link #sendNow(Protocol)}，载荷为已编码协议（typeId + 全编码字节）。 */
 	public int sendNow(long typeId, @NotNull Binary fullEncodedProtocol) {
 		if (target.isEmpty())
 			return 0;
-		return target.send(online, typeId, fullEncodedProtocol, trying);
+		return target.send(online, typeId, fullEncodedProtocol, quietWhenAbsent);
 	}
 
 	/** 事务回滚时发送。 */
@@ -141,8 +141,8 @@ public class OnlineSpec {
 		var data = new Binary(p.encode());
 		var ol = online;
 		var tg = target;
-		var tr = trying;
-		Transaction.whileRollback(() -> tg.send(ol, typeId, data, tr));
+		var quiet = quietWhenAbsent;
+		Transaction.whileRollback(() -> tg.send(ol, typeId, data, quiet));
 	}
 
 	public void sendWhileRollback(long typeId, @NotNull Binary fullEncodedProtocol) {
@@ -150,7 +150,7 @@ public class OnlineSpec {
 			return;
 		var ol = online;
 		var tg = target;
-		var tr = trying;
-		Transaction.whileRollback(() -> tg.send(ol, typeId, fullEncodedProtocol, tr));
+		var quiet = quietWhenAbsent;
+		Transaction.whileRollback(() -> tg.send(ol, typeId, fullEncodedProtocol, quiet));
 	}
 }

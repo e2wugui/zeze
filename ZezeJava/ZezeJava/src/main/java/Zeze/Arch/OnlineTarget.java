@@ -14,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 sealed interface OnlineTarget {
 
 	/** 把编码好的协议投递到本目标，立即执行。返回发送数（OnlineSpec.sendNow 透传给调用方；空目标 0）。 */
-	int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean trying);
+	int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent);
 
 	/** 协议日志标识。Arch 无 OnlineSet 概念，不需要 online 参数。 */
 	@NotNull String describe();
@@ -30,15 +30,15 @@ sealed interface OnlineTarget {
 	 * 因此 size==1 时必有元素，无需旧 API 针对调用方活集合的 hasNext 防御。
 	 */
 	static int dispatchLogins(@NotNull Online online, @NotNull Set<BLoginKey> logins, long typeId,
-							  @NotNull Binary data, boolean trying) {
+							  @NotNull Binary data, boolean quietWhenAbsent) {
 		var size = logins.size();
 		if (size == 0)
 			return 0;
 		if (size == 1) {
 			var login = logins.iterator().next();
-			return online.sendDirect(login.getAccount(), login.getClientId(), typeId, data, trying) ? 1 : 0;
+			return online.sendDirect(login.getAccount(), login.getClientId(), typeId, data, quietWhenAbsent) ? 1 : 0;
 		}
-		return online.sendDirect(logins, typeId, data, trying);
+		return online.sendDirect(logins, typeId, data, quietWhenAbsent);
 	}
 
 	/**
@@ -46,20 +46,20 @@ sealed interface OnlineTarget {
 	 * 前置条件同 dispatchLogins（Accounts 规范构造器保证不可变快照）。
 	 */
 	static int dispatchAccounts(@NotNull Online online, @NotNull Collection<String> accounts, long typeId,
-								@NotNull Binary data, boolean trying) {
+								@NotNull Binary data, boolean quietWhenAbsent) {
 		var size = accounts.size();
 		if (size == 0)
 			return 0;
 		if (size == 1)
-			return online.sendAccountDirect(accounts.iterator().next(), typeId, data, trying);
-		return online.sendAccountsDirect(accounts, typeId, data, trying);
+			return online.sendAccountDirect(accounts.iterator().next(), typeId, data, quietWhenAbsent);
+		return online.sendAccountsDirect(accounts, typeId, data, quietWhenAbsent);
 	}
 
 	/** 单个登录端点。 */
 	record Login(@NotNull String account, @NotNull String clientId) implements OnlineTarget {
 		@Override
-		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean trying) {
-			return online.sendDirect(account, clientId, typeId, data, trying) ? 1 : 0;
+		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent) {
+			return online.sendDirect(account, clientId, typeId, data, quietWhenAbsent) ? 1 : 0;
 		}
 
 		@Override
@@ -80,8 +80,8 @@ sealed interface OnlineTarget {
 		}
 
 		@Override
-		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean trying) {
-			return dispatchLogins(online, logins, typeId, data, trying);
+		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent) {
+			return dispatchLogins(online, logins, typeId, data, quietWhenAbsent);
 		}
 
 		@Override
@@ -103,8 +103,8 @@ sealed interface OnlineTarget {
 	/** 单个账号（所有登录终端）。 */
 	record Account(@NotNull String account) implements OnlineTarget {
 		@Override
-		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean trying) {
-			return online.sendAccountDirect(account, typeId, data, trying);
+		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent) {
+			return online.sendAccountDirect(account, typeId, data, quietWhenAbsent);
 		}
 
 		@Override
@@ -120,8 +120,8 @@ sealed interface OnlineTarget {
 		}
 
 		@Override
-		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean trying) {
-			return dispatchAccounts(online, accounts, typeId, data, trying);
+		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent) {
+			return dispatchAccounts(online, accounts, typeId, data, quietWhenAbsent);
 		}
 
 		@Override
@@ -135,11 +135,11 @@ sealed interface OnlineTarget {
 		}
 	}
 
-	/** 可靠通知（Arch 底层 sendReliableNotifyDirect 不支持 trySend，trying 参数被忽略）。 */
+	/** 可靠通知（Arch 底层 sendReliableNotifyDirect 不支持该选项，quietWhenAbsent 参数被忽略）。 */
 	record Reliable(@NotNull String account, @NotNull String clientId,
 					@NotNull String listenerName) implements OnlineTarget {
 		@Override
-		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean trying) {
+		public int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean quietWhenAbsent) {
 			online.sendReliableNotifyDirect(account, clientId, listenerName, typeId, data);
 			return 1;
 		}

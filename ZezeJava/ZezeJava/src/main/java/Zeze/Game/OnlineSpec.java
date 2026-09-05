@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 public class OnlineSpec {
 	final @NotNull Online online;
 	final @NotNull OnlineTarget target;
-	boolean trying;
+	boolean quietWhenAbsent;
 	boolean withContext;
 
 	OnlineSpec(@NotNull Online online, @NotNull OnlineTarget target) {
@@ -44,13 +44,13 @@ public class OnlineSpec {
 		return new OnlineSpec(online, new OnlineTarget.Roles(roleIds));
 	}
 
-	/** 跨所有 OnlineSet 广播。trying 预设 true。 */
+	/** 跨所有 OnlineSet 广播。quietWhenAbsent 预设 true（广播时目标缺席是常态）。 */
 	public static @NotNull OnlineSpec ofAllOnline(@NotNull Online online, long roleId) {
-		return new OnlineSpec(online, new OnlineTarget.AllRoles(Set.of(roleId))).trying(true); // 不可变 Set，规范构造器零拷贝别名
+		return new OnlineSpec(online, new OnlineTarget.AllRoles(Set.of(roleId))).quietWhenAbsent(true); // 不可变 Set，规范构造器零拷贝别名
 	}
 
 	public static @NotNull OnlineSpec ofAllOnline(@NotNull Online online, @NotNull Collection<Long> roleIds) {
-		return new OnlineSpec(online, new OnlineTarget.AllRoles(roleIds)).trying(true);
+		return new OnlineSpec(online, new OnlineTarget.AllRoles(roleIds)).quietWhenAbsent(true);
 	}
 
 	public static @NotNull OnlineSpec ofReliableNotify(@NotNull Online online, long roleId,
@@ -70,9 +70,9 @@ public class OnlineSpec {
 
 	// ---------------- 选项 ----------------
 
-	/** 本次发送是否只是尝试（允许失败），影响错误日志。Arch 的 reliable 目标忽略此选项。 */
-	public @NotNull OnlineSpec trying(boolean trying) {
-		this.trying = trying;
+	/** 目标缺席（不在线/查无此登录/未登录完成）时是否静默跳过（不记缺席日志）；默认 false 记 info/debug 日志便于排障。Arch 的 reliable 目标忽略此选项。 */
+	public @NotNull OnlineSpec quietWhenAbsent(boolean quietWhenAbsent) {
+		this.quietWhenAbsent = quietWhenAbsent;
 		return this;
 	}
 
@@ -115,8 +115,8 @@ public class OnlineSpec {
 
 	private void send0(long typeId, @NotNull Binary data, @NotNull Online o) {
 		var tg = target; // 字段读进局部变量：延迟闭包只捕获局部变量，不捕获 spec 实例
-		var tr = trying;
-		Task.runTxnAware(() -> tg.send(o, typeId, data, tr));
+		var quiet = quietWhenAbsent;
+		Task.runTxnAware(() -> tg.send(o, typeId, data, quiet));
 	}
 
 	/**
@@ -130,14 +130,14 @@ public class OnlineSpec {
 		var o = resolveOnline();
 		var typeId = p.getTypeId();
 		tryLog(typeId, p, o);
-		return target.send(o, typeId, new Binary(p.encode()), trying);
+		return target.send(o, typeId, new Binary(p.encode()), quietWhenAbsent);
 	}
 
 	/** 同 {@link #sendNow(Protocol)}，载荷为已编码协议（typeId + 全编码字节）。 */
 	public int sendNow(long typeId, @NotNull Binary fullEncodedProtocol) {
 		if (target.isEmpty())
 			return 0;
-		return target.send(resolveOnline(), typeId, fullEncodedProtocol, trying);
+		return target.send(resolveOnline(), typeId, fullEncodedProtocol, quietWhenAbsent);
 	}
 
 	/** 事务回滚时发送。 */
@@ -149,8 +149,8 @@ public class OnlineSpec {
 		tryLog(typeId, p, o);
 		var data = new Binary(p.encode());
 		var tg = target;
-		var tr = trying;
-		Transaction.whileRollback(() -> tg.send(o, typeId, data, tr));
+		var quiet = quietWhenAbsent;
+		Transaction.whileRollback(() -> tg.send(o, typeId, data, quiet));
 	}
 
 	public void sendWhileRollback(long typeId, @NotNull Binary fullEncodedProtocol) {
@@ -158,7 +158,7 @@ public class OnlineSpec {
 			return;
 		var o = resolveOnline();
 		var tg = target;
-		var tr = trying;
-		Transaction.whileRollback(() -> tg.send(o, typeId, fullEncodedProtocol, tr));
+		var quiet = quietWhenAbsent;
+		Transaction.whileRollback(() -> tg.send(o, typeId, fullEncodedProtocol, quiet));
 	}
 }
