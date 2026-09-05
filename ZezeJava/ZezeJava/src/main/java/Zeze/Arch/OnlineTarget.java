@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
  */
 sealed interface OnlineTarget {
 
-	/** 把编码好的协议投递到本目标，立即执行。返回发送数（仅供内部参考，OnlineSpec 不使用）。 */
+	/** 把编码好的协议投递到本目标，立即执行。返回发送数（OnlineSpec.sendNow 透传给调用方；空目标 0）。 */
 	int send(@NotNull Online online, long typeId, @NotNull Binary data, boolean trying);
 
 	/** 协议日志标识。Arch 无 OnlineSet 概念，不需要 online 参数。 */

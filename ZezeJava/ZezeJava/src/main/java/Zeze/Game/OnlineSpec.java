@@ -119,20 +119,25 @@ public class OnlineSpec {
 		Task.runTxnAware(() -> tg.send(o, typeId, data, tr));
 	}
 
-	/** 立即发送，不等事务提交（即使在事务内；之后 rollback/redo 无法撤销）。 */
-	public void sendNow(@NotNull Protocol<?> p) {
+	/**
+	 * 立即发送，不等事务提交（即使在事务内；之后 rollback/redo 无法撤销）。
+	 *
+	 * @return 发送数（空目标 0；ofAllOnline 目标恒 -1，跨集合发送数无意义；仅供日志/统计参考）
+	 */
+	public int sendNow(@NotNull Protocol<?> p) {
 		if (target.isEmpty())
-			return;
+			return 0; // 空目标不编码
 		var o = resolveOnline();
 		var typeId = p.getTypeId();
 		tryLog(typeId, p, o);
-		target.send(o, typeId, new Binary(p.encode()), trying);
+		return target.send(o, typeId, new Binary(p.encode()), trying);
 	}
 
-	public void sendNow(long typeId, @NotNull Binary fullEncodedProtocol) {
+	/** 同 {@link #sendNow(Protocol)}，载荷为已编码协议（typeId + 全编码字节）。 */
+	public int sendNow(long typeId, @NotNull Binary fullEncodedProtocol) {
 		if (target.isEmpty())
-			return;
-		target.send(resolveOnline(), typeId, fullEncodedProtocol, trying);
+			return 0;
+		return target.send(resolveOnline(), typeId, fullEncodedProtocol, trying);
 	}
 
 	/** 事务回滚时发送。 */

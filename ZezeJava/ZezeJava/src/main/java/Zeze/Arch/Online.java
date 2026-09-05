@@ -1048,13 +1048,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 //		});
 //	}
 
-	/**
-	 * @deprecated 使用 {@code OnlineSpec.ofLogins(online, loginKeys).trying(trySend).send(typeId, fullEncodedProtocol)} 替代。
-	 */
+	/** @deprecated 使用 {@code OnlineSpec.ofLogins(online, loginKeys).trying(trySend).sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
 	public int send(@NotNull Collection<BLoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
 	                boolean trySend) {
-		return OnlineTarget.dispatchLogins(this, Set.copyOf(loginKeys), typeId, fullEncodedProtocol, trySend);
+		return OnlineSpec.ofLogins(this, loginKeys).trying(trySend).sendNow(typeId, fullEncodedProtocol);
 	}
 
 	/**
@@ -1283,12 +1281,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		OnlineSpec.ofAccount(this, account).send(typeId, fullEncodedProtocol);
 	}
 
-	/**
-	 * @deprecated 使用 {@code OnlineSpec.ofAccounts(online, accounts).send(typeId, fullEncodedProtocol)} 替代。
-	 */
+	/** @deprecated 使用 {@code OnlineSpec.ofAccounts(online, accounts).sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
 	public int sendAccounts(@NotNull Collection<String> accounts, long typeId, @NotNull Binary fullEncodedProtocol) { // OnlineSend sender
-		return OnlineTarget.dispatchAccounts(this, Set.copyOf(accounts), typeId, fullEncodedProtocol, false);
+		return OnlineSpec.ofAccounts(this, accounts).sendNow(typeId, fullEncodedProtocol);
 	}
 
 	/**

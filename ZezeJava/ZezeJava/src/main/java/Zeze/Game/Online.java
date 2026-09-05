@@ -1163,31 +1163,31 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 //	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().trying(trySend)
-	 *         .send(typeId, fullEncodedProtocol)} 替代。 */
+	 *         .sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
 	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
 					boolean trySend) {
-		return OnlineTarget.dispatch(getOnlineByContext(), roleIds, typeId, fullEncodedProtocol, trySend);
+		return OnlineSpec.ofRoles(this, roleIds).withContext().trying(trySend).sendNow(typeId, fullEncodedProtocol);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).trying(trySend)
-	 *         .send(typeId, fullEncodedProtocol)} 替代。 */
+	 *         .sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
 	public int sendOnline(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
 						  boolean trySend) {
-		return OnlineTarget.dispatch(this, roleIds, typeId, fullEncodedProtocol, trySend);
+		return OnlineSpec.ofRoles(this, roleIds).trying(trySend).sendNow(typeId, fullEncodedProtocol);
 	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().send(typeId, fullEncodedProtocol)} 替代。 */
+	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
 	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
-		return OnlineTarget.dispatch(getOnlineByContext(), roleIds, typeId, fullEncodedProtocol, false);
+		return OnlineSpec.ofRoles(this, roleIds).withContext().sendNow(typeId, fullEncodedProtocol);
 	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).send(typeId, fullEncodedProtocol)} 替代。 */
+	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
 	public int sendOnline(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol) {
-		return OnlineTarget.dispatch(this, roleIds, typeId, fullEncodedProtocol, false);
+		return OnlineSpec.ofRoles(this, roleIds).sendNow(typeId, fullEncodedProtocol);
 	}
 
 	/** @deprecated 使用 {@code OnlineSpec.ofAllOnline(online, roleIds).send(typeId, fullEncodedProtocol)} 替代。 */
