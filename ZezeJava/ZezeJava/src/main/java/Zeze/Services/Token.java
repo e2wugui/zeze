@@ -842,7 +842,7 @@ public final class Token extends AbstractToken {
 							sb.append(so.getSessionId()).append(',');
 					}
 				}
-				if (canLogNotifyTopic && sb.length() > 0) {
+				if (canLogNotifyTopic && !sb.isEmpty()) {
 					sb.setLength(sb.length() - 1);
 					AsyncSocket.log("SEND", sb.toString(), p);
 				}

@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntUnaryOperator;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
@@ -284,7 +283,7 @@ public class Bag {
 			comparison = Comparator.comparingLong(x -> x.getValue().getId());
 
 		@SuppressWarnings("unchecked")
-		var sort = (Map.Entry<Integer, BItem>[])bean.getItems().entrySet().toArray(new Map.Entry[bean.getItems().size()]);
+		var sort = (Map.Entry<Integer, BItem>[])bean.getItems().entrySet().toArray(new Map.Entry[0]);
 		Arrays.sort(sort, comparison);
 		for (int i = 0; i < sort.length; ++i) {
 			BItem copy = sort[i].getValue().copy();
