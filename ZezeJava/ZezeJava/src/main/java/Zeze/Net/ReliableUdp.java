@@ -11,6 +11,7 @@ import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -21,6 +22,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.NonNull;
 
 /**
  * 简单可靠udp实现。
@@ -49,6 +51,8 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	private final ConcurrentHashMap<SocketAddress, Session> sessions = new ConcurrentHashMap<>();
 	private final ReliableUdpHandle defaultHandle;
 	private int MaxPacketLength = 2048;
+	private final LongAdder malformedPackets = new LongAdder();
+	private volatile long lastMalformedWarnTime;
 
 	// 应用应该需要这个，特别是Server端，免得外面又需要建立一个Map来管理。
 	// 【注意】应用直接删除这个Map时需要注意是否会出现问题。
@@ -347,7 +351,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 				// UDP源地址可伪造，包内字节任意。type本身及Packet/Control的ReadLong/ReadBytes/
 				// ReadUInt(count)都是变长编码，畸形包必抛异常；异常抛到Selector会无条件关闭
 				// 整个channel（Selector对doHandle异常兜底key.channel().close()），单个畸形包
-				// 杀掉全部会话。按包捕获，记日志丢弃。
+				// 杀掉全部会话。按包捕获，限频warn+计数（每包一条会被打成日志洪水）丢弃。
 				try {
 					var type = bb.ReadUInt();
 					switch (type) {
@@ -359,7 +363,13 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 						break;
 					}
 				} catch (Exception e) {
-					logger.warn("malformed udp packet from {}", source, e);
+					malformedPackets.increment();
+					var now = System.currentTimeMillis();
+					if (now - lastMalformedWarnTime >= 1000) {
+						lastMalformedWarnTime = now;
+						logger.warn("malformed udp packets: count={} lastSource={}",
+								malformedPackets.sumThenReset(), source, e);
+					}
 				}
 			}
 			return;
@@ -369,7 +379,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	}
 
 	@Override
-	public void doException(SelectionKey key, Throwable e) {
+	public void doException(@NonNull SelectionKey key, @NonNull Throwable e) {
 		logger.error("doException", e);
 	}
 
