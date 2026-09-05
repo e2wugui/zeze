@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import java.net.ServerSocket;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import Zeze.Application;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
@@ -30,6 +31,8 @@ public class LinkdService extends HandshakeServer {
 	protected LinkdApp linkdApp;
 	protected volatile long curSendSpeed; // bytes/sec
 	private final AtomicLong loginTimes = new AtomicLong();
+	private final LongAdder busyParseFailures = new LongAdder();
+	private volatile long lastBusyParseWarnTime;
 
 	public LinkdService(@NotNull String name, Application zeze) {
 		super(name, zeze);
@@ -76,7 +79,15 @@ public class LinkdService extends HandshakeServer {
 				so = GetSocket(dispatch.Argument.getLinkSid());
 			}
 		} catch (Exception e) {
-			so = null; // 畸形帧：跳过Busy应答
+			// 畸形帧：跳过Busy应答。限频warn+计数：过载路径上畸形帧可能高频，每帧一条会刷日志。
+			busyParseFailures.increment();
+			var now = System.currentTimeMillis();
+			if (now - lastBusyParseWarnTime >= 1000) {
+				lastBusyParseWarnTime = now;
+				logger.warn("busy-reply parse fail: count={} linkSid={} typeId={}",
+						busyParseFailures.sumThenReset(), dispatch.Argument.getLinkSid(),
+						dispatch.Argument.getProtocolType(), e);
+			}
 		}
 		if (so != null) {
 			// argument 忽略，必须要解析出来，也不知道是什么。

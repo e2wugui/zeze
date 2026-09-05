@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.util.concurrent.atomic.LongAdder;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Builtin.Provider.AnnounceLinkInfo;
 import Zeze.Builtin.Provider.BKick;
@@ -37,6 +38,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	protected ProviderApp providerApp;
 	private volatile int controlKick = BKick.eControlClose;
+	private final LongAdder busyParseFailures = new LongAdder();
+	private volatile long lastBusyParseWarnTime;
 
 	public void setControlKick(int control) {
 		controlKick = control;
@@ -146,7 +149,14 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 							replyBusy = true;
 						}
 					} catch (Exception e) {
-						replyBusy = false; // 畸形帧：跳过Busy应答
+						// 畸形帧：跳过Busy应答。限频warn+计数：过载路径上畸形帧可能高频，每帧一条会刷日志。
+						busyParseFailures.increment();
+						var now = System.currentTimeMillis();
+						if (now - lastBusyParseWarnTime >= 1000) {
+							lastBusyParseWarnTime = now;
+							logger.warn("busy-reply parse fail: count={} linkSid={} typeId={}",
+									busyParseFailures.sumThenReset(), linkSid, typeId, e);
+						}
 					}
 					if (replyBusy) {
 						// 简单构造并回复该RPC
