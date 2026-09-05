@@ -128,19 +128,29 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				if (overload == BLoad.eThreshold && factoryHandle.CriticalLevel == Protocol.eSheddable ||
 					overload == BLoad.eOverload && factoryHandle.CriticalLevel != Protocol.eCriticalPlus) {
 					var pdata = arg.getProtocolData();
-					// FND2-A1-8：protocolData是Dispatch透传的客户端可控字节，长度任意。镜像
-					// LinkdService.reportError（a26aa9845）的门卫：rpc帧布局为
-					// UInt(header)+[Long(resultCode)]+Long(sessionId)（见Rpc.encode）。长度不足时
-					// 跳过Busy应答（过载本就丢弃该协议），解析越界异常不再刷oneByOne池线程错误日志。
-					var bb = pdata.Wrap();
-					var header = pdata.size() >= 4 ? bb.ReadUInt() : 0;
-					if ((header & FamilyClass.FamilyClassMask) == FamilyClass.Request
-							&& bb.size() >= (((header & FamilyClass.BitResultCode) != 0) ? 16 : 8)) {
+					// FND2-A1-8：protocolData是Dispatch透传的客户端可控字节，长度任意。rpc帧布局为
+					// UInt(header)+[Long(resultCode)]+Long(sessionId)（见Rpc.encode）。ReadUInt/SkipLong/
+					// ReadLong都是变长编码（各最多9字节，首字节决定），数字长度门卫不闭合
+					// （07f37f196镜像a26aa9845的>=4/>=16/8，对首字节>=0xf0的构造包仍会越界抛
+					// 异常），故整体try/catch：畸形帧跳过Busy应答（过载本就丢弃该协议），
+					// 解析异常不再刷oneByOne池线程错误日志。
+					var sessionId = 0L;
+					var replyBusy = false;
+					try {
+						var bb = pdata.Wrap();
+						var header = bb.ReadUInt();
+						if ((header & FamilyClass.FamilyClassMask) == FamilyClass.Request) {
+							if ((header & FamilyClass.BitResultCode) != 0)
+								bb.SkipLong(); // resultCode
+							sessionId = bb.ReadLong();
+							replyBusy = true;
+						}
+					} catch (Exception e) {
+						replyBusy = false; // 畸形帧：跳过Busy应答
+					}
+					if (replyBusy) {
 						// 简单构造并回复该RPC
-						if ((header & FamilyClass.BitResultCode) != 0)
-							bb.SkipLong(); // resultCode
-						var sessionId = bb.ReadLong();
-						bb = ByteBuffer.Allocate(24);
+						var bb = ByteBuffer.Allocate(24);
 						bb.WriteInt4s(Protocol.getModuleId(typeId), Protocol.getProtocolId(typeId));
 						int saveSize = bb.BeginWriteWithSize4();
 						bb.WriteUInt(FamilyClass.Response | FamilyClass.BitResultCode);

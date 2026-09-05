@@ -61,16 +61,24 @@ public class LinkdService extends HandshakeServer {
 		// see Zeze.Net.Rpc.decode/encode
 		var bb = ByteBuffer.Wrap(dispatch.Argument.getProtocolData());
 		// FND-A1-7：protocolData由客户端拼装、长度任意（可为0）。rpc帧布局为
-		// UInt(header)+[Long(resultCode)]+Long(sessionId)（见Rpc.encode）。长度不足时跳过
-		// rpc应答部分（只发下面的ReportError），解析越界异常不再打断IO线程→断开该连接。
-		var header = bb.size() >= 4 ? bb.ReadUInt() : 0;
-		AsyncSocket so;
-		if ((header & FamilyClass.FamilyClassMask) == FamilyClass.Request
-				&& bb.size() >= (((header & FamilyClass.BitResultCode) != 0) ? 16 : 8)
-				&& (so = GetSocket(dispatch.Argument.getLinkSid())) != null) {
-			if ((header & FamilyClass.BitResultCode) != 0)
-				bb.SkipLong();
-			var sessionId = bb.ReadLong();
+		// UInt(header)+[Long(resultCode)]+Long(sessionId)（见Rpc.encode）。ReadUInt/SkipLong/
+		// ReadLong都是变长编码（各最多9字节，首字节决定），数字长度门卫不闭合（a26aa9845的
+		// >=4/>=16/8对首字节>=0xf0的构造包仍会越界抛异常），故整体try/catch：畸形帧跳过
+		// rpc应答部分（只发下面的ReportError），解析异常不再打断IO线程→断开该连接。
+		AsyncSocket so = null;
+		var sessionId = 0L;
+		try {
+			var header = bb.ReadUInt();
+			if ((header & FamilyClass.FamilyClassMask) == FamilyClass.Request) {
+				if ((header & FamilyClass.BitResultCode) != 0)
+					bb.SkipLong(); // resultCode
+				sessionId = bb.ReadLong();
+				so = GetSocket(dispatch.Argument.getLinkSid());
+			}
+		} catch (Exception e) {
+			so = null; // 畸形帧：跳过Busy应答
+		}
+		if (so != null) {
 			// argument 忽略，必须要解析出来，也不知道是什么。
 
 			// 开始响应rpc.response.
