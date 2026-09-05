@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import Zeze.Net.ProtocolDispatch;
+import Zeze.Net.Protocol;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -151,13 +151,58 @@ public class TestTaskSpec {
 	public void testOfFuncErrorHandle() {
 		var handled = new AtomicLong(-1);
 		// p == null => isRequestSaved，结果非0时回调 errorHandle
-		long r = ProtocolDispatch.ofFunc(() -> 1L, null).onError((p, code) -> handled.set(code)).call();
+		long r = TaskSpec.ofFunc(() -> 1L, null, (p, code) -> handled.set(code)).call();
 		Assertions.assertEquals(1L, r);
 		Assertions.assertEquals(1L, handled.get());
 		// 结果为 0 不回调
 		handled.set(-1);
-		Assertions.assertEquals(0L, (long)ProtocolDispatch.ofFunc(() -> 0L, null).onError((p, code) -> handled.set(code)).call());
+		Assertions.assertEquals(0L, (long)TaskSpec.ofFunc(() -> 0L, null, (p, code) -> handled.set(code)).call());
 		Assertions.assertEquals(-1L, handled.get());
+		// p 非 null 且是请求：onError 收到的就是传入的 p
+		var stub = new StubProtocol();
+		var got = new AtomicReference<Protocol<?>>();
+		Assertions.assertEquals(2L, TaskSpec.ofFunc(() -> 2L, stub, (p, code) -> {
+			got.set(p);
+			handled.set(code);
+		}).call());
+		Assertions.assertSame(stub, got.get());
+		Assertions.assertEquals(2L, handled.get());
+	}
+
+	/**
+	 * 协议版 ofFunc 直接提交 OneByOne（拍平后不再套内层 call()）：
+	 * 队列执行走 callRaw，错误回发必须照常触发。
+	 */
+	@Test
+	public void testOfFuncProtocolOneByOne() throws Exception {
+		var oo = new TaskOneByOneByKey();
+		var handled = new AtomicLong(-1);
+		TaskSpec.ofFunc(() -> 1L, null, (p, code) -> handled.set(code))
+				.name("testOfFuncProtocolOneByOne")
+				.executeOneByOne("protoKey", oo);
+		long begin = System.currentTimeMillis();
+		while (handled.get() == -1 && System.currentTimeMillis() - begin < 10_000)
+			//noinspection BusyWait
+			Thread.sleep(10);
+		Assertions.assertEquals(1L, handled.get());
+	}
+
+	/**
+	 * 协议版载荷的默认任务名 = 协议类名（无协议时回退载荷类名），name 显式覆盖。
+	 */
+	@Test
+	public void testOfFuncProtocolLogName() {
+		var noop = new TaskOneByOneByKey(64, r -> {
+		}); // no-op executor：任务入队后不执行
+		var stub = new StubProtocol();
+		TaskSpec.ofFunc(() -> 0L, stub).executeOneByOne("k1", noop);
+		TaskSpec.ofFunc(() -> 0L, null).name("TestTaskSpec.NoProtoNamedFunc").executeOneByOne("k2", noop);
+		TaskSpec.ofFunc(() -> 0L, stub).name("TestTaskSpec.NamedProtocolFunc").executeOneByOne("k3", noop);
+		TaskSpec.ofFunc(() -> 0L).executeOneByOne("k4", noop); // 无协议无名字：默认 lambda 类名
+		var dump = noop.toString();
+		Assertions.assertTrue(dump.contains(StubProtocol.class.getName()), dump);
+		Assertions.assertTrue(dump.contains("$Lambda"), dump); // 无协议回退 lambda 类名
+		Assertions.assertTrue(dump.contains("TestTaskSpec.NamedProtocolFunc"), dump);
 	}
 
 	@Test
@@ -220,12 +265,40 @@ public class TestTaskSpec {
 				App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.ofProcedure.submitNow")).submitNow();
 		Assertions.assertEquals(0L, (long)future.get(10, TimeUnit.SECONDS));
 
+		// from 版（from 为 null 等价无协议）
+		Assertions.assertEquals(0L, (long)TaskSpec.ofProcedure(
+				App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.ofProcedure.from"), null).call());
 		// outProtocol 分支（value 未被过程设置时 from 为 null）
-		var out = new OutObject<Zeze.Net.Protocol<?>>();
-		Assertions.assertEquals(0L, (long)ProtocolDispatch.ofProcedure(
-				App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.ofProcedure.outProtocol"))
-				.outProtocol(out).call());
+		var out = new OutObject<Protocol<?>>();
+		Assertions.assertEquals(0L, (long)TaskSpec.ofProcedureOut(
+				App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.ofProcedure.outProtocol"), out, null).call());
 		Assertions.assertNull(out.value);
+	}
+
+	/**
+	 * 协议版 Procedure 载荷同受"事务内 Direct 拒绝"保护（isProcedurePayload）。
+	 */
+	@Test
+	public void testOfProcedureProtocolDirectInTxnRejected() throws Exception {
+		App.Instance.Start();
+		var result = App.Instance.Zeze.newProcedure(() -> {
+			try {
+				TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.protoProc"), null)
+						.dispatchMode(DispatchMode.Direct).run();
+				Assertions.fail();
+			} catch (IllegalArgumentException expected) {
+				// 预期拒绝
+			}
+			try {
+				TaskSpec.ofProcedureOut(App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.protoProcOut"),
+						new OutObject<>(), null).dispatchMode(DispatchMode.Direct).run();
+				Assertions.fail();
+			} catch (IllegalArgumentException expected) {
+				// 预期拒绝
+			}
+			return 0L;
+		}, "testOfProcedureProtocolDirectInTxnRejected").call();
+		Assertions.assertEquals(0L, result);
 	}
 
 	@Test
@@ -613,5 +686,32 @@ public class TestTaskSpec {
 			//noinspection BusyWait
 			Thread.sleep(10);
 		Assertions.assertEquals(expected, counter.get());
+	}
+
+	private static final class StubBean implements Zeze.Serialize.Serializable {
+		@Override
+		public void encode(Zeze.Serialize.ByteBuffer bb) {
+		}
+
+		@Override
+		public void decode(Zeze.Serialize.IByteBuffer bb) {
+		}
+	}
+
+	/** isRequest 恒为 true 的最小协议实例，仅用于日志名/错误回发目标断言。 */
+	private static final class StubProtocol extends Protocol<StubBean> {
+		@Override
+		public int getModuleId() {
+			return 0;
+		}
+
+		@Override
+		public int getProtocolId() {
+			return 1;
+		}
+
+		StubProtocol() {
+			Argument = new StubBean();
+		}
 	}
 }

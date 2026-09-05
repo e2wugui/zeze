@@ -1,16 +1,19 @@
 package Zeze.Util;
 
+import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolErrorHandle;
 import Zeze.Transaction.Procedure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 任务载荷的统一抽象，{@link TaskSpec} 四种载荷（Action0/FuncLong/Procedure/Func0）的密封实现。
+ * 任务载荷的统一抽象，{@link TaskSpec} 各工厂（Action0/FuncLong/Procedure/Func0 及协议版变体）的密封实现。
  * 载荷类型之间的差异只有三处，全部收敛到本接口：
  * <ul>
  * <li>异常/结果策略：见 {@link #call(String)}；</li>
- * <li>日志名解析：OfProcedure 固定 getActionName()，其余 name 优先、空则载荷类名，见 {@link #logName(String)}；</li>
- * <li>ZezeCounter 统计位置：OfFunc/OfProcedure 在 call 内部完成（statsKey 返回 null，外层不再计数），
+ * <li>日志名解析：Procedure 系固定 getActionName()，OfProtocolFunc 为 name/协议类名优先，
+ *     其余 name 优先、空则载荷类名，见 {@link #logName(String)}；</li>
+ * <li>ZezeCounter 统计位置：Func/Procedure 系在 call 内部完成（statsKey 返回 null，外层不再计数），
  *     OfAction/OfFunc0 由外层 core 按 {@link #statsKey(String)} 计数。</li>
  * </ul>
  * Task 的各执行家族（call/submit/execute/schedule/scheduleAt）与 OneByOne 队列因此用一份代码处理所有载荷。
@@ -49,6 +52,15 @@ public sealed interface TaskBody<R> {
 	 * null 表示统计已在 call 内部完成（OfFunc/OfProcedure），外层 core 不再计数。
 	 */
 	@Nullable Object statsKey(@Nullable String name);
+
+	/**
+	 * 载荷是否为存储过程（OfProcedure/OfProtocolProcedure/OfProcedureOut）。
+	 * {@code TaskSpec.run()} 在运行中的事务内拒绝 dispatchMode(Direct) 的校验用它判断
+	 * （commit 回调中事务已 Completed，无法再开新事务）。
+	 */
+	default boolean isProcedurePayload() {
+		return false;
+	}
 
 	/**
 	 * Action0 载荷：吞异常记日志，结果归一为 Long(0)。
@@ -117,6 +129,39 @@ public sealed interface TaskBody<R> {
 	}
 
 	/**
+	 * FuncLong + 协议上下文载荷（TaskSpec.ofFunc(func, p[, onError])）：异常翻错误码、
+	 * 结果非 0 且是请求时的错误回发、协议版日志与统计，全部在 callFuncCore 内完成。
+	 * Error（callFuncCore 只捕获 Exception）原样传播：submit 家族经 Future 异常完成，不被吞成错误码。
+	 */
+	record OfProtocolFunc(@NotNull FuncLong func, @Nullable Protocol<?> p,
+						  @Nullable ProtocolErrorHandle onError) implements TaskBody<Long> {
+		@Override
+		public Long call(@Nullable String name) {
+			return Task.callFuncCore(func, p, onError, name);
+		}
+
+		@Override
+		public Long callRaw() throws Exception {
+			return Task.callFuncCore(func, p, onError, null);
+		}
+
+		@Override
+		public Long callForFuture(@Nullable String name) {
+			return call(name); // 翻错误码进结果，Future 不携带异常
+		}
+
+		@Override
+		public @NotNull String logName(@Nullable String name) {
+			return name != null ? name : p != null ? p.getClass().getName() : func.getClass().getName();
+		}
+
+		@Override
+		public @Nullable Object statsKey(@Nullable String name) {
+			return null; // 统计在 callFuncCore 内完成，外层不再计数
+		}
+	}
+
+	/**
 	 * Procedure 载荷：同 OfFunc，日志名固定使用 getActionName()（name 参数无效）。
 	 */
 	record OfProcedure(@NotNull Procedure procedure) implements TaskBody<Long> {
@@ -148,6 +193,85 @@ public sealed interface TaskBody<R> {
 		@Override
 		public @Nullable Object statsKey(@Nullable String name) {
 			return null; // 统计在 procedure.call 内完成，外层不再计数
+		}
+
+		@Override
+		public boolean isProcedurePayload() {
+			return true;
+		}
+	}
+
+	/**
+	 * Procedure + 触发协议载荷（TaskSpec.ofProcedure(procedure, from[, onError])）：同 OfProcedure，
+	 * 但携带 from 用于日志、统计与错误回发；Error 原样传播（见 {@link OfProtocolFunc}）。
+	 */
+	record OfProtocolProcedure(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+							   @Nullable ProtocolErrorHandle onError) implements TaskBody<Long> {
+		@Override
+		public Long call(@Nullable String name) {
+			return Task.callProcCore(procedure, from, onError);
+		}
+
+		@Override
+		public Long callRaw() {
+			return Task.callProcCore(procedure, from, onError);
+		}
+
+		@Override
+		public Long callForFuture(@Nullable String name) {
+			return call(name); // 翻错误码进结果，Future 不携带异常
+		}
+
+		@Override
+		public @NotNull String logName(@Nullable String name) {
+			return procedure.getActionName();
+		}
+
+		@Override
+		public @Nullable Object statsKey(@Nullable String name) {
+			return null; // 统计在 procedure.call 内完成，外层不再计数
+		}
+
+		@Override
+		public boolean isProcedurePayload() {
+			return true;
+		}
+	}
+
+	/**
+	 * Procedure + 过程内解码协议载荷（TaskSpec.ofProcedureOut）：协议由过程内部 decode 并经 outProtocol
+	 * 带出（支持 redo 时重新解码），错误回发与日志按带出后的协议判断（value 未设置时视 from 为 null）。
+	 */
+	record OfProcedureOut(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+						  @Nullable ProtocolErrorHandle onError) implements TaskBody<Long> {
+		@Override
+		public Long call(@Nullable String name) {
+			return Task.callProcOutCore(procedure, outProtocol, onError);
+		}
+
+		@Override
+		public Long callRaw() {
+			return Task.callProcOutCore(procedure, outProtocol, onError);
+		}
+
+		@Override
+		public Long callForFuture(@Nullable String name) {
+			return call(name); // 翻错误码进结果，Future 不携带异常
+		}
+
+		@Override
+		public @NotNull String logName(@Nullable String name) {
+			return procedure.getActionName();
+		}
+
+		@Override
+		public @Nullable Object statsKey(@Nullable String name) {
+			return null; // 统计在 procedure.call 内完成，外层不再计数
+		}
+
+		@Override
+		public boolean isProcedurePayload() {
+			return true;
 		}
 	}
 

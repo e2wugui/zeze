@@ -4,6 +4,8 @@ import java.util.Objects;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 
+import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolErrorHandle;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -15,18 +17,21 @@ import org.jetbrains.annotations.Nullable;
  * 工厂收载荷，setter 收任务属性，终结方法定执行方式：
  *
  * <pre>
- * TaskSpec.ofAction(() -> doSomething())              // 载荷（4 种工厂）
+ * TaskSpec.ofAction(() -> doSomething())              // 载荷（含协议版工厂）
  *         .name("MyTask")                             // 任务属性（链式 setter）
  *         .dispatchMode(DispatchMode.Critical)
  *         .run();                                     // 执行方式（终结方法）
  * TaskSpec.ofAction(this::logout).executeOneByOne(account, oneByOne); // key+queue 是终结方法参数
  * </pre>
  * <p>
- * 载荷与异常策略（载荷类型见 {@link TaskBody} 的 4 个密封实现）：
+ * 载荷与异常策略（载荷类型见 {@link TaskBody} 的密封实现）：
  * <ul>
  * <li>ofAction：Action0，异常吞掉只记日志，结果归一为 Long(0)；</li>
- * <li>ofFunc：FuncLong，返回 long 结果，异常翻错误码并走结果日志；</li>
- * <li>ofProcedure：Procedure，同 ofFunc，日志名固定使用 procedure.getActionName()（{@link #name} 对它无效）；</li>
+ * <li>ofFunc：FuncLong，返回 long 结果，异常翻错误码并走结果日志；
+ *     协议版重载 ofFunc(func, p[, onError]) 额外携带关联协议（日志、统计与结果非 0 时的错误回发）；</li>
+ * <li>ofProcedure：Procedure，同 ofFunc，日志名固定使用 procedure.getActionName()（{@link #name} 对它无效）；
+ *     协议版重载 ofProcedure(procedure, from[, onError]) 额外携带触发协议；</li>
+ * <li>ofProcedureOut：Procedure + OutObject，协议由过程内部解码并带出（支持 redo 时重新解码），必带 onError 目标；</li>
  * <li>ofFunc0：Func0&lt;R&gt;，返回值与异常都经 Future 传播（call() 时直接抛给调用者）。</li>
  * </ul>
  * <p>
@@ -41,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
  * <p>fail-fast 校验（终结方法执行时）：
  * <ul>
  * <li>{@link #call} 显式设置过 dispatchMode/timeout/onCancel → IllegalArgumentException；</li>
- * <li>{@link #run} 在运行中的事务内且 ofProcedure + dispatchMode(Direct) → IllegalArgumentException
+	 * <li>{@link #run} 在运行中的事务内且 Procedure 系载荷 + dispatchMode(Direct) → IllegalArgumentException
  *     （Direct 延迟时在 commit 回调中同步执行，无法再开事务）；</li>
  * <li>run 族（{@link #run}/{@link #runNow}/{@link #submitNow}）显式设置过 onCancel → IllegalArgumentException；</li>
  * <li>schedule 族显式设置过 dispatchMode/onCancel → IllegalArgumentException；
@@ -85,6 +90,28 @@ public final class TaskSpec<R> {
 	}
 
 	/**
+	 * 协议版 ofFunc：额外携带关联协议 p（用于日志、统计与错误回发），可为空。
+	 *
+	 * @param func 不能为空
+	 * @param p 关联协议，可为空
+	 */
+	public static @NotNull TaskSpec<Long> ofFunc(@NotNull FuncLong func, @Nullable Protocol<?> p) {
+		return new TaskSpec<>(new TaskBody.OfProtocolFunc(Objects.requireNonNull(func), p, null));
+	}
+
+	/**
+	 * 协议版 ofFunc：结果非 0 且协议是请求时执行 onError 回发错误码。
+	 *
+	 * @param func 不能为空
+	 * @param p 关联协议，可为空
+	 * @param onError 错误回发回调，可为空
+	 */
+	public static @NotNull TaskSpec<Long> ofFunc(@NotNull FuncLong func, @Nullable Protocol<?> p,
+												 @Nullable ProtocolErrorHandle onError) {
+		return new TaskSpec<>(new TaskBody.OfProtocolFunc(Objects.requireNonNull(func), p, onError));
+	}
+
+	/**
 	 * 带返回值的任务，返回值与异常都经 Future 传播（区别于 ofAction 的异常吞掉只打日志）。
 	 *
 	 * @param func 不能为空
@@ -100,6 +127,44 @@ public final class TaskSpec<R> {
 	 */
 	public static @NotNull TaskSpec<Long> ofProcedure(@NotNull Procedure procedure) {
 		return new TaskSpec<>(new TaskBody.OfProcedure(Objects.requireNonNull(procedure)));
+	}
+
+	/**
+	 * 协议版 ofProcedure：额外携带触发协议 from（用于日志、统计与错误回发），可为空。
+	 *
+	 * @param procedure 不能为空
+	 * @param from 触发本过程的原协议，可为空
+	 */
+	public static @NotNull TaskSpec<Long> ofProcedure(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
+		return new TaskSpec<>(new TaskBody.OfProtocolProcedure(Objects.requireNonNull(procedure), from, null));
+	}
+
+	/**
+	 * 协议版 ofProcedure：结果非 0 且协议是请求时执行 onError 回发错误码。
+	 *
+	 * @param procedure 不能为空
+	 * @param from 触发本过程的原协议，可为空
+	 * @param onError 错误回发回调，可为空
+	 */
+	public static @NotNull TaskSpec<Long> ofProcedure(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+													  @Nullable ProtocolErrorHandle onError) {
+		return new TaskSpec<>(new TaskBody.OfProtocolProcedure(Objects.requireNonNull(procedure), from, onError));
+	}
+
+	/**
+	 * 过程内解码协议版 ofProcedure：协议由过程内部 decode 并经 outProtocol 带出
+	 * （支持 redo 时重新解码，from 语义由带出后的协议承担），结果非 0 且是请求时执行 onError 回发错误码。
+	 * 与 ofProcedure(proc, from[, onError]) 分开命名，避免字面量 null 的重载歧义。
+	 *
+	 * @param procedure 不能为空
+	 * @param outProtocol 过程内部解码出的协议经它带出，不能为空
+	 * @param onError 错误回发回调，可为空
+	 */
+	public static @NotNull TaskSpec<Long> ofProcedureOut(@NotNull Procedure procedure,
+														 @NotNull OutObject<Protocol<?>> outProtocol,
+														 @Nullable ProtocolErrorHandle onError) {
+		return new TaskSpec<>(new TaskBody.OfProcedureOut(Objects.requireNonNull(procedure),
+				Objects.requireNonNull(outProtocol), onError));
 	}
 
 	/**
@@ -180,14 +245,15 @@ public final class TaskSpec<R> {
 	 * （rollback 不执行、redo 由新一轮重新注册），否则立即执行。
 	 * dispatchMode 只决定执行位置：Normal/Critical 延迟时在提交后入池执行（之后可正常开新事务）；
 	 * Direct 延迟时在 commit 回调中于提交线程同步执行（此时事务已 Completed，不能再访问表或开新事务），
-	 * 因此 ofProcedure + dispatchMode(Direct) 在事务内 run() 抛 IllegalArgumentException，请改用 runNow()/call()。
+	 * 因此 Procedure 系载荷（ofProcedure/ofProcedureOut）+ dispatchMode(Direct) 在事务内 run() 抛
+	 * IllegalArgumentException，请改用 runNow()/call()。
 	 * 显式设置过 onCancel 时抛 IllegalArgumentException（run 族无队列丢弃语义，不消费它）。
 	 * 上述校验都在消费实例之前完成，抛错后本实例仍可用于 runNow()/call() 等补救调用。
 	 */
 	public void run() {
 		checkRunOptions();
 		var t = Transaction.getCurrent();
-		if (body instanceof TaskBody.OfProcedure && dispatchMode == DispatchMode.Direct && t != null && t.isRunning())
+		if (body.isProcedurePayload() && dispatchMode == DispatchMode.Direct && t != null && t.isRunning())
 			throw new IllegalArgumentException("run() in a running transaction does not accept ofProcedure + dispatchMode(Direct): procedure cannot run in commit callback; use runNow()/call() or another dispatchMode");
 		consume();
 		Task.runTxnAware(this::runNowInternal);
