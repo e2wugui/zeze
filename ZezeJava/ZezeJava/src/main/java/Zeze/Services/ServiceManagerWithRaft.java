@@ -7,7 +7,6 @@ import Zeze.Builtin.ServiceManagerWithRaft.*;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
-import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Raft.IRaftRpc;
 import Zeze.Raft.Raft;
@@ -109,7 +108,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				if (logger.isDebugEnabled())
 					logger.debug("dispatchRaftRpcResponse: {}{}", rpc.getClass().getName(), rpc);
 				var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
-				ProtocolDispatch.ofFunc(procedure::call, rpc).call();
+				TaskSpec.ofFunc(procedure::call, rpc).call();
 			} finally {
 				unlock();
 			}
@@ -132,7 +131,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 						logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
 					}
 					var procedure = new Procedure(rocks, func);
-					return ProtocolDispatch.ofFunc(procedure::call, p).onError(Protocol::SendResultCode).call();
+					return TaskSpec.ofFunc(procedure::call, p, Protocol::SendResultCode).call();
 				} finally {
 					unlock();
 				}

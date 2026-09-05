@@ -6,7 +6,6 @@ import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
-import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
@@ -191,7 +190,7 @@ public class Server extends HandshakeBoth {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			try {
-				Raft.executeImportantTask(() -> ProtocolDispatch.ofFunc(() -> responseHandle.handle(p), p).call());
+				Raft.executeImportantTask(() -> TaskSpec.ofFunc(() -> responseHandle.handle(p), p).call());
 			} catch (RejectedExecutionException e) {
 				logger.warn("RejectedExecutionException for {}", p);
 			}
@@ -207,7 +206,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	public long processRequest(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) {
-		return ProtocolDispatch.ofFunc(() -> {
+		return TaskSpec.ofFunc(() -> {
 			if (raft.waitLeaderReady()) {
 				UniqueRequestState state = raft.getLogSequence().tryGetRequestState(p);
 				if (state != null) {
@@ -227,7 +226,7 @@ public class Server extends HandshakeBoth {
 			}
 			trySendLeaderIs(p.getSender());
 			return 0L;
-		}, p).onError(Protocol::trySendResultCode).call();
+		}, p, Protocol::trySendResultCode).call();
 	}
 
 	/**
@@ -247,7 +246,7 @@ public class Server extends HandshakeBoth {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
 			Raft.executeImportantTask(() ->
-					ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p).call());
+					TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p).call());
 			return;
 		}
 

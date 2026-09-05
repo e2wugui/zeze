@@ -18,7 +18,6 @@ import Zeze.Hot.HotGuard;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
-import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolErrorHandle;
 import Zeze.Net.Service;
 import Zeze.Raft.RaftRetryException;
@@ -368,7 +367,7 @@ public final class Task {
 	 * （rollback 不执行、redo 由新一轮重新注册），否则立即执行。
 	 * 注意被延迟的 action 在事务的 commit 回调中同步执行，此时事务已 Completed，
 	 * 不能再访问表或开新事务（需要事务的工作应在 action 内转入线程池执行）。
-	 * 供 Zeze.Net.ProtocolDispatch 等 Util 包外的框架层复用。
+	 * 供 TaskSpec 与 Arch/Game 等框架层复用。
 	 */
 	public static void runTxnAware(@NotNull Runnable action) {
 		Transaction t;
@@ -712,17 +711,17 @@ public final class Task {
 		}
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).call()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).call()}。 */
 	@Deprecated
 	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		return ProtocolDispatch.ofFunc(func, p).call();
+		return TaskSpec.ofFunc(func, p).call();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).call()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).call()}。 */
 	@Deprecated
 	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
 							@Nullable ProtocolErrorHandle actionWhenError) {
-		return ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).call();
+		return TaskSpec.ofFunc(func, p, actionWhenError).call();
 	}
 
 	public static @NotNull Throwable getRootCause(@NotNull Throwable e) {
@@ -734,16 +733,16 @@ public final class Task {
 		}
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).call()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).call()}。 */
 	@Deprecated
 	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
 							@Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
-		return ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).call();
+		return TaskSpec.ofFunc(func, p, actionWhenError).name(aName).call();
 	}
 
-	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
-	public static long callFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
-									@Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
+	/** 协议版 Func 载荷的叶子核心（TaskBody.OfProtocolFunc 调用）：异常翻错误码、错误回发、协议日志与统计。 */
+	static long callFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
+					   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		boolean isRequestSaved = p == null || p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
@@ -782,185 +781,147 @@ public final class Task {
 	}
 
 	// 无协议路径已由 TaskBody.OfFunc/OfProcedure 与统一 core（callCore/submitCore/executeCore）覆盖；
-	// 协议感知路径见 Zeze.Net.ProtocolDispatch 与下方的 public core。
+	// 协议感知路径同样由 TaskBody 协议版载荷路由到下方的 call core，不再需要独立的 submit/execute 协议 core。
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).run()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).run()}。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		ProtocolDispatch.ofFunc(func, p).run();
+		TaskSpec.ofFunc(func, p).run();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).run()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).run()}。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 						   @Nullable ProtocolErrorHandle actionWhenError) {
-		ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).run();
+		TaskSpec.ofFunc(func, p, actionWhenError).run();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).run()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).run()}。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
-		ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).run();
+		TaskSpec.ofFunc(func, p, actionWhenError).name(aName).run();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 						   @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
-			ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).runNow();
+			TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).runNow();
 			return;
 		}
-		ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).run();
+		TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).run();
 	}
 
 	/** @deprecated
-	 * 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
+	 * 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 						   @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
-			ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).runNow();
+			TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).runNow();
 			return;
 		}
-		ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).run();
+		TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).run();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		return ProtocolDispatch.ofFunc(func, p).submitNow();
+		return TaskSpec.ofFunc(func, p).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 												  @Nullable ProtocolErrorHandle actionWhenError) {
-		return ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).submitNow();
+		return TaskSpec.ofFunc(func, p, actionWhenError).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 												  @Nullable ProtocolErrorHandle actionWhenError, String aName) {
-		return ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).submitNow();
+		return TaskSpec.ofFunc(func, p, actionWhenError).name(aName).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 												  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 												  @Nullable DispatchMode mode) {
-		return ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).submitNow();
+		return TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 												  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 												  @Nullable DispatchMode mode, long timeout) {
-		return ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).submitNow();
+		return TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).submitNow();
 	}
 
-	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
-	public static @NotNull Future<Long> submitFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
-													   @Nullable ProtocolErrorHandle actionWhenError,
-													   @Nullable String aName, @Nullable DispatchMode mode, long timeout) {
-		if (mode == DispatchMode.Direct) {
-			var future = new TaskCompletionSource<Long>();
-			future.setResult(callFuncCore(func, p, actionWhenError, aName));
-			return future;
-		}
-
-		return poolOrThrow(mode == DispatchMode.Critical).submit(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				return callFuncCore(func, p, actionWhenError, aName);
-			} catch (Throwable e) { // logger.error
-				logger.error("{} exception:", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
-				return Procedure.Exception;
-			}
-		});
-	}
-
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		ProtocolDispatch.ofFunc(func, p).runNow();
+		TaskSpec.ofFunc(func, p).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 									 @Nullable ProtocolErrorHandle actionWhenError) {
-		ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).runNow();
+		TaskSpec.ofFunc(func, p, actionWhenError).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 									 @Nullable ProtocolErrorHandle actionWhenError, String aName) {
-		ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).runNow();
+		TaskSpec.ofFunc(func, p, actionWhenError).name(aName).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 									 @Nullable DispatchMode mode) {
-		ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).runNow();
+		TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 									 @Nullable DispatchMode mode, long timeout) {
-		ProtocolDispatch.ofFunc(func, p).onError(actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).runNow();
+		TaskSpec.ofFunc(func, p, actionWhenError).name(aName).dispatchMode(mode).timeout(timeout).runNow();
 	}
 
-	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
-	public static void executeFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
-									   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
-									   @Nullable DispatchMode mode, long timeout) {
-		if (mode == DispatchMode.Direct) {
-			callFuncCore(func, p, actionWhenError, aName);
-			return;
-		}
-
-		poolOrThrow(mode == DispatchMode.Critical).execute(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				callFuncCore(func, p, actionWhenError, aName);
-			} catch (Throwable e) { // logger.error
-				logger.error("{} exception:", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
-			}
-		});
-	}
-
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).call()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).call()}。 */
 	@Deprecated
 	public static long call(@NotNull Procedure procedure) {
-		return ProtocolDispatch.ofProcedure(procedure).call();
+		return TaskSpec.ofProcedure(procedure).call();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).call()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from).call()}。 */
 	@Deprecated
 	public static long call(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
-		return ProtocolDispatch.ofProcedure(procedure).from(from).call();
+		return TaskSpec.ofProcedure(procedure, from).call();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).call()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).call()}。 */
 	@Deprecated
 	public static long call(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 							@Nullable ProtocolErrorHandle actionWhenError) {
-		return ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).call();
+		return TaskSpec.ofProcedure(procedure, from, actionWhenError).call();
 	}
 
-	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
-	public static long callProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-									@Nullable ProtocolErrorHandle actionWhenError) {
+	/** 协议版 Procedure 载荷的叶子核心（TaskBody.OfProtocolProcedure 调用）。 */
+	static long callProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+					  @Nullable ProtocolErrorHandle actionWhenError) {
 		boolean isRequestSaved = from == null || from.isRequest();
 		try {
 			// 日志在call里面记录。因为要支持嵌套。
@@ -984,16 +945,16 @@ public final class Task {
 		}
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).outProtocol(outProtocol).onError(actionWhenError).call()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).call()}。 */
 	@Deprecated
 	public static long call(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 							@Nullable ProtocolErrorHandle actionWhenError) {
-		return ProtocolDispatch.ofProcedure(procedure).outProtocol(outProtocol).onError(actionWhenError).call();
+		return TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).call();
 	}
 
-	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
-	public static long callProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
-									   @Nullable ProtocolErrorHandle actionWhenError) {
+	/** 过程内解码协议载荷的叶子核心（TaskBody.OfProcedureOut 调用）。 */
+	static long callProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+					  @Nullable ProtocolErrorHandle actionWhenError) {
 		Protocol<?> from = null;
 		try {
 			// 日志在call里面记录。因为要支持嵌套。
@@ -1018,237 +979,160 @@ public final class Task {
 		}
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).run()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).run()}。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure) {
-		ProtocolDispatch.ofProcedure(procedure).run();
+		TaskSpec.ofProcedure(procedure).run();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).run()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from).run()}。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
-		ProtocolDispatch.ofProcedure(procedure).from(from).run();
+		TaskSpec.ofProcedure(procedure, from).run();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).run()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).run()}。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 						   @Nullable ProtocolErrorHandle actionWhenError) {
-		ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).run();
+		TaskSpec.ofProcedure(procedure, from, actionWhenError).run();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
-			ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).runNow();
+			TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).runNow();
 			return;
 		}
-		ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).run();
+		TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).run();
 	}
 
 	/** @deprecated
-	 * 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).timeout(timeout).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
+	 * 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
-			ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).timeout(timeout).runNow();
+			TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).runNow();
 			return;
 		}
-		ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).timeout(timeout).run();
+		TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).run();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure) {
-		return ProtocolDispatch.ofProcedure(procedure).submitNow();
+		return TaskSpec.ofProcedure(procedure).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
-		return ProtocolDispatch.ofProcedure(procedure).from(from).submitNow();
+		return TaskSpec.ofProcedure(procedure, from).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 												  @Nullable ProtocolErrorHandle actionWhenError) {
-		return ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).submitNow();
+		return TaskSpec.ofProcedure(procedure, from, actionWhenError).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).dispatchMode(mode).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
-		return ProtocolDispatch.ofProcedure(procedure).dispatchMode(mode).submitNow();
+		return TaskSpec.ofProcedure(procedure).dispatchMode(mode).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 												  @Nullable ProtocolErrorHandle actionWhenError,
 												  @Nullable DispatchMode mode) {
-		return ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).submitNow();
+		return TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).timeout(timeout).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 												  @Nullable ProtocolErrorHandle actionWhenError,
 												  @Nullable DispatchMode mode, long timeout) {
-		return ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).timeout(timeout).submitNow();
+		return TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).submitNow();
 	}
 
-	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
-	public static @NotNull Future<Long> submitProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-													   @Nullable ProtocolErrorHandle actionWhenError,
-													   @Nullable DispatchMode mode, long timeout) {
-		if (mode == DispatchMode.Direct) {
-			var future = new TaskCompletionSource<Long>();
-			future.setResult(callProcCore(procedure, from, actionWhenError));
-			return future;
-		}
-
-		return poolOrThrow(mode == DispatchMode.Critical).submit(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				return callProcCore(procedure, from, actionWhenError);
-			} catch (Throwable e) { // logger.error
-				logger.error("{} exception:", procedure, e);
-				return Procedure.Exception;
-			}
-		});
-	}
-
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).outProtocol(outProtocol).onError(actionWhenError).dispatchMode(mode).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure,
 												  @NotNull OutObject<Protocol<?>> outProtocol,
 												  @Nullable ProtocolErrorHandle actionWhenError,
 												  @Nullable DispatchMode mode) {
-		return ProtocolDispatch.ofProcedure(procedure).outProtocol(outProtocol).onError(actionWhenError).dispatchMode(mode).submitNow();
+		return TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).outProtocol(outProtocol).onError(actionWhenError).dispatchMode(mode).timeout(timeout).submitNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).timeout(timeout).submitNow()}。 */
 	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure,
 												  @NotNull OutObject<Protocol<?>> outProtocol,
 												  @Nullable ProtocolErrorHandle actionWhenError,
 												  @Nullable DispatchMode mode, long timeout) {
-		return ProtocolDispatch.ofProcedure(procedure).outProtocol(outProtocol).onError(actionWhenError).dispatchMode(mode).timeout(timeout).submitNow();
+		return TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).timeout(timeout).submitNow();
 	}
 
-	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
-	public static @NotNull Future<Long> submitProcOutCore(@NotNull Procedure procedure,
-														  @NotNull OutObject<Protocol<?>> outProtocol,
-														  @Nullable ProtocolErrorHandle actionWhenError,
-														  @Nullable DispatchMode mode, long timeout) {
-		if (mode == DispatchMode.Direct) {
-			var future = new TaskCompletionSource<Long>();
-			future.setResult(callProcOutCore(procedure, outProtocol, actionWhenError));
-			return future;
-		}
-
-		return poolOrThrow(mode == DispatchMode.Critical).submit(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				return callProcOutCore(procedure, outProtocol, actionWhenError);
-			} catch (Throwable e) { // logger.error
-				logger.error("{} exception:", procedure, e);
-				return Procedure.Exception;
-			}
-		});
-	}
-
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure) {
-		ProtocolDispatch.ofProcedure(procedure).runNow();
+		TaskSpec.ofProcedure(procedure).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
-		ProtocolDispatch.ofProcedure(procedure).from(from).runNow();
+		TaskSpec.ofProcedure(procedure, from).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 									 @Nullable ProtocolErrorHandle actionWhenError) {
-		ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).runNow();
+		TaskSpec.ofProcedure(procedure, from, actionWhenError).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).dispatchMode(mode).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).dispatchMode(mode).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
-		ProtocolDispatch.ofProcedure(procedure).dispatchMode(mode).runNow();
+		TaskSpec.ofProcedure(procedure).dispatchMode(mode).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
-		ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).runNow();
+		TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).timeout(timeout).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 									 long timeout) {
-		ProtocolDispatch.ofProcedure(procedure).from(from).onError(actionWhenError).dispatchMode(mode).timeout(timeout).runNow();
+		TaskSpec.ofProcedure(procedure, from, actionWhenError).dispatchMode(mode).timeout(timeout).runNow();
 	}
 
-	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
-	public static void executeProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-									   @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
-									   long timeout) {
-		if (mode == DispatchMode.Direct) {
-			callProcCore(procedure, from, actionWhenError);
-			return;
-		}
-
-		poolOrThrow(mode == DispatchMode.Critical).execute(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				callProcCore(procedure, from, actionWhenError);
-			} catch (Throwable e) { // logger.error
-				logger.error("{} exception:", procedure, e);
-			}
-		});
-	}
-
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).outProtocol(outProtocol).onError(actionWhenError).dispatchMode(mode).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
-		ProtocolDispatch.ofProcedure(procedure).outProtocol(outProtocol).onError(actionWhenError).dispatchMode(mode).runNow();
+		TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofProcedure(procedure).outProtocol(outProtocol).onError(actionWhenError).dispatchMode(mode).timeout(timeout).runNow()}。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).timeout(timeout).runNow()}。 */
 	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 									 long timeout) {
-		ProtocolDispatch.ofProcedure(procedure).outProtocol(outProtocol).onError(actionWhenError).dispatchMode(mode).timeout(timeout).runNow();
-	}
-
-	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
-	public static void executeProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
-										  @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
-										  long timeout) {
-		if (mode == DispatchMode.Direct) {
-			callProcOutCore(procedure, outProtocol, actionWhenError);
-			return;
-		}
-
-		poolOrThrow(mode == DispatchMode.Critical).execute(() -> {
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				callProcOutCore(procedure, outProtocol, actionWhenError);
-			} catch (Throwable e) { // logger.error
-				logger.error("{} exception:", procedure, e);
-			}
-		});
+		TaskSpec.ofProcedureOut(procedure, outProtocol, actionWhenError).dispatchMode(mode).timeout(timeout).runNow();
 	}
 
 	// RpcResponse 族与普通族（call 核参数为 null 时）完全等价，这里直接委托普通族。
@@ -1279,31 +1163,31 @@ public final class Task {
 		TaskSpec.ofProcedure(procedure).dispatchMode(mode).timeout(timeout).run();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).run()}；RpcResponse 族与普通族等价。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).run()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
 	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		ProtocolDispatch.ofFunc(func, p).run();
+		TaskSpec.ofFunc(func, p).run();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）；RpcResponse 族与普通族等价。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）；RpcResponse 族与普通族等价。 */
 	@Deprecated
 	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
-			ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).runNow();
+			TaskSpec.ofFunc(func, p).dispatchMode(mode).runNow();
 			return;
 		}
-		ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).run();
+		TaskSpec.ofFunc(func, p).dispatchMode(mode).run();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).timeout(timeout).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）；RpcResponse 族与普通族等价。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).run()}；mode=Direct 时用 .runNow()（保留旧行为立即执行，跳过事务延迟）；RpcResponse 族与普通族等价。 */
 	@Deprecated
 	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode,
 									  long timeout) {
 		if (mode == DispatchMode.Direct) {
-			ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).timeout(timeout).runNow();
+			TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).runNow();
 			return;
 		}
-		ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).timeout(timeout).run();
+		TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).run();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).submitNow()}；RpcResponse 族与普通族等价。 */
@@ -1326,24 +1210,24 @@ public final class Task {
 		return TaskSpec.ofProcedure(procedure).dispatchMode(mode).timeout(timeout).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).submitNow()}；RpcResponse 族与普通族等价。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).submitNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		return ProtocolDispatch.ofFunc(func, p).submitNow();
+		return TaskSpec.ofFunc(func, p).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).submitNow()}；RpcResponse 族与普通族等价。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).submitNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 															 @Nullable DispatchMode mode) {
-		return ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).submitNow();
+		return TaskSpec.ofFunc(func, p).dispatchMode(mode).submitNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).timeout(timeout).submitNow()}；RpcResponse 族与普通族等价。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).submitNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 															 @Nullable DispatchMode mode, long timeout) {
-		return ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).timeout(timeout).submitNow();
+		return TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).submitNow();
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofProcedure(procedure).runNow()}；RpcResponse 族与普通族等价。 */
@@ -1365,24 +1249,24 @@ public final class Task {
 		TaskSpec.ofProcedure(procedure).dispatchMode(mode).timeout(timeout).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).runNow()}；RpcResponse 族与普通族等价。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).runNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		ProtocolDispatch.ofFunc(func, p).runNow();
+		TaskSpec.ofFunc(func, p).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).runNow()}；RpcResponse 族与普通族等价。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).runNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 												@Nullable DispatchMode mode) {
-		ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).runNow();
+		TaskSpec.ofFunc(func, p).dispatchMode(mode).runNow();
 	}
 
-	/** @deprecated 请使用 {@code ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).timeout(timeout).runNow()}；RpcResponse 族与普通族等价。 */
+	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).runNow()}；RpcResponse 族与普通族等价。 */
 	@Deprecated
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 												@Nullable DispatchMode mode, long timeout) {
-		ProtocolDispatch.ofFunc(func, p).dispatchMode(mode).timeout(timeout).runNow();
+		TaskSpec.ofFunc(func, p).dispatchMode(mode).timeout(timeout).runNow();
 	}
 
 	public static void waitAll(@NotNull Collection<Future<?>> tasks) {

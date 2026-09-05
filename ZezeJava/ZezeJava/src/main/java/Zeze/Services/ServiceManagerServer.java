@@ -14,7 +14,6 @@ import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
-import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.Service;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
@@ -673,11 +672,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			if (factoryHandle.Mode == DispatchMode.Direct) {
 				// 有几个direct方式的协议,为了性能就不考虑和其它非direct协议的处理顺序了,但因为在IO线程串行处理,这些协议本身的处理还是有顺序的
-				ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
-						.onError(Protocol::trySendResultCode).call();
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode).call();
 			} else {
-				TaskSpec.ofFunc(() -> ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
-								.onError(Protocol::trySendResultCode).call())
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
 						.dispatchMode(factoryHandle.Mode)
 						.executeOneByOne(p.getSender(), oneByOneByKey);
 			}
@@ -687,15 +684,15 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		@Override
 		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 不支持事务
-			ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
-					.onError(Protocol::trySendResultCode).dispatchMode(factoryHandle.Mode).runNow();
+			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
+					.dispatchMode(factoryHandle.Mode).runNow();
 		}
 
 		@Override
 		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
 																@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 不支持事务
-			ProtocolDispatch.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
+			TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
 		}
 		*/
 	}

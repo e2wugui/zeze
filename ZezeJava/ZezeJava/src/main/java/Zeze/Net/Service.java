@@ -467,7 +467,7 @@ public class Service extends ReentrantLock {
 					rpc.getClass().getName() + ":Response", factoryHandle.Level))
 					.dispatchMode(factoryHandle.Mode).runNow();
 		} else
-			ProtocolDispatch.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
+			TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
 	}
 
 	public boolean isHandshakeProtocol(long typeId) {
@@ -517,11 +517,10 @@ public class Service extends ReentrantLock {
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None) {
 			var protocolClassName = p.getClass().getName();
 			var proc = zeze.newProcedure(() -> p.handle(this, factoryHandle), protocolClassName, factoryHandle.Level);
-			ProtocolDispatch.ofProcedure(proc).from(p).onError(Protocol::trySendResultCode)
+			TaskSpec.ofProcedure(proc, p, Protocol::trySendResultCode)
 					.dispatchMode(factoryHandle.Mode).runNow();
 		} else {
-			ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
-					.onError(Protocol::trySendResultCode)
+			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
 					.dispatchMode(factoryHandle.Mode).runNow();
 		}
 	}
@@ -554,7 +553,7 @@ public class Service extends ReentrantLock {
 						protocolClassName, new Binary(bytesCopy));
 			} else
 				proc = zeze.newProcedure(action, protocolClassName, factoryHandle.Level);
-			ProtocolDispatch.ofProcedure(proc).outProtocol(outProtocol).onError(Protocol::trySendResultCode)
+			TaskSpec.ofProcedureOut(proc, outProtocol, Protocol::trySendResultCode)
 					.dispatchMode(factoryHandle.Mode).runNow();
 		} else {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);

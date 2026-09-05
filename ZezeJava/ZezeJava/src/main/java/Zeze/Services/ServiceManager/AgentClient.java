@@ -3,7 +3,6 @@ package Zeze.Services.ServiceManager;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
-import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeClient;
@@ -69,8 +68,8 @@ public final class AgentClient extends HandshakeClient {
 	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		// 不支持事务
-		ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
-				.onError(Protocol::trySendResultCode).dispatchMode(factoryHandle.Mode).runNow();
+		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
+				.dispatchMode(factoryHandle.Mode).runNow();
 	}
 
 	@Override
@@ -78,6 +77,6 @@ public final class AgentClient extends HandshakeClient {
 															@NotNull ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		// 不支持事务
-		ProtocolDispatch.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
+		TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
 	}
 }

@@ -14,7 +14,6 @@ import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
-import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.RpcTimeoutException;
@@ -629,8 +628,8 @@ public final class Agent {
 			if (p.getTypeId() == LeaderIs.TypeId_ || isHandshakeProtocol(p.getTypeId()) || agent.dispatchProtocolToInternalThreadPool) {
 				Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
 			} else
-				ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
-						.onError(Protocol::trySendResultCode).dispatchMode(factoryHandle.Mode).runNow();
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
+						.dispatchMode(factoryHandle.Mode).runNow();
 		}
 	}
 

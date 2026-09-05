@@ -19,7 +19,6 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
-import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Raft.Agent;
 import Zeze.Raft.Raft;
@@ -108,7 +107,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			prepareQueueLock.lock();
 			try {
 				if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {
-					prepareQueue.add(() -> ProtocolDispatch.ofFunc(func, p).call());
+					prepareQueue.add(() -> TaskSpec.ofFunc(func, p).call());
 					return;
 				}
 			} finally {
@@ -119,7 +118,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 允许Get请求并发
 				super.dispatchRaftRequest(p, func, name, cancel, mode);
 			} else {
-				raft.executeUserTask(() -> ProtocolDispatch.ofFunc(func, p).call());
+				raft.executeUserTask(() -> TaskSpec.ofFunc(func, p).call());
 			}
 		}
 	}
@@ -457,7 +456,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (p.getTypeId() == Zeze.Raft.LeaderIs.TypeId_) {
 				Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
 			} else {
-				raft.executeUserTask(() -> ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p).runNow());
+				raft.executeUserTask(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p).runNow());
 			}
 		}
 

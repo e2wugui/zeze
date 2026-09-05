@@ -6,7 +6,7 @@ import Zeze.Application;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
-import Zeze.Net.ProtocolDispatch;
+import Zeze.Util.TaskSpec;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeServer;
 import Zeze.Transaction.Procedure;
@@ -76,14 +76,14 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
 			// 总是支持事务
 			var outProtocol = new OutObject<Protocol<?>>();
-			ProtocolDispatch.ofProcedure(getZeze().newProcedure(() -> {
+			TaskSpec.ofProcedureOut(getZeze().newProcedure(() -> {
 						bb.ReadIndex = 0; // 考虑redo,要重置读指针
 						var p = decodeProtocol(typeId, bb, factoryHandle, so);
 						outProtocol.value = p;
 						Transaction.whileCommit(() -> p.SendResultCode(p.getResultCode()));
 						return p.handle(this, factoryHandle);
-					}, factoryHandle.Class.getName(), TransactionLevel.Serializable))
-					.outProtocol(outProtocol).onError(Protocol::trySendResultCode).runNow();
+					}, factoryHandle.Class.getName(), TransactionLevel.Serializable),
+					outProtocol, Protocol::trySendResultCode).runNow();
 		}
 	}
 }

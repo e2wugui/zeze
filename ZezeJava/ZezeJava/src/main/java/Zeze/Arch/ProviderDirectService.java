@@ -10,7 +10,6 @@ import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
-import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeBoth;
@@ -309,13 +308,11 @@ public class ProviderDirectService extends HandshakeBoth {
 			var r = (ModuleRedirect)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 			if (r.Argument.isNoOneByOne()) {
-				ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
-						.onError(Protocol::trySendResultCode)
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
 						.name(r.Argument.getMethodFullName()).dispatchMode(factoryHandle.Mode).runNow();
 			} else {
-				TaskSpec.ofFunc(() -> ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
-								.onError(Protocol::trySendResultCode)
-								.name(r.Argument.getMethodFullName()).call())
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
+						.name(r.Argument.getMethodFullName())
 						.dispatchMode(factoryHandle.Mode)
 						.executeOneByOne(r.Argument.getKey());
 			}
@@ -324,14 +321,12 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (p.getTypeId() == ModuleRedirectAllResult.TypeId_) {
 			var r = (ModuleRedirectAllResult)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-			ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
-					.onError(Protocol::trySendResultCode)
+			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
 					.name(r.Argument.getMethodFullName()).dispatchMode(factoryHandle.Mode).runNow();
 			return;
 		}
 		// 所有的Direct都不启用存储过程。
-		ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
-				.onError(Protocol::trySendResultCode)
+		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
 				.dispatchMode(factoryHandle.Mode).runNow();
 		//super.DispatchProtocol(p, factoryHandle);
 	}
@@ -343,10 +338,10 @@ public class ProviderDirectService extends HandshakeBoth {
 			var r = (ModuleRedirect)rpc;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 			if (r.Argument.isNoOneByOne())
-				ProtocolDispatch.ofFunc(() -> responseHandle.handle(rpc), rpc)
+				TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc)
 						.dispatchMode(factoryHandle.Mode).runNow();
 			else {
-				TaskSpec.ofFunc(() -> ProtocolDispatch.ofFunc(() -> responseHandle.handle(rpc), rpc).call())
+				TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc)
 						.dispatchMode(factoryHandle.Mode)
 						.executeOneByOne(r.Argument.getKey());
 			}
@@ -354,7 +349,7 @@ public class ProviderDirectService extends HandshakeBoth {
 		}
 
 		// no procedure.
-		ProtocolDispatch.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
+		TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
 		//super.dispatchRpcResponse(rpc, responseHandle, factoryHandle);
 	}
 
