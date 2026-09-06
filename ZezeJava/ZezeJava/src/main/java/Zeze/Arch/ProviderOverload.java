@@ -112,7 +112,6 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 			return BLoad.eOverload;
 		}
 
-		@SuppressWarnings("NonAtomicOperationOnVolatileField")
 		private void detecting() {
 			overload = (overload & 3) | (System.nanoTime() & ~3L); // 保留低2位保存的上次负载状态
 
