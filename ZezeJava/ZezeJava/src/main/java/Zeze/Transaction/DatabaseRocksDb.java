@@ -16,17 +16,16 @@ import org.rocksdb.RocksDBException;
 
 public class DatabaseRocksDb extends Database {
 	private final @NotNull RocksDatabase rocksDb;
-	// Application 启动时以 "zeze_cache_<serverId>" 命名创建 LocalRocksCacheDb（Application.java），
-	// 它是纯本地缓存：每次启动前整目录删除重建，数据可随时从后端库重读，写路径不需要也不应付出 fsync 代价。
+	// 由构造参数显式指定：Application 启动时为 LocalRocksCacheDb 传入 true，其余（含 XML 配置的主库）为 false。
+	// LocalRocksCacheDb 是纯本地缓存：每次启动前整目录删除重建，数据可随时从后端库重读，写路径不需要也不应付出 fsync 代价。
 	// 而主库的 flush 要求 WAL 落盘：CheckpointWhenCommit 表"提交即物理落库"的承诺必须覆盖掉电场景
 	// （非 sync 写只写 OS 页缓存，进程崩溃可由 WAL 恢复，主机掉电则丢失 WAL 尾部，如 AutoKey 水位回退重发已发出的号）。
-	// RocksDatabase.Batch.commit() 无参版本即为 sync 写；Services/Token 等需要强持久的路径也是既有实践。
 	private final boolean isLocalRocksCache;
 
-	public DatabaseRocksDb(@Nullable Application zeze, @NotNull Config.DatabaseConf conf) {
+	public DatabaseRocksDb(@Nullable Application zeze, @NotNull Config.DatabaseConf conf, boolean localRocksCache) {
 		super(zeze, conf);
 
-		isLocalRocksCache = conf.getName().startsWith("zeze_cache_");
+		isLocalRocksCache = localRocksCache;
 		var homePath = getDatabaseUrl().isEmpty() ? "db" : getDatabaseUrl();
 		try {
 			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
@@ -472,7 +471,7 @@ public class DatabaseRocksDb extends Database {
 				var value = ByteBuffer.Allocate(5 + 9 + dv.data.size());
 				dv.encode(value);
 				// 主库要求 WAL 落盘（对齐 RocksDbTrans.commit 的 sync 写）：schemas 版本记录掉电丢失
-				// 会让下次启动按全新库走兼容检查；本地缓存库（zeze_cache_ 前缀）维持默认非 sync 写。
+				// 会让下次启动按全新库走兼容检查；本地缓存库（localRocksCache=true）维持默认非 sync 写。
 				var options = isLocalRocksCache
 						? RocksDatabase.getDefaultWriteOptions() : RocksDatabase.getSyncWriteOptions();
 				table.put(options, key.Bytes, key.ReadIndex, key.size(), value.Bytes, value.ReadIndex, value.size());

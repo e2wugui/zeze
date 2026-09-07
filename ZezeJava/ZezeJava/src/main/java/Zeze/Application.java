@@ -698,7 +698,7 @@ public final class Application extends ReentrantLock {
 				dbConf.setDatabaseUrl(dbConf.getName());
 				deleteDirectory(new File(dbConf.getDatabaseUrl()));
 				dbConf.setDatabaseType(Config.DbType.RocksDb);
-				LocalRocksCacheDb = new DatabaseRocksDb(this, dbConf);
+				LocalRocksCacheDb = new DatabaseRocksDb(this, dbConf, true);
 				LocalRocksCacheDb.open(this);
 			} else
 				addShutdownHook();
@@ -708,9 +708,10 @@ public final class Application extends ReentrantLock {
 				serviceManager.start();
 				try {
 					serviceManager.waitReady();
-				} catch (Exception ignored) {
+				} catch (Exception ex) {
 					// raft 版第一次等待由于选择leader原因肯定会失败一次。
-					if (ignored instanceof InterruptedException)
+					//noinspection ConstantValue
+					if (ex instanceof InterruptedException)
 						Thread.currentThread().interrupt(); // 恢复被底层清除的中断标志
 					serviceManager.waitReady();
 				}

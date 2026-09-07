@@ -72,7 +72,7 @@ public class HotDistribute extends AbstractHotDistribute {
     }
 
     @Override
-    protected long ProcessPrepareDistributeRequest(PrepareDistribute r) throws Exception {
+    protected long ProcessPrepareDistributeRequest(PrepareDistribute r) {
         r.SendResultCode(setPrepare(r.Argument.getDistributeId()));
         return 0;
     }
@@ -101,7 +101,7 @@ public class HotDistribute extends AbstractHotDistribute {
     }
 
     @Override
-    protected long ProcessTryDistributeRequest(TryDistribute r) throws Exception {
+    protected long ProcessTryDistributeRequest(TryDistribute r) {
         lock.lock();
         try {
             if (state != ePrepare)
@@ -121,7 +121,7 @@ public class HotDistribute extends AbstractHotDistribute {
             // 同时卡死状态机（tryDistribute安装流程未进入，setIdle永不执行，死到重启）与
             // rpc应答（控制台await超时误报）。setIdle一步完成应答+复位；
             // 返回错误码时派发层trySendResultCode已被setIdle的应答挡住（sendResultDone），不会重发。
-            logger.error("commitDistribute fail. distributeId=" + distributeId, ex);
+			logger.error("commitDistribute fail. distributeId={}", distributeId, ex);
             setIdle(errorCode(eTryDistribute));
             return errorCode(eTryDistribute);
         }
@@ -132,7 +132,7 @@ public class HotDistribute extends AbstractHotDistribute {
     }
 
     @Override
-    protected long ProcessTryRollbackRequest(TryRollback r) throws Exception {
+    protected long ProcessTryRollbackRequest(TryRollback r) {
         lock.lock();
         try {
             if (state != eTryDistribute)
@@ -148,7 +148,7 @@ public class HotDistribute extends AbstractHotDistribute {
     }
 
     @Override
-    protected long ProcessCommitRequest(Commit r) throws Exception {
+    protected long ProcessCommitRequest(Commit r) {
         lock.lock();
         try {
             if (state != eTryDistribute)
@@ -186,7 +186,7 @@ public class HotDistribute extends AbstractHotDistribute {
     }
 
     @Override
-    protected long ProcessCommit2Request(Commit2 r) throws Exception {
+    protected long ProcessCommit2Request(Commit2 r) {
         lock.lock();
         try {
             if (state != eCommit)
