@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import Zeze.History.History;
@@ -21,6 +22,12 @@ import org.jetbrains.annotations.Nullable;
 
 public final class Transaction {
 	private static final @NotNull Logger logger = LogManager.getLogger(Transaction.class);
+
+	// perform Abort限频（b0d7cfb5a同款限频+计数）：环境异常（如GCM被停的Acquire In Releasing）
+	// 时bench类负载每笔事务一条带整栈的Abort warn，百万级迭代打成日志洪水拖垮执行。
+	// 窗口外只计数，窗口内首条仍打整栈（保留完整排查信息），计数随下一条一起输出。
+	private static final LongAdder abortWarnCount = new LongAdder();
+	private static volatile long lastAbortWarnTime;
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
 	private static final @NotNull Object NULL_VALUE = new Object(); // resolveOnce 已解析为 null 的哨兵
 
@@ -412,10 +419,15 @@ public final class Transaction {
 							break;
 
 						case Abort:
-							// if (!"GlobalAgent.Acquire Failed".equals(e.getMessage()) &&
-							// 		!"GlobalAgent In FastErrorPeriod".equals(e.getMessage()))
-							//	logger.warn("perform({}): Abort", procedure, e);
-							logger.warn("perform({}): Abort", procedure, e);
+							// 限频+计数替代旧的按message过滤（Acquire Failed等环境性Abort在bench下
+							// 每笔一条整栈warn是日志洪水）；1秒窗口，窗口内首条打整栈并带上窗口计数。
+							abortWarnCount.increment();
+							var nowMs = System.currentTimeMillis();
+							if (nowMs - lastAbortWarnTime >= 1000) {
+								lastAbortWarnTime = nowMs;
+								logger.warn("perform({}): Abort, count={} (rate-limited 1/s)",
+										procedure, abortWarnCount.sumThenReset(), e);
+							}
 							finalRollback(procedure, true);
 							return Procedure.AbortException;
 
