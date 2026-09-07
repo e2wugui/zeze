@@ -1,7 +1,7 @@
 package Zeze.Raft;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,6 +45,11 @@ public final class Agent {
 	// 保证在Raft-Server检查UniqueRequestId唯一性过期前唯一即可。
 	// 使用持久化是为了避免短时间重启，Id重复。
 	private final PersistentAtomicLong uniqueRequestIdGenerator;
+	// 可选的clientId覆盖：null时默认使用uniqueRequestIdGenerator.getName()（即Agent名+serverId，
+	// 现状语义不变）。临时Agent（waitForLeader）用它在不落盘的前提下获得进程级唯一的clientId：
+	// raft服务端按(clientId,requestId)去重（LogSequence.UniqueRequestTable），固定发号器名的
+	// 进程在"不同CWD+同serverId+同集群"下requestId会重叠，靠clientId区分。
+	private volatile String uniqueClientIdOverride;
 	private RaftConfig raftConfig;
 	private NetClient client;
 	private volatile ConnectorProxy leader;
@@ -114,7 +119,8 @@ public final class Agent {
 		rpc.getUnique().setRequestId(uniqueRequestIdGenerator.next());
 		// 外面可以设置clientId，默认使用Generator.getName();
 		if (rpc.getUnique().getClientId().isEmpty())
-			rpc.getUnique().setClientId(uniqueRequestIdGenerator.getName());
+			rpc.getUnique().setClientId(uniqueClientIdOverride != null
+					? uniqueClientIdOverride : uniqueRequestIdGenerator.getName());
 		rpc.setCreateTime(System.currentTimeMillis());
 		rpc.setSendTime(rpc.getCreateTime());
 		if (rpc.getTimeout() == 0) // set default timeout
@@ -200,7 +206,8 @@ public final class Agent {
 		rpc.getUnique().setRequestId(uniqueRequestIdGenerator.next());
 		// 外面在发送前可以设置clientId
 		if (rpc.getUnique().getClientId().isEmpty())
-			rpc.getUnique().setClientId(uniqueRequestIdGenerator.getName());
+			rpc.getUnique().setClientId(uniqueClientIdOverride != null
+					? uniqueClientIdOverride : uniqueRequestIdGenerator.getName());
 		rpc.setCreateTime(System.currentTimeMillis());
 		rpc.setSendTime(rpc.getCreateTime());
 		if (rpc.getTimeout() == 0) // set default timeout
@@ -637,6 +644,20 @@ public final class Agent {
 		send(new GetLeader(), (p) -> handle.applyAsLong((GetLeader)p));
 	}
 
+	// waitForLeader临时Agent的进程级唯一clientId（每次JVM启动新生，绝不重复）：
+	// requestId来自固定名"waitForLeader"的pal发号器，仅同CWD进程间（文件锁）保证不重叠；
+	// 跨CWD/跨重启的requestId重叠靠此clientId区分，(clientId,requestId)恒全局唯一。
+	// pal文件名固定，不会随重启积累；不落盘的clientId也不需要清理。
+	private static final String waitForLeaderClientId = "waitForLeader.client." + UUID.randomUUID();
+
+	/**
+	 * 覆盖本Agent对外请求的默认clientId（不设置时默认使用发号器名，即Agent名+serverId，语义不变）。
+	 * 适用于发号器名固定但需要进程级唯一clientId的临时Agent（waitForLeader）。
+	 */
+	public void setUniqueClientId(String clientId) {
+		uniqueClientIdOverride = clientId;
+	}
+
 	public static Connector waitForLeader(RaftConfig raftConfig) {
 		return waitForLeader(raftConfig, 0, null);
 	}
@@ -650,9 +671,9 @@ public final class Agent {
 			throw new RuntimeException("suggest majority node too few.");
 
 		try {
-			var randName = new byte[32];
-			Zeze.Util.Random.getInstance().nextBytes(randName);
-			var agent = new Agent(Arrays.toString(randName), raftConfig);
+			// 固定Agent名：pal文件恒为waitForLeader,<serverId>.zeze.pal一个，不随调用/重启积累。
+			var agent = new Agent("waitForLeader", raftConfig);
+			agent.setUniqueClientId(waitForLeaderClientId);
 			// 【FND-R1-3】创建即回填out：调用方（driveOutNotSuggestMajorityLeader）需要agent
 			// 查询活跃建议多数派连接并继续等待后续leader。回填与等待结果无关。
 			if (out != null)
