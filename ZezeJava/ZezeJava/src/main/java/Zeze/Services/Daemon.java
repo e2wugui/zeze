@@ -218,10 +218,18 @@ public class Daemon {
 					if (timer == null) {
 						timer = TaskSpec.ofAction(() -> {
 							var now = System.currentTimeMillis();
-							for (var pending : pendings) {
+							for (var it = pendings.entryIterator(); it.moveToNext(); ) {
+								var pending = it.value();
 								if (now - pending.sendTime > 1000) {
 									pending.sendTime = now;
-									pending.socket.send(pending.packet);
+									try {
+										pending.socket.send(pending.packet);
+									} catch (IOException e) {
+										// socket已关闭（如调用方收尾关闭sender）：重发永不可能成功，
+										// 摘除该pending。否则本定时器每秒对死socket send抛异常，
+										// 每秒刷一条error日志直到JVM退出。
+										pendings.remove(it.key());
+									}
 								}
 							}
 						}).schedulePeriodNow(1000, 1000);
