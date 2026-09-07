@@ -83,10 +83,15 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 		// apply changed
 		for (var e : log.getChangedWithKey().entrySet()) {
 			Bean value = tmp.get(e.getKey());
-			if (value != null)
-				value.followerApply(e.getValue());
-			else
-				Rocks.logger.error("Not Exist! Key={} Value={}", e.getKey(), e.getValue());
+			if (value == null) {
+				// 正常重放下changed只含最终map存在的key（encode已过滤putted/removed/不存在key），
+				// null即先行分歧（任何来源），对齐CollList2/Table.followerApply的"宁死不糊"：
+				// fatal记录并fatalKill。原先error+continue会带着分歧继续apply，静默放大。
+				Rocks.logger.fatal("CollMap2.followerApply: changed key not exist. key={}", e.getKey(), new Exception());
+				((Table<?, ?>)rootInfo().getRecord().getTable()).getRocks().getRaft().fatalKill();
+				continue;
+			}
+			value.followerApply(e.getValue());
 		}
 		map = tmp;
 	}
