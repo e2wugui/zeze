@@ -14,6 +14,8 @@ import Zeze.Net.Connector;
 import Zeze.Net.ServiceConf;
 import Zeze.Raft.ProxyServer;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -45,6 +47,8 @@ import org.junit.jupiter.api.io.TempDir;
  */
 @Fast
 public class TestMQ {
+	private static final Logger logger = LogManager.getLogger();
+
 	// MQ 客户端（MQProducer/MQConsumer 内的静态 agent）仍从默认配置 zeze.xml 读取
 	// Zeze.MQ.Master.Agent 的 Connector，master 端口必须与其保持一致。
 	private static final int masterPort = 26000;
@@ -70,7 +74,9 @@ public class TestMQ {
 			try {
 				MQ.createMQ(topic, 6, new BOptions.Data(BOptions.Single));
 			} catch (Exception ex) {
-				// skip
+				// 创建失败不中断测试（后面 openMQ 会以 eTopicNotExist 暴露），但失败原因必须留痕：
+				// 静默吞掉后，error=2 的真实原因（连接未就绪/rpc超时/manager未注册）无从排查。
+				logger.error("createMQ '{}' failed, subsequent openMQ will surface eTopicNotExist", topic, ex);
 			}
 			producer = new MQProducer(topic);
 			producer.sendMessage(new BMessage.Data());
