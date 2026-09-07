@@ -232,7 +232,7 @@ public class BenchPersistentCollectionsCompare {
 			(com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
 
 	private static long allocated() {
-		return THREAD_ALLOC.getThreadAllocatedBytes(Thread.currentThread().getId());
+		return THREAD_ALLOC.getThreadAllocatedBytes(Thread.currentThread().threadId());
 	}
 
 	private void report(Lib lib, String scenario, int ops, long nanos, long bytes) {
