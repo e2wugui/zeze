@@ -24,7 +24,8 @@ import org.junit.jupiter.api.Test;
  * 注：文件放在 src/Zeze/Component/ 但声明 package Zeze.Component——需要直接调用
  * protected的rpc处理器的包内测试缝（与TestDelayRemoveOnTimer同款先例）。
  * rpc不绑定连接，SendResultCode对null sender只记warn日志；结果码经resultCode字段观察，
- * sendResultDone是volatile，其写发生在resultCode赋值之后，轮询可见性有保证。
+ * sendResultDone是volatile，本测试全走SendResultCode路径（先赋值resultCode再置位），轮询可见性有保证；
+ * 注意trySendResultCode路径是先置位后赋值，不提供该保证。
  */
 @Fast
 public class TestThreadingRWLockDowngrade {

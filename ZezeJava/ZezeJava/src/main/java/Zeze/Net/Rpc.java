@@ -1,5 +1,7 @@
 package Zeze.Net;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -15,6 +17,15 @@ import org.jetbrains.annotations.Nullable;
 
 public abstract class Rpc<TArgument extends Serializable, TResult extends Serializable> extends Protocol<TArgument> {
 	protected static final @NotNull Logger logger = LogManager.getLogger(Rpc.class);
+
+	private static final @NotNull VarHandle SEND_RESULT_DONE;
+	static {
+		try {
+			SEND_RESULT_DONE = MethodHandles.lookup().findVarHandle(Rpc.class, "sendResultDone", boolean.class);
+		} catch (ReflectiveOperationException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
 
 	public TResult Result;
 	protected transient @Nullable Binary resultEncoded; // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
@@ -242,12 +253,11 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	// sendResultDone的检查-设置必须原子：responseHandle回调线程与派发层onError兜底（trySendResultCode）
-	// 可能并发应答，两线程都读到false时会双重发送Result，破坏"最多一次"语义。
-	private synchronized boolean tryMarkSendResultDone() {
-		if (sendResultDone)
-			return false;
-		sendResultDone = true;
-		return true;
+	// 可能并发应答，两线程都过检查会双重发送Result，破坏"最多一次"语义。VarHandle CAS仲裁。
+	// mark先于resultCode等字段写：只有赢家写字段，输家不会污染赢家在途的encode；
+	// 轮询isSendResultDone后读resultCode仅SendResultCode路径有可见性保证（它先写resultCode再mark）。
+	private boolean tryMarkSendResultDone() {
+		return (boolean)SEND_RESULT_DONE.compareAndSet(this, false, true);
 	}
 
 	@SuppressWarnings("BooleanMethodIsAlwaysInverted")
