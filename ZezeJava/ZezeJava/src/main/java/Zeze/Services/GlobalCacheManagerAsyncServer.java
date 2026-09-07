@@ -59,6 +59,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private static final boolean ENABLE_PERF = true;
 	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerAsyncServer.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
+	// -tryNextSync 启动参数置位，main里start前设置、之后只读；CacheState构造锁时读取。
+	// 不再用系统属性(其生效依赖AsyncLock类惰性加载时机，设置晚了静默失效)。
+	private static volatile boolean useSyncLock;
 
 	private ServerService server;
 	private AsyncSocket serverSocket;
@@ -1061,7 +1064,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private static final class CacheState {
 		final @NotNull Binary globalKey; // 这里的引用同global map的key,用于给CacheHolder里的map相同的key引用
 		final IdentityHashSet<CacheHolder> share = new IdentityHashSet<>();
-		final AsyncLock lock = new AsyncLock();
+		final AsyncLock lock = new AsyncLock(useSyncLock);
 		CacheHolder modify;
 		int acquireStatePending = StateInvalid;
 
@@ -1293,7 +1296,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				raftConf = args[++i];
 				break;
 			case "-tryNextSync":
-				System.setProperty("AsyncLock.tryNextSync", "true");
+				useSyncLock = true;
 				break;
 			default:
 				throw new IllegalArgumentException("unknown argument: " + args[i]);

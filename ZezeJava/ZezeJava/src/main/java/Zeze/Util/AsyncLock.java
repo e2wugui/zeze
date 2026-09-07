@@ -7,10 +7,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-// 异步锁. 暂不支持重入
+// 异步锁. 暂不支持重入.
+// 派发模式由构造参数决定(实例级不可变配置)：
+// 异步(默认)：每次派发把单个回调投入线程池执行，回调收尾的leave()继续派发下一个；
+// 同步：拿到派发权的线程在dispatchLoop里同线程顺序内联执行整个队列，循环独占释放，
+// leave()只清ownerThread/current、不派发(重入派发不可能发生，深队列无SOE)。
 public final class AsyncLock {
-	// 非 final：static final boolean 是编译期常量(JIT 常量折叠)，测试无法在运行时切换验证同步模式。
-	public static volatile boolean tryNextSync = "true".equalsIgnoreCase(System.getProperty("AsyncLock.tryNextSync"));
 	private static final @NotNull VarHandle stateHandle;
 
 	static {
@@ -21,15 +23,22 @@ public final class AsyncLock {
 		}
 	}
 
+	// 不可变配置而非运行时状态：取代旧的系统属性全局开关(其生效依赖类惰性加载时机，
+	// 调用方晚于静态初始化set的属性随时可能静默失效)。
+	private final boolean syncDispatch;
 	private volatile int state;
 	private final ConcurrentLinkedQueue<Action0> readyQueue = new ConcurrentLinkedQueue<>();
 	private final ArrayDeque<Action0> waitQueue = new ArrayDeque<>();
 	private @Nullable Action0 current;
 	private @Nullable Thread ownerThread;
-	// 派发中重入标记(仅同步模式使用)：回调内部或收尾的leave()→tryNextSync检测到后直接返回，
-	// 由外层派发循环继续poll下一个回调，替代旧的嵌套递归执行(深等待队列会StackOverflowError)。
-	// 只有派发线程在持有派发权(state==1)期间读写，无需同步。
-	private boolean dispatching;
+
+	public AsyncLock() {
+		this(false);
+	}
+
+	public AsyncLock(boolean syncDispatch) {
+		this.syncDispatch = syncDispatch;
+	}
 
 	public boolean isLocked() {
 		return state != 0;
@@ -49,55 +58,56 @@ public final class AsyncLock {
 
 	// 获取锁成功时回调onEnter,回调回程中可以leave,回调完成时也会强制leave
 	public void enter(@NotNull Action0 onEnter) {
+		if (syncDispatch) {
+			// 入队后进派发循环：快路径同样排队，严格FIFO不插队
+			readyQueue.offer(onEnter);
+			if (stateHandle.compareAndSet(this, 0, 1)) // try lock
+				dispatchLoop();
+			return;
+		}
 		if (stateHandle.compareAndSet(this, 0, 1)) { // try lock, fast-path
-			try {
-				ownerThread = Thread.currentThread();
-				current = onEnter;
-				onEnter.run();
-			} catch (Throwable e) { // print stacktrace.
-				Task.logger.error("AsyncLock.enter exception:", e);
-			} finally {
-				leave();
-			}
+			runWithLeave(onEnter);
 		} else {
 			readyQueue.offer(onEnter);
 			if (stateHandle.compareAndSet(this, 0, 1)) // retry lock, rare-path
-				tryNext();
+				tryNextAsync();
 		}
 	}
 
-	// 同enter, 只是立即取到锁也异步执行onEnter
-	public void enterAsync(@NotNull Action0 onEnter) {
-		readyQueue.offer(onEnter);
-		if (stateHandle.compareAndSet(this, 0, 1)) // try lock
-			tryNext();
+	// 异步模式回调执行：finally必经leave()（回调内已显式leave()则空过）保证释放并继续派发。
+	// 调用者线程不限：enter快路径为进入线程，tryNextAsync为线程池线程。
+	private void runWithLeave(@NotNull Action0 onReady) {
+		try {
+			ownerThread = Thread.currentThread();
+			current = onReady;
+			onReady.run();
+		} catch (Throwable e) { // print stacktrace.
+			Task.logger.error("AsyncLock.runWithLeave exception:", e);
+		} finally {
+			leave();
+		}
 	}
 
-	private void tryNext() {
-		if (tryNextSync)
-			tryNextSync();
-		else
-			tryNextAsync();
-	}
-
-	private void tryNextSync() {
-		if (dispatching)
-			return; // 正在派发循环内(回调里的leave()触发)：释放与后续派发都由外层循环统一处理。
+	// 同步模式派发循环：当前线程独占派发权(state==1)直到队列耗尽。
+	// 回调收尾不调leave()：回调内已显式leave()时ownerThread已清空、此处跳过，
+	// 否则就地内联释放，循环继续poll下一个。每回调固定栈帧，深队列无SOE。
+	private void dispatchLoop() {
 		for (; ; ) {
 			var onReady = readyQueue.poll(); // onEnter or onNotify
 			if (onReady != null) {
-				dispatching = true;
 				try {
 					ownerThread = Thread.currentThread();
 					current = onReady;
 					onReady.run();
 				} catch (Throwable e) { // print stacktrace.
-					Task.logger.error("AsyncLock.tryNext exception:", e);
+					Task.logger.error("AsyncLock.dispatchLoop exception:", e);
 				} finally {
-					leave(); // 内层tryNextSync因dispatching直接返回，不再嵌套递归执行
-					dispatching = false;
+					if (ownerThread == Thread.currentThread()) { // 回调内部未显式leave()时就地释放
+						ownerThread = null;
+						current = null;
+					}
 				}
-				continue; // 同线程顺序内联执行下一个回调；每回调占用固定栈帧，深队列不再SOE。
+				continue; // 同线程顺序内联执行下一个回调
 			}
 			state = 0;
 			if (readyQueue.isEmpty() || !stateHandle.compareAndSet(this, 0, 1)) // retry, rare-path
@@ -109,17 +119,7 @@ public final class AsyncLock {
 		for (; ; ) {
 			var onReady = readyQueue.poll(); // onEnter or onNotify
 			if (onReady != null) {
-				Task.getThreadPool().execute(() -> {
-					try {
-						ownerThread = Thread.currentThread();
-						current = onReady;
-						onReady.run();
-					} catch (Throwable e) { // print stacktrace.
-						Task.logger.error("AsyncLock.tryNext exception:", e);
-					} finally {
-						leave();
-					}
-				});
+				Task.getThreadPool().execute(() -> runWithLeave(onReady));
 				return;
 			}
 			state = 0;
@@ -134,7 +134,8 @@ public final class AsyncLock {
 			return;
 		ownerThread = null;
 		current = null;
-		tryNext();
+		if (!syncDispatch)
+			tryNextAsync(); // 同步模式：派发循环独占释放(state==1保持到回调返回)，这里派发会造成重入递归
 	}
 
 	// 在获取锁的情况下,释放锁并等到有通知且获取锁时回调onNotify
