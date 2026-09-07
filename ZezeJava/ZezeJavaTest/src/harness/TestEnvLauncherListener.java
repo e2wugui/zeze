@@ -42,6 +42,7 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 	private static final Logger logger = LogManager.getLogger(TestEnvLauncherListener.class);
 
 	private static ServiceManagerServer serviceManager;
+	private static GlobalCacheManagerAsyncServer globalCacheManager;
 	private static boolean globalCacheManagerStarted;
 	private static ServiceManagerServer serviceManager2;
 	private static GlobalCacheManagerAsyncServer globalCacheManager2;
@@ -89,7 +90,8 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 				serviceManager = new ServiceManagerServer(null, SERVICE_MANAGER_PORT, config);
 			}
 			if (!TestEnv.portReachable("127.0.0.1", GLOBAL_CACHE_MANAGER_PORT)) {
-				GlobalCacheManagerAsyncServer.getInstance().start(null, GLOBAL_CACHE_MANAGER_PORT, null);
+				globalCacheManager = new GlobalCacheManagerAsyncServer();
+				globalCacheManager.start(null, GLOBAL_CACHE_MANAGER_PORT, null);
 				globalCacheManagerStarted = true;
 			}
 			// 第二对（独立集群，仅 Onz.TestOnz 需要，同样由本 listener 自动启动）：
@@ -114,10 +116,11 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 		if (globalCacheManagerStarted) {
 			globalCacheManagerStarted = false;
 			try {
-				GlobalCacheManagerAsyncServer.getInstance().stop();
+				globalCacheManager.stop();
 			} catch (Exception e) {
 				logger.error("close GlobalCacheManagerAsyncServer failed", e);
 			}
+			globalCacheManager = null;
 		}
 		if (globalCacheManager2Started) {
 			globalCacheManager2Started = false;

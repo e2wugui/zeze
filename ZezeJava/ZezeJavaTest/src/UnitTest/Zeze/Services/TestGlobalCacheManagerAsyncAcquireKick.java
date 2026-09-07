@@ -53,6 +53,11 @@ public class TestGlobalCacheManagerAsyncAcquireKick {
 	private static RawClient clientB;
 	private static RawClient clientC;
 
+	// 不用getInstance()单例：混合会话（IDEA全量运行等）中TestEnvLauncherListener可能已把单例
+	// 起在5002，start(19711)幂等空转会让客户端Connection refused；单例被本测试stop还会连带
+	// 杀掉共享环境（bench等随即Acquire In Releasing刷屏）。自建实例自起自停，保持固定端口独占契约。
+	private static GlobalCacheManagerAsyncServer gcm;
+
 	/** 裸协议客户端：Login/Acquire正常收发；Reduce到达后park住由测试控制应答时机。 */
 	private static final class RawClient extends Service {
 		private final BlockingQueue<Reduce> reduces = new LinkedBlockingQueue<>();
@@ -83,7 +88,8 @@ public class TestGlobalCacheManagerAsyncAcquireKick {
 	@BeforeAll
 	public static void setUp() throws Exception {
 		Task.tryInitThreadPool();
-		GlobalCacheManagerAsyncServer.getInstance().start(null, PORT, null);
+		gcm = new GlobalCacheManagerAsyncServer();
+		gcm.start(null, PORT, null);
 	}
 
 	@AfterAll
@@ -91,7 +97,10 @@ public class TestGlobalCacheManagerAsyncAcquireKick {
 		for (var c : new RawClient[]{clientA, clientB, clientC})
 			if (c != null)
 				c.stop();
-		GlobalCacheManagerAsyncServer.getInstance().stop();
+		if (gcm != null) {
+			gcm.stop();
+			gcm = null;
+		}
 	}
 
 	private static void login(AsyncSocket socket, int serverId) throws Exception {
@@ -107,7 +116,7 @@ public class TestGlobalCacheManagerAsyncAcquireKick {
 		var field = GlobalCacheManagerAsyncServer.class.getDeclaredField("global");
 		field.setAccessible(true);
 		@SuppressWarnings("unchecked")
-		var global = (ConcurrentHashMap<Binary, Object>)field.get(GlobalCacheManagerAsyncServer.getInstance());
+		var global = (ConcurrentHashMap<Binary, Object>)field.get(gcm);
 		return global.get(key);
 	}
 
@@ -124,7 +133,7 @@ public class TestGlobalCacheManagerAsyncAcquireKick {
 	private static void kickSession(int serverId) throws Exception {
 		var sessionsField = GlobalCacheManagerAsyncServer.class.getDeclaredField("sessions");
 		sessionsField.setAccessible(true);
-		var sessions = (LongConcurrentHashMap<?>)sessionsField.get(GlobalCacheManagerAsyncServer.getInstance());
+		var sessions = (LongConcurrentHashMap<?>)sessionsField.get(gcm);
 		var holder = sessions.get(serverId);
 		Assertions.assertNotNull(holder, "session must exist, serverId=" + serverId);
 		var kick = holder.getClass().getDeclaredMethod("kick");

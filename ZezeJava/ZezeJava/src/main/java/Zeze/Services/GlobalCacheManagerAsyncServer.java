@@ -59,11 +59,6 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private static final boolean ENABLE_PERF = true;
 	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerAsyncServer.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
-	private static final GlobalCacheManagerAsyncServer instance = new GlobalCacheManagerAsyncServer();
-
-	public static @NotNull GlobalCacheManagerAsyncServer getInstance() {
-		return instance;
-	}
 
 	private ServerService server;
 	private AsyncSocket serverSocket;
@@ -85,8 +80,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private Future<?> achillesHeelTimer;
 	private GlobalCacheManagerPerf perf;
 
-	// 每个实例都是独立的服务器（无共享静态状态），可同 JVM 启动多个监听不同端口；
-	// getInstance() 返回供 main 及常规单实例部署使用的默认实例。
+	// 每个实例都是独立的服务器（无共享静态状态），可同 JVM 启动多个监听不同端口。
 	public GlobalCacheManagerAsyncServer() {
 	}
 
@@ -216,7 +210,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			return 0;
 		}
 
-		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
+		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder(this));
 		if (session.globalCacheManagerHashIndex != rpc.Argument.globalCacheManagerHashIndex) {
 			// 多点验证
 			logger.warn("ProcessCleanup: {} RequestId={} result={}",
@@ -250,7 +244,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 	private long processLogin(@NotNull Login rpc) {
 		logger.info("ProcessLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
-		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
+		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder(this));
 		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, true)) {
 			rpc.SendResultCode(LoginBindSocketFail);
 			return 0;
@@ -275,7 +269,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 	private long processReLogin(@NotNull ReLogin rpc) {
 		logger.info("ProcessReLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
-		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
+		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder(this));
 		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, false)) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
@@ -1092,7 +1086,16 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private static final class CacheHolder extends ReentrantLock {
+		// 必须持有owner实例：本类此前硬编码引用单例（instance.server/achillesHeelConfig/perf），
+		// "可同JVM启动多实例"名不副实——单例未启动时自建实例Login即NPE
+		// （tryBindSocket的instance.server为null）；单例同时启动时则静默串用单例的
+		// server/config/perf，跨实例状态错乱。
+		private final GlobalCacheManagerAsyncServer owner;
 		final ConcurrentHashMap<Binary, Integer> acquired = new ConcurrentHashMap<>();
+
+		CacheHolder(GlobalCacheManagerAsyncServer owner) {
+			this.owner = owner;
+		}
 		long sessionId;
 		int globalCacheManagerHashIndex;
 		private volatile long activeTime = System.currentTimeMillis();
@@ -1114,7 +1117,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 		// not under lock
 		void kick() {
-			var peer = instance.server.GetSocket(sessionId);
+			var peer = owner.server.GetSocket(sessionId);
 			if (null != peer) {
 				peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
 				peer.close(kickException); // 关闭连接，强制Agent重新登录。
@@ -1139,7 +1142,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
 				}
 
-				var socket = instance.server.GetSocket(sessionId);
+				var socket = owner.server.GetSocket(sessionId);
 				if (socket == null) {
 					// old socket not exist or has lost.
 					sessionId = newSocket.getSessionId();
@@ -1166,7 +1169,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				if (oldSocket.getUserState() != this)
 					return false; // not bind to this
 
-				var current = instance.server.GetSocket(sessionId);
+				var current = owner.server.GetSocket(sessionId);
 				if (current != null && current != oldSocket)
 					return false; // not same socket
 
@@ -1184,7 +1187,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 		void setError() {
 			long now = System.currentTimeMillis();
-			if (now - lastErrorTime > instance.achillesHeelConfig.globalForbidPeriod)
+			if (now - lastErrorTime > owner.achillesHeelConfig.globalForbidPeriod)
 				lastErrorTime = now;
 		}
 
@@ -1194,18 +1197,18 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		@Nullable Reduce reduceWaitLater(@NotNull Binary gkey, long fresh,
 										 @NotNull ProtocolHandle<Rpc<BGlobalKeyState, BGlobalKeyState>> handle) {
 			try {
-				if (System.currentTimeMillis() - lastErrorTime < instance.achillesHeelConfig.globalForbidPeriod)
+				if (System.currentTimeMillis() - lastErrorTime < owner.achillesHeelConfig.globalForbidPeriod)
 					return null;
-				AsyncSocket peer = instance.server.GetSocket(sessionId);
+				AsyncSocket peer = owner.server.GetSocket(sessionId);
 				if (peer != null) {
 					var reduce = new Reduce(gkey, StateInvalid);
 					reduce.setResultCode(fresh);
 					if (ENABLE_PERF)
-						instance.perf.onReduceBegin(reduce);
-					if (reduce.Send(peer, handle, instance.achillesHeelConfig.reduceTimeout))
+						owner.perf.onReduceBegin(reduce);
+					if (reduce.Send(peer, handle, owner.achillesHeelConfig.reduceTimeout))
 						return reduce;
 					if (ENABLE_PERF)
-						instance.perf.onReduceCancel(reduce);
+						owner.perf.onReduceCancel(reduce);
 				}
 				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}", sessionId, peer, gkey);
 			} catch (Throwable ex) { // 这里的异常只应该是网络发送异常。
@@ -1309,7 +1312,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		if (raftName == null || raftName.isEmpty()) {
 			logger.info("Start {}:{}", ip != null ? ip : "any", port);
 			InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
-			instance.start(address, port);
+			new GlobalCacheManagerAsyncServer().start(address, port);
 			synchronized (Thread.currentThread()) {
 				Thread.currentThread().wait();
 			}
