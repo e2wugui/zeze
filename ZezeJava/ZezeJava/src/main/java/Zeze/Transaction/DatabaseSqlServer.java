@@ -362,6 +362,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			if (dropped)
 				return null;
 
+			checkKvKeyLength(name, key);
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -387,6 +388,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			if (dropped)
 				return;
 
+			checkKvKeyLength(name, key);
 			var my = (JdbcTrans)t;
 			String sql = "DELETE FROM " + getName() + " WHERE id=?";
 			try (var cmd = my.conn.prepareStatement(sql)) {
@@ -401,12 +403,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			if (dropped)
 				return;
-			// 同 MySQL KV 表：主键列建表即固定为 id VARBINARY(eMaxKeyLength)，前置检查给出可定位的错误，
-			// 避免超限 key 到落库才触发不含表名的截断错误，毒化整个 flush 批次。
-			if (key.size() > eMaxKeyLength)
-				throw new IllegalArgumentException(
-						"key too large for sqlserver kv table '" + getName() + "': " + key.size() + " > " + eMaxKeyLength);
 
+			checkKvKeyLength(name, key);
 			var my = (JdbcTrans)t;
 			String sql = "update " + getName() + " set value=? where id=?" + " if @@rowcount = 0 and @@error = 0 insert into " + getName() + " values(?,?)";
 			try (var cmd = my.conn.prepareStatement(sql)) {
@@ -508,6 +506,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(name, exclusiveStartKey);
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);

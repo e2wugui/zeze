@@ -248,6 +248,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
+			checkKvKeyLength(table.getName(), key);
 			try {
 				var value = table.get(key.Bytes, key.ReadIndex, key.size());
 				return value != null ? ByteBuffer.Wrap(value) : null;
@@ -258,11 +259,13 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public void remove(@NotNull Transaction txn, @NotNull ByteBuffer key) {
+			checkKvKeyLength(table.getName(), key);
 			((RocksDbTrans)txn).remove(key.CopyIf(), table);
 		}
 
 		@Override
 		public void replace(@NotNull Transaction txn, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+			checkKvKeyLength(table.getName(), key);
 			((RocksDbTrans)txn).put(key.CopyIf(), value.CopyIf(), table);
 		}
 
@@ -342,6 +345,8 @@ public class DatabaseRocksDb extends Database {
 										 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(table.getName(), exclusiveStartKey);
 			try (var it = table.iterator()) {
 				if (exclusiveStartKey == null)
 					it.seekToFirst();
@@ -368,6 +373,8 @@ public class DatabaseRocksDb extends Database {
 											@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(table.getName(), exclusiveStartKey);
 			try (var it = table.iterator()) {
 				if (exclusiveStartKey == null)
 					it.seekToFirst();
@@ -394,6 +401,8 @@ public class DatabaseRocksDb extends Database {
 											 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(table.getName(), exclusiveStartKey);
 			try (var it = table.iterator()) {
 				if (exclusiveStartKey == null)
 					it.seekToLast();
@@ -420,6 +429,8 @@ public class DatabaseRocksDb extends Database {
 												@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(table.getName(), exclusiveStartKey);
 			try (var it = table.iterator()) {
 				if (exclusiveStartKey == null)
 					it.seekToLast();

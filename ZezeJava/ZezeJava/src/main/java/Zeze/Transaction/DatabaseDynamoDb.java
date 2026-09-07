@@ -201,6 +201,7 @@ public class DatabaseDynamoDb extends Database {
 
 		@Override
 		public ByteBuffer find(ByteBuffer key) {
+			checkKvKeyLength(name, key);
 			var keyPrimary = new HashMap<String, AttributeValue>();
 			keyPrimary.put("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.size())));
 			var req = new GetItemRequest(name, keyPrimary);
@@ -217,12 +218,14 @@ public class DatabaseDynamoDb extends Database {
 
 		@Override
 		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
+			checkKvKeyLength(name, key);
 			var myt = (TransDynamoDb)t;
 			myt.replace(name, key, value);
 		}
 
 		@Override
 		public void remove(Transaction t, ByteBuffer key) {
+			checkKvKeyLength(name, key);
 			var myt = (TransDynamoDb)t;
 			myt.remove(name, key);
 		}
@@ -312,6 +315,8 @@ public class DatabaseDynamoDb extends Database {
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(name, exclusiveStartKey);
 
 			var req = new ScanRequest();
 			req.setTableName(name);
@@ -335,6 +340,8 @@ public class DatabaseDynamoDb extends Database {
 		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(name, exclusiveStartKey);
 
 			var req = new ScanRequest();
 			req.setTableName(name);

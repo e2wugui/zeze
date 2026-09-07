@@ -1222,6 +1222,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			if (dropped)
 				return null;
 
+			checkKvKeyLength(name, key);
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var k = key.CopyIf();
 			byte[] v = null;
@@ -1245,6 +1246,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			if (dropped)
 				return;
 
+			checkKvKeyLength(name, key);
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var k = key.CopyIf();
 			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sqlRemove)) {
@@ -1262,13 +1264,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
 			if (dropped)
 				return;
-			// KV 表主键建表即固定为 id VARBINARY(eMaxKeyLength)。超限 key 不在写入期被拒绝（TableX 层无长度检查），
-			// 到 flush 落库才触发 MySQL 1406 "Data too long"，错误不含表名与 key，难以定位且毒化整个 flush 批次。
-			// 前置检查给出可定位的错误（行为等价：同样失败进入重试，但信息完整）。
-			if (key.size() > eMaxKeyLength)
-				throw new IllegalArgumentException(
-						"key too large for mysql kv table '" + name + "': " + key.size() + " > " + eMaxKeyLength);
 
+			checkKvKeyLength(name, key);
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var k = key.CopyIf();
 			var v = value.CopyIf();
@@ -1345,6 +1342,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 										 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(name, exclusiveStartKey);
 
 			var sql = "SELECT * FROM " + name + (exclusiveStartKey != null ? " WHERE id>?" : "")
 					+ " ORDER BY id LIMIT ?";

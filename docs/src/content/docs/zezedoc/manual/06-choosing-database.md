@@ -104,7 +104,7 @@ RocksDB 是嵌入式数据库，数据直接写在进程所在机器的磁盘上
 
 换句话说，一旦你的服务要走向多 Provider 的分布式部署（参见上一篇 [走向分布式](./05-going-distributed.md) 里讲到的 GCM 缓存一致性），就必须换掉 RocksDB，改用支持分布式的后端（如 MySQL、TiKV 等）。RocksDB 的定位很明确：**单机时代的最佳选择**。
 
-另外有几个 key 长度限制值得留意，避免踩坑：`Database.eMaxKeyLength = 2712`（受 PostgreSQL 限制），MySQL 是 3072，MongoDB 是 1024。关系映射模式则只有 MySQL / PostgreSQL 支持。
+另外有几个 key 长度限制值得留意，避免踩坑：`Database.eMaxKeyLength = 900`，取全后端最严格的真实限制（SqlServer 聚集索引键上限 900 字节），在所有 KV 后端统一入口检查执法；MySQL 是 3072、PostgreSQL 约 2704、MongoDB 是 1024，均宽于此值。关系映射模式则只有 MySQL / PostgreSQL 支持。
 
 ## TableConf：把缓存调到刚刚好
 

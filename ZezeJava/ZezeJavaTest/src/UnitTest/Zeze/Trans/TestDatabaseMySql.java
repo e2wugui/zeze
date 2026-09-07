@@ -76,6 +76,15 @@ public class TestDatabaseMySql {
 				return;
 		}
 		{
+			// 超长 key 入口拒绝（checkKvKeyLength）：异常含表名与长度，不到落库才发现 1406。
+			var oversized = ByteBuffer.Wrap(new byte[Database.eMaxKeyLength + 1]);
+			try (var trans = sqlserver.beginTransaction()) {
+				var ex = Assertions.assertThrows(IllegalArgumentException.class,
+						() -> table.replace(trans, oversized, ByteBuffer.Wrap(new byte[4])));
+				Assertions.assertTrue(ex.getMessage().contains("test_1"), ex.getMessage());
+			}
+		}
+		{
 			try (var trans = sqlserver.beginTransaction()) {
 				{
 					ByteBuffer key = ByteBuffer.Allocate();

@@ -137,6 +137,7 @@ public class DatabaseTikv extends Database {
 
 	private final class TikvTable extends AbstractKVTable {
 		private final byte[] keyPrefix;
+		private final String name;
 
 		@Override
 		public DatabaseTikv getDatabase() {
@@ -151,6 +152,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		public TikvTable(String name) {
+			this.name = name;
 			var nameUtf8 = name.getBytes(StandardCharsets.UTF_8);
 			keyPrefix = new byte[nameUtf8.length + 1];
 			System.arraycopy(nameUtf8, 0, keyPrefix, 0, nameUtf8.length);
@@ -162,6 +164,7 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public ByteBuffer find(ByteBuffer key) {
+			checkKvKeyLength(name, key);
 			ByteString value;
 			if (distTxn) {
 				// 快照读必须现取 TSO 时间戳：本进程缓存的快照永远看不到其他进程已提交的数据
@@ -182,6 +185,7 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public void remove(Transaction t, ByteBuffer key) {
+			checkKvKeyLength(name, key);
 			if (distTxn)
 				((TikvDistTrans)t).delete(addKeyPrefixBB(key));
 			else
@@ -190,6 +194,7 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
+			checkKvKeyLength(name, key);
 			if (distTxn)
 				((TikvDistTrans)t).put(addKeyPrefixBB(key), value);
 			else

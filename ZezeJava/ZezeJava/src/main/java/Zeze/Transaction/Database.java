@@ -29,10 +29,23 @@ import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 public abstract class Database extends ReentrantLock {
 	protected static final @NotNull Logger logger = LogManager.getLogger(Database.class);
 
-	// 当数据库对Key长度有限制时，使用这个常量。这个数字来自 PolarDb-X 3070。其中MySql 8是3072.
-	// 以后需要升级时，修改这个常量。但是对于已经存在的表，需要自己完成Alter。PostgreSql是2712。
-	// mongodb 是1024,由于不影响定义，先不改这个常量了。
-	public static final int eMaxKeyLength = 2712;
+	// KV 表统一 key 长度预算，全后端一致执法（checkKvKeyLength）。取值 900：SqlServer 聚集索引键
+	// 上限 900 字节（行内 PRIMARY KEY 默认聚集），是最严格的真实限制；MySQL 8 索引前缀 3072、
+	// PostgreSQL btree 索引条目约 2704、MongoDB 索引键 1024，均宽于此值；Memory/Tikv/Redis/RocksDb
+	// 等无此物理限制，但统一预算让表可在后端间自由迁移。
+	// 破坏性变更：由 2712 调小为 900。存量超过 900 的 key 升级后访问将抛异常（赌实际不存在）；
+	// 已建表列宽不会自动收缩，比检查宽，方向安全，无需 Alter。
+	public static final int eMaxKeyLength = 900;
+
+	// KV 表 key 的统一入口检查：replace/remove/find 及 walk(exclusiveStartKey) 都应调用。
+	// 有长度限制的后端超限 key 落库触发数据库原生错误（MySQL 1406 / SqlServer 1946 等，多不含表名、
+	// 毒化 flush 批次）；无限制的后端 get/remove 则静默无结果，掩盖业务侧 key 异常。
+	// 入口处统一抛带表名与长度的异常，两者兼治。
+	protected static void checkKvKeyLength(String tableName, ByteBuffer key) {
+		if (key.size() > eMaxKeyLength)
+			throw new IllegalArgumentException(
+					"key too large for kv table '" + tableName + "': " + key.size() + " > " + eMaxKeyLength);
+	}
 
 	static {
 		ShutdownHook.init();

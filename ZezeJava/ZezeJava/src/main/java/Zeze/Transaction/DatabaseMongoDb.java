@@ -192,6 +192,7 @@ public class DatabaseMongoDb extends Database {
 			if (dropped)
 				return null;
 
+			checkKvKeyLength(name, key);
 			var filter = Filters.eq("_id", key.CopyIf());
 			var doc = collection.find(filter).first();
 			if (doc == null)
@@ -208,6 +209,7 @@ public class DatabaseMongoDb extends Database {
 			if (dropped)
 				return;
 
+			checkKvKeyLength(name, key);
 			var txn = (MongoTrans)t;
 
 			var keyBytes = key.CopyIf();
@@ -224,6 +226,7 @@ public class DatabaseMongoDb extends Database {
 			if (dropped)
 				return;
 
+			checkKvKeyLength(name, key);
 			var txn = (MongoTrans)t;
 			var filter = new Document("_id", new Binary(key.CopyIf()));
 			var options = new DeleteOptions();
@@ -318,6 +321,8 @@ public class DatabaseMongoDb extends Database {
 			if (proposeLimit <= 0) // mongo 驱动 limit(0) 表示"不限制"，必须防护，否则一次调用扫全表
 				return null;
 
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(name, exclusiveStartKey);
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
 			var iterable = start == null ? collection.find() : collection.find(Filters.gt("_id", start));
 			iterable.limit(proposeLimit);
@@ -344,6 +349,8 @@ public class DatabaseMongoDb extends Database {
 			if (proposeLimit <= 0)
 				return null;
 
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(name, exclusiveStartKey);
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
 			var iterable = start == null ? collection.find() : collection.find(Filters.gt("_id", start));
 			iterable.projection(Projections.include("_id"));
@@ -370,6 +377,8 @@ public class DatabaseMongoDb extends Database {
 			if (proposeLimit <= 0)
 				return null;
 
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(name, exclusiveStartKey);
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
 			var iterable = start == null ? collection.find() : collection.find(Filters.lt("_id", start));
 			iterable.limit(proposeLimit);
@@ -396,6 +405,8 @@ public class DatabaseMongoDb extends Database {
 			if (proposeLimit <= 0)
 				return null;
 
+			if (exclusiveStartKey != null)
+				checkKvKeyLength(name, exclusiveStartKey);
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
 			var iterable = start == null ? collection.find() : collection.find(Filters.lt("_id", start));
 			iterable.projection(Projections.include("_id"));

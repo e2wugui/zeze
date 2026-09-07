@@ -127,8 +127,10 @@ public class DatabaseRedis extends Database {
 
 	public final class RedisTable extends AbstractKVTable {
 		private final byte @NotNull [] keyOfSet;
+		private final @NotNull String name;
 
 		public RedisTable(@NotNull String name) {
+			this.name = name;
 			keyOfSet = name.getBytes(StandardCharsets.UTF_8);
 		}
 
@@ -148,6 +150,7 @@ public class DatabaseRedis extends Database {
 
 		@Override
 		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
+			checkKvKeyLength(name, key);
 			try (var jedis = pool.getResource()) {
 				var value = jedis.hget(keyOfSet, key.CopyIf());
 				return value != null ? ByteBuffer.Wrap(value) : null;
@@ -156,12 +159,14 @@ public class DatabaseRedis extends Database {
 
 		@Override
 		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
+			checkKvKeyLength(name, key);
 			var redisT = (RedisTransaction)t;
 			redisT.replace(keyOfSet, key.CopyIf(), value.CopyIf());
 		}
 
 		@Override
 		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
+			checkKvKeyLength(name, key);
 			var redisT = (RedisTransaction)t;
 			redisT.remove(keyOfSet, key.CopyIf());
 		}
