@@ -16,7 +16,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class Simulate {
@@ -111,7 +111,7 @@ public class Simulate {
 		}
 
 		@Override
-		public @NonNull Thread newThread(@NonNull Runnable r) {
+		public @NotNull Thread newThread(@NotNull Runnable r) {
 			var t = super.newThread(r);
 			t.setPriority(Thread.MIN_PRIORITY);
 			return t;

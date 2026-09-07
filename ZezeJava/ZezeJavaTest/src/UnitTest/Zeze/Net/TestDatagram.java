@@ -15,6 +15,7 @@ import Zeze.Util.ReplayAttackGrowRange2;
 import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
 import demo.Module1.BValue;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -220,7 +221,7 @@ class TestDatagramOnCloseService extends Service {
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket so, @Nullable Throwable e) throws Exception {
+	public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
 		if (so instanceof DatagramSession ds)
 			closedSessions.add(ds);
 		super.OnSocketClose(so, e);

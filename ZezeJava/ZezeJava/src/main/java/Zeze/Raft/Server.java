@@ -19,7 +19,7 @@ import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 同时配置 Acceptor 和 Connector。
@@ -129,7 +129,7 @@ public class Server extends HandshakeBoth {
 		}
 
 		@Override
-		public void OnSocketClose(@NonNull AsyncSocket closed, Throwable e) throws Exception {
+		public void OnSocketClose(@NotNull AsyncSocket closed, @Nullable Throwable e) throws Exception {
 			Raft raft = ((Server)closed.getService()).getRaft();
 			Raft.executeImportantTask(() -> {
 				// avoid deadlock: lock(socket), lock (Raft).
@@ -147,7 +147,7 @@ public class Server extends HandshakeBoth {
 		}
 
 		@Override
-		public void OnSocketHandshakeDone(@NonNull AsyncSocket so) {
+		public void OnSocketHandshakeDone(@NotNull AsyncSocket so) {
 			super.OnSocketHandshakeDone(so);
 			Raft raft = ((Server)getService()).getRaft();
 			Raft.executeImportantTask(() -> TaskSpec.ofAction(() -> {

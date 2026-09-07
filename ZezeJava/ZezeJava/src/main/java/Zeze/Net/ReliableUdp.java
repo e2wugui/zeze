@@ -22,7 +22,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 简单可靠udp实现。
@@ -379,7 +379,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	}
 
 	@Override
-	public void doException(@NonNull SelectionKey key, @NonNull Throwable e) {
+	public void doException(@NotNull SelectionKey key, @NotNull Throwable e) {
 		logger.error("doException", e);
 	}
 

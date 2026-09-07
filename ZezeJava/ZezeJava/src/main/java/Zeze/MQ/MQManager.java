@@ -46,7 +46,7 @@ public class MQManager extends AbstractMQManager {
         // 消费者连接落在proxyServer上（见onSocketClose注释），关闭清理钩子挂这里。
         proxyServer = new ProxyServer(config, mqConfig.getRpcTimeout()) {
             @Override
-            public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) throws Exception {
+            public void OnSocketClose(@NotNull AsyncSocket so, Throwable e) throws Exception {
                 super.OnSocketClose(so, e);
                 MQManager.this.onSocketClose(so);
             }
