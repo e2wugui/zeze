@@ -65,12 +65,15 @@ public class TestTaskShutdown {
 
 	// 停机并忽略终止等待超时：静态池字段在等待前已置 null（shutdownPools 先置 null 再关池），
 	// 用例验证的"null 池幂等/提交报错"不依赖池内遗留任务全部结束。
+	// 终止等待只用200ms：全套件环境下其他测试类遗留的周期任务（如 GlobalTimer tick）永远等不完，
+	// 长等待只会把全局池null的窗口拉长（10s时混跑会话中AchillesHeelDaemon等后台线程在窗口内
+	// schedule抛异常，曾被兜底catch halt整个JVM）——窗口越短，撞上还在跑的后台线程概率越低。
 	private static void shutdownIgnoringTerminationTimeout(boolean now) throws InterruptedException {
 		try {
 			if (now)
-				Task.shutdownNow(10_000);
+				Task.shutdownNow(200);
 			else
-				Task.shutdown(10_000);
+				Task.shutdown(200);
 		} catch (java.util.concurrent.TimeoutException expected) {
 			// 全套件环境下其他测试类遗留的周期任务（如 GlobalTimer tick）令终止等待超时，忽略。
 		}

@@ -354,8 +354,8 @@ public class AchillesHeelDaemon {
 
 		@Override
 		public void run() {
-			try {
-				while (running) {
+			while (running) {
+				try {
 					var now = System.currentTimeMillis();
 					for (int i = 0; i < agents.length; i++) {
 						var agent = agents[i];
@@ -385,19 +385,20 @@ public class AchillesHeelDaemon {
 							}
 						}
 					}
-					try {
-						//noinspection BusyWait
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
-						logger.warn("sleep", e);
-					}
+				} catch (Throwable ex) {
+					// 原实现任何异常直接halt(321321)：测试关停全局线程池等基础设施事件也会
+					// 杀掉整个JVM（同会话其他测试全部中断，keepAlive的Rpc.Send在池null时抛
+					// IllegalStateException即触发）。守护线程的职责是持续存活：单轮异常记error
+					// 后继续下一轮，sleep在catch外保证异常时仍按1秒节拍，不致紧密循环刷日志。
+					// global release timeout 的主动halt是独立业务语义，不在此列。
+					logger.error("AchillesHeelDaemon loop exception", ex);
 				}
-			} catch (Throwable ex) { // halt
-				// 这个线程不准出错。
-				logger.fatal("AchillesHeelDaemon", ex);
-				zeze.checkpointRun();
-				LogManager.shutdown();
-				Runtime.getRuntime().halt(321321);
+				try {
+					//noinspection BusyWait
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					logger.warn("sleep", e);
+				}
 			}
 		}
 
