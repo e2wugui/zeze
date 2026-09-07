@@ -228,7 +228,13 @@ public class Connector extends ReentrantLock {
 	public void OnSocketHandshakeDone(@NotNull AsyncSocket so) {
 		lock();
 		try {
-			if (socket == so) {
+			// socket==null && connecting && !abortConnect：握手（Selector线程）抢在start()第二锁段
+			// 发布所有权之前完成（回环连接+握手可快于构造返回后的重新加锁；80862942b只修了误杀后
+			// 的重连卡死，误杀本身仍在）。connecting保证此刻仅有这一条在途构造，so即本Connector的
+			// 连接：直接发布所有权，不得按"not owner"关闭健康连接（首发请求会随连接一起死掉，
+			// 等满READY_TIMEOUT才由重连补救）。abortConnect（构造期间被stop）仍走下方丢弃路径。
+			if (socket == so || (socket == null && connecting && !abortConnect)) {
+				socket = so;
 				// java 没有TrySetResult，所以如果上面的检查不充分，仍然会有问题。
 				futureSocket.setResult(so);
 				return;
@@ -275,6 +281,12 @@ public class Connector extends ReentrantLock {
 		lock();
 		try {
 			connecting = false;
+			if (socket == as) {
+				// 握手线程已在OnSocketHandshakeDone中提前发布所有权（合法时序，见该方法）：
+				// 按正常完成返回；随后若关闭，OnSocketClose的socket==closed分支负责重连。
+				// 不在此返回会落到末尾的as.close("connector stopped")，把健康连接再杀一次。
+				return;
+			}
 			if (!abortConnect && socket == null) {
 				// 构造返回到重新加锁之间存在窗口：连接完成/握手失败可能已触发关闭
 				// （如OnSocketHandshakeDone因socket尚未赋值而"not owner"误杀健康连接、
