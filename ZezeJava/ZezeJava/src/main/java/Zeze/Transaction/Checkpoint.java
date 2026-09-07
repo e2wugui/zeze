@@ -127,6 +127,19 @@ public final class Checkpoint {
 	private void run() {
 		while (isRunning) {
 			try {
+				// 先等后刷：首轮同样受period保护。start()启动的本线程在负载下可能被延迟调度，
+				// 若立即执行首轮flush，会在任意时刻"补跑"一轮（TestFlushUnitIsolation.walkMemory
+				// 曾因此约50%失败：被延迟的首轮把已提交未断言的内存值提前刷进镜像，锁忙回退镜像
+				// 读到新值）。启动时relativeRecordSetMap通常为空，延迟首轮无实际影响。
+				lock.lock();
+				try {
+					//noinspection ResultOfMethodCallIgnored
+					cond.await(period, TimeUnit.MILLISECONDS);
+				} finally {
+					lock.unlock();
+				}
+				if (!isRunning)
+					break; // stopAndJoin的signal唤醒：flush交给循环外的final checkpoint。
 				//noinspection SwitchStatementWithTooFewBranches
 				switch (mode) {
 //				case Period:
@@ -148,13 +161,6 @@ public final class Checkpoint {
 
 				default:
 					break;
-				}
-				lock.lock();
-				try {
-					//noinspection ResultOfMethodCallIgnored
-					cond.await(period, TimeUnit.MILLISECONDS);
-				} finally {
-					lock.unlock();
 				}
 			} catch (Throwable ex) { // logger.error
 				// thread worker.
