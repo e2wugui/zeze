@@ -5,6 +5,7 @@ import java.util.concurrent.Future;
 import Zeze.Application;
 import Zeze.Builtin.Takeover.tTakeoverLease;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.OutLong;
@@ -174,7 +175,8 @@ public class Takeover extends AbstractTakeover {
 				}
 				lease.setEpoch(myEpoch);
 				lease.setExpireAt(System.currentTimeMillis() + ttl);
-				healed[0] = true;
+				// 置位必须等提交：体内直接赋值在该轮回滚后残留，终局warn会误报已自愈。
+				Transaction.whileCommit(() -> healed[0] = true);
 			} else if (lease.getEpoch() != myEpoch) {
 				lost[0] = true;
 				return Procedure.LogicError;
