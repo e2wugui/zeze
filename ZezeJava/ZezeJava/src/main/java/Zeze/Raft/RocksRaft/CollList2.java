@@ -146,6 +146,9 @@ public class CollList2<V extends Bean> extends CollList<V> {
 			// IndexOutOfBoundsException 不是 FlushException（无补偿）也不是 decode 错误
 			// （fatalKillDecodeError 不覆盖），每次重试都在同一条目抛出，lastApplied
 			// 楔死、apply 卡死循环，节点无法追平。
+			// 镜像实现Transaction.Collections.PList2.followerApply是History尽力而为回放路径
+			// （无Raft句柄、Verify.verifyAndClear兜底），同场景warn+skip；本层是raft状态机
+			// apply，跳过会静默分叉，勿对齐为跳过。
 			var index = e.getValue().value;
 			if (index < 0 || index >= list.size()) {
 				Rocks.logger.fatal("CollList2.followerApply: changed index out of bounds. index={} size={}",

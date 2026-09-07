@@ -13,12 +13,15 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 @SuppressWarnings("DataFlowIssue")
 public class PMap2<K, V extends Bean> extends PMap<K, V> {
+	private static final @NotNull Logger logger = LogManager.getLogger(PMap2.class);
 	protected final @NotNull Meta2<K, V> meta;
 
 	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
@@ -175,8 +178,16 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		// apply changed
 		for (var e : log.getChangedWithKey().entrySet()) {
 			Bean value = tmp.get(e.getKey());
-			if (null != value) // value 可能是编辑了，但是又被删了。所以需要判断null.
+			// 正常重放下changed只含最终map存在的key（LogMap2.buildChangedWithKey编码时已过滤
+			// removed/replaced），follower侧null即先行分歧（日志丢失/重复/交错应用）。
+			// 本层为History尽力而为回放（无Raft句柄、Verify兜底），warn+skip，对齐PList2；
+			// 镜像实现RocksRaft.CollMap2（raft路径）同场景fatal+fatalKill。
+			if (null != value) {
 				value.followerApply(e.getValue());
+			} else {
+				logger.warn("PMap2.followerApply: changed key not found, skipped. tableKey={} key={}",
+						tableKey(), e.getKey(), new Exception("divergence site"));
+			}
 		}
 		map = tmp;
 	}

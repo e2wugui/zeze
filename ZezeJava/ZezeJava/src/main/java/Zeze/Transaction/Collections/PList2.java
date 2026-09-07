@@ -14,12 +14,16 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 @SuppressWarnings("DataFlowIssue")
 public class PList2<V extends Bean> extends PList<V> {
+	private static final @NotNull Logger logger = LogManager.getLogger(PList2.class);
+
 	protected final @NotNull Meta1<V> meta;
 
 	public PList2(@NotNull Class<V> valueClass) {
@@ -248,10 +252,17 @@ public class PList2<V extends Bean> extends PList<V> {
 		for (var e : log.getChanged().entrySet()) {
 			var index = e.getValue().value;
 			V v = index >= 0 && index < tmp.size() ? tmp.get(index) : null;
-			// index可能因日志丢失/重复/交错应用而失效，防御对齐PMap2.followerApply的null检查：
-			// 越界直接get会抛IndexOutOfBoundsException（或v为null时下一行NPE），重放中断且无诊断信息。
-			if (null != v)
+			// 正常重放下index必在界内（LogList2.encode只保留最终列表中存在的bean并按最终列表计算index），
+			// 越界只能是先行分歧（日志丢失/重复/交错应用）。本层驱动方为History尽力而为回放：
+			// 无Raft句柄可kill，且Verify.verifyAndClear末尾全量比对兜底，故warn+skip。
+			// 镜像实现RocksRaft.CollList2.followerApply是raft状态机apply路径，同场景fatal+fatalKill，勿对齐。
+			// 越界直接get会抛IndexOutOfBoundsException，重放中断且无诊断信息。
+			if (null != v) {
 				v.followerApply(e.getKey());
+			} else {
+				logger.warn("PList2.followerApply: changed index out of bounds, skipped. tableKey={} index={} size={}",
+						tableKey(), index, tmp.size(), new Exception("divergence site"));
+			}
 		}
 		list = tmp;
 	}
