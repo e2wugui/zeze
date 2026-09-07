@@ -243,16 +243,15 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// 也许更优化的方法是为这个更新实现一个不是事务的版本。
 		providerApp.zeze.newProcedure(() -> {
 			for (var r : retreats) {
-				try {
-					setLocalBean(r.roleId, r.key, r.bean);
-				} catch (IllegalStateException e) {
-					// stale-local角色（LoginVersion落后于shared，角色已在别服重登，残留待
-					// verifyLocal清理）：跳过该角色。不catch则一批（最多50个角色）的retreat
-					// 全部失败且.call()错误码被忽略——旧类加载器bean实例滞留内存钉住旧HotModule。
-					// 校验失败发生在写datas之前，catch后事务继续是安全的（getOrAddOnlineShared
-					// 至多产生一个空shared条目，与正常getOrAdd路径一致，由verifyLocal清理）。
-					logger.error("saveRetreats skip stale-local. roleId={}, key={}", r.roleId, r.key, e);
+				// stale-local角色（LoginVersion落后于shared，角色已在别服重登，残留待verifyLocal
+				// 清理）跳过该角色。不检查则getLoginLocal抛IllegalStateException打断整批（最多50
+				// 个角色）且.call()错误码被忽略——旧类加载器bean实例滞留内存钉住旧HotModule。
+				var bLocal = tryGetLoginLocal(r.roleId);
+				if (bLocal == null) {
+					logger.error("saveRetreats skip stale-local. roleId={}, key={}", r.roleId, r.key);
+					continue;
 				}
+				setLocalBean(bLocal, r.key, r.bean);
 			}
 			return 0;
 		}, "saveRetreats").call();
@@ -647,6 +646,16 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return bLocal;
 	}
 
+	// getLoginLocal的非抛异常版本：本地条目缺失或LoginVersion落后于shared（角色已在别服重登，
+	// 残留待verifyLocal清理）时返回null。用getOnlineShared普通读，不产生getOrAdd的空shared条目。
+	private @Nullable BLocal tryGetLoginLocal(long roleId) {
+		var bLocal = _tlocal.get(roleId);
+		if (bLocal == null)
+			return null;
+		var onlineShared = getOnlineShared(roleId);
+		return onlineShared != null && bLocal.getLoginVersion() == onlineShared.getLoginVersion() ? bLocal : null;
+	}
+
 	private final ConcurrentHashMap<Long, Long> localActiveTimes = new ConcurrentHashMap<>();
 
 	private void putLocalActiveTime(long roleId) {
@@ -662,7 +671,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public <T extends Bean> void setLocalBean(long roleId, @NotNull String key, @NotNull T bean) {
-		var bLocal = getLoginLocal(roleId);
+		setLocalBean(getLoginLocal(roleId), key, bean);
+	}
+
+	private <T extends Bean> void setLocalBean(@NotNull BLocal bLocal, @NotNull String key, @NotNull T bean) {
 		beanFactory.register(bean);
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);

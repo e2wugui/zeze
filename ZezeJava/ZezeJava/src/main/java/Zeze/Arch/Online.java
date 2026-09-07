@@ -128,8 +128,18 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		// 确认事务可以在更新流程中可以使用。
 		// 也许更优化的方法是为这个更新实现一个不是事务的版本。
 		providerApp.zeze.newProcedure(() -> {
-			for (var r : retreats)
-				setLocalBean(r.account, r.clientId, r.key, r.bean);
+			for (var r : retreats) {
+				// stale-local登录（LoginVersion落后于online，账号已在别处重登，残留待verifyLocal
+				// 清理）跳过该登录。不检查则getLoginLocal抛IllegalStateException打断整批（最多50
+				// 个登录）且.call()错误码被忽略——旧类加载器bean实例滞留内存钉住旧HotModule。
+				var login = tryGetLoginLocal(r.account, r.clientId);
+				if (login == null) {
+					logger.error("saveRetreats skip stale-local. account={}, clientId={}, key={}",
+							r.account, r.clientId, r.key);
+					continue;
+				}
+				setLocalBean(login, r.key, r.bean);
+			}
 			return 0;
 		}, "saveRetreats").call();
 	}
@@ -346,6 +356,22 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return bLoginLocal;
 	}
 
+	// getLoginLocal的非抛异常版本：本地条目缺失或LoginVersion落后于online（账号已在别处重登，
+	// 残留待verifyLocal清理）时返回null。用getOnline普通读，不产生getOrAdd的空online/login条目。
+	private @Nullable BLocal tryGetLoginLocal(@NotNull String account, @NotNull String clientId) {
+		var bLocals = _tlocal.get(account);
+		if (bLocals == null)
+			return null;
+		var bLoginLocal = bLocals.getLogins().get(clientId);
+		if (bLoginLocal == null)
+			return null;
+		var online = getOnline(account);
+		if (online == null)
+			return null;
+		var loginOnline = online.getLogins().get(clientId);
+		return loginOnline != null && bLoginLocal.getLoginVersion() == loginOnline.getLoginVersion() ? bLoginLocal : null;
+	}
+
 	private final ConcurrentHashMap<String, Long> localActiveTimes = new ConcurrentHashMap<>();
 
 	private void putLocalActiveTime(@NotNull String account) {
@@ -361,7 +387,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public void setLocalBean(@NotNull String account, @NotNull String clientId, @NotNull String key, @NotNull Bean bean) {
-		var login = getLoginLocal(account, clientId);
+		setLocalBean(getLoginLocal(account, clientId), key, bean);
+	}
+
+	private void setLocalBean(@NotNull BLocal login, @NotNull String key, @NotNull Bean bean) {
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);
 		login.getDatas().put(key, bAny);
