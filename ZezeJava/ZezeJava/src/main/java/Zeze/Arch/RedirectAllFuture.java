@@ -125,12 +125,6 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	private volatile @Nullable IntHashSet finishedHashes; // lazy-init
 	private final @NotNull Condition cond = newCondition();
 
-	// FND-A1-9：onResult回调在RedirectAllContext锁内同步执行（processResult持ctx锁调用result）。
-	// 回调内对同一future调用await()挂起时只释放future自己的锁，ctx锁仍被本线程持有——
-	// 后续processResult/onRemoved全部阻塞，future永不完成，形成两个线程的永久死锁。
-	// 记录“当前线程正在哪个ctx的回调内”，await挂起前比对拦截（不同ctx的等待不受影响）。
-	private static final ThreadLocal<RedirectAllContext<?>> CALLBACK_CTX = new ThreadLocal<>();
-
 	private @NotNull IntHashSet getFinishedHashes() {
 		var hashes = finishedHashes;
 		if (hashes == null) {
@@ -161,22 +155,17 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 			unlock();
 		}
 		var zeze = ctx.getService().getZeze();
-		CALLBACK_CTX.set(ctx); // 见CALLBACK_CTX声明：回调期间在await中拦截同一ctx的挂起
-		try {
-			if (zeze != null && !zeze.isNoDatabase()) {
-				zeze.newProcedure(() -> {
-					onRes.run(result);
-					return Procedure.Success;
-				}, "RedirectAllFutureImpl.result").call();
-			} else {
-				try {
-					onRes.run(result);
-				} catch (Exception e) {
-					throw Task.forceThrow(e);
-				}
+		if (zeze != null && !zeze.isNoDatabase()) {
+			zeze.newProcedure(() -> {
+				onRes.run(result);
+				return Procedure.Success;
+			}, "RedirectAllFutureImpl.result").call();
+		} else {
+			try {
+				onRes.run(result);
+			} catch (Exception e) {
+				throw Task.forceThrow(e);
 			}
-		} finally {
-			CALLBACK_CTX.remove();
 		}
 	}
 
@@ -295,14 +284,15 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	public @NotNull RedirectAllFuture<R> await() {
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
-			// FND-A1-9：见CALLBACK_CTX声明。onResult回调在ctx锁内同步执行，此处挂起等待
-			// 同一ctx会永久持有ctx锁，阻塞所有后续结果处理并死锁。对照sendRpcForWait事务内
-			// 禁用的先例，这里防御性拒绝（完成的future仍可直接await，不受影响）。
-			var callbackCtx = CALLBACK_CTX.get();
-			if (callbackCtx != null && callbackCtx == c)
+			// FND-A1-9：onResult回调在ctx锁内同步执行（processResult持ctx锁调用result），此处挂起等待
+			// 同一ctx只释放future自己的锁，ctx锁仍被本线程持有，后续processResult/onRemoved全部阻塞，
+			// future永不完成。future完成必经ctx锁，“当前线程持有该ctx锁”即是死锁充要条件（嵌套回调
+			// 下同样成立），直接查锁拦截，无需ThreadLocal侧记；迟注册onResult路径回调在锁外执行，
+			// 不会被误拦。对照sendRpcForWait事务内禁用的先例，防御性拒绝（已完成的future不受影响）。
+			if (c != null && c.isLockHeldByCurrentThread())
 				throw new IllegalStateException(
-						"RedirectAllFuture.await() cannot be called inside its own onResult callback: " +
-								"the callback runs under the RedirectAllContext lock, waiting would deadlock.");
+						"RedirectAllFuture.await() cannot be called while holding this context's lock " +
+								"(e.g. inside its own onResult callback): waiting would deadlock.");
 			lock();
 			try {
 				try {

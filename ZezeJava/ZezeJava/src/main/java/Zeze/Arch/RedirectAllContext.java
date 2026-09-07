@@ -44,6 +44,11 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 		lock.unlock();
 	}
 
+	// RedirectAllFutureImpl.await() 据此拦截“当前线程持本ctx锁时挂起等待”的死锁（FND-A1-9）
+	boolean isLockHeldByCurrentThread() {
+		return lock.isHeldByCurrentThread();
+	}
+
 	public boolean isCompleted() {
 		return hashResults.size() >= concurrentLevel || isTimeout();
 	}
