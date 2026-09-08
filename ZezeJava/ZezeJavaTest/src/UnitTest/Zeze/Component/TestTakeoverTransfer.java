@@ -20,8 +20,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * 步骤②全量接管回归：伪造死者（租约+数据行），tryTransfer单事务内【搬运+立墓碑】。
- * 场景：CsQueue链搬运/幂等/serial守卫/双命名队列、Timer链搬运+版本veto不立碑、
- * 未过期租约放弃接管并到点精确重试。死者serverId用777/778/779/888/889避开真实id。
+ * 场景：CsQueue链搬运/幂等/旧stamp窗口搬运（FND2-C0-1）/双命名队列、Timer链搬运+
+ * 版本veto不立碑+旧stamp窗口搬运、未过期租约放弃接管并到点精确重试。
+ * 死者serverId用777/778/779/887/888/889避开真实id。
  */
 @Fast
 public class TestTakeoverTransfer {
@@ -145,12 +146,15 @@ public class TestTakeoverTransfer {
 			Assertions.assertArrayEquals(new int[] {42, -1}, pollTwo(app, csq2));
 			Assertions.assertArrayEquals(new int[] {-1, -1}, pollTwo(app, csq), "别的队列的接管数据不得串到本队列");
 
-			// serial守卫：死者root stamp(5) != 租约epoch(9)（已被搬走/活过来了）→不搬。
+			// FND2-C0-1：死者root stamp(5) != 租约epoch(9)——claim后stamp前崩溃窗口的形态
+			// （双跳崩溃同理留下上一代stamp）。链上有数据即属于死者：必须搬走并立碑；
+			// 旧守卫在此return 0且照常立租约墓碑，积压被scanOnce永久跳过而搁浅。
 			forgeDeadQueue(app, "TestTakeoverTransferQ3", 779, 5, 99);
 			TakeoverTestEnv.forgeLease(app, 779, 9, System.currentTimeMillis() - 1_000);
 			app.getTakeover().tryTransfer(779);
 			TakeoverTestEnv.waitTryTransferQueue();
-			Assertions.assertArrayEquals(new int[] {-1, -1}, pollTwo(app, csq3), "epoch不匹配不得搬运");
+			Assertions.assertArrayEquals(new int[] {99, -1}, pollTwo(app, csq3), "epoch不匹配的死者积压也必须搬运（claim-stamp崩溃窗口）");
+			Assertions.assertEquals(0L, TakeoverTestEnv.readLease(app, 779)[1], "搬运完成后租约应立墓碑");
 		} finally {
 			app.stop();
 		}
@@ -232,6 +236,46 @@ public class TestTakeoverTransfer {
 				return 0L;
 			}, "TestTakeoverTransfer.assertVetoStay")).call();
 			Assertions.assertEquals(0L, rcStay);
+
+			// FND2-C0-1同款（Timer侧）：死者887的root stamp(4) != 租约epoch(5)——claim-stamp
+			// 崩溃窗口的旧stamp定时器链，必须搬运+立碑（旧守卫会搁浅封存）。
+			var nodeId887 = 887_001L;
+			var timerId887 = "@TestTakeoverTransfer.deadTimer887";
+			var rc887 = TaskSpec.ofProcedure(app.newProcedure(() -> {
+				var root = tNodeRoot(app).getOrAdd(887);
+				root.setHeadNodeId(nodeId887);
+				root.setTailNodeId(nodeId887);
+				root.setVersion(0);
+				root.setLoadSerialNo(4); // 旧stamp：死者的上一代epoch
+				var node = tNodes(app).getOrAdd(nodeId887);
+				node.setPrevNodeId(nodeId887); // 循环链
+				node.setNextNodeId(nodeId887);
+				var simple = new BSimpleTimer();
+				simple.setNextExpectedTime(System.currentTimeMillis() + 3_600_000);
+				var bTimer = new BTimer(timerId887, NoopHandle.class.getName(), 0);
+				bTimer.setTimerObj(simple);
+				node.getTimers().put(timerId887, bTimer);
+				tIndexs(app).insert(timerId887, new BIndex(887, nodeId887, 1, 0));
+				return 0L;
+			}, "TestTakeoverTransfer.forgeStaleStampTimer")).call();
+			Assertions.assertEquals(0L, rc887);
+			TakeoverTestEnv.forgeLease(app, 887, 5, System.currentTimeMillis() - 1_000);
+			app.getTakeover().tryTransfer(887);
+			TakeoverTestEnv.waitTryTransferQueue();
+
+			var assert887 = TaskSpec.ofProcedure(app.newProcedure(() -> {
+				var dead = tNodeRoot(app).get(887);
+				Assertions.assertNotNull(dead);
+				Assertions.assertEquals(0L, dead.getHeadNodeId(), "旧stamp的timer链也必须搬运（FND2-C0-1）");
+				Assertions.assertEquals(0L, dead.getLoadSerialNo());
+				Assertions.assertEquals(nodeId887, tNodeRoot(app).getOrAdd(myId).getHeadNodeId(), "接管链应拼到我的root");
+				var index = tIndexs(app).get(timerId887);
+				Assertions.assertNotNull(index);
+				Assertions.assertEquals(myId, index.getServerId(), "afterTransfer重载应把index重指向接管者");
+				return 0L;
+			}, "TestTakeoverTransfer.assertStaleStampMoved")).call();
+			Assertions.assertEquals(0L, assert887);
+			Assertions.assertEquals(0L, TakeoverTestEnv.readLease(app, 887)[1], "旧stamp搬运完成后租约应立墓碑");
 		} finally {
 			timer.stop();
 			app.stop();

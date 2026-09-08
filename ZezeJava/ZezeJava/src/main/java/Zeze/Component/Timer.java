@@ -1347,8 +1347,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				return 0; // 死者没有定时器链/空链。
 			if (src.getVersion() > zeze.getConfig().getAppVersion())
 				return -1; // 不接管版本高的：veto，不立碑，留给相同或高版本的进程。
-			if (src.getLoadSerialNo() != deadEpoch)
-				return 0; // 幂等/已被搬走（墓碑stamp=0或epoch不匹配）。
+			// FND2-C0-1：不核对stamp==deadEpoch（同CsQueue：调用点同事务重验租约过期已保证归属，
+			// 幂等重入由上面head==0短路；claim-stamp崩溃窗口留下的旧stamp链必须搬，否则立碑后永久搁浅）。
 			var srcHead = _tNodes.get(srcHeadNodeId);
 			var srcTail = _tNodes.get(srcTailNodeId);
 			if (srcHead == null || srcTail == null)
@@ -1371,7 +1371,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			src.setHeadNodeId(0);
 			src.setTailNodeId(0);
 			src.setVersion(0);
-			src.setLoadSerialNo(0); // 死者root立墓碑stamp：同epoch重复tryTransfer幂等退出。
+			src.setLoadSerialNo(0); // 死者root清账stamp=0（墓碑）：幂等重入由上面head==0短路；复活者醒来scoped后认领空链继续写。
 			transferredFirst = srcHeadNodeId;
 			transferredLast = headNodeId;
 			return 1;

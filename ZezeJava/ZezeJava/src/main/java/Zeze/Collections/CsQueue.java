@@ -61,10 +61,12 @@ public class CsQueue<V extends Bean> {
 			var srcName = name + "@" + deadServerId;
 			var src = Queue.compatible(module._tQueues.get(srcName), srcName);
 			if (null == src || src.getHeadNodeKey().getNodeId() == 0 || src.getTailNodeKey().getNodeId() == 0)
-				return 0; // 死者没有这个队列/空队列。
+				return 0; // 死者没有这个队列/空队列/已被搬走（成功搬运后头尾必为0，幂等出口）。
 
-			if (src.getLoadSerialNo() != deadEpoch)
-				return 0; // 幂等/已被搬走（墓碑stamp=0或旧epoch不匹配）。
+			// FND2-C0-1：不核对stamp==deadEpoch。调用点（Takeover.transferScope）已在同一事务内
+			// 重验租约过期，复活者被NotExpired拦截；而"stamp≠epoch但链上有数据"只可能是死者
+			// claim后、stamp前崩溃（或双跳崩溃留下上一代stamp）——数据仍属于死者，必须搬走。
+			// 旧守卫在这里return 0，外层照常立租约墓碑（scanOnce永久跳过墓碑），积压被永久封存。
 
 			// splice 单向链表，新接管的数据拼到开头。
 			var dstName = name + "@" + module.zeze.getConfig().getServerId();
@@ -88,7 +90,7 @@ public class CsQueue<V extends Bean> {
 			src.setHeadNodeId(0);
 			src.setTailNodeId(0);
 			src.setCount(0);
-			src.setLoadSerialNo(0); // 死者root立墓碑stamp：同epoch重复tryTransfer幂等退出。
+			src.setLoadSerialNo(0); // 死者root清账stamp=0（墓碑）：幂等重入由上面头尾==0短路；复活者醒来scoped后认领继续写。
 			return count;
 		}
 	}
