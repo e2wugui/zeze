@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import Zeze.Builtin.AccountOnline.BAccountLink;
+import Zeze.Builtin.Provider.BLoad;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.LogOne;
 import Zeze.Transaction.Database;
@@ -57,15 +57,15 @@ public class TestCollOneFollowerApply {
 			}
 		};
 
-		var parent = new BAccountLink();
-		var collOne = new CollOne<>(new BAccountLink(), BAccountLink.class);
+		var parent = new BLoad();
+		var collOne = new CollOne<>(new BLoad(), BLoad.class);
 		var rootInfo = new Record.RootInfo(record, new TableKey(1, "TestCollOneFollowerApply"));
 		collOne.initRootInfo(rootInfo, parent);
 		assertTrue(collOne.isManaged());
 
 		// follower应用"整体替换value"的日志：新bean必须完成rootInfo初始化，
 		// 与PList2/PMap2/RocksRaft的CollList2/CollMap2全部同类实现一致。
-		var newValue = new BAccountLink();
+		var newValue = new BLoad();
 		var log = new LogOne<>(parent, 0, collOne, newValue);
 		collOne.followerApply(log);
 
