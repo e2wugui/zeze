@@ -1,6 +1,5 @@
 package UnitTest.Zeze.Component;
 
-import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -9,6 +8,7 @@ import Zeze.Config;
 import Zeze.Net.Connector;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManagerServer;
+import Zeze.Util.Task;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -23,24 +23,16 @@ public class TestTakeoverIdentifySuspect {
 
 	@Test
 	public void testSuspectBroadcastOnClose() throws Exception {
-		// 动态分配空闲端口（@Fast禁固定端口；端口0的绑定结果无法从SM取出，用预探测）。
-		// 必须TCP+UDP双空闲：SM的Id128UdpServer要在同端口号绑UDP。
-		// 必须UDP分配器先选、TCP再验（原TCP先选曾负载下32连败）：Windows的WinNAT会在
-		// 动态端口段内保留大块UDP端口（see TestMQ的26000段注释），TCP分配器游标走进
-		// 保留块时，TCP空闲的候选在UDP侧必然BindException，连续失败直到游标走出块；
-		// 反过来由UDP分配器选出的端口天然不在UDP保留段，TCP被占/保留只需换下一个。
-		int port = -1;
-		for (int attempt = 0; attempt < 32 && port < 0; ++attempt) {
-			try (var ds = new java.net.DatagramSocket(0)) {
-				int candidate = ds.getLocalPort();
-				try (var ss = new ServerSocket(candidate)) {
-					port = candidate; // UDP分配器选出+TCP可绑，双空闲
-				} catch (java.net.BindException ignore) {
-					// TCP被占/保留，换下一个
-				}
-			}
-		}
-		Assertions.assertTrue(port > 0, "32次尝试内未找到TCP+UDP同时空闲的端口");
+		// 本类单跑（--tests过滤）时没有其他类先行初始化全局线程池：SM构造里ZezeCounter.tryInit
+		// →PerfCounter调度直接抛"scheduled pool is null"。以前多类同跑被别人的tryInitThreadPool
+		// 掩护，从未单跑暴露过。
+		Task.tryInitThreadPool();
+		// 固定端口（@Fast固定端口独占契约）：SM要在同端口号绑TCP(Acceptor)+UDP(Id128UdpServer)。
+		// 曾用动态探测（TCP先选UDP后验/UDP先选TCP后验两版）都在负载下32连败：WinNAT/Hyper-V
+		// 按协议分别保留动态段内的大块端口（块长可上百），跟随任一分配器的游标走进对侧协议的
+		// 保留块即连续失败。26xxx段在动态端口范围之外（see TestMQ的选段注释），本测试用26110
+		// （已避开TestMQ系26000-26003、26100-26102）。
+		final int port = 26110;
 		// autokeys目录放在已被gitignore的autokeys/下，避免污染仓库；RocksDB需要父目录存在。
 		Files.createDirectories(Path.of("autokeys"));
 
