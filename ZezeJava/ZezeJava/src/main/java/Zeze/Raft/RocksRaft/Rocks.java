@@ -279,29 +279,43 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	@SuppressWarnings("unchecked")
 	public void followerApply(Changes changes, RaftLog holder) {
-		var index = holder.getIndex();
-		var pending = takePendingFlush(index, holder.getTerm());
-		if (pending != null) {
-			// 上次followerApply已完成内存变更但flush失败（FND-R2-4）：内存已是最终状态。
-			// 增量日志重放不幂等（如list的OP_ADD按索引追加），重放会双重应用，
-			// 这里跳过内存变更，仅重试flush。
+		try {
+			var index = holder.getIndex();
+			var pending = takePendingFlush(index, holder.getTerm());
+			if (pending != null) {
+				// 上次followerApply已完成内存变更但flush失败（FND-R2-4）：内存已是最终状态。
+				// 增量日志重放不幂等（如list的OP_ADD按索引追加），重放会双重应用，
+				// 这里跳过内存变更，仅重试flush。
+				try {
+					flush(pending, changes, true);
+				} catch (FlushException e) {
+					putPendingFlush(index, holder.getTerm(), pending);
+					throw e;
+				}
+				return;
+			}
+			var rs = new ArrayList<Record<?>>();
+			for (var e : changes.getRecords().entrySet())
+				rs.add(((Table<Object, Bean>)e.getValue().table).followerApply(e.getKey().key, e.getValue()));
 			try {
-				flush(pending, changes, true);
+				flush(rs, changes, true);
 			} catch (FlushException e) {
-				putPendingFlush(index, holder.getTerm(), pending);
+				// 内存已变更但落盘失败：记录已应用的记录集合，等下次apply重试时只flush。
+				putPendingFlush(index, holder.getTerm(), rs);
 				throw e;
 			}
-			return;
-		}
-		var rs = new ArrayList<Record<?>>();
-		for (var e : changes.getRecords().entrySet())
-			rs.add(((Table<Object, Bean>)e.getValue().table).followerApply(e.getKey().key, e.getValue()));
-		try {
-			flush(rs, changes, true);
 		} catch (FlushException e) {
-			// 内存已变更但落盘失败：记录已应用的记录集合，等下次apply重试时只flush。
-			putPendingFlush(index, holder.getTerm(), rs);
+			// flush失败有补偿重试通道（pendingFlush，FND-R2-4），不是结构性分歧，放行给apply重试。
 			throw e;
+		} catch (Throwable e) {
+			// followerApply链路（Table/Bean/Coll容器）的异常=状态机先行分歧（宁死不糊）：
+			// 编码侧已保证合法日志不会missing/out-of-bounds（LogList2.encode重算index、
+			// LogMap2.buildChangedWithKey过滤），follower侧NPE/IOOBE即分歧，统一在此fatalKill，
+			// 各层不再内联防御。也兜住FND2-R2-2教训：不catch则apply重试在同一条目反复抛出，
+			// lastApplied楔死死循环。
+			Rocks.logger.fatal("{} followerApply divergence, fatalKill. logIndex={} term={}",
+					getRaft().getName(), holder.getIndex(), holder.getTerm(), e);
+			getRaft().fatalKill();
 		}
 	}
 

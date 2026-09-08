@@ -64,8 +64,8 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 
 		case Changes.Record.Edit:
 			var value = get(key);
-			if (value == null)
-				break; // 忽略不存在的编辑记录。旧代码：value = originTable.newValue();
+			// value==null即先行分歧（编辑目标不存在）：直接递归抛NPE中断回放批，不再静默忽略
+			// （旧代码曾newValue()重建，更早版本break跳过）。logBean为null是合法的空编辑，保留判空。
 			var log = logRecord.getLogBean();
 			if (log != null)
 				value.followerApply(log);

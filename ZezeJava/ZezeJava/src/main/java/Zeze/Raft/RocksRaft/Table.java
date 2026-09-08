@@ -13,13 +13,9 @@ import Zeze.Util.Func2;
 import Zeze.Util.Reflect;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
 public final class Table<K, V extends Bean> {
-	private static final Logger logger = LogManager.getLogger(Table.class);
-
 	private final Rocks rocks;
 	private final String templateName;
 	private final int templateId;
@@ -317,20 +313,16 @@ public final class Table<K, V extends Bean> {
 
 		case Changes.Record.Edit:
 			r = getOrLoad(key);
-			if (r.getValue() == null) {
-				logger.fatal("editing bug record not exist. table={} key={} state={}",
-						name, key, r.getState(), new Exception());
-				rocks.getRaft().fatalKill();
-			}
+			// record不存在即先行分歧：直接getValue().followerApply抛NPE，由Rocks.followerApply
+			// 统一catch并fatalKill（宁死不糊），不再内联防御。
 			for (var log : rLog.getLogBean())
 				r.getValue().followerApply(log); // 最多一个。
 			break;
 
 		default:
-			logger.fatal("unknown Changes.Record.State. table={} key={} state={}",
-					name, key, rLog.getState(), new Exception());
-			rocks.getRaft().fatalKill();
-			return null;
+			// 未知状态：直接抛出，由Rocks.followerApply统一catch并fatalKill。
+			throw new IllegalStateException("unknown Changes.Record.State. table=" + name
+					+ " key=" + key + " state=" + rLog.getState());
 		}
 		return r;
 	}

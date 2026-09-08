@@ -189,9 +189,10 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 
 		// apply changed
 		for (var e : log.getChangedWithKey().entrySet()) {
-			Bean value = tmp.get(e.getKey());
-			if (null != value) // value 可能是编辑了，但是又被删了。所以需要判断null.
-				value.followerApply(e.getValue());
+			// 正常重放下changed只含最终map存在的key（编码时已过滤），follower侧null即先行分歧
+			// （可能是编辑了又被删等任何来源）：直接递归抛NPE，由驱动方裁决——raft路径
+			// Rocks.followerApply统一catch+fatalKill；History回放路径批中断。抛出时map未提交。
+			tmp.get(e.getKey()).followerApply(e.getValue());
 		}
 		map = tmp;
 	}

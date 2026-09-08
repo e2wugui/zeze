@@ -141,22 +141,12 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		for (var e : log.getChanged().entrySet()) {
 			if (newest.contains(e.getValue().value))
 				continue;
-			// 【FND2-R2-2】changed 携带的 index 越过当前 list 边界（任何来源的先行分歧）时，
-			// 对齐 Table.followerApply 的"宁死不糊"：fatal 记录并 fatalKill。
-			// IndexOutOfBoundsException 不是 FlushException（无补偿）也不是 decode 错误
-			// （fatalKillDecodeError 不覆盖），每次重试都在同一条目抛出，lastApplied
-			// 楔死、apply 卡死循环，节点无法追平。
-			// 镜像实现Transaction.Collections.PList2.followerApply是History尽力而为回放路径
-			// （无Raft句柄、Verify.verifyAndClear兜底），同场景warn+skip；本层是raft状态机
-			// apply，跳过会静默分叉，勿对齐为跳过。
-			var index = e.getValue().value;
-			if (index < 0 || index >= list.size()) {
-				Rocks.logger.fatal("CollList2.followerApply: changed index out of bounds. index={} size={}",
-						index, list.size(), new Exception());
-				((Table<?, ?>)rootInfo().getRecord().getTable()).getRocks().getRaft().fatalKill();
-				continue;
-			}
-			list.get(index).followerApply(e.getKey());
+			// 【FND2-R2-2】changed 携带的 index 越过当前 list 边界（任何来源的先行分歧）时直接get
+			// 抛IndexOutOfBoundsException：正常重放下index必在界内（LogList2.encode只保留最终
+			// 列表中存在的bean并按最终列表计算index），越界即先行分歧。异常由Rocks.followerApply
+			// 统一catch并fatalKill（宁死不糊；也兜住FND2-R2-2的"不catch则apply重试同条目反复抛出、
+			// lastApplied楔死"教训），容器层不再内联防御。
+			list.get(e.getValue().value).followerApply(e.getKey());
 		}
 	}
 
