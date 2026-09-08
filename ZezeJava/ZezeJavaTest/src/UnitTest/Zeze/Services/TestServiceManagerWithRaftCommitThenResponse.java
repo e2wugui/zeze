@@ -102,10 +102,23 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 		}
 
 		AsyncSocket connect(int port) throws Exception {
-			var connector = new Connector("127.0.0.1", port, false);
-			getConfig().addConnector(connector);
-			start();
-			return connector.WaitReady();
+			// WaitReady()固定5s超时：全量负载下握手可能超时（TimeoutException，实测偶发），
+			// 有界重试：失败连接remove+stop后重建（对齐族内其他测试的负载加固）。
+			for (int attempt = 1; ; ++attempt) {
+				var connector = new Connector("127.0.0.1", port, false);
+				getConfig().addConnector(connector);
+				start();
+				try {
+					return connector.WaitReady();
+				} catch (Exception e) { // 超时经Task.forceThrow sneaky-throw受检TimeoutException，编译期不可见
+					if (!(e instanceof java.util.concurrent.TimeoutException) || attempt >= 6)
+						throw e;
+					getConfig().removeConnector(connector);
+					connector.stop();
+					//noinspection BusyWait
+					Thread.sleep(200);
+				}
+			}
 		}
 	}
 

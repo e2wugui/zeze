@@ -84,6 +84,9 @@ public class TestServiceManagerWithRaftLoginTimeout {
 		try {
 			var f = subscribeInWorker(agent);
 			try {
+				// begin从submit起算：deadline锚定在worker进入等待（≈submit+ε），脚手架耗时
+				// （submit到get之间的调度）不影响elapsed与deadline的相对关系——负载把这段
+				// 拖过deadline时，get后起算会elapsed≈0误判"提前失败"。
 				long begin = System.currentTimeMillis();
 				// 修复前这里永久park，get超时后f.cancel(true)中断线程才勉强返回——
 				// 断言ex非空即失败。修复后约1s返回IllegalStateException。
@@ -93,7 +96,9 @@ public class TestServiceManagerWithRaftLoginTimeout {
 				Assertions.assertInstanceOf(IllegalStateException.class, ex, "expect login timeout, but: " + ex);
 				Assertions.assertEquals("login timeout.", ex.getMessage());
 				Assertions.assertTrue(elapsed >= 900, "must not fail before loginTimeout, elapsed=" + elapsed);
-				Assertions.assertTrue(elapsed < 10_000, "must fail near loginTimeout(1s), elapsed=" + elapsed);
+				// 防挂起护栏（非精确时序）：负载下唤醒/调度延迟可远超1s，放宽到25s，
+				// 真挂起由get(30s)与@Timeout(60)双兜底。
+				Assertions.assertTrue(elapsed < 25_000, "must fail near loginTimeout(1s), elapsed=" + elapsed);
 			} finally {
 				f.cancel(true);
 			}
@@ -109,6 +114,10 @@ public class TestServiceManagerWithRaftLoginTimeout {
 		try {
 			var f = subscribeInWorker(agent);
 			try {
+				// begin从submit起算（理由同test1）：deadline锚定在worker进入等待的~3s后，
+				// 脚手架（sleep+invoke）耗时与elapsed解耦，负载下脚手架拖过deadline时
+				// invoke后起算会elapsed≈0误判"cancel被当超时立即失败"。
+				long begin = System.currentTimeMillis();
 				// 工作线程进入等待后，模拟raftOnSetLeader里的startNewLogin：
 				// cancel旧future并替换。被cancel不是失败，必须重读最新future继续等到deadline。
 				Thread.sleep(500);
@@ -116,7 +125,6 @@ public class TestServiceManagerWithRaftLoginTimeout {
 				startNewLogin.setAccessible(true);
 				startNewLogin.invoke(agent);
 
-				long begin = System.currentTimeMillis();
 				var ex = f.get(30, TimeUnit.SECONDS);
 				long elapsed = System.currentTimeMillis() - begin;
 				Assertions.assertNotNull(ex, "subscribeService must fail when SM raft unreachable");
@@ -124,7 +132,9 @@ public class TestServiceManagerWithRaftLoginTimeout {
 				Assertions.assertEquals("login timeout.", ex.getMessage());
 				// cancel发生在~0.5s，deadline在~3s：立即失败说明cancel被误当超时，违反重读语义。
 				Assertions.assertTrue(elapsed >= 2000, "must keep waiting on replaced future until deadline, elapsed=" + elapsed);
-				Assertions.assertTrue(elapsed < 10_000, "must fail near deadline(3s), elapsed=" + elapsed);
+				// 防挂起护栏（非精确时序）：负载下唤醒延迟可远超3s，放宽到25s，
+				// 真挂起由get(30s)与@Timeout(60)双兜底。
+				Assertions.assertTrue(elapsed < 25_000, "must fail near deadline(3s), elapsed=" + elapsed);
 			} finally {
 				f.cancel(true);
 			}

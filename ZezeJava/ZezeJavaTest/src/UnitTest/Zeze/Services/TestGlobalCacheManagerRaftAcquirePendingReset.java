@@ -98,10 +98,23 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		}
 
 		AsyncSocket connect(int port) throws Exception {
-			var connector = new Connector("127.0.0.1", port, false);
-			getConfig().addConnector(connector);
-			start();
-			return connector.WaitReady();
+			// WaitReady()固定5s超时：全量负载下TCP连接+握手可能超时（TimeoutException，
+			// 实测偶发），有界重试：失败连接remove+stop后重建（连接建立幂等）。
+			for (int attempt = 1; ; ++attempt) {
+				var connector = new Connector("127.0.0.1", port, false);
+				getConfig().addConnector(connector);
+				start();
+				try {
+					return connector.WaitReady();
+				} catch (Exception e) { // 超时经Task.forceThrow sneaky-throw受检TimeoutException，编译期不可见
+					if (!(e instanceof java.util.concurrent.TimeoutException) || attempt >= 6)
+						throw e;
+					getConfig().removeConnector(connector);
+					connector.stop();
+					//noinspection BusyWait
+					Thread.sleep(200);
+				}
+			}
 		}
 	}
 
@@ -219,15 +232,27 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 	}
 
 	private static void sendLogin(AsyncSocket socket, int serverId) throws Exception {
-		var login = new Login();
-		login.Argument.setServerId(serverId);
-		login.Argument.setGlobalCacheManagerHashIndex(0);
-		login.getUnique().setRequestId(requestIds.incrementAndGet());
-		login.setCreateTime(System.currentTimeMillis()); // 不设置会被服务端判为RaftExpired(-17)
-		login.setTimeout(15_000);
-		Assertions.assertTrue(login.SendForWait(socket, 15_000).await(15_000), "login await");
-		Assertions.assertFalse(login.isTimeout(), "login timeout");
-		Assertions.assertEquals(0, login.getResultCode(), "login resultCode");
+		// RaftRetry(-15)：静默集群leader漂移/选举窗口的瞬态应答，有界重试（对齐SM-raft族
+		// sendLogin），每次重试用新Login（requestId唯一）。
+		long lastCode = Long.MIN_VALUE;
+		for (int attempt = 1; attempt <= 12; ++attempt) {
+			var login = new Login();
+			login.Argument.setServerId(serverId);
+			login.Argument.setGlobalCacheManagerHashIndex(0);
+			login.getUnique().setRequestId(requestIds.incrementAndGet());
+			login.setCreateTime(System.currentTimeMillis()); // 不设置会被服务端判为RaftExpired(-17)
+			login.setTimeout(15_000);
+			Assertions.assertTrue(login.SendForWait(socket, 15_000).await(15_000), "login await");
+			Assertions.assertFalse(login.isTimeout(), "login timeout");
+			lastCode = login.getResultCode();
+			if (lastCode != -15) {
+				Assertions.assertEquals(0, lastCode, "login resultCode");
+				return;
+			}
+			//noinspection BusyWait
+			Thread.sleep(500);
+		}
+		Assertions.fail("login持续RaftRetry(-15)，lastCode=" + lastCode);
 	}
 
 	/** 表读取必须在事务内进行（Table.get需要Transaction.getCurrent()），用只读procedure包一层。 */

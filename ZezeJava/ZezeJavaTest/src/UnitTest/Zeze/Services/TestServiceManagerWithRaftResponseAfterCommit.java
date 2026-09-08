@@ -90,16 +90,27 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 		private Connector connector;
 
 		AsyncSocket connect(int port) throws Exception {
-			// 换端口重连前先摘除旧Connector（同host:port重复注册会抛Duplicate Connector）。
-			if (connector != null) {
-				getConfig().removeConnector(connector);
-				connector.stop();
-				connector = null;
+			// WaitReady()固定5s超时：全量负载下握手可能超时（TimeoutException，实测偶发），
+			// 有界重试：失败连接remove+stop后重建；换端口重连前同样先摘除旧Connector
+			//（同host:port重复注册会抛Duplicate Connector）。
+			for (int attempt = 1; ; ++attempt) {
+				if (connector != null) {
+					getConfig().removeConnector(connector);
+					connector.stop();
+					connector = null;
+				}
+				connector = new Connector("127.0.0.1", port, false);
+				getConfig().addConnector(connector);
+				start();
+				try {
+					return connector.WaitReady();
+				} catch (Exception e) { // 超时经Task.forceThrow sneaky-throw受检TimeoutException，编译期不可见
+					if (!(e instanceof java.util.concurrent.TimeoutException) || attempt >= 6)
+						throw e;
+					//noinspection BusyWait
+					Thread.sleep(200);
+				}
 			}
-			connector = new Connector("127.0.0.1", port, false);
-			getConfig().addConnector(connector);
-			start();
-			return connector.WaitReady();
 		}
 	}
 
