@@ -182,17 +182,25 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						"                            return 3" + "\r\n" +
 						"                        end" + "\r\n" +
 						"\r\n" +
-						"insert into _ZezeDataWithVersion_ values(@id,@data,@version) " +
-						" select id,data,version from _ZezeDataWithVersion_ where NOT EXISTS (select id where id=@id)" + "\r\n" +
-						"                        if @@rowcount = 1" + "\r\n" +
-						"                        begin" + "\r\n" +
-						"                            set @ReturnValue=0" + "\r\n" +
-						"                            COMMIT TRANSACTION" + "\r\n" +
-						"                            return 0" + "\r\n" +
-						"                        end" + "\r\n" +
-						"                        set @ReturnValue=4" + "\r\n" +
-						"                        ROLLBACK TRANSACTION" + "\r\n" +
-						"                        return 4" + "\r\n" +
+						// FND2-T3-2：原为"insert后跟select(0行)再查@@rowcount"的残缺形态——SELECT把@@rowcount
+						// 重置为0导致插入路径恒return 4，且其无FROM子句的select在EXEC时报207(Invalid column name)，
+						// 还会向客户端吐出空结果集干扰executeUpdate。重写：直接insert，并发插入竞争(2627主键/
+						// 2601唯一索引冲突)按MySQL版INSERT IGNORE的失败语义映射为return 4，其他错误重新抛出。
+						"                        BEGIN TRY" + "\r\n" +
+						"                            insert into _ZezeDataWithVersion_ values(@id,@data,@version)" + "\r\n" +
+						"                        END TRY" + "\r\n" +
+						"                        BEGIN CATCH" + "\r\n" +
+						"                            if ERROR_NUMBER() in (2627, 2601)" + "\r\n" +
+						"                            begin" + "\r\n" +
+						"                                set @ReturnValue=4" + "\r\n" +
+						"                                ROLLBACK TRANSACTION" + "\r\n" +
+						"                                return 4" + "\r\n" +
+						"                            end" + "\r\n" +
+						"                            ; THROW" + "\r\n" +
+						"                        END CATCH" + "\r\n" +
+						"                        set @ReturnValue=0" + "\r\n" +
+						"                        COMMIT TRANSACTION" + "\r\n" +
+						"                        return 0" + "\r\n" +
 						"                    end";
 				try (var cmd = connection.prepareStatement(ProcSaveDataWithSameVersion)) {
 					cmd.executeUpdate();
@@ -219,13 +227,21 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						"                            ROLLBACK TRANSACTION" + "\r\n" +
 						"                            return 2" + "\r\n" +
 						"                        end" + "\r\n" +
-						"                        insert into _ZezeInstances_ values(@localid) select localid from _ZezeInstances_ where NOT EXISTS (select localid from _ZezeInstances_ where localid=@localid)" + "\r\n" +
-						"                        if @@rowcount = 0" + "\r\n" +
-						"                        begin" + "\r\n" +
-						"                            set @ReturnValue=3" + "\r\n" +
-						"                            ROLLBACK TRANSACTION" + "\r\n" +
-						"                            return 3" + "\r\n" +
-						"                        end" + "\r\n" +
+						// FND2-T3-2：原残缺形态"insert后跟select(0行)再查@@rowcount"令@@rowcount恒0，
+						// 全新库上EXEC也恒return 3(Insert LocalId Failed)→Application.start必败（LocalDB实测）。
+						// 重写：直接insert（VALUES形态非1即异常），并发主键冲突(2627/2601)映射return 3。
+						"                        BEGIN TRY" + "\r\n" +
+						"                            insert into _ZezeInstances_ values(@localid)" + "\r\n" +
+						"                        END TRY" + "\r\n" +
+						"                        BEGIN CATCH" + "\r\n" +
+						"                            if ERROR_NUMBER() in (2627, 2601)" + "\r\n" +
+						"                            begin" + "\r\n" +
+						"                                set @ReturnValue=3" + "\r\n" +
+						"                                ROLLBACK TRANSACTION" + "\r\n" +
+						"                                return 3" + "\r\n" +
+						"                            end" + "\r\n" +
+						"                            ; THROW" + "\r\n" +
+						"                        END CATCH" + "\r\n" +
 						"                        DECLARE @currentglobal VARBINARY(MAX)" + "\r\n" +
 						"                        declare @emptybinary varbinary(max)" + "\r\n" +
 						"                        set @emptybinary = convert(varbinary(max), '')" + "\r\n" +
@@ -241,7 +257,10 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						"                        end" + "\r\n" +
 						"                        else" + "\r\n" +
 						"                        begin" + "\r\n" +
-						"insert into _ZezeInstances_ values(@localid) select localid from _ZezeInstances_ where NOT EXISTS (select localid from _ZezeInstances_ where localid=@localid)" + "\r\n" +
+						// FND2-T3-2：此分支原是复制粘贴错误——再次insert @localid会与过程前段的主键冲突。
+						// 按MySQL版对齐：global记录不存在时插入_ZezeDataWithVersion_(empty_bin, in_global, 0)，
+						// 结果不检查（最后一个实例退出时由_ZezeClearInUse_删除）。
+						"                            insert into _ZezeDataWithVersion_ values(@emptybinary, @global, 0)" + "\r\n" +
 						"                        end" + "\r\n" +
 						"                        DECLARE @InstanceCount int" + "\r\n" +
 						"                        set @InstanceCount=0" + "\r\n" +
