@@ -177,7 +177,9 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			// 正常重放下changed只含最终map存在的key（LogMap2.buildChangedWithKey编码时已过滤
 			// removed/replaced），follower侧null即先行分歧（日志丢失/重复/交错应用）：直接递归
 			// 抛NPE，由驱动方裁决——raft路径Rocks.followerApply统一catch+fatalKill（镜像实现
-			// CollMap2同款）；History回放路径批中断（不再warn+skip尽力而为）。抛出时map未提交。
+			// CollMap2同款）；History回放路径批中断（不再warn+skip尽力而为）。抛出只证明应用
+			// 路径无硬分歧，不证明最终数值一致（错位应用/历史缺失不抛异常），仍由
+			// Verify.verifyAndClear全量对账兜底。抛出时map未提交。
 			tmp.get(e.getKey()).followerApply(e.getValue());
 		}
 		map = tmp;

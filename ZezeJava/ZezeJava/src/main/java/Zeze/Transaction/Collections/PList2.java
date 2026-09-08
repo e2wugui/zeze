@@ -249,7 +249,9 @@ public class PList2<V extends Bean> extends PList<V> {
 			// 正常重放下index必在界内（LogList2.encode只保留最终列表中存在的bean并按最终列表计算index），
 			// 越界只能是先行分歧（日志丢失/重复/交错应用）：直接get抛IndexOutOfBoundsException，
 			// 由驱动方裁决——raft路径Rocks.followerApply统一catch+fatalKill（镜像实现CollList2同款）；
-			// History回放路径批中断（不再warn+skip尽力而为）。抛出时list未提交，容器保持原状。
+			// History回放路径批中断（不再warn+skip尽力而为）。抛出只证明应用路径无硬分歧，
+			// 不证明最终数值一致：错位应用（stale index落在界内指向错误元素）不抛异常、
+			// 历史缺失不抛异常，仍由Verify.verifyAndClear全量对账兜底。抛出时list未提交，容器保持原状。
 			tmp.get(e.getValue().value).followerApply(e.getKey());
 		}
 		list = tmp;
