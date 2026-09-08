@@ -245,14 +245,26 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 	}
 
 	private static Login sendLogin(AsyncSocket sock, String sessionName, int timeoutMs) throws Exception {
-		var login = new Login();
-		login.Argument.setSessionName(sessionName);
-		login.getUnique().setRequestId(requestIds.incrementAndGet());
-		login.setCreateTime(System.currentTimeMillis());
-		login.setTimeout(timeoutMs);
-		Assertions.assertTrue(login.SendForWait(sock, timeoutMs).await(timeoutMs), "login await");
-		Assertions.assertFalse(login.isTimeout(), "login timeout");
-		return login;
+		// RaftRetry(-15)：静默集群leader漂移/选举窗口的瞬态应答（appendLog同步检查isLeader，
+		// 同TestServiceManagerWithRaftAllocateId.allocate的有界重试），重试耗尽才失败。
+		// 每次重试必须用新Login（requestId唯一）。用例1的阻塞Login不走这里（必失败语义独立）。
+		long lastCode = Long.MIN_VALUE;
+		for (int attempt = 1; attempt <= 12; ++attempt) {
+			var login = new Login();
+			login.Argument.setSessionName(sessionName);
+			login.getUnique().setRequestId(requestIds.incrementAndGet());
+			login.setCreateTime(System.currentTimeMillis());
+			login.setTimeout(timeoutMs);
+			Assertions.assertTrue(login.SendForWait(sock, timeoutMs).await(timeoutMs), "login await");
+			Assertions.assertFalse(login.isTimeout(), "login timeout");
+			lastCode = login.getResultCode();
+			if (lastCode != -15)
+				return login;
+			//noinspection BusyWait
+			Thread.sleep(500);
+		}
+		Assertions.fail("login持续RaftRetry(-15)，session=" + sessionName);
+		return null; // unreachable
 	}
 
 	private static Field field(String name) throws NoSuchFieldException {

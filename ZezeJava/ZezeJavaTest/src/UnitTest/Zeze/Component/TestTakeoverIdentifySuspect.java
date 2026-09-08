@@ -24,18 +24,20 @@ public class TestTakeoverIdentifySuspect {
 	@Test
 	public void testSuspectBroadcastOnClose() throws Exception {
 		// 动态分配空闲端口（@Fast禁固定端口；端口0的绑定结果无法从SM取出，用预探测）。
-		// 必须TCP+UDP双探测：SM的Id128UdpServer要在同端口号绑UDP，全量单JVM运行时
-		// 残留的Id128Udp实例可能占着该UDP端口（TCP空闲≠UDP空闲，实测BindException）。
+		// 必须TCP+UDP双空闲：SM的Id128UdpServer要在同端口号绑UDP。
+		// 必须UDP分配器先选、TCP再验（原TCP先选曾负载下32连败）：Windows的WinNAT会在
+		// 动态端口段内保留大块UDP端口（see TestMQ的26000段注释），TCP分配器游标走进
+		// 保留块时，TCP空闲的候选在UDP侧必然BindException，连续失败直到游标走出块；
+		// 反过来由UDP分配器选出的端口天然不在UDP保留段，TCP被占/保留只需换下一个。
 		int port = -1;
 		for (int attempt = 0; attempt < 32 && port < 0; ++attempt) {
-			int candidate;
-			try (var ss = new ServerSocket(0)) {
-				candidate = ss.getLocalPort();
-			}
-			try (var ds = new java.net.DatagramSocket(candidate)) {
-				port = candidate; // TCP+UDP都空闲才使用
-			} catch (java.net.BindException ignore) {
-				// UDP被占（如残留Id128UdpClient的临时端口），换下一个
+			try (var ds = new java.net.DatagramSocket(0)) {
+				int candidate = ds.getLocalPort();
+				try (var ss = new ServerSocket(candidate)) {
+					port = candidate; // UDP分配器选出+TCP可绑，双空闲
+				} catch (java.net.BindException ignore) {
+					// TCP被占/保留，换下一个
+				}
 			}
 		}
 		Assertions.assertTrue(port > 0, "32次尝试内未找到TCP+UDP同时空闲的端口");
