@@ -25,6 +25,7 @@ import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.model.ScanRequest;
 import com.amazonaws.services.dynamodbv2.model.TransactWriteItem;
 import com.amazonaws.services.dynamodbv2.model.TransactWriteItemsRequest;
+import org.jetbrains.annotations.NotNull;
 
 public class DatabaseDynamoDb extends Database {
 	private final AmazonDynamoDB dynamoDbClient;
@@ -43,12 +44,12 @@ public class DatabaseDynamoDb extends Database {
 	}
 
 	@Override
-	public Table openTable(String name, int id) {
+	public @NotNull Table openTable(@NotNull String name, int id) {
 		return new TableDynamoDb(name);
 	}
 
 	@Override
-	public Transaction beginTransaction() {
+	public @NotNull Transaction beginTransaction() {
 		return new TransDynamoDb();
 	}
 
@@ -61,18 +62,18 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public void setInUse(int localId, String global) {
+		public void setInUse(int localId, @NotNull String global) {
 			// 暂时不支持
 		}
 
 		@Override
-		public int clearInUse(int localId, String global) {
+		public int clearInUse(int localId, @NotNull String global) {
 			// 暂时不支持
 			return 0;
 		}
 
 		@Override
-		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+		public KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data, long version) {
 			// 读-判-写必须原子：多实例并发启动（tryLock 恒真的后端）同时进入 schemasCompatible 时，
 			// 读-判-写会丢失更新，级联出重复 renameTable 丢表数据。
 			// 这里用“完整旧值”做服务端条件写（PutItem + ConditionExpression）：
@@ -113,7 +114,7 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public DataWithVersion getDataWithVersion(ByteBuffer key) {
+		public DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
 			var result = new DataWithVersion();
 			var bb = dataWithVersion.find(key);
 			if (bb != null)
@@ -195,12 +196,12 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public Database getDatabase() {
+		public @NotNull Database getDatabase() {
 			return DatabaseDynamoDb.this;
 		}
 
 		@Override
-		public ByteBuffer find(ByteBuffer key) {
+		public ByteBuffer find(@NotNull ByteBuffer key) {
 			checkKvKeyLength(name, key);
 			var keyPrimary = new HashMap<String, AttributeValue>();
 			keyPrimary.put("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.size())));
@@ -217,21 +218,21 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
+		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
 			checkKvKeyLength(name, key);
 			var myt = (TransDynamoDb)t;
 			myt.replace(name, key, value);
 		}
 
 		@Override
-		public void remove(Transaction t, ByteBuffer key) {
+		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
 			checkKvKeyLength(name, key);
 			var myt = (TransDynamoDb)t;
 			myt.remove(name, key);
 		}
 
 		@Override
-		public long walk(TableWalkHandleRaw callback) throws Exception {
+		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
 			var attributesToGet = new ArrayList<String>();
 			attributesToGet.add("key");
 			attributesToGet.add("value");
@@ -263,7 +264,7 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public long walkKey(TableWalkKeyRaw callback) throws Exception {
+		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
 			var attributesToGet = new ArrayList<String>();
 			attributesToGet.add("key");
 			var req = new ScanRequest();
@@ -292,27 +293,27 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public long walkDesc(TableWalkHandleRaw callback) {
+		public long walkDesc(@NotNull TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public long walkKeyDesc(TableWalkKeyRaw callback) {
+		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			if (exclusiveStartKey != null)
@@ -337,7 +338,7 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			if (exclusiveStartKey != null)

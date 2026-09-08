@@ -11,6 +11,7 @@ import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 import org.tikv.common.BytePairWrapper;
 import org.tikv.common.ByteWrapper;
 import org.tikv.common.TiConfiguration;
@@ -49,12 +50,12 @@ public class DatabaseTikv extends Database {
 	}
 
 	@Override
-	public AbstractKVTable openTable(String name, int id) {
+	public @NotNull AbstractKVTable openTable(@NotNull String name, int id) {
 		return new TikvTable(name);
 	}
 
 	@Override
-	public Transaction beginTransaction() {
+	public @NotNull Transaction beginTransaction() {
 		return distTxn ? new TikvDistTrans() : new TikvTrans();
 	}
 
@@ -85,7 +86,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+		public KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data, long version) {
 			lock();
 			try {
 				var value = table.find(key);
@@ -112,7 +113,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public DataWithVersion getDataWithVersion(ByteBuffer key) {
+		public DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
 			lock();
 			try {
 				var dv = new DataWithVersion();
@@ -126,11 +127,11 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void setInUse(int localId, String global) {
+		public void setInUse(int localId, @NotNull String global) {
 		}
 
 		@Override
-		public int clearInUse(int localId, String global) {
+		public int clearInUse(int localId, @NotNull String global) {
 			return 0;
 		}
 	}
@@ -140,7 +141,7 @@ public class DatabaseTikv extends Database {
 		private final String name;
 
 		@Override
-		public DatabaseTikv getDatabase() {
+		public @NotNull DatabaseTikv getDatabase() {
 			return DatabaseTikv.this;
 		}
 
@@ -163,7 +164,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public ByteBuffer find(ByteBuffer key) {
+		public ByteBuffer find(@NotNull ByteBuffer key) {
 			checkKvKeyLength(name, key);
 			ByteString value;
 			if (distTxn) {
@@ -184,7 +185,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void remove(Transaction t, ByteBuffer key) {
+		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
 			checkKvKeyLength(name, key);
 			if (distTxn)
 				((TikvDistTrans)t).delete(addKeyPrefixBB(key));
@@ -193,7 +194,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
+		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
 			checkKvKeyLength(name, key);
 			if (distTxn)
 				((TikvDistTrans)t).put(addKeyPrefixBB(key), value);
@@ -202,7 +203,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public long walk(TableWalkHandleRaw callback) throws Exception {
+		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
 			long countWalked = 0;
 			int keyPrefixSize = keyPrefix.length;
 			var startKey = ByteString.copyFrom(keyPrefix);
@@ -226,7 +227,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public long walkKey(TableWalkKeyRaw callback) throws Exception {
+		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
 			long countWalked = 0;
 			int keyPrefixSize = keyPrefix.length;
 			var startKey = ByteString.copyFrom(keyPrefix);
@@ -249,27 +250,27 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public long walkDesc(TableWalkHandleRaw callback) {
+		public long walkDesc(@NotNull TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public long walkKeyDesc(TableWalkKeyRaw callback) {
+		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
 			throw new UnsupportedOperationException();
 			/*
 			int keyPrefixSize = keyPrefix.length;
@@ -297,7 +298,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
 			throw new UnsupportedOperationException();
 		}
 
