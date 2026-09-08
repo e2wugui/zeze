@@ -8,7 +8,7 @@ package Zeze.Component;
  * <ul>
  * <li>owner存活期间通过 {@link #stamp} 把自己名下root行的loadSerialNo写成当前epoch
  *     （addScope晚注册时由 {@link Takeover} 在独立小事务内调用）；</li>
- * <li>owner死亡后，接管者在同一zeze事务内调用 {@link #transferAll}，
+ * <li>owner死亡后，接管者对每个scope在独立zeze事务内（事务内重验租约）调用 {@link #transferAll}，
  *     scope以 {@code root.loadSerialNo == deadEpoch} 作为“数据仍属于死者且未被搬运”的守卫；</li>
  * <li>搬运成功后由 {@link #transferAll} 自己把死者root行的loadSerialNo清0（墓碑），幂等。</li>
  * </ul>
