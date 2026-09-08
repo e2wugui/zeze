@@ -71,6 +71,9 @@ public class Takeover extends AbstractTakeover {
 	private volatile @Nullable Future<?> renewFuture;
 	private volatile @Nullable Future<?> scanFuture;
 	private long renewFailCount; // 仅renew周期调度线程串行访问
+	// veto（死者数据版本高于本进程）会令扫描对同一死者周期性无限重试，on模式此前零输出——
+	// 按(死者serverId,epoch)去重告警一次给运维留线索。条目量以死者数×其历次epoch为界，与租约行同量级。
+	private final @NotNull Set<String> vetoWarned = ConcurrentHashMap.newKeySet();
 
 	public Takeover(@NotNull Application zeze) {
 		this.zeze = zeze;
@@ -96,6 +99,11 @@ public class Takeover extends AbstractTakeover {
 	/** 测试/诊断用：直接访问租约表。 */
 	public @NotNull tTakeoverLease getTable() {
 		return _tTakeoverLease;
+	}
+
+	/** 测试/诊断用：scope是否已完成本生命周期的stamp登记（release清零，重启后由start重建）。 */
+	public boolean isScoped(@NotNull TakeoverScope scope) {
+		return scopedScopes.contains(scope);
 	}
 
 	/** 测试注入fence失败动作（如计数器）；finally里复原。null恢复默认致命退出。 */
@@ -173,10 +181,11 @@ public class Takeover extends AbstractTakeover {
 		var action = (FuncLong)() -> {
 			var serverId = zeze.getConfig().getServerId();
 			var lease = _tTakeoverLease.get(serverId);
-			if (lease == null) {
-				// 行缺失（外部清表等）不是被接管：与renewOnce同款自愈重写自己的租约。
-				// 并发自愈由行冲突串行化；若期间已被新owner claim（含墓碑行），getOrAdd
-				// 看到别人的epoch→致命退出，不会覆盖新owner。
+			// 行缺失或epoch==0（外部清表/半清表）不是被接管：与renewOnce同款自愈条件重写
+			// 自己的租约——若只认null，epoch==0的残留行会走lost致命退出，与renew的处置相反。
+			// 并发自愈由行冲突串行化；若期间已被新owner claim（含墓碑行），getOrAdd
+			// 看到别人的epoch→致命退出，不会覆盖新owner。
+			if (lease == null || lease.getEpoch() == 0) {
 				lease = _tTakeoverLease.getOrAdd(serverId);
 				if (lease.getEpoch() != 0 && lease.getEpoch() != myEpoch) {
 					lost[0] = true;
@@ -352,6 +361,7 @@ public class Takeover extends AbstractTakeover {
 			return;
 		// 【校验】小事务探租约：幂等出口（无租约/墓碑）、未过期精确重试、dryrun都在这里终结。
 		var retryAt = new OutLong();
+		var deadEpoch = new OutLong();
 		var expired = new boolean[1];
 		var r = callDirect(() -> {
 			var lease = _tTakeoverLease.get(deadServerId);
@@ -367,6 +377,7 @@ public class Takeover extends AbstractTakeover {
 						deadServerId, lease.getEpoch(), scopeNames());
 				return 0L; // 不搬运不立碑，纯读路径灰度
 			}
+			deadEpoch.value = lease.getEpoch(); // 供veto告警（与transferScope事务内读数可能有时差，仅日志用）
 			expired[0] = true;
 			return 0L;
 		}, "Takeover.tryTransfer.check@" + deadServerId);
@@ -399,6 +410,10 @@ public class Takeover extends AbstractTakeover {
 				break;
 			case Veto:
 				veto = true;
+				if (vetoWarned.add(deadServerId + "#" + deadEpoch.value))
+					logger.warn("Takeover: transfer vetoed, serverId={} epoch={}"
+							+ "（死者存在版本高于本进程的scope数据，租约保持过期态留给高版本进程接管；"
+							+ "在此之前扫描将周期性重试）", deadServerId, deadEpoch.value);
 				break;
 			case TxFailed:
 				failed = true;
@@ -509,9 +524,17 @@ public class Takeover extends AbstractTakeover {
 		if (!started)
 			return;
 		started = false;
+		// 同进程stop→start（重启）时残留的scoped登记会让requireScoped在【新claim生效、
+		// stampScope重盖戳之前】的窗口放行写路径：读到旧epoch的root即被fence误杀健康重启
+		// （全新进程此窗口走NotStart拒绝，是安全方向）。清掉：重启后由start()重新stamp。
+		scopedScopes.clear();
+		// fenceFatal是"本生命周期被接管"的状态，生命周期结束即复位——否则stale值会让
+		// 重启后下一次release错误跳过自己的正常停机墓碑。
+		var wasFenced = fenceFatal;
+		fenceFatal = false;
 		if (ModeOff.equals(mode))
 			return;
-		if (fenceFatal)
+		if (wasFenced)
 			return; // 已被接管：写墓碑会打掉新owner的租约
 		var serverId = zeze.getConfig().getServerId();
 		var r = callDirect(() -> {
