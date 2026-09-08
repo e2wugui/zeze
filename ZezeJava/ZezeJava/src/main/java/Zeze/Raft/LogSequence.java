@@ -204,11 +204,12 @@ public class LogSequence {
 	}
 
 	private void startRemoveLogOnlyBefore(long index) {
+		TaskCompletionSource<Boolean> future;
 		raft.lock();
 		try {
 			if (removeLogBeforeFuture != null || !logsAvailable || raft.isShutdown)
 				return;
-			removeLogBeforeFuture = new TaskCompletionSource<>();
+			future = removeLogBeforeFuture = new TaskCompletionSource<>();
 		} finally {
 			raft.unlock();
 		}
@@ -221,7 +222,7 @@ public class LogSequence {
 					while (logsAvailable && !raft.isShutdown && it.isValid()) {
 						// 这里只需要log的Index，直接从key里面获取了。
 						if (ByteBuffer.Wrap(it.key()).ReadLong() >= index) {
-							removeLogBeforeFuture.setResult(true);
+							future.setResult(true);
 							return;
 						}
 
@@ -241,8 +242,19 @@ public class LogSequence {
 					}
 				}
 			} finally {
-				removeLogBeforeFuture.setResult(false);
-				removeLogBeforeFuture = null;
+				// 只操作自己创建的future：任务收尾无条件setResult(false)+置null共享字段，会误杀
+				// 已被并发替换的future（LogSequence初始化即启动本任务，负载下收尾延迟时，
+				// 等待点可能已被外部重新赋值——曾被完成+清空致等待失效，
+				// TestEndReceiveInstallSnapshotStaleTerm负载下偶发走进破坏性重置）。
+				// 字段清除与创建同持raft锁配对。
+				future.setResult(false);
+				raft.lock();
+				try {
+					if (removeLogBeforeFuture == future)
+						removeLogBeforeFuture = null;
+				} finally {
+					raft.unlock();
+				}
 			}
 		}).name("RemoveLogBefore" + index).run();
 	}
