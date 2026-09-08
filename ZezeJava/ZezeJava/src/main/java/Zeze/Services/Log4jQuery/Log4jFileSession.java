@@ -57,7 +57,6 @@ public class Log4jFileSession implements Closeable {
 		// 没有索引时，从头开始搜索。
 		if (null != index) {
 			var offset = index.lowerBound(time);
-			System.out.println(" ===================== " + offset);
 			if (offset != -1)
 				return offset;
 		}
