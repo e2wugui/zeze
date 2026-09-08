@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import Zeze.Application;
@@ -58,6 +60,10 @@ public class Takeover extends AbstractTakeover {
 	private volatile @Nullable Runnable fatalAction; // fence失败动作，默认致命退出；测试注入替换
 
 	private final @NotNull CopyOnWriteArrayList<TakeoverScope> scopes = new CopyOnWriteArrayList<>();
+	// 已成功stamp（事务提交后置位）的scope：未scoped的写路径checkFence抛NotStartException拒绝
+	// 而非致命退出——未登记≠被接管，stamp的瞬态失败不该被放大为进程死亡（FND-C1-11）。
+	// TakeoverScope实现类不覆写equals（按实例标识），可直接做identity集合用。
+	private final @NotNull Set<TakeoverScope> scopedScopes = ConcurrentHashMap.newKeySet();
 	private final @NotNull LongHashMap<Future<?>> retryFutures = new LongHashMap<>(); // key:deadServerId 单发精确重试
 	private volatile @Nullable Future<?> renewFuture;
 	private volatile @Nullable Future<?> scanFuture;
@@ -182,47 +188,62 @@ public class Takeover extends AbstractTakeover {
 				return Procedure.LogicError;
 			}
 			scope.stamp(myEpoch);
+			// scoped同样必须等提交置位：回滚后root仍是旧值，提前置位会令NotStart检查失效。
+			Transaction.whileCommit(() -> scopedScopes.add(scope));
 			return 0L;
 		};
 		var r = callDirect(action, "Takeover.stamp@" + scope.name());
-		// FND-C1-11：瞬态失败（乐观冲突重试耗尽等）若只记日志，scope的root行loadSerialNo
-		// 仍为旧值——mode=on下该scope首次写路径checkFence即fenceFailed(System.exit(-1))，
-		// 一次瞬态失败被放大为进程致命退出。有限重试覆盖瞬态失败；确定性失败重试亦耗尽，
-		// 最终仍失败时由error日志+写路径fence兜底（不再无限循环钉死调用线程）。
-		for (var retry = 0; retry < 3 && r != 0 && !lost[0]; retry++) {
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				break;
-			}
-			r = callDirect(action, "Takeover.stamp@" + scope.name());
-		}
 		if (lost[0]) {
-			fenceFailed("addScope: lease lost, scope=" + scope.name() + " myEpoch=" + myEpoch);
+			// 租约已属别人=确定被接管：立即致命，不等renew周期（那期间写路径无防护窗口）。
+			fenceFailed("stampScope: lease lost, scope=" + scope.name() + " myEpoch=" + myEpoch);
 			return;
 		}
 		if (healed[0])
 			logger.warn("Takeover.stamp: lease row missing, rewritten (self-heal), serverId={} scope={}",
 					zeze.getConfig().getServerId(), scope.name());
+		// FND-C1-11改：瞬态失败（乐观冲突等，rc!=0）不再就地重试——未scoped的scope写路径
+		// checkFence抛NotStartException拒绝（不认领、不致命），stamp由renew周期补做，
+		// 瞬态失败不再可能被放大为进程死亡。
 		if (r != 0)
-			logger.error("Takeover.stamp scope={} rc={}", scope.name(), r);
+			logger.error("Takeover.stamp scope={} rc={}，等待renew周期补stamp（期间该scope写路径NotStart拒绝）",
+					scope.name(), r);
 	}
 
 	/**
-	 * 写路径fence：owner在事务内写自己root/链数据前调用（root行本就在事务工作集内，零额外IO）。
-	 * mode==on 且 rootEpoch != myEpoch → 致命退出+告警。击杀场景=同serverId双进程（后启动者
-	 * claim epoch+1并stampScope覆盖前者的root）或stamp被外部篡改。
+	 * 写路径fence（scoped版）：owner在事务内写自己root/链数据前调用（root行本就在事务工作集内，零额外IO）。
+	 * 未成功stamp的scope抛{@link NotStartException}拒绝（未登记≠被接管，stamp瞬态失败不致命，
+	 * 由renew周期补做）；已scoped且 rootEpoch != myEpoch → 致命退出+告警。击杀场景=同serverId
+	 * 双进程（后启动者claim epoch+1并stampScope覆盖前者的root）或stamp被外部篡改。
 	 * 【需求语义】被接管后醒来不在击杀之列：transferAll留下的墓碑stamp=0由调用方认领
 	 * （stamp=myEpoch后继续写），被接管者在空链上复活、写新数据并提供新数据的服务；其renew
 	 * 会把墓碑租约续上复活（epoch保留），下次真死租约可再次过期被接管，生命周期闭环。
 	 */
-	public void checkFence(long rootEpoch) {
+	public void checkFence(@NotNull TakeoverScope scope, long rootEpoch) {
 		if (!ModeOn.equals(mode) || !started)
 			return;
+		requireScoped(scope);
 		if (rootEpoch != myEpoch)
 			fenceFailed("checkFence: fenced! rootEpoch=" + rootEpoch + " myEpoch=" + myEpoch
 					+ "（数据已被接管，本进程必须立即退出）");
+	}
+
+	/**
+	 * 未完成stamp登记的scope：写路径拒绝（抛{@link NotStartException}），不认领数据行、不致命。
+	 * mode!=on或未start恒通过（与checkFence同款前置）。调用方应在访问/认领root行之前调用。
+	 */
+	public void requireScoped(@NotNull TakeoverScope scope) {
+		if (!ModeOn.equals(mode) || !started)
+			return;
+		if (!scopedScopes.contains(scope))
+			throw new NotStartException("Takeover scope未完成stamp登记: " + scope.name()
+					+ "（stamp未成功，等待renew周期补做；期间该scope写路径拒绝）");
+	}
+
+	/** scope尚未成功stamp（瞬态失败等待renew周期补做）：写路径拒绝继续，而非致命退出。 */
+	public static final class NotStartException extends IllegalStateException {
+		public NotStartException(@NotNull String message) {
+			super(message);
+		}
 	}
 
 	private void fenceFailed(@NotNull String reason) {
@@ -274,6 +295,12 @@ public class Takeover extends AbstractTakeover {
 				suppressScanUntil = System.currentTimeMillis() + ttl;
 				renewFailCount = 0;
 			}
+			// 补stamp：start/addScope时stamp瞬态失败（rc!=0）的scope由本周期重试，
+			// 成功前其写路径NotStart拒绝（fail-safe：拒绝服务好过误杀进程）。
+			if (ModeOn.equals(mode))
+				for (var scope : scopes)
+					if (!scopedScopes.contains(scope))
+						stampScope(scope);
 		} catch (Throwable e) { // stop竞态（数据库已关）时这里忽略。
 			logger.debug("Takeover.renew", e);
 		}

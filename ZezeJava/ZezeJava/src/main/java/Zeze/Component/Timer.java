@@ -1025,9 +1025,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	// 写路径fence：仅当root属于本进程时校验（cancel摘链可能碰到尚未重指向的死者root，不校验）。
 	// root行本就在事务工作集内，零额外IO。被接管（root.epoch != myEpoch）→致命退出。
+	// 未完成stamp登记（stamp瞬态失败等，FND-C1-11）→NotStartException拒绝：不认领数据行、
+	// 不致命，renew周期补stamp后恢复。
 	private void checkTimerFence(int serverId, @NotNull BNodeRoot root) {
 		var takeover = zeze.getTakeover();
 		if (takeover != null && serverId == zeze.getConfig().getServerId()) {
+			takeover.requireScoped(timerTakeoverScope); // 未登记：拒绝写，且不认领数据行
 			// stamp==0（无主新行/外部清表重建/被接管后的墓碑）一律认领（stamp=myEpoch）而非致命：
 			// 被接管者醒来在空链上复活并继续新写（需求语义）；fence只杀同serverId双进程/外部
 			// 篡改（stamp为别人的epoch）。
@@ -1038,7 +1041,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				stamp = takeover.getMyEpoch();
 				root.setLoadSerialNo(stamp);
 			}
-			takeover.checkFence(stamp);
+			takeover.checkFence(timerTakeoverScope, stamp);
 		}
 	}
 

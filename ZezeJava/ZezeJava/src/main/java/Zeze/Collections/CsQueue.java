@@ -8,6 +8,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.OutLong;
 import Zeze.Util.TaskSpec;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Concurrent Server Queue.
@@ -19,6 +20,7 @@ public class CsQueue<V extends Bean> {
 	private final Queue<V> queue;
 	private final String name;
 	private final Queue.Module module;
+	private final @Nullable CsQueueTakeoverScope takeoverScope;
 
 	/**
 	 * 为了测试公开这个方法，应用应该去使用Queue.Module.open.
@@ -30,9 +32,13 @@ public class CsQueue<V extends Bean> {
 
 		// 接管租约注册：claim/晚注册时stamp自己root行的epoch（替代旧offlineRegister的bump serial），
 		// 死者数据由takeover.tryTransfer在同一事务内裁决+搬运（附带修复：SM=disable时原ctor NPE）。
+		// scope存为成员：写路径checkFence需要它向Takeover对账scoped登记状态。
 		var takeover = module.zeze.getTakeover();
-		if (takeover != null)
-			takeover.addScope(new CsQueueTakeoverScope());
+		if (takeover != null) {
+			takeoverScope = new CsQueueTakeoverScope();
+			takeover.addScope(takeoverScope);
+		} else
+			takeoverScope = null;
 	}
 
 	/**
@@ -159,23 +165,25 @@ public class CsQueue<V extends Bean> {
 	}
 
 	// 写路径fence：root行本就在事务工作集内，零额外IO。被接管（root.epoch != myEpoch）→致命退出。
-	// root.stamp==0（无主新行/外部清表重建/被接管后的墓碑）一律认领（stamp=myEpoch）而非致命：
-	// 被接管者醒来在空链上复活并继续新写（需求语义）；fence只杀同serverId双进程/外部篡改
-	// （stamp为别人的epoch）。
+	// 未完成stamp登记（stamp瞬态失败等，FND-C1-11）→NotStartException拒绝：不认领数据行、不致命，
+	// renew周期补stamp后恢复；root.stamp==0（无主新行/外部清表重建/被接管后的墓碑）仅scoped后
+	// 认领（stamp=myEpoch）而非致命：被接管者醒来在空链上复活并继续新写（需求语义）；fence只杀
+	// 同serverId双进程/外部篡改（stamp为别人的epoch）。
 	private void checkFence() {
 		var takeover = module.zeze.getTakeover();
-		if (takeover != null) {
-			var root = queue.getOrAddRoot();
-			var stamp = root.getLoadSerialNo();
-			// FND2-C0-4：认领写（setLoadSerialNo）仅mode=on——与Takeover.start自己stampScope的
-			// 前置一致。dryrun必须守住"纯簿记不动数据行"的灰度契约；off避免0→0冗余写。
-			// 不认领时stamp保持0，checkFence对mode!=on恒通过，不影响早退路径。
-			if (stamp == 0 && Takeover.ModeOn.equals(takeover.getMode())) {
-				stamp = takeover.getMyEpoch();
-				root.setLoadSerialNo(stamp);
-			}
-			takeover.checkFence(stamp);
+		if (takeover == null || takeoverScope == null)
+			return;
+		takeover.requireScoped(takeoverScope); // 未登记：拒绝写，且不认领数据行
+		var root = queue.getOrAddRoot();
+		var stamp = root.getLoadSerialNo();
+		// FND2-C0-4：认领写（setLoadSerialNo）仅mode=on——与Takeover.start自己stampScope的
+		// 前置一致。dryrun必须守住"纯簿记不动数据行"的灰度契约；off避免0→0冗余写。
+		// 不认领时stamp保持0，checkFence对mode!=on恒通过，不影响早退路径。
+		if (stamp == 0 && Takeover.ModeOn.equals(takeover.getMode())) {
+			stamp = takeover.getMyEpoch();
+			root.setLoadSerialNo(stamp);
 		}
+		takeover.checkFence(takeoverScope, stamp);
 	}
 
 	public BQueueNode pollNode() {
