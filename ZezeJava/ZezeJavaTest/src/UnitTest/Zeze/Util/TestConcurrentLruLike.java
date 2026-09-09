@@ -283,6 +283,107 @@ public class TestConcurrentLruLike {
 		Assertions.assertEquals(0, residue, "并发get/remove后节点不得有残留登记（幽灵条目）");
 	}
 
+	/**
+	 * FND3-09 加固回归：adjustLru 存活检查（循环条件）与 putIfAbsent 之间发生 remove+重建时，
+	 * 占坑的 prev 是并发重建后【无条件 put 登记】进本热点的活条目（getOrAdd.computeIfAbsent MUST replace），
+	 * 不得盲摘——误摘会让活条目脱管（lruNode 指向热点但登记被摘，容量驱逐与 cleanNow 都看不见，兜底无法收敛）。
+	 * 用 rigged 热点在 putIfAbsent 调用点精确注入该交错。
+	 */
+	@Test
+	public void testAdjustLruNotEvictLiveOccupant() throws Exception {
+		// period 调大，避免测试期间 lruHot 轮换/clean 干扰
+		var lru = new ConcurrentLruLike<String, Object>("testAdjNotEvictLive", 100, null, 600_000, 600_000, 16);
+		var v1 = new Object();
+		Assertions.assertSame(v1, lru.getOrAdd("k", () -> v1));
+		var hot0 = lruHotOf(lru);
+		invokeNewLruHot(lru);
+
+		var dataMap = dataMapOf(lru);
+		var itemA = dataMap.get("k"); // A：验活时仍活的旧条目，随即"挂起"在 putIfAbsent 前
+		var rigged = new InterleavingHot();
+		rigged.interleave = () -> {
+			try {
+				// B：remove 完成（dataMap 删除；摘除因读到 null 的 lruNode 跳过——A 已取走，无需模拟）
+				dataMap.remove("k", itemA);
+				// C：getOrAdd 重建：computeIfAbsent 创建 + 热点无条件 put 登记（MUST replace）
+				var itemC = newLruItem(new Object(), rigged);
+				dataMap.put("k", itemC);
+				rigged.put("k", itemC);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		};
+		invokeAdjustLru(lru, "k", itemA, rigged);
+
+		Assertions.assertNull(hot0.get("k"), "旧节点条目已被迁移方摘除");
+		Assertions.assertSame(dataMap.get("k"), rigged.get("k"), "占坑的活条目登记不得被误摘（否则活条目脱管）");
+		Assertions.assertNotSame(itemA, rigged.get("k"), "死条目不得完成登记");
+	}
+
+	/**
+	 * FND3-09 加固回归：shrink 迁移的占坑协议与 adjustLru 一致。
+	 * 当前结构下重建只登记进当前热点、必新于 head，活占坑按证不可达；
+	 * 本用例直接构造该状态钉住防御分支：占坑的活条目登记不得被盲摘。
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testTryPollLruQueueNotEvictLiveOccupant() throws Exception {
+		var lru = new ConcurrentLruLike<String, Object>("testShrinkNotEvictLive", 100, null, 600_000, 600_000, 16);
+		var dataMap = dataMapOf(lru);
+		var queue = lruQueueOf(lru);
+		queue.clear();
+
+		// 迁移方 r：活映射，登记在被 poll 的节点里
+		var pollNode = new ConcurrentHashMap<String, Object>();
+		var r = newLruItem(new Object(), pollNode);
+		pollNode.put("k", r);
+		dataMap.put("k", r);
+
+		var rigged = new InterleavingHot();
+		rigged.interleave = () -> {
+			try {
+				dataMap.remove("k", r);
+				var itemC = newLruItem(new Object(), rigged);
+				dataMap.put("k", itemC);
+				rigged.put("k", itemC);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		};
+
+		// 队列构型（MAX_NODE_COUNT=8640, SHRINK_NODE_COUNT=8000）：
+		// pollNode + 640 空节点将被 poll；rigged 位于 poll 边界（poll 后成为 peek），再补足 7999 个占位
+		queue.add(pollNode);
+		for (var i = 0; i < 640; i++)
+			queue.add(new ConcurrentHashMap<String, Object>());
+		queue.add((ConcurrentHashMap<String, Object>)(ConcurrentHashMap<?, ?>)rigged);
+		for (var i = 0; i < 7999; i++)
+			queue.add(new ConcurrentHashMap<String, Object>());
+
+		invokeTryPollLruQueue(lru);
+
+		Assertions.assertSame(rigged, (ConcurrentHashMap<?, ?>)queue.peek());
+		Assertions.assertSame(dataMap.get("k"), rigged.get("k"), "占坑的活条目登记不得被误摘");
+		Assertions.assertNotSame(r, rigged.get("k"), "被取代的条目不得迁移进队头");
+	}
+
+	/** rigged 热点节点：首次 putIfAbsent 前执行 interleave，在挂起点注入并发交错。 */
+	@SuppressWarnings("serial")
+	private static final class InterleavingHot extends ConcurrentHashMap<Object, Object> {
+		private static final long serialVersionUID = 1L;
+		private volatile boolean armed = true;
+		private volatile Runnable interleave;
+
+		@Override
+		public Object putIfAbsent(Object key, Object value) {
+			if (armed) {
+				armed = false;
+				interleave.run();
+			}
+			return super.putIfAbsent(key, value);
+		}
+	}
+
 	@SuppressWarnings("unchecked")
 	private static ConcurrentHashMap<String, Object> dataMapOf(ConcurrentLruLike<?, ?> lru) throws Exception {
 		var f = ConcurrentLruLike.class.getDeclaredField("dataMap");

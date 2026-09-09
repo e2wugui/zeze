@@ -136,8 +136,14 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					curLruHot.remove(key, result); // 登记过程中被并发Remove：回滚，不让死记录滞留块
 				return;
 			}
-			// 占坑者不是活记录（上面的存活检查保证），必是并发残留的过期登记；
-			// 放任会让本记录永久脱离所有块、无法被容量驱逐，摘除后重试。
+			// 坑位被占。存活检查（循环条件）与putIfAbsent之间可能发生Remove+重建：
+			// 重建走getOrAdd的computeIfAbsent并【无条件put登记】进当前热点（MUST replace），
+			// 占坑的prev可能是活记录——盲摘会让它脱管（lruNode指向热点块但登记被摘，
+			// 容量驱逐与cleanNow都看不见，兜底无法收敛）。占坑者身份不会复活（dataMap同key只有唯一映射）：
+			// 是当前活映射就让位放弃登记（此时本记录已非映射，不登记也正确）；
+			// 确定过期才摘除重试，放任会让本记录永久脱离所有块、无法被容量驱逐。
+			if (dataMap.get(key) == prev)
+				return;
 			curLruHot.remove(key, prev);
 		}
 	}
@@ -187,7 +193,10 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 							head.remove(key, r); // 登记过程中被并发remove：回滚
 						break;
 					}
-					// 占坑者必是过期登记（dataMap同key只有唯一映射），摘除后重试。
+					// 同adjustLru的占坑协议：占坑者是当前活映射就不摘（防御性：当前结构下重建只登记进
+					// 当前热点、必新于head，此分支不可达；防未来结构变化）；确定过期才摘除后重试。
+					if (dataMap.get(key) == prev)
+						break;
 					head.remove(key, prev);
 				}
 			}

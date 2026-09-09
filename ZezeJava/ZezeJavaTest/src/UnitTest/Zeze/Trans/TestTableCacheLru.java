@@ -2,6 +2,7 @@ package UnitTest.Zeze.Trans;
 
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -256,6 +257,137 @@ public class TestTableCacheLru {
 			Assertions.assertSame(hot1, get(rLive, "lruNode"));
 		} finally {
 			app.stop();
+		}
+	}
+
+	/**
+	 * FND3-09 加固回归：adjustLru 存活检查（循环条件）与 putIfAbsent 之间发生 Remove+重建时，
+	 * 占坑的 prev 是并发重建后【无条件 put 登记】进本热点块的活记录（getOrAdd.computeIfAbsent MUST replace），
+	 * 不得盲摘——误摘会让活记录脱管（lruNode 指向热点块但登记被摘，容量驱逐与 cleanNow 都看不见，兜底无法收敛）。
+	 * 用 rigged 热点块在 putIfAbsent 调用点精确注入该交错。
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testMigrateNotEvictLiveOccupant() throws Exception {
+		var app = newApp();
+		var table = new Table3();
+		app.addTable("", table);
+		app.start();
+		try {
+			var cache = table.getCache();
+			var key = 106L;
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "dataMap");
+			var hot0 = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
+
+			var rOld = new Record1<>(table, key, null); // 迁移方：验活时仍活的旧记录
+			dataMap.put(key, rOld);
+			hot0.put(key, rOld);
+			set(rOld, "lruNode", hot0);
+
+			invoke(cache, "newLruHot");
+
+			var rigged = new InterleavingNode();
+			rigged.interleave = () -> {
+				try {
+					// B：Remove 完成（dataMap 删除；摘除因读到 null 的 lruNode 跳过——迁移方已取走）
+					dataMap.remove(key, rOld);
+					// C：getOrAdd 重建：computeIfAbsent 创建 + 热点块无条件 put 登记（MUST replace）
+					var rNewC = new Record1<>(table, key, null);
+					set(rNewC, "lruNode", rigged);
+					dataMap.put(key, rNewC);
+					rigged.put(key, rNewC);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			};
+			invoke(cache, "adjustLru", key, rOld, rigged);
+
+			Assertions.assertNull(hot0.get(key), "旧块条目已被迁移方摘除");
+			Assertions.assertSame(dataMap.get(key), rigged.get(key), "占坑的活记录登记不得被误摘（否则活记录脱管）");
+			Assertions.assertNotSame(rOld, rigged.get(key), "死记录不得完成登记");
+		} finally {
+			app.stop();
+		}
+	}
+
+	/**
+	 * FND3-09 加固回归：shrink 迁移的占坑协议与 adjustLru 一致。
+	 * 当前结构下重建只登记进当前热点、必新于 head，活占坑按证不可达；
+	 * 本用例直接构造该状态钉住防御分支：占坑的活记录登记不得被盲摘。
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testShrinkNotEvictLiveOccupant() throws Exception {
+		var app = newApp();
+		var table = new Table3();
+		app.addTable("", table);
+		app.start();
+		var cache = table.getCache();
+		try {
+			var key = 107L;
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "dataMap");
+			var queue = (ConcurrentLinkedQueue<ConcurrentHashMap<Long, Record1<Long, BValue>>>)
+					(ConcurrentLinkedQueue<?>)get(cache, "lruQueue");
+			queue.clear();
+
+			// 迁移方 r：活映射，登记在被 poll 的块里
+			var pollNode = new ConcurrentHashMap<Long, Record1<Long, BValue>>();
+			var r = new Record1<>(table, key, null);
+			set(r, "lruNode", pollNode);
+			pollNode.put(key, r);
+			dataMap.put(key, r);
+
+			var rigged = new InterleavingNode();
+			rigged.interleave = () -> {
+				try {
+					dataMap.remove(key, r);
+					var rNewC = new Record1<>(table, key, null);
+					set(rNewC, "lruNode", rigged);
+					dataMap.put(key, rNewC);
+					rigged.put(key, rNewC);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			};
+
+			// 队列构型（MAX_NODE_COUNT=8640, SHRINK_NODE_COUNT=8000）：
+			// pollNode + 640 空块将被 poll；rigged 位于 poll 边界（poll 后成为 peek），再补足 7999 个占位
+			queue.add(pollNode);
+			for (var i = 0; i < 640; i++)
+				queue.add(new ConcurrentHashMap<Long, Record1<Long, BValue>>());
+			queue.add((ConcurrentHashMap<Long, Record1<Long, BValue>>)(ConcurrentHashMap<?, ?>)rigged);
+			for (var i = 0; i < 7999; i++)
+				queue.add(new ConcurrentHashMap<Long, Record1<Long, BValue>>());
+
+			invoke(cache, "tryPollLruQueue");
+
+			Assertions.assertSame(rigged, (ConcurrentHashMap<?, ?>)queue.peek());
+			Assertions.assertSame(dataMap.get(key), rigged.get(key), "占坑的活记录登记不得被误摘");
+			Assertions.assertNotSame(r, rigged.get(key), "被取代的记录不得迁移进队头");
+		} finally {
+			// 恢复队列结构（清掉 8000+ 占位块，lruHot 重新入队），避免影响 stop 流程
+			var queue = (ConcurrentLinkedQueue<ConcurrentHashMap<Long, Record1<Long, BValue>>>)
+					(ConcurrentLinkedQueue<?>)get(cache, "lruQueue");
+			queue.clear();
+			invoke(cache, "newLruHot");
+			app.stop();
+		}
+	}
+
+	/** rigged 热点块：首次 putIfAbsent 前执行 interleave，在挂起点注入并发交错。 */
+	@SuppressWarnings("serial")
+	private static final class InterleavingNode extends ConcurrentHashMap<Object, Object> {
+		private static final long serialVersionUID = 1L;
+		private volatile boolean armed = true;
+		private volatile Runnable interleave;
+
+		@Override
+		public Object putIfAbsent(Object key, Object value) {
+			if (armed) {
+				armed = false;
+				interleave.run();
+			}
+			return super.putIfAbsent(key, value);
 		}
 	}
 }
