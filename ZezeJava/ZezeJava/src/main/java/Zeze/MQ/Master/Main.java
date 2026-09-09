@@ -42,7 +42,6 @@ public class Main {
 			var home = "mqmaster";
 
 			for (int i = 1; i < args.length; ++i) {
-				// noinspection EnhancedSwitchMigration
 				switch (args[i]) {
 				case "-selector":
 					selector = Integer.parseInt(args[++i]);

@@ -105,7 +105,7 @@ public class SessionAll implements AutoCloseable {
 				tmp.add(merge(rs.get(i), rs.get(i + 1)));
 			}
 			if (odd)
-				tmp.add(rs.get(rs.size() - 1));
+				tmp.add(rs.getLast());
 			return merge(tmp);
 		}
 	}

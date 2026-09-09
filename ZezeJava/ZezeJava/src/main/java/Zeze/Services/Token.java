@@ -861,7 +861,7 @@ public final class Token extends AbstractToken {
 					} catch (IndexOutOfBoundsException ignored) { // 小概率事件
 					}
 					count = sessions.size();
-					if (count <= 0)
+					if (count == 0)
 						break;
 					if (++i >= count)
 						i = 0;

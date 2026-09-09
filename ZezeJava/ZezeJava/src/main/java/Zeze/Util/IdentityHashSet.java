@@ -47,7 +47,7 @@ public class IdentityHashSet<T> implements Cloneable {
 	}
 
 	private int tableSize(int cap) {
-		cap = Math.min(Math.max((int)Math.ceil((float)cap / loadFactor), 2), 0x40000000);
+		cap = Math.clamp((long)Math.ceil(cap / loadFactor), 2, 0x40000000);
 		return 1 << 32 - Integer.numberOfLeadingZeros(cap - 1);
 	}
 

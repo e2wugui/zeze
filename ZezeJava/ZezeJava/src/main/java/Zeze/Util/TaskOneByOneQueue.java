@@ -182,7 +182,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	}
 
 	public void shutdown(boolean cancel) {
-		ArrayDeque<Task> oldQueue = null;
+		ArrayDeque<Task> oldQueue;
 		lock();
 		try {
 			if (isShutdown)

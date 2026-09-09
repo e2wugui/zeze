@@ -19,14 +19,10 @@ public class TaskCompletionSource<R> implements Future<R> {
 	private volatile @SuppressWarnings("unused") Object result;
 	private volatile @SuppressWarnings("unused") Object waitHead; // Node -> Node -> ... -> Thread
 
-	private static final class Node {
-		final @NotNull Thread thread;
-		final @NotNull Object next; // Node or Thread
-
-		Node(@NotNull Thread thread, @NotNull Object next) {
-			this.thread = thread;
-			this.next = next;
-		}
+	/**
+	 * @param next Node or Thread
+	 */
+	private record Node(@NotNull Thread thread, @NotNull Object next) {
 	}
 
 	protected static final class AltResult {

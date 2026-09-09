@@ -125,7 +125,7 @@ public class ProxyServer extends Service {
 							// 原来无responseHandle的结果被静默丢弃，future等待方永远等不到结果，
 							// 只能等rpc超时；RaftRetry/DuplicateRequest等语义码同样丢失。
 							rpc.setResultCode(resultRpc.getResultCode());
-							@SuppressWarnings({"unchecked", "rawtypes"})
+							//noinspection rawtypes,UnnecessaryLocalVariable
 							Rpc rawRpc = rpc, rawResultRpc = resultRpc;
 							rawRpc.Result = rawResultRpc.Result;
 							rpc.getFuture().setRawResult(rpc);

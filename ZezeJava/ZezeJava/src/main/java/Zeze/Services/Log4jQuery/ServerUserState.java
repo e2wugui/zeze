@@ -27,16 +27,19 @@ public class ServerUserState {
 
 	public void closeLogSession(long sid) throws IOException {
 		var logSession = logSessions.remove(sid);
-		if (null != logSession)
+		if (null != logSession) {
 			synchronized (logSession) { // 与Browse/Search按同一会话锁互斥，close不再打断并发查询（FND-S3-9）
 				logSession.close();
 			}
+		}
 	}
 
 	public void close() throws IOException {
-		for (var logSession : logSessions.values())
+		for (var logSession : logSessions.values()) {
+			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (logSession) {
 				logSession.close();
 			}
+		}
 	}
 }

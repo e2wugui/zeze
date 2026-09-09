@@ -194,6 +194,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		long v = 0;
 		//@formatter:off
 		switch (length) {
+		//noinspection DefaultNotLastCaseInSwitch
 		default: return (long)longLeHandler.get(bytes, offset);
 		case 7:	v = ((long)(bytes[offset + 6] & 0xff) << 48);
 		case 6: v += ((long)(bytes[offset + 5] & 0xff) << 40);
@@ -214,6 +215,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		int s = 0;
 		//@formatter:off
 		switch (length) {
+		//noinspection DefaultNotLastCaseInSwitch
 		default: return (long)longBeHandler.get(bytes, offset);
 		case 7:	v = (bytes[offset + 6] & 0xff); s = 8;
 		case 6: v += (bytes[offset + 5] & 0xff) << s; s += 8;
@@ -529,6 +531,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		}
 	}
 
+	@SuppressWarnings("SuspiciousIndentAfterControlStatement")
 	public static int WriteLongSize(long v) {
 		//@formatter:off
 		if (v >= 0) {
@@ -1109,9 +1112,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			return equals((ByteBuffer)other);
 		if (other instanceof NioByteBuffer)
 			return ((NioByteBuffer)other).bb.equals(java.nio.ByteBuffer.wrap(Bytes, ReadIndex, size()));
-		if (other instanceof byte[] bytes) {
+		if (other instanceof byte[] bytes)
 			return Arrays.equals(Bytes, ReadIndex, WriteIndex, bytes, 0, bytes.length);
-		}
 		if (other instanceof Binary binary) {
 			return Arrays.equals(Bytes, ReadIndex, WriteIndex,
 					binary.bytesUnsafe(), binary.getOffset(), binary.getOffset() + binary.size());

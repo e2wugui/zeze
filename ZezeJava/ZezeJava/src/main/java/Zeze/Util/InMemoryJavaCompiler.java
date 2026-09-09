@@ -22,7 +22,7 @@ import javax.tools.ToolProvider;
 
 /**
  * Compile Java sources in-memory (not thread safe for one instance)
- * from https://github.com/trung/InMemoryJavaCompiler
+ * from <a href="https://github.com/trung/InMemoryJavaCompiler">GitHub</a>
  */
 public class InMemoryJavaCompiler {
 	private final JavaCompiler javac;
@@ -107,8 +107,7 @@ public class InMemoryJavaCompiler {
 					case NOTE -> Math.max(warningLevel, 2);
 					case MANDATORY_WARNING -> Math.max(warningLevel, 3);
 					case WARNING -> Math.max(warningLevel, 4);
-					default -> // ERROR
-							5;
+					default -> 5; // ERROR
 				};
 				exceptionMsg.append('\n').append("[kind=").append(d.getKind());
 				var source = d.getSource();

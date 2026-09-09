@@ -42,7 +42,7 @@ public final class DumpRocksDb {
 		int argCount = args.length;
 		for (; argCount > 0; argCount--) {
 			var arg = args[argCount - 1];
-			if (!arg.startsWith("-") || arg.length() <= 1)
+			if (!arg.startsWith("-") || arg.length() == 1)
 				break;
 			int p = arg.indexOf('=', 1);
 			if (p >= 0)

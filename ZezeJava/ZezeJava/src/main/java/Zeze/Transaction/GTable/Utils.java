@@ -1,5 +1,6 @@
 package Zeze.Transaction.GTable;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
@@ -131,7 +132,7 @@ public class Utils {
 			return "Predicates.in(" + target + ")";
 		}
 
-		private static final long serialVersionUID = 0;
+		@Serial private static final long serialVersionUID = 0;
 	}
 
 	public static <T> Predicate<T> in(Collection<? extends T> target) {
@@ -168,7 +169,7 @@ public class Utils {
 			return "Predicates.equalTo(" + target + ")";
 		}
 
-		private static final long serialVersionUID = 0;
+		@Serial private static final long serialVersionUID = 0;
 
 		@SuppressWarnings("unchecked") // safe contravariant cast
 		<T> Predicate<T> withNarrowedType() {
@@ -216,7 +217,7 @@ public class Utils {
 			return "Predicates.not(" + predicate + ")";
 		}
 
-		private static final long serialVersionUID = 0;
+		@Serial private static final long serialVersionUID = 0;
 	}
 
 	public static <T> Predicate<T> not(Predicate<T> predicate) {
@@ -591,7 +592,7 @@ public class Utils {
 			return p + "(" + f + ")";
 		}
 
-		private static final long serialVersionUID = 0;
+		@Serial private static final long serialVersionUID = 0;
 	}
 
 	public static <A, B> Predicate<A> compose(Predicate<B> predicate, Function<A, ? extends B> function) {
@@ -688,6 +689,7 @@ public class Utils {
 
 		@Override
 		public boolean contains(@CheckForNull Object o) {
+			//noinspection SuspiciousMethodCalls
 			return map().containsKey(o);
 		}
 
@@ -835,6 +837,7 @@ public class Utils {
 
 		@Override
 		public boolean contains(@CheckForNull Object o) {
+			//noinspection SuspiciousMethodCalls
 			return map().containsValue(o);
 		}
 
@@ -862,6 +865,7 @@ public class Utils {
 			if (o instanceof Map.Entry<?, ?> entry) {
 				Object key = entry.getKey();
 				V value = Utils.safeGet(map(), key);
+				//noinspection SuspiciousMethodCalls
 				return equal(value, entry.getValue()) && (value != null || map().containsKey(key));
 			}
 			return false;
@@ -1058,6 +1062,6 @@ public class Utils {
 			return value;
 		}
 
-		private static final long serialVersionUID = 0;
+		@Serial private static final long serialVersionUID = 0;
 	}
 }

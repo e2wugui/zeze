@@ -269,7 +269,7 @@ public class Schemas implements Serializable {
 
 		public static @NotNull String toColumnName(@NotNull ArrayList<String> varNames) {
 			var sb = new StringBuilder();
-			sb.append(varNames.get(0));
+			sb.append(varNames.getFirst());
 			for (int i = 1; i < varNames.size(); ++i)
 				sb.append('_').append(varNames.get(i));
 			return sb.toString();
@@ -277,7 +277,7 @@ public class Schemas implements Serializable {
 
 		public static @NotNull String toColumnName(@NotNull ArrayList<String> varNames, @NotNull String lastName) {
 			var sb = new StringBuilder();
-			sb.append(varNames.get(0));
+			sb.append(varNames.getFirst());
 			for (int i = 1; i < varNames.size(); ++i)
 				sb.append('_').append(varNames.get(i));
 			sb.append('_').append(lastName);
@@ -599,8 +599,8 @@ public class Schemas implements Serializable {
 //					value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns);
 //				else
 				value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns, mapping);
-				varIds.remove(varIds.size() - 1);
-				varNames.remove(varNames.size() - 1);
+				varIds.removeLast();
+				varNames.removeLast();
 			}
 		}
 	}
@@ -688,7 +688,7 @@ public class Schemas implements Serializable {
 				columns.sort(new ColumnComparator());
 				var sb = new StringBuilder();
 				for (var column : columns) {
-					if (sb.length() > 0)
+					if (!sb.isEmpty())
 						sb.append(",");
 					sb.append(column.name);
 				}

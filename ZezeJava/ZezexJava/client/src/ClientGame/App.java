@@ -241,6 +241,8 @@ public class App extends Zeze.AppBase {
     public void stopModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (ClientGame_Equip != null)
                 ClientGame_Equip.Stop(this);
             if (ClientGame_Fight != null)
@@ -263,6 +265,8 @@ public class App extends Zeze.AppBase {
     public void stopBeforeModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (ClientGame_Equip != null)
                 ClientGame_Equip.StopBefore();
             if (ClientGame_Fight != null)

@@ -155,7 +155,8 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 		if (count > buffer.length) {
 			int cap;
 			for (cap = DEFAULT_SIZE; count > cap; cap <<= 1) {
-				// empty
+				if (cap < 0)
+					throw new OutOfMemoryError("LongList reserve count too large: " + count);
 			}
 			long[] buf = new long[cap];
 			int n = this.count;
@@ -169,7 +170,8 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 		if (count > buffer.length) {
 			int cap;
 			for (cap = 8; count > cap; cap <<= 1) {
-				// empty
+				if (cap < 0)
+					throw new OutOfMemoryError("LongList reserveSpace count too large: " + count);
 			}
 			buffer = new long[cap];
 		}
@@ -407,11 +409,11 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 		long[] buf = buffer;
 		long[] data = ll.buffer;
 		for (int i = 0; i < n; i++) {
-			long c = buf[i] - data[i];
-			if (c != 0)
-				return c < 0 ? -1 : 1;
+			long a = buf[i], b = data[i];
+			if (a != b)
+				return a < b ? -1 : 1;
 		}
-		return n0 - n1;
+		return Long.compare(n0, n1);
 	}
 
 	@Override
@@ -513,6 +515,8 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	public void decode(@NotNull IByteBuffer bb, int n) {
+		if (n < 0)
+			throw new IllegalArgumentException("negative count: " + n);
 		reserveSpace(n);
 		long[] buf = buffer;
 		for (int i = 0; i < n; i++)

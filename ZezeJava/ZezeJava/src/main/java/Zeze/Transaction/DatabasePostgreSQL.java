@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.StringJoiner;
 import java.util.Map;
+import java.util.regex.Pattern;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Net.Binary;
@@ -39,6 +40,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			= postgreObserverCreator != null ? postgreObserverCreator.labelValues("delete") : null;
 	private static final @Nullable ZezeCounter.LongObserver postgreReplaceCounter
 			= postgreObserverCreator != null ? postgreObserverCreator.labelValues("replace") : null;
+	private static final @NotNull Pattern PATTERN_COMMA = Pattern.compile(", ");
 
 	public DatabasePostgreSQL(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
@@ -102,7 +104,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	@Override
 	public void renameTable(String tableOldName, String tableNewName) throws Exception {
 		String sql = "ALTER TABLE " + tableOldName + " RENAME TO " + tableNewName;
-		try (var conn = dataSource.getConnection())	{
+		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(true);
 			try (var ps = conn.prepareStatement(sql)) {
 				ps.executeUpdate();
@@ -252,58 +254,59 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				try (var ps = conn.prepareStatement(tableDataWithVersionSql)) {
 					ps.executeUpdate();
 				}
-				var procSaveDataWithSameVersionSql = "CREATE OR REPLACE FUNCTION _ZezeSaveDataWithSameVersion_(\n" +
-						"    IN    in_id BYTEA,\n" +
-						"    IN    in_data BYTEA,\n" +
-						"    INOUT inout_version BIGINT,\n" +
-						"    OUT   ret_value INTEGER\n" +
-						")\n" +
-						"LANGUAGE plpgsql\n" +
-						"AS $$\n" +
-						"DECLARE \n" +
-						"  old_ver BIGINT;\n" +
-						"  row_count INTEGER;\n" +
-						"BEGIN\n" +
-						"    ret_value := 1;\n" +
-						"    SELECT version INTO old_ver FROM _ZezeDataWithVersion_ WHERE id=in_id;\n" +
-						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
-						"    IF row_count > 0 THEN\n" +
-						"        IF old_ver <> inout_version THEN\n" +
-						"            ret_value := 2;\n" +
-						"            RAISE EXCEPTION 'ROLLBACK';\n" +
-						"            RETURN;\n" +
-						"        END IF;\n" +
-						"        old_ver := old_ver + 1;\n" +
-						"        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver WHERE id=in_id;\n" +
-						"        GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
-						"        IF row_count = 1 THEN\n" +
-						"            inout_version := old_ver;\n" +
-						"            ret_value := 0;\n" +
-						"            RETURN;\n" +
-						"        END IF;\n" +
-						"        ret_value := 3;\n" +
-						"        RAISE EXCEPTION 'ROLLBACK';\n" +
-						"        RETURN;\n" +
-						"    END IF;\n" +
-						"    INSERT INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version) ON CONFLICT (id) DO NOTHING;\n" +
-						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
-						"    IF row_count = 1 THEN\n" +
-						"      ret_value := 0;\n" +
-						"      RETURN;\n" +
-						"    END IF;\n" +
-						"    ret_value := 4;\n" +
-						"    RAISE EXCEPTION 'ROLLBACK';\n" +
-						"    RETURN;\n" +
-						"EXCEPTION WHEN OTHERS THEN\n" +
-						"END;\n" +
-						"$$;\n";
+				var procSaveDataWithSameVersionSql = """
+						CREATE OR REPLACE FUNCTION _ZezeSaveDataWithSameVersion_(
+						    IN    in_id BYTEA,
+						    IN    in_data BYTEA,
+						    INOUT inout_version BIGINT,
+						    OUT   ret_value INTEGER
+						)
+						LANGUAGE plpgsql
+						AS $$
+						DECLARE\s
+						  old_ver BIGINT;
+						  row_count INTEGER;
+						BEGIN
+						    ret_value := 1;
+						    SELECT version INTO old_ver FROM _ZezeDataWithVersion_ WHERE id=in_id;
+						    GET DIAGNOSTICS row_count = ROW_COUNT;
+						    IF row_count > 0 THEN
+						        IF old_ver <> inout_version THEN
+						            ret_value := 2;
+						            RAISE EXCEPTION 'ROLLBACK';
+						            RETURN;
+						        END IF;
+						        old_ver := old_ver + 1;
+						        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver WHERE id=in_id;
+						        GET DIAGNOSTICS row_count = ROW_COUNT;
+						        IF row_count = 1 THEN
+						            inout_version := old_ver;
+						            ret_value := 0;
+						            RETURN;
+						        END IF;
+						        ret_value := 3;
+						        RAISE EXCEPTION 'ROLLBACK';
+						        RETURN;
+						    END IF;
+						    INSERT INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version) ON CONFLICT (id) DO NOTHING;
+						    GET DIAGNOSTICS row_count = ROW_COUNT;
+						    IF row_count = 1 THEN
+						      ret_value := 0;
+						      RETURN;
+						    END IF;
+						    ret_value := 4;
+						    RAISE EXCEPTION 'ROLLBACK';
+						    RETURN;
+						EXCEPTION WHEN OTHERS THEN
+						END;
+						$$;
+						""";
 				try (var ps = conn.prepareStatement(procSaveDataWithSameVersionSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!ex.getMessage().contains("tuple concurrently updated"))
 						throw ex;
 				}
-				//noinspection SpellCheckingInspection
 				var tableInstancesSql = "CREATE TABLE IF NOT EXISTS _ZezeInstances_(localid int NOT NULL PRIMARY KEY);";
 				try (var ps = conn.prepareStatement(tableInstancesSql)) {
 					ps.executeUpdate();
@@ -383,13 +386,13 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						"BEGIN\n" +
 						"    ret_value := 1;\n" +
 						"    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;\n" +
-						//实例不存在的情况不判断了，总是去执行后面的清除判断。
-						//"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
-						//"    IF row_count = 0 THEN\n" +
-						//"        ret_value := 2;\n" +
-						//"        RAISE EXCEPTION 'ROLLBACK';\n" +
-						//"        RETURN;\n" +
-						//"    END IF;\n" +
+				//实例不存在的情况不判断了，总是去执行后面的清除判断。
+				//"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
+				//"    IF row_count = 0 THEN\n" +
+				//"        ret_value := 2;\n" +
+				//"        RAISE EXCEPTION 'ROLLBACK';\n" +
+				//"        RETURN;\n" +
+				//"    END IF;\n" +
 						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
 						"    IF instance_count = 0 THEN\n" +
 						"        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
@@ -517,7 +520,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			return " WHERE " + sql.replace('=', asc ? '>' : '<'); // 单列保持原样
 		var columns = new StringJoiner(", ");
 		var values = new StringJoiner(", ");
-		for (var pair : sql.split(", ")) {
+		for (var pair : PATTERN_COMMA.split(sql)) {
 			var eq = pair.indexOf('=');
 			columns.add(pair.substring(0, eq));
 			values.add(pair.substring(eq + 1));
@@ -571,7 +574,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		for (var kv : kvs) {
 			var nv2 = kv.split("=");
 			columns.add(nv2[0]);
-			if (values.length() > 0)
+			if (!values.isEmpty())
 				values.append(",");
 			values.append(nv2[1]);
 		}

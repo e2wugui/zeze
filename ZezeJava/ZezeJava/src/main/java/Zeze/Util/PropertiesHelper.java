@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -13,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class PropertiesHelper {
 	private static final @NotNull Logger logger = LogManager.getLogger(PropertiesHelper.class);
+	private static final @NotNull Pattern PATTERN_SPACES = Pattern.compile("\\s+");
 
 	private PropertiesHelper() {
 	}
@@ -36,7 +38,7 @@ public final class PropertiesHelper {
 	 */
 	public static @NotNull Properties parse(@NotNull String props) {
 		// trim+\\s+：容忍连续/首尾空白。split(" ") 会把连续空格产生的空 token 当作“无 -key 的 value”误报。
-		var args = props.trim().split("\\s+");
+		var args = PATTERN_SPACES.split(props.trim());
 		//System.out.println(Arrays.toString(args));
 
 		var result = new Properties();

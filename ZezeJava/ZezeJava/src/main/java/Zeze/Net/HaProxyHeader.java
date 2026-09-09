@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
  * 解析haproxy header，把信息保存下来。
  * 启用需要在Service里面配置。
  * Service会构造这个类并设置到AsyncSocket里面。
- * https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt
+ * <a href="https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt">proxy-protocol.txt</a>
  */
 public class HaProxyHeader {
 	private static final @NotNull Logger logger = LogManager.getLogger(HaProxyHeader.class);

@@ -1,7 +1,9 @@
 package Zeze.Net;
 
+import java.io.Serial;
+
 public class CodecException extends RuntimeException {
-	private static final long serialVersionUID = 501428574934410873L;
+	@Serial private static final long serialVersionUID = 501428574934410873L;
 
 	public CodecException() {
 	}

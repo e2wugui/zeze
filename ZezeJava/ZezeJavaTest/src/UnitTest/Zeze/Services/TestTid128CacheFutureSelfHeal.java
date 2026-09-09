@@ -40,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
  * 但不启动Id128UdpClient工作线程（应答无人处理），future的完成状态完全由测试手动setResult/setException
  * 控制，毒化/正常完成皆可确定性构造。
  */
+@SuppressWarnings("deprecation")
 @Fast
 public class TestTid128CacheFutureSelfHeal {
 	private static final String globalName = "UnitTest.S2.Tid128CacheFutureSelfHeal";

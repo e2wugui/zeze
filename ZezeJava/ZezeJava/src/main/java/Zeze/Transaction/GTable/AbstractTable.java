@@ -52,7 +52,8 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
   @Override
   public boolean containsValue(@CheckForNull Object value) {
     for (Map<C, V> row : rowMap().values()) {
-      if (row.containsValue(value)) {
+		//noinspection SuspiciousMethodCalls
+		if (row.containsValue(value)) {
         return true;
       }
     }
@@ -215,6 +216,7 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
     }
   }
 
+  @SuppressWarnings("EqualsDoesntCheckParameterClass")
   @Override
   public boolean equals(@CheckForNull Object obj) {
     return Utils.equalsImpl(this, obj);

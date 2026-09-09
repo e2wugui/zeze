@@ -82,7 +82,7 @@ public class RunClassServer implements HttpFileUploadHandle {
 		for (int i = 0; ; i++) {
 			var value = queryMap.get("arg" + i);
 			if (value == null)
-				return args.toArray(new String[args.size()]);
+				return args.toArray(new String[0]);
 			args.add(value);
 		}
 	}
@@ -92,7 +92,7 @@ public class RunClassServer implements HttpFileUploadHandle {
 		for (int i = 0; ; i++) {
 			var httpData = decoder.getBodyHttpData("arg" + i);
 			if (!(httpData instanceof Attribute))
-				return args.toArray(new String[args.size()]);
+				return args.toArray(new String[0]);
 			args.add(((Attribute)httpData).getValue());
 		}
 	}

@@ -32,7 +32,7 @@ public class PList2ReadOnly<V extends Bean, VReadOnly> implements Iterable<VRead
 	}
 
 	public boolean containsAll(@NotNull java.util.Collection<? extends VReadOnly> c) {
-		//noinspection SuspiciousMethodCalls
+		//noinspection SlowListContainsAll,SuspiciousMethodCalls
 		return list.containsAll(c);
 	}
 

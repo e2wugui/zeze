@@ -298,7 +298,7 @@ public class Test {
 		logger.debug("普通节点重启网络一");
 		var NotLeaders = getNodeNotLeaders();
 		if (!NotLeaders.isEmpty())
-			NotLeaders.get(0).restartNet();
+			NotLeaders.getFirst().restartNet();
 		testConcurrent("TestNormalNodeRestartNet1", 1);
 
 		// 普通节点重启网络二。
@@ -328,8 +328,8 @@ public class Test {
 		logger.debug("普通节点重启一");
 		NotLeaders = getNodeNotLeaders();
 		if (!NotLeaders.isEmpty()) {
-			NotLeaders.get(0).stopRaft();
-			NotLeaders.get(0).startRaft();
+			NotLeaders.getFirst().stopRaft();
+			NotLeaders.getFirst().startRaft();
 		}
 		testConcurrent("TestNormalNodeRestartRaft1", 1);
 
@@ -459,12 +459,13 @@ public class Test {
 		int tryCount = 2;
 		for (int i = 0; i < tryCount; ++i) {
 			var check = checkCurrentCount(testName, false);
-			logger.info("\n" +
-							"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n" +
-							"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n" +
-							"Check={} Step={} ExpectCount={} Errors={}\n" +
-							"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n" +
-							"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++",
+			logger.info("""
+							
+							++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+							++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+							Check={} Step={} ExpectCount={} Errors={}
+							++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+							++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++""",
 					check, i, expectCount.get(), getErrorsString());
 			if (check)
 				return true;
@@ -562,7 +563,7 @@ public class Test {
 	}
 
 	private TestRaft[] shuffleRafts() {
-		return Random.shuffle(rafts.values().toArray(new TestRaft[rafts.size()]));
+		return Random.shuffle(rafts.values().toArray(new TestRaft[0]));
 	}
 
 	public static final class AddCount extends RaftRpc<EmptyBean, BCountResult> {
@@ -827,10 +828,11 @@ public class Test {
 				raftConfig.setUniqueRequestExpiredDays(1);
 				raftConfig.setDbHome(Paths.get(raftName.replace(':', '_')).toString());
 				if (resetLog) {
-					logger.warn("\n" +
-							"------------------------------------------------\n" +
-							"- Reset Log {} -\n" +
-							"------------------------------------------------", raftConfig.getDbHome());
+					logger.warn("""
+							
+							------------------------------------------------
+							- Reset Log {} -
+							------------------------------------------------""", raftConfig.getDbHome());
 					// 只删除日志相关数据库。保留重复请求数据库。
 					LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "logs"));
 					LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "rafts"));

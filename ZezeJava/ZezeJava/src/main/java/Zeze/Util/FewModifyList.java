@@ -171,6 +171,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 
 	@Override
 	public boolean containsAll(@NotNull Collection<?> c) {
+		//noinspection SlowListContainsAll
 		return prepareRead().containsAll(c);
 	}
 

@@ -156,7 +156,7 @@ public class ProxyAgent extends Service {
 								// RaftRetry/DuplicateRequest等语义码被丢弃，等待方把空Result当成功，
 								// 恰好绕开Agent的pending重发闭环。
 								rpc.setResultCode(resultRpc.getResultCode());
-								@SuppressWarnings({"unchecked", "rawtypes"})
+								//noinspection UnnecessaryLocalVariable,rawtypes
 								Rpc rawRpc = rpc, rawResultRpc = resultRpc;
 								rawRpc.Result = rawResultRpc.Result;
 								rpc.getFuture().setRawResult(rpc);

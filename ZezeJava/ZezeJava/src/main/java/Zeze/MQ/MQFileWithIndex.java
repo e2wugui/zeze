@@ -127,7 +127,7 @@ public class MQFileWithIndex {
 			// 锚点=最后段索引表中已提交（id<nextMessageId）的最大索引项：索引项在整条记录写完
 			// 之后才落盘，可信指向一条完好记录；没有则退到段首——每段第一条消息必被索引（滚段
 			// 条件保证），取不到只可能是段刚滚出还没有提交记录（nextMessageId==segBase，下面循环不进入）。
-			var anchorId = segBase;
+			long anchorId = segBase;
 			var anchorOffset = 0L;
 			var seekKey = new byte[8];
 			ByteBuffer.longBeHandler.set(seekKey, 0, nextMessageId - 1);

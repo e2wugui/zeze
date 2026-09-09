@@ -147,7 +147,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			try {
 				on.run(r.Argument.serverId);
 			} catch (Throwable e) { // logger.error
-				logger.error("ProcessSuspectRequest serverId=" + r.Argument.serverId, e);
+				logger.error("ProcessSuspectRequest serverId={}", r.Argument.serverId, e);
 			}
 		}
 		r.SendResult();

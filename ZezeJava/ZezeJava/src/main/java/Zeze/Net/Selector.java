@@ -66,7 +66,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	@Override
 	public @NotNull ByteBuffer alloc() {
 		int n = bbPool.size();
-		if (n <= 0) {
+		if (n == 0) {
 			var bbPoolGlobalCapacity = selectors.getBbPoolGlobalCapacity();
 			if (bbPoolGlobalCapacity > 0) {
 				var bbGlobalPool = selectors.getBbGlobalPool();
@@ -85,7 +85,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 				}
 				n = bbPool.size();
 			}
-			if (n <= 0) {
+			if (n == 0) {
 				int blockSize = selectors.getBbPoolBlockSize();
 				try {
 					return ByteBuffer.allocateDirect(blockSize);

@@ -646,6 +646,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 						logger.warn("splitting wait splittingMeta apply timeout. isMove={}", isMove);
 						return; // 放弃本轮，桶保持可写；换主后recoverSplitting自愈
 					}
+					//noinspection BusyWait
 					Thread.sleep(20);
 				}
 				logger.info("splitting nothing to copy, go end. isMove={}", isMove);

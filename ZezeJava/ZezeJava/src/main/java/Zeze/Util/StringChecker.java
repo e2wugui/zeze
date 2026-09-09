@@ -88,6 +88,7 @@ public final class StringChecker {
 			return false;
 		}
 
+		@SuppressWarnings("UnusedReturnValue")
 		boolean replace(char @NotNull [] chars, char replaceChar) {
 			Trie trie = this;
 			int iLast = 0, eLast = 0;
@@ -168,7 +169,7 @@ public final class StringChecker {
 	private static boolean addLine(@NotNull Trie trie, @NotNull String line) {
 		line = line.trim();
 		int e = line.length();
-		if (e <= 0)
+		if (e == 0)
 			return false;
 		int i = (line.charAt(0) == 0xfeff) ? 1 : 0; // remove BOM
 		if (i >= e)

@@ -107,7 +107,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	@Override
 	public void renameTable(String tableOldName, String tableNewName) throws Exception {
 		String sql = "RENAME TABLE " + tableOldName + " TO " + tableNewName;
-		try (var conn = dataSource.getConnection())	{
+		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(true);
 			try (var ps = conn.prepareStatement(sql)) {
 				ps.executeUpdate();
@@ -257,53 +257,54 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				try (var ps = conn.prepareStatement(tableDataWithVersionSql)) {
 					ps.executeUpdate();
 				}
-				var procSaveDataWithSameVersionSql = "CREATE PROCEDURE _ZezeSaveDataWithSameVersion_(\n" +
-						"    IN    in_id VARBINARY(" + eMaxKeyLength + "),\n" +
-						"    IN    in_data LONGBLOB,\n" +
-						"    INOUT inout_version BIGINT,\n" +
-						"    OUT   ret_value INT\n" +
-						")\n" +
-						"return_label:BEGIN\n" +
-						"    DECLARE old_ver BIGINT;\n" +
-						"    DECLARE row_count INT;\n" +
-						"\n" +
-						"    START TRANSACTION;\n" +
-						"    SET ret_value=1;\n" +
-						"    SELECT version INTO old_ver FROM _ZezeDataWithVersion_ WHERE id=in_id;\n" +
-						"    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=in_id;\n" +
-						"    IF row_count > 0 THEN\n" +
-						"        IF old_ver <> inout_version THEN\n" +
-						"            SET ret_value=2;\n" +
-						"            ROLLBACK;\n" +
-						"            LEAVE return_label;\n" +
-						"        END IF;\n" +
-						"        SET old_ver = old_ver + 1;\n" +
-						"        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver WHERE id=in_id;\n" +
-						"        SELECT ROW_COUNT() INTO row_count;\n" +
-						"        IF row_count = 1 THEN\n" +
-						"            SET inout_version = old_ver;\n" +
-						"            SET ret_value=0;\n" +
-						"            COMMIT;\n" +
-						"            LEAVE return_label;\n" +
-						"        END IF;\n" +
-						"        SET ret_value=3;\n" +
-						"        ROLLBACK;\n" +
-						"        LEAVE return_label;\n" +
-						"    END IF;\n" +
-						"\n" +
-						"    INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version);\n" +
-						"    SELECT ROW_COUNT() INTO row_count;\n" +
-						"    IF row_count = 1 THEN\n" +
-						"        SET ret_value=0;\n" +
-						"        COMMIT;\n" +
-						"        LEAVE return_label;\n" +
-						"    END IF;\n" +
-						"    SET ret_value=4;\n" +
-						"    IF 1=1 THEN\n" +
-						"        ROLLBACK;\n" +
-						"    END IF;\n" +
-						"    LEAVE return_label;\n" +
-						"END;";
+				var procSaveDataWithSameVersionSql = """
+						CREATE PROCEDURE _ZezeSaveDataWithSameVersion_(
+						    IN    in_id VARBINARY(%d),
+						    IN    in_data LONGBLOB,
+						    INOUT inout_version BIGINT,
+						    OUT   ret_value INT
+						)
+						return_label:BEGIN
+						    DECLARE old_ver BIGINT;
+						    DECLARE row_count INT;
+						
+						    START TRANSACTION;
+						    SET ret_value=1;
+						    SELECT version INTO old_ver FROM _ZezeDataWithVersion_ WHERE id=in_id;
+						    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=in_id;
+						    IF row_count > 0 THEN
+						        IF old_ver <> inout_version THEN
+						            SET ret_value=2;
+						            ROLLBACK;
+						            LEAVE return_label;
+						        END IF;
+						        SET old_ver = old_ver + 1;
+						        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver WHERE id=in_id;
+						        SELECT ROW_COUNT() INTO row_count;
+						        IF row_count = 1 THEN
+						            SET inout_version = old_ver;
+						            SET ret_value=0;
+						            COMMIT;
+						            LEAVE return_label;
+						        END IF;
+						        SET ret_value=3;
+						        ROLLBACK;
+						        LEAVE return_label;
+						    END IF;
+						
+						    INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version);
+						    SELECT ROW_COUNT() INTO row_count;
+						    IF row_count = 1 THEN
+						        SET ret_value=0;
+						        COMMIT;
+						        LEAVE return_label;
+						    END IF;
+						    SET ret_value=4;
+						    IF 1=1 THEN
+						        ROLLBACK;
+						    END IF;
+						    LEAVE return_label;
+						END;""".formatted(eMaxKeyLength);
 				try (var ps = conn.prepareStatement(procSaveDataWithSameVersionSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {

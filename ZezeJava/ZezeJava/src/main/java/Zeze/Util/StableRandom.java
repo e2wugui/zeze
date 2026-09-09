@@ -202,7 +202,7 @@ public class StableRandom {
 	 */
 	public int randWeights(@NotNull List<Integer> weightList) {
 		int size = weightList.size();
-		if (size <= 0)
+		if (size == 0)
 			return -1;
 		int weightTotal = weightList.get(size - 1);
 		if (weightTotal > 0) {

@@ -22,31 +22,31 @@ public final class SQLStatement {
 	}
 
 	public void appendBoolean(@NotNull String columnName, boolean value) {
-		if (sql.length() > 0)
+		if (!sql.isEmpty())
 			sql.append(", ");
 		sql.append(columnName).append(value ? "=true" : "=false");
 	}
 
 	public void appendByte(@NotNull String columnName, byte value) {
-		if (sql.length() > 0)
+		if (!sql.isEmpty())
 			sql.append(", ");
 		sql.append(columnName).append('=').append(value);
 	}
 
 	public void appendShort(@NotNull String columnName, short value) {
-		if (sql.length() > 0)
+		if (!sql.isEmpty())
 			sql.append(", ");
 		sql.append(columnName).append('=').append(value);
 	}
 
 	public void appendInt(@NotNull String columnName, int value) {
-		if (sql.length() > 0)
+		if (!sql.isEmpty())
 			sql.append(", ");
 		sql.append(columnName).append('=').append(value);
 	}
 
 	public void appendLong(@NotNull String columnName, long value) {
-		if (sql.length() > 0)
+		if (!sql.isEmpty())
 			sql.append(", ");
 		sql.append(columnName).append('=').append(value);
 	}
@@ -54,7 +54,7 @@ public final class SQLStatement {
 	public void appendFloat(@NotNull String columnName, float value) {
 		if (!Float.isFinite(value))
 			throw notFinite(columnName, value);
-		if (sql.length() > 0)
+		if (!sql.isEmpty())
 			sql.append(", ");
 		sql.append(columnName).append('=').append(value);
 	}
@@ -62,7 +62,7 @@ public final class SQLStatement {
 	public void appendDouble(@NotNull String columnName, double value) {
 		if (!Double.isFinite(value))
 			throw notFinite(columnName, value);
-		if (sql.length() > 0)
+		if (!sql.isEmpty())
 			sql.append(", ");
 		sql.append(columnName).append('=').append(value);
 	}
@@ -76,14 +76,14 @@ public final class SQLStatement {
 	}
 
 	public void appendString(@NotNull String columnName, @NotNull String value) {
-		if (sql.length() > 0)
+		if (!sql.isEmpty())
 			sql.append(", ");
 		sql.append(columnName).append("=?");
 		params.add(value);
 	}
 
 	public void appendBinary(@NotNull String columnName, @NotNull Binary value) {
-		if (sql.length() > 0)
+		if (!sql.isEmpty())
 			sql.append(", ");
 		sql.append(columnName).append("=?");
 		params.add(value);

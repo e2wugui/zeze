@@ -126,6 +126,7 @@ public final class ClassReloader {
 			case 7: // CONSTANT_Class
 				classes[i] = dis.readUnsignedShort();
 				break;
+			//noinspection DefaultNotLastCaseInSwitch
 			default: // others(3,4,9,10,11,12,17,18) (4 bytes)
 				dis.read();
 				//noinspection fallthrough

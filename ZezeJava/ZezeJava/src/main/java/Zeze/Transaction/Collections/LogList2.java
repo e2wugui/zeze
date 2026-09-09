@@ -101,7 +101,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	private void merge(@NotNull LogList2<V> from) {
 		if (!from.opLogs.isEmpty()) {
-			if (from.opLogs.get(0).op == OpLog.OP_CLEAR)
+			if (from.opLogs.getFirst().op == OpLog.OP_CLEAR)
 				opLogs.clear();
 			opLogs.addAll(from.opLogs);
 			if (from.addSet != null) {

@@ -139,7 +139,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 
 	public @Nullable Entry<K, V> first() {
 		var es = elements;
-		return es.isEmpty() ? null : es.get(0);
+		return es.isEmpty() ? null : es.getFirst();
 	}
 
 	public @Nullable Entry<K, V> lowerBound(@NotNull K key) {
@@ -267,7 +267,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 			if (in > 0) {
 				K lastK = null;
 				Entry<K, V> lastE = null;
-				var ie = es.get(0);
+				var ie = es.getFirst();
 				for (K ik = ie.key, jk = keys[0]; ; ) {
 					int c = ik.compareTo(jk);
 					if (c < 0) {
@@ -363,7 +363,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 			if (in > 0) {
 				int i = 0, j = 0;
 				var newElements = new ArrayList<Entry<K, V>>(in);
-				var ie = es.get(0);
+				var ie = es.getFirst();
 				for (K ik = ie.key, jk = keys[0]; ; ) {
 					int c = ik.compareTo(jk);
 					if (c < 0) {

@@ -1,7 +1,9 @@
 package Zeze.Util;
 
+import java.io.Serial;
+
 public class TaskCanceledException extends Error {
-	private static final long serialVersionUID = -1047347523279541091L;
+	@Serial private static final long serialVersionUID = -1047347523279541091L;
 
 	public TaskCanceledException() {
 	}

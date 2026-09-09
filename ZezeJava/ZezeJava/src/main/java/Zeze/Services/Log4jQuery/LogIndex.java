@@ -97,8 +97,8 @@ public class LogIndex {
 			}
 
 			// new beginTime & endTime
-			var first = rs.get(0);
-			var last = rs.get(rs.size() - 1);
+			var first = rs.getFirst();
+			var last = rs.getLast();
 			if (first.time < beginTime)
 				beginTime = first.time;
 			if (last.time > endTime)

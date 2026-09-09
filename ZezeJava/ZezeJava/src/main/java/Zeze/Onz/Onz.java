@@ -96,8 +96,7 @@ public class Onz extends AbstractOnz {
 	 */
 	public void cleanupTimeoutSagas() {
 		var now = System.currentTimeMillis();
-		for (var it = sagas.iterator(); it.hasNext(); ) {
-			var saga = it.next();
+		for (var saga : sagas) {
 			if (!saga.isEnd() && now - saga.getStartTime() >= sagaContextTimeoutMs) {
 				// 协调者已不可能再发FuncSagaEnd：正常流程成功后数秒内到达；
 				// 协调者崩溃时saga无持久化事务状态（buildSavedCommits为空），

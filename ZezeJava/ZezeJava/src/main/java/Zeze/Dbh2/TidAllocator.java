@@ -21,7 +21,7 @@ public class TidAllocator extends ReentrantLock {
 			newCount >>= 1;
 		else
 			return;
-		allocateCount = (int)Math.min(Math.max(newCount, ALLOCATE_COUNT_MIN), ALLOCATE_COUNT_MAX);
+		allocateCount = Math.clamp(newCount, ALLOCATE_COUNT_MIN, ALLOCATE_COUNT_MAX);
 	}
 
 	public long next(Dbh2StateMachine stateMachine) {

@@ -1,6 +1,5 @@
 package Zeze.Services;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;

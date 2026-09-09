@@ -158,7 +158,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 		// 实际键型 typeId=(moduleId<<32)|protocolId(Net/Protocol.protocolClasses、Net/Service.factorys)，
 		// 原先仅取低32位时同protocolId跨moduleId的条目永久落在同一bin(resize不可分离)，
 		// 协议派发热路径每次get都走长度≈模块数的链。行为影响仅桶分布，查找/迁移语义不变。
-		int h = (int)(key ^ (key >>> 32));
+		int h = Long.hashCode(key);
 		return (h ^ (h >>> 16)) & 0x7fffffff; // 高位置0保持JDK CHM习惯(本移植以val==null识别MOVED，非必需但同构)
 	}
 

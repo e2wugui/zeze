@@ -22,7 +22,7 @@ public class KVList<K, V> implements Cloneable {
 		KVList<K, V> kvl = new KVList<>();
 		kvl.keys = keys;
 		kvl.values = values;
-		kvl.count = Math.min(Math.min(keys.length, values.length), Math.max(count, 0));
+		kvl.count = Math.clamp(count, 0, Math.min(keys.length, values.length));
 		return kvl;
 	}
 
@@ -131,7 +131,7 @@ public class KVList<K, V> implements Cloneable {
 	public @NotNull KVList<K, V> wraps(K @NotNull [] keys, V @NotNull [] values, int count) {
 		this.keys = keys;
 		this.values = values;
-		this.count = Math.min(Math.min(keys.length, values.length), Math.max(count, 0));
+		this.count = Math.clamp(count, 0, Math.min(keys.length, values.length));
 		return this;
 	}
 

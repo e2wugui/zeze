@@ -67,6 +67,7 @@ public class TestTid128CacheFuturePerName {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	@Test
 	public void testPerNameIsolation() {
 		var fa = agent.allocateTid128CacheFuture(NAME_A); // pending

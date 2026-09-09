@@ -274,7 +274,7 @@ public class App extends Zeze.AppBase {
         }
     }
 
-    public void destroyModules()  {
+    public void destroyModules() throws Exception {
         lock();
         try {
             demo_ModuleGTable = null;
@@ -342,6 +342,8 @@ public class App extends Zeze.AppBase {
     public void stopModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (demo_ModuleGTable != null)
                 demo_ModuleGTable.Stop(this);
             if (TaskTest_TaskExt != null)
@@ -364,6 +366,8 @@ public class App extends Zeze.AppBase {
     public void stopBeforeModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (demo_ModuleGTable != null)
                 demo_ModuleGTable.StopBefore();
             if (TaskTest_TaskExt != null)

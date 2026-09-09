@@ -21,7 +21,7 @@ public final class ShutdownHook {
 				Map.Entry<Object, Action0>[] entries;
 				shutdownActionsLock.lock();
 				try {
-					entries = shutdownActions.entrySet().toArray(new Map.Entry[shutdownActions.size()]);
+					entries = shutdownActions.entrySet().toArray(new Map.Entry[0]);
 				} finally {
 					shutdownActionsLock.unlock();
 				}

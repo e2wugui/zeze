@@ -92,7 +92,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 			nodes[i] = parentNode;
 			i = parent;
 
-			if (parent <= 0)
+			if (parent == 0)
 				break;
 			parent = (parent - 1) >> 1;
 			parentNode = nodes[parent];
@@ -242,7 +242,7 @@ public class FastPriorityQueue<T extends FastPriorityQueueNode<T>> implements It
 		if (n < capacity) {
 			if (capacity > maxCapacity)
 				throw new IllegalArgumentException("capacity(" + capacity + ") > maxCapacity(" + maxCapacity + ')');
-			resize((int)Math.min(Math.max((long)n << 1, capacity), maxCapacity));
+			resize(Math.clamp((long)n << 1, capacity, maxCapacity));
 		}
 	}
 

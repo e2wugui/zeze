@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
  * 字符串模糊匹配算法. 使用1-2-3-4哈希的倒排索引
  */
 public final class StringFuzzySearch {
+	@SuppressWarnings("CanBeFinal")
 	public static boolean DEBUG = true;
 	private long sidCounter;
 	private final LongHashMap<String> strMap = new LongHashMap<>(); // key:sid
@@ -26,7 +27,7 @@ public final class StringFuzzySearch {
 	// 修改,需要加写锁
 	public boolean add(final @NotNull String s) {
 		final int n = s.length();
-		if (n <= 0 || strSet.containsKey(s))
+		if (n == 0 || strSet.containsKey(s))
 			return false;
 		final var sid = ++sidCounter;
 		strMap.put(sid, s);
@@ -108,7 +109,7 @@ public final class StringFuzzySearch {
 			for (int i = 1, j = s.charAt(0); i < n; i++)
 				merge(m, index2.get(j = (j << 16) + s.charAt(i)), 4);
 		}
-		if (n >= 1 && m.size() < max) {
+		if (/*n >= 1 && */m.size() < max) {
 			for (int i = 0; i < n; i++)
 				merge(m, index1.get(s.charAt(i)), 1);
 		}

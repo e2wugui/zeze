@@ -313,6 +313,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public void stopModules() throws Exception {");
             sw.WriteLine("        lock();");
             sw.WriteLine("        try {");
+            sw.WriteLine("            if (Zeze == null)");
+            sw.WriteLine("                return;");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
@@ -357,6 +359,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public void stopBeforeModules() throws Exception {");
             sw.WriteLine("        lock();");
             sw.WriteLine("        try {");
+            sw.WriteLine("            if (Zeze == null)");
+            sw.WriteLine("                return;");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];

@@ -42,16 +42,12 @@ public class IntHashSet implements Cloneable {
 	}
 
 	private int tableSize(int cap) {
-		cap = Math.min(Math.max((int)Math.ceil((float)cap / loadFactor), 2), 0x40000000);
-		return 1 << 32 - Integer.numberOfLeadingZeros(cap - 1);
+		cap = Math.clamp((int)Math.ceil(cap / loadFactor), 2, 1 << 30);
+		return 1 << (32 - Integer.numberOfLeadingZeros(cap - 1)); // [0,1<<30] => [0,1,2,4,8,...,1<<30]
 	}
 
 	private int hash(int key) {
-		return (int)(key * 0x9E3779B97F4A7C15L >>> shift);
-	}
-
-	public int size() {
-		return size;
+		return (int)((key * 0x9E3779B97F4A7C15L) >>> shift);
 	}
 
 	public int @NotNull [] getKeyTable() {
@@ -68,6 +64,10 @@ public class IntHashSet implements Cloneable {
 
 	public int capacity() {
 		return keyTable.length;
+	}
+
+	public int size() {
+		return size;
 	}
 
 	public boolean isEmpty() {

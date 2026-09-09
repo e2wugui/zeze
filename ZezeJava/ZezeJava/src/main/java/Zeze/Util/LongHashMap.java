@@ -70,16 +70,16 @@ public class LongHashMap<V> implements Cloneable {
 		return valueTable;
 	}
 
+	public float getLoadFactor() {
+		return loadFactor;
+	}
+
 	public boolean hasZeroValue() {
 		return hasZeroKey;
 	}
 
 	public @Nullable V getZeroValue() {
 		return zeroValue;
-	}
-
-	public float getLoadFactor() {
-		return loadFactor;
 	}
 
 	public int capacity() {
@@ -600,18 +600,17 @@ public class LongHashMap<V> implements Cloneable {
 			if (k != 0) {
 				final V oldV = vt[i];
 				final V v = func.apply(k, oldV);
-					if (v != oldV) {
-						if (v == null) {
-							// 小容量起步+倍增：内存正比于删除条目数而不是map大小。
-							if (removedKeys == null)
-								removedKeys = new long[8];
-							else if (removedCount == removedKeys.length)
-								removedKeys = Arrays.copyOf(removedKeys, removedCount * 2);
-							removedKeys[removedCount++] = k;
-						} else {
-							vt[i] = v;
-						}
-					}
+				if (v != oldV) {
+					if (v == null) {
+						// 小容量起步+倍增：内存正比于删除条目数而不是map大小。
+						if (removedKeys == null)
+							removedKeys = new long[8];
+						else if (removedCount == removedKeys.length)
+							removedKeys = Arrays.copyOf(removedKeys, removedCount * 2);
+						removedKeys[removedCount++] = k;
+					} else
+						vt[i] = v;
+				}
 			}
 		}
 		for (int i = 0; i < removedCount; i++) {

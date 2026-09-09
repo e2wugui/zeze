@@ -29,6 +29,7 @@ public class PList1ReadOnly<V> implements Iterable<V> {
 	}
 
 	public boolean containsAll(@NotNull java.util.Collection<? extends V> c) {
+		//noinspection SlowListContainsAll
 		return list.containsAll(c);
 	}
 

@@ -16,6 +16,7 @@
 
 package Zeze.Transaction.GTable;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
@@ -143,8 +144,10 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
     if (map == null) {
       return null;
     }
+    //noinspection SuspiciousMethodCalls
     V value = map.remove(columnKey);
     if (map.isEmpty()) {
+      //noinspection SuspiciousMethodCalls
       backingMap.remove(rowKey);
     }
     return value;
@@ -155,7 +158,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
     Iterator<Entry<R, Map<C, V>>> iterator = backingMap.entrySet().iterator();
     while (iterator.hasNext()) {
       Entry<R, Map<C, V>> entry = iterator.next();
-      V value = entry.getValue().remove(column);
+	  //noinspection SuspiciousMethodCalls
+	  V value = entry.getValue().remove(column);
       if (value != null) {
         output.put(entry.getKey(), value);
         if (entry.getValue().isEmpty()) {
@@ -421,6 +425,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
           return standardHashCode();
         }
 
+        @SuppressWarnings("EqualsDoesntCheckParameterClass")
         @Override
         public boolean equals(@CheckForNull Object object) {
           // TODO(lowasser): identify why this affects GWT tests
@@ -998,5 +1003,5 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
     }
   }
 
-  private static final long serialVersionUID = 0;
+  @Serial private static final long serialVersionUID = 0;
 }

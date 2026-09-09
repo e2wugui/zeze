@@ -186,16 +186,13 @@ public class GenericBean {
 		for (var e : fields.entrySet()) {
 			sb.append(i1).append(e.getKey()).append(": ");
 			var v = e.getValue();
-			if (v instanceof Number)
-				sb.append(v);
-			else if (v instanceof String)
-				sb.append('"').append(v).append('"');
-			else if (v instanceof byte[])
-				sb.append(BitConverter.toStringWithLimit((byte[])v, 16, 4));
-			else if (v instanceof List<?> list) {
+			switch (v) {
+			case String s -> sb.append('"').append(s).append('"');
+			case byte[] bytes -> sb.append(BitConverter.toStringWithLimit(bytes, 16, 4));
+			case List<?> list -> {
 				sb.append('[');
 				if (!list.isEmpty()) {
-					if (list.get(0) instanceof Number && list.size() <= 16) {
+					if (list.getFirst() instanceof Number && list.size() <= 16) {
 						for (var n : list)
 							sb.append(' ').append(n).append(',');
 						sb.setCharAt(sb.length() - 1, ' ');
@@ -208,7 +205,8 @@ public class GenericBean {
 					}
 				}
 				sb.append(']');
-			} else if (v instanceof Map<?, ?> map) {
+			}
+			case Map<?, ?> map -> {
 				sb.append('{');
 				if (!map.isEmpty()) {
 					for (var e2 : map.entrySet()) {
@@ -222,10 +220,10 @@ public class GenericBean {
 					sb.append('\n').append(i1);
 				}
 				sb.append('}');
-			} else if (v instanceof GenericBean)
-				((GenericBean)v).buildString(sb, level + INDENT);
-			else
-				sb.append(v);
+			}
+			case GenericBean genericBean -> genericBean.buildString(sb, level + INDENT);
+			case null, default -> sb.append(v);
+			}
 			sb.append('\n');
 		}
 		if (level > 0)
@@ -235,14 +233,12 @@ public class GenericBean {
 	}
 
 	private static void buildString(@NotNull StringBuilder sb, int level, @Nullable Object o) {
-		if (o instanceof String)
-			sb.append('"').append(o).append('"');
-		else if (o instanceof byte[])
-			sb.append(BitConverter.toStringWithLimit((byte[])o, 16, 4));
-		else if (o instanceof GenericBean)
-			((GenericBean)o).buildString(sb, level);
-		else
-			sb.append(o);
+		switch (o) {
+		case String s -> sb.append('"').append(s).append('"');
+		case byte[] bytes -> sb.append(BitConverter.toStringWithLimit(bytes, 16, 4));
+		case GenericBean genericBean -> genericBean.buildString(sb, level);
+		case null, default -> sb.append(o);
+		}
 	}
 
 	@Override

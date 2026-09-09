@@ -182,10 +182,10 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						"                            return 3" + "\r\n" +
 						"                        end" + "\r\n" +
 						"\r\n" +
-						// FND2-T3-2：原为"insert后跟select(0行)再查@@rowcount"的残缺形态——SELECT把@@rowcount
-						// 重置为0导致插入路径恒return 4，且其无FROM子句的select在EXEC时报207(Invalid column name)，
-						// 还会向客户端吐出空结果集干扰executeUpdate。重写：直接insert，并发插入竞争(2627主键/
-						// 2601唯一索引冲突)按MySQL版INSERT IGNORE的失败语义映射为return 4，其他错误重新抛出。
+				// FND2-T3-2：原为"insert后跟select(0行)再查@@rowcount"的残缺形态——SELECT把@@rowcount
+				// 重置为0导致插入路径恒return 4，且其无FROM子句的select在EXEC时报207(Invalid column name)，
+				// 还会向客户端吐出空结果集干扰executeUpdate。重写：直接insert，并发插入竞争(2627主键/
+				// 2601唯一索引冲突)按MySQL版INSERT IGNORE的失败语义映射为return 4，其他错误重新抛出。
 						"                        BEGIN TRY" + "\r\n" +
 						"                            insert into _ZezeDataWithVersion_ values(@id,@data,@version)" + "\r\n" +
 						"                        END TRY" + "\r\n" +

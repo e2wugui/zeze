@@ -61,7 +61,7 @@ public final class Json implements Cloneable {
 		public final @Nullable Type[] paramTypes;
 
 		public FieldMeta(int type, int offset, @NotNull String name, @NotNull Class<?> klass, @Nullable Creator<?> ctor,
-		                 @Nullable KeyReader keyReader, @NotNull Field field) {
+						 @Nullable KeyReader keyReader, @NotNull Field field) {
 			this.name = name.getBytes(StandardCharsets.UTF_8);
 			this.hash = getKeyHash(this.name, 0, this.name.length);
 			this.type = type;
@@ -82,12 +82,12 @@ public final class Json implements Cloneable {
 
 	public interface Parser<T> {
 		@Nullable T parse(@NotNull JsonReader reader, @NotNull ClassMeta<T> classMeta, @Nullable FieldMeta fieldMeta,
-		                  @Nullable T obj, @Nullable Object parent) throws ReflectiveOperationException;
+						  @Nullable T obj, @Nullable Object parent) throws ReflectiveOperationException;
 
 		@SuppressWarnings("unchecked")
 		default @Nullable T parse0(@NotNull JsonReader reader, @NotNull ClassMeta<?> classMeta,
-		                           @Nullable FieldMeta fieldMeta, @Nullable Object obj,
-		                           @Nullable Object parent) throws ReflectiveOperationException {
+								   @Nullable FieldMeta fieldMeta, @Nullable Object obj,
+								   @Nullable Object parent) throws ReflectiveOperationException {
 			return parse(reader, (ClassMeta<T>)classMeta, fieldMeta, (T)obj, parent);
 		}
 	}
@@ -253,20 +253,18 @@ public final class Json implements Cloneable {
 			return null;
 		}
 
-		ClassMeta(final @NotNull Json json, final @NotNull Class<T> klass) {
+		ClassMeta(@NotNull Json json, @NotNull Class<T> klass) {
 			this.json = json;
 			this.klass = klass;
 			ctor = getDefCtor(klass);
-			final BiFunction<Class<?>, Field, String> fieldNameFilter = json.fieldNameFilter;
+			BiFunction<Class<?>, Field, String> fieldNameFilter = json.fieldNameFilter;
 			int size = 0;
 			for (Class<?> c = klass; c != null; c = c.getSuperclass())
 				for (Field field : getDeclaredFields(c))
 					if ((field.getModifiers() & (Modifier.STATIC | Modifier.TRANSIENT)) == 0
-							&& !field.getName().startsWith("this$")) {
-						final String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : field.getName();
-						if (fn != null) // 统计循环与填充循环一致应用fieldNameFilter，被过滤的字段不计入size
-							size++;
-					}
+							&& !field.getName().startsWith("this$")
+							&& (fieldNameFilter == null || fieldNameFilter.apply(c, field) != null))
+						size++;
 			valueTable = new FieldMeta[1 << (32 - Integer.numberOfLeadingZeros(size * 2 - 1))];
 			fieldMetas = new FieldMeta[size];
 			ArrayList<Class<? super T>> classes = new ArrayList<>(2);
@@ -277,10 +275,10 @@ public final class Json implements Cloneable {
 				for (Field field : getDeclaredFields(c)) {
 					if ((field.getModifiers() & (Modifier.STATIC | Modifier.TRANSIENT)) != 0)
 						continue;
-					final String fieldName = field.getName();
+					String fieldName = field.getName();
 					if (fieldName.startsWith("this$")) // closure field
 						continue;
-					final String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : fieldName;
+					String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : fieldName;
 					if (fn == null)
 						continue;
 					Class<?> fieldClass = ensureNotNull(field.getType());

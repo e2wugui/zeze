@@ -164,7 +164,7 @@ public class LogList1<V> extends LogList<V> {
 
 	private void merge(@NotNull LogList1<V> from) {
 		if (!from.opLogs.isEmpty()) {
-			if (from.opLogs.get(0).op == OpLog.OP_CLEAR)
+			if (from.opLogs.getFirst().op == OpLog.OP_CLEAR)
 				opLogs.clear();
 			opLogs.addAll(from.opLogs);
 		}

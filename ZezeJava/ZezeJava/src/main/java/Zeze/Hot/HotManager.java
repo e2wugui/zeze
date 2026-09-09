@@ -294,7 +294,7 @@ public class HotManager extends ClassLoader {
 				continue;
 			modules.put(exist.getName(), exist);
 		}
-		if (!getReadyLines().isEmpty() && getReadyLines().get(0).startsWith("stop")) {
+		if (!getReadyLines().isEmpty() && getReadyLines().getFirst().startsWith("stop")) {
 			// 停止服务时，即使当前停止错误的模块也恢复。【调试代码】
 			if (reverseErrorIndex >= 0) {
 				var exist = exists.get(reverseErrorIndex);
@@ -737,8 +737,8 @@ public class HotManager extends ClassLoader {
 	}
 
 	public void throwIfMatch(String step) {
-		if (null != getReadyLines() && !getReadyLines().isEmpty() && getReadyLines().get(0).startsWith(step))
-			throw new RuntimeException("throwExceptionIfMatch " + step + ", " + getReadyLines().get(0));
+		if (null != getReadyLines() && !getReadyLines().isEmpty() && getReadyLines().getFirst().startsWith(step))
+			throw new RuntimeException("throwExceptionIfMatch " + step + ", " + getReadyLines().getFirst());
 	}
 
 	public void renameDistributes() {

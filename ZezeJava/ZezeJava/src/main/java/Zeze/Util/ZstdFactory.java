@@ -112,8 +112,9 @@ public final class ZstdFactory {
 				if (ctxPtr == 0)
 					throw new IllegalStateException("ctxPtr = 0");
 				dstBuf = new byte[dstBufSize];
+				//noinspection resource
 				setLevel(compressLevel);
-				if (windowLog >= 0)
+				if (windowLog >= 0) //noinspection resource
 					setLong(windowLog);
 				int r = (int)mhResetCStream.invokeExact((ZstdOutputStreamNoFinalizer)this, ctxPtr);
 				if (r != 0)

@@ -16,6 +16,7 @@ package Zeze.Transaction.GTable;
  * limitations under the License.
  */
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
@@ -47,5 +48,5 @@ class ImmutableEntry<K, V> extends AbstractMapEntry<K, V> implements Serializabl
 		throw new UnsupportedOperationException();
 	}
 
-	private static final long serialVersionUID = 0;
+	@Serial private static final long serialVersionUID = 0;
 }

@@ -67,6 +67,7 @@ public abstract class ForwardingMapEntry<K, V> extends ForwardingObject implemen
 		return delegate().setValue(value);
 	}
 
+	@SuppressWarnings("EqualsDoesntCheckParameterClass")
 	@Override
 	public boolean equals(@CheckForNull Object object) {
 		return delegate().equals(object);

@@ -69,7 +69,7 @@ public class Distribute {
 		packages.add(new Package(classesHome.toFile()));
 		pack(classesHome, packages);
 		assert packages.size() == 1;
-		packages.get(0).pack();
+		packages.getFirst().pack();
 
 		if (null != projectJar) {
 			projectJar.close();
@@ -465,12 +465,12 @@ public class Distribute {
 					packages.add(new Package(file));
 				pack(file.toPath(), packages);
 				if (module) {
-					var doneModule = packages.remove(packages.size() - 1);
+					var doneModule = packages.removeLast();
 					doneModule.pack();
 				}
 				continue;
 			}
-			var lastPackage = packages.get(packages.size() - 1);
+			var lastPackage = packages.getLast();
 			lastPackage.add(file);
 		}
 	}

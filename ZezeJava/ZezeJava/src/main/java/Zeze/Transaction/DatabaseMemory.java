@@ -304,7 +304,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 			ByteBuffer[] keys;
 			lock.readLock().lock();
 			try {
-				keys = map.keySet().toArray(new ByteBuffer[map.size()]);
+				keys = map.keySet().toArray(new ByteBuffer[0]);
 			} finally {
 				lock.readLock().unlock();
 			}
@@ -348,7 +348,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 			ByteBuffer[] keys;
 			lock.readLock().lock();
 			try {
-				keys = map.descendingKeySet().toArray(new ByteBuffer[map.size()]);
+				keys = map.descendingKeySet().toArray(new ByteBuffer[0]);
 			} finally {
 				lock.readLock().unlock();
 			}

@@ -58,8 +58,8 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 				}
 			}
 			long newPosition = (long)position + increase; // int 相加溢出会回绕成负下标
-			if (newPosition >= range.length * 8)
-				newPosition %= range.length * 8;
+			if (newPosition >= range.length * 8L)
+				newPosition %= range.length * 8L;
 			position = (int)newPosition;
 
 			// set last bit
@@ -72,7 +72,7 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 			return false; // allow
 		}
 		// 过期判断必须用 long：大负 grow 经 (int) 截断会回绕成正数走到上面的前向分支放行（防重放绕过）。
-		if (grow <= -(long)range.length * 8)
+		if (grow <= -range.length * 8L)
 			return true; // 过期的，拒绝掉。
 		int increase = (int)grow; // grow > -(range.length * 8)，在int范围内，转换无损
 
@@ -87,5 +87,4 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 		range[index] |= bit;
 		return false;
 	}
-
 }

@@ -832,16 +832,13 @@ public final class Raft {
 	}
 
 	private boolean isLeaderSilent() {
-		switch (getState()) {
-		case Leader:
-			return false; // 自己就是Leader。
-		case Candidate:
-			return true; // 自己也在选举中，说明Leader已经失联。
-		default:
-			// Follower：在最小选举超时内收到过Leader消息，视为Leader仍然活着。
-			return System.currentTimeMillis() - logSequence.getLeaderActiveTime()
-					>= raftConfig.getLeaderHeartbeatTimer() + 100;
-		}
+		return switch (getState()) {
+			case Leader -> false; // 自己就是Leader。
+			case Candidate -> true; // 自己也在选举中，说明Leader已经失联。
+			default -> // Follower：在最小选举超时内收到过Leader消息，视为Leader仍然活着。
+					System.currentTimeMillis() - logSequence.getLeaderActiveTime()
+							>= raftConfig.getLeaderHeartbeatTimer() + 100;
+		};
 	}
 
 	private long processPreVoteResult(PreVote rpc, @SuppressWarnings("unused") Connector c) throws Exception {

@@ -16,7 +16,6 @@ import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action2;
 import Zeze.Util.LongConcurrentHashMap;

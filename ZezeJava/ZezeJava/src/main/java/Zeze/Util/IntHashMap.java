@@ -70,16 +70,16 @@ public class IntHashMap<V> implements Cloneable {
 		return valueTable;
 	}
 
+	public float getLoadFactor() {
+		return loadFactor;
+	}
+
 	public boolean hasZeroValue() {
 		return hasZeroKey;
 	}
 
 	public @Nullable V getZeroValue() {
 		return zeroValue;
-	}
-
-	public float getLoadFactor() {
-		return loadFactor;
 	}
 
 	public int capacity() {
@@ -608,9 +608,8 @@ public class IntHashMap<V> implements Cloneable {
 					else if (removedCount == removedKeys.length)
 						removedKeys = Arrays.copyOf(removedKeys, removedCount * 2);
 					removedKeys[removedCount++] = k;
-				} else {
+				} else
 					vt[i] = v;
-				}
 			}
 		}
 		for (int i = 0; i < removedCount; i++) {

@@ -233,7 +233,7 @@ public interface IByteBuffer {
 	default <T extends java.io.Serializable> T ReadJavaObject() {
 		var bb = ReadByteBuffer();
 		try (var bs = new ByteArrayInputStream(bb.Bytes, bb.ReadIndex, bb.size());
-		     var os = new ObjectInputStream(bs)) {
+			 var os = new ObjectInputStream(bs)) {
 			return (T)os.readObject();
 		} catch (IOException | ClassNotFoundException e) {
 			throw Task.forceThrow(e);
@@ -260,9 +260,10 @@ public interface IByteBuffer {
 
 	default <T extends Serializable> void decode(@NotNull Collection<T> c, @NotNull Supplier<T> factory) {
 		int n = ReadUInt();
-		if (n < 0) // 损坏/恶意流的无符号长度落在[2^31,2^32)，读回为负：静默返回空集合会导致日志/数据丢失
+		if (n < 0) { // 损坏/恶意流的无符号长度落在[2^31,2^32)，读回为负：静默返回空集合会导致日志/数据丢失
 			throw new IllegalStateException("invalid collection size for decode: " + n
 					+ " at " + getReadIndex() + '/' + getWriteIndex());
+		}
 		for (; n > 0; n--) {
 			T v = factory.get();
 			v.decode(this);
@@ -275,9 +276,10 @@ public interface IByteBuffer {
 		if (deltaId < 0xf)
 			return deltaId;
 		long id = 0xfL + (ReadUInt() & 0xffff_ffffL); // ReadUInt()按无符号解释，直接int相加会溢出回绕为负idx
-		if (id > Integer.MAX_VALUE)
+		if (id > Integer.MAX_VALUE) {
 			throw new IllegalStateException("ReadTagSize overflow: 0xf + " + (id - 0xf)
 					+ " at " + getReadIndex() + '/' + getWriteIndex());
+		}
 		return (int)id;
 	}
 
@@ -429,9 +431,10 @@ public interface IByteBuffer {
 
 	default byte @Nullable [] readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
 		while ((tag & ~1) != 0) { // (tag != 0 && tag != 1)
-			if (idx < 0) // 非负id累加仍溢出为负，说明流损坏；拒绝收集，防止负idx回写伪装tag字节
+			if (idx < 0) { // 非负id累加仍溢出为负，说明流损坏；拒绝收集，防止负idx回写伪装tag字节
 				throw new IllegalStateException("readAllUnknownFields: negative idx " + idx
 						+ " at " + getReadIndex() + '/' + getWriteIndex());
+			}
 			unknown = readUnknownField(idx, tag, unknown);
 			idx += ReadTagSize(tag = ReadByte());
 		}
@@ -697,9 +700,10 @@ public interface IByteBuffer {
 
 	default void SkipUnknownField(int tag) {
 		int depth = SKIP_UNKNOWN_FIELD_DEPTH.get() + 1;
-		if (depth > MAX_SKIP_UNKNOWN_FIELD_DEPTH)
+		if (depth > MAX_SKIP_UNKNOWN_FIELD_DEPTH) {
 			throw new IllegalStateException("SkipUnknownField: depth > " + MAX_SKIP_UNKNOWN_FIELD_DEPTH
 					+ " at " + getReadIndex() + '/' + getWriteIndex());
+		}
 		SKIP_UNKNOWN_FIELD_DEPTH.set(depth);
 		try {
 			skipUnknownFieldBody(tag);
@@ -742,6 +746,7 @@ public interface IByteBuffer {
 			SkipBytes();
 			return;
 		case LIST:
+			//noinspection LocalVariableUsedAndDeclaredInDifferentSwitchBranches
 			int t = ReadByte();
 			SkipUnknownField(t, ReadTagSize(t));
 			return;

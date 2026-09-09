@@ -167,7 +167,7 @@ public final class App extends Zeze.AppBase {
         }
     }
 
-    public void destroyModules()  {
+    public void destroyModules() throws Exception {
         lock();
         try {
             Zezex_Linkd = null;
@@ -218,6 +218,8 @@ public final class App extends Zeze.AppBase {
     public void stopModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (Zezex_Linkd != null)
                 Zezex_Linkd.Stop(this);
         } finally {
@@ -228,6 +230,8 @@ public final class App extends Zeze.AppBase {
     public void stopBeforeModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (Zezex_Linkd != null)
                 Zezex_Linkd.StopBefore();
         } finally {

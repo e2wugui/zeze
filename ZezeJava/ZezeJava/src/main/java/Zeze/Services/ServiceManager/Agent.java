@@ -256,7 +256,7 @@ public final class Agent extends AbstractAgent {
 			try {
 				on.run(r.Argument.serverId);
 			} catch (Throwable e) { // logger.error
-				logger.error("processSuspect serverId=" + r.Argument.serverId, e);
+				logger.error("processSuspect serverId={}", r.Argument.serverId, e);
 			}
 		}
 		return 0;

@@ -262,7 +262,7 @@ public class Takeover extends AbstractTakeover {
 	private void fenceFailed(@NotNull String reason) {
 		fenceFatal = true; // release不得动租约：不能打掉新owner的（含其到期时刻）
 		// 带触发点栈：fence失败必须致命退出，现场只此一条日志，没有栈无法定位是哪条写路径触发。
-		logger.fatal("Takeover: " + reason, new Exception("Takeover fence trigger stack"));
+		logger.fatal("Takeover: {}", reason, new Exception("Takeover fence trigger stack"));
 		var action = fatalAction;
 		if (action != null)
 			action.run();
@@ -454,7 +454,7 @@ public class Takeover extends AbstractTakeover {
 
 	/** 单scope搬运事务：事务内重验租约（无/墓碑→Finished；未过期→NotExpired）后才transferAll。 */
 	private @NotNull ScopeTransfer transferScope(int deadServerId, @NotNull TakeoverScope scope,
-	                                             @NotNull long[] moved, @NotNull OutLong retryAt) {
+	                                             long @NotNull [] moved, @NotNull OutLong retryAt) {
 		var result = new ScopeTransfer[1];
 		var r = callDirect(() -> {
 			var lease = _tTakeoverLease.get(deadServerId);

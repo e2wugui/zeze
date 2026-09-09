@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 public interface TimeThrottle extends AutoCloseable {
 	boolean checkNow(int size);
 
+	@Override
 	default void close() {
 	}
 

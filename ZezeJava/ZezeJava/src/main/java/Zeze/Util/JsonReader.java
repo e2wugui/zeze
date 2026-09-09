@@ -855,7 +855,6 @@ public final class JsonReader {
 		int b = buffer[pos++];
 		if (b == e)
 			return 0;
-		//noinspection UnnecessaryLocalVariable
 		final int m = keyHashMultiplier;
 		int h = 0;
 		for (; ; ) {
@@ -903,12 +902,12 @@ public final class JsonReader {
 		}
 	}
 
+	@SuppressWarnings("UnnecessaryUnicodeEscape")
 	int parseKeyHashNoQuot(int b) {
 		if (b == ':')
 			return 0;
 		// 解码转义并按解码后的 utf-8 字节计算 hash（与 parseKeyHash/parseStringNoQuot 的解码语义一致），
 		// 否则 {\u0061bc:1} 之类无引号转义 key 匹配不到字段 abc（FND-U1-2 的同构缺陷）。
-		//noinspection UnnecessaryLocalVariable
 		final int m = keyHashMultiplier;
 		int h = 0;
 		for (; ; ) {

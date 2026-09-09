@@ -342,14 +342,12 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	public boolean equals(@Nullable Object other) {
 		if (other instanceof NioByteBuffer)
 			return equals((NioByteBuffer)other);
-		if (other instanceof ByteBuffer bb) {
-			return this.bb.equals(java.nio.ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.size()));
-		}
+		if (other instanceof ByteBuffer b)
+			return bb.equals(java.nio.ByteBuffer.wrap(b.Bytes, b.ReadIndex, b.size()));
 		if (other instanceof byte[])
 			return bb.equals(java.nio.ByteBuffer.wrap((byte[])other));
-		if (other instanceof Binary binary) {
+		if (other instanceof Binary binary)
 			return bb.equals(java.nio.ByteBuffer.wrap(binary.bytesUnsafe(), binary.getOffset(), binary.size()));
-		}
 		return false;
 	}
 

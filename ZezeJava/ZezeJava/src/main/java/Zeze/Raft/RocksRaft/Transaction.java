@@ -132,7 +132,7 @@ public final class Transaction {
 	}
 
 	public void putLog(Log log) {
-		savepoints.get(savepoints.size() - 1).putLog(log);
+		savepoints.getLast().putLog(log);
 	}
 
 	public Log logGetOrAdd(long logKey, Supplier<Log> logFactory) {
@@ -232,7 +232,7 @@ public final class Transaction {
 			}
 			return;
 		}
-		var it = savepoints.get(savepoints.size() - 1).logIterator();
+		var it = savepoints.getLast().logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
 				var log = it.value();
@@ -258,11 +258,11 @@ public final class Transaction {
 	}
 
 	public void runWhileCommit(Action0 action) {
-		savepoints.get(savepoints.size() - 1).addCommitAction(action);
+		savepoints.getLast().addCommitAction(action);
 	}
 
 	public void runWhileRollback(Action0 action) {
-		savepoints.get(savepoints.size() - 1).addRollbackAction(action);
+		savepoints.getLast().addRollbackAction(action);
 	}
 
 	@SuppressWarnings("SameReturnValue")
@@ -296,7 +296,7 @@ public final class Transaction {
 
 	private void _final_commit_(Procedure procedure) {
 		// Collect Changes
-		Savepoint sp = savepoints.get(savepoints.size() - 1);
+		Savepoint sp = savepoints.getLast();
 		changes = new Changes(procedure.getRocks(), this, procedure.uniqueRequest);
 		var it = sp.logIterator();
 		if (it != null) {
