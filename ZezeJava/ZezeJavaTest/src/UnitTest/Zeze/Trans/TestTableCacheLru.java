@@ -179,4 +179,83 @@ public class TestTableCacheLru {
 			app.stop();
 		}
 	}
+
+	/**
+	 * FND3-09 回归：getOrAdd 与 remove 的 check-then-act 竞态。
+	 * 迟到的热点迁移（携带并发Remove完成后的过期引用，仅剩陈旧的lruNode字段）
+	 * 不得把死记录登记进热点块——死记录将永久滞留块内，
+	 * cleanNow每轮对它加锁尝试删除且节点永不为空。
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testMigrateNotRegisterDeadRecord() throws Exception {
+		var app = newApp();
+		var table = new Table3();
+		app.addTable("", table);
+		app.start();
+		try {
+			var cache = table.getCache();
+			var key = 104L;
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "dataMap");
+			var hot0 = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
+
+			var r = new Record1<>(table, key, null);
+			dataMap.put(key, r);
+			hot0.put(key, r);
+			set(r, "lruNode", hot0);
+
+			invoke(cache, "newLruHot");
+			var hot1 = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
+
+			// 模拟并发Remove完整完成后的状态：dataMap删除+块内摘除，仅剩r.lruNode陈旧字段。
+			// getOrAdd已在Remove前读到该记录，随后执行的就是这个"迟到"的迁移。
+			dataMap.remove(key);
+			hot0.remove(key, r);
+
+			invoke(cache, "adjustLru", key, r, hot1);
+
+			Assertions.assertNull(hot1.get(key), "死记录不得登记进热点块");
+		} finally {
+			app.stop();
+		}
+	}
+
+	/**
+	 * FND3-09 对偶分支回归：迁移撞上热点块内同key的过期占坑登记时，
+	 * 必须摘除占坑者并完成登记；直接放弃会让活记录永久脱离所有块（lruNode停留null），
+	 * 容量驱逐对它永久失效。
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testMigrateEvictStaleOccupant() throws Exception {
+		var app = newApp();
+		var table = new Table3();
+		app.addTable("", table);
+		app.start();
+		try {
+			var cache = table.getCache();
+			var key = 105L;
+			var dataMap = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "dataMap");
+			var hot0 = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
+
+			var rLive = new Record1<>(table, key, null);
+			dataMap.put(key, rLive);
+			hot0.put(key, rLive);
+			set(rLive, "lruNode", hot0);
+
+			invoke(cache, "newLruHot");
+			var hot1 = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
+
+			// 占坑的过期登记（dataMap无此映射）
+			var rStale = new Record1<>(table, key, null);
+			hot1.put(key, rStale);
+
+			invoke(cache, "adjustLru", key, rLive, hot1);
+
+			Assertions.assertSame(rLive, hot1.get(key), "活记录必须完成登记（否则永久脱离LRU）");
+			Assertions.assertSame(hot1, get(rLive, "lruNode"));
+		} finally {
+			app.stop();
+		}
+	}
 }

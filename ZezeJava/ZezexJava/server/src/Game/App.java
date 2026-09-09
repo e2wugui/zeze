@@ -313,8 +313,6 @@ public final class App extends Zeze.AppBase {
     public void stopModules() throws Exception {
         lock();
         try {
-            if (Zeze == null)
-                return;
             if (Game_Rank != null)
                 Game_Rank.Stop(this);
             if (Game_Map != null)
@@ -331,8 +329,6 @@ public final class App extends Zeze.AppBase {
     public void stopBeforeModules() throws Exception {
         lock();
         try {
-            if (Zeze == null)
-                return;
             if (Game_Rank != null)
                 Game_Rank.StopBefore();
             if (Game_Map != null)

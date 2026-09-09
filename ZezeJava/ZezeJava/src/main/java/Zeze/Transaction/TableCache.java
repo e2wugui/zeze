@@ -111,17 +111,35 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 		// 旧纪录 && 优化热点执行调整
 		// 下面在发生LruHot变动+并发GetOrAdd时，哪个后执行，就调整到哪个node，不严格调整到真正的LruHot。
-		if (result.getLruNode() != lruHot) {
-			var oldNode = result.getAndSetLruNodeNull();
-			if (oldNode != null) {
-				// 必须使用 Pair：result可能是并发删除后留下的过期引用，
-				// 此时oldNode里面可能已经是并发新建的记录。see this.Remove
-				oldNode.remove(key, result);
-				if (lruHot.putIfAbsent(key, result) == null)
-					result.setLruNode(lruHot);
-			}
-		}
+		if (result.getLruNode() != lruHot)
+			adjustLru(key, result, lruHot);
 		return result;
+	}
+
+	// 登记协议与Util.ConcurrentLruLike.adjustLru一致：dataMap同key只有唯一映射，
+	// 仅当key仍映射到result（活记录）时才登记进热点块。
+	// 并发Remove可能在getOrAdd读取dataMap之后完成：死记录登记进块将永久滞留
+	//（Remove的摘除可能读到null的lruNode而跳过），cleanNow反复对它加锁尝试且节点永不为空。
+	private void adjustLru(@NotNull K key, @NotNull Record1<K, V> result,
+						   @NotNull ConcurrentHashMap<K, Record1<K, V>> curLruHot) {
+		var oldNode = result.getAndSetLruNodeNull();
+		if (oldNode == null)
+			return;
+		// 必须使用 Pair：result可能是并发删除后留下的过期引用，
+		// 此时oldNode里面可能已经是并发新建的记录。see this.Remove
+		oldNode.remove(key, result);
+		while (dataMap.get(key) == result) {
+			var prev = curLruHot.putIfAbsent(key, result);
+			if (prev == null) {
+				result.setLruNode(curLruHot);
+				if (dataMap.get(key) != result)
+					curLruHot.remove(key, result); // 登记过程中被并发Remove：回滚，不让死记录滞留块
+				return;
+			}
+			// 占坑者不是活记录（上面的存活检查保证），必是并发残留的过期登记；
+			// 放任会让本记录永久脱离所有块、无法被容量驱逐，摘除后重试。
+			curLruHot.remove(key, prev);
+		}
 	}
 
 	/**
@@ -152,11 +170,25 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		assert head != null;
 		for (var poll : polls) {
 			for (var e : poll.entrySet()) {
-				// concurrent see GetOrAdd
+				// concurrent see adjustLru
 				var r = e.getValue();
-				if (r.compareAndSetLruNodeNull(poll) && head.putIfAbsent(e.getKey(), r) == null) { // 并发访问导致这个记录已经被迁移走。
-					r.setLruNode(head);
-					recordCount++;
+				if (!r.compareAndSetLruNodeNull(poll))
+					continue; // 并发访问导致这个记录已经被迁移走。
+				var key = e.getKey();
+				// 仅迁移仍是dataMap活映射的记录；死记录随poll节点一起废弃，
+				// 否则迁移目标head将滞留永久清不掉的条目（并发的remove可能已跳过摘除）。
+				while (dataMap.get(key) == r) {
+					var prev = head.putIfAbsent(key, r);
+					if (prev == null) {
+						r.setLruNode(head);
+						if (dataMap.get(key) == r)
+							recordCount++;
+						else
+							head.remove(key, r); // 登记过程中被并发remove：回滚
+						break;
+					}
+					// 占坑者必是过期登记（dataMap同key只有唯一映射），摘除后重试。
+					head.remove(key, prev);
 				}
 			}
 		}
@@ -196,6 +228,12 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 						break;
 
 					for (var e : node.entrySet()) {
+						if (dataMap.get(e.getKey()) != e.getValue()) {
+							// 过期登记（并发remove/迁移竞态的残留）：不属于权威存储，
+							// 不走加锁删除流程（否则节点永不为空），直接摘除。
+							node.remove(e.getKey(), e.getValue());
+							continue;
+						}
 						if (tryRemoveRecord(e))
 							recordCount++;
 					}

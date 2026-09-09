@@ -152,10 +152,24 @@ public class ConcurrentLruLike<K, V> {
 	private void adjustLru(@NotNull K key, @NotNull LruItem<K, V> lruItem,
 						   @NotNull ConcurrentHashMap<K, LruItem<K, V>> curLruHot) {
 		var oldNode = lruItem.getAndSetLruNodeNull();
-		if (oldNode != null) {
-			oldNode.remove(key);
-			if (curLruHot.putIfAbsent(key, lruItem) == null)
+		if (oldNode == null)
+			return;
+		// 必须使用 Pair：lruItem可能是并发remove后残留的过期引用，oldNode里面可能已经是并发新建的记录。
+		oldNode.remove(key, lruItem);
+		// 仅当key仍映射到本条目时才登记：get/getOrAdd读取dataMap与这里之间并发的remove可能已完成
+		//（remove的摘除读到null的lruNode而跳过），死条目登记进节点后没人再摘除，将永久滞留节点。
+		// see get/remove/cleanNow
+		while (dataMap.get(key) == lruItem) {
+			var prev = curLruHot.putIfAbsent(key, lruItem);
+			if (prev == null) {
 				lruItem.lruNode = curLruHot;
+				if (dataMap.get(key) != lruItem)
+					curLruHot.remove(key, lruItem); // 登记过程中被并发remove：回滚，不让死条目滞留节点
+				return;
+			}
+			// 坑位被占：上面的存活检查保证占坑的prev不是活条目（dataMap同key只有唯一映射），
+			// 必是并发残留的过期登记；放任会让本条目永久脱离所有节点、无法被容量驱逐，摘除后重试。
+			curLruHot.remove(key, prev);
 		}
 	}
 
@@ -245,9 +259,23 @@ public class ConcurrentLruLike<K, V> {
 			for (var e : poll.entrySet()) {
 				// concurrent see adjustLru
 				var r = e.getValue();
-				if (r.compareAndSetLruNodeNull(poll) && head.putIfAbsent(e.getKey(), r) == null) { // 并发访问导致这个记录已经被迁移走。
-					r.lruNode = head;
-					recordCount++;
+				if (!r.compareAndSetLruNodeNull(poll))
+					continue; // 并发访问导致这个记录已经被迁移走。
+				var key = e.getKey();
+				// 仅迁移仍是dataMap活映射的条目；死条目随poll节点一起废弃，
+				// 否则迁移目标head将滞留永久清不掉的条目（并发的remove可能已跳过摘除）。
+				while (dataMap.get(key) == r) {
+					var prev = head.putIfAbsent(key, r);
+					if (prev == null) {
+						r.lruNode = head;
+						if (dataMap.get(key) == r)
+							recordCount++;
+						else
+							head.remove(key, r); // 登记过程中被并发remove：回滚
+						break;
+					}
+					// 占坑者必是过期登记（dataMap同key只有唯一映射），摘除后重试。
+					head.remove(key, prev);
 				}
 			}
 		}
@@ -272,6 +300,12 @@ public class ConcurrentLruLike<K, V> {
 				if (tryRemoveCallback != null) {
 					var strictFail = false;
 					for (var e : node.entrySet()) {
+						if (dataMap.get(e.getKey()) != e.getValue()) {
+							// 过期登记（并发remove/迁移竞态的残留）：不属于权威存储，
+							// 不对它执行回调（否则每轮clean都对死值反复回调且节点永不为空），直接摘除。
+							node.remove(e.getKey(), e.getValue());
+							continue;
+						}
 						var removed = tryRemoveCallback.test(e.getKey(), e.getValue().value);
 						if (!removed && !continueWhenTryRemoveCallbackFail) {
 							strictFail = true;
@@ -283,9 +317,15 @@ public class ConcurrentLruLike<K, V> {
 					if (strictFail)
 						break; // 严格模式：任何回调失败即终止本轮清理。
 				} else {
-					recordCount += node.size();
-					for (var k : node.keySet())
-						remove(k);
+					for (var e : node.entrySet()) {
+						var k = e.getKey();
+						if (dataMap.get(k) != e.getValue()) {
+							// 过期登记：dataMap已无此映射，remove(k)会直接返回且不摘节点条目，这里直接清。
+							node.remove(k, e.getValue());
+						} else if (remove(k) != null) {
+							recordCount++;
+						}
+					}
 				}
 
 				if (node.isEmpty()) {
