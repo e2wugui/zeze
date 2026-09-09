@@ -384,10 +384,14 @@ namespace Zeze.Gen.java
             Types.Type kt = type.KeyType;
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "var _x_ = " + var.NamePrivate + ';');
-            sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
-            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
+            sw.WriteLine(prefix + "    int _n_ = " + bufname + ".ReadUInt();");
+            sw.WriteLine(prefix + "    if (_n_ < 0) // 损坏/恶意流的无符号长度落在[2^31,2^32)，读回为负：静默清空容器会丢数据，先校验再clear");
+            sw.WriteLine(prefix + "        throw new IllegalStateException(\"invalid collection size for decode: \" + _n_");
+            sw.WriteLine(prefix + "                + \" at \" + " + bufname + ".getReadIndex() + '/' + " + bufname + ".getWriteIndex());");
+            sw.WriteLine(prefix + "    _x_.clear();");
+            sw.WriteLine(prefix + "    for (; _n_ > 0; _n_--) {");
             if (IsOldStyleEncodeDecodeType(kt))
             {
                 kt.Accept(new Define("_k_", sw, prefix + "        "));
@@ -419,10 +423,14 @@ namespace Zeze.Gen.java
             Types.Type kt = type.KeyType;
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "var _x_ = " + var.NamePrivate + ';');
-            sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
-            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
+            sw.WriteLine(prefix + "    int _n_ = " + bufname + ".ReadUInt();");
+            sw.WriteLine(prefix + "    if (_n_ < 0) // 损坏/恶意流的无符号长度落在[2^31,2^32)，读回为负：静默清空容器会丢数据，先校验再clear");
+            sw.WriteLine(prefix + "        throw new IllegalStateException(\"invalid collection size for decode: \" + _n_");
+            sw.WriteLine(prefix + "                + \" at \" + " + bufname + ".getReadIndex() + '/' + " + bufname + ".getWriteIndex());");
+            sw.WriteLine(prefix + "    _x_.clear();");
+            sw.WriteLine(prefix + "    for (; _n_ > 0; _n_--) {");
             if (IsOldStyleEncodeDecodeType(kt))
             {
                 kt.Accept(new Define("_k_", sw, prefix + "        "));
@@ -513,10 +521,14 @@ namespace Zeze.Gen.java
             Types.Type kt = type.RowKeyType;
 
             sw.WriteLine(prefix + "var _x_ = " + var.NamePrivate + ';');
-            sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
-            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
+            sw.WriteLine(prefix + "    int _n_ = " + bufname + ".ReadUInt();");
+            sw.WriteLine(prefix + "    if (_n_ < 0) // 损坏/恶意流的无符号长度落在[2^31,2^32)，读回为负：静默清空容器会丢数据，先校验再clear");
+            sw.WriteLine(prefix + "        throw new IllegalStateException(\"invalid collection size for decode: \" + _n_");
+            sw.WriteLine(prefix + "                + \" at \" + " + bufname + ".getReadIndex() + '/' + " + bufname + ".getWriteIndex());");
+            sw.WriteLine(prefix + "    _x_.clear();");
+            sw.WriteLine(prefix + "    for (; _n_ > 0; _n_--) {");
             if (IsOldStyleEncodeDecodeType(kt))
             {
                 kt.Accept(new Define("_k_", sw, prefix + "        "));

@@ -357,7 +357,11 @@ final class Gen {
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
 								getCollectionType(type).getTypeName().replace('$', '.'));
 					}
-					sb.appendLine("{}for (int _n_ = {}.ReadUInt(); _n_ > 0; _n_--) {", prefix, bbName);
+					sb.appendLine("{}int _n_ = {}.ReadUInt();", prefix, bbName);
+					sb.appendLine("{}if (_n_ < 0) // 损坏/恶意流的无符号长度落在[2^31,2^32)，读回为负：会被静默解释为空集合，先校验", prefix);
+					sb.appendLine("{}    throw new IllegalStateException(\"invalid collection size for decode: \" + _n_", prefix);
+					sb.appendLine("{}            + \" at \" + {}.getReadIndex() + '/' + {}.getWriteIndex());", prefix, bbName, bbName);
+					sb.appendLine("{}for (; _n_ > 0; _n_--) {", prefix);
 					var prefix1 = prefix + "    ";
 					if (serializer != null) {
 						serializer.definePrim.run(sb, prefix1, "_e_");
@@ -384,7 +388,11 @@ final class Gen {
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
 								getMapType(type).getTypeName().replace('$', '.'));
 					}
-					sb.appendLine("{}for (int _n_ = {}.ReadUInt(); _n_ > 0; _n_--) {", prefix, bbName);
+					sb.appendLine("{}int _n_ = {}.ReadUInt();", prefix, bbName);
+					sb.appendLine("{}if (_n_ < 0) // 损坏/恶意流的无符号长度落在[2^31,2^32)，读回为负：会被静默解释为空集合，先校验", prefix);
+					sb.appendLine("{}    throw new IllegalStateException(\"invalid collection size for decode: \" + _n_", prefix);
+					sb.appendLine("{}            + \" at \" + {}.getReadIndex() + '/' + {}.getWriteIndex());", prefix, bbName, bbName);
+					sb.appendLine("{}for (; _n_ > 0; _n_--) {", prefix);
 					var prefix1 = prefix + "    ";
 					if (keySerializer != null) {
 						keySerializer.definePrim.run(sb, prefix1, "_k_");

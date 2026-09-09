@@ -119,4 +119,37 @@ public class TestByteBufferSafety {
 		nbb.SkipUnknownField(tag);
 		assertTrue(nbb.isEmpty());
 	}
+
+	@Test
+	public void testPersistentCollectionDecodeNegativeSize() {
+		// FND3-05：PList2/PMap1/PMap2/PSet1/PSortedMap1/PSortedMap2/BeanMap1/BeanMap2 的 decode
+		// 旧代码先clear()再读长度，长度varint落在[2^31,2^32)（F0-80-00-00-00=0x80000000）读回为负
+		// 时循环判假跳过、容器被静默清空且decode正常返回——TableX记录加载静默丢字段内容，
+		// 之后checkpoint全量写回即不可恢复。修复后对齐PList1：负长度抛ISE且容器保持原内容
+		// （validate before destroy）；生成器模板(Gen java/javadata)同步，再生成的Builtin bean同款。
+		var malicious = new byte[]{(byte)0xF0, (byte)0x80, 0, 0, 0};
+
+		// PMap1：Map系代表。修复前静默清空返回"空map"，修复后抛ISE且原内容未被销毁。
+		var map = new Zeze.Transaction.Collections.PMap1<String, Long>(String.class, Long.class);
+		map.put("a", 1L);
+		map.put("b", 2L);
+		assertThrows(IllegalStateException.class, () -> map.decode(ByteBuffer.Wrap(malicious.clone())));
+		assertEquals(2, map.size()); // 关键：校验先于clear
+
+		// PList2：try/catch(MethodHandle)包裹循环的变体，同型。
+		var list = new Zeze.Transaction.Collections.PList2<>(EmptyBean.class);
+		list.add(new EmptyBean());
+		assertThrows(IllegalStateException.class, () -> list.decode(ByteBuffer.Wrap(malicious.clone())));
+		assertEquals(1, list.size());
+
+		// 正常路径不变：encode/decode往返
+		var ok = ByteBuffer.Allocate();
+		var normal = new Zeze.Transaction.Collections.PMap1<String, Long>(String.class, Long.class);
+		normal.put("x", 9L);
+		normal.encode(ok);
+		var restored = new Zeze.Transaction.Collections.PMap1<String, Long>(String.class, Long.class);
+		restored.decode(ok);
+		assertEquals(1, restored.size());
+		assertEquals(9L, restored.get("x"));
+	}
 }
