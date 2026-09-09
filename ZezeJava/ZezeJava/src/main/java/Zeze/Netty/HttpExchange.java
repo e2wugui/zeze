@@ -29,6 +29,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.DefaultFileRegion;
@@ -360,7 +361,7 @@ public class HttpExchange {
 		return parseQuery(content().toString(HttpServer.defaultCharset));
 	}
 
-	protected void channelRead(@Nullable Object msg) throws Exception {
+	protected void channelRead(@Nullable Object msg) {
 		var channel = context.channel();
 		channel.attr(HttpServer.idleTimeKey).set(null);
 		if (msg instanceof HttpRequest) {
@@ -376,6 +377,23 @@ public class HttpExchange {
 				context.pipeline().addLast(new WebSocketServerProtocolHandler(WebSocketServerProtocolConfig.newBuilder()
 						.websocketPath(path).decoderConfig(WebSocketDecoderConfig.newBuilder().withUTF8Validator(false)
 								.maxFramePayloadLength(handler.MaxContentLength).build()).build()));
+				// onOpen不能在握手启动前派发:此刻101应答未写出、HttpResponseEncoder未替换为WebSocket帧
+				// 编码器,onOpen内sendWebSocket的帧写入HTTP出站编码路径,写失败(unsupported message
+				// type),Direct模式下onOpen内联执行时首条消息确定性静默丢失。改在握手完成后的
+				// HandshakeComplete用户事件时派发:该事件由Netty握手处理器在本handler之后向tail方向触发,
+				// 位于前面的HttpServer收不到,需在管线末尾追加观察者接住;事件触发时101已写出、编码器已替换,
+				// 且必然先于客户端任何帧被读到,保证onOpen派发先于onContent。
+				context.pipeline().addLast(new ChannelInboundHandlerAdapter() {
+					@Override
+					public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+						if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
+							//noinspection ConstantConditions
+							fireWebSocketNotify("fireWebSocketOpen",
+									() -> handler.WebSocketHandle.onOpen(HttpExchange.this));
+						}
+						super.userEventTriggered(ctx, evt);
+					}
+				});
 				context.pipeline().addFirst(new ChannelOutboundHandlerAdapter() {
 					@Override
 					public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
@@ -384,8 +402,6 @@ public class HttpExchange {
 					}
 				});
 				inStreamMode = true;
-				//noinspection ConstantConditions
-				fireWebSocketNotify("fireWebSocketOpen", () -> handler.WebSocketHandle.onOpen(this));
 				context.fireChannelRead(msg);
 				return;
 			}

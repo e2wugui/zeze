@@ -102,7 +102,23 @@ public class Websocket extends AsyncSocket {
 		} finally {
 			lock.unlock();
 		}
-		x.sendWebSocket(bytes, offset, length);
+		// 检查写回执,不能恒返回true:写失败的帧(管线状态不符/连接已关等)不会到达对端。
+		// 在EventLoop上调用时future同步完成,失败立即close并返回false,调用方(Protocol/Rpc.Send)
+		// 能感知发送失败;非EventLoop线程调用时future异步完成,挂listener失败同样close,
+		// 不再静默丢帧。close的closedHandle CAS保证OnSocketClose等清理恰好一次。
+		var cf = x.sendWebSocket(bytes, offset, length);
+		if (cf.isDone()) {
+			var cause = cf.cause();
+			if (cause == null)
+				return true;
+			close(cause);
+			return false;
+		}
+		cf.addListener(f -> {
+			var cause = f.cause();
+			if (cause != null)
+				close(cause);
+		});
 		return true;
 	}
 
