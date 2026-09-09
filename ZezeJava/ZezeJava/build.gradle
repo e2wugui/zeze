@@ -12,8 +12,8 @@ dependencies {
     runtimeOnly 'org.rocksdb:rocksdbjni:10.10.1.1:osx'
 
     // for netty
-    compileOnly 'io.netty:netty-codec-http:4.1.135.Final'
-    compileOnly 'io.netty:netty-transport-native-epoll:4.1.135.Final:linux-x86_64'
+    compileOnly 'io.netty:netty-codec-http:4.1.137.Final'
+    compileOnly 'io.netty:netty-transport-native-epoll:4.1.137.Final:linux-x86_64'
     compileOnly 'org.slf4j:slf4j-api:2.0.18'
     compileOnly 'org.apache.logging.log4j:log4j-slf4j2-impl:2.26.0'
 
@@ -46,7 +46,7 @@ dependencies {
     compileOnly 'org.foundationdb:fdb-java:7.4.6'
 
     // for rocketmq
-    compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.8'
+    compileOnly 'org.apache.rocketmq:rocketmq-client:5.5.1'
     compileOnly 'javax:javaee-api:8.0.1'
 
     // for task component

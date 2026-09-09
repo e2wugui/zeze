@@ -86,7 +86,7 @@ dependencies {
 
 | 功能 | Maven 坐标 |
 |------|-----------|
-| 网络层 | `io.netty:netty-codec-http:4.1.135.Final` |
+| 网络层 | `io.netty:netty-codec-http:4.1.137.Final` |
 | 日志 | `org.slf4j:slf4j-api:2.0.18` |
 | MySQL | `com.mysql:mysql-connector-j:8.4.0` |
 | PostgreSQL | `org.postgresql:postgresql:42.7.11` |
@@ -102,7 +102,7 @@ dependencies {
 <dependency>
     <groupId>io.netty</groupId>
     <artifactId>netty-codec-http</artifactId>
-    <version>4.1.135.Final</version>
+    <version>4.1.137.Final</version>
 </dependency>
 <dependency>
     <groupId>com.alibaba</groupId>
