@@ -111,7 +111,7 @@ public final class Config {
 	private boolean enableGlobalFastFail = false;
 
 	// Takeover 接管租约（attr: TakeoverTtl/TakeoverScanPeriod/TakeoverMode）。
-	private long takeoverTtl = 600 * 1000; // 租约TTL(毫秒)，保守起步，可配小。
+	private long takeoverTtl = 600 * 1000; // 租约TTL(毫秒)，保守起步，可配小。正常关闭后亦刷新为此宽限期，到期被接管（缩容）。
 	private long takeoverScanPeriod = 30 * 1000; // 扫描兜底周期(毫秒)。
 	private @NotNull String takeoverMode = "on"; // off|dryrun|on；off完全关闭，dryrun只做租约簿记+dry-run日志，on全量接管（默认）。
 

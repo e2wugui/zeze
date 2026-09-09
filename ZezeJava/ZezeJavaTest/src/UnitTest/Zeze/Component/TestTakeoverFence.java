@@ -17,8 +17,8 @@ import org.junit.jupiter.api.Test;
 /**
  * 步骤②写路径fence回归：自己的root.epoch被【别人的epoch】覆盖（同serverId双进程：后启动者
  * claim epoch+1并stampScope覆盖前者的root；或外部篡改）时，CsQueue/Timer的写路径必须fence
- * 拒绝（致命动作被注入的计数器替代，finally复原）；fenceFatal后release不得写墓碑（否则会打掉
- * 新owner的租约）。
+ * 拒绝（致命动作被注入的计数器替代，finally复原）；fenceFatal后release不得动租约（否则会打掉
+ * 新owner的，含其到期时刻）。
  * 注意：被接管后醒来【不是】fence场景——transferAll留下的墓碑stamp=0会被写路径认领，
  * 被接管者在空链上复活继续新写（见testTombstoneRevivalNotFenced）。
  */
@@ -102,13 +102,13 @@ public class TestTakeoverFence {
 			Assertions.assertEquals(0L, rcSchedule);
 			Assertions.assertEquals(2, fatalCount.get(), "被接管后的Timer插链必须fence");
 
-			// fenceFatal置位后：release不得写墓碑（本进程租约保持原样，新owner不受影响）。
+			// fenceFatal置位后：release不得动租约（不立碑、不刷新宽限期；新owner不受影响）。
 			var before = TakeoverTestEnv.readLease(app, myId);
 			Assertions.assertTrue(before[1] > 0, "本进程租约应在续约中");
 			takeover.release();
 			var after = TakeoverTestEnv.readLease(app, myId);
 			Assertions.assertEquals(before[0], after[0], "fence后release不得动epoch");
-			Assertions.assertEquals(before[1], after[1], "fence后release不得写墓碑");
+			Assertions.assertEquals(before[1], after[1], "fence后release不得动expireAt（不立碑、不刷新宽限期）");
 		} finally {
 			takeover.setFatalAction(null); // 复原默认致命退出
 			timer.stop();

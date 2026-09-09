@@ -812,7 +812,7 @@ public final class Application extends ReentrantLock {
 			ShutdownHook.remove(this);
 			logger.info("Stop ServerId={}", conf.getServerId());
 
-			if (takeover != null) // 早期释放：正常关闭写租约墓碑（数据库尚未关闭）。
+			if (takeover != null) // 早期释放：正常关闭刷新租约宽限期，一个TTL后可被接管（缩容；数据库尚未关闭）。
 				takeover.release();
 
 			if (achillesHeelDaemon != null) {

@@ -21,7 +21,8 @@ import org.junit.jupiter.api.Test;
 /**
  * 步骤②全量接管回归：伪造死者（租约+数据行），tryTransfer单事务内【搬运+立墓碑】。
  * 场景：CsQueue链搬运/幂等/旧stamp窗口搬运（FND2-C0-1）/双命名队列、Timer链搬运+
- * 版本veto不立碑+旧stamp窗口搬运、未过期租约放弃接管并到点精确重试。
+ * 版本veto不立碑+旧stamp窗口搬运、未过期租约放弃接管并到点精确重试、
+ * 缩容验收（正常release→TTL宽限期→到期被接管，双App共享库零伪造）。
  * 死者serverId用777/778/779/887/888/889避开真实id。
  */
 @Fast
@@ -323,6 +324,83 @@ public class TestTakeoverTransfer {
 			Assertions.assertEquals(0L, TakeoverTestEnv.readLease(app, 889)[1], "到点精确重试应完成接管并立碑");
 			Assertions.assertArrayEquals(new int[] {7, -1}, pollTwo(app, csq), "重试后数据应可取回");
 		} finally {
+			app.stop();
+		}
+	}
+
+	/**
+	 * 缩容验收（需求变更2026-09-09：正常关闭也接管）。release写的租约形态={epoch保留,
+	 * expireAt=now+TTL宽限}——释放侧的真实写入在TestTakeoverLease.testClaimRenewRelease断言；
+	 * 这里伪造release同款形态的租约走完接管全链路：宽限期内tryTransfer不搬不立碑（到点精确
+	 * 重试）→ 到期自动搬运CsQueue+Timer数据、死者root立stamp=0墓碑、租约由接管者立碑
+	 * （expireAt=0从此只属于"已被接管"）。宽限期取400ms：能断言宽限不动，重试又快速到点。
+	 */
+	@Test
+	public void test4_ReleasedServerTakenOverAfterGrace() throws Exception {
+		var conf = TakeoverTestEnv.newConf("on", 600_000, 600_000);
+		var app = new Application("TestTakeoverTransferScaleDown", conf);
+		// Timer必须先于app.start()构造（表注册要在数据库打开前完成），start后再手动启动。
+		var timer = new TakeoverTestEnv.AccessibleTimer(new TakeoverTestEnv.TestAppBase(app));
+		try {
+			app.start();
+			var myId = conf.getServerId();
+			timer.loadCustomClassAnd();
+			timer.start();
+			var csq = new CsQueue<>(app.getQueueModule(), "TestTakeoverScaleDownQ", myId, BMyBean.class, 10);
+
+			// 死者777：队列[1,2]（stamp=epoch=5）+ 单节点timer链（1小时后才触发）。
+			forgeDeadQueue(app, "TestTakeoverScaleDownQ", 777, 5, 1, 2);
+			var nodeId = 777_002L;
+			var timerId = "@TestTakeoverScaleDown.deadTimer";
+			var rcTimer = TaskSpec.ofProcedure(app.newProcedure(() -> {
+				var root = tNodeRoot(app).getOrAdd(777);
+				root.setHeadNodeId(nodeId);
+				root.setTailNodeId(nodeId);
+				root.setVersion(0);
+				root.setLoadSerialNo(5);
+				var node = tNodes(app).getOrAdd(nodeId);
+				node.setPrevNodeId(nodeId); // 循环链
+				node.setNextNodeId(nodeId);
+				var simple = new BSimpleTimer();
+				simple.setNextExpectedTime(System.currentTimeMillis() + 3_600_000);
+				var bTimer = new BTimer(timerId, NoopHandle.class.getName(), 0);
+				bTimer.setTimerObj(simple);
+				node.getTimers().put(timerId, bTimer);
+				tIndexs(app).insert(timerId, new BIndex(777, nodeId, 1, 0));
+				return 0L;
+			}, "TestTakeoverTransfer.forgeScaleDownTimer")).call();
+			Assertions.assertEquals(0L, rcTimer);
+			// release同款形态的宽限租约：epoch保留、400ms后过期（非墓碑）。
+			var graceExpireAt = System.currentTimeMillis() + 400;
+			TakeoverTestEnv.forgeLease(app, 777, 5, graceExpireAt);
+
+			// 宽限期内：tryTransfer让位于精确重试，不搬不立碑。
+			app.getTakeover().tryTransfer(777);
+			TakeoverTestEnv.waitTryTransferQueue();
+			Assertions.assertEquals(graceExpireAt, TakeoverTestEnv.readLease(app, 777)[1], "宽限期内不得动租约");
+			Assertions.assertArrayEquals(new int[] {-1, -1}, pollTwo(app, csq), "宽限期内不得搬运");
+
+			// 到期：精确重试自动完成搬运+立碑（epoch保留）。
+			var deadline = System.currentTimeMillis() + 5_000;
+			while (TakeoverTestEnv.readLease(app, 777)[1] != 0 && System.currentTimeMillis() < deadline)
+				Thread.sleep(20);
+			var lease = TakeoverTestEnv.readLease(app, 777);
+			Assertions.assertEquals(0L, lease[1], "宽限期到期应被接管并立碑（expireAt=0只属于已被接管）");
+			Assertions.assertEquals(5L, lease[0], "接管立碑保留epoch");
+			Assertions.assertArrayEquals(new int[] {1, 2}, pollTwo(app, csq), "接管后队列数据应按原序可poll");
+
+			var rcAssert = TaskSpec.ofProcedure(app.newProcedure(() -> {
+				try {
+					assertTimerMovedBody(app, myId, nodeId, timerId);
+				} catch (Throwable e) { // procedure把非assert异常吞成rc=-1（AssertionError会重抛），打印栈定位偶发失败
+					e.printStackTrace();
+					throw e;
+				}
+				return 0L;
+			}, "TestTakeoverTransfer.assertScaleDownTimerMoved")).call();
+			Assertions.assertEquals(0L, rcAssert);
+		} finally {
+			timer.stop();
 			app.stop();
 		}
 	}

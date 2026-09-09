@@ -9,7 +9,7 @@ public final class BTakeoverLease extends Zeze.Transaction.Bean implements BTake
     public static final long TYPEID = -7205020741574480182L;
 
     private long _Epoch; // 代际号：claim时 old+1，抢占式，重启不等旧租约过期
-    private long _ExpireAt; // 毫秒时间戳；owner周期续约；0=墓碑(已被接管或正常关闭)
+    private long _ExpireAt; // 毫秒时间戳；owner周期续约；正常关闭刷新为now+TTL宽限期（到期被接管，缩容）；0=墓碑(已被接管)
 
     private static final java.lang.invoke.VarHandle vh_Epoch;
     private static final java.lang.invoke.VarHandle vh_ExpireAt;

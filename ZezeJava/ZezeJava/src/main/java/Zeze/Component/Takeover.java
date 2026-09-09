@@ -26,7 +26,8 @@ import org.jetbrains.annotations.Nullable;
  * <ul>
  * <li>claim：抢占式，{@code epoch = old + 1}，重启不等旧租约过期；安全性由epoch fencing保证；</li>
  * <li>renew：TTL/3周期续约；租约epoch属于别人才=fence失败=致命退出；行丢失（外部清表）自愈重写；</li>
- * <li>release：正常停机写墓碑（expireAt=0），接管者可立即接管；被接管(fenceFatal)时不写；</li>
+ * <li>release：正常停机刷新一个TTL宽限期（expireAt=now+ttl），到期被接管者搬运（缩容语义）；
+ *     宽限期内快速重启（滚动升级）抢占claim保数据不搬；被接管(fenceFatal)时不写；</li>
  * <li>tryTransfer：【校验租约过期 → 每scope独立事务搬运（事务内重验租约）→ 全部完成后立墓碑】，
  *     Suspect提示与扫描兜底都汇入这里；原子单位=单个scope（每条CsQueue/Timer链），搬运中途
  *     死者复活则后续scope事务中止；跨scope的部分搬运状态由幂等重入收敛（各scope事务内给死者
@@ -59,7 +60,7 @@ public class Takeover extends AbstractTakeover {
 	private volatile long myEpoch; // 0=未claim
 	private volatile boolean started;
 	private volatile long suppressScanUntil; // 风暴防护v1：renew恢复成功后冻结扫描一个TTL
-	private volatile boolean fenceFatal; // 已被接管：release不得写墓碑
+	private volatile boolean fenceFatal; // 已被接管：release不得动租约（新owner的）
 	private volatile @Nullable Runnable fatalAction; // fence失败动作，默认致命退出；测试注入替换
 
 	private final @NotNull CopyOnWriteArrayList<TakeoverScope> scopes = new CopyOnWriteArrayList<>();
@@ -259,7 +260,7 @@ public class Takeover extends AbstractTakeover {
 	}
 
 	private void fenceFailed(@NotNull String reason) {
-		fenceFatal = true; // release不得写墓碑：不能打掉新owner的租约
+		fenceFatal = true; // release不得动租约：不能打掉新owner的（含其到期时刻）
 		// 带触发点栈：fence失败必须致命退出，现场只此一条日志，没有栈无法定位是哪条写路径触发。
 		logger.fatal("Takeover: " + reason, new Exception("Takeover fence trigger stack"));
 		var action = fatalAction;
@@ -353,7 +354,7 @@ public class Takeover extends AbstractTakeover {
 		Veto,       // scope拒绝搬运（如Timer版本高于本进程）：不立租约墓碑，留给高版本
 		TxFailed,   // 事务失败（冲突等）：本scope留给下轮扫描/重试，其他scope继续
 		NotExpired, // 事务内重验发现租约已续期（死者复活/并发处理）：中止剩余搬运
-		Finished    // 租约已无或已立墓碑（并发接管完成/正常关闭）：全部结束
+		Finished    // 租约已无或已立墓碑（并发接管完成/行被清除）：全部结束
 	}
 
 	private void tryTransferNow(int deadServerId) {
@@ -366,7 +367,7 @@ public class Takeover extends AbstractTakeover {
 		var r = callDirect(() -> {
 			var lease = _tTakeoverLease.get(deadServerId);
 			if (lease == null || lease.getExpireAt() == 0)
-				return 0L; // 幂等出口：无租约或已立墓碑（已被接管/正常关闭）
+				return 0L; // 幂等出口：无租约或已立墓碑（已被接管搬运完成）
 			var now = System.currentTimeMillis();
 			if (lease.getExpireAt() >= now) {
 				retryAt.value = lease.getExpireAt();
@@ -424,7 +425,7 @@ public class Takeover extends AbstractTakeover {
 				return;
 			case Finished:
 			default:
-				return; // 并发接管已完成（含正常关闭）：退出
+				return; // 并发接管已完成：退出
 			}
 		}
 		// 【立碑】全部scope完成且无veto无失败：最后一个小事务重验后立墓碑
@@ -504,9 +505,11 @@ public class Takeover extends AbstractTakeover {
 	}
 
 	/**
-	 * Application.stop() 早期调用（数据库尚未关闭）。正常关闭写墓碑，
-	 * 接管者tryTransfer看到墓碑即可立即干净退出（数据不用搬，都是自己的）。
-	 * fenceFatal==true（已被接管）时不写，避免打掉新owner的租约。
+	 * Application.stop() 早期调用（数据库尚未关闭）。正常关闭不再立墓碑（缩容语义：
+	 * 死者数据也要被接管搬走）：把expireAt刷新为now+ttl，给一个完整TTL的宽限期——
+	 * 期间快速重启（滚动升级）抢占claim(epoch+1)+重盖戳，数据不搬零迁移；到期后
+	 * Suspect精确重试/扫描兜底走既有搬运管线，由接管者立墓碑。
+	 * fenceFatal==true（已被接管）时不写，避免动新owner的租约。
 	 */
 	public void release() {
 		var renew = renewFuture;
@@ -529,18 +532,18 @@ public class Takeover extends AbstractTakeover {
 		// （全新进程此窗口走NotStart拒绝，是安全方向）。清掉：重启后由start()重新stamp。
 		scopedScopes.clear();
 		// fenceFatal是"本生命周期被接管"的状态，生命周期结束即复位——否则stale值会让
-		// 重启后下一次release错误跳过自己的正常停机墓碑。
+		// 重启后下一次release错误跳过自己的正常停机宽限期刷新。
 		var wasFenced = fenceFatal;
 		fenceFatal = false;
 		if (ModeOff.equals(mode))
 			return;
 		if (wasFenced)
-			return; // 已被接管：写墓碑会打掉新owner的租约
+			return; // 已被接管：动租约会打掉新owner的（含其到期时刻）
 		var serverId = zeze.getConfig().getServerId();
 		var r = callDirect(() -> {
 			var lease = _tTakeoverLease.get(serverId);
 			if (lease != null && lease.getEpoch() == myEpoch)
-				lease.setExpireAt(0); // 墓碑：正常关闭
+				lease.setExpireAt(System.currentTimeMillis() + ttl); // 正常关闭：刷新一个TTL宽限期，到期被接管（缩容）
 			return 0L;
 		}, "Takeover.release");
 		if (r != 0)

@@ -12,8 +12,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Takeover租约簿记回归（步骤①）：claim抢占式epoch+1、reyn续约、release墓碑、
- * 重复claim再+1、配置解析。编程式Application（SM=disable，Memory库，Takeover不依赖SM）。
+ * Takeover租约簿记回归（步骤①）：claim抢占式epoch+1、renew续约、release刷新TTL宽限期
+ * （缩容：到期被接管，不立墓碑）、重复claim再+1、配置解析。
+ * 编程式Application（SM=disable，Memory库，Takeover不依赖SM）。
  */
 @Fast
 public class TestTakeoverLease {
@@ -60,11 +61,16 @@ public class TestTakeoverLease {
 			Assertions.assertTrue(renewed[1] > expireBefore, "renew应推后expireAt: " + renewed[1] + " vs " + expireBefore);
 			Assertions.assertTrue(renewed[1] > System.currentTimeMillis(), "续约后不得过期");
 
-			// release：写墓碑 expireAt=0，epoch保留。
+			// release：刷新一个TTL宽限期（expireAt>=beforeRelease+ttl，缩容语义：到期被接管），
+			// 不立墓碑（expireAt!=0），epoch保留。下界用release前时刻：刷新值=releaseNow+ttl>=before+ttl，
+			// 旧墓碑行为(=0)与"不写留renew残值"(<before+ttl)都会红。
+			var beforeRelease = System.currentTimeMillis();
 			takeover.release();
-			var tomb = readLease(app, serverId);
-			Assertions.assertEquals(lease[0], tomb[0]);
-			Assertions.assertEquals(0L, tomb[1], "release后应为墓碑expireAt=0");
+			var grace = readLease(app, serverId);
+			Assertions.assertEquals(lease[0], grace[0]);
+			Assertions.assertNotEquals(0L, grace[1], "release不得再立墓碑（缩容：到期要被接管）");
+			Assertions.assertTrue(grace[1] >= beforeRelease + 600,
+					"release应刷新完整TTL宽限期, grace=" + grace[1] + " beforeRelease+ttl=" + (beforeRelease + 600));
 
 			// 重复claim：epoch再+1（抢占式，不等TTL）。
 			var epoch2 = takeover.claim();

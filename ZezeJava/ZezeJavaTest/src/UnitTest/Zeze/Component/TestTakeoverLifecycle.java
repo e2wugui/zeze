@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  * Takeover生命周期边界回归：
  * B——同进程stop→start重启：release清scoped登记（stale登记会在【新claim生效、重盖戳前】
  *    窗口放行写路径→读到旧epoch被fence误杀）+复位fenceFatal（stale值会让重启后的
- *    下一次release错误跳过正常停机墓碑）；
+ *    下一次release错误跳过正常停机宽限期刷新）；
  * C——stampScope对"epoch==0的租约行"与renewOnce同款自愈重写（旧行为走lost致命退出）。
  * 均可红绿双向：B/C修复前对应断言失败（fatal走注入计数，不真退出）。
  */
@@ -66,22 +66,30 @@ public class TestTakeoverLifecycle {
 			takeover.addScope(scope2);
 			Assertions.assertEquals(1, fatalCount.get(), "lost应触发一次fenceFailed（注入计数）");
 
-			// 第一次release：被接管的一生不写墓碑；但scoped登记要清、fenceFatal要复位。
+			// 第一次release：被接管的一生不动租约（不立碑、不刷新宽限期）；但scoped登记要清、fenceFatal要复位。
+			var fencedLease = TakeoverTestEnv.readLease(app, myId);
 			takeover.release();
 			Assertions.assertFalse(takeover.isScoped(scope1), "release应清scoped登记（重启窗口防误杀）");
 			Assertions.assertFalse(takeover.isScoped(scope2), "未完成stamp的scope同样不得残留登记");
-			Assertions.assertNotEquals(0L, TakeoverTestEnv.readLease(app, myId)[1], "被接管的一生release不得写墓碑");
+			var afterFenced = TakeoverTestEnv.readLease(app, myId);
+			Assertions.assertEquals(fencedLease[0], afterFenced[0], "被接管的一生release不得动新owner的epoch");
+			Assertions.assertEquals(fencedLease[1], afterFenced[1], "被接管的一生release不得动新owner的expireAt（含到期时刻）");
 
 			// 重启：claim新epoch（foreign+1）并重盖戳——一切恢复正常。
 			takeover.start();
 			Assertions.assertTrue(takeover.isScoped(scope1), "重启后start应重新stamp");
 			Assertions.assertTrue(takeover.isScoped(scope2));
 
-			// 第二次release（重启后的一生，未被接管）：fenceFatal已复位 → 应写正常停机墓碑。
-			// 【红】stale fenceFatal未复位时会跳过这里，墓碑断言失败。
+			// 第二次release（重启后的一生，未被接管）：fenceFatal已复位 → 应刷新正常停机宽限期。
+			// 【红】stale fenceFatal未复位时会跳过刷新（旧语义写墓碑expireAt=0同样非宽限期），
+			// 宽限期下界断言失败。
+			var beforeRelease = System.currentTimeMillis();
+			var myEpoch2 = takeover.getMyEpoch();
 			takeover.release();
 			var lease = TakeoverTestEnv.readLease(app, myId);
-			Assertions.assertEquals(0L, lease[1], "重启后的正常停机应写墓碑（fenceFatal已随上一生命周期复位）");
+			Assertions.assertEquals(myEpoch2, lease[0], "宽限期刷新保留epoch");
+			Assertions.assertTrue(lease[1] >= beforeRelease + 600_000,
+					"重启后的正常停机应刷新完整TTL宽限期（fenceFatal已随上一生命周期复位），lease=" + lease[1]);
 			Assertions.assertEquals(1, fatalCount.get(), "重启的一生不应再有fence");
 		} finally {
 			safeStop(app);

@@ -2018,7 +2018,7 @@
 		<module name="Takeover" id="11045"> 接管租约模块
 			<bean name="BTakeoverLease">
 				<variable id="1" name="Epoch" type="long" />   代际号：claim时 old+1，抢占式，重启不等旧租约过期
-				<variable id="2" name="ExpireAt" type="long" /> 毫秒时间戳；owner周期续约；0=墓碑(已被接管或正常关闭)
+				<variable id="2" name="ExpireAt" type="long" /> 毫秒时间戳；owner周期续约；正常关闭刷新为now+TTL宽限期（到期被接管，缩容）；0=墓碑(已被接管)
 			</bean>
 
 			<table name="tTakeoverLease" key="int" value="BTakeoverLease" /> key是serverId，与数据表同库：裁决与搬运同一zeze事务

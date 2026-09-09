@@ -41,6 +41,9 @@ final class TakeoverTestEnv {
 		return conf;
 	}
 
+	/** 双App共享同一Memory桶不可行：内存表活读写走各App自己的cache+本地RocksCache（每次启动
+	 * 清空），同url只共享checkpoint层静态Map，跨App互不可见（2026-09-09缩容验收实验证伪）。 */
+
 	/** Application不是AppBase，Timer需要AppBase——做个只带zeze的适配。 */
 	static final class TestAppBase extends AppBase {
 		private final Application zeze;
