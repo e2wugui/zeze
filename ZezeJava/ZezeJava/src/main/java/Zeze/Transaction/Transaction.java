@@ -389,8 +389,6 @@ public final class Transaction {
 							break; // retry
 						}
 						// retry clear in finally
-						if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
-							checkResult = CheckResult.RedoAndReleaseLock;
 						logger.info("perform({}): {}", procedure, checkResult);
 						triggerRedoActions();
 					} catch (Throwable e) { // logger.error, logger.warn, rethrow AssertionError, ignored
@@ -449,6 +447,11 @@ public final class Transaction {
 						triggerRedoActions();
 						// retry
 					} finally {
+						// alwaysReleaseLockWhenRedo 的升级统一放在这里：try 正常返回与异常路径
+						// （throwRedo→GoBackZeze 走 catch）共用，且必须先于 reuseTransactionForRedo——
+						// 它按 checkResult 决定是否释放锁（FND3-01）。
+						if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
+							checkResult = CheckResult.RedoAndReleaseLock;
 						reuseTransactionForRedo(checkResult);
 					}
 
