@@ -339,7 +339,7 @@ public final class Transaction {
 									|| (result != Procedure.Success && saveSize > 0)) {
 								// 这个错误不应该重做
 								logger.error("perform({}): savepoints.size != 1", procedure);
-								finalRollback(procedure, true);
+								finalRollback(procedure);
 								return Procedure.ErrorSavepoint;
 							}
 							checkResult = lockAndCheck(procedure);
@@ -370,14 +370,14 @@ public final class Transaction {
 									}
 									return Procedure.Success;
 								}
-								finalRollback(procedure, true);
+								finalRollback(procedure);
 								return result;
 							}
 							break; // retry
 
 						case Abort:
 							logger.warn("perform({}): Abort", procedure);
-							finalRollback(procedure, true);
+							finalRollback(procedure);
 							return Procedure.AbortException;
 
 						case Redo:
@@ -400,17 +400,17 @@ public final class Transaction {
 							if (!savepoints.isEmpty()) {
 								// 这个错误不应该重做
 								logger.error("perform({}) exception. !savepoints.isEmpty", procedure, e);
-								finalRollback(procedure, true);
+								finalRollback(procedure);
 								return Procedure.ErrorSavepoint;
 							}
 							// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
 							if (e instanceof AssertionError) {
-								finalRollback(procedure, true);
+								finalRollback(procedure);
 								throw (AssertionError)e;
 							}
 							checkResult = lockAndCheck(procedure);
 							if (checkResult == CheckResult.Success) {
-								finalRollback(procedure, true);
+								finalRollback(procedure);
 								return Procedure.Exception;
 							}
 							// retry
@@ -426,7 +426,7 @@ public final class Transaction {
 								logger.warn("perform({}): Abort, count={} (rate-limited 1/s)",
 										procedure, abortWarnCount.sumThenReset(), e);
 							}
-							finalRollback(procedure, true);
+							finalRollback(procedure);
 							return Procedure.AbortException;
 
 						case Redo:
@@ -480,7 +480,7 @@ public final class Transaction {
 			// 最后一轮回调已被 reuseTransactionForRedo 清空，用暂存的最近一轮回调终局回滚。
 			if (redoRollbackActions != null)
 				actions.addAll(redoRollbackActions);
-			finalRollback(procedure, true);
+			finalRollback(procedure);
 			return Procedure.TooManyTry;
 		} finally {
 			state = TransactionState.Completed; // 异常到这里时，可能state没有设置。
@@ -592,6 +592,7 @@ public final class Transaction {
 			if (zeze.getConfig().isHistory() && !cc.getRecords().isEmpty()) {
 				// 热记录事务不经_check_预热直达这里：上一次分配可能已异常完成（Udp超时毒化），
 				// 直接get()会抛异常导致finalCommit失败halt(543543)。毒化时兜底发起新分配替换。
+				@SuppressWarnings("DataFlowIssue")
 				var future = zeze.getServiceManager().getUsableTid128CacheFuture(zeze.getConfig().getHistory());
 				if (proc instanceof ProtocolProcedure pp) {
 					return History.buildLogChanges(future, cc, pp.getProtocolClassName(), pp.getProtocolRawArgument());
@@ -618,7 +619,7 @@ public final class Transaction {
 		}
 	}
 
-	private void finalRollback(@NotNull Procedure procedure, boolean executeRollbackAction) {
+	private void finalRollback(@NotNull Procedure procedure) {
 		for (var ra : accessedRecords.values())
 			ra.atomicTupleRecord.record.setNotFresh();
 		// Begin/End 不配对（ErrorSavepoint 路径）时，savepoints 中可能残留未汇入的 whileRollback 回调，一并触发。
@@ -631,8 +632,7 @@ public final class Transaction {
 				for (var act : logActions)
 					act.run();
 			}
-			if (executeRollbackAction)
-				triggerRollbackActions(procedure);
+			triggerRollbackActions(procedure);
 		} catch (Throwable ex) { // logger.error
 			logger.error("finalRollback({}) exception:", procedure, ex);
 		}
