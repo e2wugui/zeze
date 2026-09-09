@@ -259,16 +259,24 @@ public interface IByteBuffer {
 	}
 
 	default <T extends Serializable> void decode(@NotNull Collection<T> c, @NotNull Supplier<T> factory) {
-		int n = ReadUInt();
-		if (n < 0) { // 损坏/恶意流的无符号长度落在[2^31,2^32)，读回为负：静默返回空集合会导致日志/数据丢失
-			throw new IllegalStateException("invalid collection size for decode: " + n
-					+ " at " + getReadIndex() + '/' + getWriteIndex());
-		}
-		for (; n > 0; n--) {
+		for (int n = ReadUIntPositive(); n > 0; n--) {
 			T v = factory.get();
 			v.decode(this);
 			c.add(v);
 		}
+	}
+
+	/**
+	 * 读取集合长度等必为非负的无符号值：负数意味着无符号值落在[2^31,2^32)，
+	 * 不可能由encode正常产生（集合size()最大2^31-1），属于损坏/恶意流；
+	 * 静默解释为空集合会丢数据（decode先clear的场景），直接抛异常。
+	 */
+	default int ReadUIntPositive() {
+		int n = ReadUInt();
+		if (n < 0)
+			throw new IllegalStateException("invalid collection size for decode: " + n
+					+ " at " + getReadIndex() + '/' + getWriteIndex());
+		return n;
 	}
 
 	default int ReadTagSize(int tagByte) {

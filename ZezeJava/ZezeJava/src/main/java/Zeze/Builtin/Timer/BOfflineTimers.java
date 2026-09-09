@@ -143,14 +143,10 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             var _x_ = _OfflineTimers;
+            _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                int _n_ = _o_.ReadUInt();
-                if (_n_ < 0) // 损坏/恶意流的无符号长度落在[2^31,2^32)，读回为负：静默清空容器会丢数据，先校验再clear
-                    throw new IllegalStateException("invalid collection size for decode: " + _n_
-                            + " at " + _o_.getReadIndex() + '/' + _o_.getWriteIndex());
-                _x_.clear();
-                for (; _n_ > 0; _n_--) {
+                for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadString(_s_);
                     var _v_ = _o_.ReadInt(_t_);
                     _x_.put(_k_, _v_);

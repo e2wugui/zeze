@@ -240,13 +240,9 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		int n = bb.ReadUInt();
-		if (n < 0) // 损坏/恶意流的无符号长度落在[2^31,2^32)，读回为负：静默清空列表会丢数据，先校验再clear
-			throw new IllegalStateException("invalid collection size for decode: " + n
-					+ " at " + bb.getReadIndex() + '/' + bb.getWriteIndex());
 		clear();
 		var decoder = meta.valueDecoder;
-		for (; n > 0; n--)
+		for (int i = bb.ReadUIntPositive(); i > 0; i--)
 			add(decoder.apply(bb));
 	}
 }

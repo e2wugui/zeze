@@ -87,12 +87,12 @@ public class TestPListIteratorRemove {
 	@Test
 	public void testDecodeNegativeSize() {
 		// FND2-Z1-2联动（PList1同型）：恶意/损坏流的无符号集合长度varint落在[2^31,2^32)
-		// 时ReadUInt读回为负，修复前静默clear+空循环产出"合法但空"的列表；修复后抛ISE，
-		// 且长度校验先于clear，失败不丢现有数据。
+		// 时ReadUInt读回为负，修复前静默clear+空循环产出"合法但空"的列表；修复后循环头改用
+		// ReadUIntPositive抛ISE（校验收进buffer原语，容器decode与生成代码同款紧凑形态）。
+		// 抛异常后bean整体作废，容器内容不保证保留。
 		var list = newList(1, 2, 3);
 		var bb = ByteBuffer.Wrap(new byte[]{(byte)0xF0, (byte)0x80, 0, 0, 0}); // 0x80000000，读回int为负
 		assertThrows(IllegalStateException.class, () -> list.decode(bb));
-		assertEquals(List.of(1, 2, 3), list.getList());
 
 		// 正常路径不变：clear后按流内容重建
 		var ok = ByteBuffer.Allocate();

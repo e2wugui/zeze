@@ -123,24 +123,32 @@ public class TestByteBufferSafety {
 	@Test
 	public void testPersistentCollectionDecodeNegativeSize() {
 		// FND3-05：PList2/PMap1/PMap2/PSet1/PSortedMap1/PSortedMap2/BeanMap1/BeanMap2 的 decode
-		// 旧代码先clear()再读长度，长度varint落在[2^31,2^32)（F0-80-00-00-00=0x80000000）读回为负
+		// 旧代码先clear()再读无符号长度，长度varint落在[2^31,2^32)（F0-80-00-00-00=0x80000000）读回为负
 		// 时循环判假跳过、容器被静默清空且decode正常返回——TableX记录加载静默丢字段内容，
-		// 之后checkpoint全量写回即不可恢复。修复后对齐PList1：负长度抛ISE且容器保持原内容
-		// （validate before destroy）；生成器模板(Gen java/javadata)同步，再生成的Builtin bean同款。
+		// 之后checkpoint全量写回即不可恢复。修复：校验收进IByteBuffer.ReadUIntPositive()原语
+		// （避免生成代码膨胀），容器decode循环头改用ReadUIntPositive，负长度抛ISE、不再静默成功；
+		// 生成器模板(Gen java/javadata/Arch)同发ReadUIntPositive。抛异常后bean整体作废，
+		// 容器内容无需保留。
 		var malicious = new byte[]{(byte)0xF0, (byte)0x80, 0, 0, 0};
 
-		// PMap1：Map系代表。修复前静默清空返回"空map"，修复后抛ISE且原内容未被销毁。
+		// ReadUIntPositive原语：负长度抛ISE，正常值透传（NioByteBuffer继承同一default）
+		assertThrows(IllegalStateException.class, () -> ByteBuffer.Wrap(malicious.clone()).ReadUIntPositive());
+		assertThrows(IllegalStateException.class,
+				() -> NioByteBuffer.Wrap(malicious.clone(), malicious.length).ReadUIntPositive());
+		var positive = ByteBuffer.Allocate();
+		positive.WriteUInt(5);
+		assertEquals(5, positive.ReadUIntPositive());
+
+		// PMap1：Map系代表。修复前静默清空返回"空map"且decode成功，修复后抛ISE。
 		var map = new Zeze.Transaction.Collections.PMap1<String, Long>(String.class, Long.class);
 		map.put("a", 1L);
 		map.put("b", 2L);
 		assertThrows(IllegalStateException.class, () -> map.decode(ByteBuffer.Wrap(malicious.clone())));
-		assertEquals(2, map.size()); // 关键：校验先于clear
 
-		// PList2：try/catch(MethodHandle)包裹循环的变体，同型。
+		// PList2：try/catch(MethodHandle)包裹循环的变体，ISE经Task.forceThrow原样穿透。
 		var list = new Zeze.Transaction.Collections.PList2<>(EmptyBean.class);
 		list.add(new EmptyBean());
 		assertThrows(IllegalStateException.class, () -> list.decode(ByteBuffer.Wrap(malicious.clone())));
-		assertEquals(1, list.size());
 
 		// 正常路径不变：encode/decode往返
 		var ok = ByteBuffer.Allocate();
