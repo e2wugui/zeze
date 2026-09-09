@@ -87,7 +87,8 @@ public class TestHttpWebSocketOpenSend {
 			Assertions.assertTrue(listener.binary.await(TIMEOUT_MS, TimeUnit.MILLISECONDS),
 					"message sent in onOpen never arrived: frame lost in http outbound pipeline");
 			Assertions.assertArrayEquals("hello-from-onopen".getBytes(StandardCharsets.UTF_8), listener.binaryRef.get());
-			Assertions.assertEquals(Boolean.TRUE, openSendResult.get(), "Websocket.Send returned false in onOpen");
+			// 帧到达客户端可能早于onOpen线程执行set(写管线同步完成,set是Send后的下一条语句),须等待而非直接读
+			Assertions.assertEquals(Boolean.TRUE, awaitRef(openSendResult), "Websocket.Send returned false in onOpen");
 			ws.sendClose(WebSocket.NORMAL_CLOSURE, "").get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
 		} finally {
 			abort(ws);
