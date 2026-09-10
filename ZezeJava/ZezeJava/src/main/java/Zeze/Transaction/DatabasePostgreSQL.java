@@ -1414,8 +1414,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 										 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 
 			var sql = "SELECT * FROM " + name + (exclusiveStartKey != null ? " WHERE id>?" : "")
 					+ " ORDER BY id LIMIT ?";
@@ -1443,8 +1441,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 											@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 
 			var sql = "SELECT id FROM " + name + (exclusiveStartKey != null ? " WHERE id>?" : "")
 					+ " ORDER BY id LIMIT ?";
@@ -1472,8 +1468,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 											 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 
 			var sql = "SELECT * FROM " + name + (exclusiveStartKey != null ? " WHERE id<?" : "")
 					+ " ORDER BY id DESC LIMIT ?";
@@ -1501,8 +1495,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 												@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 
 			var sql = "SELECT id FROM " + name + (exclusiveStartKey != null ? " WHERE id<?" : "")
 					+ " ORDER BY id DESC LIMIT ?";

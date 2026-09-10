@@ -321,8 +321,6 @@ public class DatabaseMongoDb extends Database {
 			if (proposeLimit <= 0) // mongo 驱动 limit(0) 表示"不限制"，必须防护，否则一次调用扫全表
 				return null;
 
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
 			var iterable = start == null ? collection.find() : collection.find(Filters.gt("_id", start));
 			iterable.limit(proposeLimit);
@@ -349,8 +347,6 @@ public class DatabaseMongoDb extends Database {
 			if (proposeLimit <= 0)
 				return null;
 
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
 			var iterable = start == null ? collection.find() : collection.find(Filters.gt("_id", start));
 			iterable.projection(Projections.include("_id"));
@@ -377,8 +373,6 @@ public class DatabaseMongoDb extends Database {
 			if (proposeLimit <= 0)
 				return null;
 
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
 			var iterable = start == null ? collection.find() : collection.find(Filters.lt("_id", start));
 			iterable.limit(proposeLimit);
@@ -405,8 +399,6 @@ public class DatabaseMongoDb extends Database {
 			if (proposeLimit <= 0)
 				return null;
 
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
 			var iterable = start == null ? collection.find() : collection.find(Filters.lt("_id", start));
 			iterable.projection(Projections.include("_id"));

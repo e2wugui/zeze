@@ -525,8 +525,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);

@@ -76,5 +76,23 @@ public class TestKvKeyLengthPagedWalk {
 		Assertions.assertNull(rawTable.walkKey(t, maxKey, 1, k -> true));
 		Assertions.assertNull(rawTable.walkDatabase(t, maxKey, 1, (k, v) -> true));
 		Assertions.assertNull(rawTable.walkDatabaseKey(t, maxKey, 1, k -> true));
+		Assertions.assertNull(rawTable.find(t, maxKey));
+	}
+
+	@Test
+	public void testFindReplaceRemove() throws Exception {
+		// find/replace/remove 的执法点在各后端 raw 方法（写主路径 Record1.flush 直呼 raw，
+		// 不经过 typed 门面）；DatabaseMemory 曾是唯一没有检查的后端。
+		var db = new DatabaseMemory(null, new Config.DatabaseConf());
+		var rawTable = (DatabaseMemory.TableMemory)db.openTable("test_kv_key_length", 1);
+		var t = new tAutoKeyRandom();
+		var bigKey = new Binary(new byte[Database.eMaxKeyLength + 1]);
+		var txn = db.beginTransaction();
+
+		Assertions.assertThrows(IllegalArgumentException.class, () -> rawTable.find(t, bigKey));
+		Assertions.assertThrows(IllegalArgumentException.class,
+				() -> rawTable.replace(txn, t.encodeKey(bigKey), t.encodeKey(bigKey)));
+		Assertions.assertThrows(IllegalArgumentException.class,
+				() -> rawTable.remove(txn, t.encodeKey(bigKey)));
 	}
 }

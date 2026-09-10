@@ -37,7 +37,11 @@ public abstract class Database extends ReentrantLock {
 	// 已建表列宽不会自动收缩，比检查宽，方向安全，无需 Alter。
 	public static final int eMaxKeyLength = 900;
 
-	// KV 表 key 的统一入口检查：replace/remove/find 及 walk(exclusiveStartKey) 都应调用。
+	// KV 表 key 的统一入口检查，两层执法：
+	// 1) 带游标（exclusiveStartKey）的遍历在 AbstractKVTable 的 typed 分页门面（encodeStartKeyChecked）
+	//    与 TableX.walkDatabaseRaw 统一检查，后端无需各自复制；
+	// 2) find/replace/remove 在各后端 raw 方法检查——写主路径 Record1.flush 直呼 raw
+	//    replace/remove，不经过 typed 门面，后端是这两者的唯一收口点。
 	// 有长度限制的后端超限 key 落库触发数据库原生错误（MySQL 1406 / SqlServer 1946 等，多不含表名、
 	// 毒化 flush 批次）；无限制的后端 get/remove 则静默无结果，掩盖业务侧 key 异常。
 	// 入口处统一抛带表名与长度的异常，两者兼治。

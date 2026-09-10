@@ -316,8 +316,6 @@ public class DatabaseDynamoDb extends Database {
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 
 			var req = new ScanRequest();
 			req.setTableName(name);
@@ -341,8 +339,6 @@ public class DatabaseDynamoDb extends Database {
 		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 
 			var req = new ScanRequest();
 			req.setTableName(name);

@@ -1343,8 +1343,6 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 										 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped || proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(name, exclusiveStartKey);
 
 			var sql = "SELECT * FROM " + name + (exclusiveStartKey != null ? " WHERE id>?" : "")
 					+ " ORDER BY id LIMIT ?";

@@ -345,8 +345,6 @@ public class DatabaseRocksDb extends Database {
 										 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(table.getName(), exclusiveStartKey);
 			try (var it = table.iterator()) {
 				if (exclusiveStartKey == null)
 					it.seekToFirst();
@@ -373,8 +371,6 @@ public class DatabaseRocksDb extends Database {
 											@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(table.getName(), exclusiveStartKey);
 			try (var it = table.iterator()) {
 				if (exclusiveStartKey == null)
 					it.seekToFirst();
@@ -401,8 +397,6 @@ public class DatabaseRocksDb extends Database {
 											 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(table.getName(), exclusiveStartKey);
 			try (var it = table.iterator()) {
 				if (exclusiveStartKey == null)
 					it.seekToLast();
@@ -429,8 +423,6 @@ public class DatabaseRocksDb extends Database {
 												@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
-			if (exclusiveStartKey != null)
-				checkKvKeyLength(table.getName(), exclusiveStartKey);
 			try (var it = table.iterator()) {
 				if (exclusiveStartKey == null)
 					it.seekToLast();
