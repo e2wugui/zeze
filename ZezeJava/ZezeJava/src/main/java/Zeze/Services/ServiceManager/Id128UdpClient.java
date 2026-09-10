@@ -151,7 +151,9 @@ public class Id128UdpClient {
 			// 判断是否已经设置过结果.迟到或乱序的rpc.
 			if (futureNode.pending.get() > 0) {
 				var futureContext = futureNode;
-				var tid128Cache = new Tid128Cache(context.Argument.getName(), agent,
+				// 响应rpc只解码Result,Argument保持默认空值,所以这里只能用请求对象的name.
+				var globalName = context.Argument.getName();
+				var tid128Cache = new Tid128Cache(globalName, agent,
 						r.Result.getStartId(), r.Result.getCount());
 				do {
 					var current = futureNode;
@@ -165,7 +167,7 @@ public class Id128UdpClient {
 				} while (futureNode != null);
 				// 设置完result以后才删除.却表中间异常,队列不会乱.
 				// 只需要执行一次,不用到循环里面判断,因为tail总是最后一个.
-				tailFuture.compute(r.Argument.getName(), (key, value) -> value == futureContext ? null : value);
+				tailFuture.compute(globalName, (key, value) -> value == futureContext ? null : value);
 			}
 		}
 	}
