@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -58,7 +59,19 @@ public class TestHttpServerUploadLimit {
 
 	// 发送原始请求字节并读到服务器关闭连接(EOF)为止,返回收到的完整响应
 	private static @NotNull String sendRawUntilClose(@NotNull String raw) throws IOException {
-		try (var sock = new Socket("127.0.0.1", port)) {
+		try (var sock = new Socket()) {
+			// Windows满负载下loopback connect偶发SYN无应答（60轮压测1/60命中：~21s OS级ETIMEDOUT，
+			// 同刻8+测试服务器并行启动的连接风暴，服务端日志闭环无责）：显式短超时+有界重试。
+			var target = new InetSocketAddress("127.0.0.1", port);
+			for (int attempt = 1; ; ++attempt) {
+				try {
+					sock.connect(target, 5_000);
+					break;
+				} catch (SocketTimeoutException e) {
+					if (attempt >= 3)
+						throw e;
+				}
+			}
 			sock.setSoTimeout(15000);
 			var os = sock.getOutputStream();
 			os.write(raw.getBytes(StandardCharsets.ISO_8859_1));

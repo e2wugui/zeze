@@ -185,7 +185,11 @@ public class TestGlobalCacheManagerAsyncAcquireKick {
 		reduce.SendResult();
 
 		// 5. 核心断言：申请位必须被复位（修复前：sender==null的NPE逃逸后永久停留StateShare）
-		waitPending(GlobalCacheManagerConst.StateInvalid, 10_000, "kick后申请位必须复位");
+		// 等待预算必须覆盖服务端兜底的最坏时限：A的Reduce应答可能在IO层被延迟/丢失（60轮压测1/60命中，
+		// 满负载偶发），此时复位依赖achillesHeelDaemon的死会话清理——serverDaemonTimeout=8s +
+		// 5s tick对齐 + 队列调度，最坏13s+；预算10s会在赛跑中以亚秒差输掉（实测输0.28s）。
+		// 断言本意是防"永久泄漏/冻结"（修复前是永久的），30s足以区分"永久"与"兜底慢"。
+		waitPending(GlobalCacheManagerConst.StateInvalid, 30_000, "kick后申请位必须复位");
 
 		// 6. 第三方C的Acquire必须能得到应答（修复前：申请位泄漏冻结key，C只能超时）
 		clientC = new RawClient("UnitTest.FND_S1_2.C");
