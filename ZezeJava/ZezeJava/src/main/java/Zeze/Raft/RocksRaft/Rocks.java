@@ -473,10 +473,12 @@ public final class Rocks extends StateMachine implements Closeable {
 	public void loadSnapshot(String path) throws RocksDBException, IOException {
 		var backupDir = Paths.get(getDbHome(), "backup").toString();
 		var backupFile = new File(backupDir);
-		if (!backupFile.isDirectory() || new File(path).lastModified() > backupFile.lastModified()) {
-			LogSequence.deletedDirectoryAndCheck(backupFile, 100);
-			extractZipToDirectory(path, backupDir);
-		}
+		// 恢复源必须是"已提交快照"这个唯一事实: backupDir 里可能是更新一代的延时快照,
+		// 内容超前于 firstIndex, 直接restore会让随后重放(firstIndex,...]的增量被双重应用.
+		// 原实现用mtime比较决定是否解压, 而backupDir的mtime会被loadSnapshot自己重建目录时刷新,
+		// 于是从第二次重启起就会跳过解压、恢复到超前的备份而静默损坏状态机.
+		LogSequence.deletedDirectoryAndCheck(backupFile, 100);
+		extractZipToDirectory(path, backupDir);
 		restore(backupDir);
 	}
 

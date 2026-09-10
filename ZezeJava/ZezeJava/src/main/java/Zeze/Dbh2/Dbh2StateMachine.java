@@ -432,10 +432,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public void loadSnapshot(String path) throws Exception {
 		var backupDir = Paths.get(getDbHome(), "backup").toString();
 		var backupFile = new File(backupDir);
-		if (!backupFile.isDirectory() || new File(path).lastModified() > backupFile.lastModified()) {
-			LogSequence.deletedDirectoryAndCheck(backupFile, 100);
-			Zeze.Raft.RocksRaft.Rocks.extractZipToDirectory(path, backupDir);
-		}
+		// 与 RocksRaft/Rocks.loadSnapshot 同款: 无条件以已提交快照为恢复源,
+		// 不能按mtime跳过解压, 否则会恢复超前的延时快照而双重应用增量日志.
+		LogSequence.deletedDirectoryAndCheck(backupFile, 100);
+		Zeze.Raft.RocksRaft.Rocks.extractZipToDirectory(path, backupDir);
 
 		restore(backupDir);
 
