@@ -102,7 +102,6 @@ public class TaskGraphics {
 			} catch (RocksDBException ex) {
 				throw Task.forceThrow(ex);
 			}
-			throw new NullPointerException();
 		});
 	}
 
@@ -135,7 +134,6 @@ public class TaskGraphics {
 			} catch (Exception ex) {
 				throw Task.forceThrow(ex);
 			}
-			throw new NullPointerException();
 		//});
 	}
 

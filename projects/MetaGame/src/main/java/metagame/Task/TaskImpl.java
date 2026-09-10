@@ -10,6 +10,7 @@ import metagame.builtin.TaskModule.Finish;
 import metagame.builtin.TaskModule.TaskChanged;
 import metagame.builtin.TaskModule.TaskRemoved;
 import Zeze.Collections.LinkedMap;
+import Zeze.Game.OnlineSpec;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
@@ -72,7 +73,7 @@ public class TaskImpl {
 	public static void notifyTaskRemoved(TaskModule module, long roleId, BTask task) {
 		var r = new TaskRemoved();
 		r.Argument.setTaskId(task.getTaskId());
-		module.getOnline().send(roleId, r);
+		OnlineSpec.ofRole(module.getOnline(), roleId).withContext().send(r);
 	}
 
 	public static void toDescription(TaskModule module, long roleId, BTask task, BTaskDescription des) throws Exception {
@@ -98,7 +99,7 @@ public class TaskImpl {
 	public static void notifyTaskChanged(TaskModule module, long roleId, BTask task) throws Exception {
 		var r = new TaskChanged();
 		toDescription(module, roleId, task, r.Argument);
-		module.getOnline().send(roleId, r);
+		OnlineSpec.ofRole(module.getOnline(), roleId).withContext().send(r);
 	}
 
 	public static boolean phaseAccept(List<BCondition> conditons, Set<Integer> indexSet, ConditionEvent event) throws Exception {

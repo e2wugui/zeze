@@ -2,6 +2,7 @@ package Demo.Fight;
 
 import Zeze.Game.LoginArgument;
 import Zeze.Game.Online;
+import Zeze.Game.OnlineSpec;
 import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Demo.*;
@@ -32,7 +33,7 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 			var login = (LoginArgument)arg;
 			var context = online.providerApp.zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);
 			var service = context.getService();
-			online.sendOnlineRpc(login.roleId, new AreYouFight(), (p) -> {
+			OnlineSpec.ofRole(online, login.roleId).sendRpc(new AreYouFight(), (p) -> {
 				logger.info("AreYouFight done.");
 				service.setAreYouFightResult(true);
 				return 0;

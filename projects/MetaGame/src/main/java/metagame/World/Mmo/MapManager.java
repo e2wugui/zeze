@@ -158,9 +158,7 @@ public class MapManager implements IMapManager, ICommand {
 
 		var bModule = world.providerApp.dynamicModules.get(world.getId());
 		if (null == bModule) {
-			bModule = new BModule.Data();
-			bModule.setChoiceType(BModule.ChoiceTypeDefault);
-			bModule.setConfigType(BModule.ConfigTypeDynamic);
+			bModule = new BModule.Data(BModule.ChoiceTypeDefault, true); // 2.0.0: ConfigTypeDynamic -> dynamic=true
 		}
 		bind.Argument.getModules().put(world.getId(), bModule);
 

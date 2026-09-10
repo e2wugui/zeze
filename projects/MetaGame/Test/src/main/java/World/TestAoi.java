@@ -148,7 +148,7 @@ public class TestAoi {
 							rLock.unlock();
 						}
 					}
-				}).name("").runUnsafe());
+				}).name("").submitNow());
 			}
 		}
 

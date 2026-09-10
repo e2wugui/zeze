@@ -25,6 +25,7 @@ allprojects {
         options.failOnError true
         options.debugOptions.debugLevel = 'source,lines,vars'
         options.compilerArgs += '-parameters'
+        options.compilerArgs += '-Xlint:deprecation'
     }
 
     sourceSets {
@@ -47,7 +48,9 @@ allprojects {
 }
 
 dependencies {
-    implementation 'com.zezeno:zeze-java:1.5.9'
+    implementation 'com.zezeno:zeze-java:2.0.0'
+    // zeze-java 2.0.0 将 rocksdbjni 改为 provided 不再传递，本工程直接使用 org.rocksdb 类型，需显式声明（版本与 ZezeJava 保持一致）
+    implementation 'org.rocksdb:rocksdbjni:10.10.1.1'
 
     testImplementation 'junit:junit:4.13.2'
 }
