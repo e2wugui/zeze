@@ -1,14 +1,14 @@
-local old_version = "1.6.3"
-local new_version = "1.7.0-SNAPSHOT"
+local old_version = "1.7.0-SNAPSHOT"
+local new_version = "2.0.0"
 
 local files = {
 	{ 1, "build.gradle" },
 --	{ 1, "pom.xml" },
 	{ 1, "ZezeJava/pom.xml" },
-	{ 2, "ZezeJavaTest/pom.xml" },
-	{ 2, "ZezexJava/client/pom.xml" },
-	{ 2, "ZezexJava/linkd/pom.xml" },
-	{ 2, "ZezexJava/server/pom.xml" },
+--	{ 2, "ZezeJavaTest/pom.xml" },
+--	{ 2, "ZezexJava/client/pom.xml" },
+--	{ 2, "ZezexJava/linkd/pom.xml" },
+--	{ 2, "ZezexJava/server/pom.xml" },
 	{ 3, "test/Raft/raft.bat" },
 	{ 7, "test/Raft/raft.more.bat" },
 	{ 5, "test/Raft/raft.5x6node.bat" },
