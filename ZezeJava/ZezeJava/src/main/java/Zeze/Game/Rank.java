@@ -523,8 +523,9 @@ public class Rank extends AbstractRank {
 				for (int ir = merged.getRankList().size() - 1; ir >= countNeed; --ir)
 					merged.getRankList().remove(ir);
 			}
-			// 保存列表。
-			_trank.put(concurrentKeyTo, merged);
+			// 保存列表。merged可能是new的未受管对象，但其中的BRankValue是上面merge直接从
+			// 两侧表行借用过来的（受管），落表会因元素已受管抛HasManagedException，必须先copy。
+			_trank.put(concurrentKeyTo, merged.copy());
 		}
 	}
 
