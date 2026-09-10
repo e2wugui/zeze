@@ -29,6 +29,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 import Zeze.Util.Str;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -273,11 +274,24 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		if (providerSession == null)
 			return;
 
-		serverId2ProviderSocket.remove(providerSession.serverId);
+		// 条件删除：迟到的关闭事件不得误删同serverId的新会话注册
+		// （provider侧先发现半开连接并重连，新连接握手announce已put，旧连接的关闭回调后到）。
+		serverId2ProviderSocket.remove(providerSession.serverId, provider);
+		// providerSessions此前没有删除点：直连ip/port改配或provider缩容时条目会永久残留；同样按所有权条件删除。
+		linkdApp.linkdProviderService.providerSessions.remove(providerSession.getServerLoadName(), providerSession);
 
 		// unbind module
-		unBindModules(provider, providerSession.getStaticBinds().keySet(), true);
-		providerSession.getStaticBinds().clear();
+		// 与ProcessBindRequest/ProcessSubscribeRequest的写入互斥（同一把monitor），
+		// 保证"bind写入"与"close清理"全序：要么bind先完成（这里能清到），
+		// 要么close先完成（bind在锁内发现isClosed跳过写入）。
+		synchronized (providerSession) {
+			unBindModules(provider, providerSession.getStaticBinds().keySet(), true);
+			providerSession.getStaticBinds().clear();
+			// 动态模块（Subscribe注册的）同样清理：unBindModules内按sessionId条件移除，
+			// 重连的新会话已重新Subscribe覆盖时不会误删。
+			unBindModules(provider, providerSession.getDynamicSubscribes().keySet(), true);
+			providerSession.getDynamicSubscribes().clear();
+		}
 
 		// unbind LinkSession
 		// unbind会获取LinkdUserSession.bindsLock，与bind路径（bindsLock->linkSessionIdsLock）锁序相反，
@@ -325,8 +339,16 @@ public class LinkdProvider extends AbstractLinkdProvider {
 						new BSubscribeInfo(serviceName, 0, providerModuleState));
 				// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 				// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
-				subState.setIdentityLocalState(providerInfo.getServiceIdentity(), providerModuleState);
-				providerSession.getStaticBinds().add(moduleId);
+				// 与onProviderClose的清理互斥：close先置closed标志再回调OnSocketClose（见TcpSocket.close），
+				// 锁内检查isClosed得到全序——close已完成则跳过写入（否则写入的死sessionId状态无人清理），
+				// close未发生则本次写入必被随后的onProviderClose清理（staticBinds已登记）。
+				// subscribeService的阻塞等待必须留在锁外。
+				synchronized (providerSession) {
+					if (rpc.getSender().isClosed())
+						break;
+					subState.setIdentityLocalState(providerInfo.getServiceIdentity(), providerModuleState);
+					providerSession.getStaticBinds().add(moduleId);
+				}
 			}
 		} else {
 			// 动态绑定
@@ -359,7 +381,13 @@ public class LinkdProvider extends AbstractLinkdProvider {
 					new BSubscribeInfo(serviceName, 0, providerModuleState));
 			// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 			// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
-			subState.setIdentityLocalState(providerInfo.getServiceIdentity(), providerModuleState);
+			// 与ProcessBindRequest同理：防止subscribeService等待期间连接关闭后写入死sessionId状态。
+			synchronized (providerSession) {
+				if (rpc.getSender().isClosed())
+					break;
+				subState.setIdentityLocalState(providerInfo.getServiceIdentity(), providerModuleState);
+				providerSession.getDynamicSubscribes().add(moduleId);
+			}
 		}
 
 		rpc.SendResult();
@@ -383,7 +411,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			if (volatileProviders != null) {
 				// UnBind 不删除provider-list，这个总是通过ServiceManager通告更新。
 				// 这里仅仅设置该moduleId对应的服务的状态不可用。
-				volatileProviders.setIdentityLocalState(providerInfo.getServiceIdentity(), null);
+				// 条件清理：identity（serverId）由重连前后两代连接共享，只有localState仍属于
+				// 当前这条连接（bind时记录的sessionId）时才移除；新会话已重新Bind覆盖时不得误删。
+				volatileProviders.getLocalStates().computeIfPresent(providerInfo.getServiceIdentity(), (k, v) ->
+						v instanceof ProviderModuleState pms && pms.sessionId == provider.getSessionId() ? null : v);
 			}
 		}
 	}
@@ -590,7 +621,15 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		session.disableChoice = arg.isDisableChoice();
 		linkdApp.linkdProviderService.providerSessions.put(session.getServerLoadName(), session);
 
-		serverId2ProviderSocket.put(session.serverId, sender);
+		// 接管：同serverId只允许一条活跃连接，前任在宣布时终结，不依赖死亡检测
+		// （linkd对接受的连接不发keepalive，半开前任的检测滞后无上界）。
+		// 先put两张表再踢，读侧无空窗；被踢连接的onProviderClose按所有权条件清理，不会误删现任注册。
+		// 异步踢：close会在调用线程同步走完OnSocketClose→onProviderClose全链路
+		// （旧会话全部客户端的unbind与ReportError广播），不能在announce所在的io-thread上就地执行。
+		var old = serverId2ProviderSocket.put(session.serverId, sender);
+		if (old != null && old != sender)
+			TaskSpec.ofAction(() -> old.close(new IOException(
+					"superseded by new announce connection, serverId=" + session.serverId))).runNow();
 		return Procedure.Success;
 	}
 

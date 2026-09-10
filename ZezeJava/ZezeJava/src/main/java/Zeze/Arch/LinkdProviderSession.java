@@ -25,6 +25,12 @@ public class LinkdProviderSession extends ProviderSession {
 	 */
 	protected final ConcurrentHashSet<Integer> staticBinds = new ConcurrentHashSet<>(); // <moduleId>
 
+	/**
+	 * 维护此Provider通过Subscribe注册的动态模块，用来在Provider关闭的时候清理localStates。
+	 * （Subscribe写入的localStates此前没有删除点，连接关闭后死sessionId状态永久残留。）
+	 */
+	protected final ConcurrentHashSet<Integer> dynamicSubscribes = new ConcurrentHashSet<>(); // <moduleId>
+
 	public LinkdProviderSession(long ssid) {
 		super.sessionId = ssid;
 		super.disableChoice = true; // link-gs 连接新建立的时候，默认禁止选择。
@@ -40,6 +46,10 @@ public class LinkdProviderSession extends ProviderSession {
 
 	public ConcurrentHashSet<Integer> getStaticBinds() {
 		return staticBinds;
+	}
+
+	public ConcurrentHashSet<Integer> getDynamicSubscribes() {
+		return dynamicSubscribes;
 	}
 
 	public void addLinkSession(int moduleId, long linkSessionId) {
