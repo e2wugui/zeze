@@ -555,6 +555,11 @@ public final class Agent {
 			if (null == r)
 				continue;
 			r.setIsTimeout(true);
+			// 【FND3-38】超时/取消在源头置错误码，与 Rpc.schedule 超时路径（显式 setResultCode(Timeout)）
+			// 一致；原来只 setIsTimeout(true)，handle 分支的调用方若只读 resultCode（如 raft 版
+			// ServiceManager 的订阅/发号回调）会把最终超时误判为成功。future 分支本就走异常，语义不变。
+			// 客户端 rpc 不走 tryMarkSendResultDone 终态守卫（那条约定属于应答侧），此处只写码不发送应答。
+			r.setResultCode(Procedure.Timeout);
 			if (null != r.future) {
 				r.future.setException(new RpcTimeoutException(reason));
 			} else {
