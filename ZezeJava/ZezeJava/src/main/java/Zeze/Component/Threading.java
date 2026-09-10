@@ -134,8 +134,14 @@ public class Threading extends AbstractThreading {
 			r.Argument.setLockName(lockName);
 			r.Argument.setPermits(permits);
 			r.SendForWait(service.GetSocket()).await();
-			if (r.getResultCode() <= 0)
-				logger.info("release success, {} permits={}", lockName, r.getResultCode());
+			// 结果码约定：0=成功且无持有者，>0=成功后剩余持有量，-1=参数非法（重复release也可能得到负持有量）。
+			var rc = r.getResultCode();
+			if (rc < 0)
+				logger.error("release error={}", IModule.getErrorCode(rc));
+			else if (rc == 0)
+				logger.info("release success, {} permits=0", lockName); // 无持有者
+			else
+				logger.info("release success, {} permits={}", lockName, rc);
 		}
 
 		void create(int permits) {
