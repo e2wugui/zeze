@@ -138,7 +138,9 @@ namespace Zeze.Gen.java
                 {
                     sw.WriteLine();
                     sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{BoxingName.GetBoxingName(smap.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
-                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.createDynamicMapMeta({BoxingName.GetBoxingName(smap.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
+                    // sortedmap 必须用 createDynamicSortedMapMeta（sortedMap2 家族哈希），
+                    // 与 PSortedMap2 动态构造器及读端注册对称；用 map2 家族会 typeId 永不匹配（FND3-04）。
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.createDynamicSortedMapMeta({BoxingName.GetBoxingName(smap.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
                 }
             }
             sw.WriteLine();

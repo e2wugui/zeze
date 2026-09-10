@@ -13,11 +13,13 @@ import org.junit.jupiter.api.Test;
 /**
  * FND-T4-2 证据固化（升级待裁，本测试断言的是**缺陷现状**，升级修复后应同步翻转断言）：
  * dynamic 容器 Meta 的 logTypeId 不含工厂身份——任意两个 list&lt;dynamic&gt; 共享同一 typeId，
- * 同 keyClass 的 map/sortedmap&lt;K,dynamic&gt; 共享同一 typeId。配合 Log.register 先到先得
- * （typeName 相同连 error 都不打），isHistory 重放端 Log.create 只能拿到先注册变量的工厂，
- * decode 第二个变量的值时错工厂返回 null，DynamicBean.newBean 抛 IllegalStateException 中断重放。
- * typeId 纳入工厂身份会改变 History/Raft 日志流的编码格式（升级条件 2），故当前不改；
- * 本测试不触碰全局 Log.factorys（无 register），避免污染其他测试的注册状态。
+ * 同家族同 keyClass 的 map/map、sortedmap/sortedmap&lt;K,dynamic&gt; 共享同一 typeId。
+ * （FND3-04 修复后 map 与 sortedmap 已分家到各自家族头哈希，此对不再碰撞。）
+ * 配合 Log.register 先到先得（typeName 相同连 error 都不打），isHistory 重放端 Log.create
+ * 只能拿到先注册变量的工厂，decode 第二个变量的值时错工厂返回 null，DynamicBean.newBean
+ * 抛 IllegalStateException 中断重放。typeId 纳入工厂身份会改变 History/Raft 日志流的
+ * 编码格式（升级条件 2），故当前不改；本测试不触碰全局 Log.factorys（无 register），
+ * 避免污染其他测试的注册状态。
  */
 @Fast
 public class TestDynamicMetaTypeIdCollision {

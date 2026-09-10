@@ -30,7 +30,9 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 	}
 
 	public PSortedMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
-		meta = Meta2.createDynamicMapMeta(keyClass, get, create);
+		// 必须用 sortedMap2 家族头哈希：写端 typeId 与读端（Helper.registerLogSortedMap2Dynamic）
+		// 的注册键对称；用错 map2 家族会借道同 keyClass 的 map<K,dynamic> 注册解码成 LogMap2（FND3-04）。
+		meta = Meta2.createDynamicSortedMapMeta(keyClass, get, create);
 	}
 
 	public PSortedMap2(@NotNull Meta2<K, V> meta) {

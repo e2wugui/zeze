@@ -77,7 +77,7 @@ public final class Meta2<K, V> {
 				Bean.class.isAssignableFrom(valueClass) ? Reflect.getDefaultConstructor(valueClass) : null);
 	}
 
-	private Meta2(long headHash, @NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get,
+	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get,
 	              @NotNull LongFunction<Bean> create) {
 		logTypeId = Bean.hashLog(headHash, keyClass, DynamicBean.class);
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
@@ -90,7 +90,7 @@ public final class Meta2<K, V> {
 		valueDecoder = null;
 		valueDecoderWithType = null;
 		valueFactory = SerializeHelper.createDynamicFactory(get, create);
-		name = "LogMap2:" + keyClass.getName() + ",DynamicBean";
+		name = headStr + keyClass.getName() + ",DynamicBean";
 	}
 
 	@SuppressWarnings("unchecked")
@@ -123,7 +123,7 @@ public final class Meta2<K, V> {
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicMapMeta(@NotNull Class<K> keyClass,
 	                                                                            @NotNull ToLongFunction<Bean> get,
 	                                                                            @NotNull LongFunction<Bean> create) {
-		return new Meta2<>(map2HeadHash, keyClass, get, create);
+		return new Meta2<>("LogMap2:", map2HeadHash, keyClass, get, create);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -156,6 +156,6 @@ public final class Meta2<K, V> {
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicSortedMapMeta(@NotNull Class<K> keyClass,
 	                                                                                  @NotNull ToLongFunction<Bean> get,
 	                                                                                  @NotNull LongFunction<Bean> create) {
-		return new Meta2<>(sortedMap2HeadHash, keyClass, get, create);
+		return new Meta2<>("LogSortedMap2:", sortedMap2HeadHash, keyClass, get, create);
 	}
 }
