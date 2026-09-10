@@ -571,8 +571,11 @@ public final class JsonWriter {
 				long offset = fieldMeta.offset;
 				if (type > TYPE_DOUBLE && (subObj = unsafe.getObject(obj, offset)) == null && !writeNull)
 					continue;
+				// Pos字段不输出。必须在写逗号/字段名之前判定: 原来先写字段名再回退pos,
+				// 一旦写名字时恰好appendBlock换块, 回退拿旧块偏移配新块buf, 会拼出损坏的JSON。
+				if (type == TYPE_POS)
+					continue;
 				byte[] name = fieldMeta.name;
-				int posBegin = pos;
 				if (comma)
 					buf[pos++] = ',';
 				if (!prettyFormat) {
@@ -643,9 +646,6 @@ public final class JsonWriter {
 					ensure(s.length() * 6 + 3); // "xxxxxx",
 					write(s, false);
 					break;
-				case TYPE_POS:
-					pos = posBegin;
-					continue;
 				default:
 					write(json, subObj);
 					break;
