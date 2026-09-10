@@ -80,7 +80,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 				action.run(key);
 			} finally {
 				if (keysCount.decrementAndGet() == 0)
-					batchEnd.run();
+					runBatchEndDirect(batchEnd); // batchEnd 的异常策略只有这一处实现，不能在这里裸调 batchEnd.run()。
 			}
 		}
 	}
