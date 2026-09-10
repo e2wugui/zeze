@@ -38,6 +38,7 @@ public interface GlobalCacheManagerConst {
 	int CleanupErrorSecureKey = 60;
 	int CleanupErrorGlobalCacheManagerHashIndex = 61;
 	int CleanupErrorHasConnection = 62;
+	int CleanupErrorDisabled = 63;
 
 	int ReLoginBindSocketFail = 80;
 

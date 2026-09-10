@@ -814,8 +814,10 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessCleanupRequest(Cleanup rpc) {
-		if (achillesHeelConfig != null) // disable cleanup.
+		if (achillesHeelConfig != null) { // disable cleanup.
+			rpc.SendResultCode(CleanupErrorDisabled);
 			return 0;
+		}
 
 		// 安全性以后加强。
 		if (!rpc.Argument.getSecureKey().equals("Ok! verify secure.")) {

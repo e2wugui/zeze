@@ -234,8 +234,11 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	 */
 	private long processCleanup(Cleanup rpc) {
 		logger.info("ProcessCleanup: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
-		if (achillesHeelConfig != null) // disable cleanup.
+		if (achillesHeelConfig != null) { // disable cleanup.
+			logger.warn("ProcessCleanup: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), CleanupErrorDisabled);
+			rpc.SendResultCode(CleanupErrorDisabled);
 			return 0;
+		}
 
 		// 安全性以后加强。
 		if (!rpc.Argument.secureKey.equals("Ok! verify secure.")) {

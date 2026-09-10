@@ -202,8 +202,12 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	 */
 	private long processCleanup(@NotNull Cleanup rpc) {
 		logger.info("ProcessCleanup: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
-		if (achillesHeelConfig != null) // disable cleanup.
+		if (achillesHeelConfig != null) { // disable cleanup.
+			logger.warn("ProcessCleanup: {} RequestId={} result={}",
+					rpc.getSender(), rpc.getSessionId(), CleanupErrorDisabled);
+			rpc.SendResultCode(CleanupErrorDisabled);
 			return 0;
+		}
 
 		// 安全性以后加强。
 		if (!rpc.Argument.secureKey.equals("Ok! verify secure.")) {
