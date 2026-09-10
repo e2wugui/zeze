@@ -41,10 +41,11 @@ public final class TestL5G1UtilP2 {
 	}
 
 	@Test
-	public void testUntypedNaNStillWorks() throws Exception { // 回归：lenient 的 nan/NaN 词法不受影响
-		var list = (List<?>)JsonReader.local().buf("[NaN,nan]").parse();
+	public void testUntypedNaNStillWorks() throws Exception { // 回归：大写 NaN 词法不受影响；小写 nan 一律 null token（FND3-08，写侧 NaN 恒大写）
+		var list = (List<?>)JsonReader.local().buf("[NaN,nan,null]").parse();
 		assertEquals(Double.NaN, list.get(0));
-		assertEquals(Double.NaN, list.get(1));
+		assertNull(list.get(1));
+		assertNull(list.get(2));
 	}
 
 	// ---------- FND-U1-20：TYPE_OBJECT 字段重复解析先清空容器 ----------

@@ -30,7 +30,7 @@ public final class TestJson5 {
 		checkObj("{abc:1,def:2,,,}", "{abc:1,def:2}");
 		checkObj("{a:{b:2,},}", "{a:{b:2}}");
 		checkObj("{a:+5,b:+1.23e,c:+1.23e+1,d:-.5,e:-5.,f:-0.,g:-.,h:.}", "{a:5,b:1.23,c:12.3,d:-0.5,e:-5.0,f:-0.0,g:-0.0,h:0.0}");
-		checkObj("{a:Infinity,b:-infinity,c:Inf,d:NaN,e:nan}", "{a:Infinity,b:-Infinity,c:Infinity,d:NaN,e:NaN}");
+		checkObj("{a:Infinity,b:-infinity,c:Inf,d:NaN,e:nan}", "{a:Infinity,b:-Infinity,c:Infinity,d:NaN}"); // e:nan→null（小写 'n' 一律 null token，写侧 NaN 恒大写，FND3-08），null 值默认不写出
 	}
 
 	public static void main(String[] args) throws ReflectiveOperationException {

@@ -369,7 +369,7 @@ public final class TestJson {
 		assertEquals(123, a.v);
 		a = JsonReader.local().buf("{s:null\nv:456}").parse(H.class);
 		assertNotNull(a);
-		assertEquals("null", a.s);
+		assertNull(a.s); // FND3-08：null token 解析成 null 而不是 "null" 字面量（与 JsonWriter 写出的 null 对称）
 		assertEquals(456, a.v);
 	}
 

@@ -334,9 +334,10 @@ public final class JsonReader {
 		case '0': case '1': case '2': case '3': case '4': case '5': case '6':
 		case '7': case '8': case '9': case '-': case '+': case '.':
 		case 'I': case 'i': case 'N': return parseNumber();
-		// 'n' 开头可能是 null 或（lenient 的）nan：null 必须解析成 null 而不是 NaN，
-		// 否则无类型上下文（Object 字段、Map<String,Object>）的 null 往返后变成 NaN。
-		case 'n': return pos + 1 < buf.length && buf[pos + 1] == 'u' ? null : parseNumber();
+		// 值位置的小写 'n' 一律 null token：写侧约定 JsonWriter 对字符串值恒加引号、对
+		// null 写小写 null、对非有限 double 恒写大写 NaN/Infinity（走上面的 'N' 分支），
+		// null 与 NaN 首字符大小写即区分，无引号字符串值超出约定，不为其保留二字符判据。
+		case 'n': return null;
 		case 'f': case 'F': return false;
 		case 't': case 'T': return true;
 		} //@formatter:on
@@ -514,7 +515,7 @@ public final class JsonReader {
 				unsafe.putDouble(obj, offset, parseDouble());
 				break;
 			case TYPE_STRING:
-				unsafe.putObject(obj, offset, parseString(false));
+				unsafe.putObject(obj, offset, b == 'n' ? null : parseString(false));
 				break;
 			case TYPE_OBJECT: {
 				if (b == 'n') { // null（与下方 WRAP 各分支的 b=='n' 判定一致）
@@ -714,7 +715,7 @@ public final class JsonReader {
 			break;
 		case TYPE_STRING:
 			for (; b != ']'; b = skipVar(']'))
-				c.add(parseString(false));
+				c.add(b == 'n' ? null : parseString(false));
 			break;
 		case TYPE_OBJECT:
 			for (; b != ']'; b = skipVar(']'))
