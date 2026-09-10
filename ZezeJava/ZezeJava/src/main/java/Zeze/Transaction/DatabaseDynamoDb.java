@@ -313,49 +313,20 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
-			if (proposeLimit <= 0)
-				return null;
-
-			var req = new ScanRequest();
-			req.setTableName(name);
-			req.setAttributesToGet(List.of("key", "value"));
-			req.setConsistentRead(true);
-			if (exclusiveStartKey != null) {
-				req.setExclusiveStartKey(Map.of("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(
-						exclusiveStartKey.Bytes, exclusiveStartKey.ReadIndex, exclusiveStartKey.size()))));
-			}
-			var scanResult = dynamoDbClient.scan(req);
-			byte[] lastKey = null;
-			for (var item : scanResult.getItems()) {
-				lastKey = copyIf(item.get("key").getB());
-				if (!callback.handle(lastKey, copyIf(item.get("value").getB())) || --proposeLimit == 0)
-					break;
-			}
-			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) {
+			// 主要是 SafeBatch 的问题：它把返回的游标持久化进 BBatch 供下一轮续扫，而 Scan 的
+			// ExclusiveStartKey 只是"从该 item 的扫描位置继续"的翻页书签——书签 item 可能已被
+			// 删除、表增长引发分区分裂后位置同样失效（AWS 只承诺回传 LastEvaluatedKey，自造
+			// 游标属未定义行为）。且 Scan 无 key 排序保证，History 回放/Verify 要求按
+			// GlobalSerialId 严格有序（Verify 有显式断言）。表只有 hash key 没有 sort key，
+			// 结构上给不出分页协议要求的 key 全序流，对齐 Redis/Tikv 显式声明不支持。
+			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
-			if (proposeLimit <= 0)
-				return null;
-
-			var req = new ScanRequest();
-			req.setTableName(name);
-			req.setAttributesToGet(List.of("key"));
-			req.setConsistentRead(true);
-			if (exclusiveStartKey != null) {
-				req.setExclusiveStartKey(Map.of("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(
-						exclusiveStartKey.Bytes, exclusiveStartKey.ReadIndex, exclusiveStartKey.size()))));
-			}
-			var scanResult = dynamoDbClient.scan(req);
-			byte[] lastKey = null;
-			for (var item : scanResult.getItems()) {
-				lastKey = copyIf(item.get("key").getB());
-				if (!callback.handle(lastKey) || --proposeLimit == 0)
-					break;
-			}
-			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) {
+			// 同 walk：Scan 无 key 序且 SafeBatch 游标语义未定义。
+			throw new UnsupportedOperationException();
 		}
 
 		@Override
