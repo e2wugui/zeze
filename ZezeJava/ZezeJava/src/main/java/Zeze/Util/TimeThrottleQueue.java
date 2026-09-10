@@ -3,6 +3,12 @@ package Zeze.Util;
 import java.util.ArrayDeque;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * 滑动窗口限流（队列版）：保留最近 expire 毫秒内每个请求的 mark，checkNow 先淘汰过期
+ * mark 再比较剩余的数量与带宽，窗口随请求精确滑动，没有 Counter 版的边界突刺；
+ * 代价是每个请求一个 mark 的内存。marks 超过 {@link #eMaxMarksSize} 时拒绝新 mark，
+ * 防止恶意请求撑爆队列。
+ */
 public class TimeThrottleQueue implements TimeThrottle {
 	public static final int eMaxMarksSize = 4096;
 
@@ -23,18 +29,26 @@ public class TimeThrottleQueue implements TimeThrottle {
 	 * @param limit   限制数量
 	 */
 	public TimeThrottleQueue(int seconds, int limit, int bandwidthLimit) {
+		checkThreshold(seconds, limit, bandwidthLimit);
+		this.expire = seconds * 1000;
+		this.limit = limit * seconds;
+		this.bandwidthLimit = bandwidthLimit * seconds;
+	}
+
+	/**
+	 * 只负责校验并抛异常，乘法由构造器自己做。seconds*1000、limit*seconds、
+	 * bandwidthLimit*seconds 都必须保持在 int 正数范围内：溢出回绕成负值后阈值
+	 * 静默失真，expire 为负会让 checkNow 的过期清理循环立即 break
+	 * （marks 永不淘汰），退化为恒 return false 的全拒绝。
+	 */
+	private static void checkThreshold(int seconds, int limit, int bandwidthLimit) {
 		if (seconds < 1 || limit < 0 || bandwidthLimit < 0)
 			throw new IllegalArgumentException();
-		// 三个乘积都必须保持在 int 正数范围内：溢出回绕后 expire 为负会让 checkNow 的过期清理
-		// 循环立即break(marks永不淘汰，退化为恒return false的全拒绝)，limit/bandwidthLimit 同理静默失真。
 		if (seconds > Integer.MAX_VALUE / 1000
 				|| limit > Integer.MAX_VALUE / seconds
 				|| bandwidthLimit > Integer.MAX_VALUE / seconds)
 			throw new IllegalArgumentException("TimeThrottleQueue overflow: seconds=" + seconds
 					+ " limit=" + limit + " bandwidthLimit=" + bandwidthLimit);
-		this.expire = seconds * 1000;
-		this.limit = limit * seconds;
-		this.bandwidthLimit = bandwidthLimit * seconds;
 	}
 
 	/**
