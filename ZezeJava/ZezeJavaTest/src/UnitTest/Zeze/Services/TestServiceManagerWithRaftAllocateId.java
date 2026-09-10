@@ -68,10 +68,24 @@ public class TestServiceManagerWithRaftAllocateId {
 		}
 
 		AsyncSocket connect(int port) throws Exception {
-			var connector = new Connector("127.0.0.1", port, false);
-			getConfig().addConnector(connector);
-			start();
-			return connector.WaitReady();
+			// WaitReady()固定5s超时：loopback connect偶发SYN无应答/全量负载下握手超时
+			// （两轮60次压测本测试累计5次TimeoutException），有界重试：失败连接remove+stop
+			// 后重建（对齐TestServiceManagerWithRaftCommitThenResponse.Peer.connect的负载加固）。
+			for (int attempt = 1; ; ++attempt) {
+				var connector = new Connector("127.0.0.1", port, false);
+				getConfig().addConnector(connector);
+				start();
+				try {
+					return connector.WaitReady();
+				} catch (Exception e) { // 超时经Task.forceThrow sneaky-throw受检TimeoutException，编译期不可见
+					if (!(e instanceof java.util.concurrent.TimeoutException) || attempt >= 6)
+						throw e;
+					getConfig().removeConnector(connector);
+					connector.stop();
+					//noinspection BusyWait
+					Thread.sleep(200);
+				}
+			}
 		}
 	}
 

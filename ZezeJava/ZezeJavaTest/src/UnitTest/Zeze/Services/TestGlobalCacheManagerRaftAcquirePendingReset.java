@@ -255,6 +255,32 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		Assertions.fail("login持续RaftRetry(-15)，lastCode=" + lastCode);
 	}
 
+	/**
+	 * A的Modify-Acquire发送并断言成功。RaftRetry(-15)有界重试（对齐本类sendLogin；60轮压测
+	 * round 12/15/30 偶中-15直断言rc==0误红）。-15=请求未raft应用，重试等价首次请求，
+	 * Acquire协商幂等安全。每次重试用新Acquire（requestId唯一）。
+	 */
+	private static Acquire sendAcquireModify(AsyncSocket socket) throws Exception {
+		long lastCode = Long.MIN_VALUE;
+		for (int attempt = 1; attempt <= 12; ++attempt) {
+			var rpc = new Acquire();
+			rpc.Argument.setGlobalKey(KEY);
+			rpc.Argument.setState(GlobalCacheManagerConst.StateModify);
+			rpc.getUnique().setRequestId(requestIds.incrementAndGet());
+			rpc.setCreateTime(System.currentTimeMillis());
+			rpc.setTimeout(15_000);
+			Assertions.assertTrue(rpc.SendForWait(socket, 15_000).await(15_000), "A acquire await");
+			Assertions.assertFalse(rpc.isTimeout(), "A acquire timeout");
+			lastCode = rpc.getResultCode();
+			if (lastCode != -15)
+				return rpc;
+			//noinspection BusyWait
+			Thread.sleep(500);
+		}
+		Assertions.fail("A acquire持续RaftRetry(-15)，lastCode=" + lastCode);
+		return null; // unreachable
+	}
+
 	/** 表读取必须在事务内进行（Table.get需要Transaction.getCurrent()），用只读procedure包一层。 */
 	private static int pendingOf(Binary key) throws Exception {
 		var pending = new int[1];
@@ -314,14 +340,7 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		clientA = new Peer("UnitTest.FND_S1_3.A");
 		var socketA = clientA.connect(leaderPort);
 		sendLogin(socketA, SERVER_ID_A);
-		var acquireA = new Acquire();
-		acquireA.Argument.setGlobalKey(KEY);
-		acquireA.Argument.setState(GlobalCacheManagerConst.StateModify);
-		acquireA.getUnique().setRequestId(requestIds.incrementAndGet());
-		acquireA.setCreateTime(System.currentTimeMillis());
-		acquireA.setTimeout(15_000);
-		Assertions.assertTrue(acquireA.SendForWait(socketA, 15_000).await(15_000), "A acquire await");
-		Assertions.assertFalse(acquireA.isTimeout(), "A acquire timeout");
+		var acquireA = sendAcquireModify(socketA); // RaftRetry(-15)有界重试，见方法注释
 		Assertions.assertEquals(0, acquireA.getResultCode(), "A acquire resultCode");
 		Assertions.assertEquals(GlobalCacheManagerConst.StateInvalid, pendingOf(KEY), "A完成后申请位为Invalid");
 
