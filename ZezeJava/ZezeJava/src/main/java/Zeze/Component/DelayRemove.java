@@ -166,7 +166,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		var days = zeze.getConfig().getDelayRemoveDays();
 		if (days < 7)
 			days = 7; // xxx 至少保留7天。
-		var diffMills = days * 24 * 3600 * 1000;
+		long diffMills = (long)days * 24 * 3600 * 1000;
 		var removing = new OutObject<>(true);
 		while (removing.value) {
 			var rc = zeze.newProcedure(() -> {
