@@ -439,10 +439,10 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
         setMapInstanceId(_r_.getLong(_pn_ + "MapInstanceId"));
         _p_.add("Position");
         setPosition(Zeze.Serialize.Helper.decodeVector3(_p_, _r_));
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _p_.add("Direct");
         setDirect(Zeze.Serialize.Helper.decodeVector3(_p_, _r_));
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         Zeze.Serialize.Helper.decodeJsonList(_PriorityData, metagame.builtin.World.BAoiOperates.class, _r_.getString(_pn_ + "PriorityData"));
     }
 
@@ -453,10 +453,10 @@ public final class BEnterWorld extends Zeze.Transaction.Bean implements BEnterWo
         _s_.appendLong(_pn_ + "MapInstanceId", getMapInstanceId());
         _p_.add("Position");
         Zeze.Serialize.Helper.encodeVector3(getPosition(), _p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _p_.add("Direct");
         Zeze.Serialize.Helper.encodeVector3(getDirect(), _p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _s_.appendString(_pn_ + "PriorityData", Zeze.Serialize.Helper.encodeJson(_PriorityData));
     }
 

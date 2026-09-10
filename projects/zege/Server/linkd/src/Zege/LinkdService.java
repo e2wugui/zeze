@@ -162,8 +162,10 @@ public class LinkdService extends LinkdServiceBase {
         // default dispatch
         if (findSend(linkSession, moduleId, dispatch))
             return;
-        if (choiceBindSend(linkSession, so, moduleId, dispatch))
+        int r = choiceBindSend(linkSession, so, moduleId, dispatch);
+        if (r == 0)
             return;
-        reportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "no provider.");
+        reportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
+                "no provider: " + moduleId + ", " + protocolId + ", " + r);
     }
 }

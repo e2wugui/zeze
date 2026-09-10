@@ -1,6 +1,7 @@
 package Zege.Message;
 
 import Zege.Program;
+import Zeze.Arch.OnlineSpec;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
@@ -74,7 +75,7 @@ public class ModuleMessage extends AbstractModule {
             group.getGroupMembers().walk((key, member) -> {
                 Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
                 logger.info("send group message to {}", key);
-                App.Provider.getOnline().sendAccount(key, notify);
+                OnlineSpec.ofAccount(App.Provider.getOnline(), key).send(notify);
                 return true;
             });
         } else {
@@ -82,7 +83,7 @@ public class ModuleMessage extends AbstractModule {
             group.getDepartmentMembers(r.Argument.getDepartmentId()).walk((key, member) -> {
                 Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
                 logger.info("send department message to {}", key);
-                App.Provider.getOnline().sendAccount(key, notify);
+                OnlineSpec.ofAccount(App.Provider.getOnline(), key).send(notify);
                 return true;
             });
         }
@@ -122,7 +123,7 @@ public class ModuleMessage extends AbstractModule {
         if (!self) {
             var notify = new NotifyMessage();
             notify.Argument = r.Argument.getMessage();
-            App.Provider.getOnline().sendAccountWhileCommit(r.Argument.getFriend(), notify);
+            OnlineSpec.ofAccount(App.Provider.getOnline(), r.Argument.getFriend()).send(notify);
         }
         session.respond(r);
         Program.counters.increment("FriendMessage");

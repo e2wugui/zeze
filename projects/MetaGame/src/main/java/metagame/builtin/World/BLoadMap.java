@@ -265,7 +265,7 @@ public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapRea
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadLong(_s_);
                     var _v_ = _o_.ReadBean(new metagame.builtin.World.BLoad(), _t_);
                     _x_.put(_k_, _v_);
@@ -342,7 +342,7 @@ public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapRea
         setMapId(_r_.getInt(_pn_ + "MapId"));
         _p_.add("LoadSum");
         _LoadSum.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         Zeze.Serialize.Helper.decodeJsonMap(this, "Instances", _Instances, _r_.getString(_pn_ + "Instances"));
     }
 
@@ -352,7 +352,7 @@ public final class BLoadMap extends Zeze.Transaction.Bean implements BLoadMapRea
         _s_.appendInt(_pn_ + "MapId", getMapId());
         _p_.add("LoadSum");
         _LoadSum.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _s_.appendString(_pn_ + "Instances", Zeze.Serialize.Helper.encodeJson(_Instances));
     }
 
@@ -580,7 +580,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadLong(_s_);
                     var _v_ = _o_.ReadBean(new metagame.builtin.World.BLoad.Data(), _t_);
                     _x_.put(_k_, _v_);

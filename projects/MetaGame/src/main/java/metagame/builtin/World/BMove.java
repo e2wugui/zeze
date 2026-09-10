@@ -405,10 +405,10 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         _p_.add("Position");
         setPosition(Zeze.Serialize.Helper.decodeVector3(_p_, _r_));
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _p_.add("Direct");
         setDirect(Zeze.Serialize.Helper.decodeVector3(_p_, _r_));
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setState(_r_.getInt(_pn_ + "State"));
         setControl(_r_.getInt(_pn_ + "Control"));
@@ -419,10 +419,10 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         _p_.add("Position");
         Zeze.Serialize.Helper.encodeVector3(getPosition(), _p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _p_.add("Direct");
         Zeze.Serialize.Helper.encodeVector3(getDirect(), _p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendInt(_pn_ + "State", getState());
         _s_.appendInt(_pn_ + "Control", getControl());

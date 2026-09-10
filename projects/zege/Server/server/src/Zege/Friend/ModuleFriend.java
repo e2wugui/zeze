@@ -3,6 +3,7 @@ package Zege.Friend;
 import Zege.Notify.BNotify;
 import Zege.Notify.ModuleNotify;
 import Zege.User.BUser;
+import Zeze.Arch.OnlineSpec;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Collections.DepartmentTree;
@@ -32,7 +33,7 @@ public class ModuleFriend extends AbstractModule {
 		var encoded = App.LinkedMaps.encodeChangeListenerWithSpecialName(nodeKey.getName(), key, r);
 		notify.Argument.setChangeLog(new Binary(encoded));
 		logger.info("sendAccount nodeKey.name={}, account={}", nodeKey.getName(), account);
-		App.Provider.getOnline().sendAccount(account, notify); // TODO online sender
+		OnlineSpec.ofAccount(App.Provider.getOnline(), account).send(notify); // TODO online sender
 	}
 
 	public void Start(Zege.App app) throws Exception {
@@ -243,7 +244,7 @@ public class ModuleFriend extends AbstractModule {
 
 		r.Result.setParentDepartment(department.getParentDepartment());
 		r.Result.setName(department.getName());
-		r.Result.getChilds().putAll(department.getChilds());
+		r.Result.getChilds().putAll(department.getChildren());
 		for (var manager : department.getManagers()) {
 			r.Result.getManagers().put(manager.getKey(), (BManager)manager.getValue().getBean());
 		}
@@ -311,7 +312,7 @@ public class ModuleFriend extends AbstractModule {
 			return errorCode(eNotGroupMember);
 
 		r.Result.setRoot(root.getRoot());
-		r.Result.getChilds().putAll(root.getChilds());
+		r.Result.getChilds().putAll(root.getChildren());
 		for (var manager : root.getManagers()) {
 			r.Result.getManagers().put(manager.getKey(), (BManager)manager.getValue().getBean());
 		}

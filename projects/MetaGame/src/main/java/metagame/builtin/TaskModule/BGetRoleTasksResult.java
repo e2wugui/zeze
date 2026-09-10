@@ -149,7 +149,7 @@ public final class BGetRoleTasksResult extends Zeze.Transaction.Bean implements 
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadInt(_s_);
                     var _v_ = _o_.ReadBean(new metagame.builtin.TaskModule.BTaskDescription(), _t_);
                     _x_.put(_k_, _v_);

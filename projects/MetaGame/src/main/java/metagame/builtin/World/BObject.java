@@ -491,7 +491,7 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         Zeze.Serialize.Helper.decodeJsonDynamic(_Data, _r_.getString(_pn_ + "Data"));
         _p_.add("Moving");
         _Moving.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         setPlayerId(_r_.getString(_pn_ + "PlayerId"));
         if (getPlayerId() == null)
             setPlayerId("");
@@ -509,7 +509,7 @@ public final class BObject extends Zeze.Transaction.Bean implements BObjectReadO
         _s_.appendString(_pn_ + "Data", Zeze.Serialize.Helper.encodeJson(_Data));
         _p_.add("Moving");
         _Moving.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _s_.appendString(_pn_ + "PlayerId", getPlayerId());
         _s_.appendString(_pn_ + "LinkName", getLinkName());
         _s_.appendLong(_pn_ + "LinkSid", getLinkSid());

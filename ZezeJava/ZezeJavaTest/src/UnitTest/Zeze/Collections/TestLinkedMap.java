@@ -299,6 +299,50 @@ public class TestLinkedMap {
 	}
 
 	@Test
+	public void test12_NodePagingRead() throws Exception {
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testPaging", BMyBean.class);
+			map.clear(); // 幂等
+			for (int i = 0; i < 65; i++) { // nodeSize默认30，必然跨节点
+				var bean = new BMyBean();
+				bean.setI(i);
+				map.put(String.valueOf(i), bean);
+			}
+			return 0;
+		}, "test12.put").call());
+
+		// 分页读取（zege GetFriendNode 系列协议的用法）：
+		// getFirstNode首发拿头节点+NodeId，之后按Node.NextNodeId用getNode续读直到链尾。
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+			var map = App.Instance.LinkedMapModule.open("testPaging", BMyBean.class);
+			var nodeId = new Zeze.Util.OutLong();
+			var node = map.getFirstNode(nodeId);
+			Assertions.assertNotNull(node, "非空map的头节点必须存在");
+			Assertions.assertTrue(nodeId.value != 0, "getFirstNode必须回填头节点Id");
+			var walked = new ArrayList<Integer>();
+			long nodes = 0;
+			while (null != node) {
+				++nodes;
+				for (var v : node.getValues())
+					walked.add(((BMyBean)v.getValue().getBean()).getI());
+				node = node.getNextNodeId() != 0 ? map.getNode(node.getNextNodeId()) : null;
+			}
+			Assertions.assertTrue(nodes >= 3, "65个条目默认nodeSize=30必须跨节点: " + nodes);
+			Assertions.assertEquals(65, walked.size(), "分页读取必须覆盖所有条目");
+			Collections.sort(walked);
+			Assertions.assertEquals((0 + 64) * 65 / 2, walked.stream().mapToInt(Integer::intValue).sum());
+
+			// 不存在的NodeId返回null
+			Assertions.assertNull(map.getNode(999999));
+			// 空map：getFirstNode返回null
+			var empty = App.Instance.LinkedMapModule.open("testPagingEmpty", BMyBean.class);
+			empty.clear();
+			Assertions.assertNull(empty.getFirstNode(nodeId));
+			return 0;
+		}, "test12.verify").call());
+	}
+
+	@Test
 	public void test6_ClearThenPut() throws Exception {
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var map = App.Instance.LinkedMapModule.open("test1", BMyBean.class);

@@ -12,7 +12,7 @@ allprojects {
     }
 
     dependencies {
-        implementation "com.zezeno:zeze-java:1.5.1"
+        implementation "com.zezeno:zeze-java:2.0.0" // 2.0.1发布后升级:node分页API(getFirstNode/getNode)已恢复,zege server编译需之
     }
 
     idea {
@@ -40,6 +40,7 @@ allprojects {
         options.failOnError = true
         options.debugOptions.debugLevel = "source,lines,vars"
         options.compilerArgs += "-parameters"
+        options.compilerArgs += "-Xlint:deprecation"
     }
 }
 

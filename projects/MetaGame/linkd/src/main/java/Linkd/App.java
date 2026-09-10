@@ -198,6 +198,8 @@ public final class App extends Zeze.AppBase {
     public void stopModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (Linkd_Linkd != null)
                 Linkd_Linkd.Stop(this);
         } finally {
@@ -208,6 +210,8 @@ public final class App extends Zeze.AppBase {
     public void stopBeforeModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (Linkd_Linkd != null)
                 Linkd_Linkd.StopBefore();
         } finally {

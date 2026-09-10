@@ -22,6 +22,7 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.OutLong;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -278,14 +279,32 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	// list
-	// NodeId是存储布局的内部细节（move会搬迁、clear会摘链、节点空了会被GC），只在当前事务内有意义，
-	// 不作为公共API暴露；外部一律按id操作。getRoot/getNode仅内部使用。
+	// NodeId是存储布局的内部细节（move会搬迁、clear会摘链、节点空了会被GC），只在当前事务内有意义。
+	// 常规增删查一律按id操作（put/get/remove...）；getNode/getFirstNode仅为分页读取协议（如zege的
+	// GetFriendNode系列）保留的只读入口，不承诺NodeId跨事务稳定，也不应基于返回的节点做写操作。
 	private @Nullable BLinkedMap getRoot() {
 		return module._tLinkedMaps.get(name);
 	}
 
-	private BLinkedMapNode getNode(long nodeId) {
+	/**
+	 * 按NodeId读取节点行，仅供分页读取协议续读使用。找不到返回null。
+	 *
+	 * <p>【注意】NodeId只在当前事务内有意义；返回的是表内活bean（可变），调用方只应读取
+	 * （典型用法是序列化进rpc结果），不要修改。</p>
+	 */
+	public @Nullable BLinkedMapNode getNode(long nodeId) {
 		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
+	}
+
+	/**
+	 * 返回头节点，并把nodeId.value设为头节点Id，供分页读取协议首发使用。map未创建或空链返回null。
+	 */
+	public @Nullable BLinkedMapNode getFirstNode(@NotNull OutLong nodeId) {
+		var root = getRoot();
+		if (null == root)
+			return null;
+		nodeId.value = root.getHeadNodeId();
+		return root.getHeadNodeId() == 0 ? null : getNode(root.getHeadNodeId());
 	}
 
 	public boolean isEmpty() {

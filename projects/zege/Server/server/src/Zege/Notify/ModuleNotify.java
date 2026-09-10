@@ -1,5 +1,6 @@
 package Zege.Notify;
 
+import Zeze.Arch.OnlineSpec;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Collections.LinkedMap;
@@ -18,7 +19,7 @@ public class ModuleNotify extends AbstractModule {
         var notify = new NotifyNodeLogBeanNotify();
         var encoded = App.LinkedMaps.encodeChangeListenerWithSpecialName(nodeKey.getName(), key, r);
         notify.Argument.setChangeLog(new Binary(encoded));
-        App.Provider.getOnline().sendAccount(account, notify); // TODO online sender
+        OnlineSpec.ofAccount(App.Provider.getOnline(), account).send(notify); // TODO online sender
     }
 
     public void Start(Zege.App ignoredApp) {

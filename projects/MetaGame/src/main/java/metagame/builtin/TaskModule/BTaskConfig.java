@@ -619,7 +619,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         Zeze.Serialize.Helper.decodeJsonDynamic(_ExtendData, _r_.getString(_pn_ + "ExtendData"));
         _p_.add("TaskConditions");
         _TaskConditions.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         setPreposeRequired(_r_.getInt(_pn_ + "PreposeRequired"));
         setRepeatable(_r_.getBoolean(_pn_ + "Repeatable"));
     }
@@ -635,7 +635,7 @@ public final class BTaskConfig extends Zeze.Transaction.Bean implements BTaskCon
         _s_.appendString(_pn_ + "ExtendData", Zeze.Serialize.Helper.encodeJson(_ExtendData));
         _p_.add("TaskConditions");
         _TaskConditions.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _s_.appendInt(_pn_ + "PreposeRequired", getPreposeRequired());
         _s_.appendBoolean(_pn_ + "Repeatable", isRepeatable());
     }

@@ -2,7 +2,7 @@
 
 <solution name="Zege" ModuleIdAllowRanges="1-1000">
 	<import file="solution.linkd.xml"/>
-	<import file="../../zeze/ZezeJava/ZezeJava/solution.zeze.xml"/>
+	<import file="../../../ZezeJava/ZezeJava/solution.zeze.xml"/>
 
 	<module name="User" id="1">
 		<enum name="eAccountHasUsed"     value="1" />
@@ -264,7 +264,7 @@
 
 		<bean name="BGetGroupMemberNode">
 			<variable id="1" name="NodeId" type="long"/>
-			<variable id="2" name="Node"    type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>			
+			<variable id="2" name="Node"    type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>
 		</bean>
 
 		<!-- argument.DepartmentId 不需要设置，必须为0 -->
@@ -272,7 +272,7 @@
 
 		<bean name="BGetDepartmentMemberNode">
 			<variable id="1" name="NodeId" type="long"/>
-			<variable id="2" name="Node"    type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>			
+			<variable id="2" name="Node"    type="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode"/>
 		</bean>
 
 		<bean name="BDepartmentNodeId">
@@ -497,7 +497,7 @@
 		</bean>
 
 		<rpc name="GetNotifyNode" argument="BGetNotifyNodeArgument" result="BGetNotifyNode" handle="server"/>
-		
+
 		<bean name="BSendNotify">
 			<variable id="1" name="Group" type="string"/>
 			<variable id="2" name="Notifys" type="map[string, BNotify]"/>
@@ -511,7 +511,7 @@
 		<rpc name="RemoveNotify" argument="BRemoveNotify" handle="server"/>
 	</module>
 
-	<project name="server" gendir="." scriptdir="src" platform="java" GenTables="">
+	<project name="server" GenDir="server/Gen" SrcDir="server/src" platform="java" GenTables="">
 		<!--
 		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
 		<module ref="CommonModule"/>
@@ -531,7 +531,7 @@
 		</service>
 	</project>
 
-	<project name="client" gendir="." scriptdir="src" platform="java" BuiltinNG="true">
+	<project name="client" GenDir="client/Gen" SrcDir="client/src" platform="java" BuiltinNG="true">
 		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
 			<module ref="Zeze.Builtin.Online"/>
 			<module ref="Zeze.Builtin.LinkdBase"/>
@@ -543,7 +543,7 @@
 		</service>
 	</project>
 
-	<project name="Zege" gendir="../" platform="conf+cs+net">
+	<project name="Zege" GenDir="../Zege/Gen" SrcDir="../Zege" platform="conf+cs+net">
 		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
 			<module ref="Zeze.Builtin.Online"/>
 			<module ref="Zeze.Builtin.LinkdBase"/>

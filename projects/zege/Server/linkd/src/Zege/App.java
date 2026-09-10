@@ -238,6 +238,8 @@ public class App extends Zeze.AppBase {
     public void stopModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (Zege_User != null)
                 Zege_User.Stop(this);
             if (Zege_Linkd != null)
@@ -254,6 +256,8 @@ public class App extends Zeze.AppBase {
     public void stopBeforeModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (Zege_User != null)
                 Zege_User.StopBefore();
             if (Zege_Linkd != null)

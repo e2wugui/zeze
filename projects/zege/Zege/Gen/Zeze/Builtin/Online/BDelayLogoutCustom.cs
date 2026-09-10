@@ -12,11 +12,13 @@ namespace Zeze.Builtin.Online
         public string Account;
         public string ClientId;
         public long LoginVersion;
+        public string ProjectName; // 用于重启后通过 Application.getAppInstance 查找 Online 实例
 
         public BDelayLogoutCustom()
         {
             Account = "";
             ClientId = "";
+            ProjectName = "";
         }
 
         public const long TYPEID = 8209690781023670883;
@@ -36,7 +38,8 @@ namespace Zeze.Builtin.Online
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Account").Append('=').Append(Account).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ClientId").Append('=').Append(ClientId).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("LoginVersion").Append('=').Append(LoginVersion).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("LoginVersion").Append('=').Append(LoginVersion).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ProjectName").Append('=').Append(ProjectName).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -68,6 +71,14 @@ namespace Zeze.Builtin.Online
                     _o_.WriteLong(_x_);
                 }
             }
+            {
+                string _x_ = ProjectName;
+                if (_x_ != null && _x_.Length != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                    _o_.WriteString(_x_);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -90,6 +101,11 @@ namespace Zeze.Builtin.Online
                 LoginVersion = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
+            if (_i_ == 4)
+            {
+                ProjectName = _o_.ReadString(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -108,6 +124,7 @@ namespace Zeze.Builtin.Online
                     case 1: Account = ((Zeze.Transaction.Log<string>)vlog).Value; break;
                     case 2: ClientId = ((Zeze.Transaction.Log<string>)vlog).Value; break;
                     case 3: LoginVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 4: ProjectName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
                 }
             }
         }
@@ -117,6 +134,7 @@ namespace Zeze.Builtin.Online
             Account = "";
             ClientId = "";
             LoginVersion = 0;
+            ProjectName = "";
         }
     }
 }

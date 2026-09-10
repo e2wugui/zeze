@@ -249,6 +249,8 @@ public class App extends Zeze.AppBase {
     public void stopModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (Demo_MyWorld != null)
                 Demo_MyWorld.Stop(this);
             if (Demo_Fight != null)
@@ -263,6 +265,8 @@ public class App extends Zeze.AppBase {
     public void stopBeforeModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (Demo_MyWorld != null)
                 Demo_MyWorld.StopBefore();
             if (Demo_Fight != null)
