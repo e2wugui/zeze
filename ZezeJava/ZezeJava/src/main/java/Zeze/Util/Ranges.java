@@ -32,7 +32,9 @@ public final class Ranges {
 			if (first + 1 == last) {
 				return String.valueOf(first);
 			}
-			return first + "-" + last;
+			// 打印闭端点（last-1）与解析对称（解析按闭区间 +1 转半开），
+			// 保证 parse(toString(r)) == r，往返不漂移（FND3-17）。
+			return first + "-" + (last - 1);
 		}
 
 		public boolean include(@NotNull Range r) {
@@ -103,5 +105,18 @@ public final class Ranges {
 
 	public void assertInclude(int type) {
 		assertInclude(new Range(type, type + 1));
+	}
+
+	// 逗号分隔的闭区间串，与构造解析同构：parse(toString(rs)) == rs（FND3-17），
+	// 同时让 checkAdd/assertInclude 的冲突消息可读（原为 Object 默认的 类名@hash）。
+	@Override
+	public @NotNull String toString() {
+		var sb = new StringBuilder();
+		for (var r : ranges) {
+			if (sb.length() > 0)
+				sb.append(',');
+			sb.append(r);
+		}
+		return sb.toString();
 	}
 }

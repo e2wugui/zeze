@@ -34,7 +34,9 @@ namespace Zeze.Util
 			{
 				if (first + 1 == last)
 					return first.ToString();
-				return first.ToString() + "-" + last.ToString();
+				// 打印闭端点（last-1）与解析对称（解析按闭区间 +1 转半开），
+				// 保证 parse(ToString(r)) == r，往返不漂移（FND3-17）。
+				return first.ToString() + "-" + (last - 1).ToString();
 			}
 
 			public bool Include(Range r)
@@ -121,6 +123,20 @@ namespace Zeze.Util
 		public void AssertInclude(int type)
 		{
 			AssertInclude(new Range(type, type + 1));
+		}
+
+		// 逗号分隔的闭区间串，与构造解析同构：parse(ToString(rs)) == rs（FND3-17），
+		// 同时让 CheckAdd/AssertInclude 的冲突消息可读（原为 Object 默认的类型名）。
+		public override string ToString()
+		{
+			var sb = new System.Text.StringBuilder();
+			foreach (Range r in ranges)
+			{
+				if (sb.Length > 0)
+					sb.Append(',');
+				sb.Append(r);
+			}
+			return sb.ToString();
 		}
 	}
 }
