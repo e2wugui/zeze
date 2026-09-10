@@ -23,6 +23,6 @@ Zeze是一个基于一致性缓存的分布式事务应用框架，它具有很�
 <dependency>
     <groupId>com.zezeno</groupId>
     <artifactId>zeze-java</artifactId>
-    <version>1.6.3</version>
+    <version>2.0.0</version>
 </dependency>
 ```
