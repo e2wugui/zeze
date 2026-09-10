@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
@@ -17,15 +18,30 @@ import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-public class Cache extends ReentrantLock {
+/**
+ * # 本地持久化只读缓存（内存Lru + RocksDb + 定期退役）
+ *
+ * 面向装载后不再修改的参照数据（配置、id映射、资源索引等）：
+ * - **查询顺序**：Lru → RocksDb → loader。装载成功即写RocksDb并登记当天days_清单，之后重启也只读RocksDb。
+ * - **只读假设**：get返回Lru中的共享实例，无写回API；调用方修改不落库、不同步，淘汰或退役后即丢失。
+ * - **刷新**：唯一途径是写入约30天后被每天6:30的清理任务退役（见dbSave/tryRemove），下次get重走loader，即接受最长约30天陈旧。
+ * - **并发**：同id的get无互斥，decoder/loader可能重复执行，仅装载开销重复；getOrAdd保证Lru只有一个条目。
+ * - **null cache**：loader返回null时放5分钟NullCache占位（不落RocksDb），防止对不存在的id反复穿透。
+ */
+public class Cache {
 	private final @NotNull String name;
 	private final @NotNull Function<String, CacheObject> loader;
 	private final @NotNull BiFunction<String, ByteBuffer, CacheObject> decoder;
 	private RocksDB db;
 	private ConcurrentLruLike<String, CacheObject> lru;
 	private final ScheduledFuture<?> cleanTimer;
+	// 保护当天清单状态（todayDays/todayFile）：开新流、写清单、关旧流、close关流都必须同处其临界区，
+	// 否则无锁的写者可能拿到刚被关闭的旧流而抛"Stream Closed"，该key当天的清单条目丢失。
+	private final ReentrantLock todayLock = new ReentrantLock();
+	// tryRemove 的清理筛选在锁外读（见那里的说明），保持 volatile。
 	private volatile long todayDays;
-	private volatile FileOutputStream todayFile;
+	// 只在持有 todayLock 时访问。
+	private FileOutputStream todayFile;
 
 	/**
 	 * 创建LocalCache
@@ -53,8 +69,13 @@ public class Cache extends ReentrantLock {
 	public void close() throws IOException {
 		if (cleanTimer != null)
 			cleanTimer.cancel(false);
-		if (todayFile != null)
-			todayFile.close();
+		todayLock.lock();
+		try {
+			if (todayFile != null)
+				todayFile.close();
+		} finally {
+			todayLock.unlock();
+		}
 
 		db.close();
 		db = null;
@@ -122,32 +143,27 @@ public class Cache extends ReentrantLock {
 		key.WriteString(id);
 		db.put(RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex, bb.Bytes, 0, bb.WriteIndex);
 
-		today().write((id + "\n").getBytes(StandardCharsets.UTF_8));
+		appendToday(id);
 	}
 
-	private @NotNull FileOutputStream today() throws IOException {
+	// 当天清单的唯一写入口：取流（含跨天滚动开新流、关旧流）与写流同处一个临界区。
+	// 该key当天的清单条目一旦丢失，它的db记录从此再没有退役记录。
+	private void appendToday(@NotNull String id) throws IOException {
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
-		// 第一次执行时，如果nowDays等于0（即days的初始值），会返回null。
-		// 这种情况就不处理了。
-		if (todayDays != nowDays) {
-			lock();
-			try {
-				if (todayDays != nowDays) {
-					// 顺序：(1)先开新流并赋值 todayFile（volatile），(2)再写 todayDays（volatile），(3)最后关旧流。
-					// (2)在(1)之后保证快路径读者看到新 todayDays 时必然看到新 todayFile；
-					// 原实现先写 todayDays 再换流，跨天窗口内无锁读者会拿到已 close 的旧流。
-					var oldFile = todayFile;
-					todayFile = new FileOutputStream(Paths.get(name, "days_" + nowDays).toFile());
-					todayDays = nowDays;
-					if (oldFile != null)
-						oldFile.close();
-				}
-				return todayFile;
-			} finally {
-				unlock();
+		todayLock.lock();
+		try {
+			if (todayDays != nowDays) {
+				// 第一次执行时如果nowDays等于0（todayDays的初始值），不会走到这里，这种情况不处理了。
+				var oldFile = todayFile;
+				todayFile = new FileOutputStream(Paths.get(name, "days_" + nowDays).toFile());
+				todayDays = nowDays;
+				if (oldFile != null)
+					oldFile.close();
 			}
+			todayFile.write((id + "\n").getBytes(StandardCharsets.UTF_8));
+		} finally {
+			todayLock.unlock();
 		}
-		return todayFile;
 	}
 
 	private void tryRemove() throws IOException, RocksDBException {
@@ -162,24 +178,41 @@ public class Cache extends ReentrantLock {
 			for (var file : files) {
 				if (file.getName().startsWith(prefix)) {
 					var days = Long.parseLong(file.getName().substring(prefix.length()));
-					// a month ago && not today
-					if (nowDays - days > 30 && days != todayDays)
-						tryRemove(db, lru, file);
+					// a month ago && not today。todayDays在锁外volatile读：陈旧无害，
+					// nowDays-days>30已排除近期文件，days!=todayDays只是对当天清单的额外保险。
+					if (nowDays - days > 30 && days != todayDays) {
+						var skipped = tryRemove(db, lru, file);
+						// 整个文件逐行处理成功后才删除清单文件，闭合其生命周期，免得已退役的清单
+						// 每天被重复读取、重复删除同一批key；若半途抛异常，异常直接冒泡到这里之上，
+						// 不会执行下面的删除，这批key的清理不会永久丢失。
+						// 因"当前使用中"被跳过的id必须转移登记到当天的清单里（下个月再试），
+						// 否则删掉文件就永久失去它们的退役记录，RocksDB里的记录再没人清理。
+						if (!skipped.isEmpty()) {
+							for (var id : skipped)
+								appendToday(id);
+						}
+						//noinspection ResultOfMethodCallIgnored
+						file.delete();
+					}
 				}
 			}
 		}
 	}
 
-	private static void tryRemove(@NotNull RocksDB db, @NotNull ConcurrentLruLike<String, CacheObject> lru,
-								  @NotNull File file) throws IOException, RocksDBException {
+	private static @NotNull ArrayList<String> tryRemove(@NotNull RocksDB db, @NotNull ConcurrentLruLike<String, CacheObject> lru,
+														@NotNull File file) throws IOException, RocksDBException {
+		var skipped = new ArrayList<String>();
 		try (var r = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
 			for (var id = r.readLine(); id != null; id = r.readLine()) {
-				if (lru.get(id) != null)
-					continue; // 当前使用中的项不删除。
+				if (lru.get(id) != null) {
+					skipped.add(id); // 当前使用中的项不删除，交给调用方转移登记到当天的清单里。
+					continue;
+				}
 				var key = ByteBuffer.Allocate(9);
 				key.WriteString(id);
 				db.delete(RocksDatabase.getDefaultWriteOptions(), key.Bytes, 0, key.WriteIndex);
 			}
 		}
+		return skipped;
 	}
 }
