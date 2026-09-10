@@ -38,10 +38,15 @@ public final class Meta2<K, V> {
 	public final SerializeHelper.ObjectIntFunction<IByteBuffer, V> valueDecoderWithType; // 只用于非Bean类型
 	public final MethodHandle valueFactory; // 只用于Bean类型
 	public final @NotNull String name; // 主要用于分析查错
+	// 实例的真实 key/value 类型，供 variables() 等元数据推导（FND3-07）。
+	public final @NotNull Class<?> keyClass;
+	public final @NotNull Class<?> valueClass;
 
 	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass,
 	              MethodHandle valueFactory) {
 		logTypeId = Bean.hashLog(headHash, keyClass, valueClass);
+		this.keyClass = keyClass;
+		this.valueClass = valueClass;
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		keyEncodeType = keyCodecFuncs.encodeType;
 		keyEncoder = keyCodecFuncs.encoder;
@@ -80,6 +85,8 @@ public final class Meta2<K, V> {
 	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get,
 	              @NotNull LongFunction<Bean> create) {
 		logTypeId = Bean.hashLog(headHash, keyClass, DynamicBean.class);
+		this.keyClass = keyClass;
+		this.valueClass = DynamicBean.class;
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		keyEncodeType = keyCodecFuncs.encodeType;
 		keyEncoder = keyCodecFuncs.encoder;
@@ -157,5 +164,46 @@ public final class Meta2<K, V> {
 	                                                                                  @NotNull ToLongFunction<Bean> get,
 	                                                                                  @NotNull LongFunction<Bean> create) {
 		return new Meta2<>("LogSortedMap2:", sortedMap2HeadHash, keyClass, get, create);
+	}
+
+	// Java Class → schema 类型名，与生成器（Gen/Types/Variable.GetTypeFullName）的输出对齐：
+	// 内建类型用 schema 关键字，bean/枚举用全名（生成约定 schema 全名 == Java 类名）。
+	// 供运行时从 Meta2.keyClass/valueClass 推导 variables() 等类型元数据（FND3-07）。
+	public static @NotNull String schemaTypeName(@NotNull Class<?> cls) {
+		if (cls == Boolean.class || cls == boolean.class)
+			return "bool";
+		if (cls == Byte.class || cls == byte.class)
+			return "byte";
+		if (cls == Short.class || cls == short.class)
+			return "short";
+		if (cls == Integer.class || cls == int.class)
+			return "int";
+		if (cls == Long.class || cls == long.class)
+			return "long";
+		if (cls == Float.class || cls == float.class)
+			return "float";
+		if (cls == Double.class || cls == double.class)
+			return "double";
+		if (cls == String.class)
+			return "string";
+		if (cls == Zeze.Net.Binary.class)
+			return "binary";
+		if (cls == java.math.BigDecimal.class)
+			return "decimal";
+		if (cls == DynamicBean.class)
+			return "dynamic";
+		if (cls == Zeze.Serialize.Vector2.class)
+			return "vector2";
+		if (cls == Zeze.Serialize.Vector2Int.class)
+			return "vector2int";
+		if (cls == Zeze.Serialize.Vector3.class)
+			return "vector3";
+		if (cls == Zeze.Serialize.Vector3Int.class)
+			return "vector3int";
+		if (cls == Zeze.Serialize.Vector4.class)
+			return "vector4";
+		if (cls == Zeze.Serialize.Quaternion.class)
+			return "quaternion";
+		return cls.getName();
 	}
 }

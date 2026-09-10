@@ -310,8 +310,12 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 
 	@Override
 	public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+		// 行 bean 的唯一变量是列 map（C→V），类型从 meta 推导，与 schema 声明一致（FND3-07）。
 		var _v_ = super.variables();
-		_v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Map2", "map", "int", "Zeze.Builtin.MQ.BOptions"));
+		var meta = pMap2.getMeta();
+		_v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Map2", "map",
+				Zeze.Transaction.Collections.Meta2.schemaTypeName(meta.keyClass),
+				Zeze.Transaction.Collections.Meta2.schemaTypeName(meta.valueClass)));
 		return _v_;
 	}
 }
