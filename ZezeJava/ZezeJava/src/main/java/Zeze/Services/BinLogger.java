@@ -382,36 +382,7 @@ public final class BinLogger extends ReentrantLock {
 					throw new IOException("tryLock LOCK file failed");
 				// 2.修复并打开当天的所有日志和索引文件
 				curDayStamp = toDayStamp(System.currentTimeMillis());
-				var fnPrefix = logPath + toDayStr(curDayStamp);
-				try (var binF = new RecoveryFile(fnPrefix + ".bin");
-					 var posF = new RecoveryFile(fnPrefix + ".pos");
-					 var tsF = new RecoveryFile(fnPrefix + ".ts");
-					 var dtF = new RecoveryFile(fnPrefix + ".dt");
-					 var idF = new RecoveryFile(fnPrefix + ".id")) {
-					binFileSize = binF.size;
-					logger.info("recovery: bin,pos,ts,dt,id.size={},{},{},{},{}; fileNamePrefix='{}'",
-							binFileSize, posF.size, tsF.size, dtF.size, idF.size, fnPrefix);
-					var otherTruncateSize = Math.min(Math.min(Math.min(posF.size, tsF.size), dtF.size), idF.size) & ~7;
-					var buf = new byte[8];
-					for (; otherTruncateSize >= 8; otherTruncateSize -= 8) {
-						posF.raf.seek(otherTruncateSize - 8);
-						posF.raf.read(buf);
-						var posLen = ByteBuffer.ToLong(buf, 0);
-						if ((posLen >>> 20) + (posLen & 0xfffff) <= binFileSize)
-							break;
-					}
-					logger.info("recovery: truncate size={}", otherTruncateSize);
-					posF.tryTruncate(otherTruncateSize);
-					tsF.tryTruncate(otherTruncateSize);
-					dtF.tryTruncate(otherTruncateSize);
-					idF.tryTruncate(otherTruncateSize);
-					binFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".bin", true), BIN_BUFFER);
-					posFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".pos", true), OTHER_BUFFER);
-					tsFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".ts", true), OTHER_BUFFER);
-					dtFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".dt", true), OTHER_BUFFER);
-					idFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".id", true), OTHER_BUFFER);
-					lastFlushMs = System.currentTimeMillis();
-				}
+				openDay(curDayStamp);
 				// 3.开启输出日志线程
 				writeLogQueue = new ArrayList<>();
 				writeLogQueueSize = 0;
@@ -424,6 +395,59 @@ public final class BinLogger extends ReentrantLock {
 				stopLogger();
 				throw e;
 			}
+		}
+
+		// 打开指定日期戳的全套日志和索引文件: 先按bin/pos对账修复索引, 再以追加方式打开, 最后一次性替换当前状态.
+		// 启动与跨天轮转共用此唯一入口, 当日的binFileSize等状态都在这里重新建立, 避免两处各写一份而漏项.
+		// 打开过程中抛异常时不改变任何当前状态, 于是轮转失败仍可继续用旧文件写, 下一轮再重试.
+		private void openDay(int dayStamp) throws Exception {
+			var fnPrefix = logPath + toDayStr(dayStamp);
+			final long newBinFileSize;
+			try (var binF = new RecoveryFile(fnPrefix + ".bin");
+				 var posF = new RecoveryFile(fnPrefix + ".pos");
+				 var tsF = new RecoveryFile(fnPrefix + ".ts");
+				 var dtF = new RecoveryFile(fnPrefix + ".dt");
+				 var idF = new RecoveryFile(fnPrefix + ".id")) {
+				newBinFileSize = binF.size;
+				logger.info("recovery: bin,pos,ts,dt,id.size={},{},{},{},{}; fileNamePrefix='{}'",
+						newBinFileSize, posF.size, tsF.size, dtF.size, idF.size, fnPrefix);
+				var otherTruncateSize = Math.min(Math.min(Math.min(posF.size, tsF.size), dtF.size), idF.size) & ~7;
+				var buf = new byte[8];
+				for (; otherTruncateSize >= 8; otherTruncateSize -= 8) {
+					posF.raf.seek(otherTruncateSize - 8);
+					posF.raf.read(buf);
+					var posLen = ByteBuffer.ToLong(buf, 0);
+					if ((posLen >>> 20) + (posLen & 0xfffff) <= newBinFileSize)
+						break;
+				}
+				logger.info("recovery: truncate size={}", otherTruncateSize);
+				posF.tryTruncate(otherTruncateSize);
+				tsF.tryTruncate(otherTruncateSize);
+				dtF.tryTruncate(otherTruncateSize);
+				idF.tryTruncate(otherTruncateSize);
+			}
+			BufferedOutputStream newBinFile = null, newPosFile = null, newTsFile = null, newDtFile = null, newIdFile = null;
+			try {
+				newBinFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".bin", true), BIN_BUFFER);
+				newPosFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".pos", true), OTHER_BUFFER);
+				newTsFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".ts", true), OTHER_BUFFER);
+				newDtFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".dt", true), OTHER_BUFFER);
+				newIdFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".id", true), OTHER_BUFFER);
+			} catch (Throwable e) { // rethrow
+				forceClose(newIdFile);
+				forceClose(newDtFile);
+				forceClose(newTsFile);
+				forceClose(newPosFile);
+				forceClose(newBinFile);
+				throw e;
+			}
+			binFileSize = newBinFileSize;
+			binFile = newBinFile;
+			posFile = newPosFile;
+			tsFile = newTsFile;
+			dtFile = newDtFile;
+			idFile = newIdFile;
+			lastFlushMs = System.currentTimeMillis();
 		}
 
 		private void stopLogger() throws Exception {
@@ -525,19 +549,19 @@ public final class BinLogger extends ReentrantLock {
 							lastTs = curMs << 20;
 						var dayStamp = toDayStamp(curMs);
 						if (dayStamp != curDayStamp) { // 判断是否要轮转日志文件
+							var oldBinFile = binFile;
+							var oldPosFile = posFile;
+							var oldTsFile = tsFile;
+							var oldDtFile = dtFile;
+							var oldIdFile = idFile;
+							// 先打开新一天的全套文件再关旧文件: 打开失败时旧文件仍可继续写, 且curDayStamp不推进, 下一轮重试轮转.
+							openDay(dayStamp);
+							forceClose(oldIdFile);
+							forceClose(oldDtFile);
+							forceClose(oldTsFile);
+							forceClose(oldPosFile);
+							forceClose(oldBinFile);
 							curDayStamp = dayStamp;
-							var fnPrefix = logPath + toDayStr(curDayStamp);
-							forceClose(binFile);
-							forceClose(posFile);
-							forceClose(tsFile);
-							forceClose(dtFile);
-							forceClose(idFile);
-							binFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".bin"), BIN_BUFFER);
-							posFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".pos"), OTHER_BUFFER);
-							tsFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".ts"), OTHER_BUFFER);
-							dtFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".dt"), OTHER_BUFFER);
-							idFile = new BufferedOutputStream(new FileOutputStream(fnPrefix + ".id"), OTHER_BUFFER);
-							lastFlushMs = System.currentTimeMillis();
 						}
 						for (int i = 0; i < queueSize; i++) { // 把当前队列里的日志全部写入日志和索引文件,用相同的毫秒时间戳应该没问题
 							var logData = readLogQueue.get(i);
