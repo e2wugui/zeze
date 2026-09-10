@@ -29,19 +29,17 @@ public final class BeanFactory {
 	private static final @NotNull Logger logger = LogManager.getLogger(BeanFactory.class);
 	private static final LongHashMap<Object> allClassNameMap = new LongHashMap<>();
 	private static final LongHashMap<Object> allDataClassNameMap = new LongHashMap<>();
-	private static final @NotNull ReentrantReadWriteLock.ReadLock allClassNameMapReadLock;
-	private static final @NotNull ReentrantReadWriteLock.WriteLock allClassNameMapWriteLock;
-	private static final @NotNull ReentrantReadWriteLock.ReadLock allDataNameMapReadLock;
-	private static final @NotNull ReentrantReadWriteLock.WriteLock allDataNameMapWriteLock;
+	// 两张map是同一个"类名/typeId注册表"的两个方向, 加载器必须同时持有两者,
+	// 所以只用一把读写锁: 否则 findClass(先Bean后Data) 与 findDataClass(先Data后Bean)
+	// 会形成 AB-BA 锁序反转, 在首次惰性加载并发时互等死锁.
+	private static final @NotNull ReentrantReadWriteLock.ReadLock allMapReadLock;
+	private static final @NotNull ReentrantReadWriteLock.WriteLock allMapWriteLock;
 	private static @Nullable Application zeze;
 
 	static {
 		var rwLock = new ReentrantReadWriteLock();
-		allClassNameMapReadLock = rwLock.readLock();
-		allClassNameMapWriteLock = rwLock.writeLock();
-		rwLock = new ReentrantReadWriteLock();
-		allDataNameMapReadLock = rwLock.readLock();
-		allDataNameMapWriteLock = rwLock.writeLock();
+		allMapReadLock = rwLock.readLock();
+		allMapWriteLock = rwLock.writeLock();
 	}
 
 	private final LongHashMap<MethodHandle> writingBeanFactory = new LongHashMap<>();
@@ -149,19 +147,14 @@ public final class BeanFactory {
 	public static int loadAllClasses(@NotNull String classPrefix, boolean initClasses) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		allClassNameMapWriteLock.lock();
+		allMapWriteLock.lock();
 		try {
-			allDataNameMapWriteLock.lock();
-			try {
-				for (var cn : Reflect.collectAllClassNames(null)) {
-					if (cn.startsWith(classPrefix) && (initClasses ? loadClass(cn) : loadClassName(cn)))
-						n++;
-				}
-			} finally {
-				allDataNameMapWriteLock.unlock();
+			for (var cn : Reflect.collectAllClassNames(null)) {
+				if (cn.startsWith(classPrefix) && (initClasses ? loadClass(cn) : loadClassName(cn)))
+					n++;
 			}
 		} finally {
-			allClassNameMapWriteLock.unlock();
+			allMapWriteLock.unlock();
 		}
 		logger.info("loaded {} {} for prefix '{}' ({} ms)",
 				n, initClasses ? "classes" : "class names", classPrefix, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -171,19 +164,14 @@ public final class BeanFactory {
 	public static int loadClassesFromPath(@NotNull String path, boolean initClasses) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		allClassNameMapWriteLock.lock();
+		allMapWriteLock.lock();
 		try {
-			allDataNameMapWriteLock.lock();
-			try {
-				for (var cn : Reflect.collectClassNamesFromPath(path)) {
-					if (initClasses ? loadClass(cn) : loadClassName(cn))
-						n++;
-				}
-			} finally {
-				allDataNameMapWriteLock.unlock();
+			for (var cn : Reflect.collectClassNamesFromPath(path)) {
+				if (initClasses ? loadClass(cn) : loadClassName(cn))
+					n++;
 			}
 		} finally {
-			allClassNameMapWriteLock.unlock();
+			allMapWriteLock.unlock();
 		}
 		logger.info("loaded {} {} from path '{}' ({} ms)",
 				n, initClasses ? "classes" : "class names", path, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -193,19 +181,14 @@ public final class BeanFactory {
 	public static int loadClassesFromJar(@NotNull String jarFile, boolean initClasses) throws IOException {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		allClassNameMapWriteLock.lock();
+		allMapWriteLock.lock();
 		try {
-			allDataNameMapWriteLock.lock();
-			try {
-				for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
-					if (initClasses ? loadClass(cn) : loadClassName(cn))
-						n++;
-				}
-			} finally {
-				allDataNameMapWriteLock.unlock();
+			for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
+				if (initClasses ? loadClass(cn) : loadClassName(cn))
+					n++;
 			}
 		} finally {
-			allClassNameMapWriteLock.unlock();
+			allMapWriteLock.unlock();
 		}
 		logger.info("loaded {} {} from jar '{}' ({} ms)",
 				n, initClasses ? "classes" : "class names", jarFile, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -215,19 +198,14 @@ public final class BeanFactory {
 	public static int reloadClassesFromJar(@NotNull JarFile jarFile) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		allClassNameMapWriteLock.lock();
+		allMapWriteLock.lock();
 		try {
-			allDataNameMapWriteLock.lock();
-			try {
-				for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
-					reloadClassName(cn);
-					n++;
-				}
-			} finally {
-				allDataNameMapWriteLock.unlock();
+			for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
+				reloadClassName(cn);
+				n++;
 			}
 		} finally {
-			allClassNameMapWriteLock.unlock();
+			allMapWriteLock.unlock();
 		}
 		logger.info("reloaded {} class names from jar '{}' ({} ms)",
 				n, jarFile, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -304,7 +282,7 @@ public final class BeanFactory {
 	 */
 	@SuppressWarnings("unchecked")
 	public static @Nullable Class<? extends Bean> findClass(long typeId) {
-		allClassNameMapReadLock.lock();
+		allMapReadLock.lock();
 		try {
 			var obj = allClassNameMap.get(typeId);
 			if (obj instanceof Class)
@@ -312,10 +290,10 @@ public final class BeanFactory {
 			if (obj == null && !allClassNameMap.isEmpty())
 				return null;
 		} finally {
-			allClassNameMapReadLock.unlock();
+			allMapReadLock.unlock();
 		}
 
-		allClassNameMapWriteLock.lock();
+		allMapWriteLock.lock();
 		try {
 			var obj = allClassNameMap.get(typeId);
 			if (obj instanceof Class)
@@ -339,7 +317,7 @@ public final class BeanFactory {
 			if (allClassNameMap.isEmpty() && loadAllClasses("", false) != 0)
 				return findClass(typeId);
 		} finally {
-			allClassNameMapWriteLock.unlock();
+			allMapWriteLock.unlock();
 		}
 		return null;
 	}
@@ -349,7 +327,7 @@ public final class BeanFactory {
 	 */
 	@SuppressWarnings("unchecked")
 	public static @Nullable Class<? extends Data> findDataClass(long typeId) {
-		allDataNameMapReadLock.lock();
+		allMapReadLock.lock();
 		try {
 			var obj = allDataClassNameMap.get(typeId);
 			if (obj instanceof Class)
@@ -357,10 +335,10 @@ public final class BeanFactory {
 			if (obj == null && !allDataClassNameMap.isEmpty())
 				return null;
 		} finally {
-			allDataNameMapReadLock.unlock();
+			allMapReadLock.unlock();
 		}
 
-		allDataNameMapWriteLock.lock();
+		allMapWriteLock.lock();
 		try {
 			var obj = allDataClassNameMap.get(typeId);
 			if (obj instanceof Class)
@@ -384,7 +362,7 @@ public final class BeanFactory {
 			if (allDataClassNameMap.isEmpty() && loadAllClasses("", false) != 0)
 				return findDataClass(typeId);
 		} finally {
-			allDataNameMapWriteLock.unlock();
+			allMapWriteLock.unlock();
 		}
 		return null;
 	}
