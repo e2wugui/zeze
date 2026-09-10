@@ -29,25 +29,25 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 
 	public final CubeIndex toIndex(double x, double y, double z) {
 		CubeIndex tempVar = new CubeIndex();
-		tempVar.setX((long)(x / getCubeSizeX()));
-		tempVar.setY((long)(y / getCubeSizeY()));
-		tempVar.setZ((long)(z / getCubeSizeZ()));
+		tempVar.setX((long)Math.floor(x / getCubeSizeX()));
+		tempVar.setY((long)Math.floor(y / getCubeSizeY()));
+		tempVar.setZ((long)Math.floor(z / getCubeSizeZ()));
 		return tempVar;
 	}
 
 	public final CubeIndex toIndex(float x, float y, float z) {
 		CubeIndex tempVar = new CubeIndex();
-		tempVar.setX((long)(x / getCubeSizeX()));
-		tempVar.setY((long)(y / getCubeSizeY()));
-		tempVar.setZ((long)(z / getCubeSizeZ()));
+		tempVar.setX((long)Math.floor(x / getCubeSizeX()));
+		tempVar.setY((long)Math.floor(y / getCubeSizeY()));
+		tempVar.setZ((long)Math.floor(z / getCubeSizeZ()));
 		return tempVar;
 	}
 
 	public final CubeIndex toIndex(long x, long y, long z) {
 		CubeIndex tempVar = new CubeIndex();
-		tempVar.setX(x / getCubeSizeX());
-		tempVar.setY(y / getCubeSizeY());
-		tempVar.setZ(z / getCubeSizeZ());
+		tempVar.setX(Math.floorDiv(x, getCubeSizeX()));
+		tempVar.setY(Math.floorDiv(y, getCubeSizeY()));
+		tempVar.setZ(Math.floorDiv(z, getCubeSizeZ()));
 		return tempVar;
 	}
 
