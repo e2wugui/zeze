@@ -412,6 +412,17 @@ public abstract class Database extends ReentrantLock {
 			return callback.handle(k);
 		}
 
+		// 带游标遍历统一在此编码并检查 key 长度预算（FND3-02：walkKey/walkDesc 家族曾在
+		// MySql/SqlServer 整批遗漏、DatabaseMemory 一处都没有，靠后端手工复制执法不可靠）。
+		private static <K extends Comparable<K>, V extends Bean> @Nullable ByteBuffer encodeStartKeyChecked(
+				@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey) {
+			if (exclusiveStartKey == null)
+				return null;
+			var encoded = table.encodeKey(exclusiveStartKey);
+			checkKvKeyLength(table.getName(), encoded);
+			return encoded;
+		}
+
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walk(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback) throws Exception {
@@ -459,7 +470,7 @@ public abstract class Database extends ReentrantLock {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
-			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walk(encodedExclusiveStartKey, proposeLimit,
 					(key, value) -> invokeCallback(table, key, value, callback));
 			callback.endWalk(proposeLimit);
@@ -473,7 +484,7 @@ public abstract class Database extends ReentrantLock {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
-			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walkDesc(encodedExclusiveStartKey, proposeLimit,
 					(key, value) -> invokeCallback(table, key, value, callback));
 			callback.endWalk(proposeLimit);
@@ -487,7 +498,7 @@ public abstract class Database extends ReentrantLock {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
-			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
 					key -> invokeCallback(table, key, callback));
 			callback.endWalk(proposeLimit);
@@ -501,7 +512,7 @@ public abstract class Database extends ReentrantLock {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
-			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walkKeyDesc(encodedExclusiveStartKey, proposeLimit,
 					key -> invokeCallback(table, key, callback));
 			callback.endWalk(proposeLimit);
@@ -548,7 +559,7 @@ public abstract class Database extends ReentrantLock {
 		public <K extends Comparable<K>, V extends Bean>
 		@Nullable K walkDatabase(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 								 @NotNull TableWalkHandle<K, V> callback) throws Exception {
-			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walk(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
 				K k = table.decodeKey(key);
 				V v = table.decodeValue(value);
@@ -562,7 +573,7 @@ public abstract class Database extends ReentrantLock {
 		public <K extends Comparable<K>, V extends Bean>
 		@Nullable K walkDatabaseDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 									 @NotNull TableWalkHandle<K, V> callback) throws Exception {
-			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walkDesc(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
 				K k = table.decodeKey(key);
 				V v = table.decodeValue(value);
@@ -576,7 +587,7 @@ public abstract class Database extends ReentrantLock {
 		public <K extends Comparable<K>, V extends Bean>
 		@Nullable K walkDatabaseKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 									@NotNull TableWalkKey<K> callback) throws Exception {
-			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
 					key -> callback.handle(table.decodeKey(key)));
 			callback.endWalk(proposeLimit);
@@ -587,7 +598,7 @@ public abstract class Database extends ReentrantLock {
 		public <K extends Comparable<K>, V extends Bean>
 		@Nullable K walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 										@NotNull TableWalkKey<K> callback) throws Exception {
-			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
+			var encodedExclusiveStartKey = encodeStartKeyChecked(table, exclusiveStartKey);
 			var lastKey = walkKeyDesc(encodedExclusiveStartKey, proposeLimit,
 					key -> callback.handle(table.decodeKey(key)));
 			callback.endWalk(proposeLimit);

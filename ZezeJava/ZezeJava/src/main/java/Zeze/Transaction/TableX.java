@@ -996,6 +996,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final @Nullable ByteBuffer walkDatabaseRaw(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
 	                                                  @NotNull TableWalkHandleRaw callback) throws Exception {
+		if (exclusiveStartKey != null)
+			Database.checkKvKeyLength(getName(), exclusiveStartKey);
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1007,6 +1009,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final @Nullable ByteBuffer walkDatabaseRawDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
 	                                                      @NotNull TableWalkHandleRaw callback) throws Exception {
+		if (exclusiveStartKey != null)
+			Database.checkKvKeyLength(getName(), exclusiveStartKey);
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1018,6 +1022,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final @Nullable ByteBuffer walkDatabaseRawKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
 	                                                     @NotNull TableWalkKeyRaw callback) throws Exception {
+		if (exclusiveStartKey != null)
+			Database.checkKvKeyLength(getName(), exclusiveStartKey);
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1029,6 +1035,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final @Nullable ByteBuffer walkDatabaseRawKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
 	                                                         @NotNull TableWalkKeyRaw callback) throws Exception {
+		if (exclusiveStartKey != null)
+			Database.checkKvKeyLength(getName(), exclusiveStartKey);
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
