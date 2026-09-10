@@ -159,7 +159,16 @@ public class TestMQSingleFillStall {
 			file.failFill = false;
 			single.sendMessage(sendMessageOf(6));
 
-			await("重试装载全部积压", () -> file.queueRef != null && file.queueRef.size() == 7);
+			// size==7 与 future清零 非原子：装载在锁内完成后、finally里才清 messageFillFuture，
+			// 只等 size 会命中"队列已满但fill线程未走到清零行"的窗口（60轮压测round 59偶中），两个条件一起等。
+			await("重试装载全部积压并复位future", () -> {
+				try {
+					return file.queueRef != null && file.queueRef.size() == 7
+							&& null == getField(single, "messageFillFuture");
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			});
 			// 全部积压按 id 有序装载，无跳过、无重复；无 ack 发生，位点不得推进。
 			Assertions.assertEquals(List.of("0", "1", "2", "3", "4", "5", "6"), queueIds(file.queueRef));
 			Assertions.assertEquals(0, file.getFirstMessageId());

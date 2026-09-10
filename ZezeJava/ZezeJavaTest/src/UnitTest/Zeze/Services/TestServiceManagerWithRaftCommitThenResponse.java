@@ -32,7 +32,6 @@ import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Raft.RocksRaft.Table;
 import Zeze.Services.HandshakeClient;
-import Zeze.Services.ServiceManager.BAllocateId128Argument;
 import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BServiceInfo;
@@ -280,6 +279,35 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 		return null; // unreachable
 	}
 
+	/**
+	 * AllocateId128 发送并断言成功（对齐 TestServiceManagerWithRaftAllocateId.allocate 的有界重试：
+	 * 本机静默集群的follower周期性漂移回pre-vote，单次appendLog可能RaftRetry(-15)（60轮压测
+	 * round 52 alloc2偶中，直断言rc==0误红）。失败的请求未发放号段，重试不影响接续断言；
+	 * 每次重试用新rpc+新requestId。
+	 */
+	private static AllocateId128 allocateId128(AsyncSocket sock) throws Exception {
+		long lastCode = Long.MIN_VALUE;
+		for (int attempt = 1; attempt <= 12; ++attempt) {
+			var rpc = new AllocateId128();
+			rpc.Argument.setName(ID128_NAME);
+			rpc.Argument.setCount(100);
+			rpc.getUnique().setRequestId(requestIds.incrementAndGet());
+			rpc.setCreateTime(System.currentTimeMillis());
+			rpc.setTimeout(30_000);
+			Assertions.assertTrue(rpc.SendForWait(sock, 30_000).await(30_000), "alloc await");
+			Assertions.assertFalse(rpc.isTimeout(), "alloc timeout");
+			lastCode = rpc.getResultCode();
+			if (lastCode == 0) {
+				Assertions.assertEquals(100, rpc.Result.getCount(), "alloc count");
+				return rpc;
+			}
+			//noinspection BusyWait
+			Thread.sleep(500);
+		}
+		Assertions.fail("AllocateId128重试耗尽，lastCode=" + lastCode);
+		return null; // unreachable
+	}
+
 	private static Field field(String name) throws NoSuchFieldException {
 		var f = fieldCache.get(name);
 		if (f == null) {
@@ -408,27 +436,11 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 			Assertions.assertTrue(setLoad.SendForWait(regSock, 30_000).await(30_000), "setLoad await");
 			Assertions.assertEquals(0, setLoad.getResultCode(), "setLoad resultCode");
 
-			// AllocateId128：连续两次分配，号段严格推进（提交后应答保证不重复发放）
-			var arg1 = new BAllocateId128Argument();
-			arg1.setName(ID128_NAME);
-			arg1.setCount(100);
-			var alloc1 = new AllocateId128(arg1);
-			alloc1.getUnique().setRequestId(requestIds.incrementAndGet());
-			alloc1.setCreateTime(System.currentTimeMillis());
-			alloc1.setTimeout(30_000);
-			Assertions.assertTrue(alloc1.SendForWait(regSock, 30_000).await(30_000), "alloc1 await");
-			Assertions.assertEquals(0, alloc1.getResultCode(), "alloc1 resultCode");
-			Assertions.assertEquals(100, alloc1.Result.getCount(), "alloc1 count");
+			// AllocateId128：连续两次分配，号段严格推进（提交后应答保证不重复发放）。
+			// 有界重试见allocateId128：单次appendLog可能RaftRetry(-15)（60轮压测round 52偶中）。
+			var alloc1 = allocateId128(regSock);
 
-			var arg2 = new BAllocateId128Argument();
-			arg2.setName(ID128_NAME);
-			arg2.setCount(100);
-			var alloc2 = new AllocateId128(arg2);
-			alloc2.getUnique().setRequestId(requestIds.incrementAndGet());
-			alloc2.setCreateTime(System.currentTimeMillis());
-			alloc2.setTimeout(30_000);
-			Assertions.assertTrue(alloc2.SendForWait(regSock, 30_000).await(30_000), "alloc2 await");
-			Assertions.assertEquals(0, alloc2.getResultCode(), "alloc2 resultCode");
+			var alloc2 = allocateId128(regSock);
 			Assertions.assertEquals(alloc1.Result.getStartId().add(100), alloc2.Result.getStartId(),
 					"第二次分配必须接续第一次（提交后应答，号段不重复）");
 
