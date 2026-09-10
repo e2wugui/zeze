@@ -1,7 +1,6 @@
 package Zeze.Raft.RocksRaft.Log1;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import Zeze.Raft.RocksRaft.Bean;
 import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
@@ -30,7 +29,8 @@ public class LogDecimal extends Log {
 
 	@Override
 	public void decode(IByteBuffer bb) {
-		value = new BigDecimal(bb.ReadString(), MathContext.DECIMAL128);
+		// 不限精度，保持与 encode（全精度字符串）的双射（FND3-06）。
+		value = new BigDecimal(bb.ReadString());
 	}
 
 	@Override

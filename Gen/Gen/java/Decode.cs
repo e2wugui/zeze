@@ -500,10 +500,11 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDecimal type)
         {
+            // 不带 MathContext：与 LogDecimal.decode 一致保持 encode/decode 双射（FND3-06）。
             if (id > 0)
-                sw.WriteLine(prefix + AssignText($"new java.math.BigDecimal({bufname}.ReadString(_t_), java.math.MathContext.DECIMAL128)") + ';');
+                sw.WriteLine(prefix + AssignText($"new java.math.BigDecimal({bufname}.ReadString(_t_))") + ';');
             else
-                sw.WriteLine(prefix + AssignText($"new java.math.BigDecimal({bufname}.ReadString(), java.math.MathContext.DECIMAL128)") + ';');
+                sw.WriteLine(prefix + AssignText($"new java.math.BigDecimal({bufname}.ReadString())") + ';');
         }
 
         public void Visit(TypeGTable type)

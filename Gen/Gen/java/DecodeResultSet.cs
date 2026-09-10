@@ -237,12 +237,13 @@ namespace Zeze.Gen.java
         public void Visit(TypeDecimal type)
         {
             ensureParentsName();
+            // 不带 MathContext：与 LogDecimal.decode 一致保持 encode/decode 双射（FND3-06）。
             sw.WriteLine($"{prefix}{{");
             sw.WriteLine($"{prefix}    var tmp = {bb}.getString({ParaneName}\"{ColumnName}\");");
             sw.WriteLine($"{prefix}    if (tmp == null)");
             sw.WriteLine($"{prefix}        {AssignText("java.math.BigDecimal.ZERO")};");
             sw.WriteLine($"{prefix}    else");
-            sw.WriteLine($"{prefix}        {AssignText($"new java.math.BigDecimal(tmp, java.math.MathContext.DECIMAL128)")};");
+            sw.WriteLine($"{prefix}        {AssignText($"new java.math.BigDecimal(tmp)")};");
             sw.WriteLine($"{prefix}}}");
         }
 

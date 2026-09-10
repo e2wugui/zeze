@@ -2,7 +2,6 @@ package Zeze.Transaction.Logs;
 
 import java.lang.invoke.VarHandle;
 import java.math.BigDecimal;
-import java.math.MathContext;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -48,10 +47,13 @@ public class LogDecimal extends Log {
 		bb.WriteString(value.toString());
 	}
 
-	@Override
-	public void decode(@NotNull IByteBuffer bb) {
-		value = new BigDecimal(bb.ReadString(), MathContext.DECIMAL128);
-	}
+		@Override
+		public void decode(@NotNull IByteBuffer bb) {
+			// 不限精度：encode 写全精度字符串（value.toString()），decode 必须原样还原，
+			// 保持 encode/decode 双射。用 DECIMAL128 会把 >34 位有效数字静默截断，
+			// 与 leader 内存值分叉且无任何检测手段（FND3-06）。
+			value = new BigDecimal(bb.ReadString());
+		}
 
 	@Override
 	public @NotNull String toString() {
