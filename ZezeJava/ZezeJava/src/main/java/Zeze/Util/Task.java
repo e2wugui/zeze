@@ -215,11 +215,12 @@ public final class Task {
 
 	// 提交/执行/调度路径的池选择：池未初始化或已 shutdown（字段为null）时抛明确异常，替代裸NPE。
 	// 不自动重建池：停机后的提交应显式失败，静默复活可能吞掉停机语义（如 ShutdownHook 内的 flush 任务派发）。
-	private static @NotNull ExecutorService poolOrThrow(boolean critical) {
+	// 包内可见：one-by-one 队列引擎的入队前校验共用（FND3-14——入队后派发失败会把队列永久卡死）。
+	static @NotNull ExecutorService poolOrThrow(boolean critical) {
 		var pool = critical ? threadPoolCritical : threadPoolDefault;
 		if (pool == null)
 			throw new IllegalStateException("Task thread pools not initialized or shut down: "
-					+ (critical ? "critical" : "default") + " pool is null");
+				+ (critical ? "critical" : "default") + " pool is null");
 		return pool;
 	}
 
@@ -742,7 +743,7 @@ public final class Task {
 
 	/** 协议版 Func 载荷的叶子核心（TaskBody.OfProtocolFunc 调用）：异常翻错误码、错误回发、协议日志与统计。 */
 	static long callFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
-					   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
+							 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		boolean isRequestSaved = p == null || p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
@@ -921,7 +922,7 @@ public final class Task {
 
 	/** 协议版 Procedure 载荷的叶子核心（TaskBody.OfProtocolProcedure 调用）。 */
 	static long callProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-					  @Nullable ProtocolErrorHandle actionWhenError) {
+							 @Nullable ProtocolErrorHandle actionWhenError) {
 		boolean isRequestSaved = from == null || from.isRequest();
 		try {
 			// 日志在call里面记录。因为要支持嵌套。
@@ -954,7 +955,7 @@ public final class Task {
 
 	/** 过程内解码协议载荷的叶子核心（TaskBody.OfProcedureOut 调用）。 */
 	static long callProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
-					  @Nullable ProtocolErrorHandle actionWhenError) {
+								@Nullable ProtocolErrorHandle actionWhenError) {
 		Protocol<?> from = null;
 		try {
 			// 日志在call里面记录。因为要支持嵌套。

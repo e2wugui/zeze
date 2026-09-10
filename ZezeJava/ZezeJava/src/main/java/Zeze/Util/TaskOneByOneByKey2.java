@@ -470,9 +470,8 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	}
 
 	private @NotNull Executor getExecutor(@Nullable DispatchMode mode) {
-		return executor != null ? executor : (mode == DispatchMode.Critical
-				? Zeze.Util.Task.getCriticalThreadPool()
-				: Zeze.Util.Task.getThreadPool());
+		return executor != null ? executor
+				: Zeze.Util.Task.poolOrThrow(mode == DispatchMode.Critical);
 	}
 
 	static abstract class Task {
@@ -561,6 +560,11 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 
 		private void submit(@NotNull Task task) {
+			// 入队前校验：走全局池时池未初始化/已停机必须立即明确失败——
+			// 否则 CAS 置 submitted 后派发抛异常，桶永久卡死（submitted 的自愈复位只在
+			// run() 的 pollTask 里，而 run 没进过池）。
+			getExecutor(task.mode);
+
 			queue.offer(task);
 			if ((boolean)vhSubmitted.compareAndSet(this, false, true))
 				runNext();

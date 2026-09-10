@@ -96,21 +96,24 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 	}
 
+	private @NotNull Executor getExecutor(@Nullable DispatchMode mode) {
+		return executor != null ? executor
+			: Zeze.Util.Task.poolOrThrow(mode == DispatchMode.Critical);
+	}
+
 	public Runnable submit(@NotNull Task task) {
 		if (!isShutdown) {
+			// 入队前校验：走全局池时池未初始化/已停机必须立即明确失败——
+			// 任务入队后派发抛异常会让队列非空且再无派发点（后续 submit 全走 size!=1 分支），
+			// 该桶永久卡死，shutdown 的 waitComplete 在 cond 上永等。
+			getExecutor(task.mode);
+
 			queue.addLast(task);
 			if (queue.size() != 1)
 				return null; // 有任务正在执行,不需要进一步调度.
 			batch.prepare();
 			return () -> {
-				if (executor != null)
-					executor.execute(batch);
-				else {
-					var threadPool = batch.mode == DispatchMode.Critical
-							? Zeze.Util.Task.getCriticalThreadPool()
-							: Zeze.Util.Task.getThreadPool();
-					threadPool.execute(batch);
-				}
+				getExecutor(task.mode).execute(batch);
 			};
 		}
 		if (task.cancel != null) {
@@ -159,14 +162,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			}
 			return;
 		}
-		if (executor != null) {
-			executor.execute(batch);
-		} else {
-			var threadPool = batch.mode == DispatchMode.Critical
-					? Zeze.Util.Task.getCriticalThreadPool()
-					: Zeze.Util.Task.getThreadPool();
-			threadPool.execute(batch);
-		}
+		getExecutor(batch.mode).execute(batch);
 	}
 
 	private static void runCancel(@NotNull ArrayDeque<Task> tasks) {
@@ -199,6 +195,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			queue = new ArrayDeque<>(); // clear
 			int keep = Math.min(batch.count, oldQueue.size());
 			for (int i = 0; i < keep; i++)
+				//noinspection DataFlowIssue
 				queue.addLast(oldQueue.pollFirst());
 			if (oldQueue.isEmpty())
 				return;

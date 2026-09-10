@@ -311,7 +311,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				try (var ps = conn.prepareStatement(tableInstancesSql)) {
 					ps.executeUpdate();
 				}
-				//noinspection SpellCheckingInspection
 				var procSetInUseSql = "CREATE OR REPLACE FUNCTION _ZezeSetInUse_(\n" +
 						"    IN  in_local_id INTEGER,\n" +
 						"    IN  in_global BYTEA,\n" +
@@ -371,7 +370,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					if (!ex.getMessage().contains("tuple concurrently updated"))
 						throw ex;
 				}
-				//noinspection SpellCheckingInspection
 				var procClearInUseSql = "CREATE OR REPLACE FUNCTION _ZezeClearInUse_(\n" +
 						"    IN  in_local_id INTEGER,\n" +
 						"    IN  in_global BYTEA,\n" +
