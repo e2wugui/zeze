@@ -357,7 +357,7 @@ public class DepartmentTree<
 		var dId = dRoot.getNextDepartmentId() + 1;
 
 		if (departmentParent == 0) {
-			if (dRoot.getChildren().size() > childrenLimit)
+			if (dRoot.getChildren().size() >= childrenLimit)
 				return module.errorCode(Module.ErrorTooManyChildren);
 			if (null != dRoot.getChildren().putIfAbsent(dName, dId))
 				return module.errorCode(Module.ErrorDepartmentDuplicate);
@@ -365,7 +365,7 @@ public class DepartmentTree<
 			var parent = getDepartmentTreeNode(departmentParent);
 			if (null == parent)
 				return module.errorCode(Module.ErrorDepartmentParentNotExist); // 对齐moveDepartment的同类检查，原实现直接NPE
-			if (parent.getChildren().size() > childrenLimit)
+			if (parent.getChildren().size() >= childrenLimit)
 				return module.errorCode(Module.ErrorTooManyChildren);
 			if (null != parent.getChildren().putIfAbsent(dName, dId))
 				return module.errorCode(Module.ErrorDepartmentDuplicate);
