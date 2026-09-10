@@ -342,12 +342,17 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 				login.setTimeout(15_000);
 				// quorum不可达：future可能以超时异常完成（RpcTimeoutException）或拿到服务端错误码，
 				// 两种形态都合法——只要不是成功码。
+				// 第三种形态【60轮压测3/60命中】：阻塞~10s时服务端KeepAlive探测超时关闭连接，
+				// -15应答与close同毫秒竞速丢失；客户端15s rpc定时器在满负载调度延迟下未赶上await的20s
+				// ——TaskCompletionSource.await超时静默返回false（不抛），resultCode停留在未设置的默认值0，
+				// 旧断言把"无应答"误读成"假成功"。裁决必须只在应答/异常终态真正到达时进行。
+				var responded = false;
 				try {
-					login.SendForWait(sock, 15_000).await(20_000);
+					responded = login.SendForWait(sock, 15_000).await(20_000);
 				} catch (RuntimeException ex) {
-					// 超时/异常完成：结果码由下方断言统一裁决。
+					responded = true; // 异常完成也是终态（如RpcTimeout，码-10），交由结果码裁决
 				}
-				Assertions.assertNotEquals(0, login.getResultCode(),
+				Assertions.assertFalse(responded && login.getResultCode() == 0,
 						"quorum不可达时Login不可能完成raft提交，客户端不能拿到成功码"
 								+ "（提交前应答=假成功，FND2-S1-1）");
 			} finally {
