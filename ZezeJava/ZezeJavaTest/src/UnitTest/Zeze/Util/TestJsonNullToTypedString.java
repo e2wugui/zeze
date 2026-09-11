@@ -1,8 +1,10 @@
 package UnitTest.Zeze.Util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import Zeze.Util.JsonReader;
+import Zeze.Util.JsonWriter;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -57,5 +59,33 @@ public class TestJsonNullToTypedString {
 		Assertions.assertNull(parse("{s:north}").s);
 		Assertions.assertNull(parse("{map:{j:nan}}").map.get("j"));
 		Assertions.assertNull(parse("{list:[nulls]}").list.get(0));
+	}
+
+	@Test
+	public void testWriterReaderNullRoundTrip() throws ReflectiveOperationException {
+		// 直连往返：JsonWriter 写出的 null token（无引号小写）与字符串内容 "null"（恒带引号）
+		// 必须各自还原，golden string 同时锁住写侧输出格式。FLAG_WRITE_NULL 下 null
+		// 字段/元素/值才写出；null 字段、包装类、List 元素、Map 值四条读侧路径全覆盖。
+		Bean b = new Bean();
+		b.list.add(null);
+		b.map.put("k", null);
+		String json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_WRITE_NULL).write(b).toString();
+		Assertions.assertEquals("{\"s\":null,\"d\":0.0,\"nd\":null,\"list\":[null],\"map\":{\"k\":null}}", json);
+		Bean r = JsonReader.local().buf(json).parse(Bean.class);
+		Assertions.assertNull(r.s);
+		Assertions.assertNull(r.nd);
+		Assertions.assertNull(r.list.get(0));
+		Assertions.assertNull(r.map.get("k"));
+
+		b = new Bean();
+		b.s = "null";
+		b.list.add("null");
+		b.map.put("k", "null");
+		json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_WRITE_NULL).write(b).toString();
+		Assertions.assertEquals("{\"s\":\"null\",\"d\":0.0,\"nd\":null,\"list\":[\"null\"],\"map\":{\"k\":\"null\"}}", json);
+		r = JsonReader.local().buf(json).parse(Bean.class);
+		Assertions.assertEquals("null", r.s);
+		Assertions.assertEquals(Arrays.asList("null"), r.list);
+		Assertions.assertEquals("null", r.map.get("k"));
 	}
 }
