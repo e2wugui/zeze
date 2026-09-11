@@ -2,7 +2,6 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import Zeze.Application;
 import Zeze.Config;
@@ -167,7 +166,9 @@ public class DatabaseDynamoDb extends Database {
 	}
 
 	private static final KeySchemaElement keySchema = new KeySchemaElement("key", KeyType.HASH);
-	private static final AttributeDefinition valueAttribute = new AttributeDefinition("value", ScalarAttributeType.B);
+	// CreateTable 要求 AttributeDefinitions 与 KeySchema 的属性精确匹配，声明主键属性"key"的类型；
+	// 原来误写成"value"，表不存在时首次建表直接 ValidationException。
+	private static final AttributeDefinition keyAttribute = new AttributeDefinition("key", ScalarAttributeType.B);
 
 	private class TableDynamoDb extends Database.AbstractKVTable {
 		private final String name;
@@ -177,7 +178,7 @@ public class DatabaseDynamoDb extends Database {
 			this.name = name;
 
 			var attributeDefinitions = new ArrayList<AttributeDefinition>();
-			attributeDefinitions.add(valueAttribute);
+			attributeDefinitions.add(keyAttribute);
 			var keySchemas = new ArrayList<KeySchemaElement>();
 			keySchemas.add(keySchema);
 			var provisionedThroughput = new ProvisionedThroughput(10L, 10L);
