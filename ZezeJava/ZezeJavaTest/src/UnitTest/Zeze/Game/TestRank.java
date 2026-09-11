@@ -27,7 +27,7 @@ public class TestRank {
 	@BeforeEach
 	protected void setUp() {
 		var config = Zeze.Config.load();
-		if (config.getGlobalCacheManagerHostNameOrAddress().contains(".xml")) {
+		if (config.hasGlobalRaft()) {
 			System.out.println("Test Rank Disable On GlobL-Raft.");
 			disableTest = true;
 			return;

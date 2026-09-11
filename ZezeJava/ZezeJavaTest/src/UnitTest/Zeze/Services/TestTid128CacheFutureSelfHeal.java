@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import Zeze.Component.Threading;
+import Zeze.Config;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Services.ServiceManager.AbstractAgent;
@@ -72,12 +73,12 @@ public class TestTid128CacheFutureSelfHeal {
 
 	@Test
 	public void testPoisonedLastFutureSelfHeals() {
-		var f1 = agent.allocateTid128CacheFuture(globalName);
+		var f1 = agent.allocateTid128CacheFuture(globalName, 0);
 		Assertions.assertTrue(f1.setException(new TimeoutException("simulate udp timeout")));
 		Assertions.assertTrue(f1.isCompletedExceptionally());
 
 		// 修复前：这里抛CompletionException，且lastTid128CacheFuture永不被替换（毒化永久保留）。
-		var f2 = Assertions.assertDoesNotThrow(() -> agent.allocateTid128CacheFuture(globalName));
+		var f2 = Assertions.assertDoesNotThrow(() -> agent.allocateTid128CacheFuture(globalName, 0));
 		Assertions.assertNotSame(f1, f2);
 		Assertions.assertSame(f2, agent.getLastTid128CacheFuture());
 
@@ -89,9 +90,9 @@ public class TestTid128CacheFutureSelfHeal {
 	@Test
 	public void testPoisonSelfHealRepeatable() {
 		for (var i = 0; i < 3; i++) {
-			var poisoned = agent.allocateTid128CacheFuture(globalName);
+			var poisoned = agent.allocateTid128CacheFuture(globalName, 0);
 			Assertions.assertTrue(poisoned.setException(new TimeoutException("simulate udp timeout " + i)));
-			var next = Assertions.assertDoesNotThrow(() -> agent.allocateTid128CacheFuture(globalName));
+			var next = Assertions.assertDoesNotThrow(() -> agent.allocateTid128CacheFuture(globalName, 0));
 			Assertions.assertNotSame(poisoned, next);
 			Assertions.assertSame(next, agent.getLastTid128CacheFuture());
 			Assertions.assertTrue(next.setException(new TimeoutException("loop " + i))); // 保持last完成，避免下一轮get()阻塞。
@@ -100,11 +101,11 @@ public class TestTid128CacheFutureSelfHeal {
 
 	@Test
 	public void testNormalCompletedLastFutureStillAdaptive() {
-		var f1 = agent.allocateTid128CacheFuture(globalName);
+		var f1 = agent.allocateTid128CacheFuture(globalName, 0);
 		Assertions.assertTrue(f1.setResult(new Tid128Cache(globalName, agent, new Id128(0, 0), Tid128Cache.ALLOCATE_COUNT_MAX)));
 
 		// 正常完成的last future走原自适应档位路径，不受毒化检测影响。
-		var f2 = Assertions.assertDoesNotThrow(() -> agent.allocateTid128CacheFuture(globalName));
+		var f2 = Assertions.assertDoesNotThrow(() -> agent.allocateTid128CacheFuture(globalName, 0));
 		Assertions.assertNotSame(f1, f2);
 		Assertions.assertSame(f2, agent.getLastTid128CacheFuture());
 	}
@@ -112,7 +113,7 @@ public class TestTid128CacheFutureSelfHeal {
 	@Test
 	public void testGetUsableTid128CacheFuture() {
 		// 毒化时兜底替换（finalCommit读取路径的决策）。
-		var f1 = agent.allocateTid128CacheFuture(globalName);
+		var f1 = agent.allocateTid128CacheFuture(globalName, 0);
 		Assertions.assertTrue(f1.setException(new TimeoutException("simulate udp timeout")));
 		var usable = agent.getUsableTid128CacheFuture(globalName);
 		Assertions.assertNotSame(f1, usable);
@@ -128,6 +129,10 @@ public class TestTid128CacheFutureSelfHeal {
 	/** 只实现被测路径需要的行为，其余入口不可用。 */
 	private static final class TestAgent extends AbstractAgent {
 		private Id128UdpClient client;
+
+		private TestAgent() {
+			config = new Config(); // 默认无global：getHistoryAllocCount()=0(自适应)，对齐本测试的档位/毒化路径
+		}
 
 		void setTid128UdpClient(Id128UdpClient client) {
 			this.client = client;

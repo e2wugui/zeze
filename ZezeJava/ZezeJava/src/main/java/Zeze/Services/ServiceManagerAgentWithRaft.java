@@ -51,8 +51,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	public ServiceManagerAgentWithRaft(@NotNull Config config) throws Exception {
 		// raft版不支持Id128 UDP发号（tid128UdpClient不初始化），而开启History的事务在
-		// _check_预热/finalCommit（getUsableTid128CacheFuture）/Tid128Cache.next三个入口
-		// 都依赖它：该组合下写事务全量NPE失败、热事务finalCommit失败直接halt(543543)。
+		// finalCommit（getUsableTid128CacheFuture）/Tid128Cache.next两个入口都依赖它：
+		// 该组合下写事务全量NPE失败、热事务finalCommit失败直接halt(543543)。
 		// 不支持的组合在构造时明确报错（fail-fast），而非运行期以NPE/halt形态失败。
 		if (config.isHistory())
 			throw new IllegalStateException("ServiceManager=raft does not support Id128 allocate: " +

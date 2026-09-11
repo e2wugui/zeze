@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import Zeze.Component.Threading;
+import Zeze.Config;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Services.ServiceManager.AbstractAgent;
@@ -70,8 +71,8 @@ public class TestTid128CacheFuturePerName {
 	@SuppressWarnings("deprecation")
 	@Test
 	public void testPerNameIsolation() {
-		var fa = agent.allocateTid128CacheFuture(NAME_A); // pending
-		var fb = agent.allocateTid128CacheFuture(NAME_B);
+		var fa = agent.allocateTid128CacheFuture(NAME_A, 0); // pending
+		var fb = agent.allocateTid128CacheFuture(NAME_B, 0);
 		Assertions.assertNotSame(fa, fb);
 
 		// 修复前单槽：getUsable(NAME_A)返回最后写入的B的future，跨名号段串用。
@@ -96,6 +97,10 @@ public class TestTid128CacheFuturePerName {
 	/** 只实现被测路径需要的行为，其余入口不可用。 */
 	private static final class TestAgent extends AbstractAgent {
 		private Id128UdpClient client;
+
+		private TestAgent() {
+			config = new Config(); // 默认无global：getHistoryAllocCount()=0(自适应)，对齐本测试的档位/毒化路径
+		}
 
 		void setTid128UdpClient(Id128UdpClient client) {
 			this.client = client;

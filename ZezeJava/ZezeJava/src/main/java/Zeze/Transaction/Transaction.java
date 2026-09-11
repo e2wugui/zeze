@@ -590,8 +590,8 @@ public final class Transaction {
 
 			var zeze = proc.getZeze();
 			if (zeze.getConfig().isHistory() && !cc.getRecords().isEmpty()) {
-				// 热记录事务不经_check_预热直达这里：上一次分配可能已异常完成（Udp超时毒化），
-				// 直接get()会抛异常导致finalCommit失败halt(543543)。毒化时兜底发起新分配替换。
+				// 上一次分配可能已异常完成（Udp超时毒化），直接get()会抛异常导致finalCommit
+				// 失败halt(543543)。毒化时兜底发起新分配替换。
 				@SuppressWarnings("DataFlowIssue")
 				var future = zeze.getServiceManager().getUsableTid128CacheFuture(zeze.getConfig().getHistory());
 				if (proc instanceof ProtocolProcedure pp) {
@@ -729,9 +729,6 @@ public final class Transaction {
 				case GlobalCacheManagerConst.StateShare:
 					// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-					var zeze = procedure.getZeze();
-					if (zeze.getConfig().isHistory())
-						zeze.getServiceManager().allocateTid128CacheFuture(zeze.getConfig().getHistory());
 					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
 							e.atomicTupleRecord.record.isFresh(), false);
 					//noinspection DataFlowIssue

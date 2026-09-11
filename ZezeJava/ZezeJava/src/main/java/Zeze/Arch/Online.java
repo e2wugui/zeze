@@ -1450,7 +1450,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	private void transmitInProcedure(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 	                                 @NotNull Collection<BLoginKey> accounts, @Nullable Binary parameter) {
-		if (providerApp.zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
+		if (!providerApp.zeze.getConfig().hasGlobal()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(account, clientId, actionName, accounts, parameter);
 			return;

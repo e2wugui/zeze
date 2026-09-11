@@ -1651,7 +1651,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	public void transmitEmbed(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
 							  @Nullable Binary parameter, boolean processNotOnline) {
-		if (providerApp.zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
+		if (!providerApp.zeze.getConfig().hasGlobal()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(sender, actionName, roleIds, parameter);
 			return;

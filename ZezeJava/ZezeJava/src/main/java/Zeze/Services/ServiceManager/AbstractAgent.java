@@ -118,7 +118,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 					// 128版同构）。不再传播，以默认档位重新分配并替换（自愈）。
 					logger.warn("allocateTidCacheFuture('{}'): last future failed, re-allocate with default count",
 							globalName, e);
-					allocateCount = TidCache.ALLOCATE_COUNT_MIN;
 				}
 			}
 			var sent = allocateAsync(globalName, allocateCount, rpc -> {
@@ -158,21 +157,29 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	public @Nullable Id128UdpClient.FutureNode getLastTid128CacheFuture() {
 		return lastTid128CacheFuture;
 	}
-
-	public @NotNull Id128UdpClient.FutureNode allocateTid128CacheFuture(@NotNull String globalName) {
+	
+	/**
+	 * 分配一段id并缓存到tid128CacheFutures（按globalName），段耗尽后由Tid128Cache.next()递归调用本方法换新段。
+	 * @param globalName 全局history名字
+	 * @param allocateCount 一次分配的个数，&lt;=0 表示自适应（上次档位/最小档位）；
+	 *                      &gt;0（如多app部署的1）时每次按该个数分配。
+	 * @return 可等待的future，到达后get()得到Tid128Cache号段。
+	 */
+	public @NotNull Id128UdpClient.FutureNode allocateTid128CacheFuture(@NotNull String globalName, int allocateCount) {
 		lock();
 		try {
 			var future = tid128CacheFutures.get(globalName);
-			var allocateCount = Tid128Cache.ALLOCATE_COUNT_MIN;
-			if (future != null) {
-				try {
-					allocateCount = future.get().allocateCount();
-				} catch (RuntimeException e) {
-					// 上一次分配异常完成（如Udp超时）：get()抛出且发生在替换future之前，
-					// 而这里是它唯一的写入点，异常传播出去会导致毒化状态永久保留
-					// （冷写事务持续失败/热写事务finalCommit halt）。不再传播，以默认档位重新分配并替换（自愈）。
-					logger.warn("allocateTid128CacheFuture('{}'): last future failed, re-allocate with default count", globalName, e);
-					allocateCount = Tid128Cache.ALLOCATE_COUNT_MIN;
+			if (allocateCount <= 0) {
+				allocateCount = Tid128Cache.ALLOCATE_COUNT_MIN;
+				if (future != null) {
+					try {
+						allocateCount = future.get().allocateCount();
+					} catch (RuntimeException e) {
+						// 上一次分配异常完成（如Udp超时）：get()抛出且发生在替换future之前，
+						// 而这里是它唯一的写入点，异常传播出去会导致毒化状态永久保留
+						// （冷写事务持续失败/热写事务finalCommit halt）。不再传播，以默认档位重新分配并替换（自愈）。
+						logger.warn("allocateTid128CacheFuture('{}'): last future failed, re-allocate with default count", globalName, e);
+					}
 				}
 			}
 			// raft版SM不初始化tid128UdpClient（不支持Id128 UDP发号）：这里给出明确的
@@ -197,7 +204,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	public @NotNull Id128UdpClient.FutureNode getUsableTid128CacheFuture(@NotNull String globalName) {
 		var future = getLastTid128CacheFuture(globalName);
 		if (future == null || future.isCompletedExceptionally())
-			return allocateTid128CacheFuture(globalName);
+			return allocateTid128CacheFuture(globalName, config.getHistoryAllocCount());
 		return future;
 	}
 

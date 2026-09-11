@@ -431,6 +431,24 @@ public final class Config {
 		return autoResetTable;
 	}
 
+	public boolean hasGlobal() {
+		return !globalCacheManagerHostNameOrAddress.isBlank();
+	}
+
+	public boolean hasGlobalRaft() {
+		return globalCacheManagerHostNameOrAddress.contains(".xml");
+	}
+
+	/**
+	 * History的gid（GlobalSerialId）每次分配的号段大小。
+	 * 有global（多app分布式部署）时=1：每事务在rrs锁内（依赖建立后）触发一次段分配并立即取号，
+	 * SM按请求到达序发号 ⇒ gid序=提交序，保证History回放顺序；代价是每事务一次同步分配往返。
+	 * 单机时=0（自适应批段）：单app内所有事务从同一缓存段按rrs锁序取号，本就保序，保留批段性能。
+	 */
+	public int getHistoryAllocCount() {
+		return hasGlobal() ? 1 : 0;
+	}
+
 	public void parseCustomize(@NotNull ICustomize c) {
 		var self = customizes.get(c.getName());
 		if (self != null)
@@ -453,7 +471,7 @@ public final class Config {
 			case SqlServer -> new DatabaseSqlServer(zeze, conf);
 			case Tikv -> new DatabaseTikv(zeze, conf);
 			case RocksDb -> {
-				if (!zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isBlank())
+				if (zeze.getConfig().hasGlobal())
 					throw new IllegalStateException("RocksDb Can Not Work With GlobalCacheManager.");
 				yield new DatabaseRocksDb(zeze, conf, false);
 			}

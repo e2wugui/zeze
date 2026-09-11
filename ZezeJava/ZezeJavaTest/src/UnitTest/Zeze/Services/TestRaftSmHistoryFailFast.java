@@ -49,7 +49,7 @@ public class TestRaftSmHistoryFailFast {
 		var agent = new NullTid128Agent();
 		// 修复前：这里抛裸NullPointerException（tid128UdpClient.allocateFuture）。
 		var ex = Assertions.assertThrows(IllegalStateException.class,
-				() -> agent.allocateTid128CacheFuture("UnitTest.FND_S2_2.Null"));
+				() -> agent.allocateTid128CacheFuture("UnitTest.FND_S2_2.Null", 0));
 		Assertions.assertTrue(ex.getMessage().contains("tid128UdpClient"),
 				"报错必须明确指出tid128UdpClient不可用: " + ex.getMessage());
 	}
