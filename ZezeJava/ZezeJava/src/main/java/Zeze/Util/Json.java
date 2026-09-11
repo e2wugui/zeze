@@ -675,9 +675,11 @@ public final class Json implements Cloneable {
 
 		json.getClassMeta(ByteBuffer.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			final byte[] data = reader.parseByteString();
+			if (data == null)
+				return null; // json null 保持 null（与 byte[] 及包装类型字段的语义一致）
 			if (obj == null)
-				return ByteBuffer.Wrap(data != null ? data : ByteBuffer.Empty);
-			obj.wraps(data != null ? data : ByteBuffer.Empty);
+				return ByteBuffer.Wrap(data);
+			obj.wraps(data);
 			return obj;
 		});
 		json.getClassMeta(ByteBuffer.class).setWriter((writer, classMeta, obj) -> {
@@ -694,7 +696,7 @@ public final class Json implements Cloneable {
 
 		json.getClassMeta(Binary.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			byte[] s = reader.parseByteString();
-			return s != null ? new Binary(s) : Binary.Empty;
+			return s != null ? new Binary(s) : null;
 		});
 		json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)

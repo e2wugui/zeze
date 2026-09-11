@@ -98,7 +98,7 @@ public class TestJsonZeze {
 		}
 
 		B b = new B();
-		var s = JsonWriter.local().clear().write(b).toString();
+		var s = JsonWriter.local().clear().setFlags(0).write(b).toString();
 		// System.out.println(s); // {"b11":"","b22":"","b33":""}
 		B bb = JsonReader.local().buf(s).parse(B.class);
 		assertEquals(b, bb);
@@ -109,7 +109,7 @@ public class TestJsonZeze {
 		b.b11 = new byte[]{'0', 0, -1, 0x7f, (byte)0x80};
 		b.b22 = new Binary(new byte[]{'A', 'B', 'C'}, 1, 1);
 		b.b33 = ByteBuffer.Wrap(new byte[]{'a', 'b', 'c'}, 1, 1);
-		var d = JsonWriter.local().clear().write(b).toBytes();
+		var d = JsonWriter.local().clear().setFlags(0).write(b).toBytes();
 		// System.out.println(new String(d, StandardCharsets.ISO_8859_1)); // {"b1":"","b2":"","b3":"","b11":"0\u0000ÿ","b22":"B","b33":"b"}
 		bb = JsonReader.local().buf(d).parse(B.class);
 		assertEquals(b, bb);
@@ -140,7 +140,7 @@ public class TestJsonZeze {
 		}
 
 		L l = new L();
-		var s = JsonWriter.local().clear().write(l).toString();
+		var s = JsonWriter.local().clear().setFlags(0).write(l).toString();
 		// System.out.println(s);
 		L ll = JsonReader.local().buf(s).parse(L.class);
 		assertEquals(l, ll);
@@ -150,7 +150,7 @@ public class TestJsonZeze {
 		l.fl = new FloatList();
 		l.v3l = new Vector3List();
 		l.v3il = new Vector3IntList();
-		s = JsonWriter.local().clear().write(l).toString();
+		s = JsonWriter.local().clear().setFlags(0).write(l).toString();
 		// System.out.println(s);
 		ll = JsonReader.local().buf(s).parse(L.class);
 		assertEquals(l, ll);
@@ -164,7 +164,7 @@ public class TestJsonZeze {
 		l.v3l.add(new Vector3(1.1f, 2.2f, 3.3f));
 		l.v3l.add(new Vector3(-4.4f, -5.5f, -6.6f));
 		l.v3il.add(new Vector3Int(1, 2, 3));
-		s = JsonWriter.local().clear().write(l).toString();
+		s = JsonWriter.local().clear().setFlags(0).write(l).toString();
 		// System.out.println(s);
 		ll = JsonReader.local().buf(s).parse(L.class);
 		assertEquals(l, ll);
@@ -189,14 +189,14 @@ public class TestJsonZeze {
 		}
 
 		S s = new S();
-		var t = JsonWriter.local().clear().write(s).toString();
+		var t = JsonWriter.local().clear().setFlags(0).write(s).toString();
 		// System.out.println(t);
 		S ss = JsonReader.local().buf(t).parse(S.class);
 		assertEquals(s, ss);
 
 		s.is = new IntHashSet();
 		s.ls = new LongHashSet();
-		t = JsonWriter.local().clear().write(s).toString();
+		t = JsonWriter.local().clear().setFlags(0).write(s).toString();
 		// System.out.println(t);
 		ss = JsonReader.local().buf(t).parse(S.class);
 		assertEquals(s, ss);
@@ -204,7 +204,7 @@ public class TestJsonZeze {
 		s.is.add(Integer.MIN_VALUE);
 		s.ls.add(Long.MIN_VALUE);
 		s.ls.add(Long.MAX_VALUE);
-		t = JsonWriter.local().clear().write(s).toString();
+		t = JsonWriter.local().clear().setFlags(0).write(s).toString();
 		// System.out.println(t);
 		ss = JsonReader.local().buf(t).parse(S.class);
 		assertEquals(s, ss);
@@ -231,14 +231,14 @@ public class TestJsonZeze {
 		}
 
 		M m = new M();
-		var t = JsonWriter.local().clear().write(m).toString();
+		var t = JsonWriter.local().clear().setFlags(0).write(m).toString();
 		// System.out.println(t);
 		M mm = JsonReader.local().buf(t).parse(new M());
 		assertEquals(m, mm);
 
 		m.im = new IntHashMap<>();
 		m.lm = new LongHashMap<>();
-		t = JsonWriter.local().clear().write(m).toString();
+		t = JsonWriter.local().clear().setFlags(0).write(m).toString();
 		// System.out.println(t);
 		mm = JsonReader.local().buf(t).parse(new M());
 		assertEquals(m, mm);
@@ -248,7 +248,7 @@ public class TestJsonZeze {
 		m.lm.put(Long.MAX_VALUE, Long.MAX_VALUE);
 		m.cm.put(Long.MIN_VALUE, Integer.MIN_VALUE);
 		m.cm.put(Long.MAX_VALUE, Integer.MAX_VALUE);
-		t = JsonWriter.local().clear().write(m).toString();
+		t = JsonWriter.local().clear().setFlags(0).write(m).toString();
 		// System.out.println(t);
 		mm = JsonReader.local().buf(t).parse(new M());
 		assertEquals(m, mm);
