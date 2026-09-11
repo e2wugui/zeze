@@ -259,156 +259,152 @@ public class GlobalCacheManagerWithRaft
 			var lockey = Transaction.getCurrent().addPessimismLock(locks.get(globalTableKey));
 
 			BCacheState cs = globalStates.getOrAdd(globalTableKey);
-			// AcquireStatePending是transient（无事务日志），Procedure异常回滚不会复位它；
-			// 占位后异常逃逸会把共享bean的申请位永久留在Share/Modify：该key上后续acquire要么
-			// IllegalStateException要么在await()上永久park（procedure池线程泄漏），daemon的
-			// release也会永久await并停摆整个守护。finally兜底复位。
-			var ownsPending = false;
-			try {
-				if (cs.getAcquireStatePending() == StateRemoved)
-					continue;
+			if (cs.getAcquireStatePending() == StateRemoved)
+				continue;
 
+			if (cs.getModify() != -1 && cs.getShare().size() != 0)
+				throw new IllegalStateException("CacheState state error");
+
+			while (cs.getAcquireStatePending() != StateInvalid && cs.getAcquireStatePending() != StateRemoved) {
+				switch (cs.getAcquireStatePending()) {
+				case StateShare:
+					if (cs.getModify() == -1)
+						throw new IllegalStateException("CacheState state error");
+
+					if (cs.getModify() == sender.serverId) {
+						if (isDebugEnabled)
+							logger.debug("1 {} {} {}", sender, StateShare, cs);
+						rpc.Result.setState(StateInvalid);
+						return AcquireShareDeadLockFound; // 事务数据没有改变，回滚
+					}
+					break;
+				case StateModify:
+					if (cs.getModify() == sender.serverId || cs.getShare().Contains(sender.serverId)) {
+						if (isDebugEnabled)
+							logger.debug("2 {} {} {}", sender, StateShare, cs);
+						rpc.Result.setState(StateInvalid);
+						return AcquireShareDeadLockFound; // 事务数据没有改变，回滚
+					}
+					break;
+				case StateRemoving:
+					break;
+				}
+				if (isDebugEnabled)
+					logger.debug("3 {} {} {}", sender, StateShare, cs);
+				lockey.await();
 				if (cs.getModify() != -1 && cs.getShare().size() != 0)
 					throw new IllegalStateException("CacheState state error");
+			}
 
-				while (cs.getAcquireStatePending() != StateInvalid && cs.getAcquireStatePending() != StateRemoved) {
-					switch (cs.getAcquireStatePending()) {
-					case StateShare:
-						if (cs.getModify() == -1)
-							throw new IllegalStateException("CacheState state error");
+			if (cs.getAcquireStatePending() == StateRemoved)
+				continue; // concurrent release.
 
-						if (cs.getModify() == sender.serverId) {
-							if (isDebugEnabled)
-								logger.debug("1 {} {} {}", sender, StateShare, cs);
-							rpc.Result.setState(StateInvalid);
-							return AcquireShareDeadLockFound; // 事务数据没有改变，回滚
-						}
-						break;
-					case StateModify:
-						if (cs.getModify() == sender.serverId || cs.getShare().Contains(sender.serverId)) {
-							if (isDebugEnabled)
-								logger.debug("2 {} {} {}", sender, StateShare, cs);
-							rpc.Result.setState(StateInvalid);
-							return AcquireShareDeadLockFound; // 事务数据没有改变，回滚
-						}
-						break;
-					case StateRemoving:
-						break;
-					}
-					if (isDebugEnabled)
-						logger.debug("3 {} {} {}", sender, StateShare, cs);
-					lockey.await();
-					if (cs.getModify() != -1 && cs.getShare().size() != 0)
-						throw new IllegalStateException("CacheState state error");
+			cs.setAcquireStatePending(StateShare);
+			// AcquireStatePending是transient（无事务日志），未提交路径（过程异常回滚、
+			// _final_commit_失败的回滚）不复位它的话，共享bean的申请位会永久滞留：
+			// 该key上后续acquire要么IllegalStateException要么在await()上永久park，
+			// daemon的release也会永久await并停摆整个守护。统一注册回滚动作复位；
+			// _final_rollback_在pessimism锁释放之前执行，pulseAll合法。
+			Transaction.getCurrent().runWhileRollback(() -> {
+				if (cs.getAcquireStatePending() == StateShare) {
+					cs.setAcquireStatePending(StateInvalid);
+					lockey.pulseAll();
 				}
-
-				if (cs.getAcquireStatePending() == StateRemoved)
-					continue; // concurrent release.
-
-				cs.setAcquireStatePending(StateShare);
-				ownsPending = true;
-				//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
-				serialId.getAndIncrement();
-				var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
-				var reduceTid = new OutObject<>(Id128.Zero);
-				if (cs.getModify() != -1) {
-					if (cs.getModify() == sender.serverId) {
-						// 已经是Modify又申请，可能是sender异常关闭，
-						// 又重启连上。更新一下。应该是不需要的。
-						SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
-						cs.setAcquireStatePending(StateInvalid);
-						if (isDebugEnabled)
-							logger.debug("4 {} {} {}", sender, StateShare, cs);
-						rpc.Result.setState(StateModify);
-						rpc.setResultCode(AcquireShareAlreadyIsModify);
-						return 0; // 可以忽略的错误，数据有改变，需要提交事务。
-					}
-
-					var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
-					if (CacheHolder.reduce(sessions, cs.getModify(), globalTableKey, fresh, r -> {
-						if (ENABLE_PERF)
-							perf.onReduceEnd(r);
-						if (r.isTimeout()) {
-							reduceResultState.value = StateReduceRpcTimeout;
-						} else {
-							reduceResultState.value = r.Result.getState();
-							reduceTid.value = r.Result.getReduceTid();
-						}
-						lockey.enter();
-						try {
-							lockey.pulseAll();
-						} finally {
-							lockey.exit();
-						}
-						return 0;
-					})) {
-						if (isDebugEnabled)
-							logger.debug("5 {} {} {}", sender, StateShare, cs);
-						lockey.await();
-					}
-
-					var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
-					switch (reduceResultState.value) {
-					case StateShare:
-						ModifyAcquired.put(globalTableKey, newAcquiredState(StateShare));
-						cs.getShare().add(cs.getModify()); // 降级成功。
-						break;
-
-					case StateInvalid:
-						// 降到了 Invalid，此时就不需要加入 Share 了。
-						ModifyAcquired.remove(globalTableKey);
-						break;
-
-					case StateReduceErrorFreshAcquire:
-						cs.setAcquireStatePending(StateInvalid);
-						if (ENABLE_PERF)
-							perf.onOthers("XXX Fresh " + StateShare);
-						// logger.error("XXX fresh {} {} {}", sender, acquireState, cs);
-						rpc.Result.setState(StateInvalid);
-						lockey.pulseAll(); //notify
-						return StateReduceErrorFreshAcquire; // 事务数据没有改变，回滚
-
-					default:
-						// 包含协议返回错误的值的情况。
-						// case StateReduceRpcTimeout: // 11
-						// case StateReduceException: // 12
-						// case StateReduceNetError: // 13
-						cs.setAcquireStatePending(StateInvalid);
-						if (ENABLE_PERF)
-							perf.onOthers("XXX 8 " + StateShare + " " + reduceResultState.value);
-						// logger.error("XXX 8 state={} {} {} {}", reduceResultState.Value, sender, acquireState, cs);
-						rpc.Result.setState(StateInvalid);
-						lockey.pulseAll();
-						return AcquireShareFailed; // 事务数据没有改变，回滚
-					}
-
-					SenderAcquired.put(globalTableKey, newAcquiredState(StateShare));
-					cs.setModify(-1);
-					cs.getShare().add(sender.serverId);
+			});
+			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
+			serialId.getAndIncrement();
+			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
+			var reduceTid = new OutObject<>(Id128.Zero);
+			if (cs.getModify() != -1) {
+				if (cs.getModify() == sender.serverId) {
+					// 已经是Modify又申请，可能是sender异常关闭，
+					// 又重启连上。更新一下。应该是不需要的。
+					SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
 					cs.setAcquireStatePending(StateInvalid);
 					if (isDebugEnabled)
-						logger.debug("6 {} {} {}", sender, StateShare, cs);
+						logger.debug("4 {} {} {}", sender, StateShare, cs);
+					rpc.Result.setState(StateModify);
+					rpc.setResultCode(AcquireShareAlreadyIsModify);
+					return 0; // 可以忽略的错误，数据有改变，需要提交事务。
+				}
+
+				var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
+				if (CacheHolder.reduce(sessions, cs.getModify(), globalTableKey, fresh, r -> {
+					if (ENABLE_PERF)
+						perf.onReduceEnd(r);
+					if (r.isTimeout()) {
+						reduceResultState.value = StateReduceRpcTimeout;
+					} else {
+						reduceResultState.value = r.Result.getState();
+						reduceTid.value = r.Result.getReduceTid();
+					}
+					lockey.enter();
+					try {
+						lockey.pulseAll();
+					} finally {
+						lockey.exit();
+					}
+					return 0;
+				})) {
+					if (isDebugEnabled)
+						logger.debug("5 {} {} {}", sender, StateShare, cs);
+					lockey.await();
+				}
+
+				var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
+				switch (reduceResultState.value) {
+				case StateShare:
+					ModifyAcquired.put(globalTableKey, newAcquiredState(StateShare));
+					cs.getShare().add(cs.getModify()); // 降级成功。
+					break;
+
+				case StateInvalid:
+					// 降到了 Invalid，此时就不需要加入 Share 了。
+					ModifyAcquired.remove(globalTableKey);
+					break;
+
+				case StateReduceErrorFreshAcquire:
+					cs.setAcquireStatePending(StateInvalid);
+					if (ENABLE_PERF)
+						perf.onOthers("XXX Fresh " + StateShare);
+					// logger.error("XXX fresh {} {} {}", sender, acquireState, cs);
+					rpc.Result.setState(StateInvalid);
+					lockey.pulseAll(); //notify
+					return StateReduceErrorFreshAcquire; // 事务数据没有改变，回滚
+
+				default:
+					// 包含协议返回错误的值的情况。
+					// case StateReduceRpcTimeout: // 11
+					// case StateReduceException: // 12
+					// case StateReduceNetError: // 13
+					cs.setAcquireStatePending(StateInvalid);
+					if (ENABLE_PERF)
+						perf.onOthers("XXX 8 " + StateShare + " " + reduceResultState.value);
+					// logger.error("XXX 8 state={} {} {} {}", reduceResultState.Value, sender, acquireState, cs);
+					rpc.Result.setState(StateInvalid);
 					lockey.pulseAll();
-					rpc.Result.setReduceTid(reduceTid.value);
-					return 0; // 成功也会自动发送结果.
+					return AcquireShareFailed; // 事务数据没有改变，回滚
 				}
 
 				SenderAcquired.put(globalTableKey, newAcquiredState(StateShare));
+				cs.setModify(-1);
 				cs.getShare().add(sender.serverId);
 				cs.setAcquireStatePending(StateInvalid);
 				if (isDebugEnabled)
-					logger.debug("7 {} {} {}", sender, StateShare, cs);
+					logger.debug("6 {} {} {}", sender, StateShare, cs);
 				lockey.pulseAll();
 				rpc.Result.setReduceTid(reduceTid.value);
 				return 0; // 成功也会自动发送结果.
-			} finally {
-				// 异常逃逸（await上的中断、rocks IO异常等）时复位本次占住的申请位并唤醒等待者；
-				// 正常路径已自行复位为StateInvalid，这里不会误伤。
-				if (ownsPending && (cs.getAcquireStatePending() == StateShare || cs.getAcquireStatePending() == StateModify)) {
-					cs.setAcquireStatePending(StateInvalid);
-					lockey.pulseAll();
-				}
 			}
+
+			SenderAcquired.put(globalTableKey, newAcquiredState(StateShare));
+			cs.getShare().add(sender.serverId);
+			cs.setAcquireStatePending(StateInvalid);
+			if (isDebugEnabled)
+				logger.debug("7 {} {} {}", sender, StateShare, cs);
+			lockey.pulseAll();
+			rpc.Result.setReduceTid(reduceTid.value);
+			return 0; // 成功也会自动发送结果.
 		}
 	}
 
@@ -422,262 +418,258 @@ public class GlobalCacheManagerWithRaft
 			var lockey = Transaction.getCurrent().addPessimismLock(locks.get(globalTableKey));
 
 			BCacheState cs = globalStates.getOrAdd(globalTableKey);
-			// AcquireStatePending是transient（无事务日志），异常回滚不复位；finally兜底复位（理由同acquireShare）。
-			var ownsPending = false;
-			try {
-				if (cs.getAcquireStatePending() == StateRemoved)
-					continue;
+			if (cs.getAcquireStatePending() == StateRemoved)
+				continue;
 
+			if (cs.getModify() != -1 && cs.getShare().size() != 0)
+				throw new IllegalStateException("CacheState state error");
+
+			while (cs.getAcquireStatePending() != StateInvalid && cs.getAcquireStatePending() != StateRemoved) {
+				switch (cs.getAcquireStatePending()) {
+				case StateShare:
+					if (cs.getModify() == -1) {
+						logger.error("cs state must be modify");
+						throw new IllegalStateException("CacheState state error");
+					}
+					if (cs.getModify() == sender.serverId) {
+						if (isDebugEnabled)
+							logger.debug("1 {} {} {}", sender, StateModify, cs);
+						rpc.Result.setState(StateInvalid);
+						return AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
+					}
+					break;
+				case StateModify:
+					if (cs.getModify() == sender.serverId || cs.getShare().Contains(sender.serverId)) {
+						if (isDebugEnabled)
+							logger.debug("2 {} {} {}", sender, StateModify, cs);
+						rpc.Result.setState(StateInvalid);
+						return AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
+					}
+					break;
+				case StateRemoving:
+					break;
+				}
+				if (isDebugEnabled)
+					logger.debug("3 {} {} {}", sender, StateModify, cs);
+				lockey.await();
 				if (cs.getModify() != -1 && cs.getShare().size() != 0)
 					throw new IllegalStateException("CacheState state error");
+			}
+			if (cs.getAcquireStatePending() == StateRemoved)
+				continue; // concurrent release
 
-				while (cs.getAcquireStatePending() != StateInvalid && cs.getAcquireStatePending() != StateRemoved) {
-					switch (cs.getAcquireStatePending()) {
-					case StateShare:
-						if (cs.getModify() == -1) {
-							logger.error("cs state must be modify");
-							throw new IllegalStateException("CacheState state error");
-						}
-						if (cs.getModify() == sender.serverId) {
-							if (isDebugEnabled)
-								logger.debug("1 {} {} {}", sender, StateModify, cs);
-							rpc.Result.setState(StateInvalid);
-							return AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
-						}
-						break;
-					case StateModify:
-						if (cs.getModify() == sender.serverId || cs.getShare().Contains(sender.serverId)) {
-							if (isDebugEnabled)
-								logger.debug("2 {} {} {}", sender, StateModify, cs);
-							rpc.Result.setState(StateInvalid);
-							return AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
-						}
-						break;
-					case StateRemoving:
-						break;
-					}
-					if (isDebugEnabled)
-						logger.debug("3 {} {} {}", sender, StateModify, cs);
-					lockey.await();
-					if (cs.getModify() != -1 && cs.getShare().size() != 0)
-						throw new IllegalStateException("CacheState state error");
+			cs.setAcquireStatePending(StateModify);
+			// AcquireStatePending是transient（无事务日志），未提交路径不复位的话申请位永久滞留
+			// （理由同acquireShare）：统一注册回滚动作复位，_final_rollback_在锁释放前执行。
+			Transaction.getCurrent().runWhileRollback(() -> {
+				if (cs.getAcquireStatePending() == StateModify) {
+					cs.setAcquireStatePending(StateInvalid);
+					lockey.pulseAll();
 				}
-				if (cs.getAcquireStatePending() == StateRemoved)
-					continue; // concurrent release
-
-				cs.setAcquireStatePending(StateModify);
-				ownsPending = true;
-				//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
-				serialId.getAndIncrement();
-				var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
-				var reduceTid = new OutObject<>(Id128.Zero);
-				if (cs.getModify() != -1) {
-					if (cs.getModify() == sender.serverId) {
-						// 已经是Modify又申请，可能是sender异常关闭，又重启连上。
-						// 更新一下。应该是不需要的。
-						SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
-						cs.setAcquireStatePending(StateInvalid);
-						if (isDebugEnabled)
-							logger.debug("4 {} {} {}", sender, StateModify, cs);
-						lockey.pulseAll();
-						rpc.setResultCode(AcquireModifyAlreadyIsModify);
-						return 0; // 可以忽略的错误，数据有改变，需要提交事务。
-					}
-
-					var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
-					if (CacheHolder.reduce(sessions, cs.getModify(), globalTableKey, fresh, r -> {
-						if (ENABLE_PERF)
-							perf.onReduceEnd(r);
-						if (r.isTimeout()) {
-							reduceResultState.value = StateReduceRpcTimeout;
-						} else {
-							reduceResultState.value = r.Result.getState();
-							reduceTid.value = r.Result.getReduceTid();
-						}
-						lockey.enter();
-						try {
-							lockey.pulseAll();
-						} finally {
-							lockey.exit();
-						}
-						return 0;
-					})) {
-						if (isDebugEnabled)
-							logger.debug("5 {} {} {}", sender, StateModify, cs);
-						lockey.await();
-					}
-
-					var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
-					switch (reduceResultState.value) {
-					case StateInvalid:
-						ModifyAcquired.remove(globalTableKey);
-						break; // reduce success
-
-					case StateReduceErrorFreshAcquire:
-						cs.setAcquireStatePending(StateInvalid);
-						if (ENABLE_PERF)
-							perf.onOthers("XXX Fresh " + StateModify);
-						// logger.error("XXX fresh {} {} {} {}", sender, acquireState, cs);
-						rpc.Result.setState(StateInvalid);
-						lockey.pulseAll(); //notify
-						return StateReduceErrorFreshAcquire; // 事务数据没有改变，回滚
-
-					default:
-						// case StateReduceRpcTimeout: // 11
-						// case StateReduceException: // 12
-						// case StateReduceNetError: // 13
-						cs.setAcquireStatePending(StateInvalid);
-						if (ENABLE_PERF)
-							perf.onOthers("XXX 9 " + StateModify + " " + reduceResultState.value);
-						// logger.error("XXX 9 {} {} {} {}", sender, acquireState, cs, reduceResultState.Value);
-						rpc.Result.setState(StateInvalid);
-						lockey.pulseAll();
-						return AcquireModifyFailed; // 事务数据没有改变，回滚
-					}
-
-					cs.setModify(sender.serverId);
-					cs.getShare().remove(sender.serverId);
+			});
+			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
+			serialId.getAndIncrement();
+			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
+			var reduceTid = new OutObject<>(Id128.Zero);
+			if (cs.getModify() != -1) {
+				if (cs.getModify() == sender.serverId) {
+					// 已经是Modify又申请，可能是sender异常关闭，又重启连上。
+					// 更新一下。应该是不需要的。
 					SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
 					cs.setAcquireStatePending(StateInvalid);
+					if (isDebugEnabled)
+						logger.debug("4 {} {} {}", sender, StateModify, cs);
 					lockey.pulseAll();
+					rpc.setResultCode(AcquireModifyAlreadyIsModify);
+					return 0; // 可以忽略的错误，数据有改变，需要提交事务。
+				}
 
-					if (isDebugEnabled)
-						logger.debug("6 {} {} {}", sender, StateModify, cs);
-					rpc.Result.setReduceTid(reduceTid.value);
+				var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
+				if (CacheHolder.reduce(sessions, cs.getModify(), globalTableKey, fresh, r -> {
+					if (ENABLE_PERF)
+						perf.onReduceEnd(r);
+					if (r.isTimeout()) {
+						reduceResultState.value = StateReduceRpcTimeout;
+					} else {
+						reduceResultState.value = r.Result.getState();
+						reduceTid.value = r.Result.getReduceTid();
+					}
+					lockey.enter();
+					try {
+						lockey.pulseAll();
+					} finally {
+						lockey.exit();
+					}
 					return 0;
-				}
-
-				ArrayList<KV<CacheHolder, Reduce>> reducePending = new ArrayList<>();
-				IdentityHashSet<CacheHolder> reduceSucceed = new IdentityHashSet<>();
-				boolean senderIsShare = false;
-				// 先把降级请求全部发送给出去。
-				for (var c : cs.getShare()) {
-					if (c == sender.serverId) {
-						senderIsShare = true;
-						reduceSucceed.add(sender);
-						continue;
-					}
-					var kv = CacheHolder.reduceWaitLater(sessions, c, globalTableKey, fresh);
-					if (kv == null) {
-						// 网络错误不再认为成功。整个降级失败，要中断降级。
-						// 已经发出去的降级请求要等待并处理结果。后面处理。
-						break;
-					}
-					reducePending.add(kv);
-				}
-				// 两种情况不需要发reduce
-				// 1. share是空的, 可以直接升为Modify
-				// 2. sender是share, 而且reducePending的size是0
-				var errorFreshAcquire = new OutObject<>(Boolean.FALSE);
-				if (cs.getShare().size() != 0 && (!senderIsShare || !reducePending.isEmpty())) {
-					TaskSpec.ofAction(() -> {
-						// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
-						// 应该也会等待所有任务结束（包括错误）。
-						var freshAcquire = false;
-						for (var kv : reducePending) {
-							CacheHolder session = kv.getKey();
-							Reduce reduce = kv.getValue();
-							try {
-								//noinspection DataFlowIssue
-								reduce.getFuture().await();
-								switch (reduce.Result.getState()) {
-								case StateInvalid:
-									reduceSucceed.add(session);
-									break;
-
-								case StateReduceErrorFreshAcquire:
-									// 这个错误不进入Forbid状态。
-									freshAcquire = true;
-									break;
-
-								default:
-									session.setError();
-									logger.error("Reduce {}=>{} AcquireState={} CacheState={} res={}",
-											sender, session, StateModify, cs, reduce.Result);
-									break;
-								}
-								if (ENABLE_PERF)
-									perf.onReduceEnd(reduce);
-							} catch (Throwable ex) { // exception to result.
-								if (ENABLE_PERF) {
-									if (reduce.isTimeout())
-										perf.onReduceEnd(reduce);
-									else
-										perf.onReduceCancel(reduce);
-								}
-								session.setError();
-								// 等待失败不再看作成功。
-								if (Task.getRootCause(ex) instanceof RpcTimeoutException) {
-									logger.warn("Reduce Timeout {}=>{} AcquireState={} CacheState={} arg={}",
-											sender, session, StateModify, cs, reduce.Argument);
-								} else {
-									logger.error("Reduce {}=>{} AcquireState={} CacheState={} arg={}",
-											sender, session, StateModify, cs, reduce.Argument, ex);
-								}
-							}
-						}
-						lockey.enter();
-						try {
-							errorFreshAcquire.value = freshAcquire;
-							lockey.pulseAll();
-						} finally {
-							lockey.exit();
-						}
-					}).name("GlobalCacheManagerWithRaft.AcquireModify.WaitReduce").runNow();
+				})) {
 					if (isDebugEnabled)
-						logger.debug("7 {} {} {}", sender, StateModify, cs);
+						logger.debug("5 {} {} {}", sender, StateModify, cs);
 					lockey.await();
 				}
 
-				// 移除成功的。
-				for (var it = reduceSucceed.iterator(); it.moveToNext(); ) {
-					CacheHolder succeed = it.value();
-					if (succeed.serverId != sender.serverId) {
-						// sender 不移除：
-						// 1. 如果申请成功，后面会更新到Modify状态。
-						// 2. 如果申请不成功，恢复 cs.Share，保持 Acquired 不变。
-						var KeyAcquired = serverAcquiredTemplate.openTable(succeed.serverId);
-						KeyAcquired.remove(globalTableKey);
-					}
-					cs.getShare().remove(succeed.serverId);
-				}
+				var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
+				switch (reduceResultState.value) {
+				case StateInvalid:
+					ModifyAcquired.remove(globalTableKey);
+					break; // reduce success
 
-				// 如果前面降级发生中断(break)，这里就不会为0。
-				if (cs.getShare().size() != 0) {
-					// senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
-					// 失败了，要把原来是share的sender恢复。先这样吧。
-					if (senderIsShare)
-						cs.getShare().add(sender.serverId);
-
+				case StateReduceErrorFreshAcquire:
 					cs.setAcquireStatePending(StateInvalid);
 					if (ENABLE_PERF)
-						perf.onOthers("XXX 10 " + StateModify + ' ' + errorFreshAcquire.value);
-					// logger.error("XXX 10 {} {} {}", sender, acquireState, cs);
+						perf.onOthers("XXX Fresh " + StateModify);
+					// logger.error("XXX fresh {} {} {} {}", sender, acquireState, cs);
+					rpc.Result.setState(StateInvalid);
+					lockey.pulseAll(); //notify
+					return StateReduceErrorFreshAcquire; // 事务数据没有改变，回滚
+
+				default:
+					// case StateReduceRpcTimeout: // 11
+					// case StateReduceException: // 12
+					// case StateReduceNetError: // 13
+					cs.setAcquireStatePending(StateInvalid);
+					if (ENABLE_PERF)
+						perf.onOthers("XXX 9 " + StateModify + " " + reduceResultState.value);
+					// logger.error("XXX 9 {} {} {} {}", sender, acquireState, cs, reduceResultState.Value);
 					rpc.Result.setState(StateInvalid);
 					lockey.pulseAll();
-					rpc.setResultCode(errorFreshAcquire.value
-							? StateReduceErrorFreshAcquire  // 这个错误码导致Server-RedoAndReleaseLock
-							: AcquireModifyFailed); // 这个错误码导致Server事务失败。
-					rpc.Result.setReduceTid(reduceTid.value);
-					return 0; // 可能存在部分reduce成功，需要提交事务。
+					return AcquireModifyFailed; // 事务数据没有改变，回滚
 				}
 
-				SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
 				cs.setModify(sender.serverId);
+				cs.getShare().remove(sender.serverId);
+				SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
 				cs.setAcquireStatePending(StateInvalid);
-				if (isDebugEnabled)
-					logger.debug("8 {} {} {}", sender, StateModify, cs);
 				lockey.pulseAll();
+
+				if (isDebugEnabled)
+					logger.debug("6 {} {} {}", sender, StateModify, cs);
 				rpc.Result.setReduceTid(reduceTid.value);
-				return 0; // 成功也会自动发送结果.
-			} finally {
-				// 异常逃逸（await上的中断、rocks IO异常等）时复位本次占住的申请位并唤醒等待者；
-				// 正常路径已自行复位为StateInvalid，这里不会误伤。
-				if (ownsPending && (cs.getAcquireStatePending() == StateShare || cs.getAcquireStatePending() == StateModify)) {
-					cs.setAcquireStatePending(StateInvalid);
-					lockey.pulseAll();
-				}
+				return 0;
 			}
+
+			ArrayList<KV<CacheHolder, Reduce>> reducePending = new ArrayList<>();
+			IdentityHashSet<CacheHolder> reduceSucceed = new IdentityHashSet<>();
+			boolean senderIsShare = false;
+			// 先把降级请求全部发送给出去。
+			for (var c : cs.getShare()) {
+				if (c == sender.serverId) {
+					senderIsShare = true;
+					reduceSucceed.add(sender);
+					continue;
+				}
+				var kv = CacheHolder.reduceWaitLater(sessions, c, globalTableKey, fresh);
+				if (kv == null) {
+					// 网络错误不再认为成功。整个降级失败，要中断降级。
+					// 已经发出去的降级请求要等待并处理结果。后面处理。
+					break;
+				}
+				reducePending.add(kv);
+			}
+			// 两种情况不需要发reduce
+			// 1. share是空的, 可以直接升为Modify
+			// 2. sender是share, 而且reducePending的size是0
+			var errorFreshAcquire = new OutObject<>(Boolean.FALSE);
+			if (cs.getShare().size() != 0 && (!senderIsShare || !reducePending.isEmpty())) {
+				TaskSpec.ofAction(() -> {
+					// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
+					// 应该也会等待所有任务结束（包括错误）。
+					var freshAcquire = false;
+					for (var kv : reducePending) {
+						CacheHolder session = kv.getKey();
+						Reduce reduce = kv.getValue();
+						try {
+							//noinspection DataFlowIssue
+							reduce.getFuture().await();
+							switch (reduce.Result.getState()) {
+							case StateInvalid:
+								reduceSucceed.add(session);
+								break;
+
+							case StateReduceErrorFreshAcquire:
+								// 这个错误不进入Forbid状态。
+								freshAcquire = true;
+								break;
+
+							default:
+								session.setError();
+								logger.error("Reduce {}=>{} AcquireState={} CacheState={} res={}",
+										sender, session, StateModify, cs, reduce.Result);
+								break;
+							}
+							if (ENABLE_PERF)
+								perf.onReduceEnd(reduce);
+						} catch (Throwable ex) { // exception to result.
+							if (ENABLE_PERF) {
+								if (reduce.isTimeout())
+									perf.onReduceEnd(reduce);
+								else
+									perf.onReduceCancel(reduce);
+							}
+							session.setError();
+							// 等待失败不再看作成功。
+							if (Task.getRootCause(ex) instanceof RpcTimeoutException) {
+								logger.warn("Reduce Timeout {}=>{} AcquireState={} CacheState={} arg={}",
+										sender, session, StateModify, cs, reduce.Argument);
+							} else {
+								logger.error("Reduce {}=>{} AcquireState={} CacheState={} arg={}",
+										sender, session, StateModify, cs, reduce.Argument, ex);
+							}
+						}
+					}
+					lockey.enter();
+					try {
+						errorFreshAcquire.value = freshAcquire;
+						lockey.pulseAll();
+					} finally {
+						lockey.exit();
+					}
+				}).name("GlobalCacheManagerWithRaft.AcquireModify.WaitReduce").runNow();
+				if (isDebugEnabled)
+					logger.debug("7 {} {} {}", sender, StateModify, cs);
+				lockey.await();
+			}
+
+			// 移除成功的。
+			for (var it = reduceSucceed.iterator(); it.moveToNext(); ) {
+				CacheHolder succeed = it.value();
+				if (succeed.serverId != sender.serverId) {
+					// sender 不移除：
+					// 1. 如果申请成功，后面会更新到Modify状态。
+					// 2. 如果申请不成功，恢复 cs.Share，保持 Acquired 不变。
+					var KeyAcquired = serverAcquiredTemplate.openTable(succeed.serverId);
+					KeyAcquired.remove(globalTableKey);
+				}
+				cs.getShare().remove(succeed.serverId);
+			}
+
+			// 如果前面降级发生中断(break)，这里就不会为0。
+			if (cs.getShare().size() != 0) {
+				// senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
+				// 失败了，要把原来是share的sender恢复。先这样吧。
+				if (senderIsShare)
+					cs.getShare().add(sender.serverId);
+
+				cs.setAcquireStatePending(StateInvalid);
+				if (ENABLE_PERF)
+					perf.onOthers("XXX 10 " + StateModify + ' ' + errorFreshAcquire.value);
+				// logger.error("XXX 10 {} {} {}", sender, acquireState, cs);
+				rpc.Result.setState(StateInvalid);
+				lockey.pulseAll();
+				rpc.setResultCode(errorFreshAcquire.value
+						? StateReduceErrorFreshAcquire  // 这个错误码导致Server-RedoAndReleaseLock
+						: AcquireModifyFailed); // 这个错误码导致Server事务失败。
+				rpc.Result.setReduceTid(reduceTid.value);
+				return 0; // 可能存在部分reduce成功，需要提交事务。
+			}
+
+			SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
+			cs.setModify(sender.serverId);
+			cs.setAcquireStatePending(StateInvalid);
+			if (isDebugEnabled)
+				logger.debug("8 {} {} {}", sender, StateModify, cs);
+			lockey.pulseAll();
+			rpc.Result.setReduceTid(reduceTid.value);
+			return 0; // 成功也会自动发送结果.
 		}
 	}
 
@@ -693,54 +685,64 @@ public class GlobalCacheManagerWithRaft
 			var lockey = Transaction.getCurrent().addPessimismLock(locks.get(gkey));
 
 			BCacheState cs = globalStates.getOrAdd(gkey);
-			// AcquireStatePending是transient（无事务日志），异常回滚不复位；finally兜底复位（理由同acquireShare）。
-			var ownsRemoving = false;
-			try {
-				if (cs.getAcquireStatePending() == StateRemoved)
-					continue; // 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
+			// 正常不可达（有Release请求意味着有持有者，不会进入StateRemoved）；提交失败回滚会把
+			// 持有者复原、占位却滞留StateRemoved（transient无日志），届时在这里自旋——
+			// 由下面的回滚动作复位保证不发生。
+			if (cs.getAcquireStatePending() == StateRemoved)
+				continue;
 
-				while (cs.getAcquireStatePending() != StateInvalid && cs.getAcquireStatePending() != StateRemoved) {
-					switch (cs.getAcquireStatePending()) {
-					case StateShare:
-					case StateModify:
-						if (isDebugEnabled)
-							logger.debug("Release 0 {} {} {}", sender, gkey, cs);
-						if (noWait)
-							return getSenderCacheState(cs, sender);
-						break;
-					case StateRemoving:
-						// release 不会导致死锁，等待即可。
-						break;
-					}
-					lockey.await();
+			while (cs.getAcquireStatePending() != StateInvalid && cs.getAcquireStatePending() != StateRemoved) {
+				switch (cs.getAcquireStatePending()) {
+				case StateShare:
+				case StateModify:
+					if (isDebugEnabled)
+						logger.debug("Release 0 {} {} {}", sender, gkey, cs);
+					if (noWait)
+						return getSenderCacheState(cs, sender);
+					break;
+				case StateRemoving:
+					// release 不会导致死锁，等待即可。
+					break;
 				}
-				if (cs.getAcquireStatePending() == StateRemoved)
-					continue;
-				cs.setAcquireStatePending(StateRemoving);
-				ownsRemoving = true;
-
-				if (cs.getModify() == sender.serverId)
-					cs.setModify(-1);
-				cs.getShare().remove(sender.serverId); // always try remove
-				serverAcquiredTemplate.openTable(sender.serverId).remove(gkey);
-
-				if (cs.getModify() == -1 && cs.getShare().size() == 0) {
-					// 1. 安全的从global中删除，没有并发问题。
-					cs.setAcquireStatePending(StateRemoved);
-					globalStates.remove(gkey);
-				} else
-					cs.setAcquireStatePending(StateInvalid);
-				lockey.pulseAll();
-				return StateInvalid;
-			} finally {
-				// 异常逃逸（await上的中断、rocks IO异常等）时复位本次占住的StateRemoving并唤醒等待者，
-				// 否则该key上所有后续acquire/release进入无超时await（key永久冻结、procedure线程与守护停摆）；
-				// 正常路径已自行复位（StateRemoved或StateInvalid），这里不会误伤。
-				if (ownsRemoving && cs.getAcquireStatePending() == StateRemoving) {
+				lockey.await();
+			}
+			if (cs.getAcquireStatePending() == StateRemoved)
+				continue;
+			cs.setAcquireStatePending(StateRemoving);
+			// StateRemoving是transient（无事务日志），未提交路径不复位的话该key上所有后续
+			// acquire/release进入无超时await（key永久冻结、procedure线程与守护停摆）；
+			// 注册回滚动作复位（理由同acquireShare），_final_rollback_在锁释放前执行。
+			Transaction.getCurrent().runWhileRollback(() -> {
+				if (cs.getAcquireStatePending() == StateRemoving) {
 					cs.setAcquireStatePending(StateInvalid);
 					lockey.pulseAll();
 				}
-			}
+			});
+
+			if (cs.getModify() == sender.serverId)
+				cs.setModify(-1);
+			cs.getShare().remove(sender.serverId); // always try remove
+			serverAcquiredTemplate.openTable(sender.serverId).remove(gkey);
+
+			if (cs.getModify() == -1 && cs.getShare().size() == 0) {
+				// 1. 安全的从global中删除，没有并发问题。
+				cs.setAcquireStatePending(StateRemoved);
+				globalStates.remove(gkey);
+				// StateRemoved把"记录已删除"当作瞬时状态提前发布，但remove要走raft提交：
+				// _final_commit_失败（raft重试等）回滚后持有者被事务日志复原，占位却不会自动
+				// 复位——该key上所有后续acquire/release进入无await的continue忙自旋，且
+				// globalLruTryRemove只放行Invalid，毒化bean永不逐出缓存（FND3-35）。
+				// 注册回滚动作复位，与StateRemoving同一个机制。
+				Transaction.getCurrent().runWhileRollback(() -> {
+					if (cs.getAcquireStatePending() == StateRemoved) {
+						cs.setAcquireStatePending(StateInvalid);
+						lockey.pulseAll();
+					}
+				});
+			} else
+				cs.setAcquireStatePending(StateInvalid);
+			lockey.pulseAll();
+			return StateInvalid;
 		}
 	}
 

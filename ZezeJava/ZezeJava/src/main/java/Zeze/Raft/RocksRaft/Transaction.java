@@ -346,6 +346,15 @@ public final class Transaction {
 
 	private void _final_rollback_(Procedure procedure) {
 		var rollbackActions = lastRollbackActions;
+		if (rollbackActions == null) {
+			// 过程成功返回（rc==0）但 _final_commit_ 失败（raft appendLog 抛 RaftRetry 等）
+			// 或乐观检查失败的路径不经过 rollback()，lastRollbackActions 不会被赋值；
+			// 此时最外层savepoint仍完整保留（_final_commit_ 不弹出），直接取其回滚动作执行，
+			// 维持"未提交则已注册的回滚动作必执行"。
+			var saveSize = savepoints.size();
+			if (saveSize > 0)
+				rollbackActions = savepoints.get(saveSize - 1).getRollbackActions();
+		}
 		if (rollbackActions != null) {
 			for (var action : rollbackActions) {
 				try {
