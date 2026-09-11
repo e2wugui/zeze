@@ -70,8 +70,8 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public V Set(int index, V item) {
-		var old = super.Set(index, item);
+	public V set(int index, V item) {
+		var old = super.set(index, item);
 		getAddSet().remove(old);
 		getAddSet().add(item);
 		return old;

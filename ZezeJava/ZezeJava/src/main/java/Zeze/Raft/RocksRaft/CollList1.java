@@ -64,7 +64,7 @@ public class CollList1<V> extends CollList<V> {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return listLog.Set(index, item);
+			return listLog.set(index, item);
 		}
 		var old = list.get(index);
 		list = list.with(index, item);

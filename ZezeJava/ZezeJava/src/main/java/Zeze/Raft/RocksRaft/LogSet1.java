@@ -99,7 +99,7 @@ public class LogSet1<V> extends LogSet<V> {
 			currentSp.putLog(this);
 	}
 
-	public final void merge(LogSet1<V> from) {
+	private void merge(LogSet1<V> from) {
 		// Put,Remove 需要确认有没有顺序问题
 		// this: add 1,3 remove 2,4 nest: add 2 remove 1
 		for (var e : from.added) {

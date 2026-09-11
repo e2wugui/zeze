@@ -90,7 +90,7 @@ public class LogList1<V> extends LogList<V> {
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
 	}
 
-	public V Set(int index, V item) {
+	public V set(int index, V item) {
 		var list = getValue();
 		var old = list.get(index);
 		setValue(list.with(index, item));
@@ -143,7 +143,7 @@ public class LogList1<V> extends LogList<V> {
 			currentSp.putLog(this);
 	}
 
-	public final void merge(LogList1<V> from) {
+	private void merge(LogList1<V> from) {
 		if (!from.opLogs.isEmpty()) {
 			if (from.opLogs.getFirst().op == OpLog.OP_CLEAR)
 				opLogs.clear();
