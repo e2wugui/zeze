@@ -24,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerWithRaftAgent implements IGlobalAgent {
 	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaftAgent.class);
@@ -42,7 +43,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	@Override
-	public GlobalAgentBase getAgent(int index) {
+	public @NonNull GlobalAgentBase getAgent(int index) {
 		return agents[index];
 	}
 
@@ -290,6 +291,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			super.globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 			raftClient = new Agent("global.raft", zeze, raftConf, Agent.NetClient::new);
 			raftClient.setOnSetLeader(this::raftOnSetLeader);
+			// Reduce处理（table.reduceInvalid/reduceShare）会等待本地锁，必须入池执行；
+			// Direct优先规则（Agent.NetClient.dispatchProtocol）不影响本Agent——注册协议全为Normal。
 			raftClient.dispatchProtocolToInternalThreadPool = true;
 			getGlobalCacheManagerWithRaftAgent().RegisterProtocols(raftClient.getClient());
 		}

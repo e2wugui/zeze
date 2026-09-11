@@ -55,6 +55,11 @@ public final class Agent {
 	private volatile ConnectorProxy leader;
 	private final ConcurrentHashMapOrdered<Long, RaftRpc<?, ?>> pending = new ConcurrentHashMapOrdered<>();
 	private long term;
+	/**
+	 * 入站协议默认投入内部线程池执行（防业务handler阻塞IO线程）。
+	 * 显式注册DispatchMode.Direct的协议不受本flag影响——Direct优先于池化，
+	 * 见NetClient.dispatchProtocol。
+	 */
 	public boolean dispatchProtocolToInternalThreadPool;
 	private volatile int pendingLimit = -1; // -1 no limit // 实际上没有进行线程保护。
 	private Future<?> resendTask;
@@ -412,7 +417,7 @@ public final class Agent {
 
 	private long processLeaderIs(LeaderIs r) throws Exception {
 		ConnectorProxy leader = this.leader;
-		logger.info("=============== LEADERIS Old={} New={} From={}",
+		logger.info("=============== LEADERS Old={} New={} From={}",
 				leader != null ? leader.getName() : null, r.Argument.getLeaderId(), r.getSender());
 
 		// 启用代理（多个raft共享连接）。
@@ -637,7 +642,11 @@ public final class Agent {
 		@Override
 		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 虚拟线程创建太多Critical线程反而容易卡,以后考虑跑另个虚拟线程池里
-			if (p.getTypeId() == LeaderIs.TypeId_ || isHandshakeProtocol(p.getTypeId()) || agent.dispatchProtocolToInternalThreadPool) {
+			// Direct优先于池化（含dispatchProtocolToInternalThreadPool）：Direct是注册方
+			// "在调用线程串行执行"的显式声明（如SM订阅的Edit必须与订阅应答同在IO线程按接收
+			// 序应用，入池会乱序增量致订阅状态与注册表永久分叉），flag只作用于默认Normal的协议。
+			if (factoryHandle.Mode != DispatchMode.Direct
+					&& (p.getTypeId() == LeaderIs.TypeId_ || isHandshakeProtocol(p.getTypeId()) || agent.dispatchProtocolToInternalThreadPool)) {
 				Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
 			} else
 				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)

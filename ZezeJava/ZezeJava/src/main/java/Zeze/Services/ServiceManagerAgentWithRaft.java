@@ -28,7 +28,9 @@ import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BSubscribeArgument;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Services.ServiceManager.BUnSubscribeArgument;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.DispatchModeAnnotation;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
@@ -141,7 +143,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	// Suspect仅是提示：转化为onSuspect回调（应用接takeover.tryTransfer），
 	// 租约未过期时tryTransfer内部安排到过期时刻精确重试，不会误接管。
 	@Override
-	protected long ProcessSuspectRequest(@NotNull Suspect r) throws Exception {
+	protected long ProcessSuspectRequest(@NotNull Suspect r) {
 		var on = onSuspect;
 		if (on != null) {
 			try {
@@ -154,7 +156,12 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		return 0;
 	}
 
+	// Direct：Edit推送与Subscribe应答（dispatchRpcResponse内联）同在IO线程按TCP接收序串行应用，
+	// 对齐非raft版Agent的Direct注册。Edit增量无序号，乱序应用会令订阅状态与注册表永久分叉
+	// （FND3-40）；本handler体内全为非阻塞操作（CHM、SubscribeState锁、SendResult异步发、
+	// triggerOnChanged投oneByOne池），内联执行不阻塞IO线程。
 	@Override
+	@DispatchModeAnnotation(mode = DispatchMode.Direct)
 	protected long ProcessEditRequest(@NotNull Edit r) {
 		for (var it = r.Argument.getRemove().iterator(); it.hasNext(); /**/) {
 			var unReg = it.next();
