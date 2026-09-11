@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.rocksdb.RocksDBException;
@@ -177,6 +178,44 @@ public class TestUniqueStubFailRetryApply {
 			assertEquals(List.of(10, 20, 30), readStorage(table, 1), "重试必须跳过增量重放（恰好应用一次）");
 			assertEquals(1, logSequence.getLastApplied(), "重试后lastApplied推进");
 			assertEquals(1, callbackCount.get(), "原始raftLog的回调必须恰好触发一次");
+		}
+	}
+
+	// follower式应用+换主重发（Changes格式修复的验证）：Changes补super.encode/decode后，
+	// unique/createTime/rpcResult随日志持久化——follower/重放侧应用时同样写"已应用"存根
+	// （含结果），节点换主后作为新leader对同requestId重发能命中存根并结果重放，恰好一次
+	// 跨leader任期。修复前：解码日志恒为requestId==0，follower不写存根，换主+重发重新执行。
+	@Test
+	public void testFollowerApplyWritesAppliedStubForFailoverDedup() throws Exception {
+		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
+			rocks.registerTableTemplate(templateName, Integer.class, BListBean.class);
+			var table = rocks.<Integer, BListBean>getTableTemplate(templateName).openTable(0);
+			seedStorage(table, 1, 10, 20);
+
+			var changes = captureUniqueChanges(rocks, table);
+			// rpcResult在Raft.appendLog入口（saveLog之前）set到log上，此处同样在落日志前设置。
+			var rpcResult = new Zeze.Net.Binary("fake.rpc.result.fnd3_22".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			changes.setRpcResult(rpcResult);
+			var raftLog = new RaftLog(1, 1, changes);
+			var logSequence = rocks.getRaft().getLogSequence();
+			logSequence.saveLog(raftLog);
+
+			// follower式应用（不经leaderAppendLogs，经readLog解码）。
+			logSequence.tryApply(raftLog, 1);
+			assertEquals(List.of(10, 20, 30), readStorage(table, 1));
+			assertEquals(1, logSequence.getLastApplied());
+
+			// 模拟换主后同请求重发到达本节点（现为leader）：查存根必须命中"已应用+携带结果"。
+			// 修复前：解码requestId==0->follower没写存根->NOT_FOUND->重发重新执行（红）。
+			var retried = new Zeze.Builtin.ServiceManagerWithRaft.Login();
+			retried.getUnique().setRequestId(1);
+			retried.getUnique().setClientId("test.fnd3_22");
+			retried.setCreateTime(changes.getCreateTime());
+			var state = logSequence.tryGetRequestState(retried);
+			Assertions.assertNotNull(state, "存根必须存在（NOT_FOUND语义用专门对象表达）");
+			Assertions.assertNotSame(UniqueRequestState.NOT_FOUND, state, "换主后重发必须命中已应用存根");
+			Assertions.assertTrue(state.isApplied(), "存根必须是已应用状态");
+			Assertions.assertEquals(rpcResult, state.getRpcResult(), "存根必须携带rpcResult供结果重放");
 		}
 	}
 }

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;
+
 import Zeze.Raft.IRaftRpc;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
@@ -11,6 +12,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
+import org.jspecify.annotations.NonNull;
 
 public final class Changes extends Zeze.Raft.Log {
 	private final Rocks rocks;
@@ -180,7 +182,7 @@ public final class Changes extends Zeze.Raft.Log {
 			if (belong instanceof Collection) {
 				// 容器使用共享的日志。需要先去查询，没有的话才创建。
 				logBean = (LogBean)Transaction.getCurrent().getLog(
-						belong.parent().objectId() + belong.variableId());
+					belong.parent().objectId() + belong.variableId());
 			}
 			if (logBean == null)
 				logBean = belong.createLogBean();
@@ -218,7 +220,11 @@ public final class Changes extends Zeze.Raft.Log {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NonNull ByteBuffer bb) {
+		// Log基类字段（unique/createTime/rpcResult）必须随日志持久化（对齐HeartbeatLog等
+		// 全部子类）：否则解码侧恒为requestId==0，follower/重放侧不写unique应用存根——
+		// 唯一请求的"恰好一次"退化为按leader任期（换主+重发重新执行、结果重放丢失）。
+		super.encode(bb);
 		bb.WriteUInt(records.size());
 		for (var r : records.entrySet()) {
 			// encode TableTemplate
@@ -241,7 +247,8 @@ public final class Changes extends Zeze.Raft.Log {
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NonNull IByteBuffer bb) {
+		super.decode(bb);
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var tkey = new TableKey();
 			var r = new Record();

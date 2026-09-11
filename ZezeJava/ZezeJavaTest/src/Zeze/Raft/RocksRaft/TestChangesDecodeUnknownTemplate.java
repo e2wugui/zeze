@@ -69,14 +69,22 @@ public class TestChangesDecodeUnknownTemplate {
 		LogSequence.deleteDirectory(new File(dbHome)); // best-effort
 	}
 
+	// Changes.decode 的字段序（FND3-22格式修复后）：Log基类三字段（unique: clientId+requestId、
+	// createTime、rpcResult）在前，随后才是 records.size, tableTemplateId, tableTemplateName, ...
+	private static void writeLogBaseFields(ByteBuffer bb) {
+		new Zeze.Raft.UniqueRequestId().encode(bb); // 空unique：clientId=""+requestId=0
+		bb.WriteLong(0); // createTime
+		bb.WriteBinary(Zeze.Net.Binary.Empty); // rpcResult
+	}
+
 	// 未知表模板（版本偏差：leader 注册了新表，本节点未注册）必须抛 IllegalStateException，
 	// 这是 readLogForApply/fatalKillDecodeError 捕获并 fatalKill 的异常源。
 	@Test
 	public void testUnknownTemplateThrows() throws Exception {
 		try (var rocks = newRocks()) {
 			var changes = new Changes(rocks);
-			// Changes.decode 的字段序：records.size, tableTemplateId, tableTemplateName, tableName, ...
 			var bb = ByteBuffer.Allocate();
+			writeLogBaseFields(bb);
 			bb.WriteUInt(1); // 1 record
 			bb.WriteUInt(0); // tableTemplateId
 			bb.WriteString("tVersionSkewNewTable"); // leader新版本的表模板名，本节点未注册
@@ -96,6 +104,7 @@ public class TestChangesDecodeUnknownTemplate {
 		try (var rocks = newRocks()) {
 			var changes = new Changes(rocks);
 			var bb = ByteBuffer.Allocate();
+			writeLogBaseFields(bb);
 			bb.WriteUInt(1); // 1 record
 			bb.WriteUInt(0); // tableTemplateId
 			bb.WriteString(knownTemplate);
