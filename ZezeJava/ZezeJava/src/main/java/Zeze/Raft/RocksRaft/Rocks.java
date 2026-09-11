@@ -104,6 +104,20 @@ public final class Rocks extends StateMachine implements Closeable {
 		pendingFlushApplies.put(index, new PendingFlush(term, records));
 	}
 
+	// FND3-22：apply已完整成功（内存变更+flush提交）后、lastApplied推进前的收尾步骤
+	// （unique存根写）失败时的补偿标记。空记录集：重试命中takePendingFlush→no-op flush
+	// （atomicLongs幂等绝对值重写）短路增量重放——非幂等增量（如list按索引追加）重放
+	// 一次即双重应用、状态机静默分歧。与FlushException记录（有未落盘数据）同表同
+	// 生命周期（restore/reset清空、term校验丢弃过期标记）。
+	public void markApplied(long index, long term) {
+		putPendingFlush(index, term, List.of());
+	}
+
+	/** 收尾完成（存根写成功、lastApplied即将推进）时清除 {@link #markApplied(long, long)} 的标记。 */
+	public void clearAppliedMark(long index) {
+		pendingFlushApplies.remove(index);
+	}
+
 	public static void registerLog(Supplier<Log> s) {
 		Log.register(s);
 	}

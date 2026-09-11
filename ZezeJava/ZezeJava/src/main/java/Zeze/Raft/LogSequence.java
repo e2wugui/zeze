@@ -17,6 +17,7 @@ import Zeze.Net.Protocol;
 import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Action0;
 import Zeze.Util.Action2;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.RocksDatabase;
@@ -631,7 +632,9 @@ public class LogSequence {
 		writeOptions = value;
 	}
 
-	private void saveLog(RaftLog log) throws RocksDBException {
+	// package-private：headless单测直接落日志后驱动应用循环（FND3-22回归，
+	// 对齐waitLogFateDetermined的测试可见性先例）。
+	void saveLog(RaftLog log) throws RocksDBException {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(log.getIndex());
 		var value = log.encode();
@@ -812,7 +815,13 @@ public class LogSequence {
 		return Procedure.CancelException;
 	}
 
-	private void tryApply(RaftLog lastApplicableLog, long count) throws Exception {
+	// 测试钩子（package-private，一次性）：非null时在unique存根写之前执行并自动置null，
+	// 用于注入存根写失败（抛RocksDBException），验证FND3-22补偿：apply成功后存根写失败的
+	// 重试不得重放增量。仅测试使用。
+	Action0 testHookBeforeUniqueApply;
+
+	// package-private：headless单测直接驱动应用循环（FND3-22回归，理由同saveLog）。
+	void tryApply(RaftLog lastApplicableLog, long count) throws Exception {
 		if (lastApplicableLog == null) {
 			logger.error("lastApplicableLog is null.");
 			return;
@@ -842,9 +851,40 @@ public class LogSequence {
 				}
 				throw e;
 			}
-			if (raftLog.getLog().getUnique().getRequestId() > 0)
-				openUniqueRequests(raftLog.getLog().getCreateTime()).apply(raftLog);
+			var hasUniqueRequest = raftLog.getLog().getUnique().getRequestId() > 0;
+			// Rocks状态机才有pendingFlush补偿（Dbh2等自定义StateMachine的apply重试语义自成一体）。
+			var smRocks = raft.getStateMachine() instanceof Rocks rocks ? rocks : null;
+			if (hasUniqueRequest && smRocks != null)
+				// FND3-22：apply已完整成功（内存变更+flush提交），其后到lastApplied推进之间的
+				// 收尾步骤（unique存根写）失败时，登记"已应用"补偿（空记录集）：重试经
+				// takePendingFlush命中→no-op flush短路，不重放非幂等增量（list按索引追加等
+				// 重放一次即双重应用）。正常收尾后在lastApplied推进处清除。
+				smRocks.markApplied(raftLog.getIndex(), raftLog.getTerm());
+			try {
+				if (hasUniqueRequest) {
+					var hook = testHookBeforeUniqueApply;
+					if (hook != null) {
+						testHookBeforeUniqueApply = null; // 一次性
+						hook.run(); // 测试注入存根写失败（RocksDBException）
+					}
+					openUniqueRequests(raftLog.getLog().getCreateTime()).apply(raftLog);
+				}
+			} catch (RocksDBException e) {
+				// 重试的pending路径会take消费标记：补回，保持"已应用"事实直到存根写成功；
+				// 原始raftLog放回（对齐FlushException分支）：leader重试走leaderApply（flush-only）
+				// 路径，成功后invokeCallback能唤醒等待appendLog的业务线程（否则重试用解码的
+				// 新对象，回调丢失，业务线程等满超时拿到RaftRetry假失败）。
+				if (smRocks != null)
+					smRocks.markApplied(raftLog.getIndex(), raftLog.getTerm());
+				if (raftLog.isLeaderRequest() && leaderAppendLogs.putIfAbsent(raftLog.getIndex(), raftLog) != null) {
+					logger.fatal("LeaderAppendLogs.TryAdd Fail. Index={}", raftLog.getIndex(), new Exception());
+					raft.fatalKill();
+				}
+				throw e;
+			}
 			lastApplied = raftLog.getIndex(); // 循环可能退出，在这里修改。
+			if (hasUniqueRequest && smRocks != null)
+				smRocks.clearAppliedMark(raftLog.getIndex());
 			//*
 			if (isDebugEnabled && lastIndex - lastApplied < 10) {
 				logger.debug("{}-{} {} RequestId={} LastIndex={} LastApplied={} Count={}",
