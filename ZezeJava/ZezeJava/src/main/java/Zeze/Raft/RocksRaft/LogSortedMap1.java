@@ -6,6 +6,7 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 与 LogMap1 完全对应，只是继承自 LogSortedMap，value 使用 PSortedMap。
@@ -70,7 +71,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteUInt(putted.size());
 		var keyEncoder = keyCodecFuncs.encoder;
 		var valueEncoder = valueCodecFuncs.encoder;
@@ -85,7 +86,7 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		putted.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		var valueDecoder = valueCodecFuncs.decoder;

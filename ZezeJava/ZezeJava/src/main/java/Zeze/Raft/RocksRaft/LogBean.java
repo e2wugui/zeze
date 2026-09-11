@@ -3,6 +3,7 @@ package Zeze.Raft.RocksRaft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.IntHashMap;
+import org.jetbrains.annotations.NotNull;
 
 public class LogBean extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogBean");
@@ -49,7 +50,7 @@ public class LogBean extends Log {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var vars = variables;
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
@@ -64,7 +65,7 @@ public class LogBean extends Log {
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		int n = bb.ReadUInt();
 		if (n > 0) {
 			var variables = getVariablesOrNew();

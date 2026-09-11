@@ -10,6 +10,7 @@ import Zeze.Util.IdentityHashSet;
 import Zeze.Util.OutInt;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 
 public class LogList2<V extends Bean> extends LogList1<V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogList2<");
@@ -123,7 +124,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var curList = getValue();
 		if (curList != null) {
 			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
@@ -159,7 +160,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var value = new LogBean();

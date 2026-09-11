@@ -5,6 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.LongConcurrentHashMap;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class Log implements Serializable {
 	private static final LongConcurrentHashMap<Supplier<Log>> factorys = new LongConcurrentHashMap<>();
@@ -70,8 +71,8 @@ public abstract class Log implements Serializable {
 	}
 
 	@Override
-	public abstract void encode(ByteBuffer bb);
+	public abstract void encode(@NotNull ByteBuffer bb);
 
 	@Override
-	public abstract void decode(IByteBuffer bb);
+	public abstract void decode(@NotNull IByteBuffer bb);
 }

@@ -33,6 +33,7 @@ import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
@@ -460,7 +461,7 @@ public class Test {
 		for (int i = 0; i < tryCount; ++i) {
 			var check = checkCurrentCount(testName, false);
 			logger.info("""
-							
+
 							++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 							++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 							Check={} Step={} ExpectCount={} Errors={}
@@ -687,12 +688,12 @@ public class Test {
 			}
 
 			@Override
-			public void encode(ByteBuffer bb) {
+			public void encode(@NotNull ByteBuffer bb) {
 				super.encode(bb);
 			}
 
 			@Override
-			public void decode(IByteBuffer bb) {
+			public void decode(@NotNull IByteBuffer bb) {
 				super.decode(bb);
 			}
 		}
@@ -829,7 +830,7 @@ public class Test {
 				raftConfig.setDbHome(Paths.get(raftName.replace(':', '_')).toString());
 				if (resetLog) {
 					logger.warn("""
-							
+
 							------------------------------------------------
 							- Reset Log {} -
 							------------------------------------------------""", raftConfig.getDbHome());

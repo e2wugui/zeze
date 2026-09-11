@@ -9,6 +9,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 与 LogMap2 完全对应，只是继承自 LogSortedMap1，value 使用 PSortedMap。
@@ -50,7 +51,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		if (getValue() != null) {
 			for (var c : changed) {
 				Object pkey = c.getThis().mapKey();
@@ -83,7 +84,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		changedWithKey.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {

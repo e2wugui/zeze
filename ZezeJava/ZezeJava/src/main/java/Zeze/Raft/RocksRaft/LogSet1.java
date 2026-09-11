@@ -5,6 +5,7 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
+import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 
 public class LogSet1<V> extends LogSet<V> {
@@ -62,7 +63,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		var encoder = valueCodecFuncs.encoder;
 
 		bb.WriteUInt(added.size());
@@ -75,7 +76,7 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		var decoder = valueCodecFuncs.decoder;
 
 		added.clear();

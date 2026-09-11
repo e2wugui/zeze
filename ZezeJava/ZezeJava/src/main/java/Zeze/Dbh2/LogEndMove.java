@@ -6,6 +6,7 @@ import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import org.jetbrains.annotations.NotNull;
 
 public class LogEndMove extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogEndMove.class.getName());
@@ -37,13 +38,13 @@ public class LogEndMove extends Log {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		super.encode(bb);
 		to.encode(bb);
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		super.decode(bb);
 		to = new BBucketMeta.Data();
 		to.decode(bb);

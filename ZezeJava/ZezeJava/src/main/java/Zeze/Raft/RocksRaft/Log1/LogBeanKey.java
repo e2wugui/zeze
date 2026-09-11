@@ -8,6 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 
 public class LogBeanKey<T extends Serializable> extends Log {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.Log<");
@@ -29,13 +30,13 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		value.encode(bb);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		try {
 			value = (T)valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke

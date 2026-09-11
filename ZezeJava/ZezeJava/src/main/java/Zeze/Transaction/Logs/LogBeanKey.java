@@ -31,7 +31,7 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	}
 
 	@Override
-	public Category category() {
+	public @NotNull Category category() {
 		return Category.eHistory;
 	}
 
@@ -51,13 +51,13 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		value.encode(bb);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		try {
 			value = (T)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke

@@ -29,7 +29,7 @@ public class LogVector3Int extends Log {
 	}
 
 	@Override
-	public Category category() {
+	public @NotNull Category category() {
 		return Category.eHistory;
 	}
 

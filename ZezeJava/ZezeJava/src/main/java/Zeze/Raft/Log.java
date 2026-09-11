@@ -4,6 +4,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 用户接口。
@@ -64,14 +65,14 @@ public abstract class Log implements Serializable {
 	public abstract void apply(RaftLog holder, StateMachine stateMachine) throws Exception;
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		unique.encode(bb);
 		bb.WriteLong(createTime);
 		bb.WriteBinary(rpcResult);
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		unique.decode(bb);
 		createTime = bb.ReadLong();
 		rpcResult = bb.ReadBinary();

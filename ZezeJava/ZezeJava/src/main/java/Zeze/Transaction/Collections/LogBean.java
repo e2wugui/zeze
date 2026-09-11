@@ -23,7 +23,7 @@ public class LogBean extends Log {
 	}
 
 	@Override
-	public Category category() {
+	public @NotNull Category category() {
 		return Category.eHistory;
 	}
 

@@ -12,7 +12,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 
 public final class Changes extends Zeze.Raft.Log {
 	private final Rocks rocks;
@@ -220,7 +220,7 @@ public final class Changes extends Zeze.Raft.Log {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void encode(@NonNull ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		// Log基类字段（unique/createTime/rpcResult）必须随日志持久化（对齐HeartbeatLog等
 		// 全部子类）：否则解码侧恒为requestId==0，follower/重放侧不写unique应用存根——
 		// 唯一请求的"恰好一次"退化为按leader任期（换主+重发重新执行、结果重放丢失）。
@@ -247,7 +247,7 @@ public final class Changes extends Zeze.Raft.Log {
 	}
 
 	@Override
-	public void decode(@NonNull IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		super.decode(bb);
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var tkey = new TableKey();

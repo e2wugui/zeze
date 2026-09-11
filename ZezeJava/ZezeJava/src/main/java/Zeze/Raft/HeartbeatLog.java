@@ -3,6 +3,7 @@ package Zeze.Raft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import org.jetbrains.annotations.NotNull;
 
 final class HeartbeatLog extends Log {
 	public static final int SetLeaderReadyEvent = 1;
@@ -38,13 +39,13 @@ final class HeartbeatLog extends Log {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		super.encode(bb);
 		bb.WriteUInt(operate);
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		super.decode(bb);
 		operate = bb.ReadUInt();
 	}
