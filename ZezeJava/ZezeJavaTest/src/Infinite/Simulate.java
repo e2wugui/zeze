@@ -91,7 +91,29 @@ public final class Simulate {
 	}
 
 	@Test
-	public void testMain() throws Exception {
+	public void testNoHistory() throws Exception {
+		for (var app : Apps) {
+			app.app.getZeze().getConfig().setHistory(""); // disable history
+		}
+		try {
+			testMain();
+		} finally {
+			Tasks.clearAllCounters();
+			DatabaseMemory.clear();
+		}
+	}
+
+	@Test
+	public void testWithHistory() throws Exception {
+		try {
+			testMain();
+		} finally {
+			Tasks.clearAllCounters();
+			DatabaseMemory.clear();
+		}
+	}
+
+	void testMain() throws Exception {
 		var perfScheduled = PerfCounter.instance().cancelScheduledLog();
 		logger.fatal("Prepare");
 		try {
@@ -101,7 +123,15 @@ public final class Simulate {
 			++BatchNumber;
 			logger.fatal("Run {}", BatchNumber);
 			if (Apps.getFirst().app.Zeze.getConfig().isHistory()) {
-				Apps.getFirst().clearTables();
+				// 先把pending的History记录落盘：BeforeEach的App.Start（Takeover.claim/Timer等）写的
+				// 记录还暂存在各app的rrs里，若不先checkpointRun就清History存储=空清，之后Verify前的
+				// checkpointRun会把它们（对残留行的Edit，无前置Put）flush进来，Verify回放NPE。
+				for (var a : Apps)
+					a.app.Zeze.checkpointRun();
+				// 每个app都执行clearTables：__ClearTableCacheUnsafe__只清单实例缓存，存储清一次即可但
+				// 各app的表实例缓存都要清——残留缓存行会令getOrAdd命中直接Edit（History无前置Put，Verify回放NPE）。
+				for (var a : Apps)
+					a.clearTables();
 				// Takeover租约行是启动期簿记（claim不受History管控）：批间一并清掉，且每个app的缓存都要清，
 				// 否则各自的renew会用缓存里的旧行复活存储；renew对缺行会自愈重写（重写会被History记录，verify一致）。
 				for (var a : Apps)

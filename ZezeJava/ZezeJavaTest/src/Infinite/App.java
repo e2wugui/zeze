@@ -92,6 +92,10 @@ public class App {
 	public static <K extends Comparable<K>> void clearDbTable(TableX<K, ?> table) throws Exception {
 		var t = System.nanoTime();
 		table.__ClearTableCacheUnsafe__();
+		// 本地rocks缓存表（表缓存LRU驱逐的磁盘溢出层）也必须清：跨@Test/批间残留行会令
+		// getOrAdd在内存缓存miss后命中它直接走Edit——History无前置Put，Verify回放NPE。
+		if (table.getLocalRocksCacheTable() != null)
+			table.getLocalRocksCacheTable().clear();
 		//noinspection DataFlowIssue
 		var dbTable = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable();
 		var txnWrap = new Object() {
@@ -140,6 +144,10 @@ public class App {
 	}
 
 	public void clearTables() throws Exception {
+		// 【跨@Test残留】静态桶存储+各app表实例缓存都可能留有上一测试的数据。存储层清一次即可，
+		// 但__ClearTableCacheUnsafe__只清传入实例的缓存——必须对每个app的表实例都执行本方法
+		//（Simulate侧循环调用），否则残留缓存行令getOrAdd命中直接Edit，History无前置Put，
+		// Verify回放NPE。Takeover租约行早有同款注释，此处补齐业务表与AutoKey。
 		clearDbTable(app.demo_Module1.getTable1());
 		clearDbTable(app.demo_Module1.getTflush());
 		clearDbTable(app.demo_Module1.getTableCoverHistory());
@@ -147,6 +155,9 @@ public class App {
 		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_Timer_tNodeRoot"));
 		//noinspection DataFlowIssue
 		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_DelayRemove_tJobs"));
+		// AutoKey种子（如Timer.NodeId）：残留行令种子分配走Edit（History无前置Put）
+		//noinspection DataFlowIssue
+		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_AutoKey_tAutoKeys"));
 		clearDbTable(app.getZeze().getHistoryModule().getHistoryTable()); // 必须在最后清空
 	}
 }
