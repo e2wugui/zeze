@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.IntConsumer;
 import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Net.Connector;
@@ -216,9 +215,9 @@ public final class Raft {
 
 	// 测试钩子：注入后 fatalKill 只置 isShutdown 并调用该动作即返回，不执行真实的
 	// atFatalKills/logSequence.close/LogManager.shutdown/halt（会杀死或破坏测试 JVM）。
-	private volatile IntConsumer fatalKillHookForTest;
+	private volatile Runnable fatalKillHookForTest;
 
-	void setFatalKillHookForTest(IntConsumer hook) {
+	void setFatalKillHookForTest(Runnable hook) {
 		fatalKillHookForTest = hook;
 	}
 
@@ -226,7 +225,7 @@ public final class Raft {
 		isShutdown = true;
 		var hook = fatalKillHookForTest;
 		if (hook != null) {
-			hook.accept(-1);
+			hook.run();
 			return;
 		}
 		atFatalKillsLock.lock();
@@ -509,16 +508,8 @@ public final class Raft {
 						r.Argument.getLastIncludedIndex(), entry.term, entry.leaderId,
 						r.Argument.getTerm(), r.Argument.getLeaderId());
 				receiveSnapshotting.remove(r.Argument.getLastIncludedIndex());
-				try {
-					entry.file.close();
-				} catch (IOException e) {
-					logger.warn("ProcessInstallSnapshot close(3) Exception", e); // 文件关闭异常还是不向上抛了
-				}
-				try {
-					Files.deleteIfExists(Paths.get(path));
-				} catch (IOException e) {
-					logger.warn("ProcessInstallSnapshot deleteIfExists Exception. path={}", path, e);
-				}
+				discardReceiveEntry(raftConfig.getDbHome(), r.Argument.getLastIncludedIndex(), entry,
+						"ProcessInstallSnapshot");
 				entry = null;
 			}
 			var bNewFile = false;
@@ -606,19 +597,30 @@ public final class Raft {
 			var e = it.next();
 			if (e.getKey() < lastIncludedIndex) {
 				it.remove();
-				try {
-					e.getValue().file.close();
-				} catch (IOException ex) {
-					logger.warn("ProcessInstallSnapshot close(2) Exception", ex); // 文件关闭异常还是不向上抛了
-				}
-				var pathDelete = Paths.get(dbHome,
-						LogSequence.snapshotFileName + ".installing." + e.getKey());
-				try {
-					Files.deleteIfExists(pathDelete);
-				} catch (IOException ex) {
-					logger.warn("ProcessInstallSnapshot deleteIfExists Exception. path={}", pathDelete, ex);
-				}
+				discardReceiveEntry(dbHome, e.getKey(), e.getValue(), "cleanupStaleReceiveSnapshotting");
 			}
+		}
+	}
+
+	/**
+	 * 丢弃一个接收条目：关句柄 + 尽力删 .installing 文件，失败仅告警不抛出
+	 * （异常若传出清理循环，尚未处理的更旧条目将永久残留；残留本身不损正确性，
+	 * 由 gcReceiveSnapshotting/启动清理兜底）。条目的 map 移除由调用方完成
+	 * （迭代中删除须 it.remove()）。
+	 */
+	private static void discardReceiveEntry(String dbHome, long lastIncludedIndex,
+											ReceiveSnapshotEntry entry, String logTag) {
+		try {
+			entry.file.close();
+		} catch (IOException e) {
+			logger.warn("{} close Exception", logTag, e); // 文件关闭异常还是不向上抛了
+		}
+		var installingPath = Paths.get(dbHome,
+				LogSequence.snapshotFileName + ".installing." + lastIncludedIndex);
+		try {
+			Files.deleteIfExists(installingPath);
+		} catch (IOException e) {
+			logger.warn("{} deleteIfExists Exception. path={}", logTag, installingPath, e);
 		}
 	}
 
@@ -650,18 +652,7 @@ public final class Raft {
 						|| (leaderId != null && !leaderId.isEmpty() && !entry.leaderId.equals(leaderId))
 						|| now - entry.lastActiveTime > receiveSnapshottingTimeout()) {
 					it.remove();
-					try {
-						entry.file.close();
-					} catch (IOException ex) {
-						logger.warn("gcReceiveSnapshotting close Exception", ex); // 文件关闭异常还是不向上抛了
-					}
-					var pathDelete = Paths.get(raftConfig.getDbHome(),
-							LogSequence.snapshotFileName + ".installing." + e.getKey());
-					try {
-						Files.deleteIfExists(pathDelete);
-					} catch (IOException ex) {
-						logger.warn("gcReceiveSnapshotting deleteIfExists Exception. path={}", pathDelete, ex);
-					}
+					discardReceiveEntry(raftConfig.getDbHome(), e.getKey(), entry, "gcReceiveSnapshotting");
 					logger.warn("{} gcReceiveSnapshotting: removed stale receive entry. LastIncludedIndex={}"
 									+ " entryTerm={} entryLeader={} idle={}ms currentTerm={} currentLeader={}",
 							getName(), e.getKey(), entry.term, entry.leaderId,

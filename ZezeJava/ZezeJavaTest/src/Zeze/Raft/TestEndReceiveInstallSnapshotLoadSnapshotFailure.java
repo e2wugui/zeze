@@ -78,7 +78,7 @@ public class TestEndReceiveInstallSnapshotLoadSnapshotFailure {
 		try {
 			var logSequence = raft.getLogSequence();
 			logSequence.setWriteOptions(RocksDatabase.getDefaultWriteOptions());
-			raft.setFatalKillHookForTest(code -> fatalled.set(true));
+			raft.setFatalKillHookForTest(() -> fatalled.set(true));
 
 			var r = new InstallSnapshot();
 			r.Argument.setTerm(logSequence.getTerm()); // 初始 0
