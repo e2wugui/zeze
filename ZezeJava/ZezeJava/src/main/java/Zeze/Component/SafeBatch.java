@@ -51,6 +51,8 @@ public class SafeBatch extends AbstractSafeBatch {
 
 		// 遍历内存中的SortedMap时需要实现。
 		// 返回的NavigableMap的值必须>mapKey。也就是使用tailMap(mapKey, false)得到它。
+		// 返回null表示记录不存在（或已被删除）：无工作可推进，批处理停止并清理——
+		// 批处理中途记录被并发删除是正常结束方式；需要等待记录重建的场景由应用重新start。
 		@Nullable NavigableMap<MK, MV> getSortedMapOutTransaction(@NotNull TableX<?, ?> table,
 																  @NotNull ByteBuffer tableKey) throws Exception;
 
@@ -65,6 +67,8 @@ public class SafeBatch extends AbstractSafeBatch {
 
 		// 根据table,tableKey定位到记录中的某个List。
 		// 注意：在批处理过程中如果List的内容发生变化，那么处理的item可能丢失或重复。
+		// 返回null表示记录不存在（或已被删除）：无工作可推进，批处理停止并清理——
+		// 批处理中途记录被并发删除是正常结束方式；需要等待记录重建的场景由应用重新start。
 		@Nullable List<E> getListOutTransaction(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception;
 	}
 
@@ -422,6 +426,9 @@ public class SafeBatch extends AbstractSafeBatch {
 			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
 				var tail = jobHandle.getSortedMapOutTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()));
 				if (null == tail) {
+					// 记录不存在（或已被删除）：无工作可推进，停批并清理——
+					// 只break会被看门狗每tick重建，形成永不清理的僵尸批处理。
+					stopBatch(timerId);
 					break;
 				}
 				if (null != lastKey) {
@@ -489,6 +496,9 @@ public class SafeBatch extends AbstractSafeBatch {
 			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
 				var list = jobHandle.getListOutTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()));
 				if (null == list) {
+					// 记录不存在（或已被删除）：无工作可推进，停批并清理——
+					// 只break会被看门狗每tick重建，形成永不清理的僵尸批处理。
+					stopBatch(timerId);
 					break;
 				}
 				next = runJobs(list);
