@@ -243,6 +243,12 @@ public final class Rocks extends StateMachine implements Closeable {
 		return (TableTemplate<K, V>)tableTemplates.get(tableTemplateName);
 	}
 
+	/**
+	 * 注册表模板。注意：value bean 含集合（CollList1/CollSet1/CollMap1/CollMap2等）时，
+	 * 还需为每个用到的集合类型调用 {@link #registerLog} 注册对应的日志解码工厂——生成
+	 * 代码在 RegisterRocksTables 中生成这些调用，手写表模板（测试/实验代码）必须手工
+	 * 注册，否则follower/重放侧解码到该集合的增量日志时按unknown typeId fatalKill。
+	 */
 	public <K, V extends Bean> void registerTableTemplate(String tableTemplateName,
 														  Class<K> keyClass, Class<V> valueClass) {
 		tableTemplates.computeIfAbsent(tableTemplateName, key -> new TableTemplate<>(this, key, keyClass, valueClass));

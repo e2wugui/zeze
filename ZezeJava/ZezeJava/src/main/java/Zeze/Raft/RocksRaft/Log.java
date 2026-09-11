@@ -17,7 +17,9 @@ public abstract class Log implements Serializable {
 		var factory = factorys.get(typeId);
 		if (factory != null)
 			return factory.get();
-		throw new UnsupportedOperationException("unknown log typeId=" + typeId);
+		throw new UnsupportedOperationException("unknown log typeId=" + typeId
+				+ "（缺少日志解码工厂注册：RocksRaft用Rocks.registerLog，生成代码在RegisterRocksTables生成；"
+				+ "自定义StateMachine自行注册）");
 	}
 
 	// 事务运行时属性，不会被序列化。
