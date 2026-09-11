@@ -80,10 +80,12 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	public ReliableUdp(String address, int port, ReliableUdpHandle defaultHandle) {
 		try {
 			this.defaultHandle = defaultHandle;
-			local = new InetSocketAddress(InetAddress.getByName(address), port);
+			var bindAddr = new InetSocketAddress(InetAddress.getByName(address), port);
 			datagramChannel = DatagramChannel.open();
 			datagramChannel.configureBlocking(false);
-			datagramChannel.bind(local);
+			datagramChannel.bind(bindAddr);
+			// 必须回读实际绑定地址：port 传 0（临时端口）时请求地址的端口仍是 0。
+			local = (InetSocketAddress)datagramChannel.getLocalAddress();
 			selector = Selectors.getInstance().choice();
 			selectionKey = selector.register(datagramChannel, SelectionKey.OP_READ, this);
 		} catch (IOException e) {
