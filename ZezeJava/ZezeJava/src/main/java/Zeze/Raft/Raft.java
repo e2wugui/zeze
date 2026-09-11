@@ -445,6 +445,16 @@ public final class Raft {
 			}
 			leaderId = r.Argument.getLeaderId();
 			logSequence.setLeaderActiveTime(System.currentTimeMillis());
+
+			// 【FND3-21】本地快照进行中（重阶段在锁外写 backupDir）时拒绝新安装的首块：
+			// 接收完成后的状态机重置会与本地快照并发操作同一 backupDir，失败不可自愈。
+			// 应答冲突码让 leader 中断本次安装（InstallSnapshotState.processResult 对非
+			// Success/非 NewOffset 码即 endInstallSnapshot），下个心跳自动重试。
+			// 传输中途才开始本地快照的情形由 endReceiveInstallSnapshot 内的兜底检查拦截。
+			if (r.Argument.getOffset() == 0 && logSequence.getSnapshotting()) {
+				r.SendResultCode(InstallSnapshot.ResultCodeSnapshottingConflict);
+				return 0;
+			}
 		} finally {
 			unlock();
 		}
@@ -515,11 +525,12 @@ public final class Raft {
 		} finally {
 			receiveSnapshottingLock.unlock();
 		}
+		var resultCode = 0L;
 		if (r.Argument.getDone()) {
 			// 剩下的处理流程在下面的函数里面。
-			logSequence.endReceiveInstallSnapshot(path, r);
+			resultCode = logSequence.endReceiveInstallSnapshot(path, r);
 		}
-		r.SendResultCode(0);
+		r.SendResultCode(resultCode);
 		return Procedure.Success;
 	}
 

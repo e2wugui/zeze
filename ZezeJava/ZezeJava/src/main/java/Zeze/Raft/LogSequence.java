@@ -1054,11 +1054,11 @@ public class LogSequence {
 		}
 	}
 
-	private boolean getSnapshotting() {
+	boolean getSnapshotting() { // package-private：Raft.processInstallSnapshot 的首块早期拒绝与测试使用
 		return snapshotting;
 	}
 
-	private void setSnapshotting(boolean value) {
+	void setSnapshotting(boolean value) { // package-private：测试直接合成"本地快照进行中"
 		snapshotting = value;
 	}
 
@@ -1070,7 +1070,7 @@ public class LogSequence {
 		return Paths.get(raft.getRaftConfig().getDbHome(), snapshotFileName).toString();
 	}
 
-	void endReceiveInstallSnapshot(String path, InstallSnapshot r) throws Exception {
+	long endReceiveInstallSnapshot(String path, InstallSnapshot r) throws Exception {
 		logsAvailable = false; // cancel RemoveLogBefore
 		var removeLogBeforeFuture = this.removeLogBeforeFuture;
 		if (removeLogBeforeFuture != null)
@@ -1093,7 +1093,26 @@ public class LogSequence {
 							raft.getName(), r.Argument.getTerm(), term, r.Argument.getLeaderId(),
 							r.Argument.getLastIncludedIndex());
 					r.Result.setTerm(term);
-					return;
+					return 0; // leader 发现 term 更高自行退位/回溯重试（见 InstallSnapshotState.processResult）
+				}
+				// 【FND3-21】本地快照进行中（重阶段在锁外写 backupDir）：此时重置会与快照并发
+				// 操作同一 backupDir（loadSnapshot 删目录+解压+restore），且 loadSnapshot 失败会把
+				// 节点留在"日志已重置、状态机未恢复"的不可自愈状态。放弃本次接收并应答冲突码，
+				// leader 中断安装后下个心跳自动重试。snapshotting 的检查/设置与本重置全程都在
+				// raft 锁内串行，无"检查后翻转"缝隙；processInstallSnapshot 首块处的早期拒绝
+				// 只是优化，这里是正确性兜底。
+				if (getSnapshotting()) {
+					logger.warn("{} InstallSnapshot LastIncludedIndex={} conflicts with local snapshotting;"
+									+ " discard received snapshot and reply SnapshottingConflict.",
+							raft.getName(), r.Argument.getLastIncludedIndex());
+					// receiveSnapshotting 条目已在 done 分支移除，这里尽力清理孤儿 .installing
+					// 文件（文件句柄已在 done 分支关闭）；失败仅告警，残留由启动清理兜底。
+					try {
+						Files.deleteIfExists(Paths.get(path));
+					} catch (IOException e) {
+						logger.warn("endReceiveInstallSnapshot deleteIfExists Exception. path={}", path, e);
+					}
+					return InstallSnapshot.ResultCodeSnapshottingConflict;
 				}
 				// 6. If existing log entry has same index and term as snapshot's
 				// last included entry, retain log entries following it and reply
@@ -1103,7 +1122,7 @@ public class LogSequence {
 					// 按照现在启动InstallSnapshot的逻辑，不会发生这种情况。
 					logger.warn("Exist Local Log. Do It Like A Local Snapshot!");
 					commitSnapshotNow(path, r.Argument.getLastIncludedIndex());
-					return;
+					return 0;
 				}
 				// 防御：快照边界低于已提交位置时丢弃日志会回退commitIndex、
 				// 丢失已apply的数据。按启动InstallSnapshot的回溯逻辑不会发生
@@ -1144,6 +1163,7 @@ public class LogSequence {
 				raft.getStateMachine().loadSnapshot(getSnapshotFullName());
 				logger.info("{} EndReceiveInstallSnapshot Path={} time={}ms",
 						raft.getName(), path, (System.nanoTime() - t) / 1_000_000);
+				return 0;
 			} finally {
 				logsAvailable = true;
 			}

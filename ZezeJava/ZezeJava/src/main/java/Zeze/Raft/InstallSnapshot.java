@@ -29,4 +29,5 @@ final class InstallSnapshot extends Rpc<BInstallSnapshotArgument, BInstallSnapsh
 	public static final int ResultCodeTermError = 1;
 	public static final int ResultCodeOldInstall = 2;
 	public static final int ResultCodeNewOffset = 3;
+	public static final int ResultCodeSnapshottingConflict = 4;
 }
