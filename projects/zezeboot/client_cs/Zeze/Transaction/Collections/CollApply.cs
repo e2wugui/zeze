@@ -32,18 +32,15 @@ namespace Zeze.Transaction.Collections
             where E : Util.ConfBean, new()
         {
             var log = (LogList2<E>)_log;
-            var newest = new HashSet<int>();
             foreach (var opLog in log.OpLogs)
             {
                 switch (opLog.op)
                 {
                     case LogList1<E>.OpLog.OP_MODIFY:
                         _list[opLog.index] = opLog.value;
-                        newest.Add(opLog.index);
                         break;
                     case LogList1<E>.OpLog.OP_ADD:
                         _list.Insert(opLog.index, opLog.value);
-                        newest.Add(opLog.index);
                         break;
                     case LogList1<E>.OpLog.OP_REMOVE:
                         _list.RemoveAt(opLog.index);
@@ -54,12 +51,11 @@ namespace Zeze.Transaction.Collections
                 }
             }
 
-            // apply changed
+            // apply changed：Changed 的 index 是服务端最终列表坐标，且服务端 encode 侧已按
+            // addSet 身份过滤结构 op 携带 bean 的冗余条目，这里直接全量应用。
+            // （旧的 op 时 index 启发式 newest 与最终坐标系在位移/加删相消时错位，会误跳过丢编辑。）
             foreach (var e in log.Changed)
-            {
-                if (!newest.Contains(e.Value.Value))
-                    _list[e.Value.Value].FollowerApply(e.Key);
-            }
+                _list[e.Value.Value].FollowerApply(e.Key);
         }
 
         public static void ApplyMap1<K, V>(Dictionary<K, V> _map, Log _log)

@@ -1,10 +1,12 @@
 package Zeze.Raft.RocksRaft;
 
 import java.lang.invoke.MethodHandle;
+import java.util.Collection;
 import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
+import Zeze.Util.IdentityHashSet;
 import Zeze.Util.OutInt;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
@@ -13,6 +15,10 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogList2<");
 
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
+	// 【FND3-19】本日志记录过的结构op携带的bean身份（对齐经典 Transaction.Collections.LogList2.addSet）：
+	// 这些bean的最终状态由opLogs携带的value编码（提交时刻才encode，含后续编辑），其changed条目
+	// 是冗余的——follower侧全量应用changed，冗余条目会叠加应用两次（内部非幂等op双重执行）。
+	private IdentityHashSet<V> addSet;
 	private final MethodHandle valueFactory;
 
 	public LogList2(Class<V> valueClass) {
@@ -29,6 +35,55 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		return changed;
 	}
 
+	private IdentityHashSet<V> getAddSet() {
+		var set = addSet;
+		if (set == null)
+			addSet = set = new IdentityHashSet<>();
+		return set;
+	}
+
+	@Override
+	public void add(V item) {
+		super.add(item);
+		getAddSet().add(item);
+	}
+
+	@Override
+	public boolean addAll(Collection<? extends V> items) {
+		if (!super.addAll(items))
+			return false;
+		getAddSet().addAll(items);
+		return true;
+	}
+
+	@Override
+	public void clear() {
+		super.clear();
+		if (addSet != null)
+			addSet.clear();
+	}
+
+	@Override
+	public void add(int index, V item) {
+		super.add(index, item);
+		getAddSet().add(item);
+	}
+
+	@Override
+	public V Set(int index, V item) {
+		var old = super.Set(index, item);
+		getAddSet().remove(old);
+		getAddSet().add(item);
+		return old;
+	}
+
+	@Override
+	public V remove(int index) {
+		var old = super.remove(index);
+		getAddSet().remove(old);
+		return old;
+	}
+
 	@Override
 	public Log beginSavepoint() {
 		var dup = new LogList2<V>(getTypeId(), valueFactory);
@@ -40,6 +95,34 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
+	public void endSavepoint(Savepoint currentSp) {
+		var log = currentSp.getLog(getLogKey());
+		if (log != null) {
+			@SuppressWarnings("unchecked")
+			var currentLog = (LogList2<V>)log;
+			currentLog.setValue(this.getValue());
+			currentLog.merge(this);
+		} else
+			currentSp.putLog(this);
+	}
+
+	// savepoint合并时opLogs与addSet一起传递：encode侧身份过滤依赖完整的addSet
+	// （本事务所有层级savepoint内结构op携带过的bean）。
+	private void merge(LogList2<V> from) {
+		if (!from.opLogs.isEmpty()) {
+			if (from.opLogs.getFirst().op == OpLog.OP_CLEAR)
+				opLogs.clear();
+			opLogs.addAll(from.opLogs);
+			if (from.addSet != null) {
+				if (addSet == null)
+					addSet = from.addSet;
+				else
+					addSet.addAll(from.addSet);
+			}
+		}
+	}
+
+	@Override
 	public void encode(ByteBuffer bb) {
 		var curList = getValue();
 		if (curList != null) {
@@ -48,7 +131,9 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 				var logBean = e.getKey();
 				//noinspection SuspiciousMethodCalls
 				var idxExist = curList.indexOf(logBean.getThis());
-				if (idxExist < 0)
+				// 【FND3-19】不在最终列表（已被结构op移除）或∈addSet（由结构op携带最终状态）的
+				// 条目剔除：follower侧changed按最终index全量应用，冗余条目会双重应用。
+				if (idxExist < 0 || addSet != null && addSet.contains(logBean.getThis()))
 					it.remove();
 				else
 					e.getValue().value = idxExist;

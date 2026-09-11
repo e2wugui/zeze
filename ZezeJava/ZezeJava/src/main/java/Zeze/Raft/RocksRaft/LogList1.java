@@ -49,7 +49,9 @@ public class LogList1<V> extends LogList<V> {
 		return opLogs;
 	}
 
-	public final void add(V item) {
+	// 可变方法非final：LogList2覆写它们同步维护addSet（encode侧身份过滤依赖，
+	// 对齐经典 Transaction.Collections.LogList1/LogList2 的结构）。
+	public void add(V item) {
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 		var list = getValue();
@@ -57,7 +59,7 @@ public class LogList1<V> extends LogList<V> {
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, list.size(), item));
 	}
 
-	public final boolean addAll(Collection<? extends V> items) {
+	public boolean addAll(Collection<? extends V> items) {
 		int addIndex = getValue().size();
 		var list = getValue().plusAll(items);
 		if (list == getValue())
@@ -77,18 +79,18 @@ public class LogList1<V> extends LogList<V> {
 		return true;
 	}
 
-	public final void clear() {
+	public void clear() {
 		setValue(Empty.vector());
 		opLogs.clear();
 		opLogs.add(new OpLog<>(OpLog.OP_CLEAR, 0, null));
 	}
 
-	public final void add(int index, V item) {
+	public void add(int index, V item) {
 		setValue(getValue().plus(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
 	}
 
-	public final V Set(int index, V item) {
+	public V Set(int index, V item) {
 		var list = getValue();
 		var old = list.get(index);
 		setValue(list.with(index, item));
@@ -96,7 +98,7 @@ public class LogList1<V> extends LogList<V> {
 		return old;
 	}
 
-	public final V remove(int index) {
+	public V remove(int index) {
 		var list = getValue();
 		var old = list.get(index);
 		setValue(list.minus(index));
