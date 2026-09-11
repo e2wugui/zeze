@@ -530,40 +530,6 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		return false;
 	}
 
-	public boolean SendShared(@NotNull Protocol<?> p) {
-		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
-			log("SEND", getSessionId(), p);
-
-		var result = submitAction(() -> { // 进selector线程调用
-			var bb = p.encodeShared();
-			var bytes = bb.Bytes;
-			var offset = bb.ReadIndex;
-			var length = bb.size();
-
-			var newSize = (long)outputBufferSizeHandle.getAndAdd(this, (long)length) + length;
-			if (!getService().checkOverflow(this, newSize, bytes, offset, length)) {
-				outputBufferSizeHandle.getAndAdd(this, (long)-length);
-				return;
-			}
-			var codec = outputCodecChain;
-			if (codec != null) {
-				sendRawSize += length;
-				// 压缩加密等 codec 链操作。
-				int oldSize = outputBuffer.size();
-				codec.update(bytes, offset, length);
-				int deltaLen = outputBuffer.size() - oldSize - length;
-				if (deltaLen != 0)
-					outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
-			} else
-				outputBuffer.put(bytes, offset, length);
-			if (ZezeCounter.instance != null)
-				ZezeCounter.instance.addSendSize(bytes, offset, length);
-		});
-		if (result)
-			setActiveSendTime();
-		return result;
-	}
-
 	private void processReceive(@NotNull SocketChannel sc) throws Exception { // 只在selector线程调用
 		recvCount++;
 		java.nio.ByteBuffer buffer = selector.getReadBuffer(); // 线程共享的buffer,只能本方法内临时使用

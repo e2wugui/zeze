@@ -1,8 +1,6 @@
 package Zeze.Net;
 
 import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -20,7 +18,6 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 	private static final @NotNull Logger logger = LogManager.getLogger(Protocol.class);
 	private static final LongConcurrentHashMap<Class<? extends Protocol<?>>> protocolClasses = new LongConcurrentHashMap<>();
-	private static final @NotNull VarHandle userStateHandle;
 	protected static final IOException noHandlerException = new IOException("noHandler");
 
 	public static final int eCriticalPlus = 0;
@@ -29,31 +26,12 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	public static final int eSheddable = 3;
 
 	private transient AsyncSocket sender; // AsyncSocket
-	@SuppressWarnings("unused")
-	private transient @Nullable Object userState;
+	private transient volatile @Nullable Object userState;
 	public TArgument Argument;
 	protected long resultCode;
 
-	static {
-		try {
-			userStateHandle = MethodHandles.lookup().findVarHandle(Protocol.class, "userState", Object.class);
-		} catch (ReflectiveOperationException e) {
-			throw new ExceptionInInitializerError(e);
-		}
-	}
-
 	public int getCriticalLevel() {
 		return eCriticalPlus;
-	}
-
-	private static final class UserStateWithEncoded {
-		private transient @Nullable Object userState;
-		private transient final @NotNull ByteBuffer encodeShared;
-
-		private UserStateWithEncoded(@Nullable Object userState, @NotNull ByteBuffer encodeShared) {
-			this.userState = userState;
-			this.encodeShared = encodeShared;
-		}
 	}
 
 	public int getFamilyClass() {
@@ -74,34 +52,11 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public @Nullable Object getUserState() {
-		var us = userState;
-		return us instanceof UserStateWithEncoded ? ((UserStateWithEncoded)us).userState : us;
+		return userState;
 	}
 
 	public void setUserState(@Nullable Object userState) {
-		for (var us = this.userState; ; ) {
-			if (us instanceof UserStateWithEncoded) {
-				((UserStateWithEncoded)us).userState = userState;
-				return;
-			}
-			if (userStateHandle.compareAndSet(this, us, userState))
-				return;
-			us = userStateHandle.getVolatile(this);
-		}
-	}
-
-	public @NotNull ByteBuffer encodeShared() {
-		var us = userState;
-		if (us instanceof UserStateWithEncoded)
-			return ((UserStateWithEncoded)us).encodeShared;
-		var bb = encode();
-		for (var newUs = new UserStateWithEncoded(us, bb); ; newUs.userState = us) {
-			if (userStateHandle.compareAndSet(this, us, newUs))
-				return bb;
-			us = userStateHandle.getVolatile(this);
-			if (us instanceof UserStateWithEncoded)
-				return ((UserStateWithEncoded)us).encodeShared;
-		}
+		this.userState = userState;
 	}
 
 	public final long getResultCode() {
