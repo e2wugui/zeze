@@ -54,6 +54,10 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	// （Resend 请求按 MaxPacketLength 截断，见 processPacket；recvWindow 滞留量以实际收到的包数为限）。
 	private static final long MaxRecvSerialIdWindow = 1L << 14;
 
+	// Packet 线上编码最坏开销：type(1)+代际(9)+序号(9)+长度前缀(5)=24B。
+	// 接收端以 MaxPacketLength 为接收缓冲，数据报超出即被静默截断成畸形包，入口预留余量。
+	private static final int MaxWireOverhead = 32;
+
 	// 会话代际随机源：SecureRandom 64 位，与时钟无关；0 保留表示“未知代际”。
 	private static final SecureRandom GenerationRandom = new SecureRandom();
 
@@ -268,8 +272,9 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		}
 
 		public boolean send(byte[] bytes, int offset, int length) {
-			if (length > MaxPacketLength)
-				throw new IllegalArgumentException("length > MaxPacketLength: " + MaxPacketLength);
+			if (length > MaxPacketLength - MaxWireOverhead)
+				throw new IllegalArgumentException(
+						"length > MaxPacketLength - " + MaxWireOverhead + ": " + (MaxPacketLength - MaxWireOverhead));
 
 			Packet packet;
 			synchronized (this) { // 与 rebaseSendState 互斥：取号、入窗、挂定时器必须原子，防止重整归零后出现逆序号

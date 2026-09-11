@@ -153,4 +153,24 @@ public class TestReliableUdpGeneration {
 			server.close();
 		}
 	}
+
+	// send 长度上限必须预留线上编码开销（type1+代际9+序号9+长度前缀≤5，最坏 24B）：
+	// 接收端以 allocate(MaxPacketLength) 为接收缓冲，数据报超出部分被静默截断、
+	// decode 按畸形包丢弃——send(MaxPacketLength) 恒发必坏包，入口应直接拒绝。
+	@Test
+	public void testSendLengthReservesWireOverhead() throws Exception {
+		Task.tryInitThreadPool();
+		var handle = new Collector();
+		var a = new ReliableUdp("127.0.0.1", 0, handle);
+		var b = new ReliableUdp("127.0.0.1", 0, handle);
+		try {
+			var session = a.open("127.0.0.1", b.getLocalInetAddress().getPort(), handle);
+			var max = a.getMaxPacketLength();
+			Assertions.assertThrows(IllegalArgumentException.class, () -> session.send(new byte[max], 0, max));
+			session.send(new byte[max - 32], 0, max - 32); // 预留后边界内正常发送
+		} finally {
+			a.close();
+			b.close();
+		}
+	}
 }
