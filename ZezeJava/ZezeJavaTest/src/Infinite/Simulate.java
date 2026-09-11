@@ -99,7 +99,6 @@ public final class Simulate {
 			testMain();
 		} finally {
 			Tasks.clearAllCounters();
-			DatabaseMemory.clear();
 		}
 	}
 
@@ -109,7 +108,6 @@ public final class Simulate {
 			testMain();
 		} finally {
 			Tasks.clearAllCounters();
-			DatabaseMemory.clear();
 		}
 	}
 
