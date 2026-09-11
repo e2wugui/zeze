@@ -35,7 +35,7 @@ public class TestInstallSnapshotCleanupStale {
 	// 可恢复），后续条目照常清理；不小于边界的条目不动。
 	@Test
 	public void testDeleteFailureDoesNotAbortCleanup(@TempDir Path dbHome) throws Exception {
-		var map = new HashMap<Long, RandomAccessFile>();
+		var map = new HashMap<Long, Raft.ReceiveSnapshotEntry>();
 
 		// 条目3：.installing.3 路径放非空目录，Files.deleteIfExists 必抛
 		// DirectoryNotEmptyException（模拟杀毒/备份锁文件等删除失败，跨平台确定）。
@@ -44,23 +44,24 @@ public class TestInstallSnapshotCleanupStale {
 		Files.writeString(undeletable.resolve("locked.bin"), "x");
 		var stale3 = new RandomAccessFile(
 				dbHome.resolve(LogSequence.snapshotFileName + ".installing.9").toFile(), "rw");
-		map.put(3L, stale3);
+		map.put(3L, new Raft.ReceiveSnapshotEntry(stale3, 0, "", 0));
 
 		// 条目4：正常的中断安装残留，先 close 后 delete，应被删除。
 		var stale4Path = dbHome.resolve(LogSequence.snapshotFileName + ".installing.4");
 		var stale4 = new RandomAccessFile(stale4Path.toFile(), "rw");
-		map.put(4L, stale4);
+		map.put(4L, new Raft.ReceiveSnapshotEntry(stale4, 0, "", 0));
 
 		// 条目7：不小于 done 的 LastIncludedIndex=5，必须原样保留（可能是更新的安装）。
 		var newerPath = dbHome.resolve(LogSequence.snapshotFileName + ".installing.7");
 		var newer = new RandomAccessFile(newerPath.toFile(), "rw");
-		map.put(7L, newer);
+		var newerEntry = new Raft.ReceiveSnapshotEntry(newer, 0, "", 0);
+		map.put(7L, newerEntry);
 
 		Raft.cleanupStaleReceiveSnapshotting(map, dbHome.toString(), 5);
 
 		// 失败条目也必须移出 map：残留条目会让 isReceivingSnapshot() 恒 true。
 		assertEquals(1, map.size());
-		assertSame(newer, map.get(7L));
+		assertSame(newerEntry, map.get(7L));
 		// 句柄已关闭（不再泄漏），保留的条目不动。
 		assertFalse(stale3.getFD().valid());
 		assertFalse(stale4.getFD().valid());
@@ -75,11 +76,11 @@ public class TestInstallSnapshotCleanupStale {
 	// 外部误删后的 NoSuchFileException 由 deleteIfExists 吸收：不抛、条目照常移出。
 	@Test
 	public void testMissingFileIsTolerated(@TempDir Path dbHome) throws Exception {
-		var map = new HashMap<Long, RandomAccessFile>();
+		var map = new HashMap<Long, Raft.ReceiveSnapshotEntry>();
 		// 不创建 .installing.1 文件，直接放一个指向别处的句柄。
 		var stale1 = new RandomAccessFile(
 				dbHome.resolve(LogSequence.snapshotFileName + ".installing.9").toFile(), "rw");
-		map.put(1L, stale1);
+		map.put(1L, new Raft.ReceiveSnapshotEntry(stale1, 0, "", 0));
 
 		Raft.cleanupStaleReceiveSnapshotting(map, dbHome.toString(), 2);
 

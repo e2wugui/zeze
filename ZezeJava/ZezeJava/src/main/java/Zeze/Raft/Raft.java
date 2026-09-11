@@ -55,7 +55,24 @@ public final class Raft {
 	private final StateMachine stateMachine;
 	public volatile boolean isShutdown = false;
 	private final Lock receiveSnapshottingLock = new ReentrantLock();
-	private final HashMap<Long, RandomAccessFile> receiveSnapshotting = new HashMap<>();
+	final HashMap<Long, ReceiveSnapshotEntry> receiveSnapshotting = new HashMap<>(); // package-private：测试直接合成残留条目
+
+	// 【FND3-23】follower 侧接收中的安装条目：除文件句柄外绑定 (term, leaderId,
+	// lastActiveTime)。不变量：只为"当前 term 的当前 leader"的安装保留条目——
+	// 归属校验见 processInstallSnapshot 接收段，周期清理见 gcReceiveSnapshotting。
+	static final class ReceiveSnapshotEntry {
+		final RandomAccessFile file;
+		final long term;
+		final String leaderId;
+		long lastActiveTime; // 最近一次收到该安装数据块的时间（毫秒）
+
+		ReceiveSnapshotEntry(RandomAccessFile file, long term, String leaderId, long lastActiveTime) {
+			this.file = file;
+			this.term = term;
+			this.leaderId = leaderId;
+			this.lastActiveTime = lastActiveTime;
+		}
+	}
 	private volatile RaftState state = RaftState.Follower;
 	private Future<?> timerTask;
 	private long lowPrecisionTimer;
@@ -284,9 +301,9 @@ public final class Raft {
 	private void cancelAllReceiveSnapshotting() {
 		receiveSnapshottingLock.lock(); // cancel 不中断
 		try {
-			receiveSnapshotting.values().forEach(file -> {
+			receiveSnapshotting.values().forEach(entry -> {
 				try {
-					file.close();
+					entry.file.close();
 				} catch (IOException e) {
 					logger.warn("CancelAllReceiveSnapshotting close Exception", e); // 文件关闭异常还是不向上抛了
 				}
@@ -481,18 +498,43 @@ public final class Raft {
 
 		receiveSnapshottingLock.lock();
 		try {
-			RandomAccessFile outputFileStream = receiveSnapshotting.get(r.Argument.getLastIncludedIndex());
+			var entry = receiveSnapshotting.get(r.Argument.getLastIncludedIndex());
+			if (entry != null && (entry.term != r.Argument.getTerm()
+					|| !entry.leaderId.equals(r.Argument.getLeaderId()))) {
+				// 【FND3-23】同边界的残留条目属于旧 term/旧 leader 的安装：丢弃（关句柄
+				// +删文件），本次安装按 offset 重新定位。不能续写——不同 leader 的同边界
+				// 快照内容可能不同，续写会混入旧数据。
+				logger.warn("{} discard stale-owner receive entry: LastIncludedIndex={} entryTerm={}"
+								+ " entryLeader={} rpcTerm={} rpcLeader={}", getName(),
+						r.Argument.getLastIncludedIndex(), entry.term, entry.leaderId,
+						r.Argument.getTerm(), r.Argument.getLeaderId());
+				receiveSnapshotting.remove(r.Argument.getLastIncludedIndex());
+				try {
+					entry.file.close();
+				} catch (IOException e) {
+					logger.warn("ProcessInstallSnapshot close(3) Exception", e); // 文件关闭异常还是不向上抛了
+				}
+				try {
+					Files.deleteIfExists(Paths.get(path));
+				} catch (IOException e) {
+					logger.warn("ProcessInstallSnapshot deleteIfExists Exception. path={}", path, e);
+				}
+				entry = null;
+			}
 			var bNewFile = false;
-			if (outputFileStream == null) {
+			if (entry == null) {
 				if (r.Argument.getOffset() != 0) {
 					// 肯定是旧的被丢弃的安装，Discard And Ignore。
 					r.SendResultCode(InstallSnapshot.ResultCodeOldInstall);
 					return Procedure.Success;
 				}
-				receiveSnapshotting.put(r.Argument.getLastIncludedIndex(),
-						outputFileStream = new RandomAccessFile(path, "rw"));
+				entry = new ReceiveSnapshotEntry(new RandomAccessFile(path, "rw"),
+						r.Argument.getTerm(), r.Argument.getLeaderId(), System.currentTimeMillis());
+				receiveSnapshotting.put(r.Argument.getLastIncludedIndex(), entry);
 				bNewFile = true;
 			}
+			entry.lastActiveTime = System.currentTimeMillis(); // 任何块活动都证明对端还活着
+			var outputFileStream = entry.file;
 			if (r.Argument.getOffset() == 0) {
 				if (bNewFile)
 					outputFileStream.setLength(0); // 上面的new RandomAccessFile(path, "rw")对于已经存在的文件不会覆盖。
@@ -558,14 +600,14 @@ public final class Raft {
 	 * 应答也发不出去。残留文件本身不损正确性：新安装总是使用新的 LastIncludedIndex
 	 * 文件名，不与残留重叠。
 	 */
-	static void cleanupStaleReceiveSnapshotting(HashMap<Long, RandomAccessFile> receiveSnapshotting,
+	static void cleanupStaleReceiveSnapshotting(HashMap<Long, ReceiveSnapshotEntry> receiveSnapshotting,
 												String dbHome, long lastIncludedIndex) {
 		for (var it = receiveSnapshotting.entrySet().iterator(); it.hasNext(); ) {
 			var e = it.next();
 			if (e.getKey() < lastIncludedIndex) {
 				it.remove();
 				try {
-					e.getValue().close();
+					e.getValue().file.close();
 				} catch (IOException ex) {
 					logger.warn("ProcessInstallSnapshot close(2) Exception", ex); // 文件关闭异常还是不向上抛了
 				}
@@ -578,6 +620,64 @@ public final class Raft {
 				}
 			}
 		}
+	}
+
+	// 【FND3-23】清理残留的接收条目（follower 侧）。leader 传输中途失联/换主后
+	// done 永不到，运行期没有其他清理路径：条目+句柄+.installing 文件永久残留，
+	// isReceivingSnapshot() 恒 true → 本地快照与日志压缩停摆、磁盘无界增长。
+	// 不变量：只为"当前 term 的当前 leader"的安装保留条目；空闲超时兜底。
+	// 由 onLowPrecisionTimer 周期驱动（约 20s 一次）；清理后若旧 leader 仍在传，
+	// 下一块会因条目不存在收到 OldInstall（offset>0）或按新文件重传（offset==0），
+	// 有界自愈。条目的 term/leaderId 归属校验在 processInstallSnapshot 接收段。
+	void gcReceiveSnapshotting(long now) {
+		long term;
+		String leaderId;
+		lock(); // term/leaderId 的写点都在 raft 锁内；锁顺序 raft→receiveSnapshotting，
+		try {   // 与 processInstallSnapshot 一致（无反向嵌套路径）。
+			term = logSequence.getTerm();
+			leaderId = getLeaderId();
+		} finally {
+			unlock();
+		}
+		receiveSnapshottingLock.lock();
+		try {
+			for (var it = receiveSnapshotting.entrySet().iterator(); it.hasNext(); ) {
+				var e = it.next();
+				var entry = e.getValue();
+				// leaderId 为 null/空（启动后尚未收到任何 term 消息、选举中）时无法判定
+				// leader 归属，靠 term + 空闲超时判定。
+				if (entry.term != term
+						|| (leaderId != null && !leaderId.isEmpty() && !entry.leaderId.equals(leaderId))
+						|| now - entry.lastActiveTime > receiveSnapshottingTimeout()) {
+					it.remove();
+					try {
+						entry.file.close();
+					} catch (IOException ex) {
+						logger.warn("gcReceiveSnapshotting close Exception", ex); // 文件关闭异常还是不向上抛了
+					}
+					var pathDelete = Paths.get(raftConfig.getDbHome(),
+							LogSequence.snapshotFileName + ".installing." + e.getKey());
+					try {
+						Files.deleteIfExists(pathDelete);
+					} catch (IOException ex) {
+						logger.warn("gcReceiveSnapshotting deleteIfExists Exception. path={}", pathDelete, ex);
+					}
+					logger.warn("{} gcReceiveSnapshotting: removed stale receive entry. LastIncludedIndex={}"
+									+ " entryTerm={} entryLeader={} idle={}ms currentTerm={} currentLeader={}",
+							getName(), e.getKey(), entry.term, entry.leaderId,
+							now - entry.lastActiveTime, term, leaderId);
+				}
+			}
+		} finally {
+			receiveSnapshottingLock.unlock();
+		}
+	}
+
+	long receiveSnapshottingTimeout() { // package-private：测试按公式合成超时，不硬编码
+		// 合法安装的单 chunk 往返必然 <= AppendEntriesTimeout（超时即中断，中断后下个
+		// 心跳重来），最坏合法空闲 ≈ AppendEntriesTimeout + LeaderHeartbeatTimer；
+		// 取 4/2 倍留足余量，避免误杀慢速但合法的安装。
+		return raftConfig.getAppendEntriesTimeout() * 4L + raftConfig.getLeaderHeartbeatTimer() * 2L;
 	}
 
 	public enum RaftState {
@@ -640,6 +740,7 @@ public final class Raft {
 	private void onLowPrecisionTimer() throws Exception {
 		server.getConfig().forEachConnector(Connector::start); // Connector Reconnect Bug?
 		logSequence.removeExpiredUniqueRequestSet();
+		gcReceiveSnapshotting(System.currentTimeMillis()); // FND3-23：残留接收条目周期清理
 	}
 
 	/**

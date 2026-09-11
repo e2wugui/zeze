@@ -518,6 +518,22 @@ public class LogSequence {
 		}
 		logsAvailable = true;
 
+		// 【FND3-23】启动清理：进程崩溃或放弃路径即时删除失败残留的 .installing 文件。
+		// 运行期 gcReceiveSnapshotting 只管理 receiveSnapshotting map 内的条目，管不到
+		// 磁盘孤儿文件。删除失败仅告警：残留不损正确性（新安装总是用新边界文件名）。
+		var dbHomeFiles = new File(raft.getRaftConfig().getDbHome()).listFiles();
+		if (dbHomeFiles != null) {
+			for (var file : dbHomeFiles) {
+				if (file.isFile() && file.getName().startsWith(snapshotFileName + ".installing.")) {
+					try {
+						Files.deleteIfExists(file.toPath());
+					} catch (IOException e) {
+						logger.warn("clean installing snapshot file Exception. file={}", file, e);
+					}
+				}
+			}
+		}
+
 		// 可能有没有被清除的日志存在。启动任务。
 		startRemoveLogOnlyBefore(firstIndex);
 	}
