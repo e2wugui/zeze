@@ -1160,7 +1160,20 @@ public class LogSequence {
 				// 8. Reset state machine using snapshot contents (and load
 				// snapshot's cluster configuration)
 				long t = System.nanoTime();
-				raft.getStateMachine().loadSnapshot(getSnapshotFullName());
+				try {
+					raft.getStateMachine().loadSnapshot(getSnapshotFullName());
+				} catch (Throwable e) {
+					// 【FND3-21】loadSnapshot 失败时日志已 drop、firstIndex 已持久化推进、
+					// 内存 lastApplied 已是新边界，而状态机仍是旧内容；继续运行则 leader
+					// 重试走 ExistLog 分支只 commitSnapshotNow 不再 loadSnapshot，follower
+					// 永久脏状态（静默分歧），仅进程重启可恢复。没有可行的原地恢复路径，
+					// 显性 fatalKill 把静默分歧变成 crash：重启从 snapshot.zip（已被
+					// commitSnapshotNow 替换为新边界内容）恢复自愈。
+					logger.fatal("{} EndReceiveInstallSnapshot loadSnapshot failed, fatalKill. Path={}",
+							raft.getName(), path, e);
+					raft.fatalKill();
+					throw Task.forceThrow(e); // fatalKill 不会返回（halt）；测试注入钩子时到达这里
+				}
 				logger.info("{} EndReceiveInstallSnapshot Path={} time={}ms",
 						raft.getName(), path, (System.nanoTime() - t) / 1_000_000);
 				return 0;

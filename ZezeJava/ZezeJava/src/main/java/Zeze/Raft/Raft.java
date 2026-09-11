@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.IntConsumer;
 import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Net.Connector;
@@ -196,8 +197,21 @@ public final class Raft {
 		}
 	}
 
+	// 测试钩子：注入后 fatalKill 只置 isShutdown 并调用该动作即返回，不执行真实的
+	// atFatalKills/logSequence.close/LogManager.shutdown/halt（会杀死或破坏测试 JVM）。
+	private volatile IntConsumer fatalKillHookForTest;
+
+	void setFatalKillHookForTest(IntConsumer hook) {
+		fatalKillHookForTest = hook;
+	}
+
 	public void fatalKill() {
 		isShutdown = true;
+		var hook = fatalKillHookForTest;
+		if (hook != null) {
+			hook.accept(-1);
+			return;
+		}
 		atFatalKillsLock.lock();
 		try {
 			for (Action0 action : atFatalKills) {
