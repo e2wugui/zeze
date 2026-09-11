@@ -257,7 +257,16 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值selectionKey和OnSocketAccept更先执行
 		logger.info("Accepted: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
 				service.getName(), so.getReceiveBufferSize(), so.getSendBufferSize());
-		service.OnSocketAccept(this);
+		try {
+			service.OnSocketAccept(this);
+		} catch (Exception e) {
+			// OnSocketAccept 已被调用（哪怕抛出）就必须 close→OnSocketClose 恰一次（FND3-27）：
+			// 否则已入 socketMap 的连接永不回调清理（条目滞留、统计不转移、子类状态泄漏，
+			// KeepCheckPeriod=0 时永久）。重抛给 doHandle 的 OP_ACCEPT catch：sc.close() 幂等 +
+			// OnSocketAcceptError 记日志。语义与 C# ProcessAccept 的 accepted?.Close(ce) 对齐。
+			close(e);
+			throw e;
+		}
 		addInterestOps(SelectionKey.OP_READ);
 		selector.wakeup();
 	}
