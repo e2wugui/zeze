@@ -121,7 +121,7 @@ zeze.getTimer().schedule(1000, 5000, -1, endTimeMillis, MyHandle.class, null);
 
 ### Missfire 策略
 
-当服务器重启后发现定时器的计划触发时间已过（missfire），可以选择不同的处理策略：
+当定时器的计划触发时间已过（missfire——服务器重启装载时发现，或运行期因停顿/线程池繁忙迟到超过一个整周期），可以选择不同的处理策略：
 
 ```java
 // 什么都不做，重新调度下一个周期

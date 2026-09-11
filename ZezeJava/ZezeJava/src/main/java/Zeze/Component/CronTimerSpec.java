@@ -134,16 +134,17 @@ public final class CronTimerSpec implements TimerSpec {
 
 		long baseTime;
 		if (missfire && cronTimer.getMissfirePolicy() == AbstractTimer.eMissfirePolicyRunOnce) {
-			// 这种策略重置时间，定时器将在新的开始时间之后按原来的间隔执行。
+			// 装载期补触发：loadTimer对任何迟到都dispatch（missfire=true），此策略以当前时间为基准重设，
+			// 定时器将在新的开始时间之后按原来的间隔执行。
 			// cronTimer.setStartTime(now);
 			baseTime = now;
 		} else
 			baseTime = nextExpectedTime;
 		nextExpectedTime = cronNextTime(cronTimer.getCronExpression(), baseTime);
-		if (missfire && cronTimer.getMissfirePolicy() == AbstractTimer.eMissfirePolicyRunOnceOldNext
-				&& nextExpectedTime <= now) {
-			// OldNext只补触发一次：cron的触发点是绝对时间，未来最近的定点等价于从now开始计算，
-			// 避免按旧的触发点序列追赶式连发。
+		if (nextExpectedTime <= now) {
+			// 迟到超过一个整触发槽（下一个触发点仍在过去；判据避开毫秒级抖动，运行期与装载期
+			// 一致，不依赖missfire标志）：追赶终止。cron触发点是绝对时间，从now重算即未来
+			// 最近的定点——OldNext保持对齐，其余策略等价于以当前时间重设。
 			nextExpectedTime = cronNextTime(cronTimer.getCronExpression(), now);
 		}
 		cronTimer.setNextExpectedTime(nextExpectedTime);

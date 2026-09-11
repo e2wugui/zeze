@@ -925,9 +925,9 @@
 		</module> Online 11100
 
 		<module name="Timer" id="11016"> 定时器模块
-			<enum name="eMissfirePolicyNothing" value="0"/> 如果错过指定触发时间, 则忽略并以当前时间+period重设新的触发时间
-			<enum name="eMissfirePolicyRunOnce" value="1"/> 如果错过指定触发时间, 则立即触发一次并以当前时间+period重设新的触发时间
-			<enum name="eMissfirePolicyRunOnceOldNext" value="2"/> 如果错过指定触发时间, 则立即触发一次并以之前触发时间+period重设新的触发时间, 用于定点时间触发
+			<enum name="eMissfirePolicyNothing" value="0"/> 如果错过指定触发时间(装载时,或运行期迟到超过一个整周期), 则忽略并以当前时间+period重设新的触发时间
+			<enum name="eMissfirePolicyRunOnce" value="1"/> 如果错过指定触发时间(装载时,或运行期迟到超过一个整周期), 则立即触发一次并以当前时间+period重设新的触发时间
+			<enum name="eMissfirePolicyRunOnceOldNext" value="2"/> 如果错过指定触发时间(装载时,或运行期迟到超过一个整周期), 则立即触发一次并以之前触发时间+period重设新的触发时间, 用于定点时间触发
 
 			<!--
 			<bean name="BTimerNew"> 重构的定时器结构

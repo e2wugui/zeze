@@ -134,15 +134,21 @@ public final class SimpleTimerSpec implements TimerSpec {
 					nextExpectedTime = 0;
 				else {
 					if (missfire && simpleTimer.getMissfirePolicy() == AbstractTimer.eMissfirePolicyRunOnce) {
-						// 这种策略重置时间，定时器将在新的开始时间之后按原来的间隔执行。
+						// 装载期补触发：loadTimer对任何迟到都dispatch（missfire=true），此策略以当前时间重设，
+						// 定时器将在新的开始时间之后按原来的间隔执行。
 						// simpleTimer.setStartTime(now);
 						nextExpectedTime = now + period;
-					} else { // eMissfirePolicyRunOnceOldNext
+					} else { // 定点推进：OldNext，以及迟到不足一周期的其余策略
 						nextExpectedTime += period;
-						if (missfire && nextExpectedTime <= now) {
-							// OldNext只补触发一次：保持定点对齐，直接跳到未来最近的定点，避免追赶式连发。
-							var step = (now - nextExpectedTime) / period + 1;
-							nextExpectedTime += step * period;
+						if (nextExpectedTime <= now) {
+							// 迟到超过一个整周期（推进一跳后仍在过去；判据避开毫秒级抖动，
+							// 运行期与装载期一致，不依赖missfire标志）：追赶终止。
+							// OldNext保持定点对齐，跳到未来最近的定点；其余策略以当前时间重设。
+							if (simpleTimer.getMissfirePolicy() == AbstractTimer.eMissfirePolicyRunOnceOldNext) {
+								var step = (now - nextExpectedTime) / period + 1;
+								nextExpectedTime += step * period;
+							} else
+								nextExpectedTime = now + period;
 						}
 					}
 				}
