@@ -1,5 +1,6 @@
 package Zeze.Collections;
 
+import java.util.concurrent.atomic.AtomicLongArray;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
@@ -9,7 +10,10 @@ import org.jetbrains.annotations.NotNull;
 
 public class CHashMap<V extends Bean> {
 	private final LinkedMap<V>[] buckets;
-	private final long[] sizes;
+	// AtomicLongArray（FND4-82）：写在事务提交回调（提交线程），读在任意业务线程
+	//（size()/isEmpty）——普通long[]跨线程无happens-before；数组元素无法volatile，
+	// set/get是单次volatile读写，且写为绝对值快照，并发set按last-writer-wins语义无损。
+	private final AtomicLongArray sizes;
 	private final String name;
 
 	@SuppressWarnings("unchecked")
@@ -18,7 +22,7 @@ public class CHashMap<V extends Bean> {
 			throw new IllegalArgumentException("concurrencyLevel < 1");
 		this.name = name;
 		buckets = new LinkedMap[concurrencyLevel];
-		sizes = new long[concurrencyLevel];
+		sizes = new AtomicLongArray(concurrencyLevel);
 		for (var i = 0; i < buckets.length; ++i) {
 			buckets[i] = module._open(name + "@" + i, valueClass, nodeSize);
 			var ii = i;
@@ -31,7 +35,7 @@ public class CHashMap<V extends Bean> {
 	}
 
 	private long initSize(int index, LinkedMap<V> bucket) {
-		sizes[index] = bucket.size();
+		sizes.set(index, bucket.size());
 		return 0;
 	}
 
@@ -44,7 +48,7 @@ public class CHashMap<V extends Bean> {
 		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		var bucket = buckets[index];
 		var result = bucket.getOrAdd(key);
-		Transaction.whileCommit(() -> sizes[index] = bucket.size());
+		Transaction.whileCommit(() -> sizes.set(index, bucket.size()));
 		return result;
 	}
 
@@ -52,7 +56,7 @@ public class CHashMap<V extends Bean> {
 		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		var bucket = buckets[index];
 		var result = bucket.put(key, value);
-		Transaction.whileCommit(() -> sizes[index] = bucket.size());
+		Transaction.whileCommit(() -> sizes.set(index, bucket.size()));
 		return result;
 	}
 
@@ -60,7 +64,7 @@ public class CHashMap<V extends Bean> {
 		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		var bucket = buckets[index];
 		var result = bucket.remove(key);
-		Transaction.whileCommit(() -> sizes[index] = bucket.size());
+		Transaction.whileCommit(() -> sizes.set(index, bucket.size()));
 		return result;
 	}
 
@@ -70,7 +74,7 @@ public class CHashMap<V extends Bean> {
 		// 与put/remove一致：分片计数缓存在提交时刷新（回滚则不变，与DB一致）
 		Transaction.whileCommit(() -> {
 			for (var i = 0; i < buckets.length; i++)
-				sizes[i] = buckets[i].size();
+				sizes.set(i, buckets[i].size());
 		});
 	}
 
@@ -93,16 +97,15 @@ public class CHashMap<V extends Bean> {
 	public long size() {
 		// 避免锁住所有桶。
 		var total = 0L;
-		for (var size : sizes) {
-			total += size;
-		}
+		for (var i = 0; i < buckets.length; i++)
+			total += sizes.get(i);
 		return total;
 	}
 
 	public boolean isEmpty() {
 		// 避免锁住所有桶。这里不直接使用size()，是为了更快退出循环。
-		for (var size : sizes) {
-			if (size > 0)
+		for (var i = 0; i < buckets.length; i++) {
+			if (sizes.get(i) > 0)
 				return false;
 		}
 		return true;
