@@ -226,7 +226,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 //		savedTimestampForCheckpointPeriod = getTimestamp();
 
 		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
-		var v = strongDirtyValue;
+		// 脏值经单次volatile快照获取（FND4-01合并字段）；脏删除快照为null，编码为删除。
+		var v = getDirtyValue();
 		if (table.isRelationalMapping() && table.getDatabase() instanceof DatabaseRelationalMapping) {
 			var sqlKey = new SQLStatement();
 			table.encodeKeySQLStatement(sqlKey, key);

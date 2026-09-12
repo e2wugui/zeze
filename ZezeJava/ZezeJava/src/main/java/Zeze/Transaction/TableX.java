@@ -233,14 +233,19 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 					var storage = this.storage;
 					if (storage != null) {
-						if (r.getDirty()) {
-							// GCM reduce的flush失败或Releaser降级窗口会留下Invalid+dirty的记录，
-							// 后台库中还是旧值（脏数据尚未checkpoint），装载会覆盖丢失内存中已提交的修改。
-							// see Record1.loadValue 的dirty检查。
-							@SuppressWarnings("unchecked")
-							var dirtyValue = (V)r.strongDirtyValue;
+						// FND4-01：先取脏值快照再判脏（原实现先getDirty()后strongDirtyValue两读，
+						// 清脏（flush成功后，不持记录fairLock）交错其间会拿到null当作"记录不存在"，
+						// 已提交未读出的内存脏数据被静默丢弃）。先读快照：非null即内存脏值直接用；
+						// null且此刻不脏才读storage（清脏发生在两读之间时flush已完成，storage也是
+						// 新值）；null且仍脏=脏删除，strongRef保持null（记录不存在）。
+						// GCM reduce的flush失败或Releaser降级窗口会留下Invalid+dirty的记录，
+						// 后台库中还是旧值（脏数据尚未checkpoint），装载会覆盖丢失内存中已提交的修改。
+						// see Record1.loadValue 的dirty检查。
+						@SuppressWarnings("unchecked")
+						var dirtyValue = (V)r.getDirtyValue();
+						if (dirtyValue != null) {
 							strongRef = dirtyValue;
-						} else {
+						} else if (!r.getDirty()) {
 							if (ZezeCounter.instance != null)
 								ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
 							strongRef = storage.getDatabaseTable().find(this, key);

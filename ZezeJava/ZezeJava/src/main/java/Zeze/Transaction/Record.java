@@ -46,8 +46,16 @@ public abstract class Record extends ReentrantLock {
 	 * CheckpointMode.Table
 	 * Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
 	 */
-	private volatile boolean dirty;
-	protected volatile @Nullable Bean strongDirtyValue;
+	/**
+	 * 脏标记与脏期间强引用合并为单一事实源（FND4-01）：null=干净；非null=脏——普通脏值为
+	 * 内存值的强引用（正常值走softValue软引用可被GC，脏期间必须另持强引用），脏删除
+	 * （commit的PutLog.getValue()==null，没有Bean可引用）用哨兵DIRTY_NULL维持"脏"事实。
+	 * 原dirty+strongDirtyValue两字段的写与读非原子：TableX.load先判脏后取值，清脏
+	 * （Checkpoint.flush成功后，不持记录fairLock）交错在两读之间会拿到null当作"记录不存在"
+	 * ——已提交未读出的内存脏数据被静默丢弃。单volatile引用使每次读取自洽，缺陷从结构上消除。
+	 */
+	private static final @NotNull Object DIRTY_NULL = new Object(); // 脏删除哨兵：有脏事实无脏值
+	private volatile @Nullable Object dirtyRef;
 
 	private volatile long timestamp; // 正值表示load方式加载/修改的自增值;负值表示上次用dirty方式读取时间戳的负值
 	private volatile @NotNull SoftReference<Bean> softValue;
@@ -89,12 +97,25 @@ public abstract class Record extends ReentrantLock {
 	}
 
 	final boolean getDirty() {
-		return dirty;
+		return dirtyRef != null;
+	}
+
+	/**
+	 * 脏值快照（单次volatile读，与判脏自洽）：脏删除返回null（记录不存在语义），
+	 * 干净返回null（调用方走storage）——两者由调用方结合getDirty()区分。
+	 */
+	final @Nullable Bean getDirtyValue() {
+		var ref = dirtyRef;
+		return ref == DIRTY_NULL ? null : (Bean)ref;
 	}
 
 	final void setDirty(boolean value) {
-		dirty = value;
-		strongDirtyValue = value ? softValue.get() : null; // 脏数据在记录内保持一份强引用。
+		if (!value) {
+			dirtyRef = null; // 单次volatile写清脏：读侧要么看到脏快照要么看到干净，无中间态
+			return;
+		}
+		var v = softValue.get(); // 脏数据在记录内保持一份强引用
+		dirtyRef = v != null ? v : DIRTY_NULL; // 脏删除没有Bean，哨兵维持脏事实
 	}
 
 	final long getTimestamp() {
