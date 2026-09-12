@@ -214,7 +214,7 @@ public class Bag {
 	/**
 	 * 移动物品，从一个格子移动到另一个格子。实现功能：移动，交换，叠加，拆分。
 	 *
-	 * @param number -1 表示尽量移动所有的
+	 * @param number -1 表示尽量移动所有的；0 拒绝（ResultCodeNumberInvalid）
 	 */
 	public final int move(int from, int to, int number) {
 		// validate parameter
@@ -229,6 +229,12 @@ public class Bag {
 		var itemFrom = bean.getItems().get(from);
 		if (null == itemFrom)
 			return Module.ResultCodeFromNotExist;
+
+		// number==0：钳制只修正<0与>from，0原样穿透到空格拆分路径会写入数量0的物品
+		// 占格并污染持久化（对齐getItemPileMax对number下界的防护判例）。-1=移动全部
+		// 是协议契约（solution.zeze.xml BMove），不在拒绝范围。
+		if (number == 0)
+			return Module.ResultCodeNumberInvalid;
 
 		if (number < 0 || number > itemFrom.getNumber()) {
 			number = itemFrom.getNumber(); // move all
