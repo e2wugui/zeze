@@ -41,7 +41,11 @@ public final class Record<K> {
 	private boolean removed;
 	private Table<K, ?> table;
 	private K key;
-	private Bean value;
+	// 跨线程发布（FND4-33）：apply线程在raft锁内setValue发布业务线程构造的bean，
+	// 读线程（另一业务过程）经Table.get→r.mutex读取——两锁无交点，JMM上无
+	// happens-before保障。volatile让发布语义由字段自身保证（写侧仍在raft锁内，
+	// 语义不变；x86上无额外开销语义变化）。
+	private volatile Bean value;
 	final FastLock mutex = new FastLock();
 
 	public Record(Class<K> keyClass) {
