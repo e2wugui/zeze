@@ -6,6 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
+import Zeze.Builtin.ServiceManagerWithRaft.Edit;
 import Zeze.Builtin.ServiceManagerWithRaft.Identify;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
 import Zeze.Builtin.ServiceManagerWithRaft.Login;
@@ -13,7 +14,6 @@ import Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad;
 import Zeze.Builtin.ServiceManagerWithRaft.Subscribe;
 import Zeze.Builtin.ServiceManagerWithRaft.Suspect;
 import Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe;
-import Zeze.Builtin.ServiceManagerWithRaft.Edit;
 import Zeze.Component.Threading;
 import Zeze.Config;
 import Zeze.Net.ProtocolHandle;
@@ -68,9 +68,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		raftClient.dispatchProtocolToInternalThreadPool = true;
 		RegisterProtocols(raftClient.getClient());
-
-		// todo raft版本先不支持Id128分配了.
-		// super.tid128UdpClient = new Id128UdpClient(0, raftClient.getClient());
+		// 不初始化tid128UdpClient（raft版不支持Id128 UDP发号）：不支持组合已在构造fail-fast拦截。
 	}
 
 	private void raftOnSetLeader(@NotNull Agent agent) {
@@ -154,7 +152,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			}
 		}
 		r.SendResult();
-		return 0;
+		return Procedure.Success;
 	}
 
 	// Direct：Edit推送与Subscribe应答（dispatchRpcResponse内联）同在IO线程按TCP接收序串行应用，
@@ -190,7 +188,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		} catch (Throwable e) { // logger.error
 			logger.error("ProcessEditRequest: triggerOnChanged exception:", e);
 		}
-		return 0;
+		return Procedure.Success;
 	}
 
 	@Override
@@ -209,7 +207,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			});
 		}
 		r.SendResult();
-		return 0;
+		return Procedure.Success;
 	}
 
 	@Override
@@ -238,8 +236,20 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		r.Argument.setName(autoKey.getName());
 		r.Argument.setCount(pool);
 		raftClient.sendForWait(r).await();
-		if (r.getResultCode() == 0) // setCurrentAndCount is in super.
-			setCurrentAndCount(autoKey, r.Result.getStartId(), r.Result.getCount());
+		// rc!=0时Result携带的号段来自服务端回滚路径（提交前数据，服务端按错误码丢弃语义发送），
+		// 不可投入使用；抛错使AutoKey.next()的重试循环以异常退出而非无限重试。
+		checkResultCode(r);
+		setCurrentAndCount(autoKey, r.Result.getStartId(), r.Result.getCount());
+	}
+
+	/**
+	 * 对齐非raft版SendAndWaitCheckResultCode契约：sendForWait的future只在超时/停止时异常完成，
+	 * 服务端错误码应答正常完成，必须显式检查；失败即抛错，防止editService/unSubscribeService
+	 * 假成功（本地状态与服务端分叉）及allocate静默失败触发AutoKey.next()无限循环。
+	 */
+	private static void checkResultCode(@NotNull Rpc<?, ?> r) {
+		if (r.getResultCode() != 0)
+			throw new IllegalStateException("Rpc Invalid ResultCode=" + r.getResultCode() + " " + r);
 	}
 
 	private void waitLoginReady() {
@@ -285,6 +295,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 		var edit = new Edit(arg);
 		raftClient.sendForWait(edit).await();
+		checkResultCode(edit); // 失败即抛错：本地registers已先行更新（重连重放来源），服务端未生效时由下一次重连重放恢复，但调用方必须知道本次注册失败。
 		logger.debug("EditService {}", arg);
 	}
 
@@ -334,6 +345,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		logger.debug("UnSubscribeService {}", arg);
 		var r = new UnSubscribe(arg);
 		raftClient.sendForWait(r).await();
+		checkResultCode(r); // 服务端退订失败时不得移除本地subscribeStates，否则两侧状态分叉。
 		for (var serviceName : arg.serviceNames)
 			subscribeStates.remove(serviceName);
 	}
