@@ -53,6 +53,12 @@ public class Daemon {
 	}
 
 	public static void main(String[] args) throws Exception {
+		// 参数契约入口显式化（FND4-72）：args为空时下方command.add(1,...)越界，以意外
+		// IndexOutOfBoundsException而非usage提示失败。无参启动直接给出用法。
+		if (args.length < 1) {
+			System.err.println("usage: Daemon <main-class> [args...]");
+			return;
+		}
 		// udp for subprocess register
 		udpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
 		udpSocket.setSoTimeout(200);
