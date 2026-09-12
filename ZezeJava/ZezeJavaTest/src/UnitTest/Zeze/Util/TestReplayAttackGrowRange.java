@@ -48,7 +48,9 @@ public class TestReplayAttackGrowRange {
 	@Test
 	public void testNormalSemantics() {
 		var r = new ReplayAttackGrowRange();
-		Assertions.assertTrue(r.replay(0)); // invalid
+		// FND4-20：契约"serialId应该≥0"——0合法（原<=0拒绝，0起编协议首包被丢）。
+		Assertions.assertFalse(r.replay(0)); // 0合法放行（走后向分支置bit0）
+		Assertions.assertTrue(r.replay(0)); // 窗口内重复
 		Assertions.assertTrue(r.replay(-1)); // invalid
 		Assertions.assertFalse(r.replay(1));
 		Assertions.assertFalse(r.replay(2));
