@@ -119,6 +119,8 @@ FlushPeriod 模式看起来不错（既降低延迟又有数据一致性保证�
 
 当 Flush 阶段协调失败时，系统退化处理：允许已就绪的节点继续保存，并对未就绪的节点定时触发 Checkpoint，尽量降低数据不一致的风险。
 
+Saga 事务不参与 flush 等待：参与方首次 flush 早于 FuncSagaEnd（`setEnd`），按设计不发 FlushReady，协调者对 saga 免等开闸；迟到或重试的 FlushReady 到达即应答。等待与降级只作用于两段式（FuncProcedure）事务。
+
 ### 运行模式选择建议
 
 以上两种运行模式的选择，建议参考跨服功能的稳定性。需求变动大的建议第一种（独立进程）。

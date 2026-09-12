@@ -253,26 +253,40 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	}
 
 	void waitFlushDone() {
-		if (flushMode == Onz.eFlushImmediately) {
-			try {
-				flushDone.get(flushTimeout, TimeUnit.MILLISECONDS);
-			} catch (Exception e) {
-				logger.warn("waitFlushDone", e);
-				// 马上回复现有的flushReady。允许它们继续flush。降为FlushAsync。
-				for (var ready : flushReadies) {
-					if (!ready.isSendResultDone())
-						ready.SendResult();
-				}
-				// 触发当前没有flushReady或者所有相关zeze的完整Checkpoint。
-				//  1. 安全起见是所有zeze，上面的ready.SendResult也可能丢失。
-				//  2. 需要完整Checkpoint的zeze要不要持久化，以后持续触发。这点看起来没有必要。
-				//  3. 这里要不要等待触发结果返回。先处理成等待。
-				for (var zeze : zezeProcedures.keySet())
-					checkpoint(zeze);
-				for (var zeze : zezeSagas.keySet())
-					checkpoint(zeze);
-			}
+		if (flushMode != Onz.eFlushImmediately || zezeProcedures.isEmpty()) {
+			// saga事务（或eFlushAsync）不计数等待：参与方首次flush早于FuncSagaEnd（setEnd），
+			// 按设计不发FlushReady，计数永不满足，等待只会固定挂满flushTimeout再降级（FND3-52）。
+			// 开闸：此后到达的ready（saga重试flush等）一律立即应答。
+			flushGateOpen = true;
+			return;
 		}
+		try {
+			flushDone.get(flushTimeout, TimeUnit.MILLISECONDS);
+		} catch (Exception e) {
+			logger.warn("waitFlushDone", e);
+			// 马上回复现有的flushReady。允许它们继续flush。降为FlushAsync。
+			for (var ready : flushReadies)
+				replyReady(ready);
+			// 触发当前没有flushReady或者所有相关zeze的完整Checkpoint。
+			//  1. 安全起见是所有zeze，上面的ready.SendResult也可能丢失。
+			//  2. 需要完整Checkpoint的zeze要不要持久化，以后持续触发。这点看起来没有必要。
+			//  3. 这里要不要等待触发结果返回。先处理成等待。
+			for (var zeze : zezeProcedures.keySet())
+				checkpoint(zeze);
+		} finally {
+			// 开闸瞬间可能有ready正走进计数分支（读到旧闸值、计数未满足）而未被上面的降级应答
+			// 覆盖：补发应答。此后到达的由trySetFlushReady到达即应答。
+			flushGateOpen = true;
+			for (var ready : flushReadies)
+				replyReady(ready);
+		}
+	}
+
+	/** 应答一条FlushReady（幂等）：参与方在Checkpoint.flush提交路径死等应答，
+	 * 任何状态不被应答的ready都会演变成参与方事务失败halt（FND3-52）。 */
+	private static void replyReady(Rpc<?, ?> ready) {
+		if (!ready.isSendResultDone()) // 这里忽略重复发送警告。
+			ready.SendResult();
 	}
 
 	private static void checkpoint(AsyncSocket zeze) {
@@ -283,6 +297,8 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	private long onzTid;
 	private final ConcurrentHashSet<Rpc<?, ?>> flushReadies = new ConcurrentHashSet<>();
 	private final TaskCompletionSource<Integer> flushDone = new TaskCompletionSource<>();
+	// true之后到达的FlushReady一律立即应答（不再计数门控）：等待收齐、降级、或免等（saga/eFlushAsync）。
+	private volatile boolean flushGateOpen;
 
 	// 以下两个集合在一个事务内只能启用一个。即不能混用FuncProcedure和FuncSaga
 	private final ConcurrentHashMap<AsyncSocket, TaskCompletionSource<?>> zezeProcedures = new ConcurrentHashMap<>();
@@ -294,15 +310,25 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 
 	void trySetFlushReady(FlushReady r) {
 		logger.debug("FlushReady sender={} argument={}", r.Argument, r.getSender());
-		flushReadies.add(r);
 
-		if (flushReadies.size() == zezeProcedures.size() || flushReadies.size() == zezeSagas.size()) {
-			// 简单的用数量判断，足够可靠了。
-			for (var ready : flushReadies) {
-				if (!ready.isSendResultDone()) // 这里忽略重复发送警告。
-					ready.SendResult();
-			}
-			flushDone.setResult(0);
+		// saga事务不计数等待：重试flush的ready到达时协调者已越过等待点，立即应答（FND3-52）。
+		if (flushGateOpen || !zezeSagas.isEmpty()) {
+			replyReady(r);
+			return;
 		}
+
+		flushReadies.add(r);
+		if (flushReadies.size() == zezeProcedures.size()) {
+			// 简单的用数量判断，足够可靠了。
+			flushGateOpen = true;
+			for (var ready : flushReadies)
+				replyReady(ready);
+			flushDone.setResult(0);
+			return;
+		}
+		// 计数未满足但闸已开（与waitFlushDone收尾并发）：立即应答，等waitFlushDone的扫尾
+		// 应答覆盖本条会多等其剩余的checkpoint等待时长。
+		if (flushGateOpen)
+			replyReady(r);
 	}
 }
