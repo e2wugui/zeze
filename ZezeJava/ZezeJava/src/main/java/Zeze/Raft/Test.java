@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -49,23 +50,41 @@ public class Test {
 	private final ArrayList<FailAction> failActions = new ArrayList<>();
 	private boolean running = true;
 
-	private static void logDump(String db) throws IOException, RocksDBException {
+	private static void logDump(String db, String raftName) throws IOException, RocksDBException {
 		RocksDB.loadLibrary();
-		try (var r1 = RocksDB.openReadOnly(RocksDatabase.getCommonOptions(), Paths.get(db, "logs").toString())) {
-			try (var it1 = r1.newIterator(RocksDatabase.getDefaultReadOptions())) {
-				var StateMachine = new TestStateMachine();
-				var snapshot = Paths.get(db, LogSequence.snapshotFileName).toString();
-				if (new File(snapshot).isFile())
-					StateMachine._loadSnapshot(snapshot);
-				try (var dumpFile = new FileOutputStream(db + ".txt")) {
-					dumpFile.write(String.format("SnapshotCount = %d\n", StateMachine.getCount()).getBytes(StandardCharsets.UTF_8));
-					for (it1.seekToFirst(); it1.isValid(); it1.next()) {
-						var l1 = RaftLog.decode(new Binary(it1.value()), StateMachine::logFactory);
-						dumpFile.write(l1.toString().getBytes(StandardCharsets.UTF_8));
-						dumpFile.write('\n');
-					}
+		// FND4-30：日志布局已改为共享 <DbHome>/db 库内的 <raftName>.logs 列族
+		// （LogSequence：database.getOrAddTable(raft.getName()+".logs")），原按 <DbHome>/logs
+		// 子目录 openReadOnly 必失败（目录不存在）。只读打开与生产路径同源。
+		var dbPath = Paths.get(db, "db").toString();
+		var cfds = RocksDatabase.getCfDescriptors(dbPath);
+		var cfhs = new ArrayList<org.rocksdb.ColumnFamilyHandle>(cfds.size());
+		try (var r1 = RocksDB.openReadOnly(RocksDatabase.getCommonDbOptions(), dbPath, cfds, cfhs)) {
+			var logsName = (raftName + ".logs").getBytes(StandardCharsets.UTF_8);
+			org.rocksdb.ColumnFamilyHandle logsHandle = null;
+			for (int i = 0; i < cfds.size(); i++) {
+				if (Arrays.equals(cfds.get(i).getName(), logsName)) {
+					logsHandle = cfhs.get(i);
+					break;
 				}
 			}
+			if (logsHandle == null)
+				throw new RocksDBException("column family not found: " + raftName + ".logs");
+			var StateMachine = new TestStateMachine();
+			var snapshot = Paths.get(db, LogSequence.snapshotFileName).toString();
+			if (new File(snapshot).isFile())
+				StateMachine._loadSnapshot(snapshot);
+			try (var dumpFile = new FileOutputStream(db + ".txt");
+					var it1 = r1.newIterator(logsHandle, RocksDatabase.getDefaultReadOptions())) {
+				dumpFile.write(String.format("SnapshotCount = %d\n", StateMachine.getCount()).getBytes(StandardCharsets.UTF_8));
+				for (it1.seekToFirst(); it1.isValid(); it1.next()) {
+					var l1 = RaftLog.decode(new Binary(it1.value()), StateMachine::logFactory);
+					dumpFile.write(l1.toString().getBytes(StandardCharsets.UTF_8));
+					dumpFile.write('\n');
+				}
+			}
+		} finally {
+			for (var h : cfhs)
+				h.close();
 		}
 	}
 
@@ -105,7 +124,7 @@ public class Test {
 
 		if (command.equals("RaftDump")) {
 			for (var node : raftConfigStart.getNodes().values())
-				logDump(String.format("%s_%d", node.getHost(), node.getPort()));
+				logDump(String.format("%s_%d", node.getHost(), node.getPort()), raftConfigStart.getName());
 			return;
 		}
 
