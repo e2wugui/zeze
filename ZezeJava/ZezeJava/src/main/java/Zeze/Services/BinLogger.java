@@ -550,9 +550,16 @@ public final class BinLogger extends ReentrantLock {
 							break;
 						queueSize = wlq.size();
 						if (queueSize > 0) {
-							writeLogQueue = readLogQueue;
+							var reusedQueue = readLogQueue; // 换回写侧的队列：正常为空（写完即clear）
+							writeLogQueue = reusedQueue;
 							readLogQueue = wlq;
-							writeLogQueueSize = 0;
+							// 计数随内容走（FND4-71）：轮转失败等滞留路径下复用队列可能残留整批
+							// （既没写也没clear），残留字节数并入写侧计数——原直接置0丢弃残留计数，
+							// 滞留期间QUEUE_SIZE_LIMIT被残留批突破（限流口径漂移、瞬时超限）。
+							long residualBytes = 0;
+							for (var residual : reusedQueue)
+								residualBytes += residual.data.size();
+							writeLogQueueSize = residualBytes;
 							if (waitingQueue) {
 								waitingQueue = false;
 								queueLockCond.signalAll();
