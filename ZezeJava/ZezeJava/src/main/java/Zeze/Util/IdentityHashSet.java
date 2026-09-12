@@ -230,6 +230,8 @@ public class IdentityHashSet<T> implements Cloneable {
 		for (T k : keyTable)
 			if (k != null)
 				a[i++] = (A)k;
+		if (a.length > size)
+			a[size] = null; // Collection契约：容量富余时size紧邻槽位置null，供调用方判定结束点（FND4-15）
 		return a;
 	}
 
