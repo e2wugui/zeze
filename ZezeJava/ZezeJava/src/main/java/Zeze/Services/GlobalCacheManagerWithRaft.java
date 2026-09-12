@@ -765,11 +765,18 @@ public class GlobalCacheManagerWithRaft
 		session.setActiveTime(System.currentTimeMillis());
 		session.setDebugMode(rpc.Argument.isDebugMode());
 		// new login, 比如逻辑服务器重启。release old acquired.
+		// 先快照再逐个释放（FND4-55，对齐同步/异步版判例）：release可阻塞等待，边遍历边
+		// 释放期间，同会话乐观预发的Acquire经raft提交apply写入同一表，会被迭代器看到并
+		// 错误回收——第三方再获Modify形成双写。快照使窗口由结构关闭，不依赖
+		// "raft提交慢于本地迭代"的时序巧合。
 		var SenderAcquired = serverAcquiredTemplate.openTable(session.serverId);
+		var releaseKeys = new ArrayList<Binary>();
 		SenderAcquired.walkKey(key -> {
-			release(session, key);
+			releaseKeys.add(key);
 			return true; // continue walk
 		});
+		for (var key : releaseKeys)
+			release(session, key);
 
 		rpc.Result.setMaxNetPing(gcmConfig.maxNetPing);
 		rpc.Result.setServerProcessTime(gcmConfig.serverProcessTime);
@@ -801,15 +808,25 @@ public class GlobalCacheManagerWithRaft
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0; // not login
 		}
+		/*
+		 * 快照在解绑之前（FND4-55，理由同同步/异步版processNormalClose）：
+		 * tryUnBindSocket后同serverId的新进程即可Login并Acquire新权限（raft apply写入
+		 * 同一张表），随后的释放迭代会看到新incarnation刚获取的key并错误回收——其本地
+		 * 仍持Modify，第三方再获Modify形成双写。旧连接未解绑时新进程无法绑定
+		 * （tryBindSocket失败），故快照内不可能出现新incarnation的权限。
+		 */
+		var SenderAcquired = serverAcquiredTemplate.openTable(session.serverId);
+		var releaseKeys = new ArrayList<Binary>();
+		SenderAcquired.walkKey(key -> {
+			releaseKeys.add(key);
+			return true; // continue walk
+		});
 		if (!session.tryUnBindSocket(rpc.getSender())) {
 			rpc.SendResultCode(NormalCloseUnbindFail);
 			return 0;
 		}
-		var SenderAcquired = serverAcquiredTemplate.openTable(session.serverId);
-		SenderAcquired.walkKey(key -> {
+		for (var key : releaseKeys)
 			release(session, key);
-			return true; // continue walk
-		});
 		rpc.SendResultCode(0);
 		logger.info("NormalClose {} {}", rocks.getRaft().getName(), rpc.getSender());
 		return 0;
