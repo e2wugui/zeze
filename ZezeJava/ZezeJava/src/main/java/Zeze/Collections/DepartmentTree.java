@@ -283,7 +283,26 @@ public class DepartmentTree<
 		return module._tDepartmentTree.selectDirty(new BDepartmentKey(name, departmentId));
 	}
 
+	/**
+	 * 销毁整棵部门树（FND4-83）：必须与deleteDepartment的递归删除对称——
+	 * 只删根行会残留全部子部门行（_tDepartmentTree）与成员数据；且重建同名树时
+	 * NextDepartmentId归零、新部门从dId=1重新分配，按(name,dId)命中旧残留行，
+	 * 新旧数据混串，无清理路径覆盖孤儿。
+	 */
+	/**
+	 * 销毁整棵部门树（FND4-83）：必须与deleteDepartment的递归删除对称——
+	 * 只删根行会残留全部子部门行（_tDepartmentTree）与成员数据；且重建同名树时
+	 * NextDepartmentId归零、新部门从dId=1重新分配，按(name,dId)命中旧残留行，
+	 * 新旧数据混串，无清理路径覆盖孤儿。
+	 */
 	public void destroy() {
+		var root = module._tDepartment.get(name);
+		if (root != null) {
+			// 先递归删除全部一级子部门（连带各自子树与成员）。dId快照后逐个删除，
+			// deleteDepartment的parent==0分支会从root.Children摘除（遍历中修改防护）。
+			for (var dId : root.getChildren().values().toArray(new Long[0]))
+				deleteDepartment(dId, true);
+		}
 		module._tDepartment.remove(name);
 	}
 
