@@ -102,7 +102,7 @@ public class WebsocketClient extends AsyncSocket {
 		}).whenComplete((webSocket, ex) -> {
 			// 握手失败时future以异常完成，必须close走OnSocketClose，否则Connector永远收不到通知
 			if (ex != null)
-				close(ex instanceof CompletionException && ex.getCause() != null ? ex.getCause() : ex);
+				close(unwrap(ex));
 		});
 	}
 
@@ -150,10 +150,16 @@ public class WebsocketClient extends AsyncSocket {
 			logger.warn("httpClient.shutdownNow exception:", e);
 		}
 		var ws = webSocket;
+		webSocket = null; // 关闭后Send必须返回false：已abort连接上的帧不得被报告"发送成功"
 		if (ws != null) {
 			ws.abort();
 		}
 		return true; // 对齐TcpSocket/Websocket家族：本次调用完成了关闭
+	}
+
+	// whenComplete/exceptionNow 交付的异常可能被 CompletionException 包装，关闭日志取根因
+	private static @NotNull Throwable unwrap(@Nullable Throwable ex) {
+		return ex instanceof CompletionException && ex.getCause() != null ? ex.getCause() : ex;
 	}
 
 	@Override
@@ -161,7 +167,21 @@ public class WebsocketClient extends AsyncSocket {
 		var ws = webSocket;
 		if (ws == null) // 握手未完成或已关闭
 			return false;
-		ws.sendBinary(ByteBuffer.wrap(bytes, offset, length), true);
+		// 检查写回执，不能恒返回true：写失败的帧（连接已关等）不会到达对端，恒true会让
+		// Protocol/Rpc.Send误判成功、请求静默丢失只能等超时兜底。对齐服务端Websocket.Send
+		// （FND3-24）的形态：回执同步完成时失败立即close并返回false；异步完成挂whenComplete，
+		// 失败同样close。close的closedHandle CAS保证OnSocketClose等清理恰好一次。
+		var cf = ws.sendBinary(ByteBuffer.wrap(bytes, offset, length), true);
+		if (cf.isDone()) {
+			if (!cf.isCompletedExceptionally())
+				return true;
+			close(unwrap(cf.exceptionNow()));
+			return false;
+		}
+		cf.whenComplete((__, ex) -> {
+			if (ex != null)
+				close(unwrap(ex));
+		});
 		return true;
 	}
 
