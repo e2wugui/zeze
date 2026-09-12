@@ -6,14 +6,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+
 import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
@@ -50,13 +53,13 @@ import org.jetbrains.annotations.Nullable;
 public final class BinLogger extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(BinLogger.class);
 	private static final @Nullable ZezeCounter.LabeledCounterCreator binLoggerCreator
-			= ZezeCounter.instance != null ? ZezeCounter.instance.allocLabeledCounterCreator("BinLogger", "type") : null;
+		= ZezeCounter.instance != null ? ZezeCounter.instance.allocLabeledCounterCreator("BinLogger", "type") : null;
 	private static final @Nullable ZezeCounter.LongCounter sendLogFailCounter
-			= binLoggerCreator != null ? binLoggerCreator.labelValues("SendLogFail") : null;
+		= binLoggerCreator != null ? binLoggerCreator.labelValues("SendLogFail") : null;
 	private static final @Nullable ZezeCounter.LongCounter writeLogCounter
-			= binLoggerCreator != null ? binLoggerCreator.labelValues("WriteLog") : null;
+		= binLoggerCreator != null ? binLoggerCreator.labelValues("WriteLog") : null;
 	private static final @Nullable ZezeCounter.LongObserver waitQueueObserver
-			= ZezeCounter.instance != null ? ZezeCounter.instance.getRunTimeObserver("BinLogger.waitQueue") : null;
+		= ZezeCounter.instance != null ? ZezeCounter.instance.getRunTimeObserver("BinLogger.waitQueue") : null;
 	private static final int timeZoneOffset = TimeZone.getDefault().getRawOffset(); // 北京时间(+8): 28800_000
 	private static final int DEFAULT_PORT = 5004; // 服务的默认端口号
 	private static final int MAX_LOG_SIZE = 0xfffff; // 1M-1, 单条日志数据的最大长度(涉及文件格式设计,不能改动)
@@ -131,7 +134,7 @@ public final class BinLogger extends ReentrantLock {
 			var header = bb.ReadUInt();
 			if ((header & FamilyClass.FamilyClassMask) != FamilyClass.Protocol) {
 				throw new IllegalStateException("invalid header(" + header + ") for decoding protocol "
-						+ getClass().getName());
+					+ getClass().getName());
 			}
 			if ((header & FamilyClass.BitResultCode) != 0)
 				bb.SkipLong(); // resultCode
@@ -231,6 +234,7 @@ public final class BinLogger extends ReentrantLock {
 	public static final class BinLoggerService extends Service {
 		private final @NotNull String logPath; // 日志保存的路径,以"/"结尾,日志文件名(除后缀名)是8位日期数字
 		private @Nullable RandomAccessFile lockFile; // 以"LOCK"命名的文件,用于BinLogger对象独占日志写入权限
+		private @Nullable FileLock fileLock; // lockFile的目录独占锁，与lockFile同生命周期，stopLogger释放
 		private BufferedOutputStream binFile; // Bean(Data)结构日志经过二进制序列化紧凑连续保存的文件
 		private BufferedOutputStream posFile; // 每条日志在bin文件中的位置和大小,小端保存为8字节整数,其中位置占高44位(最大支持16T),大小占低20位(最大支持1M-1)
 		private BufferedOutputStream tsFile; // 每条日志的时间戳,小端保存为8字节整数,其中高44位是UTC毫秒时间戳,低20位是该时间戳的日志序号(从0开始)
@@ -271,7 +275,7 @@ public final class BinLogger extends ReentrantLock {
 				opt.setKeepSendTimeout(30);
 
 			AddFactoryHandle(LogData.typeId, new ProtocolFactoryHandle<>(LogData::new, this::processLogData,
-					TransactionLevel.None, DispatchMode.Direct));
+				TransactionLevel.None, DispatchMode.Direct));
 			ShutdownHook.add(this::stop);
 		}
 
@@ -366,10 +370,10 @@ public final class BinLogger extends ReentrantLock {
 			return (int)((utcMs + timeZoneOffset) / 86400_000);
 		}
 
-		@SuppressWarnings("deprecation")
 		private static @NotNull String toDayStr(int dayStamp) { // 日期戳(天数) => "yyyyMMdd"
-			var date = new Date(dayStamp * 86400_000L - timeZoneOffset);
-			return String.format("%4d%2d%2d", date.getYear() + 1900, date.getMonth() + 1, date.getDate());
+			var date = Instant.ofEpochMilli(dayStamp * 86400_000L - timeZoneOffset)
+				.atZone(ZoneId.systemDefault()).toLocalDate();
+			return String.format("%04d%02d%02d", date.getYear(), date.getMonthValue(), date.getDayOfMonth());
 		}
 
 		private void startLogger() throws Exception {
@@ -378,7 +382,8 @@ public final class BinLogger extends ReentrantLock {
 				// 1.目录上锁
 				Files.createDirectories(Path.of(logPath));
 				lockFile = new RandomAccessFile(logPath + "LOCK", "rw");
-				if (lockFile.getChannel().tryLock() == null)
+				fileLock = lockFile.getChannel().tryLock();
+				if (fileLock == null)
 					throw new IOException("tryLock LOCK file failed");
 				// 2.修复并打开当天的所有日志和索引文件
 				curDayStamp = toDayStamp(System.currentTimeMillis());
@@ -410,7 +415,7 @@ public final class BinLogger extends ReentrantLock {
 				 var idF = new RecoveryFile(fnPrefix + ".id")) {
 				newBinFileSize = binF.size;
 				logger.info("recovery: bin,pos,ts,dt,id.size={},{},{},{},{}; fileNamePrefix='{}'",
-						newBinFileSize, posF.size, tsF.size, dtF.size, idF.size, fnPrefix);
+					newBinFileSize, posF.size, tsF.size, dtF.size, idF.size, fnPrefix);
 				var otherTruncateSize = Math.min(Math.min(Math.min(posF.size, tsF.size), dtF.size), idF.size) & ~7;
 				var buf = new byte[8];
 				for (; otherTruncateSize >= 8; otherTruncateSize -= 8) {
@@ -461,6 +466,14 @@ public final class BinLogger extends ReentrantLock {
 			forceClose(tsFile);
 			forceClose(posFile);
 			forceClose(binFile);
+			if (fileLock != null) {
+				try {
+					fileLock.release();
+				} catch (IOException e) { // logger.error
+					logger.error("release fileLock exception.", e);
+				}
+				fileLock = null;
+			}
 			forceClose(lockFile);
 			idFile = null;
 			dtFile = null;
@@ -486,7 +499,7 @@ public final class BinLogger extends ReentrantLock {
 			int dataSize = p.data.size();
 			if (dataSize > MAX_LOG_SIZE) {
 				logger.warn("too long size of LogData: roleId={}, type={}, size={}, sender={}",
-						p.roleId, p.dataType, dataSize, p.getSender());
+					p.roleId, p.dataType, dataSize, p.getSender());
 			} else {
 				var timeBegin = 0L;
 				queueLock.lock();
@@ -512,7 +525,7 @@ public final class BinLogger extends ReentrantLock {
 				if (waitQueueObserver != null && timeBegin != 0)
 					waitQueueObserver.observe(System.nanoTime() - timeBegin);
 				logger.info("drop LogData: roleId={}, type={}, size={}, sender={}",
-						p.roleId, p.dataType, dataSize, p.getSender());
+					p.roleId, p.dataType, dataSize, p.getSender());
 			}
 			return 0;
 		}
@@ -590,7 +603,7 @@ public final class BinLogger extends ReentrantLock {
 							} catch (Throwable e) { // logger.error
 								// 当前条可能半写：completed不推进，恢复后重写它（脏尾成gap）。
 								logger.error("writeLogThread write exception. completed={}, day={}",
-										completed, curDayStamp, e);
+									completed, curDayStamp, e);
 								try {
 									forceClose(idFile);
 									forceClose(dtFile);
@@ -672,8 +685,8 @@ public final class BinLogger extends ReentrantLock {
 		if (threadCount < 1)
 			threadCount = Runtime.getRuntime().availableProcessors();
 		Task.initThreadPool(Task.newCriticalThreadPool("ZezeTaskPool"),
-				Executors.newSingleThreadScheduledExecutor(
-						new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY + 2)));
+			Executors.newSingleThreadScheduledExecutor(
+				new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY + 2)));
 		if (Selectors.getInstance().getCount() < threadCount)
 			Selectors.getInstance().add(threadCount - Selectors.getInstance().getCount());
 		ZezeCounter.tryInit();
