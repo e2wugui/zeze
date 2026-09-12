@@ -48,7 +48,13 @@ public class Exporter {
 						serviceSet.add(e.getServiceName());
 				}
 				for (var serviceName : serviceSet) {
-					ep.exportAll(serviceName, agent.getSubscribeStates().get(serviceName).getServiceInfosVersion());
+					// 与退订竞态（FND4-61）：triggerOnChanged经executeOneByOne异步排队，期间
+					// unSubscribeService已remove该服务的subscribeStates——跳过为正确语义（已不
+					// 关心）；原NPE被triggerOnChanged捕获记日志，同批其余服务的导出整体丢失。
+					var state = agent.getSubscribeStates().get(serviceName);
+					if (state == null)
+						continue;
+					ep.exportAll(serviceName, state.getServiceInfosVersion());
 				}
 				break;
 			case eEdit:
@@ -73,6 +79,10 @@ public class Exporter {
 		case "Print":
 			exports.add(new ExporterPrint(null));
 			break;
+		default:
+			// FND4-62：未知导出器名（拼写错误等）原静默忽略——部署配置错误零反馈。fail-fast
+			// 启动失败并提示合法值。
+			throw new IllegalArgumentException("unknown exporter '" + name + "', valid: NginxConfig | NginxHttp | Print");
 		}
 	}
 
