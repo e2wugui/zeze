@@ -473,7 +473,16 @@ public final class Transaction {
 				try {
 					Thread.sleep(Random.getInstance().nextInt(80) + 20);
 				} catch (InterruptedException e) {
-					logger.error("perform({}): interrupted", procedure, e);
+					// 恢复中断标志并按取消语义退出重试（FND4-02）：perform跑在业务线程上，
+					// shutdownNow/任务取消依赖interrupt让事务及时让位。原实现吞掉标志继续重试，
+					// 停机期间每轮sleep立即再抛形成日志洪水、取消被拖延到255次耗尽。
+					// 中断视为"本事务未执行"：回滚最近一轮回调后按异常码返回。
+					logger.error("perform({}): interrupted, cancel retry", procedure);
+					Thread.currentThread().interrupt();
+					if (redoRollbackActions != null)
+						actions.addAll(redoRollbackActions);
+					finalRollback(procedure);
+					return Procedure.Exception;
 				}
 			}
 			logger.error("perform({}): too many try", procedure);
