@@ -166,7 +166,7 @@ public class WebsocketClient extends AsyncSocket {
 	}
 
 	// whenComplete/exceptionNow 交付的异常可能被 CompletionException 包装，关闭日志取根因
-	private static @NotNull Throwable unwrap(@Nullable Throwable ex) {
+	private static @NotNull Throwable unwrap(@NotNull Throwable ex) {
 		return ex instanceof CompletionException && ex.getCause() != null ? ex.getCause() : ex;
 	}
 

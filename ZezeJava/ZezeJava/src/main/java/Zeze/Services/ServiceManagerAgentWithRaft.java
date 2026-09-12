@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.Edit;
@@ -38,6 +39,7 @@ import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWithRaft {
 	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
@@ -142,15 +144,27 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	private static final long LoginReplayRetryDelayMs = 5_000;
-	private volatile @org.jetbrains.annotations.Nullable java.util.concurrent.Future<?> loginReplayRetryTask;
+	// 调用方跨线程（Task池上onLoginSuccess的同步失败路径与内部派发池上subscribe的
+	// whenComplete异步失败回调），volatile检查-再赋值有竞态窗口，并发失败会登记出
+	// 多个重试任务，单flight被破坏。专用锁原子化"检查-登记"与action首步的"清除"；
+	// 不复用__thisLock（startNewLogin/waitLoginReady使用），且onLoginSuccess在锁外
+	// 执行，锁永远不会挂在editService的rpc等待上。清除必须先于重放：重放若再失败，
+	// 此刻字段已为null，能立即登记新任务，重试链不断；若清除放在重放之后，重放失败
+	// 时字段仍指向自身任务，新登记被单flight跳过，链就此断裂。
+	private final Object loginReplayRetryLock = new Object();
+	private @Nullable Future<?> loginReplayRetryTask; // guarded-by loginReplayRetryLock
 
 	private void scheduleLoginReplayRetry() {
-		if (loginReplayRetryTask != null)
-			return; // 单flight：已安排的重试足够
-		loginReplayRetryTask = Zeze.Util.TaskSpec.ofAction(() -> {
-			loginReplayRetryTask = null;
-			onLoginSuccess();
-		}).name("SM.AgentWithRaft.loginReplayRetry").scheduleNow(LoginReplayRetryDelayMs);
+		synchronized (loginReplayRetryLock) {
+			if (loginReplayRetryTask != null)
+				return; // 单flight：已安排的重试足够
+			loginReplayRetryTask = TaskSpec.ofAction(() -> {
+				synchronized (loginReplayRetryLock) {
+					loginReplayRetryTask = null;
+				}
+				onLoginSuccess();
+			}).name("SM.AgentWithRaft.loginReplayRetry").scheduleNow(LoginReplayRetryDelayMs);
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////
@@ -259,8 +273,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		r.Argument.setName(autoKey.getName());
 		r.Argument.setCount(pool);
 		raftClient.sendForWait(r).await();
-		// rc!=0时Result携带的号段来自服务端回滚路径（提交前数据，服务端按错误码丢弃语义发送），
-		// 不可投入使用；抛错使AutoKey.next()的重试循环以异常退出而非无限重试。
+		// 真错误码时Result携带的号段来自服务端回滚路径（提交前数据，服务端按错误码丢弃语义发送），
+		// 不可投入使用，抛错使AutoKey.next()的重试循环以异常退出而非无限重试；RaftApplied例外，
+		// 其Result是重发命中去重时服务端附带的原始已分配号段，直接投入使用。
 		checkResultCode(r);
 		setCurrentAndCount(autoKey, r.Result.getStartId(), r.Result.getCount());
 	}
@@ -269,10 +284,14 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	 * 对齐非raft版SendAndWaitCheckResultCode契约：sendForWait的future只在超时/停止时异常完成，
 	 * 服务端错误码应答正常完成，必须显式检查；失败即抛错，防止editService/unSubscribeService
 	 * 假成功（本地状态与服务端分叉）及allocate静默失败触发AutoKey.next()无限循环。
+	 * RaftApplied放行为成功：应答丢失/超时后sendForWait重发，原请求已apply时服务端以
+	 * RaftApplied附原始结果应答（Raft.Server.processRequest去重命中），与Dbh2Agent等
+	 * raft调用方"rc==0||rc==RaftApplied"的成功判定一致；allocate据此拿回原号段。
 	 */
 	private static void checkResultCode(@NotNull Rpc<?, ?> r) {
-		if (r.getResultCode() != 0)
-			throw new IllegalStateException("Rpc Invalid ResultCode=" + r.getResultCode() + " " + r);
+		var rc = r.getResultCode();
+		if (rc != 0 && rc != Procedure.RaftApplied)
+			throw new IllegalStateException("Rpc Invalid ResultCode=" + rc + " " + r);
 	}
 
 	private void waitLoginReady() {
