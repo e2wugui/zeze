@@ -396,8 +396,14 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		worker.start();
 
 		waitPending(GlobalCacheManagerConst.StateShare, 10_000, "B必须占住申请位");
-		var reduce = clientA.reduces.poll(10, TimeUnit.SECONDS);
-		Assertions.assertNotNull(reduce, "A必须收到Reduce");
+		// 预算30s（第五轮round 25：Reduce已发出（perf在途）、选择器/JVM全程健康，但10s内未达
+		// ——满负载在途延迟，对齐首轮压测AcquireKick的预算教训：等待预算必须大于负载下最坏延迟）。
+		// 失败时带判别诊断：pending仍为Share+worker存活=Reduce在途丢失/迟到；pending复位+worker
+		// 已结束=走了modify==-1的跳过分支（cs状态与驱动时序不一致），下次复发即可定案。
+		var reduce = clientA.reduces.poll(30, TimeUnit.SECONDS);
+		if (reduce == null)
+			Assertions.fail("A必须收到Reduce（诊断: pending=" + pendingOf(KEY)
+					+ ", workerAlive=" + worker.isAlive() + "）");
 
 		// 4. 中断过程线程（模拟任务超时看门狗/调度中断）——InterruptedException走Procedure回滚路径
 		worker.interrupt();
