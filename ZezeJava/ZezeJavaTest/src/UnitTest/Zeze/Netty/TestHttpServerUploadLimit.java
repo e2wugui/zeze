@@ -3,6 +3,7 @@ package UnitTest.Zeze.Netty;
 import harness.Fast;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -59,19 +60,7 @@ public class TestHttpServerUploadLimit {
 
 	// 发送原始请求字节并读到服务器关闭连接(EOF)为止,返回收到的完整响应
 	private static @NotNull String sendRawUntilClose(@NotNull String raw) throws IOException {
-		try (var sock = new Socket()) {
-			// Windows满负载下loopback connect偶发SYN无应答（60轮压测1/60命中：~21s OS级ETIMEDOUT，
-			// 同刻8+测试服务器并行启动的连接风暴，服务端日志闭环无责）：显式短超时+有界重试。
-			var target = new InetSocketAddress("127.0.0.1", port);
-			for (int attempt = 1; ; ++attempt) {
-				try {
-					sock.connect(target, 5_000);
-					break;
-				} catch (SocketTimeoutException e) {
-					if (attempt >= 3)
-						throw e;
-				}
-			}
+		try (var sock = connectWithRetry()) {
 			sock.setSoTimeout(15000);
 			var os = sock.getOutputStream();
 			os.write(raw.getBytes(StandardCharsets.ISO_8859_1));
@@ -83,6 +72,26 @@ public class TestHttpServerUploadLimit {
 			while ((n = in.read(buf)) >= 0)
 				out.write(buf, 0, n);
 			return out.toString(StandardCharsets.ISO_8859_1);
+		}
+	}
+
+	// Windows满负载下loopback connect偶发SYN无应答（首轮与第五轮60轮压测各1例：~21s OS级
+	// ETIMEDOUT，同刻8+测试服务器并行启动的连接风暴，服务端日志闭环无责）：显式短超时+有界重试。
+	// 两种超时形态都要接：SocketTimeoutException=java侧计时器先到；ConnectException(time out)=
+	// OS级ETIMEDOUT先到（第五轮round 41形态，原只接SocketTimeoutException漏过直穿）。
+	// connect失败后Socket不可复用，每次尝试用新Socket。
+	private static Socket connectWithRetry() throws IOException {
+		var target = new InetSocketAddress("127.0.0.1", port);
+		for (int attempt = 1; ; ++attempt) {
+			var sock = new Socket();
+			try {
+				sock.connect(target, 5_000);
+				return sock;
+			} catch (SocketTimeoutException | ConnectException e) {
+				sock.close();
+				if (attempt >= 3)
+					throw e;
+			}
 		}
 	}
 
