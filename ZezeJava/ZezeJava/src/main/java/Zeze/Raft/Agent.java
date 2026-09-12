@@ -54,7 +54,7 @@ public final class Agent {
 	private NetClient client;
 	private volatile ConnectorProxy leader;
 	private final ConcurrentHashMapOrdered<Long, RaftRpc<?, ?>> pending = new ConcurrentHashMapOrdered<>();
-	private long term;
+	private volatile long term; // 写在mutex内（原子性不变）；volatile保证getTerm()锁外读的可见性（FND4-29）
 	/**
 	 * 入站协议默认投入内部线程池执行（防业务handler阻塞IO线程）。
 	 * 显式注册DispatchMode.Direct的协议不受本flag影响——Direct优先于池化，
