@@ -124,6 +124,7 @@ public final class Application extends ReentrantLock {
 	private final ArrayList<Table> replaceTableRecent = new ArrayList<>();
 	private final ArrayList<HotUpgradeMemoryTable> hotUpgradeMemoryTables = new ArrayList<>();
 
+	// 只由持锁者（checkpointRunThread/stop）读写；"checkpoint在跑中"=非null且未完成（FND3-49判据化）。
 	private Future<?> checkpointFuture;
 
 	private static final ConcurrentHashMap<String, Application> instances = new ConcurrentHashMap<>();
@@ -904,14 +905,14 @@ public final class Application extends ReentrantLock {
 	public void checkpointRunThread() {
 		lock();
 		try {
-			if (startState == StartState.eStarted && checkpointFuture == null)
-				checkpointFuture = TaskSpec.ofAction(() -> {
-					try {
-						checkpoint.runOnce();
-					} finally {
-						checkpointFuture = null; // runOnce 抛异常也必须清空,否则后续checkpointRunThread永久失效
-					}
-				}).name("CheckpointRunThread").submitNow();
+			var f = checkpointFuture;
+			// FND3-49："在跑中"是字段的派生判据（非null且未完成），不由任务清零：
+			// pool.submit先入队后返回，任务可能在赋值前完成，任务内finally清空=白清，
+			// 迟到赋值会留下已完成的哨兵future，后续调用被永久阻断。
+			// 字段只由持锁者（本方法/stop）读写，任务不触碰。
+			if (startState == StartState.eStarted && (f == null || f.isDone()))
+				checkpointFuture = TaskSpec.ofAction(checkpoint::runOnce)
+						.name("CheckpointRunThread").submitNow();
 		} finally {
 			unlock();
 		}
