@@ -409,9 +409,12 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		float[] buf = buffer;
 		float[] data = fl.buffer;
 		for (int i = 0; i < n; i++) {
-			float c = buf[i] - data[i];
+			// Float.compare（JDK定义的全序，NaN有确定位次）取代减法判序：Inf-Inf=NaN、含NaN的
+			// 差恒NaN使 c!=0 恒真恒返回1——相等元素比较为"大于"、违反反对称性（FND4-17）。
+			// 对齐 IntList（已修减法溢出）/LongList（FND3-15）的compare形态。
+			int c = Float.compare(buf[i], data[i]);
 			if (c != 0)
-				return c < 0 ? -1 : 1;
+				return c;
 		}
 		return n0 - n1;
 	}
