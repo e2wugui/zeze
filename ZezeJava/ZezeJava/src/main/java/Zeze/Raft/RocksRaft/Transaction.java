@@ -334,8 +334,16 @@ public final class Transaction {
 		_trigger_commit_actions_(procedure, sp);
 
 		Protocol<?> autoResponse = procedure.autoResponse;
-		if (autoResponse != null)
-			autoResponse.SendResult();
+		if (autoResponse != null) {
+			try {
+				autoResponse.SendResult();
+			} catch (Throwable ex) {
+				// 决策点（appendLog成功）之后的应答发送失败只降级应答质量（FND4-32）：
+				// 传播出去会让perform的catch在已提交事务上补跑_final_rollback_，
+				// 提交/回滚互斥的回调契约被破坏（提交动作已执行又叠回滚动作）。
+				logger.error("send auto response after commit fail", ex);
+			}
+		}
 	}
 
 	private static void _trigger_commit_actions_(Procedure procedure, Savepoint last) {
@@ -374,7 +382,13 @@ public final class Transaction {
 			lastRollbackActions = null;
 		}
 		Protocol<?> autoResponse = procedure.autoResponse;
-		if (autoResponse != null)
-			autoResponse.SendResult();
+		if (autoResponse != null) {
+			try {
+				autoResponse.SendResult();
+			} catch (Throwable ex) {
+				// 回滚已完成，应答发送失败不得把错误码返回路径改写成异常上抛（FND4-32同源）。
+				logger.error("send auto response after rollback fail", ex);
+			}
+		}
 	}
 }
