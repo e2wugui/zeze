@@ -421,8 +421,10 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	protected static void verify(@NotNull String identity) {
 		if (!identity.startsWith("@") && !identity.startsWith("#")) {
+			// Long口径（FND4-63）：服务端isLegalServiceIdentity与BServiceInfos排序器均Long.parseLong，
+			// 原Integer.parseInt把(Integer.MAX,Long.MAX]的数字identity（如雪花id）在客户端误拒。
 			//noinspection ResultOfMethodCallIgnored
-			Integer.parseInt(identity);
+			Long.parseLong(identity);
 		}
 	}
 
