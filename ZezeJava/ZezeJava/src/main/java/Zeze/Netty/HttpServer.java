@@ -261,8 +261,6 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 				task11ExecutorDown = false;
 			}
 			var eventLoopGroup = netty.getEventLoopGroup();
-			scheduler = eventLoopGroup.scheduleWithFixedDelay(() -> channels.keySet().forEach(this::checkTimeout),
-					checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
 			var b = new ServerBootstrap();
 			if (eventLoopGroup instanceof EpollEventLoopGroup)
 				b = b.option(EpollChannelOption.SO_REUSEPORT, true);
@@ -286,6 +284,11 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 				future = b.bind(port);
 				host = "any";
 			}
+			// scheduler注册在bind之后（FND4-39）：bind同步失败（非法host/端口）时
+			// 定时任务不残留——否则再次start抛"already started"进入永久半启动态，
+			// 且每checkIdleInterval的checkTimeout对空channels永久空转。
+			scheduler = eventLoopGroup.scheduleWithFixedDelay(() -> channels.keySet().forEach(this::checkTimeout),
+					checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
 			channelFuture = future;
 			Netty.logger.info("startServer {} on {}:{}", getClass().getName(), host, port);
 			return future;
