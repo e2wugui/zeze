@@ -27,15 +27,18 @@ public class TestTokenKeepAlive {
 		// Token 的 RocksDB 目录由系统属性 token.rocksdb 指定（默认cwd下的token_db），重定向到临时目录。
 		System.setProperty("token.rocksdb", tempDir.resolve("token_db").toString());
 		var conf = new Config();
+		// keep-alive时序按3x放宽（第五轮round 47：1s/2s的裕度下，满负载一个>2s的处理停顿就令
+		// 服务端按设计判死空闲连接，睡后subTopic即Send Fail误红。产品默认分钟级，2s本就不适合
+		// 满负载套件；放宽后探测仍远密于超时，语义不变——睡过"无保活必被掐死"的窗口）。
 		var sconf = new ServiceConf();
-		sconf.getHandshakeOptions().setKeepCheckPeriod(1);
-		sconf.getHandshakeOptions().setKeepRecvTimeout(2);
-		sconf.getHandshakeOptions().setKeepSendTimeout(1);
+		sconf.getHandshakeOptions().setKeepCheckPeriod(2);
+		sconf.getHandshakeOptions().setKeepRecvTimeout(6);
+		sconf.getHandshakeOptions().setKeepSendTimeout(3);
 		conf.getServiceConfMap().put("TokenServer", sconf);
 		sconf = new ServiceConf();
-		sconf.getHandshakeOptions().setKeepCheckPeriod(1);
-		sconf.getHandshakeOptions().setKeepRecvTimeout(2);
-		sconf.getHandshakeOptions().setKeepSendTimeout(1);
+		sconf.getHandshakeOptions().setKeepCheckPeriod(2);
+		sconf.getHandshakeOptions().setKeepRecvTimeout(6);
+		sconf.getHandshakeOptions().setKeepSendTimeout(3);
 		conf.getServiceConfMap().put("TokenClient", sconf);
 
 		var tokenServer = new Token().start(conf, null, 5003);
@@ -45,13 +48,13 @@ public class TestTokenKeepAlive {
 				var f = new TaskCompletionSource<Boolean>();
 				tokenClient.registerNotifyTopicHandler("keepAliveTopic", p -> f.setResult(true));
 				tokenClient.waitReady();
-				// 睡过 KeepRecvTimeout(2s)+一个检查周期（整秒截断最迟 ~3.9s 观察到 3>2 判死）：
-				// keep-alive 失效的话连接已被服务端掐断；正常探测让服务端 recvTime 恒 ≤1s，不会误杀
-				Thread.sleep(4_500);
+				// 睡过 KeepRecvTimeout(6s)+一个检查周期(2s)（最迟 ~8s 观察到 gap>6 判死）：
+				// keep-alive 失效的话连接已被服务端掐断；正常探测让服务端 recvTime 恒 ≤3s，不会误杀
+				Thread.sleep(9_000);
 				logger.info("sleep over");
 				tokenClient.subTopic("keepAliveTopic").get();
 				tokenClient.pubTopic("keepAliveTopic", new Binary("alive"), false);
-				Assertions.assertTrue(f.get(5, TimeUnit.SECONDS));
+				Assertions.assertTrue(f.get(15, TimeUnit.SECONDS));
 			} finally {
 				tokenClient.stop();
 			}
