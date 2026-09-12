@@ -113,6 +113,10 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		public void SendResult(Binary result) {
 			real.Result.setGlobalKey(real.Argument.getGlobalKey()); // no change
 			real.Result.setState(Result.state);
+			// FND4-54：补转发被降级方tid——TableX在bridge（sync族Result）上设置reducedTid，
+			// 桥接原本只转state与resultCode，该字段在Raft链路恒为默认值（同步/异步版服务器
+			// 均中继真实值），协议契约静默断裂。
+			real.Result.setReduceTid(Result.reducedTid);
 			real.setResultCode(getResultCode());
 			real.SendResult(result);
 		}
