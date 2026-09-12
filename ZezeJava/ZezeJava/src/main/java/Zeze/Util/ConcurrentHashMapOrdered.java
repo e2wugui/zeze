@@ -5,6 +5,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,24 +21,39 @@ import org.jetbrains.annotations.Nullable;
 public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	private final static Object deleted = new Object();
 
-	private final @NotNull ConcurrentHashMap<K, V> map;
-	private final @NotNull ConcurrentLinkedQueue<K> queue = new ConcurrentLinkedQueue<>();
-	private final @NotNull AtomicInteger size = new AtomicInteger();
+	/**
+	 * queue/map/size 三组件的整体快照（FND4-14）：clear 以原子替换 state 完成，三组件间永不出中间态。
+	 * 原实现 clear 三步分离（queue.clear/map.clear/size.set(0)），与并发 put 交错时 increment 被
+	 * set(0) 永久覆盖——map 有条目而 size()==0/isEmpty()，后续 remove 再减成负数。整体替换后，
+	 * clear 竞态期间迟到 put 的增量落在废弃 state 上（对齐 CHM 自身 clear 的弱一致语义：并发更新
+	 * 下 clear 与 put 的胜负本就未定义），新 state 的计数与内容恒一致。
+	 */
+	private static final class State<K, V> {
+		final @NotNull ConcurrentHashMap<K, V> map;
+		final @NotNull ConcurrentLinkedQueue<K> queue = new ConcurrentLinkedQueue<>();
+		final @NotNull AtomicInteger size = new AtomicInteger();
+
+		State(int initialCapacity) {
+			map = new ConcurrentHashMap<>(initialCapacity);
+		}
+	}
+
+	private final @NotNull AtomicReference<State<K, V>> state;
 
 	public ConcurrentHashMapOrdered() {
-		map = new ConcurrentHashMap<>();
+		state = new AtomicReference<>(new State<K, V>(16));
 	}
 
 	public ConcurrentHashMapOrdered(int initialCapacity) {
-		map = new ConcurrentHashMap<>(initialCapacity);
+		state = new AtomicReference<>(new State<K, V>(initialCapacity));
 	}
 
 	public int size() {
-		return size.get();
+		return state.get().size.get();
 	}
 
 	public boolean isEmpty() {
-		return size.get() == 0;
+		return state.get().size.get() == 0;
 	}
 
 	public boolean containsKey(@NotNull K key) {
@@ -45,17 +61,16 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public boolean containsValue(@NotNull V value) {
-		return map.containsValue(value);
+		return state.get().map.containsValue(value);
 	}
 
 	public void clear() {
-		queue.clear();
-		map.clear();
-		size.set(0);
+		state.set(new State<>(16)); // 单次volatile写：读者要么看到全新整体，要么全旧
 	}
 
 	public class OrderedIterator implements Iterator<V> {
-		private final @NotNull Iterator<K> queueIt = queue.iterator();
+		private final @NotNull State<K, V> snapshot = state.get(); // 迭代期间固定在一个整体快照上
+		private final @NotNull Iterator<K> queueIt = snapshot.queue.iterator();
 		private K key;
 		private V value;
 
@@ -72,13 +87,13 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 				if (!has)
 					return false;
 				key = queueIt.next();
-				value = map.get(key);
+				value = snapshot.map.get(key);
 				while (value == deleted) {
-					if (map.remove(key, value)) {
+					if (snapshot.map.remove(key, value)) {
 						value = null;
 						break;
 					}
-					value = map.get(key);
+					value = snapshot.map.get(key);
 				}
 				if (value != null)
 					return true;
@@ -103,15 +118,16 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public void foreach(@NotNull BiConsumer<K, V> consumer) {
-		for (var it = queue.iterator(); it.hasNext(); ) {
+		var s = state.get();
+		for (var it = s.queue.iterator(); it.hasNext(); ) {
 			K k = it.next();
-			V v = map.get(k);
+			V v = s.map.get(k);
 			while (v == deleted) {
-				if (map.remove(k, v)) {
+				if (s.map.remove(k, v)) {
 					v = null;
 					break;
 				}
-				v = map.get(k);
+				v = s.map.get(k);
 			}
 			if (v == null)
 				it.remove();
@@ -121,15 +137,16 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public @Nullable V put(@NotNull K key, @NotNull V value) {
+		var s = state.get();
 		var oldValue = new OutObject<V>();
-		map.compute(key, (k, v) -> {
+		s.map.compute(key, (k, v) -> {
 			if (v == null) {
-				queue.add(key); // 第一次加入。只保持第一次的顺序，重复put不加入queue。
-				size.incrementAndGet();
+				s.queue.add(key); // 第一次加入。只保持第一次的顺序，重复put不加入queue。
+				s.size.incrementAndGet();
 				return value;
 			}
 			if (v == deleted) {
-				size.incrementAndGet();
+				s.size.incrementAndGet();
 				return value;
 			}
 			oldValue.value = v;
@@ -139,15 +156,16 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public @Nullable V putIfAbsent(@NotNull K key, @NotNull V value) {
+		var s = state.get();
 		var oldValue = new OutObject<V>();
-		map.compute(key, (k, v) -> {
+		s.map.compute(key, (k, v) -> {
 			if (v == null) {
-				queue.add(key);
-				size.incrementAndGet();
+				s.queue.add(key);
+				s.size.incrementAndGet();
 				return value;
 			}
 			if (v == deleted) {
-				size.incrementAndGet();
+				s.size.incrementAndGet();
 				return value;
 			}
 			oldValue.value = v;
@@ -157,36 +175,39 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public @Nullable V get(@NotNull K key) {
-		V v = map.get(key);
+		V v = state.get().map.get(key);
 		return v == deleted ? null : v;
 	}
 
 	public V getOrDefault(@NotNull K key, V defaultValue) {
-		V v = get(key);
+		var v = get(key);
 		return v != null ? v : defaultValue;
 	}
 
 	public @Nullable V remove(@NotNull K key) {
+		var s = state.get();
 		@SuppressWarnings("unchecked")
-		V old = map.replace(key, (V)deleted);
+		V old = s.map.replace(key, (V)deleted);
 		if (old == null || old == deleted)
 			return null;
-		size.decrementAndGet();
+		s.size.decrementAndGet();
 		return old;
 	}
 
-	@SuppressWarnings("unchecked")
 	public boolean remove(@NotNull K key, @NotNull V value) {
-		if (map.replace(key, value, (V)deleted)) {
-			size.decrementAndGet();
+		var s = state.get();
+		if (s.map.replace(key, value, (V)deleted)) {
+			s.size.decrementAndGet();
 			return true;
 		}
 		return false;
 	}
 
+	@SuppressWarnings("unchecked")
 	public @Nullable V replace(@NotNull K key, @NotNull V value) {
+		var s = state.get();
 		var oldValue = new OutObject<V>();
-		map.computeIfPresent(key, (__, v) -> {
+		s.map.computeIfPresent(key, (__, v) -> {
 			if (v == deleted)
 				return v;
 			oldValue.value = v;
@@ -196,11 +217,11 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public boolean replace(@NotNull K key, @NotNull V oldValue, @NotNull V newValue) {
-		return map.replace(key, oldValue, newValue);
+		return state.get().map.replace(key, oldValue, newValue);
 	}
 
 	@Override
 	public @NotNull String toString() {
-		return map.toString();
+		return state.get().map.toString();
 	}
 }
