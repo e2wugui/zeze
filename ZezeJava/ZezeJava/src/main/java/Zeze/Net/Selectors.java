@@ -126,6 +126,10 @@ public class Selectors extends ReentrantLock {
 	public @NotNull Selectors add(int count) {
 		if (closed) // close后不允许重建线程（choice()对closed同样抛IllegalStateException）
 			throw new IllegalStateException("closed");
+		// 持锁（FND4-37）：原"读selectorList→copyOf→start→赋值"无锁check-then-act，并发add
+		// 后写覆盖先写——先注册的Selector线程从数组丢失但仍在运行（daemon泄漏、choice()轮不到）。
+		// 类型自身即ReentrantLock，数组变更与读取互斥由类型保证。
+		lock();
 		try {
 			int i, n;
 			var tmp = selectorList;
@@ -147,6 +151,8 @@ public class Selectors extends ReentrantLock {
 			return this;
 		} catch (IOException e) {
 			throw Task.forceThrow(e);
+		} finally {
+			unlock();
 		}
 	}
 
