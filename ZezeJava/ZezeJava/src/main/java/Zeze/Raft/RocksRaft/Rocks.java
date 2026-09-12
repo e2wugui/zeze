@@ -397,7 +397,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	public void restore(String backupDir) throws RocksDBException {
 		getRaft().lock();
 		try {
-			pendingFlushApplies.clear(); // 状态机回退到快照边界，"已应用未flush"记录作废（FND-R2-4）
+			resetTransientState();
 			if (storage != null) {
 				storage.close(); // close current
 				storage = null;
@@ -513,13 +513,11 @@ public final class Rocks extends StateMachine implements Closeable {
 	public void reset() {
 		getRaft().lock();
 		try {
-			pendingFlushApplies.clear(); // 清库重放，"已应用未flush"记录作废（FND-R2-4）
+			resetTransientState();
 			if (storage != null) {
 				storage.close(); // close current
 				storage = null;
 			}
-			atomicLongs.clear();
-			lastUpdated.clear();
 			LogSequence.deletedDirectoryAndCheck(
 					Paths.get(getDbHome(), "statemachine").toFile(), 100);
 			openDb(); // reopen empty
@@ -528,6 +526,19 @@ public final class Rocks extends StateMachine implements Closeable {
 		} finally {
 			getRaft().unlock();
 		}
+	}
+
+	/**
+	 * 状态机回退必清瞬态（FND4-31）：reset（清库重放）与restore（InstallSnapshot回退）
+	 * 的重置集收口为唯一入口，对称性由结构保证。restore若残留旧atomicLongs/
+	 * lastUpdated水位，节点再当选leader时增量可能漏收集或写出回退值
+	 * （atomicLongs自增API当前整段被注释，路径失活，恢复该API即成真缺陷）。
+	 * 调用方须持有raft锁。
+	 */
+	private void resetTransientState() {
+		pendingFlushApplies.clear(); // "已应用未flush"记录作废（FND-R2-4）
+		atomicLongs.clear();
+		lastUpdated.clear();
 	}
 
 	@Override
