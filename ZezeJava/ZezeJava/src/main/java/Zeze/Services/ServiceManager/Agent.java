@@ -178,20 +178,45 @@ public final class Agent extends AbstractAgent {
 			logger.debug("OnConnected.Identify", ex);
 		}
 
+		replayRegistersAndSubscribes();
+	}
+
+	// FND4-65：重连重放的失败原先skip-and-continue（editService异常仅debug、订阅future异常
+	// 无人管）——网络flap后注册/订阅重放丢失，直到下一次重连/leader变更才再试，服务长时间
+	// 不可发现。重放源本就是registers/subscribeStates全量（重复重放幂等：服务端允许重复注册、
+	// 订阅状态updateSubscribeInfo同步），失败安排退避重试整体重放，"重连后状态最终必达"由
+	// 机制保证（对齐FND4-57的对账/重试口径）。
+	private static final long ReplayRetryDelayMs = 5_000;
+	private volatile @Nullable java.util.concurrent.Future<?> replayRetryTask;
+
+	private void replayRegistersAndSubscribes() {
 		var edit = new BEditService();
 		edit.getAdd().addAll(registers.keySet());
 		try {
 			editService(edit);
-		} catch (Throwable ex) { // logger.debug
-			// skip and continue.
-			logger.debug("OnConnected.Register", ex);
+		} catch (Throwable ex) { // logger.warn
+			logger.warn("replay registers failed, schedule retry.", ex);
+			scheduleReplayRetry();
+			return; // 注册未确认，订阅随重试一并重放
 		}
 
 		var subArg = new BSubscribeArgument();
 		for (var e : subscribeStates.values())
 			subArg.subs.add(e.getSubscribeInfo());
+		subscribeServicesAsync(subArg).whenComplete((__, ex) -> {
+			if (ex != null) { // 发送失败或错误码：异步失败路径，调用侧try/catch不可达
+				logger.warn("replay subscribes failed, schedule retry.", ex);
+				scheduleReplayRetry();
+			}
+		});
+	}
 
-		subscribeServicesAsync(subArg);
+	private void scheduleReplayRetry() {
+		var old = replayRetryTask;
+		if (old != null)
+			old.cancel(false); // 单flight：最新一次失败的重试覆盖旧的
+		replayRetryTask = Zeze.Util.TaskSpec.ofAction(this::replayRegistersAndSubscribes)
+				.name("SM.Agent.replayRetry").scheduleNow(ReplayRetryDelayMs);
 	}
 
 	private long processEditService(@NotNull EditService r) {

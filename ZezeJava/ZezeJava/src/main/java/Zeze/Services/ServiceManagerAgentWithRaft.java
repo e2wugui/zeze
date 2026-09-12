@@ -108,13 +108,18 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			logger.error("OnLoginSuccess.Identify", ex);
 		}
 
+		// FND4-65：重放失败原先skip-and-continue——raft应答超时/错误码下注册或订阅重放丢失，
+		// 直到下一次换leader才再试。重放源是registers/subscribeStates全量且幂等（见类注释），
+		// 失败安排退避重试整体重放，"重连后状态最终必达"由机制保证。
 		var edit = new BEditService();
 		edit.getAdd().addAll(registers.keySet());
 		if (!edit.getAdd().isEmpty()) {
 			try {
 				editService(edit);
 			} catch (Throwable ex) { // logger.error
-				logger.error("OnLoginSuccess.Register", ex);
+				logger.error("OnLoginSuccess.Register, schedule replay retry.", ex);
+				scheduleLoginReplayRetry();
+				return; // 注册未确认，订阅随重试一并重放
 			}
 		}
 
@@ -123,11 +128,29 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			subArg.subs.add(e.getSubscribeInfo());
 		if (!subArg.subs.isEmpty()) {
 			try {
-				subscribeServicesAsync(subArg);
+				subscribeServicesAsync(subArg).whenComplete((__, ex) -> {
+					if (ex != null) { // 异步失败路径（错误码/发送失败future），调用侧try/catch不可达
+						logger.error("OnLoginSuccess.Subscribe, schedule replay retry.", ex);
+						scheduleLoginReplayRetry();
+					}
+				});
 			} catch (Throwable ex) { // logger.error
-				logger.error("OnLoginSuccess.Subscribe", ex);
+				logger.error("OnLoginSuccess.Subscribe, schedule replay retry.", ex);
+				scheduleLoginReplayRetry();
 			}
 		}
+	}
+
+	private static final long LoginReplayRetryDelayMs = 5_000;
+	private volatile @org.jetbrains.annotations.Nullable java.util.concurrent.Future<?> loginReplayRetryTask;
+
+	private void scheduleLoginReplayRetry() {
+		if (loginReplayRetryTask != null)
+			return; // 单flight：已安排的重试足够
+		loginReplayRetryTask = Zeze.Util.TaskSpec.ofAction(() -> {
+			loginReplayRetryTask = null;
+			onLoginSuccess();
+		}).name("SM.AgentWithRaft.loginReplayRetry").scheduleNow(LoginReplayRetryDelayMs);
 	}
 
 	////////////////////////////////////////////////////////////////////////
