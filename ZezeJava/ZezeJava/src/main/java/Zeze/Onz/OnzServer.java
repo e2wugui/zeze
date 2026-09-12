@@ -201,7 +201,7 @@ public class OnzServer extends AbstractOnz {
 			}
 			for (var e : futures)
 				e.await();
-			removeCommitIndex(key);
+			removeCommitRecord(key);
 		} catch (Throwable ex) {
 			// timer will redo
 			logger.error("", ex);
@@ -225,9 +225,16 @@ public class OnzServer extends AbstractOnz {
 		}
 	}
 
-	void removeCommitIndex(byte[] tidBytes) {
+	void removeCommitRecord(byte[] tidBytes) {
 		try {
-			commitIndex.delete(tidBytes);
+			// 两表同key生命周期（FND4-88）：索引删则点删，同一batch原子落地。
+			// commitPoint只在redo（遍历commitIndex时requireNonNull读取）被消费，
+			// 孤儿点条目永不被读还占磁盘——磁盘随事务数单调增长。
+			try (var batch = database.borrowBatch()) {
+				commitIndex.delete(batch, tidBytes);
+				commitPoint.delete(batch, tidBytes);
+				batch.commit(writeOptions);
+			}
 		} catch (RocksDBException e) {
 			// 这个错误仅仅记录日志，所有没有删除的index，以后重启和Timer会尝试重做。
 			logger.error("", e);

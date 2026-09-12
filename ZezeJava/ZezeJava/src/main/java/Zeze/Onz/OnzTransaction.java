@@ -196,7 +196,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			onzServer.saveCommitPoint(tidBytes, state, AbstractOnz.eCommitting);
 		} catch (Throwable ex) {
 			rollback();
-			onzServer.removeCommitIndex(tidBytes);
+			onzServer.removeCommitRecord(tidBytes);
 			throw new RuntimeException(ex);
 		}
 
@@ -233,7 +233,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		}
 
 		if (!commitFail)
-			onzServer.removeCommitIndex(tidBytes);
+			onzServer.removeCommitRecord(tidBytes);
 		// else: 保留eCommitting索引，redoTimer重发Commit，全部应答后由redo清理。
 	}
 
