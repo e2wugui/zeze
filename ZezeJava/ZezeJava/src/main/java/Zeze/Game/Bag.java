@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.IntUnaryOperator;
+
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderUserSession;
@@ -14,6 +15,9 @@ import Zeze.Builtin.Game.Bag.tbag;
 import Zeze.Collections.BeanFactory;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class Bag {
 	// 物品加入包裹时，自动注册；
@@ -297,6 +301,8 @@ public class Bag {
 	}
 
 	public static class Module extends AbstractBag {
+		private static final @NotNull Logger logger = LogManager.getLogger(Module.class);
+
 		public ProviderApp providerApp;
 		public final Application zeze;
 		public volatile IntUnaryOperator funcItemPileMax;
@@ -349,6 +355,21 @@ public class Bag {
 			return new Bag(this, bagName);
 		}
 
+		/**
+		 * bagName归属校验（FND3-50）：内建协议(Move/Destroy)的bagName来自客户端载荷，而框架无法从会话
+		 * 推导任意命名方案的归属（bagName是应用自定义键，如"bag#roleId"仅是约定）。默认拒绝——
+		 * 应用必须覆写本方法显式定义归属规则后，这两个协议才可用。
+		 * 例：{@code return bagName.equals("bag#" + session.getRoleId()) ? 0 : ResultCodeBagNameDenied;}
+		 * 共享仓库等非角色维度用法在覆写中自行放宽。
+		 *
+		 * @return 0=允许；否则模块错误码（errorCode包装后应答客户端）。
+		 */
+		protected int checkBagAccess(@NotNull ProviderUserSession session, @NotNull String bagName) {
+			logger.warn("Bag Move/Destroy default deny: override Module.checkBagAccess to define bagName ownership."
+				+ " bagName='{}'", bagName);
+			return ResultCodeBagNameDenied;
+		}
+
 		public static void register(Bean bean) {
 			beanFactory.register(bean);
 		}
@@ -363,6 +384,10 @@ public class Bag {
 		@Override
 		protected long ProcessDestroyRequest(Zeze.Builtin.Game.Bag.Destroy r) {
 			var session = ProviderUserSession.get(r);
+			var deny = checkBagAccess(session, r.Argument.getBagName());
+			if (deny != 0) {
+				return errorCode(deny);
+			}
 			var moduleCode = open(r.Argument.getBagName()).destroy(r.Argument.getPosition());
 			if (0 != moduleCode) {
 				return errorCode(moduleCode);
@@ -375,8 +400,12 @@ public class Bag {
 		protected long ProcessMoveRequest(Zeze.Builtin.Game.Bag.Move r) {
 			var session = ProviderUserSession.get(r);
 			// throw exception if not login
+			var deny = checkBagAccess(session, r.Argument.getBagName());
+			if (deny != 0) {
+				return errorCode(deny);
+			}
 			var moduleCode = open(r.Argument.getBagName()).move(
-					r.Argument.getPositionFrom(), r.Argument.getPositionTo(), r.Argument.getNumber());
+				r.Argument.getPositionFrom(), r.Argument.getPositionTo(), r.Argument.getNumber());
 			if (moduleCode != 0) {
 				return errorCode(moduleCode);
 			}

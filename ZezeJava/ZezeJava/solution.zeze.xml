@@ -727,6 +727,7 @@
 				<enum name="ResultCodeToInvalid"    value="2"/>
 				<enum name="ResultCodeFromNotExist" value="3"/>
 				<enum name="ResultCodeTrySplitButTargetExistDifferenceItem" value="4"/>
+				<enum name="ResultCodeBagNameDenied" value="5"/>
 
 				<bean name="BMove">
 					<variable id="1" name="BagName" type="string"/>
