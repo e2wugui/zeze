@@ -146,6 +146,18 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				unlock();
 			}
 		}
+
+		// FND4-66：会话关闭联动剔除该会话登记的观察者（原来仅setLoad转发失败时惰性剔除，
+		// 死观察者滞留到该地址下一次上报）。返回是否已空（地址行随之回收）。
+		public boolean removeObserver(long sessionId) {
+			lock();
+			try {
+				observers.remove(sessionId);
+				return observers.isEmpty();
+			} finally {
+				unlock();
+			}
+		}
 	}
 
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
@@ -320,6 +332,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			if (keepAliveTimerTask != null)
 				keepAliveTimerTask.cancel(false);
 
+			// FND4-66：联动清理该会话登记的全部负载观察者（地址行随之回收）
+			serviceManager.removeLoadObservers(sessionId);
+
 			// Suspect广播：立即、不延迟、不挑选、不取SM锁（避开旧双锁序）。仅是提示，
 			// 由租约表裁决：未过期租约会被接收方安排到过期时刻精确重试。
 			var suspectServerId = identifyServerId;
@@ -366,6 +381,15 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private void addLoadObserver(@NotNull String ip, int port, long sessionId) {
 		if (!ip.isEmpty() && port != 0)
 			loads.computeIfAbsent(ip + "_" + port, __ -> new LoadObservers(this)).addObserver(sessionId);
+	}
+
+	// FND4-66：会话关闭联动清理该会话登记的全部负载观察者；地址行在观察者清空时移除——
+	// 原来仅转发失败惰性剔除，服务下线后该地址再无上报则观察者集合与地址行永久残留。
+	private void removeLoadObservers(long sessionId) {
+		for (var it = loads.entrySet().iterator(); it.hasNext(); ) {
+			if (it.next().getValue().removeObserver(sessionId))
+				it.remove(); // 死地址回收
+		}
 	}
 
 	private final ReentrantLock editLock = new ReentrantLock(); // 整个edit使用一把锁。不并发了。
