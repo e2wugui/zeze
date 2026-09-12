@@ -256,27 +256,54 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 		throw new IllegalStateException("no leader");
 	}
 
-	private static Login sendLogin(AsyncSocket sock, String sessionName, int timeoutMs) throws Exception {
-		// RaftRetry(-15)：静默集群leader漂移/选举窗口的瞬态应答（appendLog同步检查isLeader，
-		// 同TestServiceManagerWithRaftAllocateId.allocate的有界重试），重试耗尽才失败。
-		// 每次重试必须用新Login（requestId唯一）。
+	/**
+	 * Login 发送并断言成功，返回成功的socket（重连后可能不是传入的那个）。
+	 * RaftRetry(-15)：静默集群leader漂移/选举窗口的瞬态应答（appendLog同步检查isLeader，
+	 * 同TestServiceManagerWithRaftAllocateId.allocate的有界重试）。每次重试用新Login（requestId唯一）。
+	 * 【无应答=请求被丢】follower收到User Request只推LeaderIs并静默丢弃（Raft.Server.
+	 * dispatchProtocol选举分支"DO NOT process application request"，无应答无错误码）——
+	 * 60轮压测round 21/44：客户端连上leader后~2s集群漂移，attempt1在废黜节点上处理回-15，
+	 * attempt2发到已退位的follower被静默丢弃，旧socket上等待30s必然超时（login await误红）。
+	 * 真实Agent靠LeaderIs重定向+pending重发，这里对齐：-15/无应答时重连当前leader再试。
+	 */
+	private static AsyncSocket sendLogin(Peer peer, AsyncSocket sock, String sessionName, int timeoutMs)
+			throws Exception {
 		long lastCode = Long.MIN_VALUE;
 		for (int attempt = 1; attempt <= 12; ++attempt) {
 			var login = new Login();
 			login.Argument.setSessionName(sessionName);
 			login.getUnique().setRequestId(requestIds.incrementAndGet());
-			login.setCreateTime(System.currentTimeMillis());
+			login.setCreateTime(System.currentTimeMillis()); // 不设置会被服务端判为RaftExpired(-17)
 			login.setTimeout(timeoutMs);
-			Assertions.assertTrue(login.SendForWait(sock, timeoutMs).await(timeoutMs), "login await");
-			Assertions.assertFalse(login.isTimeout(), "login timeout");
+			boolean dead = !login.SendForWait(sock, timeoutMs).await(timeoutMs) || login.isTimeout();
 			lastCode = login.getResultCode();
-			if (lastCode != -15)
-				return login;
-			//noinspection BusyWait
-			Thread.sleep(500);
+			if (!dead && lastCode != -15) {
+				Assertions.assertEquals(0, lastCode, "login resultCode, session=" + sessionName);
+				return sock;
+			}
+			if (attempt < 12) {
+				try {
+					sock = peer.connect(leaderPort()); // 重连当前leader（漂移后旧socket指向follower，请求会被丢）
+				} catch (IllegalStateException e) { // leaderless窗口：留给下一轮重试
+				}
+				//noinspection BusyWait
+				Thread.sleep(500);
+			}
 		}
-		Assertions.fail("login持续RaftRetry(-15)，session=" + sessionName);
+		Assertions.fail("login重试耗尽，session=" + sessionName + "，lastCode=" + lastCode);
 		return null; // unreachable
+	}
+
+	/** 单发Login不重试（@Disabled的quorum用例需要确定性的单次语义），应答到达返回Login。 */
+	private static Login sendLoginOnce(AsyncSocket sock, String sessionName, int timeoutMs) throws Exception {
+		var login = new Login();
+		login.Argument.setSessionName(sessionName);
+		login.getUnique().setRequestId(requestIds.incrementAndGet());
+		login.setCreateTime(System.currentTimeMillis());
+		login.setTimeout(timeoutMs);
+		Assertions.assertTrue(login.SendForWait(sock, timeoutMs).await(timeoutMs), "login await");
+		Assertions.assertFalse(login.isTimeout(), "login timeout");
+		return login;
 	}
 
 	/**
@@ -372,14 +399,13 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 			var regSock = reg.connect(leaderPort());
 			var subSock = sub.connect(leaderPort());
 
-			// Login：应答到达即raft已提交（修复后应答由runWhileCommit在appendLog成功后发出）
-			Assertions.assertEquals(0, sendLogin(regSock, "UnitTest.CTR.Reg", 30_000).getResultCode(),
-					"login(reg) resultCode");
+			// Login：应答到达即raft已提交（修复后应答由runWhileCommit在appendLog成功后发出）。
+			// 漂移重连后socket可能换新，后续请求都用返回值。
+			regSock = sendLogin(reg, regSock, "UnitTest.CTR.Reg", 30_000);
 			Assertions.assertNotNull(waitSession("UnitTest.CTR.Reg", true, "login应答后tSession必须有会话行"),
 					"login应答后tSession必须有会话行");
 
-			Assertions.assertEquals(0, sendLogin(subSock, "UnitTest.CTR.Sub", 30_000).getResultCode(),
-					"login(sub) resultCode");
+			subSock = sendLogin(sub, subSock, "UnitTest.CTR.Sub", 30_000);
 
 			// Subscribe（version=0订阅全部版本）：应答到达即订阅已raft提交
 			var subArg = new BSubscribeArgument();
@@ -492,7 +518,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 		try {
 			// warmup：正常路径先验证集群健康
 			var sock = reg.connect(leaderPort());
-			Assertions.assertEquals(0, sendLogin(sock, "UnitTest.CTR.Q.Reg", 30_000).getResultCode(),
+			Assertions.assertEquals(0, sendLoginOnce(sock, "UnitTest.CTR.Q.Reg", 30_000).getResultCode(),
 					"warmup login resultCode");
 
 			// 关闭两个follower：quorum(2/3)不可达，raft提交不可能成功。
@@ -507,7 +533,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 			// 修复前：SendResult在handler内（appendLog之前）发出→客户端拿到rc=0假成功（红）。
 			// 修复后：应答由runWhileCommit在appendLog成功后发出；appendLog超时（默认
 			// appendEntriesTimeout=2000→等待2*2000+1000ms）抛RaftRetry，派发层onError回错误码。
-			var login = sendLogin(sock, "UnitTest.CTR.Q.Victim", 30_000);
+			var login = sendLoginOnce(sock, "UnitTest.CTR.Q.Victim", 30_000);
 			Assertions.assertNotEquals(0, login.getResultCode(),
 					"quorum不可达时Login不可能完成raft提交，客户端不能拿到成功码（提交前应答=假成功）");
 		} finally {
