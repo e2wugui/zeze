@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Future;
+
 import Zeze.Builtin.ServiceManagerWithRaft.*;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
@@ -73,7 +74,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		config.parseCustomize(conf);
 
 		rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync,
-				SMServer::new, new TaskOneByOneByKey());
+			SMServer::new, new TaskOneByOneByKey());
 
 		RegisterRocksTables(rocks);
 		RegisterProtocols(rocks.getRaft().getServer());
@@ -191,20 +192,20 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			// 等待即 AssertionError 被包装成 RaftRetry(-15)。按传入的 mode 派发到线程池执行
 			// （对齐 Raft.Server 基类实现），SM 锁移入任务内，保持单写者串行语义不变。
 			TaskSpec.ofFunc(() -> {
-				lock();
-				try {
-					if (logger.isDebugEnabled()) {
-						var netSession = (Session)p.getSender().getUserState();
-						var ssName = null != netSession ? netSession.name : "";
-						logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
+					lock();
+					try {
+						if (logger.isDebugEnabled()) {
+							var netSession = (Session)p.getSender().getUserState();
+							var ssName = null != netSession ? netSession.name : "";
+							logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
+						}
+						var procedure = new Procedure(rocks, func);
+						return TaskSpec.ofFunc(procedure::call, p, Protocol::SendResultCode).call();
+					} finally {
+						unlock();
 					}
-					var procedure = new Procedure(rocks, func);
-					return TaskSpec.ofFunc(procedure::call, p, Protocol::SendResultCode).call();
-				} finally {
-					unlock();
-				}
-			}).name(name).onCancel(cancel).dispatchMode(mode)
-					.executeOneByOne(((IRaftRpc)p).getUnique(), taskOneByOne);
+				}).name(name).onCancel(cancel).dispatchMode(mode)
+				.executeOneByOne(((IRaftRpc)p).getUnique(), taskOneByOne);
 		}
 
 		@Override
@@ -236,21 +237,21 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 						return;
 					if (retry < 8) {
 						logger.error("OnSocketClose session close rc={}, retry {}/8, session={}",
-								rc, retry, netSession.name);
+							rc, retry, netSession.name);
 						TaskSpec.ofAction(() -> closeSession(netSession, retry + 1))
-								.scheduleNow(100L << Math.min(retry, 6));
+							.scheduleNow(100L << Math.min(retry, 6));
 					} else
 						logger.fatal("OnSocketClose session close failed finally, session={}, rc={}",
-								netSession.name, rc);
+							netSession.name, rc);
 				} catch (Throwable ex) {
 					if (retry < 8) {
 						logger.error("OnSocketClose session close exception, retry {}/8, session={}",
-								retry, netSession.name, ex);
+							retry, netSession.name, ex);
 						TaskSpec.ofAction(() -> closeSession(netSession, retry + 1))
-								.scheduleNow(100L << Math.min(retry, 6));
+							.scheduleNow(100L << Math.min(retry, 6));
 					} else
 						logger.fatal("OnSocketClose session close failed finally, session={}",
-								netSession.name, ex);
+							netSession.name, ex);
 				} finally {
 					unlock();
 				}
@@ -278,29 +279,29 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 			if (conf.keepAlivePeriod > 0) {
 				keepAliveTimerTask = TaskSpec.ofAction(() -> {
-					AsyncSocket s = null;
+					var s = rocks.getRaft().getServer().GetSocket(sessionId);
+					// socket已不存在（会话断开，GetSocket返回null）：正常断开态而非错误，
+					// 无从发送也无需关闭，会话清理由OnSocketClose负责；曾经null穿透到
+					// Send失败分支的sock.close直接NPE，被外层catch吞成周期性error日志。
+					if (s == null)
+						return;
 					try {
-						s = rocks.getRaft().getServer().GetSocket(sessionId);
 						var r = new KeepAlive();
 						// 异步等待应答（FND-S1-10，对齐非raft版）：SendAndWaitCheckResultCode在
 						// 调度池线程上同步阻塞，半开连接堆积时可耗尽调度池拖停全部周期任务。
 						// 回调判活：超时/失败码在回调中关闭连接触发重连。
-						final var sock = s;
-					if (!r.Send(s, response -> {
+						if (!r.Send(s, response -> {
 							if (response.isTimeout() || response.getResultCode() != 0)
-								sock.close(new java.io.IOException("KeepAlive fail: " + response));
+								s.close(new java.io.IOException("KeepAlive fail: " + response));
 							return 0;
 						}))
-							sock.close(new java.io.IOException("KeepAlive send fail"));
+							s.close(new java.io.IOException("KeepAlive send fail"));
 					} catch (Throwable ex) { // logger.error
-						if (s != null)
-							s.close(ex);
-						else
-							logger.error("ServiceManager.KeepAlive", ex);
+						s.close(ex);
 					}
 				}).schedulePeriodNow(
-						Random.getInstance().nextInt(conf.keepAlivePeriod),
-						conf.keepAlivePeriod);
+					Random.getInstance().nextInt(conf.keepAlivePeriod),
+					conf.keepAlivePeriod);
 			} else
 				keepAliveTimerTask = null;
 		}
@@ -479,8 +480,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private static BServiceInfoRocks toRocks(BServiceInfo serverInfo, String sessionName) {
 		return new BServiceInfoRocks(serverInfo.getServiceName(), serverInfo.getServiceIdentity(),
-				serverInfo.getPassiveIp(), serverInfo.getPassivePort(), serverInfo.getExtraInfo(),
-				sessionName, serverInfo.getVersion());
+			serverInfo.getPassiveIp(), serverInfo.getPassivePort(), serverInfo.getExtraInfo(),
+			sessionName, serverInfo.getVersion());
 	}
 
 	// 对齐非raft版ServiceManagerServer.isLegalServiceIdentity（FND-S2-6）：
@@ -648,8 +649,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private static BServiceInfo fromRocks(BServiceInfoRocks rocks) {
 		return new BServiceInfo(rocks.getServiceName(), rocks.getServiceIdentity(),
-				rocks.getVersion(),
-				rocks.getPassiveIp(), rocks.getPassivePort(), rocks.getExtraInfo());
+			rocks.getVersion(),
+			rocks.getPassiveIp(), rocks.getPassivePort(), rocks.getExtraInfo());
 	}
 
 	public void removeAndCollectNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {

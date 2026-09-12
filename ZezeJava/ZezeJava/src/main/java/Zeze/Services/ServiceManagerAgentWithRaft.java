@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.Identify;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
@@ -58,8 +59,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		// 不支持的组合在构造时明确报错（fail-fast），而非运行期以NPE/halt形态失败。
 		if (config.isHistory())
 			throw new IllegalStateException("ServiceManager=raft does not support Id128 allocate: " +
-					"History('" + config.getHistory() + "') requires it. " +
-					"Use a non-raft ServiceManager or disable History.");
+				"History('" + config.getHistory() + "') requires it. " +
+				"Use a non-raft ServiceManager or disable History.");
 		super.config = config;
 
 		var raftConf = RaftConfig.load(config.getServiceManagerConf().getRaftXml());
@@ -199,7 +200,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			Task.getCriticalThreadPool().execute(() -> {
 				try {
 					var onSetLoad = onSetServerLoad;
-					if (onSetLoad != null){
+					if (onSetLoad != null) {
 						onSetLoad.run(r.Argument);
 					}
 				} catch (Throwable e) { // logger.error

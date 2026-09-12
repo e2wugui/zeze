@@ -11,6 +11,7 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,8 +40,8 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 			try {
 				if ((r = read) == null) {
 					// 快照必须继承write的比较器（FND4-11）：用Comparator构造的实例，
-				// 自然序快照会让所有序敏感读与comparator()返回值全部错乱。
-				r = new TreeMap<>(write.comparator());
+					// 自然序快照会让所有序敏感读与comparator()返回值全部错乱。
+					r = new TreeMap<>(write.comparator());
 					r.putAll(write);
 					read = r;
 				}
