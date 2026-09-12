@@ -127,7 +127,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		// 【注意，这里不使用 Task.call or run，因为这个在热更流程中调用，避免去使用hotGuard。】
 		// 确认事务可以在更新流程中可以使用。
 		// 也许更优化的方法是为这个更新实现一个不是事务的版本。
-		providerApp.zeze.newProcedure(() -> {
+		var rc = providerApp.zeze.newProcedure(() -> {
 			for (var r : retreats) {
 				// stale-local登录（LoginVersion落后于online，账号已在别处重登，残留待verifyLocal
 				// 清理）跳过该登录。不检查则getLoginLocal抛IllegalStateException打断整批（最多50
@@ -142,6 +142,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			}
 			return 0;
 		}, "saveRetreats").call();
+		// FND4-50：返回码必须检查（保持newProcedure直调——热更流程避hotGuard，不能改TaskSpec.run）。
+		// 失败时整批回滚：_tlocal未替换为热更后类型，旧类加载器bean滞留内存钉住整个旧HotModule
+		// 不可回收——正是本方法要规避的问题，必须可观测。
+		if (rc != 0)
+			logger.error("saveRetreats failed, rc={}, retreats={}. 旧HotModule可能无法回收，需人工确认。",
+					rc, retreats.size());
 	}
 
 	@FunctionalInterface
@@ -815,13 +821,16 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	private long triggerLinkBroken(@NotNull String linkName, @NotNull LongList errorSids,
 	                               @NotNull Map<Long, BLoginKey> contexts) {
-		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
+		// FND4-50：对齐processErrorSids判例（TaskSpec.ofProcedure.run()，失败由框架记日志）。
+		// 原.call()返回码被丢弃：失败时tonline link state停在eLogined（isOnline误报）、
+		// 延迟登出未调度，仅剩verifyLocal定时兜底（默认10分钟）且完全不可观测。
+		errorSids.foreach(sid -> TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 			var ctx = contexts.get(sid);
 			if (ctx != null) {
 				return onSendError(ctx.getAccount(), ctx.getClientId(), linkName, sid);
 			}
 			return 0;
-		}, "Online.triggerLinkBroken").call());
+		}, "Online.triggerLinkBroken")).run());
 		return 0;
 	}
 
@@ -1054,8 +1063,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return send.Send(linkSocket, rpc -> {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
-				providerApp.zeze.newProcedure(() -> onSendError(account, clientId, linkName, linkSid),
-						"Online.triggerLinkBroken1").call();
+				// FND4-50：对齐同方法上方closed分支的既有形态（TaskSpec.run），失败可观测
+				TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() ->
+						onSendError(account, clientId, linkName, linkSid), "Online.triggerLinkBroken1")).run();
 			}
 			return Procedure.Success;
 		});
