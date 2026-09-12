@@ -87,7 +87,10 @@ public class PersistentAtomicLong {
 
 		for (; ; ) {
 			var current = currentId.get();
-			if (current + count > allocatedEnd) { // 剩余预算必须覆盖整块[current+1,current+count]，不够先分配
+			// 减法形式（FND4-18）：current 逼近 Long.MAX 时 current+count 溢出为负会跳过
+			// allocate 分支，CAS 落地发放负数id。allocatedEnd-current（两者同号非负差不溢出）
+			// 不足预算时先分配。回绕竞态窗口内该差为负同样触发分配，由 allocate 的 reset 换纪元。
+			if (allocatedEnd - current < count) {
 				allocate(count);
 				continue;
 			}
@@ -137,7 +140,8 @@ public class PersistentAtomicLong {
 						continue;
 					}
 					try (var ignored = channel.lock()) {
-						if (currentId.get() + count <= allocatedEnd)
+						// 减法形式（FND4-18）：加法形式在current近MAX时溢出为负而误判预算充足
+						if (allocatedEnd - currentId.get() >= count)
 							return; // has allocated. concurrent. 其他线程分配的预算已足够覆盖本次count。
 						var last = readWatermark(fs);
 						var allocateSize = fund.next();
