@@ -164,13 +164,19 @@ public class Daemon {
 		monitors.clear();
 	}
 
-	// synchronized彻底串行化（含占坑的读-置空两步）：Monitor.run对同一快照可能多个global同轮超时
-	// 重复进入（多GCM部署下服务器hang时同步冻结恰是本组件的目标场景），DeadlockReport与Monitor
-	// 也可能跨线程并发。串行后后来者拿到null直接幂等返回；不串行时并发joinMonitors会互相join
-	// 对方成死锁（守护进程整体冻结）。destroy对同一Process重复调用本身安全。
-	private static synchronized void destroySubprocess() throws InterruptedException {
-		var p = subprocess;
-		subprocess = null;
+	// 锁职责=销毁仲裁：临界区内只做"读-置空"两步，保证同一时刻仅一个线程拿到Process
+	// 去执行销毁（含占坑的读-置空串行化，多GCM同轮超时重复进入、DeadlockReport与Monitor
+	// 跨线程并发时，后来者拿到null幂等返回）。
+	// jstack采样/destroy/joinMonitors全部在锁外：曾经把join留在锁内，被join的Monitor
+	// 若正阻塞在本锁的monitorenter上，形成"持锁者join等锁者"的循环死锁，看门狗整体
+	// 冻结且不可自愈（FND4-67）。现在Monitor等锁者很快拿到锁、发现null返回，再由
+	// stopAndJoin置running=false退出循环，join必然返回。
+	private static void destroySubprocess() throws InterruptedException {
+		Process p;
+		synchronized (Daemon.class) {
+			p = subprocess;
+			subprocess = null;
+		}
 		if (p == null)
 			return;
 		// run jstack
