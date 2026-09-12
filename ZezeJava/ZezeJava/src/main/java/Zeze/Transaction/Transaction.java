@@ -522,7 +522,8 @@ public final class Transaction {
 					typeStr = "rollback";
 				}
 				logger.error("{} Procedure={} Action={} exception:",
-						typeStr, procedure.getActionName(), action.getClass().getName(), e);
+						typeStr, procedure.getActionName(), action.action.getClass().getName(), e);
+				// FND4-03前恒为包装类名：action是Savepoint$Action，目标Runnable在action.action字段。
 			}
 		}
 	}
