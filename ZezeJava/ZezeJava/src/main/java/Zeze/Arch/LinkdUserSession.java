@@ -24,6 +24,10 @@ public class LinkdUserSession {
 	protected volatile BUserState.Data userState = new BUserState.Data();
 	protected final ReentrantReadWriteLock bindsLock = new ReentrantReadWriteLock();
 	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
+	// link会话关闭标志（onClose换出binds时置位，均在bindsLock写锁内）：动态bind派发在任务线程
+	// 与link IO线程的onClose真并发——换出后迟到的bind若继续登记，(moduleId→linkSessionId)
+	// 无人再调removeLinkSession（LinkBroken按旧快照已发完），条目永久泄漏到provider关闭（FND4-49）。
+	protected boolean closed;
 	protected long sessionId; // Linkd.SessionId
 	// FND2-A1-2：写者Auth处理（客户端连接EL），读者ProcessBroadcast（provider连接EL），
 	// 两套EventLoop无同步边；读到陈旧0时checkAppVersion(server,0)==true（0表示不检查），
@@ -119,6 +123,11 @@ public class LinkdUserSession {
 		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
 		try {
+			if (closed) {
+				// link已关闭（onClose完成换出并通告）：拒绝登记，闭环于共享锁内的一次状态判定（FND4-49）
+				logger.warn("bind after closed: account={}, link session={}", account, sessionId);
+				return;
+			}
 			for (var moduleId : moduleIds) {
 				var exist = binds.get(moduleId);
 				if (exist != null && exist.longValue() != providerSessionId.longValue()) {
@@ -214,6 +223,7 @@ public class LinkdUserSession {
 		try {
 			bindsSwap = binds;
 			binds = new IntHashMap<>();
+			closed = true; // 换出后拒绝迟到的动态bind（FND4-49）
 		} finally {
 			writeLock.unlock();
 		}
