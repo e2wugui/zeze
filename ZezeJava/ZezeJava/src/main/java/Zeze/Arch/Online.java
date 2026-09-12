@@ -585,8 +585,14 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	                        @NotNull String linkName, long linkSid) throws Exception {
 		// todo 这个版本的处理没有经过考验，需要参考Game.Online。
 
-		var online = getOrAddOnline(account);
-		var loginOnline = online.getLogins().getOrAdd(clientId);
+		// 先查后建（FND4-51）：善后路径不创建状态。原getOrAdd在归属不匹配/不存在时已创建空
+		// BOnlines/BOnline并随事务提交残留（对未登录账号send失败回调触发，永不清理）。
+		var online = getOnline(account);
+		if (online == null)
+			return 0;
+		var loginOnline = online.getLogins().get(clientId);
+		if (loginOnline == null)
+			return 0;
 		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 		var link = loginOnline.getLink();
 		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid)
@@ -613,8 +619,13 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	public long linkBroken(@NotNull String account, @NotNull String clientId,
 	                       @NotNull String linkName, long linkSid) throws Exception {
-		var online = getOrAddOnline(account);
-		var loginOnline = online.getLogins().getOrAdd(clientId);
+		// 先查后建（FND4-51）：善后路径不创建状态，同onSendError。
+		var online = getOnline(account);
+		if (online == null)
+			return 0;
+		var loginOnline = online.getLogins().get(clientId);
+		if (loginOnline == null)
+			return 0;
 		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 		var link = loginOnline.getLink();
 		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid)
