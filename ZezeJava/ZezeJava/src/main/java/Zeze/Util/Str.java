@@ -4,13 +4,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
-import java.util.ArrayList;
-import java.util.Formatter;
 import java.util.Map;
 import java.util.Objects;
 import Zeze.Net.Binary;
@@ -205,44 +202,24 @@ public final class Str {
 	}
 
 	public static @NotNull String format(@NotNull String str, @NotNull Map<String, Object> params) {
-		var formatSb = new StringBuilder();
-		var paramsList = new ArrayList<>();
+		var sb = new StringBuilder();
 		String varName;
 		var fromIndex = new OutInt(0);
-		while ((varName = parseVar(formatSb, str, fromIndex)) != null) {
+		while ((varName = parseVar(sb, str, fromIndex)) != null) {
 			var p = params.get(varName);
 			if (p == null)
 				throw new IllegalArgumentException("var name not found. " + varName);
 
-			// 支持格式化更多类型
-			if (p instanceof Boolean) {
-				formatSb.append("%b");
-				paramsList.add(p);
-			} else if (p instanceof Character) {
-				formatSb.append("%c");
-				paramsList.add(p);
-			} else if (p instanceof Byte || p instanceof Short
-					|| p instanceof Integer || p instanceof Long
-					|| p instanceof BigInteger) {
-				formatSb.append("%d");
-				paramsList.add(p);
-			} else if (p instanceof Float || p instanceof Double) {
-				formatSb.append("%f");
-				paramsList.add(p);
-			} else if (p instanceof String) {
-				formatSb.append("%s");
-				paramsList.add(p);
-			} else {
-				// Date 及其他类型统一走 %s（Date.toString()）。
-				// 原 Date 分支生成裸 "%t"：Formatter 的 %t 必须带日期后缀（如 %tY），裸 %t 必抛 UnknownFormatConversionException。
-				formatSb.append("%s");
-				paramsList.add(p);
-			}
+			// 模板契约是"普通文本+{var}占位"：字面文本不经任何格式符解释，'%'是普通字符
+			// （FND4-12：原先把字面段喂给Formatter，一个%即抛UnknownFormatConversion或
+			// %n/%s等合法符静默注入/吞参错位）。仅参数值按原Formatter类型语义渲染保持
+			// 既有输出不变：浮点%f（定点6位小数），其余（%b/%c/%d/%s）与String.valueOf一致。
+			if (p instanceof Float || p instanceof Double)
+				sb.append(String.format("%f", (Number)p));
+			else
+				sb.append(p);
 		}
-		var newFormat = formatSb.toString();
-		//System.out.println(newFormat);
-		//return newFormat.formatted(paramsList.toArray());
-		return new Formatter().format(newFormat, paramsList.toArray()).toString();
+		return sb.toString();
 	}
 
 	private static @Nullable String parseVar(@NotNull StringBuilder sb, @NotNull String str,

@@ -34,6 +34,29 @@ public final class TestStr {
 		System.out.println(f);
 	}
 
+	// FND4-12: 模板契约是“普通文本+{var}占位”，字面'%'是普通字符，不得被当格式符
+	// （抛UnknownFormatConversionException或%n等合法符静默注入/吞参错位）。
+	@Test
+	public void testFormatLiteralPercent() {
+		var params = new HashMap<String, Object>();
+		params.put("name", "x");
+		params.put("f", 1.5);
+		params.put("i", 42);
+		params.put("b", true);
+		params.put("c", 'Z');
+		params.put("d", new java.util.Date(0));
+
+		Assertions.assertEquals("50% of x", Str.format("50% of {name}", params));
+		Assertions.assertEquals("line1%nx", Str.format("line1%n{name}", params)); // %n不是换行符
+		Assertions.assertEquals("a%sbx", Str.format("a%sb{name}", params)); // %s不吞参
+		// 类型渲染锁定原Formatter语义：浮点%f定点6位小数；其余与String.valueOf一致
+		Assertions.assertEquals("f=1.500000", Str.format("f={f}", params));
+		Assertions.assertEquals("i=42", Str.format("i={i}", params));
+		Assertions.assertEquals("b=true", Str.format("b={b}", params));
+		Assertions.assertEquals("c=Z", Str.format("c={c}", params));
+		Assertions.assertEquals("d=" + new java.util.Date(0), Str.format("d={d}", params));
+	}
+
 	@Test
 
 	public void testParseVersion() {
