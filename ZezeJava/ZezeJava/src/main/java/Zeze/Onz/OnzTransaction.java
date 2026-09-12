@@ -271,8 +271,17 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			//  1. 安全起见是所有zeze，上面的ready.SendResult也可能丢失。
 			//  2. 需要完整Checkpoint的zeze要不要持久化，以后持续触发。这点看起来没有必要。
 			//  3. 这里要不要等待触发结果返回。先处理成等待。
-			for (var zeze : zezeProcedures.keySet())
-				checkpoint(zeze);
+			// 决策点(commit已持久化)之后的异常不外传（对齐commit()的同类原则）：
+			// 单个checkpoint失败仅记fatal，该参与方由redoTimer的Commit重发兜底，
+			// 异常逃逸会让OnzServer.perform的catch执行rollback()并向调用方返回失败
+			// ——已实际提交的事务报告假阴性，调用方重发导致业务重复执行（FND4-86）。
+			for (var zeze : zezeProcedures.keySet()) {
+				try {
+					checkpoint(zeze);
+				} catch (Exception ex) { // logger.fatal
+					logger.fatal("waitFlushDone checkpoint fail. tid={}, zeze={}", onzTid, zeze.getRemoteAddress(), ex);
+				}
+			}
 		} finally {
 			// 开闸瞬间可能有ready正走进计数分支（读到旧闸值、计数未满足）而未被上面的降级应答
 			// 覆盖：补发应答。此后到达的由trySetFlushReady到达即应答。
