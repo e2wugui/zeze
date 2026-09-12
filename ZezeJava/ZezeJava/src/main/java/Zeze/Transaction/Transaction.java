@@ -464,11 +464,6 @@ public final class Transaction {
 					if (ZezeCounter.instance != null)
 						ZezeCounter.instance.procedureRedo(procedure.getActionName());
 				}
-				//}
-				//finally {
-				//	checkpoint.exitFlushReadLock();
-				//}
-				//logger.debug("checkpoint.WaitRun({})", procedure);
 				// 实现Fresh队列以后删除Sleep。
 				try {
 					Thread.sleep(Random.getInstance().nextInt(80) + 20);

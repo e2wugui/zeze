@@ -68,17 +68,6 @@ public class PersistentAtomicLong {
 
 	public long next() {
 		return next(1);
-		/* 旧的分配一个的代码。比较确认完成以后删除。
-		for (; ; ) {
-			var current = currentId.get();
-			if (current >= allocatedEnd) {
-				allocate();
-				continue;
-			}
-			if (currentId.compareAndSet(current, current + 1))
-				return current + 1;
-		}
-		*/
 	}
 
 	public long next(int count) {
