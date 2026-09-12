@@ -494,6 +494,23 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		if (timerId == null)
 			return true;
 		var timer = online.providerApp.zeze.getTimer();
+		// 归属校验（FND4-42，对齐TimerRole.cancelOffline形态）：曾经无校验直接
+		// timer.cancel——传入任意timerId（SafeBatch看门狗、他人offline timer、
+		// 全局命名timer）都会被越权取消，且恒返回true掩盖"是否真的取消"。
+		var index = timer.tIndexs().get(timerId);
+		if (index == null)
+			return false;
+		var node = timer.tNodes().get(index.getNodeId());
+		if (node == null)
+			return false;
+		var bTimer = node.getTimers().get(timerId);
+		if (bTimer == null)
+			return false;
+		var customData = bTimer.getCustomData().getBean();
+		if (!(customData instanceof BOfflineAccountCustom custom))
+			return false; // 不是本账号的offline timer，归属不符拒绝
+		if (!custom.getAccount().equals(account) || !custom.getClientId().equals(clientId))
+			return false;
 		timer.cancel(timerId);
 		var key = new BAccountClientId(account, clientId);
 		var bTimers = timer.tAccountOfflineTimers().get(key);
