@@ -32,6 +32,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft implements AutoCloseable {
 	static {
@@ -514,6 +515,26 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 	}
 
+	// 未Login会话统一拒绝码（FND4-60）：Procedure保留码用到-17，本模块局部取-18。
+	public static final long ErrorNotLogin = -18;
+
+	/**
+	 * 会话前置条件单点强制（FND4-60）：未Login的连接（userState非Session，或Login事务刚被
+	 * 回滚/清理的窗口——见FND4-57）发Edit/Subscribe/UnSubscribe时tableSession.get(name)
+	 * 为null，原实现三处直接解引用NPE（错误码不明确、日志噪声、恶意可稳定触发服务端NPE
+	 * 路径）。统一应答ErrorNotLogin并返回null，调用方立即返回。
+	 */
+	private @Nullable Session requireSession(@NotNull Zeze.Net.Rpc<?, ?> r) {
+		if (!(r.getSender().getUserState() instanceof Session netSession))
+			return notLogin(r);
+		return tableSession.get(netSession.name) != null ? netSession : notLogin(r);
+	}
+
+	private @Nullable Session notLogin(@NotNull Zeze.Net.Rpc<?, ?> r) {
+		r.SendResultCode(ErrorNotLogin);
+		return null;
+	}
+
 	@Override
 	protected long ProcessEditRequest(Edit r) {
 		// 服务端注册入口校验identity（FND-S2-6，对齐非raft版isLegalServiceIdentity）：
@@ -525,7 +546,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		for (var info : r.Argument.getRemove())
 			if (!isLegalServiceIdentity(info.getServiceIdentity()))
 				return Zeze.Transaction.Procedure.ErrorRequestId;
-		var netSession = (Session)r.getSender().getUserState();
+		var netSession = requireSession(r); // FND4-60
+		if (netSession == null)
+			return 0; // 未Login已应答ErrorNotLogin
 		var notifies = new HashMap<AsyncSocket, Edit>();
 
 		// step 1: remove
@@ -623,7 +646,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	@Override
 	protected long ProcessSubscribeRequest(Subscribe r) {
 		logger.info("{}: Subscribe {}", r.getSender(), r.Argument);
-		var netSession = (Session)r.getSender().getUserState();
+		var netSession = requireSession(r); // FND4-60
+		if (netSession == null)
+			return 0; // 未Login已应答ErrorNotLogin
 		var session = tableSession.get(netSession.name);
 		for (var info : r.Argument.subs) {
 			session.getSubscribes().put(info.getServiceName(), toRocks(info));
@@ -674,7 +699,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	@Override
 	protected long ProcessUnSubscribeRequest(UnSubscribe r) {
 		logger.info("{}: UnSubscribe {}", r.getSender(), r.Argument);
-		var netSession = (Session)r.getSender().getUserState();
+		var netSession = requireSession(r); // FND4-60
+		if (netSession == null)
+			return 0; // 未Login已应答ErrorNotLogin
 		var session = tableSession.get(netSession.name);
 		for (var serviceName : r.Argument.serviceNames) {
 			var sub = session.getSubscribes().get(serviceName);
