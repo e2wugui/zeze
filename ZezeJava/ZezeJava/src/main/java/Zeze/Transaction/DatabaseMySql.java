@@ -31,6 +31,14 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
+	// SQLException.getMessage()无契约保证非null（驱动包装异常、本地化场景可为null），
+	// catch块内直接contains会NPE：本应幂等继续/死锁重试的路径变成启动失败且掩盖原始异常。
+	// 收口为null安全判定：null消息按不匹配处理，走默认抛出路径（FND4-05）。
+	private static boolean sqlMessageContains(@NotNull SQLException e, @NotNull String token) {
+		var msg = e.getMessage();
+		return msg != null && msg.contains(token);
+	}
+
 	private static final @Nullable ZezeCounter.LabeledObserverCreator mysqlObserverCreator
 			= ZezeCounter.instance != null ? ZezeCounter.instance.allocRunTimeObserverCreator("mysql_operation", "operation") : null;
 
@@ -178,7 +186,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						}
 					}
 				} catch (SQLException e) {
-					if (!e.getMessage().contains("Deadlock"))
+					if (!sqlMessageContains(e, "Deadlock"))
 						throw Task.forceThrow(e);
 				}
 			}
@@ -308,7 +316,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				try (var ps = conn.prepareStatement(procSaveDataWithSameVersionSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("already exist"))
+					if (!sqlMessageContains(ex, "already exist"))
 						throw ex;
 				}
 				var tableInstancesSql = "CREATE TABLE IF NOT EXISTS _ZezeInstances_(localid int NOT NULL PRIMARY KEY)";
@@ -374,7 +382,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				try (var ps = conn.prepareStatement(procSetInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("already exist"))
+					if (!sqlMessageContains(ex, "already exist"))
 						throw ex;
 				}
 				var procClearInUseSql = "CREATE PROCEDURE _ZezeClearInUse_(\n" +
@@ -412,7 +420,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				try (var ps = conn.prepareStatement(procClearInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("already exist"))
+					if (!sqlMessageContains(ex, "already exist"))
 						throw ex;
 				}
 			} catch (SQLException e) {
@@ -609,7 +617,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					isNew = !tableAlreadyExistsWarning(ps.getWarnings());
 				}
 			} catch (SQLException e) {
-				if (!e.getMessage().contains("already exist"))
+				if (!sqlMessageContains(e, "already exist"))
 					throw Task.forceThrow(e);
 				isNew = false;
 			}
@@ -1159,7 +1167,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					isNew = !tableAlreadyExistsWarning(ps.getWarnings());
 				}
 			} catch (SQLException e) {
-				if (!e.getMessage().contains("already exist"))
+				if (!sqlMessageContains(e, "already exist"))
 					throw Task.forceThrow(e);
 				isNew = false;
 			}

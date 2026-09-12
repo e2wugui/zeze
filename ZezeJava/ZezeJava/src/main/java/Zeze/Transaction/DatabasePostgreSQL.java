@@ -31,6 +31,14 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
+	// SQLException.getMessage()无契约保证非null（驱动包装异常、本地化场景可为null），
+	// catch块内直接contains会NPE：本应幂等继续/死锁重试的路径变成启动失败且掩盖原始异常。
+	// 收口为null安全判定：null消息按不匹配处理，走默认抛出路径（FND4-05）。
+	private static boolean sqlMessageContains(@NotNull SQLException e, @NotNull String token) {
+		var msg = e.getMessage();
+		return msg != null && msg.contains(token);
+	}
+
 	private static final @Nullable ZezeCounter.LabeledObserverCreator postgreObserverCreator
 			= ZezeCounter.instance != null ? ZezeCounter.instance.allocRunTimeObserverCreator("postgre_operation", "operation") : null;
 
@@ -175,7 +183,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						}
 					}
 				} catch (SQLException e) {
-					if (!e.getMessage().contains("deadlock detected"))
+					if (!sqlMessageContains(e, "deadlock detected"))
 						throw Task.forceThrow(e);
 				}
 			}
@@ -304,7 +312,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				try (var ps = conn.prepareStatement(procSaveDataWithSameVersionSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("tuple concurrently updated"))
+					if (!sqlMessageContains(ex, "tuple concurrently updated"))
 						throw ex;
 				}
 				var tableInstancesSql = "CREATE TABLE IF NOT EXISTS _ZezeInstances_(localid int NOT NULL PRIMARY KEY);";
@@ -367,7 +375,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				try (var ps = conn.prepareStatement(procSetInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("tuple concurrently updated"))
+					if (!sqlMessageContains(ex, "tuple concurrently updated"))
 						throw ex;
 				}
 				var procClearInUseSql = "CREATE OR REPLACE FUNCTION _ZezeClearInUse_(\n" +
@@ -403,7 +411,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				try (var ps = conn.prepareStatement(procClearInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("tuple concurrently updated"))
+					if (!sqlMessageContains(ex, "tuple concurrently updated"))
 						throw ex;
 				}
 			} catch (SQLException e) {
@@ -622,7 +630,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					isNew = !tableAlreadyExistsWarning(ps.getWarnings());
 				}
 			} catch (SQLException e) {
-				if (!e.getMessage().contains("tuple concurrently updated"))
+				if (!sqlMessageContains(e, "tuple concurrently updated"))
 					throw Task.forceThrow(e);
 				isNew = false;
 			}
@@ -1228,7 +1236,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					isNew = !tableAlreadyExistsWarning(ps.getWarnings());
 				}
 			} catch (SQLException e) {
-				if (!e.getMessage().contains("tuple concurrently updated"))
+				if (!sqlMessageContains(e, "tuple concurrently updated"))
 					throw Task.forceThrow(e);
 				isNew = false;
 			}
