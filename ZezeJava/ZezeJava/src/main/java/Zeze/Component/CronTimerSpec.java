@@ -95,7 +95,7 @@ public final class CronTimerSpec implements TimerSpec {
 		var cronTimer = new BCronTimer();
 		cronTimer.setCronExpression(cronExpression);
 		var now = System.currentTimeMillis();
-		cronTimer.setNextExpectedTime(cron.getNextValidTimeAfter(new Date(now)).getTime());
+		cronTimer.setNextExpectedTime(cronNextTimeAfter(cron, now));
 		cronTimer.setRemainTimes(times);
 		cronTimer.setEndTime(endTime);
 		cronTimer.setOneByOneKey(oneByOneKey);
@@ -113,7 +113,16 @@ public final class CronTimerSpec implements TimerSpec {
 
 	public static long cronNextTime(@NotNull String cron, long time) throws ParseException {
 		var cronExpression = new CronExpression(cron);
-		return cronExpression.getNextValidTimeAfter(new Date(time)).getTime();
+		return cronNextTimeAfter(cronExpression, time);
+	}
+
+	// getNextValidTimeAfter对无可行后续时间（如过期年份表达式"0 0 0 1 1 ? 2020"）返回null
+	// （Quartz系文档行为），原直接.getTime()在深处NPE——入口显式拒绝（FND4-46）。
+	private static long cronNextTimeAfter(@NotNull CronExpression cronExpression, long time) {
+		var next = cronExpression.getNextValidTimeAfter(new Date(time));
+		if (next == null)
+			throw new IllegalArgumentException("cron expression has no next valid time: " + cronExpression.getCronExpression());
+		return next.getTime();
 	}
 
 	public static boolean nextCronTimer(@NotNull BCronTimer cronTimer, boolean missfire) throws ParseException {
