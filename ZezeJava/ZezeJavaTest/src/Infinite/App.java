@@ -158,6 +158,18 @@ public class App {
 		// AutoKey种子（如Timer.NodeId）：残留行令种子分配走Edit（History无前置Put）
 		//noinspection DataFlowIssue
 		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_AutoKey_tAutoKeys"));
+		// Timer节点行：NodeId来自AutoKey（种子上面已清重置），新一轮重新分配出相同NodeId会命中
+		// 残留行直接走Edit；且timer命中/取消的节点删除正是GC入队（delayRemove）的触发方之一。
+		// tNodeRoot早已清理，节点表此前漏了。
+		//noinspection DataFlowIssue
+		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_Timer_tNodes"));
+		// GC队列（__GCTableQueue#serverId，DelayRemove用）：根行+节点行。Timer/LinkedMap节点删除
+		// 经TableX.delayRemove入队——testNoHistory（history关闭）阶段的入队Put不进History，残留行令
+		// testWithHistory再次入队时getOrAdd命中直接Edit，Verify回放NPE（第三轮60轮压测round 33根因）。
+		//noinspection DataFlowIssue
+		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_Collections_Queue_tQueues"));
+		//noinspection DataFlowIssue
+		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_Collections_Queue_tQueueNodes"));
 		clearDbTable(app.getZeze().getHistoryModule().getHistoryTable()); // 必须在最后清空
 	}
 }
