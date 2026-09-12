@@ -20,7 +20,7 @@ public abstract class LoadBase {
 	private volatile boolean stopped;
 	private final Application zeze;
 	private final ProviderOverload overload = new ProviderOverload();
-	// volatile：setup线程写一次（如ProviderApp.startLast中的setLoginQueueAgent），定时线程(report)、
+	// volatile：setup线程写一次（ensureLoginQueueAgent或应用预置），定时线程(report)、
 	// 停机线程(stop)、choiceProvider等多线程读，无锁发布。
 	private volatile LoginQueueAgent loginQueueAgent;
 
@@ -39,6 +39,19 @@ public abstract class LoadBase {
 	}
 
 	public LoginQueueAgent getLoginQueueAgent() {
+		return loginQueueAgent;
+	}
+
+	/**
+	 * LoginQueueAgent的唯一创建点（FND3-34）：已有（预置或已创建）则复用；没有且配置启用
+	 * （存在"LoginQueueAgent"服务节）才创建；未启用返回null。不得在别处new后覆盖——
+	 * 已启动的agent被覆盖即泄漏，并以相同(serverId,ip,port)向LoginQueueServer重复注册。
+	 * 创建原料（config/serverId/serviceIp/servicePort）全是load自身状态与抽象，配方收口在所有者。
+	 */
+	public final synchronized LoginQueueAgent ensureLoginQueueAgent() {
+		if (loginQueueAgent == null && zeze.getConfig().getServiceConf("LoginQueueAgent") != null)
+			setLoginQueueAgent(new LoginQueueAgent(zeze.getConfig(), zeze.getConfig().getServerId(),
+					getServiceIp(), getServicePort()));
 		return loginQueueAgent;
 	}
 

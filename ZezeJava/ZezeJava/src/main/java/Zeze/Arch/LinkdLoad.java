@@ -14,9 +14,9 @@ public class LinkdLoad extends LoadBase {
 		var kv = linkdApp.linkdService.getOnePassiveAddress();
 		linkdIp = kv.getKey();
 		linkdPort = kv.getValue();
-		var loginQueueAgent = new LoginQueueAgent(linkdApp.zeze.getConfig(),
-				linkdApp.zeze.getConfig().getServerId(), linkdIp, linkdPort);
-		super.setLoginQueueAgent(loginQueueAgent);
+		// 构造即创建，保持时序（choiceProvider随时可能读secret）；配方收口在LoadBase.ensure。
+		// 隐含契约：LinkdApp仅在本服务节配置存在时才构造本类。
+		ensureLoginQueueAgent();
 	}
 
 	public String getLinkdIp() {

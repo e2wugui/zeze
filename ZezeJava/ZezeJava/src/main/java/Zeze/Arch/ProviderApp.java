@@ -8,7 +8,6 @@ import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.IModule;
-import Zeze.Services.LoginQueueAgent;
 import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
@@ -204,20 +203,13 @@ public class ProviderApp extends ReentrantLock {
 		}
 	}
 
-	// LoginQueueAgent的唯一创建点（FND3-34）：LoadBase已持有则复用（LinkdLoad式预置），
-	// 没有且配置启用（存在"LoginQueueAgent"服务节）才创建；两种来源统一start一次。
-	// 不得无条件新建覆盖——预置agent已启动时，覆盖即泄漏，并以相同(serverId,ip,port)重复注册。
+	// LoginQueueAgent启动：创建收口在LoadBase.ensureLoginQueueAgent（FND3-34）——
+	// load没有且配置启用才建，预置/已建复用；不覆盖（覆盖即泄漏+同身份重复注册）。
 	private void startLoginQueueAgent() throws Exception {
 		var load = providerImplement.getLoad();
 		if (load == null)
 			return;
-		var agent = load.getLoginQueueAgent();
-		if (agent == null && zeze.getConfig().getServiceConf("LoginQueueAgent") != null) {
-			agent = new LoginQueueAgent(
-					zeze.getConfig(), zeze.getConfig().getServerId(),
-					load.getServiceIp(), load.getServicePort());
-			load.setLoginQueueAgent(agent);
-		}
+		var agent = load.ensureLoginQueueAgent();
 		if (agent != null)
 			agent.start();
 	}
