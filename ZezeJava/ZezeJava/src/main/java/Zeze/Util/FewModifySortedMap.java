@@ -38,7 +38,9 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 			writeLock.lock();
 			try {
 				if ((r = read) == null) {
-					r = new TreeMap<>();
+					// 快照必须继承write的比较器（FND4-11）：用Comparator构造的实例，
+				// 自然序快照会让所有序敏感读与comparator()返回值全部错乱。
+				r = new TreeMap<>(write.comparator());
 					r.putAll(write);
 					read = r;
 				}
@@ -407,8 +409,14 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
 	public @NotNull FewModifySortedMap<K, V> clone() throws CloneNotSupportedException {
-		if (getClass() == FewModifySortedMap.class)
-			return new FewModifySortedMap<>(prepareRead());
+		if (getClass() == FewModifySortedMap.class) {
+			// clone同源继承比较器（FND4-11）：Map构造器的TreeMap(Map)按自然序建，
+			// 会重演prepareRead丢失比较器的问题。
+			var snapshot = prepareRead();
+			var copy = new FewModifySortedMap<K, V>(snapshot.comparator());
+			copy.putAll(snapshot);
+			return copy;
+		}
 		throw new CloneNotSupportedException();
 	}
 
