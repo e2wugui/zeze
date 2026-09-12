@@ -290,9 +290,16 @@ public final class Agent {
 
 			leader = null;
 
-			trigger(pending, "stopPending");
-
-			pending.clear();
+			// 先原子摘除再触发（对齐cancelPending，FND4-28）：原"迭代触发后clear"期间，IO线程
+			// 收到真实应答时pending.remove仍成功——用户handle以Timeout与真实结果各执行一次
+			//（send回调路径无CAS保护；sendForWait路径由TaskCompletionSource.setResult兜住）。
+			var removed = new ArrayList<RaftRpc<?, ?>>();
+			for (var rpc : pending) {
+				var r = pending.remove(rpc.getUnique().getRequestId());
+				if (null != r)
+					removed.add(r);
+			}
+			trigger(removed, "stopPending");
 		} finally {
 			mutex.unlock();
 		}
