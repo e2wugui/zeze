@@ -368,13 +368,15 @@ public final class BinLogger extends ReentrantLock {
 			}
 		}
 
-		private static int toDayStamp(long utcMs) { // UTC毫秒时间戳 => 日期戳(天数)
-			return (int)((utcMs + timeZoneOffset) / 86400_000);
+		static int toDayStamp(long utcMs) { // UTC毫秒时间戳 => 日期戳(天数)；包内可见供DST单测
+			// 与toDayStr同源的DST感知口径（FND4-75）：原用timeZoneOffset=getRawOffset（不含夏令时
+			// 偏移），DST时区中切换日的天边界与toDayStr渲染日期错开一天（轮转文件名与数据实际
+			// 归属日期不符；五文件同批打开索引一致性不损坏）。
+			return (int)Instant.ofEpochMilli(utcMs).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay();
 		}
 
-		private static @NotNull String toDayStr(int dayStamp) { // 日期戳(天数) => "yyyyMMdd"
-			var date = Instant.ofEpochMilli(dayStamp * 86400_000L - timeZoneOffset)
-				.atZone(ZoneId.systemDefault()).toLocalDate();
+		static @NotNull String toDayStr(int dayStamp) { // 日期戳(天数) => "yyyyMMdd"
+			var date = java.time.LocalDate.ofEpochDay(dayStamp); // 与toDayStamp互逆（同一日期事实源）
 			return String.format("%04d%02d%02d", date.getYear(), date.getMonthValue(), date.getDayOfMonth());
 		}
 
