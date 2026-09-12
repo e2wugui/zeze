@@ -1683,6 +1683,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				transmit.Argument.setParameter(parameter);
 			var ps = providerApp.providerDirectService.providerByServerId.get(group.serverId);
 			if (ps == null) {
+				// direct路由缺失：降级为本机执行（FND4-84）——transmit契约是"在目标服
+				// 上下文执行"，依赖目标服local数据的action行为可能错误。等待/重试/显式失败
+				// 属产品决策，本处至少warn使降级可观测（不再静默）。
+				logger.warn("transmitEmbed: provider direct route missing, degrade to local. serverId={}, action={}, roles={}",
+						group.serverId, actionName, group.roles);
 				if (groupLocal == null)
 					groupLocal = new RoleOnServer();
 				groupLocal.roles.addAll(group.roles);
@@ -1690,6 +1695,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			}
 			var socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
 			if (socket == null) {
+				// direct连接未就绪：同上（FND4-84），降级必须可观测。
+				logger.warn("transmitEmbed: provider direct socket not ready, degrade to local. serverId={}, action={}, roles={}",
+						group.serverId, actionName, group.roles);
 				if (groupLocal == null)
 					groupLocal = new RoleOnServer();
 				groupLocal.roles.addAll(group.roles);
