@@ -39,9 +39,12 @@ public final class Transaction {
 		private final Record<?> origin;
 		private final long timestamp;
 		private boolean dirty;
-		private LogBeanKey<Bean> putLog;
+		// put/remove意图(LogBeanKey)的唯一事实源是所属事务的savepoint日志栈：
+		// 嵌套回滚随savepoint丢弃，读取自动回落到外层已提交意图或origin值（FND4-24）。
+		private final Transaction owner;
 
-		public RecordAccessed(Record<?> origin) {
+		public RecordAccessed(Transaction owner, Record<?> origin) {
+			this.owner = owner;
 			this.origin = origin;
 			timestamp = origin.getTimestamp();
 		}
@@ -62,11 +65,16 @@ public final class Transaction {
 			dirty = value;
 		}
 
+		@SuppressWarnings("unchecked")
 		public LogBeanKey<Bean> getPutLog() {
-			return putLog;
+			// 从当前（最外层未弹出的）savepoint查put意图：嵌套回滚后查不到即正确回落。
+			// 查询键=LogBeanKey的belong(this).objectId()+variableId(0)（Log.getLogKey）。
+			var log = owner.getLog(objectId());
+			return log instanceof LogBeanKey<?> putLog ? (LogBeanKey<Bean>)putLog : null;
 		}
 
 		public Bean newestValue() {
+			var putLog = getPutLog();
 			if (putLog != null)
 				return putLog.value;
 			return origin.getValue();
@@ -78,7 +86,7 @@ public final class Transaction {
 		}
 
 		public void put(Transaction current, Bean value) {
-			current.putLog(putLog = new LogBeanKey<>(Bean.class, this, 0, value));
+			current.putLog(new LogBeanKey<>(Bean.class, this, 0, value));
 		}
 
 		public void remove(Transaction current) {

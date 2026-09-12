@@ -128,7 +128,7 @@ public final class Table<K, V extends Bean> {
 			return (V)cr.newestValue();
 
 		Record<K> r = getOrLoad(key);
-		currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
+		currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), new Transaction.RecordAccessed(currentT, r));
 		return (V)r.getValue();
 	}
 
@@ -145,7 +145,7 @@ public final class Table<K, V extends Bean> {
 			// add
 		} else {
 			Record<K> r = getOrLoad(key);
-			cr = new Transaction.RecordAccessed(r);
+			cr = new Transaction.RecordAccessed(currentT, r);
 			currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), cr);
 			if (r.getValue() != null)
 				return (V)r.getValue();
@@ -250,7 +250,7 @@ public final class Table<K, V extends Bean> {
 		var cr = currentT.getRecordAccessed(tkey);
 		if (cr == null) {
 			var r = getOrLoad(key);
-			cr = new Transaction.RecordAccessed(r);
+			cr = new Transaction.RecordAccessed(currentT, r);
 			currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), cr);
 		}
 		value.initRootInfo(cr.getOrigin().createRootInfoIfNeed(tkey), null);
@@ -269,7 +269,7 @@ public final class Table<K, V extends Bean> {
 		}
 
 		Record<K> r = getOrLoad(key);
-		cr = new Transaction.RecordAccessed(r);
+		cr = new Transaction.RecordAccessed(currentT, r);
 		cr.put(currentT, null);
 		currentT.addRecordAccessed(r.createRootInfoIfNeed(tkey), cr);
 	}
