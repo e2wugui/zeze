@@ -86,6 +86,10 @@ public class DelayRemove extends AbstractDelayRemove {
 	}
 
 	public void addJob(String handleName, Bean state) {
+		// 生命周期契约显式化（FND4-47）：jobIdAutoKey仅start()中赋值，装配顺序不当（start前
+		// addJob）时NPE无语义；对齐timer字段的防御习惯，入口状态检查。
+		if (jobIdAutoKey == null)
+			throw new IllegalStateException("DelayRemove not started. call start() before addJob().");
 		var bJob = new BJob();
 		var jobId = jobIdAutoKey.nextString();
 		bJob.setJobHandleName(handleName);
