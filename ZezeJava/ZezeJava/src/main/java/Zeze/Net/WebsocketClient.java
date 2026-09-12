@@ -64,14 +64,17 @@ public class WebsocketClient extends AsyncSocket {
 				}
 				webSocket.request(1);
 				WebsocketClient.this.webSocket = webSocket;
-				// 对齐TcpSocket.doConnectSuccess的连接成功钩子：url型Connector依赖
-				// Connector.OnSocketConnected置isConnected=true并回落重连退避，缺调则
-				// isConnected恒false、退避封顶后永不回落（FND4-35）；Service.OnSocketConnected
-				// =addSocket+OnHandshakeDone，与TCP家族生命周期契约（连接成功⟹调用）一致。
+				// FND4-35补连接成功钩子：url型Connector依赖Connector.OnSocketConnected置
+				// isConnected=true并回落重连退避，缺调则isConnected恒false、退避封顶后永不回落。
+				// 注意不能改调Service.OnSocketConnected：HandshakeClient/HandshakeBoth家族覆写
+				// 该方法为"仅addSocket、推迟OnHandshakeDone"（等应用层握手协议完成），而websocket
+				// 的HTTP升级本身就是握手完成，必须直调OnHandshakeDone——经OnSocketConnected会令
+				// 握手永不完成，Connector.WaitReady挂死（4d563735e引入、回归修正）。
 				if (connector != null)
 					connector.OnSocketConnected(WebsocketClient.this);
+				service.addSocket(WebsocketClient.this);
 				try {
-					service.OnSocketConnected(WebsocketClient.this);
+					service.OnHandshakeDone(WebsocketClient.this);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
