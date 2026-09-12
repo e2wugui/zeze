@@ -2,11 +2,14 @@ package UnitTest.Zeze;
 
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import Zeze.Application;
 import Zeze.Config;
 import harness.Fast;
@@ -62,5 +65,35 @@ public class TestCheckpointRunThreadSentinel {
 		assertNotNull(current, "应提交新任务");
 		assertNotSame(stale, current, "已完成哨兵不得阻断新任务提交（FND3-49）");
 		current.get(5, TimeUnit.SECONDS); // 新任务正常完成（Table模式空数据runOnce安全）
+	}
+
+	/**
+	 * 并发压测准入不变量："字段被替换时，被替换的旧future必已完成"（至多一个checkpoint在跑）。
+	 * 检查零误报：future完成单调——检查时未完成⇒替换时也未完成⇒必是"上一个没跑完就提交新的"双跑违反。
+	 */
+	@Test
+	public void testConcurrentHammerNoOverrun() throws Exception {
+		var field = Application.class.getDeclaredField("checkpointFuture");
+		field.setAccessible(true);
+		var violation = new AtomicReference<String>();
+		Runnable hammer = () -> {
+			try {
+				for (var i = 0; i < 2000; i++) {
+					var before = (Future<?>)field.get(app); // 无锁采样：竞态采样正是要的
+					app.checkpointRunThread();
+					var after = (Future<?>)field.get(app);
+					if (before != null && before != after && !before.isDone())
+						violation.set("replaced running future: " + before);
+				}
+			} catch (IllegalAccessException e) {
+				violation.set("reflect: " + e);
+			}
+		};
+		var threads = new ArrayList<Thread>();
+		for (var t = 0; t < 4; t++)
+			threads.add(Thread.ofPlatform().daemon().start(hammer));
+		for (var th : threads)
+			th.join(30_000);
+		assertNull(violation.get());
 	}
 }
