@@ -263,7 +263,15 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 		@Override
 		public void clear() {
-			map.clear();
+			// 并发约定归还到类型自身（FND4-06）：find/walk持读锁访问map，clear必须持写锁
+			// 互斥——裸clear与并发遍历可抛CME或损坏TreeMap结构。静态入口（已持写锁
+			// 调用此处）重入安全。
+			lock.writeLock().lock();
+			try {
+				map.clear();
+			} finally {
+				lock.writeLock().unlock();
+			}
 		}
 
 		@Override
