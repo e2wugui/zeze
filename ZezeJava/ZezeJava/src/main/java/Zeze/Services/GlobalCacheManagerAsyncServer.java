@@ -649,6 +649,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 							// 又重启连上。更新一下。应该是不需要的。
 							sender.acquired.put(gKey, StateModify);
 							cs.acquireStatePending = StateInvalid;
+							cs.lock.notifyAllWait(); // 归还申请位必须唤醒等待者（FND4-52，对齐acquireModifyAsync同分支）
 							if (isDebugEnabled)
 								logger.debug("4 {} {} {}", sender, StateShare, cs);
 							rpc.Result.state = StateModify;

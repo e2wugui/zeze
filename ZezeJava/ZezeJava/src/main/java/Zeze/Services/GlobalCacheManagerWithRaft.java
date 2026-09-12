@@ -321,6 +321,7 @@ public class GlobalCacheManagerWithRaft
 					// 又重启连上。更新一下。应该是不需要的。
 					SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
 					cs.setAcquireStatePending(StateInvalid);
+					lockey.pulseAll(); // 归还申请位必须唤醒等待者（FND4-52，对齐acquireModify同分支）
 					if (isDebugEnabled)
 						logger.debug("4 {} {} {}", sender, StateShare, cs);
 					rpc.Result.setState(StateModify);
