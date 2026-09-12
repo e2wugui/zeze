@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Objects;
+
 public class KV<K, V> {
 	private K key;
 	private V value;
@@ -34,7 +36,8 @@ public class KV<K, V> {
 
 	@Override
 	public int hashCode() {
-		return key.hashCode() ^ value.hashCode();
+		// value 允许为null（create(key,null)/setValue(null)是公开API形态），null安全对齐KVList判例
+		return key.hashCode() ^ Objects.hashCode(value);
 	}
 
 	@Override
@@ -42,7 +45,7 @@ public class KV<K, V> {
 		if (obj == this)
 			return true;
 		if (obj instanceof KV<?, ?> kv) {
-			return key.equals(kv.key) && value.equals(kv.value);
+			return key.equals(kv.key) && Objects.equals(value, kv.value);
 		}
 		return false;
 	}
