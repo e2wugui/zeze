@@ -36,8 +36,8 @@ import org.jetbrains.annotations.Nullable;
 
 public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft implements AutoCloseable {
 	static {
-		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
-		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
+		// 【FND4-64】原此处还有root logger级别重置（未设logLevel属性时也强制INFO）——类加载即
+		// 篡改全JVM日志配置，已移至构造器的显式启动动作（applyLogLevelProperty，仅显式指定才动）。
 		// 补注册 tId128.current（Zeze.Util.Id128，非内置类型）的修改日志工厂：AbstractServiceManagerWithRaft.
 		// RegisterRocksTables 漏了 Log1.LogBeanKey<Zeze.Util.Id128>（typeId=1751213859）。
 		// 首次 getOrAdd(tId128) 走 Record.Put（整 bean 编码，不需要 Log 工厂）能提交成功；
@@ -69,6 +69,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Config config,
 								  boolean RocksDbWriteOptionSync) throws Exception {
 		ZezeCounter.tryInit();
+		ServiceManagerServer.applyLogLevelProperty(); // FND4-64：显式启动动作（仅显式指定logLevel属性才动配置）
 
 		if (config == null)
 			config = Config.load();

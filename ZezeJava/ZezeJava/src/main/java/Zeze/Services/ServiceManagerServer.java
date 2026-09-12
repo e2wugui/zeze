@@ -87,9 +87,14 @@ import org.w3c.dom.Element;
  * 原则是：总按最新的gs-list通告。中间不一致的ready全部忽略。
  */
 public final class ServiceManagerServer extends ReentrantLock implements Closeable {
-	static {
-		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
-		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
+	// FND4-64：原static块仅类加载即重置全JVM root logger级别（未设logLevel属性时也强制INFO），
+	// 测试/工具/同JVM引用只要碰到该类就静默破坏宿主日志配置。改为显式启动动作（构造器调用），
+	// 且仅当显式指定logLevel属性才动配置。WithRaft版同源调用。
+	static void applyLogLevelProperty() {
+		var levelProperty = System.getProperty("logLevel");
+		if (levelProperty != null)
+			((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger()
+					.setLevel(Level.toLevel(levelProperty, Level.INFO));
 	}
 
 	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerServer.class);
@@ -523,9 +528,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
-								@NotNull Config config,
-								@NotNull String autokeys) throws Exception {
+									@NotNull Config config,
+									@NotNull String autokeys) throws Exception {
 		ZezeCounter.tryInit();
+		applyLogLevelProperty(); // FND4-64：显式启动动作（仅显式指定logLevel属性才动配置）
 		config.parseCustomize(this.conf);
 
 		server = new NetServer(this, config);
