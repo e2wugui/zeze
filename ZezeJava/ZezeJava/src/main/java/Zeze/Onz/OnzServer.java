@@ -74,6 +74,27 @@ public class OnzServer extends AbstractOnz {
 		return onzTidAutoKey.next();
 	}
 
+	/** SM代理启动并等待就绪：raft版第一次等待由于选择leader原因肯定会失败一次。 */
+	private static void startAgentAndWaitReady(AbstractAgent agent) throws Exception {
+		agent.start();
+		try {
+			agent.waitReady();
+		} catch (Exception ignored) {
+			agent.waitReady();
+		}
+	}
+
+	/** 构造/start失败回滚时的best-effort释放（对齐stop的分步容错口径），失败仅记日志。 */
+	private static void rollbackClose(String what, java.io.Closeable resource) {
+		if (resource == null)
+			return;
+		try {
+			resource.close();
+		} catch (Throwable e) {
+			logger.error("rollback close {}", what, e);
+		}
+	}
+
 	public void setWriteOptions(WriteOptions writeOptions) {
 		this.writeOptions = writeOptions;
 	}
@@ -94,58 +115,71 @@ public class OnzServer extends AbstractOnz {
 		myServiceManager = Application.createServiceManager(myConfig, "OnzServerMyServiceManager");
 		if (myServiceManager == null)
 			throw new RuntimeException("My ServiceManager not found");
-		myServiceManager.start();
+		RocksDatabase db = null;
 		try {
-			myServiceManager.waitReady();
-		} catch (Exception ignored) {
-			// raft 版第一次等待由于选择leader原因肯定会失败一次。
-			myServiceManager.waitReady();
-		}
-		onzTidAutoKey = myServiceManager.getAutoKey("OnzServerTidAutoKey");
+			startAgentAndWaitReady(myServiceManager);
+			onzTidAutoKey = myServiceManager.getAutoKey("OnzServerTidAutoKey");
 
-		database = new RocksDatabase("CommitOnzServer" + myConfig.getServerId());
-		commitPoint = database.getOrAddTable("CommitPoint");
-		commitIndex = database.getOrAddTable("CommitIndex");
+			db = new RocksDatabase("CommitOnzServer" + myConfig.getServerId());
+			database = db;
+			commitPoint = db.getOrAddTable("CommitPoint");
+			commitIndex = db.getOrAddTable("CommitIndex");
 
-		var zezesArray = zezeConfigs.split(";");
-		for (var zeze : zezesArray) {
-			var zezeNameAndConfig = zeze.split("=");
-			if (zezeNameAndConfig.length != 2)
-				throw new RuntimeException("error zezes=" + zezeConfigs);
-			if (this.zezes.containsKey(zezeNameAndConfig[0]))
-				throw new RuntimeException("duplicate zeze=" + zezeNameAndConfig[0] + " zezes=" + zezeConfigs);
-			var zezeConfig = Config.load(zezeNameAndConfig[1]);
-			var serviceManager = Application.createServiceManager(zezeConfig, "OnzServerServiceManager");
-			if (serviceManager == null)
-				throw new RuntimeException("serviceManager not found for " + zezeNameAndConfig[0] + " zezes=" + zezeConfigs);
-			serviceManager.start();
-			try {
-				serviceManager.waitReady();
-			} catch (Exception ignored) {
-				// raft 版第一次等待由于选择leader原因肯定会失败一次。
-				serviceManager.waitReady();
+			var zezesArray = zezeConfigs.split(";");
+			for (var zeze : zezesArray) {
+				var zezeNameAndConfig = zeze.split("=");
+				if (zezeNameAndConfig.length != 2)
+					throw new RuntimeException("error zezes=" + zezeConfigs);
+				if (this.zezes.containsKey(zezeNameAndConfig[0]))
+					throw new RuntimeException("duplicate zeze=" + zezeNameAndConfig[0] + " zezes=" + zezeConfigs);
+				var zezeConfig = Config.load(zezeNameAndConfig[1]);
+				var serviceManager = Application.createServiceManager(zezeConfig, "OnzServerServiceManager");
+				if (serviceManager == null)
+					throw new RuntimeException("serviceManager not found for " + zezeNameAndConfig[0] + " zezes=" + zezeConfigs);
+				startAgentAndWaitReady(serviceManager);
+				// 先登记再订阅：订阅失败时回滚要能找到这个已启动的实例（FND4-89）。
+				this.zezes.put(zezeNameAndConfig[0], serviceManager);
+				serviceManager.subscribeService(new BSubscribeInfo(Onz.eServiceName));
 			}
-			serviceManager.subscribeService(new BSubscribeInfo(Onz.eServiceName));
-			this.zezes.put(zezeNameAndConfig[0], serviceManager);
-		}
-		this.sharedServiceManager = false;
+			this.sharedServiceManager = false;
 
-		service = new OnzServerService(myConfig);
-		onzAgent = new OnzAgent();
-		RegisterProtocols(service);
+			service = new OnzServerService(myConfig);
+			onzAgent = new OnzAgent();
+			RegisterProtocols(service);
+		} catch (Throwable ex) {
+			// 构造的全有或全无（FND4-89）：逆序释放已获取资源——半途失败时stop()不可达
+			// （对象未构造完成），不回收会泄漏网络线程、端口与RocksDB目录锁，阻碍同进程重试。
+			// 各zeze的SM为独立实例（重名在启动前被拒），逐个close。
+			for (var agent : zezes.values())
+				rollbackClose("zeze agent", agent);
+			rollbackClose("database", db);
+			rollbackClose("myServiceManager", myServiceManager);
+			throw ex;
+		}
 	}
 
 	public void start() throws Exception {
-		service.start();
-		onzAgent.start();
-
 		try {
-			redoTimer();
-		} catch (Exception ex) {
-			logger.error("first try.", ex);
+			service.start();
+			onzAgent.start();
+
+			try {
+				redoTimer();
+			} catch (Exception ex) {
+				logger.error("first try.", ex);
+			}
+			// 1 minute?
+			redoTimer = TaskSpec.ofAction(this::redoTimer).schedulePeriodNow(60000, 60000);
+		} catch (Throwable ex) {
+			// start的全有或全无（FND4-89）：半途失败按停机路径回收已启动资源。
+			// stop幂等且best-effort；此后对象为终态（stopped），与构造失败不逃逸同口径。
+			try {
+				stop();
+			} catch (Throwable e) {
+				logger.error("rollback start", e);
+			}
+			throw ex;
 		}
-		// 1 minute?
-		redoTimer = TaskSpec.ofAction(this::redoTimer).schedulePeriodNow(60000, 60000);
 	}
 
 	private void redoTimer() throws RocksDBException {
@@ -332,41 +366,41 @@ public class OnzServer extends AbstractOnz {
 		myServiceManager = Application.createServiceManager(myConfig, "OnzServerMyServiceManager");
 		if (myServiceManager == null)
 			throw new RuntimeException("My ServiceManager not found");
-		myServiceManager.start();
+		AbstractAgent sharedAgent = null;
+		RocksDatabase db = null;
 		try {
-			myServiceManager.waitReady();
-		} catch (Exception ignored) {
-			// raft 版第一次等待由于选择leader原因肯定会失败一次。
-			myServiceManager.waitReady();
-		}
-		onzTidAutoKey = myServiceManager.getAutoKey("OnzServerTidAutoKey");
+			startAgentAndWaitReady(myServiceManager);
+			onzTidAutoKey = myServiceManager.getAutoKey("OnzServerTidAutoKey");
 
-		database = new RocksDatabase("CommitOnzServer" + myConfig.getServerId());
-		commitPoint = database.getOrAddTable("CommitPoint");
-		commitIndex = database.getOrAddTable("CommitIndex");
+			db = new RocksDatabase("CommitOnzServer" + myConfig.getServerId());
+			database = db;
+			commitPoint = db.getOrAddTable("CommitPoint");
+			commitIndex = db.getOrAddTable("CommitIndex");
 
-		var config = Config.load(sharedZezeConfig);
-		var serviceManager = Application.createServiceManager(config, "OnzServerServiceManager");
-		if (serviceManager == null)
-			throw new RuntimeException("create ServiceManager fail. " + sharedZezeConfig);
-		serviceManager.start();
-		try {
-			serviceManager.waitReady();
-		} catch (Exception ignored) {
-			// raft 版第一次等待由于选择leader原因肯定会失败一次。
-			serviceManager.waitReady();
+			var config = Config.load(sharedZezeConfig);
+			sharedAgent = Application.createServiceManager(config, "OnzServerServiceManager");
+			if (sharedAgent == null)
+				throw new RuntimeException("create ServiceManager fail. " + sharedZezeConfig);
+			startAgentAndWaitReady(sharedAgent);
+			var zezeArray = specialZezeNames.split(";");
+			for (var zeze : zezeArray) {
+				if (this.zezes.containsKey(zeze))
+					throw new RuntimeException("duplicate zeze=" + zeze + " zezes=" + specialZezeNames);
+				this.zezes.put(zeze, sharedAgent);
+			}
+			this.sharedServiceManager = true;
+			sharedAgent.subscribeService(new BSubscribeInfo(Onz.eServiceName));
+			service = new OnzServerService(myConfig);
+			onzAgent = new OnzAgent();
+			RegisterProtocols(service);
+		} catch (Throwable ex) {
+			// 构造的全有或全无（FND4-89）：逆序释放——共享SM（zezes各值同一实例，只关一次）
+			// → 库 → myServiceManager。
+			rollbackClose("shared agent", sharedAgent);
+			rollbackClose("database", db);
+			rollbackClose("myServiceManager", myServiceManager);
+			throw ex;
 		}
-		var zezeArray = specialZezeNames.split(";");
-		for (var zeze : zezeArray) {
-			if (this.zezes.containsKey(zeze))
-				throw new RuntimeException("duplicate zeze=" + zeze + " zezes=" + specialZezeNames);
-			this.zezes.put(zeze, serviceManager);
-		}
-		this.sharedServiceManager = true;
-		serviceManager.subscribeService(new BSubscribeInfo(Onz.eServiceName));
-		service = new OnzServerService(myConfig);
-		onzAgent = new OnzAgent();
-		RegisterProtocols(service);
 	}
 
 	public OnzAgent getOnzAgent() {
