@@ -24,7 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class ThreadingServer extends AbstractThreadingServer {
-	static final Logger logger = LogManager.getLogger(ThreadingServer.class);
+	private static final Logger logger = LogManager.getLogger(ThreadingServer.class);
 
 	// FND-C1-7/C1-8：锁操作rpc的结果码约定为非负小整数（0=成功，1=失败/未持有，2=超时未获取）。
 	// 参数非法或操作类型未知时用-1应答：客户端getResultCode()!=0按false处理（exit类走debug日志），
@@ -178,8 +178,9 @@ public class ThreadingServer extends AbstractThreadingServer {
 		// activeTime由KeepAlive处理线程写、timeoutRelease定时器线程读，需要volatile保证可见性。
 		private volatile long activeTime = System.currentTimeMillis();
 		private final int serverId;
-		// lastAppSerial仅在KeepAlive处理线程读写（同一连接的KeepAlive有序处理），无需volatile。
-		private BKeepAlive.Data lastAppSerial;
+		// lastAppSerial依赖"同连接的KeepAlive按接收序串行处理"（见ProcessKeepAlive的Direct注解）：
+		// IO线程内联执行保证同连接有序；volatile兜不同连接各自IO线程间的可见性。
+		private volatile BKeepAlive.Data lastAppSerial;
 
 		public SimulateThreads(int serverId) {
 			this.serverId = serverId;
@@ -200,8 +201,13 @@ public class ThreadingServer extends AbstractThreadingServer {
 		}
 	}
 
-	@Override
-	protected long ProcessKeepAlive(KeepAlive p) {
+		// Direct：lastAppSerial的"同连接KeepAlive有序处理"前提（见字段注释）要求IO线程按TCP
+		// 接收序内联串行；Normal经共享线程池派发既不保证同连接顺序也不保证跨连接顺序——迟到的
+		// 旧实例KeepAlive可在新实例接管并持锁后再次触发release，强制释放新实例持有的全部锁
+		// （FND4-40）。处理体轻量（CHM查改+volatile写+非阻塞offer），内联执行不阻塞IO线程。
+		@Override
+		@Zeze.Util.DispatchModeAnnotation(mode = Zeze.Transaction.DispatchMode.Direct)
+		protected long ProcessKeepAlive(KeepAlive p) {
 		var threads = simulateThreadsByServerId.computeIfAbsent(p.Argument.getServerId(), SimulateThreads::new);
 		threads.activeTime = System.currentTimeMillis();
 		if (null == threads.lastAppSerial) {
