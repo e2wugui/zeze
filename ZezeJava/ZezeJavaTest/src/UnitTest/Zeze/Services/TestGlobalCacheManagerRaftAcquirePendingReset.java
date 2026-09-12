@@ -12,6 +12,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -28,6 +29,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.Selectors;
 import Zeze.Raft.LeaderIs;
+import Zeze.Raft.RaftRetryException;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RocksRaft.Table;
@@ -323,13 +325,30 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		Assertions.assertEquals(expected, pendingOf(KEY), message);
 	}
 
+	/** 找三参release(CacheHolder,Binary,boolean)：测试自带newProcedure包装（保留call()返回码）。 */
 	private static Method findReleaseMethod() {
 		for (var m : GlobalCacheManagerWithRaft.class.getDeclaredMethods()) {
-			if (m.getName().equals("release") && m.getParameterCount() == 2
+			if (m.getName().equals("release") && m.getParameterCount() == 3
 					&& m.getParameterTypes()[1] == Binary.class)
 				return m;
 		}
 		return null;
+	}
+
+	private static GlobalCacheManagerWithRaft currentLeaderOr(GlobalCacheManagerWithRaft fallback) {
+		for (var node : nodes)
+			if (node.getRocks().isLeader())
+				return node;
+		return fallback; // 选举窗口中：先以fallback尝试，提交失败会以RaftRetry进入有界重试
+	}
+
+	/** release只用serverId；领导漂移到新节点后在其上重建A的持有者（sessions不跨节点复制）。 */
+	private static Object newCacheHolderOn(GlobalCacheManagerWithRaft target, int serverId,
+			Object holderTemplate) throws Exception {
+		var ctor = holderTemplate.getClass().getDeclaredConstructor(
+				GlobalCacheManagerWithRaft.class, int.class);
+		ctor.setAccessible(true);
+		return ctor.newInstance(target, serverId);
 	}
 
 	@Test
@@ -395,31 +414,70 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		reduce.SendResult();
 
 		// 7. 功能断言：release(A, KEY)必须能完成而不是永久park（修复前daemon路径即在此冻结）
+		// RaftRetry（not leader/提交超时——test类并行负载下的选举/复制抖动窗口）会让release的
+		// raft提交静默失败：RocksRaft.Procedure.call对RaftRetryException回滚重抛，旧版releaser
+		// 直接吞掉，"不能永久park"照样通过（不是park是没提交），记录未删，第8步误红（60轮压测
+		// round 11/59）。对齐本类sendLogin/sendAcquireModify的-15处理：有界重试；领导漂移时重选
+		// leader并在其上重建A的持有者。自带newProcedure包装（等价产品码release(CacheHolder,Binary)），
+		// 但保留call()返回码，失败不再静默。
 		var holderA = sessionOf(SERVER_ID_A);
 		final Method release = findReleaseMethod();
-		Assertions.assertNotNull(release, "release(CacheHolder,Binary)方法必须存在");
+		Assertions.assertNotNull(release, "release(CacheHolder,Binary,boolean)方法必须存在");
 		release.setAccessible(true);
 		var releaseDone = new CountDownLatch(1);
+		var releaseError = new AtomicReference<Throwable>();
 		var releaser = new Thread(() -> {
 			try {
-				release.invoke(gcm, holderA, KEY);
+				for (int attempt = 1; ; ++attempt) {
+					var target = currentLeaderOr(gcm);
+					var holder = target == gcm ? holderA : newCacheHolderOn(target, SERVER_ID_A, holderA);
+					try {
+						var rc = target.getRocks().newProcedure(() -> {
+							//noinspection DataFlowIssue
+							release.invoke(target, holder, KEY, false);
+							return 0L;
+						}).call();
+						if (rc == 0)
+							return;
+						releaseError.compareAndSet(null,
+								new RuntimeException("release procedure rc=" + rc + ", attempt=" + attempt));
+						return;
+					} catch (RaftRetryException e) {
+						if (attempt >= 12) {
+							releaseError.compareAndSet(null, e);
+							return;
+						}
+						//noinspection BusyWait
+						Thread.sleep(500);
+					}
+				}
 			} catch (Throwable ex) {
-				// 修复前在此永久park（await断言失败）；其他异常由结果断言暴露
+				releaseError.compareAndSet(null, ex);
 			} finally {
 				releaseDone.countDown();
 			}
 		}, "UnitTest.FND_S1_3.Releaser");
 		releaser.setDaemon(true);
 		releaser.start();
-		Assertions.assertTrue(releaseDone.await(5, TimeUnit.SECONDS), "release不能永久park（key冻结/守护停摆）");
-		releaser.join(5_000);
+		// 12次重试最坏~6s+提交时间：park检测阈值放大到30s（永久park依然会超时失败）
+		Assertions.assertTrue(releaseDone.await(30, TimeUnit.SECONDS), "release不能永久park（key冻结/守护停摆）");
+		releaser.join(30_000);
+		Assertions.assertNull(releaseError.get(), "release提交失败");
 
-		// 8. 无持有者后记录应被清除
+		// 8. 无持有者后记录应被清除。重试路径可能在新leader上删除，gcm（可能已退位）上的本地读
+		// 要等复制追上：有界轮询而不是单次读。
 		var exists = new boolean[1];
-		gcm.getRocks().newProcedure(() -> {
-			exists[0] = globalStates.get(KEY) != null;
-			return 0L;
-		}).call();
+		long deadline = System.currentTimeMillis() + 10_000;
+		while (true) {
+			gcm.getRocks().newProcedure(() -> {
+				exists[0] = globalStates.get(KEY) != null;
+				return 0L;
+			}).call();
+			if (!exists[0] || System.currentTimeMillis() >= deadline)
+				break;
+			//noinspection BusyWait
+			Thread.sleep(20);
+		}
 		Assertions.assertFalse(exists[0], "release后记录应被移除");
 	}
 }
