@@ -154,8 +154,10 @@ public class Cache {
 		try {
 			if (todayDays != nowDays) {
 				// 第一次执行时如果nowDays等于0（todayDays的初始值），不会走到这里，这种情况不处理了。
+				// 追加模式：同日重启（新实例todayDays初始0必进此分支）打开已存在的当天清单，
+				// 截断会把前次运行登记的条目清掉——这些key的RocksDb记录从此再没有退役记录（FND4-10）。
 				var oldFile = todayFile;
-				todayFile = new FileOutputStream(Paths.get(name, "days_" + nowDays).toFile());
+				todayFile = new FileOutputStream(Paths.get(name, "days_" + nowDays).toFile(), true);
 				todayDays = nowDays;
 				if (oldFile != null)
 					oldFile.close();
