@@ -17,6 +17,8 @@ import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import org.jetbrains.annotations.NotNull;
 
 public class RunClassServer implements HttpFileUploadHandle {
+	private static final @NotNull org.apache.logging.log4j.Logger logger =
+			org.apache.logging.log4j.LogManager.getLogger(RunClassServer.class);
 	private final String uploadDir;
 	private final String fileVarName;
 
@@ -51,7 +53,14 @@ public class RunClassServer implements HttpFileUploadHandle {
 		var fileUpload = (FileUpload)decoder.getBodyHttpData(getFileNameQueryKey());
 		var patchFileName = fileUpload.getFilename();
 		new File(uploadDir).mkdirs();
-		var destFile = new File(uploadDir, patchFileName);
+		final File destFile; // 落盘路径必须经净化（FND4-70）：客户端可控文件名不得携带目录成分
+		try {
+			destFile = HttpFileUploadHandle.sanitizeDestFile(new File(uploadDir), patchFileName);
+		} catch (IllegalArgumentException e) {
+			logger.warn("Reject upload filename '{}' (path traversal)", patchFileName);
+			x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST, "illegal filename"));
+			return;
+		}
 		destFile.delete(); // run class 总是覆盖; skip result.
 		if (fileUpload.renameTo(destFile)) {
 			var path = destFile.toPath();

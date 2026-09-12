@@ -1,5 +1,7 @@
 package Zeze.Netty;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import io.netty.buffer.Unpooled;
@@ -15,6 +17,22 @@ import org.jetbrains.annotations.NotNull;
 public interface HttpFileUploadHandle extends HttpMultipartHandle {
 	@NotNull AttributeKey<MixedFileUpload> fileUploadKey = AttributeKey.valueOf("HttpFileUploadHandleContext");
 	int MemoryBufSize = 16 * 1024;
+
+	/**
+	 * 净化客户端可控的上传文件名并解析落盘目标（FND4-70）：仅保留basename（'/'与'\'都视为
+	 * 分隔符）且canonical路径必须落在uploadDir内，双保险拦截"../"穿越——原实现直接
+	 * new File(uploadDir, filename)并先delete，以JVM工作目录为基准越权删除/覆盖任意文件
+	 * （可覆盖启动脚本/jar，结合重启形成RCE链）。非法名抛IllegalArgumentException，
+	 * 调用方应答400。
+	 */
+	static @NotNull File sanitizeDestFile(@NotNull File uploadDir, @NotNull String clientFileName) throws IOException {
+		var name = clientFileName.replace('\\', '/');
+		name = name.substring(name.lastIndexOf('/') + 1); // 仅留basename，剥掉全部目录成分
+		var destFile = new File(uploadDir, name);
+		if (!destFile.getCanonicalPath().startsWith(uploadDir.getCanonicalPath() + File.separator))
+			throw new IllegalArgumentException("illegal upload filename: " + clientFileName);
+		return destFile;
+	}
 
 	default @NotNull String getFileNameQueryKey() {
 		return "filename";
