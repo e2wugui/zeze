@@ -175,13 +175,18 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			if (allocateCount <= 0) {
 				allocateCount = Tid128Cache.ALLOCATE_COUNT_MIN;
 				if (future != null) {
-					try {
-						allocateCount = future.get().allocateCount();
-					} catch (RuntimeException e) {
-						// 上一次分配异常完成（如Udp超时）：get()抛出且发生在替换future之前，
-						// 而这里是它唯一的写入点，异常传播出去会导致毒化状态永久保留
-						// （冷写事务持续失败/热写事务finalCommit halt）。不再传播，以默认档位重新分配并替换（自愈）。
-						logger.warn("allocateTid128CacheFuture('{}'): last future failed, re-allocate with default count", globalName, e);
+					// 锁内只做非阻塞探测（FND3-39衍生，与32位路径统一锁纪律）：本路径完成虽在
+					// UDP接收线程、不经agent锁（无死锁），但等待未完成future会把锁占住剩余RTT，
+					// 丢包时要等重传超时检查（eRpcTimeout=5s）毒化才跳出，期间其他分配调用者
+					// 全被卡。未完成退用默认档位立即分配——档位只是优化参数。
+					if (future.isCompletedExceptionally()) {
+						// 上一次分配异常完成（如Udp超时）：以默认档位重新分配并替换（自愈）。
+						logger.warn("allocateTid128CacheFuture('{}'): last future failed, re-allocate with default count",
+								globalName);
+					} else {
+						var last = future.getNow();
+						if (last != null)
+							allocateCount = last.allocateCount();
 					}
 				}
 			}
