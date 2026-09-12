@@ -533,25 +533,50 @@ public final class Token extends AbstractToken {
 
 			ZezeCounter.tryInit();
 
-			service = new TokenServer(conf != null ? conf : new Config().loadAndParse());
-			RegisterProtocols(service);
-			var sc = service.getConfig();
-			if (sc.acceptorCount() == 0)
-				sc.addAcceptor(new Acceptor(port > 0 ? port : DEFAULT_PORT, host));
-			else {
-				sc.forEachAcceptor2(acceptor -> {
-					if (host != null)
-						acceptor.setIp(host);
-					if (port > 0)
-						acceptor.setPort(port);
-					return false;
-				});
-			}
-			service.start();
+			try {
+				service = new TokenServer(conf != null ? conf : new Config().loadAndParse());
+				RegisterProtocols(service);
+				var sc = service.getConfig();
+				if (sc.acceptorCount() == 0)
+					sc.addAcceptor(new Acceptor(port > 0 ? port : DEFAULT_PORT, host));
+				else {
+					sc.forEachAcceptor2(acceptor -> {
+						if (host != null)
+							acceptor.setIp(host);
+						if (port > 0)
+							acceptor.setPort(port);
+						return false;
+					});
+				}
+				service.start();
 
-			cleanTokenMapFuture = TaskSpec.ofAction(this::cleanTokenMap).schedulePeriodNow(1000, 1000);
-			cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtNow(3, 14);
-			return this;
+				cleanTokenMapFuture = TaskSpec.ofAction(this::cleanTokenMap).schedulePeriodNow(1000, 1000);
+				cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtNow(3, 14);
+				return this;
+			} catch (Throwable ex) {
+				// 启动全有或全无（FND4-69，对齐BinLoggerService.startLogger形态）：
+				// 半途失败清空已建状态，否则重入检查把"未运行的服务"当已启动直接
+				// 返回this——二次start假成功，服务永不监听且清理任务未注册，
+				// getService()非null掩盖故障。
+				if (cleanTokenMapFuture != null) {
+					cleanTokenMapFuture.cancel(false);
+					cleanTokenMapFuture = null;
+				}
+				if (cleanTokenMapTableFuture != null) {
+					cleanTokenMapTableFuture.cancel(false);
+					cleanTokenMapTableFuture = null;
+				}
+				service = null;
+				if (rocksdb != null) {
+					try {
+						rocksdb.close();
+					} catch (Throwable ignored) {
+					}
+					rocksdb = null;
+				}
+				tokenMapTable = null;
+				throw ex;
+			}
 		} finally {
 			unlock();
 		}
