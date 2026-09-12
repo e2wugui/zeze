@@ -75,7 +75,16 @@ public class SimpleApp extends AppBase {
 		((ProviderWithOnline)providerApp.providerImplement).start();
 		providerApp.providerService.start();
 		providerApp.providerDirectService.start();
+		beforeStartLast();
 		providerApp.startLast(ProviderModuleBinds.load(""), modules);
+	}
+
+	public ProviderApp getProviderApp() {
+		return providerApp;
+	}
+
+	/** startLast 前的注入点（测试预置 LoginQueueAgent 等场景用）。 */
+	protected void beforeStartLast() throws Exception {
 	}
 
 	public void stop() throws Exception {

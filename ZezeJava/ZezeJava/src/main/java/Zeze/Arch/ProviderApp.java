@@ -176,6 +176,10 @@ public class ProviderApp extends ReentrantLock {
 	public void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) throws Exception {
 		lock();
 		try {
+			// FND3-34：本方法恰好执行一次。ProviderApp没有stop、实例不可重启（对齐Application不可复用契约），
+			// 重入属编程错误，快速失败——否则二次调用会把模块绑定/订阅/timer/safeBatch全部重跑一遍。
+			if (startLast)
+				throw new IllegalStateException("ProviderApp.startLast() already called.");
 			buildProviderModuleBinds(binds, modules);
 			providerImplement.registerModulesAndSubscribeLinkd();
 			startLast = true;
@@ -194,24 +198,27 @@ public class ProviderApp extends ReentrantLock {
 			setUserDisableChoice(false);
 			providerService.trySetLinkChoice();
 
-			// 启动LoginQueueAgent网络服务
-			if (providerImplement.getLoad() != null && providerImplement.getLoad().getLoginQueueAgent() != null)
-				providerImplement.getLoad().getLoginQueueAgent().start();
-
-			// 如果启用了LoginQueue配置，创建LoginQueueAgent并初始化相关代码。
-			var agentConf = zeze.getConfig().getServiceConf("LoginQueueAgent");
-			if (null != agentConf) {
-				var load = this.providerImplement.getLoad();
-				if (null != load) {
-					var agent = new LoginQueueAgent(
-							zeze.getConfig(), zeze.getConfig().getServerId(),
-							load.getServiceIp(), load.getServicePort());
-					load.setLoginQueueAgent(agent);
-					agent.start();
-				}
-			}
+			startLoginQueueAgent();
 		} finally {
 			unlock();
 		}
+	}
+
+	// LoginQueueAgent的唯一创建点（FND3-34）：LoadBase已持有则复用（LinkdLoad式预置），
+	// 没有且配置启用（存在"LoginQueueAgent"服务节）才创建；两种来源统一start一次。
+	// 不得无条件新建覆盖——预置agent已启动时，覆盖即泄漏，并以相同(serverId,ip,port)重复注册。
+	private void startLoginQueueAgent() throws Exception {
+		var load = providerImplement.getLoad();
+		if (load == null)
+			return;
+		var agent = load.getLoginQueueAgent();
+		if (agent == null && zeze.getConfig().getServiceConf("LoginQueueAgent") != null) {
+			agent = new LoginQueueAgent(
+					zeze.getConfig(), zeze.getConfig().getServerId(),
+					load.getServiceIp(), load.getServicePort());
+			load.setLoginQueueAgent(agent);
+		}
+		if (agent != null)
+			agent.start();
 	}
 }
