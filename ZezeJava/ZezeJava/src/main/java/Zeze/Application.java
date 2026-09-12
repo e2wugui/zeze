@@ -92,13 +92,21 @@ public final class Application extends ReentrantLock {
 	private @Nullable Schemas schemasPrevious;
 	private final @NotNull ProcedureLockWatcher procedureLockWatcher;
 
+	/**
+	 * 生命周期状态机（FND3-47重设计）：eUninitialized→eStarting→eStarted→eStopping→eStopped。
+	 * start()只接受eUninitialized（eStarted幂等返回，其余拒绝——实例不可复用）；
+	 * stop()对eUninitialized/eStopped为no-op，对其余状态完整拆解（含崩溃遗留）。
+	 * eStarting/eStopping同时承担"进行中"与"崩溃遗留"两种事实：遗留即脏，不允许收尾重来。
+	 */
 	public enum StartState {
-		eStopped,
-		eStartingOrStopping,
-		eStarted,
+		eUninitialized, // 构造完成，从未start。
+		eStarting, // start()进行中（含中途崩溃遗留）。
+		eStarted, // 运行中。
+		eStopping, // stop()进行中（含中途崩溃遗留）。
+		eStopped, // stop()完成，终态：构造期组件已拆除且start不重建，实例不可复用。
 	}
 
-	private volatile @NotNull StartState startState = StartState.eStopped;
+	private volatile @NotNull StartState startState = StartState.eUninitialized;
 	public RedirectBase redirect;
 
 	private Onz onz;
@@ -658,7 +666,6 @@ public final class Application extends ReentrantLock {
 	}
 
 	private void addShutdownHook() {
-		startState = StartState.eStartingOrStopping;
 		ShutdownHook.add(this, () -> {
 			logger.info("zeze({}) ShutdownHook begin", this.projectName);
 			stop();
@@ -670,9 +677,15 @@ public final class Application extends ReentrantLock {
 		lock();
 		try {
 			if (startState == StartState.eStarted)
-				return;
-			if (startState == StartState.eStartingOrStopping)
-				stop();
+				return; // 幂等
+			if (startState != StartState.eUninitialized)
+				// 显式拒绝实例复用（FND3-47）：eStopped=已停（构造期组件被stop拆除且start
+				// 不重建）；eStarting/eStopping=上次start/stop中途崩溃遗留，部分状态无法
+				// 安全收尾重来（旧的"stop()收尾+重走start"同样落进缺组件的半启动）。
+				// 唯一正确的恢复是新建实例。
+				throw new IllegalStateException("Application '" + getProjectName()
+						+ "' 实例已停止或上次 start/stop 未完成，不支持复用，请新建实例（FND3-47）");
+			startState = StartState.eStarting;
 
 			logSystemProperties();
 			logZezeVersion();
@@ -745,7 +758,6 @@ public final class Application extends ReentrantLock {
 				// start last
 				if (achillesHeelDaemon != null)
 					achillesHeelDaemon.start();
-				startState = StartState.eStarted;
 
 				// 接管租约：Application.start()返回前claim完成（需Checkpoint已建立），
 				// 此后Timer.start/startLast、CsQueue构造全走addScope晚注册stamp。
@@ -765,8 +777,13 @@ public final class Application extends ReentrantLock {
 					onz.start();
 				if (autoKey != null)
 					transactionIdAutoKey = autoKey.getOrAdd("TransactionIdAutoKey");
-			} else
-				startState = StartState.eStarted;
+			}
+
+			// 全部组件启动完成才置运行态：窗口内崩溃滞留eStarting，后续start()显式拒绝
+			// （旧位置在takeover之前——窗口内崩溃顶着eStarted被幂等返回静默吞掉）。
+			// 窗口内组件不依赖isStart()：takeover.claim经callDirect绕过newProcedure
+			// （见Takeover.callDirect注释），delayRemove.start只起定时器，其余无事务。
+			startState = StartState.eStarted;
 
 			if (null != instances.putIfAbsent(getProjectName(), this))
 				logger.warn("Project {} already exists", getProjectName());
@@ -778,6 +795,16 @@ public final class Application extends ReentrantLock {
 	public void stop() throws Exception {
 		lock();
 		try {
+			if (startState == StartState.eUninitialized || startState == StartState.eStopped)
+				// 从未启动或已完全停止：no-op。必须放在最前——旧的检查位置在onz/deadlockBreaker
+				// 清理之后，会让"对未启动实例调stop"悄悄置null构造期的onz，之后再start()就
+				// 静默缺Onz服务（FND3-47同族半状态）。构造期组件惰性，no-op无资源泄漏。
+				return;
+
+			// 拆解全程处于eStopping（旧位置在onz/deadlockBreaker清理之后——前几步拆解
+			// 期间状态仍谎报eStarted）。
+			startState = StartState.eStopping;
+
 			// FND-A1-6：同名实例时putIfAbsent只保留先注册者，无条件remove会错删他人的注册，
 			// 导致幸存实例的Online.findOnline失效（延迟登出静默丢失）。remove(key,value)
 			// 只删属于自己的注册（Application按引用判等）。
@@ -785,7 +812,7 @@ public final class Application extends ReentrantLock {
 
 			if (null != checkpointFuture) {
 				// FND-A1-10：get()在检查点任务以异常完成时抛ExecutionException并从stop逃逸，
-				// startState滞留eStartingOrStopping、数据库未关，后续start()无法恢复。任务异常
+				// startState滞留eStopping、数据库未关，后续start()无法恢复。任务异常
 				// 已由Task框架记录，这里吞掉保证停机流程继续走完。
 				try {
 					checkpointFuture.get();
@@ -806,9 +833,6 @@ public final class Application extends ReentrantLock {
 				deadlockBreaker = null;
 			}
 
-			if (startState == StartState.eStopped)
-				return;
-			startState = StartState.eStartingOrStopping;
 			ShutdownHook.remove(this);
 			logger.info("Stop ServerId={}", conf.getServerId());
 
