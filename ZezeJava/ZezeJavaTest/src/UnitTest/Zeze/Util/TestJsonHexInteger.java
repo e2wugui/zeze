@@ -22,6 +22,31 @@ public final class TestJsonHexInteger {
 		int x;
 	}
 
+	static class D {
+		double d;
+		float f;
+		Double dd;
+		double x;
+	}
+
+	// FND4-13：parseDouble 缺 0x 分支——double/float 字段的十六进制词法静默解析为 0.0
+	// （pos 停在 'x'，余下字符被当垃圾扫过，无任何诊断）。
+	@Test
+	public void testDoubleHex() throws ReflectiveOperationException {
+		var d = Json.parse("{\"d\":0x10,\"f\":0x20,\"dd\":0xff}", D.class);
+		assertEquals(16.0, d.d, 0.0);
+		assertEquals(32.0f, d.f, 0.0f);
+		assertEquals(255.0, d.dd, 0.0);
+
+		d = Json.parse("{\"d\":-0x10}", D.class);
+		assertEquals(-16.0, d.d, 0.0);
+
+		// hex 词解析完 pos 必须停在词尾，后继字段不受影响
+		d = Json.parse("{\"d\":0X1F,\"x\":5}", D.class);
+		assertEquals(31.0, d.d, 0.0);
+		assertEquals(5.0, d.x, 0.0);
+	}
+
 	@Test
 	public void testIntHex() throws ReflectiveOperationException {
 		B b = Json.parse("{\"i\":0x10}", B.class);

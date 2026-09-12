@@ -1531,9 +1531,24 @@ public final class JsonReader {
 				pos = p;
 				return c == 'n' ? Double.NaN : minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
 			}
-			if (b == '0')
+			if (b == '0') {
 				b = buffer[++p];
-			else if ((i = (b - '0') & 0xff) < 10) {
+				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5；与 parseInt/parseLong/parseNumber 对齐）。
+					// FND4-13：原实现缺此分支，0x词法静默解析为0.0且pos停在'x'、余下字符被当垃圾扫过。
+					// hex是整数词法（无frac/exp），消费完词尾即返回（pos不变式：指向词后首字符）。
+					for (; ; ) {
+						b = buffer[++p];
+						if ((c = (b - '0') & 0xff) < 10)
+							i = i * 16 + c;
+						else if ((c = ((b | 0x20) - 'a') & 0xff) < 6)
+							i = i * 16 + c + 10;
+						else
+							break;
+					}
+					pos = p;
+					return minus ? -(double)i : (double)i;
+				}
+			} else if ((i = (b - '0') & 0xff) < 10) {
 				while ((c = ((b = buffer[++p]) - '0') & 0xff) < 10) {
 					if (i >= 0xCCC_CCCC_CCCC_CCCCL && (i > 0xCCC_CCCC_CCCC_CCCCL || c > 7)) {
 						d = i; // 0xCCC_CCCC_CCCC_CCCC * 10 = 0x7FFF_FFFF_FFFF_FFF8
