@@ -83,10 +83,17 @@ abstract class TimerOnlineBase<I> {
 		return timer().zeze;
 	}
 
-	// 检查命名timerId格式合法（非法抛异常）且是否已被占用，被各scheduleOnlineNamed入口使用。
+	// 检查命名timerId格式合法（非法抛异常）且全局唯一：统一经Timer.isNamedTimerIdOccupied
+	// 查全局/离线索引+全部onlineSet的Role在线表+Account在线表。FND4-41：原实现只查本表，
+	// 三套查重互不相通——同名online/offline/global定时器并存并共用timerFutures相互覆盖。
 	final boolean isNamedTimerIdOccupied(@NotNull String timerId) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
+		return timer().isNamedTimerIdOccupied(timerId);
+	}
+
+	// 供Timer.isOnlineTimerIdOccupied逐set查重：本onlineSet在线表是否已有该timerId。
+	final boolean isOnlineTimerOccupied(@NotNull String timerId) {
 		return getOnlineTimer(timerId) != null;
 	}
 

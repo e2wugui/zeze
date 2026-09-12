@@ -827,6 +827,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		checkRunningTransaction("scheduleNamed");
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
+		if (isOnlineTimerIdOccupied(timerId))
+			return false; // FND4-41：同名被在线族定时器占用。三套查重互不相通时同名并存，
+			// 共用timerFutures相互覆盖——被覆盖一方本地调度被杀（DB记录仍在，静默停摆）。
 		var index = _tIndexs.get(timerId);
 		if (index != null) {
 			if (index.getServerId() != zeze.getConfig().getServerId())
@@ -929,6 +932,33 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	@NotNull tIndexs tIndexs() {
 		return _tIndexs;
+	}
+
+	/**
+	 * 命名timerId是否被在线族占用：任一onlineSet的Role在线表（表名带set后缀，须逐set查）
+	 * 或Account在线表。
+	 */
+	public boolean isOnlineTimerIdOccupied(@NotNull String timerId) {
+		if (_tAccountTimers.get(timerId) != null)
+			return true;
+		if (defaultOnline != null) {
+			var occupied = new boolean[1];
+			defaultOnline.getProviderWithOnline().foreachOnline(
+					online -> occupied[0] |= online.getTimerRole().isOnlineTimerOccupied(timerId));
+			return occupied[0];
+		}
+		return false;
+	}
+
+	/**
+	 * 命名timerId全局唯一不变量的统一检查点（FND4-41）：全局/离线索引_tIndexs + 在线族全部表
+	 * （各onlineSet的Role在线表、Account在线表）。online入口（scheduleOnlineNamed族，无同族
+	 * 重建语义）直接用它；全局/离线入口保留同族同server重建语义，另行叠加
+	 * {@link #isOnlineTimerIdOccupied}。本地timerFutures不查：future的安装晚于且从属于
+	 * 存储行，存储存在性是唯一性的权威来源。
+	 */
+	public boolean isNamedTimerIdOccupied(@NotNull String timerId) {
+		return _tIndexs.get(timerId) != null || isOnlineTimerIdOccupied(timerId);
 	}
 
 	@NotNull tNodes tNodes() {

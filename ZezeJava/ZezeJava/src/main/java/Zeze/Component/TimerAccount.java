@@ -721,7 +721,10 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var zeze = online.providerApp.zeze;
-		var index = zeze.getTimer().tIndexs().get(timerId);
+		var timer = zeze.getTimer();
+		if (timer.isOnlineTimerIdOccupied(timerId))
+			return false; // FND4-41：同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
+		var index = timer.tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
 		switch (spec) {
