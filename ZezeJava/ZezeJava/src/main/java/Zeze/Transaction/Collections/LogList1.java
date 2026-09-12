@@ -79,10 +79,17 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public final boolean removeAll(@NotNull Collection<? extends V> c) {
+		// JDK契约：删除c中每个元素在列表里的全部出现（FND4-08：原逐元素remove(v)只删首个出现，
+		// [x,x].removeAll(Set.of(x))留下[x]，三方一致地违反契约）。从高索引往低删：
+		// 生成的OP_REMOVE序列在顺序重放时低位索引不受高位删除影响，opLog词表不变。
+		var hit = new java.util.HashSet<>(c);
+		var list = getValue();
 		var result = false;
-		for (V v : c) {
-			if (remove(v))
+		for (var i = list.size() - 1; i >= 0; i--) {
+			if (hit.contains(list.get(i))) {
+				remove(i);
 				result = true; // 只要有一个删除成功，就认为成功：removeAll的定义是发生了改变就返回true。
+			}
 		}
 		return result;
 	}
