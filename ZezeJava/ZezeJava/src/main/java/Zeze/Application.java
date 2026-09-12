@@ -531,7 +531,10 @@ public final class Application extends ReentrantLock {
 	}
 
 	public void endStart() {
-		delayRemove.continueJobs();
+		// noDatabase模式不创建delayRemove（构造期跳过）：生命周期钩子对两种模式都要有
+		// 定义良好的行为——no-op（与无数据库语义一致）（FND4-81）。
+		if (delayRemove != null)
+			delayRemove.continueJobs();
 	}
 
 	/*
@@ -899,7 +902,9 @@ public final class Application extends ReentrantLock {
 	}
 
 	public void checkpointRun() {
-		checkpoint.runOnce();
+		// 同endStart（FND4-81）：noDatabase模式不创建checkpoint。
+		if (checkpoint != null)
+			checkpoint.runOnce();
 	}
 
 	public void checkpointRunThread() {
