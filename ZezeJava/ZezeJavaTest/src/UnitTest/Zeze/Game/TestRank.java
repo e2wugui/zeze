@@ -119,6 +119,67 @@ public class TestRank {
 		}
 	}
 
+	// FND4-77：deleteRank/mergeRank 不失效 rankCached——查询过（缓存建立）→删榜→立即查询
+	// 命中未过期缓存返回已删旧榜（窗口期=RankCacheTimeout默认5分钟）。
+	// 修复后：写路径按rankType整类失效缓存（提交后），删除/合并后立即查询必须重建。
+	@Test
+	public void testDeleteAndMergeRankInvalidateCache() {
+		if (disableTest)
+			return;
+		var app = apps[0];
+		app.rank.setFuncConcurrentLevel(rankType -> CONC_LEVEL);
+		var rankKey = Rank.newRankKey(RANK_TYPE, BConcurrentKey.TimeTypeTotal);
+
+		app.getZeze().newProcedure(() -> {
+			// 造榜+建缓存：非空快照
+			updateOk(app, 0, rankKey, ROLE_ID_BEGIN, 100);
+			assertFalse(app.rank.getRankTotal(rankKey).getTableValue().getRankListReadOnly().isEmpty(),
+					"预置：缓存建立且非空");
+			// 删榜：写路径必须失效缓存
+			app.rank.deleteRank(rankKey);
+			return Procedure.Success;
+		}, "FND4_77.setupAndDelete").call();
+
+		// 红断言（新事务）：删除后立即查询必须空榜（原实现命中未过期缓存返回旧榜）
+		app.getZeze().newProcedure(() -> {
+			assertTrue(app.rank.getRankTotal(rankKey).getTableValue().getRankListReadOnly().isEmpty(),
+					"deleteRank后不得返回旧榜缓存（FND4-77）");
+			return Procedure.Success;
+		}, "FND4_77.getRankTotalAfterDelete").call();
+
+		// mergeRank 同理：from/to同rankType不同offset，合并后to的缓存必须失效重建
+		var fromKey = new BConcurrentKey(RANK_TYPE, 0, BConcurrentKey.TimeTypeTotal, 2026, 111);
+		var toKey = new BConcurrentKey(RANK_TYPE, 0, BConcurrentKey.TimeTypeTotal, 2026, 222);
+		app.getZeze().newProcedure(() -> {
+			updateOk(app, 0, toKey, ROLE_ID_BEGIN, 50);
+			assertFalse(app.rank.getRankTotal(toKey).getTableValue().getRankListReadOnly().isEmpty(),
+					"预置：to榜缓存建立且非空");
+			updateOk(app, 0, fromKey, ROLE_ID_BEGIN + 1, 200);
+			updateOk(app, 0, fromKey, ROLE_ID_BEGIN + 2, 300);
+			app.rank.mergeRank(fromKey, toKey);
+			return Procedure.Success;
+		}, "FND4_77.mergeRank").call();
+
+		// 红断言（新事务）：合并后立即查询必须包含from成员（原实现返回合并前旧快照）
+		app.getZeze().newProcedure(() -> {
+			var merged = app.rank.getRankTotal(toKey).getTableValue().getRankListReadOnly();
+			assertEquals(3, merged.size(), "mergeRank后不得返回旧快照（FND4-77）");
+			boolean hasFrom = false;
+			for (var v : merged)
+				hasFrom |= v.getRoleId() == ROLE_ID_BEGIN + 2;
+			assertTrue(hasFrom, "from成员必须出现在合并后的to榜");
+			return Procedure.Success;
+		}, "FND4_77.getRankTotalAfterMerge").call();
+	}
+
+	private void updateOk(SimpleApp app, int hash, BConcurrentKey key, long roleId, long value) {
+		app.rank.updateRank(hash, key, roleId, new BValueLong(value)).await().onSuccess(r ->
+				assertEquals(Procedure.Success, r.longValue())).onFail(e -> {
+			e.printStackTrace();
+			fail();
+		});
+	}
+
 	// 用于生成Redirect代码
 	public static void main(String[] args) throws Exception {
 		TestRank testRank = new TestRank();

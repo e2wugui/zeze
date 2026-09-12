@@ -22,6 +22,7 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Serialize.Serializable;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.OutObject;
 import org.jetbrains.annotations.NotNull;
 
@@ -487,6 +488,15 @@ public class Rank extends AbstractRank {
 					keyHint.getOffset());
 			_trank.remove(concurrentKey);
 		}
+		// FND4-77：底表变更⟹缓存失效由写路径承担，否则删除后最长RankCacheTimeout窗口内
+		// getRankTotal/getRankPosition仍命中旧榜快照（发奖等依赖排名的逻辑可能按旧榜结算）。
+		invalidateRankCacheWhileCommit(keyHint.getRankType());
+	}
+
+	// FND4-77：按rankType整类失效——rankCached的键是查询调用方传入的hint形态（hash段不参与
+	// 榜语义），逐段精确匹配不可靠；容量上限内的全类扫描代价可忽略。提交后失效：回滚不浪费重建。
+	private void invalidateRankCacheWhileCommit(int rankType) {
+		Transaction.whileCommit(() -> rankCached.keySet().removeIf(key -> key.getRankType() == rankType));
 	}
 
 	/**
@@ -527,6 +537,9 @@ public class Rank extends AbstractRank {
 			// 两侧表行借用过来的（受管），落表会因元素已受管抛HasManagedException，必须先copy。
 			_trank.put(concurrentKeyTo, merged.copy());
 		}
+		// FND4-77：合并改写目标段底表，同deleteRank需失效缓存（"直接合并hash分组，不适用缓存"
+		// 指合并本身不走缓存，但已建立的to榜缓存必须失效，否则窗口期返回合并前旧快照）。
+		invalidateRankCacheWhileCommit(keyHintFrom.getRankType());
 	}
 
 	/**
