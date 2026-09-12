@@ -280,39 +280,58 @@ public class AchillesHeelDaemon {
 					// 执行KeepAlive
 					var now = System.currentTimeMillis();
 					for (int i = 0; i < agents.length; i++) {
-						var agent = agents[i];
-						var config = agent.getConfig();
-						// 周期检查Release状态（与ThreadDaemon一致）：
-						// 1. 已完成的Releaser必须及时清理，否则isReleasing永真导致acquire永久abort。
-						//    Release命令是checkReleaseTimeout唯一入口时，keepAlive恢复会刷新activeTime，
-						//    daemon不再发Release，已完成的releaser就永远没人清理。
-						// 2. Releaser超时自行处置，不等daemon的Release命令到达。
-						// 这里只观察已有Releaser的状态，不startRelease——开启新Release仍只能由Release命令触发。
-						var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
-						if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
-							haltOnReleaseTimeout(i);
-						var idle = now - agent.getActiveTime();
-						if (idle > config.serverKeepAliveIdleTimeout) {
-							//logger.debug("KeepAlive ServerKeepAliveIdleTimeout={}", config.ServerKeepAliveIdleTimeout);
-							agent.keepAlive();
+						// KeepAlive段局部兜底（FND4-04，对齐本文件既有三处判例：坏包/越界/Release处理体）：
+						// 单轮单agent的异常（关停竞态下schedule拒绝执行、endActions回调抛错等非致命事件）
+						// 记error后继续下一轮——逃逸到外层catch会halt(321321)整个进程。
+						// release超时的自杀halt在haltOnReleaseTimeout内无条件执行，不会被这里吞掉。
+						try {
+							var agent = agents[i];
+							var config = agent.getConfig();
+							// 周期检查Release状态（与ThreadDaemon一致）：
+							// 1. 已完成的Releaser必须及时清理，否则isReleasing永真导致acquire永久abort。
+							//    Release命令是checkReleaseTimeout唯一入口时，keepAlive恢复会刷新activeTime，
+							//    daemon不再发Release，已完成的releaser就永远没人清理。
+							// 2. Releaser超时自行处置，不等daemon的Release命令到达。
+							// 这里只观察已有Releaser的状态，不startRelease——开启新Release仍只能由Release命令触发。
+							var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
+							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
+								haltOnReleaseTimeout(i);
+							var idle = now - agent.getActiveTime();
+							if (idle > config.serverKeepAliveIdleTimeout) {
+								//logger.debug("KeepAlive ServerKeepAliveIdleTimeout={}", config.ServerKeepAliveIdleTimeout);
+								agent.keepAlive();
+							}
+						} catch (Throwable ex) { // logger.error
+							logger.error("ProcessDaemon.keepAlive globalIndex={}", i, ex);
 						}
 					}
 				}
 			} catch (Throwable ex) { // halt
 				// 这个线程不准出错。除了里面应该忽略的。
 				logger.fatal("ProcessDaemon.AchillesHeelDaemon ", ex);
-				zeze.checkpointRun();
-				LogManager.shutdown();
-				Runtime.getRuntime().halt(321321);
+				haltAfterCheckpoint(321321);
 			}
+		}
+
+		// 数据安全停机：checkpoint尽力保存后无条件halt（FND4-04：KeepAlive段局部兜底后，
+		// haltOnReleaseTimeout被catch区覆盖，checkpoint/shutdown失败不得吞掉halt本身）。
+		private void haltAfterCheckpoint(int exitCode) {
+			try {
+				zeze.checkpointRun();
+			} catch (Throwable ex) {
+				logger.fatal("ProcessDaemon.checkpointRun before halt({}) fail", exitCode, ex);
+			}
+			try {
+				LogManager.shutdown();
+			} catch (Throwable ignored) {
+			}
+			Runtime.getRuntime().halt(exitCode);
 		}
 
 		// 本地发现Releaser超时，先自杀，不用等进程守护来杀（Release命令分支与周期检查共用）。
 		private void haltOnReleaseTimeout(int globalIndex) {
 			logger.fatal("ProcessDaemon.AchillesHeelDaemon global release timeout. index={}", globalIndex);
-			zeze.checkpointRun();
-			LogManager.shutdown();
-			Runtime.getRuntime().halt(123123);
+			haltAfterCheckpoint(123123);
 		}
 
 		public void stopAndJoin() {
