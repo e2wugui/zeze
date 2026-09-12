@@ -479,7 +479,9 @@ public final class Config {
 			case Redis -> new Zeze.Transaction.DatabaseRedis(zeze, conf);
 			case PostgreSQL -> new DatabasePostgreSQL(zeze, conf);
 			case MongoDb -> new DatabaseMongoDb(zeze, conf);
-			default -> throw new UnsupportedOperationException("unknown database type.");
+			case DynamoDb -> new Zeze.Transaction.DatabaseDynamoDb(zeze, conf);
+			default -> throw new UnsupportedOperationException("unknown database type."
+					+ " supported: Memory/MySql/SqlServer/Tikv/RocksDb/Dbh2/Redis/PostgreSQL/MongoDb/DynamoDb");
 		};
 	}
 
