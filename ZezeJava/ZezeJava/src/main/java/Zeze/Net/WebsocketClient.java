@@ -64,9 +64,14 @@ public class WebsocketClient extends AsyncSocket {
 				}
 				webSocket.request(1);
 				WebsocketClient.this.webSocket = webSocket;
-				service.addSocket(WebsocketClient.this);
+				// 对齐TcpSocket.doConnectSuccess的连接成功钩子：url型Connector依赖
+				// Connector.OnSocketConnected置isConnected=true并回落重连退避，缺调则
+				// isConnected恒false、退避封顶后永不回落（FND4-35）；Service.OnSocketConnected
+				// =addSocket+OnHandshakeDone，与TCP家族生命周期契约（连接成功⟹调用）一致。
+				if (connector != null)
+					connector.OnSocketConnected(WebsocketClient.this);
 				try {
-					service.OnHandshakeDone(WebsocketClient.this);
+					service.OnSocketConnected(WebsocketClient.this);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}

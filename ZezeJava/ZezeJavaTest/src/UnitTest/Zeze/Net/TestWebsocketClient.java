@@ -103,4 +103,37 @@ public class TestWebsocketClient {
 			netty.close();
 		}
 	}
+
+	// N-1缺陷③(FND4-35): onOpen从不回调Connector.OnSocketConnected, isConnected恒false,
+	// 重连退避(reConnectDelay*2封顶)永不回落——连接曾长时间健康,故障恢复后每次重连仍慢8秒,
+	// 与TCP连接器行为不一致。修复后: 握手成功即isConnected()=true(对齐TcpSocket.doConnectSuccess)。
+	@Test
+	public void testConnectedHookState() throws Exception {
+		Task.tryInitThreadPool();
+		var netty = new Netty(1);
+		var server = new HttpServer();
+		try {
+			server.addHandler("/ws", TransactionLevel.Serializable, DispatchMode.Direct,
+					new HttpWebSocketHandle() {
+					});
+			var port = ((InetSocketAddress)server.start(netty, 0).sync().channel().localAddress()).getPort();
+
+			var service = new TestWsService();
+			var connector = new Connector(true, "ws://127.0.0.1:" + port + "/ws");
+			connector.SetService(service);
+			try {
+				connector.start();
+				var so = connector.WaitReady(); // 连接并握手成功
+				Assertions.assertNotNull(so);
+				Assertions.assertTrue(connector.isConnected(),
+						"握手完成后Connector.isConnected必须为true（onOpen需回调OnSocketConnected）");
+			} finally {
+				connector.stop();
+				service.Stop();
+			}
+		} finally {
+			server.close();
+			netty.close();
+		}
+	}
 }
