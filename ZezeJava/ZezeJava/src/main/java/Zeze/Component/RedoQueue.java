@@ -63,6 +63,7 @@ public class RedoQueue extends HandshakeClient {
 			var done = tableLastDoneTaskId.get(lastDoneTaskIdKey);
 			if (done != null)
 				lastDoneTaskId = ByteBuffer.Wrap(done).ReadLong();
+			deleteDoneTasks(); // 清理崩溃窗口残留（水位已推进但删除未执行）
 			super.start();
 		} finally {
 			unlock();
@@ -116,6 +117,17 @@ public class RedoQueue extends HandshakeClient {
 		}
 	}
 
+	// FND4-43：删除水位（含）以下条目。重发只读lastDoneTaskId以上，以下条目（任务正文全量落盘）
+	// 永不清理=本地RocksDB无界增长。key为8字节大端long，[key(0),key(lastDoneTaskId+1))即
+	// taskId<=lastDoneTaskId的全部；与水位推进同锁同线程，重启时start()再补一次（清崩溃残留）。
+	private void deleteDoneTasks() throws RocksDBException {
+		var first = ByteBuffer.Allocate(8);
+		first.WriteLong(0);
+		var end = ByteBuffer.Allocate(8);
+		end.WriteLong(lastDoneTaskId + 1);
+		tableTaskQueue.deleteRange(first.Bytes, end.Bytes);
+	}
+
 	private void tryStartSendNextTask(BQueueTask add, AsyncSocket socket) throws RocksDBException {
 		if (pending != null)
 			return;
@@ -161,6 +173,7 @@ public class RedoQueue extends HandshakeClient {
 				var value = ByteBuffer.Allocate(9);
 				value.WriteLong(lastDoneTaskId);
 				tableLastDoneTaskId.put(lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
+				deleteDoneTasks();
 				tryStartSendNextTask(null, rpc.getSender());
 				return 0L;
 			}
