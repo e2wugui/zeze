@@ -180,15 +180,17 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		try {
 			if (server == null)
 				return;
-			serverSocket.close();
-			serverSocket = null;
-			server.stop();
-			server = null;
-			// 取消守护任务和性能统计任务，避免stop后继续访问已关闭的资源。
+			// 先停使用者再拆被使用者（对齐Raft版顺序，FND4-53）：daemon经CacheHolder.kick访问
+			// instance.server.GetSocket，原顺序先置server=null后cancel定时器——停机窗口内daemon
+			// 踩到null NPE（持session锁的该轮forEach中止，剩余session不再检查）。
 			if (achillesHeelTimer != null) {
 				achillesHeelTimer.cancel(false);
 				achillesHeelTimer = null;
 			}
+			serverSocket.close();
+			serverSocket = null;
+			server.stop();
+			server = null;
 			if (perf != null) // 不置null：极端情况下并发的协议派发还会引用perf对象
 				perf.close();
 		} finally {
