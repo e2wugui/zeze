@@ -102,9 +102,9 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		if (!zezeSagas.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. saga has called.");
 		var zezeInstance = onzServer.getZezeInstance(zezeName);
-		// 限制每个zeze集群最多一个调用.
+		// 限制每个zeze集群最多一个调用：键为集群名（FND4-90），重连返回新socket不再绕过限制。
 		var newCall = new OutObject<TaskCompletionSource<R2>>();
-		zezeProcedures.computeIfAbsent(zezeInstance, __ -> newCall.value
+		zezeProcedures.computeIfAbsent(zezeName, __ -> newCall.value
 				= OnzAgent.callProcedureAsync(
 				this, zezeInstance, onzProcedureName, argument, result, flushMode));
 		if (newCall.value == null)
@@ -118,9 +118,9 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		if (!zezeProcedures.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. procedure has called.");
 		var zezeInstance = onzServer.getZezeInstance(zezeName);
-		// 限制每个zeze集群最多一个调用.
+		// 限制每个zeze集群最多一个调用：键为集群名（FND4-90）。
 		var newCall = new OutObject<TaskCompletionSource<R2>>();
-		zezeSagas.computeIfAbsent(zezeInstance, __ -> newCall.value
+		zezeSagas.computeIfAbsent(zezeName, __ -> newCall.value
 				= OnzAgent.callSagaAsync(
 				this, zezeInstance, onzProcedureName, argument, result, flushMode));
 		if (newCall.value == null)
@@ -135,7 +135,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			var r = new FuncSagaEnd();
 			r.Argument.setOnzTid(onzTid);
 			r.Argument.setCancel(false);
-			futures.add(r.SendForWait(e.getKey()));
+			futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey())));
 		}
 		for (var future : futures)
 			future.await();
@@ -160,7 +160,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 					var r = new FuncSagaEnd();
 					r.Argument.setOnzTid(onzTid);
 					r.Argument.setCancel(true);
-					futures.add(r.SendForWait(e.getKey()));
+					futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey())));
 				}
 			} catch (Exception ex) {
 				logger.error("cancel if saga success.", ex);
@@ -177,8 +177,10 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 
 	public BSavedCommits.Data buildSavedCommits() {
 		var bState = new BSavedCommits.Data();
+		// 按集群名持久化（FND4-90）：地址会漂移（重连/SM通告变更），redo时由
+		// getZezeInstance现查当前地址——旧地址不再作为幻影参与方被反复重试。
 		for (var e : zezeProcedures.keySet()) {
-			bState.getOnzs().add(Objects.requireNonNull(e.getConnector()).getName());
+			bState.getOnzs().add(e);
 		}
 		return bState;
 	}
@@ -210,7 +212,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			var r = new Commit();
 			r.Argument.setOnzTid(onzTid);
 			try {
-				r.SendForWait(zeze).await();
+				r.SendForWait(onzServer.getZezeInstance(zeze)).await();
 			} catch (Exception ex) { // await 不声明受检异常（中断在内部分理），统一捕获
 				commitFail = true;
 				logger.fatal("commit await fail. tid={}, keep eCommitting for redo.", onzTid, ex);
@@ -242,7 +244,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		for (var zeze : zezeProcedures.keySet()) {
 			var r = new Rollback();
 			r.Argument.setOnzTid(onzTid);
-			r.SendForWait(zeze).await();
+			r.SendForWait(onzServer.getZezeInstance(zeze)).await();
 			if (r.getResultCode() != 0) {
 				logger.fatal("rollback error {}", IModule.getErrorCode(r.getResultCode()));
 			}
@@ -277,9 +279,9 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			// ——已实际提交的事务报告假阴性，调用方重发导致业务重复执行（FND4-86）。
 			for (var zeze : zezeProcedures.keySet()) {
 				try {
-					checkpoint(zeze);
+					checkpoint(onzServer.getZezeInstance(zeze));
 				} catch (Exception ex) { // logger.fatal
-					logger.fatal("waitFlushDone checkpoint fail. tid={}, zeze={}", onzTid, zeze.getRemoteAddress(), ex);
+					logger.fatal("waitFlushDone checkpoint fail. tid={}, zeze={}", onzTid, zeze, ex);
 				}
 			}
 		} finally {
@@ -310,8 +312,10 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	private volatile boolean flushGateOpen;
 
 	// 以下两个集合在一个事务内只能启用一个。即不能混用FuncProcedure和FuncSaga
-	private final ConcurrentHashMap<AsyncSocket, TaskCompletionSource<?>> zezeProcedures = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<AsyncSocket, TaskCompletionSource<?>> zezeSagas = new ConcurrentHashMap<>();
+	// 去重键=集群名（FND4-90）：socket实例在重连后变化——以实例为键使"每集群最多一个调用"
+	// 在事务内重连窗口失效，且新旧两个地址都被持久化为参与方，redo对死地址永不收敛。
+	private final ConcurrentHashMap<String, TaskCompletionSource<?>> zezeProcedures = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, TaskCompletionSource<?>> zezeSagas = new ConcurrentHashMap<>();
 
 	public long getOnzTid() {
 		return onzTid;

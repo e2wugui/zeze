@@ -208,19 +208,19 @@ public class OnzServer extends AbstractOnz {
 		}
 	}
 
-	private static TaskCompletionSource<EmptyBean.Data> commit(Connector conn, long tid) {
+	private static TaskCompletionSource<EmptyBean.Data> commit(AsyncSocket socket, long tid) {
 		var r = new Commit();
 		r.Argument.setOnzTid(tid);
-		return r.SendForWait(conn.GetReadySocket());
+		return r.SendForWait(socket);
 	}
 
-	private static TaskCompletionSource<EmptyBean.Data> rollback(Connector conn, long tid) {
+	private static TaskCompletionSource<EmptyBean.Data> rollback(AsyncSocket socket, long tid) {
 		var r = new Rollback();
 		r.Argument.setOnzTid(tid);
-		return r.SendForWait(conn.GetReadySocket());
+		return r.SendForWait(socket);
 	}
 
-	private void redo(byte[] key, Func2<Connector, Long, TaskCompletionSource<EmptyBean.Data>> func) throws RocksDBException {
+	private void redo(byte[] key, Func2<AsyncSocket, Long, TaskCompletionSource<EmptyBean.Data>> func) throws RocksDBException {
 
 		var value = Objects.requireNonNull(commitPoint.get(key));
 		var state = new BSavedCommits.Data();
@@ -231,7 +231,16 @@ public class OnzServer extends AbstractOnz {
 		try {
 			var futures = new ArrayList<TaskCompletionSource<?>>();
 			for (var e : state.getOnzs()) {
-				futures.add(func.call(openRedoConnection(zezeOnzs, e), tid));
+				AsyncSocket socket;
+				if (zezes.containsKey(e)) {
+					// 参与方按集群名持久化（FND4-90起）：现查当前地址——地址漂移后redo
+					// 不再对死地址重试（连接器由instances缓存管理生命周期）。
+					socket = getZezeInstance(e);
+				} else {
+					// 旧版本持久化的ip_port（升级窗口遗留的未决决策）：按地址建连兜底。
+					socket = openRedoConnection(zezeOnzs, e).GetReadySocket();
+				}
+				futures.add(func.call(socket, tid));
 			}
 			for (var e : futures)
 				e.await();
