@@ -215,10 +215,31 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		for (int i = 0; ; ) {
 			try {
 				var rocksDb = realOpen(dbType, options, path, cfds, cfhs);
-				if (cfds.size() != cfhs.size())
-					throw new IllegalStateException("RocksDB.open unmatched: " + cfds.size() + " != " + cfhs.size());
+				if (cfds.size() != cfhs.size()) {
+					// 句柄数不匹配（重试污染等）：销毁已创建句柄并关库后再抛（FND4-22），
+					// 否则成功打开的db与cfhs全部泄漏且调用方无引用可回收。
+					int cfhCount = cfhs.size();
+					for (var cfh : cfhs) {
+						try {
+							cfh.close();
+						} catch (Throwable ignored) {
+						}
+					}
+					cfhs.clear();
+					rocksDb.close();
+					throw new IllegalStateException("RocksDB.open unmatched: " + cfds.size() + " != " + cfhCount);
+				}
 				return rocksDb;
 			} catch (RocksDBException e) {
+				// 失败尝试可能已创建部分句柄：销毁并清空后重试，避免句柄累积
+				// 并污染下一次尝试的cfhs（FND4-22）。
+				for (var cfh : cfhs) {
+					try {
+						cfh.close();
+					} catch (Throwable ignored) {
+					}
+				}
+				cfhs.clear();
 				logger.warn("RocksDB.open failed: '{}'", path, e);
 				if (++i >= 10)
 					throw e;
@@ -440,22 +461,32 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		return !rocksDb.isOwningHandle();
 	}
 
-	@Override
-	public void close() {
-		lock();
-		try {
-			var bp = batchPool;
-			if (bp != null) {
-				for (var b : bp)
-					b.batch.close();
-				bp.clear();
+		@Override
+		public void close() {
+			lock();
+			try {
+				var bp = batchPool;
+				if (bp != null) {
+					for (var b : bp)
+						b.batch.close();
+					bp.clear();
+				}
+				// 释放Table持有的列族句柄（FND4-22）：tableMap.clear()直接丢弃会漏掉
+				// 堆外句柄（依赖GC滞后清理且不保证）。destroy须在db.close()前，
+				// 与dropTable的释放模式收口；只释放句柄不drop数据（close不删列族）。
+				for (var table : tableMap.values()) {
+					try {
+						rocksDb.destroyColumnFamilyHandle(table.getCfHandle());
+					} catch (Throwable e) {
+						logger.error("destroy column family handle '{}'", table.getName(), e);
+					}
+				}
+				tableMap.clear();
+				rocksDb.close();
+			} finally {
+				unlock();
 			}
-			tableMap.clear();
-			rocksDb.close();
-		} finally {
-			unlock();
 		}
-	}
 
 	public static void backup(@NotNull String checkpointDir, @NotNull String backupDir) throws RocksDBException {
 		backup(DbType.eRocksDb, checkpointDir, backupDir);
@@ -472,6 +503,15 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			// 增长（调用方 Rocks.snapshot/Dbh2StateMachine 都会把整个 backupDir 打成
 			// 快照 zip，多代备份没有消费方）；只保留最新一份。
 			backup.purgeOldBackups(1);
+		} finally {
+			// realOpen产生的列族句柄随用随销（FND4-22姊妹点）：
+			// src关闭不会释放cfhs，泄漏量级为列族数。
+			for (var cfh : cfhs) {
+				try {
+					cfh.close();
+				} catch (Throwable ignored) {
+				}
+			}
 		}
 	}
 
