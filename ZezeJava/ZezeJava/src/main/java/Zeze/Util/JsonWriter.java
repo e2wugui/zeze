@@ -579,12 +579,14 @@ public final class JsonWriter {
 				if (comma)
 					buf[pos++] = ',';
 				if (!prettyFormat) {
-					ensure(name.length + 3); // "xxxxxx":
+					// 上界预留（FND4-21）：write(noQuote)内部不ensure，转义每字节最多6输出；
+					// 字段名经fieldNameFilter可为任意串。对齐Map键/字符串值路径的6倍上界判例。
+					ensure(name.length * 6 + 3); // "xxxxxx":
 					write(name, noQuote);
 					buf[pos++] = ':';
 				} else {
 					writeNewLineTabs();
-					ensure(name.length + 4); // "xxxxxx":_
+					ensure(name.length * 6 + 4); // "xxxxxx":_
 					write(name, noQuote);
 					buf[pos++] = ':';
 					buf[pos++] = ' ';
