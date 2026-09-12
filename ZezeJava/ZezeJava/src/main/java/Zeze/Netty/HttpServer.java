@@ -245,10 +245,14 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 
 	public @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) throws Exception {
 		lock();
-		if (httpSession != null)
-			httpSession.start();
 
 		try {
+			// 必须在try内（FND4-36）：HttpSession.start 可抛（newProcedure失败抛RuntimeException+
+			// ParseException），原位于lock()与try之间——抛异常时unlock永不执行，thisLock被当前线程
+			// 永久持有，此后任何线程调close()/start()永久阻塞（同线程因可重入不易察觉）。
+			if (httpSession != null)
+				httpSession.start();
+
 			if (scheduler != null)
 				throw new IllegalStateException("already started");
 			if (task11ExecutorDown) {
