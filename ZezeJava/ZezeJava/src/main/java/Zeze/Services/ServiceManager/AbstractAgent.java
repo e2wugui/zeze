@@ -110,14 +110,17 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			var lastFuture = lastTidCacheFuture;
 			var allocateCount = TidCache.ALLOCATE_COUNT_MIN;
 			if (lastFuture != null) {
-				try {
-					allocateCount = lastFuture.get().allocateCount();
-				} catch (RuntimeException e) {
-					// 上一次分配异常完成（如发送失败）：get()抛出且发生在替换lastTidCacheFuture之前，
-					// 而这里是它唯一的写入点，异常传播出去会导致毒化状态永久保留（与f561f8e41修的
-					// 128版同构）。不再传播，以默认档位重新分配并替换（自愈）。
+				// 锁内只做非阻塞探测（FND3-39）：等待未完成的future需要它的完成回调先拿本锁
+				// （回调在IO线程内联），互相等待即死锁并冻结selector。未完成时退用默认档位
+				// 立即分配——档位只是优化参数，号段允许并发分配，各自future各自消费。
+				if (lastFuture.isCompletedExceptionally()) {
+					// 上一次分配异常完成（如发送失败）：以默认档位重新分配并替换（自愈）。
 					logger.warn("allocateTidCacheFuture('{}'): last future failed, re-allocate with default count",
-							globalName, e);
+							globalName);
+				} else {
+					var last = lastFuture.getNow();
+					if (last != null)
+						allocateCount = last.allocateCount();
 				}
 			}
 			var sent = allocateAsync(globalName, allocateCount, rpc -> {
