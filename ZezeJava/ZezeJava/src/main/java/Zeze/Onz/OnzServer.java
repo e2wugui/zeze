@@ -1,10 +1,13 @@
 package Zeze.Onz;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Builtin.Onz.BSavedCommits;
 import Zeze.Builtin.Onz.Checkpoint;
@@ -58,6 +61,14 @@ public class OnzServer extends AbstractOnz {
 	private Future<?> redoTimer;
 	private final AbstractAgent myServiceManager;
 	private final AutoKey onzTidAutoKey;
+
+	// 生命周期（FND3-54）：stop后拒绝新工作；stop幂等；stop后不可再start（终态）。
+	private volatile boolean stopped;
+	// getZezeInstance的"选择→创建→登记"按名原子化（FND3-53）。
+	private final ConcurrentHashMap<String, ReentrantLock> nameLocks = new ConcurrentHashMap<>();
+	// redo轮次与database.close()互斥：cancel(false)不等在途轮次，直接关库会与
+	// 遍历/写入commitPoint竞态。轮次内的网络等待只发生在有未决事务时（常态为空）。
+	private final ReentrantLock dbLock = new ReentrantLock();
 
 	public long nextOnzTid() {
 		return onzTidAutoKey.next();
@@ -138,19 +149,28 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	private void redoTimer() throws RocksDBException {
-		try (var it = commitIndex.iterator()) {
-			for (it.seekToFirst(); it.isValid(); it.next()) {
-				var value = it.value();
-				var state = ByteBuffer.Wrap(value).ReadUInt();
-				switch (state) {
-				case eCommitting:
-					redo(it.key(), OnzServer::commit);
-					break;
-				case ePreparing:
-					redo(it.key(), OnzServer::rollback);
-					break;
+		if (stopped)
+			return;
+		dbLock.lock();
+		try {
+			if (stopped)
+				return;
+			try (var it = commitIndex.iterator()) {
+				for (it.seekToFirst(); it.isValid(); it.next()) {
+					var value = it.value();
+					var state = ByteBuffer.Wrap(value).ReadUInt();
+					switch (state) {
+					case eCommitting:
+						redo(it.key(), OnzServer::commit);
+						break;
+					case ePreparing:
+						redo(it.key(), OnzServer::rollback);
+						break;
+					}
 				}
 			}
+		} finally {
+			dbLock.unlock();
 		}
 	}
 
@@ -224,13 +244,74 @@ public class OnzServer extends AbstractOnz {
 		return conn;
 	}
 
+	/**
+	 * 停止OnzServer（幂等，可重入）。语义：不做优雅排空——在途事务可能失败，
+	 * 未完成的补发记录（commitIndex）留在库中由下次进程启动的redo恢复；终态，不可再start。
+	 * 停机为best-effort：任一步失败仅记error并继续——半途上抛会让幂等守卫把停机
+	 * 永久卡在半途（库/代理无法补关），失败步骤由日志定位人工处理。
+	 * 顺序：拒绝新工作 → 停定时器 → 停缓存connector（必须先于服务停止：
+	 * 服务关socket会触发connector自动重连，停止后仍无限重连）→ close各SM代理
+	 * （按identity去重，共享配置是同一实例）→ 停服务 → 最后关库（FND3-54）。
+	 */
 	public void stop() throws Exception {
+		if (stopped)
+			return; // 幂等
+		stopped = true;
+
 		if (null != redoTimer)
 			redoTimer.cancel(false);
-		database.close();
 
-		onzAgent.stop();
-		service.stop();
+		// redo轮次在dbLock内遍历/写入库；cancel(false)不等正在执行的轮次，
+		// 持有dbLock直到关库完成，与在途/迟到的轮次互斥（迟到轮次在锁内检查stopped返回）。
+		dbLock.lock();
+		try {
+			// 停缓存connector并清表：它们挂在onzAgent的服务上，必须在其停止前显式停掉
+			// 自动重连，否则服务关socket反而触发无限重连（1s起、上限8s）。
+			for (var connector : instances.values()) {
+				try {
+					connector.stop();
+				} catch (Throwable e) { // logger.error
+					logger.error("stop connector {}", connector.getName(), e);
+				}
+			}
+			instances.clear();
+
+			// close各zeze的SM代理（Agent.close停client/tid128/线程；raft版停loginFuture与raftClient）。
+			var closedAgents = Collections.newSetFromMap(new IdentityHashMap<AbstractAgent, Boolean>());
+			for (var agent : zezes.values()) {
+				if (!closedAgents.add(agent))
+					continue;
+				try {
+					agent.close();
+				} catch (Throwable e) { // logger.error
+					logger.error("close ServiceManager agent", e);
+				}
+			}
+			try {
+				myServiceManager.close();
+			} catch (Throwable e) { // logger.error
+				logger.error("close myServiceManager", e);
+			}
+
+			try {
+				onzAgent.stop();
+			} catch (Throwable e) { // logger.error
+				logger.error("stop onzAgent", e);
+			}
+			try {
+				service.stop();
+			} catch (Throwable e) { // logger.error
+				logger.error("stop service", e);
+			}
+
+			try {
+				database.close();
+			} catch (Throwable e) { // logger.error
+				logger.error("close database", e);
+			}
+		} finally {
+			dbLock.unlock();
+		}
 	}
 
 	/**
@@ -286,6 +367,9 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	public AsyncSocket getZezeInstance(String zezeName) {
+		if (stopped)
+			throw new RuntimeException("OnzServer stopped");
+
 		// find connected
 		var connector = instances.get(zezeName);
 		if (null != connector) {
@@ -304,26 +388,64 @@ public class OnzServer extends AbstractOnz {
 		if (null == onzServices)
 			throw new RuntimeException("serviceManager subscribe not found. " + zezeName);
 
-		var serviceInfos = onzServices.getServiceInfos(0);
-		if (serviceInfos != null) {
-			for (var onzService : serviceInfos.getSortedIdentities()) {
-				var ip = onzService.getPassiveIp();
-				var port = onzService.getPassivePort();
-				if (null != connector && connector.getName().equals(ip + "_" + port))
-					continue; // 跳过当前的
-
-				connector = new Connector(ip, port);
-				connector.SetService(onzAgent.getService());
-				connector.start();
-				var old = instances.put(zezeName, connector);
-				if (old != null && old != connector)
-					old.stop(); // 被替换的旧connector不再使用，停止它的自动重连，避免泄漏。
-				break;
+		// "选择→创建→登记"按名原子化（FND3-53）：无同步时并发冷路径互相stop对方的connector
+		// （GetReadySocket等待者收到异常，事务假性失败），重连窗口每个新请求都杀死上一个
+		// 正在握手的尝试（churn，连接永远建立不起来）。
+		var nameLock = nameLocks.computeIfAbsent(zezeName, __ -> new ReentrantLock());
+		nameLock.lock();
+		try {
+			// double-check：并发者可能刚刚创建并连上。
+			connector = instances.get(zezeName);
+			if (null != connector) {
+				var socket = connector.TryGetReadySocket();
+				if (null != socket)
+					return socket;
+				if (isAdvertised(onzServices, connector.getName()))
+					// 目标未变：连接/重连进行中，等待就绪。此时替换会stop正在握手的连接，
+					// 杀死并发等待者并重置重连退避——只有目标真的变化才允许替换。
+					return connector.GetReadySocket();
+				// 目标已变（SM不再通告当前地址）：走到下面替换。
 			}
+
+			if (stopped)
+				throw new RuntimeException("OnzServer stopped");
+
+			var serviceInfos = onzServices.getServiceInfos(0);
+			if (serviceInfos == null)
+				throw new RuntimeException("create connector fail. " + zezeName);
+			var identities = serviceInfos.getSortedIdentities();
+			if (identities.isEmpty())
+				throw new RuntimeException("no advertised service. " + zezeName);
+			var onzService = identities.getFirst();
+			connector = new Connector(onzService.getPassiveIp(), onzService.getPassivePort());
+			connector.SetService(onzAgent.getService());
+			connector.start();
+			var old = instances.put(zezeName, connector);
+			if (old != null && old != connector)
+				old.stop(); // 旧地址不再被通告：停止其僵尸重连；等待者得到的是"目标已失效"的真实失败。
+			if (stopped) {
+				// stop()在本方法的创建窗口完成（已清空instances）：撤销刚创建的连接器，
+				// 不留自动重连的僵尸。stopped是stop()的第一步，晚于清空落地的put必然可见它。
+				instances.remove(zezeName, connector);
+				connector.stop();
+				throw new RuntimeException("OnzServer stopped");
+			}
+			return connector.GetReadySocket();
+		} finally {
+			nameLock.unlock();
 		}
-		if (null == connector)
-			throw new RuntimeException("create connector fail. " + zezeName);
-		return connector.GetReadySocket();
+	}
+
+	/** connector目标（ip_port）是否仍在SM的通告名单内。 */
+	private static boolean isAdvertised(@NotNull AbstractAgent.SubscribeState onzServices,
+										@NotNull String connectorName) {
+		var serviceInfos = onzServices.getServiceInfos(0);
+		if (serviceInfos == null)
+			return false;
+		for (var identity : serviceInfos.getSortedIdentities())
+			if ((identity.getPassiveIp() + "_" + identity.getPassivePort()).equals(connectorName))
+				return true;
+		return false;
 	}
 
 	/**
@@ -362,6 +484,10 @@ public class OnzServer extends AbstractOnz {
 	 * 3. 设置其他onz事务的控制参数。如flushMode,flushTimeout等。
 	 */
 	public long perform(OnzTransaction<?, ?> txn) {
+		if (stopped) {
+			logger.error("perform on stopped OnzServer");
+			return Procedure.Exception; // 尚未开始执行，无需rollback
+		}
 		try {
 			onzAgent.addTransaction(txn);
 			var rc = txn.perform();
