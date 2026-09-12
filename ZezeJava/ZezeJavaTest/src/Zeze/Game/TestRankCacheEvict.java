@@ -55,10 +55,15 @@ public class TestRankCacheEvict {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static ConcurrentHashMap<BConcurrentKey, Rank.RankTotal> rankCachedOf(Rank rank) throws Exception {
+	private static ConcurrentHashMap<Rank.RankCacheKey, Rank.RankTotal> rankCachedOf(Rank rank) throws Exception {
 		var field = Rank.class.getDeclaredField("rankCached");
 		field.setAccessible(true);
-		return (ConcurrentHashMap<BConcurrentKey, Rank.RankTotal>)field.get(rank);
+		return (ConcurrentHashMap<Rank.RankCacheKey, Rank.RankTotal>)field.get(rank);
+	}
+
+	// 单参getRankTotal路径实际使用的缓存键（FND4-79后countNeed进入键）。
+	private static Rank.RankCacheKey cacheKeyOf(Rank rank, BConcurrentKey key) {
+		return new Rank.RankCacheKey(key, rank.getRankSize(key.getRankType()));
 	}
 
 	private static BConcurrentKey customizeKey(long customizeId) {
@@ -90,9 +95,9 @@ public class TestRankCacheEvict {
 			var cached = rankCachedOf(rank);
 			// 修复前：5 个 key 全部滞留（size==5）；修复后：上限 2
 			Assertions.assertTrue(cached.size() <= 2, "rankCached must be bounded, size=" + cached.size());
-			Assertions.assertFalse(cached.containsKey(customizeKey(1)), "最旧条目应被淘汰");
-			Assertions.assertTrue(cached.containsKey(customizeKey(4)));
-			Assertions.assertTrue(cached.containsKey(customizeKey(5)), "最新条目应保留");
+			Assertions.assertFalse(cached.containsKey(cacheKeyOf(rank, customizeKey(1))), "最旧条目应被淘汰");
+			Assertions.assertTrue(cached.containsKey(cacheKeyOf(rank, customizeKey(4))));
+			Assertions.assertTrue(cached.containsKey(cacheKeyOf(rank, customizeKey(5))), "最新条目应保留");
 		} finally {
 			try {
 				app.stop();
@@ -142,18 +147,18 @@ public class TestRankCacheEvict {
 			Assertions.assertEquals(0L, getRankTotalInProcedure(app, rank, customizeKey(3)));
 			var cached = rankCachedOf(rank);
 			Assertions.assertEquals(2, cached.size());
-			Assertions.assertFalse(cached.containsKey(customizeKey(1)));
-			Assertions.assertTrue(cached.containsKey(customizeKey(2)));
-			Assertions.assertTrue(cached.containsKey(customizeKey(3)));
+			Assertions.assertFalse(cached.containsKey(cacheKeyOf(rank, customizeKey(1))));
+			Assertions.assertTrue(cached.containsKey(cacheKeyOf(rank, customizeKey(2))));
+			Assertions.assertTrue(cached.containsKey(cacheKeyOf(rank, customizeKey(3))));
 
 			// 再访问已淘汰的 key1：重建（BuildTime 更新），此时 key2 成为最旧被淘汰
 			Assertions.assertEquals(0L, getRankTotalInProcedure(app, rank, customizeKey(1)));
 			cached = rankCachedOf(rank);
 			Assertions.assertEquals(2, cached.size());
-			Assertions.assertTrue(cached.containsKey(customizeKey(1)), "被淘汰条目再次访问必须可重建");
-			Assertions.assertFalse(cached.containsKey(customizeKey(2)));
-			Assertions.assertTrue(cached.containsKey(customizeKey(3)));
-			Assertions.assertTrue(cached.get(customizeKey(1)).getBuildTime() > 0, "重建后 BuildTime 应已设置");
+			Assertions.assertTrue(cached.containsKey(cacheKeyOf(rank, customizeKey(1))), "被淘汰条目再次访问必须可重建");
+			Assertions.assertFalse(cached.containsKey(cacheKeyOf(rank, customizeKey(2))));
+			Assertions.assertTrue(cached.containsKey(cacheKeyOf(rank, customizeKey(3))));
+			Assertions.assertTrue(cached.get(cacheKeyOf(rank, customizeKey(1))).getBuildTime() > 0, "重建后 BuildTime 应已设置");
 		} finally {
 			try {
 				app.stop();
@@ -185,7 +190,7 @@ public class TestRankCacheEvict {
 			Assertions.assertEquals(0L, getRankTotalInProcedure(app, rank, customizeKey(200)));
 			var cached = rankCachedOf(rank);
 			Assertions.assertEquals(1, cached.size());
-			Assertions.assertFalse(cached.containsKey(keyA));
+			Assertions.assertFalse(cached.containsKey(cacheKeyOf(rank, keyA)));
 
 			var position = new long[1];
 			Assertions.assertEquals(0L, app.newProcedure(() -> {
@@ -194,7 +199,7 @@ public class TestRankCacheEvict {
 			}, "getRankPosition").call());
 			Assertions.assertEquals(1L, position[0], "value 最大的 roleId=5 应排第一");
 			cached = rankCachedOf(rank);
-			Assertions.assertTrue(cached.containsKey(keyA), "重建后 keyA 应回到缓存");
+			Assertions.assertTrue(cached.containsKey(cacheKeyOf(rank, keyA)), "重建后 keyA 应回到缓存");
 		} finally {
 			try {
 				app.stop();

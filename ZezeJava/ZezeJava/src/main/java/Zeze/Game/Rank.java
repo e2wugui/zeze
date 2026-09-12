@@ -374,7 +374,13 @@ public class Rank extends AbstractRank {
 		}
 	}
 
-	private final ConcurrentHashMap<BConcurrentKey, RankTotal> rankCached = new ConcurrentHashMap<>();
+	// 缓存键=影响结果的全部输入（FND4-79）：countNeed进入键——不同需求各存快照，
+	// 否则默认getRankSize构建的快照会被更大countNeed的请求命中，静默拿到截断数据
+	//（如发前500名奖励只拿到100条）。包内可见：同包回归测试构造断言键。
+	record RankCacheKey(BConcurrentKey keyHint, int countNeed) {
+	}
+
+	private final ConcurrentHashMap<RankCacheKey, RankTotal> rankCached = new ConcurrentHashMap<>();
 
 	/**
 	 * FND-G1-7：rankCached 超过容量上限时的淘汰。
@@ -399,7 +405,7 @@ public class Rank extends AbstractRank {
 				it.remove();
 		}
 		while (rankCached.size() > capacity) {
-			BConcurrentKey oldestKey = null;
+			RankCacheKey oldestKey = null;
 			RankTotal oldestTotal = null;
 			for (var entry : rankCached.entrySet()) {
 				var total = entry.getValue();
@@ -420,7 +426,7 @@ public class Rank extends AbstractRank {
 	}
 
 	public RankTotal getRankTotal(BConcurrentKey keyHint, int countNeed) {
-		var rank = rankCached.computeIfAbsent(keyHint, __ -> new RankTotal(keyHint));
+		var rank = rankCached.computeIfAbsent(new RankCacheKey(keyHint, countNeed), __ -> new RankTotal(keyHint));
 		evictRankCacheIfOver(keyHint.getRankType(), rank);
 		var now = System.currentTimeMillis();
 		rank.lock();
@@ -496,7 +502,7 @@ public class Rank extends AbstractRank {
 	// FND4-77：按rankType整类失效——rankCached的键是查询调用方传入的hint形态（hash段不参与
 	// 榜语义），逐段精确匹配不可靠；容量上限内的全类扫描代价可忽略。提交后失效：回滚不浪费重建。
 	private void invalidateRankCacheWhileCommit(int rankType) {
-		Transaction.whileCommit(() -> rankCached.keySet().removeIf(key -> key.getRankType() == rankType));
+		Transaction.whileCommit(() -> rankCached.keySet().removeIf(key -> key.keyHint().getRankType() == rankType));
 	}
 
 	/**
