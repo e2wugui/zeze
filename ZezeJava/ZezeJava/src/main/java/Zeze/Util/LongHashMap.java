@@ -500,6 +500,9 @@ public class LongHashMap<V> implements Cloneable {
 	}
 
 	private void resize(int newSize) { // [1,2,4,8,...,0x4000_0000]
+		if (newSize < 0) // 1<<30再左移溢出为负（FND4-19，~8.6亿条目，现实不可达）：显式契约
+			// 而非 new long[负数] 的 NegativeArraySizeException；构造器tableSize封顶1<<30，扩容同样受约。
+			throw new IllegalStateException("LongHashMap capacity limit reached: " + (1 << 30));
 		threshold = (int)(newSize * loadFactor);
 		final int m = newSize - 1;
 		mask = m;
