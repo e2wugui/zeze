@@ -347,8 +347,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private final ConcurrentHashMap<String, ProcedureInfo> procedureInfoMap = new ConcurrentHashMap<>(); // key: procedureName
 	private final LongConcurrentHashMap<TableInfo> tableInfoMap = new LongConcurrentHashMap<>(); // key: tableId
 	private CountInfo[] countInfos = new CountInfo[0];
-	private final HashSet<Object> excludeRunKeys = new HashSet<>(); // value: Class or others
-	private final LongHashSet excludeProtocolTypeIds = new LongHashSet(); // value: typeId
+	// 并发安全集合（FND4-23）：热路径（getRunInfoWithSerial/addRecvSizeTime每包执行）
+	// 无锁读，配置路径随时可写——"只能启动前调用"的口头约定由数据结构自证。
+	private final ConcurrentHashSet<Object> excludeRunKeys = new ConcurrentHashSet<>(); // value: Class or others
+	// long键避免热路径装箱：以containsKey做集合语义。
+	private final LongConcurrentHashMap<Boolean> excludeProtocolTypeIds = new LongConcurrentHashMap<>(); // key: typeId
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
 	private @NotNull String lastLog = "";
 	private long lastLogTime = System.currentTimeMillis();
@@ -438,7 +441,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	public boolean addExcludeProtocolTypeId(long typeId) {
 		lock();
 		try {
-			return excludeProtocolTypeIds.add(typeId);
+			return excludeProtocolTypeIds.putIfAbsent(typeId, Boolean.TRUE) == null;
 		} finally {
 			unlock();
 		}
@@ -515,7 +518,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public void addRecvSizeTime(long typeId, @Nullable Class<?> cls, int size, long timeNs) {
-		if (excludeProtocolTypeIds.contains(typeId))
+		if (excludeProtocolTypeIds.containsKey(typeId))
 			return;
 		for (; ; ) {
 			var pi = protocolInfoMap.get(typeId);
@@ -533,7 +536,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public void addSendSize(long typeId, int size) {
-		if (!excludeProtocolTypeIds.contains(typeId)) {
+		if (!excludeProtocolTypeIds.containsKey(typeId)) {
 			for (; ; ) {
 				var pi = protocolInfoMap.get(typeId);
 				if (pi != null) {
@@ -619,14 +622,21 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	public void resetCounter() {
-		clearSerial++;
-		runInfoMap.clear();
-		protocolInfoMap.clear();
-		procedureInfoMap.clear();
-		tableInfoMap.clear();
-		for (var ci : countInfos) {
-			ci.reset();
-			ci.lastCount = 0;
+		// 与getLogAndReset互斥（FND4-23）：clearSerial代际推进与四个map清空
+		// 不是原子的，无锁并发reset会互相覆盖统计窗口。
+		lock();
+		try {
+			clearSerial++;
+			runInfoMap.clear();
+			protocolInfoMap.clear();
+			procedureInfoMap.clear();
+			tableInfoMap.clear();
+			for (var ci : countInfos) {
+				ci.reset();
+				ci.lastCount = 0;
+			}
+		} finally {
+			unlock();
 		}
 	}
 
