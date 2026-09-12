@@ -128,6 +128,12 @@ public final class SimpleTimerSpec implements TimerSpec {
 			var period = simpleTimer.getPeriod();
 			if (period <= 0)
 				nextExpectedTime = 0;
+			else if (period > Long.MAX_VALUE - nextExpectedTime)
+				// 溢出防护（FND4-44，与build的delay检查同源）：period会使推进回绕为负，
+				// 负值<=now恒真→fireSimple的delay恒Math.max(...,1)=1ms无限重触发（每轮含
+				// 事务与DB写）。极端period直接终止调度。nextExpectedTime<=now（刚触发），
+				// 该判据同时覆盖now+period路径。
+				nextExpectedTime = 0;
 			else {
 				var endTime = simpleTimer.getEndTime();
 				if (endTime > 0 && endTime < nextExpectedTime)
