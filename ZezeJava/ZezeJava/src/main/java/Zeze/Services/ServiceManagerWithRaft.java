@@ -49,6 +49,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
 	private final @NotNull Rocks rocks;
+	// 会话清理对账周期任务（FND4-57兜底层），close时取消。
+	private final Future<?> reconcileFuture;
 	private final @NotNull Table<String, BAutoKey> tableAutoKey;
 	private final @NotNull Table<String, BId128> tableId128;
 	private final @NotNull Table<String, BSession> tableSession;
@@ -82,11 +84,79 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		tableSession = rocks.<String, BSession>getTableTemplate("tSession").openTable();
 		tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
 		tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
+
+		// 会话清理对账（FND4-57兜底层）：60s粒度足够，快速路径由closeSession的退避重试承担。
+		reconcileFuture = TaskSpec.ofAction(this::reconcileSessions).schedulePeriodNow(60_000, 60_000);
 	}
 
 	@Override
 	public void close() {
+		if (reconcileFuture != null)
+			reconcileFuture.cancel(false);
 		rocks.close();
+	}
+
+	// leader周期对账（FND4-57兜底层）：清理"连接已死但清理事务未落地"的残留会话行。
+	// closeSession的退避重试只覆盖"断连节点恢复多数派/重新当选"的场景；leader切换后，
+	// 断连风暴的清理在旧leader上永远RaftRetry，进程崩溃则内存待办全丢——对账在现任
+	// leader上周期收敛这两类残余（死agent的注册/订阅行、订阅方的幽灵地址）。
+	// SM锁内执行，与Login/OnSocketClose串行；walk快照与清理事务之间行被新连接接管时，
+	// cleanupSessionRow的归属校验兜底，不会误清。对账事务失败仅记error，下轮周期自带重试。
+	private void reconcileSessions() throws Exception {
+		var raft = rocks.getRaft();
+		if (!raft.isWorkingLeader())
+			return;
+		lock();
+		try {
+			var server = raft.getServer();
+			record DeadSession(String name, long sessionId) {
+			}
+			var dead = new ArrayList<DeadSession>();
+			tableSession.walk((name, row) -> {
+				// 行的sessionId随重连Login更新为新连接，GetSocket判活不会误杀重连后的会话。
+				if (server.GetSocket(row.getSessionId()) == null)
+					dead.add(new DeadSession(name, row.getSessionId()));
+				return true;
+			});
+			if (dead.isEmpty())
+				return;
+			var rc = rocks.newProcedure(() -> {
+				for (var d : dead)
+					cleanupSessionRow(d.name(), d.sessionId());
+				return 0L;
+			}).call();
+			if (rc != 0)
+				logger.error("reconcileSessions rc={}, dead={}", rc, dead.size());
+		} finally {
+			unlock();
+		}
+	}
+
+	// 行清理（raft事务内执行，幂等）：退订/注销跨版本桶/发remove通知/删行。
+	// 行不存在或已被新连接接管（sessionId不匹配）时空转。
+	// 两个入口：Session.onClose（刚断连，随SMServer.closeSession退避重试落地）与
+	// reconcileSessions周期对账（死连接残留行的最终收敛）。
+	private void cleanupSessionRow(String name, long sessionId) {
+		var session = tableSession.get(name);
+		// 清理的执行可能晚于同名新连接的Login（keepalive超时、对账竞态等），此时行已被
+		// 新连接接管，校验归属后跳过清理，否则新连接的注册/订阅被误清并删行，其后续请求NPE。
+		if (null != session && session.getSessionId() != sessionId)
+			return;
+		if (null != session) {
+			for (var info : session.getSubscribes().values())
+				unSubscribeNow(name, info.getServiceName());
+
+			// 注销跨全部版本桶（会话registers以name+id为key只保留最后一次注册，
+			// 若按unReg.getVersion()单桶删，跨版本重注册后旧版本桶残留幽灵地址）。
+			var notifies = new HashMap<AsyncSocket, Edit>();
+			for (var unReg : session.getRegisters().values()) {
+				var state = tableServerState.get(unReg.getServiceName());
+				if (state != null)
+					removeAndCollectNotifyAllVersions(state, unReg.getServiceIdentity(), name, notifies);
+			}
+			ServiceManagerWithRaft.sendNotifies(notifies);
+		}
+		tableSession.remove(name);
 	}
 
 	/**
@@ -140,26 +210,51 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		@Override
 		public void OnSocketClose(@NotNull AsyncSocket so, Throwable e) throws Exception {
 			var netSession = (Session)so.getUserState();
-			if (null != netSession) {
-				if (logger.isDebugEnabled())
-					logger.info("OnSocketClose: {}", netSession.name);
-				// 同 dispatchRaftRequest：netSession.onClose 的 raft 提交不能在 IO 线程上等待。
-				Raft.executeImportantTask(() -> {
-					lock();
-					try {
-						var procedure = rocks.newProcedure(() -> {
-							netSession.onClose();
-							return 0;
-						});
-						procedure.call();
-					} catch (Throwable ex) {
-						logger.error("OnSocketClose session close failed: {}", netSession.name, ex);
-					} finally {
-						unlock();
-					}
-				});
-			}
+			if (null != netSession)
+				closeSession(netSession, 0);
 			super.OnSocketClose(so, e);
+		}
+
+		// 会话清理的raft提交结果必须闭环（FND4-57）：RaftRetry是返回码不是异常
+		// （RocksRaft Transaction.perform捕获RaftRetryException后返回Procedure.RaftRetry），
+		// 曾经的procedure.call()返回码被忽略——leader切换既造成agent断连风暴（旧leader上
+		// OnSocketClose批量触发）又恰使旧leader的appendLog失败，回滚后的清理
+		// （注销/退订/删行/发remove通知）不重试不告警，死agent的注册与订阅在raft表中
+		// 永久残留，订阅方持有幽灵地址持续分发。onClose幂等（归属校验后清理、
+		// 不存在即no-op、Suspect为提示性重发），失败退避重试，上限后fatal留观测。
+		// 残余缺口=进程崩溃窗口内的清理丢失（无持久化待办），周期对账兜底另立项。
+		private void closeSession(Session netSession, int retry) {
+			// 同 dispatchRaftRequest：清理的raft提交不能在 IO 线程上等待。
+			Raft.executeImportantTask(() -> {
+				lock();
+				try {
+					var rc = rocks.newProcedure(() -> {
+						netSession.onClose();
+						return 0L;
+					}).call();
+					if (rc == 0)
+						return;
+					if (retry < 8) {
+						logger.error("OnSocketClose session close rc={}, retry {}/8, session={}",
+								rc, retry, netSession.name);
+						TaskSpec.ofAction(() -> closeSession(netSession, retry + 1))
+								.scheduleNow(100L << Math.min(retry, 6));
+					} else
+						logger.fatal("OnSocketClose session close failed finally, session={}, rc={}",
+								netSession.name, rc);
+				} catch (Throwable ex) {
+					if (retry < 8) {
+						logger.error("OnSocketClose session close exception, retry {}/8, session={}",
+								retry, netSession.name, ex);
+						TaskSpec.ofAction(() -> closeSession(netSession, retry + 1))
+								.scheduleNow(100L << Math.min(retry, 6));
+					} else
+						logger.fatal("OnSocketClose session close failed finally, session={}",
+								netSession.name, ex);
+				} finally {
+					unlock();
+				}
+			});
 		}
 	}
 
@@ -241,26 +336,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				}
 			}
 
-			var session = tableSession.get(name);
-			// 关闭事件的检测可能晚于同名新连接的Login（keepalive超时等），此时行已被新连接接管，
-			// 校验归属后跳过清理，否则新连接的注册/订阅被误清并删行，其后续请求NPE。
-			if (null != session && session.getSessionId() != sessionId)
-				return;
-			if (null != session) {
-				for (var info : session.getSubscribes().values())
-					unSubscribeNow(name, info.getServiceName());
-
-				// 注销跨全部版本桶（会话registers以name+id为key只保留最后一次注册，
-				// 若按unReg.getVersion()单桶删，跨版本重注册后旧版本桶残留幽灵地址）。
-				var notifies = new HashMap<AsyncSocket, Edit>();
-				for (var unReg : session.getRegisters().values()) {
-					var state = tableServerState.get(unReg.getServiceName());
-					if (state != null)
-						removeAndCollectNotifyAllVersions(state, unReg.getServiceIdentity(), name, notifies);
-				}
-				ServiceManagerWithRaft.sendNotifies(notifies);
-			}
-			tableSession.remove(name);
+			cleanupSessionRow(name, sessionId);
 		}
 	}
 
