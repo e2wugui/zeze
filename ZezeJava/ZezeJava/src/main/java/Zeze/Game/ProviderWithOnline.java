@@ -1,6 +1,6 @@
 package Zeze.Game;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import Zeze.AppBase;
 import Zeze.Arch.ProviderImplement;
@@ -16,7 +16,10 @@ public class ProviderWithOnline extends ProviderImplement {
 	protected Online online; // 默认的Online. 需要外面调用create方法创建并初始化。App.Start.
 	private ProviderLoadWithOnline load;
 
-	protected final HashMap<String, Online> onlineSetMap = new HashMap<>(); // 所有创建过的Online,默认Online的key是空字符串. 需要外面调用默认Online.createOnlineSet创建
+	// ConcurrentHashMap（FND4-80）：getOnline/foreachOnline无锁读（登录等业务线程高频），
+	// stop()持lock执行clear——普通HashMap与停机clear无happens-before，停机窗口读侧
+	// 可见中间态。运行期只读，CHM读路径零额外成本。
+	protected final ConcurrentHashMap<String, Online> onlineSetMap = new ConcurrentHashMap<>(); // 所有创建过的Online,默认Online的key是空字符串. 需要外面调用默认Online.createOnlineSet创建
 
 	public Online getOnline() {
 		return online;
