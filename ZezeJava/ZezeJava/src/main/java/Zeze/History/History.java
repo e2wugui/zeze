@@ -12,6 +12,13 @@ import Zeze.Util.Id128;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 一个事务关联集合（rrs）的tHistory变更缓冲，两段流水线：
+ * logChanges（原始对象）--encodeN/encode0--&gt; encoded（编码字节）--writeOnly--&gt; tHistory库事务。
+ * 不变量：条目离开 logChanges 前必已进 encoded；encoded 只能由 commitDone 清空——
+ * 它在数据库事务全部提交成功后由 Checkpoint.flush 调用，失败回滚后容器保留，
+ * 重试按系列号幂等重写（FND3-51）。
+ */
 public class History {
 	// 为了节约内存，在确实需要的时候才分配。
 	// 为了在锁外并发。使用并发Map，否则ArrayList或者自己实现的支持splice的连接表效率更高。
@@ -50,7 +57,8 @@ public class History {
 	}
 
 	public void encode0() {
-		// 锁内
+		// 锁内。只编码不清空：条目离开 logChanges 前必已进 encoded，但 encoded 的清理
+		// 由 commitDone 绑定数据库事务提交结果——flush 失败回滚后容器保留，重试幂等重写。
 		var changes = logChanges;
 		if (changes != null) {
 			changes.forEach((key, v) -> {
@@ -61,20 +69,27 @@ public class History {
 					return new Binary(bb);
 				});
 			});
-			changes.clear();
 		}
 	}
 
-	public void flush(@NotNull Database.Table table, @NotNull Database.Transaction txn) {
+	/** 把 encoded 写入tHistory事务。只写不清空，清理由 commitDone 绑定提交结果。 */
+	public void writeOnly(@NotNull Database.Table table, @NotNull Database.Transaction txn) {
 		// 但仅仅Checkpoint访问，不需要加锁。现实也在锁内。
-		//logger.debug("flush: {}", encoded.size());
 		for (var e : encoded.entrySet()) {
 			var key = ByteBuffer.Allocate();
 			e.getKey().encode(key);
 			var value = ByteBuffer.Wrap(e.getValue());
 			table.replace(txn, key, value);
 		}
+	}
+
+	/** 数据库事务全部提交成功后调用：tHistory 行已持久化，容器可以安全清空。
+	 * 与锁外的 encodeN 并发时，旧条目可能被重新插入 encoded，下轮按系列号幂等重写，无害。 */
+	public void commitDone() {
 		encoded.clear();
+		var changes = logChanges;
+		if (changes != null)
+			changes.clear();
 	}
 
 	public static void putLogChangesAll(@NotNull ConcurrentHashMap<Id128, BLogChanges.Data> to,

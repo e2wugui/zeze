@@ -336,12 +336,14 @@ public final class Checkpoint {
 			if (history != null) {
 				var storage = ((Table)historyTable).getStorage();
 				//noinspection DataFlowIssue
-				history.flush(storage.getDatabaseTable(), historyTransaction);
+				history.writeOnly(storage.getDatabaseTable(), historyTransaction);
 			}
 			// 提交。
 			for (var t : dts.values())
 				t.commit();
 			localCacheTransaction.commit();
+			if (history != null)
+				history.commitDone(); // tHistory 行已持久化才清容器；失败回滚后保留，重试幂等重写（FND3-51）
 			try {
 				// 清除编码状态
 				for (var r : rs)
