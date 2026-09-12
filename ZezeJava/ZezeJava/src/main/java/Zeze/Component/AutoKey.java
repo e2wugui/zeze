@@ -46,7 +46,24 @@ public class AutoKey extends ReentrantLock {
 
 	private final @NotNull Module module;
 	private final @NotNull String name;
-	private volatile @Nullable Range range;
+
+	// FND4-45：内存号段的有效性以代际（Generation）仲裁。原 volatile Range + "range==localRange"
+	// 引用复核在"复核通过与返回之间"仍可完成失效（setSeed/increaseSeed提交后置null）——该次发放
+	// 取自旧段，合服场景与存量id重号，违反setMinId"下次nextId()不小于此值"契约。
+	// 代际化后：失效=锁内置换新代际（epoch+1且range置空）；快路径消耗号段后单次volatile读复核
+	// 代际——通过即本次发放线性化于失效之前，失败丢弃转慢路径按新表水位重新批段。
+	// 慢路径持锁安装新段保持当前epoch（失效与安装同锁串行，互不丢失）。
+	private volatile @NotNull Generation generation = new Generation(0, null);
+
+	private static final class Generation {
+		final long epoch;
+		final @Nullable Range range; // null=已失效
+
+		Generation(long epoch, @Nullable Range range) {
+			this.epoch = epoch;
+			this.range = range;
+		}
+	}
 
 	private final TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
 
@@ -223,12 +240,12 @@ public class AutoKey extends ReentrantLock {
 
 	// setSeed/increaseSeed把表水位（tAutoKeys.NextId）抬高后，本地内存中未耗尽的号段已经失效，
 	// 置空让后续nextSeed走慢路径按新水位重新批段；否则合服导数据后继续发放旧段号，与存量id重号。
-	// 持自身锁与nextSeed慢路径串行化：慢路径在锁内"提交批段事务→写回range"，失效若插进这个窗口，
-	// 旧段会在失效后被重新安装。快路径不持锁，由nextSeed内的复核兜住。
+	// 持自身锁与nextSeed慢路径串行化：慢路径在锁内"提交批段事务→安装新代际"，失效若插进这个窗口，
+	// epoch递增令慢路径的代际比对失败而重试。快路径不持锁，由nextSeed内的代际复核兜住。
 	private void invalidateRange() {
 		lock();
 		try {
-			range = null;
+			generation = new Generation(generation.epoch + 1, null);
 		} finally {
 			unlock();
 		}
@@ -236,20 +253,19 @@ public class AutoKey extends ReentrantLock {
 
 	private long nextSeed() {
 		while (true) {
-			var localRange = range;
+			var localGen = generation;
+			var localRange = localGen.range;
 			if (localRange != null) {
 				var next = localRange.tryNextId();
-				// 复核号段仍有效再返回：失效可能发生在读取引用与消耗之间，此时旧段号作废成空洞，
-				// 转慢路径按新表水位重新批段。
-				//noinspection NumberEquality
-				if (next != 0 && range == localRange)
+				// 代际复核（单次volatile读，FND4-45）：消耗号段后代际未变即从未被失效，本次发放
+				// 线性化于任何失效之前；代际已变则旧段号作废成空洞，转慢路径按新表水位重新批段。
+				if (next != 0 && generation == localGen)
 					return next; // allocate in range success
 			}
 
 			lock();
 			try {
-				//noinspection NumberEquality
-				if (range != localRange)
+				if (generation != localGen)
 					continue;
 				long ret;
 				try {
@@ -266,7 +282,8 @@ public class AutoKey extends ReentrantLock {
 						return 0;
 					}, "AutoKey.allocateSeeds")).dispatchMode(DispatchMode.Critical).submitNow().get();
 					if (ret == Procedure.Success) {
-						range = newRange.value;
+						// 安装新段保持当前epoch（锁内读到的）：期间若失效已发生，上面的代际比对已拦截。
+						generation = new Generation(generation.epoch, newRange.value);
 						continue;
 					}
 				} catch (InterruptedException | ExecutionException e) {
