@@ -225,13 +225,25 @@ public class ProviderDirectService extends HandshakeBoth {
 			ps.serverLoadIp = ip;
 			ps.serverLoadPort = port;
 			// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
-			if (providerByLoadName.putIfAbsent(ps.getServerLoadName(), ps) != null) {
-				// 非本机的同名会话一般是旧连接未关闭时的重连：新会话在此被忽略后，
-				// 旧会话关闭将清空路由注册且无自动恢复，记录warn以便观测该竞态窗口。
+			var old = providerByLoadName.putIfAbsent(ps.getServerLoadName(), ps);
+			if (old != null) {
+				if (old == ps)
+					return;
+				// 接管式注册（对齐linkd侧FND3-33判例）：同loadName只允许一条活跃会话，新会话替换
+				// 两张表并异步踢旧连接。原putIfAbsent忽略新会话后，旧会话迟到的OnSocketClose按
+				// 所有权条件删除清空路由（新会话从未注册），且存活的新连接不再重连/announce——
+				// 注册永久丢失无法自愈。先put再踢，读侧无空窗；被踢会话的OnSocketClose条件删除
+				// 因所有权已换而空转，不会误删现任注册。
 				if (ps.getServerId() != getZeze().getConfig().getServerId())
-					logger.warn("setRelativeServiceReady: exist session for {}, ignore new {}",
-							ps.getServerLoadName(), ps);
-				return;
+					logger.warn("setRelativeServiceReady: supersede old session {} with new {} for {}",
+							old, ps, ps.getServerLoadName());
+				providerByLoadName.put(ps.getServerLoadName(), ps);
+				// 本机合成会话（无连接，sessionId=0）被替换时无连接可踢；socket已死的由其
+				// OnSocketClose条件清理，map已被新会话接管，无残留影响。
+				var oldSocket = old.getSessionId() != 0 ? GetSocket(old.getSessionId()) : null;
+				if (oldSocket != null)
+					TaskSpec.ofAction(() -> oldSocket.close(new java.io.IOException(
+							"superseded by new direct connection, loadName=" + ps.getServerLoadName()))).runNow();
 			}
 			providerByServerId.put(ps.getServerId(), ps);
 
