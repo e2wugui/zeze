@@ -69,6 +69,8 @@ public final class BinLogger extends ReentrantLock {
 	private static final int OTHER_BUFFER = 64 * 1024; // 同上,用于其它类型文件
 	private static final int FLUSH_PERIOD = 1_000; // flush日志文件的时间间隔(毫秒)
 	private static final int WRITE_THREAD_IDLE_SLEEP = 100; // 输出日志线程空闲时的sleep时长(毫秒)
+	private static final int WRITE_RECOVER_FAIL_LIMIT = 3; // 写失败后连续恢复失败上限，超过即fatal（宁停不错）
+	private static final long WRITE_THREAD_JOIN_TIMEOUT = 10_000; // stop等待写线程退出的超时（毫秒）
 
 	public static final class LogData extends Protocol<LogData> {
 		public static final int protocolId = Bean.hash32(LogData.class.getName()); // 117415474
@@ -248,7 +250,7 @@ public final class BinLogger extends ReentrantLock {
 		private long binFileSize; // 当前bin文件大小
 		private long lastFlushMs; // 上次flush文件的毫秒时间戳
 		private int curDayStamp; // 当前的日期戳
-		private boolean started; // 是否已经开始服务
+		private volatile boolean started; // 是否已经开始服务（写线程读作退出信号，需跨线程可见）
 		private boolean waitingQueue; // 写日志队列是否已满导致等待
 
 		public BinLoggerService(@Nullable String logPath) {
@@ -458,7 +460,12 @@ public final class BinLogger extends ReentrantLock {
 		private void stopLogger() throws Exception {
 			if (writeLogThread != null) {
 				logger.info("waiting for writeLogThread ...");
-				writeLogThread.join(); // 线程还没开始时也不会等待
+				// 写线程停机时丢弃残余批退出（见writeLogThread的!started分支），正常这里很快返回；
+				// 带超时兜底：异常滞留时不得让stop()/ShutdownHook永久挂起（FND4-68，原join无超时）。
+				writeLogThread.join(WRITE_THREAD_JOIN_TIMEOUT);
+				if (writeLogThread.isAlive())
+					logger.error("writeLogThread not exit in {}ms after stop, give up waiting.",
+							WRITE_THREAD_JOIN_TIMEOUT);
 				writeLogThread = null;
 			}
 			forceClose(idFile);
@@ -582,6 +589,8 @@ public final class BinLogger extends ReentrantLock {
 						// ——脏尾成为未索引gap（按pos读取永不触碰），追加从实际长度重新对齐；
 						// 剩余条目内联重写（滞留到下轮swap会等流量、且整批重写造成前缀重复）。
 						var completed = 0;
+						var recoverFailed = 0; // 连续恢复失败计数（成功写完整批归零）
+						var exitOnStop = false;
 						while (completed < queueSize) { // 把当前队列里的日志全部写入日志和索引文件,用相同的毫秒时间戳应该没问题
 							try {
 								for (int i = completed; i < queueSize; i++) {
@@ -600,6 +609,7 @@ public final class BinLogger extends ReentrantLock {
 									idFile.write(buf);
 									completed = i + 1;
 								}
+								recoverFailed = 0;
 							} catch (Throwable e) { // logger.error
 								// 当前条可能半写：completed不推进，恢复后重写它（脏尾成gap）。
 								logger.error("writeLogThread write exception. completed={}, day={}",
@@ -614,12 +624,45 @@ public final class BinLogger extends ReentrantLock {
 								} catch (Throwable ex) { // logger.error
 									logger.error("reopen after write exception fail.", ex);
 								}
+								// FND4-68：恢复循环必须有终止契约。原实现无退出条件——磁盘满时
+								// 永久死循环：stop()/ShutdownHook的join永久挂起（需kill -9），
+								// 队列涨满后所有IO线程阻塞在queueLockCond.await，连接集体停摆。
+								if (!started) {
+									// 停机优先于落盘：丢弃残余批退出写线程，stop()才能有限时间返回。
+									logger.error("writeLogThread exit on stopping: discard {} logs, completed={}/{}",
+										queueSize - completed, completed, queueSize);
+									exitOnStop = true;
+									break;
+								}
+								// 宁停不错（家族halt口径，对齐Transaction毒化处理）：连续恢复失败=不可恢复的
+								// 输出故障，静默丢日志继续跑或无限滞留都违背记录器使命，fatal终止。
+								if (++recoverFailed >= WRITE_RECOVER_FAIL_LIMIT) {
+									logger.fatal("writeLogThread recover failed {} times, halt. completed={}/{}, day={}",
+										recoverFailed, completed, queueSize, curDayStamp);
+									LogManager.shutdown();
+									Runtime.getRuntime().halt(543543);
+								}
 								// 恢复失败（如磁盘满）时限制重试频率，避免紧密重开环。
 								//noinspection BusyWait
 								Thread.sleep(WRITE_THREAD_IDLE_SLEEP);
 							}
 						}
 						readLogQueue.clear();
+						if (exitOnStop) {
+							// 丢弃退出：置空写队列并唤醒等满的生产者（processLogData见null即break，
+							// 本条按drop处理），写线程不再回到外层循环。
+							queueLock.lock();
+							try {
+								writeLogQueue = null;
+								if (waitingQueue) {
+									waitingQueue = false;
+									queueLockCond.signalAll();
+								}
+							} finally {
+								queueLock.unlock();
+							}
+							break; // 退出外层for(;;)
+						}
 						if (writeLogCounter != null)
 							writeLogCounter.inc(queueSize);
 					} else {
