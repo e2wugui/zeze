@@ -14,14 +14,14 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * 一个事务关联集合（rrs）的tHistory变更缓冲，两段流水线：
- * logChanges（原始对象）--encodeN/encode0--&gt; encoded（编码字节）--writeOnly--&gt; tHistory库事务。
- * 不变量：条目离开 logChanges 前必已进 encoded；encoded 只能由 commitDone 清空——
- * 它在数据库事务全部提交成功后由 Checkpoint.flush 调用，失败回滚后容器保留，
- * 重试按系列号幂等重写（FND3-51）。
+ * logChanges（原始对象）--encode0--&gt; encoded（编码字节）--writeOnly--&gt; tHistory库事务。
+ * 不变量：容器只在 rrs 锁内变更；条目离开 logChanges 前必已进 encoded；encoded 只能
+ * 由 commitDone 清空——它在数据库事务全部提交成功后由 Checkpoint.flush 调用，失败回滚
+ * 后容器保留，重试按系列号幂等重写（FND3-51）。
  */
 public class History {
 	// 为了节约内存，在确实需要的时候才分配。
-	// 为了在锁外并发。使用并发Map，否则ArrayList或者自己实现的支持splice的连接表效率更高。
+	// 容器访问已全部在 rrs 锁内，保留并发Map是历史选择，改动无收益。
 	private volatile @Nullable ConcurrentHashMap<Id128, BLogChanges.Data> logChanges;
 
 	// 这里为了并发接收数据，不能优化为可null？需要确认。
@@ -36,24 +36,6 @@ public class History {
 		if (logChanges == null)
 			this.logChanges = logChanges = new ConcurrentHashMap<>();
 		logChanges.put(_logChanges.getGlobalSerialId(), _logChanges);
-	}
-
-	public void encodeN() {
-		// rrs 锁外
-		var changes = logChanges; // volatile
-		if (changes != null) {
-			changes.forEach((key, v) -> {
-				// logChanges只要系列号一样，表示内容一样，所以，只要key存在，不需要再encode一次。
-				encoded.computeIfAbsent(v.getGlobalSerialId(), __ -> {
-					var bb = ByteBuffer.Allocate();
-					v.encode(bb);
-					return new Binary(bb);
-				});
-				// encodeN跟merge并发，它本身的执行不会并发，由Checkpoint调度。
-				// 所以remove前后无所谓。
-				changes.remove(v.getGlobalSerialId());
-			});
-		}
 	}
 
 	public void encode0() {
@@ -83,8 +65,7 @@ public class History {
 		}
 	}
 
-	/** 数据库事务全部提交成功后调用：tHistory 行已持久化，容器可以安全清空。
-	 * 与锁外的 encodeN 并发时，旧条目可能被重新插入 encoded，下轮按系列号幂等重写，无害。 */
+	/** 数据库事务全部提交成功后调用：tHistory 行已持久化，容器可以安全清空。 */
 	public void commitDone() {
 		encoded.clear();
 		var changes = logChanges;

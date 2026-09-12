@@ -507,13 +507,9 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	static void flush(@NotNull Checkpoint checkpoint, @NotNull RelativeRecordSet rrs) {
 
-		if (rrs.mergeTo == null) {
-			// 多线程，未保护访问变量，可以不是很准确。
-			var history = rrs.getHistory();
-			if (history != null)
-				history.encodeN(); // 锁外尝试编码。
-		}
-
+		// 编码统一由 Checkpoint.flush 锁内 encode0 承担。曾有锁外 encodeN 预编码，
+		// 但它与并发轮的 writeOnly/commitDone、并发事务 merge 存在桶级交错：搬运者
+		// 拿锁后发现 rrs 已 deleted/merged 而跳过 flush，滞留条目永不落库（FND3-51残余）。
 		rrs.lock();
 		try {
 			if (rrs.mergeTo == null) {

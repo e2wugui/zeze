@@ -38,7 +38,7 @@ public class TestHistoryFlushCommitBinding {
 	private FlakyDatabase flaky;
 	private tSimple table;
 
-	private void startApp() throws Exception {
+	private void startApp(String dbSubName) throws Exception {
 		var conf = new Config();
 		conf.setServiceManager("disable");
 		conf.setCheckpointMode(CheckpointMode.Table);
@@ -47,7 +47,7 @@ public class TestHistoryFlushCommitBinding {
 		conf.setDefaultTableConf(new Config.TableConf()); // 裸 Config 不会补默认值；内置模块注册表时需要
 		var dbConf = new Config.DatabaseConf(); // name="" 即默认数据库
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("history_commit_binding_" + SERVER_ID);
+		dbConf.setDatabaseUrl("history_commit_binding_" + dbSubName);
 		conf.getDatabaseConfMap().put("", dbConf);
 
 		app = new Application("TestHistoryFlushCommitBinding", conf);
@@ -56,7 +56,7 @@ public class TestHistoryFlushCommitBinding {
 		// start 前手工改挂（此时 storage 尚未创建，removeTable 的 close 是 no-op）。
 		var flakyConf = new Config.DatabaseConf();
 		flakyConf.setDatabaseType(Config.DbType.Memory);
-		flakyConf.setDatabaseUrl("history_commit_binding_flaky_" + SERVER_ID);
+		flakyConf.setDatabaseUrl("history_commit_binding_flaky_" + dbSubName);
 		flaky = new FlakyDatabase(flakyConf);
 		app.getDatabases().put("flaky", flaky);
 		app.removeTable("", app.getHistoryModule().getHistoryTable());
@@ -121,8 +121,15 @@ public class TestHistoryFlushCommitBinding {
 
 	@Test
 	public void testFlushFailRetryKeepsHistoryRow() throws Exception {
+		// 四种 CheckpointFlushMode 全覆盖：Single/MultiThread 走 encodeN+per-rrs flush，
+		// 两种 Merge 走 FlushSet 合并路径，最终都汇到同一个 Checkpoint.flush 收口。
+		for (var mode : CheckpointFlushMode.values())
+			flushFailRetryScenario(mode);
+	}
+
+	private void flushFailRetryScenario(CheckpointFlushMode mode) throws Exception {
 		try {
-			startApp();
+			startApp(mode.name());
 			putValue(1, 11);
 
 			var serial = smuggleHistory(7);
@@ -130,15 +137,15 @@ public class TestHistoryFlushCommitBinding {
 			// 毒化 commit：flush 走到写库之后、提交时失败，回滚，rrs 留待下轮重试。
 			FlakyDatabase.poisonCommit = true;
 			Assertions.assertDoesNotThrow(() -> app.getCheckpoint().runOnce(),
-					"毒化单元必须被单元隔离吞掉，保留重试");
+					mode + ": 毒化单元必须被单元隔离吞掉，保留重试");
 
 			// 解毒重试：数据记录与 tHistory 行都必须落库。
 			FlakyDatabase.poisonCommit = false;
 			app.getCheckpoint().runOnce();
 
-			Assertions.assertEquals(Long.valueOf(11), dbValue(1), "重试后数据记录必须落库");
+			Assertions.assertEquals(Long.valueOf(11), dbValue(1), mode + ": 重试后数据记录必须落库");
 			Assertions.assertTrue(tHistoryKeys().contains(encodedKey(serial)),
-					"重试后 tHistory 必须补上该事务的历史行（FND3-51）");
+					mode + ": 重试后 tHistory 必须补上该事务的历史行（FND3-51）");
 		} finally {
 			FlakyDatabase.poisonCommit = false;
 			if (app != null)
