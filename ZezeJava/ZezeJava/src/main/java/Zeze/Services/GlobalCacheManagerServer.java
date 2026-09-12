@@ -90,12 +90,12 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		int serverReleaseTimeout = 60_000;
 
 		@Override
-		public String getName() {
+		public @NotNull String getName() {
 			return "GlobalCacheManager";
 		}
 
 		@Override
-		public void parse(Element self) {
+		public void parse(@NotNull Element self) {
 			var attr = self.getAttribute("InitialCapacity");
 			if (!attr.isBlank())
 				initialCapacity = Math.max(Integer.parseInt(attr), 31);

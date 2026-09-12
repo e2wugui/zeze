@@ -21,7 +21,7 @@ public class MQConfig implements Config.ICustomize {
 	}
 
 	@Override
-	public void parse(Element self) {
+	public void parse(@NotNull Element self) {
 		var attr = self.getAttribute("RpcTimeout");
 		if (!attr.isBlank())
 			rpcTimeout = Integer.parseInt(attr);

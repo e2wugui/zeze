@@ -53,4 +53,4 @@ test 只跑 @Fast；integrationTest 只跑不带 fast/bench 标签的；bench �
 
 - 类别用模块名（transaction/util/raft/net/dbh2/game…），不带编号；主题不写修法。
 - bullet `- ` 结尾带"。"，续行缩进两空格，约 64 列换行。
-- 保持简洁
+- 保持简洁易读，不要很长一段
