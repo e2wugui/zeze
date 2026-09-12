@@ -563,20 +563,48 @@ public final class BinLogger extends ReentrantLock {
 							forceClose(oldBinFile);
 							curDayStamp = dayStamp;
 						}
-						for (int i = 0; i < queueSize; i++) { // 把当前队列里的日志全部写入日志和索引文件,用相同的毫秒时间戳应该没问题
-							var logData = readLogQueue.get(i);
-							var data = logData.data;
-							var dataSize = data.size();
-							binFile.write(data.Bytes, data.ReadIndex, dataSize);
-							ByteBuffer.longLeHandler.set(buf, 0, (binFileSize << 20) + dataSize);
-							posFile.write(buf);
-							binFileSize += dataSize;
-							ByteBuffer.longLeHandler.set(buf, 0, lastTs++);
-							tsFile.write(buf);
-							ByteBuffer.longLeHandler.set(buf, 0, logData.dataType);
-							dtFile.write(buf);
-							ByteBuffer.longLeHandler.set(buf, 0, logData.roleId);
-							idFile.write(buf);
+						// 失败断点（FND3-43）：completed=已完整写成（五文件齐）的条数。写异常时
+						// 当前条可能已部分写入bin（脏尾）且内存binFileSize与文件实际长度脱钩：
+						// 关闭当前流，走openDay对账入口按bin实际长度截齐索引并重建binFileSize
+						// ——脏尾成为未索引gap（按pos读取永不触碰），追加从实际长度重新对齐；
+						// 剩余条目内联重写（滞留到下轮swap会等流量、且整批重写造成前缀重复）。
+						var completed = 0;
+						while (completed < queueSize) { // 把当前队列里的日志全部写入日志和索引文件,用相同的毫秒时间戳应该没问题
+							try {
+								for (int i = completed; i < queueSize; i++) {
+									var logData = readLogQueue.get(i);
+									var data = logData.data;
+									var dataSize = data.size();
+									binFile.write(data.Bytes, data.ReadIndex, dataSize);
+									ByteBuffer.longLeHandler.set(buf, 0, (binFileSize << 20) + dataSize);
+									posFile.write(buf);
+									binFileSize += dataSize;
+									ByteBuffer.longLeHandler.set(buf, 0, lastTs++);
+									tsFile.write(buf);
+									ByteBuffer.longLeHandler.set(buf, 0, logData.dataType);
+									dtFile.write(buf);
+									ByteBuffer.longLeHandler.set(buf, 0, logData.roleId);
+									idFile.write(buf);
+									completed = i + 1;
+								}
+							} catch (Throwable e) { // logger.error
+								// 当前条可能半写：completed不推进，恢复后重写它（脏尾成gap）。
+								logger.error("writeLogThread write exception. completed={}, day={}",
+										completed, curDayStamp, e);
+								try {
+									forceClose(idFile);
+									forceClose(dtFile);
+									forceClose(tsFile);
+									forceClose(posFile);
+									forceClose(binFile);
+									openDay(curDayStamp); // 失败保持closed流：下次write再抛，再次进入恢复
+								} catch (Throwable ex) { // logger.error
+									logger.error("reopen after write exception fail.", ex);
+								}
+								// 恢复失败（如磁盘满）时限制重试频率，避免紧密重开环。
+								//noinspection BusyWait
+								Thread.sleep(WRITE_THREAD_IDLE_SLEEP);
+							}
 						}
 						readLogQueue.clear();
 						if (writeLogCounter != null)
