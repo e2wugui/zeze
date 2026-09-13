@@ -218,8 +218,31 @@ public final class ZezexTestEnv {
 	}
 
 	public static void logout(ClientGame.App app, @SuppressWarnings("unused") long roleIdForLogOnly) {
-		var logout = new Logout();
-		logout.SendForWait(app.ClientService.GetSocket(), 30_000).await();
-		Assertions.assertEquals(0, logout.getResultCode());
+		// 满负载下Logout应答可能迟到于30s rpc超时（第六轮round 6误红：await抛RpcTimeoutException，
+		// 服务端无责）。有界重试：首发若已生效，重试会返回NotLogin(7)——0与NotLogin都表示已登出；
+		// 其余错误码与异常直断言/抛出（不可重试）。
+		for (int attempt = 1; ; ++attempt) {
+			var logout = new Logout();
+			try {
+				logout.SendForWait(app.ClientService.GetSocket(), 30_000).await();
+			} catch (java.util.concurrent.CompletionException e) {
+				if (e.getCause() instanceof Zeze.Net.RpcTimeoutException && attempt < 6) {
+					try {
+						//noinspection BusyWait
+						Thread.sleep(500);
+					} catch (InterruptedException ie) {
+						Thread.currentThread().interrupt();
+						throw new RuntimeException(ie);
+					}
+					continue;
+				}
+				throw e;
+			}
+			var rc = logout.getResultCode();
+			if (rc == 0 || rc == Zeze.Arch.AbstractOnline.ResultCodeNotLogin)
+				return;
+			Assertions.assertEquals(0, rc, "logout resultCode");
+			return;
+		}
 	}
 }
