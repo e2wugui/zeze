@@ -99,6 +99,50 @@ public class TestDepartmentTreeDestroy {
 	}
 
 	@Test
+	public void testDestroyClearsRootGroupMembers() throws Exception {
+		// FND5-42：根级group成员map（"0@"+name）不在子部门dId空间内，destroy曾无任何路径
+		// 清理——重建同名树时旧成员全部"复活"（count非零、成员可查）。
+		var app = newApp();
+		try {
+			app.start();
+			var tree = departmentTreeModule.open("destroy2",
+					Manager.class, Member.class, DepartmentMember.class, GroupData.class, DepartmentData.class);
+			run(app, "create+members", () -> {
+				tree.create();
+				tree.getGroupMembers().put("oldMember", new Member());
+				tree.createDepartment(0, "child1", 10, new OutLong());
+				tree.getDepartmentMembers(1).put("deptMember", new DepartmentMember());
+				return 0L;
+			});
+
+			run(app, "destroy", () -> {
+				tree.destroy();
+				return 0L;
+			});
+
+			// 重建同名树：根级成员必须为空（修复前命中旧"0@"map，旧成员复活）。
+			run(app, "recreate", () -> {
+				tree.create();
+				Assertions.assertEquals(0L, tree.getGroupMembers().size(),
+						"重建同名树的根级成员必须为空（FND5-42）");
+				return 0L;
+			});
+			// 部门级成员对照（FND4-83已覆盖，随带复核）。
+			run(app, "recreateDept", () -> {
+				tree.createDepartment(0, "newChild", 10, new OutLong());
+				Assertions.assertEquals(0L, tree.getDepartmentMembers(1).size(),
+						"重建部门的成员必须为空");
+				return 0L;
+			});
+		} finally {
+			try {
+				app.stop();
+			} catch (Exception ignored) {
+			}
+		}
+	}
+
+	@Test
 	public void testDestroyRemovesWholeTree() throws Exception {
 		var app = newApp();
 		try {

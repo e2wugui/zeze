@@ -284,16 +284,12 @@ public class DepartmentTree<
 	}
 
 	/**
-	 * 销毁整棵部门树（FND4-83）：必须与deleteDepartment的递归删除对称——
+	 * 销毁整棵部门树（FND4-83/FND5-42）：必须与deleteDepartment的递归删除对称——
 	 * 只删根行会残留全部子部门行（_tDepartmentTree）与成员数据；且重建同名树时
 	 * NextDepartmentId归零、新部门从dId=1重新分配，按(name,dId)命中旧残留行，
-	 * 新旧数据混串，无清理路径覆盖孤儿。
-	 */
-	/**
-	 * 销毁整棵部门树（FND4-83）：必须与deleteDepartment的递归删除对称——
-	 * 只删根行会残留全部子部门行（_tDepartmentTree）与成员数据；且重建同名树时
-	 * NextDepartmentId归零、新部门从dId=1重新分配，按(name,dId)命中旧残留行，
-	 * 新旧数据混串，无清理路径覆盖孤儿。
+	 * 新旧数据混串，无清理路径覆盖孤儿。根级group成员map（"0@"+name）不在任何
+	 * 子部门的dId空间内（deleteDepartment的参数不可能为0），必须单独清理，
+	 * 否则重建同名树时旧成员全部"复活"。
 	 */
 	public void destroy() {
 		var root = module._tDepartment.get(name);
@@ -303,6 +299,7 @@ public class DepartmentTree<
 			for (var dId : root.getChildren().values().toArray(new Long[0]))
 				deleteDepartment(dId, true);
 		}
+		getGroupMembers().clear(); // FND5-42：根级成员map与子部门dId空间不相交，删除根行前单独清理
 		module._tDepartment.remove(name);
 	}
 
