@@ -136,9 +136,11 @@ public class OnzServer extends AbstractOnz {
 				var serviceManager = Application.createServiceManager(zezeConfig, "OnzServerServiceManager");
 				if (serviceManager == null)
 					throw new RuntimeException("serviceManager not found for " + zezeNameAndConfig[0] + " zezes=" + zezeConfigs);
-				startAgentAndWaitReady(serviceManager);
-				// 先登记再订阅：订阅失败时回滚要能找到这个已启动的实例（FND4-89）。
+				// 先登记再启动/订阅（FND4-89/FND5-48）：start/waitReady/订阅任一步失败时，回滚
+				// 循环都要能找到这个可能已占用网络线程的实例——put在start之后会漏掉
+				// "start成功但waitReady二次失败"窗口（FND4-89红测注入的null在start之前，恰好绕开）。
 				this.zezes.put(zezeNameAndConfig[0], serviceManager);
+				startAgentAndWaitReady(serviceManager);
 				serviceManager.subscribeService(new BSubscribeInfo(Onz.eServiceName));
 			}
 			this.sharedServiceManager = false;
