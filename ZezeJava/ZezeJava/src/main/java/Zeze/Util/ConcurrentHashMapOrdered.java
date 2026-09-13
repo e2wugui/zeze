@@ -186,7 +186,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 
 	public @Nullable V remove(@NotNull K key) {
 		var s = state.get();
-		@SuppressWarnings("unchecked")
+		//noinspection unchecked
 		V old = s.map.replace(key, (V)deleted);
 		if (old == null || old == deleted)
 			return null;
@@ -196,6 +196,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 
 	public boolean remove(@NotNull K key, @NotNull V value) {
 		var s = state.get();
+		//noinspection unchecked
 		if (s.map.replace(key, value, (V)deleted)) {
 			s.size.decrementAndGet();
 			return true;
@@ -203,7 +204,6 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 		return false;
 	}
 
-	@SuppressWarnings("unchecked")
 	public @Nullable V replace(@NotNull K key, @NotNull V value) {
 		var s = state.get();
 		var oldValue = new OutObject<V>();
