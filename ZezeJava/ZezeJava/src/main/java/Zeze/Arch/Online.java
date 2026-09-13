@@ -1940,6 +1940,14 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return Procedure.Success;
 	}
 
+	/**
+	 * 动态绑定模块。返回值语义：true 表示 online/login 存在且已登记"提交后发送Bind"；
+	 * Bind是否实际送达以linkd侧为准（FND5-25）——whileCommit在事务提交后才执行，
+	 * 同步返回值无法承载实际发送结果，link socket缺失或同步发送失败仅记warn，
+	 * 调用方不应据true判定送达成功。
+	 * 另：事务回滚时whileCommit不执行，Bind不会发出——true同样不覆盖该分支
+	 * （与link miss同属"登记成功但未送达"的情形）。
+	 */
 	public boolean bindDynamic(@NotNull String account, @NotNull String clientId, int... moduleIds) {
 		var bean = getOnline(account);
 		if (null == bean)
@@ -1955,8 +1963,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var socket = connector == null ? null : connector.getSocket();
 			if (socket == null) {
 				// linkd连接已不在（注销/断开），link会话已死，bind无意义；stale login由link broken机制清理。
-				logger.warn("bindDynamic: link miss. linkName={}, account={}, clientId={}",
-						link.getLinkName(), account, clientId);
+				logger.warn("bindDynamic: link miss. linkName={}, account={}, clientId={}, moduleIds={}",
+						link.getLinkName(), account, clientId, java.util.Arrays.toString(moduleIds));
 				return;
 			}
 			var bind = new Zeze.Builtin.Provider.Bind();
@@ -1965,7 +1973,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				bind.Argument.getModules().put(moduleId, new BModule.Data(
 						BModule.ChoiceTypeDefault, true));
 			}
-			bind.SendForWait(socket);
+			// 同步失败（连接关闭等）时future已被置"Send Fail"异常——此刻即可告警；
+			// 发送成功后的超时/错误码属已发出的后续命运，不在此重复告警。
+			if (bind.SendForWait(socket).isCompletedExceptionally())
+				logger.warn("bindDynamic: send fail. linkName={}, account={}, clientId={}, moduleIds={}",
+						link.getLinkName(), account, clientId, java.util.Arrays.toString(moduleIds));
 		});
 		return true;
 	}
