@@ -3,7 +3,9 @@ package UnitTest.Zeze.Transaction;
 import java.util.List;
 import java.util.Set;
 
+import Zeze.Builtin.Provider.BLoad;
 import Zeze.Transaction.Collections.PList1;
+import Zeze.Transaction.Collections.PList2;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -53,5 +55,22 @@ public class TestPListRemoveAll {
 		var list = newList(5, 1, 6, 1, 7, 1);
 		list.removeAll(Set.of(1));
 		Assertions.assertEquals(List.of(5, 6, 7), list.getList(), "非命中元素相对顺序保持");
+	}
+
+	@Test
+	public void testPList2RemoveAllDuplicates() {
+		// FND5-05：PList2非托管路径曾保留minusAll（逐元素删首个出现），与托管路径
+		//（LogList2继承LogList1修复版）行为分叉——[x,x].removeAll(Set.of(x))残留[x]。
+		// bean的equals为值语义，onLine区分实例：两个onLine=0的BLoad互为重复元素。
+		var list = new PList2<>(BLoad.class);
+		var keep = new BLoad();
+		keep.setOnline(7);
+		list.add(new BLoad());
+		list.add(keep);
+		list.add(new BLoad());
+		Assertions.assertTrue(list.removeAll(Set.of(new BLoad())), "含命中元素必须返回true");
+		Assertions.assertEquals(List.of(keep), list.getList(), "重复的等值bean必须全部删除（JDK契约）");
+
+		Assertions.assertFalse(list.removeAll(Set.of(new BLoad())), "无命中返回false");
 	}
 }

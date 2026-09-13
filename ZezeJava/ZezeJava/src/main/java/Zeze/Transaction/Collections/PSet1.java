@@ -3,6 +3,7 @@ package Zeze.Transaction.Collections;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
@@ -13,6 +14,14 @@ public class PSet1<V> extends PSet<V> {
 	protected final @NotNull Meta1<V> meta;
 
 	public PSet1(@NotNull Class<V> valueClass) {
+		// Bean元素不支持（FND5-44同族复审）：Bean是值语义equals但身份hashCode（可变bean
+		// 不覆写hashCode防哈希漂移），哈希容器对bean元素静默漏命中——去重/remove/removeAll
+		// 失真。显式失败优于静默错；框架无PSet2，bean集合属设计不支持（LogList2用IdentityHashSet
+		// +身份比较是既有约定，见LogList2）。
+		if (Bean.class.isAssignableFrom(valueClass))
+			throw new IllegalArgumentException(
+					"PSet1 does not support Bean value type (equals-without-hashCode misbehaves in hash set): "
+							+ valueClass.getName());
 		meta = Meta1.getSet1Meta(valueClass);
 	}
 

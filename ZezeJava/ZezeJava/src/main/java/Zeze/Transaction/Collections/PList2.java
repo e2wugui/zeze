@@ -167,7 +167,14 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.removeAll((Collection<? extends V>)c);
 		}
-		var newList = list.minusAll(c);
+		// FND4-08/FND5-05：minusAll同为"逐元素删首个出现"，自实现契约语义（删全部出现），
+		// 与托管路径（LogList2继承LogList1的removeAll）行为对齐；从高索引往低删保持非命中元素顺序。
+		// 命中检测走线性equals：生成bean覆写equals但不覆写hashCode（值等哈希不等），HashSet漏命中。
+		var hit = new ArrayList<>(c);
+		var newList = list;
+		for (var i = newList.size() - 1; i >= 0; i--)
+			if (hit.contains(newList.get(i)))
+				newList = newList.minus(i);
 		if (newList == list)
 			return false;
 		list = newList;
