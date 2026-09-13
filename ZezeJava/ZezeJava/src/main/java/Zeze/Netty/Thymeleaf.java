@@ -31,13 +31,27 @@ public class Thymeleaf {
 		var url = x.path();
 		if (withContentLength.contains(url)) {
 			try (var out = new HttpExchangeContentLengthWriter(x)) {
-				templateEngine.process(url, context, out);
+				try {
+					templateEngine.process(url, context, out);
+				} catch (Throwable t) {
+					out.fail(); // 渲染异常：close不发200截断页（FND5-17）
+					throw t;
+				}
 				if (out.getContentLength() > 64 * 1024)
 					withContentLength.remove(url);
 			}
 		} else {
 			try (var out = new HttpExchangeStreamWriter(x)) {
-				templateEngine.process(url, context, out);
+				try {
+					templateEngine.process(url, context, out);
+				} catch (Throwable t) {
+					// 渲染异常（FND5-17复审）：close改断连（200头已在线无法改写状态码，
+					// 不发终结符防截断页伪装完整200），并晋升到缓冲分支——重试走可发500的
+					// 可修复路径（首渲染即失败的模板此前会永远停留在流式分支）。
+					out.fail();
+					withContentLength.add(url);
+					throw t;
+				}
 				if (out.getContentLength() < 16 * 1024)
 					withContentLength.add(url);
 			}
