@@ -1049,15 +1049,27 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (connector == null) {
 			logger.warn("sendDirect({}): not found connector for linkName={} account={} clientId={}",
 					getTypeId(fullEncodedProtocol), linkName, account, clientId);
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError(account, clientId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken1")).run();
+			// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+				var rc = onSendError(account, clientId, linkName, link.getLinkSid());
+				if (rc != 0)
+					logger.error("triggerLinkBroken1 failed: linkName={}, linkSid={}, account={}, clientId={}, rc={}",
+							linkName, link.getLinkSid(), account, clientId, rc);
+				return rc;
+			}, "Online.triggerLinkBroken1")).run();
 			return false;
 		}
 		if (!connector.isHandshakeDone()) {
 			logger.warn("sendDirect({}): not isHandshakeDone for linkName={} account={} clientId={}",
 					getTypeId(fullEncodedProtocol), linkName, account, clientId);
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError(account, clientId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken1")).run();
+			// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+				var rc = onSendError(account, clientId, linkName, link.getLinkSid());
+				if (rc != 0)
+					logger.error("triggerLinkBroken1 failed: linkName={}, linkSid={}, account={}, clientId={}, rc={}",
+							linkName, link.getLinkSid(), account, clientId, rc);
+				return rc;
+			}, "Online.triggerLinkBroken1")).run();
 			return false;
 		}
 		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
@@ -1065,8 +1077,14 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (linkSocket == null) {
 			logger.warn("sendDirect({}): closed connector for linkName={} account={} clientId={}",
 					getTypeId(fullEncodedProtocol), linkName, account, clientId);
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError(account, clientId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken1")).run();
+			// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+				var rc = onSendError(account, clientId, linkName, link.getLinkSid());
+				if (rc != 0)
+					logger.error("triggerLinkBroken1 failed: linkName={}, linkSid={}, account={}, clientId={}, rc={}",
+							linkName, link.getLinkSid(), account, clientId, rc);
+				return rc;
+			}, "Online.triggerLinkBroken1")).run();
 			return false;
 		}
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
@@ -1074,9 +1092,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return send.Send(linkSocket, rpc -> {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
-				// FND4-50：对齐同方法上方closed分支的既有形态（TaskSpec.run），失败可观测
-				TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() ->
-						onSendError(account, clientId, linkName, linkSid), "Online.triggerLinkBroken1")).run();
+				// FND4-50：对齐同方法上方closed分支的既有形态（TaskSpec.run），
+				// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+				TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+					var rc = onSendError(account, clientId, linkName, linkSid);
+					if (rc != 0)
+						logger.error("triggerLinkBroken1 failed: linkName={}, linkSid={}, account={}, clientId={}, rc={}",
+								linkName, linkSid, account, clientId, rc);
+					return rc;
+				}, "Online.triggerLinkBroken1")).run();
 			}
 			return Procedure.Success;
 		});

@@ -241,11 +241,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// 【注意，这里不使用 Task.call or run，因为这个在热更流程中调用，避免去使用hotGuard。】
 		// 确认事务可以在更新流程中可以使用。
 		// 也许更优化的方法是为这个更新实现一个不是事务的版本。
-		providerApp.zeze.newProcedure(() -> {
+		var rc = providerApp.zeze.newProcedure(() -> {
 			for (var r : retreats) {
 				// stale-local角色（LoginVersion落后于shared，角色已在别服重登，残留待verifyLocal
 				// 清理）跳过该角色。不检查则getLoginLocal抛IllegalStateException打断整批（最多50
-				// 个角色）且.call()错误码被忽略——旧类加载器bean实例滞留内存钉住旧HotModule。
+				// 个角色）——旧类加载器bean实例滞留内存钉住旧HotModule。
 				var bLocal = tryGetLoginLocal(r.roleId);
 				if (bLocal == null) {
 					logger.error("saveRetreats skip stale-local. roleId={}, key={}", r.roleId, r.key);
@@ -255,6 +255,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			}
 			return 0;
 		}, "saveRetreats").call();
+		// FND5-43同口径续清：rc!=0时整批回滚（stale-local跳过也已回滚）无人感知曾是被忽略点，
+		// 热更重登路径会重新save，这里记error可观测即可。
+		if (rc != 0)
+			logger.error("saveRetreats failed: rc={}, count={}", rc, retreats.size());
 	}
 
 	@FunctionalInterface
@@ -400,7 +404,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private boolean processOffline(Long roleId, @NotNull BLocal local, boolean serverStart) {
-		providerApp.zeze.newProcedure(() -> procedureOffline(roleId, local, serverStart), "procedureOffline").call();
+		// FND5-43：清理事务失败静默（startAfter重启清stale/stopBefore停机清理逐角色路径），
+		// rc记error含roleId——verifyLocal路径可下轮自愈，重启路径依赖下次重启；不引入重试。
+		var rc = providerApp.zeze.newProcedure(() -> procedureOffline(roleId, local, serverStart), "procedureOffline").call();
+		if (rc != 0)
+			logger.error("procedureOffline failed: onlineSet={}, roleId={}, serverStart={}, rc={}",
+					getOnlineSetName(), roleId, serverStart, rc);
 		return true; // continue walk
 	}
 
@@ -1218,11 +1227,19 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	private long triggerLinkBroken(@NotNull String linkName, @NotNull LongList errorSids,
 								   @NotNull Map<Long, Long> context) {
-		errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
+		errorSids.foreach(linkSid -> {
 			var roleId = context.get(linkSid);
 			// 补发的linkBroken没有account上下文。
-			return roleId != null ? onSendError("", roleId, linkName, linkSid) : 0;
-		}, "Online.triggerLinkBroken").call());
+			// FND5-43同口径：rc记error（失败时onSendError的清理未生效，断链残留待
+			// CheckLinkSession/verifyLocal路径自愈）。
+			var rc = roleId != null
+					? providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, linkSid),
+							"Online.triggerLinkBroken").call()
+					: 0;
+			if (rc != 0)
+				logger.error("triggerLinkBroken failed: linkName={}, linkSid={}, roleId={}, rc={}",
+						linkName, linkSid, roleId, rc);
+		});
 		return 0;
 	}
 
@@ -1411,34 +1428,52 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			}
 			return false;
 		}
-		var linkName = link.getLinkName();
-		var connector = providerApp.providerService.getLinks().get(linkName);
-		if (connector == null) {
-			logger.warn("sendDirect({}): not found connector for linkName={} roleId={}",
-					getTypeId(fullEncodedProtocol), linkName, roleId);
-			// link miss
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken0_a")).run();
-			return false;
-		}
-		if (!connector.isHandshakeDone()) {
-			logger.warn("sendDirect({}): not isHandshakeDone for linkName={} roleId={}",
-					getTypeId(fullEncodedProtocol), linkName, roleId);
-			// link miss
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken0_b")).run();
-			return false;
-		}
-		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
-		var linkSocket = connector.getSocket();
-		if (linkSocket == null) {
-			logger.warn("sendDirect({}): closed connector for linkName={} roleId={}",
-					getTypeId(fullEncodedProtocol), linkName, roleId);
-			// link miss
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken0_c")).run();
-			return false;
-		}
+			var linkName = link.getLinkName();
+			var connector = providerApp.providerService.getLinks().get(linkName);
+			if (connector == null) {
+				logger.warn("sendDirect({}): not found connector for linkName={} roleId={}",
+						getTypeId(fullEncodedProtocol), linkName, roleId);
+				// link miss
+				// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+				TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+					var rc = onSendError("", roleId, linkName, link.getLinkSid());
+					if (rc != 0)
+						logger.error("triggerLinkBroken0_a failed: linkName={}, linkSid={}, roleId={}, rc={}",
+								linkName, link.getLinkSid(), roleId, rc);
+					return rc;
+				}, "Online.triggerLinkBroken0_a")).run();
+				return false;
+			}
+			if (!connector.isHandshakeDone()) {
+				logger.warn("sendDirect({}): not isHandshakeDone for linkName={} roleId={}",
+						getTypeId(fullEncodedProtocol), linkName, roleId);
+				// link miss
+				// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+				TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+					var rc = onSendError("", roleId, linkName, link.getLinkSid());
+					if (rc != 0)
+						logger.error("triggerLinkBroken0_b failed: linkName={}, linkSid={}, roleId={}, rc={}",
+								linkName, link.getLinkSid(), roleId, rc);
+					return rc;
+				}, "Online.triggerLinkBroken0_b")).run();
+				return false;
+			}
+			// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
+			var linkSocket = connector.getSocket();
+			if (linkSocket == null) {
+				logger.warn("sendDirect({}): closed connector for linkName={} roleId={}",
+						getTypeId(fullEncodedProtocol), linkName, roleId);
+				// link miss
+				// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+				TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+					var rc = onSendError("", roleId, linkName, link.getLinkSid());
+					if (rc != 0)
+						logger.error("triggerLinkBroken0_c failed: linkName={}, linkSid={}, roleId={}, rc={}",
+								linkName, link.getLinkSid(), roleId, rc);
+					return rc;
+				}, "Online.triggerLinkBroken0_c")).run();
+				return false;
+			}
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(link.getLinkSid());
 		setLocalActiveTimeIfPresent(roleId);
@@ -1446,8 +1481,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
 				// 补发的linkBroken没有account上下文
-				providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, linkSid),
+				// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+				var rc = providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, linkSid),
 						"Online.triggerLinkBroken1").call();
+				if (rc != 0)
+					logger.error("triggerLinkBroken1 failed: linkName={}, linkSid={}, roleId={}, rc={}",
+							linkName, linkSid, roleId, rc);
 			}
 			return Procedure.Success;
 		});
@@ -1602,8 +1641,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : roleIds) {
-				TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> handle.call(sender, target, parameter),
+				// FND5-43同口径：rc记error（转发动作失败仅本角色受影响，不影响后续target）。
+				var rc = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> handle.call(sender, target, parameter),
 						"Online.transmit: " + actionName)).call();
+				if (rc != 0)
+					logger.error("transmit failed: actionName={}, sender={}, target={}, rc={}",
+							actionName, sender, target, rc);
 			}
 		}
 	}
@@ -1852,11 +1895,16 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		void perform() {
 			if (!roleIds.isEmpty()) {
 				try {
-					providerApp.zeze.newProcedure(() -> {
+					// FND5-43：批量清理失败仅catch异常不管rc——rc!=0时整批回滚无人感知，记error
+					//（探测照发，失败账号由CheckLinkSession应答路径继续驱动verify）。
+					var rc = providerApp.zeze.newProcedure(() -> {
 						for (var roleId : roleIds)
 							tryRemoveLocal(roleId, true);
 						return 0L;
 					}, "Online.verifyLocal").call();
+					if (rc != 0)
+						logger.error("verifyLocal batch failed: onlineSet={}, rc={}, roleIds={}",
+								getOnlineSetName(), rc, roleIds);
 					sendDirect(roleIds, CheckLinkSession.TypeId_, new Binary(new CheckLinkSession().encode()), true);
 				} catch (Exception e) {
 					logger.error("", e);
@@ -1901,9 +1949,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (defaultOnline != null) {
 			// 能收到redirect的肯定是defaultOnline，这里为了保险期间和代码更清楚，直接使用defaultOnline。
 			var onlineSet = defaultOnline.getOnline(instanceName);
-			if (onlineSet != null)
-				providerApp.zeze.newProcedure(() -> onlineSet.tryRemoveLocal(roleId, false),
+			if (onlineSet != null) {
+				// FND5-43同口径：rc记error（失败时目标服的local行残留，待其verifyLocal周期自愈）。
+				var rc = providerApp.zeze.newProcedure(() -> onlineSet.tryRemoveLocal(roleId, false),
 						"Online.redirectRemoveLocal").call();
+				if (rc != 0)
+					logger.error("redirectRemoveLocal failed: serverId={}, roleId={}, instanceName={}, rc={}",
+							serverId, roleId, instanceName, rc);
+			}
 		}
 	}
 
