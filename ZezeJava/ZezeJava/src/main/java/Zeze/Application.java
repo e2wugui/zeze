@@ -908,6 +908,12 @@ public final class Application extends ReentrantLock {
 	}
 
 	public void checkpointRunThread() {
+		// 同endStart/checkpointRun（FND4-81）：noDatabase模式不创建checkpoint。本钩子还会被
+		// Transaction.perform的finally按CheckpointTransactionPeriod周期触达（FND5-01）：
+		// startState==eStarted时checkpoint::runOnce对null receiver在方法引用创建时即NPE，
+		// 异常从finally逃逸吞掉perform的返回值。
+		if (checkpoint == null)
+			return;
 		lock();
 		try {
 			var f = checkpointFuture;
