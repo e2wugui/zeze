@@ -352,12 +352,15 @@ public final class DumpRocksDb {
 				b &= 0xff;
 				if (b < 0xc0 || b >= 0xf0) // 110x xxxx | 1110 xxxx
 					return false;
-				if (++i >= n || (bytes[i] & 0xc0) != 0xc0) // 10xx xxxx
-					return false;
-				if (++i >= n || (bytes[i] & 0xc0) != 0xc0) // 10xx xxxx
-					return false;
-				if (b >= 0xe0 && (++i >= n || (bytes[i] & 0xc0) != 0xc0)) // 10xx xxxx
-					return false;
+				// FND5-07：连续字节数由引导字节决定（0xC0-0xDF跟1个、0xE0-0xEF跟2个）；续字节
+				// 掩码应为0x80（10xx xxxx）。原码无条件查两个再查第三个——多查的是下一字符首字节
+				// 或越界；且续字节判定用0xC0（11xxxxxx），真续字节（&0xC0==0x80）必被误拒。
+				int continuations = b >= 0xe0 ? 2 : 1;
+				for (var j = 0; j < continuations; ++j) {
+					++i;
+					if (i >= n || (bytes[i] & 0xc0) != 0x80) // 10xx xxxx
+						return false;
+				}
 			}
 		}
 		return true;
