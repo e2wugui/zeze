@@ -157,9 +157,16 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	// 时字段仍指向自身任务，新登记被单flight跳过，链就此断裂。
 	private final Object loginReplayRetryLock = new Object();
 	private @Nullable Future<?> loginReplayRetryTask; // guarded-by loginReplayRetryLock
+	// FND5-33：close后拒绝再登记并取消在途重试——raftClient已停，重试里的waitLoginReady
+	// 必失败再登记，形成约17s周期的error循环直到进程退出。
+	private volatile boolean closed;
 
 	private void scheduleLoginReplayRetry() {
+		if (closed)
+			return;
 		synchronized (loginReplayRetryLock) {
+			if (closed)
+				return;
 			if (loginReplayRetryTask != null)
 				return; // 单flight：已安排的重试足够
 			loginReplayRetryTask = TaskSpec.ofAction(() -> {
@@ -445,6 +452,13 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	@Override
 	public void close() {
+		closed = true; // FND5-33：先置停机标志，再取消在途重试（迟到失败回调不会再登记）
+		synchronized (loginReplayRetryLock) {
+			if (loginReplayRetryTask != null) {
+				loginReplayRetryTask.cancel(false);
+				loginReplayRetryTask = null;
+			}
+		}
 		try {
 			loginFuture.cancel(true);
 			raftClient.stop();

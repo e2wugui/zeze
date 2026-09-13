@@ -2,6 +2,7 @@ package Zeze.Services.ServiceManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.Future;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Component.Threading;
@@ -16,6 +17,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.OutInt;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -187,7 +189,13 @@ public final class Agent extends AbstractAgent {
 	// 订阅状态updateSubscribeInfo同步），失败安排退避重试整体重放，"重连后状态最终必达"由
 	// 机制保证（对齐FND4-57的对账/重试口径）。
 	private static final long ReplayRetryDelayMs = 5_000;
-	private volatile @Nullable java.util.concurrent.Future<?> replayRetryTask;
+	// FND5-34：对齐raft版判例（5d8c5477a）——onConnected同步失败与subscribeServicesAsync
+	// 的whenComplete异步回调并发失败时，"cancel旧→赋新"两步竞态会登记出多个重试任务
+	//（重放源幂等无状态破坏，但重试链膨胀、日志重复）。小锁原子化"检查-登记/清除"。
+	// FND5-33：stop后拒绝再登记并取消在途任务，否则close后周期重试error日志持续到进程退出。
+	private final Object replayRetryLock = new Object();
+	private @Nullable Future<?> replayRetryTask; // guarded-by replayRetryLock
+	private volatile boolean stopped;
 
 	private void replayRegistersAndSubscribes() {
 		var edit = new BEditService();
@@ -212,11 +220,20 @@ public final class Agent extends AbstractAgent {
 	}
 
 	private void scheduleReplayRetry() {
-		var old = replayRetryTask;
-		if (old != null)
-			old.cancel(false); // 单flight：最新一次失败的重试覆盖旧的
-		replayRetryTask = Zeze.Util.TaskSpec.ofAction(this::replayRegistersAndSubscribes)
-				.name("SM.Agent.replayRetry").scheduleNow(ReplayRetryDelayMs);
+		if (stopped)
+			return;
+		synchronized (replayRetryLock) {
+			if (stopped)
+				return;
+			if (replayRetryTask != null)
+				return; // 单flight：已安排的重试足够（全量重放幂等，raft版同款语义）
+			replayRetryTask = TaskSpec.ofAction(() -> {
+				synchronized (replayRetryLock) {
+					replayRetryTask = null; // 先清自身：重放若再失败可立即登记新任务，链不断
+				}
+				replayRegistersAndSubscribes();
+			}).name("SM.Agent.replayRetry").scheduleNow(ReplayRetryDelayMs);
+		}
 	}
 
 	private long processEditService(@NotNull EditService r) {
@@ -336,6 +353,13 @@ public final class Agent extends AbstractAgent {
 	}
 
 	public void stop() throws Exception {
+		stopped = true; // FND5-33：先置停机标志，再取消在途重试（迟到失败回调不会再登记）
+		synchronized (replayRetryLock) {
+			if (replayRetryTask != null) {
+				replayRetryTask.cancel(false);
+				replayRetryTask = null;
+			}
+		}
 		lock();
 		try {
 			if (tid128UdpClient != null) {
