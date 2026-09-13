@@ -38,4 +38,27 @@ public class TestDelayRemoveAddJobBeforeStart {
 			}
 		}
 	}
+
+	@Test
+	public void testAddJobUnknownHandleRejected() throws Exception {
+		// FND5-21：started应用addJob未注册handleName——修复前正常返回（startJob的NPE被
+		// 任务框架吞，tJobs行已持久化成僵尸：每次启动continueJobs重试再失败）。
+		Task.tryInitThreadPool();
+		var conf = TakeoverTestEnv.newConf("dryrun", 600_000, 600_000);
+		var app = new Application("TestDelayRemoveUnknownHandle", conf);
+		try {
+			app.start();
+			var ise = Assertions.assertThrows(IllegalStateException.class,
+					() -> app.getDelayRemove().addJob("UnitTest.FND5_21.Unknown", EmptyBean.instance),
+					"未注册handleName必须写持久化前拒绝（原静默僵尸化）");
+			Assertions.assertTrue(ise.getMessage().contains("JobHandle not registered"),
+					"错误信息须指向handleName未注册");
+		} finally {
+			try {
+				app.stop();
+			} catch (Throwable ignored) {
+				// ignored
+			}
+		}
+	}
 }

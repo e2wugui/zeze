@@ -87,9 +87,16 @@ public class DelayRemove extends AbstractDelayRemove {
 
 	public void addJob(String handleName, Bean state) {
 		// 生命周期契约显式化（FND4-47）：jobIdAutoKey仅start()中赋值，装配顺序不当（start前
-		// addJob）时NPE无语义；对齐timer字段的防御习惯，入口状态检查。
+		// addJob）时NPE无语义；对齐timer字段的防御习惯，入口状态检查。放在handleName检查
+		// 之前：未start是更根本的装配错误，先报它，排障信息才指向真根因。
 		if (jobIdAutoKey == null)
 			throw new IllegalStateException("DelayRemove not started. call start() before addJob().");
+		// FND5-21：handleName未注册时startJob的handle.process必NPE——异常被任务框架吞、
+		// tJobs行不清理，每次进程启动continueJobs重试再失败，僵尸条目与循环告警。
+		// 写持久化前显式拒绝（对齐FND4-47入口检查习惯）。
+		if (!jobHandles.containsKey(handleName))
+			throw new IllegalStateException("JobHandle not registered: " + handleName
+					+ "（拼写错误或注册晚于addJob）");
 		var bJob = new BJob();
 		var jobId = jobIdAutoKey.nextString();
 		bJob.setJobHandleName(handleName);
@@ -135,8 +142,19 @@ public class DelayRemove extends AbstractDelayRemove {
 	public void continueJobs() {
 		zeze.newProcedure(() -> {
 			var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
-			for (var e : jobs.getJobs())
+			for (var it = jobs.getJobs().entrySet().iterator(); it.hasNext(); ) {
+				var e = it.next();
+				// 存量僵尸Job治理（FND5-21复审）：addJob入口校验只防新增，修复前写入的未注册
+				// handleName条目加载后走"startJob的NPE被任务框架吞→行不清理→每次启动重试
+				// 再失败"的死循环。装载期发现即删除Job行并告警根因，运维可见、循环终止。
+				if (!jobHandles.containsKey(e.getValue().getJobHandleName())) {
+					logger.error("DelayRemove.continueJobs: JobHandle not registered, discard zombie job."
+							+ " jobId={}, handleName={}", e.getKey(), e.getValue().getJobHandleName());
+					it.remove();
+					continue;
+				}
 				startJob(e.getKey(), e.getValue());
+			}
 			return 0;
 		}, "DelayRemove.continueJobs").call();
 	}
