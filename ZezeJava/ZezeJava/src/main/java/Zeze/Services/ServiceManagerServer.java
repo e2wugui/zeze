@@ -327,36 +327,39 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				keepAliveTimerTask = null;
 		}
 
-		// 底层确保只会回调一次
-		public void onClose() {
-			if (keepAliveTimerTask != null)
-				keepAliveTimerTask.cancel(false);
+			// 底层确保只会回调一次
+			public void onClose() {
+				if (keepAliveTimerTask != null)
+					keepAliveTimerTask.cancel(false);
 
-			// FND4-66：联动清理该会话登记的全部负载观察者（地址行随之回收）
-			serviceManager.removeLoadObservers(sessionId);
-
-			// Suspect广播：立即、不延迟、不挑选、不取SM锁（避开旧双锁序）。仅是提示，
-			// 由租约表裁决：未过期租约会被接收方安排到过期时刻精确重试。
-			var suspectServerId = identifyServerId;
-			if (suspectServerId >= 0) {
-				try {
-					serviceManager.server.foreach(so -> {
-						if (so.getSessionId() == sessionId)
-							return; // 刚断线的会话本身不报信（发给它会得到submitAction错误日志）
-						var suspect = new Suspect();
-						suspect.Argument.serverId = suspectServerId;
-						so.Send(suspect);
-					});
-				} catch (Exception e) {
-					logger.warn("Suspect broadcast for serverId={} failed", suspectServerId, e);
+				// Suspect广播：立即、不延迟、不挑选、不取SM锁（避开旧双锁序）。仅是提示，
+				// 由租约表裁决：未过期租约会被接收方安排到过期时刻精确重试。
+				var suspectServerId = identifyServerId;
+				if (suspectServerId >= 0) {
+					try {
+						serviceManager.server.foreach(so -> {
+							if (so.getSessionId() == sessionId)
+								return; // 刚断线的会话本身不报信（发给它会得到submitAction错误日志）
+							var suspect = new Suspect();
+							suspect.Argument.serverId = suspectServerId;
+							so.Send(suspect);
+						});
+					} catch (Exception e) {
+						logger.warn("Suspect broadcast for serverId={} failed", suspectServerId, e);
+					}
 				}
-			}
 
-			var notifies = new HashMap<AsyncSocket, EditService>();
-			serviceManager.editLock.lock();
+				var notifies = new HashMap<AsyncSocket, EditService>();
+				serviceManager.editLock.lock();
 
-			try {
-				for (var info : subscribes.values())
+				try {
+					// FND4-66：联动清理该会话登记的全部负载观察者（地址行随之回收）。
+					// FND5-30：清理由锁外挪入editLock——登记（addLoadObserver全部在editLock内）
+					// 与清理串行化；原先锁外的“removeObserver判空→it.remove()”与并发登记构成
+					// TOCTOU，后到的活观察者随地址行被整行误删。
+					serviceManager.removeLoadObservers(sessionId);
+
+					for (var info : subscribes.values())
 					serviceManager.unSubscribeNow(sessionId, info.getServiceName());
 
 				for (var unReg : registers) {
@@ -394,6 +397,15 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	private final ReentrantLock editLock = new ReentrantLock(); // 整个edit使用一把锁。不并发了。
 
+	// FND5-29：Critical协议经oneByOne池执行，可能晚于OnSocketClose的会话清理到达（注册报文
+	// 与RST几乎同时到达是常态）。判活必须在editLock内调用：NetServer.OnSocketClose先从
+	// socketMap摘除再清理（清理持editLock），故锁内GetSocket==sender⟹摘除未发生⟹清理未开始，
+	// 本次处理的写入会被随后的清理收走；GetSocket!=sender⟹会话已死，拒绝即不产生死会话残留。
+	// sessionId由全局AtomicLong发号不复用，不存在同号新连接误判。
+	private boolean isSenderAlive(@NotNull AsyncSocket sender) {
+		return server.GetSocket(sender.getSessionId()) == sender;
+	}
+
 	private static void sendNotifies(HashMap<AsyncSocket, EditService> notifies) {
 		// todo 增加一些发送错误的日志。
 		for (var e : notifies.entrySet()) {
@@ -429,6 +441,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		// 原子的完成所有编辑的修改和通知。
 		editLock.lock();
 		try {
+			if (!isSenderAlive(r.getSender())) { // FND5-29：迟到协议，会话已清理——拒绝防死注册复活
+				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
+				return Procedure.Success;
+			}
 			// step 1: remove
 			for (var unReg : r.Argument.getRemove()) {
 				var info = session.registers.remove(unReg);
@@ -484,6 +500,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 		editLock.lock();
 		try {
+			if (!isSenderAlive(r.getSender())) { // FND5-29：迟到协议，会话已清理——拒绝防死订阅残留
+				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
+				return Procedure.Success;
+			}
 			for (var sub : r.Argument.subs) {
 				session.subscribes.put(sub.getServiceName(), sub);
 				serviceStates.computeIfAbsent(sub.getServiceName(), name -> new ServiceState(this, name))
@@ -508,6 +528,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 		editLock.lock();
 		try {
+			if (!isSenderAlive(r.getSender())) { // FND5-29：迟到协议，会话已清理——拒绝防死退订写脏状态
+				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
+				return Procedure.Success;
+			}
 			for (var serviceName : r.Argument.serviceNames) {
 				session.subscribes.remove(serviceName); // continue if not exist
 				unSubscribeNow(session.sessionId, serviceName);
@@ -520,9 +544,19 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	private long processSetLoad(@NotNull SetServerLoad setServerLoad) {
-		loads.computeIfAbsent(setServerLoad.Argument.getName(), __ -> new LoadObservers(this))
-				.setLoad(setServerLoad.Argument);
-		return 0;
+		editLock.lock();
+		try {
+			// FND5-29：迟到的SetLoad会为死会话重建零观察者地址行（绕过FND4-66联动清理）；
+			// 判活与removeLoadObservers（onClose，editLock内）串行。SetServerLoad非Rpc，
+			// 死连接本就收不到应答，拒绝即静默丢弃。
+			if (!isSenderAlive(setServerLoad.getSender()))
+				return 0;
+			loads.computeIfAbsent(setServerLoad.Argument.getName(), __ -> new LoadObservers(this))
+					.setLoad(setServerLoad.Argument);
+			return 0;
+		} finally {
+			editLock.unlock();
+		}
 	}
 
 	// 只写session上一个int（Direct派发内完成、无锁、无取消语义）。
@@ -690,10 +724,13 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		@Override
 		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
 			logger.info("OnSocketClose: {} sessionId={}", so, so.getSessionId());
+			// FND5-29：先经基类从socketMap摘除，再做会话清理——摘除成为关闭的第一可见步骤，
+			// process*的锁内判活（isSenderAlive）才有全序：判活通过⟹清理尚未开始（本次处理
+			// 的写入随后会被清理收走）；判活失败⟹拒绝，死会话状态不会复活。
+			super.OnSocketClose(so, e);
 			var session = (Session)so.getUserState();
 			if (session != null)
 				session.onClose();
-			super.OnSocketClose(so, e);
 		}
 
 		@Override
