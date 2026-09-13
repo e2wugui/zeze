@@ -75,8 +75,13 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
 
 		final @NotNull String name;
-		@NotNull LongConcurrentHashMap<LongAdder> resultMap = new LongConcurrentHashMap<>();
-		@NotNull LongConcurrentHashMap<LongAdder> resultMapLast = new LongConcurrentHashMap<>();
+		// FND5-11：热路径getOrAddResult无锁读写resultMap，getLogAndReset持锁换新——引用必须
+		// volatile发布，否则业务线程可无限期读旧引用，自增落在已消费的resultMapLast上丢统计。
+		volatile @NotNull LongConcurrentHashMap<LongAdder> resultMap = new LongConcurrentHashMap<>();
+		// FND5-11同族（FND5-11复审）：锁内写（getLogAndReset），getResultMapLast()被定时器线程
+		// （ProcedureStatistics.Watcher）与HTTP查询线程无锁读——同样需要volatile发布，否则读者
+		// 可长期读到旧快照，watch的(total-last)增量恒为0导致回调永不触发。
+		volatile @NotNull LongConcurrentHashMap<LongAdder> resultMapLast = new LongConcurrentHashMap<>();
 		long totalCount;
 		int succRatio; // 成功率百分比
 		int idleCount; // 没收集到信息的轮数
