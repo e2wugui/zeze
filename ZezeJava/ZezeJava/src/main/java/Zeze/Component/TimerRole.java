@@ -449,13 +449,20 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	// ///////////////////////////////////////////////////////////////
 	// 取消
 	public boolean cancel(@Nullable String timerId, long roleId) {
-		return cancelOnline(timerId, roleId) || cancelOffline(timerId); // offline 使用旧的参数调用。
+		// offline也走带归属校验的入口（FND5-19复审）：曾用单参cancelOffline(timerId)——它自推导
+		// 真实归属后即取消，无调用者身份校验，timer.roles(A).cancel(B的offline timerId)可越权
+		// 取消B的定时器（对齐TimerAccount复合入口判例）。
+		return cancelOnline(timerId, roleId) || cancelOffline(timerId, roleId);
 	}
 
 	public boolean cancelOnline(@Nullable String timerId, long roleId) {
 		return cancelOnline(timerId, roleId, false);
 	}
 
+	/**
+	 * 系统级按timerId取消offline定时器：自推导定时器真实归属后取消，无调用者身份校验。
+	 * 角色会话等外部调用必须使用 {@link #cancelOffline(String, long)}（带归属校验）。
+	 */
 	public boolean cancelOffline(@Nullable String timerId) {
 		if (timerId == null)
 			return true; // 取消不存在的timer，认为成功。
@@ -480,7 +487,25 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		if (timerId == null)
 			return true; // 取消不存在的timer，认为成功。
 
-		online.providerApp.zeze.getTimer().cancel(timerId);
+		var timer = online.providerApp.zeze.getTimer();
+		// 归属校验（FND5-19，对齐TimerAccount.cancelOffline判例FND4-42）：曾无校验直接
+		// timer.cancel——传入任意timerId（他人offline timer、全局命名timer）都会被越权取消，
+		// 且按调用者传入的roleId清理_tRoleOfflineTimers（typo时误删他行/真实归属行残留脏条目）。
+		var index = timer.tIndexs().get(timerId);
+		if (index == null)
+			return false;
+		var node = timer.tNodes().get(index.getNodeId());
+		if (node == null)
+			return false;
+		var bTimer = node.getTimers().get(timerId);
+		if (bTimer == null)
+			return false;
+		var customData = bTimer.getCustomData().getBean();
+		if (!(customData instanceof BOfflineRoleCustom custom))
+			return false; // 不是角色offline timer，归属不符拒绝
+		if (custom.getRoleId() != roleId)
+			return false;
+		timer.cancel(timerId);
 		var bTimers = online._tRoleOfflineTimers().get(roleId);
 		var r = bTimers != null && bTimers.getOfflineTimers().remove(timerId) != null;
 		if (bTimers != null && bTimers.getOfflineTimers().isEmpty())

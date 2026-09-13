@@ -219,19 +219,36 @@ abstract class TimerOnlineBase<I> {
 			logger.info("cancelOnline: transmit {} {}", identityString(id), timerId);
 			return true; // 登录在其他机器上，转发过去取消OnlineTimer，不管结果了。
 		}
-		return cancelOnlineLocal(timerId);
+		return cancelOnlineLocal(timerId, id);
 	}
 
-	final boolean cancelOnlineLocal(@Nullable String timerId) {
+	// callerId非null时做归属校验（外部取消入口传入归属者）；null表示系统级清理
+	// （fireOnline的触发/异常/覆盖收尾、onLocalRemove），定时器与清理动作者天然同源。
+	final boolean cancelOnlineLocal(@Nullable String timerId, @Nullable I callerId) {
 		if (timerId == null)
 			return true;
-		// always cancel future task，第一步就做这个。
-		Transaction.whileCommit(() -> timer().cancelFuture(timerId));
 
 		// remove online timer
 		var bTimer = getOnlineTimer(timerId); // table.remove现在不能返回旧值，只能这样写。
-		if (bTimer == null)
+		if (bTimer == null) {
+			// always cancel future task：记录不存在时future必是孤儿（fireOnline对bTimer==null
+			// 也会自愈cancelFuture），清理后返回失败。
+			Transaction.whileCommit(() -> timer().cancelFuture(timerId));
 			return false;
+		}
+
+		// 归属校验（FND5-19复审）：外部入口曾无校验——timer.roles(A).cancelOnline(B的timerId)
+		// 可越权取消任意online timer并按B的真实归属误清B的本地行。归属不符即拒绝。
+		// 校验必须先于cancelFuture注册：原先无条件注册在第一步，越权取消虽返回false，
+		// 事务提交后仍会停摆他人future、表项残留成僵尸（FND5-19复审补遗）。
+		if (callerId != null && !bTimer.identity().equals(callerId)) {
+			logger.warn("cancelOnlineLocal rejected: timer not owned by caller. timerId={}, owner={}, caller={}",
+					timerId, identityString(bTimer.identity()), identityString(callerId));
+			return false;
+		}
+
+		// always cancel future task，归属校验通过后注册。
+		Transaction.whileCommit(() -> timer().cancelFuture(timerId));
 
 		// remove online local
 		var id = bTimer.identity();
@@ -315,7 +332,7 @@ abstract class TimerOnlineBase<I> {
 	// Online.Local删除时，取消这个用户所有的在线定时器。
 	final void onLocalRemove(@NotNull BOnlineTimers timers) {
 		for (var timerId : timers.getTimerIds().keySet())
-			cancelOnlineLocal(timerId);
+			cancelOnlineLocal(timerId, null); // 系统级清理：timers行本身即归属者的本地行
 	}
 
 	// ///////////////////////////////////////////////////////////////
@@ -499,7 +516,7 @@ abstract class TimerOnlineBase<I> {
 		var procSuffix = handle != null ? "." + handle.getClass().getName() : "";
 		var ret = TaskSpec.ofProcedure(zeze().newProcedure(() -> {
 			if (handle == null) {
-				cancelOnlineLocal(timerId);
+				cancelOnlineLocal(timerId, null);
 				return 0;
 			}
 			var bTimer = getOnlineTimer(timerId);
@@ -528,7 +545,7 @@ abstract class TimerOnlineBase<I> {
 			if (r == Procedure.Exception) {
 				logger.info("cancel online {} timer for exception: timerId={}, {}",
 						kind.toLowerCase(), timerId, identityString(id));
-				cancelOnlineLocal(timerId); // 异常错误不忽略
+				cancelOnlineLocal(timerId, null); // 异常错误不忽略
 				return 0;
 			}
 			// 其他错误忽略
@@ -536,14 +553,14 @@ abstract class TimerOnlineBase<I> {
 			if (fireKind.hasNext(bTimer, id, handle))
 				fireKind.scheduleNext(bTimer, id, handle, hot);
 			else
-				cancelOnlineLocal(timerId);
+				cancelOnlineLocal(timerId, null);
 			return 0;
 		}, name() + ".fireOnline" + kind + procSuffix)).call();
 		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
 		if (ret != 0) {
 			TaskSpec.ofProcedure(zeze().newProcedure(() -> {
 				logger.info("cancel online {} timer for ret={}: {}", kind.toLowerCase(), ret, timerId);
-				cancelOnlineLocal(timerId);
+				cancelOnlineLocal(timerId, null);
 				return 0;
 			}, name() + " finally cancel impossible!")).call();
 		}
