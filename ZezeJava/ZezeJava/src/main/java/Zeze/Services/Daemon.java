@@ -105,18 +105,39 @@ public class Daemon {
 		while (true) {
 			try {
 				// 轮询：等待Global配置以及等待子进程退出。
+				Command cmd = null;
 				try {
-					var cmd = receiveCommand(udpSocket);
+					cmd = receiveCommand(udpSocket);
+				} catch (SocketTimeoutException ex) {
+					// skip
+				} catch (Throwable ex) {
+					// 收到未知/截断/损坏的UDP报文（本地任意进程可向该随机端口发送，FND5-37，
+					// 对齐ProcessDaemon判例）：丢弃并继续，非信任输入不得触发外层catch的
+					// fatalExit杀掉看门狗与被监管子进程。
+					logger.error("Daemon.receiveCommand bad packet", ex);
+				}
+				if (cmd != null) {
 					switch (cmd.command()) {
 					case Register.Command:
 						var reg = (Register)cmd;
 						var code = 0;
-						if (monitors.containsKey(reg.serverId))
+						if (!isValidRegister(reg)) {
+							logger.error("Register rejected: serverId={} globalCount={} mmap={}",
+									reg.serverId, reg.globalCount, reg.mmapFileName);
+							code = 2;
+						} else if (monitors.containsKey(reg.serverId))
 							code = 1;
 						else {
-							var monitor = new Monitor(reg);
-							monitors.put(reg.serverId, monitor);
-							monitor.start();
+							try {
+								var monitor = new Monitor(reg);
+								monitors.put(reg.serverId, monitor);
+								monitor.start();
+							} catch (Throwable ex) {
+								// Monitor打开mmap失败（校验后文件被删/被锁等）：拒绝本次注册，
+								// 不让异常逃逸到外层catch的fatalExit。
+								logger.error("Register monitor failed", ex);
+								code = 2;
+							}
 						}
 						sendCommand(udpSocket, cmd.peer, new CommonResult(reg.reliableSerialNo, code));
 						logger.info("Register! Server={} code={}", reg.serverId, code);
@@ -127,9 +148,17 @@ public class Daemon {
 						code = 0;
 						var monitor = monitors.get(on.serverId);
 						if (monitor != null) {
-							monitor.setConfig(on.globalIndex, on.globalConfig);
-							logger.info("GlobalOn! Server={} ServerDaemonTimeout={} ServerReleaseTimeout={}",
-									on.serverId, on.globalConfig.serverDaemonTimeout, on.globalConfig.serverReleaseTimeout);
+							if (on.globalIndex < 0 || on.globalIndex >= monitor.globalConfigs.length()) {
+								// 非信任输入边界校验（FND5-37，对齐ProcessDaemon.Release判例）：
+								// 越界索引丢弃，AIOOBE不得逃逸到外层catch的fatalExit。
+								logger.error("GlobalOn bad globalIndex={}, count={}",
+										on.globalIndex, monitor.globalConfigs.length());
+								code = 2;
+							} else {
+								monitor.setConfig(on.globalIndex, on.globalConfig);
+								logger.info("GlobalOn! Server={} ServerDaemonTimeout={} ServerReleaseTimeout={}",
+										on.serverId, on.globalConfig.serverDaemonTimeout, on.globalConfig.serverReleaseTimeout);
+							}
 						} else {
 							logger.warn("GlobalOn! not found serverId={} ServerDaemonTimeout={} ServerReleaseTimeout={}",
 									on.serverId, on.globalConfig.serverDaemonTimeout, on.globalConfig.serverReleaseTimeout);
@@ -139,12 +168,17 @@ public class Daemon {
 						break;
 
 					case DeadlockReport.Command:
+						// 弱校验（FND5-37复审）：DeadlockReport不带任何字段，子进程侧与Register
+						// 走同一个udpSocket（对端地址相同），仅接受已注册Monitor对端的报告——
+						// 任意本地进程伪造报文不得销毁被监管子进程并连带令守护整体退出。
+						if (!isRegisteredPeer(cmd.peer)) {
+							logger.error("DeadlockReport rejected: peer={}", cmd.peer);
+							break;
+						}
 						logger.warn("deadlock report");
 						destroySubprocess();
 						break;
 					}
-				} catch (SocketTimeoutException ex) {
-					// skip
 				}
 				// subprocess 可能已被Monitor（idle超时）或DeadlockReport路径销毁并置null，此时返回非0让main重启子进程。
 				if (subprocess == null || subprocess.waitFor(0, TimeUnit.MILLISECONDS))
@@ -155,6 +189,40 @@ public class Daemon {
 				return -1; // never run here
 			}
 		}
+	}
+
+	// Register 校验（FND5-37）：mmap文件由子进程createTempFile("zeze",".mmap")创建，
+	// 限定临时目录+前缀后缀白名单；copyMMap按globalCount*8布局读活跃时间戳，尺寸必须
+	// 吻合；globalCount上界防伪造巨值OOM（实际=进程内GCM实例数，个位数）。不满足即拒绝，
+	// 杜绝任意路径打开/任意尺寸映射及stopAndJoin的任意路径删除。
+	// 整体catch（FND5-37复审）：Path.of对Windows非法路径字符抛InvalidPathException（合法
+	// 编码的Register报文即可携带），不包则逃逸到mainRun外层catch的fatalExit——单报文
+	// 仍可halt看门狗。非信任输入的解析异常一律按拒绝处理。
+	private static boolean isValidRegister(@NotNull Register reg) {
+		try {
+			if (reg.globalCount <= 0 || reg.globalCount > 1024)
+				return false;
+			var fileName = Path.of(reg.mmapFileName);
+			if (!Files.isRegularFile(fileName))
+				return false;
+			var parent = fileName.getParent();
+			if (parent == null || !parent.equals(Path.of(System.getProperty("java.io.tmpdir"))))
+				return false;
+			var name = fileName.getFileName().toString();
+			if (!name.startsWith("zeze") || !name.endsWith(".mmap"))
+				return false;
+			return Files.size(fileName) == (long)reg.globalCount * 8;
+		} catch (RuntimeException | IOException e) {
+			return false;
+		}
+	}
+
+	private static boolean isRegisteredPeer(@NotNull SocketAddress peer) {
+		for (var monitor : monitors) {
+			if (monitor.peerSocketAddress.equals(peer))
+				return true;
+		}
+		return false;
 	}
 
 	private static void fatalExit() {
@@ -302,9 +370,26 @@ public class Daemon {
 			peerSocketAddress = reg.peer;
 			globalConfigs = new AtomicReferenceArray<>(reg.globalCount);
 			fileName = reg.mmapFileName;
-			raf = new RandomAccessFile(new File(fileName), "rw");
-			channel = raf.getChannel();
-			mmap = channel.map(FileChannel.MapMode.READ_WRITE, 0, channel.size());
+			var tmpRaf = new RandomAccessFile(new File(fileName), "rw");
+			try {
+				var tmpChannel = tmpRaf.getChannel();
+				// 构造期复核尺寸（FND5-37复审）：isValidRegister校验与本构造之间存在TOCTOU窗口，
+				// 文件被截断/替换后按当下channel.size()映射，容量!=globalCount*8会使copyMMap
+				// 稳定抛BufferUnderflowException逃逸到run的fatalExit。此处不匹配直接拒绝注册
+				// （由mainRun的catch转为code=2应答）。
+				var size = tmpChannel.size();
+				if (size != (long)reg.globalCount * 8)
+					throw new IOException("mmap size mismatch: " + size + " != " + ((long)reg.globalCount * 8));
+				mmap = tmpChannel.map(FileChannel.MapMode.READ_WRITE, 0, size);
+				raf = tmpRaf;
+				channel = tmpChannel;
+			} catch (Exception e) {
+				try {
+					tmpRaf.close(); // 连带关闭channel
+				} catch (Exception ignored) {
+				}
+				throw e;
+			}
 		}
 
 		public AchillesHeelConfig getConfig(int index) {
@@ -315,7 +400,9 @@ public class Daemon {
 			globalConfigs.set(index, config);
 		}
 
-		private ByteBuffer copyMMap() throws IOException {
+		// 返回null表示本轮防御性丢弃（映射可读字节不足，运行期文件被外部篡改的兜底），
+		// 调用方跳过本轮即可，下轮重试；不得让BufferUnderflowException逃逸到run的fatalExit。
+		private @Nullable ByteBuffer copyMMap() throws IOException {
 			channelLock.lock();
 			try {
 				// Channel.lock 对同一个进程不能并发。
@@ -323,6 +410,11 @@ public class Daemon {
 				try {
 					var copy = new byte[globalConfigs.length() * 8];
 					mmap.position(0);
+					if (mmap.remaining() < copy.length) {
+						logger.error("Monitor.copyMMap truncated: remaining={}, expect={}",
+								mmap.remaining(), copy.length);
+						return null;
+					}
 					mmap.get(copy, 0, copy.length);
 					return ByteBuffer.Wrap(copy);
 				} finally {
@@ -338,6 +430,11 @@ public class Daemon {
 			try {
 				while (running) {
 					var bb = copyMMap();
+					if (bb == null) {
+						//noinspection BusyWait
+						Thread.sleep(1000);
+						continue;
+					}
 					var now = System.currentTimeMillis();
 					for (int i = 0; i < globalConfigs.length(); ++i) {
 						var activeTime = bb.ReadLong8();
