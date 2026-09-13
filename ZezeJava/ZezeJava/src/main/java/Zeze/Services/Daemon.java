@@ -56,7 +56,9 @@ public class Daemon {
 		// 参数契约入口显式化（FND4-72）：args为空时下方command.add(1,...)越界，以意外
 		// IndexOutOfBoundsException而非usage提示失败。无参启动直接给出用法。
 		if (args.length < 1) {
-			System.err.println("usage: Daemon <main-class> [args...]");
+			// FND5-38：args[0]是可执行程序（如java），主类在其后——曾印"<main-class>"，
+			// 按usage启动必然IOException失败，守护从未生效。
+			System.err.println("usage: Daemon <java-executable> [jvm-args ...] <main-class> [args...]");
 			return;
 		}
 		// udp for subprocess register
