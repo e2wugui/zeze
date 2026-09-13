@@ -12,6 +12,7 @@ import Zeze.Services.Handshake.Constant;
 import Zeze.Util.Task;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 自包含（临时目录+本机端口），标 @Fast。
  */
 @Fast
+@ResourceLock("token.rocksdb") // Token经全局System property定位DB目录，与同族测试并行互相覆盖路径
 @org.junit.jupiter.api.parallel.Isolated // 全量套件并行负载下连接计数时序敏感（曾两轮负载偶发），串行执行（TestTaskShutdown 同款先例）
 public class TestHandshakeMaxConnections {
 	// ServiceConf 的 maxConnections 无公开 setter，测试用反射设置。

@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -19,6 +20,7 @@ import harness.Fast;
  * 修复为全有或全无：失败清空已建状态，二次start真实重启。
  */
 @Fast
+@ResourceLock("token.rocksdb") // Token经全局System property定位DB目录，与同族测试并行互相覆盖路径
 public class TestTokenStartRollback {
 
 	@Test

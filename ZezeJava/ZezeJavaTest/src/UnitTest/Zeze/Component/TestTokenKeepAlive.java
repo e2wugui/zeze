@@ -11,6 +11,7 @@ import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
  * keep-alive 回归（从 TestToken 拆出）：故意睡过 KeepRecvTimeout 验证保活探测维持空闲连接，
  * 属于慢测试，不标 @Fast，由 gradle integrationTest 执行。端口 5003 与 TestToken 共用（integrationTest 串行执行，不冲突）。
  */
+@ResourceLock("token.rocksdb") // Token经全局System property定位DB目录，同族测试（含fast/integration两侧）串行
 public class TestTokenKeepAlive {
 	private static final Logger logger = LogManager.getLogger(TestTokenKeepAlive.class);
 
