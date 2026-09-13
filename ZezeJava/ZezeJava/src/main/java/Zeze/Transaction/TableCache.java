@@ -316,9 +316,11 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 	private boolean tryRemoveRecordUnderLock(@NotNull Map.Entry<K, Record1<K, V>> p) {
 		if (table.isMemory()) {
-			// 不支持内存表cache同步。
-			// 内存表删除cache，只需要判断是否dirty。
-			// 内存表不执行clean，代码不会执行到这里，这里是以后需要执行clean时才会到达的。
+			// 容量回收（FND5-03复核修正注释）：timerClean对内存表同样调度，超容量即到达本分支
+			//（原注释"内存表不执行clean"已过时）。仅回收非脏驻留（数据在localRocks，重载经
+			// TableX.load以非null strongRef返回，commit不会重复计数）。sizeCounter是commit记账的
+			// 逻辑条目数（put加/remove减），与dataMap驻留数解耦——回收驻留不减计数是有意语义，
+			// 消费方（如Online.getLocalCount在线数）需要的正是逻辑口径。
 			if (p.getValue().getDirty())
 				return false;
 			remove(p.getKey(), p.getValue(), false);
