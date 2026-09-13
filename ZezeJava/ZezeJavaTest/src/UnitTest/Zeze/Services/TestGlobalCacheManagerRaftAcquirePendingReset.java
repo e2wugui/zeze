@@ -445,9 +445,21 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 						}).call();
 						if (rc == 0)
 							return;
-						releaseError.compareAndSet(null,
-								new RuntimeException("release procedure rc=" + rc + ", attempt=" + attempt));
-						return;
+						// RaftRetry有两种到达形态，都要按可重试处理：直接抛RaftRetryException；
+						// 无环境事务时经Transaction.perform翻成返回码-15（第六轮round 26：
+						// rc=-15, attempt=1 被当不可重试直暴露误红）。
+						if (rc != Zeze.Transaction.Procedure.RaftRetry) {
+							releaseError.compareAndSet(null,
+									new RuntimeException("release procedure rc=" + rc + ", attempt=" + attempt));
+							return;
+						}
+						if (attempt >= 12) {
+							releaseError.compareAndSet(null,
+									new RuntimeException("release持续RaftRetry(-15)，attempt=" + attempt));
+							return;
+						}
+						//noinspection BusyWait
+						Thread.sleep(500);
 					} catch (RaftRetryException e) {
 						if (attempt >= 12) {
 							releaseError.compareAndSet(null, e);
@@ -465,9 +477,10 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		}, "UnitTest.FND_S1_3.Releaser");
 		releaser.setDaemon(true);
 		releaser.start();
-		// 12次重试最坏~6s+提交时间：park检测阈值放大到30s（永久park依然会超时失败）
-		Assertions.assertTrue(releaseDone.await(30, TimeUnit.SECONDS), "release不能永久park（key冻结/守护停摆）");
-		releaser.join(30_000);
+		// 12次重试最坏~6s+每次提交等待（-15时appendLog等待可达~5s）：park检测阈值90s
+		//（永久park依然会超时失败；@Timeout(150)兜底极端病态场景）
+		Assertions.assertTrue(releaseDone.await(90, TimeUnit.SECONDS), "release不能永久park（key冻结/守护停摆）");
+		releaser.join(90_000);
 		Assertions.assertNull(releaseError.get(), "release提交失败");
 
 		// 8. 无持有者后记录应被清除。重试路径可能在新leader上删除，gcm（可能已退位）上的本地读
