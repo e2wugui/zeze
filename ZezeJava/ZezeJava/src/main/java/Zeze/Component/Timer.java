@@ -95,7 +95,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
 	final ConcurrentHashMap<String, Future<?>> timerFutures = new ConcurrentHashMap<>();
 	private final HotHandle<TimerHandle> hotHandle = new HotHandle<>();
-	private boolean started;
+	// volatile（FND5-20）：stop()与fireSimple/fireCron尾部的周期重装（whileCommit在提交
+	// 线程异步执行）跨线程可见——stop后重装检查必须读到false，否则残留future停机后继续触发。
+	private volatile boolean started;
+
+	// FND5-20：在线定时器族（TimerOnlineBase）共用timerFutures与stop()语义，
+	// 其安装点与触发入口需要同样的停机闸门，经此读取生命周期状态。
+	final boolean isStarted() {
+		return started;
+	}
 
 	private TimerAccount timerAccount;
 	private Online defaultOnline;
@@ -144,9 +152,17 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				hotManager.addHotBeanFactory(this);
 				beanFactory.registerWatch(this::tryRecordHotModule);
 			}
-			// Task.run(this::loadTimer, "Timer.loadTimer");
-			loadTimer();
+			// started必须先于loadTimer置位：loadTimer内的事务在本线程同步提交，提交时同步执行
+			// whileCommit装载（scheduleSimple/scheduleCronNext），此时若started仍为false，
+			// FND5-20的安装闸门会把存量定时器的装载全部拒绝——重启后定时器静默停摆。
 			started = true;
+			try {
+				// Task.run(this::loadTimer, "Timer.loadTimer");
+				loadTimer();
+			} catch (Exception e) {
+				started = false;
+				throw e;
+			}
 		} finally {
 			unlock();
 		}
@@ -177,6 +193,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			if (!started)
 				return;
 
+			// 尽早置false：下面的cancel等待期间（future.get）到达的周期重装会读它，
+			// 晚置会在等待窗口内继续put新future——这些future不再被cancel，停机后仍会触发回调。
+			started = false;
+
 			// 停止当前正在调度的timer。
 			for (var future : timerFutures.values())
 				future.cancel(false);
@@ -199,7 +219,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			}
 
 			// UnRegisterZezeTables(this.zeze); // 构造的时候注册的，在stop这里注销的话，两者不匹配。
-			started = false;
 		} finally {
 			unlock();
 		}
@@ -1144,6 +1163,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	private void scheduleSimple(long timerSerialId, int serverId, @NotNull String timerId, long delay,
 	                            long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
+			if (!started)
+				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
 				var exist = timerFutures.put(timerId, TaskSpec.ofAction(() -> {
 					if (oneByOneKey == null || oneByOneKey.isEmpty())
@@ -1162,6 +1183,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	private void fireSimple(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
 	                        boolean missfire) {
+		if (!started)
+			return; // FND5-20：stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
 		if (TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index == null
@@ -1245,6 +1268,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	private void scheduleCronNext(long timerSerialId, int serverId, @NotNull String timerId, long delay,
 	                              long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
+			if (!started)
+				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
 				var exist = timerFutures.put(timerId, TaskSpec.ofAction(() -> {
 					if (oneByOneKey == null || oneByOneKey.isEmpty())
@@ -1263,6 +1288,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	private void fireCron(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
 	                      boolean missfire) {
+		if (!started)
+			return; // FND5-20：stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
 		if (TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index == null

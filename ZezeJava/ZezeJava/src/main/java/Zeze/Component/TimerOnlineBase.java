@@ -339,6 +339,8 @@ abstract class TimerOnlineBase<I> {
 	// 安装到ThreadPool与触发
 	private void scheduleOnlineSimple(@NotNull String timerId, long delay, @Nullable TimerHandle handle) {
 		Transaction.whileCommit(() -> {
+			if (!timer().isStarted())
+				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId,
 					TaskSpec.ofAction(() -> fireOnlineSimple(timerId, handle, false)).scheduleNow(delay));
 			if (null != exist)
@@ -363,6 +365,8 @@ abstract class TimerOnlineBase<I> {
 	private void scheduleOnlineSimpleHot(@NotNull String timerId, long delay,
 										 @NotNull Class<? extends TimerHandle> handleClass) {
 		Transaction.whileCommit(() -> {
+			if (!timer().isStarted())
+				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId, TaskSpec
 					.ofAction(() -> fireOnlineSimple(timerId, findTimerHandleSafely(handleClass.getName()), true))
 					.scheduleNow(delay));
@@ -393,6 +397,8 @@ abstract class TimerOnlineBase<I> {
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
 	private void scheduleOnlineCronNext(@NotNull String timerId, long delay, @Nullable TimerHandle handle) {
 		Transaction.whileCommit(() -> {
+			if (!timer().isStarted())
+				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId,
 					TaskSpec.ofAction(() -> fireOnlineCron(timerId, handle, false)).scheduleNow(delay));
 			if (null != exist)
@@ -403,6 +409,8 @@ abstract class TimerOnlineBase<I> {
 	private void scheduleOnlineCronNextHot(@NotNull String timerId, long delay,
 										   @NotNull Class<? extends TimerHandle> handleClass) {
 		Transaction.whileCommit(() -> {
+			if (!timer().isStarted())
+				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId, TaskSpec
 					.ofAction(() -> fireOnlineCron(timerId, findTimerHandleSafely(handleClass.getName()), true))
 					.scheduleNow(delay));
@@ -512,6 +520,8 @@ abstract class TimerOnlineBase<I> {
 
 	private void fireOnline(@NotNull String timerId, @Nullable TimerHandle handle, boolean hot,
 							@NotNull String kind, @NotNull FireKind<I> fireKind) {
+		if (!timer().isStarted())
+			return; // FND5-20：stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
 		var timer = timer();
 		var procSuffix = handle != null ? "." + handle.getClass().getName() : "";
 		var ret = TaskSpec.ofProcedure(zeze().newProcedure(() -> {
