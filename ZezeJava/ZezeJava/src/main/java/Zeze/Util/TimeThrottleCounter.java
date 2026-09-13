@@ -54,7 +54,9 @@ public class TimeThrottleCounter implements TimeThrottle {
 		try {
 			++counter;
 			bandwidth += size; // 变成负数以后一直失败。
-			return counter < limit && Integer.compareUnsigned(bandwidth, bandwidthLimit) < 0;
+			// FND5-10：与Queue版对齐——第limit个包计入本窗口并放行、第limit+1个拒绝。
+			// 曾为counter<limit，同配置切换实现名断连临界点差1（超限即断连）。
+			return counter <= limit && Integer.compareUnsigned(bandwidth, bandwidthLimit) < 0;
 		} finally {
 			mutex.unlock();
 		}
