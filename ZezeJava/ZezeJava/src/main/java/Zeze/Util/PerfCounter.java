@@ -351,11 +351,8 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private final ConcurrentHashMap<String, ProcedureInfo> procedureInfoMap = new ConcurrentHashMap<>(); // key: procedureName
 	private final LongConcurrentHashMap<TableInfo> tableInfoMap = new LongConcurrentHashMap<>(); // key: tableId
 	private CountInfo[] countInfos = new CountInfo[0];
-	// 并发安全集合（FND4-23）：热路径（getRunInfoWithSerial/addRecvSizeTime每包执行）
-	// 无锁读，配置路径随时可写——"只能启动前调用"的口头约定由数据结构自证。
-	private final ConcurrentHashSet<Object> excludeRunKeys = new ConcurrentHashSet<>(); // value: Class or others
-	// long键避免热路径装箱：以containsKey做集合语义。
-	private final LongConcurrentHashMap<Boolean> excludeProtocolTypeIds = new LongConcurrentHashMap<>(); // key: typeId
+	private final HashSet<Object> excludeRunKeys = new HashSet<>(); // value: Class or others
+	private final LongHashSet excludeProtocolTypeIds = new LongHashSet(); // key: typeId
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
 	private @NotNull String lastLog = "";
 	private long lastLogTime = System.currentTimeMillis();
@@ -364,6 +361,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private @Nullable ScheduledFuture<?> scheduleFuture;
 	private final LongCounter transactionRedoCounter = allocCounter("Transaction.Redo");
 	private final LongCounter transactionRedoAndReleaseLockCounter = allocCounter("Transaction.RedoAndReleaseLock");
+	private volatile boolean inited;
 
 	public static @NotNull PerfCounter instance() {
 		return Objects.requireNonNull((PerfCounter)ZezeCounter.instance);
@@ -396,13 +394,13 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public @NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name,
-	                                                                 @NotNull String... labelNames) {
+																	 @NotNull String... labelNames) {
 		return labels -> allocCounter(labels.length > 0 ? name + "." + String.join(".", labels) : name);
 	}
 
 	@Override
 	public @NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name,
-	                                                                   @NotNull String... labelNames) {
+																	   @NotNull String... labelNames) {
 		return labels -> getRunTimeObserver(labels.length > 0 ? name + "." + String.join(".", labels) : name);
 	}
 
@@ -425,6 +423,8 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	public boolean addExcludeRunKey(@NotNull String key) {
 		lock();
 		try {
+			if (inited)
+				throw new IllegalStateException("already inited");
 			return excludeRunKeys.add(key);
 		} finally {
 			unlock();
@@ -435,6 +435,8 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	public boolean addExcludeRunKey(@NotNull Class<?> cls) {
 		lock();
 		try {
+			if (inited)
+				throw new IllegalStateException("already inited");
 			return excludeRunKeys.add(cls);
 		} finally {
 			unlock();
@@ -445,13 +447,17 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	public boolean addExcludeProtocolTypeId(long typeId) {
 		lock();
 		try {
-			return excludeProtocolTypeIds.putIfAbsent(typeId, Boolean.TRUE) == null;
+			if (inited)
+				throw new IllegalStateException("already inited");
+			return excludeProtocolTypeIds.add(typeId);
 		} finally {
 			unlock();
 		}
 	}
 
 	private @Nullable RunInfoWithSerial getRunInfoWithSerial(@NotNull Object key) {
+		if (!inited)
+			throw new IllegalStateException("not inited");
 		if (excludeRunKeys.contains(key))
 			return null;
 		for (; ; ) {
@@ -522,7 +528,9 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public void addRecvSizeTime(long typeId, @Nullable Class<?> cls, int size, long timeNs) {
-		if (excludeProtocolTypeIds.containsKey(typeId))
+		if (!inited)
+			throw new IllegalStateException("not inited");
+		if (excludeProtocolTypeIds.contains(typeId))
 			return;
 		for (; ; ) {
 			var pi = protocolInfoMap.get(typeId);
@@ -540,7 +548,9 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public void addSendSize(long typeId, int size) {
-		if (!excludeProtocolTypeIds.containsKey(typeId)) {
+		if (!inited)
+			throw new IllegalStateException("not inited");
+		if (!excludeProtocolTypeIds.contains(typeId)) {
 			for (; ; ) {
 				var pi = protocolInfoMap.get(typeId);
 				if (pi != null) {
@@ -603,6 +613,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	public @NotNull ScheduledFuture<?> tryStartScheduledLog() {
 		lock();
 		try {
+			inited = true;
 			var f = scheduleFuture;
 			if (f == null || f.isCancelled()) {
 				var periodMs = Math.max(PERF_PERIOD, 1) * 1000L;
