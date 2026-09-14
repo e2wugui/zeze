@@ -184,6 +184,15 @@ public class OnzServer extends AbstractOnz {
 		}
 	}
 
+	// ePreparing最小redo年龄（FND5-44）：perform从saveCommitPoint(ePreparing)到txn.commit
+	// 覆盖为eCommitting之间存在waitPendingAsync等待窗口（业务异步放大，时长不定），
+	// redoTimer的iterator快照会捕获窗口内的ePreparing——不看年龄直接Rollback命中进行中
+	// 事务：参与方回滚后对迟到Commit假应答成功（readyProcedures.remove为null直接
+	// SendResult(0)），协调者perform返回0，静默部分提交。真残留（协调者崩溃重启）在
+	// 超过年龄后的下一轮redo恢复，仅多时延。120s=2×redo周期，量级覆盖默认
+	// flushTimeout(10s)量级的业务等待放大。
+	private static final long RedoPreparingMinAgeMs = 120_000;
+
 	private void redoTimer() throws RocksDBException {
 		if (stopped)
 			return;
@@ -194,13 +203,19 @@ public class OnzServer extends AbstractOnz {
 			try (var it = commitIndex.iterator()) {
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					var value = it.value();
-					var state = ByteBuffer.Wrap(value).ReadUInt();
+					var bb = ByteBuffer.Wrap(value);
+					var state = bb.ReadUInt();
 					switch (state) {
 					case eCommitting:
 						redo(it.key(), OnzServer::commit);
 						break;
 					case ePreparing:
-						redo(it.key(), OnzServer::rollback);
+						// FND5-44：新格式值=state(varint)+写入时戳(8B BE)；旧格式（仅state，
+						// 升级遗留的未决决策）读不到时戳视为年龄无穷——行为与修复前一致（立即redo）。
+						var stamp = bb.size() >= 8 ? bb.ReadLong8BE() : 0L;
+						if (System.currentTimeMillis() - stamp >= RedoPreparingMinAgeMs)
+							redo(it.key(), OnzServer::rollback);
+						// else：进行中窗口，等超过年龄后的下一轮
 						break;
 					}
 				}
@@ -260,8 +275,9 @@ public class OnzServer extends AbstractOnz {
 		bState.setState(state);
 		var bb = ByteBuffer.Allocate();
 		bState.encode(bb);
-		var bbIndex = ByteBuffer.Allocate(5);
+		var bbIndex = ByteBuffer.Allocate(13);
 		bbIndex.WriteUInt(state);
+		bbIndex.WriteLong8BE(System.currentTimeMillis()); // FND5-44：ePreparing年龄判据，见redoTimer
 		try (var batch = database.borrowBatch()) {
 			// putIfAbsent ？？？ 报错！
 			commitPoint.put(batch, tidBytes, tidBytes.length, bb.Bytes, bb.WriteIndex);
