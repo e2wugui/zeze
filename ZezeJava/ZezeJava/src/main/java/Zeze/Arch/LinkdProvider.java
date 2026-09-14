@@ -106,7 +106,15 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	 * @return 错误码. 0表示成功; [1,9]表示错误
 	 */
 	public int choiceProvider(@NotNull AsyncSocket link, Binary tokenBin) throws Exception {
-		var token = LoginQueueServer.decodeToken(linkdApp.getLinkdLoad().getLoginQueueAgent().getSecret(), tokenBin);
+		// FND5-26：未配置LoginQueueAgent服务节的linkd上getLoginQueueAgent()为null——
+		// 裸解引用NPE被认证处理吞成连接关闭（无诊断、报错位置掩盖配置缺失根因）。
+		var loginQueueAgent = linkdApp.getLinkdLoad().getLoginQueueAgent();
+		if (loginQueueAgent == null) {
+			logger.error("choiceProvider: LoginQueueAgent not configured"
+					+ " (linkd config missing 'LoginQueueAgent' service node).");
+			return 4;
+		}
+		var token = LoginQueueServer.decodeToken(loginQueueAgent.getSecret(), tokenBin);
 		if (token.getExpireTime() < System.currentTimeMillis())
 			return 1;
 		if (token.getLinkServerId() != linkdApp.zeze.getConfig().getServerId())
