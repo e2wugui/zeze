@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import Zeze.Util.TimeThrottle;
@@ -28,6 +29,11 @@ public class WebsocketClient extends AsyncSocket {
 	private final @Nullable Connector connector;
 	@SuppressWarnings("unused")
 	private byte closed;
+
+	// sendBinary串行化（JDK WebSocketImpl单在途约束）：专用锁对象，不用公共monitor
+	//（见onOpen注释的锁序顾虑；这里只在追加链节点时短暂持有，不跨用户回调）。
+	private final @NotNull Object sendLock = new Object();
+	private @NotNull CompletableFuture<Void> sendChain = CompletableFuture.completedFuture(null); // sendLock守护
 
 	static {
 		try {
@@ -175,22 +181,39 @@ public class WebsocketClient extends AsyncSocket {
 		var ws = webSocket;
 		if (ws == null) // 握手未完成或已关闭
 			return false;
-		// 检查写回执，不能恒返回true：写失败的帧（连接已关等）不会到达对端，恒true会让
-		// Protocol/Rpc.Send误判成功、请求静默丢失只能等超时兜底。对齐服务端Websocket.Send
-		// （FND3-24）的形态：回执同步完成时失败立即close并返回false；异步完成挂whenComplete，
-		// 失败同样close。close的closedHandle CAS保证OnSocketClose等清理恰好一次。
-		var cf = ws.sendBinary(ByteBuffer.wrap(bytes, offset, length), true);
-		if (cf.isDone()) {
-			if (!cf.isCompletedExceptionally())
+		var bb = ByteBuffer.wrap(bytes, offset, length);
+		synchronized (sendLock) {
+			if (sendChain.isDone()) {
+				// 空闲：直接发送，保留FND3-24同步失败契约（sendBinary异常完成时close并返回false）。
+				// 链空闲==无在途sendBinary（所有发送都经本链），不会触发JDK单在途约束。
+				var cf = ws.sendBinary(bb, true);
+				sendChain = cf.handle((__, ex) -> {
+					if (ex != null)
+						close(unwrap(ex)); // 异步完成的失败同样close
+					return null; // 链恢复正常完成，后续追加不连带失败
+				});
+				if (cf.isDone() && cf.isCompletedExceptionally()) {
+					close(unwrap(cf.exceptionNow())); // 同步失败：close因CAS恰好一次，handle里的不会重复生效
+					return false;
+				}
 				return true;
-			close(unwrap(cf.exceptionNow()));
-			return false;
+			}
+			// 有在途sendBinary：直接调用会同步抛IllegalStateException("Send pending")并当连接级
+			// 错误误杀整条ws（第七轮60轮压测11/11的根因：登录期业务线程发rpc与派发线程应答并发）。
+			// 按序入队（保持协议顺序）；失败经链上handle close，之后Send见webSocket==null返回false，
+			// 调用方经连接关闭路径感知（不再静默丢帧）。
+			sendChain = sendChain
+					.thenCompose(ignored -> {
+						var w = webSocket;
+						return w != null ? w.sendBinary(bb, true) : CompletableFuture.completedFuture(null);
+					})
+					.handle((__, ex) -> {
+						if (ex != null)
+							close(unwrap(ex));
+						return null;
+					});
+			return true;
 		}
-		cf.whenComplete((__, ex) -> {
-			if (ex != null)
-				close(unwrap(ex));
-		});
-		return true;
 	}
 
 	@Override
