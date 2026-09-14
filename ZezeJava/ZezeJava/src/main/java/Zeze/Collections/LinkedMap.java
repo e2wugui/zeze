@@ -8,6 +8,7 @@ import Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeReadOnly;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Component.DelayRemove;
 import Zeze.Hot.HotBeanFactory;
@@ -292,14 +293,19 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	 * <p>【注意】NodeId只在当前事务内有意义；返回的是表内活bean（可变），调用方只应读取
 	 * （典型用法是序列化进rpc结果），不要修改。</p>
 	 */
-	public @Nullable BLinkedMapNode getNode(long nodeId) {
+	private @Nullable BLinkedMapNode getNodePrivate(long nodeId) {
+		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
+	}
+
+
+	public @Nullable BLinkedMapNodeReadOnly getNode(long nodeId) {
 		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
 	}
 
 	/**
 	 * 返回头节点，并把nodeId.value设为头节点Id，供分页读取协议首发使用。map未创建或空链返回null。
 	 */
-	public @Nullable BLinkedMapNode getFirstNode(@NotNull OutLong nodeId) {
+	public @Nullable BLinkedMapNodeReadOnly getFirstNode(@NotNull OutLong nodeId) {
 		var root = getRoot();
 		if (null == root)
 			return null;
@@ -330,7 +336,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			return 0;
 
 		var nodeIdLong = nodeId.getNodeId();
-		var node = getNode(nodeIdLong);
+		var node = getNodePrivate(nodeIdLong);
 		if (null == node)
 			// 索引有效（SerialNo匹配）但节点行缺失=数据损坏。同类异常统一为带语义的ISE，
 			// 而不是裸NPE——同函数对"节点在但值不在"已有ISE，排障时从异常形态分不清是哪层断。
@@ -409,7 +415,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		var stale = null != mappedNodeId
 				&& (null == root || root.getSerialNo() != mappedNodeId.getSerialNo());
 		if (null != mappedNodeId && !stale) {
-			var node = getNode(mappedNodeId.getNodeId());
+			var node = getNodePrivate(mappedNodeId.getNodeId());
 			if (null == node)
 				// 映射有效（SerialNo匹配）但节点行缺失=数据损坏，带语义的ISE而非裸NPE（同move的防护）。
 				throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
@@ -451,7 +457,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		if (nodeId == null)
 			return null;
 
-		var node = getNode(nodeId.getNodeId());
+		var node = getNodePrivate(nodeId.getNodeId());
 		if (null == node)
 			// FND2-C0-2：索引有效但节点行缺失=数据损坏，带语义ISE而非裸NPE（同put/move的防护）。
 			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
@@ -476,7 +482,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		if (nodeId == null)
 			return null;
 
-		var node = getNode(nodeId.getNodeId());
+		var node = getNodePrivate(nodeId.getNodeId());
 		if (null == node)
 			// FND2-C0-2：索引有效但节点行缺失=数据损坏，带语义ISE而非裸NPE（同put/move的防护）。
 			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
@@ -556,7 +562,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	private long addHeadUnsafe(@NotNull BLinkedMapNodeValue nodeValue) {
 		var root = module._tLinkedMaps.getOrAdd(name);
 		var headNodeId = root.getHeadNodeId();
-		var head = headNodeId != 0 ? getNode(headNodeId) : null;
+		var head = headNodeId != 0 ? getNodePrivate(headNodeId) : null;
 		if (head != null && head.getValues().size() < nodeSize) {
 			// head is null means empty
 			head.getValues().add(0, nodeValue);
@@ -580,7 +586,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	private long addTailUnsafe(@NotNull BLinkedMapNodeValue nodeValue) {
 		var root = module._tLinkedMaps.getOrAdd(name);
 		var tailNodeId = root.getTailNodeId();
-		var tail = tailNodeId != 0 ? getNode(tailNodeId) : null;
+		var tail = tailNodeId != 0 ? getNodePrivate(tailNodeId) : null;
 		if (tail != null && tail.getValues().size() < nodeSize) { // tail is null means empty
 			tail.getValues().add(nodeValue);
 			return tailNodeId;
@@ -613,7 +619,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		if (prevNodeId == 0) // is head
 			root.setHeadNodeId(nextNodeId);
 		else {
-			var prev = getNode(prevNodeId);
+			var prev = getNodePrivate(prevNodeId);
 			if (null == prev)
 				throw new IllegalStateException("Prev Node Not Found. maybe broken data. nodeId=" + nodeId);
 			prev.setNextNodeId(nextNodeId);
@@ -622,7 +628,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		if (nextNodeId == 0) // is tail
 			root.setTailNodeId(prevNodeId);
 		else {
-			var next = getNode(nextNodeId);
+			var next = getNodePrivate(nextNodeId);
 			if (null == next)
 				throw new IllegalStateException("Next Node Not Found. maybe broken data. nodeId=" + nodeId);
 			next.setPrevNodeId(prevNodeId);

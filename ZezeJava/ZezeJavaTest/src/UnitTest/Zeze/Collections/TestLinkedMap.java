@@ -323,8 +323,8 @@ public class TestLinkedMap {
 			long nodes = 0;
 			while (null != node) {
 				++nodes;
-				for (var v : node.getValues())
-					walked.add(((BMyBean)v.getValue().getBean()).getI());
+				for (var v : node.getValuesReadOnly())
+					walked.add(((BMyBean)v.getValueReadOnly().getBean()).getI());
 				node = node.getNextNodeId() != 0 ? map.getNode(node.getNextNodeId()) : null;
 			}
 			Assertions.assertTrue(nodes >= 3, "65个条目默认nodeSize=30必须跨节点: " + nodes);
