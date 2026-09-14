@@ -3,6 +3,7 @@ package Zeze.Util;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
@@ -112,9 +113,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			if (queue.size() != 1)
 				return null; // 有任务正在执行,不需要进一步调度.
 			batch.prepare();
-			return () -> {
-				getExecutor(task.mode).execute(batch);
-			};
+			return () -> executeOrRollback(task.mode);
 		}
 		if (task.cancel != null) {
 			return () -> {
@@ -126,6 +125,37 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			};
 		}
 		return null;
+	}
+
+	/** 派发并处理拒绝（FND5-13）：execute在锁外与停机（Task.shutdownPools先置null再
+	 * shutdownNow）或自定义池拒绝并发时抛RejectedExecutionException——任务已入队且已
+	 * 认领（size==1分支），直接抛回会让队列非空且再无派发点（后续submit全走size!=1
+	 * 分支），该桶永久卡死、waitComplete永等。回滚认领后重抛：队列回到未派发状态。 */
+	private void executeOrRollback(@Nullable DispatchMode mode) {
+		try {
+			getExecutor(mode).execute(batch);
+		} catch (RejectedExecutionException e) {
+			rollbackRejectedDispatch();
+			throw e;
+		}
+	}
+
+	/** 回滚认领：批量从未开跑（execute被拒即未执行），整队回收补偿并唤醒等待者。
+	 * 提交方与runNext派发共用（runNext尾部的锁外execute同型，姊妹点一并收口）。 */
+	private void rollbackRejectedDispatch() {
+		ArrayDeque<Task> cancels;
+		lock();
+		try {
+			if (queue.isEmpty())
+				return;
+			cancels = queue;
+			queue = new ArrayDeque<>();
+			batch.count = 0; // 认领作废
+			cond.signalAll(); // waitComplete等待者在queue清空后放行
+		} finally {
+			unlock();
+		}
+		runCancel(cancels);
 	}
 
 	private void runNext(int count) {
@@ -162,7 +192,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			}
 			return;
 		}
-		getExecutor(batch.mode).execute(batch);
+		executeOrRollback(batch.mode);
 	}
 
 	private static void runCancel(@NotNull ArrayDeque<Task> tasks) {
