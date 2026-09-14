@@ -784,7 +784,11 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			logger.error("Service.OnSocketClose exception:", e);
 		}
 
-		if (gracefully) {
+		// FND5-18：监听socket（ServerSocketChannel的validOps仅OP_ACCEPT）不走优雅路径——
+		// addInterestOps(OP_WRITE)抛IllegalArgumentException发生在兜底realClose注册之前：
+		// channel未关、closed已置1，后续close()因CAS失败直接返回，端口泄漏不可再关。
+		// 监听socket无输出缓冲，优雅语义本不适用，直接realClose。
+		if (gracefully && type != Type.eServerSocket) {
 			closePending = true;
 			if (addInterestOps(SelectionKey.OP_WRITE))
 				selector.wakeup();
