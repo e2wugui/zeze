@@ -249,8 +249,22 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 		Thread.sleep(2_000);
 
 		// 恢复多数派：重启followers，退避重试（closeSession）或60s对账开始收敛。
-		for (var i : stopped)
-			rocksList.get(i).getRaft().getServer().start();
+		// 类并行下2s停机窗口内原端口可能被其他测试的freePort探测/临时绑定占用（第七轮压测×5、
+		// 本地复现的BindException）；Acceptor.Start在bind失败时socket保持null可安全重试，
+		// 有界重试等瞬时占用释放，永久被占则重抛。
+		for (var i : stopped) {
+			for (int attempt = 1; ; ++attempt) {
+				try {
+					rocksList.get(i).getRaft().getServer().start();
+					break;
+				} catch (IllegalStateException e) { // TcpSocket构造包装BindException
+					if (attempt >= 20)
+						throw e;
+					//noinspection BusyWait
+					Thread.sleep(500);
+				}
+			}
+		}
 
 		// 等待收敛：退避重试最长约13s，对账周期60s——上限给120s。
 		long deadline = System.currentTimeMillis() + 120_000;
