@@ -74,10 +74,14 @@ public class LogOne<V extends Bean> extends LogBean {
 			bb.WriteBool(true);
 			value.encode(bb);
 		} else {
+			// 此分支目前不可达：写端构造LogOne时value恒非null（CollOne.createLogBean传getValue、
+			// setValue传非null值），仓内也没有"解码后再次编码转发"的路径。
+			// 仍按家族标准encodeLogBean写子类判别字节（同LogMap2/LogSortedMap2），保证万一
+			// 将来可达（如one-dynamic、日志转发）时线格式对称，不会静默错位。
 			bb.WriteBool(false); // value tag
 			if (logBean != null) {
 				bb.WriteBool(true);
-				logBean.encode(bb);
+				encodeLogBean(bb, logBean);
 			} else
 				bb.WriteBool(false);
 		}
@@ -94,9 +98,8 @@ public class LogOne<V extends Bean> extends LogBean {
 				throw Task.forceThrow(e);
 			}
 			value.decode(bb);
-		} else if (bb.ReadBool()) { // hasLogBean
-			logBean = new LogBean(null, 0, null);
-			logBean.decode(bb);
+		} else if (bb.ReadBool()) { // hasLogBean。分支不可达性见encode注释；decodeLogBean按判别字节重建子类。
+			logBean = decodeLogBean(bb);
 		}
 	}
 
