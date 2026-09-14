@@ -729,6 +729,7 @@
 				<enum name="ResultCodeTrySplitButTargetExistDifferenceItem" value="4"/>
 				<enum name="ResultCodeBagNameDenied" value="5"/>
 				<enum name="ResultCodeNumberInvalid" value="6"/> number==0 拒绝；-1表示全部仍为合法契约
+                            <enum name="ResultCodeNotLogin" value="7"/>
 
 				<bean name="BMove">
 					<variable id="1" name="BagName" type="string"/>
@@ -772,7 +773,12 @@
 					<variable id="2" name="Items" type="map" key="int" value="BItem"/> key is bag position
 				</bean>
 
-				<table name="tbag" key="string" value="BBag"/> key is bag name
+				<beankey name="BBagKey">
+					<variable id="1" name="RoleId" type="long"/>
+					<variable id="2" name="BagName" type="string"/>
+				</beankey>
+
+				<table name="tbag" key="BBagKey" value="BBag"/>
 			</module> Bag 11014
 
 			<module name="Rank" id="11015">

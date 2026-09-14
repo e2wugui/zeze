@@ -10,6 +10,7 @@ import Zeze.Application;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Game.Bag.BBag;
+import Zeze.Builtin.Game.Bag.BBagKey;
 import Zeze.Builtin.Game.Bag.BItem;
 import Zeze.Builtin.Game.Bag.tbag;
 import Zeze.Collections.BeanFactory;
@@ -35,10 +36,10 @@ public class Bag {
 
 	private final Module module;
 
-	Bag(Module module, String bagName) {
+	Bag(Module module, long roleId, String bagName) {
 		this.module = module;
 		this.name = bagName;
-		this.bean = module._tbag.getOrAdd(bagName);
+		this.bean = module._tbag.getOrAdd(new BBagKey(roleId, bagName));
 	}
 
 	private final String name;
@@ -357,8 +358,8 @@ public class Bag {
 
 		// 需要在事务内使用。
 		// 使用完不要保存。
-		public Bag open(String bagName) {
-			return new Bag(this, bagName);
+		public Bag open(long roleId, String bagName) {
+			return new Bag(this, roleId, bagName);
 		}
 
 		/**
@@ -394,7 +395,10 @@ public class Bag {
 			if (deny != 0) {
 				return errorCode(deny);
 			}
-			var moduleCode = open(r.Argument.getBagName()).destroy(r.Argument.getPosition());
+			var roleId = session.getRoleId();
+			if (null == roleId)
+				return errorCode(ResultCodeNotLogin);
+			var moduleCode = open(session.getRoleId(), r.Argument.getBagName()).destroy(r.Argument.getPosition());
 			if (0 != moduleCode) {
 				return errorCode(moduleCode);
 			}
@@ -410,7 +414,10 @@ public class Bag {
 			if (deny != 0) {
 				return errorCode(deny);
 			}
-			var moduleCode = open(r.Argument.getBagName()).move(
+			var roleId = session.getRoleId();
+			if (null == roleId)
+				return errorCode(ResultCodeNotLogin);
+			var moduleCode = open(roleId, r.Argument.getBagName()).move(
 				r.Argument.getPositionFrom(), r.Argument.getPositionTo(), r.Argument.getNumber());
 			if (moduleCode != 0) {
 				return errorCode(moduleCode);
