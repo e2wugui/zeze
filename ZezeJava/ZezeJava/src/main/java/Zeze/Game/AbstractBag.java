@@ -20,9 +20,9 @@ public abstract class AbstractBag implements Zeze.IModule {
     public static final int ResultCodeToInvalid = 2;
     public static final int ResultCodeFromNotExist = 3;
     public static final int ResultCodeTrySplitButTargetExistDifferenceItem = 4;
-    public static final int ResultCodeBagNameDenied = 5;
     public static final int ResultCodeNumberInvalid = 6; // number==0 拒绝；-1表示全部仍为合法契约
     public static final int ResultCodeNotLogin = 7;
+    public static final int ResultCodeBagNotExist = 8; // 内建协议非建行访问：目标包裹行不存在
 
     protected final Zeze.Builtin.Game.Bag.tbag _tbag = new Zeze.Builtin.Game.Bag.tbag();
 

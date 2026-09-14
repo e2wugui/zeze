@@ -727,9 +727,9 @@
 				<enum name="ResultCodeToInvalid"    value="2"/>
 				<enum name="ResultCodeFromNotExist" value="3"/>
 				<enum name="ResultCodeTrySplitButTargetExistDifferenceItem" value="4"/>
-				<enum name="ResultCodeBagNameDenied" value="5"/>
 				<enum name="ResultCodeNumberInvalid" value="6"/> number==0 拒绝；-1表示全部仍为合法契约
-                            <enum name="ResultCodeNotLogin" value="7"/>
+	            <enum name="ResultCodeNotLogin" value="7"/>
+				<enum name="ResultCodeBagNotExist" value="8"/> 内建协议非建行访问：目标包裹行不存在
 
 				<bean name="BMove">
 					<variable id="1" name="BagName" type="string"/>
