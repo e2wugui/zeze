@@ -183,6 +183,8 @@ public class IntHashSet implements Cloneable {
 	}
 
 	private void resize(int newSize) {
+		if (newSize < 0) // 1<<30再左移溢出为负（FND5-08，FND4-19姊妹点）：显式契约而非NegativeArraySizeException
+			throw new IllegalStateException("IntHashSet capacity limit reached: " + (1 << 30));
 		threshold = (int)(newSize * loadFactor);
 		int m = newSize - 1;
 		shift = (byte)Long.numberOfLeadingZeros(m);

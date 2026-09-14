@@ -476,6 +476,8 @@ public class CharHashMap<V> implements Cloneable {
 	}
 
 	private void resize(int newSize) { // [1,2,4,8,...,0x4000_0000]
+		if (newSize < 0) // 1<<30再左移溢出为负（FND5-08，FND4-19姊妹点）：显式契约而非NegativeArraySizeException
+			throw new IllegalStateException("CharHashMap capacity limit reached: " + (1 << 30));
 		threshold = (int)(newSize * loadFactor);
 		final int m = newSize - 1;
 		mask = m;
