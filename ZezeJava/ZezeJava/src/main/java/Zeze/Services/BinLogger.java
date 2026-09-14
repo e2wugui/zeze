@@ -638,6 +638,17 @@ public final class BinLogger extends ReentrantLock {
 								// 当前条可能半写：completed不推进，恢复后重写它（脏尾成gap）。
 								logger.error("writeLogThread write exception. completed={}, day={}",
 									completed, curDayStamp, e);
+								// FND5-39：停机检查必须先于重开——stop超时放弃join后，写线程稍后
+								// 从慢速写抛异常进恢复分支：原顺序先forceClose+openDay再查!started，
+								// 会把当日五件套重开赋给字段后退出，nobody再关闭（句柄泄漏到进程
+								// 结束+stop返回期间继续写；目录锁已释放时与新实例双写同日文件）。
+								// 停机优先于落盘：丢弃残余批直接退出（FND4-68终止契约不变）。
+								if (!started) {
+									logger.error("writeLogThread exit on stopping: discard {} logs, completed={}/{}",
+										queueSize - completed, completed, queueSize);
+									exitOnStop = true;
+									break;
+								}
 								try {
 									forceClose(idFile);
 									forceClose(dtFile);
@@ -647,16 +658,6 @@ public final class BinLogger extends ReentrantLock {
 									openDay(curDayStamp); // 失败保持closed流：下次write再抛，再次进入恢复
 								} catch (Throwable ex) { // logger.error
 									logger.error("reopen after write exception fail.", ex);
-								}
-								// FND4-68：恢复循环必须有终止契约。原实现无退出条件——磁盘满时
-								// 永久死循环：stop()/ShutdownHook的join永久挂起（需kill -9），
-								// 队列涨满后所有IO线程阻塞在queueLockCond.await，连接集体停摆。
-								if (!started) {
-									// 停机优先于落盘：丢弃残余批退出写线程，stop()才能有限时间返回。
-									logger.error("writeLogThread exit on stopping: discard {} logs, completed={}/{}",
-										queueSize - completed, completed, queueSize);
-									exitOnStop = true;
-									break;
 								}
 								// 宁停不错（家族halt口径，对齐Transaction毒化处理）保留终态，但按观察窗
 								// 判死（FND5-47）：累计退避观察WRITE_RECOVER_HALT_WINDOW_MS仍失败=不可恢复
