@@ -27,10 +27,8 @@ import Zeze.Util.Random;
 import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,6 +51,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	private final @NotNull Rocks rocks;
 	// 会话清理对账周期任务（FND4-57兜底层），close时取消。
 	private final Future<?> reconcileFuture;
+	// close标记：置位后，SM锁串行的raft侧任务体（dispatchRaftRequest/RpcResponse、closeSession、
+	// reconcileSessions）在锁内首查即退出，不再触碰rocks。与close()的锁屏障配合，见close()。
+	private volatile boolean closed;
 	private final @NotNull Table<String, BAutoKey> tableAutoKey;
 	private final @NotNull Table<String, BId128> tableId128;
 	private final @NotNull Table<String, BSession> tableSession;
@@ -96,6 +97,15 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	public void close() {
 		if (reconcileFuture != null)
 			reconcileFuture.cancel(false);
+		closed = true;
+		// SM锁是raft侧所有存储过程体的串行点且全程持有：先置closed再过一次锁屏障——拿到锁时
+		// 已无过程体在执行，此后排定的任务体在锁内见closed直接退出。否则rocks.close()释放的
+		// 原生句柄可与在途的walk/iterator竞争，librocksdbjni段错误直接杀死整个JVM（fast套件
+		// 偶发崩溃的根因：closeSession退避重试排定在全局critical池上，最多12.8s后才跑）。
+		// 屏障后不持锁调rocks.close()：close路径内raft.shutdown要停网络，若有IO线程正阻塞在
+		// SM锁上（响应派发），持锁等待可能与停机互等。
+		lock();
+		unlock();
 		rocks.close();
 	}
 
@@ -111,6 +121,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			return;
 		lock();
 		try {
+			if (closed)
+				return;
 			var server = raft.getServer();
 			record DeadSession(String name, long sessionId) {
 			}
@@ -192,6 +204,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 																	ProtocolFactoryHandle<?> factoryHandle) {
 			lock();
 			try {
+				if (closed)
+					return; // 服务已关闭：响应不再落地（连接随raft停机关闭）
 				if (logger.isDebugEnabled())
 					logger.debug("dispatchRaftRpcResponse: {}{}", rpc.getClass().getName(), rpc);
 				var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
@@ -212,6 +226,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			TaskSpec.ofFunc(() -> {
 					lock();
 					try {
+						if (closed)
+							return Zeze.Transaction.Procedure.RaftRetry;
 						if (logger.isDebugEnabled()) {
 							var netSession = (Session)p.getSender().getUserState();
 							var ssName = null != netSession ? netSession.name : "";
@@ -247,6 +263,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			Raft.executeImportantTask(() -> {
 				lock();
 				try {
+					if (closed)
+						return; // 服务已关闭：清理不再落地（重启后由对账收敛），也不再重试
 					var rc = rocks.newProcedure(() -> {
 						netSession.onClose();
 						return 0L;
