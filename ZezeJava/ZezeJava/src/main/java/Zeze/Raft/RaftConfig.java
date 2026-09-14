@@ -296,6 +296,10 @@ public final class RaftConfig {
 			throw new IllegalStateException("AppendEntriesTimeout < 1000");
 		if (leaderHeartbeatTimer < appendEntriesTimeout + 200)
 			throw new IllegalStateException("LeaderHeartbeatTimer < AppendEntriesTimeout + 200");
+		if (backgroundApplyCount < 1)
+			// FND5-14：0/负数使后台apply的tryApply(count=0)一条不应用且退出条件永不成，
+			// 无限yield忙轮询、applyFuture永不完成、shutdown的await挂死。fail-fast对齐verify口径。
+			throw new IllegalStateException("BackgroundApplyCount < 1");
 		if (maxAppendEntriesCount < 100)
 			maxAppendEntriesCount = 100;
 	}
