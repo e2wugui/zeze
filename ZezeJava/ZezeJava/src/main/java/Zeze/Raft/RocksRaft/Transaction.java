@@ -139,8 +139,22 @@ public final class Transaction {
 		return saveSize > 0 ? savepoints.get(saveSize - 1).getLog(logKey) : null;
 	}
 
+	/** 当前savepoint（FND5-15）：savepoint的begin/commit/rollback均为public，业务在
+	 * process体内手动rollback多于begin后，putLog/leaderApply/_final_commit_等在空栈上
+	 * getLast()抛NoSuchElementException——该异常不属于FlushException/RocksDBException，
+	 * 不受followerApply的fatalKill兜底也不被tryApply捕获，沿tryCommit上抛到复制应答
+	 * 线程，lastApplied楔死且无统一终止。防御性收口：空栈抛带上下文的
+	 * IllegalStateException，业务误用从“apply线程未受控异常”变为带定位的明确失败；
+	 * 正常配对路径（Procedure.call严格配对）零变化。 */
+	private Savepoint lastSavepoint(String where) {
+		if (savepoints.isEmpty())
+			throw new IllegalStateException("RocksRaft Transaction savepoints empty at " + where
+					+ " (unbalanced manual savepoint begin/rollback?)");
+		return savepoints.getLast();
+	}
+
 	public void putLog(Log log) {
-		savepoints.getLast().putLog(log);
+		lastSavepoint("putLog").putLog(log);
 	}
 
 	public Log logGetOrAdd(long logKey, Supplier<Log> logFactory) {
@@ -240,7 +254,7 @@ public final class Transaction {
 			}
 			return;
 		}
-		var it = savepoints.getLast().logIterator();
+		var it = lastSavepoint("leaderApply").logIterator();
 		if (it != null) {
 			while (it.moveToNext()) {
 				var log = it.value();
@@ -266,11 +280,11 @@ public final class Transaction {
 	}
 
 	public void runWhileCommit(Action0 action) {
-		savepoints.getLast().addCommitAction(action);
+		lastSavepoint("runWhileCommit").addCommitAction(action);
 	}
 
 	public void runWhileRollback(Action0 action) {
-		savepoints.getLast().addRollbackAction(action);
+		lastSavepoint("runWhileRollback").addRollbackAction(action);
 	}
 
 	@SuppressWarnings("SameReturnValue")
@@ -304,7 +318,7 @@ public final class Transaction {
 
 	private void _final_commit_(Procedure procedure) {
 		// Collect Changes
-		Savepoint sp = savepoints.getLast();
+		Savepoint sp = lastSavepoint("_final_commit_");
 		changes = new Changes(procedure.getRocks(), this, procedure.uniqueRequest);
 		var it = sp.logIterator();
 		if (it != null) {
