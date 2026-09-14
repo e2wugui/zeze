@@ -51,6 +51,13 @@ public class Threading extends AbstractThreading {
 		return Thread.currentThread().getId();
 	}
 
+	/** 客户端rpc超时=max(timeoutMs+1000, 5000)（FND5-22）：long运算防timeoutMs+1000
+	 * 回绕为负被max取走下限（客户端5秒假超时，服务端仍持锁30分钟）；SendForWait超时
+	 * 参数为int，钳制上限。 */
+	private static int rpcTimeoutMs(int timeoutMs) {
+		return (int)Math.min(Math.max((long)timeoutMs + 1000, 5000), Integer.MAX_VALUE);
+	}
+
 	// 即使相同的名字，每个线程调用createMutex也是创建新的实例。
 	// 多个线程共享一个实例也是可以的。
 	public class Mutex {
@@ -70,7 +77,7 @@ public class Threading extends AbstractThreading {
 			var lockName = new BLockName(globalThreadId, name);
 			r.Argument.setLockName(lockName);
 			r.Argument.setTimeoutMs(timeoutMs);
-			var timeout = Math.max(timeoutMs + 1000, 5000);
+			var timeout = rpcTimeoutMs(timeoutMs);
 			r.SendForWait(service.GetSocket(), timeout).await();
 			return r.getResultCode() == 0;
 		}
@@ -116,7 +123,7 @@ public class Threading extends AbstractThreading {
 			r.Argument.setLockName(lockName);
 			r.Argument.setPermits(permits);
 			r.Argument.setTimeoutMs(timeoutMs);
-			var timeout = Math.max(timeoutMs + 1000, 5000);
+			var timeout = rpcTimeoutMs(timeoutMs);
 			r.SendForWait(service.GetSocket(), timeout).await();
 			return r.getResultCode() == 0;
 		}
@@ -190,7 +197,7 @@ public class Threading extends AbstractThreading {
 			r.Argument.setLockName(lockName);
 			r.Argument.setOperateType(operateType);
 			r.Argument.setTimeoutMs(timeoutMs);
-			var timeout = Math.max(timeoutMs + 1000, 5000);
+			var timeout = rpcTimeoutMs(timeoutMs);
 			r.SendForWait(service.GetSocket(), timeout).await();
 			return r.getResultCode() == 0;
 		}
