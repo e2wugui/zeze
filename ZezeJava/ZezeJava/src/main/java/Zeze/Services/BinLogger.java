@@ -69,7 +69,6 @@ public final class BinLogger extends ReentrantLock {
 	private static final int OTHER_BUFFER = 64 * 1024; // 同上,用于其它类型文件
 	private static final int FLUSH_PERIOD = 1_000; // flush日志文件的时间间隔(毫秒)
 	private static final int WRITE_THREAD_IDLE_SLEEP = 100; // 输出日志线程空闲时的sleep时长(毫秒)
-	private static final int WRITE_RECOVER_FAIL_LIMIT = 3; // 写失败后连续恢复失败上限，超过即fatal（宁停不错）
 	private static final long WRITE_THREAD_JOIN_TIMEOUT = 10_000; // stop等待写线程退出的超时（毫秒）
 
 	public static final class LogData extends Protocol<LogData> {
@@ -252,6 +251,20 @@ public final class BinLogger extends ReentrantLock {
 		private int curDayStamp; // 当前的日期戳
 		private volatile boolean started; // 是否已经开始服务（写线程读作退出信号，需跨线程可见）
 		private boolean waitingQueue; // 写日志队列是否已满导致等待
+
+		// FND5-47：瞬态输出故障（Windows备份/防毒短暂锁定当天日志文件、NAS抖动）的自愈周期
+		// 常超过原3×100ms判据，一刀切halt误杀可自愈故障（连同ShutdownHook跳过）。恢复失败
+		// 改按观察窗判死：退避100ms翻倍（封顶5s）持续重开，累计观察60s仍失败才halt——保留
+		// "宁停不错"终态，持久故障（磁盘满类）仍在有限时间内终止；成功写完整批即清窗。
+		// FND4-68修的stop挂死根因是恢复循环无退出条件，与退避无关（!started检查在前）。
+		private static final long WRITE_RECOVER_HALT_WINDOW_MS = 60_000;
+		private static final long WRITE_RECOVER_BACKOFF_FIRST_MS = 100;
+		private static final long WRITE_RECOVER_BACKOFF_CAP_MS = 5_000;
+
+		/** 恢复失败第backoffExp次重试（0基）的退避时长：100ms翻倍，封顶5s。 */
+		static long recoverBackoffMs(int backoffExp) {
+			return Math.min(WRITE_RECOVER_BACKOFF_FIRST_MS << Math.min(backoffExp, 6), WRITE_RECOVER_BACKOFF_CAP_MS);
+		}
 
 		public BinLoggerService(@Nullable String logPath) {
 			this(null, logPath);
@@ -598,7 +611,8 @@ public final class BinLogger extends ReentrantLock {
 						// ——脏尾成为未索引gap（按pos读取永不触碰），追加从实际长度重新对齐；
 						// 剩余条目内联重写（滞留到下轮swap会等流量、且整批重写造成前缀重复）。
 						var completed = 0;
-						var recoverFailed = 0; // 连续恢复失败计数（成功写完整批归零）
+						var recoverBackoffExp = 0; // 恢复失败重试指数（成功写完整批清零）
+						var recoverWindowMs = 0L; // 恢复失败累计观察窗（FND5-47，成功清零）
 						var exitOnStop = false;
 						while (completed < queueSize) { // 把当前队列里的日志全部写入日志和索引文件,用相同的毫秒时间戳应该没问题
 							try {
@@ -618,7 +632,8 @@ public final class BinLogger extends ReentrantLock {
 									idFile.write(buf);
 									completed = i + 1;
 								}
-								recoverFailed = 0;
+									recoverBackoffExp = 0;
+									recoverWindowMs = 0L;
 							} catch (Throwable e) { // logger.error
 								// 当前条可能半写：completed不推进，恢复后重写它（脏尾成gap）。
 								logger.error("writeLogThread write exception. completed={}, day={}",
@@ -643,17 +658,20 @@ public final class BinLogger extends ReentrantLock {
 									exitOnStop = true;
 									break;
 								}
-								// 宁停不错（家族halt口径，对齐Transaction毒化处理）：连续恢复失败=不可恢复的
-								// 输出故障，静默丢日志继续跑或无限滞留都违背记录器使命，fatal终止。
-								if (++recoverFailed >= WRITE_RECOVER_FAIL_LIMIT) {
-									logger.fatal("writeLogThread recover failed {} times, halt. completed={}/{}, day={}",
-										recoverFailed, completed, queueSize, curDayStamp);
+								// 宁停不错（家族halt口径，对齐Transaction毒化处理）保留终态，但按观察窗
+								// 判死（FND5-47）：累计退避观察WRITE_RECOVER_HALT_WINDOW_MS仍失败=不可恢复
+								// 的输出故障，fatal终止；窗口内的失败视为可自愈瞬态，持续退避重开。
+								var backoffMs = recoverBackoffMs(recoverBackoffExp++);
+								recoverWindowMs += backoffMs;
+								if (recoverWindowMs >= WRITE_RECOVER_HALT_WINDOW_MS) {
+									logger.fatal("writeLogThread recover failed for {}ms (window), halt. completed={}/{}, day={}",
+										recoverWindowMs, completed, queueSize, curDayStamp);
 									LogManager.shutdown();
 									Runtime.getRuntime().halt(543543);
 								}
-								// 恢复失败（如磁盘满）时限制重试频率，避免紧密重开环。
+								// 恢复失败（如磁盘满）时退避限制重试频率，避免紧密重开环。
 								//noinspection BusyWait
-								Thread.sleep(WRITE_THREAD_IDLE_SLEEP);
+								Thread.sleep(backoffMs);
 							}
 						}
 						readLogQueue.clear();
