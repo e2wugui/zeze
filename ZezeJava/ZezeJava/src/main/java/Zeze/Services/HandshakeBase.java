@@ -68,6 +68,29 @@ public class HandshakeBase extends Service {
 			throw new IllegalStateException("too many connections");
 	}
 
+	/**
+	 * Aes 模式会话密钥由连接地址参与派生——服务器取本端地址、客户端取对端地址
+	 * （见 processCHandshake/processSHandshake）。直连时两侧地址一致；NAT/端口映射下服务器视角
+	 * 是内网落地地址、客户端视角是公网拨入地址，两侧派生出不同密钥，该部署所有连接握手必然
+	 * 失败并反复重连。此处启动时显著告警；修复：服务器显式配置 SecureIp 为客户端实际拨入的
+	 * 地址（仅服务器侧读取），或改用 AesNoSecureIp/RsaAes。
+	 */
+	private void checkAesSecureIp() {
+		var options = getConfig().getHandshakeOptions();
+		if (options.getEncryptType() == Constant.eEncryptTypeAes && options.getSecureIp() == null)
+			logger.warn("{} EncryptType=Aes without SecureIp: session key is derived from the connection "
+					+ "address (server side: local address; client side: remote address). Direct connections work, "
+					+ "but under NAT/port-mapping the two sides see different addresses and every handshake will "
+					+ "fail with reconnect loops. Configure SecureIp on the server with the address clients dial in, "
+					+ "or switch EncryptType to AesNoSecureIp(2)/RsaAes(3).", getName());
+	}
+
+	@Override
+	public void start() throws Exception {
+		checkAesSecureIp();
+		super.start();
+	}
+
 	@Override
 	public boolean isHandshakeProtocol(long typeId) {
 		return handshakeProtocols.contains(typeId);

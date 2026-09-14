@@ -485,7 +485,19 @@ namespace Net
 
 			std::string keyStr = GetSecureIp();
 			if (keyStr.empty())
+			{
+				// SecureIp 未配置时回退用本端地址派生密钥，而客户端固定用对端地址；
+				// NAT/端口映射下两侧地址不同，握手必然失败。这里在实际走回退时告警一次。
+				static std::once_flag warnAesNoSecureIpOnce;
+				std::call_once(warnAesNoSecureIpOnce, [] {
+					std::cout << "eEncryptTypeAes without SecureIp: session key is derived from the "
+						"connection address (server side: local address; client side: remote address). Direct "
+						"connections work, but under NAT/port-mapping the two sides see different addresses and "
+						"every handshake will fail with reconnect loops. Call SetSecureIp with the address "
+						"clients dial in, or switch to eEncryptTypeAesNoSecureIp." << std::endl;
+				});
 				keyStr = p->Sender->GetLocalAddress();
+			}
 			int8_t* key = (int8_t*)keyStr.data();
 			int keyLen = (int)keyStr.size();
 

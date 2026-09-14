@@ -166,6 +166,27 @@ namespace Zeze.Services
         {
         }
 
+        // Aes 模式会话密钥由连接地址参与派生（服务器取本端地址，客户端取对端地址）。
+        // 直连时两侧一致；NAT/端口映射下两侧视角不同，派生出不同密钥，握手必然失败并反复重连。
+        // 启动时显著告警；修复：服务器配置 SecureIp 为客户端实际拨入的地址，或改用 AesNoSecureIp/RsaAes。
+        private void CheckAesSecureIp()
+        {
+            var options = Config.HandshakeOptions;
+            if (options.EncryptType == Constant.eEncryptTypeAes && options.SecureIp == null)
+                logger.Warn("{0} EncryptType=Aes without SecureIp: session key is derived from the " +
+                            "connection address (server side: local address; client side: remote address). " +
+                            "Direct connections work, but under NAT/port-mapping the two sides see different " +
+                            "addresses and every handshake will fail with reconnect loops. Configure SecureIp on " +
+                            "the server with the address clients dial in, or switch EncryptType to " +
+                            "AesNoSecureIp(2)/RsaAes(3).", Name);
+        }
+
+        public override void Start()
+        {
+            CheckAesSecureIp();
+            base.Start();
+        }
+
         public override bool IsHandshakeProtocol(long typeId)
         {
             return HandshakeProtocols.Contains(typeId);
