@@ -686,8 +686,8 @@ public final class Application extends ReentrantLock {
 			var serverId = conf.getServerId();
 			logger.info("Start ServerId={}", serverId);
 
-			var noDatabase = isNoDatabase();
-			if (!noDatabase) {
+			var hasDatabase = !isNoDatabase();
+			if (hasDatabase) {
 				if ("true".equalsIgnoreCase(System.getProperty(Daemon.propertyNameClearInUse))) {
 					conf.clearInUseAndIAmSureAppStopped(this, databases);
 					//var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
@@ -707,8 +707,9 @@ public final class Application extends ReentrantLock {
 				dbConf.setDatabaseType(Config.DbType.RocksDb);
 				LocalRocksCacheDb = new DatabaseRocksDb(this, dbConf, true);
 				LocalRocksCacheDb.open(this);
-			} else
+			} else {
 				addShutdownHook();
+			}
 
 			var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
 			if (serviceManagerConf != null && serviceManager != null) {
@@ -724,7 +725,7 @@ public final class Application extends ReentrantLock {
 				}
 			}
 
-			if (!noDatabase) {
+			if (hasDatabase) {
 				atomicOpenDatabase();
 
 				// Open Global
@@ -908,10 +909,6 @@ public final class Application extends ReentrantLock {
 	}
 
 	public void checkpointRunThread() {
-		// 同endStart/checkpointRun（FND4-81）：noDatabase模式不创建checkpoint。本钩子还会被
-		// Transaction.perform的finally按CheckpointTransactionPeriod周期触达（FND5-01）：
-		// startState==eStarted时checkpoint::runOnce对null receiver在方法引用创建时即NPE，
-		// 异常从finally逃逸吞掉perform的返回值。
 		if (checkpoint == null)
 			return;
 		lock();

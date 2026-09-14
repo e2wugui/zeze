@@ -221,7 +221,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 		// 通知订阅了info版本的会话（version==0订阅全部版本）。info的版本决定通知过滤。
 		private void collectNotify(@NotNull BServiceInfo info, boolean isAdd,
-								   @NotNull HashMap<AsyncSocket, EditService> result) {
+		                           @NotNull HashMap<AsyncSocket, EditService> result) {
 			for (var it = simple.iterator(); it.moveToNext(); ) {
 				var itVersion = it.value().getVersion();
 				if (itVersion == 0 || itVersion == info.getVersion()) {
@@ -260,7 +260,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 
 		public void removeAndCollectNotify(@NotNull BServiceInfo info, long sessionId,
-										   @NotNull HashMap<AsyncSocket, EditService> result) {
+		                                   @NotNull HashMap<AsyncSocket, EditService> result) {
 			// 注销同样以name+id为key跨全部版本桶收敛（与addAndCollectNotify、客户端onUnRegister一致）。
 			for (var e : serviceInfos.entrySet()) {
 				var exist = e.getValue().get(info.getServiceIdentity());
@@ -301,6 +301,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					AsyncSocket s = null;
 					try {
 						s = serviceManager.server.GetSocket(sessionId);
+						if (s == null)
+							return; // 会话已关闭/已被清理，KeepAlive 无事可做
 						var r = new KeepAlive();
 						// 异步等待应答（FND-S1-10）：SendAndWaitCheckResultCode在调度池线程上同步阻塞
 						// 等待，半开连接（无FIN）堆积时每个KeepAlive各占一个rpc超时时长，数百会话
@@ -308,7 +310,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 						// 改为回调判活：超时/失败码在回调中关闭连接触发重连——对端假死检测语义
 						// 不变（只发不等同样测不出假死），调度线程不再被占用。
 						final var sock = s;
-					if (!r.Send(s, response -> {
+						if (!r.Send(s, response -> {
 							if (response.isTimeout() || response.getResultCode() != KeepAlive.Success)
 								sock.close(new java.io.IOException("KeepAlive fail: " + response));
 							return 0;
@@ -327,39 +329,39 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				keepAliveTimerTask = null;
 		}
 
-			// 底层确保只会回调一次
-			public void onClose() {
-				if (keepAliveTimerTask != null)
-					keepAliveTimerTask.cancel(false);
+		// 底层确保只会回调一次
+		public void onClose() {
+			if (keepAliveTimerTask != null)
+				keepAliveTimerTask.cancel(false);
 
-				// Suspect广播：立即、不延迟、不挑选、不取SM锁（避开旧双锁序）。仅是提示，
-				// 由租约表裁决：未过期租约会被接收方安排到过期时刻精确重试。
-				var suspectServerId = identifyServerId;
-				if (suspectServerId >= 0) {
-					try {
-						serviceManager.server.foreach(so -> {
-							if (so.getSessionId() == sessionId)
-								return; // 刚断线的会话本身不报信（发给它会得到submitAction错误日志）
-							var suspect = new Suspect();
-							suspect.Argument.serverId = suspectServerId;
-							so.Send(suspect);
-						});
-					} catch (Exception e) {
-						logger.warn("Suspect broadcast for serverId={} failed", suspectServerId, e);
-					}
-				}
-
-				var notifies = new HashMap<AsyncSocket, EditService>();
-				serviceManager.editLock.lock();
-
+			// Suspect广播：立即、不延迟、不挑选、不取SM锁（避开旧双锁序）。仅是提示，
+			// 由租约表裁决：未过期租约会被接收方安排到过期时刻精确重试。
+			var suspectServerId = identifyServerId;
+			if (suspectServerId >= 0) {
 				try {
-					// FND4-66：联动清理该会话登记的全部负载观察者（地址行随之回收）。
-					// FND5-30：清理由锁外挪入editLock——登记（addLoadObserver全部在editLock内）
-					// 与清理串行化；原先锁外的“removeObserver判空→it.remove()”与并发登记构成
-					// TOCTOU，后到的活观察者随地址行被整行误删。
-					serviceManager.removeLoadObservers(sessionId);
+					serviceManager.server.foreach(so -> {
+						if (so.getSessionId() == sessionId)
+							return; // 刚断线的会话本身不报信（发给它会得到submitAction错误日志）
+						var suspect = new Suspect();
+						suspect.Argument.serverId = suspectServerId;
+						so.Send(suspect);
+					});
+				} catch (Exception e) {
+					logger.warn("Suspect broadcast for serverId={} failed", suspectServerId, e);
+				}
+			}
 
-					for (var info : subscribes.values())
+			var notifies = new HashMap<AsyncSocket, EditService>();
+			serviceManager.editLock.lock();
+
+			try {
+				// FND4-66：联动清理该会话登记的全部负载观察者（地址行随之回收）。
+				// FND5-30：清理由锁外挪入editLock——登记（addLoadObserver全部在editLock内）
+				// 与清理串行化；原先锁外的“removeObserver判空→it.remove()”与并发登记构成
+				// TOCTOU，后到的活观察者随地址行被整行误删。
+				serviceManager.removeLoadObservers(sessionId);
+
+				for (var info : subscribes.values())
 					serviceManager.unSubscribeNow(sessionId, info.getServiceName());
 
 				for (var unReg : registers) {
@@ -389,10 +391,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	// FND4-66：会话关闭联动清理该会话登记的全部负载观察者；地址行在观察者清空时移除——
 	// 原来仅转发失败惰性剔除，服务下线后该地址再无上报则观察者集合与地址行永久残留。
 	private void removeLoadObservers(long sessionId) {
-		for (var it = loads.entrySet().iterator(); it.hasNext(); ) {
-			if (it.next().getValue().removeObserver(sessionId))
-				it.remove(); // 死地址回收
-		}
+		// 死地址回收
+		loads.entrySet().removeIf(entry -> entry.getValue().removeObserver(sessionId));
 	}
 
 	private final ReentrantLock editLock = new ReentrantLock(); // 整个edit使用一把锁。不并发了。
@@ -560,6 +560,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	// 只写session上一个int（Direct派发内完成、无锁、无取消语义）。
+	@SuppressWarnings("MethodMayBeStatic")
 	private long processIdentify(@NotNull Identify r) {
 		var session = (Session)r.getSender().getUserState();
 		if (session != null) {
@@ -581,13 +582,13 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private final @NotNull ThreadingServer threading;
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
-								@NotNull Config config) throws Exception {
+	                            @NotNull Config config) throws Exception {
 		this(ipaddress, port, config, "autokeys");
 	}
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
-									@NotNull Config config,
-									@NotNull String autokeys) throws Exception {
+	                            @NotNull Config config,
+	                            @NotNull String autokeys) throws Exception {
 		ZezeCounter.tryInit();
 		applyLogLevelProperty(); // FND4-64：显式启动动作（仅显式指定logLevel属性才动配置）
 		config.parseCustomize(this.conf);
@@ -735,7 +736,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 		@Override
 		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
-									 @NotNull ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) {
+		                             @NotNull ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			if (factoryHandle.Mode == DispatchMode.Direct) {
 				// 有几个direct方式的协议,为了性能就不考虑和其它非direct协议的处理顺序了,但因为在IO线程串行处理,这些协议本身的处理还是有顺序的
@@ -818,8 +819,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			logger.info("Start Raft=RunAllNodes");
 			//noinspection unused
 			try (var raft1 = new ServiceManagerWithRaft("127.0.0.1:6556", RaftConfig.load(raftConf));
-				 var raft2 = new ServiceManagerWithRaft("127.0.0.1:6557", RaftConfig.load(raftConf));
-				 var raft3 = new ServiceManagerWithRaft("127.0.0.1:6558", RaftConfig.load(raftConf))) {
+			     var raft2 = new ServiceManagerWithRaft("127.0.0.1:6557", RaftConfig.load(raftConf));
+			     var raft3 = new ServiceManagerWithRaft("127.0.0.1:6558", RaftConfig.load(raftConf))) {
 				synchronized (Thread.currentThread()) {
 					Thread.currentThread().wait();
 				}
