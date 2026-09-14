@@ -61,12 +61,14 @@ public abstract class Bean implements Serializable {
 
 	/**
 	 * 构建 ChangeListener 链。其中第一个KeyValuePair在调用前加入，这个由Log或者ChangeNote提供。
+	 * 每条路径元素为（父Bean, 当前层子Bean的variableId）：第1层是this在自己parent中的编号，
+	 * 更深层各取该层子Bean自己的编号（FND5-04：原先恒用this.variableId，层级≥2错误）。
 	 *
 	 * @param path path
 	 */
 	public final void buildChangeListenerPath(@NotNull ArrayList<KV<Bean, Integer>> path) {
-		for (Bean parent = this.parent; parent != null; parent = parent.parent)
-			path.add(KV.create(parent, variableId));
+		for (Bean child = this, parent = this.parent; parent != null; child = parent, parent = parent.parent)
+			path.add(KV.create(parent, child.variableId));
 	}
 
 	public final boolean isManaged() {
