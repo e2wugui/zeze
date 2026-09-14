@@ -1432,9 +1432,14 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : accounts) {
-				providerApp.zeze.newProcedure(() ->
+				// FND5-27：接收返回码，非0记error（含target/actionName/rc）——transmit目标处理失败
+				// 时发起方完全无感知（FND4-50同族第4处）；fire-and-forget流程不变。
+				var rc = providerApp.zeze.newProcedure(() ->
 								handle.call(account, clientId, target.getAccount(), target.getClientId(), parameter),
 						"Online.processTransmit:" + actionName).call();
+				if (rc != 0)
+					logger.error("processTransmit fail: action={}, target={}:{}, rc={}",
+							actionName, target.getAccount(), target.getClientId(), rc);
 			}
 		}
 	}
