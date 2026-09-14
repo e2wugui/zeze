@@ -445,6 +445,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// for shorter use
 		logger.info("processOffline({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}",
 				multiInstanceName, account, roleId, linkName, linkSid, ret);
+		if (ret != 0) // FND5-41：与removeLocalAndTrigger对齐——失败码外传整体回滚，不推进登出状态机。
+			return ret;
 
 		// see tryLogout
 		// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
@@ -954,6 +956,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// for shorter use
 		logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}",
 				multiInstanceName, account, roleId, linkName, linkSid, ret);
+		if (ret != 0) // FND5-41：与removeLocalAndTrigger对齐——失败码外传整体回滚，不推进登出状态机。
+			return ret;
 
 		// see tryLogout
 		// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
@@ -1006,6 +1010,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
 		logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}, delay={}",
 				multiInstanceName, account, roleId, linkName, linkSid, ret, delay);
+		if (ret != 0) // FND5-41：失败码外传整体回滚；不再调度DelayLogout（Arch版triggerLinkBroken判例，FND4-50）。
+			return ret;
 		zeze.getTimer().schedule(TimerSpec.ofDelay(delay).times(1), DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
 				multiInstanceName, zeze.getProjectName()));
 		return 0;
