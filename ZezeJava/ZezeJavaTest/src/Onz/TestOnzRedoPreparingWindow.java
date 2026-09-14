@@ -123,21 +123,27 @@ public class TestOnzRedoPreparingWindow {
 		txn.setFlushTimeout(60_000); // 参与方ready等待不在本场景窗口内自愈（FND5-45独立覆盖）
 		var performRc = new long[1];
 		var coordinator = new Thread(() -> performRc[0] = onzServer.perform(txn));
+		coordinator.setDaemon(true);
 		coordinator.start();
 
 		var commitIndex = tableOf("commitIndex");
 		waitUntil(() -> count(commitIndex) == 1, 10_000, "ePreparing未落盘");
+		try {
+			// FND5-44核心：窗口内驱动redoTimer，不得误伤进行中事务。
+			invokeRedoTimer();
+			Assertions.assertEquals(1, count(commitIndex), "进行中的ePreparing不得被redo清除");
 
-		// FND5-44核心：窗口内驱动redoTimer，不得误伤进行中事务。
-		invokeRedoTimer();
-		Assertions.assertEquals(1, count(commitIndex), "进行中的ePreparing不得被redo清除");
-
-		txn.release.countDown();
-		coordinator.join(30_000);
-		Assertions.assertEquals(0, performRc[0], "perform必须成功");
-		waitMoney(App.Instance, 100, 10, 10_000,
-				"参与方必须真正提交（修复前：窗口内被Rollback误伤回滚，协调者仍报成功）");
-		Assertions.assertEquals(0, count(commitIndex), "事务完成后索引清理");
+			txn.release.countDown();
+			coordinator.join(30_000);
+			Assertions.assertEquals(0, performRc[0], "perform必须成功");
+			waitMoney(App.Instance, 100, 10, 10_000,
+					"参与方必须真正提交（修复前：窗口内被Rollback误伤回滚，协调者仍报成功）");
+			Assertions.assertEquals(0, count(commitIndex), "事务完成后索引清理");
+		} finally {
+			// 断言失败也释放协调者（未来回归红态时不泄漏挂起线程）。
+			txn.release.countDown();
+			coordinator.join(10_000);
+		}
 	}
 
 	@Test
