@@ -95,8 +95,7 @@ public class DelayRemove extends AbstractDelayRemove {
 		// tJobs行不清理，每次进程启动continueJobs重试再失败，僵尸条目与循环告警。
 		// 写持久化前显式拒绝（对齐FND4-47入口检查习惯）。
 		if (!jobHandles.containsKey(handleName))
-			throw new IllegalStateException("JobHandle not registered: " + handleName
-					+ "（拼写错误或注册晚于addJob）");
+			throw new IllegalStateException("JobHandle not registered: " + handleName);
 		var bJob = new BJob();
 		var jobId = jobIdAutoKey.nextString();
 		bJob.setJobHandleName(handleName);

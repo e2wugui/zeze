@@ -342,7 +342,7 @@ public final class DumpRocksDb {
 		return sb.toString();
 	}
 
-	private static boolean isUtf8(byte @NotNull [] bytes) {
+	private static boolean isPrintableUtf8(byte @NotNull [] bytes) {
 		for (int i = 0, n = bytes.length; i < n; i++) {
 			int b = bytes[i];
 			if (b >= 0) { // 0xxx xxxx
@@ -350,12 +350,11 @@ public final class DumpRocksDb {
 					return false;
 			} else {
 				b &= 0xff;
-				if (b < 0xc0 || b >= 0xf0) // 110x xxxx | 1110 xxxx
+				if (b < 0xc2 || b > 0xf4) // 0xc0|0xc1仅能构成过长编码；0xf5起不是合法引导字节
 					return false;
-				// FND5-07：连续字节数由引导字节决定（0xC0-0xDF跟1个、0xE0-0xEF跟2个）；续字节
-				// 掩码应为0x80（10xx xxxx）。原码无条件查两个再查第三个——多查的是下一字符首字节
-				// 或越界；且续字节判定用0xC0（11xxxxxx），真续字节（&0xC0==0x80）必被误拒。
-				int continuations = b >= 0xe0 ? 2 : 1;
+				// FND5-07：连续字节数由引导字节决定（0xC2-0xDF跟1个、0xE0-0xEF跟2个、0xF0-0xF4
+				// 跟3个，含emoji等4字节字符——游戏聊天数据常见）；续字节掩码为0x80（10xx xxxx）。
+				int continuations = b < 0xe0 ? 1 : b < 0xf0 ? 2 : 3;
 				for (var j = 0; j < continuations; ++j) {
 					++i;
 					if (i >= n || (bytes[i] & 0xc0) != 0x80) // 10xx xxxx
@@ -394,7 +393,7 @@ public final class DumpRocksDb {
 			return;
 		case ByteBuffer.BYTES:
 			var bytes = bb.ReadBytes();
-			if (isUtf8(bytes)) {
+			if (isPrintableUtf8(bytes)) {
 				os.write('"');
 				dumpString(os, bytes);
 				os.write('"');
