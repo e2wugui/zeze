@@ -519,6 +519,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
+					var reduceDone = new boolean[]{false}; // FND5-28：完成标志（回调锁内置位后再pulse）
 					if (cs.modify.reduce(gKey, rpc.getResultCode(), r -> { //await 方法内有等待
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
@@ -530,6 +531,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						}
 						cs.lock();
 						try {
+							reduceDone[0] = true;
 							cs.signalAll(); //notify
 						} finally {
 							cs.unlock();
@@ -538,7 +540,10 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					})) {
 						if (isDebugEnabled)
 							logger.debug("5 {} {} {}", sender, StateShare, cs);
-						cs.await();
+						// FND5-28：Condition契约允许伪唤醒——裸await醒来不复查完成谓词，
+						// 直接按默认StateReduceNetError走失败分支而reduce仍在途。谓词循环复查。
+						while (!reduceDone[0])
+							cs.await();
 					}
 					switch (reduceResultState.value) {
 					case StateShare:
@@ -677,6 +682,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
+					var reduceDone = new boolean[]{false}; // FND5-28：完成标志（回调锁内置位后再pulse）
 					if (cs.modify.reduce(gKey, rpc.getResultCode(), r -> { //await 方法内有等待
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
@@ -688,6 +694,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						}
 						cs.lock();
 						try {
+							reduceDone[0] = true;
 							cs.signalAll(); //notify
 						} finally {
 							cs.unlock();
@@ -696,7 +703,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					})) {
 						if (isDebugEnabled)
 							logger.debug("5 {} {} {}", sender, StateModify, cs);
-						cs.await(); //await 等通知
+						// FND5-28：同Share侧——谓词循环防伪唤醒直走失败分支。
+						while (!reduceDone[0])
+							cs.await(); //await 等通知
 					}
 
 					switch (reduceResultState.value) {
@@ -765,6 +774,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				// 1. share是空的, 可以直接升为Modify
 				// 2. sender是share, 而且reducePending的size是0
 				var errorFreshAcquire = new OutObject<>(Boolean.FALSE);
+				var waitReduceDone = new boolean[]{false}; // FND5-28：runNow完成标志（锁内置位）
 				if (!cs.share.isEmpty() && (!senderIsShare || !reducePending.isEmpty())) {
 					TaskSpec.ofAction(() -> {
 						// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
@@ -802,6 +812,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						errorFreshAcquire.value = freshAcquire;
 						cs.lock();
 						try {
+							// 完成标志锁内置位（FND5-28）：主线程谓词循环复查，伪唤醒不得提前
+							// 读取runNow仍在并发填充的reduceSucceed/errorFreshAcquire（锁发布快照）。
+							waitReduceDone[0] = true;
 							// 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
 							cs.signalAll(); //notify
 						} finally {
@@ -810,7 +823,10 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					}).name("GlobalCacheManager.AcquireModify.WaitReduce").runNow();
 					if (isDebugEnabled)
 						logger.debug("7 {} {} {}", sender, StateModify, cs);
-					cs.await(); //await 等通知
+					// FND5-28：Condition契约允许伪唤醒——裸await醒来不复查即读取非线程安全的
+					// reduceSucceed构成数据竞争。谓词循环复查完成标志。
+					while (!waitReduceDone[0])
+						cs.await(); //await 等通知
 				}
 
 				// 移除成功的。

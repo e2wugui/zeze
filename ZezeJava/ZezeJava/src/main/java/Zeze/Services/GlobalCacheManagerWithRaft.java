@@ -330,6 +330,7 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
+				var reduceDone = new boolean[]{false}; // FND5-28：完成标志（回调锁内置位后再pulse）
 				if (CacheHolder.reduce(sessions, cs.getModify(), globalTableKey, fresh, r -> {
 					if (ENABLE_PERF)
 						perf.onReduceEnd(r);
@@ -341,6 +342,7 @@ public class GlobalCacheManagerWithRaft
 					}
 					lockey.enter();
 					try {
+						reduceDone[0] = true;
 						lockey.pulseAll();
 					} finally {
 						lockey.exit();
@@ -349,7 +351,10 @@ public class GlobalCacheManagerWithRaft
 				})) {
 					if (isDebugEnabled)
 						logger.debug("5 {} {} {}", sender, StateShare, cs);
-					lockey.await();
+					// FND5-28：Condition契约允许伪唤醒——裸await醒来不复查完成谓词，
+					// 直接按默认StateReduceNetError走失败分支而reduce仍在途。谓词循环复查。
+					while (!reduceDone[0])
+						lockey.await();
 				}
 
 				var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
@@ -486,6 +491,7 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
+				var reduceDone = new boolean[]{false}; // FND5-28：完成标志（回调锁内置位后再pulse）
 				if (CacheHolder.reduce(sessions, cs.getModify(), globalTableKey, fresh, r -> {
 					if (ENABLE_PERF)
 						perf.onReduceEnd(r);
@@ -497,6 +503,7 @@ public class GlobalCacheManagerWithRaft
 					}
 					lockey.enter();
 					try {
+						reduceDone[0] = true;
 						lockey.pulseAll();
 					} finally {
 						lockey.exit();
@@ -505,7 +512,9 @@ public class GlobalCacheManagerWithRaft
 				})) {
 					if (isDebugEnabled)
 						logger.debug("5 {} {} {}", sender, StateModify, cs);
-					lockey.await();
+					// FND5-28：同Share侧——谓词循环防伪唤醒直走失败分支。
+					while (!reduceDone[0])
+						lockey.await();
 				}
 
 				var ModifyAcquired = serverAcquiredTemplate.openTable(cs.getModify());
@@ -550,6 +559,7 @@ public class GlobalCacheManagerWithRaft
 
 			ArrayList<KV<CacheHolder, Reduce>> reducePending = new ArrayList<>();
 			IdentityHashSet<CacheHolder> reduceSucceed = new IdentityHashSet<>();
+			var waitReduceDone = new boolean[]{false}; // FND5-28：runNow完成标志（锁内置位）
 			boolean senderIsShare = false;
 			// 先把降级请求全部发送给出去。
 			for (var c : cs.getShare()) {
@@ -620,6 +630,9 @@ public class GlobalCacheManagerWithRaft
 					lockey.enter();
 					try {
 						errorFreshAcquire.value = freshAcquire;
+						// 完成标志锁内置位（FND5-28）：主线程谓词循环复查，伪唤醒不得提前
+						// 读取runNow仍在并发填充的reduceSucceed（锁发布快照）。
+						waitReduceDone[0] = true;
 						lockey.pulseAll();
 					} finally {
 						lockey.exit();
@@ -627,7 +640,10 @@ public class GlobalCacheManagerWithRaft
 				}).name("GlobalCacheManagerWithRaft.AcquireModify.WaitReduce").runNow();
 				if (isDebugEnabled)
 					logger.debug("7 {} {} {}", sender, StateModify, cs);
-				lockey.await();
+				// FND5-28：Condition契约允许伪唤醒——裸await醒来不复查即读取非线程安全的
+				// reduceSucceed构成数据竞争。谓词循环复查完成标志。
+				while (!waitReduceDone[0])
+					lockey.await();
 			}
 
 			// 移除成功的。
