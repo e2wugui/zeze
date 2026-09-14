@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Game;
 
+import Zeze.Builtin.Game.Bag.BBagKey;
 import Zeze.Transaction.Procedure;
 import demo.App;
 import org.junit.jupiter.api.AfterEach;
@@ -18,6 +19,7 @@ public class TestBag {
 	public static final int MAX_GRID_CAPACITY = 99; // 每个格子堆叠上限
 	public static final int SECOND_REMOVE_NUM = 10; // 第二次删除的item数量 应小于ADD_NUM/2
 	public static final int MAX_BAG_CAPACITY = 100; // 背包容量
+	public static final long ROLE_ID = 1;           // BBagKey(roleId, bagName) 分区键
 
 	@BeforeEach
 	public final void testInit() throws Exception {
@@ -34,7 +36,7 @@ public class TestBag {
 	public final void test1_Add() {
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestBag::preRemove, "BagPreRemove").call());
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
-			var bag = App.getInstance().BagModule.open("test1");
+			var bag = App.getInstance().BagModule.open(ROLE_ID, "test1");
 			bag.setCapacity(MAX_BAG_CAPACITY);
 			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
 				// bag.GetItemPileMax() TODO阶段，默认99
@@ -52,7 +54,7 @@ public class TestBag {
 	@Test
 	public final void test2_Move() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
-			var bag = demo.App.getInstance().BagModule.open("test1");
+			var bag = demo.App.getInstance().BagModule.open(ROLE_ID, "test1");
 			Assertions.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			int moveNum = MAX_GRID_CAPACITY - (ADD_NUM / 2);
 			for (int i = 0; i < ADD_PILE_NUM * 2; i += 2) {
@@ -69,7 +71,7 @@ public class TestBag {
 	@Test
 	public final void test3_Remove() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
-			var bag = demo.App.getInstance().BagModule.open("test1");
+			var bag = demo.App.getInstance().BagModule.open(ROLE_ID, "test1");
 			Assertions.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
 				var code = bag.remove(i, ADD_NUM / 2);
@@ -91,7 +93,7 @@ public class TestBag {
 	@Test
 	public final void test4_Move() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
-			var bag = demo.App.getInstance().BagModule.open("test1");
+			var bag = demo.App.getInstance().BagModule.open(ROLE_ID, "test1");
 			Assertions.assertEquals(ADD_PILE_NUM, bag.getBean().getItems().size());
 			// 移动物品到空格子
 			int moveNum = (ADD_NUM / 2 - SECOND_REMOVE_NUM) / 2;
@@ -109,7 +111,7 @@ public class TestBag {
 
 	private static long preRemove() {
 		var table = App.getInstance().BagModule.getTable();
-		table.remove("test1");
+		table.remove(new BBagKey(ROLE_ID, "test1"));
 		System.out.printf("delete table %s%n", table.getName());
 		return Procedure.Success;
 	}

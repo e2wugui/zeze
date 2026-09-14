@@ -57,7 +57,7 @@ public class TestBagMoveZero {
 		app.start();
 
 		var ret = app.newProcedure(() -> {
-			var bag = module.open("zero");
+			var bag = module.open(1, "zero");
 			bag.setCapacity(10);
 			assertEquals(0, bag.add(100, 50), "50个可堆叠物品应全部进入格子0");
 
