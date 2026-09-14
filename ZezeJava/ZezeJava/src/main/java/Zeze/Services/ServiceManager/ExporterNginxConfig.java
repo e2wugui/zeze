@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import org.jetbrains.annotations.NotNull;
 
 public class ExporterNginxConfig implements IExporter {
+	private static final @NotNull org.apache.logging.log4j.Logger logger =
+			org.apache.logging.log4j.LogManager.getLogger(ExporterNginxConfig.class);
+
 	@Override
 	public Type getType() {
 		return Type.eAll;
@@ -34,8 +37,14 @@ public class ExporterNginxConfig implements IExporter {
 
 				if (lineTrim.startsWith("upstream")) {
 					var prefix = line.substring(0, line.length() - lineTrim.length());
-					var sName = lineTrim.split(" ")[1];
-					if (sName.equals(serviceName)) {
+					// FND5-36：nginx合法写法多样（"upstream name{"、"upstream<TAB>name {"）——原
+					// split(" ")[1]要么解析出带'{'的错名（块永不重写，下线地址残留），要么
+					// AIOOBE中断整批导出。按空白切分取第二token去尾'{'；解析不出名字记告警跳过。
+					var tokens = lineTrim.split("\\s+");
+					var sName = tokens.length > 1 ? trimSuffixBrace(tokens[1]) : "";
+					if (sName.isEmpty()) {
+						logger.warn("ExporterNginxConfig: unrecognized upstream line skipped: {}", lineTrim);
+					} else if (sName.equals(serviceName)) {
 						skipUntilUpstreamEnd = true;
 						exportToLines(prefix, lines, serviceName, all);
 						hasChanged = true;
@@ -53,6 +62,10 @@ public class ExporterNginxConfig implements IExporter {
 			Files.writeString(Path.of(file), sb.toString(), StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
 			reload();
 		}
+	}
+
+	private static String trimSuffixBrace(String token) {
+		return token.endsWith("{") ? token.substring(0, token.length() - 1) : token;
 	}
 
 	private void exportToLines(String prefix, ArrayList<String> out, String serviceName, BServiceInfosVersion all) {
