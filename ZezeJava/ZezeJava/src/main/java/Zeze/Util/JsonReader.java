@@ -539,6 +539,10 @@ public final class JsonReader {
 				p.pos = pos;
 				break;
 			case TYPE_CUSTOM:
+				if (b == 'n') { // null（FND5-09，与TYPE_STRING/TYPE_OBJECT分支一致）
+					unsafe.putObject(obj, offset, null);
+					break;
+				}
 				Object subObj = unsafe.getObject(obj, offset);
 				if (subObj != null) {
 					Class<?> subClass = subObj.getClass();
