@@ -632,11 +632,22 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			return 0;
 
 		var local = _tlocal.get(account);
-		if (local == null)
-			return 0; // 不在本机登录。
-		var loginLocal = local.getLogins().get(clientId);
-		if (loginLocal == null)
-			return 0; // 不在本机登录。
+		var loginLocal = local != null ? local.getLogins().get(clientId) : null;
+		if (local == null || loginLocal == null) {
+			// FND5-24：provider崩溃/重启后_tlocal（内存表）丢失，但_tonline行（serverId=本机）
+			// 仍归本机所有——直接早退会让该条目永久eLogined（isOnline/getLogin/getAccountLoginCount
+			// 误报；sendDirect向陈旧linkSid发送触发onSendError才顺带清理；同clientId再登录可自愈，
+			// 不重登则永存）。按serverId归属判定：属本机则推进eLinkBroken+延迟登出（对齐onSendError
+			// ——其local==null时仍走DelayLogout）；非本机维持早退（本机上的断链事件对其不成立）。
+			if (loginOnline.getServerId() != providerApp.zeze.getConfig().getServerId())
+				return 0; // 不在本机登录。
+			loginOnline.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
+			var zezeGhost = providerApp.zeze;
+			zezeGhost.getTimer().schedule(TimerSpec.ofDelay(zezeGhost.getConfig().getOnlineLogoutDelay()).times(1),
+					DelayLogout.class, new BDelayLogoutCustom(account, clientId, loginOnline.getLoginVersion(),
+							zezeGhost.getProjectName()));
+			return 0;
+		}
 
 		loginOnline.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
 

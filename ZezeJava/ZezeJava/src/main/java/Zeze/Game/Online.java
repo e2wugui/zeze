@@ -978,9 +978,21 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 		var local = _tlocal.get(roleId);
 		if (local == null) {
+			// FND5-24（Game同型，与Arch版一并裁定）：provider崩溃/重启后_tlocal（内存表）丢失，
+			// 但_tOnlineShared行（BOnline.serverId=本机）仍归本机——直接早退让该角色永久
+			// eLogined幽灵在线（isOnline/getLogin误报，不重登则永存）。按serverId归属判定：
+			// 属本机推进eLinkBroken+延迟登出；非本机维持早退。
 			logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={}, roleId not found in tlocal",
 					multiInstanceName, account, roleId, linkName, linkSid);
-			return 0; // 不在本机登录。
+			var bOnline = getOnline(roleId);
+			if (bOnline == null || bOnline.getServerId() != providerApp.zeze.getConfig().getServerId())
+				return 0; // 不在本机登录。
+			onlineShared.setLink(new BLink(linkName, linkSid, eLinkBroken));
+			var zezeGhost = providerApp.zeze;
+			zezeGhost.getTimer().schedule(TimerSpec.ofDelay(zezeGhost.getConfig().getOnlineLogoutDelay()).times(1),
+					DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
+							multiInstanceName, zezeGhost.getProjectName()));
+			return 0;
 		}
 
 		// 本机数据已经过时，马上删除。
