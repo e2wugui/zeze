@@ -154,9 +154,21 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 
 	@Override
 	public void flush() throws CodecException {
-		if (blockState == -1)
-			super.flush();
-		else {
+		if (blockState == -1) {
+			// 逃逸码恰在本读分段内完整到达时不能交给super.flush()：它会解出off=8511并把随后的
+			// 零填充位当作len=3元组输出垃圾（进块检查只挂在update路径上，flush路径需在此自查）。
+			// off<0守卫：off>=0表示正在等合法元组的len位，其位前缀可能恰好形如逃逸码。
+			if (off < 0 && pos >= 16 && ((rem << (32 - pos)) >>> 16) == (0xc000 + 0x1fff)) {
+				int r = rem;
+				int p = pos - 16; // 去掉逃逸码，剩余是填充位（正常此时无整字节，防御性重喂与update一致）
+				rem = 0;
+				pos = 0;
+				blockState = 0;
+				for (p &= ~7; (p -= 8) >= 0; )
+					update((byte)(r >> p));
+			} else
+				super.flush();
+		} else {
 			if (srcBufLen > 0) {
 				ds.decompress(srcBuf, 0, srcBufLen, sink);
 				srcBufLen = 0;

@@ -167,6 +167,55 @@ public class TestCodec{
 		Assertions.assertEquals(expected, bufdp.getBuffer());
 	}
 
+	// FND5-16缺陷: TcpSocket.processReceive对每个读分段都调codec.flush()。分段边界恰好切在
+	// 「逃逸码+对齐填充」的最后一个字节上（逃逸码起始于非字节边界）时，flush走super.flush()
+	// 解出off=8511后把零填充位当作len=3元组：抛DecompressException断连，或静默注入3个陈旧
+	// 字节并使后续varint/zstd字节被当MPPC位流解帧错位。update路径（解码阈值24，逃逸码被解出
+	// 时varint首字节必已到达、进块检查必命中）不触发，只有flush路径漏网。
+	// 全split点扫描：任一分割点的「前缀+flush+后缀+flush」必须与整块喂入逐字节等价；不同
+	// raw1长度覆盖逃逸码0~7的全部对齐填充情形。
+	@Test
+	public final void testMppcZstdEscapeFlushBoundarySplit() {
+		var rand = new Random(1234);
+		for (int raw1Len : new int[] {1, 5, 17, 33, 100, 251}) {
+			var raw1 = new byte[raw1Len]; // 常规MPPC段（决定逃逸码的字节对齐）
+			rand.nextBytes(raw1);
+			var block = new byte[1024]; // 块模式段（zstd）
+			rand.nextBytes(block);
+
+			var bufcp = new BufferCodec();
+			var expected = ByteBuffer.Allocate(raw1.length + block.length);
+			expected.Append(raw1, 0, raw1.length);
+			expected.Append(block, 0, block.length);
+			{
+				var cp = new CompressMppcZstd(bufcp,
+						ZstdFactory.ZstdCompressStream.DEFAULT_DST_BUF_SIZE,
+						ZstdFactory.ZstdCompressStream.DEFAULT_COMPRESS_LEVEL,
+						ZstdFactory.ZstdCompressStream.DEFAULT_WINDOW_LOG);
+				cp.update(raw1, 0, raw1.length);
+				cp.flush();
+				cp.updateBlock(block, 0, block.length);
+				cp.flushBlock();
+				cp.close();
+			}
+			var wire = Arrays.copyOfRange(bufcp.getBuffer().Bytes,
+					bufcp.getBuffer().ReadIndex, bufcp.getBuffer().WriteIndex);
+
+			for (int split = 0; split <= wire.length; split++) {
+				var bufdp = new BufferCodec();
+				var dp = new DecompressMppcZstd(bufdp,
+						ZstdFactory.ZstdDecompressStream.DEFAULT_DST_BUF_SIZE,
+						ZstdFactory.ZstdDecompressStream.DEFAULT_DST_BUF_SIZE);
+				dp.update(wire, 0, split);
+				dp.flush();
+				dp.update(wire, split, wire.length - split);
+				dp.flush();
+				dp.close();
+				Assertions.assertEquals(expected, bufdp.getBuffer(), "raw1Len=" + raw1Len + " split=" + split);
+			}
+		}
+	}
+
 	@Test
 	public final void testMppcZstdRoundTrip() {
 		var rand = new Random();
