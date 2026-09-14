@@ -215,8 +215,14 @@ public class ThreadingServer extends AbstractThreadingServer {
 			return 0; // first keepAlive。record only。
 		}
 		if (threads.lastAppSerial.getAppSerialId() != p.Argument.getAppSerialId()) {
-			threads.release();
-			threads.lastAppSerial = p.Argument;
+			// FND5-23：serial无单调性判据——同serverId双实例（重建窗口内旧keepAliveTask在途、
+			// 或错误配置双客户端）时两个appSerialId交替到达，10秒一轮互解，正常持锁者被持续
+			// 强制释放。appSerialId为PersistentAtomicLong单调递增：仅更高的serial接管（release
+			// 旧资源），更低的视为旧实例迟到，忽略不release。
+			if (p.Argument.getAppSerialId() > threads.lastAppSerial.getAppSerialId()) {
+				threads.release();
+				threads.lastAppSerial = p.Argument;
+			}
 			return 0;
 		}
 		// same app serialId. done.
