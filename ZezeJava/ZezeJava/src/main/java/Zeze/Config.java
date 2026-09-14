@@ -778,6 +778,12 @@ public final class Config {
 	}
 
 	public static final class ServiceManagerConf {
+		// FND5-35（方案B部署契约）：sessionName是raft版ServiceManager（ServiceManagerWithRaft）
+		// 会话表tSession的主键兼会话归属凭证，必须非空且在同一SM集群内全局唯一——同名会话
+		// 互相接管（推送错乱、断连连带注销对方注册订阅，服务闪断）。漏配本属性时解析为空串：
+		// 经Application+ServiceManager=raft启动会默认为projectName#serverId（serverId仍需唯一），
+		// 直接构造ServiceManagerAgentWithRaft时空名fail-fast；服务端Login对空白名一律拒绝（-21）。
+		// 唯一性由部署侧保证，服务端不校验重复名。
 		private String sessionName;
 		private String raftXml;
 		private long loginTimeout = 12000;

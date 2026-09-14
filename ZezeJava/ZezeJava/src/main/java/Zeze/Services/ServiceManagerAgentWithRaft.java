@@ -63,6 +63,15 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			throw new IllegalStateException("ServiceManager=raft does not support Id128 allocate: " +
 				"History('" + config.getHistory() + "') requires it. " +
 				"Use a non-raft ServiceManager or disable History.");
+		// FND5-35（A3）：空白sessionName（漏配sessionName属性时解析为空串）会与其它同样漏配的
+		// server共享会话行互相接管（服务闪断，见ServiceManagerWithRaft.ProcessLoginRequest）。
+		// 经Application+ServiceManager=raft启动已默认为projectName#serverId；直接构造要求显式
+		// 配置非空名字——启动即失败优于连上后被服务端拒绝或与同名者互踩。
+		var smConf = config.getServiceManagerConf();
+		if (smConf == null || smConf.getSessionName().isBlank())
+			throw new IllegalStateException("ServiceManagerConf.sessionName must not be blank " +
+				"(FND5-35: session name must be unique per server). " +
+				"Configure <ServiceManagerConf sessionName=\"...\"/> or set it via setSessionName().");
 		super.config = config;
 
 		var raftConf = RaftConfig.load(config.getServiceManagerConf().getRaftXml());

@@ -379,6 +379,12 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessLoginRequest(Login r) {
+		// FND5-35（A3）：sessionName是tSession主键兼会话归属凭证，空白名（<ServiceManagerConf>
+		// 漏配sessionName属性时Config解析为空串）会使多个server共享同一会话行互相接管——
+		// 推送错乱、断连连带注销对方注册订阅，表现为服务闪断。非空为部署硬约束（唯一性
+		// 仍为部署契约，见Config.ServiceManagerConf），拒绝时不得产生会话行/userState副作用。
+		if (r.Argument.getSessionName().isBlank())
+			return ErrorSessionName;
 		var session = tableSession.getOrAdd(r.Argument.getSessionName());
 		// 重复Login（raftOnSetLeader超时递归重发等）在同一socket上覆盖userState前，先取消旧Session
 		// 的keepAliveTimerTask（FND2-S1-3）：OnSocketClose只回调最后userState的onClose，被覆盖的
@@ -552,6 +558,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	// 未Login会话统一拒绝码（FND4-60）：Procedure保留码用到-17，本模块局部取-18。
 	public static final long ErrorNotLogin = -18;
+
+	// 空白sessionName拒绝码（FND5-35）：Procedure保留码现已占到-20（Busy=-19、AuthFail=-20），
+	// 本模块局部取-21。
+	public static final long ErrorSessionName = -21;
 
 	/**
 	 * 会话前置条件单点强制（FND4-60）：未Login的连接（userState非Session，或Login事务刚被
