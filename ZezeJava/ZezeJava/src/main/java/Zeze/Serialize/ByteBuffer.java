@@ -1108,10 +1108,10 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	@Override
 	public boolean equals(@Nullable Object other) {
-		if (other instanceof ByteBuffer)
-			return equals((ByteBuffer)other);
-		if (other instanceof NioByteBuffer)
-			return ((NioByteBuffer)other).bb.equals(java.nio.ByteBuffer.wrap(Bytes, ReadIndex, size()));
+		if (other instanceof ByteBuffer bb)
+			return equals(bb);
+		if (other instanceof NioByteBuffer nbb)
+			return nbb.bb.equals(java.nio.ByteBuffer.wrap(Bytes, ReadIndex, size()));
 		if (other instanceof byte[] bytes)
 			return Arrays.equals(Bytes, ReadIndex, WriteIndex, bytes, 0, bytes.length);
 		if (other instanceof Binary binary) {
@@ -1145,6 +1145,18 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		int hash = 0;
 		for (int end = offset + len; offset < end; offset++)
 			hash = (hash * 16777619) ^ keys[offset];
+		return hash;
+	}
+
+	/** FNV（FND5-46）：nio形态统一入口——heap走数组版本；direct无backing array，
+	 * duplicate遍历（不动position/limit）。算法仅此一份。 */
+	public static int calc_hashnr(@NotNull java.nio.ByteBuffer bb) {
+		if (bb.hasArray())
+			return calc_hashnr(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining());
+		var dup = bb.duplicate();
+		int hash = 0;
+		while (dup.hasRemaining())
+			hash = (hash * 16777619) ^ dup.get();
 		return hash;
 	}
 

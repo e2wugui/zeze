@@ -357,7 +357,10 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public int hashCode() {
-		return bb.hashCode();
+		// FND5-46：与ByteBuffer统一算法——两者equals按内容跨类型互等，原用java.nio内部
+		// hash必然不等，违反"equals相等则hashCode相等"契约，混装同一HashMap/HashSet后
+		// 互相查找失败。纯委托calc_hashnr（heap/direct由其内部分派），算法不在此复制。
+		return ByteBuffer.calc_hashnr(bb);
 	}
 
 	@Override
