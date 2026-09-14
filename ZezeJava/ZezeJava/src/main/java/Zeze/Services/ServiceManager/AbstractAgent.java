@@ -160,7 +160,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	public @Nullable Id128UdpClient.FutureNode getLastTid128CacheFuture() {
 		return lastTid128CacheFuture;
 	}
-	
+
 	/**
 	 * 分配一段id并缓存到tid128CacheFutures（按globalName），段耗尽后由Tid128Cache.next()递归调用本方法换新段。
 	 * @param globalName 全局history名字
@@ -421,10 +421,9 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	protected static void verify(@NotNull String identity) {
 		if (!identity.startsWith("@") && !identity.startsWith("#")) {
-			// Long口径（FND4-63）：服务端isLegalServiceIdentity与BServiceInfos排序器均Long.parseLong，
-			// 原Integer.parseInt把(Integer.MAX,Long.MAX]的数字identity（如雪花id）在客户端误拒。
+			// 这里特意使用Integer.parseInt，因为现在只开放int(serverId)当作identity。
 			//noinspection ResultOfMethodCallIgnored
-			Long.parseLong(identity);
+			Integer.parseInt(identity);
 		}
 	}
 
