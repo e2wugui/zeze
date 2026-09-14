@@ -31,6 +31,11 @@ public class Onz extends AbstractOnz {
 	// 发送失败时，超时清理是参与方唯一的回收路径（FND-G1-6）。
 	private long sagaContextTimeoutMs = 3600_000;
 	private Future<?> sagaCleanupTimer;
+	// FND5-45联动：ready等待超时自愈回滚的tid登记（值=回滚时刻，有界）：迟到的Commit
+	// 命中即真实不一致（协调者持久化了commit决策但本参与方已回滚）——error暴露；
+	// redo重发给已成功参与方的重复Commit不命中，不误报。条目随saga清理周期过期。
+	private static final long TimeoutRolledBackTtlMs = 3600_000;
+	private final LongConcurrentHashMap<Long> timeoutRolledBack = new LongConcurrentHashMap<>();
 
 	public long getSagaContextTimeoutMs() {
 		return sagaContextTimeoutMs;
@@ -43,6 +48,16 @@ public class Onz extends AbstractOnz {
 	void markReadyProcedure(OnzProcedure procedure) {
 		if (null != readyProcedures.putIfAbsent(procedure.getOnzTid(), procedure))
 			throw new RuntimeException("ready procedure exist. " + procedure.getOnzTid());
+	}
+
+	/** FND5-45：参与方ready等待超时自愈时清理登记。仅当条目仍是自己时移除——迟到的
+	 * Commit/Rollback可能已并发取走，由调用方等待既成决策（不得覆盖）。 */
+	boolean removeReadyProcedure(OnzProcedure procedure) {
+		return readyProcedures.remove(procedure.getOnzTid(), procedure);
+	}
+
+	void markTimeoutRolledBack(long onzTid) {
+		timeoutRolledBack.put(onzTid, System.currentTimeMillis());
 	}
 
 	public Application getZeze() {
@@ -106,6 +121,14 @@ public class Onz extends AbstractOnz {
 					logger.warn("cleanup timeout saga context. tid={}, name={}", saga.getOnzTid(), saga.getName());
 			}
 		}
+		// FND5-45联动的超时回滚登记过期：Rollback最迟在崩溃协调者重启+redo一轮内到达，
+		// 1小时足够（对齐sagaContextTimeoutMs默认）。
+		for (var it = timeoutRolledBack.keyIterator(); it.hasNext(); ) {
+			var tid = it.next();
+			var stamp = timeoutRolledBack.get(tid);
+			if (stamp != null && now - stamp >= TimeoutRolledBackTtlMs)
+				timeoutRolledBack.remove(tid);
+		}
 	}
 
 	public <A extends Bean, R extends Bean> void register(
@@ -135,18 +158,31 @@ public class Onz extends AbstractOnz {
 
 	@Override
 	protected long ProcessCommitRequest(Commit r) throws Exception {
-		var procedure = readyProcedures.remove(r.Argument.getOnzTid());
+		var tid = r.Argument.getOnzTid();
+		var procedure = readyProcedures.remove(tid);
 		if (null != procedure)
 			procedure.commit();
+		else if (null != timeoutRolledBack.remove(tid))
+			// FND5-44/45联动：本参与方已超时自愈回滚，协调者却持久化了commit决策——
+			// 真实不一致（静默部分提交），error暴露。仍应答成功：改错误码会让redo无限
+			// 重发（条目已不存在，永无应答成功的可能），且无法与已提交后的重复发送区分。
+			logger.error("Commit for timeout-rolled-back onz tid={}"
+					+ " (participant rolled back before decision arrived; coordinator committed)"
+					+ " -- data divergence exposed.", tid);
+		// else：已提交后的重复发送（redo重发/应答丢失），正常幂等路径。
 		r.SendResult();
 		return 0;
 	}
 
 	@Override
 	protected long ProcessRollbackRequest(Rollback r) throws Exception {
-		var procedure = readyProcedures.remove(r.Argument.getOnzTid());
+		var tid = r.Argument.getOnzTid();
+		var procedure = readyProcedures.remove(tid);
 		if (null != procedure)
 			procedure.rollback();
+		else
+			// 超时自愈后到达的Rollback：与本地已回滚一致，静默回收登记（无重复发送告警价值）。
+			timeoutRolledBack.remove(tid);
 		r.SendResult();
 		return 0;
 	}

@@ -102,6 +102,22 @@ public class OnzProcedure implements FuncLong {
 		req.SendResult();
 
 		// 发送事务执行阶段的两段式提交的准备完成，同时等待一起提交的信号。
+		// FND5-45：协调者在perform阶段崩溃（决策未持久化：commitIndex尚无记录，重启后的
+		// redoTimer不会重发Rollback）时，无超时等待使参与方事务线程永久挂起并持有行锁。
+		// 超时按Rollback自愈：清理登记后以异常结束等待，本地事务回滚、锁释放。
+		// flushTimeout为协调者随请求下发的既有参数，等待语义与flush路径（sendFlushReady）一致。
+		if (!commitFuture.await(funcArgument.getFlushTimeout())) {
+			if (stub.getOnz().removeReadyProcedure(this)) {
+				// 条目仍是自己的：无并发决策，安全以超时异常结束（抛出→本地事务回滚）。
+				// 登记tid：迟到的Commit命中即真实不一致（协调者提交了已回滚的参与方），
+				// 由ProcessCommitRequest记error暴露。
+				stub.getOnz().markTimeoutRolledBack(getOnzTid());
+				commitFuture.setException(new RuntimeException(
+						"onz wait commit/rollback timeout. tid=" + getOnzTid() + " name=" + getName()));
+			}
+			// else：迟到的Commit/Rollback已并发取走条目，其线程即将完成future——
+			// 等待既成决策，不得覆盖（覆盖可能把已到达的commit翻成rollback）。
+		}
 		commitFuture.await();
 	}
 
