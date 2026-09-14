@@ -776,22 +776,23 @@ public class Service extends ReentrantLock {
 	}
 
 	public @NotNull KV<@NotNull String, @NotNull Integer> getOneAcceptorAddress() {
-		var ipPort = KV.create("", 0);
-
+		// KV.key构造后不变（FND5-12复审）：累积后create，不再setKey。
+		var ip = new String[]{""};
+		var port = new int[]{0};
 		config.forEachAcceptor2(a -> {
 			if (!a.getIp().isEmpty() && a.getPort() != 0) {
 				// 找到ip，port都配置成明确地址的。
-				ipPort.setKey(a.getIp());
-				ipPort.setValue(a.getPort());
+				ip[0] = a.getIp();
+				port[0] = a.getPort();
 				return false;
 			}
 			// 获得最后一个配置的ip,port。
-			ipPort.setKey(a.getIp());
-			ipPort.setValue(a.getPort());
+			ip[0] = a.getIp();
+			port[0] = a.getPort();
 			return true;
 		});
 
-		return ipPort;
+		return KV.create(ip[0], port[0]);
 	}
 
 	public @NotNull KV<@NotNull String, @NotNull Integer> getOnePassiveAddress() {
@@ -800,17 +801,18 @@ public class Service extends ReentrantLock {
 		//if (ipPort.getValue() == 0)
 		//	throw new IllegalStateException("Acceptor: No Config.");
 
-		if (ipPort.getKey().equals("@internal") || ipPort.getKey().isBlank())
-			ipPort.setKey(Helper.selectOneIpAddress(true));
-		else if (ipPort.getKey().equals("@external"))
-			ipPort.setKey(Helper.selectOneIpAddress(false));
+		var ip = ipPort.getKey();
+		if (ip.equals("@internal") || ip.isBlank())
+			ip = Helper.selectOneIpAddress(true);
+		else if (ip.equals("@external"))
+			ip = Helper.selectOneIpAddress(false);
 
-		if (ipPort.getKey().isEmpty()) {
-			// 实在找不到ip地址，就设置成loopback。
+		if (ip.isEmpty()) {
+			// 实在找不到ip地址的话，就设置成loopback。
 			logger.warn("PassiveAddress No Config. set ip to 127.0.0.1");
-			ipPort.setKey("127.0.0.1");
+			ip = "127.0.0.1";
 		}
-		return ipPort;
+		return KV.create(ip, ipPort.getValue());
 	}
 
 	public void onServerSocketBind(@NotNull ServerSocket port) {

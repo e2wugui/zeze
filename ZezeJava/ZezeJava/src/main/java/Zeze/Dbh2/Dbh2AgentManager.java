@@ -111,15 +111,17 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public KV<String, Integer> commitServiceAcceptor() {
-		var out = new KV<String, Integer>();
+		// KV.key构造后不变（FND5-12复审）：累积首个acceptor后create，不再setKey。
+		var ip = new String[1];
+		var port = new int[1];
 		commit.getService().getConfig().forEachAcceptor2((a) -> {
-			out.setKey(a.getIp());
-			out.setValue(a.getPort());
+			ip[0] = a.getIp();
+			port[0] = a.getPort();
 			return false;
 		});
-		if (out.getKey() == null || out.getValue() == 0)
+		if (ip[0] == null || port[0] == 0)
 			throw new RuntimeException("Commit Query Acceptor Not Set.");
-		return out;
+		return KV.create(ip[0], port[0]);
 	}
 
 	public void commitBreakAfterPrepareForDebugOnly(BPrepareBatches.Data batches) {
