@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.LongUnaryOperator;
 import Zeze.Application;
 import Zeze.Builtin.AutoKey.BSeedKey;
 import Zeze.Net.Binary;
@@ -68,11 +69,7 @@ public class AutoKey extends ReentrantLock {
 	}
 
 	public long nextId() {
-		var bb = nextByteBuffer();
-		if (bb.size() > 8) {
-			throw new IllegalStateException("AutoKey.nextId overflow: serverId="
-					+ module.zeze.getConfig().getServerId() + ", nextId=" + bb);
-		}
+		var bb = nextByteBuffer(); // seed受maxSeedForServerId预算约束（nextSeed源头夹取），编码总长≤8字节且不越符号位
 		return ByteBuffer.ToLongBE(bb.Bytes, 0, bb.WriteIndex); // 这里用BE(大端)是为了保证返回值一定为正,且保证ID值随seed的增长而增长
 	}
 
@@ -146,31 +143,22 @@ public class AutoKey extends ReentrantLock {
 
 	/**
 	 * 设置当前serverId的种子，新种子必须比当前值大。
+	 * 契约：成功返回后，此后发起的nextId()保证大于等于新水位；与本次调用并发执行的nextId()
+	 * 可能取到旧段号（其消耗先于内部的失效发布），需要严格串行的场景应先静默发号再调用。
 	 *
 	 * @param seed new seed.
 	 * @return true if success.
+	 * @throws IllegalStateException seed 超出当前serverId的id编码上限（见maxSeedForServerId）。
 	 */
 	public boolean setSeed(long seed) {
-		try {
-			var success = Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
-				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
-				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
-				if (seed > bAutoKey.getNextId()) {
-					bAutoKey.setNextId(seed);
-					return 0;
-				}
-				return Procedure.LogicError;
-			}, "AutoKey.setSeed")).dispatchMode(DispatchMode.Critical).submitNow().get();
-			if (success) // 事务确认成功后才失效内存号段；失败不动现役号段
-				invalidateRange();
-			return success;
-		} catch (InterruptedException | ExecutionException e) {
-			throw Task.forceThrow(e);
-		}
+		if (seed > maxSeedForServerId()) // 拒绝把水位投毒到无法编码的区间：之后批段只能永久异常
+			throw new IllegalStateException("AutoKey.setSeed: seed(" + seed + ") too large for serverId("
+					+ module.zeze.getConfig().getServerId() + ')');
+		return raiseWatermark("AutoKey.setSeed", current -> seed > current ? seed : -1);
 	}
 
 	/**
-	 * 增加当前serverId的种子。只能增加，如果溢出，返回失败。
+	 * 增加当前serverId的种子。只能增加，如果溢出或越过编码上限，返回失败。
 	 *
 	 * @param delta delta
 	 * @return true if success.
@@ -178,24 +166,11 @@ public class AutoKey extends ReentrantLock {
 	public boolean increaseSeed(long delta) {
 		if (delta <= 0)
 			return false;
-		try {
-			var success = Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
-				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
-				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
-				var newSeed = bAutoKey.getNextId() + delta;
-				if (newSeed > 0) {
-					bAutoKey.setNextId(newSeed);
-					return 0;
-				}
-				// 溢出
-				return Procedure.LogicError;
-			}, "AutoKey.increaseSeed")).dispatchMode(DispatchMode.Critical).submitNow().get();
-			if (success)
-				invalidateRange(); // 抬表水位成功，失效内存号段（与setSeed同源同病，同修）
-			return success;
-		} catch (InterruptedException | ExecutionException e) {
-			throw Task.forceThrow(e);
-		}
+		var maxSeed = maxSeedForServerId();
+		return raiseWatermark("AutoKey.increaseSeed", current -> {
+			var newSeed = current + delta;
+			return newSeed > 0 && newSeed <= maxSeed ? newSeed : -1; // 溢出（回绕为负）或越过编码上限：失败
+		});
 	}
 
 	/**
@@ -221,20 +196,51 @@ public class AutoKey extends ReentrantLock {
 		throw new IllegalStateException("AutoKey.getSeed failed: " + ret);
 	}
 
-	// setSeed/increaseSeed把表水位（tAutoKeys.NextId）抬高后，本地内存中未耗尽的号段已经失效，
-	// 置空让后续nextSeed走慢路径按新水位重新批段；否则合服导数据后继续发放旧段号，与存量id重号。
-	// 持自身锁与nextSeed慢路径串行化：慢路径在锁内"提交批段事务→写回range"，失效若插进这个窗口，
-	// 旧段会在失效后被重新安装。快路径不持锁，由nextSeed内的复核兜住。
-	private void invalidateRange() {
+	// 抬表水位（setSeed/increaseSeed）必须持AutoKey实例锁穿越提交点，且失效发布先于事务提交：
+	// 若提交后再失效，存在“提交与失效之间”的窗口——快路径在缝里消耗旧段号并通过复核返回，
+	// 合服时与存量id重号（FND4-45）。失效先于提交后：发布到提交期间慢路径等锁进不来，不会用
+	// 旧水位重装段；快路径复核必失败（消耗作废成空洞，转慢路径）。失败/异常恢复现役段：水位
+	// 未动，恢复即原状（窗口内被并发消耗过的号已成空洞，无重号）。
+	private boolean raiseWatermark(String action, LongUnaryOperator raiser) {
 		lock();
 		try {
-			range = null;
+			var oldRange = range;
+			range = null; // 失效发布先于提交
+			try {
+				var success = Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
+					var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
+					var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
+					var newSeed = raiser.applyAsLong(bAutoKey.getNextId()); // 负数=不抬（失败）
+					if (newSeed < 0)
+						return Procedure.LogicError;
+					bAutoKey.setNextId(newSeed);
+					return 0;
+				}, action)).dispatchMode(DispatchMode.Critical).submitNow().get();
+				if (!success)
+					range = oldRange;
+				return success;
+			} catch (InterruptedException | ExecutionException e) {
+				range = oldRange;
+				throw Task.forceThrow(e);
+			}
 		} finally {
 			unlock();
 		}
 	}
 
+	// 当前serverId下id编码（nextByteBuffer：serverId前缀+seed变长大端拼装，总长≤8字节，每字节
+	// 7位负载）可表达的seed上限。serverId==0或≥0x80时，8字节总长的首字节≥0x80，ToLongBE按
+	// 有符号大端读会得到负数，违反nextId“返回值一定为正”的约定，故再保守少用1字节。
+	private long maxSeedForServerId() {
+		int serverId = module.zeze.getConfig().getServerId();
+		int n = 8 - (serverId > 0 ? ByteBuffer.WriteUIntSize(serverId) : 0);
+		if (serverId == 0 || serverId >= 0x80)
+			n--;
+		return (1L << (7 * n)) - 1;
+	}
+
 	private long nextSeed() {
+		var maxSeed = maxSeedForServerId();
 		while (true) {
 			var localRange = range;
 			if (localRange != null) {
@@ -254,13 +260,21 @@ public class AutoKey extends ReentrantLock {
 				long ret;
 				try {
 					var newRange = new OutObject<Range>();
+					var exhausted = new OutObject<Boolean>();
 					ret = TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 						Transaction.whileCommit(fund::next);
 
 						var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 						var key = module._tAutoKeys.getOrAdd(seedKey);
 						var start = key.getNextId();
-						var end = start + fund.get(); // allocateCount == 0 会死循环。
+						// 水位越过编码上限（真耗尽）或为负（表被旧版本越界setSeed投毒）：明确报错，
+						// 不再批出无法编码的号段
+						if (start < 0 || start >= maxSeed) {
+							exhausted.value = true;
+							return Procedure.LogicError;
+						}
+						// allocateCount == 0 会死循环；段尾夹在编码预算内，同时杜绝 start+count 的long溢出
+						var end = Math.min(start + fund.get(), maxSeed);
 						key.setNextId(end);
 						newRange.value = new Range(start, end);
 						return 0;
@@ -269,6 +283,10 @@ public class AutoKey extends ReentrantLock {
 						range = newRange.value;
 						continue;
 					}
+					if (exhausted.value != null)
+						throw new IllegalStateException("AutoKey.nextSeed exhausted: serverId="
+								+ module.zeze.getConfig().getServerId() + ", name=" + name
+								+ ", maxSeed=" + maxSeed);
 				} catch (InterruptedException | ExecutionException e) {
 					throw Task.forceThrow(e);
 				}
