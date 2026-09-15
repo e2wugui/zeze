@@ -141,9 +141,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 		if (isTraceEnabled)
 			logger.trace("Acquire NewState={} {}", state, this);
-		if (ZezeCounter.instance != null) {
-			var tInfo = ZezeCounter.instance.getOrAddTableInfo(table.getId());
-			switch (state) {
+		var tInfo = ZezeCounter.instance.getOrAddTableInfo(table.getId());
+		switch (state) {
 			case GlobalCacheManagerConst.StateInvalid:
 				tInfo.acquireInvalid().increment();
 				break;
@@ -153,7 +152,6 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			case GlobalCacheManagerConst.StateModify:
 				tInfo.acquireModify().increment();
 				break;
-			}
 		}
 		return agent.acquire(table.encodeGlobalKey(key), state, fresh, noWait);
 	}

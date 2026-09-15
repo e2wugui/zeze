@@ -4,8 +4,8 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -352,8 +352,9 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private final ConcurrentHashMap<String, ProcedureInfo> procedureInfoMap = new ConcurrentHashMap<>(); // key: procedureName
 	private final LongConcurrentHashMap<TableInfo> tableInfoMap = new LongConcurrentHashMap<>(); // key: tableId
 	private CountInfo[] countInfos = new CountInfo[0];
-	private final HashSet<Object> excludeRunKeys = new HashSet<>(); // value: Class or others
-	private final LongHashSet excludeProtocolTypeIds = new LongHashSet(); // key: typeId
+	// exclude 随时可配置；已存在的统计条目要等空闲回收才会消失，并发读写安全
+	private final Set<Object> excludeRunKeys = ConcurrentHashMap.newKeySet(); // value: Class or others
+	private final LongConcurrentHashMap<Boolean> excludeProtocolTypeIds = new LongConcurrentHashMap<>(); // key: typeId
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
 	private @NotNull String lastLog = "";
 	private long lastLogTime = System.currentTimeMillis();
@@ -362,7 +363,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private @Nullable ScheduledFuture<?> scheduleFuture;
 	private final LongCounter transactionRedoCounter = allocCounter("Transaction.Redo");
 	private final LongCounter transactionRedoAndReleaseLockCounter = allocCounter("Transaction.RedoAndReleaseLock");
-	private volatile boolean inited;
 
 	public static @NotNull PerfCounter instance() {
 		return Objects.requireNonNull((PerfCounter)ZezeCounter.instance);
@@ -420,45 +420,22 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 	}
 
-	// 只能在启动统计前调用
+	/** 随时可调用。 */
 	public boolean addExcludeRunKey(@NotNull String key) {
-		lock();
-		try {
-			if (inited)
-				throw new IllegalStateException("already inited");
-			return excludeRunKeys.add(key);
-		} finally {
-			unlock();
-		}
+		return excludeRunKeys.add(key);
 	}
 
-	// 只能在启动统计前调用
+	/** 随时可调用。 */
 	public boolean addExcludeRunKey(@NotNull Class<?> cls) {
-		lock();
-		try {
-			if (inited)
-				throw new IllegalStateException("already inited");
-			return excludeRunKeys.add(cls);
-		} finally {
-			unlock();
-		}
+		return excludeRunKeys.add(cls);
 	}
 
-	// 只能在启动统计前调用
+	/** 随时可调用。 */
 	public boolean addExcludeProtocolTypeId(long typeId) {
-		lock();
-		try {
-			if (inited)
-				throw new IllegalStateException("already inited");
-			return excludeProtocolTypeIds.add(typeId);
-		} finally {
-			unlock();
-		}
+		return excludeProtocolTypeIds.putIfAbsent(typeId, Boolean.TRUE) == null;
 	}
 
 	private @Nullable RunInfoWithSerial getRunInfoWithSerial(@NotNull Object key) {
-		if (!inited)
-			throw new IllegalStateException("not inited");
 		if (excludeRunKeys.contains(key))
 			return null;
 		for (; ; ) {
@@ -529,9 +506,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public void addRecvSizeTime(long typeId, @Nullable Class<?> cls, int size, long timeNs) {
-		if (!inited)
-			throw new IllegalStateException("not inited");
-		if (excludeProtocolTypeIds.contains(typeId))
+		if (excludeProtocolTypeIds.containsKey(typeId))
 			return;
 		for (; ; ) {
 			var pi = protocolInfoMap.get(typeId);
@@ -549,9 +524,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public void addSendSize(long typeId, int size) {
-		if (!inited)
-			throw new IllegalStateException("not inited");
-		if (!excludeProtocolTypeIds.contains(typeId)) {
+		if (!excludeProtocolTypeIds.containsKey(typeId)) {
 			for (; ; ) {
 				var pi = protocolInfoMap.get(typeId);
 				if (pi != null) {
@@ -614,7 +587,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	public @NotNull ScheduledFuture<?> tryStartScheduledLog() {
 		lock();
 		try {
-			inited = true;
 			var f = scheduleFuture;
 			if (f == null || f.isCancelled()) {
 				var periodMs = Math.max(PERF_PERIOD, 1) * 1000L;

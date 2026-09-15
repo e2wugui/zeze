@@ -215,10 +215,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 						return handler != null ? handler.handle(p3) : Procedure.NotImplement;
 					}, null, factoryHandle.Level), outProtocol, session::tryRespondErrorNow).call();
-				if (ZezeCounter.instance != null) {
-					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
+				ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
 						Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
-				}
 				return r;
 			}
 
@@ -248,10 +246,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 				return handler != null ? handler.handle(p3) : Procedure.NotImplement;
 			}, p3, session::tryRespondErrorNow).call();
-			if (ZezeCounter.instance != null) {
-				ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
+			ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
 					Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
-			}
 			return r;
 		} catch (Exception ex) {
 			var desc = "ProcessDispatch(" + (p2 != null ? p2.getClass().getName() : typeId) + ") exception:";

@@ -310,10 +310,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 						AsyncSocket.log("RECV", so.getSessionId(), moduleId, protocolId, bb);
 					service.dispatchUnknownProtocol(so, moduleId, protocolId, bb);
 				}
-				if (ZezeCounter.instance != null) {
-					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle != null ? factoryHandle.Class : null,
+				ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle != null ? factoryHandle.Class : null,
 							HEADER_SIZE + size, System.nanoTime() - timeBegin);
-				}
 			}
 			bb.ReadIndex = endReadIndex;
 			bb.WriteIndex = savedWriteIndex;

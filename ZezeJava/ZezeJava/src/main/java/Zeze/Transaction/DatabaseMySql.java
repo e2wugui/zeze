@@ -39,15 +39,12 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		return msg != null && msg.contains(token);
 	}
 
-	private static final @Nullable ZezeCounter.LabeledObserverCreator mysqlObserverCreator
-			= ZezeCounter.instance != null ? ZezeCounter.instance.allocRunTimeObserverCreator("mysql_operation", "operation") : null;
+	private static final ZezeCounter.LabeledObserverCreator mysqlObserverCreator
+			= ZezeCounter.instance.allocRunTimeObserverCreator("mysql_operation", "operation");
 
-	private static final @Nullable ZezeCounter.LongObserver mysqlSelectCounter
-			= mysqlObserverCreator != null ? mysqlObserverCreator.labelValues("select") : null;
-	private static final @Nullable ZezeCounter.LongObserver mysqlDeleteCounter
-			= mysqlObserverCreator != null ? mysqlObserverCreator.labelValues("delete") : null;
-	private static final @Nullable ZezeCounter.LongObserver mysqlReplaceCounter
-			= mysqlObserverCreator != null ? mysqlObserverCreator.labelValues("replace") : null;
+	private static final ZezeCounter.LongObserver mysqlSelectCounter = mysqlObserverCreator.labelValues("select");
+	private static final ZezeCounter.LongObserver mysqlDeleteCounter = mysqlObserverCreator.labelValues("delete");
+	private static final ZezeCounter.LongObserver mysqlReplaceCounter = mysqlObserverCreator.labelValues("replace");
 	private static final Pattern SPLIT_PATTERN = Pattern.compile(", ");
 
 	// 关系映射表 string key 列建表即固定为 VARCHAR(256)（DatabaseRelationalMapping.getKeyStringType）。
@@ -748,8 +745,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (mysqlSelectCounter != null)
-					mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
+				mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -771,8 +767,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (mysqlSelectCounter != null)
-					mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
+				mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -798,8 +793,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (mysqlReplaceCounter != null)
-					mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
+				mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -817,8 +811,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (mysqlDeleteCounter != null)
-					mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
+				mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1244,8 +1237,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (mysqlSelectCounter != null)
-					mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
+				mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 			return v != null ? ByteBuffer.Wrap(v) : null;
 		}
@@ -1264,8 +1256,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (mysqlDeleteCounter != null)
-					mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
+				mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1285,8 +1276,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (mysqlReplaceCounter != null)
-					mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
+				mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1462,8 +1452,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		} catch (SQLException e) {
 			throw Task.forceThrow(e);
 		} finally {
-			if (mysqlSelectCounter != null)
-				mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
+			mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 		}
 	}
 }

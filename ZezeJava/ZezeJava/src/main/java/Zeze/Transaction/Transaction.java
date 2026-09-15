@@ -457,12 +457,10 @@ public final class Transaction {
 
 					if (checkResult == CheckResult.RedoAndReleaseLock) {
 						// logger.debug("checkResult.RedoAndReleaseLock({}): break", procedure);
-						if (ZezeCounter.instance != null)
-							ZezeCounter.instance.procedureRedoAndReleaseLock(procedure.getActionName());
+						ZezeCounter.instance.procedureRedoAndReleaseLock(procedure.getActionName());
 						break;
 					}
-					if (ZezeCounter.instance != null)
-						ZezeCounter.instance.procedureRedo(procedure.getActionName());
+					ZezeCounter.instance.procedureRedo(procedure.getActionName());
 				}
 				// 实现Fresh队列以后删除Sleep。
 				try {
@@ -825,8 +823,7 @@ public final class Transaction {
 					break;
 				case Redo:
 					conflict = true;
-					if (ZezeCounter.instance != null)
-						ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
+					ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
 					break; // continue lock
 				default:
 					return r;
@@ -847,8 +844,7 @@ public final class Transaction {
 					break;
 				case Redo:
 					conflict = true;
-					if (ZezeCounter.instance != null)
-						ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
+					ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
 					break; // continue lock
 				default:
 					return r;
@@ -881,8 +877,7 @@ public final class Transaction {
 				case Redo:
 					// Impossible!
 					conflict = true;
-					if (ZezeCounter.instance != null)
-						ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
+					ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
 					break; // continue lock
 				default:
 					// _check_可能需要到Global提升状态，这里可能发生GLOBAL-DEAD-LOCK。
@@ -931,8 +926,7 @@ public final class Transaction {
 
 	@Contract("_, _, _ -> fail")
 	public void throwRedoAndReleaseLock(int tableId, @NotNull String msg, @Nullable Throwable cause) {
-		if (ZezeCounter.instance != null)
-			ZezeCounter.instance.getOrAddTableInfo(tableId).redo().increment();
+		ZezeCounter.instance.getOrAddTableInfo(tableId).redo().increment();
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state + ", msg: " + msg, cause);
 		state = TransactionState.RedoAndReleaseLock;
@@ -941,8 +935,7 @@ public final class Transaction {
 
 	@Contract("_, _ -> fail")
 	public void throwRedo(int tableId, @NotNull String msg) {
-		if (ZezeCounter.instance != null)
-			ZezeCounter.instance.getOrAddTableInfo(tableId).redo().increment();
+		ZezeCounter.instance.getOrAddTableInfo(tableId).redo().increment();
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("Redo: State Is Not Running: " + state);
 		state = TransactionState.Redo;

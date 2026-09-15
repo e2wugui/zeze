@@ -269,9 +269,7 @@ public class Service extends ReentrantLock {
 		keepAliveCheckStopped = false;
 		tryStartKeepAliveCheckTimer();
 		config.start();
-		if (ZezeCounter.instance != null) {
-			ZezeCounter.instance.serviceStart(this);
-		}
+		ZezeCounter.instance.serviceStart(this);
 	}
 
 	public void Start() throws Exception {
@@ -300,9 +298,7 @@ public class Service extends ReentrantLock {
 			}
 			keepAliveCheckStopped = true; // 熔断tryStartKeepAliveCheckTimer的挂起重试
 
-			if (ZezeCounter.instance != null) {
-				ZezeCounter.instance.serviceStop(this);
-			}
+			ZezeCounter.instance.serviceStop(this);
 		} finally {
 			unlock();
 		}

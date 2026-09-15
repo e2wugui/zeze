@@ -39,15 +39,12 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		return msg != null && msg.contains(token);
 	}
 
-	private static final @Nullable ZezeCounter.LabeledObserverCreator postgreObserverCreator
-			= ZezeCounter.instance != null ? ZezeCounter.instance.allocRunTimeObserverCreator("postgre_operation", "operation") : null;
+	private static final ZezeCounter.LabeledObserverCreator postgreObserverCreator
+			= ZezeCounter.instance.allocRunTimeObserverCreator("postgre_operation", "operation");
 
-	private static final @Nullable ZezeCounter.LongObserver postgreSelectCounter
-			= postgreObserverCreator != null ? postgreObserverCreator.labelValues("select") : null;
-	private static final @Nullable ZezeCounter.LongObserver postgreDeleteCounter
-			= postgreObserverCreator != null ? postgreObserverCreator.labelValues("delete") : null;
-	private static final @Nullable ZezeCounter.LongObserver postgreReplaceCounter
-			= postgreObserverCreator != null ? postgreObserverCreator.labelValues("replace") : null;
+	private static final ZezeCounter.LongObserver postgreSelectCounter = postgreObserverCreator.labelValues("select");
+	private static final ZezeCounter.LongObserver postgreDeleteCounter = postgreObserverCreator.labelValues("delete");
+	private static final ZezeCounter.LongObserver postgreReplaceCounter = postgreObserverCreator.labelValues("replace");
 	private static final @NotNull Pattern PATTERN_COMMA = Pattern.compile(", ");
 
 	public DatabasePostgreSQL(@Nullable Application zeze, @NotNull DatabaseConf conf) {
@@ -800,8 +797,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (postgreSelectCounter != null)
-					postgreSelectCounter.observe(System.nanoTime() - timeBegin);
+				postgreSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -823,8 +819,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (postgreSelectCounter != null)
-					postgreSelectCounter.observe(System.nanoTime() - timeBegin);
+				postgreSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -867,8 +862,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (postgreReplaceCounter != null)
-					postgreReplaceCounter.observe(System.nanoTime() - timeBegin);
+				postgreReplaceCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -886,8 +880,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (postgreDeleteCounter != null)
-					postgreDeleteCounter.observe(System.nanoTime() - timeBegin);
+				postgreDeleteCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1313,8 +1306,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (postgreSelectCounter != null)
-					postgreSelectCounter.observe(System.nanoTime() - timeBegin);
+				postgreSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 			return v != null ? ByteBuffer.Wrap(v) : null;
 		}
@@ -1333,8 +1325,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (postgreDeleteCounter != null)
-					postgreDeleteCounter.observe(System.nanoTime() - timeBegin);
+				postgreDeleteCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1354,8 +1345,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (postgreReplaceCounter != null)
-					postgreReplaceCounter.observe(System.nanoTime() - timeBegin);
+				postgreReplaceCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1531,8 +1521,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		} catch (SQLException e) {
 			throw Task.forceThrow(e);
 		} finally {
-			if (postgreSelectCounter != null)
-				postgreSelectCounter.observe(System.nanoTime() - timeBegin);
+			postgreSelectCounter.observe(System.nanoTime() - timeBegin);
 		}
 	}
 }

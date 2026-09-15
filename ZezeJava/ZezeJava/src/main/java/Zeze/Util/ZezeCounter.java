@@ -13,14 +13,16 @@ import org.jetbrains.annotations.Nullable;
 public interface ZezeCounter {
 	@NotNull Logger logger = LogManager.getLogger("StatLog");
 
-	@Nullable ZezeCounter instance = createInstance();
+	/** 禁用统计（-DZezeCounter为空或"null"）时落入的空实现，所有方法无操作。 */
+	@NotNull ZezeCounter instance = createInstance();
 
-	boolean ENABLE = instance != null;
+	/** 真实实现存在（instance不是NoopCounter）时为true，用于省略热路径上的nanoTime等采样开销。 */
+	boolean ENABLE = !(instance instanceof NoopCounter);
 
-	private static @Nullable ZezeCounter createInstance() {
+	private static @NotNull ZezeCounter createInstance() {
 		var className = System.getProperty("ZezeCounter", "Zeze.Util.PerfCounter");
 		if (className.isBlank() || className.equalsIgnoreCase("null"))
-			return null;
+			return NoopCounter.instance;
 		try {
 			return (ZezeCounter)Class.forName(className).getConstructor((Class<?>[])null).newInstance((Object[])null);
 		} catch (ReflectiveOperationException e) {
