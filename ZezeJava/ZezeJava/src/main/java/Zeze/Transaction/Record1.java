@@ -82,6 +82,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		var v = (V)getSoftValue();
 		if (v == null && !getDirty()) {
 			v = table.getLocalRocksCacheTable().find(table, key);
+			if (v == null)
+				v = table.storageFallbackAfterMirrorMiss(key); // FND6-01：镜像 miss 回退后台库并自愈
 			if (v != null) {
 				v.initRootInfo(createRootInfoIfNeed(new TableKey(table.getId(), key)), null);
 				setSoftValue(v);

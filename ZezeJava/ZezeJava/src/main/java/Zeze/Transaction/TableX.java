@@ -162,6 +162,24 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
+	/**
+	 * FND6-01：镜像不变式（镜像 ⊇ 干净缓存值）被打破（rocksCachePut 写失败被吞、镜像库损坏）后，
+	 * softValue 被 GC 的干净记录唯一恢复源只剩后台库——镜像 miss 不回退会把存量记录读成
+	 * "不存在"，续写覆盖丢数据。穿透读后台库一次并自愈镜像（回写 rocksCachePut）。
+	 * 干净 ⇒ flush 已写后台库（Record1.flush 同事务维护两侧），读必命中；真删除/不存在返回 null
+	 * 与原行为一致。内存表（storage==null）无后台库可回退，返回 null 维持仅镜像。
+	 */
+	final @Nullable V storageFallbackAfterMirrorMiss(@NotNull K key) {
+		var storage = this.storage;
+		if (storage == null)
+			return null;
+		ZezeCounter.instance.tableCounter(getId(), ZezeCounter.TableMetric.STORAGE_GET).increment();
+		var v = storage.getDatabaseTable().find(this, key);
+		if (v != null)
+			rocksCachePut(key, v);
+		return v;
+	}
+
 	public @Nullable Supplier<ArrayList<TableX<K, V>>> getSimulateTables; // only for temp debug
 
 	private void verifyGlobalRecordState(@NotNull K key, boolean isModify) { // only for temp debug
@@ -206,6 +224,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							strongRef = find;
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 							r.setSoftValue(strongRef);
+						} else {
+							strongRef = storageFallbackAfterMirrorMiss(key);
+							if (strongRef != null) {
+								strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
+								r.setSoftValue(strongRef);
+							}
 						}
 					}
 					if (storage != null)
