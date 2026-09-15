@@ -92,7 +92,7 @@ public class TestHttpServerCleanup {
 	}
 
 	// 触发变体:畸形uri的百分号编码。HttpRequestDecoder不校验"%zz",HttpExchange.channelRead里
-	// path()->urlDecode抛IllegalArgumentException,异常走exceptionCaught(回500并关连接)。
+	// path()->pathDecode抛IllegalArgumentException,异常走exceptionCaught(回500并关连接)。
 	// 此时exchange已put进exchanges,永远等不到正常的close(),必须被主动清理并释放retain的request。
 	// 重复多次让泄漏的累积效果可见:修复前每个连接泄漏一个exchange,exchanges无限增长。
 	@Test

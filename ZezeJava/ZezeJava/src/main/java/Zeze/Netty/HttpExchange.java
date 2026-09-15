@@ -9,6 +9,7 @@ import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -317,8 +318,10 @@ public class HttpExchange {
 	}
 
 	// FND6-18：RFC 3986中'+'仅在query的form编码里代表空格，path段是普通字面量。
-	// path解码仅处理百分号编码、'+'保真：%XX连续段按charset解码（与URLDecoder同语义），
-	// 畸形/不完整的%序列保持抛IllegalArgumentException（与URLDecoder一致，异常路径
+	// path解码仅处理百分号编码、'+'保真：%XX连续段按charset解码；十六进制严格限定ASCII
+	// ——HexFormat.fromHexDigit（JDK17+，非法抛NumberFormatException转报IAE），不用
+	// Character.digit(char,16)（会额外接受Unicode Nd数字如'٢'，比URLDecoder语义更宽）。
+	// 畸形/不完整的%序列保持抛IllegalArgumentException（消息沿用URLDecoder风格，异常路径
 	// 500+关连接的既有契约不变，FND-N2-1回归依赖）；不含'+'的路径行为与原实现一致。
 	private static @NotNull String pathDecode(@NotNull String s) {
 		if (s.indexOf('%') < 0)
@@ -331,10 +334,13 @@ public class HttpExchange {
 			if (c == '%') {
 				if (i + 2 >= n)
 					throw new IllegalArgumentException("Incomplete trailing escape (%) pattern: " + s);
-				int hi = Character.digit(s.charAt(i + 1), 16);
-				int lo = Character.digit(s.charAt(i + 2), 16);
-				if (hi < 0 || lo < 0)
+				int hi, lo;
+				try {
+					hi = HexFormat.fromHexDigit(s.charAt(i + 1));
+					lo = HexFormat.fromHexDigit(s.charAt(i + 2));
+				} catch (NumberFormatException e) {
 					throw new IllegalArgumentException("Illegal hexadecimal characters in escape (%) pattern: " + s);
+				}
 				bytes[k++] = (byte)((hi << 4) | lo);
 				i += 3;
 				continue;
