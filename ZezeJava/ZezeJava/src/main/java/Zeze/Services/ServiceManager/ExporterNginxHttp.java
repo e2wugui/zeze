@@ -57,6 +57,12 @@ public class ExporterNginxHttp implements IExporter {
 				.POST(HttpRequest.BodyPublishers.ofString(post, StandardCharsets.UTF_8)).build(), h -> {
 			logger.info("HttpResponse: code={}", h.statusCode());
 			return HttpResponse.BodySubscribers.discarding();
+		}).whenComplete((unused, e) -> {
+			// FND6-27：传输失败（连接拒绝/超时/DNS失败）时future异常完成且无人观察——更新
+			// 静默丢失连错误日志都没有，与ExporterNginxConfig（异常上抛被triggerOnChanged记录）
+			// 不一致。补观测，不改变发送时机与内容。
+			if (e != null)
+				logger.error("HttpRequest fail: url={}", url + serviceName, e);
 		});
 	}
 }
