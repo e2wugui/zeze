@@ -89,6 +89,17 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		table.remove(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
 	}
 
+	/**
+	 * 记录级回滚支持：丢弃该键在LRU中的缓存值。
+	 * apply的写路径先更新LRU后写存储（put/remove均如此，Edit失败前也可能已把
+	 * get加载的bean原地改了一半），记录级事务回滚只撤销存储侧的未提交写入，
+	 * LRU中残留的脏值必须同步失效——否则重试同条记录时get命中脏缓存，
+	 * 相当于对已回滚的entry二次应用（非幂等日志会叠加出重复元素）。
+	 */
+	public void invalidate(@NotNull BTableKey tableKey) {
+		lru.remove(originTable.decodeKey(ByteBuffer.Wrap(tableKey.getKeyEncoded())));
+	}
+
 	public static String diff(String strA, String strB, String skipIfContains) {
 		var a = diffPat.split(strA);
 		var b = diffPat.split(strB);

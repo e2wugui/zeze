@@ -8,12 +8,18 @@ import Zeze.Transaction.Database;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ApplyDatabaseZeze implements IApplyDatabase {
+	private static final Logger logger = LogManager.getLogger(ApplyDatabaseZeze.class);
+
 	private final Database dbForApply;
 	private final ConcurrentHashMap<String, ApplyTableZeze> tables = new ConcurrentHashMap<>();
+	// 当前打开的记录级事务。apply在ApplyHelper锁内单线程驱动，同一时刻至多一个。
+	private IApplyRecordTxn activeRecordTxn;
 
 	public ApplyDatabaseZeze(@NotNull Application zeze, @NotNull String applyDbName) {
 		if (applyDbName.isBlank())
@@ -24,6 +30,87 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 	@Override
 	public @NotNull IApplyTable open(@NotNull String tableName) {
 		return tables.computeIfAbsent(tableName, (key) -> new ApplyTableZeze(tableName));
+	}
+
+	@Override
+	public @NotNull IApplyRecordTxn beginRecordTxn() {
+		if (activeRecordTxn != null)
+			throw new IllegalStateException("record txn already begun."); // 防御：apply单线程，不应嵌套/泄漏
+		var txn = new RecordTxn();
+		activeRecordTxn = txn;
+		return txn;
+	}
+
+	/**
+	 * 记录级事务（Zeze实现）：put/remove本就是每次独立开事务逐条提交（见ApplyTableZeze），
+	 * 并非天然原子——第i个entry失败时前i-1个entry已各自提交落库。故记录级事务期间
+	 * 全部写入共用同一个底层Database.Transaction，由commit统一提交，实现“单条tHistory
+	 * 记录=原子单元”；任一entry异常rollback整个底层事务，前缀entry的写入一并撤销。
+	 */
+	private class RecordTxn implements IApplyRecordTxn {
+		private final Database.Transaction dbTxn = dbForApply.beginTransaction();
+		private boolean finished;
+
+		@Override
+		public void put(@NotNull String tableName, @NotNull Binary key, @NotNull Binary value) throws Exception {
+			tables.computeIfAbsent(tableName, ApplyTableZeze::new).storage
+					.replace(dbTxn, ByteBuffer.Wrap(key), ByteBuffer.Wrap(value));
+		}
+
+		@Override
+		public void remove(@NotNull String tableName, @NotNull Binary key) throws Exception {
+			tables.computeIfAbsent(tableName, ApplyTableZeze::new).storage
+					.remove(dbTxn, ByteBuffer.Wrap(key));
+		}
+
+		@Override
+		public void commit() throws Exception {
+			if (finished)
+				return;
+			try {
+				dbTxn.commit();
+			} catch (Exception ex) {
+				dbTxn.rollback();
+				throw Task.forceThrow(ex);
+			} finally {
+				// commit成败都结束本事务；close失败按原样传播（此时无待保护的原始异常）
+				dbTxn.close();
+				finish();
+			}
+		}
+
+		@Override
+		public void rollback() {
+			if (finished)
+				return;
+			try {
+				dbTxn.rollback();
+			} finally {
+				closeQuietly();
+				finish();
+			}
+		}
+
+		@Override
+		public void close() {
+			rollback(); // 幂等：未commit则按回滚收尾
+		}
+
+		// 回滚路径中的dbTxn.close()不能抛出（会掩盖正在传播的原始apply异常），失败仅记录；
+		// 事务此时已回滚，关闭失败的后果限于底层资源清理。
+		private void closeQuietly() {
+			try {
+				dbTxn.close();
+			} catch (Exception e) {
+				logger.warn("record txn close failed after rollback", e);
+			}
+		}
+
+		private void finish() {
+			finished = true;
+			if (activeRecordTxn == this)
+				activeRecordTxn = null;
+		}
 	}
 
 	public class ApplyTableZeze implements IApplyTable {
@@ -57,6 +144,13 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 
 		@Override
 		public void put(byte @NotNull [] key, int keyOffset, int keyLength, byte @NotNull [] value, int valueOffset, int valueLength) throws Exception {
+			var recordTxn = activeRecordTxn;
+			if (recordTxn != null) {
+				// 记录级事务内：写入共享底层事务，由RecordTxn.commit统一提交，保证单条记录原子
+				recordTxn.put(tableName, new Binary(key, keyOffset, keyLength),
+						new Binary(value, valueOffset, valueLength));
+				return;
+			}
 			var txn = dbForApply.beginTransaction();
 			try {
 				storage.replace(txn, ByteBuffer.Wrap(key, keyOffset, keyLength), ByteBuffer.Wrap(value, valueOffset, valueLength));
@@ -71,6 +165,12 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 
 		@Override
 		public void remove(byte @NotNull [] key, int offset, int length) throws Exception {
+			var recordTxn = activeRecordTxn;
+			if (recordTxn != null) {
+				// 记录级事务内：写入共享底层事务，由RecordTxn.rollback可整体撤销
+				recordTxn.remove(tableName, new Binary(key, offset, length));
+				return;
+			}
 			var txn = dbForApply.beginTransaction();
 			try {
 				storage.remove(txn, ByteBuffer.Wrap(key, offset, length));
