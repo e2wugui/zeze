@@ -431,7 +431,9 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		float[] buf = buffer;
 		float[] data = fl.buffer;
 		for (int i = 0; i < n; i++) {
-			if (buf[i] != data[i])
+			// Float.compare与compareTo对齐（FND6-04）：原生!=下双方均NaN时判不等，与compareTo
+			// （compare==0）及JDK Float.equals（floatToIntBits）相反，equals/compareTo矛盾。
+			if (Float.compare(buf[i], data[i]) != 0)
 				return false;
 		}
 		return true;
@@ -448,7 +450,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		float[] buf = buffer;
 		float[] data = fl.buffer;
 		for (int i = 0; i < n; i++) {
-			if (buf[i] != data[i])
+			if (Float.compare(buf[i], data[i]) != 0) // 同上，FND6-04
 				return false;
 		}
 		return true;
