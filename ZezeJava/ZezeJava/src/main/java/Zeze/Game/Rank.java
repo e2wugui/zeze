@@ -154,6 +154,14 @@ public class Rank extends AbstractRank {
 
 	public static BConcurrentKey newRankKey(long time, int rankType, int timeType, long customizeId) {
 		var c = Calendar.getInstance();
+		// 固定周定义，消除 locale 敏感：JVM 默认 locale 决定 firstDayOfWeek/minimalDaysInFirstWeek，
+		// zh_CN（周一为一周之始）与 en_US（周日为一周之始）对同一毫秒会算出不同的周键——多服务器
+		// locale 不一致、迁移或改默认 locale 时，同一真实周被劈成两键。显式钉死为周一/最少1天，
+		// 与 zh_CN 生产行为一致，改 locale 不再变键。JDK 语义：这两个参数同时决定 WEEK_OF_YEAR 与
+		// getWeekYear() 的周计数（两者由同一套周定义导出，钉死后配套一致，不会出现年与周错配）。
+		// 时区仍取服务器默认：多时区部署需统一各服务器时区（如实说明，此处不引入时区配置项）。
+		c.setFirstDayOfWeek(Calendar.MONDAY);
+		c.setMinimalDaysInFirstWeek(1);
 		c.setTimeInMillis(time);
 		var year = c.get(Calendar.YEAR); // 后面根据TimeType可能覆盖这个值。
 		long offset = switch (timeType) {
@@ -171,7 +179,13 @@ public class Rank extends AbstractRank {
 				year = c.getWeekYear();
 				yield c.get(Calendar.WEEK_OF_YEAR);
 			}
-			case BConcurrentKey.TimeTypeSeason -> getSimpleChineseSeason(c);
+			case BConcurrentKey.TimeTypeSeason -> {
+				// 冬季(12/1/2月)锚定次年，一冬一键：季4横跨年界，格里年把同一冬劈成(2025,4)/(2026,4)
+				// 两键，且(2026,4)又把2026年1-2月与2026年12月两个不同冬季并进同键。
+				if (c.get(Calendar.MONTH) == Calendar.DECEMBER)
+					year = year + 1;
+				yield getSimpleChineseSeason(c);
+			}
 			case BConcurrentKey.TimeTypeYear -> 0;
 			case BConcurrentKey.TimeTypeCustomize -> {
 				year = 0;
@@ -185,12 +199,16 @@ public class Rank extends AbstractRank {
 
 	public static int getSimpleChineseSeason(Calendar c) {
 		//@formatter:off
+		// Calendar.MONTH 为 0 基（0=1月..11=12月）。原阈值 3/6/9/12 是按 1 基月份书写的，
+		// 整体右移了一个月：12月得季3(秋)、3月得季4(冬)——newRankKey 的 TimeTypeSeason 分支
+		// 「冬季锚定次年」随之失效（12月得(次年,3)，与该年10/11月秋季同键；3月又与1/2月冬季
+		// 同键）。按注释意图修正为 0 基阈值：1/2月冬4、3-5月春1、6-8月夏2、9-11月秋3、12月冬4。
 		var month = c.get(Calendar.MONTH);
-		if (month < 3) return 4; // 12,1,2
-		if (month < 6) return 1; // 3,4,5
-		if (month < 9) return 2; // 6,7,8
-		if (month < 12) return 3; // 9,10,11
-		return 4; // 12,1,2
+		if (month < 2) return 4; // 1,2月（冬）
+		if (month < 5) return 1; // 3,4,5月（春）
+		if (month < 8) return 2; // 6,7,8月（夏）
+		if (month < 11) return 3; // 9,10,11月（秋）
+		return 4; // 12月（冬）
 		//@formatter:on
 	}
 

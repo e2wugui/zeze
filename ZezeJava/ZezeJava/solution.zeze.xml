@@ -785,8 +785,8 @@
 				<beankey name="BConcurrentKey">
 					<enum name="TimeTypeTotal"     value="0"/> 所有时间
 					<enum name="TimeTypeDay"       value="1"/> 每天：Year为当前时间的年份，Offset为天
-					<enum name="TimeTypeWeek"      value="2"/> 每周：Year为当前时间的年份，Offset为周
-					<enum name="TimeTypeSeason"    value="3"/> 每季：Year为当前时间的年份，Offset为季
+					<enum name="TimeTypeWeek"      value="2"/> 每周：Year为基于周的年（getWeekYear，周一为一周之始），Offset为周
+					<enum name="TimeTypeSeason"    value="3"/> 每季：Year为当前时间的年份（冬季(12/1/2月)锚定次年），Offset为季
 					<enum name="TimeTypeYear"      value="4"/> 每年：Year为当前时间的年份，Offset为0
 					<enum name="TimeTypeCustomize" value="5"/> 自定义：此时Offset是自定义Id，Year为0
 

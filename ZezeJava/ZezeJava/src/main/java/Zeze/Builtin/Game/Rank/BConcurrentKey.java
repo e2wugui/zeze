@@ -8,8 +8,8 @@ import Zeze.Serialize.IByteBuffer;
 public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparable<BConcurrentKey> {
     public static final int TimeTypeTotal = 0; // 所有时间
     public static final int TimeTypeDay = 1; // 每天：Year为当前时间的年份，Offset为天
-    public static final int TimeTypeWeek = 2; // 每周：Year为当前时间的年份，Offset为周
-    public static final int TimeTypeSeason = 3; // 每季：Year为当前时间的年份，Offset为季
+    public static final int TimeTypeWeek = 2; // 每周：Year为基于周的年（getWeekYear，周一为一周之始），Offset为周
+    public static final int TimeTypeSeason = 3; // 每季：Year为当前时间的年份（冬季(12/1/2月)锚定次年），Offset为季
     public static final int TimeTypeYear = 4; // 每年：Year为当前时间的年份，Offset为0
     public static final int TimeTypeCustomize = 5; // 自定义：此时Offset是自定义Id，Year为0
 
