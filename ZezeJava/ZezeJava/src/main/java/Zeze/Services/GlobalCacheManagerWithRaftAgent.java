@@ -331,8 +331,17 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			} finally {
 				unlock();
 			}
-			if (loginTimes.get() > 0)
-				raftClient.sendForWait(new NormalClose()).await(10 * 1000); // 10s
+			if (loginTimes.get() > 0) {
+				try {
+					raftClient.sendForWait(new NormalClose()).await(10 * 1000); // 10s
+				} catch (Exception e) {
+					// FND6-25：GCM端ProcessNormalClose在应答前逐key release（可阻塞等待reduce，
+					// 键多或争用时轻易超10s）或直接超时——future异常完成后await对CompletionException
+					// 重抛。原样上抛会跳过raftClient.stop()，且stop()的agent循环在第一个异常处中止，
+					// 后续agent全部不关闭。停机尽力语义：记日志继续。
+					logger.error("NormalClose await fail", e);
+				}
+			}
 			raftClient.stop();
 		}
 
