@@ -30,7 +30,6 @@ import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.OutObject;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
@@ -92,7 +91,7 @@ public class Service extends ReentrantLock {
 	// stop熔断。同时保留TcpSocket构造的兜底启动：BinLoggerAgent(host,port)/Token/GlobalAgent/
 	// OnzServer等手工connector路径不经过Service.start()，仍依赖懒启动。
 	private volatile boolean keepAliveCheckStopped;
-	private @Nullable PerfCounter.ServiceInfo servicePerf;
+	private @Nullable ServiceStatisticLog servicePerf;
 
 	public @NotNull String getInstanceName() {
 		return instanceName;
@@ -848,7 +847,7 @@ public class Service extends ReentrantLock {
 		lock();
 		try {
 			if (servicePerf == null)
-				servicePerf = new PerfCounter.ServiceInfo(this);
+				servicePerf = new ServiceStatisticLog(this);
 			return servicePerf.startStatisticLog(periodSec);
 		} finally {
 			unlock();

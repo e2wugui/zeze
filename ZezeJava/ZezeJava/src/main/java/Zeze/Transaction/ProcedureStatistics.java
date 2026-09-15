@@ -1,6 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.Util.PerfCounter;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.TimerFuture;
 import Zeze.Util.ZezeCounter;
@@ -33,12 +32,10 @@ public final class ProcedureStatistics {
 
 		static long getTotalCount(@NotNull String procedureName) {
 			long total = 0;
-			if (ZezeCounter.instance instanceof PerfCounter) {
-				var pInfo = ((PerfCounter)ZezeCounter.instance).getProcedureInfo(procedureName);
-				if (pInfo != null) {
-					for (var v : pInfo.getResultMapLast())
-						total += v.sum();
-				}
+			var results = ZezeCounter.instance.getLast().procedureResults().get(procedureName);
+			if (results != null) {
+				for (var v : results.values())
+					total += v;
 			}
 			return total;
 		}

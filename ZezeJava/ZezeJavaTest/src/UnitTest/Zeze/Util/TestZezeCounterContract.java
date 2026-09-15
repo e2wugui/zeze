@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Util;
 
 import harness.Fast;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Util.NoopCounter;
 import Zeze.Util.PerfCounter;
@@ -76,6 +77,17 @@ public class TestZezeCounterContract {
 		Assertions.assertTrue(log.contains("ContractRunKey"), "run observer");
 		Assertions.assertTrue(log.contains("[table: 1]"), "table section");
 		Assertions.assertTrue(log.contains(counterName + ": 42"), "count value 1+41");
+
+		// Snapshot：收集即发布，结构化数据与formattedLog一致
+		var snap = c.getLast();
+		Assertions.assertEquals(Map.of(0L, 1L, 1L, 1L), snap.procedureResults().get("ContractProc"));
+		Assertions.assertEquals(1L, snap.tableResults().get("4660").get("cacheGet"), "0x1234=4660");
+		Assertions.assertFalse(snap.formattedLog().isEmpty());
+
+		// 空窗口：条目保留（供名称列表），计数清零
+		var empty = c.collectAndReset();
+		Assertions.assertTrue(empty.procedureResults().get("ContractProc").isEmpty());
+		Assertions.assertNotNull(empty.tableResults().get("4660"));
 	}
 
 	@Test
@@ -95,6 +107,8 @@ public class TestZezeCounterContract {
 	@Test
 	public void testNoopCounterContract() {
 		runContract(NoopCounter.instance); // 全部无操作、不抛异常即通过
+		Assertions.assertSame(ZezeCounter.Snapshot.EMPTY, NoopCounter.instance.collectAndReset());
+		Assertions.assertSame(ZezeCounter.Snapshot.EMPTY, NoopCounter.instance.getLast());
 	}
 
 	@Test

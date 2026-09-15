@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Map;
+
 import Zeze.Net.Service;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -140,9 +142,42 @@ public interface ZezeCounter {
 	void procedureRedoAndReleaseLock(@NotNull String name);
 
 	/**
+	 * 事务持有锁数量观察（达到ProcedureLockWatcherMin阈值时调用）
+	 */
+	default void procedureManyLocks(@NotNull String name, int count) {
+	}
+
+	/**
 	 * 根据表ID获取其绑定的表统计器
 	 */
 	@NotNull TableCounter getOrAddTableInfo(long tableId);
+
+	/**
+	 * 统计快照（不可变值对象）。不支持周期快照的实现返回空快照。
+	 *
+	 * @param procedureResults procedureName -&gt; resultCode -&gt; 最近周期计数（含零计数条目）
+	 * @param tableResults     tableName -&gt; 度量名 -&gt; 最近周期计数
+	 * @param formattedLog     最近一次格式化日志
+	 */
+	record Snapshot(@NotNull Map<String, @NotNull Map<Long, Long>> procedureResults,
+					@NotNull Map<String, @NotNull Map<String, Long>> tableResults,
+					@NotNull String formattedLog) {
+		public static final @NotNull Snapshot EMPTY = new Snapshot(Map.of(), Map.of(), "");
+	}
+
+	/**
+	 * 收集并重置统计，返回快照。仅PerfCounter等日志型实现支持；拉模型实现（Prometheus）返回空快照。
+	 */
+	default @NotNull Snapshot collectAndReset() {
+		return Snapshot.EMPTY;
+	}
+
+	/**
+	 * 最近一次发布的快照（不收集不重置）；从未收集过返回空快照。
+	 */
+	default @NotNull Snapshot getLast() {
+		return Snapshot.EMPTY;
+	}
 
 	/**
 	 * 根据协议类(可选)及其类型ID,增加其绑定的大小(字节)累加器和处理时间(纳秒)累加器

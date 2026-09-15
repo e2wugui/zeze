@@ -401,6 +401,7 @@ public class PrometheusCounter implements ZezeCounter {
 		procedure_redo_and_release_lock.labelValues(name).inc();
 	}
 
+	@Override
 	public void procedureManyLocks(@NotNull String name, int count) {
 		procedure_many_locks.labelValues(name).observe(count);
 	}

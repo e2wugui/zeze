@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import Zeze.Services.Log4jQuery.handler.HandlerCmd;
 import Zeze.Services.Log4jQuery.handler.QueryHandler;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.ZezeCounter;
 
 @HandlerCmd("procedure_results")
@@ -40,13 +39,11 @@ public class SelectProcedureResultsHandler implements QueryHandler<String, List<
 
 	@Override
 	public List<ResultLog> invoke(String param) {
-		var counter = ZezeCounter.instance;
-		var pInfo = counter instanceof PerfCounter ? ((PerfCounter)counter).getProcedureInfo(param) : null;
-		if (pInfo == null)
+		var results = ZezeCounter.instance.getLast().procedureResults().get(param);
+		if (results == null)
 			return List.of();
-		var resultLogs = new ArrayList<ResultLog>();
-		for (var it = pInfo.getResultMapLast().entryIterator(); it.moveToNext(); )
-			resultLogs.add(new ResultLog(it.key(), it.value().sum()));
+		var resultLogs = new ArrayList<ResultLog>(results.size());
+		results.forEach((resultCode, count) -> resultLogs.add(new ResultLog(resultCode, count)));
 		return resultLogs;
 	}
 }

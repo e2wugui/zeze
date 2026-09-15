@@ -4,6 +4,8 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,7 +14,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
-import Zeze.Net.TcpSocket;
 import Zeze.Transaction.TableKey;
 import com.sun.management.OperatingSystemMXBean;
 import org.jetbrains.annotations.NotNull;
@@ -227,6 +228,22 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 					" CacGetCnt StoGetCnt LockCount  ReadLock WriteLock TryRdLock TryWtLock RedoCount", "TableName");
 		}
 
+		@NotNull Map<String, Long> snapshotResult() {
+			var m = new LinkedHashMap<String, Long>(16);
+			m.put("cacheGet", cacheGetCount);
+			m.put("storageGet", storageGetCount);
+			m.put("readLock", readLockCount);
+			m.put("writeLock", writeLockCount);
+			m.put("tryReadLock", tryReadLockCount);
+			m.put("tryWriteLock", tryWriteLockCount);
+			m.put("acquireShare", acquireShareCount);
+			m.put("acquireModify", acquireModifyCount);
+			m.put("acquireInvalid", acquireInvalidCount);
+			m.put("reduceInvalid", reduceInvalidCount);
+			m.put("redo", redoCount);
+			return m;
+		}
+
 		@Override
 		public @NotNull String toString() {
 			long getCount = cacheGetCount + storageGetCount;
@@ -238,76 +255,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 					acquireShareCount, acquireModifyCount, acquireInvalidCount, reduceInvalidCount, cacheGetCount,
 					storageGetCount, lockCount, readLockCount, writeLockCount, tryReadLockCount, tryWriteLockCount,
 					redoCount);
-		}
-	}
-
-	public static final class ServiceInfo implements Action0 {
-		private final @NotNull Service service;
-		private @Nullable ScheduledFuture<?> statisticLogFuture;
-		private int periodSec;
-		private final long[] lastSizes = new long[]{-1, 0, 0, 0, 0, 0};
-
-		public ServiceInfo(@NotNull Service service) {
-			this.service = service;
-		}
-
-		public @NotNull ScheduledFuture<?> startStatisticLog(int periodSec) {
-			if (periodSec <= 0)
-				throw new IllegalArgumentException("periodSec(" + periodSec + ") < 0");
-			var f = statisticLogFuture;
-			if (f != null && !f.isCancelled())
-				cancelStartStatisticLog();
-			this.periodSec = periodSec;
-			f = TaskSpec.ofAction(this).schedulePeriodNow(Random.getInstance().nextLong(periodSec * 1000L), periodSec * 1000L);
-			statisticLogFuture = f;
-			return f;
-		}
-
-		public boolean cancelStartStatisticLog() {
-			var f = statisticLogFuture;
-			statisticLogFuture = null;
-			return f != null && f.cancel(false);
-		}
-
-		@Override
-		public void run() throws Exception {
-			service.updateRecvSendSize();
-			var selectors = service.getSelectors();
-			long selectCount = selectors.getSelectCount();
-			long recvCount = service.getRecvCount();
-			long recvSize = service.getRecvSize();
-			long sendCount = service.getSendCount();
-			long sendSize = service.getSendSize();
-			long sendRawSize = service.getSendRawSize();
-			if (lastSizes[0] != -1) {
-				long sn = (selectCount - lastSizes[0]) / periodSec;
-				long rc = (recvCount - lastSizes[1]) / periodSec;
-				long rs = (recvSize - lastSizes[2]) / periodSec;
-				long sc = (sendCount - lastSizes[3]) / periodSec;
-				long ss = (sendSize - lastSizes[4]) / periodSec;
-				long sr = (sendRawSize - lastSizes[5]) / periodSec;
-				var operates = new OutLong();
-				var outBufSize = new OutLong();
-				service.foreach(socket -> {
-					if (socket instanceof TcpSocket) {
-						TcpSocket tcp;
-						tcp = (TcpSocket)socket;
-						operates.value += tcp.getOperateSize();
-						outBufSize.value += tcp.getOutputBufferSize();
-					}
-				});
-				operates.value /= periodSec;
-				outBufSize.value /= periodSec;
-				logger.info("{}.{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
-						service.getName(), service.getInstanceName(), sn, selectors.getCount(), rs, rc, ss, sc, sr,
-						service.getSocketCount(), operates.value, outBufSize.value);
-			}
-			lastSizes[0] = selectCount;
-			lastSizes[1] = recvCount;
-			lastSizes[2] = recvSize;
-			lastSizes[3] = sendCount;
-			lastSizes[4] = sendSize;
-			lastSizes[5] = sendRawSize;
 		}
 	}
 
@@ -356,7 +303,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private final Set<Object> excludeRunKeys = ConcurrentHashMap.newKeySet(); // value: Class or others
 	private final LongConcurrentHashMap<Boolean> excludeProtocolTypeIds = new LongConcurrentHashMap<>(); // key: typeId
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
-	private @NotNull String lastLog = "";
+	private volatile @NotNull Snapshot lastSnapshot = Snapshot.EMPTY;
 	private long lastLogTime = System.currentTimeMillis();
 	private long lastCpuTime = osBean.getProcessCpuTime();
 	private int clearSerial;
@@ -568,7 +515,17 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	public @NotNull String getLastLog() {
-		return lastLog;
+		return lastSnapshot.formattedLog();
+	}
+
+	@Override
+	public @NotNull Snapshot collectAndReset() {
+		return collectAndResetCore();
+	}
+
+	@Override
+	public @NotNull Snapshot getLast() {
+		return lastSnapshot;
 	}
 
 	public long getLastLogTime() {
@@ -629,6 +586,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	public @NotNull String getLogAndReset() {
+		return collectAndResetCore().formattedLog();
+	}
+
+	private @NotNull Snapshot collectAndResetCore() {
 		lock();
 		try {
 			var curTime = System.currentTimeMillis();
@@ -735,6 +696,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 			var procedureTotal = 0L;
 			var procedureSucc = 0L;
+			var procedureResults = new LinkedHashMap<String, Map<Long, Long>>(Math.max(16, procedureInfoMap.size() * 2));
 			var prList = new ArrayList<ProcedureInfo>(procedureInfoMap.size());
 			for (var it = procedureInfoMap.values().iterator(); it.hasNext(); ) {
 				var pi = it.next();
@@ -742,12 +704,15 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				pi.resultMap = new LongConcurrentHashMap<>();
 				var totalCount = 0L;
 				var succCount = 0L;
+				var results = new LinkedHashMap<Long, Long>();
 				for (var it2 = pi.resultMapLast.entryIterator(); it2.moveToNext(); ) {
 					var v = it2.value().sum();
+					results.put(it2.key(), v);
 					totalCount += v;
 					if (it2.key() == 0)
 						succCount = v;
 				}
+				procedureResults.put(pi.name, results); // 含零计数条目，供名称列表与结果查询使用
 				if (totalCount == 0) {
 					if (++pi.idleCount >= ProcedureInfo.MAX_IDLE_COUNT)
 						it.remove();
@@ -769,9 +734,12 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			for (int i = 0, n = Math.min(prList.size(), PERF_COUNT); i < n; i++)
 				sb.append("  ").append(prList.get(i)).append('\n');
 
+			var tableResults = new LinkedHashMap<String, Map<String, Long>>(Math.max(16, tableInfoMap.size() * 2));
 			var tList = new ArrayList<TableInfo>(tableInfoMap.size());
 			for (var ti : tableInfoMap) {
-				if (ti.checkpointAndReset())
+				var active = ti.checkpointAndReset();
+				tableResults.put(ti.tableName, ti.snapshotResult());
+				if (active)
 					tList.add(ti);
 			}
 			sb.append(" [table: ").append(tList.size()).append("]\n");
@@ -800,7 +768,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 					sb.append("  ").append(ci.name).append(": ").append(ci.lastCount).append('\n');
 			}
 
-			return lastLog = sb.toString();
+			return lastSnapshot = new Snapshot(Map.copyOf(procedureResults), Map.copyOf(tableResults), sb.toString());
 		} finally {
 			unlock();
 		}

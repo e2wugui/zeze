@@ -45,7 +45,6 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FastLock;
 import Zeze.Util.OutObject;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
@@ -804,9 +803,7 @@ public final class Token extends AbstractToken {
 		res.setCurCount(tokenMap.size());
 		var s = service;
 		res.setConnectCount(s != null ? s.getSocketCount() : -1);
-		var counter = ZezeCounter.instance;
-		if (counter instanceof PerfCounter)
-			res.setPerfLog(((PerfCounter)counter).getLastLog());
+		res.setPerfLog(ZezeCounter.instance.getLast().formattedLog());
 		r.SendResultCode(0);
 		return Procedure.Success;
 	}
