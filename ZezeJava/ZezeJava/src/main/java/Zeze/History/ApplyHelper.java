@@ -118,14 +118,13 @@ public class ApplyHelper extends FastLock {
 				}
 				lastProcessed.value = key;
 				prevKey.value = key;
+				// FND6-37：批内逐条成功即推进游标——callback异常（Edit分歧检测fail-fast的
+				// NPE等）穿透walkDatabase时，原实现游标停在批前，下次apply整批重放：Put/Remove
+				// 幂等无碍，但Edit重放非幂等（LogList2/LogMap2增删日志二次应用产生重复元素），
+				// verifyAndClear会把重放损坏误报为真实数据分歧。异常后从断点续传。
+				exclusiveStartKey = key;
 				return true;
 			});
-			// 游标只推进到最后一条"已成功处理"的记录，不使用walkDatabase的返回值：
-			// 各实现都在callback之前记录lastKey，返回false停止时返回的是未处理记录的key，直接当游标会把它永久跳过；
-			// 且走到表尾时返回值不一致（RocksDb为null，Memory/Jdbc为最后交付的key）。本轮零处理时保留原游标，
-			// 停在时间边界或键空洞的记录下次apply重新交付，endTime推进或空洞填充/老化后即被处理。
-			if (lastProcessed.value != null)
-				exclusiveStartKey = lastProcessed.value;
 			// 空洞跟踪：本轮被（新）空洞挡住则保留等待老化或填充；有推进则清掉——
 			// 被跟踪的空洞要么已填充，要么已在游标之后。零推进且未被空洞挡住（时间边界/表尾）时保留，
 			// 避免已老化的空洞因时间边界反复重置老化时钟。
