@@ -162,6 +162,10 @@ public final class Str {
 			num = (Number)jr.buf(buf).parseNumber();
 			if (num instanceof Long || num instanceof Integer)
 				return Math.multiplyExact(num.longValue(), scale);
+		} catch (NumberFormatException e) {
+			// FND6-05：空数字串（空值/纯单位配置）按数字格式错误直通，与本方法非法字符路径
+			// 的异常类型一致；不伪装成溢出。
+			throw new NumberFormatException("invalid number '" + s + "'");
 		} catch (Exception e) {
 			throw new IllegalStateException("long overflow for '" + s + "'", e);
 		} finally {

@@ -1641,6 +1641,7 @@ public final class JsonReader {
 
 	public @NotNull Object parseNumber() {
 		final byte[] buffer = buf;
+		final int startPos = pos;
 		double d = 0;
 		long i = 0;
 		int p = pos, n = 0, expFrac = 0, exp = 0, useDouble = 0, b, c;
@@ -1751,6 +1752,11 @@ public final class JsonReader {
 				d = i;
 		}
 		pos = p;
+		// FND6-05：空数字串（仅间隔符/终结符）零消费却返回0——Str.parseLongSize/parseIntSize
+		// 的空值/纯单位配置经此被吞成0静默生效。解析数字的契约是至少消费一个数字字符，
+		// Infinity/NaN 词在方法前部已提前返回，不受此守卫影响。
+		if (p == startPos)
+			throw new NumberFormatException("empty number");
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
