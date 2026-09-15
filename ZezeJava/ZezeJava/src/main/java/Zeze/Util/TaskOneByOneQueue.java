@@ -3,7 +3,6 @@ package Zeze.Util;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
@@ -127,20 +126,25 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		return null;
 	}
 
-	/** 派发并处理拒绝（FND5-13）：execute在锁外与停机（Task.shutdownPools先置null再
-	 * shutdownNow）或自定义池拒绝并发时抛RejectedExecutionException——任务已入队且已
-	 * 认领（size==1分支），直接抛回会让队列非空且再无派发点（后续submit全走size!=1
-	 * 分支），该桶永久卡死、waitComplete永等。回滚认领后重抛：队列回到未派发状态。 */
+	/** 派发并处理失败（FND5-13/FND6-07）：execute在锁外与停机（Task.shutdownPools先置null再
+	 * shutdownNow）或自定义池拒绝并发时抛RejectedExecutionException，池已置null时
+	 * poolOrThrow抛IllegalStateException——任务已入队且已认领（size==1分支），直接抛回
+	 * 会让队列非空且再无派发点（后续submit全走size!=1分支），该桶永久卡死、
+	 * waitComplete永等。回滚认领后重抛：队列回到未派发状态。 */
 	private void executeOrRollback(@Nullable DispatchMode mode) {
 		try {
 			getExecutor(mode).execute(batch);
-		} catch (RejectedExecutionException e) {
+		} catch (RuntimeException e) {
+			// FND6-07：除RejectedExecutionException外，停机序（Task.shutdownPools先置null
+			// 再等待）与在飞派发并发时getExecutor的poolOrThrow抛IllegalStateException——
+			// ISE逃出原REE catch即无人回滚，队列非空且再无派发点，桶永久卡死、
+			// waitComplete永等。派发失败形态统一回滚善后，按原类型重抛。
 			rollbackRejectedDispatch();
 			throw e;
 		}
 	}
 
-	/** 回滚认领：批量从未开跑（execute被拒即未执行），整队回收补偿并唤醒等待者。
+	/** 回滚认领：批量从未开跑（execute抛出即未执行），整队回收补偿并唤醒等待者。
 	 * 提交方与runNext派发共用（runNext尾部的锁外execute同型，姊妹点一并收口）。 */
 	private void rollbackRejectedDispatch() {
 		ArrayDeque<Task> cancels;
@@ -151,11 +155,22 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			cancels = queue;
 			queue = new ArrayDeque<>();
 			batch.count = 0; // 认领作废
-			cond.signalAll(); // waitComplete等待者在queue清空后放行
+			// FND6-07：pendingCancels挡住waitComplete直到补偿执行完（对齐runNext的
+			// shutdown-cancel路径）——否则signalAll后等待者即放行，停机流程可能在补偿
+			// （onCancel承担重复发货/重复扣款类二次处理的守护语义）完成前推进甚至退出进程。
+			pendingCancels = true;
+			cond.signalAll();
 		} finally {
 			unlock();
 		}
 		runCancel(cancels);
+		lock();
+		try {
+			pendingCancels = false;
+			cond.signalAll();
+		} finally {
+			unlock();
+		}
 	}
 
 	private void runNext(int count) {
