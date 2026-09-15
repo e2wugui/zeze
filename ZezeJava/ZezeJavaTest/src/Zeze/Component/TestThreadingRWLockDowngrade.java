@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
  * 现有TestThreading.testRWLock只覆盖read-read-exit-exit，无混合持有用例。
  * 另锁FND2-C1-3：ProcessSemaphoreReleaseRequest的permits<=0前置校验应答-1
  * （65c291f2e修了TryAcquire家族，独漏Release）。
+ * 另锁FND6-21：enter/exit模式不对称（如enterWrite后exitRead）的IMSE立即应答-1，
+ * 且不破坏条目保留与锁释放。
  * 注：文件放在 src/Zeze/Component/ 但声明 package Zeze.Component——需要直接调用
  * protected的rpc处理器的包内测试缝（与TestDelayRemoveOnTimer同款先例）。
  * rpc不绑定连接，SendResultCode对null sender只记warn日志；结果码经resultCode字段观察，
@@ -114,5 +116,26 @@ public class TestThreadingRWLockDowngrade {
 		server.ProcessSemaphoreReleaseRequest(r);
 		Assertions.assertTrue(r.isSendResultDone(), "permits<=0必须同步应答，不入队");
 		Assertions.assertEquals(ThreadingServer.ResultCodeInvalidArgument, r.getResultCode());
+	}
+
+	// FND6-21：enterWrite成功后exitRead（enter/exit模式不对称）——readLock().unlock()抛
+	// IllegalMonitorStateException，eExitRead的IMSE catch必须立即应答-1（ResultCodeInvalidArgument），
+	// 不得无应答挂满rpc超时；refs条目保留（writeHold仍=1），随后exitWrite应答0且写锁真正释放。
+	@Test
+	public void test4_ExitReadAfterEnterWriteModeMismatch() throws Exception {
+		var name = "UnitTest.Threading.RWLockModeMismatch";
+		Assertions.assertEquals(0L, awaitSend(rwOp(T1, name, Threading.eEnterWrite, 1000)));
+		// 模式不匹配：IMSE被catch应答-1；走SendResultCode路径（先赋值resultCode再置sendResultDone），
+		// awaitResult轮询可见性有保证（见类注释）。
+		Assertions.assertEquals(ThreadingServer.ResultCodeInvalidArgument,
+				awaitSend(rwOp(T1, name, Threading.eExitRead, 0)),
+				"enterWrite后exitRead必须应答-1而不是无应答");
+		// 条目保留、锁真正释放：exitWrite应答0。
+		Assertions.assertEquals(0L, awaitSend(rwOp(T1, name, Threading.eExitWrite, 0)));
+
+		// 核心断言：写锁已真正释放，新写者立即拿到。
+		var enter = rwOp(T2, name, Threading.eEnterWrite, 1000);
+		Assertions.assertEquals(0L, awaitSend(enter), "exitRead模式不匹配后写锁悬挂，新写者拿不到锁");
+		Assertions.assertEquals(0L, awaitSend(rwOp(T2, name, Threading.eExitWrite, 0)));
 	}
 }

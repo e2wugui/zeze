@@ -16,6 +16,7 @@ import Zeze.Builtin.Threading.ReadWriteLockOperate;
 import Zeze.Builtin.Threading.SemaphoreCreate;
 import Zeze.Builtin.Threading.SemaphoreRelease;
 import Zeze.Builtin.Threading.SemaphoreTryAcquire;
+import Zeze.Net.Rpc;
 import Zeze.Net.Service;
 import Zeze.Services.ServiceManagerServer;
 import Zeze.Util.Action1;
@@ -68,9 +69,14 @@ public class ThreadingServer extends AbstractThreadingServer {
 		}
 	}
 
+	// 动作队列元素：携带发起该动作的rpc句柄，供SimulateThread.runAction()在动作异常时统一补应答。
+	// rpc允许为null：内部动作（如超时release）没有对应的客户端请求，异常时只记日志不补应答。
+	private record SimulateThreadAction(Rpc<?, ?> rpc, Action1<SimulateThread> action) {
+	}
+
 	public class SimulateThread extends Thread {
 		private final BGlobalThreadId id;
-		private final LinkedBlockingQueue<Action1<SimulateThread>> actions = new LinkedBlockingQueue<>();
+		private final LinkedBlockingQueue<SimulateThreadAction> actions = new LinkedBlockingQueue<>();
 		private final HashMap<String, ReentrantLock> mutexRefs = new HashMap<>();
 
 		private final HashMap<String, SemaphoreAcquired> semaphoreRefs = new HashMap<>();
@@ -127,14 +133,14 @@ public class ThreadingServer extends AbstractThreadingServer {
 					// 持有资源期间也必须带超时等待，否则无超时poll会空转占满CPU。
 					var action = actions.poll(200, TimeUnit.MILLISECONDS);
 					if (null != action) {
-						action.run(this);
+						runAction(action);
 					}
 
 					if (acquireNothing()) {
 						// 没有已分配资源的时候，延时200ms，准备退出。
 						action = actions.poll(200, TimeUnit.MILLISECONDS);
 						if (null != action) {
-							action.run(this);
+							runAction(action);
 							continue; // 发现新任务，继续工作，中断退出。
 						}
 						if (simulateThreadExit(id))
@@ -144,6 +150,23 @@ public class ThreadingServer extends AbstractThreadingServer {
 				} catch (Exception e) {
 					logger.error("", e);
 				}
+			}
+		}
+
+		// 【通用兜底】动作统一在此包装执行：动作内任何新增可抛路径都会补发结果码-1，
+		// 不再重演"catch(Exception)只记日志、客户端挂满rpc超时（≥5s以CompletionException呈现）"，
+		// 也不再依赖逐点补丁（C1-7/C1-8/C1-3/FND6-21各设一处catch的判例家族——它们保留为快速失败路径）。
+		// 双发防护：handler正常路径已自行SendResultCode应答、之后动作又抛异常时，兜底不能二次发送。
+		// Rpc.trySendResultCode（Zeze.Net.Rpc）先经tryMarkSendResultDone做VarHandle CAS仲裁，
+		// 已应答（sendResultDone=true）则CAS失败直接返回false不发送，天然防双发，无需额外AtomicBoolean。
+		private void runAction(SimulateThreadAction a) {
+			try {
+				a.action().run(this);
+			} catch (Exception e) {
+				logger.error("simulate action exception (thread=({}, {}))",
+						id.getServerId(), id.getThreadId(), e);
+				if (a.rpc() != null)
+					a.rpc().trySendResultCode(ResultCodeInvalidArgument);
 			}
 		}
 
@@ -194,7 +217,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 			lock();
 			try {
 				for (var thread : threads)
-					thread.actions.offer(SimulateThread::release);
+					thread.actions.offer(new SimulateThreadAction(null, SimulateThread::release));
 			} finally {
 				unlock();
 			}
@@ -258,7 +281,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 		}
 	}
 
-	private void simulateThreadOffer(BGlobalThreadId id, Action1<SimulateThread> action) {
+	private void simulateThreadOffer(Rpc<?, ?> rpc, BGlobalThreadId id, Action1<SimulateThread> action) {
 		lock();
 		try {
 			var st = simulateThreads.computeIfAbsent(
@@ -272,7 +295,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 								key.getServerId(), key.getThreadId());
 						return simulate;
 					});
-			st.actions.offer(action);
+			st.actions.offer(new SimulateThreadAction(rpc, action));
 		} finally {
 			unlock();
 		}
@@ -291,7 +314,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 			r.SendResultCode(ResultCodeInvalidArgument);
 			return 0;
 		}
-		simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
+		simulateThreadOffer(r, r.Argument.getLockName().getGlobalThreadId(),
 				(This) -> {
 					var mutex = This.getMutex(r.Argument.getLockName().getName());
 					var locked = mutex.tryLock(r.Argument.getTimeoutMs(), TimeUnit.MILLISECONDS);
@@ -309,7 +332,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	@Override
 	protected long ProcessMutexUnlockRequest(Zeze.Builtin.Threading.MutexUnlock r) {
-		simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
+		simulateThreadOffer(r, r.Argument.getLockName().getGlobalThreadId(),
 				(This) -> {
 					var mutex = This.mutexRefs.get(r.Argument.getLockName().getName());
 					if (null != mutex) {
@@ -342,7 +365,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 		}
 		switch (r.Argument.getOperateType()) {
 		case Threading.eEnterRead:
-			simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
+			simulateThreadOffer(r, r.Argument.getLockName().getGlobalThreadId(),
 					(This) -> {
 						var rwLock = This.getReadWriteLock(r.Argument.getLockName().getName());
 						var locked = rwLock.readLock().tryLock(r.Argument.getTimeoutMs(), TimeUnit.MILLISECONDS);
@@ -359,7 +382,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 			break;
 
 		case Threading.eEnterWrite:
-			simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
+			simulateThreadOffer(r, r.Argument.getLockName().getGlobalThreadId(),
 					(This) -> {
 						var rwLock = This.getReadWriteLock(r.Argument.getLockName().getName());
 						var locked = rwLock.writeLock().tryLock(r.Argument.getTimeoutMs(), TimeUnit.MILLISECONDS);
@@ -376,7 +399,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 			break;
 
 		case Threading.eExitRead:
-			simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
+			simulateThreadOffer(r, r.Argument.getLockName().getGlobalThreadId(),
 					(This) -> {
 						var rwLock = This.rwLockRefs.get(r.Argument.getLockName().getName());
 						if (null != rwLock) {
@@ -415,7 +438,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 			break;
 
 		case Threading.eExitWrite:
-			simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
+			simulateThreadOffer(r, r.Argument.getLockName().getGlobalThreadId(),
 					(This) -> {
 						var rwLock = This.rwLockRefs.get(r.Argument.getLockName().getName());
 						if (null != rwLock) {
@@ -479,7 +502,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 			r.SendResultCode(ResultCodeInvalidArgument);
 			return 0;
 		}
-		simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
+		simulateThreadOffer(r, r.Argument.getLockName().getGlobalThreadId(),
 				(This) -> {
 					var semaphoreAcq = This.semaphoreRefs.get(r.Argument.getLockName().getName());
 					if (null != semaphoreAcq) {
@@ -512,7 +535,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 			r.SendResultCode(ResultCodeInvalidArgument);
 			return 0;
 		}
-		simulateThreadOffer(r.Argument.getLockName().getGlobalThreadId(),
+		simulateThreadOffer(r, r.Argument.getLockName().getGlobalThreadId(),
 				(This) -> {
 					var semaphoreAcq = This.getSemaphore(r.Argument.getLockName().getName());
 					if (null == semaphoreAcq) {

@@ -226,7 +226,9 @@ public class Threading extends AbstractThreading {
 			r.Argument.setOperateType(operateType);
 			r.SendForWait(service.GetSocket()).await();
 			if (r.getResultCode() != 0)
-				logger.debug("exit {} hold={}", operateType, IModule.getErrorCode(r.getResultCode()));
+				// 如实标注为结果码（残留P3：原日志把结果码误标注成hold字段）。
+				// 结果码语义见ThreadingServer：>0=exit后剩余hold计数，-1=参数/模式不匹配等错误。
+				logger.debug("exit {} result code={}", operateType, IModule.getErrorCode(r.getResultCode()));
 		}
 
 		public void exitRead() {
