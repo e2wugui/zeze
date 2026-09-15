@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import Zeze.Application;
 import Zeze.Builtin.HttpSession.BSessionValue;
 import Zeze.Component.TimerContext;
@@ -13,6 +14,7 @@ import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerSpec;
 import Zeze.IModule;
 import Zeze.Services.Token;
+import Zeze.Transaction.Collections.PMap1;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
@@ -38,7 +40,20 @@ public class HttpSession extends AbstractHttpSession {
 		// FND6-14：@Get/@Post 默认 TransactionLevel.None，无事务上下文时 TableX.get 内
 		// Transaction.getCurrent() 为 null（assert 运行期禁用）必 NPE。比照 getCookieSession
 		// 判例：有运行事务时直接同事务访问表（行为与修复前一致），否则包短 Procedure。
+		// 【注意】action 不得抛异常：无事务路径下 action 在短 Procedure 内执行，Procedure.call
+		// 会吞掉异常 cause 仅返回错误码，届时调用方只能看到 "CookieSession access error=..."
+		// 而丢失真实原因（df08187 残留P3）。
 		private <R> R accessTable(String opName, Function<BSessionValue, R> action) {
+			return accessTable(opName, action, null);
+		}
+
+		/**
+		 * @param noTxResult 无事务路径（短Procedure）下对 action 结果的转换器，在短Procedure事务内执行
+		 *                   （读取走事务一致视图），如 getProperties 拷贝快照；null 表示不转换。
+		 *                   有事务路径不经过此转换，直接返回活引用（随事务语义）。
+		 */
+		private <R> R accessTable(String opName, Function<BSessionValue, R> action,
+		                          @Nullable UnaryOperator<R> noTxResult) {
 			var t = Transaction.getCurrent();
 			if (t != null && t.isRunning()) {
 				var value = _tSession.get(cookieSessionId);
@@ -49,10 +64,13 @@ public class HttpSession extends AbstractHttpSession {
 			var result = new OutObject<R>();
 			var exists = new OutObject<>(false);
 			var rc = zeze.newProcedure(() -> {
+				exists.value = false; // 乐观锁 redo 整体重跑时重置 out 参数，避免沿用上一轮的陈旧结果。
 				var value = _tSession.get(cookieSessionId);
 				if (value != null) {
 					exists.value = true;
 					result.value = action.apply(value);
+					if (noTxResult != null) // 在事务内完成转换（如快照拷贝），带出事务后安全。
+						result.value = noTxResult.apply(result.value);
 				}
 				return Procedure.Success;
 			}, "CookieSession." + opName).call();
@@ -75,8 +93,18 @@ public class HttpSession extends AbstractHttpSession {
 			});
 		}
 
+		/**
+		 * 读取全部会话属性。有事务调用返回活的 PMap1 引用，修改随当前事务提交（事务语义）。
+		 * 无事务调用（如 TransactionLevel.None 的 handler）返回快照副本：活引用带出短 Procedure 后
+		 * put/remove 抛 IllegalStateException（managed bean 要求事务上下文），API 不对称且报错
+		 * 不指向真因（df08187 残留P3），故拷贝快照；对快照的修改不会持久化，写属性请走 setProperty。
+		 */
 		public @NotNull Map<String, String> getProperties() {
-			return accessTable("getProperties", BSessionValue::getProperties);
+			return accessTable("getProperties", BSessionValue::getProperties, props -> {
+				var snapshot = new PMap1<String, String>(String.class, String.class);
+				snapshot.putAll(props);
+				return snapshot;
+			});
 		}
 
 		public long getCreateTime() {
@@ -116,6 +144,7 @@ public class HttpSession extends AbstractHttpSession {
 		final var finalId = cookieSessionId;
 		final var needSetCookie = new OutObject<>(false);
 		FuncLong initAction = () -> {
+			needSetCookie.value = false; // 乐观锁 redo 整体重跑时重置 out 参数，避免沿用上一轮的陈旧结果。
 			var isAdd = new OutObject<>(false);
 			var value = _tSession.getOrAdd(finalId, isAdd);
 			var now = System.currentTimeMillis();
