@@ -797,7 +797,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				postgreSelectCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					postgreSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -819,7 +820,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				postgreSelectCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					postgreSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -862,7 +864,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				postgreReplaceCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					postgreReplaceCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -880,7 +883,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				postgreDeleteCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					postgreDeleteCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1306,7 +1310,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				postgreSelectCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					postgreSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 			return v != null ? ByteBuffer.Wrap(v) : null;
 		}
@@ -1325,7 +1330,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				postgreDeleteCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					postgreDeleteCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1345,7 +1351,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				postgreReplaceCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					postgreReplaceCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1521,7 +1528,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		} catch (SQLException e) {
 			throw Task.forceThrow(e);
 		} finally {
-			postgreSelectCounter.observe(System.nanoTime() - timeBegin);
+			if (timeBegin != 0) // 统计禁用时零开销
+				postgreSelectCounter.observe(System.nanoTime() - timeBegin);
 		}
 	}
 }

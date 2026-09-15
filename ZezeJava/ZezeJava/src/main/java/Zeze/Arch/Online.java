@@ -1643,8 +1643,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var pdata = broadcast.encode();
 		int sendCount = 0;
 		for (var link : providerApp.providerService.getLinks().values()) {
-			if (link.getSocket() != null && link.getSocket().Send(pdata))
+			if (link.getSocket() != null && link.getSocket().Send(pdata)) {
+				ZezeCounter.instance.addSendSize(Broadcast.TypeId_, pdata.size()); // wrapper归因，对齐旧TcpSocket流解析计数
 				sendCount++;
+			}
 		}
 		return sendCount;
 	}

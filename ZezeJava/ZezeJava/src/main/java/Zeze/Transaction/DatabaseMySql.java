@@ -745,7 +745,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -767,7 +768,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -793,7 +795,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -811,7 +814,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1237,7 +1241,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 			return v != null ? ByteBuffer.Wrap(v) : null;
 		}
@@ -1256,7 +1261,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1276,7 +1282,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1452,7 +1459,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		} catch (SQLException e) {
 			throw Task.forceThrow(e);
 		} finally {
-			mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
+			if (timeBegin != 0) // 统计禁用时零开销
+				mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 		}
 	}
 }

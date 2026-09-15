@@ -403,10 +403,12 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					try (var reader = cmd.executeQuery()) {
 						if (reader.next()) {
 							byte[] value = reader.getBytes(1);
-							sqlserverSelectCounter.observe(System.nanoTime() - timeBegin);
+							if (timeBegin != 0) // 统计禁用时零开销
+								sqlserverSelectCounter.observe(System.nanoTime() - timeBegin);
 							return ByteBuffer.Wrap(value);
 						}
-						sqlserverSelectCounter.observe(System.nanoTime() - timeBegin);
+						if (timeBegin != 0) // 统计禁用时零开销
+							sqlserverSelectCounter.observe(System.nanoTime() - timeBegin);
 						return null;
 					}
 				}
@@ -427,7 +429,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			try (var cmd = my.conn.prepareStatement(sql)) {
 				cmd.setBytes(1, key.CopyIf());
 				cmd.executeUpdate();
-				sqlserverDeleteCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					sqlserverDeleteCounter.observe(System.nanoTime() - timeBegin);
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			}
@@ -450,7 +453,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				cmd.setBytes(3, keyCopy);
 				cmd.setBytes(4, valueCopy);
 				cmd.executeUpdate();
-				sqlserverReplaceCounter.observe(System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					sqlserverReplaceCounter.observe(System.nanoTime() - timeBegin);
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			}

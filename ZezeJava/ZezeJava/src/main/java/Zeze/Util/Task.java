@@ -342,7 +342,7 @@ public final class Task {
 
 	// ZezeCounter 计数辅助：key 为 null 表示统计已在 body.call 内部完成（OfFunc/OfProcedure），外层不再计数。
 	private static void addTaskRunTime(@Nullable Object key, long timeBegin) {
-		if (key != null)
+		if (key != null && timeBegin != 0) // 统计禁用时零开销
 			ZezeCounter.instance.addTaskRunTime(key, System.nanoTime() - timeBegin);
 	}
 
@@ -774,7 +774,7 @@ public final class Task {
 			return errorCode;
 		} finally {
 			//noinspection ConstantValue
-			if (func != null) {
+			if (func != null && timeBegin != 0) { // 统计禁用时零开销
 				ZezeCounter.instance.addTaskRunTime(aName != null ? aName : (p != null ? p : func).getClass(),
 					System.nanoTime() - timeBegin);
 			}

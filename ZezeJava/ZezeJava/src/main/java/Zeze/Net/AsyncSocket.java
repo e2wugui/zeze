@@ -137,9 +137,10 @@ public abstract class AsyncSocket {
 		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
 			log("SEND", getSessionId(), p);
 		var bb = p.encode();
+		var size = bb.size(); // Send交接后bb不可再动，先取计数所需值
 		var r = Send(bb);
 		if (r) // 仅发送被接受时计数，对齐原TcpSocket在selector线程内的计数时机
-			ZezeCounter.instance.addSendSize(p.getTypeId(), bb.size());
+			ZezeCounter.instance.addSendSize(p.getTypeId(), size);
 		return r;
 	}
 

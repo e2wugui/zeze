@@ -217,8 +217,9 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 						return handler != null ? handler.handle(p3) : Procedure.NotImplement;
 					}, null, factoryHandle.Level), outProtocol, session::tryRespondErrorNow).call();
-				ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
-						Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
+				if (timeBegin != 0) // 统计禁用时零开销
+					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
+							Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
 				return r;
 			}
 
