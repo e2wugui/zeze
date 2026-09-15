@@ -239,6 +239,16 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	}
 
 	/**
+	 * 清空并删除队列根行（FND6-35）：{@link #clear()} 只清节点链，tQueues根行（空链）会
+	 * 永久残留。仅队列所有者在确定不再使用该队列时调用（最终登出等终结语义）；删除与
+	 * 节点清理同事务，回滚时整体还原；再次使用（add/getRoot）会自动重建。
+	 */
+	public void remove() {
+		clear();
+		module._tQueues.remove(name);
+	}
+
+	/**
 	 * @return 头节点，null if empty
 	 */
 	public BQueueNode peekNode() {

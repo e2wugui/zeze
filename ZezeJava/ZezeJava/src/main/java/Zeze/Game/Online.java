@@ -814,6 +814,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			return ret;
 		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(providerApp.zeze, this, arg, roleId));
+		// FND6-35：最终登出后ReliableNotify队列不再需要（重连同步随会话终结；同roleId重登
+		// 时Login路径本就clear重建）。原根行（空链）随曾登角色数永久残留（慢泄漏），顺带删根行。
+		openQueue(roleId).remove();
 		return 0;
 	}
 
