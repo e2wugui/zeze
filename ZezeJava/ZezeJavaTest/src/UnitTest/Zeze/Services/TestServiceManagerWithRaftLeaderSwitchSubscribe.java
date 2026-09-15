@@ -135,7 +135,10 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 			rocksList.get(oldLeaderIdx).getRaft().getServer().stop();
 			try {
 				waitStableLeaderExcept(oldLeaderIdx);
-				var newLeaderIdx = currentLeaderIdx();
+				// 必须排除被stop的节点：raft对象未shutdown，服务停了收不到更高term，
+				// 其状态机永远自认Leader（僵尸）。不排除时若僵尸下标较小会被先扫到，
+				// 误判"未选出新leader"（~20%假红）。
+				var newLeaderIdx = currentLeaderIdx(oldLeaderIdx);
 				Assertions.assertTrue(newLeaderIdx >= 0 && newLeaderIdx != oldLeaderIdx, "应选出新leader");
 				var newLeaderName = rocksList.get(newLeaderIdx).getRaft().getName();
 
@@ -199,8 +202,13 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 	}
 
 	private static int currentLeaderIdx() {
+		return currentLeaderIdx(-1);
+	}
+
+	/** exceptIdx>=0时排除该节点：被stop的raft对象仍自认Leader（僵尸），见调用处注释。 */
+	private static int currentLeaderIdx(int exceptIdx) {
 		for (int i = 0; i < rocksList.size(); i++)
-			if (rocksList.get(i).isLeader())
+			if (i != exceptIdx && rocksList.get(i).isLeader())
 				return i;
 		return -1;
 	}
