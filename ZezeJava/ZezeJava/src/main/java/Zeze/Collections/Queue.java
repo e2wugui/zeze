@@ -12,6 +12,7 @@ import Zeze.Hot.HotModule;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
 
 public class Queue<V extends Bean> implements HotBeanFactory {
@@ -242,10 +243,27 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 * 清空并删除队列根行（FND6-35）：{@link #clear()} 只清节点链，tQueues根行（空链）会
 	 * 永久残留。仅队列所有者在确定不再使用该队列时调用（最终登出等终结语义）；删除与
 	 * 节点清理同事务，回滚时整体还原；再次使用（add/getRoot）会自动重建。
+	 * 删除随事务提交成功后，同步逐出 Module.queues 内存缓存中的本包装对象（P3：根行已删
+	 * 而包装常驻缓存，随登出角色数累积，慢泄漏）。
 	 */
 	public void remove() {
 		clear();
+		// clear()不删根行，此处get()非空即根行确实存在并被随后的remove删掉（TableX.remove返回
+		// void，只能先读后删）。记录已被clear()读入事务工作集，这里命中快路径，无额外IO。
+		// 根行本就不存在（从未写入或已删）则无可删，也不注册逐出，缓存保持现状。
+		if (module._tQueues.get(name) == null)
+			return;
 		module._tQueues.remove(name);
+		// 仅删除随事务提交成功后逐出（whileCommit语义）：
+		// a) 回滚不执行——整体回滚时COMMIT动作不触发；嵌套savepoint回滚时该动作随savepoint丢弃；
+		//    redo重做时本轮回调被丢弃、remove()重执行时重新注册。缓存保留旧包装，与持久行一致。
+		// b) 并发窗口容忍：若另一事务在逐出前open命中同一缓存对象并add重建根行（或逐出后重新
+		//    open缓存了新包装），两参remove(key,this)只在缓存仍映射到本对象时才摘除——包装无状态
+		//    （仅module/name/nodeSize），摘除后后续open经computeIfAbsent重建包装、add经getOrAddRoot
+		//    重建/复用根行，均无数据损失；若已换成新包装则条件不匹配，不会误删。
+		// c) 在途调用方持有的旧Queue引用仍可用：根行不存在时读方法（poll/peek/pollNode/peekNode/
+		//    size/isEmpty/walk）一律安全返回null/0/空，add/push经getOrAddRoot重建根行。
+		Transaction.whileCommit(() -> module.queues.remove(name, this));
 	}
 
 	/**
