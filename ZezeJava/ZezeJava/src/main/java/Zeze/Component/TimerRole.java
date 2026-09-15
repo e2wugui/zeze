@@ -715,6 +715,16 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		return timerId;
 	}
 
+	// FND6-20：判定timerId当前登记的是否本族（角色offline）timer，查表路径仿cancelOffline。
+	private static boolean isRoleOfflineTimer(@NotNull Timer timer, @NotNull String timerId) {
+		var index = timer.tIndexs().get(timerId);
+		if (index == null)
+			return false;
+		var node = timer.tNodes().get(index.getNodeId());
+		var bTimer = node != null ? node.getTimers().get(timerId) : null;
+		return bTimer != null && bTimer.getCustomData().getBean() instanceof BOfflineRoleCustom;
+	}
+
 	public boolean scheduleOfflineNamed(@NotNull String timerId, long roleId, @NotNull TimerSpec spec,
 										@NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
@@ -727,6 +737,12 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		var index = timer.tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
+		if (index != null && !isRoleOfflineTimer(timer, timerId))
+			// FND6-20：撞本server非本族的命名timer（如全局scheduleNamed）——cancel对全局
+			// timer恒返回false（cancelOnline查在线表为null，cancelOffline因customData非
+			// BOfflineRoleCustom拒绝），随后scheduleOffline的_tIndexs.insert撞已存在键抛
+			// IAE中断调用方整个事务。对齐签名契约直接返回false；本族timer走下面cancel+重建。
+			return false;
 		switch (spec) {
 		case SimpleTimerSpec s -> {
 			if (index != null)
