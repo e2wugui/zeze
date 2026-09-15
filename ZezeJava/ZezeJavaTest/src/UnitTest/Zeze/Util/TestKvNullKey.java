@@ -8,10 +8,11 @@ import org.junit.jupiter.api.Test;
 /**
  * FND5-12 回归（2026-09-14复审三轮终态）：KV的key/value均参与hashCode/equals，
  * 任一字段可变都破坏HashMap/HashSet键不变式——收口为不可变二元组：两字段final、
- * 无setKey/setValue；空契约按仓内惯例以jetbrains注解声明（key @NotNull、
- * value @Nullable——FND4-16的null value形态保留），不做运行时拒绝（用户裁定，
- * 对齐仓内@NotNull参数普遍无显式检查的口径）。原setKey调用方（Service×2、
- * Dbh2AgentManager）已改累积后create；setValue生产调用方为0（精确扫描）。
+ * 无setKey/setValue。空契约（FND6-42终态）：key在构造点requireNonNull拒绝（null key
+ * 的NPE从hashCode处延迟爆发提前到构造点，异常消息"key"，可诊断）；value仅注解声明
+ * 允许null（@Nullable，FND4-16的null value形态保留），不做运行时拒绝。
+ * 原setKey调用方（Service×2、Dbh2AgentManager）已改累积后create；
+ * setValue生产调用方为0（精确扫描）。
  */
 @Fast
 public class TestKvNullKey {
@@ -30,13 +31,17 @@ public class TestKvNullKey {
 	}
 
 	@Test
-	public void testNullContractIsAnnotationOnly() {
-		// 空契约为注解声明（jetbrains @NotNull为CLASS保留，反射不可见——不做反射断言）：
-		// 构造点不做运行时拒绝（用户终态裁定，对齐仓内@NotNull参数普遍无显式检查口径）。
+	public void testNullKeyRejectedNullValueAllowed() {
+		// key契约（FND6-42终态）：构造点requireNonNull拒绝null key，异常消息为"key"。
+		var e = Assertions.assertThrows(NullPointerException.class, () -> KV.create(null, "v"),
+				"null key必须在构造点拒绝（FND6-42）");
+		Assertions.assertEquals("key", e.getMessage(), "NPE消息必须指明\"key\"（可诊断契约）");
+		// value契约不变：仅注解声明允许null（jetbrains @NotNull为CLASS保留，反射不可见——不做反射断言），
+		// 构造点不做运行时拒绝。
 		Assertions.assertDoesNotThrow(() -> {
 			var kv = KV.create("k", null);
 			Assertions.assertNull(kv.getValue());
-		}, "构造点不得做运行时拒绝（注解契约终态）");
+		}, "null value允许（@Nullable注解契约），不得运行时拒绝");
 	}
 
 	@Test
