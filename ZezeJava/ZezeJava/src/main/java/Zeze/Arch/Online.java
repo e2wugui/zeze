@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -167,6 +168,16 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	private final ReentrantLock timerLock = new ReentrantLock(); // 保护verifyLocalTimer与stopped
 	private @Nullable Future<?> verifyLocalTimer; // timerLock保护
 	private boolean stopped; // timerLock保护；stop置位后verifyLocal的finally不再重调度
+
+	// FND6-23：DelayLogout失败重排的内存计数（BDelayLogoutCustom为生成代码不加字段），
+	// 重启归零——重启本身重建Online上下文，可接受。放弃后由verifyLocal的eLinkBroken
+	// 清理兜底（见tryRemoveLocal）。
+	private final ConcurrentHashMap<String, AtomicInteger> delayLogoutRetries = new ConcurrentHashMap<>();
+	private static final int DelayLogoutMaxRetries = 3;
+
+	private static String delayLogoutRetryKey(@NotNull BDelayLogoutCustom custom) {
+		return custom.getAccount() + '|' + custom.getClientId() + '|' + custom.getLoginVersion();
+	}
 
 	public static @NotNull Online create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Online.class, app);
@@ -576,8 +587,24 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			if (online == null)
 				return; // 应用未启动或已停止：等下一次 tick 或忽略
 			var ret = online.tryLogout(custom);
-			if (ret != 0)
-				Online.logger.error("tryLogout fail. ret={}, projectName={}", ret, custom.getProjectName());
+			if (ret == 0) {
+				online.delayLogoutRetries.remove(delayLogoutRetryKey(custom));
+				return;
+			}
+			Online.logger.error("tryLogout fail. ret={}, projectName={}", ret, custom.getProjectName());
+			// FND6-23：timer times(1)一次性失败后状态机永久卡死在eLinkBroken。
+			// 有界重排重试（间隔沿用OnlineLogoutDelay，给登记的embed处理器恢复留窗口）。
+			var key = delayLogoutRetryKey(custom);
+			if (online.delayLogoutRetries.computeIfAbsent(key, k -> new AtomicInteger()).incrementAndGet()
+					> DelayLogoutMaxRetries) {
+				online.delayLogoutRetries.remove(key);
+				Online.logger.error("DelayLogout retry give up. account={}, clientId={}, loginVersion={}",
+						custom.getAccount(), custom.getClientId(), custom.getLoginVersion());
+				return; // 放弃快速重试，留verifyLocal的eLinkBroken清理最终兜底。
+			}
+			var zeze = online.providerApp.zeze;
+			zeze.getTimer().schedule(TimerSpec.ofDelay(zeze.getConfig().getOnlineLogoutDelay()).times(1),
+					DelayLogout.class, custom.copyIfManaged());
 		}
 	}
 
@@ -605,8 +632,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				loginOnline.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
 				if (loginOnline.getLoginVersion() != loginLocal.getLoginVersion()) {
 					var ret = removeLocalAndTrigger(account, clientId); // 本机数据已经过时，马上删除。
-					if (ret != 0)
-						logger.info("sendError removeLocalAndTrigger ret{}", ret);
+					if (ret != 0) // FND6-23：对齐linkBroken判例（FND5-41姊妹）——失败码外传整体回滚，不推进eLinkBroken/延迟登出。
+						return ret;
 				}
 			}
 		}
@@ -1694,6 +1721,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			if (login == null || login.getLink().getState() == eOffline
 					|| login.getLoginVersion() != e.getValue().getLoginVersion()) {
 				var ret = removeLocalAndTrigger(account, clientId);
+				if (ret != 0)
+					return ret;
+			} else if (login.getLink().getState() == eLinkBroken) {
+				// FND6-23：eLinkBroken残留（DelayLogout重试放弃后卡死）在此收敛——重走
+				// tryLogout全链（版本守卫内建：延迟期间同clientId重登则no-op）。verifyLocal
+				// 的入选门槛（localActiveTimeout，默认600s）已远超OnlineLogoutDelay（默认
+				// 60s），不会误清延迟窗口内的可恢复会话。
+				var ret = tryLogout(new BDelayLogoutCustom(account, clientId, login.getLoginVersion(),
+						providerApp.zeze.getProjectName()));
 				if (ret != 0)
 					return ret;
 			}
