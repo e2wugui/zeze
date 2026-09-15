@@ -142,12 +142,16 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (items instanceof PList2)
 			items = ((PList2<? extends V>)items).getList(); // more stable
 		if (isManaged()) {
+			// 双循环（对齐PList1.addAll"先全量校验、后入日志"）：原单循环"边验边改"，靠后null
+			// 抛出时靠前item的initRootInfoWithRedo已改写——普通字段写不受事务回滚保护，
+			// 调用方catch后复用bean即携带脏归属。
 			for (V v : items) {
 				//noinspection ConstantValue
 				if (v == null) // FND6-02：对齐非托管分支与add/PList1，原在initRootInfoWithRedo解引用NPE
 					throw new IllegalArgumentException("null item");
-				v.initRootInfoWithRedo(rootInfo, this);
 			}
+			for (V v : items)
+				v.initRootInfoWithRedo(rootInfo, this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -191,14 +195,23 @@ public class PList2<V extends Bean> extends PList<V> {
 			return;
 		var tmpList = new ArrayList<V>(size());
 		if (isManaged()) {
-			for (V v : this) {
+			// 双循环（对齐PList1.replaceAll"先全量求值校验、后入日志"）：operator只应用一次；
+			// 原单循环"边验边改"，靠后null抛ISE时靠前newV的initRootInfoWithRedo已改写——
+			// 普通字段写不受事务回滚保护，调用方catch后复用bean即携带脏归属。
+			// origin快照只取一次，保证两轮循环元素配对（operator若改容器也不失配）。
+			var origin = getList();
+			for (V v : origin) {
 				V newV = operator.apply(v);
 				//noinspection ConstantValue
 				if (newV == null) // FND6-02：对齐非托管分支，原null在initRootInfoWithRedo或日志路径解引用NPE
 					throw new IllegalStateException("null item");
+				tmpList.add(newV);
+			}
+			int i = 0;
+			for (V v : origin) {
+				V newV = tmpList.get(i++);
 				if (newV != v)
 					newV.initRootInfoWithRedo(rootInfo, this);
-				tmpList.add(newV);
 			}
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(

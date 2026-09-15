@@ -90,14 +90,20 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			m = ((PMap2<? extends K, ? extends V>)m).getMap(); // more stable
 
 		if (isManaged()) {
+			// 双循环（对齐PMap1.putAll"先全量校验、后入日志"）：原单循环"边验边改"，靠后条目null
+			// 抛出时靠前bean的initRootInfoWithRedo/mapKey已改写——普通字段写不受事务回滚保护，
+			// 调用方catch后复用bean即携带脏归属。
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				if (k == null)
 					throw new IllegalArgumentException("null key");
-				V v = e.getValue();
 				//noinspection ConstantValue
-				if (v == null) // FND6-02：对齐put与PMap1.putAll，托管分支原在initRootInfoWithRedo解引用NPE
+				if (e.getValue() == null) // FND6-02：对齐put与PMap1.putAll，托管分支原在initRootInfoWithRedo解引用NPE
 					throw new IllegalArgumentException("null value");
+			}
+			for (var e : m.entrySet()) {
+				K k = e.getKey();
+				V v = e.getValue();
 				v.initRootInfoWithRedo(rootInfo, this);
 				v.mapKey(k);
 			}
