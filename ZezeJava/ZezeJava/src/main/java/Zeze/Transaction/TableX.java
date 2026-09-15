@@ -209,7 +209,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						}
 					}
 					if (storage != null)
-						ZezeCounter.instance.getOrAddTableInfo(getId()).cacheGet().increment();
+						ZezeCounter.instance.tableCounter(getId(), ZezeCounter.TableMetric.CACHE_GET).increment();
 					return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 				}
 
@@ -246,7 +246,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						if (dirtyValue != null) {
 							strongRef = dirtyValue;
 						} else if (!r.getDirty()) {
-							ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
+							ZezeCounter.instance.tableCounter(getId(), ZezeCounter.TableMetric.STORAGE_GET).increment();
 							strongRef = storage.getDatabaseTable().find(this, key);
 							if (strongRef != null)
 								rocksCachePut(key, strongRef);
@@ -494,7 +494,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					r.setState(StateInvalid);
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
-					ZezeCounter.instance.getOrAddTableInfo(getId()).reduceInvalid().increment();
+					ZezeCounter.instance.tableCounter(getId(), ZezeCounter.TableMetric.REDUCE_INVALID).increment();
 					// 不删除记录，让TableCache.CleanNow处理。
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
@@ -508,7 +508,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					r.setState(StateInvalid);
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
-					ZezeCounter.instance.getOrAddTableInfo(getId()).reduceInvalid().increment();
+					ZezeCounter.instance.tableCounter(getId(), ZezeCounter.TableMetric.REDUCE_INVALID).increment();
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceInvalid SendResult * {}", r);
@@ -1313,7 +1313,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						// 后台库中还是旧值（脏数据尚未checkpoint），装载会覆盖丢失内存中已提交的修改。
 						// see TableX.load 的dirty检查。
 						if (!r.getDirty() && (ts >= 0 || now + ts >= cacheTTL)) { // 距上次selectDirty超过cacheTTL则从数据库里加载最新值
-							ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
+							ZezeCounter.instance.tableCounter(getId(), ZezeCounter.TableMetric.STORAGE_GET).increment();
 							V strongRef = storage.getDatabaseTable().find(this, key);
 							r.setSoftValue(strongRef); // r.Value still maybe null
 							// 【注意】这个变量不管 OldTable 中是否存在的情况。
@@ -1329,7 +1329,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							return strongRef;
 						}
 					}
-					ZezeCounter.instance.getOrAddTableInfo(getId()).cacheGet().increment();
+					ZezeCounter.instance.tableCounter(getId(), ZezeCounter.TableMetric.CACHE_GET).increment();
 				}
 				return r.loadValue();
 			} finally {

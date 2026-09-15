@@ -823,7 +823,7 @@ public final class Transaction {
 					break;
 				case Redo:
 					conflict = true;
-					ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
+					ZezeCounter.instance.tableCounter(e.getKey().getId(), ZezeCounter.TableMetric.REDO).increment();
 					break; // continue lock
 				default:
 					return r;
@@ -844,7 +844,7 @@ public final class Transaction {
 					break;
 				case Redo:
 					conflict = true;
-					ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
+					ZezeCounter.instance.tableCounter(e.getKey().getId(), ZezeCounter.TableMetric.REDO).increment();
 					break; // continue lock
 				default:
 					return r;
@@ -877,7 +877,7 @@ public final class Transaction {
 				case Redo:
 					// Impossible!
 					conflict = true;
-					ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
+					ZezeCounter.instance.tableCounter(e.getKey().getId(), ZezeCounter.TableMetric.REDO).increment();
 					break; // continue lock
 				default:
 					// _check_可能需要到Global提升状态，这里可能发生GLOBAL-DEAD-LOCK。
@@ -926,7 +926,7 @@ public final class Transaction {
 
 	@Contract("_, _, _ -> fail")
 	public void throwRedoAndReleaseLock(int tableId, @NotNull String msg, @Nullable Throwable cause) {
-		ZezeCounter.instance.getOrAddTableInfo(tableId).redo().increment();
+		ZezeCounter.instance.tableCounter(tableId, ZezeCounter.TableMetric.REDO).increment();
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state + ", msg: " + msg, cause);
 		state = TransactionState.RedoAndReleaseLock;
@@ -935,7 +935,7 @@ public final class Transaction {
 
 	@Contract("_, _ -> fail")
 	public void throwRedo(int tableId, @NotNull String msg) {
-		ZezeCounter.instance.getOrAddTableInfo(tableId).redo().increment();
+		ZezeCounter.instance.tableCounter(tableId, ZezeCounter.TableMetric.REDO).increment();
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("Redo: State Is Not Running: " + state);
 		state = TransactionState.Redo;

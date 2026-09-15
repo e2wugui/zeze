@@ -117,110 +117,47 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 	}
 
-	public static final class TableInfo implements TableCounter {
+	public static final class TableInfo {
 		private final @NotNull String tableName;
-		private final LongAdderCounter cacheGet = new LongAdderCounter();
-		private final LongAdderCounter storageGet = new LongAdderCounter();
-		private final LongAdderCounter readLock = new LongAdderCounter();
-		private final LongAdderCounter writeLock = new LongAdderCounter();
-		// 这两个统计用来观察cache清理的影响
-		private final LongAdderCounter tryReadLock = new LongAdderCounter();
-		private final LongAdderCounter tryWriteLock = new LongAdderCounter();
-		// global acquire 的次数，即时没有开启cache-sync，也会有一点点计数，因为没人抢，所以以后总是成功了。
-		private final LongAdderCounter acquireShare = new LongAdderCounter();
-		private final LongAdderCounter acquireModify = new LongAdderCounter();
-		private final LongAdderCounter acquireInvalid = new LongAdderCounter();
-		private final LongAdderCounter reduceInvalid = new LongAdderCounter();
-		private final LongAdderCounter redo = new LongAdderCounter();
-
-		long cacheGetCount;
-		long storageGetCount;
-		long readLockCount;
-		long writeLockCount;
-		long tryReadLockCount;
-		long tryWriteLockCount;
-		long acquireShareCount;
-		long acquireModifyCount;
-		long acquireInvalidCount;
-		long reduceInvalidCount;
-		long lockCount;
-		long redoCount;
+		private final LongAdderCounter[] counters; // 按TableMetric.ordinal索引
+		private final long[] lastCounts; // 按TableMetric.ordinal索引，checkpointAndReset时更新
 
 		TableInfo(@NotNull String tableName) {
 			this.tableName = tableName;
+			var metrics = TableMetric.values();
+			counters = new LongAdderCounter[metrics.length];
+			for (var i = 0; i < counters.length; i++)
+				counters[i] = new LongAdderCounter();
+			lastCounts = new long[metrics.length];
 		}
 
-		@Override
-		public @NotNull LongAdderCounter cacheGet() {
-			return cacheGet;
+		public @NotNull LongAdderCounter counter(@NotNull TableMetric metric) {
+			return counters[metric.ordinal()];
 		}
 
-		@Override
-		public @NotNull LongAdderCounter storageGet() {
-			return storageGet;
-		}
-
-		@Override
-		public @NotNull LongAdderCounter readLock() {
-			return readLock;
-		}
-
-		@Override
-		public @NotNull LongAdderCounter writeLock() {
-			return writeLock;
-		}
-
-		@Override
-		public @NotNull LongAdderCounter tryReadLock() {
-			return tryReadLock;
-		}
-
-		@Override
-		public @NotNull LongAdderCounter tryWriteLock() {
-			return tryWriteLock;
-		}
-
-		@Override
-		public @NotNull LongAdderCounter acquireShare() {
-			return acquireShare;
-		}
-
-		@Override
-		public @NotNull LongAdderCounter acquireModify() {
-			return acquireModify;
-		}
-
-		@Override
-		public @NotNull LongAdderCounter acquireInvalid() {
-			return acquireInvalid;
-		}
-
-		@Override
-		public @NotNull LongAdderCounter reduceInvalid() {
-			return reduceInvalid;
-		}
-
-		@Override
-		public @NotNull LongAdderCounter redo() {
-			return redo;
+		long lastLockCount() {
+			return lastCounts[TableMetric.READ_LOCK.ordinal()] + lastCounts[TableMetric.WRITE_LOCK.ordinal()];
 		}
 
 		boolean checkpointAndReset() {
-			cacheGetCount = cacheGet.sumThenReset();
-			storageGetCount = storageGet.sumThenReset();
-			readLockCount = readLock.sumThenReset();
-			writeLockCount = writeLock.sumThenReset();
-			tryReadLockCount = tryReadLock.sumThenReset();
-			tryWriteLockCount = tryWriteLock.sumThenReset();
-			acquireShareCount = acquireShare.sumThenReset();
-			acquireModifyCount = acquireModify.sumThenReset();
-			acquireInvalidCount = acquireInvalid.sumThenReset();
-			reduceInvalidCount = reduceInvalid.sumThenReset();
-			lockCount = readLockCount + writeLockCount;
-			redoCount = redo.sumThenReset();
-			return (cacheGetCount | storageGetCount | readLockCount | writeLockCount | tryReadLockCount
-					| tryWriteLockCount | acquireShareCount | acquireModifyCount | acquireInvalidCount
-					| reduceInvalidCount | redoCount) != 0;
+			var active = false;
+			for (var metric : TableMetric.values()) {
+				var count = counters[metric.ordinal()].sumThenReset();
+				lastCounts[metric.ordinal()] = count;
+				active |= count != 0;
+			}
+			return active;
+		}
+
+		@NotNull Map<String, Long> snapshotResult() {
+			var m = new LinkedHashMap<String, Long>(lastCounts.length * 2);
+			for (var metric : TableMetric.values())
+				m.put(metric.key, lastCounts[metric.ordinal()]);
+			return m;
+		}
+
+		private long last(@NotNull TableMetric metric) {
+			return lastCounts[metric.ordinal()];
 		}
 
 		public static @NotNull String getLogTitle() {
@@ -228,33 +165,21 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 					" CacGetCnt StoGetCnt LockCount  ReadLock WriteLock TryRdLock TryWtLock RedoCount", "TableName");
 		}
 
-		@NotNull Map<String, Long> snapshotResult() {
-			var m = new LinkedHashMap<String, Long>(16);
-			m.put("cacheGet", cacheGetCount);
-			m.put("storageGet", storageGetCount);
-			m.put("readLock", readLockCount);
-			m.put("writeLock", writeLockCount);
-			m.put("tryReadLock", tryReadLockCount);
-			m.put("tryWriteLock", tryWriteLockCount);
-			m.put("acquireShare", acquireShareCount);
-			m.put("acquireModify", acquireModifyCount);
-			m.put("acquireInvalid", acquireInvalidCount);
-			m.put("reduceInvalid", reduceInvalidCount);
-			m.put("redo", redoCount);
-			return m;
-		}
-
 		@Override
 		public @NotNull String toString() {
-			long getCount = cacheGetCount + storageGetCount;
-			float cacheHit = getCount != 0 ? cacheGetCount * 100.0f / getCount : 0;
-			float acquireShareHit = lockCount != 0 ? (lockCount - acquireShareCount) * 100.0f / lockCount : 0;
-			float acquireModifyHit = lockCount != 0 ? (lockCount - acquireModifyCount) * 100.0f / lockCount : 0;
+			long readLockCount = last(TableMetric.READ_LOCK);
+			long writeLockCount = last(TableMetric.WRITE_LOCK);
+			long lockCount = readLockCount + writeLockCount;
+			long getCount = last(TableMetric.CACHE_GET) + last(TableMetric.STORAGE_GET);
+			float cacheHit = getCount != 0 ? last(TableMetric.CACHE_GET) * 100.0f / getCount : 0;
+			float acquireShareHit = lockCount != 0 ? (lockCount - last(TableMetric.ACQUIRE_SHARE)) * 100.0f / lockCount : 0;
+			float acquireModifyHit = lockCount != 0 ? (lockCount - last(TableMetric.ACQUIRE_MODIFY)) * 100.0f / lockCount : 0;
 			return String.format("%-60s%8.2f%%%9.2f%%%9.2f%%%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d", tableName,
 					cacheHit, acquireShareHit, acquireModifyHit,
-					acquireShareCount, acquireModifyCount, acquireInvalidCount, reduceInvalidCount, cacheGetCount,
-					storageGetCount, lockCount, readLockCount, writeLockCount, tryReadLockCount, tryWriteLockCount,
-					redoCount);
+					last(TableMetric.ACQUIRE_SHARE), last(TableMetric.ACQUIRE_MODIFY), last(TableMetric.ACQUIRE_INVALID),
+					last(TableMetric.REDUCE_INVALID), last(TableMetric.CACHE_GET), last(TableMetric.STORAGE_GET),
+					lockCount, readLockCount, writeLockCount, last(TableMetric.TRY_READ_LOCK),
+					last(TableMetric.TRY_WRITE_LOCK), last(TableMetric.REDO));
 		}
 	}
 
@@ -506,12 +431,16 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		return tableInfoMap.get(tableId);
 	}
 
-	@Override
 	public @NotNull TableInfo getOrAddTableInfo(long tableId) {
 		return tableInfoMap.computeIfAbsent(tableId, k -> {
 			var tableName = TableKey.tables.get(k);
 			return new TableInfo(tableName != null ? tableName : String.valueOf(k));
 		});
+	}
+
+	@Override
+	public @NotNull LongCounter tableCounter(long tableId, @NotNull TableMetric metric) {
+		return getOrAddTableInfo(tableId).counter(metric);
 	}
 
 	public @NotNull String getLastLog() {
@@ -745,7 +674,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			sb.append(" [table: ").append(tList.size()).append("]\n");
 			int n = Math.min(tList.size(), PERF_COUNT);
 			if (n > 0) {
-				tList.sort((ti0, ti1) -> Long.signum(ti1.lockCount - ti0.lockCount));
+				tList.sort((ti0, ti1) -> Long.signum(ti1.lastLockCount() - ti0.lastLockCount()));
 				sb.append("  ").append(TableInfo.getLogTitle()).append('\n');
 				for (int i = 0; i < n; i++)
 					sb.append("  ").append(tList.get(i)).append('\n');

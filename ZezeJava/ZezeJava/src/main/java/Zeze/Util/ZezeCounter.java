@@ -53,30 +53,27 @@ public interface ZezeCounter {
 		@NotNull LongObserver labelValues(@NotNull String... labels);
 	}
 
-	interface TableCounter {
-		@NotNull LongCounter cacheGet();
-
-		@NotNull LongCounter storageGet();
-
-		@NotNull LongCounter readLock();
-
-		@NotNull LongCounter writeLock();
-
+	/** 表级度量。key为快照与Prometheus label使用的驼峰名。 */
+	enum TableMetric {
+		CACHE_GET("cacheGet"),
+		STORAGE_GET("storageGet"),
+		READ_LOCK("readLock"),
+		WRITE_LOCK("writeLock"),
 		// 这两个统计用来观察cache清理的影响
-		@NotNull LongCounter tryReadLock();
-
-		@NotNull LongCounter tryWriteLock();
-
+		TRY_READ_LOCK("tryReadLock"),
+		TRY_WRITE_LOCK("tryWriteLock"),
 		// global acquire 的次数，即时没有开启cache-sync，也会有一点点计数，因为没人抢，所以以后总是成功了。
-		@NotNull LongCounter acquireShare();
+		ACQUIRE_SHARE("acquireShare"),
+		ACQUIRE_MODIFY("acquireModify"),
+		ACQUIRE_INVALID("acquireInvalid"),
+		REDUCE_INVALID("reduceInvalid"),
+		REDO("redo");
 
-		@NotNull LongCounter acquireModify();
+		final String key;
 
-		@NotNull LongCounter acquireInvalid();
-
-		@NotNull LongCounter reduceInvalid();
-
-		@NotNull LongCounter redo();
+		TableMetric(String key) {
+			this.key = key;
+		}
 	}
 
 	/**
@@ -148,9 +145,9 @@ public interface ZezeCounter {
 	}
 
 	/**
-	 * 根据表ID获取其绑定的表统计器
+	 * 通过表ID与度量获取其绑定的表统计器
 	 */
-	@NotNull TableCounter getOrAddTableInfo(long tableId);
+	@NotNull LongCounter tableCounter(long tableId, @NotNull TableMetric metric);
 
 	/**
 	 * 统计快照（不可变值对象）。不支持周期快照的实现返回空快照。

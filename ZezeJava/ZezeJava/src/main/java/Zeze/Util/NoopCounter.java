@@ -14,63 +14,6 @@ public final class NoopCounter implements ZezeCounter {
 	};
 	private static final LongObserver noopObserver = v -> {
 	};
-	private static final TableCounter noopTableCounter = new TableCounter() {
-		@Override
-		public @NotNull LongCounter cacheGet() {
-			return noopCounter;
-		}
-
-		@Override
-		public @NotNull LongCounter storageGet() {
-			return noopCounter;
-		}
-
-		@Override
-		public @NotNull LongCounter readLock() {
-			return noopCounter;
-		}
-
-		@Override
-		public @NotNull LongCounter writeLock() {
-			return noopCounter;
-		}
-
-		@Override
-		public @NotNull LongCounter tryReadLock() {
-			return noopCounter;
-		}
-
-		@Override
-		public @NotNull LongCounter tryWriteLock() {
-			return noopCounter;
-		}
-
-		@Override
-		public @NotNull LongCounter acquireShare() {
-			return noopCounter;
-		}
-
-		@Override
-		public @NotNull LongCounter acquireModify() {
-			return noopCounter;
-		}
-
-		@Override
-		public @NotNull LongCounter acquireInvalid() {
-			return noopCounter;
-		}
-
-		@Override
-		public @NotNull LongCounter reduceInvalid() {
-			return noopCounter;
-		}
-
-		@Override
-		public @NotNull LongCounter redo() {
-			return noopCounter;
-		}
-	};
-
 	private NoopCounter() {
 	}
 
@@ -124,8 +67,8 @@ public final class NoopCounter implements ZezeCounter {
 	}
 
 	@Override
-	public @NotNull TableCounter getOrAddTableInfo(long tableId) {
-		return noopTableCounter;
+	public @NotNull LongCounter tableCounter(long tableId, @NotNull TableMetric metric) {
+		return noopCounter;
 	}
 
 	@Override

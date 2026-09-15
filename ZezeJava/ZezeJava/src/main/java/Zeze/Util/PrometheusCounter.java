@@ -187,7 +187,7 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	private final ConcurrentHashMap<Object, LongObserver> runTimeMap = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<Long, TableCounter> tableCounterMap = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, LongCounter[]> tableCounterMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ProtocolRecvMetric> protocolRecvMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ProtocolSendMetric> protocolSendMap = new ConcurrentHashMap<>();
 	private final Map<String, ServiceMetric> serviceMap = new HashMap<>();
@@ -407,79 +407,17 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public @NotNull TableCounter getOrAddTableInfo(long tableId) {
-		return fastGetOrAdd(tableCounterMap, tableId, k -> {
-			String tableName = TableKey.tables.get(tableId);
-			String table = tableName != null ? tableName : String.valueOf(tableId);
-			LongCounter cacheGet = database_table_operation.labelValues(table, "cacheGet")::inc;
-			LongCounter storageGet = database_table_operation.labelValues(table, "storageGet")::inc;
-			LongCounter readLock = database_table_operation.labelValues(table, "readLock")::inc;
-			LongCounter writeLock = database_table_operation.labelValues(table, "writeLock")::inc;
-			LongCounter tryReadLock = database_table_operation.labelValues(table, "tryReadLock")::inc;
-			LongCounter tryWriteLock = database_table_operation.labelValues(table, "tryWriteLock")::inc;
-			LongCounter acquireShare = database_table_operation.labelValues(table, "acquireShare")::inc;
-			LongCounter acquireModify = database_table_operation.labelValues(table, "acquireModify")::inc;
-			LongCounter acquireInvalid = database_table_operation.labelValues(table, "acquireInvalid")::inc;
-			LongCounter reduceInvalid = database_table_operation.labelValues(table, "reduceInvalid")::inc;
-			LongCounter redo = database_table_operation.labelValues(table, "redo")::inc;
-
-			return new TableCounter() {
-				@Override
-				public @NotNull LongCounter cacheGet() {
-					return cacheGet;
-				}
-
-				@Override
-				public @NotNull LongCounter storageGet() {
-					return storageGet;
-				}
-
-				@Override
-				public @NotNull LongCounter readLock() {
-					return readLock;
-				}
-
-				@Override
-				public @NotNull LongCounter writeLock() {
-					return writeLock;
-				}
-
-				@Override
-				public @NotNull LongCounter tryReadLock() {
-					return tryReadLock;
-				}
-
-				@Override
-				public @NotNull LongCounter tryWriteLock() {
-					return tryWriteLock;
-				}
-
-				@Override
-				public @NotNull LongCounter acquireShare() {
-					return acquireShare;
-				}
-
-				@Override
-				public @NotNull LongCounter acquireModify() {
-					return acquireModify;
-				}
-
-				@Override
-				public @NotNull LongCounter acquireInvalid() {
-					return acquireInvalid;
-				}
-
-				@Override
-				public @NotNull LongCounter reduceInvalid() {
-					return reduceInvalid;
-				}
-
-				@Override
-				public @NotNull LongCounter redo() {
-					return redo;
-				}
-			};
+	public @NotNull LongCounter tableCounter(long tableId, @NotNull TableMetric metric) {
+		// 每表一次构建全部DataPoint并缓存，调用路径零分配
+		var counters = fastGetOrAdd(tableCounterMap, tableId, k -> {
+			var tableName = TableKey.tables.get(tableId);
+			var table = tableName != null ? tableName : String.valueOf(tableId);
+			var arr = new LongCounter[TableMetric.values().length];
+			for (var m : TableMetric.values())
+				arr[m.ordinal()] = database_table_operation.labelValues(table, m.key)::inc;
+			return arr;
 		});
+		return counters[metric.ordinal()];
 	}
 
 	@Override

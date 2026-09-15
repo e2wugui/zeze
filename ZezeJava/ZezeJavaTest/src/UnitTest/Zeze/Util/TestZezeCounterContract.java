@@ -49,18 +49,8 @@ public class TestZezeCounterContract {
 		c.procedureRedo("ContractProc");
 		c.procedureRedoAndReleaseLock("ContractProc");
 
-		var table = c.getOrAddTableInfo(0x1234);
-		table.cacheGet().increment();
-		table.storageGet().increment();
-		table.readLock().increment();
-		table.writeLock().increment();
-		table.tryReadLock().increment();
-		table.tryWriteLock().increment();
-		table.acquireShare().increment();
-		table.acquireModify().increment();
-		table.acquireInvalid().increment();
-		table.reduceInvalid().increment();
-		table.redo().increment();
+		for (var metric : ZezeCounter.TableMetric.values())
+			c.tableCounter(0x1234, metric).increment();
 
 		c.addRecvSizeTime(0x100, null, 64, 1_000_000);
 		c.addSendSize(0x100, 64);
