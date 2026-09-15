@@ -15,7 +15,8 @@ public class KV<K, V> {
 	private final @Nullable V value;
 
 	public KV(@NotNull K key, @Nullable V value) {
-		this.key = key;
+		// FND6-42：落实注释声明——key在构造点拒绝，null key从hashCode处延迟NPE提前到构造点。
+		this.key = Objects.requireNonNull(key);
 		this.value = value;
 	}
 
