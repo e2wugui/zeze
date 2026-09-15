@@ -154,68 +154,85 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		if ((Argument.clientPubKey == null) != (clientPriKey == null)) // 客户端公私钥必须同时提供
 			throw new IllegalArgumentException();
 		return Send(so, r -> {
-			if (r.getResultCode() != 0)
-				return r.getResultCode(); // 错误应答的Result.encIvKey为null，不能进入密钥推导
-			byte[] serverIvKey;
-			int serverIvKeyLen;
-			if (clientPriKey != null) {
-				serverIvKey = Cert.decryptRsa(clientPriKey, Result.encIvKey);
-				if (serverIvKey.length != 32)
-					throw new IllegalStateException("ErrorDecryptFailed"); // 不该出现的意外情况,估计只能断开连接了
-			} else {
-				serverIvKey = Result.encIvKey;
-				serverIvKeyLen = serverIvKey.length;
-				if (serverIvKeyLen != 32)
-					throw new IllegalStateException("ErrorDecryptFailed"); // 不该出现的意外情况,估计只能断开连接了
-				for (int i = 0; i < 32; i++)
-					serverIvKey[i] ^= clientIvKey[i];
-			}
-			byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
-			byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
-			((TcpSocket)r.getSender()).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, serverKey, serverIv));
+			try {
+				if (r.getResultCode() != 0)
+					return r.getResultCode(); // 错误应答的Result.encIvKey为null，不能进入密钥推导
+				byte[] serverIvKey;
+				int serverIvKeyLen;
+				if (clientPriKey != null) {
+					serverIvKey = Cert.decryptRsa(clientPriKey, Result.encIvKey);
+					if (serverIvKey.length != 32)
+						return Res.ErrorDecryptFailed; // 不该出现的意外情况,估计只能断开连接了
+				} else {
+					serverIvKey = Result.encIvKey;
+					serverIvKeyLen = serverIvKey.length;
+					if (serverIvKeyLen != 32)
+						return Res.ErrorDecryptFailed; // 不该出现的意外情况,估计只能断开连接了
+					for (int i = 0; i < 32; i++)
+						serverIvKey[i] ^= clientIvKey[i];
+				}
+				byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
+				byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
+				((TcpSocket)r.getSender()).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, serverKey, serverIv));
 
-			byte[] clientIv = Arrays.copyOfRange(clientIvKey, 0, 16);
-			byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
-			((TcpSocket)r.getSender()).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, clientKey, clientIv));
-			return 0;
+				byte[] clientIv = Arrays.copyOfRange(clientIvKey, 0, 16);
+				byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
+				((TcpSocket)r.getSender()).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, clientKey, clientIv));
+				return 0;
+			} catch (Throwable ex) {
+				// FND6-33：与HandshakeBase对齐——密钥交换异常不能只回错误码留活连接
+				// （可能已切部分codec成半开状态），断连。
+				r.getSender().close(ex);
+				return Res.ErrorDecryptFailed;
+			}
 		});
 	}
 
 	public long processKeyExchangeRequest(@NotNull PrivateKey priKey, byte @Nullable [] pubKeyMd5) {
-		if (!Arrays.equals(Argument.serverPubKeyMd5, pubKeyMd5)) {
-			trySendResultCode(Res.ErrorUnknownServerPubKey);
-			return 0;
-		}
-		byte[] clientIvKey;
+		// FND6-33：KeyExchange.TypeId不在handshakeProtocols中（走Service.dispatchProtocol普通路径，
+		// Direct派发的callFuncCore仅trySendResultCode回错误码、连接保持）——恶意/损坏encIvKey
+		// 抛GeneralSecurityException后可在单条连接上无限刷RSA私钥解密（CPU消耗）；伪造
+		// clientPubKey路径更发生在setInputSecurityCodec之后，留下已切codec的半开连接。
+		// 与HandshakeBase各握手handler的「握手错误不能忽略」判例对齐：异常断连。
 		try {
-			clientIvKey = Cert.decryptRsa(priKey, Argument.encIvKey);
-		} catch (GeneralSecurityException e) {
-			throw Task.forceThrow(e);
-		}
-		if (clientIvKey.length != 32) {
-			trySendResultCode(Res.ErrorDecryptFailed);
+			if (!Arrays.equals(Argument.serverPubKeyMd5, pubKeyMd5)) {
+				trySendResultCode(Res.ErrorUnknownServerPubKey);
+				return 0;
+			}
+			byte[] clientIvKey;
+			try {
+				clientIvKey = Cert.decryptRsa(priKey, Argument.encIvKey);
+			} catch (GeneralSecurityException e) {
+				throw Task.forceThrow(e);
+			}
+			if (clientIvKey.length != 32) {
+				trySendResultCode(Res.ErrorDecryptFailed);
+				return 0;
+			}
+
+			byte[] serverIvKey = genIvKey();
+			byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
+			byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
+			((TcpSocket)getSender()).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, serverKey, serverIv));
+
+			if (Argument.clientPubKey.length > 0) {
+				//NOTE: 这里可以先认证一下客户端公钥是否合法,不合法就回复Res.ErrorUnknownClientPubKey
+				Result.encIvKey = encryptRsa(Argument.clientPubKey, serverIvKey);
+			} else {
+				for (int i = 0; i < 32; i++)
+					serverIvKey[i] ^= clientIvKey[i];
+				Result.encIvKey = serverIvKey;
+			}
+			trySendResultCode(0);
+
+			byte[] clientIv = Arrays.copyOfRange(clientIvKey, 0, 16);
+			byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
+			((TcpSocket)getSender()).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, clientKey, clientIv));
+			return 0;
+		} catch (Throwable ex) { // 这个握手错误不能忽略（对齐HandshakeBase判例）。
+			getSender().close(ex);
 			return 0;
 		}
-
-		byte[] serverIvKey = genIvKey();
-		byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
-		byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
-		((TcpSocket)getSender()).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, serverKey, serverIv));
-
-		if (Argument.clientPubKey.length > 0) {
-			//NOTE: 这里可以先认证一下客户端公钥是否合法,不合法就回复Res.ErrorUnknownClientPubKey
-			Result.encIvKey = encryptRsa(Argument.clientPubKey, serverIvKey);
-		} else {
-			for (int i = 0; i < 32; i++)
-				serverIvKey[i] ^= clientIvKey[i];
-			Result.encIvKey = serverIvKey;
-		}
-		trySendResultCode(0);
-
-		byte[] clientIv = Arrays.copyOfRange(clientIvKey, 0, 16);
-		byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
-		((TcpSocket)getSender()).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, clientKey, clientIv));
-		return 0;
 	}
 
 	public static void addHandler(@NotNull Service service, @NotNull PrivateKey serverPriKey) {
