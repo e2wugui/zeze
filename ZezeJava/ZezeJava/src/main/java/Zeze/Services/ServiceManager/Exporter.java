@@ -41,7 +41,7 @@ public class Exporter {
 		agent.waitReady();
 	}
 
-	private void onEdit(BEditService edit) throws Exception {
+	private void onEdit(BEditService edit) {
 		HashSet<String> serviceSet = null;
 		for (var ep : exports) {
 			try {
@@ -95,6 +95,7 @@ public class Exporter {
 				// 持续陈旧直到下一事件。FND4-61只修了state==null的NPE特例，未覆盖一般异常。
 				logger.error("export fail. exporter={}", ep.getClass().getName(), e);
 				// 中断卫生：恢复中断标志，避免吞掉one-by-one worker的中断状态。
+				//noinspection ConstantValue
 				if (e instanceof InterruptedException)
 					Thread.currentThread().interrupt();
 			}
@@ -108,10 +109,8 @@ public class Exporter {
 		for (var ep : exports) {
 			try {
 				ep.close();
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				logger.error("exporter close fail. exporter={}", ep.getClass().getName(), e);
-				if (e instanceof InterruptedException)
-					Thread.currentThread().interrupt();
 			}
 		}
 	}

@@ -11,7 +11,7 @@ public interface IExporter {
 
 	}
 
-	default void exportEdit(BEditService edit) throws Exception {
+	default void exportEdit(BEditService edit) {
 
 	}
 
