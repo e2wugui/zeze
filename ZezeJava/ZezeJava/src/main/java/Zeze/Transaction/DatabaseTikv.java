@@ -42,9 +42,13 @@ public class DatabaseTikv extends Database {
 			session = TiSession.create(config);
 			client = null;
 			txnClient = session.createKVClient();
-		} else {
-			config = TiConfiguration.createRawDefault(getDatabaseUrl());
-			session = TiSession.create(config);
+			} else {
+				config = TiConfiguration.createRawDefault(getDatabaseUrl());
+				// compareAndSet/putIfAbsent 入口门禁：未启用时 raw client 方法体开头即抛
+				// IllegalArgumentException（tikv-client 3.3.5 字节码实证），schemasCompatible
+				// 首次 CAS 必炸启动。仅开启 CAS 的 atomic 检查路径，put/get 等普通 raw 操作不受影响。
+				config.setEnableAtomicForCAS(true);
+				session = TiSession.create(config);
 			client = session.createRawClient();
 			txnClient = null;
 		}
