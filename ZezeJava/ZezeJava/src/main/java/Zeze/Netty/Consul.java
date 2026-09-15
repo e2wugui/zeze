@@ -37,8 +37,6 @@ public class Consul {
 		if (null != services.putIfAbsent(httpServer, serviceId))
 			throw new IllegalStateException("duplicate register " + serviceId);
 
-		httpServer.addHandler(PassiveKeepAlivePath, 1024, null, null, Consul::passiveKeepAlive);
-
 		var newService = new NewService();
 		newService.setAddress(ip);
 		newService.setPort(port);
@@ -51,6 +49,9 @@ public class Consul {
 		var host = ip.contains(":") ? "[" + ip + "]" : ip;
 		var checker = new NewService.Check();
 		checker.setHttp("http://" + host + ":" + port + PassiveKeepAlivePath);
+		// 进程消亡后探活持续失败，critical服务自动注销——兜底stop失败/超时反转产生的孤儿注册。
+		checker.setInterval("10s");
+		checker.setDeregisterCriticalServiceAfter("5m");
 		newService.setCheck(checker);
 		/* checker 网上的配置，需要都设置？
 			{
@@ -66,6 +67,9 @@ public class Consul {
 			}
 		 */
 		try {
+			// 必须在try守护内（FND6-17）：addHandler对重复path抛IllegalStateException时
+			// 走下方catch回滚services条目，若在try外抛出则条目泄漏，重试恒抛duplicate register。
+			httpServer.addHandler(PassiveKeepAlivePath, 1024, null, null, Consul::passiveKeepAlive);
 			client.agentServiceRegister(newService); // response value is void.
 		} catch (RuntimeException e) {
 			// FND6-17：回滚本地登记与handler——注册时consul瞬断（远端未注册）而本地残留时，
