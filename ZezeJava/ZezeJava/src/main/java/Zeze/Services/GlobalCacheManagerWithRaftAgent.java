@@ -92,8 +92,16 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	public final void stop() throws Exception {
 		lock();
 		try {
-			for (var agent : agents)
-				agent.close();
+			for (var agent : agents) {
+				try {
+					agent.close();
+				} catch (Exception e) { // logger.error
+					// 停机尽力语义：单个agent关闭失败只记日志，继续关闭其余agent，
+					// 避免异常上抛中止后续agent关闭，并中断Application.stop（startState卡在eStopping）。
+					logger.error("GlobalCacheManagerWithRaftAgent.Stop Agent={}",
+							agent.getGlobalCacheManagerHashIndex(), e);
+				}
+			}
 		} finally {
 			unlock();
 		}
@@ -331,18 +339,31 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			} finally {
 				unlock();
 			}
-			if (loginTimes.get() > 0) {
-				try {
+			try {
+				if (loginTimes.get() > 0)
 					raftClient.sendForWait(new NormalClose()).await(10 * 1000); // 10s
+			} catch (Exception e) {
+				// FND6-25：GCM端ProcessNormalClose在应答前逐key release（可阻塞等待reduce，
+				// 键多或争用时轻易超10s）或直接超时——future异常完成后await对CompletionException
+				// 重抛。记日志继续，不中断停机流程；raftClient.stop()放到finally，
+				// 保证无论NormalClose是否发送/成功都总是执行，停机尽力语义。
+				logger.error("NormalClose await fail", e);
+			} finally {
+				try {
+					raftClient.stop();
 				} catch (Exception e) {
-					// FND6-25：GCM端ProcessNormalClose在应答前逐key release（可阻塞等待reduce，
-					// 键多或争用时轻易超10s）或直接超时——future异常完成后await对CompletionException
-					// 重抛。原样上抛会跳过raftClient.stop()，且stop()的agent循环在第一个异常处中止，
-					// 后续agent全部不关闭。停机尽力语义：记日志继续。
-					logger.error("NormalClose await fail", e);
+					// stop失败（如内部client.stop抛出）：前置位的activeClose会短路后续重试
+					// （Agent.stop本身对client==null幂等早退，本就支持重入）。记日志后在锁内
+					// 复位activeClose，使上层stop()的重试可达；锁内仅复位标志，无耗时操作。
+					logger.error("RaftClient Stop Fail Agent={}", globalCacheManagerHashIndex, e);
+					lock();
+					try {
+						activeClose = false;
+					} finally {
+						unlock();
+					}
 				}
 			}
-			raftClient.stop();
 		}
 
 		public final void waitLoginSuccess() {

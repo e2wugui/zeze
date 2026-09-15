@@ -304,8 +304,16 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 	public void stop() throws Exception {
 		lock();
 		try {
-			for (var agent : agents)
-				agent.close();
+			for (var agent : agents) {
+				try {
+					agent.close();
+				} catch (Exception e) { // logger.error
+					// 停机尽力语义：单个agent关闭失败只记日志，继续关闭其余agent，
+					// 避免异常上抛中止后续agent关闭，并中断Application.stop（startState卡在eStopping）。
+					logger.error("GlobalAgent.Stop Agent={}",
+							agent.getGlobalCacheManagerHashIndex(), e);
+				}
+			}
 			client.stop();
 		} finally {
 			unlock();

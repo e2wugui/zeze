@@ -282,24 +282,43 @@ public final class Agent {
 			if (client == null)
 				return;
 
-			client.stop();
+			// 尽力到底：任何单点失败都不得阻止其余清理与pending future完成——
+			// client.stop()单独兜底（失败记日志后继续），随后无论如何置空client（幂等早退
+			// 依赖它）、清leader、摘除proxy注册、触发pending future。原实现client.stop()抛出
+			// 时后面全部跳过且client不置空：挂起rpc永久挂起、重试路径不一致。
+			try {
+				client.stop();
+			} catch (Throwable e) { // logger.error
+				logger.error("Agent.stop client.stop fail, name={}", client.getName(), e);
+			}
 			client = null;
 
-			if (null != proxyAgent)
-				proxyAgent.removeAgent(this);
+			if (null != proxyAgent) {
+				try {
+					proxyAgent.removeAgent(this);
+				} catch (Throwable e) { // logger.error
+					logger.error("Agent.stop removeAgent fail", e);
+				}
+			}
 
 			leader = null;
 
 			// 先原子摘除再触发（对齐cancelPending，FND4-28）：原"迭代触发后clear"期间，IO线程
 			// 收到真实应答时pending.remove仍成功——用户handle以Timeout与真实结果各执行一次
-			//（send回调路径无CAS保护；sendForWait路径由TaskCompletionSource.setResult兜住）。
+			// （send回调路径无CAS保护；sendForWait路径由TaskCompletionSource.setResult兜住）。
 			var removed = new ArrayList<RaftRpc<?, ?>>();
 			for (var rpc : pending) {
 				var r = pending.remove(rpc.getUnique().getRequestId());
 				if (null != r)
 					removed.add(r);
 			}
-			trigger(removed, "stopPending");
+			// trigger内部对handle路径已有逐rpc兜底，这里整体兜底future.setException等
+			// 剩余路径，保证循环内单个rpc的失败不影响其余rpc的future完成。
+			try {
+				trigger(removed, "stopPending");
+			} catch (Throwable e) { // logger.error
+				logger.error("Agent.stop trigger pending fail", e);
+			}
 		} finally {
 			mutex.unlock();
 		}
