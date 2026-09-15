@@ -13,6 +13,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.Future;
@@ -262,7 +263,10 @@ public class Daemon {
 			// 合并stderr避免缓冲区填满阻塞子进程；显式关闭输入流；限时等待退出，超时强杀。
 			var process = new ProcessBuilder(cmd).redirectErrorStream(true).start();
 			try (var input = new BufferedInputStream(process.getInputStream())) {
-				Files.copy(input, Path.of("jstack." + pid));
+				// FND6-31：Daemon常驻重启后子进程pid复用时目标文件已存在，无REPLACE_EXISTING的
+				// copy抛FileAlreadyExistsException直接跳到外层catch——waitFor/destroyForcibly不执行
+				// （jstack孤儿），本次死锁现场丢失。覆盖旧文件保留最新现场。
+				Files.copy(input, Path.of("jstack." + pid), StandardCopyOption.REPLACE_EXISTING);
 			}
 			if (!process.waitFor(30, TimeUnit.SECONDS))
 				process.destroyForcibly();
