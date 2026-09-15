@@ -14,6 +14,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Handshake.Constant;
@@ -356,6 +357,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 
 	public void setInputSecurityCodec(int encryptType, byte @Nullable [] encryptParam, int compressType) {
 		submitAction(() -> { // 进selector线程调用
+			if (compressType != Constant.eCompressTypeDisable)
+				warnDecompressHeadroom(compressType); // 压缩开启：检查max对readBufferSize的headroom
 			// 压缩开启时解压输出经 InputLimitCodec 流式检查增长上限：processReceive 的
 			// InputBufferMaxProtocolSize 检查发生在整个chunk解压完成之后，恶意压缩数据（放大率
 			// 可达千倍）会在此之前无上限膨胀输入缓冲。不压缩（仅加密或全disable）不扩展，保持原路径。
@@ -578,8 +581,13 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 						codecBuf.FreeInternalBuffer(); // 只在过大的缓冲区时释放内部bytes[], 避免频繁分配
 				} else {
 					int max = getService().getSocketOptions().getInputBufferMaxProtocolSize();
-					if (remain >= max)
-						throw new IllegalStateException("InputBufferMaxProtocolSize " + remain + " >= " + max);
+					// max 语义=最大协议体大小（不含12字节帧头），帧级检查（Protocol.decode 的
+					// longSize > maxSize）用 > 允许恰等于 max。本处残留缓冲量纲含帧头：恰达限值的
+					// 未压缩协议跨多轮接收时残留最多 HEADER_SIZE+max，须同样允许到该值（用 >），
+					// 否则同文件内自相矛盾，body==max 的协议会被误杀。
+					if (remain > Protocol.HEADER_SIZE + max)
+						throw new IllegalStateException(
+								"InputBufferMaxProtocolSize " + remain + " > " + (Protocol.HEADER_SIZE + max));
 					codecBuf.Compact();
 				}
 			} else if (bytesTransferred < 0)
@@ -594,10 +602,30 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	 * 发生在整个 chunk 解压完成之后，恶意压缩数据（MPPC/zstd 放大率可达千倍）会在此之前无上限
 	 * 膨胀输入缓冲（codecBuf 按倍增长直逼百MB）。这里作为解压 sink，边解压边检查总大小
 	 * （含未消费的剩余数据），超过上限即抛异常（连接会被关闭），保持每条连接的输入内存有界。
-	 * 边界用 {@code >}（FND6-12）：与帧级检查（Protocol 对声明大小的 {@code > maxSize}）对齐，
-	 * 允许恰等于 max 的协议——否则同一协议未压缩可收、压缩后被杀。压缩对不可压数据有约 9/8
-	 * 膨胀（MPPC），max 配置需给 readBufferSize 留膨胀 headroom。
+	 * 量纲统一（FND6-12）：max 语义=最大协议体大小（不含 12 字节帧头），帧级检查（Protocol.decode
+	 * 对声明大小的 {@code longSize > maxSize}）允许恰等于 max 的协议；本 sink 须瞬时容纳完整帧
+	 * （12 字节帧头+协议体），故缓冲检查量纲含帧头、允许到 {@code HEADER_SIZE+max}——否则同一
+	 * 协议未压缩可收、压缩后被杀。压缩对不可压数据有约 9/8 膨胀（MPPC），max 配置需给
+	 * readBufferSize 留膨胀 headroom。
 	 */
+	// 45d9b80 残留P3：压缩开启时解压路径的瞬时缓冲上限为 HEADER_SIZE+max（InputLimitCodec 与
+	// processReceive 残留检查），而一次 read 事件最多读入 readBufferSize 字节压缩数据，解压输出
+	// 叠加上一轮未消费的残留（且 MPPC 对不可压数据约有 9/8 膨胀），max < 2×readBufferSize 时
+	// 瞬时总量可能超限，误杀 body 接近 max 的合法协议。仅告警一次（静态once标志防止海量连接刷屏）。
+	private static final AtomicBoolean decompressHeadroomWarned = new AtomicBoolean();
+
+	// 告警点选在 setInputSecurityCodec：此处首次确知该连接压缩开启（compressType 非 disable），
+	// 且每连接可知其归属 selector 的 readBufferSize（selector.getSelectors().getReadBufferSize()，
+	// 即 processReceive 共享读缓冲的容量来源）。
+	private void warnDecompressHeadroom(int compressType) {
+		int max = getService().getSocketOptions().getInputBufferMaxProtocolSize();
+		int readBufferSize = selector.getSelectors().getReadBufferSize();
+		if (max < 2 * readBufferSize && decompressHeadroomWarned.compareAndSet(false, true))
+			logger.warn("InputBufferMaxProtocolSize({}) < 2*readBufferSize({})：压缩已开启(compressType={})，" +
+					"单次读事件的解压输出叠加残留可能瞬时超过限值(HEADER_SIZE+max)误杀大协议，" +
+					"建议调大 InputBufferMaxProtocolSize 或调小 Selectors.readBufferSize", max, readBufferSize, compressType);
+	}
+
 	private static final class InputLimitCodec implements Codec {
 		private final @NotNull TcpSocket socket;
 		private final @NotNull BufferCodec sink;
@@ -611,8 +639,9 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		public void update(byte c) {
 			int newSize = sink.size() + 1;
 			int max = socket.getService().getSocketOptions().getInputBufferMaxProtocolSize();
-			if (newSize > max) // FND6-12：允许恰等于max，对齐帧级检查边界
-				throw new IllegalStateException("InputBufferMaxProtocolSize " + newSize + " > " + max);
+			if (newSize > Protocol.HEADER_SIZE + max) // FND6-12：量纲含帧头，允许到HEADER_SIZE+max（见类注释）
+				throw new IllegalStateException(
+						"InputBufferMaxProtocolSize " + newSize + " > " + (Protocol.HEADER_SIZE + max));
 			sink.update(c);
 		}
 
@@ -620,8 +649,9 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		public void update(byte @NotNull [] data, int off, int len) {
 			int newSize = sink.size() + len;
 			int max = socket.getService().getSocketOptions().getInputBufferMaxProtocolSize();
-			if (newSize > max) // FND6-12：允许恰等于max，对齐帧级检查边界
-				throw new IllegalStateException("InputBufferMaxProtocolSize " + newSize + " > " + max);
+			if (newSize > Protocol.HEADER_SIZE + max) // FND6-12：量纲含帧头，允许到HEADER_SIZE+max（见类注释）
+				throw new IllegalStateException(
+						"InputBufferMaxProtocolSize " + newSize + " > " + (Protocol.HEADER_SIZE + max));
 			sink.update(data, off, len);
 		}
 

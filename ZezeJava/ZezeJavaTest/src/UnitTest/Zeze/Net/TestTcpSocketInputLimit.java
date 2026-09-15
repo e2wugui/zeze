@@ -9,6 +9,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.BufferCodec;
 import Zeze.Net.Compress;
 import Zeze.Net.CompressZstd;
+import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Net.TcpSocket;
 import Zeze.Serialize.ByteBuffer;
@@ -35,6 +36,9 @@ public class TestTcpSocketInputLimit {
 		public final int compressType;
 		public final CountDownLatch closed = new CountDownLatch(1);
 		public volatile @Nullable Throwable closeEx;
+		// 边界用例观察点：完整协议帧送达（走 dispatchUnknownProtocol，moduleId/protocolId 未注册）。
+		public final CountDownLatch received = new CountDownLatch(1);
+		public volatile int receivedBodySize = -1; // 最近一次完整收到的协议body大小（帧内声明size）
 
 		public Server(String name, int compressType, int maxInputProtocolSize) {
 			super(name);
@@ -47,6 +51,14 @@ public class TestTcpSocketInputLimit {
 			super.OnHandshakeDone(so);
 			if (so instanceof TcpSocket tcp)
 				tcp.setInputSecurityCodec(Constant.eEncryptTypeDisable, null, compressType);
+		}
+
+		@Override
+		public void dispatchUnknownProtocol(@NotNull AsyncSocket so, int moduleId, int protocolId,
+		                                    @NotNull ByteBuffer data) {
+			// 默认实现抛UnsupportedOperationException会关连接；这里记录大小证明帧被完整接收。
+			receivedBodySize = data.size(); // decode窗口内：ReadIndex跳过帧头、WriteIndex=帧尾，恰为body大小
+			received.countDown();
 		}
 
 		@Override
@@ -78,6 +90,20 @@ public class TestTcpSocketInputLimit {
 		cp.update(payload, 0, payload.length);
 		cp.flush();
 		return Arrays.copyOfRange(sink.Bytes, sink.ReadIndex, sink.WriteIndex);
+	}
+
+	// 构造完整协议帧：12字节帧头(moduleId/protocolId/size，小端定长4字节——须用WriteInt4，
+	// WriteInt是变长编码) + body。moduleId/protocolId 未注册，完整收到时走
+	// dispatchUnknownProtocol（Server 里记录body大小作为接收成功的观察点）。
+	private static byte[] makeFrame(int bodySize) {
+		var body = new byte[bodySize];
+		Arrays.fill(body, (byte)0x42);
+		var payload = ByteBuffer.Allocate(Protocol.HEADER_SIZE + bodySize);
+		payload.WriteInt4(0x1234); // moduleId
+		payload.WriteInt4(0x5678); // protocolId
+		payload.WriteInt4(bodySize); // size：body大小
+		payload.Append(body, 0, bodySize);
+		return Arrays.copyOfRange(payload.Bytes, payload.ReadIndex, payload.WriteIndex);
 	}
 
 	private static void sendAfterCodec(int port, byte @NotNull [] wireBytes) throws Exception {
@@ -116,8 +142,47 @@ public class TestTcpSocketInputLimit {
 		assertClosedAtLimit(server);
 	}
 
+	// 边界回归（FND6-12）：body恰为max的完整协议（压缩开启）解压总量=HEADER_SIZE+max恰达限值，
+	// InputLimitCodec 与 processReceive 残留检查均用 > 比较，必须允许（接收成功）而非误杀。
+	@Test
+	public final void testBodyExactlyMaxCompressedReceived() throws Exception {
+		int max = 64 * 1024;
+		var server = new Server("TestTcpSocketInputLimit.MaxCompressed", Constant.eCompressTypeMppc, max);
+		int port = startServer(server);
+		sendAfterCodec(port, compressMppc(makeFrame(max)));
+		Assertions.assertTrue(server.received.await(5, TimeUnit.SECONDS), "body==max的压缩协议应被完整接收");
+		Assertions.assertEquals(max, server.receivedBodySize, "收到的body大小应恰为max");
+	}
+
+	// 边界回归：直通路径（compressType=disable，codec链不扩展仅透传进 inputBuffer）body恰为max。
+	// max取64KB==默认readBufferSize，帧(HEADER_SIZE+max)必然跨多次read，恰经 processReceive 的
+	// 残留检查路径：首轮decode等剩余数据后 remain==max，须 <= HEADER_SIZE+max 放行（用 > 允许恰达限值）。
+	@Test
+	public final void testBodyExactlyMaxPassthroughReceived() throws Exception {
+		int max = 64 * 1024; // ==默认readBufferSize(64KB)，帧跨多次read，残留检查路径必经
+		var server = new Server("TestTcpSocketInputLimit.MaxPassthrough", Constant.eCompressTypeDisable, max);
+		int port = startServer(server);
+		sendAfterCodec(port, makeFrame(max)); // 不压缩直发
+		Assertions.assertTrue(server.received.await(5, TimeUnit.SECONDS), "body==max的直通协议应被完整接收");
+		Assertions.assertEquals(max, server.receivedBodySize, "收到的body大小应恰为max");
+	}
+
+	// 边界回归：body=max+1（压缩开启）解压总量=HEADER_SIZE+max+1超限，InputLimitCodec 流式拒绝，
+	// 按既有断言方式验证被拒。注：直通路径完整帧一次到达时帧级检查不拦截（数据够则优先处理），
+	// 需分片到达才触发帧级"too large"，属另一检查点，故被拒用例以压缩路径的量纲检查为准。
+	@Test
+	public final void testBodyOverMaxRejected() throws Exception {
+		int max = 64 * 1024;
+		var server = new Server("TestTcpSocketInputLimit.OverMax", Constant.eCompressTypeMppc, max);
+		int port = startServer(server);
+		sendAfterCodec(port, compressMppc(makeFrame(max + 1)));
+		assertClosedAtLimit(server);
+	}
+
 	// 负控：解压总量低于上限的合法数据不应触发关闭（协议头声明的size比实际数据大，
 	// decode 会等待更多数据而不派发，客户端保持连接期间服务端不应关闭）。
+	// 注：本用例曾误用变长WriteInt写帧头导致解码乱序关闭，被误记为"流配对噪音"
+	// （FND-N1-2新发现候选）——实为测试自身bug，改用WriteInt4后噪音消失。
 	@Test
 	public final void testUnderLimitKeepsConnection() throws Exception {
 		var server = new Server("TestTcpSocketInputLimit.Under", Constant.eCompressTypeMppc, 128 * 1024);
@@ -125,18 +190,17 @@ public class TestTcpSocketInputLimit {
 		var body = new byte[60 * 1024];
 		Arrays.fill(body, (byte)0x42);
 		var payload = ByteBuffer.Allocate(12 + body.length);
-		payload.WriteInt(0x1234); // moduleId
-		payload.WriteInt(0x5678); // protocolId
-		payload.WriteInt(64 * 1024); // size：比实际数据大，永远等不完整 → 不派发
+		payload.WriteInt4(0x1234); // moduleId
+		payload.WriteInt4(0x5678); // protocolId
+		payload.WriteInt4(64 * 1024); // size：比实际数据大，永远等不完整 → 不派发
 		payload.Append(body, 0, body.length);
 		try (Socket client = new Socket("127.0.0.1", port)) {
 			Thread.sleep(300); // 等 selector 线程应用解压 codec
 			OutputStream os = client.getOutputStream();
 			os.write(compressMppc(Arrays.copyOfRange(payload.Bytes, payload.ReadIndex, payload.WriteIndex)));
 			os.flush();
-			// 负控只断言"上限未触发"：本用例的全链路（真实TCP+单发压缩流+服务端解码）存在与上限
-			// 无关的流配对噪音（修复前后行为一致，已记 FND-N1-2.md 新发现候选），连接可能因解码
-			// "too large" 关闭，但那不是增长上限；上限的红绿由上面两个炸弹用例覆盖。
+			// 负控只断言"上限未触发"：帧头声明的size大于实际数据，decode永远等待不派发；
+			// 若连接因任何原因关闭，不得是增长上限（上限的红绿由上面两个炸弹用例覆盖）。
 			if (server.closed.await(1, TimeUnit.SECONDS)) {
 				var ex = server.closeEx;
 				boolean limitFired = ex instanceof IllegalStateException && ex.getMessage() != null
