@@ -34,6 +34,11 @@ public class HandshakeBase extends Service {
 
 	private final LongHashSet handshakeProtocols = new LongHashSet();
 
+	// 是否承担握手服务端角色（接受CHandshake）：构造期由addHandshakeServerFactoryHandle置位，
+	// 必然早于start()里的checkAesSecureIp。作为一等语义判角色，不借handshakeProtocols派发
+	// 簿记作预言——若未来出现start后才注册CHandshake的懒注册角色，簿记判据会静默漏告警。
+	private boolean serverRole;
+
 	static class Context {
 		final @NotNull Object context;
 		final int encryptType; // 本次握手请求使用的加密类型（CHandshake.Argument.encryptType），用于校验SHandshake回显一致
@@ -81,8 +86,8 @@ public class HandshakeBase extends Service {
 			// FND6-32：仅服务角色（HandshakeServer/HandshakeBoth）告警。客户端侧密钥派生从不
 			// 读SecureIp（全仓唯一读取点就是本告警），纯客户端角色（HandshakeClient）启动即
 			// WARN属必然误报——协商值由服务器决定，服务器配SecureIp/直连时客户端完全正常。
-			// CHandshake工厂仅服务角色注册（addHandshakeServerFactoryHandle），作角色判据。
-			if (!handshakeProtocols.contains(CHandshake.TypeId_))
+			// serverRole构造期确定（仅服务角色构造器注册CHandshake工厂），无懒注册时序漏判。
+			if (!serverRole)
 				return;
 			logger.warn("{} EncryptType=Aes without SecureIp: session key is derived from the connection "
 					+ "address (server side: local address; client side: remote address). Direct connections work, "
@@ -104,6 +109,7 @@ public class HandshakeBase extends Service {
 	}
 
 	protected final void addHandshakeServerFactoryHandle() {
+		serverRole = true;
 		handshakeProtocols.add(CHandshake.TypeId_);
 		AddFactoryHandle(CHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
 				CHandshake::new, this::processCHandshake, TransactionLevel.None, DispatchMode.Direct));

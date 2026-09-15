@@ -40,18 +40,24 @@ public class TestHandshakeAesSecureIpWarning {
 
 	private static List<String> startHandshakeServerAndCaptureWarn(String serviceName, ServiceConf sconf)
 			throws Exception {
+		return startAndCaptureWarn(serviceName, sconf, true);
+	}
+
+	/** serverRole=true构造HandshakeServer、false构造HandshakeClient，捕获start日志。 */
+	private static List<String> startAndCaptureWarn(String serviceName, ServiceConf sconf, boolean serverRole)
+			throws Exception {
 		var conf = new Config();
 		conf.getServiceConfMap().put(serviceName, sconf);
-		var server = new HandshakeServer(serviceName, conf);
+		HandshakeBase service = serverRole ? new HandshakeServer(serviceName, conf) : new HandshakeClient(serviceName, conf);
 
 		var logger = (Logger)LogManager.getLogger(HandshakeBase.class);
 		var capture = new CaptureAppender();
 		capture.start();
 		logger.addAppender(capture);
 		try {
-			server.start();
+			service.start();
 		} finally {
-			server.stop();
+			service.stop();
 			logger.removeAppender(capture);
 			capture.stop();
 		}
@@ -105,5 +111,19 @@ public class TestHandshakeAesSecureIpWarning {
 
 		Assertions.assertTrue(messages.stream().noneMatch(m -> m.contains("EncryptType=Aes without SecureIp")),
 				() -> "RsaAes mode must not warn, got: " + messages);
+	}
+
+	// 负例（FND6-32角色门禁）：纯客户端角色（HandshakeClient）不消费SecureIp，Aes+未配
+	// SecureIp启动必须零告警——角色判据serverRole构造期确定，锁住不再借派发簿记预言。
+	@Test
+	public void testClientRoleAesWithoutSecureIpDoesNotWarn() throws Exception {
+		Task.tryInitThreadPool();
+		var sconf = new ServiceConf();
+		sconf.getHandshakeOptions().setEncryptType(Constant.eEncryptTypeAes);
+
+		var messages = startAndCaptureWarn("TestAesClientRoleNoWarn", sconf, false);
+
+		Assertions.assertTrue(messages.stream().noneMatch(m -> m.contains("EncryptType=Aes without SecureIp")),
+				() -> "client role must not warn, got: " + messages);
 	}
 }
