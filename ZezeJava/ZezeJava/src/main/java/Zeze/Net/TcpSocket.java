@@ -593,7 +593,10 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	 * 解压输出的流式增长上限（防压缩放大）：processReceive 对 InputBufferMaxProtocolSize 的检查
 	 * 发生在整个 chunk 解压完成之后，恶意压缩数据（MPPC/zstd 放大率可达千倍）会在此之前无上限
 	 * 膨胀输入缓冲（codecBuf 按倍增长直逼百MB）。这里作为解压 sink，边解压边检查总大小
-	 * （含未消费的剩余数据），达到上限即抛异常（连接会被关闭），保持每条连接的输入内存有界。
+	 * （含未消费的剩余数据），超过上限即抛异常（连接会被关闭），保持每条连接的输入内存有界。
+	 * 边界用 {@code >}（FND6-12）：与帧级检查（Protocol 对声明大小的 {@code > maxSize}）对齐，
+	 * 允许恰等于 max 的协议——否则同一协议未压缩可收、压缩后被杀。压缩对不可压数据有约 9/8
+	 * 膨胀（MPPC），max 配置需给 readBufferSize 留膨胀 headroom。
 	 */
 	private static final class InputLimitCodec implements Codec {
 		private final @NotNull TcpSocket socket;
@@ -608,8 +611,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		public void update(byte c) {
 			int newSize = sink.size() + 1;
 			int max = socket.getService().getSocketOptions().getInputBufferMaxProtocolSize();
-			if (newSize >= max)
-				throw new IllegalStateException("InputBufferMaxProtocolSize " + newSize + " >= " + max);
+			if (newSize > max) // FND6-12：允许恰等于max，对齐帧级检查边界
+				throw new IllegalStateException("InputBufferMaxProtocolSize " + newSize + " > " + max);
 			sink.update(c);
 		}
 
@@ -617,8 +620,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		public void update(byte @NotNull [] data, int off, int len) {
 			int newSize = sink.size() + len;
 			int max = socket.getService().getSocketOptions().getInputBufferMaxProtocolSize();
-			if (newSize >= max)
-				throw new IllegalStateException("InputBufferMaxProtocolSize " + newSize + " >= " + max);
+			if (newSize > max) // FND6-12：允许恰等于max，对齐帧级检查边界
+				throw new IllegalStateException("InputBufferMaxProtocolSize " + newSize + " > " + max);
 			sink.update(data, off, len);
 		}
 
