@@ -95,6 +95,9 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				if (k == null)
 					throw new IllegalArgumentException("null key");
 				V v = e.getValue();
+				//noinspection ConstantValue
+				if (v == null) // FND6-02：对齐put与PMap1.putAll，托管分支原在initRootInfoWithRedo解引用NPE
+					throw new IllegalArgumentException("null value");
 				v.initRootInfoWithRedo(rootInfo, this);
 				v.mapKey(k);
 			}
@@ -107,6 +110,9 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				K k = e.getKey();
 				if (k == null)
 					throw new IllegalArgumentException("null key");
+				//noinspection ConstantValue
+				if (e.getValue() == null) // FND6-02：非托管分支原在mapKey解引用NPE
+					throw new IllegalArgumentException("null value");
 				e.getValue().mapKey(k);
 			}
 			map = map.plusAll(m);

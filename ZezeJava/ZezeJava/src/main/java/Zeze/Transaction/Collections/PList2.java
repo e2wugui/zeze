@@ -142,8 +142,12 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (items instanceof PList2)
 			items = ((PList2<? extends V>)items).getList(); // more stable
 		if (isManaged()) {
-			for (V v : items)
+			for (V v : items) {
+				//noinspection ConstantValue
+				if (v == null) // FND6-02：对齐非托管分支与add/PList1，原在initRootInfoWithRedo解引用NPE
+					throw new IllegalArgumentException("null item");
 				v.initRootInfoWithRedo(rootInfo, this);
+			}
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -189,6 +193,9 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (isManaged()) {
 			for (V v : this) {
 				V newV = operator.apply(v);
+				//noinspection ConstantValue
+				if (newV == null) // FND6-02：对齐非托管分支，原null在initRootInfoWithRedo或日志路径解引用NPE
+					throw new IllegalStateException("null item");
 				if (newV != v)
 					newV.initRootInfoWithRedo(rootInfo, this);
 				tmpList.add(newV);
