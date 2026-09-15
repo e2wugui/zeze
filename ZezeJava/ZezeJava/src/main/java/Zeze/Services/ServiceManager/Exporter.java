@@ -8,6 +8,8 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Util.KV;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
  * 当前需求是：nginx-config-file, nginx-config-http
  */
 public class Exporter {
+	private static final @NotNull Logger logger = LogManager.getLogger(Exporter.class);
 	private final AbstractAgent agent;
 	private final java.util.List<IExporter> exports = new ArrayList<>();
 
@@ -37,29 +40,41 @@ public class Exporter {
 	private void onEdit(BEditService edit) throws Exception {
 		HashSet<String> serviceSet = null;
 		for (var ep : exports) {
-			switch (ep.getType()) {
-			case eAll:
-				if (null == serviceSet) {
-					// 收集不同的服务名字。
-					serviceSet = new HashSet<>();
-					for (var e : edit.getRemove())
-						serviceSet.add(e.getServiceName());
-					for (var e : edit.getAdd())
-						serviceSet.add(e.getServiceName());
+			try {
+				switch (ep.getType()) {
+				case eAll:
+					if (null == serviceSet) {
+						// 收集不同的服务名字。
+						serviceSet = new HashSet<>();
+						for (var e : edit.getRemove())
+							serviceSet.add(e.getServiceName());
+						for (var e : edit.getAdd())
+							serviceSet.add(e.getServiceName());
+					}
+					for (var serviceName : serviceSet) {
+						// 与退订竞态（FND4-61）：triggerOnChanged经executeOneByOne异步排队，期间
+						// unSubscribeService已remove该服务的subscribeStates——跳过为正确语义（已不
+						// 关心）；原NPE被triggerOnChanged捕获记日志，同批其余服务的导出整体丢失。
+						var state = agent.getSubscribeStates().get(serviceName);
+						if (state == null)
+							continue;
+						try {
+							ep.exportAll(serviceName, state.getServiceInfosVersion());
+						} catch (Exception e) {
+							// FND6-26：逐服务隔离——单服务导出失败记错继续，同批其余服务不受影响。
+							logger.error("exportAll fail. exporter={}, service={}", ep.getClass().getName(), serviceName, e);
+						}
+					}
+					break;
+				case eEdit:
+					ep.exportEdit(edit);
+					break;
 				}
-				for (var serviceName : serviceSet) {
-					// 与退订竞态（FND4-61）：triggerOnChanged经executeOneByOne异步排队，期间
-					// unSubscribeService已remove该服务的subscribeStates——跳过为正确语义（已不
-					// 关心）；原NPE被triggerOnChanged捕获记日志，同批其余服务的导出整体丢失。
-					var state = agent.getSubscribeStates().get(serviceName);
-					if (state == null)
-						continue;
-					ep.exportAll(serviceName, state.getServiceInfosVersion());
-				}
-				break;
-			case eEdit:
-				ep.exportEdit(edit);
-				break;
+			} catch (Exception e) {
+				// FND6-26：逐exporter隔离——原任一exporter抛异常（文件IO失败、Runtime.exec失败等）
+				// 中断整个onEdit，同批其余exporter与其余服务的导出全部跳过且无重试，nginx配置
+				// 持续陈旧直到下一事件。FND4-61只修了state==null的NPE特例，未覆盖一般异常。
+				logger.error("export fail. exporter={}", ep.getClass().getName(), e);
 			}
 		}
 	}
