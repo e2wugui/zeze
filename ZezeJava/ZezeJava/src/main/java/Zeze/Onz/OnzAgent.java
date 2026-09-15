@@ -49,6 +49,11 @@ public class OnzAgent extends AbstractOnzAgent {
 		transactions.remove(t.getOnzTid());
 	}
 
+	// FND6-36：redoTimer 以在途登记过滤，redo 只处理真残留（perform 线程已死亡的）。
+	boolean hasTransaction(long onzTid) {
+		return transactions.containsKey(onzTid);
+	}
+
 	@Override
 	protected long ProcessFlushReadyRequest(FlushReady r) throws Exception {
 		var pending = transactions.get(r.Argument.getOnzTid());

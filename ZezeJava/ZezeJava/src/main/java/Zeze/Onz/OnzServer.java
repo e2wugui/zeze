@@ -202,6 +202,16 @@ public class OnzServer extends AbstractOnz {
 				return;
 			try (var it = commitIndex.iterator()) {
 				for (it.seekToFirst(); it.isValid(); it.next()) {
+					var key = it.key();
+					// FND6-36：跳过存活perform仍在途的tid。登记窗口从addTransaction覆盖到
+					// finally removeTransaction，横跨saveCommitPoint(ePreparing)、无界
+					// waitPendingAsync与eCommitting阶段——期间任何redo都会命中进行中事务：
+					// Rollback回滚存活参与方后对迟到Commit假应答成功，静默全量回滚上报
+					// 成功，error暴露登记亦被先行Rollback消费。跳过后redo只处理真残留
+					// （协调者崩溃重启后onzAgent为空）；存活perform的finally保证摘除登记，
+					// 下轮redo可见。年龄闸（FND5-44）保留兜底登记机制失效的极端场景。
+					if (onzAgent.hasTransaction(ByteBuffer.ToLongBE(key, 0)))
+						continue;
 					var value = it.value();
 					var bb = ByteBuffer.Wrap(value);
 					var state = bb.ReadUInt();
