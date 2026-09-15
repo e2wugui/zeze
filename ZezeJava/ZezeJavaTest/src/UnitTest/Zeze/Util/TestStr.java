@@ -64,8 +64,12 @@ public final class TestStr {
 		Assertions.assertEquals(0x0002_0003_0000_0000L, Str.parseVersion("2.3"));
 		Assertions.assertEquals(0x0001_0002_0003_0004L, Str.parseVersion("1.2.3.4"));
 		Assertions.assertEquals(0x0000_0005_0006_0000L, Str.parseVersion("0.5.6"));
-		Assertions.assertEquals(0x0000_0007_0008_0009L, Str.parseVersion(".7.8.9.12"));
-		Assertions.assertEquals(0x0000_0000_0013_0000L, Str.parseVersion("..19..1.2"));
+		// FND6-06：4段是既定格式契约，第5个'.'起fail-fast（原静默截断，"1.2.3.4.5"与
+		// "1.2.3.4"解析相等，第5段差异被忽略）。
+		Assertions.assertThrows(NumberFormatException.class, () -> Str.parseVersion("1.2.3.4.5"));
+		Assertions.assertThrows(NumberFormatException.class, () -> Str.parseVersion(".7.8.9.12"));
+		Assertions.assertThrows(NumberFormatException.class, () -> Str.parseVersion("..19..1.2"));
+		Assertions.assertThrows(NumberFormatException.class, () -> Str.parseVersion("1.2.3.4."));
 		Assertions.assertEquals(0x0000_0000_0000_0000L, Str.parseVersion(""));
 		Assertions.assertEquals(0x0000_0000_0000_0000L, Str.parseVersion(".."));
 	}

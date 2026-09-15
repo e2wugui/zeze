@@ -190,7 +190,9 @@ public final class Str {
 					throw new NumberFormatException(version);
 			} else if (c == '.') {
 				if (s == 0)
-					break;
+					// FND6-05口径的fail-fast（FND6-06）：4段是既定格式契约，第5个'.'起原静默break
+					// 丢弃——"1.2.3.4.5"与"1.2.3.4"解析相等，第5段差异被忽略，配置错误无告警。
+					throw new NumberFormatException(version);
 				v += (long)t << s;
 				t = 0;
 				s -= 16;
