@@ -714,14 +714,17 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		return timerId;
 	}
 
-	// FND6-20：判定timerId当前登记的是否本族（账号offline）timer，查表路径仿cancelOffline。
-	private static boolean isAccountOfflineTimer(@NotNull Timer timer, @NotNull String timerId) {
+	// FND6-20：查timerId当前登记的账号offline timer归属，查表路径仿cancelOffline：
+	// 非本族timer返回null；本族返回customData，供调用方做族+归属判定。
+	private static @Nullable BOfflineAccountCustom getAccountOfflineCustom(@NotNull Timer timer, @NotNull String timerId) {
 		var index = timer.tIndexs().get(timerId);
 		if (index == null)
-			return false;
+			return null;
 		var node = timer.tNodes().get(index.getNodeId());
 		var bTimer = node != null ? node.getTimers().get(timerId) : null;
-		return bTimer != null && bTimer.getCustomData().getBean() instanceof BOfflineAccountCustom;
+		if (bTimer == null)
+			return null;
+		return bTimer.getCustomData().getBean() instanceof BOfflineAccountCustom custom ? custom : null;
 	}
 
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
@@ -737,11 +740,15 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		var index = timer.tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
-		if (index != null && !isAccountOfflineTimer(timer, timerId))
-			// FND6-20：撞本server非本族的命名timer（如全局scheduleNamed）——cancel对全局
-			// timer恒返回false，随后scheduleOffline的_tIndexs.insert撞已存在键抛IAE中断
-			// 调用方整个事务。对齐签名契约直接返回false；本族timer走下面cancel+重建。
-			return false;
+		// FND6-20：族+归属判定——撞本server的命名timer时，非本族（全局/在线timer）cancel
+		// 恒false；本族异主（他账号遗留的同名offline timer）cancel因归属不符也恒false。
+		// 两者都会让随后scheduleOffline的_tIndexs.insert撞已存在键抛IAE中断调用方整个事务。
+		// 对齐签名契约直接返回false；仅本族同主放行，走下面cancel+重建。
+		if (index != null) {
+			var custom = getAccountOfflineCustom(timer, timerId);
+			if (custom == null || !custom.getAccount().equals(account) || !custom.getClientId().equals(clientId))
+				return false;
+		}
 		switch (spec) {
 		case SimpleTimerSpec s -> {
 			if (index != null)

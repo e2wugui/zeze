@@ -715,14 +715,17 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		return timerId;
 	}
 
-	// FND6-20：判定timerId当前登记的是否本族（角色offline）timer，查表路径仿cancelOffline。
-	private static boolean isRoleOfflineTimer(@NotNull Timer timer, @NotNull String timerId) {
+	// FND6-20：查timerId当前登记的角色offline timer归属，查表路径仿cancelOffline：
+	// 非本族timer返回null；本族返回customData，供调用方做族+归属判定。
+	private static @Nullable BOfflineRoleCustom getRoleOfflineCustom(@NotNull Timer timer, @NotNull String timerId) {
 		var index = timer.tIndexs().get(timerId);
 		if (index == null)
-			return false;
+			return null;
 		var node = timer.tNodes().get(index.getNodeId());
 		var bTimer = node != null ? node.getTimers().get(timerId) : null;
-		return bTimer != null && bTimer.getCustomData().getBean() instanceof BOfflineRoleCustom;
+		if (bTimer == null)
+			return null;
+		return bTimer.getCustomData().getBean() instanceof BOfflineRoleCustom custom ? custom : null;
 	}
 
 	public boolean scheduleOfflineNamed(@NotNull String timerId, long roleId, @NotNull TimerSpec spec,
@@ -737,12 +740,16 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		var index = timer.tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
-		if (index != null && !isRoleOfflineTimer(timer, timerId))
-			// FND6-20：撞本server非本族的命名timer（如全局scheduleNamed）——cancel对全局
-			// timer恒返回false（cancelOnline查在线表为null，cancelOffline因customData非
-			// BOfflineRoleCustom拒绝），随后scheduleOffline的_tIndexs.insert撞已存在键抛
-			// IAE中断调用方整个事务。对齐签名契约直接返回false；本族timer走下面cancel+重建。
-			return false;
+		// FND6-20：族+归属判定——撞本server的命名timer时，非本族（全局/在线timer）cancel
+		// 恒false（cancelOnline查在线表为null，cancelOffline因customData非本族拒绝）；
+		// 本族异主（他角色遗留的同名offline timer）cancelOffline因roleId不符也恒false。
+		// 都会让随后scheduleOffline的_tIndexs.insert撞已存在键抛IAE中断调用方整个事务，
+		// 对齐签名契约直接返回false；仅本族同主放行，走下面cancel+重建。
+		if (index != null) {
+			var custom = getRoleOfflineCustom(timer, timerId);
+			if (custom == null || custom.getRoleId() != roleId)
+				return false;
+		}
 		switch (spec) {
 		case SimpleTimerSpec s -> {
 			if (index != null)
