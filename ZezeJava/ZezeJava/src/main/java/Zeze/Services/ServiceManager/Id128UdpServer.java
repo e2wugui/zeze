@@ -27,6 +27,14 @@ import org.rocksdb.RocksDBException;
 public class Id128UdpServer {
 	private static final @NotNull Logger logger = LogManager.getLogger(Id128UdpServer.class);
 
+	/**
+	 * FND6-28：唯一name数量上限（防御注释曾宣称但实现缺失）。该UDP端口无认证，攻击者以
+	 * 合法count+海量不同name可无界撑爆cache/RocksDB。合法部署的name数量=History集群名
+	 * 数量，量级极小，1024远高于任何合理用量；超限告警并拒绝（整包丢弃），条目状态仍可
+	 * 从RocksDB恢复，拒绝无副作用。
+	 */
+	public static final int MAX_UNIQUE_NAMES = 1024;
+
 	private static class Id128Context extends FastLock {
 		final Id128 current = new Id128();
 		final Id128 max = new Id128();
@@ -126,6 +134,19 @@ public class Id128UdpServer {
 		logger.info("worker end");
 	}
 
+	private volatile long lastNamesExceededWarnMs; // 告警限频（60秒一次）
+
+	private void warnNamesExceeded(@NotNull Binary name) {
+		var now = System.currentTimeMillis();
+		var last = lastNamesExceededWarnMs;
+		if (now - last < 60_000)
+			return; // 限频窗口内静默拒绝（race下至多多记几条）
+		lastNamesExceededWarnMs = now;
+		logger.error("AllocateId128 unique names({}) exceeded MAX_UNIQUE_NAMES({}),"
+				+ " possible attack or misbehaving client. rejected name.size={}",
+				cache.size(), MAX_UNIQUE_NAMES, name.size());
+	}
+
 	private void process(@NotNull AllocateId128 rpc, @NotNull ByteBuffer bbTemp) throws RocksDBException {
 		var arg = rpc.Argument;
 		var res = rpc.Result;
@@ -138,6 +159,13 @@ public class Id128UdpServer {
 			throw new IllegalArgumentException("AllocateId128 invalid count=" + count + " name=" + name);
 		if (name.size() > 128)
 			throw new IllegalArgumentException("AllocateId128 name too long: size=" + name.size());
+		// FND6-28：新name（cache未命中）超过唯一name上限即拒绝并告警（限频防刷日志）。
+		// 竞态窗口内可能略超上限（多线程同时computeIfAbsent），有界即可。
+		if (!cache.containsKey(name) && cache.size() >= MAX_UNIQUE_NAMES) {
+			warnNamesExceeded(name);
+			throw new IllegalArgumentException("AllocateId128 unique names exceeded " + MAX_UNIQUE_NAMES
+					+ " name=" + name);
+		}
 		var context = cache.computeIfAbsent(name, k -> {
 			var c = new Id128Context();
 			try {
