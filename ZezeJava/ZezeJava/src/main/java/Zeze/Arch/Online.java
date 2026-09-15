@@ -1686,8 +1686,13 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			if (!accounts.isEmpty()) {
 				try {
 					providerApp.zeze.newProcedure(() -> {
-						for (var account : accounts)
-							tryRemoveLocal(account);
+						for (var account : accounts) {
+							var rc = tryRemoveLocal(account);
+							if (rc != 0) {
+								logger.error("tryRemoveLocal fail. account={}, rc={}", account, rc);
+								return rc;
+							}
+						}
 						return 0;
 					}, "Online.verifyLocal").call();
 					sendAccountsDirect(accounts, CheckLinkSession.TypeId_, new Binary(new CheckLinkSession().encode()), true);
