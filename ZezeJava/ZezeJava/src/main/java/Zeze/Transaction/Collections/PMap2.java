@@ -21,11 +21,23 @@ import org.pcollections.Empty;
 public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	protected final @NotNull Meta2<K, V> meta;
 
+	// Bean key不支持（FND6-41，PSet1判例姊妹）：Bean是值语义equals但身份hashCode（可变bean
+	// 不覆写hashCode防哈希漂移），哈希容器对bean键静默漏命中——put/get/remove/contains失真。
+	// 显式失败优于静默错。
+	private static <K> void checkBeanKey(@NotNull Class<K> keyClass) {
+		if (Bean.class.isAssignableFrom(keyClass))
+			throw new IllegalArgumentException(
+					"PMap2 does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
+							+ keyClass.getName());
+	}
+
 	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+		checkBeanKey(keyClass);
 		meta = Meta2.getMap2Meta(keyClass, valueClass);
 	}
 
 	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass, @NotNull Supplier<V> valueCtor) {
+		checkBeanKey(keyClass);
 		meta = Meta2.createMap2Meta(keyClass, valueClass, valueCtor);
 	}
 

@@ -3,6 +3,7 @@ package Zeze.Transaction.Collections;
 import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
@@ -14,6 +15,13 @@ public class PMap1<K, V> extends PMap<K, V> {
 	protected final @NotNull Meta2<K, V> meta;
 
 	public PMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+		// Bean key不支持（FND6-41，PSet1判例姊妹）：Bean是值语义equals但身份hashCode（可变bean
+		// 不覆写hashCode防哈希漂移），哈希容器对bean键静默漏命中——put/get/remove/contains失真。
+		// 显式失败优于静默错。
+		if (Bean.class.isAssignableFrom(keyClass))
+			throw new IllegalArgumentException(
+					"PMap1 does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
+							+ keyClass.getName());
 		meta = Meta2.getMap1Meta(keyClass, valueClass);
 	}
 
