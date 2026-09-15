@@ -448,8 +448,10 @@ public final class Raft {
 		lock();
 		try {
 			r.Result.setTerm(logSequence.getTerm());
-			if (r.Argument.getTerm() < logSequence.getTerm()) {
+			if (r.Argument.getTerm() < logSequence.getTerm() || r.Argument.getTerm() > LogSequence.TERM_MAX) {
 				// 1. Reply immediately if term < currentTerm
+				// FND6-08：超过TERM_MAX的term非法（trySetTerm拒绝采纳），同样按term错误
+				// 提前返回，不得落穿后续处理接受非法Leader的快照。
 				r.SendResultCode(InstallSnapshot.ResultCodeTermError);
 				return 0;
 			}
@@ -1014,7 +1016,23 @@ public final class Raft {
 		}
 	}
 
+	/**
+	 * FND6-08：term 达到上界时拒绝发起选举。term+1 溢出回绕为负值会被 trySetTerm 判 Older，
+	 * 选举永久冻结；且预投票携带的回绕term会传染。仅在库被旧版本投毒后可达，
+	 * 需人工清理 rocks rafts 表的 term 后才能恢复。
+	 */
+	private boolean checkTermCanElect() {
+		if (logSequence.getTerm() < LogSequence.TERM_MAX)
+			return true;
+		logger.fatal("{} term({}) reached TERM_MAX({}), refuse election to avoid term+1 overflow wrap."
+						+ " manual intervention required: reset term in rocks rafts table.",
+				getName(), logSequence.getTerm(), LogSequence.TERM_MAX);
+		return false;
+	}
+
 	private void sendPreVote() throws RocksDBException {
+		if (!checkTermCanElect())
+			return;
 		preVotes.clear(); // 每次预投票开始清除。
 		preVoting = true;
 
@@ -1038,6 +1056,8 @@ public final class Raft {
 	}
 
 	private void sendRequestVote() throws RocksDBException {
+		if (!checkTermCanElect())
+			return;
 		requestVotes.clear(); // 每次选举开始清除。
 		logSequence.trySetTerm(logSequence.getTerm() + 1);
 		logSequence.setVoteFor(getName()); // 先投给自己。

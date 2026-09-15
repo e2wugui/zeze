@@ -705,7 +705,27 @@ public class LogSequence {
 	// All Servers:
 	// If RPC request or response contains term T > currentTerm:
 	// set currentTerm = T, convert to follower(§5.1)
+
+	/**
+	 * FND6-08：term 合理上界。恶意/损坏报文携带超大 term（如 Long.MAX_VALUE）被采纳并持久化后，
+	 * 选举的 term+1 溢出回绕为负值，永远无法再推进（trySetTerm 判 Older），选举永久冻结且重启
+	 * 不可恢复；超大 term 还会随投票/心跳传染其他节点。超过上界拒绝采纳（返回 Older 按陈旧处理）。
+	 * 合法集群 term 量级极小（每纳秒一次选举也要上百年才能达到），上界不可自然触及。
+	 */
+	public static final long TERM_MAX = Long.MAX_VALUE / 2;
+
+	private volatile long lastRejectedOversizedTerm; // 同值只记一次日志，防恶意洪泛刷日志
+
 	public SetTermResult trySetTerm(long term) throws RocksDBException {
+		if (term > TERM_MAX) {
+			if (term != lastRejectedOversizedTerm) {
+				lastRejectedOversizedTerm = term;
+				logger.error("trySetTerm reject oversized term={} (> TERM_MAX={}), current term={}."
+								+ " possible attack or corrupted peer, treat as stale.",
+						term, TERM_MAX, this.term);
+			}
+			return SetTermResult.Older;
+		}
 		if (term > this.term) {
 			this.term = term;
 			var termValue = ByteBuffer.Allocate(9);
@@ -1494,13 +1514,15 @@ public class LogSequence {
 		r.Result.setTerm(term); // maybe rewrite later
 		r.Result.setSuccess(false); // set default false
 
-		if (r.Argument.getTerm() < term) {
+		if (r.Argument.getTerm() < term || r.Argument.getTerm() > TERM_MAX) {
 			// 1. Reply false if term < currentTerm (§5.1)
 			// 【注意】过期term的请求不重置选举计时，否则被分区/失联后重新出现的旧Leader
 			// 持续发送的过期心跳会压制本节点发起新选举。
+			// FND6-08：超过TERM_MAX的term非法（trySetTerm拒绝采纳），同样按陈旧处理提前返回——
+			// 下面处理term的switch无Older分支，落穿会setLeaderId接受非法Leader。
 			r.SendResult();
-			logger.info("this={} Leader={} PrevLogIndex={} term < currentTerm",
-					raft.getName(), r.Argument.getLeaderId(), r.Argument.getPrevLogIndex());
+			logger.info("this={} Leader={} PrevLogIndex={} invalid term({})",
+					raft.getName(), r.Argument.getLeaderId(), r.Argument.getPrevLogIndex(), r.Argument.getTerm());
 			return Procedure.Success;
 		}
 
