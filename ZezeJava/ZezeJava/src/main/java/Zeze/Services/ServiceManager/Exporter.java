@@ -23,6 +23,10 @@ public class Exporter {
 	private static final @NotNull Logger logger = LogManager.getLogger(Exporter.class);
 	private final AbstractAgent agent;
 	private final java.util.List<IExporter> exports = new ArrayList<>();
+	// 失败待补偿记账：登记导出失败的服务名，任一后续事件自动并入重导（见onEdit）。
+	// onEdit串行运行于triggerOnChanged的one-by-one后台worker，理论无并发访问；
+	// 仍用并发集合以降低对调用线程模型的隐含依赖。
+	private final java.util.Set<String> failedServices = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
 	public Exporter() throws Exception {
 		var conf = Config.load();
@@ -50,19 +54,34 @@ public class Exporter {
 							serviceSet.add(e.getServiceName());
 						for (var e : edit.getAdd())
 							serviceSet.add(e.getServiceName());
+						// 增补历史失败服务：持续失败（磁盘满/dyups拒绝等）且无后续事件的服务，
+						// nginx配置将永久陈旧——并入本次导出，任一后续事件自动补偿重导。
+						serviceSet.addAll(failedServices);
 					}
 					for (var serviceName : serviceSet) {
 						// 与退订竞态（FND4-61）：triggerOnChanged经executeOneByOne异步排队，期间
 						// unSubscribeService已remove该服务的subscribeStates——跳过为正确语义（已不
 						// 关心）；原NPE被triggerOnChanged捕获记日志，同批其余服务的导出整体丢失。
 						var state = agent.getSubscribeStates().get(serviceName);
-						if (state == null)
+						if (state == null) {
+							// 已退订（不再关心）：同步清除失败记账，避免残留空条目随每次事件反复空转。
+							failedServices.remove(serviceName);
 							continue;
+						}
 						try {
 							ep.exportAll(serviceName, state.getServiceInfosVersion());
+							// 导出成功：解除失败记账（remove幂等，未登记时无副作用）。
+							failedServices.remove(serviceName);
 						} catch (Exception e) {
 							// FND6-26：逐服务隔离——单服务导出失败记错继续，同批其余服务不受影响。
 							logger.error("exportAll fail. exporter={}, service={}", ep.getClass().getName(), serviceName, e);
+							// 失败记账：首次登记（add返回true）记warn说明补偿机制；
+							// 之后任一后续事件都会带上该服务自动重导。
+							if (failedServices.add(serviceName))
+								logger.warn("exportAll failed, will re-export on next event. service={}", serviceName);
+							// 中断卫生：恢复中断标志，避免吞掉one-by-one worker的中断状态。
+							if (e instanceof InterruptedException)
+								Thread.currentThread().interrupt();
 						}
 					}
 					break;
@@ -75,12 +94,26 @@ public class Exporter {
 				// 中断整个onEdit，同批其余exporter与其余服务的导出全部跳过且无重试，nginx配置
 				// 持续陈旧直到下一事件。FND4-61只修了state==null的NPE特例，未覆盖一般异常。
 				logger.error("export fail. exporter={}", ep.getClass().getName(), e);
+				// 中断卫生：恢复中断标志，避免吞掉one-by-one worker的中断状态。
+				if (e instanceof InterruptedException)
+					Thread.currentThread().interrupt();
 			}
 		}
 	}
 
 	public void stop() throws IOException {
 		agent.close();
+		// 停机收尾：逐个释放exporter底层资源（如ExporterNginxHttp的HttpClient线程池），
+		// 防止进程停机线程泄漏；单个close失败仅记日志，不影响其余exporter与停机流程。
+		for (var ep : exports) {
+			try {
+				ep.close();
+			} catch (Exception e) {
+				logger.error("exporter close fail. exporter={}", ep.getClass().getName(), e);
+				if (e instanceof InterruptedException)
+					Thread.currentThread().interrupt();
+			}
+		}
 	}
 
 	public void addExporter(@NotNull String name, @NotNull Properties shared, @Nullable String param) {

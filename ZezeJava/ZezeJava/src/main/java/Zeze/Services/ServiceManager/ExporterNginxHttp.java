@@ -1,10 +1,13 @@
 package Zeze.Services.ServiceManager;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,8 +19,12 @@ curl -d "server 127.0.0.1:8089;server 127.0.0.1:8088;" 127.0.0.1:8081/upstream/d
 public class ExporterNginxHttp implements IExporter {
 	private static final @NotNull Logger logger = LogManager.getLogger(ExporterNginxHttp.class);
 
+	// 提为字段：HttpClient（jdk17）自身没有关闭接口，其executor线程若不显式关闭，
+	// 进程停机时线程泄漏（非守护线程阻止退出）。由close()统一关闭，Exporter.stop()触发。
+	private final @NotNull ExecutorService executor = Executors.newSingleThreadExecutor();
 	private final @NotNull HttpClient httpClient = HttpClient.newBuilder()
-			.executor(Executors.newSingleThreadExecutor())
+			.connectTimeout(Duration.ofSeconds(5))
+			.executor(executor)
 			.build();
 	private final @NotNull String url;
 	private final long version;
@@ -37,7 +44,6 @@ public class ExporterNginxHttp implements IExporter {
 		return Type.eAll;
 	}
 
-	@SuppressWarnings("RedundantThrows")
 	@Override
 	public void exportAll(@NotNull String serviceName, @NotNull BServiceInfosVersion all) throws Exception {
 		var ver0 = all.getInfos(version);
@@ -53,16 +59,23 @@ public class ExporterNginxHttp implements IExporter {
 		var post = sb.toString();
 
 		logger.info("HttpRequest: url={}, serviceName={}, post={}", url, serviceName, post);
-		httpClient.sendAsync(HttpRequest.newBuilder().uri(URI.create(url + serviceName))
-				.POST(HttpRequest.BodyPublishers.ofString(post, StandardCharsets.UTF_8)).build(), h -> {
-			logger.info("HttpResponse: code={}", h.statusCode());
-			return HttpResponse.BodySubscribers.discarding();
-		}).whenComplete((unused, e) -> {
-			// FND6-27：传输失败（连接拒绝/超时/DNS失败）时future异常完成且无人观察——更新
-			// 静默丢失连错误日志都没有，与ExporterNginxConfig（异常上抛被triggerOnChanged记录）
-			// 不一致。补观测，不改变发送时机与内容。
-			if (e != null)
-				logger.error("HttpRequest fail: url={}", url + serviceName, e);
-		});
+		// FND6-27：改同步+超时——原sendAsync+whenComplete仅覆盖传输异常，dyups返回非2xx仍只有
+		// INFO日志，且无超时配置时future永不完成，更新静默丢失。exportAll运行于triggerOnChanged
+		// 的one-by-one后台worker（不在IO/RPC线程），可安全阻塞；失败（传输/超时/非2xx）抛异常，
+		// 由Exporter.onEdit既有的逐服务catch统一记录，本类不重复记error。
+		var request = HttpRequest.newBuilder().uri(URI.create(url + serviceName))
+				.timeout(Duration.ofSeconds(5))
+				.POST(HttpRequest.BodyPublishers.ofString(post, StandardCharsets.UTF_8)).build();
+		var resp = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+		if (resp.statusCode() / 100 != 2)
+			throw new IOException("dyups register failed: code=" + resp.statusCode());
+	}
+
+	@Override
+	public void close() {
+		// 选shutdownNow而非shutdown+awaitTermination：停机路径不期望长等——在途请求可能正
+		// 卡在超时等待中，shutdownNow直接中断它（send抛InterruptedException，停机语义可接受），
+		// 线程立即释放，无需等待请求自然结束。
+		executor.shutdownNow();
 	}
 }
