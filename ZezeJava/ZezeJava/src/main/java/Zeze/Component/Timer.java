@@ -18,6 +18,8 @@ import Zeze.Builtin.Timer.BCronTimer;
 import Zeze.Builtin.Timer.BIndex;
 import Zeze.Builtin.Timer.BNode;
 import Zeze.Builtin.Timer.BNodeRoot;
+import Zeze.Builtin.Timer.BOfflineAccountCustom;
+import Zeze.Builtin.Timer.BOfflineRoleCustom;
 import Zeze.Builtin.Timer.BSimpleTimer;
 import Zeze.Builtin.Timer.BTimer;
 import Zeze.Builtin.Timer.tAccountOfflineTimers;
@@ -853,6 +855,17 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		if (index != null) {
 			if (index.getServerId() != zeze.getConfig().getServerId())
 				return false; // 已经被其它gs调度
+			// 命名timerId碰撞矩阵（offline/global/online三族同名互斥）现状：
+			// [offline→global] 已拒：TimerAccount/TimerRole.scheduleOfflineNamed的族+归属前置守卫（FND6-20）；
+			// [global→online]  已拒：入口isOnlineTimerIdOccupied查在线族表（FND4-41）；
+			// [online→global/offline] 已拒：online入口isNamedTimerIdOccupied查_tIndexs（FND4-41）；
+			// [global→offline] 本守卫闭环（2da917fb残留P2）：原先index命中分支无族校验直接cancel重建，
+			//   残留tAccountOfflineTimers/_tRoleOfflineTimers脏簿记，属主下次登录按簿记反向cancel，
+			//   静默杀死重建后的全局timer。现撞offline族条目直接返回false（对齐"同名timer无法调度
+			//   返回false"契约，simple/cron两路径共用本判定，置于cronEquals之前），仅全局族条目
+			//   保留下方cancel+重建语义。
+			if (isOfflineFamilyTimer(index, timerId))
+				return false;
 			if (spec instanceof CronTimerSpec c && cronEquals(index, timerId, c, handleClass, customData))
 				return true;
 			cancel(timerId); // 先取消,下面再重建
@@ -862,6 +875,19 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		case CronTimerSpec c -> schedule(timerId, c.build(), handleClass, customData);
 		}
 		return true;
+	}
+
+	// global→offline碰撞方向（见上scheduleNamed矩阵注释）的族判定：timerId现存条目是否
+	// offline族——账号（BOfflineAccountCustom）或角色（BOfflineRoleCustom）。三级查表与
+	// getTimer/getTimerCustomBean同路径：_tIndexs→_tNodes→bTimer→customData instanceof；
+	// 条目缺失/非本族（全局条目customData为EmptyBean或用户bean）均返回false，不影响重建语义。
+	private boolean isOfflineFamilyTimer(@NotNull BIndex index, @NotNull String timerId) {
+		var node = _tNodes.get(index.getNodeId());
+		var bTimer = node != null ? node.getTimers().get(timerId) : null;
+		if (bTimer == null)
+			return false;
+		var customData = bTimer.getCustomData().getBean();
+		return customData instanceof BOfflineAccountCustom || customData instanceof BOfflineRoleCustom;
 	}
 
 	public boolean cronEquals(@NotNull BIndex index, @NotNull String timerId, @NotNull CronTimerSpec spec,
