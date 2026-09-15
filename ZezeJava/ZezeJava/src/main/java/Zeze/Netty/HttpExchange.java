@@ -316,6 +316,38 @@ public class HttpExchange {
 		return s;
 	}
 
+	// FND6-18：RFC 3986中'+'仅在query的form编码里代表空格，path段是普通字面量。
+	// path解码仅处理百分号编码、'+'保真：%XX连续段按charset解码（与URLDecoder同语义），
+	// 非法%序列按字面量保留（URLDecoder原抛IAE）；不含'+'的路径解码结果逐字节不变。
+	private static @NotNull String pathDecode(@NotNull String s) {
+		if (s.indexOf('%') < 0)
+			return s;
+		var sb = new StringBuilder(s.length());
+		var bytes = new byte[s.length()];
+		int k = 0;
+		for (int i = 0, n = s.length(); i < n; ) {
+			char c = s.charAt(i);
+			if (c == '%' && i + 2 < n) {
+				int hi = Character.digit(s.charAt(i + 1), 16);
+				int lo = Character.digit(s.charAt(i + 2), 16);
+				if (hi >= 0 && lo >= 0) {
+					bytes[k++] = (byte)((hi << 4) | lo);
+					i += 3;
+					continue;
+				}
+			}
+			if (k > 0) {
+				sb.append(new String(bytes, 0, k, HttpServer.defaultCharset));
+				k = 0;
+			}
+			sb.append(c);
+			i++;
+		}
+		if (k > 0)
+			sb.append(new String(bytes, 0, k, HttpServer.defaultCharset));
+		return sb.toString();
+	}
+
 	public @NotNull String path() {
 		if (path != null)
 			return path;
@@ -324,7 +356,7 @@ public class HttpExchange {
 			return "";
 		var uri = req.uri();
 		var i = uri.indexOf('?');
-		return path = urlDecode(i >= 0 ? uri.substring(0, i) : uri);
+		return path = pathDecode(i >= 0 ? uri.substring(0, i) : uri);
 	}
 
 	public @Nullable String query() {
