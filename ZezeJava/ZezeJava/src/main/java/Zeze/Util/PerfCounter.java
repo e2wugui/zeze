@@ -1,7 +1,5 @@
 package Zeze.Util;
 
-import java.lang.management.ManagementFactory;
-import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -10,12 +8,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Transaction.TableKey;
-import com.sun.management.OperatingSystemMXBean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -201,24 +197,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	public static final int PERF_COUNT = Integer.parseInt(System.getProperty("perfCount", "20")); // 输出条目数
 	public static final int PERF_PERIOD = Integer.parseInt(System.getProperty("perfPeriod", "100")); // 输出周期(秒)
-	public static final OperatingSystemMXBean osBean = (OperatingSystemMXBean)ManagementFactory.getOperatingSystemMXBean();
-	public static final Field fMaxDirectMemory; // long
-	public static final AtomicLong reservedDirectMemory;
-	public static final AtomicLong totalDirectCapacity;
-	public static final AtomicLong directCount;
-
-	static {
-		try {
-			var cBits = Class.forName("java.nio.Bits");
-			fMaxDirectMemory = Json.setAccessible(cBits.getDeclaredField("MAX_MEMORY"));
-			reservedDirectMemory = (AtomicLong)Json.setAccessible(cBits.getDeclaredField("RESERVED_MEMORY")).get(null);
-			totalDirectCapacity = (AtomicLong)Json.setAccessible(cBits.getDeclaredField("TOTAL_CAPACITY")).get(null);
-			directCount = (AtomicLong)Json.setAccessible(cBits.getDeclaredField("COUNT")).get(null);
-		} catch (ReflectiveOperationException e) {
-			throw new ExceptionInInitializerError(e);
-		}
-	}
-
 	private final ConcurrentHashMap<Object, RunInfoWithSerial> runInfoMap = new ConcurrentHashMap<>(); // key: Class or others
 	private final LongConcurrentHashMap<ProtocolInfo> protocolInfoMap = new LongConcurrentHashMap<>(); // key: typeId
 	private final ConcurrentHashMap<String, ProcedureInfo> procedureInfoMap = new ConcurrentHashMap<>(); // key: procedureName
@@ -230,7 +208,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
 	private volatile @NotNull Snapshot lastSnapshot = Snapshot.EMPTY;
 	private long lastLogTime = System.currentTimeMillis();
-	private long lastCpuTime = osBean.getProcessCpuTime();
+	private long lastCpuTime = PlatformMetrics.osBean.getProcessCpuTime();
 	private int clearSerial;
 	private @Nullable ScheduledFuture<?> scheduleFuture;
 	private final LongCounter transactionRedoCounter = allocCounter("Transaction.Redo");
@@ -238,26 +216,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	public static @NotNull PerfCounter instance() {
 		return Objects.requireNonNull((PerfCounter)ZezeCounter.instance);
-	}
-
-	public static long getMaxDirectMemory() {
-		try {
-			return fMaxDirectMemory.getLong(null);
-		} catch (ReflectiveOperationException e) {
-			throw Task.forceThrow(e);
-		}
-	}
-
-	public static long getReservedDirectMemory() {
-		return reservedDirectMemory.get();
-	}
-
-	public static long getTotalDirectCapacity() {
-		return totalDirectCapacity.get();
-	}
-
-	public static long getDirectCount() {
-		return directCount.get();
 	}
 
 	@Override
@@ -524,7 +482,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			var curTime = System.currentTimeMillis();
 			var time = curTime - lastLogTime;
 			lastLogTime = curTime;
-			var curCpuTime = osBean.getProcessCpuTime();
+			var curCpuTime = PlatformMetrics.osBean.getProcessCpuTime();
 			var cpuTime = curCpuTime - lastCpuTime;
 			lastCpuTime = curCpuTime;
 
@@ -549,17 +507,17 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			@SuppressWarnings("deprecation")
 			var sb = new StringBuilder(100 + 50 * 3 * PERF_COUNT).append("count last ").append(time).append("ms:\n")
 					.append(" [load: ").append(cpuTime / 1_000_000).append("ms ")
-					.append(String.format("%.2f%%", osBean.getProcessCpuLoad() * 100))
+					.append(String.format("%.2f%%", PlatformMetrics.osBean.getProcessCpuLoad() * 100))
 					.append(" free/total/max:").append(runtime.freeMemory() >> 20)
 					.append('/').append(runtime.totalMemory() >> 20).append('/').append(runtime.maxMemory() >> 20)
-					.append("M direct:").append(getReservedDirectMemory() >> 20).append('/')
-					.append(getMaxDirectMemory() >> 20).append("M,")
-					.append(getTotalDirectCapacity() >> 20).append("M/").append(getDirectCount())
-					.append(" commit/free/all:").append(osBean.getCommittedVirtualMemorySize() >> 20).append('/')
-					.append(osBean.getFreePhysicalMemorySize() >> 20).append('+')
-					.append(osBean.getFreeSwapSpaceSize() >> 20).append('/')
-					.append(osBean.getTotalPhysicalMemorySize() >> 20).append('+')
-					.append(osBean.getTotalSwapSpaceSize() >> 20)
+					.append("M direct:").append(PlatformMetrics.getReservedDirectMemory() >> 20).append('/')
+					.append(PlatformMetrics.getMaxDirectMemory() >> 20).append("M,")
+					.append(PlatformMetrics.getTotalDirectCapacity() >> 20).append("M/").append(PlatformMetrics.getDirectCount())
+					.append(" commit/free/all:").append(PlatformMetrics.osBean.getCommittedVirtualMemorySize() >> 20).append('/')
+					.append(PlatformMetrics.osBean.getFreePhysicalMemorySize() >> 20).append('+')
+					.append(PlatformMetrics.osBean.getFreeSwapSpaceSize() >> 20).append('/')
+					.append(PlatformMetrics.osBean.getTotalPhysicalMemorySize() >> 20).append('+')
+					.append(PlatformMetrics.osBean.getTotalSwapSpaceSize() >> 20)
 					.append("M]\n [run: ").append(procCountAll).append(", ")
 					.append(procTimeAll / 1_000_000).append("ms]\n");
 			rList.sort((ri0, ri1) -> Long.signum(ri1.lastProcTime - ri0.lastProcTime));

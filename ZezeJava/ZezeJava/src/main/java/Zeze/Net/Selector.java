@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import Zeze.Util.PerfCounter;
+import Zeze.Util.PlatformMetrics;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,7 +91,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 					return ByteBuffer.allocateDirect(blockSize);
 				} catch (Throwable e) { // logger.warn
 					logger.warn("allocateDirect({}) failed ({}M/{}M), retry without direct", blockSize,
-							PerfCounter.getReservedDirectMemory() >> 20, PerfCounter.getMaxDirectMemory() >> 20, e);
+							PlatformMetrics.getReservedDirectMemory() >> 20, PlatformMetrics.getMaxDirectMemory() >> 20, e);
 					return ByteBuffer.allocate(blockSize);
 				}
 			}
