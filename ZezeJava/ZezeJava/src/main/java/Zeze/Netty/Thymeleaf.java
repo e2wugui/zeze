@@ -1,6 +1,7 @@
 package Zeze.Netty;
 
 import Zeze.Util.ConcurrentHashSet;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.jetbrains.annotations.NotNull;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -27,8 +28,21 @@ public class Thymeleaf {
 		return templateResolver;
 	}
 
+	/**
+	 * FND6-16：模板名直接取解码后的请求路径（可含../），FileTemplateResolver无canonical检查，
+	 * 可越出模板目录读任意.html。比照HttpServer.addFileHandler判例：合法模板名为不含..、:、
+	 * 反斜杠的相对根路径，越根即FORBIDDEN。
+	 */
+	public static boolean isTraversalTemplateName(@NotNull String url) {
+		return url.contains("..") || url.indexOf(':') >= 0 || url.indexOf('\\') >= 0;
+	}
+
 	public void sendResponse(@NotNull HttpExchange x, @NotNull Context context) throws Exception {
 		var url = x.path();
+		if (isTraversalTemplateName(url)) {
+			x.close(x.sendPlainText(HttpResponseStatus.FORBIDDEN, ""));
+			return;
+		}
 		if (withContentLength.contains(url)) {
 			try (var out = new HttpExchangeContentLengthWriter(x)) {
 				try {
