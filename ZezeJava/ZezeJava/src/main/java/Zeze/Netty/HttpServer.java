@@ -372,6 +372,11 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			// destroy、上传临时文件清理）必须在队列置isShutdown之前进入队列，否则提交被丢弃/仅cancel补偿。
 			exchanges.values().forEach(HttpExchange::closeConnectionNow);
 			exchanges.clear();
+			// FND6-15：空闲keep-alive连接（请求间隙，exchange已移除）也要关闭——否则停机后
+			// 客户端在旧连接发新请求，Normal处理器提交到已shutdown(true)的派发队列被静默丢弃，
+			// 请求无响应、连接不断，挂到客户端超时；scheduler取消后idle检测也已停。在途exchange
+			// 的连接已由closeConnectionNow关闭，此处对已关连接的close幂等。
+			channels.keySet().forEach(Channel::close);
 			task11Executor.shutdown(true);
 			task11ExecutorDown = true;
 			if (scheduler == null)
