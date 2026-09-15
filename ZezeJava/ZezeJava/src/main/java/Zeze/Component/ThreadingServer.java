@@ -380,7 +380,20 @@ public class ThreadingServer extends AbstractThreadingServer {
 					(This) -> {
 						var rwLock = This.rwLockRefs.get(r.Argument.getLockName().getName());
 						if (null != rwLock) {
-							rwLock.readLock().unlock();
+							try {
+								rwLock.readLock().unlock();
+							} catch (IllegalMonitorStateException e) {
+								// FND6-21：enter/exit模式不对称（如enterWrite后exitRead）时unlock抛
+								// IllegalMonitorStateException，动作在SimulateThread内抛出会被run()
+								// 吞掉且不补发结果码——客户端挂满rpc超时。对齐参数校验系列判例
+								// （C1-7/8）立即应答错误码。
+								logger.error("RWLock.exitRead mode mismatch (thread=({}, {}), name={})",
+										r.Argument.getLockName().getGlobalThreadId().getServerId(),
+										r.Argument.getLockName().getGlobalThreadId().getThreadId(),
+										r.Argument.getLockName().getName(), e);
+								r.SendResultCode(ResultCodeInvalidArgument);
+								return;
+							}
 							var hold = rwLock.getReadHoldCount();
 							// FND2-C1-1：rwLockRefs按锁名共享一个条目，读写计数分开持有
 							// （JDK支持写→读降级）。只看本模式计数清零即删条目会让另一模式的持有
@@ -406,7 +419,17 @@ public class ThreadingServer extends AbstractThreadingServer {
 					(This) -> {
 						var rwLock = This.rwLockRefs.get(r.Argument.getLockName().getName());
 						if (null != rwLock) {
-							rwLock.writeLock().unlock();
+							try {
+								rwLock.writeLock().unlock();
+							} catch (IllegalMonitorStateException e) {
+								// FND6-21：对称场景（enterRead后exitWrite），同eExitRead。
+								logger.error("RWLock.exitWrite mode mismatch (thread=({}, {}), name={})",
+										r.Argument.getLockName().getGlobalThreadId().getServerId(),
+										r.Argument.getLockName().getGlobalThreadId().getThreadId(),
+										r.Argument.getLockName().getName(), e);
+								r.SendResultCode(ResultCodeInvalidArgument);
+								return;
+							}
 							var hold = rwLock.getWriteHoldCount();
 							// FND2-C1-1：双计数都为零才删（对称场景：先exitRead时writeHold仍>0，
 							// 提前删条目=写锁悬挂、所有写者永久饥饿）。
