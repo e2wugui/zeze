@@ -693,6 +693,7 @@ public final class Raft {
 	 * 【简化】不同状态下不管维护管理不同的Timer了。
 	 */
 	private void onTimer() throws Exception {
+		boolean reconnectConnectors = false;
 		lock();
 		try {
 			if (isShutdown)
@@ -721,15 +722,21 @@ public final class Raft {
 			if (++lowPrecisionTimer > 1000) {
 				lowPrecisionTimer = 0;
 				onLowPrecisionTimer();
+				reconnectConnectors = true;
 			}
 		} finally {
 			unlock();
 			//timerTask = Task.scheduleNow(10, this::onTimer);
 		}
+		// 锁外重连：Connector.start→newClientSocket→TcpSocket.<init>→tryStartKeepAliveCheckTimer
+		// 需要Service锁；在Raft锁内执行会与持Service锁提交raft事务的路径（SMServer.closeSession、
+		// reconcileSessions，均为 Service锁→Raft锁）构成ABBA死锁。
+		if (reconnectConnectors && !isShutdown)
+			server.getConfig().forEachConnector(Connector::start);
 	}
 
 	private void onLowPrecisionTimer() throws Exception {
-		server.getConfig().forEachConnector(Connector::start); // Connector Reconnect Bug?
+		// Connector重连已移到onTimer的Raft锁外执行（见上）；本方法仅剩LogSequence清理。
 		logSequence.removeExpiredUniqueRequestSet();
 		gcReceiveSnapshotting(System.currentTimeMillis()); // FND3-23：残留接收条目周期清理
 	}

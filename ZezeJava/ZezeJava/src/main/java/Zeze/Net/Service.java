@@ -86,7 +86,12 @@ public class Service extends ReentrantLock {
 
 	private @Nullable Selectors selectors;
 	private boolean noProcedure;
-	protected Future<?> keepCheckTimer;
+	// volatile：tryStartKeepAliveCheckTimer的无锁快路径在Service锁外读它。
+	protected volatile Future<?> keepCheckTimer;
+	// keepalive定时器随服务生命周期管理：start启动（keepCheckPeriod默认0禁用时无开销）、
+	// stop熔断。同时保留TcpSocket构造的兜底启动：BinLoggerAgent(host,port)/Token/GlobalAgent/
+	// OnzServer等手工connector路径不经过Service.start()，仍依赖懒启动。
+	private volatile boolean keepAliveCheckStopped;
 	private @Nullable PerfCounter.ServiceInfo servicePerf;
 
 	public @NotNull String getInstanceName() {
@@ -259,6 +264,10 @@ public class Service extends ReentrantLock {
 	}
 
 	public void start() throws Exception {
+		// keepalive定时器随服务启动（先于config.start()创建任何socket）；KeepCheckPeriod
+		// 默认0禁用时tryStartKeepAliveCheckTimer内部不创建任务，无开销。
+		keepAliveCheckStopped = false;
+		tryStartKeepAliveCheckTimer();
 		config.start();
 		if (ZezeCounter.instance != null) {
 			ZezeCounter.instance.serviceStart(this);
@@ -289,6 +298,7 @@ public class Service extends ReentrantLock {
 				keepCheckTimer.cancel(true);
 				keepCheckTimer = null;
 			}
+			keepAliveCheckStopped = true; // 熔断tryStartKeepAliveCheckTimer的挂起重试
 
 			if (ZezeCounter.instance != null) {
 				ZezeCounter.instance.serviceStop(this);
@@ -864,7 +874,18 @@ public class Service extends ReentrantLock {
 	}
 
 	public void tryStartKeepAliveCheckTimer() {
-		lock();
+		// 无锁快路径：定时器已启动（服务start时eager启动，主路径）或服务已停时，
+		// 每条TcpSocket构造只花一次volatile读，不碰Service锁。
+		if (keepCheckTimer != null || keepAliveCheckStopped)
+			return;
+		// 兜底路径（手工connector等服务未经start()的懒启动）：tryLock+延迟补偿——
+		// 本方法可能与Service锁的长期持有者（如SMServer.closeSession持锁提交raft事务）并发；
+		// 阻塞等锁会与 Raft锁→Service锁 的调用路径互喂成ABBA死锁。定时器启动可以推迟：
+		// 抢锁失败挂1s后重试（链式，同时刻至多一个）。
+		if (!tryLock()) {
+			TaskSpec.ofAction(this::tryStartKeepAliveCheckTimer).scheduleNow(1000);
+			return;
+		}
 		try {
 			if (keepCheckTimer == null) {
 				var period = getConfig().getHandshakeOptions().getKeepCheckPeriod() * 1000L;
