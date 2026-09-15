@@ -107,11 +107,11 @@ public class OnzProcedure implements FuncLong {
 		// 超时按Rollback自愈：清理登记后以异常结束等待，本地事务回滚、锁释放。
 		// flushTimeout为协调者随请求下发的既有参数，等待语义与flush路径（sendFlushReady）一致。
 		if (!commitFuture.await(funcArgument.getFlushTimeout())) {
-			if (stub.getOnz().removeReadyProcedure(this)) {
-				// 条目仍是自己的：无并发决策，安全以超时异常结束（抛出→本地事务回滚）。
-				// 登记tid：迟到的Commit命中即真实不一致（协调者提交了已回滚的参与方），
-				// 由ProcessCommitRequest记error暴露。
-				stub.getOnz().markTimeoutRolledBack(getOnzTid());
+			if (stub.getOnz().markTimeoutRolledBack(this)) {
+				// CAS占用成功（条目仍是自己的）：无并发决策，安全以超时异常结束（抛出→本地事务回滚）。
+				// 槽位哨兵即超时标记：迟到的Commit取走哨兵即真实不一致（协调者提交了已回滚的
+				// 参与方），由ProcessCommitRequest记error暴露——取走与标记在同一map的CAS原子域
+				// 内互斥可见（FND6-38），无漏报窗口。
 				commitFuture.setException(new RuntimeException(
 						"onz wait commit/rollback timeout. tid=" + getOnzTid() + " name=" + getName()));
 			}
