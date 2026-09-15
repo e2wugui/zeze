@@ -77,12 +77,19 @@ public class HandshakeBase extends Service {
 	 */
 	private void checkAesSecureIp() {
 		var options = getConfig().getHandshakeOptions();
-		if (options.getEncryptType() == Constant.eEncryptTypeAes && options.getSecureIp() == null)
+		if (options.getEncryptType() == Constant.eEncryptTypeAes && options.getSecureIp() == null) {
+			// FND6-32：仅服务角色（HandshakeServer/HandshakeBoth）告警。客户端侧密钥派生从不
+			// 读SecureIp（全仓唯一读取点就是本告警），纯客户端角色（HandshakeClient）启动即
+			// WARN属必然误报——协商值由服务器决定，服务器配SecureIp/直连时客户端完全正常。
+			// CHandshake工厂仅服务角色注册（addHandshakeServerFactoryHandle），作角色判据。
+			if (!handshakeProtocols.contains(CHandshake.TypeId_))
+				return;
 			logger.warn("{} EncryptType=Aes without SecureIp: session key is derived from the connection "
 					+ "address (server side: local address; client side: remote address). Direct connections work, "
 					+ "but under NAT/port-mapping the two sides see different addresses and every handshake will "
 					+ "fail with reconnect loops. Configure SecureIp on the server with the address clients dial in, "
 					+ "or switch EncryptType to AesNoSecureIp(2)/RsaAes(3).", getName());
+		}
 	}
 
 	@Override
