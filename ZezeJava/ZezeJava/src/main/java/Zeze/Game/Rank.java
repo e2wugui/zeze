@@ -162,7 +162,15 @@ public class Rank extends AbstractRank {
 				yield 0;
 			}
 			case BConcurrentKey.TimeTypeDay -> c.get(Calendar.DAY_OF_YEAR);
-			case BConcurrentKey.TimeTypeWeek -> c.get(Calendar.WEEK_OF_YEAR);
+			case BConcurrentKey.TimeTypeWeek -> {
+				// FND6-34：周榜的年维度用基于周的年（getWeekYear）。WEEK_OF_YEAR在年末按
+				// 「下一周年的第1周」计数而格里年未变：zh_CN/en_US默认locale（minDays=1）下
+				// 2026-12-28..31得(格里2026,week1)，与2026-01-01同键——12月末的本周榜命中
+				// 年初旧行（陈旧分数混入），同一真实周又被劈成两键（周中换榜、发奖读错行）。
+				// 年内周（week2..51）weekBasedYear与格里年一致，键不变。
+				year = c.getWeekYear();
+				yield c.get(Calendar.WEEK_OF_YEAR);
+			}
 			case BConcurrentKey.TimeTypeSeason -> getSimpleChineseSeason(c);
 			case BConcurrentKey.TimeTypeYear -> 0;
 			case BConcurrentKey.TimeTypeCustomize -> {
