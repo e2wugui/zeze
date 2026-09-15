@@ -130,7 +130,11 @@ public class GlobalCacheManagerWithRaft
 	private void achillesHeelDaemon() {
 		var now = System.currentTimeMillis();
 		var raft = rocks.getRaft();
-		if (raft != null && raft.isLeader()) {
+		var leader = raft != null && raft.isLeader();
+		if (leader && !wasLeader)
+			rebuildSessionsFromStorage(); // FND6-24：leader就任重建会话视图（false→true边沿）
+		wasLeader = leader;
+		if (leader) {
 			sessions.forEach(session -> {
 				session.lock();
 				try {
@@ -180,6 +184,41 @@ public class GlobalCacheManagerWithRaft
 		BAcquiredState acquiredState = new BAcquiredState();
 		acquiredState.setState(state);
 		return acquiredState;
+	}
+
+	// FND6-24：sessions为进程内存态（不随raft复制），leader切换后新leader仅含本进程
+	// 登录过的serverId——死serverId的CacheHolder缺失：第三方acquire其持有的modify键
+	// 时reduce路径get==null恒false（AcquireModifyFailed重试同败），daemon因无Holder
+	// 不可及（Cleanup恒禁用），稳定新主下wedge无期限。就任时遍历storage已存在的
+	// Session表（每个serverId一张列族表，RocksDatabase构造时全量装载tableMap）重建
+	// Holder。仅补内存视图、不碰rocks数据；已在的Holder不动（活会话不受影响）。
+	// activeTime用构造默认now而非置零：leader切换到Agent ReLogin存在窗口，置零会在
+	// 窗口内按stale释放仍存活会话的权限；now给一个完整daemon超时窗口，与"刚登录后
+	// 失联"的既有超时语义一致，死serverId照样在超时后释放。
+	private static final String SessionTableNamePrefix = "Session#";
+	private volatile boolean wasLeader; // daemon观察的leadership边沿
+
+	private void rebuildSessionsFromStorage() {
+		var storage = rocks.getStorage();
+		if (storage == null)
+			return;
+		int rebuilt = 0;
+		for (var name : storage.getTableMap().keySet()) {
+			if (!name.startsWith(SessionTableNamePrefix))
+				continue;
+			long serverId;
+			try {
+				serverId = Long.parseLong(name.substring(SessionTableNamePrefix.length()));
+			} catch (NumberFormatException e) {
+				continue;
+			}
+			if (serverId < 0 || serverId > Integer.MAX_VALUE)
+				continue;
+			if (sessions.putIfAbsent(serverId, new CacheHolder(this, (int)serverId)) == null)
+				++rebuilt;
+		}
+		if (rebuilt > 0)
+			logger.info("LeaderSessionsRebuilt count={}", rebuilt);
 	}
 
 	@Override
