@@ -97,6 +97,9 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	// start()检测task11ExecutorDown则重建,支持close→start重启。派发线程读取引用,须volatile。
 	protected volatile TaskOneByOneByKey task11Executor = new TaskOneByOneByKey();
 	protected boolean task11ExecutorDown; // close()置位,start()重建后复位;仅thisLock(start/close)内读写
+	// 停机拒绝标志:close()最前置位、start()重启时复位;channelRead在EventLoop线程上读,须volatile。
+	// 置位后已accept连接上到达的新HttpRequest回503并关连接(明确拒绝),不再进exchanges/派发handler。
+	protected volatile boolean shutdown;
 	protected int writePendingLimit = 64 * 1024; // 写缓冲区的限制大小(字节),超过会立即断开连接,写大量内容需要考虑分片
 	protected int maxUploadSize = 256 * 1024 * 1024; // 流模式上传(如multipart/raw文件上传)的请求body总量限制(字节),超过返回413并断开连接
 	protected int checkIdleInterval = 5; // 检查超时的间隔(秒),只有以下两个超时时间都满足才会触发超时关闭,start之后修改无效
@@ -260,6 +263,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 				task11Executor = new TaskOneByOneByKey();
 				task11ExecutorDown = false;
 			}
+			shutdown = false; // close→start重启配套:清除停机拒绝标志,重新接受新请求
 			var eventLoopGroup = netty.getEventLoopGroup();
 			var b = new ServerBootstrap();
 			if (eventLoopGroup instanceof EpollEventLoopGroup)
@@ -367,6 +371,20 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	public void close() {
 		lock();
 		try {
+			// 最先置停机标志（在关监听channel/清扫exchanges之前）：已accept连接上随后到达的
+			// 新HttpRequest立即走503拒绝（见channelRead），不再进exchanges/派发handler——
+			// 否则这些请求要么提交到已shutdown(true)的派发队列被静默丢弃，要么落入清扫与
+			// shutdown之间的竞态黑洞（同FND6-15背景）。
+			shutdown = true;
+			// 最先关监听channel（必须在下方exchanges清扫与shutdown之前）：shutdown(true)内部
+			// waitComplete可阻塞秒级，若监听channel后关，阻塞窗口内新accept的连接加入channels时
+			// 清扫已过，残留连接黑洞（同FND6-15）。channelFuture为null（未start绑定）时此块为空操作。
+			if (channelFuture != null) {
+				var ch = channelFuture.channel();
+				channelFuture = null;
+				if (ch != null)
+					ch.close();
+			}
 			// 先关exchanges再shutdown派发队列：closeConnectionNow→closeInEventLoop→fireEndStreamHandle/
 			// fireWebSocket产生的收尾任务（onEndStream、retain的content/frame的release、multipart decoder
 			// destroy、上传临时文件清理）必须在队列置isShutdown之前进入队列，否则提交被丢弃/仅cancel补偿。
@@ -384,12 +402,6 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			Netty.logger.info("close {}", getClass().getName());
 			scheduler.cancel(true);
 			scheduler = null;
-			if (channelFuture != null) {
-				var ch = channelFuture.channel();
-				channelFuture = null;
-				if (ch != null)
-					ch.close();
-			}
 			if (httpSession != null)
 				httpSession.stop();
 		} finally {
@@ -596,6 +608,19 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			}
 			HttpExchange x;
 			if (msg instanceof HttpRequest) {
+				// 停机后到达的新请求：不创建exchange/不派发handler，按onDecodeFailure模式回
+				// 503 Service Unavailable并关连接，把close()期间的"静默丢弃"变为明确拒绝。
+				if (shutdown) {
+					Netty.logger.info("reject request from {} while shutdown", ctx.channel().remoteAddress());
+					var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.SERVICE_UNAVAILABLE,
+							Unpooled.EMPTY_BUFFER, HttpExchange.headersFactory, HttpExchange.trailersFactory);
+					res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+					var cf = ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
+					var prev = exchanges.remove(channelId); // 先移除,后续消息不再派发
+					if (prev != null)
+						prev.close(HttpExchange.CLOSE_ON_FLUSH, cf);
+					return;
+				}
 				if ((x = createHttpExchange(ctx)) == null)
 					return;
 				exchanges.put(channelId, x);
