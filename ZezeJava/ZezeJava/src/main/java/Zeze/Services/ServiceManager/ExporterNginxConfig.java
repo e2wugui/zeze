@@ -23,6 +23,7 @@ public class ExporterNginxConfig implements IExporter {
 	public void exportAll(String serviceName, BServiceInfosVersion all) throws Exception {
 		var lines = new ArrayList<String>();
 		var hasChanged = false;
+		var found = false;
 		try (var config = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
 			String line;
 			var skipUntilUpstreamEnd = false;
@@ -48,11 +49,22 @@ public class ExporterNginxConfig implements IExporter {
 						skipUntilUpstreamEnd = true;
 						exportToLines(prefix, lines, serviceName, all);
 						hasChanged = true;
+						found = true;
 						continue;
 					}
 				}
 				lines.add(line);
 			}
+		}
+		// FND6-30：整文件未命中同名upstream块时原实现恒不更新（hasChanged恒false）——新增服务
+		// 或首次部署未预置空块时该服务地址永不进nginx、无自愈无告警（未文档化的隐含契约）。
+		// 改为文件尾追加自产格式块（含服务暂无identity的空块态，与已存在块的重写语义一致），
+		// 后续轮转可正常识别重写。
+		if (!found) {
+			exportToLines("", lines, serviceName, all);
+			hasChanged = true;
+			logger.info("ExporterNginxConfig: upstream block for '{}' not found, append to end of {}",
+					serviceName, file);
 		}
 		if (hasChanged) {
 			var sb = new StringBuilder();
