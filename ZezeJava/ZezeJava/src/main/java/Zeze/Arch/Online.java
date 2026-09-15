@@ -482,7 +482,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return 0;
 	}
 
-	private long logoutTrigger(@NotNull String account, @NotNull String clientId) throws Exception {
+	private long logoutTrigger(@NotNull String account, @NotNull String clientId, boolean finalLogout) throws Exception {
 		var bOnline = getOrAddOnline(account);
 		var bLink = bOnline.getLogins().getOrAdd(clientId).getLink();
 		bOnline.getLogins().getOrAdd(clientId).setLink(new BLink(bLink.getLinkName(), bLink.getLinkSid(), eOffline));
@@ -501,6 +501,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			return ret;
 		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(providerApp.zeze, this, arg, account));
+		// FND6-35（对称Game版）：仅最终登出清理ReliableNotify队列根行（登录路径的clear只清
+		// 节点链，根行会残留）。重复登录/重登中途的补Logout不能清理：随后的
+		// reliableNotifySync仍依赖存活队列补投未确认的notify。
+		if (finalLogout)
+			openQueue(account, clientId).remove();
 		return 0;
 	}
 
@@ -547,7 +552,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (login != null && login.getLink().getState() != eOffline
 				&& login.getLoginVersion() == currentLoginVersion) {
 			login.setLogoutVersion(login.getLoginVersion());
-			var ret = logoutTrigger(account, clientId);
+			var ret = logoutTrigger(account, clientId, true);
 			if (0 != ret)
 				return ret;
 		}
@@ -1790,7 +1795,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 						BKick.ErrorDuplicateLogin,
 						"duplicate login " + account + ":" + rpc.Argument.getClientId());
 			}
-			var ret = logoutTrigger(account, rpc.Argument.getClientId());
+			var ret = logoutTrigger(account, rpc.Argument.getClientId(), false);
 			if (0 != ret)
 				return ret;
 			// 发生了补Logout事件，重做Login。
@@ -1866,7 +1871,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 						BKick.ErrorDuplicateLogin,
 						"duplicate login " + account + ":" + rpc.Argument.getClientId());
 			}
-			var ret = logoutTrigger(account, rpc.Argument.getClientId());
+			var ret = logoutTrigger(account, rpc.Argument.getClientId(), false);
 			if (0 != ret)
 				return ret;
 			// 发生了补Logout事件，重做ReLogin。
@@ -1923,7 +1928,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var login = getLogin(account, clientId);
 		if (login != null) {
 			login.setLogoutVersion(login.getLoginVersion());
-			var ret = logoutTrigger(account, clientId);
+			var ret = logoutTrigger(account, clientId, true);
 			if (0 != ret)
 				return ret;
 			// online 被删除
