@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -169,16 +168,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	private @Nullable Future<?> verifyLocalTimer; // timerLock保护
 	private boolean stopped; // timerLock保护；stop置位后verifyLocal的finally不再重调度
 
-	// FND6-23：DelayLogout失败重排的内存计数（BDelayLogoutCustom为生成代码不加字段），
-	// 重启归零——重启本身重建Online上下文，可接受。放弃后由verifyLocal的eLinkBroken
-	// 清理兜底（见tryRemoveLocal）。
-	private final ConcurrentHashMap<String, AtomicInteger> delayLogoutRetries = new ConcurrentHashMap<>();
-	private static final int DelayLogoutMaxRetries = 3;
-
-	private static String delayLogoutRetryKey(@NotNull BDelayLogoutCustom custom) {
-		return custom.getAccount() + '|' + custom.getClientId() + '|' + custom.getLoginVersion();
-	}
-
 	public static @NotNull Online create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Online.class, app);
 	}
@@ -199,6 +188,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
+	// P3配置不变式告警一次性开关：OnlineLogoutDelay >= localActiveTimeout 时verifyLocal可能在
+	// 重连宽限窗口内提前登出（见start处的校验），重复start不重复告警。
+	private final AtomicBoolean logoutDelayConfigWarned = new AtomicBoolean();
 
 	protected Online(@NotNull AppBase app) {
 		var zeze = app.getZeze();
@@ -214,6 +206,13 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public void start() {
+		// P3配置不变式：tryRemoveLocal对eLinkBroken残留重走tryLogout的"不误清"论证仅对
+		// OnlineLogoutDelay < localActiveTimeout成立（默认60s<600s）。若运维把延迟登出配得
+		// 不小于不活跃门槛，verifyLocal会切进延迟登出的重连宽限窗口强制登出可恢复的会话。
+		var logoutDelay = providerApp.zeze.getConfig().getOnlineLogoutDelay();
+		if (logoutDelay >= localActiveTimeout && logoutDelayConfigWarned.compareAndSet(false, true))
+			logger.warn("OnlineLogoutDelay({}ms) >= localActiveTimeout({}ms): "
+					+ "verifyLocal可能在重连宽限窗口内提前登出，请调整两者配比。", logoutDelay, localActiveTimeout);
 		timerLock.lock();
 		try {
 			stopped = false; // 支持同实例stop后重新start
@@ -587,29 +586,24 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			logout((BDelayLogoutCustom)context.customData);
 		}
 
+		// 仅timer上下文调用（onSendError在过程上下文内联调tryLogout并外传失败码，不经过这里）。
 		public static void logout(@NotNull BDelayLogoutCustom custom) throws Exception {
 			var online = Online.findOnline(custom.getProjectName());
 			if (online == null)
 				return; // 应用未启动或已停止：等下一次 tick 或忽略
 			var ret = online.tryLogout(custom);
-			if (ret == 0) {
-				online.delayLogoutRetries.remove(delayLogoutRetryKey(custom));
+			if (ret == 0)
 				return;
-			}
 			Online.logger.error("tryLogout fail. ret={}, projectName={}", ret, custom.getProjectName());
-			// FND6-23：timer times(1)一次性失败后状态机永久卡死在eLinkBroken。
-			// 有界重排重试（间隔沿用OnlineLogoutDelay，给登记的embed处理器恢复留窗口）。
-			var key = delayLogoutRetryKey(custom);
-			if (online.delayLogoutRetries.computeIfAbsent(key, k -> new AtomicInteger()).incrementAndGet()
-					> DelayLogoutMaxRetries) {
-				online.delayLogoutRetries.remove(key);
-				Online.logger.error("DelayLogout retry give up. account={}, clientId={}, loginVersion={}",
-						custom.getAccount(), custom.getClientId(), custom.getLoginVersion());
-				return; // 放弃快速重试，留verifyLocal的eLinkBroken清理最终兜底。
-			}
-			var zeze = online.providerApp.zeze;
-			zeze.getTimer().schedule(TimerSpec.ofDelay(zeze.getConfig().getOnlineLogoutDelay()).times(1),
-					DelayLogout.class, custom.copyIfManaged());
+			// timer上下文不能吞码——包裹本回调的Timer.fireSimpleUser对handler硬编码return 0，
+			// 正常返回会提交logoutTrigger的半程状态（setLink(eOffline)已写、后续事件被跳过），
+			// 重入时tryLogout的state守卫看到已提交的eOffline→空洞成功。throw使嵌套过程连同
+			// 半程状态整体回滚（异常被Timer框架捕获记日志并终结times(1)到点的timer）；
+			// eLinkBroken残留由verifyLocal的eLinkBroken分支最终收敛（见tryRemoveLocal），
+			// 失败场景的收敛延迟由OnlineLogoutDelay变为localActiveTimeout一档（默认600s）。
+			throw new RuntimeException("DelayLogout tryLogout fail, rollback half-written state. ret=" + ret
+					+ ", account=" + custom.getAccount() + ", clientId=" + custom.getClientId()
+					+ ", loginVersion=" + custom.getLoginVersion());
 		}
 	}
 
@@ -643,10 +637,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			}
 		}
 
-		// shorter use
-		DelayLogout.logout(new BDelayLogoutCustom(account, clientId, loginOnline.getLoginVersion(),
+		// shorter use（Game版语义：立即尝试登出，失败码外传整体回滚——连同上面的eLinkBroken
+		// 推进一起撤销，由后续断链/发送失败事件重新驱动；延迟宽限重排见linkBroken）。
+		return tryLogout(new BDelayLogoutCustom(account, clientId, loginOnline.getLoginVersion(),
 				providerApp.zeze.getProjectName()));
-		return 0;
 	}
 
 	public long linkBroken(@NotNull String account, @NotNull String clientId,
@@ -1734,7 +1728,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				if (ret != 0)
 					return ret;
 			} else if (login.getLink().getState() == eLinkBroken) {
-				// FND6-23：eLinkBroken残留（DelayLogout重试放弃后卡死）在此收敛——重走
+				// FND6-23：eLinkBroken残留（DelayLogout失败回滚后无人驱动）在此收敛——重走
 				// tryLogout全链（版本守卫内建：延迟期间同clientId重登则no-op）。verifyLocal
 				// 的入选门槛（localActiveTimeout，默认600s）已远超OnlineLogoutDelay（默认
 				// 60s），不会误清延迟窗口内的可恢复会话。
@@ -1761,7 +1755,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
-	protected long ProcessLoginRequest(@NotNull Login rpc) throws Exception {
+	protected long ProcessLoginRequest(@NotNull Login rpc) {
 		var done = new OutObject<>(false);
 		while (!done.value) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest")).call();
