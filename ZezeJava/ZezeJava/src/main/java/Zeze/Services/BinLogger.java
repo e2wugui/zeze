@@ -378,6 +378,22 @@ public final class BinLogger extends ReentrantLock {
 			}
 		}
 
+		/** 丢弃退出：置空写队列并唤醒等满的生产者（processLogData见null即break，本条按drop
+		 * 处理），写线程不再回到外层循环。轮转窗口停机退出（FND6-29）与写异常恢复分支的
+		 * exitOnStop（FND5-39）共用。 */
+		private void discardWriteQueueForExit() {
+			queueLock.lock();
+			try {
+				writeLogQueue = null;
+				if (waitingQueue) {
+					waitingQueue = false;
+					queueLockCond.signalAll();
+				}
+			} finally {
+				queueLock.unlock();
+			}
+		}
+
 		static int toDayStamp(long utcMs) { // UTC毫秒时间戳 => 日期戳(天数)；包内可见供DST单测
 			// 与toDayStr同源的DST感知口径（FND4-75）：原用timeZoneOffset=getRawOffset（不含夏令时
 			// 偏移），DST时区中切换日的天边界与toDayStr渲染日期错开一天（轮转文件名与数据实际
@@ -601,6 +617,22 @@ public final class BinLogger extends ReentrantLock {
 							forceClose(oldPosFile);
 							forceClose(oldBinFile);
 							curDayStamp = dayStamp;
+							// FND6-29：轮转窗口停机复查。stop超时放弃join后stopLogger已forceClose当时
+							// 字段并释放目录锁，openDay在此之后重开的新五件套无人负责关闭（句柄泄漏到
+							// 进程结束）；继续写完整批还会在同目录重启新实例时双写同日bin/pos索引交叉损坏。
+							// 停机优先于落盘（FND4-68终止契约，与写异常恢复分支的!started同口径）：
+							// 关闭新句柄、丢弃残余批直接退出。
+							if (!started) {
+								logger.error("writeLogThread exit on stopping during rotation: discard {} logs",
+									queueSize);
+								forceClose(idFile);
+								forceClose(dtFile);
+								forceClose(tsFile);
+								forceClose(posFile);
+								forceClose(binFile);
+								discardWriteQueueForExit();
+								break; // 退出外层for(;;)
+							}
 						}
 						// 失败断点（FND3-43）：completed=已完整写成（五文件齐）的条数。写异常时
 						// 当前条可能已部分写入bin（脏尾）且内存binFileSize与文件实际长度脱钩：
@@ -674,18 +706,7 @@ public final class BinLogger extends ReentrantLock {
 						}
 						readLogQueue.clear();
 						if (exitOnStop) {
-							// 丢弃退出：置空写队列并唤醒等满的生产者（processLogData见null即break，
-							// 本条按drop处理），写线程不再回到外层循环。
-							queueLock.lock();
-							try {
-								writeLogQueue = null;
-								if (waitingQueue) {
-									waitingQueue = false;
-									queueLockCond.signalAll();
-								}
-							} finally {
-								queueLock.unlock();
-							}
+							discardWriteQueueForExit();
 							break; // 退出外层for(;;)
 						}
 						writeLogCounter.inc(queueSize);
