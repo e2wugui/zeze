@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.OutInt;
-import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -25,7 +24,7 @@ public class ProcedureLockWatcher {
 		if (lockCount < procedureLockWatcherMin)
 			return;
 
-		ZezeCounter.instance.procedureManyLocks(p.getActionName(), lockCount);
+		p.procedureCounter().manyLocks(lockCount);
 
 		var max = procedureMaxLocks.computeIfAbsent(p.getActionName(), __ -> new AtomicInteger());
 		for (; ; ) {

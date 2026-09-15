@@ -26,7 +26,7 @@ var className = System.getProperty("ZezeCounter", "Zeze.Util.PerfCounter");
 
 `PrometheusCounter implements ZezeCounter`，内部用 `io.prometheus` 客户端库注册 Counter / Histogram / CounterWithCallback，把抽象方法映射为 Prometheus 指标。`Zeze.Component.AbstractStatistics`（注意包路径是 `Zeze.Component`，不是 `Zeze.Services`）负责周期性地汇总统计并输出报告。
 
-> `ZezeCounter` 定义的抽象能力包括：分配累加器（`allocCounter`）、带标签的 Counter/Histogram 创建器、过程级埋点（`procedureStart/End/Redo`）、表级统计（`getOrAddTableInfo`）、协议收发大小与耗时（`addRecvSizeTime` / `addSendSize`）、服务启停（`serviceStart/Stop`）等。具体方法签名以所集成版本的 SDK 为准。
+> `ZezeCounter` 定义的抽象能力包括：分配累加器（`allocCounter`）、带标签的 Counter/Histogram 创建器、过程级埋点（`allocProcedureCounter` 返回的 ProcedureCounter handle）、表级统计（`getOrAddTableInfo`）、协议收发大小与耗时（`addRecvSizeTime` / `addSendSize`）、服务启停（`serviceStart/Stop`）等。具体方法签名以所集成版本的 SDK 为准。
 
 ---
 

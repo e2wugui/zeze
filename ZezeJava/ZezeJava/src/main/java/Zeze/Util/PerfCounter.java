@@ -4,7 +4,6 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
@@ -204,13 +203,13 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	public static final int PERF_COUNT = Integer.parseInt(System.getProperty("perfCount", "20")); // 输出条目数
 	public static final int PERF_PERIOD = Integer.parseInt(System.getProperty("perfPeriod", "100")); // 输出周期(秒)
-	private final ConcurrentHashMap<Object, RunInfoWithSerial> runInfoMap = new ConcurrentHashMap<>(); // key: Class or others
+	private final ConcurrentHashMap<String, RunInfoWithSerial> runInfoMap = new ConcurrentHashMap<>(); // key: 统计名（归一化后）
 	private final LongConcurrentHashMap<ProtocolInfo> protocolInfoMap = new LongConcurrentHashMap<>(); // key: typeId
 	private final ConcurrentHashMap<String, ProcedureInfo> procedureInfoMap = new ConcurrentHashMap<>(); // key: procedureName
 	private final LongConcurrentHashMap<TableInfo> tableInfoMap = new LongConcurrentHashMap<>(); // key: tableId
 	private CountInfo[] countInfos = new CountInfo[0];
 	// exclude 随时可配置；已存在的统计条目要等空闲回收才会消失，并发读写安全
-	private final Set<Object> excludeRunKeys = ConcurrentHashMap.newKeySet(); // value: Class or others
+	private final Set<String> excludeRunKeys = ConcurrentHashMap.newKeySet(); // value: 统计名（归一化后）
 	private final LongConcurrentHashMap<Boolean> excludeProtocolTypeIds = new LongConcurrentHashMap<>(); // key: typeId
 	private final DecimalFormat numFormatter = new DecimalFormat("#,###");
 	private volatile @NotNull Snapshot lastSnapshot = Snapshot.EMPTY;
@@ -220,10 +219,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private @Nullable ScheduledFuture<?> scheduleFuture;
 	private final LongCounter transactionRedoCounter = allocCounter("Transaction.Redo");
 	private final LongCounter transactionRedoAndReleaseLockCounter = allocCounter("Transaction.RedoAndReleaseLock");
-
-	public static @NotNull PerfCounter instance() {
-		return Objects.requireNonNull((PerfCounter)ZezeCounter.instance);
-	}
 
 	@Override
 	public @NotNull LongCounter allocCounter(@NotNull String name) {
@@ -262,9 +257,9 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		return excludeRunKeys.add(key);
 	}
 
-	/** 随时可调用。 */
+	/** 随时可调用。与同名String键排除同一条目（Class归一化为类名）。 */
 	public boolean addExcludeRunKey(@NotNull Class<?> cls) {
-		return excludeRunKeys.add(cls);
+		return excludeRunKeys.add(cls.getName());
 	}
 
 	/** 随时可调用。 */
@@ -272,15 +267,17 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		return excludeProtocolTypeIds.putIfAbsent(typeId, Boolean.TRUE) == null;
 	}
 
+	// key归一化：Class取类名、其余toString——统计条目与exclude统一按字符串名聚合，
+	// Class键与其类名字符串键落在同一条目。
 	private @Nullable RunInfoWithSerial getRunInfoWithSerial(@NotNull Object key) {
-		if (excludeRunKeys.contains(key))
+		var name = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
+		if (excludeRunKeys.contains(name))
 			return null;
 		for (; ; ) {
-			var ri = runInfoMap.get(key);
+			var ri = runInfoMap.get(name);
 			if (ri != null)
 				return ri;
-			runInfoMap.putIfAbsent(key, new RunInfoWithSerial(
-					key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key), clearSerial));
+			runInfoMap.putIfAbsent(name, new RunInfoWithSerial(name, clearSerial));
 		}
 	}
 
@@ -299,26 +296,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public void serviceStop(@NotNull Service service) {
-	}
-
-	@Override
-	public void procedureStart(@NotNull String name) {
-	}
-
-	@Override
-	public void procedureEnd(@NotNull String name, long resultCode, long timeNs) {
-		// addRunTime(name, timeNs);
-		getOrAddProcedureInfo(name).getOrAddResult(resultCode).increment();
-	}
-
-	@Override
-	public void procedureRedo(@NotNull String name) {
-		transactionRedoCounter.increment();
-	}
-
-	@Override
-	public void procedureRedoAndReleaseLock(@NotNull String name) {
-		transactionRedoAndReleaseLockCounter.increment();
 	}
 
 	@Override
@@ -378,6 +355,55 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	public @NotNull ProcedureInfo getOrAddProcedureInfo(@NotNull String name) {
 		return procedureInfoMap.computeIfAbsent(name, ProcedureInfo::new);
+	}
+
+	@Override
+	public @NotNull ProcedureCounter allocProcedureCounter(@NotNull String name) {
+		return new PerfProcedureCounter(name);
+	}
+
+	// handle绑定的ProcedureInfo随resetCounter清空失效：按代际serial重绑（同getRunTimeObserver闭包模式）。
+	// redo保持原procedureRedo的语义：聚合到全局counter，不按name区分。
+	private final class PerfProcedureCounter implements ProcedureCounter {
+		private final @NotNull String name;
+		private volatile @Nullable Bound bound;
+
+		private record Bound(@NotNull ProcedureInfo info, int serial) {
+		}
+
+		PerfProcedureCounter(@NotNull String name) {
+			this.name = name;
+		}
+
+		private @NotNull ProcedureInfo info() {
+			var b = bound;
+			if (b == null || b.serial() != clearSerial)
+				bound = b = new Bound(getOrAddProcedureInfo(name), clearSerial);
+			return b.info();
+		}
+
+		@Override
+		public void start() {
+		}
+
+		@Override
+		public void end(long resultCode, long timeNs) {
+			info().getOrAddResult(resultCode).increment();
+		}
+
+		@Override
+		public void redo() {
+			transactionRedoCounter.increment();
+		}
+
+		@Override
+		public void redoAndReleaseLock() {
+			transactionRedoAndReleaseLockCounter.increment();
+		}
+
+		@Override
+		public void manyLocks(int count) {
+		}
 	}
 
 	public @NotNull TableInfo getOrAddTableInfo(long tableId) {

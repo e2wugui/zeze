@@ -42,12 +42,14 @@ public class TestZezeCounterContract {
 
 		c.getRunTimeObserver("ContractRunKey").observe(2_000_000);
 		c.addTaskRunTime("ContractTask", 3_000_000);
+		c.addTaskRunTime(TestZezeCounterContract.class, 4_000_000); // Class键归一化为类名，与字符串键同条目
 
-		c.procedureStart("ContractProc");
-		c.procedureEnd("ContractProc", 0, 1_000_000);
-		c.procedureEnd("ContractProc", 1, 2_000_000);
-		c.procedureRedo("ContractProc");
-		c.procedureRedoAndReleaseLock("ContractProc");
+		var proc = c.allocProcedureCounter("ContractProc");
+		proc.start();
+		proc.end(0, 1_000_000);
+		proc.end(1, 2_000_000);
+		proc.redo();
+		proc.redoAndReleaseLock();
 
 		for (var metric : ZezeCounter.TableMetric.values())
 			c.tableCounter(0x1234, metric).increment();
@@ -55,8 +57,9 @@ public class TestZezeCounterContract {
 		c.addRecvSizeTime(0x100, null, 64, 1_000_000);
 		c.addRecvDispatchTime(0x100, 1_000);
 		c.addSendSize(0x100, 64);
+		var capProc = c.allocProcedureCounter("ContractCapProc");
 		for (var rc = 0; rc < 30; rc++) // 30个码，默认封顶20
-			c.procedureEnd("ContractCapProc", 1_000 + rc, 1_000_000);
+			capProc.end(1_000 + rc, 1_000_000);
 		return counterName;
 	}
 
@@ -67,6 +70,7 @@ public class TestZezeCounterContract {
 		var log = c.getLogAndReset();
 		Assertions.assertTrue(log.contains("ContractProc"), "procedure section");
 		Assertions.assertTrue(log.contains("ContractTask"), "run section");
+		Assertions.assertTrue(log.contains("UnitTest.Zeze.Util.TestZezeCounterContract"), "class key normalized");
 		Assertions.assertTrue(log.contains("ContractRunKey"), "run observer");
 		Assertions.assertTrue(log.contains("[table: 1]"), "table section");
 		Assertions.assertTrue(log.contains(counterName + ": 42"), "count value 1+41");

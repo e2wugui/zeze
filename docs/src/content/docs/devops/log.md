@@ -52,7 +52,7 @@ public interface ILogAction {
 
 Application类构造时会自动开启统计日志，如果不使用Application，可调用下面方法开启:
 ```
-PerfCounter.instance.tryStartScheduledLog();
+ZezeCounter.tryInit();
 ```
 
 #### 日志输出说明
@@ -95,14 +95,14 @@ PerfCounter: count last 100002ms:
 1. 统计的时间值只是占用线程的时间，包括其中各种等待的调用(如等锁、同步等IO等)，可能不与CPU开销一致。如果只需要统计CPU开销，可使用Async Profiler、Visual VM等统计工具。
 2. PerfCounter会自动统计Dispatch和Send内部封装的协议。
 3. PerfCounter有addRunInfo、addRecvInfo、addSendInfo三个方法可以提供额外的数据供统计。
-4. PerfCounter通常用instance单例就够了，也可以创建新实例做完全自定义的统计。
+4. PerfCounter通常直接用ZezeCounter.instance单例就够了，也可以创建新实例做完全自定义的统计。
 5. 也可以不启动定时统计输出，而是手动调用getLogAndReset()获取统计信息并重置统计数据。
 6. 可通过PerfCounter.cancelScheduledLog方法停止定时输出日志。
-7. 可通过下面3个方法忽略指定key或协议ID的统计:
+7. 可通过PerfCounter的下面3个方法忽略指定key或协议ID的统计(需将ZezeCounter.instance向下转型为PerfCounter):
 ```
-PerfCounter.instance.addExcludeRunKey(String key)
-PerfCounter.instance.addExcludeRunKey(Class<?> key)
-PerfCounter.instance.addExcludeProtocolTypeId(long typeId)
+((PerfCounter)ZezeCounter.instance).addExcludeRunKey(String key)
+((PerfCounter)ZezeCounter.instance).addExcludeRunKey(Class<?> key)
+((PerfCounter)ZezeCounter.instance).addExcludeProtocolTypeId(long typeId)
 ```
 
 ## 流量统计日志

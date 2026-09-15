@@ -29,8 +29,7 @@ public interface ZezeCounter {
 	}
 
 	static void tryInit() {
-		if (instance != null)
-			instance.init();
+		instance.init();
 	}
 
 	interface LongCounter {
@@ -119,30 +118,30 @@ public interface ZezeCounter {
 	void serviceStop(@NotNull Service service);
 
 	/**
-	 * 事务开始
+	 * 事务（存储过程）度量handle：通过 {@link #allocProcedureCounter(String)} 按name解析一次，
+	 * 调用点缓存复用（如Procedure实例字段），热路径零名字解析。
 	 */
-	void procedureStart(@NotNull String name);
+	interface ProcedureCounter {
+		/** 事务开始（每次执行调用） */
+		void start();
 
-	/**
-	 * 事务完成
-	 */
-	void procedureEnd(@NotNull String name, long resultCode, long timeNs);
+		/** 事务完成（每次执行调用） */
+		void end(long resultCode, long timeNs);
 
-	/**
-	 * 事务redo
-	 */
-	void procedureRedo(@NotNull String name);
+		/** 事务redo */
+		void redo();
 
-	/**
-	 * 事务redoAndReleaseLock
-	 */
-	void procedureRedoAndReleaseLock(@NotNull String name);
+		/** 事务redo且释放锁 */
+		void redoAndReleaseLock();
 
-	/**
-	 * 事务持有锁数量观察（达到ProcedureLockWatcherMin阈值时调用）
-	 */
-	default void procedureManyLocks(@NotNull String name, int count) {
+		/** 事务持有锁数量观察（达到ProcedureLockWatcherMin阈值时调用） */
+		void manyLocks(int count);
 	}
+
+	/**
+	 * 通过name分配事务度量handle。同name多次分配安全（各实现内部按name聚合统计）。
+	 */
+	@NotNull ProcedureCounter allocProcedureCounter(@NotNull String name);
 
 	/**
 	 * 通过表ID与度量获取其绑定的表统计器

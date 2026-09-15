@@ -188,19 +188,17 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			var txn = Transaction.getCurrent();
 			if (txn == null && zeze != null && factoryHandle.Level != TransactionLevel.None) {
 				var outProtocol = new OutObject<Protocol<?>>();
+				// 过程名一次给足：协议类名 + 响应族后缀。FamilyClass位从protocolData首uint窥出，
+				// 与Rpc.decode的isRequest判定一致；名字自创建恒定，统计handle一次解析。
+				var header = ByteBuffer.Wrap(arg.getProtocolData()).ReadUInt();
+				var procName = factoryHandle.Class.getName()
+						+ ((header & FamilyClass.FamilyClassMask) == FamilyClass.Response ? ":Response" : "");
 				var r = TaskSpec.ofProcedureOut(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
 						var p3 = factoryHandle.Factory.create();
-						var t = Transaction.getCurrent();
-						@SuppressWarnings("DataFlowIssue")
-						var proc = t.getTopProcedure();
-						//noinspection DataFlowIssue
-						proc.setActionName(p3.getClass().getName());
 						p3.decode(ByteBuffer.Wrap(arg.getProtocolData()));
 						p3.setSender(sender);
 						p3.setUserState(session);
 						var isRpcResponse = !p3.isRequest(); // && p3 instanceof Rpc
-						if (isRpcResponse)
-							proc.setActionName(proc.getActionName() + ":Response");
 						if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p3.getTypeId())
 							&& outProtocol.value == null) { // redo后不再输出日志
 							var roleId = session.getRoleId();
@@ -209,14 +207,14 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 							AsyncSocket.log("Recv", roleId, arg.getOnlineSetName(), p3);
 						}
 						outProtocol.value = p3;
-						t.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
+						Transaction.whileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 						if (isRpcResponse)
 							return processRpcResponse(p3);
 						// protocol or rpc request
 						@SuppressWarnings("unchecked")
 						var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 						return handler != null ? handler.handle(p3) : Procedure.NotImplement;
-					}, null, factoryHandle.Level), outProtocol, session::tryRespondErrorNow).call();
+					}, procName, factoryHandle.Level), outProtocol, session::tryRespondErrorNow).call();
 				if (timeBegin != 0) // 统计禁用时零开销
 					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
 							Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
@@ -235,8 +233,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			}
 			var isRpcResponse = !p2.isRequest(); // && p2 instanceof Rpc
 			if (txn != null) { // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
-				//noinspection ConstantConditions
-				txn.getTopProcedure().setActionName(p2.getClass().getName() + (isRpcResponse ? ":Response" : ""));
 				txn.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			} else // 应用框架不支持事务或者协议配置了"不需要事务”
 				arg.setProtocolData(Binary.Empty); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空

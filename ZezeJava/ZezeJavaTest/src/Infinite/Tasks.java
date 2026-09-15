@@ -18,6 +18,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
+import Zeze.Util.ZezeCounter;
 import demo.Module1.BSimple;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Assertions;
@@ -86,7 +87,7 @@ public final class Tasks {
 			var name = getClass().getName();
 			var runCount = getRunCounter(name).sum();
 			var successCount = getSuccessCounter(name).sum();
-			var stats = PerfCounter.instance().getOrAddProcedureInfo(name);
+			var stats = ((PerfCounter)ZezeCounter.instance).getOrAddProcedureInfo(name);
 			var abortCount = stats.getOrAddResult(Procedure.AbortException).sum();
 			var tooManyTry = stats.getOrAddResult(Procedure.TooManyTry).sum();
 			Simulate.logger.info("  totalCount({})={}", name, runCount);

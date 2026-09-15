@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.concurrent.Future;
-import Zeze.Util.PerfCounter;
+import Zeze.Util.ZezeCounter;
 import Zeze.Util.TaskSpec;
 import demo.App;
 import org.junit.jupiter.api.Assertions;
@@ -35,7 +35,7 @@ public class BBasicSimpleAddConcurrentWithConflict {
 				task.get();
 			}
 			b.report(this.getClass().getName(), AddCount);
-			System.out.println(PerfCounter.instance().getLogAndReset());
+			System.out.println(ZezeCounter.instance.collectAndReset().formattedLog());
 			App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Check, "check").call();
 			App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Remove, "remove").call();
 		} finally {

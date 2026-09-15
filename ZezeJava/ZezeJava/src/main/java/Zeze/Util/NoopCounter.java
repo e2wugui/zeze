@@ -14,6 +14,27 @@ public final class NoopCounter implements ZezeCounter {
 	};
 	private static final LongObserver noopObserver = v -> {
 	};
+	private static final ProcedureCounter noopProcedureCounter = new ProcedureCounter() {
+		@Override
+		public void start() {
+		}
+
+		@Override
+		public void end(long resultCode, long timeNs) {
+		}
+
+		@Override
+		public void redo() {
+		}
+
+		@Override
+		public void redoAndReleaseLock() {
+		}
+
+		@Override
+		public void manyLocks(int count) {
+		}
+	};
 	private NoopCounter() {
 	}
 
@@ -51,19 +72,8 @@ public final class NoopCounter implements ZezeCounter {
 	}
 
 	@Override
-	public void procedureStart(@NotNull String name) {
-	}
-
-	@Override
-	public void procedureEnd(@NotNull String name, long resultCode, long timeNs) {
-	}
-
-	@Override
-	public void procedureRedo(@NotNull String name) {
-	}
-
-	@Override
-	public void procedureRedoAndReleaseLock(@NotNull String name) {
+	public @NotNull ProcedureCounter allocProcedureCounter(@NotNull String name) {
+		return noopProcedureCounter;
 	}
 
 	@Override

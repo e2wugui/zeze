@@ -457,10 +457,10 @@ public final class Transaction {
 
 					if (checkResult == CheckResult.RedoAndReleaseLock) {
 						// logger.debug("checkResult.RedoAndReleaseLock({}): break", procedure);
-						ZezeCounter.instance.procedureRedoAndReleaseLock(procedure.getActionName());
+						procedure.procedureCounter().redoAndReleaseLock();
 						break;
 					}
-					ZezeCounter.instance.procedureRedo(procedure.getActionName());
+					procedure.procedureCounter().redo();
 				}
 				// 实现Fresh队列以后删除Sleep。
 				try {

@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.concurrent.Future;
-import Zeze.Util.PerfCounter;
+import Zeze.Util.ZezeCounter;
 import demo.App;
 import org.junit.jupiter.api.Assertions;
 
@@ -40,7 +40,7 @@ public class CBasicSimpleAddConcurrent {
 				task.get();
 			}
 			b.report(this.getClass().getName(), AddCount);
-			System.out.println(PerfCounter.instance().getLogAndReset());
+			System.out.println(ZezeCounter.instance.collectAndReset().formattedLog());
 			App.Instance.Zeze.newProcedure(CBasicSimpleAddConcurrent::Check, "check").call();
 			for (long i = 0; i < ConcurrentLevel; ++i) {
 				final long k = i;

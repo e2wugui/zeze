@@ -73,8 +73,7 @@ public class Procedure {
 	private final @NotNull Application zeze;
 	private final @Nullable TransactionLevel level;
 	private @Nullable FuncLong action;
-	@SuppressWarnings("NotNullFieldNotInitialized")
-	private @NotNull String actionName;
+	private final @NotNull String actionName;
 	// public Runnable runWhileCommit;
 
 	// 用于继承方式实现 Procedure。
@@ -89,7 +88,9 @@ public class Procedure {
 		zeze = app;
 		this.level = level;
 		this.action = action;
-		setActionName(actionName);
+		this.actionName = actionName != null && !actionName.isEmpty()
+				? actionName
+				: (action != null ? action : this).getClass().getName();
 	}
 
 	public final @NotNull Application getZeze() {
@@ -112,10 +113,14 @@ public class Procedure {
 		return actionName;
 	}
 
-	public final void setActionName(@Nullable String actionName) {
-		this.actionName = actionName != null && !actionName.isEmpty()
-				? actionName
-				: (action != null ? action : this).getClass().getName();
+	private @Nullable ZezeCounter.ProcedureCounter procedureCounter; // 名字自构造恒定，懒解析一次终身复用
+
+	/** 事务度量handle：懒解析一次；Transaction/ProcedureLockWatcher等经此复用同一handle。 */
+	public final @NotNull ZezeCounter.ProcedureCounter procedureCounter() {
+		var c = procedureCounter;
+		if (c == null)
+			procedureCounter = c = ZezeCounter.instance.allocProcedureCounter(actionName);
+		return c;
 	}
 
 	/**
@@ -133,14 +138,14 @@ public class Procedure {
 				currentT = Transaction.create(zeze.getLocks());
 				currentT.getProcedureStack().add(this); // 在栈底加一层root procedure对象,在事务执行的其它阶段也能获取到
 				currentT.profiler.onProcedureBegin(actionName, timeBegin);
-				ZezeCounter.instance.procedureStart(actionName);
+				procedureCounter().start();
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
 				return result = currentT.perform(this);
 			} finally {
 				if (currentT != null) {
 					var curTime = System.nanoTime();
 					var runTime = curTime - timeBegin;
-					ZezeCounter.instance.procedureEnd(actionName, result, runTime);
+					procedureCounter().end(result, runTime);
 					currentT.profiler.onProcedureEnd(actionName, curTime, runTime);
 					currentT.reuseTransaction();
 				}

@@ -191,11 +191,11 @@ public class PrometheusCounter implements ZezeCounter {
 		}
 	}
 
-	private final ConcurrentHashMap<Object, LongObserver> runTimeMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, LongCounter[]> tableCounterMap = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, LongObserver> runTimeMap = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, DistributionDataPoint> taskDurationMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ProtocolRecvMetric> protocolRecvMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, DistributionDataPoint> protocolDispatchMap = new ConcurrentHashMap<>();
-	private final ConcurrentHashMap<String, ResultCodeCap> procedureCodeCaps = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ProtocolSendMetric> protocolSendMap = new ConcurrentHashMap<>();
 	private final Map<String, ServiceMetric> serviceMap = new HashMap<>();
 	private final ReentrantLock serviceMapMutex = new ReentrantLock();
@@ -305,37 +305,32 @@ public class PrometheusCounter implements ZezeCounter {
 
 	@Override
 	public @NotNull LongObserver getRunTimeObserver(@NotNull Object key) {
-		return fastGetOrAdd(runTimeMap, key, (k) -> {
-			String name = k instanceof Class ? ((Class<?>)k).getName() : String.valueOf(k);
-			Histogram histogram = Histogram.builder().name(PrometheusNaming.sanitizeMetricName(name)).unit(Unit.SECONDS).register();
-			return (amount) -> histogram.observe(Unit.nanosToSeconds(amount));
+		// key归一化：Class取类名、其余toString，缓存与统计统一按字符串名聚合
+		var name = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
+		return fastGetOrAdd(runTimeMap, name, k -> {
+			Histogram histogram = Histogram.builder().name(PrometheusNaming.sanitizeMetricName(k)).unit(Unit.SECONDS).register();
+			return (LongObserver)amount -> histogram.observe(Unit.nanosToSeconds(amount));
 		});
 	}
 
 	@Override
 	public void addTaskRunTime(@NotNull Object key, long timeNs) {
-		String task = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
-		task_duration_seconds.labelValues(task).observe(Unit.nanosToSeconds(timeNs));
+		var task = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
+		fastGetOrAdd(taskDurationMap, task, task_duration_seconds::labelValues)
+				.observe(Unit.nanosToSeconds(timeNs));
 	}
 
-	private static class ServiceOutputObserve implements Action0 {
-		private final Service service;
-		private final DistributionDataPoint outputObserve;
-
-		private ServiceOutputObserve(Service service, DistributionDataPoint outputObserve) {
-			this.service = service;
-			this.outputObserve = outputObserve;
-		}
+	private record ServiceOutputObserve(Service service, DistributionDataPoint outputObserve) implements Action0 {
 
 		@Override
-		public void run() throws Exception {
-			service.updateRecvSendSize(); // 为 service counter with callback的相关metric服务
-			service.foreach(socket -> {
-				if (socket instanceof TcpSocket)
-					outputObserve.observe(((TcpSocket)socket).getOutputBufferSize());
-			});
+			public void run() throws Exception {
+				service.updateRecvSendSize(); // 为 service counter with callback的相关metric服务
+				service.foreach(socket -> {
+					if (socket instanceof TcpSocket)
+						outputObserve.observe(((TcpSocket)socket).getOutputBufferSize());
+				});
+			}
 		}
-	}
 
 	@Override
 	public void init() {
@@ -347,7 +342,7 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public void serviceStart(Service service) {
+	public void serviceStart(@NotNull Service service) {
 		serviceMapMutex.lock();
 		try {
 			String name = service.getName();
@@ -368,7 +363,7 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public void serviceStop(Service service) {
+	public void serviceStop(@NotNull Service service) {
 		serviceMapMutex.lock();
 		try {
 			String name = service.getName();
@@ -399,32 +394,77 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public void procedureStart(@NotNull String name) {
-		procedure_started.labelValues(name).inc();
+	public @NotNull ProcedureCounter allocProcedureCounter(@NotNull String name) {
+		return new PromProcedureCounter(name);
 	}
 
-	@Override
-	public void procedureEnd(@NotNull String name, long resultCode, long timeNs) {
-		// result_code基数封顶：超出上限归入other，防业务错误码撑爆series
-		var cap = procedureCodeCaps.computeIfAbsent(name, __ -> new ResultCodeCap());
-		var codeLabel = cap.accept(resultCode) ? String.valueOf(resultCode) : ResultCodeCap.OTHER;
-		procedure_completed.labelValues(name, codeLabel).inc();
-		procedure_duration_seconds.labelValues(name, codeLabel).observe(Unit.nanosToSeconds(timeNs));
-	}
+	// 每name一次预绑定全部DataPoint；end的result_code维度在handle内按码缓存
+	// （基数被ResultCodeCap封顶，默认20+other），调用路径零labelValues解析零分配。
+	private final class PromProcedureCounter implements ProcedureCounter {
+		private final @NotNull String name;
+		private final @NotNull CounterDataPoint started;
+		private final @NotNull CounterDataPoint redo;
+		private final @NotNull CounterDataPoint redoAndReleaseLock;
+		private final @NotNull DistributionDataPoint manyLocks;
+		private final @NotNull ResultCodeCap codeCap = new ResultCodeCap();
+		private final @NotNull LongConcurrentHashMap<Completed> completedByCode = new LongConcurrentHashMap<>();
+		private volatile @Nullable Completed otherCompleted;
 
-	@Override
-	public void procedureRedo(@NotNull String name) {
-		procedure_redo.labelValues(name).inc();
-	}
+		private record Completed(@NotNull CounterDataPoint count, @NotNull DistributionDataPoint duration) {
+		}
 
-	@Override
-	public void procedureRedoAndReleaseLock(@NotNull String name) {
-		procedure_redo_and_release_lock.labelValues(name).inc();
-	}
+		PromProcedureCounter(@NotNull String name) {
+			this.name = name;
+			started = procedure_started.labelValues(name);
+			redo = procedure_redo.labelValues(name);
+			redoAndReleaseLock = procedure_redo_and_release_lock.labelValues(name);
+			manyLocks = procedure_many_locks.labelValues(name);
+		}
 
-	@Override
-	public void procedureManyLocks(@NotNull String name, int count) {
-		procedure_many_locks.labelValues(name).observe(count);
+		private @NotNull Completed newCompleted(@NotNull String codeLabel) {
+			return new Completed(procedure_completed.labelValues(name, codeLabel),
+					procedure_duration_seconds.labelValues(name, codeLabel));
+		}
+
+		private @NotNull Completed completed(long resultCode) {
+			var c = completedByCode.get(resultCode);
+			if (c != null)
+				return c;
+			// result_code基数封顶：超出上限归入other，防业务错误码撑爆series
+			if (codeCap.accept(resultCode))
+				return completedByCode.computeIfAbsent(resultCode, code -> newCompleted(String.valueOf(code)));
+			var o = otherCompleted;
+			if (o == null)
+				otherCompleted = o = newCompleted(ResultCodeCap.OTHER);
+			return o;
+		}
+
+		@Override
+		public void start() {
+			started.inc();
+		}
+
+		@Override
+		public void end(long resultCode, long timeNs) {
+			var c = completed(resultCode);
+			c.count().inc();
+			c.duration().observe(Unit.nanosToSeconds(timeNs));
+		}
+
+		@Override
+		public void redo() {
+			redo.inc();
+		}
+
+		@Override
+		public void redoAndReleaseLock() {
+			redoAndReleaseLock.inc();
+		}
+
+		@Override
+		public void manyLocks(int count) {
+			manyLocks.observe(count);
+		}
 	}
 
 	@Override
