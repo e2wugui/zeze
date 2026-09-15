@@ -193,6 +193,11 @@ public class OnzServer extends AbstractOnz {
 	// flushTimeout(10s)量级的业务等待放大。
 	private static final long RedoPreparingMinAgeMs = 120_000;
 
+	// redo封锁告警去重（FND6-36可观测性）：登记中的ePreparing年龄超过2×RedoPreparingMinAgeMs
+	// 仍存活时按tid只warn一次，防每轮redo刷屏。tid来自AutoKey单调递增，perform正常结束后
+	// 不复用，集合有界于挂死perform数，无需清理。
+	private final ConcurrentHashMap.KeySetView<Long, Boolean> hangWarnedTids = ConcurrentHashMap.newKeySet();
+
 	private void redoTimer() throws RocksDBException {
 		if (stopped)
 			return;
@@ -203,28 +208,43 @@ public class OnzServer extends AbstractOnz {
 			try (var it = commitIndex.iterator()) {
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					var key = it.key();
-					// FND6-36：跳过存活perform仍在途的tid。登记窗口从addTransaction覆盖到
-					// finally removeTransaction，横跨saveCommitPoint(ePreparing)、无界
-					// waitPendingAsync与eCommitting阶段——期间任何redo都会命中进行中事务：
-					// Rollback回滚存活参与方后对迟到Commit假应答成功，静默全量回滚上报
-					// 成功，error暴露登记亦被先行Rollback消费。跳过后redo只处理真残留
-					// （协调者崩溃重启后onzAgent为空）；存活perform的finally保证摘除登记，
-					// 下轮redo可见。年龄闸（FND5-44）保留兜底登记机制失效的极端场景。
-					if (onzAgent.hasTransaction(ByteBuffer.ToLongBE(key, 0)))
-						continue;
 					var value = it.value();
 					var bb = ByteBuffer.Wrap(value);
 					var state = bb.ReadUInt();
+					var tid = ByteBuffer.ToLongBE(key, 0);
+					// FND6-36（skip收窄）：先读状态再判登记，skip仅作用于登记中的ePreparing。
+					// ePreparing的redo是Rollback，回滚不可逆：登记窗口从addTransaction覆盖到
+					// finally removeTransaction，其中saveCommitPoint(ePreparing)→无界
+					// waitPendingAsync是年龄闸挡不住的进行中窗口，误发Rollback回滚存活参与方后
+					// 对迟到Commit假应答成功（readyProcedures.remove为null直接SendResult(0)），
+					// perform静默全量回滚却返回0——必须skip。真残留只能源于进程崩溃（登记表
+					// 与perform同进程同生共死：perform异常结束必经finally摘除登记，进程存活则
+					// 登记必在），崩溃重启后onzAgent为空，skip天然放行；存活perform的finally
+					// 摘除登记后下轮redo可见。年龄闸（FND5-44）只作用于未登记的ePreparing
+					// （区分崩溃残留与刚落盘的窗口条目），登记中的条目与年龄无关。
+					// eCommitting不做skip：其redo是幂等Commit重发（参与方已ready，重复Commit
+					// 亦应答成功；且redo经getZezeInstance现查新地址），登记中执行也安全——它
+					// 是perform的Commit散发通道socket僵死时的收敛通道，skip会把补发推迟到
+					// perform的finally之后，多等一个perform生命周期。
 					switch (state) {
 					case eCommitting:
-						redo(it.key(), OnzServer::commit);
+						redo(key, OnzServer::commit);
 						break;
 					case ePreparing:
 						// FND5-44：新格式值=state(varint)+写入时戳(8B BE)；旧格式（仅state，
 						// 升级遗留的未决决策）读不到时戳视为年龄无穷——行为与修复前一致（立即redo）。
 						var stamp = bb.size() >= 8 ? bb.ReadLong8BE() : 0L;
-						if (System.currentTimeMillis() - stamp >= RedoPreparingMinAgeMs)
-							redo(it.key(), OnzServer::rollback);
+						var age = System.currentTimeMillis() - stamp;
+						if (onzAgent.hasTransaction(tid)) {
+							// 可观测性：登记中却远超年龄窗口（2×RedoPreparingMinAgeMs）仍停在
+							// ePreparing，基本是perform因业务bug永挂——登记项与commitIndex条目
+							// 将永久泄漏且redo被其封锁，按tid只warn一次暴露（集合见hangWarnedTids）。
+							if (age >= 2 * RedoPreparingMinAgeMs && hangWarnedTids.add(tid))
+								logger.warn("onz redo: tid={} 登记中ePreparing年龄{}ms，疑似挂死 perform，redo 封锁中", tid, age);
+							continue;
+						}
+						if (age >= RedoPreparingMinAgeMs)
+							redo(key, OnzServer::rollback);
 						// else：进行中窗口，等超过年龄后的下一轮
 						break;
 					}
