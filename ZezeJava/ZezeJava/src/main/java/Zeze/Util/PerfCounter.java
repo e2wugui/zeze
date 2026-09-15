@@ -95,7 +95,14 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			return resultMapLast;
 		}
 
+		/** 超出基数封顶的错误码的丢弃目标：自增不产生任何可见统计 */
+		private static final LongAdder DISCARDED_RESULT = new LongAdder();
+
+		private final ResultCodeCap codeCap = new ResultCodeCap();
+
 		public @NotNull LongAdder getOrAddResult(long resultCode) {
+			if (!codeCap.accept(resultCode))
+				return DISCARDED_RESULT;
 			return resultMap.computeIfAbsent(resultCode, __ -> new LongAdder());
 		}
 

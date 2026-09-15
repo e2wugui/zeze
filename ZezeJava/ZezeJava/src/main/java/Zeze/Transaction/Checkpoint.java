@@ -12,6 +12,7 @@ import Zeze.Onz.OnzProcedure;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FastLock;
 import Zeze.Util.Task;
+import Zeze.Util.ZezeCounter;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -108,6 +109,7 @@ public final class Checkpoint {
 	}
 
 	public void runOnce() {
+		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		switch (getCheckpointMode()) {
 		case Immediately:
 			break;
@@ -122,6 +124,8 @@ public final class Checkpoint {
 			RelativeRecordSet.flushWhenCheckpoint(this);
 			break;
 		}
+		if (timeBegin != 0)
+			ZezeCounter.instance.addTaskRunTime("Checkpoint.runOnce", System.nanoTime() - timeBegin);
 	}
 
 	private void run() {

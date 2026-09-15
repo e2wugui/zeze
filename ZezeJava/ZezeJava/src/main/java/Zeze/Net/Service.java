@@ -545,8 +545,11 @@ public class Service extends ReentrantLock {
 			var bbCopy = ByteBuffer.Wrap(bytesCopy);
 			var outProtocol = new OutObject<Protocol<?>>();
 			var protocolClassName = factoryHandle.Class.getName();
+			var dispatchTime = ZezeCounter.ENABLE ? System.nanoTime() : 0L; // 入队时刻
 			FuncLong action = () -> {
 				var needLog = bbCopy.ReadIndex == 0;
+				if (needLog && dispatchTime != 0) // 首次执行才度量，redo不重复计入
+					ZezeCounter.instance.addRecvDispatchTime(typeId, System.nanoTime() - dispatchTime);
 				bbCopy.ReadIndex = 0; // 考虑redo,要重置读指针
 				var p = decodeProtocol(typeId, bbCopy, factoryHandle, so, needLog);
 				outProtocol.value = p;

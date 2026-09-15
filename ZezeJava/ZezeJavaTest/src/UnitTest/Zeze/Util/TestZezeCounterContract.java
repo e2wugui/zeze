@@ -53,7 +53,10 @@ public class TestZezeCounterContract {
 			c.tableCounter(0x1234, metric).increment();
 
 		c.addRecvSizeTime(0x100, null, 64, 1_000_000);
+		c.addRecvDispatchTime(0x100, 1_000);
 		c.addSendSize(0x100, 64);
+		for (var rc = 0; rc < 30; rc++) // 30个码，默认封顶20
+			c.procedureEnd("ContractCapProc", 1_000 + rc, 1_000_000);
 		return counterName;
 	}
 
@@ -74,6 +77,10 @@ public class TestZezeCounterContract {
 		Assertions.assertEquals(1L, snap.tableResults().get("4660").get("cacheGet"), "0x1234=4660");
 		Assertions.assertFalse(snap.formattedLog().isEmpty());
 
+		// result_code基数封顶：30个码只保留前20个
+		var capped = c.getLast().procedureResults().get("ContractCapProc");
+		Assertions.assertEquals(20, capped.size(), "result code capped");
+
 		// 空窗口：条目保留（供名称列表），计数清零
 		var empty = c.collectAndReset();
 		Assertions.assertTrue(empty.procedureResults().get("ContractProc").isEmpty());
@@ -92,6 +99,19 @@ public class TestZezeCounterContract {
 		Assertions.assertTrue(scrape.contains("protocol_recv_bytes"), "protocol metric");
 		Assertions.assertTrue(scrape.contains("database_table_operation"), "table metric");
 		Assertions.assertTrue(scrape.contains("task_duration_seconds"), "task metric");
+		Assertions.assertTrue(scrape.contains("protocol_dispatch_seconds"), "dispatch metric");
+
+		// result_code基数封顶：procedure_completed的标签值应包含other且不超过20+1个
+		var otherSeen = false;
+		for (var snapshot : PrometheusRegistry.defaultRegistry.scrape()) {
+			if (!snapshot.getMetadata().getName().equals("procedure_completed"))
+				continue;
+			for (var dp : snapshot.getDataPoints()) {
+				if ("other".equals(dp.getLabels().get("result_code")))
+					otherSeen = true;
+			}
+		}
+		Assertions.assertTrue(otherSeen, "result code capped to other");
 	}
 
 	@Test

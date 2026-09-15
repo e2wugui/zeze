@@ -10,6 +10,7 @@ import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.Task;
+import Zeze.Util.ZezeCounter;
 import com.alibaba.druid.pool.DruidDataSource;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,6 +39,15 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			}
 		}
 	}
+
+	private static final ZezeCounter.LabeledObserverCreator sqlserverObserverCreator
+			= ZezeCounter.instance.allocRunTimeObserverCreator("sqlserver_operation", "operation");
+	private static final ZezeCounter.LongObserver sqlserverSelectCounter
+			= sqlserverObserverCreator.labelValues("select");
+	private static final ZezeCounter.LongObserver sqlserverDeleteCounter
+			= sqlserverObserverCreator.labelValues("delete");
+	private static final ZezeCounter.LongObserver sqlserverReplaceCounter
+			= sqlserverObserverCreator.labelValues("replace");
 
 	private final class OperatesSqlServer implements Operates {
 		@Override
@@ -381,6 +391,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			if (dropped)
 				return null;
 
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			checkKvKeyLength(name, key);
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
@@ -392,8 +403,10 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					try (var reader = cmd.executeQuery()) {
 						if (reader.next()) {
 							byte[] value = reader.getBytes(1);
+							sqlserverSelectCounter.observe(System.nanoTime() - timeBegin);
 							return ByteBuffer.Wrap(value);
 						}
+						sqlserverSelectCounter.observe(System.nanoTime() - timeBegin);
 						return null;
 					}
 				}
@@ -407,12 +420,14 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			if (dropped)
 				return;
 
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			checkKvKeyLength(name, key);
 			var my = (JdbcTrans)t;
 			String sql = "DELETE FROM " + getName() + " WHERE id=?";
 			try (var cmd = my.conn.prepareStatement(sql)) {
 				cmd.setBytes(1, key.CopyIf());
 				cmd.executeUpdate();
+				sqlserverDeleteCounter.observe(System.nanoTime() - timeBegin);
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			}
@@ -423,6 +438,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			if (dropped)
 				return;
 
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			checkKvKeyLength(name, key);
 			var my = (JdbcTrans)t;
 			String sql = "update " + getName() + " set value=? where id=?" + " if @@rowcount = 0 and @@error = 0 insert into " + getName() + " values(?,?)";
@@ -434,6 +450,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				cmd.setBytes(3, keyCopy);
 				cmd.setBytes(4, valueCopy);
 				cmd.executeUpdate();
+				sqlserverReplaceCounter.observe(System.nanoTime() - timeBegin);
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			}
@@ -677,14 +694,10 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 	}
 
 	public static long queryLong1(@NotNull DruidDataSource dataSource, @NotNull String sql) {
-		// var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql); var rs = ps.executeQuery()) {
 			return rs.next() ? rs.getLong(1) : -1;
 		} catch (SQLException e) {
 			throw Task.forceThrow(e);
-		} /*finally {
-			if (mysqlSelectCounter != null)
-				mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
-		}*/
+		}
 	}
 }

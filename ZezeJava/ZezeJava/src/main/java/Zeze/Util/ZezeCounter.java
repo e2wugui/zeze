@@ -182,6 +182,12 @@ public interface ZezeCounter {
 	void addRecvSizeTime(long typeId, @Nullable Class<?> cls, int size, long timeNs);
 
 	/**
+	 * 协议从接收解析到开始处理的等待(纳秒)。queue派发度量排队延迟，direct派发为微小常量。
+	 */
+	default void addRecvDispatchTime(long typeId, long timeNs) {
+	}
+
+	/**
 	 * 根据协议类型ID统计其协议大小
 	 */
 	void addSendSize(long typeId, int size);

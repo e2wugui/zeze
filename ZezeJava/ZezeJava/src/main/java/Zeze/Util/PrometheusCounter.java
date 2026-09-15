@@ -21,6 +21,7 @@ import io.prometheus.metrics.exporter.common.PrometheusHttpExchange;
 import io.prometheus.metrics.exporter.common.PrometheusHttpRequest;
 import io.prometheus.metrics.exporter.common.PrometheusHttpResponse;
 import io.prometheus.metrics.exporter.common.PrometheusScrapeHandler;
+import io.prometheus.metrics.instrumentation.jvm.JvmMetrics;
 import io.prometheus.metrics.model.snapshots.PrometheusNaming;
 import io.prometheus.metrics.model.snapshots.Unit;
 import java.io.IOException;
@@ -34,12 +35,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class PrometheusCounter implements ZezeCounter {
+	private static final Logger logger = LogManager.getLogger(PrometheusCounter.class);
+
 
 	/**
 	 * service outputBuffSize的一个分布收集间隔。
@@ -189,6 +194,8 @@ public class PrometheusCounter implements ZezeCounter {
 	private final ConcurrentHashMap<Object, LongObserver> runTimeMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, LongCounter[]> tableCounterMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ProtocolRecvMetric> protocolRecvMap = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, DistributionDataPoint> protocolDispatchMap = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, ResultCodeCap> procedureCodeCaps = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ProtocolSendMetric> protocolSendMap = new ConcurrentHashMap<>();
 	private final Map<String, ServiceMetric> serviceMap = new HashMap<>();
 	private final ReentrantLock serviceMapMutex = new ReentrantLock();
@@ -218,6 +225,8 @@ public class PrometheusCounter implements ZezeCounter {
 			.labelNames("protocol").register();
 	private final Counter protocol_send = Counter.builder().name("protocol_send")
 			.labelNames("protocol").register();
+	private final Histogram protocol_dispatch_seconds = Histogram.builder().name("protocol_dispatch_seconds")
+			.labelNames("protocol").unit(Unit.SECONDS).register();
 	private final Counter protocol_send_bytes = Counter.builder().name("protocol_send_bytes")
 			.labelNames("protocol").register();
 
@@ -329,6 +338,15 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
+	public void init() {
+		try {
+			JvmMetrics.builder().register(); // 标准JVM指标
+		} catch (NoClassDefFoundError e) { // instrumentation-jvm为compileOnly，运行时缺失则跳过
+			logger.warn("prometheus-metrics-instrumentation-jvm not present, skip jvm metrics", e);
+		}
+	}
+
+	@Override
 	public void serviceStart(Service service) {
 		serviceMapMutex.lock();
 		try {
@@ -387,8 +405,11 @@ public class PrometheusCounter implements ZezeCounter {
 
 	@Override
 	public void procedureEnd(@NotNull String name, long resultCode, long timeNs) {
-		procedure_completed.labelValues(name, String.valueOf(resultCode)).inc();
-		procedure_duration_seconds.labelValues(name, String.valueOf(resultCode)).observe(Unit.nanosToSeconds(timeNs));
+		// result_code基数封顶：超出上限归入other，防业务错误码撑爆series
+		var cap = procedureCodeCaps.computeIfAbsent(name, __ -> new ResultCodeCap());
+		var codeLabel = cap.accept(resultCode) ? String.valueOf(resultCode) : ResultCodeCap.OTHER;
+		procedure_completed.labelValues(name, codeLabel).inc();
+		procedure_duration_seconds.labelValues(name, codeLabel).observe(Unit.nanosToSeconds(timeNs));
 	}
 
 	@Override
@@ -431,6 +452,15 @@ public class PrometheusCounter implements ZezeCounter {
 
 		metric.bytes.inc(size);
 		metric.processDuration.observe(Unit.nanosToSeconds(timeNs));
+	}
+
+	@Override
+	public void addRecvDispatchTime(long typeId, long timeNs) {
+		fastGetOrAdd(protocolDispatchMap, typeId, k -> {
+			Class<?> kls = Protocol.getClassByTypeId(typeId);
+			String name = kls != null ? kls.getName() : String.valueOf(typeId);
+			return protocol_dispatch_seconds.labelValues(name);
+		}).observe(Unit.nanosToSeconds(timeNs));
 	}
 
 	@Override
