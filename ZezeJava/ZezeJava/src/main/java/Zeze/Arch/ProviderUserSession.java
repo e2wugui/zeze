@@ -12,6 +12,7 @@ import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -118,7 +119,9 @@ public class ProviderUserSession {
 	protected void sendFireAndForgetReal(@NotNull Rpc<?, ?> rpc) {
 		rpc.setRequest(false);
 		protocolLogSend(rpc);
-		var send = new Send(new BSend(rpc.getTypeId(), new Binary(rpc.encode())));
+		var pdata = new Binary(rpc.encode());
+		ZezeCounter.instance.addSendSize(rpc.getTypeId(), pdata.size()); // 内层协议在包装点归因
+		var send = new Send(new BSend(rpc.getTypeId(), pdata));
 		send.Argument.getLinkSids().add(getLinkSid());
 
 		var link = getLink();
@@ -183,6 +186,7 @@ public class ProviderUserSession {
 	}
 
 	protected boolean sendAccounted(long typeId, @NotNull Binary fullEncodedProtocol) {
+		ZezeCounter.instance.addSendSize(typeId, fullEncodedProtocol.size()); // 内层协议在包装点归因
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(getLinkSid());
 

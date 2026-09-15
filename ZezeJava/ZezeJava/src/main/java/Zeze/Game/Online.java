@@ -81,6 +81,7 @@ import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.TransactionLevelAnnotation;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -1325,7 +1326,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId()))
 			AsyncSocket.log("Send", roleId != null ? roleId : 0, p);
-		var send = new Send(new BSend(p.getTypeId(), new Binary(p.encode())));
+		var pdata = new Binary(p.encode());
+		ZezeCounter.instance.addSendSize(p.getTypeId(), pdata.size()); // 内层协议在包装点归因
+		var send = new Send(new BSend(p.getTypeId(), pdata));
 		send.Argument.getLinkSids().add(linkSid);
 		return send(link, roleId != null ? Map.of(linkSid, roleId) : Map.of(), send);
 	}
@@ -1890,6 +1893,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time, boolean onlySameVersion) {
 //		TaskCompletionSource<Long> future = null;
+		ZezeCounter.instance.addSendSize(typeId, fullEncodedProtocol.size()); // 内层协议在包装点归因
 		var broadcast = new Broadcast(new BBroadcast.Data(typeId, fullEncodedProtocol, time, onlySameVersion));
 		var pdata = broadcast.encode();
 		int sendCount = 0;

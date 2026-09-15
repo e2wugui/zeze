@@ -65,6 +65,7 @@ import Zeze.Util.LongList;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.TransactionLevelAnnotation;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -904,7 +905,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId()))
 			AsyncSocket.log("Send", loginKey != null ? loginKey.getAccount() + ',' + loginKey.getClientId() : linkName, p);
-		var send = new Send(new BSend(p.getTypeId(), new Binary(p.encode())));
+		var pdata = new Binary(p.encode());
+		ZezeCounter.instance.addSendSize(p.getTypeId(), pdata.size()); // 内层协议在包装点归因
+		var send = new Send(new BSend(p.getTypeId(), pdata));
 		send.Argument.getLinkSids().add(linkSid);
 		return send(link, loginKey != null ? Map.of(linkSid, loginKey) : Map.of(), send);
 	}
@@ -946,6 +949,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		                 long typeId, @NotNull Binary fullEncodedProtocol) {
 			this.linkName = linkName;
 			this.linkSocket = linkSocket;
+			ZezeCounter.instance.addSendSize(typeId, fullEncodedProtocol.size()); // 内层协议在包装点归因
 			send = new Send(new BSend(typeId, fullEncodedProtocol));
 		}
 	}
@@ -1124,6 +1128,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			}, "Online.triggerLinkBroken1")).run();
 			return false;
 		}
+		ZezeCounter.instance.addSendSize(typeId, fullEncodedProtocol.size()); // 内层协议在包装点归因
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(link.getLinkSid());
 		return send.Send(linkSocket, rpc -> {
@@ -1633,6 +1638,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time, boolean onlySameVersion) {
+		ZezeCounter.instance.addSendSize(typeId, fullEncodedProtocol.size()); // 内层协议在包装点归因
 		var broadcast = new Broadcast(new BBroadcast.Data(typeId, fullEncodedProtocol, time, onlySameVersion));
 		var pdata = broadcast.encode();
 		int sendCount = 0;

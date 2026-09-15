@@ -168,7 +168,9 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						bb.WriteLong(sessionId);
 						EmptyBean.instance.encode(bb);
 						bb.EndWriteWithSize4(saveSize);
-						var pSend = new Send(new BSend(typeId, new Binary(bb)));
+						var busyData = new Binary(bb);
+						ZezeCounter.instance.addSendSize(typeId, busyData.size()); // 内层协议在包装点归因
+						var pSend = new Send(new BSend(typeId, busyData));
 						pSend.Argument.getLinkSids().add(linkSid);
 						pSend.Send(sender);
 					}

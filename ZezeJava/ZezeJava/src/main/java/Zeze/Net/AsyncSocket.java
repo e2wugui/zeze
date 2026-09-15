@@ -11,6 +11,7 @@ import Zeze.Util.JsonWriter;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.TimeThrottle;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -135,7 +136,11 @@ public abstract class AsyncSocket {
 	public boolean Send(@NotNull Protocol<?> p) {
 		if (ENABLE_PROTOCOL_LOG && canLogProtocol(p.getTypeId()))
 			log("SEND", getSessionId(), p);
-		return Send(p.encode());
+		var bb = p.encode();
+		var r = Send(bb);
+		if (r) // 仅发送被接受时计数，对齐原TcpSocket在selector线程内的计数时机
+			ZezeCounter.instance.addSendSize(p.getTypeId(), bb.size());
+		return r;
 	}
 
 	public boolean Send(@NotNull ByteBuffer bb) { // 返回true则bb的Bytes不能再修改了

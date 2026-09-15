@@ -14,6 +14,7 @@ import Zeze.Util.ReplayAttackGrowRange;
 import Zeze.Util.ReplayAttackMax;
 import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.TimeThrottle;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -128,6 +129,7 @@ public class DatagramSession extends AsyncSocket {
 			bb = ByteBuffer.Allocate(Math.min(8 + 8 + Protocol.HEADER_SIZE + preAllocSize, 65536));
 			bb.WriteLong8s(tokenId, serialId);
 			p.encodeWithHead(bb);
+			ZezeCounter.instance.addSendSize(p.getTypeId(), bb.WriteIndex - 16); // 减去tokenId/serialId组帧
 		} else {
 			var bc = new BufferCodec(Math.min(8 + 8 + 8 + Protocol.HEADER_SIZE + preAllocSize, 65536));
 			bc.WriteLong8s(tokenId, serialId);
@@ -136,6 +138,7 @@ public class DatagramSession extends AsyncSocket {
 				encrypt.reset(bc, bc.Bytes);
 				var tmp = ByteBuffer.Allocate(Math.min(Protocol.HEADER_SIZE + preAllocSize, 65536));
 				p.encodeWithHead(tmp);
+				ZezeCounter.instance.addSendSize(p.getTypeId(), tmp.WriteIndex);
 				encrypt.update(tmp.Bytes, 0, tmp.WriteIndex);
 				encrypt.update(bc.Bytes, 0, 16); // [8]tokenId | [8]serialId
 				encrypt.flush();

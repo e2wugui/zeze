@@ -135,8 +135,4 @@ public final class NoopCounter implements ZezeCounter {
 	@Override
 	public void addSendSize(long typeId, int size) {
 	}
-
-	@Override
-	public void addSendSize(byte @NotNull [] bytes, int offset, int length) {
-	}
 }

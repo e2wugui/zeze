@@ -528,7 +528,6 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 						outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
 				} else
 					outputBuffer.put(bytes, offset, length);
-				ZezeCounter.instance.addSendSize(bytes, offset, length);
 			})) {
 				setActiveSendTime();
 				return true;

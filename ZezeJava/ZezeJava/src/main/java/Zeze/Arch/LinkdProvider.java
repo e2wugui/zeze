@@ -30,6 +30,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 import Zeze.Util.Str;
 import Zeze.Util.TaskSpec;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -485,6 +486,29 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	private static final boolean canLogSend = AsyncSocket.ENABLE_PROTOCOL_LOG
 			&& AsyncSocket.canLogProtocol(Send.TypeId_);
+
+	/**
+	 * linkd零解码转发的发送归因：pdata是裸协议字节流（可能多条拼接），内层对象不存在，
+	 * 只能按协议头逐条解析计数。仅在本类转发路径使用。
+	 */
+	private static void countSendStream(@NotNull Binary pdata) {
+		var bytes = pdata.bytesUnsafe();
+		int offset = pdata.getOffset();
+		int length = pdata.size();
+		while (length >= Protocol.HEADER_SIZE) {
+			int moduleId = ByteBuffer.ToInt(bytes, offset);
+			int protocolId = ByteBuffer.ToInt(bytes, offset + 4);
+			int size = ByteBuffer.ToInt(bytes, offset + 8);
+			if (size < 0) {
+				logger.warn("countSendStream: moduleId={}, protocolId={}, size={} < 0", moduleId, protocolId, size);
+				break;
+			}
+			size += Protocol.HEADER_SIZE;
+			ZezeCounter.instance.addSendSize(Protocol.makeTypeId(moduleId, protocolId), size);
+			offset += size;
+			length -= size;
+		}
+	}
 //	private final TaskOneByOneByKey oneByOneSender = new TaskOneByOneByKey();
 
 	@Override
@@ -517,7 +541,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			if (socket != null && !socket.isClosed()) {
 				// 探测协议不需要转发给客户端。
 				if (CheckLinkSession.TypeId_ != r.Argument.getProtocolType()) {
-					if (!socket.Send(pdata))
+					if (socket.Send(pdata)) // 仅发送成功时计数，对齐原TcpSocket内计数时机
+						countSendStream(pdata);
+					else
 						socket.close(sendException);
 					if (enableDump)
 						tryDump(socket, pdata);
@@ -567,7 +593,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			if (linkSession != null && linkSession.isAuthed() && !linkSession.getUserState().getContext().isEmpty() &&
 					(providerVersion == 0 ||
 							ProviderDistribute.checkAppVersion(providerVersion, linkSession.getClientAppVersion()))) {
-				socket.Send(pdata);
+				if (socket.Send(pdata)) // 仅发送成功时计数，对齐原TcpSocket内计数时机
+					countSendStream(pdata);
 				if (enableDump)
 					tryDump(socket, pdata);
 			}
