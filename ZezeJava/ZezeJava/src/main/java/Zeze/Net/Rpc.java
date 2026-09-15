@@ -102,28 +102,40 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (Reflect.inDebugMode)
 			timeout += 10 * 60 * 1000; // 调试状态下RPC超时放宽到至少10分钟,方便调试时不容易超时
 
-		TaskSpec.ofAction(() -> {
-			Rpc<TArgument, TResult> context = service.removeRpcContext(sessionId);
-			if (context == null) // 一般来说，此时结果已经返回。
-				return;
-
-			context.isTimeout = true;
-			context.setResultCode(Procedure.Timeout);
-
-			if (context.future != null)
-				context.future.setException(RpcTimeoutException.getInstance());
-			else if (context.responseHandle != null) {
-				// 本来Schedule已经在Task中执行了，这里又派发一次。
-				// 主要是为了让应用能拦截修改Response的处理方式。
-				// Timeout 应该是少的，先这样了。
-				var factoryHandle = service.findProtocolFactoryHandle(context.getTypeId());
-				if (factoryHandle != null)
-					service.dispatchRpcResponse(context, context.responseHandle, factoryHandle);
-			}
+		final long timerSessionId = sessionId;
+		TaskSpec.ofAction(() -> onTimeout(service, timerSessionId)
 		// 超时清理必须立即注册（scheduleNow）：此刻请求字节已发出（SendReturnVoid 也可无 socket 只注册），
 		// 即使所在事务随后回滚，应答仍会到来或永不到来，上下文必须有超时兜底；
 		// 事务感知的 schedule 会随回滚丢弃注册，导致 rpcContexts 条目永驻、SendForWait 永久挂起。
-		}).scheduleNow(timeout);
+		).scheduleNow(timeout);
+	}
+
+	/**
+	 * 超时定时器动作。FND6-11：本定时器只对自己被调度时的那次发送有效——同实例重发会先更新
+	 * 字段sessionId（注册新上下文）再移除旧条目，两步间隙旧定时器触发时，即便键+值双参移除仍能
+	 * 按旧sid移除到本实例（新旧两键短暂同时映射this），把新请求的future/isTimeout毒化为假超时、
+	 * 或提前dispatchRpcResponse造成应答双派发。故先判字段sid是否失配（重发即失配，新定时器已
+	 * 接管），再做双参移除（键已被应答消费时移除失败，正确跳过——与重发路径的移除同构）。
+	 */
+	void onTimeout(@NotNull Service service, long timerSessionId) throws Exception {
+		if (timerSessionId != sessionId)
+			return; // 陈旧定时器：实例已被重发接管。
+		if (!service.removeRpcContext(timerSessionId, this))
+			return; // 一般来说，此时结果已经返回。
+
+		isTimeout = true;
+		setResultCode(Procedure.Timeout);
+
+		if (future != null)
+			future.setException(RpcTimeoutException.getInstance());
+		else if (responseHandle != null) {
+			// 本来Schedule已经在Task中执行了，这里又派发一次。
+			// 主要是为了让应用能拦截修改Response的处理方式。
+			// Timeout 应该是少的，先这样了。
+			var factoryHandle = service.findProtocolFactoryHandle(getTypeId());
+			if (factoryHandle != null)
+				service.dispatchRpcResponse(this, responseHandle, factoryHandle);
+		}
 	}
 
 	/**
