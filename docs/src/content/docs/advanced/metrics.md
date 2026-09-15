@@ -31,7 +31,8 @@ PrometheusCounter.addHttpHandler(httpServer);
 
 ### 激活 Counter
 
-通过 JVM 系统属性指定 Counter 实现类（默认已启用 `PrometheusCounter`）：
+通过 JVM 系统属性指定 Counter 实现类。**默认实现是 `Zeze.Util.PerfCounter`**
+（周期性输出统计日志），需要 Prometheus 集成时显式指定：
 
 ```
 -DZezeCounter=Zeze.Util.PrometheusCounter
@@ -60,6 +61,7 @@ PrometheusCounter.addHttpHandler(httpServer);
 |--------|------|------|------|
 | `protocol_recv_bytes` | Counter | protocol | 接收字节数 |
 | `protocol_duration_seconds` | Histogram | protocol | 协议处理耗时 |
+| `protocol_dispatch_seconds` | Histogram | protocol | 协议从接收解析到开始处理的等待（queue 派发为排队延迟，direct 为微小常量） |
 | `protocol_send` | Counter | protocol | 发送次数 |
 | `protocol_send_bytes` | Counter | protocol | 发送字节数 |
 
