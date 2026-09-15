@@ -300,6 +300,11 @@ public final class RaftConfig {
 			// FND5-14：0/负数使后台apply的tryApply(count=0)一条不应用且退出条件永不成，
 			// 无限yield忙轮询、applyFuture永不完成、shutdown的await挂死。fail-fast对齐verify口径。
 			throw new IllegalStateException("BackgroundApplyCount < 1");
+		if (electionRandomMax < 1)
+			// FND6-09（FND5-14姊妹）：getElectionTimeout的Random.nextInt(n<=0)抛IllegalArgumentException，
+			// 被定时器吞掉仅记日志——onTimer的Follower分支永不选举、followerOnAppendEntries的
+			// setLeaderActiveTime同抛致AppendEntries无应答，节点静默僵死只剩error日志。
+			throw new IllegalStateException("ElectionRandomMax < 1");
 		if (maxAppendEntriesCount < 100)
 			maxAppendEntriesCount = 100;
 	}

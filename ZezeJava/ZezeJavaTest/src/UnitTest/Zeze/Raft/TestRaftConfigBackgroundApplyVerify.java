@@ -10,6 +10,9 @@ import org.junit.jupiter.api.Test;
  * 路径tryApply(count=0)一条不应用且lastApplied==lastIndex退出条件永不成，
  * 无限yield忙轮询、applyFuture永不完成、Raft.shutdown的await挂死。
  * 修复：verify() fail-fast（对齐既有三项校验口径）。
+ * FND6-09（FND5-14姊妹）：ElectionRandomMax配置0/负数同型未校验——
+ * getElectionTimeout的Random.nextInt(n<=0)抛IllegalArgumentException被定时器吞掉，
+ * 节点永不选举且AppendEntries无应答，静默僵死。verify() 同口径 fail-fast。
  */
 @Fast
 public class TestRaftConfigBackgroundApplyVerify {
@@ -33,6 +36,16 @@ public class TestRaftConfigBackgroundApplyVerify {
 		Assertions.assertThrows(IllegalStateException.class,
 				() -> RaftConfig.loadFromString(xml(" BackgroundApplyCount=\"-1\"")).verify(),
 				"BackgroundApplyCount=-1 必须 fail-fast（FND5-14）");
+	}
+
+	@Test
+	public void testElectionRandomMaxZeroAndNegativeRejected() {
+		Assertions.assertThrows(IllegalStateException.class,
+				() -> RaftConfig.loadFromString(xml(" ElectionRandomMax=\"0\"")).verify(),
+				"ElectionRandomMax=0 必须 fail-fast（FND6-09）");
+		Assertions.assertThrows(IllegalStateException.class,
+				() -> RaftConfig.loadFromString(xml(" ElectionRandomMax=\"-1\"")).verify(),
+				"ElectionRandomMax=-1 必须 fail-fast（FND6-09）");
 	}
 
 	@Test
