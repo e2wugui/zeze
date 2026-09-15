@@ -5,7 +5,9 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Function;
 import Zeze.Application;
+import Zeze.Builtin.HttpSession.BSessionValue;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerSpec;
@@ -33,50 +35,63 @@ public class HttpSession extends AbstractHttpSession {
 			this.cookieSessionId = cookieSessionId;
 		}
 
+		// FND6-14：@Get/@Post 默认 TransactionLevel.None，无事务上下文时 TableX.get 内
+		// Transaction.getCurrent() 为 null（assert 运行期禁用）必 NPE。比照 getCookieSession
+		// 判例：有运行事务时直接同事务访问表（行为与修复前一致），否则包短 Procedure。
+		private <R> R accessTable(String opName, Function<BSessionValue, R> action) {
+			var t = Transaction.getCurrent();
+			if (t != null && t.isRunning()) {
+				var value = _tSession.get(cookieSessionId);
+				if (value == null)
+					throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
+				return action.apply(value);
+			}
+			var result = new OutObject<R>();
+			var exists = new OutObject<>(false);
+			var rc = zeze.newProcedure(() -> {
+				var value = _tSession.get(cookieSessionId);
+				if (value != null) {
+					exists.value = true;
+					result.value = action.apply(value);
+				}
+				return Procedure.Success;
+			}, "CookieSession." + opName).call();
+			if (rc != 0L)
+				throw new IllegalStateException("CookieSession access error="
+						+ IModule.getErrorCode(rc) + " " + cookieSessionId);
+			if (!exists.value)
+				throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
+			return result.value;
+		}
+
 		public @Nullable String getProperty(@NotNull String key) {
-			var value = _tSession.get(cookieSessionId);
-			if (value != null)
-				return value.getProperties().get(key);
-			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
+			return accessTable("getProperty", value -> value.getProperties().get(key));
 		}
 
 		public void setProperty(@NotNull String key, @NotNull String value) {
-			var tValue = _tSession.get(cookieSessionId);
-			if (tValue != null) {
-				tValue.getProperties().put(key, value);
-				return;
-			}
-			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
+			accessTable("setProperty", v -> {
+				v.getProperties().put(key, value);
+				return null;
+			});
 		}
 
 		public @NotNull Map<String, String> getProperties() {
-			var tValue = _tSession.get(cookieSessionId);
-			if (tValue != null)
-				return tValue.getProperties();
-			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
+			return accessTable("getProperties", BSessionValue::getProperties);
 		}
 
 		public long getCreateTime() {
-			var value = _tSession.get(cookieSessionId);
-			if (value != null)
-				return value.getCreateTime();
-			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
+			return accessTable("getCreateTime", BSessionValue::getCreateTime);
 		}
 
 		public long getExpireTime() {
-			var value = _tSession.get(cookieSessionId);
-			if (value != null)
-				return value.getExpireTime();
-			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
+			return accessTable("getExpireTime", BSessionValue::getExpireTime);
 		}
 
 		public void setExpireTime(long expireTime) {
-			var value = _tSession.get(cookieSessionId);
-			if (value != null) {
-				value.setExpireTime(expireTime);
-				return;
-			}
-			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
+			accessTable("setExpireTime", v -> {
+				v.setExpireTime(expireTime);
+				return null;
+			});
 		}
 	}
 
