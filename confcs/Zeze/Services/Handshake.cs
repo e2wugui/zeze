@@ -171,6 +171,9 @@ namespace Zeze.Services
         // 启动时显著告警；修复：服务器配置 SecureIp 为客户端实际拨入的地址，或改用 AesNoSecureIp/RsaAes。
         private void CheckAesSecureIp()
         {
+            // 纯客户端不消费 SecureIp，仅注册了 CHandshake 的握手服务端角色（HandshakeServer/HandshakeBoth）才检查。
+            if (!HandshakeProtocols.Contains(new Handshake.CHandshake().TypeId))
+                return;
             var options = Config.HandshakeOptions;
             if (options.EncryptType == Constant.eEncryptTypeAes && options.SecureIp == null)
                 logger.Warn("{0} EncryptType=Aes without SecureIp: session key is derived from the " +
