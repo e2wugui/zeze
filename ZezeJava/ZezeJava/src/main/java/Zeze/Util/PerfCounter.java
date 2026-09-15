@@ -376,24 +376,8 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 	}
 
-	public @NotNull ConcurrentHashMap<String, ProcedureInfo> getProcedureInfoMap() {
-		return procedureInfoMap;
-	}
-
-	public @Nullable ProcedureInfo getProcedureInfo(@NotNull String name) {
-		return procedureInfoMap.get(name);
-	}
-
 	public @NotNull ProcedureInfo getOrAddProcedureInfo(@NotNull String name) {
 		return procedureInfoMap.computeIfAbsent(name, ProcedureInfo::new);
-	}
-
-	public @NotNull LongConcurrentHashMap<TableInfo> getTableInfoMap() {
-		return tableInfoMap;
-	}
-
-	public @Nullable TableInfo getTableInfo(long tableId) {
-		return tableInfoMap.get(tableId);
 	}
 
 	public @NotNull TableInfo getOrAddTableInfo(long tableId) {
@@ -422,17 +406,9 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		return lastSnapshot;
 	}
 
-	public long getLastLogTime() {
-		return lastLogTime;
-	}
-
 	@Override
 	public void init() {
 		tryStartScheduledLog();
-	}
-
-	public @Nullable ScheduledFuture<?> getScheduleFuture() {
-		return scheduleFuture;
 	}
 
 	public @NotNull ScheduledFuture<?> tryStartScheduledLog() {
