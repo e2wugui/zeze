@@ -816,7 +816,19 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(providerApp.zeze, this, arg, roleId));
 		// FND6-35：最终登出后ReliableNotify队列不再需要（重连同步随会话终结；同roleId重登
 		// 时Login路径本就clear重建）。原根行（空链）随曾登角色数永久残留（慢泄漏），顺带删根行。
-		openQueue(roleId).remove();
+		// 仅最终登出(LOGOUT)清理：重复登录流程中途以LOGIN/RE_LOGIN补登出时，随后的
+		// reliableNotifySync仍依赖存活队列补投未确认的notify，必须保持队列存活。
+		if (logoutReason == LogoutReason.LOGOUT) {
+			openQueue(roleId).remove();
+			// 自洽性（配套FND6-35）：_tOnline行（承载ReliableNotifyIndex/ConfirmIndex）无删除
+			// 路径、最终登出后保留；若索引非零而队列根行已删，形成"非零索引+空后备队列"窗口
+			// （随后的ReLogin不重置索引，reliableNotifySync的range校验误判）。同事务清零消除。
+			var online = getOnline(roleId);
+			if (online != null) {
+				online.setReliableNotifyConfirmIndex(0);
+				online.setReliableNotifyIndex(0);
+			}
+		}
 		return 0;
 	}
 
