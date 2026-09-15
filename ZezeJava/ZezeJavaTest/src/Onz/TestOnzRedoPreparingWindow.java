@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.concurrent.CountDownLatch;
 
+import Zeze.Builtin.Onz.BSavedCommits;
 import Zeze.Config;
 import Zeze.Onz.AbstractOnz;
 import Zeze.Onz.OnzProcedure;
@@ -34,9 +35,12 @@ import org.junit.jupiter.api.Timeout;
  * 实际静默部分提交，无任何日志线索。
  * 场景（核心，修复前红）：参与方事务挂住协调者的pendingAsync → ePreparing落盘后
  * 手动驱动redoTimer → 释放协调者 → perform返回0但参与方必须真正提交。
- * 修复后追加边界护栏（修复前概念不存在，绿态钉住新契约）：
- * - 旧格式记录（仅state无时戳，升级遗留）仍立即redo；
- * - 超过最小年龄的ePreparing记录仍redo（协调者崩溃残留的恢复路径不被年龄闸门废掉）。
+ * FND6-36新契约（2759bfd，登记所有权门控取代年龄闸作为存活判据）：
+ * - 存活登记的ePreparing（perform在途，addTransaction→finally removeTransaction）：
+ *   即使值被改写为旧格式（仅state无时戳，升级遗留）或超龄时戳，redo也跳过不回滚，
+ *   协调者正常提交、金额保持业务值——年龄不再是存活事务的判据；
+ * - 真孤儿（无存活登记的崩溃残留，不经perform直接落库）：redo仍回滚清理（旧格式/
+ *   超龄记录的恢复路径不被门控废掉），索引与commitPoint两表一起删除。
  */
 public class TestOnzRedoPreparingWindow {
 	// 过程名必须全 JVM 唯一：demo.App 单例的 Onz 注册表跨测试类持久（"kuafu"归 TestOnz）。
@@ -133,6 +137,16 @@ public class TestOnzRedoPreparingWindow {
 			invokeRedoTimer();
 			Assertions.assertEquals(1, count(commitIndex), "进行中的ePreparing不得被redo清除");
 
+			// FND6-36钉死新契约：窗口内即使把时戳改写为超龄，redoTimer也不得清除该条目
+			// ——登记所有权门控优先于年龄闸，年龄不再是存活事务的判据。
+			var agedKey = firstKey(commitIndex);
+			var aged = ByteBuffer.Allocate();
+			aged.WriteUInt(AbstractOnz.ePreparing);
+			aged.WriteLong8BE(System.currentTimeMillis() - 121_000);
+			commitIndex.put(agedKey, java.util.Arrays.copyOf(aged.Bytes, aged.WriteIndex));
+			invokeRedoTimer();
+			Assertions.assertEquals(1, count(commitIndex), "超龄改写不得清除存活登记的ePreparing（所有权门控优先于年龄闸）");
+
 			txn.release.countDown();
 			coordinator.join(30_000);
 			Assertions.assertEquals(0, performRc[0], "perform必须成功");
@@ -148,61 +162,111 @@ public class TestOnzRedoPreparingWindow {
 
 	@Test
 	@Timeout(120)
-	public void testLegacyPreparingStillRedone() throws Exception {
+	public void testLegacyRewriteSkippedWhileRegistered() throws Exception {
 		waitOnzReady();
 		var txn = new PendingBlockTransaction();
 		txn.setOnzServer(onzServer);
 		txn.setFlushTimeout(60_000);
-		var coordinator = new Thread(() -> onzServer.perform(txn));
+		var performRc = new long[1];
+		var coordinator = new Thread(() -> performRc[0] = onzServer.perform(txn));
+		coordinator.setDaemon(true);
 		coordinator.start();
 
 		var commitIndex = tableOf("commitIndex");
 		waitUntil(() -> count(commitIndex) == 1, 10_000, "ePreparing未落盘");
 
-		// 改写为旧格式值（仅state，无时戳）：升级遗留记录，行为必须与修复前一致——立即redo。
+		// 改写为旧格式值（仅state，无时戳）：FND5-44年龄闸视为年龄无穷立即redo；
+		// FND6-36后存活登记优先——redo跳过，协调者正常提交。
 		var key = firstKey(commitIndex);
 		var legacy = ByteBuffer.Allocate();
 		legacy.WriteUInt(AbstractOnz.ePreparing);
 		commitIndex.put(key, java.util.Arrays.copyOf(legacy.Bytes, legacy.WriteIndex));
 
-		invokeRedoTimer();
-		txn.release.countDown();
-		coordinator.join(30_000);
+		try {
+			invokeRedoTimer();
+			Assertions.assertEquals(1, count(commitIndex), "旧格式改写也不得回滚存活登记的ePreparing（所有权门控优先于格式）");
 
-		Assertions.assertEquals(0, getMoney(App.Instance, 100), "前置参考：redo前金额未落");
-		waitMoney(App.Instance, 100, 0, 10_000,
-				"旧格式ePreparing必须立即redo回滚（升级遗留行为不变）");
-		waitUntil(() -> count(commitIndex) == 0, 10_000, "redo后索引必须清理");
+			txn.release.countDown();
+			coordinator.join(30_000);
+			Assertions.assertEquals(0, performRc[0], "perform必须成功");
+			waitMoney(App.Instance, 100, 10, 10_000,
+					"redo跳过后参与方必须真正提交，金额保持业务值（旧契约在此断言0，已被2759bfd废除）");
+			Assertions.assertEquals(0, count(commitIndex), "事务完成后索引清理");
+		} finally {
+			// 断言失败也释放协调者（未来回归红态时不泄漏挂起线程）。
+			txn.release.countDown();
+			coordinator.join(10_000);
+		}
 	}
 
 	@Test
 	@Timeout(120)
-	public void testAgedPreparingStillRedone() throws Exception {
+	public void testAgedRewriteSkippedWhileRegistered() throws Exception {
 		waitOnzReady();
 		var txn = new PendingBlockTransaction();
 		txn.setOnzServer(onzServer);
 		txn.setFlushTimeout(60_000);
-		var coordinator = new Thread(() -> onzServer.perform(txn));
+		var performRc = new long[1];
+		var coordinator = new Thread(() -> performRc[0] = onzServer.perform(txn));
+		coordinator.setDaemon(true);
 		coordinator.start();
 
 		var commitIndex = tableOf("commitIndex");
 		waitUntil(() -> count(commitIndex) == 1, 10_000, "ePreparing未落盘");
 
-		// 改写时戳为超龄：协调者崩溃残留的恢复路径不被年龄闸门废掉。
+		// 改写时戳为超龄：FND5-44年龄闸下是崩溃残留的redo恢复路径；
+		// FND6-36后存活登记优先——redo跳过，协调者正常提交。
 		var key = firstKey(commitIndex);
 		var aged = ByteBuffer.Allocate();
 		aged.WriteUInt(AbstractOnz.ePreparing);
 		aged.WriteLong8BE(System.currentTimeMillis() - 121_000);
 		commitIndex.put(key, java.util.Arrays.copyOf(aged.Bytes, aged.WriteIndex));
 
-		invokeRedoTimer();
-		txn.release.countDown();
-		coordinator.join(30_000);
+		try {
+			invokeRedoTimer();
+			Assertions.assertEquals(1, count(commitIndex), "超龄改写也不得回滚存活登记的ePreparing（所有权门控优先于年龄闸）");
 
-		Assertions.assertEquals(0, getMoney(App.Instance, 100), "前置参考：redo前金额未落");
-		waitMoney(App.Instance, 100, 0, 10_000,
-				"超龄ePreparing必须redo回滚（崩溃残留恢复路径保留）");
-		waitUntil(() -> count(commitIndex) == 0, 10_000, "redo后索引必须清理");
+			txn.release.countDown();
+			coordinator.join(30_000);
+			Assertions.assertEquals(0, performRc[0], "perform必须成功");
+			waitMoney(App.Instance, 100, 10, 10_000,
+					"redo跳过后参与方必须真正提交，金额保持业务值（旧契约在此断言0，已被2759bfd废除）");
+			Assertions.assertEquals(0, count(commitIndex), "事务完成后索引清理");
+		} finally {
+			// 断言失败也释放协调者（未来回归红态时不泄漏挂起线程）。
+			txn.release.countDown();
+			coordinator.join(10_000);
+		}
+	}
+
+	@Test
+	@Timeout(120)
+	public void testOrphanPreparingStillRedone() throws Exception {
+		waitOnzReady();
+		var commitIndex = tableOf("commitIndex");
+		var commitPoint = tableOf("commitPoint");
+
+		// 真孤儿：不经perform直接向两表写入崩溃残留（协调者死亡重启后登记表为空）。
+		// 参与方按集群名持久化（FND4-90起），超龄时戳模拟残留到崩溃重启后的下一轮redo。
+		var orphanTid = 0x5CA1BEEF00000001L;
+		var key = new byte[8];
+		ByteBuffer.longBeHandler.set(key, 0, orphanTid);
+		var saved = new BSavedCommits.Data();
+		saved.getOnzs().add("zeze1");
+		var bbState = ByteBuffer.Allocate();
+		saved.encode(bbState);
+		commitPoint.put(key, java.util.Arrays.copyOf(bbState.Bytes, bbState.WriteIndex));
+		var aged = ByteBuffer.Allocate();
+		aged.WriteUInt(AbstractOnz.ePreparing);
+		aged.WriteLong8BE(System.currentTimeMillis() - 121_000);
+		commitIndex.put(key, java.util.Arrays.copyOf(aged.Bytes, aged.WriteIndex));
+		Assertions.assertEquals(1, count(commitIndex), "孤儿条目写入前置");
+
+		// 无存活登记：所有权门控放行，redo必须回滚（向参与方重发Rollback并清理两表）。
+		invokeRedoTimer();
+
+		Assertions.assertEquals(0, count(commitIndex), "孤儿ePreparing必须被redo回滚清理（崩溃残留恢复路径保留）");
+		Assertions.assertEquals(0, count(commitPoint), "孤儿commitPoint必须随索引一起清理（FND4-88两表同生命周期）");
 	}
 
 	private static long getMoney(App app, long account) throws Exception {
