@@ -65,14 +65,28 @@ public class Consul {
 			"timeout": "1s"
 			}
 		 */
-		client.agentServiceRegister(newService); // response value is void.
+		try {
+			client.agentServiceRegister(newService); // response value is void.
+		} catch (RuntimeException e) {
+			// FND6-17：回滚本地登记与handler——注册时consul瞬断（远端未注册）而本地残留时，
+			// 此后重试注册同server恒抛duplicate直到stop()。登记与远端状态配对。
+			services.remove(httpServer, serviceId);
+			httpServer.removeHandler(PassiveKeepAlivePath);
+			throw e;
+		}
 	}
 
 	public void stop() {
 		for (var e : services.entrySet()) {
 			var httpServer = e.getKey();
 			var serviceId = e.getValue();
-			client.agentServiceDeregister(serviceId);
+			try {
+				client.agentServiceDeregister(serviceId);
+			} catch (RuntimeException ex) {
+				// FND6-17：逐个尽力清理——单个deregister网络异常中断循环会让剩余server的
+				// consul条目永不注销（残留到consul TTL/运维清理）。
+				Netty.logger.error("consul deregister {}", serviceId, ex);
+			}
 			httpServer.removeHandler(PassiveKeepAlivePath);
 		}
 		services.clear();
