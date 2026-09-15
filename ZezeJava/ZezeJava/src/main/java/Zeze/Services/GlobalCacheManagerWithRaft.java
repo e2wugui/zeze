@@ -84,6 +84,13 @@ public class GlobalCacheManagerWithRaft
 	private final GlobalCacheManagerPerf perf;
 	private final AtomicLong serialId = new AtomicLong();
 
+	// FND6-24：会话表名前缀。TableTemplate.openTable(int serverId)生成的列族名为
+	// "name#id"，rebuildSessionsFromStorage据此从storage扫描已存在的Session表。
+	private static final String SessionTableNamePrefix = "Session#";
+	// rebuildSessionsFromStorage的storage==null防御分支只告警一次（daemon每5s一tick，
+	// 每tick刷error会刷屏）。volatile：daemon线程与onLeaderReady的raft apply线程都可能调用。
+	private volatile boolean warnedStorageNull;
+
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
 	public @NotNull GlobalCacheManagerServer.GCMConfig getGcmConfig() {
 		return gcmConfig;
@@ -116,6 +123,19 @@ public class GlobalCacheManagerWithRaft
 		globalStates = globalTemplate.openTable(0);
 		serverAcquiredTemplate = rocks.getTableTemplate("Session");
 
+		// FND6-24：就任即刻重建会话视图，消除daemon首个tick最多5s的盲窗。onLeaderReady在
+		// raft的apply路径内执行（持Raft锁），回调必须快且不得抛异常——重建只遍历storage
+		// tableMap的内存键集并putIfAbsent（幂等），异常兜底记日志。GCM独占自己的Raft实例
+		// （本rocks私有，Dbh2等注册的是各自实例），单槽回调无占用冲突。须在server.start()
+		// 之前注册，保证不漏首次就任。
+		rocks.getRaft().setOnLeaderReady(() -> {
+			try {
+				rebuildSessionsFromStorage();
+			} catch (Throwable e) { // logger.error
+				logger.error("RebuildSessionsFromStorage(onLeaderReady) exception", e);
+			}
+		});
+
 		if (ENABLE_PERF)
 			perf = new GlobalCacheManagerPerf(raftName, serialId); // Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
 		ZezeCounter.tryInit();
@@ -131,10 +151,16 @@ public class GlobalCacheManagerWithRaft
 		var now = System.currentTimeMillis();
 		var raft = rocks.getRaft();
 		var leader = raft != null && raft.isLeader();
-		if (leader && !wasLeader)
-			rebuildSessionsFromStorage(); // FND6-24：leader就任重建会话视图（false→true边沿）
-		wasLeader = leader;
 		if (leader) {
+			// FND6-24：电平触发对账——leader期间每tick重建（putIfAbsent幂等、对已有Holder
+			// 零影响、仅扫storage tableMap的内存键集，成本可忽略）。相比原来的false→true
+			// 边沿触发，单次重建异常不再要等下次leader切换才重跑：下个tick自动重试，自纠错。
+			// 单独兜底，避免重建异常跳过本tick的会话超时检查。
+			try {
+				rebuildSessionsFromStorage();
+			} catch (Throwable e) { // logger.error
+				logger.error("RebuildSessionsFromStorage exception", e);
+			}
 			sessions.forEach(session -> {
 				session.lock();
 				try {
@@ -189,19 +215,24 @@ public class GlobalCacheManagerWithRaft
 	// FND6-24：sessions为进程内存态（不随raft复制），leader切换后新leader仅含本进程
 	// 登录过的serverId——死serverId的CacheHolder缺失：第三方acquire其持有的modify键
 	// 时reduce路径get==null恒false（AcquireModifyFailed重试同败），daemon因无Holder
-	// 不可及（Cleanup恒禁用），稳定新主下wedge无期限。就任时遍历storage已存在的
-	// Session表（每个serverId一张列族表，RocksDatabase构造时全量装载tableMap）重建
-	// Holder。仅补内存视图、不碰rocks数据；已在的Holder不动（活会话不受影响）。
+	// 不可及（Cleanup恒禁用），稳定新主下wedge无期限。遍历storage已存在的Session表
+	// （每个serverId一张列族表，RocksDatabase构造时全量装载tableMap）重建Holder。
+	// 仅补内存视图、不碰rocks数据；已在的Holder不动（活会话不受影响）。
 	// activeTime用构造默认now而非置零：leader切换到Agent ReLogin存在窗口，置零会在
 	// 窗口内按stale释放仍存活会话的权限；now给一个完整daemon超时窗口，与"刚登录后
 	// 失联"的既有超时语义一致，死serverId照样在超时后释放。
-	private static final String SessionTableNamePrefix = "Session#";
-	private volatile boolean wasLeader; // daemon观察的leadership边沿
-
+	// 触发时机双保险：onLeaderReady就任即刻执行（消盲窗）+daemon每tick电平对账（自纠错）。
 	private void rebuildSessionsFromStorage() {
 		var storage = rocks.getStorage();
-		if (storage == null)
+		if (storage == null) {
+			// 防御性死分支：Rocks构造内即openDb（构造返回后storage恒非null），正常不可达。
+			// 只warn一次不刷屏（daemon每5s一tick都会进来）。
+			if (!warnedStorageNull) {
+				warnedStorageNull = true;
+				logger.warn("RebuildSessionsFromStorage storage == null, skip rebuild");
+			}
 			return;
+		}
 		int rebuilt = 0;
 		for (var name : storage.getTableMap().keySet()) {
 			if (!name.startsWith(SessionTableNamePrefix))
@@ -212,6 +243,9 @@ public class GlobalCacheManagerWithRaft
 			} catch (NumberFormatException e) {
 				continue;
 			}
+			// 防御性死分支：表名由TableTemplate.openTable(int serverId)生成（"Session#"+int），
+			// serverId源自Config.ServerId（int，恒在[0,Integer.MAX_VALUE]），正常不可能越界；
+			// 仅防御手工创建/损坏的列族名。
 			if (serverId < 0 || serverId > Integer.MAX_VALUE)
 				continue;
 			if (sessions.putIfAbsent(serverId, new CacheHolder(this, (int)serverId)) == null)
@@ -1044,7 +1078,10 @@ public class GlobalCacheManagerWithRaft
 							  ProtocolHandle<Rpc<BReduceParam, BReduceParam>> response) {
 			var session = sessions.get(serverId);
 			if (session == null) {
-				logger.error("Reduce invalid serverId={}", serverId);
+				// 独立标签：missing-holder正是wedge的前置条件（daemon因无Holder不可及、
+				// Cleanup恒禁用，见rebuildSessionsFromStorage的FND6-24说明）——通用
+				// "Reduce invalid"日志无法与普通失败区分，标签化便于检索与告警。
+				logger.error("ReduceMissingHolder serverId={}", serverId);
 				return false;
 			}
 			return session.reduce(gkey, fresh, response);
