@@ -560,9 +560,8 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 
 		private void submit(@NotNull Task task) {
-			// 入队前校验：走全局池时池未初始化/已停机必须立即明确失败——
-			// 否则 CAS 置 submitted 后派发抛异常，桶永久卡死（submitted 的自愈复位只在
-			// run() 的 pollTask 里，而 run 没进过池）。
+			// 入队前校验：走全局池时池未初始化/已停机必须立即明确失败，不入队 doomed 任务
+			//（派发失败虽已有回滚认领兜底，见 executeOrRollback，但早失败更干净）。
 			getExecutor(task.mode);
 
 			queue.offer(task);
@@ -597,7 +596,26 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		void runNext() {
 			var task = peekTask();
 			if (task != null)
+				executeOrRollback(task);
+		}
+
+		/** 派发并处理失败（FND7-42）：execute 抛 RuntimeException（自定义 executor 拒绝 REE、
+		 * 全局池停机时 poolOrThrow 的 ISE）时认领（submitted==true）已置位而 run() 没进过池——
+		 * submitted 的唯一自愈复位在 pollTask/peekTask 的消费路径里，无人消费即永不复位：
+		 * 后续 submit 的 CAS 恒失败也不再派发，该桶（及其映射的所有 key）永久卡死。
+		 * 对齐 TaskOneByOneQueue.executeOrRollback（FND5-13/FND6-07）回滚认领后按原类型重抛：
+		 * submit 路径同步反馈调用方；run/barrier 路径异常会被 executor 吞掉，回滚内 warn 保证可诊断。
+		 * 队列保留不清：Key2 无 onCancel 补偿钩子，清队列会静默丢任务；积压任务由后续
+		 * submit 重新认领派发（executor 恢复后照常执行）。 */
+		private void executeOrRollback(@NotNull Task task) {
+			try {
 				getExecutor(task.mode).execute(this);
+			} catch (RuntimeException e) {
+				submitted = false; // 回滚认领：execute抛出即run()未进池，不存在并发驱动者
+				logger.warn("TaskOneByOneByKey2: dispatch rejected, rollback claim, {} pending task(s), head: [{}]",
+						queue.size(), task.name, e);
+				throw e;
+			}
 		}
 
 		@Override
@@ -612,7 +630,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				if (task == null)
 					return;
 				if (task.mode != mode) {
-					getExecutor(task.mode).execute(this);
+					executeOrRollback(task);
 					return;
 				}
 			}
