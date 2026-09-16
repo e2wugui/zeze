@@ -111,6 +111,19 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         return provider;
     }
 
+    // FND7-20遗留（复审R3决策文档，本轮不改令牌格式）：密钥已改SecureRandom，但IV随进程
+    // 固定复用——AES-CBC确定性加密：同明文首块（serverId/linkServerId等定长字段）产出同密文
+    // 首块，跨令牌泄露首块相等性（IND-CPA不成立）。修复决策：per-token随机IV前缀
+    // （令牌=IV(16字节)||AES-CBC-PKCS5(key,IV,明文)），弃AES-GCM（nonce复用后果灾难性、
+    // 无现成GCM管线，CBC+随机IV对本威胁模型已足够且是最小改动），弃"按天轮换IV"（需重发
+    // AnnounceSecret+linkd双IV窗口，同为linkd联动且天内仍复用，劣于per-token）。
+    // 迁移路径（需linkd联动，LinkdProvider.choiceProvider经decodeToken解码，故成文不动格式）：
+    // ①先升级linkd解码端同时接受新旧格式（BToken编码定长，旧密文长度N固定、新格式长度
+    //   16+N，按总长区分，不需版本字节不增开销）；
+    // ②观察一个令牌过期窗（eLoginTokenExpireTime=30分钟）以上，保证在飞旧令牌全部消化；
+    // ③最后升级LoginQueue编码端只产新格式。任意时刻可回退编码端回旧格式（旧格式全程可解）。
+    // AnnounceSecret协议不变：secretKey仍16字节；secretIv在新格式下不再参与编码，迁移期
+    // 保留供旧令牌解码，迁移完成后可从BSecret移除。
     private static final String AES_CBC_PKCS5 = "AES/CBC/PKCS5Padding";
 
     public static byte[] encrypt(BSecret.Data secret, byte[] bytes, int offset, int size) throws Exception {
