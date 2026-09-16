@@ -415,7 +415,8 @@ public final class Rocks extends StateMachine implements Closeable {
 				cp.createCheckpoint(checkpointDir);
 			} catch (Throwable e) {
 				// 【FND-R2-5】createCheckpoint中途失败也可能已创建部分目录，删除后再抛。
-				LogSequence.deleteDirectory(new File(checkpointDir));
+				// 【FND7-16】删除升级为重试+校验并告警（原deleteDirectory忽略失败静默残留）。
+				deleteCheckpointDir(checkpointDir);
 				throw e;
 			}
 		} finally {
@@ -483,8 +484,36 @@ public final class Rocks extends StateMachine implements Closeable {
 		}
 	}
 
+	// 【FND7-16】checkpoint临时目录是状态机RocksDB的完整物理拷贝，文件多且可能被占用
+	//（Windows下杀毒/备份软件短暂锁定即令File.delete()返回false）。忽略失败的
+	// deleteDirectory会静默残留，快照失败重试时残留随轮累积渐进占满DbHome。
+	// 这里重试+校验删除；仍失败时记error告警（不抛出、不掩盖快照本身的成败语义），
+	// 残留由每次snapshot开始前的deleteResidualCheckpoints清扫兜底。
+	private static void deleteCheckpointDir(String cpHome) {
+		try {
+			LogSequence.deletedDirectoryAndCheck(new File(cpHome));
+		} catch (Throwable e) { // logger.error
+			Rocks.logger.error("delete checkpoint dir failed, residual remains until next snapshot sweep: {}", cpHome, e);
+		}
+	}
+
+	// 【FND7-16】每次快照开始前清扫DbHome下历史残留的checkpoint_*目录：上次快照失败/
+	// 删除失败留下的临时目录没有任何存在意义（本次快照会新建带新时间戳的目录），
+	// 留着只会在失败重试循环中渐进占满磁盘。当前快照目录在checkpoint()内才创建，
+	// 清扫时必然不存在，不会误删。单实例独占DbHome，无并发快照（snapshotting守卫）。
+	private void deleteResidualCheckpoints() {
+		var files = new File(getDbHome()).listFiles();
+		if (files == null)
+			return;
+		for (var file : files) {
+			if (file.isDirectory() && file.getName().startsWith("checkpoint_"))
+				deleteCheckpointDir(file.getPath());
+		}
+	}
+
 	@Override
 	public SnapshotResult snapshot(String path) throws RocksDBException, IOException {
+		deleteResidualCheckpoints(); // 【FND7-16】先清扫历史残留，再生成新快照
 		long t0 = System.nanoTime();
 		SnapshotResult result = new SnapshotResult();
 		var cpHome = checkpoint(result);
@@ -500,12 +529,12 @@ public final class Rocks extends StateMachine implements Closeable {
 			// 【FND-R2-5】backup失败（磁盘满/权限等）时清理checkpoint目录：
 			// checkpoint_<timestamp>是状态机RocksDB的完整物理拷贝，快照每次失败重试
 			// 都会新增一份，残留累积会渐进占满DbHome。成功路径的删除保持在下面原位。
-			LogSequence.deleteDirectory(new File(cpHome));
+			deleteCheckpointDir(cpHome);
 			throw e;
 		}
 
 		long t2 = System.nanoTime();
-		LogSequence.deleteDirectory(new File(cpHome));
+		deleteCheckpointDir(cpHome);
 		createZipFromDirectory(backupDir, path);
 
 		long t3 = System.nanoTime();
