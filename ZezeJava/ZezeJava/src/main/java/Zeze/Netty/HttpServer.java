@@ -172,6 +172,12 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			throw new IllegalStateException("zeze is null");
 		if (zeze.isNoDatabase())
 			throw new IllegalStateException("zeze is noDatabase");
+		// FND7-76：timer只在ProviderApp形态创建（Application.initialize要求redirect!=null）。
+		// 缺失时不在此fail-fast的话，HttpSession.start的scheduleNamed在null timer上NPE，
+		// 被Procedure转成"enableHttpSessionExpiredTimer error=..."错误码，无指向。
+		if (zeze.getTimer() == null)
+			throw new IllegalStateException("zeze.timer is null: http session requires ProviderApp "
+					+ "(Application creates Timer only when ProviderApp exists)");
 		if (httpSession != null)
 			return;
 		httpSession = new HttpSession(zeze);
