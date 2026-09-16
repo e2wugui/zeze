@@ -132,8 +132,12 @@ public final class JsonWriter {
 	// 供 Json 静态入口的重入保护：writer 被 Json 静态入口占用，或已有半成品输出
 	// （直接使用 JsonWriter.local() 的调用方，如 DbWeb/AsyncSocket，序列化中途）。
 	// 此时嵌套调用 Json.toCompact* 必须改用独立实例，否则 clear() 会清掉外层半成品。
+	// FND7-72：free()后tail==null，实例视为永久占用：否则busy()恒false使
+	// acquireLocalWriter取回该实例，clear()首行tail.next即NPE，线程本地writer
+	// 一旦free即永久不可用。
+	@SuppressWarnings("null")
 	boolean busy() {
-		return inUse || size != 0 || pos != 0;
+		return inUse || size != 0 || pos != 0 || tail == null;
 	}
 
 	public JsonWriter() {
@@ -239,7 +243,18 @@ public final class JsonWriter {
 		return this;
 	}
 
-	public @NotNull JsonWriter free() { // can be reused by ensure()
+	/**
+	 * 释放全部块并把实例置入已释放终态（tail==null，{@link #busy()} 恒 true），同时从当前线程的
+	 * ThreadLocal 登记中摘除本实例（仅当本实例恰为当前线程的登记实例），此后 {@link #local()}
+	 * 自动新建实例。写路径可经 ensure() 重新分配块而复活（历史语义 "can be reused by ensure()"），
+	 * 但 clear()/toString()/charSize() 等遍历路径对已释放实例会 NPE，free 后请勿继续使用。
+	 * <p>
+	 * 【线程封闭契约（FND7-72 复审R3成文）】JsonWriter 实例（含 ThreadLocal 登记实例）线程封闭，
+	 * free() 必须在登记线程调用：跨线程 free 他人登记的实例摘不掉目标线程的登记（ThreadLocal
+	 * 无跨线程移除途径），目标线程随后的 local() 仍会取回已释放实例，clear() 首行 tail.next
+	 * 即 NPE——该用法属线程封闭违约，本方法对此不设防。
+	 */
+	public @NotNull JsonWriter free() {
 		for (Block block = tail.next; ; block = block.next) {
 			allocator.free(ensureNotNull(block));
 			if (block == tail)
@@ -251,6 +266,12 @@ public final class JsonWriter {
 		pos = 0;
 		size = 0;
 		tabs = 0;
+		// FND7-72补全：摘除ThreadLocal登记——free()后若仍留在localWriters，
+		// JsonWriter.local()直取路径（DbWeb/AsyncSocket等序列化中途使用者）会拿到
+		// 已释放实例，clear()首行tail.next即NPE。摘除后local()自动新建实例；
+		// 非ThreadLocal登记的手写实例不受影响。busy()的tail==null检查保留作纵深防御。
+		if (localWriters.get() == this)
+			localWriters.remove();
 		return this;
 	}
 
