@@ -120,6 +120,19 @@ public final class ZstdFactory {
 				if (r != 0)
 					throw new IllegalStateException("mhResetCStream = " + r);
 			} catch (Throwable e) { // MethodHandle.invoke
+				// FND7-46：super构造已建native cstream（ZstdOutputStreamNoFinalizer构造调createCStream），
+				// 构造失败则对象不可达、close()永不会被调用——catch中显式释放ctxPtr再重抛，
+				// 否则越界level/windowLog等配置错误每次泄漏一个native压缩上下文。
+				long ptr = ctxPtr;
+				ctxPtr = 0;
+				if (ptr != 0) {
+					try {
+						//noinspection UnusedAssignment
+						int r = (int)mhFreeCStream.invokeExact(ptr);
+					} catch (Throwable ignored) {
+						// 释放失败无法补救，优先重抛原始构造异常
+					}
+				}
 				throw Task.forceThrow(e);
 			}
 		}
