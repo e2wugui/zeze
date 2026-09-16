@@ -349,8 +349,18 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			if (n > 0) {
 				var cfhs = rocksDb.createColumnFamilies(commonCfOptions, newNames);
 				if (cfhs.size() != newNames.size()) {
+					// 句柄数不匹配（JNI重试/并发污染，open()同型场景FND4-22）：抛出前关闭已创建的
+					// native列族句柄（FND7-45），否则异常上抛后调用方无引用可回收，句柄泄漏累积
+					// 侵蚀进程句柄与RocksDB内部表。
+					int cfhCount = cfhs.size();
+					for (var cfh : cfhs) {
+						try {
+							cfh.close();
+						} catch (Throwable ignored) {
+						}
+					}
 					throw new IllegalStateException("createColumnFamilies unmatched: "
-							+ cfhs.size() + " != " + newNames.size());
+							+ cfhCount + " != " + newNames.size());
 				}
 				for (int i = 0; i < n; i++) {
 					var idx = newIndexes.get(i);
