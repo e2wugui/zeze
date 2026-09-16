@@ -28,6 +28,9 @@ public class ExporterNginxHttp implements IExporter {
 			.build();
 	private final @NotNull String url;
 	private final long version;
+	// FND7-61：选桶不匹配只warn一次（事件风暴下不刷屏）；onEdit由one-by-one单worker串行
+	// 调用，volatile仅防御对调用线程模型的隐含依赖（对齐Exporter.failedServices风格）。
+	private volatile boolean versionBucketEmptyWarned;
 
 	/**
 	 * 构造Nginx配置HTTP输出器。
@@ -47,8 +50,30 @@ public class ExporterNginxHttp implements IExporter {
 	@Override
 	public void exportAll(@NotNull String serviceName, @NotNull BServiceInfosVersion all) throws Exception {
 		var ver0 = all.getInfos(version);
-		if (ver0 == null)
+		if (ver0 == null) {
+			// FND7-61可观测性：-version是选桶（SM按BServiceInfo注册时的version分桶，导出只取
+			// 指定桶），桶不匹配时导出被静默跳过、dyups配置停在旧值且无任何留痕。选定桶为空
+			// 且其他桶非空时warn一次（列出非空桶号）提示检查-version；全空（服务全部下线的
+			// 过渡态）保持静默，语义与NginxConfig路径"无可导出地址"的info日志一致。
+			if (!versionBucketEmptyWarned) {
+				var buckets = new StringBuilder();
+				for (var it = all.getInfosIterator(); it.moveToNext(); ) {
+					if (!it.value().getSortedIdentities().isEmpty()) {
+						if (!buckets.isEmpty())
+							buckets.append(',');
+						buckets.append(it.key());
+					}
+				}
+				if (!buckets.isEmpty()) {
+					versionBucketEmptyWarned = true;
+					logger.warn("ExporterNginxHttp: -version={} bucket not found for service '{}', "
+									+ "non-empty buckets: [{}]; export skipped, dyups config NOT updated; "
+									+ "check -version to match the version services registered with",
+							version, serviceName, buckets);
+				}
+			}
 			return;
+		}
 
 		var sb = new StringBuilder();
 		for (var info : ver0.getSortedIdentities()) {

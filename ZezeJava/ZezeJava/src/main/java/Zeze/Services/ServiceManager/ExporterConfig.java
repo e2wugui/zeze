@@ -10,6 +10,10 @@ public class ExporterConfig {
 	// 分散的话，名字冲突不容易管理。
 	// 这里还做了一些基本校验。更多校验可能在实现中。
 
+	/** -version 选桶语义（FND7-61成文）：SM按服务注册时的version（BServiceInfo.version）分桶
+	 * 保存地址，导出器只导出指定桶（BServiceInfosVersion.getInfos(version)），桶不存在时跳过
+	 * 该服务（NginxHttp路径选桶空且其他桶非空会warn一次）——ver必须与服务注册使用的version
+	 * 一致，默认0只匹配注册version=0的服务。 */
 	public long getVersion() {
 		return getLong("-version", 0L);
 	}
