@@ -131,14 +131,28 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	private void endSaga() {
 		// 执行过程中发生异常或者错误不能到达这里，而是rollback里面的cancelSaga。
 		var futures = new ArrayList<TaskCompletionSource<?>>();
+		// R2-M③：逐参与方容错（对齐cancelSaga/commit()的FND4-86模式）——原先发送循环无
+		// try/catch，第一个参与方的getZezeInstance/SendForWait异常中断整个循环：后续参与方
+		// 收不到FuncSagaEnd(cancel=false)，上下文与setEnd滞留，只能等参与方cleanupTimeoutSagas
+		// （默认1小时）回收；await循环同理，一个异常跳过其余等待。记error后继续，保证全部
+		// 参与方都被通知。调用方commit()已有兜底catch（endSaga失败不转rollback），语义不变。
 		for (var e : zezeSagas.entrySet()) {
-			var r = new FuncSagaEnd();
-			r.Argument.setOnzTid(onzTid);
-			r.Argument.setCancel(false);
-			futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey())));
+			try {
+				var r = new FuncSagaEnd();
+				r.Argument.setOnzTid(onzTid);
+				r.Argument.setCancel(false);
+				futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey())));
+			} catch (Exception ex) {
+				logger.error("end saga send fail. tid={}, zeze={}", onzTid, e.getKey(), ex);
+			}
 		}
-		for (var future : futures)
-			future.await();
+		for (var future : futures) {
+			try {
+				future.await();
+			} catch (Exception ex) {
+				logger.error("await end saga result. tid={}", onzTid, ex);
+			}
+		}
 	}
 
 	private void cancelSaga() {
