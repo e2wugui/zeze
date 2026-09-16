@@ -8,6 +8,8 @@ import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,6 +17,12 @@ import org.jetbrains.annotations.Nullable;
  * 字符串匹配大量固定子串的高效算法. 使用trie树结构搭配AC自动机算法, 内存占用大概是所有子串的30倍大小
  */
 public final class StringChecker {
+	private static final @NotNull Logger logger = LogManager.getLogger(StringChecker.class);
+
+	/** 词条长度上限（FND7-75）：calFail按词条长度递归（每字符约3帧，栈深=词长），超长词条
+	 * （词库被污染/误粘整段文本）会以StackOverflowError击穿reload。实测4096字符在默认
+ * 栈（512KB~1MB）已处SOE边缘，取1024留足余量；敏感词场景绰绰有余。 */
+	private static final int MAX_WORD_LENGTH = 1024;
 	private static final class Trie extends CharHashMap<Trie> {
 		private int deep;
 		private Trie fail;
@@ -180,6 +188,11 @@ public final class StringChecker {
 		int e = line.length();
 		if (e == 0)
 			return false;
+		if (e > MAX_WORD_LENGTH) { // FND7-75：拒绝超长词条，防calFail深递归SOE
+			logger.warn("StringChecker: word too long ({} > {}), rejected: '{}'...",
+					e, MAX_WORD_LENGTH, line.substring(0, 32));
+			return false;
+		}
 		int i = (line.charAt(0) == 0xfeff) ? 1 : 0; // remove BOM
 		if (i >= e)
 			return false;
