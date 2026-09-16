@@ -291,6 +291,8 @@ public final class TaskSpec<R> {
 
 	/**
 	 * 事务感知注册延迟调度(毫秒)。忽略 dispatchMode/onCancel（显式设置抛错）。
+	 * 事务内注册延迟到提交时才真正入池，无法返回句柄、注册后不可取消
+	 * （需要取消请用 {@link #scheduleNow}）。
 	 */
 	public void schedule(long delay) {
 		consumeSchedule();
@@ -302,6 +304,8 @@ public final class TaskSpec<R> {
 	 * 事务感知注册固定延迟周期调度(毫秒)。period &lt;= 0 时抛 IllegalArgumentException。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
 	 * 周期任务无法携带返回值，ofFunc/ofProcedure/ofFunc0 的结果丢弃，日志与统计照常。
+	 * 事务内注册延迟到提交时才真正入池，无法返回句柄、注册后不可取消——常驻周期
+	 * 任务会随注册者存活整个进程期（需要取消请用 {@link #schedulePeriodNow}）。
 	 */
 	public void schedulePeriod(long delay, long period) {
 		consumeSchedulePeriod(period);
@@ -331,6 +335,8 @@ public final class TaskSpec<R> {
 	/**
 	 * 事务感知注册每天 hour:minute 单次调度（周期版见 {@link #scheduleAtPeriod}）。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
+	 * 事务内注册延迟到提交时才真正入池，无法返回句柄、注册后不可取消
+	 * （需要取消请用 {@link #scheduleAtNow}）。
 	 */
 	public void scheduleAt(int hour, int minute) {
 		consumeSchedule();
@@ -342,6 +348,8 @@ public final class TaskSpec<R> {
 	 * 事务感知注册每天 hour:minute 首发后按 period(毫秒)固定延迟周期重复触发（结果丢弃，见
 	 * {@link #schedulePeriod}）。period &lt;= 0 时抛 IllegalArgumentException。
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）。
+	 * 事务内注册延迟到提交时才真正入池，无法返回句柄、注册后不可取消——常驻周期
+	 * 任务会随注册者存活整个进程期（需要取消请用 {@link #scheduleAtPeriodNow}）。
 	 */
 	public void scheduleAtPeriod(int hour, int minute, long period) {
 		consumeSchedulePeriod(period);
