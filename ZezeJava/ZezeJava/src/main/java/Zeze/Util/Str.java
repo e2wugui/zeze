@@ -122,26 +122,32 @@ public final class Str {
 			case 'K':
 			case 'k':
 				scale = 1 << 10;
+				checkUnitTail(s, i);
 				break loop;
 			case 'M':
 			case 'm':
 				scale = 1 << 20;
+				checkUnitTail(s, i);
 				break loop;
 			case 'G':
 			case 'g':
 				scale = 1 << 30;
+				checkUnitTail(s, i);
 				break loop;
 			case 'T':
 			case 't':
 				scale = 1L << 40;
+				checkUnitTail(s, i);
 				break loop;
 			case 'P':
 			case 'p':
 				scale = 1L << 50;
+				checkUnitTail(s, i);
 				break loop;
 			case 'E':
 			case 'e':
 				scale = 1L << 60;
+				checkUnitTail(s, i);
 				break loop;
 			case '\t':
 			case ' ':
@@ -177,6 +183,26 @@ public final class Str {
 		if (v < 0 || v > Long.MAX_VALUE)
 			throw new IllegalStateException("long overflow for '" + s + "'");
 		return (long)v;
+	}
+
+	// FND7-53：单位字符之后仅允许间隔符到串尾，否则"1e3"按1E、"10Mx"按10M被静默接受
+	// ——与本方法对单位前非法字符的fail-fast语义自相矛盾，畸形配置无告警进入内存分配。
+	private static void checkUnitTail(@NotNull String s, int unitIndex) {
+		for (int i = unitIndex + 1, n = s.length(); i < n; i++) {
+			char c = s.charAt(i);
+			switch (c) {
+			//@formatter:off
+			case '\t': case ' ': case '_': case ',': case '\'':
+			//@formatter:on
+				continue; // 允许用的间隔符
+			default:
+				// R3-U2（B）：用户既有部署配置的双字母单位习惯（redis的100mb、SI的64KB）从静默
+				// 按单字符接受变为启动fail-fast——消息自带等效合法写法（截到单位字符为止），
+				// 迁移零思考成本。
+				throw new NumberFormatException("invalid char '" + c + "' after unit in '" + s
+						+ "' (unit is a single letter, size ends at it: '" + s.substring(0, unitIndex + 1) + "')");
+			}
+		}
 	}
 
 	public static long parseVersion(@NotNull String version) {
