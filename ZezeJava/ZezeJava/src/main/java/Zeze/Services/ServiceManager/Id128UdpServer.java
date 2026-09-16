@@ -194,20 +194,32 @@ public class Id128UdpServer {
 				&& (table == null || !evictIdleContext()))
 			throw new IllegalArgumentException("AllocateId128 unique names exceeded " + MAX_UNIQUE_NAMES
 					+ " name.size=" + name.size());
-		var context = cache.computeIfAbsent(name, k -> {
-			var c = new Id128Context();
-			try {
-				var v = table != null ? table.get(k.bytesUnsafe()) : null;
-				if (v != null) {
-					c.max.decodeRaw(ByteBuffer.Wrap(v));
-					c.current.assign(c.max);
+		final Id128Context context;
+		for (; ; ) {
+			var c = cache.computeIfAbsent(name, k -> {
+				var ctx = new Id128Context();
+				try {
+					var v = table != null ? table.get(k.bytesUnsafe()) : null;
+					if (v != null) {
+						ctx.max.decodeRaw(ByteBuffer.Wrap(v));
+						ctx.current.assign(ctx.max);
+					}
+				} catch (RocksDBException e) {
+					throw Task.forceThrow(e);
 				}
-			} catch (RocksDBException e) {
-				throw Task.forceThrow(e);
+				return ctx;
+			});
+			c.lock();
+			if (cache.get(name) == c) {
+				context = c;
+				break; // 持锁且在册：逐出需tryLock本上下文，临界区内不会被逐出。
 			}
-			return c;
-		});
-		context.lock();
+			// FND6-28补（多worker前瞻）：computeIfAbsent插入后未首次上锁的窗口内，条目可被
+			// evictIdleContext逐出、并发同name请求从rocks重建新上下文——孤儿上下文放锁重试。
+			// 不闭环则双上下文各持独立current/max分配重叠号段，孤儿的table.put还可能把max
+			// 写回旧值导致重载重发已交付区间。当前单worker不可达（worker注释「以后可能多个」）。
+			c.unlock();
+		}
 		try {
 			var current = context.current;
 			res.getStartId().assign(current);
