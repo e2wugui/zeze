@@ -6,7 +6,9 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -160,14 +162,8 @@ public final class GenModule extends ReentrantLock {
 							}
 						} else
 							System.out.println("      New File: " + file.getAbsolutePath());
-						if (oldBytes == null) {
-							try (var fos = new FileOutputStream(file)) {
-								fos.write(newBytes);
-							} catch (IOException e) {
-								//noinspection CallToPrintStackTrace
-								e.printStackTrace();
-							}
-						}
+						if (oldBytes == null)
+							writeGeneratedFile(file, newBytes);
 					}
 					classNames[i] = genClassName;
 					classNameAndCodes.put(genClassName, code);
@@ -190,6 +186,29 @@ public final class GenModule extends ReentrantLock {
 			}
 		} finally {
 			unlock();
+		}
+	}
+
+	// FND7-33：生成文件写入必须失败可见且不破坏现场——原先new FileOutputStream(file)打开即
+	// 截断旧文件，fos.write失败（磁盘满/权限/路径问题）时IOException仅printStackTrace被吞，
+	// 流程照样标记已生成：目标源码树留下空/半截.java，生成脚本以“成功”退出，错误延后到
+	// 后续编译该树时才爆发且难以归因。临时文件+原子move：写失败不触碰旧文件；任何失败
+	// 删除临时文件并上抛，由createRedirectModules既有catch包装模块上下文后中止生成。
+	private static void writeGeneratedFile(@NotNull File file, byte @NotNull [] bytes) throws IOException {
+		var tmp = File.createTempFile(file.getName(), ".tmp", file.getParentFile());
+		try {
+			try (var fos = new FileOutputStream(tmp)) {
+				fos.write(bytes);
+			}
+			var target = file.toPath();
+			try {
+				Files.move(tmp.toPath(), target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+			} catch (AtomicMoveNotSupportedException e) {
+				Files.move(tmp.toPath(), target, StandardCopyOption.REPLACE_EXISTING);
+			}
+		} finally {
+			//noinspection ResultOfMethodCallIgnored
+			tmp.delete(); // move成功时tmp已不存在；失败时清理半截临时文件
 		}
 	}
 
