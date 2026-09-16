@@ -207,8 +207,26 @@ public class Service extends ReentrantLock {
 		return socketMap.size();
 	}
 
+	/**
+	 * 会话按sessionId登记入表（putIfAbsent，先注册者胜）。
+	 * R3-C②（SM撞号产品缺陷）：返回false=同号互撞——同JVM多App各自调用全局静态
+	 * AsyncSocket.setSessionIdGenFunc（如Game.App/linkd的PersistentAtomicLong发号）时，
+	 * 后装的发号器与本Service既有连接发出的号重叠：putIfAbsent静默吞掉新连接后，
+	 * GetSocket(sessionId)永远返回旧socket（isSenderAlive等按id找连接的逻辑全被误导，
+	 * TestGameTimer的ErrorNotLogin即此链）。这里error日志+关闭撞号的新连接（保留先注册者），
+	 * 把静默互撞变成显式拒绝。调用方拿到false后不得再对该连接回调OnHandshakeDone。
+	 */
 	protected final boolean addSocket(@NotNull AsyncSocket so) {
-		return socketMap.putIfAbsent(so.getSessionId(), so) == null;
+		var existing = socketMap.putIfAbsent(so.getSessionId(), so);
+		if (existing != null) {
+			logger.error("addSocket: duplicate sessionId {} in service '{}': existing socket {} kept, "
+							+ "colliding socket {} closed. 同JVM多App互踩全局静态AsyncSocket.setSessionIdGenFunc"
+							+ "会触发此撞号（发号器被后装的App整体替换，与既有连接号码重叠）。",
+					so.getSessionId(), name, existing, so);
+			so.close(new IllegalStateException("duplicate session id: " + so.getSessionId()));
+			return false;
+		}
+		return true;
 	}
 
 	public final void updateRecvSendSize() {
@@ -447,7 +465,9 @@ public class Service extends ReentrantLock {
 		if (socketMap.size() >= config.getMaxConnections()) // 这里可能有并发原子性问题,不能保证限制在max以内
 			throw new IllegalStateException("too many connections");
 		setupHaProxyHeader(so);
-		addSocket(so);
+		// R3-C②：撞号连接已被addSocket关闭（error日志+close），不得再回调OnHandshakeDone。
+		if (!addSocket(so))
+			return;
 		OnHandshakeDone(so);
 	}
 
@@ -497,7 +517,9 @@ public class Service extends ReentrantLock {
 	 * @param so connect succeed
 	 */
 	public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
-		addSocket(so);
+		// R3-C②：撞号连接已被addSocket关闭（error日志+close），不得再回调OnHandshakeDone。
+		if (!addSocket(so))
+			return;
 		OnHandshakeDone(so);
 	}
 
