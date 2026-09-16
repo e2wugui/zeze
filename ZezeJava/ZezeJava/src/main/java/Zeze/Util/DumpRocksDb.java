@@ -87,9 +87,7 @@ public final class DumpRocksDb {
 				metaList.sort(
 						Comparator.comparingInt(LiveFileMetaData::level).thenComparing(SstFileMetaData::fileName));
 				for (var meta : metaList) {
-					var fileName = meta.fileName();
-					if (fileName.startsWith("/"))
-						fileName = fileName.substring(1);
+					var fileName = stripLeadingSlash(meta.fileName());
 					System.out.format("%d %10s%9d %10d %10d %5d %5d %6d %s\n", meta.level(), fileName, meta.size(),
 							meta.smallestSeqno(), meta.largestSeqno(), meta.numReadsSampled(), meta.numEntries(),
 							meta.numDeletions(), new String(meta.columnFamilyName(), UTF_8));
@@ -145,7 +143,7 @@ public final class DumpRocksDb {
 						continue;
 					for (var meta : rocksDb.getLiveFilesMetaData()) {
 						if (meta.level() == 0 && Arrays.equals(meta.columnFamilyName(), cf.getName()))
-							fileList.add(meta.fileName());
+							fileList.add(stripLeadingSlash(meta.fileName()));
 					}
 					if (!fileList.isEmpty()) {
 						System.err.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
@@ -223,6 +221,12 @@ public final class DumpRocksDb {
 			os.flush();
 			System.err.println("INFO: dumped " + n + " records, " + (System.currentTimeMillis() - t) + " ms");
 		}
+	}
+
+	// FND7-49：部分RocksDB版本的getLiveFilesMetaData().fileName带前导'/'，compactFiles要求
+	// 相对db目录的文件名——meta与compact1两个分支统一剥离（compact1原漏剥，带'/'时file not found）。
+	private static @NotNull String stripLeadingSlash(@NotNull String fileName) {
+		return fileName.startsWith("/") ? fileName.substring(1) : fileName;
 	}
 
 	private static void dump(@NotNull OutputStream os, @NotNull String fmt,
