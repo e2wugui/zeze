@@ -1031,6 +1031,10 @@ public final class Raft {
 	}
 
 	private void sendPreVote() throws RocksDBException {
+		// FND6-08补：拒绝选举也要推进nextVoteTime——原拒绝路径在设置nextVoteTime之前return，
+		// onTimer的Candidate分支(now>nextVoteTime恒真)每tick重进，20ms一条fatal刷日志，
+		// 恰是本修复在trySetTerm里防的洪泛在自家拒绝路径上的翻版。
+		nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
 		if (!checkTermCanElect())
 			return;
 		preVotes.clear(); // 每次预投票开始清除。
@@ -1044,7 +1048,6 @@ public final class Raft {
 		arg.setLastLogTerm(log.getTerm());
 		arg.setNodeReady(logSequence.getNodeReady());
 
-		nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
 		server.getConfig().forEachConnector(c -> {
 			var rpc = new PreVote();
 			rpc.Argument = arg;
@@ -1056,6 +1059,8 @@ public final class Raft {
 	}
 
 	private void sendRequestVote() throws RocksDBException {
+		// FND6-08补：同sendPreVote——拒绝选举也推进nextVoteTime防onTimer每tick重进刷fatal。
+		nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
 		if (!checkTermCanElect())
 			return;
 		requestVotes.clear(); // 每次选举开始清除。
@@ -1070,7 +1075,6 @@ public final class Raft {
 		arg.setLastLogTerm(log.getTerm());
 		arg.setNodeReady(logSequence.getNodeReady());
 
-		nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
 		server.getConfig().forEachConnector(c -> {
 			var rpc = new RequestVote();
 			rpc.Argument = arg;

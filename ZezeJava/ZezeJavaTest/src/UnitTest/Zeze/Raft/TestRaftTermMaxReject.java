@@ -86,4 +86,29 @@ public class TestRaftTermMaxReject {
 			rocks.close();
 		}
 	}
+
+	@Test
+	public void testRejectElectionAdvancesNextVoteTime() throws Exception {
+		var rocks = new Rocks("127.0.0.1:17650", RocksMode.Pessimism, newRaftConfig(), new Config(), false);
+		try {
+			var raft = rocks.getRaft();
+			var ls = raft.getLogSequence();
+			assertEquals(LogSequence.SetTermResult.Newer, ls.trySetTerm(LogSequence.TERM_MAX));
+
+			// FND6-08补：拒绝选举也必须推进nextVoteTime——原拒绝路径在设置之前return，
+			// onTimer的Candidate分支(now>nextVoteTime恒真)每tick重进，20ms一条fatal
+			// 刷日志（洪泛在自家拒绝路径上的翻版）。
+			var nextVoteTimeField = raft.getClass().getDeclaredField("nextVoteTime");
+			nextVoteTimeField.setAccessible(true);
+			var sendPreVote = raft.getClass().getDeclaredMethod("sendPreVote");
+			sendPreVote.setAccessible(true);
+			sendPreVote.invoke(raft); // term达上界，拒绝发起
+
+			var after = nextVoteTimeField.getLong(raft);
+			org.junit.jupiter.api.Assertions.assertTrue(after > System.currentTimeMillis(),
+					"拒绝选举必须推进nextVoteTime节流，实际: " + after);
+		} finally {
+			rocks.close();
+		}
+	}
 }
