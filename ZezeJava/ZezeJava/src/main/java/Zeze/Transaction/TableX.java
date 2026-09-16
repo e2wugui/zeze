@@ -1163,7 +1163,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var r = cache.getOrAdd(kk, () -> new Record1<>(this, kk, null));
 		value.initRootInfo(r.createRootInfoIfNeed(tKey), null);
 		r.setState(state);
+		// FND7-01：直写缓存必须同步维护sizeCounter，与Record1.commit的内存表记账同口径
+		// （无值→有值即increment）。热更为新表建全新TableCache后经此入口搬运全部记录，
+		// 不补计数则升级后size()恒0；且搬运记录softValue非null，后续事务删除时commit按
+		// strongRef!=null走decrement，计数永久漂移为负。同key重复直写不重复计数。
+		var hadValue = r.getSoftValue() != null;
 		r.setSoftValue(value);
+		if (isMemory() && !hadValue)
+			cache.getSizeCounter().increment();
 		r.setTimestamp(Record.getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
 		// 直接写入本地Rocks镜像（walkMemory与软引用回收后loadValue恢复的数据源），不设置脏标记：
 		// 脏记录必须进入rrs才能被checkpoint flush，这里的记录不在任何rrs中，置脏后
