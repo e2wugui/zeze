@@ -83,6 +83,10 @@ public final class App extends Zeze.AppBase {
 		startModules(); // 启动模块，装载配置什么的。
 		AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.getName())::next);
 		httpServer = new HttpServer(Zeze);
+		// 【安全警示】/reloadClass与/runClass是无鉴权的任意字节码注入/执行端点（见两类
+		// 的类注释），下方挂载后随httpServer监听linkPort+10000且未指定host（bind所有
+		// 网卡）。生产环境请改绑回环/内网管理面（HttpServer.start指定host）或直接移除
+		// 这两行挂载，绝不可暴露公网。当前保持默认绑定行为不变。
 		reloadClassServer = new ReloadClassServer(this, "/reloadClass", "upload", "filename");
 		reloadClassServer.start();
 		runClassServer = new RunClassServer(this, "/runClass", "clazz", "filename");

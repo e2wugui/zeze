@@ -16,6 +16,11 @@ import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 【安全警示】无鉴权的任意字节码执行端点：上传的class字节码被直接defineClass并实例化
+ * 执行（Runnable/Callable/main）。任何能触达该urlPath的客户端即获得服务器任意代码执行权，
+ * 必须仅绑定回环/内网，绝不可暴露公网。
+ */
 public class RunClassServer implements HttpFileUploadHandle {
 	private static final @NotNull org.apache.logging.log4j.Logger logger =
 			org.apache.logging.log4j.LogManager.getLogger(RunClassServer.class);
