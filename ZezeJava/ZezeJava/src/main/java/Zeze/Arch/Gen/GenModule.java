@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -14,6 +15,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
@@ -116,16 +118,27 @@ public final class GenModule extends ReentrantLock {
 					if (moduleClass.getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
 						continue;
 
+					// FND7-67：沿类层级向上收集带注解方法（到IModule为止）。原先仅扫
+					// getDeclaredMethods：基类声明的redirect方法既不生成拦截子类方法、
+					// 也不注册redirect.handles，调用静默本地执行且远程不可达、无任何告警，
+					// 与方法签名非法时的fail-fast形成反差。同签名（名字+参数类型）去重，
+					// 派生类声明优先（覆盖者的注解生效）。
 					var overrides = new ArrayList<MethodOverride>();
-					for (var method : moduleClass.getDeclaredMethods()) {
-						for (var anno : method.getAnnotations()) {
-							var type = anno.annotationType();
-							if (type == RedirectToServer.class || type == RedirectHash.class || type == RedirectAll.class) {
-								overrides.add(new MethodOverride(method, anno));
-								break;
+					var overridesBySignature = new LinkedHashMap<String, MethodOverride>();
+					for (var cls = moduleClass; cls != null && cls != IModule.class; cls = cls.getSuperclass()) {
+						for (var method : cls.getDeclaredMethods()) {
+							if (overridesBySignature.containsKey(methodKey(method)))
+								continue; // 派生类同签名覆盖已收集，基类声明忽略
+							for (var anno : method.getAnnotations()) {
+								var type = anno.annotationType();
+								if (type == RedirectToServer.class || type == RedirectHash.class || type == RedirectAll.class) {
+									overridesBySignature.put(methodKey(method), new MethodOverride(method, anno));
+									break;
+								}
 							}
 						}
 					}
+					overrides.addAll(overridesBySignature.values());
 					if (overrides.isEmpty())
 						continue; // 没有需要重定向的方法。
 					overrides.sort(Comparator.comparing(o -> o.method.getName())); // 按方法名排序，避免每次生成结果发生变化。
@@ -210,6 +223,15 @@ public final class GenModule extends ReentrantLock {
 			//noinspection ResultOfMethodCallIgnored
 			tmp.delete(); // move成功时tmp已不存在；失败时清理半截临时文件
 		}
+	}
+
+	// FND7-67：方法去重键——同签名（名字+参数类型）视为同一个覆盖点，类层级收集中
+	// 用于"派生类声明优先、基类声明忽略"。
+	private static String methodKey(@NotNull Method method) {
+		var sb = new StringBuilder(method.getName());
+		for (var paramType : method.getParameterTypes())
+			sb.append(':').append(paramType.getName());
+		return sb.toString();
 	}
 
 	private static String genModuleCode(@NotNull String genClassName, @NotNull Class<?> moduleClass,
