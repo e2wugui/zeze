@@ -50,9 +50,15 @@ public abstract class AsyncSocket {
 
 	private final @NotNull Service service;
 
+	// 测试桩等少数路径以null service构造（@NotNull之外的事实用法），发号保底走
+	// 共享随机基址流（与Service默认流同为随机63位基址，两流独立也互不重叠）。
+	private static final java.util.concurrent.atomic.AtomicLong nullServiceSessionIdGen =
+			new java.util.concurrent.atomic.AtomicLong(
+					(System.nanoTime() ^ new java.security.SecureRandom().nextLong()) & Long.MAX_VALUE);
+
 	protected AsyncSocket(@NotNull Service service) {
 		this.service = service;
-		this.sessionId = service.nextSessionId();
+		this.sessionId = service != null ? service.nextSessionId() : nullServiceSessionIdGen.getAndIncrement();
 	}
 
 	public @NotNull Service getService() {

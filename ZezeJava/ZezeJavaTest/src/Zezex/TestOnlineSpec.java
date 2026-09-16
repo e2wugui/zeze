@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
  * Arch 侧（Zeze.Arch.OnlineSpec）本 harness 拿不到 Online 实例（Game 服务器挂的是
  * Zeze.Game.Online，与 Zeze.Arch.Online 是两棵独立继承树），单元测试见 Zeze.Arch.TestArchOnlineSpec。
  */
+@org.junit.jupiter.api.parallel.Isolated // ZezexTestEnv固定端口(5020-5022族)串行，套件内并行互撞bind
 public class TestOnlineSpec {
 	private static final @NotNull Logger logger = LogManager.getLogger(TestOnlineSpec.class);
 

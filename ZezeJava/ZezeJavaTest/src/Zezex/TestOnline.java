@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.junit.jupiter.api.Assertions;
 
+@org.junit.jupiter.api.parallel.Isolated // ZezexTestEnv固定端口(5020-5022族)串行，套件内并行互撞bind
 public class TestOnline {
 	static {
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(Level.INFO);

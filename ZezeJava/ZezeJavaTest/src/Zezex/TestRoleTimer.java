@@ -17,6 +17,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.Test;
 
+@org.junit.jupiter.api.parallel.Isolated // ZezexTestEnv固定端口(5020-5022族)串行，套件内并行互撞bind
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class TestRoleTimer {
 	private static final @NotNull Logger logger = LogManager.getLogger(TestRoleTimer.class);

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
  * Role Online/Offline Timer 走 Game.App 全链路的测试。类级共享环境（单server，online timer 要求登录驻留在本server）：
  * 方法1 用 TCP 客户端、方法2 用 websocket 客户端（ZezexTestEnv.ClientStartMode），每方法只重建客户端。
  */
+@org.junit.jupiter.api.parallel.Isolated // ZezexTestEnv固定端口(5020-5022族)串行，套件内并行互撞bind
 @SuppressWarnings("CallToPrintStackTrace")
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class TestGameTimer {
