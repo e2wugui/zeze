@@ -69,6 +69,9 @@ import org.jetbrains.annotations.UnmodifiableView;
 public final class Application extends ReentrantLock {
 	static final @NotNull Logger logger = LogManager.getLogger(Application.class);
 
+	// R3-X①：终检点后等待在飞flush归零/被中断时重join检查点线程的上限，超时告警继续关库。
+	private static final long CHECKPOINT_DRAIN_TIMEOUT_MILLIS = 30_000;
+
 	private final @NotNull String projectName;
 	private final @NotNull Config conf;
 	private final HashMap<String, Database> databases = new HashMap<>();
@@ -870,7 +873,26 @@ public final class Application extends ReentrantLock {
 				// 终检点（join内的final flush）只负责此前已注册的脏集。
 				var cp = checkpoint;
 				checkpoint = null;
-				stopStep("checkpoint.stopAndJoin", cp::stopAndJoin);
+				stopStep("checkpoint.stopAndJoin", () -> {
+					try {
+						cp.stopAndJoin();
+					} catch (Throwable ex) {
+						// R3-X①（FND7-56边界收窄）：stopAndJoin的join被中断（forceThrow）时
+						// 检查点线程仍存活（可能正要进入final flush），吞掉异常直接继续会在它
+						// 还要落库时关库——与在飞数据通路并发close是native UAF类（ad5801593）。
+						// 有界忽略中断重join，超时告警继续（FND7-56的"终态必达"不变）。
+						logger.error("checkpoint stopAndJoin interrupted/failed, bounded re-join before close", ex);
+						cp.joinIgnoreInterrupt(CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
+					}
+				});
+				// R3-X①：mid-flush halt窄窗——FND7-54的停机拒绝只拦新提交，不等待已过门的
+				// 在飞flush（Immediately模式业务线程的checkpoint.flush、Reduce降级flush、
+				// checkpointRun的runOnce）：它们已打开LocalRocksCacheDb事务，与随后的
+				// close+deleteDirectory并发同样属于ad5801593的native UAF类。有界等待归零，
+				// 超时告警继续（30s上限，保证停机不因此永久挂起）。
+				if (!cp.waitNoActiveFlush(CHECKPOINT_DRAIN_TIMEOUT_MILLIS))
+					logger.error("checkpoint active flush not drained in {}ms, continue to close databases "
+							+ "(risk of close racing in-flight flush)", CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
 			}
 
 			if (LocalRocksCacheDb != null) {

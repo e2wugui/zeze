@@ -35,6 +35,14 @@ public final class Checkpoint {
 	//private volatile @NotNull ArrayList<Runnable> actionPending = new ArrayList<>();
 	final ConcurrentHashSet<RelativeRecordSet> relativeRecordSetMap = new ConcurrentHashSet<>();
 
+	// R3-X①：在飞flush计数（锁内inc/dec）——Application.stop在终检点后、LocalRocksCacheDb.close前
+	// 有界等待它归零。FND7-54的停机拒绝只拦"新提交"，不等待已过门的在飞flush（Immediately模式
+	// 业务线程的checkpoint.flush、Reduce降级flush、checkpointRun的runOnce）：它们已打开
+	// LocalRocksCacheDb事务，与close/deleteDirectory并发是native UAF类（对齐ad5801593的教训）。
+	// monitor只在计数增减与等待处短暂持有，flush体内不持有——与rrs锁、Application锁无嵌套。
+	private final @NotNull Object activeFlushMonitor = new Object();
+	private int activeFlush; // guarded by activeFlushMonitor
+
 	public Checkpoint(@NotNull Application zeze, @NotNull CheckpointMode mode, int serverId) {
 		this(zeze, mode, null, serverId);
 	}
@@ -105,6 +113,64 @@ public final class Checkpoint {
 			checkpointThread.join();
 		} catch (InterruptedException e) {
 			throw Task.forceThrow(e);
+		}
+	}
+
+	/**
+	 * R3-X①（FND7-56边界收窄）：有界忽略中断地join检查点线程——stopAndJoin的join被中断
+	 * （forceThrow）时线程仍存活（可能正要进入final flush），调用方继续关库会与它并发
+	 * （ad5801593的close与数据通路并发native UAF类）。中断只恢复标志，join持续到deadline。
+	 *
+	 * @param timeoutMillis 最长等待毫秒数，超时记error返回（调用方自行决定是否继续）
+	 */
+	public void joinIgnoreInterrupt(long timeoutMillis) {
+		var deadline = System.nanoTime() + timeoutMillis * 1_000_000L;
+		boolean interrupted = false;
+		try {
+			while (checkpointThread.isAlive()) {
+				var remaining = deadline - System.nanoTime();
+				if (remaining <= 0) {
+					logger.error("join checkpoint thread timeout ({}ms), continue", timeoutMillis);
+					return;
+				}
+				try {
+					//noinspection ResultOfMethodCallIgnored
+					checkpointThread.join(remaining / 1_000_000L + 1);
+				} catch (InterruptedException e) {
+					interrupted = true; // 出口统一恢复标志；循环内保持清除以便后续join能真正等待
+				}
+			}
+		} finally {
+			if (interrupted)
+				Thread.currentThread().interrupt();
+		}
+	}
+
+	/**
+	 * R3-X①：有界等待在飞flush归零（{@link #flush(Iterable, Set, History)}入口inc、finally dec）。
+	 * 停机序列在终检点后、LocalRocksCacheDb.close前调用，超时返回false由调用方告警继续。
+	 * 中断只恢复标志不提前返回：等待本身已有deadline兜底。
+	 */
+	public boolean waitNoActiveFlush(long timeoutMillis) {
+		var deadline = System.nanoTime() + timeoutMillis * 1_000_000L;
+		boolean interrupted = false;
+		try {
+			synchronized (activeFlushMonitor) {
+				while (activeFlush > 0) {
+					var remaining = deadline - System.nanoTime();
+					if (remaining <= 0)
+						return false;
+					try {
+						TimeUnit.NANOSECONDS.timedWait(activeFlushMonitor, remaining);
+					} catch (InterruptedException e) {
+						interrupted = true; // 出口统一恢复标志；循环内保持清除以便后续timedWait能真正等待
+					}
+				}
+				return true;
+			}
+		} finally {
+			if (interrupted)
+				Thread.currentThread().interrupt();
 		}
 	}
 
@@ -310,6 +376,23 @@ public final class Checkpoint {
 
 	public void flush(@NotNull Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
 					  @Nullable History history) {
+		// R3-X①：在飞计数从首个数据库触碰（LocalRocksCacheDb.beginTransaction）前开始，
+		// 覆盖整个落库过程——stop的waitNoActiveFlush据此等待后才能close/delete目录。
+		synchronized (activeFlushMonitor) {
+			++activeFlush;
+		}
+		try {
+			flushInternal(rs, onzProcedures, history);
+		} finally {
+			synchronized (activeFlushMonitor) {
+				--activeFlush;
+				activeFlushMonitor.notifyAll();
+			}
+		}
+	}
+
+	private void flushInternal(@NotNull Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
+							   @Nullable History history) {
 		var dts = new IdentityHashMap<Database, Database.Transaction>();
 		Database.Transaction localCacheTransaction = zeze.getLocalRocksCacheDb().beginTransaction();
 
