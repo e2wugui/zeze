@@ -52,16 +52,20 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	public final boolean addAll(@NotNull Collection<? extends V> c) {
-		var newSet = getValue().plusAll(c);
-		if (newSet != getValue()) {
-			for (V v : c) {
-				removed.remove(v);
-				added.add(v);
-			}
-			setValue(newSet);
-			return true;
+		var old = getValue();
+		// MapPSet.plusAll恒新建包装（same-instance判定失效），逐项plus：单项无变化返回同一
+		// 实例，可正确判定"全已存在"（FND7-08）——无变化时不记账不置脏。
+		var newSet = old;
+		for (V v : c)
+			newSet = newSet.plus(v);
+		if (newSet == old)
+			return false;
+		for (V v : c) {
+			removed.remove(v);
+			added.add(v);
 		}
-		return false;
+		setValue(newSet);
+		return true;
 	}
 
 	public final boolean remove(@NotNull V item) {
@@ -76,16 +80,19 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	public final boolean removeAll(@NotNull Collection<? extends V> c) {
-		var newSet = getValue().minusAll(c);
-		if (newSet != getValue()) {
-			for (V v : c) {
-				added.remove(v);
-				removed.add(v);
-			}
-			setValue(newSet);
-			return true;
+		var old = getValue();
+		// 同addAll：MapPSet.minusAll恒新建包装，逐项minus判定真实变化（FND7-08）。
+		var newSet = old;
+		for (V v : c)
+			newSet = newSet.minus(v);
+		if (newSet == old)
+			return false;
+		for (V v : c) {
+			added.remove(v);
+			removed.add(v);
 		}
-		return false;
+		setValue(newSet);
+		return true;
 	}
 
 	public final void clear() {
