@@ -247,6 +247,26 @@ public final class Transaction {
 
 	public void leaderApply(Changes changes, RaftLog holder) {
 		var rocks = changes.getRocks();
+		try {
+			leaderApplyInternal(changes, holder, rocks);
+		} catch (Rocks.FlushException e) {
+			// flush失败有补偿重试通道（pendingFlush，FND-R2-4），不是结构性分歧，放行给apply重试。
+			throw e;
+		} catch (Throwable e) {
+			// 【FND7-15】对齐Rocks.followerApply的"宁死不糊"：leaderApply链路抛出非Flush
+			// 异常（生成leaderApplyNoRecursive的ClassCast/NPE、lastSavepoint的
+			// IllegalStateException等）时，后台apply线程的uncaughtHandler仅记日志，
+			// applyFuture在finally置null后同条目反复重入重抛——lastApplied永久楔死且
+			// 无fatalKill，leader持续复制提交并对外提供停在楔死点的过期读（静默落后），
+			// 换主后需要InstallSnapshot追赶。与follower路径对称：fatalKill把静默分歧
+			// 变成显性crash。FlushException的pendingFlush重试语义不变。
+			logger.fatal("{} leaderApply divergence, fatalKill. logIndex={} term={}",
+					rocks.getRaft().getName(), holder.getIndex(), holder.getTerm(), e);
+			rocks.getRaft().fatalKill();
+		}
+	}
+
+	private void leaderApplyInternal(Changes changes, RaftLog holder, Rocks rocks) {
 		var index = holder.getIndex();
 		var pending = rocks.takePendingFlush(index, holder.getTerm());
 		if (pending != null) {
