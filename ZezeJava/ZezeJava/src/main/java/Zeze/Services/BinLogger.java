@@ -685,6 +685,23 @@ public final class BinLogger extends ReentrantLock {
 									forceClose(posFile);
 									forceClose(binFile);
 									openDay(curDayStamp); // 失败保持closed流：下次write再抛，再次进入恢复
+									// FND6-29姊妹：恢复分支重开后的停机复查。停机落在上方检查之后、
+									// 且openDay耗时跨越stop放弃join的点（NFS/磁盘抖动停滞正是本分支
+									// 的威胁模型前提）时，stopLogger已forceClose重开前的字段并释放
+									// 目录锁，重开的新五件套此后无人负责关闭（泄漏到进程结束）；重试
+									// 写残余批还会与新实例双写同日bin/pos。停机优先于落盘（FND4-68）：
+									// 关闭新句柄，经exitOnStop统一丢弃残余批退出。
+									if (!started) {
+										logger.error("writeLogThread exit on stopping during recover reopen: discard {} logs, completed={}/{}",
+											queueSize - completed, completed, queueSize);
+										forceClose(idFile);
+										forceClose(dtFile);
+										forceClose(tsFile);
+										forceClose(posFile);
+										forceClose(binFile);
+										exitOnStop = true;
+										break; // 退出内层while，经exitOnStop路径丢弃残余批并退出外层for(;;)
+									}
 								} catch (Throwable ex) { // logger.error
 									logger.error("reopen after write exception fail.", ex);
 								}
