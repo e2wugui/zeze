@@ -265,9 +265,18 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		for (var zeze : zezeProcedures.keySet()) {
 			var r = new Rollback();
 			r.Argument.setOnzTid(onzTid);
-			r.SendForWait(onzServer.getZezeInstance(zeze)).await();
-			if (r.getResultCode() != 0) {
-				logger.fatal("rollback error {}", IModule.getErrorCode(r.getResultCode()));
+			try {
+				r.SendForWait(onzServer.getZezeInstance(zeze)).await();
+				if (r.getResultCode() != 0) {
+					logger.fatal("rollback error {}", IModule.getErrorCode(r.getResultCode()));
+				}
+			} catch (Exception ex) { // FND7-68：逐参与方捕获（对齐commit()的FND4-86模式）。
+				// rollback()运行在OnzServer.perform的rc!=0路径或catch块内：异常外传会被
+				// perform的catch二次rollback从头重试，再抛则替换原始错误（业务rc丢失，最终
+				// 只报Procedure.Exception）；且第一个参与方失败即中断循环，后续参与方收不到
+				// Rollback，只能等参与方ready等待超时自愈（FND5-45）与redoTimer的老化回滚
+				// 兜底，不一致窗口被拉长。记fatal后继续，保证全部参与方都收到Rollback。
+				logger.fatal("rollback send/await fail. tid={}, zeze={}", onzTid, zeze, ex);
 			}
 		}
 
