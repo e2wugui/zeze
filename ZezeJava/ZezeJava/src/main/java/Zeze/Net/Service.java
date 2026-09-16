@@ -383,19 +383,49 @@ public class Service extends ReentrantLock {
 	 * 对于那些在 AsyncSocket.Dispose 时已经得到的 AsyncSocket 引用，
 	 * 使用时判断返回值：主要是 Send 返回 false。
 	 *
+	 * <p>
+	 * 默认实现（复审R3，FND7-S1③）：仍挂在本连接上的在飞Rpc上下文立即失败——此前no-op时
+	 * 等待方（SendForWait的future / Send(handle)的回调）只能干等Rpc超时（默认5s），被踢/断线
+	 * 的同步调用方平白挂满超时预算。future以 {@link RpcSocketDisposedException} 失败（可诊断，
+	 * 区别于超时），handle以 {@link Procedure#ErrorSendFail} 立即派发（对齐Rpc.onTimeout的
+	 * handle派发形态——上下文已移除，超时定时器不再触发，不派发回调方就永远等不到）。
+	 * <p>
+	 * 【与Connector.autoReconnect的交互】框架层没有任何"在飞Rpc随重连重发"的机制——重连只重建
+	 * socket（Connector.TryReconnect→start），重发是应用层行为：同实例重发会注册新上下文并移除
+	 * 旧条目（Rpc.Send），故全部在飞上下文立即失败不破坏任何重发语义（无法按"有无重发语义"区分，
+	 * 一律立即失败）。应答按请求到达的连接原路返回，跨连接迟到不可能；即使按sid迟到命中，
+	 * 上下文已移除只走到 {@link #onRpcLostContext} 告警。移除后复核sid（FND6-11同型守卫）：
+	 * 收集→移除的间隙实例可能被并发重发（字段已指向新sid），对失配实例失败会毒化新请求的future。
+	 *
 	 * @param so after socket closed. last callback.
 	 */
-	@SuppressWarnings("RedundantThrows")
-	public void OnSocketDisposed(@SuppressWarnings("unused") @NotNull AsyncSocket so) throws Exception {
-		// 一般实现：遍历RpcContexts，
-		/*
-		var ctxSends = GetRpcContextsToSender(so);
-		var ctxPending = RemoveRpcContexts(ctxSends.Keys);
-		foreach (var ctx in ctxRemoved)
-		{
-		    // process
+	public void OnSocketDisposed(@NotNull AsyncSocket so) throws Exception {
+		var ctxSends = getRpcContextsToSender(so);
+		if (ctxSends.isEmpty())
+			return;
+		for (var it = ctxSends.iterator(); it.moveToNext(); ) {
+			var sid = it.key();
+			var ctx = removeRpcContext(sid);
+			if (ctx == null)
+				continue; // 已被应答/超时消费
+			if (!(ctx instanceof Rpc<?, ?> rpc))
+				continue; // 当前addRpcContext只有Rpc，防御未来扩展
+			if (rpc.getSessionId() != sid)
+				continue; // FND6-11同型守卫：实例已被并发重发接管（新sid在途），不毒化
+			rpc.setResultCode(Procedure.ErrorSendFail);
+			var future = rpc.getFuture();
+			if (future != null)
+				future.setException(RpcSocketDisposedException.getInstance());
+			else {
+				//noinspection unchecked
+				var handle = (ProtocolHandle<Rpc<?, ?>>)(ProtocolHandle<?>)rpc.getResponseHandle();
+				if (handle != null) {
+					var factoryHandle = findProtocolFactoryHandle(ctx.getTypeId());
+					if (factoryHandle != null)
+						dispatchRpcResponse(rpc, handle, factoryHandle);
+				}
+			}
 		}
-		*/
 	}
 
 	public final @NotNull Collection<Protocol<?>> removeRpcContexts(@NotNull Collection<Long> sids) {
