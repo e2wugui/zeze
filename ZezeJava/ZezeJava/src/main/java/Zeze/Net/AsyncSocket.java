@@ -3,6 +3,7 @@ package Zeze.Net;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
@@ -33,7 +34,13 @@ public abstract class AsyncSocket {
 
 	protected Object userState;
 
-	private static final AtomicLong sessionIdGen = new AtomicLong(1);
+	// FND7-19：默认发号基址随机化。原基址1在每个JVM内都从1起号，Raft复制状态用sessionId判活时
+	// 跨JVM/leader代必然碰撞（ServiceManagerWithRaft.reconcileSessions用GetSocket(sessionId)
+	// 判死会话，两代都从1起号，早段号码几乎必撞）：死agent的会话行被现任leader上同号活连接
+	// 误判存活，幽灵服务地址持续分发。随机63位基址使跨JVM碰撞概率降到2^-63量级；进程内
+	// 仍由AtomicLong递增保证唯一。自定义发号（setSessionIdGenFunc）不受影响。
+	private static final AtomicLong sessionIdGen = new AtomicLong(
+			(System.nanoTime() ^ new SecureRandom().nextLong()) & Long.MAX_VALUE);
 	private static @NotNull LongSupplier sessionIdGenFunc = sessionIdGen::getAndIncrement;
 
 	static {
