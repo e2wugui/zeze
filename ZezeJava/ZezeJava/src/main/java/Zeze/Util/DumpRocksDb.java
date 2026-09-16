@@ -67,11 +67,23 @@ public final class DumpRocksDb {
 		var inputDbPath = args[0];
 		var columnFamilyName = argCount > 2 ? args[1] : null;
 		var outputTxtFile = argCount == 1 ? null : argCount == 2 ? args[1] : args[2];
+		// R2-U2：DBOptions/ColumnFamilyOptions（含compact1的CompactionOptions与listColumnFamilies的
+		// Options）都是rocksjava的native对象，必须close释放；各分支open返回的ColumnFamilyHandle
+		// 同样由调用方负责close（在db.close之前，与RocksDatabase.close的释放顺序一致）。
+		try (var cfOptions = new ColumnFamilyOptions();
+			 var dbOptions = new DBOptions()) {
+			run(inputDbPath, columnFamilyName, outputTxtFile, cfOptions, dbOptions);
+		}
+	}
+
+	private static void run(@NotNull String inputDbPath, @Nullable String columnFamilyName,
+							@Nullable String outputTxtFile,
+							@NotNull ColumnFamilyOptions cfOptions, @NotNull DBOptions dbOptions) throws Exception {
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-		var cfOptions = new ColumnFamilyOptions();
-		var dbOptions = new DBOptions();
-		for (var cf : RocksDB.listColumnFamilies(new Options(), inputDbPath))
-			columnFamilies.add(new ColumnFamilyDescriptor(cf, cfOptions));
+		try (var opt = new Options()) {
+			for (var cf : RocksDB.listColumnFamilies(opt, inputDbPath))
+				columnFamilies.add(new ColumnFamilyDescriptor(cf, cfOptions));
+		}
 		if (columnFamilies.isEmpty())
 			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(UTF_8), cfOptions));
 
@@ -81,22 +93,26 @@ public final class DumpRocksDb {
 			var levelSize = new long[8];
 			long totalCount = 0, totalSize = 0;
 			try (var rocksDb = RocksDB.openReadOnly(dbOptions, inputDbPath, columnFamilies, outHandles)) {
-				System.out.println("lvl fileName     size  seqNumMin  seqNumMax reads entry delete columnFamilyName");
-				System.out.println("-------------------------------------------------------------------------------");
-				var metaList = rocksDb.getLiveFilesMetaData();
-				metaList.sort(
-						Comparator.comparingInt(LiveFileMetaData::level).thenComparing(SstFileMetaData::fileName));
-				for (var meta : metaList) {
-					var fileName = stripLeadingSlash(meta.fileName());
-					System.out.format("%d %10s%9d %10d %10d %5d %5d %6d %s\n", meta.level(), fileName, meta.size(),
-							meta.smallestSeqno(), meta.largestSeqno(), meta.numReadsSampled(), meta.numEntries(),
-							meta.numDeletions(), new String(meta.columnFamilyName(), UTF_8));
-					levelCount[meta.level()]++;
-					levelSize[meta.level()] += meta.size();
-					totalCount++;
-					totalSize += meta.size();
+				try {
+					System.out.println("lvl fileName     size  seqNumMin  seqNumMax reads entry delete columnFamilyName");
+					System.out.println("-------------------------------------------------------------------------------");
+					var metaList = rocksDb.getLiveFilesMetaData();
+					metaList.sort(
+							Comparator.comparingInt(LiveFileMetaData::level).thenComparing(SstFileMetaData::fileName));
+					for (var meta : metaList) {
+						var fileName = stripLeadingSlash(meta.fileName());
+						System.out.format("%d %10s%9d %10d %10d %5d %5d %6d %s\n", meta.level(), fileName, meta.size(),
+								meta.smallestSeqno(), meta.largestSeqno(), meta.numReadsSampled(), meta.numEntries(),
+								meta.numDeletions(), new String(meta.columnFamilyName(), UTF_8));
+						levelCount[meta.level()]++;
+						levelSize[meta.level()] += meta.size();
+						totalCount++;
+						totalSize += meta.size();
+					}
+					System.out.println("-------------------------------------------------------------------------------");
+				} finally {
+					closeHandles(outHandles);
 				}
-				System.out.println("-------------------------------------------------------------------------------");
 			}
 			for (int i = 0; i < levelCount.length; i++) {
 				var n = levelCount[i];
@@ -112,13 +128,17 @@ public final class DumpRocksDb {
 			var t = System.currentTimeMillis();
 			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
 			try (var rocksDb = RocksDB.open(dbOptions, inputDbPath, columnFamilies, outHandles)) {
-				var selColName = columnFamilyName != null ? columnFamilyName.getBytes(UTF_8) : null;
-				for (int i = 0; i < columnFamilies.size(); i++) {
-					var cf = columnFamilies.get(i);
-					if (selColName != null && !Arrays.equals(selColName, cf.getName()))
-						continue;
-					System.err.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
-					rocksDb.compactRange(outHandles.get(i));
+				try {
+					var selColName = columnFamilyName != null ? columnFamilyName.getBytes(UTF_8) : null;
+					for (int i = 0; i < columnFamilies.size(); i++) {
+						var cf = columnFamilies.get(i);
+						if (selColName != null && !Arrays.equals(selColName, cf.getName()))
+							continue;
+						System.err.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
+						rocksDb.compactRange(outHandles.get(i));
+					}
+				} finally {
+					closeHandles(outHandles);
 				}
 			}
 			System.err.println("INFO: done! " + (System.currentTimeMillis() - t) + " ms");
@@ -133,23 +153,27 @@ public final class DumpRocksDb {
 				System.err.println("INFO: compact database from level-0 to level-1 in '" + inputDbPath + "'");
 			var t = System.currentTimeMillis();
 			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
-			try (var rocksDb = RocksDB.open(dbOptions, inputDbPath, columnFamilies, outHandles)) {
-				var cOptions = new CompactionOptions();
-				var fileList = new ArrayList<String>();
-				var selColName = columnFamilyName != null ? columnFamilyName.getBytes(UTF_8) : null;
-				for (int i = 0; i < columnFamilies.size(); i++) {
-					var cf = columnFamilies.get(i);
-					if (selColName != null && !Arrays.equals(selColName, cf.getName()))
-						continue;
-					for (var meta : rocksDb.getLiveFilesMetaData()) {
-						if (meta.level() == 0 && Arrays.equals(meta.columnFamilyName(), cf.getName()))
-							fileList.add(stripLeadingSlash(meta.fileName()));
+			try (var rocksDb = RocksDB.open(dbOptions, inputDbPath, columnFamilies, outHandles);
+				 var cOptions = new CompactionOptions()) {
+				try {
+					var fileList = new ArrayList<String>();
+					var selColName = columnFamilyName != null ? columnFamilyName.getBytes(UTF_8) : null;
+					for (int i = 0; i < columnFamilies.size(); i++) {
+						var cf = columnFamilies.get(i);
+						if (selColName != null && !Arrays.equals(selColName, cf.getName()))
+							continue;
+						for (var meta : rocksDb.getLiveFilesMetaData()) {
+							if (meta.level() == 0 && Arrays.equals(meta.columnFamilyName(), cf.getName()))
+								fileList.add(stripLeadingSlash(meta.fileName()));
+						}
+						if (!fileList.isEmpty()) {
+							System.err.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
+							rocksDb.compactFiles(cOptions, outHandles.get(i), fileList, 1, -1, null);
+							fileList.clear();
+						}
 					}
-					if (!fileList.isEmpty()) {
-						System.err.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
-						rocksDb.compactFiles(cOptions, outHandles.get(i), fileList, 1, -1, null);
-						fileList.clear();
-					}
+				} finally {
+					closeHandles(outHandles);
 				}
 			}
 			System.err.println("INFO: done! " + (System.currentTimeMillis() - t) + " ms");
@@ -159,12 +183,16 @@ public final class DumpRocksDb {
 		if (outputTxtFile == null) {
 			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
 			try (var ignored = RocksDB.openReadOnly(dbOptions, inputDbPath, columnFamilies, outHandles)) {
-				System.out.println("        ID columnFamilyName");
-				System.out.println("---------------------------");
-				for (var cfh : outHandles)
-					System.out.format("%10d %s\n", cfh.getID(), new String(cfh.getName(), UTF_8));
-				System.out.println("---------------------------");
-				System.out.format("total:%4d column families\n", outHandles.size());
+				try {
+					System.out.println("        ID columnFamilyName");
+					System.out.println("---------------------------");
+					for (var cfh : outHandles)
+						System.out.format("%10d %s\n", cfh.getID(), new String(cfh.getName(), UTF_8));
+					System.out.println("---------------------------");
+					System.out.format("total:%4d column families\n", outHandles.size());
+				} finally {
+					closeHandles(outHandles);
+				}
 			}
 			return;
 		}
@@ -205,21 +233,36 @@ public final class DumpRocksDb {
 			 var os = outputTxtFile.equals("-")
 					 ? System.out
 					 : new BufferedOutputStream(new FileOutputStream(outputTxtFile))) {
-			long n = 0;
-			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
-			var value = ByteBuffer.Wrap(ByteBuffer.Empty);
-			for (it.seekToFirst(); it.isValid(); it.next()) {
-				key.wraps(it.key());
-				value.wraps(it.value());
-				keyDumper.run(os, key);
-				os.write(':');
-				os.write(' ');
-				valueDumper.run(os, value);
-				os.write('\n');
-				n++;
+			try {
+				long n = 0;
+				var key = ByteBuffer.Wrap(ByteBuffer.Empty);
+				var value = ByteBuffer.Wrap(ByteBuffer.Empty);
+				for (it.seekToFirst(); it.isValid(); it.next()) {
+					key.wraps(it.key());
+					value.wraps(it.value());
+					keyDumper.run(os, key);
+					os.write(':');
+					os.write(' ');
+					valueDumper.run(os, value);
+					os.write('\n');
+					n++;
+				}
+				os.flush();
+				System.err.println("INFO: dumped " + n + " records, " + (System.currentTimeMillis() - t) + " ms");
+			} finally {
+				closeHandles(outHandles); // db/迭代器/流由twr按逆序关闭，句柄在其前显式关
 			}
-			os.flush();
-			System.err.println("INFO: dumped " + n + " records, " + (System.currentTimeMillis() - t) + " ms");
+		}
+	}
+
+	// R2-U2：open(...,outHandles)返回的ColumnFamilyHandle是调用方负责的native对象，
+	// 须在db.close之前逐个close（与RocksDatabase.close的destroy顺序一致）；容错吞二次异常。
+	private static void closeHandles(@NotNull Iterable<ColumnFamilyHandle> handles) {
+		for (var h : handles) {
+			try {
+				h.close();
+			} catch (Throwable ignored) {
+			}
 		}
 	}
 
