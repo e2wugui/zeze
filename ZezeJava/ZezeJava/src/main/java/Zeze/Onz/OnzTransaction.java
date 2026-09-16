@@ -168,6 +168,11 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		}
 		var futures = new ArrayList<TaskCompletionSource<?>>();
 		var rpcs = new ArrayList<FuncSagaEnd>();
+		// R3-C D①（M②）：记录每个步骤的rpc是否以异常收场（超时/发送失败）——只有这类步骤
+		// 才可能处于"FuncSagaEnd先于FuncSaga注册被处理"的乱序窗口（成功/业务失败步骤的
+		// FuncSaga已被参与方处理过，注册必然先于任何FuncSagaEnd），其eSagaNotFound需要重试。
+		var stepRpcFailed = new ArrayList<Boolean>();
+		var stepZeze = new ArrayList<String>();
 		for (var e : zezeSagas.entrySet()) {
 			try {
 				// FND7-34：失败/超时的步骤同样发送cancel——不再只补偿成功的步骤。
@@ -176,7 +181,8 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				// 步骤并报告整体失败——部分提交的静默分歧。超时步骤的上下文在参与方1h超时
 				// 清理（Onz.cleanupTimeoutSagas）前仍在，cancel能真正补偿；上下文不存在
 				// （业务失败已自清理、请求从未到达）则应答eSagaNotFound，可辨识忽略。
-				if (e.getValue().isCompletedExceptionally())
+				var rpcFailed = e.getValue().isCompletedExceptionally();
+				if (rpcFailed)
 					logger.warn("saga step failed (maybe timeout), send cancel anyway. tid={}, zeze={}",
 							onzTid, e.getKey());
 				var r = new FuncSagaEnd();
@@ -187,6 +193,8 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				// 等待沿用flushTimeout，不用默认5s过早放弃。
 				futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey()), flushTimeout));
 				rpcs.add(r);
+				stepRpcFailed.add(rpcFailed);
+				stepZeze.add(e.getKey());
 			} catch (Exception ex) {
 				logger.error("cancel saga.", ex);
 			}
@@ -199,14 +207,58 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				// 常量2比较恒不相等——NotFound落进 fatal 分支（假致命日志）且"可辨识忽略"
 				// 从未生效。先经 IModule.getErrorCode 解码再比较。
 				var code = IModule.getErrorCode(rpcs.get(i).getResultCode());
-				if (code == AbstractOnz.eSagaNotFound)
-					continue; // 步骤从未注册或已自清理：无补偿对象，可辨识忽略。
+				if (code == AbstractOnz.eSagaNotFound) {
+					// 步骤从未注册或已自清理：无补偿对象，可辨识忽略。但rpc层失败的步骤可能
+					// 是FuncSagaEnd先于FuncSaga注册被处理（R3-C D①乱序窗口）——单次延迟重试。
+					if (stepRpcFailed.get(i))
+						retryCancelNotFoundOnce(stepZeze.get(i));
+					continue;
+				}
 				if (code != 0) {
 					logger.fatal("cancel saga error {}", code);
 				}
 			} catch (Exception e) {
 				logger.error("await cancel result.", e);
 			}
+		}
+	}
+
+	/**
+	 * R3-C D①（M② 乱序窗口）：FuncSaga与FuncSagaEnd在参与方侧同为Normal派发（共享线程池，
+	 * 不保证同连接处理顺序，参见ThreadingServer.ProcessKeepAlive的Direct注解），理论上补偿
+	 * 请求可先于原请求被处理——参与方查无上下文应答eSagaNotFound，而上下文随后才注册并
+	 * 执行业务，该次补偿被静默吞掉且无人再发。窗口的现实前提是参与方派发线程在出队后停滞
+	 * 约rpc超时（flushTimeout）量级（池饥饿/长GC），重试延迟取同量级的flushTimeout：重发一次
+	 * cancel；仍eSagaNotFound即放弃（请求确实未到达或业务已自清理，无补偿对象）。正常完成
+	 * （成功/业务失败）的步骤不重试——它们的FuncSaga已被参与方应答过，注册必然先于
+	 * FuncSagaEnd，NotFound是终态。
+	 * <p>
+	 * 选型说明：不采用"FuncSaga上下文注册改Direct派发"——那需要把整个业务执行（含DB事务与
+	 * sendReadyAndWait）搬进IO线程或拆分生成处理器契约，爆炸半径远大于协调者侧一次延迟重发。
+	 * 也不新增"尚未注册"错误码——参与方无法区分"尚未注册"与"已清理"，且错误码常量在生成代码。
+	 */
+	private void retryCancelNotFoundOnce(@NotNull String zezeName) {
+		try {
+			//noinspection BusyWait
+			Thread.sleep(flushTimeout);
+		} catch (InterruptedException ie) {
+			Thread.currentThread().interrupt();
+			logger.error("cancel saga retry interrupted, give up. tid={}, zeze={}", onzTid, zezeName, ie);
+			return;
+		}
+		try {
+			var r = new FuncSagaEnd();
+			r.Argument.setOnzTid(onzTid);
+			r.Argument.setCancel(true);
+			r.SendForWait(onzServer.getZezeInstance(zezeName), flushTimeout).get();
+			var code = IModule.getErrorCode(r.getResultCode()); // 线上为moduleId组合值，解码后比较
+			if (code == AbstractOnz.eSagaNotFound)
+				logger.warn("cancel saga retry still not found, give up. tid={}, zeze={}", onzTid, zezeName);
+			else if (code != 0)
+				logger.fatal("cancel saga retry error {}", code);
+			// code==0：乱序窗口内迟到注册的步骤已得到补偿。
+		} catch (Exception ex) {
+			logger.error("cancel saga retry fail. tid={}, zeze={}", onzTid, zezeName, ex);
 		}
 	}
 
