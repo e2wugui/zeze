@@ -1167,6 +1167,14 @@ public class HttpExchange {
 	}
 
 	public void endStream() {
-		close(context.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT));
+		// 幂等（FND7-25）：终结符的字节写在close的detached CAS保护之外，二次endStream（Writer双重
+		// close等Closeable契约内合法场景，DbWeb的try/catch补收尾也是）会向keep-alive连接写出第二个
+		// chunked终结符（0\r\n\r\n），客户端把它当作下一响应的前缀垃圾，状态行解析失败且完全静默。
+		// 先CAS占位：已结束(2)直接返回；否则内联等价close(CLOSE_FINISH, cf)的cf非null路径
+		// （摘表→写终结符→写完closeInEventLoop），单次调用行为与原先完全一致。
+		if ((int)detachedHandle.getAndSet(this, 2) == 2)
+			return;
+		server.exchanges.remove(context.channel().id(), this);
+		context.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT).addListener(__ -> closeInEventLoop());
 	}
 }
