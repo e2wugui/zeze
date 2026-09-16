@@ -42,6 +42,10 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	public PMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
+		// FND6-41残留补：第三个keyClass构造器（DynamicBean值专用）同为Bean key入口，
+		// 提交当时漏网——keyClass仅传入createDynamicMapMeta的createCodec对Bean子类
+		// 正常成功，可无告警构建出Bean key哈希map（静默漏命中）。
+		checkBeanKey(keyClass);
 		meta = Meta2.createDynamicMapMeta(keyClass, get, create);
 	}
 
