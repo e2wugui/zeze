@@ -306,6 +306,17 @@ public final class TaskSpec<R> {
 	 * 周期任务无法携带返回值，ofFunc/ofProcedure/ofFunc0 的结果丢弃，日志与统计照常。
 	 * 事务内注册延迟到提交时才真正入池，无法返回句柄、注册后不可取消——常驻周期
 	 * 任务会随注册者存活整个进程期（需要取消请用 {@link #schedulePeriodNow}）。
+	 * <p>
+	 * 【R3复审决策记录：事务感知族不返回占位句柄代理（草案否决）】草案：runTxnAware 返回
+	 * 提交期占位 TimerFuture 代理，commit 回调内 setFuture，redo 重注册复用同一代理。否决理由：
+	 * ①{@link TimerFuture} 的 future 空窗目前外部不可观测（schedulePeriodCore 同步闭合后才
+	 * 发布），发布占位代理则 cancel/get/getDelay/isDone 在 setFuture 前调用会 NPE 或语义未定，
+	 * 需要在刚稳定的 cancel 锁契约（ABBA 调用约束）上再加固；②事务 rollback 无回调钩子
+	 * （runWhileCommit 只挂提交侧），回滚后占位句柄成僵尸（isCancelled 恒 false、isDone NPE），
+	 * 要成语义须扩展 Transaction 生命周期 API；③redo 时注册方过程整体重跑、TaskSpec 一次性
+	 * 消费，调用方句柄天然换代，"复用同一代理"无从锚定；④需要生命周期的场景已有
+	 * {@link #schedulePeriodNow}（返回句柄，FND7-36/41 的 close 生命周期修复即此形态），
+	 * 仓内 schedulePeriod 唯一调用方为 demo（Zezex App.start，刻意进程期常驻）。
 	 */
 	public void schedulePeriod(long delay, long period) {
 		consumeSchedulePeriod(period);
