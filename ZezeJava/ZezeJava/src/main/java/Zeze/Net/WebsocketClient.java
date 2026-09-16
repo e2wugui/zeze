@@ -70,6 +70,9 @@ public class WebsocketClient extends AsyncSocket {
 				}
 				webSocket.request(1);
 				WebsocketClient.this.webSocket = webSocket;
+				// FND7-63：HTTP升级即握手完成，连接已建立，纳入KeepAlive管理（对齐TcpSocket连接
+				// 成功时机）；addSocket前reset，checkKeepAlive不会观察到未管理的条目。
+				resetActiveSendRecvTime();
 				// FND4-35补连接成功钩子：url型Connector依赖Connector.OnSocketConnected置
 				// isConnected=true并回落重连退避，缺调则isConnected恒false、退避封顶后永不回落。
 				// 注意不能改调Service.OnSocketConnected：HandshakeClient/HandshakeBoth家族覆写
@@ -88,6 +91,7 @@ public class WebsocketClient extends AsyncSocket {
 
 			@Override
 			public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
+				setActiveRecvTime(); // FND7-63：维护活跃时间，checkKeepAlive才能回收静默死链
 				webSocket.request(1);
 				var n = data.remaining();
 				input.EnsureWrite(n);
@@ -181,6 +185,7 @@ public class WebsocketClient extends AsyncSocket {
 		var ws = webSocket;
 		if (ws == null) // 握手未完成或已关闭
 			return false;
+		setActiveSendTime(); // FND7-63：维护活跃时间（发送已被接受，直接发或按序入队）
 		var bb = ByteBuffer.wrap(bytes, offset, length);
 		synchronized (sendLock) {
 			if (sendChain.isDone()) {

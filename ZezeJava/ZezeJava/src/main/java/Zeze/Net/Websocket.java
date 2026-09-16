@@ -40,6 +40,7 @@ public class Websocket extends AsyncSocket {
 		this.x = x;
 		this.remote = x.channel().remoteAddress();
 		this.timeThrottle = TimeThrottle.create(getService().getSocketOptions());
+		resetActiveSendRecvTime(); // 升级完成连接已建立，纳入KeepAlive管理（对齐TcpSocket构造时机）
 	}
 
 	@Override
@@ -81,6 +82,7 @@ public class Websocket extends AsyncSocket {
 	}
 
 	void processInput(ByteBuf buf) throws Exception {
+		setActiveRecvTime(); // FND7-63：维护活跃时间，checkKeepAlive才能回收静默死链
 		int n = buf.readableBytes();
 		super.recvCount++;
 		super.recvSize += n;
@@ -106,6 +108,7 @@ public class Websocket extends AsyncSocket {
 		// 在EventLoop上调用时future同步完成,失败立即close并返回false,调用方(Protocol/Rpc.Send)
 		// 能感知发送失败;非EventLoop线程调用时future异步完成,挂listener失败同样close,
 		// 不再静默丢帧。close的closedHandle CAS保证OnSocketClose等清理恰好一次。
+		setActiveSendTime(); // FND7-63：维护活跃时间（发送已被接受进入发送管线）
 		var cf = x.sendWebSocket(bytes, offset, length);
 		if (cf.isDone()) {
 			var cause = cf.cause();

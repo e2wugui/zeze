@@ -916,7 +916,11 @@ public class Service extends ReentrantLock {
 		// 时间源越过2^31秒后使差值变大负数，超时判定恒false（静默死连接永不回收）。
 		long now = GlobalTimer.getCurrentSeconds();
 		foreach(socket -> {
-			if (socket instanceof TcpSocket) {
+			// FND7-63：覆盖判据从instanceof TcpSocket放宽为"活跃时间曾被更新"：
+			// Websocket/WebsocketClient建立时reset、收发路径更新，同样被回收/探测，
+			// 静默死链不再泄漏；从不更新活跃时间的连接类型（如未适配的自定义AsyncSocket）
+			// 保持豁免，避免activeRecvTime==0被当作超时立即误杀。
+			if (socket.getActiveRecvTime() > 0 || socket.getActiveSendTime() > 0) {
 				long recvTime = now - socket.getActiveRecvTime();
 				if (recvTime > keepRecvTimeout) {
 					try {
