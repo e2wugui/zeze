@@ -32,8 +32,12 @@ public class BloomFilter {
 	 * @param bitsPerKey 每个key的hash计算次数和设置/判断bit的次数. 这个次数可通过下面main方法测量出一个合适的值
 	 */
 	public BloomFilter(@NotNull BitArray bitArray, int bitsPerKey) {
-		this.bitArray = bitArray;
 		capacity = bitArray.getCapacity();
+		if (capacity <= 0)
+			// isPowerOfTwo(0)==true会让mask=-1，keyHash&mask传出全范围64位索引，
+			// 违反BitArray的index:[0,capacity)契约（FND7-69）。
+			throw new IllegalArgumentException("bitArray capacity must be positive: " + capacity);
+		this.bitArray = bitArray;
 		mask = isPowerOfTwo(capacity) ? capacity - 1 : 0;
 		this.bitsPerKey = bitsPerKey;
 	}
