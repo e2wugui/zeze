@@ -138,7 +138,21 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		_s_.append(Zeze.Util.Str.indent(_l_)).append('}');
 	}
 
+	// Bean行/列键显式拒绝（R3-T复审C2显式化）：工厂层已拦（Meta2.checkNonBeanKey），但报错深在
+	// getFactory内部且为"LogMap2/LogMap1 ..."家族名——GTable1的行键走createMap2Meta会误报
+	// "LogMap2"，不点名GTable也不指明行/列维度。Bean是值语义equals配身份hashCode，行/列任一
+	// Bean维度的哈希put/get/contains失真；schema合法键只有内建类型与BeanKey（Gen/Types/
+	// TypeGTable.cs要求IsKeyable，Types.Bean的IsKeyable=false）。前置报错点名维度。
+	private static void checkNonBeanDimension(@NotNull String dimension, @NotNull Class<?> keyClass) {
+		if (Bean.class.isAssignableFrom(keyClass))
+			throw new IllegalArgumentException(
+					"GTable1 does not support Bean " + dimension + " key type (equals-without-hashCode misbehaves in hash map), use BeanKey: "
+							+ keyClass.getName());
+	}
+
 	public GTable1(@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
+		checkNonBeanDimension("row", rowClass);
+		checkNonBeanDimension("column", colClass);
 		// Bean值不支持（FND7-83，PList1/PMap1拒绝Bean值判例同族）：GTable1为动态标量值
 		// 设计（bean值由GTable2的带valueClass路径承担），Json解析的fm2以klass=Object.class
 		// 构造，JsonReader.parseMap0的TYPE_CUSTOM分支按fm.klass建实例（fm.ctor从不使用）

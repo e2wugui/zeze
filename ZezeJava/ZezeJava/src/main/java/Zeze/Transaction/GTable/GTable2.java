@@ -138,7 +138,21 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		_s_.append(Zeze.Util.Str.indent(_l_)).append('}');
 	}
 
+	// Bean行/列键显式拒绝（R3-T复审C2显式化）：工厂层已拦（Meta2.checkNonBeanKey），但报错深在
+	// getFactory内部且文案是"LogMap2 ..."家族名——不点名GTable也不指明行/列维度。Bean是值语义
+	// equals配身份hashCode（可变bean不覆写hashCode防哈希漂移），行/列任一Bean维度的哈希
+	// put/get/contains失真；schema合法键只有内建类型与BeanKey（Gen/Types/TypeGTable.cs要求
+	// IsKeyable，Types.Bean的IsKeyable=false）。前置报错点名维度，工厂层拦截保留（防御纵深）。
+	private static void checkNonBeanDimension(@NotNull String dimension, @NotNull Class<?> keyClass) {
+		if (Bean.class.isAssignableFrom(keyClass))
+			throw new IllegalArgumentException(
+					"GTable2 does not support Bean " + dimension + " key type (equals-without-hashCode misbehaves in hash map), use BeanKey: "
+							+ keyClass.getName());
+	}
+
 	public GTable2(@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
+		checkNonBeanDimension("row", rowClass);
+		checkNonBeanDimension("column", colClass);
 		var factory = getFactory(rowClass, colClass, valClass);
 		this.pMap2 = new PMap2<>((Meta2<R, BeanMap2<C, V, VReadOnly>>)(Meta2<?, ?>)factory.pmapMeta);
 		super.backingMap = (Map<R, Map<C, V>>)(Map<?, ?>)pMap2;
