@@ -1691,16 +1691,23 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		void perform() {
 			if (!accounts.isEmpty()) {
 				try {
-					providerApp.zeze.newProcedure(() -> {
+					// FND5-43+FND6-23（对齐Game.VerifyBatch）：批内tryRemoveLocal的rc必须传播——
+					// 提交阶段失败（raft/cache-sync异常等）原先完全无日志且批次照样清空，
+					// 过期local/eLinkBroken残留静默延迟到下个localCheckPeriod才收敛。
+					// rc!=0记error（含批大小与rc），探测照发（失败账号由CheckLinkSession
+					// 应答路径继续驱动清理，行未删下轮verifyLocal会重新入选）。
+					var rc = providerApp.zeze.newProcedure(() -> {
 						for (var account : accounts) {
-							var rc = tryRemoveLocal(account);
-							if (rc != 0) {
-								logger.error("tryRemoveLocal fail. account={}, rc={}", account, rc);
-								return rc;
+							var rc2 = tryRemoveLocal(account);
+							if (rc2 != 0) {
+								logger.error("tryRemoveLocal fail. account={}, rc={}", account, rc2);
+								return rc2;
 							}
 						}
-						return 0;
+						return 0L;
 					}, "Online.verifyLocal").call();
+					if (rc != 0)
+						logger.error("verifyLocal batch failed: rc={}, accounts={}", rc, accounts);
 					sendAccountsDirect(accounts, CheckLinkSession.TypeId_, new Binary(new CheckLinkSession().encode()), true);
 				} catch (Exception e) {
 					logger.error("", e);
