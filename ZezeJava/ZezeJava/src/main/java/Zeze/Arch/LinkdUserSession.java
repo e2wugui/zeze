@@ -214,20 +214,12 @@ public class LinkdUserSession {
 	*/
 
 	public void onClose(LinkdProviderService linkdProviderService) {
-		if (!isAuthed()) {
-			// 未验证通过的不通告。此时Binds肯定是空的。仍置closed：公开API的异步两段式认证
-			// 形态下（setAuthed前choiceProvider），早退不置位会让closed门保持开启，之后的迟到
-			// bind继续登记（moduleId→linkSessionId无人再清理，provider侧条目泄漏）。
-			var writeLock = bindsLock.writeLock();
-			writeLock.lock();
-			try {
-				closed = true; // 对齐换出分支：closed均在bindsLock写锁内置位（见字段注释）
-			} finally {
-				writeLock.unlock();
-			}
-			return;
-		}
-
+		// 未验证通过的不通告（LinkBroken），但closed置位与换出清理对两种形态一致必要：
+		// 公开API异步两段式认证形态下（setAuthed前choiceProvider，见LinkdProvider.choiceProvider
+		// 的static bind路径），bind可先于auth登记、link在auth前关闭——只置closed拒迟到bind而
+		// 不换出，已登记条目的provider侧linkSessionIds无人再调removeLinkSession，泄漏到provider
+		// 关闭。Arch自身路径bind晚于auth，未auth时binds必空，换出为空操作，行为不变。
+		var authed = isAuthed();
 		IntHashMap<Long> bindsSwap;
 		var writeLock = bindsLock.writeLock();
 		writeLock.lock();
@@ -255,9 +247,10 @@ public class LinkdUserSession {
 				continue;
 			}
 			providerSession.removeLinkSession(it.key(), sessionId);
-			bindProviders.add(provider); // 先收集， 去重。
+			if (authed)
+				bindProviders.add(provider); // 先收集， 去重。
 		}
-		if (!bindProviders.isEmpty()) {
+		if (authed && !bindProviders.isEmpty()) {
 			var linkBroken = new LinkBroken(new BLinkBroken.Data(
 					account, sessionId, BLinkBroken.REASON_PEER_CLOSED, userState));
 			for (var provider : bindProviders)
