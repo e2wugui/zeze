@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +38,10 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable {
 			writeLock.lock();
 			try {
 				if ((r = read) == null)
-					read = r = Map.copyOf(write);
+					// HashMap 拷贝允许 null value（FND7-39，对齐 FewModifySortedMap 的 TreeMap 快照）：
+					// Map.copyOf 遇 null value/key 抛 NPE 且快照建不成（read 恒 null），此后任意读
+					// 方法重复抛 NPE，读侧永久瘫痪。unmodifiable 包装保持快照只读契约不弱化。
+					read = r = Collections.unmodifiableMap(new HashMap<>(write));
 			} finally {
 				writeLock.unlock();
 			}
