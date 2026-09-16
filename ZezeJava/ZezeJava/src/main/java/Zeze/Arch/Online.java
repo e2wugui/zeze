@@ -516,7 +516,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			return ret;
 		loginEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> loginEvents.triggerThread(providerApp.zeze, this, arg, account));
-		loginTimes.incrementAndGet();
+		// FND7-31：计数非幂等，裸递增在redo（锁冲突整体重跑）下一次登录多计一次，
+		// 虚增LoadBase的onlineNew负载上报（linkd按onlineNew>maxOnlineNew跳过分配）。
+		// 挂whileCommit仅最终提交执行一次，对齐同行事件触发写法。
+		Transaction.whileCommit(loginTimes::incrementAndGet);
 		return 0;
 	}
 
@@ -527,7 +530,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			return ret;
 		reloginEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> reloginEvents.triggerThread(providerApp.zeze, this, arg, account));
-		loginTimes.incrementAndGet();
+		// FND7-31：同loginTrigger，计数挂whileCommit防redo重复。
+		Transaction.whileCommit(loginTimes::incrementAndGet);
 		return 0;
 	}
 
