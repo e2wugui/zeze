@@ -1274,6 +1274,7 @@ public final class JsonReader {
 
 	public int parseInt() {
 		final byte[] buffer = buf;
+		final int startPos = pos;
 		double d = 0;
 		int p = pos, i = 0, n = 0, expFrac = 0, exp = 0, useDouble = 0, b, c;
 		boolean minus = false, expMinus = false;
@@ -1381,6 +1382,9 @@ public final class JsonReader {
 				d = i;
 		}
 		pos = p;
+		// FND6-05姊妹：非数字首字符原走else i=0静默返回0，与parseNumber零消费守卫对齐。
+		if (p == startPos)
+			throw new NumberFormatException("empty number");
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
@@ -1394,6 +1398,7 @@ public final class JsonReader {
 
 	public long parseLong() {
 		final byte[] buffer = buf;
+		final int startPos = pos;
 		double d = 0;
 		long i = 0;
 		int p = pos, n = 0, expFrac = 0, exp = 0, useDouble = 0, b, c;
@@ -1502,6 +1507,9 @@ public final class JsonReader {
 				d = i;
 		}
 		pos = p;
+		// FND6-05姊妹：非数字首字符原走else i=0静默返回0，与parseNumber零消费守卫对齐。
+		if (p == startPos)
+			throw new NumberFormatException("empty number");
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
@@ -1515,6 +1523,7 @@ public final class JsonReader {
 
 	public double parseDouble() {
 		final byte[] buffer = buf;
+		final int startPos = pos;
 		double d = 0;
 		long i = 0;
 		int p = pos, n = 0, expFrac = 0, exp = 0, useDouble = 0, b, c;
@@ -1627,6 +1636,9 @@ public final class JsonReader {
 				d = i;
 		}
 		pos = p;
+		// FND6-05姊妹：非数字首字符原走else i=0静默返回0.0，与parseNumber零消费守卫对齐。
+		if (p == startPos)
+			throw new NumberFormatException("empty number");
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
