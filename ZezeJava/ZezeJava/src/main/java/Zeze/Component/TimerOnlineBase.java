@@ -231,9 +231,9 @@ abstract class TimerOnlineBase<I> {
 		// remove online timer
 		var bTimer = getOnlineTimer(timerId); // table.remove现在不能返回旧值，只能这样写。
 		if (bTimer == null) {
-			// always cancel future task：记录不存在时future必是孤儿（fireOnline对bTimer==null
-			// 也会自愈cancelFuture），清理后返回失败。
-			Transaction.whileCommit(() -> timer().cancelFuture(timerId));
+			// FND7-29：查无本族记录不得投机cancelFuture——timerFutures三族共用同源timerId，
+			// 传入他族（如全局族）timerId会误杀其活future：记录在而future死，fireSimple尾部的
+			// 周期重装永不发生，停摆到进程重启。孤儿future由fireOnline自愈（bTimer==null分支）。
 			return false;
 		}
 

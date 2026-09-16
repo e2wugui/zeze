@@ -966,8 +966,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			cancel(serverId, timerId, nodeId, node, handle);
 			return true;
 		}
-		// 定时器数据已经不存在了,尝试移除future
-		Transaction.whileCommit(() -> cancelFuture(timerId));
+		// FND7-29：index==null不得投机cancelFuture——timerFutures三族（全局/在线/离线）共用
+		// 同源timerId，传入在线族timerId会误杀其活future：fireOnline不再执行，静默停摆到
+		// 用户下线清理。本族孤儿future由fireSimple自愈（index==null分支自行cancelFuture）。
 		return false;
 	}
 
