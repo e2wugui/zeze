@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.security.SecureRandom;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -22,6 +23,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class LoginQueueServer extends AbstractLoginQueueServer {
+    // FND7-20：令牌的防伪完全依赖secretKey/secretIv只有LoginQueue与linkd知晓。原用
+    // Zeze.Util.Random（ThreadLocalRandom，种子仅由时间源混合而来）生成，攻击者经过一次
+    // 排队登录取得密文样本后可离线穷举种子并伪造任意serverId/expireTime的令牌绕过排队
+    // 越权进入。必须用CSPRNG（对齐Zeze.Services.Token的做法）。
+    private static final SecureRandom secureRandom = new SecureRandom();
+
+    private static Binary nextSecretBinary() {
+        var bytes = new byte[16];
+        secureRandom.nextBytes(bytes);
+        return new Binary(bytes);
+    }
+
     private final ConcurrentHashMap<AsyncSocket, BServerLoad.Data> providers = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<AsyncSocket, BServerLoad.Data> links = new ConcurrentHashMap<>();
     private final LoginQueueService service;
@@ -37,8 +50,8 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         public LoginQueueService(Config config) {
             super("LoginQueueServer", config);
             this.secret = new BSecret.Data();
-            this.secret.setSecretKey(Random.nextBinary(16));
-            this.secret.setSecretIv(Random.nextBinary(16));
+            this.secret.setSecretKey(nextSecretBinary());
+            this.secret.setSecretIv(nextSecretBinary());
         }
 
         public BSecret.Data getSecret() {
@@ -187,8 +200,8 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
     public static void main(String [] args) throws Exception {
         var secret = new BSecret.Data();
-        secret.setSecretKey(Random.nextBinary(16));
-        secret.setSecretIv(Random.nextBinary(16));
+        secret.setSecretKey(nextSecretBinary());
+        secret.setSecretIv(nextSecretBinary());
 
         var provider = new BToken.Data();
         provider.setLinkServerId(-1);
