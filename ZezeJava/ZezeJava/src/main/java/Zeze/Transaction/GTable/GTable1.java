@@ -139,6 +139,15 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	}
 
 	public GTable1(@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
+		// Bean值不支持（FND7-83，PList1/PMap1拒绝Bean值判例同族）：GTable1为动态标量值
+		// 设计（bean值由GTable2的带valueClass路径承担），Json解析的fm2以klass=Object.class
+		// 构造，JsonReader.parseMap0的TYPE_CUSTOM分支按fm.klass建实例（fm.ctor从不使用）
+		// ——Bean值被静默解析成裸空Object。schema层bean值恒产GTable2（History.Helper.
+		// dependsGTable），仅手写可触发，显式失败优于静默数据错误。
+		if (Bean.class.isAssignableFrom(valClass))
+			throw new IllegalArgumentException(
+					"GTable1 does not support Bean value type (json parse yields bare empty Object), use GTable2: "
+							+ valClass.getName());
 		var factory = getFactory(rowClass, colClass, valClass);
 		this.pMap2 = new PMap2<>(factory.pmapMeta);
 		super.backingMap = (Map<R, Map<C, V>>)(Map<?, ?>)pMap2;
