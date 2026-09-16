@@ -305,6 +305,11 @@ public final class RaftConfig {
 			// 被定时器吞掉仅记日志——onTimer的Follower分支永不选举、followerOnAppendEntries的
 			// setLeaderActiveTime同抛致AppendEntries无应答，节点静默僵死只剩error日志。
 			throw new IllegalStateException("ElectionRandomMax < 1");
+		if (uniqueRequestExpiredDays < 1)
+			// FND6-09姊妹：isUniqueRequestCreateTimeValid对expiredDays<=0把所有请求判RaftExpired
+			// （0时(now-create)/86400_000>=0恒真，负数连未来时间也拒绝）——集群功能瘫痪但
+			// 无异常无日志（每请求确定性拒绝），同属「非法值静默失效」靶型。
+			throw new IllegalStateException("UniqueRequestExpiredDays < 1");
 		if (maxAppendEntriesCount < 100)
 			maxAppendEntriesCount = 100;
 	}

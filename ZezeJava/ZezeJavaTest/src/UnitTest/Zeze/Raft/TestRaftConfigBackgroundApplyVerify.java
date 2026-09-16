@@ -49,6 +49,19 @@ public class TestRaftConfigBackgroundApplyVerify {
 	}
 
 	@Test
+	public void testUniqueRequestExpiredDaysZeroAndNegativeRejected() {
+		Assertions.assertThrows(IllegalStateException.class,
+				() -> RaftConfig.loadFromString(xml(" UniqueRequestExpiredDays=\"0\"")).verify(),
+				"UniqueRequestExpiredDays=0 必须 fail-fast（0使全部请求判RaftExpired）");
+		Assertions.assertThrows(IllegalStateException.class,
+				() -> RaftConfig.loadFromString(xml(" UniqueRequestExpiredDays=\"-1\"")).verify(),
+				"UniqueRequestExpiredDays=-1 必须 fail-fast（负数连未来时间也拒绝）");
+		Assertions.assertDoesNotThrow(
+				() -> RaftConfig.loadFromString(xml(" UniqueRequestExpiredDays=\"30\"")).verify(),
+				"合法值必须通过");
+	}
+
+	@Test
 	public void testDefaultAndValidPass() {
 		Assertions.assertDoesNotThrow(() -> RaftConfig.loadFromString(xml("")).verify(),
 				"默认值（500）必须通过");
