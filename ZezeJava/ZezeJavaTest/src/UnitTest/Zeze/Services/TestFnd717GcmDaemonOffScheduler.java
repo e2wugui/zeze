@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
@@ -38,9 +39,10 @@ import harness.Fast;
  * lambda里（方法不存在，反射调用以NoSuchMethodException失败），同样是红。</li>
  * </ol>
  */
+@ResourceLock("GlobalCacheManagerServer.instance")
 @Fast
 public class TestFnd717GcmDaemonOffScheduler {
-	private static final int PORT = 19717; // @Fast固定端口独占
+	private static final int PORT = 19717; // @Fast固定端口独占（与TestFnd718经ResourceLock串行）
 	private static final int SERVER_ID_A = 9301;
 
 	private static RawClient clientA;

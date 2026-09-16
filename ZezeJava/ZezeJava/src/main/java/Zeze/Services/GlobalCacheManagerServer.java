@@ -82,6 +82,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	// FND7-17：在飞守护扫描标志。定时器tick只派发不内联执行扫描（见scheduleAchillesHeelDaemon），
 	// 本标志同时保证扫描不重入（对齐原scheduleWithFixedDelay的串行语义）。
 	private final AtomicBoolean achillesHeelRunning = new AtomicBoolean();
+	// FND7-18：守护关门标志。实例锁内先置位再cancel，tick在锁内复查后才派发——
+	// cancel(false)挡不住已启动的tick，保证置位后不再产生新扫描。start()重启时复位。
+	private volatile boolean achillesHeelShutdown;
 	private GlobalCacheManagerPerf perf;
 
 	public static final class GCMConfig implements Config.ICustomize {
@@ -170,6 +173,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing,
 					this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
 			achillesHeelTimer = TaskSpec.ofAction(this::scheduleAchillesHeelDaemon).schedulePeriodNow(5000, 5000);
+			achillesHeelShutdown = false; // FND7-18：stop后restart支持
 		} finally {
 			unlock();
 		}
@@ -183,23 +187,32 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	 * defaultTimeout看门狗兜底、disableInterrupt调试形态下永久冻结；多线程池形态下也把
 	 * 全部定时语义（Rpc超时、KeepAlive）拖慢一个死会话的时长。tick只做派发，扫描体搬入
 	 * 默认worker池执行（executeCore同样携带defaultTimeout看门狗与异常日志）。
+	 * FND7-18：派发决策持实例锁与stop()第一段互斥——cancel(false)挡不住已启动的tick，
+	 * tick在锁内复查关门标志，保证stop置位后不再产生新扫描；锁内仅CAS+入队，不执行扫描。
 	 */
 	private void scheduleAchillesHeelDaemon() {
-		if (!achillesHeelRunning.compareAndSet(false, true))
-			return; // 上一轮扫描仍在执行，跳过本轮
-		var submitted = false;
+		lock();
 		try {
-			TaskSpec.ofAction(() -> {
-				try {
-					achillesHeelDaemon();
-				} finally {
-					achillesHeelRunning.set(false); // 扫描结束才放行下一轮
-				}
-			}).name("GlobalCacheManager.AchillesHeelDaemon").runNow();
-			submitted = true;
+			if (achillesHeelShutdown)
+				return; // stop()已关门：不再派发新扫描
+			if (!achillesHeelRunning.compareAndSet(false, true))
+				return; // 上一轮扫描仍在执行，跳过本轮
+			var submitted = false;
+			try {
+				TaskSpec.ofAction(() -> {
+					try {
+						achillesHeelDaemon();
+					} finally {
+						achillesHeelRunning.set(false); // 扫描结束才放行下一轮
+					}
+				}).name("GlobalCacheManager.AchillesHeelDaemon").runNow();
+				submitted = true;
+			} finally {
+				if (!submitted)
+					achillesHeelRunning.set(false); // 派发失败（池未初始化等）：复位标志，避免守护永久停摆
+			}
 		} finally {
-			if (!submitted)
-				achillesHeelRunning.set(false); // 派发失败（池未初始化等）：复位标志，避免守护永久停摆
+			unlock();
 		}
 	}
 
@@ -247,10 +260,22 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			// 先停使用者再拆被使用者（对齐Raft版顺序，FND4-53）：daemon经CacheHolder.kick访问
 			// instance.server.GetSocket，原顺序先置server=null后cancel定时器——停机窗口内daemon
 			// 踩到null NPE（持session锁的该轮forEach中止，剩余session不再检查）。
+			achillesHeelShutdown = true; // FND7-18：锁内置位后cancel，tick锁内复查保证不再产生新扫描
 			if (achillesHeelTimer != null) {
 				achillesHeelTimer.cancel(false);
 				achillesHeelTimer = null;
 			}
+		} finally {
+			unlock();
+		}
+		// FND7-18：cancel(false)只阻止后续触发，不join正在执行的扫描——不等待就在飞扫描的
+		// kick踩到已置null的server（NPE中断本轮检查）。不持锁等待：扫描体不拿实例锁，
+		// 持锁等会把随后到来的tick阻塞在调度池线程上。
+		awaitAchillesHeelIdle();
+		lock();
+		try {
+			if (server == null)
+				return; // 并发stop已完成拆除
 			serverSocket.close();
 			serverSocket = null;
 			server.stop();
@@ -259,6 +284,28 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				perf.close();
 		} finally {
 			unlock();
+		}
+	}
+
+	/*
+	 * FND7-18：等待在飞守护扫描结束。扫描有defaultTimeout看门狗兜底（超时中断），等待
+	 * 预算覆盖最坏一轮；等不满仅告警继续停机（kick的判空已保证此时无NPE，最多一轮
+	 * 检查提前中止）。
+	 */
+	private void awaitAchillesHeelIdle() {
+		var deadline = System.currentTimeMillis() + Task.defaultTimeout + 5_000;
+		while (achillesHeelRunning.get()) {
+			if (System.currentTimeMillis() >= deadline) {
+				logger.warn("AchillesHeelDaemon still running, skip waiting before stop");
+				return;
+			}
+			try {
+				//noinspection BusyWait
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
 		}
 	}
 
@@ -958,7 +1005,10 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 
 		// not under lock
 		void kick() {
-			var peer = instance.server.GetSocket(sessionId);
+			// FND7-18：stop()等待在飞扫描有超时预算，超预算继续拆依赖后晚到的扫描会读到
+			// null的server——缓存引用判空跳过kick，不NPE中断本轮forEach的其余会话检查。
+			var srv = instance.server;
+			var peer = srv != null ? srv.GetSocket(sessionId) : null;
 			if (null != peer) {
 				peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
 				peer.close(kickException); // 关闭连接，强制Agent重新登录。
