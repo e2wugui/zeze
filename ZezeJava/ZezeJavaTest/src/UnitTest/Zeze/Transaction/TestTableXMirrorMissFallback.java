@@ -172,6 +172,14 @@ public class TestTableXMirrorMissFallback {
 			} finally {
 				field.set(app, realMirror); // 恢复真库，stopApp走正常关闭路径
 			}
+
+			// 恢复访问（"下一次再进来"）：作废的记录由新Record1经慢路径重装载（storage读+镜像
+			// 回写成功）。作废本身由上面的getCacheSize==0证明——若记录以Share存活于dataMap，
+			// 此处size应为1且走快路径；实际走的是新记录的完整装载。
+			var out = new long[1];
+			Assertions.assertEquals(Procedure.Success, get(KEY_EXISTENT, out), "镜像恢复后必须可正常装载");
+			Assertions.assertEquals(300, out[0]);
+			Assertions.assertEquals(1, table.getCacheSize(), "恢复装载的记录应驻留缓存");
 		} finally {
 			brokenMirror.close(); // 释放临时库句柄（须在TempDir清理前）
 			stopApp();
@@ -210,6 +218,12 @@ public class TestTableXMirrorMissFallback {
 			} finally {
 				field.set(app, realMirror);
 			}
+
+			// 恢复访问（"下一次再进来"）：作废记录由新Record1经倒库分支（oldTable命中+真库
+			// 镜像回写）正常重装载；作废由上面getCacheSize==0证明（Share存活则size为1走快路径）。
+			Assertions.assertEquals(Procedure.Success, get(KEY_OLD, out), "镜像恢复后倒库装载必须正常");
+			Assertions.assertEquals(100, out[0]);
+			Assertions.assertEquals(1, table.getCacheSize(), "恢复装载的记录应驻留缓存");
 		} finally {
 			brokenMirror.close();
 			stopApp();
