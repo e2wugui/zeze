@@ -18,7 +18,13 @@ public class LogOne<V extends Bean> extends LogBean {
 	@SuppressWarnings("unchecked")
 	public LogOne(Bean belong, int varId, Bean self, @NotNull V value) {
 		super(belong, varId, self);
-		meta = Meta1.getLogOneMeta((Class<V>)value.getClass()); // 事务本来使用不需要动态创建，但是getTypeId需要。
+		// 声明类优先（FND7-80）：原先按value.getClass()（运行时类）建meta，CollOne装入声明
+		// 类型的子类实例时typeId=hash(LogOne<子类>)，而读端工厂按声明类注册（History.Helper
+		// .dependsBean→registerLogOne），follower Log.create抛UnsupportedOperationException，
+		// 复制中断。宿主CollOne携带声明类时用它（createLogBean/beginSavepoint均经self传递）；
+		// 未提供时退回运行时类，精确类型typeId不变。
+		var declared = self instanceof CollOne<?> collOne ? collOne.valueClass : null;
+		meta = Meta1.getLogOneMeta((Class<V>)(declared != null ? declared : value.getClass()));
 		this.value = value;
 	}
 

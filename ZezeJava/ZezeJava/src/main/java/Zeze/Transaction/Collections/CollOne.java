@@ -15,9 +15,14 @@ import org.jetbrains.annotations.Nullable;
 
 public final class CollOne<V extends Bean> extends Collection {
 	@NotNull V value;
+	// 声明类型（FND7-80）：LogOne建meta优先用它（读端工厂按声明类注册，
+	// History.Helper.dependsBean→registerLogOne）；未提供（手写null）时为null，
+	// LogOne退回运行时类，与历史行为一致。
+	final @Nullable Class<V> valueClass;
 
 	public CollOne(@NotNull V value, @Nullable Class<V> valueClass) {
 		this.value = value;
+		this.valueClass = valueClass;
 	}
 
 	public @NotNull V getValue() {
@@ -109,7 +114,7 @@ public final class CollOne<V extends Bean> extends Collection {
 	@SuppressWarnings("unchecked")
 	@Override
 	public @NotNull CollOne<V> copy() {
-		return new CollOne<>((V)getValue().copy(), null);
+		return new CollOne<>((V)getValue().copy(), valueClass); // 声明类型随副本传递（FND7-80）
 	}
 
 	@Override
