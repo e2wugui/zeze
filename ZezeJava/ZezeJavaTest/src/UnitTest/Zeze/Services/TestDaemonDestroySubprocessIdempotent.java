@@ -4,6 +4,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
@@ -21,6 +25,21 @@ public class TestDaemonDestroySubprocessIdempotent {
 	/** 只需要pid与destroy被用到；destroySubprocess不触碰流与waitFor。 */
 	private static class FakeProcess extends Process {
 		int destroyCount;
+		int destroyForciblyCount;
+		boolean waitForTimedOut;
+
+		FakeProcess() {
+		}
+
+		FakeProcess(boolean waitForTimedOut) {
+			this.waitForTimedOut = waitForTimedOut;
+		}
+
+		@Override
+		public Process destroyForcibly() {
+			destroyForciblyCount++;
+			return this;
+		}
 
 		@Override
 		public long pid() {
@@ -44,7 +63,7 @@ public class TestDaemonDestroySubprocessIdempotent {
 
 		@Override
 		public boolean waitFor(long timeout, TimeUnit unit) {
-			return true;
+			return !waitForTimedOut;
 		}
 
 		@Override
@@ -87,5 +106,55 @@ public class TestDaemonDestroySubprocessIdempotent {
 			Files.deleteIfExists(jstackFile); // jstack存在的环境下第一次调用可能写出诊断文件
 		}
 		assertEquals(1, fake.destroyCount); // 恰好销毁一次
+	}
+
+	@Test
+	public void testReapDiagnosticForciblyOnTimeout() throws Exception {
+		// FND6-31补：诊断子进程收尾finally化——waitFor超时/中断必须强杀，防jstack孤儿。
+		Method reap = Daemon.class.getDeclaredMethod("reapDiagnosticProcess", Process.class);
+		reap.setAccessible(true);
+
+		var timedOut = new FakeProcess(true); // waitFor(30s)返回false=超时
+		reap.invoke(null, timedOut);
+		assertEquals(1, timedOut.destroyForciblyCount, "超时必须destroyForcibly收尸");
+
+		var normal = new FakeProcess(); // waitFor返回true=正常退出
+		reap.invoke(null, normal);
+		assertEquals(0, normal.destroyForciblyCount, "正常退出不强杀");
+	}
+
+	@Test
+	public void testJstackOverwritesPreexistingFileOnPidReuse() throws Exception {
+		// FND6-31原始场景行为级钉桩：pid复用时目标jstack文件已存在，copy必须覆盖写入
+		// 保留最新现场（无REPLACE_EXISTING时FileAlreadyExistsException跳到外层catch，
+		// 文件保留旧内容、收尾不执行）。
+		Assumptions.assumeTrue(jstackAvailable(), "环境无jstack，跳过");
+
+		var fake = new FakeProcess();
+		Field field = Daemon.class.getDeclaredField("subprocess");
+		field.setAccessible(true);
+		Method method = Daemon.class.getDeclaredMethod("destroySubprocess");
+		method.setAccessible(true);
+		var jstackFile = Path.of("jstack." + FAKE_PID);
+		try {
+			Files.writeString(jstackFile, "OLD");
+			field.set(null, fake);
+			method.invoke(null);
+			var content = Files.readString(jstackFile);
+			Assertions.assertNotEquals("OLD", content, "pid复用时必须覆盖旧现场文件");
+		} finally {
+			field.set(null, null);
+			Files.deleteIfExists(jstackFile);
+		}
+		assertEquals(1, fake.destroyCount);
+	}
+
+	private static boolean jstackAvailable() {
+		try {
+			new ProcessBuilder("jstack").start().destroyForcibly();
+			return true;
+		} catch (IOException e) {
+			return false;
+		}
 	}
 }

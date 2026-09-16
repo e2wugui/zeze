@@ -267,14 +267,28 @@ public class Daemon {
 				// copy抛FileAlreadyExistsException直接跳到外层catch——waitFor/destroyForcibly不执行
 				// （jstack孤儿），本次死锁现场丢失。覆盖旧文件保留最新现场。
 				Files.copy(input, Path.of("jstack." + pid), StandardCopyOption.REPLACE_EXISTING);
+			} finally {
+				// FND6-31补：收尾必须在finally——copy抛其他IOException（磁盘满/权限/目标是目录）
+				// 时原实现同样跳到外层catch，waitFor/destroyForcibly不执行（jstack孤儿）；管道
+				// 缓冲填满后jstack阻塞在写上成为长存孤儿进程。
+				reapDiagnosticProcess(process);
 			}
-			if (!process.waitFor(30, TimeUnit.SECONDS))
-				process.destroyForcibly();
 		} catch (Exception ex) {
 			logger.error("", ex);
 		}
 		p.destroy();
 		joinMonitors();
+	}
+
+	/** 限时等待诊断子进程退出，超时或中断强杀收尸（防jstack孤儿；中断不吞根因异常）。 */
+	private static void reapDiagnosticProcess(Process process) {
+		try {
+			if (!process.waitFor(30, TimeUnit.SECONDS))
+				process.destroyForcibly();
+		} catch (InterruptedException e) {
+			process.destroyForcibly();
+			Thread.currentThread().interrupt();
+		}
 	}
 
 	private static final class PendingPacket {
