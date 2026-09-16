@@ -167,12 +167,18 @@ public class DatabaseTikv extends Database {
 				// 失败重读诊断（fresh TSO）：版本已变=并发 CAS 输家（含 primary 已提交、secondary
 				// 应答丢失的半成情形），返回 false 由上层环路重读收敛；版本未变=瞬态/未知错误，
 				// 维持抛出不吞真实故障。不按异常类型区分：2PC 冲突异常的包归属跨客户端版本不稳。
-				var current = txnClient.get(keyBs, session.getTimestamp().getVersion());
-				var curDv = new DataWithVersion();
-				if (current != null && !current.isEmpty()) {
-					curDv.decode(ByteBuffer.Wrap(current.toByteArray()));
-					if (curDv.version != version)
-						return KV.create(version, false);
+				// FND7-77：诊断重读自身失败（TiKV持续不可达）不得替换原始提交异常——排障时
+				// 看到的必须是真正的提交错误；suppress后照常抛原始异常。
+				try {
+					var current = txnClient.get(keyBs, session.getTimestamp().getVersion());
+					var curDv = new DataWithVersion();
+					if (current != null && !current.isEmpty()) {
+						curDv.decode(ByteBuffer.Wrap(current.toByteArray()));
+						if (curDv.version != version)
+							return KV.create(version, false);
+					}
+				} catch (Exception diag) {
+					e.addSuppressed(diag);
 				}
 				throw Task.forceThrow(e);
 			}
