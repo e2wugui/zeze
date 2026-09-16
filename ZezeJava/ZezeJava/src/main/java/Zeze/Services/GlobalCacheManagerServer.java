@@ -357,6 +357,12 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		return 0;
 	}
 
+	/*
+	 * 客户端契约：必须在收到本Login的成功应答之后才允许发送Acquire/Release。
+	 * 应答发出前到达的乐观Acquire（Acquire走Normal池，可与本Critical池的Login并发派发）
+	 * 会被下方"先快照再逐个释放"的旧权限回收错误回收——框架随附GlobalClient保证此顺序
+	 * （仅在Login成功回调后发Acquire），自定义客户端必须遵守同样约束。
+	 */
 	private long processLogin(Login rpc) throws Exception {
 		logger.info("ProcessLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
