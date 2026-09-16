@@ -791,6 +791,27 @@ public class Test {
 			return raftName;
 		}
 
+		// 【FND7-13】清理一个节点的Raft日志数据，用于故障注入（逼leader对该节点走
+		// InstallSnapshot）。Raft日志/状态已从<DbHome>/logs、<DbHome>/rafts独立目录迁入
+		// <DbHome>/db共享库的列族（LogSequence构造：raft.getName()+".logs"/".rafts"），
+		// 旧版目录已不存在，deletedDirectoryAndCheck静默通过等于没清理——节点带着旧日志/
+		// 旧term重启，InstallSnapshot场景静默失效。按列族精确删除，保留unique存根列族
+		//（重复请求检测）与statemachine状态机目录。须在raft停止（db已关）后调用。
+		static void resetLogData(String dbHome, String raftName) throws Exception {
+			// 只删除日志相关数据。保留重复请求数据。
+			LogSequence.deletedDirectoryAndCheck(new File(dbHome, "snapshot.dat"));
+			var dbDir = new File(dbHome, "db");
+			if (dbDir.isDirectory()) {
+				try (var db = new RocksDatabase(dbDir.getPath())) {
+					db.dropTable(raftName + ".logs");
+					db.dropTable(raftName + ".rafts");
+				}
+			}
+			// 旧版独立目录布局的升级残留（现行布局下不存在，no-op）。
+			LogSequence.deletedDirectoryAndCheck(new File(dbHome, "logs"));
+			LogSequence.deletedDirectoryAndCheck(new File(dbHome, "rafts"));
+		}
+
 		public void restartNet() throws Exception {
 			logger.debug("Raft.Net {} Restart ...", raftName);
 			try {
@@ -853,10 +874,7 @@ public class Test {
 							------------------------------------------------
 							- Reset Log {} -
 							------------------------------------------------""", raftConfig.getDbHome());
-					// 只删除日志相关数据库。保留重复请求数据库。
-					LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "logs"));
-					LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "rafts"));
-					LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "snapshot.dat"));
+					resetLogData(raftConfig.getDbHome(), raftName);
 				}
 				Files.createDirectories(Paths.get(raftConfig.getDbHome()));
 
