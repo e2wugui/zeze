@@ -48,6 +48,7 @@ import Zeze.Transaction.ProtocolProcedure;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.Action0;
 import Zeze.Util.DeadlockBreaker;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
@@ -815,12 +816,12 @@ public final class Application extends ReentrantLock {
 				checkpointFuture = null;
 			}
 			if (onz != null) {
-				onz.stop();
+				stopStep("onz.stop", onz::stop);
 				onz = null;
 			}
 
 			if (deadlockBreaker != null) {
-				deadlockBreaker.shutdown();
+				stopStep("deadlockBreaker.shutdown", deadlockBreaker::shutdown);
 				deadlockBreaker = null;
 			}
 
@@ -828,10 +829,10 @@ public final class Application extends ReentrantLock {
 			logger.info("Stop ServerId={}", conf.getServerId());
 
 			if (takeover != null) // 早期释放：正常关闭刷新租约宽限期，一个TTL后可被接管（缩容；数据库尚未关闭）。
-				takeover.release();
+				stopStep("takeover.release", takeover::release);
 
 			if (achillesHeelDaemon != null) {
-				achillesHeelDaemon.stopAndJoin();
+				stopStep("achillesHeelDaemon.stopAndJoin", achillesHeelDaemon::stopAndJoin);
 				achillesHeelDaemon = null;
 			}
 
@@ -841,25 +842,26 @@ public final class Application extends ReentrantLock {
 			// Transaction.perform/RelativeRecordSet.tryUpdateAndCheckpoint的停机拒绝转为
 			// Closed显式失败，不再静默丢弃（假成功）。
 			if (delayRemove != null) {
-				delayRemove.stop();
+				stopStep("delayRemove.stop", delayRemove::stop);
 				delayRemove = null;
 			}
 
 			if (safeBatch != null) {
-				safeBatch.stop();
+				stopStep("safeBatch.stop", safeBatch::stop);
 				safeBatch = null;
 			}
 			if (timer != null) {
-				timer.stop();
+				stopStep("timer.stop", timer::stop);
 				timer = null;
 			}
 
 			if (globalAgent != null) {
-				globalAgent.close();
+				stopStep("globalAgent.close", globalAgent::close);
 				globalAgent = null;
 			}
 			if (flushWhenReduceTimerTask != null) {
-				flushWhenReduceTimerTask.cancel(false);
+				var task = flushWhenReduceTimerTask;
+				stopStep("flushWhenReduceTimerTask.cancel", () -> task.cancel(false));
 				flushWhenReduceTimerTask = null;
 			}
 
@@ -868,49 +870,71 @@ public final class Application extends ReentrantLock {
 				// 终检点（join内的final flush）只负责此前已注册的脏集。
 				var cp = checkpoint;
 				checkpoint = null;
-				cp.stopAndJoin();
+				stopStep("checkpoint.stopAndJoin", cp::stopAndJoin);
 			}
 
 			if (LocalRocksCacheDb != null) {
-				var dir = LocalRocksCacheDb.getDatabaseUrl();
-				LocalRocksCacheDb.close();
-				deleteDirectory(new File(dir));
+				var rocksCacheDb = LocalRocksCacheDb;
+				var dir = rocksCacheDb.getDatabaseUrl();
+				stopStep("LocalRocksCacheDb.close", () -> {
+					rocksCacheDb.close();
+					deleteDirectory(new File(dir));
+				});
 				LocalRocksCacheDb = null;
 			}
 
 			if (serviceManager != null)
-				serviceManager.close();
+				stopStep("serviceManager.close", serviceManager::close);
 
 			if (queueModule != null) {
-				queueModule.UnRegisterZezeTables(this);
+				var qm = queueModule;
+				stopStep("queueModule.UnRegisterZezeTables", () -> qm.UnRegisterZezeTables(this));
 				queueModule = null;
 			}
 			if (historyModule != null) {
-				historyModule.UnRegisterZezeTables(this);
+				var hm = historyModule;
+				stopStep("historyModule.UnRegisterZezeTables", () -> hm.UnRegisterZezeTables(this));
 				historyModule = null;
 			}
 			if (autoKey != null) {
-				autoKey.UnRegister();
+				stopStep("autoKey.UnRegister", autoKey::UnRegister);
 				autoKey = null;
 				transactionIdAutoKey = null;
 			}
 			if (takeover != null) {
-				takeover.UnRegisterZezeTables(this);
+				var tk = takeover;
+				stopStep("takeover.UnRegisterZezeTables", () -> tk.UnRegisterZezeTables(this));
 				takeover = null;
 			}
 			if (!isNoDatabase())
-				conf.clearInUseAndIAmSureAppStopped(this, databases);
+				stopStep("clearInUseAndIAmSureAppStopped",
+						() -> conf.clearInUseAndIAmSureAppStopped(this, databases));
 
-			for (var db : databases.values())
-				db.close();
+			for (var e : databases.entrySet())
+				stopStep("db.close '" + e.getKey() + '\'', e.getValue()::close);
 
 			if (dbh2AgentManager != null) {
-				dbh2AgentManager.stop();
+				stopStep("dbh2AgentManager.stop", dbh2AgentManager::stop);
 				dbh2AgentManager = null;
 			}
 			startState = StartState.eStopped;
 		} finally {
 			unlock();
+		}
+	}
+
+	// FND7-56：停机步骤异常隔离——任一拆卸步骤抛出（Service.stop关连接的IO异常、
+	// stopAndJoin的join中断forceThrow等）只记日志继续，不得跳过其后步骤
+	// （db.close/clearInUse/各UnRegister），保证终态必达eStopped
+	// （对齐GlobalAgent.stop的per-agent兜底与FND-A1-10意图）。
+	private void stopStep(@NotNull String name, @NotNull Action0 action) {
+		try {
+			action.run();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt(); // 恢复中断标志，继续拆卸其余步骤
+			logger.error("stop step '{}' interrupted, continue", name, e);
+		} catch (Throwable e) { // logger.error
+			logger.error("stop step '{}' exception, continue", name, e);
 		}
 	}
 
