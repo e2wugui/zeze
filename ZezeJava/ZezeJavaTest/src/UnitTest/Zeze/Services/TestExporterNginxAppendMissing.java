@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Services;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -10,6 +11,7 @@ import Zeze.Services.ServiceManager.ExporterConfig;
 import Zeze.Services.ServiceManager.ExporterNginxConfig;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -147,6 +149,33 @@ public class TestExporterNginxAppendMissing {
 		Assertions.assertEquals(1, countOccurrences(out, "upstream svc {"), "BOM首行块不得重复追加");
 		Assertions.assertTrue(out.contains("2.2.2.2:2"), "新地址写入");
 		Assertions.assertFalse(out.contains("1.1.1.1:1"), "旧地址重写掉");
+	}
+
+	@Test
+	public void testReloadCommandWithArgsCompletes() throws Exception {
+		// FND6-30补钉桩：reload命令带参数（如"nginx -s reload"形态）。ProcessBuilder不像
+		// Runtime.exec(String)按空白切分——漏split会把整串当可执行名，命令必然start失败。
+		// 用"java -version"（带参、往stderr写输出）钉住：切分正确则正常完成不挂起，
+		// 输出经DISCARD丢弃不填管道。java不在PATH的环境跳过。
+		try {
+			new ProcessBuilder("java", "-version").start().destroyForcibly();
+		} catch (IOException e) {
+			Assumptions.assumeTrue(false, "环境无java命令，跳过");
+		}
+
+		var dir = Files.createTempDirectory("nginx_export_fnd6_30f");
+		var cfgFile = dir.resolve("nginx.conf");
+		Files.writeString(cfgFile, "");
+		var share = new Properties();
+		share.setProperty("-file", cfgFile.toString());
+		share.setProperty("-version", "0");
+		share.setProperty("-reload", "java -version");
+		var exporter = new ExporterNginxConfig(new ExporterConfig(share, null));
+
+		var all = new BServiceInfosVersion();
+		all.getOrAddInfos(0).insert(new BServiceInfo("svc", "1", 0, "1.1.1.1", 1));
+		exporter.exportAll("svc", all); // 内含reload：必须正常返回（不抛、不挂起）
+		Assertions.assertTrue(Files.readString(cfgFile).contains("1.1.1.1:1"), "reload异常不得阻断导出");
 	}
 
 	private static int countOccurrences(String s, String sub) {

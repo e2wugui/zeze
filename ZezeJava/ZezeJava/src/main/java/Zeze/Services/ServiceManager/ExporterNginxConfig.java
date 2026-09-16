@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
 
 public class ExporterNginxConfig implements IExporter {
@@ -125,16 +126,28 @@ public class ExporterNginxConfig implements IExporter {
 	private final long version;
 	private final String reload;
 
-	@SuppressWarnings("deprecation")
 	private void reload() throws IOException {
 		if (null == reload || reload.isBlank())
 			return;
 
 		// FND6-30补：reload失败不再静默——不查退出码时配置错误（如nginx -t不过）无任何
 		// 可见性，波及同文件其他服务的地址更新。
-		var p = Runtime.getRuntime().exec(reload);
+		// 本方法运行在Exporter.onEdit的one-by-one单worker：输出DISCARD丢弃（无人读管道时
+		// 输出填满OS缓冲会让命令自身死锁）、有界等待+超时强杀（命令挂起不得冻结worker，
+		// 否则所有后续SM事件停摆、failedServices补偿同worker永不运行）。
+		// Runtime.exec(String)按空白切分，ProcessBuilder不切——显式split保持带参命令
+		// （如"nginx -s reload"）语义不变。
+		var p = new ProcessBuilder(reload.split("\\s+"))
+				.redirectOutput(ProcessBuilder.Redirect.DISCARD)
+				.redirectError(ProcessBuilder.Redirect.DISCARD)
+				.start();
 		try {
-			var exit = p.waitFor();
+			if (!p.waitFor(30, TimeUnit.SECONDS)) {
+				p.destroyForcibly();
+				logger.error("ExporterNginxConfig: reload command '{}' timed out after 30s, forcibly killed", reload);
+				return;
+			}
+			var exit = p.exitValue();
 			if (exit != 0)
 				logger.error("ExporterNginxConfig: reload command '{}' exited with {}, config may be invalid",
 						reload, exit);
