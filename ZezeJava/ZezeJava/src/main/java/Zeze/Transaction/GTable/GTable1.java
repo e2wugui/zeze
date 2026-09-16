@@ -17,11 +17,28 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	public static final class Factory<R, C, V> implements Supplier<Map<C, V>> {
 		private final @NotNull Meta2<R, BeanMap1<C, V>> pmapMeta;
 		private final @NotNull Meta2<C, V> bmapMeta;
-		private Json.FieldMeta fm1, fm2;
+		private final @NotNull Json.FieldMeta fm1;
+		private final @NotNull Json.FieldMeta fm2;
 
 		Factory(@NotNull Meta2<R, BeanMap1<C, V>> pmapMeta, @NotNull Meta2<C, V> bmapMeta) {
 			this.pmapMeta = pmapMeta;
 			this.bmapMeta = bmapMeta;
+			// fm1/fm2在构造期一次性构建（FND7-10）：原惰性初始化只校验fm1且两写分离，
+			// 并发首次解析可观察到fm1已写、fm2未写的部分状态，parseMap0解引用null直接NPE。
+			// Factory经factories的ConcurrentHashMap发布，final字段+安全发布根除该类竞态。
+			// 类型实参取自metas的keyClass/valueClass：与解析期宿主字段fieldMeta.paramTypes
+			// 等价，且与factory::get实际创建的容器类型一致。
+			try {
+				var dummyField = GTable1.class.getDeclaredField("pMap2");
+				fm1 = new Json.FieldMeta(0x3c, 0, "PMap2", BeanMap1.class, this::get,
+						Json.ClassMeta.getKeyReader(pmapMeta.keyClass), dummyField);
+				fm2 = new Json.FieldMeta(0x30 + Json.ClassMeta.getType(bmapMeta.valueClass),
+						0, "BeanMap1", Object.class,
+						Json.ClassMeta.getDefCtor(bmapMeta.valueClass),
+						Json.ClassMeta.getKeyReader(bmapMeta.keyClass), dummyField);
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
 		}
 
 		public @NotNull Meta2<R, BeanMap1<C, V>> getPmapMeta() {
@@ -48,15 +65,6 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 			var factory = (Factory<?, ?, ?>)obj.factory;
 			var fm1 = factory.fm1;
 			var fm2 = factory.fm2;
-			if (fm1 == null) {
-				var dummyField = GTable1.class.getDeclaredField("pMap2");
-				factory.fm1 = fm1 = new Json.FieldMeta(0x3c, 0, "PMap2", BeanMap1.class, factory::get,
-						Json.ClassMeta.getKeyReader((Class<?>)fieldMeta.paramTypes[0]), dummyField);
-				factory.fm2 = fm2 = new Json.FieldMeta(0x30 + Json.ClassMeta.getType((Class<?>)fieldMeta.paramTypes[2]),
-						0, "BeanMap1", Object.class,
-						Json.ClassMeta.getDefCtor((Class<?>)ensureNotNull(fieldMeta.paramTypes[2])),
-						Json.ClassMeta.getKeyReader((Class<?>)fieldMeta.paramTypes[1]), dummyField);
-			}
 			var keyParser = ensureNotNull(fm1.keyParser);
 			for (int b = reader.skipNext(); b != '}'; b = reader.skipVar('}')) {
 				var k = keyParser.parse(reader, b);
