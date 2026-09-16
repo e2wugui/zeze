@@ -5,6 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseMemory;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -13,7 +14,13 @@ import org.junit.jupiter.api.Test;
  * data/version，B 的 schemas 兼容检查基于错误前像进行；clear() 也不清理该数据，测试间残留。
  *
  * 验证：版本记录按 DatabaseUrl 隔离（对齐 KV 表 databaseTables 的 url 分桶）；clear() 一并清理。
+ *
+ * @Isolated（R3-T复审C1）：本类的核心断言就是全局静态 clear() 清空 Operates 数据——clear 是
+ * JVM 级全局清空，@Fast 套件 8 路类级并行下会波及同 JVM 其他正在使用 Memory 库的测试
+ * （同因先例 fd334d7f8/a7450912c；TestFnd703MemoryDbStaticLock 为此放弃 clear）。定向清理
+ * 需在 DatabaseMemory 新增测试专用 API（生产面侵入），独占运行侵入最小，改走 @Isolated。
  */
+@Isolated
 @Fast
 public class TestDatabaseMemoryOperatesPartition {
 	private static DatabaseMemory newMemoryDb(String url) {
