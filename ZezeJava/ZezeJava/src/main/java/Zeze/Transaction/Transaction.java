@@ -626,8 +626,16 @@ public final class Transaction {
 
 		try {
 			if (null != logActions) {
-				for (var act : logActions)
-					act.run();
+				// FND7-02：logActions逐项隔离（与triggerActions同型）。过程日志动作、监听通知、
+				// 提交回调三步语义独立，任一logAction抛错（如用户替换的Procedure.logAction）
+				// 不得吞掉notifyListener与whileCommit回调（典型是Rpc应答，丢失即静默丢语义）。
+				for (var act : logActions) {
+					try {
+						act.run();
+					} catch (Throwable e) { // logger.error
+						logger.error("finalCommit({}) logAction exception:", proc, e);
+					}
+				}
 			}
 			cc.notifyListener();
 			triggerCommitActions(proc);
@@ -646,8 +654,14 @@ public final class Transaction {
 		state = TransactionState.Completed;
 		try {
 			if (null != logActions) {
-				for (var act : logActions)
-					act.run();
+				// FND7-02：同finalCommit，logActions逐项隔离，任一抛错不得吞掉后续项与whileRollback回调。
+				for (var act : logActions) {
+					try {
+						act.run();
+					} catch (Throwable e) { // logger.error
+						logger.error("finalRollback({}) logAction exception:", procedure, e);
+					}
+				}
 			}
 			triggerRollbackActions(procedure);
 		} catch (Throwable ex) { // logger.error
