@@ -254,13 +254,16 @@ public class Onz extends AbstractOnz {
 		// 失败步骤不会被补偿（无过补偿）；业务成功则条目仍在，补偿/结束串行执行。
 		context.lockBusiness();
 		try {
-			if (!sagas.remove(tid, context))
-				return errorCode(eSagaNotFound);
-
 			// 没有设置cancel标志时，表示事务正常结束，用来删除sagas上下文。
 			if (r.Argument.isCancel()) {
-				var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
-				var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
+				// R2-M①：补偿参数decode必须先于sagas.remove——decode抛异常（载荷损坏截断/
+				// cancelClass构造失败）原先发生在remove之后，putIfAbsent回补被跳过：上下文
+				// 已删除，补偿永久丢失且重发FuncSagaEnd只得eSagaNotFound。decode先行，失败时
+				// 条目仍在（协调者/人工可重试），由cleanupTimeoutSagas（默认1小时）兜底。
+				final var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
+				final var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
+				if (!sagas.remove(tid, context))
+					return errorCode(eSagaNotFound);
 				var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> stub.end(context, cancelArgument), context.getName())).call();
 				if (rc != 0) {
 					// 补偿失败：上下文必须放回sagas，否则协调者（cancelSaga只记错误日志不重试）
@@ -270,6 +273,9 @@ public class Onz extends AbstractOnz {
 						logger.error("saga context re-insert conflict. tid={}", tid);
 					return rc;
 				}
+			} else {
+				if (!sagas.remove(tid, context))
+					return errorCode(eSagaNotFound);
 			}
 			context.setEnd();
 		} finally {
