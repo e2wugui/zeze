@@ -38,6 +38,8 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.Selectors;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.Handshake.Constant;
+import Zeze.Services.Handshake.SHandshake0;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
@@ -198,7 +200,18 @@ public final class Token extends AbstractToken {
 		@Override
 		public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
 			addSocket(so);
-			OnHandshakeDone(so);
+			// 复审R2（FND7-S2①）：本端配置了加密/压缩时推迟OnHandshakeDone到握手完成——服务端
+			// （同配置）accept后会发SHandshake0发起握手，立即回调会在明文窗口重放SubTopic，
+			// 被服务端FND7-23输入门禁拒绝。全Disable保持原快速路径立即回调（与Disable服务端的
+			// accept快速路径配对，时序与旧版完全一致）。两侧HandshakeOptions应配置一致：
+			// 本端Disable+对端加密时立即回调后握手仍由SHandshake0驱动完成，OnHandshakeDone
+			// 至多双发（订阅重放服务端幂等）；本端加密+对端Disable则握手永不发生（配置错误，
+			// 表现为订阅重放不执行），部署时须保证一致。
+			var options = getConfig().getHandshakeOptions();
+			if (options.getEncryptType() == Constant.eEncryptTypeDisable
+					&& options.getCompressS2c() == Constant.eCompressTypeDisable
+					&& options.getCompressC2s() == Constant.eCompressTypeDisable)
+				OnHandshakeDone(so);
 		}
 
 		@Override
@@ -330,7 +343,26 @@ public final class Token extends AbstractToken {
 			checkMaxConnections(); // 覆写丢掉了 Service.OnSocketAccept 的连接数上限检查，这里补回（FND-S3-2）
 			setupHaProxyHeader(so); // 覆写丢掉了 Service.OnSocketAccept 的HaProxy头安装，这里补回（FND7-24）
 			addSocket(so);
-			OnHandshakeDone(so);
+			// 复审R2（FND7-S2①）：TokenServer此前无条件直呼OnHandshakeDone（从不发送SHandshake0），
+			// 客户端（TokenClient）也从不开握——EncryptType/Compress配置永远不生效：配置了加密的
+			// Token服务静默全明文运行；FND7-23输入门禁落地后更是直接拒绝所有未握手应用协议。
+			// 配置了加密或压缩时对齐HandshakeServer：发送SHandshake0发起握手，OnHandshakeDone
+			// 推迟到CHandshakeDone（两侧codec装配完成）后；全Disable保持原快速路径——零额外
+			// 往返、OnHandshakeDone时序不变，Disable部署行为与旧版完全一致。
+			var options = getConfig().getHandshakeOptions();
+			if (options.getEncryptType() != Constant.eEncryptTypeDisable
+					|| options.getCompressS2c() != Constant.eCompressTypeDisable
+					|| options.getCompressC2s() != Constant.eCompressTypeDisable) {
+				var hand0 = new SHandshake0();
+				hand0.Argument.encryptType = options.getEncryptType();
+				hand0.Argument.supportedEncryptList = options.getSupportedEncrypt();
+				hand0.Argument.compressS2c = options.getCompressS2c();
+				hand0.Argument.compressC2s = options.getCompressC2s();
+				hand0.Argument.supportedCompressList = options.getSupportedCompress();
+				hand0.Send(so);
+			} else {
+				OnHandshakeDone(so);
+			}
 		}
 
 		@Override
