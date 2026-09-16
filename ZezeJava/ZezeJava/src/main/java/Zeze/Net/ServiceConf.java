@@ -73,6 +73,10 @@ public final class ServiceConf extends ReentrantLock {
 		return haProxyKey;
 	}
 
+	public void setHaProxyKey(@Nullable String value) {
+		haProxyKey = value;
+	}
+
 	public void setService(Service service) {
 		lock();
 		try {

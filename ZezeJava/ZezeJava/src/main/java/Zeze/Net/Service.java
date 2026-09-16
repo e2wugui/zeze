@@ -387,10 +387,21 @@ public class Service extends ReentrantLock {
 	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
 		if (socketMap.size() >= config.getMaxConnections()) // 这里可能有并发原子性问题,不能保证限制在max以内
 			throw new IllegalStateException("too many connections");
-		if (config.getHaProxyKey() != null)
-			((TcpSocket)so).setHaProxyHeader(new HaProxyHeader(config.getHaProxyKey()));
+		setupHaProxyHeader(so);
 		addSocket(so);
 		OnHandshakeDone(so);
+	}
+
+	/**
+	 * 给新接受的连接安装 HaProxy 头解析器（ServiceConf 配置了 HaProxyKey 时）。
+	 * 覆写 OnSocketAccept 的服务子类（HandshakeServer/HandshakeBoth/TokenServer 等）不再走
+	 * Service.OnSocketAccept 的默认实现，会丢失这里的安装（FND7-24）：LB 的 "PROXY ..." 头
+	 * 会被当作协议帧头解码成未知协议，所有连接被拒且零告警。覆写点必须在收到任何数据前
+	 * 调用本方法恢复（对齐 HandshakeBase.checkMaxConnections 的 FND-S3-2 判例）。
+	 */
+	protected final void setupHaProxyHeader(@NotNull AsyncSocket so) {
+		if (config.getHaProxyKey() != null && so instanceof TcpSocket tcp)
+			tcp.setHaProxyHeader(new HaProxyHeader(config.getHaProxyKey()));
 	}
 
 	@SuppressWarnings({"RedundantThrows", "MethodMayBeStatic"})
