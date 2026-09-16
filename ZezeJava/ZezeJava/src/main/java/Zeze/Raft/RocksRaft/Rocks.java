@@ -97,11 +97,26 @@ public final class Rocks extends StateMachine implements Closeable {
 	// 取出index对应的待补偿记录；没有或term不匹配（同index已被新term条目复用）返回null。
 	List<Record<?>> takePendingFlush(long index, long term) {
 		var pending = pendingFlushApplies.remove(index);
-		return pending != null && pending.term == term ? pending.records : null;
+		if (pending != null && pending.term == term)
+			return pending.records;
+		if (pending != null) {
+			// term不匹配：补偿记录随截断条目作废，释放补偿登记持有的在用保护（【FND7-14】）。
+			for (var r : pending.records)
+				r.endAccess();
+		}
+		return null;
 	}
 
 	void putPendingFlush(long index, long term, List<Record<?>> records) {
 		pendingFlushApplies.put(index, new PendingFlush(term, records));
+		// 【FND7-14】补偿登记即持有在用：leader侧perform收尾会释放业务访问计数，若登记
+		// 不补记，迟到flush重试窗口内记录可被LRU驱逐——同key重装载从storage拿到flush
+		// 前旧值，后续在旧基线上的修改提交会整值覆盖已应用未flush的更新（丢失更新）。
+		// follower侧装载计数在转入补偿时先行释放（调用方catch），由这里统一接管。
+		// 释放点：消费成功（leader/follower的pending分支flush成功）、过期丢弃
+		// （takePendingFlush的term不匹配）。重试再失败的重登记先释放再重新持有，配对不变。
+		for (var r : records)
+			r.beginAccess();
 	}
 
 	// FND3-22：apply已完整成功（内存变更+flush提交）后、lastApplied推进前的收尾步骤
@@ -309,9 +324,16 @@ public final class Rocks extends StateMachine implements Closeable {
 				try {
 					flush(pending, changes, true);
 				} catch (FlushException e) {
+					// 【FND7-14】装载计数随上次失败转入补偿登记（putPendingFlush统一接管，
+					// 重登记先释放旧持有），在用保护横跨整个补偿生命周期不断档。
+					for (var r : pending)
+						r.endAccess();
 					putPendingFlush(index, holder.getTerm(), pending);
 					throw e;
 				}
+				// 【FND7-14】重试flush成功：释放在用保护。
+				for (var r : pending)
+					r.endAccess();
 				return;
 			}
 			var rs = new ArrayList<Record<?>>();
@@ -321,9 +343,17 @@ public final class Rocks extends StateMachine implements Closeable {
 				flush(rs, changes, true);
 			} catch (FlushException e) {
 				// 内存已变更但落盘失败：记录已应用的记录集合，等下次apply重试时只flush。
+				// 【FND7-14】装载计数转入补偿登记（putPendingFlush补记），保护不断档。
+				for (var r : rs)
+					r.endAccess();
 				putPendingFlush(index, holder.getTerm(), rs);
 				throw e;
 			}
+			// 【FND7-14】应用并落盘完成：释放followerApply装载时（Table.followerApply→
+			// getOrLoad）登记的在用保护。失败路径由putPendingFlush保留引用，重试成功或
+			// 过期丢弃（takePendingFlush）时释放。
+			for (var r : rs)
+				r.endAccess();
 		} catch (FlushException e) {
 			// flush失败有补偿重试通道（pendingFlush，FND-R2-4），不是结构性分歧，放行给apply重试。
 			throw e;

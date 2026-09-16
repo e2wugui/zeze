@@ -1,6 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
@@ -47,6 +48,28 @@ public final class Record<K> {
 	// 语义不变；x86上无额外开销语义变化）。
 	private volatile Bean value;
 	final FastLock mutex = new FastLock();
+
+	// 【FND7-14】在用计数：Table.getOrLoad在r.mutex临界区内beginAccess，驱逐回调在
+	// r.mutex内复查（互斥，不会漏见），保证"事务持有Record引用期间不可被LRU驱逐"——
+	// leader事务原位修改缓存Record的bean，提交时经事务捕获的origin应用并flush，驱逐后
+	// 同key再访问会从storage装载出旧值的新记录，已提交更新被静默覆盖丢失。
+	// 释放点：Transaction.perform收尾（业务访问的记录）与Rocks.followerApply的flush
+	// 成功后（followerApply装载的记录）。pendingFlush补偿集由登记统一持有（putPendingFlush
+	// 补记、消费成功/过期丢弃/重登记换手时释放），迟到flush重试窗口内记录不可驱逐。
+	// 减法钳制到0：吸收极端时序下的重复释放。
+	private final AtomicInteger accessors = new AtomicInteger();
+
+	void beginAccess() {
+		accessors.incrementAndGet();
+	}
+
+	void endAccess() {
+		accessors.updateAndGet(v -> v > 0 ? v - 1 : v);
+	}
+
+	boolean isAccessed() {
+		return accessors.get() != 0;
+	}
 
 	public Record(Class<K> keyClass) {
 		keyEncodeFunc = SerializeHelper.createEncodeFunc(keyClass);

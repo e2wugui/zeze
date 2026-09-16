@@ -236,6 +236,12 @@ public final class Transaction {
 			for (var pLock : pessimismLocks)
 				pLock.unlock();
 			pessimismLocks.clear();
+				// 【FND7-14】释放本事务访问记录的在用保护（驱逐允许）。正常路径leaderApply在
+				// appendLog等待期间（perform内）已完成应用与flush，此时释放安全；appendLog超时
+				// 未决的条目若已进入flush补偿（flush失败），由putPendingFlush登记继续持有在用，
+				// 直到重试成功或过期丢弃，迟到flush窗口内记录不可被驱逐。
+				for (var ar : accessedRecords.values())
+					ar.getOrigin().endAccess();
 		}
 	}
 
@@ -249,9 +255,17 @@ public final class Transaction {
 			try {
 				rocks.flush(pending, changes);
 			} catch (Rocks.FlushException e) {
+				// 【FND7-14】重试再失败的重登记：先释放被消费的补偿持有，putPendingFlush
+				// 统一补记，在用保护横跨补偿生命周期不断档（perform收尾只释放业务计数）。
+				for (var r : pending)
+					r.endAccess();
 				rocks.putPendingFlush(index, holder.getTerm(), pending);
 				throw e;
 			}
+			// 【FND7-14】重试flush成功：释放补偿登记持有的在用保护（业务计数若未随
+			// perform释放，由其finally释放）。
+			for (var r : pending)
+				r.endAccess();
 			return;
 		}
 		var it = lastSavepoint("leaderApply").logIterator();

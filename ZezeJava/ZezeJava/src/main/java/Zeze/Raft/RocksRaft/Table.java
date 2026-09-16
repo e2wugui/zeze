@@ -50,7 +50,38 @@ public final class Table<K, V extends Bean> {
 		} catch (RocksDBException e) {
 			throw Task.forceThrow(e);
 		}
-		lruCache = new ConcurrentLruLike<>(name, cacheCapacity, lruTryRemoveCallback, 200, 2000, 1024);
+		// 【FND7-14】总是安装自带在用保护的驱逐回调（生成代码注册表模板时不会传callback，
+		// 原实现走ConcurrentLruLike.cleanNow的无回调分支无条件remove，事务正在使用的记录
+		// 也会被驱逐）。使用方回调（如GlobalCacheManagerWithRaft）在保护检查之后执行。
+		lruCache = new ConcurrentLruLike<>(name, cacheCapacity, this::tryRemoveRecord, 200, 2000, 1024);
+	}
+
+	/**
+	 * 【FND7-14】LRU驱逐的在用保护（对齐经典Zeze.Transaction.TableCache的驱逐语义）。
+	 * leader业务事务从get()拿到Record引用后原位修改其bean，提交时leaderApply经事务
+	 * 捕获的origin记录应用并flush到RocksDB——若驱逐无保护，驱逐后同key再访问会从
+	 * storage装载出旧值的新记录C：后续读经过期值，再修改提交则已提交更新被C的旧值
+	 * 全量覆盖静默丢失（follower侧单线程apply自愈，无此问题）。Record.removed标志与
+	 * getOrLoad的重试环正是为此设计（原为死代码，setRemoved零调用者）。
+	 * 在用（isAccessed）时拒绝驱逐；确无在用时在r.mutex内置removed=true（让并发拿到
+	 * 旧引用的getOrLoad重试换新记录）并pair-remove。
+	 */
+	private boolean tryRemoveRecord(K key, Record<K> r) {
+		if (r.isAccessed())
+			return false;
+		var callback = lruTryRemoveCallback; // 使用方回调在保护之后执行
+		if (callback != null)
+			return callback.test(key, r);
+		if (!r.mutex.tryLock())
+			return false;
+		try {
+			if (r.isAccessed()) // 复查：beginAccess在r.mutex内，与此处互斥
+				return false;
+			r.setRemoved(true);
+			return lruCache.remove(key, r); // pair-remove：仅当映射仍是本记录时删除
+		} finally {
+			r.mutex.unlock();
+		}
 	}
 
 	public Rocks getRocks() {
@@ -191,6 +222,9 @@ public final class Table<K, V extends Bean> {
 					r.setState(Record.StateLoad);
 				}
 				// else in cache
+				// 【FND7-14】在r.mutex临界区内登记在用：与驱逐回调的r.mutex互斥，
+				// 保证调用方拿到引用时驱逐方不可能漏见在用状态。
+				r.beginAccess();
 				return r;
 			} finally {
 				r.mutex.unlock();
