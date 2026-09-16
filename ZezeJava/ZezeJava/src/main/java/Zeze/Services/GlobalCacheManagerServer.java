@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -78,6 +79,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	private final GCMConfig gcmConfig = new GCMConfig();
 	private AchillesHeelConfig achillesHeelConfig;
 	private Future<?> achillesHeelTimer;
+	// FND7-17：在飞守护扫描标志。定时器tick只派发不内联执行扫描（见scheduleAchillesHeelDaemon），
+	// 本标志同时保证扫描不重入（对齐原scheduleWithFixedDelay的串行语义）。
+	private final AtomicBoolean achillesHeelRunning = new AtomicBoolean();
 	private GlobalCacheManagerPerf perf;
 
 	public static final class GCMConfig implements Config.ICustomize {
@@ -165,9 +169,37 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 			achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing,
 					this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
-			achillesHeelTimer = TaskSpec.ofAction(this::achillesHeelDaemon).schedulePeriodNow(5000, 5000);
+			achillesHeelTimer = TaskSpec.ofAction(this::scheduleAchillesHeelDaemon).schedulePeriodNow(5000, 5000);
 		} finally {
 			unlock();
+		}
+	}
+
+	/*
+	 * FND7-17：守护扫描不得在共享调度池线程上内联执行。扫描内的release(noWait=false)会在
+	 * acquireStatePending上无限期await，解锁依赖发往死会话的Reduce的Rpc超时定时器，而
+	 * Rpc.schedule与周期调度共用scheduledPool——调度池单线程或被占满时形成同池循环等待
+	 * （daemon占着调度线程等超时定时器、定时器排在同一池上等daemon让出），仅剩
+	 * defaultTimeout看门狗兜底、disableInterrupt调试形态下永久冻结；多线程池形态下也把
+	 * 全部定时语义（Rpc超时、KeepAlive）拖慢一个死会话的时长。tick只做派发，扫描体搬入
+	 * 默认worker池执行（executeCore同样携带defaultTimeout看门狗与异常日志）。
+	 */
+	private void scheduleAchillesHeelDaemon() {
+		if (!achillesHeelRunning.compareAndSet(false, true))
+			return; // 上一轮扫描仍在执行，跳过本轮
+		var submitted = false;
+		try {
+			TaskSpec.ofAction(() -> {
+				try {
+					achillesHeelDaemon();
+				} finally {
+					achillesHeelRunning.set(false); // 扫描结束才放行下一轮
+				}
+			}).name("GlobalCacheManager.AchillesHeelDaemon").runNow();
+			submitted = true;
+		} finally {
+			if (!submitted)
+				achillesHeelRunning.set(false); // 派发失败（池未初始化等）：复位标志，避免守护永久停摆
 		}
 	}
 

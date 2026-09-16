@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
@@ -81,6 +82,9 @@ public class GlobalCacheManagerWithRaft
 	private final GlobalCacheManagerServer.GCMConfig gcmConfig = new GlobalCacheManagerServer.GCMConfig();
 	private final AchillesHeelConfig achillesHeelConfig;
 	private final Future<?> achillesHeelTimer;
+	// FND7-17：在飞守护扫描标志。定时器tick只派发不内联执行扫描（见scheduleAchillesHeelDaemon），
+	// 本标志同时保证扫描不重入（对齐原scheduleWithFixedDelay的串行语义）。
+	private final AtomicBoolean achillesHeelRunning = new AtomicBoolean();
 	private final GlobalCacheManagerPerf perf;
 	private final AtomicLong serialId = new AtomicLong();
 
@@ -144,7 +148,34 @@ public class GlobalCacheManagerWithRaft
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing, this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
-		achillesHeelTimer = TaskSpec.ofAction(this::achillesHeelDaemon).schedulePeriodNow(5000, 5000);
+		achillesHeelTimer = TaskSpec.ofAction(this::scheduleAchillesHeelDaemon).schedulePeriodNow(5000, 5000);
+	}
+
+	/*
+	 * FND7-17：守护扫描不得在共享调度池线程上内联执行。扫描持session锁逐key跑同步raft
+	 * procedure，其中的lockey.await在acquireStatePending上可无限期等待，解锁依赖发往死
+	 * 会话的Reduce的Rpc超时定时器，而Rpc.schedule与周期调度共用scheduledPool——调度池
+	 * 单线程或被占满时形成同池循环等待，仅剩defaultTimeout看门狗兜底、disableInterrupt
+	 * 调试形态下永久冻结；多线程池形态下也把全部定时语义拖慢一个死会话的时长。tick只做
+	 * 派发，扫描体搬入默认worker池执行（executeCore同样携带defaultTimeout看门狗与异常日志）。
+	 */
+	private void scheduleAchillesHeelDaemon() {
+		if (!achillesHeelRunning.compareAndSet(false, true))
+			return; // 上一轮扫描仍在执行，跳过本轮
+		var submitted = false;
+		try {
+			TaskSpec.ofAction(() -> {
+				try {
+					achillesHeelDaemon();
+				} finally {
+					achillesHeelRunning.set(false); // 扫描结束才放行下一轮
+				}
+			}).name("GlobalCacheManagerWithRaft.AchillesHeelDaemon").runNow();
+			submitted = true;
+		} finally {
+			if (!submitted)
+				achillesHeelRunning.set(false); // 派发失败（池未初始化等）：复位标志，避免守护永久停摆
+		}
 	}
 
 	private void achillesHeelDaemon() {
