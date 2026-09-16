@@ -515,7 +515,6 @@ public final class Raft {
 						"ProcessInstallSnapshot");
 				entry = null;
 			}
-			var bNewFile = false;
 			if (entry == null) {
 				if (r.Argument.getOffset() != 0) {
 					// 肯定是旧的被丢弃的安装，Discard And Ignore。
@@ -525,13 +524,19 @@ public final class Raft {
 				entry = new ReceiveSnapshotEntry(new RandomAccessFile(path.toFile(), "rw"),
 						r.Argument.getTerm(), r.Argument.getLeaderId(), System.currentTimeMillis());
 				receiveSnapshotting.put(r.Argument.getLastIncludedIndex(), entry);
-				bNewFile = true;
 			}
 			entry.lastActiveTime = System.currentTimeMillis(); // 任何块活动都证明对端还活着
 			var outputFileStream = entry.file;
 			if (r.Argument.getOffset() == 0) {
-				if (bNewFile)
-					outputFileStream.setLength(0); // 上面的new RandomAccessFile(path, "rw")对于已经存在的文件不会覆盖。
+				// 【FND7-57】offset==0 无条件截断，不能按"同字节续传"只在新文件时清长度：
+				// leader 侧每次安装总是从 offset=0 全量重发（InstallSnapshotState 新实例），
+				// 若两次安装之间同边界快照重生成（snapshot.dat 消失触发 LogSequence.snapshot()
+				// 等），新旧内容字节不同时按旧长度续传会把新快照拼到旧半截文件上——前缀跳写
+				// （offset<fileLength 且 newEnd≤fileLength 的块被跳过）留下旧字节、或尾部残留
+				// 旧字节，混拼文件 loadSnapshot 失败 fatalKill，且 commitSnapshotNow 已 move
+				// 完成时重启加载损坏 snapshot.dat 节点起不来。放弃续传优化换正确性：截断后
+				// 重发的数据块幂等重写，无中断的安装流程不受影响。
+				outputFileStream.setLength(0); // 上面的new RandomAccessFile(path, "rw")对于已经存在的文件不会覆盖。
 				outputFileStream.seek(0);
 			}
 
