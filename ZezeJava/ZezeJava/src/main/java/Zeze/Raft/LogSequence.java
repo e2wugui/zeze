@@ -518,6 +518,36 @@ public class LogSequence {
 				lastApplied = firstIndex;
 				commitIndex = firstIndex;
 			}
+
+			// 【FND7-12】提交快照的边界日志缺失检测（lastIndex >= firstIndex 方向的空洞）：
+			// endReceiveInstallSnapshot 完整路径在边界日志 saveLog(X) 之后、saveFirstIndex
+			// 持久化之前崩溃，重启后 lastIndex(=X) >= firstIndex(=旧F)，上面的单向检查
+			// 不触发，但 logs={X} 在 (F,X) 区间留下空洞：lastApplied=F 起 tryApply 读
+			// readLog(F+1)==null 永久楔死（backgroundApply 热循环抢 Raft 锁）；且对
+			// leader 的 prevLog=X 校验会成功，复制从 X+1 继续，不再重发 InstallSnapshot，
+			// ExistLog 恢复路径也无法到达。此时 logs 只能是半安装残留（正常流程的日志
+			// 截断永远保留 firstIndex 处的边界日志）：整体丢弃，重置回无快照状态，
+			// 由 leader 的 InstallSnapshot 全量重建。破坏性重置放在迭代器关闭之后
+			//（列族句柄销毁前必须先关闭其上的迭代器）。
+			if (firstIndex >= 0 && readLog(firstIndex) == null) {
+				logger.warn("{} crash recovery: no boundary log at firstIndex={}, discard half-installed logs({})."
+								+ " endReceiveInstallSnapshot crashed after boundary saveLog?",
+						raft.getName(), firstIndex, lastIndex);
+				try {
+					logs.drop(); // 声明throws Exception（实际只抛RocksDBException），收窄到构造器的异常签名
+				} catch (RocksDBException e) {
+					throw e;
+				} catch (Exception e) {
+					throw Task.forceThrow(e);
+				}
+				logs = this.database.getOrAddTable(raft.getName() + ".logs"); // this.database：构造器参数database遮蔽字段
+				saveLog(new RaftLog(term, 0, new HeartbeatLog()));
+				lastIndex = 0;
+				saveFirstIndex(-1);
+				firstIndex = 0;
+				lastApplied = 0;
+				commitIndex = 0;
+			}
 		}
 		logsAvailable = true;
 
@@ -1197,10 +1227,44 @@ public class LogSequence {
 				// last included entry, retain log entries following it and reply
 				var last = readLog(r.Argument.getLastIncludedIndex());
 				if (last != null && last.getTerm() == r.Argument.getLastIncludedTerm()) {
-					// 【注意】没有错误处理：比如LastIncludedIndex是否超过CommitIndex之类的。
-					// 按照现在启动InstallSnapshot的逻辑，不会发生这种情况。
 					logger.warn("Exist Local Log. Do It Like A Local Snapshot!");
+					// 【FND7-12】防御（对齐下方完整路径）：边界低于已提交位置时，下面的复位
+					// 会回退commitIndex、丢失已apply的数据。按启动InstallSnapshot的回溯逻辑
+					// 不会发生（leader仅在follower对prevLog=leader.firstIndex校验失败后安装，
+					// 完好日志会被AppendEntries先行补齐），一旦发生说明别处有bug。
+					if (r.Argument.getLastIncludedIndex() < commitIndex) {
+						logger.fatal("{} InstallSnapshot(ExistLog) LastIncludedIndex={} < commitIndex={},"
+										+ " there must be a bug.",
+								raft.getName(), r.Argument.getLastIncludedIndex(), commitIndex, new Exception());
+						raft.fatalKill();
+					}
 					commitSnapshotNow(path, r.Argument.getLastIncludedIndex());
+					// 【FND7-12】恢复语义补全：本分支只会由"上次同边界收尾中途失败后的重装"
+					// 进入——完整路径在commitSnapshotNow（或其内部的saveFirstIndex写）处
+					// 失败/崩溃，重启或重试时logs只含上次saveLog的边界日志X，而内存
+					// lastIndex/commitIndex/lastApplied与状态机仍停留在旧边界。只执行
+					// commitSnapshotNow会留下 firstIndex=X 但 lastApplied=旧值 的空洞：
+					// tryApply从lastApplied+1起readLog得null，apply永久楔死；日志完整的
+					// 节点当选后SetLeaderReadyEvent永远apply不到，waitLeaderReady恒超时，
+					// 集群级死锁。这里对齐完整路径：复位内存索引并装载快照（重装即恢复）。
+					lastIndex = r.Argument.getLastIncludedIndex();
+					commitIndex = firstIndex; // commitSnapshotNow已把firstIndex推进为X
+					lastApplied = firstIndex;
+					setVoteFor(raft.getLeaderId()); // 放弃当前Term的投票（对齐完整路径）
+					long t = System.nanoTime();
+					try {
+						raft.getStateMachine().loadSnapshot(getSnapshotFullName());
+					} catch (Throwable e) {
+						// 对齐完整路径（FND3-21）：没有原地恢复路径，fatalKill把静默分歧
+						// 变成crash，重启从snapshot.dat（已被commitSnapshotNow替换为新边界
+						// 内容）恢复自愈。
+						logger.fatal("{} EndReceiveInstallSnapshot(ExistLog) loadSnapshot failed, fatalKill. Path={}",
+								raft.getName(), path, e);
+						raft.fatalKill();
+						throw Task.forceThrow(e); // fatalKill不会返回（halt）；测试注入钩子时到达这里
+					}
+					logger.info("{} EndReceiveInstallSnapshot(ExistLog) Path={} time={}ms",
+							raft.getName(), path, (System.nanoTime() - t) / 1_000_000);
 					return 0;
 				}
 				// 防御：快照边界低于已提交位置时丢弃日志会回退commitIndex、
