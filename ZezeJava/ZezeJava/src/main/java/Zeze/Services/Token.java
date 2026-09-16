@@ -560,12 +560,23 @@ public final class Token extends AbstractToken {
 					cleanTokenMapFuture.cancel(false);
 					cleanTokenMapFuture = null;
 				}
-				if (cleanTokenMapTableFuture != null) {
-					cleanTokenMapTableFuture.cancel(false);
-					cleanTokenMapTableFuture = null;
+			if (cleanTokenMapTableFuture != null) {
+				cleanTokenMapTableFuture.cancel(false);
+				cleanTokenMapTableFuture = null;
+			}
+			if (service != null) {
+				// 先stop再置null（FND7-22）：config.start()逐个启动acceptor，多acceptor配置下
+				// 前一个bind成功、后一个失败时，已bind的监听socket与start()启动的keepAlive
+				// 定时器仍在运行；只置null的话无人能再停它们——同端口重试start永远bind冲突，
+				// 直到进程退出。stop失败仅记日志，不掩盖原始启动异常。
+				try {
+					service.stop();
+				} catch (Throwable t) { // logger.error
+					logger.error("Token.start rollback service.stop exception:", t);
 				}
 				service = null;
-				if (rocksdb != null) {
+			}
+			if (rocksdb != null) {
 					try {
 						rocksdb.close();
 					} catch (Throwable ignored) {
