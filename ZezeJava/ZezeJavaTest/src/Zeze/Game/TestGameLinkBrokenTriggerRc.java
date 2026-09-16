@@ -26,8 +26,10 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestGameLinkBrokenTriggerRc {
 
-	// 与其他 @Fast 测试错开 serverId：并行时 Application 本地缓存按 serverId 一份。
-	private static final AtomicInteger NextServerId = new AtomicInteger(7350);
+	// 与其他 @Fast 测试错开 serverId：并行时 Application 本地缓存按 serverId 一份
+	// （zeze_cache_<serverId>）。基点须全局唯一：曾与TestRankCacheEvict(7350起)重叠7351，
+	// 类并行下撞RocksDB锁（50轮压测delete failed LOCK假红），本类移到7360段。
+	private static final AtomicInteger NextServerId = new AtomicInteger(7360);
 
 	private static Application newApp(String name) throws Exception {
 		var conf = new Config();

@@ -31,7 +31,10 @@ import Zeze.Util.Id128;
 @Fast
 public class TestHistoryFlushCommitBinding {
 	// serverId 决定本地 RocksCache 目录名（zeze_cache_<serverId>），取独立值避免与其他测试冲突。
-	private static final int SERVER_ID = 7351;
+	// 7351曾与TestRankCacheEvict/TestGameLinkBrokenTriggerRc(均7350起)重叠：类并行下三方争
+	// 同目录RocksDB锁（50轮压测本类300s挂死疑云+RankCacheEvict的delete failed LOCK均此），
+	// 移到7371独占段。
+	private static final int SERVER_ID = 7371;
 	private static final String tHistoryName = "Zeze_Builtin_HistoryModule_tHistory";
 
 	private Application app;
