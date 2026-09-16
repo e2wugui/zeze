@@ -16,6 +16,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 // K必须可比较：内部TreeMap默认按自然排序（Comparator构造器只覆盖排序方式，不豁免可比性）。
+// null契约与TreeMap一致：key不允许null、须可比较；允许null value（家族差异：
+// FewModifyMap/FewModifyList 为 HashMap/ArrayList 契约，允许 null key/元素）。
 public class FewModifySortedMap<K extends Comparable<? super K>, V> implements NavigableMap<K, V>, Cloneable {
 	private transient volatile @Nullable NavigableMap<K, V> read;
 	private final @NotNull TreeMap<K, V> write;

@@ -14,6 +14,11 @@ import java.util.function.UnaryOperator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 写少读多的List：写侧ArrayList加锁修改，读侧走不可变快照（写后首次读重建）。
+ * null契约与ArrayList一致：允许null元素（FND7-39起快照为ArrayList拷贝，
+ * 不再因null元素建不成）。
+ */
 public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	private transient volatile @Nullable List<E> read;
 	private final @NotNull ArrayList<E> write;

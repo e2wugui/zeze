@@ -11,6 +11,12 @@ import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 写少读多的Map：写侧HashMap加锁修改，读侧走不可变快照（写后首次读重建）。
+ * null契约与HashMap一致：允许null key与null value，快照可区分null value与absent
+ * （FND7-39起快照为HashMap拷贝，不再因null建不成）。需拒绝null key请用
+ * {@link FewModifySortedMap}（TreeMap契约，key不允许null、需可比较）。
+ */
 public class FewModifyMap<K, V> implements Map<K, V>, Cloneable {
 	private transient volatile @Nullable Map<K, V> read;
 	private final @NotNull HashMap<K, V> write;
