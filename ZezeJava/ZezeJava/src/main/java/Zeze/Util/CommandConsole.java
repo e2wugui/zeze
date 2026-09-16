@@ -10,6 +10,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class CommandConsole {
+	// FND7-50：控制台行协议按'\n'分帧，未终结行的行缓冲必须有上界（默认64K，可用系统属性
+	// commandConsoleMaxLineSize调整）。命令行控制台无鉴权，Acceptor默认全网卡监听，
+	// 任意客户端发送无换行字节流即可把无界的行缓冲当累积点耗尽进程堆。
+	public static final int MAX_LINE_BUFFER_SIZE = Str.parseIntSize(System.getProperty("commandConsoleMaxLineSize"), 64 * 1024);
+
 	private @NotNull String buffer = "";
 	private final HashMap<String, Command> commands = new HashMap<>();
 
@@ -92,6 +97,16 @@ public class CommandConsole {
 	public void input(@NotNull AsyncSocket sender, @NotNull String str) {
 		buffer += str;
 		tryParseLine(sender);
+		// FND7-50：检查消费完整行之后的残留（未终结行）。量纲与TcpSocket.processReceive的
+		// remain检查一致（CommandConsoleService总是整块消费使后者永不触发，防线移到这里）；
+		// 瞬态上界=上限+单读块大小。超限抛错沿OnSocketProcessInputBuffer→processReceive→
+		// doException→close关闭连接。
+		if (buffer.length() > MAX_LINE_BUFFER_SIZE) {
+			var len = buffer.length();
+			buffer = ""; // 抛错前清空：捕获异常继续使用的调用方（进程内驱动sender==null）不至于永久饱和
+			throw new IllegalStateException("CommandConsole line buffer overflow: " + len
+					+ " > " + MAX_LINE_BUFFER_SIZE + " (unterminated line?)");
+		}
 	}
 
 	public void tryParseLine(@NotNull AsyncSocket sender) {
