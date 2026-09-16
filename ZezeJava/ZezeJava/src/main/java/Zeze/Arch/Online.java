@@ -1763,7 +1763,13 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@RedirectToServer
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	protected void redirectRemoveLocal(int serverId, @NotNull String account) {
-		providerApp.zeze.newProcedure(() -> tryRemoveLocal(account), "Online.redirectRemoveLocal").call();
+		// FND7-32同型（对齐Game.Online.redirectRemoveLocal的FND5-43口径）：newProcedure的rc
+		// 必须观察——原先丢弃返回码，tryRemoveLocal失败（含提交阶段失败，完全无日志）时
+		// 目标服的local/eLinkBroken残留静默，只能等其verifyLocal周期（默认10分钟）自愈。
+		// rc!=0记error（含rc与上下文）；成功路径行为不变。
+		var rc = providerApp.zeze.newProcedure(() -> tryRemoveLocal(account), "Online.redirectRemoveLocal").call();
+		if (rc != 0)
+			logger.error("redirectRemoveLocal failed: serverId={}, account={}, rc={}", serverId, account, rc);
 	}
 
 	private void tryRedirectRemoveLocal(int serverId, @NotNull String account) {
