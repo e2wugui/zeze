@@ -318,6 +318,11 @@ public class ConcurrentLruLike<K, V> {
 		if (capacity > 0) {
 			var timeBegin = System.nanoTime();
 			int recordCount = 0, nodeCount = 0;
+			// 【FND7-14联动】在用保护（Record.accessors）与使用方回调拒绝会让节点常驻
+			// 非空——这是保护机制的正常工作状态，不是异常：按周期聚合为一条带实例名与
+			// 规模的warn（原实现对每个未清空节点各打一条无名字无计数的warn，容量压力下
+			// 每2s刷屏），保留信号（可据此发现计数泄漏导致的永久超容量）。
+			int remainNodeCount = 0, remainRecordCount = 0;
 			// 从最老到最新逐个node尝试驱逐。不对最老node忙等：回调失败（如队列忙）时继续尝试下一个node，
 			// 遍历完仍超容量的等下一次周期调度重试（scheduleWithFixedDelay本身就是重试机制）。
 			for (var node : lruQueue) {
@@ -362,9 +367,14 @@ public class ConcurrentLruLike<K, V> {
 					lruQueue.remove(node);
 					nodeCount++;
 				} else {
-					logger.warn("remain record when clean lruNode.");
+					remainNodeCount++;
+					remainRecordCount += node.size();
 				}
 			}
+			if (remainNodeCount > 0)
+				logger.warn("{}: remain {} records in {} nodes when clean lruNode"
+								+ " (in-use protected or callback refused).",
+						name, remainRecordCount, remainNodeCount);
 			if (recordCount > 0 || nodeCount > 0) {
 				logger.info("{}: cleaned {} records, {} nodes, {} ms, result: {}/{}", name, recordCount, nodeCount,
 						(System.nanoTime() - timeBegin) / 1_000_000, dataMap.size(), capacity);
