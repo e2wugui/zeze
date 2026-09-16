@@ -43,6 +43,12 @@ public abstract class Log implements Serializable {
 			if (!oldIns.getTypeName().equals(ins.getTypeName())) {
 				logger.error("register duplicated log typeId({}): {} & {}",
 						ins.getTypeId(), oldIns.getTypeName(), ins.getTypeName());
+			} else {
+				// FND7-81：同名重复注册（典型：Meta2.getMap2Meta与createMap2Meta对同一
+				// (key,value)类算出同typeId，或同构工厂重复注册）：typeId先到先得，
+				// 后注册者的差异（如自定义valueCtor）被静默忽略，debug留痕供排查。
+				logger.debug("register duplicated log typeId({}) with same name: {}, first registered wins",
+						ins.getTypeId(), ins.getTypeName());
 			}
 		}
 	}

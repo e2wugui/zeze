@@ -110,6 +110,13 @@ public final class Meta2<K, V> {
 				vc -> new Meta2<>("LogMap1:", map1HeadHash, keyClass, (Class<V>)vc));
 	}
 
+	/**
+	 * 获取（或首次创建并缓存）共享的 Map2 元数据。
+	 * 契约：{@link #createMap2Meta} 的自定义 valueCtor 与本方法的默认构造对同一
+	 * (keyClass, valueClass) 生成相同 logTypeId（typeId 由 head+两类名散列，与ctor无关），
+	 * Log.register 按 typeId 先到先得——ctor 产物若与默认构造产物不等价，后注册方的差异
+	 * 在日志反序列化（Log.create 按 typeId 查表）中永远不生效。
+	 */
 	@SuppressWarnings("unchecked")
 	public static <K, V extends Bean> @NotNull Meta2<K, V> getMap2Meta(@NotNull Class<K> keyClass,
 	                                                                   @NotNull Class<V> valueClass) {
@@ -121,6 +128,13 @@ public final class Meta2<K, V> {
 				vc -> new Meta2<>("LogMap2:", map2HeadHash, keyClass, (Class<V>)vc));
 	}
 
+	/**
+	 * 用自定义 valueCtor 创建 Map2 元数据（不进共享缓存，调用方自行注册）。
+	 * 契约：valueCtor 产物必须与 valueClass 默认构造产物（new V()）等价——本方法与
+	 * {@link #getMap2Meta} 对同一 (keyClass, valueClass) 算出相同 logTypeId，注册进
+	 * Log 工厂表后 typeId 先到先得，两者不等价时后注册方的 ctor 被静默忽略，日志
+	 * 反序列化拿到错误构造的实例（如 History 增量回放数据损坏）。
+	 */
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createMap2Meta(@NotNull Class<K> keyClass,
 	                                                                      @NotNull Class<V> valueClass,
 	                                                                      @NotNull Supplier<V> valueCtor) {
