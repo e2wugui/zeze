@@ -27,6 +27,13 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 
 	public PSortedMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		checkBeanKey(keyClass);
+		// Bean值不支持（FND7-09姊妹缺口，PList1/PMap1判例同族）：排序map同为1系按值拷贝记账，
+		// put不挂接rootInfo（对比PSortedMap2.put），装入的bean永不受管——原位修改不产生日志，
+		// 提交后静默丢失。显式失败优于静默丢数据。
+		if (Bean.class.isAssignableFrom(valueClass))
+			throw new IllegalArgumentException(
+					"PSortedMap1 does not support Bean value type (in-place modifications never managed, silently lost): "
+							+ valueClass.getName());
 		meta = Meta2.getSortedMap1Meta(keyClass, valueClass);
 	}
 
