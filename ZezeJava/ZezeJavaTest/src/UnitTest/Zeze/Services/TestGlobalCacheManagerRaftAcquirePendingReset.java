@@ -128,8 +128,15 @@ public class TestGlobalCacheManagerRaftAcquirePendingReset {
 		int cpuCount = Runtime.getRuntime().availableProcessors();
 		if (Selectors.getInstance().getCount() < cpuCount)
 			Selectors.getInstance().add(cpuCount - Selectors.getInstance().getCount());
-		for (int i = 0; i < ports.length; i++)
-			ports[i] = freePort();
+		// freePort存在TOCTOU：并行负载下可能返回重复端口，RaftConfig.addNode的重复节点校验
+		// 会直接initializationError。取值去重，重复即重取（同族修复见ReleaseRemovedReset）。
+		var usedPorts = new java.util.HashSet<Integer>();
+		for (int i = 0; i < ports.length; i++) {
+			int p = freePort();
+			while (!usedPorts.add(p))
+				p = freePort();
+			ports[i] = p;
+		}
 		raftXmlFile = Files.createTempFile(RAFT_NAME, ".xml");
 		Files.writeString(raftXmlFile, raftXmlString());
 		var nodeNames = new ArrayList<String>();

@@ -95,7 +95,10 @@ public class TestHandshakeDoneErrorClose {
 		};
 		try {
 			attacker.newClientSocket("127.0.0.1", port, null, null);
-			await("server accepted", 10_000, () -> server.getSocketCount() >= 1);
+			// socketCount是瞬态：accept→未握手Done被拒→OnSocketClose移除可能在本await首次轮询前
+			// 整段完成（低负载下更常见，20轮压测20%假红）。条件容忍"已接受并已被关闭"，
+			// 关闭语义由下一个await断言。
+			await("server accepted", 10_000, () -> server.getSocketCount() >= 1 || server.closeCount.get() >= 1);
 
 			await("server OnSocketClose after unhandshaped CHandshakeDone", 10_000,
 					() -> server.closeCount.get() >= 1);
