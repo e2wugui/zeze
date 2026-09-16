@@ -13,6 +13,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import Zeze.Serialize.ByteBuffer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDB;
@@ -29,6 +31,7 @@ import org.rocksdb.RocksDBException;
  * - **null cache**：loader返回null时放5分钟NullCache占位（不落RocksDb），防止对不存在的id反复穿透。
  */
 public class Cache {
+	private static final @NotNull Logger logger = LogManager.getLogger(Cache.class);
 	private final @NotNull String name;
 	private final @NotNull Function<String, CacheObject> loader;
 	private final @NotNull BiFunction<String, ByteBuffer, CacheObject> decoder;
@@ -183,7 +186,17 @@ public class Cache {
 		if (files != null) {
 			for (var file : files) {
 				if (file.getName().startsWith(prefix)) {
-					var days = Long.parseLong(file.getName().substring(prefix.length()));
+					// 单文件解析包try/catch（FND7-37）：days_前缀+非数字后缀的畸形文件（运维残留、
+					// 复制/崩溃半成品）会让parseLong抛NumberFormatException穿透整个循环——
+					// 毒文件位于delete之前永不会被删，次日起每天在同一文件上复发，排在它后面的
+					// 合法清单从此永远不被退役。跳过畸形文件继续处理其余清单。
+					long days;
+					try {
+						days = Long.parseLong(file.getName().substring(prefix.length()));
+					} catch (NumberFormatException e) {
+						logger.warn("Cache {}: skip malformed manifest file '{}'", name, file.getName());
+						continue;
+					}
 					// a month ago && not today。todayDays在锁外volatile读：陈旧无害，
 					// nowDays-days>30已排除近期文件，days!=todayDays只是对当天清单的额外保险。
 					if (nowDays - days > 30 && days != todayDays) {
