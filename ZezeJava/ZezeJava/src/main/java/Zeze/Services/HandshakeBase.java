@@ -128,10 +128,15 @@ public class HandshakeBase extends Service {
 		return 0L;
 	}
 
-	private long processCHandshakeDone(@NotNull CHandshakeDone p) throws Exception {
-		((TcpSocket)p.getSender()).verifySecurity();
-		OnHandshakeDone(p.getSender());
-		return 0L;
+	private long processCHandshakeDone(@NotNull CHandshakeDone p) {
+		try {
+			((TcpSocket)p.getSender()).verifySecurity();
+			OnHandshakeDone(p.getSender());
+			return 0L;
+		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
+			p.getSender().close(ex);
+			return 0L;
+		}
 	}
 
 	private int serverCompressS2c(int s2cHint) {
