@@ -460,32 +460,42 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		return !rocksDb.isOwningHandle();
 	}
 
-		@Override
-		public void close() {
-			lock();
-			try {
-				var bp = batchPool;
-				if (bp != null) {
-					for (var b : bp)
-						b.batch.close();
-					bp.clear();
-				}
-				// 释放Table持有的列族句柄（FND4-22）：tableMap.clear()直接丢弃会漏掉
-				// 堆外句柄（依赖GC滞后清理且不保证）。destroy须在db.close()前，
-				// 与dropTable的释放模式收口；只释放句柄不drop数据（close不删列族）。
-				for (var table : tableMap.values()) {
-					try {
-						rocksDb.destroyColumnFamilyHandle(table.getCfHandle());
-					} catch (Throwable e) {
-						logger.error("destroy column family handle '{}'", table.getName(), e);
-					}
-				}
-				tableMap.clear();
-				rocksDb.close();
-			} finally {
-				unlock();
+	/**
+	 * 关闭契约：调用前必须已静默化所有数据通路——{@link Table#get}/{@link Table#put}/
+	 * {@link Table#delete}/迭代器与 close 并发是 native use-after-free（句柄释放后并发
+	 * 进入 JNI 直接崩溃）。本类的 ReentrantLock 只序列化 close 与表管理/批池等管理操作
+	 * （getOrAddTable/dropTable/borrowBatch 等），Table 的读写方法不加锁、close 也不等待
+	 * 在途读写。
+	 * 仓内关闭链已满足此契约：Application.stop 持应用锁先停所有数据生产者（timer/
+	 * delayRemove/safeBatch/globalAgent/checkpoint.stopAndJoin 等，停机后到达的提交被
+	 * 显式拒绝为 Closed），db.close 在拆解尾部最后执行，此时已无并发数据通路。
+	 */
+	@Override
+	public void close() {
+		lock();
+		try {
+			var bp = batchPool;
+			if (bp != null) {
+				for (var b : bp)
+					b.batch.close();
+				bp.clear();
 			}
+			// 释放Table持有的列族句柄（FND4-22）：tableMap.clear()直接丢弃会漏掉
+			// 堆外句柄（依赖GC滞后清理且不保证）。destroy须在db.close()前，
+			// 与dropTable的释放模式收口；只释放句柄不drop数据（close不删列族）。
+			for (var table : tableMap.values()) {
+				try {
+					rocksDb.destroyColumnFamilyHandle(table.getCfHandle());
+				} catch (Throwable e) {
+					logger.error("destroy column family handle '{}'", table.getName(), e);
+				}
+			}
+			tableMap.clear();
+			rocksDb.close();
+		} finally {
+			unlock();
 		}
+	}
 
 	public static void backup(@NotNull String checkpointDir, @NotNull String backupDir) throws RocksDBException {
 		backup(DbType.eRocksDb, checkpointDir, backupDir);
