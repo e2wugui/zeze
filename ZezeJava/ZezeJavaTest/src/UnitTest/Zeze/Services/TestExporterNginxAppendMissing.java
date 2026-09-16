@@ -71,6 +71,84 @@ public class TestExporterNginxAppendMissing {
 		Assertions.assertTrue(Files.readString(cfgFile).contains("1.1.1.1:1"), "空文件同样须追加");
 	}
 
+	@Test
+	public void testNoIdentitiesSkipsWriteAndReload() throws Exception {
+		var dir = Files.createTempDirectory("nginx_export_fnd6_30c");
+		var cfgFile = dir.resolve("nginx.conf");
+		Files.writeString(cfgFile, "");
+		var share = new Properties();
+		share.setProperty("-file", cfgFile.toString());
+		share.setProperty("-version", "0");
+		var exporter = new ExporterNginxConfig(new ExporterConfig(share, null));
+
+		// 无任何identity：不得产出空upstream块（nginx reload报[emerg] no servers are
+		// inside upstream，整个reload失败波及同文件其他服务）。
+		exporter.exportAll("svc", new BServiceInfosVersion());
+		Assertions.assertEquals(0, Files.size(cfgFile), "无identity必须跳过写盘");
+
+		// 有identity但passiveIp全空（全部实例下线态）：同样跳过。
+		var blankIp = new BServiceInfosVersion();
+		blankIp.getOrAddInfos(0).insert(new BServiceInfo("svc", "1", 0, " ", 1));
+		exporter.exportAll("svc", blankIp);
+		Assertions.assertEquals(0, Files.size(cfgFile), "passiveIp全空必须跳过写盘");
+	}
+
+	@Test
+	public void testExistingBlockAllOfflineKeepsOriginalBlock() throws Exception {
+		var dir = Files.createTempDirectory("nginx_export_fnd6_30d");
+		var cfgFile = dir.resolve("nginx.conf");
+		Files.writeString(cfgFile, """
+				upstream svc {
+				    server 1.1.1.1:1;
+				}
+				""");
+		var share = new Properties();
+		share.setProperty("-file", cfgFile.toString());
+		share.setProperty("-version", "0");
+		var exporter = new ExporterNginxConfig(new ExporterConfig(share, null));
+
+		// 服务地址全部下线（无infos）：保持原块不动（重写成空块会让nginx reload emerg
+		// 失败；旧地址由nginx自行502，实例重新上线后恢复重写）。
+		exporter.exportAll("svc", new BServiceInfosVersion());
+		var out = Files.readString(cfgFile);
+		Assertions.assertEquals(1, countOccurrences(out, "upstream svc {"), "原块保持");
+		Assertions.assertTrue(out.contains("1.1.1.1:1"), "下线态旧地址保留在原块中");
+
+		// 重新上线后恢复重写。
+		var online = new BServiceInfosVersion();
+		online.getOrAddInfos(0).insert(new BServiceInfo("svc", "2", 0, "2.2.2.2", 2));
+		exporter.exportAll("svc", online);
+		var out2 = Files.readString(cfgFile);
+		Assertions.assertFalse(out2.contains("1.1.1.1:1"), "重新上线后旧地址被重写掉");
+		Assertions.assertTrue(out2.contains("2.2.2.2:2"), "新地址写入");
+		Assertions.assertEquals(1, countOccurrences(out2, "upstream svc {"), "块不重复");
+	}
+
+	@Test
+	public void testBomFirstLineRecognizedNotDuplicated() throws Exception {
+		var dir = Files.createTempDirectory("nginx_export_fnd6_30e");
+		var cfgFile = dir.resolve("nginx.conf");
+		Files.writeString(cfgFile, """
+				\uFEFFupstream svc {
+				    server 1.1.1.1:1;
+				}
+				""");
+		var share = new Properties();
+		share.setProperty("-file", cfgFile.toString());
+		share.setProperty("-version", "0");
+		var exporter = new ExporterNginxConfig(new ExporterConfig(share, null));
+
+		// BOM文件首行同名块必须被识别原位重写——不识别则误判未命中在文件尾追加重复块，
+		// nginx报upstream duplicate emerg。
+		var all = new BServiceInfosVersion();
+		all.getOrAddInfos(0).insert(new BServiceInfo("svc", "2", 0, "2.2.2.2", 2));
+		exporter.exportAll("svc", all);
+		var out = Files.readString(cfgFile);
+		Assertions.assertEquals(1, countOccurrences(out, "upstream svc {"), "BOM首行块不得重复追加");
+		Assertions.assertTrue(out.contains("2.2.2.2:2"), "新地址写入");
+		Assertions.assertFalse(out.contains("1.1.1.1:1"), "旧地址重写掉");
+	}
+
 	private static int countOccurrences(String s, String sub) {
 		int count = 0;
 		for (int i = s.indexOf(sub); i >= 0; i = s.indexOf(sub, i + 1))
