@@ -360,6 +360,10 @@ public class Vector3IntList extends IntList {
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb, int n) {
+		// n*K 的 int 溢出会绕过基类负长度防线（FND7-40）：如 n=0x80000001 时 n*2==2，
+		// 毒长度按极小 count 静默解码、流位置错位。上限校验放在乘法之前。
+		if (n < 0 || n > Integer.MAX_VALUE / 3)
+			throw new IllegalArgumentException("negative or overflow count: " + n);
 		super.decode(bb, n * 3);
 	}
 }
