@@ -101,9 +101,13 @@ public class Id128UdpClient {
 				// udp is connected.
 				var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
 				udp.send(udpPacket);
-			} catch (Exception e) {
-				current.setException(e);
-			}
+				} catch (Exception e) {
+					current.setException(e);
+					// FND7-62：标记futureNode已设置过结果（对齐processResult/processTick的
+					// 既有约定），否则该节点残留"待设置"状态，最迟要到超时检查器
+					// （eRpcTimeout）碰它时才清理。
+					current.pending.set(0);
+				}
 
 			// 3.删除
 			return null;
