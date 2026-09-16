@@ -2,6 +2,7 @@ package Zeze.Transaction.Collections;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
@@ -13,7 +14,19 @@ import java.util.Map;
 public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	protected final @NotNull Meta2<K, V> meta;
 
+	// Bean key不支持（FND7-05，PMap1/PSet1判例姊妹）：排序map本体TreePMap按compareTo定序没问题，
+	// 但日志簿记LogSortedMap1.replaced/removed是HashMap/HashSet——Bean值语义equals配身份
+	// hashCode，等值bean落不同桶静默漏命中：mergeChangeNote漏合并，encode按身份哈希决定的
+	// 迭代序写出重复条目，follower解码plusAll的终值依赖迭代序，可致静默主从分歧。显式失败优于静默错。
+	private static <K> void checkBeanKey(@NotNull Class<K> keyClass) {
+		if (Bean.class.isAssignableFrom(keyClass))
+			throw new IllegalArgumentException(
+					"PSortedMap1 does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
+							+ keyClass.getName());
+	}
+
 	public PSortedMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+		checkBeanKey(keyClass);
 		meta = Meta2.getSortedMap1Meta(keyClass, valueClass);
 	}
 
