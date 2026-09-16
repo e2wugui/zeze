@@ -96,7 +96,7 @@ public class TestEndReceiveInstallSnapshotLoadSnapshotFailure {
 			Files.write(installingPath, new byte[]{1, 2, 3});
 
 			var ex = assertThrows(IOException.class,
-					() -> logSequence.endReceiveInstallSnapshot(installingPath.toString(), r),
+					() -> logSequence.endReceiveInstallSnapshot(installingPath, r),
 					"exception must propagate after fatalKill for the procedure to fail visibly");
 			assertEquals("injected loadSnapshot failure", ex.getMessage());
 			assertTrue(fatalled.get(), "loadSnapshot failure must reach fatalKill");

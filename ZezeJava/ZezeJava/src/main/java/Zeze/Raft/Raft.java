@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -494,8 +495,8 @@ public final class Raft {
 		// 2. Create new snapshot file if first chunk(offset is 0)
 		// 把 LastIncludedIndex 放到文件名中，
 		// 新的InstallSnapshot不覆盖原来进行中或中断的。
-		String path = Paths.get(raftConfig.getDbHome(),
-				LogSequence.snapshotFileName + ".installing." + r.Argument.getLastIncludedIndex()).toString();
+		Path path = Paths.get(raftConfig.getDbHome(),
+				LogSequence.snapshotFileName + ".installing." + r.Argument.getLastIncludedIndex());
 
 		receiveSnapshottingLock.lock();
 		try {
@@ -521,7 +522,7 @@ public final class Raft {
 					r.SendResultCode(InstallSnapshot.ResultCodeOldInstall);
 					return Procedure.Success;
 				}
-				entry = new ReceiveSnapshotEntry(new RandomAccessFile(path, "rw"),
+				entry = new ReceiveSnapshotEntry(new RandomAccessFile(path.toFile(), "rw"),
 						r.Argument.getTerm(), r.Argument.getLeaderId(), System.currentTimeMillis());
 				receiveSnapshotting.put(r.Argument.getLastIncludedIndex(), entry);
 				bNewFile = true;

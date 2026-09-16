@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import java.io.File;
+import java.nio.file.Paths;
 
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
@@ -97,7 +98,7 @@ public class TestEndReceiveInstallSnapshotStaleTerm {
 			racer.start();
 
 			// path 不需要真实存在：修复后的放弃路径不触碰快照文件。
-			logSequence.endReceiveInstallSnapshot("nonexistent.raft" + File.separator + "snapshot.dat", r);
+			logSequence.endReceiveInstallSnapshot(Paths.get("nonexistent.raft", "snapshot.dat"), r);
 			racer.join(10_000);
 
 			// 等待窗口内 term 已推进：为旧 term 准备的破坏性重置必须被放弃。

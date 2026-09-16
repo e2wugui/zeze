@@ -90,7 +90,7 @@ public class TestEndReceiveInstallSnapshotSnapshottingConflict {
 				raft.unlock();
 			}
 
-			var resultCode = logSequence.endReceiveInstallSnapshot(installingPath.toString(), r);
+			var resultCode = logSequence.endReceiveInstallSnapshot(installingPath, r);
 
 			assertEquals(InstallSnapshot.ResultCodeSnapshottingConflict, resultCode,
 					"must reply SnapshottingConflict so the leader breaks install and retries later");

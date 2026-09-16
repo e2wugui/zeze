@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.ParseException;
@@ -127,6 +128,7 @@ public class LogSequence {
 	}
 
 	public void commitSnapshot(String path, long newFirstIndex) throws IOException, RocksDBException {
+		Path path1 = Paths.get(path);
 		if (raft.getRaftConfig().isSnapshotCommitDelayed()) {
 			// 查找目录下已经存在的延时提交的snapshot。
 			// 实际上最多只会存在一个延时提交的snapshot，这里的代码写法能处理多个。
@@ -154,26 +156,26 @@ public class LogSequence {
 				var biggestIndex = delayed.lastKey();
 				var biggestFile = delayed.remove(biggestIndex);
 				// 里面会把这个rename成真正的snapshot。
-				_commitSnapshot(biggestFile.toString(), biggestIndex);
+				_commitSnapshot(biggestFile.toPath(), biggestIndex);
 				// 删除多余的延时提交文件。一般不会发生。
 				for (var file : delayed.values())
 					Files.deleteIfExists(file.toPath());
 			}
 			// 当前snapshot重命名，带上index信息。等到下一个snapshot发生的时候推进。
-			Files.move(Paths.get(path), Paths.get(path + "." + newFirstIndex + ".commit.delayed"));
+			Files.move(path1, Paths.get(path + "." + newFirstIndex + ".commit.delayed"));
 			return;
 		}
-		_commitSnapshot(path, newFirstIndex);
+		_commitSnapshot(path1, newFirstIndex);
 	}
 
 	// 接收InstallSnapshot的提交必须立即生效，不能走延时提交：
 	// 随后马上loadSnapshot(getSnapshotFullName())并按新边界重置commitIndex/lastApplied，
 	// 延时提交会导致加载旧快照（或文件不存在）、firstIndex不推进，节点状态彻底错乱。
-	void commitSnapshotNow(String path, long newFirstIndex) throws IOException, RocksDBException {
+	void commitSnapshotNow(Path path, long newFirstIndex) throws IOException, RocksDBException {
 		_commitSnapshot(path, newFirstIndex);
 	}
 
-	private void _commitSnapshot(String path, long newFirstIndex) throws IOException, RocksDBException {
+	private void _commitSnapshot(Path path, long newFirstIndex) throws IOException, RocksDBException {
 		raft.lock();
 		try {
 			// 防御竞态：本地snapshot生成期间（checkpoint之后backup/zip较慢）可能接收并
@@ -182,11 +184,11 @@ public class LogSequence {
 			if (newFirstIndex < firstIndex) {
 				logger.warn("discard stale snapshot: path={} newFirstIndex={} < firstIndex={}",
 						path, newFirstIndex, firstIndex);
-				Files.deleteIfExists(Paths.get(path));
+				Files.deleteIfExists(path);
 				return;
 			}
 			// 下面move和save需要原子完成。目前没有处理：更容易失败的先处理可以缓解这个问题。
-			Files.move(Paths.get(path), Paths.get(getSnapshotFullName()), StandardCopyOption.REPLACE_EXISTING);
+			Files.move(path, Paths.get(getSnapshotFullName()), StandardCopyOption.REPLACE_EXISTING);
 			saveFirstIndex(newFirstIndex);
 			startRemoveLogOnlyBefore(newFirstIndex);
 		} finally {
@@ -1146,7 +1148,7 @@ public class LogSequence {
 		return Paths.get(raft.getRaftConfig().getDbHome(), snapshotFileName).toString();
 	}
 
-	long endReceiveInstallSnapshot(String path, InstallSnapshot r) throws Exception {
+	long endReceiveInstallSnapshot(Path path, InstallSnapshot r) throws Exception {
 		logsAvailable = false; // cancel RemoveLogBefore
 		var removeLogBeforeFuture = this.removeLogBeforeFuture;
 		if (removeLogBeforeFuture != null)
@@ -1184,7 +1186,7 @@ public class LogSequence {
 					// receiveSnapshotting 条目已在 done 分支移除，这里尽力清理孤儿 .installing
 					// 文件（文件句柄已在 done 分支关闭）；失败仅告警，残留由启动清理兜底。
 					try {
-						Files.deleteIfExists(Paths.get(path));
+						Files.deleteIfExists(path);
 					} catch (IOException e) {
 						logger.warn("endReceiveInstallSnapshot deleteIfExists Exception. path={}", path, e);
 					}

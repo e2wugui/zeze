@@ -27,4 +27,8 @@ x64/
 /.codegraph
 /ZezeJava/.idea
 /.idea
+/.zcode
+/.agents
 /tutorial/
+skills-lock.json
+audit-*
