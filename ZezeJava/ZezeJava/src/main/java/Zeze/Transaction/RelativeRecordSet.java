@@ -123,14 +123,21 @@ public final class RelativeRecordSet extends ReentrantLock {
 	static void tryUpdateAndCheckpoint(@NotNull Transaction trans, @NotNull Procedure procedure,
 									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
 									   @NotNull Callable<BLogChanges.Data> collectChanges) throws Exception {
+		// FND7-54：入口拒绝——终检点已过（checkpoint==null）时修改无法保证落库，
+		// 显式抛RejectWhileStopping（perform转为Closed），不执行commit后静默丢弃（假成功）。
+		if (procedure.getZeze().getCheckpoint() == null)
+			throw new Transaction.RejectWhileStopping("commit rejected while stopping: " + procedure.getActionName());
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately:
 			commit.run();
 			var logChanges = collectChanges.call();
 			var checkpoint = procedure.getZeze().getCheckpoint();
-			if (checkpoint != null)
-				checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
+			if (checkpoint == null)
+				// FND7-54：修改已应用但终检点恰在此间过去，无法落库——显式失败优于静默假成功。
+				throw new Transaction.RejectWhileStopping(
+						"immediate flush rejected while stopping: " + procedure.getActionName());
+			checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
 			// 这种模式下 RelativeRecordSet 都是空的。
 			return; // done
 
@@ -198,20 +205,26 @@ public final class RelativeRecordSet extends ReentrantLock {
 				if (logChanges != null)
 					mergedSet.addLogChanges(logChanges); // History存在并且开启，则加入rrs。
 
-				if (needFlushNow) {
-					var checkpoint = procedure.getZeze().getCheckpoint();
-					if (checkpoint != null)
+					if (needFlushNow) {
+						var checkpoint = procedure.getZeze().getCheckpoint();
+						if (checkpoint == null)
+							// FND7-54：needFlushNow的修改已应用但终检点已过，无法落库——显式失败。
+							throw new Transaction.RejectWhileStopping(
+									"flush-now rejected while stopping: " + procedure.getActionName());
 						checkpoint.flush(mergedSet);
-					mergedSet.delete();
-					//logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
-				} else if (mergedSet.recordSet != null) {
-					// mergedSet 合并结果是孤立的，不需要Flush。
-					// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
-					var checkpoint = procedure.getZeze().getCheckpoint();
-					if (checkpoint != null) {
+						mergedSet.delete();
+						//logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
+					} else if (mergedSet.recordSet != null) {
+						// mergedSet 合并结果是孤立的，不需要Flush。
+						// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
+						var checkpoint = procedure.getZeze().getCheckpoint();
+						if (checkpoint == null)
+							// FND7-54：修改已应用但无法注册待flush脏集（注册不了=孤儿脏集必丢）——
+							// 显式失败，不静默跳过。
+							throw new Transaction.RejectWhileStopping(
+									"rrs register rejected while stopping: " + procedure.getActionName());
 						checkpoint.relativeRecordSetMap.add(mergedSet);
 					}
-				}
 			} else {
 				// 本次事务没有访问任何数据，也要执行提交，否则 whileCommit 回调会丢失。
 				commit.run();

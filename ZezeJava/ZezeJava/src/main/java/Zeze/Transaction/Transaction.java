@@ -329,6 +329,14 @@ public final class Transaction {
 				//checkpoint.enterFlushReadLock();
 				//try {
 				for (; tryCount < 256; ++tryCount) { // 最多尝试次数
+					// FND7-54：重试轮次间重新检查停机状态：终检点已过（checkpoint==null）时，
+					// 在途事务显式失败（Closed）退出，不再重执行业务逻辑后在提交点被静默丢弃。
+					if (procedure.getZeze().getCheckpoint() == null) {
+						if (redoRollbackActions != null)
+							actions.addAll(redoRollbackActions);
+						finalRollback(procedure);
+						return Procedure.Closed;
+					}
 					CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
 					try {
 						var result = procedure.call();
@@ -354,6 +362,12 @@ public final class Transaction {
 									}
 									try {
 										finalCommit(procedure, flushMode);
+									} catch (RejectWhileStopping e) { // FND7-54
+										// 终检点已过：tryUpdateAndCheckpoint在应用修改前（或落库前）显式拒绝。
+										// 转为finalRollback+Closed显式失败，替代旧的"静默跳过落库+返回Success"
+										// （已应答的提交丢失）。
+										finalRollback(procedure);
+										return Procedure.Closed;
 									} catch (Throwable ex) { // logger.fatal & halt
 										logger.fatal("finalCommit exception:", ex);
 										// final Commit 不能抛出异常。否则就halt。
@@ -949,5 +963,19 @@ public final class Transaction {
 	public void verifyRunningOrCompleted() {
 		if (state != TransactionState.Running && state != TransactionState.Completed)
 			throw new IllegalStateException("State Is Not Running or Completed: " + state);
+	}
+
+	/**
+	 * FND7-54：停机窗口拒绝提交——终检点已过（checkpoint==null），修改无法保证落库。
+	 * RelativeRecordSet.tryUpdateAndCheckpoint在应用修改前（或落库/注册脏集前）抛出，
+	 * perform捕获后转为finalRollback+Procedure.Closed显式失败，替代旧的
+	 * "commit照常应用+静默跳过落库+返回Success"（已应答的提交丢失）。
+	 */
+	static final class RejectWhileStopping extends RuntimeException {
+		static final long serialVersionUID = 0L;
+
+		RejectWhileStopping(@NotNull String msg) {
+			super(msg);
+		}
 	}
 }

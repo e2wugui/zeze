@@ -179,7 +179,14 @@ public final class Checkpoint {
 //			break;
 
 		case Table:
-			RelativeRecordSet.flushWhenCheckpoint(this);
+			// FND7-54：终检点补轮——停机拒绝生效前已过检查的在途提交可能在终检点轮次进行中
+			// 或之后才注册rrs（_lock_等锁醒来），flush后map仍非空时补轮收敛迟到的脏集；
+			// 必须有界：flush失败的单元保留在map中，不设界会无限重试。
+			for (int round = 0; round < 3; ++round) {
+				RelativeRecordSet.flushWhenCheckpoint(this);
+				if (relativeRecordSetMap.isEmpty())
+					break;
+			}
 			break;
 		}
 		logger.info("final checkpoint end.");

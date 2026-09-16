@@ -86,7 +86,11 @@ public final class Application extends ReentrantLock {
 	private IGlobalAgent globalAgent;
 	private AchillesHeelDaemon achillesHeelDaemon;
 	private DeadlockBreaker deadlockBreaker;
-	private Checkpoint checkpoint;
+	// FND7-54返工：volatile——停机拒绝契约（perform轮次间/tryUpdateAndCheckpoint入口/落库点、
+	// TableX.flushWhenReduce）依赖事务线程及时读到stop()的置null；plain字段无happens-before，
+	// redo轮次里的检查可能长期读到旧引用，注册进已结束终检点的checkpoint（孤儿脏集=原bug复活）。
+	// 读频次每事务个位数，volatile代价可忽略。
+	private volatile Checkpoint checkpoint;
 	private @Nullable Future<?> flushWhenReduceTimerTask;
 	private Schemas schemas;
 	private @Nullable Schemas schemasPrevious;
@@ -831,20 +835,11 @@ public final class Application extends ReentrantLock {
 				achillesHeelDaemon = null;
 			}
 
-			if (globalAgent != null) {
-				globalAgent.close();
-				globalAgent = null;
-			}
-			if (flushWhenReduceTimerTask != null) {
-				flushWhenReduceTimerTask.cancel(false);
-				flushWhenReduceTimerTask = null;
-			}
-
-			if (checkpoint != null) {
-				checkpoint.stopAndJoin();
-				checkpoint = null;
-			}
-
+			// FND7-54：先停事务生产组件（delayRemove/safeBatch/timer）并等待在途任务，再关
+			// globalAgent（组件事务可能还需GCM申请锁），最后checkpoint.stopAndJoin作为终检点
+			// 收尾——保证"最后一个提交先于最后一次flush"。终检点之后到达的提交由
+			// Transaction.perform/RelativeRecordSet.tryUpdateAndCheckpoint的停机拒绝转为
+			// Closed显式失败，不再静默丢弃（假成功）。
 			if (delayRemove != null) {
 				delayRemove.stop();
 				delayRemove = null;
@@ -857,6 +852,23 @@ public final class Application extends ReentrantLock {
 			if (timer != null) {
 				timer.stop();
 				timer = null;
+			}
+
+			if (globalAgent != null) {
+				globalAgent.close();
+				globalAgent = null;
+			}
+			if (flushWhenReduceTimerTask != null) {
+				flushWhenReduceTimerTask.cancel(false);
+				flushWhenReduceTimerTask = null;
+			}
+
+			if (checkpoint != null) {
+				// FND7-54：先置null再join——join期间到达的提交立即进入停机拒绝（Closed），
+				// 终检点（join内的final flush）只负责此前已注册的脏集。
+				var cp = checkpoint;
+				checkpoint = null;
+				cp.stopAndJoin();
 			}
 
 			if (LocalRocksCacheDb != null) {
