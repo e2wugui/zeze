@@ -7,9 +7,12 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.FastLock;
 import Zeze.Util.RocksDatabase;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
 public final class Record<K> {
+	private static final Logger logger = LogManager.getLogger(Record.class);
 	public static final class RootInfo {
 		private final Record<?> record;
 		private final TableKey tableKey;
@@ -69,6 +72,48 @@ public final class Record<K> {
 
 	boolean isAccessed() {
 		return accessors.get() != 0;
+	}
+
+	/**
+	 * 【FND7-14联动·截断污染驱逐】flush 补偿因 term 不匹配被丢弃（{@code Rocks.takePendingFlush}
+	 * 的过期分支）时调用：记录的内存 bean 可能已被截断条目应用过（apply 是"先改内存、后flush"，
+	 * flush 失败的补偿窗口内内存态停留在截断条目应用后的样子）。污染记录留在缓存中，后续
+	 * {@code Table.followerApply/getOrLoad} 会命中它，把新条目的增量日志叠加到旧条目的残迹上，
+	 * 双重应用被提交复制出去即 leader/follower 静默分歧。这里把它驱逐出缓存，后续访问从
+	 * storage 重载干净基线（flush 失败时 storage 仍是截断前已提交的状态）。
+	 * <p>
+	 * 【决策】不经使用方回调（{@code lruTryRemoveCallback}）直接 pair-remove：回调语义是
+	 * "容量驱逐时征询使用方"（GCM 拒绝协议未完结的记录），而这里是正确性要求的失效——
+	 * 回调拒绝会让污染永久滞留；且使用方的删除变体不置 removed，并发
+	 * {@code getOrLoad} 竞争者仍可能拿到污染引用。在用（isAccessed）时放弃本轮驱逐：
+	 * 强制摘除会让在用方提交时经 origin 应用 flush 后，与驱逐后重装载的记录互相整值覆盖
+	 * （FND7-14 同型丢失更新）；此窗口内污染对并发读方的可见性由"普通表无同 key 并发
+	 * 隔离"契约覆盖（见 Table 类头）。
+	 */
+	void evictPolluted() {
+		var t = table;
+		var lru = t != null ? t.getLruCache() : null;
+		if (lru == null)
+			return; // 记录未挂表（测试直建）或表已关闭（lruCache置null）：无缓存可驱逐
+		if (isAccessed()) {
+			logger.warn("{}: polluted record(key={}) still in-use, skip eviction this round;"
+					+ " concurrent read of it is covered by the no-same-key-isolation contract.",
+					t.getName(), key);
+			return;
+		}
+		if (!mutex.tryLock())
+			return; // 并发getOrLoad临界区内：该路径返回前必然beginAccess，按在用处理
+		try {
+			if (isAccessed()) {
+				logger.warn("{}: polluted record(key={}) still in-use, skip eviction this round.",
+						t.getName(), key);
+				return;
+			}
+			setRemoved(true); // 并发getOrLoad竞争者经removed重试环换新记录
+			lru.remove(key, this); // pair-remove：仅当映射仍是本记录时删除
+		} finally {
+			mutex.unlock();
+		}
 	}
 
 	public Record(Class<K> keyClass) {

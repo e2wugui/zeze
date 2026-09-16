@@ -301,11 +301,11 @@ public class TestFnd714LeaderRecordCacheEviction {
 			assertFalse(cb.test(1, record2), "record under pendingFlush compensation must NOT be evicted");
 			assertNotNull(table.getLruCache().get(1));
 
-			// 过期丢弃（term不匹配）释放。
+			// 过期丢弃（term不匹配）释放，且按D①联动直接驱逐（内存态可能已被截断条目
+			// 应用过，留在缓存会让新条目的增量Edit叠加在污染bean上）。
 			assertNull(rocks.takePendingFlush(3, 2));
 			assertFalse(record2.isAccessed(), "term-mismatch discard must release the hold");
-			assertTrue(cb.test(1, record2));
-			assertNull(table.getLruCache().get(1));
+			assertNull(table.getLruCache().get(1), "term-mismatch discard must evict the polluted record");
 
 			// 消费路径（leader重试flush成功）也释放：重装载后再登记，走真实leaderApply
 			// 的pending分支（只重试flush），成功后释放在用保护。

@@ -80,7 +80,8 @@ public final class Rocks extends StateMachine implements Closeable {
 	// lastApplied未推进，重试若重新走增量日志重放（如list的OP_ADD按索引追加）会在
 	// 已应用的状态上双重应用并被后续提交复制出去。这里记录已应用的记录集合，
 	// 重试时跳过内存变更只重试flush；term不匹配说明同index已被新term条目复用
-	// （旧条目被截断），丢弃过期记录按全新条目应用。
+	// （旧条目被截断），丢弃过期记录并驱逐其（可能已被截断条目污染的）缓存记录，
+	// 按全新条目应用。
 	// 仅存在于apply失败到重试成功之间的短窗口，reset/restore/close时清空。
 	private final LongConcurrentHashMap<PendingFlush> pendingFlushApplies = new LongConcurrentHashMap<>();
 
@@ -101,8 +102,14 @@ public final class Rocks extends StateMachine implements Closeable {
 			return pending.records;
 		if (pending != null) {
 			// term不匹配：补偿记录随截断条目作废，释放补偿登记持有的在用保护（【FND7-14】）。
-			for (var r : pending.records)
+			for (var r : pending.records) {
 				r.endAccess();
+				// 【FND7-14联动】内存态可能已被截断条目应用过（flush失败的补偿窗口）：驱逐出
+				// 缓存，后续getOrLoad从storage重载截断前的干净基线；不驱逐则新条目的增量
+				// 日志在污染bean上叠加，双重应用被提交复制成静默分歧。在用时放弃本轮
+				// （理由与残余契约见Record.evictPolluted）。
+				r.evictPolluted();
+			}
 		}
 		return null;
 	}
