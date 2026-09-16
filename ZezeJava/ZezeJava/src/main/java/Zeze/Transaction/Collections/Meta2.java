@@ -100,8 +100,30 @@ public final class Meta2<K, V> {
 		name = headStr + keyClass.getName() + ",DynamicBean";
 	}
 
+	// 工厂层Bean拦截（R2-T backlog④收口）：容器类构造器已拦Bean key/value（判例FND6-41/
+	// FND7-05/FND7-09），但"直建meta再走PMap1(meta)/PMap2(meta)/BeanMap(meta)构造器"可绕过。
+	// 工厂是公开meta的唯一构建入口，在此拦截即封死全部绕行路径（含GTable的Bean行/列）。
+	// Bean key：值语义equals配身份hashCode，日志簿记HashMap/HashSet静默漏命中，可致主从分歧。
+	private static <K> void checkNonBeanKey(@NotNull String family, @NotNull Class<K> keyClass) {
+		if (Bean.class.isAssignableFrom(keyClass))
+			throw new IllegalArgumentException(
+					family + " does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
+							+ keyClass.getName());
+	}
+
+	// Bean值（仅1系）：1系按值拷贝记账、不挂接rootInfo，装入的bean永不受管，原位修改静默丢失。
+	// 2系（LogMap2/LogSortedMap2）Bean值受管合法，不拦。
+	private static <V> void checkNonBeanValue1(@NotNull String family, @NotNull Class<V> valueClass) {
+		if (Bean.class.isAssignableFrom(valueClass))
+			throw new IllegalArgumentException(
+					family + " does not support Bean value type (in-place modifications never managed, silently lost): "
+							+ valueClass.getName());
+	}
+
 	@SuppressWarnings("unchecked")
 	public static <K, V> @NotNull Meta2<K, V> getMap1Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+		checkNonBeanKey("LogMap1", keyClass);
+		checkNonBeanValue1("LogMap1", valueClass);
 		var map = map1Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
 		var r = map.get(valueClass);
 		if (r != null)
@@ -120,6 +142,7 @@ public final class Meta2<K, V> {
 	@SuppressWarnings("unchecked")
 	public static <K, V extends Bean> @NotNull Meta2<K, V> getMap2Meta(@NotNull Class<K> keyClass,
 	                                                                   @NotNull Class<V> valueClass) {
+		checkNonBeanKey("LogMap2", keyClass);
 		var map = map2Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
 		var r = map.get(valueClass);
 		if (r != null)
@@ -138,17 +161,21 @@ public final class Meta2<K, V> {
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createMap2Meta(@NotNull Class<K> keyClass,
 	                                                                      @NotNull Class<V> valueClass,
 	                                                                      @NotNull Supplier<V> valueCtor) {
+		checkNonBeanKey("LogMap2", keyClass);
 		return new Meta2<>("LogMap2:", map2HeadHash, keyClass, valueClass, valueCtor);
 	}
 
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicMapMeta(@NotNull Class<K> keyClass,
 	                                                                            @NotNull ToLongFunction<Bean> get,
 	                                                                            @NotNull LongFunction<Bean> create) {
+		checkNonBeanKey("LogMap2", keyClass);
 		return new Meta2<>("LogMap2:", map2HeadHash, keyClass, get, create);
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <K, V> @NotNull Meta2<K, V> getSortedMap1Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+		checkNonBeanKey("LogSortedMap1", keyClass);
+		checkNonBeanValue1("LogSortedMap1", valueClass);
 		var map = sortedMap1Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
 		var r = map.get(valueClass);
 		if (r != null)
@@ -160,6 +187,7 @@ public final class Meta2<K, V> {
 	@SuppressWarnings("unchecked")
 	public static <K, V extends Bean> @NotNull Meta2<K, V> getSortedMap2Meta(@NotNull Class<K> keyClass,
 	                                                                         @NotNull Class<V> valueClass) {
+		checkNonBeanKey("LogSortedMap2", keyClass);
 		var map = sortedMap2Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
 		var r = map.get(valueClass);
 		if (r != null)
@@ -171,12 +199,14 @@ public final class Meta2<K, V> {
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createSortedMap2Meta(@NotNull Class<K> keyClass,
 	                                                                            @NotNull Class<V> valueClass,
 	                                                                            @NotNull Supplier<V> valueCtor) {
+		checkNonBeanKey("LogSortedMap2", keyClass);
 		return new Meta2<>("LogSortedMap2:", sortedMap2HeadHash, keyClass, valueClass, valueCtor);
 	}
 
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicSortedMapMeta(@NotNull Class<K> keyClass,
 	                                                                                  @NotNull ToLongFunction<Bean> get,
 	                                                                                  @NotNull LongFunction<Bean> create) {
+		checkNonBeanKey("LogSortedMap2", keyClass);
 		return new Meta2<>("LogSortedMap2:", sortedMap2HeadHash, keyClass, get, create);
 	}
 

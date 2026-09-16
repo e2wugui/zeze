@@ -68,8 +68,19 @@ public final class Meta1<V> {
 		return (Meta1<V>)beanMetas.computeIfAbsent(beanClass, vc -> new Meta1<>("LogBeanKey:", beanHeadHash, (Class<V>)vc));
 	}
 
+	// 1系容器（LogList1/LogSet1）不支持Bean值（工厂层拦截，R2-T backlog④收口）：1系按值拷贝记账、
+	// 不挂接rootInfo，装入的bean永不受管（原位修改静默丢失，判例FND7-09）。工厂是公开meta的
+	// 唯一构建入口，在此拦截即封死"直建meta再走PList1(meta)/PSet1(meta)构造器"的绕行路径。
+	private static <V> void checkNonBeanValue(@NotNull String family, @NotNull Class<V> valueClass) {
+		if (Bean.class.isAssignableFrom(valueClass))
+			throw new IllegalArgumentException(
+					family + " does not support Bean value type (in-place modifications never managed, silently lost): "
+							+ valueClass.getName());
+	}
+
 	@SuppressWarnings("unchecked")
 	public static <V> @NotNull Meta1<V> getList1Meta(@NotNull Class<V> valueClass) {
+		checkNonBeanValue("LogList1", valueClass);
 		return (Meta1<V>)list1Metas.computeIfAbsent(valueClass, vc -> new Meta1<>("LogList1:", list1HeadHash, (Class<V>)vc));
 	}
 
@@ -80,6 +91,7 @@ public final class Meta1<V> {
 
 	@SuppressWarnings("unchecked")
 	public static <V> @NotNull Meta1<V> getSet1Meta(@NotNull Class<V> valueClass) {
+		checkNonBeanValue("LogSet1", valueClass);
 		return (Meta1<V>)set1Metas.computeIfAbsent(valueClass, vc -> new Meta1<>("LogSet1:", set1HeadHash, (Class<V>)vc));
 	}
 
