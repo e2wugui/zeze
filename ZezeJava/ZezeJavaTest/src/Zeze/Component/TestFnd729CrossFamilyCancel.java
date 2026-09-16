@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
 public class TestFnd729CrossFamilyCancel {
 
 	/** 在线族定时器桩：存储钩子全部map替身，供cancelOnlineLocal全路径驱动。 */
-	private static final class StubOnlineTimers extends TimerOnlineBase<String> {
+	static final class StubOnlineTimers extends TimerOnlineBase<String> {
 		private final @NotNull Timer timer;
 		private final @NotNull ConcurrentHashMap<String, OnlineTimer<String>> onlineTimers = new ConcurrentHashMap<>();
 		private final @NotNull ConcurrentHashMap<String, BOnlineTimers> localTimers = new ConcurrentHashMap<>();
@@ -70,7 +70,7 @@ public class TestFnd729CrossFamilyCancel {
 		@Override
 		@NotNull OnlineTimer<String> newOnlineTimer(@NotNull String id, long loginVersion, long serialId,
 													@NotNull Bean timerObj) {
-			throw new UnsupportedOperationException();
+			return new StubOnlineTimer(serialId, timerObj);
 		}
 
 		@Override
@@ -126,16 +126,22 @@ public class TestFnd729CrossFamilyCancel {
 	}
 
 	/** 在线族定时器记录桩：cancelOnlineLocal需要identity/serialId/loginVersion。 */
-	private static final class StubOnlineTimer extends TimerOnlineBase.OnlineTimer<String> {
+	static final class StubOnlineTimer extends TimerOnlineBase.OnlineTimer<String> {
 		private final long serialId;
+		private final @NotNull Bean timerObj;
 
 		StubOnlineTimer(long serialId) {
+			this(serialId, new BSimpleTimer());
+		}
+
+		StubOnlineTimer(long serialId, @NotNull Bean timerObj) {
 			this.serialId = serialId;
+			this.timerObj = timerObj;
 		}
 
 		@Override
 		@NotNull Bean getTimerObj() {
-			return new BSimpleTimer();
+			return timerObj;
 		}
 
 		@Override
@@ -163,7 +169,7 @@ public class TestFnd729CrossFamilyCancel {
 	// Application并发需要不同serverId与独立Memory桶（同TakeoverTestEnv口径，本类包内自持一份）。
 	private static final AtomicInteger NextServerId = new AtomicInteger(300);
 
-	private static final class TestAppBase extends AppBase {
+	static final class TestAppBase extends AppBase {
 		private final @NotNull Application zeze;
 
 		TestAppBase(@NotNull Application zeze) {
@@ -176,7 +182,8 @@ public class TestFnd729CrossFamilyCancel {
 		}
 	}
 
-	private static final class TestEnv implements AutoCloseable {
+	/** 包内共享测试环境：编程式Application（SM=disable、独立Memory桶）+已start的Timer。 */
+	static final class TestEnv implements AutoCloseable {
 		final @NotNull Application app;
 		final @NotNull Timer timer;
 

@@ -1180,7 +1180,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			root.setTailNodeId(prevNodeId);
 	}
 
-	private static void dispatchFire(@Nullable String oneByOneKey, @NotNull Runnable fire) {
+	// fire按oneByOneKey派发：空/null直跑，非空包executeOneByOne（同key串行）。
+	// 全局族（scheduleSimple/scheduleCronNext/loadTimer）与在线族（TimerOnlineBase安装）共用。
+	static void dispatchFire(@Nullable String oneByOneKey, @NotNull Runnable fire) {
 		if (oneByOneKey == null || oneByOneKey.isEmpty())
 			fire.run();
 		else

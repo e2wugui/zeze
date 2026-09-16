@@ -147,10 +147,13 @@ abstract class TimerOnlineBase<I> {
 			timer().tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		var delay = Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
+		// FND7-30：oneByOneKey是公开契约参数（随bean持久化），online族安装必须与全局/离线族
+		// 一样尊重——否则共用key的定时器到期并发跑回调，用户按串行假设写的回调产生竞态。
+		var oneByOneKey = simpleTimer.getOneByOneKey();
 		if (hot)
-			scheduleOnlineSimpleHot(timerId, delay, handleClass);
+			scheduleOnlineSimpleHot(timerId, delay, handleClass, oneByOneKey);
 		else
-			scheduleOnlineSimple(timerId, delay, timer().findTimerHandle(handleClass.getName()));
+			scheduleOnlineSimple(timerId, delay, timer().findTimerHandle(handleClass.getName()), oneByOneKey);
 	}
 
 	final void scheduleOnline(boolean hot, @NotNull I id, @NotNull String timerId, @NotNull BCronTimer cronTimer,
@@ -195,9 +198,10 @@ abstract class TimerOnlineBase<I> {
 			timer().tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (hot)
-			scheduleOnlineCronHot(timerId, cronTimer, handleClass);
+			scheduleOnlineCronHot(timerId, cronTimer, handleClass, cronTimer.getOneByOneKey());
 		else
-			scheduleOnlineCron(timerId, cronTimer, timer().findTimerHandle(handleClass.getName()));
+			scheduleOnlineCron(timerId, cronTimer, timer().findTimerHandle(handleClass.getName()),
+					cronTimer.getOneByOneKey());
 	}
 
 	// ///////////////////////////////////////////////////////////////
@@ -337,12 +341,16 @@ abstract class TimerOnlineBase<I> {
 
 	// ///////////////////////////////////////////////////////////////
 	// 安装到ThreadPool与触发
-	private void scheduleOnlineSimple(@NotNull String timerId, long delay, @Nullable TimerHandle handle) {
+	// FND7-30：oneByOneKey非空时fire经Timer.dispatchFire包executeOneByOne（对齐全局族
+	// scheduleSimple/scheduleCronNext），共用key的online定时器回调按key串行。
+	private void scheduleOnlineSimple(@NotNull String timerId, long delay, @Nullable TimerHandle handle,
+									  @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId,
-					TaskSpec.ofAction(() -> fireOnlineSimple(timerId, handle, false)).scheduleNow(delay));
+					TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
+							() -> fireOnlineSimple(timerId, handle, false))).scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
@@ -363,56 +371,64 @@ abstract class TimerOnlineBase<I> {
 	}
 
 	private void scheduleOnlineSimpleHot(@NotNull String timerId, long delay,
-										 @NotNull Class<? extends TimerHandle> handleClass) {
+										 @NotNull Class<? extends TimerHandle> handleClass,
+										 @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId, TaskSpec
-					.ofAction(() -> fireOnlineSimple(timerId, findTimerHandleSafely(handleClass.getName()), true))
+					.ofAction(() -> Timer.dispatchFire(oneByOneKey,
+							() -> fireOnlineSimple(timerId, findTimerHandleSafely(handleClass.getName()), true)))
 					.scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
 	}
 
-	private void scheduleOnlineCron(@NotNull String timerId, @NotNull BCronTimer cron, @Nullable TimerHandle handle) {
+	private void scheduleOnlineCron(@NotNull String timerId, @NotNull BCronTimer cron, @Nullable TimerHandle handle,
+									 @Nullable String oneByOneKey) {
 		try {
 			scheduleOnlineCronNext(timerId,
-					Math.max(cron.getNextExpectedTime() - System.currentTimeMillis(), 1), handle);
+					Math.max(cron.getNextExpectedTime() - System.currentTimeMillis(), 1), handle, oneByOneKey);
 		} catch (Exception ex) {
 			logger.error("scheduleOnlineCron exception:", ex);
 		}
 	}
 
 	private void scheduleOnlineCronHot(@NotNull String timerId, @NotNull BCronTimer cron,
-									   @NotNull Class<? extends TimerHandle> handleClass) {
+									   @NotNull Class<? extends TimerHandle> handleClass,
+									   @Nullable String oneByOneKey) {
 		try {
 			scheduleOnlineCronNextHot(timerId,
-					Math.max(cron.getNextExpectedTime() - System.currentTimeMillis(), 1), handleClass);
+					Math.max(cron.getNextExpectedTime() - System.currentTimeMillis(), 1), handleClass, oneByOneKey);
 		} catch (Exception ex) {
 			logger.error("scheduleOnlineCronHot exception:", ex);
 		}
 	}
 
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
-	private void scheduleOnlineCronNext(@NotNull String timerId, long delay, @Nullable TimerHandle handle) {
+	private void scheduleOnlineCronNext(@NotNull String timerId, long delay, @Nullable TimerHandle handle,
+										@Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId,
-					TaskSpec.ofAction(() -> fireOnlineCron(timerId, handle, false)).scheduleNow(delay));
+					TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
+							() -> fireOnlineCron(timerId, handle, false))).scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
 	}
 
 	private void scheduleOnlineCronNextHot(@NotNull String timerId, long delay,
-										   @NotNull Class<? extends TimerHandle> handleClass) {
+										   @NotNull Class<? extends TimerHandle> handleClass,
+										   @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId, TaskSpec
-					.ofAction(() -> fireOnlineCron(timerId, findTimerHandleSafely(handleClass.getName()), true))
+					.ofAction(() -> Timer.dispatchFire(oneByOneKey,
+							() -> fireOnlineCron(timerId, findTimerHandleSafely(handleClass.getName()), true)))
 					.scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
@@ -457,10 +473,11 @@ abstract class TimerOnlineBase<I> {
 									 boolean hot) {
 				var cronTimer = (BCronTimer)bTimer.getTimerObj();
 				var delay = Math.max(cronTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
+				var oneByOneKey = cronTimer.getOneByOneKey();
 				if (hot)
-					scheduleOnlineCronNextHot(timerId, delay, handle.getClass());
+					scheduleOnlineCronNextHot(timerId, delay, handle.getClass(), oneByOneKey);
 				else
-					scheduleOnlineCronNext(timerId, delay, handle);
+					scheduleOnlineCronNext(timerId, delay, handle, oneByOneKey);
 			}
 		});
 	}
@@ -502,10 +519,11 @@ abstract class TimerOnlineBase<I> {
 									 boolean hot) {
 				var simpleTimer = (BSimpleTimer)bTimer.getTimerObj();
 				var delay = Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
+				var oneByOneKey = simpleTimer.getOneByOneKey();
 				if (hot)
-					scheduleOnlineSimpleHot(timerId, delay, handle.getClass());
+					scheduleOnlineSimpleHot(timerId, delay, handle.getClass(), oneByOneKey);
 				else
-					scheduleOnlineSimple(timerId, delay, handle);
+					scheduleOnlineSimple(timerId, delay, handle, oneByOneKey);
 			}
 		});
 	}
