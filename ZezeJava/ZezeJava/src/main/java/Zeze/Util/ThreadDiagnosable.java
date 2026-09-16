@@ -22,9 +22,12 @@ public final class ThreadDiagnosable {
 				if (!disableInterrupt) {
 					try {
 						var now = System.nanoTime();
-						for (var timeout : timeouts) {
-							if (timeout.timeoutTime <= now && !Boolean.TRUE.equals(Critical.tlCritical.get())
-									&& timeouts.remove(timeout) != null) { // 每个timeout仅触发一次
+					for (var timeout : timeouts) {
+						// 豁免读timeout创建线程的critical快照（FND7-43）：检查运行在诊断线程上，
+						// 原先读Critical.tlCritical.get()取的是诊断线程自己的ThreadLocal副本（恒null），
+						// enterCritical(true)的豁免从未生效。
+						if (timeout.timeoutTime <= now && !timeout.isCritical()
+								&& timeouts.remove(timeout) != null) { // 每个timeout仅触发一次
 								timeout.lock();
 								try {
 									var t = timeout.thread;
@@ -75,6 +78,9 @@ public final class ThreadDiagnosable {
 	public static final class Timeout extends ReentrantLock implements AutoCloseable {
 		private @Nullable Thread thread = Thread.currentThread();
 		private final long timeoutTime;
+		// 构造线程（工作线程）的critical标志快照（FND7-43）：豁免以Timeout创建时刻为准，
+		// createTimeout须在enterCritical(true)临界区内调用才受豁免保护。
+		private final boolean critical;
 
 		// 注意必须使用try包装,确保new和close配对
 		public Timeout(long timeout) {
@@ -84,7 +90,12 @@ public final class ThreadDiagnosable {
 				timeout = 0;
 			timeout = timeout * 1_000_000 + System.nanoTime();
 			timeoutTime = timeout < 0 ? Long.MAX_VALUE : timeout;
+			critical = Boolean.TRUE.equals(Critical.tlCritical.get());
 			timeouts.add(this);
+		}
+
+		boolean isCritical() {
+			return critical;
 		}
 
 		@Override

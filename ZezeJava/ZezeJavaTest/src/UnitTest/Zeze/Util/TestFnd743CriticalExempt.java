@@ -1,0 +1,81 @@
+package UnitTest.Zeze.Util;
+
+import java.util.concurrent.CountDownLatch;
+
+import Zeze.Util.Task;
+import Zeze.Util.ThreadDiagnosable;
+import harness.Fast;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+/**
+ * FND7-43 回归：ThreadDiagnosable 的 critical 豁免检查运行在 DiagnoseThread 上，
+ * 原先读 Critical.tlCritical.get() 取的是诊断线程自己的 ThreadLocal 副本（恒 null），
+ * 而 enterCritical(true) 只设置工作线程的副本——豁免从未生效：
+ * 虚拟线程 critical 池（优先级恒 NORM）上的超时任务照样被打断。
+ * 修复：Timeout 构造时快照创建线程的 critical 标志，诊断线程据此跳过。
+ */
+@Fast
+public class TestFnd743CriticalExempt {
+	private boolean savedDisableInterrupt;
+
+	@BeforeEach
+	public void before() {
+		savedDisableInterrupt = ThreadDiagnosable.disableInterrupt;
+		ThreadDiagnosable.disableInterrupt = false;
+	}
+
+	@AfterEach
+	public void after() {
+		ThreadDiagnosable.stopDiagnose(); // 让本测试启动的诊断线程退出
+		ThreadDiagnosable.disableInterrupt = savedDisableInterrupt;
+	}
+
+	/** 对照组：未标记critical的超时任务必须被打断——证明诊断线程确实在跑，
+	 * 防止豁免用例因诊断未启动而假绿。 */
+	@Test
+	public void testNonCriticalStillInterrupted() throws Exception {
+		ThreadDiagnosable.startDiagnose(10);
+		var interrupted = runWorker(false);
+		Assertions.assertTrue(interrupted, "非critical的超时任务必须被打断（对照组）");
+	}
+
+	/** 主用例：enterCritical(true) 临界区内 createTimeout 的工作线程（优先级NORM，
+	 * 无优先级兜底保护）超时不得被打断——修复前豁免读错线程的ThreadLocal，恒被打断。 */
+	@Test
+	public void testCriticalExemptNotInterrupted() throws Exception {
+		ThreadDiagnosable.startDiagnose(10);
+		var interrupted = runWorker(true);
+		Assertions.assertFalse(interrupted, "critical豁免必须生效（FND7-43）");
+	}
+
+	/** NORM优先级工作线程内 sleep(1000)，超时200ms；critical 控制是否 enterCritical(true)。 */
+	private static boolean runWorker(boolean critical) throws Exception {
+		var interrupted = new CountDownLatch(1);
+		var worker = new Thread(null, () -> {
+			try {
+				if (critical) {
+					try (var ignoredCritical = Task.enterCritical(true);
+						 var ignoredTimeout = Task.createTimeout(200)) {
+						Thread.sleep(1000);
+					}
+				} else {
+					try (var ignoredTimeout = Task.createTimeout(200)) {
+						Thread.sleep(1000);
+					}
+				}
+			} catch (InterruptedException e) {
+				interrupted.countDown();
+			}
+		}, "fnd743-worker-" + critical);
+		worker.setDaemon(true);
+		Assertions.assertEquals(Thread.NORM_PRIORITY, worker.getPriority(),
+				"用例前提：NORM优先级线程无优先级兜底，只能靠critical豁免保护");
+		worker.start();
+		worker.join(5000);
+		Assertions.assertFalse(worker.isAlive(), "worker必须在5秒内结束");
+		return interrupted.getCount() == 0;
+	}
+}
