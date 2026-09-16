@@ -283,7 +283,9 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 	@Override
 	public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
 		var _pn_ = Bean.parentsToName(_p_);
-		Zeze.Serialize.Helper.decodeJsonMap(this, "Map1", pMap1, _r_.getString(_pn_ + "Map1"));
+		// FND7-11：decodeJsonMap按"Map1"反射匹配不到字段pMap1（fieldNameFilter只剥_前缀，
+		// 详见Helper.decodeJsonTypedMap），改按meta定型解码。
+		Zeze.Serialize.Helper.decodeJsonTypedMap(pMap1, pMap1.getMeta(), _r_.getString(_pn_ + "Map1"));
 	}
 
 	@Override

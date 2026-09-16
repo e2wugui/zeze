@@ -6,7 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Collections.Meta2;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
@@ -181,6 +183,43 @@ public class Helper {
 			} finally {
 				jr.reset();
 			}
+		}
+	}
+
+	// FND7-11：BeanMap1/BeanMap2的行map（C→V）按meta的keyClass/valueClass定型解码。
+	// decodeJsonMap以{fieldName:json}包装走反射字段名匹配：行bean的字段名经fieldNameFilter
+	// 后为pMap1/pMap2（无下划线前缀可剥），传入"Map1"/"Map2"查不到字段——整段JSON静默空转
+	// 且clear()清空现有数据；且行bean的泛型C/V在声明处是类型变量，反射路径退化为
+	// Map<String,Object>（键成String，类型化get全miss）。本方法按meta构建FieldMeta直接
+	// parseMap0（与GTable1/GTable2解析器同款模式），键值按真实类型解码；FieldMeta按meta缓存。
+	private static final @NotNull ConcurrentHashMap<Meta2<?, ?>, Json.FieldMeta> jsonMapFieldMetas
+			= new ConcurrentHashMap<>();
+
+	public static <K, V> void decodeJsonTypedMap(@NotNull Map<?, ?> map, @NotNull Meta2<K, V> meta,
+												 @Nullable String jsonStr) {
+		map.clear();
+		if (jsonStr == null)
+			return;
+		var fm = jsonMapFieldMetas.computeIfAbsent(meta, __ -> {
+			try {
+				// dummyField仅填充FieldMeta.field（本解析路径不使用）。
+				var dummyField = Helper.class.getDeclaredField("jsonMapFieldMetas");
+				return new Json.FieldMeta(0x30 + Json.ClassMeta.getType(meta.valueClass), 0, "Map",
+						meta.valueClass, Json.ClassMeta.getDefCtor(meta.valueClass),
+						Json.ClassMeta.getKeyReader(meta.keyClass), dummyField);
+			} catch (ReflectiveOperationException e) {
+				throw new IllegalStateException(e);
+			}
+		});
+		var jr = JsonReader.local();
+		try {
+			@SuppressWarnings("unchecked")
+			var m = (Map<Object, Object>)map;
+			jr.buf(jsonStr).parseMap0(m, json.getClassMeta(map.getClass()), fm);
+		} catch (ReflectiveOperationException e) {
+			throw Task.forceThrow(e);
+		} finally {
+			jr.reset();
 		}
 	}
 

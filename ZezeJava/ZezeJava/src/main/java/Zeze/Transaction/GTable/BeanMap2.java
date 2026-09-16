@@ -299,7 +299,9 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 	@Override
 	public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
 		var _pn_ = Bean.parentsToName(_p_);
-		Zeze.Serialize.Helper.decodeJsonMap(this, "Map2", pMap2, _r_.getString(_pn_ + "Map2"));
+		// FND7-11：decodeJsonMap按"Map2"反射匹配不到字段pMap2（fieldNameFilter只剥_前缀，
+		// 详见Helper.decodeJsonTypedMap），改按meta定型解码。
+		Zeze.Serialize.Helper.decodeJsonTypedMap(pMap2, pMap2.getMeta(), _r_.getString(_pn_ + "Map2"));
 	}
 
 	@Override
