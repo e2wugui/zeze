@@ -4,8 +4,12 @@ import java.lang.management.LockInfo;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.LockSupport;
 import Zeze.Application;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -103,63 +107,178 @@ public class DeadlockBreaker extends ThreadHelper {
 	 * 检测死锁，并尝试打破死锁环。
 	 */
 	private boolean detect() {
+		boolean found = false;
+
+		// 平台线程的 monitor/ownable-synchronizer 死锁（原路径保持不变）。
 		// 返回死锁的线程。 可能包含多个环。 以及等待环上的线程。
 		long[] deadlockedThreadIds = threadMXBean.findDeadlockedThreads();
-		if (deadlockedThreadIds == null)
-			return false;
-
-		// 构建死锁线程信息映射。
-		var deadlockedThreads = new HashMap<Long, ThreadInfo>();
-		for (ThreadInfo tInfo : threadMXBean.getThreadInfo(deadlockedThreadIds,
-				threadMXBean.isObjectMonitorUsageSupported(), threadMXBean.isSynchronizerUsageSupported())) {
-			try {
-				// getLockOwnerId == -1。不在等待被其他线程拥有的锁. 肯定不是环的一部分。
-				// 这种情况按道理不可能发生在findDeadlockedThreads的结果中。
-				// 如果出现，一般是并发访问造成的，如线程被销毁了。这里简单的忽略掉。
-				if (tInfo != null && tInfo.getLockOwnerId() != -1)
-					deadlockedThreads.put(tInfo.getThreadId(), tInfo);
-			} catch (Exception e) {
-				// 并发访问： 在构建过程中，线程发生了变动。忽略这种错误。
-				logger.debug("concurrent thread change", e);
+		if (deadlockedThreadIds != null) {
+			// 构建死锁线程信息映射。
+			var deadlockedThreads = new HashMap<Long, ThreadInfo>();
+			for (ThreadInfo tInfo : threadMXBean.getThreadInfo(deadlockedThreadIds,
+					threadMXBean.isObjectMonitorUsageSupported(), threadMXBean.isSynchronizerUsageSupported())) {
+				try {
+					// getLockOwnerId == -1。不在等待被其他线程拥有的锁. 肯定不是环的一部分。
+					// 这种情况按道理不可能发生在findDeadlockedThreads的结果中。
+					// 如果出现，一般是并发访问造成的，如线程被销毁了。这里简单的忽略掉。
+					if (tInfo != null && tInfo.getLockOwnerId() != -1)
+						deadlockedThreads.put(tInfo.getThreadId(), tInfo);
+				} catch (Exception e) {
+					// 并发访问： 在构建过程中，线程发生了变动。忽略这种错误。
+					logger.debug("concurrent thread change", e);
+				}
 			}
+
+			/*
+			 * 所有的线程。用来提供ThreadId到Thread的转换，java不提供这种转换。 xdb.Worker
+			 * 可以转换，对于其他自建线程，需要枚举系统内的所有线程，用来进行中断等操作。
+			 * 在检测过程中，如果需要使用才初始化这个变量。由于线程本身动态创建和销毁的并发性，
+			 * 这个'所有的线程'仅在这一次检测中有效，并且不保证所有的转换查找都能成功。
+			 */
+			Map<Long, Thread> allThreads = null;
+
+			// 检测死锁环，从环中随机挑选一个线程，尝试执行中断操作。
+			while (!deadlockedThreads.isEmpty()) {
+				var cycle = new HashMap<Long, ThreadInfo>();
+				ThreadInfo tInfo = deadlockedThreads.entrySet().iterator().next().getValue();
+				do {
+					if (cycle.put(tInfo.getThreadId(), tInfo) != null) {
+						// cycle found.
+
+						// dump interrupt info
+						StringBuilder sb = new StringBuilder("Angel.interrupt thread \"");
+						sb.append(tInfo.getThreadName()).append("\" Id=")
+								.append(tInfo.getThreadId());
+						sb.append(" in cycle:\n");
+						for (ThreadInfo info : cycle.values()) // 打印的时候把挂在环上的线程也打出来。
+							dumpThreadInfoTo(info, sb);
+						logger.fatal(sb);
+
+						// interrupt thread
+						allThreads = interrupt(tInfo, allThreads);
+
+						// break and try to find another cycle
+						break;
+					}
+				} while ((tInfo = deadlockedThreads.get(tInfo.getLockOwnerId())) != null);
+				// 删除已经被处理的线程。cycle是完整的环，或者是那些等待的环已被打破剩下的孤立枝节。
+				deadlockedThreads.keySet().removeAll(cycle.keySet());
+			}
+			found = true;
 		}
 
-		/*
-		 * 所有的线程。用来提供ThreadId到Thread的转换，java不提供这种转换。 xdb.Worker
-		 * 可以转换，对于其他自建线程，需要枚举系统内的所有线程，用来进行中断等操作。
-		 * 在检测过程中，如果需要使用才初始化这个变量。由于线程本身动态创建和销毁的并发性，
-		 * 这个'所有的线程'仅在这一次检测中有效，并且不保证所有的转换查找都能成功。
-		 */
-		Map<Long, Thread> allThreads = null;
+		// FastLock 等待环（含虚拟线程，FND7-70）。
+		if (reportAndBreakLockWaitCycles())
+			found = true;
 
-		// 检测死锁环，从环中随机挑选一个线程，尝试执行中断操作。
-		while (!deadlockedThreads.isEmpty()) {
-			var cycle = new HashMap<Long, ThreadInfo>();
-			ThreadInfo tInfo = deadlockedThreads.entrySet().iterator().next().getValue();
-			do {
-				if (cycle.put(tInfo.getThreadId(), tInfo) != null) {
-					// cycle found.
+		return found;
+	}
 
-					// dump interrupt info
-					StringBuilder sb = new StringBuilder("Angel.interrupt thread \"");
-					sb.append(tInfo.getThreadName()).append("\" Id=")
-							.append(tInfo.getThreadId());
-					sb.append(" in cycle:\n");
-					for (ThreadInfo info : cycle.values()) // 打印的时候把挂在环上的线程也打出来。
-						dumpThreadInfoTo(info, sb);
-					logger.fatal(sb);
+	/**
+	 * 检测 FastLock 等待死锁环（含虚拟线程，FND7-70）。
+	 * JDK21：findDeadlockedThreads 不检测虚拟线程的 AQS 死锁，而 Task 默认线程池即虚拟线程；
+	 * 也没有公开 API 枚举 VT（ThreadGroup.enumerate 与 Thread.getAllStackTraces 均不含 VT）。
+	 * FastLock 慢路径在 waitingThreads 登记 等待线程→锁，锁的 getOwner() 给出持有者，
+	 * 构成 等待者→持有者 的等待边（每线程同一时刻最多一把，出边唯一），在函数图上找环。
+	 * 以 LockSupport.getBlocker 确认线程真 park 在该锁上（AQS park 以 synchronizer 自身为
+	 * blocker），排除登记窗口内已释放的瞬态。等待非 FastLock 的 AQS 锁（如 ReentrantLock）
+	 * 无法确定持有者，不参与检测。
+	 * <p>
+	 * 复审R3成文的覆盖边界：登记点在 FastLock 的 lock/lockInterruptibly/tryLock(t,u) 慢路径，
+	 * ConditionObject.await 被唤醒后的锁重获取阻塞发生在条件对象内部、不经过登记点，经条件
+	 * 重获取构成的环不在检测范围（纯平台线程时可另由 findDeadlockedThreads 覆盖）。
+	 * 登记以等待者为键（每线程同一时刻最多等一把），与锁的获取路径无关：环成员必然处于
+	 * 阻塞等待、必然经慢路径登记，快路径无竞争获取的锁虽不上表但其 owner 可查，不漏检。
+	 *
+	 * @return 本轮发现的死锁环（每环为构成环的线程列表）。
+	 */
+	public static @NotNull List<List<Thread>> findLockWaitDeadlockCycles() {
+		// 等待边：等待线程 -> 锁持有者。
+		var edges = new HashMap<Thread, Thread>();
+		for (var entry : FastLock.waitingThreads.entrySet()) {
+			var waiter = entry.getKey();
+			var lock = entry.getValue();
+			if (!waiter.isAlive() || LockSupport.getBlocker(waiter) != lock)
+				continue;
+			var owner = lock.getOwner();
+			if (owner != null && owner.isAlive())
+				edges.put(waiter, owner); // owner==waiter 保留为自环（非重入锁重入误用）
+		}
 
-					// interrupt thread
-					allThreads = interrupt(tInfo, allThreads);
-
-					// break and try to find another cycle
+		// 函数图找环：沿唯一的出边走，遇到已在当前路径上的节点即成环。
+		var cycles = new ArrayList<List<Thread>>();
+		var done = new HashSet<Thread>();
+		for (var start : edges.keySet()) {
+			if (done.contains(start))
+				continue;
+			var path = new ArrayList<Thread>();
+			var indexOf = new HashMap<Thread, Integer>();
+			for (var t = start; t != null && !done.contains(t); t = edges.get(t)) {
+				var idx = indexOf.put(t, path.size());
+				if (idx != null) {
+					cycles.add(new ArrayList<>(path.subList(idx, path.size())));
 					break;
 				}
-			} while ((tInfo = deadlockedThreads.get(tInfo.getLockOwnerId())) != null);
-			// 删除已经被处理的线程。cycle是完整的环，或者是那些等待的环已被打破剩下的孤立枝节。
-			deadlockedThreads.keySet().removeAll(cycle.keySet());
+				path.add(t);
+			}
+			done.addAll(path);
 		}
-		return true;
+		return cycles;
+	}
+
+	/**
+	 * 报告并尝试打断 FastLock 等待环；仅处理包含虚拟线程的环（纯平台线程的 FastLock 死锁
+	 * 已由 findDeadlockedThreads 路径覆盖，避免重复报告和打断）。查不到/无法打断的线程
+	 * 以含线程名的告警降级。
+	 *
+	 * @return 是否报告了环。
+	 */
+	private static boolean reportAndBreakLockWaitCycles() {
+		boolean reported = false;
+		for (var cycle : findLockWaitDeadlockCycles()) {
+			boolean hasVirtual = false;
+			for (var t : cycle)
+				hasVirtual |= t.isVirtual();
+			if (!hasVirtual)
+				continue;
+
+			var sb = new StringBuilder("Angel.interrupt FastLock wait cycle:\n");
+			for (var t : cycle)
+				dumpThreadTo(t, sb);
+			logger.fatal(sb);
+
+			for (var t : cycle) {
+				try {
+					t.interrupt();
+				} catch (Throwable e) { // SecurityException等
+					logger.warn("interrupt thread \"{}\" Id={} failed", t.getName(), t.threadId(), e);
+				}
+			}
+			reported = true;
+		}
+		return reported;
+	}
+
+	private static void dumpThreadTo(@NotNull Thread t, @NotNull StringBuilder sb) {
+		var lockWaiting = FastLock.waitingThreads.get(t);
+		sb.append('"').append(t.getName()).append('"');
+		sb.append(" Id=").append(t.threadId()).append(' ').append(t.getState());
+		if (t.isVirtual())
+			sb.append(" virtual");
+		if (lockWaiting != null) {
+			sb.append(" on ").append(lockWaiting);
+			var owner = lockWaiting.getOwner();
+			if (owner != null)
+				sb.append(" owned by \"").append(owner.getName()).append("\" Id=").append(owner.threadId());
+		}
+		sb.append('\n');
+		StackTraceElement[] stackTrace = t.getStackTrace();
+		int i = 0;
+		for (; i < stackTrace.length && i < MAX_DEPTH; i++)
+			sb.append("\tat ").append(stackTrace[i]).append('\n');
+		if (i < stackTrace.length)
+			sb.append("\t...\n");
+		sb.append('\n');
 	}
 
 	public static void dumpThreadInfoTo(@NotNull ThreadInfo tInfo, @NotNull StringBuilder sb) {
@@ -221,7 +340,9 @@ public class DeadlockBreaker extends ThreadHelper {
 				thread.interrupt();
 				return allThreads;
 			}
-			logger.info("thread not found: {}", tInfo);
+			// FND7-70：查不到目标线程（检测后线程已退出等）降级为含线程名的告警，
+			// 不再误报为可正常中断的info。
+			logger.warn("thread not found for interrupt (may have exited): {}", tInfo);
 		} catch (Throwable e) { // logger.fatal
 			logger.fatal(tInfo, e);
 		}
