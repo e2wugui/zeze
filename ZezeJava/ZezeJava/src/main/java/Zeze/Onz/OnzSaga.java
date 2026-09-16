@@ -1,5 +1,6 @@
 package Zeze.Onz;
 
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Onz.BFuncProcedure;
 import Zeze.Builtin.Onz.FuncSaga;
 import Zeze.Net.Binary;
@@ -10,6 +11,10 @@ import Zeze.Transaction.Bean;
 public class OnzSaga extends OnzProcedure {
 	private volatile boolean end = false; // setEnd在协议线程，isEnd在Checkpoint flush线程
 	private final long startTime = System.currentTimeMillis();
+	// FND7-34：FuncSaga的业务在任务池异步执行，FuncSagaEnd(cancel/end)可能在业务仍在
+	// 执行时到达（协调者超时补偿就是冲着慢步骤去的）。业务与cancel/end互斥：补偿必须
+	// 串行在业务完成之后——业务随后失败回滚时抢先执行的补偿就是过补偿（反向分歧）。
+	private final ReentrantLock businessLock = new ReentrantLock();
 
 	public OnzSaga(Rpc<?, ?> rpc,
 				   BFuncProcedure.Data funcArgument,
@@ -19,6 +24,14 @@ public class OnzSaga extends OnzProcedure {
 
 	public long getStartTime() {
 		return startTime;
+	}
+
+	final void lockBusiness() {
+		businessLock.lock();
+	}
+
+	final void unlockBusiness() {
+		businessLock.unlock();
 	}
 
 	@Override

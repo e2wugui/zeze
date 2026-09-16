@@ -83,6 +83,9 @@ public class OnzAgent extends AbstractOnzAgent {
 		r.Argument.setFuncName(onzProcedureName);
 		r.Argument.setFlushMode(flushMode);
 		r.Argument.setFlushTimeout(pending.getFlushTimeout());
+		// FND7-34：rpc超时不再用字段默认5s——复用flushTimeout（默认10s，随事务可配）。
+		// 步骤业务+网络往返超过5s时固定超时把仍会成功的调用判为失败，触发不必要的回滚。
+		r.setTimeout(pending.getFlushTimeout());
 		var bbArgument = ByteBuffer.Allocate();
 		argument.encode(bbArgument);
 		r.Argument.setFuncArgument(new Binary(bbArgument));
@@ -117,6 +120,11 @@ public class OnzAgent extends AbstractOnzAgent {
 		r.Argument.setFuncName(onzProcedureName);
 		r.Argument.setFlushMode(flushMode);
 		r.Argument.setFlushTimeout(pending.getFlushTimeout());
+		// FND7-34：rpc超时不再用字段默认5s——复用flushTimeout（默认10s，随事务可配）。
+		// saga参与方"发结果即本地提交"（OnzSaga.sendReadyAndWait），固定5s超时把实际会提交
+		// 的步骤判为失败，而cancelSaga原只补偿成功步骤，超时步骤的写入永久残留（部分提交
+		// 的静默分歧）。
+		r.setTimeout(pending.getFlushTimeout());
 		var bbArgument = ByteBuffer.Allocate();
 		argument.encode(bbArgument);
 		r.Argument.setFuncArgument(new Binary(bbArgument));

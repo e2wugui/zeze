@@ -145,7 +145,6 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		// 等待已经发出的saga的结果（包括失败的），
 		// 因为saga可能异步发送，并且中途发生了错误，
 		// 此时需要继续把没得到的结果等到。
-		// 然后根据结果决定怎么发送FuncSagaEnd
 		for (var saga : zezeSagas.values()) {
 			try {
 				saga.get();
@@ -154,21 +153,43 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			}
 		}
 		var futures = new ArrayList<TaskCompletionSource<?>>();
+		var rpcs = new ArrayList<FuncSagaEnd>();
 		for (var e : zezeSagas.entrySet()) {
 			try {
-				if (e.getValue().get() != null) { // 成功的发送cancel。
-					var r = new FuncSagaEnd();
-					r.Argument.setOnzTid(onzTid);
-					r.Argument.setCancel(true);
-					futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey())));
-				}
+				// FND7-34：失败/超时的步骤同样发送cancel——不再只补偿成功的步骤。
+				// saga参与方sendReadyAndWait覆写为"发结果即本地提交"，协调者rpc超时不代表
+				// 参与方未提交：跳过补偿的话，超时步骤的写已持久化而协调者按失败补偿其余
+				// 步骤并报告整体失败——部分提交的静默分歧。超时步骤的上下文在参与方1h超时
+				// 清理（Onz.cleanupTimeoutSagas）前仍在，cancel能真正补偿；上下文不存在
+				// （业务失败已自清理、请求从未到达）则应答eSagaNotFound，可辨识忽略。
+				if (e.getValue().isCompletedExceptionally())
+					logger.warn("saga step failed (maybe timeout), send cancel anyway. tid={}, zeze={}",
+							onzTid, e.getKey());
+				var r = new FuncSagaEnd();
+				r.Argument.setOnzTid(onzTid);
+				r.Argument.setCancel(true);
+				// cancel目标可能正是执行超时的慢参与方：FuncSagaEnd的处理在参与方侧与仍在
+				// 执行的业务互斥（OnzSaga.businessLock）后才补偿，慢步骤的应答自然来得慢，
+				// 等待沿用flushTimeout，不用默认5s过早放弃。
+				futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey()), flushTimeout));
+				rpcs.add(r);
 			} catch (Exception ex) {
-				logger.error("cancel if saga success.", ex);
+				logger.error("cancel saga.", ex);
 			}
 		}
-		for (var future : futures) {
+		for (int i = 0; i < futures.size(); i++) {
 			try {
-				future.get();
+				futures.get(i).get();
+				// R3-C复审：参与方处理器 return errorCode(eSagaNotFound) 时线上结果码是
+				// makeTypeId(ModuleId, code) 的组合值（rpc 的 resultCode 原样携带），直接与
+				// 常量2比较恒不相等——NotFound落进 fatal 分支（假致命日志）且"可辨识忽略"
+				// 从未生效。先经 IModule.getErrorCode 解码再比较。
+				var code = IModule.getErrorCode(rpcs.get(i).getResultCode());
+				if (code == AbstractOnz.eSagaNotFound)
+					continue; // 步骤从未注册或已自清理：无补偿对象，可辨识忽略。
+				if (code != 0) {
+					logger.fatal("cancel saga error {}", code);
+				}
 			} catch (Exception e) {
 				logger.error("await cancel result.", e);
 			}

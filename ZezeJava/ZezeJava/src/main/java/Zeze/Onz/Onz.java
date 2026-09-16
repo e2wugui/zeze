@@ -223,37 +223,58 @@ public class Onz extends AbstractOnz {
 		// 步骤失败（业务返回非0或异常）时本地事务已回滚：协调者cancelSaga只对成功的
 		// 步骤发FuncSagaEnd（失败步骤被跳过），正常结束路径endSaga也只在成功时到达，
 		// 这里不清理则条目永久滞留（持有rpc与业务bean，FND-G1-6）。
+		// FND7-34：业务执行期间持有businessLock，与并发的FuncSagaEnd(cancel/end)互斥——
+		// 协调者超时补偿会在业务仍执行时到达，不互斥则补偿与业务并发/抢先，业务随后
+		// 失败回滚时补偿就成了过补偿。
 		var rc = Procedure.Exception;
+		((OnzSaga)procedure).lockBusiness();
 		try {
 			rc = TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
 		} finally {
+			// 失败清理必须在businessLock之内、解锁之前（R3-C复审）：解锁与remove的间隙里，
+			// 等锁的FuncSagaEnd(cancel)会抢先 acquire 并在sagas.remove(tid,context)成功后
+			// 对已回滚（写从未发生）的业务执行补偿——过补偿（反向分歧）。锁内先remove再
+			// unlock，等锁方醒来必然观察到条目已消失（锁的happens-before），应答eSagaNotFound。
 			if (rc != 0)
 				sagas.remove(r.Argument.getOnzTid(), procedure); // 两参remove防御tid条目被替换
+			((OnzSaga)procedure).unlockBusiness();
 		}
 		return rc;
 	}
 
 	@Override
 	protected long ProcessFuncSagaEndRequest(Zeze.Builtin.Onz.FuncSagaEnd r) throws Exception {
-		var context = sagas.remove(r.Argument.getOnzTid());
+		var tid = r.Argument.getOnzTid();
+		var context = sagas.get(tid);
 		if (context == null)
 			return errorCode(eSagaNotFound);
 
-		// 没有设置cancel标志时，表示事务正常结束，用来删除sagas上下文。
-		if (r.Argument.isCancel()) {
-			var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
-			var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
-			var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> stub.end(context, cancelArgument), context.getName())).call();
-			if (rc != 0) {
-				// 补偿失败：上下文必须放回sagas，否则协调者（cancelSaga只记错误日志不重试）
-				// 或人工重发FuncSagaEnd时只能得到eSagaNotFound，补偿永久丢失且不可重试。
-				// 放回后由cleanupTimeoutSagas超时兜底（默认1小时，可配置）。
-				if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), context))
-					logger.error("saga context re-insert conflict. tid={}", r.Argument.getOnzTid());
-				return rc;
+		// FND7-34：等业务完成再决策（FuncSagaEnd可能在慢业务执行期间到达）。
+		// 业务失败已在finally中自清理条目：锁到手后remove失败即eSagaNotFound，
+		// 失败步骤不会被补偿（无过补偿）；业务成功则条目仍在，补偿/结束串行执行。
+		context.lockBusiness();
+		try {
+			if (!sagas.remove(tid, context))
+				return errorCode(eSagaNotFound);
+
+			// 没有设置cancel标志时，表示事务正常结束，用来删除sagas上下文。
+			if (r.Argument.isCancel()) {
+				var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
+				var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
+				var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> stub.end(context, cancelArgument), context.getName())).call();
+				if (rc != 0) {
+					// 补偿失败：上下文必须放回sagas，否则协调者（cancelSaga只记错误日志不重试）
+					// 或人工重发FuncSagaEnd时只能得到eSagaNotFound，补偿永久丢失且不可重试。
+					// 放回后由cleanupTimeoutSagas超时兜底（默认1小时，可配置）。
+					if (null != sagas.putIfAbsent(tid, context))
+						logger.error("saga context re-insert conflict. tid={}", tid);
+					return rc;
+				}
 			}
+			context.setEnd();
+		} finally {
+			context.unlockBusiness();
 		}
-		context.setEnd();
 
 		r.SendResult();
 		return 0;
