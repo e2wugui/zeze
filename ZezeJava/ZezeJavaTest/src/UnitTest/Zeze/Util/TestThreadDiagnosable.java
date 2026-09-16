@@ -10,8 +10,15 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 
+/**
+ * R2稳定性加固：@Isolated 独占运行——startDiagnose/stopDiagnose 经全局 currentSerial
+ * 互杀诊断线程，与其他同类（如 TestFnd743CriticalExempt）并行时（套件固定8并发）
+ * 双方的 stopDiagnose/startDiagnose 会互相杀死对方刚启动的诊断线程，被打断断言假红。
+ */
 @Fast
+@Isolated
 public class TestThreadDiagnosable {
 	private boolean savedDisableInterrupt;
 
