@@ -70,23 +70,28 @@ public class Cache {
 	}
 
 	public void close() throws IOException {
-		if (cleanTimer != null)
-			cleanTimer.cancel(false);
+		cleanTimer.cancel(false); // 幂等：已取消时为no-op
 		todayLock.lock();
 		try {
-			if (todayFile != null)
+			if (todayFile != null) {
 				todayFile.close();
+				todayFile = null; // 置null后重入不再触碰已关流
+			}
 		} finally {
 			todayLock.unlock();
 		}
 
-		db.close();
-		db = null;
+		var db = this.db;
+		if (db == null)
+			return; // 已close（幂等重入；并发下后到者退出）
+		this.db = null;
+		db.close(); // RocksDB.close 自身幂等，并发重复close无害
 		// 级联取消LRU构造器内建的两个周期任务（FND7-36）：只置null不清任务的话，
 		// 任务仍每200ms/2s永续执行并强引用整个缓存对象图，"关闭"语义不成立。
+		var lru = this.lru;
+		this.lru = null;
 		if (lru != null)
 			lru.close();
-		lru = null;
 	}
 
 	public @Nullable CacheObject get(@NotNull String id) throws RocksDBException, IOException {
