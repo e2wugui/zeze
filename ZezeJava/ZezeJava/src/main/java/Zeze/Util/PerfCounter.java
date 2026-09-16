@@ -215,7 +215,12 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private volatile @NotNull Snapshot lastSnapshot = Snapshot.EMPTY;
 	private long lastLogTime = System.currentTimeMillis();
 	private long lastCpuTime = PlatformMetrics.osBean.getProcessCpuTime();
-	private int clearSerial;
+	// FND7-52：锁内唯一写（resetCounter的clearSerial++）、锁外多读（getRunInfoWithSerial、
+	// observer闭包、PerfProcedureCounter.info）——必须volatile发布，否则锁外普通字段读
+	// 无happens-before，可被JIT提升出外层循环而长期读到旧代际，闭包绑定reset前已从map
+	// 移除的统计对象，自增落在无人收集的对象上丢统计（同族resultMap/resultMapLast/
+	// PerfProcedureCounter.bound均已volatile，本字段是漏改的一个）。
+	private volatile int clearSerial;
 	private @Nullable ScheduledFuture<?> scheduleFuture;
 	private final LongCounter transactionRedoCounter = allocCounter("Transaction.Redo");
 	private final LongCounter transactionRedoAndReleaseLockCounter = allocCounter("Transaction.RedoAndReleaseLock");
