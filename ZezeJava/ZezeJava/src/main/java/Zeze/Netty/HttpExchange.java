@@ -606,6 +606,15 @@ public class HttpExchange {
 
 	@SuppressWarnings("ConstantConditions")
 	protected void fireEndStreamHandle() {
+		// onCancel:HttpServer.close()的shutdown(true)清扫丢弃未运行任务（或提交命中已shutdown队列）时
+		// 补偿close（与任务finally一致），释放retain的request与累积的content（池化内存）——
+		// pipelining下本exchange可能已被channelRead的exchanges.put覆盖逐出，停机清扫扫不到它，
+		// 不补偿则永久泄漏。cancel与执行路径互斥（TaskOneByOneQueue保证），close幂等，不会双释放。
+		// 对照:fireStreamContentHandle/fireWebSocket的onCancel同因。
+		var cancel = (Action0)() -> {
+			if (detached == 0)
+				close(null);
+		};
 		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {
 				var handle = handler.EndStreamHandle;
@@ -628,14 +637,14 @@ public class HttpExchange {
 						if (detached == 0)
 							close(null);
 					}
-				}).name(p.getActionName()).dispatchMode(handler.Mode)
+				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(cancel)
 						.executeOneByOne(context.channel().id(), server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(this::invokeEndStream).name("fireEndStreamHandle").call();
 		} else {
 			TaskSpec.ofAction(this::invokeEndStream)
-					.name("fireEndStreamHandle").dispatchMode(handler.Mode)
+					.name("fireEndStreamHandle").dispatchMode(handler.Mode).onCancel(cancel)
 					.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
