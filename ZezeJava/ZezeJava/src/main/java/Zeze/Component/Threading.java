@@ -141,7 +141,28 @@ public class Threading extends AbstractThreading {
 			r.Argument.setPermits(permits);
 			r.Argument.setTimeoutMs(timeoutMs);
 			var timeout = rpcTimeoutMs(timeoutMs);
-			r.SendForWait(service.GetSocket(), timeout).await();
+			try {
+				r.SendForWait(service.GetSocket(), timeout).await();
+			} catch (CompletionException e) {
+				// VB①（FND7-64同型）：客户端rpc超时＝应答迟到或丢失，服务端可能已发放permits
+				// （semaphoreRefs记账+信号量真实扣减）。只要客户端进程活着，keepAlive每10s刷新
+				// 服务端activeTime，timeoutRelease永不触发——已发放的许可无人release，永久短缺。
+				// 按未获取继续，并对同lockName补发release（fire-and-forget）：与tryAcquire同连接，
+				// 服务端SimulateThread串行处理必在acquire决策之后；未真获取时服务端对无条目
+				// 幂等应答0（ThreadingServer.ProcessSemaphoreReleaseRequest），无害。
+				// permits<=0被服务端入队前校验立即拒绝（ResultCodeInvalidArgument），不存在
+				// "已发放"形态，且release(<=0)本身非法，不补偿。
+				if (!r.isTimeout())
+					throw e;
+				if (permits > 0) {
+					var un = new SemaphoreRelease();
+					un.Argument.setLockName(lockName);
+					un.Argument.setPermits(permits);
+					if (!un.Send(service.GetSocket()))
+						logger.warn("compensating semaphore release send fail, {}", lockName);
+				}
+				return false;
+			}
 			return r.getResultCode() == 0;
 		}
 
@@ -215,7 +236,25 @@ public class Threading extends AbstractThreading {
 			r.Argument.setOperateType(operateType);
 			r.Argument.setTimeoutMs(timeoutMs);
 			var timeout = rpcTimeoutMs(timeoutMs);
-			r.SendForWait(service.GetSocket(), timeout).await();
+			try {
+				r.SendForWait(service.GetSocket(), timeout).await();
+			} catch (CompletionException e) {
+				// VB①（FND7-64同型）：客户端rpc超时＝应答迟到或丢失，服务端可能已enter成功
+				// （rwLockRefs记账+读写锁真实持有）。只要客户端进程活着，keepAlive每10s刷新
+				// 服务端activeTime，timeoutRelease永不触发——持有的读/写锁无人exit，永久悬挂。
+				// 按未进入继续，并对同lockName补发同模式exit（fire-and-forget）：与enter同连接，
+				// 服务端SimulateThread串行处理必在enter决策之后；未真进入时服务端对无条目
+				// 幂等应答0（ThreadingServer.ProcessReadWriteLockOperateRequest），无害。
+				// tryOperate仅由tryEnterRead/tryEnterWrite调用，补偿按进入模式对称映射exit。
+				if (!r.isTimeout())
+					throw e;
+				var un = new ReadWriteLockOperate();
+				un.Argument.setLockName(lockName);
+				un.Argument.setOperateType(operateType == eEnterRead ? eExitRead : eExitWrite);
+				if (!un.Send(service.GetSocket()))
+					logger.warn("compensating rwlock exit send fail, {}", lockName);
+				return false;
+			}
 			return r.getResultCode() == 0;
 		}
 
