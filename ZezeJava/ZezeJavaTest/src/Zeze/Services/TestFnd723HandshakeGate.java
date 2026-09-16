@@ -64,6 +64,12 @@ public class TestFnd723HandshakeGate {
 	}
 
 	private static HandshakeServer newGateServer(String name, int encryptType, AtomicBoolean processed) {
+		return newGateServer(name, encryptType, processed, null);
+	}
+
+	// accepted非null时在OnSocketAccept计数：单调递增的"连接已到达服务端"信号（满载假红加固用）
+	private static HandshakeServer newGateServer(String name, int encryptType, AtomicBoolean processed,
+												 java.util.concurrent.atomic.AtomicInteger accepted) {
 		var conf = new Config();
 		var sconf = new ServiceConf();
 		sconf.getHandshakeOptions().setEncryptType(encryptType);
@@ -74,6 +80,13 @@ public class TestFnd723HandshakeGate {
 					processed.set(true);
 					return 0L;
 				}, TransactionLevel.None, DispatchMode.Direct));
+			}
+
+			@Override
+			public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+				super.OnSocketAccept(so);
+				if (accepted != null)
+					accepted.incrementAndGet();
 			}
 		};
 	}
@@ -98,7 +111,11 @@ public class TestFnd723HandshakeGate {
 	public void testPlaintextProtocolRejectedBeforeHandshake() throws Exception {
 		Task.tryInitThreadPool();
 		var processed = new AtomicBoolean(false);
-		var server = newGateServer("TestFnd723GateSrv", Constant.eEncryptTypeAesNoSecureIp, processed);
+		// 满载假红加固（R2-N）：本用例的门禁会accept后立即断连，getSocketCount()>=1是瞬态，
+		// 全周期小于1ms轮询间隔时采不到（错过即恒0，等多久都假红；2026-09-16全量跑实锤10.4s超时）。
+		// 改用OnSocketAccept计数的单调信号+30s预算（3x惯例），真实不变量仍是processed不得置位。
+		var accepted = new java.util.concurrent.atomic.AtomicInteger();
+		var server = newGateServer("TestFnd723GateSrv", Constant.eEncryptTypeAesNoSecureIp, processed, accepted);
 		try {
 			var port = listenPort(server);
 			var attacker = new Service("TestFnd723Attacker", new Config()) {
@@ -119,8 +136,8 @@ public class TestFnd723HandshakeGate {
 			};
 			try {
 				attacker.newClientSocket("127.0.0.1", port, null, null);
-				await("server accepted", 10_000, () -> server.getSocketCount() >= 1);
-				await("server closed un-handshaked plaintext connection", 10_000,
+				await("server accepted", 30_000, () -> accepted.get() >= 1);
+				await("server closed un-handshaked plaintext connection", 30_000,
 						() -> server.getSocketCount() == 0);
 				Assertions.assertFalse(processed.get(), "明文应用协议绝不能被处理");
 			} finally {
