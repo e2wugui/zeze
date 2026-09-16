@@ -169,6 +169,14 @@ public class Helper {
 		}
 	}
 
+	/**
+	 * 以 {fieldName:json} 包装走反射字段名匹配，把SQL列JSON解码进宿主bean的map变量。
+	 * 契约：fieldName必须等于宿主字段名经fieldNameFilter过滤后的结果（生成bean字段
+	 * 带下划线前缀_xxx，filter剥前缀得xxx，故生成代码传xxx）。错配时JsonReader对未知key
+	 * 静默跳过——整段JSON空转且前置map.clear()已清空现有数据，无任何报错（FND7-11即
+	 * 此温床：BeanMap手写字段pMap1传"Map1"错配，已改走decodeJsonTypedMap定型解码）。
+	 * 新增手写调用方若不确定字段名能否匹配，请优先使用decodeJsonTypedMap。
+	 */
 	@SuppressWarnings("unchecked")
 	public static void decodeJsonMap(@NotNull Bean parentBean, @NotNull String fieldName, @NotNull Map<?, ?> map,
 									 @Nullable String jsonStr) {
