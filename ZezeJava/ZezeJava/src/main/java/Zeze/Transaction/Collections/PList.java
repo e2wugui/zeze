@@ -160,6 +160,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 		return new ListIterator<>() {
 			private int cursor = index;
 			private int lastRet = -1;
+			private @Nullable V lastReturned;
 
 			@Override
 			public boolean hasNext() {
@@ -173,6 +174,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 					V v = get(i);
 					cursor = i + 1;
 					lastRet = i;
+					lastReturned = v;
 					return v;
 				} catch (IndexOutOfBoundsException e) {
 					throw new NoSuchElementException();
@@ -191,6 +193,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 					V v = get(i);
 					cursor = i;
 					lastRet = i;
+					lastReturned = v;
 					return v;
 				} catch (IndexOutOfBoundsException e) {
 					throw new NoSuchElementException();
@@ -209,13 +212,22 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 			@Override
 			public void remove() {
-				if (lastRet < 0)
+				int i = lastRet;
+				if (i < 0)
 					throw new IllegalStateException();
+				// 同iterator()的身份fail-fast（FND7-07）：lastReturned是next()/previous()
+				// 记录的返回引用，current[i]==lastReturned是"按下标删除不会删错元素"的充分
+				// 条件；不相等说明迭代期间发生过外部结构性修改，错位时静默删错元素，
+				// 对齐JDK迭代器惯例抛CME。
+				var current = getList();
+				if (i >= current.size() || current.get(i) != lastReturned)
+					throw new ConcurrentModificationException("structural modification during iteration");
 				try {
-					PList.this.remove(lastRet);
-					if (lastRet < cursor)
+					PList.this.remove(i);
+					if (i < cursor)
 						cursor--;
 					lastRet = -1;
+					lastReturned = null;
 				} catch (IndexOutOfBoundsException e) {
 					throw new ConcurrentModificationException();
 				}
@@ -223,10 +235,16 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 			@Override
 			public void set(V v) {
-				if (lastRet < 0)
+				int i = lastRet;
+				if (i < 0)
 					throw new IllegalStateException();
+				// 同remove()的身份校验：错位时set会静默改错元素，fail-fast（FND7-07）。
+				var current = getList();
+				if (i >= current.size() || current.get(i) != lastReturned)
+					throw new ConcurrentModificationException("structural modification during iteration");
 				try {
-					PList.this.set(lastRet, v);
+					PList.this.set(i, v);
+					lastReturned = v; // 允许连续set（JDK契约）：更新身份校验基准
 				} catch (IndexOutOfBoundsException e) {
 					throw new ConcurrentModificationException();
 				}
