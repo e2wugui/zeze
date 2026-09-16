@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.function.UnaryOperator;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
@@ -17,6 +18,13 @@ public class PList1<V> extends PList<V> {
 	protected final @NotNull Meta1<V> meta;
 
 	public PList1(@NotNull Class<V> valueClass) {
+		// Bean值不支持（FND7-09，PSet1/PMap1判例同族）：1系容器按值拷贝记账，不挂接
+		// rootInfo（对比PList2.add的initRootInfoWithRedo），装入的bean永不受管——原位
+		// 修改走非受管直写分支，不产生日志，提交后静默丢失。显式失败优于静默丢数据。
+		if (Bean.class.isAssignableFrom(valueClass))
+			throw new IllegalArgumentException(
+					"PList1 does not support Bean value type (in-place modifications never managed, silently lost): "
+							+ valueClass.getName());
 		meta = Meta1.getList1Meta(valueClass);
 	}
 

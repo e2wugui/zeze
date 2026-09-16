@@ -22,6 +22,13 @@ public class PMap1<K, V> extends PMap<K, V> {
 			throw new IllegalArgumentException(
 					"PMap1 does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
 							+ keyClass.getName());
+		// Bean值不支持（FND7-09，PList1判例同族）：1系容器按值拷贝记账，不挂接rootInfo
+		// （对比PMap2.put的initRootInfoWithRedo），装入的bean永不受管——原位修改不产生
+		// 日志，提交后静默丢失。显式失败优于静默丢数据。
+		if (Bean.class.isAssignableFrom(valueClass))
+			throw new IllegalArgumentException(
+					"PMap1 does not support Bean value type (in-place modifications never managed, silently lost): "
+							+ valueClass.getName());
 		meta = Meta2.getMap1Meta(keyClass, valueClass);
 	}
 
