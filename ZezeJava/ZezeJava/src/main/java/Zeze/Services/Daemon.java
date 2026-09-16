@@ -99,8 +99,12 @@ public class Daemon {
 			logger.error("Daemon.main", ex);
 		} finally {
 			// 退出的时候，确保销毁服务进程。
-			if (subprocess != null)
+			// FND7-60：仅destroy()即退出守护JVM，子进程不响应SIGTERM时无人强杀；
+			// 限时等待后强杀收尸，对齐reapDiagnosticProcess既有模式。
+			if (subprocess != null) {
 				subprocess.destroy();
+				reapDiagnosticProcess(subprocess);
+			}
 		}
 	}
 
@@ -229,8 +233,11 @@ public class Daemon {
 	}
 
 	private static void fatalExit() {
-		if (subprocess != null)
+		// FND7-60：destroy后限时等待并强杀收尸（对齐reapDiagnosticProcess），再halt。
+		if (subprocess != null) {
 			subprocess.destroy();
+			reapDiagnosticProcess(subprocess);
+		}
 		LogManager.shutdown();
 		Runtime.getRuntime().halt(-1);
 	}
