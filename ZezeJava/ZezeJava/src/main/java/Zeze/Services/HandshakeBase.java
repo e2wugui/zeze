@@ -302,6 +302,18 @@ public class HandshakeBase extends Service {
 
 	private long processSHandshake0(@NotNull SHandshake0 p) {
 		try {
+			// 复审R2（FND7-S2②）+R3收窄：服务端推荐的加密类型为Disable（明文）而客户端自身配置了
+			// 加密诉求（EncryptType!=Disable）时不得静默接受——否则"客户端要求加密"的配置被无声降级
+			// 为明文会话。检查必须在分支之前：仅压缩推荐（encryptType=Disable+compress非Disable）也走
+			// startHandshake路径，客户端只会回显服务端推荐（startHandshake不读自身EncryptType），
+			// 降级照样发生且原全Disable分支的检查永远不触发。镜像服务端processCHandshake的回显一致性
+			// 校验（FND-S3-1：服务端拒绝encryptType不一致的CHandshake）：客户端拒绝被降级的推荐，
+			// 断连给出显式配置错误。
+			if (p.Argument.encryptType == Constant.eEncryptTypeDisable
+					&& getConfig().getHandshakeOptions().getEncryptType() != Constant.eEncryptTypeDisable)
+				throw new IllegalStateException(getName() + " server recommends plaintext (encryptType=Disable) but client "
+						+ "EncryptType=" + getConfig().getHandshakeOptions().getEncryptType()
+						+ ", refusing silent downgrade (check client/server HandshakeOptions)");
 			if (p.Argument.encryptType != Constant.eEncryptTypeDisable
 					|| p.Argument.compressS2c != Constant.eCompressTypeDisable
 					|| p.Argument.compressC2s != Constant.eCompressTypeDisable) {
