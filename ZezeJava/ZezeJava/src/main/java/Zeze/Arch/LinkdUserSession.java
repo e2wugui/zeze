@@ -214,8 +214,19 @@ public class LinkdUserSession {
 	*/
 
 	public void onClose(LinkdProviderService linkdProviderService) {
-		if (!isAuthed())
-			return; // 未验证通过的不通告。此时Binds肯定是空的。
+		if (!isAuthed()) {
+			// 未验证通过的不通告。此时Binds肯定是空的。仍置closed：公开API的异步两段式认证
+			// 形态下（setAuthed前choiceProvider），早退不置位会让closed门保持开启，之后的迟到
+			// bind继续登记（moduleId→linkSessionId无人再清理，provider侧条目泄漏）。
+			var writeLock = bindsLock.writeLock();
+			writeLock.lock();
+			try {
+				closed = true; // 对齐换出分支：closed均在bindsLock写锁内置位（见字段注释）
+			} finally {
+				writeLock.unlock();
+			}
+			return;
+		}
 
 		IntHashMap<Long> bindsSwap;
 		var writeLock = bindsLock.writeLock();
