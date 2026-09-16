@@ -241,13 +241,27 @@ public final class ZstdFactory {
 			super(DummyInputStream.instance, DummyBufferPool.instance);
 			try {
 				ctxPtr = fDStream.getLong(this);
+				if (ctxPtr == 0)
+					throw new IllegalStateException("ctxPtr = 0");
 				if (dstBufSize > 0)
 					dstBuf = new byte[dstBufSize];
-			} catch (IllegalAccessException e) {
+			} catch (Throwable e) { // 反射字段访问及dstBuf分配的OutOfMemoryError（超大dstBufSize）
+				// R2-U2（FND7-46姊妹点）：super构造已建native dstream（ZstdInputStreamNoFinalizer构造
+				// 调createDStream），构造失败则对象不可达、close()永不会被调用——catch中显式释放ctxPtr
+				// 再重抛，否则dstBuf分配OOM等失败路径每次泄漏一个native解压上下文（压缩侧FND7-46
+				// 已收口；负dstBufSize被上面的>0守卫跳过，可达路径为超大值的OOM）。
+				long ptr = ctxPtr;
+				ctxPtr = 0;
+				if (ptr != 0) {
+					try {
+						//noinspection UnusedAssignment
+						int r = (int)mhFreeDStream.invokeExact(ptr);
+					} catch (Throwable ignored) {
+						// 释放失败无法补救，优先重抛原始构造异常
+					}
+				}
 				throw Task.forceThrow(e);
 			}
-			if (ctxPtr == 0)
-				throw new IllegalStateException("ctxPtr = 0");
 		}
 
 		public void decompress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull ByteBuffer dst) {
