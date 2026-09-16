@@ -81,7 +81,8 @@ public final class App extends Zeze.AppBase {
 		// Start
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
-		AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.getName())::next);
+		// FND7-19/R3：不再全局安装PersistentAtomicLong发号——多App同JVM（linkd+Game.Server
+		// 拓扑）值域重叠必撞号。Service实例级随机63位基址发号已保证跨JVM/跨App唯一。
 		httpServer = new HttpServer(Zeze);
 		// 【安全警示】/reloadClass与/runClass是无鉴权的任意字节码注入/执行端点（见两类
 		// 的类注释），下方挂载后随httpServer监听linkPort+10000且未指定host（bind所有

@@ -13,6 +13,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.security.SecureRandom;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import Zeze.Application;
@@ -41,7 +42,11 @@ import org.jetbrains.annotations.Nullable;
 
 public class Service extends ReentrantLock {
 	protected static final @NotNull Logger logger = LogManager.getLogger(Service.class);
-	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(1);
+	// FND7-19/R3：默认共享发号流随机63位基址——同JVM内全Service共享一条流保证不撞号，
+	// 随机基址使跨JVM/leader代碰撞概率2^-63量级（ServiceManagerWithRaft按sessionId判活，
+	// 固定从1起号跨代必撞）。
+	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(
+			(System.nanoTime() ^ new java.security.SecureRandom().nextLong()) & Long.MAX_VALUE);
 	private static final @NotNull VarHandle closedRecvCountHandle, closedRecvSizeHandle;
 	private static final @NotNull VarHandle closedSendCountHandle, closedSendSizeHandle, closedSendRawSizeHandle;
 	protected static final @NotNull VarHandle overflowSizeHandle, overflowCountHandle;
@@ -119,8 +124,24 @@ public class Service extends ReentrantLock {
 		this.config = initConfig(config);
 		socketOptions = this.config.getSocketOptions();
 		noProcedure = app == null || app.isNoDatabase();
+		// FND7-19/R3：模板仅在构造期取用一次（多Service共享同一supplier会撞号，模板语义
+		// 仅为兼容旧全局安装的单Service用法）。
+		var template = defaultSessionIdGenFunc;
+		if (template != null)
+			sessionIdGenerator = template;
 		logger.info("start: {}", name);
 		tryStartStatisticLog();
+	}
+
+	// FND7-19/R3：兼容旧全局安装AsyncSocket.setSessionIdGenFunc的模板入口——仅对之后
+	// 构造的Service生效。多Service共享同一supplier仍会撞号（正是被取代的旧缺陷形态，
+	// Zezex linkd/Game.Server拓扑即此），自定义发号请用实例级setSessionIdGenerator
+	// （须在创建任何socket之前调用，并保证进程内全局值域不重叠）。
+	private static volatile @Nullable LongSupplier defaultSessionIdGenFunc;
+
+	/** 兼容旧全局安装的模板入口：仅对之后构造的Service生效；多Service共享同一supplier仍会撞号。 */
+	public static void setDefaultSessionIdGenFunc(@Nullable LongSupplier seed) {
+		defaultSessionIdGenFunc = seed;
 	}
 
 	public boolean isNoProcedure() {

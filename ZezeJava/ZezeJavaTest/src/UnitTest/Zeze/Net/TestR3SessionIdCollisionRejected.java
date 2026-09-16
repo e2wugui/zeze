@@ -45,8 +45,9 @@ public class TestR3SessionIdCollisionRejected {
 			}
 			var listener = (TcpSocket)server.newServerSocket(new InetSocketAddress("127.0.0.1", port), null);
 			try {
-				// 固定发号：此后构造的所有AsyncSocket的sessionId恒为42——构造两条accepted连接必互撞。
-				AsyncSocket.setSessionIdGenFunc(() -> 42L);
+				// 固定发号（实例级，FND7-19/R3发号下沉后的正确用法）：该Service此后构造的
+				// AsyncSocket的sessionId恒为42——构造两条accepted连接必互撞。
+				server.setSessionIdGenerator(() -> 42L);
 				try (var first = new Socket("127.0.0.1", port)) {
 					assertTrue(waitSocketCount(server, 1, 10),
 							"第一条连接必须正常登记（先注册者）");
@@ -64,7 +65,7 @@ public class TestR3SessionIdCollisionRejected {
 					}
 				}
 			} finally {
-				AsyncSocket.setSessionIdGenFunc(null); // 恢复默认随机基址发号
+				server.setSessionIdGenerator(null); // 恢复默认共享随机基址发号
 				listener.close();
 			}
 		} finally {

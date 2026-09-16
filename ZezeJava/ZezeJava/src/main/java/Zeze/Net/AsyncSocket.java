@@ -34,14 +34,6 @@ public abstract class AsyncSocket {
 
 	protected Object userState;
 
-	// FND7-19：默认发号基址随机化。原基址1在每个JVM内都从1起号，Raft复制状态用sessionId判活时
-	// 跨JVM/leader代必然碰撞（ServiceManagerWithRaft.reconcileSessions用GetSocket(sessionId)
-	// 判死会话，两代都从1起号，早段号码几乎必撞）：死agent的会话行被现任leader上同号活连接
-	// 误判存活，幽灵服务地址持续分发。随机63位基址使跨JVM碰撞概率降到2^-63量级；进程内
-	// 仍由AtomicLong递增保证唯一。自定义发号（setSessionIdGenFunc）不受影响。
-	private static final AtomicLong sessionIdGen = new AtomicLong(
-			(System.nanoTime() ^ new SecureRandom().nextLong()) & Long.MAX_VALUE);
-	private static @NotNull LongSupplier sessionIdGenFunc = sessionIdGen::getAndIncrement;
 
 	static {
 		var str = System.getProperty("protocolLogExcept");
@@ -60,6 +52,7 @@ public abstract class AsyncSocket {
 
 	protected AsyncSocket(@NotNull Service service) {
 		this.service = service;
+		this.sessionId = service.nextSessionId();
 	}
 
 	public @NotNull Service getService() {
@@ -78,8 +71,17 @@ public abstract class AsyncSocket {
 		userState = value;
 	}
 
+	/**
+	 * @deprecated 全局静态发号在同JVM多App拓扑下互踩（Zezex linkd与Game.Server各自的
+	 * PersistentAtomicLong值域重叠且全局共享，SM服务端socket表按sessionId索引必撞号，
+	 * GetSocket(sessionId)把同号新连接误判为旧会话）。sessionId发号已下沉到Service实例
+	 * （随机63位基址）。本方法保留兼容，等价于{@link Service#setDefaultSessionIdGenFunc}
+	 * ——仅作为之后构造的Service的默认模板，多个Service共享同一supplier仍会撞号，
+	 * 仅单Service进程安全；自定义发号请改用Service实例级setSessionIdGenFunc。
+	 */
+	@Deprecated
 	public static void setSessionIdGenFunc(@Nullable LongSupplier seed) {
-		sessionIdGenFunc = seed != null ? seed : sessionIdGen::getAndIncrement;
+		Service.setDefaultSessionIdGenFunc(seed);
 	}
 
 	public enum Type {
@@ -117,7 +119,10 @@ public abstract class AsyncSocket {
 		activeSendTime = activeRecvTime = GlobalTimer.getCurrentSeconds();
 	}
 
-	private final long sessionId = sessionIdGenFunc.getAsLong(); // 只在setSessionId里修改
+	// FND7-19/R3：sessionId从所属Service实例发号（随机63位基址+实例内递增）——跨JVM与
+	// 同JVM多App（Zezex linkd/Game.Server拓扑，原全局静态发号互踩致SM服务端socket表撞号）
+	// 均唯一。自定义发号迁移到Service实例级setSessionIdGenFunc。
+	private final long sessionId; // 只在setSessionId里修改
 
 	public long getSessionId() {
 		return sessionId;

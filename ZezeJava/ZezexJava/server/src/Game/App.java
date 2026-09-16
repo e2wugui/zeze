@@ -111,8 +111,10 @@ public final class App extends Zeze.AppBase {
 		startModules(); // 启动模块，装载配置什么的。
 		Provider.start();
 
-		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
-		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
+		// FND7-19/R3：不再全局安装PersistentAtomicLong发号——多App同JVM（linkd+Game.Server
+		// 拓扑）值域重叠必撞号（SM服务端socket表按sessionId索引）。Service实例级随机63位
+		// 基址发号（FND7-19）已保证跨JVM/跨App唯一；如需可读小号请用Service实例级
+		// setSessionIdGenFunc且保证进程内全局值域不重叠。
 		startService(); // 启动网络
 		// 服务准备好以后才注册和订阅。
 		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
