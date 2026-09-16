@@ -116,12 +116,19 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	 * 按旧sid移除到本实例（新旧两键短暂同时映射this），把新请求的future/isTimeout毒化为假超时、
 	 * 或提前dispatchRpcResponse造成应答双派发。故先判字段sid是否失配（重发即失配，新定时器已
 	 * 接管），再做双参移除（键已被应答消费时移除失败，正确跳过——与重发路径的移除同构）。
+	 * FND6-11补：移除成功后再复核一次字段——「addRpcContext落地（新条目对定时器线程可见）」
+	 * 与「字段sessionId写入」是两条指令，间隙内旧定时器可通过上面的守卫并移除成功；复核发现
+	 * 字段已被重发更新即返回不毒化（旧条目已被本定时器移除，重发路径remove(旧sid)失败无害，
+	 * 新定时器在位）。仍非原子（TOCTOU残余）：窗口从「一次字段读」收窄到「守卫读→移除→复核读」，
+	 * 完全消除需重发段与本方法对实例互斥，热路径代价不值。
 	 */
 	void onTimeout(@NotNull Service service, long timerSessionId) throws Exception {
 		if (timerSessionId != sessionId)
 			return; // 陈旧定时器：实例已被重发接管。
 		if (!service.removeRpcContext(timerSessionId, this))
 			return; // 一般来说，此时结果已经返回。
+		if (timerSessionId != sessionId)
+			return; // FND6-11补：移除与复核之间字段被重发更新——新定时器已接管，不毒化。
 
 		isTimeout = true;
 		setResultCode(Procedure.Timeout);

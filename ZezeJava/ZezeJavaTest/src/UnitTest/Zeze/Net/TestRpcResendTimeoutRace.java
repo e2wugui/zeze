@@ -67,4 +67,30 @@ public class TestRpcResendTimeoutRace {
 		Assertions.assertFalse(rpc2.isTimeout(), "条目已消费的定时器必须跳过");
 		Assertions.assertFalse(future2.isDone());
 	}
+
+	@Test
+	public void testMidResendInstructionWindowDocumented() throws Exception {
+		Zeze.Util.Task.tryInitThreadPool();
+		var service = new Service("TestRpcMidResendWindow");
+		var rpc = new TestRpc.FirstRpc();
+
+		// 交错(ii)中态（FND6-11补文档化）：重发的addRpcContext已落地（S2在map）但字段
+		// sessionId仍是旧值S1——指令级间隙（putfield未执行）。此刻旧定时器：守卫通过
+		// （S1==字段S1）、双参移除成功（S1仍映射this）→ 毒化发生。这是复核后仍存在的
+		// TOCTOU残余（守卫读→移除→复核读之间字段未变），非缺陷回归——窗口已从「一次
+		// 字段读」收窄到「守卫读→移除→复核读」，完全消除需实例互斥（热路径不值）。
+		// 本用例钉住该残余的当前语义，防未来无意识变更。
+		long s1 = service.addRpcContext(rpc);
+		rpc.setSessionId(s1);
+		long s2 = service.addRpcContext(rpc); // 新条目落地，字段不动
+		var future = new TaskCompletionSource<BValue>();
+		rpc.setFuture(future);
+
+		invokeOnTimeout(service, rpc, s1);
+		Assertions.assertTrue(rpc.isTimeout(),
+				"交错(ii)中态下旧定时器仍毒化（文档化TOCTOU残余，见onTimeout注释）");
+		Assertions.assertTrue(future.isCompletedExceptionally());
+		// S2条目未被旧定时器触碰：仍由新上下文流程/真实应答路径处置。
+		Assertions.assertTrue(service.removeRpcContext(s2, rpc), "S2条目应仍由新定时器路径处置，未被旧定时器误删");
+	}
 }
