@@ -614,6 +614,12 @@ public final class Rocks extends StateMachine implements Closeable {
 				throw Task.forceThrow(e);
 			} finally {
 				setRaft(null);
+				// 【FND7-36联动】先关闭各表记录缓存的内建周期任务（热点轮转+cleanNow）：
+				// 不关的话Rocks实例关闭后旧任务永续执行并强引用缓存对象图（每表最多容量条
+				// Record/Bean）；放在storage.close()之前，阻止关闭路径上的lazy load触碰
+				// 已关闭的存储句柄。
+				for (var table : tables.values())
+					table.close();
 				if (storage != null) {
 					storage.close();
 					storage = null;

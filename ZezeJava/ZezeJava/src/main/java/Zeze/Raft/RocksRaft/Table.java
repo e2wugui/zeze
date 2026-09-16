@@ -50,10 +50,28 @@ public final class Table<K, V extends Bean> {
 		} catch (RocksDBException e) {
 			throw Task.forceThrow(e);
 		}
+		// 【FND7-36联动】restore/reset重开Table时先关闭旧lruCache：其构造器注册的两个
+		// 周期任务（热点轮转+cleanNow）不取消的话，旧实例任务永续执行并强引用dataMap
+		//（每表最多容量条Record/Bean），随InstallSnapshot恢复/状态机重置的重开次数无界泄漏。
+		var oldLru = lruCache;
+		if (oldLru != null)
+			oldLru.close();
 		// 【FND7-14】总是安装自带在用保护的驱逐回调（生成代码注册表模板时不会传callback，
 		// 原实现走ConcurrentLruLike.cleanNow的无回调分支无条件remove，事务正在使用的记录
 		// 也会被驱逐）。使用方回调（如GlobalCacheManagerWithRaft）在保护检查之后执行。
 		lruCache = new ConcurrentLruLike<>(name, cacheCapacity, this::tryRemoveRecord, 200, 2000, 1024);
+	}
+
+	/**
+	 * 【FND7-36联动】关闭记录缓存内建的两个周期任务（热点轮转+cleanNow），实例随之可
+	 * 被整体回收。由 {@link Rocks#close()} 级联调用；缓存条目不清理（实例已到生命周期末尾）。
+	 */
+	public void close() {
+		var lru = lruCache;
+		if (lru != null) {
+			lru.close();
+			lruCache = null; // 阻止关闭后的访问（lazy load会触碰已关闭的存储句柄）
+		}
 	}
 
 	/**
