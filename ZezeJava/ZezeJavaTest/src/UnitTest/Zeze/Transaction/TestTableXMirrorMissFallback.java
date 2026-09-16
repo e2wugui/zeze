@@ -44,6 +44,8 @@ public class TestTableXMirrorMissFallback {
 	private static final long KEY_EXISTENT = 3L;
 	// 冷装载·不存在记录：storage miss后rocksCacheRemove失败——remove路径。
 	private static final long KEY_ABSENT = 2L;
+	// 倒库场景：仅存旧库的记录，装载走oldTable-Immediately分支。
+	private static final long KEY_OLD = 1L;
 
 	// serverId 决定本地 RocksCache 目录名（zeze_cache_<serverId>），取独立值避免与其他测试冲突。
 	private static final int SERVER_ID = 7313;
@@ -75,6 +77,45 @@ public class TestTableXMirrorMissFallback {
 		app.stop();
 		app = null;
 		table = null;
+	}
+
+	// 倒库场景（DatabaseOldMode=1 + Immediately）：新库miss时从旧库装载，
+	// Immediately分支写oldTable+镜像、不设脏、不写新库——镜像写失败必须抛出。
+	private void startAppWithOldTable() throws Exception {
+		var config = new Config();
+		config.setServiceManager("disable");
+		config.setCheckpointMode(CheckpointMode.Immediately);
+		config.setServerId(SERVER_ID);
+		var tableConf = new Config.TableConf();
+		tableConf.setDatabaseOldMode(1);
+		tableConf.setDatabaseOldName("old");
+		config.setDefaultTableConf(tableConf);
+		var dbConf = new Config.DatabaseConf();
+		dbConf.setDatabaseType(Config.DbType.RocksDb);
+		dbConf.setDatabaseUrl(tempDir.resolve("dbhome").toString());
+		config.getDatabaseConfMap().put("", dbConf);
+		var oldDbConf = new Config.DatabaseConf();
+		oldDbConf.setName("old"); // createDatabase按DatabaseConf.name注册，非map的key
+		oldDbConf.setDatabaseType(Config.DbType.RocksDb);
+		oldDbConf.setDatabaseUrl(tempDir.resolve("dbold").toString());
+		config.getDatabaseConfMap().put("old", oldDbConf);
+
+		app = new Application("TestTableXMirrorMissFallback", config);
+		table = new tMirror();
+		app.addTable("", table);
+		app.start();
+	}
+
+	// 种子数据只写旧库，模拟迁移模式下尚未倒库的存量记录（openTable为getOrAdd语义，重复打开安全）。
+	private void seedOldDatabase(long key, long value) throws Exception {
+		var oldDb = app.getDatabase("old");
+		var oldDbTable = oldDb.openTable(table.getName(), table.getId());
+		var seed = new MirrorBean();
+		seed.value = value;
+		try (var t = oldDb.beginTransaction()) {
+			oldDbTable.replace(t, table.encodeKey(key), ByteBuffer.encode(seed));
+			t.commit();
+		}
 	}
 
 	private long insert(long key, long value) {
@@ -124,11 +165,53 @@ public class TestTableXMirrorMissFallback {
 				Assertions.assertEquals(Procedure.Exception, get(KEY_ABSENT, new long[1]),
 						"rocksCacheRemove失败必须使装载事务失败（不得吞）");
 				Assertions.assertEquals(0, table.getCacheSize(), "失败装载的记录必须被作废出缓存");
+
+				// selectDirty契约变化：事务外脏读在镜像写失败时直接抛出（非事务包装，异常上抛调用方）。
+				Assertions.assertThrows(RuntimeException.class, () -> table.selectDirty(KEY_EXISTENT),
+						"selectDirty的rocksCachePut失败必须抛出（契约变化：不再吞）");
 			} finally {
 				field.set(app, realMirror); // 恢复真库，stopApp走正常关闭路径
 			}
 		} finally {
 			brokenMirror.close(); // 释放临时库句柄（须在TempDir清理前）
+			stopApp();
+		}
+	}
+
+	@Test
+	public void testOldTableMirrorWriteFailureFailsLoad() throws Exception {
+		startAppWithOldTable();
+		var realMirror = app.getLocalRocksCacheDb();
+		var brokenMirror = new BrokenMirrorDb(app, tempDir.resolve("brokenMirrorOld"));
+		var field = Application.class.getDeclaredField("LocalRocksCacheDb");
+		field.setAccessible(true);
+		try {
+			seedOldDatabase(KEY_OLD, 100);
+			// 基线：镜像健康期首读——新库miss→oldTable命中→Immediately分支写oldTable+镜像
+			//（不设脏、不写新库），读事务的提交flush走真库。
+			var out = new long[1];
+			Assertions.assertEquals(Procedure.Success, get(KEY_OLD, out));
+			Assertions.assertEquals(100, out[0], "倒库装载基线");
+			Assertions.assertTrue(table.getLocalRocksCacheTable().containsKey(table, KEY_OLD), "镜像应已写入");
+			Assertions.assertNull(table.selectFromDatabase(KEY_OLD), "前置：倒库记录仅存旧库+镜像，新库无值");
+
+			// 冷装载条件：清缓存（记录clean，值安全在oldTable）。
+			table.__ClearTableCacheUnsafe__();
+			Assertions.assertEquals(0, table.getCacheSize());
+
+			try {
+				field.set(app, brokenMirror);
+				// 冷装载：新库miss→oldTable命中→Immediately分支镜像事务失败→抛出→事务失败+记录作废。
+				//（修复前此处catch吞掉后继续，记录以clean态仅存oldTable+内存——softValue GC后
+				// 镜像miss读成"不存在"，续写覆盖丢数据。）
+				Assertions.assertEquals(Procedure.Exception, get(KEY_OLD, new long[1]),
+						"倒库分支镜像写失败必须使装载事务失败（不得吞）");
+				Assertions.assertEquals(0, table.getCacheSize(), "失败装载的记录必须被作废出缓存");
+			} finally {
+				field.set(app, realMirror);
+			}
+		} finally {
+			brokenMirror.close();
 			stopApp();
 		}
 	}

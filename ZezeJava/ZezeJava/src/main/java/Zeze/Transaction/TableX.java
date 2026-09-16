@@ -282,8 +282,15 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 										var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
 										var t = oldTable.getDatabase().beginTransaction();
 										try {
-											oldTable.replace(t, key, old);
-											localRocksCacheTable.replace(lct, key, old);
+											// 【存量缺陷修复】原实现传原始key(K)与Bean给replace(Transaction,Object,Object)，
+											// 该重载按后端盲转（KV转ByteBuffer），RocksDb旧库下每次装载必抛ClassCastException
+											// ——被旧catch吞掉后oldTable与镜像从未写上，记录以clean态仅存oldTable+内存，
+											// 正好落进FND6-01的缺陷形态且逐次刷error日志。与Record1.flush/rocksCachePut
+											// 同型：两侧都传编码后的key/value。
+											var bbKey = encodeKey(key);
+											var bbValue = ByteBuffer.encode(old);
+											oldTable.replace(t, bbKey, bbValue);
+											localRocksCacheTable.replace(lct, bbKey, bbValue);
 											lct.commit();
 											t.commit();
 										} catch (Throwable ex) {

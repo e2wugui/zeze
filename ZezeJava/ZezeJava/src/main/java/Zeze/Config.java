@@ -1175,8 +1175,16 @@ public final class Config {
 			return databaseOldName;
 		}
 
+		public void setDatabaseOldName(@NotNull String value) {
+			databaseOldName = value;
+		}
+
 		public int getDatabaseOldMode() {
 			return databaseOldMode;
+		}
+
+		public void setDatabaseOldMode(int value) {
+			databaseOldMode = value;
 		}
 
 		public TableConf() {
