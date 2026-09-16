@@ -93,13 +93,17 @@ public class RedoQueue extends HandshakeClient {
 	public void add(int taskType, Serializable taskParam) {
 		lock();
 		try {
+			// FND7-65：先落盘成功再推进内存lastTaskId。原先先++lastTaskId后put，put抛
+			// RocksDBException时内存已前进而盘上无此任务：后续泵读lastDoneTaskId+1命中空洞
+			// 永久停摆，重启后lastTaskId从DB最大键恢复，洞仍在，不可自愈。
+			var newTaskId = lastTaskId + 1;
 			var key = ByteBuffer.Allocate(9);
-			key.WriteLong(++lastTaskId);
+			key.WriteLong(newTaskId);
 
 			var task = new BQueueTask();
 			task.setQueueName(getName());
-			task.setPrevTaskId(lastTaskId - 1);
-			task.setTaskId(lastTaskId);
+			task.setPrevTaskId(newTaskId - 1);
+			task.setTaskId(newTaskId);
 			task.setTaskType(taskType);
 			var param = ByteBuffer.Allocate(1024 + 16);
 			taskParam.encode(param);
@@ -109,6 +113,7 @@ public class RedoQueue extends HandshakeClient {
 
 			// 保存完整的rpc请求，重新发送的时候不用再次打包。
 			tableTaskQueue.put(key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+			lastTaskId = newTaskId;
 			tryStartSendNextTask(task, null);
 		} catch (RocksDBException e) {
 			throw Task.forceThrow(e);
@@ -142,8 +147,14 @@ public class RedoQueue extends HandshakeClient {
 				var key = ByteBuffer.Allocate(9);
 				key.WriteLong(taskId);
 				var value = tableTaskQueue.get(key.Bytes, 0, key.WriteIndex);
-				if (value == null)
-					return; // error
+				if (value == null) {
+					// FND7-65：水位下一跳任务在DB中不存在（历史put失败留下的空洞，或外部
+					// 删数据）。洞不会自愈：重启后lastTaskId从DB最大键恢复，水位之下的洞
+					// 保持，队列永久停摆且无任何日志。FATAL让运维介入（人工补洞或重置水位）。
+					logger.fatal("task queue hole! queue={}, taskId={}, lastDoneTaskId={}, lastTaskId={}",
+							getName(), taskId, lastDoneTaskId, lastTaskId);
+					return;
+				}
 				rpc.Argument.decode(ByteBuffer.Wrap(value));
 			}
 			if (this.socket == null) {
