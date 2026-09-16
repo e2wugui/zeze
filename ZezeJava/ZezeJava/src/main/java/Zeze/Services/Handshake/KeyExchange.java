@@ -162,12 +162,12 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 				if (clientPriKey != null) {
 					serverIvKey = Cert.decryptRsa(clientPriKey, Result.encIvKey);
 					if (serverIvKey.length != 32)
-						return Res.ErrorDecryptFailed; // 不该出现的意外情况,估计只能断开连接了
+						throw new IllegalStateException("invalid serverIvKey length = " + serverIvKey.length);
 				} else {
 					serverIvKey = Result.encIvKey;
 					serverIvKeyLen = serverIvKey.length;
 					if (serverIvKeyLen != 32)
-						return Res.ErrorDecryptFailed; // 不该出现的意外情况,估计只能断开连接了
+						throw new IllegalStateException("invalid serverIvKey length = " + serverIvKeyLen);
 					for (int i = 0; i < 32; i++)
 						serverIvKey[i] ^= clientIvKey[i];
 				}
@@ -205,10 +205,8 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			} catch (GeneralSecurityException e) {
 				throw Task.forceThrow(e);
 			}
-			if (clientIvKey.length != 32) {
-				trySendResultCode(Res.ErrorDecryptFailed);
-				return 0;
-			}
+			if (clientIvKey.length != 32)
+				throw new IllegalStateException("invalid clientIvKey length = " + clientIvKey.length);
 
 			byte[] serverIvKey = genIvKey();
 			byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);

@@ -29,6 +29,10 @@ import org.junit.jupiter.api.Test;
  * 关闭（修复前：仅回错误码、服务端连接保持，永不关闭）。客户端必须注册KeyExchange
  * 工厂以解码错误应答——否则客户端自身因Unknown Protocol断连，污染断言对象
  * （首版测试的教训：断言客户端关闭时修复前后都绿）。
+ * FND6-33残留补：解密【成功】但长度!=32的原路径仅回错误码不断连——服务器公钥公开，
+ * 攻击者可自造任意长度明文的合法密文在单条连接上无限刷RSA私钥解密（不走异常分支、
+ * 无需重连）；客户端回调的同型长度检查则return不close（注释自认「只能断开连接」却
+ * 没断）。两处对齐HandshakeBase「invalid secret length」判例：throw交整体catch断连。
  */
 @Fast
 public class TestKeyExchangeErrorClose {
@@ -94,6 +98,78 @@ public class TestKeyExchangeErrorClose {
 
 			await("server OnSocketClose after decrypt failure (FND6-33)", 10_000,
 					() -> server.closeCount.get() >= 1);
+		} finally {
+			client.stop();
+			server.stop();
+		}
+	}
+
+	@Test
+	public void testValidCipherShortPlaintextClosesServerSideConnection() throws Exception {
+		Task.tryInitThreadPool();
+		var keyPairGen = KeyPairGenerator.getInstance("RSA");
+		keyPairGen.initialize(2048);
+		var keyPair = keyPairGen.generateKeyPair();
+		var serverPubKey = ((RSAKey)keyPair.getPublic()).getModulus().toByteArray();
+
+		var server = new CloseCountService("TestKeyExchangeClose.Server2");
+		KeyExchange.addHandler(server, keyPair.getPrivate());
+		int port = startServer(server);
+
+		var client = new Service("TestKeyExchangeClose.Client2");
+		client.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,
+				r -> Procedure.Success, TransactionLevel.None, DispatchMode.Direct));
+		try {
+			AsyncSocket socket = client.newClientSocket("127.0.0.1", port, null, null);
+			Assertions.assertNotNull(socket, "客户端必须连上");
+			await("server accepted", 10_000, () -> server.getSocketCount() >= 1);
+
+			// 公钥公开可自造「合法密文但明文长度!=32」：解密成功不抛异常，原路径仅回
+			// ErrorDecryptFailed、连接保持——攻击者可在单条连接上无限刷RSA私钥解密。
+			var rpc = new KeyExchange(serverPubKey);
+			rpc.Argument.encIvKey = KeyExchange.encryptRsa(serverPubKey, new byte[31]);
+			rpc.SendReturnVoid(client, socket, null);
+
+			await("server OnSocketClose after short clientIvKey (FND6-33残留)", 10_000,
+					() -> server.closeCount.get() >= 1);
+		} finally {
+			client.stop();
+			server.stop();
+		}
+	}
+
+	@Test
+	public void testInvalidServerIvKeyLengthClosesClientSideConnection() throws Exception {
+		Task.tryInitThreadPool();
+		var keyPairGen = KeyPairGenerator.getInstance("RSA");
+		keyPairGen.initialize(2048);
+		var keyPair = keyPairGen.generateKeyPair();
+		var serverPubKey = ((RSAKey)keyPair.getPublic()).getModulus().toByteArray();
+
+		// 「恶意/故障服务器」：不对接真实密钥交换，直接回encIvKey长度!=32的应答。
+		var server = new Service("TestKeyExchangeClose.Server3");
+		server.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,
+				r -> {
+					r.Result.encIvKey = new byte[31];
+					r.SendResult();
+					return Procedure.Success;
+				}, TransactionLevel.None, DispatchMode.Direct));
+		int port = startServer(server);
+
+		var client = new CloseCountService("TestKeyExchangeClose.Client3");
+		client.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,
+				r -> Procedure.Success, TransactionLevel.None, DispatchMode.Direct));
+		try {
+			AsyncSocket socket = client.newClientSocket("127.0.0.1", port, null, null);
+			Assertions.assertNotNull(socket, "客户端必须连上");
+
+			// 走send(so)客户端路径（无clientPriKey分支）：应答31字节serverIvKey，
+			// 回调长度检查原为return不断连，修复后throw交catch断连【客户端】连接。
+			var rpc = new KeyExchange(serverPubKey);
+			Assertions.assertTrue(rpc.send(socket));
+
+			await("client OnSocketClose after invalid serverIvKey (FND6-33残留)", 10_000,
+					() -> client.closeCount.get() >= 1);
 		} finally {
 			client.stop();
 			server.stop();
