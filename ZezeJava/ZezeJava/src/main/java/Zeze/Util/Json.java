@@ -430,6 +430,14 @@ public final class Json implements Cloneable {
 	private final @NotNull ConcurrentHashMap<Class<?>, ClassMeta<?>> classMetas = new ConcurrentHashMap<>();
 	public BiFunction<Class<?>, Field, String> fieldNameFilter;
 
+	/**
+	 * 克隆共享全部 ClassMeta 实例（浅拷贝），语义易踩坑：
+	 * 对克隆的 getClassMeta(...).setParser/setWriter 修改的是同一个 ClassMeta 对象，
+	 * 双向穿透到原实例（反之亦然）；克隆上改 fieldNameFilter 只影响此后新注册的类，
+	 * 已共享的 meta 字段布局不变（filter 在 ClassMeta 构造时固化）。
+	 * 仓内零调用者。需要独立配置请显式 new Json() 重建。
+	 */
+	@Deprecated // ClassMeta共享语义易误用，复用请显式new Json()
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
 	public @NotNull Json clone() {
