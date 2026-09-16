@@ -97,8 +97,16 @@ public class TestHandshakeNegotiationIntegrity {
 				Assertions.assertNotNull(cause);
 				// 服务端的 encryptType mismatch ISE 只留在服务端日志/OnSocketClose，不会随线路
 				// 传播——客户端可观测的拒绝行为就是连接被关闭（cause=inputClosed/EOF 等）。
-				for (int i = 0; i < 50 && server.getSocketCount() > 0; ++i)
+				// 客户端已观察到关闭后，服务端socketMap条目清除（realClose/dispose）在IO线程异步
+				// 追赶——排空等待（单调递减方向，无瞬态错过），预算30s对齐全量套件满载判例
+				// （R2-N：TestHandshakeDoneErrorClose同型加固，原50×100ms=5s在全量负载下不够）。
+				var deadline = System.currentTimeMillis() + 30_000;
+				while (server.getSocketCount() > 0) {
+					Assertions.assertTrue(System.currentTimeMillis() < deadline,
+							"timeout waiting server socketMap drain");
+					//noinspection BusyWait
 					Thread.sleep(100);
+				}
 				Assertions.assertEquals(0, server.getSocketCount());
 			} finally {
 				attacker.stop();
