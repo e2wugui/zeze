@@ -38,7 +38,10 @@ public class TestTakeoverLease {
 	public void testClaimRenewRelease() throws Exception {
 		// serverId必须经TakeoverTestEnv唯一分配：默认0会与demo.App（zeze.xml ServerId=0）
 		// 撞 zeze_cache_0 的RocksDB锁（IDEA全模块单JVM运行时两者同进程）。
-		var conf = TakeoverTestEnv.newConf("on", 600, 600_000); // ttl=600ms，renew周期200ms；不依赖周期扫描
+		// 时序裕度3x：亚秒级TTL在类并行满载下renew虚拟线程/测试线程的调度停摆会击穿窗口
+		// （50轮压测1次"续约后不得过期"假红，同族先例TestTokenKeepAlive）。
+		final long ttl = 2000; // renew周期=TTL/3≈666ms；不依赖周期扫描
+		var conf = TakeoverTestEnv.newConf("on", ttl, 600_000);
 		var app = new Application("TestTakeoverLease1", conf);
 		try {
 			app.start();
@@ -50,12 +53,12 @@ public class TestTakeoverLease {
 			var lease = readLease(app, serverId);
 			Assertions.assertTrue(lease[0] >= 1, "claim后epoch应>=1");
 			Assertions.assertEquals(takeover.getMyEpoch(), lease[0]);
-			Assertions.assertTrue(lease[1] > System.currentTimeMillis() && lease[1] <= System.currentTimeMillis() + 600 + 100,
+			Assertions.assertTrue(lease[1] > System.currentTimeMillis() && lease[1] <= System.currentTimeMillis() + ttl + 100,
 					"expireAt≈now+TTL, lease=" + lease[1]);
 
 			// renew：睡过两个renew周期，expireAt被推后，epoch不变。
 			var expireBefore = lease[1];
-			Thread.sleep(500);
+			Thread.sleep(1500);
 			var renewed = readLease(app, serverId);
 			Assertions.assertEquals(lease[0], renewed[0], "renew不得改epoch");
 			Assertions.assertTrue(renewed[1] > expireBefore, "renew应推后expireAt: " + renewed[1] + " vs " + expireBefore);
@@ -69,8 +72,8 @@ public class TestTakeoverLease {
 			var grace = readLease(app, serverId);
 			Assertions.assertEquals(lease[0], grace[0]);
 			Assertions.assertNotEquals(0L, grace[1], "release不得再立墓碑（缩容：到期要被接管）");
-			Assertions.assertTrue(grace[1] >= beforeRelease + 600,
-					"release应刷新完整TTL宽限期, grace=" + grace[1] + " beforeRelease+ttl=" + (beforeRelease + 600));
+			Assertions.assertTrue(grace[1] >= beforeRelease + ttl,
+					"release应刷新完整TTL宽限期, grace=" + grace[1] + " beforeRelease+ttl=" + (beforeRelease + ttl));
 
 			// 重复claim：epoch再+1（抢占式，不等TTL）。
 			var epoch2 = takeover.claim();
