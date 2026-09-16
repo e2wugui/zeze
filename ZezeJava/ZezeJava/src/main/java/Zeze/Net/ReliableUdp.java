@@ -279,10 +279,13 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			Packet packet;
 			synchronized (this) { // 与 rebaseSendState 互斥：取号、入窗、挂定时器必须原子，防止重整归零后出现逆序号
 				packet = new Packet(selfGeneration, serialIdGenerator.getAndIncrement(), bytes, offset, length);
-				sendWindow.put(packet.serialId, packet);
-
-				// start auto resend timer.
+				// resendTimerTask必须在sendWindow.put之前写入（FND7-28）：并发集合的内存一致性只保证
+				// "put之前的写"对"remove之后的读"可见；put之后再写，Ack路径（selector线程，不持本会话锁）
+				// remove后裸读resendTimerTask可能按JMM长期读到stale null——cancel抛NPE被doHandle的按包
+				// catch吞成malformed日志，scheduleWithFixedDelay的周期重发任务永不停止：已确认的包每3秒
+				// 重发一次且再无路径可cancel，Packet被定时器闭包终身持有直到会话rebase/close。
 				packet.resendTimerTask = TaskSpec.ofAction(() -> sendTo(peer, packet)).schedulePeriodNow(3000, 3000);
+				sendWindow.put(packet.serialId, packet);
 			}
 			return sendTo(peer, packet);
 		}
