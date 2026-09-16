@@ -119,13 +119,33 @@ public final class AsyncLock {
 		for (; ; ) {
 			var onReady = readyQueue.poll(); // onEnter or onNotify
 			if (onReady != null) {
-				Task.getThreadPool().execute(() -> runWithLeave(onReady));
+				try {
+					// poolOrThrow（FND7-44）：池未初始化/已停机（shutdownPools先置null）时
+					// getThreadPool()返回null，裸execute直接NPE且无回滚。
+					Task.poolOrThrow(false).execute(() -> runWithLeave(onReady));
+				} catch (RuntimeException e) {
+					rollbackRejectedDispatch(onReady, e);
+					throw e;
+				}
 				return;
 			}
 			state = 0;
 			if (readyQueue.isEmpty() || !stateHandle.compareAndSet(this, 0, 1)) // retry, rare-path
 				return;
 		}
+	}
+
+	/** 派发失败回滚（FND7-44）：execute 抛 RuntimeException（停机池拒绝 REE、
+	 * poolOrThrow 的 ISE）时回调已出队、state==1 且唯一复位点在 tryNextAsync 尾部
+	 * （未到达）——后续 enter 的两次 CAS 均失败，该 AsyncLock 永久楔死；异常还会从
+	 * leave() 逃出 runWithLeave 的 finally。回滚：回调重新入队（ConcurrentLinkedQueue
+	 * 无头插，重排队尾——失败路径可接受的次序扰动）、复位 state 释放派发权，
+	 * 按原类型重抛给调用方反馈（对齐 TaskOneByOneQueue 的失败策略）。 */
+	private void rollbackRejectedDispatch(@NotNull Action0 onReady, @NotNull RuntimeException cause) {
+		readyQueue.offer(onReady);
+		state = 0;
+		Task.logger.error("AsyncLock: dispatch rejected, rollback & requeue, {} pending callback(s)",
+				readyQueue.size(), cause);
 	}
 
 	// 释放锁,可能触发其它线程获取锁的回调
