@@ -713,8 +713,9 @@ public class LogSequence {
 	 * 选举的 term+1 溢出回绕为负值，永远无法再推进（trySetTerm 判 Older），选举永久冻结且重启
 	 * 不可恢复；超大 term 还会随投票/心跳传染其他节点。超过上界拒绝采纳（返回 Older 按陈旧处理）。
 	 * 合法集群 term 量级极小（每纳秒一次选举也要上百年才能达到），上界不可自然触及。
+	 * 1024 -> 等于允许1024次坏term攻击。攻击发生并且修复系统以后，继续开放下一段1024个term。
 	 */
-	public static final long TERM_MAX = Long.MAX_VALUE / 2;
+	public static final long TERM_MAX = Long.MAX_VALUE / 1024;
 
 	private volatile long lastRejectedOversizedTerm; // 同值只记一次日志，防恶意洪泛刷日志
 
