@@ -17,6 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLException;
@@ -411,6 +412,24 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 
 	// 这是一个低开销的检测空闲超时的方法,不准确但只会比预设的超时时间长,写超时可能会多出readIdleTimeout的时长
 	protected void checkTimeout(@NotNull Channel channel) {
+		var eventLoop = channel.eventLoop();
+		if (eventLoop.inEventLoop()) {
+			checkTimeout0(channel);
+			return;
+		}
+		// 检查主体必须在channel自己的EventLoop上执行（FND7-26）：原实现在调度线程上对
+		// idleTime做get→+interval→set读改写，channelRead（EventLoop）的清零set(null)落在
+		// get与set之间时被写回旧值——静默累计到超时边界的活跃连接（只收不发，如大上传）
+		// 被误判空闲而CLOSE_TIMEOUT关闭，违反“超时只长不短”契约。与清零同队列串行后，
+		// 检查必然观察到排队在它之前的所有读活动。EL已关停（整个Netty在关闭）时拒绝提交，
+		// 此时channel必然已关闭，忽略即可。
+		try {
+			eventLoop.execute(() -> checkTimeout0(channel));
+		} catch (RejectedExecutionException ignored) {
+		}
+	}
+
+	protected void checkTimeout0(@NotNull Channel channel) {
 		var idleTimeAttr = channel.attr(idleTimeKey);
 		var idleTimeObj = idleTimeAttr.get();
 		int idleTime = idleTimeObj != null ? idleTimeObj : 0;
