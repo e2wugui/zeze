@@ -9,13 +9,17 @@ import java.util.TimeZone;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * FND4-75：BinLogger天边界两口径不一致——toDayStamp用getRawOffset（不含夏令时），toDayStr经
  * ZoneId.systemDefault()（DST感知）。DST时区切换日附近天边界错开一天：轮转文件名与数据实际
  * 归属日期不符。修复后两口径同源（DST感知LocalDate）。中国时区不受影响，本测试切到
  * America/New_York构造DST窗口。经反射调用（修复前方法为private，反射兼容新旧两态）。
+ * TimeZone.setDefault是进程级全局变更：@Isolated独占执行，防类级并行下污染并发的
+ * 日期敏感测试（TestBinLoggerRotate/WriteFail/StopDiscard族实测被污染产生偶发红）。
  */
+@Isolated
 @Fast
 public class TestBinLoggerDayStamp {
 
