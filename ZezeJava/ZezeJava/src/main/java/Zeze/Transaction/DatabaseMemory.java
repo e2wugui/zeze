@@ -59,7 +59,11 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 	@Override
 	public @Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
-		lock();
+		// FND7-03：dataWithVersions是静态共享结构（多Memory库实例按URL分区访问，见类头注释），
+		// 必须用静态读写锁守卫（对齐databaseTables的约定）。原先的实例锁()每实例一把：
+		// 跨实例并发get/computeIfAbsent/put可损坏HashMap（桶链断裂），且与静态clear()的
+		// 写锁不互斥，clear期间的put可在被清空的桶上重建出损坏结构。
+		lock.readLock().lock();
 		try {
 			var db = dataWithVersions.get(getDatabaseUrl());
 			var exist = db != null ? db.get(key) : null;
@@ -70,14 +74,15 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 			copy.version = exist.version;
 			return copy;
 		} finally {
-			unlock();
+			lock.readLock().unlock();
 		}
 	}
 
 	@Override
 	public @NotNull KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
 															  long version) {
-		lock();
+		// FND7-03：同getDataWithVersion，静态写锁守卫共享dataWithVersions。
+		lock.writeLock().lock();
 		try {
 			var db = dataWithVersions.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());
 			var exist = db.get(key);
@@ -93,7 +98,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 			db.put(ByteBuffer.Wrap(key.Copy()), tempVar);
 			return KV.create(version, true);
 		} finally {
-			unlock();
+			lock.writeLock().unlock();
 		}
 	}
 
