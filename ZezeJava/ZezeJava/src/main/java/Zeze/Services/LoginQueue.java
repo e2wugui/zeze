@@ -47,7 +47,9 @@ public class LoginQueue extends AbstractLoginQueue {
 	private final ConcurrentLinkedQueue<AsyncSocket> queue = new ConcurrentLinkedQueue<>();
 	// 私有锁: 串行化tryOnAccept/drainQueue/tryResetTimeThrottle;取代原先共用的this监视器,不暴露实例监视器
 	private final ReentrantLock allocateLock = new ReentrantLock();
-	private final Future<?> allocateTimer;
+	// FND7-21：分配tick与start/stop配对（原为构造器赋值的final字段，stop取消后不可再得，
+	// restart永久失去1秒分配tick与队列位置广播）。allocateLock保护下判空创建/置null。
+	private Future<?> allocateTimer;
 	private int broadcastCount;
 	private final int maxOnlineNew;
 	private final boolean choiceLinkOnly;
@@ -69,7 +71,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		this.server = new LoginQueueServer(this, config);
 		this.service = new LoginQueueService(config);
 		RegisterProtocols(service);
-		this.allocateTimer = TaskSpec.ofAction(this::allocateTimer).schedulePeriodNow(1000L, 1000L);
+		// FND7-21：分配tick移入start()，与stop()的取消配对（对齐BinLoggerService形态）
 		timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
 	}
 
@@ -90,10 +92,35 @@ public class LoginQueue extends AbstractLoginQueue {
 	public void start() throws Exception {
 		server.getService().start();
 		service.start();
+		allocateLock.lock();
+		try {
+			// FND7-21：分配tick与start/stop配对，stop后restart重建（原来stop取消后final字段
+			// 不可再得，restart永久失去1秒分配tick与队列位置广播）。timeThrottle同批重置：
+			// stop关闭了旧实例（内部timer已cancel、计数永不清零），且provider全部掉线时曾被
+			// tryResetTimeThrottle重建为limit=0的实例——不重置则restart后直到provider重新
+			// 上报前checkNow恒false，直通分配也被禁。重置回首次start的默认状态。
+			if (allocateTimer == null)
+				allocateTimer = TaskSpec.ofAction(this::allocateTimer).schedulePeriodNow(1000L, 1000L);
+			var old = timeThrottle;
+			timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
+			providerSize = 0;
+			old.close(); // 先更新引用再关闭，减小并发checkNow拿到已关闭实例的窗口
+		} finally {
+			allocateLock.unlock();
+		}
 	}
 
 	public void stop() throws Exception {
-		allocateTimer.cancel(true);
+		allocateLock.lock();
+		try {
+			// FND7-21：取消并置null，与start()的创建配对（restart可重建）
+			if (allocateTimer != null) {
+				allocateTimer.cancel(true);
+				allocateTimer = null;
+			}
+		} finally {
+			allocateLock.unlock();
+		}
 		server.getService().stop();
 		service.stop();
 		timeThrottle.close(); // 放在service.stop之后：关闭过程中onClose还可能触发tryResetTimeThrottle替换实例
