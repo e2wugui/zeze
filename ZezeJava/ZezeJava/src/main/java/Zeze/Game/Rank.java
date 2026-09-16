@@ -596,8 +596,17 @@ public class Rank extends AbstractRank {
 		var size = datas.size();
 		if (0 == size)
 			return new BRankList();
-		if (1 == size)
-			return datas.iterator().next().copy(); // only one item
+		if (1 == size) { // only one item
+			var result = datas.iterator().next().copy();
+			// FND7-35：单段同样按countNeed截断——段内允许增长到computeCount（默认2.5×rankSize）
+			// 作中间数据，不截断则getRankTotal的快照含超容量条目，getRankPosition对第
+			// rankSize+1名之后返回具体名次而非-1（"是否在榜内"契约失真），且与多段路径
+			// （会截断）行为不一致。copy后再删，不能直接删表数据。
+			//noinspection ListRemoveInLoop
+			for (int ir = result.getRankList().size() - 1; ir >= countNeed; --ir)
+				result.getRankList().remove(ir);
+			return result;
+		}
 
 		// 合并过程中，结果是新的 BRankList，List中的 BRankValue 引用到表中。
 		// 最后 Copy 一次。
