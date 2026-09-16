@@ -450,9 +450,19 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		case Immediately:
 			break;
 
-		case Table:
-			RelativeRecordSet.flushWhenReduce(r, getZeze().getCheckpoint());
+		case Table: {
+			var checkpoint = getZeze().getCheckpoint();
+			if (checkpoint == null)
+				// FND7-55：停机窗口（终检点已过）无法履行durability-before-downgrade。
+				// 抛出让Reduce以默认StateReduceException fail-safe应答（对端acquire失败
+				// 重试），并保住本地脏记录状态：静默跳过flush会把降级当成功应答——GCM把
+				// 权限授予其他进程后，本进程未落库的脏值会跨进程丢失更新；原实现此处
+				// 对null checkpoint解引用直接NPE，异常类型不可辨。
+				throw new IllegalStateException("flushWhenReduce: checkpoint stopped. table="
+						+ getName() + ", record=" + r);
+			RelativeRecordSet.flushWhenReduce(r, checkpoint);
 			break;
+		}
 		}
 	}
 
