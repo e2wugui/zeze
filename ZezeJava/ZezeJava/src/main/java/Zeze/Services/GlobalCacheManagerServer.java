@@ -253,6 +253,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	}
 
 	public void stop() throws Exception {
+		Future<?> timer;
 		lock();
 		try {
 			if (server == null)
@@ -261,13 +262,18 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			// instance.server.GetSocket，原顺序先置server=null后cancel定时器——停机窗口内daemon
 			// 踩到null NPE（持session锁的该轮forEach中止，剩余session不再检查）。
 			achillesHeelShutdown = true; // FND7-18：锁内置位后cancel，tick锁内复查保证不再产生新扫描
-			if (achillesHeelTimer != null) {
-				achillesHeelTimer.cancel(false);
-				achillesHeelTimer = null;
-			}
+			timer = achillesHeelTimer;
+			achillesHeelTimer = null;
 		} finally {
 			unlock();
 		}
+		// 复审R2：cancel必须在实例锁外调用。tick任务体（scheduleAchillesHeelDaemon）在
+		// TimerFuture锁内执行（Task.schedulePeriodCore持future.lock跑body）并会取实例锁；
+		// 持实例锁cancel与在飞tick构成ABBA死锁（cancel等future.lock、tick体等实例锁）。
+		// 锁外cancel不破坏FND7-18语义：关门标志已锁内置位，此后tick不再派发新扫描；
+		// 已派发的在飞扫描由下方awaitAchillesHeelIdle等待（cancel本身join的是派发动作，毫秒级）。
+		if (timer != null)
+			timer.cancel(false);
 		// FND7-18：cancel(false)只阻止后续触发，不join正在执行的扫描——不等待就在飞扫描的
 		// kick踩到已置null的server（NPE中断本轮检查）。不持锁等待：扫描体不拿实例锁，
 		// 持锁等会把随后到来的tick阻塞在调度池线程上。

@@ -1023,10 +1023,14 @@ public class GlobalCacheManagerWithRaft
 			// 逐key跑raft procedure，rocks.close()释放原生句柄后与在飞walk/iterator竞争会
 			// 段错误杀死JVM（对齐ServiceManagerWithRaft.close的锁屏障教训）。锁内先置关门
 			// 标志再cancel，保证置位后不再产生新扫描；然后等在飞扫描结束再关rocks。
+			// 复审R2：cancel必须在gate外调用——tick任务体（scheduleAchillesHeelDaemon）在
+			// TimerFuture锁内执行（Task.schedulePeriodCore持future.lock跑body）并会取gate；
+			// 持gate cancel与在飞tick构成ABBA死锁。锁外cancel不破坏FND7-18语义：关门标志
+			// 已在gate内置位，此后tick不再派发新扫描，在飞扫描由awaitAchillesHeelIdle等待。
 			synchronized (achillesHeelGate) {
 				achillesHeelShutdown = true;
-				achillesHeelTimer.cancel(false);
 			}
+			achillesHeelTimer.cancel(false);
 			awaitAchillesHeelIdle();
 			perf.close();
 			rocks.close();

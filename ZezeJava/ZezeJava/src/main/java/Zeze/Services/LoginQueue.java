@@ -111,16 +111,23 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	public void stop() throws Exception {
+		Future<?> timer = null;
 		allocateLock.lock();
 		try {
-			// FND7-21：取消并置null，与start()的创建配对（restart可重建）
+			// FND7-21：取消并置null，与start()的创建配对（restart可重建）。
+			// 复审R2：cancel必须在allocateLock外调用——分配tick任务体（drainQueue）在
+			// TimerFuture锁内执行（Task.schedulePeriodCore持future.lock跑body）并会取
+			// allocateLock；持allocateLock调cancel与在飞tick构成ABBA死锁（cancel等
+			// future.lock、tick体等allocateLock，双方永久挂起）。锁内只捕获句柄并置null。
 			if (allocateTimer != null) {
-				allocateTimer.cancel(true);
+				timer = allocateTimer;
 				allocateTimer = null;
 			}
 		} finally {
 			allocateLock.unlock();
 		}
+		if (timer != null)
+			timer.cancel(true); // cancel在锁外：join在飞tick一轮（本例drainQueue+广播），不再持tick体需要的锁
 		server.getService().stop();
 		service.stop();
 		timeThrottle.close(); // 放在service.stop之后：关闭过程中onClose还可能触发tryResetTimeThrottle替换实例

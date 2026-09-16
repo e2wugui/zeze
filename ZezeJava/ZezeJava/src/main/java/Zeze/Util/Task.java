@@ -554,6 +554,9 @@ public final class Task {
 	}
 
 	// 周期调度：周期任务无法携带返回值，结果丢弃，异常只记日志（不 rethrow，否则 ScheduledExecutor 会停掉后续周期）。
+	// 【锁契约】任务体在 future.lock 内执行（与 TimerFuture.cancel 互斥）：cancel 天然 join 在飞的一轮
+	// 任务体；因此任务体内可以获取自己的业务锁，但 cancel 的调用方不得持有任务体可能获取的锁（ABBA，见
+	// TimerFuture.cancel 的 javadoc）。
 	static <R> @NotNull TimerFuture<R> schedulePeriodCore(long initialDelay, long period, @NotNull TaskBody<R> body,
 														  @Nullable String name, long timeout) {
 		var future = new TimerFuture<R>();
