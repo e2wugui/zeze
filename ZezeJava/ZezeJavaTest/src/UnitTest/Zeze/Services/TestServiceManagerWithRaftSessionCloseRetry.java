@@ -59,16 +59,25 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 		}
 
 		AsyncSocket connect(int port) throws Exception {
-			var connector = new Zeze.Net.Connector("127.0.0.1", port, false);
-			getConfig().addConnector(connector);
-			start();
-			try {
-				return connector.WaitReady();
-			} catch (Exception e) {
-				getConfig().removeConnector(connector);
-				connector.stop();
-				throw e;
+			// 类并行高负载下WaitReady的5s预算偶发不够（目标是本地监听端口、必然可达，纯墙钟问题，
+			// 50轮压测~13%假红）：整体重建connector重试，共3次、预算15s。
+			Exception last = null;
+			for (int attempt = 0; attempt < 3; attempt++) {
+				var connector = new Zeze.Net.Connector("127.0.0.1", port, false);
+				getConfig().addConnector(connector);
+				if (attempt == 0)
+					start(); // 首个connector由服务start驱动；服务已启动后加入的connector需自行start
+				else
+					connector.start();
+				try {
+					return connector.WaitReady();
+				} catch (Exception e) {
+					last = e;
+					getConfig().removeConnector(connector);
+					connector.stop();
+				}
 			}
+			throw last;
 		}
 	}
 
