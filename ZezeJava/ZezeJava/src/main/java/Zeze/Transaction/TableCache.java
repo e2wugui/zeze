@@ -290,7 +290,13 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		}
 	}
 
-	// under lockey.writeLock and record.fairLock
+	// 实际锁契约（FND7-78修正原"under lockey.writeLock and record.fairLock"的不准确描述）：
+	// 调用方至少持有 record.fairLock；lockey 写锁不是本方法的前提——
+	// - load异常出口（TableX.load 的 catch）：仅持 fairLock，不持 lockey 写锁；
+	// - cleanNow/容量驱逐（tryRemoveRecord）：另持 lockey 写锁（与并发事务互斥）及 rrs 锁。
+	// 不持 lockey 的路径依赖 fairLock 的记录级全序 + StateRemoved 自愈：
+	// 并发访问者见到 StateRemoved 即重走 GetOrAdd 建新记录（TableX.load/GetOrAdd 的
+	// StateRemoved continue 分支），不会观察到删除中间态。
 	void remove(@NotNull K k, @NotNull Record1<K, V> r, boolean removeLocalRocks) {
 		if (dataMap.remove(k, r)) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
