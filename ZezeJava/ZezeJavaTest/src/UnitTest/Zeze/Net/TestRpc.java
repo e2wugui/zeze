@@ -25,11 +25,17 @@ public class TestRpc {
 		System.out.println(first.getTypeId());
 		server.AddFactoryHandle(first.getTypeId(), new Service.ProtocolFactoryHandle<>(f, TestRpc::ProcessFirstRpcRequest));
 
-		server.newServerSocket("127.0.0.1", 5000, null);
+		// R2-U2：端口0让OS分配临时端口（同仓TestSocketAcceptCloseOnce等模式）——固定5000在
+		// 多工作树/CI并行跑测试时互撞bind失败。
+		var listener = (Zeze.Net.TcpSocket)server.newServerSocket("127.0.0.1", 0, null);
+		var local = listener.getLocalInet();
+		Assertions.assertNotNull(local, "listen socket local address");
+		int port = local.getPort();
+
 		Client client = new Client(this);
 		client.AddFactoryHandle(first.getTypeId(), new Service.ProtocolFactoryHandle<>(FirstRpc::new));
 
-		AsyncSocket clientSocket = client.newClientSocket("127.0.0.1", 5000, null, null);
+		AsyncSocket clientSocket = client.newClientSocket("127.0.0.1", port, null, null);
 		connected.get();
 
 		first = new FirstRpc();
