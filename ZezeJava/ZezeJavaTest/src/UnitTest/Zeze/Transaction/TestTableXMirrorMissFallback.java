@@ -1,6 +1,6 @@
 package UnitTest.Zeze.Transaction;
 
-import java.lang.reflect.Method;
+import java.lang.reflect.Field;
 import java.nio.file.Path;
 
 import harness.Fast;
@@ -15,23 +15,35 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.CheckpointMode;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Record;
-import Zeze.Transaction.Record1;
 import Zeze.Transaction.TableX;
 import Zeze.Util.FuncLong;
 
 /**
- * FND6-01：本地 Rocks 镜像不变式（镜像 ⊇ 干净缓存值）被打破（rocksCachePut 写失败被吞、
- * 镜像库损坏）后，softValue 被 GC 的干净记录（Share/Modify + clean）唯一恢复源只剩后台库。
- * 原缺陷：load 快路径与 Record1.loadValue 镜像 miss 不回退 storage，直接返回 null——
- * 存量记录被读成"不存在"，业务据此插入新值提交会覆盖丢数据。
- * 修复：镜像 miss 且非内存表时穿透读后台库一次，回填 softValue 并自愈镜像。
- * 测试以「删除镜像条目 + 反射清空 softValue」模拟该状态（GC 不可强制，等价于软引用被回收）。
+ * FND6-01根因修复验证：本地Rocks镜像写失败不得被吞——记录不允许以clean状态失去/背离镜像备份。
+ * 镜像不变式（clean+Share记录 ⇒ 镜像条目存在且==storage真相）是softValue被GC后快路径正确性的
+ * 唯一依托：缺失方向把存量记录读成"不存在"（续写覆盖丢数据）；陈旧方向在租约间隙（驱逐/GCM
+ * reduce释放后其他进程改storage，本进程驱逐remove与重装载put相继被吞）后返回旧值或复活已删记录。
+ * 修复：rocksCachePut/rocksCacheRemove失败抛RuntimeException，装载路径由load既有异常出口作废
+ * 记录（cache.remove）并上报——Procedure.call内层catch回滚后返回Procedure.Exception（单次失败，
+ * 不自动redo）；TableCache.remove（驱逐与异常清理共用）局部吞+日志。
+ *
+ * 故障注入：反射替换Application.LocalRocksCacheDb为beginTransaction()抛异常的子类（纯Java异常，
+ * 零native风险——不close活库：全活应用下close镜像库的native路径不可靠，且Immediately提交路径
+ * 对空记录集也无条件开镜像事务，任何成功提交都会踩到已关闭句柄）。
+ * 热可用性不在此断言：Immediately模式任何成功提交（含只读）都经Checkpoint.flush无条件开镜像事务，
+ * 镜像故障下成功提交本就halt（finalCommit不可恢复点的既有设计，非本修复范围）——本测试只验
+ * 装载路径的"失败可见+记录作废"。
+ * Immediately模式保证提交返回即clean+已落storage，__ClearTableCacheUnsafe__安全地制造冷装载条件
+ * （数据在storage，仅弃缓存壳）。
  */
 @Fast
 public class TestTableXMirrorMissFallback {
-	private static final long KEY = 1L;
+	// 冷装载·存在记录：storage读成功后rocksCachePut失败——put路径。
+	private static final long KEY_EXISTENT = 3L;
+	// 冷装载·不存在记录：storage miss后rocksCacheRemove失败——remove路径。
+	private static final long KEY_ABSENT = 2L;
 
 	// serverId 决定本地 RocksCache 目录名（zeze_cache_<serverId>），取独立值避免与其他测试冲突。
 	private static final int SERVER_ID = 7313;
@@ -65,53 +77,78 @@ public class TestTableXMirrorMissFallback {
 		table = null;
 	}
 
-	private long readValue() {
-		final long[] out = {-1};
-		var result = app.newProcedure((FuncLong)() -> {
-			var v = table.get(KEY);
+	private long insert(long key, long value) {
+		return app.newProcedure((FuncLong)() -> {
+			var v = new MirrorBean();
+			v.value = value;
+			table.insert(key, v);
+			return 0L;
+		}, "TestTableXMirrorMissFallback.put").call();
+	}
+
+	private long get(long key, final long[] out) {
+		return app.newProcedure((FuncLong)() -> {
+			var v = table.get(key);
 			if (v != null)
 				out[0] = v.value;
 			return 0L;
 		}, "TestTableXMirrorMissFallback.read").call();
-		Assertions.assertEquals(Procedure.Success, result, "读取事务必须成功");
-		return out[0];
 	}
 
 	@Test
-	public void testMirrorMissFallsBackToStorage() throws Exception {
+	public void testMirrorWriteFailureFailsLoadAndInvalidates() throws Exception {
 		startApp();
+		// 故障注入：替换镜像库为beginTransaction()抛异常的子类（真实打开一个临时库以通过构造器，
+		// 但所有事务入口直接抛出——不触任何native路径）。
+		var realMirror = app.getLocalRocksCacheDb();
+		var brokenMirror = new BrokenMirrorDb(app, tempDir.resolve("brokenMirror"));
+		var field = Application.class.getDeclaredField("LocalRocksCacheDb");
+		field.setAccessible(true);
 		try {
-			var value = new MirrorBean();
-			value.value = 100;
-			Assertions.assertEquals(Procedure.Success, app.newProcedure((FuncLong)() -> {
-				table.insert(KEY, value);
-				return 0L;
-			}, "TestTableXMirrorMissFallback.put").call());
-			Assertions.assertEquals(100, readValue(), "基线：正常装载后可读");
+			// 基线：镜像健康期插入（Immediately：提交返回即clean、storage与镜像均已写）。
+			Assertions.assertEquals(Procedure.Success, insert(KEY_EXISTENT, 300));
 
-			// 前置成立：镜像有条目、softValue 在。
-			Assertions.assertTrue(table.getLocalRocksCacheTable().containsKey(table, KEY), "镜像应已写入");
+			// 制造冷装载条件：清缓存（Immediately下记录已clean落库，__ClearTableCacheUnsafe__仅弃缓存壳）。
+			table.__ClearTableCacheUnsafe__();
+			Assertions.assertEquals(0, table.getCacheSize());
 
-			// 模拟不变式被打破 + softValue 被 GC：
-			// 1) 删除镜像条目（等价于当初 rocksCachePut 写失败未落镜像）。
-			try (var txn = app.getLocalRocksCacheDb().beginTransaction()) {
-				table.getLocalRocksCacheTable().remove(txn, table.encodeKey(KEY));
-				txn.commit();
+			try {
+				field.set(app, brokenMirror);
+				// 冷装载·存在记录：storage读成功 → rocksCachePut的beginTransaction失败 → 事务失败
+				// + 记录作废出缓存（作废即"不得以clean态失去镜像备份"的落地：记录进不了快路径）。
+				Assertions.assertEquals(Procedure.Exception, get(KEY_EXISTENT, new long[1]),
+						"rocksCachePut失败必须使装载事务失败（不得吞）");
+				Assertions.assertEquals(0, table.getCacheSize(), "失败装载的记录必须被作废出缓存");
+
+				// 冷装载·不存在记录：storage miss → rocksCacheRemove的beginTransaction失败 → 事务失败 + 记录作废。
+				Assertions.assertEquals(Procedure.Exception, get(KEY_ABSENT, new long[1]),
+						"rocksCacheRemove失败必须使装载事务失败（不得吞）");
+				Assertions.assertEquals(0, table.getCacheSize(), "失败装载的记录必须被作废出缓存");
+			} finally {
+				field.set(app, realMirror); // 恢复真库，stopApp走正常关闭路径
 			}
-			Assertions.assertFalse(table.getLocalRocksCacheTable().containsKey(table, KEY), "镜像条目应已删除");
-			// 2) 清空 softValue（Record.setSoftValue 包私有，反射模拟软引用回收）。
-			Record1<Long, MirrorBean> r = table.getCache().getOrAdd(KEY, () -> new Record1<>(table, KEY, null));
-			Method setSoftValue = Record.class.getDeclaredMethod("setSoftValue", Bean.class);
-			setSoftValue.setAccessible(true);
-			setSoftValue.invoke(r, (Object)null);
-
-			// 记录为 Share + clean + softValue=null + 镜像 miss：修复前此处读到 null（-1）。
-			Assertions.assertEquals(100, readValue(), "镜像 miss 必须回退后台库，存量记录不得读成不存在");
-
-			// 自愈：穿透读后镜像应已回填。
-			Assertions.assertTrue(table.getLocalRocksCacheTable().containsKey(table, KEY), "镜像应被自愈回填");
 		} finally {
+			brokenMirror.close(); // 释放临时库句柄（须在TempDir清理前）
 			stopApp();
+		}
+	}
+
+	/** 镜像故障注入：所有事务入口直接抛出（等价磁盘满的"写全失败"形态，纯Java异常零native风险）。 */
+	public static final class BrokenMirrorDb extends DatabaseRocksDb {
+		public BrokenMirrorDb(@NotNull Application app, @NotNull Path dir) {
+			super(app, brokenConf(dir), true);
+		}
+
+		private static @NotNull Config.DatabaseConf brokenConf(@NotNull Path dir) {
+			var conf = new Config.DatabaseConf();
+			conf.setDatabaseType(Config.DbType.RocksDb);
+			conf.setDatabaseUrl(dir.toString());
+			return conf;
+		}
+
+		@Override
+		public @NotNull Transaction beginTransaction() {
+			throw new RuntimeException("mirror broken (test injection)");
 		}
 	}
 

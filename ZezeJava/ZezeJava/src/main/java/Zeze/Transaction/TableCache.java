@@ -301,8 +301,21 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			var oldNode = r.getLruNode();
 			if (oldNode != null)
 				oldNode.remove(k, r);
-			if (removeLocalRocks)
-				table.rocksCacheRemove(k);
+			if (removeLocalRocks) {
+				try {
+					table.rocksCacheRemove(k);
+				} catch (Throwable e) { // logger.error
+					// FND6-01：此处失败可吞。三个理由：
+					// 1.正确性不需要它抛：dataMap.remove先于镜像清理完成，记录已出缓存（无效化成立），
+					//   残余镜像条目没有读者——该key重新可见必须再走慢路径装载，装载的put/remove会
+					//   强制执行且失败即抛（记录进不了clean态），陈旧条目永远到不了被信任的快路径；
+					// 2.驱逐调用方在cleanNow后台线程：抛出被任务框架捕获记日志（与局部吞等价），
+					//   却附带中止本轮剩余清理的损害；
+					// 3.load异常出口经此清理时二次抛会顶替原始异常（catch内抛新异常替换在途异常），
+					//   排障被引向清理失败而非真正的根因。
+					logger.error("TableCache.remove localRocks cleanup failed (harmless, reload enforces):", e);
+				}
+			}
 		} else {
 			r.setState(StateRemoved); // 也确保已删除状态
 			// dataMap中该key已经不是r（并发删除后新建，see GetOrAdd迁移路径），

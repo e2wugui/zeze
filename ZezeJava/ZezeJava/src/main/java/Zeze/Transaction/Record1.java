@@ -82,12 +82,12 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		var v = (V)getSoftValue();
 		if (v == null && !getDirty()) {
 			v = table.getLocalRocksCacheTable().find(table, key);
-			if (v == null)
-				v = table.storageFallbackAfterMirrorMiss(key); // FND6-01：镜像 miss 回退后台库并自愈
 			if (v != null) {
 				v.initRootInfo(createRootInfoIfNeed(new TableKey(table.getId(), key)), null);
 				setSoftValue(v);
 			}
+			// 镜像miss=不存在：镜像写失败从不被吞（rocksCachePut/Remove抛出），clean记录必有
+			// 等于storage真相的镜像备份。残余仅为进程内镜像静默损坏，运维域，见TableX.rocksCachePut。
 		}
 		return v;
 	}

@@ -144,12 +144,21 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		// return cache != null ? cache.getDataMap().size() : 0;
 	}
 
+	// FND6-01根因修复：镜像写失败不得吞。镜像不变式（clean+Share记录 ⇒ 镜像条目存在且==storage真相）
+	// 是softValue被GC后快路径正确性的唯一依托：吞掉写失败会让记录以clean状态失去/背离镜像备份——
+	// 缺失方向把存量记录读成"不存在"（续写覆盖丢数据）；陈旧方向在租约间隙（驱逐/GCM reduce释放后
+	// 其他进程改storage，本进程驱逐remove与重装载put相继被吞）后返回旧值或复活已删记录（磁盘满=
+	// 写全失败读全正常时系统性发生）。失败必须抛出：装载路径由load既有异常出口作废记录（cache.remove）
+	// 并上报（perform回滚返回Procedure.Exception，单次失败不自动redo）；flush路径本就抛出保dirty重试。
+	// 记录永远进不了"clean且靠镜像支撑"的状态，不变式由构造保证而非检测补救。信任只随整体重建恢复
+	// （启动deleteDirectory/热更clear），进程内逐条"自愈"无法证明全镜像健康。仿__direct_put_cache__先例
+	// 包RuntimeException携带表/key上下文；异常由perform错误日志记录，抛出点不再重复log。
 	final void rocksCachePut(@NotNull K key, @NotNull V value) {
 		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
 			localRocksCacheTable.replace(t, encodeKey(key), ByteBuffer.encode(value));
 			t.commit();
 		} catch (Exception e) {
-			logger.error("RocksCachePut exception:", e);
+			throw new RuntimeException("rocksCachePut failed: " + this + " " + key, e);
 		}
 	}
 
@@ -158,26 +167,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			localRocksCacheTable.remove(t, encodeKey(key));
 			t.commit();
 		} catch (Exception e) {
-			logger.error("RocksCacheRemove exception:", e);
+			throw new RuntimeException("rocksCacheRemove failed: " + this + " " + key, e);
 		}
-	}
-
-	/**
-	 * FND6-01：镜像不变式（镜像 ⊇ 干净缓存值）被打破（rocksCachePut 写失败被吞、镜像库损坏）后，
-	 * softValue 被 GC 的干净记录唯一恢复源只剩后台库——镜像 miss 不回退会把存量记录读成
-	 * "不存在"，续写覆盖丢数据。穿透读后台库一次并自愈镜像（回写 rocksCachePut）。
-	 * 干净 ⇒ flush 已写后台库（Record1.flush 同事务维护两侧），读必命中；真删除/不存在返回 null
-	 * 与原行为一致。内存表（storage==null）无后台库可回退，返回 null 维持仅镜像。
-	 */
-	final @Nullable V storageFallbackAfterMirrorMiss(@NotNull K key) {
-		var storage = this.storage;
-		if (storage == null)
-			return null;
-		ZezeCounter.instance.tableCounter(getId(), ZezeCounter.TableMetric.STORAGE_GET).increment();
-		var v = storage.getDatabaseTable().find(this, key);
-		if (v != null)
-			rocksCachePut(key, v);
-		return v;
 	}
 
 	public @Nullable Supplier<ArrayList<TableX<K, V>>> getSimulateTables; // only for temp debug
@@ -224,13 +215,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							strongRef = find;
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 							r.setSoftValue(strongRef);
-						} else {
-							strongRef = storageFallbackAfterMirrorMiss(key);
-							if (strongRef != null) {
-								strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
-								r.setSoftValue(strongRef);
-							}
 						}
+						// 镜像miss=不存在：镜像写失败从不被吞（rocksCachePut/Remove抛出，记录进不了
+						// clean态除非镜像写成功），故clean+Share记录的镜像条目必等于storage真相。
+						// 残余风险仅为进程运行中的镜像静默损坏（无异常可捕获），与storage库损坏同级
+						// 属运维域，且镜像生命周期=进程uptime（启动deleteDirectory整体重建）。
 					}
 					if (storage != null)
 						ZezeCounter.instance.tableCounter(getId(), ZezeCounter.TableMetric.CACHE_GET).increment();
@@ -297,11 +286,15 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 											localRocksCacheTable.replace(lct, key, old);
 											lct.commit();
 											t.commit();
-										} catch (Throwable ex) { // logger.error
-											logger.error("", ex);
+										} catch (Throwable ex) {
 											// rollback.
 											lct.rollback();
 											t.rollback();
+											// FND6-01：此分支不设脏标记，任何写失败被继续都会让记录以clean
+											// 状态仅存oldTable+内存（镜像缺失/陈旧）——softValue GC后镜像hit返回
+											// 旧值或miss读成不存在。抛出由load异常出口作废记录重试，值仍安全在
+											// oldTable。old侧失败连带抛出（过严格但无害：仅多一次重做）。
+											throw new RuntimeException("load oldTable write mirror failed: " + this + " " + key, ex);
 										} finally {
 											try {
 												t.close();
