@@ -79,6 +79,10 @@ public class Cache {
 
 		db.close();
 		db = null;
+		// 级联取消LRU构造器内建的两个周期任务（FND7-36）：只置null不清任务的话，
+		// 任务仍每200ms/2s永续执行并强引用整个缓存对象图，"关闭"语义不成立。
+		if (lru != null)
+			lru.close();
 		lru = null;
 	}
 

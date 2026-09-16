@@ -50,6 +50,8 @@ public class ConcurrentLruLike<K, V> {
 	private final @NotNull ConcurrentHashMap<K, LruItem<K, V>> dataMap;
 	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, LruItem<K, V>>> lruQueue = new ConcurrentLinkedQueue<>();
 	private volatile @NotNull ConcurrentHashMap<K, LruItem<K, V>> lruHot;
+	private final @NotNull TimerFuture<?> newLruHotTimer;
+	private final @NotNull TimerFuture<?> cleanTimer;
 	private int capacity;
 	private int lruInitialCapacity;
 	private int cleanPeriod;
@@ -124,13 +126,32 @@ public class ConcurrentLruLike<K, V> {
 		tryRemoveCallback = tryRemove;
 		newLruHot();
 
-		TaskSpec.ofAction(() -> {
+		// 保存句柄供close取消（FND7-36）。schedulePeriodNow（不等事务提交）：
+		// 周期任务属于实例自身的生命周期，随构造注册，不应被事务回滚掉。
+		newLruHotTimer = TaskSpec.ofAction(() -> {
 			if (lruHot.size() > lruInitialCapacity / 2) // 访问很少的时候不创建新的热点
 				newLruHot();
-		}).schedulePeriod(newLruHotPeriod, newLruHotPeriod);
+		}).schedulePeriodNow(newLruHotPeriod, newLruHotPeriod);
 		// 下面这个清理任务的执行时间可能很长；schedule(delay, period) 是固定延迟调度(scheduleWithFixedDelay)，
 		// 本次执行完才开始计时下一次，执行时间长只会推迟后续执行，不会并发重入或堆积。
-		TaskSpec.ofAction(this::cleanNow).schedulePeriod(this.cleanPeriod, this.cleanPeriod);
+		cleanTimer = TaskSpec.ofAction(this::cleanNow).schedulePeriodNow(this.cleanPeriod, this.cleanPeriod);
+	}
+
+	/**
+	 * 取消构造器注册的两个常驻周期任务（热点轮转与cleanNow），此后实例不再被任务强引用，可被整体回收。
+	 * 构造即启动生命周期：句柄曾直接丢弃且无任何取消途径，重建实例（Raft restore/reset重开Table、
+	 * Cache.close）后旧实例的任务仍永续执行，连同其dataMap缓存的对象图一起泄漏（FND7-36）。
+	 * 重建/关闭处必须close旧实例。
+	 * <p>
+	 * 【close语义（复审R3成文）】对"构造即启动"旧契约的兼容：不调用close的行为与历史完全一致
+	 * （任务随进程常驻），close是新增的清理点而非开关。close后实例即终结：热点轮转与过期清理
+	 * 停止，继续get/put虽可运行但缓存不再自洁（容量上溢不受控），调用方不得在close后继续使用
+	 * 本实例。周期任务改用 schedulePeriodNow 随构造即刻注册（不等事务提交）：事务内构造后回滚
+	 * 的实例由构造方负责close（仓内构造点均在事务外）。
+	 */
+	public void close() {
+		newLruHotTimer.cancel(false);
+		cleanTimer.cancel(false);
 	}
 
 	public long walkKey(@NotNull TableWalkKey<K> callback) throws Exception {
