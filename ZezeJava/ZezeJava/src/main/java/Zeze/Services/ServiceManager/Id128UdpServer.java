@@ -30,8 +30,8 @@ public class Id128UdpServer {
 	/**
 	 * FND6-28：唯一name数量上限（防御注释曾宣称但实现缺失）。该UDP端口无认证，攻击者以
 	 * 合法count+海量不同name可无界撑爆cache/RocksDB。合法部署的name数量=History集群名
-	 * 数量，量级极小，1024远高于任何合理用量；超限告警并拒绝（整包丢弃），条目状态仍可
-	 * 从RocksDB恢复，拒绝无副作用。
+	 * 数量，量级极小，1024远高于任何合理用量；纯内存部署（table==null）超限拒绝整包，
+	 * 持久化部署（table!=null）逐出闲置条目自愈（见evictIdleContext）。
 	 */
 	public static final int MAX_UNIQUE_NAMES = 1024;
 
@@ -110,7 +110,14 @@ public class Id128UdpServer {
 						rpc.encode(bbSend);
 					}
 				} catch (Exception e) {
-					logger.error("process exception:", e);
+					if (e instanceof IllegalArgumentException) {
+						// FND6-28补：入口校验拒绝（对端可控输入）限频记一条、不打栈——无认证
+						// 端口上高频非法包按包全栈error可耗尽日志盘/CPU（日志刷屏DoS），全栈与
+						// 告警留给内部故障（RocksDB异常等）。
+						warnRejected(e);
+					} else {
+						logger.error("process exception:", e);
+					}
 				}
 				int sendSize = bbSend.WriteIndex;
 				if (sendSize > 0) {
@@ -134,17 +141,37 @@ public class Id128UdpServer {
 		logger.info("worker end");
 	}
 
-	private volatile long lastNamesExceededWarnMs; // 告警限频（60秒一次）
+	private volatile long lastRejectLogMs; // 拒绝告警限频（60秒一次）
 
-	private void warnNamesExceeded(@NotNull Binary name) {
+	private void warnRejected(@NotNull Throwable e) {
 		var now = System.currentTimeMillis();
-		var last = lastNamesExceededWarnMs;
+		var last = lastRejectLogMs;
 		if (now - last < 60_000)
 			return; // 限频窗口内静默拒绝（race下至多多记几条）
-		lastNamesExceededWarnMs = now;
-		logger.error("AllocateId128 unique names({}) exceeded MAX_UNIQUE_NAMES({}),"
-				+ " possible attack or misbehaving client. rejected name.size={}",
-				cache.size(), MAX_UNIQUE_NAMES, name.size());
+		lastRejectLogMs = now;
+		logger.error("AllocateId128 rejected (possible attack or misbehaving client), cached names={}: {}",
+				cache.size(), e.toString());
+	}
+
+	/**
+	 * 逐出一个未持锁的cache条目腾出槽位（FND6-28补：满员自愈）。在途分配持锁不可逐出；
+	 * max推进即在锁内table.put持久化，逐出后按需经computeIfAbsent从RocksDB恢复，
+	 * 语义等同进程重启加载（put失败即进程重启同样丢失，不引入新损失类别）。
+	 * 全部条目持锁（病态并发）时失败。
+	 */
+	private boolean evictIdleContext() {
+		for (var e : cache.entrySet()) {
+			var context = e.getValue();
+			if (context.tryLock()) {
+				try {
+					if (cache.remove(e.getKey(), context))
+						return true;
+				} finally {
+					context.unlock();
+				}
+			}
+		}
+		return false;
 	}
 
 	private void process(@NotNull AllocateId128 rpc, @NotNull ByteBuffer bbTemp) throws RocksDBException {
@@ -156,16 +183,17 @@ public class Id128UdpServer {
 		// 巨量count或无界唯一name撑爆cache/RocksDB。非法抛出，由run()内层catch记日志丢弃整包
 		// （诚实客户端报文不与攻击报文共用报文段，不受影响）。
 		if (count < 1 || count > Tid128Cache.ALLOCATE_COUNT_MAX)
-			throw new IllegalArgumentException("AllocateId128 invalid count=" + count + " name=" + name);
+			throw new IllegalArgumentException("AllocateId128 invalid count=" + count + " name.size=" + name.size());
 		if (name.size() > 128)
 			throw new IllegalArgumentException("AllocateId128 name too long: size=" + name.size());
-		// FND6-28：新name（cache未命中）超过唯一name上限即拒绝并告警（限频防刷日志）。
-		// 竞态窗口内可能略超上限（多线程同时computeIfAbsent），有界即可。
-		if (!cache.containsKey(name) && cache.size() >= MAX_UNIQUE_NAMES) {
-			warnNamesExceeded(name);
+		// FND6-28补：新name（cache未命中）满员时不再一律拒绝——持久化部署逐出一个闲置条目
+		// 自愈（重启冷却后cache为空，谁先请求谁占槽，一律拒绝会把合法History name锁死在
+		// rocks外，rpc超时直击finalCommit主路径）；纯内存部署无恢复手段（逐出即丢状态），
+		// 维持拒绝。竞态窗口内可能略超上限（多线程同时computeIfAbsent），有界即可。
+		if (!cache.containsKey(name) && cache.size() >= MAX_UNIQUE_NAMES
+				&& (table == null || !evictIdleContext()))
 			throw new IllegalArgumentException("AllocateId128 unique names exceeded " + MAX_UNIQUE_NAMES
-					+ " name=" + name);
-		}
+					+ " name.size=" + name.size());
 		var context = cache.computeIfAbsent(name, k -> {
 			var c = new Id128Context();
 			try {
