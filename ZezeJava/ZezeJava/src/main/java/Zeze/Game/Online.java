@@ -855,7 +855,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private long loginTrigger(@NotNull String account, long roleId) throws Exception {
-		loginTimes.incrementAndGet();
+		// 计数非幂等，裸递增在redo（锁冲突整体重跑）下一次登录多计一次，
+		// 虚增LoadBase的onlineNew负载上报。挂whileCommit仅最终提交执行一次
+		// （Arch/Online同型FND7-31判例）。
+		Transaction.whileCommit(loginTimes::incrementAndGet);
 		var arg = new LoginArgument(this, account, roleId);
 		var ret = loginEvents.triggerEmbed(this, arg);
 		if (ret != 0)
@@ -866,7 +869,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private long reloginTrigger(@NotNull String account, long roleId) throws Exception {
-		loginTimes.incrementAndGet();
+		// 同loginTrigger，计数挂whileCommit防redo重复。
+		Transaction.whileCommit(loginTimes::incrementAndGet);
 		var arg = new LoginArgument(this, account, roleId);
 		var ret = reloginEvents.triggerEmbed(this, arg);
 		if (ret != 0)
