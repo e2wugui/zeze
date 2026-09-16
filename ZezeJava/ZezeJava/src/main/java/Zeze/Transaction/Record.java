@@ -9,22 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class Record extends ReentrantLock {
-	public static final class RootInfo {
-		private final @NotNull Record record;
-		private final @NotNull TableKey tableKey;
-
-		public RootInfo(@NotNull Record record, @NotNull TableKey tableKey) {
-			this.record = record;
-			this.tableKey = tableKey;
-		}
-
-		public @NotNull Record getRecord() {
-			return record;
-		}
-
-		public @NotNull TableKey getTableKey() {
-			return tableKey;
-		}
+	public record RootInfo(@NotNull Record record, @NotNull TableKey tableKey) {
 	}
 
 	// 时戳生成器，运行时状态，需要持久化时，再考虑保存到数据库。
@@ -45,8 +30,7 @@ public abstract class Record extends ReentrantLock {
 	 * (实际实现：Commit设置Dirty，提交流程 Checkpoint.flush(Iterable&lt;Record&gt;) 同步保存后清除)
 	 * CheckpointMode.Table
 	 * Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
-	 */
-	/**
+	 *
 	 * 脏标记与脏期间强引用合并为单一事实源（FND4-01）：null=干净；非null=脏——普通脏值为
 	 * 内存值的强引用（正常值走softValue软引用可被GC，脏期间必须另持强引用），脏删除
 	 * （commit的PutLog.getValue()==null，没有Bean可引用）用哨兵DIRTY_NULL维持"脏"事实。

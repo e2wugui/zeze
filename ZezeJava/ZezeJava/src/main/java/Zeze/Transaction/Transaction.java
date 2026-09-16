@@ -648,7 +648,7 @@ public final class Transaction {
 	                       @SuppressWarnings("unused") boolean removeWhileRollback) {
 		verifyRunning();
 		ra.initRootInfo(root, null);
-		accessedRecords.put(root.getTableKey(), ra);
+		accessedRecords.put(root.tableKey(), ra);
 		/*
 		if (removeWhileRollback) {
 			runWhileRollback(() -> {
@@ -687,15 +687,15 @@ public final class Transaction {
 	public void verifyRecordForWrite(@NotNull Bean bean) {
 		var ri = bean.rootInfo;
 		//noinspection DataFlowIssue
-		if (ri.getRecord().getState() == GlobalCacheManagerConst.StateRemoved)
-			throwRedo(ri.getTableKey().getId(), "Redo: StateRemoved: " + bean.tableKey()); // 这个错误需要redo。不是逻辑错误。
+		if (ri.record().getState() == GlobalCacheManagerConst.StateRemoved)
+			throwRedo(ri.tableKey().getId(), "Redo: StateRemoved: " + bean.tableKey()); // 这个错误需要redo。不是逻辑错误。
 		//noinspection DataFlowIssue
 		var ra = getRecordAccessed(bean.tableKey());
 		if (ra == null)
 			throw new IllegalStateException("VerifyRecordAccessed: Record Not Control Under Current Transaction: " + bean.tableKey());
 		var atr = ra.atomicTupleRecord;
 		var r = atr.record;
-		if (ri.getRecord() != r)
+		if (ri.record() != r)
 			throw new IllegalStateException("VerifyRecordAccessed: Record Reloaded: " + bean.tableKey());
 		// 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
 		// 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
@@ -703,7 +703,7 @@ public final class Transaction {
 		if (t.getZeze().getConfig().getFastRedoWhenConflict()
 				&& state != TransactionState.Completed
 				&& r.getTimestamp() != atr.timestamp)
-			throwRedo(ri.getTableKey().getId(), "Redo: FastRedoWhenConflict(" + t.getName() + ')');
+			throwRedo(ri.tableKey().getId(), "Redo: FastRedoWhenConflict(" + t.getName() + ')');
 	}
 
 	private enum CheckResult {
@@ -712,8 +712,8 @@ public final class Transaction {
 		RedoAndReleaseLock
 	}
 
-	private static @NotNull CheckResult _check_(@NotNull Procedure procedure, boolean writeLock,
-	                                            @NotNull RecordAccessed e) {
+	private static @NotNull CheckResult _check_(boolean writeLock,
+												@NotNull RecordAccessed e) {
 		e.atomicTupleRecord.record.enterFairLock();
 		try {
 			if (writeLock) {
@@ -769,13 +769,12 @@ public final class Transaction {
 		return locks.get(key);
 	}
 
-	private @NotNull CheckResult lockAndCheck(@NotNull Procedure procedure,
-	                                          @NotNull Map.Entry<TableKey, RecordAccessed> e) {
+	private @NotNull CheckResult lockAndCheck(@NotNull Map.Entry<TableKey, RecordAccessed> e) {
 		Lockey lockey = getLockey(e.getKey());
 		boolean writeLock = e.getValue().dirty;
 		lockey.enterLock(writeLock);
 		holdLocks.add(lockey);
-		return _check_(procedure, writeLock, e.getValue());
+		return _check_(writeLock, e.getValue());
 	}
 
 	private @NotNull CheckResult lockAndCheck(@NotNull Procedure procedure) {
@@ -817,7 +816,7 @@ public final class Transaction {
 		boolean conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
 		if (holdLocks.isEmpty()) {
 			for (var e : accessedRecords.entrySet()) {
-				var r = lockAndCheck(procedure, e);
+				var r = lockAndCheck(e);
 				switch (r) {
 				case Success:
 					break;
@@ -838,7 +837,7 @@ public final class Transaction {
 		for (var e = ite.hasNext() ? ite.next() : null; e != null; ) {
 			// 如果 holdLocks 全部被对比完毕，直接锁定它
 			if (index >= n) {
-				var r = lockAndCheck(procedure, e);
+				var r = lockAndCheck(e);
 				switch (r) {
 				case Success:
 					break;
@@ -869,7 +868,7 @@ public final class Transaction {
 					continue;
 				}
 				// BUG 即使锁内。Record.Global.State 可能没有提升到需要水平。需要重新_check_。
-				var r = _check_(procedure, e.getValue().dirty, e.getValue());
+				var r = _check_(e.getValue().dirty, e.getValue());
 				switch (r) {
 				case Success:
 					// 已经锁内，所以肯定不会冲突，多数情况是这个。

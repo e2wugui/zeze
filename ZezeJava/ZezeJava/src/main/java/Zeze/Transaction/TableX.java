@@ -617,6 +617,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				k.enterWriteLock();
 				try {
 					var v = e.getValue();
+					//noinspection DataFlowIssue
 					v.enterFairLock();
 					try {
 						v.setState(StateInvalid);

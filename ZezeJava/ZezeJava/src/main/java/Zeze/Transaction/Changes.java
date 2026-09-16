@@ -156,7 +156,7 @@ public final class Changes {
 	public void collect(@NotNull Bean recent, @NotNull Log log) {
 		// is table has listener
 		//noinspection DataFlowIssue
-		if (!isHistory && listeners.get(recent.rootInfo.getRecord().getTable()) == null)
+		if (!isHistory && listeners.get(recent.rootInfo.record().getTable()) == null)
 			return;
 
 		var belong = log.getBelong();
@@ -165,7 +165,7 @@ public final class Changes {
 			var r = records.get(recent.tableKey());
 			if (r == null) {
 				//noinspection DataFlowIssue
-				r = new Record(recent.rootInfo.getRecord().getTable());
+				r = new Record(recent.rootInfo.record().getTable());
 				//noinspection DataFlowIssue
 				records.put(recent.tableKey(), r);
 			}
