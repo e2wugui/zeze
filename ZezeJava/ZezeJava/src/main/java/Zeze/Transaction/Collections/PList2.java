@@ -95,6 +95,13 @@ public class PList2<V extends Bean> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
+			// FND7-06（FND6-02"先验后挂"判例的越界维度）：initRootInfoWithRedo直接改写bean归属
+			// 且不受事务回滚保护，越界IOOBE必须在挂接前抛出（TreePVector.get/with的检查在
+			// listLog.set内、挂接之后），否则调用方catch后复用bean携带脏归属——复用抛
+			// HasManagedException，原位字段修改的日志被encode期静默丢弃。
+			var cur = getList();
+			if (index < 0 || index >= cur.size())
+				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
 			item.initRootInfoWithRedo(rootInfo, this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -113,6 +120,11 @@ public class PList2<V extends Bean> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
+			// FND7-06：同set，先验界（add合法域0<=index<=size）后挂接，越界IOOBE不得
+			// 留下携带脏归属的bean。
+			var cur = getList();
+			if (index < 0 || index > cur.size())
+				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
 			item.initRootInfoWithRedo(rootInfo, this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
