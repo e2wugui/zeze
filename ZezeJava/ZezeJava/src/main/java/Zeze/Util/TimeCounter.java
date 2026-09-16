@@ -1,14 +1,16 @@
 package Zeze.Util;
 
 import java.util.concurrent.locks.ReentrantLock;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 用于几秒内的计数，
  * 每秒删除队头的计数，
  */
-public class TimeCounter extends ReentrantLock {
+public class TimeCounter extends ReentrantLock implements AutoCloseable {
 	private final CounterSecond[] counters; // 5-10个。
 	private int lastIndex;
+	private final @Nullable TimerFuture<Long> discardTimer;
 
 	public static class CounterSecond {
 		private long seconds;
@@ -63,8 +65,19 @@ public class TimeCounter extends ReentrantLock {
 			counters[i] = new CounterSecond();
 
 		// 目前这个用于provider，数量不会很多，简单起见，每个计数启用一个定时任务。
-		if (enableDiscardTask)
-			TaskSpec.ofAction(this::discard).schedulePeriodNow(Random.getInstance().nextLong(1000), 1000);
+		// 保存句柄供close取消（FND7-41）：句柄曾直接丢弃且无取消途径，实例被丢弃后
+		// 任务仍每秒永久触发并强引用this，随会话更替无界泄漏。
+		discardTimer = enableDiscardTask
+				? TaskSpec.ofAction(this::discard).schedulePeriodNow(Random.getInstance().nextLong(1000), 1000)
+				: null;
+	}
+
+	/** 取消构造器注册的每秒 discard 周期任务；会话生命周期结束时必须关闭
+	 * （如 ProviderDirectService.OnSocketClose、LinkdProvider.onProviderClose）。 */
+	@Override
+	public void close() {
+		if (discardTimer != null)
+			discardTimer.cancel(false);
 	}
 
 	public void discard() {

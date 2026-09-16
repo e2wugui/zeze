@@ -288,6 +288,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		serverId2ProviderSocket.remove(providerSession.serverId, provider);
 		// providerSessions此前没有删除点：直连ip/port改配或provider缩容时条目会永久残留；同样按所有权条件删除。
 		linkdApp.linkdProviderService.providerSessions.remove(providerSession.getServerLoadName(), providerSession);
+		// 会话终结：取消其TimeCounter的每秒discard周期任务，随会话更替无界泄漏（FND7-41）。
+		providerSession.timeCounter.close();
 
 		// unbind module
 		// 与ProcessBindRequest/ProcessSubscribeRequest的写入互斥（同一把monitor），

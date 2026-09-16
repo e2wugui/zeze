@@ -302,6 +302,8 @@ public class ProviderDirectService extends HandshakeBoth {
 			// （remove+add churn时新会话先完成握手，旧连接的关闭回调后到）。
 			providerByLoadName.remove(ps.getServerLoadName(), ps);
 			providerByServerId.remove(ps.getServerId(), ps);
+			// 会话终结：取消其TimeCounter的每秒discard周期任务，随会话更替无界泄漏（FND7-41）。
+			ps.timeCounter.close();
 		}
 		super.OnSocketClose(socket, ex);
 	}
