@@ -75,6 +75,11 @@ public abstract class Bean implements Serializable {
 		return rootInfo != null;
 	}
 
+	// 【bean所有权语义】bean加入受管容器（表记录/受管集合）即被事务占有（rootInfo在此登记，
+	// 经Transaction.whileRedo进redoBeans）：redo重试由triggerRedoActions统一resetRootInfo
+	// 后随重放重新登记；而最终回滚不解除占有（redoBeans仅在redo路径重置，终局回滚不触碰），
+	// redo-only是成文设计。复用被占有的bean（再次加入受管容器）将抛HasManagedException
+	// （下方入口检查），请重建实例或copy()。
 	public final void initRootInfoWithRedo(Record.RootInfo rootInfo, @Nullable Bean parent) {
 		if (isManaged())
 			throw new HasManagedException();

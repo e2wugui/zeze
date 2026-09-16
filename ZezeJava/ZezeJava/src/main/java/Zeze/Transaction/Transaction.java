@@ -271,6 +271,10 @@ public final class Transaction {
 	static void whileRedo(@NotNull Bean b) {
 		// 这个目前仅用来重置Bean.RootInfo。
 		// 而RootInfo的设置可能在事务外使用，此时忽略action的执行。
+		// 【bean所有权语义】登记进redoBeans的bean即被本事务占有：redo重试在
+		// triggerRedoActions里resetRootInfo后随重放重新登记；最终回滚不解除占有
+		// （redo-only，成文设计，见Bean.initRootInfoWithRedo）——复用被占有bean
+		// 将抛HasManagedException，请重建实例或copy()。
 		var current = getCurrent();
 		if (current != null)
 			current.redoBeans.add(b);
