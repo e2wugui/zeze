@@ -71,7 +71,7 @@ public class Procedure {
 	}
 
 	private final @NotNull Application zeze;
-	private final @Nullable TransactionLevel level;
+	private final @NotNull TransactionLevel level;
 	private @Nullable FuncLong action;
 	private final @NotNull String actionName;
 	// public Runnable runWhileCommit;
@@ -79,14 +79,14 @@ public class Procedure {
 	// 用于继承方式实现 Procedure。
 	public Procedure(@NotNull Application app) {
 		zeze = app;
-		level = null;
+		level = TransactionLevel.Serializable;
 		actionName = getClass().getName();
 	}
 
 	public Procedure(@NotNull Application app, @Nullable FuncLong action, @Nullable String actionName,
 					 @Nullable TransactionLevel level) {
 		zeze = app;
-		this.level = level;
+		this.level = level != null ? level : TransactionLevel.Serializable; // null归一为enum默认级，参数保持@Nullable兼容既有调用点
 		this.action = action;
 		this.actionName = actionName != null && !actionName.isEmpty()
 				? actionName
@@ -97,7 +97,7 @@ public class Procedure {
 		return zeze;
 	}
 
-	public final @Nullable TransactionLevel getTransactionLevel() {
+	public final @NotNull TransactionLevel getTransactionLevel() {
 		return level;
 	}
 

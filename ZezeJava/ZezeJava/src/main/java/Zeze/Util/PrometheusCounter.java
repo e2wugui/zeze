@@ -192,6 +192,9 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	private final ConcurrentHashMap<Long, LongCounter[]> tableCounterMap = new ConcurrentHashMap<>();
+	// handle按name缓存复用：协议等热路径每次执行都新建Procedure，不缓存则每次执行重复
+	// new PromProcedureCounter及其构造期的4次labelValues解析（DataPoint挂collector永不淘汰，长持无副作用）。
+	private final ConcurrentHashMap<String, ProcedureCounter> procedureCounterMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, LongObserver> runTimeMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, DistributionDataPoint> taskDurationMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ProtocolRecvMetric> protocolRecvMap = new ConcurrentHashMap<>();
@@ -395,7 +398,7 @@ public class PrometheusCounter implements ZezeCounter {
 
 	@Override
 	public @NotNull ProcedureCounter allocProcedureCounter(@NotNull String name) {
-		return new PromProcedureCounter(name);
+		return fastGetOrAdd(procedureCounterMap, name, PromProcedureCounter::new);
 	}
 
 	// 每name一次预绑定全部DataPoint；end的result_code维度在handle内按码缓存
