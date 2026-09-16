@@ -273,6 +273,7 @@ public class DbWeb extends AbstractDbWeb {
 	@Override
 	protected void OnServletClearTable(HttpExchange x) {
 		var beginStream = false;
+		var streamEnded = false; // endStream至多一次（R2-N/N③清理）：不再依赖FND7-25的幂等兜底吞掉第二次调用
 		try {
 			var qm = x.queryMap();
 			var tableName = qm.get("t");
@@ -296,10 +297,13 @@ public class DbWeb extends AbstractDbWeb {
 			} else
 				x.sendStream("not found table!".getBytes(StandardCharsets.UTF_8));
 			x.endStream();
+			streamEnded = true;
 		} catch (Exception e) {
 			if (beginStream) {
-				x.sendStream(Str.stacktrace(e).getBytes(StandardCharsets.UTF_8));
-				x.endStream();
+				if (!streamEnded) { // 流未正常收尾才补异常轨迹与终结符；已收尾则连接状态干净，静默即可
+					x.sendStream(Str.stacktrace(e).getBytes(StandardCharsets.UTF_8));
+					x.endStream();
+				}
 			} else
 				x.sendPlainText(HttpResponseStatus.OK, Str.stacktrace(e));
 		}
