@@ -1,5 +1,6 @@
 package Zeze.Component;
 
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 import Zeze.Builtin.Threading.BGlobalThreadId;
 import Zeze.Builtin.Threading.BLockName;
@@ -78,7 +79,23 @@ public class Threading extends AbstractThreading {
 			r.Argument.setLockName(lockName);
 			r.Argument.setTimeoutMs(timeoutMs);
 			var timeout = rpcTimeoutMs(timeoutMs);
-			r.SendForWait(service.GetSocket(), timeout).await();
+			try {
+				r.SendForWait(service.GetSocket(), timeout).await();
+			} catch (CompletionException e) {
+				// FND7-64：客户端rpc超时＝应答迟到或丢失，服务端可能已授予该锁。只要客户端进程
+				// 活着，keepAlive每10s刷新服务端activeTime，timeoutRelease永不触发——授予的锁
+				// 无人unlock，无限期悬挂（同globalThreadId重试还会holdCount累积）。按未获锁继续，
+				// 并对同lockName补发unlock（fire-and-forget）：补偿与tryLock同连接，服务端
+				// SimulateThread串行处理，必在tryLock决策之后执行；未真获锁时服务端对无条目
+				// 幂等应答0（ThreadingServer.ProcessMutexUnlockRequest），无害。
+				if (!r.isTimeout())
+					throw e;
+				var un = new MutexUnlock();
+				un.Argument.setLockName(lockName);
+				if (!un.Send(service.GetSocket()))
+					logger.warn("compensating unlock send fail, {}", lockName);
+				return false;
+			}
 			return r.getResultCode() == 0;
 		}
 
