@@ -95,12 +95,16 @@ public class TestHandshakeDoneErrorClose {
 		};
 		try {
 			attacker.newClientSocket("127.0.0.1", port, null, null);
-			// socketCount是瞬态：accept→未握手Done被拒→OnSocketClose移除可能在本await首次轮询前
-			// 整段完成（低负载下更常见，20轮压测20%假红）。条件容忍"已接受并已被关闭"，
-			// 关闭语义由下一个await断言。
-			await("server accepted", 10_000, () -> server.getSocketCount() >= 1 || server.closeCount.get() >= 1);
+			// 满载flake加固（R2-N，四树历史+单跑绿双重确认的假红）：
+			// 1) 10s→30s（对齐7bba54a45的3x放宽惯例，秒级裕度不适合满负载套件——accept只依赖
+			//    EL调度，满载下被饿超10s曾真实发生）；
+			// 2) 条件并入closeCount：accept→错误断连全周期小于1ms轮询间隔时，getSocketCount()
+			//    会错过瞬态的>=1（清零后恒0），closeCount单调递增无瞬态，条件恒可观测——
+			//    真实不变量由下方closeCount断言兜底，此处仅为中间活度检查。
+			await("server accepted", 30_000,
+					() -> server.getSocketCount() >= 1 || server.closeCount.get() >= 1);
 
-			await("server OnSocketClose after unhandshaped CHandshakeDone", 10_000,
+			await("server OnSocketClose after unhandshaped CHandshakeDone", 30_000,
 					() -> server.closeCount.get() >= 1);
 		} finally {
 			attacker.stop();
