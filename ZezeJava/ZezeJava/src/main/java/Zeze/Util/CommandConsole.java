@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import Zeze.Net.AsyncSocket;
+import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,7 +16,9 @@ public class CommandConsole {
 	// 任意客户端发送无换行字节流即可把无界的行缓冲当累积点耗尽进程堆。
 	public static final int MAX_LINE_BUFFER_SIZE = Str.parseIntSize(System.getProperty("commandConsoleMaxLineSize"), 64 * 1024);
 
-	private @NotNull String buffer = "";
+	// FND7-51：行缓冲按字节累积（非String）：读块边界可能切在多字节UTF-8字符中间，
+	// 按块独立解码会产出U+FFFD替换字符——仅在完整行边界做一次UTF-8解码。
+	private final @NotNull ByteBuffer buffer = ByteBuffer.Allocate(128);
 	private final HashMap<String, Command> commands = new HashMap<>();
 
 	static @NotNull CommandConsole dup(@NotNull CommandConsole cc) {
@@ -87,62 +90,82 @@ public class CommandConsole {
 	}
 
 	public void input(@NotNull AsyncSocket sender, byte @NotNull [] bytes) {
-		input(sender, new String(bytes, StandardCharsets.UTF_8));
+		input(sender, bytes, 0, bytes.length);
 	}
 
 	public void input(@NotNull AsyncSocket sender, byte @NotNull [] bytes, int offset, int size) {
-		input(sender, new String(bytes, offset, size, StandardCharsets.UTF_8));
+		buffer.Append(bytes, offset, size);
+		tryParseLine(sender);
+		checkLineBufferLimit();
 	}
 
 	public void input(@NotNull AsyncSocket sender, @NotNull String str) {
-		buffer += str;
-		tryParseLine(sender);
-		// FND7-50：检查消费完整行之后的残留（未终结行）。量纲与TcpSocket.processReceive的
-		// remain检查一致（CommandConsoleService总是整块消费使后者永不触发，防线移到这里）；
-		// 瞬态上界=上限+单读块大小。超限抛错沿OnSocketProcessInputBuffer→processReceive→
-		// doException→close关闭连接。
-		if (buffer.length() > MAX_LINE_BUFFER_SIZE) {
-			var len = buffer.length();
-			buffer = ""; // 抛错前清空：捕获异常继续使用的调用方（进程内驱动sender==null）不至于永久饱和
+		// R3-U2（A/FND7-51披露）：String直驱路径经UTF-8编码进入字节行缓冲（与socket读块同
+		// 路径，受同一上限约束）。行为变化：孤立代理项字符（unpaired surrogate）被编码器
+		// 替换为'?'——原String拼接会原样保留；合法BMP/增补字符（含emoji）不变。
+		input(sender, str.getBytes(StandardCharsets.UTF_8));
+	}
+
+	// FND7-50：检查消费完整行之后的残留（未终结行）。量纲与TcpSocket.processReceive的
+	// remain检查一致（CommandConsoleService总是整块消费使后者永不触发，防线移到这里）；
+	// 瞬态上界=上限+单读块大小。超限抛错沿OnSocketProcessInputBuffer→processReceive→
+	// doException→close关闭连接。
+	private void checkLineBufferLimit() {
+		if (buffer.size() > MAX_LINE_BUFFER_SIZE) {
+			var len = buffer.size();
+			buffer.Reset(); // 抛错前清空：捕获异常继续使用的调用方（进程内驱动sender==null）不至于永久饱和
 			throw new IllegalStateException("CommandConsole line buffer overflow: " + len
 					+ " > " + MAX_LINE_BUFFER_SIZE + " (unterminated line?)");
 		}
 	}
 
 	public void tryParseLine(@NotNull AsyncSocket sender) {
-		for (var lineEnd = buffer.indexOf('\n'); lineEnd >= 0; lineEnd = buffer.indexOf('\n')) {
-			var line = buffer.substring(0, lineEnd);
-			buffer = buffer.substring(lineEnd + 1); // remove the consumed line before parsing,
+		for (var lineEnd = indexOfNewline(); lineEnd >= 0; lineEnd = indexOfNewline()) {
+			var line = new String(buffer.Bytes, buffer.ReadIndex, lineEnd - buffer.ReadIndex, StandardCharsets.UTF_8);
+			buffer.ReadIndex = lineEnd + 1; // remove the consumed line before parsing,
 			// otherwise a malformed line (unclosed quote) will keep throwing and poison the buffer permanently
 
-			ArrayList<String> words;
-			try {
-				words = parseWords(line);
-			} catch (IllegalStateException ex) { // unclosed quote
-				//noinspection ConstantValue
-				if (sender != null)
-					sender.Send("error command format: " + line + "\r\n");
-				continue;
-			}
+			runLine(sender, line);
+		}
+		buffer.Compact();
+	}
 
-			// run command
-			if (!words.isEmpty()) {
-				var cmd = commands.get(words.getFirst());
-				if (cmd == null) {
-					//noinspection ConstantValue
-					if (sender != null) // sender 可为 null（如类内 main 以 cc.input(null, ...) 驱动）
-						sender.Send("unknown command: " + words.getFirst() + "\r\n");
-					continue;
-				}
-				try {
-					cmd.run(sender, words.subList(1, words.size()));
-				} catch (Throwable ex) { // print stacktrace.
-					//noinspection ConstantValue
-					if (sender != null) { // 同上：与上面的判空保持一致
-						sender.Send(Str.stacktrace(ex));
-						sender.Send("\r\n" + line + "\r\n");
-					}
-				}
+	private int indexOfNewline() {
+		var bytes = buffer.Bytes;
+		for (int i = buffer.ReadIndex, end = buffer.WriteIndex; i < end; i++)
+			if (bytes[i] == '\n')
+				return i;
+		return -1;
+	}
+
+	private void runLine(@NotNull AsyncSocket sender, @NotNull String line) {
+		ArrayList<String> words;
+		try {
+			words = parseWords(line);
+		} catch (IllegalStateException ex) { // unclosed quote
+			//noinspection ConstantValue
+			if (sender != null)
+				sender.Send("error command format: " + line + "\r\n");
+			return;
+		}
+
+		// run command
+		if (words.isEmpty())
+			return;
+		var cmd = commands.get(words.getFirst());
+		if (cmd == null) {
+			//noinspection ConstantValue
+			if (sender != null) // sender 可为 null（如类内 main 以 cc.input(null, ...) 驱动）
+				sender.Send("unknown command: " + words.getFirst() + "\r\n");
+			return;
+		}
+		try {
+			cmd.run(sender, words.subList(1, words.size()));
+		} catch (Throwable ex) { // print stacktrace.
+			//noinspection ConstantValue
+			if (sender != null) { // 同上：与上面的判空保持一致
+				sender.Send(Str.stacktrace(ex));
+				sender.Send("\r\n" + line + "\r\n");
 			}
 		}
 	}
