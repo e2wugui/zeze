@@ -10,6 +10,9 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.Master.BMQInfo> _Info; // 主题信息
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.MQ.Master.BMQServer> _Servers; // 该主题现有的MQ服务器列表
+    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.MQ.Master.BMQServer> meta1_Servers
+            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.MQ.Master.BMQServer.class);
+
     private long _SessionId; // 创建或打开的时候，由Master分配的唯一递增会话。																	 用于标识Consumer，使得它可以在全局视野中得到唯一的排序视图。
 
     private static final java.lang.invoke.VarHandle vh_SessionId;
@@ -69,7 +72,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
     public BMQServers() {
         _Info = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.Master.BMQInfo(), Zeze.Builtin.MQ.Master.BMQInfo.class);
         _Info.variableId(1);
-        _Servers = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.MQ.Master.BMQServer.class);
+        _Servers = new Zeze.Transaction.Collections.PList2<>(meta1_Servers);
         _Servers.variableId(2);
     }
 
@@ -77,7 +80,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
     public BMQServers(long _SessionId_) {
         _Info = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.Master.BMQInfo(), Zeze.Builtin.MQ.Master.BMQInfo.class);
         _Info.variableId(1);
-        _Servers = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.MQ.Master.BMQServer.class);
+        _Servers = new Zeze.Transaction.Collections.PList2<>(meta1_Servers);
         _Servers.variableId(2);
         _SessionId = _SessionId_;
     }

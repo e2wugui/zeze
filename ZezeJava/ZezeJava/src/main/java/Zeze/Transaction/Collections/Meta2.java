@@ -100,43 +100,34 @@ public final class Meta2<K, V> {
 		name = headStr + keyClass.getName() + ",DynamicBean";
 	}
 
-	// 工厂层Bean拦截（R2-T backlog④收口）：容器类构造器已拦Bean key/value（判例FND6-41/
-	// FND7-05/FND7-09），但"直建meta再走PMap1(meta)/PMap2(meta)/BeanMap(meta)构造器"可绕过。
-	// 工厂是公开meta的唯一构建入口，在此拦截即封死全部绕行路径（含GTable的Bean行/列）。
-	// Bean key：值语义equals配身份hashCode，日志簿记HashMap/HashSet静默漏命中，可致主从分歧。
-	private static <K> void checkNonBeanKey(@NotNull String family, @NotNull Class<K> keyClass) {
-		if (Bean.class.isAssignableFrom(keyClass)) {
+	// Bean key：值语义equals配身份hashCode，日志簿记, HashMap/HashSet静默漏命中，可致主从分歧。
+	private static void checkNonBeanKey(@NotNull String family, @NotNull Class<?> keyClass) {
+		if (Bean.class.isAssignableFrom(keyClass))
 			throw new IllegalArgumentException(
-					family + " does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
+					family + " does not support Bean key type (equals-without-hashCode misbehaves in hash map), use BeanKey: "
 							+ keyClass.getName());
-		}
+	}
+
+	// Bean值（仅1系）：1系按值拷贝记账、不挂接rootInfo，装入的bean永不受管，原位修改静默丢失。
+	// 2系（LogMap2/LogSortedMap2）Bean值受管合法，不拦。执行位置同checkNonBeanKey的说明。
+	private static void checkNonBeanValue1(@NotNull String family, @NotNull String advice, @NotNull Class<?> valueClass) {
+		if (Bean.class.isAssignableFrom(valueClass))
+			throw new IllegalArgumentException(
+					family + " does not support Bean value type (in-place modifications never managed, silently lost), "
+							+ advice + ": " + valueClass.getName());
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <K, V> @NotNull Meta2<K, V> getMap1Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		var map = map1Metas.computeIfAbsent(keyClass, kc -> {
-			// Bean key不支持（FND6-41，PSet1判例姊妹）：Bean是值语义equals但身份hashCode（可变bean
-			// 不覆写hashCode防哈希漂移），哈希容器对bean键静默漏命中——put/get/remove/contains失真。
-			// 显式失败优于静默错。
-			if (Bean.class.isAssignableFrom(kc)) {
-				throw new IllegalArgumentException(
-						"Map1Meta does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
-								+ kc.getName());
-			}
+			checkNonBeanKey("PMap1/GTable1 (LogMap1)", kc);
 			return new ConcurrentHashMap<>();
 		});
 		var r = map.get(valueClass);
 		if (r != null)
 			return (Meta2<K, V>)r;
 		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> {
-			// Bean值不支持（FND7-09，PList1判例同族）：1系容器按值拷贝记账，不挂接rootInfo
-			// （对比PMap2.put的initRootInfoWithRedo），装入的bean永不受管——原位修改不产生
-			// 日志，提交后静默丢失。显式失败优于静默丢数据。
-			if (Bean.class.isAssignableFrom(vc)) {
-				throw new IllegalArgumentException(
-						"Map1Meta does not support Bean value type (in-place modifications never managed, silently lost): "
-								+ vc.getName());
-			}
+			checkNonBeanValue1("PMap1/GTable1 (LogMap1)", "use PMap2/GTable2", vc);
 			return new Meta2<>("LogMap1:", map1HeadHash, keyClass, (Class<V>)vc);
 		});
 	}
@@ -152,14 +143,7 @@ public final class Meta2<K, V> {
 	public static <K, V extends Bean> @NotNull Meta2<K, V> getMap2Meta(@NotNull Class<K> keyClass,
 																	   @NotNull Class<V> valueClass) {
 		var map = map2Metas.computeIfAbsent(keyClass, kc -> {
-			// Bean key不支持（FND6-41，PSet1判例姊妹）：Bean是值语义equals但身份hashCode（可变bean
-			// 不覆写hashCode防哈希漂移），哈希容器对bean键静默漏命中——put/get/remove/contains失真。
-			// 显式失败优于静默错。
-			if (Bean.class.isAssignableFrom(kc)) {
-				throw new IllegalArgumentException(
-						"Map2Meta does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
-								+ kc.getName());
-			}
+			checkNonBeanKey("PMap2/GTable2 (LogMap2)", kc);
 			return new ConcurrentHashMap<>();
 		});
 		var r = map.get(valueClass);
@@ -177,63 +161,39 @@ public final class Meta2<K, V> {
 	 * 反序列化拿到错误构造的实例（如 History 增量回放数据损坏）。
 	 */
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createMap2Meta(@NotNull Class<K> keyClass,
-																		  @NotNull Class<V> valueClass,
-																		  @NotNull Supplier<V> valueCtor) {
-		checkNonBeanKey("LogMap2", keyClass);
+	                                                                      @NotNull Class<V> valueClass,
+	                                                                      @NotNull Supplier<V> valueCtor) {
+		checkNonBeanKey("PMap2/GTable2 (LogMap2)", keyClass);
 		return new Meta2<>("LogMap2:", map2HeadHash, keyClass, valueClass, valueCtor);
 	}
 
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicMapMeta(@NotNull Class<K> keyClass,
-																				@NotNull ToLongFunction<Bean> get,
-																				@NotNull LongFunction<Bean> create) {
-		checkNonBeanKey("LogMap2", keyClass);
+	                                                                            @NotNull ToLongFunction<Bean> get,
+	                                                                            @NotNull LongFunction<Bean> create) {
+		checkNonBeanKey("PMap2/GTable2 (LogMap2)", keyClass);
 		return new Meta2<>("LogMap2:", map2HeadHash, keyClass, get, create);
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <K, V> @NotNull Meta2<K, V> getSortedMap1Meta(@NotNull Class<K> keyClass,
-																@NotNull Class<V> valueClass) {
+	public static <K, V> @NotNull Meta2<K, V> getSortedMap1Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		var map = sortedMap1Metas.computeIfAbsent(keyClass, kc -> {
-			// Bean key不支持（FND7-05，PMap1/PSet1判例姊妹）：排序map本体TreePMap按compareTo定序没问题，
-			// 但日志簿记LogSortedMap1.replaced/removed是HashMap/HashSet——Bean值语义equals配身份
-			// hashCode，等值bean落不同桶静默漏命中：mergeChangeNote漏合并，encode按身份哈希决定的
-			// 迭代序写出重复条目，follower解码plusAll的终值依赖迭代序，可致静默主从分歧。显式失败优于静默错。
-			if (Bean.class.isAssignableFrom(kc)) {
-				throw new IllegalArgumentException(
-						"SortedMap1Meta does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
-								+ kc.getName());
-			}
+			checkNonBeanKey("PSortedMap1 (LogSortedMap1)", kc);
 			return new ConcurrentHashMap<>();
 		});
 		var r = map.get(valueClass);
 		if (r != null)
 			return (Meta2<K, V>)r;
 		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> {
-			// Bean值不支持（FND7-09姊妹缺口，PList1/PMap1判例同族）：排序map同为1系按值拷贝记账，
-			// put不挂接rootInfo（对比PSortedMap2.put），装入的bean永不受管——原位修改不产生日志，
-			// 提交后静默丢失。显式失败优于静默丢数据。
-			if (Bean.class.isAssignableFrom(vc)) {
-				throw new IllegalArgumentException(
-						"SortedMap1Meta does not support Bean value type (in-place modifications never managed, silently lost): "
-								+ vc.getName());
-			}
+			checkNonBeanValue1("PSortedMap1 (LogSortedMap1)", "use PSortedMap2", vc);
 			return new Meta2<>("LogSortedMap1:", sortedMap1HeadHash, keyClass, (Class<V>)vc);
 		});
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <K, V extends Bean> @NotNull Meta2<K, V> getSortedMap2Meta(@NotNull Class<K> keyClass,
-																			 @NotNull Class<V> valueClass) {
+	                                                                         @NotNull Class<V> valueClass) {
 		var map = sortedMap2Metas.computeIfAbsent(keyClass, kc -> {
-			// Bean key不支持（FND7-05，PMap2/PSet1判例姊妹）：排序map本体TreePMap按compareTo定序没问题，
-			// 但日志簿记LogSortedMap1.replaced/removed是HashMap/HashSet——Bean值语义equals配身份
-			// hashCode，等值bean落不同桶静默漏命中：mergeChangeNote漏合并，encode按身份哈希决定的
-			// 迭代序写出重复条目，follower解码plusAll的终值依赖迭代序，可致静默主从分歧。显式失败优于静默错。
-			if (Bean.class.isAssignableFrom(kc)) {
-				throw new IllegalArgumentException(
-						"SortedMap2Meta does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
-								+ kc.getName());
-			}
+			checkNonBeanKey("PSortedMap2 (LogSortedMap2)", kc);
 			return new ConcurrentHashMap<>();
 		});
 		var r = map.get(valueClass);
@@ -244,16 +204,16 @@ public final class Meta2<K, V> {
 	}
 
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createSortedMap2Meta(@NotNull Class<K> keyClass,
-																				@NotNull Class<V> valueClass,
-																				@NotNull Supplier<V> valueCtor) {
-		checkNonBeanKey("LogSortedMap2", keyClass);
+	                                                                            @NotNull Class<V> valueClass,
+	                                                                            @NotNull Supplier<V> valueCtor) {
+		checkNonBeanKey("PSortedMap2 (LogSortedMap2)", keyClass);
 		return new Meta2<>("LogSortedMap2:", sortedMap2HeadHash, keyClass, valueClass, valueCtor);
 	}
 
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicSortedMapMeta(@NotNull Class<K> keyClass,
-																					  @NotNull ToLongFunction<Bean> get,
-																					  @NotNull LongFunction<Bean> create) {
-		checkNonBeanKey("LogSortedMap2", keyClass);
+	                                                                                  @NotNull ToLongFunction<Bean> get,
+	                                                                                  @NotNull LongFunction<Bean> create) {
+		checkNonBeanKey("PSortedMap2 (LogSortedMap2)", keyClass);
 		return new Meta2<>("LogSortedMap2:", sortedMap2HeadHash, keyClass, get, create);
 	}
 

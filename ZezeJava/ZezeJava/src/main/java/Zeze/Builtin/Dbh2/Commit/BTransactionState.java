@@ -10,6 +10,8 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
 
     private int _State;
     private final Zeze.Transaction.Collections.PList1<String> _Buckets;
+    private static final Zeze.Transaction.Collections.Meta1<String> meta1_Buckets
+            = Zeze.Transaction.Collections.Meta1.getList1Meta(String.class);
 
     private static final java.lang.invoke.VarHandle vh_State;
 
@@ -53,14 +55,14 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
 
     @SuppressWarnings("deprecation")
     public BTransactionState() {
-        _Buckets = new Zeze.Transaction.Collections.PList1<>(String.class);
+        _Buckets = new Zeze.Transaction.Collections.PList1<>(meta1_Buckets);
         _Buckets.variableId(2);
     }
 
     @SuppressWarnings("deprecation")
     public BTransactionState(int _State_) {
         _State = _State_;
-        _Buckets = new Zeze.Transaction.Collections.PList1<>(String.class);
+        _Buckets = new Zeze.Transaction.Collections.PList1<>(meta1_Buckets);
         _Buckets.variableId(2);
     }
 

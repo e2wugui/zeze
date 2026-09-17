@@ -10,6 +10,8 @@ public final class BLastVersionBeanInfo extends Zeze.Transaction.Bean implements
 
     private String _Name;
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.HotDistribute.BVariable> _Variables;
+    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.HotDistribute.BVariable> meta1_Variables
+            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.HotDistribute.BVariable.class);
 
     private static final java.lang.invoke.VarHandle vh_Name;
 
@@ -56,7 +58,7 @@ public final class BLastVersionBeanInfo extends Zeze.Transaction.Bean implements
     @SuppressWarnings("deprecation")
     public BLastVersionBeanInfo() {
         _Name = "";
-        _Variables = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.HotDistribute.BVariable.class);
+        _Variables = new Zeze.Transaction.Collections.PList2<>(meta1_Variables);
         _Variables.variableId(2);
     }
 
@@ -65,7 +67,7 @@ public final class BLastVersionBeanInfo extends Zeze.Transaction.Bean implements
         if (_Name_ == null)
             _Name_ = "";
         _Name = _Name_;
-        _Variables = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.HotDistribute.BVariable.class);
+        _Variables = new Zeze.Transaction.Collections.PList2<>(meta1_Variables);
         _Variables.variableId(2);
     }
 

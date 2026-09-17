@@ -12,6 +12,9 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
     private String _ProtocolClassName;
     private Zeze.Net.Binary _ProtocolArgument;
     private final Zeze.Transaction.Collections.PMap1<Zeze.Builtin.HistoryModule.BTableKey, Zeze.Net.Binary> _Changes;
+    private static final Zeze.Transaction.Collections.Meta2<Zeze.Builtin.HistoryModule.BTableKey, Zeze.Net.Binary> meta2_Changes
+            = Zeze.Transaction.Collections.Meta2.getMap1Meta(Zeze.Builtin.HistoryModule.BTableKey.class, Zeze.Net.Binary.class);
+
     private long _Timestamp;
 
     private static final java.lang.invoke.VarHandle vh_GlobalSerialId;
@@ -132,7 +135,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         _GlobalSerialId = new Zeze.Util.Id128();
         _ProtocolClassName = "";
         _ProtocolArgument = Zeze.Net.Binary.Empty;
-        _Changes = new Zeze.Transaction.Collections.PMap1<>(Zeze.Builtin.HistoryModule.BTableKey.class, Zeze.Net.Binary.class);
+        _Changes = new Zeze.Transaction.Collections.PMap1<>(meta2_Changes);
         _Changes.variableId(4);
     }
 
@@ -147,7 +150,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         if (_ProtocolArgument_ == null)
             _ProtocolArgument_ = Zeze.Net.Binary.Empty;
         _ProtocolArgument = _ProtocolArgument_;
-        _Changes = new Zeze.Transaction.Collections.PMap1<>(Zeze.Builtin.HistoryModule.BTableKey.class, Zeze.Net.Binary.class);
+        _Changes = new Zeze.Transaction.Collections.PMap1<>(meta2_Changes);
         _Changes.variableId(4);
         _Timestamp = _Timestamp_;
     }

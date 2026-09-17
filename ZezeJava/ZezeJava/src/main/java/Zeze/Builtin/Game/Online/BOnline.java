@@ -10,6 +10,9 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
 
     private int _ServerId; // 登录时会赋值当前所在的serverId
     private final Zeze.Transaction.Collections.PSet1<String> _ReliableNotifyMark; // 登录时清空
+    private static final Zeze.Transaction.Collections.Meta1<String> meta1_ReliableNotifyMark
+            = Zeze.Transaction.Collections.Meta1.getSet1Meta(String.class);
+
     private long _ReliableNotifyConfirmIndex; // 登录时赋值为0
     private long _ReliableNotifyIndex; // 登录时赋值为0,然后每次sendReliableNotify时自增
     private final Zeze.Transaction.DynamicBean _UserData;
@@ -121,7 +124,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
 
     @SuppressWarnings("deprecation")
     public BOnline() {
-        _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
+        _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(meta1_ReliableNotifyMark);
         _ReliableNotifyMark.variableId(2);
         _UserData = newDynamicBean_UserData();
     }
@@ -129,7 +132,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     @SuppressWarnings("deprecation")
     public BOnline(int _ServerId_, long _ReliableNotifyConfirmIndex_, long _ReliableNotifyIndex_) {
         _ServerId = _ServerId_;
-        _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
+        _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(meta1_ReliableNotifyMark);
         _ReliableNotifyMark.variableId(2);
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
         _ReliableNotifyIndex = _ReliableNotifyIndex_;

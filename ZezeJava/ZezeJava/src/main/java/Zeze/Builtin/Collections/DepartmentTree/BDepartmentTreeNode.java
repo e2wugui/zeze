@@ -10,9 +10,11 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
 
     private long _ParentDepartment; // 0表示第一级部门
     private final Zeze.Transaction.Collections.PMap1<String, Long> _Children; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+    private static final Zeze.Transaction.Collections.Meta2<String, Long> meta2_Children
+            = Zeze.Transaction.Collections.Meta2.getMap1Meta(String.class, Long.class);
+
     private String _Name;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Transaction.DynamicBean> _Managers;
-
     private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Transaction.DynamicBean> meta2_Managers
             = Zeze.Transaction.Collections.Meta2.createDynamicMapMeta(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
 
@@ -126,7 +128,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
 
     @SuppressWarnings("deprecation")
     public BDepartmentTreeNode() {
-        _Children = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
+        _Children = new Zeze.Transaction.Collections.PMap1<>(meta2_Children);
         _Children.variableId(2);
         _Name = "";
         _Managers = new Zeze.Transaction.Collections.PMap2<>(meta2_Managers);
@@ -137,7 +139,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     @SuppressWarnings("deprecation")
     public BDepartmentTreeNode(long _ParentDepartment_, String _Name_) {
         _ParentDepartment = _ParentDepartment_;
-        _Children = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
+        _Children = new Zeze.Transaction.Collections.PMap1<>(meta2_Children);
         _Children.variableId(2);
         if (_Name_ == null)
             _Name_ = "";

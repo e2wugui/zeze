@@ -9,6 +9,9 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
     public static final long TYPEID = -8784206618120085556L;
 
     private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
+    private static final Zeze.Transaction.Collections.Meta1<Zeze.Net.Binary> meta1_Notifies
+            = Zeze.Transaction.Collections.Meta1.getList1Meta(Zeze.Net.Binary.class);
+
     private long _ReliableNotifyIndex; // Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
 
     private static final java.lang.invoke.VarHandle vh_ReliableNotifyIndex;
@@ -53,13 +56,13 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
 
     @SuppressWarnings("deprecation")
     public BReliableNotify() {
-        _Notifies = new Zeze.Transaction.Collections.PList1<>(Zeze.Net.Binary.class);
+        _Notifies = new Zeze.Transaction.Collections.PList1<>(meta1_Notifies);
         _Notifies.variableId(1);
     }
 
     @SuppressWarnings("deprecation")
     public BReliableNotify(long _ReliableNotifyIndex_) {
-        _Notifies = new Zeze.Transaction.Collections.PList1<>(Zeze.Net.Binary.class);
+        _Notifies = new Zeze.Transaction.Collections.PList1<>(meta1_Notifies);
         _Notifies.variableId(1);
         _ReliableNotifyIndex = _ReliableNotifyIndex_;
     }

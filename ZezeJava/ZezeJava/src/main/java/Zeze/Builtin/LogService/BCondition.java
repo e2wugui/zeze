@@ -15,6 +15,9 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     private long _BeginTime;
     private long _EndTime;
     private final Zeze.Transaction.Collections.PList1<String> _Words;
+    private static final Zeze.Transaction.Collections.Meta1<String> meta1_Words
+            = Zeze.Transaction.Collections.Meta1.getList1Meta(String.class);
+
     private int _ContainsType;
     private String _Pattern;
 
@@ -128,7 +131,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
 
     @SuppressWarnings("deprecation")
     public BCondition() {
-        _Words = new Zeze.Transaction.Collections.PList1<>(String.class);
+        _Words = new Zeze.Transaction.Collections.PList1<>(meta1_Words);
         _Words.variableId(3);
         _Pattern = "";
     }
@@ -137,7 +140,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     public BCondition(long _BeginTime_, long _EndTime_, int _ContainsType_, String _Pattern_) {
         _BeginTime = _BeginTime_;
         _EndTime = _EndTime_;
-        _Words = new Zeze.Transaction.Collections.PList1<>(String.class);
+        _Words = new Zeze.Transaction.Collections.PList1<>(meta1_Words);
         _Words.variableId(3);
         _ContainsType = _ContainsType_;
         if (_Pattern_ == null)

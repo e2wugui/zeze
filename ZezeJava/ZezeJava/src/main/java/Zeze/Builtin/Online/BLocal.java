@@ -10,6 +10,8 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
 
     private long _LoginVersion;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BAny> _Datas;
+    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Builtin.Online.BAny> meta2_Datas
+            = Zeze.Transaction.Collections.Meta2.getMap2Meta(String.class, Zeze.Builtin.Online.BAny.class);
 
     private transient Object __zeze_map_key__;
 
@@ -65,14 +67,14 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
 
     @SuppressWarnings("deprecation")
     public BLocal() {
-        _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Online.BAny.class);
+        _Datas = new Zeze.Transaction.Collections.PMap2<>(meta2_Datas);
         _Datas.variableId(2);
     }
 
     @SuppressWarnings("deprecation")
     public BLocal(long _LoginVersion_) {
         _LoginVersion = _LoginVersion_;
-        _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Online.BAny.class);
+        _Datas = new Zeze.Transaction.Collections.PMap2<>(meta2_Datas);
         _Datas.variableId(2);
     }
 

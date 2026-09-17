@@ -10,7 +10,6 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
 
     private String _Root; // 群主
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Transaction.DynamicBean> _Managers;
-
     private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Transaction.DynamicBean> meta2_Managers
             = Zeze.Transaction.Collections.Meta2.createDynamicMapMeta(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
 
@@ -28,6 +27,9 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
 
     private long _NextDepartmentId; // 部门Id种子
     private final Zeze.Transaction.Collections.PMap1<String, Long> _Children; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+    private static final Zeze.Transaction.Collections.Meta2<String, Long> meta2_Children
+            = Zeze.Transaction.Collections.Meta2.getMap1Meta(String.class, Long.class);
+
     private final Zeze.Transaction.DynamicBean _Data;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Data() {
@@ -129,7 +131,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _Root = "";
         _Managers = new Zeze.Transaction.Collections.PMap2<>(meta2_Managers);
         _Managers.variableId(2);
-        _Children = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
+        _Children = new Zeze.Transaction.Collections.PMap1<>(meta2_Children);
         _Children.variableId(4);
         _Data = newDynamicBean_Data();
     }
@@ -142,7 +144,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _Managers = new Zeze.Transaction.Collections.PMap2<>(meta2_Managers);
         _Managers.variableId(2);
         _NextDepartmentId = _NextDepartmentId_;
-        _Children = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
+        _Children = new Zeze.Transaction.Collections.PMap1<>(meta2_Children);
         _Children.variableId(4);
         _Data = newDynamicBean_Data();
     }

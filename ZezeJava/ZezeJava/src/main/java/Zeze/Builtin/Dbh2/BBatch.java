@@ -9,7 +9,13 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     public static final long TYPEID = -2614323448581124612L;
 
     private final Zeze.Transaction.Collections.PMap1<Zeze.Net.Binary, Zeze.Net.Binary> _Puts;
+    private static final Zeze.Transaction.Collections.Meta2<Zeze.Net.Binary, Zeze.Net.Binary> meta2_Puts
+            = Zeze.Transaction.Collections.Meta2.getMap1Meta(Zeze.Net.Binary.class, Zeze.Net.Binary.class);
+
     private final Zeze.Transaction.Collections.PSet1<Zeze.Net.Binary> _Deletes;
+    private static final Zeze.Transaction.Collections.Meta1<Zeze.Net.Binary> meta1_Deletes
+            = Zeze.Transaction.Collections.Meta1.getSet1Meta(Zeze.Net.Binary.class);
+
     private String _QueryIp;
     private int _QueryPort;
     private long _Tid;
@@ -123,18 +129,18 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
 
     @SuppressWarnings("deprecation")
     public BBatch() {
-        _Puts = new Zeze.Transaction.Collections.PMap1<>(Zeze.Net.Binary.class, Zeze.Net.Binary.class);
+        _Puts = new Zeze.Transaction.Collections.PMap1<>(meta2_Puts);
         _Puts.variableId(1);
-        _Deletes = new Zeze.Transaction.Collections.PSet1<>(Zeze.Net.Binary.class);
+        _Deletes = new Zeze.Transaction.Collections.PSet1<>(meta1_Deletes);
         _Deletes.variableId(2);
         _QueryIp = "";
     }
 
     @SuppressWarnings("deprecation")
     public BBatch(String _QueryIp_, int _QueryPort_, long _Tid_) {
-        _Puts = new Zeze.Transaction.Collections.PMap1<>(Zeze.Net.Binary.class, Zeze.Net.Binary.class);
+        _Puts = new Zeze.Transaction.Collections.PMap1<>(meta2_Puts);
         _Puts.variableId(1);
-        _Deletes = new Zeze.Transaction.Collections.PSet1<>(Zeze.Net.Binary.class);
+        _Deletes = new Zeze.Transaction.Collections.PSet1<>(meta1_Deletes);
         _Deletes.variableId(2);
         if (_QueryIp_ == null)
             _QueryIp_ = "";

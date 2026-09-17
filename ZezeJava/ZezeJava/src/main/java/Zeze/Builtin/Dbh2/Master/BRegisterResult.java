@@ -9,6 +9,8 @@ public final class BRegisterResult extends Zeze.Transaction.Bean implements BReg
     public static final long TYPEID = -2064985392838431218L;
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Dbh2.Master.BDbh2Config> _Dbh2Configs;
+    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.Dbh2.Master.BDbh2Config> meta1_Dbh2Configs
+            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.Dbh2.Master.BDbh2Config.class);
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Dbh2.Master.BDbh2Config> getDbh2Configs() {
         return _Dbh2Configs;
@@ -21,7 +23,7 @@ public final class BRegisterResult extends Zeze.Transaction.Bean implements BReg
 
     @SuppressWarnings("deprecation")
     public BRegisterResult() {
-        _Dbh2Configs = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Dbh2.Master.BDbh2Config.class);
+        _Dbh2Configs = new Zeze.Transaction.Collections.PList2<>(meta1_Dbh2Configs);
         _Dbh2Configs.variableId(1);
     }
 

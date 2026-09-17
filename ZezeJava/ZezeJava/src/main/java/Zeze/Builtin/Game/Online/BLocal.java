@@ -10,6 +10,9 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
 
     private long _LoginVersion; // 角色登录(包括重登录)时复制为tonline.LoginVersion
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> _Datas; // Online模块LocalBean相关方法读写自定义数据, 用来保存角色的Online定时器等
+    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Builtin.Game.Online.BAny> meta2_Datas
+            = Zeze.Transaction.Collections.Meta2.getMap2Meta(String.class, Zeze.Builtin.Game.Online.BAny.class);
+
     private Zeze.Builtin.Game.Online.BLink _Link; // 角色登录(包括重登录)时复制为tonline.Link
 
     private static final java.lang.invoke.VarHandle vh_LoginVersion;
@@ -79,7 +82,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
 
     @SuppressWarnings("deprecation")
     public BLocal() {
-        _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.Online.BAny.class);
+        _Datas = new Zeze.Transaction.Collections.PMap2<>(meta2_Datas);
         _Datas.variableId(2);
         _Link = new Zeze.Builtin.Game.Online.BLink();
     }
@@ -87,7 +90,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
     @SuppressWarnings("deprecation")
     public BLocal(long _LoginVersion_, Zeze.Builtin.Game.Online.BLink _Link_) {
         _LoginVersion = _LoginVersion_;
-        _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.Online.BAny.class);
+        _Datas = new Zeze.Transaction.Collections.PMap2<>(meta2_Datas);
         _Datas.variableId(2);
         if (_Link_ == null)
             _Link_ = new Zeze.Builtin.Game.Online.BLink();

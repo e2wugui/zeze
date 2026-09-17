@@ -11,6 +11,9 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     private String _ActionName;
     private Zeze.Net.Binary _Parameter; // encoded bean
     private final Zeze.Transaction.Collections.PSet1<Zeze.Builtin.ProviderDirect.BLoginKey> _Targets; // 查询目标角色。
+    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.ProviderDirect.BLoginKey> meta1_Targets
+            = Zeze.Transaction.Collections.Meta1.getSet1Meta(Zeze.Builtin.ProviderDirect.BLoginKey.class);
+
     private String _SenderAccount; // 结果发送给Sender。
     private String _SenderClientId; // 结果发送给Sender。
 
@@ -132,7 +135,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     public BTransmitAccount() {
         _ActionName = "";
         _Parameter = Zeze.Net.Binary.Empty;
-        _Targets = new Zeze.Transaction.Collections.PSet1<>(Zeze.Builtin.ProviderDirect.BLoginKey.class);
+        _Targets = new Zeze.Transaction.Collections.PSet1<>(meta1_Targets);
         _Targets.variableId(3);
         _SenderAccount = "";
         _SenderClientId = "";
@@ -146,7 +149,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         if (_Parameter_ == null)
             _Parameter_ = Zeze.Net.Binary.Empty;
         _Parameter = _Parameter_;
-        _Targets = new Zeze.Transaction.Collections.PSet1<>(Zeze.Builtin.ProviderDirect.BLoginKey.class);
+        _Targets = new Zeze.Transaction.Collections.PSet1<>(meta1_Targets);
         _Targets.variableId(3);
         if (_SenderAccount_ == null)
             _SenderAccount_ = "";

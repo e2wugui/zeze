@@ -114,6 +114,7 @@ namespace Zeze.Gen.java
         // 初始化仍走公开工厂——Bean拦截与全局共享缓存语义不变，仅把工厂调用从每实例一次变为
         // 每类加载一次；同类型元组跨变量/跨bean共享同一meta实例（工厂缓存保证）。
         // dynamic值集合不在此列（createDynamic*带每bean专属的get/create函数，见GenDynamicSpecialMethod）。
+        // 空行发在声明之后（与字段声明贴成一组），而非之前——与GenDynamicSpecialMethod的约定一致。
         private void GenCollectionMetaDefine(StreamWriter sw, string prefix, Variable var)
         {
             Type vt = var.VariableType;
@@ -123,34 +124,33 @@ namespace Zeze.Gen.java
                 string value = BoxingName.GetBoxingName(collection.ValueType);
                 string factory = vt is TypeSet ? "getSet1Meta"
                         : collection.ValueType.IsNormalBean ? "getList2Meta" : "getList1Meta";
-                sw.WriteLine();
                 sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta1<{value}> meta1{varName}");
                 sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta1.{factory}({value}.class);");
+                sw.WriteLine();
             }
             else if (vt is TypeMap map)
             {
                 string key = BoxingName.GetBoxingName(map.KeyType);
                 string value = BoxingName.GetBoxingName(map.ValueType);
                 string factory = map.ValueType.IsNormalBean ? "getMap2Meta" : "getMap1Meta";
-                sw.WriteLine();
                 sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{key}, {value}> meta2{varName}");
                 sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.{factory}({key}.class, {value}.class);");
+                sw.WriteLine();
             }
             else if (vt is TypeSortedMap sortedMap)
             {
                 string key = BoxingName.GetBoxingName(sortedMap.KeyType);
                 string value = BoxingName.GetBoxingName(sortedMap.ValueType);
                 string factory = sortedMap.ValueType.IsNormalBean ? "getSortedMap2Meta" : "getSortedMap1Meta";
-                sw.WriteLine();
                 sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{key}, {value}> meta2{varName}");
                 sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.{factory}({key}.class, {value}.class);");
+                sw.WriteLine();
             }
             else if (vt is TypeGTable gtable)
             {
                 string rowKey = BoxingName.GetBoxingName(gtable.RowKeyType);
                 string colKey = BoxingName.GetBoxingName(gtable.ColKeyType);
                 string value = BoxingName.GetBoxingName(gtable.ValueType);
-                sw.WriteLine();
                 if (gtable.ValueType.IsNormalBean)
                 {
                     sw.WriteLine($"{prefix}private static final Zeze.Transaction.GTable.GTable2.Factory<{rowKey}, {colKey}, {value}, {value}ReadOnly> factory{varName}");
@@ -161,6 +161,7 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"{prefix}private static final Zeze.Transaction.GTable.GTable1.Factory<{rowKey}, {colKey}, {value}> factory{varName}");
                     sw.WriteLine($"{prefix}        = Zeze.Transaction.GTable.GTable1.getFactory({rowKey}.class, {colKey}.class, {value}.class);");
                 }
+                sw.WriteLine();
             }
         }
 
@@ -177,21 +178,19 @@ namespace Zeze.Gen.java
             else
             {
                 var vt = var.VariableType;
+                // meta声明与字段声明贴成一组（空行在其后，由下方统一发），与GenCollectionMetaDefine约定一致。
                 if (vt is TypeCollection)
                 {
-                    sw.WriteLine();
                     sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta1<Zeze.Transaction.DynamicBean> meta1{var.NamePrivate}");
                     sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta1.createDynamicListMeta({GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
                 }
                 else if (vt is TypeMap map)
                 {
-                    sw.WriteLine();
                     sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{BoxingName.GetBoxingName(map.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
                     sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.createDynamicMapMeta({BoxingName.GetBoxingName(map.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
                 }
                 else if (vt is TypeSortedMap smap)
                 {
-                    sw.WriteLine();
                     sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{BoxingName.GetBoxingName(smap.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
                     // sortedmap 必须用 createDynamicSortedMapMeta（sortedMap2 家族哈希），
                     // 与 PSortedMap2 动态构造器及读端注册对称；用 map2 家族会 typeId 永不匹配（FND3-04）。

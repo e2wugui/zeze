@@ -9,6 +9,9 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     public static final long TYPEID = 5146109133177652644L;
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.LogService.BLog> _Logs;
+    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.LogService.BLog> meta1_Logs
+            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.LogService.BLog.class);
+
     private boolean _Remain;
 
     private static final java.lang.invoke.VarHandle vh_Remain;
@@ -53,13 +56,13 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
 
     @SuppressWarnings("deprecation")
     public BResult() {
-        _Logs = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.LogService.BLog.class);
+        _Logs = new Zeze.Transaction.Collections.PList2<>(meta1_Logs);
         _Logs.variableId(1);
     }
 
     @SuppressWarnings("deprecation")
     public BResult(boolean _Remain_) {
-        _Logs = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.LogService.BLog.class);
+        _Logs = new Zeze.Transaction.Collections.PList2<>(meta1_Logs);
         _Logs.variableId(1);
         _Remain = _Remain_;
     }

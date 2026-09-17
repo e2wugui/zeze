@@ -10,6 +10,8 @@ public final class BCreatePartition extends Zeze.Transaction.Bean implements BCr
 
     private String _Topic; // 主题
     private final Zeze.Transaction.Collections.PSet1<Integer> _PartitionIndexes; // 分区索引集合
+    private static final Zeze.Transaction.Collections.Meta1<Integer> meta1_PartitionIndexes
+            = Zeze.Transaction.Collections.Meta1.getSet1Meta(Integer.class);
 
     private static final java.lang.invoke.VarHandle vh_Topic;
 
@@ -56,7 +58,7 @@ public final class BCreatePartition extends Zeze.Transaction.Bean implements BCr
     @SuppressWarnings("deprecation")
     public BCreatePartition() {
         _Topic = "";
-        _PartitionIndexes = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
+        _PartitionIndexes = new Zeze.Transaction.Collections.PSet1<>(meta1_PartitionIndexes);
         _PartitionIndexes.variableId(2);
     }
 
@@ -65,7 +67,7 @@ public final class BCreatePartition extends Zeze.Transaction.Bean implements BCr
         if (_Topic_ == null)
             _Topic_ = "";
         _Topic = _Topic_;
-        _PartitionIndexes = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
+        _PartitionIndexes = new Zeze.Transaction.Collections.PSet1<>(meta1_PartitionIndexes);
         _PartitionIndexes.variableId(2);
     }
 

@@ -14,6 +14,8 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
     private String _MethodFullName; // format="ModuleFullName:MethodName"
     private long _SessionId; // 发起请求者初始化，返回结果时带回。
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _Hashes; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+    private static final Zeze.Transaction.Collections.Meta2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> meta2_Hashes
+            = Zeze.Transaction.Collections.Meta2.getMap2Meta(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);
 
     private static final java.lang.invoke.VarHandle vh_ModuleId;
     private static final java.lang.invoke.VarHandle vh_ServerId;
@@ -148,7 +150,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
     @SuppressWarnings("deprecation")
     public BModuleRedirectAllResult() {
         _MethodFullName = "";
-        _Hashes = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);
+        _Hashes = new Zeze.Transaction.Collections.PMap2<>(meta2_Hashes);
         _Hashes.variableId(6);
     }
 
@@ -161,7 +163,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             _MethodFullName_ = "";
         _MethodFullName = _MethodFullName_;
         _SessionId = _SessionId_;
-        _Hashes = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);
+        _Hashes = new Zeze.Transaction.Collections.PMap2<>(meta2_Hashes);
         _Hashes.variableId(6);
     }
 

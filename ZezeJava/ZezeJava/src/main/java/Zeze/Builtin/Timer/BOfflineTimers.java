@@ -10,6 +10,8 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
     public static final long TYPEID = -4429519688247847602L;
 
     private final Zeze.Transaction.Collections.PMap1<String, Integer> _OfflineTimers; // key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID), value是注册定时器的serverId, 容量不能超过Config配置中的offlineTimerLimit
+    private static final Zeze.Transaction.Collections.Meta2<String, Integer> meta2_OfflineTimers
+            = Zeze.Transaction.Collections.Meta2.getMap1Meta(String.class, Integer.class);
 
     public Zeze.Transaction.Collections.PMap1<String, Integer> getOfflineTimers() {
         return _OfflineTimers;
@@ -22,7 +24,7 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
 
     @SuppressWarnings("deprecation")
     public BOfflineTimers() {
-        _OfflineTimers = new Zeze.Transaction.Collections.PMap1<>(String.class, Integer.class);
+        _OfflineTimers = new Zeze.Transaction.Collections.PMap1<>(meta2_OfflineTimers);
         _OfflineTimers.variableId(1);
     }
 

@@ -16,7 +16,6 @@ import harness.Fast;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +33,7 @@ public class TestFnd727HttpPipeliningShutdownCleanup {
 		public final ConcurrentLinkedQueue<HttpExchange> created = new ConcurrentLinkedQueue<>();
 
 		@Override
-		public @Nullable HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
+		public @NotNull HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
 			var x = new HttpExchange(this, context);
 			created.add(x);
 			return x;
@@ -81,7 +80,6 @@ public class TestFnd727HttpPipeliningShutdownCleanup {
 				// r0的任务已认领运行 + 三个exchange都已创建（r0/r1被pipelining覆盖逐出，表内只剩r2）
 				Assertions.assertTrue(entered.await(10, TimeUnit.SECONDS), "blocked handler not entered");
 				await("3 pipelined exchanges created", 10_000, () -> server.created.size() >= 3);
-				//noinspection unchecked
 				var x1 = (HttpExchange)server.created.toArray()[1]; // 被逐出的中间那个
 				var x2 = (HttpExchange)server.created.toArray()[2]; // 表内那个
 

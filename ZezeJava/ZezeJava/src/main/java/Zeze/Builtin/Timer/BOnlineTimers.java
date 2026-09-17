@@ -10,6 +10,8 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
     public static final long TYPEID = 5020093653412966560L;
 
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BOnlineCustom> _TimerIds;
+    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Builtin.Timer.BOnlineCustom> meta2_TimerIds
+            = Zeze.Transaction.Collections.Meta2.getMap2Meta(String.class, Zeze.Builtin.Timer.BOnlineCustom.class);
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BOnlineCustom> getTimerIds() {
         return _TimerIds;
@@ -22,7 +24,7 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
 
     @SuppressWarnings("deprecation")
     public BOnlineTimers() {
-        _TimerIds = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Timer.BOnlineCustom.class);
+        _TimerIds = new Zeze.Transaction.Collections.PMap2<>(meta2_TimerIds);
         _TimerIds.variableId(1);
     }
 

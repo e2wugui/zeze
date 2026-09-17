@@ -70,17 +70,24 @@ public final class Meta1<V> {
 				vc -> new Meta1<>("LogBeanKey:", beanHeadHash, (Class<V>)vc));
 	}
 
+	// 1系容器不支持Bean值，工厂层是唯一拦截点（R2-T backlog④收口；原容器构造器层check经复核
+	// 逐路径冗余已删，判例注释并归于此）：List1按值拷贝记账、不挂接rootInfo，装入的bean永不受管，
+	// 原位修改静默丢失；Set1是哈希语义——Bean值语义equals配身份hashCode（可变bean
+	// 不覆写hashCode防哈希漂移），去重/remove/removeAll失真，且框架设计上无PSet2，bean集合属
+	// 设计不支持；LogList2用IdentityHashSet+身份比较是既有约定，见LogList2）。
+	// check在computeIfAbsent内按miss执行：被拒类型永不入缓存，每次调用皆重抛；不变量是
+	// "被拒类型永不在缓存中"——任何新的缓存插入路径必须经由本check，不允许绕过直插。
+	private static void checkNonBeanValue(@NotNull String family, @NotNull String reason, @NotNull Class<?> valueClass) {
+		if (Bean.class.isAssignableFrom(valueClass))
+			throw new IllegalArgumentException(
+					family + " does not support Bean value type " + reason + ": " + valueClass.getName());
+	}
+
 	@SuppressWarnings("unchecked")
 	public static <V> @NotNull Meta1<V> getList1Meta(@NotNull Class<V> valueClass) {
 		return (Meta1<V>)list1Metas.computeIfAbsent(valueClass, vc -> {
-			// Bean值不支持（FND7-09，PSet1/PMap1判例同族）：1系容器按值拷贝记账，不挂接
-			// rootInfo（对比PList2.add的initRootInfoWithRedo），装入的bean永不受管——原位
-			// 修改走非受管直写分支，不产生日志，提交后静默丢失。显式失败优于静默丢数据。
-			if (Bean.class.isAssignableFrom(vc)) {
-				throw new IllegalArgumentException(
-						"List1Meta does not support Bean value type (in-place modifications never managed, silently lost): "
-								+ vc.getName());
-			}
+			checkNonBeanValue("PList1 (LogList1)",
+					"(in-place modifications never managed, silently lost), use PList2", vc);
 			return new Meta1<>("LogList1:", list1HeadHash, (Class<V>)vc);
 		});
 	}
@@ -94,15 +101,8 @@ public final class Meta1<V> {
 	@SuppressWarnings("unchecked")
 	public static <V> @NotNull Meta1<V> getSet1Meta(@NotNull Class<V> valueClass) {
 		return (Meta1<V>)set1Metas.computeIfAbsent(valueClass, vc -> {
-			// Bean元素不支持（FND5-44同族复审）：Bean是值语义equals但身份hashCode（可变bean
-			// 不覆写hashCode防哈希漂移），哈希容器对bean元素静默漏命中——去重/remove/removeAll
-			// 失真。显式失败优于静默错；框架无PSet2，bean集合属设计不支持（LogList2用IdentityHashSet
-			// +身份比较是既有约定，见LogList2）。
-			if (Bean.class.isAssignableFrom(vc)) {
-				throw new IllegalArgumentException(
-						"Set1Meta does not support Bean value type (equals-without-hashCode misbehaves in hash set): "
-								+ vc.getName());
-			}
+			checkNonBeanValue("PSet1 (LogSet1)",
+					"(equals-without-hashCode misbehaves in hash set; Bean set unsupported by design)", vc);
 			return new Meta1<>("LogSet1:", set1HeadHash, (Class<V>)vc);
 		});
 	}

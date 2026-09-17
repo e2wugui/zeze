@@ -11,6 +11,9 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     private Zeze.Builtin.Online.BLink _Link;
     private long _LoginVersion;
     private final Zeze.Transaction.Collections.PSet1<String> _ReliableNotifyMark;
+    private static final Zeze.Transaction.Collections.Meta1<String> meta1_ReliableNotifyMark
+            = Zeze.Transaction.Collections.Meta1.getSet1Meta(String.class);
+
     private long _ReliableNotifyIndex;
     private long _ReliableNotifyConfirmIndex;
     private int _ServerId;
@@ -184,7 +187,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     @SuppressWarnings("deprecation")
     public BOnline() {
         _Link = new Zeze.Builtin.Online.BLink();
-        _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
+        _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(meta1_ReliableNotifyMark);
         _ReliableNotifyMark.variableId(3);
     }
 
@@ -194,7 +197,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             _Link_ = new Zeze.Builtin.Online.BLink();
         _Link = _Link_;
         _LoginVersion = _LoginVersion_;
-        _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
+        _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(meta1_ReliableNotifyMark);
         _ReliableNotifyMark.variableId(3);
         _ReliableNotifyIndex = _ReliableNotifyIndex_;
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;

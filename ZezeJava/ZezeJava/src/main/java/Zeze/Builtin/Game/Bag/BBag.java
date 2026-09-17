@@ -10,6 +10,8 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
 
     private int _Capacity;
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
+    private static final Zeze.Transaction.Collections.Meta2<Integer, Zeze.Builtin.Game.Bag.BItem> meta2_Items
+            = Zeze.Transaction.Collections.Meta2.getMap2Meta(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
 
     private static final java.lang.invoke.VarHandle vh_Capacity;
 
@@ -53,14 +55,14 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
 
     @SuppressWarnings("deprecation")
     public BBag() {
-        _Items = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
+        _Items = new Zeze.Transaction.Collections.PMap2<>(meta2_Items);
         _Items.variableId(2);
     }
 
     @SuppressWarnings("deprecation")
     public BBag(int _Capacity_) {
         _Capacity = _Capacity_;
-        _Items = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
+        _Items = new Zeze.Transaction.Collections.PMap2<>(meta2_Items);
         _Items.variableId(2);
     }
 

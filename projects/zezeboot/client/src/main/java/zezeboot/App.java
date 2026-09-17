@@ -156,6 +156,8 @@ public class App extends Zeze.AppBase {
     public void stopModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (zezeboot_login != null)
                 zezeboot_login.Stop(this);
             if (zezeboot_link != null)
@@ -170,6 +172,8 @@ public class App extends Zeze.AppBase {
     public void stopBeforeModules() throws Exception {
         lock();
         try {
+            if (Zeze == null)
+                return;
             if (zezeboot_login != null)
                 zezeboot_login.StopBefore();
             if (zezeboot_link != null)

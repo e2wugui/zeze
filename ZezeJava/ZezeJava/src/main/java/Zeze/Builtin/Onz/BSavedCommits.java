@@ -10,6 +10,8 @@ public final class BSavedCommits extends Zeze.Transaction.Bean implements BSaved
 
     private int _State;
     private final Zeze.Transaction.Collections.PSet1<String> _Onzs;
+    private static final Zeze.Transaction.Collections.Meta1<String> meta1_Onzs
+            = Zeze.Transaction.Collections.Meta1.getSet1Meta(String.class);
 
     private static final java.lang.invoke.VarHandle vh_State;
 
@@ -53,14 +55,14 @@ public final class BSavedCommits extends Zeze.Transaction.Bean implements BSaved
 
     @SuppressWarnings("deprecation")
     public BSavedCommits() {
-        _Onzs = new Zeze.Transaction.Collections.PSet1<>(String.class);
+        _Onzs = new Zeze.Transaction.Collections.PSet1<>(meta1_Onzs);
         _Onzs.variableId(2);
     }
 
     @SuppressWarnings("deprecation")
     public BSavedCommits(int _State_) {
         _State = _State_;
-        _Onzs = new Zeze.Transaction.Collections.PSet1<>(String.class);
+        _Onzs = new Zeze.Transaction.Collections.PSet1<>(meta1_Onzs);
         _Onzs.variableId(2);
     }
 

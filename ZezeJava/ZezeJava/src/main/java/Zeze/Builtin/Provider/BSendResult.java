@@ -9,6 +9,8 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
     public static final long TYPEID = -7186434891670297524L;
 
     private final Zeze.Transaction.Collections.PList1<Long> _ErrorLinkSids;
+    private static final Zeze.Transaction.Collections.Meta1<Long> meta1_ErrorLinkSids
+            = Zeze.Transaction.Collections.Meta1.getList1Meta(Long.class);
 
     public Zeze.Transaction.Collections.PList1<Long> getErrorLinkSids() {
         return _ErrorLinkSids;
@@ -21,7 +23,7 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
 
     @SuppressWarnings("deprecation")
     public BSendResult() {
-        _ErrorLinkSids = new Zeze.Transaction.Collections.PList1<>(Long.class);
+        _ErrorLinkSids = new Zeze.Transaction.Collections.PList1<>(meta1_ErrorLinkSids);
         _ErrorLinkSids.variableId(1);
     }
 

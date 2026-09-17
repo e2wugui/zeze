@@ -9,6 +9,9 @@ public final class BWalkKeyResult extends Zeze.Transaction.Bean implements BWalk
     public static final long TYPEID = 7613011447108499443L;
 
     private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _Keys;
+    private static final Zeze.Transaction.Collections.Meta1<Zeze.Net.Binary> meta1_Keys
+            = Zeze.Transaction.Collections.Meta1.getList1Meta(Zeze.Net.Binary.class);
+
     private boolean _BucketEnd;
     private boolean _BucketRefuse;
 
@@ -76,13 +79,13 @@ public final class BWalkKeyResult extends Zeze.Transaction.Bean implements BWalk
 
     @SuppressWarnings("deprecation")
     public BWalkKeyResult() {
-        _Keys = new Zeze.Transaction.Collections.PList1<>(Zeze.Net.Binary.class);
+        _Keys = new Zeze.Transaction.Collections.PList1<>(meta1_Keys);
         _Keys.variableId(1);
     }
 
     @SuppressWarnings("deprecation")
     public BWalkKeyResult(boolean _BucketEnd_, boolean _BucketRefuse_) {
-        _Keys = new Zeze.Transaction.Collections.PList1<>(Zeze.Net.Binary.class);
+        _Keys = new Zeze.Transaction.Collections.PList1<>(meta1_Keys);
         _Keys.variableId(1);
         _BucketEnd = _BucketEnd_;
         _BucketRefuse = _BucketRefuse_;

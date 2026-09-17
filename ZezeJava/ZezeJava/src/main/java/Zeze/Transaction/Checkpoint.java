@@ -134,7 +134,6 @@ public final class Checkpoint {
 					return;
 				}
 				try {
-					//noinspection ResultOfMethodCallIgnored
 					checkpointThread.join(remaining / 1_000_000L + 1);
 				} catch (InterruptedException e) {
 					interrupted = true; // 出口统一恢复标志；循环内保持清除以便后续join能真正等待

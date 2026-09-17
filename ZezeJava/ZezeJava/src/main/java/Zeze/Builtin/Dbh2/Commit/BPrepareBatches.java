@@ -9,6 +9,8 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
     public static final long TYPEID = -2881093366329974312L;
 
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Dbh2.BPrepareBatch> _Datas;
+    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Builtin.Dbh2.BPrepareBatch> meta2_Datas
+            = Zeze.Transaction.Collections.Meta2.getMap2Meta(String.class, Zeze.Builtin.Dbh2.BPrepareBatch.class);
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Dbh2.BPrepareBatch> getDatas() {
         return _Datas;
@@ -21,7 +23,7 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
 
     @SuppressWarnings("deprecation")
     public BPrepareBatches() {
-        _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Dbh2.BPrepareBatch.class);
+        _Datas = new Zeze.Transaction.Collections.PMap2<>(meta2_Datas);
         _Datas.variableId(1);
     }
 

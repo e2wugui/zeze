@@ -10,6 +10,9 @@ public final class BMessage extends Zeze.Transaction.Bean implements BMessageRea
 
     private long _Timestamp; // 发送时间，用户不用填写
     private final Zeze.Transaction.Collections.PMap1<String, String> _Properties; // 属性，用户自定义
+    private static final Zeze.Transaction.Collections.Meta2<String, String> meta2_Properties
+            = Zeze.Transaction.Collections.Meta2.getMap1Meta(String.class, String.class);
+
     private Zeze.Net.Binary _Body; // 消息体，用户自定义
 
     private static final java.lang.invoke.VarHandle vh_Timestamp;
@@ -78,7 +81,7 @@ public final class BMessage extends Zeze.Transaction.Bean implements BMessageRea
 
     @SuppressWarnings("deprecation")
     public BMessage() {
-        _Properties = new Zeze.Transaction.Collections.PMap1<>(String.class, String.class);
+        _Properties = new Zeze.Transaction.Collections.PMap1<>(meta2_Properties);
         _Properties.variableId(2);
         _Body = Zeze.Net.Binary.Empty;
     }
@@ -86,7 +89,7 @@ public final class BMessage extends Zeze.Transaction.Bean implements BMessageRea
     @SuppressWarnings("deprecation")
     public BMessage(long _Timestamp_, Zeze.Net.Binary _Body_) {
         _Timestamp = _Timestamp_;
-        _Properties = new Zeze.Transaction.Collections.PMap1<>(String.class, String.class);
+        _Properties = new Zeze.Transaction.Collections.PMap1<>(meta2_Properties);
         _Properties.variableId(2);
         if (_Body_ == null)
             _Body_ = Zeze.Net.Binary.Empty;

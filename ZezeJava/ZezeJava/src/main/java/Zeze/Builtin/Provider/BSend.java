@@ -9,6 +9,9 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     public static final long TYPEID = 545774009128015305L;
 
     private final Zeze.Transaction.Collections.PList1<Long> _linkSids;
+    private static final Zeze.Transaction.Collections.Meta1<Long> meta1_linkSids
+            = Zeze.Transaction.Collections.Meta1.getList1Meta(Long.class);
+
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
 
@@ -78,14 +81,14 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
 
     @SuppressWarnings("deprecation")
     public BSend() {
-        _linkSids = new Zeze.Transaction.Collections.PList1<>(Long.class);
+        _linkSids = new Zeze.Transaction.Collections.PList1<>(meta1_linkSids);
         _linkSids.variableId(1);
         _protocolWholeData = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
     public BSend(long _protocolType_, Zeze.Net.Binary _protocolWholeData_) {
-        _linkSids = new Zeze.Transaction.Collections.PList1<>(Long.class);
+        _linkSids = new Zeze.Transaction.Collections.PList1<>(meta1_linkSids);
         _linkSids.variableId(1);
         _protocolType = _protocolType_;
         if (_protocolWholeData_ == null)

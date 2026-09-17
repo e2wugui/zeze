@@ -11,6 +11,9 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
 
     private long _NextNodeId; // 废弃，新的遍历寻找使用NextNodeKey，【但是不能删，兼容需要读取】
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> _Values;
+    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.Collections.Queue.BQueueNodeValue> meta1_Values
+            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.Collections.Queue.BQueueNodeValue.class);
+
     private Zeze.Builtin.Collections.Queue.BQueueNodeKey _NextNodeKey; // NodeId为0表示已到达结尾。
 
     private static final java.lang.invoke.VarHandle vh_NextNodeId;
@@ -80,7 +83,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
 
     @SuppressWarnings("deprecation")
     public BQueueNode() {
-        _Values = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Collections.Queue.BQueueNodeValue.class);
+        _Values = new Zeze.Transaction.Collections.PList2<>(meta1_Values);
         _Values.variableId(2);
         _NextNodeKey = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
     }
@@ -88,7 +91,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
     @SuppressWarnings("deprecation")
     public BQueueNode(long _NextNodeId_, Zeze.Builtin.Collections.Queue.BQueueNodeKey _NextNodeKey_) {
         _NextNodeId = _NextNodeId_;
-        _Values = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Collections.Queue.BQueueNodeValue.class);
+        _Values = new Zeze.Transaction.Collections.PList2<>(meta1_Values);
         _Values.variableId(2);
         if (_NextNodeKey_ == null)
             _NextNodeKey_ = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();

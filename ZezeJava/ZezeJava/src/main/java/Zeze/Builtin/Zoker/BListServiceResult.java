@@ -9,6 +9,8 @@ public final class BListServiceResult extends Zeze.Transaction.Bean implements B
     public static final long TYPEID = -2243510208432437687L;
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Zoker.BService> _Services;
+    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.Zoker.BService> meta1_Services
+            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.Zoker.BService.class);
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Zoker.BService> getServices() {
         return _Services;
@@ -21,7 +23,7 @@ public final class BListServiceResult extends Zeze.Transaction.Bean implements B
 
     @SuppressWarnings("deprecation")
     public BListServiceResult() {
-        _Services = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Zoker.BService.class);
+        _Services = new Zeze.Transaction.Collections.PList2<>(meta1_Services);
         _Services.variableId(1);
     }
 

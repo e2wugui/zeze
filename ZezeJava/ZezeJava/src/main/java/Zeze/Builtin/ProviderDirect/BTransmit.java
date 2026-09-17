@@ -10,6 +10,9 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
 
     private String _ActionName;
     private final Zeze.Transaction.Collections.PSet1<Long> _Roles; // 查询目标角色。
+    private static final Zeze.Transaction.Collections.Meta1<Long> meta1_Roles
+            = Zeze.Transaction.Collections.Meta1.getSet1Meta(Long.class);
+
     private long _Sender; // 结果发送给Sender。
     private Zeze.Net.Binary _Parameter; // encoded bean
     private String _OnlineSetName;
@@ -129,7 +132,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     @SuppressWarnings("deprecation")
     public BTransmit() {
         _ActionName = "";
-        _Roles = new Zeze.Transaction.Collections.PSet1<>(Long.class);
+        _Roles = new Zeze.Transaction.Collections.PSet1<>(meta1_Roles);
         _Roles.variableId(2);
         _Parameter = Zeze.Net.Binary.Empty;
         _OnlineSetName = "";
@@ -140,7 +143,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         if (_ActionName_ == null)
             _ActionName_ = "";
         _ActionName = _ActionName_;
-        _Roles = new Zeze.Transaction.Collections.PSet1<>(Long.class);
+        _Roles = new Zeze.Transaction.Collections.PSet1<>(meta1_Roles);
         _Roles.variableId(2);
         _Sender = _Sender_;
         if (_Parameter_ == null)

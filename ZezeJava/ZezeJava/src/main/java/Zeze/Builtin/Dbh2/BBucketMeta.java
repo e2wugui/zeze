@@ -14,6 +14,8 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     private Zeze.Net.Binary _KeyLast;
     private String _RaftConfig;
     private final Zeze.Transaction.Collections.PMap1<String, String> _Host2Raft;
+    private static final Zeze.Transaction.Collections.Meta2<String, String> meta2_Host2Raft
+            = Zeze.Transaction.Collections.Meta2.getMap1Meta(String.class, String.class);
 
     private static final java.lang.invoke.VarHandle vh_DatabaseName;
     private static final java.lang.invoke.VarHandle vh_TableName;
@@ -160,7 +162,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         _KeyFirst = Zeze.Net.Binary.Empty;
         _KeyLast = Zeze.Net.Binary.Empty;
         _RaftConfig = "";
-        _Host2Raft = new Zeze.Transaction.Collections.PMap1<>(String.class, String.class);
+        _Host2Raft = new Zeze.Transaction.Collections.PMap1<>(meta2_Host2Raft);
         _Host2Raft.variableId(6);
     }
 
@@ -181,7 +183,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         if (_RaftConfig_ == null)
             _RaftConfig_ = "";
         _RaftConfig = _RaftConfig_;
-        _Host2Raft = new Zeze.Transaction.Collections.PMap1<>(String.class, String.class);
+        _Host2Raft = new Zeze.Transaction.Collections.PMap1<>(meta2_Host2Raft);
         _Host2Raft.variableId(6);
     }
 
