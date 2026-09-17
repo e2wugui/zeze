@@ -109,6 +109,61 @@ namespace Zeze.Gen.java
                    $"{type.DynamicParams.CreateBeanFromSpecialTypeId}";
         }
 
+        // 非dynamic集合变量的meta常量化：声明静态meta1/meta2/factory，让Construct（无参/全参构造器）
+        // 走(Meta)/(Factory)构造器，消除每bean实例化的工厂缓存探测（bean表加载/对象池复用热路径）。
+        // 初始化仍走公开工厂——Bean拦截与全局共享缓存语义不变，仅把工厂调用从每实例一次变为
+        // 每类加载一次；同类型元组跨变量/跨bean共享同一meta实例（工厂缓存保证）。
+        // dynamic值集合不在此列（createDynamic*带每bean专属的get/create函数，见GenDynamicSpecialMethod）。
+        private void GenCollectionMetaDefine(StreamWriter sw, string prefix, Variable var)
+        {
+            Type vt = var.VariableType;
+            string varName = var.NamePrivate;
+            if (vt is TypeCollection collection) // TypeList/TypeSet
+            {
+                string value = BoxingName.GetBoxingName(collection.ValueType);
+                string factory = vt is TypeSet ? "getSet1Meta"
+                        : collection.ValueType.IsNormalBean ? "getList2Meta" : "getList1Meta";
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta1<{value}> meta1{varName}");
+                sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta1.{factory}({value}.class);");
+            }
+            else if (vt is TypeMap map)
+            {
+                string key = BoxingName.GetBoxingName(map.KeyType);
+                string value = BoxingName.GetBoxingName(map.ValueType);
+                string factory = map.ValueType.IsNormalBean ? "getMap2Meta" : "getMap1Meta";
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{key}, {value}> meta2{varName}");
+                sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.{factory}({key}.class, {value}.class);");
+            }
+            else if (vt is TypeSortedMap sortedMap)
+            {
+                string key = BoxingName.GetBoxingName(sortedMap.KeyType);
+                string value = BoxingName.GetBoxingName(sortedMap.ValueType);
+                string factory = sortedMap.ValueType.IsNormalBean ? "getSortedMap2Meta" : "getSortedMap1Meta";
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{key}, {value}> meta2{varName}");
+                sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.{factory}({key}.class, {value}.class);");
+            }
+            else if (vt is TypeGTable gtable)
+            {
+                string rowKey = BoxingName.GetBoxingName(gtable.RowKeyType);
+                string colKey = BoxingName.GetBoxingName(gtable.ColKeyType);
+                string value = BoxingName.GetBoxingName(gtable.ValueType);
+                sw.WriteLine();
+                if (gtable.ValueType.IsNormalBean)
+                {
+                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.GTable.GTable2.Factory<{rowKey}, {colKey}, {value}, {value}ReadOnly> factory{varName}");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.GTable.GTable2.getFactory({rowKey}.class, {colKey}.class, {value}.class);");
+                }
+                else
+                {
+                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.GTable.GTable1.Factory<{rowKey}, {colKey}, {value}> factory{varName}");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.GTable.GTable1.getFactory({rowKey}.class, {colKey}.class, {value}.class);");
+                }
+            }
+        }
+
         private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Variable var, TypeDynamic type, bool isCollection)
         {
             if (false == isCollection)
@@ -256,6 +311,8 @@ namespace Zeze.Gen.java
                     GenDynamicSpecialMethod(sw, "    ", v, dy3, true);
                 else if (vt is TypeCollection coll && coll.ValueType is TypeDynamic dy2)
                     GenDynamicSpecialMethod(sw, "    ", v, dy2, true);
+                else if (vt is TypeCollection or TypeMap or TypeSortedMap or TypeGTable)
+                    GenCollectionMetaDefine(sw, "    ", v);
                 else
                     addBlankLine = true;
             }

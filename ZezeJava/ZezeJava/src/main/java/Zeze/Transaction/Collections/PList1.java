@@ -20,7 +20,8 @@ public class PList1<V> extends PList<V> {
 		meta = Meta1.getList1Meta(valueClass);
 	}
 
-	private PList1(@NotNull Meta1<V> meta) {
+	// meta须来自Meta1工厂（公开唯一构建入口，已过Bean拦截），供生成代码常量化/调用点静态持有。
+	public PList1(@NotNull Meta1<V> meta) {
 		this.meta = meta;
 	}
 

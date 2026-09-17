@@ -139,30 +139,23 @@ namespace Zeze.Gen.java
         public void Visit(TypeList type)
         {
             string typeName = TypeName.GetNameOmitted(type) + "<>";
-            if (type.ValueType is TypeDynamic)
-                sw.WriteLine(prefix + varName + $" = new {typeName}(meta1{varName});");
-            else
-                sw.WriteLine(prefix + varName + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
+            // 集合meta常量化：dynamic/非dynamic统一走静态meta（声明见BeanFormatter的
+            // GenDynamicSpecialMethod/GenCollectionMetaDefine），消除每bean实例化的工厂缓存探测。
+            sw.WriteLine(prefix + varName + $" = new {typeName}(meta1{varName});");
             sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
         }
 
         public void Visit(TypeSet type)
         {
             string typeName = TypeName.GetNameOmitted(type) + "<>";
-            if (type.ValueType is TypeDynamic)
-                sw.WriteLine(prefix + varName + $" = new {typeName}(meta1{varName});");
-            else
-                sw.WriteLine(prefix + varName + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
+            sw.WriteLine(prefix + varName + $" = new {typeName}(meta1{varName});");
             sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
         }
 
         public void Visit(TypeMap type)
         {
             string typeName = TypeName.GetNameOmitted(type) + "<>";
-            if (type.ValueType is TypeDynamic)
-                sw.WriteLine(prefix + varName + $" = new {typeName}(meta2{varName});");
-            else
-                sw.WriteLine(prefix + varName + $" = new {typeName}({BoxingName.GetBoxingName(type.KeyType)}.class, {BoxingName.GetBoxingName(type.ValueType)}.class);");
+            sw.WriteLine(prefix + varName + $" = new {typeName}(meta2{varName});");
             sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
             /*
             var key = TypeName.GetName(type.KeyType);
@@ -177,10 +170,7 @@ namespace Zeze.Gen.java
         public void Visit(TypeSortedMap type)
         {
             string typeName = TypeName.GetNameOmitted(type) + "<>";
-            if (type.ValueType is TypeDynamic)
-                sw.WriteLine(prefix + varName + $" = new {typeName}(meta2{varName});");
-            else
-                sw.WriteLine(prefix + varName + $" = new {typeName}({BoxingName.GetBoxingName(type.KeyType)}.class, {BoxingName.GetBoxingName(type.ValueType)}.class);");
+            sw.WriteLine(prefix + varName + $" = new {typeName}(meta2{varName});");
             sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
             /*
             var key = TypeName.GetName(type.KeyType);
@@ -277,7 +267,7 @@ namespace Zeze.Gen.java
             if (type.ValueType is TypeDynamic)
                 sw.WriteLine(prefix + varName + $" = new {typeName}<>(meta2{varName});");
             else
-                sw.WriteLine(prefix + varName + $" = new {typeName}<>({rowKey}.class, {colKey}.class, {value}.class);");
+                sw.WriteLine(prefix + varName + $" = new {typeName}<>(factory{varName});");
             sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
         }
     }

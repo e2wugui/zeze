@@ -159,6 +159,14 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		super.factory = factory;
 	}
 
+	// Factory唯一来源是getFactory（meta经工厂层Bean拦截），不再重复维度check。
+	// 供生成代码常量化（static final Factory + 本构造器），消除每实例化的三层缓存探测。
+	public GTable2(@NotNull Factory<R, C, V, VReadOnly> factory) {
+		this.pMap2 = new PMap2<>(factory.pmapMeta);
+		super.backingMap = (Map<R, Map<C, V>>)(Map<?, ?>)pMap2;
+		super.factory = factory;
+	}
+
 	public static <R, C, V extends Bean, VReadOnly> @NotNull Factory<R, C, V, VReadOnly> getFactory(
 			@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
 		var map = factories.computeIfAbsent(rowClass, __ -> new ConcurrentHashMap<>())

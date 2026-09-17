@@ -16,7 +16,8 @@ public class PSet1<V> extends PSet<V> {
 		meta = Meta1.getSet1Meta(valueClass);
 	}
 
-	private PSet1(@NotNull Meta1<V> meta) {
+	// meta须来自Meta1工厂（公开唯一构建入口，已过Bean拦截），供生成代码常量化/调用点静态持有。
+	public PSet1(@NotNull Meta1<V> meta) {
 		this.meta = meta;
 	}
 
