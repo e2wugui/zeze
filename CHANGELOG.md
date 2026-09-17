@@ -8,6 +8,7 @@
 ## [未发布]
 
 ### 变更
+- **Rpc 实例一次性（breaking）**：`Send`/`SendReturnVoid`/`SendForWait` 只能进入一次，同实例重发入口即抛 `IllegalStateException`——发送失败也不解禁，重试请新建实例（范式参考 Raft 的 `RaftRpcBridge` 桥接：每次发送新建、原始实例不入上下文表）。撤销原「同实例重发 + 超时定时器 sid 守卫」方案（守卫只收窄不消除指令级 TOCTOU 残余，且库内无同实例重发生产调用点）；需要可靠投递/超时重试语义时请新建实例重发，并配合协议层幂等或服务端按请求标识去重
 - **AsyncSocket 不再实现 Closeable**（`TcpSocket` 同步移除冗余声明）：socket 引用为共享借用（如 `Service.GetSocket` 获取的连接），所有权归连接管理层，不满足 Closeable"获取即拥有"的契约，且会误导工具链与调用方误关共享连接；`close()` 方法本身保留、行为不变，关闭统一使用显式的 `close(ex, gracefully)` / `closeGracefully()`
 - **Online 发送 API（OnlineSpec）重构**：spec 层收敛（Game 7 文件→4，Arch 8→4），目的地抽象为包私有 `OnlineTarget`，骨架（rpc 守卫/日志/编码/事务时机）每包一份；删除上一版 spec 的 9 个类（`AbstractOnlineSpec`、`RolesOnlineSpec`、`AllOnlinesSpec`、`ReliableOnlineSpec`、`LoginsOnlineSpec`、`AccountOnlineSpec`、`AccountsOnlineSpec`），`OnlineSpec.ofXxx` 工厂表达式保持不变，下游按工厂表达式使用者不受影响
 - **统一发送日志标识格式**（`describe()`）；空目标发送不再编码协议

@@ -15,6 +15,12 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 请求-应答协议基类。发送侧实例为一次性：Send/SendReturnVoid/SendForWait 只能进入一次，
+ * 发送失败后同样不得复用——重试请新建实例（每次发送需要新的sessionId）。
+ * 需要「可靠投递/超时重试」语义时，新建实例重发，并配合协议层幂等或服务端按请求标识去重
+ * （参考 Raft：UniqueRequestId + RaftRpcBridge 桥接模式）。
+ */
 public abstract class Rpc<TArgument extends Serializable, TResult extends Serializable> extends Protocol<TArgument> {
 	protected static final @NotNull Logger logger = LogManager.getLogger(Rpc.class);
 
@@ -102,55 +108,37 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (Reflect.inDebugMode)
 			timeout += 10 * 60 * 1000; // 调试状态下RPC超时放宽到至少10分钟,方便调试时不容易超时
 
-		final long timerSessionId = sessionId;
-		TaskSpec.ofAction(() -> onTimeout(service, timerSessionId)
+		TaskSpec.ofAction(() -> {
+			// 实例一次性（禁止同实例重发）后，本定时器唯一对应自己的那次发送：
+			// 双参移除失败即条目已被应答消费，直接跳过。
+			if (!service.removeRpcContext(sessionId, this))
+				return; // 一般来说，此时结果已经返回。
+
+			isTimeout = true;
+			setResultCode(Procedure.Timeout);
+
+			if (future != null)
+				future.setException(RpcTimeoutException.getInstance());
+			else if (responseHandle != null) {
+				// 本来Schedule已经在Task中执行了，这里又派发一次。
+				// 主要是为了让应用能拦截修改Response的处理方式。
+				// Timeout 应该是少的，先这样了。
+				var factoryHandle = service.findProtocolFactoryHandle(getTypeId());
+				if (factoryHandle != null)
+					service.dispatchRpcResponse(this, responseHandle, factoryHandle);
+			}
 		// 超时清理必须立即注册（scheduleNow）：此刻请求字节已发出（SendReturnVoid 也可无 socket 只注册），
 		// 即使所在事务随后回滚，应答仍会到来或永不到来，上下文必须有超时兜底；
 		// 事务感知的 schedule 会随回滚丢弃注册，导致 rpcContexts 条目永驻、SendForWait 永久挂起。
-		).scheduleNow(timeout);
-	}
-
-	/**
-	 * 超时定时器动作。FND6-11：本定时器只对自己被调度时的那次发送有效——同实例重发会先更新
-	 * 字段sessionId（注册新上下文）再移除旧条目，两步间隙旧定时器触发时，即便键+值双参移除仍能
-	 * 按旧sid移除到本实例（新旧两键短暂同时映射this），把新请求的future/isTimeout毒化为假超时、
-	 * 或提前dispatchRpcResponse造成应答双派发。故先判字段sid是否失配（重发即失配，新定时器已
-	 * 接管），再做双参移除（键已被应答消费时移除失败，正确跳过——与重发路径的移除同构）。
-	 * FND6-11补：移除成功后再复核一次字段——「addRpcContext落地（新条目对定时器线程可见）」
-	 * 与「字段sessionId写入」是两条指令，间隙内旧定时器可通过上面的守卫并移除成功；复核发现
-	 * 字段已被重发更新即返回不毒化（旧条目已被本定时器移除，重发路径remove(旧sid)失败无害，
-	 * 新定时器在位）。仍非原子（TOCTOU残余）：窗口从「一次字段读」收窄到「守卫读→移除→复核读」，
-	 * 完全消除需重发段与本方法对实例互斥，热路径代价不值。
-	 */
-	void onTimeout(@NotNull Service service, long timerSessionId) throws Exception {
-		if (timerSessionId != sessionId)
-			return; // 陈旧定时器：实例已被重发接管。
-		if (!service.removeRpcContext(timerSessionId, this))
-			return; // 一般来说，此时结果已经返回。
-		if (timerSessionId != sessionId)
-			return; // FND6-11补：移除与复核之间字段被重发更新——新定时器已接管，不毒化。
-
-		isTimeout = true;
-		setResultCode(Procedure.Timeout);
-
-		if (future != null)
-			future.setException(RpcTimeoutException.getInstance());
-		else if (responseHandle != null) {
-			// 本来Schedule已经在Task中执行了，这里又派发一次。
-			// 主要是为了让应用能拦截修改Response的处理方式。
-			// Timeout 应该是少的，先这样了。
-			var factoryHandle = service.findProtocolFactoryHandle(getTypeId());
-			if (factoryHandle != null)
-				service.dispatchRpcResponse(this, responseHandle, factoryHandle);
-		}
+		}).scheduleNow(timeout);
 	}
 
 	/**
 	 * 使用当前 rpc 中设置的参数发送。
 	 * 总是建立上下文，总是返回true。
 	 * 这个方法是 Protocol 的重载。
-	 * 用于不需要处理结果的请求
-	 * 或者重新发送已经设置过 ResponseHandle 等的请求。
+	 * 用于不需要处理结果的请求。
+	 * 本实例只能发送一次（含发送失败）；重试请新建实例（参见类注释）。
 	 *
 	 * @param so socket to sendTo
 	 * @return true: success.
@@ -179,16 +167,13 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	                          int millisecondsTimeout) {
 		if (so == null)
 			return false;
+		if (sessionId != 0)
+			throw new IllegalStateException("Rpc already sent (sessionId=" + sessionId
+					+ "); create a new instance to retry: " + this);
 		Service service = so.getService();
 
-		// 同实例重发（文档支持的用法）只维护一个上下文：记住旧sessionId，新上下文注册后移除旧条目。
-		// 否则旧超时定时器触发时按旧id仍能移除到本实例，把新请求的future/isTimeout错误置为超时，
-		// 新应答到达时future已完成无法生效（假超时+应答丢失）。
-		long oldSessionId = sessionId;
 		this.responseHandle = responseHandle;
 		sessionId = service.addRpcContext(this);
-		if (oldSessionId != 0)
-			service.removeRpcContext(oldSessionId, this); // 旧定时器此后只能移除到null，直接return
 		timeout = millisecondsTimeout;
 		isTimeout = false;
 		isRequest = true;
@@ -201,6 +186,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		// 发送失败，一般是连接失效，此时删除上下文。
 		// 其中rpc-trigger-result的原子性由RemoveRpcContext保证。
 		// 恢复最初的语义吧：如果ctx已经被并发的Remove，也就是被处理了，这里返回true。
+		// 实例不因失败解禁：失败重试同样请新建实例（保持一次性语义简单）。
 		return !service.removeRpcContext(sessionId, this);
 	}
 
@@ -220,16 +206,15 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	                                 int millisecondsTimeout) {
 		if (so != null && so.getService() != service)
 			throw new IllegalStateException("so.Service != service");
+		if (sessionId != 0)
+			throw new IllegalStateException("Rpc already sent (sessionId=" + sessionId
+					+ "); create a new instance to retry: " + this);
 
-		// 同Send：同实例重发先移除旧上下文条目，旧超时定时器此后只能移除到null。
-		long oldSessionId = sessionId;
 		this.responseHandle = responseHandle;
 		timeout = millisecondsTimeout;
 		isTimeout = false;
 		isRequest = true;
 		sessionId = service.addRpcContext(this);
-		if (oldSessionId != 0)
-			service.removeRpcContext(oldSessionId, this);
 		super.Send(so);
 		schedule(service, sessionId, millisecondsTimeout);
 	}
