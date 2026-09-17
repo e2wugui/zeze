@@ -95,6 +95,7 @@ public class CommandConsole {
 	// R3-U2（D①）：解析commandConsoleMaxLineSize——解析失败（NumberFormatException）或
 	// 非正值（0/负数无法parse由前者覆盖，0显式拒收：0上限使每次input都抛溢出）回落默认并warn；
 	// "max"（无上限）与一切正值为运维显式选择，原样生效。
+	@SuppressWarnings("SameParameterValue")
 	static int resolveMaxLineBufferSize(@Nullable String propValue, int defSize) {
 		if (propValue == null)
 			return defSize;
@@ -255,8 +256,7 @@ public class CommandConsole {
 		cc.register("2", CommandConsole::dump);
 		cc.register("3", CommandConsole::dump);
 
-		//noinspection DataFlowIssue
-		cc.input(null, "a -Dn1=v -D\"n3=v v\" d -Dn2=\"v v\" \"x x\"\n");
+//		cc.input(null, "a -Dn1=v -D\"n3=v v\" d -Dn2=\"v v\" \"x x\"\n");
 		//cc.input(null, "2  xx  -b\t-c cc\n3 -4\n");
 	}
 }

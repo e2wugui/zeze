@@ -290,7 +290,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		}
 	}
 
-	// 实际锁契约（FND7-78修正原"under lockey.writeLock and record.fairLock"的不准确描述）：
+	// 实际锁契约：
 	// 调用方至少持有 record.fairLock；lockey 写锁不是本方法的前提——
 	// - load异常出口（TableX.load 的 catch）：仅持 fairLock，不持 lockey 写锁；
 	// - cleanNow/容量驱逐（tryRemoveRecord）：另持 lockey 写锁（与并发事务互斥）及 rrs 锁。
