@@ -44,6 +44,7 @@ public class TestFnd708SetBulkChangeReturn {
 	public void testManagedAddAllNoChangeReturnsFalse() throws Exception {
 		// 托管路径（LogSet1）：无变化时返回false且added/removed日志不膨胀。
 		var config = new Zeze.Config();
+		config.setServerId(7080); // 缓存目录zeze_cache_<serverId>按serverId命名：默认0会与同JVM其他默认App互撞（start先删后开，LOCK被持即删失败）
 		config.setServiceManager("disable");
 		config.setDefaultTableConf(new Zeze.Config.TableConf());
 		var dbConf = new Zeze.Config.DatabaseConf();

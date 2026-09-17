@@ -109,6 +109,7 @@ public class TestFnd707ListIteratorFailFast {
 	public void testManagedPathFailFast(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tempDir) throws Exception {
 		// 托管路径（事务内）：getList()经事务日志读取当前值，身份校验同样生效。
 		var config = new Zeze.Config();
+		config.setServerId(7070); // 缓存目录zeze_cache_<serverId>按serverId命名：默认0会与同JVM其他默认App互撞（start先删后开，LOCK被持即删失败）
 		config.setServiceManager("disable");
 		config.setDefaultTableConf(new Zeze.Config.TableConf());
 		var dbConf = new Zeze.Config.DatabaseConf();

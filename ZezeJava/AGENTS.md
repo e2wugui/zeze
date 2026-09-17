@@ -29,6 +29,21 @@ gradlew.bat :ZezeJavaTest:bench --tests "*DiffLockAndNoLock"     :: 单类（类
 另外类的标签必须匹配任务的标签过滤，否则通配符形式同样报 No tests found：
 test 只跑 @Fast；integrationTest 只跑不带 fast/bench 标签的；bench 只跑 @Bench。
 
+## @Fast 准入（并行安全）
+
+test 任务类级并行（同 JVM），@Fast 类必须彼此互不干扰：
+
+- **有库 App 的 serverId 必须唯一**。本地缓存目录 `zeze_cache_<serverId>` 每号一份，
+  `Application.start` 对它先删后开——同号并发即 `delete failed: ...zeze_cache_N\LOCK`
+  （Windows 下被打开的文件删不掉，重试 10s 后炸 start）。三选一：
+  `TakeoverTestEnv.newConf` 式动态发号；固定空闲段字面量（查全景再选号）；
+  `setNoDatabase(true)`（无库不建目录）。
+- dbhome、固定端口同理独占；只有 `Application.start` 且非 NoDatabase 才建缓存目录，
+  净层组件（Service/Agent/MQManager/Dbh2 Master/RocksRaft/ServiceManagerWithRaft）不建。
+- gradle 三池分治（fast 并行 / integration 串行 / bench）下默认 0 可能长期不撞纯属时序；
+  IDEA"跑全部测试"是单 JVM 混跑并行，默认 0 的有库 App 必撞（2026-09-17
+  testManagedPathFailFast / testManagedAddAllNoChangeReturnsFalse 假红即此，已迁 7070/7080）。
+
 ## 空安全注解
 
 用 jetbrains 的 `@NotNull` / `@Nullable`（`org.jetbrains.annotations`），
