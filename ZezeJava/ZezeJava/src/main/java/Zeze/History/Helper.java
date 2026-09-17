@@ -63,7 +63,6 @@ public class Helper {
 		public final HashSet<Meta2<?, ?>> map1Metas = new HashSet<>();
 		public final HashSet<Meta2<?, ? extends Bean>> map2Metas = new HashSet<>();
 		public final HashSet<Class<?>> set1 = new HashSet<>();
-
 		public final HashSet<KV<Class<? extends Comparable<?>>, Class<?>>> sortedMap1 = new HashSet<>();
 		public final HashSet<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>> sortedMap2 = new HashSet<>();
 		public final HashMap<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>, KV<ToLongFunction<Bean>, LongFunction<Bean>>>
@@ -108,7 +107,6 @@ public class Helper {
 			registerLogMap2Meta(meta);
 		for (var set1Class : result.set1)
 			registerLogSet1(set1Class);
-
 		for (var kv : result.sortedMap1)
 			registerLogSortedMap1((Class<? extends Comparable>)kv.getKey(), kv.getValue());
 		for (var kv : result.sortedMap2)
@@ -169,7 +167,7 @@ public class Helper {
 
 	@SuppressWarnings("unchecked")
 	public static void dependsList(@NotNull Class<?> beanClass, @NotNull BVariable.Data v, @NotNull String valueType,
-	                               @NotNull DependsResult result) throws Exception {
+								   @NotNull DependsResult result) throws Exception {
 		var valueClass = getBuiltinBoxingClass(valueType);
 		if (valueClass != null) {
 			if (valueClass == DynamicBean.class) {
@@ -192,7 +190,7 @@ public class Helper {
 
 	@SuppressWarnings("unchecked")
 	public static void dependsSortedMap(@NotNull Class<?> beanClass, @NotNull BVariable.Data v, @NotNull String keyType,
-	                                    @NotNull String valueType, @NotNull DependsResult result) throws Exception {
+										@NotNull String valueType, @NotNull DependsResult result) throws Exception {
 		var keyClass = (Class<? extends Comparable<?>>)getBuiltinBoxingClass(keyType);
 		if (keyClass == null) {
 			keyClass = (Class<? extends Comparable<?>>)Class.forName(keyType); // must be BeanKey.
@@ -222,7 +220,7 @@ public class Helper {
 
 	@SuppressWarnings("unchecked")
 	public static void dependsMap(@NotNull Class<?> beanClass, @NotNull BVariable.Data v, @NotNull String keyType,
-	                              @NotNull String valueType, @NotNull DependsResult result) throws Exception {
+								  @NotNull String valueType, @NotNull DependsResult result) throws Exception {
 		var keyClass = getBuiltinBoxingClass(keyType);
 		if (keyClass == null) {
 			keyClass = Class.forName(keyType); // must be BeanKey.
@@ -252,11 +250,11 @@ public class Helper {
 
 	@SuppressWarnings("unchecked")
 	public static void dependsGTable(@NotNull Class<?> beanClass,
-	                                 @NotNull BVariable.Data v,
-	                                 @NotNull String key1Type,
-	                                 @NotNull String key2Type,
-	                                 @NotNull String valueType,
-	                                 @NotNull DependsResult result) throws Exception {
+									 @NotNull BVariable.Data v,
+									 @NotNull String key1Type,
+									 @NotNull String key2Type,
+									 @NotNull String valueType,
+									 @NotNull DependsResult result) throws Exception {
 		var key1Class = getBuiltinBoxingClass(key1Type);
 		if (key1Class == null) {
 			key1Class = Class.forName(key1Type); // must be BeanKey.
@@ -381,28 +379,30 @@ public class Helper {
 		Log.register(varId -> new LogOne<>(varId, beanClass));
 	}
 
-	public static <K extends Comparable<K>, V> void registerLogSortedMap1(Class<K> keyClass, Class<V> valueClass) {
+	public static <K extends Comparable<K>, V> void registerLogSortedMap1(@NotNull Class<K> keyClass,
+																		  @NotNull Class<V> valueClass) {
 		Log.register(varId -> new LogSortedMap1<>(null, varId, null, Empty.sortedMap(),
 			Meta2.getSortedMap1Meta(keyClass, valueClass)));
 	}
 
-	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2(Class<K> keyClass, Class<V>
-		valueClass) {
+	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2(@NotNull Class<K> keyClass,
+																					   @NotNull Class<V> valueClass) {
 		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(),
 			Meta2.getSortedMap2Meta(keyClass, valueClass)));
 	}
 
-	public static <K extends Comparable<K>> void registerLogSortedMap2Dynamic(Class<K> keyClass,
-	                                                                          ToLongFunction<Bean> get, LongFunction<Bean> create) {
+	public static <K extends Comparable<K>> void registerLogSortedMap2Dynamic(@NotNull Class<K> keyClass,
+																			  @NotNull ToLongFunction<Bean> get,
+																			  @NotNull LongFunction<Bean> create) {
 		var meta = Meta2.createDynamicSortedMapMeta(keyClass, get, create);
 		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(), meta));
 	}
 
-	public static <K extends Comparable<K>, V> void registerLogSortedMap1Meta(Meta2<K, V> meta) {
+	public static <K extends Comparable<K>, V> void registerLogSortedMap1Meta(@NotNull Meta2<K, V> meta) {
 		Log.register(varId -> new LogSortedMap1<>(null, varId, null, Empty.sortedMap(), meta));
 	}
 
-	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2Meta(Meta2<K, V> meta) {
+	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2Meta(@NotNull Meta2<K, V> meta) {
 		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(), meta));
 	}
 

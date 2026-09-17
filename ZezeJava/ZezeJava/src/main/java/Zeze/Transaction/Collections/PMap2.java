@@ -21,31 +21,15 @@ import org.pcollections.Empty;
 public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	protected final @NotNull Meta2<K, V> meta;
 
-	// Bean key不支持（FND6-41，PSet1判例姊妹）：Bean是值语义equals但身份hashCode（可变bean
-	// 不覆写hashCode防哈希漂移），哈希容器对bean键静默漏命中——put/get/remove/contains失真。
-	// 显式失败优于静默错。
-	private static <K> void checkBeanKey(@NotNull Class<K> keyClass) {
-		if (Bean.class.isAssignableFrom(keyClass))
-			throw new IllegalArgumentException(
-					"PMap2 does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
-							+ keyClass.getName());
-	}
-
 	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		checkBeanKey(keyClass);
 		meta = Meta2.getMap2Meta(keyClass, valueClass);
 	}
 
 	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass, @NotNull Supplier<V> valueCtor) {
-		checkBeanKey(keyClass);
 		meta = Meta2.createMap2Meta(keyClass, valueClass, valueCtor);
 	}
 
 	public PMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
-		// FND6-41残留补：第三个keyClass构造器（DynamicBean值专用）同为Bean key入口，
-		// 提交当时漏网——keyClass仅传入createDynamicMapMeta的createCodec对Bean子类
-		// 正常成功，可无告警构建出Bean key哈希map（静默漏命中）。
-		checkBeanKey(keyClass);
 		meta = Meta2.createDynamicMapMeta(keyClass, get, create);
 	}
 
@@ -113,7 +97,6 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				K k = e.getKey();
 				if (k == null)
 					throw new IllegalArgumentException("null key");
-				//noinspection ConstantValue
 				if (e.getValue() == null) // FND6-02：对齐put与PMap1.putAll，托管分支原在initRootInfoWithRedo解引用NPE
 					throw new IllegalArgumentException("null value");
 			}
@@ -132,7 +115,6 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				K k = e.getKey();
 				if (k == null)
 					throw new IllegalArgumentException("null key");
-				//noinspection ConstantValue
 				if (e.getValue() == null) // FND6-02：非托管分支原在mapKey解引用NPE
 					throw new IllegalArgumentException("null value");
 				e.getValue().mapKey(k);

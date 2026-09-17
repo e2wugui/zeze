@@ -1,39 +1,18 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
-import java.util.Map;
-
 public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	protected final @NotNull Meta2<K, V> meta;
 
-	// Bean key不支持（FND7-05，PMap1/PSet1判例姊妹）：排序map本体TreePMap按compareTo定序没问题，
-	// 但日志簿记LogSortedMap1.replaced/removed是HashMap/HashSet——Bean值语义equals配身份
-	// hashCode，等值bean落不同桶静默漏命中：mergeChangeNote漏合并，encode按身份哈希决定的
-	// 迭代序写出重复条目，follower解码plusAll的终值依赖迭代序，可致静默主从分歧。显式失败优于静默错。
-	private static <K> void checkBeanKey(@NotNull Class<K> keyClass) {
-		if (Bean.class.isAssignableFrom(keyClass))
-			throw new IllegalArgumentException(
-					"PSortedMap1 does not support Bean key type (equals-without-hashCode misbehaves in hash map): "
-							+ keyClass.getName());
-	}
-
 	public PSortedMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		checkBeanKey(keyClass);
-		// Bean值不支持（FND7-09姊妹缺口，PList1/PMap1判例同族）：排序map同为1系按值拷贝记账，
-		// put不挂接rootInfo（对比PSortedMap2.put），装入的bean永不受管——原位修改不产生日志，
-		// 提交后静默丢失。显式失败优于静默丢数据。
-		if (Bean.class.isAssignableFrom(valueClass))
-			throw new IllegalArgumentException(
-					"PSortedMap1 does not support Bean value type (in-place modifications never managed, silently lost): "
-							+ valueClass.getName());
 		meta = Meta2.getSortedMap1Meta(keyClass, valueClass);
 	}
 
@@ -67,6 +46,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 			throw new IllegalArgumentException("null value");
 
 		if (isManaged()) {
+			//noinspection DataFlowIssue
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -92,6 +72,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		}
 
 		if (isManaged()) {
+			//noinspection DataFlowIssue
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -104,6 +85,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	@Override
 	public @Nullable V remove(@NotNull Object key) {
 		if (isManaged()) {
+			//noinspection DataFlowIssue
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.remove((K)key);
@@ -119,6 +101,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
+			//noinspection DataFlowIssue
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -137,6 +120,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
+			//noinspection DataFlowIssue
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -160,6 +144,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	public void assign(@NotNull PSortedMap1<K, V> pmap) {
 		var items = pmap.getMap();
 		if (isManaged()) {
+			//noinspection DataFlowIssue
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);

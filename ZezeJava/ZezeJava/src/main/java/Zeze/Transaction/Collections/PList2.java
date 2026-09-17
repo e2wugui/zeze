@@ -158,7 +158,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			// 抛出时靠前item的initRootInfoWithRedo已改写——普通字段写不受事务回滚保护，
 			// 调用方catch后复用bean即携带脏归属。
 			for (V v : items) {
-				//noinspection ConstantValue
 				if (v == null) // FND6-02：对齐非托管分支与add/PList1，原在initRootInfoWithRedo解引用NPE
 					throw new IllegalArgumentException("null item");
 			}
@@ -214,7 +213,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			var origin = getList();
 			for (V v : origin) {
 				V newV = operator.apply(v);
-				//noinspection ConstantValue
 				if (newV == null) // FND6-02：对齐非托管分支，原null在initRootInfoWithRedo或日志路径解引用NPE
 					throw new IllegalStateException("null item");
 				tmpList.add(newV);

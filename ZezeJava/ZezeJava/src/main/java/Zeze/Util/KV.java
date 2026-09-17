@@ -12,15 +12,15 @@ public class KV<K, V> {
 	// 不提供setKey/setValue。null：key在构造点拒绝（NPE变可诊断契约，使FND4-16的
 	// “key不被API允许”声明成立）；value允许为null（FND4-16安全化形态保留）。
 	private final @NotNull K key;
-	private final @Nullable V value;
+	private final V value;
 
-	public KV(@NotNull K key, @Nullable V value) {
+	public KV(@NotNull K key, V value) {
 		// FND6-42：落实注释声明——key在构造点拒绝，null key从hashCode处延迟NPE提前到构造点。
 		this.key = Objects.requireNonNull(key, "key");
 		this.value = value;
 	}
 
-	public static <K, V> KV<K, V> create(@NotNull K key, @Nullable V value) {
+	public static <K, V> KV<K, V> create(@NotNull K key, V value) {
 		return new KV<>(key, value);
 	}
 
@@ -28,7 +28,7 @@ public class KV<K, V> {
 		return key;
 	}
 
-	public final @Nullable V getValue() {
+	public final V getValue() {
 		return value;
 	}
 

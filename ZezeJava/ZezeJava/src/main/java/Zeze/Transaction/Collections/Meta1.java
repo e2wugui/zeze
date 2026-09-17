@@ -60,42 +60,55 @@ public final class Meta1<V> {
 
 	@SuppressWarnings("unchecked")
 	public static <V extends Bean> @NotNull Meta1<V> getLogOneMeta(@NotNull Class<V> beanClass) {
-		return (Meta1<V>)logOneMetas.computeIfAbsent(beanClass, vc -> new Meta1<>("LogOne:", logOneHeadHash, (Class<V>)vc));
+		return (Meta1<V>)logOneMetas.computeIfAbsent(beanClass,
+				vc -> new Meta1<>("LogOne:", logOneHeadHash, (Class<V>)vc));
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <V extends Serializable> @NotNull Meta1<V> getBeanMeta(@NotNull Class<V> beanClass) {
-		return (Meta1<V>)beanMetas.computeIfAbsent(beanClass, vc -> new Meta1<>("LogBeanKey:", beanHeadHash, (Class<V>)vc));
-	}
-
-	// 1系容器（LogList1/LogSet1）不支持Bean值（工厂层拦截，R2-T backlog④收口）：1系按值拷贝记账、
-	// 不挂接rootInfo，装入的bean永不受管（原位修改静默丢失，判例FND7-09）。工厂是公开meta的
-	// 唯一构建入口，在此拦截即封死"直建meta再走PList1(meta)/PSet1(meta)构造器"的绕行路径。
-	private static <V> void checkNonBeanValue(@NotNull String family, @NotNull Class<V> valueClass) {
-		if (Bean.class.isAssignableFrom(valueClass))
-			throw new IllegalArgumentException(
-					family + " does not support Bean value type (in-place modifications never managed, silently lost): "
-							+ valueClass.getName());
+		return (Meta1<V>)beanMetas.computeIfAbsent(beanClass,
+				vc -> new Meta1<>("LogBeanKey:", beanHeadHash, (Class<V>)vc));
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <V> @NotNull Meta1<V> getList1Meta(@NotNull Class<V> valueClass) {
-		checkNonBeanValue("LogList1", valueClass);
-		return (Meta1<V>)list1Metas.computeIfAbsent(valueClass, vc -> new Meta1<>("LogList1:", list1HeadHash, (Class<V>)vc));
+		return (Meta1<V>)list1Metas.computeIfAbsent(valueClass, vc -> {
+			// Bean值不支持（FND7-09，PSet1/PMap1判例同族）：1系容器按值拷贝记账，不挂接
+			// rootInfo（对比PList2.add的initRootInfoWithRedo），装入的bean永不受管——原位
+			// 修改走非受管直写分支，不产生日志，提交后静默丢失。显式失败优于静默丢数据。
+			if (Bean.class.isAssignableFrom(vc)) {
+				throw new IllegalArgumentException(
+						"List1Meta does not support Bean value type (in-place modifications never managed, silently lost): "
+								+ vc.getName());
+			}
+			return new Meta1<>("LogList1:", list1HeadHash, (Class<V>)vc);
+		});
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <V extends Bean> @NotNull Meta1<V> getList2Meta(@NotNull Class<V> valueClass) {
-		return (Meta1<V>)list2Metas.computeIfAbsent(valueClass, vc -> new Meta1<>("LogList2:", list2HeadHash, (Class<V>)vc));
+		return (Meta1<V>)list2Metas.computeIfAbsent(valueClass,
+				vc -> new Meta1<>("LogList2:", list2HeadHash, (Class<V>)vc));
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <V> @NotNull Meta1<V> getSet1Meta(@NotNull Class<V> valueClass) {
-		checkNonBeanValue("LogSet1", valueClass);
-		return (Meta1<V>)set1Metas.computeIfAbsent(valueClass, vc -> new Meta1<>("LogSet1:", set1HeadHash, (Class<V>)vc));
+		return (Meta1<V>)set1Metas.computeIfAbsent(valueClass, vc -> {
+			// Bean元素不支持（FND5-44同族复审）：Bean是值语义equals但身份hashCode（可变bean
+			// 不覆写hashCode防哈希漂移），哈希容器对bean元素静默漏命中——去重/remove/removeAll
+			// 失真。显式失败优于静默错；框架无PSet2，bean集合属设计不支持（LogList2用IdentityHashSet
+			// +身份比较是既有约定，见LogList2）。
+			if (Bean.class.isAssignableFrom(vc)) {
+				throw new IllegalArgumentException(
+						"Set1Meta does not support Bean value type (equals-without-hashCode misbehaves in hash set): "
+								+ vc.getName());
+			}
+			return new Meta1<>("LogSet1:", set1HeadHash, (Class<V>)vc);
+		});
 	}
 
-	public static <V> @NotNull Meta1<V> createDynamicListMeta(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
+	public static <V> @NotNull Meta1<V> createDynamicListMeta(@NotNull ToLongFunction<Bean> get,
+															  @NotNull LongFunction<Bean> create) {
 		return new Meta1<>(get, create);
 	}
 }
