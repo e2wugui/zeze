@@ -22,7 +22,6 @@ import Zeze.Util.Action0;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.TimeThrottle;
-import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -287,7 +286,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	}
 
 	public TcpSocket(@NotNull Service service, @Nullable String hostNameOrAddress, int port,
-	                 @Nullable Object userState, @Nullable Connector connector) {
+					 @Nullable Object userState, @Nullable Connector connector) {
 		super(service);
 
 		this.acceptorOrConnector = connector;
@@ -624,15 +623,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 					"建议调大 InputBufferMaxProtocolSize 或调小 Selectors.readBufferSize", max, readBufferSize, compressType);
 	}
 
-	private static final class InputLimitCodec implements Codec {
-		private final @NotNull TcpSocket socket;
-		private final @NotNull BufferCodec sink;
-
-		InputLimitCodec(@NotNull TcpSocket socket, @NotNull BufferCodec sink) {
-			this.socket = socket;
-			this.sink = sink;
-		}
-
+	private record InputLimitCodec(@NotNull TcpSocket socket, @NotNull BufferCodec sink) implements Codec {
 		@Override
 		public void update(byte c) {
 			int newSize = sink.size() + 1;

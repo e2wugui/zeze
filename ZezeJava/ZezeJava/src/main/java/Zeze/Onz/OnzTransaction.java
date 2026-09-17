@@ -1,9 +1,7 @@
 package Zeze.Onz;
 
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -239,7 +237,6 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	 */
 	private void retryCancelNotFoundOnce(@NotNull String zezeName) {
 		try {
-			//noinspection BusyWait
 			Thread.sleep(flushTimeout);
 		} catch (InterruptedException ie) {
 			Thread.currentThread().interrupt();
@@ -272,7 +269,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		return bState;
 	}
 
-	void commit(byte[] tidBytes, BSavedCommits.Data state) throws ExecutionException, InterruptedException {
+	void commit(byte[] tidBytes, BSavedCommits.Data state) {
 		// 对于saga，zezeProcedures都是空的。
 		// 持久化，并且在异常情况下，重发Commit。
 		//  可以解决commit阶段网络异常导致zeze服务器没有收到commit，

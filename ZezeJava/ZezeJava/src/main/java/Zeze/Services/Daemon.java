@@ -101,6 +101,7 @@ public class Daemon {
 			// 退出的时候，确保销毁服务进程。
 			// FND7-60：仅destroy()即退出守护JVM，子进程不响应SIGTERM时无人强杀；
 			// 限时等待后强杀收尸，对齐reapDiagnosticProcess既有模式。
+			var subprocess = Daemon.subprocess;
 			if (subprocess != null) {
 				subprocess.destroy();
 				reapDiagnosticProcess(subprocess);
@@ -188,6 +189,7 @@ public class Daemon {
 					}
 				}
 				// subprocess 可能已被Monitor（idle超时）或DeadlockReport路径销毁并置null，此时返回非0让main重启子进程。
+				var subprocess = Daemon.subprocess;
 				if (subprocess == null || subprocess.waitFor(0, TimeUnit.MILLISECONDS))
 					return subprocess != null ? subprocess.exitValue() : 1;
 			} catch (Throwable ex) { // print stacktrace.
@@ -234,6 +236,7 @@ public class Daemon {
 
 	private static void fatalExit() {
 		// FND7-60：destroy后限时等待并强杀收尸（对齐reapDiagnosticProcess），再halt。
+		var subprocess = Daemon.subprocess;
 		if (subprocess != null) {
 			subprocess.destroy();
 			reapDiagnosticProcess(subprocess);

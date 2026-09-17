@@ -3,8 +3,6 @@ package Zeze.Net;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.GlobalTimer;
@@ -21,8 +19,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @since 1.7.0 不再实现 java.io.Closeable：socket 引用为共享借用，所有权归连接管理层（Service 等），
- *         不满足 Closeable"获取即拥有"的契约；关闭请使用显式的 {@link #close(Throwable, boolean)}
- *         或 {@link #closeGracefully()}。
+ * 		不满足 Closeable"获取即拥有"的契约；关闭请使用显式的 {@link #close(Throwable, boolean)}
+ * 		或 {@link #closeGracefully()}。
  */
 public abstract class AsyncSocket {
 	private static final @NotNull Logger logger = LogManager.getLogger(AsyncSocket.class);
@@ -33,7 +31,6 @@ public abstract class AsyncSocket {
 	private static final LongHashSet protocolLogExcept = new LongHashSet();
 
 	protected Object userState;
-
 
 	static {
 		var str = System.getProperty("protocolLogExcept");
@@ -58,6 +55,7 @@ public abstract class AsyncSocket {
 
 	protected AsyncSocket(@NotNull Service service) {
 		this.service = service;
+		//noinspection ConstantValue
 		this.sessionId = service != null ? service.nextSessionId() : nullServiceSessionIdGen.getAndIncrement();
 	}
 
@@ -79,11 +77,11 @@ public abstract class AsyncSocket {
 
 	/**
 	 * @deprecated 全局静态发号在同JVM多App拓扑下互踩（Zezex linkd与Game.Server各自的
-	 * PersistentAtomicLong值域重叠且全局共享，SM服务端socket表按sessionId索引必撞号，
-	 * GetSocket(sessionId)把同号新连接误判为旧会话）。sessionId发号已下沉到Service实例
-	 * （随机63位基址）。本方法保留兼容，等价于{@link Service#setDefaultSessionIdGenFunc}
-	 * ——仅作为之后构造的Service的默认模板，多个Service共享同一supplier仍会撞号，
-	 * 仅单Service进程安全；自定义发号请改用Service实例级setSessionIdGenFunc。
+	 * 		PersistentAtomicLong值域重叠且全局共享，SM服务端socket表按sessionId索引必撞号，
+	 * 		GetSocket(sessionId)把同号新连接误判为旧会话）。sessionId发号已下沉到Service实例
+	 * 		（随机63位基址）。本方法保留兼容，等价于{@link Service#setDefaultSessionIdGenFunc}
+	 * 		——仅作为之后构造的Service的默认模板，多个Service共享同一supplier仍会撞号，
+	 * 		仅单Service进程安全；自定义发号请改用Service实例级setSessionIdGenFunc。
 	 */
 	@Deprecated
 	public static void setSessionIdGenFunc(@Nullable LongSupplier seed) {

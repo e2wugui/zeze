@@ -41,11 +41,11 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	private final @NotNull AtomicReference<State<K, V>> state;
 
 	public ConcurrentHashMapOrdered() {
-		state = new AtomicReference<>(new State<K, V>(16));
+		state = new AtomicReference<>(new State<>(16));
 	}
 
 	public ConcurrentHashMapOrdered(int initialCapacity) {
-		state = new AtomicReference<>(new State<K, V>(initialCapacity));
+		state = new AtomicReference<>(new State<>(initialCapacity));
 	}
 
 	public int size() {

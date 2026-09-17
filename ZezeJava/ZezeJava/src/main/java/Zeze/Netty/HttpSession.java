@@ -53,7 +53,7 @@ public class HttpSession extends AbstractHttpSession {
 		 *                   有事务路径不经过此转换，直接返回活引用（随事务语义）。
 		 */
 		private <R> R accessTable(String opName, Function<BSessionValue, R> action,
-		                          @Nullable UnaryOperator<R> noTxResult) {
+								  @Nullable UnaryOperator<R> noTxResult) {
 			var t = Transaction.getCurrent();
 			if (t != null && t.isRunning()) {
 				var value = _tSession.get(cookieSessionId);
@@ -101,7 +101,7 @@ public class HttpSession extends AbstractHttpSession {
 		 */
 		public @NotNull Map<String, String> getProperties() {
 			return accessTable("getProperties", BSessionValue::getProperties, props -> {
-				var snapshot = new PMap1<String, String>(String.class, String.class);
+				var snapshot = new PMap1<>(String.class, String.class);
 				snapshot.putAll(props);
 				return snapshot;
 			});

@@ -113,7 +113,7 @@ public final class Ranges {
 	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		for (var r : ranges) {
-			if (sb.length() > 0)
+			if (!sb.isEmpty())
 				sb.append(',');
 			sb.append(r);
 		}

@@ -56,6 +56,7 @@ public class Threading extends AbstractThreading {
 	 * 回绕为负被max取走下限（客户端5秒假超时，服务端仍持锁30分钟）；SendForWait超时
 	 * 参数为int，钳制上限。 */
 	private static int rpcTimeoutMs(int timeoutMs) {
+		//noinspection MathClampMigration
 		return (int)Math.min(Math.max((long)timeoutMs + 1000, 5000), Integer.MAX_VALUE);
 	}
 

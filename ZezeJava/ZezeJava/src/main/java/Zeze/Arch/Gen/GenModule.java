@@ -123,7 +123,6 @@ public final class GenModule extends ReentrantLock {
 					// 也不注册redirect.handles，调用静默本地执行且远程不可达、无任何告警，
 					// 与方法签名非法时的fail-fast形成反差。同签名（名字+参数类型）去重，
 					// 派生类声明优先（覆盖者的注解生效）。
-					var overrides = new ArrayList<MethodOverride>();
 					var overridesBySignature = new LinkedHashMap<String, MethodOverride>();
 					for (var cls = moduleClass; cls != null && cls != IModule.class; cls = cls.getSuperclass()) {
 						for (var method : cls.getDeclaredMethods()) {
@@ -138,7 +137,7 @@ public final class GenModule extends ReentrantLock {
 							}
 						}
 					}
-					overrides.addAll(overridesBySignature.values());
+					var overrides = new ArrayList<>(overridesBySignature.values());
 					if (overrides.isEmpty())
 						continue; // 没有需要重定向的方法。
 					overrides.sort(Comparator.comparing(o -> o.method.getName())); // 按方法名排序，避免每次生成结果发生变化。

@@ -247,7 +247,7 @@ public final class Str {
 			// %n/%s等合法符静默注入/吞参错位）。仅参数值按原Formatter类型语义渲染保持
 			// 既有输出不变：浮点%f（定点6位小数），其余（%b/%c/%d/%s）与String.valueOf一致。
 			if (p instanceof Float || p instanceof Double)
-				sb.append(String.format("%f", (Number)p));
+				sb.append(String.format("%f", p));
 			else
 				sb.append(p);
 		}

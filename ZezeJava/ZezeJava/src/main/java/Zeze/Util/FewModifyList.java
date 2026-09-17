@@ -41,11 +41,13 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 		if (r == null) {
 			writeLock.lock();
 			try {
-				if ((r = read) == null)
+				if ((r = read) == null) {
 					// ArrayList 拷贝允许 null 元素（FND7-39，对齐 FewModifySortedMap 的 TreeMap 快照）：
 					// List.copyOf 遇 null 抛 NPE 且快照建不成（read 恒 null），此后任意读方法
 					// 重复抛 NPE，读侧永久瘫痪。unmodifiable 包装保持快照只读契约不弱化。
+					//noinspection Java9CollectionFactory
 					read = r = Collections.unmodifiableList(new ArrayList<>(write));
+				}
 			} finally {
 				writeLock.unlock();
 			}

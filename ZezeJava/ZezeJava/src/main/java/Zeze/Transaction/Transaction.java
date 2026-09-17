@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -677,7 +678,7 @@ public final class Transaction {
 	 * 只能添加一次。
 	 */
 	void addRecordAccessed(@NotNull Record.RootInfo root, @NotNull RecordAccessed ra,
-	                       @SuppressWarnings("unused") boolean removeWhileRollback) {
+						   @SuppressWarnings("unused") boolean removeWhileRollback) {
 		verifyRunning();
 		ra.initRootInfo(root, null);
 		accessedRecords.put(root.tableKey(), ra);
@@ -990,7 +991,8 @@ public final class Transaction {
 	 * "commit照常应用+静默跳过落库+返回Success"（已应答的提交丢失）。
 	 */
 	static final class RejectWhileStopping extends RuntimeException {
-		static final long serialVersionUID = 0L;
+		@Serial
+		private static final long serialVersionUID = 0L;
 
 		RejectWhileStopping(@NotNull String msg) {
 			super(msg);

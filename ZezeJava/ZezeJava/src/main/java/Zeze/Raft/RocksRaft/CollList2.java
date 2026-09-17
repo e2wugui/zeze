@@ -115,21 +115,19 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		var log = (LogList2<V>)_log;
 		var tmp = list;
 		for (var opLog : log.getOpLogs()) {
-			switch (opLog.op) {
-			case LogList1.OpLog.OP_MODIFY:
-				opLog.value.initRootInfo(rootInfo(), this);
-				tmp = tmp.with(opLog.index, opLog.value);
-				break;
-			case LogList1.OpLog.OP_ADD:
-				opLog.value.initRootInfo(rootInfo(), this);
-				tmp = tmp.plus(opLog.index, opLog.value);
-				break;
-			case LogList1.OpLog.OP_REMOVE:
-				tmp = tmp.minus(opLog.index);
-				break;
-			case LogList1.OpLog.OP_CLEAR:
-				tmp = Empty.vector();
-			}
+			tmp = switch (opLog.op) {
+				case LogList1.OpLog.OP_MODIFY -> {
+					opLog.value.initRootInfo(rootInfo(), this);
+					yield tmp.with(opLog.index, opLog.value);
+				}
+				case LogList1.OpLog.OP_ADD -> {
+					opLog.value.initRootInfo(rootInfo(), this);
+					yield tmp.plus(opLog.index, opLog.value);
+				}
+				case LogList1.OpLog.OP_REMOVE -> tmp.minus(opLog.index);
+				case LogList1.OpLog.OP_CLEAR -> Empty.vector();
+				default -> tmp;
+			};
 		}
 		list = tmp;
 
