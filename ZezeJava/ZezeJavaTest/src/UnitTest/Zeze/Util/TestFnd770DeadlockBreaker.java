@@ -104,7 +104,10 @@ public class TestFnd770DeadlockBreaker {
 		vt2.join(5000);
 		assertFalse(vt1.isAlive(), "死锁应被打断解除");
 		assertFalse(vt2.isAlive(), "死锁应被打断解除");
-		assertEquals(2, interrupted.get());
+		// 打断是逐个interrupt：首个被打断者抛ISE释放持有的锁后，另一成员可能在
+		// 自己的interrupt到达/被察觉前经tryAcquire正常获取释放的锁而逃生（不抛ISE）。
+		// 死锁解除的契约=两线程都退出且至少一个经ISE（无首个ISE则无锁释放，对方无法获取）。
+		assertTrue(interrupted.get() >= 1, "至少一个线程应经InterruptedException退出, actual=" + interrupted.get());
 	}
 
 	/** 平台线程 synchronized 死锁回归：findDeadlockedThreads 原路径不受修复影响。 */
