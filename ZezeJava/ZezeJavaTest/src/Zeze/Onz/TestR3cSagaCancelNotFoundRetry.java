@@ -95,6 +95,7 @@ public class TestR3cSagaCancelNotFoundRetry {
 		var env = startEnv((long)NotFound, 0L);
 		var txn = env.newTxnWithFailedStep();
 		txn.rollback();
+		awaitCancelCount(env, 2);
 		Assertions.assertEquals(2, env.server.cancelRequests.size(),
 				"超时步骤的eSagaNotFound必须触发恰好一次延迟重试（初始+重试=2）");
 		env.close();
@@ -111,6 +112,11 @@ public class TestR3cSagaCancelNotFoundRetry {
 		txn.setFlushTimeout(150);
 		sagaMap(txn).put("z1", ok);
 		txn.rollback();
+		awaitCancelCount(env, 1);
+		// rollback()返回≠服务端已计数：cancel的future.get()只有flushTimeout预算，回环rpc全链路
+		//（编码→TCP→服务端EventLoop→业务→应答）压测饥饿下可超预算，断言时请求在途未到达
+		//（30轮压测轮6实证expected1was0）。到达后留足潜在重试（延迟=flushTimeout）的观察窗再判终态。
+		Thread.sleep(600);
 		Assertions.assertEquals(1, env.server.cancelRequests.size(),
 				"正常完成步骤的NotFound是终态（FuncSaga已被处理，注册先于任何FuncSagaEnd）");
 		env.close();
@@ -122,6 +128,8 @@ public class TestR3cSagaCancelNotFoundRetry {
 		var env = startEnv((long)NotFound, (long)NotFound);
 		var txn = env.newTxnWithFailedStep();
 		txn.rollback();
+		awaitCancelCount(env, 2);
+		Thread.sleep(600);
 		Assertions.assertEquals(2, env.server.cancelRequests.size(),
 				"重试仍NotFound必须放弃：单次重试，不得第三次发送");
 		env.close();
@@ -129,6 +137,14 @@ public class TestR3cSagaCancelNotFoundRetry {
 
 	// ///////////////////////////////////////////////////////////
 	// 回环环境
+
+	/** 轮询等待服务端cancel计数达到期望（10s上限）。rollback()返回时初始cancel可能仍在途
+	 * （future.get()仅flushTimeout预算），立即断言在压测线程饥饿下假红。 */
+	private static void awaitCancelCount(Env env, int expected) throws InterruptedException {
+		var deadline = System.currentTimeMillis() + 10_000;
+		while (env.server.cancelRequests.size() < expected && System.currentTimeMillis() < deadline)
+			Thread.sleep(20);
+	}
 
 	private static final class Env implements AutoCloseable {
 		final ScriptedServer server = new ScriptedServer();

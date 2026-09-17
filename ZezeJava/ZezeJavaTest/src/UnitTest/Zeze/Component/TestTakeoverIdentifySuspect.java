@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 import Zeze.Config;
 import Zeze.Net.Connector;
 import Zeze.Services.ServiceManager.Agent;
+import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManagerServer;
 import Zeze.Util.Task;
 import harness.Fast;
@@ -50,9 +51,12 @@ public class TestTakeoverIdentifySuspect {
 			var suspected = new LinkedBlockingQueue<Integer>();
 			agent2.setOnSuspect(suspected::add);
 
-			// 等Identify在SM侧生效（onConnected异步发送；负载下未处理即断线会话上无serverId，
-			// SM不广播Suspect，用例flaky——全量单JVM运行实证过）。
-			Thread.sleep(1000);
+			// 确定性等Identify在SM侧生效：processIdentify是Direct派发（IO线程解码点内联执行），
+			// 同连接上后续任何rpc的应答必在其后写出——走一次幂等空edit（add/remove皆空，
+			// SM侧两循环空转直接应答Success），应答到达即serverId已记入会话。
+			// 原先sleep(1000)猜测等待（onConnected异步发送；负载下未处理即断线会话上无serverId，
+			// SM不广播Suspect，用例flaky——30轮压测轮20再实证），等待式替换后不再依赖负载。
+			agent1.editService(new BEditService());
 
 			// agent1正常关闭：连接断开→SM onClose→Suspect(serverId=11)广播→agent2回调。
 			agent1.stop();

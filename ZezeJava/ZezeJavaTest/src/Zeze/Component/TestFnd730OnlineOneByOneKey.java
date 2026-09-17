@@ -52,19 +52,25 @@ public class TestFnd730OnlineOneByOneKey {
 			BlockingHandle.release = new CountDownLatch(1);
 			CountingHandle.RUNS.set(0);
 
-			// 两个online定时器共用oneByOneKey；A(200ms)先到期进入回调并阻塞占住串行队列，
-			// B(700ms)后到期——串行契约下B必须排在A之后，A阻塞期间B不得执行
+			// A(200ms)先装：触发后进入回调并阻塞，占住oneByOne串行队列。
 			var specA = (SimpleTimerSpec)TimerSpec.ofDelay(200).oneByOneKey("fnd730_key");
-			var specB = (SimpleTimerSpec)TimerSpec.ofDelay(700).oneByOneKey("fnd730_key");
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
 				stub.scheduleOnline(false, "u1", "@fnd730a", specA.build(), BlockingHandle.class, null, false);
+				return Procedure.Success;
+			}, "FND7_30.scheduleOnlineA").call());
+
+			// A触发进入回调（已占住串行队列）后才装B(700ms)：B的fire必晚于其安装时刻，
+			// 排队关系由队列本身保证。不得与A同事务安装——安装耗时一旦逼近A/B的delay差
+			//（build捕获now、安装走whileCommit在提交后），两个delay同塌缩为Math.max(...,1)=1ms，
+			// scheduledPool多worker并行出队可令B的dispatchFire先入桶先执行（30轮压测轮3实证假红）。
+			Assertions.assertTrue(BlockingHandle.entered.await(10, TimeUnit.SECONDS), "timerA必须触发");
+			var specB = (SimpleTimerSpec)TimerSpec.ofDelay(700).oneByOneKey("fnd730_key");
+			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
 				stub.scheduleOnline(false, "u1", "@fnd730b", specB.build(), CountingHandle.class, null, false);
 				return Procedure.Success;
-			}, "FND7_30.scheduleOnline").call());
+			}, "FND7_30.scheduleOnlineB").call());
 
-			// A触发并进入回调（占住串行队列）
-			Assertions.assertTrue(BlockingHandle.entered.await(10, TimeUnit.SECONDS), "timerA必须触发");
-			// 越过B的到期点（700ms）后再断言：A阻塞期间B不得进入回调
+			// 越过B的到期点（B安装时刻+700ms）后再断言：A阻塞期间B不得进入回调
 			//（修复前B到点并发直跑即计1）
 			Thread.sleep(1000);
 			Assertions.assertEquals(0, CountingHandle.RUNS.get(),
