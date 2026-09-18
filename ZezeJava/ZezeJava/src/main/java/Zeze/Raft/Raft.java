@@ -301,14 +301,15 @@ public final class Raft {
 	private void cancelAllReceiveSnapshotting() {
 		receiveSnapshottingLock.lock(); // cancel 不中断
 		try {
-			receiveSnapshotting.values().forEach(entry -> {
-				try {
-					entry.file.close();
-				} catch (IOException e) {
-					logger.warn("CancelAllReceiveSnapshotting close Exception", e); // 文件关闭异常还是不向上抛了
-				}
-			});
-			receiveSnapshotting.clear();
+			// 【FND8-43】关句柄的同时删除.installing文件：clear后gcReceiveSnapshotting
+			// 以map为准看不到已移除条目，运行期无任何清理路径，磁盘按快照大小泄漏
+			//（启动清理仅在进程重启时执行）。discardReceiveEntry与gc路径同口径
+			//（关句柄+尽力删文件，失败仅告警）。
+			for (var it = receiveSnapshotting.entrySet().iterator(); it.hasNext(); ) {
+				var e = it.next();
+				it.remove();
+				discardReceiveEntry(raftConfig.getDbHome(), e.getKey(), e.getValue(), "cancelAllReceiveSnapshotting");
+			}
 		} finally {
 			receiveSnapshottingLock.unlock();
 		}
