@@ -90,6 +90,8 @@ public class FastLock extends AbstractQueuedSynchronizer implements Lock {
 
 	@Override
 	protected boolean tryRelease(int releases) {
+		if (getExclusiveOwnerThread() != Thread.currentThread())
+			throw new IllegalMonitorStateException(); // 非持有者放锁：失败可见，不静默释放他人持有的锁
 		setExclusiveOwnerThread(null); // 先清owner再放锁，避免“锁已空闲但owner还在”的观测窗口
 		setState(0);
 		return true;
@@ -97,6 +99,12 @@ public class FastLock extends AbstractQueuedSynchronizer implements Lock {
 
 	@Override
 	protected boolean isHeldExclusively() {
-		return true; // 假定 await/signal 一定在锁内
+		// owner判断（FND8-06）：恒true会令未持锁线程的cond.await()/signal()静默走AQS
+		// 释放路径，把真正持有者的锁释放掉；改为owner判断后await/signal入口即抛IMSE。
+		return getExclusiveOwnerThread() == Thread.currentThread();
+	}
+
+	public boolean isHeldByCurrentThread() {
+		return getExclusiveOwnerThread() == Thread.currentThread();
 	}
 }
