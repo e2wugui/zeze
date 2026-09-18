@@ -196,7 +196,7 @@ final class Gen {
 		return type.toString().replace('$', '.'); // ParameterizedType
 	}
 
-	private static boolean isAbstract(@NotNull Class<?> klass) {
+	static boolean isAbstract(@NotNull Class<?> klass) {
 		return (klass.getModifiers() & (Modifier.INTERFACE | Modifier.ABSTRACT)) != 0;
 	}
 
@@ -230,6 +230,69 @@ final class Gen {
 				throw new UnsupportedOperationException("unsupported map type: " + klass.getName());
 		}
 		return klass;
+	}
+
+	// FND8-83：形参/结果字段的编解码资格校验，encode/decode两侧共用——原先两侧判定不对称：
+	// encode侧有!isAbstract守卫，decode侧对抽象Zeze Serializable形参无条件生成new 抽象类()
+	// （生成源码不可编译，内存编译路径启动即炸，文件模式把必然编译不过的.java写进源码树后
+	// 脚本照样成功退出）；集合/映射元素不满足Zeze编码谓词时容器退化为WriteJavaObject/
+	// ReadJavaObject兜底，此时元素必须是java.io.Serializable，否则运行时才抛
+	// NotSerializableException——这里提前到生成期，且报错指明元素而非容器。
+	private void checkGenElement(@NotNull AnnotatedElement e, @NotNull Class<?> cls, @NotNull Type type,
+	                             boolean isField) {
+		if (cls.isPrimitive() || serializers.containsKey(cls))
+			return;
+		var where = describeGenElement(e, type);
+		if (Serializable.class.isAssignableFrom(cls)) {
+			// Bean/Data是唯一多态合法形态（typeId+工厂反建）；其余抽象Serializable形参
+			// decode侧无法反建实例，生成期拒绝。
+			if (cls != Bean.class && cls != Data.class && isAbstract(cls) && !isField)
+				throw new UnsupportedOperationException("redirect param unsupported: abstract Zeze Serialize type "
+						+ cls.getName() + "（多态请声明为Zeze.Transaction.Bean/Data静态类型）, " + where);
+			return;
+		}
+		if (Collection.class.isAssignableFrom(cls) && type instanceof ParameterizedType) {
+			var elemType = ((ParameterizedType)type).getActualTypeArguments()[0];
+			if (elemType instanceof Class<?> elemClass && !java.io.Serializable.class.isAssignableFrom(elemClass))
+				checkGenContainerElement(elemClass, where, "element");
+		}
+		if (Map.class.isAssignableFrom(cls) && type instanceof ParameterizedType) {
+			var keyType = ((ParameterizedType)type).getActualTypeArguments()[0];
+			var valueType = ((ParameterizedType)type).getActualTypeArguments()[1];
+			if (keyType instanceof Class<?> keyClass && !java.io.Serializable.class.isAssignableFrom(keyClass))
+				checkGenContainerElement(keyClass, where, "key");
+			if (valueType instanceof Class<?> valueClass && !java.io.Serializable.class.isAssignableFrom(valueClass))
+				checkGenContainerElement(valueClass, where, "value");
+		}
+	}
+
+	// 容器元素不满足Zeze编码谓词（已知序列化器或具体Zeze Serializable）时容器整体走Java
+	// 序列化兜底，元素自身必须java.io.Serializable，否则生成期拒绝。
+	private void checkGenContainerElement(@NotNull Class<?> elemClass, @NotNull String where, @NotNull String role) {
+		var serializer = serializers.get(elemClass);
+		if (!(!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))))
+			throw new UnsupportedOperationException("redirect param unsupported " + role + " type: "
+					+ elemClass.getName() + "（容器将退化为Java序列化，" + role
+					+ "必须实现java.io.Serializable或为具体Zeze Serializable类型）, " + where);
+	}
+
+	private static @NotNull String describeGenElement(@NotNull AnnotatedElement e, @NotNull Type type) {
+		if (e instanceof Parameter p) {
+			var params = p.getDeclaringExecutable().getParameters();
+			int index = -1;
+			for (var i = 0; i < params.length; ++i) {
+				if (params[i] == p) {
+					index = i;
+					break;
+				}
+			}
+			return "param #" + index + " '" + p.getName() + "' of "
+					+ p.getDeclaringExecutable().getDeclaringClass().getName()
+					+ '.' + p.getDeclaringExecutable().getName() + ", type=" + type.getTypeName();
+		}
+		if (e instanceof Field f)
+			return "field '" + f.getName() + "' of " + f.getDeclaringClass().getName() + ", type=" + type.getTypeName();
+		return String.valueOf(e);
 	}
 
 	@SuppressWarnings("SameParameterValue")
@@ -348,7 +411,7 @@ final class Gen {
 				sb.appendLine("{}{} = beanFactory.createBeanFromSpecialTypeId({}.ReadLong());", prefix, varName, bbName);
 			else if (type == Data.class)
 				sb.appendLine("{}{} = beanFactory.createDataFromSpecialTypeId({}.ReadLong());", prefix, varName, bbName);
-			else if (!isAbstract(type) || !isField)
+			else if (!isAbstract(type)) // 抽象类型不new（形参已被checkGenElement生成期拒绝；字段用已有实例）
 				sb.appendLine("{}{} = new {}();", prefix, varName, getTypeName(paramType));
 			sb.appendLine("{}{}.decode({});", prefix, varName, bbName);
 			return;
@@ -357,7 +420,7 @@ final class Gen {
 			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
 			if (elemType instanceof Class<?> elemClass) {
 				var serializer = serializers.get(elemClass);
-				if (serializer != null || Serializable.class.isAssignableFrom(elemClass)) {
+				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
 					if (!isAbstract(type) || !isField) {
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
 								getCollectionType(type).getTypeName().replace('$', '.'));
@@ -383,8 +446,8 @@ final class Gen {
 			if (keyType instanceof Class<?> keyClass && valueType instanceof Class<?> valueClass) {
 				var keySerializer = serializers.get(keyClass);
 				var valueSerializer = serializers.get(valueClass);
-				if ((keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
-						(valueSerializer != null || Serializable.class.isAssignableFrom(valueClass))) {
+				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
+						!isAbstract(valueClass) && (valueSerializer != null || Serializable.class.isAssignableFrom(valueClass))) {
 					if (!isAbstract(type) || !isField) {
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
 								getMapType(type).getTypeName().replace('$', '.'));
@@ -468,6 +531,7 @@ final class Gen {
 				isField = true;
 			} else
 				throw new IllegalArgumentException("unsupported element type: " + (e != null ? e.getClass().getName() : null));
+			checkGenElement(e, cls, type, isField);
 			if (cls.isPrimitive() || e == redirectKeyParam)
 				genEncode(sb, prefix, bbName, cls, type, name);
 			else {
@@ -508,6 +572,7 @@ final class Gen {
 				isField = true;
 			} else
 				throw new IllegalArgumentException("unsupported element type: " + (e != null ? e.getClass().getName() : null));
+			checkGenElement(e, cls, type, isField);
 			if (cls.isPrimitive()) {
 				sb.appendLine("{}if (({} & 0x{}L) == 0) {", prefix, mName, Long.toHexString(1L << i));
 				genDecode(sb, prefix1, bbName, cls, type, name, isField);

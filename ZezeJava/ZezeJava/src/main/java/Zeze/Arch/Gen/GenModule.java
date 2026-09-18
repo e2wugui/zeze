@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import Zeze.AppBase;
@@ -56,6 +57,13 @@ public final class GenModule extends ReentrantLock {
 	 * 没有指定的时候，先查看目标类是否存在，存在则直接class.forName装载，否则生成到内存并动态编译。
 	 */
 	public @Nullable String genFileSrcRoot = System.getProperty("GenFileSrcRoot"); // 支持通过给JVM传递-DGenFileSrcRoot=xxx参数指定
+	/**
+	 * FND8-83：文件模式第二道防线——写盘前逐模块内存javac试编译一次，把"不可编译产物"
+	 * 类缺陷拦在写盘前（原先文件模式不试编译，必然编译不过的.java写进源码树后生成脚本
+	 * 照样成功退出，错误推迟到用户编译整棵树时才爆发且难归因）。-DGenFileTryCompile=true
+	 * 开启（RedirectGenMain等生成脚本的工作目录加该参数即可，默认关闭）。
+	 */
+	public boolean tryCompileGeneratedFile = Boolean.getBoolean("GenFileTryCompile");
 	private final InMemoryJavaCompiler compiler = new InMemoryJavaCompiler();
 	private final HashMap<String, Class<?>> genClassMap = new HashMap<>();
 
@@ -170,6 +178,12 @@ public final class GenModule extends ReentrantLock {
 					var code = genModuleCode(genClassName, moduleClass, overrides, userApp);
 
 					if (genFileSrcRoot != null) {
+						// FND8-83：写盘前逐模块试编译（-DGenFileTryCompile开启），失败即中止，
+						// 不可编译的.java不得落盘。每次换新装载器，试编译产物不驻留。
+						if (tryCompileGeneratedFile) {
+							compiler.useParentClassLoader(compiler.getClassloader().getParent());
+							compiler.compileAll(Map.of(genClassName, code), null);
+						}
 						byte[] oldBytes = null;
 						byte[] newBytes = code.getBytes(StandardCharsets.UTF_8);
 						var file = new File(genFileSrcRoot, genClassName + ".java");
