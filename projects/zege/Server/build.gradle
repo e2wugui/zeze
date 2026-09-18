@@ -5,14 +5,14 @@ allprojects {
     apply plugin: 'idea'
 
     repositories {
-        maven { url 'https://repo.huaweicloud.com/repository/maven/' }
         maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
+        maven { url 'https://repo.huaweicloud.com/repository/maven/' }
         mavenCentral()
         mavenLocal()
     }
 
     dependencies {
-        implementation "com.zezeno:zeze-java:2.0.0" // 2.0.1发布后升级:node分页API(getFirstNode/getNode)已恢复,zege server编译需之
+        implementation "com.zezeno:zeze-java:2.0.1"
     }
 
     idea {
