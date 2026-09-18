@@ -583,7 +583,8 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		return handler;
 	}
 
-	// 允许扩展HttpExchange类,返回null表示忽略处理(通常要回复状态并关闭连接). 使用恰当策略提前忽略可以避免同时接收太多请求数据导致OOM
+	// 允许扩展HttpExchange类。返回null表示忽略处理：框架将代回503并关闭连接（含该连接上在途的
+	// exchange）；返回null前请勿自行写响应。使用恰当策略提前忽略可以避免同时接收太多请求数据导致OOM。
 	public @Nullable HttpExchange createHttpExchange(@NotNull ChannelHandlerContext context) {
 		return new HttpExchange(this, context);
 	}
@@ -646,9 +647,21 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 						prev.close(HttpExchange.CLOSE_ON_FLUSH, cf);
 					return;
 				}
-				if ((x = createHttpExchange(ctx)) == null)
-					return;
-				exchanges.put(channelId, x);
+			if ((x = createHttpExchange(ctx)) == null) {
+				// FND8-56：被拒请求不得裸return——其后续HttpContent/LastHttpContent帧会按channelId
+				// 路由进仍在表内的前一个pipelined exchange（body串包+二次派发onEndStream+重复响应）。
+				// 照搬停机503分支同构处置：框架代回503+关连接，同步善后在途exchange。
+				Netty.logger.info("reject request from {} by createHttpExchange policy", ctx.channel().remoteAddress());
+				var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.SERVICE_UNAVAILABLE,
+						Unpooled.EMPTY_BUFFER, HttpExchange.headersFactory, HttpExchange.trailersFactory);
+				res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+				var cf = ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
+				var prev = exchanges.remove(channelId); // 先移除,后续消息不再派发
+				if (prev != null)
+					prev.close(HttpExchange.CLOSE_ON_FLUSH, cf);
+				return;
+			}
+			exchanges.put(channelId, x);
 				// N①：登记请求到达序（响应序化器的排队依据）。在此（EventLoop）先于任何响应写完成，
 				// Direct内联与非Direct派发的handler执行都晚于本登记。
 				x.registerResponseOrder();
