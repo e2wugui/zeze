@@ -78,11 +78,13 @@ public final class Ranges {
 	}
 
 	public boolean include(@NotNull Ranges rs) {
+		// 全包含语义（rs ⊆ this），与assertInclude(Ranges)一致；
+		// 修复前的"任一命中即真"与assert族对同一输入给出相反答案（FND8-09）。
 		for (Range r : rs.ranges) {
-			if (include(r))
-				return true;
+			if (!include(r))
+				return false;
 		}
-		return false;
+		return true;
 	}
 
 	public boolean include(@NotNull Range r) {
@@ -99,8 +101,8 @@ public final class Ranges {
 	}
 
 	public void assertInclude(@NotNull Ranges rs) {
-		for (Range r : rs.ranges)
-			assertInclude(r);
+		if (!include(rs))
+			throw new AssertionError(ranges + " NOT Include " + rs);
 	}
 
 	public void assertInclude(int type) {
