@@ -278,7 +278,12 @@ final class Gen {
 			return;
 		}
 		if (Serializable.class.isAssignableFrom(type)) {
-			if (type == Bean.class)
+			// FND8-82：decode侧对Bean与Data形参都按typeId经工厂反建
+			// （createBeanFromSpecialTypeId/createDataFromSpecialTypeId），encode侧必须对称
+			// 先写typeId——原先Data形参只写编码体，decode把编码体首字节当typeId消费：
+			// 非默认Data是误导性的"unknown data typeId"异常，全默认Data typeId读0命中
+			// EmptyBean.Data吞掉后续参数字节，本参数及其后所有参数静默乱解。
+			if (type == Bean.class || type == Data.class)
 				sb.appendLine("{}{}.WriteLong({}.typeId());", prefix, bbName, varName);
 			sb.appendLine("{}{}.encode({});", prefix, varName, bbName);
 			return;
