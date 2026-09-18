@@ -91,6 +91,8 @@ public class DatagramSession extends AsyncSocket {
 	// [8]tokenId | [8]serialId | encrypt{ packet | [8]tokenId | [8]serialId }
 	@Override
 	public boolean Send(byte @NotNull [] packet, int offset, int size) {
+		if (closed != 0 || isClosed()) // 已关闭的会话不得真实发出数据报并谎报成功
+			return false;
 		var serialId = serialIdGen.incrementAndGet();
 		ByteBuffer bb;
 		if (encrypt == null) {
@@ -113,7 +115,13 @@ public class DatagramSession extends AsyncSocket {
 		try {
 			socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			// FND8-50：履行AsyncSocket布尔契约（对齐TcpSocket）：IO失败close并返回false，
+			// 不抛RuntimeException——否则上层Rpc.Send在addRpcContext之后、清理之前被异常
+			// 穿透，rpcContexts条目永久泄漏（无超时定时器兜底）。UDP非阻塞send的现实IOException
+			// 基本只有ClosedChannelException（会话随channel生死），close不过激；丢包/缓冲满
+			// 表现为send返回0而非异常，属UDP允许丢包语义。
+			close(e);
+			return false;
 		}
 		return true;
 	}
@@ -122,6 +130,8 @@ public class DatagramSession extends AsyncSocket {
 	// [8]tokenId | [8]serialId | encrypt{ [4]moduleId | [4]protocolId | [4]size | protocolData | [8]tokenId | [8]serialId }
 	@Override
 	public boolean Send(@NotNull Protocol<?> p) {
+		if (closed != 0 || isClosed()) // 已关闭的会话不得真实发出数据报并谎报成功
+			return false;
 		int preAllocSize = p.preAllocSize();
 		var serialId = serialIdGen.incrementAndGet();
 		ByteBuffer bb;
@@ -149,7 +159,8 @@ public class DatagramSession extends AsyncSocket {
 		try {
 			socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			close(e); // 同Send(byte[],int,int)：布尔契约，不抛RuntimeException（FND8-50）
+			return false;
 		}
 		return true;
 	}
@@ -215,6 +226,13 @@ public class DatagramSession extends AsyncSocket {
 			getService().OnSocketClose(this, ex); // 对齐TcpSocket/WebsocketClient家族的关闭契约
 		} catch (Exception e) {
 			logger.error("OnSocketClose exception:", e);
+		}
+		try {
+			// 对齐TcpSocket.realClose：会话销毁后将在飞Rpc上下文立即失败处置（FND8-50补充，
+			// 与FND8-44同点）——否则等待方只能干等Rpc超时，且OnSocketDisposed覆写永不触发。
+			getService().OnSocketDisposed(this);
+		} catch (Exception e) {
+			logger.error("OnSocketDisposed exception:", e);
 		}
 		return true;
 	}
