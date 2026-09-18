@@ -27,6 +27,9 @@ import org.jetbrains.annotations.Nullable;
  * 两个Raft之间会有两个连接。
  * 【注意】
  * 为了简化配置，应用可以注册协议到Server，使用同一个Acceptor进行连接。
+ * 【注意】注册的应用协议必须是 RaftRpc/IRaftRpc 族（raft复制与唯一请求去重依赖
+ * UniqueRequestId，非IRaftRpc注册在启动期被拒绝）；到达的非IRaftRpc流量按普通
+ * 协议派发（不参与raft复制，不中断连接）。
  */
 public class Server extends HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(Server.class);
@@ -185,7 +188,19 @@ public class Server extends HandshakeBoth {
 				|| typeId == LeaderIs.TypeId_;
 	}
 
+	// 【FND8-41】注册期守卫：Raft复制语义（UniqueRequestId去重/RaftApplied回放）要求
+	// 应用协议为IRaftRpc族；内部Raft协议与握手协议（自身不是IRaftRpc）白名单放行，
+	// 误注册拦在启动期，而非Leader态强转杀连接。
 	@Override
+	public void AddFactoryHandle(long type, @NotNull ProtocolFactoryHandle<? extends Protocol<?>> factory) {
+		if (!IRaftRpc.class.isAssignableFrom(factory.Class)
+				&& !isImportantProtocol(type) && !isHandshakeProtocol(type) && type != ProxyRequest.TypeId_)
+			throw new IllegalArgumentException("Raft.Server only accepts IRaftRpc application protocols"
+					+ " (raft replication requires UniqueRequestId); internal raft/handshake protocols"
+					+ " are whitelisted: " + factory.Class.getName());
+		super.AddFactoryHandle(type, factory);
+	}
+
 	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P p, @NotNull ProtocolHandle<P> responseHandle,
 															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isImportantProtocol(p.getTypeId())) {
@@ -262,8 +277,17 @@ public class Server extends HandshakeBoth {
 		}
 
 		// User Request
+		if (!(p instanceof IRaftRpc raftRpc)) {
+			// 【FND8-41】非IRaftRpc协议（误注册/误发）：不裸强转——Leader态CCE从IO线程
+			// 一路抛出杀掉整个连接（含其上全部Raft流量）。按普通协议经基类派发：
+			// TaskSpec尊重注册的DispatchMode（不在IO线程跑handle），setNoProcedure(true)
+			// 走非事务分支；处理失败时Rpc族由trySendResultCode回错误码（普通Protocol
+			// 无应答通道，仅日志），连接不中断。
+			logger.warn("Raft.Server dispatch non-IRaftRpc protocol as plain: {}", p);
+			super.dispatchProtocol(p, factoryHandle);
+			return;
+		}
 		if (raft.isWorkingLeader()) {
-			var raftRpc = (IRaftRpc)p;
 			if (raftRpc.getUnique().getRequestId() <= 0) {
 				p.SendResultCode(Procedure.ErrorRequestId);
 				return;
