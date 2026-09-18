@@ -169,7 +169,16 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				if (state != null)
 					removeAndCollectNotifyAllVersions(state, unReg.getServiceIdentity(), name, notifies);
 			}
-			ServiceManagerWithRaft.sendNotifies(notifies);
+			// remove通知必须raft提交成功后发出（FND8-64，对齐ProcessEditRequest等7个handler
+			// 的runWhileCommit判例）：appendLog之前发送时，closeSession/reconcileSessions的
+			// RaftRetry重跑每试一次就重发一批Edit(remove)（订阅者端过滤为无害但成噪声），
+			// 8连败终败则订阅者已删而tServerState残留（新旧订阅者视图分叉窗口）。提交后发送
+			// 维持"订阅者视图⊆已提交的服务端状态"。非事务上下文（不应发生）保持立即发送。
+			var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
+			if (t != null)
+				t.runWhileCommit(() -> sendNotifies(notifies));
+			else
+				sendNotifies(notifies);
 		}
 		// FND4-66：会话关闭联动清理该会话登记的负载观察者——原来仅setLoad转发失败时惰性剔除，
 		// 停止上报的地址行（raft持久表）与死观察者永久残留（无界增长）。observers清空即删地址行；
