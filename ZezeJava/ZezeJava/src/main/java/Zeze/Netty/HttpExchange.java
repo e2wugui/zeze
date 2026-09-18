@@ -793,9 +793,31 @@ public class HttpExchange {
 		// pipelining下本exchange可能已被channelRead的exchanges.put覆盖逐出，停机清扫扫不到它，
 		// 不补偿则永久泄漏。cancel与执行路径互斥（TaskOneByOneQueue保证），close幂等，不会双释放。
 		// 对照:fireStreamContentHandle/fireWebSocket的onCancel同因。
+		// FND8-58：close只释放exchange自身资源，不触碰channel attr上的流式上传状态——multipart
+		// 解码器/上传缓冲（堆数据、临时文件、未关fileChannel）永久驻留static工厂的
+		// requestFileDeleteMap，跨close→start重启累积无上界。这里做资源级销毁（不跑用户回调，
+		// 对齐fireStreamContentHandle的补偿哲学）；幂等由getAndSet(null)的"取走即负责"语义
+		// 保证（Netty destroy()非幂等，不能裸调两次）。attr是channel级：停机时所有exchange一并
+		// 终结，跨请求"取走"垂死请求的decoder无害（对方自己的cancel只会拿到null）。
 		var cancel = (Action0)() -> {
 			if (detached == 0)
 				close(null);
+			var decoder = context.channel().attr(HttpMultipartHandle.decoderKey).getAndSet(null);
+			if (decoder != null) {
+				try {
+					decoder.destroy();
+				} catch (Throwable e) {
+					Netty.logger.error("multipart decoder destroy on cancel", e);
+				}
+			}
+			var fileUpload = context.channel().attr(HttpFileUploadHandle.fileUploadKey).getAndSet(null);
+			if (fileUpload != null) {
+				try {
+					fileUpload.release();
+				} catch (Throwable e) {
+					Netty.logger.error("file upload release on cancel", e);
+				}
+			}
 		};
 		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {

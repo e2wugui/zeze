@@ -16,7 +16,16 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("RedundantThrows")
 public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamContentHandle, HttpEndStreamHandle {
 	@NotNull AttributeKey<InterfaceHttpPostRequestDecoder> decoderKey = AttributeKey.valueOf("HttpMultipartHandleContext");
-	HttpDataFactory defaultHttpDataFactory = new DefaultHttpDataFactory();
+	HttpDataFactory defaultHttpDataFactory = newDefaultHttpDataFactory();
+
+	private static HttpDataFactory newDefaultHttpDataFactory() {
+		var factory = new DefaultHttpDataFactory();
+		// FND8-58可选加固：multipart溢出临时文件（>16KB落盘）的JVM退出兜底，对齐raw路径
+		// MixedFileUpload静态默认deleteOnExit=true的语义；JVM内驻留场景由fireEndStreamHandle
+		// 的cancel补偿主修解决。代价是DeleteFileOnExitHook的路径集合驻留，可接受。
+		factory.setDeleteOnExit(true);
+		return factory;
+	}
 
 	/**
 	 * 请求过程中上传完一个属性字段时回调
