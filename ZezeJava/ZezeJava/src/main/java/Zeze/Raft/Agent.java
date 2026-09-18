@@ -405,6 +405,14 @@ public final class Agent {
 		if (this.client.getConfig().connectorCount() != 0)
 			throw new IllegalStateException("Connector Found!");
 
+		// 【FND8-38】配置级一次性告警：未显式设超时的rpc走Rpc构造默认5000ms，门槛<=间隔时
+		// 判死先于首次重发成立（间隔已per-rpc收紧，此处仅提示重发节奏显著变密的部署形态）。
+		if (raftConf.getAppendEntriesTimeout() >= 5000)
+			logger.warn("AppendEntriesTimeout({}ms) >= Rpc default timeout(5000ms):"
+							+ " rpcs without explicit timeout resend at a tight interval"
+							+ " (timeout - {}ms) before their deadline.",
+					raftConf.getAppendEntriesTimeout(), resendScanPeriodMs);
+
 		if (proxyAgent == null) {
 			// 没有启用代理，按原始raft方式建立连接器。
 			for (var node : raftConfig.getNodes().values())
@@ -497,20 +505,26 @@ public final class Agent {
 		resend(false);
 	}
 
-	// 【R1-2残留缺口】重发间隔=AppendEntriesTimeout（resend，sendTime基准），rpc判死门槛
-	// =rpc.getTimeout()（createTime基准，判死分支在前）。setTimeout(0)时默认为
-	// AgentTimeout=AppendEntriesTimeout+2000恒大于重发间隔，安全；但显式超时
-	// <=AppendEntriesTimeout时判死先于首次重发成立，重发对这类rpc永不触发——
-	// AppendEntriesTimeout>4000的部署下所有未显式设置超时的rpc（Rpc构造默认5000ms）
-	// 都落入此窗口。无法区分"用户显式设置"与"构造默认5000"（FND-R1-2修复时已评估并
-	// 否决行为侧的硬编码上限），行为不动，给出一次性联动校验告警。
-	// 短超时快速失败（如GCM Acquire）是上层既定设计，重发不触发对其无害，告警仅陈述事实。
+	// 【R1-2残留缺口→FND8-38修复】重发间隔取 min(AppendEntriesTimeout, rpc判死门槛-扫描周期)：
+	// 原固定间隔=AppendEntriesTimeout（sendTime基准）与判死门槛=rpc.getTimeout()
+	// （createTime基准，判死分支在前）双基准竞速，显式超时<=AppendEntriesTimeout时判死
+	// 先于首次重发成立，重发永不触发，(clientId,requestId)去重闭环失效（应答丢失后无法
+	// 按同号取回结果）。per-rpc间隔保证门槛大于1s扫描周期的rpc在判死前至少经历一次同号
+	// 重发；判死门槛与时延不变（快速失败契约不动）；t<=扫描周期的rpc受tick粒度限制无法
+	// 保证。setTimeout(0)时判死门槛为AgentTimeout=AppendEntriesTimeout+2000，恒安全。
+	private static final int resendScanPeriodMs = 1000; // 与resendTask的schedulePeriodNow(1000,1000)一致
+
+	// per-rpc重发间隔：判死门槛大于扫描周期的rpc保证判死前至少经历一次重发所需的最大间隔。
+	static long resendIntervalOf(long appendEntriesTimeout, int rpcTimeout) {
+		return rpcTimeout > 0 ? Math.min(appendEntriesTimeout, rpcTimeout - resendScanPeriodMs) : appendEntriesTimeout;
+	}
+
 	private void checkResendWindow(RaftRpc<?, ?> rpc) {
 		if (rpc.getTimeout() > 0 && rpc.getTimeout() <= raftConfig.getAppendEntriesTimeout()
 				&& warnedResendNeverTrigger.compareAndSet(false, true)) {
-			logger.warn("RaftRpc timeout({}ms) <= AppendEntriesTimeout({}ms): rpc timeout (createTime based) fires"
-							+ " before the first pending resend (sendTime based), resend never triggers for such rpc."
-							+ " Set rpc timeout=0 (AgentTimeout={}) or > AppendEntriesTimeout. rpc={}",
+			logger.warn("RaftRpc timeout({}ms) <= AppendEntriesTimeout({}ms): tight resend interval"
+							+ " (createTime based deadline) applies for such rpc."
+							+ " Set rpc timeout=0 (AgentTimeout={}) or > AppendEntriesTimeout for normal cadence. rpc={}",
 					rpc.getTimeout(), raftConfig.getAppendEntriesTimeout(), raftConfig.getAgentTimeout(), rpc);
 		}
 	}
@@ -547,6 +561,8 @@ public final class Agent {
 		// requestId 重试，服务器去重失效。单次发送 AppendEntriesTimeout 无应答即可判定
 		// 该次发送无法完成（leader 切换/未 ready/分区），与配置注释"发送失败重试超时"一致；
 		// 服务器按 UniqueRequestId 去重，重发幂等。
+		// 【FND8-38】固定间隔对显式超时<=门槛-扫描周期的rpc仍判死先于首次重发（双基准竞速），
+		// per-rpc取 min(间隔, 门槛-扫描周期)，见 checkResendWindow 注释。
 		long timeout = raftConfig.getAppendEntriesTimeout();
 		for (var rpc : pending) {
 			if (rpc.getTimeout() > 0 && now - rpc.getCreateTime() > rpc.getTimeout()) {
@@ -558,8 +574,9 @@ public final class Agent {
 				}
 				continue;
 			}
-			if ((immediately && now - rpc.getCreateTime() > timeout)
-					|| now - rpc.getSendTime() > timeout) {
+			long resendInterval = resendIntervalOf(timeout, rpc.getTimeout());
+			if ((immediately && now - rpc.getCreateTime() > resendInterval)
+					|| now - rpc.getSendTime() > resendInterval) {
 				if (isDebugEnabled)
 					logger.debug("ReSend {}/{} {}", pending.size(), leaderSocket, rpc);
 				rpc.setSendTime(now);
