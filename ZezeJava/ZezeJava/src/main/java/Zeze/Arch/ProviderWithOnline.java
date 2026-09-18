@@ -23,7 +23,8 @@ public class ProviderWithOnline extends ProviderImplement {
 	protected long ProcessLinkBroken(LinkBroken p) throws Exception {
 		// 目前仅需设置online状态。
 		if (!p.Argument.getUserState().getContext().isEmpty()) {
-			online.linkBroken(p.Argument.getAccount(), p.Argument.getUserState().getContext(),
+			// FND8-75：失败码外传整体回滚（对齐Online.linkBroken的内部外传契约与Game版入口）。
+			return online.linkBroken(p.Argument.getAccount(), p.Argument.getUserState().getContext(),
 					ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;

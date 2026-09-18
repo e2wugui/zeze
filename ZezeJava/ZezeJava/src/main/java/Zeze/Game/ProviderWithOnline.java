@@ -51,7 +51,9 @@ public class ProviderWithOnline extends ProviderImplement {
 		if (null != roleId && null != online) {
 			var onlineSet = online.getOnline(p.Argument.getUserState().getOnlineSetName());
 			if (null != onlineSet)
-				onlineSet.linkBroken(p.Argument.getAccount(), roleId,
+				// FND8-75：失败码外传整体回滚（对齐Online.linkBroken的FND5-41契约及其余
+				// 五入口），否则事件链半触发时半程写入随Success提交。
+				return onlineSet.linkBroken(p.Argument.getAccount(), roleId,
 						ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;

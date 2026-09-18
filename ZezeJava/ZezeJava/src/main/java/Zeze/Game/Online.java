@@ -2276,7 +2276,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (session.getRoleId() == null)
 			return errorCode(ResultCodeNotLogin);
 
-		localLogout(session.getRoleId(), rpc.getSender(), session.getLinkSid());
+		// FND8-75（孪生）：失败码外传整体回滚（对齐Arch版判例），且respond移到判定之后——
+		// 失败回滚时不再发出成功应答（Rpc失败由框架trySendResultCode回发错误码）。
+		var ret = localLogout(session.getRoleId(), rpc.getSender(), session.getLinkSid());
+		if (ret != 0)
+			return ret;
 		session.respond(rpc);
 		// 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
 		// App.Load.LogoutCount.IncrementAndGet();
