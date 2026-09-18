@@ -4,6 +4,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import Zeze.Net.Binary;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Lockey implements Zeze.Util.Lockey<Lockey>{
 
@@ -42,5 +43,17 @@ public class Lockey implements Zeze.Util.Lockey<Lockey>{
 	@Override
 	public int compareTo(@NotNull Lockey o) {
 		return key.compareTo(o.key);
+	}
+
+	@Override
+	public int hashCode() {
+		return key.hashCode();
+	}
+
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		if (this == obj)
+			return true;
+		return obj instanceof Lockey && key.equals(((Lockey)obj).key);
 	}
 }
