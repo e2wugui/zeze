@@ -108,43 +108,53 @@ public abstract class LoadBase {
 	private synchronized void onTimerTask() {
 		if (stopped)
 			return; // 链在此断开：不再重排。
-		var overload = this.overload.getOverload();
-		int online = getOnlineLocalCount();
-		long loginTimes = getOnlineLoginTimes();
-		int onlineNew = (int)(loginTimes - lastLoginTime);
-		lastLoginTime = loginTimes;
-		int onlineNewPerSecond = onlineNew / Math.max(1, timeoutDelaySeconds); // 除零防护，对齐reportNow
-		var config = getLoadConfig();
-		if (overload != BLoad.eWorkFine) {
-			// fast report
-			report(overload, online, onlineNewPerSecond);
-			resume(config.getDigestionDelayExSeconds());
-			return;
+		// FND8-90：自续链的重排不得被方法体异常跳过（任何运行时异常=链永久断、负载上报静默
+		// 停止到进程重启），对齐Online.verifyLocal的try/finally形态。各分支只决定下一次延迟，
+		// 重排统一收口到finally（异常路径兜底用默认消化延迟）；与resume同锁（可重入），净效果
+		// 恒为恰好一个在途任务。
+		var nextDelaySeconds = 0;
+		try {
+			var overload = this.overload.getOverload();
+			int online = getOnlineLocalCount();
+			long loginTimes = getOnlineLoginTimes();
+			int onlineNew = (int)(loginTimes - lastLoginTime);
+			lastLoginTime = loginTimes;
+			int onlineNewPerSecond = onlineNew / Math.max(1, timeoutDelaySeconds); // 除零防护，对齐reportNow
+			var config = getLoadConfig();
+			if (overload != BLoad.eWorkFine) {
+				// fast report
+				report(overload, online, onlineNewPerSecond);
+				nextDelaySeconds = config.getDigestionDelayExSeconds();
+				return;
+			}
+			if (onlineNewPerSecond > config.getMaxOnlineNew()) {
+				// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
+				report(overload, online, onlineNewPerSecond);
+				// new delay for digestion（Math.max与116/103行既有除零防护惯用法对齐，纵深防御）
+				nextDelaySeconds = onlineNewPerSecond / Math.max(1, config.getMaxOnlineNew())
+						+ config.getDigestionDelayExSeconds();
+				// 消化完后，下一次强迫报告Load。
+				reportDelaySeconds = config.getReportDelaySeconds();
+				return;
+			}
+			if (online > config.getProposeMaxOnline()) {
+				// 在线数量超过建议最大在线，马上报告。
+				report(overload, online, onlineNewPerSecond);
+				nextDelaySeconds = config.getDigestionDelayExSeconds();
+				// 超过最大建议值，强迫报告。
+				reportDelaySeconds = config.getReportDelaySeconds();
+				return;
+			}
+			// slow report
+			reportDelaySeconds += timeoutDelaySeconds;
+			if (reportDelaySeconds >= config.getReportDelaySeconds()) {
+				reportDelaySeconds = 0;
+				report(overload, online, onlineNewPerSecond);
+			}
+		} finally {
+			if (!stopped)
+				resume(nextDelaySeconds != 0 ? nextDelaySeconds : getLoadConfig().getDigestionDelayExSeconds());
 		}
-		if (onlineNewPerSecond > config.getMaxOnlineNew()) {
-			// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
-			report(overload, online, onlineNewPerSecond);
-			// new delay for digestion
-			resume(onlineNewPerSecond / config.getMaxOnlineNew() + config.getDigestionDelayExSeconds());
-			// 消化完后，下一次强迫报告Load。
-			reportDelaySeconds = config.getReportDelaySeconds();
-			return;
-		}
-		if (online > config.getProposeMaxOnline()) {
-			// 在线数量超过建议最大在线，马上报告。
-			report(overload, online, onlineNewPerSecond);
-			resume(config.getDigestionDelayExSeconds());
-			// 超过最大建议值，强迫报告。
-			reportDelaySeconds = config.getReportDelaySeconds();
-			return;
-		}
-		// slow report
-		reportDelaySeconds += timeoutDelaySeconds;
-		if (reportDelaySeconds >= config.getReportDelaySeconds()) {
-			reportDelaySeconds = 0;
-			report(overload, online, onlineNewPerSecond);
-		}
-		resume(getLoadConfig().getDigestionDelayExSeconds());
 	}
 
 	public void report(int overload, int online, int onlineNew) {

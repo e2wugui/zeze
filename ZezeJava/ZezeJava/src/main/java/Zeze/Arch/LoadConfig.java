@@ -13,6 +13,11 @@ public class LoadConfig {
 	}
 
 	public final void setMaxOnlineNew(int value) {
+		// FND8-90（加固二）：0会让LoadBase.onTimerTask的消化延迟除法除零断链（纵深防护
+		// 已用Math.max兜底，此处再拒绝非法值）。"禁新增"语义由消费端onlineNew>maxOnlineNew
+		// 门承担，应用以1表达近似语义。主源码零调用方，无兼容性破坏。
+		if (value <= 0)
+			throw new IllegalArgumentException("maxOnlineNew must be > 0");
 		maxOnlineNew = value;
 	}
 

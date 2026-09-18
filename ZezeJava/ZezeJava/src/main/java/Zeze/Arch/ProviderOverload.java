@@ -116,14 +116,24 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 			overload = (overload & 3) | (System.nanoTime() & ~3L); // 保留低2位保存的上次负载状态
 
 			// todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
-			threadPool.execute(() -> {
-				var elapse = (System.nanoTime() - overload) / 1_000_000;
-				var o = calcOverload(elapse);
-				overload = o;
-				if (o != BLoad.eWorkFine)
-					logger.warn("detect overload={} elapse={}ms", o, elapse);
-				startDetectDelay();
-			});
+			// FND8-90（孪生）：检测体异常不得跳过尾部重排（否则断链后overload()按起始时间戳
+			// 持续计算、永久判过载，且零日志）；池已关闭等提交失败时任务未入队、finally轮不到，
+			// 链终止但留下痕迹（曾为吞噬进Future的零日志静默断链）。
+			try {
+				threadPool.execute(() -> {
+					try {
+						var elapse = (System.nanoTime() - overload) / 1_000_000;
+						var o = calcOverload(elapse);
+						overload = o;
+						if (o != BLoad.eWorkFine)
+							logger.warn("detect overload={} elapse={}ms", o, elapse);
+					} finally {
+						startDetectDelay();
+					}
+				});
+			} catch (RuntimeException e) {
+				logger.error("overload detect submit fail, monitor chain stopped", e);
+			}
 		}
 
 		public int overload() {
