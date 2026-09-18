@@ -1,15 +1,14 @@
 package UnitTest.Zeze.Net;
 
-import java.net.InetSocketAddress;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;
-import Zeze.Net.WebsocketHandle;
-import Zeze.Netty.HttpServer;
-import Zeze.Netty.Netty;
+import Zeze.Net.TcpSocket;
 import Zeze.Util.Task;
 import harness.Fast;
 import org.jetbrains.annotations.NotNull;
@@ -18,32 +17,27 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * FND8-49回归：stop()打断在途连接构造的窗口期内（构造内含阻塞DNS可达数秒）到达的
- * start()/TryReconnect()被静默吞没，abort丢弃尾段又无补偿——Connector永久停机无告警
- * （closedInWindow尾段有TryReconnect补偿，两条对称丢弃路径只有一条带补偿）。
- * 孪生#1：构造异常catch无条件TryReconnect，stop对"构造持续失败"的连接器不生效。
- * 修复后：窗口期启动意图记录为restartRequested（仅请求晚于stop时），abort丢弃尾段
- * 补偿start()（非TryReconnect——对autoReconnect=false静默失效）；构造异常catch加
- * abort守卫并消费abort标志。
+ * FND8-49回归（异步建连改造后重写）：所有权随构造同步发布——pending解析期间stop立即生效、
+ * 随后的start直接建立新一代连接（无需补偿）；解析失败走close→OnSocketClose链重连
+ * （start不再同步抛出）；持续失败期间stop立即终止重试链。
  */
 @Fast
 public class TestFnd849ConnectorRestartDuringStopWindow {
 
-	/** newWebsocketClient可重载（newClientSocket为final），在构造入口设门模拟长DNS窗口。 */
-	private static final class GatedWsService extends Service {
+	/** resolveAddress接缝设门的Service：门住DNS解析，模拟慢解析窗口（构造本身非阻塞）。 */
+	private static final class GatedResolveService extends Service {
 		final CountDownLatch entered = new CountDownLatch(1);
 		final CountDownLatch release = new CountDownLatch(1);
 		final AtomicInteger attempts = new AtomicInteger();
-		final boolean failConstruction;
+		final boolean failResolve;
 
-		GatedWsService(String name, boolean failConstruction) {
+		GatedResolveService(String name, boolean failResolve) {
 			super(name);
-			this.failConstruction = failConstruction;
+			this.failResolve = failResolve;
 		}
 
 		@Override
-		public @NotNull AsyncSocket newWebsocketClient(@NotNull String url, @Nullable Object userState,
-													   @Nullable Connector connector) {
+		protected @NotNull InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
 			attempts.incrementAndGet();
 			entered.countDown();
 			try {
@@ -51,9 +45,9 @@ public class TestFnd849ConnectorRestartDuringStopWindow {
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
 			}
-			if (failConstruction)
-				throw new RuntimeException("simulated construction failure");
-			return super.newWebsocketClient(url, userState, connector);
+			if (failResolve)
+				throw new UnknownHostException("simulated resolve failure");
+			return super.resolveAddress(hostNameOrAddress);
 		}
 	}
 
@@ -67,94 +61,115 @@ public class TestFnd849ConnectorRestartDuringStopWindow {
 		}
 	}
 
-	private static void stopWindowScenario(java.util.function.Consumer<Connector> swallowedRequest) throws Exception {
+	private static int startTcpServer(Service server) throws Exception {
+		var listen = (TcpSocket)server.newServerSocket("127.0.0.1", 0, null);
+		var local = listen.getLocalInet();
+		Assertions.assertNotNull(local, "listen socket local address");
+		return local.getPort();
+	}
+
+	// FND8-49场景在新不变量下的形态：pending解析期间stop立即生效，随后start立即建立新一代连接
+	@Test
+	public void testStopDuringPendingResolveThenStartReconnects() throws Exception {
 		Task.tryInitThreadPool();
-		var netty = new Netty(1);
-		var server = new HttpServer();
+		var server = new Service("test.fnd849.server");
+		var client = new GatedResolveService("test.fnd849.client", false);
+		Connector connector = null;
 		try {
-			var wsService = new Service("test.fnd849.server");
-			var handle = new WebsocketHandle("/ws", server);
-			handle.setService(wsService);
-			handle.start();
-			var port = ((InetSocketAddress)server.start(netty, 0).sync().channel().localAddress()).getPort();
-
-			var client = new GatedWsService("test.fnd849.client", false);
-			var connector = new Connector(true, "ws://127.0.0.1:" + port + "/ws");
+			int port = startTcpServer(server);
+			connector = new Connector("127.0.0.1", port, true);
 			connector.SetService(client);
-			try {
-				// T1: start()进入构造（窗口打开）
-				var t1 = new Thread(connector::start, "fnd849-start");
-				t1.start();
-				Assertions.assertTrue(client.entered.await(10, TimeUnit.SECONDS), "construction not entered");
+			final Connector c = connector;
 
-				// T2: stop()打断在途构造（abortConnect=true，立即返回不等待）
-				connector.stop();
+			// T1: start()立即返回，所有权已发布，解析被门住
+			connector.start();
+			Assertions.assertTrue(client.entered.await(10, TimeUnit.SECONDS), "resolve not entered");
+			Assertions.assertNotNull(connector.getSocket(), "所有权须随构造同步发布");
 
-				// T3: 窗口期内的重启请求（修复前被静默吞掉）
-				swallowedRequest.accept(connector);
+			// T2: pending期间stop立即生效（句柄已发布直接close）
+			connector.stop();
+			Assertions.assertNull(connector.getSocket());
+			Assertions.assertFalse(connector.isConnected());
 
-				// T4: 放行在途构造——abort丢弃尾段必须按restartRequested补偿重启
-				client.release.countDown();
-				t1.join(15_000);
-				Assertions.assertFalse(t1.isAlive(), "in-flight start must return");
+			// T3: stop后的start建立新一代连接
+			connector.start();
+			Assertions.assertNotNull(connector.getSocket());
 
-				await("compensated restart connected", 15_000, () -> connector.TryGetReadySocket() != null);
-				Assertions.assertEquals(2, client.attempts.get(),
-						"窗口期启动意图必须被补偿（第二次构造建立连接），attempts=" + client.attempts.get());
-			} finally {
-				connector.stop();
-				client.Stop();
-				wsService.Stop();
-			}
+			// T4: 放行——新一代连接建立；旧一代见isClosed放弃
+			client.release.countDown();
+			await("restarted connection ready", 15_000, () -> c.TryGetReadySocket() != null);
+			Assertions.assertEquals(2, client.attempts.get(),
+					"恰好两条解析（新旧各一），旧一代不得重复尝试，attempts=" + client.attempts.get());
 		} finally {
-			server.close();
-			netty.close();
+			if (client.release.getCount() > 0)
+				client.release.countDown();
+			if (connector != null)
+				connector.stop();
+			client.Stop();
+			server.Stop();
 		}
 	}
 
-	// 窗口期内start()被吞：修复后abort丢弃尾段补偿start()，连接恢复
+	// 契约变化：解析失败不再从start()同步抛出——经close→OnSocketClose链按退避续排重连
 	@Test
-	public void testStartDuringStopWindowCompensated() throws Exception {
-		stopWindowScenario(Connector::start); // 修复前：connecting窗口内静默return，意图丢失
-	}
-
-	// 窗口期内TryReconnect()被吞（setAutoReconnect(true)内部同路径）：同补偿
-	@Test
-	public void testTryReconnectDuringStopWindowCompensated() throws Exception {
-		stopWindowScenario(Connector::TryReconnect);
-	}
-
-	// 孪生#1：构造持续失败期间stop必须立即生效——abort后构造异常catch不得再续排重试
-	@Test
-	public void testStopEffectiveOnFailingConstruction() throws Exception {
+	public void testResolveFailureReconnectsViaCloseChain() throws Exception {
 		Task.tryInitThreadPool();
-		var client = new GatedWsService("test.fnd849.fail", true);
-		var connector = new Connector(true, "ws://127.0.0.1:1/dead");
-		connector.SetService(client);
+		var server = new Service("test.fnd849.fail.server");
+		var client = new GatedResolveService("test.fnd849.fail.client", true);
+		Connector connector = null;
 		try {
-			var t1 = new Thread(() -> {
-				try {
-					connector.start();
-				} catch (Exception expected) { // 构造失败由start抛出（含补偿链）
-				}
-			}, "fnd849-fail-start");
-			t1.start();
-			Assertions.assertTrue(client.entered.await(10, TimeUnit.SECONDS), "construction not entered");
-			connector.stop(); // 构造期间stop：abortConnect=true
-			client.release.countDown();
-			t1.join(15_000);
-			Assertions.assertFalse(t1.isAlive(), "failing start must return");
+			int port = startTcpServer(server);
+			connector = new Connector("127.0.0.1", port, true);
+			connector.SetService(client);
+			final Connector c = connector;
 
-			// 修复前：catch无条件TryReconnect，约1s后（reConnectDelay初值1000ms）再次构造，
-			// 重试链无视stop持续发起；修复后无重试排程。观察窗>2个重试周期。
-			//noinspection BusyWait
-			Thread.sleep(2_500);
-			Assertions.assertEquals(1, client.attempts.get(),
-					"stop后构造失败重试链必须终止（attempts不得增长），attempts=" + client.attempts.get());
-		} finally {
+			connector.start(); // 契约变化点：解析失败异步回收，本调用正常返回
+			Assertions.assertTrue(client.entered.await(10, TimeUnit.SECONDS), "resolve not entered");
 			client.release.countDown();
-			connector.stop();
+			await("failure close chain ran", 15_000, () -> c.getSocket() == null);
+
+			// 退避1s后下一次start再次进入解析（仍失败→再排程）
+			await("retry chain reentered resolve", 15_000, () -> client.attempts.get() >= 2);
+			Assertions.assertNull(connector.getSocket(), "失败期间的socket必须已被close链回收");
+		} finally {
+			if (client.release.getCount() > 0)
+				client.release.countDown();
+			if (connector != null)
+				connector.stop();
 			client.Stop();
+			server.Stop();
+		}
+	}
+
+	// 孪生#1（持续失败期间stop立即生效）：解析持续失败的重试链在stop后必须终止
+	@Test
+	public void testStopEffectiveOnFailingResolve() throws Exception {
+		Task.tryInitThreadPool();
+		var server = new Service("test.fnd849.stop.server");
+		var client = new GatedResolveService("test.fnd849.stop.client", true);
+		client.release.countDown(); // 不门控：解析立即失败，仅验证重试链终止
+		Connector connector = null;
+		try {
+			int port = startTcpServer(server);
+			connector = new Connector("127.0.0.1", port, true);
+			connector.SetService(client);
+
+			connector.start();
+			await("retry chain running", 15_000, () -> client.attempts.get() >= 2);
+
+			connector.stop(); // 取消排程+回收在途socket
+			int attemptsAtStop = client.attempts.get();
+			//noinspection BusyWait
+			Thread.sleep(2_500); // 观察窗>2个重试周期（退避1s起）
+			Assertions.assertEquals(attemptsAtStop, client.attempts.get(),
+					"stop后重试链必须终止（attempts不得增长），attempts=" + client.attempts.get());
+		} finally {
+			if (client.release.getCount() > 0)
+				client.release.countDown();
+			if (connector != null)
+				connector.stop();
+			client.Stop();
+			server.Stop();
 		}
 	}
 }

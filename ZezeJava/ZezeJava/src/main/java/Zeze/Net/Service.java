@@ -397,6 +397,12 @@ public class Service extends ReentrantLock {
 		return new TcpSocket(this, hostNameOrAddress, port, userState, connector);
 	}
 
+	/** 客户端连接DNS解析点：TcpSocket在专用resolver线程上异步调用，允许阻塞；可覆写（测试门控/自定义resolver）。 */
+	protected @NotNull InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
+		return InetAddress.getByName(hostNameOrAddress);
+	}
+
+	// 契约：客户端socket构造微秒级非阻塞（可在Connector锁内调用），覆写不得阻塞
 	public @NotNull AsyncSocket newWebsocketClient(@NotNull String url,
 												   @Nullable Object userState, @Nullable Connector connector) {
 		return new WebsocketClient(this, url, userState, connector);

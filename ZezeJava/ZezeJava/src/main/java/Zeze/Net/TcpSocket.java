@@ -14,6 +14,8 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import Zeze.Serialize.ByteBuffer;
@@ -33,6 +35,13 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
 	private static final IOException connectFailedException = new IOException("connect failed");
+	// DNS解析专用daemon线程：getByName同步且不可中断（可达5-30秒），不得占用selector/Task池线程；
+	// 在途解析数受连接器数约束（每连接器至多一条），cached即可。
+	private static final @NotNull ExecutorService dnsResolver = Executors.newCachedThreadPool(r -> {
+		var t = new Thread(r, "Zeze-Dns-Resolver");
+		t.setDaemon(true);
+		return t;
+	});
 
 	static {
 		try {
@@ -319,14 +328,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			operates = new ConcurrentLinkedQueue<>();
 			inputBuffer = new BufferCodec();
 			outputBuffer = new OutputBuffer(selector);
-			InetAddress address = InetAddress.getByName(hostNameOrAddress); // async dns lookup
-			selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
-			// 必须在connect前设置，否则selectionKey没初始化，有可能事件丢失？（现象好像是doHandle触发了）。
-			if (sc.connect(new InetSocketAddress(address, port))) // 马上成功时，还没有注册到Selector中。
-				doConnectSuccess(sc);
-			else
-				addInterestOps(SelectionKey.OP_CONNECT);
-			selector.wakeup();
+			// 先获取key,因为有小概率出现事件处理比赋值更先执行；connect前必须完成注册，否则事件丢失。
+			selectionKey = selector.register(sc, 0, this);
 		} catch (Exception e) {
 			if (sc != null) {
 				try {
@@ -337,6 +340,33 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			}
 			throw Task.forceThrow(e);
 		}
+		// DNS与connect异步进行：构造保持非阻塞（可在Connector锁内调用），成败统一走close链
+		connectAsync(hostNameOrAddress, port);
+	}
+
+	/**
+	 * DNS解析（专用线程）→ 非阻塞connect。失败以close(cause)走OnSocketClose链回收，
+	 * 不从构造/调用方抛出（Connector.start仅同步抛配置/编程错误）；期间被close
+	 * （如Connector.stop）则在isClosed检查点放弃。
+	 */
+	private void connectAsync(@Nullable String hostNameOrAddress, int port) {
+		if (isClosed()) // stop可落在构造完成与本次调度之间
+			return;
+		dnsResolver.execute(() -> {
+			try {
+				InetAddress address = getService().resolveAddress(hostNameOrAddress);
+				if (isClosed()) // DNS期间被stop/close：放弃
+					return;
+				SocketChannel sc = (SocketChannel)getChannel();
+				if (sc.connect(new InetSocketAddress(address, port))) // 马上成功时（回环），直接完成
+					doConnectSuccess(sc);
+				else
+					addInterestOps(SelectionKey.OP_CONNECT);
+				selector.wakeup();
+			} catch (Exception e) {
+				close(e); // 幂等（CAS恰好一次）：已被stop关闭时静默返回
+			}
+		});
 	}
 
 	public boolean isInputSecurity() {
@@ -355,7 +385,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	//（volatile上的|=非原子，仅submitAction串行内使用），双向codec装齐时撤销解码准入
 	//（密钥交换完成；不用isHandshakeDone标志判"完成"——会误杀codec装好后、回调执行前
 	// 到达的合法加密数据）。
-	private void securityCodecInstalled(int bit) {
+	private void securityCodecInstalled(byte bit) {
 		//noinspection NonAtomicOperationOnVolatileField
 		security |= bit;
 		if (security == (1 | 2))
@@ -407,7 +437,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				throw new UnsupportedOperationException("SetInputSecurityCodec: unknown encryptType=" + encryptType);
 			}
 			inputCodecChain = chain;
-			securityCodecInstalled(1);
+			securityCodecInstalled((byte)1);
 			logger.info("setInputSecurityCodec: {} decrypt={} decompress={}", this, encryptType, compressType);
 		});
 	}
@@ -423,7 +453,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	public void setInputSecurityCodec(BiFunction<AsyncSocket, BufferCodec, Codec> creator) {
 		submitAction(() -> { // 进selector线程调用
 			inputCodecChain = creator.apply(this, inputBuffer);
-			securityCodecInstalled(1);
+			securityCodecInstalled((byte)1);
 			//noinspection DataFlowIssue
 			logger.info("setInputSecurityCodec: {} class={}", this, inputCodecChain.getClass().getName());
 		});
@@ -463,7 +493,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				throw new UnsupportedOperationException("SetOutputSecurityCodec: unknown compress=" + compressType);
 			}
 			outputCodecChain = chain;
-			securityCodecInstalled(2);
+			securityCodecInstalled((byte)2);
 			logger.info("setOutputSecurityCodec: {} compress={} encrypt={}", this, compressType, encryptType);
 		});
 	}
@@ -471,7 +501,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	public void setOutputSecurityCodec(BiFunction<AsyncSocket, OutputBuffer, Codec> creator) {
 		submitAction(() -> { // 进selector线程调用
 			outputCodecChain = creator.apply(this, outputBuffer);
-			securityCodecInstalled(2);
+			securityCodecInstalled((byte)2);
 			//noinspection DataFlowIssue
 			logger.info("setOutputSecurityCodec: {} class={}", this, outputCodecChain.getClass().getName());
 		});

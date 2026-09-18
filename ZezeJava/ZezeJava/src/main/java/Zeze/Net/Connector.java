@@ -37,20 +37,14 @@ public class Connector extends ReentrantLock {
 	private @Nullable Future<?> reconnectTask;
 	private int maxReconnectDelay = 8000; // 毫秒
 	private int reConnectDelay;
-	private boolean connecting; // start()在锁外构造socket期间为true（构造内含阻塞DNS）
-	private boolean abortConnect; // 构造期间Connector被stop，新socket由start()自行丢弃
-	// FND8-49：stop打断在途构造的窗口期内到达的start()/TryReconnect()的重启意图——不再静默吞掉，
-	// 由在途start()的丢弃尾段补偿start()。仅在connecting&&abortConnect（请求晚于stop）置位，
-	// 不得在connecting一律置位：stop之前进入的启动请求会被stop否决，无条件置位将复活它。
-	private boolean restartRequested;
 
 	public static @NotNull Connector Create(@NotNull Element e) {
 		String className = e.getAttribute("Class");
 		if (className.isEmpty())
 			return new Connector(e);
 		try {
-			Class<?> ccls = Class.forName(className);
-			return (Connector)ccls.getConstructor(Element.class).newInstance(e);
+			Class<?> cls = Class.forName(className);
+			return (Connector)cls.getConstructor(Element.class).newInstance(e);
 		} catch (Exception ex) {
 			throw Task.forceThrow(ex);
 		}
@@ -205,16 +199,11 @@ public class Connector extends ReentrantLock {
 		}
 	}
 
-	public void OnSocketConnected(@SuppressWarnings("unused") @NotNull AsyncSocket so) {
+	public void OnSocketConnected(@NotNull AsyncSocket so) {
 		lock();
 		try {
-			// FND8-52：与OnSocketHandshakeDone同一属主校验——被stop废弃的在途连接一旦
-			// 连上，不得置isConnected=true/清零退避：其OnSocketClose因socket==closed不匹配必然
-			// 跳过stop()，误置后无人纠正。合法时序（socket==so；socket==null且connecting窗口内
-			// 构造内立即连上/OP_CONNECT先于第二锁段）由两个子句完整覆盖，stale时序与其不相交；
-			// closedInWindow窗口（socket==null且connecting==false）内迟到的Connected必属已死连接，
-			// 拒绝置位恰为正确行为。WebsocketClient.onOpen入口（url型Connector）同经本校验。
-			if (socket != so && (socket != null || !connecting || abortConnect))
+			// socket!=so为stale回调（stop已置null或已被新一代取代）：不得置isConnected（FND8-52）
+			if (socket != so)
 				return;
 			isConnected = true;
 			reConnectDelay = 0;
@@ -223,24 +212,12 @@ public class Connector extends ReentrantLock {
 		}
 	}
 
-	// FND8-49：connecting窗口期内到达的start()/TryReconnect()请求不吞——记录重启意图，
-	// 由丢弃尾段补偿start()。仅在abortConnect（请求晚于stop）时置位，防复活被stop否决的
-	// 意图（见restartRequested字段注释）。仅在持有本锁的临界区内调用。
-	private void noteRestartInStopWindow() {
-		if (abortConnect)
-			restartRequested = true;
-	}
-
 	public void TryReconnect() {
 		lock();
 		try {
+			// socket!=null（含在途建连）即已有一次在途尝试
 			if (!isAutoReconnect || socket != null || reconnectTask != null)
 				return;
-			if (connecting) {
-				noteRestartInStopWindow();
-				return;
-			}
-
 			reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
 			reconnectTask = TaskSpec.ofAction(this::start).scheduleNow(reConnectDelay);
 		} finally {
@@ -252,13 +229,7 @@ public class Connector extends ReentrantLock {
 	public void OnSocketHandshakeDone(@NotNull AsyncSocket so) {
 		lock();
 		try {
-			// socket==null && connecting && !abortConnect：握手（Selector线程）抢在start()第二锁段
-			// 发布所有权之前完成（回环连接+握手可快于构造返回后的重新加锁；80862942b只修了误杀后
-			// 的重连卡死，误杀本身仍在）。connecting保证此刻仅有这一条在途构造，so即本Connector的
-			// 连接：直接发布所有权，不得按"not owner"关闭健康连接（首发请求会随连接一起死掉，
-			// 等满READY_TIMEOUT才由重连补救）。abortConnect（构造期间被stop）仍走下方丢弃路径。
-			if (socket == so || (socket == null && connecting && !abortConnect)) {
-				socket = so;
+			if (socket == so) {
 				// java 没有TrySetResult，所以如果上面的检查不充分，仍然会有问题。
 				futureSocket.setResult(so);
 				return;
@@ -266,9 +237,12 @@ public class Connector extends ReentrantLock {
 		} finally {
 			unlock();
 		}
-		so.close(new Exception("not owner?"));
+		so.close(new Exception("not owner?")); // stale握手属已stop/已替换连接，防御性关闭（幂等）
 	}
 
+	// 不变量（异步建连）：socket所有权在start()锁段内随构造同步发布（构造微秒级非阻塞，
+	// DNS/connect异步进行），stop()恒有可立即close的已发布句柄，在途连接由channel关闭+
+	// resolver侧isClosed检查点回收；建连/解析失败统一走close→OnSocketClose链；
 	public void start() {
 		lock();
 		try {
@@ -279,85 +253,17 @@ public class Connector extends ReentrantLock {
 			}
 			if (socket != null)
 				return;
-			if (connecting) {
-				noteRestartInStopWindow();
-				return;
-			}
-			connecting = true;
-		} finally {
-			unlock();
-		}
-		// 锁外构造：newClientSocket/newWebsocketClient 内的 InetAddress.getByName 是同步DNS
-		// （默认可达5-30秒），持锁进行会卡死并发的OnSocketClose/TryReconnect（最坏拖住selector线程）。
-		AsyncSocket as;
-		try {
-			if (null == url || url.isBlank())
-				as = service.newClientSocket(hostNameOrAddress, port, userState, this);
-			else
-				as = service.newWebsocketClient(url, userState, this);
-		} catch (Exception e) {
-			boolean aborted;
-			lock();
 			try {
-				connecting = false;
-				// 孪生#1（FND8-49）：构造期间被stop则不续排重试——stop对"构造持续失败"的连接器
-				// 立即生效（否则重试链每轮照常发起，直到某次构造成功才被abort丢弃终止）。
-				// abortConnect随本条在途构造的终结而消费，不污染下一条（否则下一条健康连接被误弃）。
-				aborted = abortConnect;
-				abortConnect = false;
-			} finally {
-				unlock();
-			}
-			if (!aborted)
-				TryReconnect();
-			throw e;
-		}
-		boolean closedInWindow = false; // 构造完成与本锁之间socket已被关闭（非stop所致）
-		lock();
-		try {
-			connecting = false;
-			if (socket == as) {
-				// 握手线程已在OnSocketHandshakeDone中提前发布所有权（合法时序，见该方法）：
-				// 按正常完成返回；随后若关闭，OnSocketClose的socket==closed分支负责重连。
-				// 不在此返回会落到末尾的as.close("connector stopped")，把健康连接再杀一次。
-				return;
-			}
-			if (!abortConnect && socket == null) {
-				// 构造返回到重新加锁之间存在窗口：连接完成/握手失败可能已触发关闭
-				// （如OnSocketHandshakeDone因socket尚未赋值而"not owner"误杀健康连接、
-				// TcpSocket构造内立即连接失败、WebsocketClient握手异步快速失败），
-				// 其OnSocketClose因socket尚未赋值而空转，之后不会再有重连触发。
-				// 已死连接不得发布为owner，否则TryReconnect/start被socket!=null永久挡住，
-				// 自动重连静默失效。赋值后再查一次closed：close可能落在检查与赋值之间。
-				socket = as;
-				if (!as.isClosed())
-					return;
-				socket = null;
-				closedInWindow = true;
+				// 构造非阻塞：锁内同步发布所有权（不变量前提，见字段区注释）
+				socket = null == url || url.isBlank()
+						? service.newClientSocket(hostNameOrAddress, port, userState, this)
+						: service.newWebsocketClient(url, userState, this);
+			} catch (Exception e) {
+				TryReconnect(); // 同步构造失败（配置/编程错误）仍续排重试，保持原契约
+				throw e;
 			}
 		} finally {
 			unlock();
-		}
-		if (closedInWindow) {
-			// socket在本锁段内已死且Connector未被stop：丢弃本条并立即安排重连。
-			// （as已完成close流程，无需再close；abortConnect在本路径必为false。）
-			TryReconnect();
-			return;
-		}
-		// 构造期间Connector被stop（或被并发替换）：新socket不是owner，丢弃。
-		abortConnect = false;
-		as.close(new Exception("connector stopped"));
-		if (restartRequested) {
-			// FND8-49：stop窗口期内到达的start()/TryReconnect()意图不吞——补偿立即重启。
-			// 用start()而非TryReconnect()：后者对autoReconnect=false的手控连接器静默失效。
-			// start()自带的构造失败catch→TryReconnect保住自动重连连接器的退避链。
-			lock();
-			try {
-				restartRequested = false;
-			} finally {
-				unlock();
-			}
-			start();
 		}
 	}
 
@@ -374,19 +280,8 @@ public class Connector extends ReentrantLock {
 				reconnectTask.cancel(false);
 				reconnectTask = null;
 			}
-			if (socket == null) {
-				// 构造中的连接无法从外部关闭（socket尚未发布）：标记让start()完成后自行丢弃，
-				// 并立即解除TryGetReadySocket等待者（否则要等到新连接建立再关闭才会有人设置future）。
-				if (connecting && !abortConnect) {
-					abortConnect = true;
-					if (e == null)
-						e = new IOException("Connector Stopped: " + getName());
-					futureSocket.setException(e); // try set
-					futureSocket = new TaskCompletionSource<>(); // prepare future to next connect.
-					isConnected = false;
-				}
+			if (socket == null)
 				return; // not start or has stopped.
-			}
 			if (e == null)
 				e = new IOException("Connector Stopped: " + getName());
 			futureSocket.setException(e); // try set
@@ -397,6 +292,7 @@ public class Connector extends ReentrantLock {
 		} finally {
 			unlock();
 		}
+		// 在途连接（含DNS/建连未完成）直接close，resolver侧isClosed检查点放弃
 		as.close(e);
 	}
 }

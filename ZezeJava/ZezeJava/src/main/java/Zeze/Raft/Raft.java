@@ -736,9 +736,7 @@ public final class Raft {
 			unlock();
 			//timerTask = Task.scheduleNow(10, this::onTimer);
 		}
-		// 锁外重连：Connector.start→newClientSocket→TcpSocket.<init>→tryStartKeepAliveCheckTimer
-		// 需要Service锁；在Raft锁内执行会与持Service锁提交raft事务的路径（SMServer.closeSession、
-		// reconcileSessions，均为 Service锁→Raft锁）构成ABBA死锁。
+		// 锁外重连：维持Raft锁→Service锁的锁序纪律（防ABBA；start()构造链已非阻塞，保守保持）
 		if (reconnectConnectors && !isShutdown)
 			server.getConfig().forEachConnector(Connector::start);
 	}

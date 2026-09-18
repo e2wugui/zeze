@@ -81,9 +81,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 			unlock();
 		}
 		// 每次成功Release，设置一次活动时间，阻止AchillesHeelDaemon马上再次触发Release。
-		// 必须先于endAction执行：endAction里connector.start()的同步DNS（可达5-30秒）若拖延
-		// 活动时间上报，外部Daemon.Monitor会把DNS耗时计入release预算，idle超serverReleaseTimeout
-		// 即destroySubprocess杀进程重启（Daemon.java Monitor.run）。
+		// 必须先于endAction：start()曾因同步DNS拖延上报被Daemon.Monitor误判idle杀进程（现已非阻塞，防御保留）
 		setActiveTime(System.currentTimeMillis());
 		// 排队的endAction在锁外执行（如GlobalClient的连接重启，不持锁等待网络相关操作）。
 		for (var action : drained) {

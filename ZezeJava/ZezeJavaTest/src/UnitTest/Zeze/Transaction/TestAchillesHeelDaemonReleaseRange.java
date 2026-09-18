@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 import harness.Fast;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,7 @@ public class TestAchillesHeelDaemonReleaseRange {
 			}
 
 			@Override
-			public void startRelease(Zeze.Application zeze, Runnable endAction) {
+			public void startRelease(Zeze.@NotNull Application zeze, Runnable endAction) {
 				// 测试App未start（checkpoint为null），真Releaser会在checkpointRun上NPE；
 				// 本测试只验证daemon侧Release分支的防御，startRelease语义不属于这里。
 			}
