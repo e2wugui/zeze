@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Set;
 import Zeze.Application;
 import Zeze.Config;
-import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
@@ -355,7 +354,7 @@ public class DatabaseRocksDb extends Database {
 					return null;
 
 				var lastKey = it.key();
-				if (exclusiveStartKey != null && exclusiveStartKey.equals(new Binary(lastKey))) // 第一个item可能为exclusiveStartKey时需要忽略。
+				if (exclusiveStartKey != null && exclusiveStartKey.contentEquals(lastKey)) // 第一个item可能为exclusiveStartKey时需要忽略。
 					it.next();
 				for (; proposeLimit-- > 0 && it.isValid(); it.next()) {
 					lastKey = it.key();
@@ -380,7 +379,7 @@ public class DatabaseRocksDb extends Database {
 					return null;
 
 				var lastKey = it.key();
-				if (exclusiveStartKey != null && exclusiveStartKey.equals(new Binary(lastKey))) // 第一个item可能为exclusiveStartKey时需要忽略。
+				if (exclusiveStartKey != null && exclusiveStartKey.contentEquals(lastKey)) // 第一个item可能为exclusiveStartKey时需要忽略。
 					it.next();
 				for (; proposeLimit-- > 0 && it.isValid(); it.next()) {
 					lastKey = it.key();
@@ -405,7 +404,7 @@ public class DatabaseRocksDb extends Database {
 					return null;
 
 				var lastKey = it.key();
-				if (exclusiveStartKey != null && exclusiveStartKey.equals(new Binary(lastKey))) // 第一个item可能为exclusiveStartKey时需要忽略。
+				if (exclusiveStartKey != null && exclusiveStartKey.contentEquals(lastKey)) // 第一个item可能为exclusiveStartKey时需要忽略。
 					it.prev();
 				for (; proposeLimit-- > 0 && it.isValid(); it.prev()) {
 					lastKey = it.key();
@@ -430,7 +429,7 @@ public class DatabaseRocksDb extends Database {
 					return null;
 
 				var lastKey = it.key();
-				if (exclusiveStartKey != null && exclusiveStartKey.equals(new Binary(lastKey))) // 第一个item可能为exclusiveStartKey时需要忽略。
+				if (exclusiveStartKey != null && exclusiveStartKey.contentEquals(lastKey)) // 第一个item可能为exclusiveStartKey时需要忽略。
 					it.prev();
 				for (; proposeLimit-- > 0 && it.isValid(); it.prev()) {
 					lastKey = it.key();

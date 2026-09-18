@@ -324,11 +324,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				else
 					it.seekToLast();
 			}
-			if (it.isValid()) {
-				var firstKey = new Binary(it.key());
-				if (exclusiveStartKey.size() > 0 && exclusiveStartKey.equals(firstKey))
-					it.prev(); // skip exclusive key if need.
-			}
+			if (it.isValid() && exclusiveStartKey.size() > 0 && exclusiveStartKey.contentEquals(it.key()))
+				it.prev(); // skip exclusive key if need.
 
 			var count = proposeLimit;
 			var bucketEnd = false;
@@ -360,11 +357,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			else
 				it.seekToFirst();
 
-			if (it.isValid()) {
-				var firstKey = new Binary(it.key());
-				if (exclusiveStartKey.size() > 0 && exclusiveStartKey.equals(firstKey))
-					it.next(); // skip exclusive key if need.
-			}
+			if (it.isValid() && exclusiveStartKey.size() > 0 && exclusiveStartKey.contentEquals(it.key()))
+				it.next(); // skip exclusive key if need.
 
 			var count = proposeLimit;
 			var bucketEnd = false;
@@ -499,7 +493,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				try (var it = bucket.getData().iterator()) {
 					it.seekToFirst();
 					// keyFirst 就是第一条数据，那么当前还是move。
-					isMove = it.isValid() && bucketKeyFirst.equals(new Binary(it.key()));
+					isMove = it.isValid() && bucketKeyFirst.contentEquals(it.key());
 				}
 			}
 			startSplit(isMove);
