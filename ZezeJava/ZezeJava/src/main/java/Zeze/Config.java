@@ -22,6 +22,8 @@ import Zeze.Util.Str;
 import Zeze.Util.Task;
 import com.amazonaws.regions.Regions;
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Document;
@@ -30,6 +32,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public final class Config {
+	private static final @NotNull Logger logger = LogManager.getLogger(Config.class);
 	public interface ICustomize {
 		@NotNull String getName();
 
@@ -493,12 +496,40 @@ public final class Config {
 
 	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze, @Nullable HashMap<String, Database> databases)
 			throws Exception {
-		if (databases == null) {
-			databases = new HashMap<>();
-			createDatabase(zeze, databases);
+		if (databases != null) {
+			// 调用方自有实例：所有权在调用方，不关（Application.stop的db.close步骤自会关）。
+			for (var db : databases.values())
+				db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
+			return;
 		}
-		for (var db : databases.values())
-			db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
+		// FND8-24：null分支自建的整批Database（连接池/RocksDB句柄等）用完必须close——
+		// 增量入表：createDatabase中途失败，已建实例也在finally被关；逐db异常隔离：
+		// 一个后端clear/close抛错不挡其余（对齐Application.stopStep的记日志继续模式）。
+		// 交叉引用FND8-22：DynamoDb后端此处仍是假关闭（DatabaseDynamoDb.close未触AWS
+		// 客户端时基类close不关它），完整修复依赖其自身的close覆写。
+		var created = new HashMap<String, Database>();
+		try {
+			createDatabase(zeze, created);
+			for (var db : created.values()) {
+				try {
+					db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
+				} catch (Throwable e) { // logger.error
+					logger.error("clearInUse '{}' exception, continue", getDatabaseUrlOf(db), e);
+				}
+			}
+		} finally {
+			for (var db : created.values()) {
+				try {
+					db.close();
+				} catch (Throwable e) { // logger.error
+					logger.error("close database '{}' exception, continue", getDatabaseUrlOf(db), e);
+				}
+			}
+		}
+	}
+
+	private String getDatabaseUrlOf(Database db) {
+		return db != null ? db.getDatabaseUrl() : "null";
 	}
 
 	public void dropMysqlOperatesProcedures() {
