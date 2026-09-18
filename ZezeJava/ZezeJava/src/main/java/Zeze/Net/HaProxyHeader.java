@@ -67,7 +67,9 @@ public class HaProxyHeader {
 		try {
 			// 字面量IP不查DNS；主机名会同步解析，调用方线程需容忍可能的阻塞（但绝不能是selector线程）。
 			return new InetSocketAddress(InetAddress.getByName(host), port);
-		} catch (UnknownHostException e) {
+		} catch (UnknownHostException | IllegalArgumentException e) {
+			// IllegalArgumentException（端口越界等）与DNS失败同型处理：log+null，
+			// 消除懒getter的未声明unchecked异常（FND8-17纵深防御；入口校验为主修）。
 			logger.warn("HaProxyHeader resolve failed: {}:{}", host, port, e);
 			return null;
 		}
@@ -160,6 +162,10 @@ public class HaProxyHeader {
 					throw new RuntimeException("haproxy v1 line too long");
 				return false;
 			}
+			// 整行（含"PROXY "前缀与CRLF）按规范最长107字节（FND8-17）：超长即断连，
+			// 不能只在"永远等不到CRLF"时才拒绝——任意垃圾后补CRLF的行会被原样接受。
+			if (v1sig.length + line.length() + 2 > 107)
+				throw new RuntimeException("haproxy v1 line too long");
 			// parse the V1 header using favorite address parsers like inet_pton.
 			var tokens = line.split(" ");
 			if (tokens.length >= 5) {
@@ -168,9 +174,9 @@ public class HaProxyHeader {
 				case "TCP6":
 					// 两个协议都用InetAddress.getByName，实现内部会区分。
 					// 【N1-3】不在selector线程解析（见字段remoteHost处的说明），只记录，getter懒解析。
-					remotePort = Integer.parseInt(tokens[3]);
+					remotePort = parsePort(tokens[3]);
 					remoteHost = tokens[1];
-					targetPort = Integer.parseInt(tokens[4]);
+					targetPort = parsePort(tokens[4]);
 					targetHost = tokens[2];
 					break;
 				}
@@ -183,5 +189,19 @@ public class HaProxyHeader {
 		if (bb.size() >= 16)
 			throw new RuntimeException("haproxy wrong protocol");
 		return false;
+	}
+
+	// 端口为16位（FND8-17）：畸形输入在解析处fail-fast断连（规范"不匹配即断连"），
+	// 不把越界值留到getter的InetSocketAddress构造再抛未捕获异常。
+	private static int parsePort(@NotNull String token) {
+		int port;
+		try {
+			port = Integer.parseInt(token);
+		} catch (NumberFormatException e) {
+			throw new RuntimeException("haproxy v1 port not a number: " + token);
+		}
+		if (port < 0 || port > 65535)
+			throw new RuntimeException("haproxy v1 port out of range: " + port);
+		return port;
 	}
 }
