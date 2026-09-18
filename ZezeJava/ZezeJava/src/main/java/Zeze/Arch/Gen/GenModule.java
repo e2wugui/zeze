@@ -113,6 +113,7 @@ public final class GenModule extends ReentrantLock {
 			try {
 				var classNames = new String[n];
 				var classNameAndCodes = new HashMap<String, String>(); // <className, code>
+				var hasStaleCache = false; // 缓存命中但父类身份校验失败（热更升级），需要重编译
 				for (; i < n; i++) {
 					var moduleClass = moduleClasses[i];
 					if (moduleClass.getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
@@ -153,8 +154,16 @@ public final class GenModule extends ReentrantLock {
 							}
 						}
 						if (genClass != null) {
-							classNames[i] = genClassName;
-							continue;
+							// FND8-80：缓存按名，热更升级后同名模块类在新装载器中Class身份已变，
+							// 缓存的生成类extends旧模块类，直接复用即升级静默不生效（super解析到旧实现）。
+							// 生成类总是直接extends传入的moduleClass，按父类身份强校验，无假阳性：
+							// 冷应用同装载器同Class对象恒过；校验失败视为未命中，移除并重新生成。
+							if (genClass.getSuperclass() == moduleClass) {
+								classNames[i] = genClassName;
+								continue;
+							}
+							genClassMap.remove(genClassName);
+							hasStaleCache = true;
 						}
 					}
 
@@ -184,8 +193,14 @@ public final class GenModule extends ReentrantLock {
 					return null;
 
 				var modules = new IModule[n];
-				if (!classNameAndCodes.isEmpty())
+				if (!classNameAndCodes.isEmpty()) {
+					// FND8-80：陈旧缓存重编译前必须换新的DynamicClassLoader——同名生成类已在
+					// 当前装载器defineClass过，二次定义必抛duplicate definition LinkageError；
+					// 换出装载器中已定义的旧类经genClassMap持有的Class引用仍可用，无兼容问题。
+					if (hasStaleCache)
+						compiler.useParentClassLoader(compiler.getClassloader().getParent());
 					compiler.compileAll(classNameAndCodes, genClassMap);
+				}
 				for (i = 0; i < n; i++) {
 					var className = classNames[i];
 					modules[i] = newModule(className != null ? genClassMap.get(className) : moduleClasses[i], userApp);
