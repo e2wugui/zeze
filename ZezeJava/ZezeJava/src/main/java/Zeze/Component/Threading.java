@@ -1,7 +1,9 @@
 package Zeze.Component;
 
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Builtin.Threading.BGlobalThreadId;
 import Zeze.Builtin.Threading.BLockName;
 import Zeze.Builtin.Threading.KeepAlive;
@@ -50,6 +52,21 @@ public class Threading extends AbstractThreading {
 	@SuppressWarnings("deprecation")
 	private static long curThreadId() {
 		return Thread.currentThread().getId();
+	}
+
+	// FND8-73：信号量补偿的本地持有计数门控。补偿必须可归因，但协议无逐次获取标识，
+	// 无法区分服务端semaphoreRefs条目来自"本次未知获取"还是"先前持有的获取"——信号量
+	// 持有者无获取优先权，持有中再获取会真实失败，此时无条件补偿必然误释放先前许可、
+	// 虚增容量（容量1即双持有）。以静态表按(serverId,threadId,name)集中计数（同进程多
+	// Threading实例/多Semaphore对象共享名字时联动）：成功应答加、显式release成功减，
+	// 补偿仅在计数==0（服务端条目至多来自本次未知获取）时发送；计数>0时放弃补偿并告警，
+	// 把"误释放（无界、静默破坏容量）"换成"许可悬挂（有界：进程死亡后由timeoutRelease清算）"。
+	// 漂移安全侧：release未决时本地不减（多计→少补→漏）；进程重启map清零与服务端
+	// appSerialId接管全量释放天然对齐。
+	private static final ConcurrentHashMap<String, AtomicInteger> semaphoreLocalHolds = new ConcurrentHashMap<>();
+
+	private static String semaphoreHoldKey(int serverId, long threadId, String name) {
+		return serverId + ":" + threadId + ":" + name;
 	}
 
 	/** 客户端rpc超时=max(timeoutMs+1000, 5000)（FND5-22）：long运算防timeoutMs+1000
@@ -156,15 +173,29 @@ public class Threading extends AbstractThreading {
 				if (!r.isTimeout())
 					throw e;
 				if (permits > 0) {
-					var un = new SemaphoreRelease();
-					un.Argument.setLockName(lockName);
-					un.Argument.setPermits(permits);
-					if (!un.Send(service.GetSocket()))
-						logger.warn("compensating semaphore release send fail, {}", lockName);
+					// FND8-73：超时只说明结果未知。本地持有计数>0时，服务端semaphoreRefs条目
+					// 可能来自先前持有的获取（信号量持有者无获取优先权，持有中再获取会真实
+					// 失败）——此时补发必然误释放先前许可，虚增真实余量。仅计数==0（条目至多
+					// 来自本次未知获取）才补发；否则放弃并告警，悬挂许可交给timeoutRelease清算。
+					var holds = semaphoreLocalHolds.get(semaphoreHoldKey(serverId, curThreadId(), name));
+					if (holds == null || holds.get() == 0) {
+						var un = new SemaphoreRelease();
+						un.Argument.setLockName(lockName);
+						un.Argument.setPermits(permits);
+						if (!un.Send(service.GetSocket()))
+							logger.warn("compensating semaphore release send fail, {}", lockName);
+					} else {
+						logger.warn("skip compensating semaphore release: would release held permits, "
+								+ "lockName={}, held={}, permits={}", lockName, holds.get(), permits);
+					}
 				}
 				return false;
 			}
-			return r.getResultCode() == 0;
+			var acquired = r.getResultCode() == 0;
+			if (acquired && permits > 0)
+				semaphoreLocalHolds.computeIfAbsent(semaphoreHoldKey(serverId, curThreadId(), name),
+						__ -> new AtomicInteger()).addAndGet(permits);
+			return acquired;
 		}
 
 		public void release() {
@@ -184,10 +215,16 @@ public class Threading extends AbstractThreading {
 			var rc = r.getResultCode();
 			if (rc < 0)
 				logger.error("release error={}", IModule.getErrorCode(rc));
-			else if (rc == 0)
-				logger.info("release success, {} permits=0", lockName); // 无持有者
-			else
-				logger.info("release success, {} permits={}", lockName, rc);
+			else {
+				// FND8-73：服务端确认释放才减本地持有计数（未决/失败不减，漂移向"多计→少补"安全侧）。
+				var holds = semaphoreLocalHolds.get(semaphoreHoldKey(serverId, curThreadId(), name));
+				if (holds != null)
+					holds.updateAndGet(v -> Math.max(0, v - permits));
+				if (rc == 0)
+					logger.info("release success, {} permits=0", lockName); // 无持有者
+				else
+					logger.info("release success, {} permits={}", lockName, rc);
+			}
 		}
 
 		void create(int permits) {
