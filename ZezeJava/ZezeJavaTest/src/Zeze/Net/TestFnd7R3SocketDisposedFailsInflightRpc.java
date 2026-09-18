@@ -44,7 +44,7 @@ public class TestFnd7R3SocketDisposedFailsInflightRpc {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(60) // 25s观察窗+10s连接等待+尾部断言的最坏路径余量（原30s配5s窗，窗扩后同步放宽）
 	public void testInflightRpcFailsImmediatelyOnSocketDisposed() throws Exception {
 		Task.tryInitThreadPool();
 		// 服务端：收满两个KeepAlive请求后踢连接（不发应答）——复现"被踢连接在途Rpc"场景。
@@ -96,10 +96,15 @@ public class TestFnd7R3SocketDisposedFailsInflightRpc {
 				return 0L;
 			}, 30_000), "handle形态发送必须成功");
 
-			// 服务端kick后连接dispose：修复形态两等待方立即被唤醒（<<30s超时）；
-			// 缺陷形态OnSocketDisposed为no-op，5s观察窗内两者都无动静 → 红。
-			Assertions.assertTrue(waitUntil(() -> future.isDone() && handleInvoked.getCount() == 0, 5_000),
-					"连接dispose后5s内在飞Rpc（future+handle两形态）必须已被立即失败"
+			// 服务端kick后连接dispose：修复形态两等待方被dispose唤醒（先于30s Rpc超时）；
+			// 缺陷形态OnSocketDisposed为no-op，只能等30s Rpc超时。
+			// 判别靠唤醒者（异常类型/结果码，见下方断言），不靠墙钟竞速：dispose任务是共享selector
+			// （Selectors.getInstance()进程级单例）上的排队任务，并行测试类的Direct重活内联在同一条
+			// selector线程上执行时，dispose唤醒可晚于任何固定观察窗（30轮压测轮21/29的5s窗即此，
+			// 非产品缺陷——唤醒仍先于Rpc超时发生）。25s窗+30s Rpc超时双保险：真缺陷（永不唤醒）在
+			// 25s窗红；26-29s迟到者由异常类型断言兜住（超时唤醒的cause是TimeoutException）。
+			Assertions.assertTrue(waitUntil(() -> future.isDone() && handleInvoked.getCount() == 0, 25_000),
+					"连接dispose后在飞Rpc（future+handle两形态）必须已被dispose唤醒"
 							+ "（缺陷形态：只能等30s Rpc超时，观察窗内无动静）");
 
 			// future形态：异常类型可诊断（区别于超时），resultCode同步置ErrorSendFail。

@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 public class TestProviderDirectAllRedoLeak extends AppBase {
-	private static final AtomicInteger NextId = new AtomicInteger();
+	private static final AtomicInteger NextId = new AtomicInteger(7410);
 
 	private Application zeze;
 	private ProviderApp providerApp;

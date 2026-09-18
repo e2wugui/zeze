@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestSagaCancelDecodeKeepsContext extends AppBase {
-	private static final AtomicInteger NextId = new AtomicInteger();
+	private static final AtomicInteger NextId = new AtomicInteger(7460);
 	private static final long TID = 0x00F7_0002L; // 与其他测试不冲突的参与方tid
 	private static final String ProcName = "r2m1DecodeFailSaga";
 

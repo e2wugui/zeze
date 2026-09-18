@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestR3cSagaEndBeforeSagaRegistration extends AppBase {
-	private static final AtomicInteger NextId = new AtomicInteger();
+	private static final AtomicInteger NextId = new AtomicInteger(7450);
 	private static final String ProcName = "r3cD1SagaEndBeforeSaga";
 
 	private Application zeze;

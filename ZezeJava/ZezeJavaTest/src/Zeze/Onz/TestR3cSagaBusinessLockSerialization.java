@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestR3cSagaBusinessLockSerialization extends AppBase {
-	private static final AtomicInteger NextId = new AtomicInteger();
+	private static final AtomicInteger NextId = new AtomicInteger(7430);
 	private static final String ProcName = "r3cCBusinessLockSaga";
 
 	private Application zeze;

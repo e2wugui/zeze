@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestDynamicBeanCollect {
-	private static final AtomicInteger NextId = new AtomicInteger();
+	private static final AtomicInteger NextId = new AtomicInteger(7420);
 
 	private Table1 table1;
 	private final Collector collector = new Collector();

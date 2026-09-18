@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 public class TestFnd731LoginTimesRedoOnce extends AppBase {
-	private static final AtomicInteger NextId = new AtomicInteger();
+	private static final AtomicInteger NextId = new AtomicInteger(7440);
 	private static final String ACCOUNT = "fnd731_acc";
 
 	private Application zeze;

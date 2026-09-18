@@ -62,7 +62,10 @@ public class TestTakeoverIdentifySuspect {
 			agent1.stop();
 			agent1 = null;
 
-			var got = suspected.poll(5, TimeUnit.SECONDS);
+			// 30s：单向异步通知无确定性同步点可用，预算必须容忍满负载派发延迟尖峰
+			//（5s版在30轮压测轮1复发——套件最冷启动时刻的链路尖峰，非顺序竞态：
+			// editService同步点已保证serverId先于断线记入会话）。AcquireKick 10→30s同判例。
+			var got = suspected.poll(30, TimeUnit.SECONDS);
 			Assertions.assertNotNull(got, "断线后应收到Suspect广播");
 			Assertions.assertEquals(11, got, "Suspect应携带Identify上报的serverId");
 		} finally {
