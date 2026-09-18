@@ -108,14 +108,15 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 	private int peek() throws IOException {
 		if (!fillBuffer())
 			return -1;
-		return buffer.array()[buffer.position()];
+		return buffer.array()[buffer.position()] & 0xff;
 	}
 
 	private int read() throws IOException {
 		if (!fillBuffer())
 			return -1;
 		pos++;
-		return buffer.get();
+		// 无符号：-1 唯一表示 eof，数据字节 0xff 不能与哨兵混淆
+		return buffer.get() & 0xff;
 	}
 
 	public String readLine() throws IOException {
