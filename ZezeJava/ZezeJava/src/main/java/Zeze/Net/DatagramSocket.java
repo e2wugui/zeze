@@ -90,8 +90,18 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 	public @Nullable DatagramSession createSession(@NotNull InetSocketAddress remote, long tokenId,
 												   byte @Nullable [] securityKey, @NotNull ReplayAttackPolicy policy) {
 		var session = new DatagramSession(this, remote, tokenId, securityKey, policy);
-		if (null == tokens.putIfAbsent(tokenId, session))
-			return session;
+		lock();
+		try {
+			// FND8-53：close后拒绝新建（close在锁内置空selectionKey，双侧同锁封死竞态——
+			// 否则快照后加入的会话不在任何关闭路径上：OnSocketClose永不触发、isClosed恒false）。
+			// 抛ISE对齐Service.OnSocketAccept判例；null保留给tokenId撞号语义。
+			if (selectionKey == null)
+				throw new IllegalStateException("DatagramSocket closed: " + this);
+			if (null == tokens.putIfAbsent(tokenId, session))
+				return session;
+		} finally {
+			unlock();
+		}
 		return null;
 	}
 
@@ -101,8 +111,15 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		while (true) {
 			var tokenId = Random.getInstance().nextLong();
 			var session = new DatagramSession(this, remote, tokenId, securityKey, policy);
-			if (null == tokens.putIfAbsent(tokenId, session))
-				return session;
+			lock();
+			try {
+				if (selectionKey == null) // 同createSession（FND8-53）：close后拒绝新建
+					throw new IllegalStateException("DatagramSocket closed: " + this);
+				if (null == tokens.putIfAbsent(tokenId, session))
+					return session;
+			} finally {
+				unlock();
+			}
 		}
 	}
 
