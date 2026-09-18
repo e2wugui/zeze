@@ -124,8 +124,13 @@ public final class AsyncLock {
 					// getThreadPool()返回null，裸execute直接NPE且无回滚。
 					Task.poolOrThrow(false).execute(() -> runWithLeave(onReady));
 				} catch (RuntimeException e) {
-					rollbackRejectedDispatch(onReady, e);
-					throw e;
+					// 派发被拒（FND8-04）：不回滚不复位——复位后不复查队列，与并发enter的
+					// offer后重试CAS竞态会把回调滞留成无派发者真空（直到下一个enter才自愈）。
+					// 改为就地内联执行（enter快路径本就内联，调用者线程不限），派发链就地
+					// 续走（嵌套深度≤队列长）；回调已实际执行故不重抛（重抛会让调用方二次应答）。
+					Task.logger.warn("AsyncLock: dispatch rejected, fallback inline run, {} pending callback(s)",
+							readyQueue.size() + 1, e);
+					runWithLeave(onReady);
 				}
 				return;
 			}
@@ -133,19 +138,6 @@ public final class AsyncLock {
 			if (readyQueue.isEmpty() || !stateHandle.compareAndSet(this, 0, 1)) // retry, rare-path
 				return;
 		}
-	}
-
-	/** 派发失败回滚（FND7-44）：execute 抛 RuntimeException（停机池拒绝 REE、
-	 * poolOrThrow 的 ISE）时回调已出队、state==1 且唯一复位点在 tryNextAsync 尾部
-	 * （未到达）——后续 enter 的两次 CAS 均失败，该 AsyncLock 永久楔死；异常还会从
-	 * leave() 逃出 runWithLeave 的 finally。回滚：回调重新入队（ConcurrentLinkedQueue
-	 * 无头插，重排队尾——失败路径可接受的次序扰动）、复位 state 释放派发权，
-	 * 按原类型重抛给调用方反馈（对齐 TaskOneByOneQueue 的失败策略）。 */
-	private void rollbackRejectedDispatch(@NotNull Action0 onReady, @NotNull RuntimeException cause) {
-		readyQueue.offer(onReady);
-		state = 0;
-		Task.logger.error("AsyncLock: dispatch rejected, rollback & requeue, {} pending callback(s)",
-				readyQueue.size(), cause);
 	}
 
 	// 释放锁,可能触发其它线程获取锁的回调

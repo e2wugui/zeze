@@ -14,12 +14,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 
 /**
- * FND7-44 回归：AsyncLock.tryNextAsync 裸用 Task.getThreadPool().execute——池未初始化/
- * 已停机（shutdownPools 先置 null）时 NPE：回调已出队、state==1 且唯一复位点在
- * tryNextAsync 尾部（未到达），后续 enter 的两次 CAS 均失败，该锁永久楔死；
- * NPE 还会从 leave() 逃出 runWithLeave 的 finally，被 executor 吞掉无诊断。
- * 修复：改用 Task.poolOrThrow（明确 ISE）+ 派发失败回滚（回调重新入队、复位 state、
- * 原类型重抛）。
+ * FND7-44回归（FND8-04修法更新）：AsyncLock.tryNextAsync 裸用 Task.getThreadPool().execute
+ * ——池未初始化/已停机（shutdownPools 先置 null）时 NPE：回调已出队、state==1 且唯一
+ * 复位点在 tryNextAsync 尾部（未到达），后续 enter 的两次 CAS 均失败，该锁永久楔死。
+ * FND7-44先修为poolOrThrow+回滚重抛；FND8-04发现回滚复位state后不复查队列，与并发
+ * enter的offer后重试CAS竞态会把回调滞留成无派发者真空——终修为派发被拒就地内联执行
+ * runWithLeave（回调已实际执行故不重抛，避免调用方二次应答），派发链就地续走。
  * 本类会真实关闭全局池，@Isolated 独占运行，AfterEach 重建（与 TestTaskShutdown 相同）。
  */
 @Fast
@@ -38,7 +38,7 @@ public class TestFnd744AsyncLockDispatchReject {
 	}
 
 	@Test
-	public void testDispatchFailRollsBackAndRecovers() throws Exception {
+	public void testDispatchRejectFallsBackInlineAndRecovers() throws Exception {
 		shutdownIgnoringTerminationTimeout();
 
 		var lock = new AsyncLock(); // 异步派发模式
@@ -73,18 +73,16 @@ public class TestFnd744AsyncLockDispatchReject {
 		holder.join(5000);
 		Assertions.assertFalse(holder.isAlive(), "holder必须在5秒内结束");
 
-		var ex = thrown.get();
-		Assertions.assertNotNull(ex, "池停机时leave的派发必须明确失败（原为裸NPE静默楔死）");
-		Assertions.assertInstanceOf(IllegalStateException.class, ex,
-				"必须抛带初始化指引的IllegalStateException而非裸NPE（FND7-44）");
+		// 派发被拒时内联回退：回调已实际执行，enter不得再抛（重抛会让调用方二次应答）
+		Assertions.assertNull(thrown.get(), "内联回退后回调已执行，不得重抛");
+		Assertions.assertTrue(cb2Ran.await(5, TimeUnit.SECONDS), "被拒派发的cb2必须内联执行，不得滞留");
 
-		// 回滚生效：state 复位（修复前恒1，后续enter的CAS永败），cb2 保留在队列。
-		Assertions.assertFalse(lock.isLocked(), "派发失败回滚后state不得楔死");
+		// 派发链就地续走收尾：state 不楔死（修复前恒1，后续enter的CAS永败）
+		Assertions.assertFalse(lock.isLocked(), "内联回退续走后state必须释放");
 
-		// 池恢复后新 enter 必须重新驱动：回滚保留的 cb2 与新提交的 cb3 都执行。
+		// 池恢复后新 enter 照常执行。
 		Task.tryInitThreadPool();
 		lock.enter(cb3Ran::countDown);
-		Assertions.assertTrue(cb2Ran.await(5, TimeUnit.SECONDS), "回滚保留的cb2必须照常执行");
 		Assertions.assertTrue(cb3Ran.await(5, TimeUnit.SECONDS), "恢复后新enter的cb3必须照常执行");
 	}
 
