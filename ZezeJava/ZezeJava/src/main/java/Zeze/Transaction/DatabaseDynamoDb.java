@@ -24,9 +24,13 @@ import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.model.ScanRequest;
 import com.amazonaws.services.dynamodbv2.model.TransactWriteItem;
 import com.amazonaws.services.dynamodbv2.model.TransactWriteItemsRequest;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public class DatabaseDynamoDb extends Database {
+	private static final @NotNull Logger logger = LogManager.getLogger(DatabaseDynamoDb.class);
+
 	private final AmazonDynamoDB dynamoDbClient;
 
 	public DatabaseDynamoDb(Application zeze, Config.DatabaseConf conf) {
@@ -40,6 +44,22 @@ public class DatabaseDynamoDb extends Database {
 				.enableEndpointDiscovery()
 				.build();
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesDynamoDb());
+	}
+
+	@Override
+	public void close() {
+		// FND8-22：客户端内含连接池与IdleConnectionReaper强引用，不shutdown即泄漏
+		// （SDK明示语义）。双段守卫：super抛错也必达shutdown，与stopStep异常隔离双保险。
+		try {
+			super.close();
+		} catch (Throwable e) { // logger.error
+			logger.error("Database.close exception:", e);
+		}
+		try {
+			dynamoDbClient.shutdown();
+		} catch (Throwable e) { // logger.error
+			logger.error("dynamoDbClient.shutdown exception:", e);
+		}
 	}
 
 	@Override
