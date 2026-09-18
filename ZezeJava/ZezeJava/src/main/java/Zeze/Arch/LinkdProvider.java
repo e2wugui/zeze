@@ -107,15 +107,25 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	 * @return 错误码. 0表示成功; [1,9]表示错误
 	 */
 	public int choiceProvider(@NotNull AsyncSocket link, Binary tokenBin) throws Exception {
-		// FND5-26：未配置LoginQueueAgent服务节的linkd上getLoginQueueAgent()为null——
-		// 裸解引用NPE被认证处理吞成连接关闭（无诊断、报错位置掩盖配置缺失根因）。
-		var loginQueueAgent = linkdApp.getLinkdLoad().getLoginQueueAgent();
+		// FND8-89（修FND5-26判错对象）：可空点是linkdLoad——未配置LoginQueueAgent服务节时
+		// LinkdApp不构造LinkdLoad，原先判内层loginQueueAgent（可达世界恒非空）防护是死代码，
+		// getLinkdLoad()裸解引用照旧NPE且被认证处理吞成无差别断连，掩盖配置缺失根因。
+		var load = linkdApp.getLinkdLoad();
+		var loginQueueAgent = load != null ? load.getLoginQueueAgent() : null;
 		if (loginQueueAgent == null) {
 			logger.error("choiceProvider: LoginQueueAgent not configured"
 					+ " (linkd config missing 'LoginQueueAgent' service node).");
 			return 4;
 		}
-		var token = LoginQueueServer.decodeToken(loginQueueAgent.getSecret(), tokenBin);
+		// FND8-89孪生：secret仅在连上LoginQueueServer收到AnnounceSecret后写入，冷启动/
+		// 重启后依赖未就绪时为null（无需任何配置错误即可达），decodeToken(null,...)在
+		// decrypt内NPE走同一断连路径——判空返回独立错误码，与"未配置"(4)区分。
+		var secret = loginQueueAgent.getSecret();
+		if (secret == null) {
+			logger.error("choiceProvider: LoginQueueAgent secret not ready (not connected to LoginQueueServer)");
+			return 5;
+		}
+		var token = LoginQueueServer.decodeToken(secret, tokenBin);
 		if (token.getExpireTime() < System.currentTimeMillis())
 			return 1;
 		if (token.getLinkServerId() != linkdApp.zeze.getConfig().getServerId())
