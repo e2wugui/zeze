@@ -23,10 +23,14 @@ public class Exporter {
 	private static final @NotNull Logger logger = LogManager.getLogger(Exporter.class);
 	private final AbstractAgent agent;
 	private final java.util.List<IExporter> exports = new ArrayList<>();
-	// 失败待补偿记账：登记导出失败的服务名，任一后续事件自动并入重导（见onEdit）。
+	// 失败待补偿记账：按（导出器,服务名）二元组登记（FND8-68）——原全体eAll导出器共享
+	// 一个服务名集合，混合成败时（如NginxConfig磁盘满+NginxHttp正常）后位成功者无条件
+	// remove洗掉前位失败者的记账，被洗的导出器进程内永不再补偿、配置无限期陈旧。
+	// 每个导出器只记自己欠的、只清自己还的；eEdit按整个BEditService导出（粒度非单服务，
+	// 二元组键不匹配），失败仅记日志、无补偿记账（现库唯一实现ExporterPrint无失败面）。
 	// onEdit串行运行于triggerOnChanged的one-by-one后台worker，理论无并发访问；
 	// 仍用并发集合以降低对调用线程模型的隐含依赖。
-	private final java.util.Set<String> failedServices = java.util.concurrent.ConcurrentHashMap.newKeySet();
+	private final java.util.Map<IExporter, java.util.Set<String>> failedServices = new java.util.concurrent.ConcurrentHashMap<>();
 
 	public Exporter() throws Exception {
 		var conf = Config.load();
@@ -42,43 +46,48 @@ public class Exporter {
 	}
 
 	private void onEdit(BEditService edit) {
-		HashSet<String> serviceSet = null;
+		HashSet<String> editNames = null;
 		for (var ep : exports) {
 			try {
 				switch (ep.getType()) {
 				case eAll:
-					if (null == serviceSet) {
-						// 收集不同的服务名字。
-						serviceSet = new HashSet<>();
+					if (null == editNames) {
+						// 收集不同的服务名字（各eAll导出器共用一份，只提取一次）。
+						editNames = new HashSet<>();
 						for (var e : edit.getRemove())
-							serviceSet.add(e.getServiceName());
+							editNames.add(e.getServiceName());
 						for (var e : edit.getAdd())
-							serviceSet.add(e.getServiceName());
-						// 增补历史失败服务：持续失败（磁盘满/dyups拒绝等）且无后续事件的服务，
-						// nginx配置将永久陈旧——并入本次导出，任一后续事件自动补偿重导。
-						serviceSet.addAll(failedServices);
+							editNames.add(e.getServiceName());
 					}
+					// 每个导出器遍历"本次事件服务名 ∪ 自己的失败集"（FND8-68）：
+					// 补偿只重导自己欠的，成败记账互不覆盖；已成功的导出器不重复补偿导出。
+					var epFailed = failedServices.computeIfAbsent(ep, k -> java.util.concurrent.ConcurrentHashMap.newKeySet());
+					var serviceSet = new HashSet<String>(editNames);
+					serviceSet.addAll(epFailed);
 					for (var serviceName : serviceSet) {
 						// 与退订竞态（FND4-61）：triggerOnChanged经executeOneByOne异步排队，期间
 						// unSubscribeService已remove该服务的subscribeStates——跳过为正确语义（已不
 						// 关心）；原NPE被triggerOnChanged捕获记日志，同批其余服务的导出整体丢失。
 						var state = agent.getSubscribeStates().get(serviceName);
 						if (state == null) {
-							// 已退订（不再关心）：同步清除失败记账，避免残留空条目随每次事件反复空转。
-							failedServices.remove(serviceName);
+							// 已退订（不再关心）：同步清除失败记账（所有导出器中该服务条目），
+							// 避免残留空条目随每次事件反复空转。
+							for (var fs : failedServices.values())
+								fs.remove(serviceName);
 							continue;
 						}
 						try {
 							ep.exportAll(serviceName, state.getServiceInfosVersion());
-							// 导出成功：解除失败记账（remove幂等，未登记时无副作用）。
-							failedServices.remove(serviceName);
+							// 导出成功：解除本导出器的失败记账（remove幂等，未登记时无副作用）。
+							epFailed.remove(serviceName);
 						} catch (Exception e) {
 							// FND6-26：逐服务隔离——单服务导出失败记错继续，同批其余服务不受影响。
 							logger.error("exportAll fail. exporter={}, service={}", ep.getClass().getName(), serviceName, e);
 							// 失败记账：首次登记（add返回true）记warn说明补偿机制；
 							// 之后任一后续事件都会带上该服务自动重导。
-							if (failedServices.add(serviceName))
-								logger.warn("exportAll failed, will re-export on next event. service={}", serviceName);
+							if (epFailed.add(serviceName))
+								logger.warn("exportAll failed, will re-export on next event. exporter={}, service={}",
+										ep.getClass().getName(), serviceName);
 							// 中断卫生：恢复中断标志，避免吞掉one-by-one worker的中断状态。
 							if (e instanceof InterruptedException)
 								Thread.currentThread().interrupt();
@@ -86,6 +95,7 @@ public class Exporter {
 					}
 					break;
 				case eEdit:
+					// eEdit失败无补偿记账（粒度为整个edit，见failedServices注释）。
 					ep.exportEdit(edit);
 					break;
 				}
