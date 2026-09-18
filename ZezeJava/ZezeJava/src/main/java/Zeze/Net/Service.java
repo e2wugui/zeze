@@ -98,6 +98,8 @@ public class Service extends ReentrantLock {
 	// OnzServer等手工connector路径不经过Service.start()，仍依赖懒启动。
 	private volatile boolean keepAliveCheckStopped;
 	private @Nullable ServiceStatisticLog servicePerf;
+	// 门禁白名单：非空即布防——未完成密钥交换的连接仅放行白名单内的协议。
+	private final LongHashSet decodeAdmissionWhitelist = new LongHashSet();
 
 	public @NotNull String getInstanceName() {
 		return instanceName;
@@ -567,28 +569,6 @@ public class Service extends ReentrantLock {
 	 *              处理了多少要体现在input.ReadIndex上,剩下的等下次收到数据后会继续在此处理.
 	 * @return 是否可以立即再次从socket接收数据(如果缓冲区还有数据的话), 否则会等下次select循环再处理
 	 */
-	// FND8-48：普通Service级加密门禁（由KeyExchange.addHandler装配），经连接级解码准入生效
-	// （getConnectionDecodeAdmission→TcpSocket连接构造器装配→Protocol.decode逐帧判决，
-	// 双向codec装齐撤销）。armed后，未完成密钥交换的连接只允许豁免清单内的协议（KeyExchange
-	// 本身），其他明文帧解码即断连——封死"不握手全程明文"直连与握手完成前的明文注入窗口。
-	// 准入在TcpSocket连接构造器装配：armSecurityGate须在建立连接前调用（既有连接不回溯装配）。
-	// 仅作用于TcpSocket（安全codec为TcpSocket专有）；HandshakeBase子类经
-	// getConnectionDecodeAdmission的super调用叠加生效（含EncryptType=Disable、其自身门禁
-	// 关闭的情形，FND8-48孪生2）。
-	private volatile boolean securityGateArmed;
-	private final LongHashSet securityGateExemptions = new LongHashSet();
-
-	/** 装配明文门禁：armed后未完成密钥交换的连接仅豁免清单内的协议可通过解码。须在建立连接前调用。 */
-	public void armSecurityGate(long... exemptProtocolTypeIds) {
-		securityGateArmed = true;
-		for (var typeId : exemptProtocolTypeIds)
-			securityGateExemptions.add(typeId);
-	}
-
-	public boolean isSecurityGateArmed() {
-		return securityGateArmed;
-	}
-
 	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) throws Exception {
 		if (so instanceof TcpSocket tcp) {
 			var haProxyHeader = tcp.getHaProxyHeader();
@@ -600,14 +580,22 @@ public class Service extends ReentrantLock {
 	}
 
 	/**
-	 * 连接级解码准入：TcpSocket 连接构造时调用一次，返回的谓词在 {@link Protocol#decode}
-	 * 中逐帧生效（帧头解析后、完整性检查前），返回 false 即断连。默认 null 表示不设防。
-	 * FND8-48：KeyExchange.addHandler装配的Service级门禁在此生效——armed后TcpSocket连接
-	 * 以豁免清单为准入，双向codec装齐（密钥交换完成）时撤销。
+	 * 登记门禁白名单协议：白名单非空即布防——未完成密钥交换的连接仅放行白名单内的协议，
+	 * 其余明文帧解码即断连。须在建立连接前调用：既有连接不回溯装配，且集合非线程安全，
+	 * 连接存在期间不得追加。
 	 */
-	public @Nullable LongPredicate getConnectionDecodeAdmission(@NotNull AsyncSocket so) {
-		if (securityGateArmed && so instanceof TcpSocket)
-			return securityGateExemptions::contains;
+	public void armDecodeAdmission(long typeId) {
+		decodeAdmissionWhitelist.add(typeId);
+	}
+
+	/**
+	 * 连接级解码准入：由 TcpSocket 连接构造器调用（唯一调用方），返回的谓词在
+	 * {@link Protocol#decode} 逐帧生效（帧头解析后、完整性检查前），返回 false 即断连；
+	 * 白名单非空时以其为准入，双向 codec 装齐撤销。null 表示不设防。
+	 */
+	public @Nullable LongPredicate getConnectionDecodeAdmission() {
+		if (!decodeAdmissionWhitelist.isEmpty())
+			return decodeAdmissionWhitelist::contains;
 		return null;
 	}
 

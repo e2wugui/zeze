@@ -231,7 +231,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			throws Exception {
 		super(service);
 
-		setDecodeAdmission(service.getConnectionDecodeAdmission(this)); // 连接级解码准入，早于一切输入
+		setDecodeAdmission(service.getConnectionDecodeAdmission()); // 连接级解码准入，早于一切输入
 		this.acceptorOrConnector = acceptor;
 		this.type = Type.eServer;
 		resetActiveSendRecvTime();
@@ -290,7 +290,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 					 @Nullable Object userState, @Nullable Connector connector) {
 		super(service);
 
-		setDecodeAdmission(service.getConnectionDecodeAdmission(this)); // 连接级解码准入，早于一切输入
+		setDecodeAdmission(service.getConnectionDecodeAdmission()); // 连接级解码准入，早于一切输入
 		this.acceptorOrConnector = connector;
 		this.userState = userState;
 		this.type = Type.eClient;
@@ -353,7 +353,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 
 	// 四个set{Input,Output}SecurityCodec变体在selector线程装好codec后调用：记security位
 	//（volatile上的|=非原子，仅submitAction串行内使用），双向codec装齐时撤销解码准入
-	//（FND8-48：密钥交换完成，此后连接按加密流量逐帧解码）。
+	//（密钥交换完成；不用isHandshakeDone标志判"完成"——会误杀codec装好后、回调执行前
+	// 到达的合法加密数据）。
 	private void securityCodecInstalled(int bit) {
 		//noinspection NonAtomicOperationOnVolatileField
 		security |= bit;
@@ -423,6 +424,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		submitAction(() -> { // 进selector线程调用
 			inputCodecChain = creator.apply(this, inputBuffer);
 			securityCodecInstalled(1);
+			//noinspection DataFlowIssue
 			logger.info("setInputSecurityCodec: {} class={}", this, inputCodecChain.getClass().getName());
 		});
 	}
@@ -470,6 +472,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		submitAction(() -> { // 进selector线程调用
 			outputCodecChain = creator.apply(this, outputBuffer);
 			securityCodecInstalled(2);
+			//noinspection DataFlowIssue
 			logger.info("setOutputSecurityCodec: {} class={}", this, outputCodecChain.getClass().getName());
 		});
 	}

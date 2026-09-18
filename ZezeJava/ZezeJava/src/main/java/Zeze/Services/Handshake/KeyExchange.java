@@ -275,9 +275,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	 */
 	public static void addHandler(@NotNull Service service, @NotNull PrivateKey serverPriKey,
 								  @Nullable Predicate<byte @NotNull []> clientPubKeyAcceptor) {
-		// FND8-48：装配Service级明文门禁（豁免KeyExchange自身）——注册即声明本服务连接使用
-		// KeyExchange加密，未握手的明文连接自此被拒。即便工厂已被前次注册去重，门禁仍须装配。
-		service.armSecurityGate(KeyExchange.TypeId);
+		service.armDecodeAdmission(KeyExchange.TypeId);
 		byte[] pubKeyMd5 = getPubKeyMd5(((RSAKey)serverPriKey).getModulus().toByteArray());
 		if (!service.getFactorys().containsKey(KeyExchange.TypeId)) {
 			service.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,

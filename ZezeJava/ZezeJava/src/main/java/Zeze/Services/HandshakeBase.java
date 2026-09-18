@@ -3,11 +3,11 @@ package Zeze.Services;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.concurrent.Future;
-import java.util.function.LongPredicate;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Digest;
+import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Net.TcpSocket;
 import Zeze.Serialize.ByteBuffer;
@@ -23,7 +23,6 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Cert;
 import Zeze.Util.LongConcurrentHashMap;
-import Zeze.Util.LongHashSet;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,11 +32,8 @@ import org.jetbrains.annotations.Nullable;
 public class HandshakeBase extends Service {
 	private static final @NotNull Logger logger = LogManager.getLogger(HandshakeBase.class);
 
-	private final LongHashSet handshakeProtocols = new LongHashSet();
-
 	// 是否承担握手服务端角色（接受CHandshake）：构造期由addHandshakeServerFactoryHandle置位，
-	// 必然早于start()里的checkAesSecureIp。作为一等语义判角色，不借handshakeProtocols派发
-	// 簿记作预言——若未来出现start后才注册CHandshake的懒注册角色，簿记判据会静默漏告警。
+	// 必然早于start()里的checkAesSecureIp（告警仅服务角色）。
 	private boolean serverRole;
 
 	static class Context {
@@ -75,28 +71,6 @@ public class HandshakeBase extends Service {
 	}
 
 	/**
-	 * 加密门禁：EncryptType != Disable 时，连接在双向 security codec 装齐前只允许握手协议
-	 * （{@link #isHandshakeProtocol}）进入解码，防止明文直连绕过握手加密。撤销判据与
-	 * {@link TcpSocket#verifySecurity()} 一致（codec 装配而非 OnHandshakeDone 标志——标志
-	 * 会误杀 codec 装好后、回调执行前到达的合法加密数据）。EncryptType=Disable 返回 null。
-	 */
-	private final @NotNull LongPredicate handshakeAdmission = this::isHandshakeProtocol;
-
-	@Override
-	public @Nullable LongPredicate getConnectionDecodeAdmission(@NotNull AsyncSocket so) {
-		// FND8-48孪生2：Service级KeyExchange门禁（super，EncryptType=Disable时本类门禁关闭）
-		// 仍须生效；与本类握手准入同时存在时取交集（两个准入都通过才放行）。
-		var gate = super.getConnectionDecodeAdmission(so);
-		var handshake = getConfig().getHandshakeOptions().getEncryptType() != Constant.eEncryptTypeDisable
-				? handshakeAdmission : null;
-		if (gate == null)
-			return handshake;
-		if (handshake == null)
-			return gate;
-		return typeId -> gate.test(typeId) && handshake.test(typeId);
-	}
-
-	/**
 	 * Aes 模式会话密钥由连接地址参与派生——服务器取本端地址、客户端取对端地址
 	 * （见 processCHandshake/processSHandshake）。直连时两侧地址一致；NAT/端口映射下服务器视角
 	 * 是内网落地地址、客户端视角是公网拨入地址，两侧派生出不同密钥，该部署所有连接握手必然
@@ -126,24 +100,41 @@ public class HandshakeBase extends Service {
 		super.start();
 	}
 
+	// 握手协议族（闭集常量），按族判定、与角色无关：族内未注册的协议在本服务上无工厂，
+	// 到不了派发/门禁/Raft注册守卫的判定点。
 	@Override
 	public boolean isHandshakeProtocol(long typeId) {
-		return handshakeProtocols.contains(typeId);
+		return typeId == CHandshake.TypeId_ || typeId == SHandshake0.TypeId_ || typeId == SHandshake.TypeId_
+				|| typeId == CHandshakeDone.TypeId_ || typeId == KeepAlive.TypeId_;
+	}
+
+	// 握手协议登记——门禁白名单与工厂注册一体。EncryptType=Disable不
+	// 装配门禁：握手后无codec装齐事件，门禁永不撤销会误杀明文会话。已有同TypeId工厂时
+	// 保留既有注册（ServiceManagerServer等会自注册KeepAlive处理器）。
+	private void addHandshakeFactoryHandle(long typeId, Service.ProtocolFactoryHandle<? extends Protocol<?>> handle) {
+		if (getConfig().getHandshakeOptions().getEncryptType() != Constant.eEncryptTypeDisable)
+			armDecodeAdmission(typeId);
+		if (!getFactorys().containsKey(typeId))
+			AddFactoryHandle(typeId, handle);
 	}
 
 	protected final void addHandshakeServerFactoryHandle() {
 		serverRole = true;
-		handshakeProtocols.add(CHandshake.TypeId_);
-		AddFactoryHandle(CHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
+		addHandshakeFactoryHandle(CHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
 				CHandshake::new, this::processCHandshake, TransactionLevel.None, DispatchMode.Direct));
-		handshakeProtocols.add(CHandshakeDone.TypeId_);
-		AddFactoryHandle(CHandshakeDone.TypeId_, new Service.ProtocolFactoryHandle<>(
+		addHandshakeFactoryHandle(CHandshakeDone.TypeId_, new Service.ProtocolFactoryHandle<>(
 				CHandshakeDone::new, this::processCHandshakeDone, TransactionLevel.None, DispatchMode.Direct));
-		handshakeProtocols.add(KeepAlive.TypeId_);
-		if (!getFactorys().containsKey(KeepAlive.TypeId_)) {
-			AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(KeepAlive::new,
-					HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
-		}
+		addHandshakeFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(KeepAlive::new,
+				HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
+	}
+
+	protected final void addHandshakeClientFactoryHandle() {
+		addHandshakeFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(
+				SHandshake0::new, this::processSHandshake0, TransactionLevel.None, DispatchMode.Direct));
+		addHandshakeFactoryHandle(SHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
+				SHandshake::new, this::processSHandshake, TransactionLevel.None, DispatchMode.Direct));
+		addHandshakeFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(KeepAlive::new,
+				HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 	}
 
 	private static long processKeepAliveRequest(@NotNull KeepAlive r) {
@@ -264,20 +255,6 @@ public class HandshakeBase extends Service {
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
 			p.getSender().close(ex);
 			return 0L;
-		}
-	}
-
-	protected final void addHandshakeClientFactoryHandle() {
-		handshakeProtocols.add(SHandshake0.TypeId_);
-		AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(
-				SHandshake0::new, this::processSHandshake0, TransactionLevel.None, DispatchMode.Direct));
-		handshakeProtocols.add(SHandshake.TypeId_);
-		AddFactoryHandle(SHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
-				SHandshake::new, this::processSHandshake, TransactionLevel.None, DispatchMode.Direct));
-		handshakeProtocols.add(KeepAlive.TypeId_);
-		if (!getFactorys().containsKey(KeepAlive.TypeId_)) {
-			AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(KeepAlive::new,
-					HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 		}
 	}
 
