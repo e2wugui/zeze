@@ -9,6 +9,7 @@ import java.net.UnknownHostException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.security.SecureRandom;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -70,7 +71,13 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	private SelectionKey selectionKey;
 	private final Selector selector;
 	private final InetSocketAddress local;
+	// 多对多：一个对端地址至多一个活会话（putIfAbsent，先建者胜；显式重整用openReplace）。
+	// 覆盖注册会使新会话接收状态从零开始（已派发序号被当首次学习→重复投递），
+	// 且被覆盖旧会话照常send()、其Ack被新会话代际门拒收——在途包重发定时器无人cancel。
 	private final ConcurrentHashMap<SocketAddress, Session> sessions = new ConcurrentHashMap<>();
+	// 本实例创建过的全部会话（含被openReplace替换、应用手工删表后遗留的孤儿）：
+	// 孤儿不在sessions表内，close()仅遍历表停不掉其重发定时器（进程级调度池上每3秒重发直到进程退出）。
+	private final Set<Session> allSessions = ConcurrentHashMap.newKeySet();
 	private final ReliableUdpHandle defaultHandle;
 	private int MaxPacketLength = 2048;
 	private final LongAdder malformedPackets = new LongAdder();
@@ -116,10 +123,35 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	}
 
 	// 打开一个连接用来发送数据。
+	// 同一peer地址已有会话时先建者胜：error日志显式化（传入的handle被丢弃、以先建者为准，
+	// 对齐Service.addSocket把静默互撞变显式拒绝），返回既有会话。强制重整请用openReplace。
 	public Session open(String peer, int port, ReliableUdpHandle handle) {
 		try {
 			var ep = new InetSocketAddress(InetAddress.getByName(peer), port);
-			return new Session(ep, handle);
+			var session = new Session(ep, handle);
+			var existing = sessions.putIfAbsent(ep, session);
+			if (existing != null) {
+				logger.error("open: session for peer {} already exists: existing session kept, "
+						+ "handle以先建者为准（传入的handle被忽略）；需强制重整请用openReplace。"
+						+ " existing={} colliding={}", ep, existing, session);
+				return existing;
+			}
+			return session;
+		} catch (UnknownHostException e) {
+			throw Task.forceThrow(e);
+		}
+	}
+
+	// 显式替换同地址既有会话（模拟本端重启/强制重置）：旧会话置失效并取消其重发定时器，
+	// 新会话以全新代际与序号空间接管表项。
+	public Session openReplace(String peer, int port, ReliableUdpHandle handle) {
+		try {
+			var ep = new InetSocketAddress(InetAddress.getByName(peer), port);
+			var session = new Session(ep, handle);
+			var old = sessions.put(ep, session);
+			if (old != null)
+				old.markClosed();
+			return session;
 		} catch (UnknownHostException e) {
 			throw Task.forceThrow(e);
 		}
@@ -253,13 +285,26 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		private long lastDispatchedSerialId;
 		private long maxRecvPacketSerialId;
 
+		// 会话失效（被openReplace替换或整个ReliableUdp.close）：旧引用继续send()只会制造
+		// 永远无法被Ack确认（代际门拒收）的在途重发定时器——孤儿定时器连close()都停不掉。
+		private volatile boolean closed;
+
+		// 构造不自注册sessions（注册在open/openReplace/dynamic创建路径按putIfAbsent语义进行），
+		// 仅登记allSessions供close()能停掉孤儿定时器。
 		public Session(SocketAddress peer, ReliableUdpHandle handle) {
 			this.handle = handle;
 			this.peer = peer;
 			this.selfGeneration = nextGeneration();
-			var old = sessions.put(peer, this);
-			if (old != null) // 覆盖旧会话时取消其重发定时器，避免泄漏
-				old.cancelResendTimers();
+			ReliableUdp.this.allSessions.add(this);
+		}
+
+		public boolean isClosed() {
+			return closed;
+		}
+
+		void markClosed() {
+			closed = true;
+			cancelResendTimers();
 		}
 
 		// 取消发送窗口内所有包的重发定时器
@@ -272,6 +317,8 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		}
 
 		public boolean send(byte[] bytes, int offset, int length) {
+			if (closed)
+				return false; // 已被替换/关闭的会话：不得再制造无法被确认的在途包
 			if (length > MaxPacketLength - MaxWireOverhead)
 				throw new IllegalArgumentException(
 						"length > MaxPacketLength - " + MaxWireOverhead + ": " + (MaxPacketLength - MaxWireOverhead));
@@ -334,6 +381,19 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		return new Session(source, defaultHandle);
 	}
 
+	// 表内命中即用；未命中经dynamicCreateSession创建后以putIfAbsent语义注册
+	// （调用点均在selector单线程，冲突仅在dynamicCreateSession重载自建已注册会话时防御性出现）。
+	private Session getOrCreateSession(SocketAddress source) {
+		var session = sessions.get(source);
+		if (session != null)
+			return session;
+		session = dynamicCreateSession(source);
+		if (session == null)
+			return null;
+		var existing = sessions.putIfAbsent(source, session);
+		return existing != null ? existing : session;
+	}
+
 	// 派发收到的包，决定执行方式。默认多线程执行。
 	// 如果执行的操作没有阻塞，可以直接在网络线程中执行。
 	// 重载当然也可以实现其他模式，加到自己的队列什么的。
@@ -357,9 +417,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		var packet = new Packet();
 		packet.decode(bb);
 
-		var session = sessions.get(source);
-		if (session == null)
-			session = dynamicCreateSession(source);
+		var session = getOrCreateSession(source);
 
 		if (session != null) {
 			// 代际门：全新代际=对端重启（发送方向），重置接收状态按新空间从 1 接收；
@@ -434,11 +492,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		var control = new Control();
 		control.decode(bb);
 
-		var session = sessions.get(source);
-
-		// 需要确定控制协议是否需要动态创建Session。
-		if (session == null)
-			session = dynamicCreateSession(source);
+		var session = getOrCreateSession(source);
 
 		// 没有会话，此时忽略Control。控制协议不允许再次报告错误，避免形成两端互相发送错误的死循环。
 		if (session == null)
@@ -542,9 +596,10 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			} catch (IOException skip) {
 				logger.error("", skip);
 			}
-			// 取消所有会话的重发定时器，避免泄漏
-			for (var session : sessions.values())
-				session.cancelResendTimers();
+			// 会话置失效并取消【全部】创建过的会话（含已被替换、不在sessions表内的孤儿）的
+			// 重发定时器——孤儿挂在进程级调度池上，不在这里停掉会每3秒重发直到进程退出。
+			for (var session : allSessions)
+				session.markClosed();
 			selectionKey = null;
 		} finally {
 			unlock();

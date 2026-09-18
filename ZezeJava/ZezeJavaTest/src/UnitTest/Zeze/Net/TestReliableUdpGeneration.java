@@ -70,8 +70,8 @@ public class TestReliableUdpGeneration {
 			awaitReceived(serverHandle, 5);
 
 			// 模拟发送端进程重启：client 的 UDP 端口不变（对端会话 key 不变），
-			// open 重建会话 = 新代际 + 序号从 1 重新开始。
-			var newSession = client.open("127.0.0.1", serverPort, clientHandle);
+			// openReplace 重建会话 = 新代际 + 序号从 1 重新开始（open已改先建者胜，不再覆盖）。
+			var newSession = client.openReplace("127.0.0.1", serverPort, clientHandle);
 			for (int i = 1; i <= 5; i++)
 				newSession.send(("new-" + i).getBytes(), 0, ("new-" + i).getBytes().length);
 			awaitReceived(serverHandle, 10);
