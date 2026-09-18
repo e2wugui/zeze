@@ -1487,6 +1487,18 @@ public class Online extends AbstractOnline implements HotUpgrade {
 					logger.error("processTransmit fail: action={}, target={}:{}, rc={}",
 							actionName, target.getAccount(), target.getClientId(), rc);
 			}
+		} else {
+			// FND8-77：远程目标服未注册该action（滚动升级版本偏斜/注册不对称）时曾静默丢弃
+			// ——对齐Game版修复口径：仅记error（单向Protocol无错误码通道），size计数+截断采样。
+			var sample = new ArrayList<String>();
+			var size = 0;
+			for (var target : accounts) {
+				size++;
+				if (sample.size() < 8)
+					sample.add(target.getAccount() + ":" + target.getClientId());
+			}
+			logger.error("processTransmit unknown action: action={}, sender={}:{}, targets.size={}, sample={}",
+					actionName, account, clientId, size, sample);
 		}
 	}
 

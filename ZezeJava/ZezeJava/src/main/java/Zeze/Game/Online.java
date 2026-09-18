@@ -1709,6 +1709,20 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 					logger.error("transmit failed: actionName={}, sender={}, target={}, rc={}",
 							actionName, sender, target, rc);
 			}
+		} else {
+			// FND8-77：远程目标服未注册该action（滚动升级版本偏斜/各OnlineSet注册不对称）时
+			// 曾静默丢弃——本源以为已路由、目标端无痕迹。对齐同handler未知onlineSetName先例
+			// 记error（Transmit为单向Protocol无错误码通道，抛异常在Task兜底下无增益）。
+			// roles可能是批量广播目标，按size计数+截断采样防日志洪水。
+			var sample = new ArrayList<Long>();
+			var size = 0;
+			for (var target : roleIds) {
+				size++;
+				if (sample.size() < 8)
+					sample.add(target);
+			}
+			logger.error("transmit unknown action: actionName={}, sender={}, onlineSetName={}, roles.size={}, sample={}",
+					actionName, sender, multiInstanceName, size, sample);
 		}
 	}
 
