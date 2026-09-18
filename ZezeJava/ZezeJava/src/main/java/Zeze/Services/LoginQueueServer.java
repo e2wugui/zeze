@@ -104,38 +104,79 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
 
     public static BToken.Data decodeToken(BSecret.Data secret, Binary token) throws Exception {
-        var bytes = decrypt(secret, token.bytesUnsafe(), token.getOffset(), token.size());
-        var bb = ByteBuffer.Wrap(bytes);
-        var provider = new BToken.Data();
-        provider.decode(bb);
+        // 双试探+语义校验（FND8-65，判别式见下方迁移注释）：先按新格式（IV=前16B）解并验
+        // BToken合法性与语义，失败再按旧格式（secretIv）解并验，均败则拒。
+        var bytes = token.bytesUnsafe();
+        var offset = token.getOffset();
+        var size = token.size();
+        var provider = tryDecodeToken(secret, bytes, offset, size, true);
+        if (provider == null)
+            provider = tryDecodeToken(secret, bytes, offset, size, false);
+        if (provider == null)
+            throw new IllegalArgumentException("decode token fail: neither iv-prefixed nor legacy format");
         return provider;
     }
 
-    // FND7-20遗留（复审R3决策文档，本轮不改令牌格式）：密钥已改SecureRandom，但IV随进程
-    // 固定复用——AES-CBC确定性加密：同明文首块（serverId/linkServerId等定长字段）产出同密文
-    // 首块，跨令牌泄露首块相等性（IND-CPA不成立）。修复决策：per-token随机IV前缀
-    // （令牌=IV(16字节)||AES-CBC-PKCS5(key,IV,明文)），弃AES-GCM（nonce复用后果灾难性、
-    // 无现成GCM管线，CBC+随机IV对本威胁模型已足够且是最小改动），弃"按天轮换IV"（需重发
-    // AnnounceSecret+linkd双IV窗口，同为linkd联动且天内仍复用，劣于per-token）。
-    // 迁移路径（需linkd联动，LinkdProvider.choiceProvider经decodeToken解码，故成文不动格式）：
-    // ①先升级linkd解码端同时接受新旧格式（BToken编码定长，旧密文长度N固定、新格式长度
-    //   16+N，按总长区分，不需版本字节不增开销）；
-    // ②观察一个令牌过期窗（eLoginTokenExpireTime=30分钟）以上，保证在飞旧令牌全部消化；
-    // ③最后升级LoginQueue编码端只产新格式。任意时刻可回退编码端回旧格式（旧格式全程可解）。
-    // AnnounceSecret协议不变：secretKey仍16字节；secretIv在新格式下不再参与编码，迁移期
-    // 保留供旧令牌解码，迁移完成后可从BSecret移除。
+    /** 单格式解密+解码+语义校验，任一步失败返回null（供双试探判别）。 */
+    private static BToken.Data tryDecodeToken(BSecret.Data secret, byte[] bytes, int offset, int size,
+                                              boolean ivPrefixed) {
+        try {
+            byte[] plain;
+            if (ivPrefixed) {
+                if (size <= TOKEN_IV_SIZE)
+                    return null;
+                var keySpec = new SecretKeySpec(secret.getSecretKey().bytesUnsafe(), "AES");
+                var cipher = Cipher.getInstance(AES_CBC_PKCS5);
+                cipher.init(Cipher.DECRYPT_MODE, keySpec, new IvParameterSpec(bytes, offset, TOKEN_IV_SIZE));
+                plain = cipher.doFinal(bytes, offset + TOKEN_IV_SIZE, size - TOKEN_IV_SIZE);
+            } else {
+                plain = decrypt(secret, bytes, offset, size);
+            }
+            var provider = new BToken.Data();
+            provider.decode(ByteBuffer.Wrap(plain));
+            // 语义校验：expireTime由发放端固定为now+eLoginTokenExpireTime，恒为正；
+            // 新鲜度与linkServerId==本机的完整语义校验由调用方（LinkdProvider）执行。
+            if (provider.getExpireTime() <= 0)
+                return null;
+            return provider;
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    // FND8-65（FND7-20复审R3既定决策落地）：IV不再随进程固定复用——固定IV的AES-CBC是
+    // 确定性加密（IND-CPA不成立）。对抗复核已证伪具体的跨令牌泄露通道（BToken首字段是
+    // 每令牌唯一递增的serialId，任意两令牌首块明文必不同），本修复属密码学卫生。
+    // 令牌格式改为 IV(16字节)||AES-CBC-PKCS5(key,IV,明文)；弃AES-GCM（nonce复用后果
+    // 灾难性、无现成GCM管线，CBC+随机IV对本威胁模型已足够且是最小改动），弃"按天轮换IV"
+    // （需重发AnnounceSecret+linkd双IV窗口，同为linkd联动且天内仍复用，劣于per-token）。
+    // 迁移判别（对抗修正：BToken是变长编码，旧密文可为16B或32B，新格式总长=16+旧，
+    // 32B在双格式并存窗口二义，纯长度判别不成立）：解码端双试探+语义校验（见decodeToken），
+    // 误判只会落在已过期令牌上，由expireTime新鲜度+linkServerId==本机校验兜底；
+    // 旧格式全程可解（编码端可随时回退）。
+    // AnnounceSecret协议不变：secretKey仍16字节；secretIv在新格式下不再参与编码，
+    // 迁移期保留供旧令牌解码，全部升级后可从BSecret移除。
     private static final String AES_CBC_PKCS5 = "AES/CBC/PKCS5Padding";
+    private static final int TOKEN_IV_SIZE = 16;
+    private static final SecureRandom tokenIvRandom = new SecureRandom();
 
     public static byte[] encrypt(BSecret.Data secret, byte[] bytes, int offset, int size) throws Exception {
         var keySpec = new SecretKeySpec(secret.getSecretKey().bytesUnsafe(), "AES");
-        var ivSpec = new IvParameterSpec(secret.getSecretIv().bytesUnsafe());
+        // per-token随机IV前缀（FND8-65）：输出=IV||密文
+        var iv = new byte[TOKEN_IV_SIZE];
+        tokenIvRandom.nextBytes(iv);
 
         var cipher = Cipher.getInstance(AES_CBC_PKCS5);
-        cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
+        cipher.init(Cipher.ENCRYPT_MODE, keySpec, new IvParameterSpec(iv));
+        var encrypted = cipher.doFinal(bytes, offset, size);
 
-        return cipher.doFinal(bytes, offset, size);
+        var out = new byte[TOKEN_IV_SIZE + encrypted.length];
+        System.arraycopy(iv, 0, out, 0, TOKEN_IV_SIZE);
+        System.arraycopy(encrypted, 0, out, TOKEN_IV_SIZE, encrypted.length);
+        return out;
     }
 
+    /** 旧格式解密（固定secretIv）：仅剩迁移期解码用途（decodeToken双试探的旧分支）。 */
     public static byte[] decrypt(BSecret.Data secret, byte[] bytes, int offset, int size) throws Exception {
         var keySpec = new SecretKeySpec(secret.getSecretKey().bytesUnsafe(), "AES");
         var ivSpec = new IvParameterSpec(secret.getSecretIv().bytesUnsafe());
