@@ -4,8 +4,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.TableWalkHandleRaw;
+import Zeze.Util.Id128;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -16,7 +18,17 @@ import org.jetbrains.annotations.Nullable;
 public class ApplyDatabaseZeze implements IApplyDatabase {
 	private static final Logger logger = LogManager.getLogger(ApplyDatabaseZeze.class);
 
+	// FND8-28：游标持久化的伪表与固定键——库独立于业务表的命名空间，经openTable直开
+	// （不要求在zeze注册，对齐OperatesDynamoDb的schema表先例）。
+	private static final String cursorTableName = "__cursor__";
+	private static final byte[] cursorKeyBytes = {0};
+
+	private static ByteBuffer cursorKey() {
+		return ByteBuffer.Wrap(cursorKeyBytes); // 每次新建，避免共享可变ByteBuffer被底层后端移动写指针
+	}
+
 	private final Database dbForApply;
+	private final Database.AbstractKVTable cursorStorage;
 	private final ConcurrentHashMap<String, ApplyTableZeze> tables = new ConcurrentHashMap<>();
 	// 当前打开的记录级事务。apply在ApplyHelper锁内单线程驱动，同一时刻至多一个。
 	private IApplyRecordTxn activeRecordTxn;
@@ -25,6 +37,10 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		if (applyDbName.isBlank())
 			throw new RuntimeException("apply database must have a name.");
 		dbForApply = zeze.getDatabase(applyDbName);
+		var storage = dbForApply.openTable(cursorTableName, Bean.hash32(cursorTableName));
+		if (!(storage instanceof Database.AbstractKVTable kvStorage))
+			throw new RuntimeException("apply database need a kv-table for cursor. name=" + applyDbName);
+		cursorStorage = kvStorage;
 	}
 
 	@Override
@@ -39,6 +55,27 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		var txn = new RecordTxn();
 		activeRecordTxn = txn;
 		return txn;
+	}
+
+	@Override
+	public @Nullable Id128 loadCursor() {
+		var value = cursorStorage.find(cursorKey());
+		if (null == value)
+			return null;
+		var id = new Id128();
+		id.decode(value);
+		return id;
+	}
+
+	@Override
+	public void saveCursor(@NotNull Id128 key, @NotNull IApplyRecordTxn txn) throws Exception {
+		// 必须走当前记录级事务的底层dbTxn：游标与记录数据同事务提交，杜绝
+		// "数据持久而进度丢失"的错配（重启后游标归零整段重放，Edit非幂等即污染）。
+		if (!(txn instanceof RecordTxn recordTxn))
+			throw new IllegalStateException("saveCursor requires the RecordTxn of this database.");
+		var value = ByteBuffer.Allocate();
+		key.encode(value);
+		cursorStorage.replace(recordTxn.dbTxn, cursorKey(), value);
 	}
 
 	/**

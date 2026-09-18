@@ -49,6 +49,9 @@ public class ApplyHelper extends FastLock {
 		this.dbApplied = dbApplied;
 		this.beforeTimeMs = beforeTimeMs;
 		this.holeGraceMs = holeGraceMs;
+		// FND8-28：持久化后端必须恢复游标——否则重启后游标归零从表头整段重放到已有状态上
+		// （Edit类日志非幂等，重放污染回放副本）。内存后端loadCursor返回null，天然一致。
+		exclusiveStartKey = dbApplied.loadCursor();
 	}
 
 	public ConcurrentHashMap<Integer, ApplyTable<?, ?>> getApplyTables() {
@@ -128,6 +131,10 @@ public class ApplyHelper extends FastLock {
 						var affectKeys = result.computeIfAbsent(applyTable, __ -> new HashSet<>());
 						affectKeys.add(applyTable.apply(r.getKey(), r.getValue()));
 					}
+					// FND8-28：游标在记录级事务内与记录数据同原子单元保存——持久化后端
+					// 把它与entry写入路由进同一个底层事务，commit成功才一起生效；
+					// 失败随记录整体回滚，游标停在上条记录，重试从断点续传。
+					dbApplied.saveCursor(key, recordTxn);
 					recordTxn.commit();
 					committed = true;
 				} catch (Exception ex) {
