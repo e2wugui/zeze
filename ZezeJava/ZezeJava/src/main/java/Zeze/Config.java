@@ -773,7 +773,15 @@ public final class Config {
 			// （对照同文件其它配置错误均抛带名异常）。
 			if (globalCacheManagers == null)
 				throw new IllegalStateException("GlobalCacheManagersConf node missing");
-			globalCacheManagerHostNameOrAddress = globalCacheManagers.toString();
+			var parsed = globalCacheManagers.toString();
+			// FND8-19：isBlank不够——>=2个空白<host name=""/>时toString()==";"非blank，
+			// 会静默降级为无GCM模式并绕过hasGlobal与setInUse两道下游检查（连主流后端的
+			// 启动期互斥兜底也被绕过）。按消费语义（Str.trim(split(";"))）过滤后判空：
+			// 写了特殊值=显式opt-in，空结果只能是漏写host，必须fail-fast；直接属性写空串
+			// （单机模式标准写法）不走本分支，维持原默认语义。
+			if (Str.trim(parsed.split(";")).length == 0)
+				throw new IllegalStateException("GlobalCacheManagersConf has no non-blank <host> children");
+			globalCacheManagerHostNameOrAddress = parsed;
 		}
 	}
 
