@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
@@ -14,6 +15,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
+import Zeze.Net.Rpc;
 import Zeze.Services.HandshakeClient;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
@@ -200,20 +202,42 @@ public class ProviderService extends HandshakeClient {
 		// static binds
 		var bind = new Bind();
 		providerApp.staticBinds.foreach(bind.Argument.getModules()::put);
+		var linkName = getLinkName(so);
 		bind.Send(so, rpc -> {
-			providerStaticBindCompleted.setResult(true);
+			// FND8-88：超时/失败不得置位完成信号——该信号是应用层启动门禁API，
+			// 原先无条件setResult(true)等于撒谎。见checkLinkdHandshakeResult。
+			if (checkLinkdHandshakeResult(rpc, so, linkName, "Bind"))
+				providerStaticBindCompleted.setResult(true);
 			return 0;
 		});
 		var sub = new Subscribe();
 		providerApp.dynamicModules.foreach(sub.Argument.getModules()::put);
 		sub.Send(so, rpc -> {
-			providerDynamicSubscribeCompleted.setResult(true);
+			if (checkLinkdHandshakeResult(rpc, so, linkName, "Subscribe"))
+				providerDynamicSubscribeCompleted.setResult(true);
 			return 0;
 		});
 
 		var c = so.getConnector();
 		if (c != null)
 			trySetLinkChoice(c);
+	}
+
+	// FND8-88：Bind/Subscribe应答检查——超时或错误码时断连（Connector自动重连→重握手→
+	// OnHandshakeDone重发Bind/Subscribe；Rpc实例一次性，回调内自行重发会踩禁令，重连路径
+	// 天然以新实例重试），且失败不置位完成信号，由真实成功最终置位。对齐GlobalClient登录
+	// 失败so.close走重连、本文件sendDisableChoiceToLink检查isTimeout/resultCode的判例。
+	// 返回true表示应答成功。多link的first-wins语义维持不变（语义增强另行立项）。
+	static boolean checkLinkdHandshakeResult(@NotNull Rpc<?, ?> rpc, @NotNull AsyncSocket so,
+	                                         @NotNull String linkName, @NotNull String what) {
+		if (rpc.isTimeout() || rpc.getResultCode() != 0) {
+			logger.error("linkd {} fail. link={}, isTimeout={}, code={}",
+					what, linkName, rpc.isTimeout(), rpc.getResultCode());
+			so.close(new IOException("ProviderService." + what + " fail: isTimeout=" + rpc.isTimeout()
+					+ ", code=" + rpc.getResultCode()));
+			return false;
+		}
+		return true;
 	}
 
 	// 热更新增模块。
