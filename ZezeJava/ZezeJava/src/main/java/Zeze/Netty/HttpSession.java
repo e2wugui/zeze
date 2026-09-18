@@ -19,6 +19,9 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.OutObject;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.cookie.DefaultCookie;
+import io.netty.handler.codec.http.cookie.ServerCookieEncoder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -138,15 +141,24 @@ public class HttpSession extends AbstractHttpSession {
 	public @NotNull CookieSession getCookieSession(@NotNull HttpExchange x) throws Exception {
 		// 这个不缓存了，也不共享，http请求结束就可以释放。
 		var cookieSessionId = x.getCookie(ZEZE_SESSION_ID_NAME);
-		if (cookieSessionId == null) {
-			cookieSessionId = makeSessionId();
-		}
-		final var finalId = cookieSessionId;
 		final var needSetCookie = new OutObject<>(false);
+		final var sessionId = new OutObject<String>();
 		FuncLong initAction = () -> {
 			needSetCookie.value = false; // 乐观锁 redo 整体重跑时重置 out 参数，避免沿用上一轮的陈旧结果。
+			// FND8-57：新建会话的id永远由服务器随机生成——客户端提供的id只在表中已存在且未过期时
+			// 才被采用；未知/已过期的id一律丢弃再生。否则攻击者经cookie注入把自选ZEZESESSIONID植入
+			// 受害者（子域Domain注入/明文MITM等），受害者首访即以该id建全新会话，攻击者持同id并发
+			// 访问即获得其会话（含登录后写入的properties）；过期复活分支（旧行就地以旧主键复活）
+			// 同样封死。redo重跑时重新生成即可（回滚的插入随事务消失，行不会残留）。
+			sessionId.value = cookieSessionId;
+			if (sessionId.value != null) {
+				var existing = _tSession.get(sessionId.value);
+				if (existing == null || existing.getExpireTime() <= System.currentTimeMillis())
+					sessionId.value = makeSessionId();
+			} else
+				sessionId.value = makeSessionId();
 			var isAdd = new OutObject<>(false);
-			var value = _tSession.getOrAdd(finalId, isAdd);
+			var value = _tSession.getOrAdd(sessionId.value, isAdd);
 			var now = System.currentTimeMillis();
 			var expire = httpSessionExpire;
 			if (isAdd.value || value.getExpireTime() <= now) {
@@ -171,9 +183,16 @@ public class HttpSession extends AbstractHttpSession {
 			rc = zeze.newProcedure(initAction, "initCookieSession").call();
 		if (rc != 0L)
 			throw new RuntimeException("initCookieSession error=" + IModule.getErrorCode(rc));
-		if (needSetCookie.value)
-			x.setCookie(ZEZE_SESSION_ID_NAME, finalId, null, null, httpSessionExpire / 1000);
-		return new CookieSession(finalId); // value 不能记住，每次访问重新从表中读取。
+		if (needSetCookie.value) {
+			// 配套硬化（FND8-57）：会话cookie补HttpOnly/SameSite=Lax——注入cookie难以驻留/上送
+			// （XSS不可窃取、跨站不随行），消除id再生后受害者会话无法跨请求保持的残余降级。
+			// netty 4.1的Cookie接口无SameSite属性，编码后拼接属性段。
+			var cookie = new DefaultCookie(ZEZE_SESSION_ID_NAME, sessionId.value);
+			cookie.setHttpOnly(true);
+			cookie.setMaxAge(httpSessionExpire / 1000);
+			x.addHeader(HttpHeaderNames.SET_COOKIE, ServerCookieEncoder.LAX.encode(cookie) + "; SameSite=Lax");
+		}
+		return new CookieSession(sessionId.value); // value 不能记住，每次访问重新从表中读取。
 	}
 
 	public HttpSession(@NotNull Application zeze) {
