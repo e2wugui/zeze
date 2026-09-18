@@ -165,6 +165,28 @@ public final class Json implements Cloneable {
 			return keyReaderMap.get(klass);
 		}
 
+		// 键不在keyReaderMap时的反射回退KeyReader：读回键串再JSON解析进键对象，
+		// 与写侧（JsonWriter对非内建键整体序列化为带引号JSON串）往返对称。
+		// 手建FieldMeta处（GTable1/GTable2/Helper.decodeJsonTypedMap）与ClassMeta
+		// 构造器一律经本工厂取keyParser，避免两份回退逻辑漂移。
+		public static KeyReader getKeyReaderOrFallback(@NotNull Json json, @NotNull Class<?> keyClass,
+													   @NotNull String where) {
+			var keyReader = keyReaderMap.get(keyClass);
+			if (keyReader != null)
+				return keyReader;
+			if (isAbstract(keyClass)) {
+				return (jr, b) -> {
+					throw new IllegalStateException("unsupported abstract key class(" + keyClass
+							+ ") for " + where);
+				};
+			}
+			Creator<?> keyCtor = getDefCtor(keyClass);
+			return (jr, b) -> {
+				String keyStr = JsonReader.parseStringKey(jr, b);
+				return ensureNotNull(new JsonReader().buf(keyStr).parse(json, keyCtor.create()));
+			};
+		}
+
 		static boolean isAbstract(@NotNull Class<?> klass) {
 			return (klass.getModifiers() & (Modifier.INTERFACE | Modifier.ABSTRACT)) != 0;
 		}
@@ -320,22 +342,8 @@ public final class Json implements Cloneable {
 						if (subTypes != null) {
 							v = typeMap.get(fieldClass = ensureNotNull((Class<?>)subTypes[1]));
 							type = TYPE_MAP_FLAG + (v != null ? v & 0xf : TYPE_CUSTOM);
-							keyReader = keyReaderMap.get(subTypes[0]);
-							if (keyReader == null) {
-								Class<?> keyClass = (Class<?>)subTypes[0];
-								if (isAbstract(keyClass)) {
-									keyReader = (jr, b) -> {
-										throw new IllegalStateException("unsupported abstract key class(" + keyClass
-												+ ") for field: " + fieldName + " in " + klass.getName());
-									};
-								} else {
-									Creator<?> keyCtor = getDefCtor(keyClass);
-									keyReader = (jr, b) -> {
-										String keyStr = JsonReader.parseStringKey(jr, b);
-										return ensureNotNull(new JsonReader().buf(keyStr).parse(json, keyCtor.create()));
-									};
-								}
-							}
+							keyReader = getKeyReaderOrFallback(json, (Class<?>)subTypes[0],
+									"field: " + fieldName + " in " + klass.getName());
 						} else {
 							type = TYPE_MAP_FLAG + TYPE_OBJECT;
 							keyReader = JsonReader::parseStringKey;

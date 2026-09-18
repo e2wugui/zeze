@@ -211,10 +211,12 @@ public class Helper {
 		var fm = jsonMapFieldMetas.computeIfAbsent(meta, __ -> {
 			try {
 				// dummyField仅填充FieldMeta.field（本解析路径不使用）。
+				// keyParser经反射回退工厂（FND8-31）：BeanKey/binary等非内建键
+				// 不在keyReaderMap，裸取为null时首键解析即NPE。
 				var dummyField = Helper.class.getDeclaredField("jsonMapFieldMetas");
 				return new Json.FieldMeta(0x30 + Json.ClassMeta.getType(meta.valueClass), 0, "Map",
 						meta.valueClass, Json.ClassMeta.getDefCtor(meta.valueClass),
-						Json.ClassMeta.getKeyReader(meta.keyClass), dummyField);
+						Json.ClassMeta.getKeyReaderOrFallback(json, meta.keyClass, "BeanMap map key"), dummyField);
 			} catch (ReflectiveOperationException e) {
 				throw new IllegalStateException(e);
 			}

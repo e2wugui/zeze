@@ -30,11 +30,15 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 			// 等价，且与factory::get实际创建的容器类型一致。V必为Bean，fm2类型恒MAP+CUSTOM。
 			try {
 				var dummyField = GTable2.class.getDeclaredField("pMap2");
+				// keyParser经反射回退工厂（FND8-31）：BeanKey等非内建键不在
+				// keyReaderMap，裸取为null时首键解析即NPE。
 				fm1 = new Json.FieldMeta(0x3c, 0, "PMap2", BeanMap2.class, this::get,
-						Json.ClassMeta.getKeyReader(pmapMeta.keyClass), dummyField);
+						Json.ClassMeta.getKeyReaderOrFallback(Json.instance, pmapMeta.keyClass, "GTable2 row key"),
+						dummyField);
 				fm2 = new Json.FieldMeta(0x3c, 0, "BeanMap2", bmapMeta.valueClass,
 						Json.ClassMeta.getDefCtor(bmapMeta.valueClass),
-						Json.ClassMeta.getKeyReader(bmapMeta.keyClass), dummyField);
+						Json.ClassMeta.getKeyReaderOrFallback(Json.instance, bmapMeta.keyClass, "GTable2 column key"),
+						dummyField);
 			} catch (ReflectiveOperationException e) {
 				throw new IllegalStateException(e);
 			}

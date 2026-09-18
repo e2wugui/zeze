@@ -30,12 +30,19 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 			// 等价，且与factory::get实际创建的容器类型一致。
 			try {
 				var dummyField = GTable1.class.getDeclaredField("pMap2");
+				// keyParser经反射回退工厂（FND8-31）：BeanKey/binary/decimal/vector等
+				// 非内建键不在keyReaderMap，裸取为null时首键解析即NPE。
 				fm1 = new Json.FieldMeta(0x3c, 0, "PMap2", BeanMap1.class, this::get,
-						Json.ClassMeta.getKeyReader(pmapMeta.keyClass), dummyField);
+						Json.ClassMeta.getKeyReaderOrFallback(Json.instance, pmapMeta.keyClass, "GTable1 row key"),
+						dummyField);
+				// fm2.klass用真实valueClass（FND8-31孪生）：TYPE_CUSTOM值按Object的
+				// ClassMeta解析会得到裸空Object（静默数据损坏），Binary等按真实类走
+				// 自定义parser/反射字段解析，与写侧对称。
 				fm2 = new Json.FieldMeta(0x30 + Json.ClassMeta.getType(bmapMeta.valueClass),
-						0, "BeanMap1", Object.class,
+						0, "BeanMap1", bmapMeta.valueClass,
 						Json.ClassMeta.getDefCtor(bmapMeta.valueClass),
-						Json.ClassMeta.getKeyReader(bmapMeta.keyClass), dummyField);
+						Json.ClassMeta.getKeyReaderOrFallback(Json.instance, bmapMeta.keyClass, "GTable1 column key"),
+						dummyField);
 			} catch (ReflectiveOperationException e) {
 				throw new IllegalStateException(e);
 			}
@@ -154,9 +161,8 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		checkNonBeanDimension("row", rowClass);
 		checkNonBeanDimension("column", colClass);
 		// Bean值不支持（FND7-83，PList1/PMap1拒绝Bean值判例同族）：GTable1为动态标量值
-		// 设计（bean值由GTable2的带valueClass路径承担），Json解析的fm2以klass=Object.class
-		// 构造，JsonReader.parseMap0的TYPE_CUSTOM分支按fm.klass建实例（fm.ctor从不使用）
-		// ——Bean值被静默解析成裸空Object。schema层bean值恒产GTable2（History.Helper.
+		// 设计（bean值由GTable2的带valueClass路径承担），Bean值需要GTable2的BeanMap2
+		// 元数据机制才能正确解码。schema层bean值恒产GTable2（History.Helper.
 		// dependsGTable），仅手写可触发，显式失败优于静默数据错误。
 		if (Bean.class.isAssignableFrom(valClass))
 			throw new IllegalArgumentException(
