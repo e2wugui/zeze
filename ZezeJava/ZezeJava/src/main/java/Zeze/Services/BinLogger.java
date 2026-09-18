@@ -247,6 +247,12 @@ public final class BinLogger extends ReentrantLock {
 		private long lastFlushMs; // 上次flush文件的毫秒时间戳
 		private int curDayStamp; // 当前的日期戳
 		private volatile boolean started; // 是否已经开始服务（写线程读作退出信号，需跨线程可见）
+		// 写线程代际令牌（FND8-59）：stop超时放弃join后写线程可能仍存活（阻塞在文件IO、
+		// 慢大批内——成功路径原本无停机检查），同实例start重启会把共享started置回true，
+		// 旧线程的全部退出判定（读共享started）失效而"复活"，与新写线程双写五文件。
+		// 每次startLogger先推进代际，写线程只认自己出生时的代际：迟到的旧线程无论共享
+		// 标志被谁改写都会退出，且退出不触碰新代的任何共享状态。
+		private volatile long loggerGeneration;
 		private boolean waitingQueue; // 写日志队列是否已满导致等待
 
 		// FND5-47：瞬态输出故障（Windows备份/防毒短暂锁定当天日志文件、NAS抖动）的自愈周期
@@ -407,6 +413,9 @@ public final class BinLogger extends ReentrantLock {
 		}
 
 		private void startLogger() throws Exception {
+			// 代际先于一切动作推进（含下方所有失败路径）：startLogger任一步失败重启，
+			// 旧代写线程也已过时，醒来只会走代际退出。
+			var myGeneration = ++loggerGeneration;
 			logger.info("lock logPath: '{}'", logPath);
 			try {
 				// 1.目录上锁
@@ -422,7 +431,7 @@ public final class BinLogger extends ReentrantLock {
 				writeLogQueue = new ArrayList<>();
 				writeLogQueueSize = 0;
 				waitingQueue = false;
-				writeLogThread = new Thread(this::writeLogThread, "WriteLogThread");
+				writeLogThread = new Thread(() -> writeLogThread(myGeneration), "WriteLogThread");
 				writeLogThread.setPriority(Thread.NORM_PRIORITY + 2); // 稍调高点优先级,确保输出日志吞吐性能
 				writeLogThread.start();
 			} catch (Throwable e) { // rethrow
@@ -565,7 +574,7 @@ public final class BinLogger extends ReentrantLock {
 			return 0;
 		}
 
-		private void writeLogThread() {
+		private void writeLogThread(long myGeneration) {
 			var readLogQueue = new ArrayList<LogData>(); // 读日志队列
 			var lastTs = 0L;
 			var buf = new byte[8];
@@ -573,6 +582,15 @@ public final class BinLogger extends ReentrantLock {
 				try {
 					queueLock.lock();
 					try {
+						if (myGeneration != loggerGeneration) {
+							// FND8-59：stale写线程（stop超时放弃join后同实例start重启产生）。
+							// 此刻队列可能已属新一代：不得置null（会令新代线程在wlq==null跟着
+							// 退出、processLogData断流）、不得signal生产者，仅丢弃本地残批退出。
+							if (!readLogQueue.isEmpty())
+								logger.error("writeLogThread exit on stale generation: discard {} resident logs",
+									readLogQueue.size());
+							break;
+						}
 						var wlq = writeLogQueue;
 						if (wlq == null) // 阻止了写队列后,也处理完读队列,可以退出了
 							break;
@@ -604,6 +622,12 @@ public final class BinLogger extends ReentrantLock {
 							lastTs = curMs << 20;
 						var dayStamp = toDayStamp(curMs);
 						if (dayStamp != curDayStamp) { // 判断是否要轮转日志文件
+							if (myGeneration != loggerGeneration) {
+								// FND8-59：stale不轮转——openDay会整体重赋五字段，抢占新代的流。
+								logger.error("writeLogThread exit on stale generation during rotation: discard {} logs",
+									queueSize);
+								break;
+							}
 							var oldBinFile = binFile;
 							var oldPosFile = posFile;
 							var oldTsFile = tsFile;
@@ -616,6 +640,13 @@ public final class BinLogger extends ReentrantLock {
 							forceClose(oldTsFile);
 							forceClose(oldPosFile);
 							forceClose(oldBinFile);
+							if (myGeneration != loggerGeneration) {
+								// FND8-59：openDay（阻塞IO）跨越了重启：curDayStamp不推进、
+								// 不再触碰共享状态，丢弃本地残批退出。
+								logger.error("writeLogThread exit on stale generation after rotation: discard {} logs",
+									queueSize);
+								break;
+							}
 							curDayStamp = dayStamp;
 							// FND6-29：轮转窗口停机复查。stop超时放弃join后stopLogger已forceClose当时
 							// 字段并释放目录锁，openDay在此之后重开的新五件套无人负责关闭（句柄泄漏到
@@ -643,9 +674,18 @@ public final class BinLogger extends ReentrantLock {
 						var recoverBackoffExp = 0; // 恢复失败重试指数（成功写完整批清零）
 						var recoverWindowMs = 0L; // 恢复失败累计观察窗（FND5-47，成功清零）
 						var exitOnStop = false;
+						var exitStale = false; // 代际过时退出（FND8-59）：不动writeLogQueue（可能属新代）
 						while (completed < queueSize) { // 把当前队列里的日志全部写入日志和索引文件,用相同的毫秒时间戳应该没问题
 							try {
 								for (int i = completed; i < queueSize; i++) {
+									if (myGeneration != loggerGeneration) {
+										// FND8-59：慢大批期间同实例重启——成功路径原本无停机检查，
+										// 整批会写进新代流后才退出；逐条检查把损坏窗口缩到单条。
+										logger.error("writeLogThread exit on stale generation in batch: discard {} logs, completed={}/{}",
+											queueSize - completed, completed, queueSize);
+										exitStale = true;
+										break;
+									}
 									var logData = readLogQueue.get(i);
 									var data = logData.data;
 									var dataSize = data.size();
@@ -667,6 +707,15 @@ public final class BinLogger extends ReentrantLock {
 								// 当前条可能半写：completed不推进，恢复后重写它（脏尾成gap）。
 								logger.error("writeLogThread write exception. completed={}, day={}",
 									completed, curDayStamp, e);
+								if (myGeneration != loggerGeneration) {
+									// FND8-59：写异常恢复前先查代际——重启后五字段属新代，
+									// forceClose会关掉新代的流、openDay会抢占新代的流：不触碰
+									// 共享状态，丢弃残余批退出。
+									logger.error("writeLogThread exit on stale generation on write exception: discard {} logs, completed={}/{}",
+										queueSize - completed, completed, queueSize);
+									exitStale = true;
+									break;
+								}
 								// FND5-39：停机检查必须先于重开——stop超时放弃join后，写线程稍后
 								// 从慢速写抛异常进恢复分支：原顺序先forceClose+openDay再查!started，
 								// 会把当日五件套重开赋给字段后退出，nobody再关闭（句柄泄漏到进程
@@ -685,6 +734,14 @@ public final class BinLogger extends ReentrantLock {
 									forceClose(posFile);
 									forceClose(binFile);
 									openDay(curDayStamp); // 失败保持closed流：下次write再抛，再次进入恢复
+									if (myGeneration != loggerGeneration) {
+										// FND8-59：重开（阻塞IO）跨越了重启：不再forceClose字段
+										// （关闭责任归新代stopLogger），丢弃残余批退出。
+										logger.error("writeLogThread exit on stale generation during recover reopen: discard {} logs, completed={}/{}",
+											queueSize - completed, completed, queueSize);
+										exitStale = true;
+										break; // 退出内层while，经exitStale路径退出外层for(;;)
+									}
 									// FND6-29姊妹：恢复分支重开后的停机复查。停机落在上方检查之后、
 									// 且openDay耗时跨越stop放弃join的点（NFS/磁盘抖动停滞正是本分支
 									// 的威胁模型前提）时，stopLogger已forceClose重开前的字段并释放
@@ -726,6 +783,8 @@ public final class BinLogger extends ReentrantLock {
 							discardWriteQueueForExit();
 							break; // 退出外层for(;;)
 						}
+						if (exitStale)
+							break; // FND8-59：残批已随clear丢弃；不动writeLogQueue（可能属新代）
 						writeLogCounter.inc(queueSize);
 					} else {
 						if (curMs - lastFlushMs >= FLUSH_PERIOD) { // 定时刷新到OS
