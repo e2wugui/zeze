@@ -211,12 +211,24 @@ public final class Agent extends AbstractAgent {
 		var subArg = new BSubscribeArgument();
 		for (var e : subscribeStates.values())
 			subArg.subs.add(e.getSubscribeInfo());
-		subscribeServicesAsync(subArg).whenComplete((__, ex) -> {
-			if (ex != null) { // 发送失败或错误码：异步失败路径，调用侧try/catch不可达
+		// FND8-69（对齐raft版onLoginSuccess的双保险结构）：subscribeServicesAsync首行
+		// waitConnectorReady可同步抛出（连接恰在phase-1应答到达后到此处之间死亡，或在
+		// >5s重连退避中阻塞超时）——异常发生在future创建之前，whenComplete不可达，原样
+		// 穿透后被上层ofAction吞掉，scheduleReplayRetry不被调用，重试链断（FND4-65不变量
+		// 破口）。同步路径补try/catch；空订阅守卫避免无订阅空发。
+		if (!subArg.subs.isEmpty()) {
+			try {
+				subscribeServicesAsync(subArg).whenComplete((__, ex) -> {
+					if (ex != null) { // 发送失败或错误码：异步失败路径，调用侧try/catch不可达
+						logger.warn("replay subscribes failed, schedule retry.", ex);
+						scheduleReplayRetry();
+					}
+				});
+			} catch (Throwable ex) { // 同步失败路径（waitConnectorReady等入口抛出）
 				logger.warn("replay subscribes failed, schedule retry.", ex);
 				scheduleReplayRetry();
 			}
-		});
+		}
 	}
 
 	private void scheduleReplayRetry() {
