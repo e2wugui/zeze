@@ -129,17 +129,37 @@ public final class RelativeRecordSet extends ReentrantLock {
 			throw new Transaction.RejectWhileStopping("commit rejected while stopping: " + procedure.getActionName());
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
-		case Immediately:
+		case Immediately: {
 			commit.run();
-			var logChanges = collectChanges.call();
-			var checkpoint = procedure.getZeze().getCheckpoint();
-			if (checkpoint == null)
-				// FND7-54：修改已应用但终检点恰在此间过去，无法落库——显式失败优于静默假成功。
-				throw new Transaction.RejectWhileStopping(
-						"immediate flush rejected while stopping: " + procedure.getActionName());
-			checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
+			BLogChanges.Data logChanges = null;
+			try {
+				logChanges = collectChanges.call();
+				var checkpoint = procedure.getZeze().getCheckpoint();
+				if (checkpoint == null)
+					// FND7-54：修改已应用但终检点恰在此间过去，无法落库——显式失败优于静默假成功。
+					throw new Transaction.RejectWhileStopping(
+							"immediate flush rejected while stopping: " + procedure.getActionName());
+				checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
+			} catch (Throwable ex) {
+				// FND8-18：修改已应用（commit.run）而收集/落库失败——runOnce对Immediately是no-op，
+				// perform的halt兜底刷不到这批"已应用未落库"的数据。趁记录锁未释放（holdLocks在
+				// finalCommit返回后才清）用同一入口做一次受控补刷：成功则数据已落库，fatal记原异常
+				// 后吞掉继续；再失败则重抛原异常走halt（DB硬故障，明确接受丢失）。
+				// 停机中（checkpoint==null，RejectWhileStopping）无补刷通道，保持原语义转Closed。
+				var checkpoint = procedure.getZeze().getCheckpoint();
+				if (checkpoint == null)
+					throw ex;
+				try {
+					checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
+				} catch (Throwable ex2) { // logger.fatal
+					Checkpoint.logger.fatal("Immediately commit flush fail, salvage flush fail again, accept loss", ex2);
+					throw ex;
+				}
+				Checkpoint.logger.fatal("Immediately commit flush fail, salvage flush success, data saved", ex);
+			}
 			// 这种模式下 RelativeRecordSet 都是空的。
 			return; // done
+		}
 
 //		case Period:
 //			if (onzProcedure != null)
@@ -200,10 +220,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 			if (!locked.isEmpty()) {
 				var mergedSet = _merge_(locked, trans, allRead);
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
-				var logChanges = collectChanges.call();
 				mergedSet.addOnzProcedures(onzProcedure);
-				if (logChanges != null)
-					mergedSet.addLogChanges(logChanges); // History存在并且开启，则加入rrs。
+				try {
+					var logChanges = collectChanges.call();
+					if (logChanges != null)
+						mergedSet.addLogChanges(logChanges); // History存在并且开启，则加入rrs。
 
 					if (needFlushNow) {
 						var checkpoint = procedure.getZeze().getCheckpoint();
@@ -225,6 +246,21 @@ public final class RelativeRecordSet extends ReentrantLock {
 									"rrs register rejected while stopping: " + procedure.getActionName());
 						checkpoint.relativeRecordSetMap.add(mergedSet);
 					}
+				} catch (Throwable ex) {
+					// FND8-18：修改已应用（commit.run）而收集/落库失败——原代码此处直接向上抛，
+					// mergedSet不进relativeRecordSetMap，perform的halt兜底checkpointRun只遍历map，
+					// 已应用的脏数据（含_merge_并入的存量脏集）无任何落库通道，halt后丢失。
+					// 把mergedSet注册进map交给后台checkpoint重试后再重抛：mergedSet锁全程由本线程
+					// 持有（finally统一释放），map为ConcurrentHashSet，注册并发安全；flush失败时
+					// flushInternal已回滚DB事务、记录保持dirty，正是"保留dirty留待重试"的既有语义。
+					// 停机中（checkpoint==null，RejectWhileStopping）无注册通道，维持FND7-54语义。
+					if (mergedSet.recordSet != null) {
+						var checkpoint = procedure.getZeze().getCheckpoint();
+						if (checkpoint != null)
+							checkpoint.relativeRecordSetMap.add(mergedSet);
+					}
+					throw ex;
+				}
 			} else {
 				// 本次事务没有访问任何数据，也要执行提交，否则 whileCommit 回调会丢失。
 				commit.run();
