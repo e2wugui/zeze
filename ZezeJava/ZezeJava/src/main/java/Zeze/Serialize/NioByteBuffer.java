@@ -344,11 +344,16 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 			return equals((NioByteBuffer)other);
 		if (other instanceof ByteBuffer b)
 			return bb.equals(java.nio.ByteBuffer.wrap(b.Bytes, b.ReadIndex, b.size()));
-		if (other instanceof byte[])
-			return bb.equals(java.nio.ByteBuffer.wrap((byte[])other));
 		if (other instanceof Binary binary)
 			return bb.equals(java.nio.ByteBuffer.wrap(binary.bytesUnsafe(), binary.getOffset(), binary.size()));
 		return false;
+	}
+
+	/** 裸数组内容比较的显式出口（FND8-15）：equals不再接受byte[]——数组hashCode是
+	 * 身份哈希，宽容分支违反"equals相等则hashCode相等"契约，哈希容器传裸数组查询
+	 * 会落错桶静默miss。 */
+	public boolean contentEquals(byte @NotNull [] other) {
+		return bb.equals(java.nio.ByteBuffer.wrap(other));
 	}
 
 	public boolean equals(@Nullable NioByteBuffer other) {

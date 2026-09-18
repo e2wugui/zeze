@@ -1112,13 +1112,18 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			return equals(bb);
 		if (other instanceof NioByteBuffer nbb)
 			return nbb.bb.equals(java.nio.ByteBuffer.wrap(Bytes, ReadIndex, size()));
-		if (other instanceof byte[] bytes)
-			return Arrays.equals(Bytes, ReadIndex, WriteIndex, bytes, 0, bytes.length);
 		if (other instanceof Binary binary) {
 			return Arrays.equals(Bytes, ReadIndex, WriteIndex,
 					binary.bytesUnsafe(), binary.getOffset(), binary.getOffset() + binary.size());
 		}
 		return false;
+	}
+
+	/** 裸数组内容比较的显式出口（FND8-15）：equals不再接受byte[]——数组hashCode是
+	 * 身份哈希，宽容分支违反"equals相等则hashCode相等"契约，哈希容器传裸数组查询
+	 * 会落错桶静默miss。 */
+	public boolean contentEquals(byte @NotNull [] other) {
+		return Arrays.equals(Bytes, ReadIndex, WriteIndex, other, 0, other.length);
 	}
 
 	public boolean equals(@Nullable ByteBuffer other) {
