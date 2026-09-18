@@ -125,6 +125,13 @@ public class Daemon {
 					logger.error("Daemon.receiveCommand bad packet", ex);
 				}
 				if (cmd != null) {
+					// 统一弱校验兜底（FND8-61）：Register以外的命令必须来自已注册Monitor的对端。
+					// 合法CommonResult与Release在本switch无分支无动作（Daemon只发不收），统一拦截
+					// 零副作用；任意本地进程伪造报文不得触达状态变更/销毁路径。
+					// 残余风险：对端地址校验可被"抢先自注册"满足（Register无发送者凭据），另立发现跟踪。
+					if (cmd.command() != Register.Command && !isRegisteredPeer(cmd.peer)) {
+						logger.error("Command {} rejected: unregistered peer={}", cmd.command(), cmd.peer);
+					} else
 					switch (cmd.command()) {
 					case Register.Command:
 						var reg = (Register)cmd;
@@ -155,7 +162,15 @@ public class Daemon {
 						var on = (GlobalOn)cmd;
 						code = 0;
 						var monitor = monitors.get(on.serverId);
-						if (monitor != null) {
+						if (monitor != null && !monitor.peerSocketAddress.equals(on.peer)) {
+							// per-monitor强绑定（FND8-61）：该serverId的配置只能由该serverId的注册者
+							// （同一子进程udpSocket，对端地址相同）改写——伪造合法编码的GlobalOn（可枚举
+							// serverId/globalIndex试错）改写超时配置可令Monitor反复销毁被监管子进程；
+							// 多Server共存（Simulate）场景同时消除跨Server改写。按未注册应答隐藏区分。
+							logger.error("GlobalOn rejected: serverId={} peer={} registered={}",
+									on.serverId, on.peer, monitor.peerSocketAddress);
+							code = 1;
+						} else if (monitor != null) {
 							if (on.globalIndex < 0 || on.globalIndex >= monitor.globalConfigs.length()) {
 								// 非信任输入边界校验（FND5-37，对齐ProcessDaemon.Release判例）：
 								// 越界索引丢弃，AIOOBE不得逃逸到外层catch的fatalExit。
