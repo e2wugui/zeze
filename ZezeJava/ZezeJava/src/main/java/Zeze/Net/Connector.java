@@ -39,6 +39,10 @@ public class Connector extends ReentrantLock {
 	private int reConnectDelay;
 	private boolean connecting; // start()在锁外构造socket期间为true（构造内含阻塞DNS）
 	private boolean abortConnect; // 构造期间Connector被stop，新socket由start()自行丢弃
+	// FND8-49：stop打断在途构造的窗口期内到达的start()/TryReconnect()的重启意图——不再静默吞掉，
+	// 由在途start()的丢弃尾段补偿start()。仅在connecting&&abortConnect（请求晚于stop）置位，
+	// 不得在connecting一律置位：stop之前进入的启动请求会被stop否决，无条件置位将复活它。
+	private boolean restartRequested;
 
 	public static @NotNull Connector Create(@NotNull Element e) {
 		String className = e.getAttribute("Class");
@@ -214,8 +218,13 @@ public class Connector extends ReentrantLock {
 	public void TryReconnect() {
 		lock();
 		try {
-			if (!isAutoReconnect || socket != null || reconnectTask != null || connecting)
+			if (!isAutoReconnect || socket != null || reconnectTask != null)
 				return;
+			if (connecting) {
+				if (abortConnect) // 同start()：stop窗口期内的重连请求记录重启意图（FND8-49）
+					restartRequested = true;
+				return;
+			}
 
 			reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
 			reconnectTask = TaskSpec.ofAction(this::start).scheduleNow(reConnectDelay);
@@ -253,8 +262,15 @@ public class Connector extends ReentrantLock {
 				reconnectTask.cancel(false);
 				reconnectTask = null;
 			}
-			if (socket != null || connecting)
+			if (socket != null)
 				return;
+			if (connecting) {
+				// FND8-49：stop打断在途构造的窗口期内到达的启动请求不吞——记录重启意图，
+				// 由丢弃尾段补偿start()（仅在abortConnect即请求晚于stop时置位，防复活被否决的意图）。
+				if (abortConnect)
+					restartRequested = true;
+				return;
+			}
 			connecting = true;
 		} finally {
 			unlock();
@@ -268,13 +284,20 @@ public class Connector extends ReentrantLock {
 			else
 				as = service.newWebsocketClient(url, userState, this);
 		} catch (Exception e) {
+			boolean aborted;
 			lock();
 			try {
 				connecting = false;
+				// 孪生#1（FND8-49）：构造期间被stop则不续排重试——stop对"构造持续失败"的连接器
+				// 立即生效（否则重试链每轮照常发起，直到某次构造成功才被abort丢弃终止）。
+				// abortConnect随本条在途构造的终结而消费，不污染下一条（否则下一条健康连接被误弃）。
+				aborted = abortConnect;
+				abortConnect = false;
 			} finally {
 				unlock();
 			}
-			TryReconnect();
+			if (!aborted)
+				TryReconnect();
 			throw e;
 		}
 		boolean closedInWindow = false; // 构造完成与本锁之间socket已被关闭（非stop所致）
@@ -312,6 +335,18 @@ public class Connector extends ReentrantLock {
 		// 构造期间Connector被stop（或被并发替换）：新socket不是owner，丢弃。
 		abortConnect = false;
 		as.close(new Exception("connector stopped"));
+		if (restartRequested) {
+			// FND8-49：stop窗口期内到达的start()/TryReconnect()意图不吞——补偿立即重启。
+			// 用start()而非TryReconnect()：后者对autoReconnect=false的手控连接器静默失效。
+			// start()自带的构造失败catch→TryReconnect保住自动重连连接器的退避链。
+			lock();
+			try {
+				restartRequested = false;
+			} finally {
+				unlock();
+			}
+			start();
+		}
 	}
 
 	public void stop() {
