@@ -38,7 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 public class TestFnd732VerifyBatchRcLogged extends AppBase {
-	private static final AtomicInteger NextId = new AtomicInteger();
+	// 独占号段7321+：与TestFnd732b(7341+)并行时不再同CWD撞zeze_cache_N（FND8-26目录锁后必炸，同a8a47296f型）
+	private static final AtomicInteger NextId = new AtomicInteger(7320);
 	private static final String ACCOUNT = "fnd732_acc";
 	private static final long FAIL_RC = 7L;
 

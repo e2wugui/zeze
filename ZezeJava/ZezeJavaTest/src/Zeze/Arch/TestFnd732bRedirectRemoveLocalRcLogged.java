@@ -40,7 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 public class TestFnd732bRedirectRemoveLocalRcLogged extends AppBase {
-	private static final AtomicInteger NextId = new AtomicInteger();
+	// 独占号段7341+：与TestFnd732(7321+)并行时不再同CWD撞zeze_cache_N（FND8-26目录锁后必炸，同a8a47296f型）
+	private static final AtomicInteger NextId = new AtomicInteger(7340);
 	private static final String ACCOUNT = "fnd732b_acc";
 	private static final long FAIL_RC = 7L;
 

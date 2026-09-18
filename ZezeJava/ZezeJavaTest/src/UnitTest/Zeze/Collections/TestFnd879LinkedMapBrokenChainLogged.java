@@ -43,8 +43,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestFnd879LinkedMapBrokenChainLogged {
 
-	// 与TestLinkedMapBrokenData的700+错开：@Fast类并行时Application的本地缓存按serverId一份。
-	private static final AtomicInteger NextServerId = new AtomicInteger(750);
+	// 独占号段8791+（全景查号）：既与TestLinkedMapBrokenData的700+错开，也避开TestCheckpointRunThreadSentinel
+	// 等既有的750族——FND8-26目录锁后同CWD撞号必炸（全量第一轮曾侥幸绿，第二轮并发交错即红）。
+	private static final AtomicInteger NextServerId = new AtomicInteger(8790);
 
 	private Application app;
 	private LinkedMap.Module linkedMapModule;
