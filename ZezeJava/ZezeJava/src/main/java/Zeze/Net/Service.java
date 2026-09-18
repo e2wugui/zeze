@@ -478,11 +478,16 @@ public class Service extends ReentrantLock {
 	}
 
 	/**
-	 * 服务器接受到新连接回调。
-	 *
-	 * @param so new socket accepted.
+	 * 接受新连接的公共步骤（FND8-55）：限流→haProxy→注册→握手完成回调。TCP（{@link #OnSocketAccept}）
+	 * 与websocket（WebsocketHandle.onOpen / WebsocketClient.onOpen）两条接受路径统一走此入口，
+	 * 限流与撞号契约不再依赖各入口复制粘贴。
+	 * 超限抛IllegalStateException（TCP accept流程catch后关闭新连接，保持既有契约；websocket
+	 * 调用方应捕获后显式关闭连接，不依赖Netty/JDK异常兜底）；addSocket返回false（撞号，连接
+	 * 已被addSocket关闭）时直接返回，不回调OnHandshakeDone（addSocket契约）。
+	 * 推迟OnHandshakeDone的接受路径（Handshake家族/Token覆写形态）不走本方法，自行
+	 * checkMaxConnections+setupHaProxyHeader+按addSocket返回值短路。
 	 */
-	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+	protected final void tryAccept(@NotNull AsyncSocket so) throws Exception {
 		if (socketMap.size() >= config.getMaxConnections()) // 这里可能有并发原子性问题,不能保证限制在max以内
 			throw new IllegalStateException("too many connections");
 		setupHaProxyHeader(so);
@@ -490,6 +495,15 @@ public class Service extends ReentrantLock {
 		if (!addSocket(so))
 			return;
 		OnHandshakeDone(so);
+	}
+
+	/**
+	 * 服务器接受到新连接回调。
+	 *
+	 * @param so new socket accepted.
+	 */
+	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+		tryAccept(so); // 超限抛出由accept流程catch关闭（既有契约）；撞号静默返回
 	}
 
 	/**

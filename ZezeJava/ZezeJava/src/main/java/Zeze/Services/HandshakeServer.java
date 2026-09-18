@@ -23,7 +23,8 @@ public class HandshakeServer extends HandshakeBase {
 		// 重载这个方法，推迟OnHandshakeDone调用
 		checkMaxConnections(); // 覆写丢掉了 Service.OnSocketAccept 的连接数上限检查，这里补回（FND-S3-2）
 		setupHaProxyHeader(so); // 覆写丢掉了 Service.OnSocketAccept 的HaProxy头安装，这里补回（FND7-24）
-		addSocket(so);
+		if (!addSocket(so)) // FND8-55：撞号连接已被addSocket关闭，不得再走后续接受流程
+			return;
 		var hand0 = new SHandshake0();
 		var options = getConfig().getHandshakeOptions();
 		hand0.Argument.encryptType = options.getEncryptType();

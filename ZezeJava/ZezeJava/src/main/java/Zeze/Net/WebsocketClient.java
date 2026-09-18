@@ -81,9 +81,12 @@ public class WebsocketClient extends AsyncSocket {
 				// 握手永不完成，Connector.WaitReady挂死（4d563735e引入、回归修正）。
 				if (connector != null)
 					connector.OnSocketConnected(WebsocketClient.this);
-				service.addSocket(WebsocketClient.this);
+				// FND8-55：限流+注册+握手完成统一走tryAccept；超限显式关闭（不走JDK回调异常链），
+				// 撞号（addSocket false，连接已被关闭）不再回调OnHandshakeDone。
 				try {
-					service.OnHandshakeDone(WebsocketClient.this);
+					service.tryAccept(WebsocketClient.this);
+				} catch (IllegalStateException e) { // too many connections
+					WebsocketClient.this.close(e);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}

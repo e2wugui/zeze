@@ -199,7 +199,8 @@ public final class Token extends AbstractToken {
 
 		@Override
 		public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
-			addSocket(so);
+			if (!addSocket(so)) // FND8-55：撞号连接已被addSocket关闭，不得再回调OnHandshakeDone
+				return;
 			// 复审R2（FND7-S2①）：本端配置了加密/压缩时推迟OnHandshakeDone到握手完成——服务端
 			// （同配置）accept后会发SHandshake0发起握手，立即回调会在明文窗口重放SubTopic，
 			// 被服务端FND7-23输入门禁拒绝。全Disable保持原快速路径立即回调（与Disable服务端的
@@ -342,7 +343,8 @@ public final class Token extends AbstractToken {
 		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
 			checkMaxConnections(); // 覆写丢掉了 Service.OnSocketAccept 的连接数上限检查，这里补回（FND-S3-2）
 			setupHaProxyHeader(so); // 覆写丢掉了 Service.OnSocketAccept 的HaProxy头安装，这里补回（FND7-24）
-			addSocket(so);
+			if (!addSocket(so)) // FND8-55：撞号连接已被addSocket关闭，不得再走后续接受流程
+				return;
 			// 复审R2（FND7-S2①）：TokenServer此前无条件直呼OnHandshakeDone（从不发送SHandshake0），
 			// 客户端（TokenClient）也从不开握——EncryptType/Compress配置永远不生效：配置了加密的
 			// Token服务静默全明文运行；FND7-23输入门禁落地后更是直接拒绝所有未握手应用协议。
