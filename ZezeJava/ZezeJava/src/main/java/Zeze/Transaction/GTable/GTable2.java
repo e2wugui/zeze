@@ -35,8 +35,11 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 				fm1 = new Json.FieldMeta(0x3c, 0, "PMap2", BeanMap2.class, this::get,
 						Json.ClassMeta.getKeyReaderOrFallback(Json.instance, pmapMeta.keyClass, "GTable2 row key"),
 						dummyField);
+				// DynamicBean不走getDefCtor（无无参构造器，allocateInstance兜底产出
+				// getBean/createBean均null的未初始化实例）；该ctor在本解析路径不使用，传null。
 				fm2 = new Json.FieldMeta(0x3c, 0, "BeanMap2", bmapMeta.valueClass,
-						Json.ClassMeta.getDefCtor(bmapMeta.valueClass),
+						bmapMeta.valueClass == Zeze.Transaction.DynamicBean.class
+								? null : Json.ClassMeta.getDefCtor(bmapMeta.valueClass),
 						Json.ClassMeta.getKeyReaderOrFallback(Json.instance, bmapMeta.keyClass, "GTable2 column key"),
 						dummyField);
 			} catch (ReflectiveOperationException e) {
@@ -173,6 +176,13 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 
 	public static <R, C, V extends Bean, VReadOnly> @NotNull Factory<R, C, V, VReadOnly> getFactory(
 			@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
+		// 【FND8-33】DynamicBean没有无参构造器，Meta2.getMap2Meta的深反射抛不带
+		// "dynamic不支持"信息的NoSuchMethodException——指名拒绝，dynamic值走带
+		// get/create工厂的重载。
+		if (valClass == Zeze.Transaction.DynamicBean.class)
+			throw new IllegalArgumentException(
+					"GTable2 does not support DynamicBean value via this overload (no default constructor),"
+							+ " use getFactory(rowClass, colClass, get, create): " + valClass.getName());
 		var map = factories.computeIfAbsent(rowClass, __ -> new ConcurrentHashMap<>())
 				.computeIfAbsent(colClass, __ -> new ConcurrentHashMap<>());
 		var factory = map.get(valClass);
@@ -183,6 +193,21 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 			factory = map.computeIfAbsent(valClass, __ -> new Factory<>(pmapMeta, bmapMeta));
 		}
 		return (Factory<R, C, V, VReadOnly>)factory;
+	}
+
+	// 【FND8-33 A1】dynamic值的工厂路径（对齐PMap2的dynamic构造器判例）：工厂按变量
+	// 成对（不同变量不同工厂），不进按类缓存。bmapMeta与Helper.registerLogMap2Dynamic
+	// 注册的meta同函数同typeId（Log.register先到先得的等价契约）；pmapMeta与三参版
+	// 路径完全一致。
+	public static <R, C, VReadOnly> @NotNull Factory<R, C, Zeze.Transaction.DynamicBean, VReadOnly> getFactory(
+			@NotNull Class<R> rowClass, @NotNull Class<C> colClass,
+			@NotNull java.util.function.ToLongFunction<Bean> get,
+			@NotNull java.util.function.LongFunction<Bean> create) {
+		var bmapMeta = Meta2.<C, Zeze.Transaction.DynamicBean>createDynamicMapMeta(colClass, get, create);
+		var pmapMeta = Meta2.createMap2Meta(rowClass,
+				(Class<BeanMap2<C, Zeze.Transaction.DynamicBean, VReadOnly>>)(Class<?>)BeanMap2.class,
+				() -> new BeanMap2<>(bmapMeta));
+		return new Factory<>(pmapMeta, bmapMeta);
 	}
 
 	public @NotNull PMap2<R, BeanMap2<C, V, VReadOnly>> getPMap2() {

@@ -301,7 +301,10 @@ public class Helper {
 			result.map2Metas.add(factory.getPmapMeta());
 			result.map2Metas.add(factory.getBmapMeta());
 		} else if (valueClass == DynamicBean.class) {
-			var factory = GTable2.getFactory(key1Class, key2Class, (Class<? extends Bean>)valueClass);
+			// 【FND8-33 A3】先取每变量的get/create工厂，再经dynamic重载构建
+			//（三参版对DynamicBean必抛：无无参构造器）。
+			var family = newDynamicFamily(beanClass, v);
+			var factory = GTable2.getFactory(key1Class, key2Class, family.factories.getKey(), family.factories.getValue());
 			result.map2Metas.add(factory.getPmapMeta());
 			putDynamicFamily(result.map2Dynamic, KV.create(key2Class, (Class<? extends Bean>)valueClass), beanClass, v);
 		} else {
