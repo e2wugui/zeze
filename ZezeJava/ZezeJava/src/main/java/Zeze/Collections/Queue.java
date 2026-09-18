@@ -14,9 +14,12 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Queue<V extends Bean> implements HotBeanFactory {
 	private static final BeanFactory beanFactory = new BeanFactory();
+	private static final Logger logger = LogManager.getLogger(Queue.class);
 
 	public static long getSpecialTypeIdFromBean(Serializable bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
@@ -224,8 +227,15 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			return null;
 
 		var head = getNode(headKey);
-		if (head == null)
+		if (head == null) {
+			// FND8-79：根声明链非空但节点行缺失=持久断链（数据损坏/外部篡改，正常事务不会
+			// 产生）。静默返空会使size>0却永远取不出（消费者空转、积压封存且无迹可寻）。
+			// 不照搬walk的无条件ISE：乐观并发重试交错下的瞬时行缺失是良性的（本事务commit
+			// 时会因root读集冲突回滚重试），纯诊断记error性价比更高。
+			logger.error("queue pollNode: broken chain, name={}, count={}, headKey={}",
+					name, root.getCount(), headKey);
 			return null;
+		}
 
 		root.setHeadNodeKey(head.getNextNodeKey());
 		root.setCount(root.getCount() - head.getValues().size());
@@ -278,7 +288,13 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		if (headKey.getNodeId() == 0)
 			return null;
 
-		return getNode(headKey);
+		var head = getNode(headKey);
+		if (head == null) {
+			// FND8-79（孪生）：同pollNode的断链诊断，只读变体。
+			logger.error("queue peekNode: broken chain, name={}, count={}, headKey={}",
+					name, root.getCount(), headKey);
+		}
+		return head;
 	}
 
 	/**
@@ -296,8 +312,12 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			return null;
 
 		var head = getNode(headKey);
-		if (head == null)
+		if (head == null) {
+			// FND8-79：同pollNode的断链诊断。
+			logger.error("queue poll: broken chain, name={}, count={}, headKey={}",
+					name, root.getCount(), headKey);
 			return null;
+		}
 
 		var nodeValues = head.getValues();
 		var nodeValue = nodeValues.removeFirst();
@@ -324,8 +344,12 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		if (headKey.getNodeId() == 0)
 			return null;
 		var head = getNode(headKey);
-		if (head == null)
+		if (head == null) {
+			// FND8-79（孪生）：同pollNode的断链诊断，只读变体。
+			logger.error("queue peek: broken chain, name={}, count={}, headKey={}",
+					name, root.getCount(), headKey);
 			return null;
+		}
 
 		@SuppressWarnings("unchecked")
 		var value = (V)head.getValues().getFirst().getValue().getBean();
@@ -344,6 +368,14 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		var root = getOrAddRoot();
 		var tailNodeKey = root.getTailNodeKey();
 		var tail = tailNodeKey.getNodeId() != 0 ? getNode(tailNodeKey) : null; // 比起直接访问快一些。
+		if (tail == null) {
+			// FND8-79：排空残尾是设计常态（poll故意不清TailNodeKey，head==0时另立新尾完全
+			// 正确），仅活链存在（head!=0）且尾键非0的真断链才告警——此时另立新尾会让活链
+			// 末端数据彻底不可达且count进一步脱节。
+			if (root.getHeadNodeKey().getNodeId() != 0)
+				logger.error("queue add: broken tail, name={}, count={}, tailKey={}",
+						name, root.getCount(), tailNodeKey);
+		}
 		if (tail == null || tail.getValues().size() >= nodeSize) {
 			var newNodeId = root.getLastNodeId() + 1;
 			root.setLastNodeId(newNodeId);
