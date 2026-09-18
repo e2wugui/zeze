@@ -553,7 +553,9 @@ public final class Token extends AbstractToken {
 				return this;
 
 			rocksdb = new RocksDatabase(PropertiesHelper.getString("token.rocksdb", "token_db"));
-			tokenMapTable = rocksdb.getOrAddTable("tokenMap");
+			// getOrAddTable在下方回滚try块内（FND8-63）：原与建库一起在try之外，getOrAddTable
+			// 失败时rocksdb已赋值无人关闭，后续每次start重复new RocksDatabase对同目录二次
+			// open——Windows下LOCK互斥每次必抛（重试环还先空转10秒），restart永久失败。
 
 			tokenRefCleanerLock.lock();
 			try {
@@ -570,6 +572,7 @@ public final class Token extends AbstractToken {
 			ZezeCounter.tryInit();
 
 			try {
+				tokenMapTable = rocksdb.getOrAddTable("tokenMap");
 				service = new TokenServer(conf != null ? conf : new Config().loadAndParse());
 				RegisterProtocols(service);
 				var sc = service.getConfig();
@@ -644,8 +647,16 @@ public final class Token extends AbstractToken {
 				service.stop();
 				service = null;
 			}
-			if (rocksdb != null)
-				saveDB();
+			if (rocksdb != null) {
+				// stop关库（FND8-63）：stop只saveDB不关库时rocksdb/tokenMapTable悬挂，restart的
+				// start对同目录二次open——Windows下LOCK互斥每次必抛（重试环还先空转10秒），
+				// Linux下双实例双WAL/memtable写同目录。对齐全仓stop关库惯例（RedoQueue等先例）；
+				// 重启后ProcessGetTokenRequest对miss的token按需懒加载，无数据语义损失。
+				// saveDB失败记录（不改变stop异常契约）：此时关库，未落库的内存态token会丢。
+				if (!saveDB())
+					logger.error("Token.stop saveDB failed, in-memory token states may be lost.");
+				closeDb(); // 先saveDB后关库（closeDb置null两字段；可重入锁安全）
+			}
 			tokenMap.clear();
 		} finally {
 			unlock();
