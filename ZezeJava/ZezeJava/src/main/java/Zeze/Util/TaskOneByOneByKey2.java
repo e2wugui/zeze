@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
@@ -212,13 +213,36 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			this.batchEnd = batchEnd;
 		}
 
-		public void run(@NotNull T key) throws Exception {
-			try {
-				action.run(key);
-			} finally {
+		/** 每key一次性核销：正常完成（run的finally）、入队前校验失败（notEnqueued回调）、
+		 * 提交循环中断（abandon）可能对同一key触发，CAS保证恰好核销一次。 */
+		public final class Settle implements Action0 {
+			private final @NotNull AtomicBoolean settled = new AtomicBoolean();
+
+			@Override
+			public void run() {
+				if (!settled.compareAndSet(false, true))
+					return;
 				if (keysCount.decrementAndGet() == 0)
 					runBatchEndDirect(batchEnd); // batchEnd 的异常策略只有这一处实现，不能在这里裸调 batchEnd.run()。
 			}
+		}
+
+		public @NotNull Settle newSettle() {
+			return new Settle();
+		}
+
+		public void run(@NotNull T key, @NotNull Settle settle) throws Exception {
+			try {
+				action.run(key);
+			} finally {
+				settle.run();
+			}
+		}
+
+		/** 提交循环中断时，未尝试key的一次性核销。 */
+		public void abandon(int count) {
+			if (count > 0 && keysCount.addAndGet(-count) == 0)
+				runBatchEndDirect(batchEnd);
 		}
 	}
 
@@ -237,8 +261,21 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			return;
 		}
 		var batch = new Batch<>(keys.size(), action, batchEnd);
-		for (var key : keys)
-			executeCore(key.hashCode(), new TaskBody.OfAction(() -> batch.run(key)), null, mode);
+		var remaining = keys.size();
+		for (var key : keys) {
+			remaining--;
+			var settle = batch.newSettle();
+			try {
+				// 入队前校验失败（任务未入队）经notEnqueued核销；派发失败任务保留队列、
+				// 运行时经run的finally核销——同一key恰好一次。
+				executeCore(key.hashCode(), new TaskBody.OfAction(() -> batch.run(key, settle)), null, mode, settle);
+			} catch (RuntimeException ex) {
+				// 提交失败：失败key若已入队（派发被拒、任务保留待重派发）由运行核销，
+				// 未尝试的key一次性核销——batchEnd不再永久悬挂。
+				batch.abandon(remaining);
+				throw ex;
+			}
+		}
 	}
 
 	public void executeBatch(@NotNull LongList keys, @NotNull Action1<Long> action, @NotNull Action0 batchEnd,
@@ -248,13 +285,28 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			return;
 		}
 		var batch = new Batch<>(keys.size(), action, batchEnd);
-		keys.foreach((key) -> executeCore(Long.hashCode(key), new TaskBody.OfAction(() -> batch.run(key)), null, mode));
+		final var remaining = new int[]{keys.size()};
+		keys.foreach((key) -> {
+			remaining[0]--;
+			var settle = batch.newSettle();
+			try {
+				executeCore(Long.hashCode(key), new TaskBody.OfAction(() -> batch.run(key, settle)), null, mode, settle);
+			} catch (RuntimeException ex) {
+				batch.abandon(remaining[0]);
+				throw ex;
+			}
+		});
 	}
 
 	// 统一核心：所有 Execute 重载与 TaskSpec.executeOneByOne 最终都委托到这里。
 	// 载荷差异（调用形态/名字解析）由 TaskBody 封装，队列语义无返回值消费者。
 	void executeCore(int key, @NotNull TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode) {
 		concurrency[hash(key) & hashMask].execute(body, name, mode);
+	}
+
+	void executeCore(int key, @NotNull TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode,
+					 @Nullable Action0 notEnqueued) {
+		concurrency[hash(key) & hashMask].execute(body, name, mode, notEnqueued);
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).executeOneByOne(key, this)}。 */
@@ -551,6 +603,11 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 			submit(new TaskBodyTask(body, name, mode));
 		}
 
+		void execute(@NotNull TaskBody<?> body, @Nullable String name, @Nullable DispatchMode mode,
+					 @Nullable Action0 notEnqueued) {
+			submit(new TaskBodyTask(body, name, mode), notEnqueued);
+		}
+
 		void executeBarrier(@NotNull BarrierProcedure barrier, int sum, @Nullable DispatchMode mode) {
 			submit(new TaskBarrierProcedure(barrier, sum, mode));
 		}
@@ -560,9 +617,25 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 
 		private void submit(@NotNull Task task) {
+			submit(task, null);
+		}
+
+		/** notEnqueued：入队前校验失败（任务确认未入队）时的核销回调，executeBatch用。 */
+		private void submit(@NotNull Task task, @Nullable Action0 notEnqueued) {
 			// 入队前校验：走全局池时池未初始化/已停机必须立即明确失败，不入队 doomed 任务
 			//（派发失败虽已有回滚认领兜底，见 executeOrRollback，但早失败更干净）。
-			getExecutor(task.mode);
+			try {
+				getExecutor(task.mode);
+			} catch (RuntimeException e) {
+				if (notEnqueued != null) {
+					try {
+						notEnqueued.run();
+					} catch (Throwable ex) { // logger.error
+						logger.error("executeBatch: notEnqueued exception", ex);
+					}
+				}
+				throw e;
+			}
 
 			queue.offer(task);
 			if ((boolean)vhSubmitted.compareAndSet(this, false, true))

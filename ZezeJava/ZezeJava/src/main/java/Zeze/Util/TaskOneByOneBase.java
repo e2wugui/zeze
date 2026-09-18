@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.IntFunction;
@@ -96,13 +97,37 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 			this.batchEnd = batchEnd;
 		}
 
-		public void run(@NotNull T key) throws Exception {
-			try {
-				action.run(key);
-			} finally {
+		/** 每key一次性核销：正常完成（run的finally）、队列侧丢弃（TaskBodyTask的cancel，覆盖
+		 * submit的isShutdown静默丢、rollbackRejectedDispatch清队、shutdown(cancel)）、提交失败
+		 * （executeBatch的catch）可能对同一key触发，CAS保证恰好核销一次。 */
+		public final class Settle implements Action0 {
+			private final @NotNull AtomicBoolean settled = new AtomicBoolean();
+
+			@Override
+			public void run() {
+				if (!settled.compareAndSet(false, true))
+					return;
 				if (keysCount.decrementAndGet() == 0)
 					runBatchEndDirect(batchEnd); // batchEnd 的异常策略只有这一处实现，不能在这里裸调 batchEnd.run()。
 			}
+		}
+
+		public @NotNull Settle newSettle() {
+			return new Settle();
+		}
+
+		public void run(@NotNull T key, @NotNull Settle settle) throws Exception {
+			try {
+				action.run(key);
+			} finally {
+				settle.run();
+			}
+		}
+
+		/** 提交循环中断时，未尝试key的一次性核销。 */
+		public void abandon(int count) {
+			if (count > 0 && keysCount.addAndGet(-count) == 0)
+				runBatchEndDirect(batchEnd);
 		}
 	}
 
@@ -121,8 +146,22 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 			return;
 		}
 		var batch = new Batch<>(keys.size(), action, batchEnd);
-		for (var key : keys)
-			execute(key, new TaskOneByOneQueue.TaskBodyTask(new TaskBody.OfAction(() -> batch.run(key)), null, null, mode));
+		var remaining = keys.size();
+		for (var key : keys) {
+			remaining--;
+			var settle = batch.newSettle();
+			try {
+				// cancel=settle：队列侧丢弃任务的三条路径都会执行task.cancel核销该key计数。
+				execute(key, new TaskOneByOneQueue.TaskBodyTask(
+						new TaskBody.OfAction(() -> batch.run(key, settle)), null, settle, mode));
+			} catch (RuntimeException ex) {
+				// 提交失败：本key未入队或已被回滚清队核销（幂等防双重），未尝试的key
+				// 一次性核销——batchEnd不再永久悬挂。
+				settle.run();
+				batch.abandon(remaining);
+				throw ex;
+			}
+		}
 	}
 
 	public void executeBatch(@NotNull LongList keys, @NotNull Action1<Long> action, @NotNull Action0 batchEnd,
@@ -132,7 +171,19 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 			return;
 		}
 		var batch = new Batch<>(keys.size(), action, batchEnd);
-		keys.foreach((key) -> execute(key, new TaskOneByOneQueue.TaskBodyTask(new TaskBody.OfAction(() -> batch.run(key)), null, null, mode)));
+		final var remaining = new int[]{keys.size()};
+		keys.foreach((key) -> {
+			remaining[0]--;
+			var settle = batch.newSettle();
+			try {
+				execute(key, new TaskOneByOneQueue.TaskBodyTask(
+						new TaskBody.OfAction(() -> batch.run(key, settle)), null, settle, mode));
+			} catch (RuntimeException ex) {
+				settle.run();
+				batch.abandon(remaining[0]);
+				throw ex;
+			}
+		});
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).executeOneByOne(key, this)}。 */
