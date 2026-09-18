@@ -78,6 +78,11 @@ public class Websocket extends AsyncSocket {
 
 		if (timeThrottle != null)
 			timeThrottle.close();
+		try {
+			getService().OnSocketDisposed(this);
+		} catch (Exception e) {
+			logger.error("Service.OnSocketDisposed exception:", e);
+		}
 		return true;
 	}
 

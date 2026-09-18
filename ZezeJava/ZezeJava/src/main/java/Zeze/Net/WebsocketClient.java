@@ -172,6 +172,11 @@ public class WebsocketClient extends AsyncSocket {
 		if (ws != null) {
 			ws.abort();
 		}
+		try {
+			getService().OnSocketDisposed(this);
+		} catch (Exception e) {
+			logger.error("Service.OnSocketDisposed exception:", e);
+		}
 		return true; // 对齐TcpSocket/Websocket家族：本次调用完成了关闭
 	}
 
