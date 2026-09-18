@@ -123,6 +123,7 @@ public class InMemoryJavaCompiler {
 	}
 
 	public Class<?> compile(String className, String sourceCode) throws ClassNotFoundException {
+		checkNotDefined(className);
 		sourceCodes.clear();
 		String exMsg = addSource(className, sourceCode).compileAll();
 		if (exMsg != null)
@@ -131,6 +132,7 @@ public class InMemoryJavaCompiler {
 	}
 
 	public byte[] compileToByteCode(String className, String sourceCode) {
+		checkNotDefined(className);
 		sourceCodes.clear();
 		String exMsg = addSource(className, sourceCode).compileAll();
 		if (exMsg != null)
@@ -138,11 +140,22 @@ public class InMemoryJavaCompiler {
 		return classLoader.getCode(className);
 	}
 
+	// 同实例对同名类的二次编译：findClass直调不经loadClass的findLoadedClass缓存，
+	// 重复defineClass必LinkageError；字节码路径则新旧版本错配——入口fail-fast拒绝，
+	// 指引用轮换实例或加载器（FND8-11）。
+	private void checkNotDefined(String className) {
+		if (classLoader.isDefined(className))
+			throw new IllegalStateException("class already defined in this compiler instance: " + className
+					+ "; recompile with a new InMemoryJavaCompiler() or useParentClassLoader() to rotate the loader");
+	}
+
 	public void compileAll(Map<String, String> classNameAndCodes, Map<String, Class<?>> classNameAndClasses)
 			throws ClassNotFoundException {
 		sourceCodes.clear();
-		for (Map.Entry<String, String> e : classNameAndCodes.entrySet())
+		for (Map.Entry<String, String> e : classNameAndCodes.entrySet()) {
+			checkNotDefined(e.getKey());
 			addSource(e.getKey(), e.getValue());
+		}
 		String exMsg = compileAll();
 		if (exMsg != null)
 			throw new IllegalStateException(exMsg);
@@ -154,8 +167,10 @@ public class InMemoryJavaCompiler {
 
 	public void compileAllToByteCode(Map<String, String> classNameAndCodes, Map<String, byte[]> classNameAndByteCodes) {
 		sourceCodes.clear();
-		for (Map.Entry<String, String> e : classNameAndCodes.entrySet())
+		for (Map.Entry<String, String> e : classNameAndCodes.entrySet()) {
+			checkNotDefined(e.getKey());
 			addSource(e.getKey(), e.getValue());
+		}
 		String exMsg = compileAll();
 		if (exMsg != null)
 			throw new IllegalStateException(exMsg);
@@ -228,6 +243,11 @@ public class InMemoryJavaCompiler {
 		byte[] getCode(String name) {
 			CompiledCode cc = customCompiledCode.get(name);
 			return cc != null ? cc.getByteCode() : null;
+		}
+
+		// 本加载器是否已define该类（findLoadedClass为protected final，嵌套类内封装）
+		boolean isDefined(String name) {
+			return findLoadedClass(name) != null;
 		}
 
 		@Override
