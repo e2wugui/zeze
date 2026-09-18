@@ -212,6 +212,15 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		return root == null || root.getHeadNodeKey().getNodeId() == 0;
 	}
 
+	// FND8-79：根声明链非空但头节点行缺失=断链诊断（pollNode/peekNode/poll/peek共用）。
+	// 持久断链（数据损坏/外部篡改，正常事务不会产生）时静默返空会使size>0却永远取不出
+	//（消费者空转、积压封存且无迹可寻）。不照搬walk的无条件ISE：乐观并发重试交错下的
+	// 瞬时行缺失是良性的（本事务commit时会因root读集冲突回滚重试），纯诊断记error性价比更高。
+	private void logBrokenHeadChain(String where, BQueue root, BQueueNodeKey headKey) {
+		logger.error("queue {}: broken chain, name={}, count={}, headKey={}",
+				where, name, root.getCount(), headKey);
+	}
+
 	/**
 	 * 删除并返回整个头节点
 	 *
@@ -228,12 +237,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 
 		var head = getNode(headKey);
 		if (head == null) {
-			// FND8-79：根声明链非空但节点行缺失=持久断链（数据损坏/外部篡改，正常事务不会
-			// 产生）。静默返空会使size>0却永远取不出（消费者空转、积压封存且无迹可寻）。
-			// 不照搬walk的无条件ISE：乐观并发重试交错下的瞬时行缺失是良性的（本事务commit
-			// 时会因root读集冲突回滚重试），纯诊断记error性价比更高。
-			logger.error("queue pollNode: broken chain, name={}, count={}, headKey={}",
-					name, root.getCount(), headKey);
+			logBrokenHeadChain("pollNode", root, headKey);
 			return null;
 		}
 
@@ -289,10 +293,8 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			return null;
 
 		var head = getNode(headKey);
-		if (head == null) {
-			// FND8-79（孪生）：同pollNode的断链诊断，只读变体。
-			logger.error("queue peekNode: broken chain, name={}, count={}, headKey={}",
-					name, root.getCount(), headKey);
+		if (head == null) { // 只读变体：诊断后仍按null返回
+			logBrokenHeadChain("peekNode", root, headKey);
 		}
 		return head;
 	}
@@ -313,9 +315,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 
 		var head = getNode(headKey);
 		if (head == null) {
-			// FND8-79：同pollNode的断链诊断。
-			logger.error("queue poll: broken chain, name={}, count={}, headKey={}",
-					name, root.getCount(), headKey);
+			logBrokenHeadChain("poll", root, headKey);
 			return null;
 		}
 
@@ -344,10 +344,8 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		if (headKey.getNodeId() == 0)
 			return null;
 		var head = getNode(headKey);
-		if (head == null) {
-			// FND8-79（孪生）：同pollNode的断链诊断，只读变体。
-			logger.error("queue peek: broken chain, name={}, count={}, headKey={}",
-					name, root.getCount(), headKey);
+		if (head == null) { // 只读变体：诊断后仍按null返回
+			logBrokenHeadChain("peek", root, headKey);
 			return null;
 		}
 

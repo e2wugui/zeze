@@ -80,6 +80,17 @@ public abstract class AsyncSocket {
 		this.decodeAdmission = admission;
 	}
 
+	// close收尾时通知服务销毁会话（在飞Rpc上下文立即失败处置）。与各close实现里
+	// OnSocketClose回调的try/catch同款防护：回调异常只记日志不外抛。
+	// DatagramSession/Websocket/WebsocketClient共用（FND8-50补充/FND8-55路径统一）。
+	protected final void fireOnSocketDisposed() {
+		try {
+			getService().OnSocketDisposed(this);
+		} catch (Exception e) {
+			logger.error("Service.OnSocketDisposed exception:", e);
+		}
+	}
+
 	public static boolean canLogProtocol(long protocolTypeId) {
 		return !protocolLogExcept.contains(protocolTypeId);
 	}

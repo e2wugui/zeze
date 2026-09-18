@@ -1,10 +1,9 @@
 package Zeze.Util;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
@@ -69,7 +68,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 	private static void submitBarrierAndUnlock(@NotNull HashMap<TaskOneByOneQueue, OutInt> group,
 											   @NotNull TaskOneByOneQueue.Barrier barrier,
 											   @NotNull IntFunction<TaskOneByOneQueue.Task> newTask) {
-		var buckets = new ArrayList<Map.Entry<TaskOneByOneQueue, OutInt>>(group.entrySet());
+		var buckets = new ArrayList<>(group.entrySet());
 		for (var i = 0; i < buckets.size(); ++i) {
 			var sum = buckets.get(i).getValue().value;
 			try {

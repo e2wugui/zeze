@@ -12,9 +12,9 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.multipart.Attribute;
-import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 【安全警示】任意字节码执行端点：上传的class字节码被直接defineClass并实例化执行
@@ -57,8 +57,8 @@ public class RunClassServer implements HttpFileUploadHandle {
 	public RunClassServer(@NotNull AppBase app,
 						  @NotNull String urlPath,
 						  @NotNull String uploadDir,
-						  @NotNull String fileVarName,
-						  @org.jetbrains.annotations.Nullable String token) {
+					  @NotNull String fileVarName,
+					  @Nullable String token) {
 		this.uploadDir = uploadDir;
 		this.fileVarName = fileVarName;
 		this.token = token != null && !token.isBlank() ? token : ReloadClassServer.generateToken();
@@ -77,22 +77,10 @@ public class RunClassServer implements HttpFileUploadHandle {
 	@Override
 	public void onEndRequest(@NotNull HttpExchange x,
 							 @NotNull InterfaceHttpPostRequestDecoder decoder) throws Exception {
-		// 鉴权前置（FND8-66）：失配403并记录来源，不进入执行路径
-		if (!ReloadClassServer.checkToken(token, x)) {
-			logger.warn("RunClassServer: reject unauthorized run request from {}", x.channel().remoteAddress());
-			x.close(x.sendPlainText(HttpResponseStatus.FORBIDDEN, "forbidden"));
+		var fileUpload = ReloadClassServer.checkTokenAndTakeUpload(logger, "RunClassServer", "run",
+				token, x, decoder, getFileNameQueryKey());
+		if (fileUpload == null)
 			return;
-		}
-		// 字段守卫（FND8-67）：multipart可缺字段（getBodyHttpData返回null）或放同名文本字段
-		// （返回MemoryAttribute），原无守卫强转分别NPE/CCE且异常穿透后请求无应答挂起；
-		// instanceof模式匹配同时覆盖两形态，按400明确拒绝（与sanitize拒绝路径同口径）。
-		var data = decoder.getBodyHttpData(getFileNameQueryKey());
-		if (!(data instanceof FileUpload fileUpload)) {
-			logger.warn("Reject upload: missing or invalid file field '{}'", getFileNameQueryKey());
-			x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST,
-					"missing or invalid file field '" + getFileNameQueryKey() + "'"));
-			return;
-		}
 		var patchFileName = fileUpload.getFilename();
 		new File(uploadDir).mkdirs();
 		final File destFile; // 落盘路径必须经净化（FND4-70）：客户端可控文件名不得携带目录成分

@@ -122,39 +122,39 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		}
 	}
 
-	// 打开一个连接用来发送数据。
-	// 同一peer地址已有会话时先建者胜：error日志显式化（传入的handle被丢弃、以先建者为准，
-	// 对齐Service.addSocket把静默互撞变显式拒绝），返回既有会话。强制重整请用openReplace。
-	public Session open(String peer, int port, ReliableUdpHandle handle) {
+	private static InetSocketAddress resolvePeer(String peer, int port) {
 		try {
-			var ep = new InetSocketAddress(InetAddress.getByName(peer), port);
-			var session = new Session(ep, handle);
-			var existing = sessions.putIfAbsent(ep, session);
-			if (existing != null) {
-				logger.error("open: session for peer {} already exists: existing session kept, "
-						+ "handle以先建者为准（传入的handle被忽略）；需强制重整请用openReplace。"
-						+ " existing={} colliding={}", ep, existing, session);
-				return existing;
-			}
-			return session;
+			return new InetSocketAddress(InetAddress.getByName(peer), port);
 		} catch (UnknownHostException e) {
 			throw Task.forceThrow(e);
 		}
 	}
 
+	// 打开一个连接用来发送数据。
+	// 同一peer地址已有会话时先建者胜：error日志显式化（传入的handle被丢弃、以先建者为准，
+	// 对齐Service.addSocket把静默互撞变显式拒绝），返回既有会话。强制重整请用openReplace。
+	public Session open(String peer, int port, ReliableUdpHandle handle) {
+		var ep = resolvePeer(peer, port);
+		var session = new Session(ep, handle);
+		var existing = sessions.putIfAbsent(ep, session);
+		if (existing != null) {
+			logger.error("open: session for peer {} already exists: existing session kept, "
+					+ "handle以先建者为准（传入的handle被忽略）；需强制重整请用openReplace。"
+					+ " existing={} colliding={}", ep, existing, session);
+			return existing;
+		}
+		return session;
+	}
+
 	// 显式替换同地址既有会话（模拟本端重启/强制重置）：旧会话置失效并取消其重发定时器，
 	// 新会话以全新代际与序号空间接管表项。
 	public Session openReplace(String peer, int port, ReliableUdpHandle handle) {
-		try {
-			var ep = new InetSocketAddress(InetAddress.getByName(peer), port);
-			var session = new Session(ep, handle);
-			var old = sessions.put(ep, session);
-			if (old != null)
-				old.markClosed();
-			return session;
-		} catch (UnknownHostException e) {
-			throw Task.forceThrow(e);
-		}
+		var ep = resolvePeer(peer, port);
+		var session = new Session(ep, handle);
+		var old = sessions.put(ep, session);
+		if (old != null)
+			old.markClosed();
+		return session;
 	}
 
 	public static class Packet implements Serializable {

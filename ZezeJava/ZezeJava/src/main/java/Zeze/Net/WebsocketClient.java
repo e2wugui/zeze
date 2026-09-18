@@ -175,12 +175,8 @@ public class WebsocketClient extends AsyncSocket {
 		if (ws != null) {
 			ws.abort();
 		}
-		try {
-			getService().OnSocketDisposed(this);
-		} catch (Exception e) {
-			logger.error("Service.OnSocketDisposed exception:", e);
-		}
-		return true; // 对齐TcpSocket/Websocket家族：本次调用完成了关闭
+		fireOnSocketDisposed(); // 对齐TcpSocket/Websocket家族：本次调用完成了关闭
+		return true;
 	}
 
 	// whenComplete/exceptionNow 交付的异常可能被 CompletionException 包装，关闭日志取根因

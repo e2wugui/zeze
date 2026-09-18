@@ -106,61 +106,61 @@ final class MethodOverride {
 		inputParameters.removeFirst();
 
 		var rType = method.getGenericReturnType();
-			if (rType instanceof ParameterizedType rpType) {
-				if (annotation instanceof RedirectAll) {
-					if (rpType.getRawType() == RedirectAllFuture.class) {
-						resultType = rpType.getActualTypeArguments()[0];
-						resultClass = (Class<?>)(resultType instanceof Class ?
-								resultType : ((ParameterizedType)resultType).getRawType());
-						if (!RedirectResult.class.isAssignableFrom(resultClass)) {
-							throw new IllegalStateException("RedirectAll Result Type Must Extend RedirectResult: "
-									+ method.getDeclaringClass().getName() + "::" + method.getName());
-						}
-						// FND2-A1-1：All路径的生成代码对Serializable结果不收集字段（resultFields为空），
-						// 接收端不编码、发起端不解码，分组结果全是空对象且无任何诊断；ToServer/Hash路径
-						// 支持Serializable，All独缺该分支。fail-fast拒绝该组合，对齐上面的签名硬校验。
-						if (Serializable.class.isAssignableFrom(resultClass)) {
-							throw new IllegalStateException("RedirectAll Result Type Can Not Be Serializable: "
-									+ method.getDeclaringClass().getName() + "::" + method.getName());
-						}
-						// FND8-83：生成代码new结果类实例（发起端解码/接收端编码），抽象类不可实例化
-						// ——反射getConstructor不查可实例化性，原先放行生成必然编译不过的代码。
-						if (Gen.isAbstract(resultClass)) {
-							throw new IllegalStateException("RedirectAll Result Type Can Not Be Abstract: "
-									+ method.getDeclaringClass().getName() + "::" + method.getName());
-						}
-						// FND8-85：对齐RedirectFuture分支（134-141行）——生成代码同样new结果类
-						// 实例，仅有私有构造器或非静态内部类时生成文件编译失败，原先独缺该校验。
-						try {
-							resultClass.getConstructor((Class<?>[])null);
-						} catch (NoSuchMethodException e) {
-							throw new IllegalStateException("RedirectAll Result Type Must Be 'Long','Binary','String'"
-									+ " or any type contains public default constructor: "
-									+ method.getDeclaringClass().getName() + "::" + method.getName());
-						}
-					} else {
-						resultType = null;
-						resultClass = null;
-					}
-				} else if (rpType.getRawType() == RedirectFuture.class) {
+		if (rType instanceof ParameterizedType rpType) {
+			if (annotation instanceof RedirectAll) {
+				if (rpType.getRawType() == RedirectAllFuture.class) {
 					resultType = rpType.getActualTypeArguments()[0];
 					resultClass = (Class<?>)(resultType instanceof Class ?
 							resultType : ((ParameterizedType)resultType).getRawType());
+					if (!RedirectResult.class.isAssignableFrom(resultClass)) {
+						throw new IllegalStateException("RedirectAll Result Type Must Extend RedirectResult: "
+								+ method.getDeclaringClass().getName() + "::" + method.getName());
+					}
+					// FND2-A1-1：All路径的生成代码对Serializable结果不收集字段（resultFields为空），
+					// 接收端不编码、发起端不解码，分组结果全是空对象且无任何诊断；ToServer/Hash路径
+					// 支持Serializable，All独缺该分支。fail-fast拒绝该组合，对齐上面的签名硬校验。
+					if (Serializable.class.isAssignableFrom(resultClass)) {
+						throw new IllegalStateException("RedirectAll Result Type Can Not Be Serializable: "
+								+ method.getDeclaringClass().getName() + "::" + method.getName());
+					}
+					// FND8-83：生成代码new结果类实例（发起端解码/接收端编码），抽象类不可实例化
+					// ——反射getConstructor不查可实例化性，原先放行生成必然编译不过的代码。
+					if (Gen.isAbstract(resultClass)) {
+						throw new IllegalStateException("RedirectAll Result Type Can Not Be Abstract: "
+								+ method.getDeclaringClass().getName() + "::" + method.getName());
+					}
+					// FND8-85：对齐RedirectFuture分支——生成代码同样new结果类实例，仅有私有
+					// 构造器或非静态内部类时生成文件编译失败，原先独缺该校验。
 					try {
-						if (resultClass != Long.class && resultClass != Binary.class)
-							resultClass.getConstructor((Class<?>[])null);
+						resultClass.getConstructor((Class<?>[])null);
 					} catch (NoSuchMethodException e) {
-						throw new IllegalStateException("RedirectFuture<> Result Type Must Be 'Long','Binary','String'"
+						throw new IllegalStateException("RedirectAll Result Type Must Be 'Long','Binary','String'"
 								+ " or any type contains public default constructor: "
 								+ method.getDeclaringClass().getName() + "::" + method.getName());
 					}
-					// FND8-83：同上——生成代码new结果类实例，抽象类经getConstructor检查不报错，
-					// 但生成代码不可编译。
-					if (resultClass != Long.class && resultClass != Binary.class && Gen.isAbstract(resultClass)) {
-						throw new IllegalStateException("RedirectFuture<> Result Type Can Not Be Abstract: "
-								+ method.getDeclaringClass().getName() + "::" + method.getName());
-					}
 				} else {
+					resultType = null;
+					resultClass = null;
+				}
+			} else if (rpType.getRawType() == RedirectFuture.class) {
+				resultType = rpType.getActualTypeArguments()[0];
+				resultClass = (Class<?>)(resultType instanceof Class ?
+						resultType : ((ParameterizedType)resultType).getRawType());
+				try {
+					if (resultClass != Long.class && resultClass != Binary.class)
+						resultClass.getConstructor((Class<?>[])null);
+				} catch (NoSuchMethodException e) {
+					throw new IllegalStateException("RedirectFuture<> Result Type Must Be 'Long','Binary','String'"
+							+ " or any type contains public default constructor: "
+							+ method.getDeclaringClass().getName() + "::" + method.getName());
+				}
+				// FND8-83：同上——生成代码new结果类实例，抽象类经getConstructor检查不报错，
+				// 但生成代码不可编译。
+				if (resultClass != Long.class && resultClass != Binary.class && Gen.isAbstract(resultClass)) {
+					throw new IllegalStateException("RedirectFuture<> Result Type Can Not Be Abstract: "
+							+ method.getDeclaringClass().getName() + "::" + method.getName());
+				}
+			} else {
 				resultType = null;
 				resultClass = null;
 			}

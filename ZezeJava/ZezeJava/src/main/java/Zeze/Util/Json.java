@@ -3,8 +3,8 @@ package Zeze.Util;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
-import java.nio.charset.StandardCharsets;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -18,6 +18,7 @@ import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.EmptyBean;
+import Zeze.Transaction.GTable.BeanMap2;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import sun.misc.Unsafe;
@@ -763,10 +764,10 @@ public final class Json implements Cloneable {
 					obj = (DynamicBean)((PList2<?>)parent).createValue();
 				else if (parent instanceof PMap2)
 					obj = (DynamicBean)((PMap2<?, ?>)parent).createValue();
-				else if (parent instanceof Zeze.Transaction.GTable.BeanMap2)
+				else if (parent instanceof BeanMap2)
 					// 【FND8-33 A4】GTable2的dynamic值容器是BeanMap2（内嵌PMap2），
 					// 不适配则返回null，撞PMap2.put的null value。
-					obj = (DynamicBean)((Zeze.Transaction.GTable.BeanMap2<?, ?, ?>)parent).getPMap2().createValue();
+					obj = (DynamicBean)((BeanMap2<?, ?, ?>)parent).getPMap2().createValue();
 				if (obj == null)
 					return null;
 			}

@@ -638,30 +638,18 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 				// 503 Service Unavailable并关连接，把close()期间的"静默丢弃"变为明确拒绝。
 				if (shutdown) {
 					Netty.logger.info("reject request from {} while shutdown", ctx.channel().remoteAddress());
-					var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.SERVICE_UNAVAILABLE,
-							Unpooled.EMPTY_BUFFER, HttpExchange.headersFactory, HttpExchange.trailersFactory);
-					res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-					var cf = ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
-					var prev = exchanges.remove(channelId); // 先移除,后续消息不再派发
-					if (prev != null)
-						prev.close(HttpExchange.CLOSE_ON_FLUSH, cf);
+					rejectAndClose(ctx, HttpResponseStatus.SERVICE_UNAVAILABLE);
 					return;
 				}
-			if ((x = createHttpExchange(ctx)) == null) {
-				// FND8-56：被拒请求不得裸return——其后续HttpContent/LastHttpContent帧会按channelId
-				// 路由进仍在表内的前一个pipelined exchange（body串包+二次派发onEndStream+重复响应）。
-				// 照搬停机503分支同构处置：框架代回503+关连接，同步善后在途exchange。
-				Netty.logger.info("reject request from {} by createHttpExchange policy", ctx.channel().remoteAddress());
-				var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.SERVICE_UNAVAILABLE,
-						Unpooled.EMPTY_BUFFER, HttpExchange.headersFactory, HttpExchange.trailersFactory);
-				res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-				var cf = ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
-				var prev = exchanges.remove(channelId); // 先移除,后续消息不再派发
-				if (prev != null)
-					prev.close(HttpExchange.CLOSE_ON_FLUSH, cf);
-				return;
-			}
-			exchanges.put(channelId, x);
+				if ((x = createHttpExchange(ctx)) == null) {
+					// FND8-56：被拒请求不得裸return——其后续HttpContent/LastHttpContent帧会按channelId
+					// 路由进仍在表内的前一个pipelined exchange（body串包+二次派发onEndStream+重复响应）。
+					// 照搬停机503分支同构处置：框架代回503+关连接，同步善后在途exchange。
+					Netty.logger.info("reject request from {} by createHttpExchange policy", ctx.channel().remoteAddress());
+					rejectAndClose(ctx, HttpResponseStatus.SERVICE_UNAVAILABLE);
+					return;
+				}
+				exchanges.put(channelId, x);
 				// N①：登记请求到达序（响应序化器的排队依据）。在此（EventLoop）先于任何响应写完成，
 				// Direct内联与非Direct派发的handler执行都晚于本登记。
 				x.registerResponseOrder();
@@ -673,18 +661,23 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		}
 	}
 
+	// 框架级拒绝：代回状态（400/503）并关闭连接，同步移除并善后该连接上在途的exchange
+	//（先移除,后续消息不再派发）——停机/创建策略拒绝（FND8-56）与解码失败共用处置。
+	private void rejectAndClose(@NotNull ChannelHandlerContext ctx, @NotNull HttpResponseStatus status) {
+		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, Unpooled.EMPTY_BUFFER,
+				HttpExchange.headersFactory, HttpExchange.trailersFactory);
+		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
+		var cf = ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
+		var prev = exchanges.remove(ctx.channel().id());
+		if (prev != null)
+			prev.close(HttpExchange.CLOSE_ON_FLUSH, cf);
+	}
+
 	// 畸形http消息(非法chunk size/坏头等):解码器产出DecoderResult.failure的HttpObject而不是抛异常。
 	// 统一记录日志,回400并关闭连接;同时清理可能已半处理的exchange(release retain的request和已累积的content)。
 	protected void onDecodeFailure(@NotNull ChannelHandlerContext ctx, @NotNull HttpObject obj) {
-		var ch = ctx.channel();
-		Netty.logger.error("http decode failure from {}: {}", ch.remoteAddress(), obj.decoderResult().cause());
-		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST,
-				Unpooled.EMPTY_BUFFER, HttpExchange.headersFactory, HttpExchange.trailersFactory);
-		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
-		var cf = ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
-		var x = exchanges.remove(ch.id()); // 先移除,后续消息不再派发
-		if (x != null)
-			x.close(HttpExchange.CLOSE_ON_FLUSH, cf);
+		Netty.logger.error("http decode failure from {}: {}", ctx.channel().remoteAddress(), obj.decoderResult().cause());
+		rejectAndClose(ctx, HttpResponseStatus.BAD_REQUEST);
 	}
 
 	@Override

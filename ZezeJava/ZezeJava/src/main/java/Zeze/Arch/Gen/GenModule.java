@@ -184,7 +184,7 @@ public final class GenModule extends ReentrantLock {
 						// FND8-83：写盘前逐模块试编译（-DGenFileTryCompile开启），失败即中止，
 						// 不可编译的.java不得落盘。每次换新装载器，试编译产物不驻留。
 						if (tryCompileGeneratedFile) {
-							compiler.useParentClassLoader(compiler.getClassloader().getParent());
+							rotateCompilerLoader();
 							compiler.compileAll(Map.of(genClassName, code), null);
 						}
 						byte[] oldBytes = null;
@@ -211,11 +211,8 @@ public final class GenModule extends ReentrantLock {
 
 				var modules = new IModule[n];
 				if (!classNameAndCodes.isEmpty()) {
-					// FND8-80：陈旧缓存重编译前必须换新的DynamicClassLoader——同名生成类已在
-					// 当前装载器defineClass过，二次定义必抛duplicate definition LinkageError；
-					// 换出装载器中已定义的旧类经genClassMap持有的Class引用仍可用，无兼容问题。
-					if (hasStaleCache)
-						compiler.useParentClassLoader(compiler.getClassloader().getParent());
+					if (hasStaleCache) // FND8-80：陈旧缓存重编译前换新装载器（见rotateCompilerLoader）
+						rotateCompilerLoader();
 					compiler.compileAll(classNameAndCodes, genClassMap);
 				}
 				for (i = 0; i < n; i++) {
@@ -263,6 +260,13 @@ public final class GenModule extends ReentrantLock {
 		for (var paramType : method.getParameterTypes())
 			sb.append(':').append(paramType.getName());
 		return sb.toString();
+	}
+
+	// 换新的DynamicClassLoader：同名生成类已在当前装载器defineClass过时（FND8-80陈旧缓存
+	// 重编译、FND8-83文件模式写盘前试编译），二次定义必抛duplicate definition LinkageError；
+	// 换出装载器中已定义的旧类经genClassMap持有的Class引用仍可用，无兼容问题。
+	private void rotateCompilerLoader() {
+		compiler.useParentClassLoader(compiler.getClassloader().getParent());
 	}
 
 	private static String genModuleCode(@NotNull String genClassName, @NotNull Class<?> moduleClass,

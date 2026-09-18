@@ -351,6 +351,16 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		return security == (1 | 2);
 	}
 
+	// 四个set{Input,Output}SecurityCodec变体在selector线程装好codec后调用：记security位
+	//（volatile上的|=非原子，仅submitAction串行内使用），双向codec装齐时撤销解码准入
+	//（FND8-48：密钥交换完成，此后连接按加密流量逐帧解码）。
+	private void securityCodecInstalled(int bit) {
+		//noinspection NonAtomicOperationOnVolatileField
+		security |= bit;
+		if (security == (1 | 2))
+			setDecodeAdmission(null);
+	}
+
 	public void verifySecurity() {
 		if (getService().getConfig().getHandshakeOptions().getEncryptType() != Constant.eEncryptTypeDisable && !isSecurity())
 			throw new IllegalStateException(getService().getName() + " !isSecurity");
@@ -396,10 +406,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				throw new UnsupportedOperationException("SetInputSecurityCodec: unknown encryptType=" + encryptType);
 			}
 			inputCodecChain = chain;
-			//noinspection NonAtomicOperationOnVolatileField
-			security |= 1;
-			if (security == (1 | 2)) // 双向codec装齐，撤销解码准入
-				setDecodeAdmission(null);
+			securityCodecInstalled(1);
 			logger.info("setInputSecurityCodec: {} decrypt={} decompress={}", this, encryptType, compressType);
 		});
 	}
@@ -415,10 +422,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	public void setInputSecurityCodec(BiFunction<AsyncSocket, BufferCodec, Codec> creator) {
 		submitAction(() -> { // 进selector线程调用
 			inputCodecChain = creator.apply(this, inputBuffer);
-			//noinspection NonAtomicOperationOnVolatileField
-			security |= 1;
-			if (security == (1 | 2)) // 双向codec装齐，撤销解码准入
-				setDecodeAdmission(null);
+			securityCodecInstalled(1);
 			logger.info("setInputSecurityCodec: {} class={}", this, inputCodecChain.getClass().getName());
 		});
 	}
@@ -457,10 +461,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 				throw new UnsupportedOperationException("SetOutputSecurityCodec: unknown compress=" + compressType);
 			}
 			outputCodecChain = chain;
-			//noinspection NonAtomicOperationOnVolatileField
-			security |= 2;
-			if (security == (1 | 2)) // 双向codec装齐，撤销解码准入
-				setDecodeAdmission(null);
+			securityCodecInstalled(2);
 			logger.info("setOutputSecurityCodec: {} compress={} encrypt={}", this, compressType, encryptType);
 		});
 	}
@@ -468,10 +469,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	public void setOutputSecurityCodec(BiFunction<AsyncSocket, OutputBuffer, Codec> creator) {
 		submitAction(() -> { // 进selector线程调用
 			outputCodecChain = creator.apply(this, outputBuffer);
-			//noinspection NonAtomicOperationOnVolatileField
-			security |= 2;
-			if (security == (1 | 2)) // 双向codec装齐，撤销解码准入
-				setDecodeAdmission(null);
+			securityCodecInstalled(2);
 			logger.info("setOutputSecurityCodec: {} class={}", this, outputCodecChain.getClass().getName());
 		});
 	}

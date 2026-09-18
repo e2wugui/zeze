@@ -88,6 +88,33 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 				token.getBytes(StandardCharsets.UTF_8), presented.getBytes(StandardCharsets.UTF_8));
 	}
 
+	/** ReloadClassServer/RunClassServer的onEndRequest共用前置守卫（FND8-66/67）：
+	 * token鉴权+multipart字段校验。拒绝路径已代回应答并关闭exchange（403/400），
+	 * 返回null；通过时返回解出的FileUpload。owner/action仅用于403日志归因。 */
+	static @Nullable FileUpload checkTokenAndTakeUpload(@NotNull org.apache.logging.log4j.Logger logger,
+														@NotNull String owner, @NotNull String action,
+														@NotNull String token, @NotNull HttpExchange x,
+														@NotNull InterfaceHttpPostRequestDecoder decoder,
+														@NotNull String fileVarName) {
+		// 鉴权前置：失配403并记录来源，不进入热更/执行路径
+		if (!checkToken(token, x)) {
+			logger.warn("{}: reject unauthorized {} request from {}", owner, action, x.channel().remoteAddress());
+			x.close(x.sendPlainText(HttpResponseStatus.FORBIDDEN, "forbidden"));
+			return null;
+		}
+		// 字段守卫：multipart可缺字段（getBodyHttpData返回null）或放同名文本字段（返回
+		// MemoryAttribute），原无守卫强转分别NPE/CCE且异常穿透后请求无应答挂起；
+		// instanceof模式匹配同时覆盖两形态，按400明确拒绝（与sanitize拒绝路径同口径）。
+		var data = decoder.getBodyHttpData(fileVarName);
+		if (!(data instanceof FileUpload fileUpload)) {
+			logger.warn("Reject upload: missing or invalid file field '{}'", fileVarName);
+			x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST,
+					"missing or invalid file field '" + fileVarName + "'"));
+			return null;
+		}
+		return fileUpload;
+	}
+
 	@Override
 	public @NotNull String getFileNameQueryKey() {
 		return fileVarName;
@@ -107,22 +134,10 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 	@Override
 	public void onEndRequest(@NotNull HttpExchange x,
 							 @NotNull InterfaceHttpPostRequestDecoder decoder) throws Exception {
-		// 鉴权前置（FND8-66）：失配403并记录来源，不进入热更路径
-		if (!checkToken(token, x)) {
-			logger.warn("ReloadClassServer: reject unauthorized reload request from {}", x.channel().remoteAddress());
-			x.close(x.sendPlainText(HttpResponseStatus.FORBIDDEN, "forbidden"));
+		var fileUpload = checkTokenAndTakeUpload(logger, "ReloadClassServer", "reload",
+				token, x, decoder, getFileNameQueryKey());
+		if (fileUpload == null)
 			return;
-		}
-		// 字段守卫（FND8-67）：multipart可缺字段（getBodyHttpData返回null）或放同名文本字段
-		// （返回MemoryAttribute），原无守卫强转分别NPE/CCE且异常穿透后请求无应答挂起；
-		// instanceof模式匹配同时覆盖两形态，按400明确拒绝（与sanitize拒绝路径同口径）。
-		var data = decoder.getBodyHttpData(getFileNameQueryKey());
-		if (!(data instanceof FileUpload fileUpload)) {
-			logger.warn("Reject upload: missing or invalid file field '{}'", getFileNameQueryKey());
-			x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST,
-					"missing or invalid file field '" + getFileNameQueryKey() + "'"));
-			return;
-		}
 		var patchFileName = fileUpload.getFilename();
 		new File(uploadDir).mkdirs();
 		final File destFile; // 落盘路径必须经净化（FND4-70）：客户端可控文件名不得携带目录成分

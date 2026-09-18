@@ -227,13 +227,9 @@ public class DatagramSession extends AsyncSocket {
 		} catch (Exception e) {
 			logger.error("OnSocketClose exception:", e);
 		}
-		try {
-			// 对齐TcpSocket.realClose：会话销毁后将在飞Rpc上下文立即失败处置（FND8-50补充，
-			// 与FND8-44同点）——否则等待方只能干等Rpc超时，且OnSocketDisposed覆写永不触发。
-			getService().OnSocketDisposed(this);
-		} catch (Exception e) {
-			logger.error("OnSocketDisposed exception:", e);
-		}
+		// 对齐TcpSocket.realClose：会话销毁后将在飞Rpc上下文立即失败处置（FND8-50补充，
+		// 与FND8-44同点）——否则等待方只能干等Rpc超时，且OnSocketDisposed覆写永不触发。
+		fireOnSocketDisposed();
 		return true;
 	}
 

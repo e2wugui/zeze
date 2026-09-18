@@ -87,16 +87,21 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, 0, size), peer);
 	}
 
+	// FND8-53：close后拒绝新建（close在锁内置空selectionKey，双侧同锁封死竞态——
+	// 否则快照后加入的会话不在任何关闭路径上：OnSocketClose永不触发、isClosed恒false）。
+	// 抛ISE对齐Service.OnSocketAccept判例；null保留给tokenId撞号语义。
+	// 仅在持有本锁的临界区内调用。
+	private void checkNotClosed() {
+		if (selectionKey == null)
+			throw new IllegalStateException("DatagramSocket closed: " + this);
+	}
+
 	public @Nullable DatagramSession createSession(@NotNull InetSocketAddress remote, long tokenId,
 												   byte @Nullable [] securityKey, @NotNull ReplayAttackPolicy policy) {
 		var session = new DatagramSession(this, remote, tokenId, securityKey, policy);
 		lock();
 		try {
-			// FND8-53：close后拒绝新建（close在锁内置空selectionKey，双侧同锁封死竞态——
-			// 否则快照后加入的会话不在任何关闭路径上：OnSocketClose永不触发、isClosed恒false）。
-			// 抛ISE对齐Service.OnSocketAccept判例；null保留给tokenId撞号语义。
-			if (selectionKey == null)
-				throw new IllegalStateException("DatagramSocket closed: " + this);
+			checkNotClosed();
 			if (null == tokens.putIfAbsent(tokenId, session))
 				return session;
 		} finally {
@@ -113,8 +118,7 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 			var session = new DatagramSession(this, remote, tokenId, securityKey, policy);
 			lock();
 			try {
-				if (selectionKey == null) // 同createSession（FND8-53）：close后拒绝新建
-					throw new IllegalStateException("DatagramSocket closed: " + this);
+				checkNotClosed();
 				if (null == tokens.putIfAbsent(tokenId, session))
 					return session;
 			} finally {

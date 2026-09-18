@@ -208,7 +208,7 @@ public class Connector extends ReentrantLock {
 	public void OnSocketConnected(@SuppressWarnings("unused") @NotNull AsyncSocket so) {
 		lock();
 		try {
-			// FND8-52：与OnSocketHandshakeDone（236行）同一属主校验——被stop废弃的在途连接一旦
+			// FND8-52：与OnSocketHandshakeDone同一属主校验——被stop废弃的在途连接一旦
 			// 连上，不得置isConnected=true/清零退避：其OnSocketClose因socket==closed不匹配必然
 			// 跳过stop()，误置后无人纠正。合法时序（socket==so；socket==null且connecting窗口内
 			// 构造内立即连上/OP_CONNECT先于第二锁段）由两个子句完整覆盖，stale时序与其不相交；
@@ -223,14 +223,21 @@ public class Connector extends ReentrantLock {
 		}
 	}
 
+	// FND8-49：connecting窗口期内到达的start()/TryReconnect()请求不吞——记录重启意图，
+	// 由丢弃尾段补偿start()。仅在abortConnect（请求晚于stop）时置位，防复活被stop否决的
+	// 意图（见restartRequested字段注释）。仅在持有本锁的临界区内调用。
+	private void noteRestartInStopWindow() {
+		if (abortConnect)
+			restartRequested = true;
+	}
+
 	public void TryReconnect() {
 		lock();
 		try {
 			if (!isAutoReconnect || socket != null || reconnectTask != null)
 				return;
 			if (connecting) {
-				if (abortConnect) // 同start()：stop窗口期内的重连请求记录重启意图（FND8-49）
-					restartRequested = true;
+				noteRestartInStopWindow();
 				return;
 			}
 
@@ -273,10 +280,7 @@ public class Connector extends ReentrantLock {
 			if (socket != null)
 				return;
 			if (connecting) {
-				// FND8-49：stop打断在途构造的窗口期内到达的启动请求不吞——记录重启意图，
-				// 由丢弃尾段补偿start()（仅在abortConnect即请求晚于stop时置位，防复活被否决的意图）。
-				if (abortConnect)
-					restartRequested = true;
+				noteRestartInStopWindow();
 				return;
 			}
 			connecting = true;
