@@ -13,6 +13,7 @@ target/
 TestRocksDb/
 token_db/
 zeze_cache_*/
+zeze_cache_*.lock
 
 Redirect_*.java
 rocksdbjni.dll
