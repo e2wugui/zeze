@@ -3,6 +3,8 @@ package Zeze.Raft;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -11,8 +13,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.ZipFile;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Raft.RocksRaft.Rocks;
@@ -36,6 +40,54 @@ public class LogSequence {
 	static final Logger logger = LogManager.getLogger(LogSequence.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	public static final String snapshotFileName = "snapshot.dat";
+	// 【FND8-37】快照代次manifest：zip内嵌entry（持久化在快照文件自身，InstallSnapshot
+	// 字节流原样传输时随快照自动传播到follower）。entry名与RocksDB backup目录内的
+	// 文件名空间无关，不会冲突。
+	static final String snapshotManifestEntryName = "zeze.snapshot.manifest";
+
+	// 把快照代次写进快照zip自身。在临时文件上完成（此时snapshot.dat仍是旧代次，
+	// 与rafts表firstIndex一致），失败即中止提交，不留半写状态。
+	// 仅zip快照（生产Rocks实现）支持内嵌manifest；自定义StateMachine的非zip快照
+	// 跳过注入（重启对账时无manifest按现状处理，不劣于今天）。
+	static void writeSnapshotManifest(Path snapshotPath, long newFirstIndex) throws IOException {
+		if (!isZipFile(snapshotPath)) {
+			logger.warn("skip snapshot manifest: not a zip file. path={} newFirstIndex={}", snapshotPath, newFirstIndex);
+			return;
+		}
+		try (var zipFs = FileSystems.newFileSystem(snapshotPath, Map.of("create", "false"))) {
+			Files.writeString(zipFs.getPath(snapshotManifestEntryName), Long.toString(newFirstIndex), StandardCharsets.UTF_8);
+		}
+	}
+
+	// zip魔数检测：PK\x03\x04（local file header）或PK\x05\x06（空zip的EOCD）。
+	private static boolean isZipFile(Path path) {
+		try (var in = Files.newInputStream(path)) {
+			var head = new byte[4];
+			if (in.readNBytes(head, 0, 4) != 4)
+				return false;
+			return head[0] == 'P' && head[1] == 'K'
+					&& ((head[2] == 3 && head[3] == 4) || (head[2] == 5 && head[3] == 6));
+		} catch (IOException e) {
+			return false;
+		}
+	}
+
+	// 读快照内嵌代次。旧格式快照无manifest entry、文件不存在或损坏均返回null（视作
+	// 无代次信息，调用方跳过对账，不劣于现状）。
+	static Long readSnapshotManifest(Path snapshotPath) {
+		if (!Files.isRegularFile(snapshotPath))
+			return null;
+		try (var zip = new ZipFile(snapshotPath.toFile())) {
+			var entry = zip.getEntry(snapshotManifestEntryName);
+			if (entry == null)
+				return null;
+			var text = new String(zip.getInputStream(entry).readAllBytes(), StandardCharsets.UTF_8);
+			return Long.parseLong(text.strip());
+		} catch (Exception e) {
+			logger.warn("read snapshot manifest error. path={}", snapshotPath, e);
+			return null;
+		}
+	}
 
 	private final Raft raft;
 	private volatile long term; // getTerm()存在锁外读取（Server.trySendLeaderIs），需要可见性
@@ -187,7 +239,11 @@ public class LogSequence {
 				Files.deleteIfExists(path);
 				return;
 			}
-			// 下面move和save需要原子完成。目前没有处理：更容易失败的先处理可以缓解这个问题。
+			// 下面move和save需要原子完成（FND8-37）：两步间隙崩溃后磁盘留下
+			// "snapshot.dat=新代次S、rafts表firstIndex=旧值F、日志完整"，重启以
+			// snapshot.dat内嵌的manifest代次对账（构造器），消除"(F..S]双重应用"窗口。
+			// 先在临时文件上写入代次：失败即中止提交，snapshot.dat保持旧代次与firstIndex一致。
+			writeSnapshotManifest(path, newFirstIndex);
 			Files.move(path, Paths.get(getSnapshotFullName()), StandardCopyOption.REPLACE_EXISTING);
 			saveFirstIndex(newFirstIndex);
 			startRemoveLogOnlyBefore(newFirstIndex);
@@ -512,6 +568,42 @@ public class LogSequence {
 						if (itFirst.isValid()) {
 							firstIndex = RaftLog.decode(new Binary(itFirst.value()),
 									raft.getStateMachine()::logFactory).getIndex();
+						}
+					}
+				}
+				// 【FND8-37】快照代次对账：_commitSnapshot的Files.move与saveFirstIndex间隙
+				// 崩溃后，snapshot.dat内嵌代次S超前rafts表firstIndex=F（日志完整，下面的
+				// lastApplied=F起tryApply重放(F..S]即双重应用——增量不幂等，如list按索引追加）。
+				// 以文件内嵌代次为唯一事实：S>F时快照内容已含(F..S]，推进firstIndex到S并
+				// 跳过该段重放（残留日志由构造器尾部的startRemoveLogOnlyBefore清扫）；
+				// S<F正常流程不可达（move只前进+_commitSnapshot对回退快照的丢弃防御），
+				// 防御性丢弃快照由leader重装。旧格式快照无manifest，跳过对账（不劣于现状）。
+				if (firstIndex >= 0) {
+					var manifestIndex = readSnapshotManifest(Paths.get(getSnapshotFullName()));
+					if (manifestIndex != null) {
+						if (manifestIndex > firstIndex) {
+							logger.warn("{} crash recovery: snapshot manifest index({}) > firstIndex({}),"
+									+ " _commitSnapshot crashed between move and saveFirstIndex?"
+									+ " advance firstIndex to skip replay of applied logs.",
+									raft.getName(), manifestIndex, firstIndex);
+							saveFirstIndex(manifestIndex);
+							firstIndex = manifestIndex;
+							// 附带校正：lastSnapshotIndex同样滞后于S，滞后只让trySnapshot
+							// 提前触发一次新快照（无害），一并校正以免无谓快照。
+							lastSnapshotIndex = manifestIndex;
+							var lsiValue = ByteBuffer.Allocate(9);
+							lsiValue.WriteLong(lastSnapshotIndex);
+							rafts.put(writeOptions, lastSnapshotIndexKey, 0, lastSnapshotIndexKey.length,
+									lsiValue.Bytes, 0, lsiValue.WriteIndex);
+						} else if (manifestIndex < firstIndex) {
+							logger.warn("{} crash recovery: snapshot manifest index({}) < firstIndex({}),"
+									+ " discard snapshot, reinstall from leader.",
+									raft.getName(), manifestIndex, firstIndex);
+							try {
+								Files.deleteIfExists(Paths.get(getSnapshotFullName()));
+							} catch (IOException e) {
+								logger.warn("discard stale snapshot error.", e);
+							}
 						}
 					}
 				}
