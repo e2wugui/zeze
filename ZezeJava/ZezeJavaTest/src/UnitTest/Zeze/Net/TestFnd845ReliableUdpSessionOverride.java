@@ -17,7 +17,8 @@ import org.junit.jupiter.api.Test;
  * 被静默清零导致重复投递；被覆盖旧会话的Ack被新会话代际门拒收，重发定时器无人cancel
  * （孤儿定时器连ReliableUdp.close()都停不掉）。
  * 修复后：一个peer地址至多一个活会话（open先建者胜），openReplace显式重整并失效旧会话，
- * close()清扫全部创建过的会话（含孤儿）。
+ * 会话驱逐一律Session.close()（置失效+取消重发定时器+摘表），getSessions()只读——
+ * 表外带活定时器的会话从构造上不存在。
  */
 @Fast
 public class TestFnd845ReliableUdpSessionOverride {
@@ -115,13 +116,19 @@ public class TestFnd845ReliableUdpSessionOverride {
 		}
 	}
 
-	// close()必须清扫全部创建过的会话（含被应用手工删表的孤儿）：修复前只遍历sessions表，
-	// 孤儿定时器连close()都停不掉（进程级调度池上每3秒重发直到进程退出）。
+	// Session.close()必须：置失效（send返回false）、从sessions表摘除自己、取消重发定时器——
+	// 对端（不回Ack保持定时器在途）超过一个重发周期不得再收到数据报。
+	// （旧设计getSessions()暴露可变表：应用手工删表会造出表外孤儿，ReliableUdp.close()仅遍历
+	//  表清扫不到其定时器，曾需要allSessions全量登记兜底；现表只读、驱逐一律走Session.close()，
+	//  表外带活定时器的会话从构造上不存在。）
 	@Test
-	public void testCloseInvalidatesOrphanSessions() throws Exception {
+	public void testSessionCloseStopsResendAndRemoves() throws Exception {
 		Task.tryInitThreadPool();
 		var client = new ReliableUdp("127.0.0.1", 0, new Collector());
 		try (var peer = new DatagramSocket(new InetSocketAddress("127.0.0.1", 0))) {
+			Assertions.assertThrows(UnsupportedOperationException.class, () -> client.getSessions().clear(),
+					"sessions表必须只读（驱逐走Session.close()）");
+
 			var session = client.open("127.0.0.1", peer.getLocalPort(), new Collector());
 			Assertions.assertTrue(session.send("x".getBytes(), 0, 1));
 
@@ -130,12 +137,18 @@ public class TestFnd845ReliableUdpSessionOverride {
 			peer.setSoTimeout(10_000);
 			peer.receive(dg); // 首发到达；不回Ack，重发定时器保持活动
 
-			// 应用手工删表（getSessions暴露的删除路径）：会话成孤儿，不在sessions表内
-			client.getSessions().clear();
+			// 驱逐一律走Session.close()：置失效+取消重发定时器+从表摘除
+			session.close();
 
-			client.close();
-			Assertions.assertTrue(session.isClosed(), "close必须失效孤儿会话（仅遍历表清扫不到）");
-			Assertions.assertFalse(session.send("z".getBytes(), 0, 1), "close后孤儿会话send必须返回false");
+			Assertions.assertTrue(session.isClosed(), "close必须置失效");
+			Assertions.assertFalse(session.send("z".getBytes(), 0, 1), "close后send必须返回false");
+			Assertions.assertNull(client.getSessions().get(new InetSocketAddress("127.0.0.1",
+					peer.getLocalPort())), "close必须从表摘除自己");
+
+			// 重发定时器已取消：超过一个重发周期（3s）不得再收到任何数据报
+			peer.setSoTimeout(4_500);
+			Assertions.assertThrows(java.net.SocketTimeoutException.class, () -> peer.receive(dg),
+					"closed session resent packet: resend timer not cancelled");
 		}
 	}
 }

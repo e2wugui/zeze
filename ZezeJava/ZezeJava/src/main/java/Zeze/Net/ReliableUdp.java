@@ -9,7 +9,8 @@ import java.net.UnknownHostException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.security.SecureRandom;
-import java.util.Set;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -33,15 +34,18 @@ import org.jetbrains.annotations.NotNull;
  * 2 处理乱序。
  * 3 没有流量控制。
  * 4 会话代际（FND3-26）：serialId 只在进程内单调，任一端重启后对端无法把新序号空间与旧会话
- *   的去重状态对齐（发送端重启→旧会话按重复包丢弃但照常回Ack，数据静默丢失；接收端重启→
- *   发送端续高序号全部滞留接收窗口，整条流永久停摆）。每个会话创建时随机分配64位代际
- *   （generation），随每个 Packet/Control 携带：
- *   - 接收端收到全新代际 → 对端重启（发送方向），重置接收状态，按新空间从 1 接收；
- *   - 发送端从 Ack/Resend 发现对端代际换代 → 对端接收状态已归零，丢弃在途包（回调
- *     onSessionReset）、序号归 1 并更换自身代际，让对端同步清掉旧空间滞留包；
- *   - 退役代际记忆：旧代迟到残包整体忽略——否则会被当成全新代际再次触发重置，重新制造停摆；
- *   - Ack/Resend 回显所针对的对端代际，跨代际的确认/重发请求一律忽略。
- *   代际与时钟无关。不可检测：VM快照恢复（同代际回退）；无认证（伪造包可重置会话，与整体水位一致）。
+ * 的去重状态对齐（发送端重启→旧会话按重复包丢弃但照常回Ack，数据静默丢失；接收端重启→
+ * 发送端续高序号全部滞留接收窗口，整条流永久停摆）。每个会话创建时随机分配64位代际
+ * （generation），随每个 Packet/Control 携带：
+ * - 接收端收到全新代际 → 对端重启（发送方向），重置接收状态，按新空间从 1 接收；
+ * - 发送端从 Ack/Resend 发现对端代际换代 → 对端接收状态已归零，丢弃在途包（回调
+ * onSessionReset）、序号归 1 并更换自身代际，让对端同步清掉旧空间滞留包；
+ * - 退役代际记忆：旧代迟到残包整体忽略——否则会被当成全新代际再次触发重置，重新制造停摆；
+ * - Ack/Resend 回显所针对的对端代际，跨代际的确认/重发请求一律忽略。
+ * 代际与时钟无关。不可检测：VM快照恢复（同代际回退）；无认证（伪造包可重置会话，与整体水位一致）。
+ * 5 会话生命周期：创建统一经createSession并按putIfAbsent入表（先建者胜，openReplace显式重整），
+ * 关闭一律Session.close()（置失效+取消重发定时器+摘表），getSessions()只读——表外带活
+ * 重发定时器的会话从构造上不存在。
  */
 public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closeable {
 	private static final Logger logger = LogManager.getLogger(ReliableUdp.class);
@@ -75,18 +79,18 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	// 覆盖注册会使新会话接收状态从零开始（已派发序号被当首次学习→重复投递），
 	// 且被覆盖旧会话照常send()、其Ack被新会话代际门拒收——在途包重发定时器无人cancel。
 	private final ConcurrentHashMap<SocketAddress, Session> sessions = new ConcurrentHashMap<>();
-	// 本实例创建过的全部会话（含被openReplace替换、应用手工删表后遗留的孤儿）：
-	// 孤儿不在sessions表内，close()仅遍历表停不掉其重发定时器（进程级调度池上每3秒重发直到进程退出）。
-	private final Set<Session> allSessions = ConcurrentHashMap.newKeySet();
+	// sessions的只读视图（getSessions对外只给这个）：会话驱逐一律走Session.close()，
+	// 应用直接改表会造出表外孤儿——其重发定时器挂进程级调度池，close()仅遍历表清扫不到。
+	private final Map<SocketAddress, Session> sessionsView = Collections.unmodifiableMap(sessions);
 	private final ReliableUdpHandle defaultHandle;
 	private int MaxPacketLength = 2048;
 	private final LongAdder malformedPackets = new LongAdder();
 	private volatile long lastMalformedWarnTime;
 
-	// 应用应该需要这个，特别是Server端，免得外面又需要建立一个Map来管理。
-	// 【注意】应用直接删除这个Map时需要注意是否会出现问题。
-	public ConcurrentHashMap<SocketAddress, Session> getSessions() {
-		return sessions;
+	// 应用查询会话用，特别是Server端，免得外面又需要建立一个Map来管理。
+	// 只读视图：关闭/驱逐会话请用Session.close()（置失效、取消重发定时器并从表中摘除）。
+	public Map<SocketAddress, Session> getSessions() {
+		return sessionsView;
 	}
 
 	public int getMaxPacketLength() {
@@ -135,7 +139,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	// 对齐Service.addSocket把静默互撞变显式拒绝），返回既有会话。强制重整请用openReplace。
 	public Session open(String peer, int port, ReliableUdpHandle handle) {
 		var ep = resolvePeer(peer, port);
-		var session = new Session(ep, handle);
+		var session = createSession(ep, handle);
 		var existing = sessions.putIfAbsent(ep, session);
 		if (existing != null) {
 			logger.error("open: session for peer {} already exists: existing session kept, "
@@ -150,10 +154,10 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	// 新会话以全新代际与序号空间接管表项。
 	public Session openReplace(String peer, int port, ReliableUdpHandle handle) {
 		var ep = resolvePeer(peer, port);
-		var session = new Session(ep, handle);
+		var session = createSession(ep, handle);
 		var old = sessions.put(ep, session);
 		if (old != null)
-			old.markClosed();
+			old.close();
 		return session;
 	}
 
@@ -241,7 +245,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		int size;
 
 		/** adopt 结果：Ignore=不采纳（generation 为 0 或旧代残包）；Learn=首次学习；Change=检测到对端换代。 */
-		enum Adopt { Ignore, Learn, Change }
+		enum Adopt {Ignore, Learn, Change}
 
 		Adopt adopt(long generation) {
 			if (generation == 0 || generation == current)
@@ -285,26 +289,32 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		private long lastDispatchedSerialId;
 		private long maxRecvPacketSerialId;
 
-		// 会话失效（被openReplace替换或整个ReliableUdp.close）：旧引用继续send()只会制造
-		// 永远无法被Ack确认（代际门拒收）的在途重发定时器——孤儿定时器连close()都停不掉。
+		// 会话失效（Session.close()、被openReplace替换或整个ReliableUdp.close）：
+		// 旧引用继续send()只会制造永远无法被Ack确认（代际门拒收）的在途重发定时器。
 		private volatile boolean closed;
 
-		// 构造不自注册sessions（注册在open/openReplace/dynamic创建路径按putIfAbsent语义进行），
-		// 仅登记allSessions供close()能停掉孤儿定时器。
-		public Session(SocketAddress peer, ReliableUdpHandle handle) {
+		// 构造不自注册sessions（注册在open/openReplace/dynamic创建路径按putIfAbsent语义进行）；
+		// protected：包外请经ReliableUdp.createSession创建（外部子类是ReliableUdp的子类
+		// 而非Session的子类，够不到protected构造器）。
+		protected Session(SocketAddress peer, ReliableUdpHandle handle) {
 			this.handle = handle;
 			this.peer = peer;
 			this.selfGeneration = nextGeneration();
-			ReliableUdp.this.allSessions.add(this);
 		}
 
 		public boolean isClosed() {
 			return closed;
 		}
 
-		void markClosed() {
-			closed = true;
-			cancelResendTimers();
+		// 关闭会话：置失效（后续send返回false）、取消全部重发定时器、从sessions表摘除自己。
+		// 持本会话锁与send()互斥——close完成后send不得再挂出无人能取消的定时器；
+		// 摘表用两参条件删，只摘"表项仍指向自己"的——旧引用close不得误踢已接管的接班会话。
+		public void close() {
+			synchronized (this) {
+				closed = true;
+				cancelResendTimers();
+			}
+			sessions.remove(peer, this);
 		}
 
 		// 取消发送窗口内所有包的重发定时器
@@ -317,14 +327,16 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		}
 
 		public boolean send(byte[] bytes, int offset, int length) {
-			if (closed)
-				return false; // 已被替换/关闭的会话：不得再制造无法被确认的在途包
 			if (length > MaxPacketLength - MaxWireOverhead)
 				throw new IllegalArgumentException(
 						"length > MaxPacketLength - " + MaxWireOverhead + ": " + (MaxPacketLength - MaxWireOverhead));
 
 			Packet packet;
-			synchronized (this) { // 与 rebaseSendState 互斥：取号、入窗、挂定时器必须原子，防止重整归零后出现逆序号
+			// 与 rebaseSendState/close() 互斥：closed检查、取号、入窗、挂定时器必须原子——
+			// 防止close取消定时器后send再挂出（无人能取消）、重整归零后出现逆序号
+			synchronized (this) {
+				if (closed)
+					return false; // 已被替换/关闭的会话：不得再制造无法被确认的在途包
 				packet = new Packet(selfGeneration, serialIdGenerator.getAndIncrement(), bytes, offset, length);
 				// resendTimerTask必须在sendWindow.put之前写入（FND7-28）：并发集合的内存一致性只保证
 				// "put之前的写"对"remove之后的读"可见；put之后再写，Ack路径（selector线程，不持本会话锁）
@@ -374,11 +386,18 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		}
 	}
 
+	// 会话工厂：所有创建路径（open/openReplace/dynamic）统一经此构造。
+	// Session构造器为protected，包外子类重载dynamicCreateSession自定义建会话时只能经这里new
+	// （JLS 6.6.2：外部子类是ReliableUdp的子类而非Session的子类，直接new够不到其protected构造器）。
+	protected Session createSession(SocketAddress peer, ReliableUdpHandle handle) {
+		return new Session(peer, handle);
+	}
+
 	// 重载这个决定是否动态创建Session。
 	// 一般Server模式需要接收任何地方来的包，此时需要动态创建。
 	// 一般Client模式仅接收来自一个地方的包，此时可以限制一下，重载这个方法并且返回null即可。
-	public Session dynamicCreateSession(SocketAddress source) {
-		return new Session(source, defaultHandle);
+	protected Session dynamicCreateSession(SocketAddress source) {
+		return createSession(source, defaultHandle);
 	}
 
 	// 表内命中即用；未命中经dynamicCreateSession创建后以putIfAbsent语义注册
@@ -424,9 +443,12 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			// 退役代际=旧代迟到残包，整体忽略——回 Ack 无意义（其代际已退役），重置则重新制造停摆。
 			if (packet.generation != session.peerPacketGeneration.current) {
 				switch (session.peerPacketGeneration.adopt(packet.generation)) {
-				case Ignore -> { return; } // 旧代残包
+				case Ignore -> {
+					return;
+				} // 旧代残包
 				case Change -> session.resetRecvState();
-				case Learn -> {} // 首次学习：会话接收状态本就为空
+				case Learn -> {
+				} // 首次学习：会话接收状态本就为空
 				}
 			}
 
@@ -476,7 +498,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			resend.peerGeneration = session.peerPacketGeneration.current;
 			var maxResendIds = Math.max(1, (MaxPacketLength - 64) / 9);
 			for (var serialId = session.lastDispatchedSerialId;
-					++serialId < session.maxRecvPacketSerialId && resend.serialIds.size() < maxResendIds; )
+				 ++serialId < session.maxRecvPacketSerialId && resend.serialIds.size() < maxResendIds; )
 				resend.serialIds.add(serialId);
 			sendTo(source, resend);
 			return;
@@ -503,9 +525,12 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		// 旧代残包忽略；首次学习不重整。
 		if (control.generation != 0 && control.generation != session.peerControlGeneration.current) {
 			switch (session.peerControlGeneration.adopt(control.generation)) {
-			case Ignore -> { return; } // 旧代残包
+			case Ignore -> {
+				return;
+			} // 旧代残包
 			case Change -> session.rebaseSendState();
-			case Learn -> {} // 首次学习，不重整
+			case Learn -> {
+			} // 首次学习，不重整
 			}
 		}
 
@@ -596,10 +621,11 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			} catch (IOException skip) {
 				logger.error("", skip);
 			}
-			// 会话置失效并取消【全部】创建过的会话（含已被替换、不在sessions表内的孤儿）的
-			// 重发定时器——孤儿挂在进程级调度池上，不在这里停掉会每3秒重发直到进程退出。
-			for (var session : allSessions)
-				session.markClosed();
+			// 表内全部会话置失效并取消重发定时器（close()自行摘表）。会话离开表的每条路径
+			// （Session.close/openReplace替换/本close）都持会话锁取消定时器——重发定时器挂在
+			// 进程级调度池上，不停掉会每3秒重发直到进程退出。
+			for (var session : sessions.values())
+				session.close();
 			selectionKey = null;
 		} finally {
 			unlock();

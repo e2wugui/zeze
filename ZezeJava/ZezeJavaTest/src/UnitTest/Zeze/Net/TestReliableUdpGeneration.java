@@ -106,8 +106,9 @@ public class TestReliableUdpGeneration {
 				session.send(("a-" + i).getBytes(), 0, ("a-" + i).getBytes().length);
 			awaitReceived(serverHandle, 5);
 
-			// 模拟接收端进程重启：会话表清空（新会话 lastDispatched=0、新代际），UDP 端口不变。
-			server.getSessions().clear();
+			// 模拟接收端进程重启：全部会话关闭（新会话 lastDispatched=0、新代际），UDP 端口不变。
+			for (var s : server.getSessions().values())
+				s.close();
 
 			// 旧实现：序号 6 滞留新会话 recvWindow 永不派发。
 			// 新实现：第一个 Ack 携带新代际，发送端重整（在途包 b-1 被丢弃=设计语义）。
@@ -139,7 +140,7 @@ public class TestReliableUdpGeneration {
 		var clientHandle = new Collector();
 		var server = new ReliableUdp("127.0.0.1", 0, refusingHandle) {
 			@Override
-			public Session dynamicCreateSession(SocketAddress source) {
+			protected Session dynamicCreateSession(SocketAddress source) {
 				return null; // client 模式：拒绝对任何来源动态建会话
 			}
 		};
