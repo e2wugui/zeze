@@ -144,6 +144,15 @@ public class OnzProcedure implements FuncLong {
 		return future;
 	}
 
+	/**
+	 * FND8-76：ready后本地回滚（perform停机拒绝等"结果已发、决策已到而本地落库失败"）——
+	 * 由Transaction.perform在RejectWhileStopping分支调用：记分歧error的补充动作，
+	 * 回填超时哨兵覆盖迟到redo Commit的二次确认（见Onz.markRolledBackAfterReady）。
+	 */
+	public void markRolledBackAfterReady() {
+		stub.getOnz().markRolledBackAfterReady(this);
+	}
+
 	// helper
 	public static void sendFlushAndWait(@Nullable Set<OnzProcedure> onzProcedures) {
 		if (onzProcedures != null) {

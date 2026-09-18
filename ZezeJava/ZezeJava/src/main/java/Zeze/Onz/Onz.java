@@ -65,6 +65,21 @@ public class Onz extends AbstractOnz {
 		return true;
 	}
 
+	/**
+	 * FND8-76：参与方"ready已发、Commit决策已送达"后本地失败回滚（如perform的停机拒绝）——
+	 * putIfAbsent回填超时哨兵：决策RPC已先行取走条目（replace必失败，故用putIfAbsent），
+	 * 回填成功则迟到的redo Commit取到哨兵走ProcessCommitRequest的分歧error路径二次确认；
+	 * 条目仍在（决策未到达/已是哨兵）时失败不覆盖。成功后与markTimeoutRolledBack同型记账，
+	 * 由TTL连同槽位哨兵一起回收。
+	 */
+	boolean markRolledBackAfterReady(OnzProcedure procedure) {
+		var tid = procedure.getOnzTid();
+		if (readyProcedures.putIfAbsent(tid, TimeoutRolledBackMarker) != null)
+			return false;
+		timeoutRolledBack.put(tid, System.currentTimeMillis());
+		return true;
+	}
+
 	public Application getZeze() {
 		return zeze;
 	}

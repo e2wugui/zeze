@@ -372,6 +372,18 @@ public final class Transaction {
 										// 终检点已过：tryUpdateAndCheckpoint在应用修改前（或落库前）显式拒绝。
 										// 转为finalRollback+Closed显式失败，替代旧的"静默跳过落库+返回Success"
 										// （已应答的提交丢失）。
+										// FND8-76：Onz参与方"结果已发、Commit决策已送达"（能走到这里说明
+										// sendReadyAndWait已按Commit决策返回，而协调者侧saveCommitPoint
+										// 严格先行已持久化）而本地因停机回滚——跨集群分歧（协调者按提交推进、
+										// 本地写入未发生）。回滚时刻进程存活、信息完备，是唯一确定性的暴露点，
+										// 必须记error；回填哨兵让迟到的redo Commit取到时二次确认。
+										if (onzProcedure != null) {
+											logger.error("onz participant({}) tid={}: coordinator commit decision"
+													+ " delivered and persisted, but local transaction rolled back"
+													+ " while stopping -- cross-cluster divergence, manual check required",
+													procedure.getActionName(), onzProcedure.getOnzTid(), e);
+											onzProcedure.markRolledBackAfterReady();
+										}
 										finalRollback(procedure);
 										return Procedure.Closed;
 									} catch (Throwable ex) { // logger.fatal & halt
