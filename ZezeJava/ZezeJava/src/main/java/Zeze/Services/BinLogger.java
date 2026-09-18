@@ -578,6 +578,8 @@ public final class BinLogger extends ReentrantLock {
 			var readLogQueue = new ArrayList<LogData>(); // 读日志队列
 			var lastTs = 0L;
 			var buf = new byte[8];
+			var rotateBackoffExp = 0; // 轮转失败重试退避指数（FND8-60，成功清零）
+			var rotateRetryAfterMs = 0L; // 下次允许尝试轮转的时间戳（FND8-60，降级续写期间的退避重试）
 			for (int queueSize; ; ) {
 				try {
 					queueLock.lock();
@@ -592,8 +594,15 @@ public final class BinLogger extends ReentrantLock {
 							break;
 						}
 						var wlq = writeLogQueue;
-						if (wlq == null) // 阻止了写队列后,也处理完读队列,可以退出了
+						if (wlq == null) { // 阻止了写队列后,也处理完读队列,可以退出了
+							// FND8-60：轮转失败滞留等路径下readLogQueue可能还有未写批，与其余三条
+							// 停机退出路径（轮转窗口/写异常/重开复查）同口径补记丢弃日志——
+							// 丢弃本身是FND4-68终止契约。
+							if (!readLogQueue.isEmpty())
+								logger.error("writeLogThread exit on stopped queue: discard {} resident logs",
+									readLogQueue.size());
 							break;
+						}
 						queueSize = wlq.size();
 						if (queueSize > 0) {
 							var reusedQueue = readLogQueue; // 换回写侧的队列：正常为空（写完即clear）
@@ -611,8 +620,14 @@ public final class BinLogger extends ReentrantLock {
 								queueLockCond.signalAll();
 							}
 						}
-						if (!started)
+						if (!started) {
+							// FND8-60：写侧残留批（轮转失败滞留路径复用队列残留，见FND4-71）随置null
+							// 被丢弃，补记日志（与各停机discard同口径）。
+							if (!writeLogQueue.isEmpty())
+								logger.error("writeLogThread stopping: discard {} queued logs",
+									writeLogQueue.size());
 							writeLogQueue = null; // 阻止日志再进入队列
+						}
 					} finally {
 						queueLock.unlock();
 					}
@@ -628,41 +643,62 @@ public final class BinLogger extends ReentrantLock {
 									queueSize);
 								break;
 							}
-							var oldBinFile = binFile;
-							var oldPosFile = posFile;
-							var oldTsFile = tsFile;
-							var oldDtFile = dtFile;
-							var oldIdFile = idFile;
-							// 先打开新一天的全套文件再关旧文件: 打开失败时旧文件仍可继续写, 且curDayStamp不推进, 下一轮重试轮转.
-							openDay(dayStamp);
-							forceClose(oldIdFile);
-							forceClose(oldDtFile);
-							forceClose(oldTsFile);
-							forceClose(oldPosFile);
-							forceClose(oldBinFile);
-							if (myGeneration != loggerGeneration) {
-								// FND8-59：openDay（阻塞IO）跨越了重启：curDayStamp不推进、
-								// 不再触碰共享状态，丢弃本地残批退出。
-								logger.error("writeLogThread exit on stale generation after rotation: discard {} logs",
-									queueSize);
-								break;
-							}
-							curDayStamp = dayStamp;
-							// FND6-29：轮转窗口停机复查。stop超时放弃join后stopLogger已forceClose当时
-							// 字段并释放目录锁，openDay在此之后重开的新五件套无人负责关闭（句柄泄漏到
-							// 进程结束）；继续写完整批还会在同目录重启新实例时双写同日bin/pos索引交叉损坏。
-							// 停机优先于落盘（FND4-68终止契约，与写异常恢复分支的!started同口径）：
-							// 关闭新句柄、丢弃残余批直接退出。
-							if (!started) {
-								logger.error("writeLogThread exit on stopping during rotation: discard {} logs",
-									queueSize);
-								forceClose(idFile);
-								forceClose(dtFile);
-								forceClose(tsFile);
-								forceClose(posFile);
-								forceClose(binFile);
-								discardWriteQueueForExit();
-								break; // 退出外层for(;;)
+							if (curMs >= rotateRetryAfterMs) { // FND8-60：退避窗口内不重试，降级续写旧文件
+								var oldBinFile = binFile;
+								var oldPosFile = posFile;
+								var oldTsFile = tsFile;
+								var oldDtFile = dtFile;
+								var oldIdFile = idFile;
+								var rotated = false;
+								try {
+									// 先打开新一天的全套文件再关旧文件: 打开失败时旧文件仍可继续写, 且curDayStamp不推进, 下一轮重试轮转.
+									openDay(dayStamp);
+									rotated = true;
+								} catch (Throwable e) { // logger.error
+									// 降级续写（FND8-60，兑现上一行注释承诺的行为）：openDay原子失败
+									// 不改当前状态，旧五件套仍有效，本批继续写旧文件——ts索引携带绝对
+									// 时间戳且lastTs跨轮转连续，午夜后条目落入昨日文件不破坏索引；
+									// 重启对账按文件独立进行。失败尝试会留下空的当日新文件（RecoveryFile
+									// "rw"即创建），后续成功的openDay按尺寸0正常处理，无害。退避限制
+									// 重试频率（每次重试重做五文件对账I/O）。真正的持久输出故障（旧文件
+									// 也写不动）自然落入既有写异常60s观察窗判死，无需新判死机制。
+									var backoffMs = recoverBackoffMs(rotateBackoffExp++);
+									rotateRetryAfterMs = curMs + backoffMs;
+									logger.error("rotate open day {} fail, backoff {}ms, keep writing day {} files",
+										toDayStr(dayStamp), backoffMs, toDayStr(curDayStamp), e);
+								}
+								if (rotated) {
+									forceClose(oldIdFile);
+									forceClose(oldDtFile);
+									forceClose(oldTsFile);
+									forceClose(oldPosFile);
+									forceClose(oldBinFile);
+									rotateBackoffExp = 0;
+									if (myGeneration != loggerGeneration) {
+										// FND8-59：openDay（阻塞IO）跨越了重启：curDayStamp不推进、
+										// 不再触碰共享状态，丢弃本地残批退出。
+										logger.error("writeLogThread exit on stale generation after rotation: discard {} logs",
+											queueSize);
+										break;
+									}
+									curDayStamp = dayStamp;
+									// FND6-29：轮转窗口停机复查。stop超时放弃join后stopLogger已forceClose当时
+									// 字段并释放目录锁，openDay在此之后重开的新五件套无人负责关闭（句柄泄漏到
+									// 进程结束）；继续写完整批还会在同目录重启新实例时双写同日bin/pos索引交叉损坏。
+									// 停机优先于落盘（FND4-68终止契约，与写异常恢复分支的!started同口径）：
+									// 关闭新句柄、丢弃残余批直接退出。
+									if (!started) {
+										logger.error("writeLogThread exit on stopping during rotation: discard {} logs",
+											queueSize);
+										forceClose(idFile);
+										forceClose(dtFile);
+										forceClose(tsFile);
+										forceClose(posFile);
+										forceClose(binFile);
+										discardWriteQueueForExit();
+										break; // 退出外层for(;;)
+									}
+								}
 							}
 						}
 						// 失败断点（FND3-43）：completed=已完整写成（五文件齐）的条数。写异常时
