@@ -1372,14 +1372,14 @@ public class LogSequence {
 		if (cex != null) {
 			var state = cex.getInstallSnapshotState();
 			logger.info("{} InstallSnapshot LastIncludedIndex={} Done={} c={}", raft.getName(),
-					state.getPending().Argument.getLastIncludedIndex(),
-					state.getPending().Argument.getDone(), c.getName());
+					state.getLastIncludedIndex(),
+					state.getDone(), c.getName());
 			state.getFile().close();
-			if (state.getPending().Argument.getDone() && state.getPending().getResultCode() == 0) {
-				cex.setNextIndex(state.getPending().Argument.getLastIncludedIndex() + 1);
+			if (state.getDone() && state.getResultCode() == 0) {
+				cex.setNextIndex(state.getLastIncludedIndex() + 1);
 
-				if (state.getPending().Argument.getLastIncludedIndex() > cex.getMatchIndex()) // see EndReceiveInstallSnapshot 6.
-					cex.setMatchIndex(state.getPending().Argument.getLastIncludedIndex());
+				if (state.getLastIncludedIndex() > cex.getMatchIndex()) // see EndReceiveInstallSnapshot 6.
+					cex.setMatchIndex(state.getLastIncludedIndex());
 				// start log copy
 				trySendAppendEntries(c, null);
 			}
@@ -1413,10 +1413,10 @@ public class LogSequence {
 				endInstallSnapshot(c);
 				return;
 			}
-			st.getPending().Argument.setTerm(term);
-			st.getPending().Argument.setLeaderId(raft.getName());
-			st.getPending().Argument.setLastIncludedIndex(st.getFirstLog().getIndex());
-			st.getPending().Argument.setLastIncludedTerm(st.getFirstLog().getTerm());
+			st.setTerm(term);
+			st.setLeaderId(raft.getName());
+			st.setLastIncludedIndex(st.getFirstLog().getIndex());
+			st.setLastIncludedTerm(st.getFirstLog().getTerm());
 
 			logger.info("{} InstallSnapshot Start... Path={} c={}", raft.getName(), path, c.getName());
 			st.trySend(this, c);

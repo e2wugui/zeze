@@ -6,14 +6,17 @@ import Zeze.Net.Protocol;
 import Zeze.Transaction.Procedure;
 
 class InstallSnapshotState {
-	private final InstallSnapshot pending = new InstallSnapshot(); // 【注意】重用这个Rpc
+	// Rpc实例一次性（sessionId不可重用），跨块重用会在第二次Send时抛IllegalStateException，
+	// 之后所有块都发不出去：快照边界信息由state携带，每块new一个InstallSnapshot发送。
 	private RaftLog firstLog;
 	private RandomAccessFile file;
 	private long offset;
-
-	public InstallSnapshot getPending() {
-		return pending;
-	}
+	private long term;
+	private String leaderId = "";
+	private long lastIncludedIndex;
+	private long lastIncludedTerm;
+	private boolean done;
+	private long resultCode = Procedure.ErrorSendFail;
 
 	public RaftLog getFirstLog() {
 		return firstLog;
@@ -39,13 +42,53 @@ class InstallSnapshotState {
 		offset = value;
 	}
 
+	public long getTerm() {
+		return term;
+	}
+
+	public void setTerm(long value) {
+		term = value;
+	}
+
+	public String getLeaderId() {
+		return leaderId;
+	}
+
+	public void setLeaderId(String value) {
+		leaderId = value;
+	}
+
+	public long getLastIncludedIndex() {
+		return lastIncludedIndex;
+	}
+
+	public void setLastIncludedIndex(long value) {
+		lastIncludedIndex = value;
+	}
+
+	public long getLastIncludedTerm() {
+		return lastIncludedTerm;
+	}
+
+	public void setLastIncludedTerm(long value) {
+		lastIncludedTerm = value;
+	}
+
+	public boolean getDone() {
+		return done;
+	}
+
+	public long getResultCode() {
+		return resultCode;
+	}
+
 	public void trySend(LogSequence ls, Server.ConnectorEx c) throws Exception {
 		ls.getRaft().lock();
 		try {
 			if (!ls.getInstallSnapshotting().containsKey(c.getName()))
 				return; // 安装取消了。
 
-			if (pending.Argument.getDone() || ls.getRaft().isShutdown || !ls.getRaft().isLeader()) {
+			if (done || ls.getRaft().isShutdown || !ls.getRaft().isLeader()) {
 				ls.endInstallSnapshot(c);
 				return; // install done
 			}
@@ -56,6 +99,11 @@ class InstallSnapshotState {
 			int rc = file.read(buffer);
 			if (rc < 0)
 				rc = 0; // EOF：发0字节收尾块（done=true），完成协议
+			var pending = new InstallSnapshot();
+			pending.Argument.setTerm(term);
+			pending.Argument.setLeaderId(leaderId);
+			pending.Argument.setLastIncludedIndex(lastIncludedIndex);
+			pending.Argument.setLastIncludedTerm(lastIncludedTerm);
 			pending.Argument.setOffset(offset);
 			pending.Argument.setData(new Binary(buffer, rc));
 			pending.Argument.setDone(rc < buffer.length);
@@ -64,9 +112,14 @@ class InstallSnapshotState {
 				pending.Argument.setLastIncludedLog(new Binary(firstLog.encode()));
 
 			int timeout = ls.getRaft().getRaftConfig().getAppendEntriesTimeout();
-			pending.setResultCode(Procedure.ErrorSendFail);
+			resultCode = Procedure.ErrorSendFail;
 			if (!pending.Send(c.TryGetReadySocket(), p -> processResult(ls, c, p), timeout))
 				ls.endInstallSnapshot(c);
+		} catch (Throwable e) {
+			// 异常会被上层任务记日志后吞掉，这里不收口的话该follower的安装将永久楔死
+			// （installSnapshotting条目残留、文件不关、心跳与复制被拦截）。
+			LogSequence.logger.error("InstallSnapshotState trySend error. c={}", c.getName(), e);
+			ls.endInstallSnapshot(c);
 		} finally {
 			ls.getRaft().unlock();
 		}
@@ -94,6 +147,9 @@ class InstallSnapshotState {
 				ls.endInstallSnapshot(c);
 				return Procedure.Success; // break install
 			}
+
+			done = r.Argument.getDone();
+			resultCode = r.getResultCode();
 
 			if (!r.Argument.getDone() && r.Result.getOffset() >= 0) {
 				if (r.Result.getOffset() > file.length()) {
