@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.*;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -155,6 +156,9 @@ public final class Json implements Cloneable {
 			keyReaderMap.put(Double.class, JsonReader::parseDoubleKey);
 			keyReaderMap.put(String.class, JsonReader::parseStringKey);
 			keyReaderMap.put(Object.class, JsonReader::parseStringKey);
+			// decimal（FND8-32伴生）：toString/new BigDecimal(String)全精度双射（FND3-06），
+			// 写侧走isInKeyReaderMap的String.valueOf(k)带引号串，对称。
+			keyReaderMap.put(BigDecimal.class, (jr, b) -> new BigDecimal(JsonReader.parseStringKey(jr, b)));
 		}
 
 		static boolean isInKeyReaderMap(Class<?> klass) {
@@ -733,6 +737,23 @@ public final class Json implements Cloneable {
 			else {
 				writer.ensure(obj.length * 6 + 3);
 				writer.write(obj, false);
+			}
+		});
+
+		// decimal（FND8-32伴生）：decimal键/值集合的JSON导入导出。键读回直接构造
+		// （keyReaderMap条目），值与bean字段走本自定义读写对（带引号全精度字符串）。
+		json.getClassMeta(BigDecimal.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
+			if (reader.next() == 'n')
+				return null; // json null
+			return new BigDecimal(reader.parseString(false));
+		});
+		json.getClassMeta(BigDecimal.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(json, null);
+			else {
+				String s = obj.toString();
+				writer.ensure(s.length() * 6 + 3);
+				writer.write(s, false);
 			}
 		});
 
