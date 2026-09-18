@@ -168,6 +168,9 @@ public final class Token extends AbstractToken {
 				connector = new Connector(host, port, true);
 				connector.SetService(this);
 				connector.setAutoReconnect(true);
+				// 手工connector路径不复位keepalive熔断（FND8-62，与BinLoggerAgent同构）：
+				// stop→start(host,port)重启后keepalive定时器永久熔断，静默死链不再被检测。
+				super.start();
 				connector.start();
 				return this;
 			} finally {

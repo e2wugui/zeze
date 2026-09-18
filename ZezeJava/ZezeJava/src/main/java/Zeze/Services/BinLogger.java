@@ -195,6 +195,11 @@ public final class BinLogger extends ReentrantLock {
 				connector = new Connector(host, port, true);
 				connector.SetService(this);
 				connector.setAutoReconnect(true);
+				// 手工connector路径不复位keepalive熔断（FND8-62）：stop()经super.stop()置
+				// keepAliveCheckStopped后，本路径若不super.start()，重启后所有TcpSocket构造
+				// 都被熔断快路径拒绝，构造器配置的5s检查/60s收/30s发超时全部失效（静默死链
+				// 不再被检测关闭）。先复位再建socket，与无参start的顺序语义一致。
+				super.start();
 				connector.start();
 				return this;
 			} finally {
