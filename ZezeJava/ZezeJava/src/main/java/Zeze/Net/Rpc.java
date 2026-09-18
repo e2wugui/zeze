@@ -178,10 +178,14 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		isTimeout = false;
 		isRequest = true;
 
-		if (super.Send(so)) {
-			schedule(service, sessionId, millisecondsTimeout);
+		// FND8-51：超时兜底先于编码/发送挂好——super.Send(so)内编码（写完sessionId后Argument.encode，
+		// 用户bean可抛）或传输层异常逃逸时，上下文仍有超时回收与回调，兑现schedule注释
+		// （130-132行）"上下文必须有超时兜底"的设计契约（对齐Online.sendOnlineRpc先例）。
+		// 发送返回false时下方双参remove先赢，超时定时器到期时remove(sessionId,this)必失败跳过，
+		// 无双重回调（LongConcurrentHashMap.remove(key,value)为原子条件删除）。
+		schedule(service, sessionId, millisecondsTimeout);
+		if (super.Send(so))
 			return true;
-		}
 
 		// 发送失败，一般是连接失效，此时删除上下文。
 		// 其中rpc-trigger-result的原子性由RemoveRpcContext保证。
@@ -215,8 +219,10 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		isTimeout = false;
 		isRequest = true;
 		sessionId = service.addRpcContext(this);
-		super.Send(so);
+		// FND8-51：schedule前移到发送之前，同Send——super.Send(so)异常逃逸路径同样有超时兜底，
+		// 兑现本方法javadoc"不管发送是否成功，总是建立RpcContext……在Timeout后回调"。
 		schedule(service, sessionId, millisecondsTimeout);
+		super.Send(so);
 	}
 
 	public final TaskCompletionSource<TResult> SendForWait(@Nullable AsyncSocket so) {
