@@ -24,10 +24,13 @@ import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.OutLong;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class LinkedMap<V extends Bean> implements HotBeanFactory {
+	private static final Logger logger = LogManager.getLogger(LinkedMap.class);
 	public static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long getSpecialTypeIdFromBean(@NotNull Serializable bean) {
@@ -310,7 +313,16 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		if (null == root)
 			return null;
 		nodeId.value = root.getHeadNodeId();
-		return root.getHeadNodeId() == 0 ? null : getNode(root.getHeadNodeId());
+		if (root.getHeadNodeId() == 0)
+			return null;
+		var node = getNode(root.getHeadNodeId());
+		if (node == null)
+			// 头键非0但头行缺失=数据损坏（正常事务不会产生），静默返回null会向分页首发
+			// 谎报空链。仅记error留诊断线索，不抛ISE：并发删除交错下瞬时缺失是良性的
+			//（本事务提交时读集版本冲突自然回滚重试）。对齐Queue.peekNode同款判据。
+			logger.error("LinkedMap.getFirstNode: head node row missing (broken data?)."
+					+ " name={} headNodeId={} count={}", name, root.getHeadNodeId(), root.getCount());
+		return node;
 	}
 
 	public boolean isEmpty() {
@@ -563,6 +575,13 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		var root = module._tLinkedMaps.getOrAdd(name);
 		var headNodeId = root.getHeadNodeId();
 		var head = headNodeId != 0 ? getNodePrivate(headNodeId) : null;
+		if (head == null && headNodeId != 0 && root.getTailNodeId() != 0)
+			// 活链存在（尾键非0）而头行缺失=真断链，静默绕过断头重建会把尚存活链整体
+			// 孤立。仅记error（不自行修复损坏，行为不变）；尾键也为0时头行缺失只可能是
+			// 根行自相矛盾的残留，不按断链告警。
+			logger.error("LinkedMap.addHeadUnsafe: head node row missing but chain not empty (broken data?)."
+					+ " name={} headNodeId={} tailNodeId={} count={}",
+					name, headNodeId, root.getTailNodeId(), root.getCount());
 		if (head != null && head.getValues().size() < nodeSize) {
 			// head is null means empty
 			head.getValues().add(0, nodeValue);
@@ -587,6 +606,13 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		var root = module._tLinkedMaps.getOrAdd(name);
 		var tailNodeId = root.getTailNodeId();
 		var tail = tailNodeId != 0 ? getNodePrivate(tailNodeId) : null;
+		if (tail == null && tailNodeId != 0 && root.getHeadNodeId() != 0)
+			// 活链存在（头键非0）而尾行缺失=真断链，静默另立新尾会把尚存活链变成不可达
+			// 孤岛。仅记error（不自行修复损坏，行为不变）；头键也为0时尾行缺失是排空
+			// 残链的设计常态，不告警。
+			logger.error("LinkedMap.addTailUnsafe: tail node row missing but chain not empty (broken data?)."
+					+ " name={} tailNodeId={} headNodeId={} count={}",
+					name, tailNodeId, root.getHeadNodeId(), root.getCount());
 		if (tail != null && tail.getValues().size() < nodeSize) { // tail is null means empty
 			tail.getValues().add(nodeValue);
 			return tailNodeId;
