@@ -10,6 +10,7 @@ import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAKey;
 import java.util.Arrays;
+import java.util.function.Predicate;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Decrypt2;
 import Zeze.Net.Digest;
@@ -32,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
 
 // TCP连接成功后,主动连接方(客户端)先发密钥交换请求(KeyExchange)给被动连接方(服务器). 收到回复后,后续通信用双方各自随机生成的key做双向对称加密(己方生成的key用于对方加密发送,己方接收解密)
 // 客户端 === KeyExchange(明文请求) ==> 服务器 (客户端用服务器公钥加密客户端生成的key给服务器,可选提供客户端公钥)
-// 客户端 <== KeyExchange(明文回复) === 服务器 (服务器用服务器私钥解密得到客户端的key,再生成服务器key,二者做异或回复给客户端,或者验证客户端公钥并用客户端公钥加密服务器key回给客户端,两种方法都能让客户端得到服务器key)
+// 客户端 <== KeyExchange(明文回复) === 服务器 (服务器用服务器私钥解密得到客户端的key,再生成服务器key,二者做异或回复给客户端,或者用客户端公钥加密服务器key回给客户端——公钥模式仅在服务器经addHandler重载注册可信公钥校验且验证通过时进行,验证失败回ErrorUnknownClientPubKey并断连;两种方法都能让客户端得到服务器key)
 // 客户端 === 其它协议(使用服务器生成的key加密) ==> 服务器 (密钥交换后,需要由客户端先发起协议,方便客户端确定何时开始解密)
 // 客户端 <== 其它协议(使用客户端生成的key加密) === 服务器
 public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
@@ -47,7 +48,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 	public static final class Arg implements Serializable {
 		public int version; // 版本. 目前只定义初始版本:0, 即固定使用RSA-2048(exponent固定为65537)作为非对称加密,AES-128(CFB模式)作为对称加密
-		public byte[] clientPubKey; // 本地客户端公钥. RSA公钥中的N(modulus)以大端序列化成byte数组(最高位的字节不能为0). 用于对方验证自己的身份,可以为空(不验证,仅单向非对称加密)
+		public byte[] clientPubKey; // 本地客户端公钥. RSA公钥中的N(modulus)以大端序列化成byte数组(最高位的字节不能为0). 作为回程密钥(服务器key)的加密目标；仅当服务器经addHandler重载注册了可信公钥校验时才构成身份认证，否则服务器不校验它(任何自造公钥都能建立会话)。可以为空(不使用公钥模式,回程密钥与客户端key异或后返回)
 		public byte[] serverPubKeyMd5; // 对方服务器公钥的MD5. 如上方法序列化后再做MD5, 用于对方选取所用的私钥
 		public byte[] encIvKey; // 随机生成对称加密的iv和key各16字节拼接成32字节,以"RSA/ECB/PKCS1Padding"模式加密
 
@@ -77,7 +78,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 	public static final class Res implements Serializable {
 		// resultCode=0表示成功,其它见下方枚举定义
-		public static final int ErrorUnknownClientPubKey = 1; // 未知或非法的客户端公钥(如果clientPubKey为空,则表示必须验证客户端公钥)
+		public static final int ErrorUnknownClientPubKey = 1; // 未知或非法的客户端公钥(仅当服务器经addHandler重载启用客户端公钥认证时返回;clientPubKey为空时表示该服务器要求客户端公钥认证)
 		public static final int ErrorUnknownServerPubKey = 2; // 未知或非法的服务器公钥
 		public static final int ErrorDecryptFailed = 3; // 解密encIvKey失败
 
@@ -123,12 +124,17 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	}
 
 	public static byte @NotNull [] getPubKeyMd5(byte @NotNull [] pubKey) {
+		return Digest.md5(stripLeadingZeros(pubKey));
+	}
+
+	// 跳过公钥前导字节0（BigInteger.toByteArray对正数可能带符号位前导0），同模数不同编码归一
+	private static byte @NotNull [] stripLeadingZeros(byte @NotNull [] pubKey) {
 		int i = 0;
 		for (; i < pubKey.length; i++) {
-			if (pubKey[i] != 0) // 跳过前面的字节0
+			if (pubKey[i] != 0)
 				break;
 		}
-		return Digest.md5(pubKey, i, pubKey.length - i);
+		return i == 0 ? pubKey : Arrays.copyOfRange(pubKey, i, pubKey.length);
 	}
 
 	public static byte @NotNull [] encryptRsa(byte @NotNull [] pubKeyN, byte @NotNull [] data) {
@@ -188,13 +194,26 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		});
 	}
 
-	public long processKeyExchangeRequest(@NotNull PrivateKey priKey, byte @Nullable [] pubKeyMd5) {
+	public long processKeyExchangeRequest(@NotNull PrivateKey priKey, byte @Nullable [] pubKeyMd5,
+										  @Nullable Predicate<byte @NotNull []> clientPubKeyAcceptor) {
 		// FND6-33：KeyExchange.TypeId不在handshakeProtocols中（走Service.dispatchProtocol普通路径，
 		// Direct派发的callFuncCore仅trySendResultCode回错误码、连接保持）——恶意/损坏encIvKey
 		// 抛GeneralSecurityException后可在单条连接上无限刷RSA私钥解密（CPU消耗）；伪造
 		// clientPubKey路径更发生在setInputSecurityCodec之后，留下已切codec的半开连接。
 		// 与HandshakeBase各握手handler的「握手错误不能忽略」判例对齐：异常断连。
 		try {
+			// FND8-47：可信客户端公钥校验在任何状态变更（含codec切换）之前——失败时连接零状态
+			// 变更，回码给合法客户端诊断信息并断连防半开。注册acceptor即要求客户端公钥认证，
+			// clientPubKey为空（未提供身份）同样拒绝。此刻无任何codec已切换、无半开风险，
+			// 优雅关闭让错误码先冲刷到对端再断连（close(ex)非优雅会连错误响应一起丢掉）。
+			if (clientPubKeyAcceptor != null) {
+				var clientPubKey = stripLeadingZeros(Argument.clientPubKey); // 与getPubKeyMd5相同的前导零归一
+				if (clientPubKey.length == 0 || !clientPubKeyAcceptor.test(clientPubKey)) {
+					trySendResultCode(Res.ErrorUnknownClientPubKey);
+					getSender().closeGracefully();
+					return 0;
+				}
+			}
 			if (!Arrays.equals(Argument.serverPubKeyMd5, pubKeyMd5)) {
 				trySendResultCode(Res.ErrorUnknownServerPubKey);
 				return 0;
@@ -214,8 +233,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			((TcpSocket)getSender()).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, serverKey, serverIv));
 
 			if (Argument.clientPubKey.length > 0) {
-				//NOTE: 这里可以先认证一下客户端公钥是否合法,不合法就回复Res.ErrorUnknownClientPubKey
-				Result.encIvKey = encryptRsa(Argument.clientPubKey, serverIvKey);
+				Result.encIvKey = encryptRsa(Argument.clientPubKey, serverIvKey); // 已过acceptor认证
 			} else {
 				for (int i = 0; i < 32; i++)
 					serverIvKey[i] ^= clientIvKey[i];
@@ -233,11 +251,29 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		}
 	}
 
+	/**
+	 * 注册KeyExchange处理器（无客户端公钥认证模式）：clientPubKey仅作为回程密钥的加密目标，
+	 * 服务器不校验它。
+	 */
 	public static void addHandler(@NotNull Service service, @NotNull PrivateKey serverPriKey) {
+		addHandler(service, serverPriKey, null);
+	}
+
+	/**
+	 * 注册KeyExchange处理器并启用客户端公钥认证（FND8-47）：clientPubKey非空且被acceptor
+	 * 接受才继续握手，否则回 {@link Res#ErrorUnknownClientPubKey} 并断连；clientPubKey为空
+	 * （未提供身份）同样拒绝。acceptor收到与getPubKeyMd5相同方式归一前导零后的公钥
+	 * （BigInteger.toByteArray可能带符号位前导0），可直接与配置的N比较或经getPubKeyMd5比对。
+	 * 认证边界：本认证=客户端的发送能力等价于私钥持有——冒用他人（白名单内）公钥者解不出
+	 * clientIvKey、发不出合法加密流量，但能收到以其自生成密钥加密的服务器下推；
+	 * 服务器主动下推型业务需自行加密钥确认（如首个合法解密帧后才置已认证态）。
+	 */
+	public static void addHandler(@NotNull Service service, @NotNull PrivateKey serverPriKey,
+								  @Nullable Predicate<byte @NotNull []> clientPubKeyAcceptor) {
 		byte[] pubKeyMd5 = getPubKeyMd5(((RSAKey)serverPriKey).getModulus().toByteArray());
 		if (!service.getFactorys().containsKey(KeyExchange.TypeId)) {
 			service.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,
-					r -> r.processKeyExchangeRequest(serverPriKey, pubKeyMd5),
+					r -> r.processKeyExchangeRequest(serverPriKey, pubKeyMd5, clientPubKeyAcceptor),
 					TransactionLevel.None, DispatchMode.Direct));
 		}
 	}
