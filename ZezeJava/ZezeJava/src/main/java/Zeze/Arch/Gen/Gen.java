@@ -246,9 +246,17 @@ final class Gen {
 		if (Serializable.class.isAssignableFrom(cls)) {
 			// Bean/Data是唯一多态合法形态（typeId+工厂反建）；其余抽象Serializable形参
 			// decode侧无法反建实例，生成期拒绝。
-			if (cls != Bean.class && cls != Data.class && isAbstract(cls) && !isField)
-				throw new UnsupportedOperationException("redirect param unsupported: abstract Zeze Serialize type "
-						+ cls.getName() + "（多态请声明为Zeze.Transaction.Bean/Data静态类型）, " + where);
+			if (cls != Bean.class && cls != Data.class && isAbstract(cls)) {
+				if (!isField)
+					throw new UnsupportedOperationException("redirect param unsupported: abstract Zeze Serialize type "
+							+ cls.getName() + "（多态请声明为Zeze.Transaction.Bean/Data静态类型）, " + where);
+				// FND8-84 T1：抽象Serializable结果字段decode不new、原位decode，未初始化即NPE
+				// ——无法判空兜底（具体类型未知），实例化探测初始化器，未初始化则生成期拒绝。
+				if (!isFieldInitializerPresent(e))
+					throw new UnsupportedOperationException("redirect result field unsupported: abstract Zeze "
+							+ "Serialize type " + cls.getName() + " not initialized（decode原位decode字段，"
+							+ "null即NPE，请在声明处初始化）, " + where);
+			}
 			return;
 		}
 		if (Collection.class.isAssignableFrom(cls) && type instanceof ParameterizedType) {
@@ -274,6 +282,19 @@ final class Gen {
 			throw new UnsupportedOperationException("redirect param unsupported " + role + " type: "
 					+ elemClass.getName() + "（容器将退化为Java序列化，" + role
 					+ "必须实现java.io.Serializable或为具体Zeze Serializable类型）, " + where);
+	}
+
+	// 实例化探测字段初始化器（仅结果DTO，注意实例化副作用）：探测失败视为未初始化。
+	private static boolean isFieldInitializerPresent(@NotNull AnnotatedElement e) {
+		if (e instanceof Field f) {
+			try {
+				var instance = f.getDeclaringClass().getConstructor().newInstance();
+				return f.get(instance) != null;
+			} catch (ReflectiveOperationException ex) {
+				return false;
+			}
+		}
+		return false;
 	}
 
 	private static @NotNull String describeGenElement(@NotNull AnnotatedElement e, @NotNull Type type) {
@@ -421,8 +442,15 @@ final class Gen {
 			if (elemType instanceof Class<?> elemClass) {
 				var serializer = serializers.get(elemClass);
 				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
-					if (!isAbstract(type) || !isField) {
+					if (!isAbstract(type) || !isField)
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
+								getCollectionType(type).getTypeName().replace('$', '.'));
+					else {
+						// FND8-84：抽象集合字段保留用户实现选择（跳过分配），但未初始化时decode
+						// 原位add必NPE（结果类最自然的"赋值式填充"形态即触发）——判空后new兜底，
+						// 已初始化不覆盖，未初始化产物可用。
+						sb.appendLine("{}if ({} == null)", prefix, varName);
+						sb.appendLine("{}    {} = new {}<>();", prefix, varName,
 								getCollectionType(type).getTypeName().replace('$', '.'));
 					}
 					sb.appendLine("{}for (int _n_ = {}.ReadUIntPositive(); _n_ > 0; _n_--) {", prefix, bbName);
@@ -448,8 +476,13 @@ final class Gen {
 				var valueSerializer = serializers.get(valueClass);
 				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
 						!isAbstract(valueClass) && (valueSerializer != null || Serializable.class.isAssignableFrom(valueClass))) {
-					if (!isAbstract(type) || !isField) {
+					if (!isAbstract(type) || !isField)
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
+								getMapType(type).getTypeName().replace('$', '.'));
+					else {
+						// FND8-84：抽象映射字段判空后new兜底（同集合分支），未初始化不再NPE。
+						sb.appendLine("{}if ({} == null)", prefix, varName);
+						sb.appendLine("{}    {} = new {}<>();", prefix, varName,
 								getMapType(type).getTypeName().replace('$', '.'));
 					}
 					sb.appendLine("{}for (int _n_ = {}.ReadUIntPositive(); _n_ > 0; _n_--) {", prefix, bbName);
