@@ -267,6 +267,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	 */
 	public static void decode(@NotNull Service service, @NotNull AsyncSocket so, @NotNull ByteBuffer bb)
 			throws Exception {
+		// 每缓冲区读一次=快照：按接收时刻的准入状态逐帧判决，中途撤销不影响本缓冲区。null不设防。
+		var admission = so.getDecodeAdmission();
 		while (bb.size() >= HEADER_SIZE) { // 只有协议发送被分成很小的包，协议头都不够的时候才会发生这个异常。几乎不可能发生。
 			// 读取协议类型和大小
 			var bytes = bb.Bytes;
@@ -274,6 +276,10 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 			int moduleId = ByteBuffer.ToInt(bytes, beginReadIndex);
 			int protocolId = ByteBuffer.ToInt(bytes, beginReadIndex + 4);
 			int size = ByteBuffer.ToInt(bytes, beginReadIndex + 8);
+			var typeId = makeTypeId(moduleId, protocolId);
+			if (admission != null && !admission.test(typeId)) // 准入在完整性检查之前：帧头可见即判决
+				throw new IllegalStateException(service.getName() + " reject protocol before admission passed: moduleId="
+						+ moduleId + " protocolId=" + protocolId + " so=" + so);
 
 			// 以前写过的实现在数据不够之前会根据type检查size是否太大。
 			// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
@@ -283,7 +289,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。
 				int maxSize = service.getSocketOptions().getInputBufferMaxProtocolSize();
 				if (longSize > maxSize) {
-					var factoryHandle = service.findProtocolFactoryHandle(makeTypeId(moduleId, protocolId));
+					var factoryHandle = service.findProtocolFactoryHandle(typeId);
 					var pName = factoryHandle != null && factoryHandle.Factory != null ?
 							factoryHandle.Factory.create().getClass().getName() : "?";
 					throw new IllegalStateException(
@@ -301,7 +307,6 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 			if (service.checkThrottle(so, moduleId, protocolId, size)
 					&& !service.discard(so, moduleId, protocolId, size)) { // 默认超速是丢弃请求
 				var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-				var typeId = makeTypeId(moduleId, protocolId);
 				var factoryHandle = service.findProtocolFactoryHandle(typeId);
 				if (factoryHandle != null && factoryHandle.Factory != null)
 					service.dispatchProtocol(typeId, bb, factoryHandle, so);

@@ -231,6 +231,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			throws Exception {
 		super(service);
 
+		setDecodeAdmission(service.getConnectionDecodeAdmission(this)); // 连接级解码准入，早于一切输入
 		this.acceptorOrConnector = acceptor;
 		this.type = Type.eServer;
 		resetActiveSendRecvTime();
@@ -289,6 +290,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 					 @Nullable Object userState, @Nullable Connector connector) {
 		super(service);
 
+		setDecodeAdmission(service.getConnectionDecodeAdmission(this)); // 连接级解码准入，早于一切输入
 		this.acceptorOrConnector = connector;
 		this.userState = userState;
 		this.type = Type.eClient;
@@ -396,6 +398,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			inputCodecChain = chain;
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 1;
+			if (security == (1 | 2)) // 双向codec装齐，撤销解码准入
+				setDecodeAdmission(null);
 			logger.info("setInputSecurityCodec: {} decrypt={} decompress={}", this, encryptType, compressType);
 		});
 	}
@@ -413,6 +417,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			inputCodecChain = creator.apply(this, inputBuffer);
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 1;
+			if (security == (1 | 2)) // 双向codec装齐，撤销解码准入
+				setDecodeAdmission(null);
 			logger.info("setInputSecurityCodec: {} class={}", this, inputCodecChain.getClass().getName());
 		});
 	}
@@ -453,6 +459,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			outputCodecChain = chain;
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 2;
+			if (security == (1 | 2)) // 双向codec装齐，撤销解码准入
+				setDecodeAdmission(null);
 			logger.info("setOutputSecurityCodec: {} compress={} encrypt={}", this, compressType, encryptType);
 		});
 	}
@@ -462,6 +470,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			outputCodecChain = creator.apply(this, outputBuffer);
 			//noinspection NonAtomicOperationOnVolatileField
 			security |= 2;
+			if (security == (1 | 2)) // 双向codec装齐，撤销解码准入
+				setDecodeAdmission(null);
 			logger.info("setOutputSecurityCodec: {} class={}", this, outputCodecChain.getClass().getName());
 		});
 	}

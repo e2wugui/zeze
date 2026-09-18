@@ -254,6 +254,11 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	/**
 	 * 注册KeyExchange处理器（无客户端公钥认证模式）：clientPubKey仅作为回程密钥的加密目标，
 	 * 服务器不校验它。
+	 * <p>
+	 * 同时给目标Service装配明文门禁（FND8-48）：armed后未完成密钥交换（双向codec未装齐）
+	 * 的连接上，除KeyExchange本身外的明文协议帧解码即断连——封死"不握手全程明文"直连与
+	 * 握手完成前的明文注入窗口。本服务上的全部TcpSocket连接自此必须先完成KeyExchange。
+	 * 门禁经连接级解码准入生效（TcpSocket连接构造器装配），须在建立连接前调用本方法。
 	 */
 	public static void addHandler(@NotNull Service service, @NotNull PrivateKey serverPriKey) {
 		addHandler(service, serverPriKey, null);
@@ -270,6 +275,9 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	 */
 	public static void addHandler(@NotNull Service service, @NotNull PrivateKey serverPriKey,
 								  @Nullable Predicate<byte @NotNull []> clientPubKeyAcceptor) {
+		// FND8-48：装配Service级明文门禁（豁免KeyExchange自身）——注册即声明本服务连接使用
+		// KeyExchange加密，未握手的明文连接自此被拒。即便工厂已被前次注册去重，门禁仍须装配。
+		service.armSecurityGate(KeyExchange.TypeId);
 		byte[] pubKeyMd5 = getPubKeyMd5(((RSAKey)serverPriKey).getModulus().toByteArray());
 		if (!service.getFactorys().containsKey(KeyExchange.TypeId)) {
 			service.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,

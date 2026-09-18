@@ -3,6 +3,7 @@ package Zeze.Net;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.function.LongPredicate;
 import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.GlobalTimer;
@@ -61,6 +62,22 @@ public abstract class AsyncSocket {
 
 	public @NotNull Service getService() {
 		return service;
+	}
+
+	/**
+	 * 连接级解码准入谓词：TcpSocket 连接构造器装配，双向 security codec 装齐时撤销；
+	 * 只在 selector 线程访问。{@link Protocol#decode} 每缓冲区读一次作快照，中途撤销
+	 * 不影响已开始的判决；谓词返回 false 即断连。null 表示不设防。
+	 */
+	private @Nullable LongPredicate decodeAdmission;
+
+	public @Nullable LongPredicate getDecodeAdmission() {
+		return decodeAdmission;
+	}
+
+	// 仅 Zeze.Net 内写（TcpSocket 装配 / 撤销）。
+	void setDecodeAdmission(@Nullable LongPredicate admission) {
+		this.decodeAdmission = admission;
 	}
 
 	public static boolean canLogProtocol(long protocolTypeId) {

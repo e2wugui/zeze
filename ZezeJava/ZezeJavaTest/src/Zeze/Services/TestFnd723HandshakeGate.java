@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Config;
@@ -8,6 +9,8 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Net.ServiceConf;
 import Zeze.Net.TcpSocket;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.Handshake.CHandshake;
 import Zeze.Services.Handshake.Constant;
 import Zeze.Services.Handshake.SHandshake;
 import Zeze.Services.Handshake.SHandshake0;
@@ -212,5 +215,59 @@ public class TestFnd723HandshakeGate {
 		} finally {
 			server.stop();
 		}
+	}
+
+	/**
+	 * 用例4（快照语义）：[CHandshake][明文PlaintextEcho] 拼进同一 TCP 段——第1帧合法握手被
+	 * 放行并装好双向 codec，第2帧仍按缓冲区开始时的准入状态判决，明文协议不得放行。
+	 */
+	@Test
+	public void testCoalescedHandshakeThenPlaintextStillRejected() throws Exception {
+		Task.tryInitThreadPool();
+		var processed = new AtomicBoolean(false);
+		// 同用例1：断连后 socketCount 是瞬态，用 OnSocketAccept 计数做信号。
+		var accepted = new java.util.concurrent.atomic.AtomicInteger();
+		var server = newGateServer("TestFnd723CoalSrv", Constant.eEncryptTypeAesNoSecureIp, processed, accepted);
+		try {
+			var port = listenPort(server);
+			var attacker = new Service("TestFnd723CoalAttacker", new Config()) {
+				{
+					// 注册SHandshake0/SHandshake工厂消除Unknown Protocol自断连污染（同用例1）。
+					AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(SHandshake0::new,
+							p -> 0L, TransactionLevel.None, DispatchMode.Direct));
+					AddFactoryHandle(SHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(SHandshake::new,
+							p -> 0L, TransactionLevel.None, DispatchMode.Direct));
+				}
+
+				@Override
+				public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
+					super.OnSocketConnected(so);
+					// 伪造合法CHandshake+明文协议拼进同一ByteBuffer单次写出，服务端单次decode同缓冲区处理。
+					var ch = new CHandshake();
+					ch.Argument.encryptType = Constant.eEncryptTypeAesNoSecureIp;
+					ch.Argument.encryptParam = BigInteger.TEN.toByteArray();
+					var bb = ByteBuffer.Allocate(256);
+					appendFrame(bb, ch);
+					appendFrame(bb, new PlaintextEcho());
+					so.Send(bb);
+				}
+			};
+			try {
+				attacker.newClientSocket("127.0.0.1", port, null, null);
+				await("server accepted", 30_000, () -> accepted.get() >= 1);
+				await("server closed coalesced attack connection", 30_000, () -> server.getSocketCount() == 0);
+				Assertions.assertFalse(processed.get(), "明文应用协议绝不能因同段握手帧装好codec而放行");
+			} finally {
+				attacker.stop();
+			}
+		} finally {
+			server.stop();
+		}
+	}
+
+	/** 完整编码一个协议帧（12字节头+参数）追加到dst。 */
+	private static void appendFrame(ByteBuffer dst, Protocol<?> p) {
+		var encoded = p.encode();
+		dst.Append(encoded.Bytes, encoded.ReadIndex, encoded.size());
 	}
 }

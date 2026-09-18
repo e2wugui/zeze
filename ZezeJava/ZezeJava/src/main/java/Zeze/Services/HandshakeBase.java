@@ -3,11 +3,11 @@ package Zeze.Services;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.concurrent.Future;
+import java.util.function.LongPredicate;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Digest;
-import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Net.TcpSocket;
 import Zeze.Serialize.ByteBuffer;
@@ -75,44 +75,25 @@ public class HandshakeBase extends Service {
 	}
 
 	/**
-	 * FND7-23 加密门禁：EncryptType != Disable 时，未完成握手（加解密 codec 未装好，
-	 * {@link TcpSocket#isSecurity()}==false，与 {@link TcpSocket#verifySecurity()} 同一判据）的连接
-	 * 只允许处理握手协议本身（{@link #isHandshakeProtocol}），否则明文应用协议会被正常解码派发，
-	 * 整个握手加密可被"不握手直连"绕过——此前框架唯一的强制点 verifySecurity() 只挂在
-	 * processCHandshakeDone 上，由对端自愿发送。这里在输入侧逐帧预检：帧头 12 字节即可判定协议
-	 * 类型，非握手协议立即抛异常断连（Selector 会 close）；不完整帧留待 Protocol.decode 继续接收
-	 * 并做大小检查。握手完成后放行；EncryptType=Disable 的服务完全不经过本检查。
-	 * 不用 OnHandshakeDone 标志判"完成"：客户端在 processSHandshake 装好 codec 之后、
-	 * OnHandshakeDone 的 submitAction 执行之前，就可能收到对端握手后立即发送的已加密数据，
-	 * 按标志门禁会误杀该合法时序（两个回调都在 selector 线程的 operates 队列里，事件顺序不保证）。
+	 * 加密门禁：EncryptType != Disable 时，连接在双向 security codec 装齐前只允许握手协议
+	 * （{@link #isHandshakeProtocol}）进入解码，防止明文直连绕过握手加密。撤销判据与
+	 * {@link TcpSocket#verifySecurity()} 一致（codec 装配而非 OnHandshakeDone 标志——标志
+	 * 会误杀 codec 装好后、回调执行前到达的合法加密数据）。EncryptType=Disable 返回 null。
 	 */
+	private final @NotNull LongPredicate handshakeAdmission = this::isHandshakeProtocol;
+
 	@Override
-	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) throws Exception {
-		if (so instanceof TcpSocket tcp) {
-			// haProxy 头必须先于帧扫描消费（对齐 Service 默认实现；已消费时 decodeHeader 立即返回true）。
-			var haProxyHeader = tcp.getHaProxyHeader();
-			if (haProxyHeader != null && !haProxyHeader.decodeHeader(input))
-				return true; // 没有解析完header，看作成功。
-			if (getConfig().getHandshakeOptions().getEncryptType() != Constant.eEncryptTypeDisable && !tcp.isSecurity()) {
-				var bytes = input.Bytes;
-				int readIndex = input.ReadIndex;
-				while (input.WriteIndex - readIndex >= Protocol.HEADER_SIZE) {
-					long typeId = Protocol.makeTypeId(ByteBuffer.ToInt(bytes, readIndex),
-							ByteBuffer.ToInt(bytes, readIndex + 4));
-					if (!isHandshakeProtocol(typeId))
-						throw new IllegalStateException(getName()
-								+ " reject plaintext protocol before handshake done: moduleId="
-								+ Protocol.getModuleId(typeId) + " protocolId=" + Protocol.getProtocolId(typeId)
-								+ " so=" + tcp);
-					long frameEnd = (long)readIndex + Protocol.HEADER_SIZE
-							+ (ByteBuffer.ToInt(bytes, readIndex + 8) & 0xffff_ffffL);
-					if (frameEnd > input.WriteIndex)
-						break; // 不完整帧：只做类型预检，大小合法性由 Protocol.decode 检查。
-					readIndex = (int)frameEnd;
-				}
-			}
-		}
-		return super.OnSocketProcessInputBuffer(so, input);
+	public @Nullable LongPredicate getConnectionDecodeAdmission(@NotNull AsyncSocket so) {
+		// FND8-48孪生2：Service级KeyExchange门禁（super，EncryptType=Disable时本类门禁关闭）
+		// 仍须生效；与本类握手准入同时存在时取交集（两个准入都通过才放行）。
+		var gate = super.getConnectionDecodeAdmission(so);
+		var handshake = getConfig().getHandshakeOptions().getEncryptType() != Constant.eEncryptTypeDisable
+				? handshakeAdmission : null;
+		if (gate == null)
+			return handshake;
+		if (handshake == null)
+			return gate;
+		return typeId -> gate.test(typeId) && handshake.test(typeId);
 	}
 
 	/**
