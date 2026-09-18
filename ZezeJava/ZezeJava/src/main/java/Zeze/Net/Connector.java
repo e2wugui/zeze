@@ -208,6 +208,14 @@ public class Connector extends ReentrantLock {
 	public void OnSocketConnected(@SuppressWarnings("unused") @NotNull AsyncSocket so) {
 		lock();
 		try {
+			// FND8-52：与OnSocketHandshakeDone（236行）同一属主校验——被stop废弃的在途连接一旦
+			// 连上，不得置isConnected=true/清零退避：其OnSocketClose因socket==closed不匹配必然
+			// 跳过stop()，误置后无人纠正。合法时序（socket==so；socket==null且connecting窗口内
+			// 构造内立即连上/OP_CONNECT先于第二锁段）由两个子句完整覆盖，stale时序与其不相交；
+			// closedInWindow窗口（socket==null且connecting==false）内迟到的Connected必属已死连接，
+			// 拒绝置位恰为正确行为。WebsocketClient.onOpen入口（url型Connector）同经本校验。
+			if (socket != so && (socket != null || !connecting || abortConnect))
+				return;
 			isConnected = true;
 			reConnectDelay = 0;
 		} finally {
