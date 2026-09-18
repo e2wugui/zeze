@@ -8,6 +8,7 @@ import Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -268,6 +269,19 @@ public class RedirectBase {
 
 	public void runVoid(@Nullable TransactionLevel level, @NotNull Action0 action) {
 		runVoid(level, action, "RedirectLoopBack");
+	}
+
+	/**
+	 * void redirect 的远程发送（fire-and-forget）。
+	 * <p>
+	 * FND8-86：void redirect 为 at-most-once 语义，Send 失败不重试。Rpc.Send 在 socket
+	 * 失效（null/已关闭/发送缓冲溢出背压）时不抛异常只返回false——原先生成代码直接丢弃
+	 * 布尔值，socket层虽有error日志但无redirect归因（丢了哪个方法无从知晓），与本地回环
+	 * runVoid失败有日志不对称。失败时记带方法名的error日志；内建方法的既有自愈补偿不变。
+	 */
+	public void sendVoid(@Nullable AsyncSocket so, @NotNull Rpc<?, ?> p, @NotNull String methodFullName) {
+		if (!p.Send(so, null))
+			logger.error("redirect send fail: method={}, socket={}", methodFullName, so);
 	}
 
 	public void runVoid(@Nullable TransactionLevel level, @NotNull Action0 action, @NotNull String actionName) {

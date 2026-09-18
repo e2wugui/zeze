@@ -350,7 +350,9 @@ public final class GenModule extends ReentrantLock {
 				}
 				sb.appendLine();
 				if (returnName.equals("void"))
-					sb.appendLine("{}_p_.Send(_t_, null);", prefix);
+					// FND8-86：Send失败（socket失效/背压）只返回false不抛异常，原先丢弃布尔值
+					// 无redirect归因——经sendVoid封装，失败记带方法名的error日志（at-most-once不变）。
+					sb.appendLine("{}_redirect_.sendVoid(_t_, _p_, \"{}:{}\");", prefix, moduleFullName, m.method.getName());
 				else {
 					sb.appendLine("{}if (!_p_.Send(_t_, _rpc_ -> {", prefix);
 					sb.appendLine("{}    if (_rpc_.isTimeout()) {", prefix);
