@@ -44,11 +44,26 @@ import Zeze.Transaction.Logs.LogVector3;
 import Zeze.Transaction.Logs.LogVector3Int;
 import Zeze.Transaction.Logs.LogVector4;
 import Zeze.Util.KV;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 public class Helper {
+	private static final Logger logger = LogManager.getLogger(Helper.class);
+
+	/** dynamic家族：工厂对+来源（宿主bean类#变量名），供同typeId多家族留痕。 */
+	public static final class DynamicFamily {
+		public final KV<ToLongFunction<Bean>, LongFunction<Bean>> factories;
+		public final String where;
+
+		DynamicFamily(@NotNull KV<ToLongFunction<Bean>, LongFunction<Bean>> factories, @NotNull String where) {
+			this.factories = factories;
+			this.where = where;
+		}
+	}
+
 	public static class DependsResult {
 		public final HashSet<Class<?>> allBeans = new HashSet<>();
 		public final HashSet<Class<? extends Bean>> beans = new HashSet<>();
@@ -58,14 +73,13 @@ public class Helper {
 		public final HashSet<KV<ToLongFunction<Bean>, LongFunction<Bean>>> list2Dynamic = new HashSet<>();
 		public final HashSet<KV<Class<?>, Class<?>>> map1 = new HashSet<>();
 		public final HashSet<KV<Class<?>, Class<? extends Bean>>> map2 = new HashSet<>();
-		public final HashMap<KV<Class<?>, Class<? extends Bean>>, KV<ToLongFunction<Bean>, LongFunction<Bean>>>
-				map2Dynamic = new HashMap<>();
+		public final HashMap<KV<Class<?>, Class<? extends Bean>>, DynamicFamily> map2Dynamic = new HashMap<>();
 		public final HashSet<Meta2<?, ?>> map1Metas = new HashSet<>();
 		public final HashSet<Meta2<?, ? extends Bean>> map2Metas = new HashSet<>();
 		public final HashSet<Class<?>> set1 = new HashSet<>();
 		public final HashSet<KV<Class<? extends Comparable<?>>, Class<?>>> sortedMap1 = new HashSet<>();
 		public final HashSet<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>> sortedMap2 = new HashSet<>();
-		public final HashMap<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>, KV<ToLongFunction<Bean>, LongFunction<Bean>>>
+		public final HashMap<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>, DynamicFamily>
 				sortedMap2Dynamic = new HashMap<>();
 		public final HashSet<Meta2<? extends Comparable<?>, ?>> sortedMap1Metas = new HashSet<>();
 		public final HashSet<Meta2<? extends Comparable<?>, ? extends Bean>> sortedMap2Metas = new HashSet<>();
@@ -100,7 +114,7 @@ public class Helper {
 		for (var map2KV : result.map2)
 			registerLogMap2(map2KV.getKey(), map2KV.getValue());
 		for (var e : result.map2Dynamic.entrySet())
-			registerLogMap2Dynamic(e.getKey().getKey(), e.getValue().getKey(), e.getValue().getValue());
+			registerLogMap2Dynamic(e.getKey().getKey(), e.getValue().factories.getKey(), e.getValue().factories.getValue());
 		for (var meta : result.map1Metas)
 			registerLogMap1Meta(meta);
 		for (var meta : result.map2Metas)
@@ -113,7 +127,7 @@ public class Helper {
 			registerLogSortedMap2((Class<? extends Comparable>)kv.getKey(), kv.getValue());
 		for (var e : result.sortedMap2Dynamic.entrySet()) {
 			registerLogSortedMap2Dynamic((Class<? extends Comparable>)e.getKey().getKey(),
-					e.getValue().getKey(), e.getValue().getValue());
+					e.getValue().factories.getKey(), e.getValue().factories.getValue());
 		}
 		for (var meta : result.sortedMap1Metas)
 			registerLogSortedMap1Meta((Meta2<? extends Comparable, ?>)meta);
@@ -188,6 +202,37 @@ public class Helper {
 		result.list2.add((Class<? extends Bean>)valueClass);
 	}
 
+	// 反射调用宿主bean的newDynamicBean_<VarName>取该变量的dynamic工厂对。
+	private static DynamicFamily newDynamicFamily(@NotNull Class<?> beanClass, @NotNull BVariable.Data v) {
+		try {
+			var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
+					+ Character.toUpperCase(v.getName().charAt(0))
+					+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
+			return new DynamicFamily(KV.create(db.getGetBean(), db.getCreateBean()),
+					beanClass.getName() + '#' + v.getName());
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	// 【FND8-30】dynamic集合的logTypeId不含值工厂身份：同(keyClass,DynamicBean)的第二个
+	// 家族与首个同typeId，Log.register先到先得，后注册家族的日志在回放端用别人的create工厂
+	// 解码（显式Bean:id编号重叠时静默解出错误bean，默认编号抛incompatible中断回放）。
+	// 原computeIfAbsent静默丢弃后续家族——改为warn留痕（含两个宿主bean类名与变量名），
+	// 语义冲突的启动error需要每变量的specialTypeId→beanClass映射表（生成器侧暴露，另行跟进）。
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private static void putDynamicFamily(@NotNull HashMap families, @NotNull Object key,
+										 @NotNull Class<?> beanClass, @NotNull BVariable.Data v) {
+		var family = newDynamicFamily(beanClass, v);
+		var exist = (DynamicFamily)families.putIfAbsent(key, family);
+		if (exist != null && (exist.factories.getKey() != family.factories.getKey()
+				|| exist.factories.getValue() != family.factories.getValue()))
+			logger.warn("dynamic collection family dropped: same log typeId with different factories."
+					+ " keep={} drop={} key=({},{})。回放端按先注册家族的工厂解码，显式Bean:id编号重叠时"
+					+ "将静默解出错误类型的bean（FND8-30）",
+					exist.where, family.where, ((KV)key).getKey(), ((KV)key).getValue());
+	}
+
 	@SuppressWarnings("unchecked")
 	public static void dependsSortedMap(@NotNull Class<?> beanClass, @NotNull BVariable.Data v, @NotNull String keyType,
 										@NotNull String valueType, @NotNull DependsResult result) throws Exception {
@@ -203,16 +248,7 @@ public class Helper {
 			dependsBean(valueClass, result);
 			result.sortedMap2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
 		} else if (valueClass == DynamicBean.class) {
-			result.sortedMap2Dynamic.computeIfAbsent(KV.create(keyClass, (Class<? extends Bean>)valueClass), (key) -> {
-				try {
-					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
-							+ Character.toUpperCase(v.getName().charAt(0))
-							+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
-					return KV.create(db.getGetBean(), db.getCreateBean());
-				} catch (ReflectiveOperationException e) {
-					throw new RuntimeException(e);
-				}
-			});
+			putDynamicFamily(result.sortedMap2Dynamic, KV.create(keyClass, (Class<? extends Bean>)valueClass), beanClass, v);
 		} else {
 			result.sortedMap1.add(KV.create(keyClass, valueClass));
 		}
@@ -229,20 +265,11 @@ public class Helper {
 		var valueClass = getBuiltinBoxingClass(valueType);
 		var is2 = valueClass == null;
 		if (is2) {
-			valueClass = Class.forName(valueType); // bean or beanKey
+			valueClass = Class.forName(valueType); // bean or beankey
 			dependsBean(valueClass, result);
 			result.map2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
 		} else if (valueClass == DynamicBean.class) {
-			result.map2Dynamic.computeIfAbsent(KV.create(keyClass, (Class<? extends Bean>)valueClass), (key) -> {
-				try {
-					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
-							+ Character.toUpperCase(v.getName().charAt(0))
-							+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
-					return KV.create(db.getGetBean(), db.getCreateBean());
-				} catch (ReflectiveOperationException e) {
-					throw new RuntimeException(e);
-				}
-			});
+			putDynamicFamily(result.map2Dynamic, KV.create(keyClass, (Class<? extends Bean>)valueClass), beanClass, v);
 		} else {
 			result.map1.add(KV.create(keyClass, valueClass));
 		}
@@ -276,16 +303,7 @@ public class Helper {
 		} else if (valueClass == DynamicBean.class) {
 			var factory = GTable2.getFactory(key1Class, key2Class, (Class<? extends Bean>)valueClass);
 			result.map2Metas.add(factory.getPmapMeta());
-			result.map2Dynamic.computeIfAbsent(KV.create(key2Class, (Class<? extends Bean>)valueClass), (key) -> {
-				try {
-					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
-							+ Character.toUpperCase(v.getName().charAt(0))
-							+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
-					return KV.create(db.getGetBean(), db.getCreateBean());
-				} catch (ReflectiveOperationException e) {
-					throw new RuntimeException(e);
-				}
-			});
+			putDynamicFamily(result.map2Dynamic, KV.create(key2Class, (Class<? extends Bean>)valueClass), beanClass, v);
 		} else {
 			var factory = GTable1.getFactory(key1Class, key2Class, valueClass);
 			result.map2Metas.add(factory.getPmapMeta());
