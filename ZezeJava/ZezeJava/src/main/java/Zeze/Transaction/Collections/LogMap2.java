@@ -42,7 +42,8 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 				K k = (K)c.getThis().mapKey();
 				if (!getReplaced().containsKey(k) // 新增的值是最新的，它的changed忽略。
 						&& !getRemoved().contains(k) // 删除的值不用管了，它的changed忽略。
-						&& getValue().containsKey(k) // 当前容器中必须存在key，加入以后产生了日志又被删除会违背这个条件。
+						&& c.getThis() == getValue().get(k) // 必须是key当前值本身：put覆盖后旧bean不
+						// detach、mapKey不清，陈旧引用的字段日志不得应用到覆盖后的新值上。
 				)
 					changedWithKey.put(k, c);
 			}

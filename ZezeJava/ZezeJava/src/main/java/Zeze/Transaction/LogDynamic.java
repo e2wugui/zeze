@@ -82,7 +82,9 @@ public class LogDynamic extends LogBean {
 			value.encode(bb);
 		} else {
 			bb.WriteBool(false); // Value Tag
-			if (logBean != null) {
+			// 身份校验：logBean必须是当前内部bean的（setBean换bean不detach，旧bean的跨事务
+			// 陈旧引用修改不得应用到替换后的新bean上）。
+			if (logBean != null && logBean.getThis() == self.bean) {
 				bb.WriteBool(true);
 				logBean.encode(bb);
 			} else
