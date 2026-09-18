@@ -123,7 +123,7 @@ public class PrometheusCounter implements ZezeCounter {
 
 			@Override
 			public OutputStream sendHeadersAndGetBody(int statusCode, int contentLength) {
-				return HttpResponseWithBodyStream.sendHeadersAndGetBody(httpExchange.context(),
+				return HttpResponseWithBodyStream.sendHeadersAndGetBody(httpExchange,
 						HttpResponseStatus.valueOf(statusCode),
 						headers,
 						contentLength);

@@ -605,8 +605,9 @@ public class HttpExchange {
 	// close（detached CAS→2）让位并按序推进队头的挂起写。非pipelining（单在途请求）时exchange
 	// 即队头，写直达，行为与原先完全一致；直接构造、未经channelRead登记的exchange不参与序化。
 	// 已知豁免（不经过序化器，维持现状）：WebSocket升级101与帧（升级请求实际不会被pipelining，
-	// 见channelRead的WebSocket分支）、HttpServer自身的400/503错误直写（随即关闭连接）、
-	// HttpResponseWithBodyStream（Prometheus端点，独立ctx流）。
+	// 见channelRead的WebSocket分支）、HttpServer自身的400/503错误直写（随即关闭连接）。
+	// HttpResponseWithBodyStream（Prometheus端点）曾以"独立ctx流"为由豁免，实际写入的是共享
+	// channel的ctx（FND8-46孪生），已改经writeResponse按序（异常中止路径仍直写并关连接）。
 	static final AttributeKey<ResponseSequencer> responseOrderKey = AttributeKey.valueOf("ZezeHttpResponseOrder");
 	// 单exchange挂起响应写上限：防pipelining滥用驻留内存（每挂起写持有一个响应消息）。
 	private static final int MaxPendingResponseWrites = 256;
@@ -661,10 +662,11 @@ public class HttpExchange {
 			responseSequencer = seq;
 	}
 
-	// 响应写唯一入口（send/beginStream/sendStream/endStream/sendFile/100-continue/413共用）：
+	// 响应写唯一入口（send/beginStream/sendStream/endStream/sendFile/100-continue/413共用；
+	// HttpResponseWithBodyStream同包直用——/metrics端点与普通响应共享channel，同样必须按序）：
 	// 已持笔→直达；未持笔→挂起并尝试占位（队头才可）。promise为null时新建（桥接挂起写，调用方的
 	// listener/close(future)语义在真实写出时兑现）。
-	private ChannelFuture writeResponse(@NotNull Object msg, boolean flush, @Nullable ChannelPromise promise) {
+	ChannelFuture writeResponse(@NotNull Object msg, boolean flush, @Nullable ChannelPromise promise) {
 		var seq = responseSequencer;
 		if (promise == null)
 			promise = context.newPromise();
@@ -1171,7 +1173,7 @@ public class HttpExchange {
 			HttpServer.setDate(res.headers())
 					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 					.set(HttpHeaderNames.CONTENT_LENGTH, 0);
-			close(context.writeAndFlush(res));
+			close(writeResponse(res, true, null)); // 经序化器：保活响应直写会在pipelining下先于前序响应上线
 			return;
 		}
 
@@ -1208,7 +1210,7 @@ public class HttpExchange {
 						.set(HttpHeaderNames.CONTENT_LENGTH, 0)
 						.set(HttpHeaderNames.CONTENT_RANGE, "bytes */" + fsize);
 				fc.close();
-				close(context.writeAndFlush(res416));
+				close(writeResponse(res416, true, null)); // 经序化器，同304分支
 				return;
 			}
 			partial = true;
