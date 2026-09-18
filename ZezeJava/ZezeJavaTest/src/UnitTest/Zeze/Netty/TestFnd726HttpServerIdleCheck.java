@@ -120,12 +120,17 @@ public class TestFnd726HttpServerIdleCheck {
 		ch.eventLoop().submit(() -> elThread[0] = Thread.currentThread()).await();
 		Assertions.assertNotNull(elThread[0]);
 
+		// isActive前后对比（30轮压测轮24假红）：本用例验证的是"手工检查不得关闭无空闲连接"
+		// （checkTimeout0在interval=3600/timeout=7200下数学上必早退）——客户端/OS侧断开
+		// （网络异常窗口）是无关变量，不得使断言假红。
+		var activeBefore = ch.isActive();
 		affinityServer.lastCheckThread = null;
 		affinityServer.checkTimeoutForTest(ch); // 模拟调度线程发起检查
 		await("check executed", 10_000, () -> affinityServer.lastCheckThread != null);
 		Assertions.assertSame(elThread[0], affinityServer.lastCheckThread,
 				"checkTimeout必须在channel的EventLoop上执行（与活动清零串行），不得在调度/调用线程上读改写");
-		Assertions.assertTrue(ch.isActive(), "无空闲连接不得被检查关闭");
+		if (activeBefore)
+			Assertions.assertTrue(ch.isActive(), "无空闲连接不得被检查关闭");
 	}
 
 	// 行为守卫：连接以200ms间隔持续收流约4秒（超过read=2/write=3的关闭阈值全程无响应写出），

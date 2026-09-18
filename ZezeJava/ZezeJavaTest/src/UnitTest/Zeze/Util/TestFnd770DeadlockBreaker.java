@@ -40,74 +40,79 @@ public class TestFnd770DeadlockBreaker {
 	 */
 	@Test
 	public void testVirtualThreadFastLockDeadlockDetectedAndBroken() throws Exception {
-		var lockA = new FastLock();
-		var lockB = new FastLock();
-		var bothHoldFirst = new CountDownLatch(2);
-		var interrupted = new AtomicInteger();
-		var vt1 = Thread.ofVirtual().name("fnd770-vt1").start(() -> {
-			lockA.lock();
-			try {
-				bothHoldFirst.countDown();
-				bothHoldFirst.await();
-				lockB.lockInterruptibly(); // 死锁点
-				lockB.unlock();
-			} catch (InterruptedException e) {
-				interrupted.incrementAndGet();
-			} finally {
-				lockA.unlock();
-			}
-		});
-		var vt2 = Thread.ofVirtual().name("fnd770-vt2").start(() -> {
-			lockB.lock();
-			try {
-				bothHoldFirst.countDown();
-				bothHoldFirst.await();
-				lockA.lockInterruptibly(); // 死锁点
-				lockA.unlock();
-			} catch (InterruptedException e) {
-				interrupted.incrementAndGet();
-			} finally {
-				lockB.unlock();
-			}
-		});
-		bothHoldFirst.await();
-		// 等两个VT都真正park在对方的锁上（AQS以synchronizer自身为park的blocker）
-		waitParkedOn(vt1, lockB);
-		waitParkedOn(vt2, lockA);
-
-		// 检测：等待环包含两个VT
-		var cycles = DeadlockBreaker.findLockWaitDeadlockCycles();
-		var cycle = cycles.stream().filter(c -> c.contains(vt1) && c.contains(vt2)).findFirst().orElse(null);
-		assertNotNull(cycle, "必须检测到包含两个虚拟线程的FastLock等待环");
-		assertEquals(2, cycle.size(), "两线程环");
-
-		// report + break：detect() 经 FATAL 报告并 interrupt 环成员
+		// appender必须在构造死锁前挂上（30轮压测轮13假红）：findLockWaitDeadlockCycles是
+		// 静态全局扫描，同JVM其他测试起的Application周期breaker也能看到本用例的VT环——
+		// 若全局breaker先tick，FATAL与interrupt发生在挂appender之前，事后挂appender捕不到
+		// 报告（且环已破，本测试的invokeDetect只剩残留monitor死锁daemon可检出）。
 		var coreLogger = (Logger)LogManager.getLogger(DeadlockBreaker.class);
 		var appender = new RecordingAppender();
 		appender.start();
 		coreLogger.addAppender(appender);
-		boolean detected;
 		try {
-			detected = invokeDetect();
+			var lockA = new FastLock();
+			var lockB = new FastLock();
+			var bothHoldFirst = new CountDownLatch(2);
+			var interrupted = new AtomicInteger();
+			var vt1 = Thread.ofVirtual().name("fnd770-vt1").start(() -> {
+				lockA.lock();
+				try {
+					bothHoldFirst.countDown();
+					bothHoldFirst.await();
+					lockB.lockInterruptibly(); // 死锁点
+					lockB.unlock();
+				} catch (InterruptedException e) {
+					interrupted.incrementAndGet();
+				} finally {
+					lockA.unlock();
+				}
+			});
+			var vt2 = Thread.ofVirtual().name("fnd770-vt2").start(() -> {
+				lockB.lock();
+				try {
+					bothHoldFirst.countDown();
+					bothHoldFirst.await();
+					lockA.lockInterruptibly(); // 死锁点
+					lockA.unlock();
+				} catch (InterruptedException e) {
+					interrupted.incrementAndGet();
+				} finally {
+					lockB.unlock();
+				}
+			});
+			bothHoldFirst.await();
+			// 等两个VT都真正park在对方的锁上（AQS以synchronizer自身为park的blocker）
+			waitParkedOn(vt1, lockB);
+			waitParkedOn(vt2, lockA);
+
+			// 检测：等待环包含两个VT
+			var cycles = DeadlockBreaker.findLockWaitDeadlockCycles();
+			var cycle = cycles.stream().filter(c -> c.contains(vt1) && c.contains(vt2)).findFirst().orElse(null);
+			assertNotNull(cycle, "必须检测到包含两个虚拟线程的FastLock等待环");
+			assertEquals(2, cycle.size(), "两线程环");
+
+			// report + break：detect() 经 FATAL 报告并 interrupt 环成员。
+			// 不对返回值强断言：环可能已被全局周期breaker抢先报告并打破（FATAL已入appender），
+			// 也可能detect的true来自其他测试残留的monitor死锁daemon（findDeadlockedThreads
+			// 全JVM可见）——报告已发生即为能力证明，由下方fatalReported统一断言。
+			invokeDetect();
+			var fatalReported = appender.events.stream()
+					.anyMatch(e -> e.getLevel() == Level.FATAL
+							&& e.getMessage().getFormattedMessage().contains("FastLock wait cycle"));
+			assertTrue(fatalReported, "必须FATAL报告等待环");
+
+			// 打断后 lockInterruptibly 等待线程以 InterruptedException 退出，死锁解除
+			vt1.join(5000);
+			vt2.join(5000);
+			assertFalse(vt1.isAlive(), "死锁应被打断解除");
+			assertFalse(vt2.isAlive(), "死锁应被打断解除");
+			// 打断是逐个interrupt：首个被打断者抛ISE释放持有的锁后，另一成员可能在
+			// 自己的interrupt到达/被察觉前经tryAcquire正常获取释放的锁而逃生（不抛ISE）。
+			// 死锁解除的契约=两线程都退出且至少一个经ISE（无首个ISE则无锁释放，对方无法获取）。
+			assertTrue(interrupted.get() >= 1, "至少一个线程应经InterruptedException退出, actual=" + interrupted.get());
 		} finally {
 			coreLogger.removeAppender(appender);
 			appender.stop();
 		}
-		assertTrue(detected, "detect()必须报告VT死锁（修复前返回false）");
-		var fatalReported = appender.events.stream()
-				.anyMatch(e -> e.getLevel() == Level.FATAL
-						&& e.getMessage().getFormattedMessage().contains("FastLock wait cycle"));
-		assertTrue(fatalReported, "必须FATAL报告等待环");
-
-		// 打断后 lockInterruptibly 等待线程以 InterruptedException 退出，死锁解除
-		vt1.join(5000);
-		vt2.join(5000);
-		assertFalse(vt1.isAlive(), "死锁应被打断解除");
-		assertFalse(vt2.isAlive(), "死锁应被打断解除");
-		// 打断是逐个interrupt：首个被打断者抛ISE释放持有的锁后，另一成员可能在
-		// 自己的interrupt到达/被察觉前经tryAcquire正常获取释放的锁而逃生（不抛ISE）。
-		// 死锁解除的契约=两线程都退出且至少一个经ISE（无首个ISE则无锁释放，对方无法获取）。
-		assertTrue(interrupted.get() >= 1, "至少一个线程应经InterruptedException退出, actual=" + interrupted.get());
 	}
 
 	/** 平台线程 synchronized 死锁回归：findDeadlockedThreads 原路径不受修复影响。 */

@@ -23,6 +23,7 @@ import Zeze.Raft.RocksRaft.Table;
 import Zeze.Services.HandshakeClient;
 import Zeze.Services.ServiceManagerWithRaft;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
@@ -197,15 +198,28 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 		throw new IllegalStateException("no leader");
 	}
 
-	private static void login(AsyncSocket sock, String sessionName) throws Exception {
-		var login = new Login();
-		login.Argument.setSessionName(sessionName);
-		login.getUnique().setRequestId(System.nanoTime());
-		login.setCreateTime(System.currentTimeMillis());
-		login.setTimeout(30_000);
-		Assertions.assertTrue(login.SendForWait(sock, 30_000).await(30_000), "login await");
-		Assertions.assertFalse(login.isTimeout(), "login timeout");
-		Assertions.assertEquals(0, login.getResultCode(), "login resultCode");
+	/** login前置（原单发断言在30轮压测轮9假红）：RaftRetry(-15)是瞬态——多数派健全时
+	 * 亦可能撞上选主动摇/心跳抖动窗口，append失败经处理器透传。换当前leader重连重试
+	 * （60s上限）；其他结果码非瞬态，立即失败。同名session重复login幂等upsert。 */
+	private static AsyncSocket loginWithRetry(String sessionName) throws Exception {
+		long deadline = System.currentTimeMillis() + 60_000;
+		while (true) {
+			var sock = client.connect(leaderPort());
+			var login = new Login();
+			login.Argument.setSessionName(sessionName);
+			login.getUnique().setRequestId(System.nanoTime());
+			login.setCreateTime(System.currentTimeMillis());
+			login.setTimeout(30_000);
+			Assertions.assertTrue(login.SendForWait(sock, 30_000).await(30_000), "login await");
+			Assertions.assertFalse(login.isTimeout(), "login timeout");
+			if (login.getResultCode() == 0)
+				return sock;
+			sock.close(new java.io.IOException("login RaftRetry, reconnect"));
+			Assertions.assertEquals(Procedure.RaftRetry, login.getResultCode(), "login resultCode");
+			Assertions.assertTrue(System.currentTimeMillis() < deadline, "login RaftRetry重试耗尽");
+			//noinspection BusyWait
+			Thread.sleep(500);
+		}
 	}
 
 	private static boolean sessionRowExists() throws Exception {
@@ -237,8 +251,7 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 		for (int i = 0; i < ports.length; i++)
 			if (ports[i] == leaderPort)
 				leaderIdx = i;
-		var socket = client.connect(leaderPort);
-		login(socket, SESSION_NAME);
+		var socket = loginWithRetry(SESSION_NAME);
 		Assertions.assertTrue(sessionRowExists(), "前置：Login后tSession有行");
 
 		// 停掉两个follower：leader失去多数派，后续appendLog必然RaftRetry。

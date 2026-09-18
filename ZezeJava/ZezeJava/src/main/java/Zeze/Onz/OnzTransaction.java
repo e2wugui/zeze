@@ -217,6 +217,13 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				}
 			} catch (Exception e) {
 				logger.error("await cancel result.", e);
+				// R3-C补遗：应答超时=结果未知——NotFound可能正在途中（参与方已应答但协调者
+				// 未收到）。乱序窗口的重试补偿不得依赖应答必达：rpcFailed步骤超时同样调度单次
+				// 重试。幂等安全：迟到NotFound即放弃；成功补偿后再cancel得NotFound同样无害；
+				// 请求未到达则这次到达完成补偿。非rpcFailed步骤不重试（正常完成步骤的NotFound
+				// 是终态，cancel在途终会到达，语义与主分支一致）。30轮压测轮5/9实证丢失窗口。
+				if (stepRpcFailed.get(i))
+					retryCancelNotFoundOnce(stepZeze.get(i));
 			}
 		}
 	}
