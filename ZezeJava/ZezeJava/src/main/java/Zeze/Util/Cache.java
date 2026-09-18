@@ -45,6 +45,9 @@ public class Cache {
 	private volatile long todayDays;
 	// 只在持有 todayLock 时访问。
 	private FileOutputStream todayFile;
+	// 终态标志：在 close() 的 todayLock 临界区内置位，appendToday 在同一锁下检查，
+	// 密闭地拦住"close后写当日清单"——null流NPE与关后重开新流泄漏两种形态一并消灭。
+	private volatile boolean closed;
 
 	/**
 	 * 创建LocalCache
@@ -73,6 +76,7 @@ public class Cache {
 		cleanTimer.cancel(false); // 幂等：已取消时为no-op
 		todayLock.lock();
 		try {
+			closed = true; // 先立终态再关流：appendToday在同一临界区检查，此后不可能再触碰流
 			if (todayFile != null) {
 				todayFile.close();
 				todayFile = null; // 置null后重入不再触碰已关流
@@ -147,6 +151,10 @@ public class Cache {
 		if (id.isEmpty())
 			throw new IllegalArgumentException();
 
+		var db = this.db;
+		if (db == null)
+			throw new IllegalStateException("cache is closed: " + name); // 入口检查后loader执行期间close可完成（FND8-08），写路径二次确认
+
 		var bb = ByteBuffer.Allocate();
 		bb.WriteString(value.cacheId());
 		value.encode(bb);
@@ -164,6 +172,8 @@ public class Cache {
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
 		todayLock.lock();
 		try {
+			if (closed)
+				throw new IllegalStateException("cache is closed: " + name); // close的置位同在此临界区：检查密闭，关后不再写流/重开流
 			if (todayDays != nowDays) {
 				// 第一次执行时如果nowDays等于0（todayDays的初始值），不会走到这里，这种情况不处理了。
 				// 追加模式：同日重启（新实例todayDays初始0必进此分支）打开已存在的当天清单，
