@@ -206,10 +206,13 @@ public class CharHashMap<V> implements Cloneable {
 	public @Nullable V putIfAbsent(char key, @Nullable V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
-			if (!hasZeroValue) {
-				hasZeroValue = true;
+			// 值为null的既有条目按Map契约视为absent（FND8-10）：写入新值
+			if (oldV == null) {
 				zeroValue = value;
-				size++;
+				if (!hasZeroValue) {
+					hasZeroValue = true;
+					size++;
+				}
 			}
 			return oldV;
 		}
@@ -225,21 +228,30 @@ public class CharHashMap<V> implements Cloneable {
 					resize(kt.length << 1);
 				return null;
 			}
-			if (k == key)
-				return vt[i];
+			if (k == key) {
+				final V oldV = vt[i];
+				// 值为null的既有条目按Map契约视为absent（FND8-10）：写入新值，返回旧值null
+				if (oldV == null)
+					vt[i] = value;
+				return oldV;
+			}
 		}
 	}
 
 	public V computeIfAbsent(char key, @NotNull IntFunction<? extends V> mappingFunction) {
 		if (key == 0) {
 			V v = zeroValue;
-			if (!hasZeroValue) {
+			// 值为null的既有条目按Map契约视为absent（FND8-10）：需要重算；
+			// 函数返回null则不写入，保留原条目
+			if (v == null) {
 				V newV = mappingFunction.apply(0);
-				if (newV == null)
-					return null;
-				zeroValue = v = newV;
-				hasZeroValue = true;
-				size++;
+				if (newV != null) {
+					zeroValue = v = newV;
+					if (!hasZeroValue) {
+						hasZeroValue = true;
+						size++;
+					}
+				}
 			}
 			return v;
 		}
@@ -258,8 +270,17 @@ public class CharHashMap<V> implements Cloneable {
 					resize(kt.length << 1);
 				return v;
 			}
-			if (k == key)
-				return vt[i];
+			if (k == key) {
+				// 值为null的既有条目按Map契约视为absent（FND8-10）：需要重算；
+				// 函数返回null则不写入，保留原null条目
+				V v = vt[i];
+				if (v == null) {
+					v = mappingFunction.apply(key);
+					if (v != null)
+						vt[i] = v;
+				}
+				return v;
+			}
 		}
 	}
 
