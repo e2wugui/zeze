@@ -315,17 +315,10 @@ public class AchillesHeelDaemon {
 
 		// 数据安全停机：checkpoint尽力保存后无条件halt（FND4-04：KeepAlive段局部兜底后，
 		// haltOnReleaseTimeout被catch区覆盖，checkpoint/shutdown失败不得吞掉halt本身）。
+		// FND8-21：实现统一收口到Application.haltAfterCheckpoint（与Transaction.perform、
+		// ThreadDaemon共用），本类不再维护同形副本。
 		private void haltAfterCheckpoint(int exitCode) {
-			try {
-				zeze.checkpointRun();
-			} catch (Throwable ex) {
-				logger.fatal("ProcessDaemon.checkpointRun before halt({}) fail", exitCode, ex);
-			}
-			try {
-				LogManager.shutdown();
-			} catch (Throwable ignored) {
-			}
-			Runtime.getRuntime().halt(exitCode);
+			Application.haltAfterCheckpoint(zeze, exitCode);
 		}
 
 		// 本地发现Releaser超时，先自杀，不用等进程守护来杀（Release命令分支与周期检查共用）。
@@ -382,9 +375,10 @@ public class AchillesHeelDaemon {
 						var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
 						if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 							logger.fatal("global release timeout. index={}", i);
-							zeze.checkpointRun();
-							LogManager.shutdown();
-							Runtime.getRuntime().halt(123123);
+							// FND8-21（T1）：原内联checkpointRun/shutdown/halt未加守护——
+							// checkpointRun双读NPE落进外层catch只记error继续循环，
+							// release-timeout的halt(123123)语义被吞。统一收口到共用助手。
+							Application.haltAfterCheckpoint(zeze, 123123);
 						}
 
 						var idle = now - agent.getActiveTime();

@@ -962,8 +962,33 @@ public final class Application extends ReentrantLock {
 
 	public void checkpointRun() {
 		// 同endStart（FND4-81）：noDatabase模式不创建checkpoint。
-		if (checkpoint != null)
-			checkpoint.runOnce();
+		// FND8-21：volatile单次快照读——原判空后二次读字段，stop()持Application锁置null
+		// 恰好落在两条载入之间时解引用得null即NPE（本方法无锁，锁只约束stop与checkpointRunThread）。
+		var cp = checkpoint;
+		if (cp != null)
+			cp.runOnce();
+	}
+
+	/**
+	 * FND8-21统一收口：checkpoint尽力保存后无条件halt。三处共用（Transaction.perform的
+	 * finalCommit失败分支、AchillesHeelDaemon的ProcessDaemon/ThreadDaemon超时分支）——
+	 * FND4-04：checkpointRun/LogManager失败不得吞掉halt本身。fatal自身再包独立try，
+	 * 日志系统异常也不得拦下终态。
+	 */
+	public static void haltAfterCheckpoint(@NotNull Application zeze, int exitCode) {
+		try {
+			zeze.checkpointRun();
+		} catch (Throwable ex) {
+			try {
+				logger.fatal("checkpointRun before halt({}) fail", exitCode, ex);
+			} catch (Throwable ignored) {
+			}
+		}
+		try {
+			LogManager.shutdown();
+		} catch (Throwable ignored) {
+		}
+		Runtime.getRuntime().halt(exitCode);
 	}
 
 	public void checkpointRunThread() {

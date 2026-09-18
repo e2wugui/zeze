@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
+import Zeze.Application;
 import Zeze.History.History;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
@@ -382,9 +383,10 @@ public final class Transaction {
 										holdLocks.clear();
 
 										// halt process.
-										procedure.getZeze().checkpointRun();
-										LogManager.shutdown();
-										Runtime.getRuntime().halt(543543);
+										// FND8-21：checkpointRun裸调用时双读NPE会吞掉halt（带伤运行，
+										// 外层catch还可能重跑已炸事务）——统一收口到Application.
+										// haltAfterCheckpoint：checkpoint尽力保存失败也不拦下halt。
+										Application.haltAfterCheckpoint(procedure.getZeze(), 543543);
 										return 0;
 									}
 									return Procedure.Success;
