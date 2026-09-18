@@ -385,18 +385,17 @@ public final class Raft {
 		raftConf.verify();
 
 		this.taskOneByOne = taskOneByOne;
-		raftConfig = raftConf;
-		userTaskOneByOneKey = "Zeze.Raft.UserTaskOneByOneKey." + raftConfig.getName();
+		// userTaskOneByOneKey沿用改名前的配置名（历史语义，不动）。
+		userTaskOneByOneKey = "Zeze.Raft.UserTaskOneByOneKey." + raftConf.getName();
 		sm.setRaft(this);
 		stateMachine = sm;
 
 		if (RaftName != null && !RaftName.isEmpty()) {
-			// 如果 DbHome 和 Name 相关，一般表示没有特别配置。
-			// 此处特别设置 Raft.Name 时，需要一起更新。
-			if (raftConf.getDbHome().equals(raftConf.getName().replace(':', '_')))
-				raftConf.setDbHome(RaftName.replace(':', '_'));
-			raftConf.setName(RaftName);
+			// 【FND8-42】改名/联动DbHome在私有副本上执行，不变异调用方传入的配置对象：
+			// 共享同一RaftConfig的多Raft会互相污染Name/DbHome（快照路径错位、跨实例覆盖）。
+			raftConf = raftConf.derive(RaftName);
 		}
+		raftConfig = raftConf;
 
 		if (config == null)
 			config = Config.load();

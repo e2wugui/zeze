@@ -232,6 +232,49 @@ public final class RaftConfig {
 		}
 	}
 
+	// 【FND8-42】按RaftName派生私有副本：Raft构造器不得变异调用方传入的配置对象——
+	// 共享同一RaftConfig实例的多Raft（多库/多桶共用一份集群配置的便捷用法）会互相
+	// 污染Name/DbHome，getSnapshotFullName等路径错位造成跨实例数据覆盖。
+	// 派生副本共享不可变部分（xmlDocument/nodes条目/sortedNames），复制全部可变标量；
+	// 保留原联动语义：仅当DbHome与Name相关（未特别配置）时才跟随RaftName改写。
+	RaftConfig derive(String raftName) {
+		var copy = new RaftConfig(xmlDocument, xmlFileName, self, nodes,
+				sortedNames, sortedNamesUtf8, sortedNamesBinary);
+		copy.name = name;
+		copy.dbHome = dbHome;
+		copy.appendEntriesTimeout = appendEntriesTimeout;
+		copy.leaderHeartbeatTimer = leaderHeartbeatTimer;
+		copy.electionRandomMax = electionRandomMax;
+		copy.maxAppendEntriesCount = maxAppendEntriesCount;
+		copy.snapshotLogCount = snapshotLogCount;
+		copy.snapshotCommitDelayed = snapshotCommitDelayed;
+		copy.preVote = preVote;
+		copy.backgroundApplyCount = backgroundApplyCount;
+		copy.uniqueRequestExpiredDays = uniqueRequestExpiredDays;
+		if (raftName != null && !raftName.isEmpty()) {
+			// 如果 DbHome 和 Name 相关，一般表示没有特别配置。
+			// 此处特别设置 Raft.Name 时，需要一起更新。
+			if (copy.dbHome.equals(copy.name.replace(':', '_')))
+				copy.dbHome = raftName.replace(':', '_');
+			copy.setName(raftName);
+		}
+		return copy;
+	}
+
+	// 【FND8-42】derive的拷贝构造：共享只读的xml与节点（构造后不再变化），nodes
+	// 复制进自己的map（addNode只在装载期发生，条目本身全final不可变）。
+	private RaftConfig(Document xmlDocument, String xmlFileName, Element self,
+					   ConcurrentHashMap<String, Node> nodes,
+					   String sortedNames, byte[] sortedNamesUtf8, Binary sortedNamesBinary) {
+		this.xmlDocument = xmlDocument;
+		this.xmlFileName = xmlFileName;
+		this.self = self;
+		this.nodes.putAll(nodes);
+		this.sortedNames = sortedNames;
+		this.sortedNamesUtf8 = sortedNamesUtf8;
+		this.sortedNamesBinary = sortedNamesBinary;
+	}
+
 	private RaftConfig(Document xml, String filename, Element self) {
 		xmlDocument = xml;
 		xmlFileName = filename;
