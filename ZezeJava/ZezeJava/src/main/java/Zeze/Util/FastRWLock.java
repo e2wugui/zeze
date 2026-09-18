@@ -3,7 +3,10 @@ package Zeze.Util;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 适合读极多写极少的场合,也就是需要等锁的场合极少,让读锁的开销最小化,一旦需要等锁则使用sleep忙等,只支持读锁与读锁的重入
+ * 适合读极多写极少的场合,也就是需要等锁的场合极少,让读锁的开销最小化,一旦需要等锁则使用sleep忙等。
+ * 只支持无写等待时的读锁嵌套(读计数叠加);一旦出现写等待,重入读锁(readLock看到写等待标记会
+ * 无界等待持有者退出)将与等待的写者互相等待永久死锁——需要嵌套读的调用方应使用tryReadLock()
+ * 失败自处理,或重构避免嵌套。锁不记录持有者线程,无重入计数。
  */
 public class FastRWLock extends AtomicLong {
 	private static final long WRITE_WAIT_FLAG = 0x8000_0000_0000_0000L;
