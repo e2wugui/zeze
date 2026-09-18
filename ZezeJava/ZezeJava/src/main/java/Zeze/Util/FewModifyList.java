@@ -290,4 +290,17 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	public @NotNull String toString() {
 		return prepareRead().toString();
 	}
+
+	/** 相等性基于调用时刻快照做内容比较（与同内容任意List相等，跨实现对称，
+	 * List契约）；hashCode随内容变化，严禁作HashMap/HashSet键；需要稳定键
+	 * 请用clone()返回的不可变快照。 */
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		return this == obj || obj instanceof List && prepareRead().equals(obj);
+	}
+
+	@Override
+	public int hashCode() {
+		return prepareRead().hashCode();
+	}
 }

@@ -275,4 +275,17 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable {
 	public @NotNull String toString() {
 		return prepareRead().toString();
 	}
+
+	/** 相等性基于调用时刻快照做内容比较（与同内容任意Map相等，跨实现对称，
+	 * Map契约）；hashCode随内容变化，严禁作HashMap/HashSet键；需要稳定键
+	 * 请用clone()返回的不可变快照。 */
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		return this == obj || obj instanceof Map && prepareRead().equals(obj);
+	}
+
+	@Override
+	public int hashCode() {
+		return prepareRead().hashCode();
+	}
 }
