@@ -26,9 +26,12 @@ import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectToServer;
+import Zeze.Collections.BeanFactory;
 import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.Bean;
+import Zeze.Transaction.Data;
 import Zeze.Util.InMemoryJavaCompiler;
 import Zeze.Util.StringBuilderCs;
 import Zeze.Util.Task;
@@ -264,6 +267,7 @@ public final class GenModule extends ReentrantLock {
 
 	private static String genModuleCode(@NotNull String genClassName, @NotNull Class<?> moduleClass,
 	                                    @NotNull List<MethodOverride> overrides, @NotNull AppBase userApp) throws Exception {
+		checkBeanFactorySymbol(moduleClass, overrides);
 		var sb = new StringBuilderCs();
 		sb.appendLine("// auto-generated @" + "formatter:off");
 		sb.appendLine();
@@ -463,6 +467,56 @@ public final class GenModule extends ReentrantLock {
 		sb.appendLine("    }");
 		sb.appendLine("}");
 		return sb.toString();
+	}
+
+	// FND8-85：Bean/Data形参（及结果字段）的decode生成引用未限定的beanFactory符号，按
+	// "模块类父类链自带可访问的静态beanFactory"惯例解析（Rank/Game.Online等7处复现的框架
+	// 惯用法，IModule无此契约）——原先纯字符串拼接零校验，模块类没定义、或定义为
+	// private/package-private（生成子类位于默认包、跨包继承不可达，如Component.Timer），
+	// 都落成生成文件的编译错误。对齐ModuleId/ModuleFullName/ctor的反射级fail-fast，
+	// 生成期显式校验并给出修复提示。
+	private static void checkBeanFactorySymbol(@NotNull Class<?> moduleClass, @NotNull List<MethodOverride> overrides) {
+		var methodsNeedingFactory = new ArrayList<String>();
+		for (var m : overrides) {
+			var need = false;
+			for (var p : m.allParameters) {
+				if (p.getType() == Bean.class || p.getType() == Data.class) {
+					need = true;
+					break;
+				}
+			}
+			if (!need) {
+				for (var f : m.resultFields) {
+					if (f.getType() == Bean.class || f.getType() == Data.class) {
+						need = true;
+						break;
+					}
+				}
+			}
+			if (need)
+				methodsNeedingFactory.add(m.method.getName());
+		}
+		if (methodsNeedingFactory.isEmpty())
+			return;
+		for (var cls = moduleClass; cls != null && cls != IModule.class; cls = cls.getSuperclass()) {
+			for (var field : cls.getDeclaredFields()) {
+				if (!field.getName().equals("beanFactory") || !Modifier.isStatic(field.getModifiers()))
+					continue;
+				if (!BeanFactory.class.isAssignableFrom(field.getType()))
+					throw new UnsupportedOperationException("redirect Bean/Data param unsupported: beanFactory "
+							+ "field type must be Zeze.Collections.BeanFactory, but is " + field.getType().getName()
+							+ " (module " + moduleClass.getName() + ", methods " + methodsNeedingFactory + ")");
+				if ((field.getModifiers() & (Modifier.PUBLIC | Modifier.PROTECTED)) == 0)
+					throw new UnsupportedOperationException("redirect Bean/Data param unsupported: beanFactory field "
+							+ "must be public or protected (生成的拦截子类位于默认包、跨包继承，private/package-private不可达), "
+							+ "module " + cls.getName() + ", methods " + methodsNeedingFactory);
+				return; // 父类链上找到可访问的静态beanFactory
+			}
+		}
+		throw new UnsupportedOperationException("redirect Bean/Data param unsupported: module "
+				+ moduleClass.getName() + " (methods " + methodsNeedingFactory + ") 父类链无可访问的beanFactory，"
+				+ "请声明 protected static final Zeze.Collections.BeanFactory beanFactory "
+				+ "= new Zeze.Collections.BeanFactory();");
 	}
 
 	// 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。

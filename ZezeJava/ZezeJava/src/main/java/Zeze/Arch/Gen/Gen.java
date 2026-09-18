@@ -428,6 +428,9 @@ final class Gen {
 			return;
 		}
 		if (Serializable.class.isAssignableFrom(type)) {
+			// Bean/Data形参（及结果字段）按typeId经工厂反建；beanFactory符号按"模块类父类链
+			// 自带可访问的静态beanFactory"惯例解析（IModule无此契约），生成期由
+			// GenModule.checkBeanFactorySymbol校验（FND8-85）。
 			if (type == Bean.class)
 				sb.appendLine("{}{} = beanFactory.createBeanFromSpecialTypeId({}.ReadLong());", prefix, varName, bbName);
 			else if (type == Data.class)

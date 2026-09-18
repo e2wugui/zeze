@@ -129,6 +129,15 @@ final class MethodOverride {
 							throw new IllegalStateException("RedirectAll Result Type Can Not Be Abstract: "
 									+ method.getDeclaringClass().getName() + "::" + method.getName());
 						}
+						// FND8-85：对齐RedirectFuture分支（134-141行）——生成代码同样new结果类
+						// 实例，仅有私有构造器或非静态内部类时生成文件编译失败，原先独缺该校验。
+						try {
+							resultClass.getConstructor((Class<?>[])null);
+						} catch (NoSuchMethodException e) {
+							throw new IllegalStateException("RedirectAll Result Type Must Be 'Long','Binary','String'"
+									+ " or any type contains public default constructor: "
+									+ method.getDeclaringClass().getName() + "::" + method.getName());
+						}
 					} else {
 						resultType = null;
 						resultClass = null;
