@@ -275,11 +275,10 @@ public final class Transaction {
 			try {
 				rocks.flush(pending, changes);
 			} catch (Rocks.FlushException e) {
-				// 【FND7-14】重试再失败的重登记：先释放被消费的补偿持有，putPendingFlush
-				// 统一补记，在用保护横跨补偿生命周期不断档（perform收尾只释放业务计数）。
-				for (var r : pending)
-					r.endAccess();
-				rocks.putPendingFlush(index, holder.getTerm(), pending);
+				// 【FND8-39】重试再失败的重登记用转移语义（addReference=false）：补偿持有的
+				// 计数随消费原样移入新登记，在用保护横跨补偿生命周期不断档；原"先endAccess
+				// 再登记"的归零间隙内LRU驱逐+同key脏重载旧基线，增量日志应用在旧值上即分歧。
+				rocks.putPendingFlush(index, holder.getTerm(), pending, false);
 				throw e;
 			}
 			// 【FND7-14】重试flush成功：释放补偿登记持有的在用保护（业务计数若未随

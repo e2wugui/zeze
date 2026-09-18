@@ -115,15 +115,30 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	void putPendingFlush(long index, long term, List<Record<?>> records) {
+		putPendingFlush(index, term, records, true);
+	}
+
+	/**
+	 * FND8-39：addReference=false为转移语义——records已各持恰好一个归补偿所有的在用计数
+	 * （follower装载计数、或上一轮补偿登记的持有），登记不增不减。原调用方"先endAccess
+	 * 再登记"在两条语句之间计数归零，LRU驱逐恰落在间隙时同key重装载从storage拿到
+	 * flush前旧值，后续增量日志应用在旧基线上——节点静默永久分歧；转移语义使计数全程
+	 * ≥1，间隙与过/欠持有两个方向的偏差同时归零（调用方的endAccess直接删除）。
+	 * addReference=true为加计语义：leader首次失败时业务计数仍在appendLog等待中，
+	 * +1与业务超时释放配对（perform finally）。
+	 * 释放点不变：消费成功（leader/follower的pending分支flush成功）、过期丢弃
+	 * （takePendingFlush的term不匹配）。
+	 */
+	void putPendingFlush(long index, long term, List<Record<?>> records, boolean addReference) {
 		pendingFlushApplies.put(index, new PendingFlush(term, records));
 		// 【FND7-14】补偿登记即持有在用：leader侧perform收尾会释放业务访问计数，若登记
 		// 不补记，迟到flush重试窗口内记录可被LRU驱逐——同key重装载从storage拿到flush
 		// 前旧值，后续在旧基线上的修改提交会整值覆盖已应用未flush的更新（丢失更新）。
 		// follower侧装载计数在转入补偿时先行释放（调用方catch），由这里统一接管。
-		// 释放点：消费成功（leader/follower的pending分支flush成功）、过期丢弃
-		// （takePendingFlush的term不匹配）。重试再失败的重登记先释放再重新持有，配对不变。
-		for (var r : records)
-			r.beginAccess();
+		if (addReference) {
+			for (var r : records)
+				r.beginAccess();
+		}
 	}
 
 	// FND3-22：apply已完整成功（内存变更+flush提交）后、lastApplied推进前的收尾步骤
@@ -331,11 +346,10 @@ public final class Rocks extends StateMachine implements Closeable {
 				try {
 					flush(pending, changes, true);
 				} catch (FlushException e) {
-					// 【FND7-14】装载计数随上次失败转入补偿登记（putPendingFlush统一接管，
-					// 重登记先释放旧持有），在用保护横跨整个补偿生命周期不断档。
-					for (var r : pending)
-						r.endAccess();
-					putPendingFlush(index, holder.getTerm(), pending);
+					// 【FND8-39】重试再失败的重登记用转移语义（addReference=false）：装载计数
+					// 已归补偿所有，随消费原样移入新登记。原"先endAccess再登记"在两条语句之间
+					// 计数归零，LRU驱逐+同key脏重载旧基线后，增量日志应用在旧值上即永久分歧。
+					putPendingFlush(index, holder.getTerm(), pending, false);
 					throw e;
 				}
 				// 【FND7-14】重试flush成功：释放在用保护。
@@ -350,10 +364,10 @@ public final class Rocks extends StateMachine implements Closeable {
 				flush(rs, changes, true);
 			} catch (FlushException e) {
 				// 内存已变更但落盘失败：记录已应用的记录集合，等下次apply重试时只flush。
-				// 【FND7-14】装载计数转入补偿登记（putPendingFlush补记），保护不断档。
-				for (var r : rs)
-					r.endAccess();
-				putPendingFlush(index, holder.getTerm(), rs);
+				// 【FND8-39】装载计数转入补偿登记用转移语义（addReference=false）：计数不增
+				// 不减，消灭原"先endAccess再登记"的归零间隙（间隙内LRU驱逐+同key脏重载
+				// 旧基线，增量日志应用在旧值上即节点永久分歧）。
+				putPendingFlush(index, holder.getTerm(), rs, false);
 				throw e;
 			}
 			// 【FND7-14】应用并落盘完成：释放followerApply装载时（Table.followerApply→
