@@ -2,9 +2,12 @@ package Zeze.Util;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.IntFunction;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
@@ -30,10 +33,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 				count++;
 			}
 			var barrier = new TaskOneByOneQueue.BarrierProcedure(procedure, count, cancel);
-			for (var e : group.entrySet()) {
-				var sum = e.getValue().value;
-				executeAndUnlock(e.getKey(), new TaskOneByOneQueue.TaskBarrierProcedure(barrier, sum, mode), sum);
-			}
+			submitBarrierAndUnlock(group, barrier, (sum) -> new TaskOneByOneQueue.TaskBarrierProcedure(barrier, sum, mode));
 		} finally {
 			unlock();
 		}
@@ -55,12 +55,33 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 				count++;
 			}
 			var barrier = new TaskOneByOneQueue.BarrierAction(actionName, action, count, cancel);
-			for (var e : group.entrySet()) {
-				var sum = e.getValue().value;
-				executeAndUnlock(e.getKey(), new TaskOneByOneQueue.TaskBarrierAction(barrier, sum, mode), sum);
-			}
+			submitBarrierAndUnlock(group, barrier, (sum) -> new TaskOneByOneQueue.TaskBarrierAction(barrier, sum, mode));
 		} finally {
 			unlock();
+		}
+	}
+
+	/** 逐桶提交并解锁。submit/派发抛出（池未初始化ISE、自定义executor拒绝REE）时，
+	 * 当前桶的锁已由 executeAndUnlock 的 finally 解开，但剩余桶的队列锁不能跟着异常
+	 * 一起泄漏——补解锁后取消屏障（幂等；已提交桶的 barrier 任务 count 永不归零，
+	 * 队列非空且再无派发点，必须由 cancel 的 runNext 收尾），最后重抛首个异常。 */
+	private static void submitBarrierAndUnlock(@NotNull HashMap<TaskOneByOneQueue, OutInt> group,
+											   @NotNull TaskOneByOneQueue.Barrier barrier,
+											   @NotNull IntFunction<TaskOneByOneQueue.Task> newTask) {
+		var buckets = new ArrayList<Map.Entry<TaskOneByOneQueue, OutInt>>(group.entrySet());
+		for (var i = 0; i < buckets.size(); ++i) {
+			var sum = buckets.get(i).getValue().value;
+			try {
+				executeAndUnlock(buckets.get(i).getKey(), newTask.apply(sum), sum);
+			} catch (RuntimeException ex) {
+				for (var j = i + 1; j < buckets.size(); ++j) {
+					var rest = buckets.get(j);
+					for (var k = 0; k < rest.getValue().value; ++k)
+						rest.getKey().unlock();
+				}
+				barrier.cancel();
+				throw ex;
+			}
 		}
 	}
 
