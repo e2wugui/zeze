@@ -17,18 +17,22 @@ import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * 【安全警示】无鉴权的任意字节码执行端点：上传的class字节码被直接defineClass并实例化
- * 执行（Runnable/Callable/main）。任何能触达该urlPath的客户端即获得服务器任意代码执行权，
- * 必须仅绑定回环/内网，绝不可暴露公网。
+ * 【安全警示】任意字节码执行端点：上传的class字节码被直接defineClass并实例化执行
+ * （Runnable/Callable/main），触达且持有token者即获得服务器任意代码执行权，仍必须仅
+ * 绑定回环/内网，绝不可暴露公网。token校验（FND8-66）把"部署纪律"升级为代码不变量：
+ * 构造时显式传入token，或传null由启动期自动生成随机token并打日志（零配置可用，运维
+ * 从日志取token）；请求须以X-Zeze-Token头或"token"查询参数携带，常量时间比较，失配
+ * 答403。
  */
 public class RunClassServer implements HttpFileUploadHandle {
 	private static final @NotNull org.apache.logging.log4j.Logger logger =
 			org.apache.logging.log4j.LogManager.getLogger(RunClassServer.class);
 	private final String uploadDir;
 	private final String fileVarName;
+	private final String token;
 
 	/**
-	 * 构造RunClassServer
+	 * 构造RunClassServer（token自动生成，见类注释）。
 	 *
 	 * @param app         应用App实例
 	 * @param urlPath     上传文件的urlPath
@@ -41,8 +45,26 @@ public class RunClassServer implements HttpFileUploadHandle {
 						  @NotNull String urlPath,
 						  @NotNull String uploadDir,
 						  @NotNull String fileVarName) {
+		this(app, urlPath, uploadDir, fileVarName, null);
+	}
+
+	/**
+	 * 构造RunClassServer。
+	 *
+	 * @param token 鉴权token；null/空白时自动生成随机token并打日志（默认强制鉴权、
+	 *              零配置可用）
+	 */
+	public RunClassServer(@NotNull AppBase app,
+						  @NotNull String urlPath,
+						  @NotNull String uploadDir,
+						  @NotNull String fileVarName,
+						  @org.jetbrains.annotations.Nullable String token) {
 		this.uploadDir = uploadDir;
 		this.fileVarName = fileVarName;
+		this.token = token != null && !token.isBlank() ? token : ReloadClassServer.generateToken();
+		logger.warn("RunClassServer '{}' enabled: run-class endpoint requires token"
+						+ " (pass via '{}' header or '{}' query param). token={}",
+				urlPath, ReloadClassServer.TOKEN_HEADER, ReloadClassServer.TOKEN_QUERY_KEY, this.token);
 		assert app.getHttpServer() != null;
 		app.getHttpServer().addHandler(urlPath, TransactionLevel.None, DispatchMode.Normal, this);
 	}
@@ -55,6 +77,12 @@ public class RunClassServer implements HttpFileUploadHandle {
 	@Override
 	public void onEndRequest(@NotNull HttpExchange x,
 							 @NotNull InterfaceHttpPostRequestDecoder decoder) throws Exception {
+		// 鉴权前置（FND8-66）：失配403并记录来源，不进入执行路径
+		if (!ReloadClassServer.checkToken(token, x)) {
+			logger.warn("RunClassServer: reject unauthorized run request from {}", x.channel().remoteAddress());
+			x.close(x.sendPlainText(HttpResponseStatus.FORBIDDEN, "forbidden"));
+			return;
+		}
 		var fileUpload = (FileUpload)decoder.getBodyHttpData(getFileNameQueryKey());
 		var patchFileName = fileUpload.getFilename();
 		new File(uploadDir).mkdirs();
@@ -84,6 +112,9 @@ public class RunClassServer implements HttpFileUploadHandle {
 				var args = decoder.isMultipart() ? getArgs(decoder) : getArgs(x);
 				result = String.valueOf(mainMethod.invoke(null, (Object)args));
 			}
+			// 审计（FND8-66）：每次成功使用的留痕
+			logger.info("RunClassServer: authorized run from {}, file='{}'",
+					x.channel().remoteAddress(), patchFileName);
 			x.close(x.sendPlainText(HttpResponseStatus.OK, result));
 			return;
 		}
