@@ -11,6 +11,7 @@ import Zeze.Builtin.Timer.BArchOnlineTimer;
 import Zeze.Builtin.Timer.BIndex;
 import Zeze.Builtin.Timer.BOfflineAccountCustom;
 import Zeze.Builtin.Timer.BOnlineTimers;
+import Zeze.Builtin.Timer.BTimer;
 import Zeze.Builtin.Timer.BTransmitCancelAccountTimer;
 import Zeze.Builtin.Timer.BTransmitCronTimer;
 import Zeze.Builtin.Timer.BTransmitSimpleTimer;
@@ -763,6 +764,33 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	/// ///////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
 	public static class OfflineHandle implements TimerHandle {
+		// FND8-72：timer终止的每条路径（打完/回调异常/显式cancel）都经Timer.cancel的
+		// onTimerCancel钩子同步清簿记，与onLoginEvent一致，杜绝"index已删簿记残留"
+		// 使同名重调度putIfAbsent撞残留抛IllegalStateException。
+		@Override
+		public void onTimerCancel(@NotNull BTimer bTimer) {
+			if (!(bTimer.getCustomData().getBean() instanceof BOfflineAccountCustom custom))
+				return;
+			try {
+				var zeze = Timer.currentProcedureApp();
+				if (zeze == null)
+					return;
+				var timer = zeze.getTimer();
+				var key = new BAccountClientId(custom.getAccount(), custom.getClientId());
+				var offlineTimers = timer.tAccountOfflineTimers().get(key);
+				if (offlineTimers != null) {
+					offlineTimers.getOfflineTimers().remove(custom.getTimerName());
+					if (offlineTimers.getOfflineTimers().isEmpty())
+						timer.tAccountOfflineTimers().remove(key);
+					logger.debug("OfflineHandle.onTimerCancel: timerId={}, account={}, clientId={}",
+							custom.getTimerName(), custom.getAccount(), custom.getClientId());
+				}
+			} catch (Exception e) {
+				logger.error("OfflineHandle.onTimerCancel: timerId={}, account={}, clientId={}",
+						custom.getTimerName(), custom.getAccount(), custom.getClientId(), e);
+			}
+		}
+
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineAccountCustom)context.customData;

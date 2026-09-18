@@ -230,6 +230,19 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		return hotHandle.findHandle(zeze, handleClassName);
 	}
 
+	/**
+	 * TimerHandle.onTimerCancel 没有上下文参数，无状态handle到这里反查所属App。
+	 * 钩子总是在 {@code Timer.cancel} 的 fireTimerCancel 过程内同步执行，
+	 * 取当前过程栈顶（即该过程）的owner即发起cancel的Timer所属App。
+	 */
+	static @Nullable Application currentProcedureApp() {
+		var t = Transaction.getCurrent();
+		if (t == null || !t.isRunning())
+			return null;
+		var stack = t.getProcedureStack();
+		return stack.isEmpty() ? null : stack.get(stack.size() - 1).getZeze();
+	}
+
 	static void checkRunningTransaction(@NotNull String methodName) {
 		var t = Transaction.getCurrent();
 		if (t == null || !t.isRunning())

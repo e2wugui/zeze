@@ -6,6 +6,7 @@ import Zeze.Builtin.Timer.BGameOnlineTimer;
 import Zeze.Builtin.Timer.BIndex;
 import Zeze.Builtin.Timer.BOfflineRoleCustom;
 import Zeze.Builtin.Timer.BOnlineTimers;
+import Zeze.Builtin.Timer.BTimer;
 import Zeze.Builtin.Timer.BTransmitCancelRoleTimer;
 import Zeze.Builtin.Timer.BTransmitCronTimer;
 import Zeze.Builtin.Timer.BTransmitSimpleTimer;
@@ -505,11 +506,13 @@ public class TimerRole extends TimerOnlineBase<Long> {
 			return false; // 不是角色offline timer，归属不符拒绝
 		if (custom.getRoleId() != roleId)
 			return false;
-		timer.cancel(timerId);
+		// 簿记先于timer.cancel清理（FND8-72）：cancel的onTimerCancel钩子也会清簿记，
+		// 若r的判定放在钩子之后，remove将恒为null，对真实成功的取消误报false。
 		var bTimers = online._tRoleOfflineTimers().get(roleId);
 		var r = bTimers != null && bTimers.getOfflineTimers().remove(timerId) != null;
 		if (bTimers != null && bTimers.getOfflineTimers().isEmpty())
 			online._tRoleOfflineTimers().remove(roleId);
+		timer.cancel(timerId);
 		if (r)
 			logger.debug("cancel offline timer: timerId={}, roleId={}", timerId, roleId);
 		return r;
@@ -764,6 +767,39 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	/// ///////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
 	public static class OfflineHandle implements TimerHandle {
+		// FND8-72：timer终止的每条路径（打完/回调异常/显式cancel）都经Timer.cancel的
+		// onTimerCancel钩子同步清簿记，与onLoginEvent一致，杜绝"index已删簿记残留"
+		// 使同名重调度putIfAbsent撞残留抛IllegalStateException。
+		@Override
+		public void onTimerCancel(@NotNull BTimer bTimer) {
+			if (!(bTimer.getCustomData().getBean() instanceof BOfflineRoleCustom custom))
+				return;
+			try {
+				var zeze = Timer.currentProcedureApp();
+				if (zeze == null)
+					return;
+				// 归属反查镜像onTimer过期分支：Game.ProviderWithOnline按onlineSetName定位，否则兜底defaultOnline。
+				var providerApp = zeze.getProviderApp();
+				var providerImpl = providerApp != null ? providerApp.providerImplement : null;
+				var online = providerImpl instanceof ProviderWithOnline p
+						? p.getOnline(custom.getOnlineSetName()) : zeze.getTimer().getDefaultOnline();
+				if (online == null)
+					return;
+				var roleId = custom.getRoleId();
+				var offlineTimers = online._tRoleOfflineTimers().get(roleId);
+				if (offlineTimers != null) {
+					offlineTimers.getOfflineTimers().remove(custom.getTimerName());
+					if (offlineTimers.getOfflineTimers().isEmpty())
+						online._tRoleOfflineTimers().remove(roleId);
+					logger.debug("OfflineHandle.onTimerCancel: timerId={}, roleId={}",
+							custom.getTimerName(), roleId);
+				}
+			} catch (Exception e) {
+				logger.error("OfflineHandle.onTimerCancel: timerId={}, roleId={}",
+						custom.getTimerName(), custom.getRoleId(), e);
+			}
+		}
+
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineRoleCustom)context.customData;
