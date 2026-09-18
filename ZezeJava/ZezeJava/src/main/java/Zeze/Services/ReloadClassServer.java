@@ -113,7 +113,16 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 			x.close(x.sendPlainText(HttpResponseStatus.FORBIDDEN, "forbidden"));
 			return;
 		}
-		var fileUpload = (FileUpload)decoder.getBodyHttpData(getFileNameQueryKey());
+		// 字段守卫（FND8-67）：multipart可缺字段（getBodyHttpData返回null）或放同名文本字段
+		// （返回MemoryAttribute），原无守卫强转分别NPE/CCE且异常穿透后请求无应答挂起；
+		// instanceof模式匹配同时覆盖两形态，按400明确拒绝（与sanitize拒绝路径同口径）。
+		var data = decoder.getBodyHttpData(getFileNameQueryKey());
+		if (!(data instanceof FileUpload fileUpload)) {
+			logger.warn("Reject upload: missing or invalid file field '{}'", getFileNameQueryKey());
+			x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST,
+					"missing or invalid file field '" + getFileNameQueryKey() + "'"));
+			return;
+		}
 		var patchFileName = fileUpload.getFilename();
 		new File(uploadDir).mkdirs();
 		final File destFile; // 落盘路径必须经净化（FND4-70）：客户端可控文件名不得携带目录成分
