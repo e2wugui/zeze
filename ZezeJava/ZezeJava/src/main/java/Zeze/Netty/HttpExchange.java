@@ -72,7 +72,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.AttributeMap;
 import io.netty.util.ReferenceCountUtil;
-import io.netty.util.collection.IntObjectHashMap;
+import io.netty.util.collection.LongObjectHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.thymeleaf.context.Context;
@@ -624,8 +624,8 @@ public class HttpExchange {
 	// 静默数据错乱。
 	// 单写者：序化状态只由channel的EventLoop读写，非EL调用任务跳转（Netty的写本也要跳EL，成本
 	// 持平；同线程提交序即任务序，顺序不变）。游标：登记时（channelRead，EL，先于任何响应写）分配
-	// 递增orderId，writingOrderId即"笔"——orderId等于它直写；大于它挂起（promise桥接，真实写出时
-	// 兑现）；小于它是已出队的迟到写：失败并释放（终结符已写出，放行会污染后继响应的帧）。
+	// 递增orderId，writingOrderId即"笔"——orderId等于它直写；大于它且entry未终结时挂起（promise桥接，
+	// 真实写出时兑现）；小于它或entry已终结是迟到写：失败并释放（放行会污染后继响应的帧）。
 	// close/endStream标记entry完成；持笔者冲刷挂起（末尾单次flush）并链式出队到下一个存活entry，
 	// 其后续写直写。FINISH族挂起写按序送出（endStream终结符也在其中），FORCE族（连接将亡）丢弃。
 	// 非pipelining（单在途请求）时exchange即持笔者，写直达；直接构造、未经channelRead登记的
@@ -641,10 +641,11 @@ public class HttpExchange {
 	private static final int MaxResponseOrderDepth = 128;
 
 	// 序化器per-channel（channel属性）。全部字段仅channel的EventLoop线程访问（单写者）。
+	// 游标与键用long：单连接请求序无上界，int在2^31回绕后比较语义崩坏（对齐Armeria）。
 	static final class ResponseSequencer {
-		int nextOrderId = 1; // 下一个到达序（registerResponseOrder分配）
-		int writingOrderId = 1; // 当前持笔orderId：此前的已全部写出出队
-		final IntObjectHashMap<OrderEntry> entries = new IntObjectHashMap<>(); // 在途entry
+		long nextOrderId = 1; // 下一个到达序（registerResponseOrder分配）
+		long writingOrderId = 1; // 当前持笔orderId：此前的已全部写出出队
+		final LongObjectHashMap<OrderEntry> entries = new LongObjectHashMap<>(); // 在途entry
 	}
 
 	// 在途exchange的序化条目（仅EventLoop线程访问）。
@@ -662,12 +663,12 @@ public class HttpExchange {
 	/**
 	 * @param promise 调用方给定的promise（可为voidPromise），提交时原样传递
 	 */
-	record DeferredWrite(@NotNull Object msg, @NotNull ChannelPromise promise, boolean flush) {
+	record DeferredWrite(@NotNull Object msg, @NotNull ChannelPromise promise) {
 	}
 
 	// 响应序化状态：仅EventLoop线程访问，登记（先于任何响应写）时赋值。
 	@Nullable ResponseSequencer responseSequencer;
-	int responseOrderId; // 登记分配的到达序；未登记（直接构造）为0且responseSequencer为null
+	long responseOrderId; // 登记分配的到达序；未登记（直接构造）为0且responseSequencer为null
 	private @Nullable OrderEntry responseEntry; // 本exchange的序化条目（出队时清引用）
 
 	// 框架直写豁免标志（rejectAndClose设置）：声明该channel的后续直写响应合法（随即关连接），免清理。
@@ -770,7 +771,7 @@ public class HttpExchange {
 		return finalPromise;
 	}
 
-	// 仅EventLoop线程调用：按orderId与writingOrderId的关系直写/挂起/拒绝迟到写。
+	// 仅EventLoop线程调用：按orderId与writingOrderId的关系及entry终结态直写/挂起/拒绝迟到写。
 	@SuppressWarnings("ConstantConditions")
 	private void writeResponse0(@NotNull Object msg, boolean flush, @NotNull ChannelPromise promise) {
 		var seq = responseSequencer;
@@ -785,10 +786,17 @@ public class HttpExchange {
 			ReferenceCountUtil.release(msg);
 			return;
 		}
-		if (responseOrderId > seq.writingOrderId) { // 未轮到：挂起（close后未出队的写也在此列，轮到时冲刷）
+		if (responseOrderId > seq.writingOrderId) { // 未轮到：挂起，轮到时冲刷
 			var e = responseEntry;
+			if (e.finished) { // 终结后未出队的迟到写：失败并释放——放行会在冲刷时排到终结符之后，
+				// 污染下一响应的帧。合法调用不会到达（终结写与finished置位按EL任务序先后，close后无合法写）
+				Netty.logger.warn("late response write after exchange finished: {}", context.channel().remoteAddress());
+				promise.tryFailure(new ClosedChannelException());
+				ReferenceCountUtil.release(msg);
+				return;
+			}
 			var pending = e.pending != null ? e.pending : (e.pending = new ArrayDeque<>());
-			pending.addLast(new DeferredWrite(msg, promise, flush));
+			pending.addLast(new DeferredWrite(msg, promise));
 			if (pending.size() >= MaxPendingResponseWrites) { // 挂起上限：按滥用关闭连接
 				Netty.logger.error("too many pending response writes: {} from {}, close connection",
 					pending.size(), context.channel().remoteAddress());

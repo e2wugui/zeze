@@ -12,6 +12,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Task;
 import harness.Fast;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.jetbrains.annotations.NotNull;
@@ -137,6 +138,58 @@ public class TestPipeliningInflightCleanup {
 				sock.setSoTimeout(1000);
 				Assertions.assertThrows(java.net.SocketTimeoutException.class, () -> sock.getInputStream().read(),
 						"no response bytes may be written after exchange finished");
+			}
+		} finally {
+			server.close();
+			netty.close();
+		}
+	}
+
+	// 终结后未出队的迟到写：first持笔挂起（detach不响应），second在其后正常close——entry已finished
+	// 但未出队，此后对second的写必须失败且不产生任何字节。修复前该写被排进挂起队列，drainPending
+	// 冲刷时排在second终结符之后，插进下一响应的帧前（正是迟到写要防的污染，原先只在出队后拒绝）。
+	// 确定性：stray写在close返回后由handler同线程发出，EL任务序上必然排在close的release任务之后。
+	@Test
+	public void testLateWriteAfterFinishBeforeDequeueFails() throws Exception {
+		Task.tryInitThreadPool();
+		var netty = new Netty(1);
+		var server = new TestServer();
+		var strayWrite = new java.util.concurrent.CompletableFuture<ChannelFuture>();
+		server.addHandler("/first", 8192, TransactionLevel.None, DispatchMode.Normal, HttpExchange::detach);
+		server.addHandler("/second", 8192, TransactionLevel.None, DispatchMode.Normal, x -> {
+			x.close(x.sendPlainText(HttpResponseStatus.OK, "resp-second"));
+			strayWrite.complete(x.sendPlainText(HttpResponseStatus.OK, "late")); // close后再写即误用
+		});
+		try {
+			var port = ((InetSocketAddress)server.start(netty, 0).sync().channel().localAddress()).getPort();
+			try (var sock = new Socket("127.0.0.1", port)) {
+				sock.setSoTimeout(15_000);
+				var os = sock.getOutputStream();
+				os.write(("GET /first HTTP/1.1\r\nHost: a\r\n\r\n"
+						+ "GET /second HTTP/1.1\r\nHost: a\r\n\r\n").getBytes(StandardCharsets.ISO_8859_1));
+				os.flush();
+
+				var f = strayWrite.get(10, TimeUnit.SECONDS);
+				Assertions.assertTrue(f.awaitUninterruptibly(3000), "stray write future must complete");
+				Assertions.assertFalse(f.isSuccess(), "stray write must fail");
+				Assertions.assertInstanceOf(java.nio.channels.ClosedChannelException.class, f.cause());
+
+				// 释放持笔：first响应+close→advance冲刷second的挂起响应；客户端按序收到两个响应，无stray字节
+				var first = (HttpExchange)server.created.toArray()[0];
+				first.close(first.sendPlainText(HttpResponseStatus.OK, "resp-first"));
+
+				var buf = new java.io.ByteArrayOutputStream();
+				var bytes = new byte[4096];
+				long deadline = System.currentTimeMillis() + 10_000;
+				while (!buf.toString(StandardCharsets.ISO_8859_1).contains("resp-second")) {
+					Assertions.assertTrue(System.currentTimeMillis() < deadline, "timeout: " + buf);
+					int n = sock.getInputStream().read(bytes);
+					Assertions.assertTrue(n >= 0, "connection closed unexpectedly");
+					buf.write(bytes, 0, n);
+				}
+				var s = buf.toString(StandardCharsets.ISO_8859_1);
+				Assertions.assertTrue(s.contains("resp-first"), "pipelining order broken: " + s);
+				Assertions.assertFalse(s.contains("late"), "stray bytes must not reach the client: " + s);
 			}
 		} finally {
 			server.close();
