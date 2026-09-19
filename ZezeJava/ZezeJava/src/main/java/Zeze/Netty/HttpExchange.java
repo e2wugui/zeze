@@ -238,6 +238,12 @@ public class HttpExchange {
 		return context.channel();
 	}
 
+	// 流式大响应的背压信号：false表示outbound缓冲已越过水位（writePendingLimit），继续无界发送会积压内存。
+	// 高吞吐流式发送建议分块并检查；HttpResponseWithBodyStream的OutputStream已内置越水位阻塞等待。
+	public boolean isWritable() {
+		return context.channel().isWritable();
+	}
+
 	public @NotNull AttributeMap attributes() {
 		return context.channel();
 	}
@@ -1438,6 +1444,7 @@ public class HttpExchange {
 
 	/// //////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
+	// 高吞吐大流量流式发送建议按块检查isWritable()（背压信号，越过水位时等待积压排出再继续）。
 	public @NotNull ChannelFuture beginStream(@NotNull HttpResponseStatus status, @NotNull HttpHeaders headers) {
 		if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH))
 			headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);

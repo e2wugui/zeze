@@ -120,6 +120,9 @@ public final class HttpResponseWithBodyStream {
 	 * 分块编码模式（contentLength == 0）
 	 */
 	private static class ChunkedBodyStream extends OutputStream {
+		// 慢客户端等待上限：对齐服务端默认写空闲超时（writeIdleTimeout），超过按对端过慢失败
+		private static final long SlowPeerTimeoutMillis = 60_000;
+
 		private final @NotNull HttpExchange x;
 		private boolean closed;
 
@@ -128,15 +131,17 @@ public final class HttpResponseWithBodyStream {
 		}
 
 		@Override
-		public void write(int b) {
+		public void write(int b) throws IOException {
 			checkOpen();
+			awaitWritable();
 			ByteBuf chunk = Unpooled.wrappedBuffer(new byte[]{(byte)b});
 			x.writeResponse(new DefaultHttpContent(chunk), false, null);
 		}
 
 		@Override
-		public void write(byte @NotNull [] b, int off, int len) {
+		public void write(byte @NotNull [] b, int off, int len) throws IOException {
 			checkOpen();
+			awaitWritable();
 			ByteBuf chunk = Unpooled.copiedBuffer(b, off, len);
 			x.writeResponse(new DefaultHttpContent(chunk), false, null);
 		}
@@ -147,6 +152,20 @@ public final class HttpResponseWithBodyStream {
 				return;
 			closed = true;
 			x.writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
+		}
+
+		// 背压：outbound缓冲越过水位（writePendingLimit，慢客户端）时等待当前积压写出再继续。
+		// 等待手段：提交一个空buffer写并await其完成——空写不产生字节、不参与响应序（仅触发flush），
+		// 完成即积压已推向socket。EventLoop线程不得等待（会死锁）；超时视为对端过慢。
+		private void awaitWritable() throws IOException {
+			var ch = x.channel();
+			if (ch.isWritable() || ch.eventLoop().inEventLoop())
+				return;
+			var f = ch.writeAndFlush(Unpooled.EMPTY_BUFFER);
+			if (!f.awaitUninterruptibly(SlowPeerTimeoutMillis))
+				throw new IOException("peer too slow (write buffer saturated): " + ch.remoteAddress());
+			if (!f.isSuccess())
+				throw new IOException("write backlog failed: " + ch.remoteAddress(), f.cause());
 		}
 
 		private void checkOpen() {

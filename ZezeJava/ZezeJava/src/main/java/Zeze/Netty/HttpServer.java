@@ -101,7 +101,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	// 停机拒绝标志:close()最前置位、start()重启时复位;channelRead在EventLoop线程上读,须volatile。
 	// 置位后已accept连接上到达的新HttpRequest回503并关连接(明确拒绝),不再进exchanges/派发handler。
 	protected volatile boolean shutdown;
-	protected int writePendingLimit = 64 * 1024; // 写缓冲区的限制大小(字节),超过会立即断开连接,写大量内容需要考虑分片
+	protected int writePendingLimit = 64 * 1024; // 写缓冲高水位(字节)：越过触发writability事件（背压信号，见channelWritabilityChanged），持续拥塞由写空闲超时兜底
 	protected int maxUploadSize = 256 * 1024 * 1024; // 流模式上传(如multipart/raw文件上传)的请求body总量限制(字节),超过返回413并断开连接
 	protected int checkIdleInterval = 5; // 检查超时的间隔(秒),只有以下两个超时时间都满足才会触发超时关闭,start之后修改无效
 	protected int readIdleTimeout = 30; // 服务端无接收的超时时间(秒)
@@ -716,10 +716,14 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	@Override
 	public void channelWritabilityChanged(@NotNull ChannelHandlerContext ctx) throws Exception {
 		var ch = ctx.channel();
-		Netty.logger.error("write buffer overflow {} > {} from {}",
-				ch.unsafe().outboundBuffer().totalPendingWriteBytes(),
-				ch.config().getWriteBufferHighWaterMark(), ch.remoteAddress());
-		ctx.flush().close();
+		// 背压而非断连：越过水位（writePendingLimit）只记日志，由写方感知isWritable/等待积压排出
+		// （HttpResponseWithBodyStream已内置阻塞等待）。原先这里flush().close()直接杀连接——
+		// 慢客户端+大响应（文件/流式）必然越过水位，合法流量被误杀；持续拥塞由checkTimeout0的
+		// 写空闲超时（outboundBuffer无进度）兜底关闭。
+		if (!ch.isWritable())
+			Netty.logger.info("write buffer saturated {} > {} from {}",
+					ch.unsafe().outboundBuffer().totalPendingWriteBytes(),
+					ch.config().getWriteBufferHighWaterMark(), ch.remoteAddress());
 		super.channelWritabilityChanged(ctx);
 	}
 
