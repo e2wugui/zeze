@@ -76,7 +76,6 @@ import io.netty.handler.codec.http.websocketx.WebSocketDecoderConfig;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolConfig;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
-import io.netty.util.AsciiString;
 import io.netty.util.AttributeKey;
 import io.netty.util.AttributeMap;
 import io.netty.util.ReferenceCountUtil;
@@ -85,6 +84,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.thymeleaf.context.Context;
 
+/**
+ * 一个HTTP请求从生到死的交换载体（对标JDK的com.sun.net.httpserver.HttpExchange）：
+ * 每个HttpRequest由HttpServer.channelRead创建一个exchange，承接请求接收（body累积/流式转发）、
+ * handler派发、响应写出与资源回收。响应写的唯一入口是内部的writeResponse——HTTP/1.1
+ * pipelining下按请求到达序写出，绕过它直写ctx的响应头会被出站tripwire拒绝。
+ *
+ * <p>生命周期：handler（onEndStream，流式为onBeginStream+onStreamContent）按DispatchMode派发——
+ * Direct内联（EventLoop线程）或任务派发且同连接回调串行（executeOneByOne(channel.id)）。
+ * handler正常返回且未{@link #detach()}时框架自动close；detach后由调用方在任意线程、任意时机
+ * 补发响应并close。close族幂等（detached CAS保证）；悬挂的exchange由idle超时与janitor
+ * （断连/异常/停机清理点）兜底回收。
+ */
 public class HttpExchange {
 	protected static final int CLOSE_FINISH = 0; // 正常结束HttpExchange,不关闭连接
 	protected static final int CLOSE_ON_FLUSH = 1; // 结束HttpExchange,发送完时关闭连接
@@ -92,8 +103,6 @@ public class HttpExchange {
 	protected static final int CLOSE_TIMEOUT = 3; // 同上,只是因idle超时而关闭
 	protected static final int CLOSE_PASSIVE = 4; // 同上,只是因远程主动关闭而关闭
 
-	protected static final @NotNull Pattern rangePattern = Pattern.compile("[ =\\-/]");
-	protected static final OpenOption[] readOnlyOpenOptions = new OpenOption[]{StandardOpenOption.READ};
 	protected static final @NotNull VarHandle detachedHandle;
 	protected static final HttpDataFactory httpDataFactory = new DefaultHttpDataFactory(false);
 	protected static final HttpHeadersFactory headersFactory = DefaultHttpHeadersFactory.headersFactory().withValidation(false);
@@ -118,7 +127,8 @@ public class HttpExchange {
 	protected @Nullable HttpSession.CookieSession cookieSession;
 	protected @Nullable String path;
 	protected volatile int detached; // 0:not detached; 1:detached; 2:detached and closed
-	protected boolean willCloseConnection; // true表示close时会关闭连接
+	// close路径在任意线程写、closeInEventLoop（EL）读，volatile保证可见（终值兜底：context.close幂等）
+	protected volatile boolean willCloseConnection;
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	protected boolean isWebSocketTextContent;
 	protected long streamContentTotal; // 流模式累计收到的请求body字节数,server.maxUploadSize总量上限检查用
@@ -221,7 +231,8 @@ public class HttpExchange {
 		return null;
 	}
 
-	public boolean isActive() {
+	// 已收到请求头且未释放（勿与channel.isActive()的"连接活跃"语义混淆）
+	public boolean hasRequest() {
 		return request != null;
 	}
 
@@ -229,7 +240,10 @@ public class HttpExchange {
 		return detached == 2;
 	}
 
-	// 通常不需要获取context,只给特殊需要时使用netty内部的方法
+	/**
+	 * 通常不需要获取context，只给特殊需要时使用netty内部的方法。
+	 * 注意：绕过响应写唯一入口直接经context写响应头会被出站tripwire拒绝（宁可断连不可错序）。
+	 */
 	public @NotNull ChannelHandlerContext context() {
 		return context;
 	}
@@ -540,7 +554,7 @@ public class HttpExchange {
 	protected void fireBeginStream(@NotNull HttpRequest req) {
 		if (handler == null)
 			return;
-		var r = parseRange(req, HttpHeaderNames.CONTENT_RANGE);
+		var r = HttpFileService.parseRange(req, HttpHeaderNames.CONTENT_RANGE);
 		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {
 				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
@@ -601,6 +615,11 @@ public class HttpExchange {
 		}
 	}
 
+	/**
+	 * 声明本exchange的生命周期由调用方接管：handler返回后框架不再自动close，
+	 * 可在任意线程、任意时机补发响应（sendXxx/beginStream/sendFile）并close。
+	 * 不detach也不在handler内close视为悬挂，由idle超时/janitor兜底回收。
+	 */
 	public @NotNull HttpExchange detach() {
 		detachedHandle.compareAndSet(this, 0, 1);
 		return this;
@@ -628,32 +647,8 @@ public class HttpExchange {
 	// 每channel在途（已登记未出队）请求序深度上限：防深度pipelining滥用，超出按滥用关闭连接。
 	private static final int MaxResponseOrderDepth = 128;
 
-	// 序化器per-channel（channel属性），全部字段仅EventLoop线程访问（单写者）。
-	static final class ResponseSequencer {
-		int nextOrderId = 1; // 下一个到达序（registerResponseOrder分配）
-		int writingOrderId = 1; // 当前持笔orderId：此前的已全部写出出队
-		final IntObjectHashMap<OrderEntry> entries = new IntObjectHashMap<>(); // 在途entry
-	}
-
-	// 在途exchange的序化条目（仅EventLoop线程访问）。
-	static final class OrderEntry {
-		final HttpExchange x;
-		ArrayDeque<DeferredWrite> pending; // 未轮到时的挂起响应写，懒建
-		boolean finished; // exchange已close/endStream（FINISH族挂起写仍按序送出）
-		boolean started; // 本entry的按序写已开始（出站tripwire的判定依据）
-
-		OrderEntry(HttpExchange x) {
-			this.x = x;
-		}
-	}
-
-	/**
-	 * @param promise  调用方给定的promise（可为voidPromise），提交时原样传递
-	 * */
-	private record DeferredWrite(Object msg, ChannelPromise promise, boolean flush) {
-	}
-
 	// 响应序化状态：仅EventLoop线程访问，登记（先于任何响应写）时赋值。
+	// 序化器状态类型（ResponseSequencer/OrderEntry/DeferredWrite）见HttpResponseOrder.java。
 	@Nullable ResponseSequencer responseSequencer;
 	int responseOrderId; // 登记分配的到达序；未登记（直接构造）为0且responseSequencer为null
 	private @Nullable OrderEntry responseEntry; // 本exchange的序化条目（出队时清引用）
@@ -733,10 +728,10 @@ public class HttpExchange {
 	}
 
 	// 响应写唯一入口（send/beginStream/sendStream/endStream/sendFile/100-continue/413/close(null)空写
-	// 共用；private——HttpResponseWithBodyStream已构建于公开流式API之上，不再有同包特权通道）：
+	// 共用；包内可见——唯一协作方为HttpFileService（包内静态文件服务），出站tripwire在wire层守门）：
 	// 决策与写出都在EventLoop上（单写者）。promise为null时新建（桥接挂起写，调用方listener/close(future)
 	// 语义在真实写出时兑现）。
-	private ChannelFuture writeResponse(@NotNull Object msg, boolean flush, @Nullable ChannelPromise promise) {
+	ChannelFuture writeResponse(@NotNull Object msg, boolean flush, @Nullable ChannelPromise promise) {
 		if (promise == null)
 			promise = context.newPromise();
 		var finalPromise = promise;
@@ -824,8 +819,8 @@ public class HttpExchange {
 				e.pending = null;
 				while (!pending.isEmpty()) {
 					var w = pending.pollFirst();
-					w.promise.tryFailure(new ClosedChannelException());
-					ReferenceCountUtil.release(w.msg);
+					w.promise().tryFailure(new ClosedChannelException());
+					ReferenceCountUtil.release(w.msg());
 				}
 			}
 		}
@@ -860,7 +855,7 @@ public class HttpExchange {
 		var x = e.x;
 		while (!pending.isEmpty()) {
 			var w = pending.pollFirst();
-			x.submit(w.msg, w.promise, false);
+			x.submit(w.msg(), w.promise(), false);
 		}
 		x.context.flush();
 	}
@@ -1054,52 +1049,6 @@ public class HttpExchange {
 		}
 	}
 
-	// 下载请求/上传回复: range: bytes=[from]-[to]，闭区间[from,to]；bytes=-N为最后N字节
-	// 上传请求/下载回复: content-range: bytes from-to/size 范围是[from,to]
-	// 参考: https://www.jianshu.com/p/acca9656e250
-	// 返回: [from, to, size]
-	protected static long @NotNull [] parseRange(@NotNull HttpRequest req, @NotNull AsciiString headerName) {
-		var r = new long[]{-1, -1, -1};
-		var headers = req.headers();
-		var range = headers.get(headerName);
-		if (range != null) {
-			var p = range.indexOf(',');
-			if (p >= 0)
-				range = range.substring(0, p); // 暂不支持",",只下载第1段
-			var ss = rangePattern.split(range);
-			var sn = ss.length;
-			if (sn > 1) {
-				r[0] = parse(ss[1]);
-				if (sn > 2) {
-					r[1] = parse(ss[2]);
-					if (sn > 3)
-						r[2] = parse(ss[3]);
-				}
-			}
-		} else if (headerName == HttpHeaderNames.CONTENT_RANGE) { // 如果没找到content-range可能只用content-length大小上传
-			var len = headers.get(HttpHeaderNames.CONTENT_LENGTH);
-			if (len != null) {
-				var n = parse(len); // 复用容错解析：畸形或超int范围的值按无range处理
-				if (n >= 0) {
-					r[0] = 0;
-					r[1] = n - 1;
-					r[2] = n;
-				}
-			}
-		}
-		return r;
-	}
-
-	protected static long parse(@NotNull String s) {
-		if (s.isEmpty())
-			return -1;
-		try {
-			return Long.parseLong(s);
-		} catch (Exception ignored) {
-			return -1;
-		}
-	}
-
 	protected void closeInEventLoop() {
 		if (inStreamMode) {
 			inStreamMode = false;
@@ -1158,17 +1107,25 @@ public class HttpExchange {
 		releaseResponseOrder(method >= CLOSE_FORCE);
 	}
 
-	// 正常结束HttpExchange,不关闭连接
+	/**
+	 * 正常结束本exchange，不关闭连接（keep-alive）。future为本次响应的写出future
+	 * （惯用法{@code x.close(x.send(...))}），真实写出完成后才执行收尾；null时框架补一个空写。
+	 * 幂等：已结束时二次调用无效果。
+	 */
 	public void close(@Nullable ChannelFuture future) {
 		close(CLOSE_FINISH, future);
 	}
 
-	// 结束HttpExchange,发送完时关闭连接
+	/**
+	 * 结束本exchange，发送完成后关闭连接。幂等。
+	 */
 	public void closeConnectionOnFlush(@Nullable ChannelFuture future) {
 		close(CLOSE_ON_FLUSH, future);
 	}
 
-	// 结束HttpExchange,不等发送完强制关闭连接
+	/**
+	 * 结束本exchange，不等发送完成立即关闭连接。幂等。
+	 */
 	public void closeConnectionNow() {
 		close(CLOSE_FORCE, null);
 	}
@@ -1268,151 +1225,21 @@ public class HttpExchange {
 	}
 
 	public void sendFile(@NotNull File file) throws Exception {
-		sendFile(file, 10 * 60);
+		HttpFileService.sendFile(this, file, 10 * 60);
 	}
 
+	/**
+	 * 发送文件：If-Modified-Since命中回304、Range不可满足回416、单段Range回206，
+	 * 其余200全量；含缓存头（Expires/Cache-Control/Last-Modified）与FileRegion零拷贝。
+	 *
+	 * @param fileCacheSeconds 客户端缓存秒数（Expires与max-age）
+	 */
 	public void sendFile(@NotNull File file, int fileCacheSeconds) throws Exception {
-		var req = request;
-		if (req == null) {
-			close(send500(""));
-			return;
-		}
-
-		// 检查 if-modified-since
-		var lastModified = file.lastModified() / 1000;
-		var ifModifiedSince = req.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
-		if (ifModifiedSince != null && !ifModifiedSince.isEmpty() && lastModified == HttpServer.parseDate(ifModifiedSince)) {
-			var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED, // 文件未改变
-				Unpooled.EMPTY_BUFFER, headersFactory, trailersFactory);
-			HttpServer.setDate(res.headers())
-				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-				.set(HttpHeaderNames.CONTENT_LENGTH, 0);
-			close(writeResponse(res, true, null)); // 经序化器：保活响应直写会在pipelining下先于前序响应上线
-			return;
-		}
-
-		var fn = file.getName();
-		var fc = FileChannel.open(file.toPath(), readOnlyOpenOptions);
-		var fsize = fc.size();
-		var rangeHeader = req.headers().get(HttpHeaderNames.RANGE);
-		// RFC 7233: 多段Range需multipart/byteranges（暂不支持），降级为200全量（服务器可忽略Range）
-		var r = rangeHeader != null && rangeHeader.indexOf(',') < 0 ? parseRange(req, HttpHeaderNames.RANGE) : null;
-
-		var from = 0L;
-		var to = fsize - 1L;
-		var partial = false;
-		if (r != null && (r[0] >= 0 || r[1] >= 0)) { // 语法有效的单段Range
-			var satisfiable = false;
-			if (r[0] >= 0) { // bytes=from-[to]；可满足: from在文件内且(to缺失或to>=from)
-				satisfiable = r[0] < fsize && (r[1] < 0 || r[1] >= r[0]);
-				if (satisfiable) {
-					from = r[0];
-					if (r[1] >= 0)
-						to = Math.min(r[1], fsize - 1); // to是inclusive右端点，超出文件尾按fsize-1截断
-				}
-			} else { // 后缀形式 bytes=-N；可满足: N>0且文件非空（bytes=-0按RFC不可满足）
-				satisfiable = r[1] > 0 && fsize > 0;
-				if (satisfiable)
-					from = Math.max(fsize - r[1], 0);
-			}
-			if (!satisfiable) { // RFC要求416 + Content-Range: bytes */fsize（客户端据此检测远端文件截断）
-				var res416 = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-					HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, Unpooled.EMPTY_BUFFER,
-					headersFactory, trailersFactory);
-				HttpServer.setDate(res416.headers())
-					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-					.set(HttpHeaderNames.CONTENT_LENGTH, 0)
-					.set(HttpHeaderNames.CONTENT_RANGE, "bytes */" + fsize);
-				fc.close();
-				close(writeResponse(res416, true, null)); // 经序化器，同304分支
-				return;
-			}
-			partial = true;
-		}
-		var contentLen = partial ? to - from + 1 : fsize;
-
-		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1,
-			partial ? HttpResponseStatus.PARTIAL_CONTENT : HttpResponseStatus.OK, headersFactory);
-		var headers = HttpServer.setDate(res.headers())
-			.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-			.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')
-			.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
-			.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
-			.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
-			.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + fileCacheSeconds)
-			.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
-		if (partial) // Content-Range只属于206/416，200不带
-			headers.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + to + '/' + fsize);
-		writeResponse(res, false, context.voidPromise()); // N①：响应头经序化器（挂起时FileRegion同队保序）
-
-		if (contentLen > 0 && !HttpMethod.HEAD.equals(req.method())) // 发文件任务全部交给Netty，并且发送完毕时关闭。
-			writeResponse(new DefaultFileRegion(fc, from, contentLen), false, context.voidPromise());
-		var lastFuture = writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
-		lastFuture.addListener(__ -> fc.close());
-		close(lastFuture);
+		HttpFileService.sendFile(this, file, fileCacheSeconds);
 	}
 
-	// sendPath的目录列表把文件名/目录名直接拼进HTML的title/h1与<a href>属性：
-	// 含"、<、>、&等字符的文件名（目录内容或请求路径可被控制）可注入脚本。统一转义。
-	private static @NotNull String htmlEscape(@NotNull String s) {
-		var sb = new StringBuilder(s.length());
-		for (int i = 0; i < s.length(); i++) {
-			switch (s.charAt(i)) {
-			case '<' -> sb.append("&lt;");
-			case '>' -> sb.append("&gt;");
-			case '&' -> sb.append("&amp;");
-			case '"' -> sb.append("&quot;");
-			case '\'' -> sb.append("&#39;");
-			default -> sb.append(s.charAt(i));
-			}
-		}
-		return sb.toString();
-	}
-
-	@SuppressWarnings("deprecation")
 	public void sendPath(@NotNull File file) {
-		if (!file.isDirectory() || file.isHidden()) {
-			close(send404());
-			return;
-		}
-
-		int fileLimit = 10000; // 限制最多列出多少目录+文件,避免开销太大
-		var fn = htmlEscape(file.getName());
-		var sb = new StringBuilder("<html><head><title>Index of ").append(fn)
-			.append("/</title></head><body><h1>Index of ").append(fn)
-			.append("/</h1><hr><pre><a href=\"../\">../</a>\n");
-		var fs = file.listFiles();
-		if (fs != null) {
-			for (var f : fs) {
-				if (f.isDirectory() && !f.isHidden()) { // 先列目录
-					if (--fileLimit < 0) {
-						sb.append("......\n");
-						break;
-					}
-					fn = htmlEscape(f.getName());
-					var date = new Date(f.lastModified());
-					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %18s <a href=\"%s/\">%s/</a>\n",
-						date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
-						date.getHours(), date.getMinutes(), date.getSeconds(),
-						"", fn, fn));
-				}
-			}
-			for (var f : fs) {
-				if (!f.isDirectory() && !f.isHidden()) { // 再列文件
-					if (--fileLimit < 0) {
-						sb.append("......\n");
-						break;
-					}
-					fn = htmlEscape(f.getName());
-					var date = new Date(f.lastModified());
-					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %,18d <a href=\"%s\">%s</a>\n",
-						date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
-						date.getHours(), date.getMinutes(), date.getSeconds(),
-						f.length(), fn, fn));
-				}
-			}
-		}
-		close(sendHtml(HttpResponseStatus.OK, sb.append("</pre><hr></body></html>").toString()));
+		HttpFileService.sendPath(this, file);
 	}
 
 	public @NotNull ChannelFuture send404() {
@@ -1446,6 +1273,11 @@ public class HttpExchange {
 	/// //////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
 	// 高吞吐大流量流式发送建议按块检查isWritable()（背压信号，越过水位时等待积压排出再继续）。
+	/**
+	 * 流式响应开始：写出状态行与headers（未设Content-Length则自动Transfer-Encoding: chunked）。
+	 * 本族接口功能最大化、不做校验（状态/头部正确性自负）。后续用{@link #sendStream}发块、
+	 * {@link #endStream}收尾；高吞吐大流量建议按块检查{@link #isWritable()}（背压）。
+	 */
 	public @NotNull ChannelFuture beginStream(@NotNull HttpResponseStatus status, @NotNull HttpHeaders headers) {
 		if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH))
 			headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
@@ -1484,16 +1316,16 @@ public class HttpExchange {
 		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(bb)), true, null); // N①
 	}
 
+	/**
+	 * 流式响应终结符（chunked的0\r\n\r\n / 固定长度的空结尾）并结束exchange。
+	 * 幂等：已结束时二次调用no-op（FND7-25——二次终结符会被客户端当作下一响应的前缀垃圾）。
+	 * 终结符经序化器按请求到达序写出。
+	 */
 	public void endStream() {
-		// 幂等（FND7-25）：终结符的字节写在close的detached CAS保护之外，二次endStream（Writer双重
-		// close等Closeable契约内合法场景，DbWeb的try/catch补收尾也是）会向keep-alive连接写出第二个
-		// chunked终结符（0\r\n\r\n），客户端把它当作下一响应的前缀垃圾，状态行解析失败且完全静默。
-		// 先CAS占位：已结束(2)直接返回；否则内联等价close(CLOSE_FINISH, cf)的cf非null路径
-		// （摘表→写终结符→写完closeInEventLoop），单次调用行为与原先完全一致。
 		if ((int)detachedHandle.getAndSet(this, 2) == 2)
 			return;
 		server.exchanges.remove(context.channel().id(), this);
-		// N①：终结符经序化器——本exchange未持笔（前面请求的响应未完成）时挂起，release按请求序冲刷；
+		// 终结符经序化器——本exchange未持笔（前面请求的响应未完成）时挂起，release按请求序冲刷；
 		// closeInEventLoop挂在桥接promise上，真实写出完成时兑现（非pipelining时同步直达，行为不变）。
 		writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null).addListener(__ -> closeInEventLoop());
 		releaseResponseOrder(false);
