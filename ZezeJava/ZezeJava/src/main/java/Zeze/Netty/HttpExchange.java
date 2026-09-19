@@ -733,9 +733,10 @@ public class HttpExchange {
 	}
 
 	// 响应写唯一入口（send/beginStream/sendStream/endStream/sendFile/100-continue/413/close(null)空写
-	// 共用；HttpResponseWithBodyStream同包直用）：决策与写出都在EventLoop上（单写者）。
-	// promise为null时新建（桥接挂起写，调用方listener/close(future)语义在真实写出时兑现）。
-	ChannelFuture writeResponse(@NotNull Object msg, boolean flush, @Nullable ChannelPromise promise) {
+	// 共用；private——HttpResponseWithBodyStream已构建于公开流式API之上，不再有同包特权通道）：
+	// 决策与写出都在EventLoop上（单写者）。promise为null时新建（桥接挂起写，调用方listener/close(future)
+	// 语义在真实写出时兑现）。
+	private ChannelFuture writeResponse(@NotNull Object msg, boolean flush, @Nullable ChannelPromise promise) {
 		if (promise == null)
 			promise = context.newPromise();
 		var finalPromise = promise;
@@ -1449,6 +1450,11 @@ public class HttpExchange {
 		if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH))
 			headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
 		return writeResponse(new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers), true, null); // N①
+	}
+
+	// 发送后data内容在回调前不能修改（所有权转移）
+	public @NotNull ChannelFuture sendStream(@NotNull ByteBuf data) {
+		return writeResponse(new DefaultHttpContent(data), true, null); // N①
 	}
 
 	// 发送后data内容在回调前不能修改

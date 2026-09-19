@@ -10,51 +10,51 @@ import io.netty.handler.codec.http.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 完全构建于HttpExchange公开流式API（beginStream/sendStream/endStream）之上的OutputStream适配层，
+// 供Prometheus exporter-common等需要OutputStream语义的库使用。无同包特权通道：响应经序化器按
+// pipelining到达序写出（FND8-46），close即endStream（exchange随之终结，幂等，框架auto-close为no-op）。
+// 异常中止路径（Content-Length无法兑现）仍直写ctx并关连接——连接随即失效，无错序可观察。
 public final class HttpResponseWithBodyStream {
 	private static final NoBodyStream noBodyStream = new NoBodyStream();
 
 	private HttpResponseWithBodyStream() {
 	}
 
-	// 响应经HttpExchange的序化器按pipelining到达序写出（FND8-46孪生：曾直写共享channel的ctx，
-	// 先到慢请求的响应会被/metrics响应插队）。异常中止路径（Content-Length无法兑现）仍直写并
-	// 关闭连接——连接随即失效，无错序可观察。
 	public static @NotNull OutputStream sendHeadersAndGetBody(@NotNull HttpExchange x,
 															  @NotNull HttpResponseStatus status,
 															  @Nullable Map<String, Object> headers,
 															  int contentLength) {
-		HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
+		var httpHeaders = new DefaultHttpHeaders();
 		if (headers != null) {
-			for (Map.Entry<String, Object> e : headers.entrySet()) {
-				response.headers().set(e.getKey(), e.getValue());
-			}
+			for (Map.Entry<String, Object> e : headers.entrySet())
+				httpHeaders.set(e.getKey(), e.getValue());
 		}
 
 		if (contentLength > 0) {
-			// 固定长度模式
-			response.headers().set(HttpHeaderNames.CONTENT_LENGTH, contentLength);
-			x.writeResponse(response, false, null); // 先发送header（不要立即flush）
+			// 固定长度模式：设了CONTENT_LENGTH则beginStream不会再设CHUNKED
+			httpHeaders.set(HttpHeaderNames.CONTENT_LENGTH, contentLength);
+			x.beginStream(status, httpHeaders);
 			return new FixedLengthBodyStream(x, contentLength);
 
 		}
 		if (contentLength == 0) {
-			// 分块编码模式
-			response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
-			x.writeResponse(response, false, null); // 发送header
+			// 分块编码模式：无CONTENT_LENGTH，beginStream自动设CHUNKED
+			x.beginStream(status, httpHeaders);
 			return new ChunkedBodyStream(x);
 
 		}
 		// contentLength <= -1
-		// 无响应体模式
-		response.headers().set(HttpHeaderNames.CONTENT_LENGTH, 0);
-		x.writeResponse(response, true, null); // 立即发送header并结束
+		// 无响应体模式：直接开始并终结（endStream幂等关闭exchange）
+		httpHeaders.set(HttpHeaderNames.CONTENT_LENGTH, 0);
+		x.beginStream(status, httpHeaders);
+		x.endStream();
 		return noBodyStream;
 	}
 
 	// ========================= 三种Body处理模式 =========================
 
 	/**
-	 * 固定长度模式（contentLength > 0）
+	 * 固定长度模式（contentLength > 0）：全部缓冲，close时一次性送出（上限即承诺的contentLength）
 	 */
 	private static class FixedLengthBodyStream extends OutputStream {
 		private final @NotNull HttpExchange x;
@@ -89,12 +89,13 @@ public final class HttpResponseWithBodyStream {
 				int expected = buffer.capacity();
 				int actual = buffer.readableBytes();
 				buffer.release(); // 异常路径也要释放pooled ByteBuf
-				// Content-Length已承诺但写入不足：不发LastHttpContent也要关闭连接，
+				// Content-Length已承诺但写入不足：不发终结符也要关闭连接，
 				// 否则客户端按Content-Length等剩余字节，悬挂到服务端空闲超时（默认60秒级）才被掐断。
 				x.context().writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
 				throw new IOException("Incomplete content: Expected " + expected + " bytes, actual " + actual);
 			}
-			x.writeResponse(new DefaultLastHttpContent(buffer), true, null);
+			x.sendStream(buffer); // 所有权转移；CL模式下endStream的空终结符不产生额外字节
+			x.endStream();
 		}
 
 		private void checkOpen() {
@@ -134,16 +135,14 @@ public final class HttpResponseWithBodyStream {
 		public void write(int b) throws IOException {
 			checkOpen();
 			awaitWritable();
-			ByteBuf chunk = Unpooled.wrappedBuffer(new byte[]{(byte)b});
-			x.writeResponse(new DefaultHttpContent(chunk), false, null);
+			x.sendStream(new byte[]{(byte)b});
 		}
 
 		@Override
 		public void write(byte @NotNull [] b, int off, int len) throws IOException {
 			checkOpen();
 			awaitWritable();
-			ByteBuf chunk = Unpooled.copiedBuffer(b, off, len);
-			x.writeResponse(new DefaultHttpContent(chunk), false, null);
+			x.sendStream(b, off, len);
 		}
 
 		@Override
@@ -151,7 +150,7 @@ public final class HttpResponseWithBodyStream {
 			if (closed)
 				return;
 			closed = true;
-			x.writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
+			x.endStream(); // chunked终结符（0\r\n\r\n）+exchange终结（幂等）
 		}
 
 		// 背压：outbound缓冲越过水位（writePendingLimit，慢客户端）时等待当前积压写出再继续。
@@ -176,7 +175,7 @@ public final class HttpResponseWithBodyStream {
 	}
 
 	/**
-	 * 无响应体模式（contentLength <= -1）
+	 * 无响应体模式（contentLength <= -1）：响应已在sendHeadersAndGetBody内完成
 	 */
 	private static class NoBodyStream extends OutputStream {
 		@Override

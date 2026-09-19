@@ -116,8 +116,8 @@ public class TestBackpressureSlowClient {
 			try {
 				var out = HttpResponseWithBodyStream.sendHeadersAndGetBody(x,
 						HttpResponseStatus.OK, Map.of("Content-Type", "application/octet-stream"), 0);
-				var block = new byte[chunkSize];
 				for (int i = 0; i < chunks; i++) {
+					var block = new byte[chunkSize]; // 每块新数组：sendStream包装不拷贝，回调前不得修改
 					java.util.Arrays.fill(block, (byte)i);
 					out.write(block, 0, chunkSize); // 越水位时awaitWritable阻塞等待
 				}
