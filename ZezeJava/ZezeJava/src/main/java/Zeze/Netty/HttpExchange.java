@@ -15,7 +15,9 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Pattern;
+
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
@@ -77,6 +79,7 @@ import io.netty.util.AsciiString;
 import io.netty.util.AttributeKey;
 import io.netty.util.AttributeMap;
 import io.netty.util.ReferenceCountUtil;
+import io.netty.util.collection.IntObjectHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.thymeleaf.context.Context;
@@ -113,7 +116,7 @@ public class HttpExchange {
 	protected @Nullable List<Cookie> cookies;
 	protected @Nullable HttpSession.CookieSession cookieSession;
 	protected @Nullable String path;
-	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
+	protected volatile int detached; // 0:not detached; 1:detached; 2:detached and closed
 	protected boolean willCloseConnection; // true表示close时会关闭连接
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	protected boolean isWebSocketTextContent;
@@ -419,8 +422,8 @@ public class HttpExchange {
 			}
 			if (handler.isWebSocketMode() && context.pipeline().get(WebSocketServerProtocolHandler.class) == null) {
 				context.pipeline().addLast(new WebSocketServerProtocolHandler(WebSocketServerProtocolConfig.newBuilder()
-						.websocketPath(path).decoderConfig(WebSocketDecoderConfig.newBuilder().withUTF8Validator(false)
-								.maxFramePayloadLength(handler.MaxContentLength).build()).build()));
+					.websocketPath(path).decoderConfig(WebSocketDecoderConfig.newBuilder().withUTF8Validator(false)
+						.maxFramePayloadLength(handler.MaxContentLength).build()).build()));
 				// onOpen不能在握手启动前派发:此刻101应答未写出、HttpResponseEncoder未替换为WebSocket帧
 				// 编码器,onOpen内sendWebSocket的帧写入HTTP出站编码路径,写失败(unsupported message
 				// type),Direct模式下onOpen内联执行时首条消息确定性静默丢失。改在握手完成后的
@@ -433,7 +436,7 @@ public class HttpExchange {
 						if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
 							//noinspection ConstantConditions
 							fireWebSocketNotify("fireWebSocketOpen",
-									() -> handler.WebSocketHandle.onOpen(HttpExchange.this));
+								() -> handler.WebSocketHandle.onOpen(HttpExchange.this));
 						}
 						super.userEventTriggered(ctx, evt);
 					}
@@ -457,12 +460,12 @@ public class HttpExchange {
 				if (HttpUtil.is100ContinueExpected(req)) {
 					if (!handler.isStreamMode() && HttpUtil.getContentLength(req, 0) > handler.MaxContentLength) {
 						closeConnectionOnFlush(writeResponse(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-								HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
-								headersFactory, trailersFactory), true, null)); // N①
+							HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
+							headersFactory, trailersFactory), true, null)); // N①
 						return;
 					}
 					writeResponse(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE,
-							Unpooled.EMPTY_BUFFER, headersFactory, trailersFactory), true, context.voidPromise()); // N①
+						Unpooled.EMPTY_BUFFER, headersFactory, trailersFactory), true, context.voidPromise()); // N①
 				}
 				return;
 			}
@@ -471,7 +474,7 @@ public class HttpExchange {
 			return;
 		} else if (!(msg instanceof HttpContent)) {
 			Netty.logger.error("unknown message type = {} from {}",
-					(msg != null ? msg.getClass() : null), channel.remoteAddress());
+				(msg != null ? msg.getClass() : null), channel.remoteAddress());
 			closeConnectionNow();
 			return;
 		} else if (request == null || handler == null) // 缺失上文的msg,可能很罕见,忽略吧
@@ -489,20 +492,20 @@ public class HttpExchange {
 				var maxUploadSize = server.getMaxUploadSize();
 				if (streamContentTotal > maxUploadSize) {
 					Netty.logger.error("upload size = {} > {} from {}", streamContentTotal, maxUploadSize,
-							channel.remoteAddress());
+						channel.remoteAddress());
 					closeConnectionOnFlush(writeResponse(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-							HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
-							headersFactory, trailersFactory), true, null)); // N①
+						HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
+						headersFactory, trailersFactory), true, null)); // N①
 					return;
 				}
 				fireStreamContentHandle(c);
 			} else {
 				if (content.readableBytes() + n > handler.MaxContentLength) {
 					Netty.logger.error("content size = {} + {} > {} from {}", content.readableBytes(), n,
-							handler.MaxContentLength, channel.remoteAddress());
+						handler.MaxContentLength, channel.remoteAddress());
 					closeConnectionOnFlush(writeResponse(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-							HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
-							headersFactory, trailersFactory), true, null)); // N①
+						HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
+						headersFactory, trailersFactory), true, null)); // N①
 					return;
 				}
 				addContent(b.retain());
@@ -540,14 +543,14 @@ public class HttpExchange {
 				TaskSpec.ofProcedure(p).call();
 			else
 				TaskSpec.ofProcedure(p)
-						.dispatchMode(handler.Mode).executeOneByOne(context.channel().id(), server.task11Executor);
+					.dispatchMode(handler.Mode).executeOneByOne(context.channel().id(), server.task11Executor);
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]))
-					.name("fireBeginStream").call();
+				.name("fireBeginStream").call();
 		} else {
 			TaskSpec.ofAction(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]))
-					.name("fireBeginStream").dispatchMode(handler.Mode)
-					.executeOneByOne(context.channel().id(), server.task11Executor);
+				.name("fireBeginStream").dispatchMode(handler.Mode)
+				.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
 
@@ -568,26 +571,26 @@ public class HttpExchange {
 				// 补偿release,否则retain的池化content在关停窗口静默泄漏;cancel与执行路径互斥,不会双释放。
 				c.retain();
 				TaskSpec.ofFunc(() -> {
-					try {
-						return p.call();
-					} finally {
-						c.release();
-					}
-				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(c::release)
-						.executeOneByOne(context.channel().id(), server.task11Executor);
+						try {
+							return p.call();
+						} finally {
+							c.release();
+						}
+					}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(c::release)
+					.executeOneByOne(context.channel().id(), server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(() -> handle.onStreamContent(this, c)).name("fireStreamContentHandle").call();
 		} else {
 			c.retain();
 			TaskSpec.ofAction(() -> {
-				try {
-					handle.onStreamContent(this, c);
-				} finally {
-					c.release();
-				}
-			}).name("fireStreamContentHandle").dispatchMode(handler.Mode).onCancel(c::release)
-					.executeOneByOne(context.channel().id(), server.task11Executor);
+					try {
+						handle.onStreamContent(this, c);
+					} finally {
+						c.release();
+					}
+				}).name("fireStreamContentHandle").dispatchMode(handler.Mode).onCancel(c::release)
+				.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
 
@@ -597,46 +600,53 @@ public class HttpExchange {
 	}
 
 	/// //////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// pipelining响应序化（FND7轮N①草案终局处置）：HTTP/1.1 pipelining要求响应按请求到达序写出。
-	// 响应写可能从任意线程发出（派发任务返回后的异步完成、Direct内联、用户线程），到达channel的
-	// 提交序即字节序——后到的请求可先写出响应，对pipelining客户端是整条连接的静默数据错乱
-	// （每个请求都拿到错误应答）。序化器per-channel（channel属性），以请求到达序（channelRead创建
-	// exchange时登记）排队：exchange首次响应写占位（队头且无人持笔→立即写出，否则挂起）；
-	// close（detached CAS→2）让位并按序推进队头的挂起写。非pipelining（单在途请求）时exchange
-	// 即队头，写直达，行为与原先完全一致；直接构造、未经channelRead登记的exchange不参与序化。
-	// 已知豁免（不经过序化器，维持现状）：WebSocket升级101与帧（升级请求实际不会被pipelining，
-	// 见channelRead的WebSocket分支）、HttpServer自身的400/503错误直写（随即关闭连接）。
-	// HttpResponseWithBodyStream（Prometheus端点）曾以"独立ctx流"为由豁免，实际写入的是共享
-	// channel的ctx（FND8-46孪生），已改经writeResponse按序（异常中止路径仍直写并关连接）。
+	// pipelining响应序化：HTTP/1.1要求响应按请求到达序写出，而响应写可能从任意线程、任意时机发出
+	//（异步完成、Direct内联、用户线程）——后到请求的响应先上线，对pipelining客户端是整条连接的
+	// 静默数据错乱。
+	// 单写者：序化状态只由channel的EventLoop读写，非EL调用任务跳转（Netty的写本也要跳EL，成本
+	// 持平；同线程提交序即任务序，顺序不变）。游标：登记时（channelRead，EL，先于任何响应写）分配
+	// 递增orderId，writingOrderId即"笔"——orderId等于它直写；大于它挂起（promise桥接，真实写出时
+	// 兑现）；小于它是已出队的迟到写：失败并释放（终结符已写出，放行会污染后继响应的帧）。
+	// close/endStream标记entry完成；持笔者冲刷挂起（末尾单次flush）并链式出队到下一个存活entry，
+	// 其后续写直写。FINISH族挂起写按序送出（endStream终结符也在其中），FORCE族（连接将亡）丢弃。
+	// 非pipelining（单在途请求）时exchange即持笔者，写直达；直接构造、未经channelRead登记的
+	// exchange不参与序化。
+	// 已知豁免（不经序化器）：WebSocket升级101与帧（升级请求不会被pipelining）、HttpServer自身的
+	// 400/503直写（随即关闭连接）、HttpResponseWithBodyStream的异常中止路径（连接将亡）。
 	static final AttributeKey<ResponseSequencer> responseOrderKey = AttributeKey.valueOf("ZezeHttpResponseOrder");
 	// 单exchange挂起响应写上限：防pipelining滥用驻留内存（每挂起写持有一个响应消息）。
 	private static final int MaxPendingResponseWrites = 256;
 	// 每channel在途（已登记未出队）请求序深度上限：防深度pipelining滥用，超出按滥用关闭连接。
 	private static final int MaxResponseOrderDepth = 128;
 
+	// 序化器per-channel（channel属性），全部字段仅EventLoop线程访问（单写者）。
 	static final class ResponseSequencer {
-		// 请求到达序；含已close但仍有挂起写未冲刷的exchange（冲刷完由promote出队）。
-		final ArrayDeque<HttpExchange> order = new ArrayDeque<>();
-		HttpExchange writing; // 当前持笔（独占响应写）的exchange：最早的未让位者
+		int nextOrderId = 1; // 下一个到达序（registerResponseOrder分配）
+		int writingOrderId = 1; // 当前持笔orderId：此前的已全部写出出队
+		final IntObjectHashMap<OrderEntry> entries = new IntObjectHashMap<>(); // 在途entry
 	}
 
-	private static final class DeferredWrite {
-		final Object msg;
-		final ChannelPromise promise; // 调用方给定的promise（可为voidPromise），提交时原样传递
-		final boolean flush;
+	// 在途exchange的序化条目（仅EventLoop线程访问）。
+	static final class OrderEntry {
+		final HttpExchange x;
+		ArrayDeque<DeferredWrite> pending; // 未轮到时的挂起响应写，懒建
+		boolean finished; // exchange已close/endStream（FINISH族挂起写仍按序送出）
 
-		DeferredWrite(Object msg, ChannelPromise promise, boolean flush) {
-			this.msg = msg;
-			this.promise = promise;
-			this.flush = flush;
+		OrderEntry(HttpExchange x) {
+			this.x = x;
 		}
 	}
 
-	// 响应序化状态：sequencer为channel级，registerResponseOrder（EventLoop）时缓存一次；
-	// 其余三个字段均由sequencer监视器保护。responseSequencer为volatile：写路径来自任意线程。
-	volatile @Nullable ResponseSequencer responseSequencer;
-	private @Nullable ArrayDeque<DeferredWrite> responsePending; // 占位前的挂起响应写
-	private boolean responseInOrder = true; // 仍登记在sequencer.order中（出队回收后置false）
+	/**
+	 * @param promise  调用方给定的promise（可为voidPromise），提交时原样传递
+	 * */
+	private record DeferredWrite(Object msg, ChannelPromise promise, boolean flush) {
+	}
+
+	// 响应序化状态：仅EventLoop线程访问，登记（先于任何响应写）时赋值。
+	@Nullable ResponseSequencer responseSequencer;
+	int responseOrderId; // 登记分配的到达序；未登记（直接构造）为0且responseSequencer为null
+	private @Nullable OrderEntry responseEntry; // 本exchange的序化条目（出队时清引用）
 
 	// HttpServer.channelRead收到HttpRequest创建本exchange后登记（EventLoop线程，先于任何响应写）。
 	void registerResponseOrder() {
@@ -647,53 +657,99 @@ public class HttpExchange {
 			var prev = ch.attr(responseOrderKey).setIfAbsent(created);
 			seq = prev != null ? prev : created;
 		}
-		boolean overflow = false;
-		synchronized (seq) {
-			if (seq.order.size() < MaxResponseOrderDepth)
-				seq.order.addLast(this);
-			else
-				overflow = true; // 深度pipelining滥用：不登记（后续写直发），锁外关闭连接
-		}
-		if (overflow) {
+		if (seq.entries.size() >= MaxResponseOrderDepth) { // 深度pipelining滥用：不登记（后续写不序化直发），关连接
 			Netty.logger.error("too many in-flight pipelined exchanges: {} from {}, close connection",
-					MaxResponseOrderDepth, ch.remoteAddress());
+				MaxResponseOrderDepth, ch.remoteAddress());
 			closeConnectionNow();
-		} else
-			responseSequencer = seq;
+			return;
+		}
+		responseOrderId = seq.nextOrderId++;
+		responseSequencer = seq;
+		responseEntry = new OrderEntry(this);
+		seq.entries.put(responseOrderId, responseEntry);
 	}
 
-	// 响应写唯一入口（send/beginStream/sendStream/endStream/sendFile/100-continue/413共用；
-	// HttpResponseWithBodyStream同包直用——/metrics端点与普通响应共享channel，同样必须按序）：
-	// 已持笔→直达；未持笔→挂起并尝试占位（队头才可）。promise为null时新建（桥接挂起写，调用方的
-	// listener/close(future)语义在真实写出时兑现）。
+	// janitor：关闭channel上全部在途exchange（entries即权威在途列表）。四个清理点原先只关exchanges
+	// 表内最新一个，pipelining下被后续请求覆盖出表的前序exchange无人close（泄漏retain的request、
+	// 累积content、挂起响应写）。entries为EL状态：非EL调用跳EL执行。返回是否有exchange被关闭
+	//（仅EL内联调用有意义，异步路径恒false）。
+	static boolean closeInFlightExchanges(@NotNull Channel ch, int method) {
+		var seq = ch.attr(responseOrderKey).get();
+		if (seq == null)
+			return false;
+		var loop = ch.eventLoop();
+		if (loop.inEventLoop())
+			return closeInFlightExchanges0(seq, method);
+		try {
+			loop.execute(() -> closeInFlightExchanges0(seq, method));
+		} catch (RejectedExecutionException ignored) {
+			// EventLoop已关停（Netty整体关闭中）：channel必已关闭，无需清理
+		}
+		return false;
+	}
+
+	// 仅channel EventLoop线程调用。先快照再逐个close：close的release会修改entries。
+	private static boolean closeInFlightExchanges0(@NotNull ResponseSequencer seq, int method) {
+		if (seq.entries.isEmpty())
+			return false;
+		var inFlight = seq.entries.values().toArray(new OrderEntry[0]);
+		for (var e : inFlight)
+			e.x.close(method, null);
+		return true;
+	}
+
+	// 响应写唯一入口（send/beginStream/sendStream/endStream/sendFile/100-continue/413/close(null)空写
+	// 共用；HttpResponseWithBodyStream同包直用）：决策与写出都在EventLoop上（单写者）。
+	// promise为null时新建（桥接挂起写，调用方listener/close(future)语义在真实写出时兑现）。
 	ChannelFuture writeResponse(@NotNull Object msg, boolean flush, @Nullable ChannelPromise promise) {
-		var seq = responseSequencer;
 		if (promise == null)
 			promise = context.newPromise();
-		if (seq == null) // 未登记（直接构造的exchange）：不序化，保持原行为
-			return submit(msg, promise, flush);
-		synchronized (seq) {
-			if (seq.writing == this) // 已持笔：本exchange的写直达，同exchange内部顺序由提交序保证
-				return submit(msg, promise, flush);
-			if (!responseInOrder) { // 已出队回收后的迟到写：直发并告警（与旧实现等价，不吞不拦）
-				Netty.logger.warn("late response write after exchange finished: {}", context.channel().remoteAddress());
-				return submit(msg, promise, flush);
+		var finalPromise = promise;
+		//noinspection resource
+		var loop = context.channel().eventLoop();
+		if (loop.inEventLoop())
+			writeResponse0(msg, flush, finalPromise);
+		else {
+			try {
+				loop.execute(() -> writeResponse0(msg, flush, finalPromise));
+			} catch (RejectedExecutionException e) { // EventLoop已关停：连接必已失效
+				finalPromise.tryFailure(e);
+				ReferenceCountUtil.release(msg);
 			}
-			var pending = responsePending != null ? responsePending : (responsePending = new ArrayDeque<>());
-			pending.addLast(new DeferredWrite(msg, promise, flush));
-			if (pending.size() >= MaxPendingResponseWrites) { // 挂起上限：按滥用关闭连接（可重入锁内安全）
-				Netty.logger.error("too many pending response writes: {} from {}, close connection",
-						pending.size(), context.channel().remoteAddress());
-				closeConnectionNow(); // FORCE族释放会丢弃全部挂起写（含刚加入的这条）
-				return promise;
-			}
-			if (seq.writing == null)
-				promoteLocked(seq);
 		}
-		return promise;
+		return finalPromise;
 	}
 
-	// 仅在持有seq监视器时调用：写出（或提交）一条消息。同步异常补失败并释放，防挂起promise与泄漏。
+	// 仅EventLoop线程调用：按orderId与writingOrderId的关系直写/挂起/拒绝迟到写。
+	@SuppressWarnings("ConstantConditions")
+	private void writeResponse0(@NotNull Object msg, boolean flush, @NotNull ChannelPromise promise) {
+		var seq = responseSequencer;
+		if (seq == null) { // 未登记（直接构造的exchange）：不序化，保持原行为
+			submit(msg, promise, flush);
+			return;
+		}
+		if (responseOrderId < seq.writingOrderId) { // 已出队的迟到写：失败并释放。放行的字节会插进
+			// 后继响应的帧中间；合法调用不会到达（close/endStream的CAS都先于各自最后的写）
+			Netty.logger.warn("late response write after exchange finished: {}", context.channel().remoteAddress());
+			promise.tryFailure(new ClosedChannelException());
+			ReferenceCountUtil.release(msg);
+			return;
+		}
+		if (responseOrderId > seq.writingOrderId) { // 未轮到：挂起（close后未出队的写也在此列，轮到时冲刷）
+			var e = responseEntry;
+			var pending = e.pending != null ? e.pending : (e.pending = new ArrayDeque<>());
+			pending.addLast(new DeferredWrite(msg, promise, flush));
+			if (pending.size() >= MaxPendingResponseWrites) { // 挂起上限：按滥用关闭连接
+				Netty.logger.error("too many pending response writes: {} from {}, close connection",
+					pending.size(), context.channel().remoteAddress());
+				closeConnectionNow(); // FORCE族丢弃全部挂起写（含刚加入的这条，promise随之失败）
+			}
+			return;
+		}
+		submit(msg, promise, flush); // 持笔：直达，同exchange内部顺序由（同线程）提交序保证
+	}
+
+	// 仅channel EventLoop线程调用：写出（或提交）一条消息。同步异常补失败并释放，防挂起promise与泄漏。
 	private ChannelFuture submit(@NotNull Object msg, @NotNull ChannelPromise promise, boolean flush) {
 		try {
 			return flush ? context.writeAndFlush(msg, promise) : context.write(msg, promise);
@@ -704,75 +760,72 @@ public class HttpExchange {
 		}
 	}
 
-	// 仅在持有seq监视器且seq.writing==null时调用：按请求到达序推进队头——占位、冲刷挂起写、
-	// 让位已close者（链式推进到下一个有挂起写的队头）。
-	private static void promoteLocked(@NotNull ResponseSequencer seq) {
-		while (seq.writing == null) {
-			var head = seq.order.peekFirst();
-			if (head == null)
-				return;
-			var pending = head.responsePending;
-			if (pending == null || pending.isEmpty()) {
-				if (head.detached == 2) { // 已结束且无挂起写：出队继续推进
-					seq.order.pollFirst();
-					head.responseInOrder = false;
-					continue;
-				}
-				return; // 存活的队头尚未首写：等它写时占位（writeResponse的promote分支）
-			}
-			seq.writing = head;
-			while (!pending.isEmpty()) {
-				var w = pending.pollFirst();
-				head.submit(w.msg, w.promise, w.flush);
-			}
-			if (head.detached == 2) { // 挂起写全部冲刷完毕且已close：让位并链式推进
-				seq.writing = null;
-				seq.order.pollFirst();
-				head.responseInOrder = false;
-				continue;
-			}
-		}
-	}
-
-	// close（detached CAS→2成功方）时调用：FINISH族（CLOSE_FINISH/CLOSE_ON_FLUSH）保留挂起写
-	// 按序冲刷（响应仍应完整送出，endStream的终结符也在其中）；FORCE族（连接将亡）丢弃挂起写
-	// （失败promise并释放消息）。让位后按序推进下一个有挂起写的队头。
+	// close（CAS成功方）或endStream时调用：标记完成；持笔者冲刷挂起并链式让位。FINISH族保留挂起写
+	// 按序冲刷，FORCE族丢弃。非EL调用跳EL（排在本exchange先前的写任务之后，挂起写先于让位被看到）。
 	private void releaseResponseOrder(boolean dropPending) {
-		var seq = responseSequencer;
-		if (seq == null)
+		//noinspection resource
+		var loop = context.channel().eventLoop();
+		if (loop.inEventLoop()) {
+			releaseResponseOrder0(dropPending);
 			return;
-		synchronized (seq) {
-			if (dropPending)
-				dropPendingLocked();
-			if (seq.writing == this) {
-				if (responsePending != null && !responsePending.isEmpty()) {
-					var pending = responsePending; // 先摘引用再冲刷：异常路径不再回头操作
-					responsePending = null;
-					while (!pending.isEmpty()) {
-						var w = pending.pollFirst();
-						submit(w.msg, w.promise, w.flush);
-					}
-				}
-				seq.writing = null;
-			}
-			if (detached == 2 && (responsePending == null || responsePending.isEmpty())) {
-				responseInOrder = false;
-				seq.order.remove(this);
-			}
-			if (seq.writing == null)
-				promoteLocked(seq);
+		}
+		try {
+			loop.execute(() -> releaseResponseOrder0(dropPending));
+		} catch (RejectedExecutionException ignored) {
+			// EventLoop已关停：连接必已关闭，挂起写随channel终结
 		}
 	}
 
-	// 仅在持有seq监视器时调用
-	private void dropPendingLocked() {
-		if (responsePending == null)
+	// 仅EventLoop线程调用
+	private void releaseResponseOrder0(boolean dropPending) {
+		var seq = responseSequencer;
+		var e = responseEntry;
+		if (seq == null || e == null)
 			return;
-		while (!responsePending.isEmpty()) {
-			var w = responsePending.pollFirst();
-			w.promise.tryFailure(new ClosedChannelException());
-			ReferenceCountUtil.release(w.msg);
+		if (dropPending) {
+			var pending = e.pending;
+			if (pending != null) {
+				e.pending = null;
+				while (!pending.isEmpty()) {
+					var w = pending.pollFirst();
+					w.promise.tryFailure(new ClosedChannelException());
+					ReferenceCountUtil.release(w.msg);
+				}
+			}
 		}
+		e.finished = true;
+		if (responseOrderId == seq.writingOrderId) // 持笔让位：冲刷挂起并链式推进
+			advance(seq); // 非持笔者无需推进，由持笔方的release按序推进到它
+	}
+
+	// 仅EventLoop线程、持笔者让位时调用：冲刷头部挂起写（末尾单次flush合并），已完成的entry出队
+	// 并链式推进，遇存活entry停（其后续写直写）。
+	private static void advance(@NotNull ResponseSequencer seq) {
+		for (; ; ) {
+			var e = seq.entries.get(seq.writingOrderId);
+			if (e == null)
+				return; // 在途全部出队
+			drainPending(e);
+			if (!e.finished)
+				return; // 存活的头部entry接笔：等它后续写/让位
+			seq.entries.remove(seq.writingOrderId);
+			e.x.responseEntry = null;
+			seq.writingOrderId++;
+		}
+	}
+
+	// 仅EventLoop线程调用：冲刷entry全部挂起写，末尾单次flush。
+	private static void drainPending(@NotNull OrderEntry e) {
+		var pending = e.pending;
+		if (pending == null || pending.isEmpty())
+			return;
+		e.pending = null;
+		var x = e.x;
+		while (!pending.isEmpty()) {
+			var w = pending.pollFirst();
+			x.submit(w.msg, w.promise, false);
+		}
+		x.context.flush();
 	}
 
 	protected void invokeEndStream() throws Exception {
@@ -835,21 +888,21 @@ public class HttpExchange {
 				}
 			} else {
 				TaskSpec.ofFunc(() -> {
-					try {
-						return p.call();
-					} finally {
-						if (detached == 0)
-							close(null);
-					}
-				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(cancel)
-						.executeOneByOne(context.channel().id(), server.task11Executor);
+						try {
+							return p.call();
+						} finally {
+							if (detached == 0)
+								close(null);
+						}
+					}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(cancel)
+					.executeOneByOne(context.channel().id(), server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(this::invokeEndStream).name("fireEndStreamHandle").call();
 		} else {
 			TaskSpec.ofAction(this::invokeEndStream)
-					.name("fireEndStreamHandle").dispatchMode(handler.Mode).onCancel(cancel)
-					.executeOneByOne(context.channel().id(), server.task11Executor);
+				.name("fireEndStreamHandle").dispatchMode(handler.Mode).onCancel(cancel)
+				.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
 
@@ -868,26 +921,26 @@ public class HttpExchange {
 				// onCancel:同fireStreamContentHandle,shutdown清扫丢弃时补偿release retain的池化frame。
 				frame.retain();
 				TaskSpec.ofFunc(() -> {
-					try {
-						return p.call();
-					} finally {
-						frame.release();
-					}
-				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(frame::release)
-						.executeOneByOne(context.channel().id(), server.task11Executor);
+						try {
+							return p.call();
+						} finally {
+							frame.release();
+						}
+					}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(frame::release)
+					.executeOneByOne(context.channel().id(), server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(() -> fireWebSocket0(frame)).name("fireWebSocket").call();
 		} else {
 			frame.retain();
 			TaskSpec.ofAction(() -> {
-				try {
-					fireWebSocket0(frame);
-				} finally {
-					frame.release();
-				}
-			}).name("fireWebSocket").dispatchMode(handler.Mode).onCancel(frame::release)
-					.executeOneByOne(context.channel().id(), server.task11Executor);
+					try {
+						fireWebSocket0(frame);
+					} finally {
+						frame.release();
+					}
+				}).name("fireWebSocket").dispatchMode(handler.Mode).onCancel(frame::release)
+				.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
 
@@ -906,12 +959,12 @@ public class HttpExchange {
 				TaskSpec.ofProcedure(p).call();
 			else
 				TaskSpec.ofProcedure(p)
-						.dispatchMode(handler.Mode).executeOneByOne(context.channel().id(), server.task11Executor);
+					.dispatchMode(handler.Mode).executeOneByOne(context.channel().id(), server.task11Executor);
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(notify).name(name).call();
 		} else {
 			TaskSpec.ofAction(notify).name(name).dispatchMode(handler.Mode)
-					.executeOneByOne(context.channel().id(), server.task11Executor);
+				.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
 
@@ -921,11 +974,12 @@ public class HttpExchange {
 	// 返回false表示已超限并关闭连接,调用方不应再继续分发本帧。
 	protected boolean checkWebSocketContentSize(@NotNull WebSocketFrame frame) {
 		var n = frame.content().readableBytes();
+		//noinspection DataFlowIssue
 		if (content.readableBytes() + n > handler.MaxContentLength) {
 			Netty.logger.error("websocket content size = {} + {} > {} from {}",
-					content.readableBytes(), n, handler.MaxContentLength, context.channel().remoteAddress());
+				content.readableBytes(), n, handler.MaxContentLength, context.channel().remoteAddress());
 			closeConnectionOnFlush(context.writeAndFlush(
-					new CloseWebSocketFrame(WebSocketCloseStatus.MESSAGE_TOO_BIG, "message too big")));
+				new CloseWebSocketFrame(WebSocketCloseStatus.MESSAGE_TOO_BIG, "message too big")));
 			return false;
 		}
 		return true;
@@ -957,7 +1011,7 @@ public class HttpExchange {
 		case PongWebSocketFrame ignored -> handler.WebSocketHandle.onPong(this, frame.content());
 		default -> {
 			Netty.logger.error("unknown websocket message type = {} from {}",
-					frame.getClass().getName(), context.channel().remoteAddress());
+				frame.getClass().getName(), context.channel().remoteAddress());
 			closeConnectionNow();
 		}
 		}
@@ -1018,7 +1072,7 @@ public class HttpExchange {
 					// 改走与fireWebSocket相同的Mode派发,与在途onContent派发任务按channel.id串行。
 					//noinspection ConstantConditions
 					fireWebSocketNotify("fireWebSocketClose", () -> handler.WebSocketHandle.onClose(
-							this, WebSocketCloseStatus.ABNORMAL_CLOSURE.code(), ""));
+						this, WebSocketCloseStatus.ABNORMAL_CLOSURE.code(), ""));
 				} else
 					fireEndStreamHandle();
 			} catch (Exception e) {
@@ -1047,7 +1101,8 @@ public class HttpExchange {
 		}
 		if (method <= CLOSE_ON_FLUSH) { // CLOSE_FINISH | CLOSE_ON_FLUSH
 			if (cf == null)
-				cf = context.writeAndFlush(Unpooled.EMPTY_BUFFER);
+				// 经序化器：未持笔时挂起，避免空写flush先于挂起响应触发closeInEventLoop（ON_FLUSH族会提前关连接）
+				cf = writeResponse(Unpooled.EMPTY_BUFFER, true, null);
 			cf.addListener(__ -> closeInEventLoop());
 		} else {
 			var eventLoop = ch.eventLoop();
@@ -1089,8 +1144,8 @@ public class HttpExchange {
 			content = Unpooled.EMPTY_BUFFER;
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, headersFactory, trailersFactory);
 		var headers = HttpServer.setDate(res.headers())
-				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-				.set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
+			.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+			.set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
 		if (contentType != null)
 			headers.set(HttpHeaderNames.CONTENT_TYPE, contentType);
 		if (resHeaders != null) {
@@ -1103,7 +1158,7 @@ public class HttpExchange {
 	public @NotNull ChannelFuture send(@NotNull HttpResponseStatus status, @Nullable String contentType,
 									   @Nullable String content) {
 		return send(status, contentType, content == null || content.isEmpty() ? Unpooled.EMPTY_BUFFER
-				: Unpooled.wrappedBuffer(content.getBytes(HttpServer.defaultCharset)));
+			: Unpooled.wrappedBuffer(content.getBytes(HttpServer.defaultCharset)));
 	}
 
 	public @NotNull ChannelFuture sendPlainText(@NotNull HttpResponseStatus status, @Nullable String text) {
@@ -1112,7 +1167,7 @@ public class HttpExchange {
 
 	public @NotNull ChannelFuture sendPlainText(@NotNull HttpResponseStatus status, byte @Nullable [] text) {
 		return send(status, "text/plain; charset=utf-8", text == null || text.length == 0 ? Unpooled.EMPTY_BUFFER
-				: Unpooled.wrappedBuffer(text));
+			: Unpooled.wrappedBuffer(text));
 	}
 
 	public @NotNull ChannelFuture sendHtml(@NotNull HttpResponseStatus status, @Nullable String html) {
@@ -1125,7 +1180,7 @@ public class HttpExchange {
 
 	public @NotNull ChannelFuture sendJson(@NotNull HttpResponseStatus status, byte @Nullable [] json) {
 		return send(status, "application/json; charset=utf-8", json == null || json.length == 0 ? Unpooled.EMPTY_BUFFER
-				: Unpooled.wrappedBuffer(json));
+			: Unpooled.wrappedBuffer(json));
 	}
 
 	public @NotNull ChannelFuture sendXml(@NotNull HttpResponseStatus status, @Nullable String xml) {
@@ -1191,10 +1246,10 @@ public class HttpExchange {
 		var ifModifiedSince = req.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
 		if (ifModifiedSince != null && !ifModifiedSince.isEmpty() && lastModified == HttpServer.parseDate(ifModifiedSince)) {
 			var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED, // 文件未改变
-					Unpooled.EMPTY_BUFFER, headersFactory, trailersFactory);
+				Unpooled.EMPTY_BUFFER, headersFactory, trailersFactory);
 			HttpServer.setDate(res.headers())
-					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-					.set(HttpHeaderNames.CONTENT_LENGTH, 0);
+				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+				.set(HttpHeaderNames.CONTENT_LENGTH, 0);
 			close(writeResponse(res, true, null)); // 经序化器：保活响应直写会在pipelining下先于前序响应上线
 			return;
 		}
@@ -1225,12 +1280,12 @@ public class HttpExchange {
 			}
 			if (!satisfiable) { // RFC要求416 + Content-Range: bytes */fsize（客户端据此检测远端文件截断）
 				var res416 = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-						HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, Unpooled.EMPTY_BUFFER,
-						headersFactory, trailersFactory);
+					HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, Unpooled.EMPTY_BUFFER,
+					headersFactory, trailersFactory);
 				HttpServer.setDate(res416.headers())
-						.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-						.set(HttpHeaderNames.CONTENT_LENGTH, 0)
-						.set(HttpHeaderNames.CONTENT_RANGE, "bytes */" + fsize);
+					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+					.set(HttpHeaderNames.CONTENT_LENGTH, 0)
+					.set(HttpHeaderNames.CONTENT_RANGE, "bytes */" + fsize);
 				fc.close();
 				close(writeResponse(res416, true, null)); // 经序化器，同304分支
 				return;
@@ -1240,15 +1295,15 @@ public class HttpExchange {
 		var contentLen = partial ? to - from + 1 : fsize;
 
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1,
-				partial ? HttpResponseStatus.PARTIAL_CONTENT : HttpResponseStatus.OK, headersFactory);
+			partial ? HttpResponseStatus.PARTIAL_CONTENT : HttpResponseStatus.OK, headersFactory);
 		var headers = HttpServer.setDate(res.headers())
-				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-				.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')
-				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
-				.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
-				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
-				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + fileCacheSeconds)
-				.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
+			.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+			.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')
+			.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
+			.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
+			.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
+			.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + fileCacheSeconds)
+			.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
 		if (partial) // Content-Range只属于206/416，200不带
 			headers.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + to + '/' + fsize);
 		writeResponse(res, false, context.voidPromise()); // N①：响应头经序化器（挂起时FileRegion同队保序）
@@ -1287,8 +1342,8 @@ public class HttpExchange {
 		int fileLimit = 10000; // 限制最多列出多少目录+文件,避免开销太大
 		var fn = htmlEscape(file.getName());
 		var sb = new StringBuilder("<html><head><title>Index of ").append(fn)
-				.append("/</title></head><body><h1>Index of ").append(fn)
-				.append("/</h1><hr><pre><a href=\"../\">../</a>\n");
+			.append("/</title></head><body><h1>Index of ").append(fn)
+			.append("/</h1><hr><pre><a href=\"../\">../</a>\n");
 		var fs = file.listFiles();
 		if (fs != null) {
 			for (var f : fs) {
@@ -1300,9 +1355,9 @@ public class HttpExchange {
 					fn = htmlEscape(f.getName());
 					var date = new Date(f.lastModified());
 					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %18s <a href=\"%s/\">%s/</a>\n",
-							date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
-							date.getHours(), date.getMinutes(), date.getSeconds(),
-							"", fn, fn));
+						date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
+						date.getHours(), date.getMinutes(), date.getSeconds(),
+						"", fn, fn));
 				}
 			}
 			for (var f : fs) {
@@ -1314,9 +1369,9 @@ public class HttpExchange {
 					fn = htmlEscape(f.getName());
 					var date = new Date(f.lastModified());
 					sb.append(String.format("%4d-%02d-%02d %02d:%02d:%02d %,18d <a href=\"%s\">%s</a>\n",
-							date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
-							date.getHours(), date.getMinutes(), date.getSeconds(),
-							f.length(), fn, fn));
+						date.getYear() + 1900, date.getMonth() + 1, date.getDate(),
+						date.getHours(), date.getMinutes(), date.getSeconds(),
+						f.length(), fn, fn));
 				}
 			}
 		}
@@ -1372,13 +1427,13 @@ public class HttpExchange {
 	// 发送后data内容在回调前不能修改
 	public @NotNull ChannelFuture sendStream(@NotNull Binary b) {
 		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(b.bytesUnsafe(), b.getOffset(), b.size())),
-				true, null); // N①
+			true, null); // N①
 	}
 
 	// 发送后data内容在回调前不能修改
 	public @NotNull ChannelFuture sendStream(@NotNull ByteBuffer bb) {
 		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(bb.Bytes, bb.ReadIndex, bb.size())),
-				true, null); // N①
+			true, null); // N①
 	}
 
 	// 发送后data内容在回调前不能修改

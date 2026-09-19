@@ -395,7 +395,8 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			// 先关exchanges再shutdown派发队列：closeConnectionNow→closeInEventLoop→fireEndStreamHandle/
 			// fireWebSocket产生的收尾任务（onEndStream、retain的content/frame的release、multipart decoder
 			// destroy、上传临时文件清理）必须在队列置isShutdown之前进入队列，否则提交被丢弃/仅cancel补偿。
-			exchanges.values().forEach(HttpExchange::closeConnectionNow);
+			// janitor按channel遍历在途列表（pipelining下被覆盖出exchanges表的前序也要关）。
+			channels.keySet().forEach(ch -> HttpExchange.closeInFlightExchanges(ch, HttpExchange.CLOSE_FORCE));
 			exchanges.clear();
 			// FND6-15：空闲keep-alive连接（请求间隙，exchange已移除）也要关闭——否则停机后
 			// 客户端在旧连接发新请求，Normal处理器提交到已shutdown(true)的派发队列被静默丢弃，
@@ -418,6 +419,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 
 	// 这是一个低开销的检测空闲超时的方法,不准确但只会比预设的超时时间长,写超时可能会多出readIdleTimeout的时长
 	protected void checkTimeout(@NotNull Channel channel) {
+		//noinspection resource
 		var eventLoop = channel.eventLoop();
 		if (eventLoop.inEventLoop()) {
 			checkTimeout0(channel);
@@ -457,12 +459,9 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			}
 		}
 		idleTimeAttr.set(idleTime);
-		// 读写都超时了,那就主动关闭吧
+		// 读写都超时了,那就主动关闭吧（janitor关全部在途exchange；无在途时直接关channel）
 		if (idleTime >= writeIdleTimeout && !Reflect.inDebugMode) {
-			var x = exchanges.get(channel.id());
-			if (x != null)
-				x.close(HttpExchange.CLOSE_TIMEOUT, null);
-			else
+			if (!HttpExchange.closeInFlightExchanges(channel, HttpExchange.CLOSE_TIMEOUT))
 				channel.close();
 		}
 	}
@@ -613,17 +612,15 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		var ch = ctx.channel();
 		Netty.logger.info("closed: {}", ch.remoteAddress());
 		channels.remove(ch);
-		// 兜底清理:连接已失活时还留在exchanges里的HttpExchange不会再有人close(如异常路径或连接被强制关闭),
-		// 这里主动结束它。close会把它从exchanges移除并释放retain的request和累积的content,否则永久泄漏。close是幂等的,
-		// 正常完成的请求早已自行移除,此时get为null。当前在EventLoop上,close走CLOSE_PASSIVE分支内联执行closeInEventLoop。
-		var x = exchanges.get(ch.id());
-		if (x != null)
-			x.close(HttpExchange.CLOSE_PASSIVE, null);
+		// 兜底清理:连接已失活时在途exchange不会再有人close(异常路径或连接被强制关闭)，主动结束
+		// 并释放retain的request和累积的content,否则永久泄漏。close是幂等的,正常完成的早已自行移除。
+		// janitor关闭全部在途（pipelining下被覆盖出exchanges表的前序也要关），不只表内最新一个。
+		HttpExchange.closeInFlightExchanges(ch, HttpExchange.CLOSE_PASSIVE);
 		super.channelInactive(ctx);
 	}
 
 	@Override
-	public void channelRead(@NotNull ChannelHandlerContext ctx, @Nullable Object msg) throws Exception {
+	public void channelRead(@NotNull ChannelHandlerContext ctx, @Nullable Object msg) {
 		try {
 			var channelId = ctx.channel().id();
 			// 拦截解码失败的消息(如畸形chunk size):Netty对此类错误不抛异常,而是产出带失败DecoderResult的
@@ -738,12 +735,10 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			}
 		} finally {
 			ctx.flush().close();
-			// 异常路径的HttpExchange不会再有正常的close时机(如畸形uri解码抛出后无人移除),这里主动结束它,
-			// 释放retain的request和累积的content,避免exchanges和池化内存泄漏。close是幂等的,正常路径已移除时get为null。
-			// 先关闭连接再清理:即使清理过程中用户回调抛出异常,连接也已被关闭,close开头的exchanges.remove保证条目已删。
-			var x = exchanges.get(ctx.channel().id());
-			if (x != null)
-				x.close(HttpExchange.CLOSE_PASSIVE, null);
+			// 异常路径的exchange不会再有正常的close时机(如畸形uri解码抛出后无人移除)，这里结束全部
+			// 在途，释放retain的request和累积的content，避免池化内存泄漏（close幂等）。先关闭连接再清理:
+			// 即使清理过程中用户回调抛出异常,连接也已被关闭,close开头的exchanges.remove保证条目已删。
+			HttpExchange.closeInFlightExchanges(ctx.channel(), HttpExchange.CLOSE_PASSIVE);
 		}
 	}
 }
