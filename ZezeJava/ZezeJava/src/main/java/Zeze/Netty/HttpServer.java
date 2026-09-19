@@ -659,7 +659,8 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 				exchanges.put(channelId, x);
 				// N①：登记请求到达序（响应序化器的排队依据）。在此（EventLoop）先于任何响应写完成，
 				// Direct内联与非Direct派发的handler执行都晚于本登记。
-				x.registerResponseOrder();
+				if (!x.registerResponseOrder())
+					return; // 深度滥用已关连接：不再处理（retain会泄漏进已终结exchange），finally释放原始msg
 			} else if ((x = exchanges.get(channelId)) == null)
 				return;
 			x.channelRead(msg);

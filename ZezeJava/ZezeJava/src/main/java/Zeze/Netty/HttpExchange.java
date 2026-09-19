@@ -695,7 +695,9 @@ public class HttpExchange {
 	}
 
 	// HttpServer.channelRead收到HttpRequest创建本exchange后登记（EventLoop线程，先于任何响应写）。
-	void registerResponseOrder() {
+	// 返回false：深度pipelining超限，已按滥用关闭连接且未登记——调用方不得再处理本请求：
+	// exchange已终结不会再有closeInEventLoop，retain的request会泄漏；后续body帧也无处路由。
+	boolean registerResponseOrder() {
 		var ch = context.channel();
 		var seq = ch.attr(responseOrderKey).get();
 		if (seq == null) {
@@ -703,16 +705,17 @@ public class HttpExchange {
 			var prev = ch.attr(responseOrderKey).setIfAbsent(created);
 			seq = prev != null ? prev : created;
 		}
-		if (seq.entries.size() >= MaxResponseOrderDepth) { // 深度pipelining滥用：不登记（后续写不序化直发），关连接
+		if (seq.entries.size() >= MaxResponseOrderDepth) { // 深度pipelining滥用：不登记，关连接
 			Netty.logger.error("too many in-flight pipelined exchanges: {} from {}, close connection",
 				MaxResponseOrderDepth, ch.remoteAddress());
 			closeConnectionNow();
-			return;
+			return false;
 		}
 		responseOrderId = seq.nextOrderId++;
 		responseSequencer = seq;
 		responseEntry = new OrderEntry(this);
 		seq.entries.put(responseOrderId, responseEntry);
+		return true;
 	}
 
 	// janitor：关闭channel上全部在途exchange（entries即权威在途列表）。四个清理点原先只关exchanges
