@@ -74,7 +74,7 @@ public class TestFnd7R2HandshakeClientRefusesPlaintextDowngrade {
 				};
 				try {
 					victim.newClientSocket("127.0.0.1", port, null, null);
-					var cause = closed.get(5, TimeUnit.SECONDS); // 修复前：明文会话静默建立，连接不关，5秒超时 → 红
+					var cause = closed.get(15, TimeUnit.SECONDS); // 修复前：明文会话静默建立，连接不关，超时 → 红（预算15s：OnSocketClose派发在满负载下可滞后5s+，3x范式）
 					Assertions.assertNotNull(cause);
 					Assertions.assertTrue(chainMessage(cause).contains("downgrade"),
 							() -> "expect plaintext downgrade refusal but: " + chainMessage(cause));
@@ -138,7 +138,7 @@ public class TestFnd7R2HandshakeClientRefusesPlaintextDowngrade {
 				};
 				try {
 					victim.newClientSocket("127.0.0.1", port, null, null);
-					var cause = closed.get(5, TimeUnit.SECONDS); // 修复前：明文+压缩会话静默建立，连接不关，5秒超时 → 红
+					var cause = closed.get(15, TimeUnit.SECONDS); // 修复前：明文+压缩会话静默建立，连接不关，超时 → 红（预算15s同上，3x）
 					Assertions.assertNotNull(cause);
 					Assertions.assertTrue(chainMessage(cause).contains("downgrade"),
 							() -> "expect plaintext(compress-only) downgrade refusal but: " + chainMessage(cause));

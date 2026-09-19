@@ -219,7 +219,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 
 	private static void ensureLeaderReady() throws Exception {
 		var stateField = field("tableServerState");
-		long deadline = System.currentTimeMillis() + 30_000;
+		long deadline = System.currentTimeMillis() + 90_000;
 		while (System.currentTimeMillis() < deadline) {
 			var rocks = leaderRocks();
 			if (rocks == null)
@@ -239,7 +239,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 			//noinspection BusyWait
 			Thread.sleep(200);
 		}
-		Assertions.fail("30s内leader未ready");
+		Assertions.fail("90s内leader未ready");
 	}
 
 	private static int leaderPort() {

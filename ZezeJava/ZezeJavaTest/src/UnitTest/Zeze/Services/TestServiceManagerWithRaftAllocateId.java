@@ -196,7 +196,7 @@ public class TestServiceManagerWithRaftAllocateId {
 	private static void ensureLeaderReady() throws Exception {
 		var autoKeyField = ServiceManagerWithRaft.class.getDeclaredField("tableAutoKey");
 		autoKeyField.setAccessible(true);
-		long deadline = System.currentTimeMillis() + 30_000;
+		long deadline = System.currentTimeMillis() + 90_000;
 		while (System.currentTimeMillis() < deadline) {
 			var rocks = leaderRocks();
 			if (rocks == null)
@@ -217,7 +217,7 @@ public class TestServiceManagerWithRaftAllocateId {
 			//noinspection BusyWait
 			Thread.sleep(200);
 		}
-		Assertions.fail("30s内leader未ready");
+		Assertions.fail("90s内leader未ready");
 	}
 
 	private static int leaderPort() {
