@@ -7,7 +7,6 @@ import java.util.concurrent.TimeUnit;
 import Zeze.Config;
 import Zeze.Net.Connector;
 import Zeze.Services.ServiceManager.Agent;
-import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManagerServer;
 import Zeze.Util.Task;
 import harness.Fast;
@@ -51,12 +50,28 @@ public class TestTakeoverIdentifySuspect {
 			var suspected = new LinkedBlockingQueue<Integer>();
 			agent2.setOnSuspect(suspected::add);
 
-			// 确定性等Identify在SM侧生效：processIdentify是Direct派发（IO线程解码点内联执行），
-			// 同连接上后续任何rpc的应答必在其后写出——走一次幂等空edit（add/remove皆空，
-			// SM侧两循环空转直接应答Success），应答到达即serverId已记入会话。
-			// 原先sleep(1000)猜测等待（onConnected异步发送；负载下未处理即断线会话上无serverId，
-			// SM不广播Suspect，用例flaky——30轮压测轮20再实证），等待式替换后不再依赖负载。
-			agent1.editService(new BEditService());
+			// 确定性等Identify在SM侧生效：直接轮询SM会话的identifyServerId==11。
+			// 旧同步点editService往返不足：Connector.WaitReady只等TCP连接，客户端Identify要等
+			// 握手末包到达才由onConnected发出，紧随waitReady的editService可在线上先于Identify
+			// 到达（30轮压测2026-09-19轮11实证：SM处理了空edit并应答Success，但断线RST掐掉了
+			// 在途Identify，会话identifyServerId=-1，onClose按契约不广播Suspect）。
+			var serverField = ServiceManagerServer.class.getDeclaredField("server");
+			serverField.setAccessible(true);
+			var netServer = serverField.get(sm);
+			var idField = ServiceManagerServer.Session.class.getDeclaredField("identifyServerId");
+			idField.setAccessible(true);
+			var idSeen = new boolean[1];
+			var deadline = System.currentTimeMillis() + 10_000;
+			while (!idSeen[0]) {
+				Assertions.assertTrue(System.currentTimeMillis() < deadline, "10s内Identify未在SM侧生效");
+				//noinspection BusyWait
+				Thread.sleep(10);
+				((Zeze.Net.Service)netServer).foreach(so -> {
+					if (so.getUserState() instanceof ServiceManagerServer.Session session
+							&& (int)idField.get(session) == 11)
+						idSeen[0] = true;
+				});
+			}
 
 			// agent1正常关闭：连接断开→SM onClose→Suspect(serverId=11)广播→agent2回调。
 			agent1.stop();
