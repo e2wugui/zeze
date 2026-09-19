@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
+
 import io.netty.buffer.Unpooled;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -43,10 +44,10 @@ final class HttpFileService {
 		var ifModifiedSince = req.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
 		if (ifModifiedSince != null && !ifModifiedSince.isEmpty() && lastModified == HttpServer.parseDate(ifModifiedSince)) {
 			var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED, // 文件未改变
-					Unpooled.EMPTY_BUFFER, HttpExchange.headersFactory, HttpExchange.trailersFactory);
+				Unpooled.EMPTY_BUFFER, HttpExchange.headersFactory, HttpExchange.trailersFactory);
 			HttpServer.setDate(res.headers())
-					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-					.set(HttpHeaderNames.CONTENT_LENGTH, 0);
+				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+				.set(HttpHeaderNames.CONTENT_LENGTH, 0);
 			x.close(x.writeResponse(res, true, null)); // 经序化器：保活响应直写会在pipelining下先于前序响应上线
 			return;
 		}
@@ -80,12 +81,12 @@ final class HttpFileService {
 				}
 				if (!satisfiable) { // RFC要求416 + Content-Range: bytes */fsize（客户端据此检测远端文件截断）
 					var res416 = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-							HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, Unpooled.EMPTY_BUFFER,
-							HttpExchange.headersFactory, HttpExchange.trailersFactory);
+						HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, Unpooled.EMPTY_BUFFER,
+						HttpExchange.headersFactory, HttpExchange.trailersFactory);
 					HttpServer.setDate(res416.headers())
-							.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-							.set(HttpHeaderNames.CONTENT_LENGTH, 0)
-							.set(HttpHeaderNames.CONTENT_RANGE, "bytes */" + fsize);
+						.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+						.set(HttpHeaderNames.CONTENT_LENGTH, 0)
+						.set(HttpHeaderNames.CONTENT_RANGE, "bytes */" + fsize);
 					fc.close();
 					x.close(x.writeResponse(res416, true, null)); // 经序化器，同304分支
 					return;
@@ -95,15 +96,15 @@ final class HttpFileService {
 			var contentLen = partial ? to - from + 1 : fsize;
 
 			var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1,
-					partial ? HttpResponseStatus.PARTIAL_CONTENT : HttpResponseStatus.OK, HttpExchange.headersFactory);
+				partial ? HttpResponseStatus.PARTIAL_CONTENT : HttpResponseStatus.OK, HttpExchange.headersFactory);
 			var headers = HttpServer.setDate(res.headers())
-					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-					.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')
-					.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
-					.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
-					.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
-					.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + fileCacheSeconds)
-					.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
+				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+				.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')
+				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
+				.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
+				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
+				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + fileCacheSeconds)
+				.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
 			if (partial) // Content-Range只属于206/416，200不带
 				headers.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + to + '/' + fsize);
 			x.writeResponse(res, false, x.context.voidPromise()); // N①：响应头经序化器（挂起时FileRegion同队保序）
@@ -128,8 +129,8 @@ final class HttpFileService {
 		int fileLimit = 10000; // 限制最多列出多少目录+文件,避免开销太大
 		var fn = htmlEscape(file.getName());
 		var sb = new StringBuilder("<html><head><title>Index of ").append(fn)
-				.append("/</title></head><body><h1>Index of ").append(fn)
-				.append("/</h1><hr><pre><a href=\"../\">../</a>\n");
+			.append("/</title></head><body><h1>Index of ").append(fn)
+			.append("/</h1><hr><pre><a href=\"../\">../</a>\n");
 		var fs = file.listFiles();
 		if (fs != null) {
 			for (var f : fs) {
@@ -140,7 +141,7 @@ final class HttpFileService {
 					}
 					fn = htmlEscape(f.getName());
 					sb.append(String.format("%s %18s <a href=\"%s/\">%s/</a>\n",
-							listTime(f.lastModified()), "", fn, fn));
+						listTime(f.lastModified()), "", fn, fn));
 				}
 			}
 			for (var f : fs) {
@@ -151,7 +152,7 @@ final class HttpFileService {
 					}
 					fn = htmlEscape(f.getName());
 					sb.append(String.format("%s %,18d <a href=\"%s\">%s</a>\n",
-							listTime(f.lastModified()), f.length(), fn, fn));
+						listTime(f.lastModified()), f.length(), fn, fn));
 				}
 			}
 		}
@@ -159,7 +160,7 @@ final class HttpFileService {
 	}
 
 	private static final DateTimeFormatter listTimeFormat =
-			DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
+		DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
 
 	private static String listTime(long epochMilli) {
 		return listTimeFormat.format(Instant.ofEpochMilli(epochMilli));

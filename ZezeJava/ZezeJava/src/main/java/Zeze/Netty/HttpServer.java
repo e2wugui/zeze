@@ -21,6 +21,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLException;
+
 import Zeze.Application;
 import Zeze.Net.Helper;
 import Zeze.Services.ServiceManager.AbstractAgent;
@@ -82,11 +83,11 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	protected static final AttributeKey<Integer> outBufHashKey = AttributeKey.valueOf("ZezeOutBufHash"); // 用于判断输出buffer是否有变化
 	protected static final @NotNull ZoneId zoneId = ZoneId.of("GMT");
 	protected static final HttpDecoderConfig decCfg = new HttpDecoderConfig()
-			.setMaxInitialLineLength(4096)
-			.setMaxHeaderSize(8192)
-			.setMaxChunkSize(8192)
-			.setChunkedSupported(true)
-			.setValidateHeaders(false);
+		.setMaxInitialLineLength(4096)
+		.setMaxHeaderSize(8192)
+		.setMaxChunkSize(8192)
+		.setChunkedSupported(true)
+		.setValidateHeaders(false);
 	protected static long lastSecond;
 	protected static String lastDateStr;
 	protected final Application zeze; // 只用于通过事务处理HTTP请求
@@ -121,7 +122,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		if (second == lastSecond)
 			return lastDateStr;
 		var dateStr = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
-				LocalDateTime.ofEpochSecond(second, 0, ZoneOffset.UTC), zoneId));
+			LocalDateTime.ofEpochSecond(second, 0, ZoneOffset.UTC), zoneId));
 		lastDateStr = dateStr;
 		lastSecond = second;
 		return dateStr;
@@ -129,7 +130,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 
 	public static @NotNull String getDate(long epochSecond) {
 		return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
-				LocalDateTime.ofEpochSecond(epochSecond, 0, ZoneOffset.UTC), zoneId));
+			LocalDateTime.ofEpochSecond(epochSecond, 0, ZoneOffset.UTC), zoneId));
 	}
 
 	public static long parseDate(@NotNull String dateStr) {
@@ -177,7 +178,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		// 被Procedure转成"enableHttpSessionExpiredTimer error=..."错误码，无指向。
 		if (zeze.getTimer() == null)
 			throw new IllegalStateException("zeze.timer is null: http session requires ProviderApp "
-					+ "(Application creates Timer only when ProviderApp exists)");
+				+ "(Application creates Timer only when ProviderApp exists)");
 		if (httpSession != null)
 			return;
 		httpSession = new HttpSession(zeze);
@@ -276,18 +277,18 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			if (eventLoopGroup instanceof EpollEventLoopGroup)
 				b = b.option(EpollChannelOption.SO_REUSEPORT, true);
 			b = b.group(eventLoopGroup)
-					.option(ChannelOption.SO_BACKLOG, 8192)
-					.option(ChannelOption.SO_REUSEADDR, true)
-					.childOption(ChannelOption.SO_REUSEADDR, true)
-					.childOption(ChannelOption.SO_KEEPALIVE, true)
-					.childOption(ChannelOption.ALLOW_HALF_CLOSURE, true)
-					.channel(Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
-					.childHandler(new ChannelInitializer<SocketChannel>() {
-						@Override
-						public void initChannel(@NotNull SocketChannel ch) throws Exception {
-							HttpServer.this.initChannel(ch);
-						}
-					});
+				.option(ChannelOption.SO_BACKLOG, 8192)
+				.option(ChannelOption.SO_REUSEADDR, true)
+				.childOption(ChannelOption.SO_REUSEADDR, true)
+				.childOption(ChannelOption.SO_KEEPALIVE, true)
+				.childOption(ChannelOption.ALLOW_HALF_CLOSURE, true)
+				.channel(Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
+				.childHandler(new ChannelInitializer<SocketChannel>() {
+					@Override
+					public void initChannel(@NotNull SocketChannel ch) throws Exception {
+						HttpServer.this.initChannel(ch);
+					}
+				});
 			ChannelFuture future;
 			if (host != null && !(host = host.trim()).isEmpty())
 				future = b.bind(host, port);
@@ -299,7 +300,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			// 定时任务不残留——否则再次start抛"already started"进入永久半启动态，
 			// 且每checkIdleInterval的checkTimeout对空channels永久空转。
 			scheduler = eventLoopGroup.scheduleWithFixedDelay(() -> channels.keySet().forEach(this::checkTimeout),
-					checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
+				checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
 			channelFuture = future;
 			Netty.logger.info("startServer {} on {}:{}", getClass().getName(), host, port);
 			return future;
@@ -340,8 +341,8 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		if (addr == null)
 			throw new IllegalStateException();
 		return addr.getAddress().isAnyLocalAddress()
-				? Helper.selectOneIpAddress(false)
-				: addr.getAddress().getHostAddress();
+			? Helper.selectOneIpAddress(false)
+			: addr.getAddress().getHostAddress();
 	}
 
 	/**
@@ -672,7 +673,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	private void rejectAndClose(@NotNull ChannelHandlerContext ctx, @NotNull HttpResponseStatus status) {
 		ctx.channel().attr(HttpExchange.responseOrderBypassKey).set(Boolean.TRUE); // tripwire豁免：框架直写，连接将亡
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, Unpooled.EMPTY_BUFFER,
-				HttpExchange.headersFactory, HttpExchange.trailersFactory);
+			HttpExchange.headersFactory, HttpExchange.trailersFactory);
 		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
 		var cf = ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
 		var prev = exchanges.remove(ctx.channel().id());
@@ -722,8 +723,8 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		// 写空闲超时（outboundBuffer无进度）兜底关闭。
 		if (!ch.isWritable())
 			Netty.logger.info("write buffer saturated {} > {} from {}",
-					ch.unsafe().outboundBuffer().totalPendingWriteBytes(),
-					ch.config().getWriteBufferHighWaterMark(), ch.remoteAddress());
+				ch.unsafe().outboundBuffer().totalPendingWriteBytes(),
+				ch.config().getWriteBufferHighWaterMark(), ch.remoteAddress());
 		super.channelWritabilityChanged(ctx);
 	}
 

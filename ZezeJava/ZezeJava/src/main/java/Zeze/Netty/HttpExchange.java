@@ -5,18 +5,13 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.net.URLDecoder;
 import java.nio.channels.ClosedChannelException;
-import java.nio.channels.FileChannel;
-import java.nio.file.OpenOption;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.regex.Pattern;
 
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -37,7 +32,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
-import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpHeadersFactory;
@@ -48,7 +42,6 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeadersFactory;
-import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -647,8 +640,32 @@ public class HttpExchange {
 	// 每channel在途（已登记未出队）请求序深度上限：防深度pipelining滥用，超出按滥用关闭连接。
 	private static final int MaxResponseOrderDepth = 128;
 
+	// 序化器per-channel（channel属性）。全部字段仅channel的EventLoop线程访问（单写者）。
+	static final class ResponseSequencer {
+		int nextOrderId = 1; // 下一个到达序（registerResponseOrder分配）
+		int writingOrderId = 1; // 当前持笔orderId：此前的已全部写出出队
+		final IntObjectHashMap<OrderEntry> entries = new IntObjectHashMap<>(); // 在途entry
+	}
+
+	// 在途exchange的序化条目（仅EventLoop线程访问）。
+	static final class OrderEntry {
+		final HttpExchange x;
+		ArrayDeque<DeferredWrite> pending; // 未轮到时的挂起响应写，懒建
+		boolean finished; // exchange已close/endStream（FINISH族挂起写仍按序送出）
+		boolean started; // 本entry的按序写已开始（出站tripwire的判定依据）
+
+		OrderEntry(HttpExchange x) {
+			this.x = x;
+		}
+	}
+
+	/**
+	 * @param promise 调用方给定的promise（可为voidPromise），提交时原样传递
+	 */
+	record DeferredWrite(@NotNull Object msg, @NotNull ChannelPromise promise, boolean flush) {
+	}
+
 	// 响应序化状态：仅EventLoop线程访问，登记（先于任何响应写）时赋值。
-	// 序化器状态类型（ResponseSequencer/OrderEntry/DeferredWrite）见HttpResponseOrder.java。
 	@Nullable ResponseSequencer responseSequencer;
 	int responseOrderId; // 登记分配的到达序；未登记（直接构造）为0且responseSequencer为null
 	private @Nullable OrderEntry responseEntry; // 本exchange的序化条目（出队时清引用）
@@ -674,7 +691,7 @@ public class HttpExchange {
 		var e = seq.entries.get(seq.writingOrderId);
 		if (e != null && !e.started)
 			throw new IllegalStateException("http response written out of order from " + ch.remoteAddress()
-					+ ": sequencer head(order=" + seq.writingOrderId + ") not started, bypass writeResponse?");
+				+ ": sequencer head(order=" + seq.writingOrderId + ") not started, bypass writeResponse?");
 	}
 
 	// HttpServer.channelRead收到HttpRequest创建本exchange后登记（EventLoop线程，先于任何响应写）。
@@ -1273,6 +1290,7 @@ public class HttpExchange {
 	/// //////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
 	// 高吞吐大流量流式发送建议按块检查isWritable()（背压信号，越过水位时等待积压排出再继续）。
+
 	/**
 	 * 流式响应开始：写出状态行与headers（未设Content-Length则自动Transfer-Encoding: chunked）。
 	 * 本族接口功能最大化、不做校验（状态/头部正确性自负）。后续用{@link #sendStream}发块、
