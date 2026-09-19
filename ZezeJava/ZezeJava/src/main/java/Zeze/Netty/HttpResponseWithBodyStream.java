@@ -2,6 +2,7 @@ package Zeze.Netty;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Map;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -145,7 +146,9 @@ public final class HttpResponseWithBodyStream {
 		public void write(byte @NotNull [] b, int off, int len) throws IOException {
 			checkOpen();
 			awaitWritable();
-			x.sendStream(b, off, len);
+			// OutputStream契约：write返回后调用方即可复用缓冲（GZIPOutputStream的deflate循环
+			// 就复用内部buf逐块写出），sendStream是零拷贝包装——这里必须拷贝。
+			x.sendStream(Arrays.copyOfRange(b, off, off + len));
 		}
 
 		@Override
