@@ -239,10 +239,18 @@ public class Service extends ReentrantLock {
 	 * GetSocket(sessionId)永远返回旧socket（isSenderAlive等按id找连接的逻辑全被误导，
 	 * TestGameTimer的ErrorNotLogin即此链）。这里error日志+关闭撞号的新连接（保留先注册者），
 	 * 把静默互撞变成显式拒绝。调用方拿到false后不得再对该连接回调OnHandshakeDone。
+	 * 返回false亦涵盖已close的socket：连接成功回调与close链并发时（如stop撞上OP_CONNECT
+	 * 完成），迟到登记在置死互斥下被拒（见AsyncSocket生命周期状态机）——僵尸条目（其
+	 * OnSocketClose"恰好一次"已消费、入表后无人核销）从结构上不可能产生。
 	 */
 	protected final boolean addSocket(@NotNull AsyncSocket so) {
-		var existing = socketMap.putIfAbsent(so.getSessionId(), so);
-		if (existing != null) {
+		var existing = so.runIfOpen(() -> {
+			var e = socketMap.putIfAbsent(so.getSessionId(), so);
+			return e != null ? e : so; // 插入成功以so自身为哨兵，与runIfOpen的closed-null区分
+		});
+		if (existing == null)
+			return false; // 已closed：迟到登记拒绝
+		if (existing != so) {
 			logger.error("addSocket: duplicate sessionId {} in service '{}': existing socket {} kept, "
 							+ "colliding socket {} closed. 同JVM多App互踩全局静态AsyncSocket.setSessionIdGenFunc"
 							+ "会触发此撞号（发号器被后装的App整体替换，与既有连接号码重叠）。",

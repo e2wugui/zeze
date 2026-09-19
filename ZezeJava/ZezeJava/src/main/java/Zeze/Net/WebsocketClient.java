@@ -1,8 +1,6 @@
 package Zeze.Net;
 
 import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.URI;
@@ -20,29 +18,17 @@ import org.jetbrains.annotations.Nullable;
 
 public class WebsocketClient extends AsyncSocket {
 	private static final @NotNull Logger logger = LogManager.getLogger(WebsocketClient.class);
-	private static final @NotNull VarHandle closedHandle;
 
 	private volatile @Nullable WebSocket webSocket;
 	private final @NotNull HttpClient httpClient;
 	private final @Nullable TimeThrottle timeThrottle;
 	private final @NotNull SocketAddress remote;
 	private final @Nullable Connector connector;
-	@SuppressWarnings("unused")
-	private byte closed;
 
 	// sendBinary串行化（JDK WebSocketImpl单在途约束）：专用锁对象，不用公共monitor
 	//（见onOpen注释的锁序顾虑；这里只在追加链节点时短暂持有，不跨用户回调）。
 	private final @NotNull Object sendLock = new Object();
 	private @NotNull CompletableFuture<Void> sendChain = CompletableFuture.completedFuture(null); // sendLock守护
-
-	static {
-		try {
-			var lookup = MethodHandles.lookup();
-			closedHandle = lookup.findVarHandle(WebsocketClient.class, "closed", byte.class);
-		} catch (ReflectiveOperationException e) {
-			throw new ExceptionInInitializerError(e);
-		}
-	}
 
 	public WebsocketClient(@NotNull Service service, @NotNull String wsUrl, @Nullable Object userState,
 						   @Nullable Connector connector) {
@@ -59,12 +45,10 @@ public class WebsocketClient extends AsyncSocket {
 
 			@Override
 			public void onOpen(WebSocket webSocket) {
-				// 已知接受的残余竞态：close()恰在本检查与addSocket之间完整执行完时，
-				// 其socketMap.remove因条目尚未注册而空转，随后addSocket留下closed=1的
-				// 僵尸条目（有界：泄漏至Service对象废弃；该socket的OnSocketClose已随
-				// close发出过一次）。触发需stop与握手完成微秒级精确交错。不修的原因：
-				// synchronized(this)是公共对象monitor且持锁跨用户回调，锁序风险不可审计；
-				// 事后补调OnSocketClose则破坏"恰好一次"契约（调用方清理按一次编写）。
+				// 残余竞态：close()恰在本检查与tryAccept之间完整执行完时，迟到的登记由
+				// Service.addSocket在置死互斥下拒绝（不入表、返回false，不再回调
+				// OnHandshakeDone）。本检查仍保留：省去对死连接的request与限流检查动作。
+				// 不在此补调OnSocketClose：破坏"恰好一次"契约（调用方清理按一次编写）。
 				if (isClosed()) { // 关闭先于握手完成（如Connector.stop）时废弃迟到的连接
 					webSocket.abort();
 					return;
@@ -139,10 +123,7 @@ public class WebsocketClient extends AsyncSocket {
 	}
 
 	@Override
-	public boolean close(@Nullable Throwable ex, boolean gracefully) {
-		if (!closedHandle.compareAndSet(this, (byte)0, (byte)1)) // 阻止递归关闭
-			return false;
-
+	protected void doClose(@Nullable Throwable ex, boolean gracefully) {
 		if (ex != null) {
 			if (ex instanceof IOException)
 				logger.info("close: {} {}", this, ex);
@@ -177,7 +158,6 @@ public class WebsocketClient extends AsyncSocket {
 			ws.abort();
 		}
 		fireOnSocketDisposed(); // 对齐TcpSocket/Websocket家族：本次调用完成了关闭
-		return true;
 	}
 
 	// whenComplete/exceptionNow 交付的异常可能被 CompletionException 包装，关闭日志取根因
@@ -234,10 +214,5 @@ public class WebsocketClient extends AsyncSocket {
 	@Override
 	public @Nullable SocketAddress getRemoteAddress() {
 		return remote;
-	}
-
-	@Override
-	public boolean isClosed() {
-		return closed != 0;
 	}
 }

@@ -63,9 +63,8 @@ public class TestLinkdUnauthedCloseCleansBinds {
 		}
 
 		@Override
-		public boolean close(@Nullable Throwable ex, boolean gracefully) {
-			return true;
-		}
+		protected void doClose(@Nullable Throwable ex, boolean gracefully) {
+	}
 
 		@Override
 		public boolean Send(byte @NotNull [] bytes, int offset, int length) {

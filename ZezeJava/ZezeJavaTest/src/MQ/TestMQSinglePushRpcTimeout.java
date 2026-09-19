@@ -14,6 +14,7 @@ import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -48,17 +49,16 @@ public class TestMQSinglePushRpcTimeout {
 		}
 
 		@Override
-		public boolean close(@Nullable Throwable ex, boolean gracefully) {
+		protected void doClose(@Nullable Throwable ex, boolean gracefully) {
+	}
+
+		@Override
+		public boolean Send(@NotNull Protocol<?> p) {
 			return true;
 		}
 
 		@Override
-		public boolean Send(Protocol<?> p) {
-			return true;
-		}
-
-		@Override
-		public boolean Send(byte[] bytes, int offset, int length) {
+		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
 			return true;
 		}
 

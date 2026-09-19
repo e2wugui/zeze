@@ -35,6 +35,10 @@ public class Connector extends ReentrantLock {
 	private boolean isAutoReconnect;
 	private volatile boolean isConnected; // isConnected()无锁读，需要可见性保证
 	private @Nullable Future<?> reconnectTask;
+	// 意图代数（仅本锁临界区内读写）：start()/stop()的锁内决策各开新纪元；排程出的重连任务
+	// 携带排程时的代数，醒来时不匹配即弃——cancel(false)撤不回已派发任务，"stop之前排程、
+	// stop之后才醒来"的意图靠它作废。stop→start重启是同步新意图（直接调start()），不受影响。
+	private long epoch;
 	private int maxReconnectDelay = 8000; // 毫秒
 	private int reConnectDelay;
 
@@ -137,7 +141,7 @@ public class Connector extends ReentrantLock {
 	public final void setAutoReconnect(boolean value) {
 		isAutoReconnect = value;
 		if (isAutoReconnect) {
-			TryReconnect();
+			tryReconnect();
 		} else {
 			lock();
 			try {
@@ -192,7 +196,7 @@ public class Connector extends ReentrantLock {
 		try {
 			if (socket == closed) {
 				stop(e);
-				TryReconnect();
+				tryReconnect();
 			}
 		} finally {
 			unlock();
@@ -212,14 +216,16 @@ public class Connector extends ReentrantLock {
 		}
 	}
 
-	public void TryReconnect() {
+	// 重连引擎内部入口（setAutoReconnect/OnSocketClose/构造失败续排）：带退避排程start。
+	private void tryReconnect() {
 		lock();
 		try {
 			// socket!=null（含在途建连）即已有一次在途尝试
 			if (!isAutoReconnect || socket != null || reconnectTask != null)
 				return;
 			reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
-			reconnectTask = TaskSpec.ofAction(this::start).scheduleNow(reConnectDelay);
+			final long gen = epoch;
+			reconnectTask = TaskSpec.ofAction(() -> startIfFresh(gen)).scheduleNow(reConnectDelay);
 		} finally {
 			unlock();
 		}
@@ -246,24 +252,41 @@ public class Connector extends ReentrantLock {
 	public void start() {
 		lock();
 		try {
-			// always try cancel reconnect task
-			if (reconnectTask != null) {
-				reconnectTask.cancel(false);
-				reconnectTask = null;
-			}
-			if (socket != null)
-				return;
-			try {
-				// 构造非阻塞：锁内同步发布所有权（不变量前提，见字段区注释）
-				socket = null == url || url.isBlank()
-						? service.newClientSocket(hostNameOrAddress, port, userState, this)
-						: service.newWebsocketClient(url, userState, this);
-			} catch (Exception e) {
-				TryReconnect(); // 同步构造失败（配置/编程错误）仍续排重试，保持原契约
-				throw e;
-			}
+			epoch++; // 新意图开启新纪元，作废在途调度任务
+			startInternal();
 		} finally {
 			unlock();
+		}
+	}
+
+	// 排程任务入口：仅当排程代数仍是当前代数（排程后未发生start()/stop()）才建连。
+	private void startIfFresh(long gen) {
+		lock();
+		try {
+			if (gen != epoch || socket != null)
+				return;
+			startInternal();
+		} finally {
+			unlock();
+		}
+	}
+
+	private void startInternal() {
+		// always try cancel reconnect task
+		if (reconnectTask != null) {
+			reconnectTask.cancel(false);
+			reconnectTask = null;
+		}
+		if (socket != null)
+			return;
+		try {
+			// 构造非阻塞：锁内同步发布所有权（不变量前提，见字段区注释）
+			socket = null == url || url.isBlank()
+					? service.newClientSocket(hostNameOrAddress, port, userState, this)
+					: service.newWebsocketClient(url, userState, this);
+		} catch (Exception e) {
+			tryReconnect(); // 同步构造失败（配置/编程错误）仍续排重试，保持原契约
+			throw e;
 		}
 	}
 
@@ -275,6 +298,7 @@ public class Connector extends ReentrantLock {
 		AsyncSocket as;
 		lock();
 		try {
+			epoch++; // 作废一切在途调度意图（含cancel(false)撤不回的已派发任务）
 			// always try cancel reconnect task
 			if (reconnectTask != null) {
 				reconnectTask.cancel(false);

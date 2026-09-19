@@ -1,8 +1,6 @@
 package Zeze.Net;
 
 import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Arrays;
@@ -22,16 +20,6 @@ import org.jetbrains.annotations.Nullable;
 
 public class DatagramSession extends AsyncSocket {
 	private static final @NotNull Logger logger = LogManager.getLogger(DatagramSession.class);
-	private static final @NotNull VarHandle closedHandle;
-
-	static {
-		try {
-			closedHandle = MethodHandles.lookup().findVarHandle(DatagramSession.class, "closed", byte.class);
-		} catch (ReflectiveOperationException e) {
-			throw new ExceptionInInitializerError(e);
-		}
-	}
-
 	private final @NotNull DatagramSocket socket;
 	private @NotNull InetSocketAddress remote;
 	private final long tokenId;
@@ -41,8 +29,6 @@ public class DatagramSession extends AsyncSocket {
 	private final @NotNull ReplayAttack replayAttack;
 	private final LongAdder malformedPackets = new LongAdder();
 	private volatile long lastMalformedWarnTime;
-	@SuppressWarnings("unused")
-	private byte closed;
 
 	public @NotNull DatagramSocket getSocket() {
 		return socket;
@@ -91,7 +77,7 @@ public class DatagramSession extends AsyncSocket {
 	// [8]tokenId | [8]serialId | encrypt{ packet | [8]tokenId | [8]serialId }
 	@Override
 	public boolean Send(byte @NotNull [] packet, int offset, int size) {
-		if (closed != 0 || isClosed()) // 已关闭的会话不得真实发出数据报并谎报成功
+		if (isClosed()) // 已关闭的会话不得真实发出数据报并谎报成功
 			return false;
 		var serialId = serialIdGen.incrementAndGet();
 		ByteBuffer bb;
@@ -130,7 +116,7 @@ public class DatagramSession extends AsyncSocket {
 	// [8]tokenId | [8]serialId | encrypt{ [4]moduleId | [4]protocolId | [4]size | protocolData | [8]tokenId | [8]serialId }
 	@Override
 	public boolean Send(@NotNull Protocol<?> p) {
-		if (closed != 0 || isClosed()) // 已关闭的会话不得真实发出数据报并谎报成功
+		if (isClosed()) // 已关闭的会话不得真实发出数据报并谎报成功
 			return false;
 		int preAllocSize = p.preAllocSize();
 		var serialId = serialIdGen.incrementAndGet();
@@ -218,9 +204,7 @@ public class DatagramSession extends AsyncSocket {
 	}
 
 	@Override
-	public boolean close(@Nullable Throwable ex, boolean gracefully) {
-		if (!closedHandle.compareAndSet(this, (byte)0, (byte)1)) // 阻止重入：OnSocketClose恰好回调一次
-			return false;
+	protected void doClose(@Nullable Throwable ex, boolean gracefully) {
 		socket.removeSession(this);
 		try {
 			getService().OnSocketClose(this, ex); // 对齐TcpSocket/WebsocketClient家族的关闭契约
@@ -230,7 +214,6 @@ public class DatagramSession extends AsyncSocket {
 		// 对齐TcpSocket.realClose：会话销毁后将在飞Rpc上下文立即失败处置（FND8-50补充，
 		// 与FND8-44同点）——否则等待方只能干等Rpc超时，且OnSocketDisposed覆写永不触发。
 		fireOnSocketDisposed();
-		return true;
 	}
 
 	@Override
@@ -238,10 +221,6 @@ public class DatagramSession extends AsyncSocket {
 		return null;
 	}
 
-	@Override
-	public boolean isClosed() {
-		return !socket.containsSession(this);
-	}
 
 	@Override
 	public @NotNull String toString() {

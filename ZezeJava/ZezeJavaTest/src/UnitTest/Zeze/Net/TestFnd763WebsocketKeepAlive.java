@@ -196,9 +196,8 @@ public class TestFnd763WebsocketKeepAlive {
 		}
 
 		@Override
-		public boolean close(@Nullable Throwable ex, boolean gracefully) {
+		protected void doClose(@Nullable Throwable ex, boolean gracefully) {
 			closedCount.incrementAndGet();
-			return true;
 		}
 
 		@Override

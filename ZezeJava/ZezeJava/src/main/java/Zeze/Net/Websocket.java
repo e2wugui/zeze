@@ -1,8 +1,6 @@
 package Zeze.Net;
 
 import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.net.SocketAddress;
 import Zeze.Netty.HttpExchange;
 import Zeze.Serialize.ByteBuffer;
@@ -16,24 +14,13 @@ import org.jetbrains.annotations.Nullable;
 
 public class Websocket extends AsyncSocket {
 	private static final @NotNull Logger logger = LogManager.getLogger(Websocket.class);
-	private static final @NotNull VarHandle closedHandle;
 
 	private final HttpExchange x;
-	@SuppressWarnings("unused") private byte closed;
 	private final ByteBuffer input = ByteBuffer.Allocate();
 	private final SocketAddress remote;
 	private final TimeThrottle timeThrottle;
 
 	private final FastLock lock = new FastLock();
-
-	static {
-		try {
-			var lookup = MethodHandles.lookup();
-			closedHandle = lookup.findVarHandle(Websocket.class, "closed", byte.class);
-		} catch (ReflectiveOperationException e) {
-			throw new ExceptionInInitializerError(e);
-		}
-	}
 
 	public Websocket(HttpExchange x, Service service) {
 		super(service);
@@ -54,10 +41,7 @@ public class Websocket extends AsyncSocket {
 	}
 
 	@Override
-	public boolean close(@Nullable Throwable ex, boolean gracefully) {
-		if (!closedHandle.compareAndSet(this, (byte)0, (byte)1)) // 阻止递归关闭
-			return false;
-
+	protected void doClose(@Nullable Throwable ex, boolean gracefully) {
 		if (ex != null) {
 			if (ex instanceof IOException)
 				logger.info("close: {} {}", this, ex);
@@ -79,7 +63,6 @@ public class Websocket extends AsyncSocket {
 		if (timeThrottle != null)
 			timeThrottle.close();
 		fireOnSocketDisposed();
-		return true;
 	}
 
 	void processInput(ByteBuf buf) throws Exception {
@@ -108,7 +91,7 @@ public class Websocket extends AsyncSocket {
 		// 检查写回执,不能恒返回true:写失败的帧(管线状态不符/连接已关等)不会到达对端。
 		// 在EventLoop上调用时future同步完成,失败立即close并返回false,调用方(Protocol/Rpc.Send)
 		// 能感知发送失败;非EventLoop线程调用时future异步完成,挂listener失败同样close,
-		// 不再静默丢帧。close的closedHandle CAS保证OnSocketClose等清理恰好一次。
+		// 不再静默丢帧。close的markClosed置死保证OnSocketClose等清理恰好一次。
 		setActiveSendTime(); // FND7-63：维护活跃时间（发送已被接受进入发送管线）
 		var cf = x.sendWebSocket(bytes, offset, length);
 		if (cf.isDone()) {
@@ -129,10 +112,5 @@ public class Websocket extends AsyncSocket {
 	@Override
 	public @Nullable SocketAddress getRemoteAddress() {
 		return remote;
-	}
-
-	@Override
-	public boolean isClosed() {
-		return closed != 0;
 	}
 }

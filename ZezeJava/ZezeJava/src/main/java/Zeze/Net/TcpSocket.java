@@ -31,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
 
 public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	private static final @NotNull Logger logger = LogManager.getLogger(TcpSocket.class);
-	private static final @NotNull VarHandle closedHandle, outputBufferSizeHandle;
+	private static final @NotNull VarHandle closeDetailHandle, outputBufferSizeHandle;
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
 	private static final IOException connectFailedException = new IOException("connect failed");
@@ -46,7 +46,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	static {
 		try {
 			var lookup = MethodHandles.lookup();
-			closedHandle = lookup.findVarHandle(TcpSocket.class, "closed", byte.class);
+			closeDetailHandle = lookup.findVarHandle(TcpSocket.class, "closeDetail", byte.class);
 			outputBufferSizeHandle = lookup.findVarHandle(TcpSocket.class, "outputBufferSize", long.class);
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
@@ -67,8 +67,10 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	private @Nullable Codec outputCodecChain; // 只在selector线程访问
 	private volatile byte security; // 1:Input; 2:Output; 1|2:Input+Output
 
+	// 死因细节（生命周期"已死"判据在基类markClosed/isClosed）：关闭后submitAction误用计数
+	//（前SEND_CLOSE_DETAIL_MAX次带堆栈）；realClose置REAL_CLOSED防递归。
 	@SuppressWarnings("unused")
-	private volatile byte closed;
+	private volatile byte closeDetail;
 	private volatile boolean closePending;
 	private @Nullable HaProxyHeader haProxyHeader;
 	private volatile @Nullable SocketAddress remoteAddress; // 连接成功时设置
@@ -126,11 +128,6 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	public @Nullable InetSocketAddress getLocalInet() { // 已经close的情况下返回null
 		SocketAddress sa = getLocalAddress();
 		return sa instanceof InetSocketAddress ? (InetSocketAddress)sa : null;
-	}
-
-	@Override
-	public boolean isClosed() {
-		return closed != 0;
 	}
 
 	public int getOperateSize() {
@@ -364,7 +361,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 					addInterestOps(SelectionKey.OP_CONNECT);
 				selector.wakeup();
 			} catch (Exception e) {
-				close(e); // 幂等（CAS恰好一次）：已被stop关闭时静默返回
+				close(e); // 幂等（恰好一次，见markClosed）：已被stop关闭时静默返回
 			}
 		});
 	}
@@ -508,10 +505,10 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	}
 
 	public boolean submitAction(@NotNull Action0 callback) {
-		var c = closed;
-		if (c != 0) {
+		if (isClosed()) {
+			var c = closeDetail;
 			if (c < SEND_CLOSE_DETAIL_MAX) {
-				closedHandle.compareAndSet(this, (byte)c, (byte)(c + 1));
+				closeDetailHandle.compareAndSet(this, (byte)c, (byte)(c + 1));
 				logger.error("submitAction to closed socket: {}", this, new Exception("only for stack trace"));
 			} else
 				logger.error("submitAction to closed socket: {}", this);
@@ -787,7 +784,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	}
 
 	private void realClose() {
-		if ((byte)closedHandle.getAndSet(this, (byte)REAL_CLOSED) == REAL_CLOSED) // 阻止递归关闭
+		if ((byte)closeDetailHandle.getAndSet(this, (byte)REAL_CLOSED) == REAL_CLOSED) // 阻止递归关闭
 			return;
 		try {
 			selectionKey.channel().close();
@@ -822,10 +819,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	}
 
 	@Override
-	public boolean close(@Nullable Throwable ex, boolean gracefully) {
-		if (!closedHandle.compareAndSet(this, (byte)0, (byte)1)) // 阻止递归关闭
-			return false;
-
+	protected void doClose(@Nullable Throwable ex, boolean gracefully) {
 		if (ex != null) {
 			if (ex instanceof IOException)
 				logger.info("close: {} {}", this, ex);
@@ -849,18 +843,17 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 
 		// FND5-18：监听socket（ServerSocketChannel的validOps仅OP_ACCEPT）不走优雅路径——
 		// addInterestOps(OP_WRITE)抛IllegalArgumentException发生在兜底realClose注册之前：
-		// channel未关、closed已置1，后续close()因CAS失败直接返回，端口泄漏不可再关。
+		// channel未关、置死已生效，后续close()直接返回，端口泄漏不可再关。
 		// 监听socket无输出缓冲，优雅语义本不适用，直接realClose。
 		if (gracefully && type != Type.eServerSocket) {
 			closePending = true;
 			if (addInterestOps(SelectionKey.OP_WRITE))
 				selector.wakeup();
-			// scheduleNow：closed 的 CAS 已即时生效（closePending/OP_WRITE 已设置），兜底注册不能
+			// scheduleNow：置死已即时生效（closePending/OP_WRITE 已设置），兜底注册不能
 			// 随事务回滚丢弃，否则对端不读时 realClose 永不执行、连接永滞（与 Rpc 超时清理同型）。
 			TaskSpec.ofAction(this::realClose).scheduleNow(120 * 1000); // 最多给2分钟清空输出队列。
 		} else
 			realClose();
-		return true;
 	}
 
 	@Override

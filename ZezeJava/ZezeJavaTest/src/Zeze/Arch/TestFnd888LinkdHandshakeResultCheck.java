@@ -52,10 +52,9 @@ public class TestFnd888LinkdHandshakeResultCheck {
 		}
 
 		@Override
-		public boolean close(@Nullable Throwable ex, boolean gracefully) {
+		protected void doClose(@Nullable Throwable ex, boolean gracefully) {
 			closed = true;
 			closeReason = ex;
-			return true;
 		}
 
 		@Override

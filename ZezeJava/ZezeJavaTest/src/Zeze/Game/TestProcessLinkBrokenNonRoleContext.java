@@ -70,8 +70,7 @@ public class TestProcessLinkBrokenNonRoleContext {
 		}
 
 		@Override
-		public boolean close(@Nullable Throwable ex, boolean gracefully) {
-			return false;
+		protected void doClose(@Nullable Throwable ex, boolean gracefully) {
 		}
 
 		@Override
