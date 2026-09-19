@@ -15,10 +15,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * 残余窗口回归（连接器意图代数）：cancel(false)撤不回已派发的重连任务——任务被线程池取出、
- * 阻塞在Connector锁上时stop()完整返回，旧实现中该任务随后拿到锁照常建连，连接器在stop后复活。
- * 修复：start()/stop()锁内各开新纪元（epoch++），排程任务携带排程时代数，醒来不匹配即弃；
- * stop→start重启是同步新意图（直接调start()），不受影响。
+ * 回归（意图代数）：已派发的重连任务阻塞在Connector锁上时stop()/setAutoReconnect(false)
+ * 完整返回，旧实现中该任务随后照常建连——撤销后连接器复活。修复后旧代数任务醒来即弃；
+ * stop→start重启、disable→enable重新启用不受影响。
  */
 @Fast
 public class TestConnectorStopRevokesScheduledReconnect {
@@ -65,9 +64,8 @@ public class TestConnectorStopRevokesScheduledReconnect {
 			connector.start();
 			await("retry chain running", 15_000, () -> client.attempts.get() >= 2);
 
-			// 持锁覆盖下一次fire（退避≥2s，观察窗3s）：任务被线程池取出后必然阻塞在本锁上——
-			// 此时stop()以重入方式完整执行（cancel对运行中任务无效，由epoch作废），随后放行。
-			// 任务无论在stop前还是stop后拿到锁，携带的都是旧代数，一律作废。
+			// 持锁覆盖下一次fire：任务取出后阻塞在本锁上，stop()以重入方式完整执行后放行——
+			// 任务无论何时拿到锁携带的都是旧代数。
 			connector.lock();
 			try {
 				//noinspection BusyWait
@@ -87,6 +85,50 @@ public class TestConnectorStopRevokesScheduledReconnect {
 			// stop→start重启是同步新意图：新纪元，退避链恢复
 			connector.start();
 			await("restart reconnects", 15_000, () -> client.attempts.get() > attemptsAtStop);
+		} finally {
+			if (connector != null)
+				connector.stop();
+			client.Stop();
+		}
+	}
+
+	@Test
+	public void testDispatchedReconnectTaskRevokedByDisableAutoReconnect() throws Exception {
+		Task.tryInitThreadPool();
+		var client = new FailingResolveService("test.stoprevoke.client.disable");
+		Connector connector = null;
+		try {
+			connector = new Connector("127.0.0.1", 1, true);
+			connector.SetService(client);
+
+			// 退避链运行：初次构造+至少一次排程重试（间隔1s）
+			connector.start();
+			await("retry chain running", 15_000, () -> client.attempts.get() >= 2);
+
+			// 持锁覆盖下一次fire：任务取出后阻塞在本锁上，setAutoReconnect(false)以重入方式
+			// 完整执行后放行——任务无论何时拿到锁携带的都是旧代数，一律作废。
+			connector.lock();
+			try {
+				//noinspection BusyWait
+				Thread.sleep(3_000);
+				connector.setAutoReconnect(false);
+			} finally {
+				connector.unlock();
+			}
+
+			// 撤销时若仍有在途socket，其死亡链（阻塞过的OnSocketClose→stop）随后清空socket。
+			// attempts的基线须在socket清空后取：撤销前最后一发在途resolve可能在此期间落地计数。
+			final var conn = connector;
+			await("socket released", 5_000, () -> conn.getSocket() == null);
+			int attemptsAtDisable = client.attempts.get();
+			//noinspection BusyWait
+			Thread.sleep(3_000);
+			Assertions.assertEquals(attemptsAtDisable, client.attempts.get(),
+					"disable后已派发的重连任务必须作废（attempts不得增长），attempts=" + client.attempts.get());
+
+			// disable→enable重新启用是新意图：退避链恢复
+			connector.setAutoReconnect(true);
+			await("re-enable reconnects", 15_000, () -> client.attempts.get() > attemptsAtDisable);
 		} finally {
 			if (connector != null)
 				connector.stop();

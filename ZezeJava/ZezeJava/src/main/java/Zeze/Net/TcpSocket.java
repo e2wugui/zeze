@@ -67,8 +67,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	private @Nullable Codec outputCodecChain; // 只在selector线程访问
 	private volatile byte security; // 1:Input; 2:Output; 1|2:Input+Output
 
-	// 死因细节（生命周期"已死"判据在基类markClosed/isClosed）：关闭后submitAction误用计数
-	//（前SEND_CLOSE_DETAIL_MAX次带堆栈）；realClose置REAL_CLOSED防递归。
+	// 关闭后submitAction误用计数（前SEND_CLOSE_DETAIL_MAX次带堆栈）；realClose置
+	// REAL_CLOSED防递归。判死在基类。
 	@SuppressWarnings("unused")
 	private volatile byte closeDetail;
 	private volatile boolean closePending;

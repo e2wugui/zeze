@@ -49,9 +49,8 @@ public abstract class AsyncSocket {
 
 	private final @NotNull Service service;
 
-	// 生命周期状态机（"socketMap ⊆ 活socket"不变式）的置死/登记互斥锁；转移方法见构造器后的
-	// markClosed/runIfOpen/isClosed。remove不经本锁：它走虚回调链，纳入会形成本锁→子类
-	// 覆写代码的锁序边（R3教训）。锁内只做标志转移与登记动作（无阻塞无回调）。
+	// 生命周期状态机的置死/登记互斥锁（不变式见构造器后）；remove不经本锁（虚回调链，
+	// 纳入成锁序边）；锁内只做标志转移与登记动作。
 	private final @NotNull Object lifecycleLock = new Object();
 	private volatile boolean lifecycleClosed; // volatile供isClosed无锁读（Send等热路径）
 
@@ -68,11 +67,10 @@ public abstract class AsyncSocket {
 	}
 
 	// —— 生命周期状态机：不变式"socketMap ⊆ 活socket" ——
-	// 置死（close()模板经markClosed，final强制不可绕过）与登记（Service.addSocket经
-	// runIfOpen）互斥：登记临界区先于置死，则条目由close链内Service.OnSocketClose的
-	// remove核销（remove在置死之后、必然晚于登记）；迟于置死则登记拒绝。
+	// 置死（final close()经markClosed）与登记（addSocket经runIfOpen）互斥：登记先于置死
+	// 则条目由close链的remove核销，迟于则拒绝。
 
-	/** 置死转移（恰好一次）：false=已死（重入/迟到close）。仅close()模板调用。 */
+	/** 置死转移（恰好一次）：false=已死（重入/迟到close）。 */
 	private boolean markClosed() {
 		synchronized (lifecycleLock) {
 			if (lifecycleClosed)
@@ -82,7 +80,7 @@ public abstract class AsyncSocket {
 		}
 	}
 
-	/** 登记临界区（Service.addSocket专用）：action在置死互斥下执行；已closed返回null。action内仅做登记动作。 */
+	/** 登记临界区（addSocket专用）：置死互斥下执行action，已closed返回null。 */
 	final <T> @Nullable T runIfOpen(@NotNull Supplier<T> action) {
 		synchronized (lifecycleLock) {
 			if (lifecycleClosed)
@@ -208,10 +206,7 @@ public abstract class AsyncSocket {
 		close(null);
 	}
 
-	/**
-	 * 关闭模板：置死恰好一次（与登记互斥，见生命周期状态机）后执行子类死亡流程。
-	 * final强制全部子类经markClosed置死——"socketMap ⊆ 活socket"的置死侧不可绕过。
-	 */
+	/** 关闭模板：置死恰好一次后执行子类死亡流程；final令置死不可绕过（不变式见生命周期状态机）。 */
 	public final boolean close(@Nullable Throwable ex, boolean gracefully) {
 		if (!markClosed())
 			return false;

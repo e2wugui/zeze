@@ -32,12 +32,11 @@ public class Connector extends ReentrantLock {
 
 	public volatile @Nullable Object userState;
 
-	private boolean isAutoReconnect;
+	private volatile boolean isAutoReconnect; // isAutoReconnect()无锁读，需要可见性保证
 	private volatile boolean isConnected; // isConnected()无锁读，需要可见性保证
 	private @Nullable Future<?> reconnectTask;
-	// 意图代数（仅本锁临界区内读写）：start()/stop()的锁内决策各开新纪元；排程出的重连任务
-	// 携带排程时的代数，醒来时不匹配即弃——cancel(false)撤不回已派发任务，"stop之前排程、
-	// stop之后才醒来"的意图靠它作废。stop→start重启是同步新意图（直接调start()），不受影响。
+	// 意图代数（仅锁内读写）：start()/stop()各开新纪元，排程任务携带排程时代数、醒来不匹配
+	// 即弃——作废stop前已派发、cancel(false)撤不回的在途重连。
 	private long epoch;
 	private int maxReconnectDelay = 8000; // 毫秒
 	private int reConnectDelay;
@@ -145,6 +144,7 @@ public class Connector extends ReentrantLock {
 		} else {
 			lock();
 			try {
+				epoch++; // 撤销重连意图同样开新纪元：作废已派发、cancel(false)撤不回的任务（对齐stop）
 				if (reconnectTask != null) {
 					reconnectTask.cancel(false);
 					reconnectTask = null;
@@ -191,6 +191,11 @@ public class Connector extends ReentrantLock {
 		}
 	}
 
+	/**
+	 * 契约：仅由 AsyncSocket 死亡流程（doClose，置死之后）调用——本方法持锁经 stop(e) 重入
+	 * as.close(e)，"socket==closed ⇒ 已置死"使其恒为no-op；否则doClose将在Connector锁内展开
+	 * （含取Service锁），违反Service锁→回调锁单向锁序（见Service.stop契约）。
+	 */
 	public void OnSocketClose(@NotNull AsyncSocket closed, @Nullable Throwable e) throws Exception {
 		lock();
 		try {
@@ -252,6 +257,8 @@ public class Connector extends ReentrantLock {
 	public void start() {
 		lock();
 		try {
+			if (service == null) // 未SetService即start：编程错误，快速失败（否则NPE进退避循环不可诊断）
+				throw new IllegalStateException("Connector '" + getName() + "' start() before SetService()");
 			epoch++; // 新意图开启新纪元，作废在途调度任务
 			startInternal();
 		} finally {
@@ -298,7 +305,7 @@ public class Connector extends ReentrantLock {
 		AsyncSocket as;
 		lock();
 		try {
-			epoch++; // 作废一切在途调度意图（含cancel(false)撤不回的已派发任务）
+			epoch++; // 作废在途调度任务
 			// always try cancel reconnect task
 			if (reconnectTask != null) {
 				reconnectTask.cancel(false);

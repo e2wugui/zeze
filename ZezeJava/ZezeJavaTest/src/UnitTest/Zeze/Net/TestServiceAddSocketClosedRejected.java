@@ -10,12 +10,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * addSocket查死拒绝回归（僵尸socketMap条目）：连接成功回调可能跨骑一条已完成的close链
- * （close的CAS→OnSocketClose在前、channel.close在后）——迟到的登记若入表，其OnSocketClose
- * "恰好一次"已消费，无人核销（GetSocket按id返回死连接、计数虚高、keepalive tick永久空转）。
- * 修复：置死CAS与"查死+登记"在AsyncSocket.lifecycleLock内互斥（不变式"表⊆活socket"），
- * closed的socket登记被结构性拒绝。三个入口（TcpSocket连接成功/WebsocketClient.onOpen/
- * accept路径）同享。
+ * 回归（僵尸socketMap条目）：连接成功回调跨骑完整close链时，迟到登记的OnSocketClose
+ * "恰好一次"已消费、入表后无人核销。修复：置死与登记在AsyncSocket互斥，closed登记被拒
+ * （三个入口TcpSocket连接成功/WebsocketClient.onOpen/accept同享）。
  */
 @Fast
 public class TestServiceAddSocketClosedRejected {

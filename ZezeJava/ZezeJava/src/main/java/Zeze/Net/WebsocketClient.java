@@ -45,10 +45,8 @@ public class WebsocketClient extends AsyncSocket {
 
 			@Override
 			public void onOpen(WebSocket webSocket) {
-				// 残余竞态：close()恰在本检查与tryAccept之间完整执行完时，迟到的登记由
-				// Service.addSocket在置死互斥下拒绝（不入表、返回false，不再回调
-				// OnHandshakeDone）。本检查仍保留：省去对死连接的request与限流检查动作。
-				// 不在此补调OnSocketClose：破坏"恰好一次"契约（调用方清理按一次编写）。
+				// close恰在本检查与tryAccept之间完成时，迟到登记由addSocket置死互斥拒绝；
+				// 本检查仅省去对死连接的后续动作。不补调OnSocketClose（保"恰好一次"）。
 				if (isClosed()) { // 关闭先于握手完成（如Connector.stop）时废弃迟到的连接
 					webSocket.abort();
 					return;
