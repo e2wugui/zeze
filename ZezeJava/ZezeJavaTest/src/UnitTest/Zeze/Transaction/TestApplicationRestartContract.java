@@ -18,7 +18,9 @@ import Zeze.Config;
 @Fast
 public class TestApplicationRestartContract {
 	// 独立serverId避免zeze_cache_<serverId>目录与其他测试冲突。
-	private static final int SERVER_ID = 7353;
+	// 7353曾撞TestRankCacheEvict（基点7350，第4个@Test实例=7353，类并行下本类三方法连挂，
+	// 30轮压测2026-09-19轮17）——固定字面量不得落在他类计数器基点的增长范围内，迁7470独占。
+	private static final int SERVER_ID = 7470;
 
 	private Application app;
 

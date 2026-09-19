@@ -38,6 +38,11 @@ test 任务类级并行（同 JVM），@Fast 类必须彼此互不干扰：
   （Windows 下被打开的文件删不掉，重试 10s 后炸 start）。三选一：
   `TakeoverTestEnv.newConf` 式动态发号；固定空闲段字面量（查全景再选号）；
   `setNoDatabase(true)`（无库不建目录）。
+- 选号两条铁律（2026-09-19 两处撞段实证）：**固定字面量不得落在他类计数器基点的
+  增长范围内**（7353 撞 RankCacheEvict 第 4 实例、7360 撞 RankCountNeedKey）；
+  **每类自带计数器若不共享，基点即撞点**（6 类各自从 1 起号互撞）。计数器基点
+  间隔须 ≥ 该类 @Test 数。当前 7xxx 段：7150/7160/7250/7350/7360(固定)/7371(固定)/
+  7410-7460/7470(固定)/7480/8790。
 - dbhome、固定端口同理独占；只有 `Application.start` 且非 NoDatabase 才建缓存目录，
   净层组件（Service/Agent/MQManager/Dbh2 Master/RocksRaft/ServiceManagerWithRaft）不建。
 - gradle 三池分治（fast 并行 / integration 串行 / bench）下默认 0 可能长期不撞纯属时序；
