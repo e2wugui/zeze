@@ -151,11 +151,15 @@ public class TestFnd855WebsocketMaxConnections {
 
 		var client = new Service("test.fnd855.tcpclient");
 		try {
+			// 顺序确定化：8a22f09b5建连异步化后两条newClientSocket的TCP完成序不再随调用序
+			//（resolver线程竞速，20轮压测18/20批实测so2可先完成被接受占位、so1反遭拒绝——
+			// "second rejected & closed"等的其实是永不关闭的幸存者so2）。先等so1真正占位
+			//（socketCount==1即握手完成入表）再发起so2，so2必为超限的第二条。
 			var so1 = client.newClientSocket("127.0.0.1", port, null, null);
-			var so2 = client.newClientSocket("127.0.0.1", port, null, null);
 			Assertions.assertNotNull(so1);
-			Assertions.assertNotNull(so2);
 			await("first accepted", 10_000, () -> server.getSocketCount() == 1);
+			var so2 = client.newClientSocket("127.0.0.1", port, null, null);
+			Assertions.assertNotNull(so2);
 			// 第2条超限：服务端accept流程抛ISE关闭——客户端侧观察到连接被关
 			await("second rejected & closed", 10_000, so2::isClosed);
 			Assertions.assertEquals(1, server.getSocketCount(), "TCP路径限流不得回归");
