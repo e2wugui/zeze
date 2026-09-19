@@ -53,63 +53,70 @@ final class HttpFileService {
 
 		var fn = file.getName();
 		var fc = FileChannel.open(file.toPath(), readOnlyOpenOptions);
-		var fsize = fc.size();
-		var rangeHeader = req.headers().get(HttpHeaderNames.RANGE);
-		// RFC 7233: 多段Range需multipart/byteranges（暂不支持），降级为200全量（服务器可忽略Range）
-		var r = rangeHeader != null && rangeHeader.indexOf(',') < 0 ? parseRange(req, HttpHeaderNames.RANGE) : null;
+		try {
+			// open成功到lastFuture的listener接管fc关闭之间（如fc.size()抛IO异常），fc由catch兜底关闭，
+			// 否则异常传播回handler后文件句柄泄漏。fc.close()幂等，与listener互斥安全。
+			var fsize = fc.size();
+			var rangeHeader = req.headers().get(HttpHeaderNames.RANGE);
+			// RFC 7233: 多段Range需multipart/byteranges（暂不支持），降级为200全量（服务器可忽略Range）
+			var r = rangeHeader != null && rangeHeader.indexOf(',') < 0 ? parseRange(req, HttpHeaderNames.RANGE) : null;
 
-		var from = 0L;
-		var to = fsize - 1L;
-		var partial = false;
-		if (r != null && (r[0] >= 0 || r[1] >= 0)) { // 语法有效的单段Range
-			var satisfiable = false;
-			if (r[0] >= 0) { // bytes=from-[to]；可满足: from在文件内且(to缺失或to>=from)
-				satisfiable = r[0] < fsize && (r[1] < 0 || r[1] >= r[0]);
-				if (satisfiable) {
-					from = r[0];
-					if (r[1] >= 0)
-						to = Math.min(r[1], fsize - 1); // to是inclusive右端点，超出文件尾按fsize-1截断
+			var from = 0L;
+			var to = fsize - 1L;
+			var partial = false;
+			if (r != null && (r[0] >= 0 || r[1] >= 0)) { // 语法有效的单段Range
+				var satisfiable = false;
+				if (r[0] >= 0) { // bytes=from-[to]；可满足: from在文件内且(to缺失或to>=from)
+					satisfiable = r[0] < fsize && (r[1] < 0 || r[1] >= r[0]);
+					if (satisfiable) {
+						from = r[0];
+						if (r[1] >= 0)
+							to = Math.min(r[1], fsize - 1); // to是inclusive右端点，超出文件尾按fsize-1截断
+					}
+				} else { // 后缀形式 bytes=-N；可满足: N>0且文件非空（bytes=-0按RFC不可满足）
+					satisfiable = r[1] > 0 && fsize > 0;
+					if (satisfiable)
+						from = Math.max(fsize - r[1], 0);
 				}
-			} else { // 后缀形式 bytes=-N；可满足: N>0且文件非空（bytes=-0按RFC不可满足）
-				satisfiable = r[1] > 0 && fsize > 0;
-				if (satisfiable)
-					from = Math.max(fsize - r[1], 0);
+				if (!satisfiable) { // RFC要求416 + Content-Range: bytes */fsize（客户端据此检测远端文件截断）
+					var res416 = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+							HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, Unpooled.EMPTY_BUFFER,
+							HttpExchange.headersFactory, HttpExchange.trailersFactory);
+					HttpServer.setDate(res416.headers())
+							.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+							.set(HttpHeaderNames.CONTENT_LENGTH, 0)
+							.set(HttpHeaderNames.CONTENT_RANGE, "bytes */" + fsize);
+					fc.close();
+					x.close(x.writeResponse(res416, true, null)); // 经序化器，同304分支
+					return;
+				}
+				partial = true;
 			}
-			if (!satisfiable) { // RFC要求416 + Content-Range: bytes */fsize（客户端据此检测远端文件截断）
-				var res416 = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-						HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, Unpooled.EMPTY_BUFFER,
-						HttpExchange.headersFactory, HttpExchange.trailersFactory);
-				HttpServer.setDate(res416.headers())
-						.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-						.set(HttpHeaderNames.CONTENT_LENGTH, 0)
-						.set(HttpHeaderNames.CONTENT_RANGE, "bytes */" + fsize);
-				fc.close();
-				x.close(x.writeResponse(res416, true, null)); // 经序化器，同304分支
-				return;
-			}
-			partial = true;
+			var contentLen = partial ? to - from + 1 : fsize;
+
+			var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1,
+					partial ? HttpResponseStatus.PARTIAL_CONTENT : HttpResponseStatus.OK, HttpExchange.headersFactory);
+			var headers = HttpServer.setDate(res.headers())
+					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+					.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')
+					.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
+					.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
+					.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
+					.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + fileCacheSeconds)
+					.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
+			if (partial) // Content-Range只属于206/416，200不带
+				headers.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + to + '/' + fsize);
+			x.writeResponse(res, false, x.context.voidPromise()); // N①：响应头经序化器（挂起时FileRegion同队保序）
+
+			if (contentLen > 0 && !HttpMethod.HEAD.equals(req.method())) // 发文件任务全部交给Netty，并且发送完毕时关闭。
+				x.writeResponse(new DefaultFileRegion(fc, from, contentLen), false, x.context.voidPromise());
+			var lastFuture = x.writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
+			lastFuture.addListener(__ -> fc.close());
+			x.close(lastFuture);
+		} catch (Throwable e) {
+			fc.close(); // 兜底：listener接管前的异常窗口；幂等，listener已关则无效果
+			throw e;
 		}
-		var contentLen = partial ? to - from + 1 : fsize;
-
-		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1,
-				partial ? HttpResponseStatus.PARTIAL_CONTENT : HttpResponseStatus.OK, HttpExchange.headersFactory);
-		var headers = HttpServer.setDate(res.headers())
-				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-				.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')
-				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
-				.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
-				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
-				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + fileCacheSeconds)
-				.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
-		if (partial) // Content-Range只属于206/416，200不带
-			headers.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + to + '/' + fsize);
-		x.writeResponse(res, false, x.context.voidPromise()); // N①：响应头经序化器（挂起时FileRegion同队保序）
-
-		if (contentLen > 0 && !HttpMethod.HEAD.equals(req.method())) // 发文件任务全部交给Netty，并且发送完毕时关闭。
-			x.writeResponse(new DefaultFileRegion(fc, from, contentLen), false, x.context.voidPromise());
-		var lastFuture = x.writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
-		lastFuture.addListener(__ -> fc.close());
-		x.close(lastFuture);
 	}
 
 	static void sendPath(@NotNull HttpExchange x, @NotNull File file) {
