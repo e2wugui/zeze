@@ -598,6 +598,15 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			@Override
 			public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
 				onBeforeWrite(ctx.channel());
+				try {
+					HttpExchange.checkResponseOrder(ctx.channel(), msg); // 出站tripwire：直写响应当场拒绝
+				} catch (IllegalStateException e) {
+					// Netty对出站写的同步异常只fail promise（写方不听则静默），必须显式走异常处置关连接
+					ReferenceCountUtil.release(msg);
+					promise.tryFailure(e);
+					ctx.fireExceptionCaught(e);
+					return;
+				}
 				super.write(ctx, msg, promise);
 			}
 		});
@@ -661,6 +670,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 	// 框架级拒绝：代回状态（400/503）并关闭连接，同步移除并善后该连接上在途的exchange
 	//（先移除,后续消息不再派发）——停机/创建策略拒绝（FND8-56）与解码失败共用处置。
 	private void rejectAndClose(@NotNull ChannelHandlerContext ctx, @NotNull HttpResponseStatus status) {
+		ctx.channel().attr(HttpExchange.responseOrderBypassKey).set(Boolean.TRUE); // tripwire豁免：框架直写，连接将亡
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, Unpooled.EMPTY_BUFFER,
 				HttpExchange.headersFactory, HttpExchange.trailersFactory);
 		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);

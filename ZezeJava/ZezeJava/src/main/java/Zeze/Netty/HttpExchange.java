@@ -50,6 +50,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeadersFactory;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
@@ -612,7 +613,9 @@ public class HttpExchange {
 	// 非pipelining（单在途请求）时exchange即持笔者，写直达；直接构造、未经channelRead登记的
 	// exchange不参与序化。
 	// 已知豁免（不经序化器）：WebSocket升级101与帧（升级请求不会被pipelining）、HttpServer自身的
-	// 400/503直写（随即关闭连接）、HttpResponseWithBodyStream的异常中止路径（连接将亡）。
+	// 400/503直写（随即关闭连接，responseOrderBypassKey声明豁免）、HttpResponseWithBodyStream的
+	// 异常中止路径（连接将亡）。豁免之外的响应头直写由出站tripwire（checkResponseOrder，
+	// HttpServer的encoder write钩子）当场拒绝。
 	static final AttributeKey<ResponseSequencer> responseOrderKey = AttributeKey.valueOf("ZezeHttpResponseOrder");
 	// 单exchange挂起响应写上限：防pipelining滥用驻留内存（每挂起写持有一个响应消息）。
 	private static final int MaxPendingResponseWrites = 256;
@@ -631,6 +634,7 @@ public class HttpExchange {
 		final HttpExchange x;
 		ArrayDeque<DeferredWrite> pending; // 未轮到时的挂起响应写，懒建
 		boolean finished; // exchange已close/endStream（FINISH族挂起写仍按序送出）
+		boolean started; // 本entry的按序写已开始（出站tripwire的判定依据）
 
 		OrderEntry(HttpExchange x) {
 			this.x = x;
@@ -647,6 +651,30 @@ public class HttpExchange {
 	@Nullable ResponseSequencer responseSequencer;
 	int responseOrderId; // 登记分配的到达序；未登记（直接构造）为0且responseSequencer为null
 	private @Nullable OrderEntry responseEntry; // 本exchange的序化条目（出队时清引用）
+
+	// 框架直写豁免标志（rejectAndClose设置）：声明该channel的后续直写响应合法（随即关连接），免清理。
+	static final AttributeKey<Boolean> responseOrderBypassKey = AttributeKey.valueOf("ZezeHttpResponseOrderBypass");
+
+	// 出站tripwire（HttpServer的encoder write钩子调用）：任何响应头(HttpResponse)写出时，序化器持笔
+	// entry必须已开始写——绕过writeResponse直写ctx的响应（FND8-46类）当场抛异常（→exceptionCaught
+	// →关连接），把"pipelining客户端静默拿到错配响应"变成测试期响亮失败。宁可断连不可错序。
+	// 豁免：WebSocket升级（管线含协议处理器时整条连接跳过，升级后已无HTTP响应语义）、框架400/503
+	// 拒绝（responseOrderBypassKey声明）。限制：在途全部出队后的迟到直写无法归因，不检查。
+	static void checkResponseOrder(@NotNull Channel ch, @NotNull Object msg) {
+		if (!(msg instanceof HttpResponse))
+			return;
+		var seq = ch.attr(responseOrderKey).get();
+		if (seq == null) // 无登记（首请求即被拒/直接构造）：无序化语义可违反
+			return;
+		if (ch.pipeline().get(WebSocketServerProtocolHandler.class) != null)
+			return;
+		if (ch.attr(responseOrderBypassKey).get() != null)
+			return;
+		var e = seq.entries.get(seq.writingOrderId);
+		if (e != null && !e.started)
+			throw new IllegalStateException("http response written out of order from " + ch.remoteAddress()
+					+ ": sequencer head(order=" + seq.writingOrderId + ") not started, bypass writeResponse?");
+	}
 
 	// HttpServer.channelRead收到HttpRequest创建本exchange后登记（EventLoop线程，先于任何响应写）。
 	void registerResponseOrder() {
@@ -746,6 +774,7 @@ public class HttpExchange {
 			}
 			return;
 		}
+		responseEntry.started = true; // 先于submit：编码器的出站tripwire据此判定持笔已开始
 		submit(msg, promise, flush); // 持笔：直达，同exchange内部顺序由（同线程）提交序保证
 	}
 
@@ -820,6 +849,7 @@ public class HttpExchange {
 		if (pending == null || pending.isEmpty())
 			return;
 		e.pending = null;
+		e.started = true; // 本entry的按序写开始（出站tripwire依据），先于submit
 		var x = e.x;
 		while (!pending.isEmpty()) {
 			var w = pending.pollFirst();
