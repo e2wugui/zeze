@@ -121,8 +121,11 @@ public final class HttpResponseWithBodyStream {
 	 * 分块编码模式（contentLength == 0）
 	 */
 	private static class ChunkedBodyStream extends OutputStream {
-		// 慢客户端等待上限：对齐服务端默认写空闲超时（writeIdleTimeout），超过按对端过慢失败
-		private static final long SlowPeerTimeoutMillis = 60_000;
+		// 慢客户端等待上限。这个等待发生在handler的派发线程上（虚拟线程配置下无耗尽问题；
+		// 平台线程池为CPU×30固定大小），过长会放大慢客户端攻击面：N个不读的连接各占住一个
+		// worker直到超时。5s对合法慢客户端足够排空水位级积压（32KB@7KB/s），死连接由服务端
+		// 写空闲超时（writeIdleTimeout，60s级）兜底，此处只需约束线程占用时长。
+		private static final long SlowPeerTimeoutMillis = 5_000;
 
 		private final @NotNull HttpExchange x;
 		private boolean closed;
