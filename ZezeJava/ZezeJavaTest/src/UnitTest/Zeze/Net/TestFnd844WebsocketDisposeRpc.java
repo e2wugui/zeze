@@ -124,8 +124,8 @@ public class TestFnd844WebsocketDisposeRpc {
 						"WebsocketClient.close必须回调OnSocketDisposed");
 			} finally {
 				connector.stop();
-				clientService.Stop();
-				serverService.Stop();
+				clientService.stop();
+				serverService.stop();
 			}
 		} finally {
 			server.close();
@@ -176,7 +176,7 @@ public class TestFnd844WebsocketDisposeRpc {
 					ws.abort();
 				} catch (Throwable ignored) {
 				}
-				wsService.Stop();
+				wsService.stop();
 			}
 		} finally {
 			server.close();

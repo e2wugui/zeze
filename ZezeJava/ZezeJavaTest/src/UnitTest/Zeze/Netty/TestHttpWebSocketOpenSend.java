@@ -74,7 +74,7 @@ public class TestHttpWebSocketOpenSend {
 	public static void tearDown() throws Exception {
 		server.close();
 		netty.close();
-		service.Stop();
+		service.stop();
 	}
 
 	// 修复前:握手成功但onOpen内发送的帧永远不到达(写入HTTP出站管线失败被静默丢弃),本用例等满超时失败

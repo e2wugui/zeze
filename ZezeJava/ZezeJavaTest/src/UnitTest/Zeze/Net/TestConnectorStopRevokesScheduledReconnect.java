@@ -88,7 +88,7 @@ public class TestConnectorStopRevokesScheduledReconnect {
 		} finally {
 			if (connector != null)
 				connector.stop();
-			client.Stop();
+			client.stop();
 		}
 	}
 
@@ -132,7 +132,7 @@ public class TestConnectorStopRevokesScheduledReconnect {
 		} finally {
 			if (connector != null)
 				connector.stop();
-			client.Stop();
+			client.stop();
 		}
 	}
 }

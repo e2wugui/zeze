@@ -56,7 +56,7 @@ public class TestWebsocketClient {
 					"closeCount=" + service.closeCount.get() + ", handshake failure not closed/reconnected");
 		} finally {
 			connector.stop();
-			service.Stop();
+			service.stop();
 		}
 	}
 
@@ -96,7 +96,7 @@ public class TestWebsocketClient {
 				Assertions.assertNotNull(reconnected, "no reconnect after disconnect");
 			} finally {
 				connector.stop();
-				service.Stop();
+				service.stop();
 			}
 		} finally {
 			server.close();
@@ -129,7 +129,7 @@ public class TestWebsocketClient {
 						"握手完成后Connector.isConnected必须为true（onOpen需回调OnSocketConnected）");
 			} finally {
 				connector.stop();
-				service.Stop();
+				service.stop();
 			}
 		} finally {
 			server.close();

@@ -130,7 +130,7 @@ public class TestFnd855WebsocketMaxConnections {
 					ws1.abort();
 				} catch (Throwable ignored) {
 				}
-				wsService.Stop();
+				wsService.stop();
 			}
 		} finally {
 			server.close();
@@ -205,8 +205,8 @@ public class TestFnd855WebsocketMaxConnections {
 			} finally {
 				c1.stop();
 				c2.stop();
-				clientService.Stop();
-				serverService.Stop();
+				clientService.stop();
+				serverService.stop();
 			}
 		} finally {
 			server.close();

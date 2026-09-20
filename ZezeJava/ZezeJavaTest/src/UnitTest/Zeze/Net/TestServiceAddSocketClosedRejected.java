@@ -49,7 +49,7 @@ public class TestServiceAddSocketClosedRejected {
 			Assertions.assertNull(service.GetSocket(open.getSessionId()), "正常移除仍由close链负责");
 			Assertions.assertEquals(0, service.getSocketCount());
 		} finally {
-			service.Stop();
+			service.stop();
 		}
 	}
 }

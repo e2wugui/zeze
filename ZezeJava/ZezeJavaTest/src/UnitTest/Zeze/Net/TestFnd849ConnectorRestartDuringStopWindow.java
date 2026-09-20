@@ -105,8 +105,8 @@ public class TestFnd849ConnectorRestartDuringStopWindow {
 				client.release.countDown();
 			if (connector != null)
 				connector.stop();
-			client.Stop();
-			server.Stop();
+			client.stop();
+			server.stop();
 		}
 	}
 
@@ -136,8 +136,8 @@ public class TestFnd849ConnectorRestartDuringStopWindow {
 				client.release.countDown();
 			if (connector != null)
 				connector.stop();
-			client.Stop();
-			server.Stop();
+			client.stop();
+			server.stop();
 		}
 	}
 
@@ -168,8 +168,8 @@ public class TestFnd849ConnectorRestartDuringStopWindow {
 				client.release.countDown();
 			if (connector != null)
 				connector.stop();
-			client.Stop();
-			server.Stop();
+			client.stop();
+			server.stop();
 		}
 	}
 }

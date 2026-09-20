@@ -7,7 +7,6 @@ import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 
-import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;
 import Zeze.Net.WebsocketClient;
@@ -112,7 +111,7 @@ public class TestWebsocketClientSend {
 				Assertions.assertFalse(so.Send(new byte[1], 0, 1), "close 后 Send 必须返回 false");
 			} finally {
 				connector.stop();
-				service.Stop();
+				service.stop();
 			}
 		} finally {
 			server.close();
@@ -143,7 +142,7 @@ public class TestWebsocketClientSend {
 				Assertions.assertTrue(so.isClosed(), "发送失败必须触发 close（OnSocketClose 恰好一次）");
 			} finally {
 				connector.stop();
-				service.Stop();
+				service.stop();
 			}
 		} finally {
 			server.close();

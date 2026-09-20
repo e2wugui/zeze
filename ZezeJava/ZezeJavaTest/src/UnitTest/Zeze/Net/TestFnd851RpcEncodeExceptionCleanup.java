@@ -143,7 +143,7 @@ public class TestFnd851RpcEncodeExceptionCleanup {
 			Assertions.assertEquals(Procedure.Timeout, handleResult.code.get(), "晚到通知为Timeout码");
 			await("context cleaned by timeout", 10_000, () -> service.getRpcContextsToSender(stub).isEmpty());
 		} finally {
-			service.Stop();
+			service.stop();
 		}
 	}
 
@@ -203,7 +203,7 @@ public class TestFnd851RpcEncodeExceptionCleanup {
 			Thread.sleep(600);
 			Assertions.assertEquals(1, callbacks.getCount(), "超时定时器不得在上下文已清理后派发回调");
 		} finally {
-			service.Stop();
+			service.stop();
 		}
 	}
 }

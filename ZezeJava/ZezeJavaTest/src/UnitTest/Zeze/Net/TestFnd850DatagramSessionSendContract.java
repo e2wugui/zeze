@@ -2,7 +2,7 @@ package UnitTest.Zeze.Net;
 
 import harness.Fast;
 import java.net.InetSocketAddress;
-import Zeze.Net.DatagramSession;
+
 import Zeze.Net.Rpc;
 import Zeze.Net.RpcSocketDisposedException;
 import Zeze.Net.Service;
@@ -71,7 +71,7 @@ public class TestFnd850DatagramSessionSendContract {
 			Assertions.assertTrue(sessionB.isClosed());
 			Assertions.assertFalse(sessionB.Send(new byte[]{1}, 0, 1), "socket关闭级联后Send必须false");
 		} finally {
-			service.Stop();
+			service.stop();
 		}
 	}
 
@@ -100,7 +100,7 @@ public class TestFnd850DatagramSessionSendContract {
 			Assertions.assertTrue(service.getRpcContextsToSender(session).isEmpty(),
 					"发送失败路径必须清理rpcContexts（修复前异常穿透致永久泄漏）");
 		} finally {
-			service.Stop();
+			service.stop();
 		}
 	}
 
@@ -130,7 +130,7 @@ public class TestFnd850DatagramSessionSendContract {
 			Assertions.assertTrue(cause instanceof RpcSocketDisposedException,
 					"close必须在飞Rpc立即失败（RpcSocketDisposedException），实际=" + cause);
 		} finally {
-			service.Stop();
+			service.stop();
 		}
 	}
 }

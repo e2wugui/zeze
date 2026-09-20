@@ -129,8 +129,8 @@ public class TestFnd852ConnectorConnectedOwnerCheck {
 				client.release.countDown();
 			if (connector != null)
 				connector.stop();
-			client.Stop();
-			server.Stop();
+			client.stop();
+			server.stop();
 		}
 	}
 
@@ -162,8 +162,8 @@ public class TestFnd852ConnectorConnectedOwnerCheck {
 		} finally {
 			if (connector != null)
 				connector.stop();
-			client.Stop();
-			server.Stop();
+			client.stop();
+			server.stop();
 		}
 	}
 }

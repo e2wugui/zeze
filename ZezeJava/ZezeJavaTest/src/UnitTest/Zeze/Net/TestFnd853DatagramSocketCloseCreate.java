@@ -8,7 +8,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.DatagramSession;
-import Zeze.Net.DatagramSocket;
 import Zeze.Net.Service;
 import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
@@ -61,7 +60,7 @@ public class TestFnd853DatagramSocketCloseCreate {
 					new InetSocketAddress("127.0.0.1", 1), null, ReplayAttackPolicy.AllowDisorder),
 					"close后createSessionServer必须拒绝");
 		} finally {
-			service.Stop();
+			service.stop();
 		}
 	}
 
@@ -108,7 +107,7 @@ public class TestFnd853DatagramSocketCloseCreate {
 				service.closedSessions.clear();
 			}
 		} finally {
-			service.Stop();
+			service.stop();
 		}
 	}
 }

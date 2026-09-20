@@ -76,7 +76,7 @@ public class Acceptor extends ReentrantLock {
 		}
 	}
 
-	public final void Start() {
+	public final void start() {
 		lock();
 		try {
 			if (socket == null) {
@@ -89,7 +89,7 @@ public class Acceptor extends ReentrantLock {
 		}
 	}
 
-	public final void Stop() {
+	public final void stop() {
 		lock();
 		try {
 			if (socket != null) {

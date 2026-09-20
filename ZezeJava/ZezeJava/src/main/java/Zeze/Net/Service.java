@@ -315,14 +315,6 @@ public class Service extends ReentrantLock {
 		ZezeCounter.instance.serviceStart(this);
 	}
 
-	public void Start() throws Exception {
-		start();
-	}
-
-	public void Stop() throws Exception {
-		stop();
-	}
-
 	/**
 	 * 停止服务：关闭全部连接并熔断keepalive定时器与懒启动重试。
 	 * <p>

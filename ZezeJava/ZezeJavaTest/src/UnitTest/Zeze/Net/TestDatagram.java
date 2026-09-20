@@ -56,7 +56,7 @@ public class TestDatagram {
 			}
 		} finally {
 			// 原先Stop不在finally（2026-09-20审核）：断言失败路径泄漏
-			service.Stop();
+			service.stop();
 		}
 	}
 
@@ -82,7 +82,7 @@ public class TestDatagram {
 		Assertions.assertFalse(session.isClosed(), "alive session reported closed");
 		session.close(null);
 		Assertions.assertTrue(session.isClosed(), "closed session reported alive");
-		service.Stop();
+		service.stop();
 	}
 
 	// P2缺口: DatagramSession.close()从不回调Service.OnSocketClose（对照TcpSocket/WebsocketClient家族），
@@ -101,7 +101,7 @@ public class TestDatagram {
 		session.close(null); // 重入：回调不能双发
 		Assertions.assertEquals(1, service.closedSessions.size(), "OnSocketClose fired twice");
 		Assertions.assertTrue(session.isClosed());
-		service.Stop();
+		service.stop();
 	}
 
 	// P2缺口: DatagramSocket.close()只关channel不清tokens表，会话对象永久残留、
@@ -121,7 +121,7 @@ public class TestDatagram {
 		Assertions.assertFalse(server.containsSession(s1) || server.containsSession(s2), "tokens not cleared");
 		server.close(); // 重入幂等
 		Assertions.assertEquals(2, service.closedSessions.size());
-		service.Stop();
+		service.stop();
 	}
 
 	@Test

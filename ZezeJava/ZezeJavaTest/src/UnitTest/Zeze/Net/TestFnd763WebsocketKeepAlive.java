@@ -106,7 +106,7 @@ public class TestFnd763WebsocketKeepAlive {
 						"onBinary路径必须setActiveRecvTime，Got=" + so.getActiveRecvTime() + " base=" + base);
 			} finally {
 				connector.stop();
-				clientService.Stop();
+				clientService.stop();
 			}
 		} finally {
 			server.close();
@@ -156,7 +156,7 @@ public class TestFnd763WebsocketKeepAlive {
 					ws.abort();
 				} catch (Throwable ignored) {
 				}
-				wsService.Stop();
+				wsService.stop();
 			}
 		} finally {
 			server.close();
@@ -251,7 +251,7 @@ public class TestFnd763WebsocketKeepAlive {
 			Assertions.assertEquals(0, unmanaged.closedCount.get(),
 					"从不更新活跃时间的连接类型必须豁免，不得被立即误杀");
 		} finally {
-			service.Stop();
+			service.stop();
 		}
 	}
 }
