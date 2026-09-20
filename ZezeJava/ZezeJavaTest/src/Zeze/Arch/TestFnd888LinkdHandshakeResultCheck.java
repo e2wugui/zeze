@@ -82,28 +82,23 @@ public class TestFnd888LinkdHandshakeResultCheck {
 	@Test
 	public void testSuccessSetsResult() {
 		var so = newSocket();
-		var completed = new TaskCompletionSource<Boolean>();
+		// 断言锁的是生产行为（返回true不断连）；原先"测试自己setResult再断言自己isDone"是
+		// 自证恒真（2026-09-20审核删除）——置位语义由生产回调形状决定，此处无法真实执行。
 		Assertions.assertTrue(ProviderService.checkLinkdHandshakeResult(new Bind(), so, "a7link", "Bind"),
 				"成功应答必须返回true");
 		Assertions.assertFalse(so.closed, "成功不得断连");
-		completed.setResult(true); // 模拟回调内置位（成功分支）
-		Assertions.assertTrue(completed.isDone(), "成功路径照常置位完成信号");
 	}
 
-	/** 超时应答：返回false且断连（走重连重发），完成信号不得置位。 */
+	/** 超时应答：返回false且断连（走重连重发）。 */
 	@Test
 	public void testTimeoutClosesAndNotSet() {
 		var so = newSocket();
 		var rpc = new Bind();
 		rpc.setIsTimeout(true);
-		var completed = new TaskCompletionSource<Boolean>();
 		boolean ok = ProviderService.checkLinkdHandshakeResult(rpc, so, "a7link", "Bind");
-		if (ok)
-			completed.setResult(true); // 与生产lambda同构：仅成功才置位
 		Assertions.assertFalse(ok, "超时必须返回false（原先无条件setResult(true)）");
 		Assertions.assertTrue(so.closed, "失败必须断连触发重连重发");
 		Assertions.assertNotNull(so.closeReason, "断连须携带原因");
-		Assertions.assertFalse(completed.isDone(), "失败不得置位完成信号（应用层启动门禁不撒谎）");
 	}
 
 	/** 错误码应答：与超时同处理。 */

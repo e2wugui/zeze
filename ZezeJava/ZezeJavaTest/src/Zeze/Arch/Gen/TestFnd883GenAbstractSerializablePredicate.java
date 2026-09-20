@@ -234,13 +234,16 @@ public class TestFnd883GenAbstractSerializablePredicate {
 		Assertions.assertTrue(ex2.getMessage().contains("Abstract"), ex2.getMessage());
 	}
 
-	/** 护栏：具体结果类型两分支照常通过。 */
+	/** 护栏：具体结果类型两分支照常通过并收集字段。 */
 	@Test
 	public void testConcreteResultTypeAccepted() throws Exception {
 		var m1 = ResultSignatures.class.getMethod("futureConcrete", int.class);
-		Assertions.assertTrue(new MethodOverride(m1, m1.getAnnotation(RedirectToServer.class)).resultFields.size() >= 0);
+		// >=0 恒真是空断言（2026-09-20审核）：具体类型字段必须真实收集到
+		Assertions.assertFalse(new MethodOverride(m1, m1.getAnnotation(RedirectToServer.class)).resultFields.isEmpty(),
+				"具体结果类型的字段必须被收集");
 		var m2 = ResultSignatures.class.getMethod("allConcrete", int.class);
-		Assertions.assertNotNull(new MethodOverride(m2, m2.getAnnotation(RedirectAll.class)));
+		Assertions.assertFalse(new MethodOverride(m2, m2.getAnnotation(RedirectAll.class)).resultFields.isEmpty(),
+				"具体结果类型的字段必须被收集");
 	}
 
 	/** 文件模式试编译（第二道防线）：可编译产物正常写盘；不可编译产物写盘前拦下。 */

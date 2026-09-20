@@ -45,12 +45,19 @@ public class TestDatagram {
 		assert session != null;
 		var p = new ProtoValue();
 		p.Argument.setString3("hello");
-		session.Send(p);
-		while (helloNumber.get() < 3) {
-			//noinspection BusyWait
-			Thread.sleep(1);
+		try {
+			session.Send(p);
+			// 原先无deadline死循环（2026-09-20审核）：UDP任一环丢包即永久挂死worker
+			long deadline = System.currentTimeMillis() + 10_000;
+			while (helloNumber.get() < 3) {
+				Assertions.assertTrue(System.currentTimeMillis() < deadline, "10s内UDP乒乓未完成（丢包或回归）");
+				//noinspection BusyWait
+				Thread.sleep(1);
+			}
+		} finally {
+			// 原先Stop不在finally（2026-09-20审核）：断言失败路径泄漏
+			service.Stop();
 		}
-		service.Stop();
 	}
 
 	private final AtomicLong helloNumber = new AtomicLong();

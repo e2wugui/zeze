@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 public class TestDelayRemoveOnTimer {
 
 	// 与TestQueueCompatible的500+、MQSingle测试错开：@Fast类并行时Application的本地缓存按serverId一份。
-	private static final AtomicInteger NextServerId = new AtomicInteger(600);
+	private static final AtomicInteger NextServerId = new AtomicInteger(7530);
 
 	/** GC目标表用真实的tQueues（String键）：getTable命中，decodeKey=ReadString。 */
 	private static final String VictimTable = "Zeze_Builtin_Collections_Queue_tQueues";

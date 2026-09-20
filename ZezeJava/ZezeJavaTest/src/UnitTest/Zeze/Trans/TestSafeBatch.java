@@ -46,6 +46,7 @@ public class TestSafeBatch {
 			App.getInstance().getZeze().getSafeBatch().startWalkTable(
 				App.getInstance().demo_Module1.getTable5(),
 				(safeBatch, key, value) -> {
+					walkTableCount.incrementAndGet();
 					System.out.println("SafeBatch: " + key + ", " + value.getS());
 					return 0;
 				}, 1000, 1);
@@ -65,10 +66,19 @@ public class TestSafeBatch {
 			return 0;
 		}, "startWalkSortedMap").call();
 
-		System.out.println("startWalkTable ...");
-		Thread.sleep(1000);
-		System.out.println("startWalkTable ... end.");
+		// 原先裸sleep+打印零断言（2026-09-20审核）：三个walk必须真实走完并覆盖全部数据
+		long deadline = System.currentTimeMillis() + 15_000;
+		while ((walkTableCount.get() < 3 || walkListCount.get() < 3 || walkSortedMapCount.get() < 3)
+				&& System.currentTimeMillis() < deadline)
+			Thread.sleep(50);
+		Assertions.assertEquals(3, walkTableCount.get(), "walkTable必须遍历全部3行");
+		Assertions.assertEquals(3, walkListCount.get(), "walkList必须遍历全部3元素");
+		Assertions.assertEquals(3, walkSortedMapCount.get(), "walkSortedMap必须遍历全部3条目");
 	}
+
+	private static final java.util.concurrent.atomic.AtomicInteger walkTableCount = new java.util.concurrent.atomic.AtomicInteger();
+	private static final java.util.concurrent.atomic.AtomicInteger walkListCount = new java.util.concurrent.atomic.AtomicInteger();
+	private static final java.util.concurrent.atomic.AtomicInteger walkSortedMapCount = new java.util.concurrent.atomic.AtomicInteger();
 
 	// FND3-31：get*OutTransaction 返回 null（记录不存在/已删）= 无工作可推进，批处理必须停止并清理
 	// （对齐 TableBatchWorker 遍历尽与 checkBatch 表不存在的停批先例）。
@@ -111,6 +121,7 @@ public class TestSafeBatch {
 	public static class WalkSortedMap implements SafeBatch.WalkSortedMapJobHandle<Integer, Integer> {
 		@Override
 		public long runJob(SafeBatch safeBatch, Integer key, Integer value) {
+			walkSortedMapCount.incrementAndGet();
 			System.out.println("SafeBatch_SortedMap: " + key + ", " + value);
 			return 0;
 		}
@@ -149,6 +160,7 @@ public class TestSafeBatch {
 	public static class WalkList implements SafeBatch.WalkListJobHandle<Integer> {
 		@Override
 		public long runJob(SafeBatch safeBatch, int index, Integer value) {
+			walkListCount.incrementAndGet();
 			System.out.println("SafeBatch_List: " + index + ", " + value);
 			return 0;
 		}

@@ -123,6 +123,9 @@ public class TestGTable {
 		g.clear();
 		Json.parse(s, c);
 		System.out.println(g);
+		// 原先打印零断言（2026-09-20审核）：JSON往返必须恢复数据——GTable的JSON路径
+		// 恰是FND7-10/FND8-31连环缺陷区，往返无守护=假覆盖（guava StandardTable.get(row,col)）
+		Assertions.assertEquals(3.0f, g.get(1, 2L), "往返后数据必须恢复");
 	}
 
 	@Test
@@ -137,6 +140,10 @@ public class TestGTable {
 		g.clear();
 		Json.parse(s, c);
 		System.out.println(g);
+		// 同上：Bean值往返必须恢复
+		var restored = g.get(1, 2L);
+		Assertions.assertNotNull(restored, "往返后条目必须存在");
+		Assertions.assertEquals(3, restored.getIntVar(), "Bean字段必须恢复");
 	}
 
 	@Test

@@ -26,6 +26,9 @@ public class TestDatabaseSqlServer {
 	}
 
 	@Test
+	@org.junit.jupiter.api.Disabled("占位账号密码（MyUserName/*****）连不上任何真实库——驱动在classpath时"
+			+ "必失败打红套件，不在时静默跳过。永久死测试（2026-09-20审核标记）。"
+			+ "占位符契约由上方testSaveDataWithSameVersionCallPlaceholders真实验证。")
 	public final void test1() throws Exception {
 		System.out.println(System.getProperties().get("user.home"));
 		System.err.println("sqlserver jdbc 不能连接 vs 自带的 LocalDB(不用配置的）。所以这个测试先不管了。");

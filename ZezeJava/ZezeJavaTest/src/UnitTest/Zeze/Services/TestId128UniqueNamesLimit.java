@@ -61,6 +61,8 @@ public class TestId128UniqueNamesLimit {
 	public void testPersistentTableEvictsIdleAndRecovers() throws Exception {
 		var dir = Files.createTempDirectory("id128-evict");
 		try (var db = new RocksDatabase(dir.toString())) {
+			// 2026-09-20审核：原只关库不删目录（%TEMP%残留rocksdb目录），对齐同族deleteDirectory收尾
+
 			var table = db.getOrAddTable("id128");
 			var server = new Id128UdpServer(table); // 持久化部署
 			var process = Id128UdpServer.class.getDeclaredMethod("process", AllocateId128.class, ByteBuffer.class);
@@ -96,6 +98,8 @@ public class TestId128UniqueNamesLimit {
 			@SuppressWarnings("unchecked")
 			var cache = (java.util.concurrent.ConcurrentHashMap<?, ?>)cacheField.get(server);
 			Assertions.assertEquals(Id128UdpServer.MAX_UNIQUE_NAMES, cache.size());
+		} finally {
+			Zeze.Raft.LogSequence.deleteDirectory(dir.toFile()); // 2026-09-20审核：只关库不删目录
 		}
 	}
 

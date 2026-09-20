@@ -42,6 +42,31 @@ public class TestTakeoverTimerDemoApp {
 	// Suspect广播端到端用例的死者（独立id/链/计数，避免与直调用例相互干扰）。
 	private static final int suspectDeadId = 778;
 	private static final long suspectNodeId = 778_778L;
+
+	// 轮询共享SM的会话直到identifyServerId==suspectDeadId（反射，对齐TestTakeoverIdentifySuspect）
+	private static void awaitIdentifyEffect() throws Exception {
+		var sm = harness.TestEnvLauncherListener.serviceManager();
+		Assertions.assertNotNull(sm, "env未提供SM");
+		var serverField = Zeze.Services.ServiceManagerServer.class.getDeclaredField("server");
+		serverField.setAccessible(true);
+		var netServer = (Zeze.Net.Service)serverField.get(sm);
+		var idField = Zeze.Services.ServiceManagerServer.Session.class.getDeclaredField("identifyServerId");
+		idField.setAccessible(true);
+		var deadline = System.currentTimeMillis() + 10_000;
+		while (true) {
+			var seen = new boolean[1];
+			netServer.foreach(so -> {
+				if (so.getUserState() instanceof Zeze.Services.ServiceManagerServer.Session session
+						&& (int)idField.get(session) == suspectDeadId)
+					seen[0] = true;
+			});
+			if (seen[0])
+				return;
+			Assertions.assertTrue(System.currentTimeMillis() < deadline, "10s内Identify未在SM侧生效");
+			//noinspection BusyWait
+			Thread.sleep(10);
+		}
+	}
 	private static final String suspectTimerId = "@UnitTest.Zeze.Component.TestTakeoverTimerDemoApp.suspectDeadSimple";
 	private static final AtomicInteger SUSPECT_FIRED = new AtomicInteger();
 
@@ -175,7 +200,10 @@ public class TestTakeoverTimerDemoApp {
 			Assertions.assertEquals(0L, rc);
 			TakeoverTestEnv.forgeLease(app, suspectDeadId, 6, System.currentTimeMillis() - 1_000);
 
-			Thread.sleep(300); // 等Identify在SM侧生效（会话上记录serverId=778）。
+			// 确定性等Identify在SM侧生效：轮询SM会话的identifyServerId==778（裸sleep(300)是
+			// TestTakeoverIdentifySuspect已实证的假同步点——WaitReady只等TCP连接，断线RST会
+			// 掐掉在途Identify使SM不广播Suspect，压测下假红）。
+			awaitIdentifyEffect();
 
 			// 3. 异常下线：杀连接（不发任何善后），SM onClose → 立即广播Suspect(778)。
 		} finally {

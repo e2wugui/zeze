@@ -28,7 +28,7 @@ public class TestTableCacheLru {
 	// @Fast类并行时共用会撞。从300起避开其他测试（TakeoverTestEnv从100起、伪造死者id 777+）。
 	// 表用demo的持久表Table3：Application构造会自动注册Builtin组件表
 	// （tQueues等），addTable同名表会报duplicate table id。
-	private static final AtomicInteger nextServerId = new AtomicInteger(300);
+	private static final AtomicInteger nextServerId = new AtomicInteger(7580);
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

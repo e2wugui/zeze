@@ -69,7 +69,23 @@ public class TestTcpSocketInputLimit {
 		}
 	}
 
+	// 2026-09-20审核：5个用例原先无任何stop——监听channel与socketMap登记跨用例泄漏至JVM退出。
+	// startServer登记，@AfterEach统一收口。
+	private static final java.util.ArrayList<Server> started = new java.util.ArrayList<>();
+
+	@org.junit.jupiter.api.AfterEach
+	public void stopServers() throws Exception {
+		for (var s : started) {
+			try {
+				s.stop();
+			} catch (Throwable ignored) {
+			}
+		}
+		started.clear();
+	}
+
 	private static int startServer(Server server) throws Exception {
+		started.add(server);
 		var listen = (TcpSocket)server.newServerSocket("127.0.0.1", 0, null);
 		var local = listen.getLocalInet();
 		Assertions.assertNotNull(local, "listen socket local address");
@@ -106,9 +122,21 @@ public class TestTcpSocketInputLimit {
 		return Arrays.copyOfRange(payload.Bytes, payload.ReadIndex, payload.WriteIndex);
 	}
 
-	private static void sendAfterCodec(int port, byte @NotNull [] wireBytes) throws Exception {
+	private static void sendAfterCodec(Server server, int port, byte @NotNull [] wireBytes) throws Exception {
 		try (Socket client = new Socket("127.0.0.1", port)) {
-			Thread.sleep(300); // 等 selector 线程应用解压 codec（OnHandshakeDone 里 submitAction）
+			// 原先裸sleep(300)等codec装配（2026-09-20审核：假同步点，满载下codec未装即发送
+			// →压缩帧被当裸帧解码→假红）。确定性轮询服务端socket的inputCodecChain非空。
+			var field = TcpSocket.class.getDeclaredField("inputCodecChain");
+			field.setAccessible(true);
+			long deadline = System.currentTimeMillis() + 10_000;
+			while (true) {
+				var so = server.GetSocket();
+				if (so instanceof TcpSocket tcp && field.get(tcp) != null)
+					break;
+				Assertions.assertTrue(System.currentTimeMillis() < deadline, "10s内解压codec未装配（握手未完成？）");
+				//noinspection BusyWait
+				Thread.sleep(10);
+			}
 			OutputStream os = client.getOutputStream();
 			os.write(wireBytes);
 			os.flush();
@@ -129,7 +157,7 @@ public class TestTcpSocketInputLimit {
 	public final void testMppcBombClosedAtLimit() throws Exception {
 		var server = new Server("TestTcpSocketInputLimit.Mppc", Constant.eCompressTypeMppc, 64 * 1024);
 		int port = startServer(server);
-		sendAfterCodec(port, compressMppc(new byte[4 * 1024 * 1024]));
+		sendAfterCodec(server, port, compressMppc(new byte[4 * 1024 * 1024]));
 		assertClosedAtLimit(server);
 	}
 
@@ -138,7 +166,7 @@ public class TestTcpSocketInputLimit {
 	public final void testZstdBombClosedAtLimit() throws Exception {
 		var server = new Server("TestTcpSocketInputLimit.Zstd", Constant.eCompressTypeZstd, 64 * 1024);
 		int port = startServer(server);
-		sendAfterCodec(port, compressZstd(new byte[4 * 1024 * 1024]));
+		sendAfterCodec(server, port, compressZstd(new byte[4 * 1024 * 1024]));
 		assertClosedAtLimit(server);
 	}
 
@@ -149,7 +177,7 @@ public class TestTcpSocketInputLimit {
 		int max = 64 * 1024;
 		var server = new Server("TestTcpSocketInputLimit.MaxCompressed", Constant.eCompressTypeMppc, max);
 		int port = startServer(server);
-		sendAfterCodec(port, compressMppc(makeFrame(max)));
+		sendAfterCodec(server, port, compressMppc(makeFrame(max)));
 		Assertions.assertTrue(server.received.await(5, TimeUnit.SECONDS), "body==max的压缩协议应被完整接收");
 		Assertions.assertEquals(max, server.receivedBodySize, "收到的body大小应恰为max");
 	}
@@ -162,7 +190,7 @@ public class TestTcpSocketInputLimit {
 		int max = 64 * 1024; // ==默认readBufferSize(64KB)，帧跨多次read，残留检查路径必经
 		var server = new Server("TestTcpSocketInputLimit.MaxPassthrough", Constant.eCompressTypeDisable, max);
 		int port = startServer(server);
-		sendAfterCodec(port, makeFrame(max)); // 不压缩直发
+		sendAfterCodec(server, port, makeFrame(max)); // 不压缩直发
 		Assertions.assertTrue(server.received.await(5, TimeUnit.SECONDS), "body==max的直通协议应被完整接收");
 		Assertions.assertEquals(max, server.receivedBodySize, "收到的body大小应恰为max");
 	}
@@ -175,7 +203,7 @@ public class TestTcpSocketInputLimit {
 		int max = 64 * 1024;
 		var server = new Server("TestTcpSocketInputLimit.OverMax", Constant.eCompressTypeMppc, max);
 		int port = startServer(server);
-		sendAfterCodec(port, compressMppc(makeFrame(max + 1)));
+		sendAfterCodec(server, port, compressMppc(makeFrame(max + 1)));
 		assertClosedAtLimit(server);
 	}
 

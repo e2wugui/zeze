@@ -33,21 +33,41 @@ test 只跑 @Fast；integrationTest 只跑不带 fast/bench 标签的；bench �
 
 test 任务类级并行（同 JVM），@Fast 类必须彼此互不干扰：
 
-- **有库 App 的 serverId 必须唯一**。本地缓存目录 `zeze_cache_<serverId>` 每号一份，
-  `Application.start` 对它先删后开——同号并发即 `delete failed: ...zeze_cache_N\LOCK`
-  （Windows 下被打开的文件删不掉，重试 10s 后炸 start）。三选一：
-  `TakeoverTestEnv.newConf` 式动态发号；固定空闲段字面量（查全景再选号）；
+- **有库 App 的 serverId 必须全局唯一——"全局"指整个测试树跨目录**。本地缓存目录
+  `zeze_cache_<serverId>` 每号一份，`Application.start` 对它先删后开——同号并发即
+  `delete failed: ...zeze_cache_N\LOCK`（Windows 下被打开的文件删不掉，重试 10s 后炸
+  start）。三选一：`TakeoverTestEnv.newConf` 式动态发号；固定空闲段字面量（查全景再选号）；
   `setNoDatabase(true)`（无库不建目录）。
 - 选号两条铁律（2026-09-19 两处撞段实证）：**固定字面量不得落在他类计数器基点的
   增长范围内**（7353 撞 RankCacheEvict 第 4 实例、7360 撞 RankCountNeedKey）；
   **每类自带计数器若不共享，基点即撞点**（6 类各自从 1 起号互撞）。计数器基点
   间隔须 ≥ 该类 @Test 数。当前 7xxx 段：7150/7160/7250/7350/7360(固定)/7371(固定)/
   7410-7460/7470(固定)/7480/8790。
+- **"查全景"的正确姿势是全树 grep 而不是只看本目录**（2026-09-20 全量审核实锤 7 组
+  13 类跨目录同基点互撞：700 三方[Trans 两类+Collections]、100/300/400/500/600 两方，
+  每类注释都自称"本类 N00 起"却互不知晓）。新写需要 serverId 的测试：先
+  `grep -rn "AtomicInteger(N)" ZezeJavaTest/src` 确认整个号段（基点+该类全部实例的
+  增长范围）无主，再选号；优先接入共享发号器而非新建计数器；选定后在本文件登记号段。
 - dbhome、固定端口同理独占；只有 `Application.start` 且非 NoDatabase 才建缓存目录，
   净层组件（Service/Agent/MQManager/Dbh2 Master/RocksRaft/ServiceManagerWithRaft）不建。
 - gradle 三池分治（fast 并行 / integration 串行 / bench）下默认 0 可能长期不撞纯属时序；
   IDEA"跑全部测试"是单 JVM 混跑并行，默认 0 的有库 App 必撞（2026-09-17
   testManagedPathFailFast / testManagedAddAllNoChangeReturnsFalse 假红即此，已迁 7070/7080）。
+
+## GCM 与后端同库约定
+
+**体系约束：一个部署里 GCM（全局缓存管理器）是同一个，且所有 Application 与 GCM
+的后端必须是同一个数据库**——跨 app 的全局锁/缓存一致性由同库事务保证，这是 zeze
+多 app 协作（Simulate 式跨 app 场景、History 回放、gid 序）的地基。
+
+**测试现状违反此约定**：测试普遍 `new Config()`（默认库）或各自
+`setDatabaseUrl("test_xxx")` 的 DatabaseMemory——每个 app 一个独立内存库，GCM 状态与
+app 表不在同一个库里。**后果：持久化语义与跨 app 语义在当前测试配置下不验证真实拓扑**
+（重启恢复、跨 app 锁一致性、Simulate 回放等的结论只对"每 app 独立内存库"成立）。
+
+写涉及多 app/GCM/持久化的测试时必须显式意识到这一局限；需要真实验证时：让全部
+app 与 GCM 显式配置**同一个 DatabaseConf**（同 url 同类型），或在测试注释里明确声明
+"本用例仅在独立内存库语义下成立"。存量测试迁移到同库配置是系统性技术债，逐步偿还。
 
 ## 空安全注解
 

@@ -91,29 +91,8 @@ public class TestLock {
 		Assertions.assertNotEquals(lock3ref, lock1);
 	}
 
-	@Test
-	public final void testRecursion1() {
-		/*
-		TableKey tkey = new TableKey(1, 1);
-		Lockey lockey = Locks.Instance.Get(tkey);
-		lockey.EnterWriteLock();
-		lockey.EnterReadLock();
-		lockey.ExitReadLock();
-		lockey.ExitWriteLock();
-		*/
-	}
-
-	@Test
-	public final void testRecursion2() {
-		/*
-		TableKey tkey = new TableKey(1, 1);
-		Lockey lockey = Locks.Instance.Get(tkey);
-		lockey.EnterReadLock();
-		lockey.EnterWriteLock();
-		lockey.ExitWriteLock();
-		lockey.ExitReadLock();
-		*/
-	}
+	// testRecursion1/testRecursion2（2026-09-20审核删除）：方法体整体被注释的空测试，
+	// 恒绿零覆盖。C#旧API移植残留，Java版Lockey无该语义则不应保留空壳占位。
 
 	@Test
 	public final void testRwlock() {

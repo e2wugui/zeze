@@ -42,6 +42,12 @@ public class TestEnvLauncherListener implements LauncherSessionListener {
 	private static final Logger logger = LogManager.getLogger(TestEnvLauncherListener.class);
 
 	private static ServiceManagerServer serviceManager;
+
+	// 主SM实例访问器：测试用它做"Identify已在SM侧生效"的确定性同步（轮询会话identifyServerId，
+	// 对齐TestTakeoverIdentifySuspect的修法）——WaitReady只等TCP连接不够（30轮压测实证）。
+	public static ServiceManagerServer serviceManager() {
+		return serviceManager;
+	}
 	private static GlobalCacheManagerAsyncServer globalCacheManager;
 	private static boolean globalCacheManagerStarted;
 	private static ServiceManagerServer serviceManager2;

@@ -65,12 +65,17 @@ public final class TestJson {
 		assertEquals(5, c.a.a);
 
 		Json.instance.getClassMeta(A.class).setParser((json, __, ___, ____, _____) -> json.parse(B.class));
-		c.a = null;
-		c = JsonReader.local().buf("{a:{a:7,b:8}}").parse(c);
-		assertNotNull(c);
-		assertEquals(B.class, c.a.getClass());
-		assertEquals(7, c.a.a);
-		assertEquals(8, ((B)c.a).b);
+		try {
+			c.a = null;
+			c = JsonReader.local().buf("{a:{a:7,b:8}}").parse(c);
+			assertNotNull(c);
+			assertEquals(B.class, c.a.getClass());
+			assertEquals(7, c.a.a);
+			assertEquals(8, ((B)c.a).b);
+		} finally {
+			// 全局静态单例的解析器改写必须恢复（2026-09-20审核：污染跨@Test存活）
+			Json.instance.getClassMeta(A.class).setParser(null);
+		}
 
 		B b = JsonReader.local().buf("{a:5 \n b:6}").parse(B.class);
 		assertNotNull(b);
@@ -129,7 +134,8 @@ public final class TestJson {
 
 	public void test7() {
 		System.out.println(System.getProperty("java.version"));
-		System.out.println(Json.instance.getClassMeta(Inet4Address.class));
+		// 原先纯打印零断言（2026-09-20审核）：内置类型的ClassMeta必须存在
+		assertNotNull(Json.instance.getClassMeta(Inet4Address.class), "内置类型Inet4Address的ClassMeta必须存在");
 	}
 
 	static class D {

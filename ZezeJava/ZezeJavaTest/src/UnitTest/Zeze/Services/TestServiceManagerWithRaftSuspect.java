@@ -92,8 +92,11 @@ public class TestServiceManagerWithRaftSuspect {
 
 			var dead = newAgent("UnitTest.S4.Dead", 1);
 			try {
-				// 等Identify到达服务端（onLoginSuccess异步发送，localhost往返毫秒级）。
-				Thread.sleep(1000);
+				// 确定性等Identify到达服务端：onLoginSuccess先发Identify（同连接线上序在前），
+				// raft请求通道FIFO——本空edit的应答到达即Identify必然已被处理（裸sleep(1000)
+				// 是假同步点：断线RST掐掉在途Identify则SM不广播Suspect，压测下假红，
+				// 对齐TestTakeoverIdentifySuspect判例）。
+				dead.editService(new Zeze.Services.ServiceManager.BEditService());
 			} finally {
 				// 停掉连接（无NormalClose语义，任何断线都广播）。
 				dead.close();

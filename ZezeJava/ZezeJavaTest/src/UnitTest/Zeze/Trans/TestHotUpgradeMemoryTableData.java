@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestHotUpgradeMemoryTableData {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T2组：300/400/500/600起）。
-	private static final AtomicInteger nextServerId = new AtomicInteger(700);
+	private static final AtomicInteger nextServerId = new AtomicInteger(7500);
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

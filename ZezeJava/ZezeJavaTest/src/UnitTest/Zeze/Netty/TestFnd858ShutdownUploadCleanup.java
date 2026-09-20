@@ -125,8 +125,33 @@ public class TestFnd858ShutdownUploadCleanup {
 				}
 
 				server.close(); // 正常路径已清空attr：cancel为no-op，不双destroy
-				//noinspection BusyWait
-				Thread.sleep(300); // 观察窗：无异常即通过（destroy二次调用会抛checkDestroyed异常进error日志）
+				// 观察窗必须可观测（2026-09-20审核：原先sleep后零断言，双destroy回归静默绿）：
+				// 捕获窗口期ERROR日志，断言无destroy相关的二次销毁异常。
+				var errors = new ConcurrentLinkedQueue<String>();
+				var ctx = (org.apache.logging.log4j.core.Logger)
+						org.apache.logging.log4j.LogManager.getLogger(Zeze.Netty.Netty.class);
+				var appender = new org.apache.logging.log4j.core.appender.AbstractAppender(
+						"fnd858-watch", null, null, true, org.apache.logging.log4j.core.config.Property.EMPTY_ARRAY) {
+					@Override
+					public void append(org.apache.logging.log4j.core.LogEvent event) {
+						if (event.getLevel().isMoreSpecificThan(org.apache.logging.log4j.Level.ERROR)) {
+							// 只盯双destroy形态（checkDestroyed异常），无关ERROR（如关连接噪讯）不误伤
+							var m = event.getMessage().getFormattedMessage();
+							if (m != null && m.contains("destroy"))
+								errors.add(m);
+						}
+					}
+				};
+				appender.start();
+				ctx.addAppender(appender);
+				try {
+					//noinspection BusyWait
+					Thread.sleep(300); // 停机清扫完成窗（destroy二次调用会抛checkDestroyed进ERROR）
+				} finally {
+					ctx.removeAppender(appender);
+					appender.stop();
+				}
+				Assertions.assertTrue(errors.isEmpty(), "停机清扫不得产生ERROR（双destroy形态）: " + errors);
 			}
 		} finally {
 			server.close();

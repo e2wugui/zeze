@@ -26,10 +26,13 @@ public class TestWalkPage {
 	@Test
 	public void testFind() {
 		var t = App.Instance.demo_Module1.getTable1();
-		App.Instance.Zeze.newProcedure(() -> {
+		// 原先写入后零校验、rc忽略（2026-09-20审核）：写入必须生效且事务成功
+		var rc = App.Instance.Zeze.newProcedure(() -> {
 			t.getOrAdd(1L).setInt_1(1);
 			return 0;
 		}, "find").call();
+		Assertions.assertEquals(0L, rc, "写入事务必须成功");
+		Assertions.assertEquals(1, t.get(1L).getInt_1(), "写入必须可读回");
 	}
 
 	@Test

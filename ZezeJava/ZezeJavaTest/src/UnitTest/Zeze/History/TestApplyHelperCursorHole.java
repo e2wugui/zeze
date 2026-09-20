@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 public class TestApplyHelperCursorHole {
 	// Application并发需要不同serverId+不同DatabaseUrl：DatabaseMemory的表存储是JVM级
 	// 静态Map按url分桶，@Fast类并行时共用会互相污染。从400起避开Takeover等测试的号段。
-	private static final AtomicInteger NextServerId = new AtomicInteger(400);
+	private static final AtomicInteger NextServerId = new AtomicInteger(7570);
 	private static final String tHistoryName = "Zeze_Builtin_HistoryModule_tHistory";
 	private static final int tHistoryId = 370198048;
 

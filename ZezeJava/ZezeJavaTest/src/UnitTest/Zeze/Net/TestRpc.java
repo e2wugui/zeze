@@ -17,7 +17,7 @@ public class TestRpc {
 	final Zeze.Util.TaskCompletionSource<AsyncSocket> connected = new Zeze.Util.TaskCompletionSource<>();
 
 	@Test
-	public final void testRpcSimple() {
+	public final void testRpcSimple() throws Exception {
 		Service server = new Service("TestRpc.Server");
 		Zeze.Util.Task.tryInitThreadPool();
 		FirstRpc first = new FirstRpc();
@@ -28,22 +28,31 @@ public class TestRpc {
 		// R2-U2：端口0让OS分配临时端口（同仓TestSocketAcceptCloseOnce等模式）——固定5000在
 		// 多工作树/CI并行跑测试时互撞bind失败。
 		var listener = (Zeze.Net.TcpSocket)server.newServerSocket("127.0.0.1", 0, null);
-		var local = listener.getLocalInet();
-		Assertions.assertNotNull(local, "listen socket local address");
-		int port = local.getPort();
+		Client client = null;
+		try {
+			var local = listener.getLocalInet();
+			Assertions.assertNotNull(local, "listen socket local address");
+			int port = local.getPort();
 
-		Client client = new Client(this);
-		client.AddFactoryHandle(first.getTypeId(), new Service.ProtocolFactoryHandle<>(FirstRpc::new));
+			client = new Client(this);
+			client.AddFactoryHandle(first.getTypeId(), new Service.ProtocolFactoryHandle<>(FirstRpc::new));
 
-		AsyncSocket clientSocket = client.newClientSocket("127.0.0.1", port, null, null);
-		connected.get();
+			AsyncSocket clientSocket = client.newClientSocket("127.0.0.1", port, null, null);
+			// 原先无参get()无限park（2026-09-20审核）：连接建立失败时挂死worker而非判失败
+			Assertions.assertNotNull(connected.get(10, java.util.concurrent.TimeUnit.SECONDS), "10s内连接必须建立");
 
-		first = new FirstRpc();
-		first.Argument.setInt_1(1234);
-		//Console.WriteLine("SendFirstRpcRequest");
-		first.SendForWait(clientSocket).await();
-		//Console.WriteLine("FirstRpc Wait End");
-		Assertions.assertEquals(first.Argument.getInt_1(), first.Result.getInt_1());
+			first = new FirstRpc();
+			first.Argument.setInt_1(1234);
+			//Console.WriteLine("SendFirstRpcRequest");
+			first.SendForWait(clientSocket, 10_000).await();
+			//Console.WriteLine("FirstRpc Wait End");
+			Assertions.assertEquals(first.Argument.getInt_1(), first.Result.getInt_1());
+		} finally {
+			// 原先成功路径也不清理（2026-09-20审核）：selector/监听端口泄漏至JVM退出
+			if (client != null)
+				client.stop();
+			server.stop();
+		}
 	}
 
 	public static long ProcessFirstRpcRequest(Protocol<?> p) {

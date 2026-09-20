@@ -18,6 +18,28 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("DataFlowIssue")
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class TestLinkedMap {
+	// 2026-09-20审核：原先6处裸sleep(1500~3000)等异步delayClearJob完成（满载下不够即假红），
+	// 改等待式轮询：jobCount到达期望值（或超时报错）后才做后续断言。
+	private static void awaitJobCount(int expected, String what) throws Exception {
+		long deadline = System.currentTimeMillis() + 30_000;
+		long rc = -1;
+		long cur = -1;
+		while (System.currentTimeMillis() < deadline) {
+			final int[] box = {0};
+			rc = App.Instance.Zeze.newProcedure(() -> {
+				box[0] = App.Instance.Zeze.getDelayRemove().jobCount();
+				return 0;
+			}, what + ".poll").call();
+			cur = box[0];
+			if (rc == 0 && cur == expected)
+				return;
+			//noinspection BusyWait
+			Thread.sleep(20);
+		}
+		Assertions.assertEquals(0L, rc, what + ": 轮询事务必须成功");
+		Assertions.fail(what + ": 30s内jobCount未达" + expected + "，当前=" + cur);
+	}
+
 	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
@@ -101,7 +123,7 @@ public class TestLinkedMap {
 			return 0;
 		}, "clear").call());
 
-		Thread.sleep(2000);
+		awaitJobCount(0, "test1.clear");
 	}
 
 	@Test
@@ -156,7 +178,7 @@ public class TestLinkedMap {
 			App.Instance.LinkedMapModule.open("testJobLeak", BMyBean.class).clear();
 			return 0;
 		}, "test8.clear").call());
-		Thread.sleep(3000);
+		awaitJobCount(0, "awaitDelayCleanup");
 
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			Assertions.assertEquals(0, App.Instance.Zeze.getDelayRemove().jobCount(),
@@ -169,7 +191,7 @@ public class TestLinkedMap {
 			App.Instance.LinkedMapModule.open("testJobLeak", BMyBean.class).clear();
 			return 0;
 		}, "test8.clearEmpty").call());
-		Thread.sleep(1500);
+		awaitJobCount(0, "awaitDelayCleanup");
 
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			Assertions.assertEquals(0, App.Instance.Zeze.getDelayRemove().jobCount(), "空map clear的job行也必须删除");
@@ -220,7 +242,7 @@ public class TestLinkedMap {
 		}, "test9.rebuild").call());
 
 		// 等延迟清理任务跑完：重建的数据不能被误删（映射已指向新节点，job按NodeId归属校验跳过）
-		Thread.sleep(3000);
+		awaitJobCount(0, "awaitDelayCleanup");
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var map = App.Instance.LinkedMapModule.open("testSerial", BMyBean.class);
 			Assertions.assertEquals(999, map.get("5").getI(), "延迟清理不得删除重建数据");
@@ -270,7 +292,7 @@ public class TestLinkedMap {
 			return 0;
 		}, "test10.verify").call());
 
-		Thread.sleep(3000);
+		awaitJobCount(0, "awaitDelayCleanup");
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var map = App.Instance.LinkedMapModule.open("testSerial2", BMyBean.class);
 			Assertions.assertEquals(777, map.get("7").getI());
@@ -291,7 +313,7 @@ public class TestLinkedMap {
 			return 0;
 		}, "test11.addJob").call());
 
-		Thread.sleep(1500);
+		awaitJobCount(0, "awaitDelayCleanup");
 		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			Assertions.assertEquals(0, App.Instance.Zeze.getDelayRemove().jobCount(), "null节点分支必须删除job行");
 			return 0;

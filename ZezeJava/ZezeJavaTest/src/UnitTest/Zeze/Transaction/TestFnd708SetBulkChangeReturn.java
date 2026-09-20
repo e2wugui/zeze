@@ -49,7 +49,8 @@ public class TestFnd708SetBulkChangeReturn {
 		config.setDefaultTableConf(new Zeze.Config.TableConf());
 		var dbConf = new Zeze.Config.DatabaseConf();
 		dbConf.setDatabaseType(Zeze.Config.DbType.RocksDb);
-		dbConf.setDatabaseUrl(java.nio.file.Files.createTempDirectory("fnd708a").toString());
+		var dbDir = java.nio.file.Files.createTempDirectory("fnd708a");
+		dbConf.setDatabaseUrl(dbDir.toString());
 		config.getDatabaseConfMap().put("", dbConf);
 		var app = new Zeze.Application("TestFnd708a", config);
 		var table = new demo.Module1.tflush();
@@ -73,6 +74,7 @@ public class TestFnd708SetBulkChangeReturn {
 			Assertions.assertEquals(Zeze.Transaction.Procedure.Success, result, "事务必须成功");
 		} finally {
 			app.stop();
+			Zeze.Raft.LogSequence.deleteDirectory(dbDir.toFile()); // 2026-09-20审核：临时rocksdb目录不删
 		}
 	}
 }

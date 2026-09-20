@@ -56,15 +56,7 @@ public class TestGlobal {
 		}
 	}
 
-	@Test
-	public final void testNone() {
-		var rname = EditService.class.getTypeName();
-		System.out.println(rname);
-		var x = Zeze.Transaction.Bean.hash32(rname);
-		System.out.println(x);
-		var i = x & 0xffff;
-		System.out.println(i);
-	}
+	// testNone（2026-09-20审核删除）：纯打印类名哈希的零断言壳，无语义可守卫。
 
 	@Test
 	public final void test2App() throws Exception {

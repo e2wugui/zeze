@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestFnd701MemoryTableSize {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T1组：100起）。
-	private static final AtomicInteger nextServerId = new AtomicInteger(100);
+	private static final AtomicInteger nextServerId = new AtomicInteger(7600);
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

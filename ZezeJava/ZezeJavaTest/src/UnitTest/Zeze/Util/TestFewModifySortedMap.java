@@ -20,6 +20,14 @@ public class TestFewModifySortedMap {
 		print(sortedMap, "/a/b/c/d/e");
 
 		print(sortedMap, "/e");
+
+		// 原先纯打印零断言（2026-09-20审核）：headMap/tailMap边界语义的最小守护。
+		// 实测语义为子树形：tailMap(key)=key的后代（含相等），headMap(key)=key的严格祖先。
+		org.junit.jupiter.api.Assertions.assertEquals(0, sortedMap.headMap("/").size(), "headMap('/')必空");
+		org.junit.jupiter.api.Assertions.assertEquals(3, sortedMap.tailMap("/").size(), "tailMap('/')含全部后代");
+		org.junit.jupiter.api.Assertions.assertEquals(1, sortedMap.headMap("/a/b").size(), "'/'是'/a/b'的唯一祖先");
+		org.junit.jupiter.api.Assertions.assertEquals(1, sortedMap.tailMap("/a/b/c").size(), "'/a/b/c/d'是其后代");
+		org.junit.jupiter.api.Assertions.assertEquals(0, sortedMap.tailMap("/e").size(), "'/e'不存在时子树为空");
 	}
 
 	private static void print(FewModifySortedMap<String, String> sortedMap, String key) {

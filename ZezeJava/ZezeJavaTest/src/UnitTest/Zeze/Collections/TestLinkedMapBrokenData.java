@@ -28,7 +28,7 @@ public class TestLinkedMapBrokenData {
 
 	// 与TestQueueCompatible的500+、TestDelayRemoveOnTimer的600+错开：
 	// @Fast类并行时Application的本地缓存按serverId一份。
-	private static final AtomicInteger NextServerId = new AtomicInteger(700);
+	private static final AtomicInteger NextServerId = new AtomicInteger(7510);
 
 	private LinkedMap.Module linkedMapModule;
 

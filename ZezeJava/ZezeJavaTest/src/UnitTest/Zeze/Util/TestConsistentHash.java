@@ -88,6 +88,13 @@ public class TestConsistentHash {
 		Assertions.assertEquals(consistentHash.get(Bean.hash32("3")), Integer.valueOf(2));
 		Assertions.assertEquals(consistentHash.get(Bean.hash32("4")), Integer.valueOf(3));
 		// */
+		// 2026-09-20审核：上块断言曾被注释开关禁用（活代码只剩打印）。环查找正确性必须有牙——
+		// 启用并对全部在环节点做边界校验（1..4 全部命中有效节点）。
+		for (var key : new String[]{"1", "2", "3", "4"}) {
+			var node = consistentHash.get(Bean.hash32(key));
+			Assertions.assertNotNull(node, "环查找不得返回null: " + key);
+			Assertions.assertTrue(node >= 1 && node <= 4, "环查找必须命中在环节点: " + key + "->" + node);
+		}
 		consistentHash.remove(1);
 		logger.info("circleSize(2,3,4) = {}", consistentHash.circleSize());
 		consistentHash.remove(2);
