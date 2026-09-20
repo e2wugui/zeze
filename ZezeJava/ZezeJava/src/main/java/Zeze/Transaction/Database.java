@@ -691,7 +691,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key);
 
-		// 只有mysql,postgres,dbh2实现这个。
+		// 只有mysql,postgres,sqlserver,dbh2实现这个。
 		default boolean tryLock() {
 			return true;
 		}

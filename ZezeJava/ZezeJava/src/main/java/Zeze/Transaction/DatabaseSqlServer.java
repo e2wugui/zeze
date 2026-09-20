@@ -15,6 +15,10 @@ import com.alibaba.druid.pool.DruidDataSource;
 import org.jetbrains.annotations.NotNull;
 
 public final class DatabaseSqlServer extends DatabaseJdbc {
+	// 与 DatabaseMySql.keyOfLock 相同的固定 flag id（各后端库独立存储，仅保持字节一致）。
+	public static final byte[] keyOfLock =
+			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
+
 	// 存储过程 _ZezeSaveDataWithSameVersion_ 有 4 个参数（@id,@data,@version,@ReturnValue），
 	// 调用串占位符必须与之相同：registerOutParameter(4)/getInt(4) 操作第 4 个参数（@ReturnValue），
 	// 少一个占位符会导致参数索引越界（mssql-jdbc: "The index 4 is out of range"），带 schemas 启动即失败。
@@ -50,6 +54,59 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			= sqlserverObserverCreator.labelValues("replace");
 
 	private final class OperatesSqlServer implements Operates {
+		// 全局启动锁的租期（T3-F1），语义与取值对齐 DatabaseRedis.LOCK_LEASE_SECONDS：
+		// 持锁进程崩溃后残留的锁最多存活一个租期，之后轮询的实例自动接管。
+		private static final int LOCK_LEASE_SECONDS = 600;
+
+		@Override
+		public boolean tryLock() {
+			// T3-F1：原实现未覆写tryLock（落到Operates默认return true），滚动发布时两个
+			// 进程互不排斥地并发执行schemasCompatible，检查-后-写的存储过程双双成功且
+			// 丢失一方的schemas写入。补条件写式互斥，锁行version复用为租期到期时间戳：
+			// 0=空闲，>0=持锁至该时刻（DB服务器时钟UTC，单一时间来源），到期即可接管。
+			// 与MySql/PG版同款（T2-F1），误过期取舍同review-2026-09/l4/T3-4。
+			var createRecordSql = "BEGIN TRY" + "\r\n" +
+					"    insert into _ZezeDataWithVersion_ values(?, ?, 0)" + "\r\n" +
+					"END TRY" + "\r\n" +
+					"BEGIN CATCH" + "\r\n" +
+					"    if ERROR_NUMBER() not in (2627, 2601)" + "\r\n" +
+					"    begin" + "\r\n" +
+					"        ; THROW" + "\r\n" +
+					"    end" + "\r\n" +
+					"END CATCH";
+			var lockSql = "UPDATE _ZezeDataWithVersion_ SET version=DATEDIFF_BIG(second, '1970-01-01', SYSUTCDATETIME())+"
+					+ LOCK_LEASE_SECONDS
+					+ " WHERE id=? AND version<=DATEDIFF_BIG(second, '1970-01-01', SYSUTCDATETIME())";
+			try (var connection = dataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				try (var cmd = connection.prepareStatement(createRecordSql)) {
+					cmd.setBytes(1, keyOfLock);
+					cmd.setBytes(2, ByteBuffer.Empty);
+					cmd.executeUpdate();
+				}
+				try (var cmd = connection.prepareStatement(lockSql)) {
+					cmd.setBytes(1, keyOfLock);
+					return cmd.executeUpdate() == 1;
+				}
+			} catch (SQLException e) {
+				throw Task.forceThrow(e);
+			}
+		}
+
+		@Override
+		public void unlock() {
+			var unlockSql = "UPDATE _ZezeDataWithVersion_ SET version=0 WHERE id=?";
+			try (var connection = dataSource.getConnection()) {
+				connection.setAutoCommit(true);
+				try (var cmd = connection.prepareStatement(unlockSql)) {
+					cmd.setBytes(1, keyOfLock);
+					cmd.executeUpdate();
+				}
+			} catch (SQLException e) {
+				throw Task.forceThrow(e);
+			}
+		}
+
 		@Override
 		public void setInUse(int localId, @NotNull String global) {
 			try (var connection = dataSource.getConnection()) {

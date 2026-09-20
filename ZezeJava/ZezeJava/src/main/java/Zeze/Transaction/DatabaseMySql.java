@@ -162,6 +162,11 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	}
 
 	private final class OperatesMySql implements Operates {
+		// 全局启动锁的租期（T2-F1），语义与取值对齐 DatabaseRedis.LOCK_LEASE_SECONDS：
+		// 持锁进程崩溃（kill -9/OOM/断电）后残留的锁最多存活一个租期，之后轮询的
+		// 实例自动接管，无需人工恢复。
+		private static final int LOCK_LEASE_SECONDS = 600;
+
 		@Override
 		public void setInUse(int localId, @NotNull String global) {
 			for (int i = 0; i < 64; ++i) {
@@ -436,9 +441,17 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 		@Override
 		public boolean tryLock() {
-			// 总是尝试创建记录，忽略已经存在。
+			// 锁行version复用为租期到期时间戳（T2-F1，对齐DatabaseRedis.LOCK_LEASE_SECONDS的取舍）：
+			// 0=空闲，>0=持锁至该时刻（DB服务器时钟，单一时间来源避免各实例本地时钟漂移），
+			// 到期即可接管——原实现version只在0/1间翻转，持锁进程硬崩溃后残留的1永不恢复，
+			// 所有后续实例启动永久挂死。租期须显著大于持锁窗口最坏耗时（atomicOpenDatabase全程，
+			// 含renameTable与大表tryAlter，分钟级）；不做续期与持有者校验（unlock无条件置0），
+			// 慢启动超过租期的误过期窗口是既定取舍（review-2026-09/l4/T3-4，与Redis版一致）。
+			// 升级窗口注意：旧版本持有的version=1会被新代码立即视为已过期而接管，一次性
+			// 退化为无锁并发（schemasCompatible本就保留并发安全）。
 			var createRecordSql = "INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(?,?,?)";
-			var lockSql = "UPDATE _ZezeDataWithVersion_ SET version=1 WHERE id=? AND version=0";
+			var lockSql = "UPDATE _ZezeDataWithVersion_ SET version=UNIX_TIMESTAMP()+" + LOCK_LEASE_SECONDS
+					+ " WHERE id=? AND version<=UNIX_TIMESTAMP()";
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				try (var ps = conn.prepareStatement(createRecordSql)) {
