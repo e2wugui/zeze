@@ -180,6 +180,66 @@ public class TestRank {
 		});
 	}
 
+	// G1-F1：自定义funcConcurrentLevel返回0（配置缺项映射成0是常见写法）时，
+	// getConcurrentLevel必须下界钳制到1——修复前返回0，updateRank/removeRank的
+	// Integer.remainderUnsigned(hash, 0)抛ArithmeticException，该榜全部写路径永久崩溃。
+	@Test
+	public void testConcurrentLevelLowerBoundClamp() {
+		if (disableTest)
+			return;
+		var app = apps[0];
+		app.rank.setFuncConcurrentLevel(rankType -> 0);
+		try {
+			assertEquals(1, app.rank.getConcurrentLevel(RANK_TYPE),
+					"并发级别0必须钳制到1（修复前remainderUnsigned(hash,0)抛ArithmeticException）");
+			// 钳制后写路径可用：updateRank经RedirectHash派发（源即getConcurrentLevel）
+			var rankKey = Rank.newRankKey(RANK_TYPE, BConcurrentKey.TimeTypeTotal);
+			updateOk(app, 0, rankKey, ROLE_ID_BEGIN + 77, 7);
+		} finally {
+			app.rank.setFuncConcurrentLevel(rankType -> CONC_LEVEL); // 还原，避免影响同app后续测试
+		}
+	}
+
+	// G1-F2：getRankPositionWithGuess对score超过榜尾分的未上榜高分者，原线性外推
+	// 返回大幅负数（如1000-10*900=-8000）的域外名次——比值钳制上限1.0后保守返回
+	// lastRankPosition量级，消除负值。
+	@Test
+	public void testRankPositionWithGuessClampedAboveTailScore() throws Exception {
+		if (disableTest)
+			return;
+		var app = apps[0];
+		var rankKey = Rank.newRankKey(RANK_TYPE, BConcurrentKey.TimeTypeTotal);
+		// 造榜：3个成员，分值递增（榜尾=最低分者，rankList按分数降序）
+		app.getZeze().newProcedure(() -> {
+			updateOk(app, 0, rankKey, ROLE_ID_BEGIN + 1, 100);
+			updateOk(app, 1, rankKey, ROLE_ID_BEGIN + 2, 200);
+			updateOk(app, 2, rankKey, ROLE_ID_BEGIN + 3, 300);
+			return Procedure.Success;
+		}, "G1F2.setup").call();
+
+		// 未上榜高分者：score=3000远超榜尾分100，totalUser=1000
+		// 修复前：(double)3000/100=30 → 1000-30*(1000-3)=-28910（深度负数的域外名次）
+		var guessed = new long[1];
+		app.getZeze().newProcedure(() -> {
+			guessed[0] = app.rank.getRankPositionWithGuess(rankKey, ROLE_ID_BEGIN + 999, 3000, 1000);
+			return Procedure.Success;
+		}, "G1F2.guessHigh").call();
+		assertTrue(guessed[0] >= 1 && guessed[0] <= 1000,
+				"高分未上榜者的估计名次必须在[1,totalUser]域内，实际=" + guessed[0]);
+		var tailPosition = app.rank.getRankTotal(rankKey).getTableValue().getRankListReadOnly().size();
+		assertTrue(guessed[0] >= tailPosition,
+				"比值钳制后估计名次不得好于榜尾（保守返回lastRankPosition量级），实际=" + guessed[0]
+						+ " 榜尾位次=" + tailPosition);
+
+		// 榜内分数的估计不受影响（比值<1路径）
+		var inRange = new long[1];
+		app.getZeze().newProcedure(() -> {
+			inRange[0] = app.rank.getRankPositionWithGuess(rankKey, ROLE_ID_BEGIN + 999, 50, 1000);
+			return Procedure.Success;
+		}, "G1F2.guessLow").call();
+		assertTrue(inRange[0] >= 1 && inRange[0] <= 1000, "低分估计也必须在域内，实际=" + inRange[0]);
+	}
+
 	// 用于生成Redirect代码
 	public static void main(String[] args) throws Exception {
 		TestRank testRank = new TestRank();

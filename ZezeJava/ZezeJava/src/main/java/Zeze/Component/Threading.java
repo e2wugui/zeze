@@ -217,9 +217,13 @@ public class Threading extends AbstractThreading {
 				logger.error("release error={}", IModule.getErrorCode(rc));
 			else {
 				// FND8-73：服务端确认释放才减本地持有计数（未决/失败不减，漂移向"多计→少补"安全侧）。
-				var holds = semaphoreLocalHolds.get(semaphoreHoldKey(serverId, curThreadId(), name));
-				if (holds != null)
-					holds.updateAndGet(v -> Math.max(0, v - permits));
+				var key = semaphoreHoldKey(serverId, curThreadId(), name);
+				var holds = semaphoreLocalHolds.get(key);
+				// 归零即删（CP1-F6，两参条件删防误删并发重建的计数）：静态map原先只增不减，
+				// 动态/虚拟线程场景按(serverId,threadId,name)无界滞留。key含threadId，同key的
+				// acquire/release/补偿读全在同一线程串行，条件删足够安全。
+				if (holds != null && holds.updateAndGet(v -> Math.max(0, v - permits)) == 0)
+					semaphoreLocalHolds.remove(key, holds);
 				if (rc == 0)
 					logger.info("release success, {} permits=0", lockName); // 无持有者
 				else

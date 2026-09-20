@@ -230,8 +230,13 @@ public class Rank extends AbstractRank {
 	 */
 	public final int getConcurrentLevel(int rankType) {
 		var volatileTmp = funcConcurrentLevel;
-		if (null != volatileTmp)
-			return volatileTmp.applyAsInt(rankType);
+		if (null != volatileTmp) {
+			// 下界钳制（G1-F1）：自定义函数返回0（配置缺项映射成0是常见写法）时，
+			// Integer.remainderUnsigned(hash, 0)抛ArithmeticException，该榜全部写路径
+			// （含RedirectHash派发）永久崩溃且埋在玩家事务里难定位。
+			// 对齐同包Bag.getItemPileMax既有判例。
+			return Math.max(1, volatileTmp.applyAsInt(rankType));
+		}
 		return 128; // default
 	}
 
@@ -506,7 +511,11 @@ public class Rank extends AbstractRank {
 		if (lastRankScore == 0)
 			return totalUser; // 防除零：score/0 得Infinity，结果为负数。
 
-		return totalUser - (long)((double)score / lastRankScore * (totalUser - lastRankPosition));
+		// 比值钳制上限1.0（G1-F2）：score超过榜尾分的未上榜高分者是代码自认状态，原线性外推
+		// 返回大幅负数（如1000-10*900=-8000）的域外名次，调用方按名次区间发奖/展示即得错误结果；
+		// 钳后保守返回lastRankPosition量级（比值=1时恰好等于lastRankPosition）。
+		var scoreRatio = Math.min(1.0, (double)score / lastRankScore);
+		return totalUser - (long)(scoreRatio * (totalUser - lastRankPosition));
 	}
 
 	public void deleteRank(BConcurrentKey keyHint) {

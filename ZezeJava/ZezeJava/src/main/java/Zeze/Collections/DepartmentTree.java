@@ -203,6 +203,8 @@ public class DepartmentTree<
 		if (departmentId == 0) {
 			// root
 			var root = getRoot();
+			if (root == null) // 根行缺失（未create/已destroy）：与department查不到的分支对齐（CO1-F4）
+				return module.errorCode(Module.ErrorDepartmentNotExist);
 			if (root.getRoot().equals(account))
 				return 0; // parent, 对于根节点定义成root，grant
 			return module.errorCode(Module.ErrorManagePermission);
@@ -228,6 +230,8 @@ public class DepartmentTree<
 		if (departmentId == 0) {
 			// root
 			var root = getRoot();
+			if (root == null) // 根行缺失（未create/已destroy）：与department查不到的分支对齐（CO1-F4）
+				return module.errorCode(Module.ErrorDepartmentNotExist);
 			if (root.getManagers().containsKey(account) || root.getRoot().equals(account))
 				return 0; // grant
 			return module.errorCode(Module.ErrorManagePermission);

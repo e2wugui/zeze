@@ -92,4 +92,19 @@ public class TestAutoKey {
 		// 重启后从持久化的种子继续分配，首次分配一个allocCount大小的范围
 		Assertions.assertEquals(seed + allocCount, autoKey.getSeed());
 	}
+
+	// CP1-F4：id=0（"未赋值"最常见值）时8字节全零，跳0循环越过缓冲区抛AIOOBE，
+	// 绕过"合法ID校验"契约——必须显式IllegalArgumentException（与:114契约贴合）。
+	@Test
+	public final void test4_GetServerIdFromIdZero() {
+		var ex = Assertions.assertThrows(IllegalArgumentException.class,
+				() -> Zeze.Component.AutoKey.getServerIdFromId(0L),
+				"id=0必须显式IAE而非越界类异常");
+		Assertions.assertTrue(ex.getMessage().contains("id must not be 0"),
+				"异常消息必须带语义，实际: " + ex.getMessage());
+		// 合法ID不受影响：与makeId同构构造后可解出serverId
+		var serverId = App.getInstance().Zeze.getConfig().getServerId();
+		if (serverId > 0)
+			Assertions.assertEquals(serverId, Zeze.Component.AutoKey.getServerIdFromId(makeId(1)));
+	}
 }

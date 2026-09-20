@@ -105,6 +105,8 @@ public class AutoKey extends ReentrantLock {
 
 	// 从AutoKey.next|nextId()得到的ID中提取出serverId. 暂不支持serverId=0的情况
 	public static int getServerIdFromId(long id) {
+		if (id == 0) // 0是"未赋值"最常见值：8字节全零会让下面的跳0循环越过缓冲区（CP1-F4）
+			throw new IllegalArgumentException("AutoKey.getServerIdFromId: id must not be 0");
 		var bb = ByteBuffer.Allocate(8);
 		bb.WriteLong8BE(id);
 		while (bb.Bytes[bb.ReadIndex] == 0) // 跳过前面的0值字节
@@ -112,7 +114,7 @@ public class AutoKey extends ReentrantLock {
 		int serverId = bb.ReadUInt();
 		bb.SkipULong();
 		if (bb.ReadIndex != bb.WriteIndex) // 检查是否合法生成的ID
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("AutoKey.getServerIdFromId: not a valid AutoKey id");
 		return serverId;
 	}
 
