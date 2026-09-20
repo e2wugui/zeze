@@ -415,6 +415,17 @@ public final class Test {
 		}
 	}
 
+	// 【RR3-F1】getLeader轮询的isLeader()在state置位即真，而最后一条日志要等新leader的
+	// SetLeaderReadyEvent获多数、tryApply推进lastApplied后才落RocksDB：只读过程无任何屏障，
+	// 负载高时verifyData会读到滞后状态而偶发断言失败。轮询lastApplied>=lastIndex消除竞态
+	// （新leader追加SetLeaderReadyEvent并提交应用后两值相等且不再变动）。
+	private static void waitLeaderCatchUp(Rocks leader) throws InterruptedException {
+		var logSequence = leader.getRaft().getLogSequence();
+		while (logSequence.getLastApplied() < logSequence.getLastIndex())
+			//noinspection BusyWait
+			Thread.sleep(100);
+	}
+
 	public static void test_1() throws Exception {
 		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6000"));
 		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6001"));
@@ -440,6 +451,7 @@ public final class Test {
 
 			// 只简单验证一下最新的数据。
 			var newLeader = getLeader(rocksList, leader);
+			waitLeaderCatchUp(newLeader);
 			verifyData(newLeader, newLeader.<Integer, Bean1>getTableTemplate("tRocksRaft")
 					.openTable(0), "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 		}
