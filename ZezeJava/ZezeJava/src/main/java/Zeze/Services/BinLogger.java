@@ -6,13 +6,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -32,6 +30,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.FastLock;
+import Zeze.Util.FileMutex;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
@@ -58,7 +57,7 @@ public final class BinLogger extends ReentrantLock {
 	private static final ZezeCounter.LongCounter writeLogCounter = binLoggerCreator.labelValues("WriteLog");
 	private static final ZezeCounter.LongObserver waitQueueObserver
 			= ZezeCounter.instance.getRunTimeObserver("BinLogger.waitQueue");
-	private static final int timeZoneOffset = TimeZone.getDefault().getRawOffset(); // 北京时间(+8): 28800_000
+
 	private static final int DEFAULT_PORT = 5004; // 服务的默认端口号
 	private static final int MAX_LOG_SIZE = 0xfffff; // 1M-1, 单条日志数据的最大长度(涉及文件格式设计,不能改动)
 	private static final int QUEUE_COUNT_LIMIT = 1024 * 1024; // 1M, 日志队列的数量限制
@@ -236,8 +235,7 @@ public final class BinLogger extends ReentrantLock {
 
 	public static final class BinLoggerService extends Service {
 		private final @NotNull String logPath; // 日志保存的路径,以"/"结尾,日志文件名(除后缀名)是8位日期数字
-		private @Nullable RandomAccessFile lockFile; // 以"LOCK"命名的文件,用于BinLogger对象独占日志写入权限
-		private @Nullable FileLock fileLock; // lockFile的目录独占锁，与lockFile同生命周期，stopLogger释放
+	private @Nullable FileMutex logDirMutex; // 目录内LOCK文件互斥（BinLogger独占日志目录写入权限），startLogger获取、stopLogger释放
 		private BufferedOutputStream binFile; // Bean(Data)结构日志经过二进制序列化紧凑连续保存的文件
 		private BufferedOutputStream posFile; // 每条日志在bin文件中的位置和大小,小端保存为8字节整数,其中位置占高44位(最大支持16T),大小占低20位(最大支持1M-1)
 		private BufferedOutputStream tsFile; // 每条日志的时间戳,小端保存为8字节整数,其中高44位是UTC毫秒时间戳,低20位是该时间戳的日志序号(从0开始)
@@ -420,15 +418,15 @@ public final class BinLogger extends ReentrantLock {
 		private void startLogger() throws Exception {
 			// 代际先于一切动作推进（含下方所有失败路径）：startLogger任一步失败重启，
 			// 旧代写线程也已过时，醒来只会走代际退出。
+			// 自增无并发：start()/stop()持服务锁互斥，本方法是唯一写点（仅start()调用）；
+			// volatile不为自增而为写线程在queueLock外的代际检查点读可见（写IO不持队列锁）。
+			//noinspection NonAtomicOperationOnVolatileField
 			var myGeneration = ++loggerGeneration;
 			logger.info("lock logPath: '{}'", logPath);
 			try {
 				// 1.目录上锁
 				Files.createDirectories(Path.of(logPath));
-				lockFile = new RandomAccessFile(logPath + "LOCK", "rw");
-				fileLock = lockFile.getChannel().tryLock();
-				if (fileLock == null)
-					throw new IOException("tryLock LOCK file failed");
+				logDirMutex = FileMutex.acquire(logPath + "LOCK", "BinLogger log dir '" + logPath + "'");
 				// 2.修复并打开当天的所有日志和索引文件
 				curDayStamp = toDayStamp(System.currentTimeMillis());
 				openDay(curDayStamp);
@@ -515,21 +513,15 @@ public final class BinLogger extends ReentrantLock {
 			forceClose(tsFile);
 			forceClose(posFile);
 			forceClose(binFile);
-			if (fileLock != null) {
-				try {
-					fileLock.release();
-				} catch (IOException e) { // logger.error
-					logger.error("release fileLock exception.", e);
-				}
-				fileLock = null;
+			if (logDirMutex != null) {
+				logDirMutex.close();
+				logDirMutex = null;
 			}
-			forceClose(lockFile);
 			idFile = null;
 			dtFile = null;
 			tsFile = null;
 			posFile = null;
 			binFile = null;
-			lockFile = null;
 			logger.info("unlock logPath: '{}'", logPath);
 		}
 

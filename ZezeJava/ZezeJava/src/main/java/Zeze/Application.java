@@ -2,10 +2,7 @@ package Zeze;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.lang.management.ManagementFactory;
-import java.nio.channels.FileLock;
-import java.nio.channels.OverlappingFileLockException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,6 +51,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.DeadlockBreaker;
 import Zeze.Util.EventDispatcher;
+import Zeze.Util.FileMutex;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
@@ -126,15 +124,10 @@ public final class Application extends ReentrantLock {
 	 */
 	private DatabaseRocksDb LocalRocksCacheDb;
 
-	// FND8-26：LocalRocksCacheDb目录（zeze_cache_<serverId>）的同级锁文件——目录名仅含
-	// serverId，同JVM多App撞号（serverId未配置时默认同0）或跨进程同CWD误配时，第二个
-	// 实例的start()/stop()会无条件deleteDirectory正被活跃使用的目录（Windows卡约10s后
-	// IOException且startState滞留eStarting，Linux两实例缓存互毁）。锁文件不能放目录内
-	// （会随目录被删），放同级；持有覆盖start与stop两个删除入口的整个"删-开-跑-关-删"
-	// 生命周期，跨实例tryLock失败即fail-fast（BinLogger.LOCK同型；同JVM内FileLock按
-	// JVM计抛OverlappingFileLockException，跨进程由OS文件锁拒绝）。
-	private @Nullable RandomAccessFile localRocksCacheLockFile;
-	private @Nullable FileLock localRocksCacheFileLock;
+	// FND8-26：LocalRocksCacheDb目录（zeze_cache_<serverId>，目录名仅含serverId，同JVM
+	// 多App撞号或跨进程同CWD误配时互删活跃目录）的互斥锁，持有覆盖start与stop两个
+	// 删除入口的整个生命周期；失败语义见FileMutex。
+	private @Nullable FileMutex localRocksCacheMutex;
 
 	private @Nullable Dbh2AgentManager dbh2AgentManager;
 	private HotManager hotManager;
@@ -536,61 +529,6 @@ public final class Application extends ReentrantLock {
 		}
 	}
 
-	/**
-	 * FND8-26：对LocalRocksCacheDb目录的同级锁文件（zeze_cache_&lt;serverId&gt;.lock）上排它锁，
-	 * 在deleteDirectory之前获取、持有至stop()的close+deleteDirectory完成后释放。
-	 * 同JVM第二个同serverId实例：FileLock按JVM计，tryLock抛OverlappingFileLockException；
-	 * 跨进程实例：OS文件锁拒绝（tryLock返回null或抛异常）。两者都转IllegalStateException
-	 * fail-fast，取代原先"互删活跃目录"（Windows卡约10s后IOException且eStarting滞留，
-	 * Linux两实例缓存互毁）。单实例零影响：进程崩溃OS自动释放，目录"启动删除重建"语义不变。
-	 */
-	private void lockLocalRocksCacheDir(@NotNull String dir) {
-		var lockPath = new File(dir + ".lock");
-		try {
-			localRocksCacheLockFile = new RandomAccessFile(lockPath, "rw");
-			localRocksCacheFileLock = localRocksCacheLockFile.getChannel().tryLock();
-		} catch (OverlappingFileLockException e) {
-			closeLocalRocksCacheLockFileQuietly();
-			throw new IllegalStateException("zeze_cache dir lock held by another Application in this jvm: "
-					+ lockPath.getAbsolutePath() + " (serverId=" + conf.getServerId()
-					+ ", duplicate serverId is not allowed in the same working directory)");
-		} catch (IOException e) {
-			closeLocalRocksCacheLockFileQuietly();
-			throw new IllegalStateException("lock zeze_cache dir failed: "
-					+ lockPath.getAbsolutePath() + " (serverId=" + conf.getServerId() + ")", e);
-		}
-		//noinspection ConstantConditions
-		if (localRocksCacheFileLock == null) {
-			closeLocalRocksCacheLockFileQuietly();
-			throw new IllegalStateException("zeze_cache dir lock held by another process: "
-					+ lockPath.getAbsolutePath() + " (serverId=" + conf.getServerId()
-					+ ", duplicate serverId is not allowed in the same working directory)");
-		}
-	}
-
-	private void unlockLocalRocksCacheDir() {
-		try {
-			if (localRocksCacheFileLock != null) {
-				localRocksCacheFileLock.release();
-				localRocksCacheFileLock = null;
-			}
-		} catch (IOException e) { // logger.error
-			logger.error("release zeze_cache dir lock exception:", e);
-		}
-		closeLocalRocksCacheLockFileQuietly();
-	}
-
-	private void closeLocalRocksCacheLockFileQuietly() {
-		try {
-			if (localRocksCacheLockFile != null) {
-				localRocksCacheLockFile.close();
-				localRocksCacheLockFile = null;
-			}
-		} catch (IOException e) { // logger.error
-			logger.error("close zeze_cache lock file exception:", e);
-		}
-	}
-
 	// 先把要删的目录改名再删除,会更安全一些,降低并发访问目录中文件的可能性
 	public static void renameAndDeleteDirectory(@NotNull File directoryToBeDeleted)
 			throws IOException, InterruptedException {
@@ -779,7 +717,9 @@ public final class Application extends ReentrantLock {
 				var dbConf = new Config.DatabaseConf();
 				dbConf.setName("zeze_cache_" + serverId);
 				dbConf.setDatabaseUrl(dbConf.getName());
-				lockLocalRocksCacheDir(dbConf.getDatabaseUrl()); // FND8-26：先锁后删
+				// FND8-26：先锁后删——同JVM/跨进程撞serverId在删目录前即fail-fast。
+				localRocksCacheMutex = FileMutex.acquire(dbConf.getDatabaseUrl() + ".lock",
+						"zeze_cache dir (serverId=" + conf.getServerId() + ")");
 				deleteDirectory(new File(dbConf.getDatabaseUrl()));
 				dbConf.setDatabaseType(Config.DbType.RocksDb);
 				LocalRocksCacheDb = new DatabaseRocksDb(this, dbConf, true);
@@ -974,7 +914,10 @@ public final class Application extends ReentrantLock {
 				LocalRocksCacheDb = null;
 			}
 			// FND8-26：start失败于锁后（LocalRocksCacheDb尚未赋值）也要释放，故在块外无条件调用。
-			unlockLocalRocksCacheDir();
+			if (localRocksCacheMutex != null) {
+				localRocksCacheMutex.close();
+				localRocksCacheMutex = null;
+			}
 
 			if (serviceManager != null)
 				stopStep("serviceManager.close", serviceManager::close);
