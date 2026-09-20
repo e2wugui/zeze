@@ -294,6 +294,8 @@ public final class JsonReader {
 			} else if (b == '/') { // skip comment
 				pos--;
 				skipComment();
+				pos++; // U3-F1：skipComment 返回时 pos 停在块注释的关闭 '/' 上，而外层循环头
+				// 不推进 pos，该 '/' 会被再次当作注释起点（误走行注释分支吞掉注释后的同行内容）。
 			}
 		}
 	}
@@ -1243,7 +1245,7 @@ public final class JsonReader {
 					t[n++] = (char)parseHex4(buffer, p);
 					p += 4;
 				} else
-					t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b);
+					t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b & 0xff); // U3-F5：b为未掩码byte，转义字符≥0x80时符号扩展成U+FFxx，补掩码与parseString/parseKeyHashNoQuot对齐
 			} else if (b < 0x80)
 				t[n++] = (char)b; // 0xxx xxxx
 			else if (b > 0xdf) {
@@ -1272,6 +1274,33 @@ public final class JsonReader {
 		return e >= 0 ? d * EXP[e] : (e < -308 ? 0 : d / EXP[-e]);
 	}
 
+	// U3-F2：十进制词失去正确舍入保证时回退 Double.parseDouble（正确舍入），两个触发条件：
+	// (1) 有效数字 ≥16 位：整数/小数 d=d*10+c 累加链逐步舍入；(2) 合成十进制指数 |expTotal|>15：
+	// EXP 查表的 1e±16 起非精确表示，d×fl(1e±e)/d÷fl(1e±e) 出现双舍入（即 strtod 的 d*EXP[e] 路径，
+	// 15位有效数字配大指数同样偏差 1 ULP）。两者均不满足时快速路径可证精确（≤15位有效数字且
+	// |指数|≤15 时乘除的 1e±k 均为 <2^53 的精确整数，单次舍入即正确舍入）。
+	// 返回 null 表示无需回退或无法回退（词法不完整的垃圾容忍输入，如尾随 'e' 的 "1e"，
+	// parseDouble 不接受），调用方走原快速路径。[from,to) 覆盖整个词（含符号/小数点/指数），
+	// 故返回值已带符号。
+	private static @Nullable Double parseDoubleRounded(byte @NotNull [] buffer, int from, int to, int expTotal) {
+		int digits = 0;
+		boolean mantissa = true; // 'e'/'E' 之后的指数数字不计有效数字
+		for (int i = from; i < to; i++) {
+			byte b = buffer[i];
+			if (b == 'e' || b == 'E')
+				mantissa = false;
+			else if (mantissa && b >= '0' && b <= '9' && (digits > 0 || b > '0'))
+				digits++; // 跳过前导零：0.000123 的有效数字是 3
+		}
+		if (digits < 16 && expTotal >= -15 && expTotal <= 15)
+			return null;
+		try {
+			return Double.parseDouble(new String(buffer, from, to - from, StandardCharsets.ISO_8859_1));
+		} catch (NumberFormatException ignored) {
+			return null;
+		}
+	}
+
 	public int parseInt() {
 		final byte[] buffer = buf;
 		final int startPos = pos;
@@ -1289,8 +1318,8 @@ public final class JsonReader {
 			c = b | 0x20;
 			if (c == 'i' || c == 'n') { // Infinity/NaN 词法：消费整个词（pos 停在词尾），值按 (int)double 强转的饱和语义取值
 				do
-					b = buffer[++p];
-				while ((((b | 0x20) - 'a') & 0xff) < 26);
+					b = ++p < buffer.length ? buffer[p] : 0;
+				while ((((b | 0x20) - 'a') & 0xff) < 26); // U3-F3：词恰在缓冲区末尾时按词尾收尾（越界读的AIOOBE会被方法级catch吞掉后静默返回0）
 				pos = p;
 				return c == 'n' ? 0 : minus ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 			}
@@ -1388,6 +1417,9 @@ public final class JsonReader {
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
+			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac); // U3-F2：词含符号，正确舍入后直接饱和强转
+			if (rounded != null)
+				return (int)(double)rounded;
 			exp += expFrac;
 			d = exp < -308 ? strtod(d / 1e308, exp + 308) : strtod(d, exp);
 			i = (int)(minus ? -d : d);
@@ -1414,8 +1446,8 @@ public final class JsonReader {
 			c = b | 0x20;
 			if (c == 'i' || c == 'n') { // Infinity/NaN 词法：消费整个词（pos 停在词尾），值按 (long)double 强转的饱和语义取值
 				do
-					b = buffer[++p];
-				while ((((b | 0x20) - 'a') & 0xff) < 26);
+					b = ++p < buffer.length ? buffer[p] : 0;
+				while ((((b | 0x20) - 'a') & 0xff) < 26); // U3-F3：同parseInt——词尾恰为缓冲区末尾时按词尾收尾，防AIOOBE被吞后静默返回0
 				pos = p;
 				return c == 'n' ? 0L : minus ? Long.MIN_VALUE : Long.MAX_VALUE;
 			}
@@ -1513,6 +1545,9 @@ public final class JsonReader {
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
+			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac); // U3-F2：词含符号，正确舍入后直接饱和强转
+			if (rounded != null)
+				return (long)(double)rounded;
 			exp += expFrac;
 			d = exp < -308 ? strtod(d / 1e308, exp + 308) : strtod(d, exp);
 			i = (long)(minus ? -d : d);
@@ -1539,8 +1574,8 @@ public final class JsonReader {
 			c = b | 0x20;
 			if (c == 'i' || c == 'n') { // Infinity NaN (same as parseNumber; JsonWriter writes them for non-finite doubles)
 				do
-					b = buffer[++p];
-				while ((((b | 0x20) - 'a') & 0xff) < 26);
+					b = ++p < buffer.length ? buffer[p] : 0;
+				while ((((b | 0x20) - 'a') & 0xff) < 26); // U3-F3：同parseInt——词尾恰为缓冲区末尾时按词尾收尾，防AIOOBE被吞后静默返回0
 				pos = p;
 				return c == 'n' ? Double.NaN : minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
 			}
@@ -1642,6 +1677,9 @@ public final class JsonReader {
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
+			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac); // U3-F2：词含符号，直接返回正确舍入结果
+			if (rounded != null)
+				return rounded;
 			exp += expFrac;
 			d = exp < -308 ? strtod(d / 1e308, exp + 308) : strtod(d, exp);
 			if (minus)
@@ -1670,8 +1708,8 @@ public final class JsonReader {
 				c = b | 0x20;
 				if (c == 'i' || c == 'n') { // Infinity NaN
 					do
-						b = buffer[++p];
-					while ((((b | 0x20) - 'a') & 0xff) < 26);
+						b = ++p < buffer.length ? buffer[p] : 0;
+					while ((((b | 0x20) - 'a') & 0xff) < 26); // U3-F3：同parseInt——词尾恰为缓冲区末尾时按词尾收尾，防AIOOBE被吞后静默返回0
 					pos = p; // 与 parseDouble 的对应分支及 FND-U1-3 确立的“解析结束 pos 指向词后首字符”不变式对齐
 					return c == 'n' ? Double.NaN : minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
 				}
@@ -1772,6 +1810,9 @@ public final class JsonReader {
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
+			var rounded = parseDoubleRounded(buffer, startPos, p, exp + expFrac); // U3-F2：词含符号，直接返回正确舍入结果
+			if (rounded != null)
+				return rounded;
 			exp += expFrac;
 			d = exp < -308 ? strtod(d / 1e308, exp + 308) : strtod(d, exp);
 			return minus ? -d : d;

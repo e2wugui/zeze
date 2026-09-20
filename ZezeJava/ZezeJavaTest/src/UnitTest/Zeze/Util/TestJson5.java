@@ -25,7 +25,7 @@ public final class TestJson5 {
 		checkObj("{'a':1}", "{a:1}");
 		checkObj("{a:1}", "{a:1}");
 		checkObj("{$_:1,_$:2,a\\u200C:3}", "{$_:1,_$:2,a\u200C:3}");
-		checkObj("{中文key\\0:9}", "{中文key\\u0000:9}");
+		checkObj("{中文key\\0:9}", "{\"中文key\\u0000\":9}"); // 键含≤0x20控制字符：NO_QUOTE_KEY下强制加引号（U3-F4）
 		checkObj("{\\u0061\\u0062:1,\\u0024\\u005F:2,\\u005F\\u0024:3}", "{ab:1,$_:2,_$:3}");
 		checkObj("{abc:1,def:2,,,}", "{abc:1,def:2}");
 		checkObj("{a:{b:2,},}", "{a:{b:2}}");

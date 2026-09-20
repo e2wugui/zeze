@@ -534,7 +534,7 @@ public final class JsonWriter {
 						if (k == null || Json.ClassMeta.isInKeyReaderMap(k.getClass())) {
 							s = String.valueOf(k);
 							ensure(s.length() * 6 + 3); // "xxxxxx":
-							write(s, noQuote && s.indexOf(':') < 0);
+							write(s, noQuote && !needQuoteKey(s));
 						} else {
 							byte[] keyStr = new JsonWriter().setFlags(FLAG_NO_QUOTE_KEY).write(json, k).toBytes();
 							ensure(keyStr.length * 6 + 3); // "xxxxxx":
@@ -562,7 +562,7 @@ public final class JsonWriter {
 						if (k == null || Json.ClassMeta.isInKeyReaderMap(k.getClass())) {
 							s = String.valueOf(k);
 							ensure(s.length() * 6 + 4); // "xxxxxx":_
-							write(s, noQuote && s.indexOf(':') < 0);
+							write(s, noQuote && !needQuoteKey(s));
 						} else {
 							byte[] keyStr = new JsonWriter().setFlags(FLAG_NO_QUOTE_KEY).write(json, k).toBytes();
 							ensure(keyStr.length * 6 + 4); // "xxxxxx":_
@@ -603,12 +603,12 @@ public final class JsonWriter {
 					// 上界预留（FND4-21）：write(noQuote)内部不ensure，转义每字节最多6输出；
 					// 字段名经fieldNameFilter可为任意串。对齐Map键/字符串值路径的6倍上界判例。
 					ensure(name.length * 6 + 3); // "xxxxxx":
-					write(name, noQuote);
+					write(name, noQuote && !needQuoteKey(name));
 					buf[pos++] = ':';
 				} else {
 					writeNewLineTabs();
 					ensure(name.length * 6 + 4); // "xxxxxx":_
-					write(name, noQuote);
+					write(name, noQuote && !needQuoteKey(name));
 					buf[pos++] = ':';
 					buf[pos++] = ' ';
 				}
@@ -1258,6 +1258,34 @@ public final class JsonWriter {
 
 	public static int num2Hex(int n) {
 		return n + '0' + (((9 - n) >> 31) & ('A' - '9' - 1));
+	}
+
+	// U3-F4：NO_QUOTE_KEY 模式下键的强制加引号守卫：空串或含任一终止/歧义字符
+	// （≤0x20、':'、','、'}'、']'、'"'、'\''、'\\'、'/'）时必须加引号——写侧 ESCAPE 表
+	// 不转义空格/逗号/花括号/斜杠，读侧 parseStringNoQuot 在 ≤0x20 或 ':' 处截断、
+	// parseKeyHashNoQuot 在 '/' 处提前返回（为注释让路），裸写这些字符的键会产出
+	// 不可解析 JSON 且往返静默损坏。Map 的 String 键与 bean 字段名（fieldNameFilter
+	// 是 public BiFunction，可产出任意串）两条路径共用本守卫。
+	private static boolean needQuoteKey(int c) {
+		return c <= ' ' || c == ':' || c == ',' || c == '}' || c == ']' || c == '"' || c == '\'' || c == '\\' || c == '/';
+	}
+
+	private static boolean needQuoteKey(@NotNull String s) {
+		if (s.isEmpty())
+			return true;
+		for (int i = 0, n = s.length(); i < n; i++)
+			if (needQuoteKey(s.charAt(i)))
+				return true;
+		return false;
+	}
+
+	private static boolean needQuoteKey(byte @NotNull [] s) {
+		if (s.length == 0)
+			return true;
+		for (byte b : s)
+			if (needQuoteKey(b & 0xff))
+				return true;
+		return false;
 	}
 
 	public void write(final byte[] str, final boolean noQuote) {
