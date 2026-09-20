@@ -327,7 +327,26 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						// FND2-T3-2：此分支原是复制粘贴错误——再次insert @localid会与过程前段的主键冲突。
 						// 按MySQL版对齐：global记录不存在时插入_ZezeDataWithVersion_(empty_bin, in_global, 0)，
 						// 结果不检查（最后一个实例退出时由_ZezeClearInUse_删除）。
-						"                            insert into _ZezeDataWithVersion_ values(@emptybinary, @global, 0)" + "\r\n" +
+						// T3-F2：并发首启（含同global集群同时拉起）双方select都见0行、双双走到此插入，
+						// 后到者2627主键冲突原先裸抛炸启动。包进TRY/CATCH：冲突后重读已提交的global行，
+						// 相同按"已存在且相等"继续（对齐MySQL版INSERT IGNORE语义），不同才return 4。
+						// 主键冲突时对方必已提交（未提交的插入会持键锁阻塞本方插入直到其先提交），重读必见已提交值。
+						"                            BEGIN TRY" + "\r\n" +
+						"                                insert into _ZezeDataWithVersion_ values(@emptybinary, @global, 0)" + "\r\n" +
+						"                            END TRY" + "\r\n" +
+						"                            BEGIN CATCH" + "\r\n" +
+						"                                if ERROR_NUMBER() not in (2627, 2601)" + "\r\n" +
+						"                                begin" + "\r\n" +
+						"                                    ; THROW" + "\r\n" +
+						"                                end" + "\r\n" +
+						"                                select @currentglobal=data from _ZezeDataWithVersion_ where id=@emptybinary" + "\r\n" +
+						"                                if @@rowcount > 0 and @currentglobal <> @global" + "\r\n" +
+						"                                begin" + "\r\n" +
+						"                                    set @ReturnValue=4" + "\r\n" +
+						"                                    ROLLBACK TRANSACTION" + "\r\n" +
+						"                                    return 4" + "\r\n" +
+						"                                end" + "\r\n" +
+						"                            END CATCH" + "\r\n" +
 						"                        end" + "\r\n" +
 						"                        DECLARE @InstanceCount int" + "\r\n" +
 						"                        set @InstanceCount=0" + "\r\n" +
