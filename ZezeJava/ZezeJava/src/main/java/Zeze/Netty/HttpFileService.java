@@ -13,8 +13,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.HttpChunkedInput;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
@@ -22,7 +22,6 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
-import io.netty.handler.stream.ChunkedNioFile;
 import io.netty.util.AsciiString;
 import org.jetbrains.annotations.NotNull;
 
@@ -120,12 +119,30 @@ final class HttpFileService {
 			ChannelFuture lastFuture;
 			if (contentLen > 0 && !HttpMethod.HEAD.equals(req.method())) {
 				if (x.isH2()) {
-					// h2无FileRegion零拷贝：HttpChunkedInput经ChunkedWriteHandler逐块拉取（EventLoop上非阻塞、
-					// 按可写性背压），Http2StreamFrameToHttpObjectCodec把每个HttpContent转DATA帧——仍走
-					// writeResponse统一路径。HttpChunkedInput自带LastHttpContent结尾（endStream），
-					// 不得再补EMPTY_LAST_CONTENT（双终结符）。零拷贝损失是h2帧化的固有代价。
-					lastFuture = x.writeResponse(new HttpChunkedInput(
-							new ChunkedNioFile(fc, from, contentLen, H2FileChunkSize)), true, null);
+					// h2无FileRegion零拷贝：分块读文件为DefaultHttpContent逐块经writeResponse（帧翻译codec转
+					// DATA帧）。同步读循环跑在dispatch任务线程：本地文件读毫秒级，出站仅入netty发送队列不阻塞
+					// socket。慢消费者的内存界后续按可写性分块收紧（对齐ChunkedWriteHandler语义）——
+					// ChunkedWriteHandler+HttpChunkedInput组合在h2子channel上排水不触发（写future永驻），
+					// 弃用。零拷贝损失为h2帧化的固有代价。LastHttpContent收尾=endStream。
+					var nioBuf = java.nio.ByteBuffer.allocate(H2FileChunkSize);
+					long pos = from;
+					long remain = contentLen;
+					while (remain > 0) {
+						nioBuf.clear();
+						nioBuf.limit((int)Math.min(nioBuf.capacity(), remain));
+						int n = fc.read(nioBuf, pos);
+						if (n < 0)
+							break; // 文件被截断：头部CL失配，客户端按帧序可诊断
+						if (n > 0) {
+							// copiedBuffer必须复制：wrappedBuffer引用的array会被下一轮read覆盖。
+							// 每块即flush：跨块汇流依赖flush边界（迟滞冲刷在高水位下可能卡住出站）。
+							x.writeResponse(new DefaultHttpContent(io.netty.buffer.Unpooled.copiedBuffer(
+									nioBuf.array(), 0, n)), true, x.context.voidPromise());
+							pos += n;
+							remain -= n;
+						}
+					}
+					lastFuture = x.writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
 				} else {
 					// 发文件任务全部交给Netty（零拷贝），并且发送完毕时关闭。
 					x.writeResponse(new DefaultFileRegion(fc, from, contentLen), false, x.context.voidPromise());
