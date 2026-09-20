@@ -63,6 +63,12 @@ public class RedoQueue extends HandshakeClient {
 			var done = tableLastDoneTaskId.get(lastDoneTaskIdKey);
 			if (done != null)
 				lastDoneTaskId = ByteBuffer.Wrap(done).ReadLong();
+			// 排空队列重启后的水位回绕（CP1-F1）：队列排空时tableTaskQueue已无条目，
+			// lastTaskId恢复为默认0，而lastDoneTaskId=N（水位表独立持久化）——水位"回绕"为
+			// lastDoneTaskId>lastTaskId：泵条件lastDoneTaskId<lastTaskId永假，新增任务静默滞留；
+			// 且新任务从id=1重新分配，落入水位之下的已删区间（下一次水位推进会连带误删）。
+			// 钳制对齐：以水位为下界恢复lastTaskId，新增任务从N+1继续。
+			lastTaskId = Math.max(lastTaskId, lastDoneTaskId);
 			deleteDoneTasks(); // 清理崩溃窗口残留（水位已推进但删除未执行）
 			super.start();
 		} finally {

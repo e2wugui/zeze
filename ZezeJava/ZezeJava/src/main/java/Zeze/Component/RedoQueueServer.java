@@ -3,18 +3,10 @@ package Zeze.Component;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import Zeze.Application;
-import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
-import Zeze.Net.Protocol;
-import Zeze.Util.TaskSpec;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeServer;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Transaction;
-import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
-import Zeze.Util.OutObject;
-import org.jetbrains.annotations.NotNull;
 
 public class RedoQueueServer extends AbstractRedoQueueServer {
 	private final ConcurrentHashMap<String, LongConcurrentHashMap<Predicate<Binary>>> handles = new ConcurrentHashMap<>();
@@ -71,19 +63,10 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		public Server(Application zeze) {
 			super("RedoQueueServer", zeze);
 		}
-
-		@Override
-		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
-			// 总是支持事务
-			var outProtocol = new OutObject<Protocol<?>>();
-			TaskSpec.ofProcedureOut(getZeze().newProcedure(() -> {
-						bb.ReadIndex = 0; // 考虑redo,要重置读指针
-						var p = decodeProtocol(typeId, bb, factoryHandle, so);
-						outProtocol.value = p;
-						Transaction.whileCommit(() -> p.SendResultCode(p.getResultCode()));
-						return p.handle(this, factoryHandle);
-					}, factoryHandle.Class.getName(), TransactionLevel.Serializable),
-					outProtocol, Protocol::trySendResultCode).runNow();
-		}
+		// 不覆写dispatchProtocol（CP1-F2）：基类对事务级协议copy网络buffer后
+		// 在procedure内重解码（Service.dispatchProtocol(long,ByteBuffer,...)），redo安全且
+		// 不异步引用可回收的网络缓冲；RunTask的factoryHandle.Level默认Serializable，
+		// 事务语义与原覆写一致。原覆写在procedure内直接设bb.ReadIndex=0重解码网络buffer，
+		// 派发入池后缓冲可能被回收复用，解码出错误协议内容。
 	}
 }
