@@ -487,8 +487,22 @@ public final class Config {
 
 	public void createDatabase(@NotNull Application zeze, @NotNull HashMap<String, Database> map) throws Exception {
 		// add other database
-		for (var db : getDatabaseConfMap().values())
-			map.put(db.name, createDatabase(zeze, db));
+		// 逐库构造无失败清理时，先建库的原生句柄/LOCK随半成品Application不可达而泄漏，
+		// 进程内重试将永久"lock held by current process"——失败时逐个close已放入map的Database再重抛，
+		// 与clearInUseAndIAmSureAppStopped的finally-close形态对齐。
+		try {
+			for (var db : getDatabaseConfMap().values())
+				map.put(db.name, createDatabase(zeze, db));
+		} catch (Throwable e) {
+			for (var db : map.values()) {
+				try {
+					db.close();
+				} catch (Throwable ce) { // logger.error
+					logger.error("close database '{}' exception, continue", db.getDatabaseUrl(), ce);
+				}
+			}
+			throw e;
+		}
 	}
 
 	public void clearInUse(@NotNull HashMap<String, Database> databases) {

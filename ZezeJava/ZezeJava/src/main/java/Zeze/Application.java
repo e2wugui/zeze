@@ -341,12 +341,18 @@ public final class Application extends ReentrantLock {
 	}
 
 	public @NotNull Database addTable(@NotNull String dbName, @NotNull Table table) {
-		TableKey.tables.put(table.getId(), table.getName());
 		var db = getDatabase(dbName);
-		if (tables.putIfAbsent(table.getId(), table) != null)
+		// 两道唯一性校验全部通过后再统一登记（异常路径原子化）：原先TableKey.tables.put与
+		// tables.putIfAbsent先于校验执行，表名冲突抛异常后tables残留半注册幻影表（从未open），
+		// 重复id时还会先污染既有表的id→name映射。调用方均持Application锁（openDynamicTable）
+		// 或处于启动期单线程模块注册，check-then-put无新增并发窗口。
+		if (tables.containsKey(table.getId()))
 			throw new IllegalStateException("duplicate table id=" + table.getId());
-		if (tableNameMap.putIfAbsent(table.getName(), table) != null)
+		if (tableNameMap.containsKey(table.getName()))
 			throw new IllegalStateException("duplicate table name=" + table.getName());
+		TableKey.tables.put(table.getId(), table.getName());
+		tables.put(table.getId(), table);
+		tableNameMap.put(table.getName(), table);
 		db.addTable(table);
 		return db;
 	}
@@ -729,7 +735,10 @@ public final class Application extends ReentrantLock {
 			}
 
 			var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
-			if (serviceManagerConf != null && serviceManager != null) {
+			// raft版SM的地址来自raftXml而非ServiceConf节点，按Agent服务名查serviceConfMap必为null，
+			// 旧门槛会跳过serviceManager.start()，raft版SM永不启动，subscribeService挂死在waitLoginReady。
+			var isRaftServiceManager = "raft".equals(conf.getServiceManager());
+			if ((serviceManagerConf != null || isRaftServiceManager) && serviceManager != null) {
 				serviceManager.start();
 				try {
 					serviceManager.waitReady();
