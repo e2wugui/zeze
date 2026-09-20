@@ -225,7 +225,8 @@ public final class BinLogger extends ReentrantLock {
 		}
 
 		public boolean sendLog(long roleId, @NotNull Serializable log) {
-			var so = connector.getSocket();
+			var c = connector; // S1-F4：stop()持锁置null与这里无锁读竞态——局部快照判空，null按"发送失败"语义走计数
+			var so = c != null ? c.getSocket() : null;
 			if (so != null && so.Send(new LogData(roleId, log)))
 				return true;
 			sendLogFailCounter.increment();
@@ -427,27 +428,85 @@ public final class BinLogger extends ReentrantLock {
 				// 1.目录上锁
 				Files.createDirectories(Path.of(logPath));
 				logDirMutex = FileMutex.acquire(logPath + "LOCK", "BinLogger log dir '" + logPath + "'");
-				// 2.修复并打开当天的所有日志和索引文件
+				// 2.修复并打开当天的所有日志和索引文件（S1-F2：打开与提交分离）
 				curDayStamp = toDayStamp(System.currentTimeMillis());
-				openDay(curDayStamp);
-				// 3.开启输出日志线程
-				writeLogQueue = new ArrayList<>();
-				writeLogQueueSize = 0;
-				waitingQueue = false;
+				var day = openDay(curDayStamp);
+				// 3.在queueLock内复位写队列并提交当日五件套，然后开启输出日志线程
+				queueLock.lock();
+				try {
+					// S1-F1：队列复位必须持queueLock并signalAll。旧代满队等cond的生产者在
+					// "stop超时放弃join后旧写线程退出（不signal）"后再无人唤醒，同实例重启若
+					// 只是无锁复位（新队列为空、写线程只在换队时signal），它们将永久挂起IO线程。
+					// 唤醒后生产者重查wlq!=null且有空间，正常向新代队列入队。
+					writeLogQueue = new ArrayList<>();
+					writeLogQueueSize = 0;
+					waitingQueue = false;
+					queueLockCond.signalAll();
+					// start()持服务锁运行到此：代际必为当前代且started=true，提交只欠与
+					// stopLogger关闭段的互斥（见tryCommitDayFiles的锁序说明）。
+					commitDayFiles(day, curDayStamp);
+				} finally {
+					queueLock.unlock();
+				}
+				// 4.开启输出日志线程（在队列复位与提交之后start：线程首个检查点在queueLock内，
+				// 必能看到就绪的队列与已提交的当日五件套）
 				writeLogThread = new Thread(() -> writeLogThread(myGeneration), "WriteLogThread");
 				writeLogThread.setPriority(Thread.NORM_PRIORITY + 2); // 稍调高点优先级,确保输出日志吞吐性能
 				writeLogThread.start();
 			} catch (Throwable e) { // rethrow
 				started = false;
+				// S1-F1姊妹：启动失败路径同样要唤醒满队等待的生产者——置空队列让它们走
+				// drop退出等待（否则本次重启失败后它们同样永久挂起）。
+				discardWriteQueueForExit();
 				stopLogger();
 				throw e;
 			}
 		}
 
-		// 打开指定日期戳的全套日志和索引文件: 先按bin/pos对账修复索引, 再以追加方式打开, 最后一次性替换当前状态.
-		// 启动与跨天轮转共用此唯一入口, 当日的binFileSize等状态都在这里重新建立, 避免两处各写一份而漏项.
-		// 打开过程中抛异常时不改变任何当前状态, 于是轮转失败仍可继续用旧文件写, 下一轮再重试.
-		private void openDay(int dayStamp) throws Exception {
+		/** openDay打开的全套当日文件（S1-F2）：openDay只负责对账修复+打开，不触碰共享字段；
+		 * 由调用方经queueLock内的提交闸门（commitDayFiles/tryCommitDayFiles）匹配代际后提交。
+		 * 过代openDay（阻塞IO跨越同实例重启）若直接赋值五字段，会踩踏活代新流（双写同日
+		 * bin/pos交叉损坏索引）并泄漏旧流句柄。 */
+		private static final class OpenedDay {
+			final @NotNull BufferedOutputStream binFile;
+			final @NotNull BufferedOutputStream posFile;
+			final @NotNull BufferedOutputStream tsFile;
+			final @NotNull BufferedOutputStream dtFile;
+			final @NotNull BufferedOutputStream idFile;
+			final long binFileSize;
+
+			OpenedDay(@NotNull BufferedOutputStream binFile, @NotNull BufferedOutputStream posFile,
+					  @NotNull BufferedOutputStream tsFile, @NotNull BufferedOutputStream dtFile,
+					  @NotNull BufferedOutputStream idFile, long binFileSize) {
+				this.binFile = binFile;
+				this.posFile = posFile;
+				this.tsFile = tsFile;
+				this.dtFile = dtFile;
+				this.idFile = idFile;
+				this.binFileSize = binFileSize;
+			}
+
+			void forceClose() { // 打开者负责关闭：提交失败（过代/停机）时自己打开的流自己关
+				BinLoggerService.forceClose(idFile);
+				BinLoggerService.forceClose(dtFile);
+				BinLoggerService.forceClose(tsFile);
+				BinLoggerService.forceClose(posFile);
+				BinLoggerService.forceClose(binFile);
+			}
+		}
+
+		/** tryCommitDayFiles的三态结果（S1-F2）。 */
+		private enum DayCommit {
+			COMMITTED, // 已提交到共享字段
+			STALE, // 代际过时（同实例重启）：不得再触碰共享状态与writeLogQueue
+			STOPPED // 已停机：丢弃残余批并唤醒生产者后退出
+		}
+
+		// 打开指定日期戳的全套日志和索引文件: 先按bin/pos对账修复索引, 再以追加方式打开。
+		// 启动与跨天轮转共用此唯一入口, 当日的binFileSize等状态都在提交时重新建立, 避免两处各写一份而漏项。
+		// S1-F2：只返回打开结果，不改变任何当前状态——原实现在此无条件赋值五字段，
+		// openDay（阻塞IO）跨越重启/停机后完成时踩踏活代共享状态。打开或对账抛异常时同样不改任何状态。
+		private @NotNull OpenedDay openDay(int dayStamp) throws Exception {
 			var fnPrefix = logPath + toDayStr(dayStamp);
 			final long newBinFileSize;
 			try (var binF = new RecoveryFile(fnPrefix + ".bin");
@@ -488,13 +547,38 @@ public final class BinLogger extends ReentrantLock {
 				forceClose(newBinFile);
 				throw e;
 			}
-			binFileSize = newBinFileSize;
-			binFile = newBinFile;
-			posFile = newPosFile;
-			tsFile = newTsFile;
-			dtFile = newDtFile;
-			idFile = newIdFile;
+			return new OpenedDay(newBinFile, newPosFile, newTsFile, newDtFile, newIdFile, newBinFileSize);
+		}
+
+		/** 提交已打开的当日五件套到共享字段（S1-F2）。须持queueLock调用：提交闸门的代际/
+		 * 运行态检查与字段提交必须对stopLogger的关闭段、startLogger的复位段原子成立。 */
+		private void commitDayFiles(@NotNull OpenedDay day, int dayStamp) {
+			binFileSize = day.binFileSize;
+			binFile = day.binFile;
+			posFile = day.posFile;
+			tsFile = day.tsFile;
+			dtFile = day.dtFile;
+			idFile = day.idFile;
+			curDayStamp = dayStamp;
 			lastFlushMs = System.currentTimeMillis();
+		}
+
+		/** 写线程侧的提交闸门（S1-F2）：openDay返回后在queueLock内做代际+运行态双检，
+		 * 匹配才提交五件套；不匹配返回原因，调用方关闭自己打开的流并按原因走停机/过代退出。
+		 * 检查与提交的原子性由queueLock保证：迟于stopLogger关闭段的提交（started已false）
+		 * 与迟于startLogger复位段的提交（代已推进）都会被拒之门外。 */
+		private @NotNull DayCommit tryCommitDayFiles(@NotNull OpenedDay day, int dayStamp, long myGeneration) {
+			queueLock.lock();
+			try {
+				if (myGeneration != loggerGeneration)
+					return DayCommit.STALE;
+				if (!started)
+					return DayCommit.STOPPED;
+				commitDayFiles(day, dayStamp);
+				return DayCommit.COMMITTED;
+			} finally {
+				queueLock.unlock();
+			}
 		}
 
 		private void stopLogger() throws Exception {
@@ -508,20 +592,28 @@ public final class BinLogger extends ReentrantLock {
 							WRITE_THREAD_JOIN_TIMEOUT);
 				writeLogThread = null;
 			}
-			forceClose(idFile);
-			forceClose(dtFile);
-			forceClose(tsFile);
-			forceClose(posFile);
-			forceClose(binFile);
+			// S1-F2：关闭段必须在queueLock内——与tryCommitDayFiles的提交段互斥，否则闸门
+			// 刚判过代际/运行态、本段已在锁外关闭并置null字段时，迟到的提交会把已关闭的流
+			// 重新赋回字段（无人再关：句柄泄漏+后续写已关闭流）。
+			queueLock.lock();
+			try {
+				forceClose(idFile);
+				forceClose(dtFile);
+				forceClose(tsFile);
+				forceClose(posFile);
+				forceClose(binFile);
+				idFile = null;
+				dtFile = null;
+				tsFile = null;
+				posFile = null;
+				binFile = null;
+			} finally {
+				queueLock.unlock();
+			}
 			if (logDirMutex != null) {
 				logDirMutex.close();
 				logDirMutex = null;
 			}
-			idFile = null;
-			dtFile = null;
-			tsFile = null;
-			posFile = null;
-			binFile = null;
 			logger.info("unlock logPath: '{}'", logPath);
 		}
 
@@ -649,10 +741,34 @@ public final class BinLogger extends ReentrantLock {
 								var rotated = false;
 								try {
 									// 先打开新一天的全套文件再关旧文件: 打开失败时旧文件仍可继续写, 且curDayStamp不推进, 下一轮重试轮转.
-									openDay(dayStamp);
-									rotated = true;
+									// S1-F2：openDay只打开不提交；提交闸门在queueLock内做代际+运行态双检，
+									// openDay（阻塞IO）跨越重启/停机时不再把过代流踩进共享字段。
+									var newDay = openDay(dayStamp);
+									var commit = tryCommitDayFiles(newDay, dayStamp, myGeneration);
+									if (commit == DayCommit.COMMITTED) {
+										rotated = true;
+									} else {
+										// 打开者负责关闭：未提交的新五件套在此关闭（不再经共享字段）。
+										newDay.forceClose();
+										if (commit == DayCommit.STALE) {
+											// FND8-59：openDay（阻塞IO）跨越了重启：新五件套不得提交
+											// （提交即踩踏新代流），丢弃本地残批退出；不动writeLogQueue（属新代）。
+											// return等价于原break：直接退出线程主循环，残批随局部readLogQueue丢弃。
+											logger.error("writeLogThread exit on stale generation during rotation: discard {} logs",
+												queueSize);
+											return;
+										}
+										// FND6-29：轮转窗口停机。stopLogger已关闭旧五件套并释放目录锁，
+										// 刚打开的新五件套无人负责关闭（句柄泄漏到进程结束）；继续写完整批
+										// 还会在同目录重启新实例时双写同日bin/pos索引交叉损坏。
+										// 停机优先于落盘（FND4-68终止契约）：丢弃残余批直接退出。
+										logger.error("writeLogThread exit on stopping during rotation: discard {} logs",
+											queueSize);
+										discardWriteQueueForExit();
+										return;
+									}
 								} catch (Throwable e) { // logger.error
-									// 降级续写（FND8-60，兑现上一行注释承诺的行为）：openDay原子失败
+									// 降级续写（FND8-60，兑现上方注释承诺的行为）：openDay原子失败
 									// 不改当前状态，旧五件套仍有效，本批继续写旧文件——ts索引携带绝对
 									// 时间戳且lastTs跨轮转连续，午夜后条目落入昨日文件不破坏索引；
 									// 重启对账按文件独立进行。失败尝试会留下空的当日新文件（RecoveryFile
@@ -671,19 +787,16 @@ public final class BinLogger extends ReentrantLock {
 									forceClose(oldPosFile);
 									forceClose(oldBinFile);
 									rotateBackoffExp = 0;
+									// FND6-29（S1-F2重构后保留）：提交闸门只覆盖提交瞬间，关旧句柄
+									// （阻塞IO）仍可能跨越stop放弃join/重启窗口——此后必须复查：
+									// 过代不触碰共享状态退出（关闭责任归新代stopLogger）；
+									// 停机关闭已提交的新五件套、丢弃残余批退出（停机优先于落盘，
+									// FND4-68终止契约，与写异常恢复分支的!started同口径）。
 									if (myGeneration != loggerGeneration) {
-										// FND8-59：openDay（阻塞IO）跨越了重启：curDayStamp不推进、
-										// 不再触碰共享状态，丢弃本地残批退出。
 										logger.error("writeLogThread exit on stale generation after rotation: discard {} logs",
 											queueSize);
-										break;
+										return;
 									}
-									curDayStamp = dayStamp;
-									// FND6-29：轮转窗口停机复查。stop超时放弃join后stopLogger已forceClose当时
-									// 字段并释放目录锁，openDay在此之后重开的新五件套无人负责关闭（句柄泄漏到
-									// 进程结束）；继续写完整批还会在同目录重启新实例时双写同日bin/pos索引交叉损坏。
-									// 停机优先于落盘（FND4-68终止契约，与写异常恢复分支的!started同口径）：
-									// 关闭新句柄、丢弃残余批直接退出。
 									if (!started) {
 										logger.error("writeLogThread exit on stopping during rotation: discard {} logs",
 											queueSize);
@@ -693,7 +806,7 @@ public final class BinLogger extends ReentrantLock {
 										forceClose(posFile);
 										forceClose(binFile);
 										discardWriteQueueForExit();
-										break; // 退出外层for(;;)
+										return;
 									}
 								}
 							}
@@ -766,31 +879,30 @@ public final class BinLogger extends ReentrantLock {
 									forceClose(tsFile);
 									forceClose(posFile);
 									forceClose(binFile);
-									openDay(curDayStamp); // 失败保持closed流：下次write再抛，再次进入恢复
-									if (myGeneration != loggerGeneration) {
-										// FND8-59：重开（阻塞IO）跨越了重启：不再forceClose字段
-										// （关闭责任归新代stopLogger），丢弃残余批退出。
-										logger.error("writeLogThread exit on stale generation during recover reopen: discard {} logs, completed={}/{}",
-											queueSize - completed, completed, queueSize);
-										exitStale = true;
-										break; // 退出内层while，经exitStale路径退出外层for(;;)
-									}
-									// FND6-29姊妹：恢复分支重开后的停机复查。停机落在上方检查之后、
-									// 且openDay耗时跨越stop放弃join的点（NFS/磁盘抖动停滞正是本分支
-									// 的威胁模型前提）时，stopLogger已forceClose重开前的字段并释放
-									// 目录锁，重开的新五件套此后无人负责关闭（泄漏到进程结束）；重试
-									// 写残余批还会与新实例双写同日bin/pos。停机优先于落盘（FND4-68）：
-									// 关闭新句柄，经exitOnStop统一丢弃残余批退出。
-									if (!started) {
-										logger.error("writeLogThread exit on stopping during recover reopen: discard {} logs, completed={}/{}",
-											queueSize - completed, completed, queueSize);
-										forceClose(idFile);
-										forceClose(dtFile);
-										forceClose(tsFile);
-										forceClose(posFile);
-										forceClose(binFile);
-										exitOnStop = true;
-										break; // 退出内层while，经exitOnStop路径丢弃残余批并退出外层for(;;)
+									// S1-F2：重开同样走打开/提交分离——提交闸门拒绝过代/停机提交，
+									// 未提交的新五件套由打开者关闭，不再经共享字段。
+									var reopened = openDay(curDayStamp); // 失败保持closed流：下次write再抛，再次进入恢复
+									var commit = tryCommitDayFiles(reopened, curDayStamp, myGeneration);
+									if (commit != DayCommit.COMMITTED) {
+										reopened.forceClose(); // 打开者负责关闭（S1-F2）
+										if (commit == DayCommit.STALE) {
+											// FND8-59：重开（阻塞IO）跨越了重启：不再forceClose字段
+											// （关闭责任归新代stopLogger），丢弃残余批退出。
+											logger.error("writeLogThread exit on stale generation during recover reopen: discard {} logs, completed={}/{}",
+												queueSize - completed, completed, queueSize);
+											exitStale = true;
+										} else {
+											// FND6-29姊妹：恢复分支重开后的停机复查。停机落在上方检查之后、
+											// 且openDay耗时跨越stop放弃join的点（NFS/磁盘抖动停滞正是本分支
+											// 的威胁模型前提）时，stopLogger已关闭重开前的字段并释放目录锁，
+											// 重开的新五件套此后无人负责关闭（泄漏到进程结束）；重试写残余批
+											// 还会与新实例双写同日bin/pos。停机优先于落盘（FND4-68）：
+											// 丢弃残余批退出。
+											logger.error("writeLogThread exit on stopping during recover reopen: discard {} logs, completed={}/{}",
+												queueSize - completed, completed, queueSize);
+											exitOnStop = true;
+										}
+										break; // 退出内层while，经exitStale/exitOnStop路径退出外层for(;;)
 									}
 								} catch (Throwable ex) { // logger.error
 									logger.error("reopen after write exception fail.", ex);
