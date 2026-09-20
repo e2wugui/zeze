@@ -87,8 +87,8 @@ public class TestFnd716SnapshotResidualCleanup {
 			assertEquals(0L, countCheckpointDirs(),
 					"residual checkpoint_* dirs must be swept before generating a new snapshot, "
 							+ "and the current checkpoint must be deleted after success");
-			assertTrue(new File(rocks.getRaft().getLogSequence().getSnapshotFullName()).isFile(),
-					"committed snapshot file must exist");
+			assertTrue(rocks.getRaft().getLogSequence().genSnapshotPath(result.lastIncludedIndex).toFile().isFile(),
+					"committed generation snapshot file must exist");
 		}
 	}
 
@@ -111,9 +111,12 @@ public class TestFnd716SnapshotResidualCleanup {
 
 			// 句柄已关：下一次快照清扫掉残留。
 			var tmpZip2 = Paths.get(dbHome, "snapshot.dat.tmp2.zip");
-			assertTrue(rocks.snapshot(tmpZip2.toString()).success);
+			var result2 = rocks.snapshot(tmpZip2.toString());
+			assertTrue(result2.success);
 			assertEquals(0L, countCheckpointDirs(), "residual must be cleaned once no longer locked");
-			assertTrue(new File(rocks.getRaft().getLogSequence().getSnapshotFullName()).isFile());
+			assertTrue(rocks.getRaft().getLogSequence()
+					.genSnapshotPath(result2.lastIncludedIndex).toFile().isFile(),
+					"committed generation snapshot file must exist");
 		}
 	}
 }

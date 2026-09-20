@@ -1,7 +1,6 @@
 package Zeze.Hot;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,6 +21,7 @@ import Zeze.Builtin.Provider.BModule;
 import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.Task;
 
 public class Distribute {
@@ -78,7 +78,7 @@ public class Distribute {
 
 		var schemasManifest = new Manifest();
 		var schemasJarFile = Path.of(workingDir, HotManager.SchemasPrefix + solutionName + HotManager.SchemasSuffix).toFile();
-		try (var schemasJar = new JarOutputStream(new FileOutputStream(schemasJarFile), schemasManifest)) {
+		try (var schemasJar = new JarOutputStream(AtomicFileWriter.openOutput(schemasJarFile.toPath()), schemasManifest)) {
 			var schemasFile = Path.of(classesDir, solutionName, "Schemas.class");
 			var entry = new ZipEntry(solutionName + "/Schemas.class");
 			entry.setTime(schemasFile.toFile().lastModified());
@@ -302,7 +302,7 @@ public class Distribute {
 		if (null == projectJar) {
 			var manifest = new Manifest();
 			var serverJarFile = Path.of(workingDir, projectName + ".jar").toFile();
-			projectJar = new JarOutputStream(new FileOutputStream(serverJarFile), manifest);
+			projectJar = new JarOutputStream(AtomicFileWriter.openOutput(serverJarFile.toPath()), manifest);
 		}
 		return projectJar;
 	}
@@ -360,9 +360,9 @@ public class Distribute {
 			// 打包热更模块, HotModule
 			var interfaceJarFile = Path.of(workingDir, "interfaces", module + ".interface.jar").toFile();
 			var moduleJarFile = Path.of(workingDir, "modules", module + ".jar").toFile();
-			try (var interfaceJar = new JarOutputStream(new FileOutputStream(interfaceJarFile), interfaceManifest)) {
+			try (var interfaceJar = new JarOutputStream(AtomicFileWriter.openOutput(interfaceJarFile.toPath()), interfaceManifest)) {
 				// moduleJar 后面还可能添加文件，这里不关闭。
-				var moduleJar = new JarOutputStream(new FileOutputStream(moduleJarFile), moduleManifest);
+				var moduleJar = new JarOutputStream(AtomicFileWriter.openOutput(moduleJarFile.toPath()), moduleManifest);
 				hotModuleJars.put(module, moduleJar);
 				var beanNames = new HashSet<String>();
 				var logClasses = new ArrayList<PackEntry>();
@@ -432,11 +432,7 @@ public class Distribute {
 		}
 	}
 
-	public static class PackEntry {
-		public final Class<?> class1;
-		public final ZipEntry entry;
-		public final File file;
-
+	public record PackEntry(Class<?> class1, ZipEntry entry, File file) {
 		public boolean isBeanLog(HashSet<String> beanNames) {
 			var logName = class1.getName();
 			var innerIdx = logName.indexOf('$');
@@ -444,12 +440,6 @@ public class Distribute {
 				return false;
 			var beanName = logName.substring(0, innerIdx);
 			return beanNames.contains(beanName);
-		}
-
-		public PackEntry(Class<?> logClass, ZipEntry entry, File file) {
-			this.class1 = logClass;
-			this.entry = entry;
-			this.file = file;
 		}
 	}
 

@@ -417,7 +417,7 @@ public final class Raft {
 
 		registerInternalRpc();
 
-		var snapshot = logSequence.getSnapshotFullName();
+		var snapshot = logSequence.getCommittedSnapshotFile();
 		if (new File(snapshot).isFile()) {
 			long t = System.nanoTime();
 			sm.loadSnapshot(snapshot);
@@ -745,6 +745,7 @@ public final class Raft {
 		// Connector重连已移到onTimer的Raft锁外执行（见上）；本方法仅剩LogSequence清理。
 		logSequence.removeExpiredUniqueRequestSet();
 		gcReceiveSnapshotting(System.currentTimeMillis()); // FND3-23：残留接收条目周期清理
+		logSequence.drainPendingDeleteGenFiles(); // gen清扫重试名单周期冲刷
 	}
 
 	/**

@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +16,7 @@ import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Raft.ProxyServer;
 import Zeze.Raft.RaftConfig;
+import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.KV;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
@@ -86,9 +86,8 @@ public class Dbh2Manager {
 		dbHome.mkdirs();
 		raftConfig.setDbHome(dbHome.toString());
 		var file = new File(raftConfig.getDbHome(), "raft.xml");
-		java.nio.file.Files.writeString(file.toPath(),
-				raftConfigStr,
-				StandardOpenOption.CREATE);
+		// 经原语落盘：原Files.writeString默认截断，崩溃留半截xml。
+		AtomicFileWriter.replace(file.toPath(), raftConfigStr.getBytes(StandardCharsets.UTF_8));
 		dbh2s.computeIfAbsent(raftConfig.getSortedNames(), __ -> {
 			var dbh2 = new Dbh2(this, raftConfig.getName(),
 					database, raftConfig,

@@ -99,7 +99,7 @@ public class TestFnd712ExistLogRecovery {
 			r.Argument.setDone(true);
 			r.Argument.setLastIncludedLog(new Binary(new RaftLog(0, 5, new HeartbeatLog()).encode()));
 
-			// commitSnapshotNow 会把它 rename 成 snapshot.dat；内容无所谓（假状态机不解析）。
+			// commitSnapshotNow 会把它发布为 gen(snapshot.dat.5)；内容无所谓（假状态机不解析）。
 			var installingPath = Paths.get(dbHome, LogSequence.snapshotFileName + ".installing.5");
 			Files.write(installingPath, new byte[]{1, 2, 3});
 
@@ -112,7 +112,7 @@ public class TestFnd712ExistLogRecovery {
 					"lastApplied must be reset to firstIndex; stale value wedges apply forever");
 			assertEquals("127.0.0.1:17671", logSequence.getVoteFor(), "vote of current term discarded (aligned with full path)");
 			assertEquals(1, sm.loadedPaths.size(), "snapshot must be loaded into the state machine");
-			assertEquals(logSequence.getSnapshotFullName(), sm.loadedPaths.get(0));
+			assertEquals(logSequence.getCommittedSnapshotFile(), sm.loadedPaths.get(0));
 			assertTrue(logSequence.logsAvailable, "logsAvailable must be restored in finally");
 		} finally {
 			raft.shutdown();

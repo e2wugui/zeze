@@ -3,7 +3,6 @@ package Zeze.Raft.RocksRaft;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +29,7 @@ import Zeze.Raft.RocksRaft.Log1.LogDouble;
 import Zeze.Raft.RocksRaft.Log1.LogFloat;
 import Zeze.Raft.RocksRaft.Log1.LogInt;
 import Zeze.Raft.RocksRaft.Log1.LogLong;
+import Zeze.Util.AtomicFileWriter;
 import Zeze.Raft.RocksRaft.Log1.LogShort;
 import Zeze.Raft.RocksRaft.Log1.LogString;
 import Zeze.Raft.Server;
@@ -85,14 +85,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	// 仅存在于apply失败到重试成功之间的短窗口，reset/restore/close时清空。
 	private final LongConcurrentHashMap<PendingFlush> pendingFlushApplies = new LongConcurrentHashMap<>();
 
-	static final class PendingFlush {
-		final long term;
-		final List<Record<?>> records;
-
-		PendingFlush(long term, List<Record<?>> records) {
-			this.term = term;
-			this.records = records;
-		}
+	record PendingFlush(long term, List<Record<?>> records) {
 	}
 
 	// 取出index对应的待补偿记录；没有或term不匹配（同index已被新term条目复用）返回null。
@@ -469,7 +462,9 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public static void createZipFromDirectory(String sourceDir, String zipFilePath) throws IOException {
-		try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFilePath))) {
+		// 经AtomicFileWriter落盘（原裸写无fsync无原子性）；close幂等，级联close安全。
+		try (var out = AtomicFileWriter.openOutput(Paths.get(zipFilePath));
+			 var zos = new ZipOutputStream(out)) {
 			Path sourcePath = Paths.get(sourceDir);
 			try (var stream = Files.walk(sourcePath)) {
 				stream.filter(path -> !Files.isDirectory(path)).forEach(path -> {

@@ -54,6 +54,17 @@ test 任务类级并行（同 JVM），@Fast 类必须彼此互不干扰：
 用 jetbrains 的 `@NotNull` / `@Nullable`（`org.jetbrains.annotations`），
 不要用 jspecify 的 `@NonNull` / `@Nullable`（`org.jspecify.annotations`）。
 
+## 持久化写入规约（I1，RFD1-03）
+
+任何"重启后必须还在"的文件只能经 `Zeze.Util.AtomicFileWriter`
+（`openOutput` 流式 / `replace` 全量小文件；分块接收等按路径写的候选用
+`AtomicFileWriter.fsync` + 原子改名收口）落盘。截断式写（`new FileOutputStream`、
+不带 APPEND 的 `Files.write/newOutputStream` 等）在白名单外没有合法场景；
+白名单由 `TestAtomicWriteSourceGuard` 固化，调整须在提交信息里说明理由，
+迁移完成一个调用点即收缩一项。追加式日志（BinLogger）与分块接收
+（`.installing`）除外。`AtomicOutputFile.close()` 内 force-先于-move 的顺序是
+安全前提，改动须逐字评审。
+
 ## 修复提交的信息格式
 
 一个 bug 一个提交。格式：

@@ -169,8 +169,8 @@ public class TestGcReceiveSnapshotting {
 		}
 	}
 
-	// 启动清理：进程崩溃残留的孤儿 .installing 文件被删除；
-	// 延时提交的 .commit.delayed 文件绝不能被误删（SnapshotCommitDelayed 恢复源）。
+	// 启动清理：孤儿.installing删除；legacy .commit.delayed残留同样清扫
+	//（代际化后该文件族不再产生，历史残留统一判死）。
 	@Test
 	public void testStartupCleansOrphanInstallingFiles() throws Exception {
 		Files.createDirectories(Paths.get(dbHome));
@@ -182,7 +182,7 @@ public class TestGcReceiveSnapshotting {
 		var raft = newRaft(); // LogSequence 构造时清理
 		try {
 			assertFalse(Files.exists(orphan), "orphan .installing file must be deleted on startup");
-			assertTrue(Files.exists(delayed), "delayed-commit snapshot must NOT be touched");
+			assertFalse(Files.exists(delayed), "legacy .commit.delayed residue must be swept (hole 2 closed)");
 		} finally {
 			raft.shutdown();
 		}

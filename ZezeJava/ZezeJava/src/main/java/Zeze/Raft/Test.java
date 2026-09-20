@@ -2,15 +2,16 @@ package Zeze.Raft;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.BindException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -24,6 +25,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
+import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
@@ -70,11 +72,12 @@ public class Test {
 			if (logsHandle == null)
 				throw new RocksDBException("column family not found: " + raftName + ".logs");
 			var StateMachine = new TestStateMachine();
-			var snapshot = Paths.get(db, LogSequence.snapshotFileName).toString();
-			if (new File(snapshot).isFile())
-				StateMachine._loadSnapshot(snapshot);
-			try (var dumpFile = new FileOutputStream(db + ".txt");
-					var it1 = r1.newIterator(logsHandle, RocksDatabase.getDefaultReadOptions())) {
+			// 代际化后快照不再叫snapshot.dat，固定名检查会静默跳过装载。
+			var snapshot = findDumpSnapshot(db);
+			if (snapshot != null)
+				StateMachine._loadSnapshot(snapshot.toString());
+			try (var dumpFile = AtomicFileWriter.openOutput(Paths.get(db + ".txt"));
+				 var it1 = r1.newIterator(logsHandle, RocksDatabase.getDefaultReadOptions())) {
 				dumpFile.write(String.format("SnapshotCount = %d\n", StateMachine.getCount()).getBytes(StandardCharsets.UTF_8));
 				for (it1.seekToFirst(); it1.isValid(); it1.next()) {
 					var l1 = RaftLog.decode(new Binary(it1.value()), StateMachine::logFactory);
@@ -86,6 +89,26 @@ public class Test {
 			for (var h : cfhs)
 				h.close();
 		}
+	}
+
+	// dump装载源：最大index的gen快照（不持LogSequence实例无法问指针），回退legacy名。
+	private static Path findDumpSnapshot(String dbHome) {
+		Path best = null;
+		long bestIndex = -1;
+		var files = new File(dbHome).listFiles();
+		if (files != null) {
+			for (var file : files) {
+				var index = LogSequence.parseGenSnapshotIndex(file);
+				if (index != null && index > bestIndex) {
+					bestIndex = index;
+					best = file.toPath();
+				}
+			}
+		}
+		if (best != null)
+			return best;
+		var legacy = Paths.get(dbHome, LogSequence.snapshotFileName);
+		return Files.isRegularFile(legacy) ? legacy : null;
 	}
 
 	public void run(String command, String[] args) throws InterruptedException {
@@ -128,10 +151,11 @@ public class Test {
 			return;
 		}
 
+		var xmlFile = Paths.get(Objects.requireNonNull(raftConfigStart.getXmlFileName()));
 		for (var node : raftConfigStart.getNodes().values()) {
 			// every node need a private config-file.
 			var confPath = Files.createTempFile("", ".xml");
-			Files.copy(Paths.get(raftConfigStart.getXmlFileName()), confPath, StandardCopyOption.REPLACE_EXISTING);
+			Files.copy(xmlFile, confPath, StandardCopyOption.REPLACE_EXISTING);
 			rafts.computeIfAbsent(node.getName(), nodeName -> new TestRaft(nodeName, confPath.toString()));
 		}
 
@@ -745,7 +769,7 @@ public class Test {
 						var bb = ByteBuffer.Allocate();
 						logger.info("{} Snapshot Count={}", getRaft().getName(), count);
 						bb.WriteLong(count);
-						try (var file = new FileOutputStream(path)) {
+						try (var file = AtomicFileWriter.openOutput(Paths.get(path))) {
 							file.write(bb.Bytes, bb.ReadIndex, bb.size());
 						}
 						getRaft().getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
@@ -798,8 +822,15 @@ public class Test {
 		// 旧term重启，InstallSnapshot场景静默失效。按列族精确删除，保留unique存根列族
 		//（重复请求检测）与statemachine状态机目录。须在raft停止（db已关）后调用。
 		static void resetLogData(String dbHome, String raftName) throws Exception {
-			// 只删除日志相关数据。保留重复请求数据。
-			LogSequence.deletedDirectoryAndCheck(new File(dbHome, "snapshot.dat"));
+			// 只删除日志相关数据。保留重复请求数据。快照文件按前缀清理整个家族
+			//（legacy/gen/.installing./.tmp/.commit.delayed）。
+			var dbHomeFiles = new File(dbHome).listFiles();
+			if (dbHomeFiles != null) {
+				for (var file : dbHomeFiles) {
+					if (file.isFile() && file.getName().startsWith(LogSequence.snapshotFileName))
+						LogSequence.deletedDirectoryAndCheck(file);
+				}
+			}
 			var dbDir = new File(dbHome, "db");
 			if (dbDir.isDirectory()) {
 				try (var db = new RocksDatabase(dbDir.getPath())) {

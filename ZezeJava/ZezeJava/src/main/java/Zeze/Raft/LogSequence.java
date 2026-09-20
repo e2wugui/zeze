@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -13,9 +13,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.zip.ZipFile;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -24,6 +24,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.Action2;
+import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -40,40 +41,11 @@ public class LogSequence {
 	static final Logger logger = LogManager.getLogger(LogSequence.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	public static final String snapshotFileName = "snapshot.dat";
-	// 【FND8-37】快照代次manifest：zip内嵌entry（持久化在快照文件自身，InstallSnapshot
-	// 字节流原样传输时随快照自动传播到follower）。entry名与RocksDB backup目录内的
-	// 文件名空间无关，不会冲突。
+
+	// legacy快照内嵌代次（FND8-37）：代际化后不再写入，读取仅供构造器迁移引导。
 	static final String snapshotManifestEntryName = "zeze.snapshot.manifest";
 
-	// 把快照代次写进快照zip自身。在临时文件上完成（此时snapshot.dat仍是旧代次，
-	// 与rafts表firstIndex一致），失败即中止提交，不留半写状态。
-	// 仅zip快照（生产Rocks实现）支持内嵌manifest；自定义StateMachine的非zip快照
-	// 跳过注入（重启对账时无manifest按现状处理，不劣于今天）。
-	static void writeSnapshotManifest(Path snapshotPath, long newFirstIndex) throws IOException {
-		if (!isZipFile(snapshotPath)) {
-			logger.warn("skip snapshot manifest: not a zip file. path={} newFirstIndex={}", snapshotPath, newFirstIndex);
-			return;
-		}
-		try (var zipFs = FileSystems.newFileSystem(snapshotPath, Map.of("create", "false"))) {
-			Files.writeString(zipFs.getPath(snapshotManifestEntryName), Long.toString(newFirstIndex), StandardCharsets.UTF_8);
-		}
-	}
-
-	// zip魔数检测：PK\x03\x04（local file header）或PK\x05\x06（空zip的EOCD）。
-	private static boolean isZipFile(Path path) {
-		try (var in = Files.newInputStream(path)) {
-			var head = new byte[4];
-			if (in.readNBytes(head, 0, 4) != 4)
-				return false;
-			return head[0] == 'P' && head[1] == 'K'
-					&& ((head[2] == 3 && head[3] == 4) || (head[2] == 5 && head[3] == 6));
-		} catch (IOException e) {
-			return false;
-		}
-	}
-
-	// 读快照内嵌代次。旧格式快照无manifest entry、文件不存在或损坏均返回null（视作
-	// 无代次信息，调用方跳过对账，不劣于现状）。
+	// 读legacy快照内嵌代次；无entry、文件不存在或损坏返回null（迁移按N=F处理）。
 	static Long readSnapshotManifest(Path snapshotPath) {
 		if (!Files.isRegularFile(snapshotPath))
 			return null;
@@ -126,6 +98,9 @@ public class LogSequence {
 	private final ConcurrentHashMap<String, Server.ConnectorEx> installSnapshotting = new ConcurrentHashMap<>();
 	private long lastSnapshotIndex;
 	private boolean snapshotting = false; // 是否正在创建Snapshot过程中，用来阻止新的创建请求。
+
+	// gen清扫重试名单：Windows句柄锁删除失败的旧代，onLowPrecisionTimer周期重试。
+	private final ConcurrentLinkedQueue<Path> pendingDeleteGenFiles = new ConcurrentLinkedQueue<>();
 
 	static {
 		RocksDB.loadLibrary();
@@ -181,74 +156,155 @@ public class LogSequence {
 
 	public void commitSnapshot(String path, long newFirstIndex) throws IOException, RocksDBException {
 		Path path1 = Paths.get(path);
-		if (raft.getRaftConfig().isSnapshotCommitDelayed()) {
-			// 查找目录下已经存在的延时提交的snapshot。
-			// 实际上最多只会存在一个延时提交的snapshot，这里的代码写法能处理多个。
-			var files = new File(path).getParentFile().listFiles();
-			var delayed = new TreeMap<Long, File>();
-			if (null != files) {
-				for (var file : files) {
-					if (!file.isFile())
-						continue;
-
-					var fileName = file.getName();
-					if (fileName.endsWith(".commit.delayed")) {
-						var splits = fileName.split("\\.");
-						try {
-							var index = Long.parseLong(splits[splits.length - 3]);
-							delayed.put(index, file);
-						} catch (Exception ex) {
-							// skip
-						}
-					}
-				}
-			}
-			if (!delayed.isEmpty()) {
-				// 删除最后一个entry，并且提交。
-				var biggestIndex = delayed.lastKey();
-				var biggestFile = delayed.remove(biggestIndex);
-				// 里面会把这个rename成真正的snapshot。
-				_commitSnapshot(biggestFile.toPath(), biggestIndex);
-				// 删除多余的延时提交文件。一般不会发生。
-				for (var file : delayed.values())
-					Files.deleteIfExists(file.toPath());
-			}
-			// 当前snapshot重命名，带上index信息。等到下一个snapshot发生的时候推进。
-			Files.move(path1, Paths.get(path + "." + newFirstIndex + ".commit.delayed"));
+		if (!raft.getRaftConfig().isSnapshotCommitDelayed()) {
+			_commitSnapshot(path1, newFirstIndex);
 			return;
 		}
-		_commitSnapshot(path1, newFirstIndex);
+		// 延时提交（延迟一代）：held候选=已发布的gen文件（index>firstIndex，指针未翻）。
+		// 新候选到达时先翻上一代held（提交），再发布新候选为held；崩溃时未翻的held即孤儿，启动清扫。
+		raft.lock();
+		try {
+			var held = findHeldGenCandidates();
+			if (!held.isEmpty()) {
+				// 提交最大的held（实际上最多只有一个held，这里的写法能处理多个）。
+				var biggestIndex = held.lastKey();
+				_flipCommittedGen(biggestIndex);
+				// 删除多余的held。一般不会发生。
+				for (var file : held.headMap(biggestIndex).values())
+					Files.deleteIfExists(file);
+			}
+			// 过期防御（与立即提交同口径）：过期候选直接丢弃。
+			if (newFirstIndex < firstIndex) {
+				discardStaleCandidate(path1, newFirstIndex);
+				return;
+			}
+			publishGenCandidate(path1, newFirstIndex);
+		} finally {
+			raft.unlock();
+		}
 	}
 
-	// 接收InstallSnapshot的提交必须立即生效，不能走延时提交：
-	// 随后马上loadSnapshot(getSnapshotFullName())并按新边界重置commitIndex/lastApplied，
-	// 延时提交会导致加载旧快照（或文件不存在）、firstIndex不推进，节点状态彻底错乱。
+	// 接收InstallSnapshot的提交必须立即生效：随后马上loadSnapshot并按新边界重置，
+	// 走延时会导致加载旧快照、firstIndex不推进。
 	void commitSnapshotNow(Path path, long newFirstIndex) throws IOException, RocksDBException {
 		_commitSnapshot(path, newFirstIndex);
 	}
 
+	// 过期候选丢弃：不翻指针、删候选、顺带清扫旧代。调用方持raft锁。
+	private void discardStaleCandidate(Path path, long newFirstIndex) throws IOException {
+		logger.warn("discard stale snapshot: path={} newFirstIndex={} < firstIndex={}",
+				path, newFirstIndex, firstIndex);
+		Files.deleteIfExists(path);
+		startSweepGenFiles();
+	}
+
+	// 代际提交：发布（fsync+原子改名为不可变gen文件）→ 单点指针翻转（saveFirstIndex）。
+	// 崩溃穷举皆安全：发布前崩=残留由启动清扫；发布后翻转前崩=gen孤儿被清扫；翻转后=已提交。
 	private void _commitSnapshot(Path path, long newFirstIndex) throws IOException, RocksDBException {
 		raft.lock();
 		try {
-			// 防御竞态：本地snapshot生成期间（checkpoint之后backup/zip较慢）可能接收并
-			// 提交了更新的InstallSnapshot，此时本地snapshot已过期，提交会回退firstIndex
-			// 并用旧状态覆盖新快照，必须丢弃。
+			// 防御竞态：本地snapshot生成期间可能提交了更新的InstallSnapshot，
+			// 过期候选提交会回退firstIndex，必须丢弃。
 			if (newFirstIndex < firstIndex) {
-				logger.warn("discard stale snapshot: path={} newFirstIndex={} < firstIndex={}",
-						path, newFirstIndex, firstIndex);
-				Files.deleteIfExists(path);
+				discardStaleCandidate(path, newFirstIndex);
 				return;
 			}
-			// 下面move和save需要原子完成（FND8-37）：两步间隙崩溃后磁盘留下
-			// "snapshot.dat=新代次S、rafts表firstIndex=旧值F、日志完整"，重启以
-			// snapshot.dat内嵌的manifest代次对账（构造器），消除"(F..S]双重应用"窗口。
-			// 先在临时文件上写入代次：失败即中止提交，snapshot.dat保持旧代次与firstIndex一致。
-			writeSnapshotManifest(path, newFirstIndex);
-			Files.move(path, Paths.get(getSnapshotFullName()), StandardCopyOption.REPLACE_EXISTING);
-			saveFirstIndex(newFirstIndex);
-			startRemoveLogOnlyBefore(newFirstIndex);
+			publishGenCandidate(path, newFirstIndex);
+			_flipCommittedGen(newFirstIndex);
 		} finally {
 			raft.unlock();
+		}
+	}
+
+	// 翻转指针提交已就位的gen文件（延时held的提交路径）。调用方持raft锁。
+	private void _flipCommittedGen(long newFirstIndex) throws RocksDBException {
+		saveFirstIndex(newFirstIndex); // RocksDB sync put —— 唯一提交动作
+		startSweepGenFiles();          // 删 index < firstIndex 的旧代（失败进重试名单）
+		startRemoveLogOnlyBefore(newFirstIndex);
+	}
+
+	// 候选发布：fsync补齐（zip与接收侧分块写均无fsync）→ 原子改名为不可变gen文件。
+	// 发布≠提交；REPLACE回退覆盖同index旧候选。调用方持raft锁。
+	private void publishGenCandidate(Path path, long newFirstIndex) throws IOException {
+		AtomicFileWriter.fsync(path);
+		var gen = genSnapshotPath(newFirstIndex);
+		try {
+			Files.move(path, gen, StandardCopyOption.ATOMIC_MOVE);
+		} catch (AtomicMoveNotSupportedException e) {
+			Files.move(path, gen, StandardCopyOption.REPLACE_EXISTING);
+		}
+	}
+
+	private File[] listDbHomeFiles() {
+		return new File(raft.getRaftConfig().getDbHome()).listFiles();
+	}
+
+	// held候选：index>firstIndex的gen文件，按index排序。调用方持raft锁。
+	private TreeMap<Long, Path> findHeldGenCandidates() {
+		var held = new TreeMap<Long, Path>();
+		var files = listDbHomeFiles();
+		if (files == null)
+			return held;
+		for (var file : files) {
+			var index = parseGenSnapshotIndex(file);
+			if (index != null && index > firstIndex)
+				held.put(index, file.toPath());
+		}
+		return held;
+	}
+
+	// gen文件名解析：snapshot.dat.<纯数字>→index；其他返回null。package-private供dump助手复用。
+	static Long parseGenSnapshotIndex(File file) {
+		if (!file.isFile())
+			return null;
+		var fileName = file.getName();
+		if (!fileName.startsWith(snapshotFileName + "."))
+			return null;
+		var middle = fileName.substring(snapshotFileName.length() + 1);
+		if (middle.isEmpty() || !middle.chars().allMatch(Character::isDigit))
+			return null;
+		try {
+			return Long.parseLong(middle);
+		} catch (NumberFormatException e) {
+			return null; // 超长数字串
+		}
+	}
+
+	// 运行期gen清扫：只删index<firstIndex的旧代（>firstIndex是延时held或进行中发布）；
+	// 删除失败进重试名单。调用方持raft锁。
+	private void startSweepGenFiles() {
+		try {
+			var files = listDbHomeFiles();
+			if (files != null) {
+				for (var file : files) {
+					var index = parseGenSnapshotIndex(file);
+					if (index == null || index >= firstIndex)
+						continue;
+					try {
+						Files.deleteIfExists(file.toPath());
+						logger.info("{} sweep old gen snapshot: {}", raft.getName(), file.getName());
+					} catch (IOException e) {
+						pendingDeleteGenFiles.add(file.toPath());
+						logger.warn("sweep old gen snapshot failed, queued for retry. file={}", file, e);
+					}
+				}
+			}
+		} finally {
+			drainPendingDeleteGenFiles();
+		}
+	}
+
+	// 重试名单冲刷：成功或文件消失即摘除，失败留到下一轮。
+	void drainPendingDeleteGenFiles() {
+		for (var it = pendingDeleteGenFiles.iterator(); it.hasNext(); ) {
+			var pending = it.next();
+			try {
+				Files.deleteIfExists(pending);
+				it.remove();
+			} catch (IOException e) {
+				logger.warn("retry delete gen snapshot failed, keep queued. file={}", pending, e);
+				return; // 本轮到此为止，下一轮再试
+			}
 		}
 	}
 
@@ -571,38 +627,42 @@ public class LogSequence {
 						}
 					}
 				}
-				// 【FND8-37】快照代次对账：_commitSnapshot的Files.move与saveFirstIndex间隙
-				// 崩溃后，snapshot.dat内嵌代次S超前rafts表firstIndex=F（日志完整，下面的
-				// lastApplied=F起tryApply重放(F..S]即双重应用——增量不幂等，如list按索引追加）。
-				// 以文件内嵌代次为唯一事实：S>F时快照内容已含(F..S]，推进firstIndex到S并
-				// 跳过该段重放（残留日志由构造器尾部的startRemoveLogOnlyBefore清扫）；
-				// S<F正常流程不可达（move只前进+_commitSnapshot对回退快照的丢弃防御），
-				// 防御性丢弃快照由leader重装。旧格式快照无manifest，跳过对账（不劣于现状）。
+				// legacy迁移引导：DbHome存在固定名snapshot.dat时迁入代际世界（触发只看
+				// 文件存在、崩溃重入安全；须在清扫之前）。S>F先推进指针再改名；S<F防御
+				// 删除；无manifest按N=F；REPLACE覆盖回滚后重升级的残留gen。
 				if (firstIndex >= 0) {
-					var manifestIndex = readSnapshotManifest(Paths.get(getSnapshotFullName()));
-					if (manifestIndex != null) {
-						if (manifestIndex > firstIndex) {
-							logger.warn("{} crash recovery: snapshot manifest index({}) > firstIndex({}),"
-									+ " _commitSnapshot crashed between move and saveFirstIndex?"
-									+ " advance firstIndex to skip replay of applied logs.",
+					var legacyPath = Paths.get(getSnapshotFullName());
+					if (Files.exists(legacyPath)) {
+						var manifestIndex = readSnapshotManifest(legacyPath);
+						if (manifestIndex != null && manifestIndex > firstIndex) {
+							logger.warn("{} legacy migrate: snapshot manifest index({}) > firstIndex({}),"
+											+ " advance firstIndex to skip replay of applied logs.",
 									raft.getName(), manifestIndex, firstIndex);
 							saveFirstIndex(manifestIndex);
 							firstIndex = manifestIndex;
-							// 附带校正：lastSnapshotIndex同样滞后于S，滞后只让trySnapshot
-							// 提前触发一次新快照（无害），一并校正以免无谓快照。
+							// 附带校正lastSnapshotIndex滞后（否则trySnapshot提前触发一次新快照，无害）。
 							lastSnapshotIndex = manifestIndex;
 							var lsiValue = ByteBuffer.Allocate(9);
 							lsiValue.WriteLong(lastSnapshotIndex);
 							rafts.put(writeOptions, lastSnapshotIndexKey, 0, lastSnapshotIndexKey.length,
 									lsiValue.Bytes, 0, lsiValue.WriteIndex);
-						} else if (manifestIndex < firstIndex) {
-							logger.warn("{} crash recovery: snapshot manifest index({}) < firstIndex({}),"
+						} else if (manifestIndex != null && manifestIndex < firstIndex) {
+							logger.warn("{} legacy migrate: snapshot manifest index({}) < firstIndex({}),"
 									+ " discard snapshot, reinstall from leader.",
 									raft.getName(), manifestIndex, firstIndex);
 							try {
-								Files.deleteIfExists(Paths.get(getSnapshotFullName()));
+								Files.deleteIfExists(legacyPath);
 							} catch (IOException e) {
 								logger.warn("discard stale snapshot error.", e);
+							}
+						}
+						if (Files.exists(legacyPath)) {
+							try {
+								Files.move(legacyPath, genSnapshotPath(firstIndex),
+										StandardCopyOption.REPLACE_EXISTING);
+							} catch (IOException e) {
+								// 迁移失败不得带病运行（磁盘布局不确定）：显性失败。
+								throw Task.forceThrow(e);
 							}
 						}
 					}
@@ -643,17 +703,26 @@ public class LogSequence {
 		}
 		logsAvailable = true;
 
-		// 【FND3-23】启动清理：进程崩溃或放弃路径即时删除失败残留的 .installing 文件。
-		// 运行期 gcReceiveSnapshotting 只管理 receiveSnapshotting map 内的条目，管不到
-		// 磁盘孤儿文件。删除失败仅告警：残留不损正确性（新安装总是用新边界文件名）。
-		var dbHomeFiles = new File(raft.getRaftConfig().getDbHome()).listFiles();
+		// 启动清扫（在legacy迁移之后）：.installing./tmp族/.commit.delayed残留、
+		// index != firstIndex的gen孤儿。删除失败仅告警（活文件不被覆写，残留不损正确性）。
+		var dbHomeFiles = listDbHomeFiles();
 		if (dbHomeFiles != null) {
 			for (var file : dbHomeFiles) {
-				if (file.isFile() && file.getName().startsWith(snapshotFileName + ".installing.")) {
+				if (!file.isFile() || !file.getName().startsWith(snapshotFileName + "."))
+					continue;
+				var fileName = file.getName();
+				var delete = fileName.startsWith(snapshotFileName + ".installing.")
+						|| fileName.endsWith(".tmp")
+						|| fileName.endsWith(".commit.delayed");
+				if (!delete) {
+					var index = parseGenSnapshotIndex(file);
+					delete = index != null && index != firstIndex;
+				}
+				if (delete) {
 					try {
 						Files.deleteIfExists(file.toPath());
 					} catch (IOException e) {
-						logger.warn("clean installing snapshot file Exception. file={}", file, e);
+						logger.warn("clean residual snapshot file Exception. file={}", file, e);
 					}
 				}
 			}
@@ -1271,6 +1340,17 @@ public class LogSequence {
 		return Paths.get(raft.getRaftConfig().getDbHome(), snapshotFileName).toString();
 	}
 
+	// 代际快照文件：写入后不可变，只整体删除。
+	public Path genSnapshotPath(long lastIncludedIndex) {
+		return Paths.get(raft.getRaftConfig().getDbHome(), snapshotFileName + "." + lastIncludedIndex);
+	}
+
+	// 已提交快照=firstIndex指认的gen文件；无快照时返回legacy名（不存在）。
+	// 读者统一经此解析不可变文件，与后续提交/清扫不竞争。
+	public String getCommittedSnapshotFile() {
+		return firstIndex >= 0 ? genSnapshotPath(firstIndex).toString() : getSnapshotFullName();
+	}
+
 	long endReceiveInstallSnapshot(Path path, InstallSnapshot r) throws Exception {
 		logsAvailable = false; // cancel RemoveLogBefore
 		var removeLogBeforeFuture = this.removeLogBeforeFuture;
@@ -1345,11 +1425,10 @@ public class LogSequence {
 					setVoteFor(raft.getLeaderId()); // 放弃当前Term的投票（对齐完整路径）
 					long t = System.nanoTime();
 					try {
-						raft.getStateMachine().loadSnapshot(getSnapshotFullName());
+						raft.getStateMachine().loadSnapshot(getCommittedSnapshotFile());
 					} catch (Throwable e) {
 						// 对齐完整路径（FND3-21）：没有原地恢复路径，fatalKill把静默分歧
-						// 变成crash，重启从snapshot.dat（已被commitSnapshotNow替换为新边界
-						// 内容）恢复自愈。
+						// 变成crash，重启从已提交gen快照恢复自愈。
 						logger.fatal("{} EndReceiveInstallSnapshot(ExistLog) loadSnapshot failed, fatalKill. Path={}",
 								raft.getName(), path, e);
 						raft.fatalKill();
@@ -1396,14 +1475,13 @@ public class LogSequence {
 				// snapshot's cluster configuration)
 				long t = System.nanoTime();
 				try {
-					raft.getStateMachine().loadSnapshot(getSnapshotFullName());
+					raft.getStateMachine().loadSnapshot(getCommittedSnapshotFile());
 				} catch (Throwable e) {
 					// 【FND3-21】loadSnapshot 失败时日志已 drop、firstIndex 已持久化推进、
 					// 内存 lastApplied 已是新边界，而状态机仍是旧内容；继续运行则 leader
 					// 重试走 ExistLog 分支只 commitSnapshotNow 不再 loadSnapshot，follower
 					// 永久脏状态（静默分歧），仅进程重启可恢复。没有可行的原地恢复路径，
-					// 显性 fatalKill 把静默分歧变成 crash：重启从 snapshot.zip（已被
-					// commitSnapshotNow 替换为新边界内容）恢复自愈。
+					// 显性 fatalKill 把静默分歧变成 crash：重启从已提交gen快照恢复自愈。
 					logger.fatal("{} EndReceiveInstallSnapshot loadSnapshot failed, fatalKill. Path={}",
 							raft.getName(), path, e);
 					raft.fatalKill();
@@ -1482,7 +1560,8 @@ public class LogSequence {
 	private void startInstallSnapshot(Server.ConnectorEx c) throws Exception {
 		if (getInstallSnapshotting().containsKey(c.getName()))
 			return;
-		var path = getSnapshotFullName();
+		// leader发送firstIndex指认的不可变gen文件，与本地提交/清扫不竞争。
+		var path = getCommittedSnapshotFile();
 		// 如果 Snapshotting，此时不启动安装。
 		// 以后重试 AppendEntries 时会重新尝试 Install.
 		if ((new File(path)).isFile() && !getSnapshotting()) {

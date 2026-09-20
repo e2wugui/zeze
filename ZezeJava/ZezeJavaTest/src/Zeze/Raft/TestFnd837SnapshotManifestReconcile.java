@@ -23,14 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * FND8-37回归：_commitSnapshot的Files.move与saveFirstIndex两步持久化非原子，
- * 间隙崩溃后磁盘留下"snapshot.dat=新代次S、rafts表firstIndex=旧值F、日志完整"，
- * 重启无任何检测（lastIndex>=F且边界日志在），lastApplied=F起重放(F..S]即双重
- * 应用（增量不幂等），状态机静默分叉。
- * 修复：快照代次写进快照zip自身（manifest entry，随InstallSnapshot字节流自动
- * 传播），启动以文件内嵌代次对账——S>F时saveFirstIndex(S)并令lastApplied=
- * commitIndex=S跳过已应用段；S<F防御性丢弃快照；旧格式无manifest跳过（不劣于
- * 现状）。构造Raft不起server（无网络/端口占用），直接伪造崩溃后磁盘形态后重启。
+ * FND8-37→RFD1-03：legacy迁移引导测试——代际化后对账退役为一次性迁移。
+ * 钉住三态与崩溃重入：S>F先推指针再改名；S==F（含推进后改名前崩溃重入）直接改名；
+ * S<F防御删除；无manifest按N=F。构造Raft不起server，伪造磁盘形态后重启。
  */
 @Fast
 public class TestFnd837SnapshotManifestReconcile {
@@ -93,8 +88,8 @@ public class TestFnd837SnapshotManifestReconcile {
 		LogSequence.deleteDirectory(new File(dbHome)); // best-effort
 	}
 
-	// 伪造崩溃后磁盘形态：logs=[0,5..12]、rafts.firstIndex=F、snapshot.dat带manifest S。
-	private void forgeCrashState(long firstIndex, Long manifest) throws Exception {
+	// 伪造legacy磁盘形态：logs=[0,5..12]、rafts.firstIndex=F、snapshot.dat带manifest S。
+	private void forgeLegacyState(long firstIndex, Long manifest) throws Exception {
 		var r = newRaft();
 		var ls = r.getLogSequence();
 		for (long i = 5; i <= 12; i++)
@@ -105,53 +100,71 @@ public class TestFnd837SnapshotManifestReconcile {
 		closeRaft();
 	}
 
-	// manifest读写助手往返：无entry→null；写入/覆盖后可读回；文件不存在→null。
+	// legacy manifest读取往返：无entry→null；有entry可读回；文件不存在→null。
 	@Test
-	public void testManifestWriteRead() throws Exception {
+	public void testManifestRead() throws Exception {
 		var zip = newZipWithManifest(null);
 		try {
 			assertNull(LogSequence.readSnapshotManifest(zip), "无manifest entry返回null");
-			LogSequence.writeSnapshotManifest(zip, 42L);
-			assertEquals(42L, LogSequence.readSnapshotManifest(zip));
-			LogSequence.writeSnapshotManifest(zip, 100L); // 覆盖已有entry
-			assertEquals(100L, LogSequence.readSnapshotManifest(zip));
-			assertNull(LogSequence.readSnapshotManifest(Paths.get(dbHome, "a3_not_exist.zip")));
 		} finally {
 			Files.deleteIfExists(zip);
 		}
+		zip = newZipWithManifest(42L);
+		try {
+			assertEquals(42L, LogSequence.readSnapshotManifest(zip));
+		} finally {
+			Files.deleteIfExists(zip);
+		}
+		assertNull(LogSequence.readSnapshotManifest(Paths.get(dbHome, "a3_not_exist.zip")));
 	}
 
-	// 崩溃窗口（S>F）：重启对账推进firstIndex到S并跳过(F..S]重放。
-	// 修复前：lastApplied=commitIndex=5，(5..10]已被快照包含却会重放（双重应用）。
+	// 迁移窗口（S>F，迁移前崩溃留下的"内容超前索引"）：推进firstIndex到S并改名gen(S)。
+	// 修复前（代际化前）：lastApplied=commitIndex=5，(5..10]已被快照包含却会重放（双重应用）。
 	@Test
-	public void testCrashWindowReconcileAdvances() throws Exception {
-		forgeCrashState(5, 10L);
+	public void testLegacyMigrateAdvances() throws Exception {
+		forgeLegacyState(5, 10L);
 		var r = newRaft();
 		var ls = r.getLogSequence();
-		assertEquals(10, ls.getFirstIndex(), "对账必须推进firstIndex到manifest代次");
+		assertEquals(10, ls.getFirstIndex(), "迁移必须推进firstIndex到manifest代次");
 		assertEquals(10, ls.getLastApplied(), "lastApplied跳过已应用段");
 		assertEquals(10, ls.getCommitIndex(), "commitIndex对齐");
 		assertEquals(12, ls.getLastIndex(), "lastIndex不受影响");
+		assertTrue(Files.exists(ls.genSnapshotPath(10)), "迁移后快照必须改名为gen(S)");
+		assertFalse(Files.exists(Paths.get(ls.getSnapshotFullName())), "snapshot.dat必须消失");
 	}
 
-	// 旧格式快照（无manifest）：跳过对账走现状逻辑。
+	// 崩溃重入（"推进后、改名前"崩溃）：指针已S、snapshot.dat仍在——重启触发条件成立，
+	// S==F分支重跑改名收敛，唯一快照不丢（Rev4修正的反序缺陷正是这里）。
 	@Test
-	public void testOldFormatSnapshotSkipsReconcile() throws Exception {
-		forgeCrashState(5, null);
+	public void testLegacyMigrateReentryAfterAdvanceCrash() throws Exception {
+		forgeLegacyState(10, 10L);
+		var r = newRaft();
+		var ls = r.getLogSequence();
+		assertEquals(10, ls.getFirstIndex());
+		assertTrue(Files.exists(ls.genSnapshotPath(10)), "重入必须完成改名，快照不丢");
+		assertFalse(Files.exists(Paths.get(ls.getSnapshotFullName())));
+	}
+
+	// 旧格式快照（无manifest）：按N=F改名，不对账。
+	@Test
+	public void testLegacyMigrateOldFormat() throws Exception {
+		forgeLegacyState(5, null);
 		var r = newRaft();
 		var ls = r.getLogSequence();
 		assertEquals(5, ls.getFirstIndex(), "无代次信息不得对账");
 		assertEquals(5, ls.getLastApplied());
+		assertTrue(Files.exists(ls.genSnapshotPath(5)), "按N=F改名为gen(F)");
 	}
 
-	// S<F（正常流程不可达的防御方向）：丢弃快照，firstIndex保持。
+	// S<F（正常流程不可达的防御方向）：丢弃快照，firstIndex保持，不产生gen。
 	@Test
-	public void testManifestBehindDiscardsSnapshot() throws Exception {
-		forgeCrashState(5, 3L);
+	public void testLegacyMigrateBehindDiscardsSnapshot() throws Exception {
+		forgeLegacyState(5, 3L);
 		var r = newRaft();
 		var ls = r.getLogSequence();
 		assertEquals(5, ls.getFirstIndex(), "S<F不推进firstIndex");
-		assertFalse(Files.exists(Paths.get(ls.getSnapshotFullName())), "过期快照必须丢弃");
+		assertFalse(Files.exists(ls.genSnapshotPath(3)), "过期快照必须丢弃");
+		assertFalse(Files.exists(Paths.get(ls.getSnapshotFullName())), "snapshot.dat必须删除");
 		assertTrue(Files.exists(Paths.get(dbHome)), "dbHome仍在");
 	}
 

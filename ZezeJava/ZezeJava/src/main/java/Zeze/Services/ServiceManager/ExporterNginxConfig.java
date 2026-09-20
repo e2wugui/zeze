@@ -1,18 +1,14 @@
 package Zeze.Services.ServiceManager;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
+import Zeze.Util.AtomicFileWriter;
 
 public class ExporterNginxConfig implements IExporter {
 	private static final @NotNull org.apache.logging.log4j.Logger logger =
@@ -92,34 +88,9 @@ public class ExporterNginxConfig implements IExporter {
 			for (var line : lines)
 				sb.append(line).append("\n");
 			//System.out.println(sb);
-			writeConfigAtomic(sb.toString());
+			// 原子换版（FND8-71）；move失败由failedServices补偿重试。
+			AtomicFileWriter.replace(Path.of(file), sb.toString().getBytes(StandardCharsets.UTF_8));
 			reload();
-		}
-	}
-
-	// FND8-71：重写必须原子——原Files.writeString(TRUNCATE_EXISTING)截断式覆写，写中途
-	// 崩溃/宕机/磁盘满时唯一真源停留在半截状态（nginx重启即拒绝启动、手写内容不可再生，
-	// 后续轮次读残缺文件也无法自愈）。同目录临时文件+原子move（复刻GenModule.writeGeneratedFile
-	// 惯例，FND7-33），另加move前fsync把断电窗口从页缓存秒级压到纳秒级。他进程占用目标等
-	// move失败由Exporter.onEdit的failedServices补偿在下一事件重试。
-	private void writeConfigAtomic(String content) throws IOException {
-		var targetFile = new File(file);
-		var tmp = File.createTempFile(targetFile.getName(), ".tmp", targetFile.getParentFile());
-		try {
-			try (var fos = new FileOutputStream(tmp);
-				 var channel = fos.getChannel()) {
-				channel.write(ByteBuffer.wrap(content.getBytes(StandardCharsets.UTF_8)));
-				channel.force(true); // fsync：防"rename了未落盘数据"的掉电窗口
-			}
-			var target = targetFile.toPath();
-			try {
-				Files.move(tmp.toPath(), target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-			} catch (AtomicMoveNotSupportedException e) {
-				Files.move(tmp.toPath(), target, StandardCopyOption.REPLACE_EXISTING);
-			}
-		} finally {
-			//noinspection ResultOfMethodCallIgnored
-			tmp.delete(); // move成功时tmp已不存在；失败时清理半截临时文件
 		}
 	}
 
