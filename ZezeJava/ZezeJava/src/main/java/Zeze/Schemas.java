@@ -708,6 +708,21 @@ public class Schemas implements Serializable {
 			var comparator = new ColumnComparator();
 			columns.sort(comparator);
 
+			// 列名查重（fail-fast）：'_'拼接路径下不同变量路径可能生成重复列名（如顶层int a_b与
+			// Bean a{int b}），原先要到关系库执行CREATE TABLE/ADD COLUMN报Duplicate column才失败，
+			// 且无法定位是哪两条变量路径撞名。不改分隔符——列名格式变更会使既有部署的previous/
+			// current列名全部失配，diff判为全表remove+add，触发大规模伪ALTER，风险远大于收益。
+			for (var i = 1; i < columns.size(); i++) {
+				for (var j = 0; j < i; j++) {
+					if (columns.get(i).name.equals(columns.get(j).name))
+						throw new IllegalStateException(Str.format(
+								"buildRelationalColumns duplicate column name '{}': varIds {} vs {}",
+								columns.get(i).name,
+								Arrays.toString(columns.get(i).varIds),
+								Arrays.toString(columns.get(j).varIds)));
+				}
+			}
+
 			return keyColumns;
 		}
 	}
@@ -736,6 +751,10 @@ public class Schemas implements Serializable {
 			context.setConfig(app.getConfig());
 		}
 
+		// 版本升级的renameTable必须等全部兼容检查通过后再统一执行：
+		// 否则rename副作用先于失败的兼容检查提交，且重试不幂等（原表已改名），
+		// 兼容检查失败后重启将永久失败。
+		var renames = new ArrayList<KV<Table, Table>>();
 		boolean res = true;
 		for (var table : tables.values()) {
 			var otherTable = other.tables.get(table.name);
@@ -743,12 +762,11 @@ public class Schemas implements Serializable {
 				// 限制一下：版本号必须递增。
 				if (table.version < otherTable.version)
 					throw new IllegalStateException("table version less than current version");
-				// 版本发生了变更：一般意味着不兼容修改，此时renameTable。
+				// 版本发生了变更：一般意味着不兼容修改，此时renameTable。延迟到检查全部通过后执行。
 				if (table.version > otherTable.version) {
 					if (!table.name.equals(otherTable.name))
 						throw new IllegalStateException(Str.format("table name is not matched {} -> {}", table.name, otherTable.name));
-					var db = app.getDatabase(app.getConfig().getTableConf(table.name).getDatabaseName());
-					db.renameTable(table.name, "zeze_backup_" + table.name + "_" + otherTable.version);
+					renames.add(KV.create(table, otherTable));
 				}
 				// 继续Table的类型的兼容检查。
 				if (!table.isCompatible(otherTable, context)) {
@@ -767,6 +785,11 @@ public class Schemas implements Serializable {
 		}
 		if (!res)
 			throw new IllegalStateException("Found Incompatible Table or Bean! Fix them or Clear DB");
+
+		for (var rename : renames) {
+			var db = app.getDatabase(app.getConfig().getTableConf(rename.getKey().name).getDatabaseName());
+			db.renameTable(rename.getKey().name, "zeze_backup_" + rename.getKey().name + "_" + rename.getValue().version);
+		}
 
 		context.update();
 	}
