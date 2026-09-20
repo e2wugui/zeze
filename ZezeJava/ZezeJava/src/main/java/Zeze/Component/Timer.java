@@ -1555,10 +1555,16 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext: {
 						var oneByOneKey = simpleTimer.getOneByOneKey();
-						Transaction.whileCommit(() ->
+						// missfire补触发不得在commit回调内同步执行（CP2-F1）：whileCommit回调
+						// 运行在提交线程、此刻事务已Completed——空oneByOneKey时dispatchFire直跑
+						// fireSimple，首个bean写必抛IllegalStateException("State Is Not Running")，
+						// 补触发丢失且continue跳过了常规调度，该定时器永久停摆。改用事务感知的
+						// run()（提交后入池执行）：fireSimple/fireCron跑在无事务的池线程上，
+						// newProcedure新建事务，正确（恢复ae7eca8b6回归前的语义）。
+						TaskSpec.ofAction(() ->
 								dispatchFire(oneByOneKey, () ->
 										fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
-												timer.getConcurrentFireSerialNo(), true)));
+												timer.getConcurrentFireSerialNo(), true))).run();
 						continue; // loop done, continue
 					}
 
@@ -1584,10 +1590,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext: {
 						var oneByOneKey = cronTimer.getOneByOneKey();
-						Transaction.whileCommit(() ->
+						// 同simple侧（CP2-F1）：事务感知run()提交后入池，不在commit回调内同步执行。
+						TaskSpec.ofAction(() ->
 								dispatchFire(oneByOneKey, () ->
 										fireCron(index.getSerialId(), serverId, timer.getTimerName(),
-												timer.getConcurrentFireSerialNo(), true)));
+												timer.getConcurrentFireSerialNo(), true))).run();
 						continue; // loop done, continue
 					}
 
