@@ -111,6 +111,11 @@ public final class ZstdFactory {
 				ctxPtr = fCStream.getLong(this);
 				if (ctxPtr == 0)
 					throw new IllegalStateException("ctxPtr = 0");
+				if (dstBufSize == 0) // U6-F1：dstBufSize==0（new byte[0]静默接受）时压缩主循环/flush循环
+					// 0输出0消耗永久自旋，归一为默认尺寸（对齐解压侧"<=0当默认值"的语义中真正有害的==0）。
+					// 负值保持既有契约：new byte[负数]抛NegativeArraySizeException（fail-fast，
+					// FND7-46回归钉死的构造失败→ctx释放路径），无挂死风险，不吞。
+					dstBufSize = DEFAULT_DST_BUF_SIZE;
 				dstBuf = new byte[dstBufSize];
 				//noinspection resource
 				setLevel(compressLevel);

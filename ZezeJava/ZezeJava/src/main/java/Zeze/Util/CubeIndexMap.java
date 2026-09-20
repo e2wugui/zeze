@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 把三维空间划分成一个个相邻的Cube。
@@ -86,13 +87,26 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		}
 	}
 
+	// U1-F2：防御性拷贝传入的 CubeIndex。perform 的 computeIfAbsent 会把键保进
+	// ConcurrentHashMap，调用方（onEnter/onMove 的 CubeIndex 重载是面向游戏代码的公开入口）
+	// 事后 setX/Y/Z 会使键与哈希桶失联，cube 永久失联且无法回收；键归 map 所有、
+	// 与调用方解耦。tryPerform 仅 get() 按值查找、不保留参数，无需拷贝。
+	private static @NotNull CubeIndex copyOf(@NotNull CubeIndex index) {
+		var copy = new CubeIndex();
+		copy.setX(index.getX());
+		copy.setY(index.getY());
+		copy.setZ(index.getZ());
+		return copy;
+	}
+
 	/**
 	 * perform action for Cubes.GetOrAdd.
 	 * under lock (cube)
 	 */
 	public final void perform(CubeIndex index, CubeHandle<TCube> action) {
+		var key = copyOf(index); // U1-F2：见 copyOf 注释
 		while (true) {
-			var cube = cubes.computeIfAbsent(index, __ -> factory.create());
+			var cube = cubes.computeIfAbsent(key, __ -> factory.create());
 			cube.lock();
 			try {
 				if (cube.getCubeState() == Cube.StateRemoved)

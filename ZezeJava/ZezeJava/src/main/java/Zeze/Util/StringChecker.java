@@ -159,6 +159,16 @@ public final class StringChecker {
 				trie = next;
 				++i;
 				if (wordLen > 0) {
+					// U5-F1：覆盖积累区间前先 flush 与新区间不重叠（新区间起点不早于旧区间终点）的
+					// 旧积累区间，否则同一成功转移段内先前命中的词条被静默覆盖漏替换（如词表
+					// {ab,cde,abcdezq} 遇文本"abcdez"只替换 cde、ab 原样漏过）；新区间起点落在
+					// 旧区间内（重叠词）时不 flush，维持新词覆盖旧词的贪心最长匹配语义。
+					if (iLast < eLast && i - wordLen >= eLast) {
+						do
+							chars[iLast++] = replaceChar;
+						while (iLast < eLast);
+						replaced = true;
+					}
 					iLast = i - wordLen;
 					eLast = i;
 				}

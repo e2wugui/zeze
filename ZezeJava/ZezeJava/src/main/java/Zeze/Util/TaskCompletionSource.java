@@ -149,7 +149,12 @@ public class TaskCompletionSource<R> implements Future<R> {
 				unparkAll();
 			else {
 				timeout = unit.toNanos(timeout);
-				var deadline = System.nanoTime() + timeout;
+				// U5-F2：toNanos 的饱和值与 nanoTime 相加会溢出为负的 deadline（不变式破坏，
+				// j.u.c 对饱和超时值有"不超时"特判）。检测饱和（now>0 时 MAX-now 不溢出，now<=0 时
+				// now+timeout 不可能溢出）钳制 deadline 为 MAX_VALUE，使"deadline-now 恒为大正数、
+				// 循环等到结果为止"的循环不变式显式成立，不再依赖补码双重回绕的偶然自愈。
+				var now = System.nanoTime();
+				var deadline = timeout >= Long.MAX_VALUE - now ? Long.MAX_VALUE : now + timeout;
 				try (var ignored = Profiler.begin("TaskCompletionSource")) {
 					do {
 						if (timeout <= 0) // wait(0) == wait(), but get(0) != get()

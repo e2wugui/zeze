@@ -87,7 +87,8 @@ public class IdentityHashSet<T> implements Cloneable {
 
 	public boolean containsAll(@NotNull Collection<?> c) {
 		for (Object e : c)
-			if (e != null && !contains(e))
+			if (e == null || !contains(e)) // U2-F3：本集合契约上永不含null（add参数即@NotNull），
+				// null元素按 JDK Set.containsAll 语义返回"不包含"——原 e!=null 短路把null误判为已包含
 				return false;
 		return true;
 	}
