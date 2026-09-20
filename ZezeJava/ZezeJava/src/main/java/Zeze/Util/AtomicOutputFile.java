@@ -32,8 +32,16 @@ public final class AtomicOutputFile extends OutputStream {
 		// temp必须与target同目录：rename不跨文件系统才可能原子。
 		this.temp = Files.createTempFile(this.target.getParent(),
 				this.target.getFileName() + ".", ".tmp");
-		this.channel = FileChannel.open(temp,
-				StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+		try {
+			this.channel = FileChannel.open(temp,
+					StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+		} catch (IOException e) {
+			// U1-F1：createTempFile成功后open失败即残留tmp——违反close()注释自立的
+			// "周期性失败的调用点不得累积tmp"纪律（Rocks.java快照zip等周期调用点按失败次数
+			// 累积）。失败即删（best-effort吞异常，对齐deleteTempBestEffort）后重抛。
+			deleteTempBestEffort();
+			throw e;
+		}
 		this.buffered = new BufferedOutputStream(Channels.newOutputStream(channel));
 	}
 

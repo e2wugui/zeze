@@ -382,8 +382,17 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			if (table == null)
 				return;
 			var cfh = table.getCfHandle();
-			rocksDb.dropColumnFamily(cfh);
-			rocksDb.destroyColumnFamilyHandle(cfh);
+			try {
+				rocksDb.dropColumnFamily(cfh);
+			} finally {
+				// U4-F2：drop 失败也必须关闭 native 列族句柄（对齐 open()/getOrAddTables 的既有模式）：
+				// remove 已把 table 除名，异常上抛后调用方无引用可回收——列族未删不妨碍事后按重启
+				// 重建句柄，句柄泄漏则不可自愈。销毁失败自身吞掉，不掩盖原始 drop 异常。
+				try {
+					rocksDb.destroyColumnFamilyHandle(cfh);
+				} catch (Throwable ignored) {
+				}
+			}
 		} finally {
 			unlock();
 		}
@@ -393,17 +402,25 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		lock();
 		try {
 			var cfhs = new ArrayList<ColumnFamilyHandle>();
-			for (var name : names) {
-				var table = tableMap.remove(name);
-				if (table != null)
-					cfhs.add(table.getCfHandle());
+			try {
+				for (var name : names) {
+					var table = tableMap.remove(name);
+					if (table != null)
+						cfhs.add(table.getCfHandle());
+				}
+				if (cfhs.isEmpty())
+					return 0;
+				rocksDb.dropColumnFamilies(cfhs);
+				return cfhs.size();
+			} finally {
+				// U4-F2：同 dropTable——drop 失败也逐个关闭句柄，单个销毁失败不影响其余
+				for (var cfh : cfhs) {
+					try {
+						rocksDb.destroyColumnFamilyHandle(cfh);
+					} catch (Throwable ignored) {
+					}
+				}
 			}
-			if (cfhs.isEmpty())
-				return 0;
-			rocksDb.dropColumnFamilies(cfhs);
-			for (var cfh : cfhs)
-				rocksDb.destroyColumnFamilyHandle(cfh);
-			return cfhs.size();
 		} finally {
 			unlock();
 		}
