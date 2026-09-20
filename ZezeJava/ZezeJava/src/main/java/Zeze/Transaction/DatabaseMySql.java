@@ -47,7 +47,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	private static final ZezeCounter.LongObserver mysqlReplaceCounter = mysqlObserverCreator.labelValues("replace");
 	private static final Pattern SPLIT_PATTERN = Pattern.compile(", ");
 
-	// 关系映射表 string key 列建表即固定为 VARCHAR(256)（DatabaseRelationalMapping.getKeyStringType）。
+	// 关系映射表 string key 列建表即固定为 VARCHAR(256)（见下方 getKeyStringType 的二进制排序规则覆写）。
 	private static final int eMaxKeyStringLength = 256;
 
 	public DatabaseMySql(@Nullable Application zeze, @NotNull DatabaseConf conf) {
@@ -87,6 +87,15 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	@Override
 	public Map<String, String> getSqlTypeMap() {
 		return sqlTypeTable;
+	}
+
+	@Override
+	public String getKeyStringType() {
+		// T2-F2：MySQL 出厂默认排序规则 utf8mb4_0900_ai_ci 大小写不敏感，string key 列做
+		// PRIMARY KEY 时大小写变体 key 被合并：REPLACE 冲突先删后插静默丢行、find/remove
+		// 命中错误行。显式二进制排序规则使等值匹配与 Zeze 缓存的字节比较语义一致。
+		// 存量表的列排序规则不会被新配置改变，需按 docs（database/relational.md）手工 ALTER。
+		return "VARCHAR(256) COLLATE utf8mb4_bin";
 	}
 
 	@Override

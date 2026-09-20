@@ -74,6 +74,18 @@ CREATE TABLE IF NOT EXISTS t (id BYTEA PRIMARY KEY, value BYTEA NOT NULL);
 
 打开表时自动执行 `CREATE TABLE IF NOT EXISTS`。Bean 定义变化后框架自动执行 `ALTER TABLE`（MySQL 用 `ADD/DROP/CHANGE COLUMN`，PostgreSQL 需分步执行类型修改和重命名，并重建主键）。
 
+#### string key 列的排序规则（MySQL）
+
+string 类型的 key 列建表为 `VARCHAR(256) COLLATE utf8mb4_bin`（二进制排序规则）：MySQL 默认的 `*_ci` 排序规则大小写不敏感，会把 `Alex` 与 `alex` 视为同一主键，导致写入静默覆盖、查询命中错误行。二进制排序规则保证与 Zeze 缓存的字节比较语义一致。PostgreSQL 的 `text` 等值比较恒为字节精确，不受影响。
+
+存量表升级：旧版本建的 string key 列未指定排序规则，新配置不会自动修改，需手工执行（列名以实际表结构为准，复合 key 时逐列处理）：
+
+```sql
+ALTER TABLE my_table MODIFY __key VARCHAR(256) COLLATE utf8mb4_bin NOT NULL;
+```
+
+执行前如已存在仅大小写不同的重复 key，需先按业务合并清理。
+
 ## 实例管理存储过程
 
 首次连接自动创建：`_ZezeDataWithVersion_`（版本化数据）、`_ZezeInstances_`（活跃实例）表及 `_ZezeSaveDataWithSameVersion_`、`_ZezeSetInUse_`、`_ZezeClearInUse_` 存储过程。`Operates` 还提供 `tryLock()`/`unlock()` 实现基于数据库的分布式锁。
