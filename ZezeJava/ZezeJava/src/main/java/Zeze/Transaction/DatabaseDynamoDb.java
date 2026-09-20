@@ -268,9 +268,9 @@ public class DatabaseDynamoDb extends Database {
 				for (var item : scanResult.getItems()) {
 					var key = copyIf(item.get("key").getB());
 					var value = copyIf(item.get("value").getB());
+					count++; // 被回调且返回 false 的中断项也计入（见 AbstractKVTable.walk 契约，T1-F3）
 					if (!callback.handle(key, value))
 						return count;
-					count++;
 				}
 				if (scanResult.getLastEvaluatedKey() == null)
 					break;
@@ -297,9 +297,9 @@ public class DatabaseDynamoDb extends Database {
 				var scanResult = dynamoDbClient.scan(req);
 				for (var item : scanResult.getItems()) {
 					var key = copyIf(item.get("key").getB());
+					count++; // 中断项计入返回值，与其他后端对齐（T1-F3）
 					if (!callback.handle(key))
 						return count;
-					count++;
 				}
 				if (scanResult.getLastEvaluatedKey() == null)
 					break;

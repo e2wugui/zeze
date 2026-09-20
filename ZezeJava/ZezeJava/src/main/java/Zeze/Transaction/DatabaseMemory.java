@@ -21,7 +21,10 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	// 静态共享时同一进程的多个 Memory 库实例互相串扰——库 A 的 schemas 保存让库 B 读到 A 的版本/前像，
 	// B 的兼容检查基于错误前像进行。
 	private static final HashMap<String, HashMap<ByteBuffer, DataWithVersion>> dataWithVersions = new HashMap<>();
-	private static final byte @NotNull [] removed = ByteBuffer.Empty;
+	// 私有哨兵：不能与 ByteBuffer.Empty 别名（T1-F1）——bean 全默认值时编码结果是 0 字节，
+	// replace 里 value.Copy() 对 size==0 返回共享的 ByteBuffer.Empty，commit 以引用相等判删
+	// 会把"写入空编码值"误判成 remove，已提交记录静默丢失。独立实例切断该别名。
+	private static final byte @NotNull [] removed = new byte[0];
 	private static final HashMap<String, HashMap<String, TableMemory>> databaseTables = new HashMap<>();
 	private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 

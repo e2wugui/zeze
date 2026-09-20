@@ -179,9 +179,9 @@ public class DatabaseRedis extends Database {
 				while (true) {
 					var result = jedis.hscan(keyOfSet, cursor);
 					for (var entry : result.getResult()) {
+						count++; // 被回调且返回 false 的中断项也计入（契约见 AbstractKVTable.walk），所以不用+=size()
 						if (!callback.handle(entry.getKey(), entry.getValue()))
 							return count;
-						count++; // callback 是可中断的，所以这里不用+=size();
 					}
 					cursor = result.getCursorAsBytes();
 					if (Arrays.equals(cursor, ScanParams.SCAN_POINTER_START_BINARY))

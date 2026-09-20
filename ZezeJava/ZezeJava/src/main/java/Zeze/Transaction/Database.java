@@ -318,6 +318,7 @@ public abstract class Database extends ReentrantLock {
 
 		/**
 		 * 每一条记录回调。回调返回true继续遍历，false中断遍历。
+		 * 被回调且返回 false 的中断记录也计入返回值（各后端统一契约）。
 		 *
 		 * @return 返回已经遍历的数量
 		 */
