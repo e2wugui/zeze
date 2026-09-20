@@ -266,12 +266,36 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		}
 	}
 
+	// saga参与方持久化编码（OH1-F1）：BSavedCommits.Onzs是set[string]的集群名集合，bean为
+	// 生成代码（不可加字段），以带前缀编码区分参与方类型——集群名是zezeConfigs解析的'='左段，
+	// 不可能包含'='（分隔符），"saga="前缀与任何集群名（以及旧版本持久化的ip_port）零碰撞；
+	// 旧记录无前缀即procedure参与方，格式向后兼容。
+	private static final String SagaParticipantPrefix = "saga=";
+
+	static String encodeSagaParticipant(String zezeName) {
+		return SagaParticipantPrefix + zezeName;
+	}
+
+	/** 解码持久化条目：saga参与方返回集群名，procedure参与方返回null。 */
+	static String decodeSagaParticipant(String savedOnz) {
+		return savedOnz.startsWith(SagaParticipantPrefix)
+				? savedOnz.substring(SagaParticipantPrefix.length())
+				: null;
+	}
+
 	public BSavedCommits.Data buildSavedCommits() {
 		var bState = new BSavedCommits.Data();
 		// 按集群名持久化（FND4-90）：地址会漂移（重连/SM通告变更），redo时由
 		// getZezeInstance现查当前地址——旧地址不再作为幻影参与方被反复重试。
 		for (var e : zezeProcedures.keySet()) {
 			bState.getOnzs().add(e);
+		}
+		// saga参与方同样持久化（OH1-F1）：原先只收集zezeProcedures，saga事务该集合恒空——
+		// 协调者在saveCommitPoint后崩溃（或cancelSaga的FuncSagaEnd超时丢失且不重试）时，
+		// redoTimer对残留决策记录解出空参与方列表直接removeCommitRecord，已提交步骤永久
+		// 未补偿，整体事务按失败收场——静默部分提交分歧。带前缀编码，redo按参与方类型分流。
+		for (var e : zezeSagas.keySet()) {
+			bState.getOnzs().add(encodeSagaParticipant(e));
 		}
 		return bState;
 	}

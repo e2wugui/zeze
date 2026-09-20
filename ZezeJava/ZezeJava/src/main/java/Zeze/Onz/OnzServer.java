@@ -27,7 +27,6 @@ import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Func2;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
@@ -228,7 +227,7 @@ public class OnzServer extends AbstractOnz {
 					// perform的finally之后，多等一个perform生命周期。
 					switch (state) {
 					case eCommitting:
-						redo(key, OnzServer::commit);
+						redo(key, true);
 						break;
 					case ePreparing:
 						// FND5-44：新格式值=state(varint)+写入时戳(8B BE)；旧格式（仅state，
@@ -244,7 +243,7 @@ public class OnzServer extends AbstractOnz {
 							continue;
 						}
 						if (age >= RedoPreparingMinAgeMs)
-							redo(key, OnzServer::rollback);
+							redo(key, false);
 						// else：进行中窗口，等超过年龄后的下一轮
 						break;
 					}
@@ -267,7 +266,24 @@ public class OnzServer extends AbstractOnz {
 		return r.SendForWait(socket);
 	}
 
-	private void redo(byte[] key, Func2<AsyncSocket, Long, TaskCompletionSource<EmptyBean.Data>> func) throws RocksDBException {
+	// redo对saga参与方FuncSagaEnd的等待超时：参与方处理FuncSagaEnd与在途业务互斥
+	//（businessLock），应答可能慢于rpc默认超时（慢业务场景）；本轮超时保留记录，
+	// 每轮redo重试收敛，取小于redo周期(60s)的量级。
+	private static final int RedoSagaEndTimeoutMs = 30_000;
+
+	/** redo路径对saga参与方的FuncSagaEnd：cancel=决策为rollback（补偿）。 */
+	private static TaskCompletionSource<Zeze.Builtin.Onz.BFuncSagaEndResult.Data> sagaEnd(
+			AsyncSocket socket, long tid, boolean cancel) {
+		var r = new FuncSagaEnd();
+		r.Argument.setOnzTid(tid);
+		r.Argument.setCancel(cancel);
+		return r.SendForWait(socket, RedoSagaEndTimeoutMs);
+	}
+
+	// redo按决策与参与方类型分流（OH1-F1）：procedure参与方发Commit/Rollback；
+	// saga参与方发FuncSagaEnd——commit决策补发endSaga未完成的结束(cancel=false)，
+	// rollback决策补偿已提交的步骤(cancel=true)，参与方幂等。
+	private void redo(byte[] key, boolean commitDecision) throws RocksDBException {
 
 		var value = Objects.requireNonNull(commitPoint.get(key));
 		var state = new BSavedCommits.Data();
@@ -278,16 +294,22 @@ public class OnzServer extends AbstractOnz {
 		try {
 			var futures = new ArrayList<TaskCompletionSource<?>>();
 			for (var e : state.getOnzs()) {
+				// saga参与方带前缀持久化（OH1-F1），其余为procedure参与方（含旧版本ip_port格式）。
+				var sagaName = OnzTransaction.decodeSagaParticipant(e);
+				var zezeName = sagaName != null ? sagaName : e;
 				AsyncSocket socket;
-				if (zezes.containsKey(e)) {
+				if (zezes.containsKey(zezeName)) {
 					// 参与方按集群名持久化（FND4-90起）：现查当前地址——地址漂移后redo
 					// 不再对死地址重试（连接器由instances缓存管理生命周期）。
-					socket = getZezeInstance(e);
+					socket = getZezeInstance(zezeName);
 				} else {
 					// 旧版本持久化的ip_port（升级窗口遗留的未决决策）：按地址建连兜底。
-					socket = openRedoConnection(zezeOnzs, e).GetReadySocket();
+					socket = openRedoConnection(zezeOnzs, zezeName).GetReadySocket();
 				}
-				futures.add(func.call(socket, tid));
+				if (sagaName != null)
+					futures.add(sagaEnd(socket, tid, !commitDecision));
+				else
+					futures.add(commitDecision ? commit(socket, tid) : rollback(socket, tid));
 			}
 			for (var e : futures)
 				e.await();
@@ -602,6 +624,13 @@ public class OnzServer extends AbstractOnz {
 			// 现在先简单处理为：等待perform完成。
 			if (0 == rc) {
 				txn.waitPendingAsync();
+				// pendingAsync窗口内注册的参与方不进上面的ePreparing快照（OH1-F4）：窗口后
+				// 重建快照再传给commit——txn.commit内saveCommitPoint(eCommitting)持久化的
+				// 参与方列表完整，崩溃/commitFail后redo补发不缺迟到参与方（迟到者等不到
+				// Commit会ready超时自愈回滚，与已报成功的协调者分歧）。592行的ePreparing快照
+				// 保持不动：窗口内落盘可观察是FND5-44/FND6-36回归契约与redo所有权门控的依赖，
+				// 其内容不全无害（崩溃走redo(rollback)整体回滚一致）。
+				state = txn.buildSavedCommits();
 				txn.commit(tidBytes, state);
 				txn.waitFlushDone();
 				return 0;
