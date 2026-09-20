@@ -233,14 +233,8 @@ public class Service extends ReentrantLock {
 
 	/**
 	 * 会话按sessionId登记入表（putIfAbsent，先注册者胜）。
-	 * R3-C②（SM撞号产品缺陷）：返回false=同号互撞——同JVM多App各自调用全局静态
-	 * AsyncSocket.setSessionIdGenFunc（如Game.App/linkd的PersistentAtomicLong发号）时，
-	 * 后装的发号器与本Service既有连接发出的号重叠：putIfAbsent静默吞掉新连接后，
-	 * GetSocket(sessionId)永远返回旧socket（isSenderAlive等按id找连接的逻辑全被误导，
-	 * TestGameTimer的ErrorNotLogin即此链）。这里error日志+关闭撞号的新连接（保留先注册者），
-	 * 把静默互撞变成显式拒绝。调用方拿到false后不得再对该连接回调OnHandshakeDone。
-	 * 返回false亦涵盖已close的socket：迟到登记在置死互斥下被拒（见AsyncSocket生命周期
-	 * 状态机），僵尸条目不可产生。
+	 * 返回false=同号互撞或socket已close：撞号时打error日志并关闭新连接（保留先注册者），
+	 * 已close的迟到登记被拒；调用方不得再对该连接回调OnHandshakeDone。
 	 */
 	protected final boolean addSocket(@NotNull AsyncSocket so) {
 		var existing = so.runIfOpen(() -> {
@@ -251,8 +245,9 @@ public class Service extends ReentrantLock {
 			return false; // 已closed：迟到登记拒绝
 		if (existing != so) {
 			logger.error("addSocket: duplicate sessionId {} in service '{}': existing socket {} kept, "
-							+ "colliding socket {} closed. 同JVM多App互踩全局静态AsyncSocket.setSessionIdGenFunc"
-							+ "会触发此撞号（发号器被后装的App整体替换，与既有连接号码重叠）。",
+							+ "colliding socket {} closed. Usually caused by multiple apps in one JVM overriding "
+							+ "the global static AsyncSocket.setSessionIdGenFunc, making new ids collide "
+							+ "with existing sessions.",
 					so.getSessionId(), name, existing, so);
 			so.close(new IllegalStateException("duplicate session id: " + so.getSessionId()));
 			return false;
@@ -493,20 +488,15 @@ public class Service extends ReentrantLock {
 	}
 
 	/**
-	 * 接受新连接的公共步骤（FND8-55）：限流→haProxy→注册→握手完成回调。TCP（{@link #OnSocketAccept}）
-	 * 与websocket（WebsocketHandle.onOpen / WebsocketClient.onOpen）两条接受路径统一走此入口，
-	 * 限流与撞号契约不再依赖各入口复制粘贴。
-	 * 超限抛IllegalStateException（TCP accept流程catch后关闭新连接，保持既有契约；websocket
-	 * 调用方应捕获后显式关闭连接，不依赖Netty/JDK异常兜底）；addSocket返回false（撞号，连接
-	 * 已被addSocket关闭）时直接返回，不回调OnHandshakeDone（addSocket契约）。
-	 * 推迟OnHandshakeDone的接受路径（Handshake家族/Token覆写形态）不走本方法，自行
-	 * checkMaxConnections+setupHaProxyHeader+按addSocket返回值短路。
+	 * 接受新连接的公共步骤：限流→haProxy→注册→OnHandshakeDone（TCP与websocket接受路径统一入口）。
+	 * 超限抛IllegalStateException，调用方负责捕获并关闭连接；addSocket返回false时直接返回，
+	 * 不回调OnHandshakeDone。推迟OnHandshakeDone的接受路径（Handshake家族/Token覆写）不走本方法，
+	 * 自行checkMaxConnections+setupHaProxyHeader+按addSocket返回值短路。
 	 */
 	protected final void tryAccept(@NotNull AsyncSocket so) throws Exception {
 		if (socketMap.size() >= config.getMaxConnections()) // 这里可能有并发原子性问题,不能保证限制在max以内
 			throw new IllegalStateException("too many connections");
 		setupHaProxyHeader(so);
-		// R3-C②：撞号连接已被addSocket关闭（error日志+close），不得再回调OnHandshakeDone。
 		if (!addSocket(so))
 			return;
 		OnHandshakeDone(so);
@@ -567,7 +557,6 @@ public class Service extends ReentrantLock {
 	 * @param so connect succeed
 	 */
 	public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
-		// R3-C②：撞号连接已被addSocket关闭（error日志+close），不得再回调OnHandshakeDone。
 		if (!addSocket(so))
 			return;
 		OnHandshakeDone(so);

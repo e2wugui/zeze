@@ -19,7 +19,6 @@ import org.jetbrains.annotations.Nullable;
  * 请求-应答协议基类。发送侧实例为一次性：Send/SendReturnVoid/SendForWait 只能进入一次，
  * 发送失败后同样不得复用——重试请新建实例（每次发送需要新的sessionId）。
  * 需要「可靠投递/超时重试」语义时，新建实例重发，并配合协议层幂等或服务端按请求标识去重
- * （参考 Raft：UniqueRequestId + RaftRpcBridge 桥接模式）。
  */
 public abstract class Rpc<TArgument extends Serializable, TResult extends Serializable> extends Protocol<TArgument> {
 	protected static final @NotNull Logger logger = LogManager.getLogger(Rpc.class);
@@ -178,9 +177,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		isTimeout = false;
 		isRequest = true;
 
-		// FND8-51：超时兜底先于编码/发送挂好——super.Send(so)内编码（写完sessionId后Argument.encode，
-		// 用户bean可抛）或传输层异常逃逸时，上下文仍有超时回收与回调，兑现schedule注释
-		// （130-132行）"上下文必须有超时兜底"的设计契约（对齐Online.sendOnlineRpc先例）。
+		// 超时兜底先于编码/发送挂好——super.Send(so)内编码（写完sessionId后Argument.encode，
+		// 用户bean可抛）或传输层异常逃逸时，上下文仍有超时回收与回调，
 		// 发送返回false时下方双参remove先赢，超时定时器到期时remove(sessionId,this)必失败跳过，
 		// 无双重回调（LongConcurrentHashMap.remove(key,value)为原子条件删除）。
 		schedule(service, sessionId, millisecondsTimeout);
@@ -197,9 +195,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	/**
 	 * 不管发送是否成功，总是建立RpcContext。
 	 * 连接(so)可以为null，此时Rpc请求将在Timeout后回调。
+	 * 不显式传超时的重载统一使用字段timeout（默认5000，setTimeout可改）
 	 */
-	// 不显式传超时的重载统一使用字段timeout（默认5000，setTimeout可改）：
-	// 与Send(so)/Send(so,handle)的语义一致，否则setTimeout设置后这些重载仍按5000误判超时。
 	public final void SendReturnVoid(@NotNull Service service, @Nullable AsyncSocket so,
 	                                 @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
 		SendReturnVoid(service, so, responseHandle, timeout);
@@ -219,7 +216,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		isTimeout = false;
 		isRequest = true;
 		sessionId = service.addRpcContext(this);
-		// FND8-51：schedule前移到发送之前，同Send——super.Send(so)异常逃逸路径同样有超时兜底，
+		// schedule前移到发送之前，同Send——super.Send(so)异常逃逸路径同样有超时兜底，
 		// 兑现本方法javadoc"不管发送是否成功，总是建立RpcContext……在Timeout后回调"。
 		schedule(service, sessionId, millisecondsTimeout);
 		super.Send(so);

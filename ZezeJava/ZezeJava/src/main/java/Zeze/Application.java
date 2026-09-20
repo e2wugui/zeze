@@ -77,7 +77,7 @@ public final class Application extends ReentrantLock {
 
 	private final @NotNull String projectName;
 	private final @NotNull Config conf;
-	private final HashMap<String, Database> databases = new HashMap<>();
+	private final @NotNull HashMap<String, Database> databases = new HashMap<>();
 	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Table> tableNameMap = new ConcurrentHashMap<>();
 	private final Locks locks = new Locks();
@@ -1019,7 +1019,7 @@ public final class Application extends ReentrantLock {
 	// stopAndJoin的join中断forceThrow等）只记日志继续，不得跳过其后步骤
 	// （db.close/clearInUse/各UnRegister），保证终态必达eStopped
 	// （对齐GlobalAgent.stop的per-agent兜底与FND-A1-10意图）。
-	private void stopStep(@NotNull String name, @NotNull Action0 action) {
+	private static void stopStep(@NotNull String name, @NotNull Action0 action) {
 		try {
 			action.run();
 		} catch (InterruptedException e) {
