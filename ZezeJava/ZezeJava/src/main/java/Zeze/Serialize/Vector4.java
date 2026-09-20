@@ -65,6 +65,13 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
+	public float sqrMagnitude() {
+		// SE2-F1：补上w²——原继承Vector3三分量口径，与magnitude()/normalized()的4分量对齐
+		//（Quaternion继承本类自然正确）。
+		return (float)((double)x * x + (double)y * y + (double)z * z + (double)w * w);
+	}
+
+	@Override
 	public float magnitude() {
 		return (float)Math.sqrt((double)x * x + (double)y * y + (double)z * z + (double)w * w);
 	}

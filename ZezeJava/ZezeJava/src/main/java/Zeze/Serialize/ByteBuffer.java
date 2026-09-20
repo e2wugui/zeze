@@ -962,7 +962,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	public static int utf8Size(@Nullable String str) {
 		if (str == null)
 			return 0;
-		int bn = 0;
+		long bn = 0; // long累加（SE1-F1）：int回绕为负会走WriteString的bn<=0早退，静默编码为空串
 		for (int i = 0, cn = str.length(); i < cn; i++) {
 			int c = str.charAt(i);
 			if (c < 0x80)
@@ -973,7 +973,9 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			} else
 				bn += (c < 0x800 ? 2 : 3);
 		}
-		return bn;
+		if (bn >= 1L << 31) // 与EnsureWrite/ReadString的溢出拦截策略一致：静默丢数据不如显式失败
+			throw new IllegalStateException("utf8Size overflow: " + bn + " (>= 2^31), string too large");
+		return (int)bn;
 	}
 
 	public void WriteString(@Nullable String str) {
@@ -1199,8 +1201,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	public int WriteTag(int lastVarId, int varId, int type) {
 		int deltaId = varId - lastVarId;
-		if (deltaId < 0) // 负delta(降序id/负idx)会写出高位为1的伪装tag字节，静默损坏输出流
-			throw new IllegalStateException("WriteTag: varId " + varId + " < lastVarId " + lastVarId);
+		if (deltaId <= 0) // 负delta降序id会写出高位为1的伪装tag字节；deltaId==0同样落入0x00-0x0f控制字节区（SE1-F2）
+			throw new IllegalStateException("WriteTag: varId " + varId + " <= lastVarId " + lastVarId);
 		if (deltaId < 0xf)
 			WriteByte((deltaId << TAG_SHIFT) + type);
 		else {
