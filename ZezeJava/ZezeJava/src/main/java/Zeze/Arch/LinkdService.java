@@ -241,6 +241,8 @@ public class LinkdService extends HandshakeServer {
 				return 0;
 			}
 			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
+			// 必须显式返回错误码：落到return r(=0)会让调用方当作已处理，协议被静默丢弃。
+			return 102;
 		}
 		return r;
 	}

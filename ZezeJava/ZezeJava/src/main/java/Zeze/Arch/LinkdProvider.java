@@ -93,8 +93,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
 			if (providerSocket != null && onSend.test(providerSocket)) // ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
 				return 0;
-			// else
 			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
+			// 发送失败必须返回错误码：落到return r(=0)违反"0表示成功"契约，协议被静默丢弃（与choiceBindSend同口径）。
+			return 102;
 		}
 		return r;
 	}
