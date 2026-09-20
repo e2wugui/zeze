@@ -693,7 +693,7 @@ public class HttpExchange {
 	//（Connection头/100-continue/WebSocket升级）。
 	static final AttributeKey<Boolean> h2StreamKey = AttributeKey.valueOf("ZezeHttpH2Stream");
 
-	final boolean isH2() {
+	public boolean isH2() {
 		return context.channel().attr(h2StreamKey).get() != null;
 	}
 

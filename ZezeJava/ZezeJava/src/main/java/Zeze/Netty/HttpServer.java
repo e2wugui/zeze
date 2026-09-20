@@ -473,6 +473,11 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			outBufHashAttr.set(0);
 	}
 
+	// h2子channel判定（H2Transport的stream初始化器置h2StreamKey；h1连接/父channel恒false）
+	static boolean isH2Channel(@NotNull io.netty.channel.Channel ch) {
+		return ch.attr(HttpExchange.h2StreamKey).get() != null;
+	}
+
 	public void addHandler(@NotNull String path, int maxContentLength, @Nullable TransactionLevel level,
 						   @Nullable DispatchMode mode, @NotNull HttpEndStreamHandle fullHandle) {
 		addHandler(path, new HttpHandler(maxContentLength, level, mode, fullHandle));
@@ -595,6 +600,9 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		var p = ch.pipeline();
 		if (sslCtx != null)
 			p.addLast(sslCtx.newHandler(ch.alloc()));
+		// h2c prior-knowledge探测（管线首位，首3字节判定）：h2换栈/ h1自移除透传。
+		// 见H2Transport.PrefaceDetector——协议翻译下沉管线层，本类与HttpExchange零改动复用。
+		p.addLast(new H2Transport.PrefaceDetector(this));
 		p.addLast(new HttpResponseEncoder() {
 			@Override
 			public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
@@ -659,7 +667,8 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 				exchanges.put(channelId, x);
 				// N①：登记请求到达序（响应序化器的排队依据）。在此（EventLoop）先于任何响应写完成，
 				// Direct内联与非Direct派发的handler执行都晚于本登记。
-				if (!x.registerResponseOrder())
+				// h2子channel跳过：每stream恒单在途，序化无意义（无登记即seq==null直写分支）。
+				if (!isH2Channel(ctx.channel()) && !x.registerResponseOrder())
 					return; // 深度滥用已关连接：不再处理（retain会泄漏进已终结exchange），finally释放原始msg
 			} else if ((x = exchanges.get(channelId)) == null)
 				return;

@@ -1,7 +1,15 @@
 package Zeze.Netty;
 
-import io.netty.channel.ChannelHandler;
+import java.util.List;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelHandler;
+import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http2.Http2FrameCodec;
 import io.netty.handler.codec.http2.Http2FrameCodecBuilder;
 import io.netty.handler.codec.http2.Http2MultiplexHandler;
@@ -65,5 +73,60 @@ public final class H2Transport {
 				ch.attr(HttpExchange.h2StreamKey).set(Boolean.TRUE);
 			}
 		};
+	}
+
+	/**
+	 * 明文h2c prior-knowledge探测器（管线首位）："PRI * HTTP/2.0"是RFC专门保留给h2预言的
+	 * method，任何h1请求不可能以它开头——首3字节即无歧义判定。h2：换栈（帧codec+多路复用；
+	 * h1件与HttpServer本身移除——HttpServer由子channel的stream初始化器重新装配）；
+	 * h1：自移除透传（缓冲字节经ByteToMessageDecoder移除时的重放机制喂给后续h1解码器）。
+	 *
+	 * <p>范围：prior-knowledge（curl --http2-prior-knowledge/定制客户端）；h2c Upgrade（101
+	 * 升级舞步）与TLS+ALPN协商为后续扩展（CleartextHttp2ServerUpgradeHandler要求HttpServerCodec
+	 * 形态的源编解码器，与本服务的自定义encoder/decoder管线不合，需要适配层）。
+	 */
+	static final class PrefaceDetector extends ByteToMessageDecoder {
+		private final @NotNull HttpServer server;
+		private boolean resolved;
+
+		PrefaceDetector(@NotNull HttpServer server) {
+			this.server = server;
+		}
+
+		@Override
+		protected void decode(@NotNull ChannelHandlerContext ctx, @NotNull ByteBuf in,
+							  @NotNull List<Object> out) {
+			if (resolved || in.readableBytes() < 3)
+				return; // 字节不足判定，继续累积；已决议则等待移除（decodeLast重放兜底）
+			var pipeline = ctx.pipeline();
+			resolved = true;
+			if (in.getByte(in.readerIndex()) == 'P'
+					&& in.getByte(in.readerIndex() + 1) == 'R'
+					&& in.getByte(in.readerIndex() + 2) == 'I') {
+				// 顺序关键：必须先拆h1件再装h2栈——frameCodec的handlerAdded会同步写出服务器
+				// SETTINGS（附CLOSE_ON_FAILURE），若写路径上还残留h1件（HttpResponseEncoder等），
+				// 该原始ByteBuf写会同步失败，CLOSE_ON_FAILURE级联关闭整条连接（prior-knowledge
+				// 握手必死，复现器实证）。先拆后装后写路径干净[marker→head]，握手正常。
+				pipeline.remove(HttpResponseEncoder.class); // 匿名子类按类型匹配
+				pipeline.remove(HttpRequestDecoder.class);
+				pipeline.remove(server);
+				pipeline.addLast(new H2ReadActivityMarker());
+				pipeline.addLast(createFrameCodec());
+				pipeline.addLast(new Http2MultiplexHandler(createStreamInitializer(server)));
+			}
+			pipeline.remove(this);
+		}
+	}
+
+	// h2父连接的读活跃清零：h1下由HttpExchange.channelRead清idleTimeKey，h2换栈后父管线无
+	// HttpServer——上载方向活跃（服务端只收不发）会累计idle被checkTimeout误判CLOSE_TIMEOUT。
+	// 写方向的活跃检测不经此（checkTimeout0直读channel.unsafe().outboundBuffer的进度哈希，
+	// 帧写出同样改变它，天然覆盖h2）。
+	private static final class H2ReadActivityMarker extends ChannelInboundHandlerAdapter {
+		@Override
+		public void channelRead(@NotNull ChannelHandlerContext ctx, @NotNull Object msg) throws Exception {
+			ctx.channel().attr(HttpServer.idleTimeKey).set(null);
+			super.channelRead(ctx, msg);
+		}
 	}
 }
