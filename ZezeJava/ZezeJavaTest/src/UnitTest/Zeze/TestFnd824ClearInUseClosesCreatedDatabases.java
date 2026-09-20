@@ -15,9 +15,9 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * FND8-24 回归：clearInUseAndIAmSureAppStopped的null分支自建整批Database（连接池/
+ * FND8-24 回归：clearInUseAndIAmSureAppStopped(独立建库形态)自建整批Database（连接池/
  * RocksDB句柄）用完从不close。修复：增量建图+finally逐db异常隔离地close（建一半
- * 炸了也关已建的）；调用方传入非null自有实例时所有权在调用方、维持不关。
+ * 炸了也关已建的）；调用方自有实例走clearInUse(map)，所有权在调用方、维持不关。
  * 可观测性用RocksDB目录锁：DatabaseRocksDb.close释放目录锁——修复前自建实例
  * 不关，同目录第二次open必抛RocksDBException（目录LOCK按句柄计，同进程同样冲突）；
  * 修复后随调用粒度释放，第二次open成功。
@@ -60,16 +60,16 @@ public class TestFnd824ClearInUseClosesCreatedDatabases {
 		return dbConf;
 	}
 
-	/** null分支自建的RocksDb在调用结束后必须已close（目录锁释放，同目录可再开）。 */
+	/** 独立建库形态自建的RocksDb在调用结束后必须已close（目录锁释放，同目录可再开）。 */
 	@Test
-	public void testNullBranchClosesCreatedRocksDb() throws Exception {
+	public void testStandaloneClosesCreatedRocksDb() throws Exception {
 		var target = new Config();
 		target.setDefaultTableConf(new Config.TableConf());
 		target.getDatabaseConfMap().put("a2db", rocksConf("a2db", tempDir.resolve("a2db")));
 
 		// 修复前：自建实例不关，目录锁滞留 → 第二次open抛RocksDBException（红）。
 		// 修复后：finally关闭 → 目录锁随调用粒度释放 → 第二次open成功（绿）。
-		target.clearInUseAndIAmSureAppStopped(app, null);
+		target.clearInUseAndIAmSureAppStopped(app);
 
 		var again = new DatabaseRocksDb(app, rocksConf("a2db", tempDir.resolve("a2db")), false);
 		again.close(); // open成功即证明锁已释放
@@ -89,7 +89,7 @@ public class TestFnd824ClearInUseClosesCreatedDatabases {
 			target.getDatabaseConfMap().put("fail", rocksConf("fail", heldDir));
 
 			// "fail"的open必抛（目录LOCK按句柄计）——createDatabase中途失败。
-			assertThrows(Exception.class, () -> target.clearInUseAndIAmSureAppStopped(app, null),
+			assertThrows(Exception.class, () -> target.clearInUseAndIAmSureAppStopped(app),
 					"被占目录的open必须失败");
 
 			// 修复前："ok"已建实例随异常路径泄漏（目录锁滞留，无法再开）；
@@ -101,12 +101,12 @@ public class TestFnd824ClearInUseClosesCreatedDatabases {
 		}
 	}
 
-	/** 调用方传入非null自有实例：所有权在调用方，方法不得关闭（app停机序列自会关）。 */
+	/** 调用方自有实例走clearInUse(map)：所有权在调用方，方法不得关闭（app停机序列自会关）。 */
 	@Test
 	public void testCallerOwnedDatabasesNotClosed() {
 		var conf = new Config();
 		conf.setDefaultTableConf(new Config.TableConf());
-		assertDoesNotThrow(() -> conf.clearInUseAndIAmSureAppStopped(app, app.getDatabases()));
+		assertDoesNotThrow(() -> conf.clearInUse(app.getDatabases()));
 		// app的库仍可用（未被动过）：正常事务照常执行。
 		assertDoesNotThrow(() -> app.newProcedure(() -> 0L, "Fnd824.StillAlive").call());
 	}

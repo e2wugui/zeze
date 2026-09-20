@@ -765,7 +765,7 @@ public final class Application extends ReentrantLock {
 			var hasDatabase = !isNoDatabase();
 			if (hasDatabase) {
 				if ("true".equalsIgnoreCase(System.getProperty(Daemon.propertyNameClearInUse))) {
-					conf.clearInUseAndIAmSureAppStopped(this, databases);
+					conf.clearInUse(databases);
 					//var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 					//defaultDb.getDirectOperates().unlock();
 				}
@@ -1000,8 +1000,7 @@ public final class Application extends ReentrantLock {
 				takeover = null;
 			}
 			if (!isNoDatabase())
-				stopStep("clearInUseAndIAmSureAppStopped",
-						() -> conf.clearInUseAndIAmSureAppStopped(this, databases));
+				stopStep("clearInUse", () -> conf.clearInUse(databases));
 
 			for (var e : databases.entrySet())
 				stopStep("db.close '" + e.getKey() + '\'', e.getValue()::close);

@@ -483,8 +483,6 @@ public final class Config {
 			case PostgreSQL -> new DatabasePostgreSQL(zeze, conf);
 			case MongoDb -> new DatabaseMongoDb(zeze, conf);
 			case DynamoDb -> new Zeze.Transaction.DatabaseDynamoDb(zeze, conf);
-			default -> throw new UnsupportedOperationException("unknown database type."
-					+ " supported: Memory/MySql/SqlServer/Tikv/RocksDb/Dbh2/Redis/PostgreSQL/MongoDb/DynamoDb");
 		};
 	}
 
@@ -494,19 +492,18 @@ public final class Config {
 			map.put(db.name, createDatabase(zeze, db));
 	}
 
-	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze, @Nullable HashMap<String, Database> databases)
-			throws Exception {
-		if (databases != null) {
-			// 调用方自有实例：所有权在调用方，不关（Application.stop的db.close步骤自会关）。
-			for (var db : databases.values())
-				db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
-			return;
-		}
-		// FND8-24：null分支自建的整批Database（连接池/RocksDB句柄等）用完必须close——
-		// 增量入表：createDatabase中途失败，已建实例也在finally被关；逐db异常隔离：
-		// 一个后端clear/close抛错不挡其余（对齐Application.stopStep的记日志继续模式）。
-		// 交叉引用FND8-22：DynamoDb后端此处仍是假关闭（DatabaseDynamoDb.close未触AWS
-		// 客户端时基类close不关它），完整修复依赖其自身的close覆写。
+	public void clearInUse(@NotNull HashMap<String, Database> databases) {
+		// 不close：实例所有权在调用方（Application.stop的db.close步骤自会关）。
+		for (var db : databases.values())
+			db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
+	}
+
+	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze) throws Exception {
+		// FND8-24：自建的整批Database（连接池/RocksDB句柄等）用完必须close——增量建表：
+		// createDatabase中途失败已建实例也在finally被关；逐db异常隔离：一个后端clear/close
+		// 抛错不挡其余（对齐Application.stopStep的记日志继续模式）。交叉引用FND8-22：
+		// DynamoDb后端此处仍是假关闭（DatabaseDynamoDb.close未触AWS客户端时基类close不关它），
+		// 完整修复依赖其自身的close覆写。
 		var created = new HashMap<String, Database>();
 		try {
 			createDatabase(zeze, created);
