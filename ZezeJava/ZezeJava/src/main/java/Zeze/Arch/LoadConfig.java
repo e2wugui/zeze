@@ -50,6 +50,10 @@ public class LoadConfig {
 	}
 
 	public final void setDigestionDelayExSeconds(int value) {
+		// <=0会使LoadBase的慢报累计+=0永不达阈值（负载上报静默停止），且finally resume(0)
+		// →scheduleNow(0)定时链即时自续空转。与setMaxOnlineNew同构拒绝非法值。
+		if (value <= 0)
+			throw new IllegalArgumentException("digestionDelayExSeconds must be > 0");
 		digestionDelayExSeconds = value;
 	}
 }
