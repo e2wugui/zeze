@@ -14,7 +14,10 @@ import org.jetbrains.annotations.NotNull;
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
-	private boolean built;
+	private boolean built; // changedWithKey 已构建（encode/decode/mergeChangedToReplaced 触发）
+	// TC1-F1：mergeChangedToReplaced 的已合并标志，独立于 built——History 开启时 collect 阶段
+	// encode 先行置 built=true，监听器合并若复用 built 会被短路成 no-op，增量通知丢失原位修改。
+	private boolean merged;
 
 	public LogMap2(Bean belong, int varId, Bean self, @NotNull org.pcollections.PMap<K, V> value,
 				   @NotNull Meta2<K, V> meta) {
@@ -54,7 +57,9 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@SuppressWarnings("unchecked")
 	public void mergeChangedToReplaced() {
-		if (buildChangedWithKey()) {
+		if (!merged) {
+			merged = true;
+			buildChangedWithKey(); // encode 先行时 changedWithKey 已构建（built==true），直接复用
 			for (var e : changedWithKey.entrySet())
 				getReplaced().put(e.getKey(), (V)e.getValue().getThis());
 		}
