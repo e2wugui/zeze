@@ -38,8 +38,6 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.Selectors;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Services.Handshake.Constant;
-import Zeze.Services.Handshake.SHandshake0;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
@@ -200,24 +198,13 @@ public final class Token extends AbstractToken {
 			return connector.getSocket();
 		}
 
-		@Override
-		public void OnSocketConnected(@NotNull AsyncSocket so) throws Exception {
-			if (!addSocket(so)) // FND8-55：撞号连接已被addSocket关闭，不得再回调OnHandshakeDone
-				return;
-			// 复审R2（FND7-S2①）：本端配置了加密/压缩时推迟OnHandshakeDone到握手完成——服务端
-			// （同配置）accept后会发SHandshake0发起握手，立即回调会在明文窗口重放SubTopic，
-			// 被服务端FND7-23输入门禁拒绝。全Disable保持原快速路径立即回调（与Disable服务端的
-			// accept快速路径配对，时序与旧版完全一致）。两侧HandshakeOptions应配置一致：
-			// 本端Disable+对端加密时立即回调后握手仍由SHandshake0驱动完成，OnHandshakeDone
-			// 至多双发（订阅重放服务端幂等）；本端加密+对端Disable则握手永不发生（配置错误，
-			// 表现为订阅重放不执行），部署时须保证一致。
-			var options = getConfig().getHandshakeOptions();
-			if (options.getEncryptType() == Constant.eEncryptTypeDisable
-					&& options.getCompressS2c() == Constant.eCompressTypeDisable
-					&& options.getCompressC2s() == Constant.eCompressTypeDisable)
-				OnHandshakeDone(so);
-		}
-
+		// S4-F1：不再覆写OnSocketConnected保留"全Disable连上即完成握手"的快速路径。
+		// 原快速路径按本端单边配置判定握手完成，OnHandshakeDone随连接建立立即回调并重放
+		// SubTopic（明文应用协议）；对端配置加密时其解码准入门禁（FND7-23，双向codec装齐
+		// 才撤销）将确定性拒绝断连。握手完成判定改为双边语义：与HandshakeClient一致推迟到
+		// 对端SHandshake0驱动的握手交换（processSHandshake0的全Disable推荐分支已内建），
+		// WaitReady（futureSocket由OnHandshakeDone链完成）亦随之推迟到握手完成后，
+		// waitReady后立即可发的RPC不再与门禁冲突。全Disable互联代价为一次额外往返。
 		@Override
 		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 			super.OnHandshakeDone(so);
@@ -342,34 +329,13 @@ public final class Token extends AbstractToken {
 			}
 		}
 
-		@Override
-		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
-			checkMaxConnections(); // 覆写丢掉了 Service.OnSocketAccept 的连接数上限检查，这里补回（FND-S3-2）
-			setupHaProxyHeader(so); // 覆写丢掉了 Service.OnSocketAccept 的HaProxy头安装，这里补回（FND7-24）
-			if (!addSocket(so)) // FND8-55：撞号连接已被addSocket关闭，不得再走后续接受流程
-				return;
-			// 复审R2（FND7-S2①）：TokenServer此前无条件直呼OnHandshakeDone（从不发送SHandshake0），
-			// 客户端（TokenClient）也从不开握——EncryptType/Compress配置永远不生效：配置了加密的
-			// Token服务静默全明文运行；FND7-23输入门禁落地后更是直接拒绝所有未握手应用协议。
-			// 配置了加密或压缩时对齐HandshakeServer：发送SHandshake0发起握手，OnHandshakeDone
-			// 推迟到CHandshakeDone（两侧codec装配完成）后；全Disable保持原快速路径——零额外
-			// 往返、OnHandshakeDone时序不变，Disable部署行为与旧版完全一致。
-			var options = getConfig().getHandshakeOptions();
-			if (options.getEncryptType() != Constant.eEncryptTypeDisable
-					|| options.getCompressS2c() != Constant.eCompressTypeDisable
-					|| options.getCompressC2s() != Constant.eCompressTypeDisable) {
-				var hand0 = new SHandshake0();
-				hand0.Argument.encryptType = options.getEncryptType();
-				hand0.Argument.supportedEncryptList = options.getSupportedEncrypt();
-				hand0.Argument.compressS2c = options.getCompressS2c();
-				hand0.Argument.compressC2s = options.getCompressC2s();
-				hand0.Argument.supportedCompressList = options.getSupportedCompress();
-				hand0.Send(so);
-			} else {
-				OnHandshakeDone(so);
-			}
-		}
-
+		// S4-F1：不再覆写OnSocketAccept保留"全Disable直呼OnHandshakeDone"的服务端快速路径，
+		// 与HandshakeServer一致无条件发送SHandshake0（全Disable时推荐值亦为全Disable，客户端
+		// processSHandshake0的既有分支以CHandshakeDone+OnHandshakeDone完成握手）。原因见
+		// TokenClient.OnHandshakeDone处注释：保留该快速路径，全Disable客户端就无法改为双边
+		// 语义（收不到SHandshake0则永远等不到握手完成）。Disable互联代价为一次额外往返；
+		// 加密TokenClient对接全Disable本服务端的错误配置，由客户端FND7-S2②的降级拒绝
+		// 显式断连（原为握手永不发生的静默挂起，可诊断性更好）。
 		@Override
 		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 			so.setUserState(new Session(so));
@@ -540,6 +506,12 @@ public final class Token extends AbstractToken {
 	private TokenServer service;
 	private TimerFuture<?> cleanTokenMapFuture;
 	private volatile ScheduledFuture<?> cleanTokenMapTableFuture;
+	// S4-F3：cleanTokenMapTable的运行标志——stop()在cancel(true)后、saveDB/closeDb前于Token
+	// 锁外带超时等其归零（cancel只发中断不等待任务退出，任务观察中断后仍会commit/收尾；
+	// 不等即关库违反RocksDatabase关闭契约，在飞get/put/commit对已关闭句柄操作可崩JVM）。
+	// 必须锁外等待：任务的finally要拿同一把Token锁做重调度检查，持锁等待即死锁。
+	private volatile boolean cleanTokenMapTableRunning;
+	private static final long CLEAN_TOKEN_MAP_TABLE_STOP_TIMEOUT_MS = 10_000;
 
 	public TokenServer getService() {
 		return service;
@@ -647,6 +619,15 @@ public final class Token extends AbstractToken {
 				service.stop();
 				service = null;
 			}
+		} finally {
+			unlock();
+		}
+		// S4-F3：锁外带超时等待cleanTokenMapTable真正结束（任务的finally要拿Token锁重调度，
+		// 持锁等待必死锁，见cleanTokenMapTableRunning注释）。等待窗口内并发的start()会因
+		// 旧库未关而在目录LOCK互斥上失败（FND8-63既有行为），不产生静默双开。
+		waitCleanTokenMapTableStopped();
+		lock();
+		try {
 			if (rocksdb != null) {
 				// stop关库（FND8-63）：stop只saveDB不关库时rocksdb/tokenMapTable悬挂，restart的
 				// start对同目录二次open——Windows下LOCK互斥每次必抛（重试环还先空转10秒），
@@ -660,6 +641,25 @@ public final class Token extends AbstractToken {
 			tokenMap.clear();
 		} finally {
 			unlock();
+		}
+	}
+
+	/** S4-F3：等待cleanTokenMapTable运行标志归零（带超时兜底，超时记录后放弃——极端挂死
+	 * 任务不应让stop永久阻塞，残余竞态按RocksDB侧崩溃风险接受并在日志中可见）。 */
+	private void waitCleanTokenMapTableStopped() {
+		var deadline = System.currentTimeMillis() + CLEAN_TOKEN_MAP_TABLE_STOP_TIMEOUT_MS;
+		while (cleanTokenMapTableRunning) {
+			if (System.currentTimeMillis() >= deadline) {
+				logger.error("cleanTokenMapTable not exit in {}ms after stop, give up waiting.",
+						CLEAN_TOKEN_MAP_TABLE_STOP_TIMEOUT_MS);
+				return;
+			}
+			try {
+				//noinspection BusyWait
+				Thread.sleep(1);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt(); // 保留中断标记继续限时等待（deadline兜底）
+			}
 		}
 	}
 
@@ -692,28 +692,42 @@ public final class Token extends AbstractToken {
 		}
 	}
 
+	// 包装层（S4-F3）：入口/出口维护volatile运行标志，供stop()锁外等待任务真正结束——
+	// 归零即本任务连同其finally的重调度检查全部完成、不再触碰rocksdb。
 	private void cleanTokenMapTable() {
+		cleanTokenMapTableRunning = true;
+		try {
+			cleanTokenMapTableOnce();
+		} finally {
+			cleanTokenMapTableRunning = false;
+		}
+	}
+
+	private void cleanTokenMapTableOnce() {
 		logger.info("cleanTokenMapTable: begin ...");
 		var now = System.currentTimeMillis();
 		var bb = ByteBuffer.Wrap(ByteBuffer.Empty);
-		var batch = rocksdb.newBatch();
 		long n = 0, d = 0;
-		try (var it = tokenMapTable.iterator()) {
-			for (it.seekToFirst(); it.isValid(); it.next()) {
-				try {
-					bb.wraps(it.value());
-					if (TokenState.decodeEndTime(bb) < now) {
-						tokenMapTable.delete(batch, it.key());
-						d++;
+		// S4-F2：newBatch用try-with-resources包住（对齐saveDB）——原batch从不close，
+		// WriteBatch持有native内存，每14秒调度一次的任务逐次泄漏累积。
+		try (var batch = rocksdb.newBatch()) {
+			try (var it = tokenMapTable.iterator()) {
+				for (it.seekToFirst(); it.isValid(); it.next()) {
+					try {
+						bb.wraps(it.value());
+						if (TokenState.decodeEndTime(bb) < now) {
+							tokenMapTable.delete(batch, it.key());
+							d++;
+						}
+						n++;
+					} catch (Exception e) {
+						logger.warn("cleanTokenMapTable exception:", e);
 					}
-					n++;
-				} catch (Exception e) {
-					logger.warn("cleanTokenMapTable exception:", e);
+					if (Thread.interrupted())
+						break;
 				}
-				if (Thread.interrupted())
-					break;
+				batch.commit();
 			}
-			batch.commit();
 		} catch (Exception e) {
 			logger.error("cleanTokenMapTable exception:", e);
 		} finally {
@@ -800,9 +814,14 @@ public final class Token extends AbstractToken {
 			var state = tokenMap.get(token);
 			if (state == null) {
 				try {
-					var v = tokenMapTable.get(token.getBytes(StandardCharsets.UTF_8));
-					if (v != null)
-						state = tokenMap.computeIfAbsent(token, t -> new TokenState(this, t, ByteBuffer.Wrap(v)));
+					// S4-F3：tokenMapTable为volatile，closeDb/stop置null后miss路径不得裸解引用。
+					// 尽力收窄：判空后关库仍可能与本get竞态（TOCTOU残余接受，裁决既定）。
+					var table = tokenMapTable;
+					if (table != null) {
+						var v = table.get(token.getBytes(StandardCharsets.UTF_8));
+						if (v != null)
+							state = tokenMap.computeIfAbsent(token, t -> new TokenState(this, t, ByteBuffer.Wrap(v)));
+					}
 				} catch (Exception e) {
 					logger.warn("tokenMapTable.get exception:", e);
 				}
@@ -836,7 +855,9 @@ public final class Token extends AbstractToken {
 							// （707a0eff1只封住了核销后被moveToDB写回，未清核销前已落库的副本）。
 							// moveToDB/saveDB都持state.lock且跳过count==-1的state，删后不会被写回。
 							try {
-								tokenMapTable.delete(token.getBytes(StandardCharsets.UTF_8));
+								var table = tokenMapTable; // S4-F3：同上，停机窗口尽力收窄
+								if (table != null)
+									table.delete(token.getBytes(StandardCharsets.UTF_8));
 							} catch (Exception e) {
 								logger.warn("tokenMapTable.delete on consume exception:", e);
 							}
