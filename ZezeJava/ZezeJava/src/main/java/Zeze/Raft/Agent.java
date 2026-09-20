@@ -841,12 +841,19 @@ public final class Agent {
 			return ex.toString();
 		} finally {
 			// 重启所有停掉的节点；
+			// 【R1-F1】单个节点重启失败（socket为null时SendForWait抛"Send Fail."、rpc超时等await异常）
+			// 只记日志继续下一个：循环体抛出会中断剩余节点的重启，且跳过循环后同层的agent释放
+			// （FND-R1-3），方法契约从返回错误串劣化为抛异常。
 			for (var stopped : stoppeds) {
-				var startServer = new StartServerConnector();
-				startServer.SendForWait(stopped.TryGetReadySocket()).await();
-				if (startServer.getResultCode() != 0)
-					logger.error("stop server for {}  error={}",
-							stopped.getName(), IModule.getErrorCode(startServer.getResultCode()));
+				try {
+					var startServer = new StartServerConnector();
+					startServer.SendForWait(stopped.TryGetReadySocket()).await();
+					if (startServer.getResultCode() != 0)
+						logger.error("start server for {} error={}",
+								stopped.getName(), IModule.getErrorCode(startServer.getResultCode()));
+				} catch (Exception e) {
+					logger.error("start server for {} error", stopped.getName(), e);
+				}
 			}
 			// 【FND-R1-3】out模式下agent生命周期归本方法，用完释放（含"no leader."等提前返回路径）。
 			if (agentOut.value != null) {

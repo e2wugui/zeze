@@ -96,9 +96,17 @@ class InstallSnapshotState {
 			c.setAppendLogActiveTime(System.currentTimeMillis());
 
 			var buffer = new byte[32 * 1024];
-			int rc = file.read(buffer);
-			if (rc < 0)
-				rc = 0; // EOF：发0字节收尾块（done=true），完成协议
+			// 【R1-F2】RandomAccessFile.read契约允许短读：循环读满或读到EOF（n<0）再判定done，
+			// 否则NFS/FUSE类文件系统上的短读会把截断块当完成块（rc<len→done=true）静默发给
+			// follower。收尾语义不变：满块done=false；未满（含EOF前的最后一块）与EOF后的
+			// 0字节块done=true。
+			int rc = 0;
+			while (rc < buffer.length) {
+				int n = file.read(buffer, rc, buffer.length - rc);
+				if (n < 0)
+					break; // EOF：rc为0时发0字节收尾块，完成协议
+				rc += n;
+			}
 			var pending = new InstallSnapshot();
 			pending.Argument.setTerm(term);
 			pending.Argument.setLeaderId(leaderId);

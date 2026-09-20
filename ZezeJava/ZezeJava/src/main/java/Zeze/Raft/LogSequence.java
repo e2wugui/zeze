@@ -1544,7 +1544,10 @@ public class LogSequence {
 			logger.info("{} InstallSnapshot LastIncludedIndex={} Done={} c={}", raft.getName(),
 					state.getLastIncludedIndex(),
 					state.getDone(), c.getName());
-			state.getFile().close();
+			// 【R2-F1】startInstallSnapshot打开快照文件失败留下的条目file==null：防御关闭。
+			// 原样NPE会沿cancelAllInstallSnapshot打断Raft.shutdown后续的logSequence.close。
+			if (state.getFile() != null)
+				state.getFile().close();
 			if (state.getDone() && state.getResultCode() == 0) {
 				cex.setNextIndex(state.getLastIncludedIndex() + 1);
 
@@ -1570,8 +1573,18 @@ public class LogSequence {
 
 			c.setInstallSnapshotState(new InstallSnapshotState());
 			var st = c.getInstallSnapshotState();
-			st.setFile(new RandomAccessFile(path, "r"));
-			st.setFirstLog(readLog(firstIndex));
+			// 【R2-F1】putIfAbsent之后的初始化（open+readLog）失败（文件被删/IO错误）时回收
+			// 半初始化条目：残留会让心跳/复制被拦截、endInstallSnapshot对null file NPE打断
+			// shutdown路径的cancelAllInstallSnapshot（endInstallSnapshot已加null防御）。
+			try {
+				st.setFile(new RandomAccessFile(path, "r"));
+				st.setFirstLog(readLog(firstIndex));
+			} catch (Exception e) {
+				logger.error("{} startInstallSnapshot: open snapshot fail, cancel install. c={}",
+						raft.getName(), c.getName(), e);
+				endInstallSnapshot(c);
+				return;
+			}
 			if (st.getFirstLog() == null) {
 				// 【FND-R1-5防御】firstIndex处没有边界日志（如endReceiveInstallSnapshot
 				// 崩溃窗口导致的不变式破坏）：继续下去setLastIncludedIndex(st.getFirstLog()

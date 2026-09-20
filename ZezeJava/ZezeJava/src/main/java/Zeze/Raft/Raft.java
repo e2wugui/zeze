@@ -701,7 +701,6 @@ public final class Raft {
 	 * 【简化】不同状态下不管维护管理不同的Timer了。
 	 */
 	private void onTimer() throws Exception {
-		boolean reconnectConnectors = false;
 		lock();
 		try {
 			if (isShutdown)
@@ -730,19 +729,21 @@ public final class Raft {
 			if (++lowPrecisionTimer > 1000) {
 				lowPrecisionTimer = 0;
 				onLowPrecisionTimer();
-				reconnectConnectors = true;
+				// 【XA1-F2】重连复查必须在Raft锁内：shutdown的isShutdown置位在同锁内，锁内复查
+				// 彻底关死"检查过后才shutdown"的TOCTOU窗口——锁外重连会为已停Raft重建连接，
+				// epoch一致使重连引擎永久运转。Raft→Service→Connector为既定单向锁序，start()
+				// 构造链非阻塞，锁内调用安全。
+				if (!isShutdown)
+					server.getConfig().forEachConnector(Connector::start);
 			}
 		} finally {
 			unlock();
 			//timerTask = Task.scheduleNow(10, this::onTimer);
 		}
-		// 锁外重连：维持Raft锁→Service锁的锁序纪律（防ABBA；start()构造链已非阻塞，保守保持）
-		if (reconnectConnectors && !isShutdown)
-			server.getConfig().forEachConnector(Connector::start);
 	}
 
 	private void onLowPrecisionTimer() throws Exception {
-		// Connector重连已移到onTimer的Raft锁外执行（见上）；本方法仅剩LogSequence清理。
+		// Connector重连在onTimer的Raft锁内复查isShutdown后执行（见上）；本方法仅LogSequence清理。
 		logSequence.removeExpiredUniqueRequestSet();
 		gcReceiveSnapshotting(System.currentTimeMillis()); // FND3-23：残留接收条目周期清理
 		logSequence.drainPendingDeleteGenFiles(); // gen清扫重试名单周期冲刷
@@ -1144,9 +1145,14 @@ public final class Raft {
 			// send initial empty AppendEntries RPCs
 			// (heartbeat)to each server; repeat during
 			// idle periods to prevent election timeouts(§5.2)
-			var result = logSequence.appendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent), null);
-			leaderWaitReadyIndex = result.index;
-			leaderWaitReadyTerm = result.term;
+			// 【R3-F3】先于appendLog登记等待条件：appendLog（RocksDB写）失败时state已是Leader，
+			// 事后登记永远不会执行，setLeaderReady的唯一匹配条件（index/term）对着残留(0,0)永不
+			// 命中，产生永不ready的活Leader且无自愈。Raft锁内nextIndex==lastIndex+1即appendLog
+			// 将写入的index（成功时result.index与之恒等），term即logSequence.getTerm()（成功时
+			// result.term与之恒等），预登记与事后登记的值完全一致。
+			leaderWaitReadyIndex = nextIndex;
+			leaderWaitReadyTerm = logSequence.getTerm();
+			logSequence.appendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent), null);
 		}
 	}
 
