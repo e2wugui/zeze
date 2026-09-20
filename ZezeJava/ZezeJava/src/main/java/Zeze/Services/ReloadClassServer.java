@@ -150,8 +150,19 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 		}
 		destFile.delete(); // 只保存一份path_all; skip result.
 		if (fileUpload.renameTo(destFile)) {
+			// S3-F2：热更失败路径原样穿透——异常无HTTP应答（请求挂起）且坏补丁留盘毒化
+			// uploadDir，linkd启动链（start()对目录内唯一补丁无条件reloadClasses）下次必失败。
+			// catch须同时罩住ZipFile构造（非zip文件时构造即抛）与reloadClasses：失败回500并
+			// 删除destFile，维持uploadDir"只留可用补丁"不变式。redefineClasses单调用原子
+			// （失败不改任何类状态），删文件不会留下"半热更"状态。
 			try (var zipFile = new ZipFile(destFile)) {
 				ClassReloader.reloadClasses(zipFile);
+			} catch (Throwable e) { // logger.error
+				logger.error("ReloadClassServer: hot-reload failed, delete patch file '{}'", destFile, e);
+				//noinspection ResultOfMethodCallIgnored
+				destFile.delete();
+				x.close(x.sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, "hot-reload failed"));
+				return;
 			}
 			// 审计（FND8-66）：每次成功使用的留痕
 			logger.info("ReloadClassServer: authorized hot-reload from {}, file='{}'",

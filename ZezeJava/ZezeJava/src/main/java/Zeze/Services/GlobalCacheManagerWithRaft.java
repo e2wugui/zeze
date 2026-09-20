@@ -1106,7 +1106,12 @@ public class GlobalCacheManagerWithRaft
 				if (newSocket.getUserState() != null && newSocket.getUserState() != this)
 					return false; // 允许重复login|relogin，但不允许切换ServerId。
 
-				var socket = globalRaft.getRocks().getRaft().getServer().GetSocket(sessionId);
+				// S2-F2：对齐kick()判空——close()后getRaft()为null，裸链式取getServer()即NPE，
+				// 中断在飞会话协议的绑定链。
+				var raft = globalRaft.getRocks().getRaft();
+				if (raft == null)
+					return false;
+				var socket = raft.getServer().GetSocket(sessionId);
 				if (socket == null || socket == newSocket) {
 					// old socket not exist or has lost.
 					sessionId = newSocket.getSessionId();
@@ -1132,7 +1137,11 @@ public class GlobalCacheManagerWithRaft
 				if (oldSocket.getUserState() != this)
 					return false; // not bind to this
 
-				var socket = globalRaft.getRocks().getRaft().getServer().GetSocket(sessionId);
+				// S2-F2：对齐kick()判空（raft==null直接失败），close后在飞解绑不再NPE。
+				var raft = globalRaft.getRocks().getRaft();
+				if (raft == null)
+					return false;
+				var socket = raft.getServer().GetSocket(sessionId);
 				if (socket != null && socket != oldSocket)
 					return false; // not same socket
 

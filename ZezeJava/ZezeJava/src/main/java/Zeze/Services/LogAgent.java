@@ -83,9 +83,13 @@ public class LogAgent extends AbstractLogAgent {
 	}
 
 	public String query(String serverName, String jsonArgument) {
+		// S3-F4：动态增删的日志服务器表（ConcurrentHashMap）未命中返回null，原裸NPE无任何信息。
+		var logServer = __getLogServer(serverName);
+		if (logServer == null)
+			throw new IllegalArgumentException("unknown log server: " + serverName);
 		var r = new Query();
 		r.Argument.setJson(jsonArgument);
-		r.SendForWait(__getLogServer(serverName).GetReadySocket()).await();
+		r.SendForWait(logServer.GetReadySocket()).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("query error=" + IModule.getErrorCode(r.getResultCode()));
 		return r.Result.getJson();

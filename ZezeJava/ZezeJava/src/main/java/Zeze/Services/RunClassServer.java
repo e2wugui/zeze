@@ -95,19 +95,29 @@ public class RunClassServer implements HttpFileUploadHandle {
 		if (fileUpload.renameTo(destFile)) {
 			var path = destFile.toPath();
 			var classBytes = Files.readAllBytes(path);
-			var classLoader = new BytecodeClassLoader();
-			var loadClass = classLoader.defineClass(classBytes);
 			var result = "";
-			if (Runnable.class.isAssignableFrom(loadClass)) {
-				var instance = loadClass.getConstructor().newInstance();
-				((Runnable)instance).run();
-			} else if (Callable.class.isAssignableFrom(loadClass)) {
-				var instance = loadClass.getConstructor().newInstance();
-				result = String.valueOf(((Callable<?>)instance).call());
-			} else {
-				var mainMethod = loadClass.getMethod("main", String[].class);
-				var args = decoder.isMultipart() ? getArgs(decoder) : getArgs(x);
-				result = String.valueOf(mainMethod.invoke(null, (Object)args));
+			// S3-F3：执行段三分支（Runnable/Callable/main）与defineClass原均无守卫——
+			// getMethod/实例化/invoke/解码失败异常穿透，请求无HTTP应答即断连（同方法其余
+			// 拒绝路径均有显式应答）。catch用Throwable而非Exception：defineClass对损坏
+			// 字节码抛ClassFormatError（Error子类），仅Exception盖不住最常见触发形态。
+			try {
+				var classLoader = new BytecodeClassLoader();
+				var loadClass = classLoader.defineClass(classBytes);
+				if (Runnable.class.isAssignableFrom(loadClass)) {
+					var instance = loadClass.getConstructor().newInstance();
+					((Runnable)instance).run();
+				} else if (Callable.class.isAssignableFrom(loadClass)) {
+					var instance = loadClass.getConstructor().newInstance();
+					result = String.valueOf(((Callable<?>)instance).call());
+				} else {
+					var mainMethod = loadClass.getMethod("main", String[].class);
+					var args = decoder.isMultipart() ? getArgs(decoder) : getArgs(x);
+					result = String.valueOf(mainMethod.invoke(null, (Object)args));
+				}
+			} catch (Throwable e) { // logger.error
+				logger.error("RunClassServer: run failed, file='{}'", patchFileName, e);
+				x.close(x.sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, "run failed: " + e));
+				return;
 			}
 			// 审计（FND8-66）：每次成功使用的留痕
 			logger.info("RunClassServer: authorized run from {}, file='{}'",

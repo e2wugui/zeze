@@ -1056,7 +1056,12 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
 				}
 
-				var socket = instance.server.GetSocket(sessionId);
+				// S2-F1：对齐kick()的FND7-18防护——stop()拆依赖窗口内server已被置null，
+				// 裸解引用NPE会中断在飞会话的绑定链；判空直接失败，与kick()防护对称。
+				var srv = instance.server;
+				if (srv == null)
+					return false;
+				var socket = srv.GetSocket(sessionId);
 				if (socket == null) {
 					// old socket not exist or has lost.
 					sessionId = newSocket.getSessionId();
@@ -1083,7 +1088,11 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				if (oldSocket.getUserState() != this)
 					return false; // not bind to this
 
-				var current = instance.server.GetSocket(sessionId);
+				// S2-F1：对齐kick()的FND7-18防护——close后server为null，裸引用NPE中断解绑。
+				var srv = instance.server;
+				if (srv == null)
+					return false;
+				var current = srv.GetSocket(sessionId);
 				if (current != null && current != oldSocket)
 					return false; // not same socket
 

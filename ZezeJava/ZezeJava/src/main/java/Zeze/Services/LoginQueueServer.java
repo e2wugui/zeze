@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.security.SecureRandom;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -37,8 +38,21 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
     private final ConcurrentHashMap<AsyncSocket, BServerLoad.Data> providers = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<AsyncSocket, BServerLoad.Data> links = new ConcurrentHashMap<>();
+    // S3-F1：负载登记与关闭清理的串行锁（对齐姊妹类ServiceManagerServer的editLock+FND5-29
+    // 判活纪律）。Report*经DispatchMode.Normal跑在worker线程，与IO线程的OnSocketClose竞态：
+    // 迟到的上报在清理remove之后重新put即产生永久幽灵条目（死服务器持续被choice分配且
+    // 永不回收）。锁内判活（GetSocket==sender）+锁内清理互相串行化后：判活通过⟹清理未开始
+    // （NetServer.OnSocketClose先从socketMap摘除再回调onClose，摘除后判活必失败），
+    // 本次put会被随后的清理收走；判活失败⟹会话已死，拒绝即不产生残留。
+    private final ReentrantLock editLock = new ReentrantLock();
     private final LoginQueueService service;
     private final LoginQueue loginQueue;
+
+    /** S3-F1：锁内判活（见editLock注释）。死会话的迟到上报静默丢弃（Report*非Rpc，
+     * 死连接本就收不到应答）。 */
+    private boolean isSenderAlive(@NotNull AsyncSocket sender) {
+        return service.GetSocket(sender.getSessionId()) == sender;
+    }
 
     /**
      * 网络服务类 Acceptor
@@ -83,11 +97,16 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     }
 
     void onClose(AsyncSocket so) {
-        if (null != so.getUserState()) {
-            @SuppressWarnings("unchecked") var loads = (Map<AsyncSocket, BServerLoad.Data>)so.getUserState();
-            loads.remove(so);
-            if (loads == providers)
-                loginQueue.tryResetTimeThrottle(providers.size());
+        editLock.lock();
+        try {
+            if (null != so.getUserState()) {
+                @SuppressWarnings("unchecked") var loads = (Map<AsyncSocket, BServerLoad.Data>)so.getUserState();
+                loads.remove(so);
+                if (loads == providers)
+                    loginQueue.tryResetTimeThrottle(providers.size());
+            }
+        } finally {
+            editLock.unlock();
         }
     }
 
@@ -189,8 +208,15 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
 	@Override
 	protected long ProcessReportProviderLoad(Zeze.Builtin.LoginQueueServer.ReportProviderLoad r) throws Exception {
-		r.getSender().setUserState(providers);
-		providers.put(r.getSender(), r.Argument);
+		editLock.lock();
+		try {
+			if (!isSenderAlive(r.getSender())) // S3-F1：迟到上报，会话已清理——拒绝防死服务器复活
+				return 0;
+			r.getSender().setUserState(providers);
+			providers.put(r.getSender(), r.Argument);
+		} finally {
+			editLock.unlock();
+		}
 		loginQueue.tryResetTimeThrottle(providers.size());
 		loginQueue.drainQueue(); // 上报可能让choiceProvider/choiceLink首次可用，立即给排队连接分配，不等1秒tick
 		return 0;
@@ -198,8 +224,15 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
 	@Override
 	protected long ProcessReportLinkLoad(Zeze.Builtin.LoginQueueServer.ReportLinkLoad r) throws Exception {
-		r.getSender().setUserState(links);
-		links.put(r.getSender(), r.Argument);
+		editLock.lock();
+		try {
+			if (!isSenderAlive(r.getSender())) // S3-F1：同上
+				return 0;
+			r.getSender().setUserState(links);
+			links.put(r.getSender(), r.Argument);
+		} finally {
+			editLock.unlock();
+		}
 		loginQueue.drainQueue();
 		return 0;
 	}
