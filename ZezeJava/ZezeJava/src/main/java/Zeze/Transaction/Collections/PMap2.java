@@ -34,6 +34,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	public PMap2(@NotNull Meta2<K, V> meta) {
+		meta.checkFamily(Meta2.MAP2_FAMILY, "PMap2"); // TC2-F1：拒绝跨家族 meta
 		this.meta = meta;
 	}
 

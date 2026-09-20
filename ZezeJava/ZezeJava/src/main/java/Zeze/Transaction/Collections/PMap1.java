@@ -18,6 +18,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	public PMap1(@NotNull Meta2<K, V> meta) {
+		meta.checkFamily(Meta2.MAP1_FAMILY, "PMap1"); // TC2-F1：拒绝跨家族 meta
 		this.meta = meta;
 	}
 

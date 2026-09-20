@@ -17,6 +17,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	}
 
 	public PSortedMap1(@NotNull Meta2<K, V> meta) {
+		meta.checkFamily(Meta2.SORTED_MAP1_FAMILY, "PSortedMap1"); // TC2-F1：拒绝跨家族 meta
 		this.meta = meta;
 	}
 

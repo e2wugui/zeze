@@ -18,6 +18,16 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public final class Meta2<K, V> {
+	// TC2-F1：家族标记（与下面各家族头哈希、name 前缀同源的日志头字符串）。
+	// PMap1/PMap2/PSortedMap1/PSortedMap2 的 Meta2 构造器据此断言家族匹配：
+	// 跨家族 meta 类型系统不拦（同为 Meta2<K,V>）且整体旁路工厂层 checkNonBeanKey/
+	// checkNonBeanValue1 防线，写端 typeId 借道对家注册，读端解码出对方家族的 Log，
+	// 本家 followerApply 强转 ClassCastException（raft 路径 fatalKill）。
+	static final String MAP1_FAMILY = "LogMap1:";
+	static final String MAP2_FAMILY = "LogMap2:";
+	static final String SORTED_MAP1_FAMILY = "LogSortedMap1:";
+	static final String SORTED_MAP2_FAMILY = "LogSortedMap2:";
+
 	private static final long map1HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogMap1<");
 	private static final long map2HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogMap2<");
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Meta2<?, ?>>> map1Metas = new ConcurrentHashMap<>();
@@ -38,6 +48,7 @@ public final class Meta2<K, V> {
 	public final SerializeHelper.ObjectIntFunction<IByteBuffer, V> valueDecoderWithType; // 只用于非Bean类型
 	public final MethodHandle valueFactory; // 只用于Bean类型
 	public final @NotNull String name; // 主要用于分析查错
+	final @NotNull String family; // 家族标记（日志头前缀），供集合的 Meta2 构造器防御跨家族误用
 	// 实例的真实 key/value 类型，供 variables() 等元数据推导（FND3-07）。
 	public final @NotNull Class<?> keyClass;
 	public final @NotNull Class<?> valueClass;
@@ -45,6 +56,7 @@ public final class Meta2<K, V> {
 	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass,
 				  MethodHandle valueFactory) {
 		logTypeId = Bean.hashLog(headHash, keyClass, valueClass);
+		family = headStr;
 		this.keyClass = keyClass;
 		this.valueClass = valueClass;
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
@@ -85,6 +97,7 @@ public final class Meta2<K, V> {
 	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get,
 				  @NotNull LongFunction<Bean> create) {
 		logTypeId = Bean.hashLog(headHash, keyClass, DynamicBean.class);
+		family = headStr;
 		this.keyClass = keyClass;
 		this.valueClass = DynamicBean.class;
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
@@ -117,6 +130,14 @@ public final class Meta2<K, V> {
 							+ advice + ": " + valueClass.getName());
 	}
 
+	// TC2-F1：供 PMap1/PMap2/PSortedMap1/PSortedMap2 的 Meta2 构造器运行时断言家族匹配
+	// （该入口整体旁路工厂层防线，跨家族 meta 的失败在远离误用点的复制端才炸）。
+	void checkFamily(@NotNull String expectedFamily, @NotNull String consumer) {
+		if (!family.equals(expectedFamily))
+			throw new IllegalArgumentException(consumer + " cannot accept cross-family meta '" + name
+					+ "' (it decodes into a foreign Log family and breaks followerApply), expected " + expectedFamily);
+	}
+
 	@SuppressWarnings("unchecked")
 	public static <K, V> @NotNull Meta2<K, V> getMap1Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		var map = map1Metas.computeIfAbsent(keyClass, kc -> {
@@ -128,7 +149,7 @@ public final class Meta2<K, V> {
 			return (Meta2<K, V>)r;
 		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> {
 			checkNonBeanValue1("PMap1/GTable1 (LogMap1)", "use PMap2/GTable2", vc);
-			return new Meta2<>("LogMap1:", map1HeadHash, keyClass, (Class<V>)vc);
+			return new Meta2<>(MAP1_FAMILY, map1HeadHash, keyClass, (Class<V>)vc);
 		});
 	}
 
@@ -150,7 +171,7 @@ public final class Meta2<K, V> {
 		if (r != null)
 			return (Meta2<K, V>)r;
 		return (Meta2<K, V>)map.computeIfAbsent(valueClass,
-				vc -> new Meta2<>("LogMap2:", map2HeadHash, keyClass, (Class<V>)vc));
+				vc -> new Meta2<>(MAP2_FAMILY, map2HeadHash, keyClass, (Class<V>)vc));
 	}
 
 	/**
@@ -164,14 +185,14 @@ public final class Meta2<K, V> {
 	                                                                      @NotNull Class<V> valueClass,
 	                                                                      @NotNull Supplier<V> valueCtor) {
 		checkNonBeanKey("PMap2/GTable2 (LogMap2)", keyClass);
-		return new Meta2<>("LogMap2:", map2HeadHash, keyClass, valueClass, valueCtor);
+		return new Meta2<>(MAP2_FAMILY, map2HeadHash, keyClass, valueClass, valueCtor);
 	}
 
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicMapMeta(@NotNull Class<K> keyClass,
 	                                                                            @NotNull ToLongFunction<Bean> get,
 	                                                                            @NotNull LongFunction<Bean> create) {
 		checkNonBeanKey("PMap2/GTable2 (LogMap2)", keyClass);
-		return new Meta2<>("LogMap2:", map2HeadHash, keyClass, get, create);
+		return new Meta2<>(MAP2_FAMILY, map2HeadHash, keyClass, get, create);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -185,7 +206,7 @@ public final class Meta2<K, V> {
 			return (Meta2<K, V>)r;
 		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> {
 			checkNonBeanValue1("PSortedMap1 (LogSortedMap1)", "use PSortedMap2", vc);
-			return new Meta2<>("LogSortedMap1:", sortedMap1HeadHash, keyClass, (Class<V>)vc);
+			return new Meta2<>(SORTED_MAP1_FAMILY, sortedMap1HeadHash, keyClass, (Class<V>)vc);
 		});
 	}
 
@@ -200,21 +221,21 @@ public final class Meta2<K, V> {
 		if (r != null)
 			return (Meta2<K, V>)r;
 		return (Meta2<K, V>)map.computeIfAbsent(valueClass,
-				vc -> new Meta2<>("LogSortedMap2:", sortedMap2HeadHash, keyClass, (Class<V>)vc));
+				vc -> new Meta2<>(SORTED_MAP2_FAMILY, sortedMap2HeadHash, keyClass, (Class<V>)vc));
 	}
 
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createSortedMap2Meta(@NotNull Class<K> keyClass,
 	                                                                            @NotNull Class<V> valueClass,
 	                                                                            @NotNull Supplier<V> valueCtor) {
 		checkNonBeanKey("PSortedMap2 (LogSortedMap2)", keyClass);
-		return new Meta2<>("LogSortedMap2:", sortedMap2HeadHash, keyClass, valueClass, valueCtor);
+		return new Meta2<>(SORTED_MAP2_FAMILY, sortedMap2HeadHash, keyClass, valueClass, valueCtor);
 	}
 
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicSortedMapMeta(@NotNull Class<K> keyClass,
 	                                                                                  @NotNull ToLongFunction<Bean> get,
 	                                                                                  @NotNull LongFunction<Bean> create) {
 		checkNonBeanKey("PSortedMap2 (LogSortedMap2)", keyClass);
-		return new Meta2<>("LogSortedMap2:", sortedMap2HeadHash, keyClass, get, create);
+		return new Meta2<>(SORTED_MAP2_FAMILY, sortedMap2HeadHash, keyClass, get, create);
 	}
 
 	// Java Class → schema 类型名，与生成器（Gen/Types/Variable.GetTypeFullName）的输出对齐：
