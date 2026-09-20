@@ -472,11 +472,15 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		// 不是原子的，无锁并发reset会互相覆盖统计窗口。
 		lock();
 		try {
-			clearSerial++;
 			runInfoMap.clear();
 			protocolInfoMap.clear();
 			procedureInfoMap.clear();
 			tableInfoMap.clear();
+			// U4-F1：clearSerial++ 必须在四个 map.clear() 之后：若推进在前，锁外的 info() 等绑定端
+			// 可在 clear 生效前以新 serial 绑定旧代际条目——serial 恒等匹配导致永不重绑，该 procedure
+			// 统计静默丢失到下次 reset；换序后"绑定到当前 serial"的条目必然建于 clear 之后，serial
+			// 失配重绑即可自愈全部瞬态窗口。
+			clearSerial++;
 			for (var ci : countInfos) {
 				ci.reset();
 				ci.lastCount = 0;
