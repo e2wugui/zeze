@@ -73,6 +73,7 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 
 	public void updateBlock(byte @NotNull [] data, int off, int len) {
 		if (!blockMode) {
+			flushPending(); // N1-F2：进块模式前先落盘挂起的literal/match——逃逸码+块数据必须晚于挂起输出
 			blockMode = true;
 			putBits(0xc000 + 0x1fff, 16); // block mode
 			int pos = getPos();

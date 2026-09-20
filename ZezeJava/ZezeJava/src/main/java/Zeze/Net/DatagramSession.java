@@ -21,7 +21,9 @@ import org.jetbrains.annotations.Nullable;
 public class DatagramSession extends AsyncSocket {
 	private static final @NotNull Logger logger = LogManager.getLogger(DatagramSession.class);
 	private final @NotNull DatagramSocket socket;
-	private @NotNull InetSocketAddress remote;
+	// N1-F1：跨线程可见性——selector线程在processDatagram写（NAT重绑），Send可在任意业务线程读；
+	// 无happens-before边时应答持续发往失效地址。单引用读写无复合操作，volatile即可。
+	private volatile @NotNull InetSocketAddress remote;
 	private final long tokenId;
 	private final AtomicLong serialIdGen = new AtomicLong();
 	private final @Nullable Encrypt2 encrypt;

@@ -88,6 +88,15 @@ public class Compress implements Codec {
 		flushed = true;
 	}
 
+	/**
+	 * 落盘挂起的MPPC输出（literal/match，N1-F2）。子类在切换输出模式（如块模式）前必须调用：
+	 * 挂起数据须先于模式切换标记与块数据到达下游，否则构成纯流重排，解码端必然失败。
+	 */
+	protected void flushPending() throws CodecException {
+		if (!flushed)
+			_flush();
+	}
+
 	@Override
 	public void update(byte c) throws CodecException {
 		if (idx == dict.length) {

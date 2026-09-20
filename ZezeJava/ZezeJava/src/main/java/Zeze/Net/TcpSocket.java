@@ -625,9 +625,11 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 								"InputBufferMaxProtocolSize " + remain + " > " + (Protocol.HEADER_SIZE + max));
 					codecBuf.Compact();
 				}
-			} else if (bytesTransferred < 0)
+			} else if (bytesTransferred < 0) {
+				readAgain = false; // N3-F5：EOF分支是do-while三分支中唯一不赋值者——沿用上一轮满读标记，
+				// 在非关闭式OnSocketInputClosed覆写（javadoc允许）+pauseReceive下内层循环恒真，selector线程忙循环挂死
 				getService().OnSocketInputClosed(this);
-			else
+			} else
 				readAgain = false;
 		} while (readAgain);
 	}
