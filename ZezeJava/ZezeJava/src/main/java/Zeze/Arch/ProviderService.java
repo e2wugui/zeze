@@ -200,8 +200,15 @@ public class ProviderService extends HandshakeClient {
 		announce.Send(so);
 
 		// static binds
+		// staticBinds/dynamicModules/modules为非线程安全IntHashMap：写点（startLast、addHotModule）
+		// 与全部读点统一providerApp锁，防止热更线程写与linkd重连握手线程读并发时resize撕裂。
 		var bind = new Bind();
-		providerApp.staticBinds.foreach(bind.Argument.getModules()::put);
+		providerApp.lock();
+		try {
+			providerApp.staticBinds.foreach(bind.Argument.getModules()::put);
+		} finally {
+			providerApp.unlock();
+		}
 		var linkName = getLinkName(so);
 		bind.Send(so, rpc -> {
 			// FND8-88：超时/失败不得置位完成信号——该信号是应用层启动门禁API，
@@ -211,7 +218,12 @@ public class ProviderService extends HandshakeClient {
 			return 0;
 		});
 		var sub = new Subscribe();
-		providerApp.dynamicModules.foreach(sub.Argument.getModules()::put);
+		providerApp.lock();
+		try {
+			providerApp.dynamicModules.foreach(sub.Argument.getModules()::put);
+		} finally {
+			providerApp.unlock();
+		}
 		sub.Send(so, rpc -> {
 			if (checkLinkdHandshakeResult(rpc, so, linkName, "Subscribe"))
 				providerDynamicSubscribeCompleted.setResult(true);
@@ -245,9 +257,14 @@ public class ProviderService extends HandshakeClient {
 	// 2. 只有新增模块才会调用；
 	public void addHotModule(@NotNull IModule module, @NotNull BModule.Data config) {
 		{
-			// 全局数据更新
-			providerApp.zeze.getAppBase().addModule(module);
-			providerApp.modules.put(module.getId(), config);
+			// 全局数据更新（providerApp锁内写三map，读写统一锁契约见OnHandshakeDone处注释）
+			providerApp.lock();
+			try {
+				providerApp.zeze.getAppBase().addModule(module);
+				providerApp.modules.put(module.getId(), config);
+			} finally {
+				providerApp.unlock();
+			}
 		}
 		{
 			// 注册订阅服务。
@@ -263,13 +280,23 @@ public class ProviderService extends HandshakeClient {
 
 		// 并通知所有links。
 		if (!config.isDynamic()) {
-			providerApp.staticBinds.put(module.getId(), config);
+			providerApp.lock();
+			try {
+				providerApp.staticBinds.put(module.getId(), config);
+			} finally {
+				providerApp.unlock();
+			}
 			var bind = new Bind();
 			bind.Argument.getModules().put(module.getId(), config);
 			for (var link : links.values())
 				bind.Send(link.TryGetReadySocket());
 		} else {
-			providerApp.dynamicModules.put(module.getId(), config);
+			providerApp.lock();
+			try {
+				providerApp.dynamicModules.put(module.getId(), config);
+			} finally {
+				providerApp.unlock();
+			}
 			var sub = new Subscribe();
 			sub.Argument.getModules().put(module.getId(), config);
 			for (var link : links.values())

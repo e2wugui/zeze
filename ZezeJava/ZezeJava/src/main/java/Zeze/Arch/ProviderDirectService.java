@@ -50,9 +50,14 @@ public class ProviderDirectService extends HandshakeBoth {
 				var conn = getConfig().findConnector(connName);
 				if (conn != null) {
 					conn.stop();
-					providerByLoadName.remove(connName);
-					var serverId = Integer.parseInt(pm.getServiceIdentity());
-					providerByServerId.remove(serverId);
+					// 条件删除（与OnSocketClose同口径）：同serverId换地址滚动重启时，
+					// providerByServerId已指向新地址会话，无条件remove会误删新会话的注册，
+					// 缺失持续到下次重连。ps为null说明旧会话已自行清理，跳过即可。
+					var ps = providerByLoadName.get(connName);
+					if (ps != null) {
+						providerByLoadName.remove(connName, ps);
+						providerByServerId.remove(Integer.parseInt(pm.getServiceIdentity()), ps);
+					}
 					ss.setIdentityLocalState(pm.getServiceIdentity(), null);
 					getConfig().removeConnector(conn);
 				}
@@ -70,7 +75,15 @@ public class ProviderDirectService extends HandshakeBoth {
 			if (ps != null) {
 				// connection has ready.
 				var mid = Integer.parseInt(pm.getServiceName().split("#")[1]);
-				var m = providerApp.modules.get(mid);
+				// providerApp.modules读须持providerApp锁（三map读写统一锁契约，见ProviderService.OnHandshakeDone）。
+				// 锁序：PDS锁→providerApp锁，单向，无反向路径。只锁读取，setReady保持锁外。
+				BModule.Data m;
+				providerApp.lock();
+				try {
+					m = providerApp.modules.get(mid);
+				} finally {
+					providerApp.unlock();
+				}
 				if (m != null)
 					setReady(pm.getServiceName(), pm, ps, mid, m);
 				else
@@ -238,6 +251,10 @@ public class ProviderDirectService extends HandshakeBoth {
 					logger.warn("setRelativeServiceReady: supersede old session {} with new {} for {}",
 							old, ps, ps.getServerLoadName());
 				providerByLoadName.put(ps.getServerLoadName(), ps);
+				// 被替换的旧会话在此终结：取消其TimeCounter每秒周期任务。本机合成会话（sessionId=0）
+				// 无连接可踢、永无OnSocketClose清理点，不关则随模块数/SM重订阅无界累积泄漏；
+				// 真会话随后OnSocketClose的close幂等（cancel二次调用无害），双关无害。
+				old.timeCounter.close();
 				// 本机合成会话（无连接，sessionId=0）被替换时无连接可踢；socket已死的由其
 				// OnSocketClose条件清理，map已被新会话接管，无残留影响。
 				var oldSocket = old.getSessionId() != 0 ? GetSocket(old.getSessionId()) : null;
@@ -250,11 +267,20 @@ public class ProviderDirectService extends HandshakeBoth {
 			// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 			for (var ss : getZeze().getServiceManager().getSubscribeStates().values()) {
 				if (ss.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
-					var infos = ss.getServiceInfos(ps.getAppMainVersion());
+					// ps.appVersion 属于linkd侧会话（announce时设置），direct会话永远为0，
+					// 配置AppVersion后用0查版本桶会得到null导致setReady全部跳过，改用本机配置版本。
+					var infos = ss.getServiceInfos(getZeze().getConfig().getAppMainVersion());
 					if (infos == null)
 						continue;
 					var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
-					var m = providerApp.modules.get(mid);
+					// providerApp.modules读须持providerApp锁（三map读写统一锁契约，见ProviderService.OnHandshakeDone）。
+					BModule.Data m;
+					providerApp.lock();
+					try {
+						m = providerApp.modules.get(mid);
+					} finally {
+						providerApp.unlock();
+					}
 					if (m == null) {
 						logger.error("setRelativeServiceReady: not found module: {}", ss.getServiceName());
 						continue;

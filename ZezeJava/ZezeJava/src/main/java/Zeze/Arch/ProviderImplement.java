@@ -60,6 +60,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	 * <p>
 	 * 订阅Linkd服务。
 	 * Provider主动连接Linkd。
+	 * 【须在providerApp锁内调用】（唯一调用点ProviderApp.startLast已满足）：
+	 * 迭代staticBinds/dynamicModules/modules属三map读写统一锁契约（见ProviderApp字段注释）。
 	 */
 	public void registerModulesAndSubscribeLinkd() {
 		var sm = providerApp.zeze.getServiceManager();
@@ -214,8 +216,16 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						@SuppressWarnings("unchecked")
 						var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 						return handler != null ? handler.handle(p3) : Procedure.NotImplement;
-					}, procName, factoryHandle.Level), outProtocol, session::tryRespondErrorNow).call();
-				if (timeBegin != 0) // 统计禁用时零开销
+					}, procName, factoryHandle.Level), outProtocol, (from, code) -> {
+					// decode在procedure内抛异常时被Procedure.call吞成错误码，outProtocol.value为null，
+					// tryRespondErrorNow(null)什么都不发——客户端既无kick也无错误应答，只能等自身rpc超时。
+					// from==null即decode阶段失败：回退用Dispatch的linkSid发ErrorDecode kick（与外层
+					// catch的sendKick形态对称）。
+					if (from != null)
+						session.tryRespondErrorNow(from, code);
+					else
+						sendKick(sender, linkSid, BKick.ErrorDecode, "decode fail");
+				}).call();				if (timeBegin != 0) // 统计禁用时零开销
 					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
 							Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
 				return r;
