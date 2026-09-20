@@ -91,6 +91,11 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 
 		if (isRequest())
 			Argument.encode(bb);
+		else if (resultEncoded != null)
+			// 【R3-F1】对齐基类Rpc.encode：应答优先使用已编码结果（RaftApplied重试应答经
+			// SendResultCode(code,result)设置resultEncoded后发出）；原实现固定Result.encode，
+			// 接收侧实例的Result从未解码、发出的是空bean编码，客户端拿到静默错误数据。
+			bb.Append(resultEncoded.bytesUnsafe(), resultEncoded.getOffset(), resultEncoded.size());
 		else
 			Result.encode(bb);
 	}

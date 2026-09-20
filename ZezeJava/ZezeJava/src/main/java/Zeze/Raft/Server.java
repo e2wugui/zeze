@@ -272,7 +272,13 @@ public class Server extends HandshakeBoth {
 			// 这几条协议定义成了普通的用户请求，
 			// 但是这条协议不需要自己是Leader也能工作，
 			// 所以提前拦截，派发处理。see Raft::processGetLeader
-			dispatchRaftRequest(p, () -> processRequest(p, factoryHandle),
+			// 【R3-F2】直接派发p.handle：原来转processRequest会强制leader-ready门槛+
+			// 唯一请求createTime校验，而Agent直发不填createTime（=0），
+			// isUniqueRequestCreateTimeValid恒拒→RaftExpired，processGetLeader/processStartServer/
+			// processStopServer在唯一发送路径上不可达；保留dispatchRaftRequest包装、错误码回发
+			// 与RaftRetry错误路径（与原processRequest内的包装同构，仅去掉门槛与去重校验）。
+			dispatchRaftRequest(p, () -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle),
+							p, Protocol::trySendResultCode).call(),
 					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);
 			return;
 		}
