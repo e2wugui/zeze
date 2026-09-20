@@ -32,7 +32,15 @@ public class TestWalkPage {
 			return 0;
 		}, "find").call();
 		Assertions.assertEquals(0L, rc, "写入事务必须成功");
-		Assertions.assertEquals(1, t.get(1L).getInt_1(), "写入必须可读回");
+		// TableX.get断言必须在事务内调用（TableX.java:678 assert currentT!=null，30轮压测
+		// 30/30确定性假红）：读回须在过程内取值、过程外断言（对齐TestSafeBatch.queryBatch的out模式）。
+		var int1 = new int[1];
+		var rcVerify = App.Instance.Zeze.newProcedure(() -> {
+			int1[0] = t.get(1L).getInt_1();
+			return 0;
+		}, "findVerify").call();
+		Assertions.assertEquals(0L, rcVerify, "读回事务必须成功");
+		Assertions.assertEquals(1, int1[0], "写入必须可读回");
 	}
 
 	@Test

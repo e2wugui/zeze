@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,42 +63,50 @@ public class TestAtomicWriteSourceGuard {
 	);
 
 	@Test
-	public void noRawWriteOutsideAllowlist() {
-		var roots = new ArrayList<Path>();
-		try (var walk = Files.walk(Path.of(".."))) {
-			walk.filter(p -> p.endsWith("src/main/java") && Files.isDirectory(p)
-							&& !p.toString().contains("build"))
-					.limit(64)
-					.forEach(roots::add);
-		} catch (IOException e) {
-			throw new UncheckedIOException(e);
-		}
+	public void noRawWriteOutsideAllowlist() throws IOException {
+		// fnd7_*redo等测试临时目录可能在遍历中被同JVM其他测试并发清理（30轮压测1/30撞上）：
+		// Files.walk懒迭代抛UncheckedIOException(NoSuchFileException)是扫描竞争非违例，重扫即可。
+		var roots = walkExisting(Path.of(".."),
+						p -> p.endsWith("src/main/java") && Files.isDirectory(p)
+								&& !p.toString().contains("build"))
+				.stream().limit(64).toList();
 		assertTrue(!roots.isEmpty(), "必须找到至少一个src/main/java（ZezeJava/ZezeJavaTest同仓布局）");
 
 		var violations = new ArrayList<String>();
 		for (var root : roots) {
-			try (var files = Files.walk(root)) {
-				for (var p : files.filter(f -> f.toString().endsWith(".java")).toList()) {
-					var rel = root.relativize(p).toString().replace('\\', '/');
-					if (ALLOWLIST.contains(rel))
-						continue;
-					for (var stmt : statementsOf(Files.readString(p, StandardCharsets.UTF_8))) {
-						for (var rule : RULES) {
-							var m = rule.regex().matcher(stmt);
-							if (m.find() && rule.isWrite().test(stmt)) {
-								violations.add(rel + " -> " + m.group().trim()
-										+ " : " + stmt.strip().replaceAll("\\s+", " "));
-								break;
-							}
+			for (var p : walkExisting(root, f -> f.toString().endsWith(".java"))) {
+				var rel = root.relativize(p).toString().replace('\\', '/');
+				if (ALLOWLIST.contains(rel))
+					continue;
+				for (var stmt : statementsOf(Files.readString(p, StandardCharsets.UTF_8))) {
+					for (var rule : RULES) {
+						var m = rule.regex().matcher(stmt);
+						if (m.find() && rule.isWrite().test(stmt)) {
+							violations.add(rel + " -> " + m.group().trim()
+									+ " : " + stmt.strip().replaceAll("\\s+", " "));
+							break;
 						}
 					}
 				}
-			} catch (IOException e) {
-				throw new UncheckedIOException(e);
 			}
 		}
 		assertTrue(violations.isEmpty(), () -> "I1违例（白名单外截断式写，须经Zeze.Util.AtomicFileWriter）：\n"
 				+ String.join("\n", violations));
+	}
+
+	/** NoSuchFileException（并发删除）最多重扫3次，仍失败则透传；IOException照旧包装。 */
+	private static List<Path> walkExisting(Path start, Predicate<Path> filter) {
+		for (var attempt = 0; ; attempt++) {
+			try (var walk = Files.walk(start)) {
+				return walk.filter(filter).toList();
+			} catch (IOException e) {
+				throw new UncheckedIOException(e);
+			} catch (UncheckedIOException e) {
+				if (e.getCause() instanceof NoSuchFileException && attempt < 3)
+					continue;
+				throw e;
+			}
+		}
 	}
 
 	/** 剥注释（注释文本不得误触）后按';'重组语句：行级匹配会被换行实参骗过。 */

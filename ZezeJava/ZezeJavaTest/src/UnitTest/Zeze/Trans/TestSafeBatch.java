@@ -46,7 +46,7 @@ public class TestSafeBatch {
 			App.getInstance().getZeze().getSafeBatch().startWalkTable(
 				App.getInstance().demo_Module1.getTable5(),
 				(safeBatch, key, value) -> {
-					walkTableCount.incrementAndGet();
+					walkedTableKeys.add(key);
 					System.out.println("SafeBatch: " + key + ", " + value.getS());
 					return 0;
 				}, 1000, 1);
@@ -66,19 +66,36 @@ public class TestSafeBatch {
 			return 0;
 		}, "startWalkSortedMap").call();
 
-		// 原先裸sleep+打印零断言（2026-09-20审核）：三个walk必须真实走完并覆盖全部数据
+		// 原先裸sleep+打印零断言（2026-09-20审核）：三个walk必须真实走完并覆盖全部数据。
+		// 2026-09-21修订：SafeBatch是at-least-once——runJob跑在可冲突重试的存储过程内
+		// （TableBatchWorker.handle每记录一个过程并在过程中保存lastKey），乐观重试会重放runJob，
+		// 非事务副作用计数会重复（30轮压测12/30轮expected:<3> but was:<4>假红）。
+		// 故断言覆盖语义：每个key至少访问一次、且不出现未知key（后者守cursor越界）。
+		var expectedTableKeys = java.util.Set.of(1L, 2L, 3L);
+		var expectedElements = java.util.Set.of(1, 2, 3);
 		long deadline = System.currentTimeMillis() + 15_000;
-		while ((walkTableCount.get() < 3 || walkListCount.get() < 3 || walkSortedMapCount.get() < 3)
+		while (!(walkedTableKeys.containsAll(expectedTableKeys)
+				&& walkedListValues.containsAll(expectedElements)
+				&& walkedSortedMapKeys.containsAll(expectedElements))
 				&& System.currentTimeMillis() < deadline)
 			Thread.sleep(50);
-		Assertions.assertEquals(3, walkTableCount.get(), "walkTable必须遍历全部3行");
-		Assertions.assertEquals(3, walkListCount.get(), "walkList必须遍历全部3元素");
-		Assertions.assertEquals(3, walkSortedMapCount.get(), "walkSortedMap必须遍历全部3条目");
+		Assertions.assertTrue(walkedTableKeys.containsAll(expectedTableKeys),
+				"walkTable必须遍历全部3行, 实际: " + walkedTableKeys);
+		Assertions.assertTrue(expectedTableKeys.containsAll(walkedTableKeys),
+				"walkTable不得遍历未知key, 实际: " + walkedTableKeys);
+		Assertions.assertTrue(walkedListValues.containsAll(expectedElements),
+				"walkList必须遍历全部3元素, 实际: " + walkedListValues);
+		Assertions.assertTrue(expectedElements.containsAll(walkedListValues),
+				"walkList不得遍历未知元素, 实际: " + walkedListValues);
+		Assertions.assertTrue(walkedSortedMapKeys.containsAll(expectedElements),
+				"walkSortedMap必须遍历全部3条目, 实际: " + walkedSortedMapKeys);
+		Assertions.assertTrue(expectedElements.containsAll(walkedSortedMapKeys),
+				"walkSortedMap不得遍历未知key, 实际: " + walkedSortedMapKeys);
 	}
 
-	private static final java.util.concurrent.atomic.AtomicInteger walkTableCount = new java.util.concurrent.atomic.AtomicInteger();
-	private static final java.util.concurrent.atomic.AtomicInteger walkListCount = new java.util.concurrent.atomic.AtomicInteger();
-	private static final java.util.concurrent.atomic.AtomicInteger walkSortedMapCount = new java.util.concurrent.atomic.AtomicInteger();
+	private static final java.util.Set<Long> walkedTableKeys = java.util.concurrent.ConcurrentHashMap.newKeySet();
+	private static final java.util.Set<Integer> walkedListValues = java.util.concurrent.ConcurrentHashMap.newKeySet();
+	private static final java.util.Set<Integer> walkedSortedMapKeys = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
 	// FND3-31：get*OutTransaction 返回 null（记录不存在/已删）= 无工作可推进，批处理必须停止并清理
 	// （对齐 TableBatchWorker 遍历尽与 checkBatch 表不存在的停批先例）。
@@ -121,7 +138,7 @@ public class TestSafeBatch {
 	public static class WalkSortedMap implements SafeBatch.WalkSortedMapJobHandle<Integer, Integer> {
 		@Override
 		public long runJob(SafeBatch safeBatch, Integer key, Integer value) {
-			walkSortedMapCount.incrementAndGet();
+			walkedSortedMapKeys.add(key);
 			System.out.println("SafeBatch_SortedMap: " + key + ", " + value);
 			return 0;
 		}
@@ -160,7 +177,7 @@ public class TestSafeBatch {
 	public static class WalkList implements SafeBatch.WalkListJobHandle<Integer> {
 		@Override
 		public long runJob(SafeBatch safeBatch, int index, Integer value) {
-			walkListCount.incrementAndGet();
+			walkedListValues.add(value);
 			System.out.println("SafeBatch_List: " + index + ", " + value);
 			return 0;
 		}
