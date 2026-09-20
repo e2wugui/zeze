@@ -120,6 +120,25 @@ public class Id128UdpClient {
 		udp.close();
 		worker.interrupt();
 		worker.join();
+		// SM1-F3：worker.join()后在途FutureNode的唯一定时完成者（processTick的超时检查器）
+		// 已死，等待分配的线程将永久park（finalCommit链无超时等待）。对三张表内全部未完成
+		// 节点补setException并清空。pending.getAndSet(0)兼作"已设置结果"标记（FND7-62口径），
+		// 已完成的节点（pending<=0）跳过不重复设置。
+		var stopped = new IllegalStateException("client stopped");
+		for (var futureNode : currentFuture.values())
+			completeIfPending(futureNode, stopped);
+		currentFuture.clear();
+		for (var futureNode : tailFuture.values())
+			completeIfPending(futureNode, stopped);
+		tailFuture.clear();
+		for (var eIt = pendingRpc.entryIterator(); eIt.moveToNext(); )
+			completeIfPending(eIt.value().getFutureNode(), stopped);
+		pendingRpc.clear();
+	}
+
+	private static void completeIfPending(@NotNull FutureNode futureNode, @NotNull Exception ex) {
+		if (futureNode.pending.getAndSet(0) > 0)
+			futureNode.setException(ex);
 	}
 
 	private void run() {
@@ -183,6 +202,12 @@ public class Id128UdpClient {
 			lastProcessTickTime = now;
 			var bb = ByteBuffer.Allocate();
 			var futureNodesGuard = new ArrayList<FutureNode>();
+			// SM1-F1：已成功发出的节点数（按发送边界分段记账）。原catch对guard表内全部节点
+			// setException——中途send失败把已成功发出的分片节点一并判死；经
+			// History.buildLogChanges→finalCommit的halt放大为进程级误杀。guard按节点入表顺序
+			// 与编码入包顺序一致，每次udp.send成功后置sentCount=表长，失败只对未确认发出的
+			// [sentCount, size)段报错。
+			int sentCount = 0;
 			try {
 				for (var key : currentFuture.keySet()) {
 					var futureNode = currentFuture.remove(key);
@@ -200,6 +225,7 @@ public class Id128UdpClient {
 							// udp is connected.
 							var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
 							udp.send(udpPacket);
+							sentCount = futureNodesGuard.size(); // 本包覆盖至此的全部节点，已交OS
 							// clear
 							bb.ReadIndex = 0;
 							bb.WriteIndex = 0;
@@ -210,11 +236,15 @@ public class Id128UdpClient {
 					// udp is connected.
 					var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
 					udp.send(udpPacket);
+					sentCount = futureNodesGuard.size();
 				}
 				futureNodesGuard.clear();
 			} catch (Exception ex) {
-				for (var futureNode : futureNodesGuard)
+				for (var futureNode : futureNodesGuard.subList(sentCount, futureNodesGuard.size())) {
 					futureNode.setException(ex);
+					// FND7-62：标记已设置过结果，超时检查器不再延迟清理该节点。
+					futureNode.pending.set(0);
+				}
 				logger.error("", ex);
 			}
 		}

@@ -104,7 +104,19 @@ public class Id128UdpServer {
 				bbSend.Reset();
 				try {
 					while (!bbRecv.isEmpty()) {
-						rpc.decode(bbRecv);
+						// SM1-F2：解码异常单独隔离限频并丢弃剩余报文。纯垃圾报文走
+						// Rpc.decode的IllegalStateException（非IllegalArgumentException），
+						// 原落入共享catch的全栈error按包记录，FND6-28防护在最易构造的攻击
+						// 向量上失效。不按异常类型放宽共享catch——那会把encode段内部故障
+						// （如RocksDB异常路径上的RuntimeException）也降级为限频单行，违背
+						// FND6-28"全栈与告警留给内部故障"的意图；decode输入完全对端可控，
+						// 天然只覆盖攻击面。剩余报文不可信（帧边界已错乱），丢弃。
+						try {
+							rpc.decode(bbRecv);
+						} catch (RuntimeException e) {
+							warnRejected(e);
+							break;
+						}
 						process(rpc, bbTemp);
 						rpc.setRequest(false);
 						rpc.encode(bbSend);
