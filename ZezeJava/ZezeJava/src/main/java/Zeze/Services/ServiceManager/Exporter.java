@@ -150,25 +150,36 @@ public class Exporter {
 		agent.subscribeServices(sub);
 	}
 
-	public static void main(String[] args) throws Exception {
-		Task.tryInitThreadPool();
-		var exporter = new Exporter();
-		var shared = new Properties();
-		var services = new ArrayList<String>();
-		var exporters = new ArrayList<KV<String, String>>();
+	// SM1-F4：命令行边界统一为既有错误形态（Usage+IllegalArgumentException）。原三处背离：
+	// 1) -e为末尾token时args[++i]抛AIOOBE；2) -private为末尾token时peek通过但i+=2越界；
+	// 3) -private后紧跟顶层开关（如"-private -s Bar"）把开关吞为参数值。抽出为可测的静态方法。
+	static void parseArgs(@NotNull String @NotNull [] args, @NotNull Properties shared,
+						   @NotNull java.util.List<String> services,
+						   @NotNull java.util.List<KV<String, String>> exporters) {
 		for (var i = 0; i < args.length; ++i) {
 			if (args[i].equals("-e")) {
+				if (i + 1 >= args.length)
+					throw usageError("'-e' requires a class name argument");
 				var className = args[++i];
 				// 如果还有参数，看看是不是跟随的-private，如果是，读取私有参数。
 				String privateParam = null;
-				if (i < args.length - 1 && args[i + 1].equals("-private") /* peek */) {
-					privateParam = args[i += 2]; // move i to next 2
+				if (i + 1 < args.length && args[i + 1].equals("-private") /* peek */) {
+					if (i + 2 >= args.length)
+						throw usageError("'-private' requires an options argument");
+					var next = args[i + 2];
+					// -private的参数是选项串（如"-file x.cfg"），可以以'-'开头；但恰为某个顶层
+					// 开关本身时必是漏写了参数值（开关不可能单独构成合法选项串），按缺失拒绝。
+					if (next.equals("-e") || next.equals("-s") || next.equals("-d") || next.equals("-private"))
+						throw usageError("'-private' requires an options argument, got top-level switch '" + next + "'");
+					privateParam = args[i += 2]; // move i to private param
 				}
 				exporters.add(KV.create(className, privateParam));
 			} else if (args[i].equals("-s")) {
+				if (i + 1 >= args.length)
+					throw usageError("'-s' requires a service name argument");
 				services.add(args[++i]);
 			} else if (args[i].equals("-d")) {
-				exporter.addExporter("Print", shared, null);
+				exporters.add(KV.create("Print", null));
 			} else if (args[i].startsWith("-")) {
 				// shared options
 				// 先看有没有value。
@@ -178,13 +189,26 @@ public class Exporter {
 					value = args[++i]; // eat value
 				shared.put(key, value);
 			} else {
-				System.out.println("Usage: [shared_options] -e class [-private options]... -s service ... ");
-				System.out.println("    shared_options: -version ver -file file -url url -reload cmd");
-				System.out.println("    -private options: same as shared_options, and will overwrite shared_options.");
-				System.out.println("    -private must follow \"-e class\", and only effect this class instance.");
-				throw new IllegalArgumentException();
+				throw usageError("unknown argument: '" + args[i] + "'");
 			}
 		}
+	}
+
+	private static @NotNull IllegalArgumentException usageError(@NotNull String message) {
+		System.out.println("Usage: [shared_options] -e class [-private options]... -s service ... ");
+		System.out.println("    shared_options: -version ver -file file -url url -reload cmd");
+		System.out.println("    -private options: same as shared_options, and will overwrite shared_options.");
+		System.out.println("    -private must follow \"-e class\", and only effect this class instance.");
+		return new IllegalArgumentException(message);
+	}
+
+	public static void main(String[] args) throws Exception {
+		Task.tryInitThreadPool();
+		var exporter = new Exporter();
+		var shared = new Properties();
+		var services = new ArrayList<String>();
+		var exporters = new ArrayList<KV<String, String>>();
+		parseArgs(args, shared, services, exporters);
 		for (var e : exporters)
 			exporter.addExporter(e.getKey(), shared, e.getValue());
 		exporter.start();
