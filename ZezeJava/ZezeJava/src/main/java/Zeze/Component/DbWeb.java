@@ -260,11 +260,17 @@ public class DbWeb extends AbstractDbWeb {
 				keys.add(k);
 				return keys.size() < DELETE_BATCH_COUNT;
 			});
-			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
+			var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 				for (var key : keys)
 					table.remove(key);
 				return Procedure.Success;
 			}, "DbWeb.clearTable")).call();
+			// 删除批失败必须中止报错（CP1-F3）：lastKey游标已推进（排他），失败批被静默跳过
+			// 后clearTable仍输出"ClearTable done!"，数据静默残留。抛出后OnServletClearTable的
+			// catch把异常栈流式发给运维，可见后重跑即可（clearTable幂等）；不做批内重试。
+			if (rc != Procedure.Success)
+				throw new RuntimeException("clearTable batch fail. table=" + table.getName()
+						+ ", batchSize=" + keys.size() + ", rc=" + rc);
 			if (batchCallback != null && !batchCallback.test(lastKey))
 				break;
 		} while (lastKey != null);

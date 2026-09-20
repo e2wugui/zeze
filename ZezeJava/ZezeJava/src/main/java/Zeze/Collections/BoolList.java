@@ -166,21 +166,29 @@ public class BoolList {
 		var table = module._tBoolList;
 		var curKey = new BKey(name, 0);
 		var curKeyFinal = curKey;
-		module.zeze.newProcedure(() -> {
+		var rc = module.zeze.newProcedure(() -> {
 			table.remove(curKeyFinal);
 			return 0;
 		}, "remove first").call();
+		if (rc != 0)
+			throw new RuntimeException("clearAll remove first fail. name=" + name + ", rc=" + rc);
 
 		final int BATCH_COUNT = 20;
 		var batch = new ArrayList<BKey>(BATCH_COUNT);
 		do {
 			curKey = table.walkKey(curKey, BATCH_COUNT, key -> name.equals(key.getName()) && batch.add(key));
 			if (!batch.isEmpty()) {
-				module.zeze.newProcedure(() -> {
+				rc = module.zeze.newProcedure(() -> {
 					for (var key : batch)
 						table.remove(key);
 					return 0;
 				}, "remove some").call();
+				// 删除批失败必须抛出（CO1-F1）：walkKey游标在call前已推进且排他，返回码被
+				// 忽略时失败批被静默跳过——clearAll正常返回但get()仍见true。抛出让调用方感知
+				// 后整体重跑（clearAll幂等）即收敛。
+				if (rc != 0)
+					throw new RuntimeException("clearAll remove batch fail. name=" + name
+							+ ", batchSize=" + batch.size() + ", rc=" + rc);
 				batch.clear();
 			}
 		}
