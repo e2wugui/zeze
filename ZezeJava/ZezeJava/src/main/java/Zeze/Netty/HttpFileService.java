@@ -10,9 +10,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpResponse;
+import io.netty.handler.codec.http.HttpChunkedInput;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
@@ -20,6 +22,7 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.handler.stream.ChunkedNioFile;
 import io.netty.util.AsciiString;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,6 +34,8 @@ final class HttpFileService {
 
 	private static final @NotNull Pattern rangePattern = Pattern.compile("[ =\\-/]");
 	private static final OpenOption[] readOnlyOpenOptions = new OpenOption[]{StandardOpenOption.READ};
+	// h2分块发送的块大小：DATA帧逐块转发（ChunkedWriteHandler拉取），64KB平衡帧数与内存驻留
+	private static final int H2FileChunkSize = 64 * 1024;
 
 	static void sendFile(@NotNull HttpExchange x, @NotNull File file, int fileCacheSeconds) throws Exception {
 		var req = x.request;
@@ -46,8 +51,9 @@ final class HttpFileService {
 			var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED, // 文件未改变
 				Unpooled.EMPTY_BUFFER, HttpExchange.headersFactory, HttpExchange.trailersFactory);
 			HttpServer.setDate(res.headers())
-				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 				.set(HttpHeaderNames.CONTENT_LENGTH, 0);
+			if (!x.isH2()) // h2禁连接管理头
+				res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 			x.close(x.writeResponse(res, true, null)); // 经序化器：保活响应直写会在pipelining下先于前序响应上线
 			return;
 		}
@@ -84,9 +90,10 @@ final class HttpFileService {
 						HttpResponseStatus.REQUESTED_RANGE_NOT_SATISFIABLE, Unpooled.EMPTY_BUFFER,
 						HttpExchange.headersFactory, HttpExchange.trailersFactory);
 					HttpServer.setDate(res416.headers())
-						.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 						.set(HttpHeaderNames.CONTENT_LENGTH, 0)
 						.set(HttpHeaderNames.CONTENT_RANGE, "bytes */" + fsize);
+					if (!x.isH2()) // h2禁连接管理头
+						res416.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 					fc.close();
 					x.close(x.writeResponse(res416, true, null)); // 经序化器，同304分支
 					return;
@@ -98,20 +105,34 @@ final class HttpFileService {
 			var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1,
 				partial ? HttpResponseStatus.PARTIAL_CONTENT : HttpResponseStatus.OK, HttpExchange.headersFactory);
 			var headers = HttpServer.setDate(res.headers())
-				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 				.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')
 				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
 				.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
 				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
 				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + fileCacheSeconds)
 				.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
+			if (!x.isH2()) // h2禁连接管理头
+				headers.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 			if (partial) // Content-Range只属于206/416，200不带
 				headers.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + to + '/' + fsize);
 			x.writeResponse(res, false, x.context.voidPromise()); // N①：响应头经序化器（挂起时FileRegion同队保序）
 
-			if (contentLen > 0 && !HttpMethod.HEAD.equals(req.method())) // 发文件任务全部交给Netty，并且发送完毕时关闭。
-				x.writeResponse(new DefaultFileRegion(fc, from, contentLen), false, x.context.voidPromise());
-			var lastFuture = x.writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
+			ChannelFuture lastFuture;
+			if (contentLen > 0 && !HttpMethod.HEAD.equals(req.method())) {
+				if (x.isH2()) {
+					// h2无FileRegion零拷贝：HttpChunkedInput经ChunkedWriteHandler逐块拉取（EventLoop上非阻塞、
+					// 按可写性背压），Http2StreamFrameToHttpObjectCodec把每个HttpContent转DATA帧——仍走
+					// writeResponse统一路径。HttpChunkedInput自带LastHttpContent结尾（endStream），
+					// 不得再补EMPTY_LAST_CONTENT（双终结符）。零拷贝损失是h2帧化的固有代价。
+					lastFuture = x.writeResponse(new HttpChunkedInput(
+							new ChunkedNioFile(fc, from, contentLen, H2FileChunkSize)), true, null);
+				} else {
+					// 发文件任务全部交给Netty（零拷贝），并且发送完毕时关闭。
+					x.writeResponse(new DefaultFileRegion(fc, from, contentLen), false, x.context.voidPromise());
+					lastFuture = x.writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
+				}
+			} else
+				lastFuture = x.writeResponse(LastHttpContent.EMPTY_LAST_CONTENT, true, null);
 			lastFuture.addListener(__ -> fc.close());
 			x.close(lastFuture);
 		} catch (Throwable e) {

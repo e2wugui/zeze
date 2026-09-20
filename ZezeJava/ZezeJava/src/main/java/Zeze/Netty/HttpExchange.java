@@ -439,44 +439,53 @@ public class HttpExchange {
 				close(send404());
 				return;
 			}
-			if (handler.isWebSocketMode() && context.pipeline().get(WebSocketServerProtocolHandler.class) == null) {
-				context.pipeline().addLast(new WebSocketServerProtocolHandler(WebSocketServerProtocolConfig.newBuilder()
-						.websocketPath(path).decoderConfig(WebSocketDecoderConfig.newBuilder().withUTF8Validator(false)
-								.maxFramePayloadLength(handler.MaxContentLength).build()).build()));
-				// onOpen不能在握手启动前派发:此刻101应答未写出、HttpResponseEncoder未替换为WebSocket帧
-				// 编码器,onOpen内sendWebSocket的帧写入HTTP出站编码路径,写失败(unsupported message
-				// type),Direct模式下onOpen内联执行时首条消息确定性静默丢失。改在握手完成后的
-				// HandshakeComplete用户事件时派发:该事件由Netty握手处理器在本handler之后向tail方向触发,
-				// 位于前面的HttpServer收不到,需在管线末尾追加观察者接住;事件触发时101已写出、编码器已替换,
-				// 且必然先于客户端任何帧被读到,保证onOpen派发先于onContent。
-				context.pipeline().addLast(new ChannelInboundHandlerAdapter() {
-					@Override
-					public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-						if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
-							//noinspection ConstantConditions
-							fireWebSocketNotify("fireWebSocketOpen",
-									() -> handler.WebSocketHandle.onOpen(HttpExchange.this));
+			if (handler.isWebSocketMode()) {
+				if (isH2()) { // WebSocket over h2（RFC 8441扩展CONNECT）不支持：明确501而非静默走错路径
+					closeConnectionOnFlush(writeResponse(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+							HttpResponseStatus.NOT_IMPLEMENTED, Unpooled.EMPTY_BUFFER,
+							headersFactory, trailersFactory), true, null));
+					return;
+				}
+				if (context.pipeline().get(WebSocketServerProtocolHandler.class) == null) {
+					context.pipeline().addLast(new WebSocketServerProtocolHandler(WebSocketServerProtocolConfig.newBuilder()
+							.websocketPath(path).decoderConfig(WebSocketDecoderConfig.newBuilder().withUTF8Validator(false)
+									.maxFramePayloadLength(handler.MaxContentLength).build()).build()));
+					// onOpen不能在握手启动前派发:此刻101应答未写出、HttpResponseEncoder未替换为WebSocket帧
+					// 编码器,onOpen内sendWebSocket的帧写入HTTP出站编码路径,写失败(unsupported message
+					// type),Direct模式下onOpen内联执行时首条消息确定性静默丢失。改在握手完成后的
+					// HandshakeComplete用户事件时派发:该事件由Netty握手处理器在本handler之后向tail方向触发,
+					// 位于前面的HttpServer收不到,需在管线末尾追加观察者接住;事件触发时101已写出、编码器已替换,
+					// 且必然先于客户端任何帧被读到,保证onOpen派发先于onContent。
+					context.pipeline().addLast(new ChannelInboundHandlerAdapter() {
+						@Override
+						public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+							if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
+								//noinspection ConstantConditions
+								fireWebSocketNotify("fireWebSocketOpen",
+										() -> handler.WebSocketHandle.onOpen(HttpExchange.this));
+							}
+							super.userEventTriggered(ctx, evt);
 						}
-						super.userEventTriggered(ctx, evt);
-					}
-				});
-				context.pipeline().addFirst(new ChannelOutboundHandlerAdapter() {
-					@Override
-					public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-						HttpServer.onBeforeWrite(ctx.channel());
-						super.write(ctx, msg, promise);
-					}
-				});
-				inStreamMode = true;
-				context.fireChannelRead(msg);
-				return;
+					});
+					context.pipeline().addFirst(new ChannelOutboundHandlerAdapter() {
+						@Override
+						public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+							HttpServer.onBeforeWrite(ctx.channel());
+							super.write(ctx, msg, promise);
+						}
+					});
+					inStreamMode = true;
+					context.fireChannelRead(msg);
+					return;
+				}
 			}
 			if (handler.isStreamMode()) {
 				fireBeginStream(req);
 				inStreamMode = true;
 			}
 			if (!(msg instanceof HttpContent)) {
-				if (HttpUtil.is100ContinueExpected(req)) {
+				// h2不用Expect/100-continue（流控表达背压），跳过；收到也忽略（body由DATA帧正常到达）
+				if (!isH2() && HttpUtil.is100ContinueExpected(req)) {
 					if (!handler.isStreamMode() && HttpUtil.getContentLength(req, 0) > handler.MaxContentLength) {
 						closeConnectionOnFlush(writeResponse(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
 								HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
@@ -678,6 +687,15 @@ public class HttpExchange {
 
 	// 框架直写豁免标志（rejectAndClose设置）：声明该channel的后续直写响应合法（随即关连接），免清理。
 	static final AttributeKey<Boolean> responseOrderBypassKey = AttributeKey.valueOf("ZezeHttpResponseOrderBypass");
+
+	// h2子channel标志（H2Transport.streamInitializer置位；h1连接无此attr）。h2每stream一个子channel，
+	// 恒单在途请求：序化器/tripwire天然no-op（seq==null直写），本标志用于跳过h1专属语义分支
+	//（Connection头/100-continue/WebSocket升级）。
+	static final AttributeKey<Boolean> h2StreamKey = AttributeKey.valueOf("ZezeHttpH2Stream");
+
+	final boolean isH2() {
+		return context.channel().attr(h2StreamKey).get() != null;
+	}
 
 	// 出站tripwire（HttpServer的encoder write钩子调用）：任何响应头(HttpResponse)写出时，序化器持笔
 	// entry必须已开始写——绕过writeResponse直写ctx的响应（FND8-46类）当场抛异常（→exceptionCaught
@@ -1176,8 +1194,9 @@ public class HttpExchange {
 			content = Unpooled.EMPTY_BUFFER;
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, headersFactory, trailersFactory);
 		var headers = HttpServer.setDate(res.headers())
-				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 				.set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
+		if (!isH2()) // h2禁连接管理头（RFC 9113：Connection头属连接级语法，帧化后无意义且非法）
+			headers.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 		if (contentType != null)
 			headers.set(HttpHeaderNames.CONTENT_TYPE, contentType);
 		if (resHeaders != null) {
