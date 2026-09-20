@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
@@ -84,8 +85,20 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 		var fileUpload = x.channel().attr(fileUploadKey).get();
 		if (fileUpload == null)
 			HttpMultipartHandle.super.onStreamContent(x, content);
-		else
-			fileUpload.addContent(content.content().retain(), false);
+		else {
+			try {
+				fileUpload.addContent(content.content().retain(), false);
+			} catch (IOException e) {
+				// NY1-F4：raw上传超过声明大小时addContent抛IOException且被任务框架吞掉，
+				// onEndRequest永不执行、invokeEndStream的close(null)空写无响应体——客户端零字节
+				// 挂到空闲超时。对齐HttpExchange的streamContentTotal超限处置：回413并断连，
+				// 同时取走释放attr上的上传缓冲（取走即负责，后续LastHttpContent因exchange已终结不再路由进来）。
+				HttpFileUploadHandle.releaseFileUpload(x.channel().attr(fileUploadKey).getAndSet(null));
+				Netty.logger.error("upload size exceeds defined size from {}", x.channel().remoteAddress(), e);
+				x.closeConnectionOnFlush(x.send(HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE,
+						"text/plain; charset=utf-8", "upload too large"));
+			}
+		}
 	}
 
 	@Override
@@ -95,7 +108,15 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 			HttpMultipartHandle.super.onEndStream(x);
 		else {
 			try {
-				fileUpload.addContent(Unpooled.EMPTY_BUFFER, true);
+				try {
+					fileUpload.addContent(Unpooled.EMPTY_BUFFER, true);
+				} catch (IOException e) {
+					// NY1-F4：终结帧同样可能越过声明大小，处置同onStreamContent（413+断连，跳过onFileCompleted/onEndRequest）。
+					Netty.logger.error("upload size exceeds defined size from {}", x.channel().remoteAddress(), e);
+					x.closeConnectionOnFlush(x.send(HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE,
+							"text/plain; charset=utf-8", "upload too large"));
+					return;
+				}
 				onFileCompleted(x, fileUpload);
 				assert x.request != null;
 				var decoder = new InterfaceHttpPostRequestDecoder() {

@@ -46,6 +46,18 @@ public class TestHttpWebSocketContentLimit {
 				x.sendWebSocket(text); // 回显完整消息
 			}
 		});
+		// NY1-F6：自定义onContent（不经HttpExchange.content累积）的分片消息同样受总量上限——
+		// 修复前checkWebSocketContentSize读content恒空（帧经fireWebSocket提前return，
+		// addContent不可达），对自定义处理的分片是死检查，单连接可无上限累积。
+		server.addHandler("/ws-raw", MaxFrame, TransactionLevel.None, DispatchMode.Direct, new HttpWebSocketHandle() {
+			final java.util.concurrent.atomic.AtomicLong rawBytes = new java.util.concurrent.atomic.AtomicLong();
+
+			@Override
+			public void onContent(@NotNull HttpExchange x, @NotNull io.netty.buffer.ByteBuf content,
+								  boolean isText, boolean isFinal) {
+				rawBytes.addAndGet(content.readableBytes()); // 自行消化分片，不写入exchange.content
+			}
+		});
 		var channel = server.start(netty, 0).sync().channel();
 		port = ((InetSocketAddress)channel.localAddress()).getPort();
 	}
@@ -126,6 +138,32 @@ public class TestHttpWebSocketContentLimit {
 			// 客户端应观察到关闭:close帧(1009)或因服务器关闭导致的错误,二者必居其一
 			Assertions.assertTrue(listener.closeStatus.get() != null || ws.isInputClosed(),
 					"closeStatus=" + listener.closeStatus.get() + ", inputClosed=" + ws.isInputClosed());
+			if (listener.closeStatus.get() != null)
+				Assertions.assertEquals(1009, listener.closeStatus.get(), "expect MESSAGE_TOO_BIG");
+		} finally {
+			abort(ws);
+		}
+	}
+
+	// NY1-F6：自定义onContent（不写入exchange.content）的分片消息同样受总量上限。
+	// 修复前checkWebSocketContentSize读的content恒空（ws帧不经addContent路径），
+	// 对此类handler的分片累积是死检查——超限后连接必须被1009关闭。
+	@Test
+	public void testFragmentedOverLimitWithCustomOnContent() throws Exception {
+		var listener = new Listener();
+		var ws = HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(
+				URI.create("ws://127.0.0.1:" + port + "/ws-raw"), listener).join();
+		try {
+			var part = repeat('c', 1000);
+			ws.sendText(part, false).get(10, TimeUnit.SECONDS);
+			ws.sendText(part, false).get(10, TimeUnit.SECONDS);
+			try {
+				// 第3片使累计达3000>2048：修复前死检查不触发，连接保持打开，done.await超时
+				ws.sendText(part, false).handle((v, e) -> null);
+			} catch (IllegalStateException ignored) {
+			}
+			Assertions.assertTrue(listener.done.await(10, TimeUnit.SECONDS),
+					"自定义onContent的分片累积超限同样必须关闭连接");
 			if (listener.closeStatus.get() != null)
 				Assertions.assertEquals(1009, listener.closeStatus.get(), "expect MESSAGE_TOO_BIG");
 		} finally {

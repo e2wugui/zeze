@@ -90,6 +90,17 @@ final class H2TestClient implements AutoCloseable {
 		return collector;
 	}
 
+	// 开stream发请求后不等待响应直接关闭stream（未完成的stream关闭即向对端发RST_STREAM），
+	// 用于中止流的服务端善后测试（NY1-F2：h2子channel善后按channel id remove+close exchange）。
+	void requestThenReset(@NotNull HttpMethod method, @NotNull String path) throws Exception {
+		var stream = new Http2StreamChannelBootstrap(connection).open().sync().getNow();
+		stream.pipeline().addLast(new Http2StreamFrameToHttpObjectCodec(false));
+		var req = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, method, path, Unpooled.EMPTY_BUFFER);
+		req.headers().set(HttpHeaderNames.HOST, "127.0.0.1");
+		stream.writeAndFlush(req).sync();
+		stream.close();
+	}
+
 	@Override
 	public void close() throws Exception {
 		if (connection != null)

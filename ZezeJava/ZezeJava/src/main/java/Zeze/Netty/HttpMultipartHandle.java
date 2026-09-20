@@ -100,18 +100,29 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 		var decoder = getDecoder(x);
 		if (decoder == null)
 			throw new IllegalStateException("no decoder");
-		decoder.offer(content);
-		for (InterfaceHttpData data; (data = decoder.next()) != null; ) {
-			switch (data.getHttpDataType()) {
-			case Attribute:
-				onAttribute(x, (Attribute)data);
-				break;
-			case FileUpload:
-				var fileUpload = (FileUpload)data;
-				if (fileUpload.isCompleted())
-					onFileCompleted(x, fileUpload);
-				break;
+		try {
+			decoder.offer(content);
+			for (InterfaceHttpData data; (data = decoder.next()) != null; ) {
+				switch (data.getHttpDataType()) {
+				case Attribute:
+					onAttribute(x, (Attribute)data);
+					break;
+				case FileUpload:
+					var fileUpload = (FileUpload)data;
+					if (fileUpload.isCompleted())
+						onFileCompleted(x, fileUpload);
+					break;
+				}
 			}
+		} catch (Exception e) {
+			// NY1-F3：解码/回调异常被任务框架吞掉（fireStreamContentHandle仅记日志），不立即处置
+			// 则onEndStream无条件进onEndRequest默认发200——静默数据丢失。立即取走销毁decoder
+			//（后续畸形chunk不再进解码器，onEndStream因attr已空自然跳过200，无需跨任务状态位），
+			// 回400并断连。
+			destroyDecoder(getAndSetDecoder(x, null));
+			Netty.logger.error("multipart decode failed from {}", x.channel().remoteAddress(), e);
+			x.closeConnectionOnFlush(x.send(HttpResponseStatus.BAD_REQUEST, "text/plain; charset=utf-8",
+					"bad multipart"));
 		}
 	}
 

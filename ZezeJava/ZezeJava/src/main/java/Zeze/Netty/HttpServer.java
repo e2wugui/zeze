@@ -633,8 +633,19 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		// 兜底清理:连接已失活时在途exchange不会再有人close(异常路径或连接被强制关闭)，主动结束
 		// 并释放retain的request和累积的content,否则永久泄漏。close是幂等的,正常完成的早已自行移除。
 		// janitor关闭全部在途（pipelining下被覆盖出exchanges表的前序也要关），不只表内最新一个。
-		HttpExchange.closeInFlightExchanges(ch, HttpExchange.CLOSE_PASSIVE);
+		closeInFlightIncludingH2(ch, HttpExchange.CLOSE_PASSIVE);
 		super.channelInactive(ctx);
+	}
+
+	// janitor善后（NY1-F2）：h2子channel不经响应序化器（无responseOrderKey），closeInFlightExchanges
+	// 对其恒no-op——中止流（RST_STREAM关stream）的exchange永久滞留exchanges表（retain的request与
+	// content泄漏）。seq==null时按channel id取出exchange直接close（复用既有幂等机制）。
+	private void closeInFlightIncludingH2(@NotNull Channel ch, int method) {
+		if (!HttpExchange.closeInFlightExchanges(ch, method)) {
+			var x = exchanges.remove(ch.id());
+			if (x != null)
+				x.close(method, null);
+		}
 	}
 
 	@Override
@@ -763,7 +774,8 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 			// 异常路径的exchange不会再有正常的close时机(如畸形uri解码抛出后无人移除)，这里结束全部
 			// 在途，释放retain的request和累积的content，避免池化内存泄漏（close幂等）。先关闭连接再清理:
 			// 即使清理过程中用户回调抛出异常,连接也已被关闭,close开头的exchanges.remove保证条目已删。
-			HttpExchange.closeInFlightExchanges(ctx.channel(), HttpExchange.CLOSE_PASSIVE);
+			// NY1-F2：h2子channel同样善后（closeInFlightIncludingH2）。
+			closeInFlightIncludingH2(ctx.channel(), HttpExchange.CLOSE_PASSIVE);
 		}
 	}
 }

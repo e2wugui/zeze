@@ -130,6 +130,11 @@ public class HttpExchange {
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	protected boolean isWebSocketTextContent;
 	protected long streamContentTotal; // 流模式累计收到的请求body字节数,server.maxUploadSize总量上限检查用
+	// NY1-F6：WebSocket分片消息真实累计（checkWebSocketContentSize用）。websocket帧在channelRead
+	// 经fireWebSocket提前return，addContent永不可达——content恒空，旧检查读content是死检查。
+	// 首帧（Binary/Text）重置、Continuation累加、isFinal清零；fireWebSocket0按channel.id串行
+	//（Direct内联在EventLoop，非Direct经task11Executor同队列串行），无并发访问。
+	protected long webSocketContentTotal;
 
 	public HttpExchange(@NotNull HttpServer server, @NotNull ChannelHandlerContext context) {
 		this.server = server;
@@ -912,7 +917,6 @@ public class HttpExchange {
 	}
 
 	protected void invokeEndStream() throws Exception {
-		endStreamTaskPending = false;
 		try {
 			var handle = handler != null ? handler.EndStreamHandle : null;
 			if (handle != null)
@@ -922,6 +926,10 @@ public class HttpExchange {
 				close(null);
 			// close被并发抢先（CAS到2成no-op）时，request/content只能由这里释放（幂等）
 			releaseTerminal();
+			// NY1-F1：清位必须晚于releaseTerminal——任务入口即清位会在回调运行期间打开窗口，
+			// 并发close的closeInEventLoop观察到pending==false抢先释放request/content，
+			// 迟到的onEndStream用户回调读到空body/空request。
+			endStreamTaskPending = false;
 		}
 	}
 
@@ -964,7 +972,6 @@ public class HttpExchange {
 			} else {
 				endStreamTaskPending = true;
 				TaskSpec.ofFunc(() -> {
-					endStreamTaskPending = false;
 					try {
 						return p.call();
 					} finally {
@@ -972,6 +979,8 @@ public class HttpExchange {
 							close(null);
 						// close被并发抢先（CAS到2成no-op）时，request/content只能由这里释放（幂等）
 						releaseTerminal();
+						// NY1-F1：清位后移到releaseTerminal之后，任务在途期间close不得提前释放（见invokeEndStream）
+						endStreamTaskPending = false;
 					}
 				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(cancel)
 						.executeOneByOne(context.channel().id(), server.task11Executor);
@@ -1048,20 +1057,26 @@ public class HttpExchange {
 		}
 	}
 
-	// WebSocket分片消息(首帧isFinal=false+后续Continuation帧)会在content无上限累积,单连接即可耗尽堆内存。
+	// WebSocket分片消息(首帧isFinal=false+后续Continuation帧)以真实累计字段施行总量上限,单连接即可耗尽堆内存。
 	// 以handler.MaxContentLength(即maxFramePayloadLength的同一配置)作为分片消息的总大小上限:
-	// 单帧本身已受maxFramePayloadLength限制,这里挡的是分片累积总量。超限按RFC6455回1009(Message Too Big)并关闭连接。
+	// 单帧本身已受maxFramePayloadLength限制,这里挡的是分片累积总量(NY1-F6:按webSocketContentTotal
+	// 真实累积,不再读恒空的content)。超限按RFC6455回1009(Message Too Big)并关闭连接。
 	// 返回false表示已超限并关闭连接,调用方不应再继续分发本帧。
 	protected boolean checkWebSocketContentSize(@NotNull WebSocketFrame frame) {
-		var n = frame.content().readableBytes();
+		if (!(frame instanceof ContinuationWebSocketFrame))
+			webSocketContentTotal = 0; // 新消息（Binary/Text首帧）：重新累计
+		webSocketContentTotal += frame.content().readableBytes();
 		//noinspection DataFlowIssue
-		if (content.readableBytes() + n > handler.MaxContentLength) {
-			Netty.logger.error("websocket content size = {} + {} > {} from {}",
-					content.readableBytes(), n, handler.MaxContentLength, context.channel().remoteAddress());
+		if (webSocketContentTotal > handler.MaxContentLength) {
+			Netty.logger.error("websocket message size = {} > {} from {}",
+					webSocketContentTotal, handler.MaxContentLength, context.channel().remoteAddress());
+			webSocketContentTotal = 0; // 已回1009并关连接，重置避免后续帧叠加误报
 			closeConnectionOnFlush(context.writeAndFlush(
 					new CloseWebSocketFrame(WebSocketCloseStatus.MESSAGE_TOO_BIG, "message too big")));
 			return false;
 		}
+		if (frame.isFinalFragment())
+			webSocketContentTotal = 0; // 消息终结：下一条消息从零累计
 		return true;
 	}
 
