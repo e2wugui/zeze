@@ -31,7 +31,7 @@ public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
         }
         _a_.setParams(new Zeze.Net.Binary(_b_));
 
-        _p_.Send(_t_, null);
+        _redirect_.sendVoid(_t_, _p_, "Zeze.Game.Online:redirectRemoveLocal");
     }
 
     @SuppressWarnings({"unchecked", "RedundantSuppression"})

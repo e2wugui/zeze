@@ -203,8 +203,11 @@ public final class GenModule extends ReentrantLock {
 					classNames[i] = genClassName;
 					classNameAndCodes.put(genClassName, code);
 				}
-				if (genFileSrcRoot != null) // 仅生成代码时无需编译和创建模块实例
+				if (genFileSrcRoot != null) { // 仅生成代码时无需编译和创建模块实例
+					System.out.println("---------------");
+					System.out.println("New Source File Has Generate. Re-Compile Need.");
 					return null;
+				}
 
 				var modules = new IModule[n];
 				if (!classNameAndCodes.isEmpty()) {

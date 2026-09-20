@@ -1,6 +1,5 @@
 package UnitTest.Zeze.Services;
 
-import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAKey;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -94,7 +93,7 @@ public class TestKeyExchangeErrorClose {
 			// 服务端Cert.decryptRsa必然抛GeneralSecurityException（BadPadding）。
 			var rpc = new KeyExchange(serverPubKey);
 			rpc.Argument.encIvKey = new byte[]{1, 2, 3, 4, 5, 6, 7, 8}; // 非法RSA密文
-			rpc.SendReturnVoid(client, socket, null);
+			rpc.Send(socket, null);
 
 			await("server OnSocketClose after decrypt failure (FND6-33)", 10_000,
 					() -> server.closeCount.get() >= 1);
@@ -128,7 +127,7 @@ public class TestKeyExchangeErrorClose {
 			// ErrorDecryptFailed、连接保持——攻击者可在单条连接上无限刷RSA私钥解密。
 			var rpc = new KeyExchange(serverPubKey);
 			rpc.Argument.encIvKey = KeyExchange.encryptRsa(serverPubKey, new byte[31]);
-			rpc.SendReturnVoid(client, socket, null);
+			rpc.Send(socket, null);
 
 			await("server OnSocketClose after short clientIvKey (FND6-33残留)", 10_000,
 					() -> server.closeCount.get() >= 1);

@@ -279,6 +279,7 @@ public class RedirectBase {
 	 * 布尔值，socket层虽有error日志但无redirect归因（丢了哪个方法无从知晓），与本地回环
 	 * runVoid失败有日志不对称。失败时记带方法名的error日志；内建方法的既有自愈补偿不变。
 	 */
+	@SuppressWarnings("MethodMayBeStatic")
 	public void sendVoid(@Nullable AsyncSocket so, @NotNull Rpc<?, ?> p, @NotNull String methodFullName) {
 		if (!p.Send(so, null))
 			logger.error("redirect send fail: method={}, socket={}", methodFullName, so);

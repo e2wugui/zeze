@@ -216,20 +216,24 @@ public class App extends Zeze.AppBase {
         }
     }
 
+    public static Class<?>[] redirectModuleClasses() {
+        return new Class[] {
+            demo.web.ModuleWeb.class,
+            demo.Module1.ModuleModule1.class,
+            demo.Module1.Module11.ModuleModule11.class,
+            demo.M6.ModuleM6.class,
+            demo.M6.M7.ModuleM7.class,
+            TaskTest.TaskExt.ModuleTaskExt.class,
+            demo.ModuleGTable.ModuleModuleGTable.class,
+        };
+    }
+
     @Override
     public void createModules() throws Exception {
         lock();
         try {
             Zeze.initialize(this);
-            var _modules_ = createRedirectModules(new Class[] {
-                demo.web.ModuleWeb.class,
-                demo.Module1.ModuleModule1.class,
-                demo.Module1.Module11.ModuleModule11.class,
-                demo.M6.ModuleM6.class,
-                demo.M6.M7.ModuleM7.class,
-                TaskTest.TaskExt.ModuleTaskExt.class,
-                demo.ModuleGTable.ModuleModuleGTable.class,
-            });
+            var _modules_ = createRedirectModules(redirectModuleClasses());
             if (_modules_ == null)
                 return;
 
@@ -274,7 +278,7 @@ public class App extends Zeze.AppBase {
         }
     }
 
-    public void destroyModules()  {
+    public void destroyModules() throws Exception {
         lock();
         try {
             demo_ModuleGTable = null;

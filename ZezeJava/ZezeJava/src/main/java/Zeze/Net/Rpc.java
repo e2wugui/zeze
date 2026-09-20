@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 请求-应答协议基类。发送侧实例为一次性：Send/SendReturnVoid/SendForWait 只能进入一次，
+ * 请求-应答协议基类。发送侧实例为一次性：Send/SendForWait 只能进入一次，
  * 发送失败后同样不得复用——重试请新建实例（每次发送需要新的sessionId）。
  * 需要「可靠投递/超时重试」语义时，新建实例重发，并配合协议层幂等或服务端按请求标识去重
  */
@@ -126,7 +126,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 				if (factoryHandle != null)
 					service.dispatchRpcResponse(this, responseHandle, factoryHandle);
 			}
-		// 超时清理必须立即注册（scheduleNow）：此刻请求字节已发出（SendReturnVoid 也可无 socket 只注册），
+		// 超时清理必须立即注册（scheduleNow）：此刻请求字节已发出，
 		// 即使所在事务随后回滚，应答仍会到来或永不到来，上下文必须有超时兜底；
 		// 事务感知的 schedule 会随回滚丢弃注册，导致 rpcContexts 条目永驻、SendForWait 永久挂起。
 		}).scheduleNow(timeout);
@@ -190,36 +190,6 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		// 恢复最初的语义吧：如果ctx已经被并发的Remove，也就是被处理了，这里返回true。
 		// 实例不因失败解禁：失败重试同样请新建实例（保持一次性语义简单）。
 		return !service.removeRpcContext(sessionId, this);
-	}
-
-	/**
-	 * 不管发送是否成功，总是建立RpcContext。
-	 * 连接(so)可以为null，此时Rpc请求将在Timeout后回调。
-	 * 不显式传超时的重载统一使用字段timeout（默认5000，setTimeout可改）
-	 */
-	public final void SendReturnVoid(@NotNull Service service, @Nullable AsyncSocket so,
-	                                 @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
-		SendReturnVoid(service, so, responseHandle, timeout);
-	}
-
-	public final void SendReturnVoid(@NotNull Service service, @Nullable AsyncSocket so,
-	                                 @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
-	                                 int millisecondsTimeout) {
-		if (so != null && so.getService() != service)
-			throw new IllegalStateException("so.Service != service");
-		if (sessionId != 0)
-			throw new IllegalStateException("Rpc already sent (sessionId=" + sessionId
-					+ "); create a new instance to retry: " + this);
-
-		this.responseHandle = responseHandle;
-		timeout = millisecondsTimeout;
-		isTimeout = false;
-		isRequest = true;
-		sessionId = service.addRpcContext(this);
-		// schedule前移到发送之前，同Send——super.Send(so)异常逃逸路径同样有超时兜底，
-		// 兑现本方法javadoc"不管发送是否成功，总是建立RpcContext……在Timeout后回调"。
-		schedule(service, sessionId, millisecondsTimeout);
-		super.Send(so);
 	}
 
 	public final TaskCompletionSource<TResult> SendForWait(@Nullable AsyncSocket so) {

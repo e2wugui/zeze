@@ -1,10 +1,13 @@
 package UnitTest.Zeze.Net;
 
+import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 import harness.Fast;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -12,15 +15,16 @@ import org.junit.jupiter.api.Test;
 
 import Zeze.Application;
 import Zeze.Config;
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Rpc;
 import Zeze.Net.Service;
 import Zeze.Transaction.Checkpoint;
 import Zeze.Transaction.CheckpointMode;
-import Zeze.Transaction.GoBackZeze;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.Reflect;
+import Zeze.Util.TimeThrottle;
 import demo.Module1.BValue;
 
 /**
@@ -61,6 +65,42 @@ public class TestRpcTimeoutScheduleOnRollback {
 		@Override
 		public int getProtocolId() {
 			return -2;
+		}
+	}
+
+	/** 假socket：Send恒成功——注册上下文+超时任务（不实际发网络），上下文保留。 */
+	private static final class OkSocket extends AsyncSocket {
+		OkSocket(Service service) {
+			super(service);
+		}
+
+		@Override
+		public Type getType() {
+			return Type.eClient;
+		}
+
+		@Override
+		public @Nullable SocketAddress getRemoteAddress() {
+			return null;
+		}
+
+		@Override
+		public @Nullable TimeThrottle getTimeThrottle() {
+			return null;
+		}
+
+		@Override
+		public boolean isClosed() {
+			return false;
+		}
+
+		@Override
+		protected void doClose(@Nullable Throwable ex, boolean gracefully) {
+		}
+
+		@Override
+		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
+			return true;
 		}
 	}
 
@@ -109,10 +149,10 @@ public class TestRpcTimeoutScheduleOnRollback {
 		Assumptions.assumeFalse(Reflect.inDebugMode, "debug 模式下 Rpc.schedule 将超时放宽10分钟，等待断言无意义");
 		var service = new Service("TestRpcTimeoutScheduleOnRollback.Rpc");
 		var rpc = new TestRpc();
+		var so = new OkSocket(service);
 		var sessionId = new long[1];
 		callInProcedureAndAbort(() -> {
-			// so=null：SendReturnVoid 只注册上下文+超时任务（Protocol.Send(null) 返回 false，不实际发送）
-			rpc.SendReturnVoid(service, null, r -> Procedure.Success, 200);
+			rpc.Send(so, r -> Procedure.Success, 200);
 			sessionId[0] = rpc.getSessionId();
 			Transaction.getCurrent().throwAbort("force abort after rpc context registered", null);
 			return Procedure.Success; // 不可达：throwAbort 必抛

@@ -17,9 +17,9 @@ import demo.Module1.BValue;
 
 /**
  * Rpc 实例一次性契约（FND6-11 处置转向：由「守卫收窄同实例重发竞态」改为「契约禁止重发」）：
- * Send/SendReturnVoid/SendForWait 只能进入一次，发送失败也不解禁——重试请新建实例
+ * Send/SendForWait 只能进入一次，发送失败也不解禁——重试请新建实例
  * （范式参考 Raft 的 RaftRpcBridge：每次发送新建桥接，原始实例永不入 rpcContexts）。
- * 四个用例：二次 Send 抛、二次 SendReturnVoid 抛、二次 SendForWait 抛、
+ * 三个用例：二次 Send 抛、二次 SendForWait 抛、
  * 发送失败（Send 返回 false、上下文已清理）后再发同样抛——锁定「失败也不重试」决策，
  * 防止将来有人手软加回「失败解禁」复位。
  */
@@ -98,21 +98,6 @@ public class TestRpcNoReuse {
 
 		Assertions.assertThrows(IllegalStateException.class,
 				() -> rpc.Send(so, r -> Procedure.Success, 60_000), "second send must throw");
-	}
-
-	@Test
-	public final void testSecondSendReturnVoidThrows() {
-		Zeze.Util.Task.tryInitThreadPool();
-		var service = new Service("TestRpcNoReuse.SendReturnVoid");
-		var rpc = new TestRpc();
-
-		// so=null：SendReturnVoid 只注册上下文+超时任务（Protocol.Send(null) 返回 false，不实际发送）
-		rpc.SendReturnVoid(service, null, r -> Procedure.Success, 60_000);
-		Assertions.assertNotEquals(0, rpc.getSessionId());
-
-		Assertions.assertThrows(IllegalStateException.class,
-				() -> rpc.SendReturnVoid(service, null, r -> Procedure.Success, 60_000),
-				"second SendReturnVoid must throw");
 	}
 
 	@Test

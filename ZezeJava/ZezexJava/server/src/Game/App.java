@@ -75,10 +75,10 @@ public final class App extends Zeze.AppBase {
 		started = true;
 
 		// 生成模式：模块类清单是静态的，不构造Application（不建库、不开服务、不碰server.xml），
-		// 直接生成Redirect代码后退出——createRedirectModules文件模式生成完即System.exit(0)。
+		// 生成Redirect代码后返回——main见genFileSrcRoot标志不进入wait，进程自然退出。
 		if (GenModule.instance.genFileSrcRoot != null) {
 			createRedirectModules(redirectModuleClasses());
-			return; // 防御：exit未生效也不得带空Zeze继续启动
+			return; // 不得带空Zeze继续启动
 		}
 
 		var config = Config.load("server.xml");
@@ -225,8 +225,7 @@ public final class App extends Zeze.AppBase {
         }
     }
 
-    // Redirect模块类清单：createModules()与生成模式入口（-GenFileSrcRoot提前分支）共用，勿在调用点内联复制。
-    public Class<?>[] redirectModuleClasses() {
+    public static Class<?>[] redirectModuleClasses() {
         return new Class[] {
             Game.Map.ModuleMap.class,
             Game.Rank.ModuleRank.class,

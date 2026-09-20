@@ -12,13 +12,9 @@ public abstract class AppBase extends ReentrantLock {
 	public abstract Application getZeze();
 
 	public @NotNull IModule @Nullable [] createRedirectModules(@NotNull Class<?> @NotNull [] moduleClasses) {
-		var modules = GenModule.instance.createRedirectModules(this, moduleClasses);
-		if (GenModule.instance.genFileSrcRoot != null) {
-			System.out.println("---------------");
-			System.out.println("New Source File Has Generate. Re-Compile Need.");
-			System.exit(0);
-		}
-		return modules;
+		// 文件模式（genFileSrcRoot!=null）生成完返回null，终止与否由调用方决定：
+		// 生成入口生成后返回、main见标志不进入wait；正常启动的createModules守卫见null提前撤退。
+		return GenModule.instance.createRedirectModules(this, moduleClasses);
 	}
 
 	// 历史上是 public 的。

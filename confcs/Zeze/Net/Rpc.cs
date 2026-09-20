@@ -19,9 +19,6 @@ namespace Zeze.Net
         bool Send(AsyncSocket so);
         bool Send(AsyncSocket so, Func<Protocol, Task<long>> responseHandle, int millisecondsTimeout = 5000);
 
-        void SendReturnVoid(Service service, AsyncSocket so, Func<Protocol, Task<long>> responseHandle,
-            int millisecondsTimeout = 5000);
-
         Task SendAsync(AsyncSocket so, int millisecondsTimeout = 5000);
         Task SendAndCheckResultCodeAsync(AsyncSocket so, int millisecondsTimeout = 5000);
 
@@ -123,32 +120,6 @@ namespace Zeze.Net
             var ctx = so.Service.RemoveRpcContext<Rpc<TArgument, TResult>>(SessionId);
             // 恢复最初的语义吧：如果ctx已经被并发的Remove，也就是被处理了，这里返回true。
             return ctx == null;
-        }
-
-        /// <summary>
-        /// 不管发送是否成功，总是建立RpcContext。
-        /// 连接(so)可以为null，此时Rpc请求将在Timeout后回调。
-        /// </summary>
-        /// <param name="service"></param>
-        /// <param name="so"></param>
-        /// <param name="responseHandle"></param>
-        /// <param name="millisecondsTimeout"></param>
-        public void SendReturnVoid(Service service, AsyncSocket so, Func<Protocol, Task<long>> responseHandle,
-            int millisecondsTimeout = 5000)
-        {
-            if (so != null && so.Service != service)
-                throw new Exception("so.Service != service");
-
-            IsRequest = true;
-            ResponseHandle = responseHandle;
-            Timeout = millisecondsTimeout;
-            Service = service;
-
-            // try remove . 只维护一个上下文。
-            service.TryRemoveRpcContext(SessionId, this);
-            SessionId = service.AddRpcContext(this);
-            Schedule(service, SessionId, millisecondsTimeout);
-            base.Send(so);
         }
 
         // 注意这个同步发送方法会覆盖Future,而且之后不会自动清除,除非再次调用同步发送

@@ -23,10 +23,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * FND8-51回归：Rpc.Send/SendReturnVoid在addRpcContext之后、schedule之前，编码/传输异常
+ * FND8-51回归：Rpc.Send在addRpcContext之后、schedule之前，编码/传输异常
  * 直接逃逸——上下文既不清理也无超时兜底（超时定时器从未注册），rpcContexts条目永久泄漏、
- * responseHandle回调永不触发，违背"上下文必须有超时兜底"的设计契约与SendReturnVoid自身
- * javadoc。孪生：SendReturnVoid同型。
+ * responseHandle回调永不触发，违背"上下文必须有超时兜底"的设计契约。
  * 修复后：schedule前移到发送之前（对齐Online.sendOnlineRpc先例）——异常路径同样有
  * 超时回收与Timeout回调；false路径双参remove与超时定时器互斥恰好一次。
  */
@@ -142,33 +141,6 @@ public class TestFnd851RpcEncodeExceptionCleanup {
 			Assertions.assertTrue(handleResult.latch.await(10, TimeUnit.SECONDS),
 					"编码异常路径的超时兜底必须派发responseHandle回调");
 			Assertions.assertEquals(Procedure.Timeout, handleResult.code.get(), "晚到通知为Timeout码");
-			await("context cleaned by timeout", 10_000, () -> service.getRpcContextsToSender(stub).isEmpty());
-		} finally {
-			service.Stop();
-		}
-	}
-
-	// 孪生：SendReturnVoid同型——异常路径必须兑现"总是建立RpcContext……Timeout后回调"
-	@Test
-	public void testSendReturnVoidEncodeExceptionHasTimeoutFallback() throws Exception {
-		Zeze.Util.Task.tryInitThreadPool();
-		var service = new Service("test.fnd851.b");
-		var handleResult = new HandleResult();
-		service.AddFactoryHandle(EncodeFailRpc.TypeId_, new Service.ProtocolFactoryHandle<>(EncodeFailRpc::new,
-				r -> Procedure.Success, TransactionLevel.None, DispatchMode.Direct));
-		try {
-			var stub = new StubSocket(service);
-			var rpc = new EncodeFailRpc();
-			Assertions.assertThrows(IllegalStateException.class,
-					() -> rpc.SendReturnVoid(service, stub, r -> {
-						handleResult.code.set(r.getResultCode());
-						handleResult.latch.countDown();
-						return 0;
-					}, 200), "编码异常必须照常同步抛给直接调用方");
-
-			Assertions.assertTrue(handleResult.latch.await(10, TimeUnit.SECONDS),
-					"SendReturnVoid异常路径必须按javadoc在Timeout后回调");
-			Assertions.assertEquals(Procedure.Timeout, handleResult.code.get());
 			await("context cleaned by timeout", 10_000, () -> service.getRpcContextsToSender(stub).isEmpty());
 		} finally {
 			service.Stop();

@@ -151,7 +151,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             if (project.AllOrderDefineModules.Count > 0)
             {
-                sw.WriteLine("    public Class<?>[] redirectModuleClasses() {");
+                sw.WriteLine("    public static Class<?>[] redirectModuleClasses() {");
                 sw.WriteLine("        return new Class[] {");
                 foreach (Module m in project.AllOrderDefineModules)
                 {

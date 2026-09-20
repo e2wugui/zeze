@@ -146,7 +146,6 @@ public final class App extends Zeze.AppBase {
         }
     }
 
-    // Redirect模块类清单：createModules()与生成模式入口（-GenFileSrcRoot提前分支）共用，勿在调用点内联复制。
     public static Class<?>[] redirectModuleClasses() {
         return new Class[] {
             Zezex.Linkd.ModuleLinkd.class,
@@ -173,7 +172,7 @@ public final class App extends Zeze.AppBase {
         }
     }
 
-    public void destroyModules()  {
+    public void destroyModules() throws Exception {
         lock();
         try {
             Zezex_Linkd = null;

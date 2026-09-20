@@ -1,3 +1,4 @@
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Services.Daemon;
 
 public class Program {
@@ -6,6 +7,8 @@ public class Program {
 		//【用来生成出Redirect模块，调试用】
 		// args = new String[] { "-GenFileSrcRoot", "C:\\code\\zeze\\ZezeJava\\ZezexJava\\server\\src" };
 		Game.App.getInstance().Start(args);
+		if (GenModule.instance.genFileSrcRoot != null)
+			return; // 生成模式：代码已生成，不进入服务wait，进程自然退出
 		try {
 			Program.class.wait();
 		} finally {

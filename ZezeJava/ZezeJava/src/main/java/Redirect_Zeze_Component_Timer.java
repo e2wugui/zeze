@@ -30,7 +30,7 @@ public class Redirect_Zeze_Component_Timer extends Zeze.Component.Timer {
         }
         _a_.setParams(new Zeze.Net.Binary(_b_));
 
-        _p_.Send(_t_, null);
+        _redirect_.sendVoid(_t_, _p_, "Zeze.Component.Timer:redirectCancel");
     }
 
     @SuppressWarnings({"unchecked", "RedundantSuppression"})
