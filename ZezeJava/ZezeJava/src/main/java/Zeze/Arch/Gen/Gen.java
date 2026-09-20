@@ -232,30 +232,25 @@ final class Gen {
 		return klass;
 	}
 
-	// FND8-83：形参/结果字段的编解码资格校验，encode/decode两侧共用——原先两侧判定不对称：
-	// encode侧有!isAbstract守卫，decode侧对抽象Zeze Serializable形参无条件生成new 抽象类()
-	// （生成源码不可编译，内存编译路径启动即炸，文件模式把必然编译不过的.java写进源码树后
-	// 脚本照样成功退出）；集合/映射元素不满足Zeze编码谓词时容器退化为WriteJavaObject/
-	// ReadJavaObject兜底，此时元素必须是java.io.Serializable，否则运行时才抛
-	// NotSerializableException——这里提前到生成期，且报错指明元素而非容器。
+	// FND8-83：形参/结果字段的编解码资格校验，encode/decode两侧共用；容器元素不满足
+	// Zeze编码谓词时走Java序列化兜底（元素须java.io.Serializable），统一在生成期拒绝。
 	private void checkGenElement(@NotNull AnnotatedElement e, @NotNull Class<?> cls, @NotNull Type type,
 	                             boolean isField) {
 		if (cls.isPrimitive() || serializers.containsKey(cls))
 			return;
 		var where = describeGenElement(e, type);
 		if (Serializable.class.isAssignableFrom(cls)) {
-			// Bean/Data是唯一多态合法形态（typeId+工厂反建）；其余抽象Serializable形参
-			// decode侧无法反建实例，生成期拒绝。
+			// 多态仅Bean/Data合法（typeId+工厂反建）；其余抽象Serializable decode无法反建实例。
 			if (cls != Bean.class && cls != Data.class && isAbstract(cls)) {
 				if (!isField)
 					throw new UnsupportedOperationException("redirect param unsupported: abstract Zeze Serialize type "
-							+ cls.getName() + "（多态请声明为Zeze.Transaction.Bean/Data静态类型）, " + where);
-				// FND8-84 T1：抽象Serializable结果字段decode不new、原位decode，未初始化即NPE
-				// ——无法判空兜底（具体类型未知），实例化探测初始化器，未初始化则生成期拒绝。
+							+ cls.getName() + " (use Zeze.Transaction.Bean/Data static type for polymorphism), " + where);
+				// FND8-84 T1：抽象Serializable结果字段原位decode，未初始化即NPE且无法兜底，
+				// 探测初始化器，未初始化生成期拒绝。
 				if (!isFieldInitializerPresent(e))
 					throw new UnsupportedOperationException("redirect result field unsupported: abstract Zeze "
-							+ "Serialize type " + cls.getName() + " not initialized（decode原位decode字段，"
-							+ "null即NPE，请在声明处初始化）, " + where);
+							+ "Serialize type " + cls.getName() + " not initialized (decode writes into the existing "
+							+ "instance; initialize it at declaration), " + where);
 			}
 			return;
 		}
@@ -274,17 +269,16 @@ final class Gen {
 		}
 	}
 
-	// 容器元素不满足Zeze编码谓词（已知序列化器或具体Zeze Serializable）时容器整体走Java
-	// 序列化兜底，元素自身必须java.io.Serializable，否则生成期拒绝。
+	// 容器走Java序列化兜底时元素须java.io.Serializable，生成期拒绝。
 	private void checkGenContainerElement(@NotNull Class<?> elemClass, @NotNull String where, @NotNull String role) {
 		var serializer = serializers.get(elemClass);
 		if (!(!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))))
 			throw new UnsupportedOperationException("redirect param unsupported " + role + " type: "
-					+ elemClass.getName() + "（容器将退化为Java序列化，" + role
-					+ "必须实现java.io.Serializable或为具体Zeze Serializable类型）, " + where);
+					+ elemClass.getName() + " (container falls back to Java serialization; " + role
+					+ " must implement java.io.Serializable or be a concrete Zeze Serializable type), " + where);
 	}
 
-	// 实例化探测字段初始化器（仅结果DTO，注意实例化副作用）：探测失败视为未初始化。
+	// 实例化探测字段初始化器（有实例化副作用）；探测失败视为未初始化。
 	private static boolean isFieldInitializerPresent(@NotNull AnnotatedElement e) {
 		if (e instanceof Field f) {
 			try {
@@ -362,11 +356,8 @@ final class Gen {
 			return;
 		}
 		if (Serializable.class.isAssignableFrom(type)) {
-			// FND8-82：decode侧对Bean与Data形参都按typeId经工厂反建
-			// （createBeanFromSpecialTypeId/createDataFromSpecialTypeId），encode侧必须对称
-			// 先写typeId——原先Data形参只写编码体，decode把编码体首字节当typeId消费：
-			// 非默认Data是误导性的"unknown data typeId"异常，全默认Data typeId读0命中
-			// EmptyBean.Data吞掉后续参数字节，本参数及其后所有参数静默乱解。
+			// FND8-82：decode按typeId经工厂反建，encode必须对称先写typeId（原先Data漏写，
+			// decode把编码体首字节当typeId消费，乱流或误导性异常）。
 			if (type == Bean.class || type == Data.class)
 				sb.appendLine("{}{}.WriteLong({}.typeId());", prefix, bbName, varName);
 			sb.appendLine("{}{}.encode({});", prefix, varName, bbName);
@@ -428,14 +419,13 @@ final class Gen {
 			return;
 		}
 		if (Serializable.class.isAssignableFrom(type)) {
-			// Bean/Data形参（及结果字段）按typeId经工厂反建；beanFactory符号按"模块类父类链
-			// 自带可访问的静态beanFactory"惯例解析（IModule无此契约），生成期由
-			// GenModule.checkBeanFactorySymbol校验（FND8-85）。
+			// beanFactory符号按"模块类父类链自带可访问静态beanFactory"惯例解析（IModule无
+			// 此契约），生成期由GenModule.checkBeanFactorySymbol校验（FND8-85）。
 			if (type == Bean.class)
 				sb.appendLine("{}{} = beanFactory.createBeanFromSpecialTypeId({}.ReadLong());", prefix, varName, bbName);
 			else if (type == Data.class)
 				sb.appendLine("{}{} = beanFactory.createDataFromSpecialTypeId({}.ReadLong());", prefix, varName, bbName);
-			else if (!isAbstract(type)) // 抽象类型不new（形参已被checkGenElement生成期拒绝；字段用已有实例）
+			else if (!isAbstract(type)) // 抽象类型不new：形参已被checkGenElement拒绝，字段原位decode
 				sb.appendLine("{}{} = new {}();", prefix, varName, getTypeName(paramType));
 			sb.appendLine("{}{}.decode({});", prefix, varName, bbName);
 			return;
@@ -449,9 +439,7 @@ final class Gen {
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
 								getCollectionType(type).getTypeName().replace('$', '.'));
 					else {
-						// FND8-84：抽象集合字段保留用户实现选择（跳过分配），但未初始化时decode
-						// 原位add必NPE（结果类最自然的"赋值式填充"形态即触发）——判空后new兜底，
-						// 已初始化不覆盖，未初始化产物可用。
+						// FND8-84：抽象集合字段已初始化则保留用户实现，未初始化判空后new兜底。
 						sb.appendLine("{}if ({} == null)", prefix, varName);
 						sb.appendLine("{}    {} = new {}<>();", prefix, varName,
 								getCollectionType(type).getTypeName().replace('$', '.'));
@@ -483,7 +471,7 @@ final class Gen {
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
 								getMapType(type).getTypeName().replace('$', '.'));
 					else {
-						// FND8-84：抽象映射字段判空后new兜底（同集合分支），未初始化不再NPE。
+						// FND8-84：同集合分支，判空后new兜底。
 						sb.appendLine("{}if ({} == null)", prefix, varName);
 						sb.appendLine("{}    {} = new {}<>();", prefix, varName,
 								getMapType(type).getTypeName().replace('$', '.'));

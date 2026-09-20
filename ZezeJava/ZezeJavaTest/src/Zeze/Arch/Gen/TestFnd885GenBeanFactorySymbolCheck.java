@@ -22,14 +22,11 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
 
 /**
- * FND8-85回归：Bean/Data形参的decode生成引用未限定的beanFactory符号，按"模块类父类链
- * 自带可访问的静态beanFactory"惯例解析——纯字符串拼接零校验（对照ModuleId/
- * ModuleFullName/ctor均有反射级fail-fast），模块类没定义、或定义为private/package-private
- * （生成子类位于默认包跨包继承不可达，如Component.Timer）时生成文件编译失败；文件模式
- * 坏文件写进源码树后脚本照样成功退出。
- * 修复：生成期沿父类链校验静态beanFactory的类型与可见性（public/protected），不满足抛
- * 带模块名/方法名/修复提示的UnsupportedOperationException；顺手补孪生——RedirectAll
- * 分支结果类public默认构造器校验（对齐RedirectFuture分支，原先独缺）。
+ * FND8-85回归：Bean/Data形参的decode生成引用未限定的beanFactory，按"模块类父类链
+ * 自带可访问的静态beanFactory"惯例解析——纯字符串拼接零校验，模块类没定义、或定义为
+ * private/package-private（生成子类默认包跨包继承不可达）时生成文件编译失败。
+ * 修复：生成期沿父类链校验静态beanFactory的类型与可见性，不满足抛带修复提示的
+ * UnsupportedOperationException；孪生——RedirectAll结果类补public默认构造器校验。
  */
 @Fast
 @Isolated // genFileSrcRoot是GenModule.instance上的JVM级全局开关，独占运行

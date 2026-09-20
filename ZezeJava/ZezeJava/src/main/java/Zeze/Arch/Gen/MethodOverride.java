@@ -123,14 +123,12 @@ final class MethodOverride {
 						throw new IllegalStateException("RedirectAll Result Type Can Not Be Serializable: "
 								+ method.getDeclaringClass().getName() + "::" + method.getName());
 					}
-					// FND8-83：生成代码new结果类实例（发起端解码/接收端编码），抽象类不可实例化
-					// ——反射getConstructor不查可实例化性，原先放行生成必然编译不过的代码。
+					// FND8-83：生成代码new结果类实例，抽象类生成源码不可编译，fail-fast拒绝。
 					if (Gen.isAbstract(resultClass)) {
 						throw new IllegalStateException("RedirectAll Result Type Can Not Be Abstract: "
 								+ method.getDeclaringClass().getName() + "::" + method.getName());
 					}
-					// FND8-85：对齐RedirectFuture分支——生成代码同样new结果类实例，仅有私有
-					// 构造器或非静态内部类时生成文件编译失败，原先独缺该校验。
+					// FND8-85：对齐RedirectFuture分支，同样要求public默认构造器。
 					try {
 						resultClass.getConstructor((Class<?>[])null);
 					} catch (NoSuchMethodException e) {
@@ -154,8 +152,7 @@ final class MethodOverride {
 							+ " or any type contains public default constructor: "
 							+ method.getDeclaringClass().getName() + "::" + method.getName());
 				}
-				// FND8-83：同上——生成代码new结果类实例，抽象类经getConstructor检查不报错，
-				// 但生成代码不可编译。
+				// FND8-83：同上，抽象结果类生成源码不可编译。
 				if (resultClass != Long.class && resultClass != Binary.class && Gen.isAbstract(resultClass)) {
 					throw new IllegalStateException("RedirectFuture<> Result Type Can Not Be Abstract: "
 							+ method.getDeclaringClass().getName() + "::" + method.getName());

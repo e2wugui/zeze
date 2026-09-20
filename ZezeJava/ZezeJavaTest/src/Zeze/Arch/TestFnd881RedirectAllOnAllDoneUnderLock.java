@@ -19,17 +19,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * FND8-81回归：RedirectAllFutureImpl.onAllDone直跑路径（注册时已完成的future当场执行
- * 回调）不持ctx锁——isCompleted()为真不等于hashResults写入结束：processResult可在锁内
- * 循环put中途越过完成阈值（多hash批量报文），或isTimeout置位而迟到结果仍在写。回调按
- * 约定调getAllResults()无锁遍历IntHashMap，与put/resize并发即数据竞态（漏项/重复/
- * 撕裂key-value/AIOOBE）。对照onResult迟注册重放路径（184行c.lock()后遍历）有锁。
- * 修复：直跑路径（含newProcedure分支）整段在c.lock()内执行回调，与onRemoved→allDone
- * "ctx锁内跑回调"的先例对齐；ctx锁可重入，锁序保持ctx→future。
+ * FND8-81回归：onAllDone注册时已完成的future当场直跑回调，不持ctx锁——isCompleted()
+ * 为真不等于hashResults写入结束（processResult越过完成阈值后仍在put，或isTimeout置位
+ * 而迟到结果仍在写），回调无锁遍历IntHashMap与put/resize并发即数据竞态。
+ * 修复：直跑路径整段在ctx锁内执行回调，与onRemoved→allDone锁内跑回调先例对齐。
  * <p>
- * 断言核心：直跑回调内ctx.isLockHeldByCurrentThread()必须为真（修复前必为假，完全
- * 确定性）；并以"回调持锁期间并发processResult必须被互斥阻塞"作互斥证据（宽裕时间窗，
- * 仅作辅助）。框架路径（先注册后完成，onRemoved→allDone触发）作护栏。
+ * 核心断言：直跑回调内isLockHeldByCurrentThread()必须为真；并发processResult被互斥
+ * 阻塞作辅助证据。框架路径（先注册后完成）作护栏。
  */
 @Fast
 public class TestFnd881RedirectAllOnAllDoneUnderLock {

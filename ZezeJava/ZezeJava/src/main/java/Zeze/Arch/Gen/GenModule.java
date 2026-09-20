@@ -58,10 +58,8 @@ public final class GenModule extends ReentrantLock {
 	 */
 	public @Nullable String genFileSrcRoot = System.getProperty("GenFileSrcRoot"); // 支持通过给JVM传递-DGenFileSrcRoot=xxx参数指定
 	/**
-	 * FND8-83：文件模式第二道防线——写盘前逐模块内存javac试编译一次，把"不可编译产物"
-	 * 类缺陷拦在写盘前（原先文件模式不试编译，必然编译不过的.java写进源码树后生成脚本
-	 * 照样成功退出，错误推迟到用户编译整棵树时才爆发且难归因）。-DGenFileTryCompile=true
-	 * 开启（RedirectGenMain等生成脚本的工作目录加该参数即可，默认关闭）。
+	 * FND8-83：-DGenFileTryCompile=true时写盘前逐模块内存javac试编译，
+	 * 不可编译产物不落盘（默认关闭）。
 	 */
 	public boolean tryCompileGeneratedFile = Boolean.getBoolean("GenFileTryCompile");
 	private final InMemoryJavaCompiler compiler = new InMemoryJavaCompiler();
@@ -121,7 +119,7 @@ public final class GenModule extends ReentrantLock {
 			try {
 				var classNames = new String[n];
 				var classNameAndCodes = new HashMap<String, String>(); // <className, code>
-				var hasStaleCache = false; // 缓存命中但父类身份校验失败（热更升级），需要重编译
+				var hasStaleCache = false; // 缓存命中但父类身份校验失败（热更升级），需换装载器重编译
 				for (; i < n; i++) {
 					var moduleClass = moduleClasses[i];
 					if (moduleClass.getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
@@ -162,10 +160,9 @@ public final class GenModule extends ReentrantLock {
 							}
 						}
 						if (genClass != null) {
-							// FND8-80：缓存按名，热更升级后同名模块类在新装载器中Class身份已变，
-							// 缓存的生成类extends旧模块类，直接复用即升级静默不生效（super解析到旧实现）。
-							// 生成类总是直接extends传入的moduleClass，按父类身份强校验，无假阳性：
-							// 冷应用同装载器同Class对象恒过；校验失败视为未命中，移除并重新生成。
+							// FND8-80：缓存按名，热更升级后同名模块类Class身份已变，直接复用旧
+							// 生成类即新代码静默不生效。生成类总是直接extends传入的moduleClass，
+							// 按父类身份校验；失败视为未命中，移除并重新生成。
 							if (genClass.getSuperclass() == moduleClass) {
 								classNames[i] = genClassName;
 								continue;
@@ -178,8 +175,7 @@ public final class GenModule extends ReentrantLock {
 					var code = genModuleCode(genClassName, moduleClass, overrides, userApp);
 
 					if (genFileSrcRoot != null) {
-						// FND8-83：写盘前逐模块试编译（-DGenFileTryCompile开启），失败即中止，
-						// 不可编译的.java不得落盘。每次换新装载器，试编译产物不驻留。
+						// FND8-83：写盘前试编译，失败即中止不落盘；换新装载器，产物不驻留。
 						if (tryCompileGeneratedFile) {
 							rotateCompilerLoader();
 							compiler.compileAll(Map.of(genClassName, code), null);
@@ -211,7 +207,7 @@ public final class GenModule extends ReentrantLock {
 
 				var modules = new IModule[n];
 				if (!classNameAndCodes.isEmpty()) {
-					if (hasStaleCache) // FND8-80：陈旧缓存重编译前换新装载器（见rotateCompilerLoader）
+					if (hasStaleCache) // FND8-80：陈旧缓存重编译前换装载器（见rotateCompilerLoader）
 						rotateCompilerLoader();
 					compiler.compileAll(classNameAndCodes, genClassMap);
 				}
@@ -239,9 +235,8 @@ public final class GenModule extends ReentrantLock {
 		return sb.toString();
 	}
 
-	// 换新的DynamicClassLoader：同名生成类已在当前装载器defineClass过时（FND8-80陈旧缓存
-	// 重编译、FND8-83文件模式写盘前试编译），二次定义必抛duplicate definition LinkageError；
-	// 换出装载器中已定义的旧类经genClassMap持有的Class引用仍可用，无兼容问题。
+	// 换新DynamicClassLoader：同名生成类已在当前装载器defineClass过时，二次定义必抛
+	// duplicate definition LinkageError；换出装载器中的旧类经genClassMap的Class引用仍可用。
 	private void rotateCompilerLoader() {
 		compiler.useParentClassLoader(compiler.getClassloader().getParent());
 	}
@@ -452,12 +447,8 @@ public final class GenModule extends ReentrantLock {
 		return sb.toString();
 	}
 
-	// FND8-85：Bean/Data形参（及结果字段）的decode生成引用未限定的beanFactory符号，按
-	// "模块类父类链自带可访问的静态beanFactory"惯例解析（Rank/Game.Online等7处复现的框架
-	// 惯用法，IModule无此契约）——原先纯字符串拼接零校验，模块类没定义、或定义为
-	// private/package-private（生成子类位于默认包、跨包继承不可达，如Component.Timer），
-	// 都落成生成文件的编译错误。对齐ModuleId/ModuleFullName/ctor的反射级fail-fast，
-	// 生成期显式校验并给出修复提示。
+	// FND8-85：decode生成引用未限定的beanFactory，按"模块类父类链自带可访问静态
+	// beanFactory"惯例解析（IModule无此契约）——生成期校验并给出修复提示。
 	private static void checkBeanFactorySymbol(@NotNull Class<?> moduleClass, @NotNull List<MethodOverride> overrides) {
 		var methodsNeedingFactory = new ArrayList<String>();
 		for (var m : overrides) {
@@ -481,7 +472,8 @@ public final class GenModule extends ReentrantLock {
 		}
 		if (methodsNeedingFactory.isEmpty())
 			return;
-		for (var cls = moduleClass; cls != null && cls != IModule.class; cls = cls.getSuperclass()) {
+		// getSuperclass()只走类不走接口，链条止于Object（IModule/AbstractModule无beanFactory）
+		for (var cls = moduleClass; cls != null; cls = cls.getSuperclass()) {
 			for (var field : cls.getDeclaredFields()) {
 				if (!field.getName().equals("beanFactory") || !Modifier.isStatic(field.getModifiers()))
 					continue;
@@ -491,15 +483,15 @@ public final class GenModule extends ReentrantLock {
 							+ " (module " + moduleClass.getName() + ", methods " + methodsNeedingFactory + ")");
 				if ((field.getModifiers() & (Modifier.PUBLIC | Modifier.PROTECTED)) == 0)
 					throw new UnsupportedOperationException("redirect Bean/Data param unsupported: beanFactory field "
-							+ "must be public or protected (生成的拦截子类位于默认包、跨包继承，private/package-private不可达), "
-							+ "module " + cls.getName() + ", methods " + methodsNeedingFactory);
+							+ "must be public or protected (the generated subclass lives in the default package and "
+							+ "inherits across packages), module " + cls.getName() + ", methods " + methodsNeedingFactory);
 				return; // 父类链上找到可访问的静态beanFactory
 			}
 		}
 		throw new UnsupportedOperationException("redirect Bean/Data param unsupported: module "
-				+ moduleClass.getName() + " (methods " + methodsNeedingFactory + ") 父类链无可访问的beanFactory，"
-				+ "请声明 protected static final Zeze.Collections.BeanFactory beanFactory "
-				+ "= new Zeze.Collections.BeanFactory();");
+				+ moduleClass.getName() + " (methods " + methodsNeedingFactory + ") has no accessible static "
+				+ "beanFactory in its superclass chain; declare: protected static final "
+				+ "Zeze.Collections.BeanFactory beanFactory = new Zeze.Collections.BeanFactory();");
 	}
 
 	// 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。

@@ -27,13 +27,10 @@ import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * FND8-84回归：结果类抽象集合/映射字段未初始化时decode NPE——genDecode对isField的
- * 抽象容器跳过new分配、直接add/put，用户结果类"赋值式填充"（执行端new结果对象赋集合，
- * 发起端decode的是本地new的空结果对象）即触发：发起端RedirectAllContext.processResult
- * 在ctx锁内NPE冲出for循环，同报文后续hash全部丢失，该次RedirectAll只能等超时兜底完成，
- * await正常返回拿到"看似成功"的残缺结果。RedirectHash/ToServer应答回调走同一genDecode，
- * 后果更重（await永久挂死，无超时兜底）。
- * 修复：decode对抽象容器字段生成"判空后new"兜底（已初始化不覆盖，保留用户实现选择）；
- * 孪生T1（抽象Serializable字段无法new兜底）改为实例化探测初始化器、未初始化生成期拒绝。
+ * 抽象容器跳过new分配、直接add/put，"赋值式填充"结果类即触发：processResult在ctx锁内
+ * NPE冲出循环，同报文后续hash丢失；Hash/ToServer应答回调走同一genDecode，await永久挂死。
+ * 修复：decode对抽象容器字段生成"判空后new"兜底（已初始化不覆盖）；孪生T1（抽象
+ * Serializable字段无法new兜底）改为探测初始化器、未初始化生成期拒绝。
  */
 @Fast
 @Isolated // genFileSrcRoot是GenModule.instance上的JVM级全局开关，独占运行

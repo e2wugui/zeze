@@ -14,18 +14,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * FND8-82回归：Gen对Data形参encode不写typeId、decode却按typeId经
- * beanFactory.createDataFromSpecialTypeId反建——非默认Data时decode把编码体首字节
- * （非零tag）当typeId消费，查表miss抛误导性"unknown data typeId"异常；全默认Data
- * 时typeId读0命中EmptyBean.Data，吞掉后续参数字节，本参数及其后所有参数静默乱解。
- * 修复：encode侧对Data（与Bean同款）先WriteLong(varName.typeId())再写编码体，
- * 与decode侧配对。
+ * FND8-82回归：Data形参encode不写typeId、decode却按typeId经工厂反建——非默认Data时
+ * 首字节被当typeId消费，查表miss抛误导性异常；全默认Data时typeId读0命中EmptyBean.Data，
+ * 吞掉后续参数字节静默乱解。
+ * 修复：encode对Data（与Bean同款）先WriteLong(typeId())再写编码体，与decode配对。
  * <p>
- * 双层断言：①直接调genEncode/genDecode（同包）断言生成源码对称——Data元素
- * encode必须先写typeId再encode，decode为createDataFromSpecialTypeId(ReadLong())；
- * Bean与已知类型作护栏。该对函数同时服务形参与结果字段四个生成点（同一代码路径）。
- * ②用真实Data类按修复后的线格式跑round-trip（typeId前缀+编码体 → 工厂反建+decode），
- * 覆盖非默认与全默认（EmptyBean typeId=0豁免路径）两种形态。
+ * 双层断言：①直接调genEncode/genDecode断言生成源码对称（Bean与已知类型作护栏）；
+ * ②真实Data类按修复后线格式round-trip，覆盖非默认与全默认两种形态。
  */
 @Fast
 public class TestFnd882GenDataParamTypeidSymmetry {

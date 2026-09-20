@@ -326,22 +326,13 @@ public class Service extends ReentrantLock {
 	/**
 	 * 停止服务：关闭全部连接并熔断keepalive定时器与懒启动重试。
 	 * <p>
-	 * 【锁序契约（复审R3成文，FND7-S1①扫描结论）】本方法持本Service锁逐个close连接，
-	 * 而 {@link AsyncSocket#close} 在【关闭发起线程】同步回调 {@link #OnSocketClose} 与
-	 * {@link Connector#OnSocketClose}——本线程重入取Service锁安全（ReentrantLock），但回调
-	 * 同样会在selector线程（对端关闭/读错误）与keepCheck的tick线程（{@link #checkKeepAlive}
-	 * 在TimerFuture锁内执行，经onKeepAliveTimeout/onSendKeepAlive同步close）发生。因此：
-	 * <ul>
-	 * <li>OnSocketClose覆写【可以】重入本Service锁；【不得】在回调中阻塞等待"持有方又在等
-	 * 本Service锁"的其他锁（锁序恒为 Service锁→回调内业务锁 单向）。全仓覆写盘点（R3）：
-	 * 取本Service锁的只有RedoQueue.OnSocketClose（重入安全，其跨线程阻塞由下条消除）；
-	 * 其余覆写取业务锁（GCM会话锁/LinkdUserSession.bindsLock/Dbh2与MQ的Master锁/
-	 * LoginQueue.allocateLock/SM会话清理），均无"持该锁等Service锁"的反向边。</li>
-	 * <li>本方法的锁内段【不得】有等待"由OnSocketClose（任意线程）所持有资源"的操作——
-	 * keepCheckTimer.cancel曾违反此条（TimerFuture.cancel需先取future锁、天然join在飞tick，
-	 * 而在飞tick可能正同步停在子类OnSocketClose里等本Service锁），判例d2d7cf2bb同型，
-	 * 已改为锁内只捕获句柄置null、cancel移锁外。</li>
-	 * </ul>
+	 * 【锁序契约】本方法持本Service锁逐个close连接，而 {@link AsyncSocket#close} 在关闭
+	 * 发起线程同步回调 {@link #OnSocketClose}（重入本Service锁安全）；回调同样发生在
+	 * selector线程与keepCheck的tick线程。因此OnSocketClose覆写可以重入本Service锁，但
+	 * 锁序恒为Service锁→回调内业务锁单向，不得反向阻塞；本方法锁内段不得等待"由
+	 * OnSocketClose（任意线程）持有的资源"——keepCheckTimer.cancel须先取TimerFuture锁
+	 * 并join在飞tick，而飞tick可能正同步停在子类OnSocketClose里等本Service锁，故锁内
+	 * 只捕获句柄置null，cancel移到锁外。
 	 */
 	public void stop() throws Exception {
 		config.stop();
@@ -351,10 +342,8 @@ public class Service extends ReentrantLock {
 			for (AsyncSocket as : socketMap)
 				as.close(serviceStoppedException); // remove in callback OnSocketClose
 
-			// 先不清除，让Rpc的TimerTask仍然在超时以后触发回调。
-			// 【考虑一下】也许在服务停止时马上触发回调并且清除上下文比较好。
-			// 【注意】直接清除会导致同步等待的操作无法继续。异步只会没有回调，没问题。
-			// （复审R3：应用层OnSocketDisposed覆写（如默认实现）可自行决定在飞Rpc的去留。）
+			// 不清除_RpcContexts：让Rpc的TimerTask超时后照常触发回调；直接清除会卡死同步等待。
+			// 在飞Rpc的去留可由应用层OnSocketDisposed覆写决定。
 			// _RpcContexts.Clear();
 
 			keepTimer = keepCheckTimer;
@@ -365,13 +354,8 @@ public class Service extends ReentrantLock {
 		} finally {
 			unlock();
 		}
-		// 复审R3（FND7-S1①/C③，对齐d2d7cf2bb判例）：cancel必须在Service锁外调用。
-		// checkKeepAlive的tick体在TimerFuture锁内执行（Task.schedulePeriodCore持future.lock跑
-		// body），其onKeepAliveTimeout→socket.close在tick线程同步回调OnSocketClose——子类覆写
-		// 取本Service锁时（现实实例RedoQueue.OnSocketClose），持Service锁cancel与在飞tick互喂
-		// ABBA（cancel等future.lock、tick等Service锁）永久挂起。锁内只捕获句柄置null（保住与
-		// tryStartKeepAliveCheckTimer的互斥），cancel在锁外join在飞tick（tick取Service锁必然
-		// 得到——本方法已解锁，最多等一轮tick，无死锁）。
+		// cancel须在Service锁外（见上锁序契约）：锁内只捕获句柄置null（保住与
+		// tryStartKeepAliveCheckTimer的互斥）；锁外cancel最多等一轮在飞tick，无死锁。
 		if (keepTimer != null)
 			keepTimer.cancel(true);
 	}
@@ -428,25 +412,16 @@ public class Service extends ReentrantLock {
 
 	/**
 	 * 连接销毁回调：默认实现对仍挂在本连接上的在飞Rpc上下文立即失败处置。
-	 * （原「可靠rpc=重新发送没有返回结果的rpc」推荐已废弃——Rpc实例一次性，
-	 * 重发请新建实例，并配合协议幂等或服务端按请求标识去重。）
-	 * 在 OnSocketClose 之后调用，此时外面【必须】拿不到此 AsyncSocket 了。
-	 * 当 OnSocketDisposed 调用发生时，AsyncSocket.Socket已经设为 null。
-	 * 对于那些在 AsyncSocket.Dispose 时已经得到的 AsyncSocket 引用，
-	 * 使用时判断返回值：主要是 Send 返回 false。
+	 * 在 OnSocketClose 之后调用，此时外面【必须】拿不到此 AsyncSocket 了（Socket已设
+	 * null）；对已持有的引用，使用时判断返回值，主要是 Send 返回 false。
 	 *
 	 * <p>
-	 * 默认实现（复审R3，FND7-S1③）：仍挂在本连接上的在飞Rpc上下文立即失败——此前no-op时
-	 * 等待方（SendForWait的future / Send(handle)的回调）只能干等Rpc超时（默认5s），被踢/断线
-	 * 的同步调用方平白挂满超时预算。future以 {@link RpcSocketDisposedException} 失败（可诊断，
-	 * 区别于超时），handle以 {@link Procedure#ErrorSendFail} 立即派发（对齐Rpc超时的
-	 * handle派发形态——上下文已移除，超时定时器不再触发，不派发回调方就永远等不到）。
-	 * <p>
-	 * 【与Connector.autoReconnect的交互】框架层没有任何"在飞Rpc随重连重发"的机制——重连只重建
-	 * socket（Connector.TryReconnect→start），重发是应用层行为且必须新建Rpc实例（同实例重发
-	 * 已被契约禁止：Send入口sessionId!=0即抛），故全部在飞上下文立即失败不丢失任何语义。
-	 * 应答按请求到达的连接原路返回，跨连接迟到不可能；即使按sid迟到命中，
-	 * 上下文已移除只走到 {@link #onRpcLostContext} 告警。
+	 * 默认实现：在飞Rpc上下文立即失败——future以 {@link RpcSocketDisposedException}
+	 * 失败（可诊断，区别于超时），handle以 {@link Procedure#ErrorSendFail} 立即派发
+	 * （上下文已移除，超时定时器不再触发，不派发则回调方永远等不到）。
+	 * 框架层没有"在飞Rpc随重连重发"机制（重连只重建socket；Rpc实例一次性，重发须新建
+	 * 实例并配合幂等/去重），故立即失败不丢失语义；跨连接迟到应答即使按sid命中，上下文
+	 * 已移除只走到 {@link #onRpcLostContext}。
 	 *
 	 * @param so after socket closed. last callback.
 	 */

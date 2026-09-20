@@ -27,16 +27,12 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
 
 /**
- * FND8-83回归：Gen对抽象Serializable形参/元素的编解码资格判定不对称——encode侧有
- * !isAbstract守卫，decode侧对抽象Zeze Serializable形参无条件生成new 抽象类()（生成
- * 源码不可编译：内存路径启动即炸；文件模式把必然编译不过的.java写进源码树后脚本照样
- * 成功退出）；集合/映射元素不满足Zeze编码谓词时容器退化为WriteJavaObject/ReadJavaObject，
- * 抽象Zeze Bean元素不是java.io.Serializable，运行时才抛NotSerializableException。
- * 修复：encode/decode共用checkGenElement分层谓词（Bean/Data多态通道除外，抽象Zeze
- * Serializable形参生成期拒绝；容器兜底要求元素java.io.Serializable，报错指明元素）；
- * decode集合/映射分支谓词与encode对齐；MethodOverride结果类型检查补!isAbstract
- * （RedirectFuture与RedirectAll两分支，原先反射getConstructor不查可实例化性）；
- * 文件模式增加写盘前试编译防线（-DGenFileTryCompile开启）。
+ * FND8-83回归：抽象Serializable形参/元素的编解码资格判定原先不对称——decode侧对抽象
+ * Zeze Serializable形参无条件生成new 抽象类()（源码不可编译）；容器兜底Java序列化时
+ * 元素不是java.io.Serializable，运行时才炸。
+ * 修复：encode/decode共用checkGenElement谓词（抽象形参生成期拒绝；容器兜底要求元素
+ * java.io.Serializable）；MethodOverride结果类型补!isAbstract与构造器检查；文件模式
+ * 写盘前试编译（-DGenFileTryCompile开启）。
  */
 @Fast
 @Isolated // genFileSrcRoot/tryCompileGeneratedFile是GenModule.instance上的JVM级全局开关

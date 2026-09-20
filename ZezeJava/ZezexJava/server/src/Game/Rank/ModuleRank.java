@@ -134,7 +134,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	@SuppressWarnings("unchecked")
 	public static class GenericResult<T extends Serializable> {
 		public long resultCode;
-		public T ser = (T)new BBeanResult(); // FND8-84生成期契约：抽象Serializable字段声明处初始化（无参构造后非null），本类唯一使用点T=BBeanResult；只要有可能不为null,就必须构造时创建这个抽象类型的字段,这样才能反序列化,因为序列化Zeze的Serializable字段不含实际类型
+		public T ser = (T)new BBeanResult(); // FND8-84：抽象Serializable字段须声明处初始化（decode原位反序列化，线格式不含实际类型）；本类唯一使用点T=BBeanResult
 		public java.io.Serializable obj; // 而java序列化允许构造时以null初始化
 	}
 

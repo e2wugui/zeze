@@ -19,19 +19,14 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
 
 /**
- * FND8-80回归：GenModule.genClassMap按生成类名缓存且永不失效。热更升级同一模块时，
- * 新HotModule装载器定义的模块类与旧类同名不同Class对象，缓存按名必命中，直接复用旧
- * 生成类（extends旧模块类，super解析到旧实现）——install全程"成功"但新代码静默不生效，
- * 且旧模块代码与已换新的bean工厂混跑。
- * 修复：缓存命中（含Class.forName装载）后强校验genClass.getSuperclass()==moduleClass，
- * 校验失败移除条目并重新生成；重编译前先compiler.useParentClassLoader(当前parent)换新
- * DynamicClassLoader——旧装载器已defineClass过同名生成类，不换装载器二次定义必抛
- * duplicate definition LinkageError（静默不生效变成升级必炸）。
+ * FND8-80回归：genClassMap按生成类名缓存且永不失效，热更升级后同名模块类Class身份已变，
+ * 缓存按名命中直接复用旧生成类（extends旧模块类），新代码静默不生效。
+ * 修复：缓存命中后强校验genClass.getSuperclass()==moduleClass，失败移除重生成；
+ * 重编译前换新装载器，避免同名生成类二次定义LinkageError。
  * <p>
- * 复现模拟生产热更结构：同名模块类源码编译成字节码后分别defineClass到两个独立子装载器
- * （=HotModule v1/v2）；编译装载器的parent为HotRedirect式横向委托装载器（模块包名转发给
- * "当前模块装载器"）；javac符号解析用-cp指向模块class临时目录（=buildCp含hot jar）。
- * 回环调用用Level=None+本机serverId，本地路径直跑super实现，行为可确定性断言。
+ * 复现模拟生产热更结构：模块类字节码defineClass到独立子装载器（=HotModule v1/v2），
+ * 编译装载器parent为HotRedirect式横向委托装载器，javac用-cp指向模块class临时目录；
+ * 回环调用用Level=None+本机serverId直跑super，行为可确定性断言。
  */
 @Fast
 @Isolated // GenModule.instance（genClassMap/compiler）是JVM级单例，独占运行

@@ -259,10 +259,9 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 			if ((c = ctx) == null || !c.isCompleted() || !ON_ALL_DONE.compareAndSet(this, onAllDone, null)) // 再次确认,避免并发窗口问题
 				return this;
 		}
-		// FND8-81：直跑路径必须持ctx锁执行回调——isCompleted()为真不等于写入结束，
-		// processResult可在锁内循环put中途越过完成阈值（或isTimeout置位而迟到结果仍在写），
-		// 无锁遍历hashResults与put/resize并发即数据竞态（漏项/重复/撕裂/AIOOBE）。
-		// ctx锁可重入，锁序保持既有ctx→future，与onRemoved→allDone锁内跑回调的先例对齐。
+		// FND8-81：isCompleted()为真不等于写入结束（processResult越过完成阈值后仍在put，
+		// 或isTimeout置位而迟到结果仍在写），回调遍历hashResults须持ctx锁——与onRemoved→
+		// allDone锁内跑回调先例对齐；ctx锁可重入，锁序保持既有ctx→future。
 		c.lock();
 		try {
 			var zeze = c.getService().getZeze();
