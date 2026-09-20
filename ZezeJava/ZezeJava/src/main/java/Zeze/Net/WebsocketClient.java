@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Util.TimeThrottle;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,6 +30,10 @@ public class WebsocketClient extends AsyncSocket {
 	//（见onOpen注释的锁序顾虑；这里只在追加链节点时短暂持有，不跨用户回调）。
 	private final @NotNull Object sendLock = new Object();
 	private @NotNull CompletableFuture<Void> sendChain = CompletableFuture.completedFuture(null); // sendLock守护
+
+	// N3-F3：sendChain在途字节（入队加/链节点完成减，sendLock内check-then-add）。排队的
+	// thenCompose节点钉住调用方byte[]，对端零窗口时链不前进，无上限时在途数据无界驻留。
+	private final @NotNull AtomicLong sendPendingBytes = new AtomicLong();
 
 	public WebsocketClient(@NotNull Service service, @NotNull String wsUrl, @Nullable Object userState,
 						   @Nullable Connector connector) {
@@ -80,6 +85,8 @@ public class WebsocketClient extends AsyncSocket {
 				setActiveRecvTime(); // FND7-63：维护活跃时间，checkKeepAlive才能回收静默死链
 				webSocket.request(1);
 				var n = data.remaining();
+				WebsocketClient.this.recvCount++; // N3-F4：补齐流量统计（JDK listener串行回调，裸自增即可）
+				WebsocketClient.this.recvSize += n;
 				input.EnsureWrite(n);
 				data.get(input.Bytes, input.WriteIndex, n);
 				input.WriteIndex += n;
@@ -171,11 +178,29 @@ public class WebsocketClient extends AsyncSocket {
 		setActiveSendTime(); // FND7-63：维护活跃时间（发送已被接受，直接发或按序入队）
 		var bb = ByteBuffer.wrap(bytes, offset, length);
 		synchronized (sendLock) {
+			// N3-F4：补齐流量统计（sendLock内自增，对齐Websocket.Send用锁口径）。
+			sendCount++;
+			sendSize += length;
+			sendRawSize += length;
+			// N3-F3：在途上限——对OutputBufferMaxSize设限（TcpSocket.Send同语义），超限回滚
+			// 配额并返回false，慢速对端下排队链不再无界钉住在途数据。
+			var newSize = sendPendingBytes.addAndGet(length);
+			try {
+				if (!getService().checkOverflow(this, newSize, bytes, offset, length)) {
+					sendPendingBytes.addAndGet(-length);
+					return false;
+				}
+			} catch (Exception e) {
+				sendPendingBytes.addAndGet(-length);
+				close(e);
+				return false;
+			}
 			if (sendChain.isDone()) {
 				// 空闲：直接发送，保留FND3-24同步失败契约（sendBinary异常完成时close并返回false）。
 				// 链空闲==无在途sendBinary（所有发送都经本链），不会触发JDK单在途约束。
 				var cf = ws.sendBinary(bb, true);
 				sendChain = cf.handle((__, ex) -> {
+					sendPendingBytes.addAndGet(-length); // N3-F3：链节点完成（成败皆然）释放在途配额
 					if (ex != null)
 						close(unwrap(ex)); // 异步完成的失败同样close
 					return null; // 链恢复正常完成，后续追加不连带失败
@@ -196,6 +221,7 @@ public class WebsocketClient extends AsyncSocket {
 						return w != null ? w.sendBinary(bb, true) : CompletableFuture.completedFuture(null);
 					})
 					.handle((__, ex) -> {
+						sendPendingBytes.addAndGet(-length); // N3-F3：本节点完成（含ws已关的空转发）释放在途配额
 						if (ex != null)
 							close(unwrap(ex));
 						return null;

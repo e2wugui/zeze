@@ -70,10 +70,18 @@ public class Websocket extends AsyncSocket {
 		int n = buf.readableBytes();
 		super.recvCount++;
 		super.recvSize += n;
-		input.EnsureWrite(n);
-		buf.readBytes(input.Bytes, input.WriteIndex, n);
-		input.WriteIndex += n;
-		getService().OnSocketProcessInputBuffer(this, input);
+		try {
+			input.EnsureWrite(n);
+			buf.readBytes(input.Bytes, input.WriteIndex, n);
+			input.WriteIndex += n;
+			getService().OnSocketProcessInputBuffer(this, input);
+		} catch (Exception e) {
+			// N3-F1：解码异常对齐TcpSocket（异常上抛→doException→close）断连语义。
+			// 不关闭则连接存活、后续帧继续注入，且抛出路径跳过Compact——input无界增长，
+			// 远程可触发无界内存增长。
+			close(e);
+			return;
+		}
 		input.Compact();
 	}
 
@@ -87,6 +95,19 @@ public class Websocket extends AsyncSocket {
 			super.sendRawSize += length;
 		} finally {
 			lock.unlock();
+		}
+		// N3-F2：发送堆积上限——OutputBufferMaxSize此前对websocket服务端连接失效（checkOverflow
+		// 唯一调用方是TcpSocket.Send），慢速客户端下outbound缓冲无界积压可OOM。以channel级在途
+		// 字节（totalPendingWriteBytes，HttpServer背压日志同口径）+本帧为newSize做同款上限检查，
+		// 超限返回false（与TcpSocket.Send语义对齐，调用方按发送失败感知）。
+		var outBuf = x.channel().unsafe().outboundBuffer();
+		var pending = outBuf != null ? outBuf.totalPendingWriteBytes() : 0;
+		try {
+			if (!getService().checkOverflow(this, pending + length, bytes, offset, length))
+				return false;
+		} catch (Exception e) {
+			close(e);
+			return false;
 		}
 		// 检查写回执,不能恒返回true:写失败的帧(管线状态不符/连接已关等)不会到达对端。
 		// 在EventLoop上调用时future同步完成,失败立即close并返回false,调用方(Protocol/Rpc.Send)
