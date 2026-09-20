@@ -525,7 +525,14 @@ public final class Transaction {
 			var totalCount = totalTransaction.incrementAndGet();
 			var config = procedure.getZeze().getConfig().getCheckpointTransactionPeriod();
 			if (config > 0 && (totalCount % config == 0)) {
-				procedure.getZeze().checkpointRunThread();
+				try {
+					procedure.getZeze().checkpointRunThread();
+				} catch (Throwable e) { // logger.error
+					// 停机窗口守卫（XA2-F2）：Task.shutdownNow 后 submitNow 链路抛 IllegalStateException，
+					// finally 抛异常会吞掉 perform 的正常返回值（已提交事务向客户端报错→重试→重复执行）。
+					// 周期触发丢失无害：后台 checkpoint 线程与 stop 序列仍有兜底。
+					logger.error("perform({}): checkpointRunThread fail", procedure, e);
+				}
 			}
 		}
 	}
