@@ -43,9 +43,8 @@ public class HttpSession extends AbstractHttpSession {
 		// FND6-14：@Get/@Post 默认 TransactionLevel.None，无事务上下文时 TableX.get 内
 		// Transaction.getCurrent() 为 null（assert 运行期禁用）必 NPE。比照 getCookieSession
 		// 判例：有运行事务时直接同事务访问表（行为与修复前一致），否则包短 Procedure。
-		// 【注意】action 不得抛异常：无事务路径下 action 在短 Procedure 内执行，Procedure.call
-		// 会吞掉异常 cause 仅返回错误码，届时调用方只能看到 "CookieSession access error=..."
-		// 而丢失真实原因（df08187 残留P3）。
+		// 无事务路径下 action 异常经 actionError 穿出 Procedure.call 作 IllegalStateException
+		// 的 cause（NY2-F7，df08187 残留P3的修复：真实原因不再被错误码吞掉）。
 		private <R> R accessTable(String opName, Function<BSessionValue, R> action) {
 			return accessTable(opName, action, null);
 		}
@@ -65,21 +64,30 @@ public class HttpSession extends AbstractHttpSession {
 				return action.apply(value);
 			}
 			var result = new OutObject<R>();
+			var actionError = new OutObject<RuntimeException>(); // NY2-F7：无事务路径action真实异常带出（有事务路径action在调用线程直接抛出）
 			var exists = new OutObject<>(false);
 			var rc = zeze.newProcedure(() -> {
 				exists.value = false; // 乐观锁 redo 整体重跑时重置 out 参数，避免沿用上一轮的陈旧结果。
+				actionError.value = null;
 				var value = _tSession.get(cookieSessionId);
 				if (value != null) {
 					exists.value = true;
-					result.value = action.apply(value);
-					if (noTxResult != null) // 在事务内完成转换（如快照拷贝），带出事务后安全。
-						result.value = noTxResult.apply(result.value);
+					try {
+						result.value = action.apply(value);
+						if (noTxResult != null) // 在事务内完成转换（如快照拷贝），带出事务后安全。
+							result.value = noTxResult.apply(result.value);
+					} catch (RuntimeException e) {
+						// NY2-F7：捕获仅为穿过Procedure.call（吞异常只回错误码），原样重抛保回滚；
+						// rc!=0时作IllegalStateException的cause，不再吞掉真实原因。
+						actionError.value = e;
+						throw e;
+					}
 				}
 				return Procedure.Success;
 			}, "CookieSession." + opName).call();
 			if (rc != 0L)
 				throw new IllegalStateException("CookieSession access error="
-						+ IModule.getErrorCode(rc) + " " + cookieSessionId);
+						+ IModule.getErrorCode(rc) + " " + cookieSessionId, actionError.value);
 			if (!exists.value)
 				throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
 			return result.value;
@@ -201,6 +209,10 @@ public class HttpSession extends AbstractHttpSession {
 	}
 
 	public void start() throws ParseException {
+		// NY2-F2：幂等补登记（AppBase.addModule为put，重复调用安全）——stop()的"停止即注销"
+		// 语义保留，但close→start同实例重启后模块须回到注册表，否则ExpiredTimer查不到模块、
+		// 过期会话清理失效。
+		zeze.getAppBase().addModule(this);
 		// 全局一个timer实例，会忽略重复注册调用。
 		// 不取消。
 		// scheduleNamed 是表操作，需要在事务内执行；HttpServer.start 调用时没有事务，这里包一个短Procedure。
@@ -225,7 +237,9 @@ public class HttpSession extends AbstractHttpSession {
 	public static class ExpiredTimer implements TimerHandle {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			var httpSession = (HttpSession)context.timer.zeze.getAppBase().getModules().get(HttpSession.ModuleFullName);
+			// NY2-F1：模块表登记键是短名（AppBase.addModule按getName()=ModuleName登记），
+			// 按全名ModuleFullName查恒null——过期会话清理永不执行。
+			var httpSession = (HttpSession)context.timer.zeze.getAppBase().getModules().get(HttpSession.ModuleName);
 			if (null != httpSession) {
 				var now = System.currentTimeMillis();
 				var batch = new RemoveBatch(httpSession.tSession());

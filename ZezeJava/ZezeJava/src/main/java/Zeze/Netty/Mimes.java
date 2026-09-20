@@ -7,6 +7,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Properties;
 import Zeze.Util.StringSpan;
 import Zeze.Util.Task;
@@ -144,8 +145,12 @@ public class Mimes {
 			load(new StringReader(mimes));
 			// try load config
 			var file = new File("mimes.properties");
-			if (file.exists())
-				load(new FileReader(file, StandardCharsets.UTF_8));
+			if (file.exists()) {
+				// NY2-F3：try-with-resources关掉FileReader——mimes.properties存在时原实现每次JVM泄漏一个FD。
+				try (var reader = new FileReader(file, StandardCharsets.UTF_8)) {
+					load(reader);
+				}
+			}
 		} catch (IOException e) {
 			throw Task.forceThrow(e);
 		}
@@ -153,8 +158,8 @@ public class Mimes {
 
 	// 注意：扩展名不包含字符'.'
 	public static @NotNull String fromFileExtension(@NotNull Object extName) {
-		//noinspection SuspiciousMethodCalls
-		var mime = mimesMap.get(extName);
+		// NY2-F4：键全小写，查找前归一化——大写扩展名（Windows环境常见，如LOGO.PNG）不得回落text/plain。
+		var mime = mimesMap.get(String.valueOf(extName).toLowerCase(Locale.ROOT));
 		return mime != null ? mime : mimeDefault;
 	}
 
