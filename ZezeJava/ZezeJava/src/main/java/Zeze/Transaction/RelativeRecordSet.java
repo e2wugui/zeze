@@ -232,7 +232,14 @@ public final class RelativeRecordSet extends ReentrantLock {
 							// FND7-54：needFlushNow的修改已应用但终检点已过，无法落库——显式失败。
 							throw new Transaction.RejectWhileStopping(
 									"flush-now rejected while stopping: " + procedure.getActionName());
-						checkpoint.flush(mergedSet);
+						if (mergedSet.recordSet != null) {
+							checkpoint.flush(mergedSet);
+						} else if (onzProcedure != null) {
+							// T4-F1：孤立mergedSet（只读/全默认值访问不合并）不会被flush(RelativeRecordSet)
+							// 下传握手，Onz参与方永不发FlushReady，协调者每笔等满flushTimeout后降级。
+							// 在此直接补发，语义对齐Immediately模式的flush(空记录集, Set.of(onz), null)。
+							OnzProcedure.sendFlushAndWait(Set.of(onzProcedure));
+						}
 						mergedSet.delete();
 						//logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
 					} else if (mergedSet.recordSet != null) {
@@ -264,6 +271,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 			} else {
 				// 本次事务没有访问任何数据，也要执行提交，否则 whileCommit 回调会丢失。
 				commit.run();
+				// T4-F1：空记录集的Onz参与方同样要完成FlushReady握手（Immediately模式对空记录集
+				// 无条件握手，Table模式原先遗漏），否则协调者waitFlushDone计数永不满足，
+				// 每笔等满flushTimeout后降级（放行+全参与方checkpoint）。
+				if (onzProcedure != null)
+					OnzProcedure.sendFlushAndWait(Set.of(onzProcedure));
 			}
 		} finally {
 			locked.forEach(ReentrantLock::unlock);
