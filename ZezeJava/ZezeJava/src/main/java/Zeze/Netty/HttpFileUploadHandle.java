@@ -13,6 +13,7 @@ import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.MixedFileUpload;
 import io.netty.util.AttributeKey;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface HttpFileUploadHandle extends HttpMultipartHandle {
 	@NotNull AttributeKey<MixedFileUpload> fileUploadKey = AttributeKey.valueOf("HttpFileUploadHandleContext");
@@ -42,6 +43,26 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 		return "upload";
 	}
 
+	/**
+	 * 取走即负责：安全释放已从attr取走的上传缓冲（堆数据/临时文件）。null容忍；
+	 * 防御性清理（cancel补偿/防残留分支）不得打断调用路径，异常吞并记日志。
+	 * 同一实例只允许经"取走"（getAndSet）交入一次，不得二次调用。
+	 */
+	static void releaseFileUpload(@Nullable MixedFileUpload fileUpload) {
+		if (fileUpload == null)
+			return;
+		try {
+			fileUpload.release();
+		} catch (Throwable e) {
+			Netty.logger.error("file upload release", e);
+		}
+	}
+
+	/** channel attr取走即释放（"取走即负责"幂等语义），attr无值时no-op。 */
+	static void releaseChannelFileUpload(@NotNull HttpExchange x) {
+		releaseFileUpload(x.channel().attr(fileUploadKey).getAndSet(null));
+	}
+
 	@Override
 	default void onBeginStream(@NotNull HttpExchange x, long from, long to, long size) throws Exception {
 		assert x.request != null;
@@ -54,8 +75,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 				fileName = getDefaultFileName();
 			var oldFileUpload = x.channel().attr(fileUploadKey).getAndSet(new MixedFileUpload(fileNameKey, fileName,
 					"application/octet-stream", "binary", StandardCharsets.UTF_8, Math.max(size, 0), MemoryBufSize));
-			if (oldFileUpload != null) // 以防万一
-				oldFileUpload.release();
+			releaseFileUpload(oldFileUpload); // 以防万一：attr残留旧上传缓冲时释放
 		}
 	}
 

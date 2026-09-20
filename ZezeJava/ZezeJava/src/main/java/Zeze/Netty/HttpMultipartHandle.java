@@ -69,11 +69,30 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 		return x.channel().attr(decoderKey).getAndSet(decoder);
 	}
 
+	/**
+	 * 取走即负责：安全销毁已从attr取走的解码器。null容忍；防御性清理（cancel补偿/
+	 * 防残留分支）不得打断调用路径，异常吞并记日志。netty destroy()非幂等，
+	 * 同一实例只允许经"取走"（getAndSet）交入一次，不得二次调用。
+	 */
+	static void destroyDecoder(@Nullable InterfaceHttpPostRequestDecoder decoder) {
+		if (decoder == null)
+			return;
+		try {
+			decoder.destroy();
+		} catch (Throwable e) {
+			Netty.logger.error("multipart decoder destroy", e);
+		}
+	}
+
+	/** channel attr取走即销毁（"取走即负责"幂等语义），attr无值时no-op。 */
+	static void destroyChannelDecoder(@NotNull HttpExchange x) {
+		destroyDecoder(x.channel().attr(decoderKey).getAndSet(null));
+	}
+
 	@Override
 	default void onBeginStream(@NotNull HttpExchange x, long from, long to, long size) throws Exception {
 		var oldDecoder = getAndSetDecoder(x, newDecoder(x));
-		if (oldDecoder != null) // 以防万一
-			oldDecoder.destroy();
+		destroyDecoder(oldDecoder); // 以防万一：attr残留旧解码器时销毁
 	}
 
 	@Override
