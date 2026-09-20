@@ -125,6 +125,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 				var factoryHandle = service.findProtocolFactoryHandle(getTypeId());
 				if (factoryHandle != null)
 					service.dispatchRpcResponse(this, responseHandle, factoryHandle);
+				else // N2-F4：工厂缺失时静默丢弃responseHandle排障无线索，对齐onRpcLostContext补warn
+					logger.warn("rpc timeout: protocol factory not found, response handle skipped: {}", this);
 			}
 		// 超时清理必须立即注册（scheduleNow）：此刻请求字节已发出，
 		// 即使所在事务随后回滚，应答仍会到来或永不到来，上下文必须有超时兜底；

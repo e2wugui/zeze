@@ -109,6 +109,10 @@ public class Service extends ReentrantLock {
 		this.instanceName = instanceName;
 	}
 
+	// 停机屏障（XA1-F1/N2-F3）：stop最前置位、start复位；addSocket在登记成功后复查，
+	// 命中即自查自关——与stop的关闭循环两序either-way必被一方关闭，迟到连接不再泄漏。
+	private volatile boolean stopped;
+
 	public Service(@NotNull String name) {
 		this(name, null, null);
 	}
@@ -252,6 +256,13 @@ public class Service extends ReentrantLock {
 			so.close(new IllegalStateException("duplicate session id: " + so.getSessionId()));
 			return false;
 		}
+		// 登记成功后复查停机屏障（XA1-F1/N2-F3）：stop最前置位后仍在飞的登记在此自查自关。
+		// 复查读到stopped==false时，put必然先于stop的关闭循环开始——循环遍历live的socketMap
+		// 必然看到已完成的put并关闭它；两序either-way必被一方关闭，无锁封死迟到连接泄漏。
+		if (stopped) {
+			so.close(serviceStoppedException);
+			return false;
+		}
 		return true;
 	}
 
@@ -307,6 +318,7 @@ public class Service extends ReentrantLock {
 	}
 
 	public void start() throws Exception {
+		stopped = false; // 复位停机屏障（XA1-F1/N2-F3）：支持stop后再start
 		// keepalive定时器随服务启动（先于config.start()创建任何socket）；KeepCheckPeriod
 		// 默认0禁用时tryStartKeepAliveCheckTimer内部不创建任务，无开销。
 		keepAliveCheckStopped = false;
@@ -327,6 +339,7 @@ public class Service extends ReentrantLock {
 	 * 只捕获句柄置null，cancel移到锁外。
 	 */
 	public void stop() throws Exception {
+		stopped = true; // 停机屏障最前置位（XA1-F1/N2-F3）：先于关闭循环，addSocket登记后复查据此拒绝迟到连接
 		config.stop();
 		Future<?> keepTimer;
 		lock();
@@ -439,6 +452,8 @@ public class Service extends ReentrantLock {
 					var factoryHandle = findProtocolFactoryHandle(ctx.getTypeId());
 					if (factoryHandle != null)
 						dispatchRpcResponse(rpc, handle, factoryHandle);
+					else // N2-F4：协议工厂缺失时静默丢弃responseHandle无线索，对齐onRpcLostContext补warn
+						logger.warn("rpc disposed: protocol factory not found, response handle skipped: {}", rpc);
 				}
 			}
 		}
@@ -679,8 +694,16 @@ public class Service extends ReentrantLock {
 						protocolClassName, new Binary(bytesCopy));
 			} else
 				proc = zeze.newProcedure(action, protocolClassName, factoryHandle.Level);
-			TaskSpec.ofProcedureOut(proc, outProtocol, Protocol::trySendResultCode)
-					.dispatchMode(factoryHandle.Mode).runNow();
+			// N2-F1：p==null当且仅当action内decodeProtocol抛出（outProtocol.value未赋值），
+			// 方法引用Protocol::trySendResultCode不容忍null会NPE吞掉错误处置。此时对齐非事务
+			// 分支（decode异常上抛即断连）的语义close连接——Rpc.Send经连接关闭路径感知
+			// （OnSocketDisposed对在飞上下文立即失败），不再干等超时。
+			TaskSpec.ofProcedureOut(proc, outProtocol, (p, code) -> {
+				if (p != null)
+					p.trySendResultCode(code);
+				else if (so != null)
+					so.close(new IOException("protocol decode failed"));
+			}).dispatchMode(factoryHandle.Mode).runNow();
 		} else {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			// 其他协议或者rpc，马上在io线程继续派发。

@@ -131,8 +131,8 @@ public class Selectors extends ReentrantLock {
 		// 类型自身即ReentrantLock，数组变更与读取互斥由类型保证。
 		lock();
 		try {
+			Selector[] tmp = selectorList;
 			int i, n;
-			var tmp = selectorList;
 			if (tmp == null) {
 				i = 0;
 				n = Math.max(count, 1);
@@ -143,14 +143,25 @@ public class Selectors extends ReentrantLock {
 				if (i != n)
 					tmp = Arrays.copyOf(tmp, n);
 			}
-			for (; i < n; i++) {
-				tmp[i] = new Selector(this, name + '-' + i);
-				tmp[i].start();
+			var batchStart = i;
+			try {
+				for (; i < n; i++) {
+					tmp[i] = new Selector(this, name + '-' + i);
+					tmp[i].start();
+				}
+			} catch (IOException e) {
+				// N2-F2：本批已创建/已启动的Selector不在selectorList（数组赋值在循环成功之后），
+				// choice()/close()均不可及——线程永久泄漏且重试叠加。关闭本批再重抛；
+				// 已有的旧Selector不受影响（selectorList未变）。
+				for (int k = batchStart; k < n; k++) {
+					var s = tmp[k];
+					if (s != null)
+						s.close();
+				}
+				throw Task.forceThrow(e);
 			}
 			selectorList = tmp;
 			return this;
-		} catch (IOException e) {
-			throw Task.forceThrow(e);
 		} finally {
 			unlock();
 		}
