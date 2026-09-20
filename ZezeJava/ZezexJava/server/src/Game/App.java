@@ -15,10 +15,8 @@ import Zeze.Component.TimerSpec;
 import Zeze.Config;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderWithOnline;
-import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.JsonReader;
-import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 
@@ -75,6 +73,13 @@ public final class App extends Zeze.AppBase {
 		if (started)
 			return;
 		started = true;
+
+		// 生成模式：模块类清单是静态的，不构造Application（不建库、不开服务、不碰server.xml），
+		// 直接生成Redirect代码后退出——createRedirectModules文件模式生成完即System.exit(0)。
+		if (GenModule.instance.genFileSrcRoot != null) {
+			createRedirectModules(redirectModuleClasses());
+			return; // 防御：exit未生效也不得带空Zeze继续启动
+		}
 
 		var config = Config.load("server.xml");
 		if (serverId != -1) {
@@ -137,6 +142,7 @@ public final class App extends Zeze.AppBase {
 			var buf = (BKick)context.customData;
 			//logger.info("XYZ timer={} app={} buf={} counter={}",
 			//		context.timerId, app.Zeze.getConfig().getServerId(), buf.getCode(), app.counterColdTimer);
+			//noinspection DataFlowIssue
 			if (buf.getCode() != app.counterColdTimer)
 				throw new RuntimeException("XYZ verify cold timer error." + buf.getCode() + " counter=" + app.counterColdTimer);
 			buf.setCode(app.counterColdTimer + 1);
@@ -219,6 +225,14 @@ public final class App extends Zeze.AppBase {
         }
     }
 
+    // Redirect模块类清单：createModules()与生成模式入口（-GenFileSrcRoot提前分支）共用，勿在调用点内联复制。
+    public Class<?>[] redirectModuleClasses() {
+        return new Class[] {
+            Game.Map.ModuleMap.class,
+            Game.Rank.ModuleRank.class,
+        };
+    }
+
     @Override
     public void createModules() throws Exception {
         lock();
@@ -226,10 +240,7 @@ public final class App extends Zeze.AppBase {
             Zeze.setHotManager(new Zeze.Hot.HotManager(this, Zeze.getConfig().getHotWorkingDir(), Zeze.getConfig().getHotDistributeDir()));
             Zeze.initialize(this);
             Zeze.getHotManager().initialize(modules);
-            var _modules_ = createRedirectModules(new Class[] {
-                Game.Map.ModuleMap.class,
-                Game.Rank.ModuleRank.class,
-            });
+            var _modules_ = createRedirectModules(redirectModuleClasses());
             if (_modules_ == null)
                 return;
 

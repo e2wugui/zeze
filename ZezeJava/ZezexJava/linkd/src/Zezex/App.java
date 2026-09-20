@@ -6,13 +6,11 @@ import Zeze.Arch.LinkdApp;
 import Zeze.Arch.LinkdProvider;
 import Zeze.Arch.LoadConfig;
 import Zeze.Config;
-import Zeze.Net.AsyncSocket;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Services.ReloadClassServer;
 import Zeze.Services.RunClassServer;
 import Zeze.Util.JsonReader;
-import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.TaskSpec;
 
 public final class App extends Zeze.AppBase {
@@ -25,8 +23,6 @@ public final class App extends Zeze.AppBase {
 	public LinkdProvider LinkdProvider;
 	private final Netty netty = new Netty();
 	private HttpServer httpServer;
-	private ReloadClassServer reloadClassServer;
-	private RunClassServer runClassServer;
 
 	@Override
 	public HttpServer getHttpServer() {
@@ -88,9 +84,9 @@ public final class App extends Zeze.AppBase {
 		// 的类注释），下方挂载后随httpServer监听linkPort+10000且未指定host（bind所有
 		// 网卡）。生产环境请改绑回环/内网管理面（HttpServer.start指定host）或直接移除
 		// 这两行挂载，绝不可暴露公网。当前保持默认绑定行为不变。
-		reloadClassServer = new ReloadClassServer(this, "/reloadClass", "upload", "filename");
+		ReloadClassServer reloadClassServer = new ReloadClassServer(this, "/reloadClass", "upload", "filename");
 		reloadClassServer.start();
-		runClassServer = new RunClassServer(this, "/runClass", "clazz", "filename");
+		RunClassServer runClassServer = new RunClassServer(this, "/runClass", "clazz", "filename");
 		httpServer.start(netty, linkPort + 10000);
 		startService(); // 启动网络. after setSessionIdGenFunc
 		LinkdApp.registerService(null);
@@ -150,14 +146,19 @@ public final class App extends Zeze.AppBase {
         }
     }
 
+    // Redirect模块类清单：createModules()与生成模式入口（-GenFileSrcRoot提前分支）共用，勿在调用点内联复制。
+    public static Class<?>[] redirectModuleClasses() {
+        return new Class[] {
+            Zezex.Linkd.ModuleLinkd.class,
+        };
+    }
+
     @Override
     public void createModules() throws Exception {
         lock();
         try {
             Zeze.initialize(this);
-            var _modules_ = createRedirectModules(new Class[] {
-                Zezex.Linkd.ModuleLinkd.class,
-            });
+            var _modules_ = createRedirectModules(redirectModuleClasses());
             if (_modules_ == null)
                 return;
 
@@ -172,7 +173,7 @@ public final class App extends Zeze.AppBase {
         }
     }
 
-    public void destroyModules() throws Exception {
+    public void destroyModules()  {
         lock();
         try {
             Zezex_Linkd = null;

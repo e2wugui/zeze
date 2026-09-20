@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.xml.parsers.DocumentBuilderFactory;
-import Zeze.Arch.Gen.GenModule;
 import Zeze.Net.ServiceConf;
 import Zeze.Transaction.CheckpointFlushMode;
 import Zeze.Transaction.CheckpointMode;
@@ -468,7 +467,7 @@ public final class Config {
 	}
 
 	public static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) throws Exception {
-		return switch (GenModule.instance.genFileSrcRoot == null ? conf.databaseType : DbType.Memory) {
+		return switch (conf.databaseType) {
 			case Memory -> new DatabaseMemory(zeze, conf);
 			case MySql -> new DatabaseMySql(zeze, conf);
 			case SqlServer -> new DatabaseSqlServer(zeze, conf);
@@ -499,11 +498,8 @@ public final class Config {
 	}
 
 	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze) throws Exception {
-		// FND8-24：自建的整批Database（连接池/RocksDB句柄等）用完必须close——增量建表：
-		// createDatabase中途失败已建实例也在finally被关；逐db异常隔离：一个后端clear/close
-		// 抛错不挡其余（对齐Application.stopStep的记日志继续模式）。交叉引用FND8-22：
-		// DynamoDb后端此处仍是假关闭（DatabaseDynamoDb.close未触AWS客户端时基类close不关它），
-		// 完整修复依赖其自身的close覆写。
+		// 建的整批Database（连接池/RocksDB句柄等）用完必须close——增量建表：
+		// createDatabase中途失败已建实例也在finally被关；
 		var created = new HashMap<String, Database>();
 		try {
 			createDatabase(zeze, created);
@@ -511,7 +507,7 @@ public final class Config {
 				try {
 					db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
 				} catch (Throwable e) { // logger.error
-					logger.error("clearInUse '{}' exception, continue", getDatabaseUrlOf(db), e);
+					logger.error("clearInUse '{}' exception, continue", db.getDatabaseUrl(), e);
 				}
 			}
 		} finally {
@@ -519,14 +515,10 @@ public final class Config {
 				try {
 					db.close();
 				} catch (Throwable e) { // logger.error
-					logger.error("close database '{}' exception, continue", getDatabaseUrlOf(db), e);
+					logger.error("close database '{}' exception, continue", db.getDatabaseUrl(), e);
 				}
 			}
 		}
-	}
-
-	private String getDatabaseUrlOf(Database db) {
-		return db != null ? db.getDatabaseUrl() : "null";
 	}
 
 	public void dropMysqlOperatesProcedures() {

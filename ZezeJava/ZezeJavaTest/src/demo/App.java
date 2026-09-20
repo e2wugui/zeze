@@ -274,7 +274,7 @@ public class App extends Zeze.AppBase {
         }
     }
 
-    public void destroyModules() throws Exception {
+    public void destroyModules()  {
         lock();
         try {
             demo_ModuleGTable = null;

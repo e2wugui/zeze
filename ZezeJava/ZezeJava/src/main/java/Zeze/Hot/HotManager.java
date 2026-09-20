@@ -54,14 +54,7 @@ public class HotManager extends ClassLoader {
 	private final String distributeDir;
 	private final FewModifyMap<File, JarFile> jars = new FewModifyMap<>();
 
-	public static class JarEntry {
-		public final JarFile jar;
-		public final ZipEntry entry;
-
-		public JarEntry(JarFile jar, ZipEntry entry) {
-			this.jar = jar;
-			this.entry = entry;
-		}
+	public record JarEntry(JarFile jar, ZipEntry entry) {
 	}
 
 	private final FewModifyMap<String, JarEntry> zipEntries = new FewModifyMap<>();

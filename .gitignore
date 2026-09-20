@@ -32,3 +32,4 @@ x64/
 /tutorial/
 skills-lock.json
 audit-*
+.zcodeignore

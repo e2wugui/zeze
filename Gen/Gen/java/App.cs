@@ -149,6 +149,19 @@ namespace Zeze.Gen.java
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine();
+            if (project.AllOrderDefineModules.Count > 0)
+            {
+                sw.WriteLine("    public Class<?>[] redirectModuleClasses() {");
+                sw.WriteLine("        return new Class[] {");
+                foreach (Module m in project.AllOrderDefineModules)
+                {
+                    if (false == project.Hot || false == m.Hot)
+                        sw.WriteLine("            " + m.Path(".", "Module" + Program.Upper1(m.Name)) + ".class,");
+                }
+                sw.WriteLine("        };");
+                sw.WriteLine("    }");
+                sw.WriteLine();
+            }
             sw.WriteLine("    @Override");
             sw.WriteLine("    public void createModules() throws Exception {");
             sw.WriteLine("        lock();");
@@ -161,13 +174,7 @@ namespace Zeze.Gen.java
 
             if (project.AllOrderDefineModules.Count > 0)
             {
-                sw.WriteLine("            var _modules_ = createRedirectModules(new Class[] {");
-                foreach (Module m in project.AllOrderDefineModules)
-                {
-                    if (false == project.Hot || false == m.Hot)
-                        sw.WriteLine("                " + m.Path(".", "Module" + Program.Upper1(m.Name)) + ".class,");
-                }
-                sw.WriteLine("            });");
+                sw.WriteLine("            var _modules_ = createRedirectModules(redirectModuleClasses());");
                 sw.WriteLine("            if (_modules_ == null)");
                 sw.WriteLine("                return;");
                 sw.WriteLine();

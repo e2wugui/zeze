@@ -115,20 +115,25 @@ public class App extends Zeze.AppBase {
         }
     }
 
+    // Redirect模块类清单：createModules()与生成模式入口（-GenFileSrcRoot提前分支）共用，勿在调用点内联复制。
+    public static Class<?>[] redirectModuleClasses() {
+        return new Class[] {
+            Zeze.Builtin.Game.Online.ModuleOnline.class,
+            Zeze.Builtin.Game.Bag.ModuleBag.class,
+            Zeze.Builtin.LinkdBase.ModuleLinkdBase.class,
+            ClientZezex.Linkd.ModuleLinkd.class,
+            ClientGame.Login.ModuleLogin.class,
+            ClientGame.Fight.ModuleFight.class,
+            ClientGame.Equip.ModuleEquip.class,
+        };
+    }
+
     @Override
     public void createModules() throws Exception {
         lock();
         try {
             Zeze.initialize(this);
-            var _modules_ = createRedirectModules(new Class[] {
-                Zeze.Builtin.Game.Online.ModuleOnline.class,
-                Zeze.Builtin.Game.Bag.ModuleBag.class,
-                Zeze.Builtin.LinkdBase.ModuleLinkdBase.class,
-                ClientZezex.Linkd.ModuleLinkd.class,
-                ClientGame.Login.ModuleLogin.class,
-                ClientGame.Fight.ModuleFight.class,
-                ClientGame.Equip.ModuleEquip.class,
-            });
+            var _modules_ = createRedirectModules(redirectModuleClasses());
             if (_modules_ == null)
                 return;
 
@@ -173,7 +178,7 @@ public class App extends Zeze.AppBase {
         }
     }
 
-    public void destroyModules() throws Exception {
+    public void destroyModules()  {
         lock();
         try {
             ClientGame_Equip = null;
