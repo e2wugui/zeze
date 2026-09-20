@@ -90,8 +90,16 @@ final class MethodOverride {
 							}
 							keyHashCode0 = boxType.getSimpleName() + ".hashCode(" + param.getName() + ')';
 						}
-					} else
+					} else {
+						// 数组是身份哈希：内容相同的key会落入不同oneByOne串行队列，串行语义静默破坏
+						// 且跨重启漂移。生成期fail-fast，提示改用Binary（内容哈希）。
+						if (paramType.isArray()) {
+							throw new IllegalStateException("ModuleRedirect: RedirectKey can not be used on array type"
+									+ " (use Zeze.Net.Binary for content-based hashing): "
+									+ method.getDeclaringClass().getName() + "::" + method.getName());
+						}
 						keyHashCode0 = param.getName() + ".hashCode()";
+					}
 					redirectKeyParameter0 = param;
 				} else {
 					throw new IllegalStateException("ModuleRedirect: RedirectKey is used more than once: "
@@ -105,45 +113,60 @@ final class MethodOverride {
 		inputParameters.addAll(Arrays.asList(allParameters));
 		inputParameters.removeFirst();
 
+		// AG1-F2：redirect返回类型校验收口。此前三个缺口在模块创建期以晦涩方式崩溃：
+		// a) All配RedirectFuture（或Hash/ToServer配RedirectAllFuture）落错分支，resultType=null
+		//    时生成非法源码RedirectFuture<null>；b) raw泛型返回（不带<...>）时getGenericReturnType
+		//    就是Class本身，同样落空得到null实参；c) TypeVariable/通配符实参在下面被盲转成
+		//    ParameterizedType直接CCE。这里统一fail-fast给出带方法名的清晰错误。
+		var returnClass = method.getReturnType();
 		var rType = method.getGenericReturnType();
-		if (rType instanceof ParameterizedType rpType) {
-			if (annotation instanceof RedirectAll) {
-				if (rpType.getRawType() == RedirectAllFuture.class) {
-					resultType = rpType.getActualTypeArguments()[0];
-					resultClass = (Class<?>)(resultType instanceof Class ?
-							resultType : ((ParameterizedType)resultType).getRawType());
-					if (!RedirectResult.class.isAssignableFrom(resultClass)) {
-						throw new IllegalStateException("RedirectAll Result Type Must Extend RedirectResult: "
-								+ method.getDeclaringClass().getName() + "::" + method.getName());
-					}
-					// FND2-A1-1：All路径的生成代码对Serializable结果不收集字段（resultFields为空），
-					// 接收端不编码、发起端不解码，分组结果全是空对象且无任何诊断；ToServer/Hash路径
-					// 支持Serializable，All独缺该分支。fail-fast拒绝该组合，对齐上面的签名硬校验。
-					if (Serializable.class.isAssignableFrom(resultClass)) {
-						throw new IllegalStateException("RedirectAll Result Type Can Not Be Serializable: "
-								+ method.getDeclaringClass().getName() + "::" + method.getName());
-					}
-					// FND8-83：生成代码new结果类实例，抽象类生成源码不可编译，fail-fast拒绝。
-					if (Gen.isAbstract(resultClass)) {
-						throw new IllegalStateException("RedirectAll Result Type Can Not Be Abstract: "
-								+ method.getDeclaringClass().getName() + "::" + method.getName());
-					}
-					// FND8-85：对齐RedirectFuture分支，同样要求public默认构造器。
-					try {
-						resultClass.getConstructor((Class<?>[])null);
-					} catch (NoSuchMethodException e) {
-						throw new IllegalStateException("RedirectAll Result Type Must Be 'Long','Binary','String'"
-								+ " or any type contains public default constructor: "
-								+ method.getDeclaringClass().getName() + "::" + method.getName());
-					}
-				} else {
-					resultType = null;
-					resultClass = null;
+		if (returnClass == RedirectFuture.class || returnClass == RedirectAllFuture.class) {
+			if (returnClass == RedirectAllFuture.class != (annotation instanceof RedirectAll)) {
+				throw new IllegalStateException("ModuleRedirect: RedirectAll must be paired with RedirectAllFuture"
+						+ " and RedirectHash/RedirectToServer must be paired with RedirectFuture: "
+						+ method.getDeclaringClass().getName() + "::" + method.getName());
+			}
+			if (!(rType instanceof ParameterizedType rpType)) {
+				throw new IllegalStateException("ModuleRedirect: redirect future must not be raw type"
+						+ " (declare concrete type arguments): "
+						+ method.getDeclaringClass().getName() + "::" + method.getName());
+			}
+			var actualType = rpType.getActualTypeArguments()[0];
+			// 实参仅允许Class/ParameterizedType：TypeVariable/通配符无法在生成代码中命名。
+			if (!(actualType instanceof Class) && !(actualType instanceof ParameterizedType)) {
+				throw new IllegalStateException("ModuleRedirect: redirect future type argument must be a concrete"
+						+ " class or parameterized type (no type variables or wildcards): "
+						+ method.getDeclaringClass().getName() + "::" + method.getName());
+			}
+			resultType = actualType;
+			// 实参种类已守卫，此处转换必然安全。
+			resultClass = (Class<?>)(actualType instanceof Class ? actualType : ((ParameterizedType)actualType).getRawType());
+			if (returnClass == RedirectAllFuture.class) {
+				if (!RedirectResult.class.isAssignableFrom(resultClass)) {
+					throw new IllegalStateException("RedirectAll Result Type Must Extend RedirectResult: "
+							+ method.getDeclaringClass().getName() + "::" + method.getName());
 				}
-			} else if (rpType.getRawType() == RedirectFuture.class) {
-				resultType = rpType.getActualTypeArguments()[0];
-				resultClass = (Class<?>)(resultType instanceof Class ?
-						resultType : ((ParameterizedType)resultType).getRawType());
+				// FND2-A1-1：All路径的生成代码对Serializable结果不收集字段（resultFields为空），
+				// 接收端不编码、发起端不解码，分组结果全是空对象且无任何诊断；ToServer/Hash路径
+				// 支持Serializable，All独缺该分支。fail-fast拒绝该组合，对齐上面的签名硬校验。
+				if (Serializable.class.isAssignableFrom(resultClass)) {
+					throw new IllegalStateException("RedirectAll Result Type Can Not Be Serializable: "
+							+ method.getDeclaringClass().getName() + "::" + method.getName());
+				}
+				// FND8-83：生成代码new结果类实例，抽象类生成源码不可编译，fail-fast拒绝。
+				if (Gen.isAbstract(resultClass)) {
+					throw new IllegalStateException("RedirectAll Result Type Can Not Be Abstract: "
+							+ method.getDeclaringClass().getName() + "::" + method.getName());
+				}
+				// FND8-85：对齐RedirectFuture分支，同样要求public默认构造器。
+				try {
+					resultClass.getConstructor((Class<?>[])null);
+				} catch (NoSuchMethodException e) {
+					throw new IllegalStateException("RedirectAll Result Type Must Be 'Long','Binary','String'"
+							+ " or any type contains public default constructor: "
+							+ method.getDeclaringClass().getName() + "::" + method.getName());
+				}
+			} else {
 				try {
 					if (resultClass != Long.class && resultClass != Binary.class)
 						resultClass.getConstructor((Class<?>[])null);
@@ -157,9 +180,6 @@ final class MethodOverride {
 					throw new IllegalStateException("RedirectFuture<> Result Type Can Not Be Abstract: "
 							+ method.getDeclaringClass().getName() + "::" + method.getName());
 				}
-			} else {
-				resultType = null;
-				resultClass = null;
 			}
 		} else {
 			resultType = null;

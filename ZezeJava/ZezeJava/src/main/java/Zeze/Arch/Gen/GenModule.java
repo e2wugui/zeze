@@ -264,11 +264,19 @@ public final class GenModule extends ReentrantLock {
 				var type = m.method.getReturnType();
 				if (type == void.class)
 					returnName = "void";
-				else if (type == RedirectFuture.class)
+				else if (type == RedirectFuture.class) {
+					// 兜底：MethodOverride已对配对/raw泛型/非法实参fail-fast，这里到达时resultTypeName
+					// 理应非null；仍判空防止未来改动漏网时拼出非法源码RedirectFuture<null>（晦涩编译失败）。
+					if (m.resultTypeName == null)
+						throw new IllegalStateException("RedirectFuture<> missing result type: "
+								+ moduleClass.getName() + '.' + m.method.getName());
 					returnName = "Zeze.Arch.RedirectFuture<" + m.resultTypeName + '>';
-				else if (type == RedirectAllFuture.class)
+				} else if (type == RedirectAllFuture.class) {
+					if (m.resultTypeName == null)
+						throw new IllegalStateException("RedirectAllFuture<> missing result type: "
+								+ moduleClass.getName() + '.' + m.method.getName());
 					returnName = "Zeze.Arch.RedirectAllFuture<" + m.resultTypeName + '>';
-				else {
+				} else {
 					throw new UnsupportedOperationException("Redirect return type Must Be void or RedirectFuture or RedirectAllFuture: "
 							+ moduleClass.getName() + '.' + m.method.getName());
 				}
@@ -527,7 +535,10 @@ public final class GenModule extends ReentrantLock {
 			else {
 				sb.appendLine("_params_ -> {");
 				sb.appendLine("            var _r_ = new {}();", m.resultTypeName);
-				sb.appendLine("            if (_params_ != null) {");
+				// encoder把null结果映射为Binary.Empty，守卫必须同时判空缓冲（size()==0时decode
+				// 读空缓冲抛异常会冲出processResult的per-hash循环）；但_r_必须始终返回非null
+				// 空对象——processResult对返回值直接setHash，返回null会NPE。
+				sb.appendLine("            if (_params_ != null && _params_.size() > 0) {");
 				sb.appendLine("                var _b_ = _params_.Wrap();");
 				Gen.instance.genDecode(sb, "                ", "_b_", "_m_", "_r_.", m.resultFields);
 				sb.appendLine("            }");
