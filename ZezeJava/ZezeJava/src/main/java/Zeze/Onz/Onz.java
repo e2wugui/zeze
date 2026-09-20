@@ -128,6 +128,10 @@ public class Onz extends AbstractOnz {
 
 	/**
 	 * 清理超时仍未收到FuncSagaEnd的saga上下文。定时器周期调用，测试可直接调用。
+	 * 业务在途（执行中/FuncSagaEnd补偿中等锁）的条目跳过本轮（OH1-F3），等业务完成
+	 * 后的下个周期再清——超时条件以构造时刻计时，不区分在途业务时，耗时超过
+	 * sagaContextTimeoutMs的合法业务会被清掉上下文：随后到达的FuncSagaEnd(cancel)
+	 * 只得eSagaNotFound，协调者按"无补偿对象"忽略，补偿永久丢失——静默部分提交。
 	 */
 	public void cleanupTimeoutSagas() {
 		var now = System.currentTimeMillis();
@@ -137,8 +141,19 @@ public class Onz extends AbstractOnz {
 				// 协调者崩溃时saga无持久化事务状态（buildSavedCommits为空），
 				// 重启后的redoTimer不会重发FuncSagaEnd。滞留条目持有rpc
 				// （sender socket引用）与业务bean，且end=false会扭曲flush语义判断。
-				if (sagas.remove(saga.getOnzTid(), saga))
-					logger.warn("cleanup timeout saga context. tid={}, name={}", saga.getOnzTid(), saga.getName());
+				// 先tryLock businessLock（OH1-F3）：拿不到=业务在途（含FuncSagaEnd正
+				// 阻塞等慢业务），删条目会让等待方remove失败应答eSagaNotFound——
+				// 补偿丢失。跳过本轮，等下个周期。
+				if (!saga.tryLockBusiness())
+					continue;
+				try {
+					// 拿到锁后复查isEnd：刚完成的FuncSagaEnd可能已置end并清理（竞争失败
+					// 也是无害no-op，复查只为日志干净）。
+					if (!saga.isEnd() && sagas.remove(saga.getOnzTid(), saga))
+						logger.warn("cleanup timeout saga context. tid={}, name={}", saga.getOnzTid(), saga.getName());
+				} finally {
+					saga.unlockBusiness();
+				}
 			}
 		}
 		// FND5-45联动的超时回滚登记过期：Rollback最迟在崩溃协调者重启+redo一轮内到达，
@@ -232,8 +247,6 @@ public class Onz extends AbstractOnz {
 
 		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
 		var procedure = stub.newProcedure(r, r.Argument, buffer);
-		if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), (OnzSaga)procedure))
-			return errorCode(eSagaTidExist);
 
 		// 步骤失败（业务返回非0或异常）时本地事务已回滚：协调者cancelSaga只对成功的
 		// 步骤发FuncSagaEnd（失败步骤被跳过），正常结束路径endSaga也只在成功时到达，
@@ -241,9 +254,20 @@ public class Onz extends AbstractOnz {
 		// FND7-34：业务执行期间持有businessLock，与并发的FuncSagaEnd(cancel/end)互斥——
 		// 协调者超时补偿会在业务仍执行时到达，不互斥则补偿与业务并发/抢先，业务随后
 		// 失败回滚时补偿就成了过补偿。
+		// 注册必须在businessLock之内（OH1-F2）：原先putIfAbsent先于lockBusiness，停滞
+		// 窗口内并发的FuncSagaEnd(cancel)（同为Normal派发，不保证处理顺序）可抢先拿锁、
+		// remove并补偿一个从未执行的业务，随后真实业务提交且无人补偿——双向分歧。
+		// 先拿锁再注册后，等锁的FuncSagaEnd必然观察到已注册条目（锁的happens-before）。
+		// 移动产生的新窗口"注册前FuncSagaEnd到达→eSagaNotFound"由协调者既有
+		// retryCancelNotFoundOnce兜底：此时协调者对本步骤的rpc必未完成（业务还没跑），
+		// cancelSaga将其归入rpcFailed类单次延迟重试，重试时业务在途或已完成，补偿串行正确。
 		var rc = Procedure.Exception;
 		((OnzSaga)procedure).lockBusiness();
 		try {
+			// eSagaTidExist的提前返回处于try/finally解锁结构内（锁不泄漏）；此路径rc!=0，
+			// finally的两参remove对本实例（不在map中）是no-op，不会误删已存在的条目。
+			if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), (OnzSaga)procedure))
+				return errorCode(eSagaTidExist);
 			rc = TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
 		} finally {
 			// 失败清理必须在businessLock之内、解锁之前（R3-C复审）：解锁与remove的间隙里，

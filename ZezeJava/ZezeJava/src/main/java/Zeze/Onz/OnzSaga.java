@@ -30,6 +30,11 @@ public class OnzSaga extends OnzProcedure {
 		businessLock.lock();
 	}
 
+	/** 业务在途（执行中或FuncSagaEnd补偿中）时拿不到锁：cleanupTimeoutSagas据此跳过本轮（OH1-F3）。 */
+	final boolean tryLockBusiness() {
+		return businessLock.tryLock();
+	}
+
 	final void unlockBusiness() {
 		businessLock.unlock();
 	}
