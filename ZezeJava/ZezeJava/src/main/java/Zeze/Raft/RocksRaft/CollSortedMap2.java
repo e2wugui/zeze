@@ -37,15 +37,21 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 
 	@Override
 	public void put(K key, V value) {
-		value.mapKey(key);
 		if (isManaged()) {
+			// 【RR1-F1】对齐经典PMap2的顺序：initRootInfo成功后再mapKey。mapKey先写会在
+			// initRootInfo抛HasManagedException时毒化bean的mapKey（普通字段写不受事务回滚
+			// 保护），LogSortedMap2.encode以getThis()==getValue().get(pkey)过滤changed条目，
+			// 被毒化的bean后续编辑会被静默剔除，follower分歧。
 			value.initRootInfo(rootInfo(), this);
+			value.mapKey(key);
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.put(key, value);
-		} else
+		} else {
+			value.mapKey(key);
 			map = map.plus(key, value);
+		}
 	}
 
 	@Override

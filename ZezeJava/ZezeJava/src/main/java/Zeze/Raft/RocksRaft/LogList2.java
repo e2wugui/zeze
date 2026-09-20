@@ -130,11 +130,20 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
 				var e = it.next();
 				var logBean = e.getKey();
-				//noinspection SuspiciousMethodCalls
-				var idxExist = curList.indexOf(logBean.getThis());
+				// 【RR2-F1】对齐经典Transaction.Collections.LogList2的身份扫描（v==bean）：
+				// indexOf的equals语义在覆写equals的V（经典迁移bean必然如此）下会错位——
+				// 与已删bean equals相等的存活bean会吃错下标（错位应用），已删bean因equals
+				// 命中存活条目而被误保留（死bean日志叠加应用）。对身份equals的bean行为不变。
+				var bean = logBean.getThis();
+				int idxExist = 0;
+				for (var v : curList) {
+					if (v == bean)
+						break;
+					idxExist++;
+				}
 				// 【FND3-19】不在最终列表（已被结构op移除）或∈addSet（由结构op携带最终状态）的
 				// 条目剔除：follower侧changed按最终index全量应用，冗余条目会双重应用。
-				if (idxExist < 0 || addSet != null && addSet.contains(logBean.getThis()))
+				if (idxExist >= curList.size() || addSet != null && addSet.contains(bean))
 					it.remove();
 				else
 					e.getValue().value = idxExist;

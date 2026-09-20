@@ -44,7 +44,12 @@ public final class TableTemplate<K, V extends Bean> {
 
 	@SuppressWarnings("unchecked")
 	public Table<K, V> openTable(int templateId, BiPredicate<K, Record<K>> callback) {
-		return (Table<K, V>)rocks.getTables().computeIfAbsent(name + "#" + templateId,
+		var t = (Table<K, V>)rocks.getTables().computeIfAbsent(name + "#" + templateId,
 				__ -> new Table<>(rocks, name, templateId, keyClass, valueClass, callback));
+		// 【RR2-F2】命中已存在表时callback参数不得被静默丢弃（带callback重载的存在意义即被废掉）：
+		// 补设回调，最后一次调用生效。
+		if (callback != null)
+			t.setLruTryRemoveCallback(callback);
+		return t;
 	}
 }

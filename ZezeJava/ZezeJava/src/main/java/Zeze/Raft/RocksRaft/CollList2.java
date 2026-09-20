@@ -63,6 +63,12 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public V set(int index, V item) {
 		if (isManaged()) {
+			// 【RR1-F2】对齐经典PList2（FND7-06）：越界IOOBE必须在挂接前抛出（LogList1.set经
+			// TreePVector.with的检查在挂接之后），否则调用方catch后复用bean携带脏归属——
+			// 复用抛HasManagedException，原位字段修改的日志被encode期静默丢弃。
+			var cur = getList();
+			if (index < 0 || index >= cur.size())
+				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
 			item.initRootInfo(rootInfo(), this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
@@ -77,6 +83,11 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public void add(int index, V item) {
 		if (isManaged()) {
+			// 【RR1-F2】同set，先验界（add合法域0<=index<=size）后挂接，越界IOOBE不得
+			// 留下携带脏归属的bean。
+			var cur = getList();
+			if (index < 0 || index > cur.size())
+				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
 			item.initRootInfo(rootInfo(), this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
