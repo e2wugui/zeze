@@ -15,6 +15,16 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
     }
 
     public void connect(String hostNameOrAddress, int port) {
+        // XA1-F1停机屏障适配：ProcessPutLoginToken/ProcessPutQueueFull收到应答后自stop()
+        // （一次性登录队列连接），本类的生命周期契约是"再次connect即复用"。屏障只在
+        // Service.start()复位——对已停止服务建连会在addSocket被自查自关，autoReconnect
+        // 退避循环反复撞同一屏障，token永不到达，调用方await永久挂起且全程静默。
+        // connect前start()复活服务；幂等：首次connect时无acceptor/connector为空操作。
+        try {
+            service.start();
+        } catch (Exception e) {
+            throw Zeze.Util.Task.forceThrow(e);
+        }
         service.connect(hostNameOrAddress, port, true);
     }
 
