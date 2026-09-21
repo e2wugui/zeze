@@ -44,7 +44,8 @@ public class DemoMain {
 	public static void main1(String[] args) throws Exception {
 		System.out.println(ClassLoader.getSystemClassLoader());
 		var compiler = new Zeze.Util.InMemoryJavaCompiler();
-		var abClass = compiler.compile("Ab", Impl);
+		compiler.compileAllToByteCode(java.util.Map.of("Ab", Impl));
+		var abClass = compiler.defineCompiled("Ab");
 		System.out.println(abClass.getClassLoader());
 		System.out.println(Ia.class.getClassLoader());
 		System.out.println(Ib.class.getClassLoader());

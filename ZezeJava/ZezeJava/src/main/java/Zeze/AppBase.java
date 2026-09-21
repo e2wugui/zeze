@@ -11,9 +11,8 @@ import org.jetbrains.annotations.Nullable;
 public abstract class AppBase extends ReentrantLock {
 	public abstract Application getZeze();
 
-	public @NotNull IModule @Nullable [] createRedirectModules(@NotNull Class<?> @NotNull [] moduleClasses) {
-		// 文件模式（genFileSrcRoot!=null）生成完返回null，终止与否由调用方决定：
-		// 生成入口生成后返回、main见标志不进入wait；正常启动的createModules守卫见null提前撤退。
+	/** 运行时装载/生成redirect子类并实例化；构建期源码生成走GenModule.generateRedirectSources。 */
+	public @NotNull IModule @NotNull [] createRedirectModules(@NotNull Class<?> @NotNull [] moduleClasses) {
 		return GenModule.instance.createRedirectModules(this, moduleClasses);
 	}
 

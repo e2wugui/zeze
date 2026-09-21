@@ -133,8 +133,6 @@ public class App extends Zeze.AppBase {
         try {
             Zeze.initialize(this);
             var _modules_ = createRedirectModules(redirectModuleClasses());
-            if (_modules_ == null)
-                return;
 
             Zeze_Builtin_Game_Online = (Zeze.Builtin.Game.Online.ModuleOnline)_modules_[0];
             Zeze_Builtin_Game_Online.Initialize(this);

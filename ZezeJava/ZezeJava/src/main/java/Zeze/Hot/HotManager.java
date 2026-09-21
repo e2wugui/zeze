@@ -119,7 +119,7 @@ public class HotManager extends ClassLoader {
 	}
 
 	public void initialize(Map<String, IModule> modulesOut) throws Exception {
-		GenModule.instance.getCompiler().useOptions("-cp", buildCp());
+		// 编译-cp由createModuleInstance每次批量生成前刷新（含install新装模块jar）。
 		GenModule.instance.getCompiler().useParentClassLoader(getHotRedirect());
 		start();
 
@@ -162,7 +162,10 @@ public class HotManager extends ClassLoader {
 			sb.append(jar).append(File.pathSeparatorChar);
 		}
 		for (var module : modules.values()) {
-			sb.append(module.getJarFileName()).append(File.pathSeparatorChar);
+			// javac按进程CWD解析，workingDir可能相对，必须toAbsolutePath，
+			// 模块jar才真正进入编译classpath。
+			sb.append(Path.of(workingDir, "modules", module.getJarFileName()).toAbsolutePath())
+					.append(File.pathSeparatorChar);
 		}
 		for (var path : Reflect.collectClassPaths(ClassLoader.getSystemClassLoader()))
 			sb.append(path).append(File.pathSeparatorChar);
@@ -170,23 +173,15 @@ public class HotManager extends ClassLoader {
 		return sb.toString();
 	}
 
-	@SuppressWarnings("unchecked")
-	private IModule[] createModuleInstance(Collection<HotModule> result) throws Exception {
+	private IModule[] createModuleInstance(Collection<HotModule> result) {
 		var moduleClasses = new Class[result.size()];
 		var i = 0;
 		for (var module : result)
 			moduleClasses[i++] = module.getModuleClass();
-		IModule[] iModules = GenModule.instance.createRedirectModules(zeze.getAppBase(), moduleClasses);
-		if (null == iModules) {
-			// 这种情况是不是内部处理掉比较好。
-			// redirect return null, try new without redirect.
-			iModules = new IModule[moduleClasses.length];
-			for (var ii = 0; ii < moduleClasses.length; ++ii) {
-				iModules[ii] = (IModule)moduleClasses[ii]
-						.getConstructor(zeze.getAppBase().getClass()).newInstance(zeze.getAppBase());
-			}
-		}
-		return iModules;
+		// 每次批量生成前刷新编译-cp：install新装的模块jar不在initialize时设置的旧cp里，
+		// 兜底编译（模块jar未打包Redirect_子类）需要它解析符号。
+		GenModule.instance.getCompiler().useOptions("-cp", buildCp());
+		return GenModule.instance.createRedirectModules(zeze.getAppBase(), moduleClasses);
 	}
 
 	private static Bean retreat(ArrayList<HotModule> removes, ArrayList<HotModule> currents, Bean bean) {
@@ -641,9 +636,9 @@ public class HotManager extends ClassLoader {
 		if (Path.of(workingDir).startsWith(distributePath))
 			throw new RuntimeException("workingDir is sub-dir of distributeDir");
 
-		if (!Files.isDirectory(distributePath) && GenModule.instance.genFileSrcRoot == null) {
+		if (!Files.isDirectory(distributePath)) {
 			throw new FileNotFoundException(
-					"distributePath = " + distributePath
+					"distributePath = " + distributeDir
 							+ ", curPath = " + new File("."));
 		}
 

@@ -10,12 +10,9 @@ import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectResult;
 import harness.Fast;
 import org.jetbrains.annotations.Nullable;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * AG1-F1回归：RedirectAll空结果编解码不对称——encoder把null映射为Binary.Empty，
@@ -27,7 +24,6 @@ import org.junit.jupiter.api.parallel.Isolated;
  * 且return _r_在守卫之外（非null返回）。
  */
 @Fast
-@Isolated // genFileSrcRoot是GenModule.instance上的JVM级全局开关，独占运行
 public class TestAg1F1RedirectAllEmptyParamsGuard {
 
 	public static class EmptyAbleResult extends RedirectResult {
@@ -47,26 +43,15 @@ public class TestAg1F1RedirectAllEmptyParamsGuard {
 	@TempDir
 	Path tempDir;
 
-	@BeforeEach
-	public void setUp() {
-		Assertions.assertNull(GenModule.instance.genFileSrcRoot, "测试前提：全局genFileSrcRoot默认关闭");
-	}
-
-	@AfterEach
-	public void tearDown() {
-		GenModule.instance.genFileSrcRoot = null; // 全局开关必须恢复
-	}
-
 	@Test
 	public void testGeneratedFactoryGuardsEmptyParams() throws Exception {
-		GenModule.instance.genFileSrcRoot = tempDir.toString();
 		var dummyApp = new AppBase() {
 			@Override
 			public @Nullable Application getZeze() {
-				return null; // 文件模式只读app.getClass()匹配构造器，不触碰zeze
+				return null; // 离线生成只读app.getClass()匹配构造器，不触碰zeze
 			}
 		};
-		Assertions.assertNull(GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{AllModule.class}));
+		GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp, new Class<?>[]{AllModule.class}, false);
 		var file = tempDir.resolve(GenModule.REDIRECT_PREFIX + AllModule.class.getName().replace('.', '_') + ".java");
 		Assertions.assertTrue(Files.exists(file), "生成文件必须存在");
 		var content = Files.readString(file);

@@ -14,12 +14,9 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import harness.Fast;
 import org.jetbrains.annotations.Nullable;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * FND8-85回归：Bean/Data形参的decode生成引用未限定的beanFactory，按"模块类父类链
@@ -29,7 +26,6 @@ import org.junit.jupiter.api.parallel.Isolated;
  * UnsupportedOperationException；孪生——RedirectAll结果类补public默认构造器校验。
  */
 @Fast
-@Isolated // genFileSrcRoot是GenModule.instance上的JVM级全局开关，独占运行
 public class TestFnd885GenBeanFactorySymbolCheck {
 
 	/** 无beanFactory的模块：原先生成引用不存在符号的不可编译源码。 */
@@ -94,16 +90,6 @@ public class TestFnd885GenBeanFactorySymbolCheck {
 	@TempDir
 	Path tempDir;
 
-	@BeforeEach
-	public void setUp() {
-		Assertions.assertNull(GenModule.instance.genFileSrcRoot, "测试前提：全局genFileSrcRoot默认关闭");
-	}
-
-	@AfterEach
-	public void tearDown() {
-		GenModule.instance.genFileSrcRoot = null; // 全局开关必须恢复
-	}
-
 	private final AppBase dummyApp = new AppBase() {
 		@Override
 		public @Nullable Application getZeze() {
@@ -114,9 +100,8 @@ public class TestFnd885GenBeanFactorySymbolCheck {
 	/** 无beanFactory：生成期拒绝，带模块名/方法名/修复提示，且不落盘。 */
 	@Test
 	public void testMissingBeanFactoryRejected() {
-		GenModule.instance.genFileSrcRoot = tempDir.toString();
 		var ex = Assertions.assertThrows(IllegalStateException.class,
-				() -> GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{NoFactoryModule.class}));
+				() -> GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp, new Class<?>[]{NoFactoryModule.class}, false));
 		var cause = ex.getCause();
 		Assertions.assertTrue(cause instanceof UnsupportedOperationException, "根因必须是生成期校验异常");
 		Assertions.assertTrue(cause.getMessage().contains(NoFactoryModule.class.getName()), "须含模块类名");
@@ -129,9 +114,8 @@ public class TestFnd885GenBeanFactorySymbolCheck {
 	/** private beanFactory：生成子类默认包跨包继承不可达，生成期拒绝。 */
 	@Test
 	public void testPrivateBeanFactoryRejected() {
-		GenModule.instance.genFileSrcRoot = tempDir.toString();
 		var ex = Assertions.assertThrows(IllegalStateException.class,
-				() -> GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{PrivateFactoryModule.class}));
+				() -> GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp, new Class<?>[]{PrivateFactoryModule.class}, false));
 		var cause = ex.getCause();
 		Assertions.assertTrue(cause instanceof UnsupportedOperationException, cause.toString());
 		Assertions.assertTrue(cause.getMessage().contains("public or protected"),
@@ -142,9 +126,8 @@ public class TestFnd885GenBeanFactorySymbolCheck {
 	/** protected beanFactory与无Bean形参的模块：照常生成不误伤。 */
 	@Test
 	public void testValidModulesStillGenerate() {
-		GenModule.instance.genFileSrcRoot = tempDir.toString();
-		Assertions.assertNull(GenModule.instance.createRedirectModules(dummyApp,
-				new Class<?>[]{ProtectedFactoryModule.class, PlainModule.class}));
+		GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp,
+				new Class<?>[]{ProtectedFactoryModule.class, PlainModule.class}, false);
 		Assertions.assertTrue(genFileExists(ProtectedFactoryModule.class), "合法模块必须照常生成");
 		Assertions.assertTrue(genFileExists(PlainModule.class), "无Bean形参模块不触发校验");
 	}

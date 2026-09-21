@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Util;
 
 import harness.Fast;
+import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import Zeze.Util.ClassReloader;
@@ -15,11 +16,12 @@ public class TestClassReloader {
 		// InMemoryJavaCompiler 单实例非线程安全（共享 sourceCodes），两个编译各用独立实例并发进行；
 		// 热替换语义保持串行：v1 加载 → 旧 Method 断言 → 用 v2 字节码重定义 → 同一 Method 再断言
 		var compiler2 = new InMemoryJavaCompiler();
-		var v2Future = ForkJoinPool.commonPool().submit(() ->
-				compiler2.compileToByteCode("TestCR", "public class TestCR { public static int f() { return 2; } }"));
+		var v2Future = ForkJoinPool.commonPool().submit(() -> compiler2.compileAllToByteCode(
+				Map.of("TestCR", "public class TestCR { public static int f() { return 2; } }")).get("TestCR"));
 
 		var compiler = new InMemoryJavaCompiler();
-		var c = compiler.compile("TestCR", "public class TestCR { public static int f() { return 1; } }");
+		compiler.compileAllToByteCode(Map.of("TestCR", "public class TestCR { public static int f() { return 1; } }"));
+		var c = compiler.defineCompiled("TestCR");
 		var m = c.getMethod("f");
 		var v = (int)m.invoke(null);
 		Assertions.assertEquals(1, v);

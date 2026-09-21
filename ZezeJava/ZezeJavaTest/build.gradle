@@ -1,5 +1,15 @@
 apply from: '../ZezeJava/build.gradle'
 
+// Temp热更demo的模块/接口类：独立源集，产物不进test运行classpath——
+// 模块类只允许存在于模块jar中（HotModule冷classpath抢载守卫的前提）。
+sourceSets {
+    hot {
+        java.srcDir 'src-hot'
+        compileClasspath += sourceSets.test.output
+        compileClasspath += sourceSets.test.compileClasspath
+    }
+}
+
 dependencies {
     implementation project(":ZezeJava")
     implementation project(":ZezexJava:client")

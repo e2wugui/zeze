@@ -50,34 +50,44 @@ public final class App extends Zeze.AppBase {
 		return new LoadConfig();
 	}
 
-	public void Start(String[] args) throws Exception {
+	/**
+	 * @return 生成模式的源码根（已生成Redirect源码，不进入正常启动）；null=正常启动。
+	 */
+	public String Start(String[] args) throws Exception {
 		int serverId = -1;
 		int providerDirectPort = -1;
+		String genFileSrcRoot = System.getProperty("GenFileSrcRoot");
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-ServerId":
 				serverId = Integer.parseInt(args[++i]);
 				break;
 			case "-GenFileSrcRoot":
-				GenModule.instance.genFileSrcRoot = args[++i];
+				genFileSrcRoot = args[++i];
 				break;
 			case "-ProviderDirectPort":
 				providerDirectPort = Integer.parseInt(args[++i]);
 				break;
 			}
 		}
-		Start(serverId, providerDirectPort);
+		Start(serverId, providerDirectPort, genFileSrcRoot);
+		return genFileSrcRoot;
 	}
 
 	public void Start(int serverId, int providerDirectPort) throws Exception {
+		Start(serverId, providerDirectPort, System.getProperty("GenFileSrcRoot"));
+	}
+
+	public void Start(int serverId, int providerDirectPort, String genFileSrcRoot) throws Exception {
 		if (started)
 			return;
 		started = true;
 
 		// 生成模式：模块类清单是静态的，不构造Application（不建库、不开服务、不碰server.xml），
-		// 生成Redirect代码后返回——main见genFileSrcRoot标志不进入wait，进程自然退出。
-		if (GenModule.instance.genFileSrcRoot != null) {
-			createRedirectModules(redirectModuleClasses());
+		// 只生成Redirect源码后返回——main据Start返回值不进入wait，进程自然退出。
+		if (genFileSrcRoot != null) {
+			GenModule.instance.generateRedirectSources(genFileSrcRoot, this, redirectModuleClasses(),
+					Boolean.getBoolean("GenFileTryCompile"));
 			return; // 不得带空Zeze继续启动
 		}
 
@@ -240,8 +250,6 @@ public final class App extends Zeze.AppBase {
             Zeze.initialize(this);
             Zeze.getHotManager().initialize(modules);
             var _modules_ = createRedirectModules(redirectModuleClasses());
-            if (_modules_ == null)
-                return;
 
             Game_Map = (Game.Map.ModuleMap)_modules_[0];
             Game_Map.Initialize(this);

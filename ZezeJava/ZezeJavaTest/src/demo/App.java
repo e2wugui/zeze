@@ -234,8 +234,6 @@ public class App extends Zeze.AppBase {
         try {
             Zeze.initialize(this);
             var _modules_ = createRedirectModules(redirectModuleClasses());
-            if (_modules_ == null)
-                return;
 
             demo_web = (demo.web.ModuleWeb)_modules_[0];
             demo_web.Initialize(this);

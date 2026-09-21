@@ -158,8 +158,6 @@ public final class App extends Zeze.AppBase {
         try {
             Zeze.initialize(this);
             var _modules_ = createRedirectModules(redirectModuleClasses());
-            if (_modules_ == null)
-                return;
 
             Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)_modules_[0];
             Zezex_Linkd.Initialize(this);

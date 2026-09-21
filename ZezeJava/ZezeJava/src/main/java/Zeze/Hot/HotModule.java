@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.IModule;
 import Zeze.Serialize.ByteBuffer;
@@ -17,7 +18,7 @@ import org.apache.logging.log4j.Logger;
 // 目录管理规则
 // 1. 目录是一个模块目录时，开启一个新的热更单位；
 // 2. 目录不是模块目录时，它就属于往上级目录方向的最近的热更模块。
-public class HotModule extends ClassLoader implements Closeable {
+public class HotModule extends ClassLoader implements Closeable, GenModule.RedirectClassSink {
 	private static final Logger logger = LogManager.getLogger(HotModule.class);
 	private final File jarFile;
 	private JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
@@ -42,6 +43,12 @@ public class HotModule extends ClassLoader implements Closeable {
 		// MyName 一般就叫模块名字。
 		var moduleClassName = namespace + ".Module" + last(namespace);
 		this.moduleClass = loadClass(moduleClassName);
+		// 双亲委派下，冷classpath上的同名类会抢先命中；冷类不受热更控制——之后换jar
+		// 也不会换掉这个身份，安装对该模块静默失效。fail-fast发生在_install可回滚区，
+		// 走既有recoverModules恢复。
+		if (moduleClass.getClassLoader() != this)
+			throw new IllegalStateException("hot module shadowed by cold classpath: "
+					+ moduleClassName + " loaded by " + moduleClass.getClassLoader());
 		this.isLoadSchemas = false;
 		this.schemasClassName = null;
 	}
@@ -160,6 +167,23 @@ public class HotModule extends ClassLoader implements Closeable {
 	@Override
 	protected Class<?> findClass(String className) throws ClassNotFoundException {
 		return loadModuleClass(className);
+	}
+
+	// 装载jar里打包好的Redirect_子类（Distribute.pack产出）。必须绕过双亲委派只查本jar：
+	// 冷classpath上的陈旧同名子类可经parent委派抢先，装载到旧身份。
+	@Override
+	public Class<?> findRedirectClass(String className) throws ClassNotFoundException {
+		return loadModuleClass(className);
+	}
+
+	// 兜底编译产物define进本HotModule：每模块版本一份，换代即隔离；
+	// 安装失败回滚时随本实例一起废弃，不在共享装载器留残留。
+	@Override
+	public Class<?> defineRedirectClass(String className, byte[] byteCode) {
+		var loaded = findLoadedClass(className);
+		if (loaded != null)
+			return loaded;
+		return defineClass(className, byteCode, 0, byteCode.length);
 	}
 
 	private Class<?> loadModuleClass(String className) throws ClassNotFoundException {

@@ -18,9 +18,7 @@ import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
 import org.jetbrains.annotations.Nullable;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -33,7 +31,7 @@ import org.junit.jupiter.api.parallel.Isolated;
  * 内建方法的既有自愈补偿不变）；生成模板改为调用sendVoid。
  */
 @Fast
-@Isolated // genFileSrcRoot是GenModule.instance上的JVM级全局开关，独占运行
+@Isolated // 全局日志系统捕获appender挂载期间独占运行
 public class TestFnd886SendVoidLogsOnFailure {
 
 	public static class VoidModule {
@@ -51,19 +49,9 @@ public class TestFnd886SendVoidLogsOnFailure {
 	private final AppBase dummyApp = new AppBase() {
 		@Override
 		public @Nullable Application getZeze() {
-			return null; // 文件模式只读app.getClass()匹配构造器，不触碰zeze
+			return null; // 离线生成只读app.getClass()匹配构造器，不触碰zeze
 		}
 	};
-
-	@BeforeEach
-	public void setUp() {
-		Assertions.assertNull(GenModule.instance.genFileSrcRoot, "测试前提：全局genFileSrcRoot默认关闭");
-	}
-
-	@AfterEach
-	public void tearDown() {
-		GenModule.instance.genFileSrcRoot = null; // 全局开关必须恢复
-	}
 
 	private static final class CaptureAppender extends AbstractAppender {
 		final List<String> messages = new CopyOnWriteArrayList<>();
@@ -105,8 +93,7 @@ public class TestFnd886SendVoidLogsOnFailure {
 	/** 生成模板：void方法必须经sendVoid发送（不再直接丢弃Send返回值）。 */
 	@Test
 	public void testGeneratedCodeUsesSendVoid() throws Exception {
-		GenModule.instance.genFileSrcRoot = tempDir.toString();
-		Assertions.assertNull(GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{VoidModule.class}));
+		GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp, new Class<?>[]{VoidModule.class}, false);
 		var file = tempDir.resolve(GenModule.REDIRECT_PREFIX + VoidModule.class.getName().replace('.', '_') + ".java");
 		Assertions.assertTrue(Files.exists(file), "生成文件必须存在");
 		var content = Files.readString(file);

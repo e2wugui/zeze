@@ -18,12 +18,9 @@ import Zeze.Transaction.Bean;
 import Zeze.Util.StringBuilderCs;
 import harness.Fast;
 import org.jetbrains.annotations.Nullable;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * FND8-84回归：结果类抽象集合/映射字段未初始化时decode NPE——genDecode对isField的
@@ -33,7 +30,6 @@ import org.junit.jupiter.api.parallel.Isolated;
  * Serializable字段无法new兜底）改为探测初始化器、未初始化生成期拒绝。
  */
 @Fast
-@Isolated // genFileSrcRoot是GenModule.instance上的JVM级全局开关，独占运行
 public class TestFnd884RedirectAllResultFieldInit {
 
 	public static class ResultWithFields extends RedirectResult {
@@ -86,16 +82,6 @@ public class TestFnd884RedirectAllResultFieldInit {
 	@TempDir
 	Path tempDir;
 
-	@BeforeEach
-	public void setUp() {
-		Assertions.assertNull(GenModule.instance.genFileSrcRoot, "测试前提：全局genFileSrcRoot默认关闭");
-	}
-
-	@AfterEach
-	public void tearDown() {
-		GenModule.instance.genFileSrcRoot = null; // 全局开关必须恢复
-	}
-
 	/** 抽象容器字段decode必须判空后new兜底；具体类型保持无条件new；已初始化不覆盖。 */
 	@Test
 	public void testAbstractContainerFieldNullGuard() throws Exception {
@@ -132,14 +118,13 @@ public class TestFnd884RedirectAllResultFieldInit {
 	/** RedirectAll结果解码与RedirectHash/ToServer应答回调共用同一genDecode：生成产物内均须带守卫。 */
 	@Test
 	public void testGeneratedModuleDecoderHasGuard() throws Exception {
-		GenModule.instance.genFileSrcRoot = tempDir.toString();
 		var dummyApp = new AppBase() {
 			@Override
 			public @Nullable Application getZeze() {
-				return null; // 文件模式只读app.getClass()匹配构造器，不触碰zeze
+				return null; // 离线生成只读app.getClass()匹配构造器，不触碰zeze
 			}
 		};
-		Assertions.assertNull(GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{AllModule.class}));
+		GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp, new Class<?>[]{AllModule.class}, false);
 		var file = tempDir.resolve(GenModule.REDIRECT_PREFIX + AllModule.class.getName().replace('.', '_') + ".java");
 		Assertions.assertTrue(Files.exists(file), "生成文件必须存在");
 		var content = Files.readString(file);

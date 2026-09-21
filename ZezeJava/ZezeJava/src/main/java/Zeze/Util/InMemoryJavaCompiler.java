@@ -122,74 +122,41 @@ public class InMemoryJavaCompiler {
 		return null;
 	}
 
-	public Class<?> compile(String className, String sourceCode) throws ClassNotFoundException {
-		checkNotDefined(className);
-		sourceCodes.clear();
-		String exMsg = addSource(className, sourceCode).compileAll();
-		if (exMsg != null)
-			throw new IllegalStateException(exMsg);
-		return classLoader.findClass(className);
-	}
-
-	public byte[] compileToByteCode(String className, String sourceCode) {
-		checkNotDefined(className);
-		sourceCodes.clear();
-		String exMsg = addSource(className, sourceCode).compileAll();
-		if (exMsg != null)
-			throw new IllegalStateException(exMsg);
-		return classLoader.getCode(className);
-	}
-
-	// 同实例对同名类的二次编译：findClass直调不经loadClass的findLoadedClass缓存，
-	// 重复defineClass必LinkageError；字节码路径则新旧版本错配——入口fail-fast拒绝，
-	// 指引用轮换实例或加载器（FND8-11）。
+	// 同实例对同名类的二次编译：defineCompiled直调findClass不经loadClass的
+	// findLoadedClass缓存，重复defineClass必LinkageError；二次编译的字节码则
+	// 新旧版本错配——编译入口fail-fast拒绝，指引用轮换实例或加载器（FND8-11）。
 	private void checkNotDefined(String className) {
 		if (classLoader.isDefined(className))
 			throw new IllegalStateException("class already defined in this compiler instance: " + className
 					+ "; recompile with a new InMemoryJavaCompiler() or useParentClassLoader() to rotate the loader");
 	}
 
-	public void compileAll(Map<String, String> classNameAndCodes, Map<String, Class<?>> classNameAndClasses)
-			throws ClassNotFoundException {
-		sourceCodes.clear();
-		for (Map.Entry<String, String> e : classNameAndCodes.entrySet()) {
-			checkNotDefined(e.getKey());
-			addSource(e.getKey(), e.getValue());
-		}
-		String exMsg = compileAll();
-		if (exMsg != null)
-			throw new IllegalStateException(exMsg);
-		if (classNameAndClasses != null) {
-			for (String className : classNameAndCodes.keySet())
-				classNameAndClasses.put(className, classLoader.findClass(className));
-		}
-	}
-
-	public void compileAllToByteCode(Map<String, String> classNameAndCodes, Map<String, byte[]> classNameAndByteCodes) {
-		sourceCodes.clear();
-		for (Map.Entry<String, String> e : classNameAndCodes.entrySet()) {
-			checkNotDefined(e.getKey());
-			addSource(e.getKey(), e.getValue());
-		}
-		String exMsg = compileAll();
-		if (exMsg != null)
-			throw new IllegalStateException(exMsg);
-		if (classNameAndByteCodes != null) {
-			for (String className : classNameAndCodes.keySet())
-				classNameAndByteCodes.put(className, classLoader.getCode(className));
-		}
-	}
-
-	public Map<String, Class<?>> compileAll(Map<String, String> classNameAndCodes) throws ClassNotFoundException {
-		var classNameAndClasses = new HashMap<String, Class<?>>(classNameAndCodes.size());
-		compileAll(classNameAndCodes, classNameAndClasses);
-		return classNameAndClasses;
-	}
-
+	/**
+	 * 批量编译并返回字节码（只在编译器装载器外传递，不在其中define）。
+	 * define去向由调用方决定：热模块经RedirectClassSink.defineRedirectClass进各模块
+	 * 装载器，冷模块经{@link #defineCompiled}进编译器装载器。
+	 */
 	public Map<String, byte[]> compileAllToByteCode(Map<String, String> classNameAndCodes) {
-		var classNameAndByteCodes = new HashMap<String, byte[]>(classNameAndCodes.size());
-		compileAllToByteCode(classNameAndCodes, classNameAndByteCodes);
-		return classNameAndByteCodes;
+		sourceCodes.clear();
+		for (Map.Entry<String, String> e : classNameAndCodes.entrySet()) {
+			checkNotDefined(e.getKey());
+			addSource(e.getKey(), e.getValue());
+		}
+		String exMsg = compileAll();
+		if (exMsg != null)
+			throw new IllegalStateException(exMsg);
+		var byteCodes = new HashMap<String, byte[]>(classNameAndCodes.size());
+		for (String className : classNameAndCodes.keySet())
+			byteCodes.put(className, classLoader.getCode(className));
+		return byteCodes;
+	}
+
+	/**
+	 * 在编译器装载器中define并返回compileAllToByteCode的产物。
+	 * 冷路径专用（无模块装载器可归属）；热路径产物define进各模块装载器。
+	 */
+	public Class<?> defineCompiled(String className) throws ClassNotFoundException {
+		return classLoader.findClass(className);
 	}
 
 	private static final class SourceCode extends SimpleJavaFileObject {

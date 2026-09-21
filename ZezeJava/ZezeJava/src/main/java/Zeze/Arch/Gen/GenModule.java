@@ -33,7 +33,6 @@ import Zeze.Util.InMemoryJavaCompiler;
 import Zeze.Util.StringBuilderCs;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * 把模块的方法调用发送到其他服务器实例上执行。
@@ -51,18 +50,8 @@ public final class GenModule extends ReentrantLock {
 	public static final GenModule instance = new GenModule();
 	private static final Pattern genericPat = Pattern.compile("<.+>");
 
-	/**
-	 * 源代码跟目录。
-	 * 指定的时候，生成到文件，总是覆盖。
-	 * 没有指定的时候，先查看目标类是否存在，存在则直接class.forName装载，否则生成到内存并动态编译。
-	 */
-	public @Nullable String genFileSrcRoot = System.getProperty("GenFileSrcRoot"); // 支持通过给JVM传递-DGenFileSrcRoot=xxx参数指定
-	/**
-	 * FND8-83：-DGenFileTryCompile=true时写盘前逐模块内存javac试编译，
-	 * 不可编译产物不落盘（默认关闭）。
-	 */
-	public boolean tryCompileGeneratedFile = Boolean.getBoolean("GenFileTryCompile");
 	private final InMemoryJavaCompiler compiler = new InMemoryJavaCompiler();
+	// 冷路径生成类缓存（热模块产物装载/定义进各HotModule，不进此表）。
 	private final HashMap<String, Class<?>> genClassMap = new HashMap<>();
 
 	public InMemoryJavaCompiler getCompiler() {
@@ -102,132 +91,70 @@ public final class GenModule extends ReentrantLock {
 		return className.startsWith(REDIRECT_PREFIX) ? className : REDIRECT_PREFIX + className.replace('.', '_');
 	}
 
+	/**
+	 * 热模块装载器契约：由HotModule实现（定义装载器即模块装载器，无需额外传参）。
+	 * 故意不依赖Zeze.Hot：依赖方向保持GenModule被Hot侧引用的单向。
+	 */
+	public interface RedirectClassSink {
+		/**
+		 * 只从本模块jar装载打包好的Redirect_子类（Distribute.pack产出），绕过双亲委派。
+		 *
+		 * @throws ClassNotFoundException 本jar不存在该子类
+		 */
+		Class<?> findRedirectClass(String className) throws ClassNotFoundException;
+
+		/**
+		 * 把运行时兜底编译的产物定义进本装载器：每模块版本一份，换代即隔离；
+		 * 同名define每装载器至多一次（findLoadedClass守卫）。
+		 */
+		Class<?> defineRedirectClass(String className, byte[] byteCode);
+	}
+
 	public static <T extends IModule> @NotNull T createRedirectModule(@NotNull Class<T> moduleClass, @NotNull AppBase app) {
 		try {
-			return newModule(Class.forName(GenModule.getRedirectClassName(moduleClass)), app);
+			Class<?> genClass;
+			// 热模块：只从模块jar装载打包子类（与批量路径同契约）；冷模块走classpath。
+			if (moduleClass.getClassLoader() instanceof RedirectClassSink sink) {
+				try {
+					genClass = sink.findRedirectClass(getRedirectClassName(moduleClass));
+				} catch (ClassNotFoundException e) {
+					throw new IllegalStateException("hot module redirect class not packaged in module jar: "
+							+ moduleClass.getName(), e);
+				}
+			} else
+				genClass = Class.forName(getRedirectClassName(moduleClass));
+			return newModule(genClass, app);
 		} catch (ReflectiveOperationException e) {
 			throw Task.forceThrow(e);
 		}
 	}
 
-	@SuppressWarnings("JavaPrintToLogpoint")
-	public @NotNull IModule @Nullable [] createRedirectModules(@NotNull AppBase userApp,
-	                                                           @NotNull Class<?> @NotNull [] moduleClasses) {
-		lock();
-		try {
-			int i = 0, n = moduleClasses.length;
-			try {
-				var classNames = new String[n];
-				var classNameAndCodes = new HashMap<String, String>(); // <className, code>
-				var hasStaleCache = false; // 缓存命中但父类身份校验失败（热更升级），需换装载器重编译
-				for (; i < n; i++) {
-					var moduleClass = moduleClasses[i];
-					if (moduleClass.getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
-						continue;
-
-					// FND7-67：沿类层级向上收集带注解方法（到IModule为止）。原先仅扫
-					// getDeclaredMethods：基类声明的redirect方法既不生成拦截子类方法、
-					// 也不注册redirect.handles，调用静默本地执行且远程不可达、无任何告警，
-					// 与方法签名非法时的fail-fast形成反差。同签名（名字+参数类型）去重，
-					// 派生类声明优先（覆盖者的注解生效）。
-					var overridesBySignature = new LinkedHashMap<String, MethodOverride>();
-					for (var cls = moduleClass; cls != null && cls != IModule.class; cls = cls.getSuperclass()) {
-						for (var method : cls.getDeclaredMethods()) {
-							if (overridesBySignature.containsKey(methodKey(method)))
-								continue; // 派生类同签名覆盖已收集，基类声明忽略
-							for (var anno : method.getAnnotations()) {
-								var type = anno.annotationType();
-								if (type == RedirectToServer.class || type == RedirectHash.class || type == RedirectAll.class) {
-									overridesBySignature.put(methodKey(method), new MethodOverride(method, anno));
-									break;
-								}
-							}
-						}
+	// FND7-67：沿类层级向上收集带注解方法（到IModule为止）。原先仅扫
+	// getDeclaredMethods：基类声明的redirect方法既不生成拦截子类方法、
+	// 也不注册redirect.handles，调用静默本地执行且远程不可达、无任何告警，
+	// 与方法签名非法时的fail-fast形成反差。同签名（名字+参数类型）去重，
+	// 派生类声明优先（覆盖者的注解生效）。空=没有需要重定向的方法。
+	private static ArrayList<MethodOverride> collectOverrides(@NotNull Class<?> moduleClass) {
+		var overridesBySignature = new LinkedHashMap<String, MethodOverride>();
+		for (var cls = moduleClass; cls != null && cls != IModule.class; cls = cls.getSuperclass()) {
+			for (var method : cls.getDeclaredMethods()) {
+				String methodKey = methodKey(method);
+				if (overridesBySignature.containsKey(methodKey))
+					continue; // 派生类同签名覆盖已收集，基类声明忽略
+				for (var anno : method.getAnnotations()) {
+					var type = anno.annotationType();
+					if (type == RedirectToServer.class || type == RedirectHash.class || type == RedirectAll.class) {
+						overridesBySignature.put(methodKey, new MethodOverride(method, anno));
+						break;
 					}
-					var overrides = new ArrayList<>(overridesBySignature.values());
-					if (overrides.isEmpty())
-						continue; // 没有需要重定向的方法。
-					overrides.sort(Comparator.comparing(o -> o.method.getName())); // 按方法名排序，避免每次生成结果发生变化。
-
-					String genClassName = getRedirectClassName(moduleClass);
-					if (genFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
-						var genClass = genClassMap.get(genClassName);
-						if (genClass == null) {
-							try {
-								genClass = Class.forName(genClassName);
-								genClassMap.put(genClassName, genClass);
-							} catch (ClassNotFoundException ignored) {
-							}
-						}
-						if (genClass != null) {
-							// FND8-80：缓存按名，热更升级后同名模块类Class身份已变，直接复用旧
-							// 生成类即新代码静默不生效。生成类总是直接extends传入的moduleClass，
-							// 按父类身份校验；失败视为未命中，移除并重新生成。
-							if (genClass.getSuperclass() == moduleClass) {
-								classNames[i] = genClassName;
-								continue;
-							}
-							genClassMap.remove(genClassName);
-							hasStaleCache = true;
-						}
-					}
-
-					var code = genModuleCode(genClassName, moduleClass, overrides, userApp);
-
-					if (genFileSrcRoot != null) {
-						// FND8-83：写盘前试编译，失败即中止不落盘；换新装载器，产物不驻留。
-						if (tryCompileGeneratedFile) {
-							rotateCompilerLoader();
-							compiler.compileAll(Map.of(genClassName, code), null);
-						}
-						byte[] oldBytes = null;
-						byte[] newBytes = code.getBytes(StandardCharsets.UTF_8);
-						var file = new File(genFileSrcRoot, genClassName + ".java");
-						if (file.exists()) {
-							oldBytes = Files.readAllBytes(file.toPath());
-							if (Arrays.equals(oldBytes, newBytes))
-								System.out.println("  Existed File: " + file.getAbsolutePath());
-							else {
-								System.out.println("Overwrite File: " + file.getAbsolutePath());
-								oldBytes = null;
-							}
-						} else
-							System.out.println("      New File: " + file.getAbsolutePath());
-						if (oldBytes == null)
-							AtomicFileWriter.replace(file.toPath(), newBytes);
-					}
-					classNames[i] = genClassName;
-					classNameAndCodes.put(genClassName, code);
 				}
-				if (genFileSrcRoot != null) { // 仅生成代码时无需编译和创建模块实例
-					System.out.println("---------------");
-					System.out.println("New Source File Has Generate. Re-Compile Need.");
-					return null;
-				}
-
-				var modules = new IModule[n];
-				if (!classNameAndCodes.isEmpty()) {
-					if (hasStaleCache) // FND8-80：陈旧缓存重编译前换装载器（见rotateCompilerLoader）
-						rotateCompilerLoader();
-					compiler.compileAll(classNameAndCodes, genClassMap);
-				}
-				for (i = 0; i < n; i++) {
-					var className = classNames[i];
-					modules[i] = newModule(className != null ? genClassMap.get(className) : moduleClasses[i], userApp);
-				}
-				return modules;
-			} catch (Exception e) {
-				if (i < n)
-					throw new IllegalStateException("module class: " + moduleClasses[i].getName(), e);
-				throw Task.forceThrow(e);
 			}
-		} finally {
-			unlock();
 		}
+		var overrides = new ArrayList<>(overridesBySignature.values());
+		overrides.sort(Comparator.comparing(o -> o.method.getName())); // 按方法名排序，避免每次生成结果发生变化。
+		return overrides;
 	}
 
-	// FND7-67：方法去重键——同签名（名字+参数类型）视为同一个覆盖点，类层级收集中
-	// 用于"派生类声明优先、基类声明忽略"。
 	private static String methodKey(@NotNull Method method) {
 		var sb = new StringBuilder(method.getName());
 		for (var paramType : method.getParameterTypes())
@@ -235,14 +162,178 @@ public final class GenModule extends ReentrantLock {
 		return sb.toString();
 	}
 
-	// 换新DynamicClassLoader：同名生成类已在当前装载器defineClass过时，二次定义必抛
-	// duplicate definition LinkageError；换出装载器中的旧类经genClassMap的Class引用仍可用。
-	private void rotateCompilerLoader() {
-		compiler.useParentClassLoader(compiler.getClassloader().getParent());
+	/**
+	 * 生成模式（构建期）：把带redirect注解模块的Redirect_子类源码写到srcRoot（总是覆盖）。
+	 * 只产出源码，不装载不实例化；退出与否由调用方（工具main/应用Start）决定。
+	 *
+	 * @param tryCompile 写盘前逐模块内存javac试编译，不可编译产物不落盘（FND8-83，默认false）
+	 */
+	public void generateRedirectSources(@NotNull String srcRoot, @NotNull AppBase userApp,
+										@NotNull Class<?> @NotNull [] moduleClasses, boolean tryCompile) {
+		lock();
+		try {
+			for (Class<?> moduleClass : moduleClasses) {
+				try {
+					if (moduleClass.getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
+						continue;
+					var overrides = collectOverrides(moduleClass);
+					if (overrides.isEmpty())
+						continue; // 没有需要重定向的方法。
+
+					var genClassName = getRedirectClassName(moduleClass);
+					var code = genModuleCode(genClassName, moduleClass, overrides, userApp);
+					// FND8-83：写盘前试编译，失败即中止不落盘；只取字节码，不在装载器define。
+					if (tryCompile)
+						compiler.compileAllToByteCode(Map.of(genClassName, code));
+					byte[] oldBytes = null;
+					byte[] newBytes = code.getBytes(StandardCharsets.UTF_8);
+					var file = new File(srcRoot, genClassName + ".java");
+					if (file.exists()) {
+						oldBytes = Files.readAllBytes(file.toPath());
+						if (Arrays.equals(oldBytes, newBytes))
+							System.out.println("  Existed File: " + file.getAbsolutePath());
+						else {
+							System.out.println("Overwrite File: " + file.getAbsolutePath());
+							oldBytes = null;
+						}
+					} else
+						System.out.println("      New File: " + file.getAbsolutePath());
+					if (oldBytes == null)
+						AtomicFileWriter.replace(file.toPath(), newBytes);
+
+				} catch (Exception e) {
+					throw new IllegalStateException("module class: " + moduleClass.getName(), e);
+				}
+			}
+		} finally {
+			unlock();
+		}
+
+		System.out.println("---------------");
+		System.out.println("New Source File Has Generate. Re-Compile Need.");
 	}
 
+	// ③装载不命中路径的待编译条目：源码与编译产物的归属装载器绑定（热模块为其
+	// HotModule；冷模块null=编译器装载器），同批收集后单次javac。
+	private record PendingCompile(String genClassName, String code, RedirectClassSink sink) {
+	}
+
+	/**
+	 * 运行时装载Redirect_子类并实例化模块（构建期源码生成走{@link #generateRedirectSources}）。
+	 * 每个模块按序尝试：①热模块从模块jar装载打包好的子类（免编译）；②冷模块从进程缓存/
+	 * classpath装载已存在的子类；③装载不命中的生成源码，批量编译后按归属define（热模块
+	 * 进其HotModule，冷模块进编译器装载器）。无redirect方法的模块直接用原始模块类实例化。
+	 */
+	public @NotNull IModule @NotNull [] createRedirectModules(@NotNull AppBase userApp,
+															  @NotNull Class<?> @NotNull [] moduleClasses) {
+		lock();
+		try {
+			int n = moduleClasses.length;
+			// 与moduleClasses索引对齐，同一下标互斥占用：就绪的子类（装载命中或编译后
+			// 回填）/待编译条目；两者皆null=该模块没有redirect方法。
+			var genClasses = new Class<?>[n];
+			var pending = new PendingCompile[n];
+			for (var i = 0; i < n; i++) {
+				var moduleClass = moduleClasses[i];
+				try {
+					if (moduleClass.getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
+						continue;
+					var overrides = collectOverrides(moduleClass);
+					if (overrides.isEmpty())
+						continue; // 没有需要重定向的方法。
+
+					var genClassName = getRedirectClassName(moduleClass);
+					// ①热模块装载优先：装载模块jar里打包好的子类（Distribute.pack产出，
+					// 与模块类同批构建），免运行时编译。findRedirectClass绕过双亲委派
+					// 只查本jar，冷classpath残留无法抢先。
+					var sink = moduleClass.getClassLoader() instanceof RedirectClassSink s ? s : null;
+					if (sink != null) {
+						try {
+							var genClass = sink.findRedirectClass(genClassName);
+							checkRedirectSuperclass(genClass, moduleClass, "module jar");
+							genClasses[i] = genClass;
+							continue;
+						} catch (ClassNotFoundException ignored) {
+						}
+					}
+					// ②冷装载：进程缓存或classpath上已存在的子类（热模块的子类在模块jar里，冷链不可见）。
+					Class<?> genClass = genClassMap.get(genClassName);
+					if (genClass == null) {
+						try {
+							genClass = Class.forName(genClassName);
+							genClassMap.put(genClassName, genClass);
+						} catch (ClassNotFoundException ignored) {
+						}
+					}
+					if (genClass != null) {
+						// 冷类身份进程内不变，命中陈旧父类即装载器混用。
+						checkRedirectSuperclass(genClass, moduleClass, "cold cache");
+						genClasses[i] = genClass;
+						continue;
+					}
+					// ③装载不命中：生成源码，收集待批量编译。
+					String code = genModuleCode(genClassName, moduleClass, overrides, userApp);
+					pending[i] = new PendingCompile(genClassName, code, sink);
+				} catch (Exception e) {
+					throw new IllegalStateException("module class: " + moduleClass.getName(), e);
+				}
+			}
+
+			// 批量编译（单次javac）：产物按归属define回填genClasses。
+			compilePending(pending, genClasses);
+
+			var modules = new IModule[n];
+			for (var i = 0; i < n; i++)
+				modules[i] = newModule(genClasses[i] != null ? genClasses[i] : moduleClasses[i], userApp);
+			return modules;
+		} catch (Exception e) {
+			throw Task.forceThrow(e);
+		} finally {
+			unlock();
+		}
+	}
+
+	// 批量编译（单次javac）③的待编译条目，产物按归属define后回填genClasses：
+	// 热模块产物进其HotModule（每代隔离、失败安装零残留）；冷模块产物进编译器
+	// 装载器并写入genClassMap进程级缓存（冷类身份不变，下次直接装载）。
+	private void compilePending(PendingCompile[] pending, Class<?>[] genClasses) throws ClassNotFoundException {
+		var codes = new HashMap<String, String>();
+		for (var p : pending)
+			if (p != null)
+				codes.put(p.genClassName, p.code);
+		if (codes.isEmpty())
+			return;
+		var byteCodes = compiler.compileAllToByteCode(codes);
+		for (var i = 0; i < pending.length; i++) {
+			var p = pending[i];
+			if (p == null)
+				continue;
+			if (p.sink != null)
+				genClasses[i] = p.sink.defineRedirectClass(p.genClassName, byteCodes.get(p.genClassName));
+			else {
+				var cls = compiler.defineCompiled(p.genClassName);
+				genClassMap.put(p.genClassName, cls);
+				genClasses[i] = cls;
+			}
+		}
+	}
+
+	// 装载命中的生成类必须extends传入的moduleClass（身份自洽）：jar产物与模块类同批
+	// 构建、冷缓存类身份进程内不变——错配即手搓jar或装载器混用，fail-fast。
+	private static void checkRedirectSuperclass(@NotNull Class<?> genClass, @NotNull Class<?> moduleClass,
+												@NotNull String source) {
+		if (genClass.getSuperclass() != moduleClass)
+			throw new IllegalStateException("redirect class mismatch (" + source + "): " + genClass.getName()
+					+ ", superclass=" + genClass.getSuperclass().getName()
+					+ ", expect=" + moduleClass.getName());
+	}
+
+	// FND7-67：方法去重键——同签名（名字+参数类型）视为同一个覆盖点，类层级收集中
+	// 用于"派生类声明优先、基类声明忽略"。
+
+
 	private static String genModuleCode(@NotNull String genClassName, @NotNull Class<?> moduleClass,
-	                                    @NotNull List<MethodOverride> overrides, @NotNull AppBase userApp) throws Exception {
+										@NotNull List<MethodOverride> overrides, @NotNull AppBase userApp) throws Exception {
 		checkBeanFactorySymbol(moduleClass, overrides);
 		var sb = new StringBuilderCs();
 		sb.appendLine("// auto-generated @" + "formatter:off");
@@ -457,7 +548,8 @@ public final class GenModule extends ReentrantLock {
 
 	// FND8-85：decode生成引用未限定的beanFactory，按"模块类父类链自带可访问静态
 	// beanFactory"惯例解析（IModule无此契约）——生成期校验并给出修复提示。
-	private static void checkBeanFactorySymbol(@NotNull Class<?> moduleClass, @NotNull List<MethodOverride> overrides) {
+	private static void checkBeanFactorySymbol
+	(@NotNull Class<?> moduleClass, @NotNull List<MethodOverride> overrides) {
 		var methodsNeedingFactory = new ArrayList<String>();
 		for (var m : overrides) {
 			var need = false;
@@ -503,7 +595,8 @@ public final class GenModule extends ReentrantLock {
 	}
 
 	// 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。
-	private static void choiceTargetRunLoopback(StringBuilderCs sb, MethodOverride m, String returnName, String prefix) {
+	private static void choiceTargetRunLoopback(StringBuilderCs sb, MethodOverride m, String returnName, String
+			prefix) {
 		if (m.annotation instanceof RedirectHash) {
 			sb.appendLine("{}var _t_ = _redirect_.choiceHash(this, {}, {});",
 					prefix, m.hashOrServerIdParameter.getName(), m.getConcurrentLevelSource());
@@ -527,7 +620,7 @@ public final class GenModule extends ReentrantLock {
 	}
 
 	private static void genRedirectAll(StringBuilderCs sb, StringBuilderCs sbHandles,
-	                                   int moduleId, String moduleFullName, MethodOverride m) throws Exception {
+									   int moduleId, String moduleFullName, MethodOverride m) throws Exception {
 		sb.append("        var _c_ = new Zeze.Arch.RedirectAllContext<>({}, ", m.hashOrServerIdParameter.getName());
 		if (m.resultTypeName != null) {
 			if (m.resultFields.isEmpty())

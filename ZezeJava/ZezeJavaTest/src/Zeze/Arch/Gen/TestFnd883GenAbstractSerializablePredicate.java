@@ -19,12 +19,9 @@ import Zeze.Transaction.Data;
 import Zeze.Util.StringBuilderCs;
 import harness.Fast;
 import org.jetbrains.annotations.Nullable;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * FND8-83回归：抽象Serializable形参/元素的编解码资格判定原先不对称——decode侧对抽象
@@ -32,10 +29,9 @@ import org.junit.jupiter.api.parallel.Isolated;
  * 元素不是java.io.Serializable，运行时才炸。
  * 修复：encode/decode共用checkGenElement谓词（抽象形参生成期拒绝；容器兜底要求元素
  * java.io.Serializable）；MethodOverride结果类型补!isAbstract与构造器检查；文件模式
- * 写盘前试编译（-DGenFileTryCompile开启）。
+ * 写盘前试编译（tryCompile参数开启）。
  */
 @Fast
-@Isolated // genFileSrcRoot/tryCompileGeneratedFile是GenModule.instance上的JVM级全局开关
 public class TestFnd883GenAbstractSerializablePredicate {
 
 	/** 抽象Zeze Serializable形参：decode侧无法反建实例（缺陷主体）。 */
@@ -96,18 +92,6 @@ public class TestFnd883GenAbstractSerializablePredicate {
 
 	@TempDir
 	Path tempDir;
-
-	@BeforeEach
-	public void setUp() {
-		Assertions.assertNull(GenModule.instance.genFileSrcRoot, "测试前提：全局genFileSrcRoot默认关闭");
-		Assertions.assertFalse(GenModule.instance.tryCompileGeneratedFile, "测试前提：试编译默认关闭");
-	}
-
-	@AfterEach
-	public void tearDown() {
-		GenModule.instance.genFileSrcRoot = null; // 全局开关必须恢复
-		GenModule.instance.tryCompileGeneratedFile = false;
-	}
 
 	private static Parameter inputParam(String methodName) {
 		for (Method m : ModuleSignatures.class.getDeclaredMethods()) {
@@ -251,18 +235,16 @@ public class TestFnd883GenAbstractSerializablePredicate {
 				return null; // 文件模式只读app.getClass()匹配构造器，不触碰zeze
 			}
 		};
-		GenModule.instance.genFileSrcRoot = tempDir.toString();
-		GenModule.instance.tryCompileGeneratedFile = true;
 
 		// 正路径：顶层模块类可编译，照常写盘
-		Assertions.assertNull(GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{A7Fnd883TopModule.class}));
+		GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp, new Class<?>[]{A7Fnd883TopModule.class}, true);
 		var goodFile = tempDir.resolve(GenModule.REDIRECT_PREFIX
 				+ A7Fnd883TopModule.class.getName().replace('.', '_') + ".java");
 		Assertions.assertTrue(Files.exists(goodFile), "可编译产物必须写盘");
 
 		// 负路径：嵌套fixture类的生成源码（extends含$）不可编译——写盘前必须拦下
 		var ex = Assertions.assertThrows(IllegalStateException.class,
-				() -> GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{NestModule.class}));
+				() -> GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp, new Class<?>[]{NestModule.class}, true));
 		Assertions.assertTrue(String.valueOf(ex.getCause()).contains("Unable to compile")
 						|| ex.getMessage().contains(NestModule.class.getName()),
 				"试编译失败须带编译诊断与模块上下文: " + ex);

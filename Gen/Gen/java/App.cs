@@ -175,8 +175,6 @@ namespace Zeze.Gen.java
             if (project.AllOrderDefineModules.Count > 0)
             {
                 sw.WriteLine("            var _modules_ = createRedirectModules(redirectModuleClasses());");
-                sw.WriteLine("            if (_modules_ == null)");
-                sw.WriteLine("                return;");
                 sw.WriteLine();
                 int index = 0;
                 foreach (Module m in project.AllOrderDefineModules)

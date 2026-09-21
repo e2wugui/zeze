@@ -5,7 +5,9 @@ build/
 classes/
 db/
 dbhome/
-Gen/
+# 锚定到生成目录：裸Gen/会误伤源码目录Zeze/Arch/Gen（git add被拒）。
+/ZezeJavaTest/Gen/
+/ZezexJava/*/Gen/
 lib/
 log/
 RocksDB/

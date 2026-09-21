@@ -20,9 +20,15 @@ public class HotRedirect extends ClassLoader {
 		// * parent? findLoadedClass?
 		// * 这个Cl是纯粹代理的，按module优先实现横向查找，剩下的可以按标准路线走。
 
-		// 已经生成好的Redirect_全局类。
-		if (name.startsWith(GenModule.REDIRECT_PREFIX) && name.contains("_Module"))
-			name = name.substring(GenModule.REDIRECT_PREFIX.length()).replace('_', '.');
+		// 已经生成好的Redirect_全局类：Redirect_x_y_ModuleZ按映射名定位归属的HotModule，
+		// 装载必须用原名且绕过双亲委派——按映射名装载返回的是模块基类；
+		// 走标准loadClass则冷classpath残留可经parent委派抢先装载到旧身份。
+		if (name.startsWith(GenModule.REDIRECT_PREFIX) && name.contains("_Module")) {
+			var moduleClassName = name.substring(GenModule.REDIRECT_PREFIX.length()).replace('_', '.');
+			var module = manager.findHotModule(moduleClassName);
+			if (module != null)
+				return module.findRedirectClass(name);
+		}
 
 		var cl = manager.findHotModule(name);
 		if (cl != null)

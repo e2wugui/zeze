@@ -10,12 +10,9 @@ import Zeze.Arch.RedirectToServer;
 import harness.Fast;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * FND7-67回归：GenModule生成redirect拦截子类时仅扫moduleClass.getDeclaredMethods()，
@@ -33,7 +30,6 @@ import org.junit.jupiter.api.parallel.Isolated;
  * 离线模式断言生成源码内容（拦截方法+handles注册键）。
  */
 @Fast
-@Isolated // genFileSrcRoot是GenModule.instance上的JVM级全局开关，独占运行
 public class TestFnd767GenModuleInheritedRedirect {
 	private static final String LEAF_FULL_NAME = "TestFnd767GenModuleInheritedRedirect.LeafModule";
 
@@ -73,22 +69,10 @@ public class TestFnd767GenModuleInheritedRedirect {
 		}
 	};
 
-	@BeforeEach
-	public void setUp() {
-		Assertions.assertNull(GenModule.instance.genFileSrcRoot, "测试前提：全局genFileSrcRoot默认关闭");
-	}
-
-	@AfterEach
-	public void tearDown() {
-		GenModule.instance.genFileSrcRoot = null; // 全局开关必须恢复
-	}
-
 	/** 继承的redirect方法必须触发生成：拦截方法覆盖+handles注册。 */
 	@Test
 	public void testInheritedRedirectGenerated() throws Exception {
-		GenModule.instance.genFileSrcRoot = tempDir.toString();
-		var modules = GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{LeafModule.class});
-		Assertions.assertNull(modules, "离线生成模式返回null（不编译不实例化）");
+		GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp, new Class<?>[]{LeafModule.class}, false);
 
 		var file = tempDir.resolve(GenModule.REDIRECT_PREFIX
 				+ LeafModule.class.getName().replace('.', '_') + ".java");
@@ -106,8 +90,7 @@ public class TestFnd767GenModuleInheritedRedirect {
 	/** 派生类重声明同签名：去重后只生成一次（重复生成会产生重复方法无法编译）。 */
 	@Test
 	public void testOverriddenSignatureNotDuplicated() throws Exception {
-		GenModule.instance.genFileSrcRoot = tempDir.toString();
-		GenModule.instance.createRedirectModules(dummyApp, new Class<?>[]{OverrideLeafModule.class});
+		GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp, new Class<?>[]{OverrideLeafModule.class}, false);
 
 		var file = tempDir.resolve(GenModule.REDIRECT_PREFIX
 				+ OverrideLeafModule.class.getName().replace('.', '_') + ".java");
