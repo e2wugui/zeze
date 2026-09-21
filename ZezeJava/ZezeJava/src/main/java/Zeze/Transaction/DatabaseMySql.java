@@ -286,7 +286,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						return_label:BEGIN
 						    DECLARE old_ver BIGINT;
 						    DECLARE row_count INT;
-						
+
 						    START TRANSACTION;
 						    SET ret_value=1;
 						    SELECT version INTO old_ver FROM _ZezeDataWithVersion_ WHERE id=in_id;
@@ -310,7 +310,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						        ROLLBACK;
 						        LEAVE return_label;
 						    END IF;
-						
+
 						    INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version);
 						    SELECT ROW_COUNT() INTO row_count;
 						    IF row_count = 1 THEN
@@ -334,100 +334,94 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				try (var ps = conn.prepareStatement(tableInstancesSql)) {
 					ps.executeUpdate();
 				}
-				var procSetInUseSql = "CREATE PROCEDURE _ZezeSetInUse_(\n" +
-						"    IN  in_local_id INT,\n" +
-						"    IN  in_global LONGBLOB,\n" +
-						"    OUT ret_value INT\n" +
-						")\n" +
-						"return_label:BEGIN\n" +
-						"    DECLARE cur_global LONGBLOB;\n" +
-						"    DECLARE empty_bin LONGBLOB;\n" +
-						"    DECLARE instance_count INT;\n" +
-						"    DECLARE row_count INT;\n" +
-						"\n" +
-						"    START TRANSACTION;\n" +
-						"    SET ret_value=1;\n" +
-						"    IF exists (SELECT localid FROM _ZezeInstances_ WHERE localid=in_local_id) THEN\n" +
-						"        SET ret_value=2;\n" +
-						"        ROLLBACK;\n" +
-						"        LEAVE return_label;\n" +
-						"    END IF;\n" +
-						"    INSERT IGNORE INTO _ZezeInstances_ VALUES(in_local_id);\n" +
-						"    SELECT ROW_COUNT() INTO row_count;\n" +
-						"    IF row_count = 0 THEN\n" +
-						"        SET ret_value=3;\n" +
-						"        ROLLBACK;\n" +
-						"        LEAVE return_label;\n" +
-						"    END IF;\n" +
-						"    SET empty_bin = BINARY '';\n" +
-						"    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
-						"    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
-						"    IF row_count > 0 THEN\n" +
-						"        IF cur_global <> in_global THEN\n" +
-						"            SET ret_value=4;\n" +
-						"            ROLLBACK;\n" +
-						"            LEAVE return_label;\n" +
-						"        END IF;\n" +
-						"    ELSE\n" +
-						// 忽略这一行的操作结果，当最后一个实例退出的时候，这条记录会被删除。不考虑退出和启动的并发了？
-						"        INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0);\n" +
-						"    END IF;\n" +
-						"    SET instance_count=0;\n" +
-						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
-						"    IF instance_count = 1 THEN\n" +
-						"        SET ret_value=0;\n" +
-						"        COMMIT;\n" +
-						"        LEAVE return_label;\n" +
-						"    END IF;\n" +
-						"    IF LENGTH(in_global)=0 THEN\n" +
-						"        SET ret_value=6;\n" +
-						"        ROLLBACK;\n" +
-						"        LEAVE return_label;\n" +
-						"    END IF;\n" +
-						"    SET ret_value=0;\n" +
-						"    IF 1=1 THEN\n" +
-						"        COMMIT;\n" +
-						"    END IF;\n" +
-						"    LEAVE return_label;\n" +
-						"END;";
+				var procSetInUseSql = """
+					CREATE PROCEDURE _ZezeSetInUse_(
+					    IN  in_local_id INT,
+					    IN  in_global LONGBLOB,
+					    OUT ret_value INT
+					)
+					return_label:BEGIN
+					    DECLARE cur_global LONGBLOB;
+					    DECLARE empty_bin LONGBLOB;
+					    DECLARE instance_count INT;
+					    DECLARE row_count INT;
+
+					    START TRANSACTION;
+					    SET ret_value=1;
+					    IF exists (SELECT localid FROM _ZezeInstances_ WHERE localid=in_local_id) THEN
+					        SET ret_value=2;
+					        ROLLBACK;
+					        LEAVE return_label;
+					    END IF;
+					    INSERT IGNORE INTO _ZezeInstances_ VALUES(in_local_id);
+					    SELECT ROW_COUNT() INTO row_count;
+					    IF row_count = 0 THEN
+					        SET ret_value=3;
+					        ROLLBACK;
+					        LEAVE return_label;
+					    END IF;
+					    SET empty_bin = BINARY '';
+					    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
+					    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
+					    IF row_count > 0 THEN
+					        IF cur_global <> in_global THEN
+					            SET ret_value=4;
+					            ROLLBACK;
+					            LEAVE return_label;
+					        END IF;
+					    ELSE
+					        INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0);
+					    END IF;
+					    SET instance_count=0;
+					    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
+					    IF instance_count = 1 THEN
+					        SET ret_value=0;
+					        COMMIT;
+					        LEAVE return_label;
+					    END IF;
+					    IF LENGTH(in_global)=0 THEN
+					        SET ret_value=6;
+					        ROLLBACK;
+					        LEAVE return_label;
+					    END IF;
+					    SET ret_value=0;
+					    IF 1=1 THEN
+					        COMMIT;
+					    END IF;
+					    LEAVE return_label;
+					END;""";
 				try (var ps = conn.prepareStatement(procSetInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!sqlMessageContains(ex, "already exist"))
 						throw ex;
 				}
-				var procClearInUseSql = "CREATE PROCEDURE _ZezeClearInUse_(\n" +
-						"    IN  in_local_id int,\n" +
-						"    IN  in_global LONGBLOB,\n" +
-						"    OUT ret_value int\n" +
-						")\n" +
-						"return_label:BEGIN\n" +
-						"    DECLARE instance_count INT;\n" +
-						"    DECLARE empty_bin LONGBLOB;\n" +
-						"    DECLARE row_count INT;\n" +
-						"\n" +
-						"    START TRANSACTION;\n" +
-						"    SET ret_value=1;\n" +
-						"    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;\n" +
-						//实例不存在的情况不判断了，总是去执行后面的清除判断。
-						//"    SELECT ROW_COUNT() INTO row_count;\n" +
-						//"    IF row_count = 0 THEN\n" +
-						//"        SET ret_value=2;\n" +
-						//"        ROLLBACK;\n" +
-						//"        LEAVE return_label;\n" +
-						//"    END IF;\n" +
-						"    SET instance_count=0;\n" +
-						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
-						"    IF instance_count = 0 THEN\n" +
-						"        SET empty_bin = BINARY '';\n" +
-						"        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
-						"    END IF;\n" +
-						"    SET ret_value=0;\n" +
-						"    IF 1=1 THEN\n" +
-						"        COMMIT;\n" +
-						"    END IF;\n" +
-						"    LEAVE return_label;\n" +
-						"END;";
+				var procClearInUseSql = """
+					CREATE PROCEDURE _ZezeClearInUse_(
+					    IN  in_local_id int,
+					    IN  in_global LONGBLOB,
+					    OUT ret_value int
+					)
+					return_label:BEGIN
+					    DECLARE instance_count INT;
+					    DECLARE empty_bin LONGBLOB;
+					    DECLARE row_count INT;
+
+					    START TRANSACTION;
+					    SET ret_value=1;
+					    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;
+					    SET instance_count=0;
+					    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
+					    IF instance_count = 0 THEN
+					        SET empty_bin = BINARY '';
+					        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
+					    END IF;
+					    SET ret_value=0;
+					    IF 1=1 THEN
+					        COMMIT;
+					    END IF;
+					    LEAVE return_label;
+					END;""";
 				try (var ps = conn.prepareStatement(procClearInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {

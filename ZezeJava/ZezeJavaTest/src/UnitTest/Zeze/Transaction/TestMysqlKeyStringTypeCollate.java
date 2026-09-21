@@ -6,6 +6,7 @@ import Zeze.Config;
 import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabaseRelationalMapping;
 import harness.Fast;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,7 @@ public class TestMysqlKeyStringTypeCollate {
 		// 接口默认值保持不变（PostgreSQL 依赖它：text 等值恒为字节精确，无需覆写）。
 		DatabaseRelationalMapping mapping = new DatabaseRelationalMapping() {
 			@Override
-			public Zeze.Transaction.Database.Table openRelationalTable(String name) {
+			public Zeze.Transaction.Database.@NotNull Table openRelationalTable(@NotNull String name) {
 				return null;
 			}
 

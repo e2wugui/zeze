@@ -321,95 +321,91 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				try (var ps = conn.prepareStatement(tableInstancesSql)) {
 					ps.executeUpdate();
 				}
-				var procSetInUseSql = "CREATE OR REPLACE FUNCTION _ZezeSetInUse_(\n" +
-						"    IN  in_local_id INTEGER,\n" +
-						"    IN  in_global BYTEA,\n" +
-						"    OUT ret_value INTEGER\n" +
-						")\n" +
-						"LANGUAGE plpgsql\n" +
-						"AS $$\n" +
-						"DECLARE\n" +
-						"    cur_global BYTEA;\n" +
-						"    empty_bin BYTEA := E'\\\\x'::bytea;\n" +
-						"    instance_count INTEGER;\n" +
-						"    row_count INTEGER;\n" +
-						"BEGIN\n" +
-						"    ret_value := 1;\n" +
-						"    IF exists (SELECT 1 FROM _ZezeInstances_ WHERE localid=in_local_id) THEN\n" +
-						"        ret_value := 2;\n" +
-						"        RAISE EXCEPTION 'ROLLBACK';\n" +
-						"        RETURN;\n" +
-						"    END IF;\n" +
-						"    INSERT INTO _ZezeInstances_ VALUES(in_local_id) ON CONFLICT (localid) DO NOTHING;\n" +
-						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
-						"    IF row_count = 0 THEN\n" +
-						"        ret_value := 3;\n" +
-						"        RAISE EXCEPTION 'ROLLBACK';\n" +
-						"        RETURN;\n" +
-						"    END IF;\n" +
-						"    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
-						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
-						"    IF row_count > 0 THEN\n" +
-						"        IF cur_global IS DISTINCT FROM in_global THEN\n" +
-						"            ret_value := 4;\n" +
-						"            RAISE EXCEPTION 'ROLLBACK';\n" +
-						"            RETURN;\n" +
-						"        END IF;\n" +
-						"    ELSE\n" +
-						// 忽略这一行的操作结果，当最后一个实例退出的时候，这条记录会被删除。不考虑退出和启动的并发了？
-						"        INSERT INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0) ON CONFLICT (id) DO NOTHING;\n" +
-						"    END IF;\n" +
-						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
-						"    IF instance_count = 1 THEN\n" +
-						"        ret_value := 0;\n" +
-						"        RETURN;\n" +
-						"    END IF;\n" +
-						"    IF LENGTH(in_global)=0 THEN\n" +
-						"        ret_value := 6;\n" +
-						"        RAISE EXCEPTION 'ROLLBACK';\n" +
-						"        RETURN;\n" +
-						"    END IF;\n" +
-						"    ret_value := 0;\n" +
-						"    RETURN;\n" +
-						"EXCEPTION WHEN OTHERS THEN\n" +
-						"END;\n" +
-						"$$\n";
+				var procSetInUseSql = """
+					CREATE OR REPLACE FUNCTION _ZezeSetInUse_(
+					    IN  in_local_id INTEGER,
+					    IN  in_global BYTEA,
+					    OUT ret_value INTEGER
+					)
+					LANGUAGE plpgsql
+					AS $$
+					DECLARE
+					    cur_global BYTEA;
+					    empty_bin BYTEA := E'\\\\x'::bytea;
+					    instance_count INTEGER;
+					    row_count INTEGER;
+					BEGIN
+					    ret_value := 1;
+					    IF exists (SELECT 1 FROM _ZezeInstances_ WHERE localid=in_local_id) THEN
+					        ret_value := 2;
+					        RAISE EXCEPTION 'ROLLBACK';
+					        RETURN;
+					    END IF;
+					    INSERT INTO _ZezeInstances_ VALUES(in_local_id) ON CONFLICT (localid) DO NOTHING;
+					    GET DIAGNOSTICS row_count = ROW_COUNT;
+					    IF row_count = 0 THEN
+					        ret_value := 3;
+					        RAISE EXCEPTION 'ROLLBACK';
+					        RETURN;
+					    END IF;
+					    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
+					    GET DIAGNOSTICS row_count = ROW_COUNT;
+					    IF row_count > 0 THEN
+					        IF cur_global IS DISTINCT FROM in_global THEN
+					            ret_value := 4;
+					            RAISE EXCEPTION 'ROLLBACK';
+					            RETURN;
+					        END IF;
+					    ELSE
+					        INSERT INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0) ON CONFLICT (id) DO NOTHING;
+					    END IF;
+					    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
+					    IF instance_count = 1 THEN
+					        ret_value := 0;
+					        RETURN;
+					    END IF;
+					    IF LENGTH(in_global)=0 THEN
+					        ret_value := 6;
+					        RAISE EXCEPTION 'ROLLBACK';
+					        RETURN;
+					    END IF;
+					    ret_value := 0;
+					    RETURN;
+					EXCEPTION WHEN OTHERS THEN
+					END;
+					$$
+					""";
 				try (var ps = conn.prepareStatement(procSetInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!sqlMessageContains(ex, "tuple concurrently updated"))
 						throw ex;
 				}
-				var procClearInUseSql = "CREATE OR REPLACE FUNCTION _ZezeClearInUse_(\n" +
-						"    IN  in_local_id INTEGER,\n" +
-						"    IN  in_global BYTEA,\n" +
-						"    OUT ret_value INTEGER\n" +
-						")\n" +
-						"LANGUAGE plpgsql\n" +
-						"AS $$\n" +
-						"DECLARE\n" +
-						"    instance_count INTEGER;\n" +
-						"    empty_bin BYTEA := E'\\\\x'::bytea;\n" +
-						"    row_count INTEGER;\n" +
-						"BEGIN\n" +
-						"    ret_value := 1;\n" +
-						"    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;\n" +
-				//实例不存在的情况不判断了，总是去执行后面的清除判断。
-				//"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
-				//"    IF row_count = 0 THEN\n" +
-				//"        ret_value := 2;\n" +
-				//"        RAISE EXCEPTION 'ROLLBACK';\n" +
-				//"        RETURN;\n" +
-				//"    END IF;\n" +
-						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
-						"    IF instance_count = 0 THEN\n" +
-						"        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
-						"    END IF;\n" +
-						"    ret_value := 0;\n" +
-						"    RETURN;\n" +
-						"EXCEPTION WHEN OTHERS THEN\n" +
-						"END;\n" +
-						"$$;\n";
+				var procClearInUseSql = """
+					CREATE OR REPLACE FUNCTION _ZezeClearInUse_(
+					    IN  in_local_id INTEGER,
+					    IN  in_global BYTEA,
+					    OUT ret_value INTEGER
+					)
+					LANGUAGE plpgsql
+					AS $$
+					DECLARE
+					    instance_count INTEGER;
+					    empty_bin BYTEA := E'\\\\x'::bytea;
+					    row_count INTEGER;
+					BEGIN
+					    ret_value := 1;
+					    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;
+					    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
+					    IF instance_count = 0 THEN
+					        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
+					    END IF;
+					    ret_value := 0;
+					    RETURN;
+					EXCEPTION WHEN OTHERS THEN
+					END;
+					$$;
+					""";
 				try (var ps = conn.prepareStatement(procClearInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
