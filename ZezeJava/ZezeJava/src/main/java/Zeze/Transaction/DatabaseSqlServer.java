@@ -60,20 +60,19 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public boolean tryLock() {
-			// T3-F1：原实现未覆写tryLock（落到Operates默认return true），滚动发布时两个
-			// 进程互不排斥地并发执行schemasCompatible，检查-后-写的存储过程双双成功且
-			// 丢失一方的schemas写入。补条件写式互斥，锁行version复用为租期到期时间戳：
-			// 0=空闲，>0=持锁至该时刻（DB服务器时钟UTC，单一时间来源），到期即可接管。
-			// 与MySql/PG版同款（T2-F1），误过期取舍同review-2026-09/l4/T3-4。
-			var createRecordSql = "BEGIN TRY" + "\r\n" +
-					"    insert into _ZezeDataWithVersion_ values(?, ?, 0)" + "\r\n" +
-					"END TRY" + "\r\n" +
-					"BEGIN CATCH" + "\r\n" +
-					"    if ERROR_NUMBER() not in (2627, 2601)" + "\r\n" +
-					"    begin" + "\r\n" +
-					"        ; THROW" + "\r\n" +
-					"    end" + "\r\n" +
-					"END CATCH";
+			// 条件写式互斥：锁行version复用为租期到期时间戳，0=空闲，>0=持锁至该时刻
+			// （DB服务器时钟UTC，单一时间来源），到期即可接管。与MySql/PG版同款，
+			// 误过期取舍同review-2026-09/l4/T3-4。
+			var createRecordSql = """
+					BEGIN TRY
+					    insert into _ZezeDataWithVersion_ values(?, ?, 0)
+					END TRY
+					BEGIN CATCH
+					    if ERROR_NUMBER() not in (2627, 2601)
+					    begin
+					        ; THROW
+					    end
+					END CATCH""";
 			var lockSql = "UPDATE _ZezeDataWithVersion_ SET version=DATEDIFF_BIG(second, '1970-01-01', SYSUTCDATETIME())+"
 					+ LOCK_LEASE_SECONDS
 					+ " WHERE id=? AND version<=DATEDIFF_BIG(second, '1970-01-01', SYSUTCDATETIME())";
@@ -216,190 +215,180 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 
-				String ProcSaveDataWithSameVersion = "Create or Alter procedure _ZezeSaveDataWithSameVersion_" + "\r\n" +
-						"                        @id VARBINARY(Max)," + "\r\n" +
-						"                        @data VARBINARY(MAX)," + "\r\n" +
-						"                        @version bigint output," + "\r\n" +
-						"                        @ReturnValue int output" + "\r\n" +
-						"                    as" + "\r\n" +
-						"                    begin" + "\r\n" +
-						"                        BEGIN TRANSACTION" + "\r\n" +
-						"                        set @ReturnValue=1" + "\r\n" +
-						"                        DECLARE @currentversion bigint" + "\r\n" +
-						"                        select @currentversion=version from _ZezeDataWithVersion_ where id = @id" + "\r\n" +
-						"                        if @@ROWCOUNT > 0" + "\r\n" +
-						"                        begin" + "\r\n" +
-						"                            if @currentversion <> @version" + "\r\n" +
-						"                            begin" + "\r\n" +
-						"                                set @ReturnValue=2" + "\r\n" +
-						"                                ROLLBACK TRANSACTION" + "\r\n" +
-						"                                return 2" + "\r\n" +
-						"                            end" + "\r\n" +
-						"                            set @currentversion = @currentversion + 1" + "\r\n" +
-						"                            update _ZezeDataWithVersion_ set data = @data, version = @currentversion where id = @id" + "\r\n" +
-						"                            if @@rowcount = 1" + "\r\n" +
-						"                            begin" + "\r\n" +
-						"                                set @version = @currentversion" + "\r\n" +
-						"                                set @ReturnValue=0" + "\r\n" +
-						"                                COMMIT TRANSACTION" + "\r\n" +
-						"                                return 0" + "\r\n" +
-						"                            end" + "\r\n" +
-						"                            set @ReturnValue=3" + "\r\n" +
-						"                            ROLLBACK TRANSACTION" + "\r\n" +
-						"                            return 3" + "\r\n" +
-						"                        end" + "\r\n" +
-						"\r\n" +
-				// FND2-T3-2：原为"insert后跟select(0行)再查@@rowcount"的残缺形态——SELECT把@@rowcount
-				// 重置为0导致插入路径恒return 4，且其无FROM子句的select在EXEC时报207(Invalid column name)，
-				// 还会向客户端吐出空结果集干扰executeUpdate。重写：直接insert，并发插入竞争(2627主键/
-				// 2601唯一索引冲突)按MySQL版INSERT IGNORE的失败语义映射为return 4，其他错误重新抛出。
-						"                        BEGIN TRY" + "\r\n" +
-						"                            insert into _ZezeDataWithVersion_ values(@id,@data,@version)" + "\r\n" +
-						"                        END TRY" + "\r\n" +
-						"                        BEGIN CATCH" + "\r\n" +
-						"                            if ERROR_NUMBER() in (2627, 2601)" + "\r\n" +
-						"                            begin" + "\r\n" +
-						"                                set @ReturnValue=4" + "\r\n" +
-						"                                ROLLBACK TRANSACTION" + "\r\n" +
-						"                                return 4" + "\r\n" +
-						"                            end" + "\r\n" +
-						"                            ; THROW" + "\r\n" +
-						"                        END CATCH" + "\r\n" +
-						"                        set @ReturnValue=0" + "\r\n" +
-						"                        COMMIT TRANSACTION" + "\r\n" +
-						"                        return 0" + "\r\n" +
-						"                    end";
+				// 插入路径：并发插入撞重复键（2627主键/2601唯一索引）按MySQL版INSERT IGNORE的
+				// 失败语义映射return 4，其他错误重抛。
+				String ProcSaveDataWithSameVersion = """
+						Create or Alter procedure _ZezeSaveDataWithSameVersion_
+						                        @id VARBINARY(Max),
+						                        @data VARBINARY(MAX),
+						                        @version bigint output,
+						                        @ReturnValue int output
+						                    as
+						                    begin
+						                        BEGIN TRANSACTION
+						                        set @ReturnValue=1
+						                        DECLARE @currentversion bigint
+						                        select @currentversion=version from _ZezeDataWithVersion_ where id = @id
+						                        if @@ROWCOUNT > 0
+						                        begin
+						                            if @currentversion <> @version
+						                            begin
+						                                set @ReturnValue=2
+						                                ROLLBACK TRANSACTION
+						                                return 2
+						                            end
+						                            set @currentversion = @currentversion + 1
+						                            update _ZezeDataWithVersion_ set data = @data, version = @currentversion where id = @id
+						                            if @@rowcount = 1
+						                            begin
+						                                set @version = @currentversion
+						                                set @ReturnValue=0
+						                                COMMIT TRANSACTION
+						                                return 0
+						                            end
+						                            set @ReturnValue=3
+						                            ROLLBACK TRANSACTION
+						                            return 3
+						                        end
+						
+						                        BEGIN TRY
+						                            insert into _ZezeDataWithVersion_ values(@id,@data,@version)
+						                        END TRY
+						                        BEGIN CATCH
+						                            if ERROR_NUMBER() in (2627, 2601)
+						                            begin
+						                                set @ReturnValue=4
+						                                ROLLBACK TRANSACTION
+						                                return 4
+						                            end
+						                            ; THROW
+						                        END CATCH
+						                        set @ReturnValue=0
+						                        COMMIT TRANSACTION
+						                        return 0
+						                    end""";
 				try (var cmd = connection.prepareStatement(ProcSaveDataWithSameVersion)) {
 					cmd.executeUpdate();
 				}
 
 				//noinspection SpellCheckingInspection
-				String TableInstances = "if not exists (select * from sysobjects where name='_ZezeInstances_' and xtype='U')" + " CREATE TABLE _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)";
+				String TableInstances = "if not exists (select * from sysobjects where name='_ZezeInstances_' and xtype='U')"
+						+ " CREATE TABLE _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)";
 				try (var cmd = connection.prepareStatement(TableInstances)) {
 					cmd.executeUpdate();
 				}
 				// zeze_global 使用 _ZezeDataWithVersion_ 存储。
 
-				String ProcSetInUse = "Create or Alter procedure _ZezeSetInUse_" + "\r\n" +
-						"                        @localid int," + "\r\n" +
-						"                        @global VARBINARY(MAX)," + "\r\n" +
-						"                        @ReturnValue int output" + "\r\n" +
-						"                    as" + "\r\n" +
-						"                    begin" + "\r\n" +
-						"                        BEGIN TRANSACTION" + "\r\n" +
-						"                        set @ReturnValue=1" + "\r\n" +
-						"                        if exists (select localid from _ZezeInstances_ where localid = @localid)" + "\r\n" +
-						"                        begin" + "\r\n" +
-						"                            set @ReturnValue=2" + "\r\n" +
-						"                            ROLLBACK TRANSACTION" + "\r\n" +
-						"                            return 2" + "\r\n" +
-						"                        end" + "\r\n" +
-						// FND2-T3-2：原残缺形态"insert后跟select(0行)再查@@rowcount"令@@rowcount恒0，
-						// 全新库上EXEC也恒return 3(Insert LocalId Failed)→Application.start必败（LocalDB实测）。
-						// 重写：直接insert（VALUES形态非1即异常），并发主键冲突(2627/2601)映射return 3。
-						"                        BEGIN TRY" + "\r\n" +
-						"                            insert into _ZezeInstances_ values(@localid)" + "\r\n" +
-						"                        END TRY" + "\r\n" +
-						"                        BEGIN CATCH" + "\r\n" +
-						"                            if ERROR_NUMBER() in (2627, 2601)" + "\r\n" +
-						"                            begin" + "\r\n" +
-						"                                set @ReturnValue=3" + "\r\n" +
-						"                                ROLLBACK TRANSACTION" + "\r\n" +
-						"                                return 3" + "\r\n" +
-						"                            end" + "\r\n" +
-						"                            ; THROW" + "\r\n" +
-						"                        END CATCH" + "\r\n" +
-						"                        DECLARE @currentglobal VARBINARY(MAX)" + "\r\n" +
-						"                        declare @emptybinary varbinary(max)" + "\r\n" +
-						"                        set @emptybinary = convert(varbinary(max), '')" + "\r\n" +
-						"                        select @currentglobal=data from _ZezeDataWithVersion_ where id=@emptybinary" + "\r\n" +
-						"                        if @@rowcount > 0" + "\r\n" +
-						"                        begin" + "\r\n" +
-						"                            if @currentglobal <> @global" + "\r\n" +
-						"                            begin" + "\r\n" +
-						"                                set @ReturnValue=4" + "\r\n" +
-						"                                ROLLBACK TRANSACTION" + "\r\n" +
-						"                                return 4" + "\r\n" +
-						"                            end" + "\r\n" +
-						"                        end" + "\r\n" +
-						"                        else" + "\r\n" +
-						"                        begin" + "\r\n" +
-						// FND2-T3-2：此分支原是复制粘贴错误——再次insert @localid会与过程前段的主键冲突。
-						// 按MySQL版对齐：global记录不存在时插入_ZezeDataWithVersion_(empty_bin, in_global, 0)，
-						// 结果不检查（最后一个实例退出时由_ZezeClearInUse_删除）。
-						// T3-F2：并发首启（含同global集群同时拉起）双方select都见0行、双双走到此插入，
-						// 后到者2627主键冲突原先裸抛炸启动。包进TRY/CATCH：冲突后重读已提交的global行，
-						// 相同按"已存在且相等"继续（对齐MySQL版INSERT IGNORE语义），不同才return 4。
-						// 主键冲突时对方必已提交（未提交的插入会持键锁阻塞本方插入直到其先提交），重读必见已提交值。
-						"                            BEGIN TRY" + "\r\n" +
-						"                                insert into _ZezeDataWithVersion_ values(@emptybinary, @global, 0)" + "\r\n" +
-						"                            END TRY" + "\r\n" +
-						"                            BEGIN CATCH" + "\r\n" +
-						"                                if ERROR_NUMBER() not in (2627, 2601)" + "\r\n" +
-						"                                begin" + "\r\n" +
-						"                                    ; THROW" + "\r\n" +
-						"                                end" + "\r\n" +
-						"                                select @currentglobal=data from _ZezeDataWithVersion_ where id=@emptybinary" + "\r\n" +
-						"                                if @@rowcount > 0 and @currentglobal <> @global" + "\r\n" +
-						"                                begin" + "\r\n" +
-						"                                    set @ReturnValue=4" + "\r\n" +
-						"                                    ROLLBACK TRANSACTION" + "\r\n" +
-						"                                    return 4" + "\r\n" +
-						"                                end" + "\r\n" +
-						"                            END CATCH" + "\r\n" +
-						"                        end" + "\r\n" +
-						"                        DECLARE @InstanceCount int" + "\r\n" +
-						"                        set @InstanceCount=0" + "\r\n" +
-						"                        select @InstanceCount=count(*) from _ZezeInstances_" + "\r\n" +
-						"                        if @InstanceCount = 1" + "\r\n" +
-						"                        begin" + "\r\n" +
-						"                            set @ReturnValue=0" + "\r\n" +
-						"                            COMMIT TRANSACTION" + "\r\n" +
-						"                            return 0" + "\r\n" +
-						"                        end" + "\r\n" +
-						"                        if DATALENGTH(@global)=0" + "\r\n" +
-						"                        begin" + "\r\n" +
-						"                            set @ReturnValue=6" + "\r\n" +
-						"                            ROLLBACK TRANSACTION" + "\r\n" +
-						"                            return 6" + "\r\n" +
-						"                        end" + "\r\n" +
-						"                        set @ReturnValue=0" + "\r\n" +
-						"                        COMMIT TRANSACTION" + "\r\n" +
-						"                        return 0" + "\r\n" +
-						"                    end";
+				// localid插入并发撞重复键（2627/2601）映射return 3。
+				// global记录不存在则插入（最后一个实例退出时由_ZezeClearInUse_删除）；并发首启后到者
+				// 撞重复键（2627/2601）重读比较，相同继续（对齐MySQL版INSERT IGNORE），不同return 4；
+				// 对方必已提交（未提交的插入持键锁会先阻塞本方），重读必见已提交值。
+				String ProcSetInUse = """
+						Create or Alter procedure _ZezeSetInUse_
+						                        @localid int,
+						                        @global VARBINARY(MAX),
+						                        @ReturnValue int output
+						                    as
+						                    begin
+						                        BEGIN TRANSACTION
+						                        set @ReturnValue=1
+						                        if exists (select localid from _ZezeInstances_ where localid = @localid)
+						                        begin
+						                            set @ReturnValue=2
+						                            ROLLBACK TRANSACTION
+						                            return 2
+						                        end
+						                        BEGIN TRY
+						                            insert into _ZezeInstances_ values(@localid)
+						                        END TRY
+						                        BEGIN CATCH
+						                            if ERROR_NUMBER() in (2627, 2601)
+						                            begin
+						                                set @ReturnValue=3
+						                                ROLLBACK TRANSACTION
+						                                return 3
+						                            end
+						                            ; THROW
+						                        END CATCH
+						                        DECLARE @currentglobal VARBINARY(MAX)
+						                        declare @emptybinary varbinary(max)
+						                        set @emptybinary = convert(varbinary(max), '')
+						                        select @currentglobal=data from _ZezeDataWithVersion_ where id=@emptybinary
+						                        if @@rowcount > 0
+						                        begin
+						                            if @currentglobal <> @global
+						                            begin
+						                                set @ReturnValue=4
+						                                ROLLBACK TRANSACTION
+						                                return 4
+						                            end
+						                        end
+						                        else
+						                        begin
+						                            BEGIN TRY
+						                                insert into _ZezeDataWithVersion_ values(@emptybinary, @global, 0)
+						                            END TRY
+						                            BEGIN CATCH
+						                                if ERROR_NUMBER() not in (2627, 2601)
+						                                begin
+						                                    ; THROW
+						                                end
+						                                select @currentglobal=data from _ZezeDataWithVersion_ where id=@emptybinary
+						                                if @@rowcount > 0 and @currentglobal <> @global
+						                                begin
+						                                    set @ReturnValue=4
+						                                    ROLLBACK TRANSACTION
+						                                    return 4
+						                                end
+						                            END CATCH
+						                        end
+						                        DECLARE @InstanceCount int
+						                        set @InstanceCount=0
+						                        select @InstanceCount=count(*) from _ZezeInstances_
+						                        if @InstanceCount = 1
+						                        begin
+						                            set @ReturnValue=0
+						                            COMMIT TRANSACTION
+						                            return 0
+						                        end
+						                        if DATALENGTH(@global)=0
+						                        begin
+						                            set @ReturnValue=6
+						                            ROLLBACK TRANSACTION
+						                            return 6
+						                        end
+						                        set @ReturnValue=0
+						                        COMMIT TRANSACTION
+						                        return 0
+						                    end""";
 				try (var cmd = connection.prepareStatement(ProcSetInUse)) {
 					cmd.executeUpdate();
 				}
 
-				String ProcClearInUse = "Create or Alter procedure _ZezeClearInUse_" + "\r\n" +
-						"                        @localid int," + "\r\n" +
-						"                        @global VARBINARY(MAX)," + "\r\n" +
-						"                        @ReturnValue int output" + "\r\n" +
-						"                    as" + "\r\n" +
-						"                    begin" + "\r\n" +
-						"                        BEGIN TRANSACTION" + "\r\n" +
-						"                        set @ReturnValue=1" + "\r\n" +
-						"                        delete from _ZezeInstances_ where localid=@localid" + "\r\n" +
-						//实例不存在的情况不判断了，总是去执行后面的清除判断。
-						//"                        if @@rowcount = 0" + "\r\n" +
-						//"                        begin" + "\r\n" +
-						//"                            set @ReturnValue=2" + "\r\n" +
-						//"                            ROLLBACK TRANSACTION" + "\r\n" +
-						//"                            return 2" + "\r\n" +
-						//"                        end" + "\r\n" +
-						"                        DECLARE @InstanceCount int" + "\r\n" +
-						"                        set @InstanceCount=0" + "\r\n" +
-						"                        select @InstanceCount=count(*) from _ZezeInstances_" + "\r\n" +
-						"                        if @InstanceCount = 0" + "\r\n" +
-						"                        begin" + "\r\n" +
-						"                            declare @emptybinary varbinary(max)" + "\r\n" +
-						"                            set @emptybinary = convert(varbinary(max), '')" + "\r\n" +
-						"                            delete from _ZezeDataWithVersion_ where id=@emptybinary" + "\r\n" +
-						"                        end" + "\r\n" +
-						"                        set @ReturnValue=0" + "\r\n" +
-						"                        COMMIT TRANSACTION" + "\r\n" +
-						"                        return 0" + "\r\n" +
-						"                    end";
+				// localid不存在时不报错，总是继续后面的清除判断（实例可能已先退出）。
+				String ProcClearInUse = """
+						Create or Alter procedure _ZezeClearInUse_
+							@localid int,
+							@global VARBINARY(MAX),
+							@ReturnValue int output
+						as
+						begin
+							BEGIN TRANSACTION
+							set @ReturnValue=1
+							delete from _ZezeInstances_ where localid=@localid
+							DECLARE @InstanceCount int
+							set @InstanceCount=0
+							select @InstanceCount=count(*) from _ZezeInstances_
+							if @InstanceCount = 0
+							begin
+								declare @emptybinary varbinary(max)
+								set @emptybinary = convert(varbinary(max), '')
+								delete from _ZezeDataWithVersion_ where id=@emptybinary
+							end
+							set @ReturnValue=0
+							COMMIT TRANSACTION
+							return 0
+						end""";
 				try (var cmd = connection.prepareStatement(ProcClearInUse)) {
 					cmd.executeUpdate();
 				}
@@ -520,7 +509,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			checkKvKeyLength(name, key);
 			var my = (JdbcTrans)t;
-			String sql = "update " + getName() + " set value=? where id=?" + " if @@rowcount = 0 and @@error = 0 insert into " + getName() + " values(?,?)";
+			String sql = "update " + getName() + " set value=? where id=?"
+					+ " if @@rowcount = 0 and @@error = 0 insert into " + getName() + " values(?,?)";
 			try (var cmd = my.conn.prepareStatement(sql)) {
 				var keyCopy = key.CopyIf();
 				var valueCopy = value.CopyIf();
