@@ -8,7 +8,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Helper;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Collections.Meta2;
 import Zeze.Transaction.GTable.BeanMap1;
 import Zeze.Transaction.GTable.BeanMap2;
 import harness.Fast;

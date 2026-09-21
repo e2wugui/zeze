@@ -10,14 +10,14 @@ import org.pcollections.Empty;
 
 @SuppressWarnings("DataFlowIssue")
 public class PSet1<V> extends PSet<V> {
-	protected final @NotNull Meta1<V> meta;
+	protected final @NotNull Set1Meta<V> meta;
 
 	public PSet1(@NotNull Class<V> valueClass) {
-		meta = Meta1.getSet1Meta(valueClass);
+		meta = Set1Meta.get(valueClass);
 	}
 
-	// meta须来自Meta1工厂（公开唯一构建入口，已过Bean拦截），供生成代码常量化/调用点静态持有。
-	public PSet1(@NotNull Meta1<V> meta) {
+	// meta须来自Set1Meta工厂（公开唯一构建入口，已过Bean拦截），供生成代码常量化/调用点静态持有。
+	public PSet1(@NotNull Set1Meta<V> meta) {
 		this.meta = meta;
 	}
 

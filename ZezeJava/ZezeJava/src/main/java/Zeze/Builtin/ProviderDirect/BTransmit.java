@@ -10,8 +10,8 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
 
     private String _ActionName;
     private final Zeze.Transaction.Collections.PSet1<Long> _Roles; // 查询目标角色。
-    private static final Zeze.Transaction.Collections.Meta1<Long> meta1_Roles
-            = Zeze.Transaction.Collections.Meta1.getSet1Meta(Long.class);
+    private static final Zeze.Transaction.Collections.Set1Meta<Long> meta1_Roles
+            = Zeze.Transaction.Collections.Set1Meta.get(Long.class);
 
     private long _Sender; // 结果发送给Sender。
     private Zeze.Net.Binary _Parameter; // encoded bean

@@ -18,28 +18,27 @@ import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSortedMap<K, V> {
-	protected final @NotNull Meta2<K, V> meta;
+	protected final @NotNull SortedMap2Meta<K, V> meta;
 
 	public PSortedMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		meta = Meta2.getSortedMap2Meta(keyClass, valueClass);
+		meta = SortedMap2Meta.get(keyClass, valueClass);
 	}
 
 	public PSortedMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass, @NotNull Supplier<V> valueCtor) {
-		meta = Meta2.createSortedMap2Meta(keyClass, valueClass, valueCtor);
+		meta = SortedMap2Meta.create(keyClass, valueClass, valueCtor);
 	}
 
 	public PSortedMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
 		// 必须用 sortedMap2 家族头哈希：写端 typeId 与读端（Helper.registerLogSortedMap2Dynamic）
 		// 的注册键对称；用错 map2 家族会借道同 keyClass 的 map<K,dynamic> 注册解码成 LogMap2（FND3-04）。
-		meta = Meta2.createDynamicSortedMapMeta(keyClass, get, create);
+		meta = SortedMap2Meta.createDynamic(keyClass, get, create);
 	}
 
-	public PSortedMap2(@NotNull Meta2<K, V> meta) {
-		meta.checkFamily(Meta2.SORTED_MAP2_FAMILY, "PSortedMap2"); // TC2-F1：拒绝跨家族 meta
+	public PSortedMap2(@NotNull SortedMap2Meta<K, V> meta) {
 		this.meta = meta;
 	}
 
-	public @NotNull Meta2<K, V> getMeta() {
+	public @NotNull SortedMap2Meta<K, V> getMeta() {
 		return meta;
 	}
 

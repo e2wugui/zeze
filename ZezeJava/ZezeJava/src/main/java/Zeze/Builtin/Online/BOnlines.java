@@ -9,8 +9,8 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
     public static final long TYPEID = -725348871039859823L;
 
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BOnline> _Logins; // key is ClientId
-    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Builtin.Online.BOnline> meta2_Logins
-            = Zeze.Transaction.Collections.Meta2.getMap2Meta(String.class, Zeze.Builtin.Online.BOnline.class);
+    private static final Zeze.Transaction.Collections.Map2Meta<String, Zeze.Builtin.Online.BOnline> meta2_Logins
+            = Zeze.Transaction.Collections.Map2Meta.get(String.class, Zeze.Builtin.Online.BOnline.class);
 
     private long _LastLoginVersion; // 用来生成 account 登录版本号。每次递增。
     private String _Account; // 所属账号,用于登录验证

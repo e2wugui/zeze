@@ -2,8 +2,9 @@ package UnitTest.Zeze.Transaction;
 
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
-import Zeze.Transaction.Collections.Meta1;
-import Zeze.Transaction.Collections.Meta2;
+import Zeze.Transaction.Collections.List2Meta;
+import Zeze.Transaction.Collections.Map2Meta;
+import Zeze.Transaction.Collections.SortedMap2Meta;
 import harness.Fast;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,9 +35,9 @@ public class TestDynamicMetaTypeIdCollision {
 
 	@Test
 	public final void testDynamicListSharesTypeId() {
-		var metaA = Meta1.<Bean>createDynamicListMeta(TestDynamicMetaTypeIdCollision::getSpecialTypeId,
+		var metaA = List2Meta.<Bean>createDynamic(TestDynamicMetaTypeIdCollision::getSpecialTypeId,
 				TestDynamicMetaTypeIdCollision::createBean);
-		var metaB = Meta1.<Bean>createDynamicListMeta(
+		var metaB = List2Meta.<Bean>createDynamic(
 				b -> 2L, // 不同工厂
 				t -> null);
 		// 现状：工厂不同 typeId 也相同——重放端无法区分（升级后应断言不同）
@@ -46,22 +47,22 @@ public class TestDynamicMetaTypeIdCollision {
 
 	@Test
 	public final void testDynamicMapSharesTypeIdPerKeyClass() {
-		var metaA = Meta2.createDynamicMapMeta(String.class,
+		var metaA = Map2Meta.createDynamic(String.class,
 				TestDynamicMetaTypeIdCollision::getSpecialTypeId, TestDynamicMetaTypeIdCollision::createBean);
-		var metaB = Meta2.createDynamicMapMeta(String.class,
+		var metaB = Map2Meta.createDynamic(String.class,
 				b -> 2L, t -> null);
 		Assertions.assertEquals(metaA.logTypeId, metaB.logTypeId); // 只含 keyClass，不含工厂
 		Assertions.assertEquals(metaA.name, metaB.name);
 
-		var metaOtherKey = Meta2.createDynamicMapMeta(Long.class, b -> 2L, t -> null);
+		var metaOtherKey = Map2Meta.createDynamic(Long.class, b -> 2L, t -> null);
 		Assertions.assertNotEquals(metaA.logTypeId, metaOtherKey.logTypeId); // keyClass 不同则 typeId 不同
 	}
 
 	@Test
 	public final void testDynamicSortedMapSharesTypeIdPerKeyClass() {
-		var metaA = Meta2.createDynamicSortedMapMeta(String.class,
+		var metaA = SortedMap2Meta.createDynamic(String.class,
 				TestDynamicMetaTypeIdCollision::getSpecialTypeId, TestDynamicMetaTypeIdCollision::createBean);
-		var metaB = Meta2.createDynamicSortedMapMeta(String.class, b -> 2L, t -> null);
+		var metaB = SortedMap2Meta.createDynamic(String.class, b -> 2L, t -> null);
 		Assertions.assertEquals(metaA.logTypeId, metaB.logTypeId);
 	}
 

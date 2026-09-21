@@ -9,8 +9,8 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
     public static final long TYPEID = -6915373385712604407L;
 
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.DelayRemove.BJob> _Jobs;
-    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Builtin.DelayRemove.BJob> meta2_Jobs
-            = Zeze.Transaction.Collections.Meta2.getMap2Meta(String.class, Zeze.Builtin.DelayRemove.BJob.class);
+    private static final Zeze.Transaction.Collections.Map2Meta<String, Zeze.Builtin.DelayRemove.BJob> meta2_Jobs
+            = Zeze.Transaction.Collections.Map2Meta.get(String.class, Zeze.Builtin.DelayRemove.BJob.class);
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.DelayRemove.BJob> getJobs() {
         return _Jobs;

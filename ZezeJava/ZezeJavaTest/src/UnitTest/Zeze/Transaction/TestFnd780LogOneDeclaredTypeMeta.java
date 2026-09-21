@@ -6,7 +6,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.LogOne;
-import Zeze.Transaction.Collections.Meta1;
+import Zeze.Transaction.Collections.LogOneMeta;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Log;
@@ -107,7 +107,7 @@ public class TestFnd780LogOneDeclaredTypeMeta {
 		Assertions.assertTrue(collOne.isManaged());
 
 		var log = (LogOne<BeanBase>)collOne.createLogBean();
-		Assertions.assertEquals(Meta1.getLogOneMeta(BeanBase.class).logTypeId, log.getTypeId(),
+		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, log.getTypeId(),
 				"子类实例必须按声明类计算typeId（读端工厂按声明类注册）");
 
 		// 机制锁定：保存点副本不得回退到运行时类。
@@ -142,19 +142,19 @@ public class TestFnd780LogOneDeclaredTypeMeta {
 	@Test
 	public void testExactTypeUnchanged() {
 		// 兼容红线：精确类型（运行时类==声明类）行为不变。
-		Assertions.assertNotEquals(Meta1.getLogOneMeta(BeanBase.class).logTypeId,
-				Meta1.getLogOneMeta(BeanSub.class).logTypeId, "测试自检：两类typeId必须可区分");
+		Assertions.assertNotEquals(LogOneMeta.get(BeanBase.class).logTypeId,
+				LogOneMeta.get(BeanSub.class).logTypeId, "测试自检：两类typeId必须可区分");
 
 		var parent = new BeanBase();
 		var collOne = new CollOne<>(new BeanBase(), BeanBase.class);
 		collOne.initRootInfo(newRootInfo(), parent);
 		var log = (LogOne<BeanBase>)collOne.createLogBean();
-		Assertions.assertEquals(Meta1.getLogOneMeta(BeanBase.class).logTypeId, log.getTypeId(),
+		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, log.getTypeId(),
 				"精确类型typeId与修复前一致");
 
 		// 未提供声明类（copy路径）：退回运行时类，与修复前行为一致。
 		var copied = collOne.copy();
 		var copiedLog = (LogOne<BeanBase>)copied.createLogBean();
-		Assertions.assertEquals(Meta1.getLogOneMeta(BeanBase.class).logTypeId, copiedLog.getTypeId());
+		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, copiedLog.getTypeId());
 	}
 }

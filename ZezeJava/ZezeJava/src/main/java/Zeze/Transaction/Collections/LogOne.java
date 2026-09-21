@@ -24,13 +24,13 @@ public class LogOne<V extends Bean> extends LogBean {
 		// 复制中断。宿主CollOne携带声明类时用它（createLogBean/beginSavepoint均经self传递）；
 		// 未提供时退回运行时类，精确类型typeId不变。
 		var declared = self instanceof CollOne<?> collOne ? collOne.valueClass : null;
-		meta = Meta1.getLogOneMeta((Class<V>)(declared != null ? declared : value.getClass()));
+		meta = LogOneMeta.get((Class<V>)(declared != null ? declared : value.getClass()));
 		this.value = value;
 	}
 
 	public LogOne(int varId, @NotNull Class<V> beanClass) {
 		super(null, varId, null);
-		meta = Meta1.getLogOneMeta(beanClass); // for decode
+		meta = LogOneMeta.get(beanClass); // for decode
 	}
 
 	public void setValue(@NotNull V value) {

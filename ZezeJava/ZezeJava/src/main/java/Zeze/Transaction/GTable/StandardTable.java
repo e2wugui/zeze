@@ -16,6 +16,8 @@
 
 package Zeze.Transaction.GTable;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -45,7 +47,7 @@ import javax.annotation.CheckForNull;
  * concurrently and one of the threads modifies the table, it must be synchronized externally.
  *
  * <p>不实现 java.io.Serializable（TG1-F1）：Guava 移植时的事务内脏（backingMap 指向的
- * PMap2 及其 Meta2/Factory 含 MethodHandle）不可 Java 序列化，声明恒不可满足，勿再引入。
+ * PMap2 及其 Map2Meta/Factory 含 MethodHandle）不可 Java 序列化，声明恒不可满足，勿再引入。
  *
  * @author Jared Levy
  */
@@ -502,7 +504,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
     private class EntrySet extends Utils.ImprovedAbstractSet<Entry<R, V>> {
       @Override
-      public Iterator<Entry<R, V>> iterator() {
+      public @NotNull Iterator<Entry<R, V>> iterator() {
         return new EntrySetIterator();
       }
 
@@ -671,7 +673,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
   private class ColumnKeySet extends TableSet<C> {
     @Override
-    public Iterator<C> iterator() {
+    public @NotNull Iterator<C> iterator() {
       return createColumnKeyIterator();
     }
 
@@ -823,7 +825,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
     private final class EntrySet extends TableSet<Entry<R, Map<C, V>>> {
       @Override
-      public Iterator<Entry<R, Map<C, V>>> iterator() {
+      public @NotNull Iterator<Entry<R, Map<C, V>>> iterator() {
         return Utils.asMapEntryIterator(backingMap.keySet(), StandardTable.this::row);
       }
 
@@ -890,7 +892,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     }
 
     @Override
-    public Set<C> keySet() {
+    public @NotNull Set<C> keySet() {
       return columnKeySet();
     }
 
@@ -901,7 +903,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
     private final class ColumnMapEntrySet extends TableSet<Entry<C, Map<R, V>>> {
       @Override
-      public Iterator<Entry<C, Map<R, V>>> iterator() {
+      public @NotNull Iterator<Entry<C, Map<R, V>>> iterator() {
         return Utils.asMapEntryIterator(columnKeySet(), StandardTable.this::column);
       }
 

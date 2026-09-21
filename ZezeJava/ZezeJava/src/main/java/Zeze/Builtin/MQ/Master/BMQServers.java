@@ -10,8 +10,8 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.Master.BMQInfo> _Info; // 主题信息
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.MQ.Master.BMQServer> _Servers; // 该主题现有的MQ服务器列表
-    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.MQ.Master.BMQServer> meta1_Servers
-            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.MQ.Master.BMQServer.class);
+    private static final Zeze.Transaction.Collections.List2Meta<Zeze.Builtin.MQ.Master.BMQServer> meta1_Servers
+            = Zeze.Transaction.Collections.List2Meta.get(Zeze.Builtin.MQ.Master.BMQServer.class);
 
     private long _SessionId; // 创建或打开的时候，由Master分配的唯一递增会话。																	 用于标识Consumer，使得它可以在全局视野中得到唯一的排序视图。
 

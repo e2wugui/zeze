@@ -10,18 +10,17 @@ import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
-	protected final @NotNull Meta2<K, V> meta;
+	protected final @NotNull SortedMap1Meta<K, V> meta;
 
 	public PSortedMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		meta = Meta2.getSortedMap1Meta(keyClass, valueClass);
+		meta = SortedMap1Meta.get(keyClass, valueClass);
 	}
 
-	public PSortedMap1(@NotNull Meta2<K, V> meta) {
-		meta.checkFamily(Meta2.SORTED_MAP1_FAMILY, "PSortedMap1"); // TC2-F1：拒绝跨家族 meta
+	public PSortedMap1(@NotNull SortedMap1Meta<K, V> meta) {
 		this.meta = meta;
 	}
 
-	public @NotNull Meta2<K, V> getMeta() {
+	public @NotNull SortedMap1Meta<K, V> getMeta() {
 		return meta;
 	}
 

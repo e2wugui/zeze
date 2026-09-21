@@ -10,8 +10,8 @@ public final class BCreatePartition extends Zeze.Transaction.Bean implements BCr
 
     private String _Topic; // 主题
     private final Zeze.Transaction.Collections.PSet1<Integer> _PartitionIndexes; // 分区索引集合
-    private static final Zeze.Transaction.Collections.Meta1<Integer> meta1_PartitionIndexes
-            = Zeze.Transaction.Collections.Meta1.getSet1Meta(Integer.class);
+    private static final Zeze.Transaction.Collections.Set1Meta<Integer> meta1_PartitionIndexes
+            = Zeze.Transaction.Collections.Set1Meta.get(Integer.class);
 
     private static final java.lang.invoke.VarHandle vh_Topic;
 

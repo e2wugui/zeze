@@ -9,8 +9,8 @@ public final class BRefused extends Zeze.Transaction.Bean implements BRefusedRea
     public static final long TYPEID = 7657223106255732406L;
 
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Dbh2.BBatch> _Refused;
-    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Builtin.Dbh2.BBatch> meta2_Refused
-            = Zeze.Transaction.Collections.Meta2.getMap2Meta(String.class, Zeze.Builtin.Dbh2.BBatch.class);
+    private static final Zeze.Transaction.Collections.Map2Meta<String, Zeze.Builtin.Dbh2.BBatch> meta2_Refused
+            = Zeze.Transaction.Collections.Map2Meta.get(String.class, Zeze.Builtin.Dbh2.BBatch.class);
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Dbh2.BBatch> getRefused() {
         return _Refused;

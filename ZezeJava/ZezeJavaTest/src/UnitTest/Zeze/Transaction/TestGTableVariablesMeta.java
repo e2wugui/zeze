@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Transaction;
 
-import Zeze.Transaction.Collections.Meta2;
+import Zeze.Transaction.Collections.Map1Meta;
+import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.GTable.BeanMap1;
 import Zeze.Transaction.GTable.BeanMap2;
 import demo.Bean1;
@@ -19,7 +20,7 @@ public class TestGTableVariablesMeta {
 
 	@Test
 	public void testBeanMap1ReportsRealTypes() {
-		var bm = new BeanMap1<>(Meta2.getMap1Meta(String.class, Long.class));
+		var bm = new BeanMap1<>(Map1Meta.get(String.class, Long.class));
 		var d = bm.variables().get(0);
 		Assertions.assertEquals(1, d.getId());
 		Assertions.assertEquals("Map1", d.getName());
@@ -30,7 +31,7 @@ public class TestGTableVariablesMeta {
 
 	@Test
 	public void testBeanMap2ReportsRealTypes() {
-		var bm = new BeanMap2<>(Meta2.getMap2Meta(Integer.class, Bean1.class));
+		var bm = new BeanMap2<>(Map2Meta.get(Integer.class, Bean1.class));
 		var d = bm.variables().get(0);
 		Assertions.assertEquals("map", d.getType());
 		Assertions.assertEquals("int", d.getKey());

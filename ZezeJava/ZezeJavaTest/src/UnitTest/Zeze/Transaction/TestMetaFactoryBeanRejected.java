@@ -3,8 +3,14 @@ package UnitTest.Zeze.Transaction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Collections.Meta1;
-import Zeze.Transaction.Collections.Meta2;
+import Zeze.Transaction.Collections.BeanKeyMeta;
+import Zeze.Transaction.Collections.List1Meta;
+import Zeze.Transaction.Collections.List2Meta;
+import Zeze.Transaction.Collections.Map1Meta;
+import Zeze.Transaction.Collections.Map2Meta;
+import Zeze.Transaction.Collections.Set1Meta;
+import Zeze.Transaction.Collections.SortedMap1Meta;
+import Zeze.Transaction.Collections.SortedMap2Meta;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
 import demo.Module1.AutoKey;
@@ -16,10 +22,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * Meta1/Meta2公开工厂未拒绝Bean组合（R2-T backlog④）：容器类构造器已拦Bean key/value
- * （FND6-41/FND7-05/FND7-09），但直建meta再走PMap1(meta)/PList1(meta)等Meta构造器可绕过
- * ——1系容器装Bean值原位修改静默丢失、任意map族装Bean键日志簿记哈希漏命中。工厂是
- * 公开meta的唯一构建入口，在工厂层收口即封死全部绕行路径（含GTable Bean行/列）。
+ * Meta家族工厂必须拒绝Bean组合：1系容器装Bean值原位修改静默丢失、任意map族装Bean键
+ * 日志簿记哈希漏命中。工厂是公开meta的唯一构建入口，在工厂层收口即封死全部绕行路径
+ * （含GTable Bean行/列）。
  */
 @Fast
 public class TestMetaFactoryBeanRejected {
@@ -36,66 +41,66 @@ public class TestMetaFactoryBeanRejected {
 
 	@Test
 	public void testList1Set1RejectBeanValue() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> Meta1.getList1Meta(MyBean.class),
-				"getList1Meta必须拒绝Bean值（1系按值拷贝记账，原位修改静默丢失）");
-		Assertions.assertThrows(IllegalArgumentException.class, () -> Meta1.getSet1Meta(MyBean.class),
-				"getSet1Meta必须拒绝Bean值");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> List1Meta.get(MyBean.class),
+				"List1Meta.get必须拒绝Bean值（1系按值拷贝记账，原位修改静默丢失）");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> Set1Meta.get(MyBean.class),
+				"Set1Meta.get必须拒绝Bean值");
 	}
 
 	@Test
 	public void testMap1SortedMap1RejectBeanKeyAndValue() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> Meta2.getMap1Meta(MyBean.class, Long.class),
-				"getMap1Meta必须拒绝Bean key（日志簿记哈希漏命中）");
-		Assertions.assertThrows(IllegalArgumentException.class, () -> Meta2.getMap1Meta(Long.class, MyBean.class),
-				"getMap1Meta必须拒绝Bean值（原位修改静默丢失）");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> Map1Meta.get(MyBean.class, Long.class),
+				"Map1Meta.get必须拒绝Bean key（日志簿记哈希漏命中）");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> Map1Meta.get(Long.class, MyBean.class),
+				"Map1Meta.get必须拒绝Bean值（原位修改静默丢失）");
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> Meta2.getSortedMap1Meta(MyBean.class, Long.class), "getSortedMap1Meta必须拒绝Bean key");
+				() -> SortedMap1Meta.get(MyBean.class, Long.class), "SortedMap1Meta.get必须拒绝Bean key");
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> Meta2.getSortedMap1Meta(Long.class, MyBean.class), "getSortedMap1Meta必须拒绝Bean值");
+				() -> SortedMap1Meta.get(Long.class, MyBean.class), "SortedMap1Meta.get必须拒绝Bean值");
 	}
 
 	@Test
 	public void testMap2SortedMap2RejectBeanKey() {
 		// 2系Bean值合法（受管），只拦Bean key。
-		Assertions.assertThrows(IllegalArgumentException.class, () -> Meta2.getMap2Meta(MyBean.class, BValue.class),
-				"getMap2Meta必须拒绝Bean key");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> Map2Meta.get(MyBean.class, BValue.class),
+				"Map2Meta.get必须拒绝Bean key");
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> Meta2.createMap2Meta(MyBean.class, BValue.class, BValue::new), "createMap2Meta必须拒绝Bean key");
+				() -> Map2Meta.create(MyBean.class, BValue.class, BValue::new), "Map2Meta.create必须拒绝Bean key");
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> Meta2.createDynamicMapMeta(MyBean.class, b -> 0L, id -> new BValue()),
-				"createDynamicMapMeta必须拒绝Bean key");
+				() -> Map2Meta.createDynamic(MyBean.class, b -> 0L, id -> new BValue()),
+				"Map2Meta.createDynamic必须拒绝Bean key");
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> Meta2.getSortedMap2Meta(MyBean.class, BValue.class), "getSortedMap2Meta必须拒绝Bean key");
+				() -> SortedMap2Meta.get(MyBean.class, BValue.class), "SortedMap2Meta.get必须拒绝Bean key");
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> Meta2.createSortedMap2Meta(MyBean.class, BValue.class, BValue::new),
-				"createSortedMap2Meta必须拒绝Bean key");
+				() -> SortedMap2Meta.create(MyBean.class, BValue.class, BValue::new),
+				"SortedMap2Meta.create必须拒绝Bean key");
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> Meta2.createDynamicSortedMapMeta(MyBean.class, b -> 0L, id -> new BValue()),
-				"createDynamicSortedMapMeta必须拒绝Bean key");
+				() -> SortedMap2Meta.createDynamic(MyBean.class, b -> 0L, id -> new BValue()),
+				"SortedMap2Meta.createDynamic必须拒绝Bean key");
 	}
 
 	@Test
 	public void testLegalCombinationsStillWork() {
 		// 合法组合零变化：2系Bean值、BeanKey专用meta、1系标量、DynamicBean工厂。
-		Assertions.assertNotNull(Meta2.getMap2Meta(Long.class, BValue.class));
-		Assertions.assertNotNull(Meta2.createMap2Meta(Long.class, BValue.class, BValue::new));
-		Assertions.assertNotNull(Meta2.createDynamicMapMeta(Long.class, b -> 0L, id -> new BValue()));
-		Assertions.assertNotNull(Meta2.getMap1Meta(Long.class, Long.class));
-		Assertions.assertNotNull(Meta2.getSortedMap1Meta(Long.class, Long.class));
-		Assertions.assertNotNull(Meta1.getList2Meta(BValue.class));
-		Assertions.assertNotNull(Meta1.getBeanMeta(MyBean.class)); // LogBeanKey专用，不受影响
-		Assertions.assertNotNull(Meta1.getList1Meta(Long.class));
-		Assertions.assertNotNull(Meta1.getSet1Meta(Long.class));
+		Assertions.assertNotNull(Map2Meta.get(Long.class, BValue.class));
+		Assertions.assertNotNull(Map2Meta.create(Long.class, BValue.class, BValue::new));
+		Assertions.assertNotNull(Map2Meta.createDynamic(Long.class, b -> 0L, id -> new BValue()));
+		Assertions.assertNotNull(Map1Meta.get(Long.class, Long.class));
+		Assertions.assertNotNull(SortedMap1Meta.get(Long.class, Long.class));
+		Assertions.assertNotNull(List2Meta.get(BValue.class));
+		Assertions.assertNotNull(BeanKeyMeta.get(MyBean.class)); // LogBeanKey专用，不受影响
+		Assertions.assertNotNull(List1Meta.get(Long.class));
+		Assertions.assertNotNull(Set1Meta.get(Long.class));
 	}
 
 	@Test
 	public void testGTableBeanKeyDimensionsNotIntercepted() {
-		// R3-T对抗性防回归：schema的gtable行/列键合法形态只有内建类型与BeanKey（生成器
+		// 对抗性防回归：schema的gtable行/列键合法形态只有内建类型与BeanKey（生成器
 		// Gen/Types/TypeGTable.cs要求IsKeyable，Types.Bean.IsKeyable=false，Types.BeanKey=true；
 		// History.Helper.dependsGTable注释"must be BeanKey"）。BeanKey实现Zeze.Transaction.BeanKey
-		// 接口（extends Serializable）而不继承Bean（Meta1.java的valueFactory两分支判据可证），
+		// 接口（extends Serializable）而不继承Bean（Meta1的valueFactory两分支判据可证），
 		// 工厂层Bean拦截只匹配Bean子类——BeanKey维度必须原样放行，覆盖GTable2.getFactory的
-		// getMap2Meta(col)与createMap2Meta(row)两次调用。此用例红=拦截过宽误伤合法schema形态。
+		// Map2Meta.get(col)与Map2Meta.create(row)两次调用。此用例红=拦截过宽误伤合法schema形态。
 		Assertions.assertNotNull(GTable2.getFactory(Key.class, AutoKey.class, BValue.class),
 				"gtable[beanKey,beanKey,bean]（生成器恒产GTable2）的meta工厂必须放行");
 		Assertions.assertNotNull(GTable1.getFactory(Key.class, AutoKey.class, Integer.class),

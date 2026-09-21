@@ -1,7 +1,6 @@
 package Zeze.Transaction.Collections;
 
 import java.lang.invoke.MethodHandle;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -15,18 +14,12 @@ import Zeze.Transaction.BeanKey;
 import Zeze.Util.Reflect;
 import org.jetbrains.annotations.NotNull;
 
-public final class Meta1<V> {
-	private static final long beanHeadHash = Bean.hash64("Zeze.Transaction.Log<");
-	private static final long logOneHeadHash = Bean.hash64("Zeze.Transaction.Collections.LogOne<");
-	private static final long list1HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogList1<");
-	private static final long list2HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogList2<");
-	private static final long set1HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogSet1<");
-	private static final int dynamicBeanTypeId = Bean.hash32("Zeze.Transaction.Collections.LogList2<Zeze.Transaction.DynamicBean>");
-	private static final ConcurrentHashMap<Class<?>, Meta1<?>> beanMetas = new ConcurrentHashMap<>();
-	private static final ConcurrentHashMap<Class<?>, Meta1<?>> logOneMetas = new ConcurrentHashMap<>();
-	private static final ConcurrentHashMap<Class<?>, Meta1<?>> list1Metas = new ConcurrentHashMap<>();
-	private static final ConcurrentHashMap<Class<?>, Meta1<?>> list2Metas = new ConcurrentHashMap<>();
-	private static final ConcurrentHashMap<Class<?>, Meta1<?>> set1Metas = new ConcurrentHashMap<>();
+// 家族封闭：sealed+包私有构造器，子类各自硬编码家族头串（线上typeId原料，逐字保留）；
+// 容器层（P*）构造器只收对应子类型，日志层（Log*）等家族无关消费方收本基类。
+// 勿再引入收基类的容器构造器——跨家族meta会使读端解出别家Log，followerApply强转CCE。
+public sealed abstract class Meta1<V> permits BeanKeyMeta, List1Meta, List2Meta, LogOneMeta, Set1Meta {
+	// LogList2<DynamicBean> 的固定线上typeId（仅dynamic构造器使用）。
+	static final int dynamicBeanTypeId = Bean.hash32("Zeze.Transaction.Collections.LogList2<Zeze.Transaction.DynamicBean>");
 
 	public final int logTypeId;
 	public final int valueEncodeType;
@@ -36,7 +29,7 @@ public final class Meta1<V> {
 	public final MethodHandle valueFactory; // 只用于Bean类型
 	public final @NotNull String name; // 主要用于分析查错
 
-	private Meta1(@NotNull String headStr, long headHash, @NotNull Class<V> valueClass) {
+	Meta1(@NotNull String headStr, long headHash, @NotNull Class<V> valueClass) {
 		logTypeId = Bean.hashLog(headHash, valueClass);
 		var valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 		valueEncodeType = valueCodecFuncs.encodeType;
@@ -48,7 +41,7 @@ public final class Meta1<V> {
 		name = headStr + valueClass.getName();
 	}
 
-	private Meta1(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
+	Meta1(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
 		logTypeId = dynamicBeanTypeId;
 		valueEncodeType = IByteBuffer.DYNAMIC;
 		valueEncoder = null;
@@ -58,57 +51,14 @@ public final class Meta1<V> {
 		name = "LogList2:DynamicBean";
 	}
 
-	@SuppressWarnings("unchecked")
-	public static <V extends Bean> @NotNull Meta1<V> getLogOneMeta(@NotNull Class<V> beanClass) {
-		return (Meta1<V>)logOneMetas.computeIfAbsent(beanClass,
-				vc -> new Meta1<>("LogOne:", logOneHeadHash, (Class<V>)vc));
-	}
-
-	@SuppressWarnings("unchecked")
-	public static <V extends Serializable> @NotNull Meta1<V> getBeanMeta(@NotNull Class<V> beanClass) {
-		return (Meta1<V>)beanMetas.computeIfAbsent(beanClass,
-				vc -> new Meta1<>("LogBeanKey:", beanHeadHash, (Class<V>)vc));
-	}
-
-	// 1系容器不支持Bean值，工厂层是唯一拦截点（R2-T backlog④收口；原容器构造器层check经复核
-	// 逐路径冗余已删，判例注释并归于此）：List1按值拷贝记账、不挂接rootInfo，装入的bean永不受管，
-	// 原位修改静默丢失；Set1是哈希语义——Bean值语义equals配身份hashCode（可变bean
-	// 不覆写hashCode防哈希漂移），去重/remove/removeAll失真，且框架设计上无PSet2，bean集合属
-	// 设计不支持；LogList2用IdentityHashSet+身份比较是既有约定，见LogList2）。
-	// check在computeIfAbsent内按miss执行：被拒类型永不入缓存，每次调用皆重抛；不变量是
-	// "被拒类型永不在缓存中"——任何新的缓存插入路径必须经由本check，不允许绕过直插。
-	private static void checkNonBeanValue(@NotNull String family, @NotNull String reason, @NotNull Class<?> valueClass) {
+	// 1系容器不支持Bean值，工厂层是唯一拦截点：List1按值拷贝记账、不挂接rootInfo，装入的bean
+	// 永不受管，原位修改静默丢失；Set1是哈希语义——Bean值语义equals配身份hashCode（可变bean
+	// 不覆写hashCode防哈希漂移），去重/remove/removeAll失真，且框架设计上无PSet2。
+	// check在computeIfAbsent内按miss执行：不变量是"被拒类型永不在缓存中"——任何新的
+	// 缓存插入路径必须经由本check，不允许绕过直插。
+	static void checkNonBeanValue(@NotNull String family, @NotNull String reason, @NotNull Class<?> valueClass) {
 		if (Bean.class.isAssignableFrom(valueClass))
 			throw new IllegalArgumentException(
 					family + " does not support Bean value type " + reason + ": " + valueClass.getName());
-	}
-
-	@SuppressWarnings("unchecked")
-	public static <V> @NotNull Meta1<V> getList1Meta(@NotNull Class<V> valueClass) {
-		return (Meta1<V>)list1Metas.computeIfAbsent(valueClass, vc -> {
-			checkNonBeanValue("PList1 (LogList1)",
-					"(in-place modifications never managed, silently lost), use PList2", vc);
-			return new Meta1<>("LogList1:", list1HeadHash, (Class<V>)vc);
-		});
-	}
-
-	@SuppressWarnings("unchecked")
-	public static <V extends Bean> @NotNull Meta1<V> getList2Meta(@NotNull Class<V> valueClass) {
-		return (Meta1<V>)list2Metas.computeIfAbsent(valueClass,
-				vc -> new Meta1<>("LogList2:", list2HeadHash, (Class<V>)vc));
-	}
-
-	@SuppressWarnings("unchecked")
-	public static <V> @NotNull Meta1<V> getSet1Meta(@NotNull Class<V> valueClass) {
-		return (Meta1<V>)set1Metas.computeIfAbsent(valueClass, vc -> {
-			checkNonBeanValue("PSet1 (LogSet1)",
-					"(equals-without-hashCode misbehaves in hash set; Bean set unsupported by design)", vc);
-			return new Meta1<>("LogSet1:", set1HeadHash, (Class<V>)vc);
-		});
-	}
-
-	public static <V> @NotNull Meta1<V> createDynamicListMeta(@NotNull ToLongFunction<Bean> get,
-															  @NotNull LongFunction<Bean> create) {
-		return new Meta1<>(get, create);
 	}
 }

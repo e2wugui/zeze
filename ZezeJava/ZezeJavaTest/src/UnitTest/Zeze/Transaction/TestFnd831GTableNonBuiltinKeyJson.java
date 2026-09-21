@@ -7,7 +7,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Vector2;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.BeanKey;
-import Zeze.Transaction.Collections.Meta2;
+import Zeze.Transaction.Collections.Map1Meta;
 import Zeze.Transaction.GTable.BeanMap1;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
@@ -195,7 +195,7 @@ public class TestFnd831GTableNonBuiltinKeyJson {
 	// BeanMap1.decodeResultSet路径（Helper.decodeJsonTypedMap）：BeanKey键。
 	@Test
 	public void testDecodeJsonTypedMapBeanKey() {
-		var meta = Meta2.getMap1Meta(BDeptKey.class, Integer.class);
+		var meta = Map1Meta.get(BDeptKey.class, Integer.class);
 		var src = new BeanMap1<>(meta);
 		src.put(new BDeptKey("alice", 5), 42);
 		var json = Zeze.Serialize.Helper.encodeJson(src);

@@ -122,28 +122,28 @@ namespace Zeze.Gen.java
             if (vt is TypeCollection collection) // TypeList/TypeSet
             {
                 string value = BoxingName.GetBoxingName(collection.ValueType);
-                string factory = vt is TypeSet ? "getSet1Meta"
-                        : collection.ValueType.IsNormalBean ? "getList2Meta" : "getList1Meta";
-                sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta1<{value}> meta1{varName}");
-                sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta1.{factory}({value}.class);");
+                string metaClass = vt is TypeSet ? "Set1Meta"
+                        : collection.ValueType.IsNormalBean ? "List2Meta" : "List1Meta";
+                sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.{metaClass}<{value}> meta1{varName}");
+                sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.{metaClass}.get({value}.class);");
                 sw.WriteLine();
             }
             else if (vt is TypeMap map)
             {
                 string key = BoxingName.GetBoxingName(map.KeyType);
                 string value = BoxingName.GetBoxingName(map.ValueType);
-                string factory = map.ValueType.IsNormalBean ? "getMap2Meta" : "getMap1Meta";
-                sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{key}, {value}> meta2{varName}");
-                sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.{factory}({key}.class, {value}.class);");
+                string metaClass = map.ValueType.IsNormalBean ? "Map2Meta" : "Map1Meta";
+                sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.{metaClass}<{key}, {value}> meta2{varName}");
+                sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.{metaClass}.get({key}.class, {value}.class);");
                 sw.WriteLine();
             }
             else if (vt is TypeSortedMap sortedMap)
             {
                 string key = BoxingName.GetBoxingName(sortedMap.KeyType);
                 string value = BoxingName.GetBoxingName(sortedMap.ValueType);
-                string factory = sortedMap.ValueType.IsNormalBean ? "getSortedMap2Meta" : "getSortedMap1Meta";
-                sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{key}, {value}> meta2{varName}");
-                sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.{factory}({key}.class, {value}.class);");
+                string metaClass = sortedMap.ValueType.IsNormalBean ? "SortedMap2Meta" : "SortedMap1Meta";
+                sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.{metaClass}<{key}, {value}> meta2{varName}");
+                sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.{metaClass}.get({key}.class, {value}.class);");
                 sw.WriteLine();
             }
             else if (vt is TypeGTable gtable)
@@ -181,20 +181,20 @@ namespace Zeze.Gen.java
                 // meta声明与字段声明贴成一组（空行在其后，由下方统一发），与GenCollectionMetaDefine约定一致。
                 if (vt is TypeCollection)
                 {
-                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta1<Zeze.Transaction.DynamicBean> meta1{var.NamePrivate}");
-                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta1.createDynamicListMeta({GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
+                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.List2Meta<Zeze.Transaction.DynamicBean> meta1{var.NamePrivate}");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.List2Meta.createDynamic({GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
                 }
                 else if (vt is TypeMap map)
                 {
-                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{BoxingName.GetBoxingName(map.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
-                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.createDynamicMapMeta({BoxingName.GetBoxingName(map.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
+                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Map2Meta<{BoxingName.GetBoxingName(map.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Map2Meta.createDynamic({BoxingName.GetBoxingName(map.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
                 }
                 else if (vt is TypeSortedMap smap)
                 {
-                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{BoxingName.GetBoxingName(smap.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
-                    // sortedmap 必须用 createDynamicSortedMapMeta（sortedMap2 家族哈希），
+                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.SortedMap2Meta<{BoxingName.GetBoxingName(smap.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
+                    // sortedmap 必须用 SortedMap2Meta.createDynamic（sortedMap2 家族哈希），
                     // 与 PSortedMap2 动态构造器及读端注册对称；用 map2 家族会 typeId 永不匹配（FND3-04）。
-                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.createDynamicSortedMapMeta({BoxingName.GetBoxingName(smap.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.SortedMap2Meta.createDynamic({BoxingName.GetBoxingName(smap.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
                 }
             }
             sw.WriteLine();

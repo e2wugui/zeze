@@ -9,8 +9,8 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     public static final long TYPEID = 545774009128015305L;
 
     private final Zeze.Transaction.Collections.PList1<Long> _linkSids;
-    private static final Zeze.Transaction.Collections.Meta1<Long> meta1_linkSids
-            = Zeze.Transaction.Collections.Meta1.getList1Meta(Long.class);
+    private static final Zeze.Transaction.Collections.List1Meta<Long> meta1_linkSids
+            = Zeze.Transaction.Collections.List1Meta.get(Long.class);
 
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size

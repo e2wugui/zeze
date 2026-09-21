@@ -5,6 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.Collections.BeanKeyMeta;
 import Zeze.Transaction.Collections.Meta1;
 import Zeze.Transaction.Log;
 import Zeze.Util.Task;
@@ -22,14 +23,14 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	@SuppressWarnings("unchecked")
 	public LogBeanKey(Bean belong, int varId, VarHandle vh, @NotNull T value) {
 		super(belong, varId);
-		meta = Meta1.getBeanMeta((Class<T>)value.getClass());
+		meta = BeanKeyMeta.get((Class<T>)value.getClass());
 		this.vh = vh;
 		this.value = value;
 	}
 
 	public LogBeanKey(int varId, @NotNull Class<T> beanClass) {
 		super(null, varId);
-		meta = Meta1.getBeanMeta(beanClass);
+		meta = BeanKeyMeta.get(beanClass);
 		vh = null;
 	}
 

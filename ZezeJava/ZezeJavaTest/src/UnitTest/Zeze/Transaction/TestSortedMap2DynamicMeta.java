@@ -3,8 +3,9 @@ package UnitTest.Zeze.Transaction;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Collections.Meta2;
+import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.Collections.PSortedMap2;
+import Zeze.Transaction.Collections.SortedMap2Meta;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -24,12 +25,12 @@ public class TestSortedMap2DynamicMeta {
 	@Test
 	public void testDynamicSortedMapUsesSortedMap2Family() {
 		var smeta = new PSortedMap2<Long, Bean>(Long.class, GET, CREATE).getMeta();
-		var expected = Meta2.createDynamicSortedMapMeta(Long.class, GET, CREATE);
+		var expected = SortedMap2Meta.createDynamic(Long.class, GET, CREATE);
 		Assertions.assertEquals(expected.logTypeId, smeta.logTypeId);
 		Assertions.assertEquals(expected.name, smeta.name);
 
 		// 不再与同 keyClass 的 map<K,dynamic> 碰撞（logTypeId 与 name 都分家）
-		var mapMeta = Meta2.createDynamicMapMeta(Long.class, GET, CREATE);
+		var mapMeta = Map2Meta.createDynamic(Long.class, GET, CREATE);
 		Assertions.assertNotEquals(mapMeta.logTypeId, smeta.logTypeId);
 		Assertions.assertNotEquals(mapMeta.name, smeta.name);
 	}

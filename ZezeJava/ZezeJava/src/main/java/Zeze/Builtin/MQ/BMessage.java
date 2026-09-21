@@ -10,8 +10,8 @@ public final class BMessage extends Zeze.Transaction.Bean implements BMessageRea
 
     private long _Timestamp; // 发送时间，用户不用填写
     private final Zeze.Transaction.Collections.PMap1<String, String> _Properties; // 属性，用户自定义
-    private static final Zeze.Transaction.Collections.Meta2<String, String> meta2_Properties
-            = Zeze.Transaction.Collections.Meta2.getMap1Meta(String.class, String.class);
+    private static final Zeze.Transaction.Collections.Map1Meta<String, String> meta2_Properties
+            = Zeze.Transaction.Collections.Map1Meta.get(String.class, String.class);
 
     private Zeze.Net.Binary _Body; // 消息体，用户自定义
 

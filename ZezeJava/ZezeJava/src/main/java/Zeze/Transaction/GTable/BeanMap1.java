@@ -6,7 +6,7 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Collections.Meta2;
+import Zeze.Transaction.Collections.Map1Meta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,7 +43,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 	}
 
 	@SuppressWarnings("deprecation")
-	public BeanMap1(Meta2<C, V> meta) {
+	public BeanMap1(Map1Meta<C, V> meta) {
 		pMap1 = new Zeze.Transaction.Collections.PMap1<>(meta);
 		pMap1.variableId(1);
 	}

@@ -10,8 +10,8 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
 
     private int _Capacity;
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
-    private static final Zeze.Transaction.Collections.Meta2<Integer, Zeze.Builtin.Game.Bag.BItem> meta2_Items
-            = Zeze.Transaction.Collections.Meta2.getMap2Meta(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
+    private static final Zeze.Transaction.Collections.Map2Meta<Integer, Zeze.Builtin.Game.Bag.BItem> meta2_Items
+            = Zeze.Transaction.Collections.Map2Meta.get(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
 
     private static final java.lang.invoke.VarHandle vh_Capacity;
 

@@ -10,8 +10,8 @@ public final class BSavedCommits extends Zeze.Transaction.Bean implements BSaved
 
     private int _State;
     private final Zeze.Transaction.Collections.PSet1<String> _Onzs;
-    private static final Zeze.Transaction.Collections.Meta1<String> meta1_Onzs
-            = Zeze.Transaction.Collections.Meta1.getSet1Meta(String.class);
+    private static final Zeze.Transaction.Collections.Set1Meta<String> meta1_Onzs
+            = Zeze.Transaction.Collections.Set1Meta.get(String.class);
 
     private static final java.lang.invoke.VarHandle vh_State;
 

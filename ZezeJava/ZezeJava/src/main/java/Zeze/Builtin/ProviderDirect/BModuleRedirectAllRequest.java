@@ -11,8 +11,8 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     private int _ModuleId;
     private int _HashCodeConcurrentLevel; // 总的并发分组数量
     private final Zeze.Transaction.Collections.PSet1<Integer> _HashCodes; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
-    private static final Zeze.Transaction.Collections.Meta1<Integer> meta1_HashCodes
-            = Zeze.Transaction.Collections.Meta1.getSet1Meta(Integer.class);
+    private static final Zeze.Transaction.Collections.Set1Meta<Integer> meta1_HashCodes
+            = Zeze.Transaction.Collections.Set1Meta.get(Integer.class);
 
     private long _SourceProvider; // linkd 转发的时候填写本地provider的sessionId。
     private long _SessionId; // 发起请求者初始化，返回结果时带回。

@@ -11,8 +11,8 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     private String _ActionName;
     private Zeze.Net.Binary _Parameter; // encoded bean
     private final Zeze.Transaction.Collections.PSet1<Zeze.Builtin.ProviderDirect.BLoginKey> _Targets; // 查询目标角色。
-    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.ProviderDirect.BLoginKey> meta1_Targets
-            = Zeze.Transaction.Collections.Meta1.getSet1Meta(Zeze.Builtin.ProviderDirect.BLoginKey.class);
+    private static final Zeze.Transaction.Collections.Set1Meta<Zeze.Builtin.ProviderDirect.BLoginKey> meta1_Targets
+            = Zeze.Transaction.Collections.Set1Meta.get(Zeze.Builtin.ProviderDirect.BLoginKey.class);
 
     private String _SenderAccount; // 结果发送给Sender。
     private String _SenderClientId; // 结果发送给Sender。

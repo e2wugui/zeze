@@ -10,8 +10,8 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
 
     private long _LoginVersion; // 角色登录(包括重登录)时复制为tonline.LoginVersion
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> _Datas; // Online模块LocalBean相关方法读写自定义数据, 用来保存角色的Online定时器等
-    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Builtin.Game.Online.BAny> meta2_Datas
-            = Zeze.Transaction.Collections.Meta2.getMap2Meta(String.class, Zeze.Builtin.Game.Online.BAny.class);
+    private static final Zeze.Transaction.Collections.Map2Meta<String, Zeze.Builtin.Game.Online.BAny> meta2_Datas
+            = Zeze.Transaction.Collections.Map2Meta.get(String.class, Zeze.Builtin.Game.Online.BAny.class);
 
     private Zeze.Builtin.Game.Online.BLink _Link; // 角色登录(包括重登录)时复制为tonline.Link
 

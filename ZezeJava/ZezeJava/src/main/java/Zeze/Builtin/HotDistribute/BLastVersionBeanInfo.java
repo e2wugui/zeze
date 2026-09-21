@@ -10,8 +10,8 @@ public final class BLastVersionBeanInfo extends Zeze.Transaction.Bean implements
 
     private String _Name;
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.HotDistribute.BVariable> _Variables;
-    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.HotDistribute.BVariable> meta1_Variables
-            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.HotDistribute.BVariable.class);
+    private static final Zeze.Transaction.Collections.List2Meta<Zeze.Builtin.HotDistribute.BVariable> meta1_Variables
+            = Zeze.Transaction.Collections.List2Meta.get(Zeze.Builtin.HotDistribute.BVariable.class);
 
     private static final java.lang.invoke.VarHandle vh_Name;
 

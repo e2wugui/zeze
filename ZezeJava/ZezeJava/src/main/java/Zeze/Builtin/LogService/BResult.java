@@ -9,8 +9,8 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     public static final long TYPEID = 5146109133177652644L;
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.LogService.BLog> _Logs;
-    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.LogService.BLog> meta1_Logs
-            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.LogService.BLog.class);
+    private static final Zeze.Transaction.Collections.List2Meta<Zeze.Builtin.LogService.BLog> meta1_Logs
+            = Zeze.Transaction.Collections.List2Meta.get(Zeze.Builtin.LogService.BLog.class);
 
     private boolean _Remain;
 

@@ -10,8 +10,8 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
 
     private long _LoginVersion;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BAny> _Datas;
-    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Builtin.Online.BAny> meta2_Datas
-            = Zeze.Transaction.Collections.Meta2.getMap2Meta(String.class, Zeze.Builtin.Online.BAny.class);
+    private static final Zeze.Transaction.Collections.Map2Meta<String, Zeze.Builtin.Online.BAny> meta2_Datas
+            = Zeze.Transaction.Collections.Map2Meta.get(String.class, Zeze.Builtin.Online.BAny.class);
 
     private transient Object __zeze_map_key__;
 

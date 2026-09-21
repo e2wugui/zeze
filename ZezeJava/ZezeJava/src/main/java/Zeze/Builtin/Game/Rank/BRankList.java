@@ -9,8 +9,8 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
     public static final long TYPEID = -1625874326687776700L;
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> _RankList;
-    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.Game.Rank.BRankValue> meta1_RankList
-            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.Game.Rank.BRankValue.class);
+    private static final Zeze.Transaction.Collections.List2Meta<Zeze.Builtin.Game.Rank.BRankValue> meta1_RankList
+            = Zeze.Transaction.Collections.List2Meta.get(Zeze.Builtin.Game.Rank.BRankValue.class);
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> getRankList() {
         return _RankList;

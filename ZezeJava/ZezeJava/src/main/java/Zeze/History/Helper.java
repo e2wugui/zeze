@@ -10,6 +10,8 @@ import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.BeanKey;
+import Zeze.Transaction.Collections.List1Meta;
+import Zeze.Transaction.Collections.List2Meta;
 import Zeze.Transaction.Collections.LogList1;
 import Zeze.Transaction.Collections.LogList2;
 import Zeze.Transaction.Collections.LogMap1;
@@ -19,8 +21,11 @@ import Zeze.Transaction.Collections.LogOne;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogSortedMap1;
 import Zeze.Transaction.Collections.LogSortedMap2;
-import Zeze.Transaction.Collections.Meta1;
-import Zeze.Transaction.Collections.Meta2;
+import Zeze.Transaction.Collections.Map1Meta;
+import Zeze.Transaction.Collections.Map2Meta;
+import Zeze.Transaction.Collections.Set1Meta;
+import Zeze.Transaction.Collections.SortedMap1Meta;
+import Zeze.Transaction.Collections.SortedMap2Meta;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
@@ -74,15 +79,15 @@ public class Helper {
 		public final HashSet<KV<Class<?>, Class<?>>> map1 = new HashSet<>();
 		public final HashSet<KV<Class<?>, Class<? extends Bean>>> map2 = new HashSet<>();
 		public final HashMap<KV<Class<?>, Class<? extends Bean>>, DynamicFamily> map2Dynamic = new HashMap<>();
-		public final HashSet<Meta2<?, ?>> map1Metas = new HashSet<>();
-		public final HashSet<Meta2<?, ? extends Bean>> map2Metas = new HashSet<>();
+		public final HashSet<Map1Meta<?, ?>> map1Metas = new HashSet<>();
+		public final HashSet<Map2Meta<?, ? extends Bean>> map2Metas = new HashSet<>();
 		public final HashSet<Class<?>> set1 = new HashSet<>();
 		public final HashSet<KV<Class<? extends Comparable<?>>, Class<?>>> sortedMap1 = new HashSet<>();
 		public final HashSet<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>> sortedMap2 = new HashSet<>();
 		public final HashMap<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>, DynamicFamily>
 				sortedMap2Dynamic = new HashMap<>();
-		public final HashSet<Meta2<? extends Comparable<?>, ?>> sortedMap1Metas = new HashSet<>();
-		public final HashSet<Meta2<? extends Comparable<?>, ? extends Bean>> sortedMap2Metas = new HashSet<>();
+		public final HashSet<SortedMap1Meta<? extends Comparable<?>, ?>> sortedMap1Metas = new HashSet<>();
+		public final HashSet<SortedMap2Meta<? extends Comparable<?>, ? extends Bean>> sortedMap2Metas = new HashSet<>();
 	}
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
@@ -130,9 +135,9 @@ public class Helper {
 					e.getValue().factories.getKey(), e.getValue().factories.getValue());
 		}
 		for (var meta : result.sortedMap1Metas)
-			registerLogSortedMap1Meta((Meta2<? extends Comparable, ?>)meta);
+			registerLogSortedMap1Meta((SortedMap1Meta<? extends Comparable, ?>)meta);
 		for (var meta : result.sortedMap2Metas)
-			registerLogSortedMap2Meta((Meta2<? extends Comparable, ? extends Bean>)meta);
+			registerLogSortedMap2Meta((SortedMap2Meta<? extends Comparable, ? extends Bean>)meta);
 		registerLogs();
 	}
 
@@ -356,44 +361,44 @@ public class Helper {
 	}
 
 	public static <T> void registerLogList1(@NotNull Class<T> valueClass) {
-		Log.register(varId -> new LogList1<>(null, varId, null, Empty.vector(), Meta1.getList1Meta(valueClass)));
+		Log.register(varId -> new LogList1<>(null, varId, null, Empty.vector(), List1Meta.get(valueClass)));
 	}
 
 	public static <V extends Bean> void registerLogList2(@NotNull Class<V> valueClass) {
-		Log.register(varId -> new LogList2<>(null, varId, null, Empty.vector(), Meta1.getList2Meta(valueClass)));
+		Log.register(varId -> new LogList2<>(null, varId, null, Empty.vector(), List2Meta.get(valueClass)));
 	}
 
 	public static void registerLogList2Dynamic(@NotNull ToLongFunction<Bean> get,
 											   @NotNull LongFunction<Bean> create) {
-		var meta = Meta1.<Bean>createDynamicListMeta(get, create);
+		var meta = List2Meta.<Bean>createDynamic(get, create);
 		Log.register(varId -> new LogList2<>(null, varId, null, Empty.vector(), meta));
 	}
 
 	public static <K, V> void registerLogMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		Log.register(varId -> new LogMap1<>(null, varId, null, Empty.map(), Meta2.getMap1Meta(keyClass, valueClass)));
+		Log.register(varId -> new LogMap1<>(null, varId, null, Empty.map(), Map1Meta.get(keyClass, valueClass)));
 	}
 
 	public static <K, V extends Bean> void registerLogMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), Meta2.getMap2Meta(keyClass, valueClass)));
+		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), Map2Meta.get(keyClass, valueClass)));
 	}
 
 	public static <K> void registerLogMap2Dynamic(@NotNull Class<K> keyClass,
 												  @NotNull ToLongFunction<Bean> get,
 												  @NotNull LongFunction<Bean> create) {
-		var meta = Meta2.createDynamicMapMeta(keyClass, get, create);
+		var meta = Map2Meta.createDynamic(keyClass, get, create);
 		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta));
 	}
 
-	public static <K, V> void registerLogMap1Meta(@NotNull Meta2<K, V> meta) {
+	public static <K, V> void registerLogMap1Meta(@NotNull Map1Meta<K, V> meta) {
 		Log.register(varId -> new LogMap1<>(null, varId, null, Empty.map(), meta));
 	}
 
-	public static <K, V extends Bean> void registerLogMap2Meta(@NotNull Meta2<K, V> meta) {
+	public static <K, V extends Bean> void registerLogMap2Meta(@NotNull Map2Meta<K, V> meta) {
 		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta));
 	}
 
 	public static <V> void registerLogSet1(@NotNull Class<V> valueClass) {
-		Log.register(varId -> new LogSet1<>(null, varId, null, Empty.set(), Meta1.getSet1Meta(valueClass)));
+		Log.register(varId -> new LogSet1<>(null, varId, null, Empty.set(), Set1Meta.get(valueClass)));
 	}
 
 	public static <V extends Bean> void registerLogOne(@NotNull Class<V> beanClass) {
@@ -403,27 +408,27 @@ public class Helper {
 	public static <K extends Comparable<K>, V> void registerLogSortedMap1(@NotNull Class<K> keyClass,
 																		  @NotNull Class<V> valueClass) {
 		Log.register(varId -> new LogSortedMap1<>(null, varId, null, Empty.sortedMap(),
-			Meta2.getSortedMap1Meta(keyClass, valueClass)));
+			SortedMap1Meta.get(keyClass, valueClass)));
 	}
 
 	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2(@NotNull Class<K> keyClass,
 																					   @NotNull Class<V> valueClass) {
 		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(),
-			Meta2.getSortedMap2Meta(keyClass, valueClass)));
+			SortedMap2Meta.get(keyClass, valueClass)));
 	}
 
 	public static <K extends Comparable<K>> void registerLogSortedMap2Dynamic(@NotNull Class<K> keyClass,
 																			  @NotNull ToLongFunction<Bean> get,
 																			  @NotNull LongFunction<Bean> create) {
-		var meta = Meta2.createDynamicSortedMapMeta(keyClass, get, create);
+		var meta = SortedMap2Meta.createDynamic(keyClass, get, create);
 		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(), meta));
 	}
 
-	public static <K extends Comparable<K>, V> void registerLogSortedMap1Meta(@NotNull Meta2<K, V> meta) {
+	public static <K extends Comparable<K>, V> void registerLogSortedMap1Meta(@NotNull SortedMap1Meta<K, V> meta) {
 		Log.register(varId -> new LogSortedMap1<>(null, varId, null, Empty.sortedMap(), meta));
 	}
 
-	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2Meta(@NotNull Meta2<K, V> meta) {
+	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2Meta(@NotNull SortedMap2Meta<K, V> meta) {
 		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(), meta));
 	}
 

@@ -11,8 +11,8 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
     private long _CreateTime;
     private long _ExpireTime;
     private final Zeze.Transaction.Collections.PMap1<String, String> _Properties;
-    private static final Zeze.Transaction.Collections.Meta2<String, String> meta2_Properties
-            = Zeze.Transaction.Collections.Meta2.getMap1Meta(String.class, String.class);
+    private static final Zeze.Transaction.Collections.Map1Meta<String, String> meta2_Properties
+            = Zeze.Transaction.Collections.Map1Meta.get(String.class, String.class);
 
     private static final java.lang.invoke.VarHandle vh_CreateTime;
     private static final java.lang.invoke.VarHandle vh_ExpireTime;

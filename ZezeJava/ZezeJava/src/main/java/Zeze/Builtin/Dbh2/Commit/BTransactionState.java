@@ -10,8 +10,8 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
 
     private int _State;
     private final Zeze.Transaction.Collections.PList1<String> _Buckets;
-    private static final Zeze.Transaction.Collections.Meta1<String> meta1_Buckets
-            = Zeze.Transaction.Collections.Meta1.getList1Meta(String.class);
+    private static final Zeze.Transaction.Collections.List1Meta<String> meta1_Buckets
+            = Zeze.Transaction.Collections.List1Meta.get(String.class);
 
     private static final java.lang.invoke.VarHandle vh_State;
 

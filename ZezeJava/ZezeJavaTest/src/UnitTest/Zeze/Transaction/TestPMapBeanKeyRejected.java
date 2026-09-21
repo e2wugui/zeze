@@ -40,7 +40,7 @@ public class TestPMapBeanKeyRejected {
 				() -> new PMap2<>(MyBean.class, BValue.class, BValue::new),
 				"PMap2(Supplier)构造器同样必须拒绝（Supplier形态要求V extends Bean）");
 		// FND6-41残留补：第三个keyClass构造器（DynamicBean值专用）漏网——keyClass仅传
-		// createDynamicMapMeta的createCodec，对Bean子类正常成功，可无告警构建Bean key哈希map。
+		// Map2Meta.createDynamic的createCodec，对Bean子类正常成功，可无告警构建Bean key哈希map。
 		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> new PMap2<>(MyBean.class, b -> 0L, id -> new BValue()),
 				"PMap2(DynamicBean值专用)构造器同样必须拒绝Bean key");

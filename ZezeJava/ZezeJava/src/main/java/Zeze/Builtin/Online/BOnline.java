@@ -11,8 +11,8 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     private Zeze.Builtin.Online.BLink _Link;
     private long _LoginVersion;
     private final Zeze.Transaction.Collections.PSet1<String> _ReliableNotifyMark;
-    private static final Zeze.Transaction.Collections.Meta1<String> meta1_ReliableNotifyMark
-            = Zeze.Transaction.Collections.Meta1.getSet1Meta(String.class);
+    private static final Zeze.Transaction.Collections.Set1Meta<String> meta1_ReliableNotifyMark
+            = Zeze.Transaction.Collections.Set1Meta.get(String.class);
 
     private long _ReliableNotifyIndex;
     private long _ReliableNotifyConfirmIndex;

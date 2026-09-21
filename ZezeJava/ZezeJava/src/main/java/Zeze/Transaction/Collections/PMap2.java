@@ -19,26 +19,25 @@ import org.pcollections.Empty;
 
 @SuppressWarnings("DataFlowIssue")
 public class PMap2<K, V extends Bean> extends PMap<K, V> {
-	protected final @NotNull Meta2<K, V> meta;
+	protected final @NotNull Map2Meta<K, V> meta;
 
 	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		meta = Meta2.getMap2Meta(keyClass, valueClass);
+		meta = Map2Meta.get(keyClass, valueClass);
 	}
 
 	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass, @NotNull Supplier<V> valueCtor) {
-		meta = Meta2.createMap2Meta(keyClass, valueClass, valueCtor);
+		meta = Map2Meta.create(keyClass, valueClass, valueCtor);
 	}
 
 	public PMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
-		meta = Meta2.createDynamicMapMeta(keyClass, get, create);
+		meta = Map2Meta.createDynamic(keyClass, get, create);
 	}
 
-	public PMap2(@NotNull Meta2<K, V> meta) {
-		meta.checkFamily(Meta2.MAP2_FAMILY, "PMap2"); // TC2-F1：拒绝跨家族 meta
+	public PMap2(@NotNull Map2Meta<K, V> meta) {
 		this.meta = meta;
 	}
 
-	public @NotNull Meta2<K, V> getMeta() {
+	public @NotNull Map2Meta<K, V> getMeta() {
 		return meta;
 	}
 

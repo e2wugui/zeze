@@ -9,12 +9,12 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     public static final long TYPEID = -2614323448581124612L;
 
     private final Zeze.Transaction.Collections.PMap1<Zeze.Net.Binary, Zeze.Net.Binary> _Puts;
-    private static final Zeze.Transaction.Collections.Meta2<Zeze.Net.Binary, Zeze.Net.Binary> meta2_Puts
-            = Zeze.Transaction.Collections.Meta2.getMap1Meta(Zeze.Net.Binary.class, Zeze.Net.Binary.class);
+    private static final Zeze.Transaction.Collections.Map1Meta<Zeze.Net.Binary, Zeze.Net.Binary> meta2_Puts
+            = Zeze.Transaction.Collections.Map1Meta.get(Zeze.Net.Binary.class, Zeze.Net.Binary.class);
 
     private final Zeze.Transaction.Collections.PSet1<Zeze.Net.Binary> _Deletes;
-    private static final Zeze.Transaction.Collections.Meta1<Zeze.Net.Binary> meta1_Deletes
-            = Zeze.Transaction.Collections.Meta1.getSet1Meta(Zeze.Net.Binary.class);
+    private static final Zeze.Transaction.Collections.Set1Meta<Zeze.Net.Binary> meta1_Deletes
+            = Zeze.Transaction.Collections.Set1Meta.get(Zeze.Net.Binary.class);
 
     private String _QueryIp;
     private int _QueryPort;

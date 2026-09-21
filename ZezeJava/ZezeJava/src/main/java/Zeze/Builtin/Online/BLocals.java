@@ -9,8 +9,8 @@ public final class BLocals extends Zeze.Transaction.Bean implements BLocalsReadO
     public static final long TYPEID = -3801167864121993305L;
 
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BLocal> _Logins; // key is ClientId
-    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Builtin.Online.BLocal> meta2_Logins
-            = Zeze.Transaction.Collections.Meta2.getMap2Meta(String.class, Zeze.Builtin.Online.BLocal.class);
+    private static final Zeze.Transaction.Collections.Map2Meta<String, Zeze.Builtin.Online.BLocal> meta2_Logins
+            = Zeze.Transaction.Collections.Map2Meta.get(String.class, Zeze.Builtin.Online.BLocal.class);
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BLocal> getLogins() {
         return _Logins;

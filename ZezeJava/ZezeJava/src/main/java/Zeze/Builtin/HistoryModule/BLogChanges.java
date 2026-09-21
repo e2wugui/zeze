@@ -12,8 +12,8 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
     private String _ProtocolClassName;
     private Zeze.Net.Binary _ProtocolArgument;
     private final Zeze.Transaction.Collections.PMap1<Zeze.Builtin.HistoryModule.BTableKey, Zeze.Net.Binary> _Changes;
-    private static final Zeze.Transaction.Collections.Meta2<Zeze.Builtin.HistoryModule.BTableKey, Zeze.Net.Binary> meta2_Changes
-            = Zeze.Transaction.Collections.Meta2.getMap1Meta(Zeze.Builtin.HistoryModule.BTableKey.class, Zeze.Net.Binary.class);
+    private static final Zeze.Transaction.Collections.Map1Meta<Zeze.Builtin.HistoryModule.BTableKey, Zeze.Net.Binary> meta2_Changes
+            = Zeze.Transaction.Collections.Map1Meta.get(Zeze.Builtin.HistoryModule.BTableKey.class, Zeze.Net.Binary.class);
 
     private long _Timestamp;
 

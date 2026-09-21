@@ -15,8 +15,8 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     private long _BeginTime;
     private long _EndTime;
     private final Zeze.Transaction.Collections.PList1<String> _Words;
-    private static final Zeze.Transaction.Collections.Meta1<String> meta1_Words
-            = Zeze.Transaction.Collections.Meta1.getList1Meta(String.class);
+    private static final Zeze.Transaction.Collections.List1Meta<String> meta1_Words
+            = Zeze.Transaction.Collections.List1Meta.get(String.class);
 
     private int _ContainsType;
     private String _Pattern;

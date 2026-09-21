@@ -4,7 +4,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Collections.Meta2;
+import Zeze.Transaction.Collections.Map1Meta;
+import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Record;
 import Zeze.Util.Json;
@@ -15,12 +16,12 @@ import static Zeze.Util.Json.ensureNotNull;
 @SuppressWarnings("unchecked")
 public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	public static final class Factory<R, C, V> implements Supplier<Map<C, V>> {
-		private final @NotNull Meta2<R, BeanMap1<C, V>> pmapMeta;
-		private final @NotNull Meta2<C, V> bmapMeta;
+		private final @NotNull Map2Meta<R, BeanMap1<C, V>> pmapMeta;
+		private final @NotNull Map1Meta<C, V> bmapMeta;
 		private final @NotNull Json.FieldMeta fm1;
 		private final @NotNull Json.FieldMeta fm2;
 
-		Factory(@NotNull Meta2<R, BeanMap1<C, V>> pmapMeta, @NotNull Meta2<C, V> bmapMeta) {
+		Factory(@NotNull Map2Meta<R, BeanMap1<C, V>> pmapMeta, @NotNull Map1Meta<C, V> bmapMeta) {
 			this.pmapMeta = pmapMeta;
 			this.bmapMeta = bmapMeta;
 			// fm1/fm2在构造期一次性构建（FND7-10）：原惰性初始化只校验fm1且两写分离，
@@ -48,11 +49,11 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 			}
 		}
 
-		public @NotNull Meta2<R, BeanMap1<C, V>> getPmapMeta() {
+		public @NotNull Map2Meta<R, BeanMap1<C, V>> getPmapMeta() {
 			return pmapMeta;
 		}
 
-		public @NotNull Meta2<C, V> getBmapMeta() {
+		public @NotNull Map1Meta<C, V> getBmapMeta() {
 			return bmapMeta;
 		}
 
@@ -145,8 +146,8 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		_s_.append(Zeze.Util.Str.indent(_l_)).append('}');
 	}
 
-	// Bean行/列键显式拒绝（R3-T复审C2显式化）：工厂层已拦（Meta2.checkNonBeanKey），但报错深在
-	// getFactory内部且为"LogMap2/LogMap1 ..."家族名——GTable1的行键走createMap2Meta会误报
+	// Bean行/列键显式拒绝（R3-T复审C2显式化）：工厂层已拦（Map1Meta/Map2Meta.checkNonBeanKey），但报错深在
+	// getFactory内部且为"LogMap2/LogMap1 ..."家族名——GTable1的行键走Map2Meta.create会误报
 	// "LogMap2"，不点名GTable也不指明行/列维度。Bean是值语义equals配身份hashCode，行/列任一
 	// Bean维度的哈希put/get/contains失真；schema合法键只有内建类型与BeanKey（Gen/Types/
 	// TypeGTable.cs要求IsKeyable，Types.Bean的IsKeyable=false）。前置报错点名维度。
@@ -188,8 +189,8 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 				.computeIfAbsent(colClass, __ -> new ConcurrentHashMap<>());
 		var factory = map.get(valClass);
 		if (factory == null) {
-			var bmapMeta = Meta2.getMap1Meta(colClass, valClass);
-			var pmapMeta = Meta2.createMap2Meta(rowClass, (Class<BeanMap1<C, V>>)(Class<?>)BeanMap1.class,
+			var bmapMeta = Map1Meta.get(colClass, valClass);
+			var pmapMeta = Map2Meta.create(rowClass, (Class<BeanMap1<C, V>>)(Class<?>)BeanMap1.class,
 					() -> new BeanMap1<>(bmapMeta));
 			factory = map.computeIfAbsent(valClass, __ -> new Factory<>(pmapMeta, bmapMeta));
 		}

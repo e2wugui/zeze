@@ -12,12 +12,12 @@ public final class BBind extends Zeze.Transaction.Bean implements BBindReadOnly 
     public static final int ResultFailed = 1;
 
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
-    private static final Zeze.Transaction.Collections.Meta2<Integer, Zeze.Builtin.Provider.BModule> meta2_modules
-            = Zeze.Transaction.Collections.Meta2.getMap2Meta(Integer.class, Zeze.Builtin.Provider.BModule.class);
+    private static final Zeze.Transaction.Collections.Map2Meta<Integer, Zeze.Builtin.Provider.BModule> meta2_modules
+            = Zeze.Transaction.Collections.Map2Meta.get(Integer.class, Zeze.Builtin.Provider.BModule.class);
 
     private final Zeze.Transaction.Collections.PSet1<Long> _linkSids;
-    private static final Zeze.Transaction.Collections.Meta1<Long> meta1_linkSids
-            = Zeze.Transaction.Collections.Meta1.getSet1Meta(Long.class);
+    private static final Zeze.Transaction.Collections.Set1Meta<Long> meta1_linkSids
+            = Zeze.Transaction.Collections.Set1Meta.get(Long.class);
 
     public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
         return _modules;

@@ -12,8 +12,8 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
     private long _PrevNodeId; // 前一个节点ID. 0表示已到达开头。
     private long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> _Values; // 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
-    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> meta1_Values
-            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue.class);
+    private static final Zeze.Transaction.Collections.List2Meta<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> meta1_Values
+            = Zeze.Transaction.Collections.List2Meta.get(Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue.class);
 
     private static final java.lang.invoke.VarHandle vh_PrevNodeId;
     private static final java.lang.invoke.VarHandle vh_NextNodeId;

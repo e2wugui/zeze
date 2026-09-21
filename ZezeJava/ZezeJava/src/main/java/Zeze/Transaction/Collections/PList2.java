@@ -20,17 +20,17 @@ import org.pcollections.Empty;
 
 @SuppressWarnings("DataFlowIssue")
 public class PList2<V extends Bean> extends PList<V> {
-	protected final @NotNull Meta1<V> meta;
+	protected final @NotNull List2Meta<V> meta;
 
 	public PList2(@NotNull Class<V> valueClass) {
-		meta = Meta1.getList2Meta(valueClass);
+		meta = List2Meta.get(valueClass);
 	}
 
 	public PList2(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
-		meta = Meta1.createDynamicListMeta(get, create);
+		meta = List2Meta.createDynamic(get, create);
 	}
 
-	public PList2(@NotNull Meta1<V> meta) {
+	public PList2(@NotNull List2Meta<V> meta) {
 		this.meta = meta;
 	}
 

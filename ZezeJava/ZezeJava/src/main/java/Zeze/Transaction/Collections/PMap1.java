@@ -11,18 +11,17 @@ import org.pcollections.Empty;
 
 @SuppressWarnings("DataFlowIssue")
 public class PMap1<K, V> extends PMap<K, V> {
-	protected final @NotNull Meta2<K, V> meta;
+	protected final @NotNull Map1Meta<K, V> meta;
 
 	public PMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		meta = Meta2.getMap1Meta(keyClass, valueClass);
+		meta = Map1Meta.get(keyClass, valueClass);
 	}
 
-	public PMap1(@NotNull Meta2<K, V> meta) {
-		meta.checkFamily(Meta2.MAP1_FAMILY, "PMap1"); // TC2-F1：拒绝跨家族 meta
+	public PMap1(@NotNull Map1Meta<K, V> meta) {
 		this.meta = meta;
 	}
 
-	public @NotNull Meta2<K, V> getMeta() {
+	public @NotNull Map1Meta<K, V> getMeta() {
 		return meta;
 	}
 

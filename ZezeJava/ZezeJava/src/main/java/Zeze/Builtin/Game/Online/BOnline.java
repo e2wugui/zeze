@@ -10,8 +10,8 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
 
     private int _ServerId; // 登录时会赋值当前所在的serverId
     private final Zeze.Transaction.Collections.PSet1<String> _ReliableNotifyMark; // 登录时清空
-    private static final Zeze.Transaction.Collections.Meta1<String> meta1_ReliableNotifyMark
-            = Zeze.Transaction.Collections.Meta1.getSet1Meta(String.class);
+    private static final Zeze.Transaction.Collections.Set1Meta<String> meta1_ReliableNotifyMark
+            = Zeze.Transaction.Collections.Set1Meta.get(String.class);
 
     private long _ReliableNotifyConfirmIndex; // 登录时赋值为0
     private long _ReliableNotifyIndex; // 登录时赋值为0,然后每次sendReliableNotify时自增

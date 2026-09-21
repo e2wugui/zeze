@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Collections.Meta2;
+import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Record;
 import Zeze.Util.Json;
@@ -15,12 +15,12 @@ import static Zeze.Util.Json.ensureNotNull;
 @SuppressWarnings("unchecked")
 public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C, V> {
 	public static final class Factory<R, C, V extends Bean, VReadOnly> implements Supplier<Map<C, V>> {
-		private final @NotNull Meta2<R, BeanMap2<C, V, VReadOnly>> pmapMeta;
-		private final @NotNull Meta2<C, V> bmapMeta;
+		private final @NotNull Map2Meta<R, BeanMap2<C, V, VReadOnly>> pmapMeta;
+		private final @NotNull Map2Meta<C, V> bmapMeta;
 		private final @NotNull Json.FieldMeta fm1;
 		private final @NotNull Json.FieldMeta fm2;
 
-		Factory(@NotNull Meta2<R, BeanMap2<C, V, VReadOnly>> pmapMeta, @NotNull Meta2<C, V> bmapMeta) {
+		Factory(@NotNull Map2Meta<R, BeanMap2<C, V, VReadOnly>> pmapMeta, @NotNull Map2Meta<C, V> bmapMeta) {
 			this.pmapMeta = pmapMeta;
 			this.bmapMeta = bmapMeta;
 			// fm1/fm2在构造期一次性构建（FND7-10）：原惰性初始化只校验fm1且两写分离，
@@ -47,11 +47,11 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 			}
 		}
 
-		public @NotNull Meta2<R, BeanMap2<C, V, VReadOnly>> getPmapMeta() {
+		public @NotNull Map2Meta<R, BeanMap2<C, V, VReadOnly>> getPmapMeta() {
 			return pmapMeta;
 		}
 
-		public @NotNull Meta2<C, V> getBmapMeta() {
+		public @NotNull Map2Meta<C, V> getBmapMeta() {
 			return bmapMeta;
 		}
 
@@ -145,7 +145,7 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		_s_.append(Zeze.Util.Str.indent(_l_)).append('}');
 	}
 
-	// Bean行/列键显式拒绝（R3-T复审C2显式化）：工厂层已拦（Meta2.checkNonBeanKey），但报错深在
+	// Bean行/列键显式拒绝（R3-T复审C2显式化）：工厂层已拦（Map2Meta.checkNonBeanKey），但报错深在
 	// getFactory内部且文案是"LogMap2 ..."家族名——不点名GTable也不指明行/列维度。Bean是值语义
 	// equals配身份hashCode（可变bean不覆写hashCode防哈希漂移），行/列任一Bean维度的哈希
 	// put/get/contains失真；schema合法键只有内建类型与BeanKey（Gen/Types/TypeGTable.cs要求
@@ -160,8 +160,8 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 	public GTable2(@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
 		checkNonBeanDimension("row", rowClass);
 		checkNonBeanDimension("column", colClass);
-		var factory = getFactory(rowClass, colClass, valClass);
-		this.pMap2 = new PMap2<>((Meta2<R, BeanMap2<C, V, VReadOnly>>)(Meta2<?, ?>)factory.pmapMeta);
+		var factory = GTable2.<R, C, V, VReadOnly>getFactory(rowClass, colClass, valClass);
+		this.pMap2 = new PMap2<>(factory.pmapMeta);
 		super.backingMap = (Map<R, Map<C, V>>)(Map<?, ?>)pMap2;
 		super.factory = factory;
 	}
@@ -176,7 +176,7 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 
 	public static <R, C, V extends Bean, VReadOnly> @NotNull Factory<R, C, V, VReadOnly> getFactory(
 			@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
-		// 【FND8-33】DynamicBean没有无参构造器，Meta2.getMap2Meta的深反射抛不带
+		// 【FND8-33】DynamicBean没有无参构造器，Map2Meta.get的深反射抛不带
 		// "dynamic不支持"信息的NoSuchMethodException——指名拒绝，dynamic值走带
 		// get/create工厂的重载。
 		if (valClass == Zeze.Transaction.DynamicBean.class)
@@ -187,8 +187,8 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 				.computeIfAbsent(colClass, __ -> new ConcurrentHashMap<>());
 		var factory = map.get(valClass);
 		if (factory == null) {
-			var bmapMeta = Meta2.getMap2Meta(colClass, valClass);
-			var pmapMeta = Meta2.createMap2Meta(rowClass, (Class<BeanMap2<C, V, VReadOnly>>)(Class<?>)BeanMap2.class,
+			var bmapMeta = Map2Meta.get(colClass, valClass);
+			var pmapMeta = Map2Meta.create(rowClass, (Class<BeanMap2<C, V, VReadOnly>>)(Class<?>)BeanMap2.class,
 					() -> new BeanMap2<>(bmapMeta));
 			factory = map.computeIfAbsent(valClass, __ -> new Factory<>(pmapMeta, bmapMeta));
 		}
@@ -203,8 +203,8 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 			@NotNull Class<R> rowClass, @NotNull Class<C> colClass,
 			@NotNull java.util.function.ToLongFunction<Bean> get,
 			@NotNull java.util.function.LongFunction<Bean> create) {
-		var bmapMeta = Meta2.<C, Zeze.Transaction.DynamicBean>createDynamicMapMeta(colClass, get, create);
-		var pmapMeta = Meta2.createMap2Meta(rowClass,
+		var bmapMeta = Map2Meta.<C, Zeze.Transaction.DynamicBean>createDynamic(colClass, get, create);
+		var pmapMeta = Map2Meta.create(rowClass,
 				(Class<BeanMap2<C, Zeze.Transaction.DynamicBean, VReadOnly>>)(Class<?>)BeanMap2.class,
 				() -> new BeanMap2<>(bmapMeta));
 		return new Factory<>(pmapMeta, bmapMeta);

@@ -4,8 +4,10 @@ import java.math.BigDecimal;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import Zeze.Transaction.Collections.Meta1;
-import Zeze.Transaction.Collections.Meta2;
+import Zeze.Transaction.Collections.List1Meta;
+import Zeze.Transaction.Collections.Set1Meta;
+import Zeze.Transaction.Collections.Map1Meta;
+import Zeze.Transaction.Collections.SortedMap1Meta;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
 import Zeze.Util.Json;
@@ -57,11 +59,11 @@ public class TestFnd832GTableDecimal {
 		assertDoesNotThrow(() -> GTable2.getFactory(BigDecimal.class, Long.class,
 				TestFnd831GTableNonBuiltinKeyJson.MBean.class), "GTable2 decimal行键");
 		// 标量集合家族同型（孪生2）：map/list/set/sortedmap的decimal键/值。
-		assertDoesNotThrow(() -> Meta2.getMap1Meta(BigDecimal.class, Long.class), "map decimal键");
-		assertDoesNotThrow(() -> Meta2.getMap1Meta(Long.class, BigDecimal.class), "map decimal值");
-		assertDoesNotThrow(() -> Meta1.getList1Meta(BigDecimal.class), "list decimal值");
-		assertDoesNotThrow(() -> Meta1.getSet1Meta(BigDecimal.class), "set decimal值");
-		assertDoesNotThrow(() -> Meta2.getSortedMap1Meta(BigDecimal.class, Long.class), "sortedmap decimal键");
+		assertDoesNotThrow(() -> Map1Meta.get(BigDecimal.class, Long.class), "map decimal键");
+		assertDoesNotThrow(() -> Map1Meta.get(Long.class, BigDecimal.class), "map decimal值");
+		assertDoesNotThrow(() -> List1Meta.get(BigDecimal.class), "list decimal值");
+		assertDoesNotThrow(() -> Set1Meta.get(BigDecimal.class), "set decimal值");
+		assertDoesNotThrow(() -> SortedMap1Meta.get(BigDecimal.class, Long.class), "sortedmap decimal键");
 	}
 
 	// 编解码双射：全精度字符串（FND3-06），含负scale（1E+2）与等值不同scale（0.100）。

@@ -3,7 +3,7 @@ package Benchmark;
 import demo.Module1.BValue;
 import harness.Bench;
 import org.junit.jupiter.api.Test;
-import Zeze.Transaction.Collections.Meta2;
+import Zeze.Transaction.Collections.Map2Meta;
 import Zeze.Transaction.Collections.PMap2;
 
 /**
@@ -19,8 +19,8 @@ public class BenchBeanConstruct {
 	private static final int totalCount = 100_0000;
 
 	// 对齐生成代码常量化的静态形态（与 BValue._map11 同一 (K,V) 元组，共享工厂缓存实例）。
-	private static final Meta2<Long, demo.Module2.BValue> meta2Proxy
-			= Meta2.getMap2Meta(Long.class, demo.Module2.BValue.class);
+	private static final Map2Meta<Long, demo.Module2.BValue> meta2Proxy
+			= Map2Meta.get(Long.class, demo.Module2.BValue.class);
 
 	// 防止 JIT 对未逃逸对象做标量替换/死码消除，三列同付一次写，保持公平。
 	private static volatile Object last;

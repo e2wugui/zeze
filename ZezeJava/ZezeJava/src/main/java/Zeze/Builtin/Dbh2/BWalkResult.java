@@ -9,8 +9,8 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
     public static final long TYPEID = -5849543620068480348L;
 
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Dbh2.BWalkKeyValue> _KeyValues;
-    private static final Zeze.Transaction.Collections.Meta1<Zeze.Builtin.Dbh2.BWalkKeyValue> meta1_KeyValues
-            = Zeze.Transaction.Collections.Meta1.getList2Meta(Zeze.Builtin.Dbh2.BWalkKeyValue.class);
+    private static final Zeze.Transaction.Collections.List2Meta<Zeze.Builtin.Dbh2.BWalkKeyValue> meta1_KeyValues
+            = Zeze.Transaction.Collections.List2Meta.get(Zeze.Builtin.Dbh2.BWalkKeyValue.class);
 
     private boolean _BucketEnd;
     private boolean _BucketRefuse;

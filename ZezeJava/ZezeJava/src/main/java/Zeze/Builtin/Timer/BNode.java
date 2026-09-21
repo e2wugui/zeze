@@ -12,8 +12,8 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
     private long _PrevNodeId; // 节点双链表的前一个节点ID, tNodes表的key, 循环指向,不应该无效
     private long _NextNodeId; // 节点双链表的后一个节点ID, tNodes表的key, 循环指向,不应该无效
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BTimer> _Timers; // 该节点的所有timer, key是timerId(用户指定的,或"@"+Base64编码的自动分配ID), 数量上限是Zeze.Component.Timer.CountPerNode(50)
-    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Builtin.Timer.BTimer> meta2_Timers
-            = Zeze.Transaction.Collections.Meta2.getMap2Meta(String.class, Zeze.Builtin.Timer.BTimer.class);
+    private static final Zeze.Transaction.Collections.Map2Meta<String, Zeze.Builtin.Timer.BTimer> meta2_Timers
+            = Zeze.Transaction.Collections.Map2Meta.get(String.class, Zeze.Builtin.Timer.BTimer.class);
 
     private static final java.lang.invoke.VarHandle vh_PrevNodeId;
     private static final java.lang.invoke.VarHandle vh_NextNodeId;

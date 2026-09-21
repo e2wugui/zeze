@@ -10,13 +10,13 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
 
     private long _ParentDepartment; // 0表示第一级部门
     private final Zeze.Transaction.Collections.PMap1<String, Long> _Children; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
-    private static final Zeze.Transaction.Collections.Meta2<String, Long> meta2_Children
-            = Zeze.Transaction.Collections.Meta2.getMap1Meta(String.class, Long.class);
+    private static final Zeze.Transaction.Collections.Map1Meta<String, Long> meta2_Children
+            = Zeze.Transaction.Collections.Map1Meta.get(String.class, Long.class);
 
     private String _Name;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Transaction.DynamicBean> _Managers;
-    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Transaction.DynamicBean> meta2_Managers
-            = Zeze.Transaction.Collections.Meta2.createDynamicMapMeta(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+    private static final Zeze.Transaction.Collections.Map2Meta<String, Zeze.Transaction.DynamicBean> meta2_Managers
+            = Zeze.Transaction.Collections.Map2Meta.createDynamic(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Managers() {
         return new Zeze.Transaction.DynamicBean(4, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);

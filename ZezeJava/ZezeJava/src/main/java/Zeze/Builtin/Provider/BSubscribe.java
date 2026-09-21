@@ -9,8 +9,8 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
     public static final long TYPEID = 1112180088628051173L;
 
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
-    private static final Zeze.Transaction.Collections.Meta2<Integer, Zeze.Builtin.Provider.BModule> meta2_modules
-            = Zeze.Transaction.Collections.Meta2.getMap2Meta(Integer.class, Zeze.Builtin.Provider.BModule.class);
+    private static final Zeze.Transaction.Collections.Map2Meta<Integer, Zeze.Builtin.Provider.BModule> meta2_modules
+            = Zeze.Transaction.Collections.Map2Meta.get(Integer.class, Zeze.Builtin.Provider.BModule.class);
 
     public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
         return _modules;
