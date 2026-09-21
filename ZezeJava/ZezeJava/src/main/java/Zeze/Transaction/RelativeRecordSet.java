@@ -536,7 +536,18 @@ public final class RelativeRecordSet extends ReentrantLock {
 						continue; // merged or deleted
 					rs.addAll(rrs.recordSet);
 					history = History.merge(history, rrs.getHistory());
-					//onzProcedures.addAll(rrs.getOnzProcedures());
+					// 恢复被注释的onz聚集（f3c3bf129遗留，原行addAll(null)会NPE故需判空）：
+					// 正常流程带onz的rrs恒为flush-now（needFlushNow=onzProcedure!=null）不进
+					// relativeRecordSetMap，此处恒为空集；唯一的真实到达路径是FND8-18的失败
+					// 重注册——needFlushNow的flush失败后mergedSet（可携带onzProcedures且握手
+					// 可能未完成）被重新注册进map，此后Merge模式经FlushSet重试落库。不聚集则
+					// 重试永不补发FlushReady，协调者每笔等满flushTimeout后降级，两段式提交被
+					// 静默绕过（与T4-F1补孤立/空记录集握手的意图矛盾）。锁域安全：本循环持有
+					// 全部成员rrs锁，addOnzProcedures的写与merge()的转移（:105）互斥；被
+					// mergeTo跳过的成员其onz已转移至存活者，不丢不重（HashSet去重）。
+					var onz = rrs.getOnzProcedures();
+					if (onz != null)
+						onzProcedures.addAll(onz);
 				}
 				/*
 				var debug = new java.util.HashMap<String, ArrayList<Object>>();
