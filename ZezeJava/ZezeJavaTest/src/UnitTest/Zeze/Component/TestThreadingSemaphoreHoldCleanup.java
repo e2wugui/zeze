@@ -87,7 +87,16 @@ public class TestThreadingSemaphoreHoldCleanup {
 		int port = listenPort(server);
 		var client = new Service("TestCp1f6Cli");
 		try {
-			client.newClientSocket("127.0.0.1", port, null, null);
+			var socket = (TcpSocket)client.newClientSocket("127.0.0.1", port, null, null);
+			// 异步建连改造（8a22f09b5）后socketMap登记在connect完成时（GetSocket()只含已建立
+			// 连接）：newClientSocket返回即发RPC会撞GetSocket()==null的窗口→Send Fail假红。
+			// 等待登记完成再开信号量（对齐应用侧Connector.WaitReady后再用的既有用法）。
+			var deadline = System.currentTimeMillis() + 10_000;
+			while (client.getSocketCount() == 0) {
+				assertTrue(System.currentTimeMillis() < deadline, "client连接建立超时");
+				//noinspection BusyWait
+				Thread.sleep(10);
+			}
 			var threading = new Threading(client, 3);
 			threading.RegisterProtocols(client);
 			var semaphore = threading.openSemaphore("cp1f6.hold.semaphore");

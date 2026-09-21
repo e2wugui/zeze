@@ -1,6 +1,10 @@
 package UnitTest.Zeze.Net;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.util.concurrent.CountDownLatch;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Net.TcpSocket;
@@ -19,8 +23,28 @@ public class TestServiceStopBarrier {
 
 	/** addSocket为protected：测试桥。 */
 	private static final class BridgeService extends Service {
+		// 测试门控（resolveAddress为官方覆写点）：DNS阶段阻塞到放行，保证addSocket时
+		// socket必为open。异步建连改造（8a22f09b5）后连port 1这类必拒端口的失败可能在
+		// 登记前到达，runIfOpen对已关socket拒绝登记——断言"屏障复位后登记恢复"会假红
+		// （拒绝原因是connect失败而非屏障），"前提：尚未关闭"也可能直接假红。
+		private final CountDownLatch dnsGate = new CountDownLatch(1);
+
 		BridgeService(String name) {
 			super(name);
+		}
+
+		void releaseDnsGate() {
+			dnsGate.countDown();
+		}
+
+		@Override
+		protected @NotNull InetAddress resolveAddress(@Nullable String hostNameOrAddress) throws IOException {
+			try {
+				dnsGate.await();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt(); // 保留中断标记，按当前解析继续
+			}
+			return super.resolveAddress(hostNameOrAddress);
 		}
 
 		boolean addSocketForTest(AsyncSocket so) {
@@ -43,6 +67,7 @@ public class TestServiceStopBarrier {
 			Assertions.assertEquals(0, service.getSocketCount());
 			Assertions.assertNull(service.GetSocket(late.getSessionId()));
 		} finally {
+			service.releaseDnsGate(); // 放行被门控的解析线程（连接port 1失败后自行回收）
 			service.stop();
 		}
 	}
@@ -65,6 +90,7 @@ public class TestServiceStopBarrier {
 			open.close(new IOException("normal close"));
 			Assertions.assertEquals(0, service.getSocketCount());
 		} finally {
+			service.releaseDnsGate();
 			service.stop();
 		}
 	}

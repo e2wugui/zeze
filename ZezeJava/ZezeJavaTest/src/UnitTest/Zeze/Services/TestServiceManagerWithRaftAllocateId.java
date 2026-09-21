@@ -104,6 +104,15 @@ public class TestServiceManagerWithRaftAllocateId {
 		raftXmlFile = Files.createTempFile(RAFT_NAME, ".xml");
 		Files.writeString(raftXmlFile, raftXmlString());
 		var nodeNames = new ArrayList<String>();
+		// Windows下启动前清理，保证全新状态；收尾best-effort。dbHome由节点名(Host_Port)派生，
+		// freePort跨测试/跨轮复用端口号时，Raft会打开含异构raft日志的残留目录（收尾deleteDirectory
+		// 对RocksDB延迟释放的句柄会静默失败而累积），leader重发/apply时decode撞unknown table
+		// template，集群永久卡死（90s leader未ready / setUp 300s超时）。同族先例：
+		// TestServiceManagerWithRaftSuspect.cleanDirs。
+		for (int port : ports) {
+			LogSequence.deleteDirectory(new File("127.0.0.1_" + port));
+			LogSequence.deleteDirectory(new File(RAFT_NAME + "_127.0.0.1_" + port));
+		}
 		for (int i = 0; i < ports.length; i++) {
 			// 每个节点独立的RaftConfig（Raft构造会改写传入配置的Name/DbHome，不能共享）
 			var raftConf = RaftConfig.loadFromString(raftXmlString());

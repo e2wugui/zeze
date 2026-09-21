@@ -57,7 +57,10 @@ public class TestH2AbortedStreamCleanup {
 			var deadline = System.currentTimeMillis() + 10_000;
 			while (true) {
 				var allClosed = server.created.stream().allMatch(HttpExchange::isClosed);
-				if (allClosed && server.liveExchangeCount() == 0 && !server.created.isEmpty())
+				// request释放并入等待条件：close流程分阶段（置死→出表→释放retain），
+				// isClosed()为真时request()可能尚未置null（1/20假红：循环出口立刻断言撞上释放前瞬态）
+				var allReleased = server.created.stream().allMatch(x -> x.request() == null);
+				if (allClosed && allReleased && server.liveExchangeCount() == 0 && !server.created.isEmpty())
 					break;
 				Assertions.assertTrue(System.currentTimeMillis() < deadline,
 						"中止流必须close exchange并从exchanges表移除: created=" + server.created.size()
@@ -65,9 +68,6 @@ public class TestH2AbortedStreamCleanup {
 				//noinspection BusyWait
 				Thread.sleep(20);
 			}
-			// request已随终结释放（对齐awaitAllReleased的残留断言口径）
-			Assertions.assertTrue(server.created.stream().allMatch(x -> x.request() == null),
-					"close必须释放retain的request");
 		} finally {
 			server.close();
 			netty.close();
