@@ -37,4 +37,11 @@ public interface IGlobalAgent extends Closeable {
 	@NotNull GlobalAgentBase getAgent(int index);
 
 	int getAgentCount();
+
+	// FND10 txn-01：停机关库前有界等待活跃Releaser——遍历内部GlobalAgentBase逐个有界等待，
+	// 等待逻辑见GlobalAgentBase.awaitReleaser。
+	default void awaitReleaser(long timeoutMillis) {
+		for (var i = 0; i < getAgentCount(); ++i)
+			getAgent(i).awaitReleaser(timeoutMillis);
+	}
 }
