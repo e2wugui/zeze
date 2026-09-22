@@ -39,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import static Zeze.Util.Args.requireValue;
 
 public class Test {
 	private static final Logger logger = LogManager.getLogger(Test.class);
@@ -133,7 +134,7 @@ public class Test {
 	private void _run(String command, String[] args) throws Exception {
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("-Config"))
-				raftConfigFileName = args[++i];
+				raftConfigFileName = requireValue(args, ++i, "-Config");
 		}
 
 		logger.debug("Start.");
@@ -953,7 +954,7 @@ public class Test {
 		String command = "";
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("-c"))
-				command = args[++i];
+				command = requireValue(args, ++i, "-c");
 		}
 		switch (command) {
 		case "RaftTest":

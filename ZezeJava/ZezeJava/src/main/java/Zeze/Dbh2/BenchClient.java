@@ -17,6 +17,8 @@ import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import static Zeze.Util.Args.requireInt;
+import static Zeze.Util.Args.requireValue;
 
 public class BenchClient {
 	private static final Logger logger = LogManager.getLogger(BenchClient.class);
@@ -50,25 +52,25 @@ public class BenchClient {
 			for (int i = 0; i < args.length; ++i) {
 				switch (args[i]) {
 				case "-tableNumber":
-					tableNumber = Integer.parseInt(args[++i]);
+					tableNumber = requireInt(args, ++i, "-tableNumber");
 					break;
 				case "-threadNumber":
-					threadNumber = Integer.parseInt(args[++i]);
+					threadNumber = requireInt(args, ++i, "-threadNumber");
 					break;
 				case "-valueSize":
-					valueSize = Integer.parseInt(args[++i]);
+					valueSize = requireInt(args, ++i, "-valueSize");
 					break;
 				case "-masterIp":
-					masterIp = args[++i];
+					masterIp = requireValue(args, ++i, "-masterIp");
 					break;
 				case "-masterPort":
-					masterPort = Integer.parseInt(args[++i]);
+					masterPort = requireInt(args, ++i, "-masterPort");
 					break;
 				case "-tableAccess":
-					tableAccess = Integer.parseInt(args[++i]);
+					tableAccess = requireInt(args, ++i, "-tableAccess");
 					break;
 				case "-selector":
-					selector = Integer.parseInt(args[++i]);
+					selector = requireInt(args, ++i, "-selector");
 					break;
 				case "-get":
 					get = true;

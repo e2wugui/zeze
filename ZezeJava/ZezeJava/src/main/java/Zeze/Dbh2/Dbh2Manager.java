@@ -29,6 +29,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.rocksdb.RocksDBException;
+import static Zeze.Util.Args.requireInt;
 
 /**
  * Dbh2管理器，管理Dbh2(Raft桶)的创建。
@@ -250,7 +251,7 @@ public class Dbh2Manager {
 				//noinspection SwitchStatementWithTooFewBranches,EnhancedSwitchMigration
 				switch (args[i]) {
 				case "-selector":
-					selector = Integer.parseInt(args[++i]);
+					selector = requireInt(args, ++i, "-selector");
 					break;
 				default:
 					throw new RuntimeException("unknown option: " + args[i]);

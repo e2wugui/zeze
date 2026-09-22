@@ -12,6 +12,7 @@ import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.PropertiesHelper;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.jetbrains.annotations.NotNull;
+import static Zeze.Util.Args.requireValue;
 
 public class LinksInfo extends AbstractLinksInfo {
 	private final Netty netty = new Netty();
@@ -53,10 +54,10 @@ public class LinksInfo extends AbstractLinksInfo {
 			for (var i = 0; i < args.length; ++i) {
 				switch (args[i]) {
 				case "-link":
-					linksInfo.subscribeLinkService(args[++i]);
+					linksInfo.subscribeLinkService(requireValue(args, ++i, "-link"));
 					break;
 				case "-default":
-					linksInfo.defaultLinkServiceName = args[++i];
+					linksInfo.defaultLinkServiceName = requireValue(args, ++i, "-default");
 					break;
 				}
 			}
@@ -93,12 +94,12 @@ public class LinksInfo extends AbstractLinksInfo {
 	}
 
 	@Override
-	protected void OnServletLinksTextMultiLine(HttpExchange x) throws Exception {
+	protected void OnServletLinksTextMultiLine(HttpExchange x) {
 		send(x, "\n");
 	}
 
 	@Override
-	protected void OnServletLinksTextSingleLine(HttpExchange x) throws Exception {
+	protected void OnServletLinksTextSingleLine(HttpExchange x) {
 		send(x, ";");
 	}
 }

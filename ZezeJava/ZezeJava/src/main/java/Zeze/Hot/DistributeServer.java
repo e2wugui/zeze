@@ -9,6 +9,8 @@ import Zeze.Net.Service;
 import Zeze.Transaction.Bean;
 import Zeze.Util.Benchmark;
 import Zeze.Util.Reflect;
+import static Zeze.Util.Args.requireInt;
+import static Zeze.Util.Args.requireValue;
 
 /**
  * 多版本bean方案的服务模块。【未用，计划用直接bean支持热更方案替换，先保留】
@@ -29,13 +31,13 @@ public class DistributeServer {
 		for (var i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-solution":
-				solution = args[++i];
+				solution = requireValue(args, ++i, "-solution");
 				break;
 			case "-host":
-				host = args[++i];
+				host = requireValue(args, ++i, "-host");
 				break;
 			case "-port":
-				port = Integer.parseInt(args[++i]);
+				port = requireInt(args, ++i, "-port");
 				break;
 			}
 		}

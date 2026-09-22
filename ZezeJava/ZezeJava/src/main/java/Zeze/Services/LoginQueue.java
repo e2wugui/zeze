@@ -19,6 +19,9 @@ import Zeze.Util.TimeThrottle;
 import Zeze.Util.TimeThrottleCounter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import static Zeze.Util.Args.requireBool;
+import static Zeze.Util.Args.requireInt;
+import static Zeze.Util.Args.requireValue;
 
 public class LoginQueue extends AbstractLoginQueue {
 	/**
@@ -258,13 +261,6 @@ public class LoginQueue extends AbstractLoginQueue {
 		// 高吞吐下退化为 O(n²)；排队期间断开的连接由 drainQueue 的队头清理统一负责。
 	}
 
-	// 开关缺值时args[++i]抛无上下文的AIOOBE；这里给出明确的参数错误（SM1-F4同型判例）。
-	private static String requireValue(String[] args, int index, String name) {
-		if (index >= args.length)
-			throw new IllegalArgumentException("argument '" + name + "' requires a value");
-		return args[index];
-	}
-
 	public static void main(String[] args) throws Exception {
 		int maxOnlineNew = 100;
 		boolean choiceLinkOnly = false;
@@ -272,10 +268,10 @@ public class LoginQueue extends AbstractLoginQueue {
 		for (var i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-maxOnlineNew":
-				maxOnlineNew = Integer.parseInt(requireValue(args, ++i, "-maxOnlineNew"));
+				maxOnlineNew = requireInt(args, ++i, "-maxOnlineNew");
 				break;
 			case "-choiceLinkOnly":
-				choiceLinkOnly = Boolean.parseBoolean(requireValue(args, ++i, "-choiceLinkOnly"));
+				choiceLinkOnly = requireBool(args, ++i, "-choiceLinkOnly");
 				break;
 			case "-config":
 				configXml = requireValue(args, ++i, "-config");

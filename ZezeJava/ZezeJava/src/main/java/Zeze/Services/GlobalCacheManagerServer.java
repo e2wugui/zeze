@@ -45,6 +45,8 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
+import static Zeze.Util.Args.requireInt;
+import static Zeze.Util.Args.requireValue;
 
 public final class GlobalCacheManagerServer extends ReentrantLock implements GlobalCacheManagerConst {
 	static {
@@ -1202,13 +1204,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		}
 	}
 
-	// 开关缺值时args[++i]抛无上下文的AIOOBE；这里给出明确的参数错误（SM1-F4同型判例）。
-	private static String requireValue(String[] args, int index, String name) {
-		if (index >= args.length)
-			throw new IllegalArgumentException("argument '" + name + "' requires a value");
-		return args[index];
-	}
-
 	public static void main(@NotNull String @NotNull [] args) throws Exception {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 			//noinspection CallToPrintStackTrace
@@ -1229,7 +1224,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				ip = requireValue(args, ++i, "-ip");
 				break;
 			case "-port":
-				port = Integer.parseInt(requireValue(args, ++i, "-port"));
+				port = requireInt(args, ++i, "-port");
 				break;
 			case "-raft":
 				raftName = requireValue(args, ++i, "-raft");

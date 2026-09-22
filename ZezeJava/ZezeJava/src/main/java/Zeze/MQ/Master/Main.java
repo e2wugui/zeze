@@ -7,6 +7,8 @@ import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
+import static Zeze.Util.Args.requireInt;
+import static Zeze.Util.Args.requireValue;
 
 public class Main {
 	private static final Logger logger = LogManager.getLogger();
@@ -44,10 +46,10 @@ public class Main {
 			for (int i = 1; i < args.length; ++i) {
 				switch (args[i]) {
 				case "-selector":
-					selector = Integer.parseInt(args[++i]);
+					selector = requireInt(args, ++i, "-selector");
 					break;
 				case "-home":
-					home = args[++i];
+					home = requireValue(args, ++i, "-home");
 					break;
 				default:
 					throw new RuntimeException("unknown option: " + args[i]);

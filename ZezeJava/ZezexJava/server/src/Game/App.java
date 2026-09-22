@@ -19,6 +19,8 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.JsonReader;
 import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
+import static Zeze.Util.Args.requireInt;
+import static Zeze.Util.Args.requireValue;
 
 public final class App extends Zeze.AppBase {
 	public static final App Instance = new App();
@@ -60,13 +62,13 @@ public final class App extends Zeze.AppBase {
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-ServerId":
-				serverId = Integer.parseInt(args[++i]);
+				serverId = requireInt(args, ++i, "-ServerId");
 				break;
 			case "-GenFileSrcRoot":
-				genFileSrcRoot = args[++i];
+				genFileSrcRoot = requireValue(args, ++i, "-GenFileSrcRoot");
 				break;
 			case "-ProviderDirectPort":
-				providerDirectPort = Integer.parseInt(args[++i]);
+				providerDirectPort = requireInt(args, ++i, "-ProviderDirectPort");
 				break;
 			}
 		}

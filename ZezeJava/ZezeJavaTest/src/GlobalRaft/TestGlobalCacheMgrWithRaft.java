@@ -22,6 +22,7 @@ import demo.App;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import static Zeze.Util.Args.requireValue;
 
 public class TestGlobalCacheMgrWithRaft {
 	private static final Logger logger = LogManager.getLogger(TestGlobalCacheMgrWithRaft.class);
@@ -60,7 +61,7 @@ public class TestGlobalCacheMgrWithRaft {
 	private void _Run(String[] args) throws Exception {
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("-Config"))
-				ConfigFileName = args[++i];
+				ConfigFileName = requireValue(args, ++i, "-Config");
 		}
 
 		logger.debug("Start.");
@@ -530,7 +531,7 @@ public class TestGlobalCacheMgrWithRaft {
 	public static void main(String[] args) throws Exception {
 		for (int i = 0; i < args.length; i++) {
 			if (args[i].equals("-Config"))
-				ConfigFileName = args[++i];
+				ConfigFileName = requireValue(args, ++i, "-Config");
 		}
 		new TestGlobalCacheMgrWithRaft().Run(args);
 	}

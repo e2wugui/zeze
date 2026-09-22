@@ -23,6 +23,7 @@ import Zeze.IModule;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.Task;
+import static Zeze.Util.Args.requireValue;
 
 public class Distribute {
 	private final String classesDir;
@@ -259,22 +260,22 @@ public class Distribute {
 		for (var i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-classes":
-				classesDir = args[++i];
+				classesDir = requireValue(args, ++i, "-classes");
 				break;
 			case "-workingDir":
-				workingDir = args[++i];
+				workingDir = requireValue(args, ++i, "-workingDir");
 				break;
 			case "-privateBean":
 				exportBean = false;
 				break;
 			case "-app":
-				app = args[++i];
+				app = requireValue(args, ++i, "-app");
 				break;
 			case "-providerModuleBinds":
-				providerModuleBinds = args[++i];
+				providerModuleBinds = requireValue(args, ++i, "-providerModuleBinds");
 				break;
 			case "-config":
-				configXml = args[++i];
+				configXml = requireValue(args, ++i, "-config");
 				break;
 			case "-atomicAll":
 				atomicAll = true;

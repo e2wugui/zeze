@@ -12,6 +12,7 @@ import Zeze.Services.ReloadClassServer;
 import Zeze.Services.RunClassServer;
 import Zeze.Util.JsonReader;
 import Zeze.Util.TaskSpec;
+import static Zeze.Util.Args.requireInt;
 
 public final class App extends Zeze.AppBase {
 	public static final App Instance = new App();
@@ -48,10 +49,10 @@ public final class App extends Zeze.AppBase {
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-LinkPort":
-				linkPort = Integer.parseInt(args[++i]);
+				linkPort = requireInt(args, ++i, "-LinkPort");
 				break;
 			case "-ProviderPort":
-				providerPort = Integer.parseInt(args[++i]);
+				providerPort = requireInt(args, ++i, "-ProviderPort");
 				break;
 			}
 		}

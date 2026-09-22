@@ -12,6 +12,8 @@ import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import static Zeze.Util.Args.requireInt;
+import static Zeze.Util.Args.requireValue;
 
 public class Netty implements Closeable {
 	static final @NotNull Logger logger = LogManager.getLogger(Netty.class);
@@ -58,19 +60,19 @@ public class Netty implements Closeable {
 		for (int i = 0; i < args.length; i++) {
 			switch (args[i]) {
 			case "-host":
-				host = args[++i];
+				host = requireValue(args, ++i, "-host");
 				break;
 			case "-port":
-				port = Integer.parseInt(args[++i]);
+				port = requireInt(args, ++i, "-port");
 				break;
 			case "-threads":
-				threads = Integer.parseInt(args[++i]);
+				threads = requireInt(args, ++i, "-threads");
 				break;
 			case "-urlpath":
-				urlpath = args[++i];
+				urlpath = requireValue(args, ++i, "-urlpath");
 				break;
 			case "-filepath":
-				filepath = args[++i];
+				filepath = requireValue(args, ++i, "-filepath");
 				break;
 			case "-canListPath":
 				canListPath = true;

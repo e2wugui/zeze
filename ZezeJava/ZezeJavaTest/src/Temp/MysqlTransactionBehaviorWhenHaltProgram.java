@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import com.alibaba.druid.pool.DruidDataSource;
+import static Zeze.Util.Args.requireValue;
 
 public class MysqlTransactionBehaviorWhenHaltProgram {
 	public static void main(String[] args) throws SQLException, InterruptedException, ClassNotFoundException {
@@ -14,13 +15,13 @@ public class MysqlTransactionBehaviorWhenHaltProgram {
 			var arg = args[i];
 			switch (arg) {
 			case "-url":
-				url = args[++i];
+				url = requireValue(args, ++i, "-url");
 				break;
 			case "-cmd":
-				cmd = args[++i];
+				cmd = requireValue(args, ++i, "-cmd");
 				break;
 			case "-driver":
-				driver = args[++i];
+				driver = requireValue(args, ++i, "-driver");
 				break;
 			}
 		}

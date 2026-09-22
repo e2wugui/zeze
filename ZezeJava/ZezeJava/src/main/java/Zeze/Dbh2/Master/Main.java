@@ -7,6 +7,7 @@ import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
+import static Zeze.Util.Args.requireInt;
 
 public class Main {
 	private static final Logger logger = LogManager.getLogger(Main.class);
@@ -50,7 +51,7 @@ public class Main {
 				//noinspection SwitchStatementWithTooFewBranches,EnhancedSwitchMigration
 				switch (args[i]) {
 				case "-selector":
-					selector = Integer.parseInt(args[++i]);
+					selector = requireInt(args, ++i, "-selector");
 					break;
 				default:
 					throw new RuntimeException("unknown option: " + args[i]);
