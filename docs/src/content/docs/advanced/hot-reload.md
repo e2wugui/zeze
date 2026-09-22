@@ -66,12 +66,44 @@ int count = ClassReloader.reloadClasses(new ZipFile("update.jar"));
 
 ### 隔离机制
 
-每个 HotModule 实例以 jar 文件为边界，加载其中的所有 class（接口除外）。模块之间相互隔离，同一模块的不同版本可以共存。
+每个 HotModule 实例以 jar 文件为边界，加载其中的所有 class（接口除外，接口由父装载器 HotManager 统一装载，见下节）。模块之间相互隔离，同一模块的不同版本可以共存。
 
 ```java
 // 模块的入口类命名规则：{namespace}.Module{lastPart}
 // 例如 namespace="Game.Rank" 时，入口类为 Game.Rank.ModuleRank
 ```
+
+### 接口的装载与可见性
+
+接口类单独打包在 `hot/interfaces/<namespace>.interface.jar` 中，由 **HotManager** 统一装载：启动/安装时只索引 class 条目，首次被解析时才 defineClass。HotManager 是各 HotModule 的父装载器，整体位于冷 classpath（AppClassLoader）之下：
+
+```
+AppClassLoader（冷：platform + Zeze + 冷业务类）
+  └─ HotManager          ← interface.jar 的 defining loader
+       ├─ HotModule(Game.Fight)   ← module.jar（实现类）的 defining loader
+       ├─ HotModule(Game.Buf)
+       └─ ...
+```
+
+由此形成严格的可见性边界：
+
+| 引用方 | 接口可见性 | 使用方式 |
+|--------|-----------|---------|
+| hot-module → hot-interface | 可见（委派到共同父 HotManager，同一份 Class） | 直接类型引用 |
+| 冷 classpath → hot-interface | 不可见（委派单向 child→parent，冷侧永远解析不到） | 反射 |
+
+- **模块之间直接引用**：模块 A 引用模块 B 的接口时，经 parent-first 委派到 HotManager 拿到同一份 Class，跨包接口引用（如 `IEquip → Item.IItem`）天然类型安全。
+- **冷侧只能反射**：冷侧字节码中的接口符号引用由冷 ClassLoader 解析，运行期必然失败（`compileOnly` 能过编译，但产物不能在任何执行路径上直接引用该类型，否则 `NoClassDefFoundError`）。正确姿势是以平台基类 `HotService` 作为 `getModuleContext` 的 key 取得 service 对象，再按 receiver 的实际类反射调用：
+
+```java
+// 冷侧消费热模块接口：平台基类作 contexts 的 key + 按 receiver 实际类解析 Method
+var service = zeze.getHotManager()
+        .getModuleContext("Game.Fight", HotService.class).getService();
+var method = service.getClass().getMethod("isAreYouFightDone");
+boolean done = (boolean)method.invoke(service);
+```
+
+- **接口身份作用域 = 一个 HotManager**：每个 Application 一个 HotManager；多 server（多 App）各自 define 一份同名接口 Class，同名不同身份。反射的 `Method` 同理必须按接收者的实际类解析，不能跨实例缓存复用（否则 `IllegalArgumentException`）。
 
 ### 生命周期
 
@@ -154,7 +186,7 @@ public interface HotService {
 
 ## 注意事项
 
-1. **接口不能修改**：热更模块中对外暴露的接口（interface）不应修改签名。接口由父 ClassLoader 加载，不会被热更替换。
+1. **接口不能修改**：热更模块中对外暴露的接口（interface）不应修改签名。接口由父装载器 HotManager 加载（见「接口的装载与可见性」），一旦 define 身份即固定——热更替换 interface.jar 只对新增类名生效，已装载的接口不会被替换；修改签名会导致新模块字节码绑定到旧接口类，触发 `NoSuchMethodError` 族错误。
 
 2. **数据兼容性**：`upgrade` 方法中必须处理新旧数据格式的兼容。如果 Bean 结构变化，需要实现 `HotUpgrade.upgrade` 方法中的 `retreatFunc` 逻辑。
 
