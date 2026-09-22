@@ -36,6 +36,21 @@ final class HttpFileService {
 	// h2分块发送的块大小：DATA帧逐块转发（ChunkedWriteHandler拉取），64KB平衡帧数与内存驻留
 	private static final int H2FileChunkSize = 64 * 1024;
 
+	// 文件名来自磁盘（Linux允许CR/LF/引号入名），且headersFactory关闭了Netty头校验：CRLF直拼构成响应头注入，引号破坏quoted-string边界。
+	private static String sanitizeFilenameForHeader(@NotNull String fn) {
+		var sb = new StringBuilder(fn.length() + 16);
+		for (int i = 0, n = fn.length(); i < n; ++i) {
+			var c = fn.charAt(i);
+			if (c == '\r' || c == '\n')
+				continue;
+			if (c == '"')
+				sb.append("\\\"");
+			else
+				sb.append(c);
+		}
+		return sb.toString();
+	}
+
 	static void sendFile(@NotNull HttpExchange x, @NotNull File file, int fileCacheSeconds) throws Exception {
 		var req = x.request;
 		if (req == null) {
@@ -104,7 +119,7 @@ final class HttpFileService {
 			var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1,
 				partial ? HttpResponseStatus.PARTIAL_CONTENT : HttpResponseStatus.OK, HttpExchange.headersFactory);
 			var headers = HttpServer.setDate(res.headers())
-				.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + fn + '"')
+				.set(HttpHeaderNames.CONTENT_DISPOSITION, "inline; filename=\"" + sanitizeFilenameForHeader(fn) + '"')
 				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
 				.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
 				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
