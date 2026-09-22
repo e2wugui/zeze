@@ -8,11 +8,14 @@ dependencies {
     implementation 'com.alibaba:druid:1.2.28'
 }
 
-// 8个热模块（solution.xml hot="true"）的实现与生成代码归 hot 源集，产物不进冷classpath
-// ——对齐生产 start.bat 的组成（server.jar 由 Distribute 排除热模块目录生成，模块类只存在于
-// hot/modules/*.jar）。这是 HotModule 冷抢载 fail-fast 守卫（HotModule.java:49）成立的前提。
-// 接口（I*.java）留在 main：跨装载器契约，冷侧（如 TestOnline 的 getModuleContext）编译期引用，
-// 双亲委派下热模块实现与冷侧拿到同一 Class 身份。
+// 8个热模块（solution.xml hot="true"）的实现、接口（I*.java）与生成代码全部归 hot 源集，
+// src/ 下不留任何热模块文件，产物不进冷classpath——对齐生产 start.bat 的组成（server.jar 由
+// Distribute 排除热模块目录生成，模块类只存在于 hot/modules/*.jar）。这是 HotModule 冷抢载
+// fail-fast 守卫（HotModule.java:49）成立的前提。
+// 接口身份：冷侧不引用接口（唯一消费者 TestOnline 已改反射——接口 Class 不在测试 classpath，
+// 字节码引用运行期解析不到），运行时全部经 HotManager 单一装载器——putJar 把所有
+// interface.jar 的 class 条目合并进同一索引，跨包接口引用（IEquip→Item.IItem 等）同装载器
+// 解析，无身份分裂；模块实现（HotModule 子装载器）委派上来拿到同一身份。
 def hotModuleNames = ['Buf', 'Equip', 'Fight', 'Item', 'Login', 'LongSet', 'Skill', 'Timer']
 def hotPackagePatterns = hotModuleNames.collect { "Game/${it}/**" }
 
@@ -21,9 +24,8 @@ def hotPackagePatterns = hotModuleNames.collect { "Game/${it}/**" }
 // 模式按各 srcDir 根分别相对化，Gradle 下可行）：IDEA 会把每个 srcDir 标成源码根，I*.java
 // 紧贴根、相对路径为空，报"软件包名称 'Game.X' 与文件路径 '' 不对应"（javac 对显式文件
 // 清单无此检查，故 CLI 构建不报）。分拣镜像目录保留完整包路径，两边都不报。
-// 陷阱：gen_use_publish.bat 再生成会在 src/Game/<X> 重建 Module<X>.java 空骨架（Gen 仍以
-// src 为用户码输出目标）——骨架一旦编进 main 即破坏冷热分离，发现即删；根治需 Gen 按模块
-// hot 属性改输出目录。
+// 骨架复活陷阱已根治：Gen 支持 project 属性 HotSrcDir（双hot 模块主类归热目录，未配置即
+// 报错不回退），见 solution.xml 的 HotSrcDir="server/src-hot"。
 def genMainDir = layout.buildDirectory.dir('generated/sources/gen-main')
 def genHotDir = layout.buildDirectory.dir('generated/sources/gen-hot')
 def syncGenMain = tasks.register('syncGenMain', Sync) {
