@@ -14,6 +14,8 @@ namespace Zeze.Gen
         // << 新增路径配置参数
         public string GenDir { get; }
         public string SrcDir { get; }
+        // 热更模块用户码（模块主类）输出目录；空=不启用，维持输出到 SrcDir。
+        public string HotSrcDir { get; }
         public bool DisableDeleteGen { get; private set; }
         public string CommonDir { get; private set; }
         public string PackagePath { get; }
@@ -86,6 +88,7 @@ namespace Zeze.Gen
 
             GenDir = self.GetAttribute("GenDir").Trim();
             SrcDir = self.GetAttribute("SrcDir").Trim();
+            HotSrcDir = self.GetAttribute("HotSrcDir").Trim();
             DisableDeleteGen = self.GetAttribute("DisableDeleteGen").Trim().Equals("true");
             CommonDir = self.GetAttribute("CommonDir").Trim();
             PackagePath = self.GetAttribute("PackagePath").Trim();
@@ -149,6 +152,19 @@ namespace Zeze.Gen
         }
 
         public List<Module> ModuleStartOrder { get; private set; } = new List<Module>();
+
+        // 拥有热更模块（双hot：project.hot 且引用的模块 hot）时必须配置 HotSrcDir：
+        // 未配置而悄悄回退 SrcDir，模块主类骨架会生成进冷源集、破坏冷热分离，直接报错。
+        public void CheckHotSrcDir(IEnumerable<Module> modules)
+        {
+            if (!Hot || !string.IsNullOrEmpty(HotSrcDir))
+                return;
+            foreach (Module mod in modules)
+            {
+                if (mod.Hot)
+                    throw new Exception($"project:{Name} has hot module {mod.Path()}, HotSrcDir must be configured.");
+            }
+        }
 
         public void Compile()
         {

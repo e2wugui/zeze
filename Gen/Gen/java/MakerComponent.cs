@@ -32,6 +32,8 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
+            Project.CheckHotSrcDir(Project.AllOrderDefineModules);
+
             var genDir = Project.GenDir;
             var srcDir = Project.SrcDir;
             Program.AddGenDir(Path.Combine(genDir, "Zeze", "Builtin")); // 组件自动删除Bean等，必须特殊处理。
@@ -75,7 +77,7 @@ namespace Zeze.Gen.java
 
             var mfs = new List<ModuleFormatter>();
             foreach (Module mod in Project.AllOrderDefineModules)
-                mfs.Add(new ModuleFormatter(Project, mod, genDir, srcDir));
+                mfs.Add(new ModuleFormatter(Project, mod, genDir, srcDir, Project.HotSrcDir));
             {
                 using var sw = Program.OpenStreamWriter(Path.Combine(srcDir, Project.PackagePath, "Abstract" + Project.Name + ".java"), true);
                 sw.WriteLine("// auto-generated @formatter:off");

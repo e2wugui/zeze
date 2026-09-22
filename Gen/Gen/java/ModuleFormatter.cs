@@ -11,14 +11,16 @@ namespace Zeze.Gen.java
         public readonly Module module;
         readonly string genDir;
         readonly string srcDir;
+        readonly string hotSrcDir;
         readonly string moduleName;
 
-        public ModuleFormatter(Project project, Module module, string genDir, string srcDir)
+        public ModuleFormatter(Project project, Module module, string genDir, string srcDir, string hotSrcDir = null)
         {
             this.project = project;
             this.module = module;
             this.genDir = genDir;
             this.srcDir = srcDir;
+            this.hotSrcDir = hotSrcDir;
             moduleName = Program.Upper1(module.Name);
         }
 
@@ -67,7 +69,7 @@ namespace Zeze.Gen.java
         {
             MakeInterface();
             FileChunkGen = new FileChunkGen();
-            string fullDir = module.GetFullPath(srcDir);
+            string fullDir = GetUserCodeDir();
             string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.java");
             if (FileChunkGen.LoadFile(fullFileName))
             {
@@ -105,6 +107,25 @@ namespace Zeze.Gen.java
             ConstructorGen(sw);
             sw.WriteLine("    " + FileChunkGen.ChunkEndTag + " " + ChunkNameModuleGen + " @formatter:on");
             sw.WriteLine("}");
+        }
+
+        // 模块主类（用户码）的输出目录。热更模块（双hot，判定与表格注册的 replaceTable 一致）
+        // 归 HotSrcDir，冷侧源码树不含实现类。兼容：HotSrcDir 下没有而 SrcDir 下有旧文件时
+        // 保持原地维护并警告——不能两处各一份（冷热源集并存时热侧骨架会顶掉冷侧真身）。
+        string GetUserCodeDir()
+        {
+            if (project.Hot && module.Hot && !string.IsNullOrEmpty(hotSrcDir))
+            {
+                if (File.Exists(module.GetFullPath(hotSrcDir, $"Module{moduleName}.java")))
+                    return module.GetFullPath(hotSrcDir);
+                if (File.Exists(module.GetFullPath(srcDir, $"Module{moduleName}.java")))
+                {
+                    Console.WriteLine($"WARNING: hot module {module.Path()} Module{moduleName}.java exists in SrcDir '{srcDir}', maintaining in place; move it to HotSrcDir '{hotSrcDir}'.");
+                    return module.GetFullPath(srcDir);
+                }
+                return module.GetFullPath(hotSrcDir);
+            }
+            return module.GetFullPath(srcDir);
         }
 
         const string ChunkNameModuleGen = "GEN MODULE";

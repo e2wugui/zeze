@@ -14,9 +14,12 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
+            Project.CheckHotSrcDir(Project.AllOrderDefineModules);
+
             var genCommonDir = string.IsNullOrEmpty(Project.CommonDir) ? Project.GenDir : Project.CommonDir;
             var genDir = Project.GenDir;
             var srcDir = Project.SrcDir;
+            var hotSrcDir = Project.HotSrcDir;
             if (!Project.DisableDeleteGen)
                 Program.AddGenDir(genDir);
 
@@ -35,7 +38,7 @@ namespace Zeze.Gen.java
 
             // gen project
             Program.ParallelEach(Project.AllOrderDefineModules,
-                mod => new ModuleFormatter(Project, mod, genDir, srcDir).Make());
+                mod => new ModuleFormatter(Project, mod, genDir, srcDir, hotSrcDir).Make());
             // 收集需要生成类映射的Bean（mod.MappingClassBeans 已在 Compile 期填好、此处只读，串行收集即可）
             var MappingClassBeans = new HashSet<Bean>();
             foreach (Module mod in Project.AllOrderDefineModules)
