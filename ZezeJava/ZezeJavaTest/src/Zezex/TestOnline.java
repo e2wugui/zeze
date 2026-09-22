@@ -29,14 +29,14 @@ public class TestOnline {
 	// getModuleContext 的 Class 参数只是 contexts 的 key，用平台基类 HotService 即可；
 	// service 运行时对象是热装载器里的 ModuleFight，getClass().getMethod 反射调用不需要
 	// 本类类加载器解析 Game.Fight 类型。
+	// Method 必须按 receiver 的实际类解析：每个 server 独立 HotManager 各自 define 一份
+	// ModuleFight，同名不同 Class，跨 server 缓存复用同一 Method 会 IllegalArgumentException。
 	private void areYouFight() throws Exception {
-		java.lang.reflect.Method isDone = null;
 		while (true) {
 			for (var server : env.servers) {
 				var service = server.Zeze.getHotManager()
 						.getModuleContext("Game.Fight", Zeze.Hot.HotService.class).getService();
-				if (null == isDone)
-					isDone = service.getClass().getMethod("isAreYouFightDone");
+				var isDone = service.getClass().getMethod("isAreYouFightDone");
 				if ((boolean)isDone.invoke(service))
 					return;
 			}
