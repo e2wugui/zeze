@@ -26,7 +26,10 @@ public class CHashMap<V extends Bean> {
 		for (var i = 0; i < buckets.length; ++i) {
 			buckets[i] = module._open(name + "@" + i, valueClass, nodeSize);
 			var ii = i;
-			TaskSpec.ofProcedure(module.zeze.newProcedure(() -> initSize(ii, buckets[ii]), "initSize")).call();
+			// initSize是sizes[i]的唯一回填来源，失败被吞则该桶size()/isEmpty()永久失真且只读桶不自愈。
+			var rc = TaskSpec.ofProcedure(module.zeze.newProcedure(() -> initSize(ii, buckets[ii]), "initSize")).call();
+			if (rc != 0)
+				throw new RuntimeException("CHashMap initSize fail. name=" + name + "@" + ii + ", rc=" + rc);
 		}
 	}
 
