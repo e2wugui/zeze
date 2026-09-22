@@ -16,19 +16,38 @@ dependencies {
 def hotModuleNames = ['Buf', 'Equip', 'Fight', 'Item', 'Login', 'LongSet', 'Skill', 'Timer']
 def hotPackagePatterns = hotModuleNames.collect { "Game/${it}/**" }
 
+// Gen 全量再生成无条件输出热模块包，按包分拣到 build 下两个镜像目录再挂进源集。
+// 不能 srcDirs=['src','Gen']+exclude 再把 src/Game/<X> 注册成独立 srcDir 根绕过排除（排除
+// 模式按各 srcDir 根分别相对化，Gradle 下可行）：IDEA 会把每个 srcDir 标成源码根，I*.java
+// 紧贴根、相对路径为空，报"软件包名称 'Game.X' 与文件路径 '' 不对应"（javac 对显式文件
+// 清单无此检查，故 CLI 构建不报）。分拣镜像目录保留完整包路径，两边都不报。
+// 陷阱：gen_use_publish.bat 再生成会在 src/Game/<X> 重建 Module<X>.java 空骨架（Gen 仍以
+// src 为用户码输出目标）——骨架一旦编进 main 即破坏冷热分离，发现即删；根治需 Gen 按模块
+// hot 属性改输出目录。
+def genMainDir = layout.buildDirectory.dir('generated/sources/gen-main')
+def genHotDir = layout.buildDirectory.dir('generated/sources/gen-hot')
+def syncGenMain = tasks.register('syncGenMain', Sync) {
+    from 'Gen'
+    into genMainDir
+    exclude hotPackagePatterns
+}
+def syncGenHot = tasks.register('syncGenHot', Sync) {
+    from 'Gen'
+    into genHotDir
+    include hotPackagePatterns
+}
+
 sourceSets {
     main {
         java {
-            srcDirs = ['src', 'Gen'] + hotModuleNames.collect { "src/Game/${it}" }
-            // Gen 全量再生成无条件输出热模块包，这里按包过滤归 hot；src 下热模块目录只剩 I*.java，
-            // 以目录自身为 srcDir 根（相对路径不再命中排除模式）重新纳入。
-            exclude hotPackagePatterns
+            srcDirs = ['src']
+            srcDir syncGenMain
         }
     }
     hot {
         java {
-            srcDirs = ['src-hot', 'Gen']
-            include hotPackagePatterns
+            srcDirs = ['src-hot']
+            srcDir syncGenHot
         }
         compileClasspath += sourceSets.main.output
         compileClasspath += sourceSets.main.compileClasspath

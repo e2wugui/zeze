@@ -587,7 +587,7 @@ public class Service extends ReentrantLock {
 	 * 对方正常关闭连接或者shutdownOutput时的处理, 大多数情况直接关闭连接来应对, 少数情况可以继续发送数据直到主动关闭.
 	 * 理论上无法得知对方是否还可以接收数据, 只能靠上层协商行为规范.
 	 */
-	@SuppressWarnings({"MethodMayBeStatic", "RedundantThrows"})
+	@SuppressWarnings({"RedundantThrows"})
 	public void OnSocketInputClosed(@NotNull AsyncSocket so) throws Exception {
 		so.close(inputClosedException);
 	}

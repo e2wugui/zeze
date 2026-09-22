@@ -1399,7 +1399,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		}
 	}
 
-	private void loadTimer() throws Exception {
+	private void loadTimer() {
 		var serverId = zeze.getConfig().getServerId();
 		// 接管作用域已在ctor注册（claim前），stamp由Takeover.start()完成；死者链表由
 		// takeover.tryTransfer在同一事务内裁决+搬运，afterTransfer里对搬来的链重调度本地
