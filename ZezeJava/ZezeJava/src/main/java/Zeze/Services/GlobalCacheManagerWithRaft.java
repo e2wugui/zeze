@@ -2,8 +2,6 @@ package Zeze.Services;
 
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
@@ -30,6 +28,7 @@ import Zeze.Raft.RocksRaft.RocksMode;
 import Zeze.Raft.RocksRaft.Table;
 import Zeze.Raft.RocksRaft.TableTemplate;
 import Zeze.Raft.RocksRaft.Transaction;
+import Zeze.Util.DaemonTimer;
 import Zeze.Util.Id128;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
@@ -81,14 +80,9 @@ public class GlobalCacheManagerWithRaft
 
 	private final GlobalCacheManagerServer.GCMConfig gcmConfig = new GlobalCacheManagerServer.GCMConfig();
 	private final AchillesHeelConfig achillesHeelConfig;
-	private final Future<?> achillesHeelTimer;
-	// FND7-17：在飞守护扫描标志。定时器tick只派发不内联执行扫描（见scheduleAchillesHeelDaemon），
-	// 本标志同时保证扫描不重入（对齐原scheduleWithFixedDelay的串行语义）。
-	private final AtomicBoolean achillesHeelRunning = new AtomicBoolean();
-	// FND7-18：守护关门互斥锁与标志。close()持锁置位后cancel，tick持锁复查后才派发——
-	// cancel(false)挡不住已启动的tick，保证置位后不再产生新扫描。
-	private final Object achillesHeelGate = new Object();
-	private volatile boolean achillesHeelShutdown;
+	// FND7-17/18组件化：调度线程只派发、扫描体进worker池、close两段式（关门→cancel→限时等待
+	// 在飞一轮）由DaemonTimer内聚；该模式曾手抄于GCM三版与LoginQueue，拷贝过期即成缺陷。
+	private final DaemonTimer achillesHeelDaemonTimer;
 	private final GlobalCacheManagerPerf perf;
 	private final AtomicLong serialId = new AtomicLong();
 
@@ -152,40 +146,9 @@ public class GlobalCacheManagerWithRaft
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing, this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
-		achillesHeelTimer = TaskSpec.ofAction(this::scheduleAchillesHeelDaemon).schedulePeriodNow(5000, 5000);
-	}
-
-	/*
-	 * FND7-17：守护扫描不得在共享调度池线程上内联执行。扫描持session锁逐key跑同步raft
-	 * procedure，其中的lockey.await在acquireStatePending上可无限期等待，解锁依赖发往死
-	 * 会话的Reduce的Rpc超时定时器，而Rpc.schedule与周期调度共用scheduledPool——调度池
-	 * 单线程或被占满时形成同池循环等待，仅剩defaultTimeout看门狗兜底、disableInterrupt
-	 * 调试形态下永久冻结；多线程池形态下也把全部定时语义拖慢一个死会话的时长。tick只做
-	 * 派发，扫描体搬入默认worker池执行（executeCore同样携带defaultTimeout看门狗与异常日志）。
-	 * FND7-18：派发决策持achillesHeelGate与close()第一段互斥——cancel(false)挡不住已启动
-	 * 的tick，tick在锁内复查关门标志，保证close置位后不再产生新扫描。
-	 */
-	private void scheduleAchillesHeelDaemon() {
-		synchronized (achillesHeelGate) {
-			if (achillesHeelShutdown)
-				return; // close()已关门：不再派发新扫描
-			if (!achillesHeelRunning.compareAndSet(false, true))
-				return; // 上一轮扫描仍在执行，跳过本轮
-			var submitted = false;
-			try {
-				TaskSpec.ofAction(() -> {
-					try {
-						achillesHeelDaemon();
-					} finally {
-						achillesHeelRunning.set(false); // 扫描结束才放行下一轮
-					}
-				}).name("GlobalCacheManagerWithRaft.AchillesHeelDaemon").runNow();
-				submitted = true;
-			} finally {
-				if (!submitted)
-					achillesHeelRunning.set(false); // 派发失败（池未初始化等）：复位标志，避免守护永久停摆
-			}
-		}
+		achillesHeelDaemonTimer = new DaemonTimer("GlobalCacheManagerWithRaft.AchillesHeelDaemon", 5000,
+				this::achillesHeelDaemon);
+		achillesHeelDaemonTimer.start();
 	}
 
 	private void achillesHeelDaemon() {
@@ -1018,46 +981,16 @@ public class GlobalCacheManagerWithRaft
 	@Override
 	public void close() {
 		try {
-			// 先取消守护任务和性能统计任务，避免rocks关闭后继续访问。
-			// FND7-18：cancel(false)只阻止后续触发，不join正在执行的扫描——扫描持session锁
-			// 逐key跑raft procedure，rocks.close()释放原生句柄后与在飞walk/iterator竞争会
-			// 段错误杀死JVM（对齐ServiceManagerWithRaft.close的锁屏障教训）。锁内先置关门
-			// 标志再cancel，保证置位后不再产生新扫描；然后等在飞扫描结束再关rocks。
-			// 复审R2：cancel必须在gate外调用——tick任务体（scheduleAchillesHeelDaemon）在
-			// TimerFuture锁内执行（Task.schedulePeriodCore持future.lock跑body）并会取gate；
-			// 持gate cancel与在飞tick构成ABBA死锁。锁外cancel不破坏FND7-18语义：关门标志
-			// 已在gate内置位，此后tick不再派发新扫描，在飞扫描由awaitAchillesHeelIdle等待。
-			synchronized (achillesHeelGate) {
-				achillesHeelShutdown = true;
-			}
-			achillesHeelTimer.cancel(false);
-			awaitAchillesHeelIdle();
+			// 先停守护再关rocks：在飞扫描持session锁逐key跑raft procedure，rocks.close()
+			// 释放原生句柄后与在飞walk/iterator竞争会段错误杀死JVM
+			// （对齐ServiceManagerWithRaft.close的锁屏障教训）。DaemonTimer.stop两段式：
+			// 关门→cancel已排期→限时等待在飞一轮；扫描有defaultTimeout看门狗兜底，等不满
+			// 仅告警继续关闭（残余风险是晚到的扫描访问已关闭的rocks，与原行为一致）。
+			achillesHeelDaemonTimer.stop();
 			perf.close();
 			rocks.close();
 		} catch (Exception e) {
 			throw Task.forceThrow(e);
-		}
-	}
-
-	/*
-	 * FND7-18：等待在飞守护扫描结束。扫描有defaultTimeout看门狗兜底（超时中断），等待
-	 * 预算覆盖最坏一轮；等不满仅告警继续关闭（残余风险是晚到的扫描访问已关闭的rocks，
-	 * 与修复前行为一致，不再额外阻塞close）。
-	 */
-	private void awaitAchillesHeelIdle() {
-		var deadline = System.currentTimeMillis() + Task.defaultTimeout + 5_000;
-		while (achillesHeelRunning.get()) {
-			if (System.currentTimeMillis() >= deadline) {
-				logger.warn("AchillesHeelDaemon still running, skip waiting before close");
-				return;
-			}
-			try {
-				//noinspection BusyWait
-				Thread.sleep(10);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				return;
-			}
 		}
 	}
 

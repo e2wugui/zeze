@@ -1,0 +1,134 @@
+package UnitTest.Zeze.Util;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+
+import Zeze.Util.DaemonTimer;
+import Zeze.Util.Task;
+import harness.Fast;
+
+/**
+ * DaemonTimer（FND7-17/18"守护停机三件套"的组件化）行为钉板：
+ * <ol>
+ * <li>守护体必须跑在worker池线程而非调度线程——内联形态（缺陷）下线程名命中
+ * ZezeScheduledPool即红；且多轮执行永不重叠（自续约链的结构性质）；</li>
+ * <li>stop()必须限时等待在飞一轮：守护体被阻塞期间stop不得完成（缺等待形态立即完成，红），
+ * 放行后stop正常返回；</li>
+ * <li>关门：stop返回后不再触发新一轮（计数冻结）；restart：stop后start恢复周期执行。</li>
+ * </ol>
+ */
+@Fast
+public class TestDaemonTimer {
+
+	@BeforeAll
+	public static void setUp() {
+		Task.tryInitThreadPool();
+	}
+
+	@AfterAll
+	public static void tearDown() {
+		// 池由fast套件共享，不在此关闭
+	}
+
+	private static boolean waitUntil(Check cond, long timeoutMs) throws Exception {
+		var deadline = System.currentTimeMillis() + timeoutMs;
+		while (System.currentTimeMillis() < deadline) {
+			if (cond.check())
+				return true;
+			//noinspection BusyWait
+			Thread.sleep(10);
+		}
+		return cond.check();
+	}
+
+	private interface Check {
+		boolean check();
+	}
+
+	@Test
+	@Timeout(30)
+	public void testBodyRunsOffSchedulerAndNeverOverlaps() throws Exception {
+		var runs = new AtomicInteger();
+		var concurrent = new AtomicInteger();
+		var threadName = new AtomicReference<String>("");
+		var daemon = new DaemonTimer("UnitTest.DaemonTimer.offScheduler", 80, () -> {
+			Assertions.assertEquals(1, concurrent.incrementAndGet(), "守护体不得重叠执行");
+			try {
+				threadName.set(Thread.currentThread().getName());
+				runs.incrementAndGet();
+			} finally {
+				concurrent.decrementAndGet();
+			}
+		});
+		try {
+			daemon.start();
+			Assertions.assertTrue(waitUntil(() -> runs.get() >= 3, 5_000), "周期执行必须在5s内到达3轮");
+		} finally {
+			daemon.stop();
+		}
+		// FND7-17钉板：内联形态（守护体直接跑在调度线程）下线程名含ScheduledPool即红
+		Assertions.assertFalse(threadName.get().contains("Scheduled"),
+				"守护体不得在调度线程上执行，实际线程=" + threadName.get());
+		// 关门钉板：stop返回后计数冻结
+		var frozen = runs.get();
+		Thread.sleep(300); // 80ms周期下若未关门将多跑约3轮
+		Assertions.assertEquals(frozen, runs.get(), "stop返回后不得再触发新一轮");
+	}
+
+	@Test
+	@Timeout(30)
+	public void testStopWaitsInFlightAndRestart() throws Exception {
+		var bodyEntered = new CountDownLatch(1);
+		var bodyGate = new CountDownLatch(1);
+		var bodyDone = new CountDownLatch(1);
+		var daemon = new DaemonTimer("UnitTest.DaemonTimer.stopWaits", 80, () -> {
+			bodyEntered.countDown();
+			Assertions.assertTrue(bodyGate.await(30, TimeUnit.SECONDS), "测试必须及时放行守护体");
+			bodyDone.countDown();
+		});
+		var stopper = Executors.newSingleThreadExecutor(r -> new Thread(r, "UnitTest.DaemonTimer.stop"));
+		try {
+			daemon.start();
+			Assertions.assertTrue(bodyEntered.await(5, TimeUnit.SECONDS), "首轮必须在5s内触发");
+			Assertions.assertTrue(daemon.isBusy(), "守护体在飞标志必须置位");
+
+			Future<?> stopFuture = stopper.submit(() -> {
+				daemon.stop();
+				return null;
+			});
+			// FND7-18钉板：守护体被阻塞期间stop必须等待（缺等待形态立即返回，红）
+			try {
+				stopFuture.get(500, TimeUnit.MILLISECONDS);
+				Assertions.fail("stop()必须在在飞守护体结束前等待");
+			} catch (java.util.concurrent.TimeoutException expected) {
+				// 期望：stop仍在等待
+			}
+			bodyGate.countDown();
+			stopFuture.get(5, TimeUnit.SECONDS); // 放行后stop正常完成
+			Assertions.assertEquals(0, bodyDone.getCount(), "stop返回前守护体必须已跑完本轮");
+			Assertions.assertFalse(daemon.isBusy(), "stop返回后不得在飞");
+
+			// restart钉板：stop后start恢复周期执行
+			var runs = new AtomicInteger();
+			var daemon2 = new DaemonTimer("UnitTest.DaemonTimer.restart", 80, runs::incrementAndGet);
+			daemon2.start();
+			daemon2.stop();
+			daemon2.start();
+			Assertions.assertTrue(waitUntil(() -> runs.get() >= 1, 5_000), "restart后必须恢复周期执行");
+			daemon2.stop();
+		} finally {
+			bodyGate.countDown();
+			stopper.shutdownNow();
+		}
+	}
+}

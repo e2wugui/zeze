@@ -8,6 +8,15 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 周期任务句柄（{@link Task#schedulePeriodCore} 创建，TaskSpec.schedulePeriodNow 返回）。
+ * 目的：补 JDK ScheduledFuture.cancel 的缺口——它只阻断后续触发，对已开始的当前轮既不阻止
+ * 也不可等待，调用方"cancel 后即拆资源"会与在飞一轮竞态。
+ * 机制：任务体在本对象锁内执行并复查取消标志，cancel 取同一把锁，因此
+ * ①与"检查→执行"互斥：cancel 返回后不会再启动新的一轮；
+ * ②隐式 join 在飞的一轮：返回即可安全拆除任务体访问的资源。
+ * 代价：cancel 成为阻塞原语，受 {@link #cancel} 的 ABBA 调用约束。
+ */
 public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> {
 	private ScheduledFuture<V> future;
 	// volatile: isCancelled() 在任务线程中无锁轮询，需与 cancel() 的写入保持可见性
@@ -19,16 +28,12 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 	}
 
 	/**
-	 * 取消周期任务并阻断后续触发。
-	 * <p>
-	 * 隐式不变量（复审R2成文，曾仅存在于 Task.schedulePeriodCore 的实现细节）：
-	 * {@link Task#schedulePeriodCore} 在任务体执行期间持有<b>本对象</b>的锁（body.call 在
-	 * future.lock 内跑），本方法需先取得该锁——因此 cancel 天然 join 当前正在执行的一轮任务体
-	 * （不中断它，mayInterruptIfRunning 只作用于底层 future），期间阻塞。
-	 * 【调用约束】调用方不得持有任务体执行期间可能获取的任何锁：否则与在飞任务体构成 ABBA
-	 * 死锁（cancel 等本对象的锁、任务体等调用方持有的锁，双方永久挂起）。需要与停机门禁互斥时，
-	 * 先在锁内置关门标志并捕获句柄，释放锁后再 cancel（参见 LoginQueue.stop、
-	 * GlobalCacheManagerServer.stop、GlobalCacheManagerWithRaft.close 的形态）。
+	 * 取消并 join：取本对象锁，阻塞至在飞一轮任务体结束；返回后不再启动新的一轮
+	 * （mayInterruptIfRunning 只作用于底层 future，不中断任务体）。
+	 * 【调用约束】不得持有任务体执行期间可能获取的任何锁，否则与在飞任务体互等（ABBA）永久挂起；
+	 * 需与停机门禁互斥时，锁内只置关门标志并捕获句柄，释放锁后再 cancel。周期守护的停机
+	 * 请优先用 DaemonTimer——它把"关门→cancel→限时等待在飞"内聚为组件，cancel对象为
+	 * 普通JDK ScheduledFuture，本约束对其不适用。
 	 */
 	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {

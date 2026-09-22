@@ -1,9 +1,6 @@
 package UnitTest.Zeze.Services;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.jupiter.api.AfterAll;
@@ -21,6 +18,7 @@ import Zeze.Services.GlobalCacheManager.KeepAlive;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.DaemonTimer;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
 import harness.Fast;
@@ -30,13 +28,13 @@ import harness.Fast;
  * noWait=false）在pending上可无限期await，解锁依赖的Rpc超时定时器又排在同一个
  * scheduledPool上——单线程/饱和调度池下形成同池循环等待，锁协调者停摆。
  * <p>
- * 修复后定时器tick只做派发，扫描体在默认worker池上执行。验证（会话锁汇合点，时序全由
- * 测试控制，不依赖线程身份枚举）：
+ * 组件化后（DaemonTimer）："tick只派发不内联、扫描体进worker池"成为组件的结构属性，
+ * 非阻塞钉板在组件级TestDaemonTimer覆盖（守护体线程名命中调度池即红）。本类守住
+ * GCM侧接线（会话锁汇合点，时序全由测试控制）：
  * <ol>
  * <li>真实定时器tick仍能端到端驱动扫描（守住周期与kick语义不变）；</li>
- * <li>tick入口（scheduleAchillesHeelDaemon）在扫描被阻塞（测试持有会话锁）时必须立刻
- * 返回——内联执行（缺陷形态）会在被阻塞的扫描上无限期等待。修复前扫描直接内联在定时器
- * lambda里（方法不存在，反射调用以NoSuchMethodException失败），同样是红。</li>
+ * <li>守护必须由DaemonTimer承载（achillesHeelDaemonTimer字段反射，回退到内联形态
+ * 即NoSuchFieldException红）。</li>
  * </ol>
  */
 @ResourceLock("GlobalCacheManagerServer.instance")
@@ -105,9 +103,10 @@ public class TestFnd717GcmDaemonOffScheduler {
 	}
 
 	private static boolean scanRunning() throws Exception {
-		var field = GlobalCacheManagerServer.class.getDeclaredField("achillesHeelRunning");
+		// 结构性红：回退到手抄三件套或内联形态时该字段不存在（NoSuchFieldException）
+		var field = GlobalCacheManagerServer.class.getDeclaredField("achillesHeelDaemonTimer");
 		field.setAccessible(true);
-		return ((AtomicBoolean)field.get(gcm)).get();
+		return ((DaemonTimer)field.get(gcm)).isBusy();
 	}
 
 	private static long holderSessionId(ReentrantLock holder) throws Exception {
@@ -157,27 +156,20 @@ public class TestFnd717GcmDaemonOffScheduler {
 		Assertions.assertTrue(waitUntil(() -> !scanRunning(), 10_000), "扫描必须结束");
 		Assertions.assertTrue(waitUntil(() -> holderSessionId(holder) == 0L, 10_000), "kick必须清零sessionId");
 
-		// 3. 核心断言：tick入口只派发不内联——扫描被阻塞时调用必须立刻返回。
-		// 修复前扫描内联在定时器lambda里（无scheduleAchillesHeelDaemon，反射即红）；
-		// 内联形态下本调用会在被阻塞的扫描上无限期等待，2s限时必然超红。
+		// 3. 第二轮仍由真实tick驱动（组件化后tick入口不可外部直调，非阻塞钉板在组件级
+		//    TestDaemonTimer覆盖：守护体线程名命中调度池即红、stop等待在飞一轮）
 		staleSession(holder);
 		holder.lock();
 		try {
-			var scheduleTick = GlobalCacheManagerServer.class.getDeclaredMethod("scheduleAchillesHeelDaemon");
-			scheduleTick.setAccessible(true);
-			var begin = System.nanoTime();
-			scheduleTick.invoke(gcm);
-			var elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - begin);
-			Assertions.assertTrue(elapsedMs < 2_000, "tick入口必须立即返回（只派发），实际耗时=" + elapsedMs + "ms");
-
-			// 派发出去的扫描必须真实运行并到达会话锁（证明不是被丢弃）
-			Assertions.assertTrue(waitUntil(holder::hasQueuedThreads, 5_000), "派发的扫描必须到达会话锁");
+			Assertions.assertTrue(waitUntil(holder::hasQueuedThreads, 12_000),
+					"新一轮tick必须在12s内驱动扫描（周期5s）");
+			Assertions.assertTrue(scanRunning(), "扫描在飞标志必须置位");
 		} finally {
 			holder.unlock();
 		}
 
 		// 4. 放行后扫描完成kick，会话状态被清理
-		Assertions.assertTrue(waitUntil(() -> !scanRunning(), 10_000), "派发的扫描必须结束");
+		Assertions.assertTrue(waitUntil(() -> !scanRunning(), 10_000), "扫描必须结束");
 		Assertions.assertEquals(0L, holderSessionId(holder), "kick必须清零sessionId");
 	}
 }

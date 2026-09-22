@@ -1,7 +1,6 @@
 package Zeze.Services;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -13,8 +12,8 @@ import Zeze.Builtin.LoginQueueServer.BServerLoad;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
+import Zeze.Util.DaemonTimer;
 import Zeze.Util.Task;
-import Zeze.Util.TaskSpec;
 import Zeze.Util.TimeThrottle;
 import Zeze.Util.TimeThrottleCounter;
 import org.jetbrains.annotations.NotNull;
@@ -50,9 +49,10 @@ public class LoginQueue extends AbstractLoginQueue {
 	private final ConcurrentLinkedQueue<AsyncSocket> queue = new ConcurrentLinkedQueue<>();
 	// 私有锁: 串行化tryOnAccept/drainQueue/tryResetTimeThrottle;取代原先共用的this监视器,不暴露实例监视器
 	private final ReentrantLock allocateLock = new ReentrantLock();
-	// FND7-21：分配tick与start/stop配对（原为构造器赋值的final字段，stop取消后不可再得，
-	// restart永久失去1秒分配tick与队列位置广播）。allocateLock保护下判空创建/置null。
-	private Future<?> allocateTimer;
+	// FND7-21的组件化：分配tick的start/stop配对、stop限时等待在飞一轮、restart重新武装
+	// 均由DaemonTimer内聚（关门标志+running标志+awaitIdle三件套不再手抄）。tick只做派发，
+	// drainQueue+万级广播搬入worker池执行，不再占用调度线程（FND7-17同款卫生）。
+	private final DaemonTimer allocateDaemon = new DaemonTimer("LoginQueue.allocate", 1000, this::allocateTimer);
 	private int broadcastCount;
 	private final int maxOnlineNew;
 	private final boolean choiceLinkOnly;
@@ -74,7 +74,6 @@ public class LoginQueue extends AbstractLoginQueue {
 		this.server = new LoginQueueServer(this, config);
 		this.service = new LoginQueueService(config);
 		RegisterProtocols(service);
-		// FND7-21：分配tick移入start()，与stop()的取消配对
 		timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
 	}
 
@@ -95,15 +94,13 @@ public class LoginQueue extends AbstractLoginQueue {
 	public void start() throws Exception {
 		server.getService().start();
 		service.start();
+		allocateDaemon.start(); // FND7-21：tick随start/stop配对，幂等，stop后restart由组件重新武装
 		allocateLock.lock();
 		try {
-			// FND7-21：分配tick与start/stop配对，stop后restart重建（原来stop取消后final字段
-			// 不可再得，restart永久失去1秒分配tick与队列位置广播）。timeThrottle同批重置：
-			// stop关闭了旧实例（内部timer已cancel、计数永不清零），且provider全部掉线时曾被
-			// tryResetTimeThrottle重建为limit=0的实例——不重置则restart后直到provider重新
-			// 上报前checkNow恒false，直通分配也被禁。重置回首次start的默认状态。
-			if (allocateTimer == null)
-				allocateTimer = TaskSpec.ofAction(this::allocateTimer).schedulePeriodNow(1000L, 1000L);
+			// timeThrottle重置：stop关闭了旧实例（内部timer已cancel、计数永不清零），且
+			// provider全部掉线时曾被tryResetTimeThrottle重建为limit=0的实例——不重置则
+			// restart后直到provider重新上报前checkNow恒false，直通分配也被禁。
+			// 重置回首次start的默认状态。
 			var old = timeThrottle;
 			timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
 			providerSize = 0;
@@ -114,23 +111,10 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	public void stop() throws Exception {
-		Future<?> timer = null;
-		allocateLock.lock();
-		try {
-			// FND7-21：取消并置null，与start()的创建配对（restart可重建）。
-			// 复审R2：cancel必须在allocateLock外调用——分配tick任务体（drainQueue）在
-			// TimerFuture锁内执行（Task.schedulePeriodCore持future.lock跑body）并会取
-			// allocateLock；持allocateLock调cancel与在飞tick构成ABBA死锁（cancel等
-			// future.lock、tick体等allocateLock，双方永久挂起）。锁内只捕获句柄并置null。
-			if (allocateTimer != null) {
-				timer = allocateTimer;
-				allocateTimer = null;
-			}
-		} finally {
-			allocateLock.unlock();
-		}
-		if (timer != null)
-			timer.cancel(true); // cancel在锁外：join在飞tick一轮（本例drainQueue+广播），不再持tick体需要的锁
+		// 组件内聚两段式：关门→cancel已排期→限时等待在飞一轮（drainQueue持allocateLock，
+		// 此处不持锁调用）。cancel对象为普通JDK ScheduledFuture，不经TimerFuture锁——
+		// 原"cancel必须出锁（复审R2）"的调用纪律就此变成结构属性，无ABBA可能。
+		allocateDaemon.stop();
 		server.getService().stop();
 		service.stop();
 		timeThrottle.close(); // 放在service.stop之后：关闭过程中onClose还可能触发tryResetTimeThrottle替换实例

@@ -11,12 +11,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;
-import Zeze.Services.GlobalCacheManagerServer;
+import Zeze.Services.GlobalCacheManagerAsyncServer;
 import Zeze.Services.GlobalCacheManager.Acquire;
 import Zeze.Services.GlobalCacheManager.KeepAlive;
 import Zeze.Services.GlobalCacheManager.Login;
@@ -27,29 +26,24 @@ import Zeze.Util.Task;
 import harness.Fast;
 
 /**
- * FND7-18：stop()取消守护定时器后若在飞扫描仍在跑就拆依赖，扫描的kick()会在拆除窗口内
- * 访问已停止的Service。组件化后由DaemonTimer.stop内聚"关门→cancel→限时等待在飞一轮"，
- * 且server引用已墓碑化（stop只停止对象不杀引用）——晚到扫描读到已停止Service时
- * GetSocket安全返回null，不再NPE。本测试钉死的行为不变：stop必须等在飞扫描结束。
+ * 异步GCM的stop停机钉板（对齐同步版TestFnd718GcmStopWaitsDaemon的构造手法）：
+ * stop()必须在拆依赖前限时等待在飞守护扫描结束——扫描被阻塞（测试持有会话锁）期间
+ * stop不得完成（缺等待形态毫秒级完成，断言即红）；放行后扫描完整跑完本轮
+ * （A、B都被kick清零sessionId），stop才返回。
  * <p>
- * 构造性场景（同步GCM单例，两个超时会话；时序由测试持有的会话锁控制）：
- * 1. A、B登录并置为超时会话；测试先占住两会话锁，等守护扫描到来阻塞在第一把锁上；
- * 2. 清空两个服务端socket的userState并关闭之——stop()的server.stop()关闭会话socket时
- *    会同步回调OnSocketClose→tryUnBindSocket抢会话锁（那会让stop自己阻塞、掩盖缺陷），
- *    清空userState后stop路径不再触碰会话锁，可自由跑到拆除段；
- * 3. 后台stop()：缺等待的形态毫秒级完成（cancel只挡住了派发）——断言1红；
- * 4. 放行会话锁：修复后扫描在拆依赖前完整跑完（A、B的sessionId都被kick清零）。
+ * 注意基线演变：本类不再以"kick踩null server的NPE"为红色信号——server引用已墓碑化
+ * （stop只停止对象不杀引用），晚到扫描读到的已停止Service上GetSocket安全返回null。
+ * 红色信号是"stop未等在飞扫描"本身。
  */
-@ResourceLock("GlobalCacheManagerServer.instance")
 @Fast
-public class TestFnd718GcmStopWaitsDaemon {
-	private static final int PORT = 19718; // @Fast固定端口独占（与TestFnd717经ResourceLock串行）
-	private static final int SERVER_ID_A = 9401;
-	private static final int SERVER_ID_B = 9402;
+public class TestGlobalCacheManagerAsyncStopWaitsDaemon {
+	private static final int PORT = 19719; // @Fast固定端口独占
+	private static final int SERVER_ID_A = 9501;
+	private static final int SERVER_ID_B = 9502;
 
 	private static RawClient clientA;
 	private static RawClient clientB;
-	private static GlobalCacheManagerServer gcm;
+	private static GlobalCacheManagerAsyncServer gcm;
 	private static ExecutorService stopExecutor;
 
 	/** 裸协议客户端：只需Login（kick由服务端单向发起）。 */
@@ -75,11 +69,11 @@ public class TestFnd718GcmStopWaitsDaemon {
 	@BeforeAll
 	public static void setUp() throws Exception {
 		Task.tryInitThreadPool();
-		// 同步版是进程内单例；与TestFnd717GcmDaemonOffScheduler经@ResourceLock串行使用，
-		// fast套件无其他使用者（TestEnvLauncherListener在test任务被关闭且只启动异步版）。
-		gcm = GlobalCacheManagerServer.getInstance();
+		// 自建实例自起自停（对齐TestGlobalCacheManagerAsyncAcquireKick）：固定端口独占，
+		// 不依赖TestEnvLauncherListener的环境（其在test任务被关闭）。
+		gcm = new GlobalCacheManagerAsyncServer();
 		gcm.start(null, PORT, null);
-		stopExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "UnitTest.FND7_18.stop"));
+		stopExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "UnitTest.AsyncGcmStop.stop"));
 	}
 
 	@AfterAll
@@ -94,7 +88,7 @@ public class TestFnd718GcmStopWaitsDaemon {
 	}
 
 	private static ReentrantLock sessionHolder(int serverId) throws Exception {
-		var sessionsField = GlobalCacheManagerServer.class.getDeclaredField("sessions");
+		var sessionsField = GlobalCacheManagerAsyncServer.class.getDeclaredField("sessions");
 		sessionsField.setAccessible(true);
 		@SuppressWarnings("unchecked")
 		var sessions = (LongConcurrentHashMap<ReentrantLock>)sessionsField.get(gcm);
@@ -117,7 +111,7 @@ public class TestFnd718GcmStopWaitsDaemon {
 	}
 
 	private static Service serverService() throws Exception {
-		var field = GlobalCacheManagerServer.class.getDeclaredField("server");
+		var field = GlobalCacheManagerAsyncServer.class.getDeclaredField("server");
 		field.setAccessible(true);
 		return (Service)field.get(gcm);
 	}
@@ -151,8 +145,8 @@ public class TestFnd718GcmStopWaitsDaemon {
 	@Test
 	@Timeout(90)
 	public void testStopWaitsInFlightDaemonAndKicksAllStaleSessions() throws Exception {
-		clientA = new RawClient("UnitTest.FND7_18.A");
-		clientB = new RawClient("UnitTest.FND7_18.B");
+		clientA = new RawClient("UnitTest.AsyncGcmStop.A");
+		clientB = new RawClient("UnitTest.AsyncGcmStop.B");
 		login(clientA, SERVER_ID_A);
 		login(clientB, SERVER_ID_B);
 
@@ -182,8 +176,7 @@ public class TestFnd718GcmStopWaitsDaemon {
 				peer.close();
 			}
 
-			// 3. stop()不得在扫描被阻塞期间完成：缺等待的形态下cancel(false)只挡住派发动作，
-			//    随后立即拆依赖（server=null）
+			// 3. stop()不得在扫描被阻塞期间完成：缺等待形态下stop立即返回并拆除依赖
 			Future<?> stopFuture = stopExecutor.submit(() -> {
 				gcm.stop();
 				return null;
@@ -198,7 +191,7 @@ public class TestFnd718GcmStopWaitsDaemon {
 			// 4. 放行会话锁：扫描在拆依赖前完整跑完本轮，A、B都被kick（sessionId清零）
 			holderA.unlock();
 			holderB.unlock();
-			stopFuture.get(30_000, TimeUnit.MILLISECONDS); // stop完成（扫描结束后拆依赖）
+			stopFuture.get(30_000, TimeUnit.MILLISECONDS); // stop完成（扫描结束后才拆依赖）
 
 			Assertions.assertTrue(waitUntil(() -> holderSessionId(holderA) == 0L, 10_000),
 					"扫描必须在拆依赖前kick A（sessionId清零）");
