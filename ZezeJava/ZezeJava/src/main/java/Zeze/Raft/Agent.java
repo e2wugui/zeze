@@ -485,8 +485,8 @@ public final class Agent {
 				outNode.value.start();
 			node = outNode.value;
 		} else {
-			//noinspection DataFlowIssue
-			if (!r.Argument.isLeader() && r.Argument.getLeaderId().equals(r.getSender().getConnector().getName())) {
+			// 代理隧道解码的rpc无sender（ProxyAgent.send静态decode不关联socket）：判空后跳过自指检查，仍走直连回落。
+			if (r.getSender() != null && !r.Argument.isLeader() && r.Argument.getLeaderId().equals(r.getSender().getConnector().getName())) {
 				// 【错误处理】用来观察。
 				logger.warn("New Leader Is Not A Leader.");
 				// 发送者不是Leader，但它的发送的LeaderId又是自己，【尝试选择另外一个Node】。
