@@ -130,7 +130,10 @@ public class TestFnd849ConnectorRestartDuringStopWindow {
 
 			// 退避1s后下一次start再次进入解析（仍失败→再排程）
 			await("retry chain reentered resolve", 15_000, () -> client.attempts.get() >= 2);
-			Assertions.assertNull(connector.getSocket(), "失败期间的socket必须已被close链回收");
+			// 每代失败socket由close链最终回收。等待式断言：观测点可能落在下一代在途尝试的
+			// 发布窗口内（所有权随构造同步发布，见testStopDuringPendingResolveThenStartReconnects），
+			// 瞬时null断言与该窗口竞态（30轮压测round4假红）；socket永久滞留则此处超时红。
+			await("failed generation socket reclaimed by close chain", 15_000, () -> c.getSocket() == null);
 		} finally {
 			if (client.release.getCount() > 0)
 				client.release.countDown();
