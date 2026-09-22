@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Arch.RedirectFuture;
@@ -81,6 +82,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private final GlobalCacheManagerServer.GCMConfig gcmConfig = new GlobalCacheManagerServer.GCMConfig();
 	private AchillesHeelConfig achillesHeelConfig;
 	private Future<?> achillesHeelTimer;
+	// FND10 svc-01 对齐同步版FND7-18三件套：tick只派发不内联执行（running标志），stop关门+等待在飞扫描。
+	private final AtomicBoolean achillesHeelRunning = new AtomicBoolean();
+	private volatile boolean achillesHeelShutdown;
 	private GlobalCacheManagerPerf perf;
 
 	// 每个实例都是独立的服务器（无共享静态状态），可同 JVM 启动多个监听不同端口。
@@ -138,9 +142,61 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 			achillesHeelConfig = new AchillesHeelConfig(gcmConfig.maxNetPing, gcmConfig.serverProcessTime,
 					gcmConfig.serverReleaseTimeout);
-			achillesHeelTimer = TaskSpec.ofAction(this::achillesHeelDaemon).schedulePeriodNow(5000, 5000);
+			achillesHeelTimer = TaskSpec.ofAction(this::scheduleAchillesHeelDaemon).schedulePeriodNow(5000, 5000);
+			achillesHeelShutdown = false; // FND7-18（自同步版移植）：stop后restart支持
 		} finally {
 			unlock();
+		}
+	}
+
+	/*
+	 * FND7-18（自同步版移植）：派发决策持实例锁与stop()第一段互斥——cancel(false)挡不住已启动的tick，
+	 * tick在锁内复查关门标志，保证stop置位后不再产生新扫描；锁内仅CAS+入队，不执行扫描。
+	 */
+	private void scheduleAchillesHeelDaemon() {
+		lock();
+		try {
+			if (achillesHeelShutdown)
+				return; // stop()已关门：不再派发新扫描
+			if (!achillesHeelRunning.compareAndSet(false, true))
+				return; // 上一轮扫描仍在执行，跳过本轮
+			var submitted = false;
+			try {
+				TaskSpec.ofAction(() -> {
+					try {
+						achillesHeelDaemon();
+					} finally {
+						achillesHeelRunning.set(false); // 扫描结束才放行下一轮
+					}
+				}).name("GlobalCacheManagerAsync.AchillesHeelDaemon").runNow();
+				submitted = true;
+			} finally {
+				if (!submitted)
+					achillesHeelRunning.set(false); // 派发失败（池未初始化等）：复位标志，避免守护永久停摆
+			}
+		} finally {
+			unlock();
+		}
+	}
+
+	/*
+	 * FND7-18（自同步版移植）：等待在飞守护扫描结束。等待预算覆盖最坏一轮；等不满仅告警继续
+	 * 停机（kick的判空已保证此时无NPE，最多一轮检查提前中止）。
+	 */
+	private void awaitAchillesHeelIdle() {
+		var deadline = System.currentTimeMillis() + Task.defaultTimeout + 5_000;
+		while (achillesHeelRunning.get()) {
+			if (System.currentTimeMillis() >= deadline) {
+				logger.warn("AchillesHeelDaemon still running, skip waiting before stop");
+				return;
+			}
+			try {
+				//noinspection BusyWait
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
 		}
 	}
 
@@ -176,17 +232,31 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	public void stop() throws Exception {
+		Future<?> timer;
 		lock();
 		try {
 			if (server == null)
 				return;
 			// 先停使用者再拆被使用者（对齐Raft版顺序，FND4-53）：daemon经CacheHolder.kick访问
-			// instance.server.GetSocket，原顺序先置server=null后cancel定时器——停机窗口内daemon
+			// owner.server.GetSocket，原顺序先置server=null后cancel定时器——停机窗口内daemon
 			// 踩到null NPE（持session锁的该轮forEach中止，剩余session不再检查）。
-			if (achillesHeelTimer != null) {
-				achillesHeelTimer.cancel(false);
-				achillesHeelTimer = null;
-			}
+			achillesHeelShutdown = true; // FND7-18（自同步版移植）：锁内置位后cancel，tick锁内复查保证不再产生新扫描
+			timer = achillesHeelTimer;
+			achillesHeelTimer = null;
+		} finally {
+			unlock();
+		}
+		// cancel必须在实例锁外调用（同步版复审R2同因）：tick任务体在TimerFuture锁内执行并会取
+		// 实例锁，持实例锁cancel与在飞tick构成ABBA死锁。锁外cancel不破坏关门语义（标志已锁内置位）。
+		if (timer != null)
+			timer.cancel(false);
+		// FND7-18：cancel(false)只阻止后续触发，不join正在执行的扫描——不等待就在飞扫描的
+		// kick踩到已置null的server。不持锁等待：扫描体不拿实例锁。
+		awaitAchillesHeelIdle();
+		lock();
+		try {
+			if (server == null)
+				return; // 并发stop已完成拆除
 			serverSocket.close();
 			serverSocket = null;
 			server.stop();
@@ -1127,7 +1197,10 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 		// not under lock
 		void kick() {
-			var peer = owner.server.GetSocket(sessionId);
+			// FND7-18（自同步版移植）：stop()等待在飞扫描有超时预算，超预算继续拆依赖后晚到的扫描
+			// 会读到null的server——缓存引用判空跳过kick，不NPE中断本轮forEach的其余会话检查。
+			var srv = owner.server;
+			var peer = srv != null ? srv.GetSocket(sessionId) : null;
 			if (null != peer) {
 				peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
 				peer.close(kickException); // 关闭连接，强制Agent重新登录。
@@ -1152,7 +1225,12 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
 				}
 
-				var socket = owner.server.GetSocket(sessionId);
+				// S2-F1（自同步版移植）：对齐kick()防护——stop()拆依赖窗口内server已被置null，
+				// 裸解引用NPE会中断在飞会话的绑定链；判空直接失败。
+				var srv = owner.server;
+				if (srv == null)
+					return false;
+				var socket = srv.GetSocket(sessionId);
 				if (socket == null) {
 					// old socket not exist or has lost.
 					sessionId = newSocket.getSessionId();
@@ -1179,7 +1257,11 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				if (oldSocket.getUserState() != this)
 					return false; // not bind to this
 
-				var current = owner.server.GetSocket(sessionId);
+				// S2-F1（自同步版移植）：对齐kick()防护——close后server为null，裸引用NPE中断解绑。
+				var srv = owner.server;
+				if (srv == null)
+					return false;
+				var current = srv.GetSocket(sessionId);
 				if (current != null && current != oldSocket)
 					return false; // not same socket
 
