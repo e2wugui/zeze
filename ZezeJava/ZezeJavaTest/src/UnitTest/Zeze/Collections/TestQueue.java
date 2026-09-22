@@ -121,4 +121,33 @@ public class TestQueue {
 		}, "test4_QueuePop").call();
 		Assertions.assertEquals(Procedure.Success, ret);
 	}
+
+	@Test
+	public final void test7_QueueDrainThenPushAdd() {
+		// FND10 coll-01回归：排空（poll清空最后节点）→push→add曾产生零链接尾节点——add的值
+		// 从head不可达（数据丢失）且count虚高。修复后poll排空同步清尾键，衔接后数据全可达。
+		// 先完全排空再做绝对断言，对历史残留数据免疫。
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
+			var queue = demo.App.getInstance().Zeze.getQueueModule().open("test7", BMyBean.class);
+			for (int round = 0; round < 3; round++) { // 多轮覆盖"再排空再灌"的循环路径
+				while (queue.poll() != null) {
+					// 完全排空
+				}
+				var stackBean = new BMyBean();
+				stackBean.setI(100);
+				queue.push(stackBean);
+				var queueBean = new BMyBean();
+				queueBean.setI(200);
+				queue.add(queueBean);
+				Assertions.assertEquals(2, queue.size());
+				// push的值在头；add的值必须可达（修复前第二个poll返回null且size虚高2不归零）
+				Assertions.assertEquals(100, queue.poll().getI());
+				Assertions.assertEquals(200, queue.poll().getI());
+				Assertions.assertNull(queue.poll());
+				Assertions.assertEquals(0, queue.size());
+			}
+			return Procedure.Success;
+		}, "test7_QueueDrainThenPushAdd").call();
+		Assertions.assertEquals(Procedure.Success, ret);
+	}
 }

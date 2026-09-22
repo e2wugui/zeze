@@ -244,6 +244,10 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		root.setHeadNodeKey(head.getNextNodeKey());
 		root.setCount(root.getCount() - head.getValues().size());
 		module._tQueueNodes.remove(headKey);
+		// FND10 coll-01：同poll——被取走的头节点同时是尾节点（单节点队列排空）时同步清尾键，
+		// 避免排空残尾。用带队列名、nodeId=0的键（空名键会让compatible复活旧指针）。
+		if (root.getTailNodeKey().getNodeId() == headKey.getNodeId())
+			root.setTailNodeKey(new BQueueNodeKey(name, 0));
 		return head;
 	}
 
@@ -325,6 +329,11 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		if (nodeValues.isEmpty()) {
 			root.setHeadNodeKey(head.getNextNodeKey());
 			module._tQueueNodes.remove(headKey);
+			// FND10 coll-01：取空的节点同时是尾节点时同步清尾键——排空残尾与push的tail修复
+			// 条件（仅tail.nodeId==0才修）失配，此后push再add会产生零链接尾节点：add的值从
+			// head不可达（永久丢失）且count虚高。带队列名、nodeId=0的键。
+			if (root.getTailNodeKey().getNodeId() == headKey.getNodeId())
+				root.setTailNodeKey(new BQueueNodeKey(name, 0));
 		}
 
 		@SuppressWarnings("unchecked")
@@ -366,13 +375,29 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		var root = getOrAddRoot();
 		var tailNodeKey = root.getTailNodeKey();
 		var tail = tailNodeKey.getNodeId() != 0 ? getNode(tailNodeKey) : null; // 比起直接访问快一些。
-		if (tail == null) {
-			// FND8-79：排空残尾是设计常态（poll故意不清TailNodeKey，head==0时另立新尾完全
-			// 正确），仅活链存在（head!=0）且尾键非0的真断链才告警——此时另立新尾会让活链
-			// 末端数据彻底不可达且count进一步脱节。
-			if (root.getHeadNodeKey().getNodeId() != 0)
-				logger.error("queue add: broken tail, name={}, count={}, tailKey={}",
-						name, root.getCount(), tailNodeKey);
+		if (tail == null && root.getHeadNodeKey().getNodeId() != 0) {
+			// FND10 coll-01：尾键非0但尾行缺失且活链存在=真断链（正常序列里poll/pollNode排空时
+			// 已清尾键，head!=0时push/add都会维护尾键）。不能像原来那样零链接另立新尾（新值从
+			// head不可达，FND8-79只告警不阻止）：沿链重定位最后可达节点为真实尾并自愈尾指针；
+			// 链中途断（断点后数据已不可达，数据损坏）用断点前节点，口径对齐FND8-79"诊断告警、
+			// 不中断服务"；头节点行也缺失（tail保持null）则回落原行为另立新尾。
+			logger.error("queue add: broken tail, relocate real tail by walking. name={}, count={}, tailKey={}",
+					name, root.getCount(), tailNodeKey);
+			var curKey = root.getHeadNodeKey();
+			tail = getNode(curKey);
+			while (tail != null && tail.getNextNodeKey().getNodeId() != 0) {
+				var nextKey = tail.getNextNodeKey();
+				var next = getNode(nextKey);
+				if (next == null) {
+					logger.error("queue add: chain broken at {}, use last reachable node as tail. name={}",
+							nextKey, name);
+					break;
+				}
+				curKey = nextKey;
+				tail = next;
+			}
+			if (tail != null)
+				root.setTailNodeKey(curKey);
 		}
 		if (tail == null || tail.getValues().size() >= nodeSize) {
 			var newNodeId = root.getLastNodeId() + 1;

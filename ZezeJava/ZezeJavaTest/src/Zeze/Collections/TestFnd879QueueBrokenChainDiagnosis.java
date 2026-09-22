@@ -26,8 +26,9 @@ import org.junit.jupiter.api.Test;
  * 不会产生）时，poll/pollNode/peek/peekNode曾静默返回null——size仍>0却永远取不出，
  * 消费者空转、积压封存且无迹可寻（walk与LinkedMap同族早已fail-loud，唯读路径漏网）。
  * add对尾断曾无差别另立新尾，活链存在时新增数据彻底不可达。修复：四处读路径记error
- * 断链诊断（不抛ISE——乐观并发重试交错下的瞬时行缺失是良性的）；add仅活链存在
- * （head!=0）且尾键非0的真断链才告警（排空残尾是poll故意不清TailNodeKey的设计常态）。
+ * 断链诊断（不抛ISE——乐观并发重试交错下的瞬时行缺失是良性的）；add遇活链存在
+ * （head!=0）且尾键非0的真断链，沿链重定位最后可达节点为尾并自愈尾指针（FND10
+ * coll-01；排空残尾已由poll/pollNode清尾键消除，不再是设计常态）。
  */
 @Fast
 public class TestFnd879QueueBrokenChainDiagnosis {
@@ -162,8 +163,8 @@ public class TestFnd879QueueBrokenChainDiagnosis {
 			var queue = module.open("a6.fnd879.q3", EmptyBean.class, 1);
 			callInTxn(zeze, () -> {
 				queue.add(new EmptyBean());
-				Assertions.assertNotNull(queue.poll(), "排空前必须能取出"); // head推进为0，tail残留指向已删行
-				queue.add(new EmptyBean()); // 排空残尾下重建：head==0，不得告警
+				Assertions.assertNotNull(queue.poll(), "排空前必须能取出"); // head与tail同步清0（FND10 coll-01）
+				queue.add(new EmptyBean()); // 排空后重建：head==0，不得告警
 				Assertions.assertNotNull(queue.peek(), "重建后必须可读");
 				return 0L;
 			});
