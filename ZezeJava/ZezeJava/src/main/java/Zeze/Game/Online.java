@@ -1916,7 +1916,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var pdata = broadcast.encode();
 		int sendCount = 0;
 		for (var link : providerApp.providerService.getLinks().values()) {
-			if (link.getSocket() != null && link.getSocket().Send(pdata)) {
+			// 单次读取再判空使用：两次独立getSocket()在Connector.stop置空socket的窗口内TOCTOU NPE。
+			var so = link.getSocket();
+			if (so != null && so.Send(pdata)) {
 				ZezeCounter.instance.addSendSize(Broadcast.TypeId_, pdata.size()); // wrapper归因，对齐旧TcpSocket流解析计数
 				sendCount++;
 			}
