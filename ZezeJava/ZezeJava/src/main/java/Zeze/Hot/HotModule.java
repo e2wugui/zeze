@@ -220,6 +220,10 @@ public class HotModule extends ClassLoader implements Closeable, GenModule.Redir
 
 	public BModule.Data loadModuleConfig() throws Exception {
 		var entry = getJarFile().getEntry(eModuleConfigName);
+		// entry缺失必须抛带定位信息的异常而不是getInputStream(null)的裸NPE：
+		// 本调用位于install不可回滚区（addHotModule注册链），裸NPE会被catch(Throwable)升级为halt。
+		if (entry == null)
+			throw new IllegalStateException("module.config not found in jar. jar=" + getName());
 		try (var inputStream = getJarFile().getInputStream(entry)) {
 			var bytes = inputStream.readAllBytes();
 			var bbConfig = ByteBuffer.Wrap(bytes);

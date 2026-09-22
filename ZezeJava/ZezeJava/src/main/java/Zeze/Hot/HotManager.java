@@ -414,6 +414,14 @@ public class HotManager extends ClassLoader {
 						}
 					}
 
+					// 新模块jar必须含module.config（addHotModule注册要读），缺失在此抛出走rollback
+					// 恢复旧模块；打包侧Distribute.pack在缺-providerModuleBinds/-config参数时合法跳过
+					// 写入该文件，不预检则拖到commit后不可回滚区，NPE被catch(Throwable)升级为halt。
+					for (var module : newModules) {
+						if (module.getJarFile().getEntry(HotModule.eModuleConfigName) == null)
+							throw new RuntimeException("module.config not found. jar=" + module.getName());
+					}
+
 					if (atomicAll)
 						hotDistribute.sendTryDistributeResultAndWaitCommit(0);
 
