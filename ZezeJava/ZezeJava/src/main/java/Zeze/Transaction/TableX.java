@@ -731,7 +731,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (isAdd != null)
 			isAdd.value = true;
 		V add = newValue();
-		add.initRootInfo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
+		add.initRootInfoWithRedo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
 		cr.put(currentT, add);
 		return add;
 	}
