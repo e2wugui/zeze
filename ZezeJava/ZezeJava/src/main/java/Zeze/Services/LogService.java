@@ -33,11 +33,18 @@ public class LogService extends AbstractLogService {
 	private final int passivePort;
 	private final ConcurrentHashMap<String, Log4jFileManager> logManagers = new ConcurrentHashMap<>();
 
+	// 开关缺值时args[++i]抛无上下文的AIOOBE；这里给出明确的参数错误（SM1-F4同型判例）。
+	private static String requireValue(String[] args, int index, String name) {
+		if (index >= args.length)
+			throw new IllegalArgumentException("argument '" + name + "' requires a value");
+		return args[index];
+	}
+
 	public static void main(String[] args) throws Exception {
 		var configXml = "zeze.xml";
 		for (var i = 0; i < args.length; ++i) {
 			if (args[i].equals("-conf"))
-				configXml = args[++i];
+				configXml = requireValue(args, ++i, "-conf");
 		}
 		var config = Config.load(configXml);
 		var logService = new LogService(config);
