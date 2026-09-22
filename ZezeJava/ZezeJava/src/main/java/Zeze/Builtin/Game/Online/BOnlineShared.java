@@ -27,6 +27,9 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
         return Zeze.Game.Online.createBeanFromSpecialTypeId(_t_);
     }
 
+    private static final Zeze.Transaction.Collections.BeanKeyMeta<Zeze.Builtin.Game.Online.BLink> meta_Link
+            = Zeze.Transaction.Collections.BeanKeyMeta.get(Zeze.Builtin.Game.Online.BLink.class);
+
     private static final java.lang.invoke.VarHandle vh_Account;
     private static final java.lang.invoke.VarHandle vh_Link;
     private static final java.lang.invoke.VarHandle vh_LoginVersion;
@@ -86,7 +89,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 2, vh_Link, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 2, vh_Link, meta_Link, _v_));
     }
 
     @Override

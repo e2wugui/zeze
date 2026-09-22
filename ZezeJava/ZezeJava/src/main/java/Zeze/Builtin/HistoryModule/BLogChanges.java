@@ -17,6 +17,9 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
 
     private long _Timestamp;
 
+    private static final Zeze.Transaction.Collections.BeanKeyMeta<Zeze.Util.Id128> meta_GlobalSerialId
+            = Zeze.Transaction.Collections.BeanKeyMeta.get(Zeze.Util.Id128.class);
+
     private static final java.lang.invoke.VarHandle vh_GlobalSerialId;
     private static final java.lang.invoke.VarHandle vh_ProtocolClassName;
     private static final java.lang.invoke.VarHandle vh_ProtocolArgument;
@@ -54,7 +57,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 1, vh_GlobalSerialId, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 1, vh_GlobalSerialId, meta_GlobalSerialId, _v_));
     }
 
     @Override

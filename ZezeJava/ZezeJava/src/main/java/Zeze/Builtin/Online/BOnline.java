@@ -31,6 +31,9 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         __zeze_map_key__ = _v_;
     }
 
+    private static final Zeze.Transaction.Collections.BeanKeyMeta<Zeze.Builtin.Online.BLink> meta_Link
+            = Zeze.Transaction.Collections.BeanKeyMeta.get(Zeze.Builtin.Online.BLink.class);
+
     private static final java.lang.invoke.VarHandle vh_Link;
     private static final java.lang.invoke.VarHandle vh_LoginVersion;
     private static final java.lang.invoke.VarHandle vh_ReliableNotifyIndex;
@@ -72,7 +75,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 1, vh_Link, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 1, vh_Link, meta_Link, _v_));
     }
 
     @Override

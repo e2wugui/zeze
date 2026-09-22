@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class LogOne<V extends Bean> extends LogBean {
-	private final @NotNull Meta1<V> meta;
+	private final @NotNull LogOneMeta<V> meta;
 	V value;
 	@Nullable LogBean logBean;
 
@@ -28,9 +28,9 @@ public class LogOne<V extends Bean> extends LogBean {
 		this.value = value;
 	}
 
-	public LogOne(int varId, @NotNull Class<V> beanClass) {
+	public LogOne(int varId, @NotNull LogOneMeta<V> meta) {
 		super(null, varId, null);
-		meta = LogOneMeta.get(beanClass); // for decode
+		this.meta = meta; // for decode
 	}
 
 	public void setValue(@NotNull V value) {

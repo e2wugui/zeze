@@ -12,6 +12,9 @@ public final class BReadWriteLock extends Zeze.Transaction.Bean implements BRead
     private int _OperateType; // see enum above
     private int _TimeoutMs; // 部分操作实际上没有使用这个参数
 
+    private static final Zeze.Transaction.Collections.BeanKeyMeta<Zeze.Builtin.Threading.BLockName> meta_LockName
+            = Zeze.Transaction.Collections.BeanKeyMeta.get(Zeze.Builtin.Threading.BLockName.class);
+
     private static final java.lang.invoke.VarHandle vh_LockName;
     private static final java.lang.invoke.VarHandle vh_OperateType;
     private static final java.lang.invoke.VarHandle vh_TimeoutMs;
@@ -47,7 +50,7 @@ public final class BReadWriteLock extends Zeze.Transaction.Bean implements BRead
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 1, vh_LockName, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 1, vh_LockName, meta_LockName, _v_));
     }
 
     @Override

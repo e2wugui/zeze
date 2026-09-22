@@ -10,6 +10,7 @@ import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.BeanKey;
+import Zeze.Transaction.Collections.BeanKeyMeta;
 import Zeze.Transaction.Collections.List1Meta;
 import Zeze.Transaction.Collections.List2Meta;
 import Zeze.Transaction.Collections.LogList1;
@@ -18,6 +19,7 @@ import Zeze.Transaction.Collections.LogMap1;
 import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Transaction.Collections.LogSet1;
 import Zeze.Transaction.Collections.LogOne;
+import Zeze.Transaction.Collections.LogOneMeta;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogSortedMap1;
 import Zeze.Transaction.Collections.LogSortedMap2;
@@ -356,16 +358,21 @@ public class Helper {
 		return getBuiltinBoxingClass(type) != null;
 	}
 
+	// 工厂闭包直接捕获meta：Log.register的注册探针（s.apply(0)）本就会在注册时建好meta，
+	// 解码是热路径（follower复制/history回放），勿在lambda内重查 XxxMeta.get。
 	public static <T extends Serializable> void registerLogBeanKey(@NotNull Class<T> beanClass) {
-		Log.register(varId -> new LogBeanKey<>(varId, beanClass));
+		var meta = BeanKeyMeta.get(beanClass);
+		Log.register(varId -> new LogBeanKey<>(varId, meta));
 	}
 
 	public static <T> void registerLogList1(@NotNull Class<T> valueClass) {
-		Log.register(varId -> new LogList1<>(null, varId, null, Empty.vector(), List1Meta.get(valueClass)));
+		var meta = List1Meta.get(valueClass);
+		Log.register(varId -> new LogList1<>(null, varId, null, Empty.vector(), meta));
 	}
 
 	public static <V extends Bean> void registerLogList2(@NotNull Class<V> valueClass) {
-		Log.register(varId -> new LogList2<>(null, varId, null, Empty.vector(), List2Meta.get(valueClass)));
+		var meta = List2Meta.get(valueClass);
+		Log.register(varId -> new LogList2<>(null, varId, null, Empty.vector(), meta));
 	}
 
 	public static void registerLogList2Dynamic(@NotNull ToLongFunction<Bean> get,
@@ -375,11 +382,13 @@ public class Helper {
 	}
 
 	public static <K, V> void registerLogMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		Log.register(varId -> new LogMap1<>(null, varId, null, Empty.map(), Map1Meta.get(keyClass, valueClass)));
+		var meta = Map1Meta.get(keyClass, valueClass);
+		Log.register(varId -> new LogMap1<>(null, varId, null, Empty.map(), meta));
 	}
 
 	public static <K, V extends Bean> void registerLogMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), Map2Meta.get(keyClass, valueClass)));
+		var meta = Map2Meta.get(keyClass, valueClass);
+		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta));
 	}
 
 	public static <K> void registerLogMap2Dynamic(@NotNull Class<K> keyClass,
@@ -398,23 +407,25 @@ public class Helper {
 	}
 
 	public static <V> void registerLogSet1(@NotNull Class<V> valueClass) {
-		Log.register(varId -> new LogSet1<>(null, varId, null, Empty.set(), Set1Meta.get(valueClass)));
+		var meta = Set1Meta.get(valueClass);
+		Log.register(varId -> new LogSet1<>(null, varId, null, Empty.set(), meta));
 	}
 
 	public static <V extends Bean> void registerLogOne(@NotNull Class<V> beanClass) {
-		Log.register(varId -> new LogOne<>(varId, beanClass));
+		var meta = LogOneMeta.get(beanClass);
+		Log.register(varId -> new LogOne<>(varId, meta));
 	}
 
 	public static <K extends Comparable<K>, V> void registerLogSortedMap1(@NotNull Class<K> keyClass,
 																		  @NotNull Class<V> valueClass) {
-		Log.register(varId -> new LogSortedMap1<>(null, varId, null, Empty.sortedMap(),
-			SortedMap1Meta.get(keyClass, valueClass)));
+		var meta = SortedMap1Meta.get(keyClass, valueClass);
+		Log.register(varId -> new LogSortedMap1<>(null, varId, null, Empty.sortedMap(), meta));
 	}
 
 	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2(@NotNull Class<K> keyClass,
 																					   @NotNull Class<V> valueClass) {
-		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(),
-			SortedMap2Meta.get(keyClass, valueClass)));
+		var meta = SortedMap2Meta.get(keyClass, valueClass);
+		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(), meta));
 	}
 
 	public static <K extends Comparable<K>> void registerLogSortedMap2Dynamic(@NotNull Class<K> keyClass,

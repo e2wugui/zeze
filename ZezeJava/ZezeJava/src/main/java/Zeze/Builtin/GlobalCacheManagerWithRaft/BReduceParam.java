@@ -12,6 +12,9 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
     private int _State;
     private Zeze.Util.Id128 _ReduceTid;
 
+    private static final Zeze.Transaction.Collections.BeanKeyMeta<Zeze.Util.Id128> meta_ReduceTid
+            = Zeze.Transaction.Collections.BeanKeyMeta.get(Zeze.Util.Id128.class);
+
     private static final java.lang.invoke.VarHandle vh_GlobalKey;
     private static final java.lang.invoke.VarHandle vh_State;
     private static final java.lang.invoke.VarHandle vh_ReduceTid;
@@ -89,7 +92,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 3, vh_ReduceTid, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 3, vh_ReduceTid, meta_ReduceTid, _v_));
     }
 
     @SuppressWarnings("deprecation")

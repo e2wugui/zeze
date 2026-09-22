@@ -27,6 +27,20 @@ namespace Zeze.Gen.java
                 sw.WriteLine();
             }
 
+            bool hasMeta = false;
+            foreach (Variable var in bean.Variables)
+            {
+                if (var.VariableType is BeanKey)
+                {
+                    var typeName = TypeName.GetName(var.VariableType);
+                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.BeanKeyMeta<{typeName}> meta_{var.Name}");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.BeanKeyMeta.get({typeName}.class);");
+                    hasMeta = true;
+                }
+            }
+            if (hasMeta)
+                sw.WriteLine();
+
             bool hasVH = false;
             foreach (Variable var in bean.Variables)
             {
@@ -326,7 +340,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
-            sw.WriteLine(prefix + $"    _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, {var.Id}, vh_{var.Name}, _v_));");
+            sw.WriteLine(prefix + $"    _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, {var.Id}, vh_{var.Name}, meta_{var.Name}, _v_));");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

@@ -6,31 +6,28 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.BeanKeyMeta;
-import Zeze.Transaction.Collections.Meta1;
 import Zeze.Transaction.Log;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public class LogBeanKey<T extends Serializable> extends Log {
-	private final @NotNull Meta1<T> meta;
+	private final @NotNull BeanKeyMeta<T> meta;
 	private final VarHandle vh;
 	public T value;
 
-	// 事务修改过程中不需要Factory。
-	// 不变量（TL1-F1 裁决固化）：BeanKey 恒为 final 类（生成器 BeanKeyFormatter 无条件产出
-	// public final class），故 value.getClass() 恒等于其声明类，按运行时类建 meta/typeId 与
-	// 读端按声明类注册的解码工厂（History/Helper.registerLogBeanKey）天然对称，勿改用子类实例。
-	@SuppressWarnings("unchecked")
-	public LogBeanKey(Bean belong, int varId, VarHandle vh, @NotNull T value) {
+	// meta 由两端各自按声明类预建（写端：生成器meta_静态字段；
+	// 读端：History/Helper.registerLogBeanKey 注册工厂），天然对称，勿改用
+	// 子类实例构造本Log（生成器保证BeanKey无子类）。
+	public LogBeanKey(Bean belong, int varId, VarHandle vh, @NotNull BeanKeyMeta<T> meta, @NotNull T value) {
 		super(belong, varId);
-		meta = BeanKeyMeta.get((Class<T>)value.getClass());
+		this.meta = meta;
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogBeanKey(int varId, @NotNull Class<T> beanClass) {
+	public LogBeanKey(int varId, @NotNull BeanKeyMeta<T> meta) { // for decode
 		super(null, varId);
-		meta = BeanKeyMeta.get(beanClass);
+		this.meta = meta;
 		vh = null;
 	}
 

@@ -16,6 +16,9 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
 
     private Zeze.Builtin.Collections.Queue.BQueueNodeKey _NextNodeKey; // NodeId为0表示已到达结尾。
 
+    private static final Zeze.Transaction.Collections.BeanKeyMeta<Zeze.Builtin.Collections.Queue.BQueueNodeKey> meta_NextNodeKey
+            = Zeze.Transaction.Collections.BeanKeyMeta.get(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class);
+
     private static final java.lang.invoke.VarHandle vh_NextNodeId;
     private static final java.lang.invoke.VarHandle vh_NextNodeKey;
 
@@ -78,7 +81,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 3, vh_NextNodeKey, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 3, vh_NextNodeKey, meta_NextNodeKey, _v_));
     }
 
     @SuppressWarnings("deprecation")
