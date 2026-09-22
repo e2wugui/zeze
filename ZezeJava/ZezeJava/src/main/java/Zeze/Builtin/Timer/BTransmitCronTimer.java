@@ -10,6 +10,9 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
 
     private String _TimerId;
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Timer.BCronTimer> _CronTimer;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.Timer.BCronTimer> meta1_CronTimer
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.Timer.BCronTimer.class);
+
     private String _HandleClass;
     private String _CustomClass;
     private Zeze.Net.Binary _CustomBean;
@@ -181,7 +184,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
     @SuppressWarnings("deprecation")
     public BTransmitCronTimer() {
         _TimerId = "";
-        _CronTimer = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Timer.BCronTimer(), Zeze.Builtin.Timer.BCronTimer.class);
+        _CronTimer = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Timer.BCronTimer(), meta1_CronTimer);
         _CronTimer.variableId(2);
         _HandleClass = "";
         _CustomClass = "";
@@ -193,7 +196,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         if (_TimerId_ == null)
             _TimerId_ = "";
         _TimerId = _TimerId_;
-        _CronTimer = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Timer.BCronTimer(), Zeze.Builtin.Timer.BCronTimer.class);
+        _CronTimer = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Timer.BCronTimer(), meta1_CronTimer);
         _CronTimer.variableId(2);
         if (_HandleClass_ == null)
             _HandleClass_ = "";

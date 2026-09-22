@@ -17,6 +17,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
+/** 事务 SortedMap（2系）：Comparable 键，Bean 值受管。 */
+@SuppressWarnings({"unchecked"})
 public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSortedMap<K, V> {
 	protected final @NotNull SortedMap2Meta<K, V> meta;
 
@@ -54,7 +56,6 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		return meta.keyDecoder.apply(bb);
 	}
 
-	@SuppressWarnings("unchecked")
 	public @NotNull V createValue() {
 		try {
 			return (V)meta.valueFactory.invoke();
@@ -85,7 +86,6 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 			value.initRootInfoWithRedo(rootInfo, this);
 			value.mapKey(key);
 			assert parent() != null;
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.put(key, value);
@@ -121,7 +121,6 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 				v.mapKey(k);
 			}
 			assert parent() != null;
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.putAll(m);
@@ -138,7 +137,6 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public @Nullable V remove(@NotNull Object key) {
 		if (isManaged()) {
@@ -147,8 +145,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.remove((K)key);
 		}
-		//noinspection SuspiciousMethodCalls
-		V exist = map.get(key);
+		V exist = map.get((K)key);
 		map = map.minus(key);
 		return exist;
 	}
@@ -178,7 +175,6 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 			return;
 		if (isManaged()) {
 			assert parent() != null;
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
@@ -188,7 +184,6 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 
 	@Override
 	public void followerApply(@NotNull Log _log) {
-		@SuppressWarnings("unchecked")
 		var log = (LogSortedMap2<K, V>)_log;
 		var tmp = map;
 		for (var e : log.getReplaced().entrySet()) {
@@ -252,7 +247,6 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		try {
 			for (int i = bb.ReadUIntPositive(); i > 0; i--) {
 				K k = decoder.apply(bb);
-				@SuppressWarnings("unchecked")
 				V v = (V)meta.valueFactory.invoke();
 				v.decode(bb);
 				put(k, v);

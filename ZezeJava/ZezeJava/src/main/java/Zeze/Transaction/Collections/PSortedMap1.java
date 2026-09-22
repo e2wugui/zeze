@@ -9,6 +9,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
+/** 事务 SortedMap（1系）：Comparable 键，不可变值按值拷贝记账。 */
+@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	protected final @NotNull SortedMap1Meta<K, V> meta;
 
@@ -46,8 +48,6 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 			throw new IllegalArgumentException("null value");
 
 		if (isManaged()) {
-			//noinspection DataFlowIssue
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.put(key, value);
@@ -72,8 +72,6 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		}
 
 		if (isManaged()) {
-			//noinspection DataFlowIssue
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.putAll(m);
@@ -81,17 +79,14 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 			map = map.plusAll(m);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public @Nullable V remove(@NotNull Object key) {
 		if (isManaged()) {
-			//noinspection DataFlowIssue
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.remove((K)key);
 		}
-		//noinspection SuspiciousMethodCalls
-		V exist = map.get(key);
+		V exist = map.get((K)key);
 		map = map.minus(key);
 		return exist;
 	}
@@ -101,8 +96,6 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
-			//noinspection DataFlowIssue
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.remove(k, v);
@@ -120,8 +113,6 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
-			//noinspection DataFlowIssue
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
@@ -131,7 +122,6 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 
 	@Override
 	public void followerApply(@NotNull Log _log) {
-		@SuppressWarnings("unchecked")
 		var log = (LogSortedMap1<K, V>)_log;
 		map = map.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 	}
@@ -144,8 +134,6 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	public void assign(@NotNull PSortedMap1<K, V> pmap) {
 		var items = pmap.getMap();
 		if (isManaged()) {
-			//noinspection DataFlowIssue
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();

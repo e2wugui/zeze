@@ -11,11 +11,11 @@ import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
+/** RocksRaft 存储的 BeanKey 字段修改日志；亦兼作记录 put/remove（value=null 即 remove）。 */
 public class LogBeanKey<T extends Serializable> extends Log {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.Log<");
 
-	// typeId与构造器MethodHandle按类缓存；typeId原料（hashLog(头串,类名)）逐字保留，
-	// 改动即typeId漂移，存量Raft日志不可解。
+	// typeId与构造器MethodHandle按类缓存；hashLog输入逐字保留，改动即typeId漂移。
 	private record TypeInfo(int logTypeId, MethodHandle valueFactory) {
 		private static final ConcurrentHashMap<Class<?>, TypeInfo> typeInfos = new ConcurrentHashMap<>();
 

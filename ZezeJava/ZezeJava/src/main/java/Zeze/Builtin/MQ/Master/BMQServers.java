@@ -9,6 +9,9 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
     public static final long TYPEID = 723031994174062842L;
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.Master.BMQInfo> _Info; // 主题信息
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.MQ.Master.BMQInfo> meta1_Info
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.MQ.Master.BMQInfo.class);
+
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.MQ.Master.BMQServer> _Servers; // 该主题现有的MQ服务器列表
     private static final Zeze.Transaction.Collections.List2Meta<Zeze.Builtin.MQ.Master.BMQServer> meta1_Servers
             = Zeze.Transaction.Collections.List2Meta.get(Zeze.Builtin.MQ.Master.BMQServer.class);
@@ -70,7 +73,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
 
     @SuppressWarnings("deprecation")
     public BMQServers() {
-        _Info = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.Master.BMQInfo(), Zeze.Builtin.MQ.Master.BMQInfo.class);
+        _Info = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.Master.BMQInfo(), meta1_Info);
         _Info.variableId(1);
         _Servers = new Zeze.Transaction.Collections.PList2<>(meta1_Servers);
         _Servers.variableId(2);
@@ -78,7 +81,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
 
     @SuppressWarnings("deprecation")
     public BMQServers(long _SessionId_) {
-        _Info = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.Master.BMQInfo(), Zeze.Builtin.MQ.Master.BMQInfo.class);
+        _Info = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.Master.BMQInfo(), meta1_Info);
         _Info.variableId(1);
         _Servers = new Zeze.Transaction.Collections.PList2<>(meta1_Servers);
         _Servers.variableId(2);

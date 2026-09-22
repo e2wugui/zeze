@@ -13,6 +13,8 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
     private float _OffsetFactor;
     private boolean _Reset;
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.LogService.BCondition> _Condition;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.LogService.BCondition> meta1_Condition
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.LogService.BCondition.class);
 
     private static final java.lang.invoke.VarHandle vh_Id;
     private static final java.lang.invoke.VarHandle vh_Limit;
@@ -126,7 +128,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
 
     @SuppressWarnings("deprecation")
     public BBrowse() {
-        _Condition = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.LogService.BCondition(), Zeze.Builtin.LogService.BCondition.class);
+        _Condition = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.LogService.BCondition(), meta1_Condition);
         _Condition.variableId(5);
     }
 
@@ -136,7 +138,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         _Limit = _Limit_;
         _OffsetFactor = _OffsetFactor_;
         _Reset = _Reset_;
-        _Condition = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.LogService.BCondition(), Zeze.Builtin.LogService.BCondition.class);
+        _Condition = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.LogService.BCondition(), meta1_Condition);
         _Condition.variableId(5);
     }
 

@@ -185,7 +185,7 @@ namespace Zeze.Gen.java
         public void Visit(Bean type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + varName + $" = new Zeze.Transaction.Collections.CollOne<>(new {typeName}({variable.Initial}), {typeName}.class);");
+            sw.WriteLine(prefix + varName + $" = new Zeze.Transaction.Collections.CollOne<>(new {typeName}({variable.Initial}), meta1{varName});");
             sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
         }
 

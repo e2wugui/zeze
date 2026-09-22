@@ -18,7 +18,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
-@SuppressWarnings("DataFlowIssue")
+/** 事务 List（2系）：Bean 值受管，原位修改同样记账。 */
+@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PList2<V extends Bean> extends PList<V> {
 	protected final @NotNull List2Meta<V> meta;
 
@@ -34,7 +35,6 @@ public class PList2<V extends Bean> extends PList<V> {
 		this.meta = meta;
 	}
 
-	@SuppressWarnings("unchecked")
 	public @NotNull V createValue() {
 		try {
 			return (V)meta.valueFactory.invoke();
@@ -51,7 +51,6 @@ public class PList2<V extends Bean> extends PList<V> {
 
 		if (isManaged()) {
 			item.initRootInfoWithRedo(rootInfo, this);
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.add(item);
@@ -60,7 +59,6 @@ public class PList2<V extends Bean> extends PList<V> {
 		return true;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public boolean remove(@NotNull Object item) {
 		if (isManaged()) {
@@ -80,7 +78,6 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
@@ -103,7 +100,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			if (index < 0 || index >= cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
 			item.initRootInfoWithRedo(rootInfo, this);
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.set(index, item);
@@ -126,7 +122,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			if (index < 0 || index > cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
 			item.initRootInfoWithRedo(rootInfo, this);
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.add(index, item);
@@ -137,7 +132,6 @@ public class PList2<V extends Bean> extends PList<V> {
 	@Override
 	public @NotNull V remove(int index) {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.remove(index);
@@ -163,7 +157,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			}
 			for (V v : items)
 				v.initRootInfoWithRedo(rootInfo, this);
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.addAll(items);
@@ -176,7 +169,6 @@ public class PList2<V extends Bean> extends PList<V> {
 		return true;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public boolean removeAll(@NotNull Collection<?> c) {
 		if (c.isEmpty() || isEmpty())
@@ -223,7 +215,6 @@ public class PList2<V extends Bean> extends PList<V> {
 				if (newV != v)
 					newV.initRootInfoWithRedo(rootInfo, this);
 			}
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
@@ -246,7 +237,6 @@ public class PList2<V extends Bean> extends PList<V> {
 		var tmpList = new ArrayList<>(this);
 		tmpList.sort(c);
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
@@ -262,7 +252,6 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public void followerApply(@NotNull Log _log) {
-		@SuppressWarnings("unchecked")
 		var log = (LogList2<V>)_log;
 		var tmp = list;
 		for (var opLog : log.getOpLogs()) {
@@ -326,7 +315,6 @@ public class PList2<V extends Bean> extends PList<V> {
 		clear();
 		try {
 			for (int i = bb.ReadUIntPositive(); i > 0; i--) {
-				@SuppressWarnings("unchecked")
 				V v = (V)meta.valueFactory.invoke();
 				v.decode(bb);
 				add(v);

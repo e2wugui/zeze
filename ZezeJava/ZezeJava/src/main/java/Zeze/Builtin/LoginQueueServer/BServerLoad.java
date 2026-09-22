@@ -12,6 +12,8 @@ public final class BServerLoad extends Zeze.Transaction.Bean implements BServerL
     private String _ServiceIp; // LinkdService公开给客户端的Ip或者ProviderIp(Redirect)。
     private int _ServicePort;
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Provider.BLoad> _Load;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.Provider.BLoad> meta1_Load
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.Provider.BLoad.class);
 
     private static final java.lang.invoke.VarHandle vh_ServerId;
     private static final java.lang.invoke.VarHandle vh_ServiceIp;
@@ -106,7 +108,7 @@ public final class BServerLoad extends Zeze.Transaction.Bean implements BServerL
     @SuppressWarnings("deprecation")
     public BServerLoad() {
         _ServiceIp = "";
-        _Load = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BLoad(), Zeze.Builtin.Provider.BLoad.class);
+        _Load = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BLoad(), meta1_Load);
         _Load.variableId(4);
     }
 
@@ -117,7 +119,7 @@ public final class BServerLoad extends Zeze.Transaction.Bean implements BServerL
             _ServiceIp_ = "";
         _ServiceIp = _ServiceIp_;
         _ServicePort = _ServicePort_;
-        _Load = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BLoad(), Zeze.Builtin.Provider.BLoad.class);
+        _Load = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BLoad(), meta1_Load);
         _Load.variableId(4);
     }
 

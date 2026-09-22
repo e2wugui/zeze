@@ -12,7 +12,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
-@SuppressWarnings("DataFlowIssue")
+/** 事务 List（1系）：不可变值按值拷贝记账，不支持 Bean 值。 */
+@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PList1<V> extends PList<V> {
 	protected final @NotNull List1Meta<V> meta;
 
@@ -32,7 +33,6 @@ public class PList1<V> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.add(item);
@@ -41,7 +41,6 @@ public class PList1<V> extends PList<V> {
 		return true;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public boolean remove(@NotNull Object item) {
 		if (isManaged()) {
@@ -61,7 +60,6 @@ public class PList1<V> extends PList<V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
@@ -76,7 +74,6 @@ public class PList1<V> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.set(index, item);
@@ -93,7 +90,6 @@ public class PList1<V> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.add(index, item);
@@ -104,7 +100,6 @@ public class PList1<V> extends PList<V> {
 	@Override
 	public @NotNull V remove(int index) {
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.remove(index);
@@ -126,7 +121,6 @@ public class PList1<V> extends PList<V> {
 		}
 
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.addAll(items);
@@ -135,7 +129,6 @@ public class PList1<V> extends PList<V> {
 		return true;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public boolean removeAll(@NotNull Collection<?> c) {
 		if (c.isEmpty() || isEmpty())
@@ -171,7 +164,6 @@ public class PList1<V> extends PList<V> {
 			tmpList.add(v);
 		}
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
@@ -187,7 +179,6 @@ public class PList1<V> extends PList<V> {
 		var tmpList = new ArrayList<>(this);
 		tmpList.sort(c);
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
@@ -203,7 +194,6 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public void followerApply(@NotNull Log _log) {
-		@SuppressWarnings("unchecked")
 		var log = (LogList1<V>)_log;
 		var tmp = list;
 		for (var opLog : log.getOpLogs()) {
@@ -221,7 +211,6 @@ public class PList1<V> extends PList<V> {
 	public void assign(@NotNull PList1<V> plist) {
 		var items = plist.getList();
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();

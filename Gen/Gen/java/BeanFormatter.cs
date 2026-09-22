@@ -163,6 +163,13 @@ namespace Zeze.Gen.java
                 }
                 sw.WriteLine();
             }
+            else if (vt is Bean) // collOne字段（普通bean变量），宿主CollOne走meta构造器
+            {
+                string value = TypeName.GetName(vt);
+                sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.LogOneMeta<{value}> meta1{varName}");
+                sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.LogOneMeta.get({value}.class);");
+                sw.WriteLine();
+            }
         }
 
         private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Variable var, TypeDynamic type, bool isCollection)
@@ -311,7 +318,7 @@ namespace Zeze.Gen.java
                     GenDynamicSpecialMethod(sw, "    ", v, dy3, true);
                 else if (vt is TypeCollection coll && coll.ValueType is TypeDynamic dy2)
                     GenDynamicSpecialMethod(sw, "    ", v, dy2, true);
-                else if (vt is TypeCollection or TypeMap or TypeSortedMap or TypeGTable)
+                else if (vt is TypeCollection or TypeMap or TypeSortedMap or TypeGTable or Bean)
                     GenCollectionMetaDefine(sw, "    ", v);
                 else
                     addBlankLine = true;

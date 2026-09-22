@@ -31,11 +31,11 @@ public abstract class Log implements Serializable {
 		eSpecial, // zeze内部特殊定义的log，也可能是用户自定义的。
 	}
 
-	private static final LongConcurrentHashMap<IntFunction<Log>> factorys = new LongConcurrentHashMap<>();
+	private static final LongConcurrentHashMap<IntFunction<Log>> factories = new LongConcurrentHashMap<>();
 
 	public static void register(@NotNull IntFunction<Log> s) {
 		var ins = s.apply(0);
-		var old = factorys.putIfAbsent(ins.getTypeId(), s);
+		var old = factories.putIfAbsent(ins.getTypeId(), s);
 		if (old == null)
 			logger.debug("register log typeId({}): {}", ins.getTypeId(), ins.getTypeName());
 		else {
@@ -54,7 +54,7 @@ public abstract class Log implements Serializable {
 	}
 
 	public static @NotNull Log create(int typeId, int varId) {
-		var factory = factorys.get(typeId);
+		var factory = factories.get(typeId);
 		if (factory != null)
 			return factory.apply(varId);
 		throw new UnsupportedOperationException("unknown log typeId=" + typeId);

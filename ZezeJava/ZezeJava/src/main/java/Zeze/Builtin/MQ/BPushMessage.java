@@ -12,6 +12,8 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
     private int _PartitionIndex; // 分区索引，用户不用填写
     private long _SessionId; // Consumer SessionId，用户不用填写
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.BMessage> _Message; // 消息内容
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.MQ.BMessage> meta1_Message
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.MQ.BMessage.class);
 
     private static final java.lang.invoke.VarHandle vh_Topic;
     private static final java.lang.invoke.VarHandle vh_PartitionIndex;
@@ -106,7 +108,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
     @SuppressWarnings("deprecation")
     public BPushMessage() {
         _Topic = "";
-        _Message = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BMessage(), Zeze.Builtin.MQ.BMessage.class);
+        _Message = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BMessage(), meta1_Message);
         _Message.variableId(4);
     }
 
@@ -117,7 +119,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         _Topic = _Topic_;
         _PartitionIndex = _PartitionIndex_;
         _SessionId = _SessionId_;
-        _Message = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BMessage(), Zeze.Builtin.MQ.BMessage.class);
+        _Message = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BMessage(), meta1_Message);
         _Message.variableId(4);
     }
 

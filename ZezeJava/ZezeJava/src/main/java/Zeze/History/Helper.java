@@ -358,8 +358,7 @@ public class Helper {
 		return getBuiltinBoxingClass(type) != null;
 	}
 
-	// 工厂闭包直接捕获meta：Log.register的注册探针（s.apply(0)）本就会在注册时建好meta，
-	// 解码是热路径（follower复制/history回放），勿在lambda内重查 XxxMeta.get。
+	// 工厂闭包直接捕获meta：解码是热路径（follower复制/history回放），勿在lambda内重查XxxMeta.get。
 	public static <T extends Serializable> void registerLogBeanKey(@NotNull Class<T> beanClass) {
 		var meta = BeanKeyMeta.get(beanClass);
 		Log.register(varId -> new LogBeanKey<>(varId, meta));
@@ -377,7 +376,7 @@ public class Helper {
 
 	public static void registerLogList2Dynamic(@NotNull ToLongFunction<Bean> get,
 											   @NotNull LongFunction<Bean> create) {
-		var meta = List2Meta.<Bean>createDynamic(get, create);
+		var meta = List2Meta.createDynamic(get, create);
 		Log.register(varId -> new LogList2<>(null, varId, null, Empty.vector(), meta));
 	}
 

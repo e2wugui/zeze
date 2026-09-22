@@ -10,21 +10,19 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** CollOne 的修改日志：整体换值或收集子 Bean 的修改。 */
+@SuppressWarnings("unchecked")
 public class LogOne<V extends Bean> extends LogBean {
 	private final @NotNull LogOneMeta<V> meta;
 	V value;
 	@Nullable LogBean logBean;
 
-	@SuppressWarnings("unchecked")
 	public LogOne(Bean belong, int varId, Bean self, @NotNull V value) {
 		super(belong, varId, self);
-		// 声明类优先（FND7-80）：原先按value.getClass()（运行时类）建meta，CollOne装入声明
-		// 类型的子类实例时typeId=hash(LogOne<子类>)，而读端工厂按声明类注册（History.Helper
-		// .dependsBean→registerLogOne），follower Log.create抛UnsupportedOperationException，
-		// 复制中断。宿主CollOne携带声明类时用它（createLogBean/beginSavepoint均经self传递）；
-		// 未提供时退回运行时类，精确类型typeId不变。
-		var declared = self instanceof CollOne<?> collOne ? collOne.valueClass : null;
-		meta = LogOneMeta.get((Class<V>)(declared != null ? declared : value.getClass()));
+		// 声明类优先（FND7-80）：装子类实例须按声明类建typeId，与读端注册对称
+		// （Helper.dependsBean→registerLogOne）；宿主meta未提供时退回运行时类。
+		var hostMeta = self instanceof CollOne<?> collOne ? collOne.meta : null;
+		meta = hostMeta != null ? (LogOneMeta<V>)hostMeta : LogOneMeta.get((Class<V>)value.getClass());
 		this.value = value;
 	}
 
@@ -67,7 +65,6 @@ public class LogOne<V extends Bean> extends LogBean {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void commit() {
 		if (value != null) // value是否真的可以为null,目前没看到哪里可以让它为null
@@ -93,7 +90,6 @@ public class LogOne<V extends Bean> extends LogBean {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		var hasValue = bb.ReadBool();

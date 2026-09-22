@@ -10,6 +10,9 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
 
     private String _TimerId;
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Timer.BSimpleTimer> _SimpleTimer;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.Timer.BSimpleTimer> meta1_SimpleTimer
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.Timer.BSimpleTimer.class);
+
     private String _HandleClass;
     private String _CustomClass;
     private Zeze.Net.Binary _CustomBean;
@@ -181,7 +184,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
     @SuppressWarnings("deprecation")
     public BTransmitSimpleTimer() {
         _TimerId = "";
-        _SimpleTimer = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Timer.BSimpleTimer(), Zeze.Builtin.Timer.BSimpleTimer.class);
+        _SimpleTimer = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Timer.BSimpleTimer(), meta1_SimpleTimer);
         _SimpleTimer.variableId(2);
         _HandleClass = "";
         _CustomClass = "";
@@ -193,7 +196,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         if (_TimerId_ == null)
             _TimerId_ = "";
         _TimerId = _TimerId_;
-        _SimpleTimer = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Timer.BSimpleTimer(), Zeze.Builtin.Timer.BSimpleTimer.class);
+        _SimpleTimer = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Timer.BSimpleTimer(), meta1_SimpleTimer);
         _SimpleTimer.variableId(2);
         if (_HandleClass_ == null)
             _HandleClass_ = "";

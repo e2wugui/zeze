@@ -8,7 +8,8 @@ import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 
-@SuppressWarnings("DataFlowIssue")
+/** 事务 Set（1系）：不可变值按值拷贝记账；框架无 PSet2。 */
+@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PSet1<V> extends PSet<V> {
 	protected final @NotNull Set1Meta<V> meta;
 
@@ -28,7 +29,6 @@ public class PSet1<V> extends PSet<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return setLog.add(item);
@@ -40,7 +40,6 @@ public class PSet1<V> extends PSet<V> {
 		return true;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public boolean remove(@NotNull Object item) {
 		if (isManaged()) {
@@ -67,7 +66,6 @@ public class PSet1<V> extends PSet<V> {
 		}
 
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return setLog.addAll(c);
@@ -83,7 +81,6 @@ public class PSet1<V> extends PSet<V> {
 		return true;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public boolean removeAll(@NotNull Collection<?> c) {
 		if (c.isEmpty() || isEmpty())
@@ -108,7 +105,6 @@ public class PSet1<V> extends PSet<V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			setLog.clear();
@@ -123,7 +119,6 @@ public class PSet1<V> extends PSet<V> {
 
 	@Override
 	public void followerApply(@NotNull Log _log) {
-		@SuppressWarnings("unchecked")
 		var log = (LogSet1<V>)_log;
 		set = set.minusAll(log.getRemoved()).plusAll(log.getAdded());
 	}
@@ -131,7 +126,6 @@ public class PSet1<V> extends PSet<V> {
 	public void assign(@NotNull PSet1<V> pset) {
 		var items = pset.getSet();
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			setLog.clear();

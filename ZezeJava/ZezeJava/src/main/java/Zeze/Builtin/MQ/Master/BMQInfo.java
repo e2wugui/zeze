@@ -11,6 +11,8 @@ public final class BMQInfo extends Zeze.Transaction.Bean implements BMQInfoReadO
     private String _Topic; // 主题. 只能使用文件名可用的字符
     private int _Partition; // 分区数量. 至少为1
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.BOptions> _Options;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.MQ.BOptions> meta1_Options
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.MQ.BOptions.class);
 
     private static final java.lang.invoke.VarHandle vh_Topic;
     private static final java.lang.invoke.VarHandle vh_Partition;
@@ -83,7 +85,7 @@ public final class BMQInfo extends Zeze.Transaction.Bean implements BMQInfoReadO
     @SuppressWarnings("deprecation")
     public BMQInfo() {
         _Topic = "";
-        _Options = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BOptions(), Zeze.Builtin.MQ.BOptions.class);
+        _Options = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BOptions(), meta1_Options);
         _Options.variableId(3);
     }
 
@@ -93,7 +95,7 @@ public final class BMQInfo extends Zeze.Transaction.Bean implements BMQInfoReadO
             _Topic_ = "";
         _Topic = _Topic_;
         _Partition = _Partition_;
-        _Options = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BOptions(), Zeze.Builtin.MQ.BOptions.class);
+        _Options = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BOptions(), meta1_Options);
         _Options.variableId(3);
     }
 

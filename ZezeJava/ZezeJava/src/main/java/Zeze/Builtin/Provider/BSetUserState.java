@@ -10,6 +10,8 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
 
     private long _linkSid;
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Provider.BUserState> _userState;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.Provider.BUserState> meta1_userState
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.Provider.BUserState.class);
 
     private static final java.lang.invoke.VarHandle vh_linkSid;
 
@@ -57,14 +59,14 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
 
     @SuppressWarnings("deprecation")
     public BSetUserState() {
-        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), Zeze.Builtin.Provider.BUserState.class);
+        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), meta1_userState);
         _userState.variableId(2);
     }
 
     @SuppressWarnings("deprecation")
     public BSetUserState(long _linkSid_) {
         _linkSid = _linkSid_;
-        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), Zeze.Builtin.Provider.BUserState.class);
+        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), meta1_userState);
         _userState.variableId(2);
     }
 

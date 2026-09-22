@@ -14,6 +14,8 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     private long _linkSid;
     private int _reason;
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Provider.BUserState> _userState;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.Provider.BUserState> meta1_userState
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.Provider.BUserState.class);
 
     private static final java.lang.invoke.VarHandle vh_account;
     private static final java.lang.invoke.VarHandle vh_linkSid;
@@ -108,7 +110,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     @SuppressWarnings("deprecation")
     public BLinkBroken() {
         _account = "";
-        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), Zeze.Builtin.Provider.BUserState.class);
+        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), meta1_userState);
         _userState.variableId(4);
     }
 
@@ -119,7 +121,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         _account = _account_;
         _linkSid = _linkSid_;
         _reason = _reason_;
-        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), Zeze.Builtin.Provider.BUserState.class);
+        _userState = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BUserState(), meta1_userState);
         _userState.variableId(4);
     }
 

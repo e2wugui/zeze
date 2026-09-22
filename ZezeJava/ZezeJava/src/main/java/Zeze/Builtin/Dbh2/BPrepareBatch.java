@@ -12,6 +12,8 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
     private String _Database; // 用来纠错
     private String _Table; // 用来纠错
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Dbh2.BBatch> _Batch;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.Dbh2.BBatch> meta1_Batch
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.Dbh2.BBatch.class);
 
     private transient Object __zeze_map_key__;
 
@@ -124,7 +126,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         _Master = "";
         _Database = "";
         _Table = "";
-        _Batch = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBatch(), Zeze.Builtin.Dbh2.BBatch.class);
+        _Batch = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBatch(), meta1_Batch);
         _Batch.variableId(4);
     }
 
@@ -139,7 +141,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         if (_Table_ == null)
             _Table_ = "";
         _Table = _Table_;
-        _Batch = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBatch(), Zeze.Builtin.Dbh2.BBatch.class);
+        _Batch = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBatch(), meta1_Batch);
         _Batch.variableId(4);
     }
 

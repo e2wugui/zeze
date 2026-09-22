@@ -9,6 +9,8 @@ public final class BEndMove extends Zeze.Transaction.Bean implements BEndMoveRea
     public static final long TYPEID = 1744858924397766646L;
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Dbh2.BBucketMeta> _To;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.Dbh2.BBucketMeta> meta1_To
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.Dbh2.BBucketMeta.class);
 
     public Zeze.Builtin.Dbh2.BBucketMeta getTo() {
         return _To.getValue();
@@ -25,7 +27,7 @@ public final class BEndMove extends Zeze.Transaction.Bean implements BEndMoveRea
 
     @SuppressWarnings("deprecation")
     public BEndMove() {
-        _To = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBucketMeta(), Zeze.Builtin.Dbh2.BBucketMeta.class);
+        _To = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBucketMeta(), meta1_To);
         _To.variableId(1);
     }
 

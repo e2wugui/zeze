@@ -13,16 +13,21 @@ import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 单值 Bean 容器：普通 bean 字段的宿主，受管后修改经 LogOne 记账。 */
+@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public final class CollOne<V extends Bean> extends Collection {
 	@NotNull V value;
-	// 声明类型（FND7-80）：LogOne建meta优先用它（读端工厂按声明类注册，
-	// History.Helper.dependsBean→registerLogOne）；未提供（手写null）时为null，
-	// LogOne退回运行时类，与历史行为一致。
-	final @Nullable Class<V> valueClass;
+	// FND7-80：按声明类预建的meta（生成端meta1_静态字段，手写Class构造器现建）；
+	// null时LogOne退回运行时类。读端工厂按声明类注册（Helper.dependsBean→registerLogOne）。
+	final @Nullable LogOneMeta<V> meta;
 
 	public CollOne(@NotNull V value, @Nullable Class<V> valueClass) {
+		this(value, valueClass != null ? LogOneMeta.get(valueClass) : null);
+	}
+
+	public CollOne(@NotNull V value, @Nullable LogOneMeta<V> meta) {
 		this.value = value;
-		this.valueClass = valueClass;
+		this.meta = meta;
 	}
 
 	public @NotNull V getValue() {
@@ -33,8 +38,6 @@ public final class CollOne<V extends Bean> extends Collection {
 		if (txn == null)
 			return value;
 
-		//noinspection DataFlowIssue
-		@SuppressWarnings("unchecked")
 		var log = (LogOne<V>)txn.getLog(parent().objectId() + variableId());
 		return log != null ? log.value : value;
 	}
@@ -46,8 +49,6 @@ public final class CollOne<V extends Bean> extends Collection {
 
 		if (isManaged()) {
 			value.initRootInfoWithRedo(rootInfo, this);
-			//noinspection DataFlowIssue
-			@SuppressWarnings("unchecked")
 			var log = (LogOne<V>)Transaction.getCurrentVerifyWrite(this)
 					.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
 			log.setValue(value);
@@ -55,12 +56,10 @@ public final class CollOne<V extends Bean> extends Collection {
 			this.value = value;
 	}
 
-	@SuppressWarnings("unchecked")
 	public void assign(@NotNull CollOne<V> other) {
 		setValue((V)other.getValue().copy());
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public boolean equals(@Nullable Object obj) {
 		if (obj == this)
@@ -102,7 +101,6 @@ public final class CollOne<V extends Bean> extends Collection {
 
 	@Override
 	public void followerApply(@NotNull Log _log) {
-		@SuppressWarnings("unchecked")
 		var log = (LogOne<V>)_log;
 		if (log.value != null) { // value是否真的可以为null,目前没看到哪里可以让它为null
 			log.value.initRootInfo(rootInfo, this); // 与PList2/PMap2等全部同类实现保持一致
@@ -111,10 +109,9 @@ public final class CollOne<V extends Bean> extends Collection {
 			value.followerApply(log.logBean);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public @NotNull CollOne<V> copy() {
-		return new CollOne<>((V)getValue().copy(), valueClass); // 声明类型随副本传递（FND7-80）
+		return new CollOne<>((V)getValue().copy(), meta); // 声明类型meta随副本传递
 	}
 
 	@Override

@@ -12,6 +12,8 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
     private int _Limit;
     private boolean _Reset;
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.LogService.BCondition> _Condition;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.LogService.BCondition> meta1_Condition
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.LogService.BCondition.class);
 
     private static final java.lang.invoke.VarHandle vh_Id;
     private static final java.lang.invoke.VarHandle vh_Limit;
@@ -103,7 +105,7 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
 
     @SuppressWarnings("deprecation")
     public BSearch() {
-        _Condition = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.LogService.BCondition(), Zeze.Builtin.LogService.BCondition.class);
+        _Condition = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.LogService.BCondition(), meta1_Condition);
         _Condition.variableId(4);
     }
 
@@ -112,7 +114,7 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
         _Id = _Id_;
         _Limit = _Limit_;
         _Reset = _Reset_;
-        _Condition = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.LogService.BCondition(), Zeze.Builtin.LogService.BCondition.class);
+        _Condition = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.LogService.BCondition(), meta1_Condition);
         _Condition.variableId(4);
     }
 

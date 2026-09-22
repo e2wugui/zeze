@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import static Zeze.Util.Json.ensureNotNull;
 
+/** 事务二维表（行键×列键→不可变值）：外层 PMap2 装 BeanMap1 行 Bean。 */
 @SuppressWarnings("unchecked")
 public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	public static final class Factory<R, C, V> implements Supplier<Map<C, V>> {

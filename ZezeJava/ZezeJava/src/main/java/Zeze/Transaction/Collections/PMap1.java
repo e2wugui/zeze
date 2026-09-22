@@ -9,7 +9,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
-@SuppressWarnings("DataFlowIssue")
+/** 事务 Map（1系）：不可变键值按值拷贝记账，不支持 Bean 值。 */
+@SuppressWarnings({"unchecked", "DataFlowIssue"})
 public class PMap1<K, V> extends PMap<K, V> {
 	protected final @NotNull Map1Meta<K, V> meta;
 
@@ -35,7 +36,6 @@ public class PMap1<K, V> extends PMap<K, V> {
 			throw new IllegalArgumentException("null value");
 
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.put(key, value);
@@ -59,7 +59,6 @@ public class PMap1<K, V> extends PMap<K, V> {
 		}
 
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.putAll(m);
@@ -67,7 +66,6 @@ public class PMap1<K, V> extends PMap<K, V> {
 			map = map.plusAll(m);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public @Nullable V remove(@NotNull Object key) {
 		if (isManaged()) {
@@ -75,8 +73,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.remove((K)key);
 		}
-		//noinspection SuspiciousMethodCalls
-		V exist = map.get(key);
+		V exist = map.get((K)key);
 		map = map.minus(key);
 		return exist;
 	}
@@ -86,7 +83,6 @@ public class PMap1<K, V> extends PMap<K, V> {
 		K k = item.getKey();
 		V v = item.getValue();
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.remove(k, v);
@@ -104,7 +100,6 @@ public class PMap1<K, V> extends PMap<K, V> {
 		if (isEmpty())
 			return;
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
@@ -114,7 +109,6 @@ public class PMap1<K, V> extends PMap<K, V> {
 
 	@Override
 	public void followerApply(@NotNull Log _log) {
-		@SuppressWarnings("unchecked")
 		var log = (LogMap1<K, V>)_log;
 		map = map.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 	}
@@ -127,7 +121,6 @@ public class PMap1<K, V> extends PMap<K, V> {
 	public void assign(@NotNull PMap1<K, V> pmap) {
 		var items = pmap.getMap();
 		if (isManaged()) {
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();

@@ -11,6 +11,8 @@ public final class BSendMessage extends Zeze.Transaction.Bean implements BSendMe
     private String _Topic; // 主题，用户不用填写
     private int _PartitionIndex; // 分区索引，用户不用填写
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.BMessage> _Message; // 消息内容
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.MQ.BMessage> meta1_Message
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.MQ.BMessage.class);
 
     private static final java.lang.invoke.VarHandle vh_Topic;
     private static final java.lang.invoke.VarHandle vh_PartitionIndex;
@@ -83,7 +85,7 @@ public final class BSendMessage extends Zeze.Transaction.Bean implements BSendMe
     @SuppressWarnings("deprecation")
     public BSendMessage() {
         _Topic = "";
-        _Message = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BMessage(), Zeze.Builtin.MQ.BMessage.class);
+        _Message = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BMessage(), meta1_Message);
         _Message.variableId(3);
     }
 
@@ -93,7 +95,7 @@ public final class BSendMessage extends Zeze.Transaction.Bean implements BSendMe
             _Topic_ = "";
         _Topic = _Topic_;
         _PartitionIndex = _PartitionIndex_;
-        _Message = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BMessage(), Zeze.Builtin.MQ.BMessage.class);
+        _Message = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BMessage(), meta1_Message);
         _Message.variableId(3);
     }
 

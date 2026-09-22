@@ -9,7 +9,12 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
     public static final long TYPEID = 7116513531049088703L;
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Dbh2.BBucketMeta> _From;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.Dbh2.BBucketMeta> meta1_From
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.Dbh2.BBucketMeta.class);
+
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.Dbh2.BBucketMeta> _To;
+    private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.Dbh2.BBucketMeta> meta1_To
+            = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.Dbh2.BBucketMeta.class);
 
     public Zeze.Builtin.Dbh2.BBucketMeta getFrom() {
         return _From.getValue();
@@ -39,9 +44,9 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
 
     @SuppressWarnings("deprecation")
     public BEndSplit() {
-        _From = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBucketMeta(), Zeze.Builtin.Dbh2.BBucketMeta.class);
+        _From = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBucketMeta(), meta1_From);
         _From.variableId(1);
-        _To = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBucketMeta(), Zeze.Builtin.Dbh2.BBucketMeta.class);
+        _To = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Dbh2.BBucketMeta(), meta1_To);
         _To.variableId(2);
     }
 

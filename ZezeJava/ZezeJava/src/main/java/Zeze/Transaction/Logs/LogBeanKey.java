@@ -10,6 +10,7 @@ import Zeze.Transaction.Log;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
+/** BeanKey（值语义）字段的修改日志：整体替换，typeId 按值类型派生。 */
 public class LogBeanKey<T extends Serializable> extends Log {
 	private final @NotNull BeanKeyMeta<T> meta;
 	private final VarHandle vh;
@@ -48,6 +49,7 @@ public class LogBeanKey<T extends Serializable> extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 
@@ -56,10 +58,10 @@ public class LogBeanKey<T extends Serializable> extends Log {
 		value.encode(bb);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		try {
+			//noinspection unchecked
 			value = (T)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
