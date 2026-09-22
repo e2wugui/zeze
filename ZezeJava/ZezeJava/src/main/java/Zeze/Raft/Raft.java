@@ -1146,13 +1146,21 @@ public final class Raft {
 			// (heartbeat)to each server; repeat during
 			// idle periods to prevent election timeouts(§5.2)
 			// 【R3-F3】先于appendLog登记等待条件：appendLog（RocksDB写）失败时state已是Leader，
-			// 事后登记永远不会执行，setLeaderReady的唯一匹配条件（index/term）对着残留(0,0)永不
-			// 命中，产生永不ready的活Leader且无自愈。Raft锁内nextIndex==lastIndex+1即appendLog
-			// 将写入的index（成功时result.index与之恒等），term即logSequence.getTerm()（成功时
-			// result.term与之恒等），预登记与事后登记的值完全一致。
+			// 事后登记永远不会执行，setLeaderReady的唯一匹配条件（index/term）永不命中，产生
+			// 永不ready的活Leader且无自愈（心跳照发压制重选举，磁盘恢复也不能自愈，FND10 raft-01）。
+			// Raft锁内nextIndex==lastIndex+1即appendLog将写入的index，term即logSequence.getTerm()，
+			// 预登记与事后登记的值完全一致。
 			leaderWaitReadyIndex = nextIndex;
 			leaderWaitReadyTerm = logSequence.getTerm();
-			logSequence.appendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent), null);
+			try {
+				logSequence.appendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent), null);
+			} catch (Throwable ex) {
+				// appendLog同步写失败（磁盘满/IO故障等）时state已是Leader且只初始化一半，退位路径
+				// 会再次触碰半初始化状态；按"宁死勿僵尸"（fatalKill判例，FND3-21）整进程终止，
+				// 多数派仍在时集群只是少一节点，由外部拉起重启自愈。
+				logger.error("append SetLeaderReadyEvent fail on become leader, fatalKill.", ex);
+				fatalKill();
+			}
 		}
 	}
 
