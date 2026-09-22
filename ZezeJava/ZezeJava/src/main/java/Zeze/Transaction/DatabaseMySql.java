@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -120,11 +121,30 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 	@Override
 	public void renameTable(String tableOldName, String tableNewName) throws Exception {
-		String sql = "RENAME TABLE " + tableOldName + " TO " + tableNewName;
+		// 幂等重跑：Schemas.checkCompatible的rename序列非原子——部分成功后中断（或renames全部
+		// 成功但saveDataWithSameVersion未落库）时重启会对同一对名字再次rename，此时源已不存在、
+		// 目标已存在，视为上次已完成，no-op跳过；源目标都不存在是真正的异常，明确报错。
 		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(true);
+			if (!tableExists(conn, tableOldName)) {
+				if (tableExists(conn, tableNewName))
+					return;
+				throw new IllegalStateException("renameTable: source table not found: " + tableOldName);
+			}
+			String sql = "RENAME TABLE " + tableOldName + " TO " + tableNewName;
 			try (var ps = conn.prepareStatement(sql)) {
 				ps.executeUpdate();
+			}
+		}
+	}
+
+	// renameTable幂等重跑的判定：查当前schema下表是否存在。
+	private boolean tableExists(Connection conn, String name) throws SQLException {
+		try (var ps = conn.prepareStatement(
+				"SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?")) {
+			ps.setString(1, name);
+			try (var rs = ps.executeQuery()) {
+				return rs.next();
 			}
 		}
 	}

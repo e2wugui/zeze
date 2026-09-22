@@ -1,7 +1,9 @@
 package Zeze.Transaction;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -36,10 +38,28 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 	@Override
 	public void renameTable(String oldName, String newName) throws Exception {
-		String sql = "EXEC sp_rename '" + oldName + "', '" + newName + "'";
+		// 幂等重跑：Schemas.checkCompatible的rename序列非原子——部分成功后中断（或renames全部
+		// 成功但saveDataWithSameVersion未落库）时重启会对同一对名字再次rename，此时源已不存在、
+		// 目标已存在，视为上次已完成，no-op跳过（sp_rename对两者都不报错，必须显式判定）。
 		try (var conn = dataSource.getConnection()) {
+			if (!tableExists(conn, oldName)) {
+				if (tableExists(conn, newName))
+					return;
+				throw new IllegalStateException("renameTable: source table not found: " + oldName);
+			}
+			String sql = "EXEC sp_rename '" + oldName + "', '" + newName + "'";
 			try (var stmt = conn.prepareStatement(sql)) {
 				stmt.executeUpdate();
+			}
+		}
+	}
+
+	// renameTable幂等重跑的判定：OBJECT_ID按当前库解析对象名。
+	private boolean tableExists(Connection conn, String name) throws SQLException {
+		try (var ps = conn.prepareStatement("SELECT OBJECT_ID(?)")) {
+			ps.setString(1, name);
+			try (var rs = ps.executeQuery()) {
+				return rs.next() && rs.getString(1) != null;
 			}
 		}
 	}

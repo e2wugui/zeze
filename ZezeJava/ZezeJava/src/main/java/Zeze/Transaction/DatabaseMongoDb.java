@@ -43,6 +43,17 @@ public class DatabaseMongoDb extends Database {
 
 	@Override
 	public void renameTable(String tableOldName, String tableNewName) {
+		// 幂等重跑（对齐关系库后端）：Schemas.checkCompatible的rename序列非原子——部分成功后
+		// 中断时重启会对同一对名字再次rename，源collection不存在而目标已存在视为上次已完成，
+		// no-op跳过；都不存在是真正的异常，明确报错。
+		var exists = new java.util.HashSet<String>();
+		for (var n : mongoDatabase.listCollectionNames())
+			exists.add(n);
+		if (!exists.contains(tableOldName)) {
+			if (exists.contains(tableNewName))
+				return;
+			throw new IllegalStateException("renameTable: source collection not found: " + tableOldName);
+		}
 		var collection = mongoDatabase.getCollection(tableOldName);
 		collection.renameCollection(new MongoNamespace(mongoDatabase.getName(), tableNewName),
 				new RenameCollectionOptions().dropTarget(false));

@@ -752,8 +752,8 @@ public class Schemas implements Serializable {
 		}
 
 		// 版本升级的renameTable必须等全部兼容检查通过后再统一执行：
-		// 否则rename副作用先于失败的兼容检查提交，且重试不幂等（原表已改名），
-		// 兼容检查失败后重启将永久失败。
+		// 否则rename副作用先于失败的兼容检查提交。序列本身仍非原子，中断后重启的重跑由各后端
+		// renameTable的幂等性兜底（源不存在而目标存在视为已完成，跳过）。
 		var renames = new ArrayList<KV<Table, Table>>();
 		boolean res = true;
 		for (var table : tables.values()) {
