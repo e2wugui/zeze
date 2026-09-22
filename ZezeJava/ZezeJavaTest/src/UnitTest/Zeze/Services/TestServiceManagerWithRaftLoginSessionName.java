@@ -118,7 +118,10 @@ public class TestServiceManagerWithRaftLoginSessionName {
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
 			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false));
-			dbHomes.add(raftConf.getDbHome());
+			// FND8-42起Raft构造器经derive私有副本联动DbHome，不再改写传入的raftConf——
+			// raftConf.getDbHome()仍是xml Name而非数据目录，收尾删它是空操作，节点目录
+			// 127.0.0.1_<port>因此残留。实际目录由节点名派生（derive口径，同上方预清理）。
+			dbHomes.add(nodeNames.get(i).replace(':', '_'));
 		}
 		waitStableLeader();
 	}
