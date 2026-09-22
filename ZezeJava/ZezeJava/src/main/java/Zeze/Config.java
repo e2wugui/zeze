@@ -683,7 +683,8 @@ public final class Config {
 		allowSchemasReuseVariableIdWithSameType = attr.isBlank() || Boolean.parseBoolean(attr);
 
 		attr = self.getAttribute("FastRedoWhenConflict");
-		fastRedoWhenConflict = attr.isBlank() || Boolean.parseBoolean(attr);
+		// 缺省必须与字段声明默认false一致；attr.isBlank()||parse会让无zeze.xml属性时翻转成true。
+		fastRedoWhenConflict = !attr.isBlank() && Boolean.parseBoolean(attr);
 
 		attr = self.getAttribute("CheckpointMode");
 		if (!attr.isBlank())
