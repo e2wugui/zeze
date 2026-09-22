@@ -760,7 +760,8 @@ public interface IByteBuffer {
 			return;
 		case MAP:
 			t = ReadByte();
-			SkipUnknownField(t >> TAG_SHIFT, t, ReadUInt());
+			// ReadUInt无符号语义可为负：负count让跳过循环零迭代，map体滞留导致读指针错位。
+			SkipUnknownField(t >> TAG_SHIFT, t, ReadUIntPositive());
 			return;
 		case DYNAMIC:
 			SkipLong();
