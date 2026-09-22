@@ -14,7 +14,7 @@ Zeze是一个基于一致性缓存的分布式事务应用框架，它具有很�
 - https://e2wugui.github.io/zeze/
 
 使用zeze框架的初始项目模板:
-- https://gitee.com/dwing/zezeboot
+- ./projects/zezeboot
 
 ## Maven
 
@@ -23,6 +23,6 @@ Zeze是一个基于一致性缓存的分布式事务应用框架，它具有很�
 <dependency>
     <groupId>com.zezeno</groupId>
     <artifactId>zeze-java</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
 </dependency>
 ```
