@@ -80,14 +80,21 @@ public final class ZezexTestEnv {
 		for (int i = 0; i < serverCount; ++i)
 			servers.add(new Game.App());
 
-		for (int i = 0; i < linkCount; ++i)
-			links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
-		for (int i = 0; i < serverCount; ++i)
-			servers.get(i).Start(serverIdBase + i, 20000 + i);
-		for (var link : links)
-			harness.TestEnv.waitServerRegisteredRange(link.Zeze, serverIdBase, serverCount); // 等所有provider注册可见（替代盲等1秒）
+		try {
+			for (int i = 0; i < linkCount; ++i)
+				links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
+			for (int i = 0; i < serverCount; ++i)
+				servers.get(i).Start(serverIdBase + i, 20000 + i);
+			for (var link : links)
+				harness.TestEnv.waitServerRegisteredRange(link.Zeze, serverIdBase, serverCount); // 等所有provider注册可见（替代盲等1秒）
 
-		startClients(clientCount, ClientStartMode.TCP);
+			startClients(clientCount, ClientStartMode.TCP);
+		} catch (Exception e) {
+			// 失败路径自清理：links 先于 servers Start，server.Start 中途失败时 links 已绑定 12000+/15000+ 端口，
+			// 不释放会泄漏到同 JVM 后续测试（bind 级联红）。stopAll 内部逐项容错，不会掩盖原始异常 e。
+			stopAll();
+			throw e;
+		}
 	}
 
 	/** 类级共享用法：停掉旧客户端并按指定口味重建（环境 links/servers/LoginQueue 不动）。 */
@@ -154,16 +161,33 @@ public final class ZezexTestEnv {
 	}
 
 	public void stopAll() throws Exception {
+		// 逐项容错：server.Start 中途失败的半启动 app 在 stopBeforeModules/Stop 里会抛
+		// "App Not Start: eUninitialized"（cancelColdTimer 走 newProcedure，isStart()==false），
+		// 无 try/catch 会中断循环导致 links 没停——linkd 12000 端口泄漏，同 JVM 后续所有
+		// Zezex 测试 bind 秒败（1 红级联成 7 红）。单项失败只记日志，保证后续项仍被释放。
 		try {
-			for (var client : clients)
-				client.Stop();
-			for (var server : servers) {
-				if (server.Zeze != null) // 半启动（Start 中途失败/未调用）的 server，跳过避免 NPE 掩盖真正的失败原因
-					server.stopBeforeModules();
+			for (var client : clients) {
+				try {
+					client.Stop();
+				} catch (Exception e) {
+					logger.error("stop client failed", e);
+				}
 			}
 			for (var server : servers) {
-				if (server.Zeze != null)
+				if (server.Zeze == null) // 半启动（Start 中途失败/未调用）的 server，跳过避免 NPE 掩盖真正的失败原因
+					continue;
+				try {
+					server.stopBeforeModules();
+				} catch (Exception e) {
+					logger.error("stop server stopBeforeModules failed", e);
+				}
+			}
+			for (var server : servers) {
+				try {
 					server.Stop();
+				} catch (Exception e) {
+					logger.error("stop server failed", e);
+				}
 			}
 			for (var link : links) {
 				try {

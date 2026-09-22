@@ -2,9 +2,9 @@ package UnitTest.Zeze.Collections;
 
 import java.util.ArrayList;
 import java.util.List;
-import Game.Equip.BEquipExtra;
 import Zeze.Collections.CsQueue;
 import demo.App;
+import demo.Bean1;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,18 +15,18 @@ public class TestCsQueue {
 		demo.App.getInstance().Start();
 	}
 
-	private static List<Integer> walk(CsQueue<BEquipExtra> csq) throws Exception {
+	private static List<Integer> walk(CsQueue<Bean1> csq) throws Exception {
 		//System.out.println(csq.getInnerName());
 		var out = new ArrayList<Integer>();
 		csq.walk((k, v) -> {
-			//System.out.println(k.getName() + " " + v.getAttack());
-			out.add(v.getAttack());
+			//System.out.println(k.getName() + " " + v.getV1());
+			out.add(v.getV1());
 			return true;
 		});
 		return out;
 	}
 
-	private static void clear(CsQueue<BEquipExtra> csq) {
+	private static void clear(CsQueue<Bean1> csq) {
 		Assertions.assertEquals(0, App.getInstance().Zeze.newProcedure(() -> {
 			while (csq.poll() != null) {
 				// nothing.
@@ -36,7 +36,7 @@ public class TestCsQueue {
 	}
 
 	// Queue.size()走TableX.get，必须在事务内调用。
-	private static long size(CsQueue<BEquipExtra> csq) {
+	private static long size(CsQueue<Bean1> csq) {
 		var out = new Zeze.Util.OutLong();
 		App.getInstance().Zeze.newProcedure(() -> {
 			out.value = csq.size();
@@ -48,25 +48,25 @@ public class TestCsQueue {
 	@Test
 	public void testCsQueue() throws Exception {
 		var qm = demo.App.getInstance().Zeze.getQueueModule();
-		var csq0 = new CsQueue<>(qm, "TestCsQueue", 0, BEquipExtra.class, 100);
+		var csq0 = new CsQueue<>(qm, "TestCsQueue", 0, Bean1.class, 100);
 		// clear
 		clear(csq0);
 
 		demo.App.getInstance().Zeze.newProcedure(() -> {
-			csq0.add(new BEquipExtra(0, 0, 0));
-			csq0.add(new BEquipExtra(1, 1, 1));
-			csq0.add(new BEquipExtra(2, 2, 2));
+			csq0.add(new Bean1(0));
+			csq0.add(new Bean1(1));
+			csq0.add(new Bean1(2));
 			return 0;
 		}, "csq0.add").call();
 
 		Assertions.assertEquals(List.of(0, 1, 2), walk(csq0));
 
-		var csq1 = new CsQueue<>(qm, "TestCsQueue", 1, BEquipExtra.class, 100);
+		var csq1 = new CsQueue<>(qm, "TestCsQueue", 1, Bean1.class, 100);
 		clear(csq1);
 		demo.App.getInstance().Zeze.newProcedure(() -> {
-			csq1.add(new BEquipExtra(3, 3, 3));
-			csq1.add(new BEquipExtra(4, 4, 4));
-			csq1.add(new BEquipExtra(5, 5, 5));
+			csq1.add(new Bean1(3));
+			csq1.add(new Bean1(4));
+			csq1.add(new Bean1(5));
 			return 0;
 		}, "csq1.add").call();
 		Assertions.assertEquals(List.of(3, 4, 5), walk(csq1));
@@ -81,14 +81,14 @@ public class TestCsQueue {
 	public void testCsQueueSpliceEmpty() throws Exception {
 		// 接管到空队列后继续add：新数据必须可达（修复前：dst.tail未被设置，新节点成为孤岛，poll/walk永远看不到）。
 		var qm = demo.App.getInstance().Zeze.getQueueModule();
-		var csq0 = new CsQueue<>(qm, "TestCsQueueSpliceEmpty", 0, BEquipExtra.class, 100);
+		var csq0 = new CsQueue<>(qm, "TestCsQueueSpliceEmpty", 0, Bean1.class, 100);
 		clear(csq0); // dst 保持为空队列
 
-		var csq1 = new CsQueue<>(qm, "TestCsQueueSpliceEmpty", 1, BEquipExtra.class, 100);
+		var csq1 = new CsQueue<>(qm, "TestCsQueueSpliceEmpty", 1, Bean1.class, 100);
 		clear(csq1);
 		demo.App.getInstance().Zeze.newProcedure(() -> {
-			csq1.add(new BEquipExtra(3, 3, 3));
-			csq1.add(new BEquipExtra(4, 4, 4));
+			csq1.add(new Bean1(3));
+			csq1.add(new Bean1(4));
 			return 0;
 		}, "csq1.add").call();
 
@@ -96,7 +96,7 @@ public class TestCsQueue {
 		Assertions.assertEquals(List.of(), walk(csq1));
 
 		demo.App.getInstance().Zeze.newProcedure(() -> {
-			csq0.add(new BEquipExtra(9, 9, 9));
+			csq0.add(new Bean1(9));
 			return 0;
 		}, "csq0.addAfterSplice").call();
 
@@ -109,14 +109,14 @@ public class TestCsQueue {
 		// 方案甲的接收端防线：代际号不匹配（对方已重连/重启用出新代，在途通知携带旧代）时必须拒绝接管。
 		// 这就是"已经活过来了"分支，2022年起存在但此前零测试覆盖。
 		var qm = demo.App.getInstance().Zeze.getQueueModule();
-		var csq0 = new CsQueue<>(qm, "TestCsQueueSerial", 0, BEquipExtra.class, 100);
+		var csq0 = new CsQueue<>(qm, "TestCsQueueSerial", 0, Bean1.class, 100);
 		clear(csq0); // 接管方保持为空
 
-		var csq1 = new CsQueue<>(qm, "TestCsQueueSerial", 1, BEquipExtra.class, 100);
+		var csq1 = new CsQueue<>(qm, "TestCsQueueSerial", 1, Bean1.class, 100);
 		clear(csq1);
 		demo.App.getInstance().Zeze.newProcedure(() -> {
-			csq1.add(new BEquipExtra(3, 3, 3));
-			csq1.add(new BEquipExtra(4, 4, 4));
+			csq1.add(new Bean1(3));
+			csq1.add(new Bean1(4));
 			return 0;
 		}, "csq1.add").call();
 

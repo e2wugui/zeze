@@ -8,11 +8,29 @@ dependencies {
     implementation 'com.alibaba:druid:1.2.28'
 }
 
+// 8个热模块（solution.xml hot="true"）的实现与生成代码归 hot 源集，产物不进冷classpath
+// ——对齐生产 start.bat 的组成（server.jar 由 Distribute 排除热模块目录生成，模块类只存在于
+// hot/modules/*.jar）。这是 HotModule 冷抢载 fail-fast 守卫（HotModule.java:49）成立的前提。
+// 接口（I*.java）留在 main：跨装载器契约，冷侧（如 TestOnline 的 getModuleContext）编译期引用，
+// 双亲委派下热模块实现与冷侧拿到同一 Class 身份。
+def hotModuleNames = ['Buf', 'Equip', 'Fight', 'Item', 'Login', 'LongSet', 'Skill', 'Timer']
+def hotPackagePatterns = hotModuleNames.collect { "Game/${it}/**" }
+
 sourceSets {
     main {
         java {
-            srcDir "src"
-            srcDir "Gen"
+            srcDirs = ['src', 'Gen'] + hotModuleNames.collect { "src/Game/${it}" }
+            // Gen 全量再生成无条件输出热模块包，这里按包过滤归 hot；src 下热模块目录只剩 I*.java，
+            // 以目录自身为 srcDir 根（相对路径不再命中排除模式）重新纳入。
+            exclude hotPackagePatterns
         }
+    }
+    hot {
+        java {
+            srcDirs = ['src-hot', 'Gen']
+            include hotPackagePatterns
+        }
+        compileClasspath += sourceSets.main.output
+        compileClasspath += sourceSets.main.compileClasspath
     }
 }
