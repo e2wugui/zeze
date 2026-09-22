@@ -181,21 +181,25 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				sendNotifies(notifies);
 		}
 		// FND4-66：会话关闭联动清理该会话登记的负载观察者——原来仅setLoad转发失败时惰性剔除，
-		// 停止上报的地址行（raft持久表）与死观察者永久残留（无界增长）。observers清空即删地址行；
-		// walk回调内直接remove有遍历器失效风险，先收集后删。
-		var deadAddressRows = new ArrayList<String>();
+		// 停止上报的地址行（raft持久表）与死观察者永久残留（无界增长）。observers清空即删地址行。
+		// walk返回detached解码拷贝（RocksRaft.Table.walk不附着事务），对拷贝的remove不落库：
+		// 只收集命中key，修改必须经getOrAdd拿事务附着bean再remove。
+		var observedRows = new ArrayList<String>();
 		try {
 			tableLoadObservers.walk((key, row) -> {
-				row.getObservers().remove(name);
-				if (row.getObservers().size() == 0)
-					deadAddressRows.add(key);
+				if (row.getObservers().Contains(name))
+					observedRows.add(key);
 				return true;
 			});
+			for (var key : observedRows) {
+				var row = tableLoadObservers.getOrAdd(key);
+				row.getObservers().remove(name);
+				if (row.getObservers().size() == 0)
+					tableLoadObservers.remove(key);
+			}
 		} catch (Exception e) { // logger.error
 			logger.error("cleanup loadObservers for session {} failed", name, e);
 		}
-		for (var key : deadAddressRows)
-			tableLoadObservers.remove(key);
 		tableSession.remove(name);
 	}
 
