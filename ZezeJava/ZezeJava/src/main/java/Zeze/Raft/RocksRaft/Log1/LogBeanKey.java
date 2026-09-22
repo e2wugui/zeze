@@ -1,6 +1,7 @@
 package Zeze.Raft.RocksRaft.Log1;
 
 import java.lang.invoke.MethodHandle;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Raft.RocksRaft.Bean;
 import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
@@ -13,12 +14,27 @@ import org.jetbrains.annotations.NotNull;
 public class LogBeanKey<T extends Serializable> extends Log {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.Log<");
 
+	// typeId与构造器MethodHandle按类缓存；typeId原料（hashLog(头串,类名)）逐字保留，
+	// 改动即typeId漂移，存量Raft日志不可解。
+	private record TypeInfo(int logTypeId, MethodHandle valueFactory) {
+		private static final ConcurrentHashMap<Class<?>, TypeInfo> typeInfos = new ConcurrentHashMap<>();
+
+		private static TypeInfo of(Class<?> cls) {
+			return typeInfos.computeIfAbsent(cls,
+					c -> new TypeInfo(Zeze.Transaction.Bean.hashLog(logTypeIdHead, c), Reflect.getDefaultConstructor(c)));
+		}
+	}
+
 	public T value;
 	private final MethodHandle valueFactory;
 
 	public LogBeanKey(Class<T> valueClass) {
-		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass));
-		valueFactory = Reflect.getDefaultConstructor(valueClass);
+		this(TypeInfo.of(valueClass));
+	}
+
+	private LogBeanKey(TypeInfo typeInfo) {
+		super(typeInfo.logTypeId());
+		valueFactory = typeInfo.valueFactory();
 	}
 
 	// 事务修改过程中不需要Factory。
