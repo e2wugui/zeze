@@ -312,7 +312,7 @@ public class PrometheusCounter implements ZezeCounter {
 		var name = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
 		// U4-F3：以规范化后的名字作 map 键。原实现 map 按原始 name 去重、注册名却经
 		// builder 内部规范化，二者非单射——不同 key（如 "Foo.Bar"/"Foo-Bar"）注册出同名
-		// 指标时 register() 抛异常打穿调用方（BinLogger 静态初始化即死）。规范化取
+		// 指标时 register() 抛异常打穿调用方（静态初始化路径即死）。规范化取
 		// sanitizeMetricName+prometheusName 的复合（前者折 '-'/' '等、后者折 '.'，与
 		// builder→registry 实际生成的指标名一致），碰撞 key 共享同一 observer：Prometheus
 		// 侧指标名即身份，本就无法区分，共享是唯一优雅降级。allocCounter 是一次性分配

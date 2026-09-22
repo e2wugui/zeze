@@ -166,7 +166,7 @@ public final class Token extends AbstractToken {
 				connector = new Connector(host, port, true);
 				connector.SetService(this);
 				connector.setAutoReconnect(true);
-				// 手工connector路径不复位keepalive熔断（FND8-62，与BinLoggerAgent同构）：
+				// 手工connector路径不复位keepalive熔断：
 				// stop→start(host,port)重启后keepalive定时器永久熔断，静默死链不再被检测。
 				super.start();
 				connector.start();
@@ -565,7 +565,7 @@ public final class Token extends AbstractToken {
 				cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtNow(3, 14);
 				return this;
 			} catch (Throwable ex) {
-				// 启动全有或全无（FND4-69，对齐BinLoggerService.startLogger形态）：
+				// 启动全有或全无（FND4-69）：
 				// 半途失败清空已建状态，否则重入检查把"未运行的服务"当已启动直接
 				// 返回this——二次start假成功，服务永不监听且清理任务未注册，
 				// getService()非null掩盖故障。

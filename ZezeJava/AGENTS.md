@@ -81,9 +81,8 @@ app 与 GCM 显式配置**同一个 DatabaseConf**（同 url 同类型），或�
 `AtomicFileWriter.fsync` + 原子改名收口）落盘。截断式写（`new FileOutputStream`、
 不带 APPEND 的 `Files.write/newOutputStream` 等）在白名单外没有合法场景；
 白名单由 `TestAtomicWriteSourceGuard` 固化，调整须在提交信息里说明理由，
-迁移完成一个调用点即收缩一项。追加式日志（BinLogger）与分块接收
-（`.installing`）除外。`AtomicOutputFile.close()` 内 force-先于-move 的顺序是
-安全前提，改动须逐字评审。
+迁移完成一个调用点即收缩一项。分块接收（`.installing`）除外。
+`AtomicOutputFile.close()` 内 force-先于-move 的顺序是安全前提，改动须逐字评审。
 
 ## 修复提交的信息格式
 

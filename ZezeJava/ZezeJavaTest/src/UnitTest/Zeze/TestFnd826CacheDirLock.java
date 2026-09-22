@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 同JVM两个同serverId的App（多App测试派生同配置、serverId默认同0时是默认值行为）
  * 后启者的start()/先停者的stop()会无条件deleteDirectory正被活跃使用的目录。
  * 修复：deleteDirectory之前对同级锁文件zeze_cache_&lt;serverId&gt;.lock上排它锁
- * （持有整个"删-开-跑-关-删"生命周期，BinLogger.LOCK同型）——同JVM撞号实例
+ * （持有整个"删-开-跑-关-删"生命周期）——同JVM撞号实例
  * tryLock抛OverlappingFileLockException转IllegalStateException即时fail-fast
  * （修复前Windows上卡约10s后IOException且startState滞留eStarting）；
  * stop释放锁后同serverId可再启动。

@@ -94,8 +94,8 @@ public class Service extends ReentrantLock {
 	// volatile：tryStartKeepAliveCheckTimer的无锁快路径在Service锁外读它。
 	protected volatile Future<?> keepCheckTimer;
 	// keepalive定时器随服务生命周期管理：start启动（keepCheckPeriod默认0禁用时无开销）、
-	// stop熔断。同时保留TcpSocket构造的兜底启动：BinLoggerAgent(host,port)/Token/GlobalAgent/
-	// OnzServer等手工connector路径不经过Service.start()，仍依赖懒启动。
+	// stop熔断。同时保留TcpSocket构造的兜底启动：Token/GlobalAgent/OnzServer等
+	// 手工connector路径不经过Service.start()，仍依赖懒启动。
 	private volatile boolean keepAliveCheckStopped;
 	private @Nullable ServiceStatisticLog servicePerf;
 	// 门禁白名单：非空即布防——未完成密钥交换的连接仅放行白名单内的协议。

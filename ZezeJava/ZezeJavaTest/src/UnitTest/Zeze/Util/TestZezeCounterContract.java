@@ -128,7 +128,7 @@ public class TestZezeCounterContract {
 	/**
 	 * U4-F3：getRunTimeObserver 的 key 规范化后查重。原实现 map 按原始 name 去重、
 	 * 注册名却经 builder 内部规范化，二者非单射——不同 key（如 "Foo.Bar"/"Foo-Bar"）
-	 * 注册出同名指标时 register() 抛异常打穿调用方（BinLogger 静态初始化即死）。
+	 * 注册出同名指标时 register() 抛异常打穿调用方（静态初始化路径即死）。
 	 * 修复：以 sanitizeMetricName+prometheusName 复合规范化后的名字作 map 键，
 	 * 碰撞 key 共享同一 observer（Prometheus 侧指标名即身份，共享是唯一优雅降级）。
 	 */

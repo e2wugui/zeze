@@ -71,7 +71,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		this.server = new LoginQueueServer(this, config);
 		this.service = new LoginQueueService(config);
 		RegisterProtocols(service);
-		// FND7-21：分配tick移入start()，与stop()的取消配对（对齐BinLoggerService形态）
+		// FND7-21：分配tick移入start()，与stop()的取消配对
 		timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
 	}
 
