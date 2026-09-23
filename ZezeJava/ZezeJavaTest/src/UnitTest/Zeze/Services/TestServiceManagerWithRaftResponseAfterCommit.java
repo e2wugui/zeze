@@ -89,6 +89,9 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 
 		private Connector connector;
 
+		/** 当前存活连接：sendLogin无应答重连时更新，调用方后续请求须经peer.sock取最新 */
+		private AsyncSocket sock;
+
 		AsyncSocket connect(int port) throws Exception {
 			// WaitReady()固定5s超时：全量负载下握手可能超时（TimeoutException，实测偶发），
 			// 有界重试：失败连接remove+stop后重建；换端口重连前同样先摘除旧Connector
@@ -267,10 +270,13 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 		throw new IllegalStateException("no leader");
 	}
 
-	private static Login sendLogin(AsyncSocket sock, String sessionName, int timeoutMs) throws Exception {
+	private static Login sendLogin(Peer peer, String sessionName, int timeoutMs) throws Exception {
 		// RaftRetry(-15)：静默集群leader漂移/选举窗口的瞬态应答（appendLog同步检查isLeader，
 		// 同TestServiceManagerWithRaftAllocateId.allocate的有界重试），重试耗尽才失败。
 		// 每次重试必须用新Login（requestId唯一）。用例1的阻塞Login不走这里（必失败语义独立）。
+		// 无应答/超时形态（test30-3 round16实证）：请求落到退位follower时Raft.Server对非leader的
+		// User Request只推LeaderIs然后静默丢弃（无应答无错误码），裸Peer收到LeaderIs只解码不动作，
+		// 旧socket上必然等满超时——必须重连当前leader再试（同CommitThenResponseFullChain.sendLogin修法）。
 		long lastCode = Long.MIN_VALUE;
 		for (int attempt = 1; attempt <= 12; ++attempt) {
 			var login = new Login();
@@ -278,15 +284,24 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 			login.getUnique().setRequestId(requestIds.incrementAndGet());
 			login.setCreateTime(System.currentTimeMillis());
 			login.setTimeout(timeoutMs);
-			Assertions.assertTrue(login.SendForWait(sock, timeoutMs).await(timeoutMs), "login await");
-			Assertions.assertFalse(login.isTimeout(), "login timeout");
-			lastCode = login.getResultCode();
-			if (lastCode != -15)
-				return login;
+			boolean responded;
+			try {
+				responded = login.SendForWait(peer.sock, timeoutMs).await(timeoutMs);
+			} catch (RuntimeException ex) {
+				responded = true; // 异常终态（如RpcTimeout异常完成）也交由结果码裁决
+			}
+			if (responded && !login.isTimeout()) {
+				lastCode = login.getResultCode();
+				if (lastCode != -15)
+					return login;
+			} else {
+				// 无应答/超时：当前连接大概率已指向follower（静默丢User Request），重连当前leader
+				peer.sock = peer.connect(leaderPort());
+			}
 			//noinspection BusyWait
 			Thread.sleep(500);
 		}
-		Assertions.fail("login持续RaftRetry(-15)，session=" + sessionName);
+		Assertions.fail("login重试耗尽（-15/无应答），session=" + sessionName + "，lastCode=" + lastCode);
 		return null; // unreachable
 	}
 
@@ -323,11 +338,13 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 	public void testResponseAfterCommit() throws Exception {
 		var peer = new Peer("UnitTest.RAC.Reg");
 		try {
-			var sock = peer.connect(leaderPort());
+			peer.sock = peer.connect(leaderPort());
+			var sock = peer.sock; // warmup重连可能已换连接，用例1前须重新同步
 
 			// warmup：集群健康时正常Login必成功（rc=0）。
-			Assertions.assertEquals(0, sendLogin(sock, "UnitTest.RAC.Warm", 30_000).getResultCode(),
+			Assertions.assertEquals(0, sendLogin(peer, "UnitTest.RAC.Warm", 30_000).getResultCode(),
 					"warmup login resultCode");
+			sock = peer.sock;
 
 			// ---------------- 用例1：quorum不可达时不得假成功（确定性红绿，FND2-S1-1） ----------------
 			var leaderIdx = leaderIndex();
@@ -375,11 +392,11 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 			// ---------------- 用例2：应答到达时commitIndex必须已推进 ----------------
 			waitStableLeader(); // 阻塞窗口可能引发重选，等新leader稳定
 			ensureLeaderReady();
-			sock = peer.connect(leaderPort()); // 连到当前leader（旧连接可能已指向follower）
+			peer.sock = peer.connect(leaderPort()); // 连到当前leader（旧连接可能已指向follower）
 			var leaderLog = ((Rocks)field("rocks").get(servers.get(leaderIndex()))).getRaft().getLogSequence();
 			var before = leaderLog.getCommitIndex();
 			String afterName = "UnitTest.RAC.After." + System.nanoTime();
-			Assertions.assertEquals(0, sendLogin(sock, afterName, 30_000)
+			Assertions.assertEquals(0, sendLogin(peer, afterName, 30_000)
 					.getResultCode(), "恢复后login resultCode");
 			Assertions.assertTrue(leaderLog.getCommitIndex() > before,
 					"应答到达时raft必须已提交（应答由_final_commit_在appendLog成功后发出，FND2-S1-1）");
@@ -390,7 +407,7 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 			var afterServer = ((Rocks)field("rocks").get(servers.get(leaderIndex()))).getRaft().getServer();
 			var afterTask = serverSessionKeepAliveTask(afterServer, afterName);
 			Assertions.assertNotNull(afterTask, "成功login的Session必须持有keepAlive定时器");
-			Assertions.assertEquals(0, sendLogin(sock, "UnitTest.RAC.Cover2." + System.nanoTime(), 30_000)
+			Assertions.assertEquals(0, sendLogin(peer, "UnitTest.RAC.Cover2." + System.nanoTime(), 30_000)
 					.getResultCode(), "覆盖login resultCode");
 			Assertions.assertTrue(afterTask.isCancelled(),
 					"重复Login覆盖userState前必须取消旧Session的keepAliveTimerTask（FND2-S1-3）");

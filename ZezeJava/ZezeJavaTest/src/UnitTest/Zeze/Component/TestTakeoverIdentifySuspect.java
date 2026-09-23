@@ -44,8 +44,8 @@ public class TestTakeoverIdentifySuspect {
 			agent2 = newAgent(port, 12);
 			agent1.start();
 			agent2.start();
-			agent1.waitReady();
-			agent2.waitReady();
+			waitReadyWithRetry(agent1);
+			waitReadyWithRetry(agent2);
 
 			var suspected = new LinkedBlockingQueue<Integer>();
 			agent2.setOnSuspect(suspected::add);
@@ -89,6 +89,23 @@ public class TestTakeoverIdentifySuspect {
 			if (agent2 != null)
 				agent2.stop();
 			sm.close();
+		}
+	}
+
+	// WaitReady固定5s预算在满负载下不足（test30-3 round17实证5.2s超时抛TimeoutException）：
+	// 有界重试（同第八轮SessionCloseRetry/Peer.connect先例）；连接器自动重连，重试安全。
+	// 超时经Task.forceThrow sneaky-throw受检TimeoutException，编译期不可见，只能catch Exception再判型。
+	private static void waitReadyWithRetry(Agent agent) throws Exception {
+		for (int attempt = 1; ; ++attempt) {
+			try {
+				agent.waitReady();
+				return;
+			} catch (Exception e) {
+				if (!(e instanceof java.util.concurrent.TimeoutException) || attempt >= 6)
+					throw e;
+				//noinspection BusyWait
+				Thread.sleep(200);
+			}
 		}
 	}
 

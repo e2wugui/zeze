@@ -13,6 +13,13 @@ import demo.Module1.BKuafuResult;
 public class LateRegisterTransaction extends OnzTransaction<BKuafu.Data, BKuafuResult.Data> {
 	public volatile BSavedCommits.Data capturedCommitState;
 
+	{
+		// 满负载下参与方flush排队可超产品默认10s（test30-3 IT round10实证：waitFlushReady
+		// timeout→finalCommit exception→halt(543543)杀整个测试JVM，该fork后续全灭）。
+		// 放大3x对齐台账先例；halt是产品契约（finalCommit失败必须停机），只能测试侧给足预算。
+		setFlushTimeout(30_000);
+	}
+
 	@Override
 	protected long perform() throws Exception {
 		var a2 = new BKuafu.Data();

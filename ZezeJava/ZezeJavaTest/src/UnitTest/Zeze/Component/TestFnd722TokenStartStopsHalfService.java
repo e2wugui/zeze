@@ -38,6 +38,23 @@ public class TestFnd722TokenStartStopsHalfService {
 		}
 	}
 
+	// bind验证有界重试（test30-3 round17实证:79假红）：freePort的TOCTOU抢占/service.stop的
+	// 异步释放窗口都可能是瞬态冲突；重试耗尽仍冲突才是"半启动监听未释放"的真红（不掩盖FND7-22回归）。
+	private static void assertBindableWithRetry(int port, long timeoutMs) throws InterruptedException {
+		var deadline = System.currentTimeMillis() + timeoutMs;
+		for (;;) {
+			try (var s = new ServerSocket()) {
+				s.bind(new InetSocketAddress("127.0.0.1", port));
+				return;
+			} catch (Exception e) {
+				if (System.currentTimeMillis() >= deadline)
+					throw new AssertionError("端口bind重试耗尽（半启动监听未释放？）port=" + port, e);
+				//noinspection BusyWait
+				Thread.sleep(500);
+			}
+		}
+	}
+
 	@Test
 	public void testHalfStartedListenersReleasedOnStartFailure(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
@@ -75,10 +92,8 @@ public class TestFnd722TokenStartStopsHalfService {
 
 			// FND7-22核心断言：半启动的监听必须已被stop释放——释放占用后两个端口都必须可重新bind。
 			// 修复前：openPort被无人引用的TokenServer监听占用，此处BindException。
-			try (var s1 = new ServerSocket(); var s2 = new ServerSocket()) {
-				s1.bind(new InetSocketAddress("127.0.0.1", openPort));
-				s2.bind(new InetSocketAddress("127.0.0.1", blockedPort));
-			}
+			assertBindableWithRetry(openPort, 10_000);
+			assertBindableWithRetry(blockedPort, 10_000);
 
 			// 半启动状态清干净后，二次start必须真实启动（在先前被残留占用的端口上监听）。
 			token.start(null, "127.0.0.1", openPort);

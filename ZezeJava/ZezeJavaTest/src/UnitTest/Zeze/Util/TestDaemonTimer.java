@@ -160,29 +160,32 @@ public class TestDaemonTimer {
 	}
 
 	@Test
-	@Timeout(30)
+	@Timeout(40)
 	public void testSetPeriodMsEffectiveOnNextRound() throws Exception {
 		// 周期调整钉板：setPeriodMs后下一次续约生效（已排期pending不重排）。
-		// round29假红钉因：墙钟总预算700ms（最坏路径pending300+2×50=400ms+余量300ms）在白天
-		// 负载下fire/worker滞后数百ms即假红（实测799）。改body内逐轮时间戳断言并拉开周期档距
-		// （旧1500/新50），逐段双向可判且各留数百ms调度抖动余量：
-		//   g1=第2→3轮：旧pending保留——若setPeriodMs错误地立即重排pending，g1塌缩到~50ms档
-		//   g2=第3→4轮、g3=第4→5轮：新周期必须已在第3轮收尾续约时生效——永不生效则不破1500ms档
+		// 假红钉因（test30-3 round12/22=810/890实证）：档距1500/50下，body进入时刻间隔=
+		// 周期+(本轮worker滞后-上轮滞后)，满载滞后差±800ms使正确形态g2∈[50,850]与缺陷
+		// "晚一轮生效"形态g2∈[700,2300]重叠——紧上界断言原理上无法同时零假红+抓缺陷。
+		// 修法=把档距拉到滞后成为小量级（旧4000/新100，40x）：正确g2≈100+Δ≤~900，
+		// 晚一轮g2≈4000+Δ≥~3200，断言取3000居中分离。g1是下界断言，滞后只会推大间隔，天然假红安全：
+		//   g1=第2→3轮：旧pending保留——若setPeriodMs错误地立即重排pending，g1塌缩到~100ms档
+		//   g2=第3→4轮、g3=第4→5轮：新周期必须已在第3轮收尾续约时生效——永不生效/晚一轮则留4000ms档
 		var times = new ConcurrentLinkedQueue<Long>();
-		var daemon = new DaemonTimer("UnitTest.DaemonTimer.setPeriod", 1500,
+		var daemon = new DaemonTimer("UnitTest.DaemonTimer.setPeriod", 4000,
 				() -> times.add(System.currentTimeMillis()));
 		try {
 			daemon.start();
-			Assertions.assertTrue(waitUntil(() -> times.size() >= 2, 10_000), "1500ms周期必须在10s内到达2轮");
-			daemon.setPeriodMs(50);
-			Assertions.assertTrue(waitUntil(() -> times.size() >= 5, 10_000), "调小周期后必须到达5轮");
+			Assertions.assertTrue(waitUntil(() -> times.size() >= 2, 11_000), "4000ms周期必须在11s内到达2轮");
+			daemon.setPeriodMs(100);
+			// 永不生效形态4×4000=16s才到5轮，预算须覆盖让断言（而非等待）裁决
+			Assertions.assertTrue(waitUntil(() -> times.size() >= 5, 21_000), "调小周期后必须到达5轮");
 			var t = times.toArray(new Long[0]);
 			var g1 = t[2] - t[1];
 			var g2 = t[3] - t[2];
 			var g3 = t[4] - t[3];
-			Assertions.assertTrue(g1 >= 700, "已排期pending不得被立即重排，第2→3轮间隔ms=" + g1);
-			Assertions.assertTrue(g2 <= 800, "新周期必须于下一次续约生效，第3→4轮间隔ms=" + g2);
-			Assertions.assertTrue(g3 <= 800, "新周期必须持续生效，第4→5轮间隔ms=" + g3);
+			Assertions.assertTrue(g1 >= 2_500, "已排期pending不得被立即重排，第2→3轮间隔ms=" + g1);
+			Assertions.assertTrue(g2 <= 3_000, "新周期必须于下一次续约生效，第3→4轮间隔ms=" + g2);
+			Assertions.assertTrue(g3 <= 3_000, "新周期必须持续生效，第4→5轮间隔ms=" + g3);
 		} finally {
 			daemon.stop();
 		}
@@ -192,19 +195,24 @@ public class TestDaemonTimer {
 	@Timeout(30)
 	public void testNextDelaySupplierPerRound() throws Exception {
 		// 逐轮延迟钉板：供应商每次续约时求值（Token每日锚点重对齐的机制基础）。
-		// 序列300,50,50,...：若首值被缓存则恒300ms节奏，逐轮求值则第3轮起50ms节奏。
+		// 假红钉因（test30-3 round1/7/27/29=401实证）：墙钟elapsed<=400判别"缓存首值(900ms)vs
+		// 逐轮(150ms)"，但满载fire/worker滞后±数百ms使正确形态也能到400+，判别带被噪声糊掉。
+		// 修法=判别改用供应商求值计数（零墙钟依赖）：缓存缺陷下供应商只被求值1次，逐轮求值则
+		// 每次续约+1。墙钟断言降级为宽松兜底（只防挂死，不参与判别）。
 		var runs = new AtomicInteger();
+		var evalCount = new AtomicInteger();
 		var firstDelay = new AtomicBoolean(true);
 		var daemon = new DaemonTimer("UnitTest.DaemonTimer.nextDelay",
-				() -> firstDelay.getAndSet(false) ? 300 : 50, 0, runs::incrementAndGet);
+				() -> {
+					evalCount.incrementAndGet();
+					return firstDelay.getAndSet(false) ? 300 : 50;
+				}, 0, runs::incrementAndGet);
 		try {
 			daemon.start();
-			Assertions.assertTrue(waitUntil(() -> runs.get() >= 2, 5_000), "首轮300ms后必须在5s内到达2轮");
-			var begin = System.currentTimeMillis();
-			Assertions.assertTrue(waitUntil(() -> runs.get() >= 5, 3_000), "后续轮必须在3s内到达");
-			var elapsed = System.currentTimeMillis() - begin;
-			// 缓存首值则3×300=900ms；逐轮求值最坏=已排期pending(50)+2×50=150ms
-			Assertions.assertTrue(elapsed <= 400, "供应商延迟必须逐轮求值生效，实际ms=" + elapsed);
+			Assertions.assertTrue(waitUntil(() -> runs.get() >= 5, 10_000), "必须在10s内到达5轮");
+			// runs=5意味着已发生4次收尾续约，每次续约都须求值供应商；缓存缺陷形态恒为1
+			Assertions.assertTrue(evalCount.get() >= 5,
+					"供应商延迟必须逐轮求值生效，runs=" + runs.get() + "实际求值次数=" + evalCount.get());
 		} finally {
 			daemon.stop();
 		}
