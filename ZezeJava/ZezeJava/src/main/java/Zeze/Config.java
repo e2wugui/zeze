@@ -617,8 +617,14 @@ public final class Config {
 		name = self.getAttribute("name").trim();
 
 		String attr = self.getAttribute("CheckpointPeriod");
-		if (!attr.isBlank())
+		if (!attr.isBlank()) {
 			checkpointPeriod = Integer.parseInt(attr);
+			// 【FND11 core-01】下界校验：0/负数使检查点线程cond.await(非正时长)立即返回，
+			// 主循环无sleep紧密忙转（单核100%、Table模式flush退化为不间断且无任何配置告警）。
+			// 与serverId>0x3FFF同款fail-fast。
+			if (checkpointPeriod <= 0)
+				throw new IllegalStateException("CheckpointPeriod must > 0: " + attr);
+		}
 
 		attr = self.getAttribute("CheckpointTransactionPeriod");
 		if (!attr.isBlank())
