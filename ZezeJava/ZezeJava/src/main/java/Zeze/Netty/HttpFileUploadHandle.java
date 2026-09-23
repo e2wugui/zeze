@@ -75,7 +75,11 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 			if (fileName == null)
 				fileName = getDefaultFileName();
 			var oldFileUpload = x.channel().attr(fileUploadKey).getAndSet(new MixedFileUpload(fileNameKey, fileName,
-					"application/octet-stream", "binary", StandardCharsets.UTF_8, Math.max(size, 0), MemoryBufSize));
+					"application/octet-stream", "binary", StandardCharsets.UTF_8,
+					// 【FND11 net-02】size=-1是"未声明长度"（chunked上传合法形态），钳成0会被Netty
+					// checkSize(maxSize>=0 && newSize>maxSize)当成"上限为零"——任何数据必413且
+					// 错误信息误导。未声明长度按不限处理（对流模式的总量上限口径一致）。
+					size >= 0 ? size : Long.MAX_VALUE, MemoryBufSize));
 			releaseFileUpload(oldFileUpload); // 以防万一：attr残留旧上传缓冲时释放
 		}
 	}
