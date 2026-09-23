@@ -65,6 +65,14 @@ public final class Raft {
 		final long term;
 		final String leaderId;
 		long lastActiveTime; // 最近一次收到该安装数据块的时间（毫秒）
+		// 【raft-02】done 块处理后置位：句柄已关，条目转为"收尾占位"。finalizing 期间
+		// 任意新块（含 leader 超时重装的首块）只能应答 ResultCodeFinalizingConflict——
+		// offset==0 的 setLength(0) 会截断正被 endReceiveInstallSnapshot 提交的文件。
+		// 条目由 endReceiveInstallSnapshot 的 finally 同一性摘除（成功与放弃路径都是）。
+		boolean finalizing;
+		// 已落盘的接收长度（与文件实际长度同步维护）；done 后即为应收总长度，
+		// endReceiveInstallSnapshot 提交前据此校验文件未被截断。
+		long receivedLength;
 
 		ReceiveSnapshotEntry(RandomAccessFile file, long term, String leaderId, long lastActiveTime) {
 			this.file = file;
@@ -298,6 +306,30 @@ public final class Raft {
 		}
 	}
 
+	// 【raft-02】收尾侧读取登记条目：endReceiveInstallSnapshot 持 raft 锁调用，
+	// raft→receiveSnapshotting 嵌套顺序与 snapshot()/gc 的既有方向一致。
+	ReceiveSnapshotEntry getReceiveSnapshottingEntry(long lastIncludedIndex) {
+		receiveSnapshottingLock.lock();
+		try {
+			return receiveSnapshotting.get(lastIncludedIndex);
+		} finally {
+			receiveSnapshottingLock.unlock();
+		}
+	}
+
+	// 【raft-02】收尾完成后同一性摘除条目（两参 remove）：不做同一性校验会误摘同 key
+	// 接任的新条目（本条目被 gc 归属清理丢弃后，新安装立即重建同 key 的窗口）。不删
+	// 文件：成功路径文件已被 Files.move 消费，放弃路径的文件清理在各返回点。shutdown
+	// 的 cancelAllReceiveSnapshotting 也会清表，此处 no-op，无碍。
+	void removeReceiveSnapshottingEntry(long lastIncludedIndex, ReceiveSnapshotEntry entry) {
+		receiveSnapshottingLock.lock();
+		try {
+			receiveSnapshotting.remove(lastIncludedIndex, entry);
+		} finally {
+			receiveSnapshottingLock.unlock();
+		}
+	}
+
 	private void cancelAllReceiveSnapshotting() {
 		receiveSnapshottingLock.lock(); // cancel 不中断
 		try {
@@ -445,7 +477,7 @@ public final class Raft {
 		}
 	}
 
-	private long processInstallSnapshot(InstallSnapshot r) throws Exception {
+	long processInstallSnapshot(InstallSnapshot r) throws Exception { // package-private：测试直调合成rpc
 		lock();
 		try {
 			r.Result.setTerm(logSequence.getTerm());
@@ -515,6 +547,16 @@ public final class Raft {
 						"ProcessInstallSnapshot");
 				entry = null;
 			}
+			if (entry != null && entry.finalizing) {
+				// 【raft-02】同边界的上一个安装正在收尾（done 已处理、条目未摘除）：
+				// offset==0 的 setLength(0) 会截断正被 endReceiveInstallSnapshot 提交的文件
+				// （提交半截快照→loadSnapshot 失败 fatalKill；Windows 上重装句柄还会让
+				// Files.move 失败，留下运行期日志空洞）；句柄已关也不能续写。应答冲突码，
+				// leader 中断本次安装（processResult 对非 Success 码即 endInstallSnapshot），
+				// 下个心跳重试；收尾完成后按 ExistLog/正常路径自然恢复。
+				r.SendResultCode(InstallSnapshot.ResultCodeFinalizingConflict);
+				return Procedure.Success;
+			}
 			if (entry == null) {
 				if (r.Argument.getOffset() != 0) {
 					// 肯定是旧的被丢弃的安装，Discard And Ignore。
@@ -564,11 +606,19 @@ public final class Raft {
 				}
 				r.Result.setOffset(outputFileStream.length());
 			}
+			entry.receivedLength = outputFileStream.length(); // 【raft-02】与文件实际长度同步维护；done 后即为应收总长度（endReceive 提交前校验基准）
 
 			// 4. Reply and wait for more data chunks if done is false
 			if (r.Argument.getDone()) {
 				// 5. Save snapshot file, discard any existing or partial snapshot with a smaller index
-				receiveSnapshotting.remove(r.Argument.getLastIncludedIndex());
+				// 【raft-02】不再移除条目，改为置 finalizing：所有权从"传输完成"延长到
+				// "收尾完成"。若在此摘除，endReceiveInstallSnapshot 在 raft 锁外 await
+				// removeLogBeforeFuture（日志删除量大时可达秒级）期间，leader 对 done 块的
+				// AppendEntriesTimeout（默认2s）超时重装首块会走"无条目→全新安装"分支
+				// setLength(0) 截断完整快照，被截断的半截文件随后被提交（两把互不相交的
+				// 锁覆盖同一文件的收尾空窗）。finalizing 条目由上面的 guard 挡截断，由
+				// endReceiveInstallSnapshot 的 finally 摘除（含各放弃路径与异常）。
+				entry.finalizing = true;
 				try {
 					outputFileStream.close();
 				} catch (IOException e) {
@@ -591,6 +641,9 @@ public final class Raft {
 
 	/**
 	 * 清理更小 LastIncludedIndex 的中断安装条目及其 .installing 文件（FND2-R1-1）。
+	 * 【raft-02】finalizing 条目跳过：其 .installing 文件正被 endReceiveInstallSnapshot
+	 * 提交（Files.move 的源文件），删除会在 logs.drop() 之后中断收尾，留下运行期日志
+	 * 空洞；finalizing 条目由收尾的 finally 摘除。
 	 * 必须持有 receiveSnapshottingLock 调用。
 	 * 删除失败（Windows 上 close 异常后句柄未释放、杀毒/备份软件短暂锁文件、磁盘 IO
 	 * 错误）仅告警不中断清理：异常一旦传出清理循环，尚未处理到的更旧条目将永久残留
@@ -603,7 +656,7 @@ public final class Raft {
 												String dbHome, long lastIncludedIndex) {
 		for (var it = receiveSnapshotting.entrySet().iterator(); it.hasNext(); ) {
 			var e = it.next();
-			if (e.getKey() < lastIncludedIndex) {
+			if (e.getKey() < lastIncludedIndex && !e.getValue().finalizing) {
 				it.remove();
 				discardReceiveEntry(dbHome, e.getKey(), e.getValue(), "cleanupStaleReceiveSnapshotting");
 			}
@@ -656,15 +709,29 @@ public final class Raft {
 				var entry = e.getValue();
 				// leaderId 为 null/空（启动后尚未收到任何 term 消息、选举中）时无法判定
 				// leader 归属，靠 term + 空闲超时判定。
-				if (entry.term != term
-						|| (leaderId != null && !leaderId.isEmpty() && !entry.leaderId.equals(leaderId))
-						|| now - entry.lastActiveTime > receiveSnapshottingTimeout()) {
+				// 【raft-02】finalizing 条目对归属清理不豁免：归属失效（entry.term != 当前
+				// term）与在飞收尾的 term 复核放弃条件互为同一事实——收尾会在 raft 锁内
+				// 放弃且不碰文件，丢弃条目+文件是安全的；但豁免空闲超时：收尾（raft 锁外
+				// await + loadSnapshot）合法地可超过派生阈值，gc 此时任何动作都只能在
+				// "摘条目→重装首块截断正在提交的文件"与"删文件→打断 Files.move"之间二选一。
+				// 条目由 endReceiveInstallSnapshot 的 finally 摘除（其所有出口都经过），
+				// 同 term 卡死仅当 removeLogBeforeFuture.await 永不返回——那是更大的故障。
+				// 旧 leader 的 finalizing 残留由归属清理兜底，仅告警观测慢收尾。
+				var staleOwner = entry.term != term
+						|| (leaderId != null && !leaderId.isEmpty() && !entry.leaderId.equals(leaderId));
+				var idle = now - entry.lastActiveTime > receiveSnapshottingTimeout();
+				if (staleOwner || (idle && !entry.finalizing)) {
 					it.remove();
 					discardReceiveEntry(raftConfig.getDbHome(), e.getKey(), entry, "gcReceiveSnapshotting");
 					logger.warn("{} gcReceiveSnapshotting: removed stale receive entry. LastIncludedIndex={}"
 									+ " entryTerm={} entryLeader={} idle={}ms currentTerm={} currentLeader={}",
 							getName(), e.getKey(), entry.term, entry.leaderId,
 							now - entry.lastActiveTime, term, leaderId);
+				} else if (idle) { // finalizing 豁免：仅告警，等待收尾自己的 finally
+					logger.warn("{} gcReceiveSnapshotting: finalizing entry still in finalize"
+									+ " (endReceiveInstallSnapshot in flight?), keep it. LastIncludedIndex={}"
+									+ " finalizeElapsed={}ms",
+							getName(), e.getKey(), now - entry.lastActiveTime);
 				}
 			}
 		} finally {

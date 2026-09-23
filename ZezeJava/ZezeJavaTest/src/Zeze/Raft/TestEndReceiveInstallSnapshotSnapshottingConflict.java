@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -77,9 +78,17 @@ public class TestEndReceiveInstallSnapshotSnapshottingConflict {
 			r.Argument.setDone(true);
 			r.Argument.setLastIncludedLog(new Binary(new RaftLog(0, 5, new HeartbeatLog()).encode()));
 
-			// done 分支已移除 receiveSnapshotting 条目并关闭文件之后留下的孤儿 .installing 文件。
+			// done 分支处理后留下的状态（raft-02 起）：.installing 文件已写完、句柄已关，
+			// finalizing 条目保留在登记表中等待 endReceiveInstallSnapshot 收尾。
 			var installingPath = Paths.get(dbHome, LogSequence.snapshotFileName + ".installing.5");
 			Files.write(installingPath, new byte[]{1, 2, 3});
+			var raf = new RandomAccessFile(installingPath.toFile(), "rw");
+			raf.close(); // 生产流程 done 分支已关句柄；finalizing 条目的句柄是关闭态
+			var entry = new Raft.ReceiveSnapshotEntry(raf,
+					r.Argument.getTerm(), r.Argument.getLeaderId(), System.currentTimeMillis());
+			entry.receivedLength = 3;
+			entry.finalizing = true;
+			raft.receiveSnapshotting.put(5L, entry);
 
 			// 等价于"本地快照正处于锁外重阶段"：snapshotting 的检查/设置都在 raft 锁内，
 			// 与 endReceiveInstallSnapshot 的重置全程串行。
@@ -98,6 +107,8 @@ public class TestEndReceiveInstallSnapshotSnapshottingConflict {
 			assertEquals(0L, logSequence.getCommitIndex());
 			assertTrue(logSequence.logsAvailable, "logsAvailable must be restored in finally");
 			assertFalse(Files.exists(installingPath), "orphan .installing file must be cleaned best-effort");
+			assertTrue(raft.receiveSnapshotting.isEmpty(),
+					"finalizing entry must be removed by endReceive's finally even on abort path");
 		}
 	}
 }

@@ -1357,8 +1357,13 @@ public class LogSequence {
 		if (removeLogBeforeFuture != null)
 			removeLogBeforeFuture.await();
 		raft.lock();
+		Raft.ReceiveSnapshotEntry receiveEntry = null;
 		try {
 			try {
+				// 【raft-02】finalizing 条目在收尾全程占位（processInstallSnapshot 的
+				// guard 据此挡住重装首块的 setLength(0) 截断）。term 复核前就读取：
+				// 任何出口——成功、各放弃分支、异常——都在外层 finally 同一性摘除。
+				receiveEntry = raft.getReceiveSnapshottingEntry(r.Argument.getLastIncludedIndex());
 				// 【FND-R1-4】上面的removeLogBeforeFuture.await()与本处raft.lock()都可能长时间等待，
 				// 期间term/leader/state可任意变化（新leader当选/本节点发起选举；term的写点全在Raft锁内）。
 				// 拿到锁后term在本轮重置完成前不会再变：与进入时（processInstallSnapshot锁内
@@ -1386,14 +1391,42 @@ public class LogSequence {
 					logger.warn("{} InstallSnapshot LastIncludedIndex={} conflicts with local snapshotting;"
 									+ " discard received snapshot and reply SnapshottingConflict.",
 							raft.getName(), r.Argument.getLastIncludedIndex());
-					// receiveSnapshotting 条目已在 done 分支移除，这里尽力清理孤儿 .installing
-					// 文件（文件句柄已在 done 分支关闭）；失败仅告警，残留由启动清理兜底。
+					// 【raft-02】条目由外层 finally 同一性摘除，这里只清理 .installing 文件
+					// （文件句柄已在 done 分支关闭）；失败仅告警，残留由启动清理兜底。
 					try {
 						Files.deleteIfExists(path);
 					} catch (IOException e) {
 						logger.warn("endReceiveInstallSnapshot deleteIfExists Exception. path={}", path, e);
 					}
 					return InstallSnapshot.ResultCodeSnapshottingConflict;
+				}
+				// 【raft-02】提交前兜底：文件长度必须等于条目记录的应收总长度。finalizing
+				// guard 挡住重装截断后，此处拦截理论外的路径（guard 被绕过/磁盘异常）：
+				// 不一致的文件一旦提交，loadSnapshot 失败会 fatalKill 杀死健康节点（或
+				// Windows 上 move 失败留下运行期日志空洞）——显式丢弃并应答冲突码，
+				// leader 中断安装、下个心跳重装，自愈。条目缺失/非 finalizing 同样按
+				// 不可信处理（正常流程 done 分支已置位，缺失即不变量破坏）。
+				long fileSize;
+				try {
+					fileSize = Files.size(path);
+				} catch (IOException e) {
+					fileSize = -1;
+				}
+				if (receiveEntry == null || !receiveEntry.finalizing
+						|| fileSize != receiveEntry.receivedLength) {
+					logger.warn("{} InstallSnapshot finalize check failed: entryFound={} finalizing={}"
+									+ " fileSize={} receivedLength={} LastIncludedIndex={},"
+									+ " discard file and reply FinalizingConflict.",
+							raft.getName(), receiveEntry != null,
+							receiveEntry != null && receiveEntry.finalizing,
+							fileSize, receiveEntry == null ? -1 : receiveEntry.receivedLength,
+							r.Argument.getLastIncludedIndex());
+					try {
+						Files.deleteIfExists(path);
+					} catch (IOException e) {
+						logger.warn("endReceiveInstallSnapshot deleteIfExists Exception. path={}", path, e);
+					}
+					return InstallSnapshot.ResultCodeFinalizingConflict;
 				}
 				// 6. If existing log entry has same index and term as snapshot's
 				// last included entry, retain log entries following it and reply
@@ -1494,6 +1527,12 @@ public class LogSequence {
 				logsAvailable = true;
 			}
 		} finally {
+			// 【raft-02】finalizing 条目生命周期唯一收口：同一性摘除（不误摘 gc 丢弃后
+			// 重建的同 key 新条目）。持 raft 锁内执行，raft→receiveSnapshotting 与既有
+			// 嵌套顺序一致；此后新到的重装首块才能走"无条目→全新安装"路径，此时提交
+			// 已落地（或已放弃），截断不再有竞态对象。
+			if (receiveEntry != null)
+				raft.removeReceiveSnapshottingEntry(r.Argument.getLastIncludedIndex(), receiveEntry);
 			raft.unlock();
 		}
 	}

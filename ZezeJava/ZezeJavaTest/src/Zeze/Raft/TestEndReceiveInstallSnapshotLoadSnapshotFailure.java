@@ -2,6 +2,7 @@ package Zeze.Raft;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -94,6 +95,14 @@ public class TestEndReceiveInstallSnapshotLoadSnapshotFailure {
 			// loadSnapshot 已被覆写为直接抛异常。
 			var installingPath = Paths.get(dbHome, LogSequence.snapshotFileName + ".installing.5");
 			Files.write(installingPath, new byte[]{1, 2, 3});
+			// raft-02 起 done 分支保留 finalizing 条目（应收长度=文件长度），收尾侧据此校验。
+			var raf = new RandomAccessFile(installingPath.toFile(), "rw");
+			raf.close(); // 生产流程 done 分支已关句柄（move 前句柄必须是关闭态）
+			var entry = new Raft.ReceiveSnapshotEntry(raf, r.Argument.getTerm(),
+					r.Argument.getLeaderId(), System.currentTimeMillis());
+			entry.receivedLength = 3;
+			entry.finalizing = true;
+			raft.receiveSnapshotting.put(5L, entry);
 
 			var ex = assertThrows(IOException.class,
 					() -> logSequence.endReceiveInstallSnapshot(installingPath, r),
