@@ -981,10 +981,11 @@ public final class JsonReader {
 			v = jr.buf[++jr.pos] == 't';
 			jr.skipQuot(b);
 		} else {
-			// 无引号分支pos已在词首（skipNext返回时定位）：从词首判定真值并消费整个词
-			//（停止条件与parseStringNoQuot一致：空白或':'）。
+			// 无引号分支pos已在词首（skipNext返回时定位）：从词首判定真值并消费整个词，
+			// pos推进到分隔符上（家族约定：parseInt/parseStringNoQuot均停在':'/空白上，
+			// 随后skipColon→next()从buf[pos]起读）。词尾按parseInt同款长度防护。
 			v = jr.buf[jr.pos] == 't';
-			for (int c; (c = jr.buf[jr.pos + 1] & 0xff) > ' ' && c != ':'; jr.pos++) {
+			for (int c; jr.pos < jr.buf.length && (c = jr.buf[jr.pos] & 0xff) > ' ' && c != ':'; jr.pos++) {
 				//noinspection StatementWithEmptyBody
 				;
 			}
