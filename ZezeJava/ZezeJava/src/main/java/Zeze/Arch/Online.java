@@ -7,10 +7,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -63,6 +61,7 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
 import Zeze.Util.OutObject;
+import Zeze.Util.DaemonTimer;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.TransactionLevelAnnotation;
 import Zeze.Util.ZezeCounter;
@@ -165,9 +164,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
-	private final ReentrantLock timerLock = new ReentrantLock(); // 保护verifyLocalTimer与stopped
-	private @Nullable Future<?> verifyLocalTimer; // timerLock保护
-	private boolean stopped; // timerLock保护；stop置位后verifyLocal的finally不再重调度
 
 	public static @NotNull Online create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Online.class, app);
@@ -188,7 +184,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
-	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
+	private static final long LOCAL_CHECK_PERIOD = 600 * 1000; // 检查间隔
+	// 周期守护：verifyLocal(walk+批事务)进worker池不占调度线程；stop有界等待在飞一轮，
+	// 链复活口由组件关门封死。周期经setLocalCheckPeriod调整，下一次续约生效（对齐旧自续链）
+	private final DaemonTimer verifyLocalDaemon = new DaemonTimer("Arch.Online.verifyLocal", LOCAL_CHECK_PERIOD, this::verifyLocal);
 	// P3配置不变式告警一次性开关：OnlineLogoutDelay >= localActiveTimeout 时verifyLocal可能在
 	// 重连宽限窗口内提前登出（见start处的校验），重复start不重复告警。
 	private final AtomicBoolean logoutDelayConfigWarned = new AtomicBoolean();
@@ -214,13 +213,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (logoutDelay >= localActiveTimeout && logoutDelayConfigWarned.compareAndSet(false, true))
 			logger.warn("OnlineLogoutDelay({}ms) >= localActiveTimeout({}ms): "
 					+ "verifyLocal可能在重连宽限窗口内提前登出，请调整两者配比。", logoutDelay, localActiveTimeout);
-		timerLock.lock();
-		try {
-			stopped = false; // 支持同实例stop后重新start
-		} finally {
-			timerLock.unlock();
-		}
-		startLocalCheck();
+		verifyLocalDaemon.start(); // 幂等：stop后重新start即重启周期检查
 		providerApp.builtinModules.put(this.getFullName(), this);
 		var hotManager = providerApp.zeze.getHotManager();
 		if (null != hotManager)
@@ -241,23 +234,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		try {
 			if (period <= 1)
 				throw new IllegalArgumentException();
-			localCheckPeriod = period;
+			verifyLocalDaemon.setPeriodMs(period); // 下一次续约生效
 		} finally {
 			unlock();
-		}
-	}
-
-	private void startLocalCheck() {
-		timerLock.lock();
-		try {
-			if (stopped) // 停机后不再重调度，封住定时任务复活口
-				return;
-			var timer = verifyLocalTimer;
-			if (timer != null)
-				timer.cancel(false);
-			verifyLocalTimer = TaskSpec.ofAction(this::verifyLocal).scheduleNow(localCheckPeriod);
-		} finally {
-			timerLock.unlock();
 		}
 	}
 
@@ -265,15 +244,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var hotManager = providerApp.zeze.getHotManager();
 		if (null != hotManager)
 			hotManager.removeHotUpgrade(this);
-		timerLock.lock();
-		try {
-			stopped = true;
-			var timer = verifyLocalTimer;
-			if (timer != null)
-				timer.cancel(false);
-		} finally {
-			timerLock.unlock();
-		}
+		verifyLocalDaemon.stop(); // 锁外有界等待在飞一轮（预算=timeoutMs+5s）
 	}
 
 	@Override
@@ -1732,18 +1703,14 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private void verifyLocal() throws Exception {
-		try {
-			var batch = new VerifyBatch();
-			// 锁外执行事务
-			_tlocal.walkMemory((k, v) -> {
-				batch.add(k);
-				batch.tryPerform();
-				return true;
-			});
-			batch.perform();
-		} finally {
-			startLocalCheck();
-		}
+		var batch = new VerifyBatch();
+		// 锁外执行事务
+		_tlocal.walkMemory((k, v) -> {
+			batch.add(k);
+			batch.tryPerform();
+			return true;
+		});
+		batch.perform();
 	}
 
 	private long tryRemoveLocal(@NotNull String account) throws Exception {

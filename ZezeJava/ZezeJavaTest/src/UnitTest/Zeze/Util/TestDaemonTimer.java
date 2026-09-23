@@ -4,8 +4,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -24,7 +27,9 @@ import harness.Fast;
  * ZezeScheduledPool即红；且多轮执行永不重叠（自续约链的结构性质）；</li>
  * <li>stop()必须限时等待在飞一轮：守护体被阻塞期间stop不得完成（缺等待形态立即完成，红），
  * 放行后stop正常返回；</li>
- * <li>关门：stop返回后不再触发新一轮（计数冻结）；restart：stop后start恢复周期执行。</li>
+ * <li>关门：stop返回后不再触发新一轮（计数冻结）；restart：stop后start恢复周期执行；</li>
+ * <li>stop超预算逃逸（timeoutMs小值使预算可等满）：逃逸轮不占链（stop返回后在飞标志已摘）、
+ * 收尾不续约新轮，restart后新链正常。</li>
  * </ol>
  */
 @Fast
@@ -130,5 +135,83 @@ public class TestDaemonTimer {
 			bodyGate.countDown();
 			stopper.shutdownNow();
 		}
+	}
+
+	@Test
+	@Timeout(30)
+	public void testStopFromBodySkipsWaiting() throws Exception {
+		// body内自调stop：等自己必等满~125s预算（@Timeout兜底即红），组件须识别并跳过等待
+		var ref = new AtomicReference<DaemonTimer>();
+		var stopElapsedMs = new AtomicLong(-1); // -1=未触发；跳过等待后耗时<1ms可能舍入为0，不能用>0判触发
+		var daemon = new DaemonTimer("UnitTest.DaemonTimer.selfStop", 80, () -> {
+			var begin = System.nanoTime();
+			ref.get().stop();
+			stopElapsedMs.set((System.nanoTime() - begin) / 1_000_000);
+		});
+		ref.set(daemon);
+		daemon.start();
+		Assertions.assertTrue(waitUntil(() -> stopElapsedMs.get() >= 0, 5_000), "首轮必须在5s内触发自stop");
+		Assertions.assertTrue(stopElapsedMs.get() < 10_000,
+				"body内自调stop不得等满预算，实际ms=" + stopElapsedMs.get());
+		Assertions.assertTrue(daemon.isShutdown(), "自stop后必须处于关门状态");
+		Assertions.assertFalse(daemon.isBusy(), "自stop返回后不得显示在飞");
+	}
+
+	@Test
+	@Timeout(30)
+	public void testSetPeriodMsEffectiveOnNextRound() throws Exception {
+		// 周期调整钉板：setPeriodMs后下一次续约生效（已排期pending不重排）
+		var runs = new AtomicInteger();
+		var daemon = new DaemonTimer("UnitTest.DaemonTimer.setPeriod", 300, runs::incrementAndGet);
+		try {
+			daemon.start();
+			Assertions.assertTrue(waitUntil(() -> runs.get() >= 2, 5_000), "300ms周期必须在5s内到达2轮");
+			daemon.setPeriodMs(50);
+			var begin = System.currentTimeMillis();
+			Assertions.assertTrue(waitUntil(() -> runs.get() >= 5, 3_000), "调小周期后必须到达5轮");
+			var elapsed = System.currentTimeMillis() - begin;
+			// 旧周期继续生效需3×300=900ms；新周期下最坏=已排期pending(300ms)+2×50=400ms
+			Assertions.assertTrue(elapsed <= 700, "周期调整必须于下一次续约生效，实际ms=" + elapsed);
+		} finally {
+			daemon.stop();
+		}
+	}
+
+	@Test
+	@Timeout(30)
+	public void testStopEscapedRoundDoesNotOccupyChain() throws Exception {
+		// 逃逸路径钉板：timeoutMs=300使预算(300+5000=5300ms)可等满。逃逸轮用不可中断等待
+		// （parkNanos循环）——tiny timeout下若被看门狗interrupt，latch/sleep会被打断造成假红
+		var escaped = new AtomicBoolean(false); // 首轮即逃逸轮
+		var release = new AtomicBoolean(false);
+		var escapeDone = new AtomicBoolean(false);
+		var laterRounds = new AtomicInteger();
+		var daemon = new DaemonTimer("UnitTest.DaemonTimer.escape", 80, 300, () -> {
+			if (!escaped.compareAndSet(false, true)) {
+				laterRounds.incrementAndGet();
+				return;
+			}
+			while (!release.get())
+				LockSupport.parkNanos(50_000_000);
+			escapeDone.set(true);
+		});
+		daemon.start();
+		Assertions.assertTrue(waitUntil(daemon::isBusy, 5_000), "逃逸轮必须已进入在飞");
+
+		var begin = System.currentTimeMillis();
+		daemon.stop(); // 预算5300ms < 逃逸轮等待时长：超时告警返回
+		var stopElapsed = System.currentTimeMillis() - begin;
+		Assertions.assertTrue(stopElapsed >= 5_000, "stop必须等满预算才返回，实际ms=" + stopElapsed);
+		Assertions.assertFalse(escapeDone.get(), "预算耗尽时逃逸轮必须仍在跑（stop先行返回）");
+		Assertions.assertTrue(daemon.isShutdown(), "stop后关门");
+		Assertions.assertFalse(daemon.isBusy(), "stop已摘走在飞标志（逃逸轮不占链）");
+
+		release.set(true); // 放行逃逸轮
+		Assertions.assertTrue(waitUntil(escapeDone::get, 5_000), "放行后逃逸轮必须跑完");
+		Assertions.assertEquals(0, laterRounds.get(), "逃逸轮收尾不得续约新轮（已关门）");
+
+		daemon.start(); // restart钉板：逃逸轮曾占用worker线程，新链不得被它拖累
+		Assertions.assertTrue(waitUntil(() -> laterRounds.get() >= 1, 5_000), "restart后新轮必须正常触发");
+		daemon.stop();
 	}
 }

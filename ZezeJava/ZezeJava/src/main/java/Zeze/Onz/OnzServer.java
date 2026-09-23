@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Builtin.Onz.BSavedCommits;
@@ -29,7 +28,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.TaskCompletionSource;
-import Zeze.Util.TaskSpec;
+import Zeze.Util.DaemonTimer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -57,7 +56,8 @@ public class OnzServer extends AbstractOnz {
 	private final RocksDatabase.Table commitPoint;
 	private final RocksDatabase.Table commitIndex;
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
-	private Future<?> redoTimer;
+	// 周期守护：redoTimer(迭代+RPC等待)进worker池不占调度线程；stop有界等待在飞一轮
+	private final DaemonTimer redoDaemon = new DaemonTimer("OnzServer.redoTimer", 60_000, this::redoTimer);
 	private final AbstractAgent myServiceManager;
 	private final AutoKey onzTidAutoKey;
 
@@ -65,7 +65,7 @@ public class OnzServer extends AbstractOnz {
 	private volatile boolean stopped;
 	// getZezeInstance的"选择→创建→登记"按名原子化（FND3-53）。
 	private final ConcurrentHashMap<String, ReentrantLock> nameLocks = new ConcurrentHashMap<>();
-	// redo轮次与database.close()互斥：cancel(false)不等在途轮次，直接关库会与
+	// redo轮次与database.close()互斥：stop()超预算逃逸的轮次仍可能在库上，直接关库会与
 	// 遍历/写入commitPoint竞态。轮次内的网络等待只发生在有未决事务时（常态为空）。
 	private final ReentrantLock dbLock = new ReentrantLock();
 
@@ -170,7 +170,7 @@ public class OnzServer extends AbstractOnz {
 				logger.error("first try.", ex);
 			}
 			// 1 minute?
-			redoTimer = TaskSpec.ofAction(this::redoTimer).schedulePeriodNow(60000, 60000);
+			redoDaemon.start();
 		} catch (Throwable ex) {
 			// start的全有或全无（FND4-89）：半途失败按停机路径回收已启动资源。
 			// stop幂等且best-effort；此后对象为终态（stopped），与构造失败不逃逸同口径。
@@ -378,11 +378,10 @@ public class OnzServer extends AbstractOnz {
 			return; // 幂等
 		stopped = true;
 
-		if (null != redoTimer)
-			redoTimer.cancel(false);
+		redoDaemon.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s）
 
-		// redo轮次在dbLock内遍历/写入库；cancel(false)不等正在执行的轮次，
-		// 持有dbLock直到关库完成，与在途/迟到的轮次互斥（迟到轮次在锁内检查stopped返回）。
+		// redo轮次在dbLock内遍历/写入库；持有dbLock直到关库完成，
+		// 与超预算逃逸/迟到的轮次互斥（迟到轮次在锁内检查stopped返回）。
 		dbLock.lock();
 		try {
 			// 停缓存connector并清表：它们挂在onzAgent的服务上，必须在其停止前显式停掉

@@ -25,6 +25,7 @@ import Zeze.Util.Action0;
 import Zeze.Util.FuncLong;
 import Zeze.Util.Random;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.DaemonTimer;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
@@ -49,8 +50,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
 	private final @NotNull Rocks rocks;
-	// 会话清理对账周期任务（FND4-57兜底层），close时取消。
-	private final Future<?> reconcileFuture;
+	// 会话清理对账周期守护（FND4-57兜底层）：body进worker池不占调度线程，close时有界等待在飞一轮。
+	private final DaemonTimer reconcileDaemon = new DaemonTimer("ServiceManagerWithRaft.reconcileSessions", 60_000, this::reconcileSessions);
 	// close标记：置位后，SM锁串行的raft侧任务体（dispatchRaftRequest/RpcResponse、closeSession、
 	// reconcileSessions）在锁内首查即退出，不再触碰rocks。与close()的锁屏障配合，见close()。
 	private volatile boolean closed;
@@ -90,13 +91,12 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
 
 		// 会话清理对账（FND4-57兜底层）：60s粒度足够，快速路径由closeSession的退避重试承担。
-		reconcileFuture = TaskSpec.ofAction(this::reconcileSessions).schedulePeriodNow(60_000, 60_000);
+		reconcileDaemon.start();
 	}
 
 	@Override
 	public void close() {
-		if (reconcileFuture != null)
-			reconcileFuture.cancel(false);
+		reconcileDaemon.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s）；超预算逃逸轮由closed+锁屏障挡
 		closed = true;
 		// SM锁是raft侧所有存储过程体的串行点且全程持有：先置closed再过一次锁屏障——拿到锁时
 		// 已无过程体在执行，此后排定的任务体在锁内见closed直接退出。否则rocks.close()释放的
@@ -117,11 +117,13 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	// cleanupSessionRow的归属校验兜底，不会误清。对账事务失败仅记error，下轮周期自带重试。
 	private void reconcileSessions() throws Exception {
 		var raft = rocks.getRaft();
-		if (!raft.isWorkingLeader())
-			return;
 		lock();
 		try {
+			// closed与isWorkingLeader同在锁内：closed先于close()锁屏障置位，屏障后获取锁的
+			// 轮次见closed即退出——isWorkingLeader在锁外先摸rocks会撞"过墓碑后关库"的竞态窗口。
 			if (closed)
+				return;
+			if (!raft.isWorkingLeader())
 				return;
 			var server = raft.getServer();
 			record DeadSession(String name, long sessionId) {

@@ -3,12 +3,12 @@ package Zeze.MQ;
 import java.io.File;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import Zeze.Builtin.MQ.Master.CreatePartition;
 import Zeze.Config;
 import Zeze.MQ.Master.MasterAgent;
 import Zeze.Net.AsyncSocket;
 import Zeze.Raft.ProxyServer;
+import Zeze.Util.DaemonTimer;
 import Zeze.Util.KV;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
@@ -28,7 +28,8 @@ public class MQManager extends AbstractMQManager {
     private final ProxyServer proxyServer;
     private final String home;
     private final MQConfig mqConfig = new MQConfig();
-    private Future<?> loadMonitorTimer;
+    // 周期守护：body(reportLoad阻塞RPC)进worker池，不占调度线程；stop有界等待在飞一轮
+    private final DaemonTimer loadMonitorTimer = new DaemonTimer("MQManager.loadMonitor", 120_000, this::loadMonitor);
     private final RocksDatabase rocksDatabase;
 
     public RocksDatabase getRocksDatabase() {
@@ -85,7 +86,7 @@ public class MQManager extends AbstractMQManager {
         masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), queueCount());
         proxyServer.start();
 
-        loadMonitorTimer = TaskSpec.ofAction(this::loadMonitor).schedulePeriodNow(120_000, 120_000);
+        loadMonitorTimer.start();
     }
 
     // Master重启丢失managers注册表后由连接建立钩子重发Register恢复；失败仅记日志，等下次重连再试。
@@ -100,8 +101,7 @@ public class MQManager extends AbstractMQManager {
     }
 
     public void stop() throws Exception {
-        if (null != loadMonitorTimer)
-            loadMonitorTimer.cancel(true);
+        loadMonitorTimer.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s），不再interrupt池线程
         ShutdownHook.remove(this);
         proxyServer.stop();
         masterAgent.stop();

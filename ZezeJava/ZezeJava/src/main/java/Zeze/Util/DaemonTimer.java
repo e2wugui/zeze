@@ -11,50 +11,46 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * 周期守护定时器：把"调度线程只派发、守护体进worker池、stop两段式（关门→cancel→限时等待
- * 在飞一轮）"的停机并发协议固化成组件，替代各服务手抄的 shutdown标志+running标志+awaitIdle
- * 三件套（该模式曾手抄于GCM同步/异步/Raft三版与LoginQueue，第N份拷贝过期即成缺陷）。
- * <p>
- * 机制：
- * <ul>
- * <li>自续约链：一轮守护体结束才续约下一轮（{@link TaskSpec#scheduleNow}单次排期），
- * 语义对齐scheduleWithFixedDelay——间隔自本轮结束起算；正常路径不可能重叠执行，仅
- * stop超预算逃逸的轮次例外（逃逸轮不占链，见rescheduleLocked与runBody对inFlight的
- * 归属检查——restart后逃逸轮与新一轮可能并发，与被替代的手抄版行为一致）；</li>
- * <li>fire（调度线程上）只做gate内判关门+置在飞标志+runNow派发，微秒级返回，守护体的阻塞
- * 不会占用调度线程（FND7-17）；</li>
- * <li>pending是普通JDK ScheduledFuture（scheduleCore不包TimerFuture锁）：cancel无锁序约束，
- * "cancel不得持业务锁"从调用纪律变成结构属性（无ABBA可能）；</li>
- * <li>stop()：gate内置关门标志并捕获pending/inFlight，锁外cancel pending、按预算
- * （{@link Task#defaultTimeout}+5s，对齐executeCore看门狗）限时等待在飞一轮；超预算告警返回，
- * 调用方对被守护资源的访问必须自身容错（如在已停止的Service上GetSocket返回null）。</li>
- * </ul>
- * 【调用约束】stop()不得持有body执行期间可能获取的任何锁——限时等待与在飞body互等即死锁。
- * start()/stop()幂等，支持stop后restart。
+ * 周期守护定时器：
+ * 调度线程只派发、守护体进worker池、
+ * stop三段式（关门→cancel→限时等待在飞一轮）；stop后已派发未启动的迟到轮在runBody入口作废。
+ * 每轮看门狗超时timeoutMs可配（&lt;=0取{@link Task#defaultTimeout}），
+ * stop等待预算=timeoutMs+5s（对齐每轮executeCore看门狗）
  */
 public final class DaemonTimer {
-	@FunctionalInterface
-	public interface Body {
-		void run() throws Exception;
-	}
 
 	private static final @NotNull Logger logger = LogManager.getLogger(DaemonTimer.class);
 
 	private final @NotNull String name;
-	private final long periodMs;
-	private final @NotNull Body body;
-	// gate守护shutdown/pending/inFlight的全部读写；gate内不做任何等待与阻塞调用。
+	// volatile：setPeriodMs运行期调整，下一次续约（rescheduleLocked）读取生效，已排期pending不重排
+	private volatile long periodMs;
+	// 每轮executeCore看门狗预算；stop等待预算=timeoutMs+5s。构造时快照，实例期内确定
+	private final long timeoutMs;
+	private final @NotNull Action0 body;
+	// gate守护shutdown/pending/inFlight；gate内不做任何等待与阻塞调用。
 	private final ReentrantLock gate = new ReentrantLock();
-	private boolean shutdown = true; // 未启动即关门
-	// 在飞一轮的完成信号：fire派发前置位，守护体结束时完成（无论成败）。stop据此限时等待。
+	// volatile：runBody入口锁外复查作废迟到轮（与inFlight的处置一致），转换仍全在gate内
+	private volatile boolean shutdown = true; // 未启动即关门
+	// 在飞一轮的完成信号：fire派发前置位，一轮收尾时完成（无论成败）。stop据此限时等待。
 	private volatile CompletableFuture<Void> inFlight;
 	private ScheduledFuture<?> pending; // 已排期未触发的下一次fire；fire触发时消费置null
+	// 在飞body的执行线程：fire清场、runBody入口置位、finishRound归属清除；stop据此识别body内自调。
+	private volatile Thread bodyThread;
 
-	public DaemonTimer(@NotNull String name, long periodMs, @NotNull Body body) {
+	public DaemonTimer(@NotNull String name, long periodMs, @NotNull Action0 body) {
+		this(name, periodMs, 0, body);
+	}
+
+	/**
+	 * @param timeoutMs 每轮看门狗超时(毫秒)，&lt;=0 时取 {@link Task#defaultTimeout}；
+	 *                  stop等待预算=timeoutMs+5s（构造时快照）
+	 */
+	public DaemonTimer(@NotNull String name, long periodMs, long timeoutMs, @NotNull Action0 body) {
 		if (periodMs <= 0)
 			throw new IllegalArgumentException("periodMs <= 0");
 		this.name = name;
 		this.periodMs = periodMs;
+		this.timeoutMs = timeoutMs > 0 ? timeoutMs : Task.defaultTimeout;
 		this.body = body;
 	}
 
@@ -71,13 +67,22 @@ public final class DaemonTimer {
 		}
 	}
 
+	/** 调整周期(毫秒)：下一次续约生效，已排期的pending不提前不延后（对齐旧自续链在续约时取值的语义）。 */
+	public void setPeriodMs(long periodMs) {
+		if (periodMs <= 0)
+			throw new IllegalArgumentException("periodMs <= 0");
+		this.periodMs = periodMs;
+	}
+
 	/**
 	 * 停止：关门（不再触发/续约）、cancel已排期的下一次、限时等待在飞一轮结束。幂等。
+	 * body线程内自调跳过等待（等自己必超时），仅关门+cancel。
 	 * 超预算或中断仅告警返回——残余的晚到一轮由调用方的资源容错兜住（墓碑化等）。
 	 */
 	public void stop() {
 		ScheduledFuture<?> p;
 		CompletableFuture<Void> f;
+		Thread t;
 		gate.lock();
 		try {
 			if (shutdown)
@@ -87,13 +92,19 @@ public final class DaemonTimer {
 			pending = null;
 			f = inFlight;
 			inFlight = null;
+			t = bodyThread;
 		} finally {
 			gate.unlock();
 		}
 		if (p != null)
 			p.cancel(false); // 普通ScheduledFuture：cancel不经TimerFuture锁，无ABBA
-		if (f != null)
-			awaitIdle(f);
+		if (f == null)
+			return;
+		if (t == Thread.currentThread()) { // body内自调stop：等自己必等满预算，跳过
+			logger.warn("DaemonTimer {} stop called from body thread, skip waiting", name);
+			return;
+		}
+		awaitIdle(f);
 	}
 
 	/** 诊断/测试：当前是否有在飞的一轮（含已派发未开始）。 */
@@ -121,57 +132,64 @@ public final class DaemonTimer {
 			pending = null; // 消费本次排期（链上恒至多一个pending）
 			f = new CompletableFuture<>();
 			inFlight = f;
+			bodyThread = null; // 新一轮占链，body线程待runBody入口置位
 		} finally {
 			gate.unlock();
 		}
 		try {
-			TaskSpec.ofAction(() -> runBody(f)).name(name).runNow();
-		} catch (Throwable e) { // 派发失败（worker池关闭等）：守护链不得断裂，直接续约下轮
-			gate.lock();
-			try {
-				if (inFlight == f)
-					inFlight = null;
-				rescheduleLocked();
-			} finally {
-				gate.unlock();
-			}
-			f.complete(null);
+			TaskSpec.ofAction(() -> runBody(f)).name(name).timeout(timeoutMs).runNow();
+		} catch (Throwable e) { // 派发失败（worker池关闭等）：守护链不得断裂，收尾并续约下轮
+			finishRound(f);
 			logger.error("DaemonTimer {} dispatch failed, rescheduled", name, e);
 		}
 	}
 
 	private void runBody(@NotNull CompletableFuture<Void> f) {
+		if (shutdown) { // stop在派发后、启动前关门（worker池排队滞后）：迟到轮作废，不空跑守护体
+			finishRound(f); // 仍完成在飞信号：正在限时等待的stop立即醒来
+			return;
+		}
+		bodyThread = Thread.currentThread();
 		try {
 			body.run();
-		} catch (Throwable e) { // 守护体异常不致命：记日志，链继续（executeCore还有一层兜底）
+		} catch (Throwable e) { // 守护体异常不致命：记日志，链继续
 			logger.error("DaemonTimer {} body exception", name, e);
 		} finally {
-			gate.lock();
-			try {
-				if (inFlight == f)
-					inFlight = null;
-				rescheduleLocked();
-			} finally {
-				gate.unlock();
-			}
-			f.complete(null); // 锁外完成：stop的等待线程醒来后不再触碰gate
+			finishRound(f);
 		}
 	}
 
-	// gate内。pending非null说明已有一条排期（如stop等待超预算逃逸后旧一轮才结束又逢restart），
+	// 一轮收尾：gate内清在飞归属+续约，锁外完成在飞信号（stop的等待线程醒来后不再触碰gate）。
+	// inFlight==f的归属检查挡掉stop超预算逃逸的晚到一轮——逃逸轮不占链，不得清新一轮的在飞标志。
+	private void finishRound(@NotNull CompletableFuture<Void> f) {
+		gate.lock();
+		try {
+			if (inFlight == f) {
+				inFlight = null;
+				bodyThread = null;
+			}
+			rescheduleLocked();
+		} finally {
+			gate.unlock();
+		}
+		f.complete(null);
+	}
+
+	// gate内。pending非null说明已有一条排期（如stop超预算逃逸的旧一轮结束又逢restart），
 	// 不再重复排期——保证任意时刻链上至多一个pending。
 	private void rescheduleLocked() {
 		if (shutdown || pending != null)
 			return;
 		try {
 			pending = TaskSpec.ofAction(this::fire).name(name).scheduleNow(periodMs);
-		} catch (Throwable e) { // 调度池已关（进程停机路径）：链断，记error
+		} catch (Throwable e) { // 调度池已关（非瞬时故障）：关门让状态诚实，链断记error
+			shutdown = true;
 			logger.error("DaemonTimer {} reschedule failed, daemon terminated", name, e);
 		}
 	}
 
 	private void awaitIdle(@NotNull CompletableFuture<Void> f) {
-		var budget = Math.max(1, Task.defaultTimeout + 5_000);
+		var budget = Math.max(1, timeoutMs + 5_000); // 对齐每轮看门狗，超时即逃逸轮
 		try {
 			f.get(budget, TimeUnit.MILLISECONDS);
 		} catch (TimeoutException e) {

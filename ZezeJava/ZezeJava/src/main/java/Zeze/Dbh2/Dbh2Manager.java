@@ -8,7 +8,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.Master.BDbh2Config;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
@@ -17,12 +16,12 @@ import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Raft.ProxyServer;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.DaemonTimer;
 import Zeze.Util.KV;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
-import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -47,7 +46,8 @@ public class Dbh2Manager {
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
 
-	private Future<?> loadMonitorTimer;
+	// 周期守护：body(reportLoad阻塞RPC/tryStartSplit)进worker池，不占调度线程；stop有界等待在飞一轮
+	private final DaemonTimer loadMonitorTimer = new DaemonTimer("Dbh2Manager.loadMonitor", 120_000, this::loadMonitor);
 	final AtomicLong atomicSerialNo = new AtomicLong();
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 
@@ -192,7 +192,7 @@ public class Dbh2Manager {
 		masterAgent.setDbh2Ready();
 		proxyServer.start();
 
-		loadMonitorTimer = TaskSpec.ofAction(this::loadMonitor).schedulePeriodNow(120_000, 120_000);
+		loadMonitorTimer.start();
 	}
 
 	private void loadMonitor() throws Exception {
@@ -230,8 +230,7 @@ public class Dbh2Manager {
 	}
 
 	public void stop() throws Exception {
-		if (null != loadMonitorTimer)
-			loadMonitorTimer.cancel(true);
+		loadMonitorTimer.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s），不再interrupt池线程
 		ShutdownHook.remove(this);
 		proxyServer.stop();
 		masterAgent.stop();
