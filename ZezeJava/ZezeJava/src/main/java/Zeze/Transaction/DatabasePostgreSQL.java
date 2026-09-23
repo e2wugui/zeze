@@ -32,6 +32,9 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
+	// 未覆写getKeyStringType()时string key列取默认"VARCHAR(256)"（DatabaseRelationalMapping）。
+	private static final int eMaxKeyStringLength = 256;
+
 	// SQLException.getMessage()无契约保证非null（驱动包装异常、本地化场景可为null），
 	// catch块内直接contains会NPE：本应幂等继续/死锁重试的路径变成启动失败且掩盖原始异常。
 	// 收口为null安全判定：null消息按不匹配处理，走默认抛出路径（FND4-05）。
@@ -861,6 +864,13 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var stValue = (SQLStatement)value;
+			// 【FND11 txn-02】超长 string key 不在写入期拒绝的话，flush 落库才触发 PG 22001
+			// "value too long for type character varying(256)"（不含表名），毒化整个 flush 批次且
+			// 难定位——照抄 MySQL 版前置检查判例（TableMysqlRelational.replace）。
+			for (var p : stKey.getParams())
+				if (p instanceof String s && s.length() > eMaxKeyStringLength)
+					throw new IllegalArgumentException("key string too long for postgresql relational table '" + name
+							+ "': " + s.length() + " > " + eMaxKeyStringLength);
 			var keyColumns = new ArrayList<String>();
 			var sbKeyValues = new StringBuilder();
 			parseSqlStatement(stKey, keyColumns, sbKeyValues);
