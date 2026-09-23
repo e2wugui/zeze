@@ -80,17 +80,23 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
 
     @Override
     protected long ProcessPutLoginToken(Zeze.Builtin.LoginQueue.PutLoginToken p) throws Exception {
+        // stop必须先行：服务端putLoginToken推完即closeGracefully，若回调先行——回调内可能
+        // 阻塞等待（如ClientGame在回调里Connector.WaitReady等linkd连上，可长达数百ms）——
+        // close触发的autoReconnect在窗口内重拨5020二次排队，可能再领到绑另一linkd的token
+        // 并重跑回调，客户端同时挂两个linkd连接（GetSocket任取其一）→auth被choiceProvider拒r:2。
+        // 先置停机屏障并停掉queue connector，在途/迟到的重拨要么被取消要么撞屏障自查自关。
+        stop();
         if (null != loginToken)
             loginToken.run(p.Argument);
-        stop();
         return 0;
     }
 
     @Override
     protected long ProcessPutQueueFull(Zeze.Builtin.LoginQueue.PutQueueFull p) throws Exception {
+        // 同ProcessPutLoginToken：stop先行，杜绝满员回调阻塞期间autoReconnect重拨二次排队
+        stop();
         if (null != queueFull)
             queueFull.run();
-        stop();
         return 0;
     }
 }
