@@ -89,7 +89,8 @@ public class ProviderUserSession {
 
 	// ---------------- respond 家族 ----------------
 	// 词汇表与 OnlineSpec 同构：无标记=事务感知（运行中的事务内延迟到 commit 发送，回滚不发；无事务立即发送）；
-	// Now=立即发送；WhileRollback=事务回滚时发送。除 fireAndForget 外均经 Online 失败记账（onSendError）触发下线流程。
+	// Now=立即发送；WhileRollback=事务回滚时发送。除 fireAndForget 外均经 Online 失败记账（onSendError）
+	// ——幂等标记eLinkBroken，登出由linkBroken的DelayLogout宽限timer或verifyLocal收敛，不立即下线。
 
 	/** 事务感知发送响应/推送：运行中的事务内延迟到 commit 发送（回滚不发），否则立即发送。 */
 	public void respond(@NotNull Protocol<?> p) {

@@ -96,4 +96,178 @@ public class TestGameLinkBrokenTriggerRc {
 			}
 		}
 	}
+
+	/**
+	 * onSendError幂等标记器契约（打穿宽限窗口修复）：onSendError只标记eLinkBroken，
+	 * 不触发logout/linkBroken事件、不登出——宽限期内推送失败（群发errorSids记账必中）
+	 * 不得打断DelayLogout重连窗口。旧语义assignLogoutVersion+logoutTrigger立即登出，
+	 * OnlineLogoutDelay形同虚设（修复前logoutCount=1且状态eOffline）。
+	 */
+	@Test
+	public void testOnSendErrorMarksGraceNotLogout() throws Exception {
+		var zeze = newApp("TestLinkBrokenRc2");
+		var online = newOnline(zeze);
+		zeze.start();
+		try {
+			var linkBrokenCount = new AtomicInteger();
+			var logoutCount = new AtomicInteger();
+			online.getLinkBrokenEvents().add(EventDispatcher.Mode.RunEmbed, (__s, __a) -> {
+				linkBrokenCount.incrementAndGet();
+				return 0;
+			});
+			online.getLogoutEvents().add(EventDispatcher.Mode.RunEmbed, (__s, __a) -> {
+				logoutCount.incrementAndGet();
+				return 0;
+			});
+
+			var roleId = 777_002L;
+			Assertions.assertEquals(0, zeze.newProcedure(() -> {
+				var shared = online.getOrAddOnlineShared(roleId);
+				shared.setAccount("acc");
+				shared.setLink(new BLink("link1", 42L, AbstractOnline.eLogined));
+				var local = online._tlocal.getOrAdd(roleId);
+				local.setLink(new BLink("link1", 42L, AbstractOnline.eLogined));
+				local.setLoginVersion(shared.getLoginVersion());
+				return 0;
+			}, "testSendErrorGrace.setup").call());
+
+			// linkBroken开宽限钟（DelayLogout默认60s，测试期内不会到点）。
+			Assertions.assertEquals(0,
+					zeze.newProcedure(() -> online.linkBroken("acc", roleId, "link1", 42L), "testSendErrorGrace.broken").call());
+			Assertions.assertEquals(1, linkBrokenCount.get(), "断链事件恰好一次");
+
+			// 宽限期内两次推送失败：幂等重标记，无登出、无重复事件。
+			Assertions.assertEquals(0,
+					zeze.newProcedure(() -> online.onSendError("acc", roleId, "link1", 42L), "testSendErrorGrace.se1").call());
+			Assertions.assertEquals(0,
+					zeze.newProcedure(() -> online.onSendError("acc", roleId, "link1", 42L), "testSendErrorGrace.se2").call());
+
+			var stateAfter = new int[1];
+			var existsAfter = new boolean[1];
+			Assertions.assertEquals(0, zeze.newProcedure(() -> {
+				var shared = online.getOnlineShared(roleId);
+				existsAfter[0] = shared != null;
+				stateAfter[0] = shared != null ? shared.getLink().getState() : AbstractOnline.eOffline;
+				return 0;
+			}, "testSendErrorGrace.verify").call());
+			Assertions.assertTrue(existsAfter[0], "宽限期内不得删除在线行");
+			Assertions.assertEquals(AbstractOnline.eLinkBroken, stateAfter[0], "sendError只标记eLinkBroken");
+			Assertions.assertEquals(0, logoutCount.get(), "sendError不得触发logout事件（打穿宽限即回归）");
+			Assertions.assertEquals(1, linkBrokenCount.get(), "sendError不得重复触发断链事件");
+		} finally {
+			try {
+				zeze.stop();
+			} catch (Exception ignored) {
+			}
+		}
+	}
+
+	/**
+	 * 迟到的sendError不得回退已登出状态机：eOffline下同sid错误报告必须跳过——
+	 * 旧语义无条件setLink(eLinkBroken)把eOffline回退成eLinkBroken，verifyLocal会对其
+	 * 重走tryLogout造成重复logout事件。
+	 */
+	@Test
+	public void testOnSendErrorAfterLogoutDoesNotRegress() throws Exception {
+		var zeze = newApp("TestLinkBrokenRc4");
+		var online = newOnline(zeze);
+		zeze.start();
+		try {
+			var logoutCount = new AtomicInteger();
+			online.getLogoutEvents().add(EventDispatcher.Mode.RunEmbed, (__s, __a) -> {
+				logoutCount.incrementAndGet();
+				return 0;
+			});
+
+			var roleId = 777_004L;
+			// 前置：直接构造已登出终态（logoutTrigger形态：eOffline且link名/sid保留）。
+			Assertions.assertEquals(0, zeze.newProcedure(() -> {
+				var shared = online.getOrAddOnlineShared(roleId);
+				shared.setAccount("acc");
+				shared.setLink(new BLink("link1", 42L, AbstractOnline.eOffline));
+				var local = online._tlocal.getOrAdd(roleId);
+				local.setLink(new BLink("link1", 42L, AbstractOnline.eOffline));
+				local.setLoginVersion(shared.getLoginVersion());
+				return 0;
+			}, "testSendErrorOffline.setup").call());
+
+			// 同sid迟到错误报告：必须跳过，不得回退。
+			Assertions.assertEquals(0,
+					zeze.newProcedure(() -> online.onSendError("acc", roleId, "link1", 42L), "testSendErrorOffline.se").call());
+
+			var stateAfter = new int[1];
+			Assertions.assertEquals(0, zeze.newProcedure(() -> {
+				var shared = online.getOnlineShared(roleId);
+				stateAfter[0] = shared != null ? shared.getLink().getState() : AbstractOnline.eOffline;
+				return 0;
+			}, "testSendErrorOffline.verify").call());
+			Assertions.assertEquals(AbstractOnline.eOffline, stateAfter[0], "迟到的sendError不得把eOffline回退成eLinkBroken");
+			Assertions.assertEquals(0, logoutCount.get(), "不得对已登出状态触发任何logout路径");
+		} finally {
+			try {
+				zeze.stop();
+			} catch (Exception ignored) {
+			}
+		}
+	}
+
+	/**
+	 * sendError先于linkBroken到达（竞速）：先标记后上钟——linkBroken不检查当前state，
+	 * 迟到到达照常触发事件+调度DelayLogout，宽限链完整（原语义下sendError已立即登出，
+	 * 迟到的linkBroken会在已登出状态上重跑：本测试钉住新契约的事件恰好一次+状态稳定）。
+	 */
+	@Test
+	public void testOnSendErrorBeforeLinkBrokenStillSchedules() throws Exception {
+		var zeze = newApp("TestLinkBrokenRc3");
+		var online = newOnline(zeze);
+		zeze.start();
+		try {
+			var linkBrokenCount = new AtomicInteger();
+			var logoutCount = new AtomicInteger();
+			online.getLinkBrokenEvents().add(EventDispatcher.Mode.RunEmbed, (__s, __a) -> {
+				linkBrokenCount.incrementAndGet();
+				return 0;
+			});
+			online.getLogoutEvents().add(EventDispatcher.Mode.RunEmbed, (__s, __a) -> {
+				logoutCount.incrementAndGet();
+				return 0;
+			});
+
+			var roleId = 777_003L;
+			Assertions.assertEquals(0, zeze.newProcedure(() -> {
+				var shared = online.getOrAddOnlineShared(roleId);
+				shared.setAccount("acc");
+				shared.setLink(new BLink("link1", 42L, AbstractOnline.eLogined));
+				var local = online._tlocal.getOrAdd(roleId);
+				local.setLink(new BLink("link1", 42L, AbstractOnline.eLogined));
+				local.setLoginVersion(shared.getLoginVersion());
+				return 0;
+			}, "testSendErrorFirst.setup").call());
+
+			// sendError先到：只标记，不登出、无事件。
+			Assertions.assertEquals(0,
+					zeze.newProcedure(() -> online.onSendError("acc", roleId, "link1", 42L), "testSendErrorFirst.se").call());
+			Assertions.assertEquals(0, logoutCount.get());
+			Assertions.assertEquals(0, linkBrokenCount.get());
+
+			// linkBroken迟到：照常触发断链事件+调度DelayLogout（rc=0即schedule成功）。
+			Assertions.assertEquals(0,
+					zeze.newProcedure(() -> online.linkBroken("acc", roleId, "link1", 42L), "testSendErrorFirst.broken").call());
+			Assertions.assertEquals(1, linkBrokenCount.get(), "迟到的linkBroken照常触发断链事件");
+			Assertions.assertEquals(0, logoutCount.get());
+
+			var stateAfter = new int[1];
+			Assertions.assertEquals(0, zeze.newProcedure(() -> {
+				var shared = online.getOnlineShared(roleId);
+				stateAfter[0] = shared != null ? shared.getLink().getState() : AbstractOnline.eOffline;
+				return 0;
+			}, "testSendErrorFirst.verify").call());
+			Assertions.assertEquals(AbstractOnline.eLinkBroken, stateAfter[0], "宽限钟在位，状态稳定eLinkBroken");
+		} finally {
+			try {
+				zeze.stop();
+			} catch (Exception ignored) {
+			}
+		}
+	}
 }

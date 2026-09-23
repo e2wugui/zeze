@@ -910,8 +910,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			logout((BDelayLogoutCustom)context.customData);
 		}
 
-		// 仅timer上下文调用（Game的onSendError/linkBroken直接同步调logoutTrigger外传失败码，
-		// 不经过这里），故整体采用timer语义。
+		// 仅timer上下文调用（onSendError是幂等标记器不登出；verifyLocal的eLinkBroken残留
+		// 收敛经tryLogout直调不经过这里），故整体采用timer语义。
 		public static void logout(@NotNull BDelayLogoutCustom custom) throws Exception {
 			var defaultOnline = Online.findOnline(custom.getProjectName());
 			if (defaultOnline == null)
@@ -941,46 +941,34 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	public long onSendError(@NotNull String account, long roleId,
 							@NotNull String linkName, long linkSid) throws Exception {
-		var onlineShared = getOrAddOnlineShared(roleId);
-
-		var local = _tlocal.get(roleId);
-		if (local != null && local.getLoginVersion() != onlineShared.getLoginVersion()) { // 本机数据已经过时，马上删除。
-			var ret = removeLocalAndTrigger(roleId);
-			if (ret != 0) {
-				logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, removeLocalAndTrigger={}",
-						multiInstanceName, account, roleId, linkName, linkSid, ret);
-				return ret;
-			}
-		}
-
-		// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
+		// 幂等标记器契约（极简）：onSendError只做"当前link的首个失败报告"标记eLinkBroken，
+		// 不触发登出/事件/清理/调度，全部由既有驱动收敛：
+		//  - 登出：linkBroken的DelayLogout宽限timer；timer失败残留→verifyLocal的eLinkBroken
+		//    分支直接重走tryLogout（FND6-23，见tryRemoveLocal）
+		//  - 陈旧local（版本不匹配）：登出/重登链的logoutTrigger→tryRedirectRemoveLocal
+		//    主动驱动旧属主清理 + verifyLocal兜底（localActiveTimeout，默认600s）。原先
+		//    sendError顺带的removeLocalAndTrigger只是加速器，非正确性依赖
+		// 状态守卫三态：eLogined才标记（首报告）；eLinkBroken跳过（重复报告幂等）；eOffline
+		// 跳过（迟到的错误报告不得把已登出状态机回退成eLinkBroken——回退会让verifyLocal对
+		// 其重走tryLogout造成重复logout事件）。
+		// 先查后建（FND4-51对齐Arch版判例）：善后路径不创建状态——原getOrAddOnlineShared
+		// 对已登出角色的迟到错误报告会创建空行并随事务提交残留。
+		var onlineShared = getOnlineShared(roleId);
+		if (onlineShared == null)
+			return 0;
 		var link = onlineShared.getLink();
+		if (link.getState() != eLogined)
+			return 0;
+		// skip not owner: 报告必须对应当前link——重登后新link的旧报告在此挡下（保护新登录）。
 		if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid) {
 			logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={} != linkName={}, linkSid={}",
 					multiInstanceName, account, roleId, linkName, linkSid, link.getLinkName(), link.getLinkSid());
 			return 0;
 		}
-
 		onlineShared.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
-		// local 在这个流程里面不需要setLink，如果是这个登录的，那么扇面已经删除（removeLocalAndTrigger），否则不需要修改。
-
-		var ret = linkBrokenTrigger(account, roleId);
-		// for shorter use
-		logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}",
-				multiInstanceName, account, roleId, linkName, linkSid, ret);
-		if (ret != 0) // FND5-41：与removeLocalAndTrigger对齐——失败码外传整体回滚，不推进登出状态机。
-			return ret;
-
-		// see tryLogout
-		// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-		if (onlineShared.getLink().getState() != eOffline && assignLogoutVersion(onlineShared)) {
-			var ret2 = logoutTrigger(roleId, LogoutReason.LOGOUT);
-			logger.info("sendError: roleId={}, state={}, logoutTrigger={}",
-					roleId, onlineShared.getLink().getState(), ret2);
-			return ret2;
-		}
-		logger.info("sendError: roleId={}, state={}, version.login/logoutVersion={}",
-				roleId, onlineShared.getLink().getState(), onlineShared.getLoginVersion());
+		logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, mark eLinkBroken"
+						+ " (logout converges via DelayLogout/verifyLocal)",
+				multiInstanceName, account, roleId, linkName, linkSid);
 		return 0;
 	}
 
