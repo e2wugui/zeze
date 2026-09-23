@@ -570,10 +570,8 @@ public class HotManager extends ClassLoader {
 			}
 		}
 		var interfaceDstBackup = Path.of(workingDir, "interfaces", namespace + ".interface.jar.backup").toFile();
-		// 【FND11 hot-02】新模块workingDir无旧jar：renameTo对不存在的源必失败（新模块热发布
-		// 100%失败）；崩溃残留的.backup在Windows上使renameTo到已存在目标失败（该模块后续
-		// 发布永久阻断）。旧文件存在才备份，目标先清残留；回滚/提交动作随之条件化
-		//（新模块的回滚由下方interfaceDst→interfaceSrc挪回覆盖）。
+		// 旧文件存在才备份：源不存在时renameTo必失败（新模块发布）；先清崩溃残留.backup
+		//（Windows上renameTo到已存在目标失败）。回滚/提交动作随之条件化。
 		if (interfaceDst.exists()) {
 			Files.deleteIfExists(interfaceDstBackup.toPath());
 			if (!interfaceDst.renameTo(interfaceDstBackup))
@@ -602,7 +600,7 @@ public class HotManager extends ClassLoader {
 		// 安装 module
 		var moduleDst = Path.of(workingDir, "modules", namespace + ".jar");
 		var moduleDstBackup = Path.of(workingDir, "modules", namespace + ".jar.backup").toFile();
-		// 【FND11 hot-02】同interface：新模块无旧jar跳过备份，崩溃残留.backup先清。
+		// 同interface：旧文件存在才备份，先清崩溃残留.backup。
 		if (moduleDst.toFile().exists()) {
 			Files.deleteIfExists(moduleDstBackup.toPath());
 			if (!moduleDst.toFile().renameTo(moduleDstBackup))

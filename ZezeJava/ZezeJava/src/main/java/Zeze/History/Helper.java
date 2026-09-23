@@ -90,10 +90,9 @@ public class Helper {
 				sortedMap2Dynamic = new HashMap<>();
 		public final HashSet<SortedMap1Meta<? extends Comparable<?>, ?>> sortedMap1Metas = new HashSet<>();
 		public final HashSet<SortedMap2Meta<? extends Comparable<?>, ? extends Bean>> sortedMap2Metas = new HashSet<>();
-		// 【FND11 coll-01】GTable外层logTypeId/name只含rowClass不含列/值身份：同kind同rowClass
-		// 不同列/值类型的多个GTable共享typeId（Log.register先到先得、同名仅debug留痕），
-		// History回放端会用第一个表的行工厂解码第二个表的整行日志——跨wire家族中断回放、
-		// 同数值家族静默有损转换。按(kind,rowClass)登记列/值身份，冲突即启动fail-fast。
+		// GTable外层typeId/name只含rowClass不含列/值身份：同(kind,rowClass)不同列/值类型
+		// 共享typeId且Log.register先到先得——冲突登记启动fail-fast，否则回放端用别人的
+		// 行工厂解码整行日志。
 		public final HashMap<String, String> gtableIdentities = new HashMap<>();
 	}
 
@@ -331,8 +330,8 @@ public class Helper {
 		}
 	}
 
-	// 【FND11 coll-01】同(kind,rowClass)只允许一种(列,值)身份：外层typeId/name不含列/值类型，
-	// 冲突时Log.register静默保留先注册者、回放端整行日志被错误工厂解码。fail-fast优于静默损坏。
+	// 同(kind,rowClass)只允许一种(列,值)身份：冲突时Log.register静默保留先注册者，回放端
+	// 整行日志被错误工厂解码——fail-fast优于静默损坏。
 	private static void checkGTableIdentity(@NotNull DependsResult result, @NotNull String kind,
 											@NotNull Class<?> rowClass, @NotNull Class<?> colClass,
 											@NotNull String valueIdentity) {
@@ -345,7 +344,7 @@ public class Helper {
 					+ " has different col/value types: {" + saved.replace('|', ',')
 					+ "} vs {" + identity.replace('|', ',')
 					+ "}。Log.register同名先到先得，History回放将用错误的行工厂解码整行日志"
-					+ "（FND11 coll-01）——请为其中一个表改用不同的row类型");
+					+ "——请为其中一个表改用不同的row类型");
 	}
 
 	public static void dependsSet(@NotNull String valueType, @NotNull DependsResult result) throws Exception {

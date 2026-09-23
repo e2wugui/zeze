@@ -864,9 +864,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var stValue = (SQLStatement)value;
-			// 【FND11 txn-02】超长 string key 不在写入期拒绝的话，flush 落库才触发 PG 22001
-			// "value too long for type character varying(256)"（不含表名），毒化整个 flush 批次且
-			// 难定位——照抄 MySQL 版前置检查判例（TableMysqlRelational.replace）。
+			// 超长string key写入期拒绝：flush落库才触发22001（不含表名）会毒化整批——MySQL版判例。
 			for (var p : stKey.getParams())
 				if (p instanceof String s && s.length() > eMaxKeyStringLength)
 					throw new IllegalArgumentException("key string too long for postgresql relational table '" + name

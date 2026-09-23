@@ -128,8 +128,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public void setInUse(int localId, @NotNull String global) {
-			// 【FND11 txn-01】_ZezeSetInUse_与MySQL/PG版同构：并发双实例首启时insert全局行与
-			// count(*)扫描互等成环（1205死锁）。对齐姊妹实现重试64次（SP整体事务，重试安全）。
+			// 并发双实例首启：insert全局行与count(*)扫描互等成环（1205死锁）——对齐MySQL/PG
+			// 重试64次（SP整体事务，重试安全）。
 			for (int i = 0; i < 64; ++i) {
 				try (var connection = dataSource.getConnection()) {
 					connection.setAutoCommit(true);
@@ -158,7 +158,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						}
 					}
 				} catch (SQLException e) {
-					// mssql-jdbc死锁消息形如"Transaction (Process Id ...) was deadlocked ... deadlock victim"
+					// mssql-jdbc死锁消息形如"Transaction (Process Id ...) was deadlocked"
 					if (e.getMessage() == null || !e.getMessage().toLowerCase().contains("deadlock"))
 						throw Task.forceThrow(e);
 				}

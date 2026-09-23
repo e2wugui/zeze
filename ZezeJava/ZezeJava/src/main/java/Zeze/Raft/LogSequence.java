@@ -1197,10 +1197,7 @@ public class LogSequence {
 			// 也可能被新leader截断。调用方将按失败返回并释放悲观锁；若在条目应用前放锁，
 			// 后续同key事务基于旧值提交新日志、本条目随后又被应用，造成丢失更新。
 			// 先等待命运确定再抛重试异常，使调用方在窗口期继续持锁。
-			// 【FND11 raft-01】命运区分：已应用=提交实际成功（分区愈合/慢follower补齐确认恰好
-			// 落在超时点之后）——按成功返回，让_final_commit_继续执行提交动作。原先无条件抛
-			// RaftRetry：已提交事务的commit actions被跳过、rollback actions被补跑（通知类提交
-			// 动作不可重放、静默丢失）；仅截断/删除/未决才值得重试。
+			// 已应用=提交实际成功，按成功返回让提交动作执行；仅截断/删除/未决才值得重试。
 			if (waitLogFateDetermined(result.index) == LogFate.Applied)
 				return result;
 			throw new RaftRetryException("timeout or canceled");

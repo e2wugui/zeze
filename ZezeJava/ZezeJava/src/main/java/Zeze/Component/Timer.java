@@ -1614,10 +1614,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 								timer.getConcurrentFireSerialNo(), true, cronTimer.getOneByOneKey());
 					}
 				} catch (ParseException | UnsupportedOperationException e) {
-					// 【FND11 arch-02】确定性坏数据（非法cron表达式/未知missfirePolicy）：原先异常
-					// 逃出procedure→回滚→游标经whileRollback照常推进，坏行每次重启卡同一节点、
-					// 同节点其余定时器陪葬停摆且无人补装载。摘除坏行并告警，让无辜定时器正常装载
-					//（瞬态失败不走此分支，维持原redo/下轮重启自愈语义）。
+					// 确定性坏数据（非法cron/未知missfirePolicy）：摘行告警，同节点无辜定时器
+					// 正常装载；瞬态失败不走此分支（维持redo/下轮重启自愈语义）。
 					logger.error("loadTimer: drop corrupted timer. nodeId={}, timerName={}, bean={}",
 							nodeId.value, timer.getTimerName(), timer.getTimerObj().getBean(), e);
 					it.remove();

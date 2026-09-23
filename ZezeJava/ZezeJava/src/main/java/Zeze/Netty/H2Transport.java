@@ -90,9 +90,8 @@ public final class H2Transport {
 		private final @NotNull HttpServer server;
 		private boolean resolved;
 
-		// 【FND11 net-03】完整24字节魔数"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"：仅凭首3字节"PRI"
-		// 判h2会把自定义PRI前缀方法（RFC 9110扩展方法token，如"PRIORITIZE"）的合法h1请求
-		// 换上h2栈解析失败断连。字节不足24继续累积（cumulation机制），不匹配则自移除回退h1。
+		// 完整24字节魔数：裸"PRI"前缀会误判自定义PRI前缀方法（RFC 9110扩展方法token）；
+		// 字节不足继续累积，不匹配自移除回退h1。
 		private static final byte[] H2_PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".getBytes(StandardCharsets.US_ASCII);
 
 		PrefaceDetector(@NotNull HttpServer server) {
@@ -122,9 +121,7 @@ public final class H2Transport {
 				pipeline.remove(HttpResponseEncoder.class); // 匿名子类按类型匹配
 				pipeline.remove(HttpRequestDecoder.class);
 				pipeline.remove(server);
-				// 【FND11 net-01】HttpServer移出父管线后channelInactive永不可达（唯一移除点），
-				// channels强引用集合永久滞留该连接（每条h2连接泄漏一份，checkTimeout持续扫死
-				// channel且HttpServer.close对已关channel是no-op不自愈）。挂closeFuture收口。
+				// HttpServer移出父管线后channelInactive不可达：挂closeFuture从channels收口。
 				ctx.channel().closeFuture().addListener(f -> server.channels.remove(ctx.channel()));
 				pipeline.addLast(new H2ReadActivityMarker());
 				pipeline.addLast(createFrameCodec());

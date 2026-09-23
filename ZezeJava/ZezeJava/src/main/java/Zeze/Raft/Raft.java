@@ -928,8 +928,7 @@ public final class Raft {
 			preVotes.clear();
 			preVoting = false;
 			receiveSnapshotting.cancelAll();
-			// 纵深防御：清掉上次leadership可能残留的发送会话（换主路径漏删的兜底，
-			// 残留条目拦截该connector心跳/复制并禁用本地snapshot）。
+			// 纵深防御：清掉上次leadership可能残留的发送会话。
 			logSequence.getSendSnapshotting().cancelAll();
 
 			logger.info("RaftState {}: Candidate->Leader", getName());

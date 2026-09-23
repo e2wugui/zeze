@@ -34,7 +34,7 @@ public class LinkdService extends HandshakeServer {
 	private final AtomicLong loginTimes = new AtomicLong();
 	private final LongAdder busyParseFailures = new LongAdder();
 	private volatile long lastBusyParseWarnTime;
-	private final TimerFuture limitSpeedFuture; // 【FND11 arch-03】限速周期任务句柄：stop时cancel（FND7-41 TimeCounter判例）
+	private final TimerFuture limitSpeedFuture; // 限速周期任务句柄：stop时cancel
 
 	public LinkdService(@NotNull String name, Application zeze) {
 		super(name, zeze);

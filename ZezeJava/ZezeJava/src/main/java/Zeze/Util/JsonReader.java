@@ -981,9 +981,7 @@ public final class JsonReader {
 			v = jr.buf[++jr.pos] == 't';
 			jr.skipQuot(b);
 		} else {
-			// 【FND11 util-01】无引号分支pos已在词首（skipNext返回时定位）：原两分支同写
-			// ++pos，无引号侧越过首字符读第二字节（"true"读成'r'恒false），键错且pos停在
-			// 词中、skipColon读到词内字符——键值双损坏。改为从词首判定真值并消费整个词
+			// 无引号分支pos已在词首（skipNext返回时定位）：从词首判定真值并消费整个词
 			//（停止条件与parseStringNoQuot一致：空白或':'）。
 			v = jr.buf[jr.pos] == 't';
 			for (int c; (c = jr.buf[jr.pos + 1] & 0xff) > ' ' && c != ':'; jr.pos++) {

@@ -99,10 +99,8 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     void onClose(AsyncSocket so) {
         editLock.lock();
         try {
-            // 【FND11 svc-02】同一socket先后上报provider与link负载时userState只指向最后一张
-            // 表，原先仅清userState指向的表——另一张表条目永久残留（socket已关无后续上报，
-            // 无回收路径），幽灵服务器持续参与choiceServer权重选择并虚高providerSize。两表
-            // 都幂等remove，不再依赖userState指向。
+            // 同一socket上报过两种负载时userState只指向最后一张表：两表幂等remove，
+            // 不依赖userState指向（漏清的幽灵服务器永久参与权重选择）。
             if (providers.remove(so) != null)
                 loginQueue.tryResetTimeThrottle(providers.size());
             links.remove(so);

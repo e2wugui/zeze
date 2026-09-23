@@ -174,10 +174,8 @@ public class RedoQueue extends HandshakeClient {
 			if (rpc.Send(this.socket, this::processRunTaskResult))
 				pending = rpc;
 			else {
-				// 【FND11 arch-01】Send返回false：socket失效或输出缓冲背压溢出丢包（checkOverflow
-				// 不断连）——连接未断则无重连事件，add/在途应答两个重驱动点都不存在，泵无限期
-				// 停摆。复用单flight延迟重试驱动泵；error带queue/taskId归因（巨包任务体超过
-				// outputBufferMaxSize时持续失败，留给运维补洞，同FND7-65 fatal的处置方向）。
+				// Send=false（socket失效/输出背压丢包不断连）：无重连事件，复用单flight重试
+				// 驱动泵；error带queue/taskId归因（任务体超outputBufferMaxSize持续失败留运维补洞）。
 				logger.error("RunTask send fail, schedule retry. queue={}, taskId={}",
 						getName(), rpc.Argument.getTaskId());
 				scheduleRetry();
