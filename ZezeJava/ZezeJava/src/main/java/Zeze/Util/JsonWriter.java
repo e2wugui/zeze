@@ -532,7 +532,10 @@ public final class JsonWriter {
 							buf[pos++] = ',';
 						Object k = e.getKey();
 						if (k == null || Json.ClassMeta.isInKeyReaderMap(k.getClass())) {
-							s = String.valueOf(k);
+							// 【FND11 util-02】Character键输出码点数值：parseCharKey跳引号后parseInt再(char)
+							// 强转（值侧同为数值口径），写字形则数字键静默错值('5'→(char)5)、非数字键抛
+							// NumberFormatException，导出不可逆。
+							s = k instanceof Character ? String.valueOf((int)(char)(Character)k) : String.valueOf(k);
 							ensure(s.length() * 6 + 3); // "xxxxxx":
 							write(s, noQuote && !needQuoteKey(s));
 						} else {
@@ -560,7 +563,8 @@ public final class JsonWriter {
 						writeNewLineTabs();
 						Object k = e.getKey();
 						if (k == null || Json.ClassMeta.isInKeyReaderMap(k.getClass())) {
-							s = String.valueOf(k);
+							// 【FND11 util-02】同紧凑分支：Character键输出码点数值与parseCharKey对齐。
+							s = k instanceof Character ? String.valueOf((int)(char)(Character)k) : String.valueOf(k);
 							ensure(s.length() * 6 + 4); // "xxxxxx":_
 							write(s, noQuote && !needQuoteKey(s));
 						} else {
