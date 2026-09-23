@@ -1,5 +1,6 @@
 package Zeze.Netty;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import io.netty.buffer.ByteBuf;
@@ -89,6 +90,11 @@ public final class H2Transport {
 		private final @NotNull HttpServer server;
 		private boolean resolved;
 
+		// 【FND11 net-03】完整24字节魔数"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"：仅凭首3字节"PRI"
+		// 判h2会把自定义PRI前缀方法（RFC 9110扩展方法token，如"PRIORITIZE"）的合法h1请求
+		// 换上h2栈解析失败断连。字节不足24继续累积（cumulation机制），不匹配则自移除回退h1。
+		private static final byte[] H2_PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".getBytes(StandardCharsets.US_ASCII);
+
 		PrefaceDetector(@NotNull HttpServer server) {
 			this.server = server;
 		}
@@ -96,13 +102,19 @@ public final class H2Transport {
 		@Override
 		protected void decode(@NotNull ChannelHandlerContext ctx, @NotNull ByteBuf in,
 							  @NotNull List<Object> out) {
-			if (resolved || in.readableBytes() < 3)
+			if (resolved || in.readableBytes() < H2_PREFACE.length)
 				return; // 字节不足判定，继续累积；已决议则等待移除（decodeLast重放兜底）
 			var pipeline = ctx.pipeline();
 			resolved = true;
-			if (in.getByte(in.readerIndex()) == 'P'
-					&& in.getByte(in.readerIndex() + 1) == 'R'
-					&& in.getByte(in.readerIndex() + 2) == 'I') {
+			var readerIndex = in.readerIndex();
+			var matched = true;
+			for (int i = 0; i < H2_PREFACE.length; i++) {
+				if (in.getByte(readerIndex + i) != H2_PREFACE[i]) {
+					matched = false;
+					break;
+				}
+			}
+			if (matched) {
 				// 顺序关键：必须先拆h1件再装h2栈——frameCodec的handlerAdded会同步写出服务器
 				// SETTINGS（附CLOSE_ON_FAILURE），若写路径上还残留h1件（HttpResponseEncoder等），
 				// 该原始ByteBuf写会同步失败，CLOSE_ON_FAILURE级联关闭整条连接（prior-knowledge
