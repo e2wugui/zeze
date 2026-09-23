@@ -41,8 +41,13 @@ public final class SendSnapshotting {
 	}
 
 	public void cancelAll() throws Exception {
-		for (var state : sessions.values())
-			end(state);
+		// 关句柄同时删条目：换主后残留条目会让该connector的心跳与日志复制被contains
+		// 永久拦截（再当选后无路径收口残留），并禁用本地snapshot（isEmpty判断）。
+		for (var it = sessions.entrySet().iterator(); it.hasNext(); ) {
+			var e = it.next();
+			it.remove();
+			end(e.getValue());
+		}
 	}
 
 	// 按connector收口（心跳/复制/断线路径持有connector）：移除会话并收口。
