@@ -1176,6 +1176,13 @@ public class LogSequence {
 		public long index;
 	}
 
+	/** 超时日志条目的命运：已应用/已截断删除/未决（等待超时或读失败）。 */
+	enum LogFate {
+		Applied,
+		Removed,
+		Undetermined,
+	}
+
 	public AppendLogResult appendLog(Log log) throws Exception {
 		var future = new TaskCompletionSource<RaftLog>();
 		var result = appendLog(log, (raftLog, success) -> {
@@ -1190,7 +1197,12 @@ public class LogSequence {
 			// 也可能被新leader截断。调用方将按失败返回并释放悲观锁；若在条目应用前放锁，
 			// 后续同key事务基于旧值提交新日志、本条目随后又被应用，造成丢失更新。
 			// 先等待命运确定再抛重试异常，使调用方在窗口期继续持锁。
-			waitLogFateDetermined(result.index);
+			// 【FND11 raft-01】命运区分：已应用=提交实际成功（分区愈合/慢follower补齐确认恰好
+			// 落在超时点之后）——按成功返回，让_final_commit_继续执行提交动作。原先无条件抛
+			// RaftRetry：已提交事务的commit actions被跳过、rollback actions被补跑（通知类提交
+			// 动作不可重放、静默丢失）；仅截断/删除/未决才值得重试。
+			if (waitLogFateDetermined(result.index) == LogFate.Applied)
+				return result;
 			throw new RaftRetryException("timeout or canceled");
 		}
 		return result;
@@ -1202,24 +1214,23 @@ public class LogSequence {
 	 * 必须在Raft锁外调用：内部只在检查时短暂持锁。waitMs超时后放弃：集群长期选不出
 	 * leader时条目命运无法确定，继续持锁会无限期挂住业务线程。
 	 */
-	void waitLogFateDetermined(long index) {
-		waitLogFateDetermined(index, raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000);
+	LogFate waitLogFateDetermined(long index) {
+		return waitLogFateDetermined(index, raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000);
 	}
 
 	// package-private with explicit timeout for tests.
-	@SuppressWarnings("SameParameterValue")
-	void waitLogFateDetermined(long index, long waitMs) {
+	LogFate waitLogFateDetermined(long index, long waitMs) {
 		var deadline = System.nanoTime() + waitMs * 1_000_000L;
 		while (!raft.isShutdown) {
 			raft.lock();
 			try {
 				// lastApplied 不是volatile，在Raft锁内读取保证可见性。
 				if (lastApplied >= index)
-					return; // applied
+					return LogFate.Applied; // applied
 				if (readLog(index) == null)
-					return; // truncated or discarded
+					return LogFate.Removed; // truncated or discarded
 			} catch (RocksDBException e) {
-				return; // 读取失败（如db已关闭），不再等待
+				return LogFate.Undetermined; // 读取失败（如db已关闭），不再等待
 			} finally {
 				raft.unlock();
 			}
@@ -1228,15 +1239,16 @@ public class LogSequence {
 				Thread.sleep(20);
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
-				return;
+				return LogFate.Undetermined;
 			}
 			if (System.nanoTime() - deadline >= 0) {
 				logger.error("{} waitLogFateDetermined({}) timeout after {}ms, release pending entry. " +
 						"pessimism locks will be released while the log entry is still pending.",
 						raft.getName(), index, waitMs);
-				return;
+				return LogFate.Undetermined;
 			}
 		}
+		return LogFate.Undetermined;
 	}
 
 	public AppendLogResult appendLog(Log log, Action2<RaftLog, Boolean> callback) throws Exception {
