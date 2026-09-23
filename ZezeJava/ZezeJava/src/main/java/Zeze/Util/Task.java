@@ -559,7 +559,7 @@ public final class Task {
 	// TimerFuture.cancel 的 javadoc）。
 	static <R> @NotNull TimerFuture<R> schedulePeriodCore(long initialDelay, long period, @NotNull TaskBody<R> body,
 														  @Nullable String name, long timeout) {
-		var future = new TimerFuture<R>();
+		var future = new TimerFuture<R>(body.logName(name), timeout); // name+timeout供cancel挂死告警定位与阈值
 		future.setFuture(scheduledPoolOrThrow().scheduleWithFixedDelay(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			future.lock();
