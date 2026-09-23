@@ -47,8 +47,13 @@ public class Session implements AutoCloseable {
 		return r.SendForWait(agent.__getLogServer(serverName).GetReadySocket());
 	}
 
+	private volatile boolean closed;
+
 	@Override
 	public void close() throws Exception {
+		if (closed)
+			return;
+		closed = true; // 先立墓碑：RPC失败时会话状态未知，不允许重发CloseSession
 		var r = new CloseSession();
 		r.SendForWait(agent.__getLogServer(serverName).GetReadySocket()).await();
 		if (r.getResultCode() != 0)

@@ -1,7 +1,6 @@
 package Dbh2;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import Zeze.Application;
@@ -49,11 +48,7 @@ public class Dbh2Test {
 
 		public void close() {
 			for (var dbh2 : raftNodes) {
-				try {
-					dbh2.close();
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
+				dbh2.close();
 				// 这个测试不持久化，为了不影响其他测试（可能使用相同的配置），运行结束删除持久化的目录。
 				LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
 			}

@@ -1,6 +1,5 @@
 package Zeze.Hot;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,7 +17,9 @@ import org.apache.logging.log4j.Logger;
 // 目录管理规则
 // 1. 目录是一个模块目录时，开启一个新的热更单位；
 // 2. 目录不是模块目录时，它就属于往上级目录方向的最近的热更模块。
-public class HotModule extends ClassLoader implements Closeable, GenModule.RedirectClassSink {
+// close() 只释放jar句柄（Schemas装载器靠它收尾，见HotManager.loadSchemas），
+// 不是模块停机语义；模块的完整停机走 stop()。
+public class HotModule extends ClassLoader implements AutoCloseable, GenModule.RedirectClassSink {
 	private static final Logger logger = LogManager.getLogger(HotModule.class);
 	private final File jarFile;
 	private JarFile jar; // 模块的class（interface除外）必须打包成一个jar，只支持一个。
@@ -138,10 +139,7 @@ public class HotModule extends ClassLoader implements Closeable, GenModule.Redir
 		iModule.UnRegister();
 		// app stop
 		service.stop();
-		if (jar != null) {
-			jar.close();
-			jar = null;
-		}
+		close();
 	}
 
 	public void stopBefore() throws Exception {
@@ -233,6 +231,7 @@ public class HotModule extends ClassLoader implements Closeable, GenModule.Redir
 		}
 	}
 
+	// 只释放jar句柄（幂等），不停service；模块停机用stop()。
 	@Override
 	public void close() throws IOException {
 		if (jar != null) {

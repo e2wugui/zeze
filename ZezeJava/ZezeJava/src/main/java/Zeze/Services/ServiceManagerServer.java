@@ -214,9 +214,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			this.serviceName = serviceName;
 		}
 
-		public void close() {
-		}
-
 		public HashMap<Long, HashMap<String, BServiceInfo>> getServiceInfos() {
 			return serviceInfos;
 		}
@@ -699,7 +696,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			serverSocket.close();
 			server.stop();
 			server = null;
-			serviceStates.values().forEach(ServiceState::close);
 			logger.info("closeDb: {}, autokeys", this.conf.dbHome);
 			autoKeysDb.close();
 			threading.close();

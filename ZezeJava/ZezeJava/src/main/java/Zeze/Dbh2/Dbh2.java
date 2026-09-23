@@ -1,7 +1,5 @@
 package Zeze.Dbh2;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -41,7 +39,7 @@ import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
-public class Dbh2 extends AbstractDbh2 implements Closeable {
+public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private static final Logger logger = LogManager.getLogger(Dbh2.class);
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private final Raft raft;
@@ -186,8 +184,13 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		}
 	}
 
+	private volatile boolean closed;
+
 	@Override
-	public void close() throws IOException {
+	public void close() {
+		if (closed)
+			return;
+		closed = true;
 		logger.info("closeRaft: {}", raft.getName());
 		try {
 			raft.shutdown();

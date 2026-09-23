@@ -1,10 +1,8 @@
 package Zeze.Hot;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.concurrent.locks.Lock;
 
-public class HotGuard implements Closeable {
+public class HotGuard implements AutoCloseable {
 	private final Lock lock;
 
 	public HotGuard(Lock lock) {
@@ -16,7 +14,7 @@ public class HotGuard implements Closeable {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		//System.out.println("exit lock " + lock);
 		lock.unlock();
 		//System.out.println("exit lock OK " + lock);
