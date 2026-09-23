@@ -294,11 +294,13 @@ public class HotDistribute extends AbstractHotDistribute {
     @Override
     protected long ProcessGetLastVersionBeanInfoRequest(Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo r) {
         var baseName = removeVersion(r.Argument.getName());
-        // 归属判断带版本分隔符：裸前缀会把前缀包含的其他类名误当最新版本；空baseName拒绝。
+        // 归属判断带版本分隔符：起点tailMap(baseName+'_')天然排除未版本化基类自身及
+        // baseName+数字/大写等排序在'_'前的兄弟命名（裸前缀会把它们误当最新版本，
+        // 起点留在baseName则它们触发提前break恒LogicError）；空baseName拒绝。
         if (baseName.isEmpty())
             return Procedure.LogicError;
         var prefix = baseName + '_';
-        var beans = DistributeServer.getBeans().tailMap(baseName);
+        var beans = DistributeServer.getBeans().tailMap(prefix);
 
         Bean lastVersion = null;
         for (var bean : beans.values()) {
