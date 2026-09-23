@@ -238,11 +238,19 @@ public class Id128UdpServer {
 			current.increment(count);
 			var max = context.max;
 			if (current.compareTo(max) > 0) {
-				max.increment(Math.max(fund.next(), count));
+				// 【FND11 svc-01】先落库再推进内存max（对齐ServiceManagerServer.AutoKey判例
+				// "确保数据库记下了再更新max"）：put失败时max原地不动，异常传播丢弃本次响应
+				//（current已推进形成号洞，无害）；后续请求仍见current>max，重算含本次终点的新
+				// 水位再put——任何成功响应的号段必被已持久化的max覆盖，重启重载不会重复发号。
+				// 新水位至少覆盖本次交付终点（此前put失败的请求已把current推到旧max之前）。
+				var newMax = max.clone().increment(Math.max(fund.next(), count));
+				if (newMax.compareTo(current) < 0)
+					newMax.assign(current);
 				bbTemp.Reset();
-				max.encodeRaw(bbTemp);
+				newMax.encodeRaw(bbTemp);
 				if (table != null)
 					table.put(name.bytesUnsafe(), 0, name.size(), bbTemp.Bytes, 0, bbTemp.WriteIndex);
+				max.assign(newMax);
 			}
 		} finally {
 			context.unlock();
