@@ -243,7 +243,8 @@ public class Id128UdpServer {
 				//（current已推进形成号洞，无害）；后续请求仍见current>max，重算含本次终点的新
 				// 水位再put——任何成功响应的号段必被已持久化的max覆盖，重启重载不会重复发号。
 				// 新水位至少覆盖本次交付终点（此前put失败的请求已把current推到旧max之前）。
-				var newMax = max.clone().increment(Math.max(fund.next(), count));
+				var newMax = max.clone();
+				newMax.increment(Math.max(fund.next(), count));
 				if (newMax.compareTo(current) < 0)
 					newMax.assign(current);
 				bbTemp.Reset();
