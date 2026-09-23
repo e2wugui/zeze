@@ -420,7 +420,11 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
         @Override
         public V setValue(V value) {
-          return super.setValue(Utils.checkNotNull(value));
+          // 【FND11 coll-02】super.setValue委托给delegate().setValue会打在pcollections不可变
+          // entry上（SimpleImmutableEntry/KVTree均抛UOE）——保留的null检查与返回旧值设计永不
+          // 可达，Table javadoc承诺的row map setValue能力折断。改走Row.put（事务化put语义，
+          // 兼容backingRowMap缺失时的外层表路径），返回put的旧值。
+          return Row.this.put(entry.getKey(), Utils.checkNotNull(value));
         }
 
         @Override
