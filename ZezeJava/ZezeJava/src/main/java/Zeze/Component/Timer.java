@@ -1530,90 +1530,100 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		Transaction.whileCommit(() -> nodeId.value = node.getNextNodeId()); // 设置下一个node。
 		Transaction.whileRollback(() -> nodeId.value = node.getNextNodeId()); // 设置下一个node。
 
-		var now = System.currentTimeMillis();
-		var appVer = zeze.getConfig().getAppVersion();
-		var serverId = zeze.getConfig().getServerId();
-		for (var it = node.getTimers().values().iterator(); it.hasNext(); ) {
-			var timer = it.next();
-			var index = _tIndexs.get(timer.getTimerName());
-			if (index == null) {
-				it.remove();
-				continue;
-			}
-			if (index.getVersion() > appVer) // 无法保证高版本定时器的处理,等待各模块启动后重建定时器
-				continue;
-
-			// 优化不能用Config.getServerId整体判断，因为load中断会导致传入的serverId就是当前Config的，
-			// 这回导致load中断后，部分数据没有被设置正确的serverId。
-			// 需要提前到schedule之前，后面的schedule会判断这个值。
-			if (index.getServerId() != serverId)
-				index.setServerId(serverId);
-			if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
-				var simpleTimer = (BSimpleTimer)timer.getTimerObj().getBean();
-				if (simpleTimer.getNextExpectedTime() < now) { // missfire found
-					switch (simpleTimer.getMissfirePolicy()) {
-					case eMissfirePolicyRunOnce:
-					case eMissfirePolicyRunOnceOldNext: {
-						var oneByOneKey = simpleTimer.getOneByOneKey();
-						// missfire补触发不得在commit回调内同步执行（CP2-F1）：whileCommit回调
-						// 运行在提交线程、此刻事务已Completed——空oneByOneKey时dispatchFire直跑
-						// fireSimple，首个bean写必抛IllegalStateException("State Is Not Running")，
-						// 补触发丢失且continue跳过了常规调度，该定时器永久停摆。改用事务感知的
-						// run()（提交后入池执行）：fireSimple/fireCron跑在无事务的池线程上，
-						// newProcedure新建事务，正确（恢复ae7eca8b6回归前的语义）。
-						TaskSpec.ofAction(() ->
-								dispatchFire(oneByOneKey, () ->
-										fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
-												timer.getConcurrentFireSerialNo(), true))).run();
-						continue; // loop done, continue
+			var now = System.currentTimeMillis();
+			var appVer = zeze.getConfig().getAppVersion();
+			var serverId = zeze.getConfig().getServerId();
+			for (var it = node.getTimers().values().iterator(); it.hasNext(); ) {
+				var timer = it.next();
+				try {
+					var index = _tIndexs.get(timer.getTimerName());
+					if (index == null) {
+						it.remove();
+						continue;
 					}
+					if (index.getVersion() > appVer) // 无法保证高版本定时器的处理,等待各模块启动后重建定时器
+						continue;
 
-					case eMissfirePolicyNothing:
-						// 重置启动时间，调度下一个（未来）间隔的时间。没有考虑对齐。
-						var period = simpleTimer.getPeriod();
-						simpleTimer.setNextExpectedTime(period > 0 ? now + period : now);
-						//TODO: 考虑nextExpectedTime超过endTime的情况要不要取消
-						break;
+					// 优化不能用Config.getServerId整体判断，因为load中断会导致传入的serverId就是当前Config的，
+					// 这回导致load中断后，部分数据没有被设置正确的serverId。
+					// 需要提前到schedule之前，后面的schedule会判断这个值。
+					if (index.getServerId() != serverId)
+						index.setServerId(serverId);
+					if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
+						var simpleTimer = (BSimpleTimer)timer.getTimerObj().getBean();
+						if (simpleTimer.getNextExpectedTime() < now) { // missfire found
+							switch (simpleTimer.getMissfirePolicy()) {
+							case eMissfirePolicyRunOnce:
+							case eMissfirePolicyRunOnceOldNext: {
+								var oneByOneKey = simpleTimer.getOneByOneKey();
+								// missfire补触发不得在commit回调内同步执行（CP2-F1）：whileCommit回调
+								// 运行在提交线程、此刻事务已Completed——空oneByOneKey时dispatchFire直跑
+								// fireSimple，首个bean写必抛IllegalStateException("State Is Not Running")，
+								// 补触发丢失且continue跳过了常规调度，该定时器永久停摆。改用事务感知的
+								// run()（提交后入池执行）：fireSimple/fireCron跑在无事务的池线程上，
+								// newProcedure新建事务，正确（恢复ae7eca8b6回归前的语义）。
+								TaskSpec.ofAction(() ->
+										dispatchFire(oneByOneKey, () ->
+												fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
+														timer.getConcurrentFireSerialNo(), true))).run();
+								continue; // loop done, continue
+							}
 
-					default:
-						throw new UnsupportedOperationException("Unknown MissfirePolicy: "
-								+ simpleTimer.getMissfirePolicy());
+							case eMissfirePolicyNothing:
+								// 重置启动时间，调度下一个（未来）间隔的时间。没有考虑对齐。
+								var period = simpleTimer.getPeriod();
+								simpleTimer.setNextExpectedTime(period > 0 ? now + period : now);
+								//TODO: 考虑nextExpectedTime超过endTime的情况要不要取消
+								break;
+
+							default:
+								throw new UnsupportedOperationException("Unknown MissfirePolicy: "
+										+ simpleTimer.getMissfirePolicy());
+							}
+						}
+						scheduleSimple(index.getSerialId(), serverId, timer.getTimerName(),
+								Math.max(simpleTimer.getNextExpectedTime() - now, 1), timer.getConcurrentFireSerialNo(),
+								true, simpleTimer.getOneByOneKey());
+					} else {
+						var cronTimer = (BCronTimer)timer.getTimerObj().getBean();
+						if (cronTimer.getNextExpectedTime() < now) {
+							switch (cronTimer.getMissfirePolicy()) {
+							case eMissfirePolicyRunOnce:
+							case eMissfirePolicyRunOnceOldNext: {
+								var oneByOneKey = cronTimer.getOneByOneKey();
+								// 同simple侧（CP2-F1）：事务感知run()提交后入池，不在commit回调内同步执行。
+								TaskSpec.ofAction(() ->
+										dispatchFire(oneByOneKey, () ->
+												fireCron(index.getSerialId(), serverId, timer.getTimerName(),
+														timer.getConcurrentFireSerialNo(), true))).run();
+								continue; // loop done, continue
+							}
+
+							case eMissfirePolicyNothing:
+								// 计算下一次（未来）发生的时间。
+								cronTimer.setNextExpectedTime(CronTimerSpec.cronNextTime(cronTimer.getCronExpression(), now));
+								//TODO: 考虑nextExpectedTime超过endTime的情况要不要取消
+								break;
+
+							default:
+								throw new UnsupportedOperationException("Unknown MissfirePolicy: "
+										+ cronTimer.getMissfirePolicy());
+							}
+						}
+						scheduleCron(index.getSerialId(), serverId, timer.getTimerName(), cronTimer,
+								timer.getConcurrentFireSerialNo(), true, cronTimer.getOneByOneKey());
 					}
+				} catch (ParseException | UnsupportedOperationException e) {
+					// 【FND11 arch-02】确定性坏数据（非法cron表达式/未知missfirePolicy）：原先异常
+					// 逃出procedure→回滚→游标经whileRollback照常推进，坏行每次重启卡同一节点、
+					// 同节点其余定时器陪葬停摆且无人补装载。摘除坏行并告警，让无辜定时器正常装载
+					//（瞬态失败不走此分支，维持原redo/下轮重启自愈语义）。
+					logger.error("loadTimer: drop corrupted timer. nodeId={}, timerName={}, bean={}",
+							nodeId.value, timer.getTimerName(), timer.getTimerObj().getBean(), e);
+					it.remove();
 				}
-				scheduleSimple(index.getSerialId(), serverId, timer.getTimerName(),
-						Math.max(simpleTimer.getNextExpectedTime() - now, 1), timer.getConcurrentFireSerialNo(),
-						true, simpleTimer.getOneByOneKey());
-			} else {
-				var cronTimer = (BCronTimer)timer.getTimerObj().getBean();
-				if (cronTimer.getNextExpectedTime() < now) {
-					switch (cronTimer.getMissfirePolicy()) {
-					case eMissfirePolicyRunOnce:
-					case eMissfirePolicyRunOnceOldNext: {
-						var oneByOneKey = cronTimer.getOneByOneKey();
-						// 同simple侧（CP2-F1）：事务感知run()提交后入池，不在commit回调内同步执行。
-						TaskSpec.ofAction(() ->
-								dispatchFire(oneByOneKey, () ->
-										fireCron(index.getSerialId(), serverId, timer.getTimerName(),
-												timer.getConcurrentFireSerialNo(), true))).run();
-						continue; // loop done, continue
-					}
-
-					case eMissfirePolicyNothing:
-						// 计算下一次（未来）发生的时间。
-						cronTimer.setNextExpectedTime(CronTimerSpec.cronNextTime(cronTimer.getCronExpression(), now));
-						//TODO: 考虑nextExpectedTime超过endTime的情况要不要取消
-						break;
-
-					default:
-						throw new UnsupportedOperationException("Unknown MissfirePolicy: "
-								+ cronTimer.getMissfirePolicy());
-					}
-				}
-				scheduleCron(index.getSerialId(), serverId, timer.getTimerName(), cronTimer,
-						timer.getConcurrentFireSerialNo(), true, cronTimer.getOneByOneKey());
 			}
 		}
-	}
 
 	@Override
 	public void clearTableCache() {
