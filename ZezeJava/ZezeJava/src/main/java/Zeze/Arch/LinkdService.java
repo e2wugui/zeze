@@ -21,6 +21,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
+import Zeze.Util.TimerFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +34,7 @@ public class LinkdService extends HandshakeServer {
 	private final AtomicLong loginTimes = new AtomicLong();
 	private final LongAdder busyParseFailures = new LongAdder();
 	private volatile long lastBusyParseWarnTime;
+	private final TimerFuture limitSpeedFuture; // 【FND11 arch-03】限速周期任务句柄：stop时cancel（FND7-41 TimeCounter判例）
 
 	public LinkdService(@NotNull String name, Application zeze) {
 		super(name, zeze);
@@ -40,13 +42,21 @@ public class LinkdService extends HandshakeServer {
 
 		if (getSocketOptions().getOverBandwidth() != null) {
 			var lastSendSize = new OutLong();
-			TaskSpec.ofAction(() -> {
+			limitSpeedFuture = TaskSpec.ofAction(() -> {
 				updateRecvSendSize();
 				long sendSize = getSendSize();
 				curSendSpeed = sendSize - lastSendSize.value;
 				lastSendSize.value = sendSize;
 			}).schedulePeriodNow(1000, 1000);
-		}
+		} else
+			limitSpeedFuture = null;
+	}
+
+	@Override
+	public void stop() throws Exception {
+		if (limitSpeedFuture != null)
+			limitSpeedFuture.cancel(false);
+		super.stop();
 	}
 
 	public long getLoginTimes() {
