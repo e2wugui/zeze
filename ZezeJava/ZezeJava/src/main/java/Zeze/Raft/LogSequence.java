@@ -1198,7 +1198,8 @@ public class LogSequence {
 			// 后续同key事务基于旧值提交新日志、本条目随后又被应用，造成丢失更新。
 			// 先等待命运确定再抛重试异常，使调用方在窗口期继续持锁。
 			// 已应用=提交实际成功，按成功返回让提交动作执行；仅截断/删除/未决才值得重试。
-			if (waitLogFateDetermined(result.index, -1, result.term) == LogFate.Applied)
+			if (waitLogFateDetermined(result.index,
+					raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000, result.term) == LogFate.Applied)
 				return result;
 			throw new RaftRetryException("timeout or canceled");
 		}
@@ -1211,10 +1212,6 @@ public class LogSequence {
 	 * 必须在Raft锁外调用：内部只在检查时短暂持锁。waitMs超时后放弃：集群长期选不出
 	 * leader时条目命运无法确定，继续持锁会无限期挂住业务线程。
 	 */
-	LogFate waitLogFateDetermined(long index) {
-		return waitLogFateDetermined(index, raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000);
-	}
-
 	// package-private with explicit timeout for tests.
 	LogFate waitLogFateDetermined(long index, long waitMs) {
 		return waitLogFateDetermined(index, waitMs, -1);
