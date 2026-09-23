@@ -128,35 +128,42 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public void setInUse(int localId, @NotNull String global) {
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
-					cmd.setInt(1, localId);
-					cmd.setBytes(2, global.getBytes(StandardCharsets.UTF_8));
-					cmd.registerOutParameter(3, Types.INTEGER);
-					cmd.executeUpdate();
-					switch (cmd.getInt(3)) {
-					case 0:
-						return;
-					case 1:
-						throw new IllegalStateException("Unknown Error");
-					case 2:
-						throw new IllegalStateException("Instance Exist");
-					case 3:
-						throw new IllegalStateException("Insert LocalId Failed");
-					case 4:
-						throw new IllegalStateException("Global Not Equals");
-					case 5:
-						throw new IllegalStateException("Insert Global Failed");
-					case 6:
-						throw new IllegalStateException("Instance Greater Than One But No Global");
-					default:
-						throw new IllegalStateException("Unknown ReturnValue");
+			// 【FND11 txn-01】_ZezeSetInUse_与MySQL/PG版同构：并发双实例首启时insert全局行与
+			// count(*)扫描互等成环（1205死锁）。对齐姊妹实现重试64次（SP整体事务，重试安全）。
+			for (int i = 0; i < 64; ++i) {
+				try (var connection = dataSource.getConnection()) {
+					connection.setAutoCommit(true);
+					try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
+						cmd.setInt(1, localId);
+						cmd.setBytes(2, global.getBytes(StandardCharsets.UTF_8));
+						cmd.registerOutParameter(3, Types.INTEGER);
+						cmd.executeUpdate();
+						switch (cmd.getInt(3)) {
+						case 0:
+							return;
+						case 1:
+							throw new IllegalStateException("Unknown Error");
+						case 2:
+							throw new IllegalStateException("Instance Exist");
+						case 3:
+							throw new IllegalStateException("Insert LocalId Failed");
+						case 4:
+							throw new IllegalStateException("Global Not Equals");
+						case 5:
+							throw new IllegalStateException("Insert Global Failed");
+						case 6:
+							throw new IllegalStateException("Instance Greater Than One But No Global");
+						default:
+							throw new IllegalStateException("UnknownReturnValue");
+						}
 					}
+				} catch (SQLException e) {
+					// mssql-jdbc死锁消息形如"Transaction (Process Id ...) was deadlocked ... deadlock victim"
+					if (e.getMessage() == null || !e.getMessage().toLowerCase().contains("deadlock"))
+						throw Task.forceThrow(e);
 				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
 			}
+			throw new IllegalStateException("setInUse Deadlock");
 		}
 
 		@Override
