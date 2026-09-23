@@ -570,17 +570,24 @@ public class HotManager extends ClassLoader {
 			}
 		}
 		var interfaceDstBackup = Path.of(workingDir, "interfaces", namespace + ".interface.jar.backup").toFile();
-		if (!interfaceDst.renameTo(interfaceDstBackup))
-			throw new RuntimeException("backup interface.jar fail. " + interfaceDst + " -> " + interfaceDstBackup);
-		// 从备份恢复，并且重新加载旧文件。
-		txn.whileRollback(() -> {
-			if (interfaceDstBackup.renameTo(interfaceDst))
-				putJar(interfaceDst);
-			else
-				logger.error("restore interface backup fail {} -> {}", interfaceDstBackup, interfaceDst);
-		});
-		// 提交的时候删除备份
-		txn.whileCommit(() -> Files.deleteIfExists(interfaceDstBackup.toPath()));
+		// 【FND11 hot-02】新模块workingDir无旧jar：renameTo对不存在的源必失败（新模块热发布
+		// 100%失败）；崩溃残留的.backup在Windows上使renameTo到已存在目标失败（该模块后续
+		// 发布永久阻断）。旧文件存在才备份，目标先清残留；回滚/提交动作随之条件化
+		//（新模块的回滚由下方interfaceDst→interfaceSrc挪回覆盖）。
+		if (interfaceDst.exists()) {
+			Files.deleteIfExists(interfaceDstBackup.toPath());
+			if (!interfaceDst.renameTo(interfaceDstBackup))
+				throw new RuntimeException("backup interface.jar fail. " + interfaceDst + " -> " + interfaceDstBackup);
+			// 从备份恢复，并且重新加载旧文件。
+			txn.whileRollback(() -> {
+				if (interfaceDstBackup.renameTo(interfaceDst))
+					putJar(interfaceDst);
+				else
+					logger.error("restore interface backup fail {} -> {}", interfaceDstBackup, interfaceDst);
+			});
+			// 提交的时候删除备份
+			txn.whileCommit(() -> Files.deleteIfExists(interfaceDstBackup.toPath()));
+		}
 		throwIfMatch("install1");
 
 		if (!interfaceSrc.renameTo(interfaceDst))
@@ -595,15 +602,19 @@ public class HotManager extends ClassLoader {
 		// 安装 module
 		var moduleDst = Path.of(workingDir, "modules", namespace + ".jar");
 		var moduleDstBackup = Path.of(workingDir, "modules", namespace + ".jar.backup").toFile();
-		if (!moduleDst.toFile().renameTo(moduleDstBackup))
-			throw new RuntimeException("backup module.jar fail. " + moduleDst + " -> " + moduleDstBackup);
+		// 【FND11 hot-02】同interface：新模块无旧jar跳过备份，崩溃残留.backup先清。
+		if (moduleDst.toFile().exists()) {
+			Files.deleteIfExists(moduleDstBackup.toPath());
+			if (!moduleDst.toFile().renameTo(moduleDstBackup))
+				throw new RuntimeException("backup module.jar fail. " + moduleDst + " -> " + moduleDstBackup);
 
-		txn.whileRollback(() -> {
-			if (!moduleDstBackup.renameTo(moduleDst.toFile()))
-				logger.error("restore module backup fail {} -> {}", moduleDstBackup, moduleDst);
-			// module.jar 不用预先装载，在旧HotModule重启的时候会用本来的文件名重新打开。
-		});
-		txn.whileCommit(() -> Files.deleteIfExists(moduleDstBackup.toPath()));
+			txn.whileRollback(() -> {
+				if (!moduleDstBackup.renameTo(moduleDst.toFile()))
+					logger.error("restore module backup fail {} -> {}", moduleDstBackup, moduleDst);
+				// module.jar 不用预先装载，在旧HotModule重启的时候会用本来的文件名重新打开。
+			});
+			txn.whileCommit(() -> Files.deleteIfExists(moduleDstBackup.toPath()));
+		}
 		throwIfMatch("install3");
 
 		var moduleDstFile = moduleDst.toFile();
