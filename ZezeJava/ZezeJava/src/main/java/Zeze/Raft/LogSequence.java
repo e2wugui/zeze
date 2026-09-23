@@ -1198,7 +1198,7 @@ public class LogSequence {
 			// 后续同key事务基于旧值提交新日志、本条目随后又被应用，造成丢失更新。
 			// 先等待命运确定再抛重试异常，使调用方在窗口期继续持锁。
 			// 已应用=提交实际成功，按成功返回让提交动作执行；仅截断/删除/未决才值得重试。
-			if (waitLogFateDetermined(result.index) == LogFate.Applied)
+			if (waitLogFateDetermined(result.index, -1, result.term) == LogFate.Applied)
 				return result;
 			throw new RaftRetryException("timeout or canceled");
 		}
@@ -1217,13 +1217,36 @@ public class LogSequence {
 
 	// package-private with explicit timeout for tests.
 	LogFate waitLogFateDetermined(long index, long waitMs) {
+		return waitLogFateDetermined(index, waitMs, -1);
+	}
+
+	/**
+	 * 等待index日志条目命运确定：已应用（lastApplied>=index）或已从日志删除（截断/丢弃）。
+	 * 用于appendLog超时路径，保证调用方在条目未决期间不释放悲观锁（否则丢失更新）。
+	 * 必须在Raft锁外调用：内部只在检查时短暂持锁。waitMs超时后放弃：集群长期选不出
+	 * leader时条目命运无法确定，继续持锁会无限期挂住业务线程。
+	 *
+	 * @param expectTerm 期待的本方条目term；>=0时启用条目同一性校验——lastApplied>=index
+	 *                   只证明"某条目"在该index被应用，截断换主后同index可被新leader条目
+	 *                   占用，term不匹配/null（已应用后被快照压实）保守按未决/已删处理，
+	 *                   防止已丢弃的事务跑提交动作（幻影提交）。-1跳过校验（测试用旧语义）。
+	 */
+	LogFate waitLogFateDetermined(long index, long waitMs, long expectTerm) {
 		var deadline = System.nanoTime() + waitMs * 1_000_000L;
 		while (!raft.isShutdown) {
 			raft.lock();
 			try {
 				// lastApplied 不是volatile，在Raft锁内读取保证可见性。
-				if (lastApplied >= index)
-					return LogFate.Applied; // applied
+				if (lastApplied >= index) {
+					if (expectTerm < 0)
+						return LogFate.Applied; // applied（未启用同一性校验）
+					var log = readLog(index);
+					if (log != null && log.getTerm() == expectTerm)
+						return LogFate.Applied; // 本方条目已应用
+					// term不匹配=同index已被新条目占用；null=已应用后被快照压实，无法证伪
+					// 同index被替换——保守按重试处理（幻影提交代价高于丢通知）。
+					return log == null ? LogFate.Undetermined : LogFate.Removed;
+				}
 				if (readLog(index) == null)
 					return LogFate.Removed; // truncated or discarded
 			} catch (RocksDBException e) {
