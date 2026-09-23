@@ -48,7 +48,7 @@ public class TestAtomicWriteSourceGuard {
 	private static final Set<String> ALLOWLIST = Set.of(
 			"Zeze/Util/AtomicFileWriter.java", // 原语自身（fsync助手）
 			"Zeze/Util/AtomicOutputFile.java", // 原语伴生（temp句柄，rename前唯一合法截断点）
-			"Zeze/Raft/Raft.java", // .installing 分块接收（RandomAccessFile rw）
+			"Zeze/Raft/ReceiveSnapshotting.java", // .installing 分块接收（RandomAccessFile rw；随R4登记表抽取自Raft.java迁移）
 			"Zeze/Util/FileMutex.java", // 跨进程互斥锁文件（RandomAccessFile rw，互斥用，内容无关；ex-Zeze/Application.java随FND8-26抽取迁移）
 			"Zeze/MQ/MQFileWithIndex.java", // MQ流式存储（追加+索引，既有自愈）
 			"Zeze/Services/Daemon.java", // 运维临时文件

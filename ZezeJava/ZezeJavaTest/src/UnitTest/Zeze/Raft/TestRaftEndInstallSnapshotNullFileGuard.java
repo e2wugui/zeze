@@ -19,13 +19,13 @@ import Zeze.Raft.Server;
 import Zeze.Util.Task;
 
 /**
- * R2-F1 回归（可达半侧）：startInstallSnapshot打开快照文件失败时留下file==null的
- * 半初始化installSnapshotting条目，endInstallSnapshot对state.getFile()直接close会NPE；
- * NPE还会沿cancelAllInstallSnapshot打断Raft.shutdown后续的logSequence.close。
- * 修复①：endInstallSnapshot对file==null防御（本测试直接验证）；
- * 修复②：startInstallSnapshot把open+readLog包进try/catch、失败调endInstallSnapshot回收
+ * R2-F1 回归（可达半侧）：SendSnapshotting.start打开快照文件失败时留下file==null的
+ * 半初始化发送会话，end对state.getFile()直接close会NPE；
+ * NPE还会沿cancelAll打断Raft.shutdown后续的logSequence.close。
+ * 修复①：end对file==null防御（本测试直接验证）；
+ * 修复②：start把open+readLog包进try/catch、失败调end回收
  * （需注入快照文件IO异常，无法确定性构造，见台账）。
- * InstallSnapshotState与setInstallSnapshotState为包私有，反射构造（仓内测试惯例）。
+ * InstallSnapshotState为包私有：反射构造/绑定connector/入表（仓内测试惯例）。
  */
 @Fast
 public class TestRaftEndInstallSnapshotNullFileGuard {
@@ -59,8 +59,8 @@ public class TestRaftEndInstallSnapshotNullFileGuard {
 	}
 
 	/**
-	 * file==null的半初始化条目：endInstallSnapshot必须安全回收（修复前state.getFile()
-	 * .close()抛NPE），且条目从installSnapshotting移除、connector状态复位。
+	 * file==null的半初始化会话：end必须安全回收（修复前state.getFile()
+	 * .close()抛NPE），且会话从SendSnapshotting移除、connector状态复位。
 	 */
 	@Test
 	public void testEndInstallSnapshotWithNullFileSafe() throws Exception {
@@ -73,15 +73,19 @@ public class TestRaftEndInstallSnapshotNullFileGuard {
 		var state = stateCtor.newInstance();
 
 		var cex = new Server.ConnectorEx("127.0.0.1", 17762);
-		Method setState = Server.ConnectorEx.class.getDeclaredMethod("setInstallSnapshotState", stateClass);
-		setState.setAccessible(true);
-		setState.invoke(cex, state);
-		ls.getInstallSnapshotting().put(cex.getName(), cex);
+		// 会话绑定connector后直接入表（connector上的state字段已删，双重记账消除）。
+		Method setConnector = stateClass.getDeclaredMethod("setConnector", Server.ConnectorEx.class);
+		setConnector.setAccessible(true);
+		setConnector.invoke(state, cex);
+		var send = ls.getSendSnapshotting();
+		Method put = send.getClass().getDeclaredMethod("put", String.class, stateClass);
+		put.setAccessible(true);
+		put.invoke(send, cex.getName(), state);
 
 		// 修复前此处NPE（state.getFile().close()）
-		Assertions.assertDoesNotThrow(() -> ls.endInstallSnapshot(cex),
-				"file==null的半初始化条目必须被安全回收，不得NPE");
-		Assertions.assertFalse(ls.getInstallSnapshotting().containsKey(cex.getName()),
-				"回收后条目必须从installSnapshotting移除");
+		Assertions.assertDoesNotThrow(() -> ls.getSendSnapshotting().end(cex),
+				"file==null的半初始化会话必须被安全回收，不得NPE");
+		Assertions.assertFalse(ls.getSendSnapshotting().contains(cex.getName()),
+				"回收后会话必须从SendSnapshotting移除");
 	}
 }

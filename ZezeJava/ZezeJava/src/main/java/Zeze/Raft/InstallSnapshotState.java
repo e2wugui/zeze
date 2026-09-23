@@ -10,6 +10,8 @@ class InstallSnapshotState {
 	// 之后所有块都发不出去：快照边界信息由state携带，每块new一个InstallSnapshot发送。
 	private RaftLog firstLog;
 	private RandomAccessFile file;
+	// 会话所属连接：SendSnapshotting.end收口的索引复位与续复制据此定位（入表前绑定）。
+	private Server.ConnectorEx connector;
 	private long offset;
 	private long term;
 	private String leaderId = "";
@@ -32,6 +34,14 @@ class InstallSnapshotState {
 
 	public void setFile(RandomAccessFile value) {
 		file = value;
+	}
+
+	public Server.ConnectorEx getConnector() {
+		return connector;
+	}
+
+	public void setConnector(Server.ConnectorEx value) {
+		connector = value;
 	}
 
 	public long getOffset() {
@@ -85,11 +95,11 @@ class InstallSnapshotState {
 	public void trySend(LogSequence ls, Server.ConnectorEx c) throws Exception {
 		ls.getRaft().lock();
 		try {
-			if (!ls.getInstallSnapshotting().containsKey(c.getName()))
+			if (!ls.getSendSnapshotting().contains(c.getName()))
 				return; // 安装取消了。
 
 			if (done || ls.getRaft().isShutdown || !ls.getRaft().isLeader()) {
-				ls.endInstallSnapshot(c);
+				ls.getSendSnapshotting().end(c);
 				return; // install done
 			}
 
@@ -122,12 +132,12 @@ class InstallSnapshotState {
 			int timeout = ls.getRaft().getRaftConfig().getAppendEntriesTimeout();
 			resultCode = Procedure.ErrorSendFail;
 			if (!pending.Send(c.TryGetReadySocket(), p -> processResult(ls, c, p), timeout))
-				ls.endInstallSnapshot(c);
+				ls.getSendSnapshotting().end(c);
 		} catch (Throwable e) {
 			// 异常会被上层任务记日志后吞掉，这里不收口的话该follower的安装将永久楔死
 			// （installSnapshotting条目残留、文件不关、心跳与复制被拦截）。
 			LogSequence.logger.error("InstallSnapshotState trySend error. c={}", c.getName(), e);
-			ls.endInstallSnapshot(c);
+			ls.getSendSnapshotting().end(c);
 		} finally {
 			ls.getRaft().unlock();
 		}
@@ -140,19 +150,19 @@ class InstallSnapshotState {
 		ls.getRaft().lock();
 		try {
 			if (r.isTimeout()) {
-				ls.endInstallSnapshot(c);
+				ls.getSendSnapshotting().end(c);
 				return Procedure.Success;
 			}
 
 			if (ls.trySetTerm(r.Result.getTerm()) == LogSequence.SetTermResult.Newer) {
-				ls.endInstallSnapshot(c);
+				ls.getSendSnapshotting().end(c);
 				// new term found.
 				ls.getRaft().convertStateTo(Raft.RaftState.Follower);
 				return Procedure.Success; // break install
 			}
 
 			if (r.getResultCode() != Procedure.Success && r.getResultCode() != InstallSnapshot.ResultCodeNewOffset) {
-				ls.endInstallSnapshot(c);
+				ls.getSendSnapshotting().end(c);
 				return Procedure.Success; // break install
 			}
 
@@ -163,7 +173,7 @@ class InstallSnapshotState {
 				if (r.Result.getOffset() > file.length()) {
 					LogSequence.logger.error("InstallSnapshot.Result.Offset Too Big. {}/{}",
 							r.Result.getOffset(), file.length());
-					ls.endInstallSnapshot(c);
+					ls.getSendSnapshotting().end(c);
 					return Procedure.Success; // 中断安装。
 				}
 				file.seek(offset = r.Result.getOffset());

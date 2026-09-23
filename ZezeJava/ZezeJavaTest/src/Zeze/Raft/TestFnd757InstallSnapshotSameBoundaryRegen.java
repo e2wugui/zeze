@@ -1,8 +1,6 @@
 package Zeze.Raft;
 
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -80,15 +78,9 @@ public class TestFnd757InstallSnapshotSameBoundaryRegen {
 		LogSequence.deleteDirectory(new File(dbHome)); // best-effort
 	}
 
-	// processInstallSnapshot 是 private，按 TestRaftTermMaxReject 的先例反射调用。
+	// processInstallSnapshot raft-02 起为包内可见（测试直调合成rpc）。
 	private static long processInstallSnapshot(Raft raft, InstallSnapshot r) throws Exception {
-		Method method = Raft.class.getDeclaredMethod("processInstallSnapshot", InstallSnapshot.class);
-		method.setAccessible(true);
-		try {
-			return (Long)method.invoke(raft, r);
-		} catch (InvocationTargetException e) {
-			throw Task.forceThrow(e.getCause());
-		}
+		return raft.processInstallSnapshot(r);
 	}
 
 	private static byte[] filled(int size, byte b) {
@@ -121,15 +113,16 @@ public class TestFnd757InstallSnapshotSameBoundaryRegen {
 			var leader = "127.0.0.1:17671";
 			long term = 1;
 
-			// 第一次安装（长快照）中断：只收到 offset=0 块，done=false，条目与半截文件残留。
+			// 第一次安装（长快照）中断：只收到 offset=0 块，done=false，条目与其唯一名
+			// .installing 文件残留（R5：路径取自条目，不再按 index 推导固定名）。
 			var longSnap = filled(1000, (byte)'A');
 			var first = newChunk(term, leader, 0, longSnap, false);
 			assertEquals(Procedure.Success, processInstallSnapshot(raft, first));
-			var installing = Paths.get(dbHome, LogSequence.snapshotFileName + ".installing.5");
+			var installing = raft.receiveSnapshotting.get(5).path;
 			assertArrayEquals(longSnap, Files.readAllBytes(installing), "正控：中断后残留半截文件");
 
-			// 同边界重装（短快照，leader 从 offset=0 全量重发）至 done：
-			// 残留必须被清空，最终 snapshot.dat 与新短快照字节完全一致（FND7-57）。
+			// 同边界重装（短快照，leader 从 offset=0 全量重发）至 done：复用同条目，
+			// offset==0 截断重写，最终 snapshot.dat 与新短快照字节完全一致（FND7-57）。
 			var shortSnap = filled(400, (byte)'B');
 			var second = newChunk(term, leader, 0, shortSnap, true);
 			assertEquals(Procedure.Success, processInstallSnapshot(raft, second));

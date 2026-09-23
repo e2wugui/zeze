@@ -23,18 +23,17 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * FND8-36回归：InstallSnapshotState 跨块重用一次性 Rpc。
  * 旧实现持有 final InstallSnapshot pending 跨块重发：快照.dat ≥ 32768 字节时
  * 第 2 块 pending.Send 因 sessionId!=0 抛 IllegalStateException（Rpc一次性契约，
- * commit 71026dfd6），异常被上层任务吞掉后无人调用 endInstallSnapshot——
- * installSnapshotting 条目残留、文件不关、该 follower 的心跳与复制被永久拦截；
+ * commit 71026dfd6），异常被上层任务吞掉后无人收口 SendSnapshotting.end——
+ * 发送会话残留、文件不关、该 follower 的心跳与复制被永久拦截；
  * file.read/seek 的 IOException 走同一条吞没路径，造成同型楔死。
  * 修复：每块 new 一个 InstallSnapshot（边界信息由 state 字段携带），
- * trySend 外层 catch(Throwable) 收口 endInstallSnapshot。
+ * trySend 外层 catch(Throwable) 收口 SendSnapshotting.end。
  * <p>
  * 复现：不起网络。FakeSocket 走通 Send 全路径（不实际发网络），反射把 socket
  * 注入 ConnectorEx、把 Raft 置为 Leader，手工搭好安装状态后直接驱动
@@ -127,7 +126,7 @@ public class TestFnd836InstallSnapshotPerChunkRpc {
 		LogSequence.deleteDirectory(new java.io.File(dbHome)); // best-effort
 	}
 
-	// 手工搭好安装状态（等价 startInstallSnapshot 的 setup，但不依赖 RocksDB 里的
+	// 手工搭好安装状态（等价 SendSnapshotting.start 的 setup，但不依赖 RocksDB 里的
 	// firstIndex 边界日志）：快照文件按参数字节数生成。
 	private void setupInstall(int snapshotSize) throws Exception {
 		var sm = new StateMachine() {
@@ -162,14 +161,14 @@ public class TestFnd836InstallSnapshotPerChunkRpc {
 		Files.write(Paths.get(dbHome, snapFile), bytes);
 
 		st = new InstallSnapshotState();
-		c.setInstallSnapshotState(st);
+		st.setConnector(c);
 		st.setFile(new java.io.RandomAccessFile(Paths.get(dbHome, snapFile).toFile(), "r"));
 		st.setFirstLog(new RaftLog(1, 6, new HeartbeatLog()));
 		st.setTerm(ls.getTerm());
 		st.setLeaderId(raft.getName());
 		st.setLastIncludedIndex(st.getFirstLog().getIndex());
 		st.setLastIncludedTerm(st.getFirstLog().getTerm());
-		ls.getInstallSnapshotting().put(c.getName(), c);
+		ls.getSendSnapshotting().put(c.getName(), st);
 	}
 
 	// 伪造已发送块的应答（真实流中应答回到发送实例本身，这里等价构造）。
@@ -204,19 +203,18 @@ public class TestFnd836InstallSnapshotPerChunkRpc {
 		st.trySend(ls, c); // 块1
 		assertEquals(1, socket.sendCount, "块1已发出");
 		assertEquals(32768, st.getOffset(), "块1推进offset");
-		assertTrue(ls.getInstallSnapshotting().containsKey(c.getName()), "安装进行中");
+		assertTrue(ls.getSendSnapshotting().contains(c.getName()), "安装进行中");
 
 		// 旧代码在此抛 IllegalStateException（一次性Rpc重用），修复后正常发出块2。
 		processResult(st, ls, c, newAck(ls, false));
 		assertEquals(2, socket.sendCount, "块2必须用新实例发出");
 		assertEquals(40 * 1024, st.getOffset(), "块2推进offset");
-		assertTrue(ls.getInstallSnapshotting().containsKey(c.getName()), "末块未应答前安装不结束");
+		assertTrue(ls.getSendSnapshotting().contains(c.getName()), "末块未应答前安装不结束");
 
 		// 末块(done)应答：endInstall 收尾。
 		processResult(st, ls, c, newAck(ls, true));
 		assertEquals(2, socket.sendCount, "done后不再发块");
-		assertTrue(ls.getInstallSnapshotting().isEmpty(), "endInstall必须清理installSnapshotting");
-		assertNull(c.getInstallSnapshotState(), "state必须清理");
+		assertTrue(ls.getSendSnapshotting().isEmpty(), "end必须清理发送会话");
 		assertFalse(st.getFile().getFD().valid(), "快照文件必须关闭");
 		assertEquals(7, c.getNextIndex(), "nextIndex推进到lastIncludedIndex+1");
 		assertEquals(6, c.getMatchIndex(), "matchIndex推进到lastIncludedIndex");
@@ -238,7 +236,7 @@ public class TestFnd836InstallSnapshotPerChunkRpc {
 		assertEquals(32 * 1024, st.getOffset(), "0字节收尾块不推进offset");
 
 		processResult(st, ls, c, newAck(ls, true));
-		assertTrue(ls.getInstallSnapshotting().isEmpty(), "安装正常完成");
+		assertTrue(ls.getSendSnapshotting().isEmpty(), "安装正常完成");
 		assertEquals(7, c.getNextIndex());
 	}
 
@@ -254,7 +252,6 @@ public class TestFnd836InstallSnapshotPerChunkRpc {
 
 		processResult(st, ls, c, newAck(ls, false)); // 不得抛出
 		assertEquals(1, socket.sendCount, "异常块未发出");
-		assertTrue(ls.getInstallSnapshotting().isEmpty(), "异常路径必须清理installSnapshotting");
-		assertNull(c.getInstallSnapshotState(), "异常路径必须清理state");
+		assertTrue(ls.getSendSnapshotting().isEmpty(), "异常路径必须清理发送会话");
 	}
 }

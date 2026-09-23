@@ -75,9 +75,9 @@ public class TestGcReceiveSnapshotting {
 		return raft;
 	}
 
-	private Raft.ReceiveSnapshotEntry newEntry(Path file, long term, String leaderId,
+	private ReceiveSnapshotting.Entry newEntry(Path file, long term, String leaderId,
 											   long lastActiveTime) throws Exception {
-		return new Raft.ReceiveSnapshotEntry(new RandomAccessFile(file.toFile(), "rw"),
+		return new ReceiveSnapshotting.Entry(file, new RandomAccessFile(file.toFile(), "rw"),
 				term, leaderId, lastActiveTime);
 	}
 
@@ -121,7 +121,7 @@ public class TestGcReceiveSnapshotting {
 			assertTrue(entry.file.getFD().valid());
 			assertTrue(Files.exists(file));
 		} finally {
-			raft.shutdown(); // cancelAllReceiveSnapshotting 关闭残留句柄
+			raft.shutdown(); // registry.cancelAll 关闭残留句柄
 		}
 	}
 

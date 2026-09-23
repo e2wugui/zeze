@@ -2,7 +2,6 @@ package Zeze.Raft;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -14,7 +13,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.zip.ZipFile;
 import Zeze.Net.Binary;
@@ -42,7 +40,7 @@ public class LogSequence {
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	public static final String snapshotFileName = "snapshot.dat";
 
-	// legacy快照内嵌代次（FND8-37）：代际化后不再写入，读取仅供构造器迁移引导。
+	// legacy快照内嵌代次：代际化后不再写入，读取仅供构造器迁移引导。
 	static final String snapshotManifestEntryName = "zeze.snapshot.manifest";
 
 	// 读legacy快照内嵌代次；无entry、文件不存在或损坏返回null（迁移按N=F处理）。
@@ -94,8 +92,8 @@ public class LogSequence {
 	public volatile TaskCompletionSource<Boolean> applyFuture; // follower background apply task
 	private final LongConcurrentHashMap<RaftLog> leaderAppendLogs = new LongConcurrentHashMap<>();
 
-	// 是否有安装进程正在进行中，用来阻止新的创建请求。
-	private final ConcurrentHashMap<String, Server.ConnectorEx> installSnapshotting = new ConcurrentHashMap<>();
+	// leader侧InstallSnapshot发送会话登记表（构造仅存引用，运行时经本类延迟读取）。
+	private final SendSnapshotting sendSnapshotting = new SendSnapshotting(this);
 	private long lastSnapshotIndex;
 	private boolean snapshotting = false; // 是否正在创建Snapshot过程中，用来阻止新的创建请求。
 
@@ -343,12 +341,8 @@ public class LogSequence {
 						var key = it.key();
 						logs.delete(writeOptions, key);
 
-						// 删除快照前的日志时，不删除唯一请求存根，否则快照建立时刻前面一点时间的请求无法保证唯一。
-						// 唯一请求存根自己管理删除，
-						// 【注意】
-						// 服务器完全奔溃（数据全部丢失）后，重新配置一台新的服务器，仍然又很小的机会存在无法判断唯一。
-						// 此时比较好的做法时，从工作节点的数据库(unique/)复制出一份，作为开始数据。
-						// 参考 RemoveLogAndCancelStart
+						// 删除快照前的日志时不删唯一请求存根（快照建立时刻稍前的请求仍需唯一保证），存根自行过期清理。
+						// 注意：完全崩溃换新机后仍有小概率无法判断唯一，较好的做法是从工作节点复制unique/作为初始数据。
 
 						//if (raftLog.Log.Unique.RequestId > 0)
 						//    OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
@@ -356,11 +350,8 @@ public class LogSequence {
 					}
 				}
 			} finally {
-				// 只操作自己创建的future：任务收尾无条件setResult(false)+置null共享字段，会误杀
-				// 已被并发替换的future（LogSequence初始化即启动本任务，负载下收尾延迟时，
-				// 等待点可能已被外部重新赋值——曾被完成+清空致等待失效，
-				// TestEndReceiveInstallSnapshotStaleTerm负载下偶发走进破坏性重置）。
-				// 字段清除与创建同持raft锁配对。
+				// 只操作自己创建的future：无条件置null共享字段会误杀已被并发替换的future
+				// （初始化即启动本任务，收尾延迟时等待点可能已被外部重新赋值）。字段清除与创建同持raft锁配对。
 				future.setResult(false);
 				raft.lock();
 				try {
@@ -600,15 +591,9 @@ public class LogSequence {
 				logger.info("{}-{} {} LastIndex={} Count={}", raft.getName(), raft.isLeader(),
 						raft.getRaftConfig().getDbHome(), lastIndex, getTestStateMachineCount());
 
-				// 【FND-R1-5】崩溃自愈：endReceiveInstallSnapshot在logs.drop()之后、边界日志
-				// saveLog()之前崩溃（两次sync写之间的窗口），重启后日志空表种子lastIndex=0，
-				// 而rafts表持久化的firstIndex仍是旧值：lastIndex < firstIndex破坏不变式且
-				// 无法自愈——复制回退到firstIndex时startInstallSnapshot的readLog(firstIndex)
-				// 返回null而NPE，且connector已进入installSnapshotting拦截心跳，该follower
-				// 复制永久楔死（需人工清理DbHome）。此时快照边界日志已不可用，重置回无快照
-				// 状态：firstIndex由下面的空表种子重算为0，由leader的InstallSnapshot重新同步。
-				// 正常流程日志截断只会到firstIndex为止（冲突截断含commitIndex防御fatalKill），
-				// lastIndex < firstIndex只可能由上述崩溃窗口产生。
+				// 崩溃自愈：endReceiveInstallSnapshot在logs.drop()之后、边界日志saveLog()之前崩溃，
+				// 重启后lastIndex < firstIndex（正常截断只到firstIndex为止，该序只可能由此崩溃窗口产生），
+				// 复制回退到firstIndex时readLog为null而NPE、复制楔死。重置回无快照状态，由leader重新同步。
 				if (lastIndex < firstIndex) {
 					logger.warn("{} crash recovery: lastIndex({}) < firstIndex({}), reset to no-snapshot state."
 							+ " endReceiveInstallSnapshot crashed between logs.drop() and saveLog?",
@@ -617,7 +602,7 @@ public class LogSequence {
 					firstIndex = -1;
 				}
 
-				// 【注意】snapshot 以后 FirstIndex 会推进，不再是从-1开始。
+				// snapshot以后FirstIndex会推进，不再从-1开始。
 				if (firstIndex == -1) { // no committed snapshot
 					try (var itFirst = logs.iterator()) {
 						itFirst.seekToFirst();
@@ -671,16 +656,11 @@ public class LogSequence {
 				commitIndex = firstIndex;
 			}
 
-			// 【FND7-12】提交快照的边界日志缺失检测（lastIndex >= firstIndex 方向的空洞）：
-			// endReceiveInstallSnapshot 完整路径在边界日志 saveLog(X) 之后、saveFirstIndex
-			// 持久化之前崩溃，重启后 lastIndex(=X) >= firstIndex(=旧F)，上面的单向检查
-			// 不触发，但 logs={X} 在 (F,X) 区间留下空洞：lastApplied=F 起 tryApply 读
-			// readLog(F+1)==null 永久楔死（backgroundApply 热循环抢 Raft 锁）；且对
-			// leader 的 prevLog=X 校验会成功，复制从 X+1 继续，不再重发 InstallSnapshot，
-			// ExistLog 恢复路径也无法到达。此时 logs 只能是半安装残留（正常流程的日志
-			// 截断永远保留 firstIndex 处的边界日志）：整体丢弃，重置回无快照状态，
-			// 由 leader 的 InstallSnapshot 全量重建。破坏性重置放在迭代器关闭之后
-			//（列族句柄销毁前必须先关闭其上的迭代器）。
+			// 边界日志缺失检测（lastIndex >= firstIndex方向的空洞）：完整路径在边界日志saveLog(X)
+			// 之后、saveFirstIndex之前崩溃，重启后logs={X}在(F,X)区间留洞——apply从F+1读null永久
+			// 楔死，且对leader的prevLog=X校验成功，不再触发InstallSnapshot。此时logs只能是半安装
+			// 残留（正常截断永远保留firstIndex处边界日志）：整体丢弃，重置回无快照状态由leader重建。
+			// 破坏性重置放在迭代器关闭之后（列族句柄销毁前必须先关闭其上的迭代器）。
 			if (firstIndex >= 0 && readLog(firstIndex) == null) {
 				logger.warn("{} crash recovery: no boundary log at firstIndex={}, discard half-installed logs({})."
 								+ " endReceiveInstallSnapshot crashed after boundary saveLog?",
@@ -767,17 +747,10 @@ public class LogSequence {
 	}
 
 	/**
-	 * 唯一请求 createTime 的合法区间判定（FND2-R1-3）：过老（超过 expiredDays 天）
-	 * 与过新（超过 1 天的未来时间）都返回 false，调用方按 RaftExpired 拒绝。
-	 * createTime 完全由发送方控制（RaftRpc.decode 自网络字节；Agent.send 会用本地
-	 * 时钟覆盖，但直连 raft 端口说协议的客户端不受此限），客户端时钟故障跳到未来
-	 * 或恶意直连会按 createTime 建当天的存根列族（openUniqueRequests），而
-	 * removeExpiredUniqueRequestSet 的过期判定（当天 0 点 + (N+1) 天）对未来日期
-	 * 永不满足——列族与 uniqueRequestSets 无界增长。1 天上界保留集群内合理的少量
-	 * 时钟偏差，且这 1 天内可建到的表随时间自然过期清理；时钟回拨方向天然安全
-	 * （表按 createTime 选，重发恒同表）。判定是纯函数：同一 createTime 的重发
-	 * 每次同样被拒绝，确定性不变；拒绝发生在 handle 之前，不会产生携带未来
-	 * createTime 的日志条目，apply 路径随之关闭。
+	 * 唯一请求createTime合法区间判定：过老（超过expiredDays天）或过新（超过1天未来）
+	 * 返回false，调用方按RaftExpired拒绝。createTime由发送方控制，时钟故障或恶意直连
+	 * 可用未来日期建存根列族且其过期判定永不满足，无界增长；1天上界容忍合理时钟偏差，
+	 * 未来表随时间自然过期。拒绝发生在handle之前，不产生携带未来createTime的日志。
 	 */
 	static boolean isUniqueRequestCreateTimeValid(long create, long now, int expiredDays) {
 		if ((now - create) / 86400_000 >= expiredDays)
@@ -825,8 +798,7 @@ public class LogSequence {
 		writeOptions = value;
 	}
 
-	// package-private：headless单测直接落日志后驱动应用循环（FND3-22回归，
-	// 对齐waitLogFateDetermined的测试可见性先例）。
+	// package-private：headless单测直接落日志后驱动应用循环。
 	void saveLog(RaftLog log) throws RocksDBException {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(log.getIndex());
@@ -856,20 +828,16 @@ public class LogSequence {
 		return logs != null ? logs.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex) : null;
 	}
 
-	private RaftLog readLog(long index) throws RocksDBException {
+	RaftLog readLog(long index) throws RocksDBException { // package-private：SendSnapshotting读边界日志
 		var value = readLogBytes(index);
 		return value != null ? RaftLog.decode(new Binary(value), raft.getStateMachine()::logFactory) : null;
 	}
 
 	/**
-	 * 读取并解码一条待应用的日志。decode 失败（未知日志类型、未知表模板等）是永久性
-	 * 错误：本节点永远无法应用该日志。静默吞掉会让 lastApplied 永久停滞而日志复制与
-	 * 应答一切正常：follower 以"健康"状态永久落后并继续计入多数派，其日志完整仍可
-	 * 当选 leader，当选后整个集群的写入都卡在同一条日志上（FND-R2-3）。
-	 * 与 StateMachine.logFactory 对未知日志类型的处置一致：宁死不糊，fatalKill。
-	 * RocksDBException（读IO瞬时错误）不在此列，向上传播保持现有的重试语义；
-	 * apply 阶段的异常也保持重试语义（结构性错误由状态机内部自行 fatalKill，
-	 * flush 失败的幂等重试补偿见 Rocks.FlushException 与 pendingFlushApplies）。
+	 * 读取并解码一条待应用的日志。decode失败是永久性错误（本节点永远无法应用）：静默吞掉
+	 * 会让lastApplied停滞而复制应答一切正常，"健康"的落后者仍计入多数派、日志完整还可当选，
+	 * 当选后集群写入全卡在此——宁死不糊，fatalKill。RocksDBException（瞬时IO错误）向上传播
+	 * 保持重试语义；apply阶段异常同样重试（结构性错误由状态机内部自行fatalKill）。
 	 */
 	private RaftLog readLogForApply(long index, String where) throws RocksDBException {
 		try {
@@ -900,11 +868,9 @@ public class LogSequence {
 	// set currentTerm = T, convert to follower(§5.1)
 
 	/**
-	 * FND6-08：term 合理上界。恶意/损坏报文携带超大 term（如 Long.MAX_VALUE）被采纳并持久化后，
-	 * 选举的 term+1 溢出回绕为负值，永远无法再推进（trySetTerm 判 Older），选举永久冻结且重启
-	 * 不可恢复；超大 term 还会随投票/心跳传染其他节点。超过上界拒绝采纳（返回 Older 按陈旧处理）。
-	 * 合法集群 term 量级极小（每纳秒一次选举也要上百年才能达到），上界不可自然触及。
-	 * 1024 -> 等于允许1024次坏term攻击。攻击发生并且修复系统以后，继续开放下一段1024个term。
+	 * term合理上界。超大term（如Long.MAX_VALUE）被采纳并持久化后term+1溢出回绕为负，
+	 * 选举永久冻结且重启不可恢复，还会随投票/心跳传染。超过上界按陈旧拒绝采纳。
+	 * 合法集群term量级极小，上界不可自然触及；/1024即允许1024次坏term攻击，修复后继续开放下一段。
 	 */
 	public static final long TERM_MAX = Long.MAX_VALUE / 1024;
 
@@ -952,16 +918,11 @@ public class LogSequence {
 		connector.setNextIndex(rpc.Argument.getLastEntryIndex() + 1);
 		connector.setMatchIndex(rpc.Argument.getLastEntryIndex());
 
-		// 旧的 AppendEntries 的结果，不用继续处理了。
-		// 【注意】这个不是必要的，是一个小优化。
+		// 旧的AppendEntries结果，不用继续处理（非必要的小优化）。
 		if (rpc.Argument.getLastEntryIndex() <= commitIndex) {
-			// 【FND2-R2-5】commitIndex 未推进（无新写入）也要尝试 apply：leader 本地的
-			// apply 可能因 flush 失败中断（lastApplied 停在 commitIndex 之前，8c49419de
-			// 只给 follower 加了重试触发），空闲 leader 的复制应答（超时重发、follower
-			// 追赶触发的旧范围复制）是仅剩的周期性触发点，在此重试直到追平——对齐
-			// followerOnAppendEntries 的 commitIndex>lastApplied 重试分支。
-			// tryStartApplyTask 仅在没有 apply 进行中才启动；tryApply 从 lastApplied+1
-			// 开始，pendingFlush 命中时只重试 flush（幂等，FND-R2-4）。
+			// commitIndex未推进（无新写入）也要尝试apply：leader本地apply可能因flush失败中断，
+			// 空闲leader的复制应答是仅剩的周期触发点，在此重试直到追平（对齐follower侧
+			// commitIndex>lastApplied的重试分支；pendingFlush命中时只幂等重试flush）。
 			if (commitIndex > lastApplied)
 				tryStartApplyTask(readLogForApply(commitIndex, "tryCommit"));
 			return;
@@ -1029,12 +990,11 @@ public class LogSequence {
 		return Procedure.CancelException;
 	}
 
-	// 测试钩子（package-private，一次性）：非null时在unique存根写之前执行并自动置null，
-	// 用于注入存根写失败（抛RocksDBException），验证FND3-22补偿：apply成功后存根写失败的
-	// 重试不得重放增量。仅测试使用。
+	// 测试钩子（一次性）：非null时在unique存根写之前执行并自动置null，注入存根写失败，
+	// 验证apply成功后存根写失败的重试不重放增量。仅测试使用。
 	Action0 testHookBeforeUniqueApply;
 
-	// package-private：headless单测直接驱动应用循环（FND3-22回归，理由同saveLog）。
+	// package-private：headless单测直接驱动应用循环，理由同saveLog。
 	void tryApply(RaftLog lastApplicableLog, long count) throws Exception {
 		if (lastApplicableLog == null) {
 			logger.error("lastApplicableLog is null.");
@@ -1055,10 +1015,9 @@ public class LogSequence {
 			try {
 				raftLog.getLog().apply(raftLog, raft.getStateMachine());
 			} catch (Rocks.FlushException e) {
-				// flush失败（FND-R2-4）：状态机已记录"内存已应用"的记录集合（pendingFlush），
-				// lastApplied不推进，重试时只重试flush、不重放增量日志，避免双重应用。
-				// 原始raftLog放回leaderAppendLogs：重试命中它时走leaderApply（flush-only）
-				// 路径，成功后invokeCallback能唤醒等待appendLog的业务线程。
+				// flush失败：状态机已记录pendingFlush，lastApplied不推进，重试只重试flush、
+				// 不重放增量，避免双重应用。原始raftLog放回leaderAppendLogs：重试命中它时走
+				// flush-only路径，成功后invokeCallback唤醒等待appendLog的业务线程。
 				if (raftLog.isLeaderRequest() && leaderAppendLogs.putIfAbsent(raftLog.getIndex(), raftLog) != null) {
 					logger.fatal("LeaderAppendLogs.TryAdd Fail. Index={}", raftLog.getIndex(), new Exception());
 					raft.fatalKill();
@@ -1069,10 +1028,9 @@ public class LogSequence {
 			// Rocks状态机才有pendingFlush补偿（Dbh2等自定义StateMachine的apply重试语义自成一体）。
 			var smRocks = raft.getStateMachine() instanceof Rocks rocks ? rocks : null;
 			if (hasUniqueRequest && smRocks != null)
-				// FND3-22：apply已完整成功（内存变更+flush提交），其后到lastApplied推进之间的
-				// 收尾步骤（unique存根写）失败时，登记"已应用"补偿（空记录集）：重试经
-				// takePendingFlush命中→no-op flush短路，不重放非幂等增量（list按索引追加等
-				// 重放一次即双重应用）。正常收尾后在lastApplied推进处清除。
+				// apply已完整成功，其后到lastApplied推进之间的收尾步骤（unique存根写）失败时，
+				// 登记"已应用"补偿：重试经takePendingFlush命中→no-op flush短路，不重放非幂等
+				// 增量（list按索引追加等重放一次即双重应用）。正常收尾后在lastApplied推进处清除。
 				smRocks.markApplied(raftLog.getIndex(), raftLog.getTerm());
 			try {
 				if (hasUniqueRequest) {
@@ -1085,9 +1043,8 @@ public class LogSequence {
 				}
 			} catch (RocksDBException e) {
 				// 重试的pending路径会take消费标记：补回，保持"已应用"事实直到存根写成功；
-				// 原始raftLog放回（对齐FlushException分支）：leader重试走leaderApply（flush-only）
-				// 路径，成功后invokeCallback能唤醒等待appendLog的业务线程（否则重试用解码的
-				// 新对象，回调丢失，业务线程等满超时拿到RaftRetry假失败）。
+				// raftLog放回理由同上flush失败分支（否则重试用解码的新对象，回调丢失，
+				// 业务线程等满超时拿到假失败）。
 				if (smRocks != null)
 					smRocks.markApplied(raftLog.getIndex(), raftLog.getTerm());
 				if (raftLog.isLeaderRequest() && leaderAppendLogs.putIfAbsent(raftLog.getIndex(), raftLog) != null) {
@@ -1131,8 +1088,7 @@ public class LogSequence {
 	}
 
 	public long getTestStateMachineCount() {
-		// 状态机自己提供的观测计数（FND-R1-7）：不再instanceof Test.TestStateMachine，
-		// 主源码与主源码目录里的测试壳类解耦；默认-1表示无。
+		// 状态机自己提供的观测计数（主源码不instanceof测试壳类；默认-1表示无）。
 		return raft.getStateMachine().getDebugCount();
 	}
 
@@ -1149,7 +1105,7 @@ public class LogSequence {
 			if (connector.getPending() != null)
 				return;
 
-			if (getInstallSnapshotting().containsKey(connector.getName()))
+			if (sendSnapshotting.contains(connector.getName()))
 				return;
 
 			var socket = connector.TryGetReadySocket();
@@ -1230,12 +1186,10 @@ public class LogSequence {
 		});
 		if (!future.await(raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000)) {
 			leaderAppendLogs.remove(result.index);
-			// 超时/取消后条目仍留在日志中（lastIndex不回退，see appendLog(Log,Action2) 的注释），
-			// 命运未定：可能稍后被多数派确认并应用，也可能被新leader截断。
-			// 调用方（如 RocksRaft Transaction.perform）将按失败返回并在 finally 释放悲观锁；
-			// 若在条目应用前放锁，后续同key的事务会基于应用前的旧值计算并提交新日志，
-			// 随后本条目又被应用，造成丢失更新。这里先等待条目命运确定再抛出重试异常，
-			// 使调用方在窗口期内继续持锁。
+			// 超时/取消后条目仍留在日志中（lastIndex不回退），命运未定：可能稍后被确认应用，
+			// 也可能被新leader截断。调用方将按失败返回并释放悲观锁；若在条目应用前放锁，
+			// 后续同key事务基于旧值提交新日志、本条目随后又被应用，造成丢失更新。
+			// 先等待命运确定再抛重试异常，使调用方在窗口期继续持锁。
 			waitLogFateDetermined(result.index);
 			throw new RaftRetryException("timeout or canceled");
 		}
@@ -1243,13 +1197,10 @@ public class LogSequence {
 	}
 
 	/**
-	 * 等待 index 日志条目的命运确定：已应用（lastApplied &gt;= index，状态已可见）或
-	 * 已从日志删除（被新leader截断/丢弃，变更不会生效）。用于 appendLog 超时路径，
-	 * 保证调用方在条目未决期间不释放悲观锁。
-	 * 与 appendLog 的 await 一样必须在 Raft 锁外调用：本方法内部只在检查时短暂持锁，
-	 * 等待期间不持锁，apply/截断在其它线程持锁进行，不会互相死锁。
-	 * waitMs 超时后放弃等待并记录错误：此时集群可能长时间选不出leader，条目命运长期
-	 * 无法确定，继续持锁等待会无限期挂住业务线程（该场景下其它事务同样无法提交）。
+	 * 等待index日志条目命运确定：已应用（lastApplied>=index）或已从日志删除（截断/丢弃）。
+	 * 用于appendLog超时路径，保证调用方在条目未决期间不释放悲观锁（否则丢失更新）。
+	 * 必须在Raft锁外调用：内部只在检查时短暂持锁。waitMs超时后放弃：集群长期选不出
+	 * leader时条目命运无法确定，继续持锁会无限期挂住业务线程。
 	 */
 	void waitLogFateDetermined(long index) {
 		waitLogFateDetermined(index, raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000);
@@ -1310,10 +1261,9 @@ public class LogSequence {
 			// 最后修改LastIndex。
 			lastIndex = raftLog.getIndex();
 			// 广播给followers并异步等待多数确认。
-			// 【注意】广播中途异常不回滚lastIndex：此时可能已经有connector把该entry
-			// 发给了follower并被持久化，回滚复用同一(term,index)写入不同内容会破坏
-			// 日志匹配不变式（follower冲突检查只比term，同term直接跳过），导致状态机
-			// 静默分叉。entry留着无害：要么之后复制成功提交，要么换主后被截断。
+			// 广播中途异常不回滚lastIndex：可能已有follower持久化该entry，回滚复用同一
+			// (term,index)写不同内容会破坏日志匹配不变式（冲突检查只比term），状态机静默
+			// 分叉。entry留着无害：要么之后提交，要么换主后被截断。
 			raft.getServer().getConfig().ForEachConnector(c -> trySendAppendEntries((Server.ConnectorEx)c, null));
 			var result = new AppendLogResult();
 			result.term = term;
@@ -1332,8 +1282,8 @@ public class LogSequence {
 		snapshotting = value;
 	}
 
-	public ConcurrentHashMap<String, Server.ConnectorEx> getInstallSnapshotting() {
-		return installSnapshotting;
+	public SendSnapshotting getSendSnapshotting() {
+		return sendSnapshotting;
 	}
 
 	public String getSnapshotFullName() {
@@ -1351,81 +1301,66 @@ public class LogSequence {
 		return firstIndex >= 0 ? genSnapshotPath(firstIndex).toString() : getSnapshotFullName();
 	}
 
-	long endReceiveInstallSnapshot(Path path, InstallSnapshot r) throws Exception {
+	long endReceiveInstallSnapshot(ReceiveSnapshotting.Entry entry, InstallSnapshot r) throws Exception {
 		logsAvailable = false; // cancel RemoveLogBefore
 		var removeLogBeforeFuture = this.removeLogBeforeFuture;
 		if (removeLogBeforeFuture != null)
 			removeLogBeforeFuture.await();
 		raft.lock();
-		Raft.ReceiveSnapshotEntry receiveEntry = null;
 		try {
 			try {
-				// 【raft-02】finalizing 条目在收尾全程占位（processInstallSnapshot 的
-				// guard 据此挡住重装首块的 setLength(0) 截断）。term 复核前就读取：
-				// 任何出口——成功、各放弃分支、异常——都在外层 finally 同一性摘除。
-				receiveEntry = raft.getReceiveSnapshottingEntry(r.Argument.getLastIncludedIndex());
-				// 【FND-R1-4】上面的removeLogBeforeFuture.await()与本处raft.lock()都可能长时间等待，
-				// 期间term/leader/state可任意变化（新leader当选/本节点发起选举；term的写点全在Raft锁内）。
-				// 拿到锁后term在本轮重置完成前不会再变：与进入时（processInstallSnapshot锁内
-				// 校验通过的r.Argument.getTerm()）不一致，说明这是为旧term准备的快照重置，必须放弃。
-				// 否则：1) commitIndex已被新leader推进时误触发下面的fatalKill防御分支杀死健康节点；
-				// 2) logs.drop()丢弃新leader已复制的日志，lastIndex/commitIndex/lastApplied回退重放；
-				// 3) setVoteFor(当前leaderId="")抹掉等待期间的自投票，破坏"每term至多一票"。
-				// 放弃时在应答中带回当前term，旧leader收到更高term即自行退位/回溯重试。
+				// 上面的await与本处raft.lock()都可能长时间等待，期间term可任意变化（写点全在Raft锁内）。
+				// 拿到锁后与进入时不一致即为旧term准备的重置，必须放弃：否则误触发下方fatalKill防御、
+				// logs.drop()丢弃新leader已复制的日志、抹掉等待期间的自投票。应答带回当前term，
+				// 旧leader自行退位/回溯重试。
 				if (r.Argument.getTerm() != term) {
 					logger.warn("{} InstallSnapshot stale: rpcTerm={} != currentTerm={}, leaderId={},"
 									+ " LastIncludedIndex={}, term changed while waiting outside raft lock;"
 									+ " discard received snapshot.",
 							raft.getName(), r.Argument.getTerm(), term, r.Argument.getLeaderId(),
 							r.Argument.getLastIncludedIndex());
+					// 对齐另外两个放弃分支：冻结文件一并清理（句柄已关；删除失败仅告警）。
+					// 唯一命名保证新安装用新路径，删本条目文件不波及任何在飞接收。
+					ReceiveSnapshotting.tryDelete(entry.path, "endReceiveInstallSnapshot");
 					r.Result.setTerm(term);
 					return 0; // leader 发现 term 更高自行退位/回溯重试（见 InstallSnapshotState.processResult）
 				}
-				// 【FND3-21】本地快照进行中（重阶段在锁外写 backupDir）：此时重置会与快照并发
-				// 操作同一 backupDir（loadSnapshot 删目录+解压+restore），且 loadSnapshot 失败会把
-				// 节点留在"日志已重置、状态机未恢复"的不可自愈状态。放弃本次接收并应答冲突码，
-				// leader 中断安装后下个心跳自动重试。snapshotting 的检查/设置与本重置全程都在
-				// raft 锁内串行，无"检查后翻转"缝隙；processInstallSnapshot 首块处的早期拒绝
-				// 只是优化，这里是正确性兜底。
+				// 本地快照进行中（重阶段在锁外写backupDir）：重置会与快照并发操作同一backupDir，
+				// 且loadSnapshot失败留下"日志已重置、状态机未恢复"的不可自愈状态。应答冲突码，
+				// leader下个心跳自动重试。检查与重置全程持raft锁串行；processInstallSnapshot
+				// 首块处的早期拒绝只是优化，这里是正确性兜底。
 				if (getSnapshotting()) {
 					logger.warn("{} InstallSnapshot LastIncludedIndex={} conflicts with local snapshotting;"
 									+ " discard received snapshot and reply SnapshottingConflict.",
 							raft.getName(), r.Argument.getLastIncludedIndex());
-					// 【raft-02】条目由外层 finally 同一性摘除，这里只清理 .installing 文件
-					// （文件句柄已在 done 分支关闭）；失败仅告警，残留由启动清理兜底。
-					try {
-						Files.deleteIfExists(path);
-					} catch (IOException e) {
-						logger.warn("endReceiveInstallSnapshot deleteIfExists Exception. path={}", path, e);
-					}
+					// 条目由外层finally摘除，这里只清文件（失败仅告警，启动清扫兜底）。
+					ReceiveSnapshotting.tryDelete(entry.path, "endReceiveInstallSnapshot");
 					return InstallSnapshot.ResultCodeSnapshottingConflict;
 				}
-				// 【raft-02】提交前兜底：文件长度必须等于条目记录的应收总长度。finalizing
-				// guard 挡住重装截断后，此处拦截理论外的路径（guard 被绕过/磁盘异常）：
-				// 不一致的文件一旦提交，loadSnapshot 失败会 fatalKill 杀死健康节点（或
-				// Windows 上 move 失败留下运行期日志空洞）——显式丢弃并应答冲突码，
-				// leader 中断安装、下个心跳重装，自愈。条目缺失/非 finalizing 同样按
-				// 不可信处理（正常流程 done 分支已置位，缺失即不变量破坏）。
+				// 所有权复核：条目仍在登记表中且已finalizing。不满足即所有权被撤销或不变量破坏：
+				// 丢弃文件应答冲突码，leader中断、下个心跳重装，不做任何重置。
+				if (raft.receiveSnapshotting.get(r.Argument.getLastIncludedIndex()) != entry
+						|| !entry.finalizing) {
+					logger.warn("{} InstallSnapshot finalize ownership broken: LastIncludedIndex={},"
+									+ " discard file and reply FinalizingConflict.",
+							raft.getName(), r.Argument.getLastIncludedIndex());
+					ReceiveSnapshotting.tryDelete(entry.path, "endReceiveInstallSnapshot");
+					return InstallSnapshot.ResultCodeFinalizingConflict;
+				}
+				// 尺寸复核：文件长度必须等于done时记录的应收总长度。唯一命名+finalizing占位
+				// 已让重装截断结构上无对象，此处拦理论外路径（磁盘异常/外部改动）：尺寸不符的
+				// 文件一旦提交，loadSnapshot失败fatalKill、重启加载损坏快照起不来。
 				long fileSize;
 				try {
-					fileSize = Files.size(path);
+					fileSize = Files.size(entry.path);
 				} catch (IOException e) {
 					fileSize = -1;
 				}
-				if (receiveEntry == null || !receiveEntry.finalizing
-						|| fileSize != receiveEntry.receivedLength) {
-					logger.warn("{} InstallSnapshot finalize check failed: entryFound={} finalizing={}"
-									+ " fileSize={} receivedLength={} LastIncludedIndex={},"
-									+ " discard file and reply FinalizingConflict.",
-							raft.getName(), receiveEntry != null,
-							receiveEntry != null && receiveEntry.finalizing,
-							fileSize, receiveEntry == null ? -1 : receiveEntry.receivedLength,
-							r.Argument.getLastIncludedIndex());
-					try {
-						Files.deleteIfExists(path);
-					} catch (IOException e) {
-						logger.warn("endReceiveInstallSnapshot deleteIfExists Exception. path={}", path, e);
-					}
+				if (fileSize != entry.expectedLength) {
+					logger.warn("{} InstallSnapshot finalize size mismatch: fileSize={} expectedLength={}"
+									+ " LastIncludedIndex={}, discard file and reply FinalizingConflict.",
+							raft.getName(), fileSize, entry.expectedLength, r.Argument.getLastIncludedIndex());
+					ReceiveSnapshotting.tryDelete(entry.path, "endReceiveInstallSnapshot");
 					return InstallSnapshot.ResultCodeFinalizingConflict;
 				}
 				// 6. If existing log entry has same index and term as snapshot's
@@ -1433,25 +1368,19 @@ public class LogSequence {
 				var last = readLog(r.Argument.getLastIncludedIndex());
 				if (last != null && last.getTerm() == r.Argument.getLastIncludedTerm()) {
 					logger.warn("Exist Local Log. Do It Like A Local Snapshot!");
-					// 【FND7-12】防御（对齐下方完整路径）：边界低于已提交位置时，下面的复位
-					// 会回退commitIndex、丢失已apply的数据。按启动InstallSnapshot的回溯逻辑
-					// 不会发生（leader仅在follower对prevLog=leader.firstIndex校验失败后安装，
-					// 完好日志会被AppendEntries先行补齐），一旦发生说明别处有bug。
+					// 防御：边界低于commitIndex时复位会回退已apply的数据，正常不会发生
+					// （完好日志会被AppendEntries先行补齐），一旦发生说明别处有bug。
 					if (r.Argument.getLastIncludedIndex() < commitIndex) {
 						logger.fatal("{} InstallSnapshot(ExistLog) LastIncludedIndex={} < commitIndex={},"
 										+ " there must be a bug.",
 								raft.getName(), r.Argument.getLastIncludedIndex(), commitIndex, new Exception());
 						raft.fatalKill();
 					}
-					commitSnapshotNow(path, r.Argument.getLastIncludedIndex());
-					// 【FND7-12】恢复语义补全：本分支只会由"上次同边界收尾中途失败后的重装"
-					// 进入——完整路径在commitSnapshotNow（或其内部的saveFirstIndex写）处
-					// 失败/崩溃，重启或重试时logs只含上次saveLog的边界日志X，而内存
-					// lastIndex/commitIndex/lastApplied与状态机仍停留在旧边界。只执行
-					// commitSnapshotNow会留下 firstIndex=X 但 lastApplied=旧值 的空洞：
-					// tryApply从lastApplied+1起readLog得null，apply永久楔死；日志完整的
-					// 节点当选后SetLeaderReadyEvent永远apply不到，waitLeaderReady恒超时，
-					// 集群级死锁。这里对齐完整路径：复位内存索引并装载快照（重装即恢复）。
+					commitSnapshotNow(entry.path, r.Argument.getLastIncludedIndex());
+					// 恢复语义补全：本分支由"上次同边界收尾中途失败后的重装"进入——收尾在
+					// commitSnapshotNow处崩溃后，logs只含边界日志X而内存索引与状态机停在旧边界。
+					// 只执行commitSnapshotNow会留下firstIndex=X但lastApplied=旧值的空洞，apply永久
+					// 楔死、集群级死锁。对齐完整路径：复位内存索引并装载快照（重装即恢复）。
 					lastIndex = r.Argument.getLastIncludedIndex();
 					commitIndex = firstIndex; // commitSnapshotNow已把firstIndex推进为X
 					lastApplied = firstIndex;
@@ -1460,30 +1389,25 @@ public class LogSequence {
 					try {
 						raft.getStateMachine().loadSnapshot(getCommittedSnapshotFile());
 					} catch (Throwable e) {
-						// 对齐完整路径（FND3-21）：没有原地恢复路径，fatalKill把静默分歧
-						// 变成crash，重启从已提交gen快照恢复自愈。
+						// 没有原地恢复路径：fatalKill把静默分歧变成crash，重启从已提交gen快照恢复自愈。
 						logger.fatal("{} EndReceiveInstallSnapshot(ExistLog) loadSnapshot failed, fatalKill. Path={}",
-								raft.getName(), path, e);
+								raft.getName(), entry.path, e);
 						raft.fatalKill();
 						throw Task.forceThrow(e); // fatalKill不会返回（halt）；测试注入钩子时到达这里
 					}
 					logger.info("{} EndReceiveInstallSnapshot(ExistLog) Path={} time={}ms",
-							raft.getName(), path, (System.nanoTime() - t) / 1_000_000);
+							raft.getName(), entry.path, (System.nanoTime() - t) / 1_000_000);
 					return 0;
 				}
-				// 防御：快照边界低于已提交位置时丢弃日志会回退commitIndex、
-				// 丢失已apply的数据。按启动InstallSnapshot的回溯逻辑不会发生
-				// （已提交区间必然匹配，走不到这里），一旦发生说明别处有bug。
+				// 防御：边界低于commitIndex时丢弃日志会回退已apply的数据，正常不会发生，
+				// 一旦发生说明别处有bug。
 				if (r.Argument.getLastIncludedIndex() < commitIndex) {
 					logger.fatal("{} InstallSnapshot LastIncludedIndex={} < commitIndex={}, there must be a bug.",
 							raft.getName(), r.Argument.getLastIncludedIndex(), commitIndex, new Exception());
 					raft.fatalKill();
 				}
-				// 7. Discard the entire log
-				// 整个删除，那么下一次AppendEntries又会找不到prev。不就xxx了吗?
-				// 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
-				// 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
-				// 【除了快照最后包含的日志，其他都删除。】
+				// 7. Discard the entire log：整个删除后下一次AppendEntries找不到prev，
+				// 所以最后一个trunk带上LastIncludedLog，接收者清除log后插入这条边界日志。
 				logger.info("endReceiveInstallSnapshot: close logs: {}", raft.getRaftConfig().getDbHome());
 				//logs.close();
 				//logs = null;
@@ -1495,7 +1419,7 @@ public class LogSequence {
 				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
 						raft.getStateMachine()::logFactory);
 				saveLog(lastIncludedLog);
-				commitSnapshotNow(path, lastIncludedLog.getIndex());
+				commitSnapshotNow(entry.path, lastIncludedLog.getIndex());
 
 				lastIndex = lastIncludedLog.getIndex();
 				commitIndex = firstIndex;
@@ -1510,29 +1434,24 @@ public class LogSequence {
 				try {
 					raft.getStateMachine().loadSnapshot(getCommittedSnapshotFile());
 				} catch (Throwable e) {
-					// 【FND3-21】loadSnapshot 失败时日志已 drop、firstIndex 已持久化推进、
-					// 内存 lastApplied 已是新边界，而状态机仍是旧内容；继续运行则 leader
-					// 重试走 ExistLog 分支只 commitSnapshotNow 不再 loadSnapshot，follower
-					// 永久脏状态（静默分歧），仅进程重启可恢复。没有可行的原地恢复路径，
-					// 显性 fatalKill 把静默分歧变成 crash：重启从已提交gen快照恢复自愈。
+					// loadSnapshot失败时日志已drop、firstIndex已推进而状态机仍旧内容；继续运行则
+					// 重试走ExistLog分支不再loadSnapshot，永久脏状态。无原地恢复路径：fatalKill
+					// 变静默分歧为crash，重启从已提交gen快照恢复自愈。
 					logger.fatal("{} EndReceiveInstallSnapshot loadSnapshot failed, fatalKill. Path={}",
-							raft.getName(), path, e);
+							raft.getName(), entry.path, e);
 					raft.fatalKill();
 					throw Task.forceThrow(e); // fatalKill 不会返回（halt）；测试注入钩子时到达这里
 				}
 				logger.info("{} EndReceiveInstallSnapshot Path={} time={}ms",
-						raft.getName(), path, (System.nanoTime() - t) / 1_000_000);
+						raft.getName(), entry.path, (System.nanoTime() - t) / 1_000_000);
 				return 0;
 			} finally {
 				logsAvailable = true;
 			}
 		} finally {
-			// 【raft-02】finalizing 条目生命周期唯一收口：同一性摘除（不误摘 gc 丢弃后
-			// 重建的同 key 新条目）。持 raft 锁内执行，raft→receiveSnapshotting 与既有
-			// 嵌套顺序一致；此后新到的重装首块才能走"无条目→全新安装"路径，此时提交
-			// 已落地（或已放弃），截断不再有竞态对象。
-			if (receiveEntry != null)
-				raft.removeReceiveSnapshottingEntry(r.Argument.getLastIncludedIndex(), receiveEntry);
+			// finalizing条目生命周期唯一收口：同一性摘除（不误摘同key接任的新条目），
+			// 持raft锁执行；此后重装首块才能走"无条目→全新安装"路径。
+			raft.receiveSnapshotting.removeIdentity(r.Argument.getLastIncludedIndex(), entry);
 			raft.unlock();
 		}
 	}
@@ -1543,7 +1462,7 @@ public class LogSequence {
 			// 正在接收InstallSnapshot时不启动本地snapshot：
 			// 接收完成会重置状态机并推进firstIndex，进行中的本地snapshot将作废
 			// （其commit由_commitSnapshot的过期检查兜底丢弃）。
-			if (getSnapshotting() || !getInstallSnapshotting().isEmpty() || raft.isReceivingSnapshot())
+			if (getSnapshotting() || !sendSnapshotting.isEmpty() || raft.isReceivingSnapshot())
 				return;
 
 			setSnapshotting(true);
@@ -1568,86 +1487,6 @@ public class LogSequence {
 			} finally {
 				raft.unlock();
 			}
-		}
-	}
-
-	public void cancelAllInstallSnapshot() throws Exception {
-		for (var installing : getInstallSnapshotting().values())
-			endInstallSnapshot(installing);
-	}
-
-	public void endInstallSnapshot(Server.ConnectorEx c) throws Exception {
-		var cex = getInstallSnapshotting().remove(c.getName());
-		if (cex != null) {
-			var state = cex.getInstallSnapshotState();
-			logger.info("{} InstallSnapshot LastIncludedIndex={} Done={} c={}", raft.getName(),
-					state.getLastIncludedIndex(),
-					state.getDone(), c.getName());
-			// 【R2-F1】startInstallSnapshot打开快照文件失败留下的条目file==null：防御关闭。
-			// 原样NPE会沿cancelAllInstallSnapshot打断Raft.shutdown后续的logSequence.close。
-			if (state.getFile() != null)
-				state.getFile().close();
-			if (state.getDone() && state.getResultCode() == 0) {
-				cex.setNextIndex(state.getLastIncludedIndex() + 1);
-
-				if (state.getLastIncludedIndex() > cex.getMatchIndex()) // see EndReceiveInstallSnapshot 6.
-					cex.setMatchIndex(state.getLastIncludedIndex());
-				// start log copy
-				trySendAppendEntries(c, null);
-			}
-		}
-		c.setInstallSnapshotState(null);
-	}
-
-	private void startInstallSnapshot(Server.ConnectorEx c) throws Exception {
-		if (getInstallSnapshotting().containsKey(c.getName()))
-			return;
-		// leader发送firstIndex指认的不可变gen文件，与本地提交/清扫不竞争。
-		var path = getCommittedSnapshotFile();
-		// 如果 Snapshotting，此时不启动安装。
-		// 以后重试 AppendEntries 时会重新尝试 Install.
-		if ((new File(path)).isFile() && !getSnapshotting()) {
-			if (getInstallSnapshotting().putIfAbsent(c.getName(), c) != null)
-				throw new IllegalStateException("Impossible");
-
-			c.setInstallSnapshotState(new InstallSnapshotState());
-			var st = c.getInstallSnapshotState();
-			// 【R2-F1】putIfAbsent之后的初始化（open+readLog）失败（文件被删/IO错误）时回收
-			// 半初始化条目：残留会让心跳/复制被拦截、endInstallSnapshot对null file NPE打断
-			// shutdown路径的cancelAllInstallSnapshot（endInstallSnapshot已加null防御）。
-			try {
-				st.setFile(new RandomAccessFile(path, "r"));
-				st.setFirstLog(readLog(firstIndex));
-			} catch (Exception e) {
-				logger.error("{} startInstallSnapshot: open snapshot fail, cancel install. c={}",
-						raft.getName(), c.getName(), e);
-				endInstallSnapshot(c);
-				return;
-			}
-			if (st.getFirstLog() == null) {
-				// 【FND-R1-5防御】firstIndex处没有边界日志（如endReceiveInstallSnapshot
-				// 崩溃窗口导致的不变式破坏）：继续下去setLastIncludedIndex(st.getFirstLog()
-				// .getIndex())必然NPE，且异常被吞后connector停留在installSnapshotting、
-				// 文件已打开的半初始化状态——心跳被拦截，每次重连重试都再次NPE，follower
-				// 复制永久楔死。取消本次安装（清理installSnapshotting与文件句柄），
-				// 让本地生成新snapshot推进firstIndex后恢复。
-				logger.error("{} startInstallSnapshot: no log at firstIndex={}, cancel install. c={}",
-						raft.getName(), firstIndex, c.getName());
-				endInstallSnapshot(c);
-				return;
-			}
-			st.setTerm(term);
-			st.setLeaderId(raft.getName());
-			st.setLastIncludedIndex(st.getFirstLog().getIndex());
-			st.setLastIncludedTerm(st.getFirstLog().getTerm());
-
-			logger.info("{} InstallSnapshot Start... Path={} c={}", raft.getName(), path, c.getName());
-			st.trySend(this, c);
-		} else {
-			// 这一般的情况是snapshot文件被删除了。
-			// 【注意】这种情况也许报错更好？
-			// 内部会判断，不会启动多个snapshot。
-			TaskSpec.ofAction(this::snapshot).name("Snapshot").run();
 		}
 	}
 
@@ -1720,7 +1559,7 @@ public class LogSequence {
 		// 【注意】
 		// 正在安装Snapshot，此时不复制日志，肯定失败。
 		// 不做这个判断也是可以工作的，算是优化。
-		if (getInstallSnapshotting().containsKey(connector.getName()))
+		if (sendSnapshotting.contains(connector.getName()))
 			return;
 
 		var socket = connector.TryGetReadySocket();
@@ -1734,7 +1573,7 @@ public class LogSequence {
 			// 已经到了日志开头，此时不会有prev-log，无法复制日志了。
 			// 这一般发生在Leader进行了Snapshot，但是Follower的日志还更老。
 			// 新起的Follower也一样。
-			startInstallSnapshot(connector);
+			sendSnapshotting.start(connector);
 			return;
 		}
 
@@ -1806,10 +1645,9 @@ public class LogSequence {
 
 		if (r.Argument.getTerm() < term || r.Argument.getTerm() > TERM_MAX) {
 			// 1. Reply false if term < currentTerm (§5.1)
-			// 【注意】过期term的请求不重置选举计时，否则被分区/失联后重新出现的旧Leader
-			// 持续发送的过期心跳会压制本节点发起新选举。
-			// FND6-08：超过TERM_MAX的term非法（trySetTerm拒绝采纳），同样按陈旧处理提前返回——
-			// 下面处理term的switch无Older分支，落穿会setLeaderId接受非法Leader。
+			// 过期term不重置选举计时，否则分区后重现的旧Leader的过期心跳会压制新选举。
+			// 超过TERM_MAX的term同样按陈旧提前返回：下面switch无Older分支，
+			// 落穿会setLeaderId接受非法Leader。
 			r.SendResult();
 			logger.info("this={} Leader={} PrevLogIndex={} invalid term({})",
 					raft.getName(), r.Argument.getLeaderId(), r.Argument.getPrevLogIndex(), r.Argument.getTerm());
@@ -1828,7 +1666,7 @@ public class LogSequence {
 		case Same:
 			switch (raft.getState()) {
 			case Candidate:
-				// see raft.pdf 文档. 仅在 Candidate 才转。【找不到在文档哪里了，需要确认这点】
+				// 同term已存在合法Leader，仅Candidate让位转Follower。
 				raft.convertStateTo(Raft.RaftState.Follower);
 				break;
 			case Leader:
@@ -1879,9 +1717,8 @@ public class LogSequence {
 			try {
 				copyLog = RaftLog.decode(r.Argument.getEntries().get(entryIndex), raft.getStateMachine()::logFactory);
 			} catch (Throwable e) {
-				// 与readLogForApply同理：无法decode的复制条目（版本偏差等）是永久性错误，
-				// 本节点永远无法保存并应用它。静默传播只会让本节点对AppendEntries永远无应答
-				// （leader无限重发），宁死不糊。
+				// 与readLogForApply同理：无法decode的复制条目是永久错误，静默传播只会让本节点
+				// 对AppendEntries永远无应答（leader无限重发），宁死不糊。
 				fatalKillDecodeError("followerOnAppendEntries.copyLog", copyLogIndex, e);
 				return 0; // fatalKill 不会返回；这里防御编译检查。
 			}
@@ -1928,8 +1765,8 @@ public class LogSequence {
 		// 5. If leaderCommit > commitIndex,
 		// set commitIndex = min(leaderCommit, index of last new entry)
 		// leaderCommit未推进但commitIndex>lastApplied时也要尝试apply：上次apply可能因
-		// flush失败中断（FND-R2-4），此时静默应答会让follower以"健康"状态一直落后；
-		// 在每次AppendEntries（含心跳）上重试，直到追平（apply异常时不发应答）。
+		// flush失败中断，静默应答会让follower以"健康"状态一直落后；每次AppendEntries
+		// （含心跳）重试直到追平（apply异常时不发应答）。
 		if (r.Argument.getLeaderCommit() > commitIndex || commitIndex > lastApplied) {
 			if (r.Argument.getLeaderCommit() > commitIndex)
 				commitIndex = Math.min(r.Argument.getLeaderCommit(), lastRaftLogTermIndex().getIndex());

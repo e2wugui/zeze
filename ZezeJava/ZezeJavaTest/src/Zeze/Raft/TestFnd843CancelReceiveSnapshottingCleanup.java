@@ -2,8 +2,6 @@ package Zeze.Raft;
 
 import java.io.File;
 import java.io.RandomAccessFile;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -21,10 +19,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * gcReceiveSnapshotting以map为准看不到已移除条目，运行期无任何文件清理路径
  *（启动清理仅进程重启执行），"接收途中换主/shutdown"反复发生时磁盘按快照大小
  * 缓慢泄漏（不损正确性）。
- * 修复：关句柄的同时对每个条目调用discardReceiveEntry（关句柄+删文件，
- * 失败仅告警，与gc路径同口径）。
- * 纯单元：合成receiveSnapshotting残留条目（字段包内可见，注释明示测试专用），
- * 反射调用私有cancel（TestFnd757先例），不起server。
+ * 修复：关句柄的同时对每个条目调用discard（关句柄+删文件，失败仅告警，与gc路径
+ * 同口径）。
+ * 纯单元：合成receiveSnapshotting残留条目（registry包内可见），直接调用
+ * cancelAll（R4抽取前经反射调Raft私有方法，抽取后为登记表包内方法），不起server。
  */
 @Fast
 public class TestFnd843CancelReceiveSnapshottingCleanup {
@@ -87,16 +85,10 @@ public class TestFnd843CancelReceiveSnapshottingCleanup {
 		Files.writeString(path7, "a3partial7");
 		file = new RandomAccessFile(path5.toFile(), "rw");
 		var file7 = new RandomAccessFile(path7.toFile(), "rw");
-		raft.receiveSnapshotting.put(5L, new Raft.ReceiveSnapshotEntry(file, 0, "leader", 0));
-		raft.receiveSnapshotting.put(7L, new Raft.ReceiveSnapshotEntry(file7, 0, "leader", 0));
+		raft.receiveSnapshotting.put(5L, new ReceiveSnapshotting.Entry(path5, file, 0, "leader", 0));
+		raft.receiveSnapshotting.put(7L, new ReceiveSnapshotting.Entry(path7, file7, 0, "leader", 0));
 
-		Method cancel = Raft.class.getDeclaredMethod("cancelAllReceiveSnapshotting");
-		cancel.setAccessible(true);
-		try {
-			cancel.invoke(raft);
-		} catch (InvocationTargetException e) {
-			throw Zeze.Util.Task.forceThrow(e.getCause());
-		}
+		raft.receiveSnapshotting.cancelAll();
 
 		assertTrue(raft.receiveSnapshotting.isEmpty(), "条目全部清除");
 		assertFalse(file.getFD().valid(), "句柄必须关闭");

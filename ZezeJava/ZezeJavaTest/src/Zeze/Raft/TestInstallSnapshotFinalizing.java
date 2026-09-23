@@ -21,21 +21,20 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 【raft-02】InstallSnapshot 收尾期间重装首块的截断竞态：done 块在
- * receiveSnapshottingLock 内移除条目后、endReceiveInstallSnapshot 在 raft 锁外
- * await removeLogBeforeFuture（可达秒级）期间，leader 对 done 块的
- * AppendEntriesTimeout（默认2s）超时重发首块会走"无条目→全新安装"分支
- * setLength(0) 截断完整快照；被截断的半截文件随后被 commitSnapshotNow 提交，
- * loadSnapshot 失败 fatalKill 杀死健康 follower（Windows 上重装句柄还会让
- * Files.move 失败，留下运行期日志空洞）。
- * 修复：done 分支不摘条目改置 finalizing（所有权从"传输完成"延长到"收尾完成"），
- * 重装块应答 ResultCodeFinalizingConflict；条目由 endReceiveInstallSnapshot 的
- * finally 同一性摘除；提交前校验文件长度==条目累计应收长度，不一致丢弃应答冲突。
+ * 【raft-02】InstallSnapshot 收尾期间重装首块的竞态：done 块处理后（finalizing 条目
+ * 未摘除）endReceiveInstallSnapshot 在 raft 锁外 await removeLogBeforeFuture（可达
+ * 秒级）期间，leader 对 done 块的 AppendEntriesTimeout（默认2s）超时重发首块。
+ * 修复结构：done 分支置 finalizing（所有权从"传输完成"延长到"收尾完成"），重装块
+ * 应答 ResultCodeFinalizingConflict；条目文件唯一命名（.installing.{index}.{seq}，
+ * 新安装永不复用旧安装路径，截断竞态结构上无对象）；条目由 endReceiveInstallSnapshot
+ * 的 finally 同一性摘除；收尾提交前复核登记表仍持有本条目（被 gc 归属清理/shutdown
+ * 撤销即丢弃应答冲突，不做任何重置）且文件尺寸==done时记录的应收总长（拦理论外改动）。
  * 暂停点确定性合成：removeLogBeforeFuture 是 public volatile，置未完成的
  * TaskCompletionSource 即可让 endReceiveInstallSnapshot 精确停在 raft 锁外 await。
  */
@@ -130,7 +129,7 @@ public class TestInstallSnapshotFinalizing {
 			// 等到 done 分支完成：finalizing 置位（此后线程阻塞在 endReceive 的锁外 await）
 			var deadline = System.currentTimeMillis() + 10_000;
 			while (true) {
-				var entry = raft.getReceiveSnapshottingEntry(5);
+				var entry = raft.receiveSnapshotting.get(5);
 				if (entry != null && entry.finalizing)
 					break;
 				if (error.get() != null)
@@ -160,14 +159,15 @@ public class TestInstallSnapshotFinalizing {
 			var logSequence = raft.getLogSequence();
 			var worker = new DoneWorker(raft, new byte[]{1, 2, 3, 4, 5});
 			worker.start(raft);
+			var entryPath = raft.receiveSnapshotting.get(5).path;
 
 			// leader 对 done 块 2s 超时后重装：同 term/leader/边界的首块（offset=0）。
 			var reinstall = newChunk(logSequence.getTerm(), leaderId, 5, 0, new byte[]{9, 9, 9}, false);
 			assertEquals(Procedure.Success, raft.processInstallSnapshot(reinstall));
 			assertEquals(InstallSnapshot.ResultCodeFinalizingConflict, reinstall.getResultCode(),
 					"reinstall first chunk must be rejected while finalize in flight");
-			assertArrayEquals(new byte[]{1, 2, 3, 4, 5}, Files.readAllBytes(installingPath(5)),
-					"finalizing guard must block setLength(0) truncation");
+			assertArrayEquals(new byte[]{1, 2, 3, 4, 5}, Files.readAllBytes(entryPath),
+					"file being finalized must stay intact");
 			assertTrue(raft.isReceivingSnapshot(), "finalizing entry occupies the registry");
 
 			worker.releaseAndJoin();
@@ -175,7 +175,7 @@ public class TestInstallSnapshotFinalizing {
 			// 收尾成功落地 + finalizing 条目由 finally 摘除。
 			assertFalse(raft.isReceivingSnapshot());
 			assertTrue(raft.receiveSnapshotting.isEmpty());
-			assertFalse(Files.exists(installingPath(5)), ".installing must be consumed by Files.move");
+			assertFalse(Files.exists(entryPath), ".installing must be consumed by Files.move");
 			assertTrue(Files.exists(logSequence.genSnapshotPath(5)), "snapshot.dat.5 must be committed");
 			assertEquals(5L, logSequence.getFirstIndex());
 			assertEquals(5L, logSequence.getLastIndex());
@@ -186,23 +186,51 @@ public class TestInstallSnapshotFinalizing {
 		}
 	}
 
-	// 兜底校验：guard 之外另有路径截断文件（理论外，模拟磁盘异常/绕过），提交前必须
-	// 发现长度不一致并丢弃应答冲突，不做任何重置（旧代码会提交半截文件）。
+	// 所有权复核：收尾期间条目被撤销（gc 归属清理/shutdown cancelAll 的合成）——登记表
+	// 不再持有本条目即不可信：丢弃文件应答冲突码，不做任何重置（旧代码会照常提交）。
 	@Test
-	public void testFinalizeLengthMismatchDiscards() throws Exception {
+	public void testOwnershipRevokedDuringFinalizeDiscards() throws Exception {
 		var raft = newRaft();
 		try {
 			var logSequence = raft.getLogSequence();
 			var worker = new DoneWorker(raft, new byte[]{1, 2, 3, 4, 5});
 			worker.start(raft);
-
-			Files.write(installingPath(5), new byte[]{1}); // 模拟收尾期间文件被截断
+			var entry = raft.receiveSnapshotting.get(5);
+			raft.receiveSnapshotting.removeIdentity(5, entry); // 模拟收尾期间所有权被撤销
 
 			worker.releaseAndJoin();
 
 			assertEquals(InstallSnapshot.ResultCodeFinalizingConflict, worker.rpc.getResultCode(),
-					"length mismatch must abort commit and reply FinalizingConflict");
-			assertFalse(Files.exists(installingPath(5)), "truncated file must be discarded");
+					"revoked ownership must abort commit and reply FinalizingConflict");
+			assertFalse(Files.exists(entry.path), "file of revoked entry must be discarded");
+			assertEquals(0L, logSequence.getLastIndex(), "logs must NOT be dropped/rebuilt");
+			assertEquals(0L, logSequence.getFirstIndex());
+			assertTrue(logSequence.logsAvailable);
+			assertNull(raft.receiveSnapshotting.get(5), "entry must stay removed (identity remove no-op)");
+		} finally {
+			raft.shutdown();
+		}
+	}
+
+	// 尺寸复核：收尾期间文件被理论外路径改动（磁盘异常/外部干预的合成）——提交前必须
+	// 发现尺寸与done时记录的应收总长不符，丢弃文件应答冲突码，不做任何重置
+	//（尺寸不符的文件一旦提交，loadSnapshot失败fatalKill且重启加载损坏快照起不来）。
+	@Test
+	public void testFinalizeSizeMismatchDiscards() throws Exception {
+		var raft = newRaft();
+		try {
+			var logSequence = raft.getLogSequence();
+			var worker = new DoneWorker(raft, new byte[]{1, 2, 3, 4, 5});
+			worker.start(raft);
+			var entry = raft.receiveSnapshotting.get(5);
+
+			Files.write(entry.path, new byte[]{1}); // 模拟收尾期间文件被截断
+
+			worker.releaseAndJoin();
+
+			assertEquals(InstallSnapshot.ResultCodeFinalizingConflict, worker.rpc.getResultCode(),
+					"size mismatch must abort commit and reply FinalizingConflict");
+			assertFalse(Files.exists(entry.path), "truncated file must be discarded");
 			assertEquals(0L, logSequence.getLastIndex(), "logs must NOT be dropped/rebuilt");
 			assertEquals(0L, logSequence.getFirstIndex());
 			assertTrue(logSequence.logsAvailable);
@@ -220,14 +248,14 @@ public class TestInstallSnapshotFinalizing {
 			var now = System.currentTimeMillis();
 			var file = installingPath(5);
 			Files.write(file, new byte[]{1, 2, 3});
-			var entry = new Raft.ReceiveSnapshotEntry(new RandomAccessFile(file.toFile(), "rw"),
+			var entry = new ReceiveSnapshotting.Entry(file, new RandomAccessFile(file.toFile(), "rw"),
 					0, leaderId, now - raft.receiveSnapshottingTimeout() - 1000);
-			entry.finalizing = true;
+			entry.markFinalizing();
 			raft.receiveSnapshotting.put(5L, entry);
 
 			raft.gcReceiveSnapshotting(now);
 
-			assertSame(entry, raft.getReceiveSnapshottingEntry(5),
+			assertSame(entry, raft.receiveSnapshotting.get(5),
 					"idle timeout must not remove finalizing entry (gc action would recreate the truncation race)");
 			assertTrue(Files.exists(file), "gc must not delete file being finalized");
 
@@ -239,7 +267,7 @@ public class TestInstallSnapshotFinalizing {
 			}
 			raft.gcReceiveSnapshotting(now);
 
-			assertNull(raft.getReceiveSnapshottingEntry(5),
+			assertNull(raft.receiveSnapshotting.get(5),
 					"stale-owner finalizing entry must be removed (its endReceive will abort at term check)");
 			assertFalse(Files.exists(file));
 		} finally {
@@ -247,45 +275,52 @@ public class TestInstallSnapshotFinalizing {
 		}
 	}
 
-	// done 分支的 cleanupStaleReceiveSnapshotting 必须跳过 finalizing 条目：
+	// done 分支的 cleanupSmallerThan 必须跳过 finalizing 条目：
 	// 其 .installing 文件正被收尾提交（Files.move 的源），删除会留下运行期日志空洞。
 	@Test
 	public void testCleanupSkipsFinalizing() throws Exception {
-		Files.createDirectories(Paths.get(dbHome));
-		var file3 = installingPath(3);
-		var file4 = installingPath(4);
-		Files.write(file3, new byte[]{1});
-		Files.write(file4, new byte[]{2});
-		var finalizing3 = new Raft.ReceiveSnapshotEntry(new RandomAccessFile(file3.toFile(), "rw"),
-				0, leaderId, System.currentTimeMillis());
-		finalizing3.finalizing = true;
-		var normal4 = new Raft.ReceiveSnapshotEntry(new RandomAccessFile(file4.toFile(), "rw"),
-				0, leaderId, System.currentTimeMillis());
-		var map = new java.util.HashMap<Long, Raft.ReceiveSnapshotEntry>();
-		map.put(3L, finalizing3);
-		map.put(4L, normal4);
+		var raft = newRaft();
+		try {
+			var logSequence = raft.getLogSequence();
+			Files.createDirectories(Paths.get(dbHome));
+			var file3 = installingPath(3);
+			var file4 = installingPath(4);
+			Files.write(file3, new byte[]{1});
+			Files.write(file4, new byte[]{2});
+			var finalizing3 = new ReceiveSnapshotting.Entry(file3, new RandomAccessFile(file3.toFile(), "rw"),
+					0, leaderId, System.currentTimeMillis());
+			finalizing3.markFinalizing();
+			var normal4 = new ReceiveSnapshotting.Entry(file4, new RandomAccessFile(file4.toFile(), "rw"),
+					0, leaderId, System.currentTimeMillis());
+			raft.receiveSnapshotting.put(3L, finalizing3);
+			raft.receiveSnapshotting.put(4L, normal4);
 
-		Raft.cleanupStaleReceiveSnapshotting(map, dbHome, 5);
+			// 生产唯一入口：done块收尾时清理更小边界残留（经processInstallSnapshot全流程）。
+			var done5 = newChunk(logSequence.getTerm(), leaderId, 5, 0, new byte[]{5}, true);
+			assertEquals(Procedure.Success, raft.processInstallSnapshot(done5));
 
-		assertSame(finalizing3, map.get(3L), "finalizing entry must be left to endReceive's finally");
-		assertTrue(Files.exists(file3), "file being finalized must not be deleted");
-		assertFalse(map.containsKey(4L), "non-finalizing smaller entry must be cleaned");
-		assertFalse(Files.exists(file4));
-		finalizing3.file.close();
+			assertSame(finalizing3, raft.receiveSnapshotting.get(3), "finalizing entry must be left to endReceive's finally");
+			assertTrue(Files.exists(file3), "file being finalized must not be deleted");
+			assertNull(raft.receiveSnapshotting.get(4), "non-finalizing smaller entry must be cleaned");
+			assertFalse(Files.exists(file4));
+			assertTrue(Files.exists(logSequence.genSnapshotPath(5)), "done chunk must commit through the real flow");
+		} finally {
+			raft.shutdown();
+		}
 	}
 
 	// 归属失效的 finalizing 条目（旧 term）：新 leader 的首块经 FND3-23 归属校验丢弃
-	// 后按全新安装重写——旧收尾会在 term 复核处放弃且不碰文件，该路径安全。
+	// （关句柄+删其文件——旧收尾会在 term 复核处放弃且不碰文件），随后按全新安装进行：
+	// R5 唯一文件名，新装写自己的新文件，与旧文件无任何共享路径。
 	@Test
 	public void testStaleOwnerFirstChunkDiscardsFinalizingEntry() throws Exception {
 		var raft = newRaft();
 		try {
-			var file = installingPath(5);
-			Files.write(file, new byte[]{1, 2, 3});
-			var entry = new Raft.ReceiveSnapshotEntry(new RandomAccessFile(file.toFile(), "rw"),
+			var oldFile = installingPath(5);
+			Files.write(oldFile, new byte[]{1, 2, 3});
+			var entry = new ReceiveSnapshotting.Entry(oldFile, new RandomAccessFile(oldFile.toFile(), "rw"),
 					0, leaderId, System.currentTimeMillis());
-			entry.finalizing = true;
-			entry.receivedLength = 3;
+			entry.markFinalizing();
 			raft.receiveSnapshotting.put(5L, entry);
 
 			// 新 term 的重装首块（换主后 term 推进）。
@@ -294,12 +329,14 @@ public class TestInstallSnapshotFinalizing {
 			assertEquals(Procedure.Success, reinstall.getResultCode(),
 					"stale-owner reinstall must proceed as fresh install, not conflict");
 
-			var fresh = raft.getReceiveSnapshottingEntry(5);
+			var fresh = raft.receiveSnapshotting.get(5);
 			assertTrue(fresh != null && !fresh.finalizing, "fresh entry replaces stale finalizing one");
 			assertEquals(1L, fresh.term);
-			assertEquals(2L, fresh.receivedLength);
-			assertArrayEquals(new byte[]{7, 7}, Files.readAllBytes(file),
-					"fresh install rewrites the file from scratch (truncate + rewrite)");
+			assertNotEquals(oldFile, fresh.path, "fresh install gets its own uniquely-named file (R5)");
+			assertArrayEquals(new byte[]{7, 7}, Files.readAllBytes(fresh.path),
+					"fresh install rewrites its own file from scratch");
+			assertFalse(Files.exists(oldFile),
+					"stale-owner discard deletes the old finalizing entry's file");
 		} finally {
 			raft.shutdown();
 		}

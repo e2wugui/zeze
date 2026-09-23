@@ -73,8 +73,6 @@ public class Server extends HandshakeBoth {
 		// 每个连接只允许存在一个AppendEntries。
 		private AppendEntries pending;
 
-		private InstallSnapshotState installSnapshotState;
-
 		private long appendLogActiveTime = System.currentTimeMillis();
 		private long heartbeatTime = System.currentTimeMillis();
 
@@ -107,14 +105,6 @@ public class Server extends HandshakeBoth {
 			pending = value;
 		}
 
-		InstallSnapshotState getInstallSnapshotState() {
-			return installSnapshotState;
-		}
-
-		void setInstallSnapshotState(InstallSnapshotState value) {
-			installSnapshotState = value;
-		}
-
 		long getAppendLogActiveTime() {
 			return appendLogActiveTime;
 		}
@@ -139,7 +129,7 @@ public class Server extends HandshakeBoth {
 				raft.lock();
 				try {
 					if (getSocket() == closed) // check is owner
-						raft.getLogSequence().endInstallSnapshot(this);
+						raft.getLogSequence().getSendSnapshotting().end(this);
 				} catch (Throwable ex) { // thread runner. logger.error
 					logger.error("Server.ConnectorEx.OnSocketClose", ex);
 				} finally {

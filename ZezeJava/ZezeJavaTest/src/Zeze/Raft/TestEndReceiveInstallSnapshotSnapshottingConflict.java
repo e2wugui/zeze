@@ -83,11 +83,9 @@ public class TestEndReceiveInstallSnapshotSnapshottingConflict {
 			var installingPath = Paths.get(dbHome, LogSequence.snapshotFileName + ".installing.5");
 			Files.write(installingPath, new byte[]{1, 2, 3});
 			var raf = new RandomAccessFile(installingPath.toFile(), "rw");
-			raf.close(); // 生产流程 done 分支已关句柄；finalizing 条目的句柄是关闭态
-			var entry = new Raft.ReceiveSnapshotEntry(raf,
+			var entry = new ReceiveSnapshotting.Entry(installingPath, raf,
 					r.Argument.getTerm(), r.Argument.getLeaderId(), System.currentTimeMillis());
-			entry.receivedLength = 3;
-			entry.finalizing = true;
+			entry.markFinalizing(); // 等价生产done分支：记应收总长、冻结条目、关句柄
 			raft.receiveSnapshotting.put(5L, entry);
 
 			// 等价于"本地快照正处于锁外重阶段"：snapshotting 的检查/设置都在 raft 锁内，
@@ -99,7 +97,7 @@ public class TestEndReceiveInstallSnapshotSnapshottingConflict {
 				raft.unlock();
 			}
 
-			var resultCode = logSequence.endReceiveInstallSnapshot(installingPath, r);
+			var resultCode = logSequence.endReceiveInstallSnapshot(entry, r);
 
 			assertEquals(InstallSnapshot.ResultCodeSnapshottingConflict, resultCode,
 					"must reply SnapshottingConflict so the leader breaks install and retries later");

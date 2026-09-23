@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Raft.cleanupStaleReceiveSnapshotting 对删除失败条目的容忍（FND2-R1-1）。
+ * ReceiveSnapshotting.cleanupSmallerThan 对删除失败条目的容忍（FND2-R1-1）。
  * InstallSnapshot(done) 完成分支清理更小 LastIncludedIndex 的中断安装条目时，
  * 旧实现的 Files.delete 抛 IOException（Windows 上 close 异常后句柄未释放、
  * 杀毒/备份软件短暂锁文件、磁盘 IO 错误）会直接传出清理循环：尚未处理到的
@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 从此恒 true，LogSequence.snapshot() 恒提前返回，本地快照与日志压缩永久
  * 停摆；本次 done 的应答也发不出去。
  * 修复：Files.deleteIfExists + 逐条 try/catch，删除失败仅告警不中断清理。
- * 这里直接调用提取出的静态清理函数（不构造 Raft、不占端口、无网络），用
+ * 这里直接调用静态清理函数（不构造 Raft、不占端口、无网络），用
  * "非空目录"模拟删除必然失败（DirectoryNotEmptyException，跨平台确定，
  * 等价于第三方锁住文件）：旧代码在第一个失败条目上抛出异常，测试即失败，
  * 有区分度。
@@ -35,29 +35,29 @@ public class TestInstallSnapshotCleanupStale {
 	// 可恢复），后续条目照常清理；不小于边界的条目不动。
 	@Test
 	public void testDeleteFailureDoesNotAbortCleanup(@TempDir Path dbHome) throws Exception {
-		var map = new HashMap<Long, Raft.ReceiveSnapshotEntry>();
+		var map = new HashMap<Long, ReceiveSnapshotting.Entry>();
 
-		// 条目3：.installing.3 路径放非空目录，Files.deleteIfExists 必抛
+		// 条目3：entry.path 放非空目录，Files.deleteIfExists 必抛
 		// DirectoryNotEmptyException（模拟杀毒/备份锁文件等删除失败，跨平台确定）。
 		// RandomAccessFile 与删除目标独立：close 成功、delete 失败。
 		var undeletable = Files.createDirectories(dbHome.resolve(LogSequence.snapshotFileName + ".installing.3"));
 		Files.writeString(undeletable.resolve("locked.bin"), "x");
 		var stale3 = new RandomAccessFile(
 				dbHome.resolve(LogSequence.snapshotFileName + ".installing.9").toFile(), "rw");
-		map.put(3L, new Raft.ReceiveSnapshotEntry(stale3, 0, "", 0));
+		map.put(3L, new ReceiveSnapshotting.Entry(undeletable, stale3, 0, "", 0));
 
 		// 条目4：正常的中断安装残留，先 close 后 delete，应被删除。
 		var stale4Path = dbHome.resolve(LogSequence.snapshotFileName + ".installing.4");
 		var stale4 = new RandomAccessFile(stale4Path.toFile(), "rw");
-		map.put(4L, new Raft.ReceiveSnapshotEntry(stale4, 0, "", 0));
+		map.put(4L, new ReceiveSnapshotting.Entry(stale4Path, stale4, 0, "", 0));
 
 		// 条目7：不小于 done 的 LastIncludedIndex=5，必须原样保留（可能是更新的安装）。
 		var newerPath = dbHome.resolve(LogSequence.snapshotFileName + ".installing.7");
 		var newer = new RandomAccessFile(newerPath.toFile(), "rw");
-		var newerEntry = new Raft.ReceiveSnapshotEntry(newer, 0, "", 0);
+		var newerEntry = new ReceiveSnapshotting.Entry(newerPath, newer, 0, "", 0);
 		map.put(7L, newerEntry);
 
-		Raft.cleanupStaleReceiveSnapshotting(map, dbHome.toString(), 5);
+		ReceiveSnapshotting.cleanupSmallerThan(map, 5);
 
 		// 失败条目也必须移出 map：残留条目会让 isReceivingSnapshot() 恒 true。
 		assertEquals(1, map.size());
@@ -76,13 +76,14 @@ public class TestInstallSnapshotCleanupStale {
 	// 外部误删后的 NoSuchFileException 由 deleteIfExists 吸收：不抛、条目照常移出。
 	@Test
 	public void testMissingFileIsTolerated(@TempDir Path dbHome) throws Exception {
-		var map = new HashMap<Long, Raft.ReceiveSnapshotEntry>();
+		var map = new HashMap<Long, ReceiveSnapshotting.Entry>();
 		// 不创建 .installing.1 文件，直接放一个指向别处的句柄。
 		var stale1 = new RandomAccessFile(
 				dbHome.resolve(LogSequence.snapshotFileName + ".installing.9").toFile(), "rw");
-		map.put(1L, new Raft.ReceiveSnapshotEntry(stale1, 0, "", 0));
+		map.put(1L, new ReceiveSnapshotting.Entry(
+				dbHome.resolve(LogSequence.snapshotFileName + ".installing.1"), stale1, 0, "", 0));
 
-		Raft.cleanupStaleReceiveSnapshotting(map, dbHome.toString(), 2);
+		ReceiveSnapshotting.cleanupSmallerThan(map, 2);
 
 		assertTrue(map.isEmpty());
 		assertFalse(stale1.getFD().valid());

@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.nio.file.Paths;
 
 import harness.Fast;
@@ -97,8 +98,13 @@ public class TestEndReceiveInstallSnapshotStaleTerm {
 			});
 			racer.start();
 
-			// path 不需要真实存在：修复后的放弃路径不触碰快照文件。
-			logSequence.endReceiveInstallSnapshot(Paths.get("nonexistent.raft", "snapshot.dat"), r);
+			// 条目仅作所有权token传入：term复核在任何文件操作之前放弃，entry.path
+			// 不需要真实存在（raf句柄仅为构造，随即关闭）。
+			var dummyRaf = new RandomAccessFile(Paths.get(dbHome, "stale-term-dummy.raf").toFile(), "rw");
+			dummyRaf.close();
+			var entry = new ReceiveSnapshotting.Entry(Paths.get("nonexistent.raft", "snapshot.dat"),
+					dummyRaf, r.Argument.getTerm(), r.Argument.getLeaderId(), System.currentTimeMillis());
+			logSequence.endReceiveInstallSnapshot(entry, r);
 			racer.join(10_000);
 
 			// 等待窗口内 term 已推进：为旧 term 准备的破坏性重置必须被放弃。

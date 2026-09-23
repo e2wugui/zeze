@@ -1,13 +1,9 @@
 package Zeze.Raft;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -54,33 +50,10 @@ public final class Raft {
 
 	private final StateMachine stateMachine;
 	public volatile boolean isShutdown = false;
-	private final Lock receiveSnapshottingLock = new ReentrantLock();
-	final HashMap<Long, ReceiveSnapshotEntry> receiveSnapshotting = new HashMap<>(); // package-private：测试直接合成残留条目
-
-	// 【FND3-23】follower 侧接收中的安装条目：除文件句柄外绑定 (term, leaderId,
-	// lastActiveTime)。不变量：只为"当前 term 的当前 leader"的安装保留条目——
-	// 归属校验见 processInstallSnapshot 接收段，周期清理见 gcReceiveSnapshotting。
-	static final class ReceiveSnapshotEntry {
-		final RandomAccessFile file;
-		final long term;
-		final String leaderId;
-		long lastActiveTime; // 最近一次收到该安装数据块的时间（毫秒）
-		// 【raft-02】done 块处理后置位：句柄已关，条目转为"收尾占位"。finalizing 期间
-		// 任意新块（含 leader 超时重装的首块）只能应答 ResultCodeFinalizingConflict——
-		// offset==0 的 setLength(0) 会截断正被 endReceiveInstallSnapshot 提交的文件。
-		// 条目由 endReceiveInstallSnapshot 的 finally 同一性摘除（成功与放弃路径都是）。
-		boolean finalizing;
-		// 已落盘的接收长度（与文件实际长度同步维护）；done 后即为应收总长度，
-		// endReceiveInstallSnapshot 提交前据此校验文件未被截断。
-		long receivedLength;
-
-		ReceiveSnapshotEntry(RandomAccessFile file, long term, String leaderId, long lastActiveTime) {
-			this.file = file;
-			this.term = term;
-			this.leaderId = leaderId;
-			this.lastActiveTime = lastActiveTime;
-		}
-	}
+	// follower侧接收中的安装登记表：条目=对.installing文件的所有权
+	// token（文件唯一命名、finalizing收尾占位、gc/清理不变式见ReceiveSnapshotting）。
+	// 锁序：raft→本表（收尾侧持raft锁调get/removeIdentity，与gc/snapshot既有方向一致）。
+	final ReceiveSnapshotting receiveSnapshotting = new ReceiveSnapshotting(this);
 	private volatile RaftState state = RaftState.Follower;
 	private Future<?> timerTask;
 	private long lowPrecisionTimer;
@@ -296,55 +269,9 @@ public final class Raft {
 		}
 	}
 
-	// 是否有InstallSnapshot正在接收中（follower侧）。本地snapshot需要避开。
+	// 是否有InstallSnapshot正在接收中（follower侧，含finalizing收尾占位）。本地snapshot需要避开。
 	public boolean isReceivingSnapshot() {
-		receiveSnapshottingLock.lock();
-		try {
-			return !receiveSnapshotting.isEmpty();
-		} finally {
-			receiveSnapshottingLock.unlock();
-		}
-	}
-
-	// 【raft-02】收尾侧读取登记条目：endReceiveInstallSnapshot 持 raft 锁调用，
-	// raft→receiveSnapshotting 嵌套顺序与 snapshot()/gc 的既有方向一致。
-	ReceiveSnapshotEntry getReceiveSnapshottingEntry(long lastIncludedIndex) {
-		receiveSnapshottingLock.lock();
-		try {
-			return receiveSnapshotting.get(lastIncludedIndex);
-		} finally {
-			receiveSnapshottingLock.unlock();
-		}
-	}
-
-	// 【raft-02】收尾完成后同一性摘除条目（两参 remove）：不做同一性校验会误摘同 key
-	// 接任的新条目（本条目被 gc 归属清理丢弃后，新安装立即重建同 key 的窗口）。不删
-	// 文件：成功路径文件已被 Files.move 消费，放弃路径的文件清理在各返回点。shutdown
-	// 的 cancelAllReceiveSnapshotting 也会清表，此处 no-op，无碍。
-	void removeReceiveSnapshottingEntry(long lastIncludedIndex, ReceiveSnapshotEntry entry) {
-		receiveSnapshottingLock.lock();
-		try {
-			receiveSnapshotting.remove(lastIncludedIndex, entry);
-		} finally {
-			receiveSnapshottingLock.unlock();
-		}
-	}
-
-	private void cancelAllReceiveSnapshotting() {
-		receiveSnapshottingLock.lock(); // cancel 不中断
-		try {
-			// 【FND8-43】关句柄的同时删除.installing文件：clear后gcReceiveSnapshotting
-			// 以map为准看不到已移除条目，运行期无任何清理路径，磁盘按快照大小泄漏
-			//（启动清理仅在进程重启时执行）。discardReceiveEntry与gc路径同口径
-			//（关句柄+尽力删文件，失败仅告警）。
-			for (var it = receiveSnapshotting.entrySet().iterator(); it.hasNext(); ) {
-				var e = it.next();
-				it.remove();
-				discardReceiveEntry(raftConfig.getDbHome(), e.getKey(), e.getValue(), "cancelAllReceiveSnapshotting");
-			}
-		} finally {
-			receiveSnapshottingLock.unlock();
-		}
+		return !receiveSnapshotting.isEmpty();
 	}
 
 	public void shutdown() throws Exception {
@@ -374,8 +301,8 @@ public final class Raft {
 
 		lock();
 		try {
-			logSequence.cancelAllInstallSnapshot();
-			cancelAllReceiveSnapshotting();
+			logSequence.getSendSnapshotting().cancelAll();
+			receiveSnapshotting.cancelAll();
 
 			convertStateTo(RaftState.Follower);
 			logSequence.close();
@@ -511,10 +438,10 @@ public final class Raft {
 			leaderId = r.Argument.getLeaderId();
 			logSequence.setLeaderActiveTime(System.currentTimeMillis());
 
-			// 【FND3-21】本地快照进行中（重阶段在锁外写 backupDir）时拒绝新安装的首块：
+			// 本地快照进行中（重阶段在锁外写 backupDir）时拒绝新安装的首块：
 			// 接收完成后的状态机重置会与本地快照并发操作同一 backupDir，失败不可自愈。
 			// 应答冲突码让 leader 中断本次安装（InstallSnapshotState.processResult 对非
-			// Success/非 NewOffset 码即 endInstallSnapshot），下个心跳自动重试。
+			// Success/非 NewOffset 码即 SendSnapshotting.end），下个心跳自动重试。
 			// 传输中途才开始本地快照的情形由 endReceiveInstallSnapshot 内的兜底检查拦截。
 			if (r.Argument.getOffset() == 0 && logSequence.getSnapshotting()) {
 				r.SendResultCode(InstallSnapshot.ResultCodeSnapshottingConflict);
@@ -524,174 +451,16 @@ public final class Raft {
 			unlock();
 		}
 
-		// 2. Create new snapshot file if first chunk(offset is 0)
-		// 把 LastIncludedIndex 放到文件名中，
-		// 新的InstallSnapshot不覆盖原来进行中或中断的。
-		Path path = Paths.get(raftConfig.getDbHome(),
-				LogSequence.snapshotFileName + ".installing." + r.Argument.getLastIncludedIndex());
-
-		receiveSnapshottingLock.lock();
-		try {
-			var entry = receiveSnapshotting.get(r.Argument.getLastIncludedIndex());
-			if (entry != null && (entry.term != r.Argument.getTerm()
-					|| !entry.leaderId.equals(r.Argument.getLeaderId()))) {
-				// 【FND3-23】同边界的残留条目属于旧 term/旧 leader 的安装：丢弃（关句柄
-				// +删文件），本次安装按 offset 重新定位。不能续写——不同 leader 的同边界
-				// 快照内容可能不同，续写会混入旧数据。
-				logger.warn("{} discard stale-owner receive entry: LastIncludedIndex={} entryTerm={}"
-								+ " entryLeader={} rpcTerm={} rpcLeader={}", getName(),
-						r.Argument.getLastIncludedIndex(), entry.term, entry.leaderId,
-						r.Argument.getTerm(), r.Argument.getLeaderId());
-				receiveSnapshotting.remove(r.Argument.getLastIncludedIndex());
-				discardReceiveEntry(raftConfig.getDbHome(), r.Argument.getLastIncludedIndex(), entry,
-						"ProcessInstallSnapshot");
-				entry = null;
-			}
-			if (entry != null && entry.finalizing) {
-				// 【raft-02】同边界的上一个安装正在收尾（done 已处理、条目未摘除）：
-				// offset==0 的 setLength(0) 会截断正被 endReceiveInstallSnapshot 提交的文件
-				// （提交半截快照→loadSnapshot 失败 fatalKill；Windows 上重装句柄还会让
-				// Files.move 失败，留下运行期日志空洞）；句柄已关也不能续写。应答冲突码，
-				// leader 中断本次安装（processResult 对非 Success 码即 endInstallSnapshot），
-				// 下个心跳重试；收尾完成后按 ExistLog/正常路径自然恢复。
-				r.SendResultCode(InstallSnapshot.ResultCodeFinalizingConflict);
-				return Procedure.Success;
-			}
-			if (entry == null) {
-				if (r.Argument.getOffset() != 0) {
-					// 肯定是旧的被丢弃的安装，Discard And Ignore。
-					r.SendResultCode(InstallSnapshot.ResultCodeOldInstall);
-					return Procedure.Success;
-				}
-				entry = new ReceiveSnapshotEntry(new RandomAccessFile(path.toFile(), "rw"),
-						r.Argument.getTerm(), r.Argument.getLeaderId(), System.currentTimeMillis());
-				receiveSnapshotting.put(r.Argument.getLastIncludedIndex(), entry);
-			}
-			entry.lastActiveTime = System.currentTimeMillis(); // 任何块活动都证明对端还活着
-			var outputFileStream = entry.file;
-			if (r.Argument.getOffset() == 0) {
-				// 【FND7-57】offset==0 无条件截断，不能按"同字节续传"只在新文件时清长度：
-				// leader 侧每次安装总是从 offset=0 全量重发（InstallSnapshotState 新实例），
-				// 若两次安装之间同边界快照重生成（snapshot.dat 消失触发 LogSequence.snapshot()
-				// 等），新旧内容字节不同时按旧长度续传会把新快照拼到旧半截文件上——前缀跳写
-				// （offset<fileLength 且 newEnd≤fileLength 的块被跳过）留下旧字节、或尾部残留
-				// 旧字节，混拼文件 loadSnapshot 失败 fatalKill，且 commitSnapshotNow 已 move
-				// 完成时重启加载损坏 snapshot.dat 节点起不来。放弃续传优化换正确性：截断后
-				// 重发的数据块幂等重写，无中断的安装流程不受影响。
-				outputFileStream.setLength(0); // 上面的new RandomAccessFile(path, "rw")对于已经存在的文件不会覆盖。
-				outputFileStream.seek(0);
-			}
-
-			r.Result.setOffset(-1); // 默认让Leader继续传输，不用重新定位。
-			long fileLength = outputFileStream.length();
-			if (r.Argument.getOffset() > fileLength) {
-				// 数据块超出当前已经接收到的数据。
-				// 填写当前长度，让Leader从该位置开始重新传输。
-				r.Result.setOffset(fileLength);
-				r.SendResultCode(InstallSnapshot.ResultCodeNewOffset);
-				return Procedure.Success;
-			}
-
-			if (r.Argument.getOffset() == fileLength) {
-				// 正常的Append流程，直接写入。
-				// 3. Write data into snapshot file at given offset
-				r.Argument.getData().writeToFile(outputFileStream);
-			} else {
-				// 数据块开始位置小于当前长度。
-				var newEndPosition = r.Argument.getOffset() + r.Argument.getData().size();
-				if (newEndPosition > fileLength) {
-					// 有新的数据需要写入文件。
-					outputFileStream.seek(r.Argument.getOffset());
-					r.Argument.getData().writeToFile(outputFileStream);
-				}
-				r.Result.setOffset(outputFileStream.length());
-			}
-			entry.receivedLength = outputFileStream.length(); // 【raft-02】与文件实际长度同步维护；done 后即为应收总长度（endReceive 提交前校验基准）
-
-			// 4. Reply and wait for more data chunks if done is false
-			if (r.Argument.getDone()) {
-				// 5. Save snapshot file, discard any existing or partial snapshot with a smaller index
-				// 【raft-02】不再移除条目，改为置 finalizing：所有权从"传输完成"延长到
-				// "收尾完成"。若在此摘除，endReceiveInstallSnapshot 在 raft 锁外 await
-				// removeLogBeforeFuture（日志删除量大时可达秒级）期间，leader 对 done 块的
-				// AppendEntriesTimeout（默认2s）超时重装首块会走"无条目→全新安装"分支
-				// setLength(0) 截断完整快照，被截断的半截文件随后被提交（两把互不相交的
-				// 锁覆盖同一文件的收尾空窗）。finalizing 条目由上面的 guard 挡截断，由
-				// endReceiveInstallSnapshot 的 finally 摘除（含各放弃路径与异常）。
-				entry.finalizing = true;
-				try {
-					outputFileStream.close();
-				} catch (IOException e) {
-					logger.warn("ProcessInstallSnapshot close(1) Exception", e); // 文件关闭异常还是不向上抛了
-				}
-				cleanupStaleReceiveSnapshotting(receiveSnapshotting,
-						raftConfig.getDbHome(), r.Argument.getLastIncludedIndex());
-			}
-		} finally {
-			receiveSnapshottingLock.unlock();
-		}
-		var resultCode = 0L;
-		if (r.Argument.getDone()) {
-			// 剩下的处理流程在下面的函数里面。
-			resultCode = logSequence.endReceiveInstallSnapshot(path, r);
-		}
-		r.SendResultCode(resultCode);
+		// 2. 接收数据块（表锁内完成所有非done应答）；done块返回finalizing条目，
+		// 剩下的处理流程在endReceiveInstallSnapshot里面。
+		var doneEntry = receiveSnapshotting.process(r);
+		if (doneEntry != null)
+			r.SendResultCode(logSequence.endReceiveInstallSnapshot(doneEntry, r));
 		return Procedure.Success;
 	}
 
-	/**
-	 * 清理更小 LastIncludedIndex 的中断安装条目及其 .installing 文件（FND2-R1-1）。
-	 * 【raft-02】finalizing 条目跳过：其 .installing 文件正被 endReceiveInstallSnapshot
-	 * 提交（Files.move 的源文件），删除会在 logs.drop() 之后中断收尾，留下运行期日志
-	 * 空洞；finalizing 条目由收尾的 finally 摘除。
-	 * 必须持有 receiveSnapshottingLock 调用。
-	 * 删除失败（Windows 上 close 异常后句柄未释放、杀毒/备份软件短暂锁文件、磁盘 IO
-	 * 错误）仅告警不中断清理：异常一旦传出清理循环，尚未处理到的更旧条目将永久残留
-	 * （正常运维周期内没有其他清理路径），isReceivingSnapshot() 从此恒 true，
-	 * LogSequence.snapshot() 恒提前返回，本地快照与日志压缩永久停摆；本次 done 的
-	 * 应答也发不出去。残留文件本身不损正确性：新安装总是使用新的 LastIncludedIndex
-	 * 文件名，不与残留重叠。
-	 */
-	static void cleanupStaleReceiveSnapshotting(HashMap<Long, ReceiveSnapshotEntry> receiveSnapshotting,
-												String dbHome, long lastIncludedIndex) {
-		for (var it = receiveSnapshotting.entrySet().iterator(); it.hasNext(); ) {
-			var e = it.next();
-			if (e.getKey() < lastIncludedIndex && !e.getValue().finalizing) {
-				it.remove();
-				discardReceiveEntry(dbHome, e.getKey(), e.getValue(), "cleanupStaleReceiveSnapshotting");
-			}
-		}
-	}
-
-	/**
-	 * 丢弃一个接收条目：关句柄 + 尽力删 .installing 文件，失败仅告警不抛出
-	 * （异常若传出清理循环，尚未处理的更旧条目将永久残留；残留本身不损正确性，
-	 * 由 gcReceiveSnapshotting/启动清理兜底）。条目的 map 移除由调用方完成
-	 * （迭代中删除须 it.remove()）。
-	 */
-	private static void discardReceiveEntry(String dbHome, long lastIncludedIndex,
-											ReceiveSnapshotEntry entry, String logTag) {
-		try {
-			entry.file.close();
-		} catch (IOException e) {
-			logger.warn("{} close Exception", logTag, e); // 文件关闭异常还是不向上抛了
-		}
-		var installingPath = Paths.get(dbHome,
-				LogSequence.snapshotFileName + ".installing." + lastIncludedIndex);
-		try {
-			Files.deleteIfExists(installingPath);
-		} catch (IOException e) {
-			logger.warn("{} deleteIfExists Exception. path={}", logTag, installingPath, e);
-		}
-	}
-
-	// 【FND3-23】清理残留的接收条目（follower 侧）。leader 传输中途失联/换主后
-	// done 永不到，运行期没有其他清理路径：条目+句柄+.installing 文件永久残留，
-	// isReceivingSnapshot() 恒 true → 本地快照与日志压缩停摆、磁盘无界增长。
-	// 不变量：只为"当前 term 的当前 leader"的安装保留条目；空闲超时兜底。
-	// 由 onLowPrecisionTimer 周期驱动（约 20s 一次）；清理后若旧 leader 仍在传，
-	// 下一块会因条目不存在收到 OldInstall（offset>0）或按新文件重传（offset==0），
-	// 有界自愈。条目的 term/leaderId 归属校验在 processInstallSnapshot 接收段。
+	// 清理残留的接收条目（follower 侧）：周期驱动，具体不变式见
+	// ReceiveSnapshotting.gc。
 	void gcReceiveSnapshotting(long now) {
 		long term;
 		String leaderId;
@@ -702,41 +471,7 @@ public final class Raft {
 		} finally {
 			unlock();
 		}
-		receiveSnapshottingLock.lock();
-		try {
-			for (var it = receiveSnapshotting.entrySet().iterator(); it.hasNext(); ) {
-				var e = it.next();
-				var entry = e.getValue();
-				// leaderId 为 null/空（启动后尚未收到任何 term 消息、选举中）时无法判定
-				// leader 归属，靠 term + 空闲超时判定。
-				// 【raft-02】finalizing 条目对归属清理不豁免：归属失效（entry.term != 当前
-				// term）与在飞收尾的 term 复核放弃条件互为同一事实——收尾会在 raft 锁内
-				// 放弃且不碰文件，丢弃条目+文件是安全的；但豁免空闲超时：收尾（raft 锁外
-				// await + loadSnapshot）合法地可超过派生阈值，gc 此时任何动作都只能在
-				// "摘条目→重装首块截断正在提交的文件"与"删文件→打断 Files.move"之间二选一。
-				// 条目由 endReceiveInstallSnapshot 的 finally 摘除（其所有出口都经过），
-				// 同 term 卡死仅当 removeLogBeforeFuture.await 永不返回——那是更大的故障。
-				// 旧 leader 的 finalizing 残留由归属清理兜底，仅告警观测慢收尾。
-				var staleOwner = entry.term != term
-						|| (leaderId != null && !leaderId.isEmpty() && !entry.leaderId.equals(leaderId));
-				var idle = now - entry.lastActiveTime > receiveSnapshottingTimeout();
-				if (staleOwner || (idle && !entry.finalizing)) {
-					it.remove();
-					discardReceiveEntry(raftConfig.getDbHome(), e.getKey(), entry, "gcReceiveSnapshotting");
-					logger.warn("{} gcReceiveSnapshotting: removed stale receive entry. LastIncludedIndex={}"
-									+ " entryTerm={} entryLeader={} idle={}ms currentTerm={} currentLeader={}",
-							getName(), e.getKey(), entry.term, entry.leaderId,
-							now - entry.lastActiveTime, term, leaderId);
-				} else if (idle) { // finalizing 豁免：仅告警，等待收尾自己的 finally
-					logger.warn("{} gcReceiveSnapshotting: finalizing entry still in finalize"
-									+ " (endReceiveInstallSnapshot in flight?), keep it. LastIncludedIndex={}"
-									+ " finalizeElapsed={}ms",
-							getName(), e.getKey(), now - entry.lastActiveTime);
-				}
-			}
-		} finally {
-			receiveSnapshottingLock.unlock();
-		}
+		receiveSnapshotting.gc(now, term, leaderId, receiveSnapshottingTimeout());
 	}
 
 	long receiveSnapshottingTimeout() { // package-private：测试按公式合成超时，不硬编码
@@ -796,7 +531,7 @@ public final class Raft {
 			if (++lowPrecisionTimer > 1000) {
 				lowPrecisionTimer = 0;
 				onLowPrecisionTimer();
-				// 【XA1-F2】重连复查必须在Raft锁内：shutdown的isShutdown置位在同锁内，锁内复查
+				// 重连复查必须在Raft锁内：shutdown的isShutdown置位在同锁内，锁内复查
 				// 彻底关死"检查过后才shutdown"的TOCTOU窗口——锁外重连会为已停Raft重建连接，
 				// epoch一致使重连引擎永久运转。Raft→Service→Connector为既定单向锁序，start()
 				// 构造链非阻塞，锁内调用安全。
@@ -812,7 +547,7 @@ public final class Raft {
 	private void onLowPrecisionTimer() throws Exception {
 		// Connector重连在onTimer的Raft锁内复查isShutdown后执行（见上）；本方法仅LogSequence清理。
 		logSequence.removeExpiredUniqueRequestSet();
-		gcReceiveSnapshotting(System.currentTimeMillis()); // FND3-23：残留接收条目周期清理
+		gcReceiveSnapshotting(System.currentTimeMillis()); // 残留接收条目周期清理
 		logSequence.drainPendingDeleteGenFiles(); // gen清扫重试名单周期冲刷
 	}
 
@@ -833,7 +568,7 @@ public final class Raft {
 			while (isLeader()) {
 				if (volatileTmp.isDone())
 					return volatileTmp.get();
-				// 【FND-R1-8】多数派失联的分区场景下，SetLeaderReadyEvent永远无法提交，
+				// 多数派失联的分区场景下，SetLeaderReadyEvent永远无法提交，
 				// 且没有更高term的消息到达（不会有signalAll唤醒），无期限的await()会让
 				// 派发进来的请求任务无限堆积（每请求占一个unique串行桶+一个线程）。
 				// 等待超出一个选举周期后放弃并返回false：processRequest会走
@@ -1132,7 +867,7 @@ public final class Raft {
 	}
 
 	private void sendRequestVote() throws RocksDBException {
-		// FND6-08补：同sendPreVote——拒绝选举也推进nextVoteTime防onTimer每tick重进刷fatal。
+		// 同sendPreVote——拒绝选举也推进nextVoteTime防onTimer每tick重进刷fatal。
 		nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
 		if (!checkTermCanElect())
 			return;
@@ -1192,7 +927,7 @@ public final class Raft {
 			requestVotes.clear();
 			preVotes.clear();
 			preVoting = false;
-			cancelAllReceiveSnapshotting();
+			receiveSnapshotting.cancelAll();
 
 			logger.info("RaftState {}: Candidate->Leader", getName());
 			state = RaftState.Leader;
@@ -1234,7 +969,7 @@ public final class Raft {
 	private void convertStateFromLeaderTo(RaftState newState) throws Exception {
 		// 本来 Leader -> Follower 需要，为了健壮性，全部改变都重置。
 		resetLeaderReadyAfterChangeState();
-		logSequence.cancelAllInstallSnapshot();
+		logSequence.getSendSnapshotting().cancelAll();
 		logSequence.cancelPendingAppendLogFutures();
 
 		switch (newState) {

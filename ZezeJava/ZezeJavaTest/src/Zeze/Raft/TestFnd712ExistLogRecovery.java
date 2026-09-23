@@ -103,16 +103,14 @@ public class TestFnd712ExistLogRecovery {
 			// commitSnapshotNow 会把它发布为 gen(snapshot.dat.5)；内容无所谓（假状态机不解析）。
 			var installingPath = Paths.get(dbHome, LogSequence.snapshotFileName + ".installing.5");
 			Files.write(installingPath, new byte[]{1, 2, 3});
-			// raft-02 起 done 分支保留 finalizing 条目（应收长度=文件长度），收尾侧据此校验。
+			// raft-02 起 done 分支保留 finalizing 条目，收尾侧据此做所有权复核。
 			var raf = new RandomAccessFile(installingPath.toFile(), "rw");
-			raf.close(); // 生产流程 done 分支已关句柄（move 前句柄必须是关闭态）
-			var entry = new Raft.ReceiveSnapshotEntry(raf, r.Argument.getTerm(),
+			var entry = new ReceiveSnapshotting.Entry(installingPath, raf, r.Argument.getTerm(),
 					r.Argument.getLeaderId(), System.currentTimeMillis());
-			entry.receivedLength = 3;
-			entry.finalizing = true;
+			entry.markFinalizing(); // 等价生产done分支：记应收总长、冻结条目、关句柄
 			raft.receiveSnapshotting.put(5L, entry);
 
-			logSequence.endReceiveInstallSnapshot(installingPath, r);
+			logSequence.endReceiveInstallSnapshot(entry, r);
 
 			assertEquals(5L, logSequence.getFirstIndex());
 			assertEquals(5L, logSequence.getLastIndex(), "memory lastIndex must be reset to boundary");
