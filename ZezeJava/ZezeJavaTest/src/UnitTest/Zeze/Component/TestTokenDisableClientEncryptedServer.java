@@ -20,7 +20,9 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * （重放SubTopic明文应用协议），被配置加密的TokenServer解码准入门禁确定性拒绝断连。
  * 修复为双边语义：客户端推迟到对端SHandshake0驱动的握手完成（服务端统一发SHandshake0），
  * waitReady亦推迟到握手完成后——Disable客户端可以正常对接加密服务端。
- * 附：S4-F3 锁外等待运行标志的契约验证（stop等待清理任务、标志归零后完成、幂等）。
+ * 附：S4-F3 契约验证（stop等待清理任务结束）——演进后等待语义内聚为DaemonTimer.stop
+ * （站级白盒运行标志已删，组件级钉板见TestDaemonTimer.testStopWaitsInFlightAndRestart），
+ * 本类保留站级关门与幂等断言。
  */
 @Fast
 @ResourceLock("token.rocksdb") // Token经全局System property定位DB目录，与同族测试并行互相覆盖路径
@@ -56,35 +58,32 @@ public class TestTokenDisableClientEncryptedServer {
 		}
 	}
 
-	/** S4-F3：stop()必须在Token锁外等待cleanTokenMapTable运行标志归零后才saveDB/closeDb。 */
+	/** S4-F3演进：stop()后两个守护（cleanTokenMap/cleanTokenMapTable）必须关门；
+	 * rocksdb已关时再次stop不挂死不抛（幂等）。 */
 	@Test
-	public void testStopWaitsCleanTokenMapTableRunningFlag(@TempDir Path tempDir) throws Exception {
+	public void testStopShutsDownCleanTokenMapDaemons(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
 		System.setProperty("token.rocksdb", tempDir.resolve("token_db").toString());
 		var tokenServer = new Token().start(null, null, PORT);
 		try {
-			var runningField = Token.class.getDeclaredField("cleanTokenMapTableRunning");
-			runningField.setAccessible(true);
-			// 白盒模拟任务在途：置位运行标志，stop必须等待（不能持锁等待——会死锁，也不能不等待）
-			runningField.setBoolean(tokenServer, true);
-			var stopper = new Thread(() -> {
-				try {
-					tokenServer.stop();
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			});
-			stopper.start();
-			Thread.sleep(300);
-			Assertions.assertTrue(stopper.isAlive(), "stop必须等待清理任务运行标志归零（锁外带超时）");
-			runningField.setBoolean(tokenServer, false); // 模拟任务结束
-			stopper.join(15_000);
-			Assertions.assertFalse(stopper.isAlive(), "标志归零后stop必须完成（不得依赖10s超时兜底）");
+			var mapDaemon = (Zeze.Util.DaemonTimer)getAccessible(tokenServer, "cleanTokenMapDaemon");
+			var tableDaemon = (Zeze.Util.DaemonTimer)getAccessible(tokenServer, "cleanTokenMapTableDaemon");
+			Assertions.assertFalse(mapDaemon.isShutdown(), "start后cleanTokenMap守护必须运行");
+			Assertions.assertFalse(tableDaemon.isShutdown(), "start后cleanTokenMapTable守护必须运行");
+			tokenServer.stop();
+			Assertions.assertTrue(mapDaemon.isShutdown(), "stop后cleanTokenMap守护必须关门");
+			Assertions.assertTrue(tableDaemon.isShutdown(), "stop后cleanTokenMapTable守护必须关门");
 			// 幂等：rocksdb已关，再次stop不挂死不抛
 			tokenServer.stop();
 		} finally {
 			tokenServer.stop();
 			tokenServer.closeDb();
 		}
+	}
+
+	private static Object getAccessible(Token tokenServer, String fieldName) throws Exception {
+		var field = Token.class.getDeclaredField(fieldName);
+		field.setAccessible(true);
+		return field.get(tokenServer);
 	}
 }

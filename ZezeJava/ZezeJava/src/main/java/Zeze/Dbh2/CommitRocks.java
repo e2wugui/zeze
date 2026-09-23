@@ -2,7 +2,6 @@ package Zeze.Dbh2;
 
 import java.util.ArrayList;
 import java.util.Objects;
-import java.util.concurrent.Future;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.BRefused;
@@ -13,13 +12,13 @@ import Zeze.Raft.RaftRpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.DaemonTimer;
 import Zeze.Util.Func2;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Str;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskCompletionSourceX;
-import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -33,7 +32,9 @@ public class CommitRocks {
 	private final RocksDatabase.Table commitPoint;
 	private final RocksDatabase.Table commitIndex;
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
-	private Future<?> redoTimer;
+	// 周期守护：redoTimer(RocksDB迭代+逐桶RPC get阻塞等待)进worker池不占调度线程；
+	// close有界等待在飞一轮（原TimerFuture.cancel为无界join）
+	private final DaemonTimer redoDaemon = new DaemonTimer("CommitRocks.redoTimer", 60_000, this::redoTimer);
 
 	public CommitRocks(Dbh2AgentManager manager, int serverId) throws RocksDBException {
 		this.manager = manager;
@@ -54,7 +55,7 @@ public class CommitRocks {
 			logger.error("first try.", ex);
 		}
 		// 1 minute?
-		redoTimer = TaskSpec.ofAction(this::redoTimer).schedulePeriodNow(60000, 60000);
+		redoDaemon.start();
 	}
 
 	private void redoTimer() throws RocksDBException {
@@ -102,8 +103,7 @@ public class CommitRocks {
 	}
 
 	public void close() {
-		if (null != redoTimer)
-			redoTimer.cancel(false);
+		redoDaemon.stop(); // 有界等待在飞一轮；超预算逃逸轮撞已关database由body的catch容错（记日志）
 		database.close();
 	}
 

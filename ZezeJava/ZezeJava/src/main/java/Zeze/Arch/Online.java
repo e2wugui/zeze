@@ -159,8 +159,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		 * @return 按普通事务处理过程返回值处理
 		 */
 		long call(@NotNull String senderAccount, @NotNull String senderClientId,
-		          @NotNull String targetAccount, @NotNull String targetClientId,
-		          @Nullable Binary parameter) throws Exception;
+				  @NotNull String targetAccount, @NotNull String targetClientId,
+				  @Nullable Binary parameter) throws Exception;
 	}
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
@@ -417,7 +417,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	@SuppressWarnings("unchecked")
 	public <T extends Bean> @NotNull T getOrAddLocalBean(@NotNull String account, @NotNull String clientId,
-	                                                     @NotNull String key, @NotNull T defaultHint) {
+														 @NotNull String key, @NotNull T defaultHint) {
 		var login = getLoginLocal(account, clientId);
 		var bAny = login.getDatas().getOrAdd(key);
 		if (bAny.getAny().getBean().typeId() == defaultHint.typeId())
@@ -584,7 +584,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public long onSendError(@NotNull String account, @NotNull String clientId,
-	                        @NotNull String linkName, long linkSid) throws Exception {
+							@NotNull String linkName, long linkSid) throws Exception {
 		// todo 这个版本的处理没有经过考验，需要参考Game.Online。
 
 		// 先查后建（FND4-51）：善后路径不创建状态。原getOrAdd在归属不匹配/不存在时已创建空
@@ -620,7 +620,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public long linkBroken(@NotNull String account, @NotNull String clientId,
-	                       @NotNull String linkName, long linkSid) throws Exception {
+						   @NotNull String linkName, long linkSid) throws Exception {
 		// 先查后建（FND4-51）：善后路径不创建状态，同onSendError。
 		var online = getOnline(account);
 		if (online == null)
@@ -689,7 +689,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendReliableNotify(@NotNull String account, @NotNull String clientId,
-	                               @NotNull String listenerName, @NotNull Protocol<?> p) {
+								   @NotNull String listenerName, @NotNull Protocol<?> p) {
 		OnlineSpec.ofReliableNotify(this, account, clientId, listenerName).send(p);
 	}
 
@@ -707,13 +707,13 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void sendReliableNotify(@NotNull String account, @NotNull String clientId, @NotNull String listenerName,
-	                               long typeId, @NotNull Binary fullEncodedProtocol) {
+								   long typeId, @NotNull Binary fullEncodedProtocol) {
 		OnlineSpec.ofReliableNotify(this, account, clientId, listenerName).send(typeId, fullEncodedProtocol);
 	}
 
 	public void sendReliableNotifyDirect(@NotNull String account, @NotNull String clientId,
-	                                     @NotNull String listenerName,
-	                                     long typeId, @NotNull Binary fullEncodedProtocol) {
+										 @NotNull String listenerName,
+										 long typeId, @NotNull Binary fullEncodedProtocol) {
 		providerApp.zeze.runTaskOneByOneByKey(
 				listenerName,
 				"Online.sendReliableNotify." + listenerName,
@@ -844,7 +844,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 //	}
 
 	private long triggerLinkBroken(@NotNull String linkName, @NotNull LongList errorSids,
-	                               @NotNull Map<Long, BLoginKey> contexts) {
+								   @NotNull Map<Long, BLoginKey> contexts) {
 		// FND4-50：对齐processErrorSids判例（TaskSpec.ofProcedure.run()，失败由框架记日志）。
 		// 原.call()返回码被丢弃：失败时tonline link state停在eLogined（isOnline误报）、
 		// 延迟登出未调度，仅剩verifyLocal定时兜底（默认10分钟）且完全不可观测。
@@ -921,7 +921,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		final ArrayList<BLoginKey> accounts = new ArrayList<>();
 
 		public LinkRoles(@NotNull String linkName, AsyncSocket linkSocket,
-		                 long typeId, @NotNull Binary fullEncodedProtocol) {
+						 long typeId, @NotNull Binary fullEncodedProtocol) {
 			this.linkName = linkName;
 			this.linkSocket = linkSocket;
 			ZezeCounter.instance.addSendSize(typeId, fullEncodedProtocol.size()); // 内层协议在包装点归因
@@ -930,7 +930,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private static AsyncSocket getLinkSocket(ConcurrentHashMap<String, Connector> links, String linkName,
-	                                         String account, String clientId) {
+											 String account, String clientId) {
 		var connector = links.get(linkName);
 		if (connector == null) {
 			logger.warn("sendDirect: not found connector for linkName={} clientId={} account={}",
@@ -970,7 +970,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	// 可在事务外执行
 	public int sendDirect(@NotNull Set<BLoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
-	                      boolean quietWhenAbsent) {
+						  boolean quietWhenAbsent) {
 		if (loginKeys.isEmpty())
 			return 0;
 		var groups = new HashMap<String, LinkRoles>();
@@ -1033,7 +1033,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	// 可在事务外执行
 	public boolean sendDirect(@NotNull String account, @NotNull String clientId, long typeId,
-	                          @NotNull Binary fullEncodedProtocol, boolean quietWhenAbsent) {
+							  @NotNull Binary fullEncodedProtocol, boolean quietWhenAbsent) {
 		var online = _tonline.selectDirty(account);
 		if (online == null) {
 			if (!quietWhenAbsent) {
@@ -1142,7 +1142,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	/** @deprecated 使用 {@code OnlineSpec.ofLogins(online, loginKeys).quietWhenAbsent(quietWhenAbsent).sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
 	@Deprecated
 	public int send(@NotNull Collection<BLoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
-	                boolean quietWhenAbsent) {
+					boolean quietWhenAbsent) {
 		return OnlineSpec.ofLogins(this, loginKeys).quietWhenAbsent(quietWhenAbsent).sendNow(typeId, fullEncodedProtocol);
 	}
 
@@ -1270,7 +1270,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	// 可在事务外执行
 	public int sendAccountDirect(@NotNull String account, long typeId, @NotNull Binary fullEncodedProtocol,
-	                             boolean quietWhenAbsent) {
+								 boolean quietWhenAbsent) {
 		var groups = new HashMap<String, LinkRoles>();
 		var links = providerApp.providerService.getLinks();
 		var online = _tonline.selectDirty(account);
@@ -1315,7 +1315,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	// 可在事务外执行
 	public int sendAccountsDirect(@NotNull Collection<String> accounts, long typeId, @NotNull Binary fullEncodedProtocol,
-	                              boolean quietWhenAbsent) {
+								  boolean quietWhenAbsent) {
 		if (accounts.isEmpty())
 			return 0;
 		var groups = new HashMap<String, LinkRoles>();
@@ -1440,12 +1440,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void transmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-	                     @NotNull String target, @NotNull String targetClientId, @Nullable Serializable parameter) {
+						 @NotNull String target, @NotNull String targetClientId, @Nullable Serializable parameter) {
 		OnlineSpec.ofTransmit(this, account, clientId, actionName, target, targetClientId).parameter(parameter).transmit();
 	}
 
 	private void processTransmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-	                             @NotNull Collection<BLoginKey> accounts, @Nullable Binary parameter) {
+								 @NotNull Collection<BLoginKey> accounts, @Nullable Binary parameter) {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : accounts) {
@@ -1528,7 +1528,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private void transmitInProcedure(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-	                                 @NotNull Collection<BLoginKey> accounts, @Nullable Binary parameter) {
+									 @NotNull Collection<BLoginKey> accounts, @Nullable Binary parameter) {
 		if (!providerApp.zeze.getConfig().hasGlobal()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(account, clientId, actionName, accounts, parameter);
@@ -1576,7 +1576,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public void transmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-	                     @NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
+						 @NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 
@@ -1593,7 +1593,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-	                                @NotNull String targetAccount, @NotNull String targetClientId, @Nullable Serializable parameter) {
+									@NotNull String targetAccount, @NotNull String targetClientId, @Nullable Serializable parameter) {
 		OnlineSpec.ofTransmit(this, account, clientId, actionName, targetAccount, targetClientId).parameter(parameter).transmit();
 	}
 
@@ -1602,7 +1602,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-	                                @NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
+									@NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
 		OnlineSpec.ofTransmit(this, account, clientId, actionName, targets).parameter(parameter).transmit();
 	}
 
@@ -1611,7 +1611,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void transmitWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-	                                  @NotNull String targetAccount, @NotNull String targetClientId, @Nullable Serializable parameter) {
+									  @NotNull String targetAccount, @NotNull String targetClientId, @Nullable Serializable parameter) {
 		OnlineSpec.ofTransmit(this, account, clientId, actionName, targetAccount, targetClientId).parameter(parameter).transmitWhileRollback();
 	}
 
@@ -1620,7 +1620,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 */
 	@Deprecated
 	public void transmitWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-	                                  @NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
+									  @NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
 		OnlineSpec.ofTransmit(this, account, clientId, actionName, targets).parameter(parameter).transmitWhileRollback();
 	}
 
@@ -1951,7 +1951,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private int reliableNotifySync(@NotNull String account, @NotNull String clientId,
-	                               @NotNull ProviderUserSession session, long index, boolean sync) throws Exception {
+								   @NotNull ProviderUserSession session, long index, boolean sync) throws Exception {
 		var online = getOrAddOnline(account);
 		var queue = openQueue(account, clientId);
 		var loginOnline = online.getLogins().getOrAdd(clientId);

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Util;
 
+import java.util.Calendar;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -184,6 +185,84 @@ public class TestDaemonTimer {
 			Assertions.assertTrue(g3 <= 800, "新周期必须持续生效，第4→5轮间隔ms=" + g3);
 		} finally {
 			daemon.stop();
+		}
+	}
+
+	@Test
+	@Timeout(30)
+	public void testNextDelaySupplierPerRound() throws Exception {
+		// 逐轮延迟钉板：供应商每次续约时求值（Token每日锚点重对齐的机制基础）。
+		// 序列300,50,50,...：若首值被缓存则恒300ms节奏，逐轮求值则第3轮起50ms节奏。
+		var runs = new AtomicInteger();
+		var firstDelay = new AtomicBoolean(true);
+		var daemon = new DaemonTimer("UnitTest.DaemonTimer.nextDelay",
+				() -> firstDelay.getAndSet(false) ? 300 : 50, 0, runs::incrementAndGet);
+		try {
+			daemon.start();
+			Assertions.assertTrue(waitUntil(() -> runs.get() >= 2, 5_000), "首轮300ms后必须在5s内到达2轮");
+			var begin = System.currentTimeMillis();
+			Assertions.assertTrue(waitUntil(() -> runs.get() >= 5, 3_000), "后续轮必须在3s内到达");
+			var elapsed = System.currentTimeMillis() - begin;
+			// 缓存首值则3×300=900ms；逐轮求值最坏=已排期pending(50)+2×50=150ms
+			Assertions.assertTrue(elapsed <= 400, "供应商延迟必须逐轮求值生效，实际ms=" + elapsed);
+		} finally {
+			daemon.stop();
+		}
+
+		// 违约关门钉板：供应商返回<=0即关门终止（scheduleNow的<=0会即时触发成busy环）
+		var badRuns = new AtomicInteger();
+		var bad = new DaemonTimer("UnitTest.DaemonTimer.nextDelayBad", () -> 0, 0, badRuns::incrementAndGet);
+		bad.start();
+		Assertions.assertTrue(waitUntil(bad::isShutdown, 1_000), "违约供应商必须关门");
+		Thread.sleep(200);
+		Assertions.assertEquals(0, badRuns.get(), "关门后不得有轮次执行");
+	}
+
+	@Test
+	@Timeout(30)
+	public void testSupplierExceptionShutsDownChain() throws Exception {
+		// 供应商抛异常钉板：与<=0同罪必须关门——修复前异常逃出rescheduleLocked（求值在
+		// try之外），链断但shutdown=false、无pending无在飞，isShutdown()报false的僵尸守护。
+		var runs = new AtomicInteger();
+		var firstDelay = new AtomicBoolean(true);
+		var daemon = new DaemonTimer("UnitTest.DaemonTimer.nextDelayThrow",
+				() -> {
+					if (firstDelay.getAndSet(false))
+						return 50;
+					throw new IllegalStateException("UnitTest nextDelayMs supplier boom");
+				}, 0, runs::incrementAndGet);
+		daemon.start();
+		Assertions.assertTrue(waitUntil(() -> runs.get() >= 1, 5_000), "首轮50ms后必须执行");
+		Assertions.assertTrue(waitUntil(daemon::isShutdown, 5_000),
+				"供应商抛异常必须关门（修复前僵尸：isShutdown恒false且链已断）");
+		Assertions.assertEquals(1, runs.get(), "违约后计数冻结在首轮");
+		Thread.sleep(300);
+		Assertions.assertEquals(1, runs.get(), "关门后不得再有轮次执行");
+	}
+
+	@Test
+	@Timeout(30)
+	public void testDelayUntilNextDailyAlwaysAtLeast1Ms() throws Exception {
+		// delayUntilNextDaily钳制钉板（Token.cleanTokenMapTableDaemon的延迟来源）：
+		// 求值落在锚点毫秒（或内部before()与结尾两次取时刻跨过锚点）时旧实现算出0/负数，
+		// 会被DaemonTimer供应商模式定性为违约关门。锚点毫秒无法廉价确定性命中，密集采样
+		// 可达锚点断言恒>=1；上限=次日同刻+1分钟（当前分钟锚点已过即排明天）。
+		var cal = Calendar.getInstance();
+		int curH = cal.get(Calendar.HOUR_OF_DAY);
+		int curM = cal.get(Calendar.MINUTE);
+		cal.add(Calendar.MINUTE, 1);
+		int nextH = cal.get(Calendar.HOUR_OF_DAY);
+		int nextM = cal.get(Calendar.MINUTE);
+		var anchors = new int[][] {{curH, curM}, {nextH, nextM}, {3, 14}, {23, 59}};
+		var deadline = System.currentTimeMillis() + 200;
+		while (System.currentTimeMillis() < deadline) {
+			for (var anchor : anchors) {
+				var delay = Task.delayUntilNextDaily(anchor[0], anchor[1]);
+				Assertions.assertTrue(delay >= 1, "delay必须>=1ms，anchor=" + anchor[0] + ":" + anchor[1]
+						+ "，实际=" + delay);
+				Assertions.assertTrue(delay <= 24 * 3600_000L + 60_000,
+						"delay不得超过次日同刻+1分钟，实际=" + delay);
+			}
 		}
 	}
 

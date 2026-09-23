@@ -615,7 +615,7 @@ public final class Task {
 		return TaskSpec.ofAction(action).timeout(timeout).scheduleAtPeriodNow(hour, minute, period);
 	}
 
-	static long delayUntilNextDaily(int hour, int minute) {
+	public static long delayUntilNextDaily(int hour, int minute) {
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, hour);
 		firstTime.set(Calendar.MINUTE, minute);
@@ -623,7 +623,10 @@ public final class Task {
 		firstTime.set(Calendar.MILLISECOND, 0);
 		if (firstTime.before(Calendar.getInstance())) // 如果第一次的时间比当前时间早，推到明天。
 			firstTime.add(Calendar.DAY_OF_MONTH, 1); // tomorrow!
-		return firstTime.getTime().getTime() - System.currentTimeMillis();
+		// 返回值恒>=1ms：求值落在锚点毫秒（或before()与结尾两次取时刻跨过锚点）会算出
+		// 0/负数——DaemonTimer供应商模式把<=0定性为违约关门，钳到1ms保住"立即触发一轮"
+		// 的良性语义（对齐scheduleAtNow族对delay<=0的处理）。
+		return Math.max(1, firstTime.getTime().getTime() - System.currentTimeMillis());
 	}
 
 	/** @deprecated 请使用 {@code TaskSpec.ofAction(action).schedulePeriod(initialDelay, period)}。 */

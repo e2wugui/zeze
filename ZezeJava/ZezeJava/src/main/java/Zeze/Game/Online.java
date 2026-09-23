@@ -142,7 +142,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		try {
 			if (period <= 1)
 				throw new IllegalArgumentException();
-            verifyLocalDaemon.setPeriodMs(period); // 下一次续约生效
+			verifyLocalDaemon.setPeriodMs(period); // 下一次续约生效
 		} finally {
 			unlock();
 		}
@@ -1060,8 +1060,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		OnlineSpec.ofRole(this, roleId).withContext().sendRpc(rpc, responseHandle);
 	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).withContext().timeout(timeoutMs)
-	 *         .sendRpc(rpc, responseHandle)} 替代。 */
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofRole(online, roleId).withContext().timeout(timeoutMs)
+	 * 		.sendRpc(rpc, responseHandle)} 替代。
+	 */
 	@Deprecated
 	public <A extends Serializable, R extends Serializable> void sendRpc(
 			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs) {
@@ -1213,16 +1215,20 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 //				}, "Online.send")), DispatchMode.Normal);
 //	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().quietWhenAbsent(quietWhenAbsent)
-	 *         .sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().quietWhenAbsent(quietWhenAbsent)
+	 * 		.sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。
+	 */
 	@Deprecated
 	public int send(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
 					boolean quietWhenAbsent) {
 		return OnlineSpec.ofRoles(this, roleIds).withContext().quietWhenAbsent(quietWhenAbsent).sendNow(typeId, fullEncodedProtocol);
 	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).quietWhenAbsent(quietWhenAbsent)
-	 *         .sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。 */
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).quietWhenAbsent(quietWhenAbsent)
+	 * 		.sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。
+	 */
 	@Deprecated
 	public int sendOnline(@NotNull Collection<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
 						  boolean quietWhenAbsent) {
@@ -1264,7 +1270,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			// CheckLinkSession/verifyLocal路径自愈）。
 			var rc = roleId != null
 					? providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, linkSid),
-							"Online.triggerLinkBroken").call()
+					"Online.triggerLinkBroken").call()
 					: 0;
 			if (rc != 0)
 				logger.error("triggerLinkBroken failed: linkName={}, linkSid={}, roleId={}, rc={}",
@@ -1460,52 +1466,52 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			}
 			return false;
 		}
-			var linkName = link.getLinkName();
-			var connector = providerApp.providerService.getLinks().get(linkName);
-			if (connector == null) {
-				logger.warn("sendDirect({}): not found connector for linkName={} roleId={}",
-						getTypeId(fullEncodedProtocol), linkName, roleId);
-				// link miss
-				// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
-				TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
-					var rc = onSendError("", roleId, linkName, link.getLinkSid());
-					if (rc != 0)
-						logger.error("triggerLinkBroken0_a failed: linkName={}, linkSid={}, roleId={}, rc={}",
-								linkName, link.getLinkSid(), roleId, rc);
-					return rc;
-				}, "Online.triggerLinkBroken0_a")).run();
-				return false;
-			}
-			if (!connector.isHandshakeDone()) {
-				logger.warn("sendDirect({}): not isHandshakeDone for linkName={} roleId={}",
-						getTypeId(fullEncodedProtocol), linkName, roleId);
-				// link miss
-				// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
-				TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
-					var rc = onSendError("", roleId, linkName, link.getLinkSid());
-					if (rc != 0)
-						logger.error("triggerLinkBroken0_b failed: linkName={}, linkSid={}, roleId={}, rc={}",
-								linkName, link.getLinkSid(), roleId, rc);
-					return rc;
-				}, "Online.triggerLinkBroken0_b")).run();
-				return false;
-			}
-			// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
-			var linkSocket = connector.getSocket();
-			if (linkSocket == null) {
-				logger.warn("sendDirect({}): closed connector for linkName={} roleId={}",
-						getTypeId(fullEncodedProtocol), linkName, roleId);
-				// link miss
-				// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
-				TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
-					var rc = onSendError("", roleId, linkName, link.getLinkSid());
-					if (rc != 0)
-						logger.error("triggerLinkBroken0_c failed: linkName={}, linkSid={}, roleId={}, rc={}",
-								linkName, link.getLinkSid(), roleId, rc);
-					return rc;
-				}, "Online.triggerLinkBroken0_c")).run();
-				return false;
-			}
+		var linkName = link.getLinkName();
+		var connector = providerApp.providerService.getLinks().get(linkName);
+		if (connector == null) {
+			logger.warn("sendDirect({}): not found connector for linkName={} roleId={}",
+					getTypeId(fullEncodedProtocol), linkName, roleId);
+			// link miss
+			// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+				var rc = onSendError("", roleId, linkName, link.getLinkSid());
+				if (rc != 0)
+					logger.error("triggerLinkBroken0_a failed: linkName={}, linkSid={}, roleId={}, rc={}",
+							linkName, link.getLinkSid(), roleId, rc);
+				return rc;
+			}, "Online.triggerLinkBroken0_a")).run();
+			return false;
+		}
+		if (!connector.isHandshakeDone()) {
+			logger.warn("sendDirect({}): not isHandshakeDone for linkName={} roleId={}",
+					getTypeId(fullEncodedProtocol), linkName, roleId);
+			// link miss
+			// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+				var rc = onSendError("", roleId, linkName, link.getLinkSid());
+				if (rc != 0)
+					logger.error("triggerLinkBroken0_b failed: linkName={}, linkSid={}, roleId={}, rc={}",
+							linkName, link.getLinkSid(), roleId, rc);
+				return rc;
+			}, "Online.triggerLinkBroken0_b")).run();
+			return false;
+		}
+		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
+		var linkSocket = connector.getSocket();
+		if (linkSocket == null) {
+			logger.warn("sendDirect({}): closed connector for linkName={} roleId={}",
+					getTypeId(fullEncodedProtocol), linkName, roleId);
+			// link miss
+			// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+				var rc = onSendError("", roleId, linkName, link.getLinkSid());
+				if (rc != 0)
+					logger.error("triggerLinkBroken0_c failed: linkName={}, linkSid={}, roleId={}, rc={}",
+							linkName, link.getLinkSid(), roleId, rc);
+				return rc;
+			}, "Online.triggerLinkBroken0_c")).run();
+			return false;
+		}
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(link.getLinkSid());
 		setLocalActiveTimeIfPresent(roleId);
@@ -1589,6 +1595,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	/**
 	 * 发送在线可靠协议，如果不在线等，仍然不会发送哦。
 	 * 如果在事务中，则事务提交时才排队发送。如果不在事务中，马上排队发送。
+	 *
 	 * @param p 协议。
 	 * @deprecated 使用 {@code OnlineSpec.ofReliableNotify(online, roleId, listenerName).send(p)} 替代。
 	 */
@@ -1604,6 +1611,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	/**
 	 * 发送在线可靠协议，如果不在线等，仍然不会发送。
 	 * 如果在事务中，则事务提交时才排队发送。如果不在事务中，马上排队发送。
+	 *
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 * @deprecated 使用 {@code OnlineSpec.ofReliableNotify(online, roleId, listenerName).send(typeId, fullEncodedProtocol)} 替代。
 	 */
@@ -1617,35 +1625,35 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	public void sendReliableNotifyDirect(long roleId, @NotNull String listenerName, long typeId, @NotNull Binary fullEncodedProtocol, boolean quietWhenAbsent) {
 		providerApp.zeze.runTaskOneByOneByKey(
-			listenerName,
-			"Online.sendReliableNotify." + listenerName,
-			() -> {
-			var online = getLoginOnline(roleId);
-			if (online == null)
-				return Procedure.Success;
-			if (!online.getReliableNotifyMark().contains(listenerName))
-				return Procedure.Success; // 相关数据装载的时候要同步设置这个。
+				listenerName,
+				"Online.sendReliableNotify." + listenerName,
+				() -> {
+					var online = getLoginOnline(roleId);
+					if (online == null)
+						return Procedure.Success;
+					if (!online.getReliableNotifyMark().contains(listenerName))
+						return Procedure.Success; // 相关数据装载的时候要同步设置这个。
 
-			// 先保存在再发送，然后客户端还会确认。
-			// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
-			var queue = openQueue(roleId);
-			var bNotify = new BNotify();
-			bNotify.setFullEncodedProtocol(fullEncodedProtocol);
-			queue.add(bNotify);
+					// 先保存在再发送，然后客户端还会确认。
+					// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
+					var queue = openQueue(roleId);
+					var bNotify = new BNotify();
+					bNotify.setFullEncodedProtocol(fullEncodedProtocol);
+					queue.add(bNotify);
 
-			// 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
-			var notify = new SReliableNotify(new BReliableNotify(online.getReliableNotifyIndex()));
-			online.setReliableNotifyIndex(online.getReliableNotifyIndex() + 1); // after set notify.Argument
-			notify.Argument.getNotifies().add(fullEncodedProtocol);
+					// 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
+					var notify = new SReliableNotify(new BReliableNotify(online.getReliableNotifyIndex()));
+					online.setReliableNotifyIndex(online.getReliableNotifyIndex() + 1); // after set notify.Argument
+					notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-			Transaction.whileCommit(() -> {
-				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
-					AsyncSocket.log("Send", roleId + ":" + listenerName, notify);
-				sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()), quietWhenAbsent);
-			});
+					Transaction.whileCommit(() -> {
+						if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
+							AsyncSocket.log("Send", roleId + ":" + listenerName, notify);
+						sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()), quietWhenAbsent);
+					});
 //			sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.encode()));
-			return Procedure.Success;
-		});
+					return Procedure.Success;
+				});
 	}
 
 	/**
@@ -1655,7 +1663,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * @param actionName 查询处理的实现
 	 * @param roleId     目标角色
 	 * @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId)
-	 *         .parameter(parameter).transmit()} 替代。
+	 * 		.parameter(parameter).transmit()} 替代。
 	 */
 	@Deprecated
 	public void transmit(long sender, @NotNull String actionName, long roleId, @Nullable Serializable parameter) {
@@ -1830,8 +1838,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		OnlineSpec.ofTransmit(this, sender, actionName, roleId).transmit();
 	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId)
-	 *         .parameter(parameter).transmit()} 替代，事务内自动在提交时执行。 */
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId)
+	 * 		.parameter(parameter).transmit()} 替代，事务内自动在提交时执行。
+	 */
 	@Deprecated
 	public void transmitWhileCommit(long sender, @NotNull String actionName, long roleId,
 									@Nullable Serializable parameter) {
@@ -1844,8 +1854,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).transmit();
 	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds)
-	 *         .parameter(parameter).transmit()} 替代，事务内自动在提交时执行。 */
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds)
+	 * 		.parameter(parameter).transmit()} 替代，事务内自动在提交时执行。
+	 */
 	@Deprecated
 	public void transmitWhileCommit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
 									@Nullable Serializable parameter) {
@@ -1858,8 +1870,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		OnlineSpec.ofTransmit(this, sender, actionName, roleId).transmitWhileRollback();
 	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId)
-	 *         .parameter(parameter).transmitWhileRollback()} 替代。 */
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleId)
+	 * 		.parameter(parameter).transmitWhileRollback()} 替代。
+	 */
 	@Deprecated
 	public void transmitWhileRollback(long sender, @NotNull String actionName, long roleId,
 									  @Nullable Serializable parameter) {
@@ -1872,8 +1886,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		OnlineSpec.ofTransmit(this, sender, actionName, roleIds).transmitWhileRollback();
 	}
 
-	/** @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds)
-	 *         .parameter(parameter).transmitWhileRollback()} 替代。 */
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofTransmit(online, sender, actionName, roleIds)
+	 * 		.parameter(parameter).transmitWhileRollback()} 替代。
+	 */
 	@Deprecated
 	public void transmitWhileRollback(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
 									  @Nullable Serializable parameter) {

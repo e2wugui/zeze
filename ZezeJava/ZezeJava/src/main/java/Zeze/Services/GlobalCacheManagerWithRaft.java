@@ -83,6 +83,8 @@ public class GlobalCacheManagerWithRaft
 	// FND7-17/18组件化：调度线程只派发、扫描体进worker池、close两段式（关门→cancel→限时等待
 	// 在飞一轮）由DaemonTimer内聚；该模式曾手抄于GCM三版与LoginQueue，拷贝过期即成缺陷。
 	private final DaemonTimer achillesHeelDaemonTimer;
+	// close标记：daemon轮次在模块锁内首查即退出，不再触碰rocks（对齐ServiceManagerWithRaft判例）
+	private volatile boolean closed;
 	private final GlobalCacheManagerPerf perf;
 	private final AtomicLong serialId = new AtomicLong();
 
@@ -152,7 +154,21 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	private void achillesHeelDaemon() {
-		var now = System.currentTimeMillis();
+		lock();
+		try {
+			// closed与rocks首次触碰(getRaft().isLeader)同在本模块锁内，对齐ServiceManagerWithRaft
+			// 判例：close()先置closed再过锁屏障，屏障后进入的轮次见closed即退出——rocks.close()
+			// 不与在飞/逃逸轮的rocks访问并发（原先锁外先摸rocks，getRaft拿到引用后native句柄被
+			// 释放即段错误，S2-F2判空挡不住TOCTOU窗口）。模块锁此前零使用，无既有锁序可反。
+			if (closed)
+				return;
+			achillesHeelDaemonLocked(System.currentTimeMillis());
+		} finally {
+			unlock();
+		}
+	}
+
+	private void achillesHeelDaemonLocked(long now) {
 		var raft = rocks.getRaft();
 		var leader = raft != null && raft.isLeader();
 		if (leader) {
@@ -983,10 +999,12 @@ public class GlobalCacheManagerWithRaft
 		try {
 			// 先停守护再关rocks：在飞扫描持session锁逐key跑raft procedure，rocks.close()
 			// 释放原生句柄后与在飞walk/iterator竞争会段错误杀死JVM
-			// （对齐ServiceManagerWithRaft.close的锁屏障教训）。DaemonTimer.stop两段式：
-			// 关门→cancel已排期→限时等待在飞一轮；扫描有defaultTimeout看门狗兜底，等不满
-			// 仅告警继续关闭（残余风险是晚到的扫描访问已关闭的rocks，与原行为一致）。
+			// （对齐ServiceManagerWithRaft.close的锁屏障教训）。daemon轮次全程持模块锁且锁内
+			// 首查closed：closed先于锁屏障置位，屏障后进入的轮次直接退出，逃逸轮不再触碰已关rocks。
+			closed = true;
 			achillesHeelDaemonTimer.stop();
+			lock();
+			unlock(); // 模块锁屏障：与daemon轮次的锁内段互斥
 			perf.close();
 			rocks.close();
 		} catch (Exception e) {

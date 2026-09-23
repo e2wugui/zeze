@@ -12,7 +12,6 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
@@ -43,6 +42,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.DaemonTimer;
 import Zeze.Util.FastLock;
 import Zeze.Util.OutObject;
 import Zeze.Util.PropertiesHelper;
@@ -50,9 +50,7 @@ import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
-import Zeze.Util.TaskSpec;
 import Zeze.Util.ThreadFactoryWithName;
-import Zeze.Util.TimerFuture;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -506,14 +504,16 @@ public final class Token extends AbstractToken {
 	private volatile RocksDatabase rocksdb;
 	private volatile RocksDatabase.Table tokenMapTable;
 	private TokenServer service;
-	private TimerFuture<?> cleanTokenMapFuture;
-	private volatile ScheduledFuture<?> cleanTokenMapTableFuture;
-	// S4-F3：cleanTokenMapTable的运行标志——stop()在cancel(true)后、saveDB/closeDb前于Token
-	// 锁外带超时等其归零（cancel只发中断不等待任务退出，任务观察中断后仍会commit/收尾；
-	// 不等即关库违反RocksDatabase关闭契约，在飞get/put/commit对已关闭句柄操作可崩JVM）。
-	// 必须锁外等待：任务的finally要拿同一把Token锁做重调度检查，持锁等待即死锁。
-	private volatile boolean cleanTokenMapTableRunning;
-	private static final long CLEAN_TOKEN_MAP_TABLE_STOP_TIMEOUT_MS = 10_000;
+	// 周期守护：cleanTokenMap(1s内存扫描，state.tryLock非阻塞)进worker池；stop锁外有界等待
+	// 在飞一轮——模块锁不再跨任何join（原TimerFuture.cancel在Token锁内无界join，body亚毫秒
+	// 无碍，但演化变重会变成持模块锁无界等）。
+	private final DaemonTimer cleanTokenMapDaemon = new DaemonTimer("Token.cleanTokenMap", 1000, this::cleanTokenMap);
+	// 周期守护：cleanTokenMapTableOnce(全表RocksDB迭代+批删)进worker池不占调度线程；
+	// 逐轮delayUntilNextDaily(3,14)重对齐每日03:14（无漂移，对齐旧scheduleAtNow+finally重排链）；
+	// stop()锁外daemon.stop()有界等待在飞一轮（原S4-F3的running标志+1ms轮询等待就此删除），
+	// 超预算逃逸轮由body的catch容错（记日志，清理幂等：未删行下次03:14重扫）。
+	private final DaemonTimer cleanTokenMapTableDaemon = new DaemonTimer("Token.cleanTokenMapTable",
+			() -> Task.delayUntilNextDaily(3, 14), 0, this::cleanTokenMapTableOnce);
 
 	public TokenServer getService() {
 		return service;
@@ -563,35 +563,29 @@ public final class Token extends AbstractToken {
 				}
 				service.start();
 
-				cleanTokenMapFuture = TaskSpec.ofAction(this::cleanTokenMap).schedulePeriodNow(1000, 1000);
-				cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtNow(3, 14);
+				cleanTokenMapDaemon.start();
+				cleanTokenMapTableDaemon.start();
 				return this;
 			} catch (Throwable ex) {
 				// 启动全有或全无（FND4-69）：
 				// 半途失败清空已建状态，否则重入检查把"未运行的服务"当已启动直接
 				// 返回this——二次start假成功，服务永不监听且清理任务未注册，
 				// getService()非null掩盖故障。
-				if (cleanTokenMapFuture != null) {
-					cleanTokenMapFuture.cancel(false);
-					cleanTokenMapFuture = null;
+				cleanTokenMapDaemon.stop();
+				cleanTokenMapTableDaemon.stop();
+				if (service != null) {
+					// 先stop再置null（FND7-22）：config.start()逐个启动acceptor，多acceptor配置下
+					// 前一个bind成功、后一个失败时，已bind的监听socket与start()启动的keepAlive
+					// 定时器仍在运行；只置null的话无人能再停它们——同端口重试start永远bind冲突，
+					// 直到进程退出。stop失败仅记日志，不掩盖原始启动异常。
+					try {
+						service.stop();
+					} catch (Throwable t) { // logger.error
+						logger.error("Token.start rollback service.stop exception:", t);
+					}
+					service = null;
 				}
-			if (cleanTokenMapTableFuture != null) {
-				cleanTokenMapTableFuture.cancel(false);
-				cleanTokenMapTableFuture = null;
-			}
-			if (service != null) {
-				// 先stop再置null（FND7-22）：config.start()逐个启动acceptor，多acceptor配置下
-				// 前一个bind成功、后一个失败时，已bind的监听socket与start()启动的keepAlive
-				// 定时器仍在运行；只置null的话无人能再停它们——同端口重试start永远bind冲突，
-				// 直到进程退出。stop失败仅记日志，不掩盖原始启动异常。
-				try {
-					service.stop();
-				} catch (Throwable t) { // logger.error
-					logger.error("Token.start rollback service.stop exception:", t);
-				}
-				service = null;
-			}
-			if (rocksdb != null) {
+				if (rocksdb != null) {
 					try {
 						rocksdb.close();
 					} catch (Throwable ignored) {
@@ -609,14 +603,6 @@ public final class Token extends AbstractToken {
 	public void stop() throws Exception {
 		lock();
 		try {
-			if (cleanTokenMapTableFuture != null) {
-				cleanTokenMapTableFuture.cancel(true);
-				cleanTokenMapTableFuture = null;
-			}
-			if (cleanTokenMapFuture != null) {
-				cleanTokenMapFuture.cancel(true);
-				cleanTokenMapFuture = null;
-			}
 			if (service != null) {
 				service.stop();
 				service = null;
@@ -624,10 +610,11 @@ public final class Token extends AbstractToken {
 		} finally {
 			unlock();
 		}
-		// S4-F3：锁外带超时等待cleanTokenMapTable真正结束（任务的finally要拿Token锁重调度，
-		// 持锁等待必死锁，见cleanTokenMapTableRunning注释）。等待窗口内并发的start()会因
+		// 两个守护均在锁外有界等待在飞一轮（预算=timeoutMs+5s；table对齐RocksDatabase关闭契约——
+		// 不等即关库时在飞get/put/commit对已关闭句柄操作可崩JVM）。等待窗口内并发的start()会因
 		// 旧库未关而在目录LOCK互斥上失败（FND8-63既有行为），不产生静默双开。
-		waitCleanTokenMapTableStopped();
+		cleanTokenMapDaemon.stop();
+		cleanTokenMapTableDaemon.stop();
 		lock();
 		try {
 			if (rocksdb != null) {
@@ -643,25 +630,6 @@ public final class Token extends AbstractToken {
 			tokenMap.clear();
 		} finally {
 			unlock();
-		}
-	}
-
-	/** S4-F3：等待cleanTokenMapTable运行标志归零（带超时兜底，超时记录后放弃——极端挂死
-	 * 任务不应让stop永久阻塞，残余竞态按RocksDB侧崩溃风险接受并在日志中可见）。 */
-	private void waitCleanTokenMapTableStopped() {
-		var deadline = System.currentTimeMillis() + CLEAN_TOKEN_MAP_TABLE_STOP_TIMEOUT_MS;
-		while (cleanTokenMapTableRunning) {
-			if (System.currentTimeMillis() >= deadline) {
-				logger.error("cleanTokenMapTable not exit in {}ms after stop, give up waiting.",
-						CLEAN_TOKEN_MAP_TABLE_STOP_TIMEOUT_MS);
-				return;
-			}
-			try {
-				//noinspection BusyWait
-				Thread.sleep(1);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt(); // 保留中断标记继续限时等待（deadline兜底）
-			}
 		}
 	}
 
@@ -694,17 +662,6 @@ public final class Token extends AbstractToken {
 		}
 	}
 
-	// 包装层（S4-F3）：入口/出口维护volatile运行标志，供stop()锁外等待任务真正结束——
-	// 归零即本任务连同其finally的重调度检查全部完成、不再触碰rocksdb。
-	private void cleanTokenMapTable() {
-		cleanTokenMapTableRunning = true;
-		try {
-			cleanTokenMapTableOnce();
-		} finally {
-			cleanTokenMapTableRunning = false;
-		}
-	}
-
 	private void cleanTokenMapTableOnce() {
 		logger.info("cleanTokenMapTable: begin ...");
 		var now = System.currentTimeMillis();
@@ -734,14 +691,6 @@ public final class Token extends AbstractToken {
 			logger.error("cleanTokenMapTable exception:", e);
 		} finally {
 			logger.info("cleanTokenMapTable: {} => {} ({} ms)", n, n - d, System.currentTimeMillis() - now);
-			lock();
-			try {
-				// stop已取消并置空任务（或closeDb已置空rocksdb）时不再重调度，避免任务"复活"后访问已关闭的资源。
-				if (rocksdb != null && cleanTokenMapTableFuture != null)
-					cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtNow(3, 14);
-			} finally {
-				unlock();
-			}
 		}
 	}
 

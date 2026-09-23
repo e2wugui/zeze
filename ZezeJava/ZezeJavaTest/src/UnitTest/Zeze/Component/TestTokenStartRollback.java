@@ -3,7 +3,6 @@ package UnitTest.Zeze.Component;
 import java.lang.reflect.Field;
 import java.net.ServerSocket;
 import java.nio.file.Path;
-import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -57,9 +56,15 @@ public class TestTokenStartRollback {
 			token.start(null, "127.0.0.1", port);
 			Assertions.assertNotNull(serviceField.get(tokenRef), "二次start真实启动");
 
-			var futureField = Token.class.getDeclaredField("cleanTokenMapFuture");
-			futureField.setAccessible(true);
-			Assertions.assertNotNull(((Future<?>)futureField.get(tokenRef)), "清理任务必须已注册（修复前为null）");
+			// 二次start真实启动的守护注册证据：两个周期守护必须非关门态
+			var mapDaemonField = Token.class.getDeclaredField("cleanTokenMapDaemon");
+			mapDaemonField.setAccessible(true);
+			Assertions.assertFalse(((Zeze.Util.DaemonTimer)mapDaemonField.get(tokenRef)).isShutdown(),
+					"cleanTokenMap守护必须已启动（修复前为null）");
+			var tableDaemonField = Token.class.getDeclaredField("cleanTokenMapTableDaemon");
+			tableDaemonField.setAccessible(true);
+			Assertions.assertFalse(((Zeze.Util.DaemonTimer)tableDaemonField.get(tokenRef)).isShutdown(),
+					"cleanTokenMapTable守护必须已启动");
 
 			// 端口可连接=真实监听
 			try (var sock = new java.net.Socket("127.0.0.1", port)) {

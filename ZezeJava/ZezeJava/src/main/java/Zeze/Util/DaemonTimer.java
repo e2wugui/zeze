@@ -1,21 +1,25 @@
 package Zeze.Util;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.LongSupplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 周期守护定时器：
  * 调度线程只派发、守护体进worker池、
  * stop三段式（关门→cancel→限时等待在飞一轮）；stop后已派发未启动的迟到轮在runBody入口作废。
  * 每轮看门狗超时timeoutMs可配（&lt;=0取{@link Task#defaultTimeout}），
- * stop等待预算=timeoutMs+5s（对齐每轮executeCore看门狗）
+ * stop等待预算=timeoutMs+5s（对齐每轮executeCore看门狗）。
+ * 延迟策略二选一：常量periodMs，或LongSupplier逐轮续约时求值（每日锚点重对齐/自适应退避/随机抖动）
  */
 public final class DaemonTimer {
 
@@ -24,6 +28,9 @@ public final class DaemonTimer {
 	private final @NotNull String name;
 	// volatile：setPeriodMs运行期调整，下一次续约（rescheduleLocked）读取生效，已排期pending不重排
 	private volatile long periodMs;
+	// 逐轮延迟策略：null=常量周期（用periodMs）；非null=每次续约时求值（锚点重对齐/退避/抖动），
+	// 此模式periodMs不参与调度、setPeriodMs不可用
+	private final @Nullable LongSupplier nextDelayMs;
 	// 每轮executeCore看门狗预算；stop等待预算=timeoutMs+5s。构造时快照，实例期内确定
 	private final long timeoutMs;
 	private final @NotNull Action0 body;
@@ -52,6 +59,25 @@ public final class DaemonTimer {
 		this.periodMs = periodMs;
 		this.timeoutMs = timeoutMs > 0 ? timeoutMs : Task.defaultTimeout;
 		this.body = body;
+		this.nextDelayMs = null;
+	}
+
+	/**
+	 * @param nextDelayMs 每轮续约时求值的下一次延迟(毫秒)——每日锚点重对齐
+	 *                    （如{@code () -> Task.delayUntilNextDaily(3, 14)}，其返回值钳制
+	 *                    恒&gt;=1）、自适应退避、随机抖动等逐轮策略。求值&lt;=0或抛异常
+	 *                    均视为协议违约：关门并记error（&lt;=0防即时触发成busy环）。
+	 *                    此构造下{@link #setPeriodMs}抛
+	 *                    IllegalStateException（周期归供应商所有）。
+	 * @param timeoutMs 每轮看门狗超时(毫秒)，&lt;=0 时取 {@link Task#defaultTimeout}；
+	 *                  stop等待预算=timeoutMs+5s（构造时快照）
+	 */
+	public DaemonTimer(@NotNull String name, @NotNull LongSupplier nextDelayMs, long timeoutMs, @NotNull Action0 body) {
+		this.name = name;
+		this.periodMs = -1; // 供应商模式不使用
+		this.nextDelayMs = Objects.requireNonNull(nextDelayMs);
+		this.timeoutMs = timeoutMs > 0 ? timeoutMs : Task.defaultTimeout;
+		this.body = body;
 	}
 
 	/** 启动（首轮在periodMs后触发）。幂等：运行中调用空转。stop后可再次start。 */
@@ -67,8 +93,11 @@ public final class DaemonTimer {
 		}
 	}
 
-	/** 调整周期(毫秒)：下一次续约生效，已排期的pending不提前不延后（对齐旧自续链在续约时取值的语义）。 */
+	/** 调整周期(毫秒)：下一次续约生效，已排期的pending不提前不延后（对齐旧自续链在续约时取值的语义）。
+	 * 仅常量周期构造可用；LongSupplier构造下周期归供应商所有，调用抛IllegalStateException。 */
 	public void setPeriodMs(long periodMs) {
+		if (nextDelayMs != null)
+			throw new IllegalStateException("period is owned by the nextDelayMs supplier");
 		if (periodMs <= 0)
 			throw new IllegalArgumentException("periodMs <= 0");
 		this.periodMs = periodMs;
@@ -180,8 +209,21 @@ public final class DaemonTimer {
 	private void rescheduleLocked() {
 		if (shutdown || pending != null)
 			return;
+		long delay;
 		try {
-			pending = TaskSpec.ofAction(this::fire).name(name).scheduleNow(periodMs);
+			delay = nextDelayMs != null ? nextDelayMs.getAsLong() : periodMs;
+		} catch (Throwable e) { // 供应商抛异常：与<=0同罪关门，否则链断而shutdown=false成僵尸守护
+			shutdown = true;
+			logger.error("DaemonTimer {} nextDelayMs supplier exception, daemon terminated", name, e);
+			return;
+		}
+		if (delay <= 0) { // 供应商违约：scheduleNow的<=0会即时触发成busy环，关门保持状态诚实
+			shutdown = true;
+			logger.error("DaemonTimer {} nextDelayMs={} <= 0, daemon terminated", name, delay);
+			return;
+		}
+		try {
+			pending = TaskSpec.ofAction(this::fire).name(name).scheduleNow(delay);
 		} catch (Throwable e) { // 调度池已关（非瞬时故障）：关门让状态诚实，链断记error
 			shutdown = true;
 			logger.error("DaemonTimer {} reschedule failed, daemon terminated", name, e);

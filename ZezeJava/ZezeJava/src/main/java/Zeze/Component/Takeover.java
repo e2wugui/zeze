@@ -8,6 +8,7 @@ import Zeze.Application;
 import Zeze.Builtin.Takeover.tTakeoverLease;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.DaemonTimer;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.OutLong;
@@ -69,8 +70,10 @@ public class Takeover extends AbstractTakeover {
 	// TakeoverScope实现类不覆写equals（按实例标识），可直接做identity集合用。
 	private final @NotNull Set<TakeoverScope> scopedScopes = ConcurrentHashMap.newKeySet();
 	private final @NotNull LongHashMap<Future<?>> retryFutures = new LongHashMap<>(); // key:deadServerId 单发精确重试
-	private volatile @Nullable Future<?> renewFuture;
-	private volatile @Nullable Future<?> scanFuture;
+	// 周期守护：renew(租约续期事务)/scan(全表walk+tryTransfer派发)进worker池不占调度线程；
+	// release有界等待在飞一轮。构造时按ttl/3与scanPeriod定型，start→release→start重启复用同一实例。
+	private final DaemonTimer renewDaemon;
+	private final DaemonTimer scanDaemon;
 	private long renewFailCount; // 仅renew周期调度线程串行访问
 	// veto（死者数据版本高于本进程）会令扫描对同一死者周期性无限重试，on模式此前零输出——
 	// 按(死者serverId,epoch)去重告警一次给运维留线索。条目量以死者数×其历次epoch为界，与租约行同量级。
@@ -87,6 +90,8 @@ public class Takeover extends AbstractTakeover {
 		scanPeriod = conf.getTakeoverScanPeriod();
 		fatalAction = () -> System.exit(-1);
 		RegisterZezeTables(zeze);
+		renewDaemon = new DaemonTimer("Takeover.renew", Math.max(ttl / 3, 1), this::renewOnce);
+		scanDaemon = new DaemonTimer("Takeover.scan", scanPeriod, this::scanOnce);
 	}
 
 	public @NotNull String getMode() {
@@ -127,11 +132,8 @@ public class Takeover extends AbstractTakeover {
 		if (ModeOn.equals(mode))
 			for (var scope : scopes)
 				stampScope(scope);
-		var renewPeriod = Math.max(ttl / 3, 1);
-		renewFuture = TaskSpec.ofAction(this::renewOnce).name("Takeover.renew")
-				.schedulePeriodNow(renewPeriod, renewPeriod);
-		scanFuture = TaskSpec.ofAction(this::scanOnce).name("Takeover.scan")
-				.schedulePeriodNow(scanPeriod, scanPeriod);
+		renewDaemon.start();
+		scanDaemon.start();
 		// 启动立即扫描一次：接管之前死掉的server（AnnounceServers的功能替代）。
 		scanOnce();
 	}
@@ -512,14 +514,9 @@ public class Takeover extends AbstractTakeover {
 	 * fenceFatal==true（已被接管）时不写，避免动新owner的租约。
 	 */
 	public void release() {
-		var renew = renewFuture;
-		renewFuture = null;
-		if (renew != null)
-			renew.cancel(false);
-		var scan = scanFuture;
-		scanFuture = null;
-		if (scan != null)
-			scan.cancel(false);
+		// 有界等待在飞一轮；body入口的!started复查与已关库容忍（catch+debug日志）兜超预算逃逸轮
+		renewDaemon.stop();
+		scanDaemon.stop();
 		synchronized (retryFutures) {
 			retryFutures.foreachValue(f -> f.cancel(false));
 			retryFutures.clear();
