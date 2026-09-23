@@ -80,14 +80,6 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	@Override
-	public void close() {
-		try {
-			stop();
-		} catch (Exception e) {
-			throw Task.forceThrow(e);
-		}
-	}
-
 	public final void stop() throws Exception {
 		lock();
 		try {

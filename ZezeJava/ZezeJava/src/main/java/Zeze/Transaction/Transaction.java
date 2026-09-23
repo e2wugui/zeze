@@ -789,10 +789,10 @@ public final class Transaction {
 					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
 							e.atomicTupleRecord.record.isFresh(), false);
 					//noinspection DataFlowIssue
-					if (acquire.resultState != GlobalCacheManagerConst.StateModify) {
+					if (acquire.resultState() != GlobalCacheManagerConst.StateModify) {
 						e.atomicTupleRecord.record.setNotFresh(); // 抢失败不再新鲜。
 						logger.debug("Acquire Failed. Maybe DeadLock Found: record={}, time={}, resultCode={}",
-								e.atomicTupleRecord.record, e.atomicTupleRecord.timestamp, acquire.resultCode);
+								e.atomicTupleRecord.record, e.atomicTupleRecord.timestamp, acquire.resultCode());
 						e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateInvalid); // 这里保留StateShare更好吗？
 						return CheckResult.RedoAndReleaseLock;
 					}

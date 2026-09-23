@@ -156,7 +156,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 
 	protected abstract void cancelPending();
 
-	// FND10 txn-01：停机关库前有界等待活跃Releaser。Releaser不被任何close/join收编，其
+	// FND10 txn-01：停机关库前有界等待活跃Releaser。Releaser不被任何stop/join收编，其
 	// checkpointRun→flush与LocalRocksCacheDb.close+deleteDirectory并发属ad5801593判例的
 	// native UAF类窗口（activeFlush计数看不见"已过判空未入闸"者）。join不持锁：Releaser
 	// 不取本锁；超时告警继续，与stopStep语义一致。

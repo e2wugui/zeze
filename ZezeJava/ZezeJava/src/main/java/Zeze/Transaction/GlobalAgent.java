@@ -16,7 +16,6 @@ import Zeze.Services.GlobalCacheManager.NormalClose;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -179,15 +178,6 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 	}
 
 	@Override
-	public void close() {
-		try {
-			stop();
-		} catch (Exception e) {
-			throw Task.forceThrow(e);
-		}
-	}
-
-	@Override
 	public @Nullable AcquireResult acquire(@NotNull Binary gkey, int state, boolean fresh, boolean noWait) {
 		var agent = agents[getGlobalCacheManagerHashIndex(gkey)]; // hash
 		if (agent.isReleasing()) {
@@ -301,6 +291,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		}
 	}
 
+	@Override
 	public void stop() throws Exception {
 		lock();
 		try {

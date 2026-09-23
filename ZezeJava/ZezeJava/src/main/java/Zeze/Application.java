@@ -878,8 +878,8 @@ public final class Application extends ReentrantLock {
 
 			if (globalAgent != null) {
 				var ga = globalAgent;
-				stopStep("globalAgent.close", ga::close);
-				// FND10 txn-01：Releaser（GCM断连/守护Release触发的降级+checkpoint线程）不被close
+				stopStep("globalAgent.stop", ga::stop);
+				// FND10 txn-01：Releaser（GCM断连/守护Release触发的降级+checkpoint线程）不被stop
 				// 收编，其checkpointRun→flush与下方LocalRocksCacheDb.close+deleteDirectory并发属
 				// ad5801593判例的native UAF类窗口。关库前有界join，超时告警继续。
 				stopStep("globalAgent.awaitReleaser", () -> ga.awaitReleaser(CHECKPOINT_DRAIN_TIMEOUT_MILLIS));

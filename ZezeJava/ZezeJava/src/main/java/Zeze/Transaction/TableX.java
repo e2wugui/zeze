@@ -228,7 +228,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 				var acquire = r.acquire(StateShare, false, false);
 				//noinspection DataFlowIssue
-				r.setState(acquire.resultState);
+				r.setState(acquire.resultState());
 				if (r.getState() == StateInvalid) {
 					var msg = "Acquire Failed (Redo): " + r;
 					var txn = Transaction.getCurrent();

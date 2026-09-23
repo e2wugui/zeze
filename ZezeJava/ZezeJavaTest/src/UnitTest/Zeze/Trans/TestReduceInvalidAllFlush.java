@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Net.Binary;
-import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Util.TaskSpec;
 import demo.Module1.Table3;
@@ -64,7 +63,7 @@ public class TestReduceInvalidAllFlush {
 		}
 
 		@Override
-		public void close() {
+		public void stop() {
 		}
 	};
 
