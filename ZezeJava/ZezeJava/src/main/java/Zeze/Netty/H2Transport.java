@@ -110,6 +110,10 @@ public final class H2Transport {
 				pipeline.remove(HttpResponseEncoder.class); // 匿名子类按类型匹配
 				pipeline.remove(HttpRequestDecoder.class);
 				pipeline.remove(server);
+				// 【FND11 net-01】HttpServer移出父管线后channelInactive永不可达（唯一移除点），
+				// channels强引用集合永久滞留该连接（每条h2连接泄漏一份，checkTimeout持续扫死
+				// channel且HttpServer.close对已关channel是no-op不自愈）。挂closeFuture收口。
+				ctx.channel().closeFuture().addListener(f -> server.channels.remove(ctx.channel()));
 				pipeline.addLast(new H2ReadActivityMarker());
 				pipeline.addLast(createFrameCodec());
 				pipeline.addLast(new Http2MultiplexHandler(createStreamInitializer(server)));
