@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Util;
 
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -160,18 +161,27 @@ public class TestDaemonTimer {
 	@Test
 	@Timeout(30)
 	public void testSetPeriodMsEffectiveOnNextRound() throws Exception {
-		// 周期调整钉板：setPeriodMs后下一次续约生效（已排期pending不重排）
-		var runs = new AtomicInteger();
-		var daemon = new DaemonTimer("UnitTest.DaemonTimer.setPeriod", 300, runs::incrementAndGet);
+		// 周期调整钉板：setPeriodMs后下一次续约生效（已排期pending不重排）。
+		// round29假红钉因：墙钟总预算700ms（最坏路径pending300+2×50=400ms+余量300ms）在白天
+		// 负载下fire/worker滞后数百ms即假红（实测799）。改body内逐轮时间戳断言并拉开周期档距
+		// （旧1500/新50），逐段双向可判且各留数百ms调度抖动余量：
+		//   g1=第2→3轮：旧pending保留——若setPeriodMs错误地立即重排pending，g1塌缩到~50ms档
+		//   g2=第3→4轮、g3=第4→5轮：新周期必须已在第3轮收尾续约时生效——永不生效则不破1500ms档
+		var times = new ConcurrentLinkedQueue<Long>();
+		var daemon = new DaemonTimer("UnitTest.DaemonTimer.setPeriod", 1500,
+				() -> times.add(System.currentTimeMillis()));
 		try {
 			daemon.start();
-			Assertions.assertTrue(waitUntil(() -> runs.get() >= 2, 5_000), "300ms周期必须在5s内到达2轮");
+			Assertions.assertTrue(waitUntil(() -> times.size() >= 2, 10_000), "1500ms周期必须在10s内到达2轮");
 			daemon.setPeriodMs(50);
-			var begin = System.currentTimeMillis();
-			Assertions.assertTrue(waitUntil(() -> runs.get() >= 5, 3_000), "调小周期后必须到达5轮");
-			var elapsed = System.currentTimeMillis() - begin;
-			// 旧周期继续生效需3×300=900ms；新周期下最坏=已排期pending(300ms)+2×50=400ms
-			Assertions.assertTrue(elapsed <= 700, "周期调整必须于下一次续约生效，实际ms=" + elapsed);
+			Assertions.assertTrue(waitUntil(() -> times.size() >= 5, 10_000), "调小周期后必须到达5轮");
+			var t = times.toArray(new Long[0]);
+			var g1 = t[2] - t[1];
+			var g2 = t[3] - t[2];
+			var g3 = t[4] - t[3];
+			Assertions.assertTrue(g1 >= 700, "已排期pending不得被立即重排，第2→3轮间隔ms=" + g1);
+			Assertions.assertTrue(g2 <= 800, "新周期必须于下一次续约生效，第3→4轮间隔ms=" + g2);
+			Assertions.assertTrue(g3 <= 800, "新周期必须持续生效，第4→5轮间隔ms=" + g3);
 		} finally {
 			daemon.stop();
 		}
@@ -196,7 +206,10 @@ public class TestDaemonTimer {
 			escapeDone.set(true);
 		});
 		daemon.start();
-		Assertions.assertTrue(waitUntil(daemon::isBusy, 5_000), "逃逸轮必须已进入在飞");
+		// round27假红钉因：isBusy()含"已派发未进入body"（fire在调度线程置inFlight后才派发worker池），
+		// 该形态下stop的awaitIdle被runBody入口的迟到轮作废逻辑立即唤醒（设计行为），stopElapsed>=5000必假红。
+		// 等待点绑定body自己的进入信号（escaped CAS）：逃逸轮已park在body内，stop的限时预算才有对象可等。
+		Assertions.assertTrue(waitUntil(escaped::get, 5_000), "逃逸轮必须已进入body（park中）");
 
 		var begin = System.currentTimeMillis();
 		daemon.stop(); // 预算5300ms < 逃逸轮等待时长：超时告警返回
