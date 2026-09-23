@@ -87,6 +87,13 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
+	public @NotNull Vector4 multiply(float m) {
+		// 【FND11 net-04】补上w——原继承Vector3三分量口径静默丢w且结果降维为Vector3
+		//（SE2-F1同族漏修；Quaternion继承本类自然正确）。
+		return new Vector4(x * m, y * m, z * m, w * m);
+	}
+
+	@Override
 	public boolean equals(@Nullable Object o) {
 		if (this == o)
 			return true;
