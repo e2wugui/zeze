@@ -429,6 +429,9 @@ public class GlobalCacheManagerWithRaft
 						perf.onReduceEnd(r);
 					if (r.isTimeout()) {
 						reduceResultState.value = StateReduceRpcTimeout;
+					} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
+						// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+						reduceResultState.value = StateReduceNetError;
 					} else {
 						reduceResultState.value = r.Result.getState();
 						reduceTid.value = r.Result.getReduceTid();
@@ -590,6 +593,9 @@ public class GlobalCacheManagerWithRaft
 						perf.onReduceEnd(r);
 					if (r.isTimeout()) {
 						reduceResultState.value = StateReduceRpcTimeout;
+					} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
+						// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+						reduceResultState.value = StateReduceNetError;
 					} else {
 						reduceResultState.value = r.Result.getState();
 						reduceTid.value = r.Result.getReduceTid();

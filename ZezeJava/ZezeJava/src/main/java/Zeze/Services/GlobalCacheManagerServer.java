@@ -557,6 +557,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 							perf.onReduceEnd(r);
 						if (r.isTimeout()) {
 							reduceResultState.value = StateReduceRpcTimeout;
+						} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
+							// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+							reduceResultState.value = StateReduceNetError;
 						} else {
 							reduceResultState.value = r.Result.state;
 							reduceTid.value = r.Result.reducedTid;
@@ -720,6 +723,9 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 							perf.onReduceEnd(r);
 						if (r.isTimeout()) {
 							reduceResultState.value = StateReduceRpcTimeout;
+						} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
+							// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+							reduceResultState.value = StateReduceNetError;
 						} else {
 							reduceResultState.value = r.Result.state;
 							reduceTid.value = r.Result.reducedTid;

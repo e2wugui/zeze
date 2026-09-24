@@ -712,6 +712,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 								logger.warn("acquireShare: reduce timeout. so={}, time={}, arg={}",
 										r.getSender(), r.getTimeout(), r.Argument);
 								state.reduceResultState = StateReduceRpcTimeout;
+							} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
+								// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+								state.reduceResultState = StateReduceNetError;
 							} else {
 								state.reduceResultState = r.Result.state;
 								state.reduceTid = r.Result.reducedTid;
@@ -915,6 +918,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 								logger.warn("acquireModify: reduce timeout. so={}, time={}, arg={}",
 										r.getSender(), r.getTimeout(), r.Argument);
 								state.reduceResultState = StateReduceRpcTimeout;
+							} else if (r.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
+								// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级结果。
+								state.reduceResultState = StateReduceNetError;
 							} else {
 								state.reduceResultState = r.Result.state;
 								state.reduceTid = r.Result.reducedTid;
@@ -1074,6 +1080,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 								cacheHolder.setError();
 								logger.warn("reduce timeout {} AcquireState={} CacheState={} arg={}",
 										rpc.getSender(), StateModify, cs, reduce.Argument);
+							} else if (reduce.getResultCode() == Zeze.Transaction.Procedure.ErrorSendFail) {
+								// socket断开的dispose派发：Result未被对端填写（state=0=StateInvalid），不可当作降级成功。
+								cacheHolder.setError();
 							} else {
 								switch (reduce.Result.state) {
 								case StateInvalid:
