@@ -432,6 +432,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 	private void releaseAsync(@NotNull CacheHolder sender, @NotNull Binary _gKey, @NotNull CountDownFuture future) {
 		var cs = global.computeIfAbsent(_gKey, CacheState::new);
+		var fireGeneration = sender.generation; // 发射世代：移除前复查（见CacheHolder.generation）
 		var state = new Object() {
 			int stage;
 		};
@@ -465,18 +466,24 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					cs.lock.leaveAndWaitNotify();
 					return;
 				}
-				if (cs.acquireStatePending == StateRemoved) {
-					cs.lock.leave();
-					releaseAsync(sender, gKey, future); // retry
-					return;
-				}
-				cs.acquireStatePending = StateRemoving;
-				ownsRemoving = true;
+					if (cs.acquireStatePending == StateRemoved) {
+						cs.lock.leave();
+						releaseAsync(sender, gKey, future); // retry
+						return;
+					}
+					if (sender.generation != fireGeneration) {
+						// 发射后世代已更替（kick+重绑）：本release针对旧世代，跳过移除——
+						// 移除会误杀新实例已成功获取的所有权；future仍须完成（应答依赖）。
+						future.finishOne();
+						return;
+					}
+					cs.acquireStatePending = StateRemoving;
+					ownsRemoving = true;
 
-				if (cs.modify == sender)
-					cs.modify = null;
-				cs.share.remove(sender); // always try remove
-				sender.acquired.remove(gKey);
+					if (cs.modify == sender)
+						cs.modify = null;
+					cs.share.remove(sender); // always try remove
+					sender.acquired.remove(gKey);
 
 				if (cs.modify == null && cs.share.isEmpty()) {
 					// 安全的从global中删除，没有并发问题。
@@ -512,6 +519,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			return;
 		}
 		var cs = global.computeIfAbsent(rpc.Argument.globalKey, CacheState::new);
+		var fireGeneration = sender.generation; // 发射世代：移除前复查（见CacheHolder.generation）
 		var state = new Object() {
 			int stage;
 		};
@@ -552,6 +560,15 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				if (cs.acquireStatePending == StateRemoved) {
 					cs.lock.leave();
 					releaseAsync(rpc); // retry
+					return;
+				}
+				if (sender.generation != fireGeneration) {
+					// 发射后世代已更替（kick+重绑）：跳过移除，按当前状态应答
+					//（对齐上面pending忙时的早应答形态），不误杀新实例的获取。
+					rpc.Result.state = cs.getSenderCacheState(sender);
+					rpc.SendResultCode(0);
+					if (ENABLE_PERF)
+						perf.onAcquireEnd(rpc, StateInvalid);
 					return;
 				}
 
@@ -1138,6 +1155,12 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		private volatile long lastErrorTime;
 		private boolean logined = false; // 改成State，也能表示已经kick过，下一次不再kick？
 		private volatile boolean debugMode;
+		// 世代号：kick与成功重绑（tryBindSocket）各递增一次（递增点均在session锁内，单写者）。
+		// releaseAsync在发射时捕获、完成段移除前复查：不匹配说明本release针对的世代已被kick
+		// 且重绑——旧世代的所有权由新实例的ReLogin保留语义正当（不误杀），kick后daemon对
+		// 自己观察到的acquired会发起新一轮释放完成收敛。跳过方向fail-closed：宁保留可收敛，
+		// 不误杀（误杀=客户端持成功应答却被撤销，第三方再获Modify即双写）。
+		private volatile long generation;
 
 		long getActiveTime() {
 			return activeTime;
@@ -1151,8 +1174,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			this.debugMode = debugMode;
 		}
 
-		// not under lock
+		// not under lock（调用方achillesHeelDaemon持session锁，单写者）
 		void kick() {
+			++generation; // 世代更替：此后重绑递增一次，在飞的旧release据此识别过期
 			// 墓碑化后裸解引用安全：server引用稳定（stop只停止对象不杀引用），已停止Service的
 			// GetSocket返回null即跳过；不存在读到null引用的NPE窗口。
 			var peer = owner.server.GetSocket(sessionId);
@@ -1187,6 +1211,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				var socket = owner.server.GetSocket(sessionId);
 				if (socket == null) {
 					// old socket not exist or has lost.
+					++generation; // 重绑即新世代：kick前在飞的release到此为止全部过期
 					sessionId = newSocket.getSessionId();
 					newSocket.setUserState(this);
 					this.globalCacheManagerHashIndex = globalCacheManagerHashIndex;
