@@ -58,10 +58,12 @@ public class LogBeanKey<T extends Serializable> extends Log {
 		value.encode(bb);
 	}
 
+	// (T)强转在JDK21的-Xlint:unchecked下不报（签名多态invoke返回值的强转，JDK26起会报），
+	// 注解而非noinspection：对齐Raft孪生Log1.LogBeanKey.decode，IDE与javac任一语义都压制。
+	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		try {
-			//noinspection unchecked
 			value = (T)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
