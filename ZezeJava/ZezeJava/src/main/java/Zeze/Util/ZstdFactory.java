@@ -213,6 +213,29 @@ public final class ZstdFactory {
 			}
 		}
 
+		// OutputStream多态面封死为响亮失败：继承实现走DummyBufferPool的0长缓冲配静态
+		// dstSize的native写（越过数组末端的堆越界写）；本类只经compress/flush(输出到
+		// 调用方dst)与close使用（TcpSocket装链全程selector单线程）。
+		@Override
+		public void write(int b) {
+			throw new UnsupportedOperationException("use compress(...) instead");
+		}
+
+		@Override
+		public void write(byte @NotNull [] b, int off, int len) {
+			throw new UnsupportedOperationException("use compress(...) instead");
+		}
+
+		@Override
+		public void flush() {
+			throw new UnsupportedOperationException("use flush(ByteBuffer/Codec) instead");
+		}
+
+		@Override
+		public void closeWithoutClosingParentStream() {
+			throw new UnsupportedOperationException("close() only");
+		}
+
 		@Override
 		public void close() {
 			// 不能调基类close()：它会往DummyBufferPool的0长缓冲写帧尾字节（越过数组末端的native写），
@@ -355,6 +378,28 @@ public final class ZstdFactory {
 			} catch (Throwable e) { // MethodHandle.invoke
 				throw Task.forceThrow(e);
 			}
+		}
+
+		// InputStream多态面对称封死（压缩侧同因）：继承实现读DummyInputStream的EOF，
+		// 误用=静默空数据；本类只经decompress/close使用。
+		@Override
+		public int read() {
+			throw new UnsupportedOperationException("use decompress(...) instead");
+		}
+
+		@Override
+		public int read(byte @NotNull [] b, int off, int len) {
+			throw new UnsupportedOperationException("use decompress(...) instead");
+		}
+
+		@Override
+		public long skip(long n) {
+			throw new UnsupportedOperationException("use decompress(...) instead");
+		}
+
+		@Override
+		public int available() {
+			throw new UnsupportedOperationException("use decompress(...) instead");
 		}
 
 		@Override
