@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * 同TaskOneByOneByKey,只是用ConcurrentLinkedQueue代替ArrayDeque和锁.
  * 另外由于不用临界区,shutdown和加任务的并发很难做,所以暂时不支持shutdown,也不支持cancel了.
+ * 例外：executeCyclicBarrier 的桶派发失败需要内部 canceled 收尾（FND12 util-03），见 Barrier。
  */
 public final class TaskOneByOneByKey2 extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
@@ -84,6 +85,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		private final ConcurrentHashSet<TaskOneByOne> reached = new ConcurrentHashSet<>();
 		@SuppressWarnings("FieldMayBeFinal")
 		private volatile int count;
+		private boolean canceled; // guarded by synchronized(this)
 
 		Barrier(int count) {
 			this.count = count;
@@ -93,18 +95,36 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 		abstract void run() throws Exception;
 
+		// 锁内快照清空、锁外推进：run收尾与cancel的推进互斥由清空保证恰好一次（同刻只有
+		// 一方拿到非空快照）；runNext的派发失败（executeOrRollback回滚认领后重抛）与成功
+		// 路径同语义，不在此吞。
 		private void reachedRunNext() {
-			for (var taskOneByOne : reached)
+			TaskOneByOne[] batches;
+			synchronized (this) {
+				if (reached.isEmpty())
+					return;
+				batches = reached.keySet().toArray(new TaskOneByOne[0]);
+				reached.clear();
+			}
+			for (var taskOneByOne : batches)
 				taskOneByOne.runNext();
 		}
 
-		void reach(@NotNull TaskOneByOne taskOneByOne, int sum) {
-			reached.add(taskOneByOne);
+		/**
+		 * @return true 屏障已取消：任务照常消费，队列继续；false 认领已押给屏障
+		 * （集齐后由 reachedRunNext/cancel 解冻），process 返回 false 等待 runNext。
+		 */
+		boolean reach(@NotNull TaskOneByOne taskOneByOne, int sum) {
+			synchronized (this) {
+				if (canceled)
+					return true;
+				reached.add(taskOneByOne);
+			}
 			if ((int)vhCount.getAndAdd(this, -sum) > sum)
-				return;
+				return false; // 未集齐。
 
 			try {
-				run();
+				run(); // 锁外执行：body回调本实例提交新任务（外层lock）不构成barrier→outer逆序
 			} catch (Throwable ex) { // logger.error
 				logger.error("{} run exception:", getName(), ex);
 			} finally {
@@ -112,6 +132,23 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				// 1. 触发所有桶的runNext，
 				// 2. 自己也返回false，不再继续runNext。
 				reachedRunNext();
+			}
+			return false;
+		}
+
+		// 桶派发失败的补偿收尾（executeCyclicBarrier的catch调用）：此后在飞的屏障任务变为
+		// no-op继续消费队列；已reach押入认领的桶由reachedRunNext解冻。失败桶未入队无认领。
+		// 推进异常单独吞并记录：cancel自身运行在失败路径上，重抛会掩盖根因异常。
+		void cancel() {
+			synchronized (this) {
+				if (canceled)
+					return;
+				canceled = true;
+			}
+			try {
+				reachedRunNext();
+			} catch (Throwable ex) { // logger.error
+				logger.error("{} cancel exception:", getName(), ex);
 			}
 		}
 	}
@@ -170,9 +207,16 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				count++;
 			}
 			var barrier = new BarrierProcedure(procedure, count);
-			for (var e : group.entrySet()) {
-				var sum = e.getValue().value;
-				e.getKey().executeBarrier(barrier, sum, mode);
+			try {
+				for (var e : group.entrySet()) {
+					var sum = e.getValue().value;
+					e.getKey().executeBarrier(barrier, sum, mode);
+				}
+			} catch (RuntimeException ex) {
+				// 桶派发失败（池未初始化ISE/自定义executor拒绝REE，任务确认未入队）：
+				// 取消屏障解冻已reach的桶（对齐base家族submitBarrierAndUnlock），重抛首个异常。
+				barrier.cancel();
+				throw ex;
 			}
 		} finally {
 			unlock();
@@ -193,9 +237,15 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				count++;
 			}
 			var barrier = new BarrierAction(actionName, action, count);
-			for (var e : group.entrySet()) {
-				var sum = e.getValue().value;
-				e.getKey().executeBarrier(barrier, sum, mode);
+			try {
+				for (var e : group.entrySet()) {
+					var sum = e.getValue().value;
+					e.getKey().executeBarrier(barrier, sum, mode);
+				}
+			} catch (RuntimeException ex) {
+				// 同Procedure版：桶派发失败时取消屏障解冻已reach的桶，重抛首个异常。
+				barrier.cancel();
+				throw ex;
 			}
 		} finally {
 			unlock();
@@ -574,8 +624,8 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 			@Override
 			boolean process() {
-				barrier.reach(TaskOneByOne.this, sum);
-				return false;
+				// canceled时true：屏障任务照常消费，队列继续，不再押认领等待。
+				return barrier.reach(TaskOneByOne.this, sum);
 			}
 		}
 
@@ -591,8 +641,8 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 			@Override
 			boolean process() {
-				barrier.reach(TaskOneByOne.this, sum);
-				return false;
+				// canceled时true：屏障任务照常消费，队列继续，不再押认领等待。
+				return barrier.reach(TaskOneByOne.this, sum);
 			}
 		}
 
