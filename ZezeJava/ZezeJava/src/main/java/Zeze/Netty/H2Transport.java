@@ -101,18 +101,23 @@ public final class H2Transport {
 		@Override
 		protected void decode(@NotNull ChannelHandlerContext ctx, @NotNull ByteBuf in,
 							  @NotNull List<Object> out) {
-			if (resolved || in.readableBytes() < H2_PREFACE.length)
-				return; // 字节不足判定，继续累积；已决议则等待移除（decodeLast重放兜底）
+			if (resolved)
+				return; // 已决议则等待移除（decodeLast重放兜底）
 			var pipeline = ctx.pipeline();
-			resolved = true;
 			var readerIndex = in.readerIndex();
+			var readable = Math.min(in.readableBytes(), H2_PREFACE.length);
+			// 增量比对已到字节：任何一位与魔数前缀不符即可判定为h1并自移除透传——总长不足
+			// 24字节的完整请求（极简HTTP/1.0、探活）不得被阻留到空闲超时零响应。
 			var matched = true;
-			for (int i = 0; i < H2_PREFACE.length; i++) {
+			for (int i = 0; i < readable; i++) {
 				if (in.getByte(readerIndex + i) != H2_PREFACE[i]) {
 					matched = false;
 					break;
 				}
 			}
+			if (matched && readable < H2_PREFACE.length)
+				return; // 已到字节全部相符但未满24字节：继续累积（完整魔数判定防裸PRI前缀误判）
+			resolved = true;
 			if (matched) {
 				// 顺序关键：必须先拆h1件再装h2栈——frameCodec的handlerAdded会同步写出服务器
 				// SETTINGS（附CLOSE_ON_FAILURE），若写路径上还残留h1件（HttpResponseEncoder等），
