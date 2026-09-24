@@ -32,6 +32,7 @@ public class TestGTable {
 			var gTable1 = table.getOrAdd(1L);
 			Assertions.assertNull(gTable1.getGTable().get(1, 1));
 			gTable1.getGTable().put(1, 1, 1);
+			gTable1.getGTable2().put(1, "1", 1);
 			Assertions.assertEquals(Integer.valueOf(1), gTable1.getGTable().get(1, 1));
 			return 0;
 		}, "putGTable").call();

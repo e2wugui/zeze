@@ -203,6 +203,7 @@
 	<module name="ModuleGTable" id="100">
 		<bean name="BValue">
 			<variable id="1" name="gTable" type="gtable[int, int, int]"/>
+			<variable id="2" name="gTable2" type="gtable[int, string, int]"/>
 		</bean>
 		<bean name="Bean1">
 			<variable id="1" name="IntVar" type="int"/>
