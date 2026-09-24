@@ -104,8 +104,13 @@ public final class DumpRocksDb {
 						System.out.format("%d %10s%9d %10d %10d %5d %5d %6d %s\n", meta.level(), fileName, meta.size(),
 								meta.smallestSeqno(), meta.largestSeqno(), meta.numReadsSampled(), meta.numEntries(),
 								meta.numDeletions(), new String(meta.columnFamilyName(), UTF_8));
-						levelCount[meta.level()]++;
-						levelSize[meta.level()] += meta.size();
+						var level = meta.level();
+						if (level >= levelCount.length) { // 层号来自目标库配置（max_num_levels可>7）：按需扩容
+							levelCount = Arrays.copyOf(levelCount, level + 1);
+							levelSize = Arrays.copyOf(levelSize, level + 1);
+						}
+						levelCount[level]++;
+						levelSize[level] += meta.size();
 						totalCount++;
 						totalSize += meta.size();
 					}
