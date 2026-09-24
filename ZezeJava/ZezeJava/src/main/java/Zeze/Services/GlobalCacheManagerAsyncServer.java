@@ -159,7 +159,14 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 						gcmConfig.serverReleaseTimeout);
 				achillesHeelDaemonTimer.start(); // DaemonTimer幂等且支持restart，替代原schedulePeriodNow
 			} catch (RuntimeException e) {
-				open = false;
+				// 失败走stop()拆除部分态（可重入锁安全）：TcpSocket构造在bind前已对server懒启动
+				// keepCheckTimer须由server.stop()取消，且open的复位应在拆除中完成（残留true时
+				// 重试start被幂等早退吞掉）。拆除失败不得掩盖原始启动异常。
+				try {
+					stop();
+				} catch (Throwable ex) {
+					logger.error("start failed and stop cleanup exception: ", ex);
+				}
 				throw e;
 			}
 		} finally {
