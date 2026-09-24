@@ -1154,16 +1154,65 @@ public final class JsonReader {
 		final byte[] buffer = buf;
 		int p = pos, b = buffer[p];
 		if (b != '"' && b != '\'') {
-			for (final int begin = p; ; b = buffer[++p]) {
+			final int begin = p;
+			for (; ; b = buffer[++p]) {
 				if (b == ',' || b == '\n' || (b | 0x20) == '}') { // ]:0x5D | 0x20 = }:0x7D
 					pos = p;
 					if (begin < p && buffer[p - 1] == '\r')
 						p--;
 					return intern ? intern(buffer, begin, p) : newByteString(buffer, begin, p);
 				}
+				if (b < 0) // 多字节UTF-8首字节：LATIN1直转静默乱码，转慢路径解码（FND12 util-01）
+					return parseStringUnquotedSlow(begin);
 			}
 		}
 		return parseString(b, intern);
+	}
+
+	// 无引号值慢路径：多字节UTF-8逐字符解码（同族带引号/键路径均有，唯值分支曾遗漏）。
+	// 无引号值无转义语义（反斜杠为字面量），终止符与末尾\r剥离对齐快路径；
+	// intern与同族慢路径一致忽略。续字节校验保证读取不越过终止符位置。
+	private @NotNull String parseStringUnquotedSlow(int begin) {
+		final byte[] buffer = buf;
+		int b, p;
+		for (p = begin; ; p++) {
+			b = buffer[p];
+			if (b == ',' || b == '\n' || (b | 0x20) == '}')
+				break;
+		}
+		pos = p;
+		int end = p;
+		if (end > begin && buffer[end - 1] == '\r')
+			end--;
+		char[] t = tmp;
+		if (t == null || t.length < end - begin)
+			tmp = t = new char[end - begin];
+		int n = 0, c, d, e;
+		for (p = begin; p < end; ) {
+			b = buffer[p++];
+			if (b >= 0)
+				t[n++] = (char)b; // 0xxx xxxx
+			else if (b >= -0x20) {
+				if (b >= -0x10) {
+					if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40 && (e = buffer[p + 2]) < -0x40) {
+						b = (b << 18) + (c << 12) + (d << 6) + e + ((0x10 << 18) + (0x80 << 12) + (0x80 << 6) + 0x80 - 0x10000);
+						t[n++] = (char)(0xd800 + ((b >> 10) & 0x3ff)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
+						t[n++] = (char)(0xdc00 + (b & 0x3ff));
+						p += 3;
+					} else
+						t[n++] = (char)(b & 0xff); // ignore malformed utf-8
+				} else if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40) {
+					t[n++] = (char)((b << 12) + (c << 6) + d + ((0x20 << 12) + (0x80 << 6) + 0x80)); // 1110 xxxx  10xx xxxx  10xx xxxx
+					p += 2;
+				} else
+					t[n++] = (char)(b & 0xff); // ignore malformed utf-8
+			} else if ((c = buffer[p]) < -0x40) {
+				p++;
+				t[n++] = (char)((b << 6) + c + ((0x40 << 6) + 0x80)); // 110x xxxx  10xx xxxx
+			} else
+				t[n++] = (char)(b & 0xff); // ignore malformed utf-8
+		}
+		return new String(t, 0, n);
 	}
 
 	public @NotNull String parseString(int e, boolean intern) {
