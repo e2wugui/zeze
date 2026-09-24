@@ -16,9 +16,11 @@ import static Zeze.Util.Json.ensureNotNull;
 @SuppressWarnings("unchecked")
 public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C, V> {
 	// coll-01：外层logTypeId/name由(row,col,val)完整身份参与（GTable2专用家族头，与PMap2的
-	// LogMap2命名空间分流）——同row不同列/值类型的表不再共享typeId。dynamic值的身份固定为
-	// DynamicBean（对齐Meta2.dynamic构造器先例）：内层DYNAMIC编码自描述，解码不依赖
-	// get/create闭包，工厂按变量成对的等价契约（FND8-33）不受外层typeId影响。
+	// LogMap2命名空间分流）——同row不同列/值类型的表不再共享typeId。dynamic值的身份固定
+	// DynamicBean（对齐Meta2.dynamic构造器先例）：同(row,col)的多个dynamic变量共享外层
+	// typeId，回放端Log.create先到先得、经首注册家族的create闭包解码（DynamicBean.decode
+	// 非自描述）——家族不同时默认编号抛incompatible中断回放、显式Bean:id重叠静默解错，
+	// 与FND8-30同构的已接受风险；FND8-30 ROOT（typeId加宿主盐）落地时此处revisit。
 	static final String OUTER_HEAD = "Zeze.Transaction.GTable.GTable2<";
 	static final String OUTER_NAME_PREFIX = "GTable2:";
 
@@ -208,8 +210,8 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 	// 【FND8-33 A1】dynamic值的工厂路径（对齐PMap2的dynamic构造器判例）：工厂按变量
 	// 成对（不同变量不同工厂），不进按类缓存。bmapMeta与Helper.registerLogMap2Dynamic
 	// 注册的meta同函数同typeId（Log.register先到先得的等价契约）；pmapMeta值身份固定
-	// DynamicBean（coll-01：真实值类型线上自描述，闭包不进typeId），同(row,col)的dynamic
-	// 变量共享外层typeId是等价契约——解码端只需正确类型的空容器。
+	// DynamicBean——同(row,col)的dynamic变量共享外层typeId是接受的风险现状而非安全
+	// 契约：回放解码经首注册家族的create闭包（非自描述），损坏形态与FND8-30同构。
 	public static <R, C, VReadOnly> @NotNull Factory<R, C, Zeze.Transaction.DynamicBean, VReadOnly> getFactory(
 			@NotNull Class<R> rowClass, @NotNull Class<C> colClass,
 			@NotNull java.util.function.ToLongFunction<Bean> get,

@@ -145,10 +145,13 @@ public class TestGTableOuterLogTypeIdIdentity {
 	}
 
 	@Test
-	public void testDynamicOuterIdentityEquivalentContract() {
-		// FND8-33等价契约钉板：dynamic值身份固定DynamicBean（内层DYNAMIC编码自描述，解码不依赖
-		// get/create闭包）——同(row,col)的两个dynamic变量外层typeId相同是合法共享；真实值类型的
-		// 三参版则与dynamic分流。
+	public void testDynamicOuterTypeIdSharedByDesign() {
+		// dynamic值身份固定DynamicBean（对齐Meta2.dynamic/FND8-30先例）：同(row,col)的两个
+		// dynamic变量共享外层typeId是已接受的风险现状而非安全契约——回放端Log.create先到
+		// 先得、经首注册家族的create闭包解码（DynamicBean.decode非自描述），家族不同时默认
+		// 编号抛incompatible中断回放、显式Bean:id重叠静默解错，与FND8-30同构
+		// （putDynamicFamily warn兜底；FND8-30 ROOT落地时revisit）。真实值类型的三参版
+		// 则与dynamic分流。
 		var get1 = (ToLongFunction<Bean>)b -> 101L;
 		var create1 = (LongFunction<Bean>)id -> id == 101L ? new B1() : null;
 		var get2 = (ToLongFunction<Bean>)b -> 102L;
@@ -156,7 +159,7 @@ public class TestGTableOuterLogTypeIdIdentity {
 		var d1 = GTable2.getFactory(String.class, Long.class, get1, create1);
 		var d2 = GTable2.getFactory(String.class, Long.class, get2, create2);
 		Assertions.assertEquals(d1.getPmapMeta().logTypeId, d2.getPmapMeta().logTypeId,
-				"同(row,col)的dynamic变量外层typeId相同（值身份固定DynamicBean的等价契约）");
+				"同(row,col)的dynamic变量外层typeId相同（值身份固定DynamicBean的接受现状）");
 
 		var real = GTable2.getFactory(String.class, Long.class, B1.class);
 		Assertions.assertNotEquals(real.getPmapMeta().logTypeId, d1.getPmapMeta().logTypeId,
