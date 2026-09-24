@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -849,8 +850,17 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		// 监听socket无输出缓冲，优雅语义本不适用，直接realClose。
 		if (gracefully && type != Type.eServerSocket) {
 			closePending = true;
-			if (addInterestOps(SelectionKey.OP_WRITE))
-				selector.wakeup();
+			try {
+				if (addInterestOps(SelectionKey.OP_WRITE))
+					selector.wakeup();
+			} catch (CancelledKeyException e) {
+				// key已被selector错误路径取消（key.channel().close()）：OP_WRITE事件永不触发，
+				// 异常上抛会跳过兜底注册——直接realClose保证善后（OnSocketDisposed、
+				// outputBuffer释放、codec链close）必达。同型判例FND5-18只防了监听socket的
+				// IllegalArgumentException，本异常发生在其后的正常连接上。
+				realClose();
+				return;
+			}
 			// scheduleNow：置死已即时生效（closePending/OP_WRITE 已设置），兜底注册不能
 			// 随事务回滚丢弃，否则对端不读时 realClose 永不执行、连接永滞（与 Rpc 超时清理同型）。
 			TaskSpec.ofAction(this::realClose).scheduleNow(120 * 1000); // 最多给2分钟清空输出队列。
