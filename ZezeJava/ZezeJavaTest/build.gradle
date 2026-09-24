@@ -149,7 +149,25 @@ tasks.register('bench', Test) {
     shouldRunAfter tasks.named('test')
 }
 
+// Application.start 按 serverId 对缓存目录"先锁后删"，锁文件 zeze_cache_N.lock 由 FileMutex
+// 设计上释放后不删除（删除与后续获取者竞态，见其 javadoc）——动态发号的测试族会累积这些
+// 0 字节文件。任务收尾统一清理：finalizedBy 在测试 JVM 退出后运行（Windows 下被打开的
+// 文件删不掉，此刻必已释放），测试失败/UP-TO-DATE 也会执行；IDEA 直跑不经 gradle，不覆盖。
+// 配置缓存兼容：projectDir 在配置期捕获为File，执行期不触碰脚本项目方法。
+def lockDir = projectDir
+def cleanZezeCacheLocks = tasks.register('cleanZezeCacheLocks') {
+    doLast {
+        int n = 0
+        lockDir.listFiles()?.each { f ->
+            if (f.isFile() && f.name.startsWith('zeze_cache_') && f.name.endsWith('.lock') && f.delete())
+                n++
+        }
+        if (n > 0)
+            logger.lifecycle("cleaned {} zeze_cache_*.lock file(s)", n)
+    }
+}
 tasks.withType(Test).configureEach {
+    finalizedBy cleanZezeCacheLocks
     // BenchSocket 等测试分配大 ByteBuffer，默认 512m 堆会 OOM；对齐 IDEA 运行时的大堆
     maxHeapSize = '2g'
     testLogging {
