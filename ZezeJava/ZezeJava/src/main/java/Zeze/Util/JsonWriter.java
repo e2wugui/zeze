@@ -135,7 +135,7 @@ public final class JsonWriter {
 	// FND7-72：free()后tail==null，实例视为永久占用：否则busy()恒false使
 	// acquireLocalWriter取回该实例，clear()首行tail.next即NPE，线程本地writer
 	// 一旦free即永久不可用。
-	@SuppressWarnings("null")
+	@SuppressWarnings({"null", "ConstantValue"})
 	boolean busy() {
 		return inUse || size != 0 || pos != 0 || tail == null;
 	}
@@ -460,8 +460,8 @@ public final class JsonWriter {
 			if (obj instanceof Collection) {
 				ensure(1);
 				buf[pos++] = '[';
+				tabs++;// 紧凑模式也计深度（writeNewLineTabs 仅 pretty 模式有输出，递增 tabs 无副作用）
 				if (wrapArray) {
-					tabs++;
 					for (Object o : (Collection<?>)obj) {
 						if (comma)
 							buf[pos++] = ',';
@@ -475,7 +475,6 @@ public final class JsonWriter {
 					else
 						ensure(2);
 				} else {
-					tabs++; // 紧凑模式也计深度（writeNewLineTabs 仅 pretty 模式有输出，递增 tabs 无副作用）
 					for (Object o : (Collection<?>)obj) {
 						if (comma)
 							buf[pos++] = ',';
@@ -491,8 +490,8 @@ public final class JsonWriter {
 			if (klass.isArray()) {
 				ensure(1);
 				buf[pos++] = '[';
+				tabs++;// 紧凑模式也计深度（writeNewLineTabs 仅 pretty 模式有输出，递增 tabs 无副作用）
 				if (wrapArray) {
-					tabs++;
 					for (int i = 0, n = Array.getLength(obj); i < n; i++) {
 						if (comma)
 							buf[pos++] = ',';
@@ -506,7 +505,6 @@ public final class JsonWriter {
 					else
 						ensure(2);
 				} else {
-					tabs++; // 紧凑模式也计深度（writeNewLineTabs 仅 pretty 模式有输出，递增 tabs 无副作用）
 					for (int i = 0, n = Array.getLength(obj); i < n; i++) {
 						if (comma)
 							buf[pos++] = ',';

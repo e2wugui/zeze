@@ -973,9 +973,8 @@ public final class JsonReader {
 			// pos推进到分隔符上（家族约定：parseInt/parseStringNoQuot均停在':'/空白上，
 			// 随后skipColon→next()从buf[pos]起读）。词尾按parseInt同款长度防护。
 			v = jr.buf[jr.pos] == 't';
+			//noinspection StatementWithEmptyBody
 			for (int c; jr.pos < jr.buf.length && (c = jr.buf[jr.pos] & 0xff) > ' ' && c != ':'; jr.pos++) {
-				//noinspection StatementWithEmptyBody
-				;
 			}
 		}
 		return v;
@@ -1236,6 +1235,7 @@ public final class JsonReader {
 		int n = 0, b;
 		for (int p = begin; p < end; ) {
 			int seg = p;
+			//noinspection StatementWithEmptyBody
 			for (; seg < end && buffer[seg] != '\\'; seg++)
 				;
 			n = decodeUtf8(t, n, p, seg);
