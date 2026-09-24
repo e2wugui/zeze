@@ -15,6 +15,13 @@ import static Zeze.Util.Json.ensureNotNull;
 /** 事务二维表（行键×列键→受管 Bean 值）：外层 PMap2 装 BeanMap2 行 Bean。 */
 @SuppressWarnings("unchecked")
 public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C, V> {
+	// coll-01：外层logTypeId/name由(row,col,val)完整身份参与（GTable2专用家族头，与PMap2的
+	// LogMap2命名空间分流）——同row不同列/值类型的表不再共享typeId。dynamic值的身份固定为
+	// DynamicBean（对齐Meta2.dynamic构造器先例）：内层DYNAMIC编码自描述，解码不依赖
+	// get/create闭包，工厂按变量成对的等价契约（FND8-33）不受外层typeId影响。
+	static final String OUTER_HEAD = "Zeze.Transaction.GTable.GTable2<";
+	static final String OUTER_NAME_PREFIX = "GTable2:";
+
 	public static final class Factory<R, C, V extends Bean, VReadOnly> implements Supplier<Map<C, V>> {
 		private final @NotNull Map2Meta<R, BeanMap2<C, V, VReadOnly>> pmapMeta;
 		private final @NotNull Map2Meta<C, V> bmapMeta;
@@ -189,7 +196,9 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		var factory = map.get(valClass);
 		if (factory == null) {
 			var bmapMeta = Map2Meta.get(colClass, valClass);
-			var pmapMeta = Map2Meta.create(rowClass, (Class<BeanMap2<C, V, VReadOnly>>)(Class<?>)BeanMap2.class,
+			var pmapMeta = Map2Meta.createWithFamily(OUTER_HEAD, OUTER_NAME_PREFIX, rowClass,
+					(Class<BeanMap2<C, V, VReadOnly>>)(Class<?>)BeanMap2.class,
+					Zeze.Util.Reflect.getStableName(colClass) + ", " + Zeze.Util.Reflect.getStableName(valClass),
 					() -> new BeanMap2<>(bmapMeta));
 			factory = map.computeIfAbsent(valClass, __ -> new Factory<>(pmapMeta, bmapMeta));
 		}
@@ -198,15 +207,18 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 
 	// 【FND8-33 A1】dynamic值的工厂路径（对齐PMap2的dynamic构造器判例）：工厂按变量
 	// 成对（不同变量不同工厂），不进按类缓存。bmapMeta与Helper.registerLogMap2Dynamic
-	// 注册的meta同函数同typeId（Log.register先到先得的等价契约）；pmapMeta与三参版
-	// 路径完全一致。
+	// 注册的meta同函数同typeId（Log.register先到先得的等价契约）；pmapMeta值身份固定
+	// DynamicBean（coll-01：真实值类型线上自描述，闭包不进typeId），同(row,col)的dynamic
+	// 变量共享外层typeId是等价契约——解码端只需正确类型的空容器。
 	public static <R, C, VReadOnly> @NotNull Factory<R, C, Zeze.Transaction.DynamicBean, VReadOnly> getFactory(
 			@NotNull Class<R> rowClass, @NotNull Class<C> colClass,
 			@NotNull java.util.function.ToLongFunction<Bean> get,
 			@NotNull java.util.function.LongFunction<Bean> create) {
 		var bmapMeta = Map2Meta.<C, Zeze.Transaction.DynamicBean>createDynamic(colClass, get, create);
-		var pmapMeta = Map2Meta.create(rowClass,
+		var pmapMeta = Map2Meta.createWithFamily(OUTER_HEAD, OUTER_NAME_PREFIX, rowClass,
 				(Class<BeanMap2<C, Zeze.Transaction.DynamicBean, VReadOnly>>)(Class<?>)BeanMap2.class,
+				Zeze.Util.Reflect.getStableName(colClass) + ", "
+						+ Zeze.Util.Reflect.getStableName(Zeze.Transaction.DynamicBean.class),
 				() -> new BeanMap2<>(bmapMeta));
 		return new Factory<>(pmapMeta, bmapMeta);
 	}

@@ -16,6 +16,12 @@ import static Zeze.Util.Json.ensureNotNull;
 /** 事务二维表（行键×列键→不可变值）：外层 PMap2 装 BeanMap1 行 Bean。 */
 @SuppressWarnings("unchecked")
 public class GTable1<R, C, V> extends StandardTable<R, C, V> {
+	// coll-01：外层logTypeId/name由(row,col,val)完整身份参与（GTable1专用家族头，与PMap2的
+	// LogMap2命名空间分流）——同row不同列/值类型的表不再共享typeId，History回放端Log.create
+	// 按typeId查表各得其所。身份原料用getStableName（内置类型短名"int"/"string"，bean全名）。
+	static final String OUTER_HEAD = "Zeze.Transaction.GTable.GTable1<";
+	static final String OUTER_NAME_PREFIX = "GTable1:";
+
 	public static final class Factory<R, C, V> implements Supplier<Map<C, V>> {
 		private final @NotNull Map2Meta<R, BeanMap1<C, V>> pmapMeta;
 		private final @NotNull Map1Meta<C, V> bmapMeta;
@@ -191,7 +197,9 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		var factory = map.get(valClass);
 		if (factory == null) {
 			var bmapMeta = Map1Meta.get(colClass, valClass);
-			var pmapMeta = Map2Meta.create(rowClass, (Class<BeanMap1<C, V>>)(Class<?>)BeanMap1.class,
+			var pmapMeta = Map2Meta.createWithFamily(OUTER_HEAD, OUTER_NAME_PREFIX, rowClass,
+					(Class<BeanMap1<C, V>>)(Class<?>)BeanMap1.class,
+					Zeze.Util.Reflect.getStableName(colClass) + ", " + Zeze.Util.Reflect.getStableName(valClass),
 					() -> new BeanMap1<>(bmapMeta));
 			factory = map.computeIfAbsent(valClass, __ -> new Factory<>(pmapMeta, bmapMeta));
 		}

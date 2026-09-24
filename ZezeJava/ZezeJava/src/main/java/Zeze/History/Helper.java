@@ -90,10 +90,6 @@ public class Helper {
 				sortedMap2Dynamic = new HashMap<>();
 		public final HashSet<SortedMap1Meta<? extends Comparable<?>, ?>> sortedMap1Metas = new HashSet<>();
 		public final HashSet<SortedMap2Meta<? extends Comparable<?>, ? extends Bean>> sortedMap2Metas = new HashSet<>();
-		// GTable外层typeId/name只含rowClass不含列/值身份：同(kind,rowClass)不同列/值类型
-		// 共享typeId且Log.register先到先得——冲突登记启动fail-fast，否则回放端用别人的
-		// 行工厂解码整行日志。
-		public final HashMap<String, String> gtableIdentities = new HashMap<>();
 	}
 
 	@SuppressWarnings({"unchecked", "rawtypes"})
@@ -308,7 +304,6 @@ public class Helper {
 		if (is2) {
 			valueClass = Class.forName(valueType); // bean or beanKey
 			dependsBean(valueClass, result);
-			checkGTableIdentity(result, "GTable2", key1Class, key2Class, valueClass.getName());
 			var factory = GTable2.getFactory(key1Class, key2Class, (Class<? extends Bean>)valueClass);
 			result.map2Metas.add(factory.getPmapMeta());
 			result.map2Metas.add(factory.getBmapMeta());
@@ -316,35 +311,14 @@ public class Helper {
 			// 【FND8-33 A3】先取每变量的get/create工厂，再经dynamic重载构建
 			//（三参版对DynamicBean必抛：无无参构造器）。
 			var family = newDynamicFamily(beanClass, v);
-			// dynamic值的闭包身份由(beanClass,变量名)定位：同row不同家族的GTable同样共享外层typeId。
-			checkGTableIdentity(result, "GTable2", key1Class, key2Class,
-					"dynamic:" + beanClass.getName() + "." + v.getName());
 			var factory = GTable2.getFactory(key1Class, key2Class, family.factories.getKey(), family.factories.getValue());
 			result.map2Metas.add(factory.getPmapMeta());
 			putDynamicFamily(result.map2Dynamic, KV.create(key2Class, (Class<? extends Bean>)valueClass), beanClass, v);
 		} else {
-			checkGTableIdentity(result, "GTable1", key1Class, key2Class, valueClass.getName());
 			var factory = GTable1.getFactory(key1Class, key2Class, valueClass);
 			result.map2Metas.add(factory.getPmapMeta());
 			result.map1Metas.add(factory.getBmapMeta());
 		}
-	}
-
-	// 同(kind,rowClass)只允许一种(列,值)身份：冲突时Log.register静默保留先注册者，回放端
-	// 整行日志被错误工厂解码——fail-fast优于静默损坏。
-	private static void checkGTableIdentity(@NotNull DependsResult result, @NotNull String kind,
-											@NotNull Class<?> rowClass, @NotNull Class<?> colClass,
-											@NotNull String valueIdentity) {
-		var key = kind + ':' + rowClass.getName();
-		var identity = colClass.getName() + '|' + valueIdentity;
-		var saved = result.gtableIdentities.putIfAbsent(key, identity);
-		if (saved != null && !saved.equals(identity))
-			throw new IllegalStateException("GTable duplicate outer logTypeId: " + kind
-					+ " row=" + rowClass.getName()
-					+ " has different col/value types: {" + saved.replace('|', ',')
-					+ "} vs {" + identity.replace('|', ',')
-					+ "}。Log.register同名先到先得，History回放将用错误的行工厂解码整行日志"
-					+ "——请为其中一个表改用不同的row类型");
 	}
 
 	public static void dependsSet(@NotNull String valueType, @NotNull DependsResult result) throws Exception {

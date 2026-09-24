@@ -75,6 +75,30 @@ public sealed abstract class Meta2<K, V> permits Map1Meta, Map2Meta, SortedMap1M
 				Bean.class.isAssignableFrom(valueClass) ? Reflect.getDefaultConstructor(valueClass) : null);
 	}
 
+	// coll-01根治身份构造：valueClass是擦除的共享类（GTable外层的BeanMap1/2.class）时，
+	// 真实列/值类型活在闭包——logTypeId/name改由valueIdentity完整身份串参与，否则
+	// 同keyClass的多个实例共享typeId，Log.register先到先得，解码端全局查表拿到别人的工厂。
+	// identity用getStableName原料（内置类型短名"int"/"string"，bean全名），与hashLog语义一致。
+	Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass,
+		  @NotNull String valueIdentity, @NotNull Supplier<V> ctor) {
+		logTypeId = Bean.hashLog(headHash, Reflect.getStableName(keyClass), valueIdentity);
+		this.keyClass = keyClass;
+		this.valueClass = valueClass;
+		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
+		keyEncodeType = keyCodecFuncs.encodeType;
+		keyEncoder = keyCodecFuncs.encoder;
+		keyDecoder = keyCodecFuncs.decoder;
+		keyDecoderWithType = keyCodecFuncs.decoderWithType;
+		var valueFactory = toMethodHandle(ctor);
+		var valueCodecFuncs = SerializeHelper.createCodec(valueClass, valueFactory);
+		valueEncodeType = valueCodecFuncs.encodeType;
+		valueEncoder = valueCodecFuncs.encoder;
+		valueDecoder = valueCodecFuncs.decoder;
+		valueDecoderWithType = valueCodecFuncs.decoderWithType;
+		this.valueFactory = valueFactory;
+		name = headStr + keyClass.getName() + ',' + valueIdentity;
+	}
+
 	Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get,
 		  @NotNull LongFunction<Bean> create) {
 		logTypeId = Bean.hashLog(headHash, keyClass, DynamicBean.class);
