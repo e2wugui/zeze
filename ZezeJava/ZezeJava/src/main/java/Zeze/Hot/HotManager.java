@@ -690,10 +690,19 @@ public class HotManager extends ClassLoader {
 	// ready 创建，安装投递到 installExecutor 执行；rpc 应答本就异步（atomicAll 由
 	// 安装流程的 sendTryDistributeResultAndWaitCommit / !atomicAll 由 setIdle 发送）。
 	public void submitInstall(boolean atomicAll) {
-		installExecutor.execute(() -> tryDistribute(atomicAll));
+		installExecutor.execute(() -> tryDistribute(atomicAll, false));
 	}
 
 	public long tryDistribute(boolean atomicAll) {
+		return tryDistribute(atomicAll, false);
+	}
+
+	// fromTimer：10 秒定时器路径。会话在创建 ready 之前已置 HotDistribute.state
+	//（eTryDistribute），非 eIdle 即属进行中的远程发布会话（含 ePrepare 上传期误投的
+	// 手工包，等会话收敛后下轮再装）：定时器此时不得以 !atomicAll 抢吃 ready——
+	// atomicAll 的集群两阶段冻结语义被破坏即版本撕裂。会话自己的安装任务
+	//（fromTimer=false，经 submitInstall 投递）是该会话 ready 的唯一消费者，无门禁。
+	long tryDistribute(boolean atomicAll, boolean fromTimer) {
 		var rc = 0L;
 		// 互斥整个安装流程：ready 存在性检查放在锁内，等待互斥后重查
 		// （前一个安装成功删除 ready 或失败清理挪走后，本调用空转返回）。
@@ -706,7 +715,9 @@ public class HotManager extends ClassLoader {
 		distributeLock.lock();
 		try {
 			var ready = Path.of(distributeDir, "ready");
-			if (Files.exists(ready)) {
+			// 会话活跃判定在 distributeLock 内与 ready 存在性同点完成（hot-03）：锁外
+			// 先查后进会漏掉"查完 eIdle、定时器持锁期间会话置位并建 ready"的交错。
+			if (Files.exists(ready) && !(fromTimer && hotDistribute.isSessionActive())) {
 				handled = true;
 				try {
 					readyLines = Files.readAllLines(ready);
@@ -748,7 +759,7 @@ public class HotManager extends ClassLoader {
 		// 定时器只投递不执行：install 的长阻塞（checkpointRun+模块停启）不得占用
 		// 共享 scheduledPool；与远程发布安装共用单线程执行器，天然串行。
 		Task.getScheduledThreadPool().scheduleAtFixedRate(
-				() -> installExecutor.execute(() -> tryDistribute(false)), 10000, 10000, TimeUnit.MILLISECONDS);
+				() -> installExecutor.execute(() -> tryDistribute(false, true)), 10000, 10000, TimeUnit.MILLISECONDS);
 		Task.hotGuard = this::enterReadLock;
 		hotManagerService.start();
 	}

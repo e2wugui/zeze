@@ -35,6 +35,9 @@ import Zeze.Util.Reflect;
  *    TryRollback 三个 handler 必须为 Direct——atomicAll 安装持 hotLock 写锁等待
  *    它们的 state 切换，Normal 派发（hotGuard 读锁）会被写锁挡死，两阶段远程发布
  *    恒 10s 超时回滚。RegisterProtocols 经 Reflect 读方法注解，同一机制断言。
+ * 4. testTimerSkipsActiveSessionReady（FND11 hot-03 回归）：远程发布会话活跃
+ *    （state!=eIdle）期间，10 秒定时器路径不得消费会话的 ready（atomicAll 两阶段
+ *    语义被 !atomicAll 抢吃即集群版本撕裂）；会话自身的安装路径无此门禁。
  * 自包含：NoDatabase 轻量 Application（Memory 库独立 url 分桶）+ @TempDir，
  * 不依赖外部 ServiceManager/数据库进程。
  */
@@ -107,6 +110,28 @@ public class TestHotTryDistributeGuard {
 			Assertions.assertEquals(DispatchMode.Direct,
 					reflect.getDispatchMode(name, DispatchMode.Normal), name);
 		}
+	}
+
+	@Test
+	public void testTimerSkipsActiveSessionReady() throws Exception {
+		var workingDir = newHotDirs("w3");
+		var distributeDir = workingDir.resolve("distributes");
+		var manager = new HotManager(appBase, workingDir.toString(), distributeDir.toString());
+		var ready = distributeDir.resolve("ready");
+		Files.writeString(ready, "#unit-test\n");
+		// 活跃发布会话：setPrepare 置 state=ePrepare（真实流程中 TryDistribute 在创建
+		// ready 前置 eTryDistribute，"ready 存在且 state!=eIdle 即属会话"同构）。
+		Assertions.assertEquals(0, manager.getHotDistribute().setPrepare(42));
+
+		// 定时器路径（fromTimer=true）：空转跳过，不吃会话的 ready、不复位状态机。
+		Assertions.assertEquals(Procedure.Exception, manager.tryDistribute(false, true));
+		Assertions.assertTrue(Files.exists(ready), "timer must not consume session ready");
+		Assertions.assertFalse(manager.isUpgrading());
+
+		// 会话自己的安装路径（fromTimer=false）：唯一消费者，消费之（坏包走 eInstall
+		// 报告路径，ready 被 renameDistributes 挪进 backup）。
+		Assertions.assertEquals(0, manager.tryDistribute(false, false));
+		Assertions.assertFalse(Files.exists(ready), "session-owner path must consume ready");
 	}
 
 	@Test

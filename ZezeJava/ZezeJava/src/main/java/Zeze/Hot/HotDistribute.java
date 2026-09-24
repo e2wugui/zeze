@@ -249,6 +249,18 @@ public class HotDistribute extends AbstractHotDistribute {
         }
     }
 
+    // tryDistribute 定时器路径的会话判定：state 非 eIdle 即有发布会话在进行
+    //（ePrepare 上传 / eTryDistribute 及之后安装）。调用方持 distributeLock，
+    // 与锁序 distributeLock -> HotDistribute.lock 一致。
+    public boolean isSessionActive() {
+        lock.lock();
+        try {
+            return state != eIdle;
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public static String removeVersion(String beanName) {
         if (!beanName.endsWith("_"))
             return beanName; // un-versioned
