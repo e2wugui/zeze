@@ -265,18 +265,6 @@ public final class TestJson {
 
 	@Test
 
-	public void testC() {
-		String s = String.format("%X", JsonWriter.umulHigh(0x8000_0000_0000_0001L, 0x8000_0000_0000_0000L));
-		assertEquals("4000000000000000", s);
-		//noinspection DynamicRegexReplaceableByCompiledPattern
-		if (Integer.parseInt(System.getProperty("java.version").replaceFirst("^1\\.", "").replaceFirst("\\D.*", "")) > 8) {
-			s = String.format("%X", JsonWriter.umulHigh9(0x8000_0000_0000_0001L, 0x8000_0000_0000_0000L));
-			assertEquals("4000000000000000", s);
-		}
-	}
-
-	@Test
-
 	public void testD() {
 		byte[] b = JsonReader.local().buf("'\\u001F\\u03A0\\u9abf\\uD955\\udeaa'").parseByteString();
 		assertNotNull(b);
@@ -392,12 +380,11 @@ public final class TestJson {
 		t.test9();
 		t.testA();
 		t.testB();
-		t.testC();
 		t.testD();
 		t.testE();
 		t.testF();
 		t.testG();
 		t.testH();
-		System.out.println(t.getClass().getSimpleName() + ": 17 tests OK!");
+		System.out.println(t.getClass().getSimpleName() + ": 16 tests OK!");
 	}
 }

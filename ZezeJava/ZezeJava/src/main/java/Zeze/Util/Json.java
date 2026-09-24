@@ -429,14 +429,12 @@ public final class Json implements Cloneable {
 	}
 
 	private static final @NotNull MethodHandles.Lookup lookup = MethodHandles.lookup();
-	public static final int javaVersion;
 	static final @NotNull Unsafe unsafe;
 	private static final @NotNull MethodHandle getDeclaredFields0MH;
 	static final @NotNull MethodHandle objectFieldOffsetMH;
 	static final @NotNull MethodHandle stringCtorMH;
 	private static final long OVERRIDE_OFFSET;
 	static final long STRING_VALUE_OFFSET, STRING_CODE_OFFSET;
-	static final boolean BYTE_STRING;
 	static final int keyHashMultiplier = 0x100_0193; // 1677_7619 can be changed to another prime number
 	public static final Json instance = new Json();
 
@@ -462,7 +460,6 @@ public final class Json implements Cloneable {
 
 	static {
 		try {
-			javaVersion = (int)Float.parseFloat(System.getProperty("java.specification.version"));
 			Field theUnsafeField = Unsafe.class.getDeclaredField("theUnsafe");
 			theUnsafeField.setAccessible(true);
 			unsafe = ensureNotNull((Unsafe)theUnsafeField.get(null));
@@ -480,24 +477,18 @@ public final class Json implements Cloneable {
 			}
 			getDeclaredFields0MH = ensureNotNull(lookup.unreflect(setAccessible(
 					Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class))));
-			if (javaVersion < 9) {
-				objectFieldOffsetMH = lookup.unreflect(
-						Unsafe.class.getMethod("objectFieldOffset", Field.class)).bindTo(unsafe);
-			} else {
-				Class<?> jdkUnsafeClass = Class.forName("jdk.internal.misc.Unsafe");
-				objectFieldOffsetMH = lookup.unreflect(Json.setAccessible(jdkUnsafeClass.getMethod(
-						"objectFieldOffset", Field.class))).bindTo(setAccessible(Objects.requireNonNull(
-						getDeclaredField(jdkUnsafeClass, "theUnsafe"))).get(null));
-			}
+			Class<?> jdkUnsafeClass = Class.forName("jdk.internal.misc.Unsafe");
+			objectFieldOffsetMH = lookup.unreflect(Json.setAccessible(jdkUnsafeClass.getMethod(
+					"objectFieldOffset", Field.class))).bindTo(setAccessible(Objects.requireNonNull(
+					getDeclaredField(jdkUnsafeClass, "theUnsafe"))).get(null));
+			// JDK21唯一形态：compact strings——String.value为byte[]，coder 0=LATIN1。
 			Field valueField = getDeclaredField(String.class, "value");
+			if (valueField.getType() != byte[].class)
+				throw new UnsupportedOperationException("requires compact strings: " + System.getProperty("java.version"));
 			STRING_VALUE_OFFSET = objectFieldOffset(Objects.requireNonNull(valueField));
-			BYTE_STRING = valueField.getType() == byte[].class;
-			STRING_CODE_OFFSET = BYTE_STRING ?
-					objectFieldOffset(Objects.requireNonNull(getDeclaredField(String.class, "coder"))) : 0;
-			//noinspection JavaReflectionMemberAccess
-			stringCtorMH = ensureNotNull(lookup.unreflectConstructor(setAccessible(BYTE_STRING
-					? String.class.getDeclaredConstructor(byte[].class, byte.class)
-					: String.class.getDeclaredConstructor(char[].class, boolean.class))));
+			STRING_CODE_OFFSET = objectFieldOffset(Objects.requireNonNull(getDeclaredField(String.class, "coder")));
+			stringCtorMH = ensureNotNull(lookup.unreflectConstructor(setAccessible(
+					String.class.getDeclaredConstructor(byte[].class, byte.class))));
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
 		}
@@ -558,10 +549,8 @@ public final class Json implements Cloneable {
 	}
 
 	static @NotNull String newByteString(byte @NotNull [] buf, int pos, int end) {
-		if (!BYTE_STRING) // for JDK8-
-			return new String(buf, pos, end - pos, StandardCharsets.ISO_8859_1);
 		try {
-			return (String)stringCtorMH.invokeExact(Arrays.copyOfRange(buf, pos, end), (byte)0); // for JDK9+
+			return (String)stringCtorMH.invokeExact(Arrays.copyOfRange(buf, pos, end), (byte)0); // LATIN1
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}

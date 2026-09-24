@@ -743,61 +743,26 @@ public final class JsonWriter {
 
 	@Override
 	public @NotNull String toString() {
-		if (BYTE_STRING) { // for JDK9+
-			byte[] b;
-			int i, n;
-			if (tail == tail.next) {
-				b = buf;
-				n = pos;
-			} else {
-				b = toBytes();
-				n = b.length;
-			}
-			for (i = 0; i < n; i++)
-				if (b[i] < 0)
-					break;
-			if (i == n) {
-				try {
-					return (String)Json.stringCtorMH.invokeExact((byte[])(b == buf ? Arrays.copyOf(b, n) : b), (byte)0);
-				} catch (Throwable e) { // MethodHandle.invoke
-					throw new RuntimeException(e);
-				}
-			}
-			return new String(b, 0, n, StandardCharsets.UTF_8);
+		byte[] b;
+		int i, n;
+		if (tail == tail.next) {
+			b = buf;
+			n = pos;
+		} else {
+			b = toBytes();
+			n = b.length;
 		}
-		try {
-			return (String)Json.stringCtorMH.invokeExact(toChars(), false);
-		} catch (Throwable e) { // MethodHandle.invoke
-			throw new RuntimeException(e);
+		for (i = 0; i < n; i++)
+			if (b[i] < 0)
+				break;
+		if (i == n) {
+			try {
+				return (String)Json.stringCtorMH.invokeExact((byte[])(b == buf ? Arrays.copyOf(b, n) : b), (byte)0);
+			} catch (Throwable e) { // MethodHandle.invoke
+				throw new RuntimeException(e);
+			}
 		}
-	}
-
-	public static long umulHigh(long a, long b) { // for JDK8-
-		long a1 = a >> 32;
-		long a2 = a & 0xffff_ffffL;
-		long b1 = b >> 32;
-		long b2 = b & 0xffff_ffffL;
-		long c2 = a2 * b2;
-		long t = a1 * b2 + (c2 >>> 32);
-		long c1 = t & 0xffff_ffffL;
-		long c0 = t >> 32;
-		c1 += a2 * b1;
-		long mh = a1 * b1 + c0 + (c1 >> 32);
-		mh += (b & (a >> 63));
-		mh += (a & (b >> 63));
-		return mh;
-	}
-
-	public static long umulHigh9(long a, long b) { // for JDK9+
-		long r = Math.multiplyHigh(a, b);
-		r += (b & (a >> 63));
-		r += (a & (b >> 63));
-		return r;
-	}
-
-	public static long umulHigh18(long a, long b) { // for JDK18+
-		// return Math.unsignedMultiplyHigh(a, b);
-		return umulHigh9(a, b); //TEMP: for JDK11 compatibility
+		return new String(b, 0, n, StandardCharsets.UTF_8);
 	}
 
 	void grisuRound(final int len, final long delta, long rest, final long tenKappa, final long mpf) {
@@ -852,19 +817,9 @@ public final class JsonWriter {
 		kk = 348 - (idx << 3); // decimal exponent no need lookup table
 
 		final long cmkf = CACHED_POWERS_F[idx]; // highest bit == 1
-		if (javaVersion >= 18) { // for JDK18+
-			f = umulHigh18(f, cmkf) + ((f * cmkf) >>> 63);
-			pf = umulHigh18(pf, cmkf) + ((pf * cmkf) >>> 63);
-			mf = umulHigh18(mf, cmkf) + ((mf * cmkf) >>> 63);
-		} else if (javaVersion >= 9) { // for JDK9+
-			f = umulHigh9(f, cmkf) + ((f * cmkf) >>> 63);
-			pf = umulHigh9(pf, cmkf) + ((pf * cmkf) >>> 63);
-			mf = umulHigh9(mf, cmkf) + ((mf * cmkf) >>> 63);
-		} else { // for JDK8-
-			f = umulHigh(f, cmkf) + ((f * cmkf) >>> 63);
-			pf = umulHigh(pf, cmkf) + ((pf * cmkf) >>> 63);
-			mf = umulHigh(mf, cmkf) + ((mf * cmkf) >>> 63);
-		}
+		f = Math.unsignedMultiplyHigh(f, cmkf) + ((f * cmkf) >>> 63);
+		pf = Math.unsignedMultiplyHigh(pf, cmkf) + ((pf * cmkf) >>> 63);
+		mf = Math.unsignedMultiplyHigh(mf, cmkf) + ((mf * cmkf) >>> 63);
 		e = -(pe + CACHED_POWERS_E[idx] + 64);
 		long delta = pf-- - mf - 2;
 
@@ -1326,9 +1281,9 @@ public final class JsonWriter {
 	public void write(final @NotNull String str, final boolean noQuote) {
 		if (!noQuote)
 			buf[pos++] = '"';
-		if (BYTE_STRING && unsafe.getByte(str, STRING_CODE_OFFSET) == 0) // for JDK9+
+		if (unsafe.getByte(str, STRING_CODE_OFFSET) == 0) // LATIN1（compact strings）
 			writeLatin1((byte[])unsafe.getObject(str, STRING_VALUE_OFFSET));
-		else // for JDK8-
+		else
 			write8(str);
 		if (!noQuote)
 			buf[pos++] = '"';

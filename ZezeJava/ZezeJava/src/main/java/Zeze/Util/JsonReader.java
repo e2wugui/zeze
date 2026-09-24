@@ -98,22 +98,10 @@ public final class JsonReader {
 			poolStrs = ss = new String[poolSize];
 		int idx = getKeyHash(buf, pos, end) & (ss.length - 1);
 		String s = ss[idx];
-		if (s != null) {
-			if (BYTE_STRING) { // JDK9+
-				byte[] b = (byte[])unsafe.getObject(s, STRING_VALUE_OFFSET);
-				if (b.length == len && Arrays.equals(b, 0, len, buf, pos, end))
-					return s;
-			} else { // for JDK8-
-				int n = s.length();
-				if (n == len) {
-					for (int i = 0; ; i++) {
-						if (i == n)
-							return s;
-						if (s.charAt(i) != (buf[pos + i] & 0xff))
-							break;
-					}
-				}
-			}
+		if (s != null) { // LATIN1（compact strings），直接比对String内部byte[]
+			byte[] b = (byte[])unsafe.getObject(s, STRING_VALUE_OFFSET);
+			if (b.length == len && Arrays.equals(b, 0, len, buf, pos, end))
+				return s;
 		}
 		ss[idx] = s = newByteString(buf, pos, end);
 		return s;
