@@ -130,8 +130,11 @@ public class TestHttpServerUploadLimit {
 	// Content-Length声明大小同样受总量上限约束(chunked可谎报/省略声明,检查必须按实际接收字节累计)
 	@Test
 	public void testContentLengthUploadOverLimit() throws Exception {
-		var body = new String(new char[MaxUpload * 2]).replace('\0', 'y');
-		var raw = "POST /upload HTTP/1.1\r\nHost: a\r\nContent-Length: " + body.length()
+		// 只发送恰超限的字节数(声明仍谎报2倍上限)：服务端读到最后一字节触发超限时接收缓冲
+		// 已空，close为有序FIN——对齐chunkedBodyNoEnd的技巧(见其注释)。一次性发全2倍上限
+		// 时满负载并行下在途未读数据残留，close时内核发RST抹掉已排队的413(Windows实测竞态)。
+		var body = new String(new char[MaxUpload + 1]).replace('\0', 'y');
+		var raw = "POST /upload HTTP/1.1\r\nHost: a\r\nContent-Length: " + MaxUpload * 2
 				+ "\r\n\r\n" + body;
 		var res = sendRawUntilClose(raw);
 		Assertions.assertTrue(res.startsWith("HTTP/1.1 413"), res);
