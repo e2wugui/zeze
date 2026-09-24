@@ -113,8 +113,9 @@ public class LinkdProviderService extends HandshakeServer {
 	@Override
 	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
 															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-		// 不支持事务
-		TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).call();
+		// 不支持事务。runNow捕获回调异常记日志（对齐基类Service与ProviderDirectService）——
+		// call()会把异常抛回IO解码路径，断整条provider连接（onProviderClose全链广播）。
+		TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
