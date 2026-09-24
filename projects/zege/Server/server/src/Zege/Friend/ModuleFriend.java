@@ -5,6 +5,7 @@ import Zege.Notify.ModuleNotify;
 import Zege.User.BUser;
 import Zeze.Arch.OnlineSpec;
 import Zeze.Arch.ProviderUserSession;
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
@@ -270,7 +271,7 @@ public class ModuleFriend extends AbstractModule {
 			return errorCode(eFriendNodeNotFound);
 
 		r.Result.setNodeKey(new BLinkedMapNodeKey(friends.getName(), nodeId.value));
-		r.Result.setNode(friendNode);
+		r.Result.setNode((BLinkedMapNode)friendNode);
 
 		session.respond(r);
 		return Procedure.Success;
@@ -338,7 +339,7 @@ public class ModuleFriend extends AbstractModule {
 			return errorCode(eMemberNodeNotFound);
 
 		r.Result.setNodeId(nodeId.value);
-		r.Result.setNode(node);
+		r.Result.setNode((BLinkedMapNode)node);
 
 		session.respond(r);
 		return Procedure.Success;
@@ -360,7 +361,7 @@ public class ModuleFriend extends AbstractModule {
 			return errorCode(eMemberNodeNotFound);
 
 		r.Result.setNodeId(nodeId.value);
-		r.Result.setNode(node);
+		r.Result.setNode((BLinkedMapNode)node); // ReadOnly是可以安全强转回真正的类型的，ReadOnly只是约定。
 
 		session.respond(r);
 		return Procedure.Success;

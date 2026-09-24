@@ -2,6 +2,7 @@ package Zege.Notify;
 
 import Zeze.Arch.OnlineSpec;
 import Zeze.Arch.ProviderUserSession;
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Collections.LinkedMap;
 import Zeze.Net.Binary;
@@ -44,7 +45,7 @@ public class ModuleNotify extends AbstractModule {
             return errorCode(eNotifyNodeNotFound);
 
         r.Result.setNodeKey(new BLinkedMapNodeKey(notify.getName(), nodeId.value));
-        r.Result.setNode(node);
+        r.Result.setNode((BLinkedMapNode)node);
 
         session.respond(r);
         return Procedure.Success;

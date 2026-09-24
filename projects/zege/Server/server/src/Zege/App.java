@@ -19,6 +19,7 @@ import Zeze.Collections.LinkedMap;
 import Zeze.Component.DbWeb;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Service;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Util.Cert;
@@ -100,7 +101,7 @@ public class App extends Zeze.AppBase {
 		createFakeCa();
 
 		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Zege.Server." + Zeze.getConfig().getServerId());
-		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
+		Service.setDefaultSessionIdGenFunc(socketSessionIdGen::next);
 		startService(); // 启动网络
 		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
 	}
