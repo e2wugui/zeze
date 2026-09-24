@@ -14,6 +14,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -36,6 +38,7 @@ import Zeze.Util.FewModifyMap;
 import Zeze.Util.FewModifySortedMap;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
+import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -66,6 +69,12 @@ public class HotManager extends ClassLoader {
 	// 防止并发安装同一个 ready 包（双份 stop/把刚上线的新模块当旧模块停掉）。
 	// 锁序：distributeLock -> hotLock 写锁 -> HotDistribute.lock，无反向获取点。
 	private final ReentrantLock distributeLock = new ReentrantLock();
+	// 安装专用单线程执行器：install 取 hotLock 写锁并可等待控制台 Commit（10s 级），
+	// 不能跑在 rpc 派发上下文（executeCore 持 hotGuard 读锁，RRWL 读→写升级自死锁），
+	// 也不占用共享 scheduledPool（长阻塞冻结全部定时任务）；定时器与远程发布安装
+	// 在此串行，distributeLock 仍是正确性兜底。
+	private final ExecutorService installExecutor = Executors.newSingleThreadExecutor(
+			new ThreadFactoryWithName("ZezeHotInstall"));
 	private final Application zeze;
 	private final HotRedirect hotRedirect;
 
@@ -676,6 +685,14 @@ public class HotManager extends ClassLoader {
 	 * 支持远程，多服务器发布。
 	 * 支持原子发布。
 	 */
+	// 远程发布安装的投递入口：TryDistribute handler 的派发上下文持 hotGuard 读锁，
+	// 同步进 install 取写锁即 RRWL 读→写升级自死锁，故 handler 只做状态机登记与
+	// ready 创建，安装投递到 installExecutor 执行；rpc 应答本就异步（atomicAll 由
+	// 安装流程的 sendTryDistributeResultAndWaitCommit / !atomicAll 由 setIdle 发送）。
+	public void submitInstall(boolean atomicAll) {
+		installExecutor.execute(() -> tryDistribute(atomicAll));
+	}
+
 	public long tryDistribute(boolean atomicAll) {
 		var rc = 0L;
 		// 互斥整个安装流程：ready 存在性检查放在锁内，等待互斥后重查
@@ -728,8 +745,10 @@ public class HotManager extends ClassLoader {
 			module.setService(iModules[i++]);
 		}
 
+		// 定时器只投递不执行：install 的长阻塞（checkpointRun+模块停启）不得占用
+		// 共享 scheduledPool；与远程发布安装共用单线程执行器，天然串行。
 		Task.getScheduledThreadPool().scheduleAtFixedRate(
-				() -> tryDistribute(false), 10000, 10000, TimeUnit.MILLISECONDS);
+				() -> installExecutor.execute(() -> tryDistribute(false)), 10000, 10000, TimeUnit.MILLISECONDS);
 		Task.hotGuard = this::enterReadLock;
 		hotManagerService.start();
 	}

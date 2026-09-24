@@ -17,7 +17,9 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Transaction.Checkpoint;
 import Zeze.Transaction.CheckpointMode;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Reflect;
 
 /**
  * FND-G1-1 / FND-G1-2 回归（HotManager.install / tryDistribute）：
@@ -29,6 +31,10 @@ import Zeze.Transaction.Procedure;
  * 2. testConcurrentTryDistributeMutualExclusion：10 秒定时器与远程 TryDistribute
  *    两个通道并发调用 tryDistribute 时必须互斥：第一个调用的安装（installReadies）
  *    完成前，第二个调用不得进入；等待获得互斥后重查 ready（已被清理则空转返回）。
+ * 3. testControlPlaneDispatchModeDirect（FND11 hot-01 回归）：Commit/Commit2/
+ *    TryRollback 三个 handler 必须为 Direct——atomicAll 安装持 hotLock 写锁等待
+ *    它们的 state 切换，Normal 派发（hotGuard 读锁）会被写锁挡死，两阶段远程发布
+ *    恒 10s 超时回滚。RegisterProtocols 经 Reflect 读方法注解，同一机制断言。
  * 自包含：NoDatabase 轻量 Application（Memory 库独立 url 分桶）+ @TempDir，
  * 不依赖外部 ServiceManager/数据库进程。
  */
@@ -91,6 +97,16 @@ public class TestHotTryDistributeGuard {
 		// 坏包残留清理：ready 被 renameDistributes 挪进 backup 子目录。
 		Assertions.assertFalse(Files.exists(ready), "ready must be moved to backup on install failure");
 		Assertions.assertFalse(manager.isUpgrading());
+	}
+
+	@Test
+	public void testControlPlaneDispatchModeDirect() {
+		var reflect = new Reflect(HotDistribute.class);
+		for (var name : new String[]{
+				"ProcessCommitRequest", "ProcessCommit2Request", "ProcessTryRollbackRequest"}) {
+			Assertions.assertEquals(DispatchMode.Direct,
+					reflect.getDispatchMode(name, DispatchMode.Normal), name);
+		}
 	}
 
 	@Test

@@ -12,7 +12,9 @@ import Zeze.Builtin.HotDistribute.PrepareDistribute;
 import Zeze.Builtin.HotDistribute.TryDistribute;
 import Zeze.Builtin.HotDistribute.TryRollback;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.DispatchModeAnnotation;
 import Zeze.Util.FastLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -125,13 +127,19 @@ public class HotDistribute extends AbstractHotDistribute {
             setIdle(errorCode(eTryDistribute));
             return errorCode(eTryDistribute);
         }
-        distributeManager.getHotManager().tryDistribute(r.Argument.isAtomicAll());
+        // 本handler的派发上下文持hotGuard读锁，同步进安装取写锁即自死锁——
+        // 安装投递到专用执行器，应答仍由安装流程异步发送（下行注释）。
+        distributeManager.getHotManager().submitInstall(r.Argument.isAtomicAll());
         // atomicAll 模式，在sendTryDistributeResultAndWaitCommit发送结果。
         // !atomicAll 模式，在setIdle发送结果。
         return 0;
     }
 
+    // Direct：atomicAll 安装持 hotLock 写锁等待本 handler 的 state 切换与 signalAll，
+    // Normal 派发需先取 hotGuard 读锁、被写锁挡死（10s 超时回滚）。本 handler 只操作
+    // HotDistribute 状态机（FastLock+cond+应答），不碰模块代码，内联执行安全。
     @Override
+    @DispatchModeAnnotation(mode = DispatchMode.Direct)
     protected long ProcessTryRollbackRequest(TryRollback r) {
         lock.lock();
         try {
@@ -147,7 +155,10 @@ public class HotDistribute extends AbstractHotDistribute {
         return 0;
     }
 
+    // Direct：同 ProcessTryRollbackRequest——atomicAll 两阶段等待窗口内唯一能推进
+    // 状态机的信使，不得被 hotGuard 读锁挡在写锁外。
     @Override
+    @DispatchModeAnnotation(mode = DispatchMode.Direct)
     protected long ProcessCommitRequest(Commit r) {
         lock.lock();
         try {
@@ -185,7 +196,9 @@ public class HotDistribute extends AbstractHotDistribute {
         }
     }
 
+    // Direct：同 ProcessTryRollbackRequest——安装持写锁等待 Commit2 期间的收尾信使。
     @Override
+    @DispatchModeAnnotation(mode = DispatchMode.Direct)
     protected long ProcessCommit2Request(Commit2 r) {
         lock.lock();
         try {
