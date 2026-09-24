@@ -204,6 +204,8 @@
 		<bean name="BValue">
 			<variable id="1" name="gTable" type="gtable[int, int, int]"/>
 			<variable id="2" name="gTable2" type="gtable[int, string, int]"/>
+			<variable id="3" name="gTable3" type="gtable[int, int, dynamic:Bean1]"/>
+			<variable id="4" name="gTable4" type="gtable[int, string, dynamic:Bean1]"/>
 		</bean>
 		<bean name="Bean1">
 			<variable id="1" name="IntVar" type="int"/>

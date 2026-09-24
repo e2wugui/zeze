@@ -148,6 +148,8 @@ namespace Zeze.Gen.java
             }
             else if (vt is TypeGTable gtable)
             {
+                if (gtable.ValueType is TypeDynamic)
+                    throw new Exception("gtable dynamic must go GenDynamicSpecialMethod (dispatch bug?): " + varName);
                 string rowKey = BoxingName.GetBoxingName(gtable.RowKeyType);
                 string colKey = BoxingName.GetBoxingName(gtable.ColKeyType);
                 string value = BoxingName.GetBoxingName(gtable.ValueType);
@@ -202,6 +204,18 @@ namespace Zeze.Gen.java
                     // sortedmap 必须用 SortedMap2Meta.createDynamic（sortedMap2 家族哈希），
                     // 与 PSortedMap2 动态构造器及读端注册对称；用 map2 家族会 typeId 永不匹配（FND3-04）。
                     sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.SortedMap2Meta.createDynamic({BoxingName.GetBoxingName(smap.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
+                }
+                else if (vt is TypeGTable gtable)
+                {
+                    // gtable dynamic：外层必须走GTable2四参getFactory（FND8-33 A1——三参版对
+                    // DynamicBean指名拒绝）。工厂按变量成对不进按类缓存（FND8-33等价契约），
+                    // 静态常量化只是每类加载一次的持有点。内层bmapMeta由getFactory内部
+                    // createDynamic按get/create构建，值DYNAMIC编码自描述（mapKey机制走
+                    // DynamicBean自带覆写，RealBeans无需MapKeyTypes）。
+                    string rowKey = BoxingName.GetBoxingName(gtable.RowKeyType);
+                    string colKey = BoxingName.GetBoxingName(gtable.ColKeyType);
+                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.GTable.GTable2.Factory<{rowKey}, {colKey}, Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> factory{var.NamePrivate}");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.GTable.GTable2.getFactory({rowKey}.class, {colKey}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
                 }
             }
             sw.WriteLine();
@@ -318,6 +332,8 @@ namespace Zeze.Gen.java
                     GenDynamicSpecialMethod(sw, "    ", v, dy3, true);
                 else if (vt is TypeCollection coll && coll.ValueType is TypeDynamic dy2)
                     GenDynamicSpecialMethod(sw, "    ", v, dy2, true);
+                else if (vt is TypeGTable gt && gt.ValueType is TypeDynamic dyG)
+                    GenDynamicSpecialMethod(sw, "    ", v, dyG, true);
                 else if (vt is TypeCollection or TypeMap or TypeSortedMap or TypeGTable or Bean)
                     GenCollectionMetaDefine(sw, "    ", v);
                 else

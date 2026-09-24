@@ -2,12 +2,15 @@ package UnitTest.Zeze.Trans;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
+
+import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Json;
 import demo.App;
 import demo.Bean1ReadOnly;
+import demo.ModuleGTable.BValue;
 import demo.ModuleGTable.Bean1;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +36,8 @@ public class TestGTable {
 			Assertions.assertNull(gTable1.getGTable().get(1, 1));
 			gTable1.getGTable().put(1, 1, 1);
 			gTable1.getGTable2().put(1, "1", 1);
+			gTable1.getGTable3().put(1, 1, BValue.newDynamicBean_GTable3());
+			gTable1.getGTable4().put(1, "1", BValue.newDynamicBean_GTable4());
 			Assertions.assertEquals(Integer.valueOf(1), gTable1.getGTable().get(1, 1));
 			return 0;
 		}, "putGTable").call();

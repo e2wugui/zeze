@@ -264,10 +264,9 @@ namespace Zeze.Gen.java
             string value = BoxingName.GetBoxingName(type.ValueType);
 
             string typeName = TypeName.GetNameOmitted(type);
-            if (type.ValueType is TypeDynamic)
-                sw.WriteLine(prefix + varName + $" = new {typeName}<>(meta2{varName});");
-            else
-                sw.WriteLine(prefix + varName + $" = new {typeName}<>(factory{varName});");
+            // dynamic值同样经factory{varName}（GenDynamicSpecialMethod发的四参getFactory，
+            // FND8-33 A1）——旧meta2{varName}引用的字段从未发射且GTable2无该构造器。
+            sw.WriteLine(prefix + varName + $" = new {typeName}<>(factory{varName});");
             sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
         }
     }
