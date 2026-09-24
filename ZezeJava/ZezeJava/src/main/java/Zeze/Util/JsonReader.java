@@ -267,12 +267,14 @@ public final class JsonReader {
 					if (c == '\\')
 						pos++;
 			} else if ((b | 0x20) == '{') { // [:0x5B | 0x20 = {:0x7B
-				for (int level = 0; (b = buf[pos++] | 0x20) != '}' || --level >= 0; ) { // ]:0x5D | 0x20 = }:0x7D
-					if (b == '"' || b == '\'') { // '"' = 0x22; '\'' = 0x27
+				// 引号按原始字节判定：0x02|0x20、0x07|0x20分别伪装成'"'、'\''（JSON复审#3）；
+				// [/{、]/}的|0x20混计仅用于嵌套层级配对
+				for (int level = 0; (b = buf[pos++]) != '}' && b != ']' || --level >= 0; ) {
+					if (b == '"' || b == '\'') {
 						while ((c = buf[pos++]) != b)
 							if (c == '\\')
 								pos++;
-					} else if (b == '{') // [:0x5B | 0x20 = {:0x7B
+					} else if (b == '{' || b == '[')
 						level++;
 					else if (b == '/') { // skip comment
 						pos--;
@@ -473,8 +475,11 @@ public final class JsonReader {
 		if (++depth > maxDepth)
 			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
 		for (int b = skipNext(); b != '}'; b = skipVar('}')) {
-			FieldMeta fm = classMeta.get(b == '"' || b == '\'' ? parseKeyHash(b) : parseKeyHashNoQuot(b));
-			if (fm == null)
+			boolean quot = b == '"' || b == '\'';
+			int keyBegin = pos + (quot ? 1 : 0);
+			FieldMeta fm = classMeta.get(quot ? parseKeyHash(b) : parseKeyHashNoQuot(b));
+			// 32位keyHash定向碰撞防护：命中后按解码语义与字段名UTF-8字节逐比对（JSON复审#1）。
+			if (fm == null || !keyEquals(keyBegin, quot ? pos - 1 : pos, fm.name))
 				continue;
 			b = skipColon();
 			long offset = fm.offset;
@@ -959,6 +964,75 @@ public final class JsonReader {
 		}
 	}
 
+	/** hash命中后的key内容校验（JSON复审#1）：按与parseKeyHash/parseKeyHashNoQuot一致的
+	 * 解码语义——原始字节、简写转义与unicode转义按解码后codepoint的UTF-8字节——重走
+	 * [begin,end)与字段名UTF-8字节逐比对，防32位keyHash定向碰撞注入。无转义走快比对。 */
+	boolean keyEquals(int begin, int end, byte @NotNull [] name) {
+		final byte[] buffer = buf;
+		int p, b, c;
+		for (p = begin; p < end; p++)
+			if (buffer[p] == '\\')
+				break;
+		if (p == end) // 无转义：原始区间即解码结果
+			return end - begin == name.length && Arrays.equals(buffer, begin, end, name, 0, name.length);
+		final int len = name.length;
+		int n = 0;
+		for (p = begin; p < end; ) {
+			b = buffer[p++];
+			if (b != '\\') {
+				if (n >= len || name[n++] != (byte)b)
+					return false;
+				continue;
+			}
+			c = buffer[p++];
+			if (c == 'u') { // unicode转义：解码codepoint按UTF-8字节比对（代理对合并为4字节）
+				c = parseHex4(buffer, p);
+				p += 4;
+				if (c >= 0xd800 && c < 0xdc00 && buffer[p] == '\\' && buffer[p + 1] == 'u') {
+					int c2 = parseHex4(buffer, p + 2);
+					if ((c2 & 0xfc00) == 0xdc00) { // utf-16 surrogate pair -> 4-bytes utf-8
+						p += 6;
+						c = (c << 10) + c2 + (0x10000 - (0xd800 << 10) - 0xdc00);
+						if (n + 4 > len
+								|| name[n] != (byte)(0xf0 + (c >> 18))
+								|| name[n + 1] != (byte)(0x80 + ((c >> 12) & 0x3f))
+								|| name[n + 2] != (byte)(0x80 + ((c >> 6) & 0x3f))
+								|| name[n + 3] != (byte)(0x80 + (c & 0x3f)))
+							return false;
+						n += 4;
+						continue;
+					}
+				}
+				if (c >= 0x800) { // 3-bytes utf-8（含孤立代理）
+					if (n + 3 > len
+							|| name[n] != (byte)(0xe0 + (c >> 12))
+							|| name[n + 1] != (byte)(0x80 + ((c >> 6) & 0x3f))
+							|| name[n + 2] != (byte)(0x80 + (c & 0x3f)))
+						return false;
+					n += 3;
+				} else if (c >= 0x80) { // 2-bytes utf-8
+					if (n + 2 > len
+							|| name[n] != (byte)(0xc0 + (c >> 6))
+							|| name[n + 1] != (byte)(0x80 + (c & 0x3f)))
+						return false;
+					n += 2;
+				} else if (n >= len || name[n++] != (byte)c) // 1-byte
+					return false;
+			} else { // 简写转义：与parseKeyHash一致，c>=0x20查ESCAPE否则取原始低8位，再按UTF-8
+				c = c >= 0x20 ? ESCAPE[c - 0x20] : (c & 0xff);
+				if (c >= 0x80) { // U+0080..U+00FF -> 2-bytes utf-8
+					if (n + 2 > len
+							|| name[n] != (byte)(0xc0 + (c >> 6))
+							|| name[n + 1] != (byte)(0x80 + (c & 0x3f)))
+						return false;
+					n += 2;
+				} else if (n >= len || name[n++] != (byte)c)
+					return false;
+			}
+		}
+		return n == len;
+	}
+
 	public static @NotNull String parseStringKey(@NotNull JsonReader jr, int b) {
 		return b == '"' || b == '\'' ? jr.parseString(b, true) : jr.parseStringNoQuot();
 	}
@@ -1193,8 +1267,12 @@ public final class JsonReader {
 		for (end = p; (b = buffer[end]) != e; end++) {
 			if (b == '\\') {
 				end++;
-				if (buffer[end] == 'u')
-					end += 4;
+				if (buffer[end] == 'u') {
+					// hex不足4位即遇终止符时不跨越：残缺转义按2字节收尾，闭引号不被当hex吞掉
+					// （吞掉会使串内容与后续结构错位，JSON复审#2）
+					for (int j = 0; j < 4 && buffer[end + 1] != e; j++)
+						end++;
+				}
 			}
 		}
 		pos = end + 1;
@@ -1216,8 +1294,11 @@ public final class JsonReader {
 		for (end = p; ((((b = buffer[end]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0; end++) {
 			if (b == '\\') {
 				end++;
-				if (buffer[end] == 'u')
-					end += 4;
+				if (buffer[end] == 'u') {
+					// 同parseString：hex不足4位遇键终止符（≤' '或':'）不跨越，残缺转义按2字节收尾
+					for (int j = 0; j < 4 && ((((buffer[end + 1] & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0); j++)
+						end++;
+				}
 			}
 		}
 		pos = end + 1;
@@ -1339,16 +1420,35 @@ public final class JsonReader {
 			}
 			if (b == '0') {
 				b = buffer[++p];
-				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5；与 parseNumber/parseDouble 对齐）
+				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5）。hex是整数词法：非hex字节即词终止，
+					// 不落入十进制小数分支（词法终止语义对齐parseDouble的FND4-13）；溢出用double
+					// 累计、(int)强转饱和，对齐十进制/Infinity策略（JSON复审#6，原int环绕）
+					boolean useD = false;
 					for (; ; ) {
 						b = buffer[++p];
-						if ((c = (b - '0') & 0xff) < 10)
-							i = i * 16 + c;
-						else if ((c = ((b | 0x20) - 'a') & 0xff) < 6)
-							i = i * 16 + c + 10;
-						else
+						if ((c = (b - '0') & 0xff) < 10) {
+							if (useD)
+								d = d * 16 + c;
+							else if (i >= 0x0800_0000) { // 0x0800_0000*16+15恰溢出int
+								useD = true;
+								d = (double)i * 16 + c;
+							} else
+								i = i * 16 + c;
+						} else if ((c = ((b | 0x20) - 'a') & 0xff) < 6) {
+							if (useD)
+								d = d * 16 + c + 10;
+							else if (i >= 0x0800_0000) {
+								useD = true;
+								d = (double)i * 16 + c + 10;
+							} else
+								i = i * 16 + c + 10;
+						} else
 							break;
 					}
+					pos = p;
+					if (useD)
+						return (int)(minus ? -d : d);
+					return minus ? -i : i;
 				}
 			} else if ((i = (b - '0') & 0xff) < 10) {
 				while ((c = ((b = buffer[++p]) - '0') & 0xff) < 10) {
@@ -1467,16 +1567,34 @@ public final class JsonReader {
 			}
 			if (b == '0') {
 				b = buffer[++p];
-				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5；与 parseNumber/parseDouble 对齐）
+				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5）。语义同parseInt：整数词法、
+					// 溢出double累计+(long)强转饱和（JSON复审#6，原long环绕）
+					boolean useD = false;
 					for (; ; ) {
 						b = buffer[++p];
-						if ((c = (b - '0') & 0xff) < 10)
-							i = i * 16 + c;
-						else if ((c = ((b | 0x20) - 'a') & 0xff) < 6)
-							i = i * 16 + c + 10;
-						else
+						if ((c = (b - '0') & 0xff) < 10) {
+							if (useD)
+								d = d * 16 + c;
+							else if (i >= 0x0800_0000_0000_0000L) { // 0x0800..*16+15恰溢出long
+								useD = true;
+								d = (double)i * 16 + c;
+							} else
+								i = i * 16 + c;
+						} else if ((c = ((b | 0x20) - 'a') & 0xff) < 6) {
+							if (useD)
+								d = d * 16 + c + 10;
+							else if (i >= 0x0800_0000_0000_0000L) {
+								useD = true;
+								d = (double)i * 16 + c + 10;
+							} else
+								i = i * 16 + c + 10;
+						} else
 							break;
 					}
+					pos = p;
+					if (useD)
+						return (long)(minus ? -d : d);
+					return minus ? -i : i;
 				}
 			} else if ((i = (b - '0') & 0xff) < 10) {
 				while ((c = ((b = buffer[++p]) - '0') & 0xff) < 10) {
@@ -1598,17 +1716,31 @@ public final class JsonReader {
 				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5；与 parseInt/parseLong/parseNumber 对齐）。
 					// FND4-13：原实现缺此分支，0x词法静默解析为0.0且pos停在'x'、余下字符被当垃圾扫过。
 					// hex是整数词法（无frac/exp），消费完词尾即返回（pos不变式：指向词后首字符）。
+					// JSON复审#6：超long也按double累计（原long环绕，如0x10000000000000000→0.0）
+					boolean useD = false;
 					for (; ; ) {
 						b = buffer[++p];
-						if ((c = (b - '0') & 0xff) < 10)
-							i = i * 16 + c;
-						else if ((c = ((b | 0x20) - 'a') & 0xff) < 6)
-							i = i * 16 + c + 10;
-						else
+						if ((c = (b - '0') & 0xff) < 10) {
+							if (useD)
+								d = d * 16 + c;
+							else if (i >= 0x0800_0000_0000_0000L) {
+								useD = true;
+								d = (double)i * 16 + c;
+							} else
+								i = i * 16 + c;
+						} else if ((c = ((b | 0x20) - 'a') & 0xff) < 6) {
+							if (useD)
+								d = d * 16 + c + 10;
+							else if (i >= 0x0800_0000_0000_0000L) {
+								useD = true;
+								d = (double)i * 16 + c + 10;
+							} else
+								i = i * 16 + c + 10;
+						} else
 							break;
 					}
 					pos = p;
-					return minus ? -(double)i : (double)i;
+					return useD ? (minus ? -d : d) : minus ? -(double)i : (double)i;
 				}
 			} else if ((i = (b - '0') & 0xff) < 10) {
 				while ((c = ((b = buffer[++p]) - '0') & 0xff) < 10) {
@@ -1730,16 +1862,37 @@ public final class JsonReader {
 			}
 			if (b == '0') {
 				b = buffer[++p];
-				if ((b | 0x20) == 'x') { // 0x
+				if ((b | 0x20) == 'x') { // 0x 十六进制（JSON5）。语义同parseInt/parseLong：整数词法、
+					// 溢出double累计（JSON复审#6）；返回类型沿尾部约定（int装得下给Integer，否则Long/Double）
+					boolean useD = false;
 					for (; ; ) {
 						b = buffer[++p];
-						if ((c = (b - '0') & 0xff) < 10)
-							i = i * 16 + c;
-						else if ((c = ((b | 0x20) - 'a') & 0xff) < 6)
-							i = i * 16 + c + 10;
-						else
+						if ((c = (b - '0') & 0xff) < 10) {
+							if (useD)
+								d = d * 16 + c;
+							else if (i >= 0x0800_0000_0000_0000L) {
+								useD = true;
+								d = (double)i * 16 + c;
+							} else
+								i = i * 16 + c;
+						} else if ((c = ((b | 0x20) - 'a') & 0xff) < 6) {
+							if (useD)
+								d = d * 16 + c + 10;
+							else if (i >= 0x0800_0000_0000_0000L) {
+								useD = true;
+								d = (double)i * 16 + c + 10;
+							} else
+								i = i * 16 + c + 10;
+						} else
 							break;
 					}
+					pos = p;
+					if (useD)
+						return minus ? -d : d;
+					if (minus)
+						i = -i;
+					final int j = (int)i;
+					return j == i ? (Object)j : i;
 				}
 			} else if ((i = (b - '0') & 0xff) < 10) {
 				while ((c = ((b = buffer[++p]) - '0') & 0xff) < 10) {
