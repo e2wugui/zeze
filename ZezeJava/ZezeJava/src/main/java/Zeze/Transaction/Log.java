@@ -36,15 +36,15 @@ public abstract class Log implements Serializable {
 	public static void register(@NotNull IntFunction<Log> s) {
 		var ins = s.apply(0);
 		var old = factories.putIfAbsent(ins.getTypeId(), s);
-		if (old == null)
+		if (old == null) {
 			logger.debug("register log typeId({}): {}", ins.getTypeId(), ins.getTypeName());
-		else {
+		} else {
 			var oldIns = old.apply(0);
 			if (!oldIns.getTypeName().equals(ins.getTypeName())) {
 				logger.error("register duplicated log typeId({}): {} & {}",
 						ins.getTypeId(), oldIns.getTypeName(), ins.getTypeName());
 			} else {
-				// FND7-81：同名重复注册（典型：Map2Meta.get与create对同一
+				// 同名重复注册（典型：Map2Meta.get与create对同一
 				// (key,value)类算出同typeId，或同构工厂重复注册）：typeId先到先得，
 				// 后注册者的差异（如自定义valueCtor）被静默忽略，debug留痕供排查。
 				logger.debug("register duplicated log typeId({}) with same name: {}, first registered wins",

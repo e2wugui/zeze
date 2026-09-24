@@ -410,7 +410,6 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 
 		public boolean reach(@NotNull BatchTask batch, int sum) {
-			boolean fire = false;
 			lock();
 			try {
 				if (canceled)
@@ -427,14 +426,12 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				} catch (Throwable ex) { // logger.error
 					logger.error("{} run exception", getName(), ex);
 				}
-				fire = true;
 			} finally {
 				unlock();
 			}
 			// 成功执行：触发所有桶的runNext（锁外，见reachedRunNext）；自己也返回false，
 			// 不再继续runNext。
-			if (fire)
-				reachedRunNext();
+			reachedRunNext();
 			return false;
 		}
 
