@@ -186,7 +186,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 
 	public @Nullable V remove(@NotNull K key) {
 		var s = state.get();
-		//noinspection unchecked
+		@SuppressWarnings("unchecked") // 哨兵对象转换：V不可具体化，类型由本类封装保证
 		V old = s.map.replace(key, (V)deleted);
 		if (old == null || old == deleted)
 			return null;
@@ -196,8 +196,9 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 
 	public boolean remove(@NotNull K key, @NotNull V value) {
 		var s = state.get();
-		//noinspection unchecked
-		if (s.map.replace(key, value, (V)deleted)) {
+		@SuppressWarnings("unchecked") // 同上：哨兵对象转换
+		V tombstone = (V)deleted;
+		if (s.map.replace(key, value, tombstone)) {
 			s.size.decrementAndGet();
 			return true;
 		}

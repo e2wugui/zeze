@@ -18,6 +18,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -89,8 +90,7 @@ public class TestFnd765RedoQueueHole {
 		private final List<LogEvent> events = new CopyOnWriteArrayList<>();
 
 		private RecordingAppender() {
-			//noinspection deprecation
-			super("fnd765-recorder", null, null, true);
+			super("fnd765-recorder", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

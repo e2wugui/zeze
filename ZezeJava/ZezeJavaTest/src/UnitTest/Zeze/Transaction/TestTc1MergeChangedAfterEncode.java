@@ -55,6 +55,7 @@ public class TestTc1MergeChangedAfterEncode {
 		var map = new PMap2<String, BValue>(String.class, BValue.class);
 		map.put("k", value); // put 设置 mapKey("k")，buildChangedWithKey 依赖
 		value.setLong2(7); // 原位字段修改：bean 自身已持新值，changed 只是对它的日志
+		@SuppressWarnings("unchecked")
 		var log = (LogMap2<String, BValue>)map.createLogBean();
 		log.getChanged().add(newBeanLog(value, 7));
 
@@ -73,6 +74,7 @@ public class TestTc1MergeChangedAfterEncode {
 		var map = new PSortedMap2<String, BValue>(String.class, BValue.class);
 		map.put("k", value);
 		value.setLong2(7);
+		@SuppressWarnings("unchecked")
 		var log = (LogSortedMap2<String, BValue>)map.createLogBean();
 		log.getChanged().add(newBeanLog(value, 7));
 
@@ -93,6 +95,7 @@ public class TestTc1MergeChangedAfterEncode {
 		var map = new PMap2<String, BValue>(String.class, BValue.class);
 		map.put("k", value);
 		value.setLong2(7);
+		@SuppressWarnings("unchecked")
 		var log = (LogMap2<String, BValue>)map.createLogBean();
 		log.getChanged().add(newBeanLog(value, 7));
 
@@ -102,6 +105,7 @@ public class TestTc1MergeChangedAfterEncode {
 		var followerValue = new BValue();
 		var follower = new PMap2<String, BValue>(String.class, BValue.class);
 		follower.put("k", followerValue);
+		@SuppressWarnings("unchecked")
 		var decoded = (LogMap2<String, BValue>)follower.createLogBean();
 		decoded.decode(encodeThenWrap(log)); // merge 后再 encode：changed 并入 replaced，等价表示
 		assertTrue(decoded.getChangedWithKey().isEmpty(), "已并入 replaced 的 changed 不得重复编码");
@@ -115,6 +119,7 @@ public class TestTc1MergeChangedAfterEncode {
 		var map = new PSortedMap2<String, BValue>(String.class, BValue.class);
 		map.put("k", value);
 		value.setLong2(7);
+		@SuppressWarnings("unchecked")
 		var log = (LogSortedMap2<String, BValue>)map.createLogBean();
 		log.getChanged().add(newBeanLog(value, 7));
 
@@ -124,6 +129,7 @@ public class TestTc1MergeChangedAfterEncode {
 		var followerValue = new BValue();
 		var follower = new PSortedMap2<String, BValue>(String.class, BValue.class);
 		follower.put("k", followerValue);
+		@SuppressWarnings("unchecked")
 		var decoded = (LogSortedMap2<String, BValue>)follower.createLogBean();
 		decoded.decode(encodeThenWrap(log));
 		assertTrue(decoded.getChangedWithKey().isEmpty(), "已并入 replaced 的 changed 不得重复编码");

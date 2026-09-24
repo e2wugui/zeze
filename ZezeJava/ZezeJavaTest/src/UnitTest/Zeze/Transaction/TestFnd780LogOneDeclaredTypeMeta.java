@@ -106,6 +106,7 @@ public class TestFnd780LogOneDeclaredTypeMeta {
 		collOne.initRootInfo(newRootInfo(), parent);
 		Assertions.assertTrue(collOne.isManaged());
 
+		@SuppressWarnings("unchecked")
 		var log = (LogOne<BeanBase>)collOne.createLogBean();
 		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, log.getTypeId(),
 				"子类实例必须按声明类计算typeId（读端工厂按声明类注册）");
@@ -127,9 +128,11 @@ public class TestFnd780LogOneDeclaredTypeMeta {
 		collOne.initRootInfo(newRootInfo(), parent);
 
 		// 写端编码，模拟复制通道：follower按typeId经Log.create重建再decode。
+		@SuppressWarnings("unchecked")
 		var log = (LogOne<BeanBase>)collOne.createLogBean();
 		var bb = ByteBuffer.Allocate();
 		log.encode(bb);
+		@SuppressWarnings("unchecked")
 		var decoded = (LogOne<BeanBase>)Log.create(log.getTypeId(), 0);
 		decoded.decode(bb);
 		collOne.followerApply(decoded);
@@ -148,12 +151,14 @@ public class TestFnd780LogOneDeclaredTypeMeta {
 		var parent = new BeanBase();
 		var collOne = new CollOne<>(new BeanBase(), BeanBase.class);
 		collOne.initRootInfo(newRootInfo(), parent);
+		@SuppressWarnings("unchecked")
 		var log = (LogOne<BeanBase>)collOne.createLogBean();
 		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, log.getTypeId(),
 				"精确类型typeId与修复前一致");
 
 		// 未提供声明类（copy路径）：退回运行时类，与修复前行为一致。
 		var copied = collOne.copy();
+		@SuppressWarnings("unchecked")
 		var copiedLog = (LogOne<BeanBase>)copied.createLogBean();
 		Assertions.assertEquals(LogOneMeta.get(BeanBase.class).logTypeId, copiedLog.getTypeId());
 	}

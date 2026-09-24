@@ -72,6 +72,7 @@ public class TestThreadingSemaphoreHoldCleanup {
 	private static int holdCount(String namePart) throws Exception {
 		Field field = Threading.class.getDeclaredField("semaphoreLocalHolds");
 		field.setAccessible(true);
+		@SuppressWarnings("unchecked")
 		var map = (ConcurrentHashMap<String, AtomicInteger>)field.get(null);
 		for (Map.Entry<String, AtomicInteger> e : map.entrySet())
 			if (e.getKey().contains(namePart))

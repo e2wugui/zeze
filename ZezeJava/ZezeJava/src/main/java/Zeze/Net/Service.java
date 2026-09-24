@@ -446,7 +446,7 @@ public class Service extends ReentrantLock {
 			if (future != null)
 				future.setException(RpcSocketDisposedException.getInstance());
 			else {
-				//noinspection unchecked
+				@SuppressWarnings("unchecked") // responseHandle的参数化类型不可具体化，实际类型由注册侧保证
 				var handle = (ProtocolHandle<Rpc<?, ?>>)(ProtocolHandle<?>)rpc.getResponseHandle();
 				if (handle != null) {
 					var factoryHandle = findProtocolFactoryHandle(ctx.getTypeId());

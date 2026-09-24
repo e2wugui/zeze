@@ -104,6 +104,7 @@ public class TestHotUpgradeMemoryTableData {
 			var value2 = new Bean1();
 			value2.setV1(654);
 			table.__direct_put_cache__(key2, value2, GlobalCacheManagerConst.StateModify);
+			@SuppressWarnings("unchecked")
 			var dataMap = (ConcurrentHashMap<Long, Record1<Long, Bean1>>)getField(table.getCache(), "dataMap");
 			Assertions.assertEquals(2, dataMap.size());
 

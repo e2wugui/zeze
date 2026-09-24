@@ -60,12 +60,14 @@ public class TestFnd829StaleBeanChangedFilter {
 		var current = new BValue();
 		var map = new PMap2<String, BValue>(String.class, BValue.class);
 		map.put("k", current);
+		@SuppressWarnings("unchecked")
 		var log = (LogMap2<String, BValue>)map.createLogBean();
 		log.getChanged().add(newBeanLog(stale, 9)); // txn3：陈旧引用的修改被collect
 
 		var followerValue = new BValue();
 		var follower = new PMap2<String, BValue>(String.class, BValue.class);
 		follower.put("k", followerValue);
+		@SuppressWarnings("unchecked")
 		var decoded = (LogMap2<String, BValue>)follower.createLogBean();
 		decoded.decode(encodeThenWrap(log));
 		assertTrue(decoded.getChangedWithKey().isEmpty(), "陈旧引用的changed必须被身份校验过滤");
@@ -73,8 +75,10 @@ public class TestFnd829StaleBeanChangedFilter {
 		assertEquals(0, followerValue.getLong2(), "follower当前值不得被陈旧字段日志污染");
 
 		// 正控：当前值自身的changed保留并正常应用。
+		@SuppressWarnings("unchecked")
 		var live = (LogMap2<String, BValue>)map.createLogBean();
 		live.getChanged().add(newBeanLog(current, 7));
+		@SuppressWarnings("unchecked")
 		var decodedLive = (LogMap2<String, BValue>)follower.createLogBean();
 		decodedLive.decode(encodeThenWrap(live));
 		assertTrue(decodedLive.getChangedWithKey().containsKey("k"), "当前值的changed不得误杀");
@@ -89,20 +93,24 @@ public class TestFnd829StaleBeanChangedFilter {
 		var current = new BValue();
 		var map = new PSortedMap2<String, BValue>(String.class, BValue.class);
 		map.put("k", current);
+		@SuppressWarnings("unchecked")
 		var log = (LogSortedMap2<String, BValue>)map.createLogBean();
 		log.getChanged().add(newBeanLog(stale, 9));
 
 		var followerValue = new BValue();
 		var follower = new PSortedMap2<String, BValue>(String.class, BValue.class);
 		follower.put("k", followerValue);
+		@SuppressWarnings("unchecked")
 		var decoded = (LogSortedMap2<String, BValue>)follower.createLogBean();
 		decoded.decode(encodeThenWrap(log));
 		assertTrue(decoded.getChangedWithKey().isEmpty(), "陈旧引用的changed必须被身份校验过滤");
 		follower.followerApply(decoded);
 		assertEquals(0, followerValue.getLong2(), "follower当前值不得被陈旧字段日志污染");
 
+		@SuppressWarnings("unchecked")
 		var live = (LogSortedMap2<String, BValue>)map.createLogBean();
 		live.getChanged().add(newBeanLog(current, 7));
+		@SuppressWarnings("unchecked")
 		var decodedLive = (LogSortedMap2<String, BValue>)follower.createLogBean();
 		decodedLive.decode(encodeThenWrap(live));
 		assertTrue(decodedLive.getChangedWithKey().containsKey("k"), "当前值的changed不得误杀");
