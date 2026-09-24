@@ -225,7 +225,8 @@ public class LoginQueue extends AbstractLoginQueue {
 			so.closeGracefully();
 			return false;
 		}
-		// 与drainQueue同锁：choiceServer里setOnline(getOnline()+1)非原子，accept线程与timer线程串行化。
+		// 与drainQueue同锁：accept线程与timer线程串行化，防同一排队连接被并发分配两次
+		//（choiceServer的online自增与负载上报的互斥另由compute保证，见LoginQueueServer.choiceServer）。
 		allocateLock.lock();
 		try {
 			if (queue.isEmpty() && timeThrottle.checkNow(1)) {

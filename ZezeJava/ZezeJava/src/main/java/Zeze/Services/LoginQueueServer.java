@@ -1,7 +1,6 @@
 package Zeze.Services;
 
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.security.SecureRandom;
@@ -18,7 +17,6 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Util.KV;
 import Zeze.Util.Random;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -254,9 +252,9 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
      * @param servers 服务器
      * @return 返回分配的服务，null表示选择失败。
      */
-    private static BServerLoad.Data choiceServer(Map<AsyncSocket, BServerLoad.Data> servers) {
+    private static BServerLoad.Data choiceServer(ConcurrentHashMap<AsyncSocket, BServerLoad.Data> servers) {
         var totalWeight = 0L;
-        var frees = new ArrayList<KV<BServerLoad.Data, Long>>(servers.size());
+        var frees = new ArrayList<FreeServer>(servers.size());
         for (var e : servers.entrySet()) {
             var load = e.getValue().getLoad();
             if (load.getOverload() == BLoad.eOverload)
@@ -266,22 +264,38 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
             long weight = load.getProposeMaxOnline() - load.getOnline();
             if (weight <= 0)
                 continue;
-            frees.add(KV.create(e.getValue(), weight));
+            frees.add(new FreeServer(e.getKey(), e.getValue(), weight));
             totalWeight += weight;
         }
         if (totalWeight > 0) {
             var randWeight = Random.getInstance().nextLong(totalWeight);
             for (var ps : frees) {
-                var weight = ps.getValue();
-                if (randWeight < weight) {
-                    ps.getKey().getLoad().setOnline(ps.getKey().getLoad().getOnline() + 1);
-                    return ps.getKey();
+                if (randWeight < ps.weight) {
+                    incrementOnline(servers, ps.socket);
+                    return ps.data;
                 }
-                randWeight -= weight;
+                randWeight -= ps.weight;
             }
         }
         // 选择失败
         return null;
+    }
+
+    private record FreeServer(AsyncSocket socket, BServerLoad.Data data, long weight) {
+    }
+
+    // online自增与ReportProviderLoad的load自增整体替换（put新Data对象，editLock与allocateLock不相交）
+    // 互斥：compute与put对同一key在CHM内原子，且自增落在替换后的"当前对象"上——
+    // 既不丢更新也不写进已摘下的旧对象；分配路径之间仍由allocateLock串行化（见LoginQueue.tryOnAccept）。
+    private static void incrementOnline(ConcurrentHashMap<AsyncSocket, BServerLoad.Data> servers,
+                                        AsyncSocket socket) {
+        servers.compute(socket, (k, data) -> {
+            if (data != null) {
+                var load = data.getLoad();
+                load.setOnline(load.getOnline() + 1);
+            }
+            return data;
+        });
     }
 
     public static void main(String [] args) throws Exception {
