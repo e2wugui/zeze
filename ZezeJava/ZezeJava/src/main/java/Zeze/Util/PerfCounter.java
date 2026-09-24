@@ -41,7 +41,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	private static final class RunInfoWithSerial extends RunInfo {
-		final int serial;
+		volatile int serial;
 
 		RunInfoWithSerial(@NotNull String name, int serial) {
 			super(name);
@@ -280,8 +280,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			return null;
 		for (; ; ) {
 			var ri = runInfoMap.get(name);
-			if (ri != null)
+			if (ri != null) {
+				if (ri.serial != clearSerial)
+					ri.serial = clearSerial; // 代际推进后的首次命中重盖戳：缓存句柄的serial比较据此重新稳定
 				return ri;
+			}
 			runInfoMap.putIfAbsent(name, new RunInfoWithSerial(name, clearSerial));
 		}
 	}
@@ -507,12 +510,15 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			var procCountAll = 0L;
 			var procTimeAll = 0L;
 			var rList = new ArrayList<RunInfo>(runInfoMap.size());
+			var evicted = false;
 			for (var it = runInfoMap.values().iterator(); it.hasNext(); ) {
 				var ri = it.next();
 				ri.lastProcCount = ri.procCount.sumThenReset();
 				if (ri.lastProcCount == 0) {
-					if (++ri.idleCount >= RunInfo.MAX_IDLE_COUNT)
+					if (++ri.idleCount >= RunInfo.MAX_IDLE_COUNT) {
 						it.remove();
+						evicted = true;
+					}
 					continue;
 				}
 				ri.lastProcTime = ri.procTime.sumThenReset();
@@ -619,8 +625,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				}
 				procedureResults.put(pi.name, results); // 含零计数条目，供名称列表与结果查询使用
 				if (totalCount == 0) {
-					if (++pi.idleCount >= ProcedureInfo.MAX_IDLE_COUNT)
+					if (++pi.idleCount >= ProcedureInfo.MAX_IDLE_COUNT) {
 						it.remove();
+						evicted = true;
+					}
 					continue;
 				}
 				procedureTotal += totalCount;
@@ -630,6 +638,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				pi.idleCount = 0;
 				prList.add(pi);
 			}
+			// 空闲淘汰必须推进代际：不推进则仍持有旧对象的缓存句柄（serial与clearSerial恒等）
+			// 永久写已脱离map的条目，该统计静默消失直到重启或resetCounter。
+			if (evicted)
+				clearSerial++;
 			sb.append(" [procedure: ").append(procedureSucc).append('/').append(procedureTotal).append('=')
 					.append(procedureTotal != 0 ? procedureSucc * 100 / procedureTotal : 0).append("%]\n");
 			prList.sort((pi0, pi1) -> {
