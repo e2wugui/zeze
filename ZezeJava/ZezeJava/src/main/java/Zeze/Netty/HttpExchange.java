@@ -117,7 +117,9 @@ public class HttpExchange {
 	protected @Nullable Object userState;
 	protected @Nullable ArrayList<Object> resHeaders; // key,value,key,value,...
 	protected @Nullable List<Cookie> cookies;
-	protected @Nullable HttpSession.CookieSession cookieSession;
+	// volatile+锁双检：detach后允许多线程并发首调getCookieSession（detach文档"任意线程、任意时机"），
+	// 无同步的双跑会各建会话各发一条Set-Cookie、字段后写覆盖先写（net-06）。
+	protected volatile @Nullable HttpSession.CookieSession cookieSession;
 	protected @Nullable String path;
 	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
 	// FND8-56后续：end-stream派发任务已提交未跑完期间（LastHttpContent入队任务→任务finally释放，
@@ -164,7 +166,11 @@ public class HttpExchange {
 		if (httpSession == null)
 			return null;
 		try {
-			return cookieSession = httpSession.getCookieSession(this);
+			synchronized (this) { // detach后并发首调：双检保证会话只建一次、Set-Cookie只发一条
+				if (cookieSession == null)
+					cookieSession = httpSession.getCookieSession(this);
+			}
+			return cookieSession;
 		} catch (Exception e) {
 			throw Task.forceThrow(e);
 		}
