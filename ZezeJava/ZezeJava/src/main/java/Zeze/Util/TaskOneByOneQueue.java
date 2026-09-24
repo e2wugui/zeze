@@ -390,12 +390,27 @@ public class TaskOneByOneQueue extends ReentrantLock {
 
 		public abstract void run() throws Exception;
 
+		// 锁内快照清空、锁外推进：runNext尾部的派发失败回滚（停机先置空池/自定义执行器拒绝）
+		// 会对整队任务执行cancel补偿，队内其他屏障任务的cancel即对方屏障锁——持本屏障锁推进
+		// 构成barrier→barrier反向互等（两线程互等永久死锁）。正确用法（各任务sum之和恰为
+		// count）下run与cancel恰一方带内容触发推进，快照清空后无并发重叠。
 		private void reachedRunNext() {
-			for (var batch : reached)
+			BatchTask[] batches;
+			lock();
+			try {
+				if (reached.isEmpty())
+					return;
+				batches = reached.toArray(new BatchTask[0]);
+				reached.clear();
+			} finally {
+				unlock();
+			}
+			for (var batch : batches)
 				batch.runNext();
 		}
 
 		public boolean reach(@NotNull BatchTask batch, int sum) {
+			boolean fire = false;
 			lock();
 			try {
 				if (canceled)
@@ -411,16 +426,16 @@ public class TaskOneByOneQueue extends ReentrantLock {
 					run();
 				} catch (Throwable ex) { // logger.error
 					logger.error("{} run exception", getName(), ex);
-				} finally {
-					// 成功执行
-					// 1. 触发所有桶的runNext，
-					// 2. 自己也返回false，不再继续runNext。
-					reachedRunNext();
 				}
-				return false; // 返回false
+				fire = true;
 			} finally {
 				unlock();
 			}
+			// 成功执行：触发所有桶的runNext（锁外，见reachedRunNext）；自己也返回false，
+			// 不再继续runNext。
+			if (fire)
+				reachedRunNext();
+			return false;
 		}
 
 		public void cancel() {
@@ -435,15 +450,14 @@ public class TaskOneByOneQueue extends ReentrantLock {
 						cancelAction.run();
 				} catch (Throwable ex) { // logger.error
 					logger.error("{} cancel exception", getName(), ex);
-				} finally {
-					// 取消的时候，
-					// 1. 如果相关桶的任务已经执行，需要runNext。
-					// 2. 如果相关桶的任务没有执行，不需要处理。相应的任务以后会发现已经取消，自动忽略执行。
-					reachedRunNext();
 				}
 			} finally {
 				unlock();
 			}
+			// 取消的时候（锁外推进，见reachedRunNext），
+			// 1. 如果相关桶的任务已经执行，需要runNext。
+			// 2. 如果相关桶的任务没有执行，不需要处理。相应的任务以后会发现已经取消，自动忽略执行。
+			reachedRunNext();
 		}
 	}
 
