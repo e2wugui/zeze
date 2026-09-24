@@ -142,8 +142,8 @@ public class HaProxyHeader {
 					targetAddress = new InetSocketAddress(targetInet6Address, javaBb.getShort(bb.ReadIndex + 50) & 0xffff); // 端口是uint16
 					break;
 				default:
-					// 不支持的family（UDP4/UDP6/UNIX等）：按畸形协议拒绝（fail-closed），对齐cmd非法值
-					// 与checkV2AddressLength的判例。静默消费会让连接按直连继续且地址为null（fail-open）。
+					// 不支持的family（UDP4/UDP6/UNIX等）按畸形协议拒绝，对齐cmd非法值的处置；
+					// 静默消费会让连接按直连继续且地址为null。
 					throw new RuntimeException("haproxy not a supported transport family: "
 							+ Integer.toHexString(fam & 0xff));
 				}

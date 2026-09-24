@@ -284,9 +284,9 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     private record FreeServer(AsyncSocket socket, BServerLoad.Data data, long weight) {
     }
 
-    // online自增与ReportProviderLoad的load自增整体替换（put新Data对象，editLock与allocateLock不相交）
-    // 互斥：compute与put对同一key在CHM内原子，且自增落在替换后的"当前对象"上——
-    // 既不丢更新也不写进已摘下的旧对象；分配路径之间仍由allocateLock串行化（见LoginQueue.tryOnAccept）。
+    // online自增与ReportProviderLoad在editLock内整体替换Data（与allocateLock不相交）互斥：
+    // compute与put对同一key在CHM内原子，自增落在替换后的当前对象上，不丢更新也不写脱管旧对象。
+    // 分配路径之间的串行化仍由allocateLock保证（见LoginQueue.tryOnAccept）。
     private static void incrementOnline(ConcurrentHashMap<AsyncSocket, BServerLoad.Data> servers,
                                         AsyncSocket socket) {
         servers.compute(socket, (k, data) -> {

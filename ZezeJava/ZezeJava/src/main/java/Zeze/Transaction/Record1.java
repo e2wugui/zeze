@@ -305,15 +305,15 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 			table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
 
-				// 需要同步删除OldTable，否则下一次查找又会找到。
-				// 这个违背了OldTable不修改的原则，但没办法了。
-				var databaseTransactionOldTmp = getDatabaseTransactionOldTmp();
-				if (databaseTransactionOldTmp != null) {
-					//noinspection DataFlowIssue
-					// oldTable按KV语义使用（判例：load迁移路径与下面localRocksCache都用编码后的ByteBuffer），
-					// 关系映射表下snapshotKey是SQLStatement，传入必抛CCE。
-					table.getOldTable().remove(databaseTransactionOldTmp, snapshotKeyLocal);
-				}
+			// 需要同步删除OldTable，否则下一次查找又会找到。
+			// 这个违背了OldTable不修改的原则，但没办法了。
+			var databaseTransactionOldTmp = getDatabaseTransactionOldTmp();
+			if (databaseTransactionOldTmp != null) {
+				//noinspection DataFlowIssue
+				// oldTable按KV语义使用（load迁移路径与下方localRocksCache同），必须传编码后的
+				// snapshotKeyLocal；关系映射表的snapshotKey是SQLStatement，传入必抛CCE。
+				table.getOldTable().remove(databaseTransactionOldTmp, snapshotKeyLocal);
+			}
 		}
 	}
 

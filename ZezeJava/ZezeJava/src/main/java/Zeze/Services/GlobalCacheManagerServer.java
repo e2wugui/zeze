@@ -174,9 +174,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 
 			// 闸门在端口监听前开：tryBindSocket依赖的server与协议handler已全部就位，协议此刻
 			// 还进不来（零误拒窗口）；若开在newServerSocket之后，启动瞬间到达的Login会踩到
-			// "端口已监听但open仍false"的窗口被干净拒绝。启动失败必须复位open：残留true时
-			// 重试start()被幂等早退静默吞掉（假成功），服务永不监听；复位后重试语义正确
-			//（serverSocket判空、timer.stop未启动幂等，stop拆除段安全）。
+			// "端口已监听但open仍false"的窗口被干净拒绝。启动段失败必须复位open：
+			// 残留true时重试start()被幂等早退吞掉，服务永不监听。
 			open = true;
 			try {
 				serverSocket = server.newServerSocket(ipaddress, port,

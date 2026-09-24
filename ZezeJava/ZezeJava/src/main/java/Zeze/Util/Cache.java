@@ -81,8 +81,7 @@ public class Cache {
 				try {
 					todayFile.close();
 				} catch (IOException e) {
-					// 首段关流失败不得中断后续释放：db/lru段在流之后，无兜底会整体跳过
-					//（RocksDB句柄与目录锁、lru两个常驻周期任务级联滞留）。
+					// 首段关流失败不得中断后续释放（db/lru段在其后，跳过即泄漏）。
 					logger.error("Cache.close todayFile exception: {}", name, e);
 				}
 				todayFile = null; // 置null后重入不再触碰已关流

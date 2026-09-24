@@ -492,9 +492,8 @@ public class HotManager extends ClassLoader {
 					for (var startErrorIndex = startErrors.size() - 1; startErrorIndex >= 0; --startErrorIndex) {
 						var module = modules.remove(startErrors.get(startErrorIndex).getName());
 						if (module != null) {
-							// 对齐正常替换序（stop→stopInternal，见上方exists两段）：stop()不做disable/stopEvents，
-							// 失败模块已从modules移除不再被升级，必须走"不可恢复"的完整收尾，
-							// 否则stopEvents不触发、HotHandle/Online登记的停止回调残留指向已停模块。
+							// stop()不含disable/stopEvents；失败模块已从modules移除不再被升级，
+							// 须走不可恢复的完整收尾（stop→stopInternal，对齐上方exists两段）。
 							module.stop();
 							module.stopInternal();
 						}
