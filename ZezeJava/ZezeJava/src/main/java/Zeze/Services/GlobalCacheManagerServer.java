@@ -174,16 +174,22 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 
 			// 闸门在端口监听前开：tryBindSocket依赖的server与协议handler已全部就位，协议此刻
 			// 还进不来（零误拒窗口）；若开在newServerSocket之后，启动瞬间到达的Login会踩到
-			// "端口已监听但open仍false"的窗口被干净拒绝。newServerSocket抛异常时open已置的
-			// 残留态安全：stop拆除段对serverSocket有判空、timer.stop未启动幂等。
+			// "端口已监听但open仍false"的窗口被干净拒绝。启动失败必须复位open：残留true时
+			// 重试start()被幂等早退静默吞掉（假成功），服务永不监听；复位后重试语义正确
+			//（serverSocket判空、timer.stop未启动幂等，stop拆除段安全）。
 			open = true;
-			serverSocket = server.newServerSocket(ipaddress, port,
-					new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
+			try {
+				serverSocket = server.newServerSocket(ipaddress, port,
+						new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 
-			// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
-			achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing,
-					this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
-			achillesHeelDaemonTimer.start(); // DaemonTimer幂等且支持restart，替代原schedulePeriodNow
+				// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
+				achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing,
+						this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
+				achillesHeelDaemonTimer.start(); // DaemonTimer幂等且支持restart，替代原schedulePeriodNow
+			} catch (RuntimeException e) {
+				open = false;
+				throw e;
+			}
 		} finally {
 			unlock();
 		}
