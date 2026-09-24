@@ -1169,9 +1169,8 @@ public final class JsonReader {
 		return parseString(b, intern);
 	}
 
-	// 无引号值慢路径：多字节UTF-8逐字符解码（同族带引号/键路径均有，唯值分支曾遗漏）。
-	// 无引号值无转义语义（反斜杠为字面量），终止符与末尾\r剥离对齐快路径；
-	// intern与同族慢路径一致忽略。续字节校验保证读取不越过终止符位置。
+	// 无引号值慢路径：无引号值无转义语义（反斜杠为字面量），整段纯UTF-8一次解码；
+	// 终止符与末尾\r剥离对齐快路径；intern与同族慢路径一致忽略。
 	private @NotNull String parseStringUnquotedSlow(int begin) {
 		final byte[] buffer = buf;
 		int b, p;
@@ -1187,32 +1186,7 @@ public final class JsonReader {
 		char[] t = tmp;
 		if (t == null || t.length < end - begin)
 			tmp = t = new char[end - begin];
-		int n = 0, c, d, e;
-		for (p = begin; p < end; ) {
-			b = buffer[p++];
-			if (b >= 0)
-				t[n++] = (char)b; // 0xxx xxxx
-			else if (b >= -0x20) {
-				if (b >= -0x10) {
-					if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40 && (e = buffer[p + 2]) < -0x40) {
-						b = (b << 18) + (c << 12) + (d << 6) + e + ((0x10 << 18) + (0x80 << 12) + (0x80 << 6) + 0x80 - 0x10000);
-						t[n++] = (char)(0xd800 + ((b >> 10) & 0x3ff)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
-						t[n++] = (char)(0xdc00 + (b & 0x3ff));
-						p += 3;
-					} else
-						t[n++] = (char)(b & 0xff); // ignore malformed utf-8
-				} else if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40) {
-					t[n++] = (char)((b << 12) + (c << 6) + d + ((0x20 << 12) + (0x80 << 6) + 0x80)); // 1110 xxxx  10xx xxxx  10xx xxxx
-					p += 2;
-				} else
-					t[n++] = (char)(b & 0xff); // ignore malformed utf-8
-			} else if ((c = buffer[p]) < -0x40) {
-				p++;
-				t[n++] = (char)((b << 6) + c + ((0x40 << 6) + 0x80)); // 110x xxxx  10xx xxxx
-			} else
-				t[n++] = (char)(b & 0xff); // ignore malformed utf-8
-		}
-		return new String(t, 0, n);
+		return new String(t, 0, decodeUtf8(t, 0, begin, end));
 	}
 
 	public @NotNull String parseString(int e, boolean intern) {
@@ -1227,28 +1201,77 @@ public final class JsonReader {
 			if ((b ^ '\\') < 1) // '\\' or multibyte char
 				break; // jump to the slow path below
 		}
-		int len = p - begin, n = len, c, d, f;
-		for (; (b = buffer[p++]) != e; len++)
-			if (b == '\\' && buffer[p++] == 'u')
-				p += 4;
-		char[] t = tmp;
-		if (t == null || t.length < len)
-			tmp = t = new char[len];
-		p = begin;
-		for (int i = 0; i < n; )
-			t[i++] = (char)(buffer[p++] & 0xff);
-		for (; ; ) {
-			if ((b = buffer[p++]) == e) {
-				pos = p;
-				return new String(t, 0, n);
-			}
+		// 慢路径：定位终止符——'\'转义取后续一字节（含\"，不误终止），unicode转义整体跨越。
+		int end;
+		for (end = p; (b = buffer[end]) != e; end++) {
 			if (b == '\\') {
-				if ((b = buffer[p++]) == 'u') {
-					t[n++] = (char)parseHex4(buffer, p);
+				end++;
+				if (buffer[end] == 'u')
+					end += 4;
+			}
+		}
+		pos = end + 1;
+		return decodeStringSlow(begin, end);
+	}
+
+	public @NotNull String parseStringNoQuot() {
+		final byte[] buffer = buf;
+		int p = pos, b;
+		final int begin = p;
+		for (; ; p++) {
+			if (((((b = buffer[p]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) // (b & 0xff) <= ' ' || b == ':'
+				return intern(buffer, begin, pos = p); // lucky! finished the fast path
+			if ((b ^ '\\') < 1) // '\\' or multibyte char
+				break; // jump to the slow path below
+		}
+		// 慢路径：定位终止符——转义跨越同parseString(e,intern)，谓词为键终止符。
+		int end;
+		for (end = p; ((((b = buffer[end]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0; end++) {
+			if (b == '\\') {
+				end++;
+				if (buffer[end] == 'u')
+					end += 4;
+			}
+		}
+		pos = end + 1;
+		return decodeStringSlow(begin, end);
+	}
+
+	// 含转义字符串的慢路径解码体：[begin,end)按纯UTF-8分段解码，'\'转义（unicode转义与简写）
+	// 单独处理，段间共享t。end之后紧跟终止符，段内不含终止符（调用方扫描已排除）。
+	// 转义序列由调用方扫描保证完整落在[begin,end)内。
+	private @NotNull String decodeStringSlow(int begin, int end) {
+		final byte[] buffer = buf;
+		char[] t = tmp;
+		if (t == null || t.length < end - begin)
+			tmp = t = new char[end - begin];
+		int n = 0, b;
+		for (int p = begin; p < end; ) {
+			int seg = p;
+			for (; seg < end && buffer[seg] != '\\'; seg++)
+				;
+			n = decodeUtf8(t, n, p, seg);
+			if ((p = seg) < end) { // buffer[p] == '\\'
+				if (buffer[++p] == 'u') {
+					t[n++] = (char)parseHex4(buffer, ++p);
 					p += 4;
-				} else
-					t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b & 0xff);
-			} else if (b >= 0)
+				} else {
+					b = buffer[p++];
+					t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b & 0xff); // U3-F5：b为未掩码byte，转义字符≥0x80时符号扩展成U+FFxx，补掩码与parseKeyHashNoQuot对齐
+				}
+			}
+		}
+		return new String(t, 0, n);
+	}
+
+	/** 解码[begin,end)的纯UTF-8段写入t（从下标n起），malformed按单字节LATIN1容忍。
+	 * 段内不含转义与终止符（均为ASCII）；续字节校验保证读取不越过end。返回写入后的下标。 */
+	private int decodeUtf8(char[] t, int n, int begin, int end) {
+		final byte[] buffer = buf;
+		int p = begin, b, c, d, f;
+		while (p < end) {
+			b = buffer[p++];
+			if (b >= 0)
 				t[n++] = (char)b; // 0xxx xxxx
 			else if (b >= -0x20) {
 				if (b >= -0x10) {
@@ -1270,61 +1293,7 @@ public final class JsonReader {
 			} else
 				t[n++] = (char)(b & 0xff); // ignore malformed utf-8
 		}
-	}
-
-	public @NotNull String parseStringNoQuot() {
-		final byte[] buffer = buf;
-		int p = pos, b;
-		final int begin = p;
-		for (; ; p++) {
-			if (((((b = buffer[p]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) // (b & 0xff) <= ' ' || b == ':'
-				return intern(buffer, begin, pos = p); // lucky! finished the fast path
-			if ((b ^ '\\') < 1) // '\\' or multibyte char
-				break; // jump to the slow path below
-		}
-		int len = p - begin, n = len, c, d, e;
-		for (; ((((b = buffer[p++]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0; len++) // (b & 0xff) > ' ' && b != ':'
-			if (b == '\\' && buffer[p++] == 'u')
-				p += 4;
-		char[] t = tmp;
-		if (t == null || t.length < len)
-			tmp = t = new char[len];
-		p = begin;
-		for (int i = 0; i < n; )
-			t[i++] = (char)(buffer[p++] & 0xff);
-		for (; ; ) {
-			if ((((b = buffer[p++] & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) <= 0) { // (b & 0xff) <= ' ' || b == ':'
-				pos = p;
-				return new String(t, 0, n);
-			}
-			if (b == '\\') {
-				if ((b = buffer[p++]) == 'u') {
-					t[n++] = (char)parseHex4(buffer, p);
-					p += 4;
-				} else
-					t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b & 0xff); // U3-F5：b为未掩码byte，转义字符≥0x80时符号扩展成U+FFxx，补掩码与parseString/parseKeyHashNoQuot对齐
-			} else if (b < 0x80)
-				t[n++] = (char)b; // 0xxx xxxx
-			else if (b > 0xdf) {
-				if (b > 0xef) {
-					if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40 && (e = buffer[p + 2]) < -0x40) {
-						b = (b << 18) + (c << 12) + (d << 6) + e + ((-0xf0 << 18) + (0x80 << 12) + (0x80 << 6) + 0x80 - 0x10000);
-						t[n++] = (char)(0xd800 + ((b >> 10) & 0x3ff)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
-						t[n++] = (char)(0xdc00 + (b & 0x3ff));
-						p += 3;
-					} else
-						t[n++] = (char)(b & 0xff); // ignore malformed utf-8
-				} else if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40) {
-					t[n++] = (char)((b << 12) + (c << 6) + d + ((-0xe0 << 12) + (0x80 << 6) + 0x80)); // 1110 xxxx  10xx xxxx  10xx xxxx
-					p += 2;
-				} else
-					t[n++] = (char)b; // ignore malformed utf-8
-			} else if ((c = buffer[p]) < -0x40) {
-				p++;
-				t[n++] = (char)((b << 6) + c + ((-0xc0 << 6) + 0x80)); // 110x xxxx  10xx xxxx
-			} else
-				t[n++] = (char)b; // ignore malformed utf-8
-		}
+		return n;
 	}
 
 	static double strtod(double d, int e) {
