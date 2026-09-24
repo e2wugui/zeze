@@ -482,10 +482,10 @@ public final class Json implements Cloneable {
 					"objectFieldOffset", Field.class))).bindTo(setAccessible(Objects.requireNonNull(
 					getDeclaredField(jdkUnsafeClass, "theUnsafe"))).get(null));
 			// JDK21唯一形态：compact strings——String.value为byte[]，coder 0=LATIN1。
-			Field valueField = getDeclaredField(String.class, "value");
+			Field valueField = Objects.requireNonNull(getDeclaredField(String.class, "value"));
 			if (valueField.getType() != byte[].class)
 				throw new UnsupportedOperationException("requires compact strings: " + System.getProperty("java.version"));
-			STRING_VALUE_OFFSET = objectFieldOffset(Objects.requireNonNull(valueField));
+			STRING_VALUE_OFFSET = objectFieldOffset(valueField);
 			STRING_CODE_OFFSET = objectFieldOffset(Objects.requireNonNull(getDeclaredField(String.class, "coder")));
 			stringCtorMH = ensureNotNull(lookup.unreflectConstructor(setAccessible(
 					String.class.getDeclaredConstructor(byte[].class, byte.class))));
