@@ -649,10 +649,11 @@ public class HttpExchange {
 	// 其后续写直写。FINISH族挂起写按序送出（endStream终结符也在其中），FORCE族（连接将亡）丢弃。
 	// 非pipelining（单在途请求）时exchange即持笔者，写直达；直接构造、未经channelRead登记的
 	// exchange不参与序化。
-	// 已知豁免（不经序化器）：WebSocket升级101与帧（升级请求不会被pipelining）、HttpServer自身的
-	// 400/503直写（随即关闭连接，responseOrderBypassKey声明豁免）、HttpResponseWithBodyStream的
-	// 异常中止路径（连接将亡）。豁免之外的响应头直写由出站tripwire（checkResponseOrder，
-	// HttpServer的encoder write钩子）当场拒绝。
+		// 已知豁免（不经序化器）：WebSocket升级101与帧（不会被pipelining）、HttpServer自身的
+		// 400/503直写（responseOrderBypassKey声明；头部在途响应已开始写时抑制直写仅关连接，
+		// 见rejectAndClose——未开始写的pipelining错位归属为已知限制）、HttpResponseWithBodyStream
+		// 的异常中止路径（连接将亡）。豁免之外的响应头直写由出站tripwire（checkResponseOrder，
+		// HttpServer的encoder write钩子）当场拒绝。
 	static final AttributeKey<ResponseSequencer> responseOrderKey = AttributeKey.valueOf("ZezeHttpResponseOrder");
 	// 单exchange挂起响应写上限：防pipelining滥用驻留内存（每挂起写持有一个响应消息）。
 	private static final int MaxPendingResponseWrites = 256;

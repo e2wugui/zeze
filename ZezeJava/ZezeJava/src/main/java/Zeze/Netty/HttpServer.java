@@ -691,13 +691,24 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 
 	// 框架级拒绝：代回状态（400/503）并关闭连接，同步移除并善后该连接上在途的exchange
 	//（先移除,后续消息不再派发）——停机/创建策略拒绝（FND8-56）与解码失败共用处置。
+	// 头部在途响应已开始写时直写会拼接进其响应体中途：只关连接不写响应（宁断连不错序，
+	// 诊断已由调用方记录；未开始写时的pipelining错位归属为已知限制）。
 	private void rejectAndClose(@NotNull ChannelHandlerContext ctx, @NotNull HttpResponseStatus status) {
-		ctx.channel().attr(HttpExchange.responseOrderBypassKey).set(Boolean.TRUE); // tripwire豁免：框架直写，连接将亡
+		var ch = ctx.channel();
+		var seq = ch.attr(HttpExchange.responseOrderKey).get();
+		var head = seq != null ? seq.entries.get(seq.writingOrderId) : null;
+		if (head != null && head.started) {
+			Netty.logger.warn("suppress {} rejection to {}: response already streaming on connection, close only",
+					status, ch.remoteAddress());
+			ctx.close(); // channelInactive的janitor统一善后在途exchange
+			return;
+		}
+		ch.attr(HttpExchange.responseOrderBypassKey).set(Boolean.TRUE); // tripwire豁免：框架直写，连接将亡
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, Unpooled.EMPTY_BUFFER,
 			HttpExchange.headersFactory, HttpExchange.trailersFactory);
 		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.CLOSE);
 		var cf = ctx.writeAndFlush(res).addListener(ChannelFutureListener.CLOSE);
-		var prev = exchanges.remove(ctx.channel().id());
+		var prev = exchanges.remove(ch.id());
 		if (prev != null)
 			prev.close(HttpExchange.CLOSE_ON_FLUSH, cf);
 	}
