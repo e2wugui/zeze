@@ -29,6 +29,7 @@ x64/
 /.idea
 /.zcode
 /.agents
+/.vscode
 /tutorial/
 skills-lock.json
 audit-*

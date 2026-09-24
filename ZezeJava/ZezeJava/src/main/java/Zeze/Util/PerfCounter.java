@@ -479,10 +479,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			protocolInfoMap.clear();
 			procedureInfoMap.clear();
 			tableInfoMap.clear();
-			// U4-F1：clearSerial++ 必须在四个 map.clear() 之后：若推进在前，锁外的 info() 等绑定端
+			// clearSerial++ 必须在四个 map.clear() 之后：若推进在前，锁外的 info() 等绑定端
 			// 可在 clear 生效前以新 serial 绑定旧代际条目——serial 恒等匹配导致永不重绑，该 procedure
 			// 统计静默丢失到下次 reset；换序后"绑定到当前 serial"的条目必然建于 clear 之后，serial
 			// 失配重绑即可自愈全部瞬态窗口。
+			//noinspection NonAtomicOperationOnVolatileField
 			clearSerial++;
 			for (var ci : countInfos) {
 				ci.reset();
@@ -640,8 +641,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			}
 			// 空闲淘汰必须推进代际：不推进则仍持有旧对象的缓存句柄（serial与clearSerial恒等）
 			// 永久写已脱离map的条目，该统计静默消失直到重启或resetCounter。
-			if (evicted)
+			if (evicted) {
+				//noinspection NonAtomicOperationOnVolatileField
 				clearSerial++;
+			}
 			sb.append(" [procedure: ").append(procedureSucc).append('/').append(procedureTotal).append('=')
 					.append(procedureTotal != 0 ? procedureSucc * 100 / procedureTotal : 0).append("%]\n");
 			prList.sort((pi0, pi1) -> {
