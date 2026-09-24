@@ -1426,6 +1426,8 @@ public class LogSequence {
 					}
 					logger.info("{} EndReceiveInstallSnapshot(ExistLog) Path={} time={}ms",
 							raft.getName(), entry.path, (System.nanoTime() - t) / 1_000_000);
+					// NodeReady：快照是多数派提交产物，装载成功即持有已提交状态（FND12 raft-01）。
+					trySetNodeReady();
 					return 0;
 				}
 				// 防御：边界低于commitIndex时丢弃日志会回退已apply的数据，正常不会发生，
@@ -1473,6 +1475,8 @@ public class LogSequence {
 				}
 				logger.info("{} EndReceiveInstallSnapshot Path={} time={}ms",
 						raft.getName(), entry.path, (System.nanoTime() - t) / 1_000_000);
+				// NodeReady：快照是多数派提交产物，装载成功即持有已提交状态（FND12 raft-01）。
+				trySetNodeReady();
 				return 0;
 			} finally {
 				logsAvailable = true;
@@ -1797,8 +1801,12 @@ public class LogSequence {
 		// flush失败中断，静默应答会让follower以"健康"状态一直落后；每次AppendEntries
 		// （含心跳）重试直到追平（apply异常时不发应答）。
 		if (r.Argument.getLeaderCommit() > commitIndex || commitIndex > lastApplied) {
-			if (r.Argument.getLeaderCommit() > commitIndex)
+			if (r.Argument.getLeaderCommit() > commitIndex) {
 				commitIndex = Math.min(r.Argument.getLeaderCommit(), lastRaftLogTermIndex().getIndex());
+				// NodeReady：commitIndex推进即已持有多数派提交的数据，追赶完成的节点由此就绪。
+				// 空闲集群leaderCommit恒定，增长见证不可达，否则该节点永不ready（FND12 raft-01）。
+				trySetNodeReady();
+			}
 			tryStartApplyTask(readLogForApply(commitIndex, "followerOnAppendEntries"));
 		}
 		r.Result.setSuccess(true);
