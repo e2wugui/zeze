@@ -45,6 +45,11 @@ public final class Task {
 	public static volatile @NotNull Factory<HotGuard> hotGuard = () -> null;
 	private static final FastLock taskLock = new FastLock();
 	private static final TaskOneByOneByKey oneByOne = new TaskOneByOneByKey();
+	private static final TaskOneByOneByKey systemOneByOne = new TaskOneByOneByKey();
+
+	static TaskOneByOneByKey getSystemOneByOne() {
+		return systemOneByOne;
+	}
 
 	@FunctionalInterface
 	public interface ILogAction {
@@ -66,7 +71,7 @@ public final class Task {
 
 	static {
 		ShutdownHook.init();
-		setSystemOneByOneConcurrency(Runtime.getRuntime().availableProcessors() / 2);
+		setSystemOneByOneConcurrency(Runtime.getRuntime().availableProcessors());
 	}
 
 	public static boolean isVirtualThreadEnabled() {
@@ -105,8 +110,12 @@ public final class Task {
 		return systemOneByOneConcurrency;
 	}
 
-	private static String nextSystemOneByOneConcurrencyName() {
-		return "SystemOneByOne_" + (systemExecuteCount.incrementAndGet() % systemOneByOneConcurrency);
+	public static long nextSystemOneByOneKey() {
+		return systemExecuteCount.incrementAndGet() % systemOneByOneConcurrency;
+	}
+
+	public static long getSystemExecuteCount() {
+		return systemExecuteCount.get();
 	}
 
 	/**
@@ -116,7 +125,7 @@ public final class Task {
 	 * @param action0 action
 	 */
 	public static void executeSystemOneByOne(Action0 action0, String name) {
-		TaskSpec.ofAction(action0).name(name).executeOneByOne(nextSystemOneByOneConcurrencyName(), oneByOne);
+		TaskSpec.ofAction(action0).name(name).executeSystemOneByOne();
 	}
 
 	/**
@@ -126,7 +135,7 @@ public final class Task {
 	 * @param proc proc
 	 */
 	public static void executeSystemOneByOne(Procedure proc) {
-		TaskSpec.ofProcedure(proc).executeOneByOne(nextSystemOneByOneConcurrencyName(), oneByOne);
+		TaskSpec.ofProcedure(proc).executeSystemOneByOne();
 	}
 
 	public static ExecutorService getThreadPool() {

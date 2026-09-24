@@ -194,6 +194,33 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		return !service.removeRpcContext(sessionId, this);
 	}
 
+	/**
+	 * 总是回调responseHandle，即使发送返回false。
+	 * 回调前设置: this.setIsTimeout(true); this.setResultCode(Procedure.FailCallback);
+	 *
+	 * @param so socket
+	 * @param responseHandle response handle
+	 * @param millisecondsTimeout timeout(MS)
+	 * @return true success, false fail.
+	 */
+	public boolean sendCallbackAlways(@Nullable AsyncSocket so,
+									  @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
+									  int millisecondsTimeout) {
+		if (responseHandle == null)
+			throw new IllegalStateException("responseHandle is null"); // 调用这个函数不允许没有回调。
+
+		if (Send(so, responseHandle, millisecondsTimeout))
+			return true;
+
+		this.setIsTimeout(true);
+		this.setResultCode(Procedure.FailCallback);
+		// 无事务或者whileCommit中都需要立即回调(now）。
+		// 事务中调用也是立即。
+		// 另起线程避免whileCommit中调用这个函数，回调的时候不能启用事务。
+		TaskSpec.ofFunc(() -> responseHandle.handle(this)).executeSystemOneByOne();
+		return false;
+	}
+
 	public final TaskCompletionSource<TResult> SendForWait(@Nullable AsyncSocket so) {
 		return SendForWait(so, timeout);
 	}

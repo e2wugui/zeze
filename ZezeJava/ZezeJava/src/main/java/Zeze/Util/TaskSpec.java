@@ -400,6 +400,15 @@ public final class TaskSpec<R> {
 	}
 
 	/**
+	 * 提交到全局 {@link Task#getOneByOne()}。
+	 * 轮询的方式从固定的数量的并发key中选择一个。
+	 * 避免一下子产生太多线程，又具有一定并发度。
+	 */
+	public void executeSystemOneByOne() {
+		executeOneByOne(Task.nextSystemOneByOneKey(), Task.getSystemOneByOne());
+	}
+
+	/**
 	 * 提交到全局 {@link Task#getOneByOne()}，相同 key 的任务串行执行。
 	 * 显式设置过 timeout 时抛 IllegalArgumentException（队列引擎无此概念）。
 	 */
