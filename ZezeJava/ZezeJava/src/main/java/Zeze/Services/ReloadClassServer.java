@@ -164,6 +164,9 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 				x.close(x.sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, "hot-reload failed"));
 				return;
 			}
+			// 维持"目录内唯一补丁"不变式（start()按文件数判定，不同文件名的历史补丁累积会使
+			// 下次重启抛too many patch file阻断启动链）。
+			cleanupOtherPatchFiles(new File(uploadDir), destFile);
 			// 审计（FND8-66）：每次成功使用的留痕
 			logger.info("ReloadClassServer: authorized hot-reload from {}, file='{}'",
 					x.channel().remoteAddress(), patchFileName);
@@ -171,5 +174,18 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 			return;
 		}
 		x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST, ""));
+	}
+
+	/** 维持start()的"目录内唯一补丁"不变式：成功热更后清理目录内其他文件（含不同文件名的历史补丁）。 */
+	static void cleanupOtherPatchFiles(@NotNull File dir, @NotNull File keep) {
+		var files = dir.listFiles();
+		if (files == null)
+			return;
+		for (var f : files) {
+			if (f.equals(keep) || !f.isFile())
+				continue;
+			if (!f.delete())
+				logger.warn("ReloadClassServer: cleanup old patch file failed: {}", f);
+		}
 	}
 }
