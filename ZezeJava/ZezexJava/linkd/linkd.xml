@@ -2,7 +2,7 @@
 
 <zeze
 	GlobalCacheManagerPort="5002"
-	CheckpointPeriod="0"
+	CheckpointPeriod="2147483647"
 	ServerId="-1"
 	ServiceManager=""
 	>
