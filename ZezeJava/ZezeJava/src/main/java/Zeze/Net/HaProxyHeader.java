@@ -92,13 +92,15 @@ public class HaProxyHeader {
 		return Arrays.equals(bb, offset, offset + v1sig.length, v1sig, 0, v1sig.length);
 	}
 
-	public static @NotNull String findV1Line(byte @NotNull [] bytes, int offset, int end) {
+	// null=尚未出现CRLF（等待更多数据）；""=CRLF紧跟前缀（空行，畸形头）。
+	// 两态必须区分：空行若走"等待"路径，连接将永久停在头解析态（net-02）。
+	public static @Nullable String findV1Line(byte @NotNull [] bytes, int offset, int end) {
 		end--;
 		for (int i = offset; i < end; i++) {
 			if (bytes[i] == '\r' && bytes[i + 1] == '\n')
 				return new String(bytes, offset, i - offset, StandardCharsets.ISO_8859_1);
 		}
-		return "";
+		return null;
 	}
 
 	// v2头的length字段声明的是地址部分的实际长度：family要求的地址长度比声明的大时，
@@ -162,7 +164,7 @@ public class HaProxyHeader {
 
 		if (bb.size() >= 8 && startWithV1sig(bb.Bytes, bb.ReadIndex)) { // PROXY ...\r\n
 			var line = findV1Line(bb.Bytes, bb.ReadIndex + v1sig.length, bb.WriteIndex);
-			if (line.isEmpty()) {
+			if (line == null) { // 未出现CRLF：等待更多数据（真实LB连接建立瞬间都经过此部分行状态）
 				if (bb.size() > 107)
 					throw new RuntimeException("haproxy v1 line too long");
 				return false;
@@ -171,6 +173,9 @@ public class HaProxyHeader {
 			// 不能只在"永远等不到CRLF"时才拒绝——任意垃圾后补CRLF的行会被原样接受。
 			if (v1sig.length + line.length() + 2 > 107)
 				throw new RuntimeException("haproxy v1 line too long");
+			// 空行（"PROXY \r\n"）：规范要求无效头尽快断连；停留在等待态会让连接永久挂起占槽
+			if (line.isEmpty())
+				throw new RuntimeException("haproxy v1 empty line");
 			// parse the V1 header using favorite address parsers like inet_pton.
 			var tokens = line.split(" ");
 			if (tokens.length >= 5) {
@@ -184,8 +189,12 @@ public class HaProxyHeader {
 					targetPort = parsePort(tokens[4]);
 					targetHost = tokens[2];
 					break;
+				default:
+					// 家族出现但不被支持：对齐v2分支default的畸形拒绝，不能静默按直连放行
+					throw new RuntimeException("haproxy v1 unsupported family: " + tokens[0]);
 				}
-			}
+			} else if (!line.equals("UNKNOWN")) // 家族行字段缺失（如"PROXY TCP4\r\n"）：畸形头拒绝
+				throw new RuntimeException("haproxy v1 incomplete family line: " + line);
 			bb.ReadIndex += v1sig.length + line.length() + 2; // 跳过"PROXY "前缀、line和line后的CRLF
 			done = true;
 			return true;
