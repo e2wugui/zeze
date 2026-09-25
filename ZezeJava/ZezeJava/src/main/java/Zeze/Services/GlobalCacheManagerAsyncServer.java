@@ -115,8 +115,6 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			if (open || stopping)
 				return; // 已在运行，或stop拆除在飞（旧语义下start此时因server非null空转）
 
-			if (ENABLE_PERF)
-				perf = new GlobalCacheManagerPerf("", serialIdGenerator);
 			ZezeCounter.tryInit();
 
 			if (config == null)
@@ -151,6 +149,10 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			// 残留true时重试start()被幂等早退吞掉，服务永不监听。
 			open = true;
 			try {
+				// perf 须在 open 之后创建：pre-open 失败路径 stop() 以 !open 早退跳过 close，
+				// 先创建则 1s 周期任务泄漏（FND17 svc-01）
+				if (ENABLE_PERF)
+					perf = new GlobalCacheManagerPerf("", serialIdGenerator);
 				serverSocket = server.newServerSocket(ipaddress, port,
 						new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 

@@ -140,11 +140,14 @@ public class GlobalCacheManagerWithRaft
 			}
 		});
 
-		if (ENABLE_PERF)
-			perf = new GlobalCacheManagerPerf(raftName, serialId); // Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
 		ZezeCounter.tryInit();
 
 		rocks.getRaft().getServer().start();
+
+		// perf 须在 server.start() 成功之后创建：构造中途失败时实例不可达、close() 永不可达，
+		// 先创建则 1s 周期任务泄漏；perf 在 start() 前无引用方，时序安全（FND17 svc-01）
+		if (ENABLE_PERF)
+			perf = new GlobalCacheManagerPerf(raftName, serialId); // Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing, this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
