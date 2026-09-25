@@ -148,7 +148,7 @@ public class LogService extends AbstractLogService {
 						r.Argument.getCondition().getPattern(),
 						r.Argument.getLimit(), r.Argument.getOffsetFactor());
 			} else
-				return Procedure.LogicError; // 空条件以错误码应答：抛异常会让RPC无应答，客户端等超时
+				return Procedure.LogicError; // 空条件以精确错误码应答：异常路径虽也会经框架回发Exception码，但错误码含糊且带ERROR日志噪音
 		}
 
 		r.Result.setRemain(remain);
@@ -183,7 +183,7 @@ public class LogService extends AbstractLogService {
 						r.Argument.getCondition().getPattern(),
 						r.Argument.getLimit());
 			} else
-				return Procedure.LogicError; // 空条件以错误码应答：抛异常会让RPC无应答，客户端等超时
+				return Procedure.LogicError; // 空条件以精确错误码应答：异常路径虽也会经框架回发Exception码，但错误码含糊且带ERROR日志噪音
 		}
 
 		r.Result.setRemain(remain);

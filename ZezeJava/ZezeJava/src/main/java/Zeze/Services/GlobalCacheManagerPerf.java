@@ -140,10 +140,11 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 			for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {
 				long count = totalAcquireCounts0[i];
 				long totalAcquireTime = totalAcquireTimes[i].sumThenReset(); // 零计数轮也清零：残留会使下轮均值虚高
+				long maxAcquireTime = maxAcquireTimes[i].getAndSet(0); // 同上；onAcquireEnd无锁，与report存在count已入轮而max后落的撕裂窗口
 				sb.append("Acquires.").append(ACQUIRE_STATE_NAMES[i]).append(" = ").append(count);
 				if (count > 0) {
 					sb.append(", ").append(totalAcquireTime / count / 1_000).append(" us/acquire, max: ")
-							.append(maxAcquireTimes[i].getAndSet(0) / 1_000_000).append(" ms");
+							.append(maxAcquireTime / 1_000_000).append(" ms");
 				}
 				for (var e : totalAcquireResults[i].entrySet())
 					sb.append(", r=").append(e.getKey()).append(':').append(e.getValue().sum());
@@ -152,9 +153,10 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 			}
 			sb.append("Reduces          = ").append(totalReduceCountSum);
 			var totalReduceTimeSum = totalReduceTime.sumThenReset(); // 同acquires：零计数轮也清零
+			var maxReduceTime0 = maxReduceTime.getAndSet(0); // 同acquires的撕裂窗口
 			if (totalReduceCountSum > 0) {
 				sb.append(", ").append(totalReduceTimeSum / totalReduceCountSum / 1_000)
-						.append(" us/reduce, max: ").append(maxReduceTime.getAndSet(0) / 1_000_000).append(" ms");
+						.append(" us/reduce, max: ").append(maxReduceTime0 / 1_000_000).append(" ms");
 				for (var e : totalReduceResults.entrySet())
 					sb.append(", r=").append(e.getKey()).append(':').append(e.getValue().sum());
 				totalReduceResults.clear();
