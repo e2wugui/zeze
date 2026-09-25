@@ -194,6 +194,28 @@ public class HotAgent extends AbstractHotAgent {
 		}
 	}
 
+	// hot-02（FND18）：单文件上传变体——schemas jar 生成于 workingDir 根而非 modules/interfaces
+	// 目录，pack 需单独上传它；漏传则 install 无条件 loadSchemas 且装载后即删（无残留自愈），
+	// 远程发布恒 eInstall 失败。平铺落服务器 distributeDir 根（loadExistDistributes 有
+	// SchemasPrefix 排除，不会误当模块配对）。
+	public void distributeFile(File file) throws Exception {
+		var fileRelativeName = file.getName();
+		var md5 = MessageDigest.getInstance("MD5");
+		var fileOffset = openFile(fileRelativeName);
+		try (var bis = new BufferedInputStream(new FileInputStream(file))) {
+			md5To(md5, bis, fileOffset);
+			var buffer = new byte[16 * 1024];
+			var rc = 0;
+			while ((rc = bis.read(buffer)) >= 0) {
+				md5.update(buffer, 0, rc);
+				appendFile(fileRelativeName, fileOffset, buffer, 0, rc);
+				fileOffset += rc;
+			}
+		} finally {
+			closeFile(fileRelativeName, new Binary(md5.digest()));
+		}
+	}
+
 	private static void md5To(MessageDigest md5, BufferedInputStream bis, long toOffset) throws IOException {
 		var buffer = new byte[16 * 1024];
 		while (toOffset > 0) {

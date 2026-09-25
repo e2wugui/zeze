@@ -126,6 +126,9 @@ public class Distribute {
 		for (var hotAgent : hotAgents) {
 			hotAgent.distribute(new File(workingDir, "modules"));
 			hotAgent.distribute(new File(workingDir, "interfaces"));
+			// hot-02（FND18）：schemas jar 生成于 workingDir 根（见上），必须一并上传——
+			// install 无条件装载且装载后即删（loadSchemas finally delete），服务器无残留可自愈。
+			hotAgent.distributeFile(schemasJarFile);
 		}
 		// 开始发布，参数决定是否两阶段（全局原子化）。
 		var futures = new ArrayList<TryDistribute>();
