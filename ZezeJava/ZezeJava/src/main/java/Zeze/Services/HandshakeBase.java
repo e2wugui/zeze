@@ -175,6 +175,11 @@ public class HandshakeBase extends Service {
 
 	private long processCHandshake(@NotNull CHandshake p) {
 		try {
+			// 重复握手守卫：连接已进入安全态后再收CHandshake只可能是重放/畸形（正常流每连接握手一次）。
+			// 放行会重装配codec链，旧链（zstd native上下文）无人close永久泄漏。
+			if (p.getSender() instanceof TcpSocket tcp && tcp.isSecurity())
+				throw new IllegalStateException("re-handshake on secured connection");
+
 			// 协商一致性检查：客户端上报的加密类型必须与服务器配置（即SHandshake0发出的推荐值）一致，
 			// 否则握手可能已被篡改（如RsaAes被降级成匿名DH），拒绝（FND-S3-1 部分缓解）。
 			if (p.Argument.encryptType != getConfig().getHandshakeOptions().getEncryptType())
@@ -260,6 +265,11 @@ public class HandshakeBase extends Service {
 
 	private long processSHandshake0(@NotNull SHandshake0 p) {
 		try {
+			// 重复握手守卫（镜像服务端processCHandshake）：已进入安全态的连接再收SHandshake0只可能是
+			// 恶意服务端驱动二次握手重装配codec链（客户端侧同型泄漏），拒绝。
+			if (p.getSender() instanceof TcpSocket tcp && tcp.isSecurity())
+				throw new IllegalStateException("re-handshake on secured connection");
+
 			// 复审R2（FND7-S2②）+R3收窄：服务端推荐的加密类型为Disable（明文）而客户端自身配置了
 			// 加密诉求（EncryptType!=Disable）时不得静默接受——否则"客户端要求加密"的配置被无声降级
 			// 为明文会话。检查必须在分支之前：仅压缩推荐（encryptType=Disable+compress非Disable）也走

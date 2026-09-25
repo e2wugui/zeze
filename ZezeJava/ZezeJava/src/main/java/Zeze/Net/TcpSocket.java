@@ -379,6 +379,17 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		return security == (1 | 2);
 	}
 
+	// 同方向codec链只允许装配一次：重复握手/KeyExchange重放会以新链覆盖旧链，旧链（zstd为
+	// NoFinalizer变体，native上下文仅close()释放、无GC兜底）失引用后无人close——realClose只close
+	// 当前字段引用。必须在链字段被覆盖前判定，否则旧链已失引用照样泄漏。仅selector线程
+	// （submitAction串行）调用，volatile读无竞争。
+	private boolean securityCodecReinstalled(byte bit) {
+		if ((security & bit) == 0)
+			return false;
+		close(new IllegalStateException("security codec chain re-install, bit=" + bit));
+		return true;
+	}
+
 	// 四个set{Input,Output}SecurityCodec变体在selector线程装好codec后调用：记security位
 	//（volatile上的|=非原子，仅submitAction串行内使用），双向codec装齐时撤销解码准入
 	//（密钥交换完成；不用isHandshakeDone标志判"完成"——会误杀codec装好后、回调执行前
@@ -397,6 +408,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 
 	public void setInputSecurityCodec(int encryptType, byte @Nullable [] encryptParam, int compressType) {
 		submitAction(() -> { // 进selector线程调用
+			if (securityCodecReinstalled((byte)1))
+				return;
 			if (compressType != Constant.eCompressTypeDisable)
 				warnDecompressHeadroom(compressType); // 压缩开启：检查max对readBufferSize的headroom
 			// 压缩开启时解压输出经 InputLimitCodec 流式检查增长上限：processReceive 的
@@ -450,6 +463,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	 */
 	public void setInputSecurityCodec(BiFunction<AsyncSocket, BufferCodec, Codec> creator) {
 		submitAction(() -> { // 进selector线程调用
+			if (securityCodecReinstalled((byte)1))
+				return;
 			inputCodecChain = creator.apply(this, inputBuffer);
 			securityCodecInstalled((byte)1);
 			//noinspection DataFlowIssue
@@ -459,6 +474,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 
 	public void setOutputSecurityCodec(int encryptType, byte @Nullable [] encryptParam, int compressType) {
 		submitAction(() -> { // 进selector线程调用
+			if (securityCodecReinstalled((byte)2))
+				return;
 			Codec chain = outputBuffer;
 			switch (encryptType) {
 			case Constant.eEncryptTypeDisable:
@@ -498,6 +515,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 
 	public void setOutputSecurityCodec(BiFunction<AsyncSocket, OutputBuffer, Codec> creator) {
 		submitAction(() -> { // 进selector线程调用
+			if (securityCodecReinstalled((byte)2))
+				return;
 			outputCodecChain = creator.apply(this, outputBuffer);
 			securityCodecInstalled((byte)2);
 			//noinspection DataFlowIssue
