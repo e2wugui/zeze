@@ -398,7 +398,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	@Override
 	public void preAllocSize(int size) {
-		(isRequest ? Argument : Result).preAllocSize(size - 1 - 1 - 1);
+		(isRequest ? Argument : Result).preAllocSize(size - 1 - 9 - 9); // [1]header + [9]resultCode + [9]sessionId
 	}
 
 	@Override

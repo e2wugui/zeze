@@ -29,6 +29,7 @@ public final class ServiceStatisticLog implements Action0 {
 		if (f != null && !f.isCancelled())
 			cancelStartStatisticLog();
 		this.periodSec = periodSec;
+		lastSizes[0] = -1; // 换周期首轮跳过速率计算：lastSizes仍是旧周期计数，直接算会失真
 		f = TaskSpec.ofAction(this).schedulePeriodNow(Random.getInstance().nextLong(periodSec * 1000L), periodSec * 1000L);
 		statisticLogFuture = f;
 		return f;

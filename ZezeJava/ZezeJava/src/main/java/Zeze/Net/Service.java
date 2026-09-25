@@ -924,6 +924,12 @@ public class Service extends ReentrantLock {
 			action.run(socket);
 	}
 
+	/**
+	 * 取一个 Acceptor 地址用于对外暴露。
+	 * 优先返回第一个 ip、port 均显式配置的 Acceptor；若整份配置都没有显式地址，
+	 * 则回退为最后一个遍历到的 Acceptor 条目（ip 可能为空串、port 可能为 0），
+	 * 调用方需自行处理这种"未显式配置"的回退值（可参考 getOnePassiveAddress）。
+	 */
 	public @NotNull KV<@NotNull String, @NotNull Integer> getOneAcceptorAddress() {
 		// KV.key构造后不变（FND5-12复审）：累积后create，不再setKey。
 		var ip = new String[]{""};

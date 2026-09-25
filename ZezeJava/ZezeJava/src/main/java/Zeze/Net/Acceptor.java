@@ -1,6 +1,7 @@
 package Zeze.Net;
 
 import java.net.InetSocketAddress;
+import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -77,6 +78,7 @@ public class Acceptor extends ReentrantLock {
 	}
 
 	public final void start() {
+		Objects.requireNonNull(service, "Acceptor of '" + getName() + "' Service == null, 请先 SetService"); // 防御NPE：直接提示配置遗漏
 		lock();
 		try {
 			if (socket == null) {

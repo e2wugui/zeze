@@ -325,6 +325,7 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		try {
 			cf.sync();
 		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt(); // 恢复中断标志，让调用方能感知
 			return null;
 		}
 		var addr = cf.channel().localAddress();

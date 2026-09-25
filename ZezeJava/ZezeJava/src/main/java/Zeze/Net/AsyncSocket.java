@@ -187,7 +187,7 @@ public abstract class AsyncSocket {
 	// FND7-19/R3：sessionId从所属Service实例发号（随机63位基址+实例内递增）——跨JVM与
 	// 同JVM多App（Zezex linkd/Game.Server拓扑，原全局静态发号互踩致SM服务端socket表撞号）
 	// 均唯一。自定义发号迁移到Service实例级setSessionIdGenFunc。
-	private final long sessionId; // 只在setSessionId里修改
+	private final long sessionId;
 
 	public long getSessionId() {
 		return sessionId;

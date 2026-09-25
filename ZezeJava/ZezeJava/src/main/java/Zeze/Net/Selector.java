@@ -192,6 +192,13 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		}
 	}
 
+	/**
+	 * 唤醒本 selector 线程的阻塞 select。
+	 * selectTimeout&gt;0 时为 no-op：select 循环至多一个超时周期自行返回，排入的任务最迟
+	 * 下轮被感知，无需（也不会）真正唤醒；仅 selectTimeout&lt;=0（无限阻塞 select）时生效。
+	 * selectTimeout&lt;0 时经由 WakeupThread 转发，其余情况直接 selector.wakeup()。
+	 * CAS(wakeupNotified) 合并处理窗口内的重复唤醒，语义细节见下方 wakeupNotGated 的说明。
+	 */
 	public void wakeup() {
 		int selectTimeout = selectors.getSelectTimeout();
 		if (selectTimeout <= 0 && Thread.currentThread() != this && wakeupNotified.compareAndSet(0, 1)) {
