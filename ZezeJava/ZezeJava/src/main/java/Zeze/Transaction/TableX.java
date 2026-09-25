@@ -715,16 +715,24 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (cr != null) {
 			@SuppressWarnings("unchecked")
 			V crv = (V)cr.newestValue();
-			if (crv != null)
+			if (crv != null) {
+				// txn-02（FND16）：已存在路径必须赋false——不赋值时isAdd保持null，调用方
+				// if(isAdd.value)拆箱NPE埋雷（对齐RocksDatabase.getOrAddTable家族惯例）。
+				if (isAdd != null)
+					isAdd.value = false;
 				return crv;
+			}
 			// add
 		} else {
 			var r = load(key);
 			cr = new RecordAccessed(r);
 			var v = r.strongRef;
 			currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr, v == null && isMemory());
-			if (v != null)
+			if (v != null) {
+				if (isAdd != null)
+					isAdd.value = false; // txn-02：同上，已存在路径双向赋值。
 				return v;
+			}
 			// add
 		}
 		if (isAdd != null)
