@@ -466,7 +466,10 @@ public class Rank extends AbstractRank {
 			if (now - rank.getBuildTime() < getRankCacheTimeout(keyHint.getRankType()))
 				return rank;
 			rank.setTableValue(getRankDirect(keyHint, countNeed));
-			rank.setBuildTime(now);
+			// game-01：重建快照含本事务读己之写，回滚则数据从未为真——value立即写（保留读己之写），
+			// 新鲜度盖章延迟到提交后：未提交/回滚条目永不获freshness（后续访问判过期重建自动覆盖污染），
+			// 提交后窗口从提交时刻起算。先value后time的volatile写序天然保持（事务内写value→提交后写time）。
+			Transaction.whileCommit(() -> rank.setBuildTime(System.currentTimeMillis()));
 		} finally {
 			rank.unlock();
 		}
