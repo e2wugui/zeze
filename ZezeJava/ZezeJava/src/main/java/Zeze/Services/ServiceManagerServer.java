@@ -428,10 +428,70 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
+	// svc-01（FND16，S1三分面方案）：Edit/Subscribe/SetServerLoad 的入口上限——本端口与
+	// AllocateId（svc-01/FND15）同面无认证（无Login协议+默认Disable明文直达），serviceName/
+	// identity/ip_port 客户端可控键此前零校验零上限。阈值：serviceName/identity 128B、
+	// passiveIp 64B、extraInfo 256B（合法形态最坏值余量充分）；每请求批 128；每会话
+	// registers/subscribes 各 64（合法基数实证 1~3，防一条消息占满全局名额锁死合法订阅）；
+	// 全局唯一 serviceName 1024（复用判例常量）满员时逐出空壳行自愈（内容可由重发恢复）。
+	private static final int SVC_NAME_MAX_BYTES = 128;
+	private static final int SVC_IDENTITY_MAX_BYTES = 128;
+	private static final int SVC_IP_MAX_BYTES = 64;
+	private static final int SVC_EXTRA_MAX_BYTES = 256;
+	private static final int SVC_EDIT_BATCH_MAX = 128;
+	private static final int SVC_PER_SESSION_MAX = 64;
+
+	private static boolean isOverUtf8Bytes(@Nullable String s, int maxBytes) {
+		return s != null && s.getBytes(StandardCharsets.UTF_8).length > maxBytes;
+	}
+
+	// 拒绝告警限频（判例Id128UdpServer.warnRejected同形态，60秒一条防日志刷屏DoS）。
+	private volatile long lastSvcRejectLogMs;
+
+	private void warnSvcRejected(@NotNull String reason) {
+		var now = System.currentTimeMillis();
+		var last = lastSvcRejectLogMs;
+		if (now - last < 60_000)
+			return; // 限频窗口内静默拒绝（race下至多多记几条）
+		lastSvcRejectLogMs = now;
+		logger.error("SM edit/subscribe rejected (possible attack or misbehaving client), serviceStates={}: {}",
+				serviceStates.size(), reason);
+	}
+
+	// 满员时逐出一个空壳行（无注册无订阅）腾位。editLock内调用（Edit/Subscribe/清理
+	// 全序串行，无并发），excludeName为本请求正要使用的名字。非raft行是内存态、内容
+	// 可由客户端重发恢复，逐出无损。
+	private boolean evictIdleServiceState(@NotNull String excludeName) {
+		for (var it = serviceStates.entrySet().iterator(); it.hasNext(); ) {
+			var e = it.next();
+			if (!e.getKey().equals(excludeName)
+					&& e.getValue().getServiceInfos().isEmpty() && e.getValue().simple.isEmpty()) {
+				it.remove();
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private long processEditService(@NotNull EditService r) {
-		for (var info : r.Argument.getAdd())
+		var add = r.Argument.getAdd();
+		var remove = r.Argument.getRemove();
+		if (add.size() + remove.size() > SVC_EDIT_BATCH_MAX) {
+			warnSvcRejected("edit batch exceeded " + SVC_EDIT_BATCH_MAX + ": " + (add.size() + remove.size()));
+			return Procedure.ErrorRequestId;
+		}
+		for (var info : add) {
 			if (!isLegalServiceIdentity(info.getServiceIdentity()))
 				return Procedure.ErrorRequestId;
+			// svc-01：字段长度上限（identity非'@'/'#'通道已被isLegalServiceIdentity数字化封顶）。
+			if (isOverUtf8Bytes(info.getServiceName(), SVC_NAME_MAX_BYTES)
+					|| isOverUtf8Bytes(info.getServiceIdentity(), SVC_IDENTITY_MAX_BYTES)
+					|| isOverUtf8Bytes(info.getPassiveIp(), SVC_IP_MAX_BYTES)
+					|| (info.getExtraInfo() != null && info.getExtraInfo().size() > SVC_EXTRA_MAX_BYTES)) {
+				warnSvcRejected("edit field over size: " + info.getServiceName());
+				return Procedure.ErrorRequestId;
+			}
+		}
 		for (var info : r.Argument.getRemove())
 			if (!isLegalServiceIdentity(info.getServiceIdentity()))
 				return Procedure.ErrorRequestId;
@@ -443,6 +503,14 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			if (!isSenderAlive(r.getSender())) { // FND5-29：迟到协议，会话已清理——拒绝防死注册复活
 				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
 				return Procedure.Success;
+			}
+			// svc-01：每会话注册数上限（contains判定覆盖式重注册不占新名额）。
+			for (var reg : add) {
+				if (session.registers.size() >= SVC_PER_SESSION_MAX && !session.registers.contains(reg)) {
+					warnSvcRejected("session registers exceeded " + SVC_PER_SESSION_MAX);
+					r.SendResultCode(Procedure.ErrorRequestId);
+					return Procedure.Success;
+				}
 			}
 			// step 1: remove
 			for (var unReg : r.Argument.getRemove()) {
@@ -473,6 +541,15 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 							reg.getPassiveIp(), reg.getPassivePort());
 				}
 				session.registers.add(reg);
+				// svc-01：全局唯一名满员时空壳逐出自愈（无空壳可逐才拒绝——非raft行是
+				// 内存态，攻击壳（注册后即注销）与本轮目标名都被排除在逐出候选外）。
+				if (!serviceStates.containsKey(reg.getServiceName())
+						&& serviceStates.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
+						&& !evictIdleServiceState(reg.getServiceName())) {
+					warnSvcRejected("unique service names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
+					r.SendResultCode(Procedure.ErrorRequestId);
+					return Procedure.Success;
+				}
 				var state = serviceStates.computeIfAbsent(reg.getServiceName(), name -> new ServiceState(this, name));
 
 				// 【警告】
@@ -497,11 +574,35 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		logger.info("{}: Subscribe {}", r.getSender(), r.Argument);
 		var session = (Session)r.getSender().getUserState();
 
+		if (r.Argument.subs.size() > SVC_EDIT_BATCH_MAX) {
+			warnSvcRejected("subscribe batch exceeded " + SVC_EDIT_BATCH_MAX + ": " + r.Argument.subs.size());
+			return Procedure.ErrorRequestId;
+		}
+		for (var sub : r.Argument.subs)
+			if (isOverUtf8Bytes(sub.getServiceName(), SVC_NAME_MAX_BYTES)) {
+				warnSvcRejected("subscribe name over size");
+				return Procedure.ErrorRequestId;
+			}
 		editLock.lock();
 		try {
 			if (!isSenderAlive(r.getSender())) { // FND5-29：迟到协议，会话已清理——拒绝防死订阅残留
 				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
 				return Procedure.Success;
+			}
+			// svc-01：每会话订阅数上限+全局唯一名满员空壳逐出（对齐Edit面）。
+			for (var sub : r.Argument.subs) {
+				if (session.subscribes.size() >= SVC_PER_SESSION_MAX && !session.subscribes.containsKey(sub.getServiceName())) {
+					warnSvcRejected("session subscribes exceeded " + SVC_PER_SESSION_MAX);
+					r.SendResultCode(Procedure.ErrorRequestId);
+					return Procedure.Success;
+				}
+				if (!serviceStates.containsKey(sub.getServiceName())
+						&& serviceStates.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
+						&& !evictIdleServiceState(sub.getServiceName())) {
+					warnSvcRejected("unique service names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
+					r.SendResultCode(Procedure.ErrorRequestId);
+					return Procedure.Success;
+				}
 			}
 			for (var sub : r.Argument.subs) {
 				session.subscribes.put(sub.getServiceName(), sub);
@@ -543,6 +644,13 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	private long processSetLoad(@NotNull SetServerLoad setServerLoad) {
+		// svc-01：loads键（name）客户端可控——长度校验（空行自愈已有：removeLoadObservers
+		// 在任意会话关闭时按isEmpty扫除，FND4-66）。
+		if (isOverUtf8Bytes(setServerLoad.Argument.getName(), SVC_NAME_MAX_BYTES)
+				|| isOverUtf8Bytes(setServerLoad.Argument.ip, SVC_IP_MAX_BYTES)) {
+			warnSvcRejected("setLoad field over size");
+			return 0; // 非Rpc：拒绝即静默丢弃
+		}
 		editLock.lock();
 		try {
 			// FND5-29：迟到的SetLoad会为死会话重建零观察者地址行（绕过FND4-66联动清理）；

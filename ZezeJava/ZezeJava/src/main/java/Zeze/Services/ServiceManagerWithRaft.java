@@ -492,6 +492,64 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		logger.error("AllocateId(raft) rejected (possible attack or misbehaving client): {}", reason);
 	}
 
+	// svc-01（FND16，S1三分面方案）常量与helper：Edit/Subscribe/SetServerLoad入口上限，
+	// 阈值与非raft版一致（见ServiceManagerServer同名常量注释）。
+	private static final int SVC_NAME_MAX_BYTES = 128;
+	private static final int SVC_IDENTITY_MAX_BYTES = 128;
+	private static final int SVC_IP_MAX_BYTES = 64;
+	private static final int SVC_EXTRA_MAX_BYTES = 256;
+	private static final int SVC_EDIT_BATCH_MAX = 128;
+	private static final int SVC_PER_SESSION_MAX = 64;
+
+	private static boolean isOverUtf8Bytes(@Nullable String s, int maxBytes) {
+		return s != null && s.getBytes(StandardCharsets.UTF_8).length > maxBytes;
+	}
+
+	private volatile long lastSvcRejectLogMs;
+
+	private void warnSvcRejected(@NotNull String reason) {
+		var now = System.currentTimeMillis();
+		var last = lastSvcRejectLogMs;
+		if (now - last < 60_000)
+			return; // 限频窗口内静默拒绝（race下至多多记几条）
+		lastSvcRejectLogMs = now;
+		logger.error("SM(raft) edit/subscribe rejected (possible attack or misbehaving client): {}", reason);
+	}
+
+	/**
+	 * svc-01：全局唯一serviceName上限（事务内调用，raft单写者串行）。行不存在且计数达
+	 * 上限时先扫除空壳行（无注册无订阅——内容可由客户端重发恢复，非发号器状态删行
+	 * 安全，区别于tAutoKey的只拒不删）腾位；无空壳可扫才拒绝。walk返回detached解码
+	 * 拷贝（RocksRaft.Table.walk不附着事务），只收集key、修改经remove落库——
+	 * 对齐cleanupSessionRow的FND4-66判例。
+	 */
+	private boolean checkUniqueServiceName(@NotNull String name) {
+		if (tableServerState.get(name) != null)
+			return true;
+		var count = new int[1];
+		var idleKeys = new ArrayList<String>();
+		try {
+			tableServerState.walk((key, row) -> {
+				count[0]++;
+				if (!key.equals(name) && row.getServiceInfosVersion().entrySet().isEmpty()
+						&& row.getSimple().entrySet().isEmpty())
+					idleKeys.add(key); // 先收集：walk内remove不落库
+				return count[0] < Id128UdpServer.MAX_UNIQUE_NAMES || !idleKeys.isEmpty();
+			});
+		} catch (Exception e) {
+			throw Zeze.Util.Task.forceThrow(e);
+		}
+		if (count[0] < Id128UdpServer.MAX_UNIQUE_NAMES)
+			return true;
+		if (idleKeys.isEmpty()) {
+			warnSvcRejected("unique service names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
+			return false;
+		}
+		for (var key : idleKeys)
+			tableServerState.remove(key); // 只需腾一个位，但同批扫除的空壳一并清（幂等增益）
+		return true;
+	}
+
 	// 只写session上一个int（对齐非raft版：无状态簿记、无取消语义）。虽然走raft请求通道，
 	// 但不写rocks表，不产生共识复制；换leader后agent重新Login时会重发Identify。
 	@Override
@@ -514,7 +572,20 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessSetServerLoadRequest(SetServerLoad r) {
-		var loadObservers = tableLoadObservers.getOrAdd(r.Argument.ip + "_" + r.Argument.port);
+		// svc-01（FND16）：补Login门禁（原连requireSession都没有——未认证可达即以任意
+		// ip+port建tLoadObservers持久行，且空observers行永不命中cleanupSessionRow的
+		// Contains清理）；ip长度校验；get化——无观察者行则忽略本次上报（零状态变更，
+		// 行创建权收归Login后的addLoadObserver闭环），堵住新空行源头。
+		if (isOverUtf8Bytes(r.Argument.ip, SVC_IP_MAX_BYTES)) {
+			warnSvcRejected("setLoad ip over size");
+			return Zeze.Transaction.Procedure.ErrorRequestId;
+		}
+		var netSession = requireSession(r);
+		if (netSession == null)
+			return 0; // 未Login已应答ErrorNotLogin
+		var loadObservers = tableLoadObservers.get(r.Argument.ip + "_" + r.Argument.port);
+		if (loadObservers == null)
+			return 0; // 无观察者：忽略上报，不建行
 		var observers = loadObservers.getObservers();
 
 		var set = new SetServerLoad();
@@ -626,6 +697,34 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			return 0; // 未Login已应答ErrorNotLogin
 		var notifies = new HashMap<AsyncSocket, Edit>();
 
+		// svc-01（FND16）：字段长度/批/每会话/全局唯一名上限（raft侧经共识复制放大到
+		// 全节点+WAL，tServerState行壳跨重启永不清理）。阈值与非raft版一致；raft行
+		// 虽是持久表但内容（注册/订阅）可由客户端重发恢复——满员时事务内扫除空壳行
+		// 腾位（非发号器状态，删行安全，区别于tAutoKey的只拒不删），无空壳才拒绝。
+		if (r.Argument.getAdd().size() + r.Argument.getRemove().size() > SVC_EDIT_BATCH_MAX) {
+			warnSvcRejected("edit batch exceeded " + SVC_EDIT_BATCH_MAX);
+			return Zeze.Transaction.Procedure.ErrorRequestId;
+		}
+		for (var info : r.Argument.getAdd()) {
+			if (isOverUtf8Bytes(info.getServiceName(), SVC_NAME_MAX_BYTES)
+					|| isOverUtf8Bytes(info.getServiceIdentity(), SVC_IDENTITY_MAX_BYTES)
+					|| isOverUtf8Bytes(info.getPassiveIp(), SVC_IP_MAX_BYTES)
+					|| (info.getExtraInfo() != null && info.getExtraInfo().size() > SVC_EXTRA_MAX_BYTES)) {
+				warnSvcRejected("edit field over size: " + info.getServiceName());
+				return Zeze.Transaction.Procedure.ErrorRequestId;
+			}
+		}
+		var sessionRow = tableSession.get(netSession.name);
+		for (var reg : r.Argument.getAdd()) {
+			if (sessionRow.getRegisters().size() >= SVC_PER_SESSION_MAX
+					&& !sessionRow.getRegisters().containsKey(toRocksKey(reg))) {
+				warnSvcRejected("session registers exceeded " + SVC_PER_SESSION_MAX);
+				return Zeze.Transaction.Procedure.ErrorRequestId;
+			}
+			if (!checkUniqueServiceName(reg.getServiceName()))
+				return Zeze.Transaction.Procedure.ErrorRequestId;
+		}
+
 		// step 1: remove
 		for (var unReg : r.Argument.getRemove()) {
 			var state = tableServerState.get(unReg.getServiceName());
@@ -724,6 +823,25 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var netSession = requireSession(r); // FND4-60
 		if (netSession == null)
 			return 0; // 未Login已应答ErrorNotLogin
+		// svc-01：每会话订阅数+serviceName长度+全局唯一名（对齐Edit面）。
+		if (r.Argument.subs.size() > SVC_EDIT_BATCH_MAX) {
+			warnSvcRejected("subscribe batch exceeded " + SVC_EDIT_BATCH_MAX);
+			return Zeze.Transaction.Procedure.ErrorRequestId;
+		}
+		for (var info : r.Argument.subs) {
+			if (isOverUtf8Bytes(info.getServiceName(), SVC_NAME_MAX_BYTES)) {
+				warnSvcRejected("subscribe name over size");
+				return Zeze.Transaction.Procedure.ErrorRequestId;
+			}
+			var session0 = tableSession.get(netSession.name);
+			if (session0.getSubscribes().size() >= SVC_PER_SESSION_MAX
+					&& !session0.getSubscribes().containsKey(info.getServiceName())) {
+				warnSvcRejected("session subscribes exceeded " + SVC_PER_SESSION_MAX);
+				return Zeze.Transaction.Procedure.ErrorRequestId;
+			}
+			if (!checkUniqueServiceName(info.getServiceName()))
+				return Zeze.Transaction.Procedure.ErrorRequestId;
+		}
 		var session = tableSession.get(netSession.name);
 		for (var info : r.Argument.subs) {
 			session.getSubscribes().put(info.getServiceName(), toRocks(info));
