@@ -313,24 +313,18 @@ public class DatabaseRedis extends Database {
 			throw new IllegalStateException("setInUse tryLock fail.");
 		}
 
+		// txn-01（FND16，用户裁决形态）：对齐 setInUse 的 64 次上限（原为全仓唯一无界自旋
+		// ——停机路径无守卫，阻塞使 stop() 持 Application 锁无界；Daemon 形态放大：
+		// achillesHeelDaemon 先停→Monitor 判死→SIGTERM 对 hook 内自旋无效→重启同 serverId
+		// 短暂双开+旧进程 RMW 可能删新注册）。放弃=不执行 RMW，残留与 kill -9 崩溃残留
+		// 同构（锁租期 600s 后自愈；重启路径有 -DZeze.Database.ClearInUse 属性通道，
+		// 见 Application.start 与 Daemon.main）。行为变化如实记录：崩溃后 600s 内的
+		// Daemon 自动重启，clearInUse 将 64 次（约 9.6s）耗尽失败→启动短命退出→
+		// Daemon 按 MinAliveTime 判定终结守护，需人工重启（原为无界等待锁至多 600s
+		// 后自愈成功）——响亮失败优于无界停摆的取舍。
 		@Override
 		public int clearInUse(int localId, @NotNull String global) {
-			return clearInUse(localId, global, 0);
-		}
-
-		// txn-01（FND16）：Redis 是全仓唯一无界 clearInUse（其余后端单发存储过程/no-op）。
-		// 停机路径无守卫的无限等待：阻塞使 stop() 持 Application 锁无界（FND7-56"终态必达
-		// eStopped"不可达）；Daemon 形态放大（achillesHeelDaemon 先停→Monitor 判死→SIGTERM
-		// 对 hook 内自旋无效→重启同 serverId 双开+旧进程 RMW 删新注册）。停机侧有界放弃安全：
-		// 残留与 kill -9 同构，三条恢复路径在案（Daemon 自动注入/模板无条件设置/手工工具），
-		// 且从根上消除"删活注册"这一更坏 hazard。启动/手工路径（maxRetries<=0）保持无界——
-		// 启动侧等待租约过期是设计内行为，限次会劣化为 crash-loop。次数+墙钟双封顶（慢RTT
-		// 下64次150ms轮询可能不足秒级但墙钟封顶兜住Monitor 60s窗口）。
-		@Override
-		public int clearInUse(int localId, @NotNull String global, int maxRetries) {
-			var deadline = maxRetries > 0 ? System.currentTimeMillis() + maxRetries * 150L * 4 : 0;
-			var retries = 0;
-			while (true) {
+			for (int i = 0; i < 64; ++i) {
 				if (tryLock()) {
 					try (var jedis = pool.getResource()) {
 						var inUse = InUse.decode(jedis.get(keyInUse));
@@ -349,18 +343,13 @@ public class DatabaseRedis extends Database {
 						unlock();
 					}
 				}
-				if (maxRetries > 0 && (++retries >= maxRetries
-						|| System.currentTimeMillis() >= deadline)) {
-					throw new IllegalStateException("clearInUse bounded give-up after " + retries
-							+ " retries (lock held by crashed peer, lease will expire). redis=" + keyInUse);
-				}
 				try {
-					//noinspection BusyWait
 					Thread.sleep(150);
 				} catch (InterruptedException e) {
 					throw Task.forceThrow(e);
 				}
 			}
+			throw new IllegalStateException("clearInUse tryLock fail. redis=" + global);
 		}
 
 		@Override

@@ -269,17 +269,17 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 不存在即no-op、Suspect为提示性重发），失败退避重试，上限后fatal留观测。
 		// 残余缺口=进程崩溃窗口内的清理丢失（无持久化待办），周期对账兜底另立项。
 		private void closeSession(Session netSession, int retry) {
-		// svc-03（FND16）：取消KeepAlive定时器先于closed门禁——close()置closed后本方法
-		// 的清理事务不再落地（重启由对账收敛），但定时器若不取消，rocks.close()的
-		// setRaft(null)后任务体每tick对其裸解引用NPE（周期任务显式吞异常永续，对齐
-		// 非raft版OnSocketClose同步取消的语义）。cancelKeepAlive幂等，重复调用无害。
-		netSession.cancelKeepAlive();
-		// 同 dispatchRaftRequest：清理的raft提交不能在 IO 线程上等待。
-		Raft.executeImportantTask(() -> {
-			lock();
-			try {
-				if (closed)
-					return; // 服务已关闭：清理不再落地（重启后由对账收敛），也不再重试
+			// svc-03（FND16）：取消KeepAlive定时器先于closed门禁——close()置closed后本方法
+			// 的清理事务不再落地（重启由对账收敛），但定时器若不取消，rocks.close()的
+			// setRaft(null)后任务体每tick对其裸解引用NPE（周期任务显式吞异常永续，对齐
+			// 非raft版OnSocketClose同步取消的语义）。cancelKeepAlive幂等，重复调用无害。
+			netSession.cancelKeepAlive();
+			// 同 dispatchRaftRequest：清理的raft提交不能在 IO 线程上等待。
+			Raft.executeImportantTask(() -> {
+				lock();
+				try {
+					if (closed)
+						return; // 服务已关闭：清理不再落地（重启后由对账收敛），也不再重试
 					var rc = rocks.newProcedure(() -> {
 						netSession.onClose();
 						return 0L;
@@ -437,7 +437,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 该端口无认证（raft对等端口同时服务应用协议，四种EncryptType均密钥协商），name/count
 		// 均对端可控，无界唯一name直接成为tAutoKey持久键并经共识复制放大到全节点。
 		if (count < 1 || count > Tid128Cache.ALLOCATE_COUNT_MAX
-				|| name.getBytes(StandardCharsets.UTF_8).length > 128) {
+			|| name.getBytes(StandardCharsets.UTF_8).length > 128) {
 			warnAllocateIdRejected("invalid count=" + count + " name.chars=" + name.length());
 			return Zeze.Transaction.Procedure.ErrorRequestId;
 		}
@@ -532,7 +532,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			tableServerState.walk((key, row) -> {
 				count[0]++;
 				if (!key.equals(name) && row.getServiceInfosVersion().entrySet().isEmpty()
-						&& row.getSimple().entrySet().isEmpty())
+					&& row.getSimple().entrySet().isEmpty())
 					idleKeys.add(key); // 先收集：walk内remove不落库
 				return count[0] < Id128UdpServer.MAX_UNIQUE_NAMES || !idleKeys.isEmpty();
 			});
@@ -707,9 +707,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 		for (var info : r.Argument.getAdd()) {
 			if (isOverUtf8Bytes(info.getServiceName(), SVC_NAME_MAX_BYTES)
-					|| isOverUtf8Bytes(info.getServiceIdentity(), SVC_IDENTITY_MAX_BYTES)
-					|| isOverUtf8Bytes(info.getPassiveIp(), SVC_IP_MAX_BYTES)
-					|| (info.getExtraInfo() != null && info.getExtraInfo().size() > SVC_EXTRA_MAX_BYTES)) {
+				|| isOverUtf8Bytes(info.getServiceIdentity(), SVC_IDENTITY_MAX_BYTES)
+				|| isOverUtf8Bytes(info.getPassiveIp(), SVC_IP_MAX_BYTES)
+				|| (info.getExtraInfo() != null && info.getExtraInfo().size() > SVC_EXTRA_MAX_BYTES)) {
 				warnSvcRejected("edit field over size: " + info.getServiceName());
 				return Zeze.Transaction.Procedure.ErrorRequestId;
 			}
@@ -717,7 +717,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var sessionRow = tableSession.get(netSession.name);
 		for (var reg : r.Argument.getAdd()) {
 			if (sessionRow.getRegisters().size() >= SVC_PER_SESSION_MAX
-					&& !sessionRow.getRegisters().containsKey(toRocksKey(reg))) {
+				&& !sessionRow.getRegisters().containsKey(toRocksKey(reg))) {
 				warnSvcRejected("session registers exceeded " + SVC_PER_SESSION_MAX);
 				return Zeze.Transaction.Procedure.ErrorRequestId;
 			}
@@ -835,7 +835,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			}
 			var session0 = tableSession.get(netSession.name);
 			if (session0.getSubscribes().size() >= SVC_PER_SESSION_MAX
-					&& !session0.getSubscribes().containsKey(info.getServiceName())) {
+				&& !session0.getSubscribes().containsKey(info.getServiceName())) {
 				warnSvcRejected("session subscribes exceeded " + SVC_PER_SESSION_MAX);
 				return Zeze.Transaction.Procedure.ErrorRequestId;
 			}

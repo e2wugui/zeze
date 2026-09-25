@@ -507,15 +507,8 @@ public final class Config {
 
 	public void clearInUse(@NotNull HashMap<String, Database> databases) {
 		// 不close：实例所有权在调用方（Application.stop的db.close步骤自会关）。
-		clearInUse(databases, 0);
-	}
-
-	// txn-01（FND16）：maxRetries>0 时停机路径有界（Redis 持锁者崩溃残留租约场景放弃等待，
-	// 恢复路径与语义见 DatabaseRedis.clearInUse 注释）；<=0 无界（启动/手工保持原语义）。
-	public void clearInUse(@NotNull HashMap<String, Database> databases, int maxRetries) {
-		// 不close：实例所有权在调用方（Application.stop的db.close步骤自会关）。
 		for (var db : databases.values())
-			db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress(), maxRetries);
+			db.getDirectOperates().clearInUse(getServerId(), getGlobalCacheManagerHostNameOrAddress());
 	}
 
 	public void clearInUseAndIAmSureAppStopped(@NotNull Application zeze) throws Exception {

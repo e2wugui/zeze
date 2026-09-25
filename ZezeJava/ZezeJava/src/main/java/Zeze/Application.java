@@ -13,6 +13,7 @@ import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
+
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.RedirectBase;
 import Zeze.Component.AutoKey;
@@ -166,7 +167,7 @@ public final class Application extends ReentrantLock {
 	 * 否则得到的caller是Zeze内部类，校验失去意义。
 	 */
 	public static final StackWalker CALLER_WALKER =
-			StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
+		StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
 
 	/**
 	 * 是否配置了热更新模块。没有热更时调用者校验没有约束对象，调用方应先检查本方法，
@@ -502,7 +503,7 @@ public final class Application extends ReentrantLock {
 										   @Nullable TransactionLevel level) {
 		if (!isStart()) {
 			throw new IllegalStateException("App Not Start: " + startState
-					+ ", action=" + (actionName != null && !actionName.isEmpty() ? actionName : action.getClass()));
+				+ ", action=" + (actionName != null && !actionName.isEmpty() ? actionName : action.getClass()));
 		}
 		return new Procedure(this, action, actionName, level);
 	}
@@ -512,7 +513,7 @@ public final class Application extends ReentrantLock {
 												   @NotNull Binary protocolRawArgument) {
 		if (!isStart()) {
 			throw new IllegalStateException("App Not Start: " + startState
-					+ ", action=" + (actionName != null && !actionName.isEmpty() ? actionName : action.getClass()));
+				+ ", action=" + (actionName != null && !actionName.isEmpty() ? actionName : action.getClass()));
 		}
 		return new ProtocolProcedure(this, action, actionName, level, protocolClassName, protocolRawArgument);
 	}
@@ -537,7 +538,7 @@ public final class Application extends ReentrantLock {
 
 	// 先把要删的目录改名再删除,会更安全一些,降低并发访问目录中文件的可能性
 	public static void renameAndDeleteDirectory(@NotNull File directoryToBeDeleted)
-			throws IOException, InterruptedException {
+		throws IOException, InterruptedException {
 		if (directoryToBeDeleted.isDirectory()) {
 			var path = directoryToBeDeleted.getAbsolutePath();
 			var newFile = new File(path + ".del");
@@ -634,7 +635,7 @@ public final class Application extends ReentrantLock {
 					var db = e.getValue();
 					db.open(this);
 					logger.info("open {} tables from database '{}' ({} ms)",
-							db.getTables().size(), e.getKey(), (System.nanoTime() - timeBegin) / 1_000_000);
+						db.getTables().size(), e.getKey(), (System.nanoTime() - timeBegin) / 1_000_000);
 				}
 
 				for (var db : getDatabases().values()) {
@@ -656,9 +657,9 @@ public final class Application extends ReentrantLock {
 	public static void logSystemProperties() {
 		var rt = Runtime.getRuntime();
 		logger.info("java.version={}; os={},{},{}; cpu.cores={}; jvm.heap={}/{}M; file.encoding={}; timezone.offset={}",
-				System.getProperty("java.version"), System.getProperty("os.name"), System.getProperty("os.version"),
-				System.getProperty("os.arch"), rt.availableProcessors(), rt.totalMemory() >> 20,
-				rt.maxMemory() >> 20, Charset.defaultCharset().displayName(), TimeZone.getDefault().getRawOffset());
+			System.getProperty("java.version"), System.getProperty("os.name"), System.getProperty("os.version"),
+			System.getProperty("os.arch"), rt.availableProcessors(), rt.totalMemory() >> 20,
+			rt.maxMemory() >> 20, Charset.defaultCharset().displayName(), TimeZone.getDefault().getRawOffset());
 		logger.info("user.name={}; user.dir={}", System.getProperty("user.name"), System.getProperty("user.dir"));
 		logger.info("java.class.path={}", System.getProperty("java.class.path"));
 		logger.info("sun.java.command={}", System.getProperty("sun.java.command"));
@@ -675,8 +676,8 @@ public final class Application extends ReentrantLock {
 				var p = new Properties();
 				p.load(is);
 				logger.log(logged ? Level.WARN : Level.INFO, "Zeze Version={}, BuildTime={}, Rev={}",
-						p.getProperty("git.build.version"), p.getProperty("git.build.time"),
-						p.getProperty("git.commit.id.full"));
+					p.getProperty("git.build.version"), p.getProperty("git.build.time"),
+					p.getProperty("git.commit.id.full"));
 				logged = true;
 			}
 		}
@@ -698,7 +699,7 @@ public final class Application extends ReentrantLock {
 				return; // 幂等
 			if (startState != StartState.eUninitialized)
 				throw new IllegalStateException("Application '" + getProjectName()
-						+ " startState = " + startState);
+					+ " startState = " + startState);
 			startState = StartState.eStarting;
 
 			logSystemProperties();
@@ -725,7 +726,7 @@ public final class Application extends ReentrantLock {
 				dbConf.setDatabaseUrl(dbConf.getName());
 				// FND8-26：先锁后删——同JVM/跨进程撞serverId在删目录前即fail-fast。
 				localRocksCacheMutex = FileMutex.acquire(dbConf.getDatabaseUrl() + ".lock",
-						"zeze_cache dir (serverId=" + conf.getServerId() + ")");
+					"zeze_cache dir (serverId=" + conf.getServerId() + ")");
 				deleteDirectory(new File(dbConf.getDatabaseUrl()));
 				dbConf.setDatabaseType(Config.DbType.RocksDb);
 				LocalRocksCacheDb = new DatabaseRocksDb(this, dbConf, true);
@@ -915,7 +916,7 @@ public final class Application extends ReentrantLock {
 				// 超时告警继续（30s上限，保证停机不因此永久挂起）。
 				if (!cp.waitNoActiveFlush(CHECKPOINT_DRAIN_TIMEOUT_MILLIS))
 					logger.error("checkpoint active flush not drained in {}ms, continue to close databases "
-							+ "(risk of close racing in-flight flush)", CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
+						+ "(risk of close racing in-flight flush)", CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
 			}
 
 			if (LocalRocksCacheDb != null) {
@@ -957,10 +958,9 @@ public final class Application extends ReentrantLock {
 				takeover = null;
 			}
 			if (!isNoDatabase())
-				// txn-01（FND16）：停机路径有界（64次重试+墙钟双封顶）——Redis 持锁者崩溃
-				// 残留租约时放弃等待（stopStep 记 error 继续，残留与 kill -9 同构可恢复），
-				// 不再无限阻塞 stop() 持 Application 锁（Daemon 双开放大器随之消失）。
-				stopStep("clearInUse", () -> conf.clearInUse(databases, 64));
+				// txn-01（FND16）：Redis 实现内部已有界（64次对齐setInUse，见DatabaseRedis
+				// 注释——原为全仓唯一无界自旋，停机无守卫阻塞+Daemon双开放大器）。
+				stopStep("clearInUse", () -> conf.clearInUse(databases));
 
 			for (var e : databases.entrySet())
 				stopStep("db.close '" + e.getKey() + '\'', e.getValue()::close);
@@ -1033,7 +1033,7 @@ public final class Application extends ReentrantLock {
 			// 字段只由持锁者（本方法/stop）读写，任务不触碰。
 			if (startState == StartState.eStarted && (f == null || f.isDone()))
 				checkpointFuture = TaskSpec.ofAction(checkpoint::runOnce)
-						.name("CheckpointRunThread").submitNow();
+					.name("CheckpointRunThread").submitNow();
 		} finally {
 			unlock();
 		}
@@ -1048,16 +1048,16 @@ public final class Application extends ReentrantLock {
 
 	public void runTaskOneByOneByKey(@NotNull Object oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
 		TaskSpec.ofProcedure(newProcedure(func, actionName))
-				.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
+			.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
 	}
 
 	public void runTaskOneByOneByKey(int oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
 		TaskSpec.ofProcedure(newProcedure(func, actionName))
-				.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
+			.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
 	}
 
 	public void runTaskOneByOneByKey(long oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
 		TaskSpec.ofProcedure(newProcedure(func, actionName))
-				.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
+			.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
 	}
 }

@@ -676,13 +676,6 @@ public abstract class Database extends ReentrantLock {
 
 		int clearInUse(int localId, @NotNull String global);
 
-		// txn-01（FND16）：停机路径的有界变体——maxRetries<=0 表示无界（启动/手工工具路径
-		// 维持原语义：等待崩溃残留的锁租约过期是设计内行为）。实现方可覆写加上限；
-		// 默认委托无界版。超限以异常表达放弃（调用方 stopStep 记 error 继续）。
-		default int clearInUse(int localId, @NotNull String global, int maxRetries) {
-			return clearInUse(localId, global);
-		}
-
 		/*
 		  if (Exist(key)) {
 		    if (CurrentVersion != version)
