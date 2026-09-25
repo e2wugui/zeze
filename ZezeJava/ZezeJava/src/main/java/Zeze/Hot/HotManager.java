@@ -761,7 +761,14 @@ public class HotManager extends ClassLoader {
 				try {
 					readyLines = Files.readAllLines(ready);
 					if (null != installReadies(atomicAll))
-						Files.deleteIfExists(ready); // success
+						try {
+							Files.deleteIfExists(ready); // success
+						} catch (Throwable ex) {
+							// hot-03（FND18）：安装已成功，删除失败不得反转为失败码——!atomicAll 下
+							// setIdle 会把 rc 误报给控制台。ready 残留交给下轮定时器空包路径清理
+							// （loadSchemas 抛 not found → renameDistributes 挪走），不走失败清理。
+							logger.error("install success but delete ready fail", ex);
+						}
 					else {
 						rc = IModule.errorCode(HotDistribute.ModuleId, HotDistribute.eInstall);
 						// 安装失败，使用这个错误码报告最终错误。
