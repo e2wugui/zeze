@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
@@ -102,7 +103,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		var result = dataMap.get(key);
 		if (result == null) { // slow-path
 			result = dataMap.computeIfAbsent(key, k -> {
-				var r = valueFactory.create();
+				// factory产null即违约（Factory.create()契约）：fail-fast且不登记（对齐Util.ConcurrentLruLike.getOrAdd）。
+				var r = Objects.requireNonNull(valueFactory.create());
 				lruHot.put(k, r); // replace: add or update see this.Remove
 				r.setLruNode(lruHot);
 				return r;

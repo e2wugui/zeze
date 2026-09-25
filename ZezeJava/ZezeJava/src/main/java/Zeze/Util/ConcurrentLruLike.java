@@ -3,6 +3,7 @@ package Zeze.Util;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiPredicate;
@@ -205,7 +206,8 @@ public class ConcurrentLruLike<K, V> {
 		var lruItem = dataMap.get(key);
 		if (lruItem == null) { // slow-path
 			lruItem = dataMap.computeIfAbsent(key, k -> {
-				var item = new LruItem<>(factory.create(), lruHot);
+				// factory产null即违约（Factory.create()契约）：fail-fast且不登记——注解配运行时强制才是承诺。
+				var item = new LruItem<>(Objects.requireNonNull(factory.create()), lruHot);
 				lruHot.put(k, item); // MUST replace
 				return item;
 			});
