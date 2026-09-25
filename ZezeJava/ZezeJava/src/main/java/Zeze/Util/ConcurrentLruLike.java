@@ -201,6 +201,12 @@ public class ConcurrentLruLike<K, V> {
 		}
 	}
 
+	/**
+	 * util-02（FND16）契约：factory 必须非阻塞（不得做 IO/长锁——窗口内持有 dataMap 桶锁，
+	 * 且长阻塞可令登记落入已被轮空的 LRU 节点逃逸容量驱逐；仓内已知违约者
+	 * projects/MetaGame TaskGraphics 的 RocksDB 读属越域观察）。产 null 即违约
+	 * （Factory.create() 契约，requireNonNull 强制）。
+	 */
 	public final @NotNull V getOrAdd(@NotNull K key, @NotNull Factory<V> factory) {
 		var lruHot = this.lruHot;
 		var lruItem = dataMap.get(key);
