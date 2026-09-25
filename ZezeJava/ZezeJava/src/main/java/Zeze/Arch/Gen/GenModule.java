@@ -79,11 +79,14 @@ public final class GenModule extends ReentrantLock {
 	}
 
 	public static <T extends IModule> T newModule(@NotNull Class<?> cls, @NotNull AppBase app) throws ReflectiveOperationException {
+		// arch-01（FND16）：0参构造器模块放行实例化。createRedirectModules对无redirect方法
+		// 的模块直接用原始类实例化（javadoc承诺），getCtor的0参回退（genModuleCode同为活
+		// 消费方）与IModule.Initialize(AppBase)后注入钩子均支持该形态；原硬拒使"仅0参构造器
+		// 的合法模块"启动崩溃且错误文案误导指向redirect配置（A1三案例实证双标准：同形态
+		// 加redirect方法能启动、删光反而崩溃）。
 		@SuppressWarnings("unchecked")
 		var ctor = (Constructor<T>)getCtor(cls, app);
-		if (ctor.getParameterCount() != 1)
-			throw new NoSuchMethodException("No suitable constructor for redirect module: " + cls.getName());
-		return ctor.newInstance(app);
+		return ctor.getParameterCount() == 1 ? ctor.newInstance(app) : ctor.newInstance();
 	}
 
 	private static String getRedirectClassName(@NotNull Class<?> moduleClass) {
