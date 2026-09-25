@@ -202,13 +202,17 @@ public class DbWeb extends AbstractDbWeb {
 				return;
 			}
 			List<String> keys = new ArrayList<>();
-			var lastKey = walkKey(table, key != null && !key.isEmpty() ? parseKey(table, key) : null, count, k -> {
+			// 多取一条试探：恰剩一页时原判定(lastKey!=null&&size>=count)会虚报hasMore=true，
+			// 第count+1条实际存在与否才是结尾的真判据
+			walkKey(table, key != null && !key.isEmpty() ? parseKey(table, key) : null, count + 1, k -> {
 				var ks = k instanceof Serializable ? toJsonForCompact(k) : k.toString();
 				keys.add(ks);
-				return keys.size() < count;
+				return keys.size() <= count;
 			});
 
-			boolean hasMore = (lastKey != null && keys.size() >= count);
+			boolean hasMore = keys.size() > count;
+			if (hasMore)
+				keys.remove(keys.size() - 1); // 丢弃试探条，只返回请求页
 
 			WalkTableResult res = new WalkTableResult();
 			res.keys = keys;

@@ -129,8 +129,9 @@ public class RedoQueue extends HandshakeClient {
 	}
 
 	// FND4-43：删除水位（含）以下条目。重发只读lastDoneTaskId以上，以下条目（任务正文全量落盘）
-	// 永不清理=本地RocksDB无界增长。key为8字节大端long，[key(0),key(lastDoneTaskId+1))即
-	// taskId<=lastDoneTaskId的全部；与水位推进同锁同线程，重启时start()再补一次（清崩溃残留）。
+	// 永不清理=本地RocksDB无界增长。key为WriteLong变长编码（非负时字节序保序，非定长8字节大端），
+	// [key(0),key(lastDoneTaskId+1))即taskId<=lastDoneTaskId的全部；与水位推进同锁同线程，
+	// 重启时start()再补一次（清崩溃残留）。
 	private void deleteDoneTasks() throws RocksDBException {
 		var first = ByteBuffer.Allocate(8);
 		first.WriteLong(0);

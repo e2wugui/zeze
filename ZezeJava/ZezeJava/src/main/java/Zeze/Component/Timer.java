@@ -1169,10 +1169,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				_tNodes.delayRemove(nodeId);
 			}
 			if (handle != null && bTimer != null) {
-				TaskSpec.ofProcedure(zeze.newProcedure(() -> {
+				var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 					handle.onTimerCancel(bTimer);
 					return 0;
 				}, "Timer.fireTimerCancel")).call();
+				if (rc != 0) // 嵌套过程失败仅记录：取消路径已不可回滚，日志留给排障
+					logger.warn("Timer.fireTimerCancel procedure rc={}", rc);
 			}
 		}
 	}
