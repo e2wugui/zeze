@@ -460,14 +460,18 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	public boolean cancelScheduledLog() {
+		ScheduledFuture<?> f;
 		lock();
 		try {
-			var f = scheduleFuture;
+			f = scheduleFuture;
 			scheduleFuture = null;
-			return f != null && f.cancel(false);
 		} finally {
 			unlock();
 		}
+		// cancel 的调用方不得持有任务体可能获取的锁（TimerFuture.cancel 锁契约）：周期任务体在
+		// future.lock() 内执行且需本锁，持本锁调 cancel 构成 ABBA——本锁被毒化后全局统计全部挂死。
+		// 锁内只捕获句柄并置空，释放后再 cancel。
+		return f != null && f.cancel(false);
 	}
 
 	public void resetCounter() {
