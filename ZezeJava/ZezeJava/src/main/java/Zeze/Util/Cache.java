@@ -137,7 +137,8 @@ public class Cache {
 			bb.ReadString(); // skip cacheId.
 			// 当出现并发get重复从db读取时，这里的getOrAdd会忽略后面读到的value，返回已经存在的。
 			var decoded = lru.getOrAdd(id, () -> decoder.apply(id, bb));
-			return CacheObject.isNull(decoded) ? null : decoded; // NullCache哨兵不得裸返（见loader路径注释）
+			// getOrAdd对factory的null结果原样返回（decoder产null入库后，后续getOrAdd也会返回既有null）
+			return decoded == null || CacheObject.isNull(decoded) ? null : decoded; // 哨兵/null不得裸返（见loader路径注释）
 		}
 
 		// do user loader to load object.
@@ -152,7 +153,8 @@ public class Cache {
 		var loaded = lru.getOrAdd(id, () -> tmpLambda);
 		// NullCache占位负缓存防穿透（5分钟内get短路返回null），但哨兵本身不得返回给调用方：
 		// 首次miss与窗口内重复get必须同为null，cacheId()==""/encode抛UOE的哨兵泄漏即契约破坏。
-		return CacheObject.isNull(loaded) ? null : loaded;
+		// null防御：decoder路径曾插入的null条目会经"返回已存在值"到达此处。
+		return loaded == null || CacheObject.isNull(loaded) ? null : loaded;
 	}
 
 	private void dbSave(@NotNull CacheObject value) throws RocksDBException, IOException {
