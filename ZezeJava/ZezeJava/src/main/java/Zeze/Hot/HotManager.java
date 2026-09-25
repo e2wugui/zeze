@@ -355,6 +355,8 @@ public class HotManager extends ClassLoader {
 					exist.stopBefore();
 			}
 			var result = new ArrayList<HotModule>();
+			// startErrors 声明提前到写锁外：锁外的 startLast 收尾循环也要过滤它（hot-01）。
+			var startErrors = new ArrayList<HotModule>();
 			try (var ignored = enterWriteLock()) {
 				var app = zeze.getAppBase();
 				// 先保存现有的数据
@@ -479,7 +481,6 @@ public class HotManager extends ClassLoader {
 						hotBeanFactory.processWithNewClasses(beanFactories.get(hotBeanFactory.beanFactory()));
 					}
 					// start ordered
-					var startErrors = new ArrayList<HotModule>();
 					for (var module : result) {
 						try {
 							module.start();
@@ -524,6 +525,10 @@ public class HotManager extends ClassLoader {
 			}
 			// 最后启动，startLast.
 			for (var module : result) {
+				// hot-01：启动失败的模块已 stop+stopInternal 完整停机并移出 modules，
+				// 不得再 startLast 复活（幻影定时器/线程无人回收），对齐上方 addHotModule 的过滤。
+				if (startErrors.contains(module))
+					continue;
 				try {
 					module.startLast();
 				} catch (Exception ex) {
