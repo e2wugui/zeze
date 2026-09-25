@@ -292,7 +292,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		}
 
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
-		var ctx = service.removeRpcContext(sessionId);
+		var ctx = removeRpcContextChecked(service, sessionId, this);
 		if (ctx == null) {
 			service.onRpcLostContext(this);
 			return;
@@ -302,6 +302,37 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			context.future.setResult(context.Result); // SendForWait，设置结果唤醒等待者。
 		else if (context.responseHandle != null)
 			service.dispatchRpcResponse(context, context.responseHandle, factoryHandle);
+	}
+
+	// net-01（FND16）：应答会合先校验后消费。sessionId 发号流全 JVM 共享且明文入帧、
+	// 顺序可枚举，而原会合仅按帧内号消费——任一同 Service 对端可伪造异协议 Response 帧
+	// 劫持他人在飞上下文（注入任意Result/回调CCE，真实应答沦为lost）。校验两层：
+	// ①typeId 一致（上下文协议==应答帧协议，伪造常携异协议 typeId）；②ctx.sender!=null
+	// 时应答必须从原发送连接到达（Raft/SM/GCM 全家原连接应答）。sender==null 的上下文
+	// （Online 经 linkd 转发的合法跨连接应答）仅受①保护——按 linkName 绑定的第三层
+	// 属独立设计（audit-FND16 net-01 案卷）。校验失败不消费上下文（真实应答或超时仍
+	// 可达），仅限频告警。
+	private static volatile long lastResponseMismatchLogMs; // 告警限频（60秒一条，防日志刷屏DoS）
+
+	@SuppressWarnings("unchecked")
+	public static <T extends Protocol<?>> @Nullable T removeRpcContextChecked(
+			@NotNull Service service, long sid, @NotNull Rpc<?, ?> response) {
+		var ctx = service.getRpcContext(sid);
+		if (ctx == null)
+			return null;
+		if (ctx.getTypeId() != response.getTypeId()
+				|| (ctx.getSender() != null && ctx.getSender() != response.getSender())) {
+			var now = System.currentTimeMillis();
+			var last = lastResponseMismatchLogMs;
+			if (now - last >= 60_000) {
+				lastResponseMismatchLogMs = now;
+				logger.warn("rpc response rejected (typeId/connection mismatch, possible hijack):"
+						+ " sessionId={}, expect typeId={}, sender={}, got typeId={}, sender={}",
+						sid, ctx.getTypeId(), ctx.getSender(), response.getTypeId(), response.getSender());
+			}
+			return null;
+		}
+		return (T)service.removeRpcContext(sid);
 	}
 
 	public Rpc<TArgument, TResult> setupRpcResponseContext(@NotNull Protocol<?> ctx) {
@@ -337,7 +368,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		// response, 从上下文中查找原来发送的rpc对象，并派发该对象。
 		// 本方法随action在事务redo时整体重跑，会合消费（removeRpcContext）只能发生一次：
 		// 首轮解析并缓存到当前事务，重试直接复用。
-		Rpc<TArgument, TResult> context = Transaction.resolveOnceOrApply(service, sessionId, service::removeRpcContext);
+		Rpc<TArgument, TResult> context = Transaction.resolveOnceOrApply(service, sessionId,
+				sid -> removeRpcContextChecked(service, sid, this));
 		if (context == null) {
 			service.onRpcLostContext(this);
 			// 上下文丢失（一般已被超时消费）：立即失败终止，不空转剩余重试、不以Success提交空事务。

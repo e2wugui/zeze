@@ -815,6 +815,12 @@ public class Service extends ReentrantLock {
 		return (T)rpcContexts.remove(sid);
 	}
 
+	// net-01（FND16）：应答会合校验用的非消费读（先校验后消费，伪造帧不触碰map，
+	// 真实应答或超时仍可达）。
+	public final @Nullable Protocol<?> getRpcContext(long sid) {
+		return rpcContexts.get(sid);
+	}
+
 	public final boolean removeRpcContext(long sid, @NotNull Protocol<?> ctx) {
 		return rpcContexts.remove(sid, ctx);
 	}

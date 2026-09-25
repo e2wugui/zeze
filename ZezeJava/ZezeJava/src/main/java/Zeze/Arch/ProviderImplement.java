@@ -273,12 +273,14 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var service = providerApp.providerService;
 		// 本方法随action在事务redo时整体重跑，会合消费（removeRpcContext）只能发生一次：
 		// 首轮解析并缓存到当前事务（含null判定），重试直接复用，与 Rpc.handle 同一约定。
+		// net-01（FND16）：会合前校验typeId一致+原连接绑定（见Rpc.removeRpcContextChecked）。
 		var txn = Transaction.getCurrent();
 		Rpc<?, ?> context = txn != null
-			? txn.resolveOnce(service, res.getSessionId(), service::removeRpcContext)
-			: service.removeRpcContext(res.getSessionId());
+			? txn.resolveOnce(service, res.getSessionId(),
+				sid -> Rpc.removeRpcContextChecked(service, sid, res))
+			: Rpc.removeRpcContextChecked(service, res.getSessionId(), res);
 		if (context == null) {
-			// 上下文可能丢失（一般已被超时消费）：立即失败终止。
+			// 上下文可能丢失（一般已被超时消费或校验拒绝——后者上下文留存给真实应答）：立即失败终止。
 			logger.warn("rpc response: lost context, maybe timeout. {}", p3);
 			return Procedure.Unknown;
 		}
