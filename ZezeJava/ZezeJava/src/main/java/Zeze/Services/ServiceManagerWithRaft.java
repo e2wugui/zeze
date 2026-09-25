@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Future;
@@ -20,6 +21,8 @@ import Zeze.Raft.Server;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfosVersion;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
+import Zeze.Services.ServiceManager.Id128UdpServer;
+import Zeze.Services.ServiceManager.Tid128Cache;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Action0;
 import Zeze.Util.FuncLong;
@@ -37,15 +40,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	static {
 		// 【FND4-64】原此处还有root logger级别重置（未设logLevel属性时也强制INFO）——类加载即
 		// 篡改全JVM日志配置，已移至构造器的显式启动动作（applyLogLevelProperty，仅显式指定才动）。
-		// 补注册 tId128.current（Zeze.Util.Id128，非内置类型）的修改日志工厂：AbstractServiceManagerWithRaft.
-		// RegisterRocksTables 漏了 Log1.LogBeanKey<Zeze.Util.Id128>（typeId=1751213859）。
-		// 首次 getOrAdd(tId128) 走 Record.Put（整 bean 编码，不需要 Log 工厂）能提交成功；
-		// 第二次起修改已存在行走 Record.Edit，日志写入 WAL 时 encode 不需要工厂，但之后任何
-		// readLog 重读该日志（AppendEntries 复制、apply、重启恢复）都要 Log.create(1751213859)
-		// 抛 UnsupportedOperationException，导致后续所有事务 appendLog→RaftRetry→回滚，
-		// 复制通道卡死（实测 UnSubscribe 应答后订阅未删除即此因）。AbstractGlobalCacheManagerWithRaft
-		// 对 LogSet1<Integer> 是在自己的静态块补注册的，这里对齐该做法。
-		Rocks.registerLog(() -> new Zeze.Raft.RocksRaft.Log1.LogBeanKey<>(Zeze.Util.Id128.class));
+		// 原此处还有tId128.current（Zeze.Util.Id128）的修改日志工厂补注册——tId128表已随
+		// AllocateId128死代码端点一并删除（FND15 svc-01），该注册（Log1.LogBeanKey<Id128>）
+		// 的唯一服务对象就是tId128，随之删除；全仓无其他rocks bean以Id128为变量类型。
 	}
 
 	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
@@ -56,7 +53,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	// reconcileSessions）在锁内首查即退出，不再触碰rocks。与close()的锁屏障配合，见close()。
 	private volatile boolean closed;
 	private final @NotNull Table<String, BAutoKey> tableAutoKey;
-	private final @NotNull Table<String, BId128> tableId128;
 	private final @NotNull Table<String, BSession> tableSession;
 	private final @NotNull Table<String, BLoadObservers> tableLoadObservers;
 	private final @NotNull Table<String, BServerState> tableServerState;
@@ -85,7 +81,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		rocks.getRaft().getServer().start();
 
 		tableAutoKey = rocks.<String, BAutoKey>getTableTemplate("tAutoKey").openTable();
-		tableId128 = rocks.<String, BId128>getTableTemplate("tId128").openTable();
 		tableSession = rocks.<String, BSession>getTableTemplate("tSession").openTable();
 		tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
 		tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
@@ -424,39 +419,41 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return 0;
 	}
 
-	@Override
-	protected long ProcessAllocateId128Request(AllocateId128 r) {
-		// 随便写写! 这个实际上没用,因为id128需要通过udp,这里是tcp.
-		if (r.Argument.getCount() < 1)
-			return Zeze.Transaction.Procedure.ErrorRequestId;
+	// ProcessAllocateId128Request已删除（FND15 svc-01）：死代码端点——id128正规路径是UDP
+	//（Id128UdpServer），raft版SM有意不支持id128（ServiceManagerAgentWithRaft构造对History
+	// 组合fail-fast），全仓无该rpc发送方；原handler自注释亦承认"随便写写，实际上没用"。
+	// 注册（生成代码）、tId128表、BId128 bean随solution.zeze.xml定义删除一并消失。
 
-		var id128 = tableId128.getOrAdd(r.Argument.getName());
-		r.Result.setStartId(id128.getCurrent());
+	@Override
+	protected long ProcessAllocateIdRequest(AllocateId r) throws Exception {
 		var count = r.Argument.getCount();
-		id128.setCurrent(id128.getCurrent().add(count)); // 不能直接修改当前值,因为没有受事务保护.
-		r.Result.setCount(count);
-		// 号段必须raft提交成功后再应答（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
-		// appendLog失败回滚current，提交前应答会让客户端把已回滚的号段投入使用，重复发放。
-		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
-		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
-		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
-		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-		if (t != null)
-			t.runWhileCommit(r::SendResult);
-		else
-			r.SendResult();
-		return 0;
-	}
-
-	@Override
-	protected long ProcessAllocateIdRequest(AllocateId r) {
-		if (r.Argument.getCount() < 1)
+		var name = r.Argument.getName();
+		// 入口校验（svc-01，判例同非raft版ServiceManagerServer与UDP面Id128UdpServer/FND6-28）：
+		// 该端口无认证（raft对等端口同时服务应用协议，四种EncryptType均密钥协商），name/count
+		// 均对端可控，无界唯一name直接成为tAutoKey持久键并经共识复制放大到全节点。
+		if (count < 1 || count > Tid128Cache.ALLOCATE_COUNT_MAX
+				|| name.getBytes(StandardCharsets.UTF_8).length > 128) {
+			warnAllocateIdRejected("invalid count=" + count + " name.chars=" + name.length());
 			return Zeze.Transaction.Procedure.ErrorRequestId;
+		}
+		// 唯一名上限（svc-01）。raft表逐出不可移植：BAutoKey.Current是已交付位置（无独立
+		// 高水位），删行重建会从默认值重发已交付号段——超限只能拒绝。运维出口：确认攻击后
+		// 清理tAutoKey表攻击行。满员会暂时锁死新合法name（仓内合法基数个位到两位数，
+		// 1024上限余量充分）。walk计数O(表行数)，表行数被上限封顶，可接受。
+		if (tableAutoKey.get(name) == null) {
+			var names = new int[1];
+			tableAutoKey.walkKey(k -> {
+				names[0]++;
+				return names[0] < Id128UdpServer.MAX_UNIQUE_NAMES; // 数够上限即止
+			});
+			if (names[0] >= Id128UdpServer.MAX_UNIQUE_NAMES) {
+				warnAllocateIdRejected("unique names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
+				return Zeze.Transaction.Procedure.ErrorRequestId;
+			}
+		}
 
 		var autoKey = tableAutoKey.getOrAdd(r.Argument.getName());
 		r.Result.setStartId(autoKey.getCurrent());
-		// 随便修正一下分配数量。
-		var count = r.Argument.getCount();
 		long current = autoKey.getCurrent() + count;
 		autoKey.setCurrent(current);
 		r.Result.setCount(count);
@@ -475,6 +472,19 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		else
 			r.SendResult();
 		return 0;
+	}
+
+	// 拒绝告警限频（判例Id128UdpServer.warnRejected同形态）：无认证端口上高频非法
+	// 请求按包记日志可耗尽日志盘/CPU（日志刷屏DoS），60秒一条。
+	private volatile long lastAllocateIdRejectLogMs;
+
+	private void warnAllocateIdRejected(@NotNull String reason) {
+		var now = System.currentTimeMillis();
+		var last = lastAllocateIdRejectLogMs;
+		if (now - last < 60_000)
+			return; // 限频窗口内静默拒绝（race下至多多记几条）
+		lastAllocateIdRejectLogMs = now;
+		logger.error("AllocateId(raft) rejected (possible attack or misbehaving client): {}", reason);
 	}
 
 	// 只写session上一个int（对齐非raft版：无状态簿记、无取消语义）。虽然走raft请求通道，

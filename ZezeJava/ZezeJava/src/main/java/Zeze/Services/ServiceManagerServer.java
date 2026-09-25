@@ -644,47 +644,103 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		public void allocate(@NotNull AllocateId rpc) {
-			var count = rpc.Argument.getCount();
-			if (count < 0)
-				count = 1;
-
-			for (; ; ) {
-				var c = current.get();
-				if (c + count <= max) {
-					if (current.compareAndSet(c, c + count)) { // 乐观分配,失败重试
-						rpc.Result.setStartId(c);
-						rpc.Result.setCount(count);
-						return;
-					}
-				} else {
-					lock();
-					try {
-						var m = max; // 只有这里的锁范围才能修改max,所以这里缓存max也是稳定的
-						if (c + count > m) { // 重试,也许刚刚提升了max,不够再真正去提升
-							m += count * 10L;
-							var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(m));
-							bb.WriteLong(m);
-							try {
-								sms.autoKeyTable.put(key, bb.Bytes);
-							} catch (RocksDBException e) {
-								throw Task.forceThrow(e);
-							}
-							max = m; // 确保数据库记下了再更新max,此时其它并发的allocate就可以分配了
-						}
-					} finally {
-						unlock();
-					}
+		// svc-01（FND15）：分配全程持锁（调用前提：已lock且通过"持锁且在册"复核，见
+		// processAllocateId）。原无锁CAS快路径与满员逐出（evictIdleAutoKey的tryLock）
+		// 不相容：CAS推进不持锁，逐出可越过在途分配移除条目，重建后current从持久max
+		// 前移，与孤儿AutoKey的越界慢路径交付重叠重号。持锁后读-推进线性化，CAS循环不再需要。
+		public void allocateLocked(@NotNull AllocateId rpc, int count) {
+			var c = current.get();
+			if (c + count > max) {
+				var m = max + count * 10L;
+				var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(m));
+				bb.WriteLong(m);
+				try {
+					sms.autoKeyTable.put(key, bb.Bytes);
+				} catch (RocksDBException e) {
+					throw Task.forceThrow(e);
 				}
+				max = m; // 确保数据库记下了再更新max
 			}
+			current.set(c + count);
+			rpc.Result.setStartId(c);
+			rpc.Result.setCount(count);
 		}
 	}
 
 	private long processAllocateId(@NotNull AllocateId r) {
 		var name = r.Argument.getName();
-		autoKeys.computeIfAbsent(name, key -> new AutoKey(key, this)).allocate(r);
+		var count = r.Argument.getCount();
+		// 入口校验（svc-01，判例移植自同端口UDP面Id128UdpServer/FND6-28）：该TCP端口
+		// 同样无认证（四种EncryptType均密钥协商，默认Disable明文帧直达），name/count
+		// 均对端可控。count<=0或超上限会巨幅烧号洞（慢路径count*10抬水位）；超长name
+		// 无界驻留CHM与RocksDB。非法返回错误码（诚实客户端按失败重试）。
+		if (count < 1 || count > Tid128Cache.ALLOCATE_COUNT_MAX) {
+			warnAllocateIdRejected("invalid count=" + count);
+			r.SendResultCode(Procedure.ErrorRequestId);
+			return Procedure.Success;
+		}
+		if (name.getBytes(StandardCharsets.UTF_8).length > 128) {
+			warnAllocateIdRejected("name too long: chars=" + name.length());
+			r.SendResultCode(Procedure.ErrorRequestId);
+			return Procedure.Success;
+		}
+		// 唯一名满员：逐出一个闲置条目自愈（RocksDB高水位行保留，重建安全，见
+		// evictIdleAutoKey）；全部条目持锁（病态并发）时拒绝。竞态窗口内可能略超
+		// 上限（多线程同时computeIfAbsent），有界即可（判例同口径）。
+		if (!autoKeys.containsKey(name) && autoKeys.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
+				&& !evictIdleAutoKey()) {
+			warnAllocateIdRejected("unique names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
+			r.SendResultCode(Procedure.ErrorRequestId);
+			return Procedure.Success;
+		}
+		for (; ; ) {
+			var autoKey = autoKeys.computeIfAbsent(name, key -> new AutoKey(key, this));
+			autoKey.lock();
+			if (autoKeys.get(name) == autoKey) { // 持锁且在册：临界区内逐出的tryLock拿不到本锁
+				try {
+					autoKey.allocateLocked(r, count);
+				} finally {
+					autoKey.unlock();
+				}
+				break;
+			}
+			autoKey.unlock(); // 孤儿（逐出-重建竞态窗口内拿到的旧条目）：重取重试
+		}
 		r.SendResult();
 		return 0;
+	}
+
+	// svc-01：满员自愈。逐出未持锁的闲置条目腾出槽位；RocksDB高水位行保留，重建
+	// （computeIfAbsent）时current向前重置到持久max——在途已分配区间烧成号洞而不
+	// 重发，与进程重启加载同一损失类别（判例Id128UdpServer.evictIdleContext同论证）。
+	// 在途分配持锁不可逐出；全部持锁（病态并发）时失败。
+	private boolean evictIdleAutoKey() {
+		for (var e : autoKeys.entrySet()) {
+			var autoKey = e.getValue();
+			if (autoKey.tryLock()) {
+				try {
+					if (autoKeys.remove(e.getKey(), autoKey))
+						return true;
+				} finally {
+					autoKey.unlock();
+				}
+			}
+		}
+		return false;
+	}
+
+	// 拒绝告警限频（判例Id128UdpServer.warnRejected同形态）：无认证端口上高频非法
+	// 请求按包记日志可耗尽日志盘/CPU（日志刷屏DoS），60秒一条。
+	private volatile long lastAllocateIdRejectLogMs;
+
+	private void warnAllocateIdRejected(@NotNull String reason) {
+		var now = System.currentTimeMillis();
+		var last = lastAllocateIdRejectLogMs;
+		if (now - last < 60_000)
+			return; // 限频窗口内静默拒绝（race下至多多记几条）
+		lastAllocateIdRejectLogMs = now;
+		logger.error("AllocateId rejected (possible attack or misbehaving client), cached names={}: {}",
+				autoKeys.size(), reason);
 	}
 
 	public void stop() throws Exception {

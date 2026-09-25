@@ -16,7 +16,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import Zeze.Builtin.ServiceManagerWithRaft.AllocateId128;
+import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.BServerState;
 import Zeze.Builtin.ServiceManagerWithRaft.BSession;
 import Zeze.Builtin.ServiceManagerWithRaft.Edit;
@@ -44,12 +44,13 @@ import Zeze.Util.Task;
 import harness.Fast;
 
 /**
- * CARRY-SMRAFT-CommitBeforeResponse：SM-raft Login/Subscribe/AllocateId128/UnSubscribe/
+ * CARRY-SMRAFT-CommitBeforeResponse：SM-raft Login/Subscribe/AllocateId/UnSubscribe/
  * SetServerLoad 的 SendResult 同为提交前应答（与已修的 ProcessAllocateIdRequest 2eee0da1d、
  * ProcessEditRequest 47ec96e18 同族）：raft appendLog 之前应答，复制失败回滚后客户端已拿到成功码。
  * <p>
- * 用例1（正常路径回归）：Login→Subscribe→Edit→SetServerLoad→AllocateId128→UnSubscribe 全链路，
+ * 用例1（正常路径回归）：Login→Subscribe→Edit→SetServerLoad→AllocateId→UnSubscribe 全链路，
  * 修复（SendResult 移入 runWhileCommit）不得破坏正常路径；号段连续推进（提交后应答）。
+ * （AllocateId128 原为契约载体，FND15 svc-01 死代码端点注销后迁移到活的 AllocateId。）
  * 用例2（红绿）：关闭两个 follower 令 quorum 不可达，此时 Login 不可能完成 raft 提交——
  * 客户端拿到的 resultCode 必须非 0。修复前 SendResult 在 handler 内（appendLog 之前）发出，
  * 客户端拿到 rc=0 假成功（红）；修复后应答由 runWhileCommit 在 appendLog 成功后发出，
@@ -62,7 +63,7 @@ import harness.Fast;
 public class TestServiceManagerWithRaftCommitThenResponse {
 	private static final String RAFT_NAME = "ctr_sm_test";
 	private static final String SERVICE_NAME = "UnitTest.CTR.Service";
-	private static final String ID128_NAME = "UnitTest.CTR.Id128";
+	private static final String ALLOC_NAME = "UnitTest.CTR.AllocId";
 
 	private static final int[] ports = new int[3];
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
@@ -89,8 +90,8 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 					Subscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
 			AddFactoryHandle(UnSubscribe.TypeId_, new ProtocolFactoryHandle<>(
 					UnSubscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
-			AddFactoryHandle(AllocateId128.TypeId_, new ProtocolFactoryHandle<>(
-					AllocateId128::new, null, TransactionLevel.None, DispatchMode.Direct));
+			AddFactoryHandle(AllocateId.TypeId_, new ProtocolFactoryHandle<>(
+					AllocateId::new, null, TransactionLevel.None, DispatchMode.Direct));
 			AddFactoryHandle(SetServerLoad.TypeId_, new ProtocolFactoryHandle<>(
 					SetServerLoad::new, null, TransactionLevel.None, DispatchMode.Direct));
 			AddFactoryHandle(Edit.TypeId_, new ProtocolFactoryHandle<>(
@@ -319,16 +320,16 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 	}
 
 	/**
-	 * AllocateId128 发送并断言成功（对齐 TestServiceManagerWithRaftAllocateId.allocate 的有界重试：
+	 * AllocateId 发送并断言成功（对齐 TestServiceManagerWithRaftAllocateId.allocate 的有界重试：
 	 * 本机静默集群的follower周期性漂移回pre-vote，单次appendLog可能RaftRetry(-15)（60轮压测
 	 * round 52 alloc2偶中，直断言rc==0误红）。失败的请求未发放号段，重试不影响接续断言；
 	 * 每次重试用新rpc+新requestId。
 	 */
-	private static AllocateId128 allocateId128(AsyncSocket sock) throws Exception {
+	private static AllocateId allocateId(AsyncSocket sock) throws Exception {
 		long lastCode = Long.MIN_VALUE;
 		for (int attempt = 1; attempt <= 12; ++attempt) {
-			var rpc = new AllocateId128();
-			rpc.Argument.setName(ID128_NAME);
+			var rpc = new AllocateId();
+			rpc.Argument.setName(ALLOC_NAME);
 			rpc.Argument.setCount(100);
 			rpc.getUnique().setRequestId(requestIds.incrementAndGet());
 			rpc.setCreateTime(System.currentTimeMillis());
@@ -343,7 +344,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 			//noinspection BusyWait
 			Thread.sleep(500);
 		}
-		Assertions.fail("AllocateId128重试耗尽，lastCode=" + lastCode);
+		Assertions.fail("AllocateId重试耗尽，lastCode=" + lastCode);
 		return null; // unreachable
 	}
 
@@ -474,12 +475,12 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 			Assertions.assertTrue(setLoad.SendForWait(regSock, 30_000).await(30_000), "setLoad await");
 			Assertions.assertEquals(0, setLoad.getResultCode(), "setLoad resultCode");
 
-			// AllocateId128：连续两次分配，号段严格推进（提交后应答保证不重复发放）。
-			// 有界重试见allocateId128：单次appendLog可能RaftRetry(-15)（60轮压测round 52偶中）。
-			var alloc1 = allocateId128(regSock);
+			// AllocateId：连续两次分配，号段严格推进（提交后应答保证不重复发放）。
+			// 有界重试见allocateId：单次appendLog可能RaftRetry(-15)（60轮压测round 52偶中）。
+			var alloc1 = allocateId(regSock);
 
-			var alloc2 = allocateId128(regSock);
-			Assertions.assertEquals(alloc1.Result.getStartId().add(100), alloc2.Result.getStartId(),
+			var alloc2 = allocateId(regSock);
+			Assertions.assertEquals(alloc1.Result.getStartId() + 100, alloc2.Result.getStartId(),
 					"第二次分配必须接续第一次（提交后应答，号段不重复）");
 
 			// UnSubscribe：应答到达即订阅移除已raft提交

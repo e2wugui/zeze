@@ -1134,18 +1134,15 @@
 				<enum name="Success" value="0"/>
 				<enum name="NotExist" value="1"/>
 			</rpc>
-			<rpc name="AllocateId128" argument="Zeze.Services.ServiceManager.BAllocateId128Argument" result="Zeze.Services.ServiceManager.BAllocateId128Result" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<!-- AllocateId128已删除（FND15 svc-01）：死代码端点（id128正规路径是UDP，raft版SM
+			     有意不支持id128，见ServiceManagerAgentWithRaft构造fail-fast），无仓内发送方，
+			     仅暴露无认证name写入面。BId128/tId128随端点一并删除。 -->
 
 			<!-- autokey -->
 			<bean name="BAutoKey" kind="rocks">
 				<variable id="1" name="Current" type="long"/>
 			</bean>
 			<table name="tAutoKey" key="string" value="BAutoKey" kind="rocks"/>
-
-			<bean name="BId128" kind="rocks">
-				<variable id="1" name="Current" type="Zeze.Util.Id128"/>
-			</bean>
-			<table name="tId128" key="string" value="BId128" kind="rocks"/>
 
 			<!-- session -->
 			<bean name="BSession" kind="rocks">
