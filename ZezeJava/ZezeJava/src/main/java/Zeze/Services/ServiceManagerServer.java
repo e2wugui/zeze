@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+
 import Zeze.Component.ThreadingServer;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
@@ -40,6 +41,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDBException;
 import org.w3c.dom.Element;
+
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
@@ -96,7 +98,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		var levelProperty = System.getProperty("logLevel");
 		if (levelProperty != null)
 			((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger()
-					.setLevel(Level.toLevel(levelProperty, Level.INFO));
+				.setLevel(Level.toLevel(levelProperty, Level.INFO));
 	}
 
 	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerServer.class);
@@ -220,7 +222,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 		// 通知订阅了info版本的会话（version==0订阅全部版本）。info的版本决定通知过滤。
 		private void collectNotify(@NotNull BServiceInfo info, boolean isAdd,
-		                           @NotNull HashMap<AsyncSocket, EditService> result) {
+								   @NotNull HashMap<AsyncSocket, EditService> result) {
 			for (var it = simple.iterator(); it.moveToNext(); ) {
 				var itVersion = it.value().getVersion();
 				if (itVersion == 0 || itVersion == info.getVersion()) {
@@ -259,7 +261,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 
 		public void removeAndCollectNotify(@NotNull BServiceInfo info, long sessionId,
-		                                   @NotNull HashMap<AsyncSocket, EditService> result) {
+										   @NotNull HashMap<AsyncSocket, EditService> result) {
 			// 注销同样以name+id为key跨全部版本桶收敛（与addAndCollectNotify、客户端onUnRegister一致）。
 			for (var e : serviceInfos.entrySet()) {
 				var exist = e.getValue().get(info.getServiceIdentity());
@@ -322,8 +324,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 							logger.error("ServiceManager.KeepAlive", ex);
 					}
 				}).schedulePeriodNow(
-						Random.getInstance().nextInt(serviceManager.conf.keepAlivePeriod),
-						serviceManager.conf.keepAlivePeriod);
+					Random.getInstance().nextInt(serviceManager.conf.keepAlivePeriod),
+					serviceManager.conf.keepAlivePeriod);
 			} else
 				keepAliveTimerTask = null;
 		}
@@ -354,10 +356,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			serviceManager.editLock.lock();
 
 			try {
-				// FND4-66：联动清理该会话登记的全部负载观察者（地址行随之回收）。
-				// FND5-30：清理由锁外挪入editLock——登记（addLoadObserver全部在editLock内）
-				// 与清理串行化；原先锁外的“removeObserver判空→it.remove()”与并发登记构成
-				// TOCTOU，后到的活观察者随地址行被整行误删。
+				// 联动清理该会话登记的全部负载观察者（地址行随之回收）。
 				serviceManager.removeLoadObservers(sessionId);
 
 				for (var info : subscribes.values())
@@ -413,7 +412,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	// 服务端注册入口校验identity（对齐客户端AbstractAgent.verify与BServiceInfos.comparer的
-	// 排序前提，FND-S2-6）：非'@'/'#'前缀必须是可Long.parseLong的数字，否则订阅者侧
+	// 排序前提）：非'@'/'#'前缀必须是可Long.parseLong的数字，否则订阅者侧
 	// insert的binarySearch在Long.parseLong上抛NumberFormatException，打断同批全部合法
 	// 变更的处理。畸形请求整批拒绝（错误码经派发层onError应答，客户端SendAndWait感知失败）。
 	private static boolean isLegalServiceIdentity(@NotNull String identity) {
@@ -428,11 +427,11 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
-	// svc-01（FND16，S1三分面方案）：Edit/Subscribe/SetServerLoad 的入口上限——本端口与
-	// AllocateId（svc-01/FND15）同面无认证（无Login协议+默认Disable明文直达），serviceName/
-	// identity/ip_port 客户端可控键此前零校验零上限。阈值：serviceName/identity 128B、
-	// passiveIp 64B、extraInfo 256B（合法形态最坏值余量充分）；每请求批 128；每会话
-	// registers/subscribes 各 64（合法基数实证 1~3，防一条消息占满全局名额锁死合法订阅）；
+	// 阈值：serviceName/identity 128B、
+	// passiveIp 64B、
+	// extraInfo 256B（合法形态最坏值余量充分）；
+	// 每请求批 128；
+	// 每会话 registers/subscribes 各 64（合法基数实证 1~3，防一条消息占满全局名额锁死合法订阅）；
 	// 全局唯一 serviceName 1024（复用判例常量）满员时逐出空壳行自愈（内容可由重发恢复）。
 	private static final int SVC_NAME_MAX_BYTES = 128;
 	private static final int SVC_IDENTITY_MAX_BYTES = 128;
@@ -455,7 +454,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			return; // 限频窗口内静默拒绝（race下至多多记几条）
 		lastSvcRejectLogMs = now;
 		logger.error("SM edit/subscribe rejected (possible attack or misbehaving client), serviceStates={}: {}",
-				serviceStates.size(), reason);
+			serviceStates.size(), reason);
 	}
 
 	// 满员时逐出一个空壳行（无注册无订阅）腾位。editLock内调用（Edit/Subscribe/清理
@@ -465,7 +464,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		for (var it = serviceStates.entrySet().iterator(); it.hasNext(); ) {
 			var e = it.next();
 			if (!e.getKey().equals(excludeName)
-					&& e.getValue().getServiceInfos().isEmpty() && e.getValue().simple.isEmpty()) {
+				&& e.getValue().getServiceInfos().isEmpty() && e.getValue().simple.isEmpty()) {
 				it.remove();
 				return true;
 			}
@@ -484,10 +483,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			if (!isLegalServiceIdentity(info.getServiceIdentity()))
 				return Procedure.ErrorRequestId;
 			// svc-01：字段长度上限（identity非'@'/'#'通道已被isLegalServiceIdentity数字化封顶）。
-			if (isOverUtf8Bytes(info.getServiceName(), SVC_NAME_MAX_BYTES)
-					|| isOverUtf8Bytes(info.getServiceIdentity(), SVC_IDENTITY_MAX_BYTES)
-					|| isOverUtf8Bytes(info.getPassiveIp(), SVC_IP_MAX_BYTES)
-					|| (info.getExtraInfo() != null && info.getExtraInfo().size() > SVC_EXTRA_MAX_BYTES)) {
+			if (isOverUtf8Bytes(info.getServiceName(), SVC_NAME_MAX_BYTES) ||
+				isOverUtf8Bytes(info.getServiceIdentity(), SVC_IDENTITY_MAX_BYTES) ||
+				isOverUtf8Bytes(info.getPassiveIp(), SVC_IP_MAX_BYTES) ||
+				info.getExtraInfo().size() > SVC_EXTRA_MAX_BYTES) {
 				warnSvcRejected("edit field over size: " + info.getServiceName());
 				return Procedure.ErrorRequestId;
 			}
@@ -517,14 +516,14 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				var info = session.registers.remove(unReg);
 				if (info != null) {
 					logger.info("{}: UnRegister {} version={} serverId={} ip={} port={}",
-							r.getSender(), info.getServiceName(), info.getVersion(), info.getServiceIdentity(),
-							info.getPassiveIp(), info.getPassivePort());
+						r.getSender(), info.getServiceName(), info.getVersion(), info.getServiceIdentity(),
+						info.getPassiveIp(), info.getPassivePort());
 					var state = serviceStates.get(info.getServiceName());
 					if (state != null)
 						state.removeAndCollectNotify(info, r.getSender().getSessionId(), notifies);
 				} else {
 					logger.info("{}: Ignore UnRegister {} serverId={}",
-							r.getSender(), unReg.getServiceName(), unReg.getServiceIdentity());
+						r.getSender(), unReg.getServiceName(), unReg.getServiceIdentity());
 				}
 			}
 
@@ -533,19 +532,19 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			for (var reg : r.Argument.getAdd()) {
 				if (session.registers.remove(reg) == null) { // 先删除再加入,确保key也更新成新的
 					logger.info("{}: Register {} version={} serverId={} ip={} port={}",
-							r.getSender(), reg.getServiceName(), reg.getVersion(), reg.getServiceIdentity(),
-							reg.getPassiveIp(), reg.getPassivePort());
+						r.getSender(), reg.getServiceName(), reg.getVersion(), reg.getServiceIdentity(),
+						reg.getPassiveIp(), reg.getPassivePort());
 				} else {
 					logger.info("{}: Overwrite Registered {} version={} serverId={} ip={} port={}",
-							r.getSender(), reg.getServiceName(), reg.getVersion(), reg.getServiceIdentity(),
-							reg.getPassiveIp(), reg.getPassivePort());
+						r.getSender(), reg.getServiceName(), reg.getVersion(), reg.getServiceIdentity(),
+						reg.getPassiveIp(), reg.getPassivePort());
 				}
 				session.registers.add(reg);
 				// svc-01：全局唯一名满员时空壳逐出自愈（无空壳可逐才拒绝——非raft行是
 				// 内存态，攻击壳（注册后即注销）与本轮目标名都被排除在逐出候选外）。
 				if (!serviceStates.containsKey(reg.getServiceName())
-						&& serviceStates.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
-						&& !evictIdleServiceState(reg.getServiceName())) {
+					&& serviceStates.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
+					&& !evictIdleServiceState(reg.getServiceName())) {
 					warnSvcRejected("unique service names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
 					r.SendResultCode(Procedure.ErrorRequestId);
 					return Procedure.Success;
@@ -597,8 +596,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					return Procedure.Success;
 				}
 				if (!serviceStates.containsKey(sub.getServiceName())
-						&& serviceStates.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
-						&& !evictIdleServiceState(sub.getServiceName())) {
+					&& serviceStates.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
+					&& !evictIdleServiceState(sub.getServiceName())) {
 					warnSvcRejected("unique service names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
 					r.SendResultCode(Procedure.ErrorRequestId);
 					return Procedure.Success;
@@ -607,7 +606,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			for (var sub : r.Argument.subs) {
 				session.subscribes.put(sub.getServiceName(), sub);
 				serviceStates.computeIfAbsent(sub.getServiceName(), name -> new ServiceState(this, name))
-						.subscribeAndCollectResult(r, sub, session.sessionId);
+					.subscribeAndCollectResult(r, sub, session.sessionId);
 			}
 			r.SendResult();
 		} finally {
@@ -647,7 +646,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		// svc-01：loads键（name）客户端可控——长度校验（空行自愈已有：removeLoadObservers
 		// 在任意会话关闭时按isEmpty扫除，FND4-66）。
 		if (isOverUtf8Bytes(setServerLoad.Argument.getName(), SVC_NAME_MAX_BYTES)
-				|| isOverUtf8Bytes(setServerLoad.Argument.ip, SVC_IP_MAX_BYTES)) {
+			|| isOverUtf8Bytes(setServerLoad.Argument.ip, SVC_IP_MAX_BYTES)) {
 			warnSvcRejected("setLoad field over size");
 			return 0; // 非Rpc：拒绝即静默丢弃
 		}
@@ -659,7 +658,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			if (!isSenderAlive(setServerLoad.getSender()))
 				return 0;
 			loads.computeIfAbsent(setServerLoad.Argument.getName(), __ -> new LoadObservers(this))
-					.setLoad(setServerLoad.Argument);
+				.setLoad(setServerLoad.Argument);
 			return 0;
 		} finally {
 			editLock.unlock();
@@ -689,13 +688,13 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private final @NotNull ThreadingServer threading;
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
-	                            @NotNull Config config) throws Exception {
+								@NotNull Config config) throws Exception {
 		this(ipaddress, port, config, "autokeys");
 	}
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
-	                            @NotNull Config config,
-	                            @NotNull String autokeys) throws Exception {
+								@NotNull Config config,
+								@NotNull String autokeys) throws Exception {
 		ZezeCounter.tryInit();
 		applyLogLevelProperty(); // FND4-64：显式启动动作（仅显式指定logLevel属性才动配置）
 		config.parseCustomize(this.conf);
@@ -703,19 +702,19 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		server = new NetServer(this, config);
 
 		server.AddFactoryHandle(EditService.TypeId_, new Service.ProtocolFactoryHandle<>(
-				EditService::new, this::processEditService, TransactionLevel.None, DispatchMode.Critical));
+			EditService::new, this::processEditService, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(Subscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Subscribe::new, this::processSubscribe, TransactionLevel.None, DispatchMode.Critical));
+			Subscribe::new, this::processSubscribe, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(UnSubscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
-				UnSubscribe::new, this::processUnSubscribe, TransactionLevel.None, DispatchMode.Critical));
+			UnSubscribe::new, this::processUnSubscribe, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
-				KeepAlive::new, null, TransactionLevel.None, DispatchMode.Direct));
+			KeepAlive::new, null, TransactionLevel.None, DispatchMode.Direct));
 		server.AddFactoryHandle(AllocateId.TypeId_, new Service.ProtocolFactoryHandle<>(
-				AllocateId::new, this::processAllocateId, TransactionLevel.None, DispatchMode.Direct));
+			AllocateId::new, this::processAllocateId, TransactionLevel.None, DispatchMode.Direct));
 		server.AddFactoryHandle(SetServerLoad.TypeId_, new Service.ProtocolFactoryHandle<>(
-				SetServerLoad::new, this::processSetLoad, TransactionLevel.None, DispatchMode.Critical));
+			SetServerLoad::new, this::processSetLoad, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(Identify.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Identify::new, this::processIdentify, TransactionLevel.None, DispatchMode.Direct));
+			Identify::new, this::processIdentify, TransactionLevel.None, DispatchMode.Direct));
 
 		threading = new ThreadingServer(server, conf);
 		threading.RegisterProtocols(server);
@@ -726,7 +725,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		serverSocket = server.newServerSocket(ipaddress, port,
-				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
+			new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 		server.start();
 		id128Server = new Id128UdpServer(id128Table, null, port); // todo 先使用和tcp一样的端口.自动选择下一步.
 		id128Server.start();
@@ -796,7 +795,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		// evictIdleAutoKey）；全部条目持锁（病态并发）时拒绝。竞态窗口内可能略超
 		// 上限（多线程同时computeIfAbsent），有界即可（判例同口径）。
 		if (!autoKeys.containsKey(name) && autoKeys.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
-				&& !evictIdleAutoKey()) {
+			&& !evictIdleAutoKey()) {
 			warnAllocateIdRejected("unique names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
 			r.SendResultCode(Procedure.ErrorRequestId);
 			return Procedure.Success;
@@ -848,7 +847,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			return; // 限频窗口内静默拒绝（race下至多多记几条）
 		lastAllocateIdRejectLogMs = now;
 		logger.error("AllocateId rejected (possible attack or misbehaving client), cached names={}: {}",
-				autoKeys.size(), reason);
+			autoKeys.size(), reason);
 	}
 
 	public void stop() throws Exception {
@@ -898,33 +897,18 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 		@Override
 		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
-		                             @NotNull ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) {
+									 @NotNull ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			if (factoryHandle.Mode == DispatchMode.Direct) {
 				// 有几个direct方式的协议,为了性能就不考虑和其它非direct协议的处理顺序了,但因为在IO线程串行处理,这些协议本身的处理还是有顺序的
 				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode).call();
 			} else {
 				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
-						.dispatchMode(factoryHandle.Mode)
-						.executeOneByOne(p.getSender(), oneByOneByKey);
+					.dispatchMode(factoryHandle.Mode)
+					.executeOneByOne(p.getSender(), oneByOneByKey);
 			}
 			// 不支持事务，由于这里直接OneByOne执行，所以下面两个方法就不重载了。
 		}
-		/*
-		@Override
-		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-			// 不支持事务
-			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
-					.dispatchMode(factoryHandle.Mode).runNow();
-		}
-
-		@Override
-		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
-																@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-			// 不支持事务
-			TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
-		}
-		*/
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -981,8 +965,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			logger.info("Start Raft=RunAllNodes");
 			//noinspection unused
 			try (var raft1 = new ServiceManagerWithRaft("127.0.0.1:6556", RaftConfig.load(raftConf));
-			     var raft2 = new ServiceManagerWithRaft("127.0.0.1:6557", RaftConfig.load(raftConf));
-			     var raft3 = new ServiceManagerWithRaft("127.0.0.1:6558", RaftConfig.load(raftConf))) {
+				 var raft2 = new ServiceManagerWithRaft("127.0.0.1:6557", RaftConfig.load(raftConf));
+				 var raft3 = new ServiceManagerWithRaft("127.0.0.1:6558", RaftConfig.load(raftConf))) {
 				synchronized (Thread.currentThread()) {
 					Thread.currentThread().wait();
 				}
