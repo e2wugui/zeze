@@ -279,6 +279,9 @@ public class ProviderService extends HandshakeClient {
 		}
 
 		// 并通知所有links。
+		// Bind/Subscribe 是 Rpc，实例一次性（Send 后 sessionId 永久占用）：每个 link 各自 new
+		// 发送，对齐 OnHandshakeDone 的每连接新实例形态——复用单实例在 ≥2 条就绪连接时第二次
+		// Send 必抛 IllegalStateException，直落热更不可回滚区 halt（FND17 arch-01）。
 		if (!config.isDynamic()) {
 			providerApp.lock();
 			try {
@@ -286,10 +289,11 @@ public class ProviderService extends HandshakeClient {
 			} finally {
 				providerApp.unlock();
 			}
-			var bind = new Bind();
-			bind.Argument.getModules().put(module.getId(), config);
-			for (var link : links.values())
+			for (var link : links.values()) {
+				var bind = new Bind();
+				bind.Argument.getModules().put(module.getId(), config);
 				bind.Send(link.TryGetReadySocket());
+			}
 		} else {
 			providerApp.lock();
 			try {
@@ -297,10 +301,11 @@ public class ProviderService extends HandshakeClient {
 			} finally {
 				providerApp.unlock();
 			}
-			var sub = new Subscribe();
-			sub.Argument.getModules().put(module.getId(), config);
-			for (var link : links.values())
+			for (var link : links.values()) {
+				var sub = new Subscribe();
+				sub.Argument.getModules().put(module.getId(), config);
 				sub.Send(link.TryGetReadySocket());
+			}
 		}
 	}
 
