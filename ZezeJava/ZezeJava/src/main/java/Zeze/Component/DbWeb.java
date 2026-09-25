@@ -6,7 +6,10 @@ import java.io.InputStreamReader;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -34,9 +37,59 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class DbWeb extends AbstractDbWeb {
 	private static final Logger logger = LogManager.getLogger(DbWeb.class);
+
+	// token鉴权（FND8-66范式，FND14 comp-02用户裁决）：DbWeb暴露全库读/写/删/清表，挂载在
+	// 共享HttpServer上无法按端点绑地址（官方样例不传host即绑0.0.0.0），"内部网络纪律"不可
+	// 履行——强制token防误触（端口扫描/错端口curl）优先于防攻击。无参构造保持零配置可用：
+	// 自动生成随机token并打日志；Index页保持开放（静态外壳无数据），六个数据端点fail-closed。
+	private static final String TOKEN_HEADER = "X-Zeze-Token";
+	private static final String TOKEN_QUERY_KEY = "token";
+	private final String token;
+
+	public DbWeb() {
+		this(null);
+	}
+
+	/**
+	 * 构造DbWeb。
+	 *
+	 * @param token 鉴权token；null/空白时自动生成随机token并打日志（默认强制鉴权、零配置可用）
+	 */
+	public DbWeb(String token) {
+		this.token = token != null && !token.isBlank() ? token : generateToken();
+		logger.warn("DbWeb enabled: db web endpoints require token"
+						+ " (pass via '{}' header or '{}' query param). token={}",
+				TOKEN_HEADER, TOKEN_QUERY_KEY, this.token);
+	}
+
+	static String generateToken() {
+		var bytes = new byte[24];
+		new SecureRandom().nextBytes(bytes);
+		return Base64.getEncoder().encodeToString(bytes);
+	}
+
+	/** token校验：X-Zeze-Token头或token查询参数携带，MessageDigest常量时间比较。 */
+	static boolean checkToken(String token, HttpExchange x) {
+		var request = x.request();
+		var presented = request != null ? request.headers().get(TOKEN_HEADER) : null;
+		if (presented == null)
+			presented = x.queryMap().get(TOKEN_QUERY_KEY);
+		return presented != null && MessageDigest.isEqual(
+				token.getBytes(StandardCharsets.UTF_8), presented.getBytes(StandardCharsets.UTF_8));
+	}
+
+	/** token失配403并代回应答；返回false时servlet不得继续处理。 */
+	private boolean checkAuth(HttpExchange x) {
+		if (checkToken(token, x))
+			return true;
+		logger.warn("DbWeb: reject unauthorized request from {}", x.channel().remoteAddress());
+		x.close(x.sendPlainText(HttpResponseStatus.FORBIDDEN, "forbidden"));
+		return false;
+	}
 
 	private Application zeze;
 	private String indexHtml;
@@ -61,7 +114,7 @@ public class DbWeb extends AbstractDbWeb {
 	}
 
 	@Override
-	public void Initialize(AppBase app) throws Exception {
+	public void Initialize(@NotNull AppBase app) throws Exception {
 		logger.debug("start db web");
 		super.Initialize(app);
 		zeze = app.getZeze();
@@ -89,6 +142,8 @@ public class DbWeb extends AbstractDbWeb {
 
 	@Override
 	protected void OnServletListTable(HttpExchange x) {
+		if (!checkAuth(x))
+			return;
 		try {
 			var tables = zeze.getTables().values().stream().map(Table::getName).toArray();
 			x.sendJson(HttpResponseStatus.OK, toJsonForView(tables));
@@ -132,6 +187,8 @@ public class DbWeb extends AbstractDbWeb {
 
 	@Override
 	protected void OnServletWalkTable(HttpExchange x) {
+		if (!checkAuth(x))
+			return;
 		try {
 			var qm = x.queryMap();
 			var tableName = qm.get("t");
@@ -170,6 +227,8 @@ public class DbWeb extends AbstractDbWeb {
 
 	@Override
 	protected void OnServletGetValue(HttpExchange x) {
+		if (!checkAuth(x))
+			return;
 		try {
 			var qm = x.queryMap();
 			var tableName = qm.get("t");
@@ -196,6 +255,8 @@ public class DbWeb extends AbstractDbWeb {
 
 	@Override
 	protected void OnServletPutRecord(HttpExchange x) {
+		if (!checkAuth(x))
+			return;
 		try {
 			var qm = x.queryMap();
 			var tableName = qm.get("t");
@@ -231,6 +292,8 @@ public class DbWeb extends AbstractDbWeb {
 
 	@Override
 	protected void OnServletDeleteRecord(HttpExchange x) {
+		if (!checkAuth(x))
+			return;
 		try {
 			var qm = x.queryMap();
 			var tableName = qm.get("t");
@@ -280,6 +343,8 @@ public class DbWeb extends AbstractDbWeb {
 	protected void OnServletClearTable(HttpExchange x) {
 		var beginStream = false;
 		try {
+			if (!checkAuth(x)) // 守卫必须在beginStream之前：流式应答开始后无法再回403
+				return;
 			var qm = x.queryMap();
 			var tableName = qm.get("t");
 			Objects.requireNonNull(tableName, "tableName");

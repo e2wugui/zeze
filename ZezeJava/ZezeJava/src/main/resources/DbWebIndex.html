@@ -46,9 +46,22 @@
         hasMore: false
     };
 
+    // token：优先URL参数（?token=xxx 进入时缓存），之后取localStorage；无token不带参数（服务端403时提示输入）
+    function withToken(url) {
+        const fromUrl = new URLSearchParams(location.search).get('token');
+        if (fromUrl) localStorage.setItem('dbweb_token', fromUrl);
+        const t = fromUrl || localStorage.getItem('dbweb_token') || '';
+        if (!t) return url;
+        return url + (url.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(t);
+    }
+
     async function init() {
         try {
-            const response = await fetch(API.tables);
+            const response = await fetch(withToken(API.tables));
+            if (response.status === 403) {
+                const t = prompt('DbWeb 需要访问 token（服务启动日志中查看）');
+                if (t) { localStorage.setItem('dbweb_token', t); return init(); }
+            }
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const tables = await response.json();
             const select = document.getElementById('tableList');
@@ -68,7 +81,7 @@
             pagination.currentTable = table;
 
             const url = `${API.keys}?t=${table}&k=${encodeURIComponent(pagination.startKey)}&n=${pagination.pageSize}`;
-            const response = await fetch(url);
+            const response = await fetch(withToken(url));
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const { keys, hasMore } = await response.json();
@@ -107,7 +120,7 @@
             const key = document.getElementById('keyList').value;
             const url = `${API.value}?t=${table}&k=${key}`;
             
-            const response = await fetch(url);
+            const response = await fetch(withToken(url));
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const value = await response.json();
@@ -130,7 +143,7 @@
             }
             
             const url = `${API.save}?t=${table}&k=${key}`;
-            const response = await fetch(url, {
+            const response = await fetch(withToken(url), {
                 method: 'Put',
                 headers: { 'Content-Type': 'application/json' },
                 body: value
@@ -157,7 +170,7 @@
             if (!confirmed) return;
 
             const url = `${API.delete}?t=${table}&k=${encodeURIComponent(key)}`;
-            const response = await fetch(url, { method: 'Delete' });
+            const response = await fetch(withToken(url), { method: 'Delete' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             alert('Key deleted successfully.');
