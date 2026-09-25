@@ -24,9 +24,11 @@ public class Verify {
 		zeze.checkpointRun(); // 【注意】如果存在多个app，需要所有app都checkpoint，这里只保证当前app提交。
 		var counter = new AtomicLong();
 		var total = new AtomicLong();
-		var lastK = new OutObject<>(new Id128());
+		// null哨兵：(0,0)是合法的首个gid（Tid128Cache对齐TidCache先返后增后，SM从零起grant的段首号
+		// 会真实发放），不能再用零值Id128充当"无前驱"，否则全新部署的首条记录即被误判乱序。
+		var lastK = new OutObject<Id128>();
 		zeze.getHistoryModule().getHistoryTable().walkDatabase((key, value) -> {
-			if (lastK.value.compareTo(key) >= 0) {
+			if (lastK.value != null && lastK.value.compareTo(key) >= 0) {
 				logger.error("out of Id128 order: {}, {}", lastK.value, key);
 				assert false; // XXX 这里会出现断言失败。
 			}
