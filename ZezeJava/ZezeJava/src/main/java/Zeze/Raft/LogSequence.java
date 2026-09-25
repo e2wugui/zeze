@@ -402,6 +402,12 @@ public class LogSequence {
 		}
 
 		private void put(RaftLog log, boolean isApply) throws RocksDBException {
+			put(log, isApply, null);
+		}
+
+		// raft-01（FND16）：batch形态——存根与日志合入同一WriteBatch原子提交（见appendLog）。
+		// 查重读（默认ReadOptions）仍在组装期执行，与单写形态语义一致。
+		private void put(RaftLog log, boolean isApply, RocksDatabase.Batch batch) throws RocksDBException {
 			var key = ByteBuffer.Allocate(32);
 			log.getLog().getUnique().encode(key);
 
@@ -419,11 +425,18 @@ public class LogSequence {
 
 			var value = ByteBuffer.Allocate(32);
 			new UniqueRequestState(log, isApply).encode(value);
-			table.put(writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+			if (batch != null)
+				table.put(batch, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+			else
+				table.put(writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 		}
 
 		public void save(RaftLog log) throws RocksDBException {
 			put(log, false);
+		}
+
+		public void save(RaftLog log, RocksDatabase.Batch batch) throws RocksDBException {
+			put(log, false, batch);
 		}
 
 		public void apply(RaftLog log) throws RocksDBException {
@@ -800,10 +813,18 @@ public class LogSequence {
 
 	// package-private：headless单测直接落日志后驱动应用循环。
 	void saveLog(RaftLog log) throws RocksDBException {
+		saveLog(log, null);
+	}
+
+	// raft-01（FND16）：batch形态——与unique存根同一WriteBatch原子提交（见appendLog）。
+	void saveLog(RaftLog log, RocksDatabase.Batch batch) throws RocksDBException {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(log.getIndex());
 		var value = log.encode();
-		logs.put(writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+		if (batch != null)
+			logs.put(batch, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+		else
+			logs.put(writeOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 
 		if (isDebugEnabled)
 			logger.debug("{}-{} RequestId={} Index={} Count={}", raft.getName(), raft.isLeader(),
@@ -993,6 +1014,11 @@ public class LogSequence {
 	// 测试钩子（一次性）：非null时在unique存根写之前执行并自动置null，注入存根写失败，
 	// 验证apply成功后存根写失败的重试不重放增量。仅测试使用。
 	Action0 testHookBeforeUniqueApply;
+
+	// 一次性测试注入（raft-01钉板）：appendLog内存根写之后、日志写/提交之前抛出——
+	// 合批前=两笔独立写，此位置失败留孤儿存根；合批后=组装失败两笔同弃（try-with-resources
+	// 丢弃未提交batch）。
+	Action0 testHookBetweenStubAndLog;
 
 	// package-private：headless单测直接驱动应用循环，理由同saveLog。
 	void tryApply(RaftLog lastApplicableLog, long count) throws Exception {
@@ -1275,9 +1301,23 @@ public class LogSequence {
 				throw new RaftRetryException("not leader"); // 快速失败
 
 			var raftLog = new RaftLog(term, lastIndex + 1, log);
-			if (raftLog.getLog().getUnique().getRequestId() > 0)
-				openUniqueRequests(raftLog.getLog().getCreateTime()).save(raftLog);
-			saveLog(raftLog);
+			// raft-01（FND16）：unique存根与日志合入同一WriteBatch原子提交。原先两笔独立
+			// sync写，中间失败/崩溃留孤儿存根（!isApplied且日志不存在）：apply遍历日志、
+			// removeLog先readLog（null即跳过）都触达不了它，同号重发命中DuplicateRequest
+			// 不可服务直到按天过期（默认7天）。顺序必须存根先：反序在存根写失败时lastIndex
+			// 未推进，重发以同一(term,index)复用index重写日志——破坏日志匹配不变式（见下方
+			// lastIndex注释），双重执行+状态机分叉双害。合批后两行同生共死，兼省一次fsync。
+			try (var batch = database.borrowBatch()) {
+				if (raftLog.getLog().getUnique().getRequestId() > 0)
+					openUniqueRequests(raftLog.getLog().getCreateTime()).save(raftLog, batch);
+				if (testHookBetweenStubAndLog != null) {
+					var hook = testHookBetweenStubAndLog;
+					testHookBetweenStubAndLog = null; // 一次性
+					hook.run(); // 测试注入：存根写之后、日志写/提交之前失败
+				}
+				saveLog(raftLog, batch);
+				batch.commit(writeOptions);
+			}
 
 			// 容易出错的放到前面。
 			if (null != callback) {
