@@ -398,7 +398,11 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	@Override
 	public void preAllocSize(int size) {
-		(isRequest ? Argument : Result).preAllocSize(size - 1 - 9 - 9); // [1]header + [9]resultCode + [9]sessionId
+		// 扣最小保证字节（各变长字段按最少1B计），保留最坏-最小的16B差作稳态迟滞带：估算为静态
+		// per-class的high-water mark，实例尺寸天然抖动（变长字段/resultCode有无），带宽吸收小抖动
+		// 以免EnsureWrite扩容（toPower2跳变+全量arraycopy）；零冗余精确贴合反而每次尺寸上探都付
+		// 一次pow2扩容。对齐Protocol.preAllocSize(int)惯例（正向留10、反推扣1、带宽9B）。
+		(isRequest ? Argument : Result).preAllocSize(size - 1 - 1 - 1);
 	}
 
 	@Override
