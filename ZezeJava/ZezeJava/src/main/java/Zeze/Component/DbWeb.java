@@ -195,7 +195,8 @@ public class DbWeb extends AbstractDbWeb {
 			var key = qm.get("k");
 			var n = qm.get("n");
 			Objects.requireNonNull(tableName, "tableName");
-			var count = n != null ? Math.min(Integer.parseInt(n), 1_000_000) : 100;
+			// 下界钳制到1：n<=0时试探逻辑会退化为空页+hasMore=true（分页死循环）甚至remove(-1)回500
+			var count = n != null ? Math.max(1, Math.min(Integer.parseInt(n), 1_000_000)) : 100;
 			var table = (TableX<?, ?>)zeze.getTable(tableName);
 			if (table == null) {
 				x.sendPlainText(HttpResponseStatus.OK, "not found table: \"" + tableName + '"');

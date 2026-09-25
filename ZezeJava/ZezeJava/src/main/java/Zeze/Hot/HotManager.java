@@ -731,8 +731,9 @@ public class HotManager extends ClassLoader {
 						// 可能不需要报告，里面的流程已经报告完成。
 						renameDistributes();
 					}
-					// 返回契约：ready被本调用消费即返回0（成败一律经setIdle(rc)上报状态机，
-					// 返回值不承载安装结果）；Procedure.Exception仅表示"未处理"（无ready/会话跳过/外层异常）。
+					// 返回契约：安装流程完整走完（无论成败）即返回0，成败一律经setIdle(rc)上报状态机，
+					// 返回值不承载安装结果；Procedure.Exception=未处理（无ready/会话跳过）或安装过程抛异常
+					// （同样经setIdle上报）。数值仅诊断用途，调用方不应据其区分成败。
 					return 0;
 				} catch (Throwable ex) {
 					logger.error("", ex);
