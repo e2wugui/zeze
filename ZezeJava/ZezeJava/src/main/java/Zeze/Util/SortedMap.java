@@ -43,6 +43,8 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 				e.next = this;
 				return 1;
 			}
+			if (c == 0) // 链头完全重复（hash同且compareTo==0）：与链中c==0同判，返回-1让调用方不计size
+				return -1;
 			if (c < 0) {
 				for (var s = this; ; ) {
 					var n = s.next;
