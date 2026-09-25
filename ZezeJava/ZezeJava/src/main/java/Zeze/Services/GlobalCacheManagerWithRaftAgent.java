@@ -208,8 +208,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			agent.setFastFail();
 			Transaction trans = Transaction.getCurrent();
 			if (trans == null)
-				throw new IllegalStateException("Acquire Timeout");
-			trans.throwAbort("Acquire Timeout", null);
+				throw new IllegalStateException("Acquire Timeout", e); // 根因随链传播，否则真实异常被吞
+			trans.throwAbort("Acquire Timeout", e);
 			// never run here
 		}
 		if (!rpc.isTimeout())

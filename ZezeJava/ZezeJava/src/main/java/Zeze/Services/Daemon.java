@@ -504,9 +504,11 @@ public class Daemon {
 							logger.warn("sendCommand Release-{} failed, skip this round.", i, e);
 						}
 						}
-						//noinspection BusyWait
-						Thread.sleep(1000);
 					}
+					// sleep在for外：放循环体内会把整轮扫描周期放大globalCount倍（每global各睡1s），
+					// Release重发仍为每轮一次，仅节奏变密（Server端幂等，无碍）
+					//noinspection BusyWait
+					Thread.sleep(1000);
 				}
 			} catch (Throwable ex) { // print stacktrace.
 				logger.fatal("Monitor.run", ex);

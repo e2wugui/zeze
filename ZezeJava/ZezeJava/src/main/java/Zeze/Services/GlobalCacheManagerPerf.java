@@ -139,9 +139,10 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 			var sb = new StringBuilder().append("SerialIds = ").append(serialIds).append('\n');
 			for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {
 				long count = totalAcquireCounts0[i];
+				long totalAcquireTime = totalAcquireTimes[i].sumThenReset(); // 零计数轮也清零：残留会使下轮均值虚高
 				sb.append("Acquires.").append(ACQUIRE_STATE_NAMES[i]).append(" = ").append(count);
 				if (count > 0) {
-					sb.append(", ").append(totalAcquireTimes[i].sumThenReset() / count / 1_000).append(" us/acquire, max: ")
+					sb.append(", ").append(totalAcquireTime / count / 1_000).append(" us/acquire, max: ")
 							.append(maxAcquireTimes[i].getAndSet(0) / 1_000_000).append(" ms");
 				}
 				for (var e : totalAcquireResults[i].entrySet())
@@ -150,8 +151,9 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 				sb.append('\n');
 			}
 			sb.append("Reduces          = ").append(totalReduceCountSum);
+			var totalReduceTimeSum = totalReduceTime.sumThenReset(); // 同acquires：零计数轮也清零
 			if (totalReduceCountSum > 0) {
-				sb.append(", ").append(totalReduceTime.sumThenReset() / totalReduceCountSum / 1_000)
+				sb.append(", ").append(totalReduceTimeSum / totalReduceCountSum / 1_000)
 						.append(" us/reduce, max: ").append(maxReduceTime.getAndSet(0) / 1_000_000).append(" ms");
 				for (var e : totalReduceResults.entrySet())
 					sb.append(", r=").append(e.getKey()).append(':').append(e.getValue().sum());

@@ -146,9 +146,12 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		}
 	}
 
+	// SecureRandom线程安全，静态复用：每次new有种子初始化开销（部分实现还要读熵源）
+	private static final @NotNull SecureRandom ivKeyRandom = new SecureRandom();
+
 	public static byte @NotNull [] genIvKey() {
 		byte[] ivKey = new byte[32];
-		new SecureRandom().nextBytes(ivKey);
+		ivKeyRandom.nextBytes(ivKey);
 		return ivKey;
 	}
 

@@ -148,7 +148,7 @@ public class LogService extends AbstractLogService {
 						r.Argument.getCondition().getPattern(),
 						r.Argument.getLimit(), r.Argument.getOffsetFactor());
 			} else
-				throw new IllegalArgumentException("no condition.");
+				return Procedure.LogicError; // 空条件以错误码应答：抛异常会让RPC无应答，客户端等超时
 		}
 
 		r.Result.setRemain(remain);
@@ -183,7 +183,7 @@ public class LogService extends AbstractLogService {
 						r.Argument.getCondition().getPattern(),
 						r.Argument.getLimit());
 			} else
-				throw new IllegalArgumentException("no condition.");
+				return Procedure.LogicError; // 空条件以错误码应答：抛异常会让RPC无应答，客户端等超时
 		}
 
 		r.Result.setRemain(remain);

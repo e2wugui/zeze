@@ -82,9 +82,9 @@ public class TestTid128CacheFutureSelfHeal {
 		Assertions.assertNotSame(f1, f2);
 		Assertions.assertSame(f2, agent.getLastTid128CacheFuture());
 
-		// 自愈后的新分配可用（模拟SM恢复后正常应答）。
+		// 自愈后的新分配可用（模拟SM恢复后正常应答）。next()先返后增（对齐TidCache）：段首号(0,0)也发放。
 		Assertions.assertTrue(f2.setResult(new Tid128Cache(globalName, agent, new Id128(0, 0), 16)));
-		Assertions.assertEquals(new Id128(0, 1), f2.get().next());
+		Assertions.assertEquals(new Id128(0, 0), f2.get().next());
 	}
 
 	@Test

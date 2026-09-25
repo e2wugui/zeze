@@ -53,10 +53,12 @@ public class Tid128Cache extends FastLock {
 		lock();
 		try {
 			if (current.compareTo(end) < 0) {
+				// 先返回后自增（对齐TidCache）：段首号也要发放，原"先增后返"使每段浪费一个号
+				var r = current;
 				current = current.add(1);
 				//noinspection NonAtomicOperationOnVolatileField
 				allocated++; // 这个在锁内了,还警告啊.
-				return current;
+				return r;
 			}
 		} finally {
 			unlock();

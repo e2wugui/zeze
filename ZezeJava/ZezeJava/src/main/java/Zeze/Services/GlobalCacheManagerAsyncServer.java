@@ -362,11 +362,12 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private static long processKeepAliveRequest(@NotNull KeepAlive rpc) {
-		if (rpc.getSender().getUserState() == null) {
+		var userState = rpc.getSender().getUserState(); // 单次读取：检查与转型之间状态可能被并发清除
+		if (userState == null) {
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0;
 		}
-		var sender = (CacheHolder)rpc.getSender().getUserState();
+		var sender = (CacheHolder)userState;
 		sender.setActiveTime(System.currentTimeMillis());
 		rpc.SendResult();
 		return 0;
@@ -379,12 +380,13 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		rpc.Result.globalKey = rpc.Argument.globalKey;
 		rpc.Result.state = acquireState; // default success
 
-		if (rpc.getSender().getUserState() == null) {
+		var userState = rpc.getSender().getUserState(); // 单次读取：检查与转型之间状态可能被并发清除
+		if (userState == null) {
 			rpc.Result.state = StateInvalid;
 			rpc.SendResultCode(AcquireNotLogin);
 		} else {
 			try {
-				var sender = (CacheHolder)rpc.getSender().getUserState();
+				var sender = (CacheHolder)userState;
 				sender.setActiveTime(System.currentTimeMillis());
 				switch (acquireState) {
 				case StateInvalid: // release
