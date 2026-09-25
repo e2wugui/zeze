@@ -383,9 +383,13 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			rpc.SendResultCode(NormalCloseUnbindFail);
 			return 0;
 		}
+		// 循环级发射世代：整个释放循环共用解绑时刻的世代。release在阻塞循环中串行进入，
+		// 若各自捕获，重绑后才进入的key以新世代自证通过守卫，多key快照第2..n个key的
+		// 误杀面重新打开（A2攻防R1-I01）。
+		var fireGeneration = session.generation;
 		for (var k : releaseKeys) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-			release(session, k, false);
+			release(session, k, false, fireGeneration);
 		}
 		rpc.SendResultCode(0);
 		logger.info("After NormalClose global.Count={}", global.size());
@@ -445,7 +449,11 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	}
 
 	private int release(CacheHolder sender, Binary _gKey, boolean noWait) throws InterruptedException {
-		var fireGeneration = sender.generation; // 发射世代：移除前复查（见CacheHolder.generation）
+		// daemon（kick后锁内串行）与acquire的StateInvalid释放（rpc作用域）按各自进入时刻判定
+		return release(sender, _gKey, noWait, sender.generation);
+	}
+
+	private int release(CacheHolder sender, Binary _gKey, boolean noWait, long fireGeneration) throws InterruptedException {
 		while (true) {
 			CacheState cs = global.computeIfAbsent(_gKey, CacheState::new);
 			cs.lock();
@@ -476,7 +484,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				if (sender.generation != fireGeneration) {
 					// 发射后世代已更替（kick/重绑）：本release针对旧世代，跳过移除——
 					// 移除会误杀新incarnation已成功获取的所有权（详见CacheHolder.generation）。
-					return StateInvalid;
+					// 应答按实际持有状态（对齐异步版mismatch分支），不谎报已释放。
+					return cs.getSenderCacheState(sender);
 				}
 				cs.acquireStatePending = StateRemoving;
 
