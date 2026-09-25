@@ -1599,12 +1599,21 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 								continue; // loop done, continue
 							}
 
-							case eMissfirePolicyNothing:
+							case eMissfirePolicyNothing: {
 								// 计算下一次（未来）发生的时间。
-								cronTimer.setNextExpectedTime(CronTimerSpec.cronNextTime(cronTimer.getCronExpression(), now));
+								try {
+									cronTimer.setNextExpectedTime(CronTimerSpec.cronNextTime(cronTimer.getCronExpression(), now));
+								} catch (IllegalArgumentException e) {
+									// 表达式已耗尽（如固定年份已过）：确定性坏数据，对齐下方摘行判例；
+									// 窄化在此处catch而不并入外层列表——外层try还包着调度等路径，
+									// 捕获那里的意外IAE会把健康行误判摘除。抛出形态走摘行而非冲出
+									// per-timer catch使装载事务失败（同节点无辜定时器被跳过装载）。
+									throw new ParseException("cron expression has no next valid time: "
+											+ cronTimer.getCronExpression(), 0);
+								}
 								//TODO: 考虑nextExpectedTime超过endTime的情况要不要取消
 								break;
-
+							}
 							default:
 								throw new UnsupportedOperationException("Unknown MissfirePolicy: "
 										+ cronTimer.getMissfirePolicy());
