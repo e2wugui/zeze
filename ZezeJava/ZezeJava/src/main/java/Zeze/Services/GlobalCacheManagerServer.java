@@ -372,9 +372,10 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		 * 即可 Login 并 Acquire 新权限（写入同一张 acquired）。而 release(session,k,false) 在
 		 * pending 上等待可阻塞数秒（Reduce超时），弱一致迭代器随后会看到新 incarnation 刚获取的
 		 * key 并错误回收——GCM 从未向新进程发 Reduce，其本地仍持 Modify，第三方再获 Modify 形成双写。
-		 * 快照放在解绑之前即可完全关闭该窗口：旧连接未解绑时新进程无法绑定（tryBindSocket 失败），
-		 * 故快照内不可能出现新 incarnation 的权限；解绑后才到达的旧进程在途 acquire 留下的悬挂条目，
-		 * 由后续争用者的 Reduce 自愈（agent 对未缓存记录应答降级成功）。
+		 * 快照关闭迭代面：旧连接未解绑时新进程无法绑定（tryBindSocket 失败），故快照内不可能出现
+		 * 新 incarnation 的权限；解绑后才到达的旧进程在途 acquire 留下的悬挂条目，由后续争用者的
+		 * Reduce 自愈（agent 对未缓存记录应答降级成功）。快照内旧 key 被新 incarnation 重取后再被
+		 * 本循环延迟 release 回收的面，由 CacheHolder.generation 的发射世代守卫关闭（见release）。
 		 */
 		var releaseKeys = new ArrayList<>(session.acquired.keySet());
 		if (!session.tryUnBindSocket(rpc.getSender())) {
@@ -444,6 +445,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	}
 
 	private int release(CacheHolder sender, Binary _gKey, boolean noWait) throws InterruptedException {
+		var fireGeneration = sender.generation; // 发射世代：移除前复查（见CacheHolder.generation）
 		while (true) {
 			CacheState cs = global.computeIfAbsent(_gKey, CacheState::new);
 			cs.lock();
@@ -471,6 +473,11 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				}
 				if (cs.acquireStatePending == StateRemoved)
 					continue;
+				if (sender.generation != fireGeneration) {
+					// 发射后世代已更替（kick/重绑）：本release针对旧世代，跳过移除——
+					// 移除会误杀新incarnation已成功获取的所有权（详见CacheHolder.generation）。
+					return StateInvalid;
+				}
 				cs.acquireStatePending = StateRemoving;
 
 				if (cs.modify == sender)
@@ -973,6 +980,13 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		private volatile long lastErrorTime;
 		private boolean logined = false;
 		private volatile boolean debugMode;
+		// 世代号：kick与成功重绑（tryBindSocket）各递增一次（递增点均在session锁内，单写者）。
+		// 会话按serverId常驻复用同一holder：新incarnation经Login+Acquire写入的所有权记录
+		// 与旧世代共用（cs.modify==sender恒命中），release在进入时捕获、移除段前复查，
+		// 不匹配说明本release针对的世代已被kick/重绑——照常移除即误杀（客户端持成功应答
+		// 却被撤销，第三方再获Modify即双写）。跳过方向fail-closed：宁保留可收敛
+		// （daemon/后续争用者Reduce自愈），不误杀。对齐异步版CacheHolder.generation。
+		private volatile long generation;
 
 		// not under lock
 		void kick() {
@@ -984,6 +998,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				peer.close(kickException); // 关闭连接，强制Agent重新登录。
 			}
 			sessionId = 0; // 清除网络状态。
+			++generation; // 世代更替：此后重绑递增一次，在飞的旧release据此识别过期
 		}
 
 		long getActiveTime() {
@@ -1027,6 +1042,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					// 绑定即刷新活跃时刻（持锁）：achillesHeelDaemon的锁内复查据此识别
 					// 新incarnation，避免旧超时判定kick掉刚Login的新连接。
 					activeTime = System.currentTimeMillis();
+					++generation; // 重绑即新世代：解绑/kick前在飞的release到此为止全部过期
 					return true;
 				}
 				// 每个AutoKeyLocalId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
