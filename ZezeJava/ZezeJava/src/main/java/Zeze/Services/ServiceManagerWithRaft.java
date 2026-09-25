@@ -269,12 +269,17 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 不存在即no-op、Suspect为提示性重发），失败退避重试，上限后fatal留观测。
 		// 残余缺口=进程崩溃窗口内的清理丢失（无持久化待办），周期对账兜底另立项。
 		private void closeSession(Session netSession, int retry) {
-			// 同 dispatchRaftRequest：清理的raft提交不能在 IO 线程上等待。
-			Raft.executeImportantTask(() -> {
-				lock();
-				try {
-					if (closed)
-						return; // 服务已关闭：清理不再落地（重启后由对账收敛），也不再重试
+		// svc-03（FND16）：取消KeepAlive定时器先于closed门禁——close()置closed后本方法
+		// 的清理事务不再落地（重启由对账收敛），但定时器若不取消，rocks.close()的
+		// setRaft(null)后任务体每tick对其裸解引用NPE（周期任务显式吞异常永续，对齐
+		// 非raft版OnSocketClose同步取消的语义）。cancelKeepAlive幂等，重复调用无害。
+		netSession.cancelKeepAlive();
+		// 同 dispatchRaftRequest：清理的raft提交不能在 IO 线程上等待。
+		Raft.executeImportantTask(() -> {
+			lock();
+			try {
+				if (closed)
+					return; // 服务已关闭：清理不再落地（重启后由对账收敛），也不再重试
 					var rc = rocks.newProcedure(() -> {
 						netSession.onClose();
 						return 0L;
