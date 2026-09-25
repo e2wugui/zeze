@@ -113,7 +113,9 @@ public class Distribute {
 
 		var hotAgents = new ArrayList<HotAgent>();
 		for (var hotManager : hotManagers) {
-			hotAgents.add(new HotAgent(hotManager));
+			var hotAgent = new HotAgent(hotManager);
+			hotAgent.start(); // 构造器只登记连接器不建连（autoReconnect仅是断线重连意图）；start内置WaitReady
+			hotAgents.add(hotAgent);
 		}
 		// 开始发布准备阶段。
 		var distributeId = 817123; // 使用魔数。发布流程不并发，不需要动态多值，当然提供动态多值更加完善。
