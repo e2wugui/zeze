@@ -47,13 +47,19 @@ public class LogAgent extends AbstractLogAgent {
 	public void start() throws Exception {
 		client.start();
 		var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
-		if (serviceManagerConf != null && serviceManager != null) {
+		// raft版SM的地址来自raftXml而非ServiceConf节点，按Agent服务名查serviceConfMap必为null，
+		// 旧门槛会跳过serviceManager.start()，raft部署下日志服务静默失效（对齐Application.start）。
+		var isRaftServiceManager = "raft".equals(conf.getServiceManager());
+		if ((serviceManagerConf != null || isRaftServiceManager) && serviceManager != null) {
 			serviceManager.setOnChanged(this::applyOnChanged);
 			serviceManager.start();
 			try {
 				serviceManager.waitReady();
-			} catch (Exception ignored) {
+			} catch (Exception ex) {
 				// raft 版第一次等待由于选择leader原因肯定会失败一次。
+				//noinspection ConstantValue
+				if (ex instanceof InterruptedException)
+					Thread.currentThread().interrupt(); // 恢复被底层清除的中断标志
 				serviceManager.waitReady();
 			}
 			serviceManager.subscribeService(new BSubscribeInfo("Zeze.LogService"));
