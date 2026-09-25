@@ -22,7 +22,6 @@ import org.rocksdb.RocksDBException;
 
 /**
  * # 本地持久化只读缓存（内存Lru + RocksDb + 定期退役）
- *
  * 面向装载后不再修改的参照数据（配置、id映射、资源索引等）：
  * - **查询顺序**：Lru → RocksDb → loader。装载成功即写RocksDb并登记当天days_清单，之后重启也只读RocksDb。
  * - **只读假设**：get返回Lru中的共享实例，无写回API；调用方修改不落库、不同步，淘汰或退役后即丢失。
@@ -138,7 +137,7 @@ public class Cache {
 			// 当出现并发get重复从db读取时，这里的getOrAdd会忽略后面读到的value，返回已经存在的。
 			var decoded = lru.getOrAdd(id, () -> decoder.apply(id, bb));
 			// getOrAdd对factory的null结果原样返回（decoder产null入库后，后续getOrAdd也会返回既有null）
-			return decoded == null || CacheObject.isNull(decoded) ? null : decoded; // 哨兵/null不得裸返（见loader路径注释）
+			return CacheObject.isNull(decoded) ? null : decoded; // 哨兵/null不得裸返（见loader路径注释）
 		}
 
 		// do user loader to load object.
@@ -154,7 +153,7 @@ public class Cache {
 		// NullCache占位负缓存防穿透（5分钟内get短路返回null），但哨兵本身不得返回给调用方：
 		// 首次miss与窗口内重复get必须同为null，cacheId()==""/encode抛UOE的哨兵泄漏即契约破坏。
 		// null防御：decoder路径曾插入的null条目会经"返回已存在值"到达此处。
-		return loaded == null || CacheObject.isNull(loaded) ? null : loaded;
+		return CacheObject.isNull(loaded) ? null : loaded;
 	}
 
 	private void dbSave(@NotNull CacheObject value) throws RocksDBException, IOException {

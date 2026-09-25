@@ -139,6 +139,7 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 		if (fileUpload == null)
 			return;
 		var patchFileName = fileUpload.getFilename();
+		//noinspection ResultOfMethodCallIgnored
 		new File(uploadDir).mkdirs();
 		final File destFile; // 落盘路径必须经净化（FND4-70）：客户端可控文件名不得携带目录成分
 		try {
@@ -148,6 +149,7 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 			x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST, "illegal filename"));
 			return;
 		}
+		//noinspection ResultOfMethodCallIgnored
 		destFile.delete(); // 只保存一份path_all; skip result.
 		if (fileUpload.renameTo(destFile)) {
 			// S3-F2：热更失败路径原样穿透——异常无HTTP应答（请求挂起）且坏补丁留盘毒化

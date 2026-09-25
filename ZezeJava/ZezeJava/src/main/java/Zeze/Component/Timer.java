@@ -240,7 +240,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		if (t == null || !t.isRunning())
 			return null;
 		var stack = t.getProcedureStack();
-		return stack.isEmpty() ? null : stack.get(stack.size() - 1).getZeze();
+		return stack.isEmpty() ? null : stack.getLast().getZeze();
 	}
 
 	static void checkRunningTransaction(@NotNull String methodName) {
@@ -1518,7 +1518,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		} while (node.value != last);
 	}
 
-	private void loadTimer(@NotNull OutLong nodeId, long last) throws ParseException {
+	private void loadTimer(@NotNull OutLong nodeId, long last) {
 		var node = _tNodes.get(nodeId.value);
 		if (node == null) {
 			logger.warn("loadTimer not found nodeId={}", nodeId.value);

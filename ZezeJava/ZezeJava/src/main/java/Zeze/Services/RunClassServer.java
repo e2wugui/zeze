@@ -82,6 +82,7 @@ public class RunClassServer implements HttpFileUploadHandle {
 		if (fileUpload == null)
 			return;
 		var patchFileName = fileUpload.getFilename();
+		//noinspection ResultOfMethodCallIgnored
 		new File(uploadDir).mkdirs();
 		final File destFile; // 落盘路径必须经净化（FND4-70）：客户端可控文件名不得携带目录成分
 		try {
@@ -91,6 +92,7 @@ public class RunClassServer implements HttpFileUploadHandle {
 			x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST, "illegal filename"));
 			return;
 		}
+		//noinspection ResultOfMethodCallIgnored
 		destFile.delete(); // run class 总是覆盖; skip result.
 		if (fileUpload.renameTo(destFile)) {
 			var path = destFile.toPath();

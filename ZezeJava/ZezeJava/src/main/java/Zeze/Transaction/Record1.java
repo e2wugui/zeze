@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManagerConst;
@@ -145,15 +146,15 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			logger.trace("Acquire NewState={} {}", state, this);
 		var tableId = table.getId();
 		switch (state) {
-			case GlobalCacheManagerConst.StateInvalid:
-				ZezeCounter.instance.tableCounter(tableId, ZezeCounter.TableMetric.ACQUIRE_INVALID).increment();
-				break;
-			case GlobalCacheManagerConst.StateShare:
-				ZezeCounter.instance.tableCounter(tableId, ZezeCounter.TableMetric.ACQUIRE_SHARE).increment();
-				break;
-			case GlobalCacheManagerConst.StateModify:
-				ZezeCounter.instance.tableCounter(tableId, ZezeCounter.TableMetric.ACQUIRE_MODIFY).increment();
-				break;
+		case GlobalCacheManagerConst.StateInvalid:
+			ZezeCounter.instance.tableCounter(tableId, ZezeCounter.TableMetric.ACQUIRE_INVALID).increment();
+			break;
+		case GlobalCacheManagerConst.StateShare:
+			ZezeCounter.instance.tableCounter(tableId, ZezeCounter.TableMetric.ACQUIRE_SHARE).increment();
+			break;
+		case GlobalCacheManagerConst.StateModify:
+			ZezeCounter.instance.tableCounter(tableId, ZezeCounter.TableMetric.ACQUIRE_MODIFY).increment();
+			break;
 		}
 		return agent.acquire(table.encodeGlobalKey(key), state, fresh, noWait);
 	}
@@ -309,10 +310,12 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			// 这个违背了OldTable不修改的原则，但没办法了。
 			var databaseTransactionOldTmp = getDatabaseTransactionOldTmp();
 			if (databaseTransactionOldTmp != null) {
-				//noinspection DataFlowIssue
 				// oldTable按KV语义使用（load迁移路径与下方localRocksCache同），必须传编码后的
 				// snapshotKeyLocal；关系映射表的snapshotKey是SQLStatement，传入必抛CCE。
-				table.getOldTable().remove(databaseTransactionOldTmp, snapshotKeyLocal);
+				var oldTable = table.getOldTable();
+				if (oldTable != null) {
+					oldTable.remove(databaseTransactionOldTmp, snapshotKeyLocal);
+				}
 			}
 		}
 	}

@@ -195,17 +195,13 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 		}
 		if (entry == null)
 			// 必须按loadClass契约抛ClassNotFoundException而不是继续走下去：
-			// getInputStream(null)只会得到NullPointerException，调用方按CNFE写的
+			// getInputStream(null)只会得到NullPointerException，调用方按 CNFE 写的
 			// 回退逻辑（拼错类名、反射探测、编译器探测）全部失效。
 			throw new ClassNotFoundException(className);
 		return loadModuleClass(className, entry);
 	}
 
 	private Class<?> loadModuleClass(String className, ZipEntry entry) {
-		// 采用标准方式重载findClass以后，不需要判断这个了。
-//		var loaded = findLoadedClass(className);
-//		if (null != loaded)
-//			return loaded;
 		try (var inputStream = getJarFile().getInputStream(entry)) {
 			var bytes = inputStream.readAllBytes();
 			return defineClass(className, bytes, 0, bytes.length);

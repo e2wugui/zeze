@@ -1007,6 +1007,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				peer.close(kickException); // 关闭连接，强制Agent重新登录。
 			}
 			sessionId = 0; // 清除网络状态。
+			//noinspection NonAtomicOperationOnVolatileField
 			++generation; // 世代更替：此后重绑递增一次，在飞的旧release据此识别过期
 		}
 
@@ -1051,6 +1052,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					// 绑定即刷新活跃时刻（持锁）：achillesHeelDaemon的锁内复查据此识别
 					// 新incarnation，避免旧超时判定kick掉刚Login的新连接。
 					activeTime = System.currentTimeMillis();
+					//noinspection NonAtomicOperationOnVolatileField
 					++generation; // 重绑即新世代：解绑/kick前在飞的release到此为止全部过期
 					return true;
 				}
