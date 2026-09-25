@@ -957,7 +957,10 @@ public final class Application extends ReentrantLock {
 				takeover = null;
 			}
 			if (!isNoDatabase())
-				stopStep("clearInUse", () -> conf.clearInUse(databases));
+				// txn-01（FND16）：停机路径有界（64次重试+墙钟双封顶）——Redis 持锁者崩溃
+				// 残留租约时放弃等待（stopStep 记 error 继续，残留与 kill -9 同构可恢复），
+				// 不再无限阻塞 stop() 持 Application 锁（Daemon 双开放大器随之消失）。
+				stopStep("clearInUse", () -> conf.clearInUse(databases, 64));
 
 			for (var e : databases.entrySet())
 				stopStep("db.close '" + e.getKey() + '\'', e.getValue()::close);
