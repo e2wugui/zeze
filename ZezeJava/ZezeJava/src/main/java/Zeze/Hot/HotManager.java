@@ -731,6 +731,8 @@ public class HotManager extends ClassLoader {
 						// 可能不需要报告，里面的流程已经报告完成。
 						renameDistributes();
 					}
+					// 返回契约：ready被本调用消费即返回0（成败一律经setIdle(rc)上报状态机，
+					// 返回值不承载安装结果）；Procedure.Exception仅表示"未处理"（无ready/会话跳过/外层异常）。
 					return 0;
 				} catch (Throwable ex) {
 					logger.error("", ex);
@@ -780,7 +782,7 @@ public class HotManager extends ClassLoader {
 
 	public void renameDistributes() {
 		var files = new File(distributeDir).listFiles();
-		var formatter = new SimpleDateFormat("yyyy-MM-dd_hh-mm-ss-SSS");
+		var formatter = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS"); // HH为24小时制，hh会把晚8点与早8点叠进同一目录名
 		var backupDir = Path.of(distributeDir, "backup", formatter.format(new Date()));
 		//noinspection ResultOfMethodCallIgnored
 		backupDir.toFile().mkdirs();

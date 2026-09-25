@@ -418,7 +418,7 @@ public class Distribute {
 				for (var e : beanReadonlyMaybe) {
 					var clsName = e.class1.getName();
 					var beanName = clsName.substring(0, clsName.length() - "ReadOnly".length());
-					if (!exportBean & beanNames.contains(beanName)) {
+					if (!exportBean && beanNames.contains(beanName)) {
 						moduleJar.putNextEntry(e.entry);
 						moduleJar.write(Files.readAllBytes(e.file.toPath()));
 					} else {
