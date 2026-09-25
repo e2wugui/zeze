@@ -549,7 +549,10 @@ public final class Config {
 	}
 
 	public void clearOpenDatabaseFlag() {
-		var defDbConf = getDatabaseConfMap().get(getDefaultTableConf().getDatabaseName());
+		var databaseName = getDefaultTableConf().getDatabaseName();
+		var defDbConf = getDatabaseConfMap().get(databaseName);
+		if (defDbConf == null) // 对齐Application.getDatabase判例：失配带名报错而非裸NPE
+			throw new IllegalStateException("database not exist name=" + databaseName);
 		if (defDbConf.databaseType == DbType.MySql) {
 			var db = new DatabaseMySql(null, defDbConf);
 			try {
