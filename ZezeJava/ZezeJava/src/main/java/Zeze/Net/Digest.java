@@ -30,11 +30,12 @@ public final class Digest {
 	}
 
 	public static byte @NotNull [] md5(byte @NotNull [] message, int offset, int len) {
+		var md5 = md5Local.get();
 		try {
-			var md5 = md5Local.get();
 			md5.update(message, offset, len);
 			return md5.digest();
 		} catch (Exception e) {
+			md5.reset(); // update抛异常则digest()未执行、实例残留半更新状态，会污染该线程后续复用
 			throw Task.forceThrow(e);
 		}
 	}
