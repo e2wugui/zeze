@@ -555,6 +555,25 @@ public class HotManager extends ClassLoader {
 		jars.put(file, jar);
 	}
 
+	// hot-01（FND16）：释放putJar打开的jar句柄并清理zipEntries中指向它的索引
+	// （残留索引的findClass会读到IllegalStateException("zip file closed")，对齐
+	// _install旧interface替换路径的清理语义）。回滚路径专用，close失败记日志不抛
+	// （rename回退比句柄释放更重要），无句柄时幂等no-op。
+	private void closeJar(File file) {
+		var jar = jars.remove(file);
+		if (jar == null)
+			return;
+		for (var it = zipEntries.entrySet().iterator(); it.hasNext(); ) {
+			if (it.next().getValue().jar == jar)
+				it.remove();
+		}
+		try {
+			jar.close();
+		} catch (java.io.IOException e) {
+			logger.error("close jar {} fail", file, e);
+		}
+	}
+
 	/**
 	 * @param namespace module name
 	 * @return HotModule
@@ -603,6 +622,10 @@ public class HotManager extends ClassLoader {
 			throw new RuntimeException("rename fail. " + interfaceSrc + "->" + interfaceDst);
 		putJar(interfaceDst);
 		txn.whileRollback(() -> {
+			// hot-01（FND16）：先释放putJar打开的句柄（含zipEntries索引清理）——Windows下
+			// rename打开着的文件必失败，回退就永远走不到；逆序执行时本动作先于旧interface
+			// 备份回退（:591-596），后者renameTo(interfaceDst)同样依赖句柄已释放。
+			closeJar(interfaceDst);
 			if (!interfaceDst.renameTo(interfaceSrc))
 				logger.error("uninstall interface {} -> {} fail", interfaceDst, interfaceSrc);
 		});
@@ -638,6 +661,15 @@ public class HotManager extends ClassLoader {
 
 		var module = new HotModule(this, namespace, moduleDstFile);
 		modules.put(module.getName(), module);
+		// hot-01（FND16）：put 即登记回滚清理。失败点在 setService 之前时该条目是 service==null
+		// 的半成品，MainRollbackAction.recoverModules 只恢复旧模块（新装条目 exists==null 无恢复
+		// 也无清理），残留条目使下次重装在锁外 stopBefore() 必 NPE，热更通道砖死到进程重启。
+		// 本动作注册最晚、rollback 逆序最先执行：close 释放懒开的 jar 句柄后，前面注册的
+		// jar rename 回退才在 Windows 上可行。remove(key,value) 条件移除幂等。
+		txn.whileRollback(() -> {
+			modules.remove(module.getName(), module);
+			module.close();
+		});
 		return module;
 	}
 
