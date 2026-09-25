@@ -22,14 +22,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class LoginQueueServer extends AbstractLoginQueueServer {
-    // FND7-20：令牌的防伪完全依赖secretKey/secretIv的保密。原用 Zeze.Util.Random
-    // （ThreadLocalRandom，种子仅由时间源混合而来）生成，攻击者经过一次排队登录取得
-    // 密文样本后可离线穷举种子并伪造任意serverId/expireTime的令牌绕过排队越权进入。
-    // 必须用CSPRNG（对齐Zeze.Services.Token的做法）。
-    // svc-02（FND16，S1复核更正）：secret经OnSocketAccept的AnnounceSecret分发给**所有
-    // 可达内部对端**（linkd与全部provider的唯一获取通道，无应用层甄别）——保密边界是
-    // 部署层的端口可达性（内网绑定/防火墙），非访问控制；持有secret即可铸任意令牌，
-    // 框架级修复（Handshake加密传输+认证）属独立设计决策见audit-FND16/svc-02.md。
+    // 令牌防伪依赖secretKey/secretIv保密：必须CSPRNG——原ThreadLocalRandom可离线穷举
+    // 伪造任意serverId/expireTime令牌（FND7-20）。secret经AnnounceSecret分发给所有可达
+    // 内部对端（linkd与全部provider），保密边界是部署层端口可达性而非访问控制（FND16 svc-02）。
     private static final SecureRandom secureRandom = new SecureRandom();
 
     private static Binary nextSecretBinary() {
@@ -123,7 +118,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     }
 
 
-    public static BToken.Data decodeToken(BSecret.Data secret, Binary token) throws Exception {
+    public static BToken.Data decodeToken(BSecret.Data secret, Binary token) {
         // 双试探+语义校验（FND8-65，判别式见下方迁移注释）：先按新格式（IV=前16B）解并验
         // BToken合法性与语义，失败再按旧格式（secretIv）解并验，均败则拒。
         var bytes = token.bytesUnsafe();

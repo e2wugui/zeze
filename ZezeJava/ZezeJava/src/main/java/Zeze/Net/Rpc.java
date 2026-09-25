@@ -314,7 +314,6 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	// 可达），仅限频告警。
 	private static volatile long lastResponseMismatchLogMs; // 告警限频（60秒一条，防日志刷屏DoS）
 
-	@SuppressWarnings("unchecked")
 	public static <T extends Protocol<?>> @Nullable T removeRpcContextChecked(
 			@NotNull Service service, long sid, @NotNull Rpc<?, ?> response) {
 		var ctx = service.getRpcContext(sid);
@@ -332,7 +331,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			}
 			return null;
 		}
-		return (T)service.removeRpcContext(sid);
+		return service.removeRpcContext(sid);
 	}
 
 	public Rpc<TArgument, TResult> setupRpcResponseContext(@NotNull Protocol<?> ctx) {
