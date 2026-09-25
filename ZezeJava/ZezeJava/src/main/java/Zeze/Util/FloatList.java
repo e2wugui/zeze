@@ -385,16 +385,17 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 	public int hashCode() {
 		float[] buf = buffer;
 		int n = count;
-		float result = n;
+		long result = n;
+		// 整型累加+floatToIntBits：float算术会被NaN传染（结果恒0）且精度塌缩；bits规范化后与Float.hashCode一致
 		if (n <= 32) {
 			for (int i = 0; i < n; i++)
-				result = 31L * result + buf[i];
+				result = 31L * result + Float.floatToIntBits(buf[i]);
 		} else {
 			int i;
 			for (i = 0; i < 16; i++)
-				result = 31L * result + buf[i];
+				result = 31L * result + Float.floatToIntBits(buf[i]);
 			for (i = n - 16; i < n; i++)
-				result = 31L * result + buf[i];
+				result = 31L * result + Float.floatToIntBits(buf[i]);
 		}
 		return (int)result;
 	}

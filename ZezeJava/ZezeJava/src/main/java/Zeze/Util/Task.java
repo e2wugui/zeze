@@ -63,8 +63,8 @@ public final class Task {
 	private static volatile ExecutorService threadPoolDefault;
 	private static volatile ScheduledExecutorService threadPoolScheduled;
 	private static volatile ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
-	@SuppressWarnings("CanBeFinal")
-	public static @Nullable ILogAction logAction = Task::DefaultLogAction;
+	// volatile: 运行期可被替换（如热替换/应用层定制日志），需对读线程立即可见
+	public static volatile @Nullable ILogAction logAction = Task::DefaultLogAction;
 
 	private static volatile int systemOneByOneConcurrency;
 	private static final AtomicLong systemExecuteCount = new AtomicLong();
@@ -96,7 +96,7 @@ public final class Task {
 
 	/**
 	 * 设置系统队列数量。
-	 * 默认是Runtime.getRuntime().availableProcessors() / 2。
+	 * 默认是Runtime.getRuntime().availableProcessors()（见类static初始化）。
 	 *
 	 * @param n concurrency
 	 */
@@ -741,9 +741,11 @@ public final class Task {
 	}
 
 	public static @NotNull Throwable getRootCause(@NotNull Throwable e) {
-		for (; ; ) {
+		for (int depth = 0; ; depth++) {
 			var c = e.getCause();
 			if (c == null)
+				return e;
+			if (depth >= 64) // 自引用cause环防护：链深超过合理上限按当前节点截断，避免死循环
 				return e;
 			e = c;
 		}

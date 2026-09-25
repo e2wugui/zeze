@@ -18,7 +18,7 @@ public final class Ranges {
 
 		public Range(int first, int last) {
 			if (first < 0 || last < 0 || first >= last)
-				throw new IllegalArgumentException("error new range : " + this);
+				throw new IllegalArgumentException("error new range : first=" + first + ", last=" + last);
 			this.first = first;
 			this.last = last;
 		}

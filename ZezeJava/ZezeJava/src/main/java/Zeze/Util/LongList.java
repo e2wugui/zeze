@@ -366,6 +366,7 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	}
 
 	public int indexOf(long value, int fromIdx) {
+		fromIdx = Math.max(fromIdx, 0); // 负起点清洗：原样使用会对负数组下标抛AIOOBE
 		long[] buf = buffer;
 		int n = count;
 		for (int i = fromIdx; i < n; i++) {

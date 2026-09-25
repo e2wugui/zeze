@@ -83,7 +83,8 @@ public interface ZezeCounter {
 
 	/**
 	 * 通过name分配一个累加器
-	 * 注意: 不判断name是否重复出现,总是分配新的,通常用于初始化全局的累加器,数量不应过多
+	 * 注意: name重复时的行为由实现决定——Prometheus实现重名register抛IllegalArgumentException，
+	 * 其余实现（Noop/Perf）总是分配新的,通常用于初始化全局的累加器,数量不应过多
 	 */
 	@NotNull LongCounter allocCounter(@NotNull String name);
 

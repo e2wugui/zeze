@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -54,9 +55,9 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		return r;
 	}
 
-	// 必须只读,不允许写,虽然不会抛异常
+	// 只读快照：包装为不可修改视图，误写直接抛UnsupportedOperationException而非静默破坏共享的read
 	public @NotNull NavigableMap<K, V> snapshot() {
-		return prepareRead();
+		return Collections.unmodifiableNavigableMap(prepareRead());
 	}
 
 	@Override

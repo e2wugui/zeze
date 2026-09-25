@@ -29,7 +29,8 @@ public class BinaryPool {
 		rLock.lock();
 		try {
 			var h64 = hash64;
-			for (int i = 0; i < 32; i++) { // 超过32的冲突可能性极低,一旦遇到就覆盖掉吧
+			// i从1起：i=0的种子HASH_BASE+0与初值hash64相同，会把首槽探测两遍（32轮仅覆盖31槽）
+			for (int i = 1; i < 32; i++) { // 超过32的冲突可能性极低,一旦遇到就覆盖掉吧
 				b = pool.get(h64);
 				if (b == null) {
 					hash64 = h64;
@@ -63,7 +64,8 @@ public class BinaryPool {
 		rLock.lock();
 		try {
 			var h64 = hash64;
-			for (int i = 0; i < 32; i++) { // 超过32的冲突可能性极低,一旦遇到就覆盖掉吧
+			// i从1起：i=0的种子HASH_BASE+0与初值hash64相同，会把首槽探测两遍（32轮仅覆盖31槽）
+			for (int i = 1; i < 32; i++) { // 超过32的冲突可能性极低,一旦遇到就覆盖掉吧
 				b = pool.get(h64);
 				if (b == null) {
 					hash64 = h64;

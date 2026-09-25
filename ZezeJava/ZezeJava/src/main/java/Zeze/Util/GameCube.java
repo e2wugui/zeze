@@ -6,6 +6,10 @@ import org.pcollections.PSet;
 public class GameCube extends Cube<GameObjectId> {
 	private PSet<GameObjectId> objectIds = Empty.set();
 
+	/**
+	 * 无锁最终一致快照：PSet本身不可变（读到的引用内容稳定），但字段读无锁且非volatile，
+	 * 并发add/remove期间可能读到旧一代集合，语义为最终一致而非线性一致。
+	 */
 	public final PSet<GameObjectId> getObjectIds() {
 		return objectIds;
 	}

@@ -31,7 +31,8 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 	private final @Nullable String name; // 日志名（body.logName(name)），仅用于告警定位
 	private final long timeoutMs; // 任务体看门狗预算，与余量共同构成挂死告警阈值
 
-	private ScheduledFuture<V> future;
+	// volatile：setFuture（调度方）与cancel/isCancelled（取消方、任务线程）跨线程读写
+	private volatile ScheduledFuture<V> future;
 	// volatile: isCancelled() 在任务线程中无锁轮询，需与 cancel() 的写入保持可见性
 	private volatile boolean canceled;
 
@@ -47,7 +48,8 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 
 	/**
 	 * 取消并 join：取本对象锁，阻塞至在飞一轮任务体结束；返回后不再启动新的一轮
-	 * （mayInterruptIfRunning 只作用于底层 future，不中断任务体）。
+	 * （future.cancel(mayInterruptIfRunning)：传true时会中断在飞任务体的执行线程，任务体
+	 * 需自行响应中断；false 时仅阻止后续轮次，不碰在飞体）。
 	 * 【调用约束】不得持有任务体执行期间可能获取的任何锁，否则与在飞任务体互等（ABBA）永久挂起；
 	 * 需与停机门禁互斥时，锁内只置关门标志并捕获句柄，释放锁后再 cancel。周期守护的停机
 	 * 请优先用 DaemonTimer——它把"关门→cancel→限时等待在飞"内聚为组件，cancel对象为

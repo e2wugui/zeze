@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 public abstract class TaskOneByOneBase extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneBase.class);
 
+	/** 【副作用】keys 将被就地排序（Comparable升序）：分组前先定序，调用方持有的列表顺序会改变。 */
 	public <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull Procedure procedure,
 															   @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 		lock();
@@ -39,6 +40,7 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 		}
 	}
 
+	/** 【副作用】keys 将被就地排序（Comparable升序）：分组前先定序，调用方持有的列表顺序会改变。 */
 	public <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull String actionName,
 															   @NotNull Action0 action, @Nullable Action0 cancel,
 															   @Nullable DispatchMode mode) {

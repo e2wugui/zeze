@@ -147,8 +147,12 @@ public class InMemoryJavaCompiler {
 		if (exMsg != null)
 			throw new IllegalStateException(exMsg);
 		var byteCodes = new HashMap<String, byte[]>(classNameAndCodes.size());
-		for (String className : classNameAndCodes.keySet())
-			byteCodes.put(className, classLoader.getCode(className));
+		for (String className : classNameAndCodes.keySet()) {
+			var code = classLoader.getCode(className);
+			if (code == null) // 编译产物缺失：静默入map会把NPE推迟到装载点，失去定位信息
+				throw new IllegalStateException("compiled class not found: " + className);
+			byteCodes.put(className, code);
+		}
 		return byteCodes;
 	}
 

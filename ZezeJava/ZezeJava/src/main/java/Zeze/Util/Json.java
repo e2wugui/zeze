@@ -414,7 +414,7 @@ public final class Json implements Cloneable {
 				return;
 			}
 			for (; ; ) {
-				if (fm.hash == hash) { // bad luck! try to call setKeyHashMultiplier with another prime number
+				if (fm.hash == hash) { // bad luck! 同哈希不同名，桶内链无法再区分（setKeyHashMultiplier已废弃）
 					throw new IllegalStateException("conflicted field names: " + fieldMeta.getName() + " & "
 							+ fm.getName() + " in " + fieldMeta.klass.getName());
 				}
