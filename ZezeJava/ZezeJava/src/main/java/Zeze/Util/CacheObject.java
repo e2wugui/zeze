@@ -3,6 +3,7 @@ package Zeze.Util;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
+import org.jetbrains.annotations.NotNull;
 
 public interface CacheObject extends Serializable {
 	/**
@@ -18,12 +19,12 @@ public interface CacheObject extends Serializable {
 		public final long CreateTime = System.currentTimeMillis();
 
 		@Override
-		public void encode(ByteBuffer bb) {
+		public void encode(@NotNull ByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void decode(IByteBuffer bb) {
+		public void decode(@NotNull IByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 
