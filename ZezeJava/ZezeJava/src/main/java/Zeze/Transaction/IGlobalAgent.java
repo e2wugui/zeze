@@ -15,6 +15,8 @@ public interface IGlobalAgent {
 			}
 
 			public static @NotNull AcquireResult getSuccessResult(int state) {
+				if (state < 0 || state >= successResults.length) // 越界state原为AIOOBE，此处给可诊断的参数错
+					throw new IllegalArgumentException("state=" + state + " not in [0," + successResults.length + ")");
 				return successResults[state];
 			}
 

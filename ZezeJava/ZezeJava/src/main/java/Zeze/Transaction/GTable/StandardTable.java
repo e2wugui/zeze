@@ -753,6 +753,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
   private class ColumnKeyIterator extends AbstractIterator<C> {
     // Use the same map type to support TreeMaps with comparators that aren't
     // consistent with equals().
+    // factory.get() 产出与行 map 同型的新空 map（含 comparator）：containsKey 去重与
+    // backingMap 的键序比较保持同一语义；仅在本迭代器生命周期内使用，不外泄。
     final Map<C, V> seen = factory.get();
     final Iterator<Map<C, V>> mapIterator = backingMap.values().iterator();
     Iterator<Entry<C, V>> entryIterator = Utils.emptyIterator();

@@ -33,7 +33,7 @@ public class Profiler {
 			}
 		}
 
-		private long timeEnd;
+		private volatile long timeEnd; // 写读分属业务线程与profiler采样线程，跨线程需可见
 		@SuppressWarnings("unused")
 		private volatile long nextProfileTime;
 	}
