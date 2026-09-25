@@ -43,6 +43,8 @@ public final class Digest {
 	public static byte @NotNull [] hmacMd5(byte @NotNull [] key, byte @NotNull [] data, int offset, int length) {
 		try {
 			var mac = hmacMd5Local.get();
+			// 无条件init即完整重初始化（重设密钥+清全部中间态）：任何残留（含上次异常半态）都在
+			// 此清除，update/doFinal不可能先于init执行——故本方法不需要md5()那样的catch reset。
 			mac.init(new SecretKeySpec(key, 0, key.length, "HmacMD5"));
 			mac.update(data, offset, length);
 			return mac.doFinal();
