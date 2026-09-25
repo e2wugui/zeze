@@ -16,7 +16,7 @@ public final class ServiceStatisticLog implements Action0 {
 	private final @NotNull Service service;
 	private @Nullable ScheduledFuture<?> statisticLogFuture;
 	private int periodSec;
-	private final long[] lastSizes = new long[]{-1, 0, 0, 0, 0, 0};
+	private final long[] lastSizes = new long[]{-1, 0, 0, 0, 0, 0}; // [0]=-1哨兵：跳过首轮速率计算，见run()
 
 	public ServiceStatisticLog(@NotNull Service service) {
 		this.service = service;

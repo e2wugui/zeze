@@ -494,15 +494,15 @@ public class Daemon {
 							// daemon main will restart subprocess!
 						} else if (idle > config.serverDaemonTimeout) {
 							logger.info("sendCommand Release-{} {} - {} > {}", i, now, activeTime, config.serverDaemonTimeout);
-						// 在Server执行Release期间，命令可能重复发送。
-						// 重复命令的处理由Server完成，
-						// 这里重发也是需要的，刚好解决Udp不可靠性。
-						try {
-							sendCommand(udpSocket, peerSocketAddress, new Release(i));
-						} catch (IOException e) {
-							// Release为fire-and-forget且每轮重发：单次失败跳过本轮即可，不得让外层catch(Throwable)杀死看门狗。
-							logger.warn("sendCommand Release-{} failed, skip this round.", i, e);
-						}
+							// 在Server执行Release期间，命令可能重复发送。
+							// 重复命令的处理由Server完成，
+							// 这里重发也是需要的，刚好解决Udp不可靠性。
+							try {
+								sendCommand(udpSocket, peerSocketAddress, new Release(i));
+							} catch (IOException e) {
+								// Release为fire-and-forget且每轮重发：单次失败跳过本轮即可，不得让外层catch(Throwable)杀死看门狗。
+								logger.warn("sendCommand Release-{} failed, skip this round.", i, e);
+							}
 						}
 					}
 					// sleep在for外：放循环体内会把整轮扫描周期放大globalCount倍（每global各睡1s），
