@@ -22,10 +22,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class LoginQueueServer extends AbstractLoginQueueServer {
-    // FND7-20：令牌的防伪完全依赖secretKey/secretIv只有LoginQueue与linkd知晓。原用
-    // Zeze.Util.Random（ThreadLocalRandom，种子仅由时间源混合而来）生成，攻击者经过一次
-    // 排队登录取得密文样本后可离线穷举种子并伪造任意serverId/expireTime的令牌绕过排队
-    // 越权进入。必须用CSPRNG（对齐Zeze.Services.Token的做法）。
+    // FND7-20：令牌的防伪完全依赖secretKey/secretIv的保密。原用 Zeze.Util.Random
+    // （ThreadLocalRandom，种子仅由时间源混合而来）生成，攻击者经过一次排队登录取得
+    // 密文样本后可离线穷举种子并伪造任意serverId/expireTime的令牌绕过排队越权进入。
+    // 必须用CSPRNG（对齐Zeze.Services.Token的做法）。
+    // svc-02（FND16，S1复核更正）：secret经OnSocketAccept的AnnounceSecret分发给**所有
+    // 可达内部对端**（linkd与全部provider的唯一获取通道，无应用层甄别）——保密边界是
+    // 部署层的端口可达性（内网绑定/防火墙），非访问控制；持有secret即可铸任意令牌，
+    // 框架级修复（Handshake加密传输+认证）属独立设计决策见audit-FND16/svc-02.md。
     private static final SecureRandom secureRandom = new SecureRandom();
 
     private static Binary nextSecretBinary() {
