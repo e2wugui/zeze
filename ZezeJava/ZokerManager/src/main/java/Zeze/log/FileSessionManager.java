@@ -4,25 +4,17 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class FileSessionManager {
-	private static final Logger logger = LogManager.getLogger(FileSessionManager.class);
 
-	// HTTP处理器在Normal线程池并发get/put，必须是并发容器；
-	// 被替换的旧session（Session/SessionAll均AutoCloseable）立即关闭，防walker/游标滞留累积。
+	// HTTP处理器在Normal线程池并发get/put，必须是并发容器。键是纯IP：同IP（NAT多用户/
+	// 同用户切换Session↔SessionAll视图）会互相替换——被替换的session不得立即close（增量审
+	// R1-05：会踩掉正在1分钟browse的在飞会话），也不得并发close（互踩升级）。替换出的旧session
+	// 句柄滞留到进程结束，完整的空闲淘汰/多会话键见 design-GE-D06。
 	private static final Map<String, Object> map = new ConcurrentHashMap<>(1000);
 
 	public static void put(SocketAddress socketAddress, Object session) {
-		var old = map.put(getIP(socketAddress), session);
-		if (old != null && old != session && old instanceof AutoCloseable closeable) {
-			try {
-				closeable.close();
-			} catch (Exception ex) {
-				logger.error("close replaced session", ex);
-			}
-		}
+		map.put(getIP(socketAddress), session);
 	}
 
 	public static Object get(SocketAddress socketAddress) {
