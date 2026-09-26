@@ -35,11 +35,23 @@ public class ServerUserState {
 	}
 
 	public void close() throws IOException {
+		// 逐个关闭并收集异常：首个close失败中断循环会让其余会话的文件句柄泄漏（对齐客户端SessionAll.close）。
+		IOException first = null;
 		for (var logSession : logSessions.values()) {
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
-			synchronized (logSession) {
-				logSession.close();
+			try {
+				//noinspection SynchronizationOnLocalVariableOrMethodParameter
+				synchronized (logSession) {
+					logSession.close();
+				}
+			} catch (IOException e) {
+				if (first == null)
+					first = e;
+				else
+					first.addSuppressed(e);
 			}
 		}
+		logSessions.clear();
+		if (first != null)
+			throw first;
 	}
 }
