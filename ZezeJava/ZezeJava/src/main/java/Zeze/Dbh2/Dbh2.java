@@ -511,17 +511,29 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 		stateMachine.setLoadSwitch(true);
 		var bucket = stateMachine.getBucket();
-		if (null != bucket.getSplittingMeta()) {
-			var bucketKeyFirst = bucket.getSplittingMeta().getKeyFirst();
-			boolean isMove = bucketKeyFirst.size() == 0; // keyFirst 为空肯定是move
-			if (!isMove) {
-				// keyFirst不为空，还不能确认就是split，需要进一步判断keyFirst确实是第一条数据。
-				try (var it = bucket.getData().iterator()) {
-					it.seekToFirst();
-					// keyFirst 就是第一条数据，那么当前还是move。
-					isMove = it.isValid() && bucketKeyFirst.contentEquals(it.key());
-				}
-			}
+		var splitting = bucket.getSplittingMeta();
+		if (null != splitting) {
+			// 【move/split身份=纯元数据判别】不变式（startSplit准备段构造splitting时成立，
+			// splitting期间保持成立，恢复时刻可直接依赖）：
+			//  - move：splitting是源桶meta的副本（copy后仅清raftConfig），恒同keyFirst同keyLast；
+			//  - split：splitting.keyFirst=locateMiddle取的中位key，位于第keyNumbers/2>=1个
+			//    位置，恒严格大于源keyFirst（空keyFirst小于一切key，首桶move同样被等值覆盖），
+			//    keyLast恒同源（copy不改）。源桶meta在splitting期间边界稳定：只有
+			//    LogEndSplit/LogEndMove收尾会改写，而两者apply的同时删除splitting。
+			// 故"splitting与源meta同keyFirst且同keyLast"即move，否则（keyFirst严格更大）为split。
+			// 判别只读meta、不受拷贝窗口内数据增删影响，同时消灭两个误判方向：
+			//  ① split误判为move（旧"data[0]==keyFirst"启发式的本案）：源桶事务delete是物理删除
+			//    （commitBatch直接WriteBatch delete，无墓碑），[F,M)左半段清空后data[0]右移到
+			//    分界key M——move收尾endMove从apply时刻的data[0]删到尾且源桶置死桶meta{1},{1}，
+			//    [F,M)窗口写入被静默物理删除、键域永久失联且无自愈，master侧settle守卫对
+			//    from==null的LogEndMove路径结构性不触发；
+			//  ② move误判为split（边界key被删/空桶时data[0]>keyFirst）：master侧终态由
+			//    MasterDatabase.settleSplitting守卫兜底（from.keyFirst>=to.keyFirst不put from），
+			//    保留为防御层。
+			// 不改raft日志schema：判别信息本来就在LogSetSplittingMeta持久化的meta边界里。
+			var bucketMeta = bucket.getBucketMeta();
+			boolean isMove = splitting.getKeyFirst().compareTo(bucketMeta.getKeyFirst()) == 0
+					&& splitting.getKeyLast().compareTo(bucketMeta.getKeyLast()) == 0;
 			startSplit(isMove);
 		}
 	}
