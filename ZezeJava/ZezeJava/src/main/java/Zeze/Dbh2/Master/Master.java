@@ -400,8 +400,10 @@ public class Master extends AbstractMaster {
 						return errorCode(BSetInUse.eTooManyInstanceWithoutGlobal);
 				}
 			}
-			r.setResultCode(errorCode(BSetInUse.eSuccess));
+			// eSuccess必须在commit()之后置位：commit抛出（写冲突/IO错误）时finally发送的
+			// 是上一步预置的失败码；预置在前会把未提交的事务当作成功发给客户端。
 			trans.commit();
+			r.setResultCode(errorCode(BSetInUse.eSuccess));
 		} finally {
 			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
 			unlock();
@@ -431,15 +433,15 @@ public class Master extends AbstractMaster {
 					// instance count 初始为1，需要忽略事务中（上面的zezeInstanceTable.delete(）刚刚删除的。
 					// 这样到达这里instance count表示有剩下的。可以直接返回结果了。
 					// 这个流程请参考 DatabaseMySql procedure _ZezeClearInUse_。
+					trans.commit(); // eSuccess在commit之后置位（见SetInUse注释）
 					r.setResultCode(errorCode(BClearInUse.eSuccess));
-					trans.commit();
 					return 0; // done;
 				}
 			}
 			// 到达这里表示zezeInstanceTable为空或者只存在将被删除的key。
 			zezeDataTable.delete(trans, emptyValue);
+			trans.commit(); // eSuccess在commit之后置位（见SetInUse注释）
 			r.setResultCode(errorCode(BClearInUse.eSuccess));
-			trans.commit();
 		} finally {
 			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
 			unlock();
@@ -474,9 +476,9 @@ public class Master extends AbstractMaster {
 			r.setResultCode(errorCode(BSaveDataWithSameVersion.eUpdateError));
 			zezeDataTable.put(trans, id.bytesUnsafe(), id.getOffset(), id.size(),
 					bbData.Bytes, bbData.ReadIndex, bbData.size());
+			trans.commit(); // eSuccess在commit之后置位（见SetInUse注释）
 			r.setResultCode(errorCode(BSaveDataWithSameVersion.eSuccess));
 			r.Result.setVersion(newVersion);
-			trans.commit();
 			return 0;
 		} finally {
 			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
