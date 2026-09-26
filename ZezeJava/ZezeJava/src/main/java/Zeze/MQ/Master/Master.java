@@ -159,6 +159,12 @@ public class Master extends AbstractMaster {
                 servers.getServers().add(info);
                 managerPartitionIndexes.computeIfAbsent(manager, __ -> new HashSet<>()).add(i);
             }
+            // 【GB-D01a】部分失败残留指明：两阶段创建（先各Manager建分区，全部成功后才登记mqTable）
+            // 在中间失败时，已成功下发的分区在Manager磁盘上持久残留（重启loadMQ照常加载），而Master
+            // 登记未落——openMQ永远eTopicNotExist，残留分区无主可寻。error必须逐项列出
+            // "哪些Manager上已成功创建哪些分区"，供运维立即定位回收（对账收敛的完整形态见GB-D01，
+            // 此为先行止血日志，拍板"立即补失败残留日志"项）。
+            var createdSoFar = new StringBuilder();
             for (var manager : managers) {
                 var indexes = managerPartitionIndexes.get(manager);
                 if (indexes == null)
@@ -168,9 +174,15 @@ public class Master extends AbstractMaster {
                 cp.Argument.setPartitionIndexes(indexes);
                 cp.SendForWait(manager.socket).await();
                 if (cp.getResultCode() != 0) {
-                    logger.error("create partition error={} r={}", IModule.getErrorCode(cp.getResultCode()), cp);
+                    var failed = manager.info.getHost() + ":" + manager.info.getPort();
+                    logger.error("createMQ partial failure: partitions created successfully so far {}"
+                                    + " (these persist on managers but the topic is NOT registered in master;"
+                                    + " failed manager={} error={} manual cleanup required)",
+                            createdSoFar, failed, IModule.getErrorCode(cp.getResultCode()));
                     return errorCode(eCreatePartition);
                 }
+                createdSoFar.append(manager.info.getHost()).append(':').append(manager.info.getPort())
+                        .append("->partitions ").append(indexes).append("; ");
             }
             // save mq info
             var value = ByteBuffer.Allocate();
