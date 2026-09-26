@@ -1,14 +1,17 @@
 package Zeze.log.handle.entity;
 
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 public class SearchLogParam {
-	private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	// HTTP处理器并发parse，formatter必须不可变线程安全（SimpleDateFormat共享实例会竞争错乱）。
+	// 语义对齐原SimpleDateFormat默认时区。
+	private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 	private String serverName;
 	private String logName;
@@ -124,15 +127,17 @@ public class SearchLogParam {
 		if (beginTime == null || beginTime.isBlank()) {
 			return -1;
 		}
-		Date parse = dateFormat.parse(beginTime);
-		return parse.getTime();
+		return parseTime(beginTime);
 	}
 
 	public long parseEndTime() throws ParseException {
 		if (endTime == null || endTime.isBlank()) {
 			return -1;
 		}
-		Date parse = dateFormat.parse(endTime);
-		return parse.getTime();
+		return parseTime(endTime);
+	}
+
+	private static long parseTime(String time) {
+		return LocalDateTime.parse(time, dateFormat).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 	}
 }
