@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import java.util.concurrent.TimeUnit;
 import Zeze.Builtin.LogService.BBrowse;
 import Zeze.Builtin.LogService.BCondition;
 import Zeze.Builtin.LogService.BResult;
@@ -8,6 +9,7 @@ import Zeze.Builtin.LogService.Browse;
 import Zeze.Builtin.LogService.CloseSession;
 import Zeze.Builtin.LogService.NewSession;
 import Zeze.Builtin.LogService.Search;
+import Zeze.Net.Rpc;
 import Zeze.Services.LogAgent;
 import Zeze.Util.TaskCompletionSource;
 
@@ -29,7 +31,9 @@ public class Session implements AutoCloseable {
 		this.serverName = serverName;
 		var r = new NewSession();
 		r.Argument.setLogName(logName);
-		r.SendForWait(agent.__getLogServer(serverName).GetReadySocket()).await();
+		// 与browse/search/close同宽60s（案外#4，对齐CloseSession先例00fd190c0）：服务端NewSession含
+		// 惰性清理（GD-D03，逐会话锁）与索引装载等重活，默认5s在多会话/慢盘下超时即建会话失败。
+		r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("error " + r.getResultCode());
 		sessionId = r.Result.getId();
@@ -38,14 +42,50 @@ public class Session implements AutoCloseable {
 	public TaskCompletionSource<BResult.Data> search(int limit, boolean reset,
 													 BCondition.Data condition) {
 		var r = new Search(new BSearch.Data(sessionId, limit, reset, condition));
-		return r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000);
+		return checkResultCode(r, r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000));
 	}
 
 	public TaskCompletionSource<BResult.Data> browse(int limit, float offsetFactor, boolean reset,
 													 BCondition.Data condition) {
 		var r = new Browse(new BBrowse.Data(sessionId, limit, offsetFactor, reset, condition));
 		// 服务端扫描量级与search相同（beginTime=-1或索引缺失时全量线性扫），不能用RPC默认5s（GD-C03）。
-		return r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000);
+		return checkResultCode(r, r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000));
+	}
+
+	/**
+	 * GE-C03（含盲审案外#1）：search/browse 的应答 TCS 加 resultCode 检查。
+	 * Zeze RPC 对非零 resultCode 的应答也<b>正常完成</b> future（resultCode 只是 rpc 对象字段，
+	 * Rpc.dispatch/handle 无条件 future.setResult），典型受害者是闲置超时被服务端回收的死会话
+	 * （LogService getLogSession==null → Procedure.LogicError）：未解码的空 Result（logs 空、
+	 * remain=false）会被调用方当"查完无匹配"静默消费，SessionAll 还把该台永久标记 finished。
+	 * 这里对齐 {@link #close()} 的既有检查形态：非零码在 get 时抛异常——单台 HTTP handle 的
+	 * catch 返回可见 system error，SessionAll.operate 的既有 catch 走 failedServers（不标记
+	 * finished，下次 operate 重试）。
+	 * <p>不变式：rpc 的 resultCode 在 future.setResult 之前写入（setupRpcResponseContext 先
+	 * 于 future 完成执行），故 get 返回后再读 resultCode 无竞态；RPC 自身失败（发送失败/超时）
+	 * 仍由底层 future 以异常完成，原语义不变。包装仅覆盖 get/get(timeout)——全部既有调用面，
+	 * 未完成的 isDone 等查询语义对本包装无意义（状态跟随底层 future）。</p>
+	 */
+	static TaskCompletionSource<BResult.Data> checkResultCode(Rpc<?, BResult.Data> rpc,
+															  TaskCompletionSource<BResult.Data> future) {
+		return new TaskCompletionSource<BResult.Data>() {
+			@Override
+			public BResult.Data get() {
+				return checked(rpc, future.get());
+			}
+
+			@Override
+			public BResult.Data get(long timeout, TimeUnit unit) {
+				return checked(rpc, future.get(timeout, unit));
+			}
+		};
+	}
+
+	private static BResult.Data checked(Rpc<?, BResult.Data> rpc, BResult.Data result) {
+		var code = rpc.getResultCode();
+		if (code != 0)
+			throw new RuntimeException("search/browse error " + code);
+		return result;
 	}
 
 	private volatile boolean closed;

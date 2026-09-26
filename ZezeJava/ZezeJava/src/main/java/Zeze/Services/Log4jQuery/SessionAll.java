@@ -93,6 +93,10 @@ public class SessionAll implements AutoCloseable {
 					firstFailure.addSuppressed(e);
 				continue;
 			}
+			// GE-C03 不变式：错误码台（死会话的服务端 LogicError）不会走到这里——Session.search/browse
+			// 返回的 TCS 在 get 时对非零 resultCode 抛异常（Session.checkResultCode），与 RPC 超时/
+			// 连接抖动同走上面的 failedServers 路径：不标记 finishedSession（下次 operate 重试）、
+			// 全败时上抛。因此能到达本行的只剩零码结果，!isRemain() 才可信地表示"该台查完"。
 			// 返回的结果基本有序，只是偶尔log4j会有一点点乱序，这里该用什么sort更快？
 			r.getLogs().sort(comparator);
 			remain = remain || r.isRemain();
