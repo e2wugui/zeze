@@ -146,6 +146,8 @@ public class Log4jFileManager extends ReentrantLock {
 						&& (files.isEmpty() || !files.getLast().file.getName().equals(currentLogFileName))) {
 					var logFile = new File(logConf.logDir, fileName);
 					files.add(Log4jFile.of(logFile, loadIndex(logFile, getCurrentIndexFileName())));
+					// 登记即建硬链接，同步清理旧链接：removeOldLinkFiles只在构造期执行，不在此调用则链接随轮转累积（GD-C08）。
+					removeOldLinkFiles();
 				}
 				break;
 
@@ -168,8 +170,10 @@ public class Log4jFileManager extends ReentrantLock {
 					// 乱序时由本分支兜底；正序时新active尚未创建或已由case 0登记，守卫去重。
 					var activeName = getCurrentLogFileName();
 					var activeFile = new File(logConf.logDir, activeName);
-					if (activeFile.exists() && !files.getLast().file.getName().equals(activeName))
+					if (activeFile.exists() && !files.getLast().file.getName().equals(activeName)) {
 						files.add(Log4jFile.of(activeFile, loadIndex(activeFile, getCurrentIndexFileName())));
+						removeOldLinkFiles(); // 同case 0：补登建的硬链接之后同步清理。
+					}
 				}
 				break;
 			}
@@ -227,7 +231,12 @@ public class Log4jFileManager extends ReentrantLock {
 				if (link.isDirectory())
 					continue;
 				var linkName = link.getName();
-				var linkValue = Long.parseLong(linkName);
+				final long linkValue;
+				try {
+					linkValue = Long.parseLong(linkName);
+				} catch (NumberFormatException e) {
+					continue; // 自管目录被外部污染（desktop.ini等），跳过；下方清理循环按非max删除。
+				}
 				if (linkValue > max) {
 					max = linkValue;
 					maxFile = link;
@@ -253,7 +262,12 @@ public class Log4jFileManager extends ReentrantLock {
 				if (link.isDirectory())
 					continue;
 				var linkName = link.getName();
-				var linkValue = Long.parseLong(linkName);
+				final long linkValue;
+				try {
+					linkValue = Long.parseLong(linkName);
+				} catch (NumberFormatException e) {
+					continue; // 非数字名跳过，不参与max；抛出会让该次轮转登记失败且不再重试。
+				}
 				if (linkValue > max)
 					max = linkValue;
 			}
