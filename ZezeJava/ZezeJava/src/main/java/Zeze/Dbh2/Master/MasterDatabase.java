@@ -260,6 +260,24 @@ public class MasterDatabase {
 			if (bucket == null || !sameBucketMeta(bucket, to))
 				return master.errorCode(Master.eSplittingBucketNotFound);
 
+			// 【迟到endMove守卫（GA-C01路径C）】from==null即endMove，to声称move目标桶接管源桶的
+			// 整个旧键域[F,L)。不变式：合法的move settle时刻，主表同keyFirst上的现存条目只能是
+			// 同边界的旧raft源桶（move在主表只改写raftConfig，边界不动），keyLast必相等；现存条目
+			// keyFirst存在但keyLast不等，唯一构造路径是"本endMove的送达迟到，期间move目标桶已
+			// 后续split并settle收窄了主表条目"——此刻to携带的宽边界是过期快照，put会覆盖收窄后的
+			// 主表（宣称已deleteToEnd的键域仍归本桶），产生永久性元数据谎言。拒绝settle且不动任何
+			// 状态（splitting陈旧条目的清理由四实体生命周期设计承担，见GA-D01）；错误码用
+			// eSplittingBucketNotFound，MasterAgent重试端按"已settle"终局语义停止重试（该move的
+			// 正确终态已被后续split取代，重试永远不会再次合法）。
+			if (from == null) {
+				var exist = table.buckets.get(to.getKeyFirst());
+				if (null != exist && !exist.getKeyLast().equals(to.getKeyLast())) {
+					logger.error("settleSplitting late endMove refused, main table bucket narrowed. exist={} to={}",
+							exist, to);
+					return master.errorCode(Master.eSplittingBucketNotFound);
+				}
+			}
+
 			splitting.buckets.remove(to.getKeyFirst());
 			table.buckets.put(to.getKeyFirst(), to);
 			// 不变量：合法split恒from.keyFirst<to.keyFirst（locateMiddle取的中位key严格大于源桶首key）。

@@ -715,8 +715,16 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			var hasError = r.getResultCode() != 0;
 			if (!raft.isLeader() || dbh2Splitting == null || serialNo != splitSerialNo) {
 				it.close();
-				if (hasError)
-					startSplit(isMove);
+				// 【身份失配不重试（GA-C03）】重试的前提是回调仍代表当前轮（本机leader且serialNo未失配），
+				// 对齐下面hasError分支"本机仍leader才重试"的本意。失配分支的经典来源：新轮启动后
+				// （recoverSplitting重入/事务同步失败重启），endSplit2的dbh2Splitting.close()以
+				// Procedure.Timeout同步触发旧轮悬挂中的SplitPut回调——此时要么已有更新的轮次接管
+				// （重试职责属于它），要么分桶已完结（是否再分桶交还loadMonitor决策）。以陈旧上下文
+				// 无差别重试startSplit，会在无人决策的情况下发起一轮全新的分桶：再建桶、全量拷贝、
+				// 再走完整收尾（可能携与当下负载条件不符的陈旧isMove），并在新轮进行中时提前drain
+				// 正在阻塞的prepareQueue，扩大扰动。
+				if (hasError && raft.isLeader() && serialNo == splitSerialNo)
+					startSplit(isMove); // 失配仅因dbh2Splitting==null：本轮上下文仍有效，按原语义重试
 				return 0;
 			}
 

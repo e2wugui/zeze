@@ -58,12 +58,24 @@ public class Dbh2AgentManager extends ReentrantLock {
 				return;
 
 			refreshMasterTableTask = TaskSpec.ofAction(() -> {
-						reload(openMasterAgent(masterName), masterName, databaseName, tableName);
-						lock(); // 置null与startRefreshMasterTable的检查-调度原子，避免与重新调度交错
 						try {
-							refreshMasterTableTask = null;
+							reload(openMasterAgent(masterName), masterName, databaseName, tableName);
+						} catch (Exception e) {
+							// 刷新失败可容忍：下次PrepareBatch拒绝会重新触发本刷新，自愈。
+							logger.warn("refresh master table fail. master={} database={} table={}",
+									masterName, databaseName, tableName, e);
 						} finally {
-							unlock();
+							// 【失败也必须复位（GA-C02）】置null不能只在reload成功路径执行：reload抛异常
+							//（getBuckets对master短暂不可达即抛）时任务体异常完结，下面的复位若被跳过，
+							// startRefreshMasterTable的门槛if(null!=refreshMasterTableTask)对一个早已
+							// 完结的Future永久成立，之后所有拒绝触发的刷新成为no-op直到进程重启——
+							// 路由缓存陈旧（每笔多付一轮refused→redirect）且死桶agent不再回收。
+							lock(); // 置null与startRefreshMasterTable的检查-调度原子，避免与重新调度交错
+							try {
+								refreshMasterTableTask = null;
+							} finally {
+								unlock();
+							}
 						}
 					}).scheduleNow(200);
 		} finally {
