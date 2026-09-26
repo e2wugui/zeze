@@ -6,9 +6,12 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import Zeze.Net.AsyncSocket;
 
 public class MQPartition extends ReentrantLock {
+	private static final Logger logger = LogManager.getLogger();
 	private final ConcurrentHashMap<Integer, MQSingle> partitions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, AsyncSocket> subscribes = new ConcurrentHashMap<>();
 	private final MQManager manager;
@@ -42,8 +45,16 @@ public class MQPartition extends ReentrantLock {
 	}
 
 	public void subscribe(AsyncSocket sender, long sessionId) {
-		if (null == subscribes.putIfAbsent(sessionId, sender)) {
-			// 新订阅
+		// 同 sessionId 换 socket 必须替换旧条目：网络静默死亡后消费者重连重订阅，新连接的
+		// Subscribe 先于旧 socket 的 OnSocketClose 到达是常态序（KeepCheckPeriod 默认禁用）。
+		// putIfAbsent 会静默吞掉新 socket 的订阅并回成功，分区继续绑在死 socket 上空转重推，
+		// 消费者"订阅成功、连接健康、永不收消息"直到进程重启。对齐 Master.ProcessRegisterRequest
+		// 的"同身份替换旧条目"写法。同 socket 重复订阅（重连重订阅与首订阅重叠）幂等无害。
+		var old = subscribes.put(sessionId, sender);
+		if (null == old || old != sender) {
+			// 新订阅或 socket 更换（订阅变更）
+			if (null != old)
+				logger.info("mq subscribe socket replaced (stale connection superseded). sessionId={}", sessionId);
 			arrangeConsumer();
 		}
 	}

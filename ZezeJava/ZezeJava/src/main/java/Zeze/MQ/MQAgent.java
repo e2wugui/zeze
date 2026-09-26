@@ -132,8 +132,8 @@ public class MQAgent extends AbstractMQAgent {
 
 	// Manager重启即丢失subscribes（纯内存态，不持久化），消费者连接自动重连后必须重发Subscribe，
 	// 否则全部既有消费者静默饿死（修复前仅MQConsumer构造时订阅一次，无重连钩子——与ef63301b8
-	// 修复的Manager→Master方向重注册对称的Consumer→Manager方向机制）。Subscribe在Manager端
-	// MQPartition.subscribe按putIfAbsent幂等，与首连时subscribe()的发送重叠无害。
+	// 修复的Manager→Master方向重注册对称的Consumer→Manager方向机制）。Manager端MQPartition.subscribe
+	// 按sessionId幂等：同socket重复无害；旧socket未及关闭时新socket的订阅替换旧条目。
 	// 重发失败仅记日志等下次重连再试，不引入新定时器。
 	void onManagerConnected(AsyncSocket so) {
 		// IO线程回调，不得同步等待rpc，提交任务池异步重发。
