@@ -83,7 +83,7 @@ public class Log4jFileManager extends ReentrantLock {
 			var file = files.get(i);
 			if (time >= file.index.getBeginTime()) {
 				out.value = i;
-				var logFileSession = new Log4jFileSession(file.file, file.index, logConf.charsetName);
+				var logFileSession = new Log4jFileSession(file.file, file.index, logConf.charsetName, logConf.logTimeFormat);
 				logFileSession.seek(time);
 				return logFileSession;
 			}
@@ -185,7 +185,7 @@ public class Log4jFileManager extends ReentrantLock {
 
 	public Log4jFileSession get(int index) throws IOException {
 		var file = files.get(index);
-		return new Log4jFileSession(file.file, file.index, logConf.charsetName);
+		return new Log4jFileSession(file.file, file.index, logConf.charsetName, logConf.logTimeFormat);
 	}
 
 	private void loadRotates(String logRotateDir) throws Exception {
@@ -270,7 +270,7 @@ public class Log4jFileManager extends ReentrantLock {
 
 	private LogIndex loadIndex(File logFile, LogIndex index) throws Exception {
 		// 索引没有建立完成的需要继续
-		try (var log = new Log4jFileSession(logFile, null, logConf.charsetName)) {
+		try (var log = new Log4jFileSession(logFile, null, logConf.charsetName, logConf.logTimeFormat)) {
 			var indexes = new ArrayList<LogIndex.Record>();
 			var lastIndexTime = index.getEndTime();
 			var offset = index.lowerBound(lastIndexTime);

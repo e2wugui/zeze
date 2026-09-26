@@ -11,16 +11,18 @@ public class Log4jFileSession implements Closeable {
 	private Log4jLog nextLog; // 下一条完整的日志。
 	private Log4jLog nextNextMaybePartLog; // 下下一条日志，可能不完整。
 	private final LogIndex index;
+	private final String logTimeFormat;
 
 	@Override
 	public String toString() {
 		return file.toString();
 	}
 
-	public Log4jFileSession(File file, LogIndex index, String charsetName) throws IOException {
+	public Log4jFileSession(File file, LogIndex index, String charsetName, String logTimeFormat) throws IOException {
 		this.file = file;
 		this.index = index;
 		this.randomAccessFile = new BufferedRandomFile(file, charsetName);
+		this.logTimeFormat = logTimeFormat;
 		this.nextLog = tryNext();
 	}
 
@@ -94,7 +96,7 @@ public class Log4jFileSession implements Closeable {
 			line = randomAccessFile.readLine();
 			if (line == null)
 				break;
-			var log = Log4jLog.tryParse(offset, line);
+			var log = Log4jLog.tryParse(offset, line, logTimeFormat);
 			if (null == log) {
 				// 不是日志起始，那么这个肯定是多行日志的孤儿，忽略。
 				continue;
@@ -121,7 +123,7 @@ public class Log4jFileSession implements Closeable {
 			line = randomAccessFile.readLine();
 			if (line == null)
 				break;
-			var log = Log4jLog.tryParse(offset, line);
+			var log = Log4jLog.tryParse(offset, line, logTimeFormat);
 			if (null == log) {
 				next.addLine(line);
 				continue;

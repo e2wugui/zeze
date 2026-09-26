@@ -13,7 +13,7 @@ public class LogServiceConf implements Config.ICustomize {
 		public String logActive;
 		public String logDir = "log";
 		public String logDatePattern = ".yyyy-MM-dd";
-		public String logTimeFormat;
+		public String logTimeFormat = "yy-MM-dd HH:mm:ss.SSS";
 		public String charsetName = "utf-8";
 
 		public LogConf() {
@@ -28,8 +28,8 @@ public class LogServiceConf implements Config.ICustomize {
 			if (!attr.isBlank())
 				logDatePattern = attr;
 			logTimeFormat = self.getAttribute("LogTimeFormat");
-			if (!logTimeFormat.isBlank())
-				Log4jLog.LogTimeFormat = logTimeFormat;
+			if (logTimeFormat.isBlank())
+				logTimeFormat = "yy-MM-dd HH:mm:ss.SSS";
 			attr = self.getAttribute("CharsetName");
 			if (!attr.isBlank())
 				charsetName = attr;

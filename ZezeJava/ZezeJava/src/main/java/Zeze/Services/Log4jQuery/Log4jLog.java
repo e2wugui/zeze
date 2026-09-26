@@ -74,25 +74,16 @@ public class Log4jLog extends ReentrantLock {
 		return getLog();
 	}
 
-	public static volatile String LogTimeFormat = "yy-MM-dd HH:mm:ss.SSS";
+	// 时间格式随LogConf按份持有（Log4jFileSession.logTimeFormat），多份日志配置可各自不同。
 
-	public static long parseTime(String strTime) {
-		var parsePosition = new ParsePosition(0);
-		var simpleDateFormat = new SimpleDateFormat(LogTimeFormat);
-		var date = simpleDateFormat.parse(strTime, parsePosition);
-		if (null == date || parsePosition.getErrorIndex() >= 0)
-			throw new IllegalArgumentException("invalid time format '" + strTime + "' at " + parsePosition.getErrorIndex());
-		return date.getTime();
-	}
-
-	public static Log4jLog tryParse(long offset, String line) {
+	public static Log4jLog tryParse(long offset, String line, String logTimeFormat) {
 		var dayOffset = line.indexOf(' ');
 		if (dayOffset > 0) {
 			var timeOffset = line.indexOf(' ', dayOffset + 1);
 			if (timeOffset > 0) {
 				var strTime = line.substring(0, timeOffset);
 				var parsePosition = new ParsePosition(0);
-				var simpleDateFormat = new SimpleDateFormat(LogTimeFormat);
+				var simpleDateFormat = new SimpleDateFormat(logTimeFormat);
 				var date = simpleDateFormat.parse(strTime, parsePosition);
 				if (null != date && parsePosition.getErrorIndex() == -1) {
 					return new Log4jLog(date.getTime(), offset, line);
