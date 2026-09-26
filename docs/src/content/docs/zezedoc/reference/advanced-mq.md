@@ -78,11 +78,13 @@ public interface MQListener {
 
 `Options` 定义三种可靠性/部署模式：
 
-| 类型 | 说明 |
-|------|------|
-| `Single` | 单一 MQ Server，无备份 |
-| `DoubleWrite` | 主备双写：写入 Leader 后复制到 Follower 才算成功；Master 负责负载均衡与故障切换 |
-| `Raft3` | 基于 Zeze-Raft 实现，多副本强一致 |
+| 类型 | 说明 | 实现状态 |
+|------|------|------|
+| `Single` | 单一 MQ Server，无备份 | **已实现**（当前唯一可用值） |
+| `DoubleWrite` | 主备双写：写入 Leader 后复制到 Follower 才算成功；Master 负责负载均衡与故障切换 | **未实现**，`createMQ` 传入会被明确报错拒绝（fail-fast） |
+| `Raft3` | 基于 Zeze-Raft 实现，多副本强一致 | **未实现**，`createMQ` 传入会被明确报错拒绝（fail-fast） |
+
+> **注意**：`DoubleWrite` 与 `Raft3` 目前只是协议中预留的枚举值，实现只有 `Single` 一种（单机、无副本，Manager 磁盘损坏即该分区数据全失）。传入这些值不会再静默降级为 `Single` 运行，而是直接报错（错误信息含"未实现"）。历史版本静默降级创建的既有 topic 不受影响（本来就一直以 `Single` 语义运行）。
 
 ---
 
@@ -138,7 +140,7 @@ public interface MQListener {
 1. **分区即并发**：`partitionCount` 决定消费并发度，按吞吐需求规划；只增不减，且增加时最好队列为空，否则 one-by-one 特性可能被破坏。
 2. **事务内慎发**：事务体内直接 `sendMessage` 会在重做时重复发送，务必用 `whileCommit` 或事务消息。
 3. **可靠副作用用 RedoQueue**：跨系统、需持久化重试的场景用 `RedoQueue` + `RedoQueueServer`，享受断点续传与回档保护。
-4. **选型**：单机简单场景用内置 `Single`；要求高可用用 `DoubleWrite` 或 `Raft3`；已有 MQ 基础设施则直接集成第三方。
+4. **选型**：单机简单场景用内置 `Single`（当前唯一已实现的队列类型）；`DoubleWrite` 与 `Raft3` **尚未实现**，传入会被拒绝——要求高可用的多副本语义目前需等官方实现或直接集成第三方 MQ；已有 MQ 基础设施则直接集成第三方。
 
 ---
 

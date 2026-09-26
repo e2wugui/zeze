@@ -30,6 +30,14 @@ public class MQ {
 	}
 
 	public static MQ createMQ(String topic, int partition, BOptions.Data options) throws Exception {
+		// BOptions 校验（fail-fast）：DoubleWrite/Raft3 尚未实现（见 advanced-mq.md），明确报错拒绝，
+		// 不再静默按 Single 跑——否则协议层回显成功掩盖可靠性降级（Manager 磁盘损坏即数据全失）。
+		// 0/不传=默认 Single，兼容既有 null 调用形态。Master 端有同款校验兜底（直连 MasterAgent 的调用方）。
+		var optionsValue = null != options ? options.getOptions() : BOptions.Single;
+		if (optionsValue != BOptions.Single && optionsValue != 0)
+			throw new IllegalArgumentException("createMQ options=" + optionsValue + " 未实现：当前仅实现 Single("
+					+ BOptions.Single + ")，DoubleWrite(" + BOptions.DoubleWrite + ")/Raft3(" + BOptions.Raft3
+					+ ") 拒绝创建，不再静默降级");
 		masterAgent.startAndWaitConnectionReady();
 		mqAgent.start();
 		return new MQ(masterAgent.createMQ(topic, partition, options));

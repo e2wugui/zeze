@@ -13,6 +13,7 @@ import Zeze.Builtin.MQ.Master.ReportLoad;
 import Zeze.Builtin.MQ.Master.BMQServer;
 import Zeze.Builtin.MQ.Master.Register;
 import Zeze.Builtin.MQ.Master.Subscribe;
+import Zeze.Builtin.MQ.BOptions;
 import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
@@ -28,13 +29,16 @@ public class Master extends AbstractMaster {
     // 错误码8：topic名为空串（会作为Manager home根目录本身写入，重启loadMQ只扫子目录，
     // 该topic全部数据成死数据且需人工清目录）。定义在手写子类，不改生成的AbstractMaster。
     public static final int eTopicEmpty = 8;
+    // 错误码9：BOptions 传入了未实现的队列类型（DoubleWrite/Raft3 及其他非 Single 值）。
+    // 定义在手写子类，不改生成的AbstractMaster（与eTopicEmpty同法）。
+    public static final int eOptionsNotImplemented = 9;
     private final String home;
     private final RocksDatabase masterDb;
     private final RocksDatabase.Table mqTable; // key:utf8(topic), value:encode(BMQServers)
     private final Config zezeConfig;
     // 发号基线取当前时间（<<8 留出单次运行内的递增位）：sessionId 不持久化，而 Manager 端订阅跨
-    // Master 重启存活，重启后从 0 重发会与旧 id 重叠，重叠订阅被 MQPartition.subscribe 的
-    // putIfAbsent 静默吞掉（新消费者永久收不到消息）。基线随时间前进，重叠仅在旧进程发号平均
+    // Master 重启存活，重启后从 0 重发会与旧 id 重叠，重叠订阅会顶掉旧消费者仍活着的条目
+    // （旧消费者永久收不到消息）。基线随时间前进，重叠仅在旧进程发号平均
     // 速率超过 256/ms 时才可能（发号点仅 openMQ/createMQ，远达不到）。
     private final AtomicLong sessionIdGen = new AtomicLong(System.currentTimeMillis() << 8);
 
@@ -124,6 +128,15 @@ public class Master extends AbstractMaster {
             // create
             servers.getInfo().setTopic(r.Argument.getTopic());
             servers.getInfo().setPartition(r.Argument.getPartition());
+            // BOptions 校验（fail-fast）：实现只有 MQSingle 一种队列，接受 DoubleWrite/Raft3 会在
+            // 协议层回显成功后静默按 Single 跑（单机无副本），可靠性承诺成纸上协议——明确报错拒绝。
+            // 0=未指定（编码省略，等价不传），按 Single 默认，兼容既有 null 调用形态。
+            var optionsValue = r.Argument.getOptions().getOptions();
+            if (optionsValue != BOptions.Single && optionsValue != 0) {
+                logger.error("createMQ options={} 未实现：当前仅实现 Single({})，DoubleWrite/Raft3 及其他值拒绝创建，不再静默按 Single 降级",
+                        optionsValue, BOptions.Single);
+                return errorCode(eOptionsNotImplemented);
+            }
             servers.getInfo().setOptions(r.Argument.getOptions());
             if (r.Argument.getPartition() < 1)
                 return errorCode(ePartition);
