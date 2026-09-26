@@ -196,6 +196,15 @@ public class ServiceManager {
 	 */
 	public long startService(StartService r) {
 		var serviceName = r.Argument.getServiceName();
+		// GE-C01：serviceName 直接拼入 services/<svc> 容器路径（loadLaunchSpec→currentVersionDir），
+		// 非单段名（".."逃逸/分隔符/绝对盘符）可把解析范围指到 services/ 之外——与 open 写入的
+		// distributes 内容组合即成完整 RCE 链（Zoker 端口无认证，任意 TCP 可发协议帧）。
+		// 对齐 commitService 的既有同构守卫（DistributeManager.isSafePathSegment）直接拒绝，
+		// 不新增协议错误码：非法名≈永远不存在可用描述文件。
+		if (!DistributeManager.isSafePathSegment(serviceName)) {
+			logger.error("startService rejected: unsafe serviceName='{}'", serviceName);
+			return err(Zoker.eNoServiceProperties);
+		}
 		Process process;
 		while (true) {
 			var existing = processes.get(serviceName);

@@ -51,6 +51,9 @@ public class DistributeManager {
 	// 每个agent连接打开的文件键：agent在OpenFile之后、CloseFile之前断链时按连接回收FileBin，
 	// 否则RandomAccessFile句柄常驻泄漏，Windows上还锁住distributes下的文件使commit的rename失败。
 	private final ConcurrentHashMap<AsyncSocket, Set<String>> filesBySocket = new ConcurrentHashMap<>();
+	// GE-C04：同服务 commit 串行化锁（services/<svc> 粒度）。键先过 isSafePathSegment 校验，
+	// 条目数以服务名为界，无攻击面放大。跨服务不受影响。
+	private final ConcurrentHashMap<String, Object> commitLocks = new ConcurrentHashMap<>();
 	private volatile int keepVersions = KEEP_VERSIONS_DEFAULT;
 
 	public DistributeManager(Zoker zoker) {
@@ -222,10 +225,29 @@ public class DistributeManager {
 	 * servicesOld 布局的错误码，随布局移除检查路径后不再返回（死码留待 Gen 批清理协议定义）。
 	 */
 	long commit(String serviceName, String versionNo) {
-		if (!isSafePathSegment(serviceName) || !isSafePathSegment(versionNo)) {
+		// GE-C02：versionNo 排除保留字 current——services/<svc>/current 是现役指针文件的固有位置，
+		// 版本目录 rename 占据该位置后（首次部署=指针尚不存在的常态即可 rename 成功），
+		// switchCurrent 的原子 rename 对目录目标必失败：此后对该服务的一切 commit 恒失败、
+		// currentVersionDir 恒 null、pruneVersions 永远执行不到（不自愈），需人工删目录。
+		if (!isSafePathSegment(serviceName) || !isSafePathSegment(versionNo)
+				|| CURRENT_NAME.equals(versionNo)) {
 			logger.error("commitService rejected: unsafe serviceName='{}' versionNo='{}'", serviceName, versionNo);
 			return err(Zoker.eCommitFail);
 		}
+		// GE-C04：同服务 commit 串行化（对齐 R1-04 的对象锁形态，services/<svc> 粒度）。
+		// commit 三步（install→switch→prune）间无自洽性，CommitService 为 Normal 派发可并发：
+		// keepVersions=1 时 A 的 prune 可删除并发 B 已 install 未 switch 的版本目录，B 随后
+		// switch 使 current 指向已删除目录（返回 0 但服务永远无法启动，无自愈路径）。
+		// 案卷的替代方案"prune 按 beginMillis 只删本次开始前安装的版本"留有交错洞：B 先于 A
+		// 进入、install 晚于 A 的 install 时，B 的 mtime 早于 A 的 cutoff，仍会被 A 删——
+		// 时间戳过滤只能缩窄窗口，互斥才能闭合。锁内为纯本地 FS 操作（rename/fsync/delete），
+		// 不持其他锁（closeUnder 迭代 files 不取 filesBySocket 锁），无锁序环。
+		synchronized (commitLocks.computeIfAbsent(serviceName, __ -> new Object())) {
+			return commitLocked(serviceName, versionNo);
+		}
+	}
+
+	private long commitLocked(String serviceName, String versionNo) {
 		var serviceFrom = new File(distributeDir, serviceName);
 		var svcDir = new File(serviceDir, serviceName);
 		var versionTo = new File(svcDir, versionNo);
@@ -276,6 +298,10 @@ public class DistributeManager {
 	/**
 	 * 解析 services/&lt;svc&gt;/current 指向的版本目录（startService 等读路径用）。
 	 * 指针缺失/内容非法/指向不存在的版本时返回 null（服务从未 commit 或现场被破坏）。
+	 *
+	 * <p>调用方须保证容器目录在管理范围内（services/&lt;svc&gt;，经 isSafePathSegment 校验的
+	 * 单段服务名拼出）——本方法只校验指针<b>内容</b>是单段名，不校验传入的容器目录自身边界
+	 * （GE-C01：入口校验在 {@code ServiceManager.startService}，这里不重复设防）。</p>
 	 */
 	public static @Nullable File currentVersionDir(File serviceContainerDir) {
 		var current = new File(serviceContainerDir, CURRENT_NAME);
