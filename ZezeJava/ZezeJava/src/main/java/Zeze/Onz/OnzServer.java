@@ -632,7 +632,10 @@ public class OnzServer extends AbstractOnz {
 
 	/**
 	 * 所有zeze集群共享同一个ServiceManager实例时，使用这个构造函数。
-	 * 共享配置时，每个zeze集群需要额外的唯一名配置，并且把它拼接到ServiceManager的注册参数中。
+	 * 共享配置时，每个zeze集群需要额外的唯一名配置，并且把它拼接到ServiceManager的注册参数中：
+	 * 参与方侧在各集群 {@link Zeze.Onz.Onz#start()} 之前用 {@link Zeze.Onz.Onz#setRegisterServiceName(String)}
+	 * 配置同名注册（缺省仍为"Onz"，非共享模式零变化）；本协调者对每个名字逐名订阅，
+	 * getZezeInstance按名查询解析地址（订阅键=查询键）。
 	 *
 	 * @param sharedZezeConfig 共享的ServiceManager配置
 	 * @param specialZezeNames 共享配置时，已经配置成不同的zeze集群的唯一名字的列表，OnzServer不再自定义命名。
@@ -662,9 +665,16 @@ public class OnzServer extends AbstractOnz {
 				if (this.zezes.containsKey(zeze))
 					throw new RuntimeException("duplicate zeze=" + zeze + " zezes=" + specialZezeNames);
 				this.zezes.put(zeze, sharedAgent);
+				// 订阅键=查询键（GC-C01(FND21)）：getZezeInstance在shared模式下按集群名查
+				// subscribeStates（Agent以订阅请求里的服务名为键建表），原先在共享agent上只订阅
+				// 固定名"Onz"而按别名查询——别名键永不存在，共享模式下每次地址解析恒抛
+				// "subscribe not found"，所有Onz事务/redo/commit路径100%失败（fd7b9eea6初版即坏，
+				// 零存量调用方）。逐名订阅与702行的按名查询对齐；各名对应的参与方以同名注册进
+				// 共享SM（Onz.setRegisterServiceName，构造器javadoc的配对说明），两头对名后该
+				// 模式才真正可用。
+				sharedAgent.subscribeService(new BSubscribeInfo(zeze));
 			}
 			this.sharedServiceManager = true;
-			sharedAgent.subscribeService(new BSubscribeInfo(Onz.eServiceName));
 			service = new OnzServerService(myConfig);
 			onzAgent = new OnzAgent();
 			RegisterProtocols(service);

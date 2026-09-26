@@ -1,5 +1,6 @@
 package Zeze.Onz;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Application;
@@ -102,6 +103,22 @@ public class Onz extends AbstractOnz {
 		return participantName;
 	}
 
+	// 共享SM部署（OnzServer三参构造器）下本集群Onz服务的SM注册名（GC-C01(FND21)）：共享SM里
+	// 多个集群若都按缺省"Onz"注册，同名条目混在一张通告表里，协调者无从按集群路由——共享模式
+	// 要求各集群配置互异唯一名（与协调者specialZezeNames逐名对齐，协调者按名订阅+按名查询）。
+	// 非共享模式（每集群独立SM）保持缺省"Onz"不动：协调者按"Onz"订阅，既有用法零变化。
+	private String registerServiceName = eServiceName;
+
+	/** SM注册服务名（缺省"Onz"；共享SM部署改为集群唯一名，见registerServiceName注释）。 */
+	public String getRegisterServiceName() {
+		return registerServiceName;
+	}
+
+	/** 必须在 {@link #start()} 之前调用：start()把该名注册进ServiceManager，之后不可改。 */
+	public void setRegisterServiceName(String registerServiceName) {
+		this.registerServiceName = Objects.requireNonNull(registerServiceName, "registerServiceName");
+	}
+
 	public static class OnzService extends Service {
 		public static final String eName = "Zeze.Onz.Server";
 
@@ -131,7 +148,9 @@ public class Onz extends AbstractOnz {
 			var zeze = service.getZeze();
 			var config = zeze.getConfig();
 			var identity = String.valueOf(config.getServerId());
-			zeze.getServiceManager().registerService(new BServiceInfo(eServiceName, identity, 0, ip, port));
+			// 注册名可配（GC-C01(FND21)）：共享SM部署下各集群以唯一名注册（协调者按名订阅路由），
+			// 非共享缺省"Onz"（协调者按"Onz"订阅，见registerServiceName注释）。
+			zeze.getServiceManager().registerService(new BServiceInfo(registerServiceName, identity, 0, ip, port));
 		}
 		sagaCleanupTimer = TaskSpec.ofAction(this::cleanupTimeoutSagas).schedulePeriodNow(60_000, 60_000);
 	}

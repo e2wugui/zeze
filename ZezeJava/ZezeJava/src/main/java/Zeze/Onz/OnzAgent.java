@@ -93,9 +93,21 @@ public class OnzAgent extends AbstractOnzAgent {
 		// Send false（socket断开窗口）时回调不注册、无超时调度，future必须完成，否则perform的future.get()永久挂起
 		if (!r.Send(zezeOnzInstance, (p) ->{
 			if (r.getResultCode() == 0) {
-				var bbResult = ByteBuffer.Wrap(r.Result.getFuncResult());
-				result.decode(bbResult);
-				future.setResult(result);
+				// GC-C02(FND21)：回调式发送没有框架future，本局部TCS的唯一完成者是这条回调；
+				// 真实应答消费rpc上下文后，超时兜底的双参remove必失败直接return（Rpc.schedule），
+				// 不会重放回调——decode抛出（载荷结构性损坏/空载荷decode不足1字节）原先发生在
+				// setResult之前，异常冲出回调被派发框架吞掉，future永pending，业务的future.get()
+				// 无超时永久挂起且零可观测性。对齐sendFlushReady"失败路径必须完成future"与Rpc.handle
+				// "resultCode先于future"的先立结果形态：decode失败同样以异常完成future，业务走正常
+				// rollback/补偿链而不是无声挂死。
+				try {
+					var bbResult = ByteBuffer.Wrap(r.Result.getFuncResult());
+					result.decode(bbResult);
+					future.setResult(result);
+				} catch (Throwable ex) {
+					future.setException(new RuntimeException(
+							"call result decode fail: " + onzProcedureName, ex));
+				}
 			} else {
 				future.setException(new RuntimeException(
 						"call error: " + onzProcedureName
@@ -132,9 +144,17 @@ public class OnzAgent extends AbstractOnzAgent {
 		// 同上：Send false必须完成future
 		if (!r.Send(zezeOnzInstance, (p) ->{
 			if (r.getResultCode() == 0) {
-				var bbResult = ByteBuffer.Wrap(r.Result.getFuncResult());
-				result.decode(bbResult);
-				future.setResult(result);
+				// 同callProcedureAsync（GC-C02(FND21)）：回调是TCS唯一完成者，超时兜底被真实
+				// 应答短路不重放——decode抛出必须以异常完成future，否则cancelSaga的无超时
+				// saga.get()（await saga result）在协调者线程上永久挂起，补偿链无人触发。
+				try {
+					var bbResult = ByteBuffer.Wrap(r.Result.getFuncResult());
+					result.decode(bbResult);
+					future.setResult(result);
+				} catch (Throwable ex) {
+					future.setException(new RuntimeException(
+							"call result decode fail: " + onzProcedureName, ex));
+				}
 			} else {
 				future.setException(new RuntimeException(
 						"call error: " + onzProcedureName
