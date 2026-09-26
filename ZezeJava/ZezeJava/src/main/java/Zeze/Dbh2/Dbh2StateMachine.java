@@ -26,6 +26,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private Bucket bucket;
 	private TidAllocator tidAllocator;
 	private final ConcurrentHashMap<Long, Dbh2Transaction> transactions = new ConcurrentHashMap<>();
+	// eCommitting悬挂告警阈值=10×bucketMaxTime（默认1000s）。推导：正常redo收敛时间=redoDaemon周期
+	//（60s）+目标桶raft可用时间，bucketMaxTime(100s)>prepareMaxTime(80s)的既有排序已覆盖协调周期；
+	// 10×（默认1000s，约16个redo周期）远超任何正常收敛时间仍停在此状态，才认定"协调者已决定提交
+	// 但长期不redo"的灾难形态（CommitRocks损坏/redo永久失败）。
+	private static final int CommittingHangWarnFactor = 10;
+	// 告警去重（对齐OnzServer.hangWarnedTids形态）：每tid只error一次；事务完结（commit/undo）即回收，
+	// 集合有界于悬挂事务数。
+	private final ConcurrentHashMap.KeySetView<Long, Boolean> committingHangWarnedTids = ConcurrentHashMap.newKeySet();
 	private Future<?> timer;
 	private CommitAgent commitAgent;
 	private final Dbh2 dbh2;
@@ -223,6 +231,15 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					|| Commit.ePreparing == state.getState()) {
 				logger.warn("timeout undo tid={} state={}", tid, state);
 				getRaft().appendLog(new LogUndoBatch(tid));
+			} else if (Commit.eCommitting == state.getState()
+					&& now - t.getCreateTime() >= (long) dbh2.getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
+					&& committingHangWarnedTids.add(tid)) {
+				// 2PC语义：协调者已保存commitPoint(eCommitting)，桶侧无信息安全终局（误undo=跨桶
+				// 部分提交），只告警不自动终局；恢复依赖协调者CommitRocks存活，灾难场景重建协调者
+				// 进程即收敛（见docs dbh2.md）。
+				logger.error("eCommitting transaction hang: tid={} query={}:{} age={}ms; "
+								+ "coordinator commit-point exists but redo not arriving",
+						tid, t.getQueryIp(), t.getQueryPort(), now - t.getCreateTime());
 			}
 		}
 	}
@@ -326,6 +343,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public void commitBatch(long tid) {
 		try (var txn = transactions.remove(tid)) {
 			counterCommitBatch.incrementAndGet();
+			committingHangWarnedTids.remove(tid); // 悬挂告警集合随事务完结回收（有界性）
 			if (null != txn) {
 				dbh2.onCommitBatch(txn);
 				txn.commitBatch(bucket);
@@ -341,6 +359,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public void undoBatch(long tid) {
 		try (var txn = transactions.remove(tid)) {
 			counterUndoBatch.incrementAndGet();
+			committingHangWarnedTids.remove(tid); // 悬挂告警集合随事务完结回收（有界性）
 			if (null != txn)
 				txn.undoBatch(bucket);
 			else

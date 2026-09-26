@@ -174,3 +174,7 @@ Commit 服务是可选组件，负责处理分布式事务的提交确认。`Com
 
 - `ProcessCommitRequest`: 提交事务
 - `ProcessQueryRequest`: 查询事务状态（`Critical` 调度模式，保证查询时序）
+
+### 悬挂事务（eCommitting）的恢复语义
+
+Prepare 之后、协调者保存 commitPoint 之前，桶侧超时回查发现事务不存在或仍在准备中，会自动 undo。一旦进入 `eCommitting`（协调者已保存 commitPoint、已决定提交），桶侧不再有任何自动终局：误 undo 会造成跨桶部分提交（这正是 2PC 存在的理由）。此状态下事务的最终收敛**依赖协调者进程与其 `CommitRocks` 库存活**——redoDaemon 会持续把已决定的事务 redo 到各桶。灾难场景（`CommitRocks` 损坏、redo 永久失败）的处置是**重建协调者**（重建后 redo 自然清空残留）；悬挂期间桶侧对同一 tid 告警一次（年龄超过 `10×BucketMaxTime` 时 error 日志，带 tid/query 地址/年龄），受影响 key 只读且该桶无法分裂，但数据不会损坏。
