@@ -1,14 +1,14 @@
 // auto-generated @formatter:off
-package Zeze.Builtin.MQ;
+package Zeze.Builtin.MQ.Master;
 
-public interface BPushMessageReadOnly {
+public interface BTopicPartitionsReadOnly {
     long typeId();
     int preAllocSize();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_);
     boolean negativeCheck();
-    BPushMessage copy();
-    BPushMessage.Data toData();
+    BTopicPartitions copy();
+    BTopicPartitions.Data toData();
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
@@ -17,8 +17,5 @@ public interface BPushMessageReadOnly {
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 
     String getTopic();
-    int getPartitionIndex();
-    long getSessionId();
-    Zeze.Builtin.MQ.BMessageReadOnly getMessageReadOnly();
-    int getRetryCount();
+    Zeze.Transaction.Collections.PSet1ReadOnly<Integer> getPartitionIndexesReadOnly();
 }

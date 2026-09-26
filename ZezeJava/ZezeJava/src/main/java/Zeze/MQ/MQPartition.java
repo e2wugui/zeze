@@ -50,6 +50,18 @@ public class MQPartition extends ReentrantLock {
 			partitions.computeIfAbsent(index, (key) -> new MQSingle(this, topic, index));
 	}
 
+	// 【GB-D01】删除活分区：先摘除（此后 SendMessage/Subscribe 走 eTopicNotExist/ePartition 拒绝，
+	// 新的 fill/推送无从发起），再 bind(null) 静默在途推送、close 有界排空在飞回填（MQSingle.close 契约）。
+	// 之后由 MQManager.deletePartition 清理段文件/索引列族/meta。分区删除不触发 arrangeConsumer：
+	// 订阅集合未变，其余分区的 sessionId 取模绑定不受影响。
+	public void removePartition(int index) throws IOException {
+		var partition = partitions.remove(index);
+		if (null != partition) {
+			partition.bind(0, null);
+			partition.close();
+		}
+	}
+
 	public void subscribe(AsyncSocket sender, long sessionId) {
 		// 同 sessionId 换 socket 必须替换旧条目：网络静默死亡后消费者重连重订阅，新连接的
 		// Subscribe 先于旧 socket 的 OnSocketClose 到达是常态序（KeepCheckPeriod 默认禁用）。

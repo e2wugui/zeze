@@ -6,21 +6,29 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Builtin.MQ.Master.BMQServers;
+import Zeze.Builtin.MQ.Master.BMQServer;
+import Zeze.Builtin.MQ.Master.BMQServerReadOnly;
+import Zeze.Builtin.MQ.Master.BReportPartitions;
 import Zeze.Builtin.MQ.Master.CreateMQ;
 import Zeze.Builtin.MQ.Master.CreatePartition;
-import Zeze.Builtin.MQ.Master.ReportLoad;
-import Zeze.Builtin.MQ.Master.BMQServer;
+import Zeze.Builtin.MQ.Master.DeletePartition;
 import Zeze.Builtin.MQ.Master.Register;
+import Zeze.Builtin.MQ.Master.ReportLoad;
+import Zeze.Builtin.MQ.Master.ReportPartitions;
 import Zeze.Builtin.MQ.Master.Subscribe;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.Config;
 import Zeze.IModule;
+import Zeze.MQ.MQConfig;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDBException;
 
 public class Master extends AbstractMaster {
@@ -41,6 +49,18 @@ public class Master extends AbstractMaster {
     // （旧消费者永久收不到消息）。基线随时间前进，重叠仅在旧进程发号平均
     // 速率超过 256/ms 时才可能（发号点仅 openMQ/createMQ，远达不到）。
     private final AtomicLong sessionIdGen = new AtomicLong(System.currentTimeMillis() << 8);
+    // 【GB-D01】Master 侧配置（仅 OrphanGracePeriodMs 参与；Manager 侧字段无 Master 语义）。
+    private final MQConfig mqConfig = new MQConfig();
+    // 【GB-D01】孤儿候选状态（内存态）：key = {managerKey}|{topic}|{partition} → 候选首见时间。
+    // 覆盖判定见 notCoveredPartitions；候选在册化/从上报中消失时除名（CreateMQ 部分成功窗口自愈）。
+    final ConcurrentHashMap<String, Long> orphanFirstSeen = new ConcurrentHashMap<>();
+    // 【GB-D01】包内可见：孤儿删除下发钩子（默认真实 rpc；测试注入捕获断言"对哪些条目下发了删除"）。
+    @FunctionalInterface
+    interface DeletePartitionIssuer {
+        void issue(BMQServer.Data managerInfo, AsyncSocket socket, String topic, HashSet<Integer> partitionIndexes)
+                throws Exception;
+    }
+    DeletePartitionIssuer deleteIssuer = this::sendDeletePartition;
 
     public static class Manager {
         private final AsyncSocket socket;
@@ -58,9 +78,15 @@ public class Master extends AbstractMaster {
     public Master(String home, Config zezeConfig) throws RocksDBException {
         this.home = home;
         this.zezeConfig = zezeConfig;
+        zezeConfig.parseCustomize(mqConfig);
         masterDb = new RocksDatabase(Path.of(home, MasterDbName).toString(),
                 RocksDatabase.DbType.eOptimisticTransactionDb);
         mqTable = masterDb.getOrAddTable("mq");
+    }
+
+    // 【GB-D01】包内可见：配置（测试收缩宽限期）。
+    MQConfig getMqConfig() {
+        return mqConfig;
     }
 
     public void close() {
@@ -153,6 +179,9 @@ public class Master extends AbstractMaster {
             var managerPartitionIndexes = new HashMap<Manager, HashSet<Integer>>();
             for (var i = 0; i < r.Argument.getPartition(); ++i) {
                 var manager = managers[i % managers.length];
+                // manager.info 即 Register 上报的 BMQServer（含稳定 ManagerId，【GB-D05】）：
+                // copy 后按本 topic 改写分区号/主题名，ManagerId 随 copy 写入 servers 条目——
+                // 路由表按 id 关联，Manager 换地址重注册时 Register 联动重写可命中。
                 var info = manager.info.copy();
                 info.setPartitionIndex(i);
                 info.setTopic(r.Argument.getTopic());
@@ -210,25 +239,249 @@ public class Master extends AbstractMaster {
     }
 
     @Override
-    protected long ProcessRegisterRequest(Register r) {
+    protected long ProcessRegisterRequest(Register r) throws Exception {
         lock();
         try {
             // 幂等：重连/重注册会重复到达（首连时start()注册与连接建立钩子各一次；Master重启后
             // 重连重注册），同socket重复append会堆积；且新连接的Register可能先于旧socket的
-            // OnSocketClose到达，按host:port替换旧条目，避免死连接滞留managers被choiceManager选中。
+            // OnSocketClose到达，须替换旧条目，避免死连接滞留managers被choiceManager选中。
+            // 【GB-D05】匹配优先级：稳定 ManagerId（新路径，地址全换也能关联）> socket > host:port
+            // （存量兜底）。host:port 匹配保留：ManagerId==0 视为未知身份（老版本Manager/存量注册表）。
+            Manager replaced = null;
             for (int i = 0; i < managers.size(); ++i) {
                 var e = managers.get(i);
-                if (e.socket == r.getSender()
+                var sameManagerId = e.info.getManagerId() != 0 && e.info.getManagerId() == r.Argument.getManagerId();
+                if (e.socket == r.getSender() || sameManagerId
                         || (e.info.getHost().equals(r.Argument.getHost()) && e.info.getPort() == r.Argument.getPort())) {
+                    replaced = e;
                     managers.remove(i);
                     break;
                 }
             }
             managers.add(new Manager(r.getSender(), r.Argument));
             r.SendResult();
+            // 【GB-D05】联动重写路由：mqTable 中该 manager 承载的 servers 条目改写为新地址（换地址
+            // 重注册→路由自愈）。注册本身已成功，重写失败仅记日志等下次重注册重试（Register 每次重连
+            // 都会到达，收敛有保障）。
+            try {
+                rewriteRoutes(r.Argument, null != replaced ? replaced.info : null);
+            } catch (Exception e) {
+                logger.error("mq route rewrite on register failed, wait next re-register. managerId={} manager={}:{}",
+                        r.Argument.getManagerId(), r.Argument.getHost(), r.Argument.getPort(), e);
+            }
             return 0;
         } finally {
             unlock();
+        }
+    }
+
+    /**
+     * 【GB-D05】包内可见：Register 联动重写 mqTable 路由（测试直驱存量兼容路径）。
+     * <p>
+     * 对全表每个 topic 的 servers 条目，两路匹配：
+     * <ul>
+     * <li>ManagerId 匹配（主路径）：注册携带稳定身份，条目按 id 关联——Manager 换地址重注册即可自愈，
+     * 与存量地址无关；</li>
+     * <li>兼容兜底（存量 mqTable 无 ManagerId，decode 缺省 0=未知身份）：按地址匹配——条目地址等于
+     * 注册地址（同址重注册）或被替换旧注册条目的地址（同 socket 换地址）即视为同一 manager，
+     * 命中后回填 ManagerId（0 视为未知身份而非"无 manager"，不参与 id 匹配）。</li>
+     * </ul>
+     * 老数据在首次重注册时被回填，之后走主路径。全表扫描：Register 低频（重连时），规模=topic 数。
+     * 并发安全：per-topic 单次原子 put，OpenMQ/Subscribe 无锁读不会看到半态。
+     */
+    void rewriteRoutes(BMQServer.Data register, @Nullable BMQServer.Data replacedOldInfo) throws RocksDBException {
+        var newId = register.getManagerId();
+        // 先收集后写回（迭代中不写同表，对齐 MQFileWithIndex.deleteIndexFrom 的快照语义）。
+        var pending = new HashMap<byte[], byte[]>();
+        try (var it = mqTable.iterator()) {
+            it.seekToFirst();
+            while (it.isValid()) {
+                var topicKey = it.key();
+                var topic = new String(topicKey, StandardCharsets.UTF_8);
+                var servers = new BMQServers();
+                servers.decode(ByteBuffer.Wrap(it.value()));
+                var changed = false;
+                for (var server : servers.getServers()) {
+                    var idMatch = newId != 0 && server.getManagerId() == newId;
+                    var legacyMatch = server.getManagerId() == 0
+                            && (addressEquals(server, register.getHost(), register.getPort())
+                            || null != replacedOldInfo
+                            && addressEquals(server, replacedOldInfo.getHost(), replacedOldInfo.getPort()));
+                    if (idMatch || legacyMatch) {
+                        if (!addressEquals(server, register.getHost(), register.getPort()) || server.getManagerId() != newId) {
+                            server.setHost(register.getHost());
+                            server.setPort(register.getPort());
+                            server.setManagerId(newId); // 兼容路径回填（newId==0 时为空写，保持未知身份）
+                            changed = true;
+                        }
+                    }
+                }
+                if (changed) {
+                    var bb = ByteBuffer.Allocate();
+                    servers.encode(bb);
+                    pending.put(topicKey, java.util.Arrays.copyOfRange(bb.Bytes, bb.ReadIndex, bb.ReadIndex + bb.size()));
+                    logger.info("mq route rewritten on register. topic={} managerId={} -> {}:{}",
+                            topic, newId, register.getHost(), register.getPort());
+                }
+                it.next();
+            }
+        }
+        for (var e : pending.entrySet())
+            mqTable.put(e.getKey(), 0, e.getKey().length, e.getValue(), 0, e.getValue().length);
+    }
+
+    private static boolean addressEquals(BMQServerReadOnly server, String host, int port) {
+        return server.getHost().equals(host) && server.getPort() == port;
+    }
+
+    private static boolean addressEquals(BMQServer.Data server, String host, int port) {
+        return server.getHost().equals(host) && server.getPort() == port;
+    }
+
+    /** 【GB-D05/GB-D01】包内可见：读回 mqTable 条目（对账覆盖判定共用；测试断言路由内容）。 */
+    @Nullable BMQServers getServers(String topic) throws RocksDBException {
+        var mq = mqTable.get(topic.getBytes(StandardCharsets.UTF_8));
+        if (null == mq)
+            return null;
+        var servers = new BMQServers();
+        servers.decode(ByteBuffer.Wrap(mq));
+        return servers;
+    }
+
+    /** 【GB-D01】包内可见：mqTable 播种（测试直构对账判定的前置，与 ProcessCreateMQRequest 落表同构）。 */
+    void putMqServers(String topic, BMQServers servers) throws RocksDBException {
+        var topicBytes = topic.getBytes(StandardCharsets.UTF_8);
+        var bb = ByteBuffer.Allocate();
+        servers.encode(bb);
+        mqTable.put(topicBytes, 0, topicBytes.length, bb.Bytes, bb.ReadIndex, bb.size());
+    }
+
+    @Override
+    protected long ProcessReportPartitionsRequest(ReportPartitions r) throws Exception {
+        lock();
+        try {
+            var manager = findManager(r.getSender());
+            if (null == manager)
+                return errorCode(eManagerNotFound);
+            // 先回应答再对账：对账含阻塞 DeletePartition rpc，不应占用 Manager 的上报应答
+            //（对账触发点=收到上报时顺带，无独立定时器）。
+            r.SendResult();
+            reconcileOrphanReport(manager, r.Argument);
+            return 0;
+        } finally {
+            unlock();
+        }
+    }
+
+    /**
+     * 【GB-D01】孤儿对账（包内可见，测试直构判定）：上报条目在 mqTable 无对应 topic、或该 topic 的
+     * servers 不含此 manager 承载该分区 → 孤儿候选；候选连续存活超宽限期（OrphanGracePeriodMs，
+     * 覆盖 CreateMQ 部分成功/创建中的正常窗口）才下发 DeletePartition，动作记 warn（审计）。
+     * <p>
+     * 候选除名时机：在册化（CreateMQ 最终登记完成→覆盖命中）或从上报中消失（已删/重建中）；
+     * 下发后也除名——删除失败的残留下轮上报重新候选、重新起算宽限期（=宽限期间隔的自动重试）。
+     */
+    void reconcileOrphanReport(Manager manager, BReportPartitions.Data report) throws Exception {
+        var now = System.currentTimeMillis();
+        var managerKey = manager.info.getManagerId() != 0
+                ? Long.toString(manager.info.getManagerId()) : "sock" + System.identityHashCode(manager.socket);
+        var prefix = managerKey + "|";
+        // 本轮候选收集（宽限期从首见起算，putIfAbsent 保持原值）
+        var seenKeys = new HashSet<String>();
+        var candidates = new HashMap<String, HashSet<Integer>>();
+        for (var tp : report.getTopics()) {
+            var notCovered = notCoveredPartitions(tp.getTopic(), tp.getPartitionIndexes(), manager);
+            if (notCovered.isEmpty())
+                continue;
+            candidates.put(tp.getTopic(), notCovered);
+            for (var p : notCovered)
+                seenKeys.add(prefix + tp.getTopic() + "|" + p);
+        }
+        for (var key : seenKeys)
+            orphanFirstSeen.putIfAbsent(key, now);
+        // 收敛：本 manager 的候选中已不在本轮上报/已覆盖的除名（其他 manager 的键不受影响）
+        for (var it = orphanFirstSeen.keySet().iterator(); it.hasNext(); ) {
+            var key = it.next();
+            if (key.startsWith(prefix) && !seenKeys.contains(key))
+                it.remove();
+        }
+        // 宽限期满 → 下发删除（按 topic 聚合一次 rpc）
+        var grace = mqConfig.getOrphanGracePeriodMs();
+        var toDelete = new HashMap<String, HashSet<Integer>>();
+        var orphanAges = new HashMap<String, Long>(); // 审计用：key=topic，value=最老候选年龄
+        for (var e : candidates.entrySet()) {
+            for (var p : e.getValue()) {
+                var key = prefix + e.getKey() + "|" + p;
+                var firstSeen = orphanFirstSeen.get(key);
+                if (null != firstSeen && now - firstSeen >= grace) {
+                    toDelete.computeIfAbsent(e.getKey(), __ -> new HashSet<>()).add(p);
+                    orphanAges.merge(e.getKey(), now - firstSeen, Math::min);
+                }
+            }
+        }
+        for (var e : toDelete.entrySet()) {
+            for (var p : e.getValue())
+                orphanFirstSeen.remove(prefix + e.getKey() + "|" + p);
+            // 动作审计：删除了什么、为什么删（对账裁决不可静默）
+            logger.warn("mq orphan partitions delete issued: managerId={} manager={}:{} topic={} partitions={}"
+                            + " orphanAgeMs={} (reported by manager but not registered in mqTable, grace {}ms exceeded)",
+                    manager.info.getManagerId(), manager.info.getHost(), manager.info.getPort(),
+                    e.getKey(), e.getValue(), orphanAges.get(e.getKey()), grace);
+            deleteIssuer.issue(manager.info, manager.socket, e.getKey(), e.getValue());
+        }
+    }
+
+    /**
+     * 覆盖判定：reported 分区中被 mqTable 登记给该 manager 的部分之外（= 未覆盖）的子集。
+     * 匹配两路与 Register 联动重写一致：ManagerId 为主，存量条目（ManagerId==0）按注册地址兜底。
+     */
+    private HashSet<Integer> notCoveredPartitions(String topic, java.util.Set<Integer> reported, Manager manager)
+            throws RocksDBException {
+        var servers = getServers(topic);
+        var notCovered = new HashSet<Integer>();
+        if (null == servers) {
+            notCovered.addAll(reported); // topic 整体不在册：全部条目为孤儿候选
+            return notCovered;
+        }
+        var mid = manager.info.getManagerId();
+        for (var p : reported) {
+            var covered = false;
+            for (var server : servers.getServers()) {
+                if (server.getPartitionIndex() != p)
+                    continue;
+                if (mid != 0 && server.getManagerId() == mid) {
+                    covered = true;
+                    break;
+                }
+                // 兼容：存量条目 ManagerId==0，按当前注册地址匹配
+                if (server.getManagerId() == 0 && addressEquals(server, manager.info.getHost(), manager.info.getPort())) {
+                    covered = true;
+                    break;
+                }
+            }
+            if (!covered)
+                notCovered.add(p);
+        }
+        return notCovered;
+    }
+
+    // 默认删除下发：失败不抛（记日志）——残留下轮上报重新候选，宽限期后自动重试。
+    private void sendDeletePartition(BMQServer.Data managerInfo, AsyncSocket socket, String topic,
+                                     HashSet<Integer> partitionIndexes) {
+        try {
+            var dp = new DeletePartition();
+            dp.Argument.setTopic(topic);
+            dp.Argument.getPartitionIndexes().addAll(partitionIndexes);
+            dp.SendForWait(socket).await();
+            if (dp.getResultCode() != 0)
+                logger.warn("mq orphan delete rpc failed, will retry after next grace period. manager={}:{}"
+                                + " topic={} partitions={} error={}",
+                        managerInfo.getHost(), managerInfo.getPort(), topic, partitionIndexes,
+                        IModule.getErrorCode(dp.getResultCode()));
+        } catch (Exception e) {
+            logger.error("mq orphan delete rpc exception, will retry after next grace period. manager={}:{}"
+                    + " topic={} partitions={}", managerInfo.getHost(), managerInfo.getPort(), topic,
+                    partitionIndexes, e);
         }
     }
 

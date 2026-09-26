@@ -1905,6 +1905,8 @@
 					<variable id="2" name="Port" type="int"/> 端口
 					<variable id="3" name="PartitionIndex" type="int"/> 分区索引. 从0开始
 					<variable id="4" name="Topic" type="string"/> 主题
+					<variable id="5" name="ManagerId" type="long"/> Manager稳定身份（自铸，持久化于Manager home）。
+																	 路由表按它关联而非host:port——Manager换地址重注册时Master按id联动重写。
 				</bean>
 				<bean name="BMQServers">
 					<variable id="1" name="Info" type="BMQInfo"/> 主题信息
@@ -1916,16 +1918,29 @@
 					<variable id="1" name="Topic" type="string"/> 主题
 					<variable id="2" name="PartitionIndexes" type="set[int]"/> 分区索引集合
 				</bean>
+				<bean name="BDeletePartition">
+					<variable id="1" name="Topic" type="string"/> 主题
+					<variable id="2" name="PartitionIndexes" type="set[int]"/> 分区索引集合
+				</bean>
+				<bean name="BTopicPartitions">
+					<variable id="1" name="Topic" type="string"/> 主题
+					<variable id="2" name="PartitionIndexes" type="set[int]"/> 该主题本地存在的分区索引集合
+				</bean>
+				<bean name="BReportPartitions">
+					<variable id="1" name="Topics" type="list[BTopicPartitions]"/> Manager本地实际存在的分区清单（磁盘真相）
+				</bean>
 
 				<rpc name="OpenMQ" argument="BSubscribe" result="BMQServers" handle="server"/> 向Master打开现有队列. 指定的主题必须创建过
 				<rpc name="CreateMQ" argument="BMQInfo" result="BMQServers" handle="server"/> 向Master创建新队列. 相同Topic不能重复创建
 				<rpc name="CreatePartition" argument="BCreatePartition" handle="client"/> 创建新队列时Master向Manager发起创建分区
+				<rpc name="DeletePartition" argument="BDeletePartition" handle="client"/> Master对账裁决孤儿分区后向Manager下发删除
 				<rpc name="Subscribe" argument="BSubscribe" result="BMQServers" handle="server"/> 从Master获取现有队列的信息
-				<rpc name="Register" argument="BMQServer" handle="server"/> Manager向Master注册
+				<rpc name="Register" argument="BMQServer" handle="server"/> Manager向Master注册（按ManagerId幂等替换并联动重写路由）
 				<bean name="BLoad">
 					<variable id="1" name="Load" type="double"/> 负载指数
 				</bean>
 				<rpc name="ReportLoad" argument="BLoad" handle="server"/> Manager向Master报告自己的负载指数
+				<rpc name="ReportPartitions" argument="BReportPartitions" handle="server"/> Manager周期上报本地分区清单，Master与mqTable对账（孤儿超宽限期回收）
 			</module>
 
 			<bean name="BOptions">
@@ -1955,6 +1970,7 @@
 				<variable id="2" name="PartitionIndex" type="int"/> 分区索引，用户不用填写
 				<variable id="3" name="SessionId" type="long"/> Consumer SessionId，用户不用填写
 				<variable id="4" name="Message" type="BMessage"/> 消息内容
+				<variable id="5" name="RetryCount" type="int"/> 重投计数（Manager维护，超上限转死信；消费者忽略）
 			</bean>
 			<rpc name="Subscribe" argument="BSubscribeConsumer" handle="server"/> 消息消费者向某个Manager订阅某个主题
 			<rpc name="Unsubscribe" argument="BSubscribeConsumer" handle="server"/> 消息消费者向某个Manager取消订阅某个主题

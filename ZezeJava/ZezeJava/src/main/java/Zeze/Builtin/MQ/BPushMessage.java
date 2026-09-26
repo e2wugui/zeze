@@ -15,9 +15,12 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
     private static final Zeze.Transaction.Collections.LogOneMeta<Zeze.Builtin.MQ.BMessage> meta1_Message
             = Zeze.Transaction.Collections.LogOneMeta.get(Zeze.Builtin.MQ.BMessage.class);
 
+    private int _RetryCount; // 重投计数（Manager维护，超上限转死信；消费者忽略）
+
     private static final java.lang.invoke.VarHandle vh_Topic;
     private static final java.lang.invoke.VarHandle vh_PartitionIndex;
     private static final java.lang.invoke.VarHandle vh_SessionId;
+    private static final java.lang.invoke.VarHandle vh_RetryCount;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
@@ -25,6 +28,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
             vh_Topic = _l_.findVarHandle(BPushMessage.class, "_Topic", String.class);
             vh_PartitionIndex = _l_.findVarHandle(BPushMessage.class, "_PartitionIndex", int.class);
             vh_SessionId = _l_.findVarHandle(BPushMessage.class, "_SessionId", long.class);
+            vh_RetryCount = _l_.findVarHandle(BPushMessage.class, "_RetryCount", int.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -105,6 +109,26 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         return _Message.getValue();
     }
 
+    @Override
+    public int getRetryCount() {
+        if (!isManaged())
+            return _RetryCount;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _RetryCount;
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 5);
+        return log != null ? log.value : _RetryCount;
+    }
+
+    public void setRetryCount(int _v_) {
+        if (!isManaged()) {
+            _RetryCount = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 5, vh_RetryCount, _v_));
+    }
+
     @SuppressWarnings("deprecation")
     public BPushMessage() {
         _Topic = "";
@@ -113,7 +137,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
     }
 
     @SuppressWarnings("deprecation")
-    public BPushMessage(String _Topic_, int _PartitionIndex_, long _SessionId_) {
+    public BPushMessage(String _Topic_, int _PartitionIndex_, long _SessionId_, int _RetryCount_) {
         if (_Topic_ == null)
             _Topic_ = "";
         _Topic = _Topic_;
@@ -121,6 +145,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         _SessionId = _SessionId_;
         _Message = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BMessage(), meta1_Message);
         _Message.variableId(4);
+        _RetryCount = _RetryCount_;
     }
 
     @Override
@@ -129,6 +154,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         setPartitionIndex(0);
         setSessionId(0);
         _Message.reset();
+        setRetryCount(0);
         _unknown_ = null;
     }
 
@@ -151,6 +177,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         var _d__Message = new Zeze.Builtin.MQ.BMessage();
         _d__Message.assign(_o_._Message);
         _Message.setValue(_d__Message);
+        setRetryCount(_o_._RetryCount);
         _unknown_ = null;
     }
 
@@ -159,6 +186,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         setPartitionIndex(_o_.getPartitionIndex());
         setSessionId(_o_.getSessionId());
         _Message.assign(_o_._Message);
+        setRetryCount(_o_.getRetryCount());
         _unknown_ = _o_._unknown_;
     }
 
@@ -200,7 +228,8 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         _s_.append(_i1_).append("SessionId=").append(getSessionId()).append(",\n");
         _s_.append(_i1_).append("Message=");
         _Message.buildString(_s_, _l_ + 8);
-        _s_.append('\n');
+        _s_.append(",\n");
+        _s_.append(_i1_).append("RetryCount=").append(getRetryCount()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -263,6 +292,13 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
             else
                 _i_ = _j_;
         }
+        {
+            int _x_ = getRetryCount();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -288,6 +324,10 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
             _o_.ReadBean(_Message, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 5) {
+            setRetryCount(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -307,6 +347,8 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         if (getSessionId() != _b_.getSessionId())
             return false;
         if (!_Message.equals(_b_._Message))
+            return false;
+        if (getRetryCount() != _b_.getRetryCount())
             return false;
         return true;
     }
@@ -329,6 +371,8 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
             return true;
         if (_Message.negativeCheck())
             return true;
+        if (getRetryCount() < 0)
+            return true;
         return false;
     }
 
@@ -345,6 +389,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
                 case 2: _PartitionIndex = _v_.intValue(); break;
                 case 3: _SessionId = _v_.longValue(); break;
                 case 4: _Message.followerApply(_v_); break;
+                case 5: _RetryCount = _v_.intValue(); break;
             }
         }
     }
@@ -360,6 +405,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         _p_.add("Message");
         _Message.decodeResultSet(_p_, _r_);
         _p_.removeLast();
+        setRetryCount(_r_.getInt(_pn_ + "RetryCount"));
     }
 
     @Override
@@ -371,6 +417,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         _p_.add("Message");
         _Message.encodeSQLStatement(_p_, _s_);
         _p_.removeLast();
+        _s_.appendInt(_pn_ + "RetryCount", getRetryCount());
     }
 
     @Override
@@ -380,6 +427,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "PartitionIndex", "int", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "SessionId", "long", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Message", "Zeze.Builtin.MQ.BMessage", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "RetryCount", "int", "", ""));
         return _v_;
     }
 
@@ -391,6 +439,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private int _PartitionIndex; // 分区索引，用户不用填写
     private long _SessionId; // Consumer SessionId，用户不用填写
     private Zeze.Builtin.MQ.BMessage.Data _Message; // 消息内容
+    private int _RetryCount; // 重投计数（Manager维护，超上限转死信；消费者忽略）
 
     public String getTopic() {
         return _Topic;
@@ -428,6 +477,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _Message = _v_;
     }
 
+    public int getRetryCount() {
+        return _RetryCount;
+    }
+
+    public void setRetryCount(int _v_) {
+        _RetryCount = _v_;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _Topic = "";
@@ -435,7 +492,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Topic_, int _PartitionIndex_, long _SessionId_, Zeze.Builtin.MQ.BMessage.Data _Message_) {
+    public Data(String _Topic_, int _PartitionIndex_, long _SessionId_, Zeze.Builtin.MQ.BMessage.Data _Message_, int _RetryCount_) {
         if (_Topic_ == null)
             _Topic_ = "";
         _Topic = _Topic_;
@@ -444,6 +501,7 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Message_ == null)
             _Message_ = new Zeze.Builtin.MQ.BMessage.Data();
         _Message = _Message_;
+        _RetryCount = _RetryCount_;
     }
 
     @Override
@@ -452,6 +510,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _PartitionIndex = 0;
         _SessionId = 0;
         _Message.reset();
+        _RetryCount = 0;
     }
 
     @Override
@@ -471,6 +530,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _PartitionIndex = _o_.getPartitionIndex();
         _SessionId = _o_.getSessionId();
         _Message.assign(_o_._Message.getValue());
+        _RetryCount = _o_.getRetryCount();
     }
 
     public void assign(BPushMessage.Data _o_) {
@@ -478,6 +538,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _PartitionIndex = _o_._PartitionIndex;
         _SessionId = _o_._SessionId;
         _Message.assign(_o_._Message);
+        _RetryCount = _o_._RetryCount;
     }
 
     @Override
@@ -519,7 +580,8 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("SessionId=").append(_SessionId).append(",\n");
         _s_.append(_i1_).append("Message=");
         _Message.buildString(_s_, _l_ + 8);
-        _s_.append('\n');
+        _s_.append(",\n");
+        _s_.append(_i1_).append("RetryCount=").append(_RetryCount).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -567,6 +629,13 @@ public static final class Data extends Zeze.Transaction.Data {
             else
                 _i_ = _j_;
         }
+        {
+            int _x_ = _RetryCount;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -590,6 +659,10 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.ReadBean(_Message, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 5) {
+            _RetryCount = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -611,6 +684,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_SessionId != _b_._SessionId)
             return false;
         if (!_Message.equals(_b_._Message))
+            return false;
+        if (_RetryCount != _b_._RetryCount)
             return false;
         return true;
     }

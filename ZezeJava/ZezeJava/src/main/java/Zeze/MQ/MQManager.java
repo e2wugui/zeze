@@ -1,14 +1,23 @@
 package Zeze.MQ;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.security.SecureRandom;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Builtin.MQ.Master.BReportPartitions;
+import Zeze.Builtin.MQ.Master.BTopicPartitions;
 import Zeze.Builtin.MQ.Master.CreatePartition;
+import Zeze.Builtin.MQ.Master.DeletePartition;
 import Zeze.Config;
 import Zeze.MQ.Master.MasterAgent;
 import Zeze.Net.AsyncSocket;
 import Zeze.Raft.ProxyServer;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.DaemonTimer;
 import Zeze.Util.KV;
 import Zeze.Util.RocksDatabase;
@@ -24,10 +33,17 @@ import static Zeze.MQ.Master.AbstractMaster.eTopicNotExist;
 public class MQManager extends AbstractMQManager {
 	private static final Logger logger = LogManager.getLogger();
 
+	// 【GB-D06】死信表：key=binary(topic,partitionIndex,messageId)（WriteString+WriteInt4+WriteLong8），
+	// value=BMessage 编码 + 8 字节 BE 死信时间戳。
+	public static final String DlqTableName = "dlq";
+
 	private final Service masterService;
 	private final MasterAgent masterAgent;
 	private final ProxyServer proxyServer;
 	private final String home;
+	// 【GB-D05】Manager 稳定身份：路由表按它关联而非 host:port（换地址重注册→Master 联动重写路由）。
+	// 首启自铸并持久化于 home/.managerId，此后跨重启/迁移（同 home）不变。
+	private final long managerId;
 	private final MQConfig mqConfig = new MQConfig();
 	// 周期守护：body(reportLoad阻塞RPC)进worker池，不占调度线程；stop有界等待在飞一轮
 	private final DaemonTimer loadMonitorTimer = new DaemonTimer("MQManager.loadMonitor", 120_000, this::loadMonitor);
@@ -41,8 +57,17 @@ public class MQManager extends AbstractMQManager {
 		return stopped;
 	}
 
+	public long getManagerId() {
+		return managerId;
+	}
+
 	public RocksDatabase getRocksDatabase() {
 		return rocksDatabase;
+	}
+
+	// 【GB-D06】死信表句柄（懒建；getOrAddTable 幂等，map 命中即返回，无需缓存）。
+	public RocksDatabase.Table getDlqTable() throws RocksDBException {
+		return rocksDatabase.getOrAddTable(DlqTableName);
 	}
 
 	// 本manager的所有队列实现。
@@ -52,6 +77,7 @@ public class MQManager extends AbstractMQManager {
 	public MQManager(String home, Config config) throws RocksDBException {
 		this.home = home;
 		this.rocksDatabase = new RocksDatabase(this.home);
+		this.managerId = loadOrMintManagerId(home); // rocksDatabase 构造已确保 home 目录存在
 		config.parseCustomize(this.mqConfig);
 		// 消费者连接落在proxyServer上（见onSocketClose注释），关闭清理钩子挂这里。
 		proxyServer = new ProxyServer(config, mqConfig.getRpcTimeout()) {
@@ -63,7 +89,7 @@ public class MQManager extends AbstractMQManager {
 		};
 		masterService = new Service(config, proxyServer);
 		masterService.setManager(this);
-		masterAgent = new MasterAgent(config, masterService, this::createPartition);
+		masterAgent = new MasterAgent(config, masterService, this::createPartition, this::deletePartition);
 		RegisterProtocols(proxyServer);
 	}
 
@@ -86,24 +112,30 @@ public class MQManager extends AbstractMQManager {
 		return count;
 	}
 
+	// 【GB-D01/GB-D06】包内可见：按 topic 取活队列（测试驱动删除/毒消息路径的入口；MQPartition.get 公有）。
+	MQPartition getQueueForTest(String topic) {
+		return queues.get(topic);
+	}
+
 	public void start() throws Exception {
 		ShutdownHook.add(this, this::stop);
-		logger.info("start MQManager from '{}'", home);
+		logger.info("start MQManager from '{}' managerId={}", home, managerId);
 		loadMQ();
 		masterAgent.startAndWaitConnectionReady();
 		var acceptorAddress = masterService.getAcceptorAddress();
-		masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), queueCount());
+		masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), queueCount(), managerId);
 		proxyServer.start();
 
 		loadMonitorTimer.start();
 	}
 
 	// Master重启丢失managers注册表后由连接建立钩子重发Register恢复；失败仅记日志，等下次重连再试。
-	// 首连时与start()里的register各发一次，Master端按host:port幂等去重。
+	// 首连时与start()里的register各发一次，Master端按managerId（存量host:port兜底）幂等去重，
+	// 并按id联动重写mqTable路由（【GB-D05】换地址重注册→路由自愈）。
 	void reRegister() {
 		try {
 			var acceptorAddress = masterService.getAcceptorAddress();
-			masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), queueCount());
+			masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), queueCount(), managerId);
 		} catch (Exception e) {
 			logger.error("re-register to master failed, wait for next reconnect", e);
 		}
@@ -129,6 +161,10 @@ public class MQManager extends AbstractMQManager {
 			loadManager += queue.load();
 		}
 		masterAgent.reportLoad(loadManager);
+		// 【GB-D01】磁盘真相上报（复用本timer周期，120s一轮）：Master 与 mqTable 对账，孤儿超宽限期
+		// 下发 DeletePartition。失败语义与 reportLoad 相同（异常由 DaemonTimer 记录，本轮段回收跳过，
+		// 下轮重试）。
+		masterAgent.reportPartitions(buildPartitionReport());
 		// 【GB-D02】段物理回收复用本timer周期触发（拍板：批量低频，不占ack热路径）；
 		// 配置开关与软删除窗口见 MQConfig（SegmentRecycleEnabled/SegmentRecycleDelayMs）。
 		if (mqConfig.isSegmentRecycleEnabled()) {
@@ -137,37 +173,60 @@ public class MQManager extends AbstractMQManager {
 		}
 	}
 
-	private void loadMQ() {
-		var topics = new File(home).listFiles();
-		if (null == topics)
-			return;
-
-		for (var topic : topics) {
-			if (topic.isDirectory()) {
-				var partitions = topic.listFiles();
-				if (null == partitions)
-					continue;
-				var partitionIndexes = new HashSet<Integer>();
-				for (var partition : partitions) {
-					if (partition.isFile()) {
-						// 相同分区的文件可能有多个，这里使用HashSet会去重。
-						var pa = partition.getName().split("\\.");
-						if (pa.length == 2) {
-							try {
-								partitionIndexes.add(Integer.parseInt(pa[0]));
-							} catch (NumberFormatException e) {
-								// 忽略目录下混入了非"分区号.消息号"命名的杂散文件。
-								logger.warn("loadMQ skip unrecognized partition file: {}", partition.getName());
-							}
-						}
-					}
-				}
-				createPartition(topic.getName(), partitionIndexes);
-			}
+	// 【GB-D01】组装分区上报：扫 home 下 topic 目录的分区文件（磁盘真相）。
+	// 以磁盘为准而非 queues 活集合：活集合看不到"目录在而构造失败/构造中"的分区，孤儿对账会漏报。
+	private BReportPartitions.Data buildPartitionReport() {
+		var report = new BReportPartitions.Data();
+		for (var e : scanDiskPartitions(home, false).entrySet()) {
+			var tp = new BTopicPartitions.Data();
+			tp.setTopic(e.getKey());
+			tp.getPartitionIndexes().addAll(e.getValue());
+			report.getTopics().add(tp);
 		}
+		return report;
 	}
 
-	private void createPartition(String topic, HashSet<Integer> partitionIndexes) {
+	// 【GB-D01】磁盘真相扫描：{ topic -> 分区索引集合 }，发现规则与 loadMQ 一致（"分区号.消息号"两段名）。
+	// warnUnrecognized 仅在启动路径开启（周期上报每轮重复告警刷屏，磁盘残留靠对账收敛）。
+	private static HashMap<String, HashSet<Integer>> scanDiskPartitions(String home, boolean warnUnrecognized) {
+		var result = new HashMap<String, HashSet<Integer>>();
+		var topics = new File(home).listFiles();
+		if (null == topics)
+			return result;
+		for (var topic : topics) {
+			if (!topic.isDirectory())
+				continue;
+			var partitions = topic.listFiles();
+			if (null == partitions)
+				continue;
+			var partitionIndexes = new HashSet<Integer>();
+			for (var partition : partitions) {
+				if (!partition.isFile())
+					continue;
+				// 相同分区的文件可能有多个，这里使用HashSet会去重。
+				var pa = partition.getName().split("\\.");
+				if (pa.length == 2) {
+					try {
+						partitionIndexes.add(Integer.parseInt(pa[0]));
+					} catch (NumberFormatException e) {
+						// 忽略目录下混入了非"分区号.消息号"命名的杂散文件。
+						if (warnUnrecognized)
+							logger.warn("scanDiskPartitions skip unrecognized partition file: {}", partition.getName());
+					}
+				}
+			}
+			result.put(topic.getName(), partitionIndexes);
+		}
+		return result;
+	}
+
+	private void loadMQ() {
+		for (var e : scanDiskPartitions(home, true).entrySet())
+			createPartition(e.getKey(), e.getValue());
+	}
+
+	// 【GB-D01】包内可见（测试直构分区入口）：创建 topic 的分区集合。
+	void createPartition(String topic, HashSet<Integer> partitionIndexes) {
 		var cp = queues.computeIfAbsent(topic, (key) -> new MQPartition(this));
 		var topicDir = new File(home, topic);
 		//noinspection ResultOfMethodCallIgnored
@@ -183,6 +242,83 @@ public class MQManager extends AbstractMQManager {
 		createPartition(r.Argument.getTopic(), r.Argument.getPartitionIndexes());
 		r.SendResult();
 		return 0;
+	}
+
+	// 【GB-D01】Master 对账裁决孤儿后下发的删除：活分区先 close+从 queues 摘除，段文件/索引列族/meta
+	// 全清（无视水位线强制回收——GB-D02 回收三步形态作用于该分区全部段），topic 目录空则一并删除
+	//（loadMQ 只扫子目录，空壳目录残留无数据但碍重启扫描）。
+	protected long deletePartition(DeletePartition r) throws Exception {
+		// 与ProcessSendMessageRequest同款停机闸：删除触 rocksdb dropTable/删文件，不得与 close 并发。
+		if (stopped)
+			return Procedure.Closed;
+		deletePartition(r.Argument.getTopic(), r.Argument.getPartitionIndexes());
+		logger.warn("mq partitions deleted by master reconciliation. topic={} partitions={} managerId={}",
+				r.Argument.getTopic(), r.Argument.getPartitionIndexes(), managerId); // 动作审计（对账删除不可静默）
+		r.SendResult();
+		return 0;
+	}
+
+	// 【GB-D01】包内可见（测试直驱删除路径）：活分区先摘 + 存储全清。
+	void deletePartition(String topic, Set<Integer> partitionIndexes) throws Exception {
+		var queue = queues.get(topic);
+		if (null != queue) {
+			for (var index : partitionIndexes)
+				queue.removePartition(index);
+		}
+		for (var index : partitionIndexes)
+			deletePartitionStorage(topic, index);
+	}
+
+	// 单分区存储清理（锁序对齐 GB-D02 recycleSegment：先摘引用（queues/partitions map 已移除）→
+	// dropTable 索引列族 → 删段文件；meta 列族最后 drop）。对不在活集合的分区同样有效（按目录扫描）。
+	// dropTable 对不存在的表是空操作（RocksDatabase 契约），杂散文件名（非"num.num"）直接跳过。
+	private void deletePartitionStorage(String topic, int index) throws RocksDBException {
+		var topicDir = new File(home, topic);
+		var files = topicDir.listFiles();
+		if (null != files) {
+			for (var file : files) {
+				var pa = file.getName().split("\\.");
+				if (pa.length != 2 || !pa[0].equals(String.valueOf(index)))
+					continue;
+				try {
+					rocksDatabase.dropTable(topic + "." + index + "." + Long.parseLong(pa[1]));
+				} catch (NumberFormatException e) {
+					// 段基非数字的杂散文件：不触碰列族，仅删文件。
+				}
+				//noinspection ResultOfMethodCallIgnored
+				file.delete();
+			}
+		}
+		rocksDatabase.dropTable(topic + "." + index); // meta
+		var left = topicDir.listFiles();
+		if (null != left && 0 == left.length)
+			//noinspection ResultOfMethodCallIgnored
+			topicDir.delete();
+	}
+
+	// 【GB-D05】铸Manager稳定身份（首启生成，home/.managerId 持久化，此后恒定）：
+	// 生成式=时间基线<<16 | SecureRandom低16位——单调时间基线跨进程基本不撞，随机低位防同毫秒
+	// 多Manager同铸；恒正（BMQServer.negativeCheck 约束 ManagerId>=0）。写入带 fsync：mint 后
+	// 崩溃丢文件会使下次启动铸新身份，旧路由按旧 id 永不再被匹配（按孤儿对账口径还会误删其分区）。
+	private static long loadOrMintManagerId(String home) {
+		try {
+			var file = new File(home, ".managerId");
+			if (file.isFile()) {
+				var text = Files.readString(file.toPath(), StandardCharsets.UTF_8).trim();
+				if (!text.isEmpty()) {
+					var id = Long.parseLong(text);
+					if (id > 0)
+						return id;
+				}
+				logger.warn("managerId file corrupted (home={}), re-mint", home); // 损坏内容按未铸处理，覆盖重铸
+			}
+			var id = (System.currentTimeMillis() << 16) | (new SecureRandom().nextInt() & 0xFFFFL);
+			// AtomicFileWriter（I1规约）：fsync+原子rename换版，mint中途崩溃不留半文件。
+			AtomicFileWriter.replace(file.toPath(), Long.toString(id).getBytes(StandardCharsets.UTF_8));
+			return id;
+		} catch (Exception e) {
+			throw new RuntimeException("load or mint managerId failed. home=" + home, e);
+		}
 	}
 
 	@Override

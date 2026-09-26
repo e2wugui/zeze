@@ -12,11 +12,13 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
     private int _Port; // 端口
     private int _PartitionIndex; // 分区索引. 从0开始
     private String _Topic; // 主题
+    private long _ManagerId; // Manager稳定身份（自铸，持久化于Manager home）。																	 路由表按它关联而非host:port——Manager换地址重注册时Master按id联动重写。
 
     private static final java.lang.invoke.VarHandle vh_Host;
     private static final java.lang.invoke.VarHandle vh_Port;
     private static final java.lang.invoke.VarHandle vh_PartitionIndex;
     private static final java.lang.invoke.VarHandle vh_Topic;
+    private static final java.lang.invoke.VarHandle vh_ManagerId;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
@@ -25,6 +27,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
             vh_Port = _l_.findVarHandle(BMQServer.class, "_Port", int.class);
             vh_PartitionIndex = _l_.findVarHandle(BMQServer.class, "_PartitionIndex", int.class);
             vh_Topic = _l_.findVarHandle(BMQServer.class, "_Topic", String.class);
+            vh_ManagerId = _l_.findVarHandle(BMQServer.class, "_ManagerId", long.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -114,6 +117,26 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 4, vh_Topic, _v_));
     }
 
+    @Override
+    public long getManagerId() {
+        if (!isManaged())
+            return _ManagerId;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _ManagerId;
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
+        return log != null ? log.value : _ManagerId;
+    }
+
+    public void setManagerId(long _v_) {
+        if (!isManaged()) {
+            _ManagerId = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_ManagerId, _v_));
+    }
+
     @SuppressWarnings("deprecation")
     public BMQServer() {
         _Host = "";
@@ -121,7 +144,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
     }
 
     @SuppressWarnings("deprecation")
-    public BMQServer(String _Host_, int _Port_, int _PartitionIndex_, String _Topic_) {
+    public BMQServer(String _Host_, int _Port_, int _PartitionIndex_, String _Topic_, long _ManagerId_) {
         if (_Host_ == null)
             _Host_ = "";
         _Host = _Host_;
@@ -130,6 +153,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         if (_Topic_ == null)
             _Topic_ = "";
         _Topic = _Topic_;
+        _ManagerId = _ManagerId_;
     }
 
     @Override
@@ -138,6 +162,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         setPort(0);
         setPartitionIndex(0);
         setTopic("");
+        setManagerId(0);
         _unknown_ = null;
     }
 
@@ -158,6 +183,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         setPort(_o_._Port);
         setPartitionIndex(_o_._PartitionIndex);
         setTopic(_o_._Topic);
+        setManagerId(_o_._ManagerId);
         _unknown_ = null;
     }
 
@@ -166,6 +192,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         setPort(_o_.getPort());
         setPartitionIndex(_o_.getPartitionIndex());
         setTopic(_o_.getTopic());
+        setManagerId(_o_.getManagerId());
         _unknown_ = _o_._unknown_;
     }
 
@@ -205,7 +232,8 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         _s_.append(_i1_).append("Host=").append(getHost()).append(",\n");
         _s_.append(_i1_).append("Port=").append(getPort()).append(",\n");
         _s_.append(_i1_).append("PartitionIndex=").append(getPartitionIndex()).append(",\n");
-        _s_.append(_i1_).append("Topic=").append(getTopic()).append('\n');
+        _s_.append(_i1_).append("Topic=").append(getTopic()).append(",\n");
+        _s_.append(_i1_).append("ManagerId=").append(getManagerId()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -265,6 +293,13 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
                 _o_.WriteString(_x_);
             }
         }
+        {
+            long _x_ = getManagerId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -290,6 +325,10 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
             setTopic(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 5) {
+            setManagerId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -310,6 +349,8 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
             return false;
         if (!getTopic().equals(_b_.getTopic()))
             return false;
+        if (getManagerId() != _b_.getManagerId())
+            return false;
         return true;
     }
 
@@ -318,6 +359,8 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         if (getPort() < 0)
             return true;
         if (getPartitionIndex() < 0)
+            return true;
+        if (getManagerId() < 0)
             return true;
         return false;
     }
@@ -335,6 +378,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
                 case 2: _Port = _v_.intValue(); break;
                 case 3: _PartitionIndex = _v_.intValue(); break;
                 case 4: _Topic = _v_.stringValue(); break;
+                case 5: _ManagerId = _v_.longValue(); break;
             }
         }
     }
@@ -350,6 +394,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         setTopic(_r_.getString(_pn_ + "Topic"));
         if (getTopic() == null)
             setTopic("");
+        setManagerId(_r_.getLong(_pn_ + "ManagerId"));
     }
 
     @Override
@@ -359,6 +404,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         _s_.appendInt(_pn_ + "Port", getPort());
         _s_.appendInt(_pn_ + "PartitionIndex", getPartitionIndex());
         _s_.appendString(_pn_ + "Topic", getTopic());
+        _s_.appendLong(_pn_ + "ManagerId", getManagerId());
     }
 
     @Override
@@ -368,6 +414,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Port", "int", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "PartitionIndex", "int", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Topic", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "ManagerId", "long", "", ""));
         return _v_;
     }
 
@@ -379,6 +426,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private int _Port; // 端口
     private int _PartitionIndex; // 分区索引. 从0开始
     private String _Topic; // 主题
+    private long _ManagerId; // Manager稳定身份（自铸，持久化于Manager home）。																	 路由表按它关联而非host:port——Manager换地址重注册时Master按id联动重写。
 
     public String getHost() {
         return _Host;
@@ -416,6 +464,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _Topic = _v_;
     }
 
+    public long getManagerId() {
+        return _ManagerId;
+    }
+
+    public void setManagerId(long _v_) {
+        _ManagerId = _v_;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _Host = "";
@@ -423,7 +479,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Host_, int _Port_, int _PartitionIndex_, String _Topic_) {
+    public Data(String _Host_, int _Port_, int _PartitionIndex_, String _Topic_, long _ManagerId_) {
         if (_Host_ == null)
             _Host_ = "";
         _Host = _Host_;
@@ -432,6 +488,7 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Topic_ == null)
             _Topic_ = "";
         _Topic = _Topic_;
+        _ManagerId = _ManagerId_;
     }
 
     @Override
@@ -440,6 +497,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _Port = 0;
         _PartitionIndex = 0;
         _Topic = "";
+        _ManagerId = 0;
     }
 
     @Override
@@ -459,6 +517,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _Port = _o_.getPort();
         _PartitionIndex = _o_.getPartitionIndex();
         _Topic = _o_.getTopic();
+        _ManagerId = _o_.getManagerId();
     }
 
     public void assign(BMQServer.Data _o_) {
@@ -466,6 +525,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _Port = _o_._Port;
         _PartitionIndex = _o_._PartitionIndex;
         _Topic = _o_._Topic;
+        _ManagerId = _o_._ManagerId;
     }
 
     @Override
@@ -505,7 +565,8 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("Host=").append(_Host).append(",\n");
         _s_.append(_i1_).append("Port=").append(_Port).append(",\n");
         _s_.append(_i1_).append("PartitionIndex=").append(_PartitionIndex).append(",\n");
-        _s_.append(_i1_).append("Topic=").append(_Topic).append('\n');
+        _s_.append(_i1_).append("Topic=").append(_Topic).append(",\n");
+        _s_.append(_i1_).append("ManagerId=").append(_ManagerId).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -550,6 +611,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteString(_x_);
             }
         }
+        {
+            long _x_ = _ManagerId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -573,6 +641,10 @@ public static final class Data extends Zeze.Transaction.Data {
             _Topic = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 5) {
+            _ManagerId = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -594,6 +666,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_PartitionIndex != _b_._PartitionIndex)
             return false;
         if (!_Topic.equals(_b_._Topic))
+            return false;
+        if (_ManagerId != _b_._ManagerId)
             return false;
         return true;
     }

@@ -3,6 +3,9 @@ package Zeze.MQ.Master;
 import Zeze.Builtin.MQ.Master.CreateMQ;
 import Zeze.Builtin.MQ.Master.CreatePartition;
 import Zeze.Builtin.MQ.Master.ReportLoad;
+import Zeze.Builtin.MQ.Master.ReportPartitions;
+import Zeze.Builtin.MQ.Master.BReportPartitions;
+import Zeze.Builtin.MQ.Master.DeletePartition;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.Builtin.MQ.Master.BMQServers;
 import Zeze.Builtin.MQ.Master.OpenMQ;
@@ -20,6 +23,8 @@ public class MasterAgent extends AbstractMasterAgent {
 	public static final String eServiceName = "Zeze.MQ.Master.Agent";
 	private final Service service;
 	private final ProtocolHandle<CreatePartition> createPartitionHandle;
+	// 【GB-D01】Master 对账裁决孤儿后下发的删除（仅 Manager 形态的 agent 持有；客户端形态为 null → NotImplement）
+	private final ProtocolHandle<DeletePartition> deletePartitionHandle;
 
 	// 【GB-D04】客户端生命周期（拍板方案A，与MQAgent同型）：静态共享的agent引用计数，归零时停
 	// connector重连（不再退避续排）；新引用复活（重用需重建的口径在MQ/MQConsumer实例层）；
@@ -34,12 +39,15 @@ public class MasterAgent extends AbstractMasterAgent {
 	public MasterAgent(Config config) {
 		service = new Service(config);
 		this.createPartitionHandle = null;
+		this.deletePartitionHandle = null;
 		RegisterProtocols(service);
 	}
 
-	public MasterAgent(Config config, Service service, ProtocolHandle<CreatePartition> createPartitionHandle) {
+	public MasterAgent(Config config, Service service, ProtocolHandle<CreatePartition> createPartitionHandle,
+					   ProtocolHandle<DeletePartition> deletePartitionHandle) {
 		this.service = service;
 		this.createPartitionHandle = createPartitionHandle;
+		this.deletePartitionHandle = deletePartitionHandle;
 		RegisterProtocols(this.service);
 	}
 
@@ -122,6 +130,13 @@ public class MasterAgent extends AbstractMasterAgent {
 		return this.createPartitionHandle.handle(r);
 	}
 
+	@Override
+	protected long ProcessDeletePartitionRequest(DeletePartition r) throws Exception {
+		if (null == this.deletePartitionHandle)
+			return Procedure.NotImplement;
+		return this.deletePartitionHandle.handle(r);
+	}
+
 	public static class Service extends Zeze.Net.Service {
 		public Service(Config config) {
 			super(eServiceName, config);
@@ -173,15 +188,27 @@ public class MasterAgent extends AbstractMasterAgent {
 		return r.Result;
 	}
 
-	public void register(String host, int port, int queueCount) {
+	// 【GB-D05】Register 携带 Manager 稳定身份（持久化于 Manager home 的自铸 id）：
+	// Master 除幂等替换注册条目外，按 id 联动重写 mqTable 路由（换地址重注册→路由自愈）。
+	public void register(String host, int port, int queueCount, long managerId) {
 		var r = new Register();
 		r.Argument.setHost(host);
 		r.Argument.setPort(port);
 		r.Argument.setPartitionIndex(queueCount); // WARNING 这里使用了这个变量的意思是这个manager的队列数量。
+		r.Argument.setManagerId(managerId);
 
 		r.SendForWait(service.GetSocket()).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("register error=" + IModule.getErrorCode(r.getResultCode()));
+	}
+
+	// 【GB-D01】周期上报本地分区清单（磁盘真相），Master 与 mqTable 对账（孤儿超宽限期下发删除）。
+	public void reportPartitions(BReportPartitions.Data report) {
+		var r = new ReportPartitions();
+		r.Argument.getTopics().addAll(report.getTopics());
+		r.SendForWait(service.GetSocket()).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("reportPartitions error=" + IModule.getErrorCode(r.getResultCode()));
 	}
 
 	public void reportLoad(double load) {

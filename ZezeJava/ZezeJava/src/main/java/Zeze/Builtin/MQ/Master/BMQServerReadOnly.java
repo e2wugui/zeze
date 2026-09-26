@@ -20,4 +20,5 @@ public interface BMQServerReadOnly {
     int getPort();
     int getPartitionIndex();
     String getTopic();
+    long getManagerId();
 }

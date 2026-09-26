@@ -49,6 +49,14 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
             service.AddFactoryHandle(47418254762936L, factoryHandle); // 11040, 1815815096
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.DeletePartition.class, Zeze.Builtin.MQ.Master.DeletePartition.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.Master.DeletePartition::new;
+            factoryHandle.Handle = this::ProcessDeletePartitionRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessDeletePartitionRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessDeletePartitionRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47420292754784L, factoryHandle); // 11040, -441160352
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.Subscribe.class, Zeze.Builtin.MQ.Master.Subscribe.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.MQ.Master.Subscribe::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessSubscribeResponse", Zeze.Transaction.TransactionLevel.Serializable);
@@ -69,15 +77,24 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessReportLoadResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47416592360823L, factoryHandle); // 11040, 153412983
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.ReportPartitions.class, Zeze.Builtin.MQ.Master.ReportPartitions.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.Master.ReportPartitions::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReportPartitionsResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReportPartitionsResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47418587729435L, factoryHandle); // 11040, -2146185701
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47419582250441L);
         service.getFactorys().remove(47420243782922L);
         service.getFactorys().remove(47418254762936L);
+        service.getFactorys().remove(47420292754784L);
         service.getFactorys().remove(47418979135861L);
         service.getFactorys().remove(47417719098028L);
         service.getFactorys().remove(47416592360823L);
+        service.getFactorys().remove(47418587729435L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -90,4 +107,5 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     }
 
     protected abstract long ProcessCreatePartitionRequest(Zeze.Builtin.MQ.Master.CreatePartition r) throws Exception;
+    protected abstract long ProcessDeletePartitionRequest(Zeze.Builtin.MQ.Master.DeletePartition r) throws Exception;
 }
