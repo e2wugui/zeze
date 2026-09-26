@@ -388,6 +388,10 @@ public class Dbh2AgentManager extends ReentrantLock {
 			return null;
 		var bucket = bucketIt.next();
 		var limit = proposeLimit;
+		// refused重定向上限2次（对齐Dbh2Table.find的先例）：master侧表长期陈旧时reload不收敛，
+		// 无上限会永久自旋占线程与rpc配额。计数只累计连续refused，fetch成功即清零——
+		// 长遍历中途多次真实分桶各自获得新预算，不受累计误伤。
+		var refusedCount = 0;
 		while (true) {
 			var exclusiveForBucket = bucketExclusive(exclusiveKey, bucket, desc);
 			if (exclusiveForBucket == null) {
@@ -399,6 +403,10 @@ public class Dbh2AgentManager extends ReentrantLock {
 			}
 			var result = fetch.fetch(openBucket(bucket.getRaftConfig()), exclusiveForBucket, limit);
 			if (result.refused) {
+				if (++refusedCount > 2)
+					throw new RuntimeException("walkPage bucket refused too many redirect: master="
+							+ masterName + " database=" + databaseName + " table=" + tableName
+							+ " refusedCount=" + refusedCount);
 				// 分桶但是本地信息没有更新会出现这种情况，此时重新装载桶的信息，再次定位。
 				reload(masterAgent, masterName, databaseName, tableName);
 				bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey, desc);
@@ -408,6 +416,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 				}
 				return null; // no more bucket
 			}
+			refusedCount = 0;
 			if (result.lastKey != null) {
 				exclusiveKey = result.lastKey;
 				limit -= result.count;
