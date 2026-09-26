@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,10 +43,16 @@ public class DistributeManager {
 		// 拒绝"../"逃逸和绝对路径，防止越界写/截断任意文件。
 		checkInsideDir(zoker.getDistributeDir(), path);
 		var relativeCanonicalFileName = fileKey(path);
-		var fileBin = files.computeIfAbsent(relativeCanonicalFileName,
-				(key) -> new FileBin(key, zoker.getDistributeDir(), path));
-		if (sender != null)
-			filesBySocket.computeIfAbsent(sender, __ -> ConcurrentHashMap.newKeySet()).add(relativeCanonicalFileName);
+		// 建表与socket记账必须原子（增量审R1-04）：锁外两步之间断链清账会把新建的FileBin
+		// 漏出回收面（句柄泄漏+死socket映射永驻）。closeAndVerify/closeBySocket持同锁清账。
+		// FileBin构造含md5读IO，持锁窗口为部署级QPS可接受。
+		FileBin fileBin;
+		synchronized (filesBySocket) {
+			fileBin = files.computeIfAbsent(relativeCanonicalFileName,
+					(key) -> new FileBin(key, zoker.getDistributeDir(), path));
+			if (sender != null)
+				filesBySocket.computeIfAbsent(sender, __ -> ConcurrentHashMap.newKeySet()).add(relativeCanonicalFileName);
+		}
 		return fileBin;
 	}
 
@@ -60,13 +67,17 @@ public class DistributeManager {
 	public boolean closeAndVerify(String serviceName, String fileName, Binary md5, AsyncSocket sender)
 			throws IOException {
 		var relativeCanonicalFileName = fileKey(new File(serviceName, fileName).getPath());
-		var fileBin = files.remove(relativeCanonicalFileName);
-		if (sender != null) {
-			var opened = filesBySocket.get(sender);
-			if (opened != null) {
-				opened.remove(relativeCanonicalFileName);
-				if (opened.isEmpty())
-					filesBySocket.remove(sender, opened);
+		FileBin fileBin;
+		// 清账与并发open的记账原子（增量审R1-04同源）：isEmpty判定remove与重开窗口互斥。
+		synchronized (filesBySocket) {
+			fileBin = files.remove(relativeCanonicalFileName);
+			if (sender != null) {
+				var opened = filesBySocket.get(sender);
+				if (opened != null) {
+					opened.remove(relativeCanonicalFileName);
+					if (opened.isEmpty())
+						filesBySocket.remove(sender, opened);
+				}
 			}
 		}
 		if (null != fileBin) {
@@ -79,10 +90,15 @@ public class DistributeManager {
 
 	/** agent断链（ZokerService.OnSocketClose）时回收该连接打开的全部FileBin。 */
 	public void closeBySocket(AsyncSocket socket) {
-		var opened = filesBySocket.remove(socket);
-		if (opened == null)
-			return;
-		for (var key : opened) {
+		ArrayList<String> keys;
+		// 摘除记账与并发open原子（增量审R1-04），close在锁外（FileBin.close含md5读）。
+		synchronized (filesBySocket) {
+			var opened = filesBySocket.remove(socket);
+			if (opened == null)
+				return;
+			keys = new ArrayList<>(opened);
+		}
+		for (var key : keys) {
 			var fileBin = files.remove(key);
 			if (fileBin != null) {
 				try {
