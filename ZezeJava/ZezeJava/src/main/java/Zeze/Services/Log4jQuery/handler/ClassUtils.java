@@ -3,6 +3,7 @@ package Zeze.Services.Log4jQuery.handler;
 import java.io.File;
 import java.io.IOException;
 import java.net.JarURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,11 +30,17 @@ public class ClassUtils {
 			while (urls.hasMoreElements()) {
 				URL url = urls.nextElement();
 				var protocol = url.getProtocol();
-				if ("file".equals(protocol))
-					getAllClassNameByPath(result, new File(url.getPath()), packageName, includeSubPath);
-				else if ("jar".equals(protocol)) {
-					getAllClassNameByJar(result, ((JarURLConnection)url.openConnection()).getJarFile(), packageName,
-							includeSubPath);
+				if ("file".equals(protocol)) {
+					try {
+						// 必须经URI解码：url.getPath()带百分号编码（空格=%20），classpath含空格/中文时new File得到错误路径，扫描静默为空。
+						getAllClassNameByPath(result, new File(url.toURI()), packageName, includeSubPath);
+					} catch (URISyntaxException e) {
+						logger.error("invalid file url: {}", url, e);
+					}
+				} else if ("jar".equals(protocol)) {
+					try (var jarFile = ((JarURLConnection)url.openConnection()).getJarFile()) {
+						getAllClassNameByJar(result, jarFile, packageName, includeSubPath);
+					}
 				}
 			}
 		} catch (IOException e) {
