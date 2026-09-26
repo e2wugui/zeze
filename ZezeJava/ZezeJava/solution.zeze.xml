@@ -1836,11 +1836,12 @@
 				<variable id="2" name="Onzs" type="set[string]"/>
 			</bean>
 
-			<!-- Flush阶段控制协议 -->
-			<bean name="BFlushReady">
-				<variable id="1" name="OnzTid" type="long"/>
-			</bean>
-			<rpc name="FlushReady" argument="BFlushReady" handle="client"/>
+				<!-- Flush阶段控制协议 -->
+				<bean name="BFlushReady">
+					<variable id="1" name="OnzTid" type="long"/>
+					<variable id="2" name="Participant" type="string"/> 参与方集群名（协调者按它去重计数，防重试重发虚增计数提前开闸）
+				</bean>
+				<rpc name="FlushReady" argument="BFlushReady" handle="client"/>
 
 			<rpc name="Checkpoint" handle="server"/>
 		</module>

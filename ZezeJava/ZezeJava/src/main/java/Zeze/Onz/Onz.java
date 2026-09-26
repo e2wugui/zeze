@@ -26,6 +26,13 @@ public class Onz extends AbstractOnz {
 	private final LongConcurrentHashMap<OnzSaga> sagas = new LongConcurrentHashMap<>();
 	private final OnzService service;
 	private final Application zeze;
+	// GC-D03：本集群的Onz参与方身份（FlushReady.Participant，协调者按它去重计数）。
+	// 组成=projectName#serverId（对齐raft版SM会话名的缺省全局唯一约定，见
+	// Config.ServiceManagerConf注释）。协调者按参与方去重只需要"不同集群不同名、
+	// 同集群重试同名"，本身份与协调者在zezeConfigs里为本集群起的别名（zezeProcedures
+	// 的键，buildSavedCommits/decodeSagaParticipant持久化的那个名字，非共享SM模式下
+	// 参与方无从得知）是否一致不影响计数正确性：别名不参与去重键。
+	private final String participantName;
 	// saga上下文兜底清理：正常流程FuncSagaEnd在步骤成功后数秒内到达；发送失败或
 	// 协调者崩溃由redo重发（OH1-F1起saga参与方进持久化快照）——TTL清理是资源回收
 	// 兜底（防rpc/bean泄漏，FND-G1-6），不是正确性机制：正确性依赖redo在本TTL内到达。
@@ -90,6 +97,11 @@ public class Onz extends AbstractOnz {
 		return zeze;
 	}
 
+	/** GC-D03：FlushReady.Participant 的取值来源（构造期固定，见participantName注释）。 */
+	public String getParticipantName() {
+		return participantName;
+	}
+
 	public static class OnzService extends Service {
 		public static final String eName = "Zeze.Onz.Server";
 
@@ -100,6 +112,7 @@ public class Onz extends AbstractOnz {
 
 	public Onz(Application zeze) {
 		this.zeze = zeze;
+		this.participantName = zeze.getProjectName() + "#" + zeze.getConfig().getServerId();
 		var config = zeze.getConfig();
 		if (null != config.getServiceConf(OnzService.eName)) {
 			service = new OnzService(zeze);

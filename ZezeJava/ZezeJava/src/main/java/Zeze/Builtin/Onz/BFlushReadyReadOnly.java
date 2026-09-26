@@ -18,4 +18,5 @@ public interface BFlushReadyReadOnly {
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 
     long getOnzTid();
+    String getParticipant();
 }

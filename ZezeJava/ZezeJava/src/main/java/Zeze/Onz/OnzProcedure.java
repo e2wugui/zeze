@@ -126,6 +126,10 @@ public class OnzProcedure implements FuncLong {
 		var future = new TaskCompletionSource<Long>();
 		var r = new FlushReady();
 		r.Argument.setOnzTid(getOnzTid());
+		// GC-D03：携带本集群身份（Onz.getParticipantName）。flush失败重试会重走本方法发出
+		// 新的rpc对象（FND8-18的正确性机制），协调者按Participant去重计数——重发不再虚增
+		// 计数提前打开"已全部flush"闸门。身份不填（旧版本参与方）时协调者按rpc对象兜底计数。
+		r.Argument.setParticipant(stub.getOnz().getParticipantName());
 		if (!r.Send(rpc.getSender(), (p) -> {
 			if (r.getResultCode() == 0) {
 				future.setResult(0L);

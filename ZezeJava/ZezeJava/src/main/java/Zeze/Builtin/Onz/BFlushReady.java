@@ -10,13 +10,16 @@ public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushRe
     public static final long TYPEID = 774144301369122476L;
 
     private long _OnzTid;
+    private String _Participant; // 参与方集群名（协调者按它去重计数，防重试重发虚增计数提前开闸）
 
     private static final java.lang.invoke.VarHandle vh_OnzTid;
+    private static final java.lang.invoke.VarHandle vh_Participant;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
             vh_OnzTid = _l_.findVarHandle(BFlushReady.class, "_OnzTid", long.class);
+            vh_Participant = _l_.findVarHandle(BFlushReady.class, "_Participant", String.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -42,18 +45,45 @@ public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushRe
         _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_OnzTid, _v_));
     }
 
-    @SuppressWarnings("deprecation")
-    public BFlushReady() {
+    @Override
+    public String getParticipant() {
+        if (!isManaged())
+            return _Participant;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _Participant;
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
+        return log != null ? log.stringValue() : _Participant;
+    }
+
+    public void setParticipant(String _v_) {
+        if (_v_ == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Participant = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_Participant, _v_));
     }
 
     @SuppressWarnings("deprecation")
-    public BFlushReady(long _OnzTid_) {
+    public BFlushReady() {
+        _Participant = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BFlushReady(long _OnzTid_, String _Participant_) {
         _OnzTid = _OnzTid_;
+        if (_Participant_ == null)
+            _Participant_ = "";
+        _Participant = _Participant_;
     }
 
     @Override
     public void reset() {
         setOnzTid(0);
+        setParticipant("");
         _unknown_ = null;
     }
 
@@ -71,11 +101,13 @@ public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushRe
 
     public void assign(BFlushReady.Data _o_) {
         setOnzTid(_o_._OnzTid);
+        setParticipant(_o_._Participant);
         _unknown_ = null;
     }
 
     public void assign(BFlushReady _o_) {
         setOnzTid(_o_.getOnzTid());
+        setParticipant(_o_.getParticipant());
         _unknown_ = _o_._unknown_;
     }
 
@@ -112,7 +144,8 @@ public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushRe
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         _s_.append("Zeze.Builtin.Onz.BFlushReady: {\n");
-        _s_.append(_i1_).append("OnzTid=").append(getOnzTid()).append('\n');
+        _s_.append(_i1_).append("OnzTid=").append(getOnzTid()).append(",\n");
+        _s_.append(_i1_).append("Participant=").append(getParticipant()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -151,6 +184,13 @@ public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushRe
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            String _x_ = getParticipant();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -162,6 +202,10 @@ public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushRe
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             setOnzTid(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            setParticipant(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -177,6 +221,8 @@ public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushRe
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BFlushReady)_o_;
         if (getOnzTid() != _b_.getOnzTid())
+            return false;
+        if (!getParticipant().equals(_b_.getParticipant()))
             return false;
         return true;
     }
@@ -198,6 +244,7 @@ public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushRe
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
                 case 1: _OnzTid = _v_.longValue(); break;
+                case 2: _Participant = _v_.stringValue(); break;
             }
         }
     }
@@ -206,18 +253,23 @@ public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushRe
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setOnzTid(_r_.getLong(_pn_ + "OnzTid"));
+        setParticipant(_r_.getString(_pn_ + "Participant"));
+        if (getParticipant() == null)
+            setParticipant("");
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendLong(_pn_ + "OnzTid", getOnzTid());
+        _s_.appendString(_pn_ + "Participant", getParticipant());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "OnzTid", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Participant", "string", "", ""));
         return _v_;
     }
 
@@ -227,6 +279,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 774144301369122476L;
 
     private long _OnzTid;
+    private String _Participant; // 参与方集群名（协调者按它去重计数，防重试重发虚增计数提前开闸）
 
     public long getOnzTid() {
         return _OnzTid;
@@ -236,18 +289,33 @@ public static final class Data extends Zeze.Transaction.Data {
         _OnzTid = _v_;
     }
 
-    @SuppressWarnings("deprecation")
-    public Data() {
+    public String getParticipant() {
+        return _Participant;
+    }
+
+    public void setParticipant(String _v_) {
+        if (_v_ == null)
+            throw new IllegalArgumentException();
+        _Participant = _v_;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _OnzTid_) {
+    public Data() {
+        _Participant = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(long _OnzTid_, String _Participant_) {
         _OnzTid = _OnzTid_;
+        if (_Participant_ == null)
+            _Participant_ = "";
+        _Participant = _Participant_;
     }
 
     @Override
     public void reset() {
         _OnzTid = 0;
+        _Participant = "";
     }
 
     @Override
@@ -264,10 +332,12 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BFlushReady _o_) {
         _OnzTid = _o_.getOnzTid();
+        _Participant = _o_.getParticipant();
     }
 
     public void assign(BFlushReady.Data _o_) {
         _OnzTid = _o_._OnzTid;
+        _Participant = _o_._Participant;
     }
 
     @Override
@@ -304,7 +374,8 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         _s_.append("Zeze.Builtin.Onz.BFlushReady: {\n");
-        _s_.append(_i1_).append("OnzTid=").append(_OnzTid).append('\n');
+        _s_.append(_i1_).append("OnzTid=").append(_OnzTid).append(",\n");
+        _s_.append(_i1_).append("Participant=").append(_Participant).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -328,6 +399,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            String _x_ = _Participant;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -337,6 +415,10 @@ public static final class Data extends Zeze.Transaction.Data {
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             _OnzTid = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _Participant = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -354,6 +436,8 @@ public static final class Data extends Zeze.Transaction.Data {
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BFlushReady.Data)_o_;
         if (_OnzTid != _b_._OnzTid)
+            return false;
+        if (!_Participant.equals(_b_._Participant))
             return false;
         return true;
     }

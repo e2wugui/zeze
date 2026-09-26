@@ -1,6 +1,7 @@
 package Zeze.Onz;
 
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -433,7 +434,17 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	}
 
 	private long onzTid;
+	// 全量ready登记（按rpc对象）：开闸/降级时逐条应答用，只增不清（每条ready背后是一个
+	// 等待应答的参与方事务）。计数判据不在本集合上（见GC-D03的distinctParticipants）。
 	private final ConcurrentHashSet<Rpc<?, ?>> flushReadies = new ConcurrentHashSet<>();
+	// GC-D03：完成判据从"ready条数==参与方数"（按rpc对象身份聚合）改为按参与方身份去重
+	// 计数。某参与方flush失败重试（FND8-18，每次new FlushReady发出新rpc对象）在旧判据下
+	// 虚增计数，可在其余参与方尚未flush时满足——闸门提前打开、flushDone以"全部落盘"收场
+	// 而实际有参与方未flush，且无任何日志。distinctParticipants=已确认的不同参与方集合
+	// （key=FlushReady.Participant，参与方集群身份）；legacyReadies=空Participant（旧版本
+	// 参与方）按rpc对象身份兜底计数的兼容集合。
+	private final Set<String> distinctParticipants = ConcurrentHashMap.newKeySet();
+	private final ConcurrentHashSet<Rpc<?, ?>> legacyReadies = new ConcurrentHashSet<>();
 	private final TaskCompletionSource<Integer> flushDone = new TaskCompletionSource<>();
 	// true之后到达的FlushReady一律立即应答（不再计数门控）：等待收齐、降级、或免等（saga/eFlushAsync）。
 	private volatile boolean flushGateOpen;
@@ -458,8 +469,26 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		}
 
 		flushReadies.add(r);
-		if (flushReadies.size() == zezeProcedures.size()) {
-			// 简单的用数量判断，足够可靠了。
+		// GC-D03：按参与方身份去重计数（协议新增Participant字段，Gen重生成）。
+		var participant = r.Argument.getParticipant();
+		if (participant.isEmpty()) {
+			// 兼容窗口：旧版本参与方的协议没有Participant（decode缺省空串，异常路径同理），
+			// 无法按身份去重，按rpc对象身份兜底计数——退回修复前语义（旧版本重发仍可能虚增
+			// 计数提前开闸）。每事务warn一次暴露兼容窗口的存在，升级完成即消失。
+			if (legacyReadies.isEmpty())
+				logger.warn("FlushReady without Participant (old client?), count by rpc identity. tid={}", onzTid);
+			legacyReadies.add(r);
+		} else if (!distinctParticipants.add(participant)) {
+			// 同一参与方的第二条ready：flush失败重试的正确性机制（不重试才是错误），不计数；
+			// warn是"防闸门提前打开"的直接信号——旧判据（按条数）下这条正是虚增计数的那条。
+			logger.warn("duplicate FlushReady from same participant (flush retry?). tid={}, participant={}",
+					onzTid, participant);
+		}
+		// 完成判据=不同参与方计数==procedure参与方数（zezeProcedures的key就是集群名，FND4-90）。
+		// ready最早在Commit决策之后才可能到达，那时zezeProcedures已定型（commit()在
+		// waitPendingAsync之后），N是稳定值；>=防并发add后单次检查跳过N（错过开闸只能等
+		// flushTimeout降级，方向安全但无谓）。
+		if (distinctParticipants.size() + legacyReadies.size() >= zezeProcedures.size()) {
 			flushGateOpen = true;
 			for (var ready : flushReadies)
 				replyReady(ready);
