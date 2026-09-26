@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Serialize.ByteBuffer;
@@ -42,6 +43,13 @@ public class MQFileWithIndex {
 
 	private static final byte[] firstMessageIdName = "firstMessageId".getBytes(StandardCharsets.UTF_8);
 	private long firstMessageId;
+
+	// fillMessage在飞计数（段回收排空依据，GB-D02）：fill持段索引迭代器与文件句柄期间，
+	// dropTable/close是native use-after-free（RocksDatabase.close同型契约），回收须等其归零。
+	private final AtomicInteger activeFills = new AtomicInteger();
+	// 软删除窗口状态（lock内）：当前候选最老已确认段的段基 + 首次观察到的时间。
+	private long recycleCandidateBase = -1;
+	private long recycleCandidateSince;
 
 	public static int trunkFileSize = 100 * 1024 * 1024;
 	public static int makeIndexPeriod = 100;
@@ -263,6 +271,8 @@ public class MQFileWithIndex {
 	 * @param endMessageId 结束Id。
 	 */
 	public void fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId) {
+		// 在飞计数先于首个floorEntry：段回收据此排空（见tryRecycle），计数与读路径同生共死。
+		activeFills.incrementAndGet();
 		// 锁内计算需要读取的消息数量，并且推进firstMessageId。
 		try {
 			while (headMessageId < endMessageId) {
@@ -346,7 +356,103 @@ public class MQFileWithIndex {
 			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
+		} finally {
+			// 计数与读路径同生共死：任何退出路径（含异常）都必须归零，否则回收从此永久跳过。
+			activeFills.decrementAndGet();
 		}
+	}
+
+	/**
+	 * 【GB-D02】水位线整段回收（拍板方案A：loadMonitorTimer 周期触发，批量低频不占热路径）。
+	 * <p>
+	 * 条件：firstMessageId 越过段尾（即该段全部消息已确认）才整段回收——at-least-once 契约不破；
+	 * 水位在段中间不触发（只整段回收，天然防御历史损坏形态"first 回拨到段中间"）。
+	 * 末段（活跃追加目标）永不回收。
+	 * <p>
+	 * 软删除窗口：候选段自首次被观察到"完全确认"起保留 delayMs 再回收（误判水位的最后防线，
+	 * MQConfig.SegmentRecycleDelayMs，窗口粒度受 loadMonitorTimer 周期约束）。
+	 * <p>
+	 * 与 fillMessage 读路径互斥：入口与锁内双检 activeFills（在飞 fill 持段索引迭代器与文件句柄，
+	 * dropTable/删文件与其并发是 native use-after-free）；非零则本轮跳过，下轮再试。
+	 * 残余竞态（fill 任务已按旧水位计算出区间、尚未开始执行）在 fill 侧表现为
+	 * messageIndexNotFound 的瞬时失败，由 pullMessage 既有的失败-复位-重试路径自愈，无数据损坏。
+	 */
+	public void tryRecycle(long delayMs) {
+		if (activeFills.get() != 0)
+			return; // 在飞fill排空（有界：fill装载maxFillMessageCount条即归零），本轮跳过
+		lock.lock();
+		try {
+			while (indexes.size() > 1) { // 只剩末段时无候选
+				var keyIt = indexes.keySet().iterator();
+				var oldest = keyIt.next();
+				var second = keyIt.next();
+				if (firstMessageId < second)
+					break; // 最老段未完全确认：水位线未越过段尾
+				// drop前一致性校验：内存位点与meta持久化值不一致（meta损坏/写丢失读出偏大值）
+				// 时拒绝回收——dropTable 不可逆，宁可磁盘泄漏不可误删未消费段。
+				if (!metaConsistent()) {
+					logger.error("mq segment recycle skipped: meta inconsistent. topic={} partition={}"
+									+ " first={} next={}", topic, partitionId, firstMessageId, nextMessageId);
+					recycleCandidateBase = -1;
+					return;
+				}
+				var now = System.currentTimeMillis();
+				if (recycleCandidateBase != oldest) {
+					// 软删除窗口起点：该段首次被观察到"完全确认"
+					recycleCandidateBase = oldest;
+					recycleCandidateSince = now;
+				}
+				if (now - recycleCandidateSince < delayMs)
+					break; // 窗口内保留
+				if (activeFills.get() != 0)
+					return; // 锁内复查：入口检查后有新fill进入
+				recycleSegment(oldest);
+				recycleCandidateBase = -1; // 下一个候选重新起算窗口
+			}
+			if (indexes.size() <= 1)
+				recycleCandidateBase = -1; // 无候选可守
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	// 一致性判据：meta持久化的next/first与内存值相等、且first<=next；meta读失败视同不一致
+	// （拒绝回收，宁可磁盘泄漏不可误删——dropTable不可逆）。
+	private boolean metaConsistent() {
+		try {
+			var nextInDb = meta.get(nextMessageIdName);
+			var firstInDb = meta.get(firstMessageIdName);
+			return null != nextInDb && null != firstInDb
+					&& ByteBuffer.ToLongBE(nextInDb, 0) == nextMessageId
+					&& ByteBuffer.ToLongBE(firstInDb, 0) == firstMessageId
+					&& firstMessageId <= nextMessageId;
+		} catch (RocksDBException e) {
+			return false;
+		}
+	}
+
+	// 三步同一锁序（tryRecycle的lock内，拍板定序）：indexes移除 → dropTable索引列族 → 删数据文件。
+	// 先从map移除再删文件：移除后fill的floorEntry定位到后继段，不再触碰被删段（防悬垂定位）。
+	// dropTable/删文件失败仅记日志不重试：重启后loadMQ按文件扫描重注册列族，下轮回收重新收敛。
+	private void recycleSegment(long base) {
+		var indexTable = indexes.remove(base); // ConcurrentSkipListMap.remove原子，锁外fill立即可见
+		if (null == indexTable)
+			return;
+		try {
+			database.dropTable(topic + "." + partitionId + "." + base);
+		} catch (RocksDBException e) {
+			logger.error("mq segment recycle dropTable failed, keep data file for restart rescan."
+					+ " topic={} partition={} segment={}", topic, partitionId, base, e);
+			return; // 不删文件：残留供重启重扫（段已出indexes，不再被读路径定位）
+		}
+		var file = new File(new File(home, topic), partitionId + "." + base);
+		var bytes = file.length();
+		if (file.delete())
+			logger.info("mq segment recycled. topic={} partition={} segment={} bytes={}",
+					topic, partitionId, file.getName(), bytes);
+		else
+			logger.warn("mq segment recycle delete file failed. topic={} partition={} file={}",
+					topic, partitionId, file);
 	}
 
 	public void increaseFirstMessageId() {

@@ -263,6 +263,12 @@ public class MQSingle extends ReentrantLock {
 		return topic;
 	}
 
+	// 【GB-D02】包内可见：loadMonitorTimer 周期驱动的段回收透传（fileWithIndex 私有；
+	// 回收自判条件与锁序见 MQFileWithIndex.tryRecycle，无需本类锁——其全部写点在fileWithIndex锁内）。
+	void tryRecycleSegments(long delayMs) {
+		fileWithIndex.tryRecycle(delayMs);
+	}
+
 	public int getPartitionIndex() {
 		return partitionIndex;
 	}

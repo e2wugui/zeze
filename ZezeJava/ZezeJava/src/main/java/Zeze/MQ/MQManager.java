@@ -129,6 +129,12 @@ public class MQManager extends AbstractMQManager {
 			loadManager += queue.load();
 		}
 		masterAgent.reportLoad(loadManager);
+		// 【GB-D02】段物理回收复用本timer周期触发（拍板：批量低频，不占ack热路径）；
+		// 配置开关与软删除窗口见 MQConfig（SegmentRecycleEnabled/SegmentRecycleDelayMs）。
+		if (mqConfig.isSegmentRecycleEnabled()) {
+			for (var queue : queues.values())
+				queue.tryRecycleSegments(mqConfig.getSegmentRecycleDelayMs());
+		}
 	}
 
 	private void loadMQ() {

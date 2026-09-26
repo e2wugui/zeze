@@ -31,6 +31,12 @@ public class MQPartition extends ReentrantLock {
 		return load;
 	}
 
+	// 【GB-D02】loadMonitorTimer 周期驱动：逐分区尝试水位线整段回收（条件自判，见MQFileWithIndex.tryRecycle）。
+	public void tryRecycleSegments(long delayMs) {
+		for (var partition : partitions.values())
+			partition.tryRecycleSegments(delayMs);
+	}
+
 	public MQSingle get(int partitionIndex) {
 		return partitions.get(partitionIndex);
 	}
