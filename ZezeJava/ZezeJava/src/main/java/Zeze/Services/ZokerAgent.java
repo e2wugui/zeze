@@ -145,7 +145,6 @@ public class ZokerAgent extends AbstractZokerAgent {
             var fileRelativeName = localServiceHome.relativize(file.toPath()).toString().replace("\\", "/");
             var md5 = MessageDigest.getInstance("MD5");
             var fileOffset = openFile(zokerName, fileRelativeName);
-            var primary = (Exception)null;
             try (var bis = new BufferedInputStream(new FileInputStream(file))) {
                 md5To(md5, bis, fileOffset);
                 var buffer = new byte[16 * 1024];
@@ -155,23 +154,17 @@ public class ZokerAgent extends AbstractZokerAgent {
                     appendFile(zokerName, fileRelativeName, fileOffset, buffer, 0, rc);
                     fileOffset += rc;
                 }
-            } catch (Exception e) {
-                primary = e;
-                throw e;
-            } finally {
-                // finally收尾的close失败不得顶替原始传输异常（GE-D04）：append已抛出时
-                // closeFile的失败（部分digest的eMd5Mismatch/断链回收后的eNotOpened）
-                // 是预期伴生，压制为suppressed；正常路径的close失败照抛。
-                if (null == primary)
+            } catch (Exception primary) {
+                // 传输已失败：closeFile的失败（部分digest的eMd5Mismatch/断链回收后的eNotOpened）
+                // 是预期伴生，压制为suppressed，不得顶替原始异常（GE-D04）。
+                try {
                     closeFile(zokerName, fileRelativeName, new Binary(md5.digest()));
-                else {
-                    try {
-                        closeFile(zokerName, fileRelativeName, new Binary(md5.digest()));
-                    } catch (Exception suppressed) {
-                        primary.addSuppressed(suppressed);
-                    }
+                } catch (Exception suppressed) {
+                    primary.addSuppressed(suppressed);
                 }
+                throw primary;
             }
+            closeFile(zokerName, fileRelativeName, new Binary(md5.digest())); // 正常路径直线收尾，失败照抛
         }
     }
 

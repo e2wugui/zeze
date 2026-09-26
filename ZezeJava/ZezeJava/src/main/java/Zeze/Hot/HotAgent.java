@@ -176,35 +176,8 @@ public class HotAgent extends AbstractHotAgent {
 			}
 			//if (!file.getName().endsWith(".jar"))
 			//	continue;
-			var fileRelativeName = distributeDir.toPath().relativize(file.toPath()).toString().replace("\\", "/");
-			var md5 = MessageDigest.getInstance("MD5");
-			var fileOffset = openFile(fileRelativeName);
-			var primary = (Exception)null;
-			try (var bis = new BufferedInputStream(new FileInputStream(file))) {
-				md5To(md5, bis, fileOffset);
-				var buffer = new byte[16 * 1024];
-				var rc = 0;
-				while ((rc = bis.read(buffer)) >= 0) {
-					md5.update(buffer, 0, rc);
-					appendFile(fileRelativeName, fileOffset, buffer, 0, rc);
-					fileOffset += rc;
-				}
-			} catch (Exception e) {
-				primary = e;
-				throw e;
-			} finally {
-				// finally收尾的close失败不得顶替原始传输异常（GE-D04客户端对齐，
-				// 与ZokerAgent同构）：正常路径close失败照抛。
-				if (null == primary)
-					closeFile(fileRelativeName, new Binary(md5.digest()));
-				else {
-					try {
-						closeFile(fileRelativeName, new Binary(md5.digest()));
-					} catch (Exception suppressed) {
-						primary.addSuppressed(suppressed);
-					}
-				}
-			}
+			// file必为distributeDir直接子文件（listFiles保证），相对名即getName()，与distributeFile一致。
+			distributeFile(file);
 		}
 	}
 
@@ -216,7 +189,6 @@ public class HotAgent extends AbstractHotAgent {
 		var fileRelativeName = file.getName();
 		var md5 = MessageDigest.getInstance("MD5");
 		var fileOffset = openFile(fileRelativeName);
-		var primary = (Exception)null;
 		try (var bis = new BufferedInputStream(new FileInputStream(file))) {
 			md5To(md5, bis, fileOffset);
 			var buffer = new byte[16 * 1024];
@@ -226,21 +198,17 @@ public class HotAgent extends AbstractHotAgent {
 				appendFile(fileRelativeName, fileOffset, buffer, 0, rc);
 				fileOffset += rc;
 			}
-		} catch (Exception e) {
-			primary = e;
-			throw e;
-		} finally {
-			// 同上：close失败不得顶替原始传输异常（GE-D04客户端对齐）。
-			if (null == primary)
+		} catch (Exception primary) {
+			// 传输已失败：closeFile的失败是预期伴生，压制为suppressed，
+			// 不得顶替原始传输异常（GE-D04客户端对齐，与ZokerAgent同构）。
+			try {
 				closeFile(fileRelativeName, new Binary(md5.digest()));
-			else {
-				try {
-					closeFile(fileRelativeName, new Binary(md5.digest()));
-				} catch (Exception suppressed) {
-					primary.addSuppressed(suppressed);
-				}
+			} catch (Exception suppressed) {
+				primary.addSuppressed(suppressed);
 			}
+			throw primary;
 		}
+		closeFile(fileRelativeName, new Binary(md5.digest())); // 正常路径直线收尾，失败照抛
 	}
 
 	private static void md5To(MessageDigest md5, BufferedInputStream bis, long toOffset) throws IOException {
