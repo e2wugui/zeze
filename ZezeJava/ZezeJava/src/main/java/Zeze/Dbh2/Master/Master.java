@@ -370,8 +370,14 @@ public class Master extends AbstractMaster {
 			bbKey.WriteInt(r.Argument.getLocalId());
 
 			// insert instance
-			if (null != zezeInstanceTable.get(bbKey.Bytes, bbKey.ReadIndex, bbKey.size()))
+			var existInstance = zezeInstanceTable.get(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
+			if (null != existInstance) {
+				// 错误码保真（FND19 GA-C06备注留档→拍板修）：finally的SendResult抢在派发层之前发送
+				//（trySendResultCode输给发送CAS），早退路径必须预置resultCode，否则客户端收到的是
+				// 上一步预置码的变形（eDefaultError等）。返回值保持不变（直调断言不受影响）。
+				r.setResultCode(errorCode(BSetInUse.eInstanceAlreadyExists));
 				return errorCode(BSetInUse.eInstanceAlreadyExists);
+			}
 			r.setResultCode(errorCode(BSetInUse.eInsertInstanceError));
 			zezeInstanceTable.put(trans, bbKey.Bytes, bbKey.ReadIndex, bbKey.size(),
 					emptyValue, 0, emptyValue.length);
@@ -379,8 +385,10 @@ public class Master extends AbstractMaster {
 			// check global
 			var currentGlobal = zezeDataTable.get(emptyValue);
 			if (null != currentGlobal) {
-				if (0 != Arrays.compare(currentGlobal, r.Argument.getGlobal().getBytes(StandardCharsets.UTF_8)))
+				if (0 != Arrays.compare(currentGlobal, r.Argument.getGlobal().getBytes(StandardCharsets.UTF_8))) {
+					r.setResultCode(errorCode(BSetInUse.eGlobalNotSame)); // 同上：错误码保真
 					return errorCode(BSetInUse.eGlobalNotSame);
+				}
 			} else {
 				r.setResultCode(errorCode(BSetInUse.eInsertGlobalError));
 				zezeDataTable.put(trans, emptyValue, r.Argument.getGlobal().getBytes(StandardCharsets.UTF_8));
@@ -396,8 +404,10 @@ public class Master extends AbstractMaster {
 					// 上面的compare严格的忽略掉刚刚事务中加入的（实际上应该看不到）
 					// 这样到达这里instance count已经大于1，可以直接返回错误了。
 					// 这个流程请参考 DatabaseMySql procedure _ZezeSetInUse_。
-					if (r.Argument.getGlobal().isEmpty())
+					if (r.Argument.getGlobal().isEmpty()) {
+						r.setResultCode(errorCode(BSetInUse.eTooManyInstanceWithoutGlobal)); // 同上：错误码保真
 						return errorCode(BSetInUse.eTooManyInstanceWithoutGlobal);
+					}
 				}
 			}
 			// eSuccess必须在commit()之后置位：commit抛出（写冲突/IO错误）时finally发送的
@@ -461,8 +471,13 @@ public class Master extends AbstractMaster {
 			var newVersion = r.Argument.getVersion();
 			if (null != exist) {
 				var dvExist = Database.DataWithVersion.decode(exist);
-				if (dvExist.version != r.Argument.getVersion())
+				if (dvExist.version != r.Argument.getVersion()) {
+					// 错误码保真（FND19 GA-C06备注留档→拍板修）：变形=eVersionMismatch在客户端
+					// 收到eDefaultError（finally的SendResult发送预置码，派发层返回值输给发送CAS）。
+					// e2e钉死见TestFnd19GAMasterErrorCodeFidelity（Dbh2TestEnv真实rpc派发路径）。
+					r.setResultCode(errorCode(BSaveDataWithSameVersion.eVersionMismatch));
 					return errorCode(BSaveDataWithSameVersion.eVersionMismatch);
+				}
 				newVersion++;
 				dvExist.version = newVersion;
 				dvExist.data = ByteBuffer.Wrap(r.Argument.getData());
