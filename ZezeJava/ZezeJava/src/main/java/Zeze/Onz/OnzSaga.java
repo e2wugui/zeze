@@ -10,7 +10,12 @@ import Zeze.Transaction.Bean;
 
 public class OnzSaga extends OnzProcedure {
 	private volatile boolean end = false; // setEnd在协议线程，isEnd在Checkpoint flush线程
-	private final long startTime = System.currentTimeMillis();
+	// TTL计时基准=最后活动时间（GC-D04-B1）：构造时刻初始化，FuncSagaEnd补偿失败放回
+	// sagas时刷新。不变式：补偿重试链推进期间（放回→redo重发→再放回），上下文不因
+	// 构造时刻的TTL到期被清——被清则重试只得eSagaNotFound，补偿永久丢失。业务完成
+	// 不刷新活动时间：超长业务完成后滞留超TTL仍会被清（收窄非闭合，超龄NotFound由
+	// OnzServer.redo分诊error）。
+	private volatile long lastActiveTime;
 	// FND7-34：FuncSaga的业务在任务池异步执行，FuncSagaEnd(cancel/end)可能在业务仍在
 	// 执行时到达（协调者超时补偿就是冲着慢步骤去的）。业务与cancel/end互斥：补偿必须
 	// 串行在业务完成之后——业务随后失败回滚时抢先执行的补偿就是过补偿（反向分歧）。
@@ -20,10 +25,16 @@ public class OnzSaga extends OnzProcedure {
 				   BFuncProcedure.Data funcArgument,
 				   OnzSagaStub<?, ?, ?> stub, Bean argument, Bean result) {
 		super(rpc, funcArgument, stub, argument, result);
+		lastActiveTime = System.currentTimeMillis();
 	}
 
-	public long getStartTime() {
-		return startTime;
+	public long getLastActiveTime() {
+		return lastActiveTime;
+	}
+
+	/** FuncSagaEnd补偿失败放回sagas时刷新（GC-D04-B1的唯一活动刷新点）。 */
+	void refreshLastActive() {
+		lastActiveTime = System.currentTimeMillis();
 	}
 
 	final void lockBusiness() {

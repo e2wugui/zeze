@@ -26,10 +26,16 @@ public class Onz extends AbstractOnz {
 	private final LongConcurrentHashMap<OnzSaga> sagas = new LongConcurrentHashMap<>();
 	private final OnzService service;
 	private final Application zeze;
-	// saga上下文兜底清理：正常流程FuncSagaEnd在步骤成功后数秒内到达；
-	// 协调者崩溃（saga无持久化状态，重启后不会重发FuncSagaEnd）或FuncSagaEnd
-	// 发送失败时，超时清理是参与方唯一的回收路径（FND-G1-6）。
-	private long sagaContextTimeoutMs = 3600_000;
+	// saga上下文兜底清理：正常流程FuncSagaEnd在步骤成功后数秒内到达；发送失败或
+	// 协调者崩溃由redo重发（OH1-F1起saga参与方进持久化快照）——TTL清理是资源回收
+	// 兜底（防rpc/bean泄漏，FND-G1-6），不是正确性机制：正确性依赖redo在本TTL内到达。
+	//【GC-D04-B2 联动契约】本值必须 ≥ 协调者最大恢复预算 = 崩溃检测+重启+
+	// RedoPreparingMinAgeMs(120s，OnzServer)+redo周期(60s，OnzServer)。预算内恢复
+	// 则redo补发的FuncSagaEnd(cancel)必命中存活上下文；超预算恢复命中已清上下文
+	// =eSagaNotFound，补偿丢失（超龄者由OnzServer.redo分诊error，人工对账）。
+	// 计时基准为最后活动时间（GC-D04-B1：构造/补偿失败放回时刻，见OnzSaga.lastActiveTime）。
+	public static final long eDefaultSagaContextTimeoutMs = 3600_000;
+	private long sagaContextTimeoutMs = eDefaultSagaContextTimeoutMs;
 	private Future<?> sagaCleanupTimer;
 	// FND5-45联动/FND6-38：ready等待超时自愈回滚的tid记账（值=回滚时刻，有界），仅供
 	// 过期清理循迹；决定性状态在readyProcedures的槽位哨兵（TimeoutRolledBackMarker）——
@@ -127,20 +133,22 @@ public class Onz extends AbstractOnz {
 	}
 
 	/**
-	 * 清理超时仍未收到FuncSagaEnd的saga上下文。定时器周期调用，测试可直接调用。
+	 * 清理超时仍未收到FuncSagaEnd的saga上下文，超时按最后活动时间计（GC-D04-B1：
+	 * 构造/补偿失败放回时刻）。定时器周期调用，测试可直接调用。
 	 * 业务在途（执行中/FuncSagaEnd补偿中等锁）的条目跳过本轮（OH1-F3），等业务完成
-	 * 后的下个周期再清——超时条件以构造时刻计时，不区分在途业务时，耗时超过
-	 * sagaContextTimeoutMs的合法业务会被清掉上下文：随后到达的FuncSagaEnd(cancel)
-	 * 只得eSagaNotFound，协调者按"无补偿对象"忽略，补偿永久丢失——静默部分提交。
+	 * 后的下个周期再清。按最后活动计时的意义：补偿失败放回后，redo每轮重发的失败
+	 * 重试都经过放回点刷新活动时间，重试循环不会被构造时刻的TTL清掉——被清则重试
+	 * 只得eSagaNotFound，补偿永久丢失；超龄的NotFound由OnzServer.redo分诊error。
 	 */
 	public void cleanupTimeoutSagas() {
 		var now = System.currentTimeMillis();
 		for (var saga : sagas) {
-			if (!saga.isEnd() && now - saga.getStartTime() >= sagaContextTimeoutMs) {
-				// 协调者已不可能再发FuncSagaEnd：正常流程成功后数秒内到达；
-				// 协调者崩溃时saga无持久化事务状态（buildSavedCommits为空），
-				// 重启后的redoTimer不会重发FuncSagaEnd。滞留条目持有rpc
-				// （sender socket引用）与业务bean，且end=false会扭曲flush语义判断。
+			if (!saga.isEnd() && now - saga.getLastActiveTime() >= sagaContextTimeoutMs) {
+				// 正常流程FuncSagaEnd在步骤成功后数秒内到达；协调者崩溃后重启，redo会补发
+				// FuncSagaEnd（OH1-F1起saga参与方进buildSavedCommits持久化快照）。但补发收敛
+				// 以sagaContextTimeoutMs为预算（GC-D04-B2联动契约）：协调者超预算恢复时上下文
+				// 已被本清理回收，redo只得超龄NotFound（OnzServer.redo分诊error，人工对账）。
+				// 滞留条目持有rpc（sender socket引用）与业务bean，且end=false会扭曲flush语义判断。
 				// 先tryLock businessLock（OH1-F3）：拿不到=业务在途（含FuncSagaEnd正
 				// 阻塞等慢业务），删条目会让等待方remove失败应答eSagaNotFound——
 				// 补偿丢失。跳过本轮，等下个周期。
@@ -310,6 +318,10 @@ public class Onz extends AbstractOnz {
 					// 放回后由cleanupTimeoutSagas超时兜底（默认1小时，可配置）。
 					if (null != sagas.putIfAbsent(tid, context))
 						logger.error("saga context re-insert conflict. tid={}", tid);
+					else
+						// 放回即最后活动（GC-D04-B1）：等待重发的窗口不消耗TTL预算，否则
+						// 补偿重试链会被构造时刻的TTL掐断。
+						context.refreshLastActive();
 					return rc;
 				}
 			} else {

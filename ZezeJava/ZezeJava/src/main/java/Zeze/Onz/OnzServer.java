@@ -198,6 +198,16 @@ public class OnzServer extends AbstractOnz {
 	// 集合有界于挂死perform数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> hangWarnedTids = ConcurrentHashMap.newKeySet();
 
+	// 超龄NotFound分诊预算（GC-D04-C）：对齐参与方sagaContextTimeoutMs默认值——协调者
+	// 无从得知各参与方的实际TTL配置，按默认预算分诊（联动契约推导见Onz.sagaContextTimeoutMs）。
+	// rollback决策记录年龄≥本预算的eSagaNotFound按恶性升格error并保留记录。
+	private static final long SagaNotFoundAgedBudgetMs = Onz.eDefaultSagaContextTimeoutMs;
+
+	// 超龄NotFound告警去重（GC-D04-C）：分诊保留的决策记录每轮redo重发都会再次
+	// NotFound，按tid只error一次防刷屏（对齐hangWarnedTids形态）。决策记录收敛
+	// 删除时回收tid，集合有界于在库的超龄未决决策数。
+	private final ConcurrentHashMap.KeySetView<Long, Boolean> agedNotFoundWarnedTids = ConcurrentHashMap.newKeySet();
+
 	private void redoTimer() throws RocksDBException {
 		if (stopped)
 			return;
@@ -212,6 +222,9 @@ public class OnzServer extends AbstractOnz {
 					var bb = ByteBuffer.Wrap(value);
 					var state = bb.ReadUInt();
 					var tid = ByteBuffer.ToLongBE(key, 0);
+					// FND5-44：新格式值=state(varint)+写入时戳(8B BE)；旧格式（仅state，
+					// 升级遗留的未决决策）读不到时戳视为年龄无穷——行为与修复前一致（立即redo）。
+					var stamp = bb.size() >= 8 ? bb.ReadLong8BE() : 0L;
 					// FND6-36（skip收窄）：先读状态再判登记，skip仅作用于登记中的ePreparing。
 					// ePreparing的redo是Rollback，回滚不可逆：登记窗口从addTransaction覆盖到
 					// finally removeTransaction，其中saveCommitPoint(ePreparing)→无界
@@ -228,12 +241,9 @@ public class OnzServer extends AbstractOnz {
 					// perform的finally之后，多等一个perform生命周期。
 					switch (state) {
 					case eCommitting:
-						redo(key, true);
+						redo(key, true, stamp);
 						break;
 					case ePreparing:
-						// FND5-44：新格式值=state(varint)+写入时戳(8B BE)；旧格式（仅state，
-						// 升级遗留的未决决策）读不到时戳视为年龄无穷——行为与修复前一致（立即redo）。
-						var stamp = bb.size() >= 8 ? bb.ReadLong8BE() : 0L;
 						var age = System.currentTimeMillis() - stamp;
 						if (onzAgent.hasTransaction(tid)) {
 							// 可观测性：登记中却远超年龄窗口（2×RedoPreparingMinAgeMs）仍停在
@@ -244,7 +254,7 @@ public class OnzServer extends AbstractOnz {
 							continue;
 						}
 						if (age >= RedoPreparingMinAgeMs)
-							redo(key, false);
+							redo(key, false, stamp);
 						// else：进行中窗口，等超过年龄后的下一轮
 						break;
 					}
@@ -263,7 +273,8 @@ public class OnzServer extends AbstractOnz {
 	// redo按决策与参与方类型分流（OH1-F1）：procedure参与方发Commit/Rollback；
 	// saga参与方发FuncSagaEnd——commit决策补发endSaga未完成的结束(cancel=false)，
 	// rollback决策补偿已提交的步骤(cancel=true)，参与方幂等。
-	private void redo(byte[] key, boolean commitDecision) throws RocksDBException {
+	// stamp=commitIndex写入时戳（FND5-44），供超龄NotFound分诊（GC-D04-C）。
+	private void redo(byte[] key, boolean commitDecision, long stamp) throws RocksDBException {
 		var tid = ByteBuffer.ToLongBE(key, 0);
 		var zezeOnzs = new HashMap<String, Connector>();
 		try {
@@ -322,14 +333,30 @@ public class OnzServer extends AbstractOnz {
 					continue;
 				// eSagaNotFound：上下文已清理（业务失败自清理/参与方TTL回收/已处理过的
 				// 重复发送），无补偿对象，可忽略（线上为moduleId组合值，解码后比较）。
-				if (IModule.getErrorCode(rpc.getResultCode()) == AbstractOnz.eSagaNotFound)
+				if (IModule.getErrorCode(rpc.getResultCode()) == AbstractOnz.eSagaNotFound) {
+					// GC-D04-C 超龄分诊：rollback决策（cancel=true路径）的NotFound有两种不可
+					// 区分成因——良性（业务失败自清理/已补偿的重复发送）与恶性（参与方上下文
+					// 已被TTL清理，补偿永久丢失）。记录年龄超参与方TTL预算（SagaNotFoundAged
+					// BudgetMs）的升格为error（按tid去重防每轮刷屏）并保留决策记录（人工对账
+					// 需要记录在场）；年龄内与commit决策（cancel=false的end无数据效应）维持静默。
+					var recordAge = System.currentTimeMillis() - stamp;
+					if (!commitDecision && recordAge >= SagaNotFoundAgedBudgetMs) {
+						removeOk = false;
+						if (agedNotFoundWarnedTids.add(tid))
+							logger.error("onz redo: rollback决策的saga参与方应答eSagaNotFound且决策记录超龄"
+											+ "（tid={}, age={}ms）：补偿可能已因参与方TTL清理而丢失，需人工对账（决策记录保留在库）",
+									tid, recordAge);
+					}
 					continue;
+				}
 				removeOk = false;
 				logger.error("redo result error, keep record for retry. tid={}, resultCode={}",
 						tid, rpc.getResultCode());
 			}
-			if (removeOk)
+			if (removeOk) {
 				removeCommitRecord(key);
+				agedNotFoundWarnedTids.remove(tid); // 记录收敛后回收告警去重项
+			}
 		} catch (Throwable ex) {
 			// timer will redo
 			logger.error("redo fail. tid={}", tid, ex);

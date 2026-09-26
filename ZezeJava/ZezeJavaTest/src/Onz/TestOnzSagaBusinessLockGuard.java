@@ -132,7 +132,7 @@ public class TestOnzSagaBusinessLockGuard {
 		// cancel型FuncSagaEnd在业务执行期间到达：处理线程阻塞在businessLock上（FND7-34设计）
 		var cancelFuture = sendFuncSagaEnd(SlowTid, true);
 
-		// 超时条件成立（构造时刻计时早已超龄），业务仍在执行：清理必须跳过
+		// 超时条件成立（业务期间无活动刷新，最后活动时间=构造时刻，早已超龄），业务仍在执行：清理必须跳过
 		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(1);
 		App.Instance.Zeze.getOnz().cleanupTimeoutSagas();
 
