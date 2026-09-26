@@ -660,6 +660,9 @@ public class OnzServer extends AbstractOnz {
 
 		} finally {
 			onzAgent.removeTransaction(txn);
+			// 慢而最终完成的perform也会触发过封锁告警（登记中+超龄即入集合），完成即回收，
+			// 集合真正有界于挂死数——否则按tid无界累积（GC-C04）。
+			hangWarnedTids.remove(txn.getOnzTid());
 		}
 	}
 
