@@ -39,24 +39,21 @@ public class BrowseLogHandle implements HttpEndStreamHandle {
 			con.setContainsType(searchLogParam.getContainsType());
 			con.setPattern(searchLogParam.getPattern());
 
+			// GE-D06 会话回执比对：复用会话前比对请求的(会话类型, serverName, logName)与绑定记录，
+			// 不匹配（或changeSession强制重建）时关旧建新——正确性不再依赖前端记得置changeSession。
 			SocketAddress socketAddress = x.channel().remoteAddress();
-			Object session = FileSessionManager.get(socketAddress);
 			if (serverName != null && !serverName.trim().isEmpty()) {
-				if (searchLogParam.isChangeSession() || !(session instanceof Session)) {
-					session = logAgent.newSession(serverName, logName);
-					x.setUserState(session);
-					FileSessionManager.put(socketAddress, session);
-				}
-				BResult.Data data = ((Session)session).browse(searchLogParam.getLimit(),
+				Session session = (Session)FileSessionManager.resolve(logAgent, socketAddress,
+						searchLogParam.isChangeSession(), false, serverName, logName);
+				x.setUserState(session);
+				BResult.Data data = session.browse(searchLogParam.getLimit(),
 						searchLogParam.getOffsetFactor(), searchLogParam.isReset(), con).get(1, TimeUnit.MINUTES);
 				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.succResult(data)));
 			} else {
-				if (searchLogParam.isChangeSession() || !(session instanceof SessionAll)) {
-					session = logAgent.newSessionAll(logName);
-					x.setUserState(session);
-					FileSessionManager.put(socketAddress, session);
-				}
-				BResult.Data data = ((SessionAll)session).browse(searchLogParam.getLimit(),
+				SessionAll session = (SessionAll)FileSessionManager.resolve(logAgent, socketAddress,
+						searchLogParam.isChangeSession(), true, null, logName);
+				x.setUserState(session);
+				BResult.Data data = session.browse(searchLogParam.getLimit(),
 						searchLogParam.getOffsetFactor(), searchLogParam.isReset(), con);
 				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.succResult(data)));
 			}
