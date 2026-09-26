@@ -33,7 +33,7 @@ test.ks
 /test/Dbh2/master
 /test/InfiniteSimulate/CommitRocks*
 /ZezeJavaTest/test.ks
-/ZezeJavaTest/CommitOnzServer0
+/ZezeJavaTest/CommitOnzServer*
 /ZezeJavaTest/CommitRocks*
 /ZezeJavaTest/autokeys2
 /ZezeJavaTest/dbh2TestSimple
