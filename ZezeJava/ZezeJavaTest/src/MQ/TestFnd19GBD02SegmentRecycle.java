@@ -52,8 +52,11 @@ public class TestFnd19GBD02SegmentRecycle {
 	public void testWatermarkSegmentRecycle(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("db").toString();
 		var topicDir = Path.of(home, "topic");
+		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
+		var oldMakeIndexPeriod = MQFileWithIndex.makeIndexPeriod;
 		MQFileWithIndex.trunkFileSize = 1024; // 小段快滚
 		MQFileWithIndex.makeIndexPeriod = 1;  // 每条建索引，保证fill定位
+		try {
 		java.util.List<Long> bases = null;
 		try (var database = new RocksDatabase(home)) {
 			var file = new MQFileWithIndex(home, database, "topic", 0);
@@ -88,15 +91,21 @@ public class TestFnd19GBD02SegmentRecycle {
 
 		// 重启形态：目录只剩活跃段（构造时间与服役时长解耦是 GB-D02 的目标形态之一），
 		// 位点保持、fill 照常（firstMessageId >= 最老存活段基，构造期不变量不被回收破坏）。
-		try (var database2 = new RocksDatabase(home)) {
-			var file2 = new MQFileWithIndex(home, database2, "topic", 0);
-			try {
-				Assertions.assertEquals(bases.get(2), file2.getFirstMessageId(), "位点跨重启保持");
-				Assertions.assertEquals(201, file2.getNextMessageId());
-				assertFillInOrder(file2, file2.getFirstMessageId(), file2.getNextMessageId());
-			} finally {
-				file2.close();
+			try (var database2 = new RocksDatabase(home)) {
+				var file2 = new MQFileWithIndex(home, database2, "topic", 0);
+				try {
+					Assertions.assertEquals(bases.get(2), file2.getFirstMessageId(), "位点跨重启保持");
+					Assertions.assertEquals(201, file2.getNextMessageId());
+					assertFillInOrder(file2, file2.getFirstMessageId(), file2.getNextMessageId());
+				} finally {
+					file2.close();
+				}
 			}
+		} finally {
+			// 静态字段恢复（注释宣称的先例形态，FND20 R2 补齐）：类级并行下残留 makeIndexPeriod=1
+			// 会改写 TestMQFileWithIndexTornTail 撕裂恢复的锚点选择（其注释记录的干扰面）。
+			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
+			MQFileWithIndex.makeIndexPeriod = oldMakeIndexPeriod;
 		}
 	}
 
@@ -109,8 +118,11 @@ public class TestFnd19GBD02SegmentRecycle {
 	public void testFillFailureMustNotLeakActiveCount(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("db2").toString();
 		var topicDir = Path.of(home, "topic");
+		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
+		var oldMakeIndexPeriod = MQFileWithIndex.makeIndexPeriod;
 		MQFileWithIndex.trunkFileSize = 1024;
 		MQFileWithIndex.makeIndexPeriod = 1;
+		try {
 		try (var database = new RocksDatabase(home)) {
 			var file = new MQFileWithIndex(home, database, "topic", 0);
 			try {
@@ -132,6 +144,10 @@ public class TestFnd19GBD02SegmentRecycle {
 			} finally {
 				file.close();
 			}
+		}
+		} finally {
+			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
+			MQFileWithIndex.makeIndexPeriod = oldMakeIndexPeriod;
 		}
 	}
 }
