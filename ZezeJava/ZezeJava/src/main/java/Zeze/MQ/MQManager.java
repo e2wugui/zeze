@@ -304,13 +304,19 @@ public class MQManager extends AbstractMQManager {
 		try {
 			var file = new File(home, ".managerId");
 			if (file.isFile()) {
-				var text = Files.readString(file.toPath(), StandardCharsets.UTF_8).trim();
-				if (!text.isEmpty()) {
-					var id = Long.parseLong(text);
-					if (id > 0)
-						return id;
+				try {
+					var text = Files.readString(file.toPath(), StandardCharsets.UTF_8).trim();
+					if (!text.isEmpty()) {
+						var id = Long.parseLong(text);
+						if (id > 0)
+							return id;
+					}
+					logger.warn("managerId file corrupted (home={}), re-mint", home); // 损坏内容按未铸处理，覆盖重铸
+				} catch (NumberFormatException e) {
+					// 非数字损坏同样按未铸处理（最常见损坏形态，不能让构造失败杀启动）：
+					// 重铸新身份的代价是旧路由按旧id永不再匹配+孤儿对账回收，属可接受的降级。
+					logger.warn("managerId file corrupted (home={}), re-mint", home);
 				}
-				logger.warn("managerId file corrupted (home={}), re-mint", home); // 损坏内容按未铸处理，覆盖重铸
 			}
 			var id = (System.currentTimeMillis() << 16) | (new SecureRandom().nextInt() & 0xFFFFL);
 			// AtomicFileWriter（I1规约）：fsync+原子rename换版，mint中途崩溃不留半文件。
