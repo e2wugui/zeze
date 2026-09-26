@@ -446,6 +446,110 @@ public class OnzServer extends AbstractOnz {
 		}
 	}
 
+	/**
+	 * 滞留决策记录的人工清算（GC-D01）："保留 + 曝光"（GC-D04-C 超龄NotFound / GC-C02
+	 * 未知state / GC-C03 确定性补偿失败）之后的可达终点——对账完成后（如参与方带外补了
+	 * 数据），运维按 tid 显式关闭滞留记录。暴露惯例对齐 Onz.cleanupTimeoutSagas：嵌入方
+	 * 从自己的运维面调用（全仓无独立OnzServer部署形态），方法体即未来任何远程形态的
+	 * handler 体；测试可直接调用。
+	 * <p>
+	 * 守卫（下限）：只放行协调者自己已报告为滞留的 tid——agedNotFoundWarnedTids ∪
+	 * redoResultWarnedTids ∪ unknownStateWarnedTids。清算的正确性依赖"操作者已完成对账"
+	 * 这一协调者不可验证的外部事实，设计的本质不是验证它，而是把该断言约束在最小爆破
+	 * 半径内：集合成员资格是协调者自己"redo 收敛不动此记录"的证据，进行中事务的 tid
+	 * 不可达——误删进行中事务唯一收敛通道（redo）的操作因此不可达。不在集合只可能是
+	 * 进行中/未分诊（进程重启后集合清空，需等下一轮 redo ≤60s 重新分诊），拒绝并 error。
+	 * <p>
+	 * 删除：dbLock 域内 + stopped 双检（对齐 redoTimer 头部，与 stop 的关库互斥）；
+	 * 删前读 commitIndex/commitPoint 原值记审计日志（被放弃的补偿对象的最后留痕——
+	 * 记录内容删除后不可再读）；复用 removeCommitRecord 单 batch 原子双删（FND4-88 两表
+	 * 同 key 生命周期）；三个告警去重集合同步回收（回收点对齐 redo 的 removeOk 分支；
+	 * unknownStateWarnedTids 此前无回收点——GC-C02 条目按设计永不 redo 收敛，本方法是
+	 * 其唯一回收通道，汇流闭合同形滞留三类）。
+	 *
+	 * @return true=记录已关闭（删除，或守卫通过后已不在库的幂等no-op）；false=拒绝
+	 * （tid未被报告滞留/服务器已停止），库与集合均不动。
+	 */
+	public boolean settleStuckRecord(long tid) {
+		// stopped前置检查对齐redoTimer头部：终态服务器先拒绝，不进守卫（getZezeInstance/
+		// perform对stopped的拒绝同口径）。锁内双检覆盖检查与加锁之间的stop窗口。
+		if (stopped) {
+			logger.error("onz settle rejected: OnzServer stopped. tid={}", tid);
+			return false;
+		}
+		if (!(agedNotFoundWarnedTids.contains(tid) || redoResultWarnedTids.contains(tid)
+				|| unknownStateWarnedTids.contains(tid))) {
+			logger.error("onz settle rejected: tid={} 不是协调者已报告滞留的tid（进行中/未分诊；"
+					+ "进程重启后告警集合清空，需等下一轮redo（周期60s+应答窗口）重新分诊后才能清算），记录不动", tid);
+			return false;
+		}
+		var tidBytes = new byte[8];
+		ByteBuffer.longBeHandler.set(tidBytes, 0, tid);
+		dbLock.lock();
+		try {
+			if (stopped) {
+				logger.error("onz settle rejected: OnzServer stopped. tid={}", tid);
+				return false;
+			}
+			// 守卫通过到加锁之间，某轮redo可能已收敛该记录并回收tid（removeOk分支的删除+
+			// 回收都在dbLock域内原子完成）：此时锁内读不到原值，审计记"已不在库"，删除与
+			// 集合remove均为幂等no-op——无害路径，不在锁内复查守卫（三集合的分诊add与回收
+			// remove都只发生在dbLock域内，锁内复查只会迟到地看到"已被redo收敛"，与no-op等价）。
+			auditRetainedRecord(tid, tidBytes);
+			removeCommitRecord(tidBytes);
+			agedNotFoundWarnedTids.remove(tid); // 记录关闭后回收告警去重项（对齐removeOk分支）
+			redoResultWarnedTids.remove(tid); // 同上（GC-C03）
+			unknownStateWarnedTids.remove(tid); // 同上（GC-C02）：本方法是该集合唯一的tid回收点
+			return true;
+		} finally {
+			dbLock.unlock();
+		}
+	}
+
+	/**
+	 * 删除前的滞留记录审计留痕（GC-D01）：tid/原state/年龄/参与方清单——记录两表条目
+	 * 删除后内容即不可再读，日志是被放弃的补偿对象的最后痕迹。审计尽力而为：守卫已确认
+	 * 滞留，个别字段读不到（已不在库/无点条目/毒值）不得阻断清算——删除本身的正确性
+	 * 不依赖审计，只依赖守卫 + removeCommitRecord 的原子性。
+	 */
+	private void auditRetainedRecord(long tid, byte[] tidBytes) {
+		var state = "未知";
+		var age = "未知";
+		var onzs = "未知";
+		try {
+			var indexValue = commitIndex.get(tidBytes);
+			if (indexValue == null) {
+				// 守卫通过但索引已不在：某轮redo刚收敛（见settleStuckRecord锁内注释）或外部
+				// 改库。照常走删除（幂等no-op），审计如实记录。
+				state = age = onzs = "已不在库";
+			} else {
+				var bb = ByteBuffer.Wrap(indexValue);
+				state = String.valueOf(bb.ReadUInt());
+				// 旧格式（仅state无时戳）读不到时戳与redoTimer同口径：年龄未知，不臆造。
+				var stamp = bb.size() >= 8 ? bb.ReadLong8BE() : 0L;
+				if (stamp != 0)
+					age = (System.currentTimeMillis() - stamp) + "ms";
+				var pointValue = commitPoint.get(tidBytes);
+				if (pointValue != null) {
+					var saved = new BSavedCommits.Data();
+					saved.decode(ByteBuffer.Wrap(pointValue));
+					onzs = String.valueOf(saved.getOnzs());
+				} else {
+					// 未知state条目可无点条目（GC-C02形态：索引直注）；索引在而点不在的
+					// 错配条目同样如实记录。
+					onzs = "无点条目";
+				}
+			}
+		} catch (Throwable ex) {
+			// 毒值（时戳后截断/点值损坏等）：审计携带可读部分，异常补一条定位，不阻断删除。
+			logger.warn("onz settle audit: 滞留记录审计读取部分失败（尽力携带）. tid={}", tid, ex);
+		}
+		// warn对齐cleanupTimeoutSagas的"放弃补偿对象"日志级别：比info可保证默认可见，
+		// 比error少一分"系统自检发现异常"的语义——这是人工决策的执行留痕。
+		logger.warn("onz settle audit: 清算滞留决策记录（人工对账完成，删除前留痕）. tid={}, state={}, age={}, onzs={}",
+				tid, state, age, onzs);
+	}
+
 	private static Connector openRedoConnection(HashMap<String, Connector> conns, String ip_port) {
 		var conn = conns.computeIfAbsent(ip_port, __ -> {
 			var newConn = new Connector(ip_port, false);
