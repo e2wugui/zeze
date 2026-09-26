@@ -79,7 +79,9 @@ public class FileBin {
 			truncate(offset);
 			length = randFile.getChannel().size(); // truncate will change length
 			md5CurrentData();
-		}
+		} else if (offset == length)
+			// os挂在共享FD的当前指针上写入：新建FileBin指针停留在0，等值续传（断点续传的常态）不seek会从文件头覆写
+			randFile.seek(offset);
 		var newLength = offset + data.size();
 		if (newLength > length) {
 			var newDataLength = (int)(newLength - length);
