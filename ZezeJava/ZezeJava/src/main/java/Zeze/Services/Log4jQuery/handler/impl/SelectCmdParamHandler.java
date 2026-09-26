@@ -20,7 +20,8 @@ public class SelectCmdParamHandler implements QueryHandler<String, ClassInfo> {
 			if (paramClass == null) // 无参命令（如cmd_list声明为QueryHandler<Object,...>），参数为空，不能取getName()。
 				return classInfo;
 			classInfo.setClassName(paramClass.getName());
-			if (paramClass.isAssignableFrom(Number.class) || paramClass == Boolean.class || paramClass == String.class){
+			// Number.class.isAssignableFrom(paramClass)：判断paramClass是否为Number子类（Integer/Long/...）。
+			if (Number.class.isAssignableFrom(paramClass) || paramClass == Boolean.class || paramClass == String.class){
 				classInfo.setBaseType(true);
 			}else {
 				List<SimpleField> fields = queryHandleContainer.getFields();
