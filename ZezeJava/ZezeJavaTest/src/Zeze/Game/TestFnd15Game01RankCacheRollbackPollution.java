@@ -22,8 +22,10 @@ import Zeze.Transaction.Procedure;
 public class TestFnd15Game01RankCacheRollbackPollution {
 	private static final int RANK_TYPE = 1;
 
-	// 与其他@Fast测试错开serverId（TestRankCacheEvict用7350段、TestRankCountNeedKey用7360）。
-	private static final int ServerId = 7490;
+	// 与其他@Fast测试错开serverId（TestRankCacheEvict用7350段、TestRankCountNeedKey用7360、
+	// TestFnd735RankSingleSegmentMerge用7370；7490与TestClearTableCacheTimers的7490起段撞，
+	// 同JVM并发时FileMutex互斥失败）。
+	private static final int ServerId = 7390;
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();
