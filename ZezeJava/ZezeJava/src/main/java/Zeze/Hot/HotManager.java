@@ -341,6 +341,7 @@ public class HotManager extends ClassLoader {
 		}
 	}
 
+	@SuppressWarnings("resource")
 	private ArrayList<HotModule> install(List<String> namespaces, boolean atomicAll) throws Exception {
 		logger.info("________________ install ________________ {}", namespaces);
 		try {
@@ -568,10 +569,7 @@ public class HotManager extends ClassLoader {
 		var jar = jars.remove(file);
 		if (jar == null)
 			return;
-		for (var it = zipEntries.entrySet().iterator(); it.hasNext(); ) {
-			if (it.next().getValue().jar == jar)
-				it.remove();
-		}
+		zipEntries.entrySet().removeIf(stringJarEntryEntry -> stringJarEntryEntry.getValue().jar == jar);
 		try {
 			jar.close();
 		} catch (java.io.IOException e) {
@@ -1004,12 +1002,12 @@ public class HotManager extends ClassLoader {
 	private void loadExistDistributes(HashSet<String> foundJars, HashSet<String> readies) {
 		var files = new File(distributeDir).listFiles();
 		if (null == files) {
-			System.out.println("is null.");
+			// System.out.println("is null.");
 			return;
 		}
 
 		for (var file : files) {
-			//System.out.println(file + " " + file.isDirectory());
+			// System.out.println(file + " " + file.isDirectory());
 			if (file.isDirectory())
 				continue; // 不支持子目录。
 
