@@ -211,6 +211,18 @@ public class OnzServer extends AbstractOnz {
 	// 删除时回收tid，集合有界于在库的超龄未决决策数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> agedNotFoundWarnedTids = ConcurrentHashMap.newKeySet();
 
+	// 未知state告警去重（GC-C02）：commitIndex值可解但state∉{ePreparing,eCommitting}的
+	// 条目（损坏但未截断的垃圾值/未来版本前向写入降级运行）原先每轮redo静默跳过且
+	// 永不清算——零信号（同函数hang/超龄NotFound/毒值均有告警，唯此支没有）。按tid
+	// 只error一次（对齐agedNotFoundWarnedTids形态）。该类条目不会被redo收敛删除，
+	// tid不回收，集合有界于在库的未知state条目数。
+	private final ConcurrentHashMap.KeySetView<Long, Boolean> unknownStateWarnedTids = ConcurrentHashMap.newKeySet();
+
+	// redo结果错误告警去重（GC-C03）：非0非eSagaNotFound应答保留的决策记录每轮redo
+	// 重发、确定性补偿失败每轮再现——按tid只error一次防刷屏（对齐agedNotFound
+	// WarnedTids形态）。记录收敛删除时回收tid，集合有界于在库的失败重试决策数。
+	private final ConcurrentHashMap.KeySetView<Long, Boolean> redoResultWarnedTids = ConcurrentHashMap.newKeySet();
+
 	private void redoTimer() throws RocksDBException {
 		if (stopped)
 			return;
@@ -222,44 +234,72 @@ public class OnzServer extends AbstractOnz {
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					var key = it.key();
 					var value = it.value();
-					var bb = ByteBuffer.Wrap(value);
-					var state = bb.ReadUInt();
-					var tid = ByteBuffer.ToLongBE(key, 0);
-					// FND5-44：新格式值=state(varint)+写入时戳(8B BE)；旧格式（仅state，
-					// 升级遗留的未决决策）读不到时戳视为年龄无穷——行为与修复前一致（立即redo）。
-					var stamp = bb.size() >= 8 ? bb.ReadLong8BE() : 0L;
-					// FND6-36（skip收窄）：先读状态再判登记，skip仅作用于登记中的ePreparing。
-					// ePreparing的redo是Rollback，回滚不可逆：登记窗口从addTransaction覆盖到
-					// finally removeTransaction，其中saveCommitPoint(ePreparing)→无界
-					// waitPendingAsync是年龄闸挡不住的进行中窗口，误发Rollback回滚存活参与方后
-					// 对迟到Commit假应答成功（readyProcedures.remove为null直接SendResult(0)），
-					// perform静默全量回滚却返回0——必须skip。真残留只能源于进程崩溃（登记表
-					// 与perform同进程同生共死：perform异常结束必经finally摘除登记，进程存活则
-					// 登记必在），崩溃重启后onzAgent为空，skip天然放行；存活perform的finally
-					// 摘除登记后下轮redo可见。年龄闸（FND5-44）只作用于未登记的ePreparing
-					// （区分崩溃残留与刚落盘的窗口条目），登记中的条目与年龄无关。
-					// eCommitting不做skip：其redo是幂等Commit重发（参与方已ready，重复Commit
-					// 亦应答成功；且redo经getZezeInstance现查新地址），登记中执行也安全——它
-					// 是perform的Commit散发通道socket僵死时的收敛通道，skip会把补发推迟到
-					// perform的finally之后，多等一个perform生命周期。
-					switch (state) {
-					case eCommitting:
-						redo(key, true, stamp);
-						break;
-					case ePreparing:
-						var age = System.currentTimeMillis() - stamp;
-						if (onzAgent.hasTransaction(tid)) {
-							// 可观测性：登记中却远超年龄窗口（2×RedoPreparingMinAgeMs）仍停在
-							// ePreparing，基本是perform因业务bug永挂——登记项与commitIndex条目
-							// 将永久泄漏且redo被其封锁，按tid只warn一次暴露（集合见hangWarnedTids）。
-							if (age >= 2 * RedoPreparingMinAgeMs && hangWarnedTids.add(tid))
-								logger.warn("onz redo: tid={} 登记中ePreparing年龄{}ms，疑似挂死 perform，redo 封锁中", tid, age);
-							continue;
+					// 索引侧毒条目单条隔离（GC-C01）：索引自身的值空/截断（ReadUInt抛）或key短于
+					// 8字节（ToLongBE越界抛）时，异常原先直接冲出循环体中止整个commitIndex遍历
+					// ——周期路径被DaemonTimer.runBody吞掉后下一轮从头再撞同一条，排序在后的
+					// 未决决策redo永久停滞（GC-C02(FND19)只闭合了点表侧的requireNonNull/decode，
+					// 索引侧同型洞仍在）。单条处理整体包try，毒条目记error（带key/tid）后跳过
+					// 留库人工排查，不阻塞其后记录的收敛（对齐ApplyHelper逐记录隔离形态；与
+					// redo内层GC-C02(FND19)隔离构成两层防御，内层保留不动）。毒条目留库期间每轮
+					// redo都会再撞到并再记一条（对齐内层"redo fail"形态——真损坏必被持续看见，
+					// 条目被人工清除/修复后即静默）。
+					try {
+						var bb = ByteBuffer.Wrap(value);
+						var state = bb.ReadUInt();
+						var tid = ByteBuffer.ToLongBE(key, 0);
+						// FND5-44：新格式值=state(varint)+写入时戳(8B BE)；旧格式（仅state，
+						// 升级遗留的未决决策）读不到时戳视为年龄无穷——行为与修复前一致（立即redo）。
+						var stamp = bb.size() >= 8 ? bb.ReadLong8BE() : 0L;
+						// FND6-36（skip收窄）：先读状态再判登记，skip仅作用于登记中的ePreparing。
+						// ePreparing的redo是Rollback，回滚不可逆：登记窗口从addTransaction覆盖到
+						// finally removeTransaction，其中saveCommitPoint(ePreparing)→无界
+						// waitPendingAsync是年龄闸挡不住的进行中窗口，误发Rollback回滚存活参与方后
+						// 对迟到Commit假应答成功（readyProcedures.remove为null直接SendResult(0)），
+						// perform静默全量回滚却返回0——必须skip。真残留只能源于进程崩溃（登记表
+						// 与perform同进程同生共死：perform异常结束必经finally摘除登记，进程存活则
+						// 登记必在），崩溃重启后onzAgent为空，skip天然放行；存活perform的finally
+						// 摘除登记后下轮redo可见。年龄闸（FND5-44）只作用于未登记的ePreparing
+						// （区分崩溃残留与刚落盘的窗口条目），登记中的条目与年龄无关。
+						// eCommitting不做skip：其redo是幂等Commit重发（参与方已ready，重复Commit
+						// 亦应答成功；且redo经getZezeInstance现查新地址），登记中执行也安全——它
+						// 是perform的Commit散发通道socket僵死时的收敛通道，skip会把补发推迟到
+						// perform的finally之后，多等一个perform生命周期。
+						switch (state) {
+						case eCommitting:
+							redo(key, true, stamp);
+							break;
+						case ePreparing:
+							var age = System.currentTimeMillis() - stamp;
+							if (onzAgent.hasTransaction(tid)) {
+								// 可观测性：登记中却远超年龄窗口（2×RedoPreparingMinAgeMs）仍停在
+								// ePreparing，基本是perform因业务bug永挂——登记项与commitIndex条目
+								// 将永久泄漏且redo被其封锁，按tid只warn一次暴露（集合见hangWarnedTids）。
+								if (age >= 2 * RedoPreparingMinAgeMs && hangWarnedTids.add(tid))
+									logger.warn("onz redo: tid={} 登记中ePreparing年龄{}ms，疑似挂死 perform，redo 封锁中", tid, age);
+								continue;
+							}
+							if (age >= RedoPreparingMinAgeMs)
+								redo(key, false, stamp);
+							// else：进行中窗口，等超过年龄后的下一轮
+							break;
+						default:
+							// 未知state（GC-C02）：值可解但state∉{ePreparing,eCommitting}——损坏但
+							// 未截断的垃圾值（截断/空值走外层GC-C01的catch），或未来版本新增
+							// state常量写入后降级运行。语义未知不盲目redo（补发Commit/Rollback都可能
+							// 制造协调者与参与方分歧），条目原先每轮静默跳过：永不清算且零信号
+							// （同函数hang/超龄NotFound/毒值均有告警，唯此支没有）。按tid只error一次
+							// （集合见unknownStateWarnedTids）暴露后跳过，留库人工排查。
+							if (unknownStateWarnedTids.add(tid))
+								logger.error("onz redo: commitIndex条目state={} 未知（tid={}），跳过不redo，条目留库人工排查",
+										state, tid);
+							break;
 						}
-						if (age >= RedoPreparingMinAgeMs)
-							redo(key, false, stamp);
-						// else：进行中窗口，等超过年龄后的下一轮
-						break;
+					} catch (Throwable ex) {
+						// 单条隔离的兜底跳过（GC-C01）：key/tid尽力携带——key短于8字节时tid本就
+						// 解不出（这正是被隔离的异常形态之一），用原始key字节定位。
+						logger.error("onz redo: commitIndex毒条目解码失败跳过（key={}，tid={}），留库人工排查",
+								java.util.Arrays.toString(key),
+								key.length >= 8 ? ByteBuffer.ToLongBE(key, 0) : null, ex);
 					}
 				}
 			}
@@ -334,12 +374,19 @@ public class OnzServer extends AbstractOnz {
 					continue;
 				}
 				removeOk = false;
-				logger.error("redo result error, keep record for retry. tid={}, resultCode={}",
-						tid, rpc.getResultCode());
+				// 周期重试防刷屏（GC-C03）：非0非eSagaNotFound应答保留决策记录等重试，
+				// 确定性补偿失败每轮redo重发重失败——按tid只error一次（对齐agedNotFound
+				// WarnedTids形态，集合见redoResultWarnedTids）：首条error已含tid与
+				// resultCode，后续每轮重发无新信息，纯日志洪水（每tid每天1440条）还会
+				// 稀释同文件真一次性错误的可见性。记录收敛删除时回收tid。
+				if (redoResultWarnedTids.add(tid))
+					logger.error("redo result error, keep record for retry. tid={}, resultCode={}",
+							tid, rpc.getResultCode());
 			}
 			if (removeOk) {
 				removeCommitRecord(key);
 				agedNotFoundWarnedTids.remove(tid); // 记录收敛后回收告警去重项
+				redoResultWarnedTids.remove(tid); // 同上（GC-C03）：结果错误告警一并回收
 			}
 		} catch (Throwable ex) {
 			// timer will redo
