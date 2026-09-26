@@ -16,15 +16,16 @@ import Zeze.Builtin.Onz.FuncSaga;
 import Zeze.Builtin.Onz.FuncSagaEnd;
 import Zeze.Builtin.Onz.Rollback;
 import Zeze.Config;
+import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Connector;
+import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Data;
-import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.TaskCompletionSource;
@@ -193,8 +194,8 @@ public class OnzServer extends AbstractOnz {
 	private static final long RedoPreparingMinAgeMs = 120_000;
 
 	// redo封锁告警去重（FND6-36可观测性）：登记中的ePreparing年龄超过2×RedoPreparingMinAgeMs
-	// 仍存活时按tid只warn一次，防每轮redo刷屏。tid来自AutoKey单调递增，perform正常结束后
-	// 不复用，集合有界于挂死perform数，无需清理。
+	// 仍存活时按tid只warn一次，防每轮redo刷屏。perform结束（finally）即回收tid，
+	// 集合有界于挂死perform数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> hangWarnedTids = ConcurrentHashMap.newKeySet();
 
 	private void redoTimer() throws RocksDBException {
@@ -254,45 +255,27 @@ public class OnzServer extends AbstractOnz {
 		}
 	}
 
-	private static TaskCompletionSource<EmptyBean.Data> commit(AsyncSocket socket, long tid) {
-		var r = new Commit();
-		r.Argument.setOnzTid(tid);
-		return r.SendForWait(socket);
-	}
-
-	private static TaskCompletionSource<EmptyBean.Data> rollback(AsyncSocket socket, long tid) {
-		var r = new Rollback();
-		r.Argument.setOnzTid(tid);
-		return r.SendForWait(socket);
-	}
-
 	// redo对saga参与方FuncSagaEnd的等待超时：参与方处理FuncSagaEnd与在途业务互斥
 	//（businessLock），应答可能慢于rpc默认超时（慢业务场景）；本轮超时保留记录，
 	// 每轮redo重试收敛，取小于redo周期(60s)的量级。
 	private static final int RedoSagaEndTimeoutMs = 30_000;
 
-	/** redo路径对saga参与方的FuncSagaEnd：cancel=决策为rollback（补偿）。 */
-	private static TaskCompletionSource<Zeze.Builtin.Onz.BFuncSagaEndResult.Data> sagaEnd(
-			AsyncSocket socket, long tid, boolean cancel) {
-		var r = new FuncSagaEnd();
-		r.Argument.setOnzTid(tid);
-		r.Argument.setCancel(cancel);
-		return r.SendForWait(socket, RedoSagaEndTimeoutMs);
-	}
-
 	// redo按决策与参与方类型分流（OH1-F1）：procedure参与方发Commit/Rollback；
 	// saga参与方发FuncSagaEnd——commit决策补发endSaga未完成的结束(cancel=false)，
 	// rollback决策补偿已提交的步骤(cancel=true)，参与方幂等。
 	private void redo(byte[] key, boolean commitDecision) throws RocksDBException {
-
-		var value = Objects.requireNonNull(commitPoint.get(key));
-		var state = new BSavedCommits.Data();
-		state.decode(ByteBuffer.Wrap(value));
-
-		var zezeOnzs = new HashMap<String, Connector>();
 		var tid = ByteBuffer.ToLongBE(key, 0);
+		var zezeOnzs = new HashMap<String, Connector>();
 		try {
+			// 毒记录隔离（GC-C02）：索引有条目而点表无（错配/遗留）或值损坏（截断）时
+			// requireNonNull/decode抛运行时异常，在try内捕获记error——本条留库人工排查，
+			// 不得中止迭代：排序在其后的未决决策redo是它们唯一的收敛通道。
+			var value = Objects.requireNonNull(commitPoint.get(key));
+			var state = new BSavedCommits.Data();
+			state.decode(ByteBuffer.Wrap(value));
+
 			var futures = new ArrayList<TaskCompletionSource<?>>();
+			var rpcs = new ArrayList<Rpc<?, ?>>();
 			for (var e : state.getOnzs()) {
 				// saga参与方带前缀持久化（OH1-F1），其余为procedure参与方（含旧版本ip_port格式）。
 				var sagaName = OnzTransaction.decodeSagaParticipant(e);
@@ -306,17 +289,50 @@ public class OnzServer extends AbstractOnz {
 					// 旧版本持久化的ip_port（升级窗口遗留的未决决策）：按地址建连兜底。
 					socket = openRedoConnection(zezeOnzs, zezeName).GetReadySocket();
 				}
-				if (sagaName != null)
-					futures.add(sagaEnd(socket, tid, !commitDecision));
-				else
-					futures.add(commitDecision ? commit(socket, tid) : rollback(socket, tid));
+				Rpc<?, ?> rpc;
+				if (sagaName != null) {
+					var r = new FuncSagaEnd();
+					r.Argument.setOnzTid(tid);
+					r.Argument.setCancel(!commitDecision);
+					rpc = r;
+					// 等待超时见RedoSagaEndTimeoutMs。
+					futures.add(r.SendForWait(socket, RedoSagaEndTimeoutMs));
+				} else if (commitDecision) {
+					var r = new Commit();
+					r.Argument.setOnzTid(tid);
+					rpc = r;
+					futures.add(r.SendForWait(socket));
+				} else {
+					var r = new Rollback();
+					r.Argument.setOnzTid(tid);
+					rpc = r;
+					futures.add(r.SendForWait(socket));
+				}
+				rpcs.add(rpc);
 			}
 			for (var e : futures)
 				e.await();
-			removeCommitRecord(key);
+			// await只在异常完成（超时/发送失败，上面catch保留记录）时抛出；应答非0码是
+			// 正常完成（Rpc直接setResult），必须显式检查（对齐commit()）：参与方补偿失败
+			// 已按契约保留上下文等重发（Onz.ProcessFuncSagaEndRequest放回sagas），此处删
+			// 记录等于掐断唯一自动重试通道——已提交步骤永久未补偿。保留记录等下一轮幂等收敛。
+			var removeOk = true;
+			for (var rpc : rpcs) {
+				if (rpc.getResultCode() == 0)
+					continue;
+				// eSagaNotFound：上下文已清理（业务失败自清理/参与方TTL回收/已处理过的
+				// 重复发送），无补偿对象，可忽略（线上为moduleId组合值，解码后比较）。
+				if (IModule.getErrorCode(rpc.getResultCode()) == AbstractOnz.eSagaNotFound)
+					continue;
+				removeOk = false;
+				logger.error("redo result error, keep record for retry. tid={}, resultCode={}",
+						tid, rpc.getResultCode());
+			}
+			if (removeOk)
+				removeCommitRecord(key);
 		} catch (Throwable ex) {
 			// timer will redo
-			logger.error("", ex);
+			logger.error("redo fail. tid={}", tid, ex);
 		} finally {
 			for (var zeze : zezeOnzs.values())
 				zeze.stop();
