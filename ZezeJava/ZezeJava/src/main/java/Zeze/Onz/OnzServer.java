@@ -550,9 +550,10 @@ public class OnzServer extends AbstractOnz {
 				tid, state, age, onzs);
 	}
 
-	private static Connector openRedoConnection(HashMap<String, Connector> conns, String ip_port) {
+	private Connector openRedoConnection(HashMap<String, Connector> conns, String ip_port) {
 		var conn = conns.computeIfAbsent(ip_port, __ -> {
 			var newConn = new Connector(ip_port, false);
+			newConn.SetService(onzAgent.getService()); // 未SetService即start()快速失败（Connector契约）；对齐getZezeInstance的绑定形态
 			newConn.start();
 			return newConn;
 		});
