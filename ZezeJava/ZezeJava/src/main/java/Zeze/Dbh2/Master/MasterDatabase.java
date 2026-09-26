@@ -222,29 +222,37 @@ public class MasterDatabase {
 		table.lock();
 		try {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-			var bucketNew = r.Argument.getTo();
-			var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
-			if (bucket != null
-					&& bucket.getDatabaseName().equals(bucketNew.getDatabaseName())
-					&& bucket.getTableName().equals(bucketNew.getTableName())
-					&& bucket.getKeyFirst().equals(bucketNew.getKeyFirst())
-					&& bucket.getKeyLast().equals(bucketNew.getKeyLast())
-			) {
-				splitting.buckets.remove(bucketNew.getKeyFirst());
-				table.buckets.put(bucketNew.getKeyFirst(), bucketNew);
+			// splitting的TreeMap必须持它自己的锁访问：createSplitBucket持splitting锁get/put，
+			// 这里只持主表锁remove/encode，两锁互不互斥，TreeMap并发读写可CME/死循环。
+			// 锁序固定主表→splitting（createSplitBucket只取splitting锁，无环）。
+			splitting.lock();
+			try {
+				var bucketNew = r.Argument.getTo();
+				var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
+				if (bucket != null
+						&& bucket.getDatabaseName().equals(bucketNew.getDatabaseName())
+						&& bucket.getTableName().equals(bucketNew.getTableName())
+						&& bucket.getKeyFirst().equals(bucketNew.getKeyFirst())
+						&& bucket.getKeyLast().equals(bucketNew.getKeyLast())
+				) {
+					splitting.buckets.remove(bucketNew.getKeyFirst());
+					table.buckets.put(bucketNew.getKeyFirst(), bucketNew);
 
-				try (var batch = rocksDb.newBatch()) {
-					var bbTable = table.encode();
-					var bbSplitting = splitting.encode();
-					var key = tableName.getBytes(StandardCharsets.UTF_8);
-					rocksTables.put(batch, key, 0, key.length,
-							bbTable.Bytes, bbTable.ReadIndex, bbTable.size());
-					rocksSplitting.put(batch, key, 0, key.length,
-							bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
-					batch.commit();
+					try (var batch = rocksDb.newBatch()) {
+						var bbTable = table.encode();
+						var bbSplitting = splitting.encode();
+						var key = tableName.getBytes(StandardCharsets.UTF_8);
+						rocksTables.put(batch, key, 0, key.length,
+								bbTable.Bytes, bbTable.ReadIndex, bbTable.size());
+						rocksSplitting.put(batch, key, 0, key.length,
+								bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
+						batch.commit();
+					}
+					r.SendResult();
+					return 0;
 				}
-				r.SendResult();
-				return 0;
+			} finally {
+				splitting.unlock();
 			}
 		} finally {
 			table.unlock();
@@ -261,30 +269,36 @@ public class MasterDatabase {
 		table.lock();
 		try {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-			var bucketNew = r.Argument.getTo();
-			var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
-			if (bucket != null
-					&& bucket.getDatabaseName().equals(bucketNew.getDatabaseName())
-					&& bucket.getTableName().equals(bucketNew.getTableName())
-					&& bucket.getKeyFirst().equals(bucketNew.getKeyFirst())
-					&& bucket.getKeyLast().equals(bucketNew.getKeyLast())
-			) {
-				splitting.buckets.remove(bucketNew.getKeyFirst());
-				table.buckets.put(bucketNew.getKeyFirst(), bucketNew);
-				table.buckets.put(r.Argument.getFrom().getKeyFirst(), r.Argument.getFrom()); // replace
+			// 同endMove：splitting的TreeMap必须持splitting自己的锁访问（createSplitBucket持splitting锁）。
+			splitting.lock();
+			try {
+				var bucketNew = r.Argument.getTo();
+				var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
+				if (bucket != null
+						&& bucket.getDatabaseName().equals(bucketNew.getDatabaseName())
+						&& bucket.getTableName().equals(bucketNew.getTableName())
+						&& bucket.getKeyFirst().equals(bucketNew.getKeyFirst())
+						&& bucket.getKeyLast().equals(bucketNew.getKeyLast())
+				) {
+					splitting.buckets.remove(bucketNew.getKeyFirst());
+					table.buckets.put(bucketNew.getKeyFirst(), bucketNew);
+					table.buckets.put(r.Argument.getFrom().getKeyFirst(), r.Argument.getFrom()); // replace
 
-				try (var batch = rocksDb.newBatch()) {
-					var bbTable = table.encode();
-					var bbSplitting = splitting.encode();
-					var key = tableName.getBytes(StandardCharsets.UTF_8);
-					rocksTables.put(batch, key, 0, key.length,
-							bbTable.Bytes, bbTable.ReadIndex, bbTable.size());
-					rocksSplitting.put(batch, key, 0, key.length,
-							bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
-					batch.commit();
+					try (var batch = rocksDb.newBatch()) {
+						var bbTable = table.encode();
+						var bbSplitting = splitting.encode();
+						var key = tableName.getBytes(StandardCharsets.UTF_8);
+						rocksTables.put(batch, key, 0, key.length,
+								bbTable.Bytes, bbTable.ReadIndex, bbTable.size());
+						rocksSplitting.put(batch, key, 0, key.length,
+								bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
+						batch.commit();
+					}
+					r.SendResult();
+					return 0;
 				}
-				r.SendResult();
-				return 0;
+			} finally {
+				splitting.unlock();
 			}
 		} finally {
 			table.unlock();
