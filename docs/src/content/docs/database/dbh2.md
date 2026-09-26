@@ -32,7 +32,7 @@ Master 知道所有数据库、所有表、所有桶的分布情况。提供表�
 
 ### CommitServer
 
-可选的事务提交服务，将 Dbh2Agent 的事务提交功能移到独立进程处理，减轻应用端负担。
+可选的事务提交服务，将 Dbh2Agent 的事务提交功能移到独立进程处理，减轻应用端负担。规划中/未实现：客户端选择提交服务器的策略（`choiceCommitServer`）尚未实现，配置 `Dbh2LocalCommit=false` 时事务提交会直接失败。
 
 ## Bucket 分桶机制
 
