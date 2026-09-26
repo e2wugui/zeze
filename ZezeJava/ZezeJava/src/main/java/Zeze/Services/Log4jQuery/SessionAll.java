@@ -52,11 +52,25 @@ public class SessionAll implements AutoCloseable {
 	public BResult.Data operate(Func1<Session, TaskCompletionSource<BResult.Data>> op)
 			throws Exception {
 
+		// 逐台收集失败（GD-D06）：单台异常（RPC超时/连接抖动/发送失败）不牺牲其余台结果，
+		// 与构造期"跳过不可用台"降级及close()的逐台收集同构；失败台不标记finishedSession——下次operate自然重试它。
+		Exception firstFailure = null;
+		var failedServers = new ArrayList<String>();
 		// 异步发送所有请求。
 		var futures = new ArrayList<KV<TaskCompletionSource<BResult.Data>, Session>>();
 		for (var session : alls.values()) {
-			if (!finishedSession.contains(session.getName()))
+			if (finishedSession.contains(session.getName()))
+				continue;
+			try {
 				futures.add(KV.create(op.call(session), session));
+			} catch (Exception e) {
+				// 发送阶段失败（连接已死等GetReadySocket同步抛出）：与future.get()失败同构，同样按单台降级。
+				failedServers.add(session.getName());
+				if (firstFailure == null)
+					firstFailure = e;
+				else
+					firstFailure.addSuppressed(e);
+			}
 		}
 		// 等待结果并排序。
 		var rs = new ArrayList<BResult.Data>(futures.size());
@@ -68,13 +82,30 @@ public class SessionAll implements AutoCloseable {
 		};
 		var remain = false;
 		for (var future : futures) {
-			var r = future.getKey().get();
+			BResult.Data r;
+			try {
+				r = future.getKey().get();
+			} catch (Exception e) {
+				failedServers.add(future.getValue().getName());
+				if (firstFailure == null)
+					firstFailure = e;
+				else
+					firstFailure.addSuppressed(e);
+				continue;
+			}
 			// 返回的结果基本有序，只是偶尔log4j会有一点点乱序，这里该用什么sort更快？
 			r.getLogs().sort(comparator);
 			remain = remain || r.isRemain();
 			if (!r.isRemain())
 				finishedSession.add(future.getValue().getName());
 			rs.add(r);
+		}
+		if (firstFailure != null) {
+			if (rs.isEmpty())
+				// 全部失败必须抛（GD-D06）：空BResult.Data在调用方语义是"查完无匹配"，与"查询失败"不可混淆。
+				throw firstFailure;
+			// 部分失败：降级返回已有结果（失败台的remain遗漏是降级语义的一部分），warn是唯一可观测补偿。
+			logger.warn("operate partial fail, success={}, failed={}", rs.size(), failedServers, firstFailure);
 		}
 		if (rs.isEmpty())
 			return new BResult.Data();
