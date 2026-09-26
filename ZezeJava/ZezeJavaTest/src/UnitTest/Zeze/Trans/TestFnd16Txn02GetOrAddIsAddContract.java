@@ -19,8 +19,9 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestFnd16Txn02GetOrAddIsAddContract {
-	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试。
-	private static final AtomicInteger nextServerId = new AtomicInteger(810);
+	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（800段TestHotRollbackMemoryTable、
+	// 810段TestFnd14Hot02UpgradeIncompatibleFailFast；810曾与本类撞段，同JVM并发FileMutex互斥失败）。
+	private static final AtomicInteger nextServerId = new AtomicInteger(820);
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();
