@@ -3,7 +3,10 @@ package Zeze.MQ;
 import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.MQ.BMessage;
@@ -89,6 +92,10 @@ public class MQSingle extends ReentrantLock {
 	public void sendMessage(BSendMessage.Data message) {
 		lock();
 		try {
+			// 停机窗口的竞态收口：handler 入口的 stopped 检查通过后 stop() 仍可能先完成（worker
+			// 池任务滞后执行），这里在锁内复查——close 持同锁关文件流后，晚到任务必经此处拒绝。
+			if (managerStopped())
+				throw new IllegalStateException("mq manager stopped, reject sendMessage. topic=" + topic);
 			// 【不变量】内存队列必须恰好是盘上积压[firstMessageId,nextMessageId)的连续前缀
 			// （队头id==firstMessageId）。仅当队列已装载全部积压时才允许直入：此时盘上没有
 			// 待回填消息，也不存在还会向队尾追加的后台回填（回填一旦还有消息未装载完，
@@ -120,7 +127,9 @@ public class MQSingle extends ReentrantLock {
 	private void tryStartBackgroundFill() {
 		lock();
 		try {
-			if (highLoad > 0 && messageFillFuture == null && messageQueue.size() < maxFillMessageCount / 2)
+			// stopped 后不得再提交新 fill：close 的有界排空只等待已存在的 future，之后新提交的
+			// 任务会与 rocksDatabase.close 并发（native use-after-free）。
+			if (!managerStopped() && highLoad > 0 && messageFillFuture == null && messageQueue.size() < maxFillMessageCount / 2)
 				messageFillFuture = TaskSpec.ofAction(this::pullMessage).name("pullMessage").submitNow();
 		} finally {
 			unlock();
@@ -199,6 +208,10 @@ public class MQSingle extends ReentrantLock {
 	void handlePushResult() {
 		lock();
 		try {
+			// 停机窗口：socket 关闭会使在飞 rpc 的超时回调照常触发（Service.stop 不清 _RpcContexts），
+			// 此处不触碰 rocksdb 位点（close 已持锁排空在飞写，pending 随分区关闭一并丢弃）。
+			if (managerStopped())
+				return;
 			loadCounter.incrementAndGet(); // 处理失败也进行计数。
 
 			if (pendingPushMessage.getResultCode() == 0) {
@@ -254,8 +267,41 @@ public class MQSingle extends ReentrantLock {
 		return partitionIndex;
 	}
 
+	// 测试可用 null manager 构造，这里 null 容忍。
+	private boolean managerStopped() {
+		var manager = mqPartition.getManager();
+		return null != manager && manager.isStopped();
+	}
+
 	public void close() throws IOException {
 		//fillGuardTimer.cancel(true);
-		fileWithIndex.close();
+		// 停机排空在飞回填（预算式，对齐 loadMonitorTimer 的 RpcTimeout 量级+余量）：fill 任务在
+		// 锁外持索引迭代器与文件读，与 rocksDatabase.close 并发属 native use-after-free
+		// （RocksDatabase.close 契约）。超预算仅告警继续（与 Application 停机的有界等待口径一致，
+		// 不引入无限等待）。
+		var fill = messageFillFuture;
+		if (null != fill) {
+			var manager = mqPartition.getManager();
+			var budgetMs = (null != manager ? manager.getMqConfig().getRpcTimeout() : 20_000) + 5_000L;
+			try {
+				fill.get(budgetMs, TimeUnit.MILLISECONDS);
+			} catch (TimeoutException e) {
+				logger.warn("mq fill task not drained in {}ms, continue close. topic={} partition={}",
+						budgetMs, topic, partitionIndex);
+			} catch (ExecutionException e) {
+				// fill 自身失败已在 pullMessage 的 catch 记录日志。
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				logger.warn("mq fill drain interrupted, continue close. topic={} partition={}", topic, partitionIndex);
+			}
+		}
+		// 持锁关文件流：与在飞 sendMessage（appendMessage 同锁）串行；close 过后晚到的任务在
+		// 锁内复查 stopped 拒绝，不再触碰文件与 rocksdb。
+		lock();
+		try {
+			fileWithIndex.close();
+		} finally {
+			unlock();
+		}
 	}
 }

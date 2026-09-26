@@ -8,6 +8,7 @@ import Zeze.Config;
 import Zeze.MQ.Master.MasterAgent;
 import Zeze.Net.AsyncSocket;
 import Zeze.Raft.ProxyServer;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.DaemonTimer;
 import Zeze.Util.KV;
 import Zeze.Util.RocksDatabase;
@@ -31,6 +32,14 @@ public class MQManager extends AbstractMQManager {
 	// 周期守护：body(reportLoad阻塞RPC)进worker池，不占调度线程；stop有界等待在飞一轮
 	private final DaemonTimer loadMonitorTimer = new DaemonTimer("MQManager.loadMonitor", 120_000, this::loadMonitor);
 	private final RocksDatabase rocksDatabase;
+	// 数据面静默标志：stop 最前置位，之后到达的提交（SendMessage/push应答回调/回填重排）在入口
+	// 被拒绝，保证 rocksDatabase.close 前所有数据通路已静默（其契约：并发 get/put/delete/迭代器
+	// 是 native use-after-free）。
+	private volatile boolean stopped;
+
+	public boolean isStopped() {
+		return stopped;
+	}
 
 	public RocksDatabase getRocksDatabase() {
 		return rocksDatabase;
@@ -101,13 +110,17 @@ public class MQManager extends AbstractMQManager {
 	}
 
 	public void stop() throws Exception {
+		stopped = true; // 数据面静默最前置位：晚到的提交在入口拒绝（不发成功应答），对齐 Application 停机拒绝语义
 		loadMonitorTimer.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s），不再interrupt池线程
 		ShutdownHook.remove(this);
 		proxyServer.stop();
 		masterAgent.stop();
-		rocksDatabase.close();
+		// RocksDatabase.close 契约要求先静默全部数据通路（worker 池在飞协议任务、后台回填、push
+		// 应答回调）。先关队列：MQSingle.close 有界排空在飞回填、持分区锁关文件流（与在飞
+		// appendMessage 串行，此后晚到任务在锁内复查 stopped 拒绝）；rocksDatabase.close 最后。
 		for (var queue : queues.values())
 			queue.close();
+		rocksDatabase.close();
 	}
 
 	private void loadMonitor() {
@@ -164,6 +177,10 @@ public class MQManager extends AbstractMQManager {
 
 	@Override
 	protected long ProcessSendMessageRequest(Zeze.Builtin.MQ.SendMessage r) {
+		// Service.stop 只关 socket 不清 worker 队列：已派发的本任务可能在 stopped 之后才执行，
+		// 在入口显式拒绝（不发成功应答），不触碰文件与 rocksdb。
+		if (stopped)
+			return Procedure.Closed;
 		var queue = queues.get(r.Argument.getTopic());
 		if (queue == null)
 			return errorCode(eTopicNotExist);
