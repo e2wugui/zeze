@@ -31,6 +31,10 @@ public class Main {
 	}
 
 	public void stop() throws Exception {
+		// 【FND20 GB-C01】静默标记最前置位（对齐 MQManager.stop 的停机顺序）：Service.stop 只关
+		// socket 不清 worker 队列，已派发的触库 handler 可能在 stop 之后才执行——置位后它们在
+		// 入口或模块锁内拒绝；master.close 内有界排空在飞触库 handler 后最后关库。
+		master.markStopped();
 		ShutdownHook.remove(this);
 		service.stop();
 		master.close();

@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.MQ.Master.BReportPartitions;
 import Zeze.Builtin.MQ.Master.BTopicPartitions;
 import Zeze.Builtin.MQ.Master.CreatePartition;
@@ -52,6 +54,16 @@ public class MQManager extends AbstractMQManager {
 	// 被拒绝，保证 rocksDatabase.close 前所有数据通路已静默（其契约：并发 get/put/delete/迭代器
 	// 是 native use-after-free）。
 	private volatile boolean stopped;
+	// 【FND20 GB-C02】管理面排空锁：Create/DeletePartition handler 过入口闸后的长路径全程持本锁。
+	// 入口一次性闸只拦"stop 之后到达"的任务，拦不住已过闸正在执行的 handler——delete 的
+	// removePartition 有界排空最长 RpcTimeout+5s（被删分区先从活集合摘除，stop 的 queue.close
+	// 迭代等不到它），create 的 MQSingle 构造装载秒级（computeIfAbsent 构造完成前不入 map，
+	// 同样排空不到），两者恢复后触库（dropTable/getOrAddTable/迭代器）与已完成的
+	// rocksDatabase.close 相交即违约。stop 在关库前有界获取同一把锁等在飞管理 handler 出锁；
+	// 过闸晚到任务在锁内复查 stopped 拒绝（同构 MQSingle.sendMessage 与 close 的锁内收口形态）。
+	// 锁序：handler 路径 managementLock→MQSingle 锁；stop 路径先完成全部 queue.close（MQSingle
+	// 锁已随迭代释放）再取 managementLock——两侧无 hold-and-wait 交叠，无 AB-BA。
+	private final ReentrantLock managementLock = new ReentrantLock();
 
 	public boolean isStopped() {
 		return stopped;
@@ -152,6 +164,16 @@ public class MQManager extends AbstractMQManager {
 		// appendMessage 串行，此后晚到任务在锁内复查 stopped 拒绝）；rocksDatabase.close 最后。
 		for (var queue : queues.values())
 			queue.close();
+		// 【FND20 GB-C02】管理面排空：过闸在飞的 Create/DeletePartition handler 全程持
+		// managementLock（其内部 removePartition 排空最长 RpcTimeout+5s），取同一把锁等它们出锁
+		// 后再关库——此后过闸晚到任务只会在锁内复查拒绝，不再触库。超预算仅告警继续（口径同
+		// MQSingle.close 的有界排空，不引入无限等待）。取锁成功即释放：与关库之间的窗口内
+		// 晚到任务仍有锁内复查兜底（stopped 已置位）。
+		var drainBudgetMs = mqConfig.getRpcTimeout() + 5_000L;
+		if (!managementLock.tryLock(drainBudgetMs, TimeUnit.MILLISECONDS))
+			logger.warn("mq management handler not drained in {}ms, continue close rocksdb", drainBudgetMs);
+		else
+			managementLock.unlock();
 		rocksDatabase.close();
 	}
 
@@ -239,9 +261,20 @@ public class MQManager extends AbstractMQManager {
 		// new MQSingle构造即触rocksdb，与rocksDatabase.close并发（use-after-free契约）。
 		if (stopped)
 			return Procedure.Closed;
-		createPartition(r.Argument.getTopic(), r.Argument.getPartitionIndexes());
-		r.SendResult();
-		return 0;
+		// 【FND20 GB-C02】入口闸只拦"stop 之后到达"的任务；已过闸正在执行的长路径（MQSingle
+		// 构造装载秒级，computeIfAbsent 不入 map 使 stop 的 queue.close 排空不到它）须与 stop
+		// 关库互斥：全程持 managementLock（见字段注释），锁内复查收口"等锁期间 stop 已完成"
+		// 的竞态（同构 MQSingle.sendMessage 的锁内复查）。
+		managementLock.lock();
+		try {
+			if (stopped)
+				return Procedure.Closed;
+			createPartition(r.Argument.getTopic(), r.Argument.getPartitionIndexes());
+			r.SendResult();
+			return 0;
+		} finally {
+			managementLock.unlock();
+		}
 	}
 
 	// 【GB-D01】Master 对账裁决孤儿后下发的删除：活分区先 close+从 queues 摘除，段文件/索引列族/meta
@@ -251,11 +284,24 @@ public class MQManager extends AbstractMQManager {
 		// 与ProcessSendMessageRequest同款停机闸：删除触 rocksdb dropTable/删文件，不得与 close 并发。
 		if (stopped)
 			return Procedure.Closed;
-		deletePartition(r.Argument.getTopic(), r.Argument.getPartitionIndexes());
-		logger.warn("mq partitions deleted by master reconciliation. topic={} partitions={} managerId={}",
-				r.Argument.getTopic(), r.Argument.getPartitionIndexes(), managerId); // 动作审计（对账删除不可静默）
-		r.SendResult();
-		return 0;
+		// 【FND20 GB-C02】delete 的长路径最宽：removePartition 有界排空最长 RpcTimeout+5s，期间
+		// stop 可已完成 rocksDatabase.close，恢复后的 deletePartitionStorage（dropTable）是对已关
+		// 库的 native 调用；且被删分区已从活集合摘除，stop 的 queue.close 迭代等不到它。全程持
+		// managementLock 与 stop 关库前的有界获取互斥，锁内复查收口"等锁期间 stop 已完成"的
+		// 竞态（同构 MQSingle.sendMessage 的锁内复查）。停止期间中断的清理残留由磁盘真相上报
+		// 重新候选、Master 宽限期后重发删除自愈（GB-D01 对账链）。
+		managementLock.lock();
+		try {
+			if (stopped)
+				return Procedure.Closed;
+			deletePartition(r.Argument.getTopic(), r.Argument.getPartitionIndexes());
+			logger.warn("mq partitions deleted by master reconciliation. topic={} partitions={} managerId={}",
+					r.Argument.getTopic(), r.Argument.getPartitionIndexes(), managerId); // 动作审计（对账删除不可静默）
+			r.SendResult();
+			return 0;
+		} finally {
+			managementLock.unlock();
+		}
 	}
 
 	// 【GB-D01】包内可见（测试直驱删除路径）：活分区先摘 + 存储全清。

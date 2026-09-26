@@ -50,6 +50,12 @@ public class MQFileWithIndex {
 	// 软删除窗口状态（lock内）：当前候选最老已确认段的段基 + 首次观察到的时间。
 	private long recycleCandidateBase = -1;
 	private long recycleCandidateSince;
+	// 【FND20 GB-C03】撕裂写悬挂状态（lock内）：上次 appendMessage 的 write 失败（POSIX 短写
+	// 语义：出错前记录前缀已持久化——磁盘满/IO错）且回滚截断未证实成功时置位，并记录
+	// "上次成功结尾"（回滚目标位）。悬挂未解除前不得再追加：追加流是 O_APPEND，写入恒落
+	// 物理尾，孤儿前缀不物理除掉，后续记录必然接错位（段内布局错位的根源）。
+	private boolean tornWritePending;
+	private long tornRollbackOffset;
 
 	public static int trunkFileSize = 100 * 1024 * 1024;
 	public static int makeIndexPeriod = 100;
@@ -485,8 +491,33 @@ public class MQFileWithIndex {
 			message.encode(bb);
 			ByteBuffer.intLeHandler.set(bb.Bytes, sizeOffset, bb.WriteIndex - sizeOffset - 4);
 
+			// 【FND20 GB-C03】上次短写的回滚未证实成功：先补齐回滚（O_APPEND 恒接物理尾，
+			// 孤儿前缀不物理除掉，本次追加必错位）。补齐仍失败则拒绝追加——fail-safe 优于
+			// 错位追加（调用方回 rpc 错误，等磁盘恢复后的下次重试）。
+			if (tornWritePending) {
+				rollbackTornTail();
+				if (tornWritePending)
+					throw new IllegalStateException("mq append rejected: torn tail rollback still failing."
+							+ " topic=" + topic + " partition=" + partitionId + " file=" + lastFile);
+			}
 			var fileOffset = lastFileOutputStream.getChannel().size();
-			lastFileOutputStream.write(bb.Bytes, bb.ReadIndex, bb.size());
+			try {
+				lastFileOutputStream.write(bb.Bytes, bb.ReadIndex, bb.size());
+			} catch (IOException e) {
+				// 【FND20 GB-C03】短写回滚：write 出错前可能已持久化记录的前缀字节（磁盘满/IO错，
+				// POSIX 短写语义），且进程继续运行（磁盘腾空后生产者重发是运维常态）。不回滚的话，
+				// O_APPEND 使下一次 append 接在孤儿前缀之后——完整记录接在自己的撕裂前缀后面，
+				// 段内物理布局错位：fillMessage 定位环按孤儿头（id/size 与真记录相同）命中后跨界
+				// 读体，混合字节被 decode 成"成功"的消息静默投递；recoverTornTail 也被同 id 垃圾头
+				// 欺骗（pos += 12+size 落进真记录体内、expectId 到顶退出），truncate 反向截掉真记录
+				// 尾部，损坏被固化为"已提交记录体短缺"。截回上次成功结尾使"meta.next 是唯一提交
+				// 点"的既有恢复语义重新成立（nextMessageId 未推进=该记录未提交，孤儿前缀物理消失，
+				// 重启恢复无异）。磁盘满下截断释放空间通常立即成功；失败则悬挂到下次 append 前补滚。
+				tornWritePending = true;
+				tornRollbackOffset = fileOffset;
+				rollbackTornTail();
+				throw e; // 上抛：索引/meta 未写，调用方（SendMessage handler）回错误，分区继续运行
+			}
 			if (nextMessageId % makeIndexPeriod == 0) {
 				var bytesMessageId = new byte[8];
 				ByteBuffer.longBeHandler.set(bytesMessageId, 0, nextMessageId);
@@ -516,6 +547,23 @@ public class MQFileWithIndex {
 			throw new RuntimeException(e);
 		} finally {
 			lock.unlock();
+		}
+	}
+
+	// 【FND20 GB-C03】撕裂写回滚（lock内调用）：截回 tornRollbackOffset（上次成功结尾）。
+	// 成功即清悬挂——此后 O_APPEND 的写入位置与"已提交结尾"重新对齐；失败保持悬挂
+	//（下次 append 前重试，期间 fillMessage 只读已提交区 [firstMessageId,nextMessageId)，
+	// 不受孤儿字节影响；若进程就此退出，重启时 recoverTornTail 亦按未提交尾巴正确截断——
+	// 但 O_APPEND 语义下运行期不除孤儿必错位，故悬挂未解除不得继续追加）。
+	private void rollbackTornTail() {
+		try {
+			lastFileOutputStream.getChannel().truncate(tornRollbackOffset);
+			tornWritePending = false;
+			logger.warn("mq append partial-write rolled back. topic={} partition={} file={} truncateTo={}",
+					topic, partitionId, lastFile.getName(), tornRollbackOffset);
+		} catch (IOException e) {
+			logger.error("mq append partial-write rollback failed, keep pending for retry before next append."
+					+ " topic={} partition={} file={}", topic, partitionId, lastFile.getName(), e);
 		}
 	}
 

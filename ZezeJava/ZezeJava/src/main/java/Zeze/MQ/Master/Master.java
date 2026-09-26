@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.MQ.Master.BMQServers;
 import Zeze.Builtin.MQ.Master.BMQServer;
@@ -25,6 +26,7 @@ import Zeze.IModule;
 import Zeze.MQ.MQConfig;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,6 +63,24 @@ public class Master extends AbstractMaster {
                 throws Exception;
     }
     DeletePartitionIssuer deleteIssuer = this::sendDeletePartition;
+    // 【FND20 GB-C01】Master 侧停机静默标志（对齐 MQManager.stopped 的 FND19 GB-C02 形态）：
+    // Main.stop 最前置位。Service.stop 只置停机屏障、关 socket、停 keepalive，不清 worker 池
+    // 已派发的任务（MQManager 侧修复注释亲证的同一事实）：stop 时刻在飞的触库 handler 与
+    // masterDb.close 并发是 native use-after-free（RocksDatabase.close 契约：管理锁只串行化
+    // 管理操作，不保护 native 句柄生命周期）。置位后到达/在飞的触库 handler 在入口或模块锁内
+    // 复查拒绝，不再触碰 mqTable。
+    private volatile boolean stopped;
+
+    // 【FND20 GB-C01】包内可见（测试直驱停机竞态的契约面）。
+    boolean isStopped() {
+        return stopped;
+    }
+
+    // 【FND20 GB-C01】置位停机静默标记（Main.stop 最前调用，先于 service.stop：晚到的已派发
+    // 任务在入口即拒，无需等锁）。
+    void markStopped() {
+        stopped = true;
+    }
 
     public static class Manager {
         private final AsyncSocket socket;
@@ -90,7 +110,28 @@ public class Master extends AbstractMaster {
     }
 
     public void close() {
-        masterDb.close();
+        // 【FND20 GB-C01】关库前有界排空在飞触库 handler：全部触库 handler 持模块锁执行（入口闸
+        // +锁内复查），close 先取同一把锁即等它们出锁再关库——同构 MQSingle.close 持分区锁关
+        // 文件流后、晚到任务锁内复查拒绝的收口形态。锁上最长等待者=CreateMQ 的 CreatePartition
+        // rpc（5s×N）与对账链的阻塞 DeletePartition rpc（RpcTimeout 量级），预算对齐
+        // MQSingle.close 的排空口径（RpcTimeout+5s）；超预算仅告警继续（不引入无限等待，
+        // 对齐 Application 停机的有界等待口径）。取锁成功即释放：此后晚到任务过入口闸的
+        // 概率窗口内仍有锁内复查兜底（stopped 已置位）。
+        var drainBudgetMs = mqConfig.getRpcTimeout() + 5_000L;
+        var drained = false;
+        try {
+            drained = getLock().tryLock(drainBudgetMs, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        if (!drained)
+            logger.warn("mq master handler not drained in {}ms, continue close masterDb", drainBudgetMs);
+        try {
+            masterDb.close();
+        } finally {
+            if (drained)
+                getLock().unlock();
+        }
     }
 
     public String getHome() {
@@ -129,6 +170,10 @@ public class Master extends AbstractMaster {
 
     @Override
     protected long ProcessCreateMQRequest(CreateMQ r) throws Exception {
+        // 【FND20 GB-C01】停机闸（入口快路径）：stopped 置位后到达的请求直接回 Closed，
+        // 不触碰 mqTable（masterDb.close 的 native use-after-free 契约）。
+        if (stopped)
+            return Procedure.Closed;
         // CreateMQ的handler运行在无事务模式（MasterService.setNoProcedure(true)），mqTable的
         // 存在性检查（get）与登记（put）之间无任何串行化：并发同名请求可双双通过检查，
         // 双双下发CreatePartition（Manager磁盘上出现两请求分区号并集的残留），put后写覆盖先写。
@@ -136,6 +181,10 @@ public class Master extends AbstractMaster {
         // 最长5秒超时，仅推迟并发的Register/ReportLoad，无死锁）。
         lock();
         try {
+            // 【FND20 GB-C01】锁内复查：close 持本锁关 masterDb，过闸晚到任务在此拒绝
+            //（同构 MQSingle.sendMessage 的锁内复查）。
+            if (stopped)
+                return Procedure.Closed;
             if (r.Argument.getTopic().isEmpty())
                 return errorCode(eTopicEmpty);
             if (r.Argument.getTopic().contains("."))
@@ -227,21 +276,38 @@ public class Master extends AbstractMaster {
 
     @Override
     protected long ProcessOpenMQRequest(Zeze.Builtin.MQ.Master.OpenMQ r) throws Exception {
-        var topicBytes = r.Argument.getTopic().getBytes(StandardCharsets.UTF_8);
-        var mq = mqTable.get(topicBytes);
-        if (null == mq)
-            return errorCode(eTopicNotExist);
-        var servers = r.Result;
-        servers.decode(ByteBuffer.Wrap(mq));
-        servers.setSessionId(sessionIdGen.incrementAndGet()); // 生成id，必须在decode之后设置。
-        r.SendResult();
-        return 0;
+        // 【FND20 GB-C01】停机闸 + 模块锁内复查：mqTable.get 是 native 触点，须与 close 的
+        // 关库互斥（原先无锁读的入口闸窗口由锁内复查收口）。
+        if (stopped)
+            return Procedure.Closed;
+        lock();
+        try {
+            if (stopped)
+                return Procedure.Closed;
+            var topicBytes = r.Argument.getTopic().getBytes(StandardCharsets.UTF_8);
+            var mq = mqTable.get(topicBytes);
+            if (null == mq)
+                return errorCode(eTopicNotExist);
+            var servers = r.Result;
+            servers.decode(ByteBuffer.Wrap(mq));
+            servers.setSessionId(sessionIdGen.incrementAndGet()); // 生成id，必须在decode之后设置。
+            r.SendResult();
+            return 0;
+        } finally {
+            unlock();
+        }
     }
 
     @Override
     protected long ProcessRegisterRequest(Register r) throws Exception {
+        // 【FND20 GB-C01】停机闸（入口快路径）。
+        if (stopped)
+            return Procedure.Closed;
         lock();
         try {
+            // 【FND20 GB-C01】锁内复查：rewriteRoutes 的全表迭代+put 是长触库路径。
+            if (stopped)
+                return Procedure.Closed;
             // 幂等：重连/重注册会重复到达（首连时start()注册与连接建立钩子各一次；Master重启后
             // 重连重注册），同socket重复append会堆积；且新连接的Register可能先于旧socket的
             // OnSocketClose到达，须替换旧条目，避免死连接滞留managers被choiceManager选中。
@@ -354,8 +420,15 @@ public class Master extends AbstractMaster {
 
     @Override
     protected long ProcessReportPartitionsRequest(ReportPartitions r) throws Exception {
+        // 【FND20 GB-C01】停机闸（入口快路径）。
+        if (stopped)
+            return Procedure.Closed;
         lock();
         try {
+            // 【FND20 GB-C01】锁内复查：对账链（notCoveredPartitions 的 mqTable.get + 宽限期后的
+            // 阻塞 DeletePartition rpc）是长触库路径。
+            if (stopped)
+                return Procedure.Closed;
             var manager = findManager(r.getSender());
             if (null == manager)
                 return errorCode(eManagerNotFound);
@@ -505,13 +578,24 @@ public class Master extends AbstractMaster {
 
     @Override
     protected long ProcessSubscribeRequest(Subscribe r) throws Exception {
-        var topicBytes = r.Argument.getTopic().getBytes(StandardCharsets.UTF_8);
-        var mq = mqTable.get(topicBytes);
-        var servers = r.Result;
-        if (null == mq)
-            return errorCode(eTopicNotExist);
-        servers.decode(ByteBuffer.Wrap(mq));
-        r.SendResult();
-        return 0;
+        // 【FND20 GB-C01】停机闸 + 模块锁内复查（与 ProcessOpenMQRequest 同构：mqTable.get 是
+        // native 触点，原先无锁读的入口闸窗口由锁内复查收口）。
+        if (stopped)
+            return Procedure.Closed;
+        lock();
+        try {
+            if (stopped)
+                return Procedure.Closed;
+            var topicBytes = r.Argument.getTopic().getBytes(StandardCharsets.UTF_8);
+            var mq = mqTable.get(topicBytes);
+            var servers = r.Result;
+            if (null == mq)
+                return errorCode(eTopicNotExist);
+            servers.decode(ByteBuffer.Wrap(mq));
+            r.SendResult();
+            return 0;
+        } finally {
+            unlock();
+        }
     }
 }
