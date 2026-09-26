@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import Zeze.Util.KV;
 import Zeze.Util.OutLong;
+import Zeze.Util.OutObject;
 import Zeze.Util.Random;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
@@ -95,6 +96,14 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	public Log4jFileSession seek(long time, OutInt out) throws IOException {
+		return seek(time, out, null);
+	}
+
+	/**
+	 * outEntry回传实际打开的条目（GD-C01）：与out.value同源捕获，walker以条目引用为可收缩列表的重定位锚点，
+	 * 出参风格与get(int, OutObject)同构。
+	 */
+	public Log4jFileSession seek(long time, OutInt out, OutObject<Log4jFile> outEntry) throws IOException {
 		for (var i = files.size() - 1; i >= 0; --i) {
 			var file = files.get(i);
 			if (time >= file.index.getBeginTime()) {
@@ -108,6 +117,8 @@ public class Log4jFileManager extends ReentrantLock {
 					continue;
 				}
 				out.value = i;
+				if (null != outEntry)
+					outEntry.value = file;
 				logFileSession.seek(time);
 				return logFileSession;
 			}
@@ -220,16 +231,35 @@ public class Log4jFileManager extends ReentrantLock {
 	 * walker按遍历耗尽处理）。
 	 */
 	public Log4jFileSession get(int index) throws IOException {
+		return get(index, null);
+	}
+
+	/**
+	 * outEntry回传实际打开的条目（GD-C01）：同index重试摘除后，回传的是重试最终打开的条目——
+	 * walker以此引用锚定可收缩的files列表（整型下标摘除左移后失真），出参风格与seek(time, OutInt)同构。
+	 */
+	public Log4jFileSession get(int index, OutObject<Log4jFile> outEntry) throws IOException {
 		while (index < files.size()) {
 			var file = files.get(index);
 			var target = file.file;
 			try {
-				return new Log4jFileSession(target, file.index, logConf.charsetName, logConf.logTimeFormat);
+				var session = new Log4jFileSession(target, file.index, logConf.charsetName, logConf.logTimeFormat);
+				if (null != outEntry)
+					outEntry.value = file;
+				return session;
 			} catch (FileNotFoundException e) {
 				removeMissingFile(file, target, e);
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * COW无锁身份查找（Log4jFile未覆写equals即引用同一性，GD-C01）：walker在hasNext入口/耗尽推进时
+	 * 按条目引用重同步currentIndex。列表快照与调用方读到的一致（COW不变式）。
+	 */
+	public int indexOf(Log4jFile file) {
+		return files.indexOf(file);
 	}
 
 	/**
@@ -266,8 +296,7 @@ public class Log4jFileManager extends ReentrantLock {
 	 * （loadIndex幂等，testFileName是现成判定器）。目录不存在/不可访问时跳过并保留告警，不视为错误。
 	 * 低频挂在buildIndexTimer（5分钟）上，不做独立定时器。
 	 */
-	private void reconcile() {
-		lock();
+	private void reconcile() {		lock();
 		try {
 			var listFiles = new File(logConf.logDir).listFiles();
 			if (null == listFiles) {
@@ -293,6 +322,11 @@ public class Log4jFileManager extends ReentrantLock {
 					rotates.add(KV.create(date.value, f.getName()));
 			}
 
+			rotates.sort(Comparator.comparingLong(KV::getKey));
+			// 漏轮转改指（GD-C03）排在摘除循环前：active条目若先被摘除（active文件已消失的变体）即失去
+			// 携旧索引改指rotate的机会；改指后条目指向存在的rotate文件，摘除循环自然放行。
+			repointMissedRotation(rotates);
+
 			// 摘除消失条目：磁盘上已不存在的登记条目（.gz压缩/保留期删除无事件，只能靠重扫发现）。
 			for (var file : files) {
 				if (!file.file.exists()) {
@@ -303,7 +337,6 @@ public class Log4jFileManager extends ReentrantLock {
 
 			// 补登：rotate按时间序插入到既有active条目之前（buildIndex只推进last==当前名的条目，active必须last；
 			// 直接追加会把active挤到中间，触发下方守卫把active重复登记——同一文件双条目，搜索结果重复）。
-			rotates.sort(Comparator.comparingLong(KV::getKey));
 			if (!rotates.isEmpty()) {
 				var insertPos = files.size();
 				for (var i = files.size() - 1; i >= 0; --i) {
@@ -327,6 +360,52 @@ public class Log4jFileManager extends ReentrantLock {
 		} finally {
 			unlock();
 		}
+	}
+
+	/**
+	 * 补登漏轮转的case-1"索引改名+条目改指"语义（GD-C03）：轮转双CREATE事件被OVERFLOW吞掉/watch失效时，
+	 * 磁盘形态是"旧名消失+rotate名出现+active重建"，而既有active条目仍持旧内容的LogIndex（offset全是旧
+	 * 内容的文件内位置）——旧时间窗查询命中错文件、buildIndex给旧索引续写制造新旧混合索引且错位跨重启固化。
+	 * 检测：存在未登记rotate && active条目索引的末记录offset超出active文件当前长度——自洽索引的offset必落
+	 * 在文件长度内，超出即索引描述的是别的内容（即最早漏登rotate承载的旧内容；空索引lowerBound返回-1恒不触发）。
+	 * 处置（与onFileCreated case-1同构三步）：
+	 * 1. current索引改名跟随rotate（失败即中止改指——案卷变体防御的回滚语义：继续改指会让rotate与
+	 *    新active双条目共享同一索引文件交叉读写）；
+	 * 2. active条目改指rotate（LogIndex对象随行，mmap按inode有效）；
+	 * 3. active名留给reconcile既有守卫按新索引补登（loadIndex发现current索引已改名即全新建）。
+	 * 其余漏登rotate（更晚的轮转）走常规全量补登。
+	 * 限制：buildIndex已给旧索引混入新内容记录后（offset不再超长）检测不到，维持既有行为（案卷GD-C03限制条件）。
+	 */
+	private void repointMissedRotation(ArrayList<KV<Long, String>> rotates) {
+		if (rotates.isEmpty())
+			return;
+		var activeName = getCurrentLogFileName();
+		Log4jFile activeEntry = null;
+		for (var file : files) {
+			if (file.file.getName().equals(activeName)) {
+				activeEntry = file;
+				break;
+			}
+		}
+		if (null == activeEntry)
+			return;
+
+		var lastOffset = activeEntry.index.lowerBound(activeEntry.index.getEndTime());
+		var activeFile = new File(logConf.logDir, activeName);
+		if (lastOffset <= activeFile.length()) // 文件不存在时length()==0：索引有记录即判失配，改指同样正确
+			return;
+
+		var rotateName = rotates.getFirst().getValue(); // 时间序最早的漏登rotate：active索引内容所在
+		var indexFile = Path.of(logConf.logDir, getCurrentIndexFileName()).toFile();
+		if (indexFile.exists() && !indexFile.renameTo(new File(logConf.logDir, rotateName + ".index"))) {
+			logger.error("reconcile missed rotation: rename index fail, keep repoint aborted: {} -> {}",
+					indexFile, rotateName + ".index");
+			return;
+		}
+		logger.warn("reconcile missed rotation: repoint active entry {} -> {} with renamed index",
+				activeName, rotateName);
+		activeEntry.file = new File(logConf.logDir, rotateName);
+		rotates.removeFirst(); // 已由改指登记，不再常规补登
 	}
 
 	private void loadRotates(String logRotateDir) throws Exception {
