@@ -109,8 +109,14 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		// 也覆写成UNIQ_KEY），回查索引行必须以它为键，在此（半消息已发出、属性已生成）补建。
 		var uniqKey = msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
 		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
-			if (uniqKey != null && _tSent.get(uniqKey) != null)
-				return 0; // 同一Message对象重复发送：UNIQ_KEY复用，首个事务已执行，去重
+			if (uniqKey != null) {
+				var exist = _tSent.get(uniqKey);
+				if (exist != null)
+					// 同一Message对象重复发送：UNIQ_KEY复用，按首跑结果分流（增量审R1-03：
+					// 无条件return 0会把首跑失败残留的result=false行也COMMIT，违背
+					// "仅当事务成功才发送"）。
+					return exist.isResult() ? 0 : 1;
+			}
 			var sent = _tSent.get(action.txnId());
 			if (sent == null)
 				return 1;
