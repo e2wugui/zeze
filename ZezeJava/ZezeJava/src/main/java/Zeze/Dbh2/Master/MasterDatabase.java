@@ -304,8 +304,20 @@ public class MasterDatabase {
 		table.lock();
 		try {
 			if (table.buckets.get(bucket.getKeyFirst()) != null) {
-				// 桶已经存在，断点续传由manager自己负责，不能重复创建桶。
-				logger.info("bucket exist. database={} table={}", databaseName, tableName);
+				// 桶已经存在。响应丢失/日志截断后manager重试时走这里：必须把已存在的桶
+				// 幂等返回（对齐createTable"存在即返回"），否则eSplittingBucketExist让
+				// agent端抛异常，源桶splittingMeta为null永远到不了endSplit，分桶永久卡死。
+				var exist = table.buckets.get(bucket.getKeyFirst());
+				if (exist.getDatabaseName().equals(bucket.getDatabaseName())
+						&& exist.getTableName().equals(bucket.getTableName())
+						&& exist.getKeyFirst().equals(bucket.getKeyFirst())
+						&& exist.getKeyLast().equals(bucket.getKeyLast())) {
+					logger.info("bucket exist, resume. database={} table={}", databaseName, tableName);
+					r.Result = exist;
+					r.SendResult();
+					return 0;
+				}
+				logger.info("bucket exist but mismatch. database={} table={}", databaseName, tableName);
 				return master.errorCode(Master.eSplittingBucketExist);
 			}
 
