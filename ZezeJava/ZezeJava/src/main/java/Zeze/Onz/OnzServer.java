@@ -223,6 +223,33 @@ public class OnzServer extends AbstractOnz {
 	// WarnedTids形态）。记录收敛删除时回收tid，集合有界于在库的失败重试决策数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> redoResultWarnedTids = ConcurrentHashMap.newKeySet();
 
+	// redo整体失败分诊预算（GC-D01(FND21)）：redo参与者循环内任何异常（按名解析
+	// unknown zeze/subscribe not found/no advertised service——集群除名、无通告；
+	// openRedoConnection的GetReadySocket满时超时——旧格式死地址；点表
+	// requireNonNull/decode——缺失/错配/损坏毒值；futures await超时——参与方僵死）
+	// 全部落入redo唯一catch，原先走不到任何告警集合的add点：对settle守卫不可见，
+	// 确定性滞留（地址漂移后每轮建连失败、除名集群按名解析恒抛）每60s重放一条带栈
+	// error（每tid每天1440条）且永不可清算——运维被拒绝文案指引"等下一轮redo≤60s
+	// 重新分诊"，该指引对此类永不兑现（其redo路径永远到不了集合add点）。记录年龄
+	// （redo既有stamp入参，零新状态）≥本预算的本轮异常才登记第四集合并error一次。
+	// 年龄即持续失败时长的下界证据（无需失败计数器）：redoTimer每轮尝试所有在库
+	// 记录，非异常轮的结局只有三种——记录删除（removeOk）/入agedNotFound/入
+	// redoResult，unknownState在到达redo前已分流——因此"年龄≥门槛且本轮异常"
+	// ⇒自写入起每轮均未收敛。取值对齐SagaNotFoundAgedBudgetMs（1h）：语义独立
+	// （参与方TTL预算 vs 持续失败分诊），数值同量级；下限约束=远超在飞窗口
+	// （eCommitting的commit/flush有界等待为秒级，await失败走fatal后perform正常
+	// 返回交redo接管；ePreparing在飞由hasTransaction skip先于redo分流）与redo
+	// 周期（60s，门槛内已累积几十轮失败证据），守卫不会放行进行中事务；上限只
+	// 影响"可清算延迟"不影响正确性。
+	private static final long RedoFailAgedBudgetMs = Onz.eDefaultSagaContextTimeoutMs;
+
+	// redo整体失败告警去重（GC-D01(FND21)）：超龄分诊登记的redo失败滞留每轮redo
+	// 重放同型异常——按tid只error一次防刷屏（对齐redoResultWarnedTids形态，成因
+	// 片段只记首见形态是dedup既定代价）。瞬态失败自愈（参与方恢复→某轮全0→
+	// removeOk）与人工清算（settleStuckRecord）时回收tid，集合有界于在库的异常
+	// 滞留决策数。
+	private final ConcurrentHashMap.KeySetView<Long, Boolean> redoFailWarnedTids = ConcurrentHashMap.newKeySet();
+
 	private void redoTimer() throws RocksDBException {
 		if (stopped)
 			return;
@@ -387,10 +414,29 @@ public class OnzServer extends AbstractOnz {
 				removeCommitRecord(key);
 				agedNotFoundWarnedTids.remove(tid); // 记录收敛后回收告警去重项
 				redoResultWarnedTids.remove(tid); // 同上（GC-C03）：结果错误告警一并回收
+				redoFailWarnedTids.remove(tid); // 同上（GC-D01(FND21)）：瞬态失败自愈（参与方恢复→本轮
+				// 全0）后tid离开第四集合，集合有界于在库的异常滞留决策数。
 			}
 		} catch (Throwable ex) {
 			// timer will redo
-			logger.error("redo fail. tid={}", tid, ex);
+			// 年龄门槛分诊（GC-D01(FND21)）：参与者循环/点表读取的任一异常原先只落本处
+			// "redo fail"全量日志——走不到任何告警集合add点，确定性滞留（死地址/除名
+			// 集群/毒点表）对settle守卫不可见且每60s刷一条带栈error。记录年龄≥
+			// RedoFailAgedBudgetMs的本轮异常转去重形态：按tid登记第四告警集合并
+			// error一次（成因片段=异常类名+消息——诊断"先修参与方还是改库"的依据，
+			// 首见形态即可，门槛内的年轻阶段已留全量带栈日志），登记即可被
+			// settleStuckRecord清算；已登记的后续轮次静默（重放无新信息，对齐
+			// GC-C03形态）。未达门槛保持现状全量日志：瞬态/年轻失败完全可见，且
+			// 行数有界（门槛/60s轮后转去重形态）。旧格式记录（stamp=0）年龄视为
+			// 无穷（对齐redoTimer读时戳口径），首轮异常即分诊。
+			var recordAge = System.currentTimeMillis() - stamp;
+			if (recordAge >= RedoFailAgedBudgetMs) {
+				if (redoFailWarnedTids.add(tid))
+					logger.error("redo fail aged, keep record for settle. tid={}, age={}ms, cause={}: {}",
+							tid, recordAge, ex.getClass().getName(), ex.getMessage());
+			} else {
+				logger.error("redo fail. tid={}", tid, ex);
+			}
 		} finally {
 			for (var zeze : zezeOnzs.values())
 				zeze.stop();
@@ -448,24 +494,28 @@ public class OnzServer extends AbstractOnz {
 
 	/**
 	 * 滞留决策记录的人工清算（GC-D01）："保留 + 曝光"（GC-D04-C 超龄NotFound / GC-C02
-	 * 未知state / GC-C03 确定性补偿失败）之后的可达终点——对账完成后（如参与方带外补了
-	 * 数据），运维按 tid 显式关闭滞留记录。暴露惯例对齐 Onz.cleanupTimeoutSagas：嵌入方
-	 * 从自己的运维面调用（全仓无独立OnzServer部署形态），方法体即未来任何远程形态的
-	 * handler 体；测试可直接调用。
+	 * 未知state / GC-C03 确定性补偿失败 / GC-D01(FND21) 超龄redo整体失败）之后的可达
+	 * 终点——对账完成后（如参与方带外补了数据），运维按 tid 显式关闭滞留记录。暴露惯例
+	 * 对齐 Onz.cleanupTimeoutSagas：嵌入方从自己的运维面调用（全仓无独立OnzServer部署
+	 * 形态），方法体即未来任何远程形态的 handler 体；测试可直接调用。
 	 * <p>
 	 * 守卫（下限）：只放行协调者自己已报告为滞留的 tid——agedNotFoundWarnedTids ∪
-	 * redoResultWarnedTids ∪ unknownStateWarnedTids。清算的正确性依赖"操作者已完成对账"
-	 * 这一协调者不可验证的外部事实，设计的本质不是验证它，而是把该断言约束在最小爆破
-	 * 半径内：集合成员资格是协调者自己"redo 收敛不动此记录"的证据，进行中事务的 tid
-	 * 不可达——误删进行中事务唯一收敛通道（redo）的操作因此不可达。不在集合只可能是
-	 * 进行中/未分诊（进程重启后集合清空，需等下一轮 redo ≤60s 重新分诊），拒绝并 error。
+	 * redoResultWarnedTids ∪ unknownStateWarnedTids ∪ redoFailWarnedTids。清算的正确性
+	 * 依赖"操作者已完成对账"这一协调者不可验证的外部事实，设计的本质不是验证它，而是
+	 * 把该断言约束在最小爆破半径内：集合成员资格是协调者自己"redo 收敛不动此记录"的
+	 * 证据，进行中事务的 tid 不可达——误删进行中事务唯一收敛通道（redo）的操作因此
+	 * 不可达。不在集合的分型如实指引（GC-D01(FND21)撤"≤60s重新分诊"的全称断言——
+	 * 它对redo失败类永不兑现：该类要等记录年龄超 RedoFailAgedBudgetMs 后的下一轮
+	 * redo才分诊，而进行中/未分诊才走"下一轮≤60s重诊"路径）：进行中 / 未分诊（进程
+	 * 重启后集合清空，等下一轮 redo 重新分诊）/ redo失败未达龄（等超龄后的下一轮），
+	 * 拒绝并 error。
 	 * <p>
 	 * 删除：dbLock 域内 + stopped 双检（对齐 redoTimer 头部，与 stop 的关库互斥）；
 	 * 删前读 commitIndex/commitPoint 原值记审计日志（被放弃的补偿对象的最后留痕——
 	 * 记录内容删除后不可再读）；复用 removeCommitRecord 单 batch 原子双删（FND4-88 两表
-	 * 同 key 生命周期）；三个告警去重集合同步回收（回收点对齐 redo 的 removeOk 分支；
+	 * 同 key 生命周期）；四个告警去重集合同步回收（回收点对齐 redo 的 removeOk 分支；
 	 * unknownStateWarnedTids 此前无回收点——GC-C02 条目按设计永不 redo 收敛，本方法是
-	 * 其唯一回收通道，汇流闭合同形滞留三类）。
+	 * 其唯一回收通道，汇流闭合同形滞留四类）。
 	 *
 	 * @return true=记录已关闭（删除，或守卫通过后已不在库的幂等no-op）；false=拒绝
 	 * （tid未被报告滞留/服务器已停止），库与集合均不动。
@@ -478,9 +528,13 @@ public class OnzServer extends AbstractOnz {
 			return false;
 		}
 		if (!(agedNotFoundWarnedTids.contains(tid) || redoResultWarnedTids.contains(tid)
-				|| unknownStateWarnedTids.contains(tid))) {
-			logger.error("onz settle rejected: tid={} 不是协调者已报告滞留的tid（进行中/未分诊；"
-					+ "进程重启后告警集合清空，需等下一轮redo（周期60s+应答窗口）重新分诊后才能清算），记录不动", tid);
+				|| unknownStateWarnedTids.contains(tid) || redoFailWarnedTids.contains(tid))) {
+			// 分型如实指引（GC-D01(FND21)）：撤"下一轮redo≤60s重新分诊"的全称断言——它对
+			// redo失败类永不兑现（异常轮走不到任何集合add点，分诊要等记录年龄超
+			// RedoFailAgedBudgetMs后的下一轮），原指引把操作者指向永不兑现的等待路径。
+			logger.error("onz settle rejected: tid={} 不是协调者已报告滞留的tid（进行中/未分诊/redo失败未达龄："
+							+ "未分诊（含进程重启后集合清空）等下一轮redo重新分诊；redo失败类等记录年龄超"
+							+ RedoFailAgedBudgetMs + "ms后的下一轮redo分诊），记录不动", tid);
 			return false;
 		}
 		var tidBytes = new byte[8];
@@ -493,13 +547,15 @@ public class OnzServer extends AbstractOnz {
 			}
 			// 守卫通过到加锁之间，某轮redo可能已收敛该记录并回收tid（removeOk分支的删除+
 			// 回收都在dbLock域内原子完成）：此时锁内读不到原值，审计记"已不在库"，删除与
-			// 集合remove均为幂等no-op——无害路径，不在锁内复查守卫（三集合的分诊add与回收
+			// 集合remove均为幂等no-op——无害路径，不在锁内复查守卫（四集合的分诊add与回收
 			// remove都只发生在dbLock域内，锁内复查只会迟到地看到"已被redo收敛"，与no-op等价）。
 			auditRetainedRecord(tid, tidBytes);
 			removeCommitRecord(tidBytes);
 			agedNotFoundWarnedTids.remove(tid); // 记录关闭后回收告警去重项（对齐removeOk分支）
 			redoResultWarnedTids.remove(tid); // 同上（GC-C03）
 			unknownStateWarnedTids.remove(tid); // 同上（GC-C02）：本方法是该集合唯一的tid回收点
+			redoFailWarnedTids.remove(tid); // 同上（GC-D01(FND21)）：与removeOk双回收点，人工清算后
+			// tid离开第四集合（redo失败类的分诊登记在redo的catch内，回收点对齐既有两处）。
 			return true;
 		} finally {
 			dbLock.unlock();
