@@ -6,6 +6,11 @@ import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
+/**
+ * 回放消费链为实验特性（GC-D01裁撤半接线）：内存后端、不跨重启、仅进程内演示。
+ * 持久化后端机制（ApplyDatabaseZeze，含游标/记录级原子单元）保留但未接线——
+ * 接线需要配置通道与affects输出契约设计，按需整体复活。
+ */
 public class HistoryModule extends AbstractHistoryModule {
 	private final Application zeze;
 	private HttpServer httpServer;
@@ -42,10 +47,8 @@ public class HistoryModule extends AbstractHistoryModule {
 		this.zeze = zeze;
 		RegisterZezeTables(zeze);
 
-		// todo 怎么指定这么名字，采用一个默认的？否则指定再配置有点重复了。
-		//var dbApplied = new ApplyDatabaseZeze(zeze, "_history_applied_db_");
+		// 内存后端：不跨重启，重启后回放副本与游标一起归零（类文档的实验边界）。
 		var dbApplied = new ApplyDatabaseMemory();
-		// todo dbApplied 如果是持久化的，applyHelper.exclusiveStartKey也需要持久化。
 		applyHelper = new ApplyHelper(zeze, _tHistory, dbApplied, 20_000);
 	}
 
@@ -71,9 +74,8 @@ public class HistoryModule extends AbstractHistoryModule {
 			}
 		}
 
-		// todo 结果丢失了类型；
-		//  根据需求，调整 ApplyHelper 吧。
-		// var affects =
+		// 实验边界（GC-D01）：本批affects（受影响表与键）丢弃，恒答OK——回放链
+		// 不承诺增量输出契约。
 		applyHelper.apply(countValue);
 
 		x.sendPlainText(HttpResponseStatus.OK, "OK");
