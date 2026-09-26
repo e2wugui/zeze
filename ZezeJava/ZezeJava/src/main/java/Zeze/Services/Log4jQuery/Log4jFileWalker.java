@@ -74,6 +74,9 @@ public class Log4jFileWalker {
 			var pos = files.indexOf(currentEntry);
 			if (pos >= 0)
 				currentIndex = pos;
+			else if (current.hasNext())
+				return true; // 条目已摘除（Linux unlink形态，pos<0）：会话fd仍可读，读尽不丢当前文件尾部——
+				// 此时stale下标可能>=size，while闸先判假会把未读尾部拦在循环体外。
 		}
 		// 循环写法，可以跳过空文件；文件被外部清理的条目由manager.get持锁摘除后继续（GD-D01）。
 		while (currentIndex < files.size()) {
