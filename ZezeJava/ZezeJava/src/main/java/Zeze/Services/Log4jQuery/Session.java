@@ -56,7 +56,9 @@ public class Session implements AutoCloseable {
 			return;
 		closed = true; // 先立墓碑：RPC失败时会话状态未知，不允许重发CloseSession
 		var r = new CloseSession();
-		r.SendForWait(agent.__getLogServer(serverName).GetReadySocket()).await();
+		// 与browse/search同宽60s：服务端关会话含逐个RAF关闭（GD-D03事实链），默认5s在
+		// 多会话/慢盘下超时即泄漏（服务端会话无过期回收前的唯一出口）。
+		r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("close session error " + r.getResultCode());
 	}
