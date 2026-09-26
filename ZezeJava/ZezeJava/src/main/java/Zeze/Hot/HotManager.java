@@ -209,8 +209,6 @@ public class HotManager extends ClassLoader {
 						var bb = ByteBuffer.Allocate();
 						bean.encode(bb);
 						curBean.decode(bb);
-//					logger.info("<------ retreat ------> {} \r\n{} \r\n{}",
-//							bean.getClass().getName(), bean.variables(), curBean.variables());
 						return curBean;
 					}
 				}
@@ -688,8 +686,6 @@ public class HotManager extends ClassLoader {
 	public HotManager(AppBase app, String workingDir, String distributeDir) throws Exception {
 		hotManagerService = new HotManagerService(app.getZeze().getConfig());
 
-		//System.out.println(workingDir);
-		//System.out.println(distributeDir);
 		BeanFactory.setApplication(app.getZeze());
 
 		var distributePath = Path.of(distributeDir);
