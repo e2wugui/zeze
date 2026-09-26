@@ -23,6 +23,7 @@ import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.KV;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import Zeze.Builtin.Dbh2.Master.BSetInUse;
@@ -356,18 +357,40 @@ public class Database extends Zeze.Transaction.Database {
 			}
 		}
 
+		// 建表重试总预算（GA-D04）：非final便于测试收缩。master/manager空窗（重启、扩容、选举）以十秒计，
+		// 5分钟覆盖滚动重启窗口后仍有界。
+		static volatile long createTableRetryBudgetMs = 5 * 60_000L;
+
 		public Dbh2Table(String tableName, boolean registered) {
 			this.name = tableName;
 			this.registered = registered;
+			// 第一次立即发起（保持原行为），重试才有延迟。
+			createTableWithRetry(1_000, System.currentTimeMillis() + createTableRetryBudgetMs);
+		}
+
+		// 建表异步重试（GA-D04）：eTableNotFound/eTooFewManager是master/manager空窗的暂时性失败
+		//（master侧createTable幂等：存在即返回，重试无重复建桶副作用），1s起指数退避封顶30s，
+		// 超总预算才setException；其他错误码（配置类，如eDatabaseNotFound）立即失败。
+		private void createTableWithRetry(long retryDelayMs, long deadlineMs) {
 			dbh2AgentManager.createTableAsync(
 					Database.this.masterAgent, Database.this.masterName,
-					Database.this.databaseName, tableName,
+					Database.this.databaseName, name,
 					(rc, _isNew) -> {
-						isNew = _isNew;
-						if (rc == 0)
+						if (rc == 0) {
+							isNew = _isNew;
 							ready.setResult(0);
-						else
+							return;
+						}
+						if (rc != MasterAgent.eTableNotFound && rc != MasterAgent.eTooFewManager) {
 							ready.setException(new RuntimeException("rc=" + rc));
+							return;
+						}
+						if (System.currentTimeMillis() >= deadlineMs) {
+							ready.setException(new RuntimeException("createTable retry budget exhausted: rc=" + rc));
+							return;
+						}
+						TaskSpec.ofAction(() -> createTableWithRetry(
+								Math.min(retryDelayMs * 2, 30_000L), deadlineMs)).schedule(retryDelayMs);
 					});
 		}
 
