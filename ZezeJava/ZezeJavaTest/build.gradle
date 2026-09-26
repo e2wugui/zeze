@@ -26,6 +26,9 @@ dependencies {
     // for test (JUnit 6 / Jupiter)
     testImplementation 'org.junit.jupiter:junit-jupiter-api:6.1.3'
 
+    // for TestFnd19D06LogSessionBinding（FND19 GE-D06：ZokerManager 会话绑定回执的纯逻辑直测）
+    testImplementation project(":ZokerManager")
+
     // for BenchPersistentCollectionsCompare（pcollections 替代评估：显式声明以便测试代码直接引用）
     testImplementation 'org.pcollections:pcollections:4.0.2'
     testImplementation 'io.vavr:vavr:0.10.5'

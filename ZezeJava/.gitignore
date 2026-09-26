@@ -10,6 +10,10 @@ dbhome/
 /ZezexJava/*/Gen/
 lib/
 log/
+# log/ 是运行时日志目录，但会误伤源码包 Zeze/log（FND19 GE-D06 起 ZokerManager 在该包新增源码）：
+# 已跟踪文件不受影响，新增源文件（LogSessionBinding）与测试会被忽略而不入库，锚定反排除两个源码包。
+!/ZokerManager/src/main/java/Zeze/log/
+!/ZezeJavaTest/src/Zeze/log/
 RocksDB/
 target/
 TestRocksDb/
