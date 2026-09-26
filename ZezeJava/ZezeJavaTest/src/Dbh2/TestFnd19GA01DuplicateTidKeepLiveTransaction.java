@@ -1,16 +1,12 @@
 package Dbh2;
 
-import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Dbh2.AbstractDbh2;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.IModule;
 import Zeze.Net.Binary;
-import Zeze.Raft.LogSequence;
-import Zeze.Raft.RaftConfig;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -29,48 +25,6 @@ import org.junit.jupiter.api.io.TempDir;
 public class TestFnd19GA01DuplicateTidKeepLiveTransaction {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 
-	// 进程内启动一个3节点raft桶（镜像Dbh2Test.Bucket，端口错开不与其冲突）。
-	// 每个节点必须独立loadFromString一份RaftConfig（Raft构造会改写配置对象，共享会导致节点身份错乱）；
-	// 显式设置DbHome后Raft不再按节点名在cwd下建目录，所有节点目录落在tempDir下，由@TempDir统一清理。
-	private static ArrayList<Zeze.Dbh2.Dbh2> startBucket(RocksDatabase database, String raftConfigString, Path tempDir) {
-		var nodes = new ArrayList<Zeze.Dbh2.Dbh2>();
-		for (var config : RaftConfig.loadFromString(raftConfigString).getNodes().values()) {
-			var nodeConfig = raftConfigString.replaceFirst("<raft ",
-					"<raft DbHome=\"" + tempDir.resolve(config.getName().replace(':', '_')) + "\" ");
-			nodes.add(new Zeze.Dbh2.Dbh2(null, config.getName(), database,
-					RaftConfig.loadFromString(nodeConfig), null, false, taskOneByOne));
-		}
-		return nodes;
-	}
-
-	private static void stopBucket(ArrayList<Zeze.Dbh2.Dbh2> nodes, Dbh2Agent agent, RocksDatabase database)
-			throws Exception {
-		for (var dbh2 : nodes) {
-			dbh2.close();
-			LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
-		}
-		agent.close();
-		database.close();
-	}
-
-	private static Binary get(Dbh2Agent agent, Binary key) {
-		var kv = agent.get("database", "table1", key);
-		Assertions.assertTrue(kv.getKey());
-		return kv.getValue() == null ? null : new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size());
-	}
-
-	// PrepareBatch是leader-only的RaftRpc：取leader节点用于检查其内存事务表。
-	private static Zeze.Dbh2.Dbh2 waitLeader(ArrayList<Zeze.Dbh2.Dbh2> nodes) throws InterruptedException {
-		for (int i = 0; i < 300; ++i) { // 选举最多等15s
-			for (var node : nodes)
-				if (node.getRaft().isLeader())
-					return node;
-			//noinspection BusyWait
-			Thread.sleep(50);
-		}
-		throw new IllegalStateException("no leader elected");
-	}
-
 	@Test
 	public void testDuplicateTidKeepsLiveTransaction(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
@@ -83,7 +37,7 @@ public class TestFnd19GA01DuplicateTidKeepLiveTransaction {
 					<node Host="127.0.0.1" Port="19132"/>
 				</raft>
 				""";
-		var nodes = startBucket(database, raftConfig, tempDir);
+		var nodes = Fnd19GABucketSupport.startBucket(database, raftConfig, tempDir, taskOneByOne);
 		var agent = new Dbh2Agent(raftConfig);
 		try {
 			var meta = new BBucketMeta.Data();
@@ -108,7 +62,7 @@ public class TestFnd19GA01DuplicateTidKeepLiveTransaction {
 				Assertions.assertEquals(0, f.get().getResultCode());
 			}
 
-			var leader = waitLeader(nodes);
+			var leader = Fnd19GABucketSupport.waitLeader(nodes);
 			Assertions.assertTrue(leader.getStateMachine().getTransactions().containsKey(1L),
 					"prepare applied must leave live transaction in leader map");
 
@@ -131,9 +85,9 @@ public class TestFnd19GA01DuplicateTidKeepLiveTransaction {
 
 			// T1最终提交：数据必须落盘可读（bug时leader侧remove(tid)得null，commit被静默跳过）。
 			agent.commitBatch(1).await();
-			Assertions.assertEquals(value, get(agent, key1));
+			Assertions.assertEquals(value, Fnd19GABucketSupport.get(agent, key1));
 		} finally {
-			stopBucket(nodes, agent, database);
+			Fnd19GABucketSupport.stopBucket(nodes, agent, database);
 		}
 	}
 }

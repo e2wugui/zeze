@@ -12,6 +12,7 @@ import Zeze.Builtin.Dbh2.Master.EndSplit;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.IModule;
 import Zeze.Net.Binary;
+import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
 import Zeze.Util.RocksDatabase;
@@ -214,7 +215,8 @@ public class MasterDatabase {
 	}
 
 	public long endMove(EndMove r) throws Exception {
-		var tableName = r.Argument.getTo().getTableName();
+		var to = r.Argument.getTo();
+		var tableName = to.getTableName();
 		var table = tables.get(tableName);
 		if (null == table)
 			return master.errorCode(Master.eTableNotFound);
@@ -222,46 +224,15 @@ public class MasterDatabase {
 		table.lock();
 		try {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-			// splitting的TreeMap必须持它自己的锁访问：createSplitBucket持splitting锁get/put，
-			// 这里只持主表锁remove/encode，两锁互不互斥，TreeMap并发读写可CME/死循环。
-			// 锁序固定主表→splitting（createSplitBucket只取splitting锁，无环）。
-			splitting.lock();
-			try {
-				var bucketNew = r.Argument.getTo();
-				var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
-				if (bucket != null
-						&& bucket.getDatabaseName().equals(bucketNew.getDatabaseName())
-						&& bucket.getTableName().equals(bucketNew.getTableName())
-						&& bucket.getKeyFirst().equals(bucketNew.getKeyFirst())
-						&& bucket.getKeyLast().equals(bucketNew.getKeyLast())
-				) {
-					splitting.buckets.remove(bucketNew.getKeyFirst());
-					table.buckets.put(bucketNew.getKeyFirst(), bucketNew);
-
-					try (var batch = rocksDb.newBatch()) {
-						var bbTable = table.encode();
-						var bbSplitting = splitting.encode();
-						var key = tableName.getBytes(StandardCharsets.UTF_8);
-						rocksTables.put(batch, key, 0, key.length,
-								bbTable.Bytes, bbTable.ReadIndex, bbTable.size());
-						rocksSplitting.put(batch, key, 0, key.length,
-								bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
-						batch.commit();
-					}
-					r.SendResult();
-					return 0;
-				}
-			} finally {
-				splitting.unlock();
-			}
+			return settleSplitting(table, splitting, tableName, to, null, r);
 		} finally {
 			table.unlock();
 		}
-		return master.errorCode(Master.eSplittingBucketNotFound);
 	}
 
 	public long endSplit(EndSplit r) throws Exception {
-		var tableName = r.Argument.getFrom().getTableName();
+		var from = r.Argument.getFrom();
+		var tableName = from.getTableName();
 		var table = tables.get(tableName);
 		if (null == table)
 			return master.errorCode(Master.eTableNotFound);
@@ -269,41 +240,55 @@ public class MasterDatabase {
 		table.lock();
 		try {
 			var splitting = this.splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-			// 同endMove：splitting的TreeMap必须持splitting自己的锁访问（createSplitBucket持splitting锁）。
-			splitting.lock();
-			try {
-				var bucketNew = r.Argument.getTo();
-				var bucket = splitting.buckets.get(bucketNew.getKeyFirst());
-				if (bucket != null
-						&& bucket.getDatabaseName().equals(bucketNew.getDatabaseName())
-						&& bucket.getTableName().equals(bucketNew.getTableName())
-						&& bucket.getKeyFirst().equals(bucketNew.getKeyFirst())
-						&& bucket.getKeyLast().equals(bucketNew.getKeyLast())
-				) {
-					splitting.buckets.remove(bucketNew.getKeyFirst());
-					table.buckets.put(bucketNew.getKeyFirst(), bucketNew);
-					table.buckets.put(r.Argument.getFrom().getKeyFirst(), r.Argument.getFrom()); // replace
-
-					try (var batch = rocksDb.newBatch()) {
-						var bbTable = table.encode();
-						var bbSplitting = splitting.encode();
-						var key = tableName.getBytes(StandardCharsets.UTF_8);
-						rocksTables.put(batch, key, 0, key.length,
-								bbTable.Bytes, bbTable.ReadIndex, bbTable.size());
-						rocksSplitting.put(batch, key, 0, key.length,
-								bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
-						batch.commit();
-					}
-					r.SendResult();
-					return 0;
-				}
-			} finally {
-				splitting.unlock();
-			}
+			return settleSplitting(table, splitting, tableName, r.Argument.getTo(), from, r);
 		} finally {
 			table.unlock();
 		}
-		return master.errorCode(Master.eSplittingBucketNotFound);
+	}
+
+	// 确认splitting桶与决策一致后原子搬迁（endMove/endSplit的公共主体）：新桶移出splitting、
+	// 入主表，from非null时替换主表源桶（endSplit分裂后源桶边界收窄；endMove传null），
+	// 双表同批落库。splitting的TreeMap必须持它自己的锁访问：createSplitBucket持splitting锁
+	// get/put，只持主表锁remove/encode的话两锁互不互斥，TreeMap并发读写可CME/死循环。
+	// 锁序固定主表→splitting（createSplitBucket只取splitting锁，无环）。
+	// 调用方须已持主表锁；新桶不在splitting或四元组不等值时不动任何状态，返回错误码。
+	private long settleSplitting(MasterTable.Data table, MasterTable.Data splitting, String tableName,
+								 BBucketMeta.Data to, BBucketMeta.Data from, Rpc<?, ?> r) throws Exception {
+		splitting.lock();
+		try {
+			var bucket = splitting.buckets.get(to.getKeyFirst());
+			if (bucket == null || !sameBucketMeta(bucket, to))
+				return master.errorCode(Master.eSplittingBucketNotFound);
+
+			splitting.buckets.remove(to.getKeyFirst());
+			table.buckets.put(to.getKeyFirst(), to);
+			if (from != null)
+				table.buckets.put(from.getKeyFirst(), from); // replace
+
+			try (var batch = rocksDb.newBatch()) {
+				var bbTable = table.encode();
+				var bbSplitting = splitting.encode();
+				var key = tableName.getBytes(StandardCharsets.UTF_8);
+				rocksTables.put(batch, key, 0, key.length,
+						bbTable.Bytes, bbTable.ReadIndex, bbTable.size());
+				rocksSplitting.put(batch, key, 0, key.length,
+						bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
+				batch.commit();
+			}
+			r.SendResult();
+			return 0;
+		} finally {
+			splitting.unlock();
+		}
+	}
+
+	// 桶身份四元组等值：endMove/endSplit确认splitting桶与决策一致、createSplitBucket
+	// 幂等重试识别同一桶用的同一判据。
+	private static boolean sameBucketMeta(BBucketMeta.Data a, BBucketMeta.Data b) {
+		return a.getDatabaseName().equals(b.getDatabaseName())
+				&& a.getTableName().equals(b.getTableName())
+				&& a.getKeyFirst().equals(b.getKeyFirst())
+				&& a.getKeyLast().equals(b.getKeyLast());
 	}
 
 	public long createSplitBucket(CreateSplitBucket r) throws Exception {
@@ -317,15 +302,12 @@ public class MasterDatabase {
 		var table = splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 		table.lock();
 		try {
-			if (table.buckets.get(bucket.getKeyFirst()) != null) {
+			var exist = table.buckets.get(bucket.getKeyFirst());
+			if (exist != null) {
 				// 桶已经存在。响应丢失/日志截断后manager重试时走这里：必须把已存在的桶
 				// 幂等返回（对齐createTable"存在即返回"），否则eSplittingBucketExist让
 				// agent端抛异常，源桶splittingMeta为null永远到不了endSplit，分桶永久卡死。
-				var exist = table.buckets.get(bucket.getKeyFirst());
-				if (exist.getDatabaseName().equals(bucket.getDatabaseName())
-						&& exist.getTableName().equals(bucket.getTableName())
-						&& exist.getKeyFirst().equals(bucket.getKeyFirst())
-						&& exist.getKeyLast().equals(bucket.getKeyLast())) {
+				if (sameBucketMeta(exist, bucket)) {
 					logger.info("bucket exist, resume. database={} table={}", databaseName, tableName);
 					r.Result = exist;
 					r.SendResult();

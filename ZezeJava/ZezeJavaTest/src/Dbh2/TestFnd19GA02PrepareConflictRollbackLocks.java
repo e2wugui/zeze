@@ -1,14 +1,10 @@
 package Dbh2;
 
-import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Dbh2.Dbh2Agent;
 import Zeze.Net.Binary;
-import Zeze.Raft.LogSequence;
-import Zeze.Raft.RaftConfig;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -28,33 +24,6 @@ import org.junit.jupiter.api.io.TempDir;
 public class TestFnd19GA02PrepareConflictRollbackLocks {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 
-	private static ArrayList<Zeze.Dbh2.Dbh2> startBucket(RocksDatabase database, String raftConfigString, Path tempDir) {
-		var nodes = new ArrayList<Zeze.Dbh2.Dbh2>();
-		for (var config : RaftConfig.loadFromString(raftConfigString).getNodes().values()) {
-			var nodeConfig = raftConfigString.replaceFirst("<raft ",
-					"<raft DbHome=\"" + tempDir.resolve(config.getName().replace(':', '_')) + "\" ");
-			nodes.add(new Zeze.Dbh2.Dbh2(null, config.getName(), database,
-					RaftConfig.loadFromString(nodeConfig), null, false, taskOneByOne));
-		}
-		return nodes;
-	}
-
-	private static void stopBucket(ArrayList<Zeze.Dbh2.Dbh2> nodes, Dbh2Agent agent, RocksDatabase database)
-			throws Exception {
-		for (var dbh2 : nodes) {
-			dbh2.close();
-			LogSequence.deleteDirectory(new File(dbh2.getRaft().getRaftConfig().getDbHome()));
-		}
-		agent.close();
-		database.close();
-	}
-
-	private static Binary get(Dbh2Agent agent, Binary key) {
-		var kv = agent.get("database", "table1", key);
-		Assertions.assertTrue(kv.getKey());
-		return kv.getValue() == null ? null : new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size());
-	}
-
 	@Test
 	public void testConflictPrepareReleasesAcquiredLocks(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
@@ -67,7 +36,7 @@ public class TestFnd19GA02PrepareConflictRollbackLocks {
 					<node Host="127.0.0.1" Port="19142"/>
 				</raft>
 				""";
-		var nodes = startBucket(database, raftConfig, tempDir);
+		var nodes = Fnd19GABucketSupport.startBucket(database, raftConfig, tempDir, taskOneByOne);
 		var agent = new Dbh2Agent(raftConfig);
 		try {
 			var meta = new BBucketMeta.Data();
@@ -119,13 +88,13 @@ public class TestFnd19GA02PrepareConflictRollbackLocks {
 						"key locked by failed prepare must be reusable immediately");
 			}
 			agent.commitBatch(3).await();
-			Assertions.assertEquals(value, get(agent, j1));
+			Assertions.assertEquals(value, Fnd19GABucketSupport.get(agent, j1));
 
 			// T1正常收尾。
 			agent.commitBatch(1).await();
-			Assertions.assertEquals(value, get(agent, k1));
+			Assertions.assertEquals(value, Fnd19GABucketSupport.get(agent, k1));
 		} finally {
-			stopBucket(nodes, agent, database);
+			Fnd19GABucketSupport.stopBucket(nodes, agent, database);
 		}
 	}
 }

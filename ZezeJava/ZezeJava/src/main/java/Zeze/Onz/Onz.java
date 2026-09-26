@@ -149,9 +149,8 @@ public class Onz extends AbstractOnz {
 	 * 清理超时仍未收到FuncSagaEnd的saga上下文，超时按最后活动时间计（GC-D04-B1：
 	 * 构造/补偿失败放回时刻）。定时器周期调用，测试可直接调用。
 	 * 业务在途（执行中/FuncSagaEnd补偿中等锁）的条目跳过本轮（OH1-F3），等业务完成
-	 * 后的下个周期再清。按最后活动计时的意义：补偿失败放回后，redo每轮重发的失败
-	 * 重试都经过放回点刷新活动时间，重试循环不会被构造时刻的TTL清掉——被清则重试
-	 * 只得eSagaNotFound，补偿永久丢失；超龄的NotFound由OnzServer.redo分诊error。
+	 * 后的下个周期再清。按最后活动计时保证补偿重试链不被构造时刻的TTL掐断（完整
+	 * 因果链见sagaContextTimeoutMs契约）；超龄的NotFound由OnzServer.redo分诊error。
 	 */
 	public void cleanupTimeoutSagas() {
 		var now = System.currentTimeMillis();
@@ -318,7 +317,7 @@ public class Onz extends AbstractOnz {
 			if (r.Argument.isCancel()) {
 				// R2-M①：补偿参数decode必须先于sagas.remove——decode抛异常（载荷损坏截断/
 				// cancelClass构造失败）原先发生在remove之后，putIfAbsent回补被跳过：上下文
-				// 已删除，补偿永久丢失且重发FuncSagaEnd只得eSagaNotFound。decode先行，失败时
+				// 已删除，补偿永久丢失（因果链见sagaContextTimeoutMs契约）。decode先行，失败时
 				// 条目仍在（协调者/人工可重试），由cleanupTimeoutSagas（默认1小时）兜底。
 				final var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
 				final var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
@@ -326,14 +325,14 @@ public class Onz extends AbstractOnz {
 					return errorCode(eSagaNotFound);
 				var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> stub.end(context, cancelArgument), context.getName())).call();
 				if (rc != 0) {
-					// 补偿失败：上下文必须放回sagas，否则协调者（cancelSaga只记错误日志不重试）
-					// 或人工重发FuncSagaEnd时只能得到eSagaNotFound，补偿永久丢失且不可重试。
+					// 补偿失败：上下文必须放回sagas等重发——不放回则重发只得eSagaNotFound，
+					// 补偿永久丢失（因果链见sagaContextTimeoutMs契约）。
 					// 放回后由cleanupTimeoutSagas超时兜底（默认1小时，可配置）。
 					if (null != sagas.putIfAbsent(tid, context))
 						logger.error("saga context re-insert conflict. tid={}", tid);
 					else
-						// 放回即最后活动（GC-D04-B1）：等待重发的窗口不消耗TTL预算，否则
-						// 补偿重试链会被构造时刻的TTL掐断。
+						// 放回即最后活动（GC-D04-B1，计时基准见OnzSaga.lastActiveTime）：
+						// 等待重发的窗口不消耗TTL预算。
 						context.refreshLastActive();
 					return rc;
 				}

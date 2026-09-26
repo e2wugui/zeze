@@ -1,28 +1,22 @@
 package Onz;
 
-import java.lang.reflect.Field;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import Zeze.Builtin.Onz.BSavedCommits;
-import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Onz.AbstractOnz;
 import Zeze.Onz.OnzServer;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Util.RocksDatabase;
 import demo.App;
 import demo.Module1.BKuafu;
 import demo.Module1.BKuafuResult;
-import harness.TestEnv;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import static Onz.Fnd19GcOnzTestSupport.*;
 
 /**
  * FND19 GC-D04 回归（B1+C）：
@@ -61,37 +55,23 @@ public class TestFnd19GcD04SagaTtlNotFound {
 	public void before() throws Exception {
 		CancelFail = false;
 		CancelCount = 0;
-		// 第二对服务 SM(5011)/Global(5012) 由 TestEnvLauncherListener 在进程内自动启动。
-		Assumptions.assumeTrue(TestEnv.portReachable("127.0.0.1", 5011) && TestEnv.portReachable("127.0.0.1", 5012),
-				"第二对服务(5011/5012)不可用：zeze.test.env=off 时 TestEnvLauncherListener 不在进程内自动启动");
-
-		var myConfig = Config.load("zeze.xml");
-		var dbHome = "CommitOnzServer" + myConfig.getServerId();
-		deleteRecursively(Path.of(dbHome));
-
-		App.Instance.Start();
-		var config2 = Config.load("./zeze_cluster_2.xml");
-		zeze2.Start(config2);
+		var myConfig = startTwoClusters(zeze2);
 
 		if (registeredOnAppInstance.compareAndSet(false, true))
 			App.Instance.Zeze.getOnz().registerSaga(SagaName,
 					TestFnd19GcD04SagaTtlNotFound::sagaBusiness, TestFnd19GcD04SagaTtlNotFound::sagaCancel,
 					BKuafu.class, BKuafuResult.class, Zeze.Transaction.EmptyBean.class);
 
-		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		onzServer = startOnzServer(myConfig);
 	}
 
 	@AfterEach
 	public void after() throws Exception {
-		// before() 被 Assumption 跳过时 onzServer 尚未创建；stop幂等
-		if (onzServer != null) {
+		if (onzServer != null)
 			// 恢复TTL默认：App.Instance跨测试类持久，残留的小超时会被60s周期清理定时器
 			// 用于后续测试类的上下文（TestOnzSagaCleanup族同因未恢复而心存此患，这里止损）。
 			App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs);
-			onzServer.stop();
-		}
-		zeze2.Stop();
+		stopCoordinator(onzServer, zeze2);
 	}
 
 	private static long sagaBusiness(Zeze.Onz.OnzSaga saga, BKuafu argument, BKuafuResult result) {
@@ -115,7 +95,7 @@ public class TestFnd19GcD04SagaTtlNotFound {
 	@Test
 	@Timeout(120)
 	public void testCleanupTimesByLastActiveTime() throws Exception {
-		waitOnzReady();
+		waitOnzReady(onzServer);
 		var onz = App.Instance.Zeze.getOnz();
 
 		// 构造上下文（业务立即提交成功，滞留等FuncSagaEnd）
@@ -151,22 +131,22 @@ public class TestFnd19GcD04SagaTtlNotFound {
 	@Test
 	@Timeout(120)
 	public void testRedoAgedRollbackNotFoundKeepsRecordAndWarnsOnce() throws Exception {
-		waitOnzReady();
+		waitOnzReady(onzServer);
 		// 无参与方上下文（不sendFuncSaga）：redo补发FuncSagaEnd(cancel)必得eSagaNotFound。
 		writeOrphanRecords(AgedTid, AbstractOnz.ePreparing, Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs + 100_000);
 
-		invokeRedoTimer();
+		invokeRedoTimer(onzServer);
 
-		Assertions.assertEquals(1, count(tableOf("commitIndex")),
+		Assertions.assertEquals(1, count(tableOf(onzServer, "commitIndex")),
 				"超龄NotFound必须保留决策记录（人工对账需要记录在场；修复前：静默忽略并删除，补偿丢失无信号）");
-		Assertions.assertEquals(1, count(tableOf("commitPoint")), "两表同生命周期（FND4-88）：一起保留");
+		Assertions.assertEquals(1, count(tableOf(onzServer, "commitPoint")), "两表同生命周期（FND4-88）：一起保留");
 		Assertions.assertTrue(agedNotFoundWarnedTids().contains(AgedTid),
 				"超龄rollback决策的NotFound必须触发error告警（修复前：静默忽略）");
 
 		// 第二轮redo：保留的记录重发→再次超龄NotFound→按tid去重不重复告警，记录维持保留
-		invokeRedoTimer();
+		invokeRedoTimer(onzServer);
 		Assertions.assertEquals(1, agedNotFoundWarnedTids().size(), "告警按tid去重：每tid只error一次（对齐hangWarnedTids）");
-		Assertions.assertEquals(1, count(tableOf("commitIndex")), "保留的超龄决策记录维持，等人工对账");
+		Assertions.assertEquals(1, count(tableOf(onzServer, "commitIndex")), "保留的超龄决策记录维持，等人工对账");
 		Assertions.assertEquals(0, CancelCount, "无参与方上下文不得触发补偿");
 	}
 
@@ -174,14 +154,14 @@ public class TestFnd19GcD04SagaTtlNotFound {
 	@Test
 	@Timeout(120)
 	public void testRedoAgedCommitNotFoundStaysSilent() throws Exception {
-		waitOnzReady();
+		waitOnzReady(onzServer);
 		writeOrphanRecords(AgedCommitTid, AbstractOnz.eCommitting, Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs + 100_000);
 
-		invokeRedoTimer();
+		invokeRedoTimer(onzServer);
 
-		Assertions.assertEquals(0, count(tableOf("commitIndex")),
+		Assertions.assertEquals(0, count(tableOf(onzServer, "commitIndex")),
 				"commit决策的NotFound维持静默忽略，记录照常清理");
-		Assertions.assertEquals(0, count(tableOf("commitPoint")), "两表同生命周期：一起清理");
+		Assertions.assertEquals(0, count(tableOf(onzServer, "commitPoint")), "两表同生命周期：一起清理");
 		Assertions.assertFalse(agedNotFoundWarnedTids().contains(AgedCommitTid),
 				"commit决策（cancel=false）不得触发超龄NotFound分诊");
 	}
@@ -217,7 +197,7 @@ public class TestFnd19GcD04SagaTtlNotFound {
 		}
 	}
 
-	/** 手写孤儿决策两表（协调者崩溃残留形态，含"saga="前缀参与方）；ageMs=索引时戳回拨量。 */
+	/** 手写孤儿决策两表（协调者崩溃残留形态，含"saga="前缀参与方）；ageMs=索引时戳回拨量（支撑类收的是定龄121s版）。 */
 	private void writeOrphanRecords(long tid, int state, long ageMs) throws Exception {
 		var key = new byte[8];
 		ByteBuffer.longBeHandler.set(key, 0, tid);
@@ -225,19 +205,11 @@ public class TestFnd19GcD04SagaTtlNotFound {
 		saved.getOnzs().add("saga=zeze1"); // OH1-F1持久化编码：前缀区分saga参与方
 		var bbState = ByteBuffer.Allocate();
 		saved.encode(bbState);
-		tableOf("commitPoint").put(key, java.util.Arrays.copyOf(bbState.Bytes, bbState.WriteIndex));
+		tableOf(onzServer, "commitPoint").put(key, java.util.Arrays.copyOf(bbState.Bytes, bbState.WriteIndex));
 		var bbIndex = ByteBuffer.Allocate();
 		bbIndex.WriteUInt(state);
 		bbIndex.WriteLong8BE(System.currentTimeMillis() - ageMs);
-		tableOf("commitIndex").put(key, java.util.Arrays.copyOf(bbIndex.Bytes, bbIndex.WriteIndex));
-	}
-
-	private static int sagaCount(Zeze.Onz.Onz onz) throws Exception {
-		var field = Zeze.Onz.Onz.class.getDeclaredField("sagas");
-		field.setAccessible(true);
-		@SuppressWarnings("unchecked")
-		var map = (Zeze.Util.LongConcurrentHashMap<Object>)field.get(onz);
-		return map.size();
+		tableOf(onzServer, "commitIndex").put(key, java.util.Arrays.copyOf(bbIndex.Bytes, bbIndex.WriteIndex));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -245,70 +217,5 @@ public class TestFnd19GcD04SagaTtlNotFound {
 		var f = OnzServer.class.getDeclaredField("agedNotFoundWarnedTids");
 		f.setAccessible(true);
 		return (java.util.Set<Long>)f.get(onzServer);
-	}
-
-	private void invokeRedoTimer() throws Exception {
-		var m = OnzServer.class.getDeclaredMethod("redoTimer");
-		m.setAccessible(true);
-		m.invoke(onzServer);
-	}
-
-	@SuppressWarnings("unchecked")
-	private RocksDatabase.Table tableOf(String fieldName) throws Exception {
-		Field f = OnzServer.class.getDeclaredField(fieldName);
-		f.setAccessible(true);
-		return (RocksDatabase.Table)f.get(onzServer);
-	}
-
-	private static long count(RocksDatabase.Table table) throws Exception {
-		long n = 0;
-		try (var it = table.iterator()) {
-			for (it.seekToFirst(); it.isValid(); it.next())
-				n++;
-		}
-		return n;
-	}
-
-	private interface Condition {
-		boolean test() throws Exception;
-	}
-
-	private static void waitUntil(Condition condition, int timeoutMs, String message) throws Exception {
-		long deadline = System.currentTimeMillis() + timeoutMs;
-		while (!condition.test()) {
-			Assertions.assertTrue(System.currentTimeMillis() < deadline, message);
-			//noinspection BusyWait
-			Thread.sleep(50);
-		}
-	}
-
-	// 同 TestOnz.waitOnzReady：等订阅发现两侧集群并建连（getZezeInstance成功即perform就绪）。
-	private void waitOnzReady() throws InterruptedException {
-		var deadline = System.currentTimeMillis() + 60_000;
-		for (;;) {
-			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
-				return;
-			} catch (RuntimeException e) {
-				if (System.currentTimeMillis() > deadline)
-					throw e;
-				Thread.sleep(100);
-			}
-		}
-	}
-
-	private static void deleteRecursively(Path root) throws Exception {
-		if (!Files.exists(root))
-			return;
-		try (var walk = Files.walk(root)) {
-			walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-				try {
-					Files.delete(p);
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			});
-		}
 	}
 }

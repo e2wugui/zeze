@@ -437,12 +437,10 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	// 全量ready登记（按rpc对象）：开闸/降级时逐条应答用，只增不清（每条ready背后是一个
 	// 等待应答的参与方事务）。计数判据不在本集合上（见GC-D03的distinctParticipants）。
 	private final ConcurrentHashSet<Rpc<?, ?>> flushReadies = new ConcurrentHashSet<>();
-	// GC-D03：完成判据从"ready条数==参与方数"（按rpc对象身份聚合）改为按参与方身份去重
-	// 计数。某参与方flush失败重试（FND8-18，每次new FlushReady发出新rpc对象）在旧判据下
-	// 虚增计数，可在其余参与方尚未flush时满足——闸门提前打开、flushDone以"全部落盘"收场
-	// 而实际有参与方未flush，且无任何日志。distinctParticipants=已确认的不同参与方集合
-	// （key=FlushReady.Participant，参与方集群身份）；legacyReadies=空Participant（旧版本
-	// 参与方）按rpc对象身份兜底计数的兼容集合。
+	// GC-D03：完成判据按参与方身份去重计数——flush失败重试（FND8-18）每次new FlushReady
+	// 发出新的rpc对象，按rpc对象计数会被重试虚增（旧判据下闸门可提前打开且无任何日志）。
+	// distinctParticipants=已确认的不同参与方集合（key=FlushReady.Participant，参与方集群身份）；
+	// legacyReadies=空Participant（旧版本参与方）按rpc对象身份兜底计数的兼容集合。
 	private final Set<String> distinctParticipants = ConcurrentHashMap.newKeySet();
 	private final ConcurrentHashSet<Rpc<?, ?>> legacyReadies = new ConcurrentHashSet<>();
 	private final TaskCompletionSource<Integer> flushDone = new TaskCompletionSource<>();
@@ -479,8 +477,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				logger.warn("FlushReady without Participant (old client?), count by rpc identity. tid={}", onzTid);
 			legacyReadies.add(r);
 		} else if (!distinctParticipants.add(participant)) {
-			// 同一参与方的第二条ready：flush失败重试的正确性机制（不重试才是错误），不计数；
-			// warn是"防闸门提前打开"的直接信号——旧判据（按条数）下这条正是虚增计数的那条。
+			// 同一参与方第二条ready：flush失败重试的正确性机制，不计数，warn暴露重发。
 			logger.warn("duplicate FlushReady from same participant (flush retry?). tid={}, participant={}",
 					onzTid, participant);
 		}

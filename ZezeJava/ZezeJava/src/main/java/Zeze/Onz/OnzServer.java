@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
+import Zeze.Builtin.Onz.BCommit;
 import Zeze.Builtin.Onz.BSavedCommits;
 import Zeze.Builtin.Onz.Checkpoint;
 import Zeze.Builtin.Onz.Commit;
@@ -26,6 +28,7 @@ import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Data;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.TaskCompletionSource;
@@ -300,26 +303,7 @@ public class OnzServer extends AbstractOnz {
 					// 旧版本持久化的ip_port（升级窗口遗留的未决决策）：按地址建连兜底。
 					socket = openRedoConnection(zezeOnzs, zezeName).GetReadySocket();
 				}
-				Rpc<?, ?> rpc;
-				if (sagaName != null) {
-					var r = new FuncSagaEnd();
-					r.Argument.setOnzTid(tid);
-					r.Argument.setCancel(!commitDecision);
-					rpc = r;
-					// 等待超时见RedoSagaEndTimeoutMs。
-					futures.add(r.SendForWait(socket, RedoSagaEndTimeoutMs));
-				} else if (commitDecision) {
-					var r = new Commit();
-					r.Argument.setOnzTid(tid);
-					rpc = r;
-					futures.add(r.SendForWait(socket));
-				} else {
-					var r = new Rollback();
-					r.Argument.setOnzTid(tid);
-					rpc = r;
-					futures.add(r.SendForWait(socket));
-				}
-				rpcs.add(rpc);
+				rpcs.add(sendRedoDecision(socket, tid, sagaName, commitDecision, futures));
 			}
 			for (var e : futures)
 				e.await();
@@ -364,6 +348,24 @@ public class OnzServer extends AbstractOnz {
 			for (var zeze : zezeOnzs.values())
 				zeze.stop();
 		}
+	}
+
+	// redo的发送分流（OH1-F1，决策语义见redo）：saga参与方发FuncSagaEnd（cancel取反决策，
+	// 等待超时见RedoSagaEndTimeoutMs），procedure参与方发Commit/Rollback。
+	// future入列供统一await，返回rpc供结果码检查。
+	private static Rpc<?, ?> sendRedoDecision(AsyncSocket socket, long tid,
+			String sagaName, boolean commitDecision, List<TaskCompletionSource<?>> futures) {
+		if (sagaName != null) {
+			var r = new FuncSagaEnd();
+			r.Argument.setOnzTid(tid);
+			r.Argument.setCancel(!commitDecision);
+			futures.add(r.SendForWait(socket, RedoSagaEndTimeoutMs));
+			return r;
+		}
+		Rpc<BCommit.Data, EmptyBean.Data> r = commitDecision ? new Commit() : new Rollback();
+		r.Argument.setOnzTid(tid);
+		futures.add(r.SendForWait(socket));
+		return r;
 	}
 
 	void saveCommitPoint(byte[] tidBytes, BSavedCommits.Data bState, int state) throws RocksDBException {

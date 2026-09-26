@@ -2,13 +2,9 @@ package Onz;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Onz.AbstractOnz;
 import Zeze.Onz.OnzServer;
@@ -16,13 +12,13 @@ import Zeze.Serialize.ByteBuffer;
 import demo.App;
 import demo.Module1.BKuafu;
 import demo.Module1.BKuafuResult;
-import harness.TestEnv;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import static Onz.Fnd19GcOnzTestSupport.*;
 
 /**
  * FND19 GC-C03 回归：endSaga 的 FuncSagaEnd 用 rpc 默认5s超时，与 cancelSaga
@@ -45,17 +41,7 @@ public class TestFnd19GcC03EndSagaTimeout {
 
 	@BeforeEach
 	public void before() throws Exception {
-		// 第二对服务 SM(5011)/Global(5012) 由 TestEnvLauncherListener 在进程内自动启动。
-		Assumptions.assumeTrue(TestEnv.portReachable("127.0.0.1", 5011) && TestEnv.portReachable("127.0.0.1", 5012),
-				"第二对服务(5011/5012)不可用：zeze.test.env=off 时 TestEnvLauncherListener 不在进程内自动启动");
-
-		var myConfig = Config.load("zeze.xml");
-		var dbHome = "CommitOnzServer" + myConfig.getServerId();
-		deleteRecursively(Path.of(dbHome));
-
-		App.Instance.Start();
-		var config2 = Config.load("./zeze_cluster_2.xml");
-		zeze2.Start(config2);
+		var myConfig = startTwoClusters(zeze2);
 
 		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
 		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
@@ -65,16 +51,12 @@ public class TestFnd19GcC03EndSagaTimeout {
 					TestFnd19GcC03EndSagaTimeout::sagaSlow8s, TestFnd19GcC03EndSagaTimeout::sagaCancel,
 					BKuafu.class, BKuafuResult.class, Zeze.Transaction.EmptyBean.class);
 
-		onzServer = new OnzServer("zeze1=zeze.xml;zeze2=zeze_cluster_2.xml", myConfig);
-		onzServer.start();
+		onzServer = startOnzServer(myConfig);
 	}
 
 	@AfterEach
 	public void after() throws Exception {
-		// before() 被 Assumption 跳过时 onzServer 尚未创建；stop幂等
-		if (onzServer != null)
-			onzServer.stop();
-		zeze2.Stop();
+		stopCoordinator(onzServer, zeze2);
 	}
 
 	/** 业务睡眠8s后写入：FuncSagaEnd的应答（与businessLock互斥串行）必然晚于rpc默认5s。 */
@@ -95,7 +77,7 @@ public class TestFnd19GcC03EndSagaTimeout {
 	@Test
 	@Timeout(120)
 	public void testEndSagaWaitsFlushTimeoutNotRpcDefault() throws Exception {
-		waitOnzReady();
+		waitOnzReady(onzServer);
 
 		var txn = new NoStepTransaction();
 		txn.setOnzServer(onzServer); // 分配真实onzTid
@@ -150,14 +132,6 @@ public class TestFnd19GcC03EndSagaTimeout {
 		waitUntil(() -> sagaCount(App.Instance.Zeze.getOnz()) == 1, 30_000, "saga上下文未注册");
 	}
 
-	private static int sagaCount(Zeze.Onz.Onz onz) throws Exception {
-		var field = Zeze.Onz.Onz.class.getDeclaredField("sagas");
-		field.setAccessible(true);
-		@SuppressWarnings("unchecked")
-		var map = (Zeze.Util.LongConcurrentHashMap<Object>)field.get(onz);
-		return map.size();
-	}
-
 	private static long getMoney(long account) throws Exception {
 		var holder = new long[1];
 		App.Instance.Zeze.newProcedure(() -> {
@@ -176,49 +150,6 @@ public class TestFnd19GcC03EndSagaTimeout {
 			//noinspection BusyWait
 			Thread.sleep(50);
 			actual = getMoney(account);
-		}
-	}
-
-	private interface Condition {
-		boolean test() throws Exception;
-	}
-
-	private static void waitUntil(Condition condition, long timeoutMs, String message) throws Exception {
-		long deadline = System.currentTimeMillis() + timeoutMs;
-		while (!condition.test()) {
-			Assertions.assertTrue(System.currentTimeMillis() < deadline, message);
-			//noinspection BusyWait
-			Thread.sleep(50);
-		}
-	}
-
-	// 同 TestOnz.waitOnzReady：等订阅发现两侧集群并建连（getZezeInstance成功即perform就绪）。
-	private void waitOnzReady() throws InterruptedException {
-		var deadline = System.currentTimeMillis() + 60_000;
-		for (;;) {
-			try {
-				onzServer.getZezeInstance("zeze1");
-				onzServer.getZezeInstance("zeze2");
-				return;
-			} catch (RuntimeException e) {
-				if (System.currentTimeMillis() > deadline)
-					throw e;
-				Thread.sleep(100);
-			}
-		}
-	}
-
-	private static void deleteRecursively(Path root) throws Exception {
-		if (!Files.exists(root))
-			return;
-		try (var walk = Files.walk(root)) {
-			walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-				try {
-					Files.delete(p);
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			});
 		}
 	}
 }
