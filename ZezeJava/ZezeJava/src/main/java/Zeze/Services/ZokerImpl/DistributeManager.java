@@ -208,16 +208,19 @@ public class DistributeManager {
 	}
 
 	/**
-	 * GE-C01（FND21）：versionNo 与现役指针保留字 current 的碰撞判别——先剥尾部点/空格，
-	 * 再忽略大小写比较。Windows(Win32) 路径解析大小写不敏感且规范化剥尾部点/空格：
-	 * "Current"/"CURRENT" 与 current 是同一物理名字（exists 跨大小写命中，本机探针实证），
-	 * "current." 的 renameTo 落盘名就是 current——前者首次部署可把版本目录 rename 进指针
-	 * 固有位置（此后该服务一切 commit 恒 AccessDenied，容器报废），指针已存在时则命中指针
-	 * 文件跳过安装、switchCurrent 覆盖指针造成"返回 0 但 currentVersionDir 恒 null"的假成功；
-	 * 尾部点形态同链路（探针实证落盘名脱点后占位）。Linux（大小写敏感 FS）上 "Current" 本是
-	 * 合法版本名，一并排除零成本且跨平台同一 versionNo 得到同一裁决——两端都闭合。
-	 * 仅用于 versionNo：serviceName 与保留字无碰撞面（services/Current 是合法服务容器名），
-	 * 不得套用。
+	 * GE-C01（FND21）：versionNo 与容器根保留字（current 指针、run.pid 身份文件）的碰撞判别
+	 * ——先剥尾部点/空格，再忽略大小写比较。Windows(Win32) 路径解析大小写不敏感且规范化剥
+	 * 尾部点/空格："Current"/"CURRENT" 与 current 是同一物理名字（exists 跨大小写命中，本机
+	 * 探针实证），"current." 的 renameTo 落盘名就是 current——前者首次部署可把版本目录 rename
+	 * 进指针固有位置（此后该服务一切 commit 恒 AccessDenied，容器报废），指针已存在时则命中
+	 * 指针文件跳过安装、switchCurrent 覆盖指针造成"返回 0 但 currentVersionDir 恒 null"的假
+	 * 成功；尾部点形态同链路（探针实证落盘名脱点后占位）。Linux（大小写敏感 FS）上 "Current"
+	 * 本是合法版本名，一并排除零成本且跨平台同一 versionNo 得到同一裁决——两端都闭合。
+	 * GE-D01（FND21）：run.pid 同族扩入——它是容器根的进程身份文件（与 current 同层同碰撞面），
+	 * 版本目录 rename 占据该位置后 startService 的身份落盘（AtomicFileWriter 对目录目标
+	 * rename）恒失败 → 按"写盘失败=不交付"一切 start 恒 eStartFail（服务永不可启动，无自愈）。
+	 * 仅用于 versionNo：serviceName 与保留字无碰撞面（services/Current、services/run.pid
+	 * 都是合法服务容器名——保留字在容器<b>之内</b>，容器名本身单段即安全），不得套用。
 	 */
 	static boolean isReservedVersionName(String name) {
 		var end = name.length();
@@ -227,7 +230,8 @@ public class DistributeManager {
 				break;
 			end--;
 		}
-		return CURRENT_NAME.equalsIgnoreCase(name.substring(0, end));
+		var stripped = name.substring(0, end);
+		return CURRENT_NAME.equalsIgnoreCase(stripped) || ServiceManager.RUN_PID_NAME.equalsIgnoreCase(stripped);
 	}
 
 	// 错误码与 zoker.errorCode 同构（ModuleId*编码）；直构形态（zoker==null）下也要能返回协议错误码。

@@ -53,6 +53,9 @@ public class Zoker extends AbstractZoker {
 	}
 
 	public void start() throws Exception {
+		// GE-D01(FND21)：listen 前启动对账领养——上一代 Zoker 留下的孤儿先按 run.pid 身份核实
+		// 装账，start/stop/list 从第一帧起即跨 Zoker 重启连续（对账点=启动扫描，单一入口）。
+		processManager.adoptOrphans();
 		serverWithConnector.start();
 	}
 
