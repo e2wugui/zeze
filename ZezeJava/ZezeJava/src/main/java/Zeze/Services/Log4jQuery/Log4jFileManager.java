@@ -335,8 +335,12 @@ public class Log4jFileManager extends ReentrantLock {
 				}
 			}
 
-			// 补登：rotate按时间序插入到既有active条目之前（buildIndex只推进last==当前名的条目，active必须last；
-			// 直接追加会把active挤到中间，触发下方守卫把active重复登记——同一文件双条目，搜索结果重复）。
+			// 补登：rotate按时间序插入到既有active条目之前（锁内active推进要求active==last；直接追加会把
+			// active挤到中间，触发下方守卫把active重复登记——同一文件双条目，搜索结果重复）。
+			// 补登只做头部采样（GD-D01）：GB级轮转文件的全量扫描让锁内补登分钟级、watch线程（恢复场景
+			// 对账内联在其本尊上）被钉住、新CREATE事件堆积再触发OVERFLOW——"恢复动作自己制造下一轮丢失"。
+			// 采样后锁内只剩列表收敛+首条记录入索引（毫秒级，与单文件体量解耦）；余量由buildIndex锁外
+			// 续建通道增量补齐。两半缺一不可：只采样不续建=永久残索引、该条目查询永久线性定位。
 			if (!rotates.isEmpty()) {
 				var insertPos = files.size();
 				for (var i = files.size() - 1; i >= 0; --i) {
@@ -347,12 +351,14 @@ public class Log4jFileManager extends ReentrantLock {
 				}
 				for (var kv : rotates) {
 					var logFile = new File(logConf.logDir, kv.getValue());
-					files.add(insertPos++, Log4jFile.of(logFile, loadIndex(logFile, kv.getValue() + ".index")));
+					files.add(insertPos++, Log4jFile.of(logFile,
+							sampleIndexHead(logFile, openIndex(kv.getValue() + ".index"))));
 				}
 			}
 			if (activeOnDisk && (files.isEmpty() || !files.getLast().file.getName().equals(getCurrentLogFileName()))) {
 				var activeFile = new File(logConf.logDir, getCurrentLogFileName());
-				files.add(Log4jFile.of(activeFile, loadIndex(activeFile, getCurrentIndexFileName())));
+				files.add(Log4jFile.of(activeFile,
+						sampleIndexHead(activeFile, openIndex(getCurrentIndexFileName()))));
 			}
 		} catch (Exception ex) {
 			// 单轮对账失败不打断周期任务，下轮重试。
@@ -481,21 +487,51 @@ public class Log4jFileManager extends ReentrantLock {
 		return new File(linkDir, String.valueOf(max + 1));
 	}
 
-	private LogIndex loadIndex(File logFile, String logIndexFileName) throws Exception {
+	/**
+	 * 打开（必要时创建）索引文件并装载LogIndex，不扫描日志文件：current索引经硬链接打开——写走
+	 * 链接仍落原文件，且manager持链接引用使轮转rename后旧LogIndex的mmap按inode仍有效（改指条目随行）；
+	 * 非current名直接打开（文件不存在时LogIndex构造内创建）。
+	 */
+	private LogIndex openIndex(String logIndexFileName) throws Exception {
+		var indexFile = new File(logConf.logDir, logIndexFileName);
 		if (logIndexFileName.equals(getCurrentIndexFileName())) {
-			var indexFile = new File(logConf.logDir, logIndexFileName);
 			if (!indexFile.exists()) {
 				Files.createFile(indexFile.toPath());
 			}
 			var linkFile = nextLinkFile();
 			var linkPath = Files.createLink(linkFile.toPath(), indexFile.toPath());
-			var index = new LogIndex(linkPath.toFile());
-			return loadIndex(logFile, index);
+			return new LogIndex(linkPath.toFile());
 		}
+		return new LogIndex(indexFile);
+	}
 
-		var indexFile = new File(logConf.logDir, logIndexFileName);
-		var index = new LogIndex(indexFile);
-		return loadIndex(logFile, index);
+	private LogIndex loadIndex(File logFile, String logIndexFileName) throws Exception {
+		return loadIndex(logFile, openIndex(logIndexFileName));
+	}
+
+	/**
+	 * 头部采样（GD-D01）：扫描到首条记录入索引即停——beginTime可用的最小充分集，不是妥协：
+	 * 空索引beginTime=Long.MAX_VALUE使seek选中条件恒假（空表不能入列），首条之后任意time的
+	 * 正确定位由getIndexOffset回退offset 0 + detailSeek线性推进兜底（既有行为，非新机制）。
+	 * 扫描向前使首条即最早、此后不变，beginTime在COW发布前写入（安全发布）。
+	 * 非空索引（既有索引的补登场景，如条目摘除后文件回归）退化为一次常规增量步进：从endTime续、
+	 * 最多读一个10s窗口即得首条合格记录，追加有序不破坏二分。读取量与文件体量无关（毫秒级）。
+	 */
+	private LogIndex sampleIndexHead(File logFile, LogIndex index) throws Exception {
+		var lastIndexTime = index.getEndTime();
+		try (var log = new Log4jFileSession(logFile, null, logConf.charsetName, logConf.logTimeFormat)) {
+			var offset = index.lowerBound(lastIndexTime); // 空索引=-1：seek不动作，会话停在文件头
+			log.seek(offset, lastIndexTime);
+			while (log.hasNext()) {
+				var next = log.next();
+				if (next.getTime() - lastIndexTime >= 10_000) {
+					// 每10s建立一条索引；首条即最早：直接入索引即返回。
+					index.addIndex(next.getTime(), next.getOffset());
+					break;
+				}
+			}
+		}
+		return index;
 	}
 
 	private LogIndex loadIndex(File logFile, LogIndex index) throws Exception {
@@ -525,6 +561,28 @@ public class Log4jFileManager extends ReentrantLock {
 
 	private void buildIndex() {
 		reconcile(); // 低频对账（GD-D02）：挂在buildIndexTimer上，先把files收敛到磁盘真相，再推进索引。
+		// 锁外增量续建全部非active条目（GD-D01）：补登头部采样只保证条目可入列，余量在此收敛——
+		// 该通道对补登条目此前并不存在（旧代码只推进last==当前名，而补登rotate恰插在active之前，永远轮不到），
+		// 两半缺一不可。锁外正当性：loadIndex(File,LogIndex)只触碰(logFile,index)二元组、不读写files，
+		// LogIndex自带rwLock（查询路径本就与其无锁并发），manager锁真正要保的只有files变更与轮转
+		// "索引改名+条目改指"的串行——锁内全量扫描是历史形状，不是正确性需求；sealed rotate内容不可变、
+		// 不参与改名/改指，锁外安全。新→旧序使近期时间窗最先获得精确跳转；逐条目隔离异常：单文件损坏/
+		// 消失只损失该条目本轮续建，不再中止整轮（旧代码单catch包全局）。
+		// COW toArray是快照语义：锁外遍历期间watch线程的并发摘除/补登不移花接木；被摘除条目的续建
+		// 读已失效文件，异常由逐条目隔离吞掉，无害。
+		var snapshot = files.toArray(new Log4jFile[0]);
+		for (var i = snapshot.length - 1; i >= 0; --i) {
+			var entry = snapshot[i];
+			if (entry.file.getName().equals(getCurrentLogFileName()))
+				continue; // active条目不走锁外（file为volatile，reconcile改指后此处即时可见）：见下方锁内推进。
+			try {
+				loadIndex(entry.file, entry.index);
+			} catch (Exception ex) {
+				logger.error("buildIndex entry fail: {}", entry.file, ex);
+			}
+		}
+		// active条目维持锁内推进现状（GD-D01）：GD-C03错位检测（repointMissedRotation读endTime对照
+		// 文件长度）与case-1改名/改指依赖addIndex与轮转处理同锁串行——移出锁会重建R1刚关闭的竞态窗口。
 		lock();
 		try {
 			if (files.isEmpty())
