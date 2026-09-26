@@ -279,7 +279,16 @@ public class MQSingle extends ReentrantLock {
 		// 锁外持索引迭代器与文件读，与 rocksDatabase.close 并发属 native use-after-free
 		// （RocksDatabase.close 契约）。超预算仅告警继续（与 Application 停机的有界等待口径一致，
 		// 不引入无限等待）。
-		var fill = messageFillFuture;
+		// 读取必须在分区锁内（增量审R1-01）：tryStartBackgroundFill 的 stopped检查+future赋值
+		// 持同锁原子——锁内读要么看到已提交的future（排空它），要么读到null且此后新提交必被
+		// stopped拒绝（stop先于queue.close置位），消除锁外读漏掉临界提交的窗口。
+		Future<?> fill;
+		lock();
+		try {
+			fill = messageFillFuture;
+		} finally {
+			unlock();
+		}
 		if (null != fill) {
 			var manager = mqPartition.getManager();
 			var budgetMs = (null != manager ? manager.getMqConfig().getRpcTimeout() : 20_000) + 5_000L;

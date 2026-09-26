@@ -170,6 +170,10 @@ public class MQManager extends AbstractMQManager {
 	}
 
 	protected long createPartition(CreatePartition r) {
+		// 与ProcessSendMessageRequest同款停机闸（增量审R1-02）：stop的queues快照之后执行时，
+		// new MQSingle构造即触rocksdb，与rocksDatabase.close并发（use-after-free契约）。
+		if (stopped)
+			return Procedure.Closed;
 		createPartition(r.Argument.getTopic(), r.Argument.getPartitionIndexes());
 		r.SendResult();
 		return 0;
