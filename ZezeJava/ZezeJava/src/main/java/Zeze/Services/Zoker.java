@@ -93,18 +93,21 @@ public class Zoker extends AbstractZoker {
 		return 0;
 	}
 
+	// CloseFile 错误码路径（GE-D04 三态）：eCloseError=系统异常；eNotOpened=文件不在传输中
+	// （未Open/已收尾/断链回收后补发——agent重连补发的close走此路径，不再谎报校验成功）；
+	// eMd5Mismatch=校验失败（服务端已删除损坏中间产物，重传从0开始）。
 	@Override
 	protected long ProcessCloseFileRequest(Zeze.Builtin.Zoker.CloseFile r) throws Exception {
-		boolean verify;
+		long rc;
 		try {
-			verify = distributeManager.closeAndVerify(r.Argument.getServiceName(),
+			rc = distributeManager.closeAndVerify(r.Argument.getServiceName(),
 					r.Argument.getFileName(), r.Argument.getMd5(), r.getSender());
 		} catch (Exception e) {
 			logger.error("CloseFile {}/{}", r.Argument.getServiceName(), r.Argument.getFileName(), e);
 			return errorCode(eCloseError);
 		}
-		if (!verify)
-			return errorCode(eMd5Mismatch);
+		if (rc != 0)
+			return rc;
 		r.SendResult();
 		return 0;
 	}
@@ -121,9 +124,13 @@ public class Zoker extends AbstractZoker {
 		return 0;
 	}
 
+	// StartService 的失败映射协议错误码（GE-D01）：eNoServiceProperties=缺少部署描述文件
+	// service.properties（含无现役版本）；eStartFail=进程创建失败。不再异常上抛（无结果包=客户端超时）。
 	@Override
 	protected long ProcessStartServiceRequest(Zeze.Builtin.Zoker.StartService r) {
-		processManager.startService(r);
+		var rc = processManager.startService(r);
+		if (rc != 0)
+			return rc;
 		r.SendResult();
 		return 0;
 	}

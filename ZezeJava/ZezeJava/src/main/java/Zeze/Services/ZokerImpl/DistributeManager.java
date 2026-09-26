@@ -106,7 +106,14 @@ public class DistributeManager {
 		fileBin.append(offset, data);
 	}
 
-	public boolean closeAndVerify(String serviceName, String fileName, Binary md5, AsyncSocket sender)
+	/**
+	 * 关闭并校验，三态返回协议错误码（GE-D04 方案A）：
+	 * 0=校验一致（文件保留，等待commit消费）；
+	 * eNotOpened=文件不在传输中（未Open/已收尾/断链回收后补发的close），不再谎报成功；
+	 * eMd5Mismatch=校验失败，close 后删除物理文件（暂存区损坏中间产物无保留价值），
+	 * 下次 OpenFile 从 0 续传，状态机闭合——坏起点不再占位把续传打回人工清理。
+	 */
+	public long closeAndVerify(String serviceName, String fileName, Binary md5, AsyncSocket sender)
 			throws IOException {
 		var relativeCanonicalFileName = fileKey(new File(serviceName, fileName).getPath());
 		FileBin fileBin;
@@ -122,12 +129,17 @@ public class DistributeManager {
 				}
 			}
 		}
-		if (null != fileBin) {
-			fileBin.close();
-			var md5Local = fileBin.md5Digest();
-			return Arrays.compare(md5Local, md5.bytesUnsafe()) == 0;
+		if (null == fileBin)
+			return err(Zoker.eNotOpened);
+		fileBin.close();
+		var md5Local = fileBin.md5Digest();
+		if (Arrays.compare(md5Local, md5.bytesUnsafe()) != 0) {
+			// 删除失败仅告警：文件已close无句柄占用，正常不会失败；残留等下次md5失败重试删除
+			if (!fileBin.getCanonicalFile().delete())
+				logger.error("closeAndVerify md5 mismatch, delete corrupt file fail: {}", fileBin.getCanonicalFile());
+			return err(Zoker.eMd5Mismatch);
 		}
-		return true;
+		return 0;
 	}
 
 	/** agent断链（ZokerService.OnSocketClose）时回收该连接打开的全部FileBin。 */

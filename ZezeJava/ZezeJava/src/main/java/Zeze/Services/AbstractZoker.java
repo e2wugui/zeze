@@ -20,10 +20,13 @@ public abstract class AbstractZoker implements Zeze.IModule {
     public static final int eOpenError = 1; // 打开文件发生了系统错误
     public static final int eAppendOffset = 2; // 添加数据时，Offset越界了（超出结尾）
     public static final int eCloseError = 3; // 关闭文件发生了系统错误
-    public static final int eMd5Mismatch = 4; // 关闭文件时，验证md5失败
-    public static final int eServiceOldExists = 5; // 发布更新服务时，发现备份目录存在
-    public static final int eMoveOldFail = 6; // 发布更新服务时，备份失败
+    public static final int eMd5Mismatch = 4; // 关闭文件时，验证md5失败（服务端已清场，重传从0开始）
+    public static final int eServiceOldExists = 5; // 发布更新服务时，发现备份目录存在（版本目录布局下为遗留语义，不再返回）
+    public static final int eMoveOldFail = 6; // 发布更新服务时，备份失败（版本目录布局下为遗留语义，不再返回）
     public static final int eCommitFail = 7; // 发布更新服务时，发布服务失败
+    public static final int eNotOpened = 8; // CloseFile的文件不在传输中（未Open/已收尾/断链回收后补发）
+    public static final int eNoServiceProperties = 9; // 启动服务缺少部署描述文件 service.properties
+    public static final int eStartFail = 10; // 启动服务进程失败
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());

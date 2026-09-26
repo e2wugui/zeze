@@ -1702,10 +1702,13 @@
 			<enum name="eOpenError"       value="1"/> 打开文件发生了系统错误
 			<enum name="eAppendOffset" value="2"/> 添加数据时，Offset越界了（超出结尾）
 			<enum name="eCloseError"       value="3"/> 关闭文件发生了系统错误
-			<enum name="eMd5Mismatch"  value="4"/> 关闭文件时，验证md5失败
-			<enum name="eServiceOldExists"  value="5"/> 发布更新服务时，发现备份目录存在
-			<enum name="eMoveOldFail"  value="6"/> 发布更新服务时，备份失败
+			<enum name="eMd5Mismatch"  value="4"/> 关闭文件时，验证md5失败（服务端已清场，重传从0开始）
+			<enum name="eServiceOldExists"  value="5"/> 发布更新服务时，发现备份目录存在（版本目录布局下为遗留语义，不再返回）
+			<enum name="eMoveOldFail"  value="6"/> 发布更新服务时，备份失败（版本目录布局下为遗留语义，不再返回）
 			<enum name="eCommitFail"  value="7"/> 发布更新服务时，发布服务失败
+			<enum name="eNotOpened"  value="8"/> CloseFile的文件不在传输中（未Open/已收尾/断链回收后补发）
+			<enum name="eNoServiceProperties"  value="9"/> 启动服务缺少部署描述文件 service.properties
+			<enum name="eStartFail"  value="10"/> 启动服务进程失败
 
 			<bean name="BOpenFile">
 				<variable id="1" name="ServiceName" type="string"/>
@@ -1764,12 +1767,12 @@
 			<rpc name="StopService" argument="BStopService" result="BService"  handle="server"/>
 
 			<!--
-			service.xml 定义服务一些参数：path,main,argument
+			service.properties 定义服务启动参数（command/args/env），随分发内容自带，
+			commitService 原样落盘；启动时从 current 版本目录读取。
 			-->
 			<!--
 			目录安排
-			zoker/services/（程序配置目录）
-			zoker/servicesold/（旧版本的程序配置目录，rename过来的）
+			zoker/services/<svc>/<versionNo>/（版本化的程序配置目录）+ current 指针文件（内容=现役版本号）
 			zoker/logs（日志输出）
 			zoker/datas（本地数据，如数据库，现在linkd,serverd都不需要，保留）（serverd的本地cache数据不是持久数据，不包含这里）
 			例子：

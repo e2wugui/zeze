@@ -179,6 +179,7 @@ public class HotAgent extends AbstractHotAgent {
 			var fileRelativeName = distributeDir.toPath().relativize(file.toPath()).toString().replace("\\", "/");
 			var md5 = MessageDigest.getInstance("MD5");
 			var fileOffset = openFile(fileRelativeName);
+			var primary = (Exception)null;
 			try (var bis = new BufferedInputStream(new FileInputStream(file))) {
 				md5To(md5, bis, fileOffset);
 				var buffer = new byte[16 * 1024];
@@ -188,8 +189,21 @@ public class HotAgent extends AbstractHotAgent {
 					appendFile(fileRelativeName, fileOffset, buffer, 0, rc);
 					fileOffset += rc;
 				}
+			} catch (Exception e) {
+				primary = e;
+				throw e;
 			} finally {
-				closeFile(fileRelativeName, new Binary(md5.digest()));
+				// finally收尾的close失败不得顶替原始传输异常（GE-D04客户端对齐，
+				// 与ZokerAgent同构）：正常路径close失败照抛。
+				if (null == primary)
+					closeFile(fileRelativeName, new Binary(md5.digest()));
+				else {
+					try {
+						closeFile(fileRelativeName, new Binary(md5.digest()));
+					} catch (Exception suppressed) {
+						primary.addSuppressed(suppressed);
+					}
+				}
 			}
 		}
 	}
@@ -202,6 +216,7 @@ public class HotAgent extends AbstractHotAgent {
 		var fileRelativeName = file.getName();
 		var md5 = MessageDigest.getInstance("MD5");
 		var fileOffset = openFile(fileRelativeName);
+		var primary = (Exception)null;
 		try (var bis = new BufferedInputStream(new FileInputStream(file))) {
 			md5To(md5, bis, fileOffset);
 			var buffer = new byte[16 * 1024];
@@ -211,8 +226,20 @@ public class HotAgent extends AbstractHotAgent {
 				appendFile(fileRelativeName, fileOffset, buffer, 0, rc);
 				fileOffset += rc;
 			}
+		} catch (Exception e) {
+			primary = e;
+			throw e;
 		} finally {
-			closeFile(fileRelativeName, new Binary(md5.digest()));
+			// 同上：close失败不得顶替原始传输异常（GE-D04客户端对齐）。
+			if (null == primary)
+				closeFile(fileRelativeName, new Binary(md5.digest()));
+			else {
+				try {
+					closeFile(fileRelativeName, new Binary(md5.digest()));
+				} catch (Exception suppressed) {
+					primary.addSuppressed(suppressed);
+				}
+			}
 		}
 	}
 
