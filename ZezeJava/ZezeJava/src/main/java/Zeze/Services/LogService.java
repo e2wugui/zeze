@@ -76,12 +76,29 @@ public class LogService extends AbstractLogService {
 		passiveIp = kv.getKey();
 		passivePort = kv.getValue();
 		// build serviceIdentity
-		for (var logConf : logConfs.getLogConfs().values()) {
-			logManagers.put(logConf.getName(), new Log4jFileManager(logConf));
-		}
+		buildLogManagers(logConfs, logManagers);
 		logConfs.formatServiceIdentity(conf.getServerId(), passiveIp, passivePort);
 		serviceManager = Application.createServiceManager(conf, "LogServiceServer");
 		RegisterProtocols(server);
+	}
+
+	/**
+	 * 逐LogConf构造manager（案外#3）：多manager中途失败时回收前面已成功者的detector线程与索引定时器
+	 * （对齐GD-C07单manager构造内回收形态）——嵌入宿主进程时不泄漏；standalone main随进程退出无害。
+	 * 中途失败的manager自身由GD-C07在其构造内回收，未入表无需再管。
+	 */
+	private static void buildLogManagers(LogServiceConf logConfs,
+										 ConcurrentHashMap<String, Log4jFileManager> logManagers) throws Exception {
+		try {
+			for (var logConf : logConfs.getLogConfs().values()) {
+				logManagers.put(logConf.getName(), new Log4jFileManager(logConf));
+			}
+		} catch (Exception e) {
+			for (var manager : logManagers.values())
+				manager.stop();
+			logManagers.clear();
+			throw e;
+		}
 	}
 
 	public void start() throws Exception {
