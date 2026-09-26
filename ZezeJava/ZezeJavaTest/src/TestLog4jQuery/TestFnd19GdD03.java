@@ -5,12 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static harness.DirCleanup.deleteBestEffort;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.jupiter.api.AfterEach;
@@ -167,21 +167,6 @@ public class TestFnd19GdD03 {
 			if (null != closeFail)
 				throw closeFail;
 			closed = true;
-		}
-	}
-
-	// 尽力删除：mmap钉住的文件留给系统临时目录清理。
-	private static void deleteBestEffort(Path dir) {
-		try (var walk = Files.walk(dir)) {
-			walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-				try {
-					Files.delete(p);
-				} catch (IOException e) {
-					// ignore
-				}
-			});
-		} catch (IOException e) {
-			// ignore
 		}
 	}
 }

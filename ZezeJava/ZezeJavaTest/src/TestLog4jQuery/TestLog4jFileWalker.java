@@ -3,15 +3,14 @@ package TestLog4jQuery;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static harness.DirCleanup.deleteBestEffort;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -140,20 +139,5 @@ public class TestLog4jFileWalker {
 			Thread.sleep(50);
 		}
 		return true;
-	}
-
-	// 不用@TempDir：LogIndex的mmap在Windows下持有索引文件句柄，目录删不掉会让JUnit清理阶段失败。
-	private static void deleteBestEffort(Path dir) {
-		try (var walk = Files.walk(dir)) {
-			walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-				try {
-					Files.delete(p);
-				} catch (IOException e) {
-					// 尽力删除，留給系统临时目录清理。
-				}
-			});
-		} catch (IOException e) {
-			// ignore
-		}
 	}
 }

@@ -2,11 +2,10 @@ package TestLog4jQuery;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static harness.DirCleanup.deleteBestEffort;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,19 +50,5 @@ public class TestFnd19ManagerConstructFailCleanup {
 		assertFalse(Files.exists(activeIndex), "构造失败后detector线程应已join，不得再处理文件创建事件");
 
 		deleteBestEffort(logDir);
-	}
-
-	private static void deleteBestEffort(Path dir) {
-		try (var walk = Files.walk(dir)) {
-			walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-				try {
-					Files.delete(p);
-				} catch (IOException e) {
-					// ignore
-				}
-			});
-		} catch (IOException e) {
-			// ignore
-		}
 	}
 }

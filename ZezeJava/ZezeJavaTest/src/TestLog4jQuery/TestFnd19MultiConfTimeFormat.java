@@ -2,6 +2,7 @@ package TestLog4jQuery;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static harness.DirCleanup.deleteBestEffort;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -11,7 +12,6 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -121,19 +121,5 @@ public class TestFnd19MultiConfTimeFormat {
 		session.searchContains(result, -1, -1, List.of("zzz"), BCondition.ContainsNone, 100);
 		session.close();
 		return result.size();
-	}
-
-	private static void deleteBestEffort(Path dir) {
-		try (var walk = Files.walk(dir)) {
-			walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-				try {
-					Files.delete(p);
-				} catch (IOException e) {
-					// ignore
-				}
-			});
-		} catch (IOException e) {
-			// ignore
-		}
 	}
 }

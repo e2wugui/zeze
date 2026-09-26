@@ -3,12 +3,12 @@ package TestLog4jQuery;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static harness.DirCleanup.deleteBestEffort;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -123,19 +123,5 @@ public class TestFnd19IndexLinks {
 		Method method = Log4jFileManager.class.getDeclaredMethod("onFileCreated", Path.class);
 		method.setAccessible(true);
 		method.invoke(manager, path);
-	}
-
-	private static void deleteBestEffort(Path dir) {
-		try (var walk = Files.walk(dir)) {
-			walk.sorted(Comparator.reverseOrder()).forEach(p -> {
-				try {
-					Files.delete(p);
-				} catch (IOException e) {
-					// ignore
-				}
-			});
-		} catch (IOException e) {
-			// ignore
-		}
 	}
 }
