@@ -262,8 +262,14 @@ public class MasterDatabase {
 
 			splitting.buckets.remove(to.getKeyFirst());
 			table.buckets.put(to.getKeyFirst(), to);
-			if (from != null)
+			// 不变量：合法split恒from.keyFirst<to.keyFirst（locateMiddle取的中位key严格大于源桶首key）。
+			// >=仅出现在move被recoverSplitting的data[0]==keyFirst启发式误判为split时
+			//（from=[M,M)空区间，to即move目标）：此时按endMove语义不put from——to的put已是
+			// move完成的正确终态，from的put会把刚发布的新桶覆盖回死源桶，[M,L)键域在master表永久丢失。
+			if (from != null && from.getKeyFirst().compareTo(to.getKeyFirst()) < 0)
 				table.buckets.put(from.getKeyFirst(), from); // replace
+			else if (from != null)
+				logger.error("settleSplitting from.keyFirst>=to.keyFirst, skip from. from={} to={}", from, to);
 
 			try (var batch = rocksDb.newBatch()) {
 				var bbTable = table.encode();

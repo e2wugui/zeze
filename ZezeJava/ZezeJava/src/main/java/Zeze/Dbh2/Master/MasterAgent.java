@@ -22,8 +22,11 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Action3;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskSpec;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class MasterAgent extends AbstractMasterAgent {
+	private static final Logger logger = LogManager.getLogger(MasterAgent.class);
 	public static final String eServiceName = "Zeze.Dbh2.Master.Agent";
 	private final Service service;
 	private ProtocolHandle<CreateBucket> createBucketHandle;
@@ -84,7 +87,10 @@ public class MasterAgent extends AbstractMasterAgent {
 		var r = new CreateTable();
 		r.Argument.setDatabase(database);
 		r.Argument.setTable(table);
-		r.Send(service.GetSocket(), (p) -> {
+		// Send失败（连接空窗GetSocket()==null）不建rpc上下文、不派发回调：必须显式回调暂时性失败码，
+		// 否则Dbh2Table.ready永不完成，waitReady永久挂起（旁路createTableWithRetry的预算）。
+		// eTooFewManager=资源暂时不足类码：走白名单重试，autoReconnect恢复后照常建表。
+		if (!r.Send(service.GetSocket(), (p) -> {
 			var rc = r.getResultCode();
 			if (rc == 0) {
 				callback.run(0, false, r.Result);
@@ -96,7 +102,14 @@ public class MasterAgent extends AbstractMasterAgent {
 					callback.run(error, false, null);
 			}
 			return 0;
-		}, 60_000);
+		}, 60_000)) {
+			logger.warn("createTableAsync send fail (no master connection). db={} table={}", database, table);
+			try {
+				callback.run(eTooFewManager, false, null);
+			} catch (Exception e) {
+				logger.error("createTableAsync callback error", e);
+			}
+		}
 	}
 
 	public MasterTable.Data getBuckets(String database, String table) {
@@ -166,16 +179,26 @@ public class MasterAgent extends AbstractMasterAgent {
 			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
 	}
 
+	// end重试间隔（对齐GA-D04 createTableRetryBudgetMs形态）：非final便于测试收缩。
+	static volatile long endRetryDelayMs = 30_000L;
+
 	public void endMoveWithRetryAsync(BBucketMeta.Data to) {
 		var r = new EndMove();
 		r.Argument.setTo(to);
 		if (!r.Send(service.GetSocket(), (p) -> {
 			if (p.getResultCode() != 0) {
-				TaskSpec.ofAction(() -> endMoveWithRetryAsync(to)).schedule(30_000);
+				// eSplittingBucketNotFound=首次settle已成功、仅响应丢失（重发时splitting表中已无该桶）：
+				// 幂等完成的证据，视为成功停止重试。
+				if (IModule.getErrorCode(p.getResultCode()) != eSplittingBucketNotFound) {
+					logger.warn("endMove fail, retry later. error={} to={}",
+							IModule.getErrorCode(p.getResultCode()), to);
+					TaskSpec.ofAction(() -> endMoveWithRetryAsync(to)).schedule(endRetryDelayMs);
+				} else
+					logger.info("endMove already settled. to={}", to);
 			}
 			return 0;
 		})) {
-			TaskSpec.ofAction(() -> endMoveWithRetryAsync(to)).schedule(30_000);
+			TaskSpec.ofAction(() -> endMoveWithRetryAsync(to)).schedule(endRetryDelayMs);
 		}
 	}
 
@@ -185,11 +208,17 @@ public class MasterAgent extends AbstractMasterAgent {
 		r.Argument.setTo(to);
 		if (!r.Send(service.GetSocket(), (p) -> {
 			if (p.getResultCode() != 0) {
-				TaskSpec.ofAction(() -> endSplitWithRetryAsync(from, to)).schedule(30_000);
+				// 同endMove：eSplittingBucketNotFound是幂等完成的证据，停止重试。
+				if (IModule.getErrorCode(p.getResultCode()) != eSplittingBucketNotFound) {
+					logger.warn("endSplit fail, retry later. error={} from={} to={}",
+							IModule.getErrorCode(p.getResultCode()), from, to);
+					TaskSpec.ofAction(() -> endSplitWithRetryAsync(from, to)).schedule(endRetryDelayMs);
+				} else
+					logger.info("endSplit already settled. from={} to={}", from, to);
 			}
 			return 0;
 		})) {
-			TaskSpec.ofAction(() -> endSplitWithRetryAsync(from, to)).schedule(30_000);
+			TaskSpec.ofAction(() -> endSplitWithRetryAsync(from, to)).schedule(endRetryDelayMs);
 		}
 	}
 

@@ -325,7 +325,12 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			} else {
 				// 分桶过程中，可能存在Last之后的数据，必须根据Last的情况定位，不能直接使用seekToLast。
 				var lastKey = stateMachine.getBucket().getBucketMeta().getKeyLast();
-				if (lastKey.size() > 0)
+				// 定位与过滤一致：prefix时定位到目标前缀的结尾（与keyLast取更小者），否则桶内混存的
+				// 更大前缀key会让首个循环立即判定桶尾，本桶目标前缀的记录被静默跳过。
+				var prefixUpper = prefix.size() > 0 ? prefixUpperBound(prefix) : null;
+				if (prefixUpper != null && (lastKey.size() == 0 || prefixUpper.compareTo(lastKey) < 0))
+					it.seekForPrev(prefixUpper.copyIf());
+				else if (lastKey.size() > 0)
 					it.seekForPrev(lastKey.copyIf());
 				else
 					it.seekToLast();
@@ -351,6 +356,19 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 	}
 
+	// prefix的上界（大于一切以prefix开头的key的最小byte串）：从后往前找首个非0xFF字节加一截断；
+	// 全0xFF时无有限上界返回null（该前缀即最大可能前缀，桶内最大key就是目标前缀的结尾，走keyLast/seekToLast定位）。
+	private static Binary prefixUpperBound(Binary prefix) {
+		var bytes = prefix.toBytes(); // 必须副本：原地加一会改掉调用方的prefix
+		for (var i = bytes.length - 1; i >= 0; --i) {
+			if (bytes[i] != -1) {
+				++bytes[i];
+				return new Binary(bytes, 0, i + 1);
+			}
+		}
+		return null;
+	}
+
 	private boolean walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, Binary prefix,
 						 Action2<Binary, RocksIterator> fill) throws Exception {
 		if (desc) {
@@ -360,6 +378,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		try (var it = stateMachine.getBucket().getData().iterator()) {
 			if (exclusiveStartKey.size() > 0)
 				it.seek(exclusiveStartKey.copyIf());
+			else if (prefix.size() > 0)
+				it.seek(prefix.copyIf()); // 定位与过滤一致：空游标时从前缀起始开始（见walkDesc同款注释）
 			else
 				it.seekToFirst();
 
@@ -377,7 +397,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 					break;
 				}
 				// 如果使用了prefix，那么发现了新的prefix时，也表示搜索结束。
-				if (prefix.size() >= 0 && !key.startsWith(prefix)) {
+				if (prefix.size() > 0 && !key.startsWith(prefix)) {
 					bucketEnd = true;
 					break;
 				}

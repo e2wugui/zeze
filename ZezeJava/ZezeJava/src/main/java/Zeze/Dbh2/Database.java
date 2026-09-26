@@ -19,6 +19,7 @@ import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Transaction.TableWalkKeyRaw;
 import Zeze.Util.KV;
@@ -286,15 +287,19 @@ public class Database extends Zeze.Transaction.Database {
 		@Override
 		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey,
 											 int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
+			// desc空起点游标必须传null（walkPage转Binary.Empty）：addPrefix(null)=裸4字节prefix，
+			// 服务端seekForPrev(裸prefix)落在目标前缀区间下方的异前缀key上，恒返回空。
+			// 非空游标照旧加前缀（服务端seekForPrev全键定位）。
 			return removePrefix(dbh2AgentManager.walk(masterAgent, masterName, databaseName, table.getName(),
-					addPrefix(exclusiveStartKey), proposeLimit, callback, true, prefix));
+					exclusiveStartKey != null ? addPrefix(exclusiveStartKey) : null, proposeLimit, callback, true, prefix));
 		}
 
 		@Override
 		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey,
 												int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
+			// 同walkDesc：desc空起点游标传null，不走裸prefix；非空游标照旧加前缀。
 			return removePrefix(dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, table.getName(),
-					addPrefix(exclusiveStartKey), proposeLimit, callback, true, prefix));
+					exclusiveStartKey != null ? addPrefix(exclusiveStartKey) : null, proposeLimit, callback, true, prefix));
 		}
 	}
 
@@ -371,6 +376,9 @@ public class Database extends Zeze.Transaction.Database {
 		// 建表异步重试（GA-D04）：eTableNotFound/eTooFewManager是master/manager空窗的暂时性失败
 		//（master侧createTable幂等：存在即返回，重试无重复建桶副作用），1s起指数退避封顶30s，
 		// 超总预算才setException；其他错误码（配置类，如eDatabaseNotFound）立即失败。
+		// Procedure.Exception（-1）：master侧handler异常逃逸（createBucketRafts超时/建桶rpc失败等）
+		// 被noProcedure派发层统一翻成的码——扩容滚动窗口的现实暂时性失败，码面无法区分暂时/永久，
+		// 重试并以总预算兜底（FND20 GA-C04）。
 		private void createTableWithRetry(long retryDelayMs, long deadlineMs) {
 			dbh2AgentManager.createTableAsync(
 					Database.this.masterAgent, Database.this.masterName,
@@ -381,7 +389,8 @@ public class Database extends Zeze.Transaction.Database {
 							ready.setResult(0);
 							return;
 						}
-						if (rc != MasterAgent.eTableNotFound && rc != MasterAgent.eTooFewManager) {
+						if (rc != MasterAgent.eTableNotFound && rc != MasterAgent.eTooFewManager
+								&& rc != (int)Procedure.Exception) {
 							ready.setException(new RuntimeException("rc=" + rc));
 							return;
 						}

@@ -206,15 +206,17 @@ public class BenchClient {
 			while (Boolean.TRUE.equals(running.value)) {
 				// 限制所有key的范围，防止服务器占用太大硬盘。
 				try (var trans = database.beginTransaction()) {
-					var rrs = rrs(tables, tableAccess);
-					for (var r : rrs) {
+					// 局部集合改名为batchKeys：不能遮蔽字段rrs——清理需对字段（跨轮去重表）操作，
+					// 遮蔽时rrs.remove(r)作用于正被增强for迭代的局部HashSet（tableAccess>1时CME），
+					// 且字段只增不删无界增长。
+					var batchKeys = rrs(tables, tableAccess);
+					for (var r : batchKeys) {
 						var keyBb = ByteBuffer.Allocate(9);
 						keyBb.WriteLong(r.key);
 						r.table.replace(trans, keyBb, value);
 					}
 					trans.commit();
-					for (var r : rrs)
-						rrs.remove(r);
+					rrs.keySet().removeAll(batchKeys);
 					transCounter.incrementAndGet();
 				} catch (Throwable ex) {
 					logger.error("", ex);
