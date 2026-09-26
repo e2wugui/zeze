@@ -84,15 +84,15 @@ public class TestLog4jFileManagerRenameRetry {
 			invokeOnFileCreated(manager, Path.of(RotateName));
 			invokeOnFileCreated(manager, Path.of("zeze.log"));
 
-			// 现行为维持：rename失败，索引留在active名下（旧内容被新active复用——已知降级，
-			// 钉住源不在本进程，无法在此修复；新active条目因stale beginTime会被seek先命中）；
-			// rotate条目必须仍然登记且映射可查询。
+			// FND21 GD-C01 新契约：rename失败即中止改指与补登——不再登记rotate条目（旧契约的
+			// rotate/active双条目经硬链接mmap同一索引inode交叉读写，正是GD-C01立案的错位根源）；
+			// 条目仍指current名，由下一轮reconcile摘除+常规补登收敛（配对重新正确）。
 			assertFalse(Files.exists(logDir.resolve(RotateName + ".index")), "外部占用下rename应失败");
-			assertEquals(32, Files.size(logDir.resolve("zeze.log.index")), "索引应留在active名下（现行为）");
-			assertEquals(2, manager.size());
-			try (var rotate = manager.get(0)) {
-				// 触达条目索引的lowerBound；rotate文件为空故无命中。
-				assertFalse(rotate.seek(1000L), "空rotate文件应无命中，但映射必须可查询");
+			assertEquals(32, Files.size(logDir.resolve("zeze.log.index")), "索引应留在active名下（中止改指）");
+			assertEquals(1, manager.size(), "rename失败不得登记rotate条目（旧契约为2，GD-C01改为中止）");
+			try (var active = manager.get(0)) {
+				// 条目仍可用（指current名+旧索引；新active内容为空，查询走旧索引的stale定位）。
+				assertNotNull(active, "中止后条目必须仍可查询");
 			}
 		} finally {
 			manager.stop();
