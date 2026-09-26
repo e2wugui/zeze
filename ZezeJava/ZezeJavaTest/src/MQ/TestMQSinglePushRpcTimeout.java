@@ -10,7 +10,6 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Net.Service;
-import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
 import harness.Fast;
@@ -115,10 +114,10 @@ public class TestMQSinglePushRpcTimeout {
 				single.close(); // 关闭 MQFileWithIndex 的文件流
 			}
 		} finally {
-			// MQManager 未 start，不能走 stop()：反射关闭其 rocksdb，保证临时目录可清理。
-			var rocksField = MQManager.class.getDeclaredField("rocksDatabase");
-			rocksField.setAccessible(true);
-			((RocksDatabase)rocksField.get(manager)).close();
+			// 【GB-D04】生命周期对称后正式走 stop()（原反射关库是规避动作：GB-D04立项证据之一）。
+			// 未start的MQManager.stop()安全：DaemonTimer.stop未启动即return、Acceptor/Service.stop
+			// 对未启动组件为no-op；single.close()的二次文件流关闭幂等（JDK契约），rocksdb最后关。
+			manager.stop();
 		}
 	}
 }

@@ -65,6 +65,9 @@ public class TestMQ {
 		var manager2 = new MQManager(tempDir.resolve("mqmanager2").toString(), managerConfig(26003));
 		MQProducer producer = null;
 		MQConsumer consumer = null;
+		// 【GB-D04】createMQ 的 MQ 实例必须持有并 close：泄漏引用会使静态 agent 的归零停机
+		// （connector 重连停止）永不触发——正是 GB-D04 要消灭的进程内残留形态。
+		MQ mq = null;
 		try {
 			master.start();
 			manager0.start();
@@ -72,7 +75,7 @@ public class TestMQ {
 			manager2.start();
 			var topic = "topicTest";
 			try {
-				MQ.createMQ(topic, 6, new BOptions.Data(BOptions.Single));
+				mq = MQ.createMQ(topic, 6, new BOptions.Data(BOptions.Single));
 			} catch (Exception ex) {
 				// 创建失败不中断测试（后面 openMQ 会以 eTopicNotExist 暴露），但失败原因必须留痕：
 				// 静默吞掉后，error=2 的真实原因（连接未就绪/rpc超时/manager未注册）无从排查。
@@ -87,6 +90,8 @@ public class TestMQ {
 				producer.close();
 			if (consumer != null)
 				consumer.close();
+			if (mq != null)
+				mq.close();
 			manager0.stop();
 			manager1.stop();
 			manager2.stop();

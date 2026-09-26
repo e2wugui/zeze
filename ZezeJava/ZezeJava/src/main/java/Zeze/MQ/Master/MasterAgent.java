@@ -21,6 +21,16 @@ public class MasterAgent extends AbstractMasterAgent {
 	private final Service service;
 	private final ProtocolHandle<CreatePartition> createPartitionHandle;
 
+	// 【GB-D04】客户端生命周期（拍板方案A，与MQAgent同型）：静态共享的agent引用计数，归零时停
+	// connector重连（不再退避续排）；新引用复活（重用需重建的口径在MQ/MQConsumer实例层）；
+	// MQ.shutdown()为终态强制全停，此后addRef明确报错。
+	// MasterAgent的RPC轮（createMQ/openMQ/subscribe）都发生在引用持有期间（客户端构造先addRef
+	// 后调用），归零时无在飞轮，无需MQAgent那样的排空等待。
+	private final Object lifecycleLock = new Object();
+	private int refs; // 持有方计数：MQ实例+MQConsumer实例（构造addRef，close/构造失败release）
+	private boolean idleStopped; // 归零已停connector（可随新引用复活；startAndWaitConnectionReady会重启）
+	private volatile boolean terminated; // MQ.shutdown()终态
+
 	public MasterAgent(Config config) {
 		service = new Service(config);
 		this.createPartitionHandle = null;
@@ -48,6 +58,61 @@ public class MasterAgent extends AbstractMasterAgent {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	/** 【GB-D04】取一个引用；MQ.shutdown()后明确报错。MQ/MQConsumer构造（经MQ.clientAddRefs）调用。 */
+	public void addRef() {
+		synchronized (lifecycleLock) {
+			if (terminated)
+				throw new IllegalStateException("MasterAgent has been shutdown (MQ.shutdown());"
+						+ " MQ client is terminated for this process, restart required");
+			if (++refs == 1)
+				idleStopped = false;
+		}
+	}
+
+	/** 【GB-D04】释放一个引用；归零时停connector重连（无在飞轮可等，见字段区注释）。 */
+	public void release() {
+		synchronized (lifecycleLock) {
+			if (--refs > 0)
+				return;
+			if (refs < 0) {
+				refs = 0; // 防御：多余的release钳回0
+				return;
+			}
+			if (terminated)
+				return;
+			// 只停connector不stop整个service：保持复活路径（startAndWaitConnectionReady重启）可用。
+			service.getConfig().forEachConnector(Connector::stop);
+			idleStopped = true;
+		}
+	}
+
+	/** 【GB-D04】强制全停（MQ.shutdown()调用，不等引用归零）：停service（含connector重连+socket）。幂等。 */
+	public void shutdown() {
+		synchronized (lifecycleLock) {
+			terminated = true;
+		}
+		stop();
+	}
+
+	/** 诊断/测试：当前引用计数。 */
+	public int getRefs() {
+		synchronized (lifecycleLock) {
+			return refs;
+		}
+	}
+
+	/** 诊断/测试：是否处于归零停机（connector已停，可随新引用复活）。 */
+	public boolean isIdleStopped() {
+		synchronized (lifecycleLock) {
+			return idleStopped;
+		}
+	}
+
+	/** 诊断/测试：是否已被MQ.shutdown()强制停机（终态）。 */
+	public boolean isTerminated() {
+		return terminated;
 	}
 
 	@Override

@@ -2,6 +2,7 @@ package Zeze.MQ;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.Builtin.MQ.BSendMessage;
@@ -19,6 +20,8 @@ import Zeze.Net.Connector;
  * 消费者也由这里驱动(todo)。
  *
  * masterAgent,mqAgent都是静态的(static)，整个进程共享。
+ * 生命周期（GB-D04）：静态agent按引用计数归零停connector重连；本类close()幂等且close即终态
+ * （重用需createMQ/openMQ重建实例）；进程退出用 {@link #shutdown()} 强制全停（此后客户端入口明确报错）。
  */
 public class MQ {
 	static final MasterAgent masterAgent;
@@ -38,15 +41,28 @@ public class MQ {
 			throw new IllegalArgumentException("createMQ options=" + optionsValue + " 未实现：当前仅实现 Single("
 					+ BOptions.Single + ")，DoubleWrite(" + BOptions.DoubleWrite + ")/Raft3(" + BOptions.Raft3
 					+ ") 拒绝创建，不再静默降级");
-		masterAgent.startAndWaitConnectionReady();
-		mqAgent.start();
-		return new MQ(masterAgent.createMQ(topic, partition, options));
+		clientAddRefs();
+		try {
+			masterAgent.startAndWaitConnectionReady();
+			mqAgent.start();
+			return new MQ(masterAgent.createMQ(topic, partition, options));
+		} catch (Exception e) {
+			// 【GB-D04】构造失败必须成对释放（引用泄漏会使静态agent的归零停机永不触发）。
+			clientReleaseRefs();
+			throw e;
+		}
 	}
 
 	public static MQ openMQ(String topic) throws Exception {
-		masterAgent.startAndWaitConnectionReady();
-		mqAgent.start();
-		return new MQ(masterAgent.openMQ(topic));
+		clientAddRefs();
+		try {
+			masterAgent.startAndWaitConnectionReady();
+			mqAgent.start();
+			return new MQ(masterAgent.openMQ(topic));
+		} catch (Exception e) {
+			clientReleaseRefs();
+			throw e;
+		}
 	}
 
 	/*
@@ -56,8 +72,38 @@ public class MQ {
 	}
 	*/
 
+	// 【GB-D04】成对获取两个静态agent的引用：任一失败（MQ.shutdown()后addRef明确报错）回滚已加部分。
+	// 包内可见：MQConsumer构造同用。
+	static void clientAddRefs() {
+		masterAgent.addRef();
+		try {
+			mqAgent.addRef();
+		} catch (RuntimeException e) {
+			masterAgent.release();
+			throw e;
+		}
+	}
+
+	// 【GB-D04】成对释放；归零触发agent停connector重连（见MQAgent/MasterAgent.release）。
+	static void clientReleaseRefs() {
+		mqAgent.release();
+		masterAgent.release();
+	}
+
+	/**
+	 * 【GB-D04】显式全局停机（进程退出钩子形态，拍板双轨之一）：强制停两个静态agent
+	 * （不等引用归零）——停connector重连、关socket。幂等；此后 createMQ/openMQ/MQConsumer
+	 * 构造在 agent.addRef 处明确报错（终态，重用需新进程）。
+	 */
+	public static void shutdown() {
+		mqAgent.shutdown();
+		masterAgent.shutdown();
+	}
+
 	private final MQConnector[] mqConnectors;
 	private final BMQInfo.Data info;
+	// 【GB-D04】close幂等标志：close即终态，不做复活（对齐仓内Application一次性实例口径）。
+	private final AtomicBoolean closed = new AtomicBoolean();
 
 	protected MQ(BMQServers.Data servers) {
 		this.info = servers.getInfo();
@@ -71,6 +117,10 @@ public class MQ {
 	}
 
 	public void sendMessage(int hash, BMessage.Data message) {
+		// 【GB-D04】close后使用明确报错（不是无声空转）。
+		if (closed.get())
+			throw new IllegalStateException("MQ closed; re-create via createMQ/openMQ to send again. topic="
+					+ info.getTopic());
 		// 查找发送队列服务器
 		var index = Integer.remainderUnsigned(hash, mqConnectors.length);
 		//System.out.println("hash = " + hash + " " + index);
@@ -88,7 +138,10 @@ public class MQ {
 	}
 
 	public void close() {
-		// reserve
+		// 【GB-D04】幂等close+引用释放：引用归零触发静态agent停connector重连。
+		if (!closed.compareAndSet(false, true))
+			return;
+		clientReleaseRefs();
 	}
 
 	static class MQConnector {

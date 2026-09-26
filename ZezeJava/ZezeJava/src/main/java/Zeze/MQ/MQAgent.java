@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Builtin.MQ.BSendMessage;
 import Zeze.Builtin.MQ.PushMessage;
 import Zeze.Builtin.MQ.SendMessage;
@@ -25,6 +26,25 @@ public class MQAgent extends AbstractMQAgent {
 	private final Service service;
 	private final ConcurrentHashMap<Long, MQConsumer> consumers = new ConcurrentHashMap<>();
 
+	// 【GB-D04】客户端生命周期（拍板方案A：引用计数+显式MQ.shutdown()双轨）：
+	// 静态共享的agent一旦启动即进程永生——close全部MQ/MQConsumer后connector仍按1..8秒退避
+	// 无限重连Manager（端口/线程/连接资源不释放，网络错误日志不停）。引用计数归零时停connector
+	// 重连（不再续排）；agent是进程级设施，归零停机不拒绝复活（新引用到达即随getOrAddConnector
+	// 重启重连——"close即终态"的口径在MQ/MQConsumer实例层）；MQ.shutdown()为终态强制全停。
+	private final Object lifecycleLock = new Object();
+	// 持有方计数：MQ实例+MQConsumer实例（构造addRef，close/构造失败release）。
+	private int refs;
+	// 归零已停connector（可随新引用复活）。
+	private boolean idleStopped;
+	// MQ.shutdown()终态：此后addRef明确报错（进程停机中，重用需新进程）。
+	private volatile boolean terminated;
+	// 在飞网络轮计数（subscribe/unsubscribe/reSubscribe的fan-out）：归零停机前有界排空，
+	// 避免停socket打断进行中的订阅事务（"先关门再等在飞一轮"，对齐Manager侧GB-C02形态；
+	// 关门=引用已归零：addRef与本锁互斥，排空期间新引用到达则复活不停）。
+	private final AtomicInteger netRounds = new AtomicInteger();
+	// 排空预算=Rpc默认超时5s+5s余量（subscribe的SendForWait不传超时，按Rpc字段默认5000ms）。
+	private static final long netRoundsDrainBudgetMs = 5_000 + 5_000;
+
 	public MQAgent() {
 		service = new Service();
 		service.setAgent(this);
@@ -39,14 +59,109 @@ public class MQAgent extends AbstractMQAgent {
 		service.stop();
 	}
 
+	/** 【GB-D04】取一个引用；MQ.shutdown()后明确报错。MQ/MQConsumer构造（经MQ.clientAddRefs）调用。 */
+	public void addRef() {
+		synchronized (lifecycleLock) {
+			if (terminated)
+				throw new IllegalStateException("MQAgent has been shutdown (MQ.shutdown());"
+						+ " MQ client is terminated for this process, restart required");
+			if (++refs == 1)
+				idleStopped = false; // 从归零停机复活：connector由下一次getOrAddConnector重启重连
+		}
+	}
+
+	/** 【GB-D04】释放一个引用；归零时"先关门再等在飞一轮"后有界停connector重连。 */
+	public void release() {
+		int after;
+		synchronized (lifecycleLock) {
+			after = --refs;
+			if (after < 0) {
+				refs = 0; // 防御：多余的release钳回0，不放大为负干扰后续归零判定
+				return;
+			}
+		}
+		if (after > 0)
+			return;
+		awaitNetRoundsDrained();
+		synchronized (lifecycleLock) {
+			if (refs != 0 || terminated)
+				return; // 排空期间有新引用（复活）或已强制停机
+			// 只停connector（停重连+关socket）不stop整个service：service.stop会置停机屏障，
+			// 复活后addSocket被拒；connector级停止让复活路径仅需重启connector。
+			service.getConfig().forEachConnector(Connector::stop);
+			idleStopped = true;
+		}
+	}
+
+	/** 【GB-D04】强制全停（MQ.shutdown()调用，不等引用归零）：停service（含全部connector重连+socket）。幂等。 */
+	public void shutdown() {
+		synchronized (lifecycleLock) {
+			terminated = true;
+		}
+		try {
+			service.stop();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/** 诊断/测试：当前引用计数。 */
+	public int getRefs() {
+		synchronized (lifecycleLock) {
+			return refs;
+		}
+	}
+
+	/** 诊断/测试：是否处于归零停机（connector已停，可随新引用复活）。 */
+	public boolean isIdleStopped() {
+		synchronized (lifecycleLock) {
+			return idleStopped;
+		}
+	}
+
+	/** 诊断/测试：是否已被MQ.shutdown()强制停机（终态）。 */
+	public boolean isTerminated() {
+		return terminated;
+	}
+
+	// 归零停机的在飞轮排空：poll直至归零或超预算（超时仅告警继续停——残余轮在socket关闭后
+	// 以rpc异常收场，有界无损坏）。netRounds只减自subscribe/unsubscribe/reSubscribe，
+	// 归零后consumers恒空，reSubscribe重触发也即刻返回，排空必收敛。
+	private void awaitNetRoundsDrained() {
+		var deadline = System.currentTimeMillis() + netRoundsDrainBudgetMs;
+		while (netRounds.get() != 0) {
+			if (System.currentTimeMillis() >= deadline) {
+				logger.warn("MQAgent net rounds not drained in {}ms, continue stopping connectors", netRoundsDrainBudgetMs);
+				return;
+			}
+			try {
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
+		}
+	}
+
 	public Connector getOrAddConnector(String host, int port) {
 		var out = new OutObject<Connector>();
-		if (service.getConfig().tryGetOrAddConnector(host, port, true, out))
-			out.value.start();
+		service.getConfig().tryGetOrAddConnector(host, port, true, out);
+		// 无条件start（幂等）：新增连接器需要启动；归零停机复活后getOr到的是已stop的存量
+		// 连接器，需重启重连（已连接的连接器start为no-op——socket非null直接返回）。
+		out.value.start();
 		return out.value;
 	}
 
 	public void subscribe(String topic, long sessionId, MQConsumer consumer, HashSet<Connector> managers) {
+		netRounds.incrementAndGet();
+		try {
+			subscribeInternal(topic, sessionId, consumer, managers);
+		} finally {
+			netRounds.decrementAndGet();
+		}
+	}
+
+	private void subscribeInternal(String topic, long sessionId, MQConsumer consumer, HashSet<Connector> managers) {
 		if (consumers.putIfAbsent(sessionId, consumer) == null) {
 			var futures = new ArrayList<Subscribe>();
 			// 与futures同步：只记录已实际发出Subscribe的manager，回滚时精确撤销。
@@ -82,11 +197,13 @@ public class MQAgent extends AbstractMQAgent {
 	}
 
 	public void unsubscribe(MQConsumer consumer, HashSet<Connector> managers) {
+		netRounds.incrementAndGet();
 		try {
 			unsubscribeFromManagers(consumer.getTopic(), consumer.getSessionId(), managers);
 		} finally {
 			// 必达：残留条目会让后续PushMessage继续投递给已关闭的consumer并被ack。
 			consumers.remove(consumer.getSessionId(), consumer);
+			netRounds.decrementAndGet();
 		}
 	}
 
@@ -144,27 +261,32 @@ public class MQAgent extends AbstractMQAgent {
 	// 失败回滚与finally必删保证无泄漏）×consumer.getManagers()（构造时确定）即完整映射，
 	// 派生遍历免登记/断连清理，无第二份可失步的状态。
 	private void reSubscribe(AsyncSocket so) {
-		var connector = so.getConnector();
-		for (var consumer : consumers.values()) {
-			if (!consumer.getManagers().contains(connector))
-				continue;
-			// close()竞态防护：条目身份校验仍在才重发。即便校验后瞬断竞态在Manager端留下幽灵订阅，
-			// PushMessage回eConsumerNotFound后由Manager端handlePushResult的自动unsubscribe清理。
-			if (consumers.get(consumer.getSessionId()) != consumer)
-				continue;
-			try {
-				var r = new Subscribe();
-				r.Argument.setTopic(consumer.getTopic());
-				r.Argument.setSessionId(consumer.getSessionId());
-				r.SendForWait(so).await();
-				if (r.getResultCode() != 0)
-					logger.error("re-subscribe error={} manager={} topic={} sessionId={}",
-							IModule.getErrorCode(r.getResultCode()), connector.getName(),
-							consumer.getTopic(), consumer.getSessionId());
-			} catch (Exception e) {
-				logger.error("re-subscribe failed, wait for next reconnect. manager={} topic={} sessionId={}",
-						connector.getName(), consumer.getTopic(), consumer.getSessionId(), e);
+		netRounds.incrementAndGet(); // 归零停机排空的在飞轮之一（consumers空时即刻返回）
+		try {
+			var connector = so.getConnector();
+			for (var consumer : consumers.values()) {
+				if (!consumer.getManagers().contains(connector))
+					continue;
+				// close()竞态防护：条目身份校验仍在才重发。即便校验后瞬断竞态在Manager端留下幽灵订阅，
+				// PushMessage回eConsumerNotFound后由Manager端handlePushResult的自动unsubscribe清理。
+				if (consumers.get(consumer.getSessionId()) != consumer)
+					continue;
+				try {
+					var r = new Subscribe();
+					r.Argument.setTopic(consumer.getTopic());
+					r.Argument.setSessionId(consumer.getSessionId());
+					r.SendForWait(so).await();
+					if (r.getResultCode() != 0)
+						logger.error("re-subscribe error={} manager={} topic={} sessionId={}",
+								IModule.getErrorCode(r.getResultCode()), connector.getName(),
+								consumer.getTopic(), consumer.getSessionId());
+				} catch (Exception e) {
+					logger.error("re-subscribe failed, wait for next reconnect. manager={} topic={} sessionId={}",
+							connector.getName(), consumer.getTopic(), consumer.getSessionId(), e);
+				}
 			}
+		} finally {
+			netRounds.decrementAndGet();
 		}
 	}
 

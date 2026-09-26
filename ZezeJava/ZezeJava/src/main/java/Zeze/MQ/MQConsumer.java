@@ -2,6 +2,7 @@ package Zeze.MQ;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.Builtin.MQ.Master.BMQInfo;
 import Zeze.Net.Connector;
@@ -12,6 +13,8 @@ public class MQConsumer {
 	private final long sessionId;
 	private final BMQInfo.Data info;
 	private final HashSet<Connector> managers = new HashSet<>();
+	// 【GB-D04】close幂等标志：close即终态（重复close空转；重用需重新构造实例）。
+	private final AtomicBoolean closed = new AtomicBoolean();
 
 	public static Collection<MQConsumer> getConsumers() {
 		return MQ.mqAgent.getConsumers().values();
@@ -20,14 +23,22 @@ public class MQConsumer {
 	public MQConsumer(String topic, MQListener listener) {
 		this.listener = listener;
 
-		MQ.masterAgent.startAndWaitConnectionReady();
-		var servers = MQ.masterAgent.openMQ(topic);
-		this.info = servers.getInfo();
-		for (var server : servers.getServers()) {
-			managers.add(MQ.mqAgent.getOrAddConnector(server.getHost(), server.getPort()));
+		// 【GB-D04】先取引用再触网络：构造失败必须成对释放（引用泄漏会使静态agent的归零停机
+		// 永不触发——connector无限重连正是要消灭的残留形态）；MQ.shutdown()后addRef在此明确报错。
+		MQ.clientAddRefs();
+		try {
+			MQ.masterAgent.startAndWaitConnectionReady();
+			var servers = MQ.masterAgent.openMQ(topic);
+			this.info = servers.getInfo();
+			for (var server : servers.getServers()) {
+				managers.add(MQ.mqAgent.getOrAddConnector(server.getHost(), server.getPort()));
+			}
+			this.sessionId = servers.getSessionId();
+			MQ.mqAgent.subscribe(topic, sessionId, this, managers);
+		} catch (RuntimeException e) {
+			MQ.clientReleaseRefs();
+			throw e;
 		}
-		this.sessionId = servers.getSessionId();
-		MQ.mqAgent.subscribe(topic, sessionId, this, managers);
 	}
 
 	public long getSessionId() {
@@ -57,6 +68,13 @@ public class MQConsumer {
 	}
 
 	public void close() {
-		MQ.mqAgent.unsubscribe(this, managers);
+		// 【GB-D04】幂等close：退订（必达移除consumers条目）+引用释放（归零触发静态agent停重连）。
+		if (!closed.compareAndSet(false, true))
+			return;
+		try {
+			MQ.mqAgent.unsubscribe(this, managers);
+		} finally {
+			MQ.clientReleaseRefs();
+		}
 	}
 }
