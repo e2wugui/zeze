@@ -44,7 +44,8 @@ public class Session implements AutoCloseable {
 	public TaskCompletionSource<BResult.Data> browse(int limit, float offsetFactor, boolean reset,
 													 BCondition.Data condition) {
 		var r = new Browse(new BBrowse.Data(sessionId, limit, offsetFactor, reset, condition));
-		return r.SendForWait(agent.__getLogServer(serverName).GetReadySocket());
+		// 服务端扫描量级与search相同（beginTime=-1或索引缺失时全量线性扫），不能用RPC默认5s（GD-C03）。
+		return r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000);
 	}
 
 	private volatile boolean closed;
