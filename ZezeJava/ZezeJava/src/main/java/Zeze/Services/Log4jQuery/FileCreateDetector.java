@@ -20,9 +20,19 @@ public class FileCreateDetector {
 	private final Thread watchThread;
 	private volatile boolean running = true;
 	private final Consumer<Path> consumer;
+	// OVERFLOW：warn+节流对账；监听失效（key.reset()==false）：error+最终对账（GD-D02）。可为null（不关心）。
+	private final Runnable onOverflowConsumer;
+	private final Runnable onWatchInvalidConsumer;
 
 	public FileCreateDetector(String watchDir, Consumer<Path> onCreateConsumer) throws IOException {
+		this(watchDir, onCreateConsumer, null, null);
+	}
+
+	public FileCreateDetector(String watchDir, Consumer<Path> onCreateConsumer,
+							  Runnable onOverflowConsumer, Runnable onWatchInvalidConsumer) throws IOException {
 		this.consumer = onCreateConsumer;
+		this.onOverflowConsumer = onOverflowConsumer;
+		this.onWatchInvalidConsumer = onWatchInvalidConsumer;
 		this.watchService = FileSystems.getDefault().newWatchService();
 		this.watchDir = Paths.get(watchDir);
 		this.watchDir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
@@ -43,10 +53,20 @@ public class FileCreateDetector {
 					if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
 						@SuppressWarnings("unchecked") WatchEvent<Path> eventPath = (WatchEvent<Path>)event;
 						consumer.accept(eventPath.context());
+					} else if (kind == StandardWatchEventKinds.OVERFLOW) {
+						// 事件溢出=可能已丢失（GD-D02）：warn+节流触发一次对账补偿，不静默吞掉。
+						logger.warn("watch OVERFLOW, events may be lost: {}", watchDir);
+						if (null != onOverflowConsumer)
+							onOverflowConsumer.run();
 					}
 				}
-				if (!key.reset())
+				if (!key.reset()) {
+					// 目录不可访问/被删除，监听从此死亡（GD-D02）：error告警后退出循环，退出前触发最终对账。
+					logger.error("watch key reset fail, watch dead: {}", watchDir);
+					if (null != onWatchInvalidConsumer)
+						onWatchInvalidConsumer.run();
 					break;
+				}
 			} catch (ClosedWatchServiceException ex) {
 				break; // stopAndJoin关闭了watchService，正常退出
 			} catch (Exception ex) {

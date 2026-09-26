@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import Zeze.Util.KV;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
@@ -20,6 +21,7 @@ import Zeze.Util.OutInt;
 import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -43,13 +45,16 @@ public class Log4jFileManager extends ReentrantLock {
 		}
 	}
 
-	// 持锁写（onFileCreated/buildIndex）、无锁读（seek/size/get），用COW保证读安全。
+	// 持锁写（onFileCreated/buildIndex/reconcile）、无锁读（seek/size/get），用COW保证读安全。
 	private final CopyOnWriteArrayList<Log4jFile> files = new CopyOnWriteArrayList<>();
 	private final FileCreateDetector fileCreateDetector;
 	private final String logFileBegin;
 	private final String logFileEnd;
 	private final LogServiceConf.LogConf logConf;
 	private final Future<?> buildIndexTimer;
+	// OVERFLOW触发的对账节流状态（GD-D02）：溢出语义是"可能丢失"，不拉满对账频率，窗口内重复触发不重复执行。
+	private static final long RECONCILE_THROTTLE_MS = 60_000;
+	private final AtomicLong lastReconcileTime = new AtomicLong();
 
 	public Log4jFileManager(LogServiceConf.LogConf logConf) throws Exception {
 		this.logConf = logConf;
@@ -58,7 +63,9 @@ public class Log4jFileManager extends ReentrantLock {
 		this.logFileEnd = fulls.length > 1 ? fulls[fulls.length - 1] : "";
 		this.logFileBegin = fulls.length > 1 ? String.join(".", Arrays.copyOf(fulls, fulls.length - 1)) : fulls[0];
 
-		this.fileCreateDetector = new FileCreateDetector(logConf.logDir, this::onFileCreated);
+		// OVERFLOW节流对账/监听失效最终对账的入口（GD-D02）。
+		this.fileCreateDetector = new FileCreateDetector(logConf.logDir, this::onFileCreated,
+				this::reconcileThrottled, this::reconcile);
 
 		// 装载期间持有锁：onFileCreated跑在监视线程（构造即启动），不持锁装载会与其交错，
 		// 产生幽灵条目或索引未随行改名；持锁后启动瞬间的create事件排队到装载完成后按序处理（FND-S3-13）。
@@ -206,9 +213,120 @@ public class Log4jFileManager extends ReentrantLock {
 		return files.size();
 	}
 
+	/**
+	 * 打开files[index]的文件会话。
+	 * 文件被外部清理（FileNotFoundException）时跳过该条目继续（GD-D01）：持锁摘除+warn使后续条目前移，
+	 * 用同一index重试即得原来的下一个文件；残余条目全部打不开时返回null（此时index已不小于files.size()，
+	 * walker按遍历耗尽处理）。
+	 */
 	public Log4jFileSession get(int index) throws IOException {
-		var file = files.get(index);
-		return new Log4jFileSession(file.file, file.index, logConf.charsetName, logConf.logTimeFormat);
+		while (index < files.size()) {
+			var file = files.get(index);
+			var target = file.file;
+			try {
+				return new Log4jFileSession(target, file.index, logConf.charsetName, logConf.logTimeFormat);
+			} catch (FileNotFoundException e) {
+				removeMissingFile(file, target, e);
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * 条目指向的文件已被外部清理（FileNotFoundException）：持锁摘除条目并warn（GD-D01）。
+	 * 持锁复核failedTarget的identity：并发轮转（onFileCreated改指新文件）后条目已指向有效文件时不摘。
+	 * 摘除后文件又回来的恢复不做（罕见，记档），由对账（GD-D02）低频重扫补登。
+	 */
+	private void removeMissingFile(Log4jFile file, File failedTarget, FileNotFoundException cause) {
+		lock();
+		try {
+			if (file.file == failedTarget && files.remove(file))
+				logger.warn("log file missing, remove entry: {}", failedTarget, cause);
+		} finally {
+			unlock();
+		}
+	}
+
+	/**
+	 * OVERFLOW/监听失效触发的对账入口（GD-D02）：节流——窗口内重复触发不重复对账（周期任务兜底收敛）。
+	 * 竞态下多执行一轮对账无害（reconcile幂等）。
+	 */
+	private void reconcileThrottled() {
+		var now = System.currentTimeMillis();
+		var last = lastReconcileTime.get();
+		if (now - last < RECONCILE_THROTTLE_MS)
+			return;
+		if (lastReconcileTime.compareAndSet(last, now))
+			reconcile();
+	}
+
+	/**
+	 * 目录对账（GD-D02）：磁盘为真相源，把files收敛到与logDir一致。
+	 * 消失条目摘除（与GD-D01查询路径同一形态：持锁remove+warn）；未登记的合法文件名补登
+	 * （loadIndex幂等，testFileName是现成判定器）。目录不存在/不可访问时跳过并保留告警，不视为错误。
+	 * 低频挂在buildIndexTimer（5分钟）上，不做独立定时器。
+	 */
+	private void reconcile() {
+		lock();
+		try {
+			var listFiles = new File(logConf.logDir).listFiles();
+			if (null == listFiles) {
+				// 目录被删除/网络盘失联（key.reset()==false的常见根因）：对账空转不视为错误，watch的error告警已在。
+				logger.warn("reconcile skipped: logDir not accessible: {}", logConf.logDir);
+				return;
+			}
+
+			var registered = new HashSet<String>();
+			for (var file : files)
+				registered.add(file.file.getName());
+
+			var rotates = new ArrayList<KV<Long, String>>(); // 未登记的rotate文件（补登用）
+			var activeOnDisk = false;
+			for (var f : listFiles) {
+				if (!f.isFile() || !f.getName().endsWith(".log"))
+					continue;
+				var date = new OutLong();
+				var type = testFileName(f.getName(), date);
+				if (type == 0)
+					activeOnDisk = true;
+				else if (type == 1 && !registered.contains(f.getName()))
+					rotates.add(KV.create(date.value, f.getName()));
+			}
+
+			// 摘除消失条目：磁盘上已不存在的登记条目（.gz压缩/保留期删除无事件，只能靠重扫发现）。
+			for (var file : files) {
+				if (!file.file.exists()) {
+					files.remove(file);
+					logger.warn("log file missing (reconcile), remove entry: {}", file.file);
+				}
+			}
+
+			// 补登：rotate按时间序插入到既有active条目之前（buildIndex只推进last==当前名的条目，active必须last；
+			// 直接追加会把active挤到中间，触发下方守卫把active重复登记——同一文件双条目，搜索结果重复）。
+			rotates.sort(Comparator.comparingLong(KV::getKey));
+			if (!rotates.isEmpty()) {
+				var insertPos = files.size();
+				for (var i = files.size() - 1; i >= 0; --i) {
+					if (files.get(i).file.getName().equals(getCurrentLogFileName())) {
+						insertPos = i; // active条目已登记：rotate插到它前面，保持active为last。
+						break;
+					}
+				}
+				for (var kv : rotates) {
+					var logFile = new File(logConf.logDir, kv.getValue());
+					files.add(insertPos++, Log4jFile.of(logFile, loadIndex(logFile, kv.getValue() + ".index")));
+				}
+			}
+			if (activeOnDisk && (files.isEmpty() || !files.getLast().file.getName().equals(getCurrentLogFileName()))) {
+				var activeFile = new File(logConf.logDir, getCurrentLogFileName());
+				files.add(Log4jFile.of(activeFile, loadIndex(activeFile, getCurrentIndexFileName())));
+			}
+		} catch (Exception ex) {
+			// 单轮对账失败不打断周期任务，下轮重试。
+			logger.error("reconcile error", ex);
+		} finally {
+			unlock();
+		}
 	}
 
 	private void loadRotates(String logRotateDir) throws Exception {
@@ -327,6 +445,7 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	private void buildIndex() {
+		reconcile(); // 低频对账（GD-D02）：挂在buildIndexTimer上，先把files收敛到磁盘真相，再推进索引。
 		lock();
 		try {
 			if (files.isEmpty())
