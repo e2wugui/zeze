@@ -22,18 +22,11 @@ import org.junit.jupiter.api.io.TempDir;
  * MQManager.loadMonitor）：多段+推位点到段中间不回收；推过段尾后已确认段消失（文件+索引
  * 出indexes）、未确认段与活跃末段保留；回收后 fill/append 不受影响；重启构造只面对活跃段。
  * <p>
- * 注：文件放 src/MQ/ 但声明 package Zeze.MQ（与 TestMQFileWithIndex* 先例一致）；
- * trunkFileSize/makeIndexPeriod 静态字段小值快滚、finally 恢复（TestFileWithIndexed 先例，
- * 并行测试对该字段的既有容忍口径见 TestMQFileWithIndexTornTail 注释）。
+ * 注：trunkFileSize/makeIndexPeriod 静态字段小值快滚、finally 恢复（TestFileWithIndexed 先例，
+ * 并行测试对该字段的既有容忍口径见 TestMQFileWithIndexTornTail 注释；布局约定见 Fnd19MqTestSupport）。
  */
 @Fast
 public class TestFnd19GBD02SegmentRecycle {
-
-	private static BMessage.Data messageOf(long id) {
-		var message = new BMessage.Data();
-		message.setTimestamp(id);
-		return message;
-	}
 
 	/** topic 目录下按"分区号.段基"命名的段基列表（升序）。 */
 	private static java.util.List<Long> segmentBases(Path topicDir) throws Exception {
@@ -66,7 +59,7 @@ public class TestFnd19GBD02SegmentRecycle {
 			var file = new MQFileWithIndex(home, database, "topic", 0);
 			try {
 				for (long id = 0; id < 200; ++id)
-					file.appendMessage(messageOf(id));
+					file.appendMessage(Fnd19MqTestSupport.messageOf(id));
 				bases = segmentBases(topicDir);
 				Assertions.assertTrue(bases.size() >= 3, "多段前提不成立，实际段数=" + bases.size());
 				Assertions.assertEquals(0L, bases.get(0), "首段基为0");
@@ -86,7 +79,7 @@ public class TestFnd19GBD02SegmentRecycle {
 
 				// 回收后 fill/append 不受影响（indexes 移除后 floorEntry 定位后继段）。
 				assertFillInOrder(file, file.getFirstMessageId(), file.getNextMessageId());
-				file.appendMessage(messageOf(200));
+				file.appendMessage(Fnd19MqTestSupport.messageOf(200));
 				Assertions.assertEquals(201, file.getNextMessageId());
 			} finally {
 				file.close();
@@ -122,7 +115,7 @@ public class TestFnd19GBD02SegmentRecycle {
 			var file = new MQFileWithIndex(home, database, "topic", 0);
 			try {
 				for (long id = 0; id < 200; ++id)
-					file.appendMessage(messageOf(id));
+					file.appendMessage(Fnd19MqTestSupport.messageOf(id));
 				var bases = segmentBases(topicDir);
 				Assertions.assertTrue(bases.size() >= 3);
 

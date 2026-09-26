@@ -1,13 +1,11 @@
 package Zeze.MQ;
 
-import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import Zeze.Builtin.MQ.BMessage;
-import Zeze.Builtin.MQ.BSendMessage;
 import Zeze.Builtin.MQ.PushMessage;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
@@ -32,30 +30,10 @@ import org.junit.jupiter.api.io.TempDir;
 @Fast
 public class TestFnd19GBD06PoisonRetryDeadLetter {
 
-	private static BSendMessage.Data sendMessageOf(long id) {
-		var message = new BMessage.Data();
-		message.setTimestamp(id);
-		var send = new BSendMessage.Data();
-		send.setMessage(message);
-		return send;
-	}
-
-	private static void setPending(MQSingle single, PushMessage push) throws Exception {
-		var f = MQSingle.class.getDeclaredField("pendingPushMessage");
-		f.setAccessible(true);
-		f.set(single, push);
-	}
-
-	private static Object getField(MQSingle single, String name) throws Exception {
-		var f = MQSingle.class.getDeclaredField(name);
-		f.setAccessible(true);
-		return f.get(single);
-	}
-
 	private static void failOnce(MQSingle single) throws Exception {
 		var push = new PushMessage();
 		push.setResultCode(1); // 非0非 eConsumerNotFound：投递失败
-		setPending(single, push);
+		Fnd19MqTestSupport.setPending(single, push);
 		single.handlePushResult();
 	}
 
@@ -104,21 +82,21 @@ public class TestFnd19GBD06PoisonRetryDeadLetter {
 			};
 
 			for (long id = 0; id < 3; ++id)
-				single.sendMessage(sendMessageOf(id)); // bindSocket=null：装载不推送
+				single.sendMessage(Fnd19MqTestSupport.sendMessageOf(id)); // bindSocket=null：装载不推送
 
 			// 消息0：失败计数递增 + 指数退避（400=200<<1, 800=200<<2），未达上限不推进位点。
 			failOnce(single);
-			Assertions.assertEquals(1, getField(single, "headRetryCount"), "首败后计数=1");
+			Assertions.assertEquals(1, Fnd19MqTestSupport.getField(single, "headRetryCount"), "首败后计数=1");
 			failOnce(single);
-			Assertions.assertEquals(2, getField(single, "headRetryCount"));
+			Assertions.assertEquals(2, Fnd19MqTestSupport.getField(single, "headRetryCount"));
 			Assertions.assertEquals(List.of(400L, 800L), delays, "按次数指数退避");
 			Assertions.assertEquals(0, single.getFileForTest().getFirstMessageId(), "未达上限位点不动");
-			Assertions.assertEquals(Boolean.FALSE, getField(single, "retryPending"), "退避到期后窗口位清除");
+			Assertions.assertEquals(Boolean.FALSE, Fnd19MqTestSupport.getField(single, "retryPending"), "退避到期后窗口位清除");
 
 			// 第3次失败=达上限：转死信，位点照常推进，队头放行。
 			var before = System.currentTimeMillis();
 			failOnce(single);
-			Assertions.assertEquals(0, getField(single, "headRetryCount"), "转死信后计数清零");
+			Assertions.assertEquals(0, Fnd19MqTestSupport.getField(single, "headRetryCount"), "转死信后计数清零");
 			Assertions.assertEquals(1, single.getFileForTest().getFirstMessageId(), "达上限位点照常推进");
 			Assertions.assertEquals(1, dlqCount(manager), "死信表条目数（value 含 BMessage+时间戳，逐键断言见下）");
 

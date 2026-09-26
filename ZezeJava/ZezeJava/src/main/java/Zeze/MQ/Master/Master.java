@@ -334,10 +334,6 @@ public class Master extends AbstractMaster {
         return server.getHost().equals(host) && server.getPort() == port;
     }
 
-    private static boolean addressEquals(BMQServer.Data server, String host, int port) {
-        return server.getHost().equals(host) && server.getPort() == port;
-    }
-
     /** 【GB-D05/GB-D01】包内可见：读回 mqTable 条目（对账覆盖判定共用；测试断言路由内容）。 */
     @Nullable BMQServers getServers(String topic) throws RocksDBException {
         var mq = mqTable.get(topic.getBytes(StandardCharsets.UTF_8));

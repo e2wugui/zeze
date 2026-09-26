@@ -1,13 +1,8 @@
 package MQ;
 
 import java.nio.file.Path;
-import Zeze.Config;
 import Zeze.MQ.MQManager;
 import Zeze.MQ.Master.MasterAgent;
-import Zeze.Net.Acceptor;
-import Zeze.Net.Connector;
-import Zeze.Net.ServiceConf;
-import Zeze.Raft.ProxyServer;
 import Zeze.Util.Task;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -25,11 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 中该 id 承载的 servers 条目联动重写新地址——同一 home 换端口重启（=换地址重注册）后，
  * openMQ 解析出的路由更新为新地址（路由自愈），managerId 保持不变。
  * <p>
- * Master 拓扑参照 TestFnd19BOptionsServerReject；含 Manager 重启等待，不标 @Fast（integrationTest）。
+ * Master 拓扑见 Fnd19MqNetTestSupport；含 Manager 重启等待，不标 @Fast（integrationTest）。
  */
 public class TestFnd19GBD05RouteRewrite {
-	// 避开 TestMQ(26000-26003)、Reregister(26100/26101)、Resubscribe(26102)、StopLive(26200/26201)、
-	// BOptions(26210/26211)。
 	private static final int masterPort = 26220;
 	private static final int proxyPort1 = 26221;
 	private static final int proxyPort2 = 26222;
@@ -40,9 +33,9 @@ public class TestFnd19GBD05RouteRewrite {
 
 		var masterHome = tempDir.resolve("mqmaster").toString();
 		var managerHome = tempDir.resolve("mqmanager").toString();
-		var master = new Zeze.MQ.Master.Main(masterHome, masterConfig());
-		var manager = new MQManager(managerHome, managerConfig(proxyPort1));
-		var agent = new MasterAgent(clientConfig());
+		var master = new Zeze.MQ.Master.Main(masterHome, Fnd19MqNetTestSupport.masterConfig(masterPort));
+		var manager = new MQManager(managerHome, Fnd19MqNetTestSupport.managerConfig(masterPort, proxyPort1));
+		var agent = new MasterAgent(Fnd19MqNetTestSupport.clientConfig(masterPort));
 		try {
 			master.start();
 			manager.start();
@@ -62,7 +55,7 @@ public class TestFnd19GBD05RouteRewrite {
 			// 换地址重注册：同一 home（=同一 managerId）换 proxy 端口重启 Manager。
 			manager.stop();
 			manager = null; // finally 只停未停实例（stop 非幂等语义未约定）
-			var manager2 = new MQManager(managerHome, managerConfig(proxyPort2));
+				var manager2 = new MQManager(managerHome, Fnd19MqNetTestSupport.managerConfig(masterPort, proxyPort2));
 			try {
 				manager2.start(); // register 携带同 managerId + 新地址 → Master 联动重写 mqTable
 				assertEquals(managerId1, manager2.getManagerId(), "同 home 重启身份不变（.managerId 持久化）");
@@ -90,33 +83,5 @@ public class TestFnd19GBD05RouteRewrite {
 				manager.stop();
 			master.stop();
 		}
-	}
-
-	private static Config masterConfig() {
-		var masterConf = new ServiceConf();
-		masterConf.getSocketOptions().setInputBufferMaxProtocolSize(2 * 1024 * 1024);
-		masterConf.addAcceptor(new Acceptor(masterPort, null));
-		var config = new Config();
-		config.getServiceConfMap().put("Zeze.MQ.Master", masterConf);
-		return config;
-	}
-
-	private static Config managerConfig(int proxyPort) {
-		var agentConf = new ServiceConf();
-		agentConf.addConnector(new Connector("127.0.0.1", masterPort, true));
-		var proxyConf = new ServiceConf();
-		proxyConf.addAcceptor(new Acceptor(proxyPort, "127.0.0.1"));
-		var config = new Config();
-		config.getServiceConfMap().put(Zeze.MQ.Master.MasterAgent.eServiceName, agentConf);
-		config.getServiceConfMap().put(ProxyServer.eProxyServerName, proxyConf);
-		return config;
-	}
-
-	private static Config clientConfig() {
-		var agentConf = new ServiceConf();
-		agentConf.addConnector(new Connector("127.0.0.1", masterPort, true));
-		var config = new Config();
-		config.getServiceConfMap().put(Zeze.MQ.Master.MasterAgent.eServiceName, agentConf);
-		return config;
 	}
 }

@@ -1,8 +1,6 @@
 package Zeze.MQ;
 
 import java.nio.file.Path;
-import Zeze.Builtin.MQ.BMessage;
-import Zeze.Builtin.MQ.BSendMessage;
 import Zeze.Builtin.MQ.PushMessage;
 import Zeze.Config;
 import Zeze.Util.RocksDatabase;
@@ -24,30 +22,16 @@ import org.junit.jupiter.api.io.TempDir;
  * ③ close 有界排空（无在飞 fill 时立即）后正常返回。
  * 端到端"活 Manager 停机不崩"由 TestFnd19MQManagerStopLive 覆盖。
  * <p>
- * 注：文件放 src/MQ/ 但声明 package Zeze.MQ（与 TestMQSingle* 先例一致）——需要 MQSingle
- * 的包内测试缝（handlePushResult）与 MQManager.stopped 的反射置位。
+ * 注：需要 MQSingle 的包内测试缝（handlePushResult）与 MQManager.stopped 的反射置位
+ *（布局约定见 Fnd19MqTestSupport）。
  */
 @Fast
 public class TestFnd19MQManagerStopRejects {
-
-	private static BSendMessage.Data sendMessageOf(long id) {
-		var message = new BMessage.Data();
-		message.setTimestamp(id);
-		var send = new BSendMessage.Data();
-		send.setMessage(message);
-		return send;
-	}
 
 	private static void setStopped(MQManager manager, boolean value) throws Exception {
 		var f = MQManager.class.getDeclaredField("stopped");
 		f.setAccessible(true);
 		f.setBoolean(manager, value);
-	}
-
-	private static void setPending(MQSingle single, PushMessage push) throws Exception {
-		var f = MQSingle.class.getDeclaredField("pendingPushMessage");
-		f.setAccessible(true);
-		f.set(single, push);
 	}
 
 	@Test
@@ -63,7 +47,7 @@ public class TestFnd19MQManagerStopRejects {
 			var single = new MQSingle(partition, "topic", 0, file);
 			try {
 				// 基线：stop 前 sendMessage 正常落盘。
-				single.sendMessage(sendMessageOf(0));
+				single.sendMessage(Fnd19MqTestSupport.sendMessageOf(0));
 				Assertions.assertEquals(1, file.getNextMessageId());
 
 				// 模拟 stop() 最前置位（真实 stop 里发生在关网络之前）。
@@ -71,7 +55,8 @@ public class TestFnd19MQManagerStopRejects {
 
 				// ① 停机后到达的提交被显式拒绝：不落盘（旧代码继续 appendMessage，与随后的
 				// rocksDatabase.close 并发属 native use-after-free）。
-				Assertions.assertThrows(IllegalStateException.class, () -> single.sendMessage(sendMessageOf(1)),
+				Assertions.assertThrows(IllegalStateException.class,
+						() -> single.sendMessage(Fnd19MqTestSupport.sendMessageOf(1)),
 						"stopped 后 sendMessage 必须在锁内拒绝（不发成功应答）");
 				Assertions.assertEquals(1, file.getNextMessageId(), "拒绝的提交不得落盘");
 
@@ -80,7 +65,7 @@ public class TestFnd19MQManagerStopRejects {
 				push.Argument.setTopic("topic");
 				push.Argument.setSessionId(77L);
 				push.setResultCode(0);
-				setPending(single, push);
+				Fnd19MqTestSupport.setPending(single, push);
 				single.handlePushResult(); // 不得抛出、不得触碰 meta
 				Assertions.assertEquals(0, file.getFirstMessageId(), "stopped 后应答回调不得推进 firstMessageId");
 			} finally {
@@ -91,10 +76,9 @@ public class TestFnd19MQManagerStopRejects {
 
 			// stopped 恢复仅在测试内使用，真实 stop 后实例即废弃；此处不再复位。
 		} finally {
-			// MQManager 未 start，不能走 stop()：反射关闭其 rocksdb（与 TestMQSinglePushRpcTimeout 同法）。
-			var rocksField = MQManager.class.getDeclaredField("rocksDatabase");
-			rocksField.setAccessible(true);
-			((RocksDatabase)rocksField.get(manager)).close();
+			// 未 start 的 MQManager.stop() 安全（DaemonTimer.stop 未启动即 return、Acceptor/Service.stop
+			// 对未启动组件为 no-op）：关掉构造期打开的 rocksdb（TestMQSinglePushRpcTimeout 同款依据）。
+			manager.stop();
 		}
 	}
 }

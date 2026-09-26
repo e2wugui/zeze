@@ -21,17 +21,10 @@ import org.junit.jupiter.api.io.TempDir;
  * Manager 启动失败需人工排障。
  * <p>
  * 修复：MQFileWithIndex 与 loadMQ 同规（partIndex.length != 2 跳过），杂散文件不再参与段注册。
- * <p>
- * 注：文件放 src/MQ/ 但声明 package Zeze.MQ，与 TestMQFileWithIndexTornTail 先例一致。
+ *（布局约定见 Fnd19MqTestSupport。）
  */
 @Fast
 public class TestFnd19MQFileWithIndexGhostSegment {
-
-	private static BMessage.Data messageOf(long id) {
-		var message = new BMessage.Data();
-		message.setTimestamp(id);
-		return message;
-	}
 
 	private static void assertFillInOrder(Queue<BMessage.Data> queue, long begin, long end) {
 		Assertions.assertEquals(end - begin, queue.size(), "回填数量");
@@ -48,7 +41,7 @@ public class TestFnd19MQFileWithIndexGhostSegment {
 		var dataFile = file.getLastFile();
 		try {
 			for (long id = 0; id < 2; ++id)
-				file.appendMessage(messageOf(id));
+				file.appendMessage(Fnd19MqTestSupport.messageOf(id));
 			file.close();
 		} finally {
 			database.close();
@@ -68,7 +61,7 @@ public class TestFnd19MQFileWithIndexGhostSegment {
 				Assertions.assertEquals("0.0", file2.getLastFile().getName(),
 						"活跃段仍是真实段，不得指向按 key 重建的幽灵文件名");
 				// 打开后的追加与回填照常（回填经索引定位不受幽灵段影响）。
-				file2.appendMessage(messageOf(2));
+				file2.appendMessage(Fnd19MqTestSupport.messageOf(2));
 				Queue<BMessage.Data> queue = new ConcurrentLinkedQueue<>();
 				file2.fillMessage(queue, 0, 3);
 				assertFillInOrder(queue, 0, 3);
@@ -86,7 +79,7 @@ public class TestFnd19MQFileWithIndexGhostSegment {
 		var file = new MQFileWithIndex(home, database, "topic", 0);
 		var dataFile = file.getLastFile();
 		try {
-			file.appendMessage(messageOf(0));
+			file.appendMessage(Fnd19MqTestSupport.messageOf(0));
 			file.close();
 		} finally {
 			database.close();

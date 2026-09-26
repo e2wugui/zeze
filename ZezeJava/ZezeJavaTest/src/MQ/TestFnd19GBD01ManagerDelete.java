@@ -3,8 +3,6 @@ package Zeze.MQ;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
-import Zeze.Builtin.MQ.BMessage;
-import Zeze.Builtin.MQ.BSendMessage;
 import Zeze.Config;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
@@ -20,19 +18,10 @@ import org.junit.jupiter.api.io.TempDir;
  * 不在活集合的分区（目录在而 queues 无——构造失败/外部残留形态）按目录扫描同样清掉；
  * 删除后同 topic 重建可用。
  * <p>
- * 注：文件放 src/MQ/ 但声明 package Zeze.MQ（访问 createPartition/deletePartition/getQueueForTest
- * 包内缝，TestFnd19GBD02SegmentRecycle 先例）。
+ * 注：访问 createPartition/deletePartition/getQueueForTest 包内缝（布局约定见 Fnd19MqTestSupport）。
  */
 @Fast
 public class TestFnd19GBD01ManagerDelete {
-
-	private static BSendMessage.Data sendMessageOf(long id) {
-		var message = new BMessage.Data();
-		message.setTimestamp(id);
-		var send = new BSendMessage.Data();
-		send.setMessage(message);
-		return send;
-	}
 
 	@Test
 	public void testDeleteLiveAndDeadPartitions(@TempDir Path tempDir) throws Exception {
@@ -44,9 +33,9 @@ public class TestFnd19GBD01ManagerDelete {
 			manager.createPartition("ghost", new HashSet<>(java.util.List.of(0, 1)));
 			var queue = manager.getQueueForTest("ghost");
 			Assertions.assertNotNull(queue);
-			queue.get(0).sendMessage(sendMessageOf(1));
-			queue.get(0).sendMessage(sendMessageOf(2));
-			queue.get(1).sendMessage(sendMessageOf(3));
+			queue.get(0).sendMessage(Fnd19MqTestSupport.sendMessageOf(1));
+			queue.get(0).sendMessage(Fnd19MqTestSupport.sendMessageOf(2));
+			queue.get(1).sendMessage(Fnd19MqTestSupport.sendMessageOf(3));
 			Assertions.assertEquals(2, manager.queueCount());
 			Assertions.assertTrue(Files.exists(topicDir.resolve("0.0")), "分区数据文件存在（删除前置）");
 			Assertions.assertNotNull(manager.getRocksDatabase().getTable("ghost.0"), "meta 列族存在（删除前置）");
@@ -70,7 +59,7 @@ public class TestFnd19GBD01ManagerDelete {
 			manager.createPartition("ghost", new HashSet<>(java.util.List.of(0)));
 			var rebuilt = manager.getQueueForTest("ghost").get(0);
 			Assertions.assertEquals(0, rebuilt.getFileForTest().getFirstMessageId(), "重建后位点归零");
-			rebuilt.sendMessage(sendMessageOf(9)); // 无异常：append/索引/meta 全新
+			rebuilt.sendMessage(Fnd19MqTestSupport.sendMessageOf(9)); // 无异常：append/索引/meta 全新
 			Assertions.assertEquals(1, rebuilt.getFileForTest().getNextMessageId());
 		} finally {
 			manager.stop();

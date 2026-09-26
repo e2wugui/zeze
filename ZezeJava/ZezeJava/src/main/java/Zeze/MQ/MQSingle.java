@@ -285,7 +285,7 @@ public class MQSingle extends ReentrantLock {
 		var config = config();
 		++headRetryCount;
 		if (headRetryCount >= config.getPushRetryMax()) {
-			// 达上限：位点照常推进 + 消息转终态（死信/按配置丢弃），不再阻塞队头。
+			// 达上限：位点照常推进 + 消息转终态（死信/按配置丢弃），不再阻塞队头；
 			// 死信写失败时不推进（消息留在队首按退避重推，at-least-once 不破）。
 			var messageId = fileWithIndex.getFirstMessageId();
 			var message = messageQueue.peek();
@@ -294,12 +294,10 @@ public class MQSingle extends ReentrantLock {
 				messageQueue.poll();
 				headRetryCount = 0;
 				tryStartBackgroundFill(); // 队头出队腾出空间，续装载（成功路径同款）
-			} else {
-				scheduleRetryPush(retryBackoffMs(headRetryCount, config));
+				return;
 			}
-			return;
 		}
-		// 未达上限：按次数指数退避延迟重推（原 20s 周期无上限永久重推的毒消息环取消）。
+		// 未达上限或死信写失败：按次数指数退避延迟重推（原 20s 周期无上限永久重推的毒消息环取消）。
 		scheduleRetryPush(retryBackoffMs(headRetryCount, config));
 	}
 

@@ -1,18 +1,13 @@
 package Zeze.MQ;
 
-import java.net.SocketAddress;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
-import Zeze.Util.TimeThrottle;
 import harness.Fast;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -30,52 +25,11 @@ import org.junit.jupiter.api.io.TempDir;
  * 修复：对齐 Master.ProcessRegisterRequest 的"同身份替换旧条目"写法——subscribes 按
  * sessionId put 替换旧 socket 并 arrangeConsumer；同 socket 重复订阅幂等无害。
  * <p>
- * 注：文件放 src/MQ/ 但声明 package Zeze.MQ（与 TestMQSingle* 先例一致）——需要 MQSingle
- * 的包内测试缝与 MQPartition.subscribes 的反射观察点。
+ * 注：需要 MQSingle 的包内测试缝与 MQPartition.subscribes 的反射观察点（布局约定见
+ * Fnd19MqTestSupport）。
  */
 @Fast
 public class TestFnd19MQPartitionResubscribeReplace {
-
-	/** 只假装"已发送"的 AsyncSocket 替身：不走网络（与 TestMQSingleGhostUnsubscribe 同法）。 */
-	static final class FakeSocket extends AsyncSocket {
-		FakeSocket(Service service) {
-			super(service);
-		}
-
-		@Override
-		public Type getType() {
-			return Type.eClient;
-		}
-
-		@Override
-		protected void doClose(@Nullable Throwable ex, boolean gracefully) {
-		}
-
-		@Override
-		public boolean Send(@NotNull Protocol<?> p) {
-			return true;
-		}
-
-		@Override
-		public boolean Send(byte @NotNull [] bytes, int offset, int length) {
-			return true;
-		}
-
-		@Override
-		public @Nullable TimeThrottle getTimeThrottle() {
-			return null;
-		}
-
-		@Override
-		public @Nullable SocketAddress getRemoteAddress() {
-			return null;
-		}
-
-		@Override
-		public boolean isClosed() {
-			return false;
-		}
-	}
 
 	@SuppressWarnings("unchecked")
 	private static ConcurrentHashMap<Long, AsyncSocket> subscribesOf(MQPartition partition) throws Exception {
@@ -118,8 +72,8 @@ public class TestFnd19MQPartitionResubscribeReplace {
 			injectPartition(partition, 0, single);
 			try {
 				var service = new Service("TestFnd19MQPartitionResubscribeReplace");
-				var staleSocket = new FakeSocket(service);
-				var freshSocket = new FakeSocket(service);
+				var staleSocket = new Fnd19MqTestSupport.FakeSocket(service);
+				var freshSocket = new Fnd19MqTestSupport.FakeSocket(service);
 
 				// 基线：sessionId=1 经 socket A 订阅成功，分区 0 绑定 A。
 				partition.subscribe(staleSocket, 1L);
@@ -153,10 +107,9 @@ public class TestFnd19MQPartitionResubscribeReplace {
 				database.close();
 			}
 		} finally {
-			// MQManager 未 start，不能走 stop()：反射关闭其 rocksdb（与 TestMQSinglePushRpcTimeout 同法）。
-			var rocksField = MQManager.class.getDeclaredField("rocksDatabase");
-			rocksField.setAccessible(true);
-			((RocksDatabase)rocksField.get(manager)).close();
+			// 未 start 的 MQManager.stop() 安全（DaemonTimer.stop 未启动即 return、Acceptor/Service.stop
+			// 对未启动组件为 no-op）：关掉构造期打开的 rocksdb（TestMQSinglePushRpcTimeout 同款依据）。
+			manager.stop();
 		}
 	}
 }

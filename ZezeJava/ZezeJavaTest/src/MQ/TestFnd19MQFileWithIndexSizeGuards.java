@@ -27,17 +27,10 @@ import org.junit.jupiter.api.io.TempDir;
  * 与函数自声明的"中间损坏 fatal，防自动截断静默丢中间消息"策略矛盾。修复：size 损坏发生在
  * 提交区中间（expectId &lt; nextMessageId-1）时按 id 错位同款 fatal；仅最后一条已提交记录的
  * 撕裂尾保留回拨语义（testTornCommittedRecordRollsBack 已固化，本类不重复）。
- * <p>
- * 注：文件放 src/MQ/ 但声明 package Zeze.MQ，与 TestMQFileWithIndexTornTail 先例一致。
+ *（布局约定见 Fnd19MqTestSupport。）
  */
 @Fast
 public class TestFnd19MQFileWithIndexSizeGuards {
-
-	private static BMessage.Data messageOf(long id) {
-		var message = new BMessage.Data();
-		message.setTimestamp(id);
-		return message;
-	}
 
 	/** 顺序扫描段文件前 count 条记录并返回其结尾偏移（记录头布局与实现一致：Long8(id)+Int4(size)）。 */
 	private static long offsetAfter(java.io.File file, int count) throws Exception {
@@ -103,7 +96,7 @@ public class TestFnd19MQFileWithIndexSizeGuards {
 		var dataFile = file.getLastFile();
 		try {
 			for (long id = 0; id < 4; ++id)
-				file.appendMessage(messageOf(id));
+				file.appendMessage(Fnd19MqTestSupport.messageOf(id));
 			scrubIndexToFirstEntryOnly(database, "topic.0.0");
 			file.close();
 		} finally {
@@ -157,7 +150,7 @@ public class TestFnd19MQFileWithIndexSizeGuards {
 		var dataFile = file.getLastFile();
 		try {
 			for (long id = 0; id < 3; ++id)
-				file.appendMessage(messageOf(id));
+				file.appendMessage(Fnd19MqTestSupport.messageOf(id));
 			scrubIndexToFirstEntryOnly(database, "topic.0.0");
 			file.close();
 		} finally {

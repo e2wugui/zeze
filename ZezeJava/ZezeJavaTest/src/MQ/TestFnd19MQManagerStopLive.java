@@ -1,14 +1,9 @@
 package MQ;
 
 import java.nio.file.Path;
-import Zeze.Config;
 import Zeze.MQ.MQManager;
 import Zeze.MQ.MQPartition;
 import Zeze.MQ.Master.MasterAgent;
-import Zeze.Net.Acceptor;
-import Zeze.Net.Connector;
-import Zeze.Net.ServiceConf;
-import Zeze.Raft.ProxyServer;
 import Zeze.Util.Task;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -29,8 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 契约面：stop() 在存在在飞/可再启动回填的负载下正常返回且库已关闭。全程代码构造配置自包含。
  */
 public class TestFnd19MQManagerStopLive {
-	// 避开 TestMQ 系列（26000-26003）、TestMQManagerReregister（26100/26101）、
-	// TestMQConsumerResubscribe（26000/26102）。
 	private static final int masterPort = 26200;
 	private static final int proxyPort = 26201;
 
@@ -39,9 +32,9 @@ public class TestFnd19MQManagerStopLive {
 		Task.tryInitThreadPool();
 
 		var masterHome = tempDir.resolve("mqmaster").toString();
-		var master = new Zeze.MQ.Master.Main(masterHome, masterConfig());
-		var manager = new MQManager(tempDir.resolve("mqmanager").toString(), managerConfig());
-		var agent = new MasterAgent(clientConfig());
+		var master = new Zeze.MQ.Master.Main(masterHome, Fnd19MqNetTestSupport.masterConfig(masterPort));
+		var manager = new MQManager(tempDir.resolve("mqmanager").toString(), Fnd19MqNetTestSupport.managerConfig(masterPort, proxyPort));
+		var agent = new MasterAgent(Fnd19MqNetTestSupport.clientConfig(masterPort));
 		try {
 			master.start();
 			manager.start();
@@ -95,33 +88,5 @@ public class TestFnd19MQManagerStopLive {
 		var queues = (java.util.concurrent.ConcurrentHashMap<String, MQPartition>)queuesField.get(manager);
 		var partition = queues.get(topic);
 		return null != partition ? partition.get(index) : null;
-	}
-
-	private static Config masterConfig() {
-		var masterConf = new ServiceConf();
-		masterConf.getSocketOptions().setInputBufferMaxProtocolSize(2 * 1024 * 1024);
-		masterConf.addAcceptor(new Acceptor(masterPort, null));
-		var config = new Config();
-		config.getServiceConfMap().put("Zeze.MQ.Master", masterConf);
-		return config;
-	}
-
-	private static Config managerConfig() {
-		var agentConf = new ServiceConf();
-		agentConf.addConnector(new Connector("127.0.0.1", masterPort, true));
-		var proxyConf = new ServiceConf();
-		proxyConf.addAcceptor(new Acceptor(proxyPort, "127.0.0.1"));
-		var config = new Config();
-		config.getServiceConfMap().put(Zeze.MQ.Master.MasterAgent.eServiceName, agentConf);
-		config.getServiceConfMap().put(ProxyServer.eProxyServerName, proxyConf);
-		return config;
-	}
-
-	private static Config clientConfig() {
-		var agentConf = new ServiceConf();
-		agentConf.addConnector(new Connector("127.0.0.1", masterPort, true));
-		var config = new Config();
-		config.getServiceConfMap().put(Zeze.MQ.Master.MasterAgent.eServiceName, agentConf);
-		return config;
 	}
 }
