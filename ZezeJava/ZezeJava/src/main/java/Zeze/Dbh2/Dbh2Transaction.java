@@ -41,16 +41,24 @@ public class Dbh2Transaction implements Closeable {
 		this.batch = batch;
 		this.createTime = System.currentTimeMillis();
 
-		for (var put : batch.getPuts().entrySet()) {
-			var key = put.getKey();
-			var lock = dbh2.getLocks().get(key);
-			if (null == locks.putIfAbsent(lock, lock))
-				lock.lock(dbh2);
-		}
-		for (var del : batch.getDeletes()) {
-			var lock = dbh2.getLocks().get(del);
-			if (null == locks.putIfAbsent(lock, lock))
-				lock.lock(dbh2);
+		try {
+			for (var put : batch.getPuts().entrySet()) {
+				var key = put.getKey();
+				var lock = dbh2.getLocks().get(key);
+				if (null == locks.putIfAbsent(lock, lock))
+					lock.lock(dbh2);
+			}
+			for (var del : batch.getDeletes()) {
+				var lock = dbh2.getLocks().get(del);
+				if (null == locks.putIfAbsent(lock, lock))
+					lock.lock(dbh2);
+			}
+		} catch (RuntimeException | InterruptedException e) {
+			// serialize模式下中途键冲突抛出时必须释放已获取的锁，否则泄漏的锁会让
+			// 该键的事务在GC清理WeakHashSet之前全部prepare失败。unlock只作用于
+			// locked=true的条目，map中未获取成功的（含冲突键）不会被误放。
+			close();
+			throw e;
 		}
 	}
 
