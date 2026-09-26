@@ -8,6 +8,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Zoker.CommitService;
@@ -206,6 +207,29 @@ public class DistributeManager {
 				&& name.indexOf('/') < 0 && name.indexOf('\\') < 0 && name.indexOf(':') < 0;
 	}
 
+	/**
+	 * GE-C01（FND21）：versionNo 与现役指针保留字 current 的碰撞判别——先剥尾部点/空格，
+	 * 再忽略大小写比较。Windows(Win32) 路径解析大小写不敏感且规范化剥尾部点/空格：
+	 * "Current"/"CURRENT" 与 current 是同一物理名字（exists 跨大小写命中，本机探针实证），
+	 * "current." 的 renameTo 落盘名就是 current——前者首次部署可把版本目录 rename 进指针
+	 * 固有位置（此后该服务一切 commit 恒 AccessDenied，容器报废），指针已存在时则命中指针
+	 * 文件跳过安装、switchCurrent 覆盖指针造成"返回 0 但 currentVersionDir 恒 null"的假成功；
+	 * 尾部点形态同链路（探针实证落盘名脱点后占位）。Linux（大小写敏感 FS）上 "Current" 本是
+	 * 合法版本名，一并排除零成本且跨平台同一 versionNo 得到同一裁决——两端都闭合。
+	 * 仅用于 versionNo：serviceName 与保留字无碰撞面（services/Current 是合法服务容器名），
+	 * 不得套用。
+	 */
+	static boolean isReservedVersionName(String name) {
+		var end = name.length();
+		while (end > 0) {
+			var c = name.charAt(end - 1);
+			if (c != '.' && c != ' ')
+				break;
+			end--;
+		}
+		return CURRENT_NAME.equalsIgnoreCase(name.substring(0, end));
+	}
+
 	// 错误码与 zoker.errorCode 同构（ModuleId*编码）；直构形态（zoker==null）下也要能返回协议错误码。
 	private static long err(int code) {
 		return IModule.errorCode(Zoker.ModuleId, code);
@@ -225,12 +249,14 @@ public class DistributeManager {
 	 * servicesOld 布局的错误码，随布局移除检查路径后不再返回（死码留待 Gen 批清理协议定义）。
 	 */
 	long commit(String serviceName, String versionNo) {
-		// GE-C02：versionNo 排除保留字 current——services/<svc>/current 是现役指针文件的固有位置，
-		// 版本目录 rename 占据该位置后（首次部署=指针尚不存在的常态即可 rename 成功），
-		// switchCurrent 的原子 rename 对目录目标必失败：此后对该服务的一切 commit 恒失败、
-		// currentVersionDir 恒 null、pruneVersions 永远执行不到（不自愈），需人工删目录。
+		// GE-C02(FND20)/GE-C01(FND21)：versionNo 排除保留字 current——services/<svc>/current
+		// 是现役指针文件的固有位置，版本目录 rename 占据该位置后（首次部署=指针尚不存在的
+		// 常态即可 rename 成功），switchCurrent 的原子 rename 对目录目标必失败：此后对该服务的
+		// 一切 commit 恒失败、currentVersionDir 恒 null、pruneVersions 永远执行不到（不自愈），
+		// 需人工删目录。FND21 GE-C01：原精确 equals 只挡逐字节的 "current"，Windows 大小写
+		// 不敏感 FS 上 "Current"/"CURRENT"/"current." 变体照旧碰撞（见 isReservedVersionName）。
 		if (!isSafePathSegment(serviceName) || !isSafePathSegment(versionNo)
-				|| CURRENT_NAME.equals(versionNo)) {
+				|| isReservedVersionName(versionNo)) {
 			logger.error("commitService rejected: unsafe serviceName='{}' versionNo='{}'", serviceName, versionNo);
 			return err(Zoker.eCommitFail);
 		}
@@ -242,7 +268,12 @@ public class DistributeManager {
 		// 进入、install 晚于 A 的 install 时，B 的 mtime 早于 A 的 cutoff，仍会被 A 删——
 		// 时间戳过滤只能缩窄窗口，互斥才能闭合。锁内为纯本地 FS 操作（rename/fsync/delete），
 		// 不持其他锁（closeUnder 迭代 files 不取 filesBySocket 锁），无锁序环。
-		synchronized (commitLocks.computeIfAbsent(serviceName, __ -> new Object())) {
+		// GE-C02（FND21）：锁键大小写折叠（与 GE-C01 同一判据）——裸 serviceName 作键时，
+		// Windows(NTFS) 大小写不敏感解析下 "svc"/"Svc" 指向同一物理容器却各持一把锁，互斥失效，
+		// 上述竞态经大小写变体复活。Linux（大小写敏感 FS）上折叠会过度串行化两个真不同的服务：
+		// commit 非热路径，可接受；canonical 路径作键在目录尚不存在（首次 commit，恰是竞态
+		// 高危形态）时不折叠大小写，弃用。条目数仍以（折叠后的）服务名为界，无攻击面放大。
+		synchronized (commitLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
 			return commitLocked(serviceName, versionNo);
 		}
 	}

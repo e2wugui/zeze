@@ -44,11 +44,31 @@ public class ZokerAgent extends AbstractZokerAgent {
         return zokers;
     }
 
+    /**
+     * GE-C03（FND21）：注册表存活校验+死条目接管。注册条目的唯一常规出口是旧连接
+     * OnSocketClose 的 remove；从连接死亡（{@code isClosed} 已置位）到该回调被执行存在窗口
+     * （半开连接可达 keepalive 检查周期，KeepCheckPeriod/KeepRecvTimeout 未配置时更长），
+     * 期间 daemon 重连的 Register 被 putIfAbsent 恒拒 eDuplicateZoker——zokerName 被死条目
+     * 锁死，manager 侧 getZoker 恒抛且无任何重注册/接管路径。修复：putIfAbsent 冲突时检查
+     * 现存 socket——已死则 CAS 接管（replace 失败=并发注册已改写条目，重读重试：新主人已死
+     * 可再接管、活着则是真重复，循环必收敛）；仍活着才是真重复。接管成功后旧连接迟到的
+     * close 回调由 {@link ZokerAgentService#OnSocketClose} 的条件移除兜底，不会误摘继承者条目。
+     */
     @Override
     protected long ProcessRegisterRequest(Zeze.Builtin.Zoker.Register r) {
-        if (null != zokers.putIfAbsent(r.Argument.getZokerName(), r.getSender()))
-            return eDuplicateZoker;
-        r.getSender().setUserState(r.Argument.getZokerName());
+        var sender = r.getSender();
+        var zokerName = r.Argument.getZokerName();
+        while (true) {
+            var old = zokers.putIfAbsent(zokerName, sender);
+            if (null == old)
+                break; // 空位直接注册
+            if (!old.isClosed())
+                return eDuplicateZoker; // 现存 socket 活着：真重复
+            if (zokers.replace(zokerName, old, sender))
+                break; // 现存 socket 已死：接管
+            // CAS 失败：并发注册已改写条目——重读评估
+        }
+        sender.setUserState(zokerName);
         r.SendResult();
         return 0;
     }
