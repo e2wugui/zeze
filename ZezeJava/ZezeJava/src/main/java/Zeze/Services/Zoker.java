@@ -20,19 +20,18 @@ public class Zoker extends AbstractZoker {
 	private final ServiceManager processManager;
 	private final File serviceDir;
 	private final File distributeDir;
-	private final File serviceOldDir;
 	private final File zokerDir;
 
 	public Zoker(Config config, String baseDir) throws IOException {
 		// init/create dir
 		zokerDir = new File(baseDir);
 		Files.createDirectories(zokerDir.toPath());
+		// services/ 是版本容器布局（GE-D02）：services/<svc>/<versionNo>/... + services/<svc>/current 指针。
+		// 旧布局的 servicesOld/ 备份目录概念随版本目录回滚点一并消失，不再创建。
 		serviceDir = Path.of(baseDir, "services").toFile();
 		Files.createDirectories(serviceDir.toPath());
 		distributeDir = Path.of(baseDir, "distributes").toFile();
 		Files.createDirectories(distributeDir.toPath());
-		serviceOldDir = Path.of(baseDir, "servicesOld").toFile();
-		Files.createDirectories(serviceOldDir.toPath());
 
 		// implement
 		distributeManager = new DistributeManager(this);
@@ -51,10 +50,6 @@ public class Zoker extends AbstractZoker {
 
 	public File getDistributeDir() {
 		return distributeDir;
-	}
-
-	public File getServiceOldDir() {
-		return serviceOldDir;
 	}
 
 	public void start() throws Exception {

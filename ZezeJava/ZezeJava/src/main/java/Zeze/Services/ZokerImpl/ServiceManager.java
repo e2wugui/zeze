@@ -34,6 +34,8 @@ public class ServiceManager {
 	}
 
 	public void listService(ArrayList<Zeze.Builtin.Zoker.BService.Data> out) {
+		// GE-D02 新布局：services/ 的每个子目录是一个服务容器（services/<svc>/<versionNo>/... + current），
+		// 服务存在性仍以"services/<svc> 目录存在"为准；运行状态来自本进程的processes记账。
 		var listFiles = zoker.getServiceDir().listFiles();
 		if (null != listFiles) {
 			for (var file : listFiles) {
@@ -56,7 +58,12 @@ public class ServiceManager {
 
 	private Process newProcess(String serviceName) {
 		var pb = new ProcessBuilder();
-		pb.directory(new File(zoker.getServiceDir(), serviceName));
+		// GE-D02 新布局：服务文件在 services/<svc>/<current指向的版本>/ 下，工作目录解析 current 指针；
+		// 无现役指针（从未commit/现场被破坏）属于明确失败，不再回退到容器目录（那里只有版本目录，没有服务文件）。
+		var workingDir = DistributeManager.currentVersionDir(new File(zoker.getServiceDir(), serviceName));
+		if (null == workingDir)
+			throw Task.forceThrow(new IOException("service has no current version: " + serviceName));
+		pb.directory(workingDir);
 		pb.command(buildCommand(serviceName));
 		try {
 			return pb.start();
