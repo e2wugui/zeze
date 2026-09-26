@@ -329,7 +329,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			if (null != txn) {
 				dbh2.onCommitBatch(txn);
 				txn.commitBatch(bucket);
-			}
+			} else
+				logger.warn("commitBatch but transaction not found. tid={}", tid);
 			triggerNoTransactionIf();
 		} catch (RocksDBException e) {
 			logger.error("", e);
@@ -342,6 +343,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			counterUndoBatch.incrementAndGet();
 			if (null != txn)
 				txn.undoBatch(bucket);
+			else
+				logger.warn("undoBatch but transaction not found. tid={}", tid);
 			triggerNoTransactionIf();
 		} catch (RocksDBException e) {
 			logger.error("", e);

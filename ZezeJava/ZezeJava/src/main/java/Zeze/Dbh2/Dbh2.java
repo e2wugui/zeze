@@ -293,7 +293,10 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			txn = null;
 		} finally {
 			if (null != txn) {
-				stateMachine.getTransactions().remove(r.Argument.getBatch().getTid()); // undo putIfAbsent
+				// 必须两参remove（仅当映射值是本次txn才删）：重复投递撞eDuplicateTid时，
+				// 表里是先到的存活事务，本txn从未入表，单参remove会误删别人的事务
+				//（commitBatch随后找不到事务，已决定提交的数据被静默丢弃）。
+				stateMachine.getTransactions().remove(r.Argument.getBatch().getTid(), txn);
 				txn.close();
 			}
 		}
