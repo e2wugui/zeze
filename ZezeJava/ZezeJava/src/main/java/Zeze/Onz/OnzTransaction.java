@@ -139,7 +139,10 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				var r = new FuncSagaEnd();
 				r.Argument.setOnzTid(onzTid);
 				r.Argument.setCancel(false);
-				futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey())));
+				// 同cancelSaga：FuncSagaEnd在参与方侧与在途业务/flush互斥（businessLock），
+				// 应答可能慢于rpc默认超时，等待沿用flushTimeout——默认5s超时只会产生噪声
+				// error日志，不改变任何决策（end无数据效应）。
+				futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey()), flushTimeout));
 			} catch (Exception ex) {
 				logger.error("end saga send fail. tid={}, zeze={}", onzTid, e.getKey(), ex);
 			}
