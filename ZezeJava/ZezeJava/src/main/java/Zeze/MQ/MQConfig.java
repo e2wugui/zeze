@@ -30,6 +30,12 @@ public class MQConfig implements Config.ICustomize {
 	// 非 "discard"（大小写不敏感）一律按 deadletter 处置。
 	private String pushDeadLetterPolicy = "deadletter";
 
+	// 【FND20 GB-D02】dlq 保留上界（estimate 口径近似）：毒消息持续到达时防"只入不出"无界增长。
+	// 写入后超限按键序淘汰至目标线并 warn（淘汰动作=可审计的告警面）。键序≠时间序，淘汰顺序
+	// 跨 topic 任举但确定（不做时间序——需按 value 尾缀时间戳全量排序，代价不值）。字节上界
+	// = DlqMaxEntries × 消息尺寸上界（协议 100MB 级）。
+	private int dlqMaxEntries = 10_000;
+
 	public int getRpcTimeout() {
 		return rpcTimeout;
 	}
@@ -94,6 +100,15 @@ public class MQConfig implements Config.ICustomize {
 		pushDeadLetterPolicy = value;
 	}
 
+	/** 【FND20 GB-D02】死信表保留条目上界（estimate 口径近似）。 */
+	public int getDlqMaxEntries() {
+		return dlqMaxEntries;
+	}
+
+	public void setDlqMaxEntries(int value) {
+		dlqMaxEntries = value;
+	}
+
 	/** 【GB-D06】上限后动作是否为丢弃档（其余值一律按死信档处置）。 */
 	public boolean isPushDiscardPolicy() {
 		return "discard".equalsIgnoreCase(pushDeadLetterPolicy);
@@ -130,5 +145,8 @@ public class MQConfig implements Config.ICustomize {
 		attr = self.getAttribute("PushDeadLetterPolicy");
 		if (!attr.isBlank())
 			pushDeadLetterPolicy = attr;
+		attr = self.getAttribute("DlqMaxEntries");
+		if (!attr.isBlank())
+			dlqMaxEntries = Integer.parseInt(attr);
 	}
 }

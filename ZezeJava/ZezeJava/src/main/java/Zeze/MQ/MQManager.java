@@ -4,12 +4,15 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Builtin.MQ.BMessage;
+import Zeze.Builtin.MQ.BSendMessage;
 import Zeze.Builtin.MQ.Master.BReportPartitions;
 import Zeze.Builtin.MQ.Master.BTopicPartitions;
 import Zeze.Builtin.MQ.Master.CreatePartition;
@@ -18,6 +21,7 @@ import Zeze.Config;
 import Zeze.MQ.Master.MasterAgent;
 import Zeze.Net.AsyncSocket;
 import Zeze.Raft.ProxyServer;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.DaemonTimer;
@@ -28,6 +32,7 @@ import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDBException;
 import static Zeze.MQ.Master.AbstractMaster.ePartition;
 import static Zeze.MQ.Master.AbstractMaster.eTopicNotExist;
@@ -80,6 +85,41 @@ public class MQManager extends AbstractMQManager {
 	// 【GB-D06】死信表句柄（懒建；getOrAddTable 幂等，map 命中即返回，无需缓存）。
 	public RocksDatabase.Table getDlqTable() throws RocksDBException {
 		return rocksDatabase.getOrAddTable(DlqTableName);
+	}
+
+	// 【FND20 GB-D02】死信键编码（写入端 MQSingle.tryDeadLetter 的唯一编码点）：
+	// binary(topic,partitionIndex,messageId)=WriteString+WriteInt4+WriteLong8。
+	static byte[] dlqKey(String topic, int partitionIndex, long messageId) {
+		var bb = ByteBuffer.Allocate();
+		bb.WriteString(topic);
+		bb.WriteInt4(partitionIndex);
+		bb.WriteLong8(messageId);
+		return Arrays.copyOfRange(bb.Bytes, bb.ReadIndex, bb.ReadIndex + bb.size());
+	}
+
+	// 【FND20 GB-D02】死信分区前缀（不含 messageId）：WriteString 的变长长度前缀使该前缀在键空间
+	// 唯一圈定 (topic,partitionIndex) 的全部死信键（不同 topic 的编码从首字节即分叉，无跨分区
+	// 误删面）。
+	static byte[] dlqPartitionPrefix(String topic, int partitionIndex) {
+		var bb = ByteBuffer.Allocate();
+		bb.WriteString(topic);
+		bb.WriteInt4(partitionIndex);
+		return Arrays.copyOfRange(bb.Bytes, bb.ReadIndex, bb.ReadIndex + bb.size());
+	}
+
+	// 【FND20 GB-D02】前缀开区间上界：右起首个非0xFF字节+1并在其后截断（截断结果=严格大于全部
+	// 前缀键的最小键，deleteRange 不含上界故恰好圈定前缀全体）。前缀含 WriteInt4(partitionIndex)，
+	// 非负 int 的高字节恒<0x80，全0xFF不可达；null 防御性返回（调用方跳过清理，与 dropTable
+	// 对不存在表的空操作口径一致）。
+	private static byte @Nullable [] keyPrefixSuccessor(byte[] prefix) {
+		for (int i = prefix.length - 1; i >= 0; --i) {
+			if (0 != (byte)(prefix[i] + 1)) {
+				var successor = Arrays.copyOf(prefix, i + 1);
+				successor[i] = (byte)(prefix[i] + 1);
+				return successor;
+			}
+		}
+		return null;
 	}
 
 	// 本manager的所有队列实现。
@@ -182,17 +222,25 @@ public class MQManager extends AbstractMQManager {
 		for (var queue : queues.values()) {
 			loadManager += queue.load();
 		}
-		masterAgent.reportLoad(loadManager);
-		// 【GB-D01】磁盘真相上报（复用本timer周期，120s一轮）：Master 与 mqTable 对账，孤儿超宽限期
-		// 下发 DeletePartition。失败语义与 reportLoad 相同（异常由 DaemonTimer 记录，本轮段回收跳过，
-		// 下轮重试）。
-		masterAgent.reportPartitions(buildPartitionReport());
+		// 【FND20 GB-D01】回收前置（依赖方向修正）：不变式——到达段回收步骤之前不执行任何远端
+		// 调用。两个上报"失败即抛"（Master 不可达/重启丢注册表的 eManagerNotFound 窗口），旧顺序
+		// 把纯本地的回收排在最后，DaemonTimer 对 body 异常"记日志链继续"——Master 降级的整个
+		// 期间每轮回收整体跳过（120s一轮），GB-D02 的"磁盘占用收敛于未消费积压+固定余量"承诺在
+		// 降级期失守，而降级期恰是积压最大、最需要回收的时候。三块无数据依赖可自由重排：
+		// reportLoad 只消费 loadCounter 差分；buildPartitionReport 只扫分区文件（回收只删段不删
+		// 分区）；tryRecycle 纯本地且内部自兜异常。上报失败仍向上抛（损失≤一个周期，归因从异常
+		// 消息读出），但本轮回收已完成。
 		// 【GB-D02】段物理回收复用本timer周期触发（拍板：批量低频，不占ack热路径）；
 		// 配置开关与软删除窗口见 MQConfig（SegmentRecycleEnabled/SegmentRecycleDelayMs）。
 		if (mqConfig.isSegmentRecycleEnabled()) {
 			for (var queue : queues.values())
 				queue.tryRecycleSegments(mqConfig.getSegmentRecycleDelayMs());
 		}
+		masterAgent.reportLoad(loadManager);
+		// 【GB-D01】磁盘真相上报（复用本timer周期，120s一轮）：Master 与 mqTable 对账，孤儿超宽限期
+		// 下发 DeletePartition。失败语义与 reportLoad 相同（异常由 DaemonTimer 记录，本轮上报损失，
+		// 下轮重试——段回收已在前面完成，不受影响）。
+		masterAgent.reportPartitions(buildPartitionReport());
 	}
 
 	// 【GB-D01】组装分区上报：扫 home 下 topic 目录的分区文件（磁盘真相）。
@@ -336,6 +384,18 @@ public class MQManager extends AbstractMQManager {
 			}
 		}
 		rocksDatabase.dropTable(topic + "." + index); // meta
+		// 【FND20 GB-D02】死信生命周期与分区绑定：分区存储删除时联动清 dlq 中该 (topic,partition)
+		// 前缀的死信键——否则对账删除的分区（含其上已转死信的消息）在 dlq 成为永无人认领的死数据；
+		// 且分区重建后位点从 0 重计（meta 列族被 drop 后重建），旧死信键与新代际同 id 消息的键空间
+		// 重叠，代际无从分辨。getTable 非懒建（null 即跳过）：getOrAddTable 会在每次分区删除时
+		// 凭空造出 dlq 表——清理动作反向制造存储。
+		var dlq = rocksDatabase.getTable(DlqTableName);
+		if (null != dlq) {
+			var begin = dlqPartitionPrefix(topic, index);
+			var end = keyPrefixSuccessor(begin);
+			if (null != end)
+				dlq.deleteRange(begin, end);
+		}
 		var left = topicDir.listFiles();
 		if (null != left && 0 == left.length)
 			//noinspection ResultOfMethodCallIgnored
@@ -371,6 +431,39 @@ public class MQManager extends AbstractMQManager {
 		} catch (Exception e) {
 			throw new RuntimeException("load or mint managerId failed. home=" + home, e);
 		}
+	}
+
+	/**
+	 * 【FND20 GB-D02】死信重放（本地运维入口；FND19 GB-D06 拍板"工具手动重放即可"的落地，
+	 * 日志宣称的"可重放"自此有仓内真实路径）。重放 = 从死信表按三元组取回消息 → 经
+	 * {@link MQSingle#sendMessage} 重新追加到原分区尾部（新 messageId）→ 成功后消费死信键。
+	 * 消费者未修复时会再次走满重投上限退回死信（有界，自兜），无自动重放调度（拍板推迟）。
+	 * <p>
+	 * 死信键值格式：key=binary(topic,partitionIndex,messageId)（WriteString+WriteInt4+WriteLong8），
+	 * value=BMessage 编码 + 8 字节 BE 死信时间戳（写入端见 MQSingle.tryDeadLetter）。
+	 *
+	 * @throws IllegalArgumentException 死信不存在 / 分区不存在（显式报错，不静默丢弃也不误投别处）
+	 * @throws IllegalStateException Manager 已停止（sendMessage 的停机拒绝语义透传）
+	 * @throws RocksDBException dlq 读写失败
+	 */
+	public void replayDeadLetter(String topic, int partitionIndex, long messageId) throws RocksDBException {
+		var dlq = rocksDatabase.getTable(DlqTableName); // 非懒建：无死信表即无该死信
+		var key = dlqKey(topic, partitionIndex, messageId);
+		var value = null != dlq ? dlq.get(key) : null;
+		if (null == value)
+			throw new IllegalArgumentException("dead letter not found. topic=" + topic
+					+ " partition=" + partitionIndex + " messageId=" + messageId);
+		var queue = queues.get(topic);
+		var single = null != queue ? queue.get(partitionIndex) : null;
+		if (null == single)
+			throw new IllegalArgumentException("partition not exists. topic=" + topic
+					+ " partition=" + partitionIndex + " messageId=" + messageId);
+		var message = new BMessage.Data();
+		message.decode(ByteBuffer.Wrap(Arrays.copyOfRange(value, 0, value.length - 8))); // 尾缀8字节BE时间戳剥除
+		var send = new BSendMessage.Data();
+		send.setMessage(message);
+		single.sendMessage(send); // 追加到原分区尾（新 messageId；失败上抛，死信键保留可再重放）
+		dlq.delete(key);
 	}
 
 	@Override

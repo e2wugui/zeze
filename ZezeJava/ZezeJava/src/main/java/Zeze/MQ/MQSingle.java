@@ -16,6 +16,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action0;
 import Zeze.Util.OutLong;
+import Zeze.Util.RocksDatabase;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,6 +59,24 @@ public class MQSingle extends ReentrantLock {
 	@NotNull RetryScheduler retryScheduler =
 			(delayMs, action) -> TaskSpec.ofAction(action).name("MQSingle.retryPush").scheduleNow(delayMs);
 
+	// 【FND20 GB-D03】fill 失败自排期（拍板 A：失败点排期，替代纯事件驱动）：回收竞态/瞬时 IO 错
+	// 制造"队列空+无 ack 在途+无新消息"的无事件源窗口，FND19 修复刻意依赖的 sendMessage/ack
+	// 事件重试前提失效，分区在消费者健康在线时无限期停摆。失败自身成为下一个事件——恢复链
+	// 闭合在故障点。退避复用 retryBackoffMs 公式（连续失败指数增长、封顶，确定性损坏下重试
+	// 频率有界=退避封顶，error 每周期一条即案卷要求的周期性提醒）；迟到排期幂等
+	// （tryStartBackgroundFill 的 highLoad>0/stopped 检查自然短路），单槽句柄 pending 数自限。
+	// 无窗口标志（区别于 retryPending）：tryStartBackgroundFill 自身幂等，只需句柄管理。
+	private int fillFailCount;
+	private @Nullable Future<?> fillRetryFuture;
+	// 包内可见：测试注入捕获延迟序列/手动驱动（同 retryScheduler 缝；默认形态亦同）。
+	@NotNull RetryScheduler fillRetryScheduler =
+			(delayMs, action) -> TaskSpec.ofAction(action).name("MQSingle.fillRetry").scheduleNow(delayMs);
+	// 分区关闭标志（lock内写）：close 后拒绝新的后台回填提交。排空超预算逃逸的晚到 fill 在
+	// catch 里还会自排期重试，无此标志则分区删除/停机后僵尸重试循环（60s周期）触碰已关闭的
+	// 文件流与 rocksdb——managerStopped 不覆盖"分区删除而 Manager 存活"路径（removePartition
+	// →close 不置 manager.stopped）。
+	private boolean closed;
+
 	public static final int maxFillMessageCount = 4 * 1024;
 
 	private final Queue<BMessage.Data> messageQueue = new ConcurrentLinkedQueue<>();
@@ -91,7 +110,7 @@ public class MQSingle extends ReentrantLock {
 		try {
 			this.fileWithIndex = fileWithIndex;
 			this.highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
-			pullMessage(); // 构造的时候还没有绑定网络，所以只装载进来，不需要tryPushMessage.
+			pullMessage(true); // 构造的时候还没有绑定网络，所以只装载进来，不需要tryPushMessage.
 			//fillGuardTimer = Task.scheduleNow(5_000, 5_000, this::tryStartBackgroundFill);
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
@@ -151,7 +170,9 @@ public class MQSingle extends ReentrantLock {
 		try {
 			// stopped 后不得再提交新 fill：close 的有界排空只等待已存在的 future，之后新提交的
 			// 任务会与 rocksDatabase.close 并发（native use-after-free）。
-			if (!managerStopped() && highLoad > 0 && messageFillFuture == null && messageQueue.size() < maxFillMessageCount / 2)
+			// closed（分区级，【FND20 GB-D03】）：分区删除（removePartition→close）而 Manager 存活
+			// 时 stopped 恒 false，无此检查则晚到的 fill 重排期会在已关闭的文件流/rocksdb 上重试。
+			if (!closed && !managerStopped() && highLoad > 0 && messageFillFuture == null && messageQueue.size() < maxFillMessageCount / 2)
 				messageFillFuture = TaskSpec.ofAction(this::pullMessage).name("pullMessage").submitNow();
 		} finally {
 			unlock();
@@ -160,6 +181,13 @@ public class MQSingle extends ReentrantLock {
 
 	// 包内可见：测试在确定位置同步驱动一次后台回填（见ZezeJavaTest的TestMQSingleDirectEnqueue）。
 	void pullMessage() {
+		pullMessage(false);
+	}
+
+	// fromConstructor=true：构造直调装载。失败保持"创建失败"的响亮语义上抛，不为僵尸分区排期
+	// 自重试（【FND20 GB-D03】构造路径豁免——构造抛出后实例不发布，自排期只会重试一个
+	// 无人引用的半成品分区）。
+	private void pullMessage(boolean fromConstructor) {
 		// 在另一个线程中调用，但只有一个线程任务。
 		var first = new OutLong();
 		var last = new OutLong();
@@ -176,17 +204,24 @@ public class MQSingle extends ReentrantLock {
 			fileWithIndex.fillMessage(messageQueue, first.value, last.value);
 			// 这里有一个时间窗口：刚刚fill的消息全部都消费完毕，下面才置空，导致fill停止。
 			messageFillFuture = null; // 这个清除没加锁
+			fillFailCount = 0; // 【FND20 GB-D03】装载成功即清失败计数（瞬时失败自愈的基线复位；同上行不加锁，读侧容忍陈旧值）
 			tryStartBackgroundFill(); // 这个调用是为了解决上面的时间窗口的。
 		} catch (RuntimeException e) {
 			// fill 失败必须复位 messageFillFuture 并重算 highLoad，否则 tryStartBackgroundFill 永远
 			// 看到非null而跳过，该分区回填永久停摆。calculateFill 已按快照扣减 highLoad 但装载
 			// 未完成，按盘上真实积压重算；next/first 的所有写点（appendMessage/increaseFirstMessageId）
-			// 都在本锁内执行，锁内读取是精确的。不在此立即重启 fill（确定性数据损坏时避免紧密
+			// 都在本锁内执行，锁内读取是精确的。不立即重启 fill（确定性数据损坏时避免紧密
 			// 循环），由后续 sendMessage/ack 事件驱动重试。
 			lock();
 			try {
 				highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId() - messageQueue.size();
 				messageFillFuture = null;
+				// 【FND20 GB-D03】失败点自排期：事件驱动的前提在"队列空+无 ack 在途+无新消息"
+				// 窗口失效（回收竞态/瞬时 IO 错的典型形态），失败自身成为下一个事件。锁内排期：
+				// 与 close 的句柄取消串行化（排空超预算逃逸的晚到 fill 在 close 后排期，会被
+				// closed 检查在触发时短路）。
+				if (!fromConstructor)
+					scheduleFillRetry();
 			} finally {
 				unlock();
 			}
@@ -201,6 +236,31 @@ public class MQSingle extends ReentrantLock {
 		} finally {
 			unlock();
 		}
+	}
+
+	// 【FND20 GB-D03】失败点自排期（pullMessage 的 catch 锁内调用）：指数退避后重排一次
+	// tryStartBackgroundFill。不立即重排（无退避）正是 FND19 注释明示要避免的确定性损坏紧密
+	// 循环；退避封顶使确定性损坏下重试周期有界（默认60s）。单槽句柄：新失败 cancel+replace
+	// 旧排期，pending 数自限。
+	private void scheduleFillRetry() {
+		var delayMs = retryBackoffMs(++fillFailCount, config());
+		if (null != fillRetryFuture)
+			fillRetryFuture.cancel(false);
+		try {
+			fillRetryFuture = fillRetryScheduler.schedule(delayMs, this::runFillRetry);
+		} catch (Exception e) {
+			fillRetryFuture = null;
+			// 调度失败（调度池关闭等停机窗口）：自排期缺失，退回既有的事件驱动重试兜底
+			// （后续 sendMessage/ack 照常触发 tryStartBackgroundFill，进程停机时自然静默）。
+			logger.error("mq fill retry schedule failed, backoff skipped. topic={} partition={}",
+					topic, partitionIndex, e);
+		}
+	}
+
+	// 退避到期：重排一次回填（幂等短路见 tryStartBackgroundFill）。不在此清计数——只有装载
+	// 成功才复位（连续失败持续指数退避）；close 取消后迟到触发被 closed/managerStopped 检查短路。
+	private void runFillRetry() {
+		tryStartBackgroundFill();
 	}
 
 	private void tryPushMessage() {
@@ -359,21 +419,50 @@ public class MQSingle extends ReentrantLock {
 		if (null == manager)
 			return false; // null-manager 测试形态：无死信存储，不推进（留下轮重推，不进终态）
 		try {
-			var key = ByteBuffer.Allocate();
-			key.WriteString(topic);
-			key.WriteInt4(partitionIndex);
-			key.WriteLong8(messageId);
+			var key = MQManager.dlqKey(topic, partitionIndex, messageId); // 编码单点（重放/清理联动共用）
 			var value = ByteBuffer.Allocate();
 			message.encode(value);
 			// 尾缀 8 字节 BE 死信时间戳（longBeHandler，与 MQFileWithIndex 的位点编码同款）。
 			var stamped = java.util.Arrays.copyOfRange(value.Bytes, value.ReadIndex, value.ReadIndex + value.size() + 8);
 			ByteBuffer.longBeHandler.set(stamped, stamped.length - 8, System.currentTimeMillis());
-			manager.getDlqTable().put(key.Bytes, key.ReadIndex, key.size(), stamped, 0, stamped.length);
+			var dlq = manager.getDlqTable();
+			dlq.put(key, 0, key.length, stamped, 0, stamped.length);
 			logger.warn("mq poison message dead-lettered (at-least-once 放弃投递的显式决策，可审计可重放). {}", meta);
+			enforceDlqCap(dlq, config); // 【FND20 GB-D02】保留上界：写入点就近检查（全本地，不挂上报链）
 			return true;
 		} catch (Exception e) {
 			logger.error("mq dead letter write failed, keep message at head and retry. {}", meta, e);
 			return false;
+		}
+	}
+
+	// 【FND20 GB-D02】dlq 保留上界（DlqMaxEntries，estimate 口径近似）：写入后以 estimate-num-keys
+	//（O(1)）检查，超限按键序迭代淘汰至目标线并 warn（淘汰动作=可审计的告警面）。全本地且锁内
+	// 低频可付（迭代≤上限条数、毫秒级，只在溢出时发生——毒消息化本身是分钟级低频事件）；不挂
+	// loadMonitorTimer——本地动作挂远端链是 GB-D01(FND20) 同型教训。键序≠时间序，淘汰跨 topic
+	// 任举但确定（如实声明，不做时间序）。
+	private void enforceDlqCap(RocksDatabase.Table dlq, MQConfig config) {
+		try {
+			var count = dlq.getKeyNumbers();
+			var max = config.getDlqMaxEntries();
+			if (count <= max)
+				return;
+			var evicted = 0;
+			try (var it = dlq.iterator()) {
+				it.seekToFirst();
+				while (it.isValid() && count - evicted > max) {
+					dlq.delete(it.key());
+					++evicted;
+					it.next();
+				}
+			}
+			if (evicted > 0)
+				logger.warn("mq dlq over cap, evicted {} oldest-by-key entries (estimate {} > DlqMaxEntries {})"
+								+ ". topic={} partition={}", evicted, count, max, topic, partitionIndex);
+		} catch (Exception e) {
+			// 上界执法失败不回滚写入也不重抛（消息终态已落定，at-least-once 语义不变）：
+			// 下一次写入再检查，dlq 有界性由后续淘汰收敛。
+			logger.error("mq dlq cap enforcement failed. topic={} partition={}", topic, partitionIndex, e);
 		}
 	}
 
@@ -452,12 +541,19 @@ public class MQSingle extends ReentrantLock {
 		}
 		// 持锁关文件流：与在飞 sendMessage（appendMessage 同锁）串行；close 过后晚到的任务在
 		// 锁内复查 stopped 拒绝，不再触碰文件与 rocksdb。【GB-D06】一并取消退避重推排期并静默
-		// 绑定（迟到触发的 runRetryPush 因 bindSocket=null 自然短路）。
+		// 绑定（迟到触发的 runRetryPush 因 bindSocket=null 自然短路）。【FND20 GB-D03】一并取消
+		// fill 自排期句柄并置 closed（迟到的 runFillRetry 在 tryStartBackgroundFill 被 closed
+		// 检查短路，不再提交新 fill）。
 		lock();
 		try {
+			closed = true;
 			if (null != retryFuture) {
 				retryFuture.cancel(false);
 				retryFuture = null;
+			}
+			if (null != fillRetryFuture) {
+				fillRetryFuture.cancel(false);
+				fillRetryFuture = null;
 			}
 			bindSocket = null;
 			fileWithIndex.close();
