@@ -20,6 +20,10 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.jetbrains.annotations.NotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import org.apache.rocketmq.client.producer.SendStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -57,10 +61,16 @@ public class TestRocketMQ {
 				msg.setBody("body2".getBytes(StandardCharsets.UTF_8));
 				msg.setTransactionId("2");
 				msg.setTopic("topic2");
-				App.Instance.RocketMQProducer.sendMessageWithTransaction(msg, () -> {
+				var r = App.Instance.RocketMQProducer.sendMessageWithTransaction(msg, () -> {
 					/* local transaction bind to this message */
 					return 0;
 				});
+				// FND19 GE-C01回归断言（本测试@Disabled需外部broker，标注保留、无法本地跑）：
+				// 修复前txnId查表键被rocketmq-client的UNIQ_KEY覆写，_tSent恒查不到，
+				// 本地事务从不执行且恒返回ROLLBACK_MESSAGE——消息永不投递且无报错。
+				assertNotNull(r);
+				assertEquals(SendStatus.SEND_OK, r.getSendStatus());
+				assertEquals(LocalTransactionState.COMMIT_MESSAGE, r.getLocalTransactionState());
 			}
 		} finally {
 			consumer.stop();

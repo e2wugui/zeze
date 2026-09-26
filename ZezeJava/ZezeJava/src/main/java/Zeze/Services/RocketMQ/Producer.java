@@ -21,6 +21,7 @@ import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -90,26 +91,48 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			_tSent.insert(txnId, new BTransactionMessageResult(false, System.currentTimeMillis()));
 			return 0;
 		}, "RocketMQ.executeLocalTransaction")).call();
-		return r == 0 ? producer.sendMessageInTransaction(msg, procedureAction) : null;
+		// txnId经arg载体传递：rocketmq-client发送半消息成功后会用UNIQ_KEY覆写msg.transactionId
+		//（DefaultMQProducerImpl.sendMessageInTransaction），executeLocalTransaction无法再从msg取回txnId。
+		return r == 0 ? producer.sendMessageInTransaction(msg, new TxnAction(txnId, procedureAction)) : null;
+	}
+
+	private record TxnAction(String txnId, FuncLong action) {
 	}
 
 	@Override
 	public @NotNull LocalTransactionState executeLocalTransaction(@NotNull Message msg, Object arg) {
+		if (!(arg instanceof TxnAction action)) {
+			logger.error("executeLocalTransaction: arg is not TxnAction: {}", arg);
+			return LocalTransactionState.UNKNOW;
+		}
+		// UNIQ_KEY是broker回查唯一带回的事务标识（ClientRemotingProcessor把回查消息的transactionId
+		// 也覆写成UNIQ_KEY），回查索引行必须以它为键，在此（半消息已发出、属性已生成）补建。
+		var uniqKey = msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
 		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
-			var sent = _tSent.get(msg.getTransactionId());
+			if (uniqKey != null && _tSent.get(uniqKey) != null)
+				return 0; // 同一Message对象重复发送：UNIQ_KEY复用，首个事务已执行，去重
+			var sent = _tSent.get(action.txnId());
 			if (sent == null)
 				return 1;
 			if (sent.isResult())
 				return 0;
+			var check = uniqKey == null ? null : new BTransactionMessageResult(false, System.currentTimeMillis());
+			if (check != null)
+				_tSent.insert(uniqKey, check);
 			sent.setResult(true);
-			return ((FuncLong)arg).call();
+			var rc = action.action().call();
+			if (rc == 0 && check != null)
+				check.setResult(true);
+			return rc;
 		}, "RocketMQ.executeLocalTransaction")).call();
 
 		if (r == 0)
 			return LocalTransactionState.COMMIT_MESSAGE;
 		if (r != 1) {
 			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
-				_tSent.remove(msg.getTransactionId());
+				_tSent.remove(action.txnId());
+				if (uniqKey != null)
+					_tSent.remove(uniqKey);
 				return 0;
 			}, "RocketMQ.executeLocalTransaction.rollback")).call();
 		}
@@ -118,7 +141,8 @@ public class Producer extends AbstractProducer implements TransactionListener {
 
 	@Override
 	public @NotNull LocalTransactionState checkLocalTransaction(@NotNull MessageExt msg) {
-		var sent = _tSent.selectDirty(msg.getTransactionId());
+		var uniqKey = msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+		var sent = uniqKey != null ? _tSent.selectDirty(uniqKey) : null;
 		if (sent == null)
 			return LocalTransactionState.ROLLBACK_MESSAGE;
 		return sent.isResult() ? LocalTransactionState.COMMIT_MESSAGE : LocalTransactionState.UNKNOW;
