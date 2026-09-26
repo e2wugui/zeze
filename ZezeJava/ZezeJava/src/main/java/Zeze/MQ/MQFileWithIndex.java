@@ -78,7 +78,10 @@ public class MQFileWithIndex {
 		if (null != files) {
 			for (var file : files) {
 				var partIndex = file.getName().split("\\.");
-				if (partIndex.length < 2)
+				// 恰好两段，与 MQManager.loadMQ 的分区发现规则一致：接受更多段会把 "0.500.tmp" 一类
+				// 杂散文件注册成幽灵段——lastEntry 被抬高后 lastFile 指向不存在的 "0.500"，
+				// recoverTornTail 的 nextMessageId<segBase 检查 fatal 且报错指向"meta 丢失"这一错误方向。
+				if (partIndex.length != 2)
 					continue;
 				try {
 					var pid = Integer.parseInt(partIndex[0]);
