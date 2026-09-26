@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
+import Zeze.Builtin.Dbh2.Master.BGetDataWithVersion;
 import Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion;
 import Zeze.Builtin.Dbh2.Master.ClearInUse;
 import Zeze.Builtin.Dbh2.Master.GetDataWithVersion;
@@ -119,10 +120,14 @@ public class Database extends Zeze.Transaction.Database {
 			var r = new GetDataWithVersion();
 			r.Argument.setKey(new Binary(key));
 			r.SendForWait(masterAgent.getService().GetSocket()).await();
-			if (r.getResultCode() != 0) {
-				// skip error
+			var error = IModule.getErrorCode(r.getResultCode());
+			if (error == BGetDataWithVersion.eDataNotExists)
 				return null;
-			}
+			// 其他错误（超时/断连等瞬时故障）不能当作"无数据"返回null：
+			// 调用方（Application全局数据初始化）会把null当首次初始化并以version=0写回，
+			// 与Master端CAS叠加可把已存储的全局数据用默认值覆写。
+			if (r.getResultCode() != 0)
+				throw new RuntimeException("GetDataWithVersion error=" + error);
 			var result = new DataWithVersion();
 			result.data = ByteBuffer.Wrap(r.Result.getData());
 			result.version = r.Result.getVersion();
@@ -158,10 +163,10 @@ public class Database extends Zeze.Transaction.Database {
 		var idx = name.indexOf(special);
 		if (idx >= 0) {
 			var tableName = name.substring(idx + special.length());
-			return new Dbh2PrefixTable(tables.computeIfAbsent(tableName, Dbh2Table::new), id);
+			return new Dbh2PrefixTable(tables.computeIfAbsent(tableName, __ -> new Dbh2Table(tableName, true)), id);
 		}
 		// 这里不使用tables，保留的旧的逻辑不变。
-		return new Dbh2Table(name);
+		return new Dbh2Table(name, false);
 	}
 
 	@Override
@@ -334,6 +339,9 @@ public class Database extends Zeze.Transaction.Database {
 
 	public class Dbh2Table extends Zeze.Transaction.Database.AbstractKVTable {
 		private final String name;
+		// 仅prefix路径通过tables.computeIfAbsent入表的实例为true；非prefix实例不入表，
+		// close()不能删共享map条目（否则误摘仍被prefix表持有的实例，引用计数与map错位级联）。
+		private final boolean registered;
 		private boolean isNew;
 		private final TaskCompletionSource<Integer> ready = new TaskCompletionSource<>();
 		private final AtomicInteger ref = new AtomicInteger();
@@ -348,8 +356,9 @@ public class Database extends Zeze.Transaction.Database {
 			}
 		}
 
-		public Dbh2Table(String tableName) {
+		public Dbh2Table(String tableName, boolean registered) {
 			this.name = tableName;
+			this.registered = registered;
 			dbh2AgentManager.createTableAsync(
 					Database.this.masterAgent, Database.this.masterName,
 					Database.this.databaseName, tableName,
@@ -469,7 +478,8 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public void close() {
-			tables.remove(name);
+			if (registered)
+				tables.remove(name);
 		}
 	}
 

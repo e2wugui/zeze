@@ -95,7 +95,7 @@ public class CommitRocks {
 				if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
 					throw new RuntimeException("redo error=" + IModule.getErrorCode(r.getResultCode()));
 			}
-			removeCommitIndex(key);
+			removeTransactionRecord(key);
 		} catch (Throwable ex) {
 			// timer will redo
 			logger.error("", ex);
@@ -208,13 +208,13 @@ public class CommitRocks {
 			} catch (Throwable undoEx) {
 				ex.addSuppressed(undoEx); // undo失败不能掩盖原始异常
 			}
-			removeCommitIndex(tidBytes);
+			removeTransactionRecord(tidBytes);
 			throw new RuntimeException(ex);
 		}
 
 		if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime()) {
 			undo(tid, state);
-			removeCommitIndex(tidBytes);
+			removeTransactionRecord(tidBytes);
 			throw new RuntimeException(Str.format("max prepare time exceed. time={}", manager.getDbh2Config().getPrepareMaxTime()));
 		}
 		return tid;
@@ -234,7 +234,7 @@ public class CommitRocks {
 			} catch (Throwable undoEx) {
 				ex.addSuppressed(undoEx); // undo失败不能掩盖原始异常
 			}
-			removeCommitIndex(tidBytes);
+			removeTransactionRecord(tidBytes);
 			throw new RuntimeException(ex);
 		}
 
@@ -250,7 +250,7 @@ public class CommitRocks {
 				if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
 					throw new RuntimeException("commit error=" + IModule.getErrorCode(r.getResultCode()));
 			}
-			removeCommitIndex(tidBytes);
+			removeTransactionRecord(tidBytes);
 		} catch (Throwable ex) {
 			// timer will redo
 			logger.error("", ex);
@@ -281,9 +281,17 @@ public class CommitRocks {
 		}
 	}
 
-	private void removeCommitIndex(byte[] tidBytes) {
+	// 事务完结（commit/undo/prepare失败）即同时删除commitIndex与commitPoint，两者必须同批：
+	// 只删index会让commitPoint随事务总量无界增长（默认本地提交模式下每事务一条死记录）。
+	// 已完结事务无人再查询（桶侧onTimer只查map中存活事务；tid不复用），迟到query按
+	// eCommitNotExist处理（Commit.ProcessQueryRequest对null的映射）。
+	private void removeTransactionRecord(byte[] tidBytes) {
 		try {
-			commitIndex.delete(tidBytes);
+			try (var batch = database.borrowBatch()) {
+				commitIndex.delete(batch, tidBytes);
+				commitPoint.delete(batch, tidBytes);
+				batch.commit(writeOptions);
+			}
 		} catch (RocksDBException e) {
 			// 这个错误仅仅记录日志，所有没有删除的index，以后重启和Timer会尝试重做。
 			logger.error("", e);
