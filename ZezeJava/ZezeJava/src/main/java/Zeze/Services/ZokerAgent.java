@@ -192,7 +192,10 @@ public class ZokerAgent extends AbstractZokerAgent {
         var r = new StopService();
         r.Argument.setServiceName(serviceName);
         r.Argument.setForce(force);
-        r.SendForWait(zoker).await();
+        // 服务端 stop 三态最坏路径 10s 优雅+10s 强杀（ServiceManager），默认 5s 超时会让
+        // Force-Killed/Alive-After-Force 两态不可达（迟到结果包被丢上下文）。60s=最坏路径3倍裕量，
+        // 对齐 00fd190c0 的 60s 族先例。
+        r.SendForWait(zoker, 60_000).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("stop service error. " + IModule.getErrorCode(r.getResultCode()));
         return r.Result;
