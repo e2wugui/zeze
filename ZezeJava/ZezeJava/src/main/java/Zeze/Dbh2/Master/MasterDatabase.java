@@ -33,6 +33,10 @@ public class MasterDatabase {
 	// tables 包含分桶目标。
 	private final ConcurrentHashMap<String, MasterTable.Data> splitting = new ConcurrentHashMap<>();
 	private final RocksDatabase.Table rocksSplitting;
+	// splitting条目年龄副表（INV5，GA-D01 A4）：key=tableName+keyFirst→创建时间戳。独立副表
+	// 不动MasterTable.Data手写编码格式（旧数据decode兼容零成本）。只观测不动作：超龄error
+	// 告警（阈值Dbh2Config.SplittingAgeWarnMs，默认10min量级），消费必须结构驱动（A2的INV1）。
+	private final RocksDatabase.Table rocksSplittingAge;
 	private final Master master;
 
 	public MasterDatabase(Master master, String databaseName) {
@@ -42,6 +46,7 @@ public class MasterDatabase {
 			rocksDb = new RocksDatabase(Path.of(master.getHome(), databaseName).toString());
 			rocksTables = rocksDb.getOrAddTable("tables");
 			rocksSplitting = rocksDb.getOrAddTable("splitting");
+			rocksSplittingAge = rocksDb.getOrAddTable("splittingAge");
 
 			try (var it = rocksTables.iterator()) {
 				it.seekToFirst();
@@ -250,7 +255,7 @@ public class MasterDatabase {
 	// 入主表，from非null时替换主表源桶（endSplit分裂后源桶边界收窄；endMove传null），
 	// 双表同批落库。splitting的TreeMap必须持它自己的锁访问：createSplitBucket持splitting锁
 	// get/put，只持主表锁remove/encode的话两锁互不互斥，TreeMap并发读写可CME/死循环。
-	// 锁序固定主表→splitting（createSplitBucket只取splitting锁，无环）。
+	// 锁序固定主表→splitting（createSplitBucket碰撞判定按同序两阶段，无环）。
 	// 调用方须已持主表锁；新桶不在splitting或四元组不等值时不动任何状态，返回错误码。
 	private long settleSplitting(MasterTable.Data table, MasterTable.Data splitting, String tableName,
 								 BBucketMeta.Data to, BBucketMeta.Data from, Rpc<?, ?> r) throws Exception {
@@ -260,22 +265,52 @@ public class MasterDatabase {
 			if (bucket == null || !sameBucketMeta(bucket, to))
 				return master.errorCode(Master.eSplittingBucketNotFound);
 
-			// 【迟到endMove守卫（GA-C01路径C）】from==null即endMove，to声称move目标桶接管源桶的
-			// 整个旧键域[F,L)。不变式：合法的move settle时刻，主表同keyFirst上的现存条目只能是
-			// 同边界的旧raft源桶（move在主表只改写raftConfig，边界不动），keyLast必相等；现存条目
-			// keyFirst存在但keyLast不等，唯一构造路径是"本endMove的送达迟到，期间move目标桶已
-			// 后续split并settle收窄了主表条目"——此刻to携带的宽边界是过期快照，put会覆盖收窄后的
-			// 主表（宣称已deleteToEnd的键域仍归本桶），产生永久性元数据谎言。拒绝settle且不动任何
-			// 状态（splitting陈旧条目的清理由四实体生命周期设计承担，见GA-D01）；错误码用
-			// eSplittingBucketNotFound，MasterAgent重试端按"已settle"终局语义停止重试（该move的
-			// 正确终态已被后续split取代，重试永远不会再次合法）。
-			if (from == null) {
-				var exist = table.buckets.get(to.getKeyFirst());
-				if (null != exist && !exist.getKeyLast().equals(to.getKeyLast())) {
-					logger.error("settleSplitting late endMove refused, main table bucket narrowed. exist={} to={}",
+			var exist = table.buckets.get(to.getKeyFirst());
+			// 【already-settled守卫（GA-D01 A1，补发的安全性前提）】主表同keyFirst现存条目与to
+			// 四元组+raftConfig全等 = 本迁移已结算过（重试/leader-ready补发的幂等重复，或settle
+			// 成功而响应丢失后的重发）。返回已结算终局码且**不消费splitting条目**：此刻表内的
+			// 条目可能是在途的新世代条目（同四元组、不同raftConfig——master重启/补发间隙内
+			// createSplitBucket重建），被旧迁移的补发抢占消费会让新迁移永不settle。raftConfig
+			// 全等比较在此合法：两侧都是master已知的完整meta（与resume场景请求方raftConfig=""
+			// 不同，不触碰R1钉死约束）。
+			if (null != exist && sameBucketMeta(exist, to) && exist.getRaftConfig().equals(to.getRaftConfig())) {
+				logger.info("settleSplitting already settled, keep in-flight entry. to={}", to);
+				return master.errorCode(Master.eSplittingBucketNotFound);
+			}
+
+			// 【迟到settle守卫（GA-C01路径C收口 + GA-D01 A2落地INV1）】from==null即endMove。
+			// 不变式：主表只会收窄不会变宽，合法的move settle时刻主表同keyFirst现存条目只能是
+			// 同边界旧raft源桶（move在主表只改写raftConfig），keyLast必相等。不等按方向分治：
+			//  - 更窄（INV1死信）：更晚的settle已越过该keyFirst收窄主表——to的宽边界是过期快照，
+			//    put会覆盖收窄后的主表（宣称已deleteToEnd的键域仍归本桶），永久元数据谎言。拒绝
+			//    且**同步消费死信条目**（remove+落盘）：该条目永远不可能再合法settle，滞留只会被
+			//    后续同边界操作收养（(B)）或永久拒绝（变体）。GA-C01留的接缝在此闭合。
+			//  - 更宽：本迁移**之前**另有settle丢失、主表陈旧（条目比主表新，仍活）——拒绝不消费
+			//    （GA-C01原语义），pending-settle补发（A1）收敛主表后重试可过。
+			// 错误码用eSplittingBucketNotFound：MasterAgent重试端按"已settle"终局语义停止重试
+			//（死信方向：正确终态已被后续settle取代；宽方向：补发链独立收敛）。
+			if (from == null && null != exist) {
+				var cmp = compareKeyLast(exist.getKeyLast(), to.getKeyLast());
+				if (cmp < 0) {
+					logger.error("settleSplitting late endMove refused, dead entry consumed (INV1). exist={} to={}",
+							exist, to);
+					return consumeDeadSplitting(splitting, tableName, to.getKeyFirst());
+				}
+				if (cmp > 0) {
+					logger.error("settleSplitting late endMove refused, main stale-wide, keep entry. exist={} to={}",
 							exist, to);
 					return master.errorCode(Master.eSplittingBucketNotFound);
 				}
+				// cmp==0：同边界旧raft源桶——正常move settle。
+			}
+
+			// 【endSplit to侧变宽守卫（GA-D01 A2，INV1；增量审留注#1的对称收口）】同款单调性
+			// 论证对from!=null成立：主表现存同keyFirst条目比to更窄 = 更晚的settle已越过，to的
+			// put会重新变宽主表——本迁移的目标键域已被后续世代接管，整笔拒绝且消费死信。
+			if (from != null && null != exist && compareKeyLast(exist.getKeyLast(), to.getKeyLast()) < 0) {
+				logger.error("settleSplitting late endSplit refused, dead entry consumed (INV1). exist={} to={}",
+						exist, to);
+				return consumeDeadSplitting(splitting, tableName, to.getKeyFirst());
 			}
 
 			splitting.buckets.remove(to.getKeyFirst());
@@ -284,9 +319,19 @@ public class MasterDatabase {
 			// >=仅出现在move被recoverSplitting的data[0]==keyFirst启发式误判为split时
 			//（from=[M,M)空区间，to即move目标）：此时按endMove语义不put from——to的put已是
 			// move完成的正确终态，from的put会把刚发布的新桶覆盖回死源桶，[M,L)键域在master表永久丢失。
-			if (from != null && from.getKeyFirst().compareTo(to.getKeyFirst()) < 0)
-				table.buckets.put(from.getKeyFirst(), from); // replace
-			else if (from != null)
+			if (from != null && from.getKeyFirst().compareTo(to.getKeyFirst()) < 0) {
+				// 【from侧对称守卫（增量审留注#1）】主表现存from.keyFirst条目比from更窄 = 更晚的
+				// settle已收窄（本from是过期快照），put会重新变宽主表（宣称源桶仍持有已迁走/已删
+				// 的键域，键域静默失联）。只跳过from的put：to的put仍是正确发布——迟到settle的to桶
+				// 确持有该键域数据（典型形态：split1的settle丢失→split2先行settle→迟到split1补发，
+				// 跳过from1、发布to1，主表恰补齐[M1,L)缺口）。settle成功，条目正常消费。
+				var existFrom = table.buckets.get(from.getKeyFirst());
+				if (null != existFrom && compareKeyLast(existFrom.getKeyLast(), from.getKeyLast()) < 0)
+					logger.error("settleSplitting late from skipped (main narrower). existFrom={} from={}",
+							existFrom, from);
+				else
+					table.buckets.put(from.getKeyFirst(), from); // replace
+			} else if (from != null)
 				logger.error("settleSplitting from.keyFirst>=to.keyFirst, skip from. from={} to={}", from, to);
 
 			try (var batch = rocksDb.newBatch()) {
@@ -299,11 +344,22 @@ public class MasterDatabase {
 						bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
 				batch.commit();
 			}
+			splittingAgeRemoveQuietly(tableName, to.getKeyFirst());
 			r.SendResult();
 			return 0;
 		} finally {
 			splitting.unlock();
 		}
+	}
+
+	// 死信条目消费（INV1）：remove+落盘+年龄记录回收，返回终局错误码。调用方须已持主表锁
+	//（endMove/endSplit路径）与splitting锁。
+	private long consumeDeadSplitting(MasterTable.Data splitting, String tableName, Binary keyFirst)
+			throws RocksDBException {
+		splitting.buckets.remove(keyFirst);
+		saveRocks(rocksSplitting, tableName, splitting);
+		splittingAgeRemoveQuietly(tableName, keyFirst);
+		return master.errorCode(Master.eSplittingBucketNotFound);
 	}
 
 	// 桶身份四元组等值：endMove/endSplit确认splitting桶与决策一致、createSplitBucket
@@ -315,56 +371,219 @@ public class MasterDatabase {
 				&& a.getKeyLast().equals(b.getKeyLast());
 	}
 
+	// keyLast的域序：Binary.Empty表示+∞（无上界），其余按字典序。主表边界比较的统一序
+	//（"主表只会收窄"的单调性在此序上成立）。
+	private static int compareKeyLast(Binary a, Binary b) {
+		if (a.size() == 0)
+			return b.size() == 0 ? 0 : 1;
+		if (b.size() == 0)
+			return -1;
+		return a.compareTo(b);
+	}
+
 	public long createSplitBucket(CreateSplitBucket r) throws Exception {
 		var bucket = r.Argument;
 		String tableName = bucket.getTableName();
-		if (null == tables.get(tableName)) {
+		var mainTable = tables.get(tableName);
+		if (null == mainTable) {
 			logger.error("createBucket but table not found. database={} table={}", databaseName, tableName);
 			return master.errorCode(Master.eTableNotFound);
 		}
 
 		var table = splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-		table.lock();
-		try {
-			var exist = table.buckets.get(bucket.getKeyFirst());
-			if (exist != null) {
-				// 桶已经存在。响应丢失/日志截断后manager重试时走这里：必须把已存在的桶
-				// 幂等返回（对齐createTable"存在即返回"），否则eSplittingBucketExist让
-				// agent端抛异常，源桶splittingMeta为null永远到不了endSplit，分桶永久卡死。
+		while (true) {
+			table.lock();
+			try {
+				var exist = table.buckets.get(bucket.getKeyFirst());
+				if (exist == null) {
+					// allocate first bucket service and setup table
+					var managers = master.choiceSmallLoadManagers();
+					if (managers.size() < master.getDbh2Config().getRaftClusterCount()) {
+						logger.info("too few small load manager. database={} table={}", databaseName, tableName);
+						return master.errorCode(Master.eTooFewManager);
+					}
+
+					var raftNames = buildRaftConfig(bucket, managers);
+					table.buckets.put(bucket.getKeyFirst(), bucket);
+					try {
+						createBucketRafts(managers, bucket, raftNames);
+						saveRocks(rocksSplitting, tableName, table);
+					} catch (Exception e) {
+						// 失败回滚内存表，否则脏entry让之后所有重试被eSplittingBucketExist拒绝，分桶卡死直到Master重启。
+						table.buckets.remove(bucket.getKeyFirst());
+						throw e;
+					}
+					splittingAgeCreateQuietly(tableName, bucket.getKeyFirst());
+
+					r.Result = bucket;
+					r.SendResult();
+					return 0;
+				}
 				if (sameBucketMeta(exist, bucket)) {
+					// 桶已经存在。响应丢失/日志截断后manager重试时走这里：必须把已存在的桶
+					// 幂等返回（对齐createTable"存在即返回"），否则eSplittingBucketExist让
+					// agent端抛异常，源桶splittingMeta为null永远到不了endSplit，分桶永久卡死。
 					logger.info("bucket exist, resume. database={} table={}", databaseName, tableName);
 					r.Result = exist;
 					r.SendResult();
 					return 0;
 				}
-				logger.info("bucket exist but mismatch. database={} table={}", databaseName, tableName);
+				// 同keyFirst四元组不等（碰撞）。持splitting锁期间不能嵌套取主表锁判INV1（锁序
+				// 固定主表→splitting）——放锁后按序两阶段复查（consumeDeadSplittingOnCollision）。
+			} finally {
+				table.unlock();
+			}
+			if (!consumeDeadSplittingOnCollision(tableName, mainTable, table, bucket)) {
+				logger.info("bucket exist but mismatch (in-flight). database={} table={}", databaseName, tableName);
 				return master.errorCode(Master.eSplittingBucketExist);
 			}
-
-			// allocate first bucket service and setup table
-			var managers = master.choiceSmallLoadManagers();
-			if (managers.size() < master.getDbh2Config().getRaftClusterCount()) {
-				logger.info("too few small load manager. database={} table={}", databaseName, tableName);
-				return master.errorCode(Master.eTooFewManager);
-			}
-
-			var raftNames = buildRaftConfig(bucket, managers);
-			table.buckets.put(bucket.getKeyFirst(), bucket);
-			try {
-				createBucketRafts(managers, bucket, raftNames);
-				saveRocks(rocksSplitting, tableName, table);
-			} catch (Exception e) {
-				// 失败回滚内存表，否则脏entry让之后所有重试被eSplittingBucketExist拒绝，分桶卡死直到Master重启。
-				table.buckets.remove(bucket.getKeyFirst());
-				throw e;
-			}
-
-			r.Result = bucket;
-			r.SendResult();
-			return 0;
-		} finally {
-			table.unlock();
+			// 死信已消费（或条目已消失/已变）：循环重查——另一并发creator可能在两阶段间隙
+			// 重建了条目，重查按同四元组resume或再碰撞（真在途则维持拒绝）。每轮不返回即
+			// 必消费一条死信，循环有进展保证。
 		}
+	}
+
+	/**
+	 * 碰撞条目的INV1死信判定与消费（GA-D01 A2）。判死依据（不变式INV1）：条目[k,K)活⟺
+	 * 主表floor(k).keyLast==K——主表只会收窄不会变宽、splitting消费与主表收窄同批落盘，
+	 * keyLast不等且**更窄**的唯一构造路径是"更晚的settle已越过该keyFirst收窄主表"=死信
+	 * （变体的eSplittingBucketExist永久拒绝由此转一次自愈：删除后按新请求重建）。
+	 * 更宽方向不判死：那是本迁移之前另有settle丢失、主表陈旧（条目比主表新，仍活），
+	 * 留给pending-settle补发（A1）收敛；floor不存在（生产不可达：主表首桶keyFirst=Empty
+	 * 覆盖一切key）也不判死——结构证明不足时保守拒绝，不为不可达形态引入误删面。
+	 * 锁序固定主表→splitting（settleSplitting同款）：两阶段复查防消费窗口内条目被并发
+	 * 消费/重建。
+	 * @return true=条目已消费，或已消失/已变为本请求的幂等重试形态（调用方重查）；
+	 *         false=真在途，维持eSplittingBucketExist。
+	 */
+	private boolean consumeDeadSplittingOnCollision(String tableName, MasterTable.Data mainTable,
+													MasterTable.Data splittingTable, BBucketMeta.Data request)
+			throws RocksDBException {
+		mainTable.lock();
+		try {
+			splittingTable.lock();
+			try {
+				var exist = splittingTable.buckets.get(request.getKeyFirst());
+				if (null == exist || sameBucketMeta(exist, request))
+					return true; // 条目已消失，或并发下已变为本请求的同四元组——交回主流程按原语义处理
+				var floor = mainTable.buckets.floorEntry(request.getKeyFirst());
+				if (null == floor || compareKeyLast(floor.getValue().getKeyLast(), exist.getKeyLast()) >= 0)
+					return false; // 结构证明不足或真在途：维持拒绝
+				logger.error("dead splitting entry consumed on collision (INV1): database={} table={} entry={}",
+						databaseName, tableName, exist);
+				splittingTable.buckets.remove(request.getKeyFirst());
+				saveRocks(rocksSplitting, tableName, splittingTable);
+				splittingAgeRemoveQuietly(tableName, request.getKeyFirst());
+				return true;
+			} finally {
+				splittingTable.unlock();
+			}
+		} finally {
+			mainTable.unlock();
+		}
+	}
+
+	// 年龄副表key：长度前缀tableName + keyFirst（同表内条目唯一）。
+	private static byte[] splittingAgeKey(String tableName, Binary keyFirst) {
+		var tn = tableName.getBytes(StandardCharsets.UTF_8);
+		var key = new byte[4 + tn.length + keyFirst.size()];
+		key[0] = (byte)(tn.length >>> 24);
+		key[1] = (byte)(tn.length >>> 16);
+		key[2] = (byte)(tn.length >>> 8);
+		key[3] = (byte)tn.length;
+		System.arraycopy(tn, 0, key, 4, tn.length);
+		System.arraycopy(keyFirst.bytesUnsafe(), keyFirst.getOffset(), key, 4 + tn.length, keyFirst.size());
+		return key;
+	}
+
+	// 观测专用写入：失败只记error不阻断协议路径——年龄基线在下一轮扫描按首扫起点重建。
+	private void splittingAgeCreateQuietly(String tableName, Binary keyFirst) {
+		try {
+			var key = splittingAgeKey(tableName, keyFirst);
+			var bb = ByteBuffer.Allocate(8);
+			bb.WriteLong(System.currentTimeMillis());
+			rocksSplittingAge.put(key, 0, key.length, bb.Bytes, 0, bb.WriteIndex);
+		} catch (RocksDBException ex) {
+			logger.error("splittingAgeCreate fail (observation only). database={} table={}", databaseName, tableName, ex);
+		}
+	}
+
+	private void splittingAgeRemoveQuietly(String tableName, Binary keyFirst) {
+		try {
+			var key = splittingAgeKey(tableName, keyFirst);
+			rocksSplittingAge.delete(key, 0, key.length);
+		} catch (RocksDBException ex) {
+			// 残留记录只多占空间，不被扫描读取（扫描以splitting现存条目为驱动），无正确性影响。
+			logger.error("splittingAgeRemove fail (observation only). database={} table={}", databaseName, tableName, ex);
+		}
+	}
+
+	/** 条目创建时间戳（年龄观测用）；无记录（存量条目未立基线）返回null。 */
+	public Long getSplittingAgeCreateTime(String tableName, Binary keyFirst) {
+		try {
+			var ts = rocksSplittingAge.get(splittingAgeKey(tableName, keyFirst));
+			return null != ts ? ByteBuffer.Wrap(ts).ReadLong() : null;
+		} catch (RocksDBException ex) {
+			logger.error("getSplittingAgeCreateTime fail. database={} table={}", databaseName, tableName, ex);
+			return null;
+		}
+	}
+
+	private record AgedEntry(BBucketMeta.Data entry, long ageMs) {
+	}
+
+	/**
+	 * splitting年龄扫描（INV5，GA-D01 A4）：超龄（≥SplittingAgeWarnMs）条目error告警
+	 * （含条目与源桶信息），返回告警条数。**只观测不动作**——观测可时间驱动，消费必须
+	 * 结构驱动（A2）；无时间戳的存量条目按首次扫描起点起算（首扫只立基线不告警）。
+	 * 告警取源桶信息需读主表floor：锁序主表→splitting，故在splitting锁外逐条取主表锁
+	 * （splitting锁内嵌套取主表锁违反锁序）；条目为锁内copy快照，与消费并发时最多告警
+	 * 一条已消失的条目（观测无害）。
+	 */
+	public int scanSplittingAge() {
+		var now = System.currentTimeMillis();
+		var warnMs = master.getDbh2Config().getSplittingAgeWarnMs();
+		var aged = new ArrayList<AgedEntry>();
+		try {
+			for (var e : splitting.entrySet()) {
+				var tableName = e.getKey();
+				var splittingTable = e.getValue();
+				splittingTable.lock(); // 与settle/createSplitBucket/死信消费的splitting写互斥
+				try {
+					for (var b : splittingTable.buckets.entrySet()) {
+						var keyFirst = b.getKey();
+						var ts = rocksSplittingAge.get(splittingAgeKey(tableName, keyFirst));
+						if (null == ts) {
+							splittingAgeCreateQuietly(tableName, keyFirst); // 存量条目：首扫起点起算
+							continue;
+						}
+						var ageMs = now - ByteBuffer.Wrap(ts).ReadLong();
+						if (ageMs >= warnMs)
+							aged.add(new AgedEntry(b.getValue().copy(), ageMs));
+					}
+				} finally {
+					splittingTable.unlock();
+				}
+			}
+		} catch (RocksDBException ex) {
+			logger.error("scanSplittingAge fail. database={}", databaseName, ex);
+		}
+		for (var a : aged) {
+			BBucketMeta.Data source = null;
+			var mainTable = tables.get(a.entry().getTableName());
+			if (null != mainTable) {
+				mainTable.lock();
+				try {
+					var floor = mainTable.buckets.floorEntry(a.entry().getKeyFirst());
+					source = null != floor ? floor.getValue() : null;
+				} finally {
+					mainTable.unlock();
+				}
+			}
+			logger.error("splitting entry aged ({}ms >= {}ms), entry={} source={}",
+					a.ageMs(), warnMs, a.entry(), source);
+		}
+		return aged.size();
 	}
 
 	private static void saveRocks(RocksDatabase.Table rocksTable,

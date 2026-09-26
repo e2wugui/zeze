@@ -24,10 +24,12 @@ import org.junit.jupiter.api.io.TempDir;
  * 放行settle，会把过期的宽边界put进主表，覆盖收窄条目（宣称已deleteToEnd的键域仍归
  * 该桶），master元数据永久性错误且重试端因settle"成功"停止重试。
  * 修复=主表现存条目keyLast与to.keyFirst不等时拒绝settle（error日志+eSplittingBucketNotFound
- * 终局语义，MasterAgent按"已settle"停止重试），不动任何状态。
+ * 终局语义，MasterAgent按"已settle"停止重试）。
  * 正常move settle（同边界旧raft源桶→新raft）不受影响：move在主表只改写raftConfig，
- * 边界不动，keyLast必相等。splitting陈旧条目的生命周期收敛属四实体设计缺口（GA-D01），
- * 本案不消费。
+ * 边界不动，keyLast必相等。
+ * 【GA-D01 A2契约更新】拒绝路径对INV1死信方向（主表更窄=更晚settle已越过）同步消费该
+ * splitting条目——94c4535d8刻意留的"不消费"接缝由design-GA-D01拍板A闭合；主表更宽方向
+ * （本迁移之前另有settle丢失、主表陈旧，条目仍活）维持不消费，留pending-settle补发（A1）收敛。
  */
 @Fast
 public class TestFnd21GAC01LateEndMoveSettleGuard {
@@ -88,9 +90,10 @@ public class TestFnd21GAC01LateEndMoveSettleGuard {
 			// bug时：to的put覆盖收窄条目，主表宣称[2,Empty)全归B（[5,Empty)键域元数据失真）。
 			Assertions.assertSame(narrowed, table.getBuckets().get(key(2)),
 					"拒绝settle不得改写主表收窄条目（bug：被过期宽边界覆盖）");
-			// 拒绝路径不消费splitting陈旧条目：其生命周期收敛属GA-D01设计范围，本案不动。
-			Assertions.assertSame(stale, getSplitting(db).get("t1").getBuckets().get(key(2)),
-					"拒绝settle不动splitting表（陈旧条目清理由GA-D01承担）");
+			// 【GA-D01 A2契约更新】主表更窄方向（INV1死信）拒绝时同步消费splitting条目：
+			// 该条目永远不可能再合法settle，滞留只会被后续同边界操作收养或永久拒绝。
+			Assertions.assertNull(getSplitting(db).get("t1").getBuckets().get(key(2)),
+					"INV1死信方向的拒绝settle必须同步消费splitting条目（GA-D01 A2闭合GA-C01留的接缝）");
 		} finally {
 			master.close();
 		}

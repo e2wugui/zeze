@@ -153,6 +153,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		super.addFactory(LogSplitPut.TypeId_, LogSplitPut::new);
 
 		super.addFactory(LogEndMove.TypeId_, LogEndMove::new);
+		super.addFactory(LogClearPendingSettle.TypeId_, LogClearPendingSettle::new);
 	}
 
 	public void setupOneShotIfNoTransaction(Runnable handle) {
@@ -262,6 +263,16 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
+	// LogClearPendingSettle.apply入口（GA-D01 A1）：身份匹配清除标志，不匹配为陈旧世代日志，no-op。
+	public void clearPendingSettle(BBucketMeta.Data to) {
+		try {
+			bucket.clearPendingSettle(to);
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
+		}
+	}
+
 	private static final Binary emptyBucketMetaKey = new Binary(new byte[]{1});
 
 	public void endMove(BBucketMeta.Data to) {
@@ -271,12 +282,15 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 			// 被移走的桶Meta置空（使用相同的非空key）。
 			// 将会拒绝所有对这个桶的访问。
-			var emptyMeta = bucket.getBucketMeta().copy();
-			emptyMeta.setKeyFirst(emptyBucketMetaKey);
-			emptyMeta.setKeyLast(emptyBucketMetaKey);
-			bucket.setBucketMeta(emptyMeta);
-			bucket.addMoveMetaHistory(to);
-			bucket.deleteSplittingMeta();
+		var emptyMeta = bucket.getBucketMeta().copy();
+		emptyMeta.setKeyFirst(emptyBucketMetaKey);
+		emptyMeta.setKeyLast(emptyBucketMetaKey);
+		bucket.setBucketMeta(emptyMeta);
+		bucket.addMoveMetaHistory(to);
+		// pending-settle标志（GA-D01 A1）：与既有meta写入同一apply内落盘（派生状态，随raft
+		// 复制/快照）——迁移已在源桶commit的持久证据，leader-ready据此幂等补发settle通知。
+		bucket.setPendingSettle(null, to);
+		bucket.deleteSplittingMeta();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -285,11 +299,13 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
 		try (var it = bucket.getData().iterator()) {
-			it.seek(from.getKeyLast().copyIf());
-			bucket.getData().deleteToEnd(it);
-			bucket.setBucketMeta(from);
-			bucket.addSplitMetaHistory(from, to);
-			bucket.deleteSplittingMeta();
+		it.seek(from.getKeyLast().copyIf());
+		bucket.getData().deleteToEnd(it);
+		bucket.setBucketMeta(from);
+		bucket.addSplitMetaHistory(from, to);
+		// 同endMove：pending-settle标志随迁移commit在apply内落盘（GA-D01 A1）。
+		bucket.setPendingSettle(from, to);
+		bucket.deleteSplittingMeta();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();

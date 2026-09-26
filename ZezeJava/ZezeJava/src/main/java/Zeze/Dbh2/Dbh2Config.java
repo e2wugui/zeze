@@ -16,6 +16,9 @@ public class Dbh2Config implements Config.ICustomize {
 	private int raftClusterCount = 3;
 	private boolean serialize = true;
 	private int splitCleanCount = 200;
+	// splitting条目超龄告警阈值（GA-D01 A4/INV5，默认10min量级）：master周期扫描，超龄error
+	// 告警。只观测不动作——超大桶拷贝可超过任何阈值，超龄自动删除会人为重演(A)的永久读失败。
+	private long splittingAgeWarnMs = 600_000;
 	// 远程提交模式（Dbh2LocalCommit=false）的CommitServer直连地址，属性CommitServerAddress="host:port"，可空。
 	// 单实例语义：commitPoint集中在该CommitServer的CommitRocks库，多实例时事务跨服务器无统一redo视角。
 	private @Nullable String commitServerHost;
@@ -86,6 +89,14 @@ public class Dbh2Config implements Config.ICustomize {
 		splitCleanCount = value;
 	}
 
+	public long getSplittingAgeWarnMs() {
+		return splittingAgeWarnMs;
+	}
+
+	public void setSplittingAgeWarnMs(long value) {
+		splittingAgeWarnMs = value;
+	}
+
 	@Override
 	public void parse(@NotNull Element self) {
 
@@ -134,6 +145,10 @@ public class Dbh2Config implements Config.ICustomize {
 		attr = self.getAttribute("SplitCleanCount");
 		if (!attr.isBlank())
 			splitCleanCount = Integer.parseInt(attr);
+
+		attr = self.getAttribute("SplittingAgeWarnMs");
+		if (!attr.isBlank())
+			splittingAgeWarnMs = Long.parseLong(attr);
 
 		attr = self.getAttribute("CommitServerAddress");
 		if (!attr.isBlank()) {

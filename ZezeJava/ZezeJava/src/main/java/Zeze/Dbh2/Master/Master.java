@@ -15,6 +15,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMySql;
+import Zeze.Util.DaemonTimer;
 import Zeze.Util.OutObject;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.RocksDatabase;
@@ -50,6 +51,11 @@ public class Master extends AbstractMaster {
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private final Config zezeConfig;
 
+	// splitting年龄观测（INV5，GA-D01 A4）：周期扫描全部MasterDatabase的splitting条目，
+	// 超龄error告警。只观测不动作（消费必须结构驱动=A2/INV1）。形态对齐Dbh2Manager.loadMonitor。
+	private final DaemonTimer splittingAgeMonitor = new DaemonTimer(
+			"Zeze.Dbh2.Master.splittingAge", 60_000, this::scanSplittingAges);
+
 	public Dbh2Config getDbh2Config() {
 		return dbh2Config;
 	}
@@ -81,11 +87,26 @@ public class Master extends AbstractMaster {
 		}
 	}
 
+	private void scanSplittingAges() {
+		for (var db : databases.values())
+			db.scanSplittingAge();
+	}
+
+	/**
+	 * 启动splitting年龄观测扫描（INV5，GA-D01 A4）。生产入口Main.start()调用；构造期不
+	 * 自动启动（对齐Dbh2Manager.loadMonitor在start()启动的形态——嵌入式/测试直接构造
+	 * Master时无调度池依赖、零线程副作用，扫描可经MasterDatabase.scanSplittingAge直接驱动）。
+	 */
+	public void startSplittingAgeMonitor() {
+		splittingAgeMonitor.start();
+	}
+
 	public String getHome() {
 		return home;
 	}
 
 	public void close() {
+		splittingAgeMonitor.stop(); // 先停扫描再关库，避免扫描触达已关闭的rocks句柄
 		for (var db : databases.values())
 			db.close();
 		databases.clear();

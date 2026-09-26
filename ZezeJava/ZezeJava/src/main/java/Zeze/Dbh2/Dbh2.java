@@ -131,6 +131,15 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return typeId == PrepareBatch.TypeId_;
 	}
 
+	// 【meta-less守卫（INV4，GA-D01 A5）】新raft在SetBucketMeta（桶协议第一条）之前
+	// bucketMeta==null，此前Get/Walk/WalkKey/PrepareBatch入口经inBucket对meta的解引用以
+	// 框架层NPE面目出现；显式判定返回专用错误码eBucketNotReady（additive），孤儿收养
+	// 路径可辨识、可重试。SetBucketMeta/SplitPut不拦——前者即初始化入口，后者是目标桶
+	// 在meta就位前的数据灌入通道。
+	private boolean isBucketNotReady() {
+		return stateMachine.getBucket().getBucketMeta() == null;
+	}
+
 	public Raft getRaft() {
 		return raft;
 	}
@@ -210,6 +219,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	@Override
 	protected long ProcessGetRequest(Zeze.Builtin.Dbh2.Get r) throws RocksDBException {
+		if (isBucketNotReady())
+			return errorCode(eBucketNotReady);
 		stateMachine.counterGet.incrementAndGet();
 //		var lock = getLocks().get(r.Argument.getKey());
 //		lock.lock(this);
@@ -240,6 +251,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	@Override
 	protected long ProcessPrepareBatchRequest(PrepareBatch r) throws Exception {
+		if (isBucketNotReady())
+			return errorCode(eBucketNotReady);
 		// lock
 		var txn = new Dbh2Transaction(this, r.Argument.getBatch());
 		try {
@@ -413,6 +426,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	@Override
 	protected long ProcessWalkRequest(Walk r) throws Exception {
+		if (isBucketNotReady())
+			return errorCode(eBucketNotReady);
 		if (r.Argument.getExclusiveStartKey().size() > 0
 				&& !stateMachine.getBucket().inBucket(r.Argument.getExclusiveStartKey())) {
 			r.Result.setBucketRefuse(true);
@@ -432,6 +447,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	@Override
 	protected long ProcessWalkKeyRequest(WalkKey r) throws Exception {
+		if (isBucketNotReady())
+			return errorCode(eBucketNotReady);
 		if (r.Argument.getExclusiveStartKey().size() > 0
 			&& !stateMachine.getBucket().inBucket(r.Argument.getExclusiveStartKey())) {
 			r.Result.setBucketRefuse(true);
@@ -535,6 +552,39 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			boolean isMove = splitting.getKeyFirst().compareTo(bucketMeta.getKeyFirst()) == 0
 					&& splitting.getKeyLast().compareTo(bucketMeta.getKeyLast()) == 0;
 			startSplit(isMove);
+			return;
+		}
+
+		// 【pending-settle补发（INV2，GA-D01 A1）】splittingMeta==null且标志非空 = 迁移已在本桶
+		// raft上commit并apply（LogEndSplit/LogEndMove），但settle通知未达master——(A)路径：
+		// 原append节点在commit→apply→invokeCallback之间死亡，endSplit2的内存重试链随进程
+		// 消失，master侧splitting条目与旧主表条目永存。标志是apply派生状态、随raft复制/快照，
+		// 任何后来当选的leader都持有它——此处幂等补发（复用既有endSplit/endMoveWithRetryAsync）：
+		//  - master已结算：splitting条目已消费 → eSplittingBucketNotFound（既有终局语义）；
+		//  - master未结算：settle照常生效。
+		// 两方向终局都触发onSettled回调追加标志清除日志，收敛闭环。
+		var pending = bucket.getPendingSettle();
+		if (null != pending) {
+			logger.info("recoverSplitting pending-settle reissue. isMove={} from={} to={}",
+					null == pending.getFrom(), formatMeta(pending.getFrom()), formatMeta(pending.getTo()));
+			if (null != pending.getFrom())
+				manager.getMasterAgent().endSplitWithRetryAsync(pending.getFrom(), pending.getTo(),
+						() -> appendClearPendingSettle(pending.getTo()));
+			else
+				manager.getMasterAgent().endMoveWithRetryAsync(pending.getTo(),
+						() -> appendClearPendingSettle(pending.getTo()));
+		}
+	}
+
+	// settle终局清除标志（GA-D01 A1）：追加清除日志，apply侧身份匹配清除。非leader窗口
+	// appendLog抛RaftRetryException——不清除仅意味着标志多活到下一轮leader-ready补发的
+	// 终局，幂等收敛，无害。
+	private void appendClearPendingSettle(BBucketMeta.Data to) {
+		try {
+			getRaft().appendLog(new LogClearPendingSettle(to));
+		} catch (Exception e) {
+			logger.warn("appendClearPendingSettle fail, leave flag for next leader-ready reissue. to={}",
+					formatMeta(to), e);
 		}
 	}
 
@@ -551,6 +601,20 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return it;
 		it.close();
 		return null;
+	}
+
+	// 解析返回条目raftConfig的sortedNames与本桶全等即自指（manager本地同款解析先例：
+	// Dbh2Manager.createBucket）。解析失败不是自指形态，走原路径（后续对目标的连接/写入
+	// 自会暴露问题）。
+	private boolean isSelfReference(BBucketMeta.Data splitting) {
+		try {
+			return raft.getRaftConfig().getSortedNames()
+					.equals(RaftConfig.loadFromString(splitting.getRaftConfig()).getSortedNames());
+		} catch (Exception e) {
+			logger.warn("startSplit parse splitting raftConfig fail, treat as not self. entry={}",
+					splitting.getRaftConfig(), e);
+			return false;
+		}
 	}
 
 	private RocksIterator locateMiddle() throws RocksDBException {
@@ -637,6 +701,20 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				locateIt.close(); // 不跨rpc持有钉定视图
 
 				splitting = manager.getMasterAgent().createSplitBucket(newMeta);
+
+				// 【自指守卫（INV3，GA-D01 A3）】resume撞上指向自身的陈旧splitting条目——(B)自搬运
+				// 形态：move1(A→B)完成而endMove未达master，B的loadMonitor再决策move，同四元组
+				// resume命中指向B自身的条目，随后B对自身putIfAbsent拷贝（无错）、endMove把源桶
+				// 数据从data[0]删到尾并置死桶——数据物理灭失。判据：返回条目raftConfig的
+				// sortedNames与本桶全等（新建条目恒为新端口新raft，全等只在自指时出现）。
+				// 身份只在请求方本地持有（R1钉死raftConfig不能经rpc进身份判据），故拦截位在
+				// 请求方。中止本轮：不发LogSetSplittingMeta，桶保持完整服务；条目由A1补发
+				// （原源leader-ready）或A2消费（INV1死信）收敛，每120s一轮的重试噪声是正确的拒绝。
+				if (isSelfReference(splitting)) {
+					logger.error("startSplit self-reference refused, abort this round. self={} entry={}",
+							raft.getRaftConfig().getSortedNames(), splitting.getRaftConfig());
+					return;
+				}
 
 				// 设置分桶进行中的标记到raft集群中。
 				getRaft().appendLog(new LogSetSplittingMeta(splitting));
@@ -849,11 +927,16 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		var meta = stateMachine.getBucket().getBucketMeta();
 		if (isMove) {
 			var endMove = (LogEndMove)raftLog.getLog();
-			manager.getMasterAgent().endMoveWithRetryAsync(endMove.getTo());
+			// onSettled终局回调（GA-D01 A1）：settle成功（rc==0）或eSplittingBucketNotFound
+			// （已结算证据）时追加标志清除日志——apply侧随LogEndMove落下的pending-settle
+			// 标志由此收回；进程在终局前死亡则标志留存，下轮leader-ready补发终局后同样清除。
+			manager.getMasterAgent().endMoveWithRetryAsync(endMove.getTo(),
+					() -> appendClearPendingSettle(endMove.getTo()));
 		} else {
 			// 可以安全的发布新旧桶的信息到Master了。
 			var endSplit = (LogEndSplit)raftLog.getLog();
-			manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo());
+			manager.getMasterAgent().endSplitWithRetryAsync(endSplit.getFrom(), endSplit.getTo(),
+					() -> appendClearPendingSettle(endSplit.getTo()));
 		}
 		logger.info("splitting end done. isMove={} {}", isMove, formatMeta(meta));
 	}

@@ -19,6 +19,7 @@ import Zeze.IModule;
 import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Action0;
 import Zeze.Util.Action3;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskSpec;
@@ -183,6 +184,16 @@ public class MasterAgent extends AbstractMasterAgent {
 	static volatile long endRetryDelayMs = 30_000L;
 
 	public void endMoveWithRetryAsync(BBucketMeta.Data to) {
+		endMoveWithRetryAsync(to, null);
+	}
+
+	/**
+	 * @param onSettled settle终局回调（rc==0成功，或eSplittingBucketNotFound=已结算证据），
+	 *                  至多执行一次；null=无回调（原语义）。GA-D01 A1：源桶Dbh2借此追加
+	 *                  pending-settle清除日志（LogClearPendingSettle），进程在终局前死亡则
+	 *                  标志留存，下轮leader-ready补发终局后同样清除。
+	 */
+	public void endMoveWithRetryAsync(BBucketMeta.Data to, Action0 onSettled) {
 		var r = new EndMove();
 		r.Argument.setTo(to);
 		if (!r.Send(service.GetSocket(), (p) -> {
@@ -192,17 +203,25 @@ public class MasterAgent extends AbstractMasterAgent {
 				if (IModule.getErrorCode(p.getResultCode()) != eSplittingBucketNotFound) {
 					logger.warn("endMove fail, retry later. error={} to={}",
 							IModule.getErrorCode(p.getResultCode()), to);
-					TaskSpec.ofAction(() -> endMoveWithRetryAsync(to)).schedule(endRetryDelayMs);
-				} else
+					TaskSpec.ofAction(() -> endMoveWithRetryAsync(to, onSettled)).schedule(endRetryDelayMs);
+				} else {
 					logger.info("endMove already settled. to={}", to);
-			}
+					runSettled(onSettled);
+				}
+			} else
+				runSettled(onSettled);
 			return 0;
 		})) {
-			TaskSpec.ofAction(() -> endMoveWithRetryAsync(to)).schedule(endRetryDelayMs);
+			TaskSpec.ofAction(() -> endMoveWithRetryAsync(to, onSettled)).schedule(endRetryDelayMs);
 		}
 	}
 
 	public void endSplitWithRetryAsync(BBucketMeta.Data from, BBucketMeta.Data to) {
+		endSplitWithRetryAsync(from, to, null);
+	}
+
+	/** 同{@link #endMoveWithRetryAsync(BBucketMeta.Data, Action0)}的onSettled形态。 */
+	public void endSplitWithRetryAsync(BBucketMeta.Data from, BBucketMeta.Data to, Action0 onSettled) {
 		var r = new EndSplit();
 		r.Argument.setFrom(from);
 		r.Argument.setTo(to);
@@ -212,13 +231,27 @@ public class MasterAgent extends AbstractMasterAgent {
 				if (IModule.getErrorCode(p.getResultCode()) != eSplittingBucketNotFound) {
 					logger.warn("endSplit fail, retry later. error={} from={} to={}",
 							IModule.getErrorCode(p.getResultCode()), from, to);
-					TaskSpec.ofAction(() -> endSplitWithRetryAsync(from, to)).schedule(endRetryDelayMs);
-				} else
+					TaskSpec.ofAction(() -> endSplitWithRetryAsync(from, to, onSettled)).schedule(endRetryDelayMs);
+				} else {
 					logger.info("endSplit already settled. from={} to={}", from, to);
-			}
+					runSettled(onSettled);
+				}
+			} else
+				runSettled(onSettled);
 			return 0;
 		})) {
-			TaskSpec.ofAction(() -> endSplitWithRetryAsync(from, to)).schedule(endRetryDelayMs);
+			TaskSpec.ofAction(() -> endSplitWithRetryAsync(from, to, onSettled)).schedule(endRetryDelayMs);
+		}
+	}
+
+	private static void runSettled(Action0 onSettled) {
+		if (null == onSettled)
+			return;
+		try {
+			onSettled.run();
+		} catch (Exception e) {
+			// 回调失败不影响settle终局语义（清除日志的收敛由leader-ready补发兜底）。
+			logger.error("endSettled callback fail", e);
 		}
 	}
 

@@ -32,6 +32,7 @@ public class Main {
 
 	public void start() throws Exception {
 		service.start();
+		master.startSplittingAgeMonitor(); // splitting年龄观测（GA-D01 A4/INV5）：周期扫描超龄告警
 		ShutdownHook.add(this, this::stop);
 	}
 

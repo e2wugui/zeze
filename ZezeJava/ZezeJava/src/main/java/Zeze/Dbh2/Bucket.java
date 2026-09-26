@@ -28,6 +28,34 @@ public class Bucket {
 	private final byte[] metaTid = ByteBuffer.Empty;
 	private final byte[] metaSplittingKey = new byte[]{2};
 	private final byte[] metaSplitKeyHistory = new byte[]{3};
+	private final byte[] metaPendingSettleKey = new byte[]{4};
+
+	/**
+	 * pending-settle标志（GA-D01 A1/INV2）：最近一次已commit迁移（LogEndSplit/LogEndMove
+	 * 的apply）的完整from/to meta。它是**派生状态**（从raft日志参数派生，不新增日志schema），
+	 * 天然随raft复制、随快照持久化——commit过的日志在多数派上，任何后来当选的leader
+	 * apply后即持有标志。这是(A)路径缺失的状态源：settle通知的持久载体，leader-ready时
+	 * 据此幂等补发。from为null即move。
+	 */
+	public static final class PendingSettle {
+		private final BBucketMeta.Data from; // null=move
+		private final BBucketMeta.Data to;
+
+		PendingSettle(BBucketMeta.Data from, BBucketMeta.Data to) {
+			this.from = from;
+			this.to = to;
+		}
+
+		public BBucketMeta.Data getFrom() {
+			return from;
+		}
+
+		public BBucketMeta.Data getTo() {
+			return to;
+		}
+	}
+
+	private volatile PendingSettle pendingSettle;
 
 	public WriteOptions getWriteOptions() {
 		return writeOptions;
@@ -83,6 +111,12 @@ public class Bucket {
 				this.splittingMeta = new BBucketMeta.Data();
 				this.splittingMeta.decode(bb);
 			}
+			var pendingSettleValue = meta.get(metaPendingSettleKey);
+			if (null != pendingSettleValue) {
+				var bb = ByteBuffer.Wrap(pendingSettleValue);
+				var from = bb.ReadBool() ? decodeMeta(bb) : null;
+				this.pendingSettle = new PendingSettle(from, decodeMeta(bb));
+			}
 			var splitMetaHistoryValue = meta.get(metaSplitKeyHistory);
 			if (null != splitMetaHistoryValue) {
 				var bb = ByteBuffer.Wrap(splitMetaHistoryValue);
@@ -113,6 +147,46 @@ public class Bucket {
 		meta.encode(bb);
 		this.meta.put(writeOptions, metaSplittingKey, 0, metaSplittingKey.length, bb.Bytes, 0, bb.WriteIndex);
 		this.splittingMeta = meta;
+	}
+
+	private static BBucketMeta.Data decodeMeta(ByteBuffer bb) {
+		var meta = new BBucketMeta.Data();
+		meta.decode(bb);
+		return meta;
+	}
+
+	public PendingSettle getPendingSettle() {
+		return pendingSettle;
+	}
+
+	// 与既有meta写入同批（同一apply内顺序落盘），标志在LogEndSplit/LogEndMove的apply里设置。
+	public void setPendingSettle(BBucketMeta.Data from, BBucketMeta.Data to) throws RocksDBException {
+		var bb = ByteBuffer.Allocate(32);
+		bb.WriteBool(null != from);
+		if (null != from)
+			from.encode(bb);
+		to.encode(bb);
+		meta.put(writeOptions, metaPendingSettleKey, 0, metaPendingSettleKey.length, bb.Bytes, 0, bb.WriteIndex);
+		pendingSettle = new PendingSettle(from, to);
+	}
+
+	// 身份匹配才清除（四元组+raftConfig全等，两侧都是完整meta——与resume场景请求方
+	// raftConfig=""不同，全等比较在此合法，不触碰R1钉死约束）：陈旧世代的清除日志不得
+	// 清掉新世代的标志（跨世代倒灌防护：旧迁移终局时新迁移可能已apply了自己的标志）。
+	public void clearPendingSettle(BBucketMeta.Data to) throws RocksDBException {
+		var current = pendingSettle;
+		if (null == current || !sameMeta(current.getTo(), to))
+			return;
+		meta.delete(writeOptions, metaPendingSettleKey, 0, metaPendingSettleKey.length);
+		pendingSettle = null;
+	}
+
+	private static boolean sameMeta(BBucketMeta.Data a, BBucketMeta.Data b) {
+		return a.getDatabaseName().equals(b.getDatabaseName())
+				&& a.getTableName().equals(b.getTableName())
+				&& a.getKeyFirst().equals(b.getKeyFirst())
+				&& a.getKeyLast().equals(b.getKeyLast())
+				&& a.getRaftConfig().equals(b.getRaftConfig());
 	}
 
 	public void addMoveMetaHistory(BBucketMeta.Data to) throws RocksDBException {

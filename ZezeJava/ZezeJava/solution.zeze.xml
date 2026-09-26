@@ -1355,6 +1355,8 @@
 			<enum name="eBucketNotFound" value="1"/>
 			<enum name="eBucketMismatch" value="2"/>
 			<enum name="eDuplicateTid" value="3"/>
+			<!-- meta-less桶专用错误码（GA-D01 A5/INV4，additive）：新raft在SetBucketMeta之前bucketMeta==null，Get/Walk/WalkKey/PrepareBatch显式返回本码，不以NPE面目出现 -->
+			<enum name="eBucketNotReady" value="4"/>
 
 			<bean name="BBucketMeta">
 				<variable id="1" name="DatabaseName" type="string"/>
