@@ -41,6 +41,9 @@ public class LogServiceConf implements Config.ICustomize {
 	}
 
 	public String serviceIdentity = "#LogService_{serverId}_{host}_{port}";
+	// 查询会话空闲过期阈值（毫秒，GD-D03）：NewSession/查询路径顺带清理超龄会话；<=0禁用。默认1小时（小时级，
+	// 需显著大于正常翻页间隔——回收正在翻页的会话会打断查询）。
+	public long sessionIdleTimeoutMillis = 3_600_000;
 	private final ConcurrentHashMap<String, LogConf> logConfs = new ConcurrentHashMap<>();
 
 	@Override
@@ -65,6 +68,9 @@ public class LogServiceConf implements Config.ICustomize {
 		var attr = self.getAttribute("ServiceIdentity");
 		if (!attr.isBlank())
 			serviceIdentity = attr;
+		attr = self.getAttribute("SessionIdleTimeoutMillis");
+		if (!attr.isBlank())
+			sessionIdleTimeoutMillis = Long.parseLong(attr);
 
 		var childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {

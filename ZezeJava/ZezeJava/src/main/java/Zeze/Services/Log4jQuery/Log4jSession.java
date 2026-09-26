@@ -7,8 +7,30 @@ import java.util.regex.Pattern;
 import Zeze.Builtin.LogService.BCondition;
 
 public class Log4jSession {
+	/** 服务端单请求limit强制上限（GD-D04）：协议字段是客户端可控的裸int，clamp后按上限执行（超出部分静默截断）。 */
+	public static final int MAX_LIMIT = 10_000;
+	/** 单请求扫描日志条数预算（GD-D04）：超预算置Remain=true提前返回，客户端按翻页协议继续，对现有客户端透明。 */
+	public static final int MAX_SCAN_LOGS = 100_000;
+	/** 单请求扫描字节预算（GD-D04）：防超大日志行（多行续行聚合）绕过条数预算。 */
+	public static final long MAX_SCAN_BYTES = 256L * 1024 * 1024;
+
 	private final Log4jFileWalker files;
 	private long beginTime = -2; // 用来检测发现开始时间发生变化，此时需要重置并且seek。
+	// 最后活动时间（GD-D03）：Browse/Search进入会话锁后刷新，服务端据此惰性清理空闲会话。
+	private volatile long lastActiveTime = System.currentTimeMillis();
+
+	public static int clampLimit(int limit) {
+		return Math.min(limit, MAX_LIMIT);
+	}
+
+	public long getLastActiveTime() {
+		return lastActiveTime;
+	}
+
+	/** 在持有会话锁的查询路径入口刷新（GD-D03）：与清理的锁内复核共同保证"查询中的会话不会过期"。 */
+	public void touchActive() {
+		lastActiveTime = System.currentTimeMillis();
+	}
 
 	/**
 	 * 构造一个搜索会话。
@@ -49,6 +71,8 @@ public class Log4jSession {
 		if (limit <= 0)
 			return false; // end search
 
+		var scanned = 0;
+		var scannedBytes = 0L;
 		while (files.hasNext()) {
 			var log = files.next();
 			if (endTime != -1 && log.getTime() > endTime)
@@ -59,6 +83,9 @@ public class Log4jSession {
 				if (--limit <= 0)
 					break; // maybe remain
 			}
+			// 扫描预算（GD-D04）：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
+			if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
+				return true; // remain
 		}
 
 		return files.hasNext(); // remain maybe
@@ -89,6 +116,8 @@ public class Log4jSession {
 			return false; // end search
 
 		var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE); // 循环外编译一次复用
+		var scanned = 0;
+		var scannedBytes = 0L;
 		while (files.hasNext()) {
 			var log = files.next();
 			if (endTime != -1 && log.getTime() > endTime)
@@ -100,6 +129,9 @@ public class Log4jSession {
 				if (--limit <= 0)
 					break; // maybe remain
 			}
+			// 扫描预算（GD-D04）：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
+			if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
+				return true; // remain
 		}
 
 		return files.hasNext(); // remain maybe
@@ -124,6 +156,8 @@ public class Log4jSession {
 			throw new IllegalArgumentException("offset factor too big.");
 
 		var locate = false;
+		var scanned = 0;
+		var scannedBytes = 0L;
 		while (files.hasNext()) {
 			var log = files.next();
 			if (endTime != -1 && log.getTime() > endTime)
@@ -143,6 +177,9 @@ public class Log4jSession {
 				} else if (result.size() > offset)
 					result.pollFirst(); // 只在开头保留offset数量不匹配行。
 			}
+			// 扫描预算（GD-D04）：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
+			if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
+				return true; // remain
 		}
 
 		return files.hasNext(); // remain maybe
@@ -164,6 +201,8 @@ public class Log4jSession {
 
 		var locate = false;
 		var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE); // 循环外编译一次复用
+		var scanned = 0;
+		var scannedBytes = 0L;
 		while (files.hasNext()) {
 			var log = files.next();
 			if (endTime != -1 && log.getTime() > endTime)
@@ -184,6 +223,9 @@ public class Log4jSession {
 				} else if (result.size() > offset)
 					result.pollFirst(); // 只在开头保留offset数量不匹配行。
 			}
+			// 扫描预算（GD-D04）：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
+			if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
+				return true; // remain
 		}
 
 		return files.hasNext(); // remain maybe

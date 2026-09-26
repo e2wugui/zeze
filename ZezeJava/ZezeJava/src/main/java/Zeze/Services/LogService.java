@@ -22,9 +22,15 @@ import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Transaction.Procedure;
+import Zeze.Services.Log4jQuery.Log4jSession;
+import org.jetbrains.annotations.NotNull;
+
 import static Zeze.Util.Args.requireValue;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class LogService extends AbstractLogService {
+	private static final @NotNull Logger logger = LogManager.getLogger(LogService.class);
 	private final AtomicLong sidSeed = new AtomicLong();
 	private final Config conf;
 	private final LogServiceConf logConfs;
@@ -122,6 +128,8 @@ public class LogService extends AbstractLogService {
 		if (null == getLogManager(r.Argument.getLogName()))
 			return Procedure.LogicError;
 		var agent = (ServerUserState)r.getSender().getUserState();
+		// 顺带惰性清理空闲超龄会话（GD-D03）：新建会话时不持任何会话锁，无死锁面。
+		agent.cleanIdleLogSessions(logConfs.sessionIdleTimeoutMillis);
 		r.Result.setId(sidSeed.incrementAndGet());
 		agent.newLogSession(r.Argument.getLogName(), r.Result.getId());
 		r.SendResult();
@@ -136,23 +144,29 @@ public class LogService extends AbstractLogService {
 			return Procedure.LogicError;
 		var result = new LinkedList<Log4jLog>();
 
+		// limit clamp（GD-D04）：协议字段是客户端可控的裸int，超出服务端上限按上限执行，clamp记一条可辨识日志。
+		var limit = Log4jSession.clampLimit(r.Argument.getLimit());
+		if (limit != r.Argument.getLimit())
+			logger.info("browse limit clamped: {} -> {}", r.Argument.getLimit(), limit);
+
 		boolean remain;
 		// Log4jFileWalker非线程安全（currentIndex/current无锁），同sid并发Browse/Search会损坏游标并泄漏文件句柄，按会话串行化。
 		synchronized (logSession) {
+			logSession.touchActive(); // 查询即活跃（GD-D03）：进锁首行刷新，惰性清理据此判定空闲。
 			if (!r.Argument.getCondition().getWords().isEmpty()) {
 				if (r.Argument.isReset())
 					logSession.reset();
 				remain = logSession.browseContains(result,
 						r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
 						r.Argument.getCondition().getWords(), r.Argument.getCondition().getContainsType(),
-						r.Argument.getLimit(), r.Argument.getOffsetFactor());
+						limit, r.Argument.getOffsetFactor());
 			} else if (!r.Argument.getCondition().getPattern().isEmpty()) {
 				if (r.Argument.isReset())
 					logSession.reset();
 				remain = logSession.browseRegex(result,
 						r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
 						r.Argument.getCondition().getPattern(),
-						r.Argument.getLimit(), r.Argument.getOffsetFactor());
+						limit, r.Argument.getOffsetFactor());
 			} else
 				return Procedure.LogicError; // 空条件以精确错误码应答：异常路径虽也会经框架回发Exception码，但错误码含糊且带ERROR日志噪音
 		}
@@ -161,6 +175,8 @@ public class LogService extends AbstractLogService {
 		for (var log : result)
 			r.Result.getLogs().add(new BLog.Data(log.getTime(), log.getLog()));
 		r.SendResult();
+		// 顺带惰性清理（GD-D03）：锁外调用（不持本会话锁再去获取其他会话锁，避免锁序环），响应已发出不增加时延。
+		agent.cleanIdleLogSessions(logConfs.sessionIdleTimeoutMillis);
 		return 0;
 	}
 
@@ -171,23 +187,30 @@ public class LogService extends AbstractLogService {
 		if (null == logSession)
 			return Procedure.LogicError;
 		var result = new ArrayList<Log4jLog>();
+
+		// limit clamp（GD-D04）：同Browse。
+		var limit = Log4jSession.clampLimit(r.Argument.getLimit());
+		if (limit != r.Argument.getLimit())
+			logger.info("search limit clamped: {} -> {}", r.Argument.getLimit(), limit);
+
 		boolean remain;
 		// 同Browse：walker非线程安全，按会话串行化（FND-S3-9）。
 		synchronized (logSession) {
+			logSession.touchActive(); // 查询即活跃（GD-D03）：进锁首行刷新。
 			if (!r.Argument.getCondition().getWords().isEmpty()) {
 				if (r.Argument.isReset())
 					logSession.reset();
 				remain = logSession.searchContains(result,
 						r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
 						r.Argument.getCondition().getWords(), r.Argument.getCondition().getContainsType(),
-						r.Argument.getLimit());
+						limit);
 			} else if (!r.Argument.getCondition().getPattern().isEmpty()) {
 				if (r.Argument.isReset())
 					logSession.reset();
 				remain = logSession.searchRegex(result,
 						r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
 						r.Argument.getCondition().getPattern(),
-						r.Argument.getLimit());
+						limit);
 			} else
 				return Procedure.LogicError; // 空条件以精确错误码应答：异常路径虽也会经框架回发Exception码，但错误码含糊且带ERROR日志噪音
 		}
@@ -196,6 +219,8 @@ public class LogService extends AbstractLogService {
 		for (var log : result)
 			r.Result.getLogs().add(new BLog.Data(log.getTime(), log.getLog()));
 		r.SendResult();
+		// 顺带惰性清理（GD-D03）：同Browse，锁外调用。
+		agent.cleanIdleLogSessions(logConfs.sessionIdleTimeoutMillis);
 		return 0;
 	}
 
