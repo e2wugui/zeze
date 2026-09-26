@@ -7,44 +7,25 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public final class Digest {
-	// MessageDigest/Mac 非线程安全且 getInstance 有同步开销，按线程缓存复用。
-	// digest()/doFinal() 完成后自动复位，可跨调用安全复用；Mac 的 key 经每次 init 重设。
-	private static final @NotNull ThreadLocal<MessageDigest> md5Local = ThreadLocal.withInitial(() -> {
-		try {
-			return MessageDigest.getInstance("MD5");
-		} catch (Exception e) {
-			throw Task.forceThrow(e);
-		}
-	});
-
-	private static final @NotNull ThreadLocal<Mac> hmacMd5Local = ThreadLocal.withInitial(() -> {
-		try {
-			return Mac.getInstance("HmacMD5");
-		} catch (Exception e) {
-			throw Task.forceThrow(e);
-		}
-	});
-
+	// 刻意不缓存：调用点全在每连接握手/建codec路径，getInstance 开销无关紧要；
+	// ThreadLocal 缓存在虚拟线程下实例驻留随线程数无界放大（每线程一 MD5 + 一 Mac）。
 	public static byte @NotNull [] md5(byte @NotNull [] message) {
 		return md5(message, 0, message.length);
 	}
 
 	public static byte @NotNull [] md5(byte @NotNull [] message, int offset, int len) {
-		var md5 = md5Local.get();
 		try {
+			var md5 = MessageDigest.getInstance("MD5");
 			md5.update(message, offset, len);
 			return md5.digest();
 		} catch (Exception e) {
-			md5.reset(); // update抛异常则digest()未执行、实例残留半更新状态，会污染该线程后续复用
 			throw Task.forceThrow(e);
 		}
 	}
 
 	public static byte @NotNull [] hmacMd5(byte @NotNull [] key, byte @NotNull [] data, int offset, int length) {
 		try {
-			var mac = hmacMd5Local.get();
-			// 无条件init即完整重初始化（重设密钥+清全部中间态）：任何残留（含上次异常半态）都在
-			// 此清除，update/doFinal不可能先于init执行——故本方法不需要md5()那样的catch reset。
+			var mac = Mac.getInstance("HmacMD5");
 			mac.init(new SecretKeySpec(key, 0, key.length, "HmacMD5"));
 			mac.update(data, offset, length);
 			return mac.doFinal();
