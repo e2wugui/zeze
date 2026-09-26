@@ -112,7 +112,8 @@ public class Log4jFileManager extends ReentrantLock {
 				try {
 					logFileSession = new Log4jFileSession(target, file.index, logConf.charsetName, logConf.logTimeFormat);
 				} catch (FileNotFoundException e) {
-					// 文件被外部清理（logrotate压缩/保留期删除）：跳过该条目继续更旧的，持锁摘除+warn（GD-D01）。
+					// 文件被外部清理（logrotate压缩/保留期删除）：跳过该条目继续更旧的，持锁摘除+warn（GD-D01）；
+					// 轮转宽限未摘除（GD-C02）时同样continue降级——active条目留给case-1/repointMissedRotation改指。
 					removeMissingFile(file, target, e);
 					continue;
 				}
@@ -184,12 +185,12 @@ public class Log4jFileManager extends ReentrantLock {
 
 				var last = files.getLast();
 				if (last.file.getName().equals(getCurrentLogFileName())) {
-					// rename index file
-					var indexFile = Path.of(logConf.logDir, getCurrentIndexFileName()).toFile();
-					if (indexFile.exists()) {
-						if (!indexFile.renameTo(new File(logConf.logDir, fileName + ".index")))
-							logger.error("rename error: {}", indexFile);
-					}
+					// 改名失败即中止改指与补登（GD-C01回滚语义，与repointMissedRotation共用helper）：
+					// 失败后继续会让rotate条目与补登的active条目共享同一索引文件（openIndex对既存
+					// current索引新建硬链接mmap同一inode）交叉读写制造混合索引，错位跨重启固化。
+					// 中止后条目仍指current名，由下一轮reconcile摘除+常规补登收敛（配对重新正确）。
+					if (!renameCurrentIndexTo(fileName))
+						return;
 					// 修改file指向新的logFile。index保持不变。
 					last.file = new File(logConf.logDir, fileName);
 					// 顺序无关补登（FND2-S3-5）：部分平台WatchService对rotate双CREATE事件的递交顺序
@@ -248,7 +249,11 @@ public class Log4jFileManager extends ReentrantLock {
 					outEntry.value = file;
 				return session;
 			} catch (FileNotFoundException e) {
-				removeMissingFile(file, target, e);
+				// 摘除（GD-D01）或并发改指后同index重试：摘除左移得到原后继、改指后重试开新目标；
+				// 轮转宽限保留（GD-C02）且仍指向失败目标时同index重试必然再FNFE——前移下标跳过，
+				// 残余打不开由耗尽收尾（null）。
+				if (!removeMissingFile(file, target, e) && file.file == target)
+					++index;
 			}
 		}
 		return null;
@@ -265,16 +270,50 @@ public class Log4jFileManager extends ReentrantLock {
 	/**
 	 * 条目指向的文件已被外部清理（FileNotFoundException）：持锁摘除条目并warn（GD-D01）。
 	 * 持锁复核failedTarget的identity：并发轮转（onFileCreated改指新文件）后条目已指向有效文件时不摘。
+	 * 轮转宽限（GD-C02）：active名条目 + 磁盘存在未登记rotate = 轮转进行中的磁盘证据——log4j轮转
+	 * 先rename旧内容到rotate名、后重建active，两步之间active路径短暂不存在；此窗口内摘除active条目
+	 * 会使case-1守卫（last==current名）落空，"索引改名+改指"整体跳过，旧索引残留current名下被
+	 * case-0挂到新内容上（错窗空查）。宽限保留条目，交给case-1/repointMissedRotation改指；
+	 * 条目指名不存在的文件只影响选中它的查询降级continue（无崩溃），rotate登记后宽限自然解除。
 	 * 摘除后文件又回来的恢复不做（罕见，记档），由对账（GD-D02）低频重扫补登。
+	 * @return 是否实际摘除（未摘除时get的同index重试须防自旋）。
 	 */
-	private void removeMissingFile(Log4jFile file, File failedTarget, FileNotFoundException cause) {
+	private boolean removeMissingFile(Log4jFile file, File failedTarget, FileNotFoundException cause) {
 		lock();
 		try {
-			if (file.file == failedTarget && files.remove(file))
+			if (file.file != failedTarget)
+				return false; // 并发轮转已改指：条目现指有效文件，不摘
+			if (file.file.getName().equals(getCurrentLogFileName()) && hasUnregisteredRotateOnDisk())
+				return false; // 轮转进行中（GD-C02）：active条目是case-1改指的载体，不摘
+			if (files.remove(file)) {
 				logger.warn("log file missing, remove entry: {}", failedTarget, cause);
+				return true;
+			}
+			return false;
 		} finally {
 			unlock();
 		}
+	}
+
+	/**
+	 * 磁盘上是否存在未登记的rotate名（GD-C02，须持manager锁调用）：即"轮转正在进行"的磁盘证据，
+	 * 供removeMissingFile/reconcile摘除循环对active名条目宽限判据。目录不可访问时查无证据，
+	 * 维持原摘除语义。
+	 */
+	private boolean hasUnregisteredRotateOnDisk() {
+		var listFiles = new File(logConf.logDir).listFiles();
+		if (null == listFiles)
+			return false;
+		var registered = new HashSet<String>();
+		for (var file : files)
+			registered.add(file.file.getName());
+		for (var f : listFiles) {
+			if (!f.isFile() || !f.getName().endsWith(".log"))
+				continue;
+			if (1 == testFileName(f.getName(), null) && !registered.contains(f.getName()))
+				return true;
+		}
+		return false;
 	}
 
 	/**
@@ -328,8 +367,13 @@ public class Log4jFileManager extends ReentrantLock {
 			repointMissedRotation(rotates);
 
 			// 摘除消失条目：磁盘上已不存在的登记条目（.gz压缩/保留期删除无事件，只能靠重扫发现）。
+			// active名条目轮转宽限（GD-C02）：repointMissedRotation改名失败中止（GD-C01）时条目仍指
+			// current名且文件不存在，但它是下轮改指重试的载体——磁盘有未登记rotate即轮转未收敛的证据，
+			// 不摘；rotate常规补登登记后宽限自然解除（下轮若文件仍缺失则摘）。
 			for (var file : files) {
 				if (!file.file.exists()) {
+					if (file.file.getName().equals(getCurrentLogFileName()) && hasUnregisteredRotateOnDisk())
+						continue; // 轮转进行中：active条目是改指载体，不摘
 					files.remove(file);
 					logger.warn("log file missing (reconcile), remove entry: {}", file.file);
 				}
@@ -375,8 +419,8 @@ public class Log4jFileManager extends ReentrantLock {
 	 * 检测：存在未登记rotate && active条目索引的末记录offset超出active文件当前长度——自洽索引的offset必落
 	 * 在文件长度内，超出即索引描述的是别的内容（即最早漏登rotate承载的旧内容；空索引lowerBound返回-1恒不触发）。
 	 * 处置（与onFileCreated case-1同构三步）：
-	 * 1. current索引改名跟随rotate（失败即中止改指——案卷变体防御的回滚语义：继续改指会让rotate与
-	 *    新active双条目共享同一索引文件交叉读写）；
+	 * 1. current索引改名跟随rotate（失败即中止改指——回滚语义与case-1共用renameCurrentIndexTo，
+	 *    GD-C01收口：继续改指会让rotate与新active双条目共享同一索引文件交叉读写）；
 	 * 2. active条目改指rotate（LogIndex对象随行，mmap按inode有效）；
 	 * 3. active名留给reconcile既有守卫按新索引补登（loadIndex发现current索引已改名即全新建）。
 	 * 其余漏登rotate（更晚的轮转）走常规全量补登。
@@ -402,16 +446,30 @@ public class Log4jFileManager extends ReentrantLock {
 			return;
 
 		var rotateName = rotates.getFirst().getValue(); // 时间序最早的漏登rotate：active索引内容所在
-		var indexFile = Path.of(logConf.logDir, getCurrentIndexFileName()).toFile();
-		if (indexFile.exists() && !indexFile.renameTo(new File(logConf.logDir, rotateName + ".index"))) {
-			logger.error("reconcile missed rotation: rename index fail, keep repoint aborted: {} -> {}",
-					indexFile, rotateName + ".index");
+		if (!renameCurrentIndexTo(rotateName)) // 失败即中止改指（GD-C01回滚语义，与case-1共用）
 			return;
-		}
 		logger.warn("reconcile missed rotation: repoint active entry {} -> {} with renamed index",
 				activeName, rotateName);
 		activeEntry.file = new File(logConf.logDir, rotateName);
 		rotates.removeFirst(); // 已由改指登记，不再常规补登
+	}
+
+	/**
+	 * current名索引改名跟随rotate（case-1与repointMissedRotation共用，GD-C01）：改名失败必须让
+	 * 调用方中止后续"条目改指+active补登"——继续会让两个条目经各自硬链接mmap同一索引inode
+	 * 交叉读写（混合索引错位跨重启固化）。FND20只在repointMissedRotation落地了该回滚语义，
+	 * watch路径（case-1）漏落实即GD-C01，此处收口为单一实现防语义再漂移。
+	 * @return false=改名失败（调用方须中止）；true=成功或本无current索引文件（继续后续步骤）。
+	 */
+	private boolean renameCurrentIndexTo(String rotateFileName) {
+		var indexFile = Path.of(logConf.logDir, getCurrentIndexFileName()).toFile();
+		if (!indexFile.exists())
+			return true;
+		if (indexFile.renameTo(new File(logConf.logDir, rotateFileName + ".index")))
+			return true;
+		logger.error("rename index fail, rotation repoint aborted: {} -> {}",
+				indexFile, rotateFileName + ".index");
+		return false;
 	}
 
 	private void loadRotates(String logRotateDir) throws Exception {
