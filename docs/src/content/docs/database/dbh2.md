@@ -32,7 +32,15 @@ Master 知道所有数据库、所有表、所有桶的分布情况。提供表�
 
 ### CommitServer
 
-可选的事务提交服务，将 Dbh2Agent 的事务提交功能移到独立进程处理，减轻应用端负担。规划中/未实现：客户端选择提交服务器的策略（`choiceCommitServer`）尚未实现，配置 `Dbh2LocalCommit=false` 时事务提交会直接失败。
+可选的事务提交服务，将 Dbh2Agent 的事务提交功能移到独立进程处理，减轻应用端负担（应用进程崩溃不再丢失协调状态）。配置直连已实现：应用端配置 `Dbh2LocalCommit="false"` 并在 `Dbh2Config` 定制节配置 `CommitServerAddress`，客户端（`choiceCommitServer`）直连该地址提交事务；未配置时 `Dbh2AgentManager` 构造期即报配置错误（fail-fast），不会等到第一次提交才失败。
+
+```xml
+<zeze ... Dbh2LocalCommit="false">
+    <CustomizeConf Name="Dbh2Config" CommitServerAddress="127.0.0.1:7788"/>
+</zeze>
+```
+
+单实例语义：事务的 commitPoint/commitIndex 集中在该 CommitServer 的 `CommitRocks` 库中，多实例部署时事务状态分散在不同服务器上、没有统一的 redo 视角，因此本配置只支持一个 CommitServer 实例（换地址需修改配置并重启应用）。
 
 ## Bucket 分桶机制
 
@@ -66,7 +74,7 @@ Bucket 是 Dbh2 的核心数据单元，每个桶管理一张表在一个 Key �
 - **日志应用**: 处理 `LogPrepareBatch`、`LogCommitBatch`、`LogUndoBatch` 等日志类型
 - **分桶日志**: 处理 `LogEndSplit`、`LogSetSplittingMeta`、`LogSplitPut`、`LogEndMove`
 - **快照管理**: 通过 RocksDB Checkpoint 实现快照的创建与恢复
-- **事务管理**: 维护进行中的事务集合，超时未提交的事务自动回滚
+- **事务管理**: 维护进行中的事务集合，超时且协调者未决定提交（不存在/准备中）的事务自动回滚；协调者已决定提交（eCommitting）的事务只告警不自动终局（见「Commit 服务」的悬挂事务恢复语义）
 - **负载统计**: 实时统计 Get/Put/Delete 等操作的 QPS，供负载监控使用
 
 ### 请求调度

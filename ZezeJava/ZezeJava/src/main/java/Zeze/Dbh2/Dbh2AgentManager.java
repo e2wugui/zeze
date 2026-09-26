@@ -99,6 +99,10 @@ public class Dbh2AgentManager extends ReentrantLock {
 				commit = new Commit(this, config);
 			}
 		} else {
+			// fail-fast（GA-D03）：远程提交模式必须显式配置Dbh2Config的CommitServerAddress（单实例），
+			// 构造期报配置错误，不等第一次commit才失败。
+			if (null == dbh2Config.getCommitServerHost())
+				throw new RuntimeException("Dbh2LocalCommit=false but Dbh2Config CommitServerAddress not configured.");
 			if (null == commitAgent) {
 				commitAgent = new CommitAgent();
 			}
@@ -134,9 +138,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 		// else throw new RuntimeException("commitBreakAfterPrepareForDebugOnly only work with local commit.");
 	}
 
-	@SuppressWarnings("MethodMayBeStatic")
 	private KV<String, Integer> choiceCommitServer() {
-		throw new UnsupportedOperationException();
+		// 配置直连（GA-D03）：Dbh2Config的CommitServerAddress，单实例；构造期已fail-fast校验过配置存在。
+		return KV.create(dbh2Config.getCommitServerHost(), dbh2Config.getCommitServerPort());
 	}
 
 	public void commit(BPrepareBatches.Data batches) {

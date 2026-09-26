@@ -2,6 +2,7 @@ package Zeze.Dbh2;
 
 import Zeze.Config;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
 public class Dbh2Config implements Config.ICustomize {
@@ -15,6 +16,18 @@ public class Dbh2Config implements Config.ICustomize {
 	private int raftClusterCount = 3;
 	private boolean serialize = true;
 	private int splitCleanCount = 200;
+	// 远程提交模式（Dbh2LocalCommit=false）的CommitServer直连地址，属性CommitServerAddress="host:port"，可空。
+	// 单实例语义：commitPoint集中在该CommitServer的CommitRocks库，多实例时事务跨服务器无统一redo视角。
+	private @Nullable String commitServerHost;
+	private int commitServerPort;
+
+	public @Nullable String getCommitServerHost() {
+		return commitServerHost;
+	}
+
+	public int getCommitServerPort() {
+		return commitServerPort;
+	}
 
 	public int getRpcTimeout() {
 		return rpcTimeout;
@@ -121,5 +134,14 @@ public class Dbh2Config implements Config.ICustomize {
 		attr = self.getAttribute("SplitCleanCount");
 		if (!attr.isBlank())
 			splitCleanCount = Integer.parseInt(attr);
+
+		attr = self.getAttribute("CommitServerAddress");
+		if (!attr.isBlank()) {
+			var hostPort = attr.split(":", 2);
+			if (hostPort.length != 2 || hostPort[0].isBlank() || hostPort[1].isBlank())
+				throw new RuntimeException("Dbh2Config CommitServerAddress must be host:port, got: " + attr);
+			commitServerHost = hostPort[0];
+			commitServerPort = Integer.parseInt(hostPort[1]);
+		}
 	}
 }
