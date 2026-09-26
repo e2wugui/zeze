@@ -447,6 +447,12 @@ public class MQManager extends AbstractMQManager {
 	 * @throws RocksDBException dlq 读写失败
 	 */
 	public void replayDeadLetter(String topic, int partitionIndex, long messageId) throws RocksDBException {
+		// 【FND21 GB-C05】兑现 javadoc 的停机语义：首尾两步（dlq.get/dlq.delete）在 sendMessage 的
+		// 锁内复查之外——stop 的 rocksDatabase.close 与其相交是对已关库/已毁句柄的 native 调用
+		//（close 契约），"sendMessage 透传"实际覆盖不了全路径。入口收口对齐仓内"全触库入口有闸"
+		// 口径（停机维护窗口正是重放毒消息的常见时机，非架空场景）。
+		if (stopped)
+			throw new IllegalStateException("mq manager stopped, reject replayDeadLetter. topic=" + topic);
 		var dlq = rocksDatabase.getTable(DlqTableName); // 非懒建：无死信表即无该死信
 		var key = dlqKey(topic, partitionIndex, messageId);
 		var value = null != dlq ? dlq.get(key) : null;
@@ -463,6 +469,11 @@ public class MQManager extends AbstractMQManager {
 		var send = new BSendMessage.Data();
 		send.setMessage(message);
 		single.sendMessage(send); // 追加到原分区尾（新 messageId；失败上抛，死信键保留可再重放）
+		// 【FND21 GB-C05】delete 前复查（sendMessage 成功后 stop 完成关库的窗口）：跳过 delete，
+		// 死信键保留可再重放——重放重复（at-least-once，MQ 语义既定）优于对已关库的 native 调用。
+		if (stopped)
+			throw new IllegalStateException("mq manager stopped during replay, dead letter key kept for"
+					+ " re-replay (message already re-appended). topic=" + topic);
 		dlq.delete(key);
 	}
 

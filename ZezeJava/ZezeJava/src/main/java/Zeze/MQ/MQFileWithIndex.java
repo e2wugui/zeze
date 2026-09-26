@@ -378,8 +378,10 @@ public class MQFileWithIndex {
 	 * 软删除窗口：候选段自首次被观察到"完全确认"起保留 delayMs 再回收（误判水位的最后防线，
 	 * MQConfig.SegmentRecycleDelayMs，窗口粒度受 loadMonitorTimer 周期约束）。
 	 * <p>
-	 * 与 fillMessage 读路径互斥：入口与锁内双检 activeFills（在飞 fill 持段索引迭代器与文件句柄，
-	 * dropTable/删文件与其并发是 native use-after-free）；非零则本轮跳过，下轮再试。
+	 * 与 fillMessage 读路径互斥：入口与锁内双检 + remove 后终检-放回（【FND21 GB-C03】，在飞 fill
+	 * 持段索引迭代器与文件句柄，dropTable/删文件与其并发是 native use-after-free）；非零则本轮
+	 * 跳过或放回，下轮再试。计数只提供观察不提供互斥，终检-放回闭合"复查读0 与 indexes.remove
+	 * 之间插入 increment"的 TOCTOU 缺口（正确性论证见 recycleSegment 注释）。
 	 * 残余竞态（fill 任务已按旧水位计算出区间、尚未开始执行）在 fill 侧表现为
 	 * messageIndexNotFound 的瞬时失败，由 pullMessage 既有的失败-复位-重试路径自愈，无数据损坏。
 	 */
@@ -412,7 +414,9 @@ public class MQFileWithIndex {
 					break; // 窗口内保留
 				if (activeFills.get() != 0)
 					return; // 锁内复查：入口检查后有新fill进入
-				recycleSegment(oldest);
+				if (!recycleSegment(oldest))
+					return; // 【FND21 GB-C03】TOCTOU插入：段已放回，候选窗口观察起点保持
+						//（since 不重起，下轮归零即回收，收敛有保障）
 				recycleCandidateBase = -1; // 下一个候选重新起算窗口
 			}
 			if (indexes.size() <= 1)
@@ -437,19 +441,34 @@ public class MQFileWithIndex {
 		}
 	}
 
-	// 三步同一锁序（tryRecycle的lock内，拍板定序）：indexes移除 → dropTable索引列族 → 删数据文件。
-	// 先从map移除再删文件：移除后fill的floorEntry定位到后继段，不再触碰被删段（防悬垂定位）。
+	// 三步同一锁序（tryRecycle的lock内，拍板定序）：indexes移除 → 终检activeFills → dropTable索引列族
+	// → 删数据文件。先从map移除再删文件：移除后fill的floorEntry定位到后继段，不再触碰被删段
+	//（防悬垂定位）。
+	// 【FND21 GB-C03】remove后终检-放回：双检的计数器只提供观察不提供互斥——"锁内复查读0 →
+	// fill increment → floorEntry命中本段"的插入使 fill 的迭代器生命周期横跨 dropTable
+	//（native use-after-free，正是守卫注释自认要防的形态，从"入口漏检"换型为"复查后插入"）。
+	// 终检正确性（hb 论证）：fill 的 increment 严格先于其 floorEntry（程序序）；floor 命中本段
+	// ⟹ 该 map 读先于 remove 的线性化（CSLM 原子性）；remove 之后的终检经 happens-before 传递
+	// 必见该 increment（AtomicInteger volatile）。终检读到 0 则此后进入的 fill 只能定位到后继段
+	//（本段已出 map，不在删除集——该形态本身无害）。非零放回本轮放弃：fill 若已在 remove 前
+	// 拿到 floor，其迭代器只与"放回不删"的段相交——无害；真删除留待归零后的下一轮。
 	// dropTable/删文件失败仅记日志不重试：重启后loadMQ按文件扫描重注册列族，下轮回收重新收敛。
-	private void recycleSegment(long base) {
+	//
+	// @return true=段已出map（回收完成/本就不在/drop失败留残file）；false=TOCTOU插入已放回本轮放弃。
+	private boolean recycleSegment(long base) {
 		var indexTable = indexes.remove(base); // ConcurrentSkipListMap.remove原子，锁外fill立即可见
 		if (null == indexTable)
-			return;
+			return true;
+		if (activeFills.get() != 0) {
+			indexes.put(base, indexTable); // 放回（CSLM 原子，锁外fill立即可见）：迭代器只与放回不删的段相交
+			return false;
+		}
 		try {
 			database.dropTable(topic + "." + partitionId + "." + base);
 		} catch (RocksDBException e) {
 			logger.error("mq segment recycle dropTable failed, keep data file for restart rescan."
 					+ " topic={} partition={} segment={}", topic, partitionId, base, e);
-			return; // 不删文件：残留供重启重扫（段已出indexes，不再被读路径定位）
+			return true; // 不删文件：残留供重启重扫（段已出indexes，不再被读路径定位）
 		}
 		var file = new File(new File(home, topic), partitionId + "." + base);
 		var bytes = file.length();
@@ -459,6 +478,7 @@ public class MQFileWithIndex {
 		else
 			logger.warn("mq segment recycle delete file failed. topic={} partition={} file={}",
 					topic, partitionId, file);
+		return true;
 	}
 
 	public void increaseFirstMessageId() {
@@ -536,12 +556,29 @@ public class MQFileWithIndex {
 			// 除了文件大小，还需额外判断下一个消息Id也是makeIndexPeriod整除，这样新文件的第一个消息肯定会被建立索引，
 			// 新文件第一个消息必须建立索引，否则开头的消息定位不到。
 			if (fileOffset + bb.size() >= trunkFileSize && nextMessageId % makeIndexPeriod == 0) {
+				// 【FND21 GB-C04】先开后关+资源就绪才发布：旧形态 close→new 之间构造失败（EMFILE/
+				// ENOSPC/目录项冲突等）使字段停留在已关闭的旧流上——此后每次 append 在
+				// getChannel().size() 恒抛 ClosedChannelException，分区追加能力到重启前永久丧失
+				//（本条消息已提交，无数据损坏，纯运行期可用性损失）。新序三要点：
+				// ① getOrAddTable 幂等先行，失败无外泄（open 失败原子不留文件，文件扫描发现规则
+				// 不注册无文件段——重启无幽灵 lastEntry）；
+				// ② new 新流先于关旧流：构造失败则旧流仍开、字段未动，滚段留待条件重合自然重试
+				//（size 条件持续成立，modulo 条件在下一个 makeIndexPeriod 整除点重合，旧段有限
+				// 超限 <makeIndexPeriod 条）；
+				// ③ 字段替换先于关旧流：oldStream.close 极难失败，失败仅遗留待 GC finalize 的旧 fd，
+				// 字段已一致（追加面不受影响；本次 append 已提交，上抛错误由生产者重试=at-least-once）。
+				// indexes.put 同样后移到新流构造之后：失败不在内存留无数据文件的幽灵段
+				//（tryRecycle 会去 drop 一个空表）。
 				var topicDir = new File(home, topic);
-				lastFile = new File(topicDir, partitionId + "." + nextMessageId);
-				indexes.put(nextMessageId, database.getOrAddTable(
-						topic + "." + partitionId + "." + nextMessageId));
-				lastFileOutputStream.close();
-				lastFileOutputStream = new FileOutputStream(lastFile, true); // todo 没有buffer是不是很慢？
+				var nextFile = new File(topicDir, partitionId + "." + nextMessageId);
+				var nextTable = database.getOrAddTable(
+						topic + "." + partitionId + "." + nextMessageId);
+				var next = new FileOutputStream(nextFile, true); // todo 没有buffer是不是很慢？
+				var oldStream = lastFileOutputStream;
+				lastFile = nextFile;
+				lastFileOutputStream = next;
+				indexes.put(nextMessageId, nextTable);
+				oldStream.close();
 			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);

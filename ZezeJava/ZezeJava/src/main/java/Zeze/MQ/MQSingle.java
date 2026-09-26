@@ -298,7 +298,16 @@ public class MQSingle extends ReentrantLock {
 		try {
 			// 停机窗口：socket 关闭会使在飞 rpc 的超时回调照常触发（Service.stop 不清 _RpcContexts），
 			// 此处不触碰 rocksdb 位点（close 已持锁排空在飞写，pending 随分区关闭一并丢弃）。
-			if (managerStopped())
+			// 分区删除窗口（【FND21 GB-C01】，Manager 存活——GB-D01 对账链的常态产物，stopped 恒
+			// false）：closed 只在 close 锁内置位，本回调持同锁读即精确。removePartition→close 并不
+			// 取消在飞 pendingPushMessage（rpc 上下文仍在 proxyServer），其后的 deletePartitionStorage
+			// 将 dropTable meta/索引列族并按前缀清理 dlq——晚到的 ack 再触 increaseFirstMessageId 的
+			// meta.put 是对已毁句柄的 native 写（RocksDatabase.dropTable 销毁句柄的契约），失败分支
+			// tryDeadLetter 的 dlq.put 落在 deleteRange 之后则复活"分区已删却永无人认领"的孤儿死信键
+			//（FND20 GB-D02 要消灭的跨代际残留形态）。两闸同点收口；at-least-once 无损：分区正在
+			// 删除，位点丢失是删除的既定语义；pending 复位与续推由 finally/bindSocket=null 自然兜底
+			//（tryPushMessage 对已关分区恒短路）。
+			if (managerStopped() || closed)
 				return;
 			loadCounter.incrementAndGet(); // 处理失败也进行计数。
 
@@ -559,6 +568,43 @@ public class MQSingle extends ReentrantLock {
 			fileWithIndex.close();
 		} finally {
 			unlock();
+		}
+		// 【FND21 GB-C02】世代排空：上面的排空只等待锁内读到的一代 future——等待期间 fill 完成路径
+		// 会自提交下一代（pullMessage 尾部 messageFillFuture=null 后紧跟 tryStartBackgroundFill，此刻
+		// closed 尚未置位；分区删除路径 Manager 存活、无 stopped 兜底，handlePushResult 成功路径与
+		// sendMessage 同样在锁内提交），置闸段不重读不取消 messageFillFuture——逃逸代立即开跑的
+		// fillMessage（索引迭代器+段文件读）与其后 deletePartitionStorage 的 dropTable 并发是
+		// native use-after-free。置 closed 后循环重读+锁外有界等待：closed 先行使 tryStartBackgroundFill
+		// 从此恒拒绝（检查与赋值同锁），每代 future 在成功/失败路径均自清 messageFillFuture，
+		// 循环必收敛（读到 null 即终态，不再有新提交）。等待必须锁外：fill 任务体收尾的
+		// tryStartBackgroundFill/tryPushMessage 需要本锁，持锁等待是必然超时的自阻。
+		// 超预算仅告警放弃（与上段同口径，不引入无限等待）。
+		while (true) {
+			Future<?> escapee;
+			lock();
+			try {
+				escapee = messageFillFuture;
+			} finally {
+				unlock();
+			}
+			if (null == escapee)
+				break;
+			var manager = mqPartition.getManager();
+			var budgetMs = (null != manager ? manager.getMqConfig().getRpcTimeout() : 20_000) + 5_000L;
+			try {
+				escapee.get(budgetMs, TimeUnit.MILLISECONDS);
+			} catch (TimeoutException e) {
+				logger.warn("mq fill escapee not drained in {}ms, continue close. topic={} partition={}",
+						budgetMs, topic, partitionIndex);
+				break;
+			} catch (ExecutionException e) {
+				// fill 自身失败已在 pullMessage 的 catch 记录日志。
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				logger.warn("mq fill escapee drain interrupted, continue close. topic={} partition={}",
+						topic, partitionIndex);
+				break;
+			}
 		}
 	}
 }
