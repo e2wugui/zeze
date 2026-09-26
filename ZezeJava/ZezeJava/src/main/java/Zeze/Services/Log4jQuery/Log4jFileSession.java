@@ -31,6 +31,7 @@ public class Log4jFileSession implements Closeable {
 	}
 
 	public void reset() throws IOException {
+		this.nextNextMaybePartLog = null; // 残留stash属于旧游标位置，不清会被tryNext当作第一条返回（乱序/重复/丢续行）。
 		this.randomAccessFile.seek(0);
 		this.nextLog = tryNext();
 	}
