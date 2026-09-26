@@ -159,8 +159,17 @@ public class MQFileWithIndex {
 					var bbHead = ByteBuffer.Wrap(messageHead);
 					var messageId = bbHead.ReadLong8();
 					var messageSize = bbHead.ReadInt4();
-					if (messageSize < 0 || messageSize > remaining - 12)
-						break; // 记录体越过文件尾（或负长度）：写了一半的尾巴，头字段同样不可信
+					if (messageSize < 0 || messageSize > remaining - 12) {
+						// size 损坏发生在提交区中间（其后还有已提交记录）时与 id 错位同型：撕裂写只能
+						// 产生记录的前缀字节，产生不了"中间记录 size 越界"的形态，自动截断会静默丢掉
+						// 其后的已提交消息（与本函数声明的"中间损坏 fatal"策略矛盾），必须响亮报错。
+						if (expectId < nextMessageId - 1)
+							throw new IllegalStateException("mq file corrupted in middle (bad record size). topic=" + topic
+									+ " partition=" + partitionId + " file=" + lastFile + " position=" + pos
+									+ " expectMessageId=" + expectId + " actualMessageId=" + messageId
+									+ " messageSize=" + messageSize + " fileSize=" + fileSize);
+						break; // 最后一条已提交记录的体越过文件尾（或负长度）：写了一半的尾巴，头字段同样不可信
+					}
 					if (messageId != expectId)
 						// 记录完整落在文件内但 id 错位：撕裂写只能产生记录的"前缀"字节，产生不了这种
 						// 形态——这是中间损坏或索引错指，其后可能还有完好数据，自动截断等于静默丢中间消息。
@@ -289,6 +298,13 @@ public class MQFileWithIndex {
 									messageSize = bbHead.ReadInt4();
 									if (messageId == headMessageId)
 										break; // message found.
+									// 负长度防御：skipBytes(负数)按规范返回 0，下面的越界检查被绕过
+									// （0<负数恒假），filePosition 镜像每轮净减使 eof 检查永不成立——
+									// 无 IO、无异常、无日志的单核自旋（与 messageIndexNotFound 同型失效）。
+									if (messageSize < 0)
+										throw new RuntimeException("locate message size corrupted (negative). topic=" + topic
+												+ " partition=" + partitionId + " headMessageId=" + headMessageId
+												+ " messageId=" + messageId + " messageSize=" + messageSize);
 									if (fileInput.skipBytes(messageSize) < messageSize)
 										throw new RuntimeException("message not found"); // 忽略的长度不够，表示数据文件被截断了。
 									filePosition += messageSize;
