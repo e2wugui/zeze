@@ -21,7 +21,10 @@ public class ClassUtils {
 	 * @param includeSubPath 是否递归包含子包中的类
 	 * @return 类的全名列表
 	 */
-	public static @NotNull List<String> getClassNames(@NotNull String packageName, boolean includeSubPath) {
+	// synchronized：JarURLConnection.getJarFile() 返回 JDK 全局缓存的共享 JarFile，
+	// try-with-resources 关闭与另一线程对同一实例的迭代并发时抛 "zip file closed"——
+	// 首次触发 QueryHandlerManager.<clinit> 的并发会把该类永久打成 NoClassDefFound。
+	public static synchronized @NotNull List<String> getClassNames(@NotNull String packageName, boolean includeSubPath) {
 		if (!packageName.isEmpty() && packageName.charAt(packageName.length() - 1) != '.')
 			packageName += '.';
 		var result = new ArrayList<String>();
