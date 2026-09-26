@@ -50,11 +50,13 @@ public class Log4jFileWalker {
 	}
 
 	public boolean hasNext() throws IOException {
-		// 循环写法，可以跳过空文件。
+		// 循环写法，可以跳过空文件；文件被外部清理的条目由manager.get持锁摘除后继续（GD-D01）。
 		while (currentIndex < files.size()) {
 			if (current == null)
 				// reset后尚未打开第一个文件，或空列表期间文件被创建（onFileCreated）；currentIndex已在[0,size)内。
 				nextCurrent();
+			if (current == null)
+				return false; // 残余条目全部打不开（已被摘除，currentIndex>=files.size()），遍历耗尽。
 			if (current.hasNext())
 				return true;
 			if (++currentIndex < files.size())
@@ -69,6 +71,7 @@ public class Log4jFileWalker {
 
 	private void nextCurrent() throws IOException {
 		closeCurrent();
+		// get对被外部清理的文件摘除条目后继续（GD-D01），残余条目全部打不开时返回null，由hasNext收尾。
 		current = files.get(currentIndex);
 	}
 

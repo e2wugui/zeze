@@ -1,6 +1,7 @@
 package Zeze.Services.Log4jQuery;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -90,8 +91,16 @@ public class Log4jFileManager extends ReentrantLock {
 		for (var i = files.size() - 1; i >= 0; --i) {
 			var file = files.get(i);
 			if (time >= file.index.getBeginTime()) {
+				var target = file.file;
+				Log4jFileSession logFileSession;
+				try {
+					logFileSession = new Log4jFileSession(target, file.index, logConf.charsetName, logConf.logTimeFormat);
+				} catch (FileNotFoundException e) {
+					// 文件被外部清理（logrotate压缩/保留期删除）：跳过该条目继续更旧的，持锁摘除+warn（GD-D01）。
+					removeMissingFile(file, target, e);
+					continue;
+				}
 				out.value = i;
-				var logFileSession = new Log4jFileSession(file.file, file.index, logConf.charsetName, logConf.logTimeFormat);
 				logFileSession.seek(time);
 				return logFileSession;
 			}
