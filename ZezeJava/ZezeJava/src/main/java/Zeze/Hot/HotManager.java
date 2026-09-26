@@ -569,7 +569,12 @@ public class HotManager extends ClassLoader {
 		var jar = jars.remove(file);
 		if (jar == null)
 			return;
-		zipEntries.entrySet().removeIf(stringJarEntryEntry -> stringJarEntryEntry.getValue().jar == jar);
+		// zipEntries.entrySet()是FewModifyMap的只读快照，iterator.remove/removeIf必抛UOE
+		//（34f6c6f4f回归点）；清索引必须走map级remove(key,value)，形态同_install旧interface清理。
+		for (var e : zipEntries.entrySet()) {
+			if (e.getValue().jar == jar)
+				zipEntries.remove(e.getKey(), e.getValue());
+		}
 		try {
 			jar.close();
 		} catch (java.io.IOException e) {
