@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import Zeze.Util.KV;
 import Zeze.Util.OutLong;
@@ -52,25 +53,32 @@ public class Log4jFileManager extends ReentrantLock {
 	public Log4jFileManager(LogServiceConf.LogConf logConf) throws Exception {
 		this.logConf = logConf;
 		var fulls = logConf.logActive.split("\\.");
-		this.logFileBegin = fulls[0];
-		this.logFileEnd = fulls.length > 1 ? fulls[1] : "";
+		// active名可含多个点号（如a.b.log）：begin=末段之外的全部，end=末段。
+		this.logFileEnd = fulls.length > 1 ? fulls[fulls.length - 1] : "";
+		this.logFileBegin = fulls.length > 1 ? String.join(".", Arrays.copyOf(fulls, fulls.length - 1)) : fulls[0];
 
 		this.fileCreateDetector = new FileCreateDetector(logConf.logDir, this::onFileCreated);
 
 		// 装载期间持有锁：onFileCreated跑在监视线程（构造即启动），不持锁装载会与其交错，
 		// 产生幽灵条目或索引未随行改名；持锁后启动瞬间的create事件排队到装载完成后按序处理（FND-S3-13）。
-		lock();
 		try {
-			loadRotates(logConf.logDir);
-			var active = new File(logConf.logDir, logConf.logActive);
-			if (active.exists()) {
-				// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile，
-				// 搜索的时候忽略文件不存在的错误？
-				// 暂时先不处理！（WatchService对rename的CREATE事件乱序时仍可能漏登新active，见挂档记录）
-				files.add(Log4jFile.of(active, loadIndex(active, logConf.logActive + ".index")));
+			lock();
+			try {
+				loadRotates(logConf.logDir);
+				var active = new File(logConf.logDir, logConf.logActive);
+				if (active.exists()) {
+					// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile，
+					// 搜索的时候忽略文件不存在的错误？
+					// 暂时先不处理！（WatchService对rename的CREATE事件乱序时仍可能漏登新active，见挂档记录）
+					files.add(Log4jFile.of(active, loadIndex(active, logConf.logActive + ".index")));
+				}
+			} finally {
+				unlock();
 			}
-		} finally {
-			unlock();
+		} catch (Exception e) {
+			// 构造失败回收detector：其线程在构造函数里已start并强引用this，不join则watch永驻半构造对象（GD-C07）。
+			fileCreateDetector.stopAndJoin();
+			throw e;
 		}
 		var period = 300_000L;
 		buildIndexTimer = TaskSpec.ofAction(this::buildIndex)
@@ -107,7 +115,9 @@ public class Log4jFileManager extends ReentrantLock {
 		if (fileName.equals(getCurrentLogFileName()))
 			return 0; // 当前日志文件
 
-		if (fileName.startsWith(logFileBegin) && fileName.endsWith(logFileEnd)) {
+		// 长度门槛防御重叠名（active "zeze.log" 下 "zezelog"）substring越界：rotate名至少=begin+分隔点+end。
+		if (fileName.startsWith(logFileBegin) && fileName.endsWith(logFileEnd)
+				&& fileName.length() >= logFileBegin.length() + logFileEnd.length() + 1) {
 			// rotate log file name = logFileBegin + logDatePattern + '.' + logFileEnd;
 			// logDatePattern默认是 .yyyy-MM-dd
 			var datePatternPart = fileName.substring(logFileBegin.length(), fileName.length() - logFileEnd.length() - 1);
