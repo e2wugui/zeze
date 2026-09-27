@@ -68,6 +68,16 @@ public class ZokerAgent extends AbstractZokerAgent {
                 break; // 现存 socket 已死：接管
             // CAS 失败：并发注册已改写条目——重读评估
         }
+        // GE-C03(FND22)：同 socket 换名注册——旧名条目条件摘除（值仍是本 socket 才摘）。
+        // userState 单值只记末名，OnSocketClose 按它条件移除也只摘一个：换名前的条目永久滞留
+        // （值指向已关闭 socket），无认证 acceptor 上单连接 Register 洪泛=无界内存增长。
+        // 条件移除（remove(prev, sender)）防误摘：旧名若已被他方接管（本 socket 曾死过、
+        // FND21 的 CAS replace），值不是本 socket，不摘继承者。摘旧在装新成功之后：与
+        // FND21 的"userState 前极小关闭窗"同形态自愈——窗口内关闭时新名条目由下次同名
+        // Register 的 isClosed 接管回收，有界。
+        var prev = (String) sender.getUserState();
+        if (null != prev && !prev.equals(zokerName))
+            zokers.remove(prev, sender);
         sender.setUserState(zokerName);
         r.SendResult();
         return 0;

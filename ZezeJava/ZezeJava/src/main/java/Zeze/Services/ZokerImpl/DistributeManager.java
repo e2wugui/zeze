@@ -221,8 +221,26 @@ public class DistributeManager {
 	 * rename）恒失败 → 按"写盘失败=不交付"一切 start 恒 eStartFail（服务永不可启动，无自愈）。
 	 * 仅用于 versionNo：serviceName 与保留字无碰撞面（services/Current、services/run.pid
 	 * 都是合法服务容器名——保留字在容器<b>之内</b>，容器名本身单段即安全），不得套用。
+	 * GE-C01(FND22)：折叠判据抽为 {@link #foldVersionName} 单点，与 pruneVersions 的
+	 * 现役保护、commitLocked 的指针规范化共用同一语义。
 	 */
 	static boolean isReservedVersionName(String name) {
+		var folded = foldVersionName(name);
+		return folded.equals(foldVersionName(CURRENT_NAME))
+				|| folded.equals(foldVersionName(ServiceManager.RUN_PID_NAME));
+	}
+
+	/**
+	 * 版本名的盘上解析折叠（GE-C01(FND22)，单点判据）：剥尾部点/空格 + 忽略大小写
+	 * （toLowerCase(Locale.ROOT)）。Windows(Win32) 路径解析大小写不敏感且规范化剥尾部点/空格
+	 * （FND21 GE-C01 修复轮本机探针实证：跨大小写 exists 命中、renameTo 落盘名脱尾点占位），
+	 * 即"请求文本"与"盘上实际目录名"可能是同一物理实体的两个拼写。所有需要"请求名与盘上名
+	 * 判同"的位置（保留字碰撞 {@link #isReservedVersionName}、现役保护 pruneVersions、
+	 * 指针规范化 commitLocked）必须统一用本折叠，不得裸 equals——分叉即现役目录落入清理面。
+	 * Linux（大小写敏感 FS）上折叠会把 "V1"/"v1" 判同——过度保护（多保一个目录，有界），
+	 * 对齐 commitLocks 键折叠的同款裁量：版本清理非正确性路径，可接受。
+	 */
+	static String foldVersionName(String name) {
 		var end = name.length();
 		while (end > 0) {
 			var c = name.charAt(end - 1);
@@ -230,8 +248,7 @@ public class DistributeManager {
 				break;
 			end--;
 		}
-		var stripped = name.substring(0, end);
-		return CURRENT_NAME.equalsIgnoreCase(stripped) || ServiceManager.RUN_PID_NAME.equalsIgnoreCase(stripped);
+		return name.substring(0, end).toLowerCase(Locale.ROOT);
 	}
 
 	// 错误码与 zoker.errorCode 同构（ModuleId*编码）；直构形态（zoker==null）下也要能返回协议错误码。
@@ -311,15 +328,49 @@ public class DistributeManager {
 			if (!versionTo.setLastModified(System.currentTimeMillis()))
 				logger.warn("commitService setLastModified fail: {}", versionTo);
 		}
+		// GE-C01(FND22)：指针与 prune 参数用盘上实际目录名，不用请求原样文本。Win32 解析下
+		// "V1"跨大小写命中 v1 跳装、"v1."renameTo 落盘为 v1——原样文本写指针后 currentVersionDir
+		// 靠跨规范化解析侥幸能启动，但 pruneVersions 的现役保护面对"盘上真名 vs 请求文本"分叉
+		// 时物理现役目录落入清理面被删（keep=3 三版本存量即 wedge：current 悬空、start 恒
+		// eNoServiceProperties）。规范化后指针、prune 参数、盘上目录三者同名，分叉源头闭合。
+		var installed = onDiskVersionName(svcDir, versionNo);
 		try {
-			switchCurrent(svcDir, versionNo);
+			switchCurrent(svcDir, installed);
 		} catch (IOException ex) {
 			// 现役未动；新版本目录已装好，重试同参数走"目标已存在"分支直接再切，收敛。
 			logger.error("commitService switch current fail: services/{} version={}", serviceName, versionNo, ex);
 			return err(Zoker.eCommitFail);
 		}
-		pruneVersions(svcDir, versionNo);
+		pruneVersions(svcDir, installed);
 		return 0;
+	}
+
+	/**
+	 * 把请求 versionNo 规范化为 services/&lt;svc&gt; 下折叠同名的<b>盘上实际目录名</b>
+	 * （GE-C01(FND22)）：找不到折叠命中的实体时原样返回（首次安装未落盘/目标是文件等场景）。
+	 * commit 全程持 commitLocks（折叠键），listFiles 与 install/switch/prune 之间无并发 commit
+	 * 交错；跨服务无关。找不到命中却已过 exists 跳装的情形只在非目录实体占位时出现——
+	 * 原样返回与旧行为等价（currentVersionDir 的 isDirectory 校验兜底）。
+	 */
+	private static String onDiskVersionName(File svcDir, String versionNo) {
+		var listFiles = svcDir.listFiles();
+		if (null != listFiles) {
+			var folded = foldVersionName(versionNo);
+			String foldedMatch = null;
+			for (var f : listFiles) {
+				if (!f.isDirectory())
+					continue;
+				// 精确名优先：Linux 上 "v1"/"V1" 可并存，精确命中保持请求语义不漂移；
+				// 折叠命中兜底 Windows 的分叉形态（"V1"/"v1." vs 落盘 "v1"）。
+				if (f.getName().equals(versionNo))
+					return f.getName();
+				if (null == foldedMatch && foldVersionName(f.getName()).equals(folded))
+					foldedMatch = f.getName();
+			}
+			if (null != foldedMatch)
+				return foldedMatch;
+		}
+		return versionNo;
 	}
 
 	/**
@@ -360,6 +411,13 @@ public class DistributeManager {
 	 * 保留策略：按安装时间（版本目录mtime，commit时盖写）保留最近 keepVersions 个版本目录，
 	 * 现役版本永不删除；超出的最老版本整树删除。删除失败仅告警，残留等待下次commit重试
 	 * （纯空间回收，不影响正确性）。listFiles的null（目录消失/权限）视为无事可做。
+	 *
+	 * <p>现役保护按 {@link #foldVersionName} 折叠比对（GE-C01(FND22)）：参数来自 commit 的
+	 * 请求 versionNo，而 Win32 解析下请求文本与盘上目录名可能分叉（"V1"vs"v1"、"v1."vs"v1"）
+	 * ——裸 equals 使物理现役目录落入清理面被删（current 悬空）。折叠后指针文本与盘上真名
+	 * 两个来处都命中保护；commitLocked 的指针规范化已使正常路径同名，此处折叠是独立的第二道
+	 * 防（直调/存量分叉指针亦闭合）。Linux 上折叠=过度保护（同名变体目录都被保，有界），
+	 * 与锁键折叠同款裁量。</p>
 	 */
 	void pruneVersions(File svcDir, String currentVersion) {
 		var keep = keepVersions;
@@ -368,10 +426,11 @@ public class DistributeManager {
 		var listFiles = svcDir.listFiles();
 		if (null == listFiles)
 			return;
+		var foldedCurrent = foldVersionName(currentVersion);
 		ArrayList<File> candidates = new ArrayList<>();
 		for (var f : listFiles) {
 			// 只把版本目录纳入清理面：current指针是文件天然排除；名字碰巧等于现役版本的目录不存在（构造上互斥）。
-			if (f.isDirectory() && !f.getName().equals(currentVersion))
+			if (f.isDirectory() && !foldVersionName(f.getName()).equals(foldedCurrent))
 				candidates.add(f);
 		}
 		// 现役已占1个名额：非现役里保留最新的 keep-1 个，其余删除。

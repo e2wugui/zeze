@@ -12,9 +12,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -105,6 +105,17 @@ public class ServiceManager {
 	private final @Nullable Zoker zoker;
 	private final File serviceDir;
 	private final ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
+	// GE-C02(FND22)：同服务 start/stop 互斥（services/<svc> 折叠键，对齐 DistributeManager.commitLocks
+	// 的形态与判据）。stopService 首行摘账、此后最长 10s优雅+10s强杀 的停机窗口——窗口内并发
+	// start 按 run.pid 领养"正在被终止"的进程并回执 Running：回执即谎言且终局服务死
+	// （GE-D01(FND21) 领养落地引入的行为退化；领养判据只看"pid 存活+指纹相符"，无法区分现役
+	// 与正被杀）。互斥使两序皆自洽：stop 先完成→start 见无身份/死残留重新拉起（回执诚实）；
+	// start 先完成→stop 正常停它（回执亦诚实）。锁序安全：与 commitLocks 无嵌套（commit 不碰
+	// 进程记账，start/stop 不碰版本目录），watchExit 回调不取本锁。键大小写折叠
+	// （toLowerCase(Locale.ROOT)）：Windows 上 "svc"/"Svc" 同一物理容器，裸键两把锁互斥失效
+	// （TestFnd21E02 同论证）；Linux 过度串行化可接受（生命周期 RPC 非热路径）。条目数以
+	// （折叠后的）服务名为界，与 isSafePathSegment 守卫后的名字面同量级，无攻击面放大。
+	private final ConcurrentHashMap<String, Object> opsLocks = new ConcurrentHashMap<>();
 
 	public ServiceManager(Zoker zoker) {
 		this.zoker = zoker;
@@ -162,24 +173,46 @@ public class ServiceManager {
 	 * 文件缺失（FileNotFoundException）/command 键缺失或为空/env 条目非法 → IOException，
 	 * 调用方统一映射 eNoServiceProperties（缺少可用的部署描述文件）。
 	 * 约定：args 按空白分隔不支持引号包裹；env 值内不支持逗号。
+	 *
+	 * <p><b>GE-C04(FND22)：行式 key=value 解析（首个'='分隔，值原样保留）——与
+	 * {@link RunPidRecord#parse} 同法</b>，不再用 {@code Properties.load}：Properties 对值内
+	 * 反斜杠做转义还原（{@code C:\srv\app.exe}→{@code C:srvapp.exe}，未识别转义直接丢反斜杠，
+	 * Java 规范行为），Windows 路径形态的 command/env/args 静默损坏且 eStartFail 日志显示
+	 * 损坏后命令——同文件内 run.pid 的自写解析正是为此弃用 Properties，部署描述对齐同一标准，
+	 * 反斜杠无任何转义语义、Windows 路径可直写。顺带的语义收窄（#注释行/续行/unicode转义
+	 * 不再识别）对本机器生成的小型描述文件零成本。</p>
 	 */
 	static LaunchSpec parseLaunchSpec(File currentVersionDir) throws IOException {
 		var file = new File(currentVersionDir, SERVICE_PROPERTIES_NAME);
-		var props = new Properties();
+		String content;
 		try (var input = new FileInputStream(file)) {
-			props.load(input);
+			content = new String(input.readAllBytes(), StandardCharsets.UTF_8);
 		}
-		var command = props.getProperty(KEY_COMMAND, "").trim();
-		if (command.isEmpty())
+		String command = null;
+		String args = null;
+		String env = null;
+		for (var line : content.split("\n", -1)) {
+			var i = line.indexOf('=');
+			if (i <= 0)
+				continue;
+			var key = line.substring(0, i).trim(); // trim 吸收 CRLF 的 \r 与键前后空白
+			var value = line.substring(i + 1); // 值原样保留（含反斜杠），消费点自行 trim
+			switch (key) {
+				case KEY_COMMAND -> command = value;
+				case KEY_ARGS -> args = value;
+				case KEY_ENV -> env = value;
+				default -> {
+				}
+			}
+		}
+		if (null == command || command.trim().isEmpty())
 			throw new IOException("service.properties missing 'command': " + file);
 		var spec = new LaunchSpec(currentVersionDir);
-		spec.command.add(command);
-		var args = props.getProperty(KEY_ARGS, "").trim();
-		if (!args.isEmpty())
-			spec.command.addAll(Arrays.asList(args.split("\\s+")));
-		var env = props.getProperty(KEY_ENV, "").trim();
-		if (!env.isEmpty()) {
-			for (var pair : env.split(",")) {
+		spec.command.add(command.trim());
+		if (null != args && !args.trim().isEmpty())
+			spec.command.addAll(Arrays.asList(args.trim().split("\\s+")));
+		if (null != env && !env.trim().isEmpty()) {
+			for (var pair : env.trim().split(",")) {
 				var kv = pair.split("=", 2);
 				var key = kv[0].trim();
 				if (kv.length != 2 || key.isEmpty())
@@ -199,12 +232,25 @@ public class ServiceManager {
 		return parseLaunchSpec(workingDir);
 	}
 
+	/**
+	 * 启动描述：command+args 组命令、env 注入进程环境、工作目录=现役版本目录。
+	 *
+	 * <p><b>GE-C05(FND22) 输出契约：子进程 stdout/stderr 丢弃（Redirect.DISCARD）</b>。
+	 * ProcessBuilder 默认 PIPE 而本记账从不读取流——子进程累计输出越过 OS 管道缓冲（~64KB）
+	 * 后 write 阻塞，服务静默冻结而 listService 恒 Running（历轮短命测试进程从未越线故未暴露）。
+	 * DISCARD 零线程零 fd；需要保留输出的部署在 command 自行重定向到文件
+	 * （{@code command=cmd} + {@code args=/c app.exe > app.log 2>&1} 形态）。领养形态
+	 * （AdoptedProcess）无管道，不受影响。</p>
+	 */
 	private static Process launch(LaunchSpec spec) throws IOException {
 		var pb = new ProcessBuilder();
 		pb.directory(spec.workingDir);
 		pb.command(spec.command);
 		if (!spec.env.isEmpty())
 			pb.environment().putAll(spec.env);
+		// GE-C05(FND22)：无人消费的管道=64KB 后写阻塞冻结（见上输出契约），丢弃即闭合。
+		pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+		pb.redirectError(ProcessBuilder.Redirect.DISCARD);
 		return pb.start();
 	}
 
@@ -561,6 +607,14 @@ public class ServiceManager {
 			logger.error("startService rejected: unsafe serviceName='{}'", serviceName);
 			return err(Zoker.eNoServiceProperties);
 		}
+		// GE-C02(FND22)：同服务 start/stop 全程持 opsLocks（见字段注释）——领养查重与 stop 的
+		// 摘账-停机窗口不得交错，否则"start 领养正被杀的进程并回执 Running"。
+		synchronized (opsLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
+			return startServiceLocked(r, serviceName);
+		}
+	}
+
+	private long startServiceLocked(StartService r, String serviceName) {
 		Process process;
 		while (true) {
 			var existing = processes.get(serviceName);
@@ -645,6 +699,14 @@ public class ServiceManager {
 	 */
 	public void stopService(StopService r) throws InterruptedException {
 		var serviceName = r.Argument.getServiceName();
+		// GE-C02(FND22)：同服务 start/stop 全程持 opsLocks（见字段注释）——摘账后的停机窗口内
+		// 并发 start 不得进入（否则领养"正在被终止"的进程，回执 Running 即谎言）。
+		synchronized (opsLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
+			stopServiceLocked(r, serviceName);
+		}
+	}
+
+	private void stopServiceLocked(StopService r, String serviceName) throws InterruptedException {
 		var process = processes.remove(serviceName);
 		if (null == process) {
 			// GE-D01(FND21)：条目缺失先解析盘上身份再判 not-running（三态结局对领养句柄同样成立）。
