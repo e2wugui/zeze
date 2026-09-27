@@ -11,6 +11,7 @@ import java.util.jar.JarFile;
 import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Hot.HotRedirect;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
@@ -82,9 +83,14 @@ public final class BeanFactory {
 	 *
 	 * @param beanFactories 相关的 BeanFactories
 	 * @param hotModules    相关的 HotModule's JarFile
+	 * @param hotRedirect   调用方HotManager实例的重定向类加载器。
+	 *                      不经静态zeze.getHotManager()取回：该静态是JVM级、多Application周期
+	 *                      可被并行改写，取回为null时NPE会落入install不可回滚区halt(111222)
+	 *                      （本文件220/303/348行对null hotManager均有防御回退，此处原为唯一裸取点）。
 	 */
 	public static void resetHot(@NotNull Map<BeanFactory, List<Class<?>>> beanFactories,
-								@NotNull List<JarFile> hotModules, @NotNull Zeze.Hot.HotRedirect hotRedirect) {
+								@NotNull List<JarFile> hotModules,
+								@NotNull HotRedirect hotRedirect) {
 		for (JarFile jf : hotModules)
 			reloadClassesFromJar(jf);
 

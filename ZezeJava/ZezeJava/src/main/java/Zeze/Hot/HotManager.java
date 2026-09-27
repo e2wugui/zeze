@@ -475,7 +475,7 @@ public class HotManager extends ClassLoader {
 						hotBeanFactory.clearTableCache();
 						beanFactories.put(hotBeanFactory.beanFactory(), new ArrayList<>());
 					}
-					BeanFactory.resetHot(beanFactories, hotJarFiles, getHotRedirect());
+					BeanFactory.resetHot(beanFactories, hotJarFiles, hotRedirect);
 					for (var hotBeanFactory : freshHotBeanFactories) {
 						hotBeanFactory.processWithNewClasses(beanFactories.get(hotBeanFactory.beanFactory()));
 					}
