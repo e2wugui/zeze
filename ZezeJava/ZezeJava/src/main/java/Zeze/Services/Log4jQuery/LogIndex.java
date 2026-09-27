@@ -66,6 +66,15 @@ public class LogIndex {
 		return beginTime;
 	}
 
+	/**
+	 * 索引文件路径（FND22 GD-C03）：current索引经硬链接打开时即链接路径——LogIndex的mmap增长
+	 * （addIndex→mmap(newSize)）按此路径重开文件，链接是存活索引的增长通道。清理方据此识别
+	 * "仍被存活条目持有的链接"，不得删除（Linux下删了增长即FNFE、Windows下mmap钉住删不掉）。
+	 */
+	public File getFile() {
+		return file;
+	}
+
 	public long getEndTime() {
 		return endTime;
 	}

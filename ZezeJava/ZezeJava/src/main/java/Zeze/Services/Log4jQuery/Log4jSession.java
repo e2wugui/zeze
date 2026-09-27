@@ -40,6 +40,12 @@ public class Log4jSession {
 	}
 
 	public void reset() throws IOException {
+		// beginTime去重状态必须随游标一起失效（FND22 GD-C01）：reset的语义是"下一查询从头重新定位"，
+		// 但定位（seek到首条time≥beginTime）只发生在trySetBeginTime里且以beginTime未变去重短路——
+		// reset只归零游标不失效beginTime时，同beginTime的reset刷新请求会从最旧文件头迭代，早于
+		// beginTime的日志混入结果（查询契约违反）且全历史线性重扫。失效为-2后下一查询必走
+		// reset+seek重定位；beginTime=-1流程不变（-2→-1变化，reset后不seek，行为与原先一致）。
+		this.beginTime = -2;
 		this.files.reset();
 	}
 

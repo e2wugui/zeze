@@ -22,8 +22,8 @@ public class ClassUtils {
 	 * @return 类的全名列表
 	 */
 	// synchronized：JarURLConnection.getJarFile() 返回 JDK 全局缓存的共享 JarFile，
-	// try-with-resources 关闭与另一线程对同一实例的迭代并发时抛 "zip file closed"——
-	// 首次触发 QueryHandlerManager.<clinit> 的并发会把该类永久打成 NoClassDefFound。
+	// 双扫描对同一实例的并发迭代受JarFile内部同步保护，但为防未来回归仍串行化调用方
+	//（首次触发 QueryHandlerManager.<clinit> 的并发会把该类永久打成 NoClassDefFound）。
 	public static synchronized @NotNull List<String> getClassNames(@NotNull String packageName, boolean includeSubPath) {
 		if (!packageName.isEmpty() && packageName.charAt(packageName.length() - 1) != '.')
 			packageName += '.';
@@ -41,9 +41,14 @@ public class ClassUtils {
 						logger.error("invalid file url: {}", url, e);
 					}
 				} else if ("jar".equals(protocol)) {
-					try (var jarFile = ((JarURLConnection)url.openConnection()).getJarFile()) {
-						getAllClassNameByJar(result, jarFile, packageName, includeSubPath);
-					}
+					// getJarFile()返回JDK全局缓存（JarFileFactory按URL缓存）的共享实例（FND22 GD-C04）：
+					// 借来的实例不关闭——try-with-resources的close会关闭底层zip且不驱散factory缓存，
+					// jar部署形态下URLClassPath的JarLoader持同一实例，后续（含懒加载）类加载读该jar
+					// 抛zip closed系异常，init的catch吞掉后handler静默缺失；同JVM第二次扫描从缓存拿到
+					// 已关闭实例entries()直接抛IllegalStateException穿透签名。生命周期归factory自持有。
+					// synchronized（FND21 a049278f0）保留：消除本方法并发双扫的迭代/关闭竞速。
+					var jarFile = ((JarURLConnection)url.openConnection()).getJarFile();
+					getAllClassNameByJar(result, jarFile, packageName, includeSubPath);
 				}
 			}
 		} catch (IOException e) {

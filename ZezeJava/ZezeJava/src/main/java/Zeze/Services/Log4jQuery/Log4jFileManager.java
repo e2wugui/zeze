@@ -283,8 +283,13 @@ public class Log4jFileManager extends ReentrantLock {
 		try {
 			if (file.file != failedTarget)
 				return false; // 并发轮转已改指：条目现指有效文件，不摘
-			if (file.file.getName().equals(getCurrentLogFileName()) && hasUnregisteredRotateOnDisk())
+			if (file.file.getName().equals(getCurrentLogFileName()) && hasUnregisteredRotateOnDisk()) {
+				// 宽限可观测（FND22 GD-C05）：正常轮转窗口毫秒级即收敛，本告警持续出现即宽限滞留
+				// （active真被外部删除+未登记rotate长期补登受阻）——区分"轮转进行中"与"无限期滞留"
+				// 的最低成本手段，滞留条目只造成查询降级，但不可静默。
+				logger.warn("log file missing but rotation unconverged, keep entry: {}", failedTarget);
 				return false; // 轮转进行中（GD-C02）：active条目是case-1改指的载体，不摘
+			}
 			if (files.remove(file)) {
 				logger.warn("log file missing, remove entry: {}", failedTarget, cause);
 				return true;
@@ -372,8 +377,12 @@ public class Log4jFileManager extends ReentrantLock {
 			// 不摘；rotate常规补登登记后宽限自然解除（下轮若文件仍缺失则摘）。
 			for (var file : files) {
 				if (!file.file.exists()) {
-					if (file.file.getName().equals(getCurrentLogFileName()) && hasUnregisteredRotateOnDisk())
+					if (file.file.getName().equals(getCurrentLogFileName()) && hasUnregisteredRotateOnDisk()) {
+						// 宽限可观测（FND22 GD-C05）：同removeMissingFile——5min周期下持续出现本告警
+						// 即宽限滞留形态（active真删+rotate补登持续失败），需人工介入。
+						logger.warn("log file missing (reconcile) but rotation unconverged, keep entry: {}", file.file);
 						continue; // 轮转进行中：active条目是改指载体，不摘
+					}
 					files.remove(file);
 					logger.warn("log file missing (reconcile), remove entry: {}", file.file);
 				}
@@ -442,16 +451,41 @@ public class Log4jFileManager extends ReentrantLock {
 
 		var lastOffset = activeEntry.index.lowerBound(activeEntry.index.getEndTime());
 		var activeFile = new File(logConf.logDir, activeName);
-		if (lastOffset <= activeFile.length()) // 文件不存在时length()==0：索引有记录即判失配，改指同样正确
+		if (lastOffset <= activeFile.length()) // 文件不存在时length()==0：索引有记录即判失配——失配只证明索引与active不配，配给谁由下方内容抽查裁决（GD-C05）
 			return;
 
 		var rotateName = rotates.getFirst().getValue(); // 时间序最早的漏登rotate：active索引内容所在
+		// 内容配对抽查（FND22 GD-C05）：lastOffset超长+未登记rotate都是推断，在"active真被外部
+		// 误删+磁盘恰有无关rotate名文件（人工拷入/误放/上轮未收敛残留）"叠加形态下双双失真——
+		// 直接改名会把现存索引错挂到无关文件名上（不可逆且无告警：错配.index跨重启经补登挂载，
+		// 该rotate自身时间窗永久不可查）。读rotate首条日志，时间落在索引时间窗内才认定配对
+		//（真漏轮转/mv型归档形态下rotate首条=索引首条，恒配对，收敛行为不变）；窗外或不可读=
+		// 证据不足不改名不改指，留给摘除循环宽限+rotate常规补登（全新索引正确配对）收敛。
+		if (!matchRotateHead(new File(logConf.logDir, rotateName), activeEntry.index))
+			return;
 		if (!renameCurrentIndexTo(rotateName)) // 失败即中止改指（GD-C01回滚语义，与case-1共用）
 			return;
 		logger.warn("reconcile missed rotation: repoint active entry {} -> {} with renamed index",
 				activeName, rotateName);
 		activeEntry.file = new File(logConf.logDir, rotateName);
 		rotates.removeFirst(); // 已由改指登记，不再常规补登
+	}
+
+	/**
+	 * 改名前内容配对抽查（FND22 GD-C05）：读rotate文件首条可解析日志，时间落在既有索引
+	 * [beginTime,endTime]窗内即认可"rotate承载的正是索引描述的内容"。真漏轮转/mv型归档形态下
+	 * rotate首条=索引首条（同内容）恒配对；无关文件首条时间在窗外即否决。不可读/无日志=证据不足
+	 * 同样否决——改名不可逆，宁可留给摘除+常规补登收敛（补登建全新索引，正确性无损只多一轮）。
+	 */
+	private boolean matchRotateHead(File rotateFile, LogIndex index) {
+		try (var log = new Log4jFileSession(rotateFile, null, logConf.charsetName, logConf.logTimeFormat)) {
+			if (!log.hasNext())
+				return false;
+			var headTime = log.next().getTime();
+			return headTime >= index.getBeginTime() && headTime <= index.getEndTime();
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**
@@ -493,6 +527,17 @@ public class Log4jFileManager extends ReentrantLock {
 
 	private void removeOldLinkFiles() {
 		var linkDir = new File(logConf.logDir, "indexLinks");
+		// 存活条目mmap持有的链接（FND22 GD-C03）：链接是LogIndex的增长通道（addIndex按链接路径
+		// 重开文件扩映射）——不检查持有就删，Linux下条目尾部索引续建必FNFE（每5min ERROR无限重试，
+		// 该窗口索引永久缺失），Windows下映射钉住删除必败（GD-C08的链接累积未消除+逐链接warn）。
+		// 持锁调用（构造/onFileCreated），files快照与条目生命周期一致；条目被retention/reconcile摘除后
+		// 其LogIndex无引用、映射可被GC释放，链接下次清理即可删——累积从无界收敛为与保留窗口内条目同阶。
+		var heldLinks = new HashSet<Path>();
+		for (var file : files) {
+			var indexFile = file.index.getFile();
+			if (indexFile != null && linkDir.equals(indexFile.getParentFile()))
+				heldLinks.add(indexFile.toPath());
+		}
 		var links = linkDir.listFiles();
 		var max = 0L;
 		File maxFile = null;
@@ -515,6 +560,10 @@ public class Log4jFileManager extends ReentrantLock {
 
 			for (var link : links) {
 				if (link != maxFile) {
+					if (heldLinks.contains(link.toPath())) {
+						logger.debug("skip live index link: {}", link); // 存活句柄链接，随条目生命周期清理
+						continue;
+					}
 					if (!link.delete())
 						logger.warn("delete link error: {}", link);
 				}

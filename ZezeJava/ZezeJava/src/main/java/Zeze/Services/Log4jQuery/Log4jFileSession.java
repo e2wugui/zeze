@@ -62,6 +62,18 @@ public class Log4jFileSession implements Closeable {
 			var offset = index.lowerBound(time);
 			if (offset != -1)
 				return offset;
+			// lowerBound的-1混装了"空索引"与"time超出索引末端"两种情形（FND22 GD-C02）：
+			// 后者是常态——buildIndex按5分钟周期推进，查询时间落在索引末端之后的滞后带内
+			//（监控端"最近N分钟"尾窗查询恰是最高频形状），此时末记录offset是现成最佳起点，
+			// 回落0等于把整个已索引区间重读一遍（GB级文件整读只为定位尾部几行，预算
+			// MAX_SCAN_LOGS/BYTES只约束其后的结果循环，对seek内部扫描零约束）。
+			// detailSeek从末记录向前推进到time，与乱序日志的既有容忍度一致（covered路径
+			// 本来就从lowerBound记录起向前定位）；空索引（endTime=0且无记录）维持回落0。
+			if (time > index.getEndTime()) {
+				var last = index.lowerBound(index.getEndTime()); // 末记录（endTime即末记录时间，必命中）
+				if (last != -1)
+					return last;
+			}
 		}
 		return 0;
 	}
