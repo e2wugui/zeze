@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
+
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Database;
@@ -32,18 +33,18 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	private static final TableFormatConfig tableCfg = new BlockBasedTableConfig().setBlockCache(dbCache);
 	private static final long dbBuffer = Str.parseLongSize(System.getProperty("rocksdbBuffer"), 64 << 20);
 	private static final Options commonOptions = new Options()
-			.setCreateIfMissing(true)
-			.setTableFormatConfig(tableCfg)
-			.setDbWriteBufferSize(dbBuffer) // total write buffer bytes, include all the columns
-			.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
+		.setCreateIfMissing(true)
+		.setTableFormatConfig(tableCfg)
+		.setDbWriteBufferSize(dbBuffer) // total write buffer bytes, include all the columns
+		.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
 	private static final DBOptions commonDbOptions = new DBOptions()
-			.setCreateIfMissing(true)
-			.setDbWriteBufferSize(dbBuffer) // total write buffer bytes, include all the columns
-			.setKeepLogFileNum(5) // reserve "LOG.old.*" file count
-			// .setAtomicFlush(true); // atomic batch 独立于这个选项？
-			.setMaxWriteBatchGroupSizeBytes(100 * 1024 * 1024);
+		.setCreateIfMissing(true)
+		.setDbWriteBufferSize(dbBuffer) // total write buffer bytes, include all the columns
+		.setKeepLogFileNum(5) // reserve "LOG.old.*" file count
+		// .setAtomicFlush(true); // atomic batch 独立于这个选项？
+		.setMaxWriteBatchGroupSizeBytes(100 * 1024 * 1024);
 	private static final ColumnFamilyOptions commonCfOptions = new ColumnFamilyOptions()
-			.setTableFormatConfig(tableCfg);
+		.setTableFormatConfig(tableCfg);
 	private static final ReadOptions defaultReadOptions = new ReadOptions();
 	private static final WriteOptions defaultWriteOptions = new WriteOptions();
 	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
@@ -75,7 +76,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			var clsWriteBatch = WriteBatch.class;
 			// native void put(long handle, byte[] key, int keyLen, byte[] value, int valueLen, long cfHandle);
 			var m = clsWriteBatch.getDeclaredMethod("put",
-					long.class, byte[].class, int.class, byte[].class, int.class, long.class);
+				long.class, byte[].class, int.class, byte[].class, int.class, long.class);
 			m.setAccessible(true);
 			mhWriteBatchPutCf = lookup.unreflect(m);
 			// native void delete(long handle, byte[] key, int keyLen, long cfHandle);
@@ -142,7 +143,9 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 
 	private final ConcurrentHashMap<String, Table> tableMap = new ConcurrentHashMap<>();
 	private @Nullable Map<String, Table> tableMapView;
-	private @Nullable ArrayList<Batch> batchPool;
+	// 急切初始化（原懒初始化@Nullable：borrowBatch建池、Batch.close归还都要null防——
+	// 一个ArrayList的分配不值得三处.Nullable，且IDE保守告警曾诱发剥除承重墙的自动清理）。
+	private final ArrayList<Batch> batchPool = new ArrayList<>();
 
 	public RocksDatabase(@NotNull String homePath) throws RocksDBException {
 		this(homePath, DbType.eRocksDb);
@@ -163,7 +166,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	}
 
 	public static @NotNull ArrayList<ColumnFamilyDescriptor> getCfDescriptors(@NotNull String homePath)
-			throws RocksDBException {
+		throws RocksDBException {
 		var cfds = new ArrayList<ColumnFamilyDescriptor>();
 		for (byte[] cfn : RocksDB.listColumnFamilies(commonOptions, homePath))
 			cfds.add(new ColumnFamilyDescriptor(cfn, commonCfOptions));
@@ -310,7 +313,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	}
 
 	public @NotNull Table getOrAddTable(@NotNull String name, @Nullable OutObject<Boolean> isNew)
-			throws RocksDBException {
+		throws RocksDBException {
 		lock();
 		try {
 			var table = tableMap.get(name);
@@ -322,7 +325,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			if (isNew != null)
 				isNew.value = true;
 			table = new Table(name, rocksDb.createColumnFamily(
-					new ColumnFamilyDescriptor(name.getBytes(StandardCharsets.UTF_8), commonCfOptions)));
+				new ColumnFamilyDescriptor(name.getBytes(StandardCharsets.UTF_8), commonCfOptions)));
 			tableMap.put(name, table);
 			return table;
 		} finally {
@@ -368,7 +371,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 						}
 					}
 					throw new IllegalStateException("createColumnFamilies unmatched: "
-							+ cfhCount + " != " + newNames.size());
+						+ cfhCount + " != " + newNames.size());
 				}
 				for (int i = 0; i < n; i++) {
 					var idx = newIndexes.get(i);
@@ -443,12 +446,9 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	public @NotNull Batch borrowBatch() {
 		lock();
 		try {
-			var bp = batchPool;
-			if (bp == null)
-				batchPool = bp = new ArrayList<>();
-			int n = bp.size();
+			int n = batchPool.size();
 			if (n > 0)
-				return bp.remove(n - 1);
+				return batchPool.remove(n - 1);
 		} finally {
 			unlock();
 		}
@@ -457,7 +457,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			public void close() {
 				RocksDatabase.this.lock();
 				try {
-					if (!batchPool.contains(this)) { // 防止double-close导致同一Batch重复入池
+					if (!batchPool.contains(this)) { // 防止double-close导致同一Batch重复入池（16b540a15承重墙，勿删）
 						clear();
 						batchPool.add(this);
 					}
@@ -539,15 +539,12 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 		if (inflightOps.sum() != 0 || !openIterators.isEmpty())
 			logger.warn("rocksdb close drain timeout ({}ms), continue. home={} inflight={} openIterators={}",
-					CLOSE_DRAIN_BUDGET_MS, homePath, inflightOps.sum(), openIterators.size());
+				CLOSE_DRAIN_BUDGET_MS, homePath, inflightOps.sum(), openIterators.size());
 		lock();
 		try {
-			var bp = batchPool;
-			if (bp != null) {
-				for (var b : bp)
-					b.batch.close();
-				bp.clear();
-			}
+			for (var b : batchPool)
+				b.batch.close();
+			batchPool.clear();
 			// 释放Table持有的列族句柄（FND4-22）：tableMap.clear()直接丢弃会漏掉
 			// 堆外句柄（依赖GC滞后清理且不保证）。destroy须在db.close()前，
 			// 与dropTable的释放模式收口；只释放句柄不drop数据（close不删列族）。
@@ -570,7 +567,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	}
 
 	public static void backup(@NotNull DbType dbType, @NotNull String checkpointDir, @NotNull String backupDir)
-			throws RocksDBException {
+		throws RocksDBException {
 		var cfhs = new ArrayList<ColumnFamilyHandle>();
 		try (var src = realOpen(dbType, commonDbOptions, checkpointDir, getCfDescriptors(checkpointDir), cfhs);
 			 var backupOptions = new BackupEngineOptions(backupDir);
@@ -657,7 +654,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			try {
 				return rocksDb.getLongProperty(cfHandle, "rocksdb.estimate-num-keys");
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -694,12 +691,12 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 					rocksDbGetObserver.observe(System.nanoTime() - timeBegin);
 				return r;
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
 		public byte @Nullable [] get(@NotNull ReadOptions options, byte[] key, int offset, int size)
-				throws RocksDBException {
+			throws RocksDBException {
 			RocksDatabase.this.enterOp();
 			try {
 				var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
@@ -708,7 +705,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 					rocksDbGetObserver.observe(System.nanoTime() - timeBegin);
 				return r;
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -729,7 +726,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				if (timeBegin != 0) // 统计禁用时零开销
 					rocksDbPutObserver.observe(System.nanoTime() - timeBegin);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -742,7 +739,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				if (timeBegin != 0) // 统计禁用时零开销
 					rocksDbPutObserver.observe(System.nanoTime() - timeBegin);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -762,7 +759,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				if (timeBegin != 0) // 统计禁用时零开销
 					rocksDbDeleteObserver.observe(System.nanoTime() - timeBegin);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -774,7 +771,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				if (timeBegin != 0) // 统计禁用时零开销
 					rocksDbDeleteObserver.observe(System.nanoTime() - timeBegin);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -790,13 +787,13 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				if (timeBegin != 0) // 统计禁用时零开销
 					rocksDbDeleteRangeObserver.observe(System.nanoTime() - timeBegin);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
 		public void put(@NotNull Transaction t, @NotNull Binary key, @NotNull Binary value) throws RocksDBException {
 			put(t, key.bytesUnsafe(), key.getOffset(), key.size(),
-					value.bytesUnsafe(), value.getOffset(), value.size());
+				value.bytesUnsafe(), value.getOffset(), value.size());
 		}
 
 		public void put(@NotNull Transaction t, byte[] key, byte[] value) throws RocksDBException {
@@ -804,7 +801,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 
 		public void put(@NotNull Transaction t, byte[] key, int keyLen, byte[] value, int valueLen)
-				throws RocksDBException {
+			throws RocksDBException {
 			put(t, key, 0, keyLen, value, 0, valueLen);
 		}
 
@@ -820,7 +817,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				if (timeBegin != 0) // 统计禁用时零开销
 					rocksDbTxnPutObserver.observe(System.nanoTime() - timeBegin);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -846,13 +843,13 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				if (timeBegin != 0) // 统计禁用时零开销
 					rocksDbTxnDeleteObserver.observe(System.nanoTime() - timeBegin);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
 		public void put(@NotNull Batch batch, @NotNull Binary key, @NotNull Binary value) throws RocksDBException {
 			put(batch, key.bytesUnsafe(), key.getOffset(), key.size(),
-					value.bytesUnsafe(), value.getOffset(), value.size());
+				value.bytesUnsafe(), value.getOffset(), value.size());
 		}
 
 		public void put(@NotNull Batch batch, byte[] key, byte[] value) throws RocksDBException {
@@ -860,7 +857,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 
 		public void put(@NotNull Batch batch, byte[] key, int keyLen, byte[] value, int valueLen)
-				throws RocksDBException {
+			throws RocksDBException {
 			batch.put(cfHandle, key, keyLen, value, valueLen);
 		}
 
@@ -947,7 +944,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				if (timeBegin != 0) // 统计禁用时零开销
 					rocksDbCompactObserver.observe(System.nanoTime() - timeBegin);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -994,22 +991,22 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			try {
 				batch.put(cfh, key, value);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
 		public void put(@NotNull ColumnFamilyHandle cfh, byte[] key, int keyLen, byte[] value, int valueLen)
-				throws RocksDBException {
+			throws RocksDBException {
 			RocksDatabase.this.enterOp();
 			try {
 				try {
 					mhWriteBatchPutCf.invokeExact(batch, batch.getNativeHandle(), key, keyLen, value, valueLen,
-							cfh.getNativeHandle());
+						cfh.getNativeHandle());
 				} catch (Throwable e) { // rethrow
 					throw Task.forceThrow(e);
 				}
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -1018,7 +1015,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			try {
 				batch.delete(cfh, key);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -1031,7 +1028,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 					throw Task.forceThrow(e);
 				}
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -1047,7 +1044,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				if (timeBegin != 0) // 统计禁用时零开销
 					rocksDbWriteObserver.observe(System.nanoTime() - timeBegin);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
@@ -1088,7 +1085,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 				ByteBuffer.intLeHandler.set(bb.Bytes, 8, count);
 				try (var wb = (WriteBatch)mhWriteBatchNew.invokeExact(
-						(long)mhWriteBatchNativeNew.invokeExact(bb.Bytes, bb.WriteIndex), true)) {
+					(long)mhWriteBatchNativeNew.invokeExact(bb.Bytes, bb.WriteIndex), true)) {
 					rocksDb.write(options, wb);
 				} catch (Throwable e) { // rethrow
 					throw Task.forceThrow(e);
@@ -1096,7 +1093,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				if (timeBegin != 0) // 统计禁用时零开销
 					rocksDbWriteObserver.observe(System.nanoTime() - timeBegin);
 			} finally {
-			RocksDatabase.this.exitOp();
+				RocksDatabase.this.exitOp();
 			}
 		}
 
