@@ -84,12 +84,14 @@ public final class BeanFactory {
 	 * @param hotModules    相关的 HotModule's JarFile
 	 */
 	public static void resetHot(@NotNull Map<BeanFactory, List<Class<?>>> beanFactories,
-								@NotNull List<JarFile> hotModules) {
+								@NotNull List<JarFile> hotModules, @NotNull Zeze.Hot.HotRedirect hotRedirect) {
 		for (JarFile jf : hotModules)
 			reloadClassesFromJar(jf);
 
-		assert zeze != null;
-		var hotRedirect = zeze.getHotManager().getHotRedirect();
+		// hotRedirect 由调用方HotManager传入：静态zeze.getHotManager()在多Application并存的
+		// 进程（测试类级并行）里可指向别的实例（hotManager为null）——NPE落进install的不可回滚
+		// 区即halt(111222)杀死整个进程；生产单App下两者恒同一对象，行为等价。
+		
 		for (var e : beanFactories.entrySet()) {
 			var bf = e.getKey();
 			var classes = e.getValue();
