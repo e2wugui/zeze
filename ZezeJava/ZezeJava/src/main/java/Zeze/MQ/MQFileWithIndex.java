@@ -14,6 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutLong;
+import Zeze.Util.OutObject;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -56,6 +57,15 @@ public class MQFileWithIndex {
 	// 物理尾，孤儿前缀不物理除掉，后续记录必然接错位（段内布局错位的根源）。
 	private boolean tornWritePending;
 	private long tornRollbackOffset;
+	// 【FND22 GB-C01】分区关闭标志（lock内）：close 在自身锁内置位（流关闭一并移入锁内，锁序
+	// MQSingle→fileWithIndex 既有方向不变，无新交叠），tryRecycle 入口锁内复查即返回。闭合回收
+	// 定时器（loadMonitorTimer 120s 周期驱动，原通路无 stopped/closed/managementLock 任何闸）与
+	// 分区删除路径（removePartition→close→deletePartitionStorage 的 dropTable 从 tableMap 除名并
+	// destroyColumnFamilyHandle 毁 meta/index 列族句柄）的相交：deleteStorage 严格在 close() 返回
+	// 之后执行，tryRecycle 要么在置位前完整跑完（close 阻塞于本锁等其退出临界区），要么在置位后
+	// 被本标志拒绝——两种时序下 metaConsistent 的无锁 meta.get 都不再与句柄销毁竞速（native
+	// use-after-free，RocksDatabase.close/dropTable 契约明示形态）。
+	private boolean closed;
 
 	public static int trunkFileSize = 100 * 1024 * 1024;
 	public static int makeIndexPeriod = 100;
@@ -384,12 +394,21 @@ public class MQFileWithIndex {
 	 * 之间插入 increment"的 TOCTOU 缺口（正确性论证见 recycleSegment 注释）。
 	 * 残余竞态（fill 任务已按旧水位计算出区间、尚未开始执行）在 fill 侧表现为
 	 * messageIndexNotFound 的瞬时失败，由 pullMessage 既有的失败-复位-重试路径自愈，无数据损坏。
+	 * <p>
+	 * 【FND22 GB-C01】与删除路径互斥：close 在本类锁内置 closed，tryRecycle 入口锁内复查即返回
+	 * ——回收定时器（loadMonitorTimer 周期驱动，无 stopped/managementLock 闸）与
+	 * deletePartitionStorage（removePartition→close 之后 dropTable 毁 meta/index 句柄）不再相交。
 	 */
 	public void tryRecycle(long delayMs) {
 		if (activeFills.get() != 0)
 			return; // 在飞fill排空（有界：fill装载maxFillMessageCount条即归零），本轮跳过
 		lock.lock();
 		try {
+			if (closed)
+				return; // 【FND22 GB-C01】分区已 close（删除/停机路径先行，见字段注释）：closed 在
+					// close 的本锁内置位，此处锁内读即精确——置位后回收通路（metaConsistent 的
+					// meta.get、recycleSegment 的 dropTable）不再触碰可能已被 deletePartitionStorage
+					// 毁掉的句柄。停机方向的 belt-and-braces 闸见 MQSingle.tryRecycleSegments。
 			while (indexes.size() > 1) { // 只剩末段时无候选
 				var keyIt = indexes.keySet().iterator();
 				var oldest = keyIt.next();
@@ -560,8 +579,9 @@ public class MQFileWithIndex {
 				// ENOSPC/目录项冲突等）使字段停留在已关闭的旧流上——此后每次 append 在
 				// getChannel().size() 恒抛 ClosedChannelException，分区追加能力到重启前永久丧失
 				//（本条消息已提交，无数据损坏，纯运行期可用性损失）。新序三要点：
-				// ① getOrAddTable 幂等先行，失败无外泄（open 失败原子不留文件，文件扫描发现规则
-				// 不注册无文件段——重启无幽灵 lastEntry）；
+				// ① getOrAddTable 幂等先行（文件面失败无外渗：open 失败原子不留文件，文件扫描发现规则
+				// 不注册无文件段——重启无幽灵 lastEntry；列族面的外渗由【FND22 GB-C03】的失败回滚闭合，
+				// 见下方 catch——"失败无外渗"对列族维度原不成立）；
 				// ② new 新流先于关旧流：构造失败则旧流仍开、字段未动，滚段留待条件重合自然重试
 				//（size 条件持续成立，modulo 条件在下一个 makeIndexPeriod 整除点重合，旧段有限
 				// 超限 <makeIndexPeriod 条）；
@@ -571,9 +591,32 @@ public class MQFileWithIndex {
 				//（tryRecycle 会去 drop 一个空表）。
 				var topicDir = new File(home, topic);
 				var nextFile = new File(topicDir, partitionId + "." + nextMessageId);
-				var nextTable = database.getOrAddTable(
-						topic + "." + partitionId + "." + nextMessageId);
-				var next = new FileOutputStream(nextFile, true); // todo 没有buffer是不是很慢？
+				var nextTableName = topic + "." + partitionId + "." + nextMessageId;
+				// 【FND22 GB-C03】isNew 判"本调用新建"：createColumnFamily 是即刻持久化的外部副作用，
+				// open 失败时列族已建已注册而无数据文件——不在 indexes、重启扫描不注册（无文件）、
+				// deletePartitionStorage 按文件名反推列族名也清不到（无文件则永不 drop），成为
+				// rocksdb 元数据里的永久孤儿；且 EMFILE 持续期间每次失败尝试的 base 名不同
+				//（nextMessageId 递增，滚段点每 makeIndexPeriod 整除点重合一次），每 100 条消息
+				// 泄漏一个空列族，无上界。失败回滚：仅对新建者 dropTable 后原样上抛——重试路径
+				// base 已换新名（幂等先行不受影响）；非本调用新建（前次回滚失败残留等）不是本次
+				// 的泄漏，不 drop，留给其属主语义处置。
+				var isNew = new OutObject<Boolean>();
+				var nextTable = database.getOrAddTable(nextTableName, isNew);
+				FileOutputStream next;
+				try {
+					next = new FileOutputStream(nextFile, true); // todo 没有buffer是不是很慢？
+				} catch (IOException e) {
+					if (Boolean.TRUE.equals(isNew.value))
+						try {
+							database.dropTable(nextTableName); // 回滚本次新建的列族（文件面本就未发布）
+						} catch (RocksDBException dropEx) {
+							// 回滚失败如实告警不掩盖原始 open 异常：孤儿列族残留（无文件、磁盘真相
+							// 上报/删除清理均不可见），仅 rocksdb 自身错误时可发生，概率极低。
+							logger.error("mq segment roll rollback dropTable failed, orphan column family kept."
+									+ " topic={} partition={} segment={}", topic, partitionId, nextMessageId, dropEx);
+						}
+					throw e; // 上抛（外层包 RuntimeException）：字段未动，GB-C04 的旧流可用语义不变
+				}
 				var oldStream = lastFileOutputStream;
 				lastFile = nextFile;
 				lastFileOutputStream = next;
@@ -605,6 +648,17 @@ public class MQFileWithIndex {
 	}
 
 	public void close() throws IOException {
-		lastFileOutputStream.close();
+		// 【FND22 GB-C01】置位与关流均在自身锁内：close 返回即不变式"此后 tryRecycle 恒被 closed
+		// 拒绝"成立——与 tryRecycle 临界区（锁内 meta.get → dropTable → 删文件）互斥，其后的
+		// deletePartitionStorage（dropTable meta/index 列族并销毁句柄）与回收通路不再相交。关流
+		// 一并移入锁内：锁序 MQSingle→fileWithIndex（MQSingle.close 持分区锁调用本方法）与
+		// calculateFill/appendMessage 既有方向一致，本类锁从不反向取 MQSingle 锁，无新交叠。
+		lock.lock();
+		try {
+			closed = true;
+			lastFileOutputStream.close();
+		} finally {
+			lock.unlock();
+		}
 	}
 }

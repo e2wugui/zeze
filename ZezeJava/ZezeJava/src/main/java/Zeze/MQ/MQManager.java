@@ -453,28 +453,46 @@ public class MQManager extends AbstractMQManager {
 		// 口径（停机维护窗口正是重放毒消息的常见时机，非架空场景）。
 		if (stopped)
 			throw new IllegalStateException("mq manager stopped, reject replayDeadLetter. topic=" + topic);
-		var dlq = rocksDatabase.getTable(DlqTableName); // 非懒建：无死信表即无该死信
-		var key = dlqKey(topic, partitionIndex, messageId);
-		var value = null != dlq ? dlq.get(key) : null;
-		if (null == value)
-			throw new IllegalArgumentException("dead letter not found. topic=" + topic
-					+ " partition=" + partitionIndex + " messageId=" + messageId);
-		var queue = queues.get(topic);
-		var single = null != queue ? queue.get(partitionIndex) : null;
-		if (null == single)
-			throw new IllegalArgumentException("partition not exists. topic=" + topic
-					+ " partition=" + partitionIndex + " messageId=" + messageId);
-		var message = new BMessage.Data();
-		message.decode(ByteBuffer.Wrap(Arrays.copyOfRange(value, 0, value.length - 8))); // 尾缀8字节BE时间戳剥除
-		var send = new BSendMessage.Data();
-		send.setMessage(message);
-		single.sendMessage(send); // 追加到原分区尾（新 messageId；失败上抛，死信键保留可再重放）
-		// 【FND21 GB-C05】delete 前复查（sendMessage 成功后 stop 完成关库的窗口）：跳过 delete，
-		// 死信键保留可再重放——重放重复（at-least-once，MQ 语义既定）优于对已关库的 native 调用。
-		if (stopped)
-			throw new IllegalStateException("mq manager stopped during replay, dead letter key kept for"
-					+ " re-replay (message already re-appended). topic=" + topic);
-		dlq.delete(key);
+		// 【FND22 GB-C02】fix-the-fix（真正闭合 GB-C05 命名窗口）：上面的入口闸与本方法尾部复查
+		// 都是无锁裸读，check-then-act 缝隙仍在——"复查 stopped==false 之后、dlq.get/dlq.delete
+		// 执行前"两条语句间，stop 可完整走完（proxyServer.stop、N 个分区 close 排空、关库），
+		// 其后的触库是对已关库的悬垂句柄 native 调用。对齐同文件同族管理面入口
+		//（createPartition/deletePartition：managementLock 全程持有 + 锁内复查）：stopped 在 stop
+		// 取 managementLock 之前置位，持锁后复查必见终态；stop 关库前的 tryLock(25s) 有界等待在飞
+		// replay 出锁后再关库（超预算 ε 同既有口径，不引入无限等待）。锁序 managementLock→MQSingle
+		// 锁（sendMessage 内部自有 MQSingle 锁内 stopped 复查）与 handler 路径一致；stop 先完成全部
+		// queue.close（MQSingle 锁随迭代释放）再取 managementLock——两侧无 hold-and-wait 交叠，无 AB-BA。
+		managementLock.lock();
+		try {
+			if (stopped) // 锁内复查：等锁期间 stop 已完成置位（甚至关库）的收口
+				throw new IllegalStateException("mq manager stopped, reject replayDeadLetter. topic=" + topic);
+			var dlq = rocksDatabase.getTable(DlqTableName); // 非懒建：无死信表即无该死信
+			var key = dlqKey(topic, partitionIndex, messageId);
+			var value = null != dlq ? dlq.get(key) : null;
+			if (null == value)
+				throw new IllegalArgumentException("dead letter not found. topic=" + topic
+						+ " partition=" + partitionIndex + " messageId=" + messageId);
+			var queue = queues.get(topic);
+			var single = null != queue ? queue.get(partitionIndex) : null;
+			if (null == single)
+				throw new IllegalArgumentException("partition not exists. topic=" + topic
+						+ " partition=" + partitionIndex + " messageId=" + messageId);
+			var message = new BMessage.Data();
+			message.decode(ByteBuffer.Wrap(Arrays.copyOfRange(value, 0, value.length - 8))); // 尾缀8字节BE时间戳剥除
+			var send = new BSendMessage.Data();
+			send.setMessage(message);
+			single.sendMessage(send); // 追加到原分区尾（新 messageId；失败上抛，死信键保留可再重放）
+			// 【FND21 GB-C05】delete 前复查（sendMessage 成功后 stop 完成关库的窗口）：跳过 delete，
+			// 死信键保留可再重放——重放重复（at-least-once，MQ 语义既定）优于对已关库的 native 调用。
+			// 【FND22 GB-C02】复查已在 managementLock 内：预算内 stop 尚在 tryLock 等待本方法出锁、
+			// 关库必在其后，本闸命中只可能是超预算 ε 逃逸——保留作 belt-and-braces，缩窄残余窗口。
+			if (stopped)
+				throw new IllegalStateException("mq manager stopped during replay, dead letter key kept for"
+						+ " re-replay (message already re-appended). topic=" + topic);
+			dlq.delete(key);
+		} finally {
+			managementLock.unlock();
+		}
 	}
 
 	@Override
