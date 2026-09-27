@@ -202,8 +202,12 @@ public class MQManager extends AbstractMQManager {
 		// RocksDatabase.close 契约要求先静默全部数据通路（worker 池在飞协议任务、后台回填、push
 		// 应答回调）。先关队列：MQSingle.close 有界排空在飞回填、持分区锁关文件流（与在飞
 		// appendMessage 串行，此后晚到任务在锁内复查 stopped 拒绝）；rocksDatabase.close 最后。
+		// 【GB-D01】分区排空总额包络：2×(RpcTimeout+5s)=单分区现行最坏预算（世代数≤2），
+		// 跨分区串行叠加的上界收口（N 无代码上限）；每段取 min(自身预算,剩余)，耗尽跳过等待
+		// 但保留锁内关流必做段（告警继续）。
+		var drainDeadlineMs = System.currentTimeMillis() + 2 * (mqConfig.getRpcTimeout() + 5_000L);
 		for (var queue : queues.values())
-			queue.close();
+			queue.close(drainDeadlineMs);
 		// 【FND20 GB-C02】管理面排空：过闸在飞的 Create/DeletePartition handler 全程持
 		// managementLock（其内部 removePartition 排空最长 RpcTimeout+5s），取同一把锁等它们出锁
 		// 后再关库——此后过闸晚到任务只会在锁内复查拒绝，不再触库。超预算仅告警继续（口径同

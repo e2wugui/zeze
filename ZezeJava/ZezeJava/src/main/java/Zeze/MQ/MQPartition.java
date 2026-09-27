@@ -131,7 +131,11 @@ public class MQPartition extends ReentrantLock {
 	}
 
 	public void close() throws IOException {
+		close(Long.MAX_VALUE);
+	}
+
+	public void close(long drainDeadlineMs) throws IOException { // GB-D01：总额包络下传
 		for (var partition : partitions.values())
-			partition.close();
+			partition.close(drainDeadlineMs);
 	}
 }

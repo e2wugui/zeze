@@ -528,6 +528,16 @@ public class MQSingle extends ReentrantLock {
 	}
 
 	public void close() throws IOException {
+		close(Long.MAX_VALUE); // 无包络调用方：保持原有单段全额预算
+	}
+
+	/**
+	 * 【GB-D01】带总额 deadline 的停机关闭：排空等待取 min(自身预算, 剩余)，剩余耗尽跳过
+	 * 等待但保留锁内关流等必做段（告警继续）——跨分区 N×(RpcTimeout+5s) 串行叠加无上界，
+	 * 包络对齐单分区现行最坏预算 2×(RpcTimeout+5s)（MQAgent.awaitNetRoundsDrained 的
+	 * 聚合排空单总额先例）。正常路径（剩余充足）行为零变化。
+	 */
+	public void close(long drainDeadlineMs) throws IOException {
 		//fillGuardTimer.cancel(true);
 		// 停机排空在飞回填（预算式，对齐 loadMonitorTimer 的 RpcTimeout 量级+余量）：fill 任务在
 		// 锁外持索引迭代器与文件读，与 rocksDatabase.close 并发属 native use-after-free
@@ -545,12 +555,17 @@ public class MQSingle extends ReentrantLock {
 		}
 		if (null != fill) {
 			var manager = mqPartition.getManager();
-			var budgetMs = (null != manager ? manager.getMqConfig().getRpcTimeout() : 20_000) + 5_000L;
+			var ownBudgetMs = (null != manager ? manager.getMqConfig().getRpcTimeout() : 20_000) + 5_000L;
+			var remainingMs = drainDeadlineMs - System.currentTimeMillis();
+			if (remainingMs <= 0) {
+				logger.warn("mq fill drain budget exhausted by envelope, skip wait. topic={} partition={}",
+						topic, partitionIndex);
+			} else
 			try {
-				fill.get(budgetMs, TimeUnit.MILLISECONDS);
+				fill.get(Math.min(ownBudgetMs, remainingMs), TimeUnit.MILLISECONDS);
 			} catch (TimeoutException e) {
 				logger.warn("mq fill task not drained in {}ms, continue close. topic={} partition={}",
-						budgetMs, topic, partitionIndex);
+						Math.min(ownBudgetMs, Math.max(remainingMs, 0)), topic, partitionIndex);
 			} catch (ExecutionException e) {
 				// fill 自身失败已在 pullMessage 的 catch 记录日志。
 			} catch (InterruptedException e) {
