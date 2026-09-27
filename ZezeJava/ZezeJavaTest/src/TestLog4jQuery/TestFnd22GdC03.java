@@ -28,6 +28,7 @@ import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.Task;
 
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND22 GD-C03回归（fix-the-fix：FND19 GD-C08）：removeOldLinkFiles"保留max删其余"不检查链接
@@ -41,6 +42,7 @@ import harness.Fast;
  * 清单断言命中）。
  */
 @Fast
+@ResourceLock("log4jquery-logger") // 同族捕获Log4jFileManager logger的测试互斥（预防性：Onz/MQ两族竞态的同款，FND19-22复盘小集）
 public class TestFnd22GdC03 {
 	private static final String Active = "zeze.log";
 	private static final String Rotated = "zeze.2026-09-08.log";

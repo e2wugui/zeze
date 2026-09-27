@@ -31,6 +31,7 @@ import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND22 GD-C05回归（FND21 GD-C02修复的误改指面）：轮转宽限与repointMissedRotation在
@@ -41,6 +42,7 @@ import harness.Fast;
  * 路径补warn（含条目名），"轮转进行中"与"无限期滞留"可区分。
  */
 @Fast
+@ResourceLock("log4jquery-logger") // 同族捕获Log4jFileManager logger的测试互斥（预防性：Onz/MQ两族竞态的同款，FND19-22复盘小集）
 public class TestFnd22GdC05 {
 	private static final String Active = "zeze.log";
 	// 无关rotate名文件：时间窗（09-05）与active索引内容（09-10）完全无关——误改指形态的判别点。
