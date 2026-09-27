@@ -598,7 +598,9 @@ public final class Config {
 			db.setXIncludeAware(true);
 			db.setNamespaceAware(true);
 			try {
-				Document doc = db.newDocumentBuilder().parse(xmlFile);
+				// parse(String)把参数当URI解析，Windows绝对路径的盘符会被当成协议名
+				// （unknown protocol: c）——必须走parse(File)按文件解析。RaftConfig同款先例。
+				Document doc = db.newDocumentBuilder().parse(new File(xmlFile));
 				parse(doc.getDocumentElement());
 			} catch (Exception ex) {
 				throw Task.forceThrow(ex);

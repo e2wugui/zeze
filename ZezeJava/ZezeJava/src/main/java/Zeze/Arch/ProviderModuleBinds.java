@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -31,7 +32,8 @@ public final class ProviderModuleBinds {
 			db.setXIncludeAware(true);
 			db.setNamespaceAware(true);
 			try {
-				Document doc = db.newDocumentBuilder().parse(xmlFile);
+				// 同Config.loadAndParse：parse(String)按URI解析，Windows绝对路径盘符成"协议名"，须走parse(File)。
+				Document doc = db.newDocumentBuilder().parse(new File(xmlFile));
 				return new ProviderModuleBinds(doc.getDocumentElement());
 			} catch (Exception ex) {
 				throw Task.forceThrow(ex);
