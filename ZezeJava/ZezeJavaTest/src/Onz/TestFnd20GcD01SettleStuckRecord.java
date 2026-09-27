@@ -15,6 +15,7 @@ import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Util.RocksDatabase;
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,7 @@ import static Onz.Fnd20GcOnzFastSupport.*;
  * 纯本地路径；反向验证守卫拒绝（未分诊 tid 不放行、终态服务器拒绝）。
  */
 @Fast
+@ResourceLock("onz-server-logger") // 共享log4j2 OnzServer logger操纵的测试类互斥（addAppender/setLevel竞态，FND22门禁插曲）
 public class TestFnd20GcD01SettleStuckRecord {
 	// 856段：FND20 Gc系已占850-852，本类错开（856/51856）；Commit桩51866、Rollback桩51867。
 	private static final int ServerId = 856;

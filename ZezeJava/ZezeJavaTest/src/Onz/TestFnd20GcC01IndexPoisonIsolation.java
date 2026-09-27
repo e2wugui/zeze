@@ -5,6 +5,7 @@ import Zeze.Onz.AbstractOnz;
 import Zeze.Onz.OnzServer;
 import Zeze.Util.RocksDatabase;
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,7 @@ import static Onz.Fnd20GcOnzFastSupport.*;
  * 即完成收敛（removeCommitRecord），迭代推进与否完全由毒条目隔离决定。
  */
 @Fast
+@ResourceLock("onz-server-logger") // 共享log4j2 OnzServer logger操纵的测试类互斥（addAppender/setLevel竞态，FND22门禁插曲）
 public class TestFnd20GcC01IndexPoisonIsolation {
 	// 850段：@Fast类并行时本地RocksDB目录与其他测试类（800/810/820段）互不冲突。
 	private static final int ServerId = 850;

@@ -6,6 +6,7 @@ import Zeze.Onz.AbstractOnz;
 import Zeze.Onz.OnzServer;
 import Zeze.Util.RocksDatabase;
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +28,7 @@ import static Onz.Fnd20GcOnzFastSupport.*;
  * Commit应答码由volatile开关控制（100=确定性失败，0=恢复收敛）。
  */
 @Fast
+@ResourceLock("onz-server-logger") // 共享log4j2 OnzServer logger操纵的测试类互斥（addAppender/setLevel竞态，FND22门禁插曲）
 public class TestFnd20GcC03RedoResultErrorDedup {
 	// 852段：本组测试类各自的RocksDB目录/SM端口错开（852/51852），桩参与方51862。
 	private static final int ServerId = 852;

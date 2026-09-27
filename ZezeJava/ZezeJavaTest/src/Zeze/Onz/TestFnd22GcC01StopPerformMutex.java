@@ -21,6 +21,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
@@ -55,6 +56,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 修复前红测形态：写点对已关库的 native 写（JNI 崩溃或 RocksDBException），见各断言注释。
  */
 @Fast
+@ResourceLock("onz-server-logger") // 共享log4j2 OnzServer logger操纵的测试类互斥（addAppender/setLevel竞态，FND22门禁插曲）
 public class TestFnd22GcC01StopPerformMutex {
 	private Logger onzServerLogger;
 	private CapturingAppender appender;

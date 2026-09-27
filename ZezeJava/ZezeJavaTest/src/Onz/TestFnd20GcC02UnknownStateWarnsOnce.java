@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import Zeze.Onz.AbstractOnz;
 import Zeze.Util.RocksDatabase;
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +24,7 @@ import static Onz.Fnd20GcOnzFastSupport.*;
  * 空参与方有效孤儿（redo无网络即收敛）验证迭代继续推进。
  */
 @Fast
+@ResourceLock("onz-server-logger") // 共享log4j2 OnzServer logger操纵的测试类互斥（addAppender/setLevel竞态，FND22门禁插曲）
 public class TestFnd20GcC02UnknownStateWarnsOnce {
 	// 851段：本组测试类各自的RocksDB目录/SM端口错开（851/51851）。
 	private static final int ServerId = 851;

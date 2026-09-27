@@ -12,6 +12,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,7 @@ import static Onz.Fnd21GcOnzFastSupport.startNonSharedOnzServer;
  * 自愈用例的 Commit 桩晚于协调者注册上线（TestFnd20GcD01 的晚注册形态）。
  */
 @Fast
+@ResourceLock("onz-server-logger") // 共享log4j2 OnzServer logger操纵的测试类互斥（addAppender/setLevel竞态，FND22门禁插曲）
 public class TestFnd21GcD01RedoFailAgedSettle {
 	// 894段：FND21 Gc系已占890-893，本类错开（894/51897）；Commit桩51898（仅自愈用例单方法
 	// 使用，无跨方法重绑端口问题）、集群xml ServerId=895（C02的"894"只是桩identity字符串）。
