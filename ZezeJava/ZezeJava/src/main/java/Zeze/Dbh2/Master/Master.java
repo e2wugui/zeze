@@ -27,6 +27,16 @@ public class Master extends AbstractMaster {
 	private static final Logger logger = LogManager.getLogger(Master.class);
 	public static final String MasterDbName = "__master__";
 
+	// 【宽方向拒绝的可重试码（FND22 GA-C01）】settleSplitting对from==null的主表陈旧宽拒绝
+	//（条目比主表新、仍活：本迁移之前另有settle丢失）专用。区别于终局码eSplittingBucketNotFound
+	//（MasterAgent重试端按"已settle"证据停重试+onSettled清标志），本码走"非终局码保留重试"
+	// 分支——pending-settle补发/在途settle链收敛主表后，30s重试自然通过（正是拒绝注释承诺的
+	// 契约）。终局语义只保留给幂等完成证据与INV1死信消费（更窄方向）。
+	// 值8是模块错误码空闲位（生成侧1-7已用）。本常量定义在手写Master而非生成的AbstractMaster：
+	// 改solution.zeze.xml需全量重生成（gen_use_publish.bat），超出本轮只动Dbh2源的最小边界；
+	// 下次协议重生成时应把eSplittingStaleMain=8迁入xml枚举（同值迁移，此处删除即可）。
+	public static final int eSplittingStaleMain = 8;
+
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
 	private final String home;
 

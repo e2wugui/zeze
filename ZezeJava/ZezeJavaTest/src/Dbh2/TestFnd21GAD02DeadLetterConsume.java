@@ -26,7 +26,8 @@ import org.junit.jupiter.api.io.TempDir;
  * 消费点一（settle拒绝）：迟到endMove/endSplit对主表会更窄方向拒绝时同步消费死信——
  * 该条目永远不可能再合法settle，滞留只会被后续同边界操作收养（(B)自搬运）或永久拒绝
  * （换主窗口变体）。方向性：主表**更宽**（本迁移之前另有settle丢失、主表陈旧，条目仍活）
- * 不消费，留给pending-settle补发（A1）收敛。
+ * 不消费，留给pending-settle补发（A1）收敛——拒绝码自FND22 GA-C01起为可重试码
+ * eSplittingStaleMain（终局码停链+清标志与"仍活"矛盾，见testLateEndMoveStaleWideKept）。
  * 消费点二（createSplitBucket碰撞）：同keyFirst四元组不等时按INV1判死——死信删除后按新
  * 请求重建（变体的永久拒绝转一次自愈）；真在途维持eSplittingBucketExist；floor缺失/更宽
  * 不判死（结构证明不足时保守拒绝）。
@@ -102,6 +103,9 @@ public class TestFnd21GAD02DeadLetterConsume {
 	 * 方向性反向钉住（endMove，主表更宽=非死信）：主表[F]=[2,Empty)比to=[2,5)宽——这是
 	 * 本迁移之前另有settle丢失、主表陈旧（条目比主表新，仍活），不得消费：pending-settle
 	 * 补发（A1）收敛主表后，本settle重试可过。
+	 * 【FND22 GA-C01契约更新】拒绝码由终局码eSplittingBucketNotFound改为可重试码
+	 * eSplittingStaleMain：终局码在重试端停链+onSettled清标志，与"仍活、A1补发收敛后
+	 * 重试可过"的注释契约直接矛盾（活迁移被终局拒绝永久杀死）。
 	 */
 	@Test
 	public void testLateEndMoveStaleWideKept(@TempDir Path tempDir) throws Exception {
@@ -118,8 +122,9 @@ public class TestFnd21GAD02DeadLetterConsume {
 
 			var r = new EndMove();
 			r.Argument.setTo(entry);
-			Assertions.assertEquals(master.errorCode(AbstractMaster.eSplittingBucketNotFound), db.endMove(r),
-					"主表更宽方向仍拒绝（GA-C01原语义：宽to发布会遮蔽未收敛键域）");
+			Assertions.assertEquals(master.errorCode(Master.eSplittingStaleMain), db.endMove(r),
+					"主表更宽方向仍拒绝但必须用可重试码（FND22 GA-C01：终局码停重试+清标志，"
+							+ "与'仍活、补发收敛后重试可过'矛盾）");
 			Assertions.assertSame(entry, getSplitting(db).get("t1").getBuckets().get(key(2)),
 					"主表更宽方向不得消费条目（条目比主表新，仍活——A1补发收敛后重试可过）");
 		} finally {

@@ -7,6 +7,8 @@ import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 
@@ -14,6 +16,7 @@ import org.rocksdb.WriteOptions;
  * 桶管理一张表的局部范围的记录。
  */
 public class Bucket {
+	private static final Logger logger = LogManager.getLogger(Bucket.class);
 	private final RocksDatabase db;
 	private final RocksDatabase.Table data;
 	private final RocksDatabase.Table trans;
@@ -160,7 +163,21 @@ public class Bucket {
 	}
 
 	// 与既有meta写入同批（同一apply内顺序落盘），标志在LogEndSplit/LogEndMove的apply里设置。
+	// 【条件覆写（FND22 GA-C02）】旧标志未清且属不同迁移（to身份不等，判据与clearPendingSettle
+	// 同源）时不覆写：旧标志在=旧迁移的settle未到终局=其补发源仍被需要——单槽无条件覆盖会灭失
+	// 旧迁移唯一的死亡恢复源（进程死后recoverSplitting只补发槽内标志，旧迁移永不结算，其to键域
+	// 主表无主、读写永久失败）。保留旧标志的代价是新迁移失去标志载体，其settle在进程存活期内由
+	// 内存30s重试链兜底；两害相权取其旧：旧迁移的settle已滞留更久，且保留旧标志在堆叠死亡链中
+	// 数据面可完整收敛（旧settle补发即发布齐两半键域，仅留孤儿条目+告警），覆写则旧键域必失联。
+	// 同身份重设幂等放行（raft日志每节点恰apply一次，仅防御）。堆叠窗口本身的完整闭口
+	//（tryStartSplit对pending!=null加闸/多槽标志）二期。
 	public void setPendingSettle(BBucketMeta.Data from, BBucketMeta.Data to) throws RocksDBException {
+		var current = pendingSettle;
+		if (null != current && !sameMeta(current.getTo(), to)) {
+			logger.error("setPendingSettle keep uncleared old flag, skip set. old.from={} old.to={} skip.to={}",
+					null == current.getFrom() ? "move" : current.getFrom(), current.getTo(), to);
+			return;
+		}
 		var bb = ByteBuffer.Allocate(32);
 		bb.WriteBool(null != from);
 		if (null != from)

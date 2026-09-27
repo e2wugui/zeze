@@ -286,9 +286,11 @@ public class MasterDatabase {
 			//    且**同步消费死信条目**（remove+落盘）：该条目永远不可能再合法settle，滞留只会被
 			//    后续同边界操作收养（(B)）或永久拒绝（变体）。GA-C01留的接缝在此闭合。
 			//  - 更宽：本迁移**之前**另有settle丢失、主表陈旧（条目比主表新，仍活）——拒绝不消费
-			//    （GA-C01原语义），pending-settle补发（A1）收敛主表后重试可过。
-			// 错误码用eSplittingBucketNotFound：MasterAgent重试端按"已settle"终局语义停止重试
-			//（死信方向：正确终态已被后续settle取代；宽方向：补发链独立收敛）。
+			//    （GA-C01原语义），pending-settle补发（A1）或在途settle链收敛主表后重试可过。
+			// 错误码按方向分离（FND22 GA-C01）：死信与幂等完成证据用终局码eSplittingBucketNotFound
+			//（MasterAgent重试端按"已settle"停止重试+onSettled清标志）；宽方向用**可重试码**
+			// eSplittingStaleMain——仍活的迁移不得被终局码杀死（停重试+清标志后条目虽保留却无人
+			// 再结算，[F,L)键域永久失联），非终局码让30s重试链存活，"收敛后重试可过"由此成立。
 			if (from == null && null != exist) {
 				var cmp = compareKeyLast(exist.getKeyLast(), to.getKeyLast());
 				if (cmp < 0) {
@@ -297,9 +299,9 @@ public class MasterDatabase {
 					return consumeDeadSplitting(splitting, tableName, to.getKeyFirst());
 				}
 				if (cmp > 0) {
-					logger.error("settleSplitting late endMove refused, main stale-wide, keep entry. exist={} to={}",
+					logger.error("settleSplitting late endMove refused retryable, main stale-wide, keep entry. exist={} to={}",
 							exist, to);
-					return master.errorCode(Master.eSplittingBucketNotFound);
+					return master.errorCode(Master.eSplittingStaleMain);
 				}
 				// cmp==0：同边界旧raft源桶——正常move settle。
 			}
@@ -325,6 +327,11 @@ public class MasterDatabase {
 				// 的键域，键域静默失联）。只跳过from的put：to的put仍是正确发布——迟到settle的to桶
 				// 确持有该键域数据（典型形态：split1的settle丢失→split2先行settle→迟到split1补发，
 				// 跳过from1、发布to1，主表恰补齐[M1,L)缺口）。settle成功，条目正常消费。
+				// 宽/等界维持put（FND22 GA-C01配套评估）：更宽=正常split settle的必经形态（主表
+				// [F,L2)收窄为from[F,L)），跳过即破坏一切正常split发布；堆叠形态（源桶已被move
+				// 置死、迟到split settle发布死源桶）的发布是暂态——move侧重试链（宽方向改可重试码
+				// 后存活）在≤30s内以同界to替换之；等界不同raft的主表形态经推演不可达（需settle
+				// 终局后重复迟到，而终局即停链+清标志），不为此加防御分支。
 				var existFrom = table.buckets.get(from.getKeyFirst());
 				if (null != existFrom && compareKeyLast(existFrom.getKeyLast(), from.getKeyLast()) < 0)
 					logger.error("settleSplitting late from skipped (main narrower). existFrom={} from={}",
