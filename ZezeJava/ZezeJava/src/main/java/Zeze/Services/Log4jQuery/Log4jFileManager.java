@@ -92,7 +92,14 @@ public class Log4jFileManager extends ReentrantLock {
 		var period = 300_000L;
 		buildIndexTimer = TaskSpec.ofAction(this::buildIndex)
 				.schedulePeriodNow(Random.getInstance().nextLong(period), period);
-		removeOldLinkFiles();
+		// 持锁调用（GD-C03增量审收口）：与onFileCreated同一串行点，构造尾锁外调用与
+		// 并发轮转的链接清理/登记交错时存活句柄计算可读到中间态。
+		lock();
+		try {
+			removeOldLinkFiles();
+		} finally {
+			unlock();
+		}
 	}
 
 	public Log4jFileSession seek(long time, OutInt out) throws IOException {

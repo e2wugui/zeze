@@ -1,6 +1,7 @@
 package MQ;
 
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import java.io.File;
 import java.util.ArrayDeque;
 import java.util.Random;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @Fast
+@ResourceLock("mq-file-statics") // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
 public class TestFileWithIndexed {
 	@Test
 	public void testFile() throws Exception {

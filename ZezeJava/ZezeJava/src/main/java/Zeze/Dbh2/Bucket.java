@@ -167,8 +167,8 @@ public class Bucket {
 	// 同源）时不覆写：旧标志在=旧迁移的settle未到终局=其补发源仍被需要——单槽无条件覆盖会灭失
 	// 旧迁移唯一的死亡恢复源（进程死后recoverSplitting只补发槽内标志，旧迁移永不结算，其to键域
 	// 主表无主、读写永久失败）。保留旧标志的代价是新迁移失去标志载体，其settle在进程存活期内由
-	// 内存30s重试链兜底；两害相权取其旧：旧迁移的settle已滞留更久，且保留旧标志在堆叠死亡链中
-	// 数据面可完整收敛（旧settle补发即发布齐两半键域，仅留孤儿条目+告警），覆写则旧键域必失联。
+	// 内存30s重试链兜底；两害相权取其旧：旧迁移的settle已滞留更久，且保留旧标志不劣于覆写：堆叠死亡
+	// 链中旧键域经补发可收敛，新迁移键域两者同样失联（受害者互换，GA-C02增量审措辞收窄）。
 	// 同身份重设幂等放行（raft日志每节点恰apply一次，仅防御）。堆叠窗口本身的完整闭口
 	//（tryStartSplit对pending!=null加闸/多槽标志）二期。
 	public void setPendingSettle(BBucketMeta.Data from, BBucketMeta.Data to) throws RocksDBException {
