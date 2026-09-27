@@ -143,7 +143,9 @@ public class ZokerAgent extends AbstractZokerAgent {
         var r = new CommitService();
         r.Argument.setServiceName(serviceName);
         r.Argument.setVersionNo(versionNo);
-        r.SendForWait(getZoker(zokerName)).await();
+        // 应答路径含 pruneVersions 整树删除（服务包体量+磁盘速度无界）——默认 5s 会把成功部署
+        // 当失败（stopService 同族，27e4dfcd3 先例），60s=部署级操作裕量。
+        r.SendForWait(getZoker(zokerName), 60_000).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("commit service error=" + IModule.getErrorCode(r.getResultCode()));
     }
