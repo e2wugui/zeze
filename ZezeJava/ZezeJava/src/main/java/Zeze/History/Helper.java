@@ -77,7 +77,10 @@ public class Helper {
 		public final HashSet<Class<? extends Serializable>> beanKeys = new HashSet<>();
 		public final HashSet<Class<?>> list1 = new HashSet<>();
 		public final HashSet<Class<? extends Bean>> list2 = new HashSet<>();
-		public final HashSet<KV<ToLongFunction<Bean>, LongFunction<Bean>>> list2Dynamic = new HashSet<>();
+		// dynamic list 家族按固定哨兵键登记（GC-C02(FND22)）：List2Meta 的 dynamic 构造器
+		// typeId 是全局固定单值（Meta1.dynamicBeanTypeId，连 keyClass 分桶都没有）——任意两个
+		// dynamic list 变量必然同 typeId，全部家族同键（哨兵）恰好表达"任意两个都冲突"。
+		public final HashMap<KV<Class<?>, Class<?>>, DynamicFamily> list2Dynamic = new HashMap<>();
 		public final HashSet<KV<Class<?>, Class<?>>> map1 = new HashSet<>();
 		public final HashSet<KV<Class<?>, Class<? extends Bean>>> map2 = new HashSet<>();
 		public final HashMap<KV<Class<?>, Class<? extends Bean>>, DynamicFamily> map2Dynamic = new HashMap<>();
@@ -114,8 +117,8 @@ public class Helper {
 			registerLogList1(list1Class);
 		for (var list2Class : result.list2)
 			registerLogList2(list2Class);
-		for (var list2Dynamic : result.list2Dynamic)
-			registerLogList2Dynamic(list2Dynamic.getKey(), list2Dynamic.getValue());
+		for (var list2Dynamic : result.list2Dynamic.values())
+			registerLogList2Dynamic(list2Dynamic.factories.getKey(), list2Dynamic.factories.getValue());
 		for (var map1KV : result.map1)
 			registerLogMap1(map1KV.getKey(), map1KV.getValue());
 		for (var map2KV : result.map2)
@@ -192,14 +195,15 @@ public class Helper {
 		var valueClass = getBuiltinBoxingClass(valueType);
 		if (valueClass != null) {
 			if (valueClass == DynamicBean.class) {
-				try {
-					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
-							+ Character.toUpperCase(v.getName().charAt(0))
-							+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
-					result.list2Dynamic.add(KV.create(db.getGetBean(), db.getCreateBean()));
-				} catch (ReflectiveOperationException e) {
-					throw new RuntimeException(e);
-				}
+				// list dynamic 家族同走 putDynamicFamily（GC-C02(FND22)）：原先直 add HashSet——
+				// KV 值equals但lambda/method-ref工厂按对象身份比较，去重本就不生效，且零告警：
+				// FND8-30 的 warn 覆盖漏接 list 分支（只接了 map2/sortedMap2/gtable），而 list 家族
+				// 的冲突面比 map 更无条件（map 的 typeId 至少按 keyClass 分桶，list 是全局固定单值，
+				// 见DependsResult.list2Dynamic注释）。对齐 map2Dynamic 形态：先到家族保留，
+				// 后到不同工厂的家族warn留痕后丢弃（Log.register 同 typeId 先到先得，丢弃不改注册
+				// 终态，只补上"回放端将用先注册家族的工厂解码"的信号）。list 无 key 维度，
+				// 键用固定哨兵（与 map2Dynamic 的 (keyClass,DynamicBean) 键同形态）。
+				putDynamicFamily(result.list2Dynamic, KV.create(DynamicBean.class, DynamicBean.class), beanClass, v);
 			} else
 				result.list1.add(valueClass);
 			return;
@@ -227,6 +231,8 @@ public class Helper {
 	// 解码（显式Bean:id编号重叠时静默解出错误bean，默认编号抛incompatible中断回放）。
 	// 原computeIfAbsent静默丢弃后续家族——改为warn留痕（含两个宿主bean类名与变量名），
 	// 语义冲突的启动error需要每变量的specialTypeId→beanClass映射表（生成器侧暴露，另行跟进）。
+	// 【GC-C02(FND22)】list分支（dependsList）接入同型登记：List2Meta 的 dynamic typeId 是
+	// 全局固定单值（无keyClass分桶），list 家族冲突比 map 更无条件——warn 是当前唯一的检测面。
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	private static void putDynamicFamily(@NotNull HashMap families, @NotNull Object key,
 										 @NotNull Class<?> beanClass, @NotNull BVariable.Data v) {

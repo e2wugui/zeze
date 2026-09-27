@@ -71,6 +71,8 @@ public class OnzServer extends AbstractOnz {
 	private final ConcurrentHashMap<String, ReentrantLock> nameLocks = new ConcurrentHashMap<>();
 	// redo轮次与database.close()互斥：stop()超预算逃逸的轮次仍可能在库上，直接关库会与
 	// 遍历/写入commitPoint竞态。轮次内的网络等待只发生在有未决事务时（常态为空）。
+	// perform的写库点（saveCommitPoint/removeCommitRecord，GC-C01(FND22)）同入dbLock域：
+	// 锁内只含毫秒级写库操作，不含perform业务窗口（那会把长业务与redo串行化）。
 	private final ReentrantLock dbLock = new ReentrantLock();
 
 	public long nextOnzTid() {
@@ -468,27 +470,62 @@ public class OnzServer extends AbstractOnz {
 		var bbIndex = ByteBuffer.Allocate(13);
 		bbIndex.WriteUInt(state);
 		bbIndex.WriteLong8BE(System.currentTimeMillis()); // FND5-44：ePreparing年龄判据，见redoTimer
-		try (var batch = database.borrowBatch()) {
-			// putIfAbsent ？？？ 报错！
-			commitPoint.put(batch, tidBytes, tidBytes.length, bb.Bytes, bb.WriteIndex);
-			commitIndex.put(batch, tidBytes, tidBytes.length, bbIndex.Bytes, bbIndex.WriteIndex);
-			batch.commit(writeOptions);
+		// perform写库点纳入dbLock域+锁内stopped双检（GC-C01(FND22)，对齐redoTimer头部/
+		// settleStuckRecord的锁内双检形态）：本方法与commit()内的调用都跑在业务线程、原先
+		// 不持dbLock也不复查stopped——perform的业务长窗口（txn.perform()时长无上界）期间
+		// stop()可以走完整个关库链，此后写点对已释放的列族/db句柄做native写，正是
+		// RocksDatabase.close契约声明的use-after-free直接崩溃。互斥只需覆盖写库本身（毫秒级，
+		// 不含业务窗口——那会把长业务与redo轮串行化）：与stop()的database.close()（同在
+		// dbLock域内）互斥后，写要么先于close完成、要么在锁内看到stopped拒写。拒写抛
+		// RuntimeException（对齐getZezeInstance的"stopped"拒绝形态）：perform/commit的既有
+		// catch→rollback链把停机时在飞事务转为显式失败（stop javadoc"在途事务可能失败"——
+		// 失败而非崩溃）；此刻ePreparing/eCommitting均未落盘，回滚是正确的2pc决策，参与方由
+		// ready等待超时自愈（FND5-45）与重启redo兜底。
+		dbLock.lock();
+		try {
+			if (stopped)
+				throw new RuntimeException("OnzServer stopped: saveCommitPoint rejected. tid="
+						+ ByteBuffer.ToLongBE(tidBytes, 0));
+			try (var batch = database.borrowBatch()) {
+				// putIfAbsent ？？？ 报错！
+				commitPoint.put(batch, tidBytes, tidBytes.length, bb.Bytes, bb.WriteIndex);
+				commitIndex.put(batch, tidBytes, tidBytes.length, bbIndex.Bytes, bbIndex.WriteIndex);
+				batch.commit(writeOptions);
+			}
+		} finally {
+			dbLock.unlock();
 		}
 	}
 
 	void removeCommitRecord(byte[] tidBytes) {
+		// 同saveCommitPoint纳入dbLock+锁内stopped双检（GC-C01(FND22)）：commit()两处调用
+		//（失败分支/成功路径）都跑在业务线程。redo()/settleStuckRecord的既有调用点本就在
+		// dbLock域内（ReentrantLock可重入，行为不变）。stopped时拒删不是错误：与下方
+		// RocksDBException分支同语义——记录留库，由下次进程启动的redo恢复（stop javadoc
+		// 既定承诺）；此刻库已关或即将关，不再触碰。commit()成功路径因拒删留下的eCommitting
+		// 残留由重启redo的幂等Commit重发收敛，参与方已按Commit提交，重发应答成功即清理。
+		dbLock.lock();
 		try {
-			// 两表同key生命周期（FND4-88）：索引删则点删，同一batch原子落地。
-			// commitPoint只在redo（遍历commitIndex时requireNonNull读取）被消费，
-			// 孤儿点条目永不被读还占磁盘——磁盘随事务数单调增长。
-			try (var batch = database.borrowBatch()) {
-				commitIndex.delete(batch, tidBytes);
-				commitPoint.delete(batch, tidBytes);
-				batch.commit(writeOptions);
+			if (stopped) {
+				logger.error("OnzServer stopped: removeCommitRecord rejected, keep record for next-startup redo. tid={}",
+						ByteBuffer.ToLongBE(tidBytes, 0));
+				return;
 			}
-		} catch (RocksDBException e) {
-			// 这个错误仅仅记录日志，所有没有删除的index，以后重启和Timer会尝试重做。
-			logger.error("", e);
+			try {
+				// 两表同key生命周期（FND4-88）：索引删则点删，同一batch原子落地。
+				// commitPoint只在redo（遍历commitIndex时requireNonNull读取）被消费，
+				// 孤儿点条目永不被读还占磁盘——磁盘随事务数单调增长。
+				try (var batch = database.borrowBatch()) {
+					commitIndex.delete(batch, tidBytes);
+					commitPoint.delete(batch, tidBytes);
+					batch.commit(writeOptions);
+				}
+			} catch (RocksDBException e) {
+				// 这个错误仅仅记录日志，所有没有删除的index，以后重启和Timer会尝试重做。
+				logger.error("", e);
+			}
+		} finally {
+			dbLock.unlock();
 		}
 	}
 
@@ -620,6 +657,9 @@ public class OnzServer extends AbstractOnz {
 	/**
 	 * 停止OnzServer（幂等，可重入）。语义：不做优雅排空——在途事务可能失败，
 	 * 未完成的补发记录（commitIndex）留在库中由下次进程启动的redo恢复；终态，不可再start。
+	 * 在飞perform的写库点（saveCommitPoint/removeCommitRecord）在dbLock内复查stopped后
+	 * 拒写（GC-C01(FND22)）——停机时在飞事务显式失败（perform/commit的catch→rollback链），
+	 * 不再对已释放句柄做native写（RocksDatabase.close契约的use-after-free）。
 	 * 停机为best-effort：任一步失败仅记error并继续——半途上抛会让幂等守卫把停机
 	 * 永久卡在半途（库/代理无法补关），失败步骤由日志定位人工处理。
 	 * 顺序：拒绝新工作 → 停定时器 → 停缓存connector（必须先于服务停止：
