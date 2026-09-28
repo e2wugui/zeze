@@ -154,14 +154,11 @@ public class ServiceManager {
 					if (null != process && process.isAlive()) {
 						service.setState(STATE_RUNNING);
 						service.setPs(psOf(process));
-					} else if (null != process) {
-						// 条目在但进程死=Stopped。
-						service.setState(STATE_STOPPED);
 					} else {
-						// 无进程条目（从未启动/已停毕/指纹不可核实失明的孤儿——zoker-10 拒绝
-						// 启动的盲 pid 同在此列）按 Stopped 汇报：协议注释契约只有 Running,Stopped
-						// 两值，不输出第三种空串（zoker-11）。代价是"从未启动"与"已停止"不可
-						// 区分——State 是运行时状态不是生命周期史，Stopped 是诚实的。
+						// 条目在但进程死=Stopped；无条目（从未启动/已停毕/指纹不可核实失明的孤儿
+						// ——zoker-10 拒绝启动的盲 pid 同在此列）同按 Stopped 汇报：协议注释契约
+						// 只有 Running,Stopped 两值，不输出第三种空串（zoker-11）。代价是"从未启动"
+						// 与"已停止"不可区分——State 是运行时状态不是生命周期史，Stopped 是诚实的。
 						service.setState(STATE_STOPPED);
 					}
 					out.add(service);
