@@ -1024,6 +1024,32 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	/**
+	 * 失败/异常路径rollback前的pendingAsync有界排空（onz-02）：与成功路径commit前的
+	 * waitPendingAsync()对称——rollback内cancelSaga只遍历当下已注册的saga步骤（弱一致
+	 * 快照），排空确保在途续作（callSagaAsync回调线程，setPendingAsync存在的原因）先注册
+	 * 完再遍历，迟到注册的步骤尽收补偿。
+	 * <p>
+	 * 清旗依赖推演（不等死决策的依据）：续作等待的future（callSagaAsync/callProcedureAsync
+	 * 返回值）由参与方应答/rpc超时/发送失败三者之一终结（OnzAgent回调三分类+Send false即完成，
+	 * 无永pending形态），且参与方先发业务结果后等决策（procedure）或发结果即提交（saga）
+	 * ——future的完成不依赖协调者的Commit/Rollback/FuncSagaEnd，排空在rollback之前不会与
+	 * 续作互等死锁。永不清旗的可能只来自嵌入方（忘清旗/续作阻塞在业务资源/超长链），
+	 * 故有界（上限=flushTimeout，单步在途预算，见waitPendingAsync(long)）：超时/中断warn
+	 * 暴露"迟到注册可能失补偿"后继续rollback——宁可少等不可挂死perform。
+	 */
+	private static void drainPendingAsyncBeforeRollback(OnzTransaction<?, ?> txn, String cause) {
+		try {
+			if (!txn.waitPendingAsync(txn.getFlushTimeout()))
+				logger.warn("onz perform: rollback前排空pendingAsync超时（续作仍在途，其迟到注册的步骤可能失补偿）. tid={}, {}",
+						txn.getOnzTid(), cause);
+		} catch (InterruptedException ex) {
+			Thread.currentThread().interrupt(); // 恢复中断标志：调用方线程的中断语义不因排空丢失
+			logger.warn("onz perform: rollback前排空pendingAsync被中断（续作仍在途，其迟到注册的步骤可能失补偿）. tid={}, {}",
+					txn.getOnzTid(), cause, ex);
+		}
+	}
+
+	/**
 	 * 执行onz分布式事务。
 	 * <p>
 	 * 1. 自行决定txn的创建和初始化。
@@ -1061,10 +1087,29 @@ public class OnzServer extends AbstractOnz {
 				txn.waitFlushDone();
 				return 0;
 			}
+			// 失败路径对称排空（onz-02）：成功路径在commit前waitPendingAsync等齐异步续作，
+			// 失败路径原先不排空直接rollback——续作在cancelSaga两轮弱一致遍历之后/rollback
+			// 之后注册的步骤：FuncSaga照常发出、参与方发结果即本地提交（OnzSaga.
+			// sendReadyAndWait），cancelSaga已跑完不再补偿、上面的ePreparing快照早于该注册
+			// redo补发也不含——已提交步骤永久失补偿（静默部分提交）。排空后cancelSaga的
+			// 活表遍历尽收迟到注册（有界等待，见drainPendingAsyncBeforeRollback）。
+			drainPendingAsyncBeforeRollback(txn, "perform rc=" + rc);
+			// 快照重建+重存（对齐上面成功路径waitPendingAsync后重建快照的语义）：排空窗口内
+			// 注册的迟到参与方更新进ePreparing记录——cancelSaga投递失败（发送失败/超时，本
+			// 路径不消费rollback的allDelivered返回值）或rollback进行中进程崩溃时，redo是唯一
+			// 补发通道，记录必须覆盖完整参与方列表。状态仍为ePreparing（决策不变）；时戳刷新
+			// 至多把该记录的redo年龄闸推迟一个排空窗口，无害（本路径不删记录，redo晚到只影响
+			// 清理时延）。
+			state = txn.buildSavedCommits();
+			saveCommitPoint(tidBytes, state, ePreparing);
 			txn.rollback();
 			return rc;
 
 		} catch (Throwable ex) {
+			// 同rc!=0（onz-02同根）：异常路径的rollback同样先有界排空——txn.perform()抛出时
+			// 续作可能在途，且本路径可能尚无ePreparing记录（saveCommitPoint未到达或自身失败），
+			// cancelSaga的活表遍历是迟到注册唯一的补偿机会，排空让遍历尽量收全。
+			drainPendingAsyncBeforeRollback(txn, "perform exception");
 			txn.rollback();
 			logger.error("", ex);
 			return Procedure.Exception;

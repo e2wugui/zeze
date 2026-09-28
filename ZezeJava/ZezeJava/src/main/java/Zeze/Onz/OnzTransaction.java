@@ -48,6 +48,27 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		}
 	}
 
+	/** 失败/异常回滚前的有界排空（onz-02，调用方OnzServer.drainPendingAsyncBeforeRollback）。
+	 * 上限=flushTimeout：单步rpc超时（callSagaAsync/callProcedureAsync的setTimeout）是续作
+	 * 在途一步的完成预算——成功路径的无界waitPendingAsync()是正确性前提（决策=commit必须
+	 * 等续作终态），失败路径决策=rollback，等死不可取，超预算交调用方warn后继续。
+	 * @return true=旗已清（续作完成）；false=超预算仍在途（契约违例：永挂/超长链）。 */
+	boolean waitPendingAsync(long timeoutMs) throws InterruptedException {
+		lock();
+		try {
+			var nanos = TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+			while (pendingAsync) {
+				if (nanos <= 0)
+					return false;
+				// awaitNanos返回剩余预算（超时≤0）：虚假唤醒带剩余值重等；signal只来自setPendingAsync。
+				nanos = thisCond.awaitNanos(nanos);
+			}
+			return true;
+		} finally {
+			unlock();
+		}
+	}
+
 	public void setPendingAsync(boolean pending) {
 		lock();
 		try {
