@@ -462,8 +462,10 @@ public class Log4jFileManager extends ReentrantLock {
 			// 时刻距轮转已至少一个watch/5min周期，truncate早已完成，采样必为新内容），余量由随后的
 			// buildIndex增量续建补齐；旧窗数据不由此路径承担——rotate条目在case-1移交时已持有与copy
 			// 内容恒配对的正确索引，active的beginTime归位新内容后，旧时间窗查询自然回落到rotate条目。
-			// 检测不到的残留：active增长越过旧offset后buildIndex给污染索引续入新内容记录（末offset
-			// 落回文件长度内）——维持既有行为，与repointMissedRotation的同一限制。
+			// 检测不到的残留：自愈守卫被跳过的轮次里（rotates非空等）buildIndex给污染索引续入新内容
+			// 记录——末offset落回文件长度内、新首条时间被扩大的endTime窗吸收，两维皆盲——维持既有
+			// 行为，与repointMissedRotation的同一限制；同一tick内reconcile先于buildIndex的active
+			// 续建执行，主路径形态在首个对账tick即被时间维截获。
 			// 文件不存在的失配（length()==0形态）不在此重建：归摘除循环/轮转宽限/下轮repoint处置
 			//（sampleIndexHead对不存在文件抛FNFE会中止本轮后续补登）。
 			// 时序上作为最后手段：有未登记rotate在场（rotates非空）=轮转未收敛的证据，active失配
@@ -504,6 +506,11 @@ public class Log4jFileManager extends ReentrantLock {
 				files.add(Log4jFile.of(activeFile,
 						sampleIndexHead(activeFile, openFreshActiveIndex())));
 			}
+
+			// 非事件驱动的兜底清理：条目摘除/索引重建弃用的链接，其LogIndex实例映射由GC异步释放后
+			// 才可删——只靠轮转/重建事件触发removeOldLinkFiles时，事件间隙里已释放的链接滞留不自收敛
+			//（Windows下滞留期间逐次warn）。对账每5分钟顺带清一次（幂等，代价=listFiles+少量删除）。
+			removeOldLinkFiles();
 		} catch (Exception ex) {
 			// 单轮对账失败不打断周期任务，下轮重试。
 			logger.error("reconcile error", ex);
