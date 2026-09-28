@@ -439,6 +439,37 @@ public class Log4jFileManager extends ReentrantLock {
 				}
 			}
 
+			// copy-truncate自愈检测：写日志进程的轮转策略为copy-truncate形态（Linux logrotate
+			// copytruncate、logback定长窗口等——rename不发生、active被原地truncate重写）时，
+			// case-1补登的头部采样可能抢在truncate前执行（copy持续期间active仍是完整旧内容，GB级
+			// 文件秒-分钟级窗口，watch毫秒级延迟下大概率命中）：采到旧时间戳+旧offset入fresh索引后，
+			// 末offset超长使loadIndex的seek落EOF、索引停格不再增长；新时间窗查询经超长offset定位到
+			// EOF空结果，旧时间窗查询被污染的beginTime引到active条目上EOF耗尽、walker只向前推进不
+			// 回读持正确索引的rotate条目——双窗漏读且原状态无自愈路径（条目不摘除、beginTime无重算）。
+			// 判据与装载期（indexPairsLogFile）/漏轮转改指（repointMissedRotation）同源复用：
+			// active索引末offset超出active文件当前长度（正常append只增长，恒不误触发）。
+			// 处置：弃污染索引，openFreshActiveIndex+sampleIndexHead从active当前内容头重建（对账
+			// 时刻距轮转已至少一个watch/5min周期，truncate早已完成，采样必为新内容），余量由随后的
+			// buildIndex增量续建补齐；旧窗数据不由此路径承担——rotate条目在case-1移交时已持有与copy
+			// 内容恒配对的正确索引，active的beginTime归位新内容后，旧时间窗查询自然回落到rotate条目。
+			// 检测不到的残留：active增长越过旧offset后buildIndex给污染索引续入新内容记录（末offset
+			// 落回文件长度内）——维持既有行为，与repointMissedRotation的同一限制。
+			// 文件不存在的失配（length()==0形态）不在此重建：归摘除循环/轮转宽限/下轮repoint处置
+			//（sampleIndexHead对不存在文件抛FNFE会中止本轮后续补登）。
+			// 时序上作为最后手段：有未登记rotate在场（rotates非空）=轮转未收敛的证据，active失配
+			// 优先留给repoint移交（保留全量索引，优于丢弃重建）；repoint中止时active旧索引仍是排队中
+			// case-1事件的正确移交素材——抢先重建会让迟到的case-1把新内容索引错挂到rotate名上。rotate
+			// 由本轮补登登记后（rotate名.index必然在场，case-1移交对既存文件中止），下一轮对账即可检测。
+			var activeName = getCurrentLogFileName();
+			if (rotates.isEmpty() && !files.isEmpty() && files.getLast().file.getName().equals(activeName)) {
+				var last = files.getLast();
+				if (last.file.exists() && indexExceedsLogFile(last.index, last.file)) {
+					logger.warn("active index exceeds log file length (copy-truncate rotation?), rebuild: {}", last.file);
+					last.index = sampleIndexHead(last.file, openFreshActiveIndex());
+					removeOldLinkFiles(); // 同case 0/1：换新索引通道之后同步清理被弃索引的链接
+				}
+			}
+
 			// 补登：按内容时间归位插入（addByContentTime），不按文件名日期整块插到active之前——
 			// 名字日期与内容时序不一致（时钟回拨/人工拷入）时整块插入会打破列表内容时序不变式，
 			// endTime提前终止+seek选择据不变式工作，错位条目整文件漏读。active恒为last不变
@@ -499,9 +530,10 @@ public class Log4jFileManager extends ReentrantLock {
 		if (null == activeEntry)
 			return;
 
-		var lastOffset = activeEntry.index.lowerBound(activeEntry.index.getEndTime());
 		var activeFile = new File(logConf.logDir, activeName);
-		if (lastOffset <= activeFile.length()) // 文件不存在时length()==0：索引有记录即判失配——失配只证明索引与active不配，配给谁由下方内容抽查裁决
+		// 判据见indexExceedsLogFile（文件不存在时length()==0：索引有记录即判失配）——
+		// 失配只证明索引与active不配，配给谁由下方内容抽查裁决
+		if (!indexExceedsLogFile(activeEntry.index, activeFile))
 			return;
 
 		var rotateName = rotates.getFirst().getValue(); // 时间序最早的漏登rotate：active索引内容所在
@@ -814,6 +846,17 @@ public class Log4jFileManager extends ReentrantLock {
 			return false;
 		var headTime = headTimeOf(logFile);
 		return null != headTime && headTime >= headTail[0] && headTime <= headTail[1];
+	}
+
+	/**
+	 * 运行期"索引与当前条目文件失配"判据（indexPairsLogFile判据2的条目内存形态，同一判据两处复用：
+	 * repointMissedRotation与reconcile的active自检）：索引末记录offset超出日志文件当前长度——
+	 * 自洽索引的offset必落在文件长度内，超出即索引描述的是别的内容（rename型漏轮转残留的旧内容索引、
+	 * copy-truncate轮转truncate前采样的污染索引、active被外部截断/原地重建）。正常append只增长恒不
+	 * 误触发；空索引lowerBound返回-1恒不触发；文件不存在时length()==0，索引有记录即判失配。
+	 */
+	private static boolean indexExceedsLogFile(LogIndex index, File logFile) {
+		return index.lowerBound(index.getEndTime()) > logFile.length();
 	}
 
 	/**
