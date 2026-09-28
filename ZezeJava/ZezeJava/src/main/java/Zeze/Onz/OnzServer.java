@@ -1134,14 +1134,20 @@ public class OnzServer extends AbstractOnz {
 			// 活表遍历尽收迟到注册（有界等待，见drainPendingAsyncBeforeRollback）。
 			drainPendingAsyncBeforeRollback(txn, "perform rc=" + rc);
 			// 快照重建+重存（对齐上面成功路径waitPendingAsync后重建快照的语义）：排空窗口内
-			// 注册的迟到参与方更新进ePreparing记录——cancelSaga投递失败（发送失败/超时，本
-			// 路径不消费rollback的allDelivered返回值）或rollback进行中进程崩溃时，redo是唯一
-			// 补发通道，记录必须覆盖完整参与方列表。状态仍为ePreparing（决策不变）；时戳刷新
-			// 至多把该记录的redo年龄闸推迟一个排空窗口，无害（本路径不删记录，redo晚到只影响
-			// 清理时延）。
+			// 注册的迟到参与方更新进ePreparing记录——cancelSaga投递失败（发送失败/超时，此时
+			// rollback()返回false，见下）或rollback进行中进程崩溃时，redo是唯一补发通道，记录
+			// 必须覆盖完整参与方列表。状态仍为ePreparing（决策不变）；时戳刷新至多把该记录的
+			// redo年龄闸推迟一个排空窗口，无害。
 			state = txn.buildSavedCommits();
 			saveCommitPoint(tidBytes, state, ePreparing);
-			txn.rollback();
+			// 全量投递了结即删记录（F3，对齐commit()失败分支if(rollback())removeCommitRecord
+			// 的先例与redo的removeOk收敛语义）：补偿已确认送达，保留只会让redo先等
+			// RedoPreparingMinAgeMs年龄闸、再对全部参与方幂等空转重发一轮（参与方收重复决策）；
+			// 投递不确定（发送失败/超时/致命应答）时保留ePreparing交redo补发收敛。
+			// 删点先于finally摘登记：redo对登记中的ePreparing恒skip（collectRedoCandidates），
+			// 本删除与redo无并发窗口；崩溃落在save与remove之间则记录留库，redo幂等补发，安全。
+			if (txn.rollback())
+				removeCommitRecord(tidBytes);
 			return rc;
 
 		} catch (Throwable ex) {
@@ -1149,7 +1155,26 @@ public class OnzServer extends AbstractOnz {
 			// 续作可能在途，且本路径可能尚无ePreparing记录（saveCommitPoint未到达或自身失败），
 			// cancelSaga的活表遍历是迟到注册唯一的补偿机会，排空让遍历尽量收全。
 			drainPendingAsyncBeforeRollback(txn, "perform exception");
-			txn.rollback();
+			// 快照重建+落ePreparing（F1，对齐上方rc!=0路径的既有形态）：此前异常路径无
+			// 任何决策记录，cancelSaga投递失败时redo看不到、参与方上下文滞留至TTL被无补偿移除
+			// ——已提交步骤永久失补偿且无对账通道。此处落记录使redo成为补发兜底。
+			// best-effort：落库失败（stopped拒绝/RocksDB错误）只记日志，不得吞掉/替换正在传播
+			// 的原始异常，也不得跳过下面的rollback（参与方此刻就靠它同步补偿）。
+			// commit()内部失败抛出前已自行rollback（幂等可重复），此处重存至多造成一次
+			// 记录重建+重投递的空转，无正确性影响；不会覆盖存活的eCommitting（commit()仅在
+			// saveCommitPoint(eCommitting)失败即未持久化时才抛出）。
+			var tidBytes = new byte[8];
+			ByteBuffer.longBeHandler.set(tidBytes, 0, txn.getOnzTid());
+			try {
+				saveCommitPoint(tidBytes, txn.buildSavedCommits(), ePreparing);
+			} catch (Throwable saveEx) {
+				logger.error("onz perform: exception path saveCommitPoint(ePreparing) fail, "
+						+ "redo兜底不可用，补偿仅剩本次rollback投递. tid={}", txn.getOnzTid(), saveEx);
+			}
+			// 消费allDelivered（F3，同rc!=0路径与commit()失败分支）：全量投递了结即删记录，
+			// 投递不确定时保留交redo补发收敛；无记录时删除为幂等no-op。
+			if (txn.rollback())
+				removeCommitRecord(tidBytes);
 			logger.error("", ex);
 			return Procedure.Exception;
 
