@@ -141,16 +141,19 @@ public class ApplyHelper extends FastLock {
 					dbApplied.saveCursor(key, recordTxn);
 					recordTxn.commit();
 					committed = true;
-				} catch (Exception ex) {
+				} catch (Throwable ex) {
 					// 毒记录可观测性：此异常将穿透walkDatabase中断本批，游标停在上条
 					// 记录，下轮apply会整条重放本记录（已原子回滚，重放从干净状态开始、不会叠加
 					// 脏写）；若是确定性失败（如Edit目标不存在的分歧NPE）将反复卡死游标，需按此
 					// GlobalSerialId人工排查tHistory记录。回滚与LRU失效统一在finally兜底。
+					// 捕Throwable（hist-02）：Error型毒记录（decode依赖类缺失的NoClassDefFoundError、
+					// 深递归decode的StackOverflowError、OOM）同样确定性卡死游标，poison日志
+					// 必须覆盖——正确性本就由finally兜底，这里补齐的是可观测性。
 					logger.error("history apply poison record: GlobalSerialId={}, deterministic failure "
 							+ "suspected; cursor stays before this record and every apply retry replays it "
 							+ "whole (atomically rolled back, no partial writes accumulated); manual "
 							+ "inspection of this history record is required", key, ex);
-					throw ex; // 精确重抛：保持原异常类型传播
+					throw ex; // 精确重抛：保持原异常类型传播（Exception与Error均原样）
 				} finally {
 					if (!committed) {
 						// Exception与Error路径统一收尾（幂等）：回滚存储侧未提交写入，并失效本记录
