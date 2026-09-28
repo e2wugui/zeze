@@ -1,5 +1,6 @@
 package UnitTest.Zeze;
 
+import harness.FastServerIds;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Transaction.Procedure;
@@ -24,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestFnd826CacheDirLock {
 	// 独立serverId：本类独占zeze_cache_<serverId>目录与锁文件（CWD为测试worker共享目录）。
-	private static final int SERVER_ID = 12826;
+	private static final int SERVER_ID = FastServerIds.TEST_FND826_CACHE_DIR_LOCK;
 
 	private static Config newConf() {
 		var conf = new Config();

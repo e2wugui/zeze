@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Collections;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Collections.DepartmentTree;
@@ -25,7 +26,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestDepartmentTreeDestroy {
 	// 与TestDepartmentTreeManagerGuards的730段错开。
-	private static final AtomicInteger NextServerId = new AtomicInteger(738);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_DEPARTMENT_TREE_DESTROY);
 
 	public static class Manager extends Bean {
 		@Override

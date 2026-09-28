@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Transaction;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,7 +32,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestFnd755FlushWhenReduceNullCheckpoint {
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache目录互撞（对齐TestCheckpointRunThreadSentinel）。
-	private static final int SERVER_ID = 7550;
+	private static final int SERVER_ID = FastServerIds.TEST_FND755_FLUSH_WHEN_REDUCE_NULL_CHECKPOINT;
 
 	private Application app;
 	private TableX<?, ?> table;

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Transaction;
 
+import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 
@@ -48,7 +49,7 @@ public class TestTableXMirrorMissFallback {
 	private static final long KEY_OLD = 1L;
 
 	// serverId 决定本地 RocksCache 目录名（zeze_cache_<serverId>），取独立值避免与其他测试冲突。
-	private static final int SERVER_ID = 7313;
+	private static final int SERVER_ID = FastServerIds.TEST_TABLE_X_MIRROR_MISS_FALLBACK;
 
 	@TempDir
 	Path tempDir;

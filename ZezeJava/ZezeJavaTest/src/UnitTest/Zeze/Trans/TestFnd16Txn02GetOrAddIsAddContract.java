@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -21,7 +22,7 @@ import org.junit.jupiter.api.Test;
 public class TestFnd16Txn02GetOrAddIsAddContract {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（800段TestHotRollbackMemoryTable、
 	// 810段TestFnd14Hot02UpgradeIncompatibleFailFast；810曾与本类撞段，同JVM并发FileMutex互斥失败）。
-	private static final AtomicInteger nextServerId = new AtomicInteger(820);
+	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_FND16_TXN02_GET_OR_ADD_IS_ADD_CONTRACT);
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

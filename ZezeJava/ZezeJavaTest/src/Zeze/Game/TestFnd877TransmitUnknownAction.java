@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import harness.FastServerIds;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -34,7 +35,7 @@ public class TestFnd877TransmitUnknownAction {
 
 	// a6专属serverId段（上限16383内，避开既有测试段）。
 	private static final java.util.concurrent.atomic.AtomicInteger NextServerId =
-			new java.util.concurrent.atomic.AtomicInteger(16201);
+			new java.util.concurrent.atomic.AtomicInteger(FastServerIds.TEST_FND877_TRANSMIT_UNKNOWN_ACTION);
 
 	private static Application newApp(String name) throws Exception {
 		var conf = new Config();

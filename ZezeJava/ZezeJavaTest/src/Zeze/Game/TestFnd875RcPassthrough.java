@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import harness.FastServerIds;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,7 +38,7 @@ import org.junit.jupiter.api.Test;
 public class TestFnd875RcPassthrough {
 
 	// a6专属serverId段（上限16383内，避开默认0/100/300/7250/7350/7360等既有段）。
-	private static final AtomicInteger NextServerId = new AtomicInteger(16191);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_FND875_RC_PASSTHROUGH);
 
 	private static Application newApp(String name) throws Exception {
 		var conf = new Config();

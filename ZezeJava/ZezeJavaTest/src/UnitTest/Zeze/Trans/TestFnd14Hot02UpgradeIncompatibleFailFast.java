@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -26,7 +27,7 @@ import org.junit.jupiter.api.Test;
 public class TestFnd14Hot02UpgradeIncompatibleFailFast {
 	// 独立serverId+url：@Fast类并行时避免本地库互撞（对齐TestHotRollbackMemoryTable；
 	// 810段：避开其800起的递增段）。
-	private static final AtomicInteger nextServerId = new AtomicInteger(810);
+	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_FND14_HOT02_UPGRADE_INCOMPATIBLE_FAILFAST);
 
 	private static Application newApp(int serverId) throws Exception {
 		var conf = new Config();

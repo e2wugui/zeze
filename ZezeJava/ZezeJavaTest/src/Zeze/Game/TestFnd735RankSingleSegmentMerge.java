@@ -1,9 +1,9 @@
 package Zeze.Game;
 
+import harness.FastServerIds;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
-import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BValueLong;
 import Zeze.Config;
 import harness.Fast;
@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 public class TestFnd735RankSingleSegmentMerge {
 	private static final int RANK_TYPE = 1;
 
-	private static final int ServerId = 7370;
+	private static final int ServerId = FastServerIds.TEST_FND735_RANK_SINGLE_SEGMENT_MERGE;
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

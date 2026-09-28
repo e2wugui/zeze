@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Transaction;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -32,7 +33,7 @@ import org.junit.jupiter.api.io.TempDir;
 @Fast
 public class TestFnd821CheckpointRunRace {
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache目录互撞。
-	private static final int SERVER_ID = 12821;
+	private static final int SERVER_ID = FastServerIds.TEST_FND821_CHECKPOINT_RUN_RACE;
 
 	@TempDir
 	Path tempDir;

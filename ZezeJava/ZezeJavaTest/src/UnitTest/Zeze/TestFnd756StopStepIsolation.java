@@ -1,5 +1,6 @@
 package UnitTest.Zeze;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -26,7 +27,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestFnd756StopStepIsolation {
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache目录互撞（对齐TestCheckpointRunThreadSentinel）。
-	private static final int SERVER_ID = 7560;
+	private static final int SERVER_ID = FastServerIds.TEST_FND756_STOP_STEP_ISOLATION;
 
 	private Application app;
 

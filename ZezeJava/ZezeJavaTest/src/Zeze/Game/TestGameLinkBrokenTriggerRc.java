@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.AppBase;
@@ -30,7 +31,7 @@ public class TestGameLinkBrokenTriggerRc {
 	// （zeze_cache_<serverId>）。基点须全局唯一且不落他类增长范围：曾与TestRankCacheEvict
 	// (7350起)重叠7351，迁7360后又撞TestRankCountNeedKey的固定7360（30轮压测2026-09-19轮25
 	// dir lock假红），迁7480独占段。
-	private static final AtomicInteger NextServerId = new AtomicInteger(7480);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_GAME_LINK_BROKEN_TRIGGER_RC);
 
 	private static Application newApp(String name) throws Exception {
 		var conf = new Config();

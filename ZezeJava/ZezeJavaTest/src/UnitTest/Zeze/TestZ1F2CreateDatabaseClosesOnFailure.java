@@ -1,5 +1,6 @@
 package UnitTest.Zeze;
 
+import harness.FastServerIds;
 import java.nio.file.Path;
 import java.util.HashMap;
 
@@ -27,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestZ1F2CreateDatabaseClosesOnFailure {
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache目录互撞。
-	private static final int SERVER_ID = 12821;
+	private static final int SERVER_ID = FastServerIds.TEST_Z1F2_CREATE_DATABASE_CLOSES_ON_FAILURE;
 
 	@TempDir
 	Path tempDir;

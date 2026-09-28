@@ -1,6 +1,7 @@
 package Zeze.Netty;
 
 import harness.Fast;
+import harness.FastServerIds;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.AppBase;
@@ -29,7 +30,7 @@ import org.junit.jupiter.api.Test;
 public class TestFnd857HttpSessionFixation {
 	// a4专属serverId段（1410起，serverId上界16383）：本地缓存目录/dbhome按serverId分目录，
 	// 避开默认0与他组撞车
-	private static final AtomicInteger NextServerId = new AtomicInteger(1410);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_FND857_HTTP_SESSION_FIXATION);
 
 	private static final class TestAppBase extends AppBase {
 		private final Application zeze;

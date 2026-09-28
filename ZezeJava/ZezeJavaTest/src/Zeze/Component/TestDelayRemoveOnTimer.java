@@ -1,5 +1,6 @@
 package Zeze.Component;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Builtin.DelayRemove.BTableKey;
@@ -30,7 +31,7 @@ import org.junit.jupiter.api.Test;
 public class TestDelayRemoveOnTimer {
 
 	// 与TestQueueCompatible的500+、MQSingle测试错开：@Fast类并行时Application的本地缓存按serverId一份。
-	private static final AtomicInteger NextServerId = new AtomicInteger(7530);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_DELAY_REMOVE_ON_TIMER);
 
 	/** GC目标表用真实的tQueues（String键）：getTable命中，decodeKey=ReadString。 */
 	private static final String VictimTable = "Zeze_Builtin_Collections_Queue_tQueues";

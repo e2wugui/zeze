@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Collections;
 
+import harness.FastServerIds;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,7 +46,7 @@ public class TestFnd879LinkedMapBrokenChainLogged {
 
 	// 独占号段8791+（全景查号）：既与TestLinkedMapBrokenData的700+错开，也避开TestCheckpointRunThreadSentinel
 	// 等既有的750族——FND8-26目录锁后同CWD撞号必炸（全量第一轮曾侥幸绿，第二轮并发交错即红）。
-	private static final AtomicInteger NextServerId = new AtomicInteger(8790);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_FND879_LINKED_MAP_BROKEN_CHAIN_LOGGED);
 
 	private Application app;
 	private LinkedMap.Module linkedMapModule;

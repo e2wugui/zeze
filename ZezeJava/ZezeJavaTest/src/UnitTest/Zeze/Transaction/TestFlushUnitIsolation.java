@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Transaction;
 
+import harness.FastServerIds;
 import java.nio.file.Path;
 import java.util.TreeMap;
 import java.util.function.Consumer;
@@ -33,7 +34,7 @@ import Zeze.Util.FuncLong;
 @Fast
 public class TestFlushUnitIsolation {
 	// serverId 决定本地 RocksCache 目录名（zeze_cache_<serverId>），取独立值避免与其他测试冲突。
-	private static final int SERVER_ID = 7312;
+	private static final int SERVER_ID = FastServerIds.TEST_FLUSH_UNIT_ISOLATION;
 
 	@TempDir
 	Path tempDir;

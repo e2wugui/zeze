@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Component;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -24,7 +25,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestTimerStopStartRestart {
 	// 与其他 @Fast 测试错开 serverId：并行时 Application 本地缓存按 serverId 一份。
-	private static final AtomicInteger NextServerId = new AtomicInteger(7160);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_TIMER_STOP_START_RESTART);
 
 	public static class RestartCountHandle implements TimerHandle {
 		static final AtomicInteger FireCount = new AtomicInteger();

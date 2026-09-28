@@ -1,5 +1,6 @@
 package Zeze.Component;
 
+import harness.FastServerIds;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -167,7 +168,7 @@ public class TestFnd729CrossFamilyCancel {
 	}
 
 	// Application并发需要不同serverId与独立Memory桶（同TakeoverTestEnv口径，本类包内自持一份）。
-	private static final AtomicInteger NextServerId = new AtomicInteger(7590);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_FND729_CROSS_FAMILY_CANCEL);
 
 	static final class TestAppBase extends AppBase {
 		private final @NotNull Application zeze;

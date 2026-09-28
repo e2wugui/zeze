@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Collections;
 
+import harness.FastServerIds;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +35,7 @@ import org.junit.jupiter.api.Test;
 public class TestQueueCompatible {
 
 	// 与TakeoverTestEnv的100+、伪造死者777+错开：@Fast类并行时Application的本地缓存按serverId一份。
-	private static final AtomicInteger NextServerId = new AtomicInteger(7550);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_QUEUE_COMPATIBLE);
 
 	private static Config newConf(String takeoverMode) {
 		var conf = new Config();

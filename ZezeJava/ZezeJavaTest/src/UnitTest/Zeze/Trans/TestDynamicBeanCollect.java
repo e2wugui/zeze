@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -30,7 +31,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestDynamicBeanCollect {
-	private static final AtomicInteger NextId = new AtomicInteger(7420);
+	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_DYNAMIC_BEAN_COLLECT);
 
 	private Table1 table1;
 	private final Collector collector = new Collector();

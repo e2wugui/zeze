@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -21,7 +22,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestFnd701MemoryTableSize {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T1组：100起）。
-	private static final AtomicInteger nextServerId = new AtomicInteger(7600);
+	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_FND701_MEMORY_TABLE_SIZE);
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

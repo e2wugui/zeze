@@ -1,5 +1,6 @@
 package Zeze.Onz;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import demo.Module1.BKuafu;
@@ -30,7 +31,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestR3cSagaEndBeforeSagaRegistration extends AppBase {
-	private static final AtomicInteger NextId = new AtomicInteger(7450);
+	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_R3C_SAGA_END_BEFORE_SAGA_REGISTRATION);
 	private static final String ProcName = "r3cD1SagaEndBeforeSaga";
 
 	private Application zeze;

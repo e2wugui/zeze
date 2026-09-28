@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import harness.FastServerIds;
 import java.lang.reflect.Method;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 public class TestFnd731LoginTimesRedoOnce extends AppBase {
-	private static final AtomicInteger NextId = new AtomicInteger(7440);
+	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_FND731_LOGIN_TIMES_REDO_ONCE);
 	private static final String ACCOUNT = "fnd731_acc";
 
 	private Application zeze;

@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import harness.FastServerIds;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -36,7 +37,7 @@ import org.junit.jupiter.api.Test;
 public class TestFnd890LoadBaseChainResilience {
 
 	// a6专属serverId段（不start不建缓存目录，防御性错开）。
-	private static final AtomicInteger NextServerId = new AtomicInteger(16211);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_FND890_LOAD_BASE_CHAIN_RESILIENCE);
 
 	private static Application newApp(String name) throws Exception {
 		var conf = new Config();

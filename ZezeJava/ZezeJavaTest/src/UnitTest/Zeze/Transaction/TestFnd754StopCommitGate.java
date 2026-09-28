@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Transaction;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -31,7 +32,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestFnd754StopCommitGate {
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache目录互撞（对齐TestCheckpointRunThreadSentinel）。
-	private static final int SERVER_ID = 7540;
+	private static final int SERVER_ID = FastServerIds.TEST_FND754_STOP_COMMIT_GATE;
 
 	private Application app;
 

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Collections;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import Zeze.Application;
@@ -24,7 +25,7 @@ public class TestDepartmentTreeRootGuards {
 
 	// 与TestQueueCompatible的500+、TestDelayRemoveOnTimer的600+、TestLinkedMapBrokenData的
 	// 700+、TestDepartmentTreeManagerGuards的730+错开。
-	private static final AtomicInteger NextServerId = new AtomicInteger(733);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_DEPARTMENT_TREE_ROOT_GUARDS);
 
 	private DepartmentTree.Module departmentTreeModule;
 

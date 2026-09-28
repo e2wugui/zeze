@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Collections;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 import UnitTest.Zeze.BMyBean;
 import Zeze.Application;
@@ -28,7 +29,7 @@ public class TestLinkedMapBrokenData {
 
 	// 与TestQueueCompatible的500+、TestDelayRemoveOnTimer的600+错开：
 	// @Fast类并行时Application的本地缓存按serverId一份。
-	private static final AtomicInteger NextServerId = new AtomicInteger(7510);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_LINKED_MAP_BROKEN_DATA);
 
 	private LinkedMap.Module linkedMapModule;
 

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Component;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,8 +42,7 @@ import org.junit.jupiter.api.Test;
 public class TestTimerLoadMissfireAsync {
 
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache与Memory库互撞（对齐TakeoverTestEnv）。
-	// 760段：避开已占用的200/400/500/700/730/750段。
-	private static final int ServerId = 760;
+	private static final int ServerId = FastServerIds.TEST_TIMER_LOAD_MISSFIRE_ASYNC;
 
 	private static final long Period = 60_000;
 	private static final CountDownLatch FiredLatch = new CountDownLatch(1);

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.History;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -36,8 +37,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 public class TestFnd828ApplyCursorPersistence {
 	// 独立serverId+url：@Fast类并行时避免DatabaseMemory静态Map按url分桶互撞；
 	// 两个用例各自独立serverId（tHistory存储按url在JVM内持续存在，用例间不得共享）。
-	private static final int SERVER_ID = 12828;
-	private static final int SERVER_ID_MEMORY = 12829;
+	private static final int SERVER_ID = FastServerIds.TEST_FND828_APPLY_CURSOR_PERSISTENCE;
+	private static final int SERVER_ID_MEMORY = FastServerIds.TEST_FND828_APPLY_CURSOR_PERSISTENCE_MEMORY;
 	private static final String APPLIED_DB_NAME = "a2_applied";
 	private static final String tHistoryName = "Zeze_Builtin_HistoryModule_tHistory";
 	private static final int tHistoryId = 370198048;

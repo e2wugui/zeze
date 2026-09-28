@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Collections;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,7 +29,7 @@ import org.junit.jupiter.api.Test;
 public class TestClearFailFast {
 
 	// 762段：避开200/400/500/700/730/750/760/761段。
-	private static final int ServerId = 762;
+	private static final int ServerId = FastServerIds.TEST_CLEAR_FAIL_FAST;
 
 	private Application app;
 	private BoolList.Module boolListModule;

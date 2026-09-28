@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -21,8 +22,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestFnd706PList2AttachOrder {
-	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T1组：130起）。
-	private static final AtomicInteger nextServerId = new AtomicInteger(130);
+	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_FND706_PLIST2_ATTACH_ORDER);
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

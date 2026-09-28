@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,7 +27,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestClearTableCacheTimers {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T2组：300/400/500/600起；本类700起）。
-	private static final AtomicInteger nextServerId = new AtomicInteger(7490);
+	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_CLEAR_TABLE_CACHE_TIMERS);
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

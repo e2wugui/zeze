@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Net;
 
+import harness.FastServerIds;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -57,7 +58,7 @@ public class TestTransactionDecodeFailCloses {
 		return new Application("TestTransactionDecodeFailCloses", conf);
 	}
 
-	private static final AtomicInteger NextServerId = new AtomicInteger(7300);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_TRANSACTION_DECODE_FAIL_CLOSES);
 
 	public static final class BadDecodeProtocol extends Protocol<BValue> {
 		public BadDecodeProtocol() {

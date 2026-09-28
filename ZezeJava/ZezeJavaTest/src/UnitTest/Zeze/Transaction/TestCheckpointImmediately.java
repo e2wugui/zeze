@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Transaction;
 
+import harness.FastServerIds;
 import java.nio.file.Path;
 
 import harness.Fast;
@@ -25,7 +26,7 @@ public class TestCheckpointImmediately {
 	private static final long KEY = 1L;
 
 	// serverId 决定本地 RocksCache 目录名（zeze_cache_<serverId>），取独立值避免与其他测试冲突。
-	private static final int SERVER_ID = 7123;
+	private static final int SERVER_ID = FastServerIds.TEST_CHECKPOINT_IMMEDIATELY;
 
 	@TempDir
 	Path tempDir;

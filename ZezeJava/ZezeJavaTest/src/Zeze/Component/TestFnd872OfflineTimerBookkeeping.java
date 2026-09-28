@@ -1,5 +1,6 @@
 package Zeze.Component;
 
+import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -72,7 +73,7 @@ public class TestFnd872OfflineTimerBookkeeping {
 	}
 
 	// a6专属serverId段（上限16383内，避开默认0/100/300与Takeover伪造死者段777+）。
-	private static final AtomicInteger NextServerId = new AtomicInteger(16181);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_FND872_OFFLINE_TIMER_BOOKKEEPING);
 
 	private static final class Env implements AutoCloseable {
 		final @NotNull Application zeze;

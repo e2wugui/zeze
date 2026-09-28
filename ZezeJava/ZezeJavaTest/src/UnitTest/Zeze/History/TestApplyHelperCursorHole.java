@@ -1,5 +1,6 @@
 package UnitTest.Zeze.History;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Builtin.HistoryModule.BLogChanges;
@@ -23,7 +24,7 @@ import org.junit.jupiter.api.Test;
 public class TestApplyHelperCursorHole {
 	// Application并发需要不同serverId+不同DatabaseUrl：DatabaseMemory的表存储是JVM级
 	// 静态Map按url分桶，@Fast类并行时共用会互相污染。从400起避开Takeover等测试的号段。
-	private static final AtomicInteger NextServerId = new AtomicInteger(7570);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_APPLY_HELPER_CURSOR_HOLE);
 	private static final String tHistoryName = "Zeze_Builtin_HistoryModule_tHistory";
 	private static final int tHistoryId = 370198048;
 

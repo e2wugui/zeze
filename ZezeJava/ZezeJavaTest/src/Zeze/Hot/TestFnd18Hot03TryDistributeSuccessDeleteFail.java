@@ -1,5 +1,6 @@
 package Zeze.Hot;
 
+import harness.FastServerIds;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -70,7 +71,7 @@ public class TestFnd18Hot03TryDistributeSuccessDeleteFail {
 	public static void setUp() throws Exception {
 		var config = new Config();
 		config.setServiceManager("disable");
-		config.setServerId(12811);
+		config.setServerId(FastServerIds.TEST_FND18_HOT03_TRY_DISTRIBUTE_SUCCESS_DELETE_FAIL);
 		config.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);

@@ -1,5 +1,6 @@
 package Zeze.Collections;
 
+import harness.FastServerIds;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,7 +35,7 @@ import org.junit.jupiter.api.Test;
 public class TestFnd879QueueBrokenChainDiagnosis {
 
 	// a6专属serverId段。
-	private static final AtomicInteger NextServerId = new AtomicInteger(16221);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_FND879_QUEUE_BROKEN_CHAIN_DIAGNOSIS);
 
 	private static final class CapturingAppender extends AbstractAppender {
 		final List<String> messages = new CopyOnWriteArrayList<>();

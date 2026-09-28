@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Component;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,8 +39,7 @@ import org.junit.jupiter.api.Timeout;
 public class TestFnd14Comp01TimerLoadExhaustedCron {
 
 	// 独立serverId+url：@Fast类并行时避免本地库互撞（对齐TestTimerLoadMissfireAsync）。
-	// 761段：避开已占用的200/400/500/700/730/750/760段。
-	private static final int ServerId = 761;
+	private static final int ServerId = FastServerIds.TEST_FND14_COMP01_TIMER_LOAD_EXHAUSTED_CRON;
 
 	private Application app;
 	private Timer timer;

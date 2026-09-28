@@ -1,5 +1,6 @@
 package Zeze.Onz;
 
+import harness.FastServerIds;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -29,7 +30,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestR3cSagaBusinessLockSerialization extends AppBase {
-	private static final AtomicInteger NextId = new AtomicInteger(7430);
+	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_R3C_SAGA_BUSINESS_LOCK_SERIALIZATION);
 	private static final String ProcName = "r3cCBusinessLockSaga";
 
 	private Application zeze;

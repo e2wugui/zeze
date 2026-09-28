@@ -1,5 +1,6 @@
 package UnitTest.Zeze;
 
+import harness.FastServerIds;
 import java.nio.file.Path;
 
 import Zeze.Application;
@@ -25,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Fast
 public class TestFnd824ClearInUseClosesCreatedDatabases {
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache目录互撞。
-	private static final int SERVER_ID = 12824;
+	private static final int SERVER_ID = FastServerIds.TEST_FND824_CLEAR_IN_USE_CLOSES_CREATED_DATABASES;
 
 	@TempDir
 	Path tempDir;

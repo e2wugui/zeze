@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import harness.FastServerIds;
 import java.net.SocketAddress;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.AppBase;
@@ -31,7 +32,7 @@ import org.junit.jupiter.api.Test;
 public class TestProcessLinkBrokenNonRoleContext {
 
 	// 与其他 @Fast 测试错开 serverId：并行时 Application 本地缓存按 serverId 一份。
-	private static final AtomicInteger NextServerId = new AtomicInteger(7250);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_PROCESS_LINK_BROKEN_NON_ROLE_CONTEXT);
 
 	private static Application newApp(String name) throws Exception {
 		var conf = new Config();

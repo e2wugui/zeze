@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Collections;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Collections.DepartmentTree;
@@ -26,7 +27,7 @@ import org.junit.jupiter.api.Test;
 public class TestDepartmentTreeManagerGuards {
 
 	// 与TestQueueCompatible的500+、TestDelayRemoveOnTimer的600+、TestLinkedMapBrokenData的700+错开。
-	private static final AtomicInteger NextServerId = new AtomicInteger(730);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_DEPARTMENT_TREE_MANAGER_GUARDS);
 
 	// 最小Bean：仅需encode/decode（typeId默认按类名hash）。
 	public static class Manager extends Bean {

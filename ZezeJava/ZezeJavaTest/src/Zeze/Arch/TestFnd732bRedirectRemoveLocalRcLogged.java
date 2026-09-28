@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import harness.FastServerIds;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestFnd732bRedirectRemoveLocalRcLogged extends AppBase {
 	// 独占号段7341+：与TestFnd732(7321+)并行时不再同CWD撞zeze_cache_N（FND8-26目录锁后必炸，同a8a47296f型）
-	private static final AtomicInteger NextId = new AtomicInteger(7340);
+	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_FND732B_REDIRECT_REMOVE_LOCAL_RC_LOGGED);
 	private static final String ACCOUNT = "fnd732b_acc";
 	private static final long FAIL_RC = 7L;
 

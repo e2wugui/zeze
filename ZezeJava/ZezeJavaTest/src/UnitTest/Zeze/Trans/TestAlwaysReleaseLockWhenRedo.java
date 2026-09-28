@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.FastServerIds;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +32,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestAlwaysReleaseLockWhenRedo {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T2组：700起；本类750起）。
-	private static final AtomicInteger nextServerId = new AtomicInteger(750);
+	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_ALWAYS_RELEASE_LOCK_WHEN_REDO);
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

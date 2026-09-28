@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import harness.FastServerIds;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.AppBase;
@@ -26,7 +27,7 @@ public class TestRankCacheEvict {
 	private static final int RANK_TYPE = 1;
 
 	// 与其他 @Fast 测试错开 serverId：并行时 Application 本地缓存按 serverId 一份。
-	private static final AtomicInteger NextServerId = new AtomicInteger(7350);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_RANK_CACHE_EVICT);
 
 	private static Application newApp(String name) throws Exception {
 		var conf = new Config();

@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import harness.FastServerIds;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
@@ -25,7 +26,7 @@ public class TestFnd15Game01RankCacheRollbackPollution {
 	// 与其他@Fast测试错开serverId（TestRankCacheEvict用7350段、TestRankCountNeedKey用7360、
 	// TestFnd735RankSingleSegmentMerge用7370；7490与TestClearTableCacheTimers的7490起段撞，
 	// 同JVM并发时FileMutex互斥失败）。
-	private static final int ServerId = 7390;
+	private static final int ServerId = FastServerIds.TEST_FND15_GAME01_RANK_CACHE_ROLLBACK_POLLUTION;
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

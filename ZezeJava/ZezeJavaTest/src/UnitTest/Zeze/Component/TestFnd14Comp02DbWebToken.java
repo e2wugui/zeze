@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Component;
 
+import harness.FastServerIds;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -34,8 +35,7 @@ public class TestFnd14Comp02DbWebToken {
 	private static final String LIST = "/Zeze/Builtin/DbWeb/ListTable";
 	private static final String INDEX = "/Zeze/Builtin/DbWeb/Index";
 
-	// 独立serverId+url：@Fast类并行时避免本地库互撞（820段：避开800/810已用段）。
-	private static final int ServerId = 820;
+	private static final int ServerId = FastServerIds.TEST_FND14_COMP02_DB_WEB_TOKEN;
 
 	private static Application app;
 	private static HttpServer httpServer;

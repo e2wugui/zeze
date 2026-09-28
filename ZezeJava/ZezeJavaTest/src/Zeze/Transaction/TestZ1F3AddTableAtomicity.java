@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import harness.FastServerIds;
 import Zeze.Application;
 import Zeze.Config;
 import org.jetbrains.annotations.NotNull;
@@ -140,7 +141,7 @@ public class TestZ1F3AddTableAtomicity {
 	public void setUp() throws Exception {
 		var conf = new Config();
 		conf.setServiceManager("disable");
-		conf.setServerId(12823);
+		conf.setServerId(FastServerIds.TEST_Z1F3_ADD_TABLE_ATOMICITY);
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);

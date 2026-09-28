@@ -1,5 +1,6 @@
 package UnitTest.Zeze;
 
+import harness.FastServerIds;
 import java.util.ArrayList;
 
 import Zeze.Application;
@@ -58,7 +59,7 @@ public class TestZ2F1RenameTableAfterCompatCheck {
 	public void setUp() throws Exception {
 		var conf = new Config();
 		conf.setServiceManager("disable");
-		conf.setServerId(12822);
+		conf.setServerId(FastServerIds.TEST_Z2F1_RENAME_TABLE_AFTER_COMPAT_CHECK);
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);

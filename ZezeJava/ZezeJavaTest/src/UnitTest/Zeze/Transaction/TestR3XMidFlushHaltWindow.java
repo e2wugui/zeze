@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Transaction;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -35,7 +36,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestR3XMidFlushHaltWindow {
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache目录互撞（对齐TestFnd754StopCommitGate）。
-	private static final int SERVER_ID = 7310;
+	private static final int SERVER_ID = FastServerIds.TEST_R3X_MID_FLUSH_HALT_WINDOW;
 
 	private Application app;
 

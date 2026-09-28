@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Transaction;
 
 import harness.Fast;
+import harness.FastServerIds;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,7 @@ public class TestApplicationRestartContract {
 	// 独立serverId避免zeze_cache_<serverId>目录与其他测试冲突。
 	// 7353曾撞TestRankCacheEvict（基点7350，第4个@Test实例=7353，类并行下本类三方法连挂，
 	// 30轮压测2026-09-19轮17）——固定字面量不得落在他类计数器基点的增长范围内，迁7470独占。
-	private static final int SERVER_ID = 7470;
+	private static final int SERVER_ID = FastServerIds.TEST_APPLICATION_RESTART_CONTRACT;
 
 	private Application app;
 

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.FastServerIds;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -25,7 +26,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestInvalidDirtyLoad {
 	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T2-1组从300起）。
-	private static final AtomicInteger nextServerId = new AtomicInteger(7560);
+	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_INVALID_DIRTY_LOAD);
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

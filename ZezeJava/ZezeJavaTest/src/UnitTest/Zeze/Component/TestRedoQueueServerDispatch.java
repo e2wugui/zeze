@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Component;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -71,7 +72,7 @@ public class TestRedoQueueServerDispatch {
 		// 模块必须在start之前注册（start后注册的表没有TableCache）
 		var serverConf = new Config();
 		serverConf.setServiceManager("disable");
-		serverConf.setServerId(761);
+		serverConf.setServerId(FastServerIds.TEST_REDO_QUEUE_SERVER_DISPATCH);
 		serverConf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseUrl("redo_queue_server_dispatch_test");

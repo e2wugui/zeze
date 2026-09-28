@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -19,8 +20,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestFnd702FinalActionsIsolation {
-	// 独立serverId隔离本地zeze_cache目录与其他@Fast测试（T1组：120起）。
-	private static final AtomicInteger nextServerId = new AtomicInteger(120);
+	private static final AtomicInteger nextServerId = new AtomicInteger(FastServerIds.TEST_FND702_FINAL_ACTIONS_ISOLATION);
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();

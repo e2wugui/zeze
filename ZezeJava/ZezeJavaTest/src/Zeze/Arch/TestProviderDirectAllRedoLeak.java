@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import harness.FastServerIds;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 public class TestProviderDirectAllRedoLeak extends AppBase {
-	private static final AtomicInteger NextId = new AtomicInteger(7410);
+	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_PROVIDER_DIRECT_ALL_REDO_LEAK);
 
 	private Application zeze;
 	private ProviderApp providerApp;

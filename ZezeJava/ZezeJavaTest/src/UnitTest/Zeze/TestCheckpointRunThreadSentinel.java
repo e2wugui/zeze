@@ -1,5 +1,6 @@
 package UnitTest.Zeze;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -29,8 +30,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestCheckpointRunThreadSentinel {
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache与Memory库互撞（对齐TestAutoKeyInvalidateRange）。
-	// 750段：避开200/400/500/700/730已占用段。
-	private static final int ServerId = 750;
+	private static final int ServerId = FastServerIds.TEST_CHECKPOINT_RUN_THREAD_SENTINEL;
 
 	private Application app;
 

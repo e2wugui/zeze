@@ -1,5 +1,6 @@
 package Zeze.Hot;
 
+import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -86,7 +87,7 @@ public class TestFnd18Hot01InstallStartLastFilter {
 	public static void setUp() throws Exception {
 		var config = new Config();
 		config.setServiceManager("disable");
-		config.setServerId(12810);
+		config.setServerId(FastServerIds.TEST_FND18_HOT01_INSTALL_START_LAST_FILTER);
 		config.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf(); // Memory 库：schemasCompatible 需要 defaultTable 库存在
 		dbConf.setDatabaseType(Config.DbType.Memory);

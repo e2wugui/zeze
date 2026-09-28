@@ -1,5 +1,6 @@
 package Zeze.Onz;
 
+import harness.FastServerIds;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestFnd876OnzRollbackAfterReady {
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache目录互撞。
-	private static final int SERVER_ID = 12876;
+	private static final int SERVER_ID = FastServerIds.TEST_FND876_ONZ_ROLLBACK_AFTER_READY;
 
 	private Application app;
 	private Onz onz;

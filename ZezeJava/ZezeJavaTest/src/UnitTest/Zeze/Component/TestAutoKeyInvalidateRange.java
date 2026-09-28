@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Component;
 
+import harness.FastServerIds;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,7 +24,7 @@ public class TestAutoKeyInvalidateRange {
 	// Application并发需要不同serverId：本地RocksCache（zeze_cache_<serverId>）每serverId一份，
 	// @Fast类并行时共用会撞RocksDB锁；Memory库按DatabaseUrl分桶，同样需要独占url。
 	// 从200起避开TakeoverTestEnv的100段。
-	private static final AtomicInteger NextServerId = new AtomicInteger(200);
+	private static final AtomicInteger NextServerId = new AtomicInteger(FastServerIds.TEST_AUTO_KEY_INVALIDATE_RANGE);
 
 	private Application app;
 

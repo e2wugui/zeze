@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Game;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -21,7 +22,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestBagMoveZero {
 	// 770段：避开200/400/500/700/730/750/760（@Fast类并行，独占RocksCache与Memory库url）。
-	private static final int ServerId = 770;
+	private static final int ServerId = FastServerIds.TEST_BAG_MOVE_ZERO;
 
 	private Application app;
 	private Bag.Module module;

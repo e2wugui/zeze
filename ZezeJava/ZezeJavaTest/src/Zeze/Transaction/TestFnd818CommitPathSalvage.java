@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import harness.FastServerIds;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,7 +33,7 @@ import Zeze.Util.FuncLong;
 @Fast
 public class TestFnd818CommitPathSalvage {
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache目录（zeze_cache_<serverId>）互撞。
-	private static final int SERVER_ID = 12818;
+	private static final int SERVER_ID = FastServerIds.TEST_FND818_COMMIT_PATH_SALVAGE;
 
 	@TempDir
 	Path tempDir;

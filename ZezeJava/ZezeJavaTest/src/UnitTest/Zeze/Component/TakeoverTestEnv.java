@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Component;
 
+import harness.FastServerIds;
 import java.util.concurrent.TimeUnit;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -21,7 +22,7 @@ final class TakeoverTestEnv {
 	// Application并发需要不同serverId：本地存储（zeze_cache_<serverId>等）每serverId一份，
 	// @Fast类并行时共用默认0会撞锁（delete failed: zeze_cache_0）。从100起避开伪造死者id(777+)。
 	private static final java.util.concurrent.atomic.AtomicInteger NextServerId =
-			new java.util.concurrent.atomic.AtomicInteger(100);
+			new java.util.concurrent.atomic.AtomicInteger(FastServerIds.TAKEOVER_POOL);
 
 	static Config newConf(String mode, long ttl, long scanPeriod) {
 		var conf = new Config();

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Game;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -30,7 +31,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestBagPartition {
 	// 760段：避开200/400/500/700/730/750/770（@Fast类并行，独占RocksCache与Memory库url）。
-	private static final int ServerId = 760;
+	private static final int ServerId = FastServerIds.TEST_BAG_PARTITION;
 
 	private static final long OwnerId = 456; // 受害者：真实持有 "bag#456"
 	private static final long AttackerId = 123; // 攻击者：拿着别人的 bagName 发协议

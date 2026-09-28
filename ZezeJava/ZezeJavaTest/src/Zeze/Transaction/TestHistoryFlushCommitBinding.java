@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import harness.FastServerIds;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeMap;
@@ -34,7 +35,7 @@ public class TestHistoryFlushCommitBinding {
 	// 7351曾与TestRankCacheEvict/TestGameLinkBrokenTriggerRc(均7350起)重叠：类并行下三方争
 	// 同目录RocksDB锁（50轮压测本类300s挂死疑云+RankCacheEvict的delete failed LOCK均此），
 	// 移到7371独占段。
-	private static final int SERVER_ID = 7371;
+	private static final int SERVER_ID = FastServerIds.TEST_HISTORY_FLUSH_COMMIT_BINDING;
 	private static final String tHistoryName = "Zeze_Builtin_HistoryModule_tHistory";
 
 	private Application app;

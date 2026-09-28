@@ -1,5 +1,6 @@
 package Zeze.Game;
 
+import harness.FastServerIds;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
@@ -23,7 +24,7 @@ public class TestRankCountNeedKey {
 	private static final int RANK_TYPE = 1;
 
 	// 与其他@Fast测试错开serverId（TestRankCacheEvict用7350段）。
-	private static final int ServerId = 7360;
+	private static final int ServerId = FastServerIds.TEST_RANK_COUNT_NEED_KEY;
 
 	private static Application newApp() throws Exception {
 		var conf = new Config();
