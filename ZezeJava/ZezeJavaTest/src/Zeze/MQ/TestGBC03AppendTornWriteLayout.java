@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import org.junit.jupiter.api.parallel.ResourceLock;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 由断言判红）。布局约定见 Fnd19MqTestSupport。
  */
 @Fast
+@ResourceLock("mq-file-statics")
 public class TestGBC03AppendTornWriteLayout {
 
 	/** 与 appendMessage 完全同构的记录字节（Long8 BE id + Int4 LE size + BMessage 体）。 */
