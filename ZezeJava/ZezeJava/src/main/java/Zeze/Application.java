@@ -914,6 +914,10 @@ public final class Application extends ReentrantLock {
 			}
 			if (historyModule != null) {
 				var hm = historyModule;
+				// startHttpServer开启的Netty HttpServer随停机关闭（hist-04）：不收口则端口与
+				// event loop泄漏；其WalkPage会触达tHistory（业务库），必须先于下方db.close。
+				// HistoryModule由Application构造持有，无独立注册面，停机收口只此一处。
+				stopStep("historyModule.stop", hm::stop);
 				stopStep("historyModule.UnRegisterZezeTables", () -> hm.UnRegisterZezeTables(this));
 				historyModule = null;
 			}
