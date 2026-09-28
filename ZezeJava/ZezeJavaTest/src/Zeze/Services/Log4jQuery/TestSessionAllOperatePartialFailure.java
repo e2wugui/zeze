@@ -29,7 +29,7 @@ import harness.Fast;
  * 实例（字段默认值），再反射注入依赖，直测operate循环。
  */
 @Fast
-public class TestFnd19GdD06 {
+public class TestSessionAllOperatePartialFailure {
 	@BeforeEach
 	public void before() {
 		Task.tryInitThreadPool();

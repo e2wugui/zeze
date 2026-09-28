@@ -33,7 +33,7 @@ import harness.Fast;
  * 注：字节预算（MAX_SCAN_BYTES=256MB）需同量级fixture，行为不测，常量断言记档。
  */
 @Fast
-public class TestFnd19GdD04 {
+public class TestQueryLimitClampAndScanBudget {
 	@BeforeEach
 	public void before() {
 		Task.tryInitThreadPool();

@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
  * findLockWaitDeadlockCycles 不存在，死锁不可检测不可打破。
  */
 @Fast
-public class TestFnd770DeadlockBreaker {
+public class TestDeadlockBreaker {
 
 	/**
 	 * 两个虚拟线程用 FastLock 构造真死锁（各持一把、交叉获取第二把）：

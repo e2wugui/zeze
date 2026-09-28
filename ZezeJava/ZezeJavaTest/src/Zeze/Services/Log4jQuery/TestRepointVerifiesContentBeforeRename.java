@@ -43,7 +43,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  */
 @Fast
 @ResourceLock("log4jquery-logger") // 同族捕获Log4jFileManager logger的测试互斥（预防性：Onz/MQ两族竞态的同款，FND19-22复盘小集）
-public class TestFnd22GdC05 {
+public class TestRepointVerifiesContentBeforeRename {
 	private static final String Active = "zeze.log";
 	// 无关rotate名文件：时间窗（09-05）与active索引内容（09-10）完全无关——误改指形态的判别点。
 	private static final String Junk = "zeze.2026-09-05.log";
@@ -119,7 +119,7 @@ public class TestFnd22GdC05 {
 
 	/**
 	 * 合法改指不回归（FND20 GD-C03语义钉子）：磁盘形态确为漏轮转（R首条=索引首条，同内容）时
-	 * 配对抽查通过，改名+改指+补登照常执行（TestFnd20GdC03同构，此处用更早的rotate时间名钉住
+	 * 配对抽查通过，改名+改指+补登照常执行（TestReconcileRepairsMissedRotation同构，此处用更早的rotate时间名钉住
 	 * "首条时间在窗内"边界：R首条时间恰等于索引beginTime）。
 	 */
 	@Test

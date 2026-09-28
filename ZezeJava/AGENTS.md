@@ -33,7 +33,7 @@ test 只跑 @Fast；integrationTest 只跑不带 fast/bench 标签的；bench �
 
 test 任务同 JVM 类级并行（fixed 8），@Fast 类必须彼此互不干扰。约束由代码承载：
 `harness/FastServerIds` 号段桌是 serverId/url 全景的唯一真相，
-`UnitTest/Zeze/TestFastAdmissionGuard` 自检区间两两不重叠——本文件不再登记号段。
+`Zeze/TestFastAdmissionGuard` 自检区间两两不重叠——本文件不再登记号段。
 
 需要 serverId 的 @Fast 测试三选一：
 
@@ -56,6 +56,11 @@ serverId 不入桌；固定端口与静态状态用 `@ResourceLock`/`@Isolated` 
 
 判例：2026-09 两轮人工选号/迁号仍留 10 处同段互撞（含迁移批自身回撞、计数器
 基点落进动态池预留段），故收口为机械守门。
+
+## 测试类命名
+
+类名用描述性行为名（常见词），不带 bug/审计/轮次编号（FndNNN、A2F1、Z1F2 之类）——
+编号映射不入 git，对读者零信息；缺陷来龙去脉归提交信息。重名时加区分词，不靠序号。
 
 ## GCM 与后端同库约定
 

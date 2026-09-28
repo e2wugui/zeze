@@ -32,10 +32,10 @@ import harness.Fast;
  * 列表中途摘除条目，CopyOnWriteArrayList摘除使其后元素左移——遍历中的会话游标失效：
  * 摘除点在游标之后时++currentIndex跳过整文件或提前终止（当前文件尾部丢失），静默错/缺数据。
  * 修复后walker记住打开的条目引用（currentEntry），hasNext入口indexOf重同步、耗尽按pos+1推进；
- * 摘除点在游标之前的左移形态正是TestFnd19GdD01三用例（同index重试形态）未覆盖的部分。
+ * 摘除点在游标之前的左移形态正是TestQuerySkipsDeletedFileEntry三用例（同index重试形态）未覆盖的部分。
  */
 @Fast
-public class TestFnd20GdC01 {
+public class TestWalkerCursorSurvivesEntryRemoval {
 	private static final String Active = "zeze.log";
 	private static final String Rotated1 = "zeze.2026-09-01.log";
 	private static final String Rotated2 = "zeze.2026-09-02.log";

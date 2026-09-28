@@ -43,7 +43,7 @@ import harness.Fast;
  * 补齐窗口内未覆盖区间走既有"无索引回退文件头线性定位"路径——慢而不错，代价随续建单调消失。
  */
 @Fast
-public class TestFnd20GdD01 {
+public class TestReconcileOutOfLockIndexBuild {
 	private static final String Active = "zeze.log";
 	// 大文件计时下限标定：15万行×30s间隔（全量索引15万条），旧代码锁内同步全扫 SimpleDateFormat
 	// 逐行解析数百毫秒起步；采样只解析1行。阈值取两形态之间的数量级空档。

@@ -36,7 +36,7 @@ import harness.Fast;
  * 这里验证的是回调接线与节流窗口；reconcile挂buildIndexTimer（5分钟）低频执行。
  */
 @Fast
-public class TestFnd19GdD02 {
+public class TestReconcileConvergesToDisk {
 	private static final String Active = "zeze.log";
 	private static final String Rotated1 = "zeze.2026-09-01.log";
 	private static final String Rotated2 = "zeze.2026-09-02.log";

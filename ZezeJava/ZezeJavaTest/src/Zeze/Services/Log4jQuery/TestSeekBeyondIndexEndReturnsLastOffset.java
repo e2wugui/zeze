@@ -30,7 +30,7 @@ import harness.Fast;
  * 尾部）；空索引维持回落0。DriverFnd22SeekLink partA的反射直证复刻为标准用例。
  */
 @Fast
-public class TestFnd22GdC02 {
+public class TestSeekBeyondIndexEndReturnsLastOffset {
 	private static final LocalDateTime Base = LocalDateTime.of(2026, 3, 1, 10, 0);
 	// 定长行（ASCII，29B/行）：21B时间头 + 空格 + 6B消息("m00000") + LF，offset=i*29精确可算。
 	private static final int LineBytes = 29;

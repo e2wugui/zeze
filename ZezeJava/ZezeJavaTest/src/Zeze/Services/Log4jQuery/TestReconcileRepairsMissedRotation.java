@@ -37,7 +37,7 @@ import harness.Fast;
  * 文件长度内）并按case-1重放：current索引改名跟随最早漏登rotate、条目改指、active按新索引补登。
  */
 @Fast
-public class TestFnd20GdC03 {
+public class TestReconcileRepairsMissedRotation {
 	private static final String Active = "zeze.log";
 	private static final String Rotated = "zeze.2026-09-20.log";
 	// C1：40行×30s间隔（每行都够10s索引阈值），末行offset≈1.2KB；C2：2行，文件长度≈60B——失配检测条件成立。

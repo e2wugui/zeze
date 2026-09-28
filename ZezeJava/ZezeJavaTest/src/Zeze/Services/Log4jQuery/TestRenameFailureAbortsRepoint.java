@@ -39,7 +39,7 @@ import harness.Fast;
  * 失败即return（不改指不补登），条目仍指current名，由下一轮reconcile摘除+常规补登收敛。
  */
 @Fast
-public class TestFnd21GdC01 {
+public class TestRenameFailureAbortsRepoint {
 	private static final String Active = "zeze.log";
 	private static final String Rotated = "zeze.2026-09-01.log";
 	// C1：40行×30s间隔（末行offset≈1.2KB）；C2：2行（≈62B）——失配检测条件成立的体量差。

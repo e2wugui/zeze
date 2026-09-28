@@ -35,7 +35,7 @@ import harness.Fast;
  * 必走reset+seek重定位。DriverFnd22Reset复刻为标准用例。
  */
 @Fast
-public class TestFnd22GdC01 {
+public class TestResetSameBeginTimeRelocates {
 	private static final String Active = "zeze.log";
 	private static final LocalDateTime Base = LocalDateTime.of(2026, 1, 1, 10, 0);
 

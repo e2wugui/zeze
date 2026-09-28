@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 纯单元：按resend的同构时序（判死分支在前、1s tick网格、双基准）做确定性模拟。
  */
 @Fast
-public class TestFnd838AgentResendInterval {
+public class TestAgentResendBeforeDeathThreshold {
 
 	private static final long AET = 2000; // RaftConfig默认AppendEntriesTimeout
 

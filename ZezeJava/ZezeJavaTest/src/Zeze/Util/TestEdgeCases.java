@@ -24,7 +24,7 @@ import Zeze.Util.StringFuzzySearch;
  * 避免主会在未应用 patch 时跑测试卡死。
  */
 @Fast
-public final class TestL5G1UtilP2 {
+public final class TestEdgeCases {
 
 	// ---------- FND-U1-19：无类型上下文 null 不再被解析成 NaN ----------
 

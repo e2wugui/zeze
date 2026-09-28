@@ -33,7 +33,7 @@ import harness.Fast;
  * 超龄会话移除+close；<=0禁用；单个close失败只warn不中断。上限暂不做（拍板：过期覆盖主要风险）。
  */
 @Fast
-public class TestFnd19GdD03 {
+public class TestIdleLogSessionExpiry {
 	private static final long TimeoutMillis = 60_000;
 
 	private Path logDir;

@@ -43,7 +43,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  */
 @Fast
 @ResourceLock("log4jquery-logger") // 同族捕获Log4jFileManager logger的测试互斥（预防性：Onz/MQ两族竞态的同款，FND19-22复盘小集）
-public class TestFnd22GdC03 {
+public class TestLinkCleanupSkipsLiveEntries {
 	private static final String Active = "zeze.log";
 	private static final String Rotated = "zeze.2026-09-08.log";
 	private static final LocalDateTime C1Base = LocalDateTime.of(2026, 9, 8, 10, 0);

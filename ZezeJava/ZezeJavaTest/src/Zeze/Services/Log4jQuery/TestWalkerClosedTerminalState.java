@@ -37,7 +37,7 @@ import harness.Fast;
  * 由E组随GE-C03处理，此处只验证walker终态本身。
  */
 @Fast
-public class TestFnd20GdC02 {
+public class TestWalkerClosedTerminalState {
 	private static final String Active = "zeze.log";
 
 	@BeforeEach

@@ -34,7 +34,7 @@ import harness.Fast;
  * 两个打开点（seek按index选中 / walker顺序遍历）分别验证。
  */
 @Fast
-public class TestFnd19GdD01 {
+public class TestQuerySkipsDeletedFileEntry {
 	private static final String Active = "zeze.log";
 	private static final String Rotated1 = "zeze.2026-09-01.log";
 	private static final String Rotated2 = "zeze.2026-09-02.log";

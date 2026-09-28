@@ -40,7 +40,7 @@ import harness.Fast;
  * "轮转进行中"的证据，保留条目作为case-1/repointMissedRotation改指的载体。
  */
 @Fast
-public class TestFnd21GdC02 {
+public class TestRotationGraceKeepsActiveEntry {
 	private static final String Active = "zeze.log";
 	private static final String Rotated = "zeze.2026-09-01.log";
 	private static final LocalDateTime C1Base = LocalDateTime.of(2026, 9, 1, 10, 0);
