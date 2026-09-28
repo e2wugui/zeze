@@ -86,8 +86,13 @@ public class Onz extends AbstractOnz {
 	 * 回填成功则迟到的redo Commit取到哨兵走ProcessCommitRequest的分歧error路径二次确认；
 	 * 条目仍在（决策未到达/已是哨兵）时失败不覆盖。成功后与markTimeoutRolledBack同型记账，
 	 * 由TTL连同槽位哨兵一起回收。
+	 * 仅procedure参与方：saga的上下文在sagas表、从不进readyProcedures（决策走FuncSagaEnd
+	 * 不走Commit），回填只会放幽灵哨兵（同tid意外收到Commit时误报分歧）；saga的停机分歧
+	 * 由Transaction.perform的error日志暴露。
 	 */
 	boolean markRolledBackAfterReady(OnzProcedure procedure) {
+		if (procedure instanceof OnzSaga)
+			return false;
 		var tid = procedure.getOnzTid();
 		if (readyProcedures.putIfAbsent(tid, TimeoutRolledBackMarker) != null)
 			return false;
