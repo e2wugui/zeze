@@ -81,7 +81,12 @@ public class MQPartition extends ReentrantLock {
 	}
 
 	public void unsubscribe(AsyncSocket sender, long sessionId) {
-		if (subscribes.remove(sessionId) != null) {
+		// 条件删（CHM.remove(key,value)，按值 equals 匹配——AsyncSocket 未覆写 equals，即引用
+		// 相等）：按 (sessionId, socket) 双身份匹配才移除。协议不鉴权，无条件按 sessionId 删除会
+		// 使携他人 sessionId 的退订请求移除对方订阅（其分区被重排、消息停投直到对端重连重订阅）。
+		// ghost 清理（MQSingle.handlePushResult）传 pendingPushMessage.getSender() 即推送时记录的
+		// 原 socket：双身份匹配语义保持，且重订阅换 socket 后旧 socket 的 ghost 清理不再误删新订阅。
+		if (subscribes.remove(sessionId, sender)) {
 			// 订阅发生变更
 			arrangeConsumer();
 		}
