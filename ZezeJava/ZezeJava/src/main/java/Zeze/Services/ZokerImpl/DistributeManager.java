@@ -59,12 +59,14 @@ public class DistributeManager {
 	// （serviceName 已过 isSafePathSegment 校验；折叠可能并键的仅尾点/空格与大小写变体，
 	// 过度串行化有界），条目数以（折叠后的）服务名为界，无攻击面放大。跨服务不受影响。
 	private final ConcurrentHashMap<String, Object> commitLocks = new ConcurrentHashMap<>();
-	// commit 进行中的服务前缀（distributes/<svc> 的 canonical 路径+分隔符）：open 的入账
-	// 原子段内检查命中即拒绝——closeUnder 清账与 renameTo 之间新开的 FileBin 会漏出回收面。
-	// 条目数=并发 commit 数，随 commit 结束摘除。Set按canonical前缀去重；commitLocks 键
-	// 已统一 foldVersionName 折叠，canonical 同一的 svc 名（如 Windows "svc"与"svc."）必得
-	// 同一把锁，后继 commit 必在前者 finally 摘 barrier 之后才进入——先结束者提前摘 barrier
-	// 的边缘不复存在，无需计数化。
+	// commit 进行中的服务前缀：distributes/<svc> 的 canonical 路径+分隔符，经 foldBarrierPath
+	// 折叠存储（zoker-03）——canonical 不归一大小写/尾点，open 键的变体拼写（Windows 上
+	// "svc"/"Svc"/"svc." 同一物理目录）裸 startsWith 分叉使变体绕过 barrier（新开 FileBin 跨越
+	// rename，Windows 阻塞 rename 使 commit 瞬时失败）。open 的入账原子段内检查命中即拒绝
+	// ——closeUnder 清账与 renameTo 之间新开的 FileBin 会漏出回收面。条目数=并发 commit 数，
+	// 随 commit 结束摘除。Set按折叠前缀去重；commitLocks 键已统一 foldVersionName 折叠，
+	// canonical 同一的 svc 名必得同一把锁，后继 commit 必在前者 finally 摘 barrier 之后才进入
+	// ——先结束者提前摘 barrier 的边缘不复存在，无需计数化。
 	private final Set<String> committingPrefixes = ConcurrentHashMap.newKeySet();
 	private volatile int keepVersions = KEEP_VERSIONS_DEFAULT;
 
@@ -202,8 +204,11 @@ public class DistributeManager {
 	}
 
 	private boolean isCommitting(String relativeCanonicalFileName) {
+		// 键经 foldBarrierPath 折叠后与折叠存储的前缀比对（zoker-03）：变体拼写不再绕过
+		// barrier。串操作无 IO，open 每次两查（锁外预检+锁内复检）开销可忽略。
+		var folded = foldBarrierPath(relativeCanonicalFileName);
 		for (var prefix : committingPrefixes)
-			if (relativeCanonicalFileName.startsWith(prefix))
+			if (folded.startsWith(prefix))
 				return true;
 		return false;
 	}
@@ -374,8 +379,9 @@ public class DistributeManager {
 	 * （跨大小写 exists 命中、renameTo 落盘名脱尾点占位），
 	 * 即"请求文本"与"盘上实际目录名"可能是同一物理实体的两个拼写。所有需要"请求名与盘上名
 	 * 判同"的位置（保留字碰撞 {@link #isReservedVersionName}、现役保护 pruneVersions、
-	 * 指针规范化 commitLocked、commitLocks 键）必须统一用本折叠，不得裸 equals/裸
-	 * toLowerCase——分叉即互斥面击穿或现役目录落入清理面。
+	 * 指针规范化 commitLocked、commitLocks 键、ServiceManager 的 opsLocks/processes 记账键
+	 * （serviceKey 单点）、barrier 前缀比对的段折叠 {@link #foldBarrierPath}）必须统一用本折叠，
+	 * 不得裸 equals/裸 toLowerCase——分叉即互斥面击穿或现役目录落入清理面。
 	 * Linux（大小写敏感 FS）上折叠会把 "V1"/"v1" 判同——过度保护（多保一个目录）与
 	 * commitLocks 键的过度串行化同款裁量：版本清理非正确性路径、commit 非热路径，可接受。
 	 */
@@ -388,6 +394,27 @@ public class DistributeManager {
 			end--;
 		}
 		return name.substring(0, end).toLowerCase(Locale.ROOT);
+	}
+
+	/**
+	 * 整路径的段级折叠（zoker-03，barrier 匹配专用）：按 '/'/'\\' 切分后每段过
+	 * {@link #foldVersionName}（剥尾点/空格+小写，判据同源单点不另立），分隔符统一 '/'，
+	 * 保留首尾空段（前导根符号与尾随分隔符——后者是前缀比对不误吞相邻段
+	 * （"…/svc/"不得命中"…/svc2/x"）的关键）。committingPrefixes 的存键与 isCommitting
+	 * 的键折叠两侧共用本函数：canonical（getCanonicalPath/getCanonicalFile）不做大小写归一、
+	 * 不剥尾点，Windows(Win32) 解析下同物理目录的变体拼写（distributes\Svc\… vs
+	 * distributes\svc.\）裸 startsWith 分叉即绕过 barrier；折叠后必匹配。
+	 * Linux 上折叠把变体（真不同物理目录）误判为提交中——方向是过度拒绝（barrier 本是
+	 * 省工预检，权威防线是锁内复检+closeUnder sweep+世代锚点），瞬时失败重试即过，
+	 * 与 foldVersionName 的 Linux 过度折叠裁量同款。仅用于 barrier 比对：
+	 * files/filesBySocket 的记账键保持 canonical 原样——折叠并键在 Linux 上会合并
+	 * 不同物理文件的记账。
+	 */
+	static String foldBarrierPath(String path) {
+		var segments = path.split("[/\\\\]", -1); // -1保留尾空段=尾随分隔符
+		for (var i = 0; i < segments.length; i++)
+			segments[i] = foldVersionName(segments[i]);
+		return String.join("/", segments);
 	}
 
 	// 错误码与 zoker.errorCode 同构（ModuleId*编码）；直构形态（zoker==null）下也要能返回协议错误码。
@@ -445,7 +472,9 @@ public class DistributeManager {
 			var serviceFrom = new File(distributeDir, serviceName);
 			String prefix;
 			try {
-				prefix = serviceFrom.getCanonicalPath() + File.separator;
+				// 折叠存储（zoker-03）：与 isCommitting 的键折叠共用 foldBarrierPath——
+				// 裸 canonical 前缀对变体拼写（Windows 同物理目录的 "Svc"/"svc."）不命中。
+				prefix = foldBarrierPath(serviceFrom.getCanonicalPath() + File.separator);
 			} catch (IOException ex) {
 				logger.error("commitService canonical {}", serviceFrom, ex);
 				return err(Zoker.eCommitFail);
@@ -592,13 +621,14 @@ public class DistributeManager {
 		if (keep <= 0)
 			return; // 全保留
 		// zoker-02：prune 段纳入与 start/stop 同粒度互斥（ServiceManager.opsLocks，键同
-		// toLowerCase 折叠）。start 持锁的 launch→writeRunPid 窗口内 run.pid 是旧身份，
-		// 本判据读到 null/旧版本就会把正在启动的版本目录当非在用删除（进程炸/NoClassDefFound，
-		// 两个 RPC 各自"成功"的静默错账）；共锁后 start 必先在锁内落盘新身份，prune 判得到它。
-		// 锁序 commitLocks→opsLocks 单向嵌套（调用方 commit 全程持 commitLocks）：start/stop
-		// 不取 commitLocks，无反向持锁路径，无环。锁键用容器目录名（=commit 请求的 serviceName
-		// 原样拼写），与 start/stop 的 RPC 名同拼写经同一 toLowerCase 折叠后同键；大小写/尾点
-		// 变体名的同型分叉与 opsLocks 既有键折叠面一致（首波 zoker-07 笔记已记的未闭合族）。
+		// foldVersionName 折叠——ServiceManager.serviceKey 单点）。start 持锁的 launch→writeRunPid 窗口内
+		// run.pid 是旧身份，本判据读到 null/旧版本就会把正在启动的版本目录当非在用删除
+		// （进程炸/NoClassDefFound，两个 RPC 各自"成功"的静默错账）；共锁后 start 必先在锁内落盘
+		// 新身份，prune 判得到它。锁序 commitLocks→opsLocks 单向嵌套（调用方 commit 全程持
+		// commitLocks）：start/stop 不取 commitLocks，无反向持锁路径，无环。锁键（prune 传容器
+		// 目录名=commit 请求的 serviceName 原样拼写）与 start/stop 的 RPC 名经同一 foldVersionName
+		// 折叠后同键——Windows 同物理容器的尾点/空格/大小写变体不再分叉两把锁（首波 zoker-07
+		// 笔记已记的未闭合族，本波闭合；Linux 变体过度串行化同既有裁量）。
 		var processManager = null != zoker ? zoker.getProcessManager() : null;
 		if (null != processManager)
 			processManager.withServiceLock(svcDir.getName(),
