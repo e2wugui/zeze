@@ -38,12 +38,16 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	// 同一队列，事务同步义务不随leader死亡灭失。
 	// 写线程约束：记录/计数器只在raft apply线程写（enqueue/clear，与既有apply串行）；水位只在
 	// 投递回调线程写（单rpc在途，Dbh2.driveSplitSync的CAS串行）。volatile供对端线程读到最新值。
+	// splitSyncGeneration=队列世代号（clearSplitSyncQueue换新时递增）：seq在换代后从1重新分配，
+	// 旧世代迟到的投递ACK若按seq推进水位，会把新世代未投递的记录误标为已送达（endSplit0门槛
+	// 假通、源桶deleteToEnd灭失数据）——advanceSplitSyncWatermark按世代戳拒绝陈旧ACK。
 	private static final byte SplitSyncRecordPrefix = 5;
 	private static final byte[] SplitSyncSeqKey = {6};
 	private static final byte[] SplitSyncWatermarkKey = {7};
 	private RocksDatabase.Table splitSyncTable;
 	private volatile long splitSyncSeq;
 	private volatile long splitSyncWatermark;
+	private volatile long splitSyncGeneration;
 
 	private static byte[] splitSyncRecordKey(long seq) {
 		var bb = ByteBuffer.Allocate(9); // 1前缀+8BE long：BE序=数值序（seq单调非负），键序即投递序
@@ -473,17 +477,22 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public static final class SplitSyncBatch {
 		public final BSplitPut.Data data;
 		public final long lastSeq;
+		public final long generation;
 
-		SplitSyncBatch(BSplitPut.Data data, long lastSeq) {
+		SplitSyncBatch(BSplitPut.Data data, long lastSeq, long generation) {
 			this.data = data;
 			this.lastSeq = lastSeq;
+			this.generation = generation;
 		}
 	}
 
 	// 取一批待投递记录（水位+1起至多maxCount条，按seq序合并为一个puts——后写覆盖先写=提交序，
 	// 重复键保留最后值）。只读不推进：水位推进仅在投递ACK后（advanceSplitSyncWatermark）。
 	// 调用方串行约束：仅Dbh2.driveSplitSync（CAS单飞）调用。
+	// 世代戳在读取任何队列状态之前快照：与并发clear（apply线程）的交错中，旧世代记录要么
+	// 携旧戳（ACK被拒，见advanceSplitSyncWatermark）要么已不可见（迭代器晚于删除创建，返回空）。
 	public SplitSyncBatch pollSplitSync(int maxCount) throws RocksDBException {
+		var generation = splitSyncGeneration;
 		var watermark = splitSyncWatermark;
 		if (watermark >= splitSyncSeq)
 			return null;
@@ -502,7 +511,16 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				count++;
 			}
 		}
-		return lastSeq == watermark ? null : new SplitSyncBatch(new BSplitPut.Data(true, puts), lastSeq);
+		return lastSeq == watermark ? null : new SplitSyncBatch(new BSplitPut.Data(true, puts), lastSeq, generation);
+	}
+
+	// 投递ACK后推进水位。世代失配=本批取自已清空换代的旧队列（EndSplit/EndMove/SetSplittingMeta
+	// apply清空后seq重新分配）：拒绝推进——旧批的送达事实属于已消亡的世代，按其seq推进会跳过
+	// 新世代尚未投递的同号记录。拒绝不抛错：投递链照常续投（下批读当前世代）。
+	public void advanceSplitSyncWatermark(SplitSyncBatch batch) throws RocksDBException {
+		if (batch.generation != splitSyncGeneration)
+			return;
+		advanceSplitSyncWatermark(batch.lastSeq);
 	}
 
 	// 投递ACK后推进水位（只前进）并持久化：同进程重启/复选续投免重放；其余副本水位为旧值，换主后
@@ -539,6 +557,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		splitSyncTable.delete(bucket.getWriteOptions(), SplitSyncWatermarkKey, 0, SplitSyncWatermarkKey.length);
 		splitSyncSeq = 0;
 		splitSyncWatermark = 0;
+		splitSyncGeneration++; // 换代：作废一切在途/未决的旧世代投递ACK（seq即将从1重新分配）
 	}
 
 	////////////////////////////////////////////////////////////

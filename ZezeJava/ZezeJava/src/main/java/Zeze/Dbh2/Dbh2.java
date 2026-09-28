@@ -1033,7 +1033,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 					return 0;
 				}
 				try {
-					stateMachine.advanceSplitSyncWatermark(batch.lastSeq); // ACK=目标raft已commit并apply，送达成立
+					stateMachine.advanceSplitSyncWatermark(batch); // ACK=目标raft已commit并apply，送达成立（世代失配=旧队列迟到ACK，内部拒绝）
 				} catch (Exception ex) {
 					logger.error("advanceSplitSyncWatermark", ex);
 					splitSyncInFlight.set(false);
