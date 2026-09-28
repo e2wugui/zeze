@@ -3,6 +3,8 @@ package Zeze.Services.Log4jQuery;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.ParsePosition;
@@ -34,7 +36,10 @@ public class Log4jFileManager extends ReentrantLock {
 
 	public static class Log4jFile {
 		public volatile File file;
-		public final LogIndex index;
+		// 轮转移交的复制接管路径（transferIndexToRotate链接失败回退）与file成对更换实例：
+		// volatile使无锁查询路径（seek/get/buildIndex快照）即时读到新实例，旧实例随引用释放
+		// （映射由GC回收）。链接接管路径条目保持原实例，赋值no-op。
+		public volatile LogIndex index;
 
 		public Log4jFile(File file, LogIndex index) {
 			this.file = file;
@@ -68,12 +73,12 @@ public class Log4jFileManager extends ReentrantLock {
 
 		// OVERFLOW节流对账/监听失效最终对账的入口。
 		// 构造只注册监视：watch必须晚于装载启动（见下方start调用处注释），
-		// 抢先消费会在files装载前走早退分支跳过索引改名。
+		// 抢先消费会在files装载前走早退分支跳过索引移交。
 		this.fileCreateDetector = new FileCreateDetector(logConf.logDir, this::onFileCreated,
 				this::reconcileThrottled, this::reconcile);
 
 		// 装载持锁：loadRotates/addByContentTime按持锁契约调用；装载完成start后，
-		// onFileCreated（监视线程）与reconcile同以此锁为串行点，交错会产生幽灵条目或索引未随行改名。
+		// onFileCreated（监视线程）与reconcile同以此锁为串行点，交错会产生幽灵条目或索引未随行移交。
 		try {
 			lock();
 			try {
@@ -82,7 +87,9 @@ public class Log4jFileManager extends ReentrantLock {
 				if (active.exists()) {
 					// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile。
 					// WatchService对rename的CREATE事件递交乱序时仍可能漏登新active。
-					files.add(Log4jFile.of(active, loadIndex(active, logConf.logActive + ".index")));
+					// 索引解析含配对校验（openActiveIndexAtLoad）：停机期/装载前轮转留下的旧内容
+					// 索引不会被配给新active（否则错配终态无修复路径——rotate已登记，repoint永不触发）。
+					files.add(Log4jFile.of(active, loadIndex(active, openActiveIndexAtLoad(active))));
 				}
 			} finally {
 				unlock();
@@ -93,10 +100,11 @@ public class Log4jFileManager extends ReentrantLock {
 			throw e;
 		}
 		// watch必须晚于装载启动：装载前消费CREATE(rotate)会走files.isEmpty()早退分支，跳过
-		// renameCurrentIndexTo，装载随即把旧内容索引配给新active且无修复路径（rotate已登记，
-		// repointMissedRotation空表早退）。装载完成（锁内loadRotates/loadIndex全部结束、锁已释放）
-		// 后启动：排队事件按序补处理，files已非空走完整case-1；装载完成到start之间发生的轮转
-		// 由5分钟reconcile兜底（未登记rotate走repointMissedRotation补改名+改指）。
+		// 索引移交（transferIndexToRotate），装载随即把旧内容索引配给新active且无修复路径（rotate
+		// 已登记，repointMissedRotation空表早退）。装载完成（锁内loadRotates/loadIndex全部结束、
+		// 锁已释放）后启动：排队事件按序补处理，files已非空走完整case-1；装载完成到start之间发生
+		// 的轮转由5分钟reconcile兜底（未登记rotate走repointMissedRotation补移交+改指；
+		// 装载前已完成的轮转由openActiveIndexAtLoad配对校验兜住）。
 		fileCreateDetector.start();
 		var period = 300_000L;
 		buildIndexTimer = TaskSpec.ofAction(this::buildIndex)
@@ -206,8 +214,10 @@ public class Log4jFileManager extends ReentrantLock {
 				if (fileName.equals(currentLogFileName)
 						&& (files.isEmpty() || !files.getLast().file.getName().equals(currentLogFileName))) {
 					var logFile = new File(logConf.logDir, fileName);
-					files.add(Log4jFile.of(logFile, loadIndex(logFile, getCurrentIndexFileName())));
-					// 登记即建硬链接，同步清理旧链接：removeOldLinkFiles只在构造期执行，不在此调用则链接随轮转累积。
+					// 运行期active索引一律新建（openFreshActiveIndex不复用current.index名字），
+					// 头部采样给beginTime使seek可选中条目，余量由buildIndex增量补齐。
+					files.add(Log4jFile.of(logFile, sampleIndexHead(logFile, openFreshActiveIndex())));
+					// 登记即建索引文件，同步清理旧链接：removeOldLinkFiles只在构造期执行，不在此调用则链接随轮转累积。
 					removeOldLinkFiles();
 				}
 				break;
@@ -218,13 +228,18 @@ public class Log4jFileManager extends ReentrantLock {
 
 				var last = files.getLast();
 				if (last.file.getName().equals(getCurrentLogFileName())) {
-					// 改名失败即中止改指与补登（回滚语义，与repointMissedRotation共用helper）：
-					// 失败后继续会让rotate条目与补登的active条目共享同一索引文件（openIndex对既存
-					// current索引新建硬链接mmap同一inode）交叉读写制造混合索引，错位跨重启固化。
-					// 中止后条目仍指current名，由下一轮reconcile摘除+常规补登收敛（配对重新正确）。
-					if (!renameCurrentIndexTo(fileName))
+					// 索引移交而非改名：active条目的索引被存活mmap持有（经indexLinks链接映射），
+					// Windows对该inode的rename/delete必败（旧方案renameCurrentIndexTo在Windows上
+					// 自首次轮转起即断裂）。改为rotate名下链接接管承载inode（条目实例/增长通道不变，
+					// 链接不可行时退回复制+换新实例），任何路径不再对存活mmap的inode做rename/delete。
+					// 移交失败即中止改指与补登（回滚语义，与repointMissedRotation共用helper）：
+					// 失败后继续会让rotate条目与补登的active条目错配内容。中止后条目仍指current名，
+					// 由下一轮reconcile摘除+常规补登收敛（配对重新正确）。
+					var rotateIndex = transferIndexToRotate(last.index, fileName);
+					if (null == rotateIndex)
 						return;
-					// 修改file指向新的logFile。index保持不变。
+					// 修改file指向新的logFile；index随移交设定（链接接管=原实例，复制接管=新实例）。
+					last.index = rotateIndex;
 					last.file = new File(logConf.logDir, fileName);
 					// 顺序无关补登：部分平台WatchService对rotate双CREATE事件的递交顺序
 					// 不保证，新active事件先到时被case 0同名守卫跳过漏登。这里在改指后主动补登：
@@ -232,8 +247,8 @@ public class Log4jFileManager extends ReentrantLock {
 					var activeName = getCurrentLogFileName();
 					var activeFile = new File(logConf.logDir, activeName);
 					if (activeFile.exists() && !files.getLast().file.getName().equals(activeName)) {
-						files.add(Log4jFile.of(activeFile, loadIndex(activeFile, getCurrentIndexFileName())));
-						removeOldLinkFiles(); // 同case 0：补登建的硬链接之后同步清理。
+						files.add(Log4jFile.of(activeFile, sampleIndexHead(activeFile, openFreshActiveIndex())));
+						removeOldLinkFiles(); // 同case 0：新建索引链接之后同步清理。
 					}
 				}
 				break;
@@ -303,10 +318,10 @@ public class Log4jFileManager extends ReentrantLock {
 	/**
 	 * 条目指向的文件已被外部清理（FileNotFoundException）：持锁摘除条目并warn。
 	 * 持锁复核failedTarget的identity：并发轮转（onFileCreated改指新文件）后条目已指向有效文件时不摘。
-	 * 轮转宽限：active名条目 + 磁盘存在未登记rotate = 轮转进行中的磁盘证据——log4j轮转
-	 * 先rename旧内容到rotate名、后重建active，两步之间active路径短暂不存在；此窗口内摘除active条目
-	 * 会使case-1守卫（last==current名）落空，"索引改名+改指"整体跳过，旧索引残留current名下被
-	 * case-0挂到新内容上（错窗空查）。宽限保留条目，交给case-1/repointMissedRotation改指；
+ * 轮转宽限：active名条目 + 磁盘存在未登记rotate = 轮转进行中的磁盘证据——log4j轮转
+ * 先rename旧内容到rotate名、后重建active，两步之间active路径短暂不存在；此窗口内摘除active条目
+ * 会使case-1守卫（last==current名）落空，"索引移交+改指"整体跳过——rotate无既有索引承接
+ * （常规补登全新建，正确但多一轮全量重建）。宽限保留条目，交给case-1/repointMissedRotation改指；
 	 * 条目指名不存在的文件只影响选中它的查询降级continue（无崩溃），rotate登记后宽限自然解除。
 	 * 摘除后文件又回来的恢复不做（罕见），由对账低频重扫补登。
 	 * @return 是否实际摘除（未摘除时get的同index重试须防自旋）。
@@ -405,7 +420,7 @@ public class Log4jFileManager extends ReentrantLock {
 			repointMissedRotation(rotates);
 
 			// 摘除消失条目：磁盘上已不存在的登记条目（.gz压缩/保留期删除无事件，只能靠重扫发现）。
-			// active名条目轮转宽限：repointMissedRotation改名失败中止时条目仍指
+			// active名条目轮转宽限：repointMissedRotation移交失败中止时条目仍指
 			// current名且文件不存在，但它是下轮改指重试的载体——磁盘有未登记rotate即轮转未收敛的证据，
 			// 不摘；rotate常规补登登记后宽限自然解除（下轮若文件仍缺失则摘）。
 			for (var file : files) {
@@ -434,13 +449,15 @@ public class Log4jFileManager extends ReentrantLock {
 				for (var kv : rotates) {
 					var logFile = new File(logConf.logDir, kv.getValue());
 					addByContentTime(Log4jFile.of(logFile,
-							sampleIndexHead(logFile, openIndex(kv.getValue() + ".index"))));
+							sampleIndexHead(logFile, openRotateIndex(kv.getValue() + ".index"))));
 				}
 			}
 			if (activeOnDisk && (files.isEmpty() || !files.getLast().file.getName().equals(getCurrentLogFileName()))) {
 				var activeFile = new File(logConf.logDir, getCurrentLogFileName());
+				// 运行期active索引一律新建（openFreshActiveIndex），不复用current.index——
+				// 它可能仍指向旧轮转世代的内容（Windows下被存活mmap钉住不可换绑）。
 				files.add(Log4jFile.of(activeFile,
-						sampleIndexHead(activeFile, openIndex(getCurrentIndexFileName()))));
+						sampleIndexHead(activeFile, openFreshActiveIndex())));
 			}
 		} catch (Exception ex) {
 			// 单轮对账失败不打断周期任务，下轮重试。
@@ -451,16 +468,17 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * 补登漏轮转的case-1"索引改名+条目改指"语义：轮转双CREATE事件被OVERFLOW吞掉/watch失效时，
+	 * 补登漏轮转的case-1"索引移交+条目改指"语义：轮转双CREATE事件被OVERFLOW吞掉/watch失效时，
 	 * 磁盘形态是"旧名消失+rotate名出现+active重建"，而既有active条目仍持旧内容的LogIndex（offset全是旧
 	 * 内容的文件内位置）——旧时间窗查询命中错文件、buildIndex给旧索引续写制造新旧混合索引且错位跨重启固化。
 	 * 检测：存在未登记rotate && active条目索引的末记录offset超出active文件当前长度——自洽索引的offset必落
 	 * 在文件长度内，超出即索引描述的是别的内容（即最早漏登rotate承载的旧内容；空索引lowerBound返回-1恒不触发）。
 	 * 处置（与onFileCreated case-1同构三步）：
-	 * 1. current索引改名跟随rotate（失败即中止改指——回滚语义与case-1共用renameCurrentIndexTo：
-	 *    继续改指会让rotate与新active双条目共享同一索引文件交叉读写）；
-	 * 2. active条目改指rotate（LogIndex对象随行，mmap按inode有效）；
-	 * 3. active名留给reconcile既有守卫按新索引补登（loadIndex发现current索引已改名即全新建）。
+	 * 1. 既有索引移交rotate名（transferIndexToRotate：链接接管承载inode、条目实例保持，链接
+	 *    不可行退回复制+新实例——不rename被存活mmap持有的inode；失败即中止改指，回滚语义与
+	 *    case-1共用）；
+	 * 2. active条目改指rotate（index随移交设定：链接接管=原实例）；
+	 * 3. active名留给reconcile既有守卫补登（openFreshActiveIndex全新建）。
 	 * 其余漏登rotate（更晚的轮转）走常规全量补登。
 	 * 限制：buildIndex已给旧索引混入新内容记录后（offset不再超长）检测不到，维持既有行为。
 	 */
@@ -486,52 +504,89 @@ public class Log4jFileManager extends ReentrantLock {
 		var rotateName = rotates.getFirst().getValue(); // 时间序最早的漏登rotate：active索引内容所在
 		// 内容配对抽查：lastOffset超长+未登记rotate都是推断，在"active真被外部
 		// 误删+磁盘恰有无关rotate名文件（人工拷入/误放/上轮未收敛残留）"叠加形态下双双失真——
-		// 直接改名会把现存索引错挂到无关文件名上（不可逆且无告警：错配.index跨重启经补登挂载，
+		// 直接移交会把现存索引错挂到无关文件名上（不可逆且无告警：错配.index跨重启经补登挂载，
 		// 该rotate自身时间窗永久不可查）。读rotate首条日志，时间落在索引时间窗内才认定配对
 		//（真漏轮转/mv型归档形态下rotate首条=索引首条，恒配对，收敛行为不变）；窗外或不可读=
-		// 证据不足不改名不改指，留给摘除循环宽限+rotate常规补登（全新索引正确配对）收敛。
+		// 证据不足不移交不改指，留给摘除循环宽限+rotate常规补登（全新索引正确配对）收敛。
 		if (!matchRotateHead(new File(logConf.logDir, rotateName), activeEntry.index))
 			return;
-		if (!renameCurrentIndexTo(rotateName)) // 失败即中止改指（回滚语义，与case-1共用）
+		var rotateIndex = transferIndexToRotate(activeEntry.index, rotateName);
+		if (null == rotateIndex) // 失败即中止改指（回滚语义，与case-1共用）
 			return;
-		logger.warn("reconcile missed rotation: repoint active entry {} -> {} with renamed index",
+		logger.warn("reconcile missed rotation: repoint active entry {} -> {} with copied index",
 				activeName, rotateName);
+		activeEntry.index = rotateIndex;
 		activeEntry.file = new File(logConf.logDir, rotateName);
 		rotates.removeFirst(); // 已由改指登记，不再常规补登
 	}
 
 	/**
-	 * 改名前内容配对抽查：读rotate文件首条可解析日志，时间落在既有索引
+	 * 移交前内容配对抽查：读rotate文件首条可解析日志，时间落在既有索引
 	 * [beginTime,endTime]窗内即认可"rotate承载的正是索引描述的内容"。真漏轮转/mv型归档形态下
 	 * rotate首条=索引首条（同内容）恒配对；无关文件首条时间在窗外即否决。不可读/无日志=证据不足
-	 * 同样否决——改名不可逆，宁可留给摘除+常规补登收敛（补登建全新索引，正确性无损只多一轮）。
+	 * 同样否决——移交不可逆，宁可留给摘除+常规补登收敛（补登建全新索引，正确性无损只多一轮）。
 	 */
 	private boolean matchRotateHead(File rotateFile, LogIndex index) {
-		try (var log = new Log4jFileSession(rotateFile, null, logConf.charsetName, logConf.logTimeFormat)) {
+		var headTime = headTimeOf(rotateFile);
+		return null != headTime && headTime >= index.getBeginTime() && headTime <= index.getEndTime();
+	}
+
+	/** 文件首条可解析日志的时间（不可读/无日志=null）：移交配对抽查与装载期active配对校验共用。 */
+	private Long headTimeOf(File logFile) {
+		try (var log = new Log4jFileSession(logFile, null, logConf.charsetName, logConf.logTimeFormat)) {
 			if (!log.hasNext())
-				return false;
-			var headTime = log.next().getTime();
-			return headTime >= index.getBeginTime() && headTime <= index.getEndTime();
+				return null;
+			return log.next().getTime();
 		} catch (Exception e) {
-			return false;
+			return null;
 		}
 	}
 
 	/**
-	 * current名索引改名跟随rotate（case-1与repointMissedRotation共用）：改名失败必须让
-	 * 调用方中止后续"条目改指+active补登"——继续会让两个条目经各自硬链接mmap同一索引inode
-	 * 交叉读写（混合索引错位跨重启固化）。单一实现收口，防止两条路径的回滚语义漂移。
-	 * @return false=改名失败（调用方须中止）；true=成功或本无current索引文件（继续后续步骤）。
+	 * 轮转索引移交（case-1与repointMissedRotation共用）：把active条目索引的承载inode以rotate名
+	 * 接管——首选createLink(R.index, 条目增长通道)：零复制、条目LogIndex实例与mmap/增长通道
+	 * 原样保持（R.index与条目链接同体，后续续建自动落R.index，重启装载直开即全量记录；单一
+	 * 事实源、无孤儿inode）。不对任何存活mmap持有的inode做rename/delete（Windows必败，与
+	 * removeOldLinkFiles注释的删除必败同机制；createLink是元数据操作，跨入口rename经本仓
+	 * jshell实证可行，链接推演同可行——但对"正被同路径mmap持有"的文件无JDK文档保证）：
+	 * 链接失败退回确定可行的复制接管（rotate名下新建实例批量复制快照，记录量=索引条数、每10s
+	 * 一条、成本低；代价：旧实例移交后失引用、映射由GC/cleaner异步释放（Java无显式unmap），
+	 * 其残留链接由removeOldLinkFiles在映射释放后收敛，Windows下收敛前逐次删除告警）。
+	 * rotate.index已存在（装载/对账抢先登记，或上轮残留）时不覆盖：返回null由调用方中止，
+	 * 留给装载校验/对账常规补登收敛（覆盖会销毁既有内容且Windows不可行）。
+	 * 失败必须让调用方中止后续"条目改指+active补登"——继续会让rotate条目与补登的active条目
+	 * 错配内容。单一实现收口，防止两条路径的回滚语义漂移。
+	 * @return 条目应持有的索引实例（链接接管=原实例原样返回；复制接管=新实例，调用方移交）；
+	 *         null=不可移交（调用方须中止）。
 	 */
-	private boolean renameCurrentIndexTo(String rotateFileName) {
-		var indexFile = Path.of(logConf.logDir, getCurrentIndexFileName()).toFile();
-		if (!indexFile.exists())
-			return true;
-		if (indexFile.renameTo(new File(logConf.logDir, rotateFileName + ".index")))
-			return true;
-		logger.error("rename index fail, rotation repoint aborted: {} -> {}",
-				indexFile, rotateFileName + ".index");
-		return false;
+	private LogIndex transferIndexToRotate(LogIndex activeIndex, String rotateFileName) {
+		var rotateIndexFile = new File(logConf.logDir, rotateFileName + ".index");
+		if (rotateIndexFile.exists()) {
+			// 装载/对账已抢先登记该rotate（如装载后才消费的排队CREATE事件）：本通道不覆盖既有
+			// 文件（覆盖即销毁既有内容，Windows亦不可行），中止后既有登记按各自配对继续工作。
+			logger.error("transfer index fail, rotation repoint aborted, rotate index exists: {}", rotateIndexFile);
+			return null;
+		}
+		try {
+			Files.createLink(rotateIndexFile.toPath(), activeIndex.getFile().toPath());
+			return activeIndex;
+		} catch (FileAlreadyExistsException e) { // exists()检查与链接之间被外部并发抢占：按既存中止
+			logger.error("transfer index fail, rotation repoint aborted, rotate index exists: {}", rotateIndexFile);
+			return null;
+		} catch (IOException linkEx) {
+			try {
+				var rotateIndex = new LogIndex(rotateIndexFile); // 新文件+新实例（构造内创建文件）
+				rotateIndex.addIndex(activeIndex.snapshotRecords());
+				logger.warn("transfer index by copy, link takeover fail: {}", linkEx.toString());
+				return rotateIndex;
+			} catch (Exception copyEx) {
+				// 半途文件尽力清理（新实例已失引用；Windows下若映射尚未被GC释放则删失败留待装载期处理）
+				if (!rotateIndexFile.delete())
+					logger.warn("transfer index fail, cleanup stale file: {}", rotateIndexFile);
+				logger.error("transfer index fail, rotation repoint aborted: {}", rotateIndexFile, copyEx);
+				return null;
+			}
+		}
 	}
 
 	private void loadRotates(String logRotateDir) throws Exception {
@@ -550,7 +605,7 @@ public class Log4jFileManager extends ReentrantLock {
 				var logFile = new File(logConf.logDir, kv.getValue());
 				// 启动装载同样按内容时间归位（addByContentTime）：名字日期与内容时序不一致时
 				// 按名序追加会从构造起就打破列表时序不变式（reconcile期间无补登可纠正）。
-				addByContentTime(Log4jFile.of(logFile, loadIndex(logFile, kv.getValue() + ".index")));
+				addByContentTime(Log4jFile.of(logFile, loadIndex(logFile, openRotateIndex(kv.getValue() + ".index"))));
 			}
 		}
 	}
@@ -595,25 +650,8 @@ public class Log4jFileManager extends ReentrantLock {
 				heldLinks.add(indexFile.toPath());
 		}
 		var links = linkDir.listFiles();
-		var max = 0L;
-		File maxFile = null;
+		var maxFile = maxLinkFile(); // max=active增长通道，永不删；轮转移交后旧实例的链接随映射释放收敛
 		if (null != links) {
-			for (var link : links) {
-				if (link.isDirectory())
-					continue;
-				var linkName = link.getName();
-				final long linkValue;
-				try {
-					linkValue = Long.parseLong(linkName);
-				} catch (NumberFormatException e) {
-					continue; // 自管目录被外部污染（desktop.ini等），跳过；下方清理循环按非max删除。
-				}
-				if (linkValue > max) {
-					max = linkValue;
-					maxFile = link;
-				}
-			}
-
 			for (var link : links) {
 				if (link != maxFile) {
 					if (heldLinks.contains(link.toPath())) {
@@ -627,49 +665,154 @@ public class Log4jFileManager extends ReentrantLock {
 		}
 	}
 
-	private File nextLinkFile() throws IOException {
-		var linkDir = new File(logConf.logDir, "indexLinks");
-		Files.createDirectories(linkDir.toPath());
-		var links = linkDir.listFiles();
+	/**
+	 * indexLinks下最大编号文件（无则null）：装载期active候选解析与nextLinkFile分配共用。
+	 * 不变量：active索引通道恒为max——装载解析接受max候选、轮转/补登新建取max+1，编号单调递增。
+	 */
+	private File maxLinkFile() {
+		var links = new File(logConf.logDir, "indexLinks").listFiles();
+		File maxFile = null;
 		var max = 0L;
 		if (null != links) {
 			for (var link : links) {
 				if (link.isDirectory())
 					continue;
-				var linkName = link.getName();
 				final long linkValue;
 				try {
-					linkValue = Long.parseLong(linkName);
+					linkValue = Long.parseLong(link.getName());
 				} catch (NumberFormatException e) {
-					continue; // 非数字名跳过，不参与max；抛出会让该次轮转登记失败且不再重试。
+					continue; // 自管目录被外部污染（desktop.ini等），跳过，不参与max。
 				}
-				if (linkValue > max)
+				if (linkValue > max) {
 					max = linkValue;
+					maxFile = link;
+				}
 			}
 		}
-		return new File(linkDir, String.valueOf(max + 1));
+		return maxFile;
+	}
+
+	private File nextLinkFile() throws IOException {
+		var linkDir = new File(logConf.logDir, "indexLinks");
+		Files.createDirectories(linkDir.toPath());
+		var max = maxLinkFile();
+		return new File(linkDir, String.valueOf((null == max ? 0 : Long.parseLong(max.getName())) + 1));
 	}
 
 	/**
-	 * 打开（必要时创建）索引文件并装载LogIndex，不扫描日志文件：current索引经硬链接打开——写走
-	 * 链接仍落原文件，且manager持链接引用使轮转rename后旧LogIndex的mmap按inode仍有效（改指条目随行）；
-	 * 非current名直接打开（文件不存在时LogIndex构造内创建）。
+	 * 打开（必要时创建）rotate名索引并装载LogIndex，不扫描日志文件：直接以rotate名打开
+	 * （文件不存在时LogIndex构造内创建）。旧代码对current名的硬链接特殊处理已随轮转方案移除
+	 * （见openActiveIndexAtLoad/openFreshActiveIndex——运行期不再使用current.index名字）。
 	 */
-	private LogIndex openIndex(String logIndexFileName) throws Exception {
-		var indexFile = new File(logConf.logDir, logIndexFileName);
-		if (logIndexFileName.equals(getCurrentIndexFileName())) {
-			if (!indexFile.exists()) {
-				Files.createFile(indexFile.toPath());
-			}
-			var linkFile = nextLinkFile();
-			var linkPath = Files.createLink(linkFile.toPath(), indexFile.toPath());
-			return new LogIndex(linkPath.toFile());
-		}
-		return new LogIndex(indexFile);
+	private LogIndex openRotateIndex(String logIndexFileName) throws Exception {
+		return new LogIndex(new File(logConf.logDir, logIndexFileName));
 	}
 
-	private LogIndex loadIndex(File logFile, String logIndexFileName) throws Exception {
-		return loadIndex(logFile, openIndex(logIndexFileName));
+	/**
+	 * 运行期为active新建空索引：独立新inode于indexLinks/(max+1)（LogIndex构造内创建文件）。
+	 * 不再使用current.index名字：运行期它可能仍指向旧轮转世代的内容——Windows下该inode被存活
+	 * mmap钉住，rename/delete/truncate皆不可为（轮转方案改"重建映射"后，运行期无任何路径能把该
+	 * 名字换绑到新inode，复用即错配）；Linux下虽可为，两端统一行为不复用。
+	 */
+	private LogIndex openFreshActiveIndex() throws Exception {
+		return new LogIndex(nextLinkFile());
+	}
+
+	/**
+	 * 装载期为active解析索引（进程刚启动、无存活映射——rename/delete/truncate/链接均可为，
+	 * 这是装载期独有、运行期不再有的窗口）。按序校验配对并择一：
+	 * 1) current.index：旧代码磁盘形态/无轮转会话留下的交接名；
+	 * 2) indexLinks最大编号：本方案运行期active索引的常驻位置（每次轮转openFreshActiveIndex
+	 *    取max+1新建inode，编号单调递增，max即最近世代）；
+	 * 3) 全新空索引（loadIndex全量重建，正确性无损只多一轮扫描）。
+	 * 校验修复"停机期/装载前轮转"的错配终态（装载自身把旧内容索引配给新active、且rotate已登记
+	 * 使repointMissedRotation永不触发——"重启自愈"原不成立）：错配候选被否决，active换正确索引。
+	 * 被否决的current.index当场删除（其内容若仍有效必另有承载名：rotate名.index或indexLinks
+	 * 链接，删名不删内容）；解析完成后把current.index重建为指向胜出inode的链接——磁盘惯例
+	 * "<active>.index随active存在"（旧代码磁盘形态、运维检视、装载候选1的自举来源）。运行期
+	 * 轮转不维护该名字：被存活mmap持有的inode不可换绑（Windows），轮转后它滞后一代（指向
+	 * 旧内容索引，仍有rotate名承载正确内容），下次装载在此重建。
+	 */
+	private LogIndex openActiveIndexAtLoad(File activeFile) throws Exception {
+		var currentIndexFile = new File(logConf.logDir, getCurrentIndexFileName());
+		if (currentIndexFile.exists()) {
+			if (indexPairsActiveFile(currentIndexFile, activeFile)) {
+				// 配对成功：链接接管（装载期无映射必成），沿用"链接是存活索引增长通道"的既有机制。
+				var linkFile = nextLinkFile();
+				var linkPath = Files.createLink(linkFile.toPath(), currentIndexFile.toPath());
+				return new LogIndex(linkPath.toFile());
+			}
+			logger.warn("load: current index not paired with active, drop stale: {}", currentIndexFile);
+			if (!currentIndexFile.delete())
+				logger.warn("load: drop stale current index fail: {}", currentIndexFile);
+		}
+		LogIndex index;
+		var maxLink = maxLinkFile();
+		if (null != maxLink && indexPairsActiveFile(maxLink, activeFile))
+			index = new LogIndex(maxLink);
+		else
+			index = new LogIndex(nextLinkFile());
+		if (!currentIndexFile.exists()) {
+			// best-effort重建交接名（候选1被否决删除/首次运行）：失败仅warn，索引通道不受影响。
+			try {
+				Files.createLink(currentIndexFile.toPath(), index.getFile().toPath());
+			} catch (IOException e) {
+				logger.warn("load: relink current index fail: {}", currentIndexFile, e);
+			}
+		}
+		return index;
+	}
+
+	/**
+	 * 装载期"索引与active内容配对"校验（判据与repointMissedRotation同构）：
+	 * 1) 空索引恒配对（无内容可失配，装载后由loadIndex重建）；
+	 * 2) 末记录offset超出active文件长度=索引描述的是别的内容（自洽索引的offset必落在文件长度内）；
+	 * 3) 内容抽查：active首条可解析日志时间须落索引[beginTime,endTime]窗内——真配对时索引首
+	 *    记录即由该首条采样而来（时间相等）；停机期轮转错配时索引窗口整体早于active内容，必在窗外。
+	 */
+	private boolean indexPairsActiveFile(File indexFile, File activeFile) {
+		long[] headTail;
+		try {
+			headTail = readIndexHeadTail(indexFile);
+		} catch (Exception e) {
+			return false;
+		}
+		if (null == headTail)
+			return true;
+		if (headTail[2] > activeFile.length())
+			return false;
+		var headTime = headTimeOf(activeFile);
+		return null != headTime && headTime >= headTail[0] && headTime <= headTail[1];
+	}
+
+	/**
+	 * 候选索引的首末有效记录：不经LogIndex实例化读取（mmap会钉住文件，Windows下随后删除被
+	 * 否决的current.index必败）。尾部连续零记录与LogIndex构造器清理同语义跳过（否则endTime=0
+	 * 必然否决真配对）。
+	 * @return {beginTime, endTime, 末记录offset}；null=无有效记录（空索引）。
+	 */
+	private static long[] readIndexHeadTail(File indexFile) throws IOException {
+		try (var raf = new RandomAccessFile(indexFile, "r")) {
+			var records = (int)(raf.length() / LogIndex.eIndexRecordSize);
+			long endTime = 0;
+			long lastOffset = 0;
+			while (records > 0) {
+				raf.seek((long)(records - 1) * LogIndex.eIndexRecordSize);
+				var time = raf.readLong(); // RandomAccessFile与mmap的putLong同为big-endian
+				var offset = raf.readLong();
+				if (time == 0 && offset == 0) {
+					--records;
+					continue;
+				}
+				endTime = time;
+				lastOffset = offset;
+				break;
+			}
+			if (0 == records)
+				return null;
+			raf.seek(0);
+			return new long[]{raf.readLong(), endTime, lastOffset};
+		}
 	}
 
 	/**

@@ -6,6 +6,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.logging.log4j.LogManager;
@@ -180,6 +181,23 @@ public class LogIndex {
 				endTime = lastKeptTime;
 		} finally {
 			rwLock.writeLock().unlock();
+		}
+	}
+
+	/**
+	 * 全量记录快照（持读锁）：轮转移交（Log4jFileManager.transferIndexToRotate）批量复制既有
+	 * 记录到新实例用。记录量=索引条数（每10s一条，日常量级KB），复制成本低。
+	 */
+	public List<Record> snapshotRecords() {
+		rwLock.readLock().lock();
+		try {
+			var size = mmap.limit() / eIndexRecordSize;
+			var records = new ArrayList<Record>(size);
+			for (var i = 0; i < size; ++i)
+				records.add(Record.of(mmap.getLong(i * eIndexRecordSize), mmap.getLong(i * eIndexRecordSize + 8)));
+			return records;
+		} finally {
+			rwLock.readLock().unlock();
 		}
 	}
 

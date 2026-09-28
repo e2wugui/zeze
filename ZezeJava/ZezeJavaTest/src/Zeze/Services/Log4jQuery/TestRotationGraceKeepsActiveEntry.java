@@ -79,7 +79,10 @@ public class TestRotationGraceKeepsActiveEntry {
 			invokeOnFileCreated(manager, logDir.resolve(Rotated));
 			assertEquals(List.of(Rotated), fileNamesOf(manager), "active条目改指rotate");
 			assertTrue(Files.exists(logDir.resolve(Rotated + ".index")), "current索引改名跟随rotate");
-			assertFalse(Files.exists(logDir.resolve(Active + ".index")), "current名下不再残留旧索引");
+			// FND24 log4j-01 新契约：移交=rotate名下硬链接接管同inode，current.index为滞后一代的
+			// 装载期链接（运行期不触碰该名，下次装载重建）——残留即语义本身，且必与R.index同inode。
+			assertTrue(Files.isSameFile(logDir.resolve(Rotated + ".index"), logDir.resolve(Active + ".index")),
+					"current.index应为指向被接管索引的滞后链接（与rotate索引同inode）");
 
 			// watch处理CREATE(X)（case-0）：active重建，按新索引登记。
 			AtomicFileWriter.replace(logDir.resolve(Active),
