@@ -269,24 +269,30 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 		var now = System.currentTimeMillis();
 		for (var e : transactions.entrySet()) {
-			var t = e.getValue();
-			if (now - t.getCreateTime() < dbh2.getDbh2Config().getBucketMaxTime())
-				continue;
 			var tid = e.getKey();
-			var state = commitAgent.query(t.getQueryIp(), t.getQueryPort(), tid, dbh2.getDbh2Config().getRpcTimeout());
-			if (Commit.eCommitNotExist == state.getState()
-					|| Commit.ePreparing == state.getState()) {
-				logger.warn("timeout undo tid={} state={}", tid, state);
-				getRaft().appendLog(new LogUndoBatch(tid));
-			} else if (Commit.eCommitting == state.getState()
-					&& now - t.getCreateTime() >= (long) dbh2.getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
-					&& committingHangWarnedTids.add(tid)) {
-				// 2PC语义：协调者已保存commitPoint(eCommitting)，桶侧无信息安全终局（误undo=跨桶
-				// 部分提交），只告警不自动终局；恢复依赖协调者CommitRocks存活，灾难场景重建协调者
-				// 进程即收敛（见docs dbh2.md）。
-				logger.error("eCommitting transaction hang: tid={} query={}:{} age={}ms; "
-								+ "coordinator commit-point exists but redo not arriving",
-						tid, t.getQueryIp(), t.getQueryPort(), now - t.getCreateTime());
+			// 单条隔离：CommitAgent.query对CommitServer短暂不可达抛RuntimeException，不隔离会
+			// 中止本轮剩余悬挂事务的超时检查（不可达查询卡住遍历首位，同轮后续undo判定逐轮推迟）。
+			try {
+				var t = e.getValue();
+				if (now - t.getCreateTime() < dbh2.getDbh2Config().getBucketMaxTime())
+					continue;
+				var state = commitAgent.query(t.getQueryIp(), t.getQueryPort(), tid, dbh2.getDbh2Config().getRpcTimeout());
+				if (Commit.eCommitNotExist == state.getState()
+						|| Commit.ePreparing == state.getState()) {
+					logger.warn("timeout undo tid={} state={}", tid, state);
+					getRaft().appendLog(new LogUndoBatch(tid));
+				} else if (Commit.eCommitting == state.getState()
+						&& now - t.getCreateTime() >= (long) dbh2.getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
+						&& committingHangWarnedTids.add(tid)) {
+					// 2PC语义：协调者已保存commitPoint(eCommitting)，桶侧无信息安全终局（误undo=跨桶
+					// 部分提交），只告警不自动终局；恢复依赖协调者CommitRocks存活，灾难场景重建协调者
+					// 进程即收敛（见docs dbh2.md）。
+					logger.error("eCommitting transaction hang: tid={} query={}:{} age={}ms; "
+									+ "coordinator commit-point exists but redo not arriving",
+							tid, t.getQueryIp(), t.getQueryPort(), now - t.getCreateTime());
+				}
+			} catch (Exception ex) {
+				logger.warn("onTimer check hanging transaction fail. tid={}", tid, ex);
 			}
 		}
 	}
