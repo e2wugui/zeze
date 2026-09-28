@@ -163,12 +163,14 @@ public class Log4jFileManager extends ReentrantLock {
 		if (fileName.equals(getCurrentLogFileName()))
 			return 0; // 当前日志文件
 
-		// 长度门槛防御重叠名（active "zeze.log" 下 "zezelog"）substring越界：rotate名至少=begin+分隔点+end。
+		// rotate名后缀=分隔点+end（单段名end为空则无后缀，日期模式自带前导点）。
+		var suffixLen = logFileEnd.isEmpty() ? 0 : logFileEnd.length() + 1;
+		// 长度门槛防御重叠名（active "zeze.log" 下 "zezelog"）substring越界：rotate名至少=begin+1字符日期段。
 		if (fileName.startsWith(logFileBegin) && fileName.endsWith(logFileEnd)
-				&& fileName.length() >= logFileBegin.length() + logFileEnd.length() + 1) {
+				&& fileName.length() >= logFileBegin.length() + suffixLen + 1) {
 			// rotate log file name = logFileBegin + logDatePattern + '.' + logFileEnd;
 			// logDatePattern默认是 .yyyy-MM-dd
-			var datePatternPart = fileName.substring(logFileBegin.length(), fileName.length() - logFileEnd.length() - 1);
+			var datePatternPart = fileName.substring(logFileBegin.length(), fileName.length() - suffixLen);
 			var formatter = new SimpleDateFormat(logConf.logDatePattern);
 			formatter.setLenient(false); // lenient归一化越界字段，非日期数字串也可被静默接受
 			var parsePosition = new ParsePosition(0);
