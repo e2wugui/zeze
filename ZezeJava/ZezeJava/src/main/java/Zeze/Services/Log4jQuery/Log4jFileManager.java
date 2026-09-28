@@ -394,23 +394,19 @@ public class Log4jFileManager extends ReentrantLock {
 				}
 			}
 
-			// 补登：rotate按时间序插入到既有active条目之前（锁内active推进要求active==last；直接追加会把
-			// active挤到中间，触发下方守卫把active重复登记——同一文件双条目，搜索结果重复）。
+			// 补登：按内容时间归位插入（addByContentTime），不按文件名日期整块插到active之前——
+			// 名字日期与内容时序不一致（时钟回拨/人工拷入）时整块插入会打破列表内容时序不变式，
+			// endTime提前终止+seek选择据不变式工作，错位条目整文件漏读。active恒为last不变
+			//（锁内active推进要求active==last；直接追加会把active挤到中间，触发下方守卫把
+			// active重复登记——同一文件双条目，搜索结果重复）。
 			// 补登只做头部采样：GB级轮转文件的全量扫描让锁内补登分钟级、watch线程（恢复场景
 			// 对账内联在其本尊上）被钉住、新CREATE事件堆积再触发OVERFLOW——"恢复动作自己制造下一轮丢失"。
 			// 采样后锁内只剩列表收敛+首条记录入索引（毫秒级，与单文件体量解耦）；余量由buildIndex锁外
 			// 续建通道增量补齐。两半缺一不可：只采样不续建=永久残索引、该条目查询永久线性定位。
 			if (!rotates.isEmpty()) {
-				var insertPos = files.size();
-				for (var i = files.size() - 1; i >= 0; --i) {
-					if (files.get(i).file.getName().equals(getCurrentLogFileName())) {
-						insertPos = i; // active条目已登记：rotate插到它前面，保持active为last。
-						break;
-					}
-				}
 				for (var kv : rotates) {
 					var logFile = new File(logConf.logDir, kv.getValue());
-					files.add(insertPos++, Log4jFile.of(logFile,
+					addByContentTime(Log4jFile.of(logFile,
 							sampleIndexHead(logFile, openIndex(kv.getValue() + ".index"))));
 				}
 			}
@@ -525,9 +521,37 @@ public class Log4jFileManager extends ReentrantLock {
 			rotates.sort(Comparator.comparingLong(KV::getKey));
 			for (var kv : rotates) {
 				var logFile = new File(logConf.logDir, kv.getValue());
-				this.files.add(Log4jFile.of(logFile, loadIndex(logFile, kv.getValue() + ".index")));
+				// 启动装载同样按内容时间归位（addByContentTime）：名字日期与内容时序不一致时
+				// 按名序追加会从构造起就打破列表时序不变式（reconcile期间无补登可纠正）。
+				addByContentTime(Log4jFile.of(logFile, loadIndex(logFile, kv.getValue() + ".index")));
 			}
 		}
+	}
+
+	/**
+	 * 按内容时间归位插入条目（持manager锁调用）：列表不变式=内容时间旧→新——walker顺序遍历、
+	 * endTime提前终止（time>endTime即停）与seek从尾向头选条目都以它为前提。插入点=内容时间
+	 * （索引beginTime，即首条记录时间）不晚于新条目的最后一个既有条目之后；active条目恒为last
+	 * （锁内推进要求active==last），其后区间不可插入。空索引（beginTime=MAX_VALUE，无合格记录）
+	 * 时间不可知，插在active之前保持轮转序。
+	 */
+	private void addByContentTime(Log4jFile entry) {
+		var activePos = -1;
+		for (var i = files.size() - 1; i >= 0; --i) {
+			if (files.get(i).file.getName().equals(getCurrentLogFileName())) {
+				activePos = i;
+				break;
+			}
+		}
+		var limit = activePos >= 0 ? activePos : files.size(); // 插入上界：active之前
+		var insertPos = 0;
+		for (var i = limit - 1; i >= 0; --i) {
+			if (files.get(i).index.getBeginTime() <= entry.index.getBeginTime()) {
+				insertPos = i + 1;
+				break;
+			}
+		}
+		files.add(insertPos, entry);
 	}
 
 	private void removeOldLinkFiles() {
