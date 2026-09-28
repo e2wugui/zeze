@@ -53,14 +53,16 @@ public class DistributeManager {
 	// 每个agent连接打开的文件键：agent在OpenFile之后、CloseFile之前断链时按连接回收FileBin，
 	// 否则RandomAccessFile句柄常驻泄漏，Windows上还锁住distributes下的文件使commit的rename失败。
 	private final ConcurrentHashMap<AsyncSocket, Set<String>> filesBySocket = new ConcurrentHashMap<>();
-	// 同服务 commit 串行化锁（services/<svc> 粒度）。键先过 isSafePathSegment 校验，
-	// 条目数以服务名为界，无攻击面放大。跨服务不受影响。
+	// 同服务 commit 串行化锁（services/<svc> 粒度）。键为 foldVersionName(serviceName) 折叠
+	// （serviceName 已过 isSafePathSegment 校验；折叠可能并键的仅尾点/空格与大小写变体，
+	// 过度串行化有界），条目数以（折叠后的）服务名为界，无攻击面放大。跨服务不受影响。
 	private final ConcurrentHashMap<String, Object> commitLocks = new ConcurrentHashMap<>();
 	// commit 进行中的服务前缀（distributes/<svc> 的 canonical 路径+分隔符）：open 的入账
 	// 原子段内检查命中即拒绝——closeUnder 清账与 renameTo 之间新开的 FileBin 会漏出回收面。
-	// 条目数=并发 commit 数，随 commit 结束摘除。Set按canonical前缀去重：折叠后不同但
-	// canonical同一的svc名（如Windows "svc"与"svc."）本就击穿commitLocks互斥，属既有多射面，
-	// 先结束者提前摘barrier的边缘随之留观（计数化可闭合，不值当）。
+	// 条目数=并发 commit 数，随 commit 结束摘除。Set按canonical前缀去重；commitLocks 键
+	// 已统一 foldVersionName 折叠，canonical 同一的 svc 名（如 Windows "svc"与"svc."）必得
+	// 同一把锁，后继 commit 必在前者 finally 摘 barrier 之后才进入——先结束者提前摘 barrier
+	// 的边缘不复存在，无需计数化。
 	private final Set<String> committingPrefixes = ConcurrentHashMap.newKeySet();
 	private volatile int keepVersions = KEEP_VERSIONS_DEFAULT;
 
@@ -296,9 +298,10 @@ public class DistributeManager {
 	 * （跨大小写 exists 命中、renameTo 落盘名脱尾点占位），
 	 * 即"请求文本"与"盘上实际目录名"可能是同一物理实体的两个拼写。所有需要"请求名与盘上名
 	 * 判同"的位置（保留字碰撞 {@link #isReservedVersionName}、现役保护 pruneVersions、
-	 * 指针规范化 commitLocked）必须统一用本折叠，不得裸 equals——分叉即现役目录落入清理面。
-	 * Linux（大小写敏感 FS）上折叠会把 "V1"/"v1" 判同——过度保护（多保一个目录，有界），
-	 * 对齐 commitLocks 键折叠的同款裁量：版本清理非正确性路径，可接受。
+	 * 指针规范化 commitLocked、commitLocks 键）必须统一用本折叠，不得裸 equals/裸
+	 * toLowerCase——分叉即互斥面击穿或现役目录落入清理面。
+	 * Linux（大小写敏感 FS）上折叠会把 "V1"/"v1" 判同——过度保护（多保一个目录）与
+	 * commitLocks 键的过度串行化同款裁量：版本清理非正确性路径、commit 非热路径，可接受。
 	 */
 	static String foldVersionName(String name) {
 		var end = name.length();
@@ -350,12 +353,13 @@ public class DistributeManager {
 		// 时间戳过滤只能缩窄窗口，互斥才能闭合。锁内为纯本地 FS 操作（rename/fsync/delete）
 		// 加 closeUnder 取 filesBySocket（清账与 open 建账互斥）：锁序 commitLocks→filesBySocket
 		// 单向嵌套，open/close 路径只取 filesBySocket，无反向持锁，无锁序环。
-		// 锁键大小写折叠（与 foldVersionName 同一判据）——裸 serviceName 作键时，
-		// Windows(NTFS) 大小写不敏感解析下 "svc"/"Svc" 指向同一物理容器却各持一把锁，互斥失效，
-		// 上述竞态经大小写变体复活。Linux（大小写敏感 FS）上折叠会过度串行化两个真不同的服务：
-		// commit 非热路径，可接受；canonical 路径作键在目录尚不存在（首次 commit，恰是竞态
-		// 高危形态）时不折叠大小写，弃用。条目数仍以（折叠后的）服务名为界，无攻击面放大。
-		synchronized (commitLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
+		// 锁键折叠直接复用 foldVersionName（剥尾点/空格+小写）——裸 serviceName 或仅小写折叠时，
+		// Windows(Win32) 路径规范化（大小写不敏感+剥尾点/空格）下 "svc"/"Svc"/"svc." 指向同一
+		// 物理容器却各持一把锁，互斥失效，上述竞态经变体名复活。Linux（大小写敏感 FS）上折叠会
+		// 过度串行化两个真不同的服务（含尾点/空格变体）：commit 非热路径，可接受；canonical
+		// 路径作键在目录尚不存在（首次 commit，恰是竞态高危形态）时不折叠，弃用。条目数仍以
+		// （折叠后的）服务名为界，无攻击面放大。
+		synchronized (commitLocks.computeIfAbsent(foldVersionName(serviceName), __ -> new Object())) {
 			// barrier 须在 closeUnder 之前设置：此后 open 对该前缀的入账在原子段内被拒，
 			// 更早完成入账的必被 closeUnder 收殓（sweep 取同一把锁且 CHM 迭代可见先完成的
 			// put）——杜绝 sweep 与 renameTo 之间新开 FileBin 漏出回收面。
