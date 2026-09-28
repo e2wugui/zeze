@@ -115,7 +115,8 @@ public class OnzProcedure implements FuncLong {
 				if (stub.getOnz().markTimeoutRolledBack(this)) {
 					// CAS占用成功（条目仍是自己的）：无并发决策，安全以超时异常结束（抛出→本地事务回滚）。
 					// 槽位哨兵即超时标记：迟到的Commit取走哨兵即真实不一致（协调者提交了已回滚的
-					// 参与方），由ProcessCommitRequest记error暴露——取走与标记在同一map的CAS原子域
+					// 参与方），由ProcessCommitRequest记error并应答eDivergence暴露（协调者侧
+					// 特判记error=onz-01的分歧信号）——取走与标记在同一map的CAS原子域
 					// 内互斥可见，无漏报窗口。
 					commitFuture.setException(new RuntimeException(
 							"onz wait commit/rollback timeout. tid=" + getOnzTid() + " name=" + getName()));

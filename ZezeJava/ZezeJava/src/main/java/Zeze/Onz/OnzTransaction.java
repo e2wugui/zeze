@@ -396,6 +396,20 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				continue; // 继续通知其余参与方
 			}
 			if (r.getResultCode() != 0) {
+				// onz-01（FND25裁定：协调者侧分歧信号补强先行，死线传播留评估）：参与方应答
+				// eDivergence=已超时自愈回滚的参与方收到迟到Commit=部分提交分歧（协调者提交了
+				// 已回滚的参与方；哨兵由ProcessCommitRequest一次性消耗，本应答不会重复出现）。
+				// 这是"无故障假成功"的唯一协调者侧可见信号，error带tid/参与方暴露后按成功收场：
+				// 不置commitFail（记录照删）、不重发——重发只会命中null幂等路径应答0，无法翻正
+				// 已回滚的参与方，保留记录空转一轮毫无收益且与"应答0"语义等价（防循环）。
+				// 死线传播（Commit下发前对最早ready参与方剩余预算的强制检查/心跳续期）留后续设计。
+				if (IModule.getErrorCode(r.getResultCode()) == AbstractOnz.eDivergence) {
+					logger.error("onz divergence: 已超时回滚的参与方收到迟到决策=部分提交分歧"
+							+ " (participant rolled back before Commit arrived while coordinator committed;"
+							+ " data divergence). tid={}, zeze={}. 收场不变：不置commitFail、记录照删、不重发.",
+							onzTid, zeze);
+					continue; // 继续通知其余参与方（同下方fatal的既定形态）
+				}
 				// 参与方未决（ready条目还在），保留索引重发是唯一收敛路径。
 				commitFail = true;
 				logger.fatal("commit error {}", IModule.getErrorCode(r.getResultCode()));
@@ -428,8 +442,21 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			try {
 				r.SendForWait(onzServer.getZezeInstance(zeze)).await();
 				if (r.getResultCode() != 0) {
-					allDelivered = false;
-					logger.fatal("rollback error {}", IModule.getErrorCode(r.getResultCode()));
+					// onz-01（FND25裁定）：与commit()同源的eDivergence特判——已超时自愈回滚的
+					// 参与方收到迟到Rollback。Rollback决策下结局一致（两侧均已回滚，本参与方无数据
+					// 分歧），但信号本身有效：协调者决策延迟超过了参与方决策等待预算（ONZ-F25-01
+					// 根因），error带tid/参与方暴露预算违例后按投递了结收场（allDelivered不变、
+					// 不保留记录重发——重发只会命中null幂等路径应答0，防循环；对齐commit()特判）。
+					if (IModule.getErrorCode(r.getResultCode()) == AbstractOnz.eDivergence) {
+						logger.error("onz divergence signal: 已超时回滚的参与方收到迟到决策"
+								+ " (participant rolled back before Rollback arrived -- outcome aligned,"
+								+ " no data divergence for this participant; signal = coordinator decision"
+								+ " latency exceeded participant decision-wait budget, ONZ-F25-01 root cause)."
+								+ " tid={}, zeze={}. 按投递了结：不保留记录重发.", onzTid, zeze);
+					} else {
+						allDelivered = false;
+						logger.fatal("rollback error {}", IModule.getErrorCode(r.getResultCode()));
+					}
 				}
 			} catch (Exception ex) { // 逐参与方捕获（同commit()）。
 				// rollback()运行在OnzServer.perform的rc!=0路径或catch块内：异常外传会被

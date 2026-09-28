@@ -256,13 +256,20 @@ public class Onz extends AbstractOnz {
 		var procedure = readyProcedures.remove(tid);
 		if (null != procedure) {
 			if (procedure == TimeoutRolledBackMarker) {
-				// 本参与方已超时自愈回滚，协调者却持久化了
-				// commit决策——真实不一致（静默部分提交），error暴露。仍应答成功：改错误码会让
-				// redo无限重发（条目已不存在，永无应答成功的可能），且无法与已提交后的重复发送区分。
+				// 本参与方已超时自愈回滚（或ready后本地回滚回填哨兵），协调者却持久化了
+				// commit决策——真实不一致（静默部分提交），error暴露。
+				// onz-01（FND25裁定）：应答eDivergence取代此前的应答0——这是"无故障假成功"分歧
+				// 的唯一协调者侧可见信号（此前仅本参与方一条error、无人关联；协调者按0收场删记录，
+				// 调用方完全无感）。FND5-44"改错误码会让redo无限重发"的顾虑不适用于本形态：
+				// 哨兵随本次remove一次性消耗，迟到的重发命中null走幂等应答0（与已提交的重复发送
+				// 不可区分，见下方else分支）——"永无应答成功的可能"只存在于对null路径持续回错的
+				// 形态；协调者侧对eDivergence特判按成功收场且不重发（OnzTransaction.commit），
+				// 不成环。
 				logger.error("Commit for timeout-rolled-back onz tid={}"
 						+ " (participant rolled back before decision arrived; coordinator committed)"
 						+ " -- data divergence exposed.", tid);
 				timeoutRolledBack.remove(tid); // 记账清理（漏删亦由TTL回收）
+				return errorCode(eDivergence); // 框架对非0返回值回发结果码（对齐eSagaNotFound路径）
 			} else
 				procedure.commit();
 		} else {

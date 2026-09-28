@@ -1794,7 +1794,8 @@
 			<enum name="eSagaTidExist" value="3"/>
 			<enum name="eOnzTidNotFound" value="4"/>
 			<enum name="eRollback" value="5"/>
-			<enum name="eCompensateFail" value="6"/> 用户补偿执行失败（用户结果码记录在参与方日志，上下文保留sagas待重发）
+			<enum name="eCompensateFail" value="6"/>
+			<enum name="eDivergence" value="7"/> 参与方决策等待已超时回滚，迟到的Commit/Rollback命中哨兵=协调者与参与方分歧（协调者侧信号，按成功收场不重发） 用户补偿执行失败（用户结果码记录在参与方日志，上下文保留sagas待重发）
 
 			<enum name="eFlushAsync" value="1"/>
 			<enum name="eFlushImmediately" value="2"/>

@@ -472,6 +472,18 @@ public class OnzServer extends AbstractOnz {
 			for (var rpc : rpcs) {
 				if (rpc.getResultCode() == 0)
 					continue;
+				// onz-01（FND25裁定）：参与方决策等待已超时自愈回滚，迟到的Commit/Rollback命中
+				// 哨兵的一次性分歧应答。Commit分歧=部分提交（redo重发无法翻正已回滚的参与方）；
+				// Rollback与本地一致=已收敛（预算违例信号已由协调者侧error暴露，OnzTransaction.
+				// rollback/commit特判）。两种都按该参与方了结（removeOk不动）：重发只会命中null
+				// 幂等路径应答0（哨兵一次性消耗，见Onz.ProcessCommitRequest），保留记录空转一轮
+				// 毫无收益——否则该应答会落入下方"redo result error"分支制造假失败噪声并推迟收敛。
+				if (IModule.getErrorCode(rpc.getResultCode()) == AbstractOnz.eDivergence) {
+					logger.error("onz redo: 参与方应答eDivergence（已超时回滚的参与方收到迟到决策"
+									+ "=部分提交分歧/预算违例信号）. tid={}, decision={}, resultCode={}",
+							tid, rec.commitDecision ? "eCommitting" : "ePreparing", rpc.getResultCode());
+					continue;
+				}
 				// eSagaNotFound：上下文已清理（业务失败自清理/参与方TTL回收/已处理过的
 				// 重复发送），无补偿对象，可忽略（线上为moduleId组合值，解码后比较）。
 				if (IModule.getErrorCode(rpc.getResultCode()) == AbstractOnz.eSagaNotFound) {
