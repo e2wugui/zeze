@@ -36,6 +36,11 @@ public class CommitRocks {
 	private final RocksDatabase.Table commitPoint;
 	private final RocksDatabase.Table commitIndex;
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
+	// 2PC决定档（eCommitting）专用sync写（复用RocksDatabase共享单例，勿每调用new）：
+	// 决定必须先于效果（commitBatch分发）fsync落盘——非sync下协调者机器断电重启后
+	// commit-point随WAL丢失，存活桶侧onTimer超时query得eCommitNotExist会undo掉
+	// 已向客户端确认成功的事务。ePreparing是可撤销中间态，保持非sync。
+	private final WriteOptions syncWriteOptions = RocksDatabase.getSyncWriteOptions();
 	// 周期守护：redoTimer(RocksDB迭代+逐桶RPC get阻塞等待)进worker池不占调度线程；
 	// close有界等待在飞一轮
 	private final DaemonTimer redoDaemon = new DaemonTimer("CommitRocks.redoTimer", 60_000, this::redoTimer);
@@ -286,7 +291,7 @@ public class CommitRocks {
 		try (var batch = database.borrowBatch()) {
 			commitPoint.put(batch, tidBytes, tidBytes.length, bb.Bytes, bb.WriteIndex);
 			commitIndex.put(batch, tidBytes, tidBytes.length, bbIndex.Bytes, bbIndex.WriteIndex);
-			batch.commit(writeOptions);
+			batch.commit(state == Commit.eCommitting ? syncWriteOptions : writeOptions);
 		}
 	}
 
