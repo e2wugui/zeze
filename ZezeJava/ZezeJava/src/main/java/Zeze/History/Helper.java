@@ -1,8 +1,11 @@
 package Zeze.History;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.function.LongFunction;
 import java.util.function.ToLongFunction;
 import Zeze.Application;
@@ -120,13 +123,13 @@ public class Helper {
 			registerLogList1(list1Class);
 		for (var list2Class : result.list2)
 			registerLogList2(list2Class);
-		for (var list2Dynamic : result.list2Dynamic.values())
-			registerLogList2Dynamic(list2Dynamic.factories.getKey(), list2Dynamic.factories.getValue());
+		for (var e : sortedDynamic(result.list2Dynamic))
+			registerLogList2Dynamic(e.getValue().factories.getKey(), e.getValue().factories.getValue());
 		for (var map1KV : result.map1)
 			registerLogMap1(map1KV.getKey(), map1KV.getValue());
 		for (var map2KV : result.map2)
 			registerLogMap2(map2KV.getKey(), map2KV.getValue());
-		for (var e : result.map2Dynamic.entrySet())
+		for (var e : sortedDynamic(result.map2Dynamic))
 			registerLogMap2Dynamic(e.getKey().getKey(), e.getValue().factories.getKey(), e.getValue().factories.getValue());
 		for (var meta : result.map1Metas)
 			registerLogMap1Meta(meta);
@@ -138,7 +141,7 @@ public class Helper {
 			registerLogSortedMap1((Class<? extends Comparable>)kv.getKey(), kv.getValue());
 		for (var kv : result.sortedMap2)
 			registerLogSortedMap2((Class<? extends Comparable>)kv.getKey(), kv.getValue());
-		for (var e : result.sortedMap2Dynamic.entrySet()) {
+		for (var e : sortedDynamic(result.sortedMap2Dynamic)) {
 			registerLogSortedMap2Dynamic((Class<? extends Comparable>)e.getKey().getKey(),
 					e.getValue().factories.getKey(), e.getValue().factories.getValue());
 		}
@@ -211,9 +214,9 @@ public class Helper {
 				// list dynamic 家族同走 putDynamicFamily：HashSet 去重对 lambda/method-ref 工厂
 				// 不生效（KV 值equals但工厂按对象身份比较）且无告警；而 list 家族的冲突面比
 				// map 更无条件（map 的 typeId 至少按 keyClass 分桶，list 是全局固定单值，见
-				// DependsResult.list2Dynamic注释）。对齐 map2Dynamic 形态：先到家族保留，
-				// 后到不同工厂的家族warn留痕后丢弃（Log.register 同 typeId 先到先得，丢弃不改注册
-				// 终态，只补上"回放端将用先注册家族的工厂解码"的信号）。list 无 key 维度，
+				// DependsResult.list2Dynamic注释）。对齐 map2Dynamic 形态：同typeId冲突按
+				// 家族来源名字典序稳定决胜，败者warn留痕（决胜收敛在putDynamicFamily一处，
+				// 与depends扫描的到达顺序无关）。list 无 key 维度，
 				// 键用固定哨兵（与 map2Dynamic 的 (keyClass,DynamicBean) 键同形态）。
 				putDynamicFamily(result.list2Dynamic, KV.create(DynamicBean.class, DynamicBean.class), beanClass, v);
 			} else
@@ -245,10 +248,15 @@ public class Helper {
 	}
 
 	// dynamic集合的logTypeId不含值工厂身份：同(keyClass,DynamicBean)的第二个
-	// 家族与首个同typeId，Log.register先到先得，后注册家族的日志在回放端用别人的create工厂
-	// 解码（显式Bean:id编号重叠时静默解出错误bean，默认编号抛incompatible中断回放）。
-	// 后到的不同工厂家族不静默丢弃，warn留痕（含两个宿主bean类名与变量名）；
-	// 语义冲突的启动error需要每变量的specialTypeId→beanClass映射表（生成器侧暴露）。
+	// 家族与首个同typeId，Log.register按注册表先到先得保留先注册者，后注册家族的日志在
+	// 回放端用别人的create工厂解码（显式Bean:id编号重叠时静默解出错误bean，默认编号抛
+	// incompatible中断回放）。
+	// 决胜（hist-01）：同typeId冲突按家族来源名（宿主bean全名#变量名）字典序稳定决胜，小者胜
+	// ——替代putIfAbsent的先到先得（先到由depends扫描的到达顺序决定，DependsResult各容器的
+	// Class对象identityHashCode桶序跨JVM/重启不稳定，胜者可翻转）。where是schema的纯函数：
+	// 同schema下无论家族以何种顺序到达，终胜者恒为where字典序最小者，跨JVM重启恒定。
+	// 败者warn留痕（含双方宿主bean类名与变量名）；语义冲突的启动error需要每变量的
+	// specialTypeId→beanClass映射表（生成器侧暴露）。
 	// list分支（dependsList）接入同型登记：List2Meta 的 dynamic typeId 是
 	// 全局固定单值（无keyClass分桶），list 家族冲突比 map 更无条件——warn 是当前唯一的检测面。
 	@SuppressWarnings({"unchecked", "rawtypes"})
@@ -256,12 +264,30 @@ public class Helper {
 										 @NotNull Class<?> beanClass, @NotNull BVariable.Data v) {
 		var family = newDynamicFamily(beanClass, v);
 		var exist = (DynamicFamily)families.putIfAbsent(key, family);
-		if (exist != null && (exist.factories.getKey() != family.factories.getKey()
-				|| exist.factories.getValue() != family.factories.getValue()))
-			logger.warn("dynamic collection family dropped: same log typeId with different factories."
-					+ " keep={} drop={} key=({},{})。回放端按先注册家族的工厂解码，显式Bean:id编号重叠时"
-					+ "将静默解出错误类型的bean（FND8-30）",
-					exist.where, family.where, ((KV)key).getKey(), ((KV)key).getValue());
+		if (exist == null || (exist.factories.getKey() == family.factories.getKey()
+				&& exist.factories.getValue() == family.factories.getValue()))
+			return; // 首个家族，或同工厂重复登记：无冲突
+		var keep = exist.where.compareTo(family.where) <= 0 ? exist : family;
+		var drop = keep == exist ? family : exist;
+		if (keep != exist)
+			families.put(key, keep);
+		logger.warn("dynamic collection family dropped: same log typeId with different factories."
+				+ " keep={} drop={} key=({},{})。胜者按家族来源名字典序稳定决胜（跨进程恒定，"
+				+ "不由注册顺序决定）；回放端按胜者家族的工厂解码，显式Bean:id编号重叠时"
+				+ "将静默解出错误类型的bean（FND8-30）",
+				keep.where, drop.where, ((KV)key).getKey(), ((KV)key).getValue());
+	}
+
+	// 遍历侧确定序（hist-01）：动态家族的注册遍历按决胜键（家族来源名where）排序后进行，
+	// HashMap的identityHashCode桶序不参与任何注册结果。决胜唯一发生在putDynamicFamily
+	// （字典序小者胜），本遍历只是按确定顺序注册各key的终胜者：同key胜者唯一；跨key的typeId
+	// 互异（map/sortedMap按keyClass分桶，list全局唯一哨兵键），即使typeId发生跨key哈希碰撞，
+	// 胜者也由where序决定——注册表终态与注册顺序都是schema的纯函数，跨JVM/重启恒定可复现。
+	private static <K> ArrayList<Map.Entry<K, DynamicFamily>> sortedDynamic(
+			@NotNull HashMap<K, DynamicFamily> families) {
+		var list = new ArrayList<Map.Entry<K, DynamicFamily>>(families.entrySet());
+		list.sort(Comparator.comparing(e -> e.getValue().where));
+		return list;
 	}
 
 	@SuppressWarnings("unchecked")
