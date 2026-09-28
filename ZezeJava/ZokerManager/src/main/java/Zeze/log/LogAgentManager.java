@@ -47,7 +47,11 @@ public class LogAgentManager {
 		httpServer.start(netty, 9980);
 	}
 
+	// 四个JSON API的实际body仅几KB：无界上限（Integer.MAX_VALUE）下未认证端口的单个
+	// 大请求体即整体入堆（OOM/长GC），拖垮整个进程（含LogService）。
+	private static final int API_MAX_CONTENT_LENGTH = 1024 * 1024;
+
 	private static void addHandler(String path, HttpEndStreamHandle handle) {
-		httpServer.addHandler(path, Integer.MAX_VALUE, TransactionLevel.Serializable, DispatchMode.Normal, handle);
+		httpServer.addHandler(path, API_MAX_CONTENT_LENGTH, TransactionLevel.Serializable, DispatchMode.Normal, handle);
 	}
 }
