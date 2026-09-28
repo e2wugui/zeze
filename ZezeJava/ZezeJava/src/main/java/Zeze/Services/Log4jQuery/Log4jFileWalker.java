@@ -52,10 +52,14 @@ public class Log4jFileWalker {
 			return;
 		}
 
+		// 先接管新会话再关旧会话：closeCurrent对旧会话的close抛IOException时，
+		// manager返回的新会话已由current持有，随后的close()/closeCurrent()统一释放，不泄漏。
+		var stale = current;
 		currentIndex = out.value;
-		closeCurrent();
 		current = log4jFileSession;
 		currentEntry = outEntry.value; // 与会话同源捕获，下标仅供循环条件参考
+		if (stale != null)
+			stale.close();
 	}
 
 	private void slowSeek(long time) throws IOException {

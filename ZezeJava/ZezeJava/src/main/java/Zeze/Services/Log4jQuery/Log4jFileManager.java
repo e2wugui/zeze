@@ -126,7 +126,17 @@ public class Log4jFileManager extends ReentrantLock {
 				out.value = i;
 				if (null != outEntry)
 					outEntry.value = file;
-				logFileSession.seek(time);
+				try {
+					logFileSession.seek(time);
+				} catch (IOException e) {
+					// 已构造的会话（RAF已打开）在定位失败时必须关闭，否则fd只能等GC兜底回收
+					try {
+						logFileSession.close();
+					} catch (IOException closeEx) {
+						e.addSuppressed(closeEx);
+					}
+					throw e;
+				}
 				return logFileSession;
 			}
 		}
