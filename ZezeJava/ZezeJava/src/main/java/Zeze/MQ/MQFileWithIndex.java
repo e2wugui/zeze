@@ -52,10 +52,11 @@ public class MQFileWithIndex {
 	// 软删除窗口状态（lock内）：当前候选最老已确认段的段基 + 首次观察到的时间。
 	private long recycleCandidateBase = -1;
 	private long recycleCandidateSince;
-	// 撕裂写悬挂状态（lock内）：上次 appendMessage 的 write 失败（POSIX 短写
-	// 语义：出错前记录前缀已持久化——磁盘满/IO错）且回滚截断未证实成功时置位，并记录
-	// "上次成功结尾"（回滚目标位）。悬挂未解除前不得再追加：追加流是 O_APPEND，写入恒落
-	// 物理尾，孤儿前缀不物理除掉，后续记录必然接错位（段内布局错位的根源）。
+	// 撕裂写悬挂状态（lock内）：上次 appendMessage 因 write 失败（POSIX 短写语义：出错前记录
+	// 前缀已持久化——磁盘满/IO错）或因"文件写成功但未到提交点 meta.put"（索引/meta put 抛
+	// RocksDBException 等，段内已残留未提交记录）按 torn 记账，且回滚截断未证实成功时保持置位，
+	// 并记录"上次成功结尾"（回滚目标位）。悬挂未解除前不得再追加：追加流是 O_APPEND，写入恒落
+	// 物理尾，孤儿字节不物理除掉，后续记录必然接错位（段内布局错位的根源）。
 	private boolean tornWritePending;
 	private long tornRollbackOffset;
 	// 分区关闭标志（lock内）：close 在自身锁内置位（流关闭一并移入锁内，锁序
@@ -336,6 +337,11 @@ public class MQFileWithIndex {
 									filePosition += messageSize;
 								}
 
+								// 连续装载校验：headMessageId 即期望 id——首条由上面的定位循环以
+								// messageId == headMessageId 判定命中，此后每装载一条 ++（见循环尾），
+								// 后续每个记录头的 id 必须精确等于期望值；不符（同 id 双孤儿记录等
+								// 布局错位形态）在此响亮抛出，进入 pullMessage 既有的失败-复位-重试
+								// 路径，而不是把错位字节当消息静默装载投递。
 								while (true) {
 									var messageBuffer = new byte[messageSize];
 									filePosition += messageBuffer.length;
@@ -355,8 +361,13 @@ public class MQFileWithIndex {
 										throw new RuntimeException("read message head eof.");
 									fileInput.read(messageHead);
 									var bbHead = ByteBuffer.Wrap(messageHead);
-									bbHead.ReadLong8(); // skip result
+									messageId = bbHead.ReadLong8(); // 不再跳过：校验记录 id
 									messageSize = bbHead.ReadInt4();
+									if (messageId != headMessageId)
+										throw new RuntimeException("read message id mismatch. topic=" + topic
+												+ " partition=" + partitionId
+												+ " expectMessageId=" + headMessageId
+												+ " actualMessageId=" + messageId);
 								}
 							}
 						} else {
@@ -555,19 +566,40 @@ public class MQFileWithIndex {
 				rollbackTornTail();
 				throw e; // 上抛：索引/meta 未写，调用方（SendMessage handler）回错误，分区继续运行
 			}
-			if (nextMessageId % makeIndexPeriod == 0) {
-				var bytesMessageId = new byte[8];
-				ByteBuffer.longBeHandler.set(bytesMessageId, 0, nextMessageId);
-				var bytesFileOffset = new byte[8];
-				ByteBuffer.longBeHandler.set(bytesFileOffset, 0, fileOffset);
-				indexes.lastEntry().getValue().put(bytesMessageId, bytesFileOffset);
-			}
+			// 提交语义收口：文件 write 成功不等于提交，meta.put 成功才算（与 recoverTornTail 的
+			// "meta.next 是唯一提交点"恢复语义对齐）。文件写成功后至 meta.put 成功前的任何异常
+			//（(A) 索引 put、(B) meta.put 的 RocksDBException 等）都按 torn 记账：物理截断回
+			// fileOffset，不留"完整孤儿记录"——否则 rocksdb 错误消除后生产者重试以同 id 再写，
+			// 段内双同 id 完整记录（孤儿在前），fillMessage 顺序装载时错位投递。
+			var idIncremented = false;
+			try {
+				if (nextMessageId % makeIndexPeriod == 0) {
+					var bytesMessageId = new byte[8];
+					ByteBuffer.longBeHandler.set(bytesMessageId, 0, nextMessageId);
+					var bytesFileOffset = new byte[8];
+					ByteBuffer.longBeHandler.set(bytesFileOffset, 0, fileOffset);
+					indexes.lastEntry().getValue().put(bytesMessageId, bytesFileOffset);
+				}
 
-			// 递增消息编号，准备下一次使用，并且马上写入meta。
-			++nextMessageId;
-			var bbNextMessageId = new byte[8];
-			ByteBuffer.longBeHandler.set(bbNextMessageId, 0, nextMessageId);
-			meta.put(nextMessageIdName, bbNextMessageId);
+				// 递增消息编号，准备下一次使用，并且马上写入meta。
+				++nextMessageId;
+				idIncremented = true;
+				var bbNextMessageId = new byte[8];
+				ByteBuffer.longBeHandler.set(bbNextMessageId, 0, nextMessageId);
+				meta.put(nextMessageIdName, bbNextMessageId);
+			} catch (Exception e) {
+				// 提交点未到，与上面 IOException 路径同构的 torn 记账：截断成功则孤儿记录物理
+				// 消失（重启无异）；失败则悬挂到下次 append 前补滚（上面的 torn 检查段语义不变）。
+				// (A) put 异常但条目已可见（rocksdb 非事务写"报错但已写"的窄形态）时无碍：其
+				// id==回退后的 nextMessageId，不在装载区间 [firstMessageId,nextMessageId) 内，
+				// 重启 recoverTornTail 的 deleteIndexFrom 亦会清除。
+				if (idIncremented)
+					--nextMessageId; // (B) 失败发生在 ++ 之后：内存位点回退，恢复"该记录未提交"
+				tornWritePending = true;
+				tornRollbackOffset = fileOffset;
+				rollbackTornTail();
+				throw e; // 上抛（外层包 RuntimeException）：索引未写/meta 未提交，调用方回错误，分区继续运行
+			}
 
 			// 文件大小超过100M，就新建文件和索引表。
 			// 除了文件大小，还需额外判断下一个消息Id也是makeIndexPeriod整除，这样新文件的第一个消息肯定会被建立索引，
