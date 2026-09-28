@@ -74,6 +74,13 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 				value.followerApply(log);
 			put(key, value);
 			break;
+
+		default:
+			// 未知state（坏数据，或前向兼容的新版写端扩展）不得静默跳过：游标照常推进=
+			// 该entry无声丢失，与模块“分歧必须中断”的哲学（Edit目标缺失即抛）冲突。
+			// fail-loud中断本批，游标停在本记录前，人工排查该tHistory记录。
+			throw new RuntimeException("unknown Changes.Record state=" + logRecord.getState()
+					+ ", table=" + originTable.getName());
 		}
 		return key;
 	}
