@@ -725,6 +725,17 @@ public class ServiceManager {
 	 */
 	public void stopService(StopService r) throws InterruptedException {
 		var serviceName = r.Argument.getServiceName();
+		// serviceName 直接拼入 services/<svc> 容器路径（readRunPid/resolveRunPid 的 run.pid
+		// 读/删原语与领养后的停机原语），非单段名（".."逃逸/分隔符/绝对盘符）可把原语指到
+		// services/ 之外——对齐 startService/commitService 的同构守卫直接拒绝。
+		// 非法名不可能是已管理服务，按幂等 not-running 回执（stop 无专用名错误码）。
+		if (!DistributeManager.isSafePathSegment(serviceName)) {
+			logger.error("stopService rejected: unsafe serviceName='{}'", serviceName);
+			r.Result.setServiceName(serviceName);
+			r.Result.setState(STATE_STOPPED);
+			r.Result.setPs("not-running");
+			return;
+		}
 		// 同服务 start/stop 全程持 opsLocks（见字段注释）——摘账后的停机窗口内
 		// 并发 start 不得进入（否则领养"正在被终止"的进程，回执 Running 即谎言）。
 		synchronized (opsLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
