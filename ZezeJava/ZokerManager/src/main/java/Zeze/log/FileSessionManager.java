@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Services.LogAgent;
+import Zeze.Util.Func1;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -21,7 +22,9 @@ import org.apache.logging.log4j.Logger;
  * <p>会话回执比对：复用会话前用 {@link LogSessionBinding#matches} 比对
  * 请求三元组与绑定记录（allView 另比对服务器键集快照，zoker-04），不匹配（或
  * changeSession 强制重建）时关旧建新——客户端漏置 changeSession 不会串数据源，
- * changeSession 只是"强制重建"提示符而非正确性前提。比对+重建的收口见 {@link #resolve}。</p>
+ * changeSession 只是"强制重建"提示符而非正确性前提。比对+重建的收口见 {@link #resolve}。
+ * 死会话自愈（zoker-03）：复用命中但服务端已拒绝本会话（空闲回收后的 LogicError）时，
+ * {@link #operateRecovering} 驱逐重建并重试一次，同 IP 同参数查询不再恒 system error。</p>
  *
  * <p><b>闲置回收</b>：绑定记录最后活跃时间（复用命中/新建时刷新，见
  * {@link LogSessionBinding#lastActiveNanos()}），resolve 入口低频惰性清扫（
@@ -113,6 +116,40 @@ public class FileSessionManager {
 	/** 当前日志服务器键集快照（排序 join——集合无序，比对须与顺序无关；键集小，构建开销可忽略）。 */
 	private static String allServersKeyOf(LogAgent logAgent) {
 		return String.join(",", new TreeSet<>(logAgent.getLogServers()));
+	}
+
+	/**
+	 * 会话级错误的可捕获特征（zoker-03）：Session.checkResultCode（Log4jQuery 域，只读）对非零
+	 * resultCode 的 search/browse 应答在 get 时抛 {@code RuntimeException("search/browse error <code>")}
+	 * ——错误码只嵌在消息文本里，按前缀识别是唯一可捕获层。网络/超时类异常
+	 * （CompletionException 等）无此前缀，不触发重建。
+	 */
+	private static final String SESSION_LEVEL_ERROR_PREFIX = "search/browse error ";
+
+	/**
+	 * resolve + operate 的会话级错误自愈包装（zoker-03）：首次 operate 抛会话级错误
+	 * （服务端已拒绝本会话——典型：闲置超 sessionIdleTimeoutMillis 被 cleanIdleLogSessions
+	 * 回收后的 LogicError；复用判据只比静态三元组，死会话被永久复用、同 IP 同参数查询恒
+	 * system error 无自愈）时：以 changeSession 语义驱逐重建（resolve 的关旧建新路径，
+	 * 旧会话走 closeExecutor 关闭）→ 同参数重建 → 重试一次；重试仍失败原样上抛
+	 * （只一层，防循环）。非会话级错误（网络/超时）原样上抛不重建——重建会白白丢弃
+	 * 仍有效的会话与游标。重建后游标归零：continuation 请求（reset=false）的重试返回
+	 * 首页数据——死会话本无正确续页可言，首页数据优于永久报错。
+	 */
+	public static <T> T operateRecovering(LogAgent logAgent, SocketAddress socketAddress,
+										  boolean changeSession, boolean requestAll,
+										  String serverName, String logName,
+										  Func1<Object, T> operate) throws Exception {
+		var session = resolve(logAgent, socketAddress, changeSession, requestAll, serverName, logName);
+		try {
+			return operate.call(session);
+		} catch (RuntimeException e) {
+			var message = e.getMessage();
+			if (null == message || !message.startsWith(SESSION_LEVEL_ERROR_PREFIX))
+				throw e;
+			var fresh = resolve(logAgent, socketAddress, true, requestAll, serverName, logName);
+			return operate.call(fresh);
+		}
 	}
 
 	/** 清扫节流：距上次清扫不足 {@link #SWEEP_INTERVAL_NANOS} 直接跳过；CAS 到点只放行一个线程。 */

@@ -42,22 +42,28 @@ public class BrowseLogHandle implements HttpEndStreamHandle {
 			con.setContainsType(searchLogParam.getContainsType());
 			con.setPattern(searchLogParam.getPattern());
 
-			// 会话回执比对：复用会话前比对请求的(会话类型, serverName, logName)与绑定记录，
-			// 不匹配（或changeSession强制重建）时关旧建新——正确性不依赖前端记得置changeSession。
+			// 会话回执比对（FileSessionManager.resolve：三元组+allView键集快照，不匹配/漂移即关旧建新）
+			// + 会话级错误驱逐重建重试一次（operateRecovering，zoker-03）：正确性不依赖前端
+			// 记得置 changeSession，服务端空闲回收后的死会话不再恒 system error。
 			SocketAddress socketAddress = x.channel().remoteAddress();
 			if (serverName != null && !serverName.trim().isEmpty()) {
-				Session session = (Session)FileSessionManager.resolve(logAgent, socketAddress,
-						searchLogParam.isChangeSession(), false, serverName, logName);
-				x.setUserState(session);
-				BResult.Data data = session.browse(searchLogParam.getLimit(),
-						searchLogParam.getOffsetFactor(), searchLogParam.isReset(), con).get(1, TimeUnit.MINUTES);
+				BResult.Data data = FileSessionManager.operateRecovering(logAgent, socketAddress,
+						searchLogParam.isChangeSession(), false, serverName, logName,
+						session -> {
+							x.setUserState(session);
+							return ((Session)session).browse(searchLogParam.getLimit(),
+									searchLogParam.getOffsetFactor(), searchLogParam.isReset(), con)
+									.get(1, TimeUnit.MINUTES);
+						});
 				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.succResult(data)));
 			} else {
-				SessionAll session = (SessionAll)FileSessionManager.resolve(logAgent, socketAddress,
-						searchLogParam.isChangeSession(), true, null, logName);
-				x.setUserState(session);
-				BResult.Data data = session.browse(searchLogParam.getLimit(),
-						searchLogParam.getOffsetFactor(), searchLogParam.isReset(), con);
+				BResult.Data data = FileSessionManager.operateRecovering(logAgent, socketAddress,
+						searchLogParam.isChangeSession(), true, null, logName,
+						session -> {
+							x.setUserState(session);
+							return ((SessionAll)session).browse(searchLogParam.getLimit(),
+									searchLogParam.getOffsetFactor(), searchLogParam.isReset(), con);
+						});
 				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.succResult(data)));
 			}
 		} catch (Exception e) {
