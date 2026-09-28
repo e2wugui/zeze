@@ -1,7 +1,8 @@
 package Zeze.Dbh2;
 
 import java.util.ArrayList;
-import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.BRefused;
@@ -38,6 +39,10 @@ public class CommitRocks {
 	// 周期守护：redoTimer(RocksDB迭代+逐桶RPC get阻塞等待)进worker池不占调度线程；
 	// close有界等待在飞一轮
 	private final DaemonTimer redoDaemon = new DaemonTimer("CommitRocks.redoTimer", 60_000, this::redoTimer);
+	// 本进程在途事务tid：登记必须先于ePreparing落盘，移除只能随removeTransactionRecord
+	//（记录删除之后）。redoTimer对ePreparing先查此集：命中=在途，同进程慢prepare不得
+	// 误判为崩溃残留undo；未命中=本进程重启后的真残留（集合随进程消失），照常清理。
+	private final Set<Long> inFlightTids = ConcurrentHashMap.newKeySet();
 
 	public CommitRocks(Dbh2AgentManager manager, int serverId) throws RocksDBException {
 		this.manager = manager;
@@ -70,6 +75,10 @@ public class CommitRocks {
 					redo(it.key(), Dbh2Agent::commitBatch);
 					break;
 				case Commit.ePreparing:
+					// 迭代值可能陈旧（事务此刻已推进到eCommitting甚至已完结）：在途集合的移除
+					// 只发生在记录删除之后，命中即可安全跳过；未命中时redo内重读commitPoint兜底。
+					if (inFlightTids.contains(ByteBuffer.ToLongBE(it.key(), 0)))
+						break;
 					redo(it.key(), Dbh2Agent::undoBatch);
 					break;
 				}
@@ -80,11 +89,16 @@ public class CommitRocks {
 	private void redo(byte[] key, Func2<Dbh2Agent, Long, TaskCompletionSource<
 			RaftRpc<BBatchTid.Data, EmptyBean.Data>>> func) throws RocksDBException {
 
-		var value = Objects.requireNonNull(commitPoint.get(key));
+		var tid = ByteBuffer.ToLongBE(key, 0);
+		var value = commitPoint.get(key);
+		if (null == value) {
+			// 索引迭代到redo执行的间隙记录可能已被并发删除（事务正常完结），非崩溃残留。
+			logger.warn("redo but commit point not found. tid={}", tid);
+			return;
+		}
 		var state = new BTransactionState.Data();
 		state.decode(ByteBuffer.Wrap(value));
 
-		var tid = ByteBuffer.ToLongBE(key, 0);
 		try {
 			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>>>();
 			for (var e : state.getBuckets()) {
@@ -179,6 +193,7 @@ public class CommitRocks {
 		var tidBytes = null != tidEncoded ? tidEncoded : new byte[8];
 		ByteBuffer.longBeHandler.set(tidBytes, 0, tid);
 		var prepareTime = System.currentTimeMillis();
+		inFlightTids.add(tid); // 先登记再写ePreparing：redoTimer"先读索引、后查在途"的次序才无竞态
 		try {
 			saveCommitPoint(tidBytes, state, Commit.ePreparing);
 			var futures = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
@@ -289,6 +304,10 @@ public class CommitRocks {
 		} catch (RocksDBException e) {
 			// 这个错误仅仅记录日志，所有没有删除的index，以后重启和Timer会尝试重做。
 			logger.error("", e);
+		} finally {
+			// 移除在途登记必须在记录删除之后（含删除失败：残留index仍交由Timer重做，
+			// redo重发的undo与协调者终局路径已发的undo幂等）。
+			inFlightTids.remove(ByteBuffer.ToLongBE(tidBytes, 0));
 		}
 	}
 }
