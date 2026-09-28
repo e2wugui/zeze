@@ -60,7 +60,9 @@ public class Log4jFileManager extends ReentrantLock {
 	public Log4jFileManager(LogServiceConf.LogConf logConf) throws Exception {
 		this.logConf = logConf;
 		var fulls = logConf.logActive.split("\\.");
-		// active名可含多个点号（如a.b.log）：begin=末段之外的全部，end=末段。
+		// active名可含多个点号（如a.b.log）：begin=末段之外的全部，end=末段；
+		// 单段名（无点号，如zeze）end=""，rotate名=begin+日期模式（无尾部分隔点），
+		// 名字生成与匹配（getCurrentLogFileName/testFileName）都按此形态工作。
 		this.logFileEnd = fulls.length > 1 ? fulls[fulls.length - 1] : "";
 		this.logFileBegin = fulls.length > 1 ? String.join(".", Arrays.copyOf(fulls, fulls.length - 1)) : fulls[0];
 
@@ -144,7 +146,9 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	public String getCurrentLogFileName() {
-		return logFileBegin + "." + logFileEnd;
+		// logFileEnd为空（单段名）时不拼分隔点："zeze."与磁盘名"zeze"永不相等，
+		// active条目的登记/改指/补登匹配全部失配。
+		return logFileEnd.isEmpty() ? logFileBegin : logFileBegin + "." + logFileEnd;
 	}
 
 	public String getCurrentIndexFileName() {
@@ -329,8 +333,8 @@ public class Log4jFileManager extends ReentrantLock {
 		for (var file : files)
 			registered.add(file.file.getName());
 		for (var f : listFiles) {
-			if (!f.isFile() || !f.getName().endsWith(".log"))
-				continue;
+			if (!f.isFile() || !f.getName().endsWith(logFileEnd))
+				continue; // 名字形态预过滤与命名规则对齐：单段名(end="")时退化为直通，由testFileName裁决
 			if (1 == testFileName(f.getName(), null) && !registered.contains(f.getName()))
 				return true;
 		}
@@ -372,8 +376,8 @@ public class Log4jFileManager extends ReentrantLock {
 			var rotates = new ArrayList<KV<Long, String>>(); // 未登记的rotate文件（补登用）
 			var activeOnDisk = false;
 			for (var f : listFiles) {
-				if (!f.isFile() || !f.getName().endsWith(".log"))
-					continue;
+				if (!f.isFile() || !f.getName().endsWith(logFileEnd))
+					continue; // 同hasUnregisteredRotateOnDisk：预过滤与命名规则对齐（单段名直通）
 				var date = new OutLong();
 				var type = testFileName(f.getName(), date);
 				if (type == 0)
@@ -522,7 +526,7 @@ public class Log4jFileManager extends ReentrantLock {
 		var rotates = new ArrayList<KV<Long, String>>();
 		if (null != listFiles) {
 			for (var file : listFiles) {
-				if (file.isFile() && file.getName().endsWith(".log")) {
+				if (file.isFile() && file.getName().endsWith(logFileEnd)) { // 预过滤与命名规则对齐（单段名直通）
 					var date = new OutLong();
 					if (1 == testFileName(file.getName(), date))
 						rotates.add(KV.create(date.value, file.getName()));
