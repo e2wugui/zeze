@@ -40,11 +40,23 @@ public class FileCreateDetector {
 		this.consumer = onCreateConsumer;
 		this.onOverflowConsumer = onOverflowConsumer;
 		this.onWatchInvalidConsumer = onWatchInvalidConsumer;
-		this.watchService = FileSystems.getDefault().newWatchService();
+		// watchDir先解析再建watchService：Paths.get对非法路径抛运行时异常，顺序反了会泄漏已建实例。
 		this.watchDir = Paths.get(watchDir);
+		this.watchService = FileSystems.getDefault().newWatchService();
 		// 构造只注册不启动：事件在内核排队不丢。消费线程不得抢在调用方装载完成前处理事件——
 		// 调用方状态未就绪时的早退分支会跳过本应随事件执行的处置（见Log4jFileManager.start调用处）。
-		this.watchDir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+		try {
+			this.watchDir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+		} catch (IOException e) {
+			// 注册失败（目录缺失NoSuchFileException等）上抛：此时未start、调用方拿不到本实例引用，
+			// 已创建的watchService无人回收（stopAndJoin不可达）——必须自关，否则泄漏至进程退出。
+			try {
+				watchService.close();
+			} catch (IOException closeEx) {
+				e.addSuppressed(closeEx);
+			}
+			throw e;
+		}
 	}
 
 	/**
