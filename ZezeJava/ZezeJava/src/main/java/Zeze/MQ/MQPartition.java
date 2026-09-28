@@ -58,10 +58,19 @@ public class MQPartition extends ReentrantLock {
 	// 之后由 MQManager.deletePartition 清理段文件/索引列族/meta。分区删除不触发 arrangeConsumer：
 	// 订阅集合未变，其余分区的 sessionId 取模绑定不受影响。
 	public void removePartition(int index) throws IOException {
-		var partition = partitions.remove(index);
-		if (null != partition) {
-			partition.bind(0, null);
-			partition.close();
+		// 全程持本锁，与 arrangeConsumer 串行化：锁外摘除时其 CHM 弱一致迭代可在 remove 落地前
+		// 读到本分区，随后的 bind 阻塞在 MQSingle 锁上待下方 close 排空让锁，之后在已 close 分区上
+		// 重设 bindSocket 并重推（closed 拒绝见 MQSingle.bind/tryPushMessage）。锁序沿既有方向
+		// managementLock→本锁→MQSingle 锁（arrangeConsumer 同向），无反向取锁路径。
+		lock();
+		try {
+			var partition = partitions.remove(index);
+			if (null != partition) {
+				partition.bind(0, null);
+				partition.close();
+			}
+		} finally {
+			unlock();
 		}
 	}
 

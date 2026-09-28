@@ -265,6 +265,10 @@ public class MQSingle extends ReentrantLock {
 	}
 
 	private void tryPushMessage() {
+		// 已 close 分区为终态，不再推送：close 置 bindSocket=null 已短路常规路径，此闸收口
+		// close 后任何重设绑定的路径（closed 只在 close 锁内置位，本方法所有调用点均持锁，读取精确）。
+		if (closed)
+			return;
 		// 退避窗口：分区推送整体暂停（含 sendMessage/ack 等事件触发的重推）——
 		// 保序的代价（队头毒消息挡住后继，见 onPushFailure），窗口由 retryPending 表达。
 		if (retryPending)
@@ -306,8 +310,8 @@ public class MQSingle extends ReentrantLock {
 			// meta.put 是对已毁句柄的 native 写（RocksDatabase.dropTable 销毁句柄的契约），失败分支
 			// tryDeadLetter 的 dlq.put 落在 deleteRange 之后则复活"分区已删却永无人认领"的孤儿死信键
 			//（要消灭的跨代际残留形态）。两闸同点收口；at-least-once 无损：分区正在
-			// 删除，位点丢失是删除的既定语义；pending 复位与续推由 finally/bindSocket=null 自然兜底
-			//（tryPushMessage 对已关分区恒短路）。
+			// 删除，位点丢失是删除的既定语义；pending 复位由 finally 必达，续推按早退条件先验
+			// 跳过（见 finally；tryPushMessage 另有 closed 短路，双闸）。
 			if (managerStopped() || closed)
 				return;
 			loadCounter.incrementAndGet(); // 处理失败也进行计数。
@@ -343,7 +347,11 @@ public class MQSingle extends ReentrantLock {
 			// pending永久悬挂，该分区推送永久停止。
 			try {
 				pendingPushMessage = null;
-				tryPushMessage();
+				// 续推先验早退条件（managerStopped||closed 的对称收口，不单依赖 tryPushMessage
+				// 的 closed 短路）：早退分支不推进位点，无条件续推会使同一条消息以 RTT 速度
+				// 零退避循环重推（删除/停机窗口内持续到 close 到达本分区）。
+				if (!closed && !managerStopped())
+					tryPushMessage();
 			} finally {
 				unlock();
 			}
@@ -484,6 +492,11 @@ public class MQSingle extends ReentrantLock {
 	public void bind(long sessionId, AsyncSocket socket) {
 		lock();
 		try {
+			// close 后分区为终态，拒绝重绑：removePartition 与 arrangeConsumer 的交叠窗口内
+			// 晚到的 bind 会在已 close 分区上重设 bindSocket 并重推（close 不清 messageQueue，
+			// 队列非空恒成立）。bind(0,null) 的静默调用对已关分区本就是幂等空操作，一并拒绝无害。
+			if (closed)
+				return;
 			this.bindSessionId = sessionId;
 			this.bindSocket = socket;
 			if (null != bindSocket)
