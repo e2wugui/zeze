@@ -338,8 +338,8 @@ public class Log4jFileManager extends ReentrantLock {
 		for (var file : files)
 			registered.add(file.file.getName());
 		for (var f : listFiles) {
-			if (!f.isFile() || !f.getName().endsWith(logFileEnd))
-				continue; // 名字形态预过滤与命名规则对齐：单段名(end="")时退化为直通，由testFileName裁决
+			if (!f.isFile())
+				continue; // 名字判定唯一权威是testFileName，不做预过滤
 			if (1 == testFileName(f.getName(), null) && !registered.contains(f.getName()))
 				return true;
 		}
@@ -381,8 +381,8 @@ public class Log4jFileManager extends ReentrantLock {
 			var rotates = new ArrayList<KV<Long, String>>(); // 未登记的rotate文件（补登用）
 			var activeOnDisk = false;
 			for (var f : listFiles) {
-				if (!f.isFile() || !f.getName().endsWith(logFileEnd))
-					continue; // 同hasUnregisteredRotateOnDisk：预过滤与命名规则对齐（单段名直通）
+				if (!f.isFile())
+					continue; // 同hasUnregisteredRotateOnDisk：名字判定归testFileName
 				var date = new OutLong();
 				var type = testFileName(f.getName(), date);
 				if (type == 0)
@@ -531,7 +531,7 @@ public class Log4jFileManager extends ReentrantLock {
 		var rotates = new ArrayList<KV<Long, String>>();
 		if (null != listFiles) {
 			for (var file : listFiles) {
-				if (file.isFile() && file.getName().endsWith(logFileEnd)) { // 预过滤与命名规则对齐（单段名直通）
+				if (file.isFile()) {
 					var date = new OutLong();
 					if (1 == testFileName(file.getName(), date))
 						rotates.add(KV.create(date.value, file.getName()));
