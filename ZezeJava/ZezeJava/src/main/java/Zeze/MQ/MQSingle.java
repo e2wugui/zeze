@@ -320,7 +320,17 @@ public class MQSingle extends ReentrantLock {
 				// 先持久化推进位点再出队：increaseFirstMessageId 抛异常（如rocksdb写失败）时消息
 				// 留在队首、位点未推进（内存位点在持久化成功后才前移），下面finally重推的就是
 				// 同一条（at-least-once），位点不会跳过它。
-				fileWithIndex.increaseFirstMessageId();
+				try {
+					fileWithIndex.increaseFirstMessageId();
+				} catch (RuntimeException e) {
+					// 位点持久化失败视同投递失败一投（onPushFailure：计数+退避+PushRetryMax
+					// 死信兜底）。不能裸抛：finally 的续推会以 RTT 速度零退避热循环重推同一条
+					//（消费已成功，重投只剩 error 刷屏，退避/死信上限全部旁路）。
+					logger.error("mq persist firstMessageId failed, treat as push failure. topic={} partition={}",
+							topic, partitionIndex, e);
+					onPushFailure();
+					return; // 未出队，处置完毕，仅余 finally 的复位
+				}
 				messageQueue.poll();
 				headRetryCount = 0; // 队头换消息，重投计数清零
 				tryStartBackgroundFill();
@@ -368,7 +378,19 @@ public class MQSingle extends ReentrantLock {
 			var messageId = fileWithIndex.getFirstMessageId();
 			var message = messageQueue.peek();
 			if (tryDeadLetter(messageId, message)) {
-				fileWithIndex.increaseFirstMessageId();
+				try {
+					fileWithIndex.increaseFirstMessageId();
+				} catch (RuntimeException e) {
+					// 死信已落（终态）但位点推进失败：不裸抛（finally 的续推会零退避热循环重推
+					// 已终态消息），退避重推同一条——重推后 ack 成功路径重试位点推进，推进成功
+					// 即出队恢复；持续失败时再达上限走 tryDeadLetter，死信键含 messageId，同键
+					// 覆盖幂等。消息留队首、位点未动，重启重放一条已死信消息由 at-least-once
+					// 消费幂等兜底。
+					logger.error("mq persist firstMessageId failed after dead letter, keep message at head. "
+							+ "topic={} partition={}", topic, partitionIndex, e);
+					scheduleRetryPush(retryBackoffMs(headRetryCount, config));
+					return;
+				}
 				messageQueue.poll();
 				headRetryCount = 0;
 				tryStartBackgroundFill(); // 队头出队腾出空间，续装载（成功路径同款）
