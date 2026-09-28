@@ -168,7 +168,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		var transAccessRecords = new HashSet<Record>();
 		boolean allRead = true;
 		for (var ar : trans.getAccessedRecords().values()) {
-			var record = ar.atomicTupleRecord.record;
+			var record = ar.atomicTupleRecord.record();
 			if (ar.dirty || record.getDirty())
 				allRead = false;
 
@@ -291,8 +291,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 	@SuppressWarnings("unused")
 	private static void build(@NotNull Transaction trans, @NotNull TreeMap<String, ArrayList<Object>> groupTrans) {
 		for (var ar : trans.getAccessedRecords().values()) {
-			groupTrans.computeIfAbsent(ar.atomicTupleRecord.record.getTable().getName(), __ -> new ArrayList<>())
-					.add(ar.atomicTupleRecord.record.getObjectKey());
+			groupTrans.computeIfAbsent(ar.atomicTupleRecord.record().getTable().getName(), __ -> new ArrayList<>())
+					.add(ar.atomicTupleRecord.record().getObjectKey());
 		}
 	}
 
@@ -332,7 +332,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		if (largest.recordSet != null || !allRead) {
 			// merge 孤立记录。
 			for (var ar : trans.getAccessedRecords().values()) {
-				var record = ar.atomicTupleRecord.record;
+				var record = ar.atomicTupleRecord.record();
 				var rrs = record.getRelativeRecordSet();
 				if (rrs.recordSet == null || rrs == largest /* is self. ugly */)
 					largest.merge(record); // 合并孤立记录。这里包含largest是孤立记录的情况。

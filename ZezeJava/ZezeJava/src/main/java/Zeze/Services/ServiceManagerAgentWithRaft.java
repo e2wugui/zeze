@@ -65,17 +65,17 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		// 不支持的组合在构造时明确报错（fail-fast），而非运行期以NPE/halt形态失败。
 		if (config.isHistory())
 			throw new IllegalStateException("ServiceManager=raft does not support Id128 allocate: " +
-				"History('" + config.getHistory() + "') requires it. " +
-				"Use a non-raft ServiceManager or disable History.");
-	// 空白sessionName（漏配sessionName属性时解析为空串）会与其它同样漏配的
-	// server共享会话行互相接管（服务闪断，见ServiceManagerWithRaft.ProcessLoginRequest）。
+					"History('" + config.getHistory() + "') requires it. " +
+					"Use a non-raft ServiceManager or disable History.");
+		// 空白sessionName（漏配sessionName属性时解析为空串）会与其它同样漏配的
+		// server共享会话行互相接管（服务闪断，见ServiceManagerWithRaft.ProcessLoginRequest）。
 		// 经Application+ServiceManager=raft启动已默认为projectName#serverId；直接构造要求显式
 		// 配置非空名字——启动即失败优于连上后被服务端拒绝或与同名者互踩。
 		var smConf = config.getServiceManagerConf();
 		if (smConf == null || smConf.getSessionName().isBlank())
 			throw new IllegalStateException("ServiceManagerConf.sessionName must not be blank " +
-				"(FND5-35: session name must be unique per server). " +
-				"Configure <ServiceManagerConf sessionName=\"...\"/> or set it via setSessionName().");
+					"(session name must be unique per server). " +
+					"Configure <ServiceManagerConf sessionName=\"...\"/> or set it via setSessionName().");
 		super.config = config;
 
 		var raftConf = RaftConfig.load(config.getServiceManagerConf().getRaftXml());
@@ -191,7 +191,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		}
 	}
 
-	////////////////////////////////////////////////////////////////////////
+	/// /////////////////////////////////////////////////////////////////////
 	@Override
 	protected long ProcessKeepAliveRequest(@NotNull KeepAlive r) {
 		if (onKeepAlive != null)
@@ -362,8 +362,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		synchronized (editServiceLock) {
 			for (var info : arg.getAdd())
 				verify(info.getServiceIdentity());
-				// 先更新本地记录再发送远程请求（重连重放的数据来源）。失败时回滚本次真实变更
-				// ：重放只有add语义（onLoginSuccess全量addAll，无remove），remove失败的
+			// 先更新本地记录再发送远程请求（重连重放的数据来源）。失败时回滚本次真实变更
+			// ：重放只有add语义（onLoginSuccess全量addAll，无remove），remove失败的
 			// 条目若不回滚——本地已删、服务端永续残留，连接存活期间无人再发注销，僵尸注册
 			// 持续分发流量。只记录本次真实变更（新增/覆盖旧值/真实删除）；重放路径的幂等put
 			// 键已存在（prev==reg），不属于变更，回滚不得清空重放源。

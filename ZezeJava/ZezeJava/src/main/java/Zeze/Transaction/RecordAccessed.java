@@ -39,7 +39,7 @@ public final class RecordAccessed extends Bean {
 	public @Nullable Bean newestValue() {
 		//noinspection ConstantConditions
 		var log = Transaction.getCurrent().getLog(objectId());
-		return log instanceof PutLog ? ((PutLog)log).getValue() : atomicTupleRecord.strongRef;
+		return log instanceof PutLog ? ((PutLog)log).getValue() : atomicTupleRecord.strongRef();
 	}
 
 	public void put(@NotNull Transaction current, @Nullable Bean putValue) {

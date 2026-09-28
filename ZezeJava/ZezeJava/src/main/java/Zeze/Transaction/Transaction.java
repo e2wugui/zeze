@@ -577,13 +577,13 @@ public final class Transaction {
 				lastSp.mergeCommitActions(actions);
 				lastSp.commit();
 				for (var v : accessedRecords.values()) {
-					v.atomicTupleRecord.record.setNotFresh();
+					v.atomicTupleRecord.record().setNotFresh();
 					if (v.dirty) {
-						v.atomicTupleRecord.record.commit(v);
-						var newValue = v.atomicTupleRecord.record.getSoftValue();
+						v.atomicTupleRecord.record().commit(v);
+						var newValue = v.atomicTupleRecord.record().getSoftValue();
 						if (newValue != null) {
 							// 如果newValue为null，表示记录被删除，以后再次PutValue，version从0重新开始。
-							var oldValue = v.atomicTupleRecord.strongRef;
+							var oldValue = v.atomicTupleRecord.strongRef();
 							var oldVersion = oldValue != null ? oldValue.version() : 0;
 							newValue.version(oldVersion + 1);
 						}
@@ -656,7 +656,7 @@ public final class Transaction {
 
 	private void finalRollback(@NotNull Procedure procedure) {
 		for (var ra : accessedRecords.values())
-			ra.atomicTupleRecord.record.setNotFresh();
+			ra.atomicTupleRecord.record().setNotFresh();
 		// Begin/End 不配对（ErrorSavepoint 路径）时，savepoints 中可能残留未汇入的 whileRollback 回调，一并触发。
 		for (var sp : savepoints)
 			sp.mergeRollbackActions(actions);
@@ -705,7 +705,7 @@ public final class Transaction {
 		if (ra == null)
 			throw new IllegalStateException("VerifyRecordAccessed: Record Not Control Under Current Transaction: " + bean.tableKey());
 		var atr = ra.atomicTupleRecord;
-		var r = atr.record;
+		var r = atr.record();
 		if (ri.record() != r)
 			throw new IllegalStateException("VerifyRecordAccessed: Record Reloaded: " + bean.tableKey());
 		// 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
@@ -713,7 +713,7 @@ public final class Transaction {
 		var t = r.getTable();
 		if (t.getZeze().getConfig().getFastRedoWhenConflict()
 				&& state != TransactionState.Completed
-				&& r.getTimestamp() != atr.timestamp)
+				&& r.getTimestamp() != atr.timestamp())
 			throwRedo(ri.tableKey().getId(), "Redo: FastRedoWhenConflict(" + t.getName() + ')');
 	}
 
@@ -725,10 +725,10 @@ public final class Transaction {
 
 	private static @NotNull CheckResult _check_(boolean writeLock,
 												@NotNull RecordAccessed e) {
-		e.atomicTupleRecord.record.enterFairLock();
+		e.atomicTupleRecord.record().enterFairLock();
 		try {
 			if (writeLock) {
-				switch (e.atomicTupleRecord.record.getState()) {
+				switch (e.atomicTupleRecord.record().getState()) {
 				case GlobalCacheManagerConst.StateRemoved:
 					// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
 					return CheckResult.Redo;
@@ -737,42 +737,42 @@ public final class Transaction {
 					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
 				case GlobalCacheManagerConst.StateModify:
-					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
+					return e.atomicTupleRecord.timestamp() != e.atomicTupleRecord.record().getTimestamp()
 							? CheckResult.Redo : CheckResult.Success;
 
 				case GlobalCacheManagerConst.StateShare:
 					// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
-							e.atomicTupleRecord.record.isFresh(), false);
+					var acquire = e.atomicTupleRecord.record().acquire(GlobalCacheManagerConst.StateModify,
+							e.atomicTupleRecord.record().isFresh(), false);
 					//noinspection DataFlowIssue
 					if (acquire.resultState() != GlobalCacheManagerConst.StateModify) {
-						e.atomicTupleRecord.record.setNotFresh(); // 抢失败不再新鲜。
+						e.atomicTupleRecord.record().setNotFresh(); // 抢失败不再新鲜。
 						logger.debug("Acquire Failed. Maybe DeadLock Found: record={}, time={}, resultCode={}",
-								e.atomicTupleRecord.record, e.atomicTupleRecord.timestamp, acquire.resultCode());
-						e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateInvalid);
+								e.atomicTupleRecord.record(), e.atomicTupleRecord.timestamp(), acquire.resultCode());
+						e.atomicTupleRecord.record().setState(GlobalCacheManagerConst.StateInvalid);
 						return CheckResult.RedoAndReleaseLock;
 					}
-					e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateModify);
-					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
+					e.atomicTupleRecord.record().setState(GlobalCacheManagerConst.StateModify);
+					return e.atomicTupleRecord.timestamp() != e.atomicTupleRecord.record().getTimestamp()
 							? CheckResult.Redo : CheckResult.Success;
 				}
-				return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
+				return e.atomicTupleRecord.timestamp() != e.atomicTupleRecord.record().getTimestamp()
 						? CheckResult.Redo : CheckResult.Success; // impossible
 			}
 
 			// read lock
-			return switch (e.atomicTupleRecord.record.getState()) {
+			return switch (e.atomicTupleRecord.record().getState()) {
 				case GlobalCacheManagerConst.StateRemoved ->
 					// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
 						CheckResult.Redo;
 				case GlobalCacheManagerConst.StateInvalid ->
 						CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
-				default -> e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
+				default -> e.atomicTupleRecord.timestamp() != e.atomicTupleRecord.record().getTimestamp()
 						? CheckResult.Redo : CheckResult.Success;
 			};
 		} finally {
-			e.atomicTupleRecord.record.exitFairLock();
+			e.atomicTupleRecord.record().exitFairLock();
 		}
 	}
 

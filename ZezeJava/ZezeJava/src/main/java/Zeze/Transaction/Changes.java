@@ -30,9 +30,9 @@ public final class Changes {
 		// 建立脏记录的表的监听者的快照，以后收集日志和通知监听者都使用这个快照，避免由于监听者发生变化造成收集和通知不一致。
 		for (var ar : t.getAccessedRecords().values()) {
 			if (ar.dirty) {
-				var listeners = ar.atomicTupleRecord.record.getTable().getChangeListenerMap().getListeners();
+				var listeners = ar.atomicTupleRecord.record().getTable().getChangeListenerMap().getListeners();
 				if (!listeners.isEmpty())
-					this.listeners.putIfAbsent(ar.atomicTupleRecord.record.getTable(), listeners);
+					this.listeners.putIfAbsent(ar.atomicTupleRecord.record().getTable(), listeners);
 			}
 		}
 	}
@@ -99,16 +99,16 @@ public final class Changes {
 					value = put; // put
 					state = Put;
 				} else {
-					value = ar.atomicTupleRecord.strongRef; // old
+					value = ar.atomicTupleRecord.strongRef(); // old
 					state = Remove;
 				}
 				return;
 			}
 
 			state = Edit;
-			var logBean = logBeans.get(ar.atomicTupleRecord.strongRef);
+			var logBean = logBeans.get(ar.atomicTupleRecord.strongRef());
 			if (logBean != null) {
-				value = ar.atomicTupleRecord.strongRef; // old
+				value = ar.atomicTupleRecord.strongRef(); // old
 				this.logBean.add(logBean); // edit
 			}
 		}
@@ -194,14 +194,14 @@ public final class Changes {
 
 	public void collectRecord(@NotNull RecordAccessed ar) {
 		// is table has listener
-		if (!isHistory && listeners.get(ar.atomicTupleRecord.record.getTable()) == null)
+		if (!isHistory && listeners.get(ar.atomicTupleRecord.record().getTable()) == null)
 			return;
 
 		var tkey = ar.tableKey();
 		var r = records.get(tkey);
 		if (r == null) {
 			// put record only
-			r = new Record(ar.atomicTupleRecord.record.getTable());
+			r = new Record(ar.atomicTupleRecord.record().getTable());
 			//noinspection DataFlowIssue
 			records.put(tkey, r);
 		}

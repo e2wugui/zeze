@@ -4,16 +4,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /** 记录装载的原子快照三元组：记录、装载时的强引用值与时间戳，供事务做冲突检测。 */
-public class AtomicTupleRecord<K extends Comparable<K>, V extends Bean> {
-	public final @NotNull Record1<K, V> record;
-	public final @Nullable V strongRef;
-	public final long timestamp;
-
-	public AtomicTupleRecord(@NotNull Record1<K, V> record, @Nullable V strongRef, long timestamp) {
-		this.record = record;
-		this.strongRef = strongRef;
-		this.timestamp = timestamp;
-	}
+public record AtomicTupleRecord<K extends Comparable<K>, V extends Bean>(@NotNull Record1<K, V> record,
+																		 @Nullable V strongRef,
+																		 long timestamp) {
 
 	@Override
 	public String toString() {

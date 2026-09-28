@@ -635,8 +635,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 
 		var r = load(key);
-		var v = r.strongRef;
-		currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey),
+		var v = r.strongRef();
+		currentT.addRecordAccessed(r.record().createRootInfoIfNeed(tkey),
 				new RecordAccessed(r),
 				v == null && isMemory());
 		return v;
@@ -673,8 +673,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		} else {
 			var r = load(key);
 			cr = new RecordAccessed(r);
-			var v = r.strongRef;
-			currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr, v == null && isMemory());
+			var v = r.strongRef();
+			currentT.addRecordAccessed(r.record().createRootInfoIfNeed(tkey), cr, v == null && isMemory());
 			if (v != null) {
 				if (isAdd != null)
 					isAdd.value = false; // 同上，已存在路径双向赋值。
@@ -685,7 +685,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (isAdd != null)
 			isAdd.value = true;
 		V add = newValue();
-		add.initRootInfoWithRedo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
+		add.initRootInfoWithRedo(cr.atomicTupleRecord.record().createRootInfoIfNeed(tkey), null);
 		cr.put(currentT, add);
 		return add;
 	}
@@ -703,7 +703,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.getRecordAccessed(tkey);
 		//noinspection DataFlowIssue
-		value.initRootInfoWithRedo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
+		value.initRootInfoWithRedo(cr.atomicTupleRecord.record().createRootInfoIfNeed(tkey), null);
 		cr.put(currentT, value);
 		return true;
 	}
@@ -730,9 +730,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (cr == null) {
 			var r = load(key);
 			cr = new RecordAccessed(r);
-			currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr, r.strongRef == null && isMemory());
+			currentT.addRecordAccessed(r.record().createRootInfoIfNeed(tkey), cr, r.strongRef() == null && isMemory());
 		}
-		value.initRootInfoWithRedo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
+		value.initRootInfoWithRedo(cr.atomicTupleRecord.record().createRootInfoIfNeed(tkey), null);
 		cr.put(currentT, value);
 	}
 
@@ -759,7 +759,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		var r = load(key);
 		cr = new RecordAccessed(r);
-		currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr, r.strongRef == null && isMemory());
+		currentT.addRecordAccessed(r.record().createRootInfoIfNeed(tkey), cr, r.strongRef() == null && isMemory());
 		cr.put(currentT, null);
 	}
 
@@ -1226,7 +1226,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						r.exitFairLock();
 					}
 				}
-				v = load(key).strongRef;
+				v = load(key).strongRef();
 				if (v == null)
 					return null;
 				if (lockey == null)

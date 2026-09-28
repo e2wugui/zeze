@@ -105,7 +105,7 @@ public class TestFnd818CommitPathSalvage {
 					var log = trans.getLog(ar.objectId());
 					if (log instanceof RecordAccessed.PutLog putLog)
 						putLog.commit(); // Savepoint.commit 的应用效果：ar.committedPutLog = putLog
-					var record = ar.atomicTupleRecord.record;
+					var record = ar.atomicTupleRecord.record();
 					record.setNotFresh();
 					if (ar.dirty)
 						record.commit(ar); // finalCommit 的应用效果：setSoftValue + 置脏

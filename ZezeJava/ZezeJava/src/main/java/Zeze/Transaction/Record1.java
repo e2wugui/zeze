@@ -160,9 +160,9 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				// 内存表启用了soft，不能马上删除，按正常逻辑执行。
 				// 计算内存表的大小。
 				if (table.isMemory()) {
-					if (accessed.atomicTupleRecord.strongRef == null && committedPutLog.getValue() != null) // add
+					if (accessed.atomicTupleRecord.strongRef() == null && committedPutLog.getValue() != null) // add
 						table.getCache().getSizeCounter().increment();
-					else if (accessed.atomicTupleRecord.strongRef != null && committedPutLog.getValue() == null) // remove
+					else if (accessed.atomicTupleRecord.strongRef() != null && committedPutLog.getValue() == null) // remove
 						table.getCache().getSizeCounter().decrement();
 				}
 			}

@@ -227,7 +227,7 @@ public final class Checkpoint {
 		var records = new ArrayList<Record>(trans.getAccessedRecords().size());
 		for (var ar : trans.getAccessedRecords().values()) {
 			if (ar.dirty)
-				records.add(ar.atomicTupleRecord.record);
+				records.add(ar.atomicTupleRecord.record());
 		}
 		flush(records, onzProcedure != null ? Set.of(onzProcedure) : Set.of(), history);
 	}
