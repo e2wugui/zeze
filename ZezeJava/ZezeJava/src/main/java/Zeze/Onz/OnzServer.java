@@ -647,6 +647,54 @@ public class OnzServer extends AbstractOnz {
 		}
 	}
 
+	/**
+	 * saga步骤注册后的崩溃窗口先落（onz-01，调用方OnzTransaction.callSagaAsync）：saga参与方
+	 * "发结果即本地提交"（OnzSaga.sendReadyAndWait），而perform的首条决策记录严格后置于
+	 * txn.perform()返回——业务窗口（时长无上界）内进程硬崩溃时commitIndex无该tid记录，redo
+	 * 迭代不到，已提交步骤的补偿永久丢失且协调者侧零痕迹（参与方仅TTL清理warn）。每个saga步骤
+	 * 注册后即落/更新一次ePreparing快照（含当时全部已注册参与方），崩溃后redo按本记录对已见
+	 * 步骤补发FuncSagaEnd(cancel)（参与方上下文在TTL预算内仍在，见Onz.sagaContextTimeoutMs
+	 * 契约）；成功/失败路径的既有saveCommitPoint(ePreparing)以完整快照覆写，正常收尾行为不变。
+	 * 时戳随每次先落刷新：在途事务由登记skip保护（与年龄无关），年龄闸只对崩溃后残留自最后一步
+	 * 起算，语义不变。
+	 * <p>
+	 * 不覆盖既有eCommitting（dbLock内读判）：续作越过pendingAsync契约迟到注册（嵌入方提前清旗
+	 * 的误用形态）不得把已持久化的commit决策翻转为rollback——那会让redo对调用方已按成功收场的
+	 * 事务补发cancel，制造真分歧；正常路径不可达该分支（waitPendingAsync先于commit清空续作）。
+	 * 毒值（解码失败）按可覆写处理，覆写即修复。
+	 * <p>
+	 * best-effort：落库失败（stopped拒绝/RocksDB错误）只记error不外抛——外抛会中断业务的步骤
+	 * 发送链，改变perform既有语义；此刻崩溃窗口的补偿不可得，活进程仍靠主路径落库与rollback
+	 * 投递兜底（对齐exception路径saveCommitPoint失败的既定口径）。
+	 */
+	void saveSagaPreparingForCrashWindow(OnzTransaction<?, ?> txn) {
+		var tidBytes = new byte[8];
+		ByteBuffer.longBeHandler.set(tidBytes, 0, txn.getOnzTid());
+		dbLock.lock();
+		try {
+			if (stopped)
+				return; // 停机窗口的先落不可得：主路径saveCommitPoint同样被拒，catch→rollback链兜底，不记日志防停机噪声
+			var current = commitIndex.get(tidBytes);
+			if (current != null) {
+				try {
+					if (ByteBuffer.Wrap(current).ReadUInt() == eCommitting) {
+						logger.warn("onz saga step: 迟到注册的步骤命中已持久化的eCommitting，跳过先落"
+										+ "（续作越过pendingAsync契约，该步骤的写入无补偿通道）. tid={}", txn.getOnzTid());
+						return;
+					}
+				} catch (Throwable ignored) {
+					// 毒值按可覆写处理：不因毒值放弃先落
+				}
+			}
+			saveCommitPoint(tidBytes, txn.buildSavedCommits(), ePreparing); // dbLock可重入
+		} catch (Throwable ex) {
+			logger.error("onz saga step: saveCommitPoint(ePreparing) 先落失败，perform业务窗口的崩溃补偿不可用. tid={}",
+					txn.getOnzTid(), ex);
+		} finally {
+			dbLock.unlock();
+		}
+	}
+
 	void removeCommitRecord(byte[] tidBytes) {
 		// 同saveCommitPoint纳入dbLock+锁内stopped双检：commit()两处调用
 		//（失败分支/成功路径）都跑在业务线程。redoRecord经removeRedoRecordIfUnchanged的
@@ -1100,8 +1148,14 @@ public class OnzServer extends AbstractOnz {
 			logger.error("perform on stopped OnzServer");
 			return Procedure.Exception; // 尚未开始执行，无需rollback
 		}
+		// 登记失败（同实例并发perform/跨实例tid复用的嵌入方误用）原样上抛、不得进入主体（onz-02）：
+		// 败者若走下去，catch路径会以同tid落ePreparing（空快照）覆写胜者的决策记录、rollback()
+		// 对空参与方恒allDelivered后removeCommitRecord删掉胜者记录，finally的removeTransaction
+		// 更会摘掉胜者的在途登记——redo随即按"登记不在+超龄"对存活事务补发Rollback，误杀活事务。
+		// tid的在途登记唯一属于addTransaction的胜者；正常路径AutoKey的tid不重复，此形态必为误用，
+		// 响亮失败优于静默破坏。
+		onzAgent.addTransaction(txn);
 		try {
-			onzAgent.addTransaction(txn);
 			var rc = txn.perform();
 			var state = txn.buildSavedCommits();
 			var tidBytes = new byte[8];
@@ -1111,8 +1165,10 @@ public class OnzServer extends AbstractOnz {
 			// 中间没有做太多额外的事情，但为了明确两个事务状态，仍然分开。原因如下：
 			// 参考Dbh2的两步：由于Dbh2一开始就知道所有的服务器，所以可以一开始就保存一次ePreparing，
 			// 而这上面的perform是边执行边产生服务器地址，无法一开始保存事务状态。
-			// 最严格的做法是每产生一个服务器地址，就写一次ePreparing（包含所有的服务器地址）。
-			// 此处处理为：等待perform完成。
+			// 最严格的做法是每产生一个服务器地址，就写一次ePreparing（包含所有的服务器地址）——
+			// saga参与方已按此实现（callSagaAsync注册后即先落，见saveSagaPreparingForCrashWindow，
+			// onz-01：saga发结果即本地提交，perform业务窗口崩溃时该记录是已提交步骤唯一的补偿通道）；
+			// procedure参与方无需先落（ready超时自愈回滚，结局一致），此处仍等待perform完成后统一落。
 			if (0 == rc) {
 				txn.waitPendingAsync();
 				// pendingAsync窗口内注册的参与方不进上面的ePreparing快照：窗口后

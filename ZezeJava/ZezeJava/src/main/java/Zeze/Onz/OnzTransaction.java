@@ -149,12 +149,27 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		var zezeInstance = onzServer.getZezeInstance(zezeName);
 		// 限制每个zeze集群最多一个调用：键为集群名。
 		var newCall = new OutObject<TaskCompletionSource<R2>>();
-		zezeSagas.computeIfAbsent(zezeName, __ -> newCall.value
-				= OnzAgent.callSagaAsync(
-				this, zezeInstance, onzProcedureName, argument, result, flushMode));
-		if (newCall.value == null)
-			throw new RuntimeException("too many funcSaga on same zezeInstance.");
-		return newCall.value;
+		// 注册与崩溃窗口先落在本事务锁内成对串行（onz-01）：并发续作同时注册多个saga步骤时，
+		// 各自的"读快照→落库"若交错，后落者的快照可能不含先注册者（其快照读早于对方注册完成），
+		// 崩溃后redo漏补被覆写丢失的参与方；锁内成对执行保证"最后一次落库⊇此前全部已注册"，
+		// 残留窗口只剩单次落库自身的毫秒级。发送是队列写不阻塞，与既有computeIfAbsent原子段同级；
+		// getZezeInstance（可能秒级建连等待）刻意留在锁外，不与setPendingAsync/waitPendingAsync
+		// 的短暂临界区互相拖延。
+		lock();
+		try {
+			zezeSagas.computeIfAbsent(zezeName, __ -> newCall.value
+					= OnzAgent.callSagaAsync(
+					this, zezeInstance, onzProcedureName, argument, result, flushMode));
+			if (newCall.value == null)
+				throw new RuntimeException("too many funcSaga on same zezeInstance.");
+			// onz-01：saga参与方"发结果即本地提交"，先落的ePreparing快照是perform业务窗口
+			// （时长无上界）内进程崩溃时已提交步骤唯一的补偿通道（redo分诊见OnzServer.
+			// collectRedoCandidates：在途登记skip+年龄闸），best-effort不外抛。
+			onzServer.saveSagaPreparingForCrashWindow(this);
+			return newCall.value;
+		} finally {
+			unlock();
+		}
 	}
 
 	/** @return 决策是否对全部saga参与方干净投递了end（无eSagaNotFound应答）；false=存在
