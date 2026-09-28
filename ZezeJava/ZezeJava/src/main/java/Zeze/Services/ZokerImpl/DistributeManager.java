@@ -354,10 +354,19 @@ public class DistributeManager {
 	/**
 	 * 用作目录路径段的名字（commitService的serviceName/versionNo）必须是单段：
 	 * 拒绝空、"."、".."、路径分隔符与驱动器冒号，防止把renameTo指到目标目录之外。
+	 * 另拒绝折叠后为空串的名字（zoker-01单点收口）："..."、" "、".. "等通过上方字面检查，
+	 * 但Win32解析剥尾点/空格后不构成物理段名——services/&lt;svc&gt;/...解析为容器本身：
+	 * commit的versionTo.exists()恒真跳过安装，current指针被覆盖为该文本（假成功），
+	 * pruneVersions的现役保护（foldedCurrent=""对任何真实版本目录的折叠值都不等）全数失配，
+	 * 存量版本被清理、全新服务的内容子目录被当版本目录删除。收口在segment判别单点
+	 * （serviceName与versionNo同面：serviceName="..."同样把容器根当部署目录），
+	 * pruneLocked/onDiskVersionName等下游折叠比对无需变更即闭合。Linux上"..."/" "是
+	 * 合法字面名，一并拒绝属折叠判据的既定过度保护裁量（与commitLocks键折叠同款）。
 	 */
 	static boolean isSafePathSegment(String name) {
 		return name != null && !name.isEmpty() && !name.equals(".") && !name.equals("..")
-				&& name.indexOf('/') < 0 && name.indexOf('\\') < 0 && name.indexOf(':') < 0;
+				&& name.indexOf('/') < 0 && name.indexOf('\\') < 0 && name.indexOf(':') < 0
+				&& !foldVersionName(name).isEmpty();
 	}
 
 	/**
