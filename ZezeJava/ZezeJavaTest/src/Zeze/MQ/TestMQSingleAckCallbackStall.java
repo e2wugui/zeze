@@ -91,11 +91,13 @@ public class TestMQSingleAckCallbackStall {
 	}
 
 	/**
-	 * ack 成功但位点持久化失败：回调异常后 pending 必须复位（否则分区推送永久停摆）、
-	 * 消息必须留在队首（重推同一条，at-least-once）、位点不得推进；恢复后从原位继续，不跳步。
+	 * ack 成功但位点持久化失败（FND25 mq-02 新契约：异常不外抛，视同投递失败一投走
+	 * onPushFailure 的计数+退避+PushRetryMax 死信兜底）：pending 必须复位（否则分区推送
+	 * 永久停摆）、消息必须留在队首（退避重推同一条，at-least-once）、位点不得推进、
+	 * headRetryCount 递增（退避/死信出口可达，不再零退避热循环）；恢复后从原位继续，不跳步。
 	 */
 	@Test
-	public void testAckCallbackExceptionDoesNotStallPush(@TempDir Path tempDir) throws Exception {
+	public void testAckPersistFailureBacksOffAndKeepsHead(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("db").toString();
 		var database = new RocksDatabase(home);
 		var file = new FailingIncreaseFile(home, database);
@@ -115,21 +117,24 @@ public class TestMQSingleAckCallbackStall {
 			ack1.setResultCode(0);
 			setPending(single, ack1);
 
-			// ack 回调到达：increaseFirstMessageId 抛出，但 pending 复位与续推必须必达
-			// （旧代码异常越过 pendingPushMessage=null，该分区推送永久停止）。
-			Assertions.assertThrows(RuntimeException.class, single::handlePushResult);
+			// ack 回调到达：increaseFirstMessageId 抛出被捕获转失败处置（mq-02：不外抛——
+			// 外抛后 finally 的续推是零退避热循环；处置=headRetryCount 递增+退避重排）。
+			Assertions.assertDoesNotThrow(single::handlePushResult);
 			Assertions.assertNull(getField(single, "pendingPushMessage"),
-					"回调异常后pendingPushMessage必须复位，否则分区推送永久停摆");
+					"回调处置后pendingPushMessage必须复位，否则分区推送永久停摆");
+			Assertions.assertEquals(1, getField(single, "headRetryCount"),
+					"位点持久化失败必须计入重投计数（退避/死信出口可达）");
 			Assertions.assertEquals(List.of("0", "1", "2"), queueIds(file.queueRef),
-					"位点推进失败时消息必须留在队首（重推同一条，at-least-once）");
+					"位点推进失败时消息必须留在队首（退避重推同一条，at-least-once）");
 			Assertions.assertEquals(0, file.getFirstMessageId(), "位点不得推进（未持久化成功）");
 
-			// 持续失败一轮：重推的仍是队首同一条，位点仍不动（事件驱动重试，非紧密循环）。
+			// 持续失败一轮：计数续增、重推的仍是队首同一条，位点仍不动。
 			var ack2 = new PushMessage();
 			ack2.setResultCode(0);
 			setPending(single, ack2);
-			Assertions.assertThrows(RuntimeException.class, single::handlePushResult);
+			Assertions.assertDoesNotThrow(single::handlePushResult);
 			Assertions.assertNull(getField(single, "pendingPushMessage"));
+			Assertions.assertEquals(2, getField(single, "headRetryCount"), "连续失败持续计数（死信上限可达）");
 			Assertions.assertEquals(List.of("0", "1", "2"), queueIds(file.queueRef));
 			Assertions.assertEquals(0, file.getFirstMessageId());
 
