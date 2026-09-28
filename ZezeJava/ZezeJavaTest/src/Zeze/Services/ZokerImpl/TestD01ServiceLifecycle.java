@@ -262,7 +262,8 @@ public class TestD01ServiceLifecycle {
 			//noinspection BusyWait
 			Thread.sleep(50);
 		assertNull(sm.getProcessForTest("svc"), "退出监控必须清理processes条目");
-		assertEquals("", listState(sm), "死条目清理后不报running");
+		// 死条目清理后无记账：按 Stopped 汇报（zoker-11：空串超协议契约），不报 running
+		assertEquals(ServiceManager.STATE_STOPPED, listState(sm), "死条目清理后不报running");
 	}
 
 	/** env 真注入进程环境（可观察形态：env 变量命中时 cmd 以退出码5退出）。 */

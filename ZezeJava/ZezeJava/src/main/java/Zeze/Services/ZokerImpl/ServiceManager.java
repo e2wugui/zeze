@@ -439,53 +439,72 @@ public class ServiceManager {
 	}
 
 	/**
-	 * run.pid 身份解析——启动对账/start 查重/stop 查重三路共用的同一解析：
-	 * 返回"pid 存活且指纹核实通过"的领养句柄。
+	 * run.pid 身份解析结果（三态）：
+	 * adoptable 非 null=pid 存活且指纹核实通过的可领养句柄；
+	 * blindAlivePid&gt;0=失明但 pid 存活（startInstant 不可核实——盘上 start 空=写入时不可得，
+	 * 或现场读不到），文件保留（证据），startService 须拒绝启动（zoker-10：拉新=同服务双实例），
+	 * adoptOrphans 跳过不领养、stopService 幂等 not-running（处置入口是 start 的拒绝日志）；
+	 * 两者皆空=无身份（不存在）/死/损坏/指纹不符——残局已在解析内清理收敛。
+	 */
+	static final class RunPidState {
+		static final RunPidState NONE = new RunPidState(null, 0);
+		final @Nullable ProcessHandle adoptable;
+		final long blindAlivePid;
+
+		RunPidState(@Nullable ProcessHandle adoptable, long blindAlivePid) {
+			this.adoptable = adoptable;
+			this.blindAlivePid = blindAlivePid;
+		}
+	}
+
+	/**
+	 * run.pid 身份解析——启动对账/start 查重/stop 查重三路共用的同一解析。
 	 * <ul>
-	 * <li>不存在：无身份（常态），返回 null；损坏：清理残留（对账收敛一切残局）。</li>
-	 * <li>pid 死：清理残留返回 null。</li>
-	 * <li>startInstant 不符（同 pid 已是另一个进程实例=PID 复用）：清理残留返回 null
+	 * <li>不存在：无身份（常态），返回 NONE；损坏：清理残留（对账收敛一切残局）。</li>
+	 * <li>pid 死：清理残留返回 NONE。</li>
+	 * <li>startInstant 不符（同 pid 已是另一个进程实例=PID 复用）：清理残留返回 NONE
 	 * ——绝不领养、绝不误杀。startInstant 是判别门：进程创建时间在 exec 链下不变，
 	 * 同 pid+同 startInstant 即同一进程实例（残余风险：碰撞概率=pid 池复用
 	 * 落进同一时间片，接受为残余）。</li>
 	 * <li>指纹不可核实（盘上 start 空=写入时就不可得，或现场 startInstant 读不到）：
-	 * 告警+视为无条目（失明），文件保留（证据留给人工，与死/损坏/不符的清理面区分）。</li>
+	 * 告警+返回 blindAlivePid（失明），文件保留（证据留给人工，与死/损坏/不符的清理面区分）。</li>
 	 * <li>command（辅证据）不符：告警但不否决领养——Linux exec 链（wrapper 脚本）对自家
 	 * 进程 command 必假阴性，否决它会复活双启主缺陷；身份已由 startInstant 核实。</li>
 	 * </ul>
 	 */
-	private @Nullable ProcessHandle resolveRunPid(String serviceName) {
+	private RunPidState resolveRunPid(String serviceName) {
 		var file = new File(new File(serviceDir, serviceName), RUN_PID_NAME);
 		var rec = readRunPid(serviceName);
 		if (null == rec) {
 			if (file.isFile())
 				deleteResidue(file, "corrupt");
-			return null;
+			return RunPidState.NONE;
 		}
 		Optional<ProcessHandle> live = ProcessHandle.of(rec.pid);
 		if (live.isEmpty() || !live.get().isAlive()) {
 			deleteResidue(file, "dead pid=" + rec.pid);
-			return null;
+			return RunPidState.NONE;
 		}
 		var info = live.get().info();
 		var liveStart = info.startInstant().map(Object::toString).orElse("");
 		if (rec.start.isEmpty() || liveStart.isEmpty()) {
 			// 指纹不可核实：失明不领养（宁可失明，绝不按裸 pid 领养——pid 池复用下裸 pid
-			// 命中的可能是无关进程，误杀比失明危险）；文件保留。
-			logger.warn("run.pid fingerprint unavailable, blind (not adopted): {} recordedStartPresent={} liveStartPresent={}",
-					file, !rec.start.isEmpty(), !liveStart.isEmpty());
-			return null;
+			// 命中的可能是无关进程，误杀比失明危险）；文件保留。pid 可能仍是本服务的旧进程
+			// （zoker-10 的拒绝启动证据），随状态带出给调用方分路处置。
+			logger.warn("run.pid fingerprint unavailable, blind (not adopted): {} pid={} recordedStartPresent={} liveStartPresent={}",
+					file, rec.pid, !rec.start.isEmpty(), !liveStart.isEmpty());
+			return new RunPidState(null, rec.pid);
 		}
 		if (!rec.start.equals(liveStart)) {
 			// startInstant 不符=同 pid 已是另一个进程实例（PID 复用）：陈旧身份，清理。
 			deleteResidue(file, "startInstant mismatch pid=" + rec.pid);
-			return null;
+			return RunPidState.NONE;
 		}
 		var liveCommand = RunPidRecord.auxOf(info);
 		if (!rec.command.isEmpty() && !liveCommand.isEmpty() && !rec.command.equals(liveCommand))
 			logger.warn("run.pid command differs (adopt anyway, identity verified by startInstant): {} pid={}",
 					file, rec.pid);
-		return live.get();
+		return new RunPidState(live.get(), 0);
 	}
 
 	private static void deleteResidue(File file, String why) {
@@ -578,14 +597,16 @@ public class ServiceManager {
 			if (!container.isDirectory())
 				continue;
 			var serviceName = container.getName();
-			var handle = resolveRunPid(serviceName);
-			if (null == handle)
+			var pidState = resolveRunPid(serviceName);
+			// 失明存活（blindAlivePid!=0）同跳过：不领养（文件保留），启动后 listService 按
+			// Stopped 汇报，startService 会拒绝并留下带 pid 的拒绝日志——处置入口在 start。
+			if (null == pidState.adoptable)
 				continue;
-			var adopted = new AdoptedProcess(handle);
+			var adopted = new AdoptedProcess(pidState.adoptable);
 			if (processes.putIfAbsent(serviceName, adopted) == null) {
 				// 装账后再挂退出监控：先挂监控可能赶在装账前触发回调，remove(key,process)错失清理
 				watchExit(serviceName, adopted);
-				logger.info("adoptOrphans: adopted {} pid={}", serviceName, handle.pid());
+				logger.info("adoptOrphans: adopted {} pid={}", serviceName, adopted.pid());
 			}
 		}
 	}
@@ -650,7 +671,9 @@ public class ServiceManager {
 	 * （eNoServiceProperties/eStartFail），不发结果包。
 	 * 条目缺失/死时先按 run.pid 身份解析查重（与 stop/启动对账共用同一解析）
 	 * ——存活且核实=上一代 Zoker 的现役进程，领养并幂等返回 Running（Ps 标记 adopted+pid），
-	 * 绝不盲目双启；拉起成功后写盘身份，写盘失败=不交付（盘是真相源，无盘身份的进程不允许存在）。
+	 * 绝不盲目双启；指纹不可核实但 pid 存活（失明孤儿）时拒绝启动返回 eStartFail
+	 * （zoker-10：旧进程可能仍在运行，拉新=同服务双实例）——人工处置旧 pid 后重试自愈。
+	 * 拉起成功后写盘身份，写盘失败=不交付（盘是真相源，无盘身份的进程不允许存在）。
 	 */
 	public long startService(StartService r) {
 		var serviceName = r.Argument.getServiceName();
@@ -682,8 +705,9 @@ public class ServiceManager {
 			// 条目缺失或死句柄（进程自然退出/被外部杀死，onExit回调未及清理的窗口）：
 			// 先按 run.pid 查重——上一代 Zoker（或崩溃窗口残留）的存活且
 			// 核实通过的进程领养复用；死/损坏/不符的残留在解析内一并清理。
-			var orphan = resolveRunPid(serviceName);
-			if (null != orphan) {
+			var pidState = resolveRunPid(serviceName);
+			if (null != pidState.adoptable) {
+				var orphan = pidState.adoptable;
 				var candidate = new AdoptedProcess(orphan);
 				var installed = existing == null
 						? processes.putIfAbsent(serviceName, candidate) == null
@@ -697,6 +721,22 @@ public class ServiceManager {
 				}
 				// 并发start竞争落败：重试（孤儿不销毁——它不是本路径拉起的候选，归属胜者）
 				continue;
+			}
+			if (pidState.blindAlivePid != 0) {
+				// zoker-10：失明但 pid 存活——旧进程可能仍在运行（指纹不可核实，无法区分
+				// 本服务进程与 pid 复用撞上的无关进程），直接拉起=同服务双实例（端口冲突/
+				// 数据竞争，且 start"成功"的静默错账）。拒绝启动，人工处置旧 pid（核实后
+				// kill，或确认无碍后删 run.pid）再重试；pid 已死则下次 start 走解析内的
+				// 清理+正常拉起，自愈。错误码沿用 eStartFail（启动没有发生——协议错误码集内
+				// 无更贴切值：Zoker 模块值 1-10 已满且值 1 重复（zoker-12 属协议段未修），
+				// 新造未注册的线缆值反而扩大契约面，同 zoker-11/12 正在收敛的类目）；
+				// 完整指纹证据见解析内的失明告警（本行前一条 warn，携带 pid 与
+				// recordedStartPresent/liveStartPresent）。
+				logger.error("startService {} refused: run.pid pid={} alive but fingerprint unverifiable "
+								+ "(evidence in preceding blind warn) — verify and stop the old process manually "
+								+ "(or remove run.pid) then retry",
+						serviceName, pidState.blindAlivePid);
+				return err(Zoker.eStartFail);
 			}
 			// 无可领养身份：（重新）拉起
 			LaunchSpec spec;
@@ -778,14 +818,17 @@ public class ServiceManager {
 		if (null == process) {
 			// 条目缺失先解析盘上身份再判 not-running（三态结局对领养句柄同样成立）。
 			// 不装账直接停：stop 语义本就是"移除并终止"，装回账里反而制造停机窗口的假 Running。
-			var orphan = resolveRunPid(serviceName);
-			if (null == orphan) {
+			var pidState = resolveRunPid(serviceName);
+			if (null == pidState.adoptable) {
+				// 含失明存活（blindAlivePid）：指纹不可核实时连"它是不是本服务的进程"都无法
+				// 证明——幂等 not-running 是既有语义（处置盲 pid 的入口是 startService 的拒绝
+				// 日志，操作员人工核实）。
 				r.Result.setServiceName(serviceName);
 				r.Result.setState(STATE_STOPPED);
 				r.Result.setPs("not-running");
 				return;
 			}
-			process = new AdoptedProcess(orphan);
+			process = new AdoptedProcess(pidState.adoptable);
 			logger.info("stopService {} adopting orphan pid={} to stop", serviceName, process.pid());
 		}
 		r.Result.setServiceName(serviceName);

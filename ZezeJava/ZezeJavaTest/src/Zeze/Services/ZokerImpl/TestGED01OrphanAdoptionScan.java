@@ -104,7 +104,8 @@ public class TestGED01OrphanAdoptionScan {
 
 		// 模拟 Zoker 重启：全新 ServiceManager（内存记账清零），盘上身份仍在
 		var sm2 = new ServiceManager(servicesDir);
-		assertEquals("", listState(sm2), "对账前=旧世界幻觉（孤儿不可见）");
+		// 无记账条目按 Stopped 汇报（FND24 zoker-11：空串超协议契约 "Running,Stopped"）
+		assertEquals(ServiceManager.STATE_STOPPED, listState(sm2), "对账前=旧世界幻觉（孤儿不可见）");
 		sm2.adoptOrphans();
 
 		assertEquals(ServiceManager.STATE_RUNNING, listState(sm2), "启动对账后孤儿可见");
@@ -165,7 +166,8 @@ public class TestGED01OrphanAdoptionScan {
 		sm.adoptOrphans();
 		assertNull(sm.getProcessForTest("svc"), "死 pid 不领养");
 		assertFalse(Files.exists(runPidPath(servicesDir)), "死 pid 残留清理（对账收敛残局）");
-		assertEquals("", listState(sm));
+		// 死条目清理后无记账：按 Stopped 汇报（zoker-11 契约），不再回空串
+		assertEquals(ServiceManager.STATE_STOPPED, listState(sm));
 	}
 
 	/** 损坏文件（不可解析）：对账清理、不领养（全平台纯文件用例）。 */
