@@ -42,7 +42,8 @@ public class Verify {
 		zeze.getHistoryModule().getHistoryTable().walkDatabase((key, value) -> {
 			if (lastK.value != null && lastK.value.compareTo(key) >= 0) {
 				logger.error("out of Id128 order: {}, {}", lastK.value, key);
-				assert false;
+				// Id128全序是回放确定性前提（游标空洞检测依赖），前提破坏时校验结果不可信，必须中断。
+				throw new RuntimeException("out of Id128 order: " + lastK.value + ", " + key);
 			}
 			lastK.value = key;
 
