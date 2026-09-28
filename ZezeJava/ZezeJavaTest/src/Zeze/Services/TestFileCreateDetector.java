@@ -40,6 +40,7 @@ public class TestFileCreateDetector {
 		try {
 			var created = new ConcurrentLinkedQueue<String>();
 			var detector = new FileCreateDetector(dir.toString(), p -> created.add(p.toString()));
+			detector.start(); // FND24 log4j-03：watch 线程启动与构造分离，须显式 start 才消费事件
 			Files.writeString(dir.resolve("hello.log"), "hello");
 
 			long deadline = System.currentTimeMillis() + 10_000;

@@ -67,11 +67,13 @@ public class Log4jFileManager extends ReentrantLock {
 		this.logFileBegin = fulls.length > 1 ? String.join(".", Arrays.copyOf(fulls, fulls.length - 1)) : fulls[0];
 
 		// OVERFLOW节流对账/监听失效最终对账的入口。
+		// 构造只注册监视：watch必须晚于装载启动（见下方start调用处注释），
+		// 抢先消费会在files装载前走早退分支跳过索引改名。
 		this.fileCreateDetector = new FileCreateDetector(logConf.logDir, this::onFileCreated,
 				this::reconcileThrottled, this::reconcile);
 
-		// 装载期间持有锁：onFileCreated跑在监视线程（构造即启动），不持锁装载会与其交错，
-		// 产生幽灵条目或索引未随行改名；持锁后启动瞬间的create事件排队到装载完成后按序处理。
+		// 装载持锁：loadRotates/addByContentTime按持锁契约调用；装载完成start后，
+		// onFileCreated（监视线程）与reconcile同以此锁为串行点，交错会产生幽灵条目或索引未随行改名。
 		try {
 			lock();
 			try {
@@ -86,10 +88,16 @@ public class Log4jFileManager extends ReentrantLock {
 				unlock();
 			}
 		} catch (Exception e) {
-			// 构造失败回收detector：其线程在构造函数里已start并强引用this，不join则watch永驻半构造对象。
+			// 构造失败回收detector：关闭watchService（close幂等）；此时未start、无线程可join，stopAndJoin立即返回。
 			fileCreateDetector.stopAndJoin();
 			throw e;
 		}
+		// watch必须晚于装载启动：装载前消费CREATE(rotate)会走files.isEmpty()早退分支，跳过
+		// renameCurrentIndexTo，装载随即把旧内容索引配给新active且无修复路径（rotate已登记，
+		// repointMissedRotation空表早退）。装载完成（锁内loadRotates/loadIndex全部结束、锁已释放）
+		// 后启动：排队事件按序补处理，files已非空走完整case-1；装载完成到start之间发生的轮转
+		// 由5分钟reconcile兜底（未登记rotate走repointMissedRotation补改名+改指）。
+		fileCreateDetector.start();
 		var period = 300_000L;
 		buildIndexTimer = TaskSpec.ofAction(this::buildIndex)
 				.schedulePeriodNow(Random.getInstance().nextLong(period), period);

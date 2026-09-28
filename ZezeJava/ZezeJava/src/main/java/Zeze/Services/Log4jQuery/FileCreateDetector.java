@@ -12,16 +12,19 @@ import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 目录文件创建监视器：后台线程消费 WatchService 的 ENTRY_CREATE 事件，
  * 并在 OVERFLOW 与监听失效时触发回调补偿。
+ * 构造只完成注册（事件在内核排队不丢），消费线程由 {@link #start()} 显式启动。
  */
 public class FileCreateDetector {
 	private static final @NotNull Logger logger = LogManager.getLogger(FileCreateDetector.class);
 	private final WatchService watchService;
 	private final Path watchDir;
-	private final Thread watchThread;
+	// start()前为null（构造不启动消费线程）；volatile：stopAndJoin可能与start由不同线程读写。
+	private volatile @Nullable Thread watchThread;
 	private volatile boolean running = true;
 	private final Consumer<Path> consumer;
 	// OVERFLOW：warn+节流对账；监听失效（key.reset()==false）：error+最终对账。可为null（不关心）。
@@ -39,9 +42,19 @@ public class FileCreateDetector {
 		this.onWatchInvalidConsumer = onWatchInvalidConsumer;
 		this.watchService = FileSystems.getDefault().newWatchService();
 		this.watchDir = Paths.get(watchDir);
+		// 构造只注册不启动：事件在内核排队不丢。消费线程不得抢在调用方装载完成前处理事件——
+		// 调用方状态未就绪时的早退分支会跳过本应随事件执行的处置（见Log4jFileManager.start调用处）。
 		this.watchDir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
-		this.watchThread = new Thread(this::run);
-		this.watchThread.start();
+	}
+
+	/**
+	 * 启动事件消费线程：必须在调用方完成与onCreateConsumer存在竞态的初始化（manager的装载）之后调用一次。
+	 * 注册到start之间发生的创建事件已在内核排队，start后按序补处理。
+	 */
+	public void start() {
+		var thread = new Thread(this::run);
+		watchThread = thread; // 先发布再start：stopAndJoin并发读到的线程join立即返回或正常join
+		thread.start();
 	}
 
 	public Path getWatchDir() {
@@ -85,12 +98,16 @@ public class FileCreateDetector {
 		running = false;
 		try {
 			// take()无超时阻塞，必须先关闭watchService解除阻塞（抛ClosedWatchServiceException），否则join永久挂起。
+			// close幂等：未start（构造失败半途被回收）时同样安全。
 			watchService.close();
 		} catch (IOException e) {
 			logger.error("close watchService failed", e);
 		}
+		var thread = watchThread;
+		if (thread == null)
+			return; // 未start：watchService已关闭即完成回收，无线程可join。
 		try {
-			watchThread.join();
+			thread.join();
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
