@@ -212,7 +212,13 @@ public class Helper {
 		}
 		valueClass = Class.forName(valueType);
 		dependsBean(valueClass, result);
-		result.list2.add((Class<? extends Bean>)valueClass);
+		// 选族须与生成器一致（Gen/Gen/java/TypeName.cs：IsNormalBean ? '2' : '1'）：beankey
+		// 不是 normal bean，值集合生成"1"族（PList1/LogList1）；按"2"族注册的 typeId 线上
+		// 不出现，回放端解码抛 unknown log typeId。
+		if (BeanKey.class.isAssignableFrom(valueClass))
+			result.list1.add(valueClass);
+		else
+			result.list2.add((Class<? extends Bean>)valueClass);
 	}
 
 	// 反射调用宿主bean的newDynamicBean_<VarName>取该变量的dynamic工厂对。
@@ -257,11 +263,14 @@ public class Helper {
 			dependsBean(keyClass, result);
 		}
 		var valueClass = getBuiltinBoxingClass(valueType);
-		var is2 = valueClass == null;
-		if (is2) {
+		if (valueClass == null) {
 			valueClass = Class.forName(valueType); // bean or beanKey
 			dependsBean(valueClass, result);
-			result.sortedMap2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
+			// 选族须与生成器一致（IsNormalBean ? '2' : '1'）：beankey 值生成"1"族（PSortedMap1/LogSortedMap1）。
+			if (BeanKey.class.isAssignableFrom(valueClass))
+				result.sortedMap1.add(KV.create(keyClass, valueClass));
+			else
+				result.sortedMap2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
 		} else if (valueClass == DynamicBean.class) {
 			putDynamicFamily(result.sortedMap2Dynamic, KV.create(keyClass, (Class<? extends Bean>)valueClass), beanClass, v);
 		} else {
@@ -278,11 +287,14 @@ public class Helper {
 			dependsBean(keyClass, result);
 		}
 		var valueClass = getBuiltinBoxingClass(valueType);
-		var is2 = valueClass == null;
-		if (is2) {
+		if (valueClass == null) {
 			valueClass = Class.forName(valueType); // bean or beankey
 			dependsBean(valueClass, result);
-			result.map2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
+			// 选族须与生成器一致（IsNormalBean ? '2' : '1'）：beankey 值生成"1"族（PMap1/LogMap1）。
+			if (BeanKey.class.isAssignableFrom(valueClass))
+				result.map1.add(KV.create(keyClass, valueClass));
+			else
+				result.map2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
 		} else if (valueClass == DynamicBean.class) {
 			putDynamicFamily(result.map2Dynamic, KV.create(keyClass, (Class<? extends Bean>)valueClass), beanClass, v);
 		} else {
@@ -308,13 +320,19 @@ public class Helper {
 			dependsBean(key2Class, result);
 		}
 		var valueClass = getBuiltinBoxingClass(valueType);
-		var is2 = valueClass == null;
-		if (is2) {
+		if (valueClass == null) {
 			valueClass = Class.forName(valueType); // bean or beanKey
 			dependsBean(valueClass, result);
-			var factory = GTable2.getFactory(key1Class, key2Class, (Class<? extends Bean>)valueClass);
-			result.map2Metas.add(factory.getPmapMeta());
-			result.map2Metas.add(factory.getBmapMeta());
+			// 选族须与生成器一致（IsNormalBean ? '2' : '1'）：beankey 值生成 GTable1（内层 BeanMap1）。
+			if (BeanKey.class.isAssignableFrom(valueClass)) {
+				var factory = GTable1.getFactory(key1Class, key2Class, valueClass);
+				result.map2Metas.add(factory.getPmapMeta());
+				result.map1Metas.add(factory.getBmapMeta());
+			} else {
+				var factory = GTable2.getFactory(key1Class, key2Class, (Class<? extends Bean>)valueClass);
+				result.map2Metas.add(factory.getPmapMeta());
+				result.map2Metas.add(factory.getBmapMeta());
+			}
 		} else if (valueClass == DynamicBean.class) {
 			// 先取每变量的get/create工厂，再经dynamic重载构建（三参版对DynamicBean必抛：无无参构造器）。
 			var family = newDynamicFamily(beanClass, v);
