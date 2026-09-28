@@ -543,7 +543,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			var bucketMeta = bucket.getBucketMeta();
 			boolean isMove = splitting.getKeyFirst().compareTo(bucketMeta.getKeyFirst()) == 0
 					&& splitting.getKeyLast().compareTo(bucketMeta.getKeyLast()) == 0;
-			startSplit(isMove);
+			// onLeaderReady在持raft.mutex的apply线程上执行，禁止同步进入startSplit（锁序见startSplitAsync）。
+			startSplitAsync(isMove);
 			return;
 		}
 
@@ -650,6 +651,24 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				}
 			}
 		}
+	}
+
+	// 锁序约束：raft回调（onLeaderReady；appendLog的leaderCallback经invokeCallback/cancelCallback）
+	// 在持raft.mutex的线程上同步执行，该线程禁止获取Dbh2模块锁——startSplit持Dbh2锁内的
+	// performPrepareQueue→processRequest→waitLeaderReady会再取raft.mutex，反向嵌套构成ABBA死锁。
+	// 故凡从raft回调进入startSplit的入口统一转投用户任务池（按raft名串行；入队只短暂持有队列锁、
+	// 池派发不阻塞，均无取raft锁的路径），回调线程只入队不等待结果。延迟窗口由startSplit既有守卫
+	// 幂等收敛：isLeader失配即no-op；resume重读splittingMeta，窗口内其值不变（LogSet/EndSplit/
+	// EndMove的append均源自排在本次任务之后的同队列续链），窗口内新提交事务被重拷贝迭代器的
+	// 后建视图覆盖（splittingSync先于迭代器创建置位，见startSplit内注释）。
+	private void startSplitAsync(boolean isMove) {
+		getRaft().executeUserTask(() -> {
+			try {
+				startSplit(isMove);
+			} catch (Exception e) {
+				logger.error("startSplitAsync isMove={}", isMove, e);
+			}
+		});
 	}
 
 	// 开始分桶流程有两个线程需要访问：timer & raft.UserThreadExecutor
@@ -892,7 +911,9 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private void endSplit2(RaftLog raftLog, Boolean result, boolean isMove) {
 		if (!result) {
 			try {
-				startSplit(isMove);
+				// leaderCallback在持raft.mutex线程上执行（invokeCallback/cancelCallback），
+				// 禁止同步进入startSplit（锁序见startSplitAsync）。
+				startSplitAsync(isMove);
 			} catch (Exception e) {
 				logger.error("isMove={}", isMove, e);
 			}
