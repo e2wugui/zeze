@@ -21,6 +21,10 @@ import org.jetbrains.annotations.NotNull;
 public class Verify {
 	private static final @NotNull Logger logger = LogManager.getLogger(Verify.class);
 
+	/**
+	 * 校验历史回放与源表一致。前置：所有app已checkpoint且当前app已停写（如先
+	 * WaitAllRunningTasksAndClear 静默），否则并发提交窗口会误报 record miss——详见方法内注释。
+	 */
 	public static void run(Application zeze) throws Exception {
 		var applyDb = new ApplyDatabaseMemory();
 		var applyTables = new ConcurrentHashMap<Integer, ApplyTable<?, ?>>();
