@@ -69,8 +69,11 @@ public class OnzServer extends AbstractOnz {
 	private volatile boolean stopped;
 	// getZezeInstance的"选择→创建→登记"按名原子化。
 	private final ConcurrentHashMap<String, ReentrantLock> nameLocks = new ConcurrentHashMap<>();
-	// redo轮次与database.close()互斥：stop()超预算逃逸的轮次仍可能在库上，直接关库会与
-	// 遍历/写入commitPoint竞态。轮次内的网络等待只发生在有未决事务时（常态为空）。
+	// redo轮次与database.close()互斥：redo的两段式（见redoTimer）只在快照收集与删除
+	// 复核两段持dbLock（毫秒级，不含网络等待——滞留记录每条最多30s+的重发等待在锁外，
+	// 不再反压perform的决策写点，onz-04）；stop()超预算逃逸的轮次在两段的锁内stopped
+	// 双检下不再触碰库，RocksDatabase的close-safe契约（迟到库操作抛IllegalStateException
+	// 而非JNI崩溃）是资源层兜底。
 	// perform的写库点（saveCommitPoint/removeCommitRecord）同入dbLock域：
 	// 锁内只含毫秒级写库操作，不含perform业务窗口（那会把长业务与redo串行化）。
 	private final ReentrantLock dbLock = new ReentrantLock();
@@ -232,7 +235,8 @@ public class OnzServer extends AbstractOnz {
 	// unknown zeze/subscribe not found/no advertised service——集群除名、无通告；
 	// openRedoConnection的GetReadySocket满时超时——旧格式死地址；点表
 	// requireNonNull/decode——缺失/错配/损坏毒值；futures await超时——参与方僵死）
-	// 全部落入redo唯一catch，走不到任何告警集合的add点：对settle守卫不可见，
+	// 全部落入redo失败分诊（锁内快照收集的点表读取与锁外重发段，见logRedoFail），
+	// 走不到任何告警集合的add点：对settle守卫不可见，
 	// 确定性滞留（地址漂移后每轮建连失败、除名集群按名解析恒抛）每60s重放一条带栈
 	// error（每tid每天1440条）且永不可清算——settle拒绝文案指引"等下一轮redo≤60s
 	// 重新分诊"，该指引对此类永不兑现（其redo路径永远到不了集合add点）。记录年龄
@@ -258,10 +262,52 @@ public class OnzServer extends AbstractOnz {
 	private void redoTimer() {
 		if (stopped)
 			return;
+		// 两段式（onz-04）：原先整轮（迭代+每条记录的重发网络等待，滞留记录每条最多
+		// 30s+5s）持dbLock——perform的saveCommitPoint(ePreparing/eCommitting)同锁排队
+		// 等完整轮次，参与方ready等待（flushTimeout预算）超时自愈回滚后协调者仍按提交
+		// 推进=无崩溃的暴露型分歧。锁内只收集快照（毫秒级，含点表读取），重发网络与
+		// 结果判定出锁，删除决策回锁内复核（快照→锁外期间记录可能被并发终结：perform
+		// 的commit成功路径/settleStuckRecord）。dbLock仍覆盖database生命周期互斥。
+		var records = collectRedoCandidates();
+		var n = records.size();
+		if (n == 0) {
+			redoResumeKey = null;
+			return;
+		}
+		// 轮转起点（onz-05）：从上一轮预算耗尽处之后继续——滞留头部记录（每条吃满单条
+		// 网络上限）若每轮都从头开始，排序在后的记录每轮都轮不到（收敛系统性停滞）；
+		// 预算内走完全部候选则游标清空（下轮从头）。
+		var start = 0;
+		if (redoResumeKey != null)
+			while (start < n && java.util.Arrays.compare(records.get(start).key, redoResumeKey) <= 0)
+				start++;
+		var deadline = System.currentTimeMillis() + RedoRoundNetworkBudgetMs;
+		byte[] lastAttempted = null;
+		var completed = true;
+		for (var k = 0; k < n; k++) {
+			if (stopped)
+				break; // 出锁段完成当前记录后不再取下一条；终态下游标无意义（stop后无下一轮）
+			if (System.currentTimeMillis() >= deadline) {
+				completed = false;
+				break;
+			}
+			var rec = records.get((start + k) % n);
+			redoRecord(rec);
+			lastAttempted = rec.key;
+		}
+		redoResumeKey = completed ? null : lastAttempted;
+	}
+
+	/** redo候选的锁内快照收集（onz-04两段式的第一段）：dbLock内完成commitIndex迭代、
+	 * 状态/年龄/在途登记分诊与点表读取解码（毫秒级）——锁外重发段不得触碰database
+	 * （关库互斥以dbLock+锁内stopped双检实现）。返回key序候选列表；毒条目/未知state/
+	 * 点表失败均单条隔离（不中止收集，排序在其后的未决决策redo是它们唯一的收敛通道）。 */
+	private ArrayList<RedoRecord> collectRedoCandidates() {
+		var records = new ArrayList<RedoRecord>();
 		dbLock.lock();
 		try {
 			if (stopped)
-				return;
+				return records; // 锁内stopped双检（对齐settleStuckRecord形态）
 			try (var it = commitIndex.iterator()) {
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					var key = it.key();
@@ -269,75 +315,90 @@ public class OnzServer extends AbstractOnz {
 					// 索引侧毒条目单条隔离：索引自身的值空/截断（ReadUInt抛）或key短于
 					// 8字节（ToLongBE越界抛）时，异常若直接冲出循环体会中止整个commitIndex遍历
 					// ——周期路径被DaemonTimer.runBody吞掉后下一轮从头再撞同一条，排序在后的
-					// 未决决策redo永久停滞（redo内层隔离只覆盖点表侧的requireNonNull/decode，
-					// 索引侧需在本层隔离）。单条处理整体包try，毒条目记error（带key/tid）后跳过
-					// 留库人工排查，不阻塞其后记录的收敛（对齐ApplyHelper逐记录隔离形态；与
-					// redo内层隔离构成两层防御）。毒条目留库期间每轮
-					// redo都会再撞到并再记一条（对齐内层"redo fail"形态——真损坏必被持续看见，
+					// 未决决策redo永久停滞（点表侧的requireNonNull/decode在下方同层隔离）。
+					// 单条处理整体包try，毒条目记error（带key/tid）后跳过留库人工排查，不阻塞
+					// 其后记录的收敛（对齐ApplyHelper逐记录隔离形态）。毒条目留库期间每轮
+					// redo都会再撞到并再记一条（对齐"redo fail"形态——真损坏必被持续看见，
 					// 条目被人工清除/修复后即静默）。
+					int state;
+					long tid;
+					long stamp;
 					try {
 						var bb = ByteBuffer.Wrap(value);
-						var state = bb.ReadUInt();
-						var tid = ByteBuffer.ToLongBE(key, 0);
+						state = bb.ReadUInt();
+						tid = ByteBuffer.ToLongBE(key, 0);
 						// 新格式值=state(varint)+写入时戳(8B BE)；旧格式（仅state，
 						// 升级遗留的未决决策）读不到时戳视为年龄无穷——立即redo。
-						var stamp = bb.size() >= 8 ? bb.ReadLong8BE() : 0L;
-						// 先读状态再判登记，skip仅作用于登记中的ePreparing。
-						// ePreparing的redo是Rollback，回滚不可逆：登记窗口从addTransaction覆盖到
-						// finally removeTransaction，其中saveCommitPoint(ePreparing)→无界
-						// waitPendingAsync是年龄闸挡不住的进行中窗口，误发Rollback回滚存活参与方后
-						// 对迟到Commit假应答成功（readyProcedures.remove为null直接SendResult(0)），
-						// perform静默全量回滚却返回0——必须skip。真残留只能源于进程崩溃（登记表
-						// 与perform同进程同生共死：perform异常结束必经finally摘除登记，进程存活则
-						// 登记必在），崩溃重启后onzAgent为空，skip天然放行；存活perform的finally
-						// 摘除登记后下轮redo可见。年龄闸只作用于未登记的ePreparing
-						// （区分崩溃残留与刚落盘的窗口条目），登记中的条目与年龄无关。
-						// eCommitting不做skip：其redo是幂等Commit重发（参与方已ready，重复Commit
-						// 亦应答成功；且redo经getZezeInstance现查新地址），登记中执行也安全——它
-						// 是perform的Commit散发通道socket僵死时的收敛通道，skip会把补发推迟到
-						// perform的finally之后，多等一个perform生命周期。
-						switch (state) {
-						case eCommitting:
-							redo(key, true, stamp);
-							break;
-						case ePreparing:
-							var age = System.currentTimeMillis() - stamp;
-							if (onzAgent.hasTransaction(tid)) {
-								// 可观测性：登记中却远超年龄窗口（2×RedoPreparingMinAgeMs）仍停在
-								// ePreparing，基本是perform因业务bug永挂——登记项与commitIndex条目
-								// 将永久泄漏且redo被其封锁，按tid只warn一次暴露（集合见hangWarnedTids）。
-								if (age >= 2 * RedoPreparingMinAgeMs && hangWarnedTids.add(tid))
-									logger.warn("onz redo: tid={} 登记中ePreparing年龄{}ms，疑似挂死 perform，redo 封锁中", tid, age);
-								continue;
-							}
-							if (age >= RedoPreparingMinAgeMs)
-								redo(key, false, stamp);
-							// else：进行中窗口，等超过年龄后的下一轮
-							break;
-						default:
-							// 未知state：值可解但state∉{ePreparing,eCommitting}——损坏但
-							// 未截断的垃圾值（截断/空值走外层的catch），或未来版本新增
-							// state常量写入后降级运行。语义未知不盲目redo（补发Commit/Rollback都可能
-							// 制造协调者与参与方分歧），只静默跳过则永不清算且零信号
-							// （同函数hang/超龄NotFound/毒值均有告警，唯此支没有）。按tid只error一次
-							// （集合见unknownStateWarnedTids）暴露后跳过，留库人工排查。
-							if (unknownStateWarnedTids.add(tid))
-								logger.error("onz redo: commitIndex条目state={} 未知（tid={}），跳过不redo，条目留库人工排查",
-										state, tid);
-							break;
-						}
+						stamp = bb.size() >= 8 ? bb.ReadLong8BE() : 0L;
 					} catch (Throwable ex) {
 						// 单条隔离的兜底跳过：key/tid尽力携带——key短于8字节时tid本就
 						// 解不出（这正是被隔离的异常形态之一），用原始key字节定位。
 						logger.error("onz redo: commitIndex毒条目解码失败跳过（key={}，tid={}），留库人工排查",
 								java.util.Arrays.toString(key),
 								key.length >= 8 ? ByteBuffer.ToLongBE(key, 0) : null, ex);
+						continue;
+					}
+					// 先读状态再判登记，skip仅作用于登记中的ePreparing。
+					// ePreparing的redo是Rollback，回滚不可逆：登记窗口从addTransaction覆盖到
+					// finally removeTransaction，其中saveCommitPoint(ePreparing)→无界
+					// waitPendingAsync是年龄闸挡不住的进行中窗口，误发Rollback回滚存活参与方后
+					// 对迟到Commit假应答成功（readyProcedures.remove为null直接SendResult(0)），
+					// perform静默全量回滚却返回0——必须skip。真残留只能源于进程崩溃（登记表
+					// 与perform同进程同生共死：perform异常结束必经finally摘除登记，进程存活则
+					// 登记必在），崩溃重启后onzAgent为空，skip天然放行；存活perform的finally
+					// 摘除登记后下轮redo可见。年龄闸只作用于未登记的ePreparing
+					// （区分崩溃残留与刚落盘的窗口条目），登记中的条目与年龄无关。
+					// eCommitting不做skip：其redo是幂等Commit重发（参与方已ready，重复Commit
+					// 亦应答成功；且redo经getZezeInstance现查新地址），登记中执行也安全——它
+					// 是perform的Commit散发通道socket僵死时的收敛通道，skip会把补发推迟到
+					// perform的finally之后，多等一个perform生命周期。
+					boolean commitDecision;
+					switch (state) {
+					case eCommitting:
+						commitDecision = true;
+						break;
+					case ePreparing:
+						var age = System.currentTimeMillis() - stamp;
+						if (onzAgent.hasTransaction(tid)) {
+							// 可观测性：登记中却远超年龄窗口（2×RedoPreparingMinAgeMs）仍停在
+							// ePreparing，基本是perform因业务bug永挂——登记项与commitIndex条目
+							// 将永久泄漏且redo被其封锁，按tid只warn一次暴露（集合见hangWarnedTids）。
+							if (age >= 2 * RedoPreparingMinAgeMs && hangWarnedTids.add(tid))
+								logger.warn("onz redo: tid={} 登记中ePreparing年龄{}ms，疑似挂死 perform，redo 封锁中", tid, age);
+							continue;
+						}
+						if (age < RedoPreparingMinAgeMs)
+							continue; // 进行中窗口，等超过年龄后的下一轮
+						commitDecision = false;
+						break;
+					default:
+						// 未知state：值可解但state∉{ePreparing,eCommitting}——损坏但
+						// 未截断的垃圾值（截断/空值走上方的索引解码catch），或未来版本新增
+						// state常量写入后降级运行。语义未知不盲目redo（补发Commit/Rollback都可能
+						// 制造协调者与参与方分歧），只静默跳过则永不清算且零信号
+						// （同函数hang/超龄NotFound/毒值均有告警，唯此支没有）。按tid只error一次
+						// （集合见unknownStateWarnedTids）暴露后跳过，留库人工排查。
+						if (unknownStateWarnedTids.add(tid))
+							logger.error("onz redo: commitIndex条目state={} 未知（tid={}），跳过不redo，条目留库人工排查",
+									state, tid);
+						continue;
+					}
+					// 点表读取+解码（原redo()的锁内段，挪入快照收集——锁外段不得触库）：
+					// 索引有条目而点表无（错配/遗留）或值损坏（截断）时requireNonNull/decode抛，
+					// 失败分类对齐redo整体失败分诊（logRedoFail）：本条留库人工排查。
+					try {
+						var saved = new BSavedCommits.Data();
+						saved.decode(ByteBuffer.Wrap(Objects.requireNonNull(commitPoint.get(key))));
+						records.add(new RedoRecord(key, tid, value, commitDecision, stamp, saved));
+					} catch (Throwable ex) {
+						logRedoFail(tid, stamp, ex);
 					}
 				}
 			}
 		} finally {
 			dbLock.unlock();
 		}
+		return records;
 	}
 
 	// redo对saga参与方FuncSagaEnd的等待超时：参与方处理FuncSagaEnd与在途业务互斥
@@ -345,24 +406,43 @@ public class OnzServer extends AbstractOnz {
 	// 每轮redo重试收敛，取小于redo周期(60s)的量级。
 	private static final int RedoSagaEndTimeoutMs = 30_000;
 
+	// redo轮锁外重发段的总网络预算（onz-05）：预算耗尽即本轮到此为止，剩余记录留下轮
+	//（60s周期后，配合redoResumeKey轮转）。取值约束：预算+单条记录网络上限（发送段每
+	// 参与方GetReadySocket最多5s串行+等待段FuncSagaEnd上限RedoSagaEndTimeoutMs，少量
+	// 参与方约35s）≈95s，须显著小于DaemonTimer每轮任务看门狗（2参构造timeoutMs取
+	// Task.defaultTimeout=120s）——看门狗中断不再落在锁外重发的await内；参与方数极端
+	// 放大（单条>55s）时中断落在单条await上：该记录当轮作废保留重试（既有安全语义，
+	// 无库状态破坏）。预算=周期使被挡记录的推迟有界于一个周期。
+	private static final long RedoRoundNetworkBudgetMs = 60_000;
+
+	// redo轮转游标：上一轮预算耗尽时最后尝试过的key（null=下轮从头开始）。
+	// 仅redo轮线程读写（无锁）：DaemonTimer链式排期（下一轮在上一轮收尾的
+	// finishRound内才排）保证轮次串行；start()的首轮同步调用先于redoDaemon.start()。
+	private byte[] redoResumeKey;
+
+	/** redo候选的锁内快照（onz-04两段式）：collectRedoCandidates在dbLock内构建，
+	 * 锁外重发段使用——锁外不得触碰database。
+	 * key=tid（8B BE）；indexValue=收集时的commitIndex原值（state(varint)+写入时戳(8B BE)），
+	 * 作删除前复核判据（快照→锁外→回锁期间记录可能被并发终结）；commitDecision=
+	 * true(eCommitting)/false(ePreparing，补发Rollback/cancel)；stamp=写入时戳（超龄
+	 * NotFound/redo失败分诊判据）；savedCommits=参与方列表（saga参与方带前缀编码）。 */
+	private record RedoRecord(byte[] key, long tid, byte[] indexValue, boolean commitDecision, long stamp,
+			BSavedCommits.Data savedCommits) {
+	}
+
 	// redo按决策与参与方类型分流：procedure参与方发Commit/Rollback；
 	// saga参与方发FuncSagaEnd——commit决策补发endSaga未完成的结束(cancel=false)，
-	// rollback决策补偿已提交的步骤(cancel=true)，参与方幂等。
-	// stamp=commitIndex写入时戳，供超龄NotFound分诊。
-	private void redo(byte[] key, boolean commitDecision, long stamp) {
-		var tid = ByteBuffer.ToLongBE(key, 0);
+	// rollback决策补偿已提交的步骤(cancel=true)，参与方幂等（重发无害是两段式的
+	// 正确性前提：重复Commit命中ready条目或已提交的幂等路径应答0；重复FuncSagaEnd
+	// 对已清理上下文应答eSagaNotFound可辨识忽略）。
+	// stamp取自快照（commitIndex写入时戳），供超龄NotFound分诊。
+	private void redoRecord(RedoRecord rec) {
+		var tid = rec.tid;
 		var zezeOnzs = new HashMap<String, Connector>();
 		try {
-			// 毒记录隔离：索引有条目而点表无（错配/遗留）或值损坏（截断）时
-			// requireNonNull/decode抛运行时异常，在try内捕获记error——本条留库人工排查，
-			// 不得中止迭代：排序在其后的未决决策redo是它们唯一的收敛通道。
-			var value = Objects.requireNonNull(commitPoint.get(key));
-			var state = new BSavedCommits.Data();
-			state.decode(ByteBuffer.Wrap(value));
-
 			var futures = new ArrayList<TaskCompletionSource<?>>();
 			var rpcs = new ArrayList<Rpc<?, ?>>();
-			for (var e : state.getOnzs()) {
+			for (var e : rec.savedCommits.getOnzs()) {
 				// saga参与方带前缀持久化，其余为procedure参与方（含旧版本ip_port格式）。
 				var sagaName = OnzTransaction.decodeSagaParticipant(e);
 				var zezeName = sagaName != null ? sagaName : e;
@@ -375,11 +455,11 @@ public class OnzServer extends AbstractOnz {
 					// 旧版本持久化的ip_port（升级窗口遗留的未决决策）：按地址建连兜底。
 					socket = openRedoConnection(zezeOnzs, zezeName).GetReadySocket();
 				}
-				rpcs.add(sendRedoDecision(socket, tid, sagaName, commitDecision, futures));
+				rpcs.add(sendRedoDecision(socket, tid, sagaName, rec.commitDecision, futures));
 			}
 			for (var e : futures)
 				e.await();
-			// await只在异常完成（超时/发送失败，上面catch保留记录）时抛出；应答非0码是
+			// await只在异常完成（超时/发送失败，下面catch保留记录）时抛出；应答非0码是
 			// 正常完成（Rpc直接setResult），必须显式检查（对齐commit()）：参与方补偿失败
 			// 已按契约保留上下文等重发（Onz.ProcessFuncSagaEndRequest放回sagas），此处删
 			// 记录等于掐断唯一自动重试通道——已提交步骤永久未补偿。保留记录等下一轮幂等收敛。
@@ -395,8 +475,8 @@ public class OnzServer extends AbstractOnz {
 					// 已被TTL清理，补偿永久丢失）。记录年龄超参与方TTL预算（SagaNotFoundAged
 					// BudgetMs）的升格为error（按tid去重防每轮刷屏）并保留决策记录（人工对账
 					// 需要记录在场）；年龄内与commit决策（cancel=false的end无数据效应）维持静默。
-					var recordAge = System.currentTimeMillis() - stamp;
-					if (!commitDecision && recordAge >= SagaNotFoundAgedBudgetMs) {
+					var recordAge = System.currentTimeMillis() - rec.stamp;
+					if (!rec.commitDecision && recordAge >= SagaNotFoundAgedBudgetMs) {
 						removeOk = false;
 						if (agedNotFoundWarnedTids.add(tid))
 							logger.error("onz redo: rollback决策的saga参与方应答eSagaNotFound且决策记录超龄"
@@ -415,39 +495,78 @@ public class OnzServer extends AbstractOnz {
 					logger.error("redo result error, keep record for retry. tid={}, resultCode={}",
 							tid, rpc.getResultCode());
 			}
-			if (removeOk) {
-				removeCommitRecord(key);
-				agedNotFoundWarnedTids.remove(tid); // 记录收敛后回收告警去重项
-				redoResultWarnedTids.remove(tid); // 同上：结果错误告警一并回收
-				redoFailWarnedTids.remove(tid); // 同上：瞬态失败自愈（参与方恢复→本轮
-				// 全0）后tid离开第四集合，集合有界于在库的异常滞留决策数。
-			}
+			if (removeOk)
+				removeRedoRecordIfUnchanged(rec);
 		} catch (Throwable ex) {
-			// timer will redo
-			// 年龄门槛分诊：参与者循环/点表读取的任一异常未达门槛时只落本处
-			// "redo fail"全量日志——走不到任何告警集合add点，确定性滞留（死地址/除名
-			// 集群/毒点表）对settle守卫不可见且每60s刷一条带栈error。记录年龄≥
-			// RedoFailAgedBudgetMs的本轮异常转去重形态：按tid登记第四告警集合并
-			// error一次（成因片段=异常类名+消息——诊断"先修参与方还是改库"的依据，
-			// 首见形态即可，门槛内的年轻阶段有全量带栈日志），登记即可被
-			// settleStuckRecord清算；已登记的后续轮次静默（重放无新信息）。未达门槛
-			// 记全量日志：瞬态/年轻失败完全可见，且行数有界（门槛/60s轮后转去重形态）。
-			// 旧格式记录（stamp=0）年龄视为无穷（对齐redoTimer读时戳口径），首轮异常即分诊。
-			var recordAge = System.currentTimeMillis() - stamp;
-			if (recordAge >= RedoFailAgedBudgetMs) {
-				if (redoFailWarnedTids.add(tid))
-					logger.error("redo fail aged, keep record for settle. tid={}, age={}ms, cause={}: {}",
-							tid, recordAge, ex.getClass().getName(), ex.getMessage());
-			} else {
-				logger.error("redo fail. tid={}", tid, ex);
-			}
+			// timer will redo：锁外段任一异常（按名解析unknown zeze/subscribe not found、
+			// GetReadySocket满时超时、futures await超时/中断、复核读失败）保留记录，
+			// 分诊见logRedoFail。
+			logRedoFail(tid, rec.stamp, ex);
 		} finally {
 			for (var zeze : zezeOnzs.values())
 				zeze.stop();
 		}
 	}
 
-	// redo的发送分流（决策语义见redo）：saga参与方发FuncSagaEnd（cancel取反决策，
+	/** 删除决策回锁内复核（onz-04）：快照收集→锁外重发期间记录可能被并发终结——
+	 * perform线程commit成功路径的removeCommitRecord（redo不skip登记中的eCommitting，
+	 * 与perform自己的Commit散发并发是既有语义）或人工settleStuckRecord。复核
+	 * commitIndex原值仍在且未变才删除：本轮"全部应答0/良性NotFound"的结论只终结
+	 * 快照时见到的那条记录。值已不在=并发方已终结，幂等no-op（告警去重集合同步
+	 * 回收，集合有界于在库滞留数）。值已变=进程内不可达的防御分支：同key的写入只有
+	 * perform的两步saveCommitPoint且tid不复用（AutoKey单调），ePreparing候选的perform
+	 * 已死（快照时未登记，见collectRedoCandidates的登记判据）、eCommitting候选的perform
+	 * 亦不再改写（commit只调用一次）——防外进程改库，保留+warn待下轮按新值分诊。
+	 * stopped时静默跳过：记录留库由下次进程启动的redo恢复（stop javadoc承诺），
+	 * 不走removeCommitRecord的拒删error——停机窗口内每条记录一条error是纯噪声。 */
+	private void removeRedoRecordIfUnchanged(RedoRecord rec) throws RocksDBException {
+		dbLock.lock();
+		try {
+			if (stopped)
+				return;
+			var current = commitIndex.get(rec.key);
+			if (current == null) {
+				recycleRedoWarnTids(rec.tid); // 并发方已终结：集合回收对齐"有界于在库滞留数"
+				return;
+			}
+			if (!java.util.Arrays.equals(current, rec.indexValue)) {
+				logger.warn("onz redo: 快照后决策记录已变化，保留待下轮分诊. tid={}", rec.tid);
+				return;
+			}
+			removeCommitRecord(rec.key); // dbLock可重入
+			recycleRedoWarnTids(rec.tid);
+		} finally {
+			dbLock.unlock();
+		}
+	}
+
+	/** 记录收敛（本轮复核删除，或并发方已终结）后回收告警去重项（原redo() removeOk
+	 * 分支的回收点；unknownState条目不经redo收敛，仍由settleStuckRecord唯一回收）。 */
+	private void recycleRedoWarnTids(long tid) {
+		agedNotFoundWarnedTids.remove(tid); // 记录收敛后回收告警去重项
+		redoResultWarnedTids.remove(tid); // 同上：结果错误告警一并回收
+		redoFailWarnedTids.remove(tid); // 同上：瞬态失败自愈（参与方恢复→本轮全0）后
+		// tid离开第四集合，集合有界于在库的异常滞留决策数。
+	}
+
+	/** redo整体失败分诊（原redo()唯一catch的逻辑；点表读取移入快照收集后，
+	 * 快照收集与锁外重发两处共用）：记录年龄≥RedoFailAgedBudgetMs（分诊依据见该
+	 * 常量）的本轮异常按tid登记redoFailWarnedTids并error一次（成因片段=异常类名+
+	 * 消息，首见形态即可）；未达门槛记全量带栈日志（瞬态/年轻失败完全可见，行数
+	 * 有界：门槛/60s轮后转去重形态）。旧格式记录（stamp=0）年龄视为无穷（对齐
+	 * 快照收集读时戳口径），首轮异常即分诊。 */
+	private void logRedoFail(long tid, long stamp, Throwable ex) {
+		var recordAge = System.currentTimeMillis() - stamp;
+		if (recordAge >= RedoFailAgedBudgetMs) {
+			if (redoFailWarnedTids.add(tid))
+				logger.error("redo fail aged, keep record for settle. tid={}, age={}ms, cause={}: {}",
+						tid, recordAge, ex.getClass().getName(), ex.getMessage());
+		} else {
+			logger.error("redo fail. tid={}", tid, ex);
+		}
+	}
+
+	// redo的发送分流（决策语义见redoRecord）：saga参与方发FuncSagaEnd（cancel取反决策，
 	// 等待超时见RedoSagaEndTimeoutMs），procedure参与方发Commit/Rollback。
 	// future入列供统一await，返回rpc供结果码检查。
 	private static Rpc<?, ?> sendRedoDecision(AsyncSocket socket, long tid,
@@ -500,8 +619,9 @@ public class OnzServer extends AbstractOnz {
 
 	void removeCommitRecord(byte[] tidBytes) {
 		// 同saveCommitPoint纳入dbLock+锁内stopped双检：commit()两处调用
-		//（失败分支/成功路径）都跑在业务线程。redo()/settleStuckRecord的既有调用点本就在
-		// dbLock域内（ReentrantLock可重入，行为不变）。stopped时拒删不是错误：与下方
+		//（失败分支/成功路径）都跑在业务线程。redoRecord经removeRedoRecordIfUnchanged的
+		// 调用点与settleStuckRecord本就在dbLock域内（ReentrantLock可重入，行为不变）。
+		// stopped时拒删不是错误：与下方
 		// RocksDBException分支同语义——记录留库，由下次进程启动的redo恢复（stop javadoc
 		// 既定承诺）；此刻库已关或即将关，不再触碰。commit()成功路径因拒删留下的eCommitting
 		// 残留由重启redo的幂等Commit重发收敛，参与方已按Commit提交，重发应答成功即清理。
@@ -670,10 +790,12 @@ public class OnzServer extends AbstractOnz {
 			return; // 幂等
 		stopped = true;
 
-		redoDaemon.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s）
+		redoDaemon.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s；轮长受RedoRoundNetworkBudgetMs约束，常态不逃逸）
 
-		// redo轮次在dbLock内遍历/写入库；持有dbLock直到关库完成，
-		// 与超预算逃逸/迟到的轮次互斥（迟到轮次在锁内检查stopped返回）。
+		// redo轮的两段式只在快照收集/删除复核两段持dbLock（重发网络在锁外）；持有dbLock
+		// 直到关库完成，与迟到轮次的锁内段互斥（锁内stopped双检拒绝库访问）；锁外重发段
+		// 在停机后触网络失败（getZezeInstance拒stopped/连接已停）走redoRecord的catch
+		// 保留记录，方向安全。
 		dbLock.lock();
 		try {
 			// 停缓存connector并清表：它们挂在onzAgent的服务上，必须在其停止前显式停掉
