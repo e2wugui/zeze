@@ -70,8 +70,9 @@ public class MQManager extends AbstractMQManager {
 	// 同样排空不到），两者恢复后触库（dropTable/getOrAddTable/迭代器）与已完成的
 	// rocksDatabase.close 相交即违约。stop 在关库前有界获取同一把锁等在飞管理 handler 出锁；
 	// 过闸晚到任务在锁内复查 stopped 拒绝（同构 MQSingle.sendMessage 与 close 的锁内收口形态）。
-	// 锁序：handler 路径 managementLock→MQSingle 锁；stop 路径先完成全部 queue.close（MQSingle
-	// 锁已随迭代释放）再取 managementLock——两侧无 hold-and-wait 交叠，无 AB-BA。
+	// 锁序：handler 路径 managementLock→MQSingle 锁；stop 路径先完成首轮 queue.close（MQSingle
+	// 锁随迭代释放）再取 managementLock，锁内的第二次 close 扫描（补过闸 create handler 入 map 的
+	// 增量）同走 managementLock→MQSingle 既有方向——无任何路径反向取锁，无 AB-BA。
 	private final ReentrantLock managementLock = new ReentrantLock();
 
 	public boolean isStopped() {
@@ -215,13 +216,25 @@ public class MQManager extends AbstractMQManager {
 		// 管理面排空：过闸在飞的 Create/DeletePartition handler 全程持
 		// managementLock（其内部 removePartition 排空最长 RpcTimeout+5s），取同一把锁等它们出锁
 		// 后再关库——此后过闸晚到任务只会在锁内复查拒绝，不再触库。超预算仅告警继续（口径同
-		// MQSingle.close 的有界排空，不引入无限等待）。取锁成功即释放：与关库之间的窗口内
-		// 晚到任务仍有锁内复查兜底（stopped 已置位）。
+		// MQSingle.close 的有界排空，不引入无限等待）。取锁成功后先做第二次 close 扫描（见下）
+		// 再释放：与关库之间的窗口内晚到任务仍有锁内复查兜底（stopped 已置位）。
 		var drainBudgetMs = mqConfig.getRpcTimeout() + 5_000L;
 		if (!managementLock.tryLock(drainBudgetMs, TimeUnit.MILLISECONDS))
 			logger.warn("mq management handler not drained in {}ms, continue close rocksdb", drainBudgetMs);
-		else
-			managementLock.unlock();
+		else {
+			// 第二次 close 扫描（锁内）：过闸在飞的 create handler 此刻已出锁——其 MQSingle 构造
+			// 装载秒级、computeIfAbsent 入 map 晚于上面的快照迭代，本扫描补 close 增量（否则该
+			// 分区 lastFileOutputStream 悬挂、closed 未置）；锁内复查 stopped 使此后过闸晚到任务
+			// 不再入 map，本扫描即终态。第二轮沿用同一 drainDeadlineMs（总额包络不因二次扫描放宽，
+			// 剩余耗尽时 MQSingle.close 自身按 min(自身预算,剩余) 收口）。持 managementLock 调
+			// queue.close 走 managementLock→MQSingle 锁既有方向（handler 路径同序），无新交叠。
+			try {
+				for (var queue : queues.values())
+					queue.close(drainDeadlineMs);
+			} finally {
+				managementLock.unlock();
+			}
+		}
 		rocksDatabase.close();
 	}
 
