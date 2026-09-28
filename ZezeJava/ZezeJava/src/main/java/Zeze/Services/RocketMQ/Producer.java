@@ -39,9 +39,13 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	private static final long TSENT_KEEP_TIME_DEFAULT = 7L * 24 * 60 * 60 * 1000;
 	// 每批walk的行数上限：每批独立一个事务过程删除，避免单过程长事务。
 	private static final int TSENT_CLEAN_BATCH_SIZE = 1000;
+	// stop 的有界排空预算：事务回查线程池在飞的 checkLocalTransaction（_tSent.selectDirty 触
+	// Zeze 表）须在 stop 返回前完成——典型停机顺序 stop()→app.close()，越过即对已关表的访问。
+	private static final long STOP_AWAIT_MILLIS = 10_000L;
 
 	public final @NotNull Application zeze;
 	private final @NotNull TransactionMQProducer producer;
+	private final @NotNull ThreadPoolExecutor checkExecutor;
 	private @Nullable TimerFuture<?> tSentCleanFuture;
 
 	public Producer(@NotNull Application zeze, @NotNull String producerGroup, @NotNull ClientConfig clientConfig) {
@@ -50,8 +54,10 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		producer = new TransactionMQProducer(producerGroup);
 		producer.setNamesrvAddr(clientConfig.getNamesrvAddr()); // "127.0.0.1:9876"
 		producer.setTransactionListener(this);
-		producer.setExecutorService(new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2000),
-				r -> new Thread(r, "client-transaction-msg-check-thread")));
+		// 自建回查线程池保留引用：destroyTransactionEnv 只对它 shutdown() 不等待，stop 需自行有界排空。
+		checkExecutor = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2000),
+				r -> new Thread(r, "client-transaction-msg-check-thread"));
+		producer.setExecutorService(checkExecutor);
 	}
 
 	public void start() throws MQClientException {
@@ -68,6 +74,16 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			tSentCleanFuture = null;
 		}
 		producer.shutdown();
+		// destroyTransactionEnv 对注入的回查线程池只 shutdown() 不等待：在飞 checkLocalTransaction
+		//（触 Zeze 表）须在 stop 返回前有界排空（典型停机顺序 stop()→app.close()，越过即对已关表的
+		// 访问）。shutdown 幂等（destroyTransactionEnv 已调过），超时仅告警继续，不无限等待。
+		checkExecutor.shutdown();
+		try {
+			if (!checkExecutor.awaitTermination(STOP_AWAIT_MILLIS, TimeUnit.MILLISECONDS))
+				logger.warn("RocketMQ.Producer transaction check executor not drained in {}ms", STOP_AWAIT_MILLIS);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
 	}
 
 	public @NotNull TransactionMQProducer getProducer() {

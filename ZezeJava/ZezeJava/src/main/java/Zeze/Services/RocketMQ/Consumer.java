@@ -63,6 +63,10 @@ import org.jetbrains.annotations.Nullable;
 public class Consumer {
 	private static final Logger logger = LogManager.getLogger(Consumer.class);
 
+	// stop 的有界排空预算：consume 线程池在飞的 wrapTransactional 过程（含冲突重试）须在
+	// shutdown 内完成——典型停机顺序 stop()→app.close()，越过即对已关 Zeze 表的访问。
+	private static final long STOP_AWAIT_MILLIS = 10_000L;
+
 	public final @NotNull Application zeze;
 	private final @NotNull DefaultMQPushConsumer consumer;
 
@@ -70,6 +74,7 @@ public class Consumer {
 		this.zeze = zeze;
 		consumer = new DefaultMQPushConsumer(consumerGroup);
 		consumer.setNamesrvAddr(clientConfig.getNamesrvAddr());
+		consumer.setAwaitTerminationMillisWhenShutdown(STOP_AWAIT_MILLIS);
 	}
 
 	/**
@@ -123,6 +128,10 @@ public class Consumer {
 		consumer.start();
 	}
 
+	/**
+	 * 停止消费者：shutdown 内有界等待（awaitTerminationMillisWhenShutdown，见构造器）在飞消费任务
+	 * （wrapTransactional 过程）完成，stop 返回后再关闭 Zeze 应用不与在飞消费过程竞态。
+	 */
 	public void stop() {
 		consumer.shutdown();
 	}
