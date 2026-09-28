@@ -14,10 +14,12 @@ import org.w3c.dom.Node;
 public class LogServiceConf implements Config.ICustomize {
 	public static class LogConf {
 		public String logActive;
-		// 同一logDir同一时刻只允许一个Log4jFileManager使用：indexLinks/<active>.index命名空间
-		// 按logDir定位且实例间（及跨进程间）无互斥，多实例并发会交错损坏索引——进程内由
-		// Log4jFileManager构造期独占登记拒绝（见其logDirOwners注释），跨进程属部署约束。
-		// 本字段parse后仍可改写，独占检查以构造时的实际值为准（parse期不做重复目录校验）。
+		// 同一（logDir, logActive）同一时刻只允许一个Log4jFileManager管理（同一日志文件双管）：
+		// indexLinks编号命名空间与<active>.index交接名按（目录,活性）定位且实例间（及跨进程间）
+		// 无互斥，双管并发会撞号交错写/互删链接——进程内由Log4jFileManager构造期独占登记拒绝
+		//（见其logDirOwners注释），跨进程属部署约束。同一logDir不同logActive（多份日志同目录）
+		// 是合法形态：indexLinks按logActive分子目录互不共享。本字段parse后仍可改写，独占检查以
+		// 构造时的实际值为准（parse期不做重复目录校验）。
 		public String logDir = "log";
 		public String logDatePattern = ".yyyy-MM-dd";
 		public String logTimeFormat = "yy-MM-dd HH:mm:ss.SSS";

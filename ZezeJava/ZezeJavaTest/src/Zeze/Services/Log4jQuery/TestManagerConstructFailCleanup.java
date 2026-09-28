@@ -44,12 +44,15 @@ public class TestManagerConstructFailCleanup {
 		assertThrows(Exception.class, () -> new Log4jFileManager(logConf));
 
 		// 修复前后构造都抛；区分点是watch线程是否被回收。观察前先解除indexLinks占位：
-		// 泄漏的线程处理CREATE(active)会在indexLinks下建编号索引文件（openFreshActiveIndex），
+		// 泄漏的线程处理CREATE(active)会在indexLinks/<active>下建编号索引文件（openFreshActiveIndex），
 		// 占位不解除则该副作用被掩盖、断言空转；已回收的线程对后续创建无任何磁盘副作用。
 		Files.delete(logDir.resolve("indexLinks"));
 		Files.delete(logDir.resolve("zeze.log"));
 		Files.createFile(logDir.resolve("zeze.log"));
-		var linkIndex = logDir.resolve("indexLinks").resolve("1");
+		// 观察路径随log4j-02的indexLinks分活性子目录迁移：泄漏线程的副作用落在
+		// indexLinks/zeze.log/1（子目录），旧扁平路径indexLinks/1在新布局下永不存在，
+		// 断言旧路径会使回归守卫空转。
+		var linkIndex = logDir.resolve("indexLinks").resolve("zeze.log").resolve("1");
 		var deadline = System.currentTimeMillis() + 1000;
 		while (Files.notExists(linkIndex) && System.currentTimeMillis() < deadline)
 			Thread.sleep(50);
