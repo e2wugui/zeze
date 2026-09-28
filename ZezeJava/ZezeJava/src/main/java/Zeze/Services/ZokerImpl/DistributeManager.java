@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -108,14 +110,42 @@ public class DistributeManager {
 			// 不得在filesBySocket锁内执行：closeBySocket在selector/tick线程取同一把锁，
 			// 锁内IO会把该event loop上全部连接的读写与心跳检查停摆成串行点。锁外构造、
 			// 锁内putIfAbsent决胜，并发open同文件时败者关闭丢弃。
+			//
+			// zoker-01 目录世代锚点（构造之前取得）：commit 的 rename 单元是 distributes/<一级段>
+			// 目录（真实流量 fileName="svc/lib/x.jar"，serviceName 恒为空串——一级段从解析后的
+			// 相对路径取）。构造期间 commit 完整起止时 barrier 已摘除、isCommitting 复检失效，
+			// candidate 的 fd 已落在被 rename 搬进 services/<svc>/<v> 的旧目录里——锁内复检
+			// 世代身份（{@link #dirGeneration}）不一致即拒绝，客户端重试走新目录。
+			// 锚点必须取在构造之前：构造后再取，"rename 后他方在同路径重建的新目录"会冒充锚点
+			// （旧目录身份回不来，比对必假）；先幂等建目录（FileBin 构造器的 mkdirs 本就会建
+			// 同一父链，仅提前到锚点之前，保证锚点身份可得）。文件直接位于顶层（一级段即文件本身，
+			// commit 的 rename 只搬目录，永远搬不动它）时不设锚点，保持原行为。
+			var base = distributeDir.toPath().toAbsolutePath().normalize();
+			var target = base.resolve(path).normalize();
+			Path serviceRoot = null;
+			String genAnchor = null;
+			if (target.getNameCount() > base.getNameCount() + 1) {
+				serviceRoot = base.resolve(target.subpath(base.getNameCount(), base.getNameCount() + 1));
+				Files.createDirectories(serviceRoot);
+				genAnchor = dirGeneration(serviceRoot);
+			}
 			var candidate = new FileBin(relativeCanonicalFileName, distributeDir, path);
 			FileBin winner = candidate;
-			var rejected = false;
+			var rejectReason = "";
 			synchronized (filesBySocket) {
 				if (isCommitting(relativeCanonicalFileName))
 					// commit清账窗口（barrier在closeUnder之前设置）：新开句柄不得跨越rename——
 					// Windows阻塞rename必败；Linux rename成功则已提交版本内容继续被上传写改。
-					rejected = true;
+					rejectReason = "service committing";
+				else if (null != genAnchor && (genAnchor.isEmpty()
+						|| !genAnchor.equals(dirGeneration(serviceRoot))))
+					// 世代换代=构造期间发生过rename（commit搬走锚点目录）：candidate的fd指向
+					// 已提交版本目录内的文件，入表后append将直接写改现役版本内容（断点续传下
+					// 客户端与服务端md5同步增长，校验可通过——静默污染）。空锚点（建目录后微秒内
+					// 即被搬走、无法锚定）同样拒绝——拒绝方向安全，重试即锚到新目录。
+					// stat是微秒级syscall（对照：closeUnder的close含flush IO禁入锁内），锁内这一下
+					// 是"复检与建账"的线性化点，不可外移（锁外复检与建账之间的rename窗口无法闭合）。
+					rejectReason = "service directory generation changed (commit raced during construction)";
 				else {
 					// 建表与socket记账必须原子：锁外两步之间断链清账会把新建的FileBin
 					// 漏出回收面（句柄泄漏+死socket映射永驻）。closeAndVerify/closeBySocket持同锁清账。
@@ -126,9 +156,9 @@ public class DistributeManager {
 						filesBySocket.computeIfAbsent(sender, __ -> ConcurrentHashMap.newKeySet()).add(relativeCanonicalFileName);
 				}
 			}
-			if (rejected) {
+			if (!rejectReason.isEmpty()) {
 				closeDiscard(candidate);
-				throw new IOException("open file rejected, service committing: " + path);
+				throw new IOException("open file rejected, " + rejectReason + ": " + path);
 			}
 			if (winner == candidate)
 				return candidate;
@@ -248,6 +278,38 @@ public class DistributeManager {
 	}
 
 	/**
+	 * 目录世代身份（zoker-01）：commit 把 distributes/&lt;svc&gt; rename 走后他方可在同路径
+	 * 重建新目录，"路径相同"不再表示"同一目录"——世代身份取目录物理实体的可辨识属性，
+	 * 锚点（open 构造前）与锁内复检两次取值相同=期间未发生过 rename。取值链（实测
+	 * Windows11/JDK26：basic:fileKey 为 null、creationTime 可靠且 rename 保留原值、
+	 * 子文件增删不变；Linux：fileKey=dev+ino 非空可靠，被 rename 的目录 inode 仍存活于
+	 * services/ 下、不会复用给同路径的新建目录）：
+	 * <ol>
+	 * <li>"id:"+fileKey——POSIX/macOS 的 inode+dev，首选；Windows 上 JDK 不提供（null）。</li>
+	 * <li>"ct:"+creationTime——NTFS 创建时间（目录一生不变；同路径重建目录得到新值）。</li>
+	 * <li>"?"——两者皆不可得（fileKey null 且 creationTime 为纪元值）的退化平台：比对
+	 * 退化为恒等（无世代防护）。Linux/Windows 主流平台均不落入，属残留风险。</li>
+	 * <li>""——目录不存在：rename 已把它搬走的最直接证据（调用方视作不可锚定/换代）。</li>
+	 * </ol>
+	 * lastModifiedTime 不可用作身份：子文件增删即变（并发上传常态），会把合法世代误判为换代。
+	 */
+	private static String dirGeneration(Path dir) {
+		BasicFileAttributes attrs;
+		try {
+			attrs = Files.readAttributes(dir, BasicFileAttributes.class);
+		} catch (IOException e) {
+			return ""; // 不存在（或不可stat）——目录已被搬走
+		}
+		var fileKey = attrs.fileKey();
+		if (null != fileKey)
+			return "id:" + fileKey;
+		var creationTime = attrs.creationTime();
+		if (creationTime.toMillis() > 0)
+			return "ct:" + creationTime;
+		return "?";
+	}
+
+	/**
 	 * 校验合成相对路径（serviceName/fileName）规范化（normalize）后仍位于 distributeDir 之内。
 	 * 越界（含"../"逃逸与绝对路径）时抛出 IOException 拒绝。
 	 */
@@ -363,6 +425,9 @@ public class DistributeManager {
 			// barrier 须在 closeUnder 之前设置：此后 open 对该前缀的入账在原子段内被拒，
 			// 更早完成入账的必被 closeUnder 收殓（sweep 取同一把锁且 CHM 迭代可见先完成的
 			// put）——杜绝 sweep 与 renameTo 之间新开 FileBin 漏出回收面。
+			// barrier 只覆盖"commit 进行中"的交错；"commit 完整起止于 open 的 FileBin 构造窗内"
+			// （barrier 已摘、isCommitting 复检不命中）由 open 锁内的目录世代复检拒绝
+			// （zoker-01，见 open 与 dirGeneration）。
 			var serviceFrom = new File(distributeDir, serviceName);
 			String prefix;
 			try {
