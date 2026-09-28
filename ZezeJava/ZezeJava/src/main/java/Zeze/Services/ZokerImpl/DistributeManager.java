@@ -739,6 +739,17 @@ public class DistributeManager {
 		for (var e : victims) {
 			try {
 				e.getValue().close();
+				// N01（FND28）：在途（未经CloseFile md5收口）的传输中间产物不随rename卷入已提交
+				// 版本目录——关闭句柄后按部署语义弃置（对齐closeAndVerify md5失配的删除口径：
+				// 暂存区未验证中间产物无保留价值）。此前只关句柄不清内容，commit把另一传输流写了一半
+				// 的文件整目录搬成services/<svc>/<v>并返回0——版本内容被污染而提交方无感知（md5只在
+				// CloseFile校验，该文件从未走到）。barrier+锁内复检保证sweep与renameTo之间无新开
+				// FileBin入表，删除面与摘账面一致；并发append持FileBin实例监视器，close串行在其后，
+				// 删除不会与写交错。删除失败仅warn：句柄已释放，正常不失败，失败则该文件仍随目录
+				// 提交（回归污染形态，靠warn暴露人工处置）。
+				if (!e.getValue().getCanonicalFile().delete())
+					logger.warn("closeUnder delete unverified in-flight file fail (committed with it, manual check): {}",
+							e.getValue().getCanonicalFile());
 			} catch (IOException ex) {
 				logger.error("closeUnder {}", e.getKey(), ex);
 			}
