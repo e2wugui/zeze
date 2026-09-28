@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import harness.FastServerIds;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Services.ServiceManager.Agent;
@@ -40,7 +41,7 @@ public class TestA2F4RemoveServerConditionalRemove {
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("a2f4_memory");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_A2F4_REMOVE_SERVER);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = ProviderDirectTestSupport.newAppWithFakeAgent("TestA2F4", conf);
 

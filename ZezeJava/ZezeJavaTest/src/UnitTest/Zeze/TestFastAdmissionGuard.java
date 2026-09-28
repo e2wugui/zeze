@@ -5,6 +5,7 @@ import harness.FastServerIds;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,5 +34,17 @@ public class TestFastAdmissionGuard {
 		assertTrue(violations.isEmpty(),
 				"FastServerIds 号段冲突（有库 App serverId 须全局唯一，规约见 AGENTS.md）：\n"
 						+ String.join("\n", violations));
+	}
+
+	@Test
+	public void memoryUrlsPairwiseDistinct() {
+		var seen = new HashSet<String>();
+		var dups = new ArrayList<String>();
+		for (var url : FastServerIds.memoryUrls())
+			if (!seen.add(url))
+				dups.add(url);
+		assertTrue(dups.isEmpty(),
+				"FastServerIds DatabaseMemory url 重复（同名 url 同 JVM 静默共享存储串数据）：\n"
+						+ String.join("\n", dups));
 	}
 }

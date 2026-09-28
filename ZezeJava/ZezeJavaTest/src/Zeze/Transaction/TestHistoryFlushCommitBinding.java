@@ -169,7 +169,7 @@ public class TestHistoryFlushCommitBinding {
 
 		var conf = new Config.DatabaseConf();
 		conf.setDatabaseType(Config.DbType.Memory);
-		conf.setDatabaseUrl("history_commit_binding_unit");
+		conf.setDatabaseUrl(FastServerIds.URL_TEST_HISTORY_FLUSH_COMMIT_BINDING);
 		var flaky = new FlakyDatabase(conf);
 		var table = (FlakyDatabase.FlakyTable)flaky.openTable("unit_tHistory", 1);
 

@@ -1,5 +1,6 @@
 package Zeze.Hot;
 
+import harness.FastServerIds;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -57,7 +58,7 @@ public class TestHotTryDistributeGuard {
 		conf.setDefaultTableConf(new Config.TableConf());
 		// DatabaseMemory 的表存储是 JVM 级静态 Map、按 url 分桶，独立 url 避免与其他测试 App 共桶。
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("hot_trydistribute_test");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_HOT_TRY_DISTRIBUTE_GUARD);
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		app = new Application("TestHotTryDistributeGuard", conf);
 		// install 在写锁内调用 app.getZeze().checkpointRun()；NoDatabase 轻量模式不创建

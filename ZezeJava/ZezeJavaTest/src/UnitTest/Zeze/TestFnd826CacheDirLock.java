@@ -34,7 +34,7 @@ public class TestFnd826CacheDirLock {
 		conf.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("a2_fnd826_memory");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_FND826_CACHE_DIR_LOCK);
 		conf.getDatabaseConfMap().put("", dbConf);
 		return conf;
 	}

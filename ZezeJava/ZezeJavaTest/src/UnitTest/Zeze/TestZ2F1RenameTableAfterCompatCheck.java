@@ -63,7 +63,7 @@ public class TestZ2F1RenameTableAfterCompatCheck {
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("z2f1_memory");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_Z2F1_RENAME_TABLE);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = new Application("TestZ2F1RenameTableAfterCompatCheck", conf);
 		app.start();

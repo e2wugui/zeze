@@ -145,7 +145,7 @@ public class TestZ1F3AddTableAtomicity {
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("z1f3_memory");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_Z1F3_ADD_TABLE);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = new Application("TestZ1F3AddTableAtomicity", conf);
 		app.start();

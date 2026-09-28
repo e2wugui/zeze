@@ -41,7 +41,7 @@ public class TestFnd824ClearInUseClosesCreatedDatabases {
 		conf.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("a2_fnd824_memory");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_FND824_CLEAR_IN_USE);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = new Application("TestFnd824ClearInUseClosesCreatedDatabases", conf);
 		app.start();

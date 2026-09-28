@@ -31,28 +31,31 @@ test 只跑 @Fast；integrationTest 只跑不带 fast/bench 标签的；bench �
 
 ## @Fast 准入（并行安全）
 
-test 任务类级并行（同 JVM），@Fast 类必须彼此互不干扰：
+test 任务同 JVM 类级并行（fixed 8），@Fast 类必须彼此互不干扰。约束由代码承载：
+`harness/FastServerIds` 号段桌是 serverId/url 全景的唯一真相，
+`UnitTest/Zeze/TestFastAdmissionGuard` 自检区间两两不重叠——本文件不再登记号段。
 
-- **有库 App 的 serverId 必须全局唯一——"全局"指整个测试树跨目录**。本地缓存目录
-  `zeze_cache_<serverId>` 每号一份，`Application.start` 对它先删后开——同号并发即
-  `delete failed: ...zeze_cache_N\LOCK`（Windows 下被打开的文件删不掉，重试 10s 后炸
-  start）。三选一：`TakeoverTestEnv.newConf` 式动态发号；固定空闲段字面量（查全景再选号）；
-  `setNoDatabase(true)`（无库不建目录）。
-- 选号两条铁律（2026-09-19 两处撞段实证）：**固定字面量不得落在他类计数器基点的
-  增长范围内**（7353 撞 RankCacheEvict 第 4 实例、7360 撞 RankCountNeedKey）；
-  **每类自带计数器若不共享，基点即撞点**（6 类各自从 1 起号互撞）。计数器基点
-  间隔须 ≥ 该类 @Test 数。当前 7xxx 段：7150/7160/7250/7350/7360(固定)/7371(固定)/
-  7410-7460/7470(固定)/7480/7490(固定)/8790。
-- **"查全景"的正确姿势是全树 grep 而不是只看本目录**（2026-09-20 全量审核实锤 7 组
-  13 类跨目录同基点互撞：700 三方[Trans 两类+Collections]、100/300/400/500/600 两方，
-  每类注释都自称"本类 N00 起"却互不知晓）。新写需要 serverId 的测试：先
-  `grep -rn "AtomicInteger(N)" ZezeJavaTest/src` 确认整个号段（基点+该类全部实例的
-  增长范围）无主，再选号；优先接入共享发号器而非新建计数器；选定后在本文件登记号段。
-- dbhome、固定端口同理独占；只有 `Application.start` 且非 NoDatabase 才建缓存目录，
-  净层组件（Service/Agent/MQManager/Dbh2 Master/RocksRaft/ServiceManagerWithRaft）不建。
-- gradle 三池分治（fast 并行 / integration 串行 / bench）下默认 0 可能长期不撞纯属时序；
-  IDEA"跑全部测试"是单 JVM 混跑并行，默认 0 的有库 App 必撞（2026-09-17
-  testManagedPathFailFast / testManagedAddAllNoChangeReturnsFalse 假红即此，已迁 7070/7080）。
+需要 serverId 的 @Fast 测试三选一：
+
+- `TakeoverTestEnv.newConf` 动态发号（桌已预留 100-199 段）。
+- 固定号：在 FastServerIds 加一行 `seg(持有类, 基点, growth)`，站点引用桌常量。
+  growth=该类一次全量运行的最大发号数（≈@Test 数×发号调用点）；growth 低估时
+  `Application.start` 的 FileMutex fail-fast（先锁后删 `zeze_cache_<serverId>`，
+  同段并发必炸）是运行时兜底。
+- `setNoDatabase(true)`（含负 serverId）不建缓存目录，免登记。
+
+DatabaseMemory 同 JVM 按 url 静态分桶，同名 url 的库实例静默共享存储串数据：
+固定字面量 url 须登记为 FastServerIds 的 `memUrl(...)` 常量（guard 查重）；
+`"前缀_" + serverId` 派生式随号段唯一，免登记；裸 `new Config.DatabaseConf()`
+落默认空串共享桶，禁止。
+
+净层组件（无 Application：Agent/OnzServer/Daemon/GCM/SM 等）不建缓存目录，
+serverId 不入桌；固定端口与静态状态用 `@ResourceLock`/`@Isolated` 串行隔离。
+绕过桌私写 serverId/url 字面量无静态拦截，防线=FileMutex 运行时兜底+评审时
+本地字面量是 grep 异常（迁移后全树仅桌内出现号段数字）。
+
+判例：2026-09 两轮人工选号/迁号仍留 10 处同段互撞（含迁移批自身回撞、计数器
+基点落进动态池预留段），故收口为机械守门。
 
 ## GCM 与后端同库约定
 

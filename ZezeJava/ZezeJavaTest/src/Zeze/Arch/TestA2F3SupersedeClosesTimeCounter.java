@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import harness.FastServerIds;
 import java.lang.reflect.Field;
 import java.util.concurrent.Future;
 
@@ -34,7 +35,7 @@ public class TestA2F3SupersedeClosesTimeCounter {
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("a2f3_memory");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_A2F3_SUPERSEDE_CLOSES);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = ProviderDirectTestSupport.newAppWithFakeAgent("TestA2F3", conf);
 		// 订阅状态为空：setRelativeServiceReady的订阅循环不执行，直达supersede逻辑。

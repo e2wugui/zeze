@@ -43,7 +43,7 @@ public class TestZ1F2CreateDatabaseClosesOnFailure {
 		conf.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("z1f2_memory");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_Z1F2_CREATE_DATABASE);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = new Application("TestZ1F2CreateDatabaseClosesOnFailure", conf);
 		app.start();

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Transaction;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import Zeze.Config;
@@ -24,7 +25,7 @@ public class TestWalkInterruptCountContract {
 	public void setUp() throws Exception {
 		var conf = new Config.DatabaseConf();
 		conf.setDatabaseType(Config.DbType.Memory);
-		conf.setDatabaseUrl("t1_f3_walk_interrupt_count");
+		conf.setDatabaseUrl(FastServerIds.URL_TEST_WALK_INTERRUPT_COUNT);
 		db = new DatabaseMemory(null, conf);
 		var table = (DatabaseMemory.TableMemory)db.openTable("t1", 0);
 		// 插入 5 条：key 1..5（TreeMap 按 ByteBuffer 字典序，单字节即数值序）。

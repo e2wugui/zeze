@@ -91,7 +91,7 @@ public class TestFnd18Hot01InstallStartLastFilter {
 		config.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf(); // Memory 库：schemasCompatible 需要 defaultTable 库存在
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("fnd18hot1_memory");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_FND18_HOT01);
 		config.getDatabaseConfMap().put("", dbConf);
 		app = new Application("fnd18hot1", config);
 		dummyApp = new AppBase() {

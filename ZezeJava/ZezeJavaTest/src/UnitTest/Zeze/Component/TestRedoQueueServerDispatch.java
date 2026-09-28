@@ -75,7 +75,7 @@ public class TestRedoQueueServerDispatch {
 		serverConf.setServerId(FastServerIds.TEST_REDO_QUEUE_SERVER_DISPATCH);
 		serverConf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("redo_queue_server_dispatch_test");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_REDO_QUEUE_SERVER_DISPATCH);
 		serverConf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		var serviceConf = new ServiceConf();
 		serviceConf.addAcceptor(new Acceptor(Port, null));

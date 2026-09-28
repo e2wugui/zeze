@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import harness.FastServerIds;
 import java.lang.reflect.Field;
 
 import Zeze.Application;
@@ -42,7 +43,7 @@ public class TestA2F1VersionBucketUsesConfigVersion {
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("a2f1_memory");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_A2F1_VERSION_BUCKET);
 		conf.getDatabaseConfMap().put("", dbConf);
 		// 主版本1：getAppMainVersion()==1。会话侧appVersion为0（缺陷根因）。
 		conf.setAppVersion(1L << 48);

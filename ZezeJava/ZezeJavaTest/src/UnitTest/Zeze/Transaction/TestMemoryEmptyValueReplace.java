@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Transaction;
 
+import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -26,7 +27,7 @@ public class TestMemoryEmptyValueReplace {
 	public void setUp() {
 		var conf = new Config.DatabaseConf();
 		conf.setDatabaseType(Config.DbType.Memory);
-		conf.setDatabaseUrl("t1_f1_empty_value_replace");
+		conf.setDatabaseUrl(FastServerIds.URL_TEST_MEMORY_EMPTY_VALUE_REPLACE);
 		db = new DatabaseMemory(null, conf);
 	}
 

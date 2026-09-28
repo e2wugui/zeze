@@ -7,6 +7,7 @@ import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMemory;
 import demo.Module1.tAutoKeyRandom;
 import harness.Fast;
+import harness.FastServerIds;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,9 @@ import org.junit.jupiter.api.Test;
 public class TestKvKeyLengthPagedWalk {
 
 	private static Database.Table rawTable() {
-		return new DatabaseMemory(null, new Config.DatabaseConf()).openTable("test_kv_key_length", 1);
+		var conf = new Config.DatabaseConf();
+		conf.setDatabaseUrl(FastServerIds.URL_TEST_KV_KEY_LENGTH_PAGED_WALK);
+		return new DatabaseMemory(null, conf).openTable("test_kv_key_length", 1);
 	}
 
 	@Test
@@ -83,7 +86,9 @@ public class TestKvKeyLengthPagedWalk {
 	public void testFindReplaceRemove() throws Exception {
 		// find/replace/remove 的执法点在各后端 raw 方法（写主路径 Record1.flush 直呼 raw，
 		// 不经过 typed 门面）；DatabaseMemory 曾是唯一没有检查的后端。
-		var db = new DatabaseMemory(null, new Config.DatabaseConf());
+		var dbConf = new Config.DatabaseConf();
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_KV_KEY_LENGTH_PAGED_WALK);
+		var db = new DatabaseMemory(null, dbConf);
 		var rawTable = (DatabaseMemory.TableMemory)db.openTable("test_kv_key_length", 1);
 		var t = new tAutoKeyRandom();
 		var bigKey = new Binary(new byte[Database.eMaxKeyLength + 1]);

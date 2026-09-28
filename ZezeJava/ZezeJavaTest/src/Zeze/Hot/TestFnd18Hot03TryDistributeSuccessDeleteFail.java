@@ -75,7 +75,7 @@ public class TestFnd18Hot03TryDistributeSuccessDeleteFail {
 		config.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("fnd18hot3_memory");
+		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_FND18_HOT03);
 		config.getDatabaseConfMap().put("", dbConf);
 		app = new Application("fnd18hot3", config);
 		dummyApp = new AppBase() {

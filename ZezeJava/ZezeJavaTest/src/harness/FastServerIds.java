@@ -30,6 +30,40 @@ public final class FastServerIds {
 		return List.copyOf(SEGMENTS);
 	}
 
+	// DatabaseMemory 同 JVM 按 url 静态分桶：同名 url 的库实例直接共享存储（静默串
+	// 数据，无任何报警）。固定字面量 url 必须登记为下方常量；"前缀_"+serverId 派生
+	// 式随号段唯一，免登记。dbhome 等非内存库 url 不在此维度。
+
+	private static final List<String> MEMORY_URLS = new ArrayList<>();
+
+	private static String memUrl(String url) {
+		MEMORY_URLS.add(url);
+		return url;
+	}
+
+	/** TestFastAdmissionGuard 查重用全量快照。 */
+	public static List<String> memoryUrls() {
+		return List.copyOf(MEMORY_URLS);
+	}
+
+	public static final String URL_TEST_A2F1_VERSION_BUCKET = memUrl("a2f1_memory");
+	public static final String URL_TEST_A2F3_SUPERSEDE_CLOSES = memUrl("a2f3_memory");
+	public static final String URL_TEST_A2F4_REMOVE_SERVER = memUrl("a2f4_memory");
+	public static final String URL_TEST_FND826_CACHE_DIR_LOCK = memUrl("a2_fnd826_memory");
+	public static final String URL_TEST_Z1F2_CREATE_DATABASE = memUrl("z1f2_memory");
+	public static final String URL_TEST_Z2F1_RENAME_TABLE = memUrl("z2f1_memory");
+	public static final String URL_TEST_FND824_CLEAR_IN_USE = memUrl("a2_fnd824_memory");
+	public static final String URL_TEST_REDO_QUEUE_SERVER_DISPATCH = memUrl("redo_queue_server_dispatch_test");
+	public static final String URL_TEST_MEMORY_EMPTY_VALUE_REPLACE = memUrl("t1_f1_empty_value_replace");
+	public static final String URL_TEST_WALK_INTERRUPT_COUNT = memUrl("t1_f3_walk_interrupt_count");
+	public static final String URL_TEST_FND18_HOT01 = memUrl("fnd18hot1_memory");
+	public static final String URL_TEST_FND18_HOT03 = memUrl("fnd18hot3_memory");
+	public static final String URL_TEST_Z1F3_ADD_TABLE = memUrl("z1f3_memory");
+	public static final String URL_TEST_HISTORY_FLUSH_COMMIT_BINDING = memUrl("history_commit_binding_unit");
+	public static final String URL_TEST_HOT_TRY_DISTRIBUTE_GUARD = memUrl("hot_trydistribute_test");
+	public static final String URL_TEST_KV_KEY_LENGTH_PAGED_WALK = memUrl("t1_kv_keylen_pagedwalk");
+
+
 	// 按基点升序；growth 取该类 @Test 数×发号调用点（计数器）或 1（固定号）。
 
 	public static final int TAKEOVER_POOL = seg("TakeoverTestEnv.newConf动态池", 100, 100);
