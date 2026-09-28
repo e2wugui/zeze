@@ -452,7 +452,7 @@ public class Log4jFileManager extends ReentrantLock {
 				for (var kv : rotates) {
 					var logFile = new File(logConf.logDir, kv.getValue());
 					addByContentTime(Log4jFile.of(logFile,
-							sampleIndexHead(logFile, openRotateIndex(kv.getValue() + ".index"))));
+							sampleIndexHead(logFile, openRotateIndex(logFile))));
 				}
 			}
 			if (activeOnDisk && (files.isEmpty() || !files.getLast().file.getName().equals(getCurrentLogFileName()))) {
@@ -777,7 +777,7 @@ public class Log4jFileManager extends ReentrantLock {
 		}
 		LogIndex index;
 		var maxLink = maxLinkFile();
-		if (null != maxLink && indexPairsActiveFile(maxLink, activeFile))
+		if (null != maxLink && indexPairsLogFile(maxLink, activeFile))
 			index = new LogIndex(maxLink);
 		else
 			index = new LogIndex(nextLinkFile());
