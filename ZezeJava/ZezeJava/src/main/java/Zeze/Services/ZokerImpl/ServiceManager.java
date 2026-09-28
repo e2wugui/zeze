@@ -42,7 +42,8 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>进程记账与真实进程一致：启动装账后挂 {@code onExit()} 退出监控，进程退出时清理
  * processes 条目并记录退出码；listService 以 {@code isAlive()} 判 Running（死条目不报
- * running，条目在但进程死=Stopped）；对死条目再 start 会检查 isAlive 并替换重启
+ * running，条目在但进程死=Stopped；无条目按 Stopped 汇报——含从未启动与失明孤儿，协议
+ * 契约只有 Running,Stopped 两值）；对死条目再 start 会检查 isAlive 并替换重启
  * （不先 stopService 也能重新拉起）。</p>
  *
  * <p>stopService 结局三态写进 Result.State（BService.State 字符串语义，零协议形状变更）：
@@ -154,7 +155,13 @@ public class ServiceManager {
 						service.setState(STATE_RUNNING);
 						service.setPs(psOf(process));
 					} else if (null != process) {
-						// 条目在但进程死=Stopped；无条目（含指纹不可核实失明的孤儿）保持""
+						// 条目在但进程死=Stopped。
+						service.setState(STATE_STOPPED);
+					} else {
+						// 无进程条目（从未启动/已停毕/指纹不可核实失明的孤儿——zoker-10 拒绝
+						// 启动的盲 pid 同在此列）按 Stopped 汇报：协议注释契约只有 Running,Stopped
+						// 两值，不输出第三种空串（zoker-11）。代价是"从未启动"与"已停止"不可
+						// 区分——State 是运行时状态不是生命周期史，Stopped 是诚实的。
 						service.setState(STATE_STOPPED);
 					}
 					out.add(service);
