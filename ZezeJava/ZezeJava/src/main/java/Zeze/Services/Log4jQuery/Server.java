@@ -27,8 +27,13 @@ public class Server extends Service {
 	@Override
 	public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
 		var agent = (ServerUserState)so.getUserState();
-		if (agent != null)
-			agent.close();
-		super.OnSocketClose(so, e);
+		try {
+			if (agent != null)
+				agent.close(); // 任一会话close抛IOException即上抛，但不得因此跳过super
+		} finally {
+			// 必达：super负责socketMap摘除与收发统计归集，上游TcpSocket.doClose对异常只记日志不补调，
+			// 跳过即该连接连同缓冲滞留socketMap永久泄漏。
+			super.OnSocketClose(so, e);
+		}
 	}
 }
