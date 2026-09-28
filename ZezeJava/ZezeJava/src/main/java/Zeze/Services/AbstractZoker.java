@@ -16,7 +16,7 @@ public abstract class AbstractZoker implements Zeze.IModule {
     @Override public void unlock() { __thisLock.unlock(); }
     @Override public java.util.concurrent.locks.Lock getLock() { return __thisLock; }
 
-    public static final int eDuplicateZoker = 1; // Zoker名字重复了
+    public static final int eDuplicateZoker = 11; // Zoker名字重复了（1-10被同模块占用：历史误用与eOpenError同值，语义并账）
     public static final int eOpenError = 1; // 打开文件发生了系统错误
     public static final int eAppendOffset = 2; // 添加数据时，Offset越界了（超出结尾）
     public static final int eCloseError = 3; // 关闭文件发生了系统错误

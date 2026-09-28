@@ -1694,7 +1694,7 @@
 			只能新建服务，发布成功，整个目录RENAME并且备份旧的版本。
 			Zoker是服务器，但是Zoker主动连接监控平台。
 			-->
-			<enum name="eDuplicateZoker" value="1"/> Zoker名字重复了
+			<enum name="eDuplicateZoker" value="11"/> Zoker名字重复了（1-10被同模块占用：历史误用与eOpenError同值，语义并账）
 
 			<bean name="BRegister">
 				<variable id="1" name="ZokerName" type="string"/>
