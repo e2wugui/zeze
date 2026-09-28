@@ -45,7 +45,11 @@ public class QueryHandlerManager {
 		String cmd = queryRequest != null ? queryRequest.getCmd() : null;
 		Object param = queryRequest != null ? queryRequest.getParam() : null;
 		QueryHandleContainer queryHandler = handlerMap.get(cmd);
-		return queryHandler != null ? Json.toCompactString(queryHandler.invoke(param)) : "";
+		// 未知/缺失cmd必须显式错误应答：静默空串与"合法空结果"不可区分（resultCode恒0），
+		// 调用方无从感知请求畸形还是真无数据。
+		if (queryHandler == null)
+			return Json.toCompactString(Map.of("error", cmd == null ? "missing cmd" : "unknown cmd: " + cmd));
+		return Json.toCompactString(queryHandler.invoke(param));
 	}
 
 	public static List<String> selectCmdList() {
@@ -87,7 +91,10 @@ public class QueryHandlerManager {
 		public Object invoke(Object o) throws ReflectiveOperationException {
 			if (paramClass == null || paramClass == Object.class)
 				return queryHandler.invoke(null);
-			return ((QueryHandler<Object, Object>)queryHandler).invoke(cast(paramClass, (String)o));
+			// param通道按字符串契约承载：QueryRequest<T>泛型擦除为Object，客户端直接发JSON对象/数字时
+			// JsonReader绑成HashMap/Long，直接强转(String)即CCE；非字符串形态先归一为JSON文本再cast。
+			var str = o == null ? null : o instanceof String s ? s : Json.toCompactString(o);
+			return ((QueryHandler<Object, Object>)queryHandler).invoke(cast(paramClass, str));
 		}
 
 		private static Object cast(@NotNull Class<?> clazz, String str) {

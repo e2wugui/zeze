@@ -51,7 +51,8 @@ public class TestQueryHandlerManager {
 	}
 
 	@Test
-	public void testUnknownCmdReturnsEmpty() throws Exception {
-		Assertions.assertEquals("", QueryHandlerManager.invokeHandler("{\"cmd\":\"__no_such_cmd__\"}"));
+	public void testUnknownCmdReturnsErrorJson() throws Exception {
+		Assertions.assertEquals("{\"error\":\"unknown cmd: __no_such_cmd__\"}",
+				QueryHandlerManager.invokeHandler("{\"cmd\":\"__no_such_cmd__\"}"));
 	}
 }
