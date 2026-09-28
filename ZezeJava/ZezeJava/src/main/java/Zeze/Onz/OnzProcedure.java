@@ -190,6 +190,15 @@ public class OnzProcedure implements FuncLong {
 		// 新的rpc对象，协调者按Participant去重计数——重发不虚增
 		// 计数提前打开"已全部flush"闸门。身份不填（旧版本参与方）时协调者按rpc对象兜底计数。
 		r.Argument.setParticipant(stub.getOnz().getParticipantName());
+		// onz-02：rpc超时必须覆盖协调者对最早ready的持有上限。协调者把计数未满的ready暂存
+		// 不应答（OnzTransaction.trySetFlushReady），放行点=commit循环尾部（首个ready到达后，
+		// 剩余参与方的建连+Commit rpc默认超时，量级5s/个）+waitFlushDone的flushTimeout——
+		// 最坏持有可超过单倍flushTimeout；参与方按flushTimeout设超时会先于降级放行超时
+		// （满负载flush排队超默认10s致waitFlushReady timeout→halt(543543)有IT实证，见
+		// ZezeJavaTest的LateRegisterTransaction）。取2×flushTimeout对齐"Commit尾部+
+		// flushTimeout"的最坏持有；max防非正值劣化（2×负值更小），min防int溢出。
+		var flushReadyTimeoutMs = (int) Math.min(Integer.MAX_VALUE,
+				Math.max(2L * funcArgument.getFlushTimeout(), (long) funcArgument.getFlushTimeout()));
 		if (!r.Send(rpc.getSender(), (p) -> {
 			if (r.getResultCode() == 0) {
 				future.setResult(0L);
@@ -201,7 +210,7 @@ public class OnzProcedure implements FuncLong {
 			logger.warn("waitFlushReady timeout, {}", funcArgument);
 			future.setException(new RuntimeException("waitFlushReady timeout"));
 			return 0;
-		}, funcArgument.getFlushTimeout())) {
+		}, flushReadyTimeoutMs)) {
 			logger.warn("sendFlushReady fail, {}", funcArgument);
 			future.setException(new RuntimeException("sendFlushReady fail"));
 		}
