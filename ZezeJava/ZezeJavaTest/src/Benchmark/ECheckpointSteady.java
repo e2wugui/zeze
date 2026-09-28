@@ -16,7 +16,7 @@ import demo.App;
 @Tag("core")
 public class ECheckpointSteady {
 	public static final int Records = 10_000;
-	public static final int Warmups = 1;
+	public static final int Warmups = 2;
 	public static final int Rounds = 5;
 
 	@Test

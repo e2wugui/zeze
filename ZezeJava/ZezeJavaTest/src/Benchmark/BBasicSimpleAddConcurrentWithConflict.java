@@ -16,8 +16,7 @@ import org.junit.jupiter.api.Assertions;
 public class BBasicSimpleAddConcurrentWithConflict {
 	// 全部事务互踩同一个 key：几乎必然冲突重做。重钉任务量对齐 performance.md 记录量级
 	public static final int AddCount = 200_000;
-	public static final int Batch = 100;
-	public static final int Warmups = 1;
+	public static final int Warmups = 2;
 	public static final int Rounds = 5;
 
 	@Test
@@ -27,16 +26,12 @@ public class BBasicSimpleAddConcurrentWithConflict {
 		try {
 			MacroBench.run("B_ConcurrentWithConflict", Warmups, Rounds, AddCount, () -> {
 				App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Remove, "remove").call();
-				var tasks = new ArrayList<Future<Long>>(Batch);
-				for (int i = 0; i < AddCount; ++i) {
+				// 全量提交、末尾收拢：批次 drain（每N个get同步）会制造屏障波，把吞吐压到
+				// 饱和冲突吞吐的 ~1/4（实测 batch100=17万 vs 饱和=63万/s）
+				var tasks = new ArrayList<Future<Long>>(AddCount);
+				for (int i = 0; i < AddCount; ++i)
 					tasks.add(TaskSpec.ofProcedure(
 							App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Add, "Add")).submitNow());
-					if ((i + 1) % Batch == 0) {
-						for (var task : tasks)
-							task.get();
-						tasks.clear();
-					}
-				}
 				for (var task : tasks)
 					task.get();
 			});

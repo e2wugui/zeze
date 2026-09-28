@@ -14,6 +14,14 @@ import org.jetbrains.annotations.Nullable;
 public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	private final @NotNull TableKey tableKey;
 	private ReentrantReadWriteLock rwLock;
+	// 锁路径统计句柄缓存（对齐 ProcedureCounter"调用点缓存复用，热路径零名字解析"惯例）：
+	// tableCounter 每次调用要解析 (tableId,metric) → counter 的映射（PerfCounter 为 map 查找），
+	// 锁获取是每事务多次的最热路径之一，句柄在 alloc 时一次解析终身复用（同 tableId 的
+	// Lockey 实例由 Locks 去重，缓存按 key 摊销）。实现保证句柄稳定（Noop 返回单例）。
+	private ZezeCounter.LongCounter readLockCounter;
+	private ZezeCounter.LongCounter writeLockCounter;
+	private ZezeCounter.LongCounter tryReadLockCounter;
+	private ZezeCounter.LongCounter tryWriteLockCounter;
 
 	/**
 	 * 相同值的 TableKey 要得到同一个 Lock 引用，必须使用 Locks 查询。
@@ -35,11 +43,15 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	@Override
 	public Lockey alloc() {
 		rwLock = new ReentrantReadWriteLock();
+		readLockCounter = ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.READ_LOCK);
+		writeLockCounter = ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.WRITE_LOCK);
+		tryReadLockCounter = ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.TRY_READ_LOCK);
+		tryWriteLockCounter = ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.TRY_WRITE_LOCK);
 		return this;
 	}
 
 	public void enterReadLock() {
-		ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.READ_LOCK).increment();
+		readLockCounter.increment();
 		var readLock = rwLock.readLock();
 		if (readLock.tryLock())
 			return;
@@ -54,7 +66,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 
 	public void enterWriteLock() {
 		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数
-			ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.WRITE_LOCK).increment();
+			writeLockCounter.increment();
 		var writeLock = rwLock.writeLock();
 		if (writeLock.tryLock())
 			return;
@@ -68,7 +80,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public boolean tryEnterReadLock(int millisecondsTimeout) {
-		ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.TRY_READ_LOCK).increment();
+		tryReadLockCounter.increment();
 		try {
 			var readLock = rwLock.readLock();
 			if (millisecondsTimeout > 0)
@@ -81,7 +93,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 
 	public boolean tryEnterWriteLock(int millisecondsTimeout) {
 		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数，失败了也计数。
-			ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.TRY_WRITE_LOCK).increment();
+			tryWriteLockCounter.increment();
 		try {
 			var writeLock = rwLock.writeLock();
 			if (millisecondsTimeout > 0)

@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Assertions;
 public class ABasicSimpleAddOneThread {
 	// AddCount 亦被 App.adjustTableConf 引用（按它放大 Table1 缓存容量），改名/删除会破坏缓存配置
 	public final static int AddCount = 1_000_000;
-	public final static int Warmups = 1;
+	public final static int Warmups = 2;
 	public final static int Rounds = 5;
 
 	@Test

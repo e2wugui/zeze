@@ -23,7 +23,7 @@ public class FDispatchPoolThroughput {
 	public static final int AddCount = 500_000;
 	public static final int ConcurrentLevel = 5_000;
 	public static final int Batch = 200;
-	public static final int Warmups = 1;
+	public static final int Warmups = 2;
 	public static final int Rounds = 5;
 
 	@Test

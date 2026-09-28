@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Assertions;
 public class DBasicContainerTransaction {
 	public static final int Keys = 1_000;       // 工作集（默认缓存容量内，全命中）
 	public static final int TxnCount = 200_000; // 每轮事务数
-	public static final int Warmups = 1;
+	public static final int Warmups = 2;
 	public static final int Rounds = 5;
 
 	@Test
