@@ -277,9 +277,14 @@ public class OnzServer extends AbstractOnz {
 		// 轮转起点（onz-05）：从上一轮预算耗尽处之后继续——滞留头部记录（每条吃满单条
 		// 网络上限）若每轮都从头开始，排序在后的记录每轮都轮不到（收敛系统性停滞）；
 		// 预算内走完全部候选则游标清空（下轮从头）。
+		// 比较必须用无符号字节序（compareUnsigned）：records是RocksDB迭代器的bytewise
+		//（无符号）key序，Arrays.compare为有符号——首个差异字节跨0x80边界（如tid…7F/…80）
+		// 时两序不一致，有符号比较会把无符号序更大的记录判为更小，扫描越过它绕回头部：
+		// 预算耗尽的轮次下该记录重新陷入onz-05要根治的系统性饥饿（回归守卫见
+		// TestOnzRedoRotationCursor）。
 		var start = 0;
 		if (redoResumeKey != null)
-			while (start < n && java.util.Arrays.compare(records.get(start).key, redoResumeKey) <= 0)
+			while (start < n && java.util.Arrays.compareUnsigned(records.get(start).key, redoResumeKey) <= 0)
 				start++;
 		var deadline = System.currentTimeMillis() + RedoRoundNetworkBudgetMs;
 		byte[] lastAttempted = null;
