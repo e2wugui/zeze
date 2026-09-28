@@ -72,6 +72,8 @@ public class HistoryModule extends AbstractHistoryModule {
 			} catch (NumberFormatException e) {
 				// 非法count参数按默认值1处理。
 			}
+			// 0/负数与非法格式同等按默认值1处理：底层walk对count<=0不遍历直接返回null，空批OK应答与无记录不可区分。
+			countValue = Math.max(1, countValue);
 		}
 
 		// 实验边界：本批affects（受影响表与键）丢弃，恒答OK——回放链不承诺增量输出契约。
