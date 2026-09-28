@@ -48,34 +48,42 @@ public class Dbh2AgentManager extends ReentrantLock {
 	private Commit commit;
 	private CommitAgent commitAgent;
 	private volatile Future<?> refreshMasterTableTask; // 任务线程会置null（见startRefreshMasterTable），需要可见性
+	// stop后置位且不可复位（本类无重启路径）。后台刷新任务体整体持本管理器锁与stop串行：
+	// stopped的检查-执行与stop的清理互斥，锁外检查会让stop在检查后清理前重建MasterAgent并回填buckets。
+	private volatile boolean stopped;
 	private final AbstractAgent serviceManager;
 	private final AutoKey tidAutoKey;
 
 	public void startRefreshMasterTable(String masterName, String databaseName, String tableName) {
 		lock();
 		try {
+			if (stopped)
+				return;
 			if (null != refreshMasterTableTask)
 				return;
 
 			refreshMasterTableTask = TaskSpec.ofAction(() -> {
+						// 整体持锁与stop串行：stopped检查到openMasterAgent/reload之间不允许插入stop。
+						lock();
 						try {
-							reload(openMasterAgent(masterName), masterName, databaseName, tableName);
-						} catch (Exception e) {
-							// 刷新失败可容忍：下次PrepareBatch拒绝会重新触发本刷新，自愈。
-							logger.warn("refresh master table fail. master={} database={} table={}",
-									masterName, databaseName, tableName, e);
+							if (stopped)
+								return;
+							try {
+								reload(openMasterAgent(masterName), masterName, databaseName, tableName);
+							} catch (Exception e) {
+								// 刷新失败可容忍：下次PrepareBatch拒绝会重新触发本刷新，自愈。
+								logger.warn("refresh master table fail. master={} database={} table={}",
+										masterName, databaseName, tableName, e);
+							}
 						} finally {
 							// 失败也必须复位：置null不能只在reload成功路径执行：reload抛异常
 							//（getBuckets对master短暂不可达即抛）时任务体异常完结，下面的复位若被跳过，
 							// startRefreshMasterTable的门槛if(null!=refreshMasterTableTask)对一个早已
 							// 完结的Future永久成立，之后所有拒绝触发的刷新成为no-op直到进程重启——
 							// 路由缓存陈旧（每笔多付一轮refused→redirect）且死桶agent不再回收。
-							lock(); // 置null与startRefreshMasterTable的检查-调度原子，避免与重新调度交错
-							try {
-								refreshMasterTableTask = null;
-							} finally {
-								unlock();
-							}
+							// 置null与startRefreshMasterTable的检查-调度同锁原子，避免与重新调度交错。
+							refreshMasterTableTask = null;
+							unlock();
 						}
 					}).scheduleNow(200);
 		} finally {
@@ -177,6 +185,11 @@ public class Dbh2AgentManager extends ReentrantLock {
 	public void stop() throws Exception {
 		lock();
 		try {
+			stopped = true;
+			var task = refreshMasterTableTask;
+			if (null != task)
+				task.cancel(false); // 未启动的直接作废；已启动的在途轮由任务体锁内的stopped检查兜底
+			refreshMasterTableTask = null;
 			ShutdownHook.remove(this);
 			proxyAgent.stop();
 			for (var ma : masterAgent.values())
@@ -185,6 +198,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 			for (var da : agents.values())
 				da.close();
 			agents.clear();
+			// 清空路由缓存：stop后masterAgent已关，locateBucket不得命中陈旧缓存免rpc。
+			buckets.clear();
 
 			if (null != commit) {
 				commit.stop();
