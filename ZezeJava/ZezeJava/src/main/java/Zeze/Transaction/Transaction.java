@@ -33,6 +33,10 @@ public final class Transaction {
 	// 窗口外只计数，窗口内首条仍打整栈（保留完整排查信息），计数随下一条一起输出。
 	private static final LongAdder abortWarnCount = new LongAdder();
 	private static volatile long lastAbortWarnTime;
+	// redo 重试日志限频（对齐 abortWarnCount 惯例）：强冲突负载下每笔重试一条 info 是日志洪水，
+	// 且默认 Root=DEBUG 配置下逐条格式化+落盘吞掉一个数量级的冲突吞吐。
+	private static final LongAdder redoInfoCount = new LongAdder();
+	private static volatile long lastRedoInfoTime;
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
 	private static final @NotNull Object NULL_VALUE = new Object(); // resolveOnce 已解析为 null 的哨兵
 
@@ -415,7 +419,14 @@ public final class Transaction {
 							break; // retry
 						}
 						// retry clear in finally
-						logger.info("perform({}): {}", procedure, checkResult);
+						// 限频+计数（对齐下方Abort日志的1秒窗口）：窗口内首条带上窗口计数。
+						redoInfoCount.increment();
+						var redoNowMs = System.currentTimeMillis();
+						if (redoNowMs - lastRedoInfoTime >= 1000) {
+							lastRedoInfoTime = redoNowMs;
+							logger.info("perform({}): {}, count={} (rate-limited 1/s)",
+									procedure, checkResult, redoInfoCount.sumThenReset());
+						}
 						triggerRedoActions();
 					} catch (Throwable e) { // logger.error, logger.warn, rethrow AssertionError, ignored
 						// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
