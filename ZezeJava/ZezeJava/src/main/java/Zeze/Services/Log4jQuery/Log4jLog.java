@@ -87,8 +87,12 @@ public class Log4jLog extends ReentrantLock {
 				var strTime = line.substring(0, timeOffset);
 				var parsePosition = new ParsePosition(0);
 				var simpleDateFormat = new SimpleDateFormat(logTimeFormat);
+				simpleDateFormat.setLenient(false); // lenient归一化越界字段（如SSS吞6位微秒）得到偏移时间
 				var date = simpleDateFormat.parse(strTime, parsePosition);
-				if (null != date && parsePosition.getErrorIndex() == -1) {
+				// 时间戳必须被完整消费：parse成功时errorIndex恒为-1，前缀可解析即通过会把
+				// 带垃圾尾部的时间戳样式续行误判为日志起始（多行聚合被拆散）。
+				if (null != date && parsePosition.getErrorIndex() == -1
+						&& parsePosition.getIndex() == strTime.length()) {
 					return new Log4jLog(date.getTime(), offset, line);
 				}
 			}

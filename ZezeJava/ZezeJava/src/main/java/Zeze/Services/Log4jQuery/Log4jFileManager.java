@@ -5,7 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.ParseException;
+import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -170,13 +170,16 @@ public class Log4jFileManager extends ReentrantLock {
 			// logDatePattern默认是 .yyyy-MM-dd
 			var datePatternPart = fileName.substring(logFileBegin.length(), fileName.length() - logFileEnd.length() - 1);
 			var formatter = new SimpleDateFormat(logConf.logDatePattern);
-			try {
-				var date = formatter.parse(datePatternPart);
+			formatter.setLenient(false); // lenient归一化越界字段，非日期数字串也可被静默接受
+			var parsePosition = new ParsePosition(0);
+			var date = formatter.parse(datePatternPart, parsePosition);
+			// 日期段必须被完整消费：前缀可解析即通过会接受带垃圾尾部的文件名
+			//（名字日期与内容时序不一致的乱序名可达面扩大）。
+			if (null != date && parsePosition.getErrorIndex() == -1
+					&& parsePosition.getIndex() == datePatternPart.length()) {
 				if (null != out)
 					out.value = date.getTime();
 				return 1; // 是rotate出来的日志文件。
-			} catch (ParseException e) {
-				// skip and continue
 			}
 		}
 		return -1; // 其他。
