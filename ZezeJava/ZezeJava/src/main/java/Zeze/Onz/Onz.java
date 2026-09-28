@@ -60,7 +60,11 @@ public class Onz extends AbstractOnz {
 		return sagaContextTimeoutMs;
 	}
 
+	/** sagaContextTimeoutMs≤0会使cleanupTimeoutSagas对所有空闲上下文立即清理
+	 * （补偿链断裂，sagaContextTimeoutMs字段注释的联动契约失效），构造期拒绝（onz-06）。 */
 	public void setSagaContextTimeoutMs(long sagaContextTimeoutMs) {
+		if (sagaContextTimeoutMs <= 0)
+			throw new IllegalArgumentException("sagaContextTimeoutMs <= 0: " + sagaContextTimeoutMs);
 		this.sagaContextTimeoutMs = sagaContextTimeoutMs;
 	}
 

@@ -106,7 +106,13 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		this.flushMode = flushMode;
 	}
 
+	/** flushTimeout同时用作参与方决策等待（OnzProcedure.sendReadyAndWait的awaitDecision）、
+	 * 调用rpc超时（OnzAgent.callProcedureAsync/callSagaAsync的setTimeout）与FlushReady
+	 * 握手预算（onz-02的2×派生基值）：≤0会使awaitDecision(0)恒超时——每个procedure参与方
+	 * 100%概率超时自愈回滚并进入假成功分歧路径（ONZ-F25-01族），构造期拒绝（onz-06）。 */
 	public void setFlushTimeout(int flushTimeout) {
+		if (flushTimeout <= 0)
+			throw new IllegalArgumentException("flushTimeout <= 0: " + flushTimeout);
 		this.flushTimeout = flushTimeout;
 	}
 
