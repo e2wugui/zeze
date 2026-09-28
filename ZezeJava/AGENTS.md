@@ -22,7 +22,7 @@ gradlew.bat :ZezeJavaTest:integrationTest --tests "*TestCsQueue" :: 单类（类
 gradlew.bat :ZezeJavaTest:bench --tests "*DiffLockAndNoLock"     :: 单类（类需 @Bench）
 ```
 
-坑：**完整包名+类名、且不带通配符**的形式（如 `--tests "UnitTest.Zeze.Component.TestToken"`
+坑：**完整包名+类名、且不带通配符**的形式（如 `--tests "Zeze.Component.TestToken"`
 或 `...TestToken.testToken`）会误报 `No tests found for given includes`，即使类存在、标签正确。
 简单类名 `TestToken`、通配符 `*TestToken`、`*pkg.*ClassName` 均正常。
 

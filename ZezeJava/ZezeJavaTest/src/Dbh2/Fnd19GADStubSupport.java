@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * FND19 GA-D0x测试共享桩：Dbh2AgentManager构造所需的最小AbstractAgent，
- * 与远程提交模式的最小配置文件（形态对齐UnitTest.Zeze.Services.NullTid128Agent先例）。
+ * 与远程提交模式的最小配置文件（形态对齐Zeze.Services.NullTid128Agent先例）。
  */
 final class Fnd19GADStubSupport {
 	private Fnd19GADStubSupport() {

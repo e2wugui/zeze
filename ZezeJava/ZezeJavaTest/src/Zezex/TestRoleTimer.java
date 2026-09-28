@@ -1,7 +1,7 @@
 package Zezex;
 
 import java.util.concurrent.TimeUnit;
-import UnitTest.Zeze.Component.TestBean;
+import Zeze.Component.TestBean;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerSpec;

@@ -1,0 +1,326 @@
+package Zeze.Trans;
+
+import java.util.ArrayList;
+import java.util.List;
+import Zeze.Transaction.DatabaseRedis;
+import Zeze.Util.OutInt;
+import demo.App;
+import demo.Bean1;
+import demo.Module1.tWalkPage;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+public class TestWalkPage {
+	@BeforeEach
+	public final void testInit() throws Exception {
+		demo.App.getInstance().Start();
+	}
+
+	@AfterEach
+	public final void testCleanup() throws Exception {
+		//demo.App.getInstance().Stop();
+	}
+
+	@Test
+	public void testFind() {
+		var t = App.Instance.demo_Module1.getTable1();
+		// 原先写入后零校验、rc忽略（2026-09-20审核）：写入必须生效且事务成功
+		var rc = App.Instance.Zeze.newProcedure(() -> {
+			t.getOrAdd(1L).setInt_1(1);
+			return 0;
+		}, "find").call();
+		Assertions.assertEquals(0L, rc, "写入事务必须成功");
+		// TableX.get断言必须在事务内调用（TableX.java:678 assert currentT!=null，30轮压测
+		// 30/30确定性假红）：读回须在过程内取值、过程外断言（对齐TestSafeBatch.queryBatch的out模式）。
+		var int1 = new int[1];
+		var rcVerify = App.Instance.Zeze.newProcedure(() -> {
+			int1[0] = t.get(1L).getInt_1();
+			return 0;
+		}, "findVerify").call();
+		Assertions.assertEquals(0L, rcVerify, "读回事务必须成功");
+		Assertions.assertEquals(1, int1[0], "写入必须可读回");
+	}
+
+	@Test
+	public void testWalkPage_1() throws Exception {
+		var t = TestWalkPage.prepareTable();
+		ArrayList<Integer> walkedKeys = new ArrayList<>();
+		var walkTimes = new OutInt(0);
+		t.walk(((key, value) -> {
+			walkTimes.value += 1;
+			walkedKeys.add(key);
+			return true;
+		}));
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
+		var expected = List.of(1, 2, 3, 4, 5);
+		if (t.getDatabase() instanceof DatabaseRedis) // unordered
+			Assertions.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+		else
+			Assertions.assertEquals(expected, walkedKeys);
+	}
+
+	@Test
+	public void testWalkPage_2() throws Exception {
+		var t = TestWalkPage.prepareTable();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
+		var walkedKeys = new ArrayList<Integer>();
+		Integer exclusiveStartKey = null;
+		var walkTimes = new OutInt(0);
+		do {
+			exclusiveStartKey = t.walk(exclusiveStartKey, 1,
+					(key, value) -> {
+						walkTimes.value += 1;
+						walkedKeys.add(key);
+						return true;
+					});
+		} while (exclusiveStartKey != null);
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
+		var expected = List.of(1, 2, 3, 4, 5);
+		Assertions.assertEquals(expected, walkedKeys);
+	}
+
+	@Test
+	public void testWalkPageDesc_1() throws Exception {
+		var t = TestWalkPage.prepareTableDesc();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
+		ArrayList<Integer> walkedKeys = new ArrayList<>();
+		var walkTimes = new OutInt(0);
+		t.walkDesc(((key, value) -> {
+			walkTimes.value += 1;
+			walkedKeys.add(key);
+			return true;
+		}));
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
+		var expected = List.of(5, 4, 3, 2, 1);
+		Assertions.assertEquals(expected, walkedKeys);
+	}
+
+	@Test
+	public void testWalkPageDesc_2() throws Exception {
+		var t = TestWalkPage.prepareTableDesc();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
+		ArrayList<Integer> walkedKeys = new ArrayList<>();
+		Integer exclusiveStartKey = null;
+		var walkTimes = new OutInt(0);
+		do {
+			exclusiveStartKey = t.walkDesc(exclusiveStartKey, 1,
+					(key, value) -> {
+						walkTimes.value += 1;
+						walkedKeys.add(key);
+						return true;
+					});
+		} while (exclusiveStartKey != null);
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
+		var expected = List.of(5, 4, 3, 2, 1);
+		Assertions.assertEquals(expected, walkedKeys);
+	}
+
+	@Test
+	public void testWalkKey() throws Exception {
+		var t = TestWalkPage.prepareTable();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
+		ArrayList<Integer> walkedKeys = new ArrayList<>();
+		var walkTimes = new OutInt(0);
+		Integer exclusiveStartKey = null;
+		do {
+			exclusiveStartKey = t.walkKey(exclusiveStartKey, 1, (key) -> {
+				walkTimes.value += 1;
+				walkedKeys.add(key);
+				return true;
+			});
+		} while (exclusiveStartKey != null);
+
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
+		var expected = List.of(1, 2, 3, 4, 5);
+		Assertions.assertEquals(expected, walkedKeys);
+	}
+
+	@Test
+	public void testWalkKeyDesc() throws Exception {
+		var t = TestWalkPage.prepareTableDesc();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
+		ArrayList<Integer> walkingKeys = new ArrayList<>();
+		var walkTimes = new OutInt(0);
+		Integer exclusiveStartKey = null;
+		do {
+			exclusiveStartKey = t.walkKeyDesc(exclusiveStartKey, 1, (key) -> {
+				walkTimes.value += 1;
+				walkingKeys.add(key);
+				return true;
+			});
+		} while (exclusiveStartKey != null);
+		Assertions.assertEquals(walkTimes.value, walkingKeys.size());
+		var expected = List.of(5, 4, 3, 2, 1);
+		Assertions.assertEquals(expected, walkingKeys);
+	}
+
+	@Test
+	public void testWalkCacheKey() throws Exception {
+		var t = TestWalkPage.prepareTable();
+		ArrayList<Integer> walkedKeys = new ArrayList<>();
+		var walkTimes = new OutInt(0);
+		t.walkCacheKey(key -> {
+			walkTimes.value += 1;
+			walkedKeys.add(key);
+			return true;
+		});
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
+		var expected = List.of(1, 2, 3, 4, 5);
+		Assertions.assertEquals(expected, walkedKeys);
+	}
+
+	@Test
+	public void testWalkDatabaseKey() throws Exception {
+		var t = TestWalkPage.prepareTable();
+		ArrayList<Integer> walkedKeys = new ArrayList<>();
+		var walkTimes = new OutInt(0);
+		t.walkDatabaseKey(key -> {
+			walkTimes.value += 1;
+			walkedKeys.add(key);
+			return true;
+		});
+
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
+		var expected = List.of(1, 2, 3, 4, 5);
+		if (t.getDatabase() instanceof DatabaseRedis) // unordered
+			Assertions.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+		else
+			Assertions.assertEquals(expected, walkedKeys);
+	}
+
+	@Test
+	public void testWalkDatabaseRaw() throws Exception {
+		var t = TestWalkPage.prepareTable();
+		ArrayList<Integer> walkedKeys = new ArrayList<>();
+		var walkTimes = new OutInt(0);
+
+		if (!t.isRelationalMapping()) {
+			t.walkDatabaseRaw((key, value) -> {
+				var bbKey = t.decodeKey(key);
+				walkTimes.value += 1;
+				walkedKeys.add(bbKey);
+				return true;
+			});
+			Assertions.assertEquals(walkTimes.value, walkedKeys.size());
+			var expected = List.of(1, 2, 3, 4, 5);
+			if (t.getDatabase() instanceof DatabaseRedis) // unordered
+				Assertions.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+			else
+				Assertions.assertEquals(expected, walkedKeys);
+		}
+	}
+
+	@Test
+	public void testWalkDatabaseDescRaw() throws Exception {
+		var t = TestWalkPage.prepareTableDesc();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
+		ArrayList<Integer> walkedKeys = new ArrayList<>();
+		var walkTimes = new OutInt(0);
+
+		if (!t.isRelationalMapping()) {
+			t.walkDatabaseRawDesc((key, value) -> {
+				var bbKey = t.decodeKey(key);
+				walkTimes.value += 1;
+				walkedKeys.add(bbKey);
+				return true;
+			});
+			Assertions.assertEquals(walkTimes.value, walkedKeys.size());
+			var expected = List.of(5, 4, 3, 2, 1);
+			Assertions.assertEquals(expected, walkedKeys);
+		}
+	}
+
+	@Test
+	public void testWalkDatabase() throws Exception {
+		var t = TestWalkPage.prepareTable();
+		ArrayList<Integer> walkedKeys = new ArrayList<>();
+		var walkTimes = new OutInt(0);
+
+		t.walkDatabase((key, value) -> {
+			walkTimes.value += 1;
+			walkedKeys.add(key);
+			return true;
+		});
+
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
+		var expected = List.of(1, 2, 3, 4, 5);
+		if (t.getDatabase() instanceof DatabaseRedis) // unordered
+			Assertions.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+		else
+			Assertions.assertEquals(expected, walkedKeys);
+	}
+
+	@Test
+	public void testWalkDatabaseDesc() throws Exception {
+		var t = TestWalkPage.prepareTableDesc();
+		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
+			return;
+
+		ArrayList<Integer> walkedKeys = new ArrayList<>();
+		var walkTimes = new OutInt(0);
+
+		t.walkDatabaseDesc((key, value) -> {
+			walkTimes.value += 1;
+			walkedKeys.add(key);
+			return true;
+		});
+
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
+		var expected = List.of(5, 4, 3, 2, 1);
+		Assertions.assertEquals(expected, walkedKeys);
+	}
+
+	@Test
+	public void testWalkCache() throws Exception {
+		var t = TestWalkPage.prepareTable();
+		ArrayList<Integer> walkedKeys = new ArrayList<>();
+		var walkTimes = new OutInt(0);
+		t.walkMemory((key, value) -> {
+			walkTimes.value++;
+			walkedKeys.add(key);
+			return true;
+		});
+	}
+
+	private static tWalkPage prepareTable() {
+		var t = App.getInstance().demo_Module1.tWalkPage();
+		App.getInstance().Zeze.newProcedure(() -> {
+			t.put(5, new Bean1());
+			t.put(3, new Bean1());
+			t.put(1, new Bean1());
+			t.put(2, new Bean1());
+			t.put(4, new Bean1());
+			return 0;
+		}, "prepare walk data").call();
+		App.getInstance().Zeze.checkpointRun();
+		return t;
+	}
+
+	private static tWalkPage prepareTableDesc() {
+		var t = App.getInstance().demo_Module1.tWalkPage();
+		App.getInstance().Zeze.newProcedure(() -> {
+			t.put(3, new Bean1());
+			t.put(2, new Bean1());
+			t.put(1, new Bean1());
+			t.put(5, new Bean1());
+			t.put(4, new Bean1());
+			return 0;
+		}, "prepare walk data by desc").call();
+		App.getInstance().Zeze.checkpointRun();
+		return t;
+	}
+}

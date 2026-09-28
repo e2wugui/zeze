@@ -1,0 +1,153 @@
+package Zeze.Collections;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import Zeze.BMyBean;
+import Zeze.Transaction.Procedure;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.Test;
+
+@TestMethodOrder(MethodOrderer.MethodName.class)
+public class TestQueue {
+	@BeforeEach
+	public final void testInit() throws Exception {
+		demo.App.getInstance().Start();
+	}
+
+	@AfterEach
+	public final void testCleanup() throws Exception {
+		//demo.App.getInstance().Stop();
+	}
+
+	@Test
+	public final void test1_QueueAdd() {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
+			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
+			var queue = queueModule.open("test1", BMyBean.class);
+			var queueSize = queue.size();
+			for (int i = 0; i < 10; i++) {
+				var bean = new BMyBean();
+				bean.setI(i);
+				queue.add(bean);
+			}
+			Assertions.assertEquals(10, queue.size() - queueSize);
+			var bean = queue.peek();
+			Assertions.assertEquals(0, bean.getI());
+			return Procedure.Success;
+		}, "test1_QueueAdd").call();
+		Assertions.assertEquals(Procedure.Success, ret);
+	}
+
+	@Test
+	public final void test2_QueueWalk() throws Exception {
+		var queueModule = demo.App.getInstance().Zeze.getQueueModule();
+		var queue = queueModule.open("test1", BMyBean.class);
+		var i = new AtomicInteger(0);
+		int[] arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+		queue.walk(((key, value) -> {
+			Assertions.assertTrue(i.get() < 10);
+			Assertions.assertEquals(value.getI(), arr[i.getAndAdd(1)]);
+			return true;
+		}));
+		Assertions.assertEquals(10, i.get());
+	}
+
+	@Test
+	public final void test3_QueuePop() {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
+			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
+			var queue = queueModule.open("test1", BMyBean.class);
+			var queueSize =  queue.size();
+			for (int i = 0; i < 10; i++) {
+				var bean = queue.pop();
+				Assertions.assertEquals(bean.getI(), i);
+			}
+			Assertions.assertEquals(queueSize - 10, queue.size());
+			Assertions.assertTrue(queue.isEmpty());
+			return Procedure.Success;
+		}, "test2_QueuePop").call();
+		Assertions.assertEquals(Procedure.Success, ret);
+	}
+
+	@Test
+	public final void test4_QueuePush() {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
+			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
+			var queue = queueModule.open("test1", BMyBean.class);
+			var queueSize =  queue.size();
+			for (int i = 0; i < 10; i++) {
+				var bean = new BMyBean();
+				bean.setI(i);
+				queue.push(bean);
+			}
+			Assertions.assertEquals(10, queue.size() - queueSize);
+			var bean = queue.peek();
+			Assertions.assertEquals(9, bean.getI());
+			return Procedure.Success;
+		}, "test3_QueuePush").call();
+		Assertions.assertEquals(Procedure.Success, ret);
+	}
+
+	@Test
+	public final void test5_QueueWalk() throws Exception {
+		var queueModule = demo.App.getInstance().Zeze.getQueueModule();
+		var queue = queueModule.open("test1", BMyBean.class);
+		var i = new AtomicInteger(0);
+		int[] arr = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+		queue.walk(((key, value) -> {
+			Assertions.assertTrue(i.get() < 10);
+			Assertions.assertEquals(value.getI(), arr[i.getAndAdd(1)]);
+			return true;
+		}));
+		Assertions.assertEquals(10, i.get());
+	}
+
+	@Test
+	public final void test6_QueuePop() {
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
+			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
+			var queue = queueModule.open("test1", BMyBean.class);
+			var queueSize =  queue.size();
+			for (int i = 9; i >= 0; i--) {
+				var bean = queue.pop();
+				Assertions.assertEquals(bean.getI(), i);
+			}
+			Assertions.assertEquals(queueSize - 10, queue.size());
+			Assertions.assertTrue(queue.isEmpty());
+			return Procedure.Success;
+		}, "test4_QueuePop").call();
+		Assertions.assertEquals(Procedure.Success, ret);
+	}
+
+	@Test
+	public final void test7_QueueDrainThenPushAdd() {
+		// FND10 coll-01回归：排空（poll清空最后节点）→push→add曾产生零链接尾节点——add的值
+		// 从head不可达（数据丢失）且count虚高。修复后poll排空同步清尾键，衔接后数据全可达。
+		// 先完全排空再做绝对断言，对历史残留数据免疫。
+		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
+			var queue = demo.App.getInstance().Zeze.getQueueModule().open("test7", BMyBean.class);
+			for (int round = 0; round < 3; round++) { // 多轮覆盖"再排空再灌"的循环路径
+				while (queue.poll() != null) {
+					// 完全排空
+				}
+				var stackBean = new BMyBean();
+				stackBean.setI(100);
+				queue.push(stackBean);
+				var queueBean = new BMyBean();
+				queueBean.setI(200);
+				queue.add(queueBean);
+				Assertions.assertEquals(2, queue.size());
+				// push的值在头；add的值必须可达（修复前第二个poll返回null且size虚高2不归零）
+				Assertions.assertEquals(100, queue.poll().getI());
+				Assertions.assertEquals(200, queue.poll().getI());
+				Assertions.assertNull(queue.poll());
+				Assertions.assertEquals(0, queue.size());
+			}
+			return Procedure.Success;
+		}, "test7_QueueDrainThenPushAdd").call();
+		Assertions.assertEquals(Procedure.Success, ret);
+	}
+}

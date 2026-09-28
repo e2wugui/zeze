@@ -57,7 +57,7 @@ public class DemoMain {
 	}
 
 	public static void main(String[] args) throws Exception {
-		System.out.println(Bean.hash64("UnitTest.Zeze.Component.TestBean"));
+		System.out.println(Bean.hash64("Zeze.Component.TestBean"));
 		if (args.length == 0)
 			return;
 		System.out.println(AutoKey.getServerIdFromId(2167583089L));

@@ -1,0 +1,77 @@
+package Zeze.Trans;
+
+import java.util.concurrent.Future;
+import Zeze.Transaction.Transaction;
+import demo.App;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+public class TestTransactionLevelSerializable {
+	@BeforeEach
+	public final void testInit() throws Exception {
+		demo.App.getInstance().Start();
+	}
+
+	@AfterEach
+	public final void testCleanup() throws Exception {
+		//demo.App.getInstance().Stop();
+	}
+
+	private volatile boolean InTest = true;
+
+	@Test
+	public final void Test2() {
+		App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::init, "test_init").call();
+		Zeze.Util.TaskSpec.ofAction(this::verify_task).name("verify_task").run();
+		try {
+			Future<?>[] tasks = new Future[20000];
+			for (int i = 0; i < tasks.length; ++i) {
+				tasks[i] = Zeze.Util.TaskSpec.ofProcedure(
+						App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::trade, "test_trade")).submitNow();
+			}
+			Zeze.Util.Task.waitAll(tasks);
+		} finally {
+			InTest = false;
+		}
+	}
+
+	private void verify_task() {
+		while (InTest) {
+			App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::verify, "test_verify").call();
+		}
+	}
+
+	private static long verify() {
+		var v1 = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
+		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
+		final var total = v1.getInt_1() + v2.getInt_1();
+		// 必须在事务成功时verify，执行过程中是可能失败的。
+		Transaction.whileCommit(() -> Assertions.assertEquals(100_000, total));
+		return 0;
+	}
+
+	private static long init() {
+		var v1 = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
+		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
+		v1.setInt_1(100_000);
+		v2.setInt_1(0);
+		return 0;
+	}
+
+	private static long trade() {
+		var v1 = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
+		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
+		var money = Zeze.Util.Random.getInstance().nextInt(1000);
+		if (Zeze.Util.Random.getInstance().nextBoolean()) {
+			// random swap
+			var tmp = v1;
+			v1 = v2;
+			v2 = tmp;
+		}
+		v1.setInt_1(v1.getInt_1() - money);
+		v2.setInt_1(v2.getInt_1() + money);
+		return 0;
+	}
+}

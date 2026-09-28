@@ -2,7 +2,7 @@ package Benchmark;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
-import UnitTest.Zeze.BMyBean;
+import Zeze.BMyBean;
 import Zeze.Util.Benchmark;
 import Zeze.Util.Random;
 import demo.App;

@@ -1,0 +1,110 @@
+package Zeze.Trans;
+
+import org.junit.jupiter.api.Test;
+import Zeze.Config;
+import Zeze.Config.DatabaseConf;
+import Zeze.Config.DbType;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
+import Zeze.Transaction.Database;
+import Zeze.Transaction.DatabaseSqlServer;
+import org.junit.jupiter.api.Assertions;
+
+public class TestDatabaseSqlServer {
+
+	@Test
+	public final void testSaveDataWithSameVersionCallPlaceholders() throws Exception {
+		// FND-T3-5：调用串占位符个数必须与存储过程 _ZezeSaveDataWithSameVersion_ 的参数个数一致(4)。
+		// 少一个占位符时 registerOutParameter(4)/getInt(4) 参数索引越界
+		// (mssql-jdbc: "The index 4 is out of range")，带 schemas 启动即失败。
+		// 不依赖真实 SqlServer，仅校验调用串契约。
+		var field = DatabaseSqlServer.class.getDeclaredField("saveDataWithSameVersionCall");
+		field.setAccessible(true);
+		var call = (String)field.get(null);
+		var placeholders = call.split("\\?", -1).length - 1;
+		Assertions.assertEquals(4, placeholders, call);
+	}
+
+	@Test
+	@org.junit.jupiter.api.Disabled("占位账号密码（MyUserName/*****）连不上任何真实库——驱动在classpath时"
+			+ "必失败打红套件，不在时静默跳过。永久死测试（2026-09-20审核标记）。"
+			+ "占位符契约由上方testSaveDataWithSameVersionCallPlaceholders真实验证。")
+	public final void test1() throws Exception {
+		System.out.println(System.getProperties().get("user.home"));
+		System.err.println("sqlserver jdbc 不能连接 vs 自带的 LocalDB(不用配置的）。所以这个测试先不管了。");
+		if (!TestDatabaseMySql.checkDriverClassExist("com.microsoft.sqlserver.jdbc.SQLServerDriver"))
+			return;
+
+		String url = "jdbc:sqlserver://localhost;user=MyUserName;password=*****;";
+		DatabaseConf databaseConf = new DatabaseConf();
+		databaseConf.setDatabaseType(DbType.SqlServer);
+		databaseConf.setDatabaseUrl(url);
+		databaseConf.setName("sqlserver");
+		databaseConf.setDruidConf(new Config.DruidConf());
+
+		DatabaseSqlServer sqlserver = new DatabaseSqlServer(null, databaseConf);
+		Database.Table tableTmp = sqlserver.openTable("test1", Bean.hash32("test1"));
+		if (! (tableTmp instanceof Database.AbstractKVTable table))
+			return;
+		{
+			try (var trans = sqlserver.beginTransaction()) {
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(1);
+					table.remove(trans, key);
+				}
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(2);
+					table.remove(trans, key);
+				}
+				trans.commit();
+			}
+		}
+		Assertions.assertEquals(0, table.walk(TestDatabaseSqlServer::PrintRecord));
+		{
+			try (var trans = sqlserver.beginTransaction()) {
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(1);
+					ByteBuffer value = ByteBuffer.Allocate();
+					value.WriteInt(1);
+					table.replace(trans, key, value);
+				}
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(2);
+					ByteBuffer value = ByteBuffer.Allocate();
+					value.WriteInt(2);
+					table.replace(trans, key, value);
+				}
+				trans.commit();
+			}
+		}
+		{
+			ByteBuffer key = ByteBuffer.Allocate();
+			key.WriteInt(1);
+			ByteBuffer value = table.find(key);
+			Assertions.assertNotNull(value);
+			Assertions.assertEquals(1, value.ReadInt());
+			Assertions.assertEquals(value.ReadIndex, value.WriteIndex);
+		}
+		{
+			ByteBuffer key = ByteBuffer.Allocate();
+			key.WriteInt(2);
+			ByteBuffer value = table.find(key);
+			Assertions.assertNotNull(value);
+			Assertions.assertEquals(2, value.ReadInt());
+			Assertions.assertEquals(value.ReadIndex, value.WriteIndex);
+		}
+		Assertions.assertEquals(2, table.walk(TestDatabaseSqlServer::PrintRecord));
+		System.out.println(table.getSizeApproximation());
+	}
+
+	public static boolean PrintRecord(byte[] key, byte[] value) {
+		int ikey = ByteBuffer.Wrap(key).ReadInt();
+		int ivalue = ByteBuffer.Wrap(value).ReadInt();
+		System.out.println(Zeze.Util.Str.format("key={} value={}", ikey, ivalue));
+		return true;
+	}
+}

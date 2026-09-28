@@ -1,0 +1,158 @@
+package Zeze.Component;
+
+import harness.Fast;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import Zeze.Net.Binary;
+import Zeze.Services.Token;
+import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+@Fast
+@ResourceLock("token.rocksdb") // Token经全局System property定位DB目录，与同族测试并行互相覆盖路径
+public class TestToken {
+	private static final Logger logger = LogManager.getLogger(TestToken.class);
+
+	// Token 的 RocksDB 目录由系统属性 token.rocksdb 指定（默认cwd下的token_db），重定向到临时目录。
+	@Test
+	public void testToken(@TempDir Path tempDir) throws Exception {
+		Task.tryInitThreadPool();
+		System.setProperty("token.rocksdb", tempDir.resolve("token_db").toString());
+		var tokenServer = new Token().start(null, null, 5003);
+		try {
+			var tokenClient = new Token.TokenClient(null).start("127.0.0.1", 5003);
+			try {
+				tokenClient.waitReady();
+
+				var token = tokenClient.newToken(new Binary("abc"), 5000).get().getToken();
+				logger.info("token: '{}'", token);
+				Assertions.assertEquals(24, token.length());
+
+				var res = tokenClient.getToken(token, 1).get();
+				Assertions.assertEquals("abc", res.getContext().toString(StandardCharsets.UTF_8));
+				Assertions.assertEquals(1, res.getCount());
+				Assertions.assertTrue(res.getTime() >= 0);
+
+				res = tokenClient.getToken(token, 1).get();
+				Assertions.assertEquals("", res.getContext().toString(StandardCharsets.UTF_8));
+				Assertions.assertEquals(0, res.getCount());
+				Assertions.assertTrue(res.getTime() < 0);
+			} finally {
+				tokenClient.stop();
+			}
+		} finally {
+			tokenServer.stop();
+			tokenServer.closeDb();
+		}
+	}
+
+	@Test
+	public void testTopic(@TempDir Path tempDir) throws Exception {
+		Task.tryInitThreadPool();
+		System.setProperty("token.rocksdb", tempDir.resolve("token_db").toString());
+		var tokenServer = new Token().start(null, null, 5003);
+		try {
+			var tokenClient = new Token.TokenClient(null).start("127.0.0.1", 5003);
+			try {
+				var f = new TaskCompletionSource<Boolean>();
+				tokenClient.registerNotifyTopicHandler("testTopic", p -> {
+					Assertions.assertEquals("testTopic", p.Argument.getTopic());
+					Assertions.assertEquals("abc", new String(p.Argument.getContent().copyIf(), StandardCharsets.UTF_8));
+					Assertions.assertFalse(p.Argument.isBroadcast());
+					f.setResult(true);
+				});
+				tokenClient.waitReady();
+
+				tokenClient.subTopic("testTopic").get();
+				tokenClient.pubTopic("testTopic", new Binary("abc"), false);
+				tokenClient.unsubTopic("testTopic").get();
+				Assertions.assertTrue(f.get(5, TimeUnit.SECONDS));
+			} finally {
+				tokenClient.stop();
+			}
+		} finally {
+			tokenServer.stop();
+			tokenServer.closeDb();
+		}
+	}
+
+	// keep-alive 回归已拆到 TestTokenKeepAlive（慢测试，不进 fast 车道）
+
+	// Token压力测试
+	// -Xmx512m -XX:SoftRefLRUPolicyMSPerMB=1000
+	public static void main(String[] args) throws Exception {
+		final int TEST_COUNT = 10_000_000; // 申请的token总数
+		final int MAX_RPC_COUNT = Runtime.getRuntime().availableProcessors() * 2; // 并发RPC请求上限
+		System.setProperty("perfPeriod", "10");
+		System.setProperty("noDebugMode", "true");
+		Task.tryInitThreadPool();
+		var tokenServer = new Token().start(null, null, 5003);
+		tokenServer.getService().getConfig().getSocketOptions().setOutputBufferMaxSize(10 << 20);
+		try {
+			var tokenClient = new Token.TokenClient(null).start("127.0.0.1", 5003);
+			try {
+				tokenClient.getConfig().getSocketOptions().setOutputBufferMaxSize(10 << 20);
+				tokenClient.waitReady();
+				System.out.println("INFO: test begin");
+				var sem = new Semaphore(MAX_RPC_COUNT);
+				for (int i = 0; i < TEST_COUNT; i++) {
+					if (i % (TEST_COUNT / 100) == 0)
+						System.out.println("INFO: " + i);
+					sem.acquire();
+					if (!tokenClient.newToken(new Binary(new byte[100]), 600_000, r -> {
+						if (r.getResultCode() != 0) {
+							System.out.println("ERROR: rpc1.resultCode=" + r.getResultCode());
+							sem.release();
+						} else {
+							var token = r.Result.getToken();
+							if (token.length() != 24) {
+								System.out.println("ERROR: token.length=" + token.length());
+								sem.release();
+							} else {
+								if (!tokenClient.getToken(token, 100, r2 -> {
+									if (r2.getResultCode() != 0)
+										System.out.println("ERROR: rpc2.resultCode=" + r2.getResultCode());
+									else {
+										var res = r2.Result;
+										if (res.getContext().size() != 100)
+											System.out.println("ERROR: context.size=" + res.getContext().size());
+										if (res.getCount() <= 0)
+											System.out.println("ERROR: res.count=" + res.getCount());
+										if (res.getTime() < 0)
+											System.out.println("ERROR: res.time=" + res.getTime());
+									}
+									sem.release();
+									return 0;
+								})) {
+									System.out.println("ERROR: send rpc2 failed");
+									sem.release();
+								}
+							}
+						}
+						return 0;
+					})) {
+						System.out.println("ERROR: send rpc1 failed");
+						sem.release();
+					}
+				}
+				System.out.println("INFO: send finish, wait left res");
+				sem.acquire(MAX_RPC_COUNT);
+				System.out.println("INFO: test OK!");
+			} finally {
+				tokenClient.stop();
+			}
+		} finally {
+			tokenServer.stop();
+			tokenServer.closeDb();
+			System.out.println("INFO: test end!");
+		}
+	}
+}
