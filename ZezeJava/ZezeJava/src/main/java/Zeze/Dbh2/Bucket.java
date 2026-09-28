@@ -33,6 +33,13 @@ public class Bucket {
 	private final byte[] metaSplitKeyHistory = new byte[]{3};
 	private final byte[] metaPendingSettleKey = new byte[]{4};
 
+	// splitMetaHistory保留量（键数上界，含首键条目）：本桶每次分裂净增一条（from在首键原地刷新、
+	// to新增；迁移的to同键覆盖首键条目不增长），世代序=键序（本桶连续分裂的边界严格递减，最老世代
+	// =最大keyFirst）。超限裁掉最老世代：落入被裁区间的locate改为floor到次新条目，经目标桶自身
+	// 历史链式重定向仍收敛；仅客户端路由缓存陈旧超过保留代数的prepare会失败一次（其首个refuse已
+	// 触发master表刷新，重试收敛）。上界同时约束每次分裂的全量重编码落盘与meta常驻内存。
+	private static final int SplitMetaHistoryMaxEntries = 64;
+
 	/**
 	 * pending-settle标志：最近一次已commit迁移（LogEndSplit/LogEndMove
 	 * 的apply）的完整from/to meta。它是**派生状态**（从raft日志参数派生，不新增日志schema），
@@ -223,6 +230,10 @@ public class Bucket {
 		try {
 			this.splitMetaHistory.getBuckets().put(from.getKeyFirst(), from);
 			this.splitMetaHistory.getBuckets().put(to.getKeyFirst(), to);
+			// 保留量裁剪：裁最大keyFirst的最老世代；首键条目（from/迁移目标）恒为最小键，不会被裁。
+			// 只依赖map内容（同一日志序在各副本确定性演化），不引入世代计数状态。
+			while (this.splitMetaHistory.getBuckets().size() > SplitMetaHistoryMaxEntries)
+				this.splitMetaHistory.getBuckets().pollLastEntry();
 			var bb = ByteBuffer.Allocate();
 			this.splitMetaHistory.encode(bb);
 			meta.put(writeOptions, metaSplitKeyHistory, 0, metaSplitKeyHistory.length, bb.Bytes, 0, bb.WriteIndex);
