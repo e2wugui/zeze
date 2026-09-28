@@ -122,7 +122,9 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 
 		var sb = new StringBuilder();
 		for (; i <= aEnd && i <= bEnd; ++i)
-			sb.append(a[i]).append(Str.indent(50 - a[i].length())).append(b[i]).append('\n');
+			// 行长超过50时钳到0：不向Str.indent传负数（当前实现对n<=0返回空串，此处显式收敛到
+			// 合法参数域，不依赖实现内部防护）
+			sb.append(a[i]).append(Str.indent(Math.max(0, 50 - a[i].length()))).append(b[i]).append('\n');
 		if (aEnd > bEnd) {
 			for (; i <= aEnd; ++i)
 				sb.append(a[i]).append('\n');
