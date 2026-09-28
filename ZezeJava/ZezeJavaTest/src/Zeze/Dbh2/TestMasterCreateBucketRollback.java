@@ -51,8 +51,9 @@ public class TestMasterCreateBucketRollback {
 			var outIsNew = new OutObject<Boolean>();
 			// 没有manager可用：createTable失败返回null。
 			Assertions.assertNull(db.createTable("t1", outIsNew));
-			// 失败不能残留半初始化bucket。
-			Assertions.assertTrue(db.getTable("t1").getBuckets().isEmpty());
+			// FND26 dbh2-03：失败不得残留空 MasterTable.Data——残留空表使客户端/服务端
+			// locate 空表 floorEntry NPE（旧契约"残留空表仅校验 buckets 为空"即该缺陷形态）。
+			Assertions.assertNull(db.getTable("t1"), "createTable 失败必须清理残留表条目");
 		} finally {
 			db.close();
 			master.close();

@@ -108,56 +108,69 @@ public class MasterDatabase {
 
 	public MasterTable.Data createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
 		outIsNew.value = false;
-		var table = tables.computeIfAbsent(tableName, __ -> new MasterTable.Data());
-		if (table.created) {
-			logger.info("create table exist: {}.{}", databaseName, tableName);
-			return table;
-		}
-
-		table.lock();
-		try {
-			// 加锁后再次检查一次。
+		while (true) {
+			var table = tables.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 			if (table.created) {
 				logger.info("create table exist: {}.{}", databaseName, tableName);
 				return table;
 			}
 
-			outIsNew.value = true;
-
-			var bucket = new BBucketMeta.Data();
-			bucket.setDatabaseName(databaseName);
-			bucket.setTableName(tableName);
-			bucket.setKeyFirst(Binary.Empty);
-			bucket.setKeyLast(Binary.Empty);
-
-			// allocate first bucket service and setup table
-			var managers = master.choiceManagers();
-			if (managers.size() < master.getDbh2Config().getRaftClusterCount()) {
-				logger.warn("managers.size({}) < raftClusterCount({})",
-						managers.size(), master.getDbh2Config().getRaftClusterCount());
-				return null;
-			}
-
-			var raftNames = buildRaftConfig(bucket, managers);
-			table.buckets.put(bucket.getKeyFirst(), bucket);
+			table.lock();
 			try {
-				createBucketRafts(managers, bucket, raftNames);
-				setBucketMeta(bucket);
-				table.created = true;
-				saveRocks(rocksTables, tableName, table);
-			} catch (Exception e) {
-				// 失败回滚：摘内存表并请各manager销毁刚建的raft——只回滚内存会留下永久孤儿
-				//（进程/端口/磁盘）。
-				table.buckets.remove(bucket.getKeyFirst());
-				table.created = false;
-				destroyBucketRafts(managers, bucket, raftNames);
-				throw e;
+				// 加锁后再次检查一次。
+				if (table.created) {
+					logger.info("create table exist: {}.{}", databaseName, tableName);
+					return table;
+				}
+				// 失败路径（见下方两处tables.remove两参调用）会摘除自己放入map的空条目：持陈旧引用的
+				// 并发创建者必须在此重检身份，失配即弃锁重试新条目——否则在未映射实例上建表成功但对
+				// getTable不可见，且与新条目的并发创建各建一套raft。身份检查与摘除同持本锁，互斥成立。
+				if (tables.get(tableName) != table)
+					continue;
+
+				outIsNew.value = true;
+
+				var bucket = new BBucketMeta.Data();
+				bucket.setDatabaseName(databaseName);
+				bucket.setTableName(tableName);
+				bucket.setKeyFirst(Binary.Empty);
+				bucket.setKeyLast(Binary.Empty);
+
+				// allocate first bucket service and setup table
+				var managers = master.choiceManagers();
+				if (managers.size() < master.getDbh2Config().getRaftClusterCount()) {
+					logger.warn("managers.size({}) < raftClusterCount({})",
+							managers.size(), master.getDbh2Config().getRaftClusterCount());
+					// 摘除本次新建的空表（两参remove仅当映射仍为本实例）：残留的created=false空表让
+					// GetBuckets返回rc=0空桶表，客户端/服务端locate的floorEntry==null以NPE面目取代
+					// 可重试的eTableNotFound（getTable为null的既有路径）。
+					tables.remove(tableName, table);
+					return null;
+				}
+
+				var raftNames = buildRaftConfig(bucket, managers);
+				table.buckets.put(bucket.getKeyFirst(), bucket);
+				try {
+					createBucketRafts(managers, bucket, raftNames);
+					setBucketMeta(bucket);
+					table.created = true;
+					saveRocks(rocksTables, tableName, table);
+				} catch (Exception e) {
+					// 失败回滚：摘内存表并请各manager销毁刚建的raft——只回滚内存会留下永久孤儿
+					//（进程/端口/磁盘）。
+					table.buckets.remove(bucket.getKeyFirst());
+					table.created = false;
+					// 同上：摘除空表条目，不留locate-NPE窗口（重试经computeIfAbsent重建）。
+					tables.remove(tableName, table);
+					destroyBucketRafts(managers, bucket, raftNames);
+					throw e;
+				}
+			} finally {
+				table.unlock();
 			}
-		} finally {
-			table.unlock();
+			logger.info("create table new: {}.{}", databaseName, tableName);
+			return table;
 		}
-		logger.info("create table new: {}.{}", databaseName, tableName);
-		return table;
 	}
 
 	// 构建raft-config，基本的用于客户端，用于manager服务器的需要replace RaftName.
