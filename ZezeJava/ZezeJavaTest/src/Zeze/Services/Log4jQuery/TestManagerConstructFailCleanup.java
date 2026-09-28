@@ -32,22 +32,28 @@ public class TestManagerConstructFailCleanup {
 	@Test
 	public void testConstructorFailureStopsDetector() throws Exception {
 		var logDir = Files.createTempDirectory("fnd19-ctor-fail");
-		// rotate日志 + 同名.index是目录：loadRotates→loadIndex→LogIndex构造打开FileOutputStream必抛。
-		Files.createFile(logDir.resolve("zeze.2026-01-01.log"));
-		Files.createDirectory(logDir.resolve("zeze.2026-01-01.log.index"));
+		// 装载抛出注入：active在磁盘触发openActiveIndexAtLoad，indexLinks名被普通文件占据——
+		// nextLinkFile的createDirectories对同名文件跨平台必抛。该失败面是索引通道的真IO错误，
+		// 不在rotate名.index残留的配对校验消费范围内（那是FND25 log4j-04的合法降级面）。
+		Files.write(logDir.resolve("zeze.log"), new byte[0]);
+		Files.createFile(logDir.resolve("indexLinks"));
 
 		var logConf = new LogServiceConf.LogConf();
 		logConf.logActive = "zeze.log";
 		logConf.logDir = logDir.toString();
 		assertThrows(Exception.class, () -> new Log4jFileManager(logConf));
 
-		// 修复前后构造都抛；区分点是watch线程是否被回收：泄漏线程处理该CREATE会创建zeze.log.index。
-		var activeIndex = logDir.resolve("zeze.log.index");
+		// 修复前后构造都抛；区分点是watch线程是否被回收。观察前先解除indexLinks占位：
+		// 泄漏的线程处理CREATE(active)会在indexLinks下建编号索引文件（openFreshActiveIndex），
+		// 占位不解除则该副作用被掩盖、断言空转；已回收的线程对后续创建无任何磁盘副作用。
+		Files.delete(logDir.resolve("indexLinks"));
+		Files.delete(logDir.resolve("zeze.log"));
 		Files.createFile(logDir.resolve("zeze.log"));
+		var linkIndex = logDir.resolve("indexLinks").resolve("1");
 		var deadline = System.currentTimeMillis() + 1000;
-		while (Files.notExists(activeIndex) && System.currentTimeMillis() < deadline)
+		while (Files.notExists(linkIndex) && System.currentTimeMillis() < deadline)
 			Thread.sleep(50);
-		assertFalse(Files.exists(activeIndex), "构造失败后detector线程应已join，不得再处理文件创建事件");
+		assertFalse(Files.exists(linkIndex), "构造失败后detector线程应已join，不得再处理文件创建事件");
 
 		deleteBestEffort(logDir);
 	}

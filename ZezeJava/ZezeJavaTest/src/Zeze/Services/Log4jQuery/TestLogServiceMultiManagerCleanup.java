@@ -45,7 +45,8 @@ public class TestLogServiceMultiManagerCleanup {
 		var dirValid = Files.createTempDirectory("fnd20-multi-valid");
 		var dirPoison = Files.createTempDirectory("fnd20-multi-poison");
 		// ConcurrentHashMap无插入序：运行时探测迭代序，把毒化conf排在末位，
-		// 保证至少一个manager先成功后失败（毒化形态：rotate名.index是目录→LogIndex构造必抛）。
+		// 保证至少一个manager先成功后失败（毒化形态：indexLinks名被普通文件占据，装载期active
+		// 索引解析的nextLinkFile必抛——rotate名.index残留已被FND25配对校验消费，不再是失败面）。
 		var confs = parseConf("""
 				<LogServiceConf>
 					<LogConf LogActive="a.log"/>
@@ -57,10 +58,8 @@ public class TestLogServiceMultiManagerCleanup {
 		var poisonConf = order.get(1);
 		validConf.logDir = dirValid.toString();
 		poisonConf.logDir = dirPoison.toString();
-		Files.write(dirPoison.resolve(poisonConf.logActive.replace(".log", ".2026-01-01.log")),
-				new byte[0]);
-		Files.createDirectory(dirPoison.resolve(
-				poisonConf.logActive.replace(".log", ".2026-01-01.log") + ".index"));
+		Files.write(dirPoison.resolve(poisonConf.logActive), new byte[0]);
+		Files.createFile(dirPoison.resolve("indexLinks"));
 
 		var logManagers = new ConcurrentHashMap<String, Log4jFileManager>();
 		// 修复前：循环内构造，中途失败直接抛出，先成功者滞留map（detector线程与定时器泄漏）。

@@ -102,9 +102,10 @@ public class TestRotationGraceKeepsActiveEntry {
 	}
 
 	/**
-	 * 对账摘除路径的宽限：改名失败（崩溃残留占据R.index名）中止改指后，摘除循环同样保留active条目
-	 * （它是下轮改指重试的载体）；障碍消除后下一轮对账收敛到正确配对。修复前：首轮流既摘条目，
-	 * 次轮流补登把未改名的旧C1索引挂到新内容上，C1时间窗整窗丢失。
+	 * 对账摘除路径的宽限：改名失败（残留占据R.index名）中止改指后，摘除循环同样保留active条目
+	 * （它是当轮改指重试的载体）。FND25 log4j-04后残留占据者在同轮补登中被配对校验消费（不可配对
+	 * 即删除让位、按rotate名重建索引），R即刻登记——宽限随"R已登记"解除：下一轮active仍缺失即按
+	 * 常规摘除；active重建后按新内容索引补登，C1时间窗由R的重建索引承载。
 	 */
 	@Test
 	public void testReconcileGraceDuringBlockedRename() throws Exception {
@@ -120,22 +121,27 @@ public class TestRotationGraceKeepsActiveEntry {
 			Files.createDirectory(logDir.resolve(Rotated + ".index"));
 
 			// 首轮对账：repointMissedRotation改名失败中止（GD-C01回滚语义）；摘除循环对active条目
-			// 宽限保留（R未登记=轮转未收敛的证据）。补登R在障碍目录上开索引抛异常被reconcile整体
-			// catch，不影响"条目保住"这一断言点（修复前条目已被摘）。
+			// 宽限保留（此刻R未登记=轮转未收敛的证据，不得摘除改指载体）。同轮补登把障碍按陈旧残留
+			// 消费：删除让位后R以重建索引登记（FND25前该形态是补登抛异常整轮回滚，R跨轮不登记）。
 			invokeReconcile(manager);
-			assertEquals(List.of(Active), fileNamesOf(manager),
+			assertEquals(List.of(Rotated, Active), fileNamesOf(manager),
 					"改名失败+轮转未收敛：active条目是改指重试的载体，不得摘除");
+			assertTrue(Files.isRegularFile(logDir.resolve(Rotated + ".index")),
+					"占据R.index名的陈旧残留被删除让位，按rotate名重建为索引文件");
 
-			// 障碍消除+active重建，下一轮对账收敛：改名跟随+改指+active按新索引补登。
-			Files.delete(logDir.resolve(Rotated + ".index"));
+			// 次轮对账：R已登记（轮转收敛），active仍缺失——宽限解除，条目按常规摘除（不得跨轮滞留）。
+			invokeReconcile(manager);
+			assertEquals(List.of(Rotated), fileNamesOf(manager), "宽限解除后缺失的active条目按常规摘除");
+
+			// active重建，下一轮对账收敛：R携重建索引在位，active按新内容索引补登。
 			AtomicFileWriter.replace(logDir.resolve(Active),
 					buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
 			invokeReconcile(manager);
-			assertEquals(List.of(Rotated, Active), fileNamesOf(manager), "收敛：改指+按新索引补登");
+			assertEquals(List.of(Rotated, Active), fileNamesOf(manager), "收敛：active按新索引补登");
 			var entries = entriesOf(manager);
-			assertEquals(millis(C1Base), entries.get(0).index.getBeginTime(), "rotate条目携旧内容索引");
+			assertEquals(millis(C1Base), entries.get(0).index.getBeginTime(), "rotate条目携重建的旧内容索引");
 			assertEquals(millis(C2Base), entries.get(1).index.getBeginTime(),
-					"active条目挂新内容索引（修复前未改名的旧C1索引被补登挂上）");
+					"active条目挂新内容索引（不得残留旧C1索引）");
 			assertC1WindowReturns20(manager);
 		} finally {
 			manager.stop();
