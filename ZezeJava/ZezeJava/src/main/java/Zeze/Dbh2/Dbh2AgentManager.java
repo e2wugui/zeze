@@ -199,29 +199,71 @@ public class Dbh2AgentManager extends ReentrantLock {
 				task.cancel(false); // 未启动的直接作废；已启动的在途轮由任务体锁内的stopped检查兜底
 			refreshMasterTableTask = null;
 			ShutdownHook.remove(this);
-			proxyAgent.stop();
-			var reclaim = idleReclaimTask;
-			if (null != reclaim)
-				reclaim.cancel(false); // 在途轮由任务体锁内的stopped检查兜底
-			idleReclaimTask = null;
-			for (var ma : masterAgent.values())
-				ma.stop();
-			masterAgent.clear();
-			for (var da : agents.values())
-				da.close();
-			agents.clear();
-			agentActiveTimes.clear();
-			// 清空路由缓存：stop后masterAgent已关，locateBucket不得命中陈旧缓存免rpc。
-			buckets.clear();
-
-			if (null != commit) {
-				commit.stop();
+			// 逐项独立捕获+收尾重抛首个异常（对齐Dbh2Manager.stop逐桶close形态）：任一环节
+			// 失败不得中断其余清理——未stop的MasterAgent保留连接器与重连，未close的Dbh2Agent
+			// 保留1s周期resend任务、连接器与pending rpc表（嵌入式/测试反复create-stop累积泄漏）。
+			// 首个异常在全部清理完成后重抛，保留stop失败的调用方可见性。
+			Exception first = null;
+			try {
+				try {
+					proxyAgent.stop();
+				} catch (Exception e) {
+					first = e;
+					logger.error("stop proxyAgent fail", e);
+				}
+				var reclaim = idleReclaimTask;
+				if (null != reclaim)
+					reclaim.cancel(false); // 在途轮由任务体锁内的stopped检查兜底
+				idleReclaimTask = null;
+				for (var ma : masterAgent.values()) {
+					try {
+						ma.stop();
+					} catch (Exception e) {
+						if (null == first)
+							first = e;
+						logger.error("stop masterAgent fail", e);
+					}
+				}
+				for (var da : agents.values()) {
+					try {
+						da.close();
+					} catch (Exception e) {
+						if (null == first)
+							first = e;
+						logger.error("stop agent fail", e);
+					}
+				}
+				if (null != commit) {
+					try {
+						commit.stop();
+					} catch (Exception e) {
+						if (null == first)
+							first = e;
+						logger.error("stop commit fail", e);
+					}
+				}
+				if (null != commitAgent) {
+					try {
+						commitAgent.stop();
+					} catch (Exception e) {
+						if (null == first)
+							first = e;
+						logger.error("stop commitAgent fail", e);
+					}
+				}
+			} finally {
+				// 兜底清账（Error级逃逸也必须执行）：masterAgent/agents/agentActiveTimes残留
+				// 已停条目，buckets清空路由缓存——stop后masterAgent已关，locateBucket不得
+				// 命中陈旧缓存免rpc。
+				masterAgent.clear();
+				agents.clear();
+				agentActiveTimes.clear();
+				buckets.clear();
 				commit = null;
-			}
-			if (null != commitAgent) {
-				commitAgent.stop();
 				commitAgent = null;
 			}
+			if (null != first)
+				throw first;
 		} finally {
 			unlock();
 		}
