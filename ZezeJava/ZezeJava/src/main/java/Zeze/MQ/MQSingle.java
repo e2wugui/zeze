@@ -114,6 +114,15 @@ public class MQSingle extends ReentrantLock {
 			this.highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
 			pullMessage(true); // 构造的时候还没有绑定网络，所以只装载进来，不需要tryPushMessage.
 		} catch (Exception ex) {
+			// 构造失败=实例不发布，但 MQFileWithIndex 构造已打开 lastFileOutputStream——不关则
+			// fd 泄漏（Master 对 CreatePartition 的重试/同 topic 反复重建可累积）。close 亦置
+			// fileWithIndex.closed：半成品分区此后不得再触回收通路（tryRecycle 恒被拒）。
+			try {
+				fileWithIndex.close();
+			} catch (Exception closeEx) {
+				logger.error("mq single constructor cleanup: close fileWithIndex failed. topic={} partition={}",
+						topic, partitionId, closeEx);
+			}
 			throw new RuntimeException(ex);
 		}
 	}
