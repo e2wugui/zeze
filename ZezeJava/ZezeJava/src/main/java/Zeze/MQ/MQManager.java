@@ -141,7 +141,16 @@ public class MQManager extends AbstractMQManager {
 			@Override
 			public void OnSocketClose(@NotNull AsyncSocket so, Throwable e) throws Exception {
 				super.OnSocketClose(so, e);
-				MQManager.this.onSocketClose(so);
+				// 本回调在发起关闭的线程（网络侧死亡=selector线程；Service.stop持锁逐socket关闭时
+				// 为stop线程）同步执行，不得在此等待MQPartition锁——removePartition（DeletePartition
+				// 对账链常态产物）全程持该锁做有界排空（RpcTimeout+5s量级），selector被锁阻塞期间
+				// 该event loop上全部消费连接的读写/握手停摆。订阅清理+重排提交任务池异步执行
+				//（对齐MQ MasterService.OnSocketClose的"IO线程不等待模块锁"先例）；迟到的异步
+				// 清理与stop相交时安全：closed分区拒绝bind（MQSingle.bind的closed闸），死socket
+				// 条目多滞留一瞬由后续事件（重连重订阅/ack/fill）再驱动，无正确性影响。
+				TaskSpec.ofAction(() -> MQManager.this.onSocketClose(so))
+						.name("MQManager.onSocketClose")
+						.submitNow();
 			}
 		};
 		masterService = new Service(config, proxyServer);
