@@ -887,6 +887,18 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		} catch (Exception ex) {
 			it.close(); // 异常路径统一释放迭代器；close幂等，前面分支已关闭过时安全
 			logger.error("isMove={}", isMove, ex);
+			// 异常吞掉即断页面拷贝链：同leader任期内tryStartSplit对splitting!=null早退、recoverSplitting
+			// 只在换主触发，分桶悬挂。对齐hasError分支重入startSplit续走resume，重入条件同失配分支的
+			// 特例线（本机仍leader且serialNo未失配，覆盖catch内两类来源：正常路径异常与嵌套startSplit
+			// 自身的失败重试）。resume从分界key重建迭代器重拷贝，目标侧putIfAbsent幂等；新serialNo作废
+			// 本轮陈旧回调。重入自身失败只记日志，留待换主recoverSplitting自愈。
+			if (raft.isLeader() && serialNo == splitSerialNo) {
+				try {
+					startSplit(isMove);
+				} catch (Exception e) {
+					logger.error("splitPutNext retry startSplit fail. isMove={}", isMove, e);
+				}
+			}
 		}
 		return 0;
 	}
