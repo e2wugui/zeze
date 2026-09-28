@@ -178,7 +178,9 @@ public class ServiceManager {
 				if (file.isDirectory()) {
 					var service = new BService.Data();
 					service.setServiceName(file.getName());
-					var process = processes.get(service.getServiceName());
+					// 记账查表用折叠键（zoker-05）：运行条目可能装在变体拼写（"Svc."请求）名下，
+					// 物理名裸查错报 Stopped；折叠后变体同键。
+					var process = processes.get(serviceKey(service.getServiceName()));
 					if (null != process && process.isAlive()) {
 						service.setState(STATE_RUNNING);
 						service.setPs(psOf(process));
@@ -635,7 +637,8 @@ public class ServiceManager {
 			if (null == pidState.adoptable)
 				continue;
 			var adopted = new AdoptedProcess(pidState.adoptable);
-			if (processes.putIfAbsent(serviceName, adopted) == null) {
+			// 装账键折叠（zoker-05）：物理容器名与请求变体拼写折叠同键，杜绝同 pid 双条目。
+			if (processes.putIfAbsent(serviceKey(serviceName), adopted) == null) {
 				// 装账后再挂退出监控：先挂监控可能赶在装账前触发回调，remove(key,process)错失清理
 				watchExit(serviceName, adopted);
 				logger.info("adoptOrphans: adopted {} pid={}", serviceName, adopted.pid());
@@ -648,7 +651,8 @@ public class ServiceManager {
 	/**
 	 * 进程退出监控：启动/领养装账后注册，进程退出时清理processes条目并记录退出码，
 	 * 死进程不占用"running"语义。
-	 * {@code remove(key, process)} 条件移除：startService 替换重启死句柄后，
+	 * {@code remove(key, process)} 条件移除（key 为 serviceKey 折叠键，与装账同键，
+	 * 由传入的原样名在本方法内折叠）：startService 替换重启死句柄后，
 	 * 旧句柄迟到的退出回调不会误删新条目（AdoptedProcess 为实例等价，同构成立）。
 	 * 回调内按内容比对条件删除 run.pid（pid 仍是自己的才删）——外部死亡/
 	 * 自然退出后盘上身份同步收敛，残留不留给下次对账。
@@ -659,7 +663,7 @@ public class ServiceManager {
 				logger.error("service onExit error: {}", serviceName, ex);
 				return;
 			}
-			if (processes.remove(serviceName, process))
+			if (processes.remove(serviceKey(serviceName), process))
 				logger.info("service exited: {} pid={} exitCode={}", serviceName, process.pid(), exitCode(process));
 			deleteRunPidIfOwn(serviceName, process);
 		});
@@ -729,9 +733,12 @@ public class ServiceManager {
 	}
 
 	private long startServiceLocked(StartService r, String serviceName) {
+		// 记账键折叠（zoker-05）：本方法内全部 processes 装账/查账/摘账共用同一键；
+		// 盘上身份路径（resolveRunPid/loadLaunchSpec/writeRunPid）保持原样名。
+		var key = serviceKey(serviceName);
 		Process process;
 		while (true) {
-			var existing = processes.get(serviceName);
+			var existing = processes.get(key);
 			if (null != existing && existing.isAlive()) {
 				// 已在运行：复用现役句柄（幂等），不重复拉起
 				process = existing;
@@ -745,8 +752,8 @@ public class ServiceManager {
 				var orphan = pidState.adoptable;
 				var candidate = new AdoptedProcess(orphan);
 				var installed = existing == null
-						? processes.putIfAbsent(serviceName, candidate) == null
-						: processes.replace(serviceName, existing, candidate);
+						? processes.putIfAbsent(key, candidate) == null
+						: processes.replace(key, existing, candidate);
 				if (installed) {
 					// 装账后再挂退出监控：先挂监控可能赶在装账前触发回调，remove(key,process)错失清理
 					watchExit(serviceName, candidate);
@@ -789,8 +796,8 @@ public class ServiceManager {
 				return err(Zoker.eStartFail);
 			}
 			var installed = existing == null
-					? processes.putIfAbsent(serviceName, candidate) == null
-					: processes.replace(serviceName, existing, candidate);
+					? processes.putIfAbsent(key, candidate) == null
+					: processes.replace(key, existing, candidate);
 			if (installed) {
 				// 盘是真相源——写盘失败=不交付：回滚装账+杀候选+eStartFail。
 				// 写盘在挂监控前：失败路径无回调需要拆；成功后候选若恰好已死，onExit 即时收殓。
@@ -799,7 +806,7 @@ public class ServiceManager {
 				} catch (IOException ex) {
 					logger.error("startService {} write run.pid fail, discard candidate pid={}",
 							serviceName, candidate.pid(), ex);
-					processes.remove(serviceName, candidate);
+					processes.remove(key, candidate);
 					candidate.destroyForcibly();
 					return err(Zoker.eStartFail);
 				}
@@ -850,7 +857,8 @@ public class ServiceManager {
 	}
 
 	private void stopServiceLocked(StopService r, String serviceName) throws InterruptedException {
-		var process = processes.remove(serviceName);
+		// 记账键折叠（zoker-05）：与 start 的装账同键——变体拼写的 stop 摘到同一运行条目。
+		var process = processes.remove(serviceKey(serviceName));
 		if (null == process) {
 			// 条目缺失先解析盘上身份再判 not-running（三态结局对领养句柄同样成立）。
 			// 不装账直接停：stop 语义本就是"移除并终止"，装回账里反而制造停机窗口的假 Running。
@@ -932,12 +940,13 @@ public class ServiceManager {
 
 	// 直构测试 seam：注入/读取进程记账（模拟 onExit 回调未及清理的死句柄窗口）。
 	// 领养条目是 AdoptedProcess（instanceof 即领养形态），亦经同一 seam 可观测。
+	// 键走 serviceKey 折叠（zoker-05），与真实路径的装账/查账同键。
 	Process getProcessForTest(String serviceName) {
-		return processes.get(serviceName);
+		return processes.get(serviceKey(serviceName));
 	}
 
 	void putProcessForTest(String serviceName, Process process) {
-		processes.put(serviceName, process);
+		processes.put(serviceKey(serviceName), process);
 	}
 
 	// 错误码与 zoker.errorCode 同构（ModuleId*编码）；直构形态（zoker==null）下也要能返回协议错误码。
