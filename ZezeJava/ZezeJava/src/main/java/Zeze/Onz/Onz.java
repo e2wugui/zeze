@@ -56,6 +56,14 @@ public class Onz extends AbstractOnz {
 	private static final long TimeoutRolledBackTtlMs = 3600_000;
 	private final LongConcurrentHashMap<Long> timeoutRolledBack = new LongConcurrentHashMap<>();
 	static final OnzProcedure TimeoutRolledBackMarker = new OnzProcedure(null, null, null, null, null);
+	// onz-B（FND28）：saga参与方"结果已发→本地RejectWhileStopping回滚"的tid记号（值=回滚时刻，
+	// 仅供过期清理循迹）。saga的决策走FuncSagaEnd不走Commit/Rollback，不能回填readyProcedures
+	// 哨兵（同tid永远不会收到Commit，只会放幽灵哨兵）——记号由ProcessFuncSagaEndRequest头部
+	// 消费：命中即摘除上下文并应答eSagaNotFound，使协调者endSaga/redo的既有NotFound暴露链
+	// （endSaga error+保留eCommitting交redo超龄分诊，onz-05口径）可见该分歧。TTL与
+	// timeoutRolledBack一致（下方清理循环同点回收）。
+	private static final long SagaRolledBackAfterReadyTtlMs = 3600_000;
+	private final LongConcurrentHashMap<Long> sagaRolledBackAfterReady = new LongConcurrentHashMap<>();
 
 	// onz-07（FND25裁定：最小侵入形态）：checkpointRun是全应用检查点（Application.checkpointRun
 	// 直调checkpoint.runOnce），同步执行在本协议（TransactionLevel.None+DispatchMode.Normal）的
@@ -105,14 +113,16 @@ public class Onz extends AbstractOnz {
 	 * 回填成功则迟到的redo Commit取到哨兵走ProcessCommitRequest的分歧error路径二次确认；
 	 * 条目仍在（决策未到达/已是哨兵）时失败不覆盖。成功后与markTimeoutRolledBack同型记账，
 	 * 由TTL连同槽位哨兵一起回收。
-	 * 仅procedure参与方：saga的上下文在sagas表、从不进readyProcedures（决策走FuncSagaEnd
-	 * 不走Commit），回填只会放幽灵哨兵（同tid意外收到Commit时误报分歧）；saga的停机分歧
-	 * 由Transaction.perform的error日志暴露。
+	 * saga参与方（onz-B，FND28）走sagaRolledBackAfterReady记号而非readyProcedures哨兵：
+	 * saga的上下文在sagas表、从不进readyProcedures（决策走FuncSagaEnd不走Commit），回填
+	 * 只会放幽灵哨兵；记号由ProcessFuncSagaEndRequest头部消费（摘上下文+eSagaNotFound），
+	 * 使协调者endSaga/redo的既有NotFound暴露链可见"结果已发而本地回滚"的分歧——此前该
+	 * 形态仅参与方单侧error日志，协调者按提交收场零感知。
 	 */
 	boolean markRolledBackAfterReady(OnzProcedure procedure) {
-		if (procedure instanceof OnzSaga)
-			return false;
 		var tid = procedure.getOnzTid();
+		if (procedure instanceof OnzSaga)
+			return null == sagaRolledBackAfterReady.putIfAbsent(tid, System.currentTimeMillis());
 		if (readyProcedures.putIfAbsent(tid, TimeoutRolledBackMarker) != null)
 			return false;
 		timeoutRolledBack.put(tid, System.currentTimeMillis());
@@ -184,6 +194,12 @@ public class Onz extends AbstractOnz {
 		public OnzService(Application zeze) {
 			super(eName, zeze);
 		}
+
+		/** 当前全部已建立连接（含已关闭未摘除的条目，调用方自理isClosed）——
+		 * onz-A的FlushReady重路由枚举用，包内可见。 */
+		Iterable<AsyncSocket> establishedSockets() {
+			return socketMap;
+		}
 	}
 
 	public Onz(Application zeze) {
@@ -195,12 +211,6 @@ public class Onz extends AbstractOnz {
 			RegisterProtocols(service);
 		} else {
 			service = null;
-		}
-
-		/** 当前全部已建立连接（含已关闭未摘除的条目，调用方自理isClosed）——
-		 * onz-A的FlushReady重路由枚举用，包内可见。 */
-		Iterable<AsyncSocket> establishedSockets() {
-			return socketMap;
 		}
 	}
 
@@ -276,6 +286,20 @@ public class Onz extends AbstractOnz {
 						+ " to the idempotent unknown-tid path without divergence signal)", tid, now - stamp);
 				timeoutRolledBack.remove(tid);
 				readyProcedures.remove(tid, TimeoutRolledBackMarker); // 连同槽位哨兵一起过期
+			}
+		}
+		// onz-B记号过期（预算契约被打破的最后留痕，对齐上方哨兵过期口径）：过期后迟到的
+		// FuncSagaEnd命中仍存活的上下文会走正常end/补偿（cancel对已回滚的写=过补偿）——但
+		// saga上下文同以1h空闲TTL清理，超龄窗口内两者已被一并回收，迟到者命中null走
+		// eSagaNotFound（协调者redo超龄分诊仍可见分歧）；warn是记号消失前的最后信号。
+		for (var it = sagaRolledBackAfterReady.keyIterator(); it.hasNext(); ) {
+			var tid = it.next();
+			var stamp = sagaRolledBackAfterReady.get(tid);
+			if (stamp != null && now - stamp >= SagaRolledBackAfterReadyTtlMs) {
+				logger.warn("expire rolled-back-after-ready saga marker. tid={} age={}ms"
+						+ " (recovery budget exceeded; later FuncSagaEnd resolves to eSagaNotFound"
+						+ " path without divergence signal unless context also expired)", tid, now - stamp);
+				sagaRolledBackAfterReady.remove(tid);
 			}
 		}
 	}
@@ -443,6 +467,20 @@ public class Onz extends AbstractOnz {
 	@Override
 	protected long ProcessFuncSagaEndRequest(Zeze.Builtin.Onz.FuncSagaEnd r) throws Exception {
 		var tid = r.Argument.getOnzTid();
+		// onz-B（FND28）：记号命中=结果已发（协调者已把本步骤计入成功链路）而本地因停机拒绝回滚，
+		// 写入从未落库——无论end（cancel=false）还是补偿（cancel=true）都无对象：end只是摘上下文；
+		// 补偿会逆转一个不存在的写（过补偿）。摘除上下文后按eSagaNotFound应答：协调者侧经
+		// endSaga的NotFound error（commit路径保留eCommitting交redo）与redo超龄分诊的既有
+		// "丢写嫌疑"暴露链（onz-05口径）可见分歧并人工对账。记号一次性消耗（remove），重复/
+		// 并发的FuncSagaEnd随后命中无上下文的正常eSagaNotFound路径，应答语义一致。
+		if (null != sagaRolledBackAfterReady.remove(tid)) {
+			var contextRemoved = null != sagas.remove(tid);
+			logger.error("FuncSagaEnd for rolled-back-after-ready saga tid={}"
+					+ " (result sent but local transaction rolled back while stopping -- write never committed;"
+					+ " coordinator treats step as succeeded, divergence, manual check required)."
+					+ " cancel={} contextRemoved={}", tid, r.Argument.isCancel(), contextRemoved);
+			return errorCode(eSagaNotFound);
+		}
 		var context = sagas.get(tid);
 		if (context == null)
 			return errorCode(eSagaNotFound);
