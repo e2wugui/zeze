@@ -146,6 +146,7 @@ public final class FastServerIds {
 	public static final int TEST_APPLY_CURSOR_PERSISTENCE_MEMORY = seg("TestApplyCursorPersistence#memory", 12829, 1);
 	public static final int TEST_CREATE_DATABASE_CLOSES_ON_FAILURE = seg("TestCreateDatabaseClosesOnFailure", 12850, 1);
 	public static final int TEST_ONZ_ROLLBACK_AFTER_READY = seg("TestOnzRollbackAfterReady", 12876, 1);
+	public static final int TEST_ONZ_READY_WAIT_INTERRUPTED = seg("TestOnzReadyWaitInterrupted", 12880, 1);
 
 	public static final int TEST_OFFLINE_TIMER_BOOKKEEPING = seg("TestOfflineTimerBookkeeping", 16181, 5);
 	public static final int TEST_RC_PASSTHROUGH = seg("TestRcPassthrough", 16191, 6);
