@@ -107,7 +107,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		loadLock.lock();
 		try {
 			var now = System.currentTimeMillis();
-			var elapse = (now - lastReportTime) / 1000.0f;
+			// 除零守卫：loadMonitor周期与setLoadSwitch的强制报告同毫秒先后进入时elapse==0，
+			// 速率=Infinity会误触发分桶决策并污染master负载排序。最小分母1ms（时钟回拨的负值同样钳制）。
+			var elapse = Math.max((now - lastReportTime) / 1000.0f, 0.001f);
 			lastReportTime = now;
 
 			var nowGet = counterGet.get();
