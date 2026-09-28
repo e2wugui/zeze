@@ -56,6 +56,20 @@ public class Onz extends AbstractOnz {
 	private final LongConcurrentHashMap<Long> timeoutRolledBack = new LongConcurrentHashMap<>();
 	static final OnzProcedure TimeoutRolledBackMarker = new OnzProcedure(null, null, null, null, null);
 
+	// onz-07（FND25裁定：最小侵入形态）：checkpointRun是全应用检查点（Application.checkpointRun
+	// 直调checkpoint.runOnce），同步执行在本协议（TransactionLevel.None+DispatchMode.Normal）的
+	// 共享派发worker内——协调者waitFlushDone降级路径对每个参与方串行发Checkpoint并各自await
+	//（OnzTransaction.checkpoint，rpc默认超时5s），期间该worker被独占，并发的FlushReady/
+	// FuncSagaEnd/FuncProcedure处理被推迟，与参与方决策等待预算（flushTimeout默认10s）和
+	// FlushReady预算（2×flushTimeout，onz-02）竞争复合放大。"有界化（仅本事务相关）"不可行：
+	// Checkpoint协议bean无参（生成物不可加字段）且zeze检查点机器是应用级队列，无按事务过滤
+	// 入口；线程模型重排（转投检查点专用线程异步应答）留档不实施。最小正确动作=占用可观测：
+	// 超过门槛记warn（零状态一次性），暴露worker被检查点独占的时长供容量核对（Onz参与方
+	// worker池容量需覆盖在途2pc决策等待数+检查点串行段）。门槛1s：远低于Checkpoint rpc默认
+	// 超时5s（超过即协调者侧fatal噪声+redo兜底）且比flushTimeout默认10s低一个量级——达到门槛
+	// 即说明已侵入预算竞争区间，早暴露早扩容/错峰。
+	private static final long CheckpointRunSlowWarnMs = 1_000;
+
 	public long getSagaContextTimeoutMs() {
 		return sagaContextTimeoutMs;
 	}
@@ -245,7 +259,15 @@ public class Onz extends AbstractOnz {
 
 	@Override
 	protected long ProcessCheckpointRequest(Checkpoint r) {
+		// onz-07：全量检查点在派发worker内同步执行（预算推导与"为何只告警不改执行模型"见
+		// CheckpointRunSlowWarnMs注释）——度量占用时长，超门槛warn暴露worker被独占。
+		var begin = System.currentTimeMillis();
 		service.getZeze().checkpointRun();
+		var elapsed = System.currentTimeMillis() - begin;
+		if (elapsed >= CheckpointRunSlowWarnMs)
+			logger.warn("onz checkpointRun slow: {}ms (dispatch worker occupied;"
+					+ " delays FlushReady/FuncSagaEnd/FuncProcedure handling and competes"
+					+ " with decision-wait budgets, ONZ-F25-07)", elapsed);
 		r.SendResult();
 		return 0;
 	}
@@ -291,10 +313,15 @@ public class Onz extends AbstractOnz {
 		var tid = r.Argument.getOnzTid();
 		var procedure = readyProcedures.remove(tid);
 		if (null != procedure) {
-			if (procedure == TimeoutRolledBackMarker)
-				// 超时自愈后到达的Rollback：与本地已回滚一致，静默回收哨兵（无重复发送告警价值）。
+			if (procedure == TimeoutRolledBackMarker) {
+				// 超时自愈后到达的Rollback：结局与本地已回滚一致（本参与方无数据分歧），静默回收哨兵。
+				// onz-01（FND25裁定）：与Commit同应答eDivergence——信号语义是"协调者决策延迟超过了
+				// 参与方决策等待预算"（ONZ-F25-01根因的协调者侧可见化）：对Commit决策=部分提交分歧，
+				// 对Rollback决策=仅预算违例（结局一致）。协调者侧特判（OnzTransaction.rollback）按投递
+				// 了结收场：allDelivered不变、不保留记录重发——重发只会命中null幂等路径，不成环。
 				timeoutRolledBack.remove(tid);
-			else
+				return errorCode(eDivergence); // 框架对非0返回值回发结果码（对齐eSagaNotFound路径）
+			} else
 				procedure.rollback();
 		}
 		r.SendResult();
