@@ -30,6 +30,15 @@ public class ApplyHelper extends FastLock {
 	 */
 	public static final int DEFAULT_HOLE_GRACE_MS = 10 * 60_000;
 
+	/**
+	 * 未来时间戳告警阈值（hist-04）：tHistory 记录的 timestamp 超前当前墙钟超过该值时 warn 一次。
+	 * 正常生产端时钟偏移是毫秒~秒级（NTP）；显著超前意味着坏数据（时钟故障），会使游标在
+	 * 时间边界上停摆直到墙钟追回——停着而非错着，但此前完全无日志。取与空洞老化
+	 * （{@link #DEFAULT_HOLE_GRACE_MS}）同量级：停摆超过该时长的记录值得运维介入。
+	 * 只告警，不改变推进语义。
+	 */
+	public static final int FUTURE_TIMESTAMP_WARN_AHEAD_MS = 10 * 60_000;
+
 	private final Application zeze;
 	private final tHistory historyTable;
 	private final IApplyDatabase dbApplied;
@@ -40,6 +49,9 @@ public class ApplyHelper extends FastLock {
 	// 当前阻塞游标的空洞（空洞前一个已确认的key）及首次发现时间。
 	private Id128 holeAfterKey;
 	private long holeSince;
+	// 已告警的未来时间戳记录（hist-04去重标记）：该记录把游标挡在时间边界上时warn一次，
+	// 游标越过它（已应用）之前不重复告警。
+	private Id128 futureAfterKey;
 
 	public ApplyHelper(Application zeze, tHistory historyTable,
 					   IApplyDatabase dbApplied, int beforeTimeMs) {
@@ -108,8 +120,21 @@ public class ApplyHelper extends FastLock {
 					logger.warn("history apply cross key hole after {} ({}ms), skip missing GlobalSerialId(s)",
 							prev, now - holeSince);
 				}
-				if (value.getTimestamp() >= endTime)
+				var timestamp = value.getTimestamp();
+				if (timestamp >= endTime) {
+					// 时间边界停住等墙钟追上是边界语义本身（推进语义不变）；但显著超前的
+					// timestamp（生产端时钟故障写坏数据）会使游标长时间静默停摆——无日志，
+					// 且key存在故空洞检测不触发。每条此类记录warn一次（gsid+超前量），
+					// 供运维区分"正常边界等待"与"坏数据停摆"。
+					if (timestamp > now + FUTURE_TIMESTAMP_WARN_AHEAD_MS
+							&& (futureAfterKey == null || futureAfterKey.compareTo(key) != 0)) {
+						logger.warn("history apply stalled by future timestamp: GlobalSerialId={}, "
+								+ "timestamp is {}ms ahead of now; cursor stays (by design) until "
+								+ "wall clock catches up", key, timestamp - now);
+						futureAfterKey = key.clone();
+					}
 					return false;
+				}
 
 				// 单条tHistory记录=原子应用单元：记录内全部entry的写入先
 				// 计入记录级事务（暂存/挂起，不即时落库），全部entry成功后commit一次性生效；
@@ -186,6 +211,11 @@ public class ApplyHelper extends FastLock {
 				holeAfterKey = null;
 				holeSince = 0;
 			}
+			// 游标已越过（含已应用）此前告警的未来时间戳记录：解除告警去重标记。
+			// 停摆期间游标停在该记录之前，标记保留，跨轮不重复告警。
+			if (futureAfterKey != null && exclusiveStartKey != null
+					&& exclusiveStartKey.compareTo(futureAfterKey) >= 0)
+				futureAfterKey = null;
 			return result;
 		} finally {
 			unlock();
