@@ -46,8 +46,9 @@ import org.rocksdb.RocksIterator;
 public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private static final Logger logger = LogManager.getLogger(Dbh2.class);
 	private final Dbh2Config dbh2Config = new Dbh2Config();
-	private final Raft raft;
-	private final Dbh2StateMachine stateMachine;
+	// 非final：构造半失败的catch清理需null检查后引用（blank final在catch中读取不通过确定赋值检查）。
+	private Raft raft;
+	private Dbh2StateMachine stateMachine;
 	private final Dbh2Manager manager;
 	private final Locks locks = new Locks();
 
@@ -193,6 +194,26 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			raft.setOnFollowerReceiveKeepAlive(this::onFollowerReceiveKeepAlive);
 			raft.getServer().start();
 		} catch (Exception ex) {
+			// 半失败逆序清理（次序与分段捕获对齐close()先例）：Raft构造成功即已启动timerTask、
+			// 注册ShutdownHook，openBucket已打开桶独立rocksdb句柄——不清理则句柄钉死桶目录
+			//（Windows），master侧建桶回滚的DestroyBucket删目录失败。清理异常addSuppressed，
+			// 不掩盖原始失败原因。
+			if (null != raft) {
+				try {
+					raft.shutdown();
+				} catch (Exception e) {
+					ex.addSuppressed(e);
+					logger.error("constructor cleanup: raft.shutdown fail. {}", raftName, e);
+				}
+			}
+			if (null != stateMachine) {
+				try {
+					stateMachine.close();
+				} catch (Exception e) {
+					ex.addSuppressed(e);
+					logger.error("constructor cleanup: stateMachine.close fail. {}", raftName, e);
+				}
+			}
 			throw new RuntimeException(ex);
 		}
 	}
