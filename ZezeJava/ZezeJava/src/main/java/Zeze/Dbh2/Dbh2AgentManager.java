@@ -494,9 +494,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 			return null;
 		var bucket = bucketIt.next();
 		var limit = proposeLimit;
-		// refused重定向上限2次（对齐Dbh2Table.find的先例）：master侧表长期陈旧时reload不收敛，
-		// 无上限会永久自旋占线程与rpc配额。计数只累计连续refused，fetch成功即清零——
-		// 长遍历中途多次真实分桶各自获得新预算，不受累计误伤。
+		// refused重定向上限256次（bf8923edc自2放宽；Dbh2Table.find仍为2的先例形态）：master侧表
+		// 长期陈旧时reload不收敛，无上限会永久自旋占线程与rpc配额。计数只累计连续refused，
+		// fetch成功即清零——长遍历中途多次真实分桶各自获得新预算，不受累计误伤。
 		var refusedCount = 0;
 		while (true) {
 			var exclusiveForBucket = bucketExclusive(exclusiveKey, bucket, desc);
