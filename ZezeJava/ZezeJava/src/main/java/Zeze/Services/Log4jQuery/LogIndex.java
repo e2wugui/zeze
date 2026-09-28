@@ -1,24 +1,31 @@
 package Zeze.Services.Log4jQuery;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 日志按时间顺序的索引。
  * 用来根据时间快速定位到日志数据文件。
  * 每个索引记录固定长度=time(8bytes)+offset(8bytes)。
+ * 不变量：记录数组按time非降序——构造器清理尾部崩溃残留、addIndex写边界维持，
+ * lowerBound/upperBound的二分查找以它为前提。
  * <p>
  * 如果索引记录可变长并可以自定义，这个类用途会更加广泛。
  * 变长的实现方式：1. 限制最长记录长度，按最长存储（变成定长）；2. 记录边界可识别（如文本加回车）。
  * 扩展需要实现的话，在新的类中实现，这里仅仅实现Log4jQuery需要的特性。
  */
 public class LogIndex {
+	private static final @NotNull Logger logger = LogManager.getLogger(LogIndex.class);
+
 	public static class Record {
 		public final long time;
 		public final long offset;
@@ -42,11 +49,23 @@ public class LogIndex {
 	private long endTime;
 
 	public LogIndex(File file) throws Exception {
-		// 文件系统刷新非原子，尾部索引记录可能不完整：打开时截掉不完整的尾部记录。
-		try (var fos = new FileOutputStream(file, true); var channel = fos.getChannel()) {
-			var fileSize = channel.size();
-			if ((fileSize & (eIndexRecordSize - 1)) != 0)
-				channel.truncate(fileSize / eIndexRecordSize * eIndexRecordSize);
+		// 文件系统刷新非原子，打开时按有效记录清理尾部，恢复“记录数组非降序、endTime=末记录时间”
+		// 的装载前提：
+		// 1) 尾部不完整记录（size非16倍数）：截掉；
+		// 2) 尾部连续零记录（time==0&&offset==0）：addIndex的mmap扩容先以写零扩展文件、记录
+		//    putLong在其后，崩溃于两步之间留下整条零记录——16倍数尾巴截不掉，endTime被读为0，
+		//    buildIndex从0全量重扫追加重复记录，有序不变量进一步破坏。真实记录time为epoch毫秒
+		//    （>0），整条全零不与真实记录混淆。
+		// 通道须rw：零记录扫描要read、清理要truncate——FileOutputStream的通道只写（read抛
+		// NonReadableChannelException）；rw与mmap()的RandomAccessFile("rw")共享语义一致（无share-delete）。
+		try (var raf = new RandomAccessFile(file, "rw")) {
+			var channel = raf.getChannel();
+			var records = (int)(channel.size() / eIndexRecordSize);
+			var record = ByteBuffer.allocate(eIndexRecordSize);
+			while (records > 0 && isZeroRecord(channel, record, records - 1))
+				--records;
+			if (channel.size() != (long)records * eIndexRecordSize)
+				channel.truncate((long)records * eIndexRecordSize);
 		}
 		this.file = file;
 		mmap(0);
@@ -59,6 +78,18 @@ public class LogIndex {
 			this.beginTime = Long.MAX_VALUE;
 			this.endTime = 0;
 		}
+	}
+
+	// 尾部零记录判定（构造内使用）：按记录起点整读；文件比预期短（并发收缩等异常形态）按
+	// 零记录处理交由truncate收敛，不使装载失败。
+	private static boolean isZeroRecord(FileChannel channel, ByteBuffer record, int recordIndex) throws IOException {
+		record.clear();
+		var position = (long)recordIndex * eIndexRecordSize;
+		while (record.hasRemaining()) {
+			if (channel.read(record, position) < 0)
+				return true;
+		}
+		return record.getLong(0) == 0 && record.getLong(8) == 0;
 	}
 
 	// 写侧（addIndex）持rwLock.writeLock更新，读侧getter须持同一rwLock.readLock：
@@ -108,20 +139,45 @@ public class LogIndex {
 
 		rwLock.writeLock().lock();
 		try {
-			var newSize = rs.size() * eIndexRecordSize;
+			// 写边界不变量：追加记录的time不小于既有endTime（记录数组非降序是lowerBound/upperBound
+			// 二分查找的前提）。时钟回拨/滞后门限（loadIndex的lastIndexTime批间才推进）产生的乱序
+			// 记录按当前endTime对齐丢弃并告警一次：被丢弃时间窗已由既有记录承载定位，只损失该窗的
+			// 定位精度；拒绝整批或抛错中断装载会把乱序扩大为索引缺失。运行边界随批内保留记录推进，
+			// 批内逆序对同样被吸收。
+			var boundary = endTime;
+			var kept = 0;
+			for (var r : rs) {
+				if (r.time >= boundary) {
+					boundary = r.time;
+					++kept;
+				}
+			}
+			if (kept < rs.size())
+				logger.warn("addIndex drop out-of-order records: dropped={}, kept={}, endTime={}",
+						rs.size() - kept, kept, endTime);
+			if (0 == kept)
+				return;
+
+			var newSize = kept * eIndexRecordSize;
 			var position = mmap(newSize);
 			mmap.position(position);
+			var firstKeptTime = Long.MAX_VALUE;
+			var lastKeptTime = 0L;
+			boundary = endTime;
 			for (var r : rs) {
+				if (r.time < boundary)
+					continue;
+				boundary = r.time;
 				mmap.putLong(r.time);
 				mmap.putLong(r.offset);
+				if (firstKeptTime == Long.MAX_VALUE)
+					firstKeptTime = r.time;
+				lastKeptTime = r.time;
 			}
-
-			var first = rs.getFirst();
-			var last = rs.getLast();
-			if (first.time < beginTime)
-				beginTime = first.time;
-			if (last.time > endTime)
-				endTime = last.time;
+			if (firstKeptTime < beginTime)
+				beginTime = firstKeptTime;
+			if (lastKeptTime > endTime)
+				endTime = lastKeptTime;
 		} finally {
 			rwLock.writeLock().unlock();
 		}
