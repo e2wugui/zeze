@@ -888,6 +888,15 @@ public class OnzServer extends AbstractOnz {
 				// 错误配置须在构造期暴露（对齐duplicate检查的严格度）。
 				if (zeze.isBlank())
 					throw new IllegalArgumentException("empty zeze name. zezes=" + specialZezeNames);
+				// 别名含'='拒绝（onz-03）：持久化编解码依赖"集群名不含'='"的不变式——
+				// 非共享构造器按zeze.split("=")解析，'='左段天然无'='；共享构造器的别名
+				// 无此约束，含'='的别名（如"saga=foo"）以procedure参与方裸名持久化后，
+				// redo的decodeSagaParticipant按"saga="前缀误解码为saga参与方，Commit决策
+				// 被误路由成FuncSagaEnd发给不存在的集群——决策永不送达且记录永不收敛
+				//（见OnzTransaction.SagaParticipantPrefix）。对齐空名/duplicate的构造期暴露。
+				if (zeze.indexOf('=') >= 0)
+					throw new IllegalArgumentException("zeze name contains '='. zeze=" + zeze
+							+ " zezes=" + specialZezeNames);
 				if (this.zezes.containsKey(zeze))
 					throw new RuntimeException("duplicate zeze=" + zeze + " zezes=" + specialZezeNames);
 				this.zezes.put(zeze, sharedAgent);
