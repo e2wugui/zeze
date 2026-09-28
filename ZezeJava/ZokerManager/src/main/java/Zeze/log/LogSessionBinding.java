@@ -9,25 +9,40 @@ package Zeze.log;
  * HTTP 层的会话身份管理，故记录在 ZokerManager 侧随会话对象一并存表。
  * 另记最后活跃时间（创建与复用命中时刷新，System.nanoTime 单调时基）：
  * FileSessionManager 的闲置清扫据此判闲置驱逐。
+ * 全服视图（all）另记创建时刻的服务器键集快照（zoker-04）：SessionAll 构造时一次性
+ * 快照 getLogServers()，扩容/故障恢复上台后键集漂移，复用旧会话=新服务器永不纳入
+ * 会话、全服视图静默缺数——resolve 复用前比对当前键集，不一致视同 changeSession
+ * 走重建。空串快照（未记录，如直构测试形态）不可证明成员不变，比对恒不匹配
+ * （安全方向：重建）。
  */
-public record LogSessionBinding(boolean all, String serverName, String logName, Object session, long lastActiveNanos) {
+public record LogSessionBinding(boolean all, String serverName, String logName, Object session,
+								long lastActiveNanos, String allServersKey) {
 
-	/** 指定 server 的单服务器会话绑定（Session）。logName 归一 null→""；lastActiveNanos=创建时刻。 */
+	/** 指定 server 的单服务器会话绑定（Session）。logName 归一 null→""；lastActiveNanos=创建时刻；
+	 * allServersKey 对单服务器视图无集合语义，恒空串。 */
 	public static LogSessionBinding server(String serverName, String logName, Object session) {
-		return new LogSessionBinding(false, serverName, normalize(logName), session, System.nanoTime());
+		return new LogSessionBinding(false, serverName, normalize(logName), session, System.nanoTime(), "");
 	}
 
-	/** 全服视图会话绑定（SessionAll，serverName 无意义，归一为空串）；lastActiveNanos=创建时刻。 */
+	/** 全服视图会话绑定（SessionAll，serverName 无意义，归一为空串）；lastActiveNanos=创建时刻。
+	 * 不携带键集快照（空串=未记录：resolve 侧不可证明成员不变，视同漂移走重建）——
+	 * 供无 LogAgent 的直构形态；HTTP 路径用 {@link #allView(String, Object, String)}。 */
 	public static LogSessionBinding allView(String logName, Object session) {
-		return new LogSessionBinding(true, "", normalize(logName), session, System.nanoTime());
+		return new LogSessionBinding(true, "", normalize(logName), session, System.nanoTime(), "");
 	}
 
-	/** 复用命中时刷新活跃时间的副本：三元组与会话不变，仅时间戳前移（调用方条件 replace 回写）。 */
+	/** 全服视图会话绑定，携带创建时刻的服务器键集快照（resolve 复用前比对当前键集，见类注释）。 */
+	public static LogSessionBinding allView(String logName, Object session, String allServersKey) {
+		return new LogSessionBinding(true, "", normalize(logName), session, System.nanoTime(), allServersKey);
+	}
+
+	/** 复用命中时刷新活跃时间的副本：三元组、会话与键集快照不变，仅时间戳前移（调用方条件 replace 回写）。 */
 	public LogSessionBinding touched(long nowNanos) {
-		return new LogSessionBinding(all, serverName, logName, session, nowNanos);
+		return new LogSessionBinding(all, serverName, logName, session, nowNanos, allServersKey);
 	}
 
-	/** 请求三元组与绑定记录是否一致（serverName 按原样比较；logName 归一 null→"" 后比较）。 */
+	/** 请求三元组与绑定记录是否一致（serverName 按原样比较；logName 归一 null→"" 后比较）。
+	 * 键集快照不在此比对（matches 无 LogAgent 可取当前键集），由 FileSessionManager.resolve 比对。 */
 	public boolean matches(boolean requestAll, String requestServerName, String requestLogName) {
 		if (all != requestAll)
 			return false;

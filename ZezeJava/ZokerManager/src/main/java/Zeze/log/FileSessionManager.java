@@ -4,6 +4,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.time.Duration;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,9 +19,9 @@ import org.apache.logging.log4j.Logger;
  * HTTP处理器在Normal线程池并发取/存，必须是并发容器。
  *
  * <p>会话回执比对：复用会话前用 {@link LogSessionBinding#matches} 比对
- * 请求三元组与绑定记录，不匹配（或 changeSession 强制重建）时关旧建新——客户端漏置
- * changeSession 不会串数据源，changeSession 只是"强制重建"提示符而非正确性前提。
- * 比对+重建的收口见 {@link #resolve}。</p>
+ * 请求三元组与绑定记录（allView 另比对服务器键集快照，zoker-04），不匹配（或
+ * changeSession 强制重建）时关旧建新——客户端漏置 changeSession 不会串数据源，
+ * changeSession 只是"强制重建"提示符而非正确性前提。比对+重建的收口见 {@link #resolve}。</p>
  *
  * <p><b>闲置回收</b>：绑定记录最后活跃时间（复用命中/新建时刷新，见
  * {@link LogSessionBinding#lastActiveNanos()}），resolve 入口低频惰性清扫（
@@ -75,18 +76,24 @@ public class FileSessionManager {
 
 	/**
 	 * 会话回执比对 + 替换关闭（SearchLogHandle/BrowseLogHandle 共用）：
-	 * 请求三元组与现绑定一致（且未强制 changeSession）时复用会话并刷新最后活跃时间
-	 * （闲置回收见 {@link #sweepIdleBindings}）；否则建新会话、替换绑定并异步关闭旧会话
-	 * （替换关闭语义：释放服务端查询句柄，避免替换出的旧会话句柄滞留到进程结束）。
+	 * 请求三元组与现绑定一致（且未强制 changeSession、allView 键集未漂移）时复用会话并
+	 * 刷新最后活跃时间（闲置回收见 {@link #sweepIdleBindings}）；否则建新会话、替换绑定并
+	 * 异步关闭旧会话（替换关闭语义：释放服务端查询句柄，避免替换出的旧会话句柄滞留到进程结束）。
 	 * 建新失败（目标服务器不可达等）直接上抛，旧绑定保持原样不受影响——下次请求可继续收敛。
+	 *
+	 * <p>zoker-04 键集漂移比对：全服视图（SessionAll）复用前另比对 getLogServers() 当前键集
+	 * 与绑定记录的创建时快照——SessionAll 构造时一次性快照，扩容/故障恢复上台后复用旧会话
+	 * =新服务器永不纳入、全服视图静默缺数；键集不一致视同 changeSession 走关旧建新。
+	 * 单服务器视图无集合语义，不比对。</p>
 	 */
 	public static Object resolve(LogAgent logAgent, SocketAddress socketAddress, boolean changeSession,
 								 boolean requestAll, String serverName, String logName) throws Exception {
 		maybeSweepIdleBindings();
 		var bound = get(socketAddress);
-		if (!changeSession && bound != null && bound.matches(requestAll, serverName, logName)) {
+		if (!changeSession && bound != null && bound.matches(requestAll, serverName, logName)
+				&& (!bound.all() || bound.allServersKey().equals(allServersKeyOf(logAgent)))) {
 			// 复用命中刷新活跃时间：条件 replace 只在条目仍是同一绑定时生效——并发 resolve
-			// 已换绑（changeSession/参数变化重建）时不回写旧绑定覆盖新会话；本次返回的旧会话
+			// 已换绑（changeSession/参数变化/键集漂移重建）时不回写旧绑定覆盖新会话；本次返回的旧会话
 			// 由换绑方的替换关闭收口（既有"替换关闭的竞态"裁量）。
 			map.replace(getIP(socketAddress), bound, bound.touched(System.nanoTime()));
 			return bound.session();
@@ -95,12 +102,17 @@ public class FileSessionManager {
 				? logAgent.newSessionAll(logName)
 				: logAgent.newSession(serverName, logName);
 		var binding = requestAll
-				? LogSessionBinding.allView(logName, session)
+				? LogSessionBinding.allView(logName, session, allServersKeyOf(logAgent))
 				: LogSessionBinding.server(serverName, logName, session);
 		var old = put(socketAddress, binding);
 		if (old != null && old.session() != session)
 			closeAsync(old);
 		return session;
+	}
+
+	/** 当前日志服务器键集快照（排序 join——集合无序，比对须与顺序无关；键集小，构建开销可忽略）。 */
+	private static String allServersKeyOf(LogAgent logAgent) {
+		return String.join(",", new TreeSet<>(logAgent.getLogServers()));
 	}
 
 	/** 清扫节流：距上次清扫不足 {@link #SWEEP_INTERVAL_NANOS} 直接跳过；CAS 到点只放行一个线程。 */
