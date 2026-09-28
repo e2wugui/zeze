@@ -42,7 +42,7 @@ public class TestIndexLinks {
 	public void testJunkEntryToleratedAtStartup() throws Exception {
 		var logDir = Files.createTempDirectory("fnd19-links-junk-startup");
 		Files.createFile(logDir.resolve(Active));
-		var indexLinks = Files.createDirectory(logDir.resolve("indexLinks"));
+		var indexLinks = Files.createDirectories(logDir.resolve("indexLinks").resolve("zeze.log"));
 		Files.createFile(indexLinks.resolve("desktop.ini"));
 		Files.createFile(indexLinks.resolve("1"));
 
@@ -68,7 +68,7 @@ public class TestIndexLinks {
 		try {
 			assertEquals(1, manager.size());
 			manager.stop(); // 冻结监视，事件受控递交
-			Files.createFile(logDir.resolve("indexLinks").resolve("desktop.ini")); // 运行期污染
+			Files.createFile(logDir.resolve("indexLinks").resolve("zeze.log").resolve("desktop.ini")); // 运行期污染
 			freezeAndRotate(manager, logDir);
 
 			invokeOnFileCreated(manager, Path.of(Rotated));
@@ -90,7 +90,7 @@ public class TestIndexLinks {
 			assertEquals(1, manager.size());
 			manager.stop();
 			// 模拟上次运行残留的stale链接条目（普通文件，未被mmap钉住，可删除）。
-			Files.createFile(logDir.resolve("indexLinks").resolve("0"));
+			Files.createFile(logDir.resolve("indexLinks").resolve("zeze.log").resolve("0"));
 			freezeAndRotate(manager, logDir);
 
 			invokeOnFileCreated(manager, Path.of(Rotated));
@@ -98,7 +98,7 @@ public class TestIndexLinks {
 
 			assertEquals(2, manager.size());
 			// 修复前removeOldLinkFiles只在构造期跑：运行期轮转后"0"残留（累积直至重启）。
-			assertFalse(Files.exists(logDir.resolve("indexLinks").resolve("0")),
+			assertFalse(Files.exists(logDir.resolve("indexLinks").resolve("zeze.log").resolve("0")),
 					"轮转登记后应同步清理旧链接条目（GD-C08）");
 		} finally {
 			manager.stop();

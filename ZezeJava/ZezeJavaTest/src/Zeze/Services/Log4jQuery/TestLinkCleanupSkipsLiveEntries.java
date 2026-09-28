@@ -64,7 +64,7 @@ public class TestLinkCleanupSkipsLiveEntries {
 			manager.stop(); // 冻结watch与定时对账，事件由测试直调（生产由watch线程调用）
 
 			// 上次运行残留的stale链接（未被任何条目持有，GD-C08语义应照删）。
-			Files.createFile(logDir.resolve("indexLinks").resolve("0"));
+			Files.createFile(logDir.resolve("indexLinks").resolve("zeze.log").resolve("0"));
 			// log4j轮转磁盘形态：旧内容改名进rotate名，active重建承载新内容。
 			Files.move(logDir.resolve(Active), logDir.resolve(Rotated));
 			AtomicFileWriter.replace(logDir.resolve(Active),
@@ -87,7 +87,7 @@ public class TestLinkCleanupSkipsLiveEntries {
 			// 连打开流的钉住也不稳定），故反向验证锚定"跳过"这一修复后恒出现的行为：
 			// 修复前无任何跳过日志；经典Windows形态下另伴随delete失败warn（次级断言）。
 			// 测试另以输入流钉住链接1，确保"若被发起删除则必失败"（Windows无share-delete句柄）。
-			try (var pin = new java.io.FileInputStream(logDir.resolve("indexLinks").resolve("1").toFile())) {
+			try (var pin = new java.io.FileInputStream(logDir.resolve("indexLinks").resolve("zeze.log").resolve("1").toFile())) {
 				try (var capture = new TestLogCapture(Log4jFileManager.class, Level.DEBUG)) {
 					invokeRemoveOldLinkFiles(manager);
 					assertTrue(capture.anyMessageContains("skip live index link"),
@@ -124,7 +124,7 @@ public class TestLinkCleanupSkipsLiveEntries {
 		try {
 			assertEquals(1, manager.size());
 			manager.stop();
-			Files.createFile(logDir.resolve("indexLinks").resolve("0")); // stale，无人持有
+			Files.createFile(logDir.resolve("indexLinks").resolve("zeze.log").resolve("0")); // stale，无人持有
 			Files.move(logDir.resolve(Active), logDir.resolve(Rotated));
 			AtomicFileWriter.replace(logDir.resolve(Active),
 					buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
@@ -132,7 +132,7 @@ public class TestLinkCleanupSkipsLiveEntries {
 			invokeOnFileCreated(manager, logDir.resolve(Rotated));
 			invokeOnFileCreated(manager, logDir.resolve(Active));
 
-			assertFalse(Files.exists(logDir.resolve("indexLinks").resolve("0")),
+			assertFalse(Files.exists(logDir.resolve("indexLinks").resolve("zeze.log").resolve("0")),
 					"未被持有的stale链接仍应清理（GD-C08语义保持）");
 			assertEquals(List.of("1", "2"), numericLinks(logDir), "清理后目录恰好剩存活条目的链接");
 		} finally {
@@ -144,7 +144,7 @@ public class TestLinkCleanupSkipsLiveEntries {
 	/** indexLinks下的数字名链接集合（升序，排除污染条目）。 */
 	private static List<String> numericLinks(Path logDir) {
 		var names = new TreeSet<String>();
-		var links = logDir.resolve("indexLinks").toFile().listFiles();
+		var links = logDir.resolve("indexLinks").resolve("zeze.log").toFile().listFiles();
 		if (links != null)
 			for (var link : links)
 				if (link.isFile())
