@@ -95,6 +95,15 @@ public class ProxyServer extends Service {
 	}
 
 	/**
+	 * 摘除addRaft登记的raft（DestroyBucket销毁桶用）：此后代理请求按not-found拒绝。
+	 * 只在确属本实例登记时清除raft的proxyServer反向引用，不误伤后登记的其他实例。
+	 */
+	public void removeRaft(Raft raft) {
+		if (rafts.remove(raft.getName(), raft))
+			raft.getServer().setProxyServer(null);
+	}
+
+	/**
 	 * 如果启用了代理，则把rpc包装成代理协议，发送出去；
 	 * 否则按原始raft请求发送出去。
 	 *

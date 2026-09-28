@@ -93,6 +93,11 @@ public final class Dbh2TestEnv {
 		}
 	}
 
+	/** manager持久化home（销毁/复活类用例的磁盘断言用）；仅prepareNewEnvironment与stopAll之间有效。 */
+	public Path managerHome(int index) {
+		return tempHome.resolve("manager" + index);
+	}
+
 	public void stopAll() throws Exception {
 		try {
 			if (master != null)

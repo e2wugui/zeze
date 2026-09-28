@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
+import Zeze.Builtin.Dbh2.Master.DestroyBucket;
 import Zeze.Builtin.Dbh2.Master.EndMove;
 import Zeze.Builtin.Dbh2.Master.EndSplit;
 import Zeze.Dbh2.Dbh2Agent;
@@ -145,9 +146,11 @@ public class MasterDatabase {
 				table.created = true;
 				saveRocks(rocksTables, tableName, table);
 			} catch (Exception e) {
-				// 失败回滚，否则半初始化bucket残留在内存表中。
+				// 失败回滚：摘内存表并请各manager销毁刚建的raft——只回滚内存会留下永久孤儿
+				//（进程/端口/磁盘）。
 				table.buckets.remove(bucket.getKeyFirst());
 				table.created = false;
+				destroyBucketRafts(managers, bucket, raftNames);
 				throw e;
 			}
 		} finally {
@@ -206,6 +209,37 @@ public class MasterDatabase {
 			if (rc != 0)
 				throw new RuntimeException("CreateBucket fail. manager=" + managers.get(j).data.getDbh2RaftAcceptorName()
 						+ " rc=" + IModule.getErrorCode(rc));
+		}
+	}
+
+	// 建桶半失败的尽力回收：对配置内全部manager发DestroyBucket（幂等，未建过即成功；与
+	// CreateBucket同socket且派发串行，销毁必在建之后处理）。只记日志不上抛——回收失败不得
+	// 掩盖原始异常，残留raft依赖人工核查。
+	private static void destroyBucketRafts(ArrayList<Master.Manager> managers,
+										   BBucketMeta.Data bucket, ArrayList<String> raftNames) {
+		var rpcs = new ArrayList<DestroyBucket>();
+		var futures = new ArrayList<TaskCompletionSource<?>>();
+		var i = 0;
+		for (var e : managers) {
+			var r = new DestroyBucket();
+			r.Argument.assign(bucket);
+			// 与createBucketRafts同款：发给该manager的配置须替换成它的raftName（manager按名字解析portId）。
+			//noinspection DynamicRegexReplaceableByCompiledPattern
+			r.Argument.setRaftConfig(r.Argument.getRaftConfig().replaceAll("RaftName", raftNames.get(i++)));
+			rpcs.add(r);
+			futures.add(r.SendForWait(e.socket, 30_000));
+		}
+		for (var j = 0; j < futures.size(); ++j) {
+			try {
+				futures.get(j).await();
+				var rc = rpcs.get(j).getResultCode();
+				if (rc != 0)
+					logger.error("DestroyBucket fail. manager={} rc={}",
+							managers.get(j).data.getDbh2RaftAcceptorName(), IModule.getErrorCode(rc));
+			} catch (Exception ex) {
+				logger.error("DestroyBucket await fail. manager={}",
+						managers.get(j).data.getDbh2RaftAcceptorName(), ex);
+			}
 		}
 	}
 
@@ -417,8 +451,10 @@ public class MasterDatabase {
 						createBucketRafts(managers, bucket, raftNames);
 						saveRocks(rocksSplitting, tableName, table);
 					} catch (Exception e) {
-						// 失败回滚内存表，否则脏entry让之后所有重试被eSplittingBucketExist拒绝，分桶卡死直到Master重启。
+						// 失败回滚内存表并销毁manager侧刚建的raft：脏entry让之后所有重试被
+						// eSplittingBucketExist拒绝分桶卡死，孤儿raft永占进程/端口/磁盘。
 						table.buckets.remove(bucket.getKeyFirst());
+						destroyBucketRafts(managers, bucket, raftNames);
 						throw e;
 					}
 					splittingAgeCreateQuietly(tableName, bucket.getKeyFirst());

@@ -7,6 +7,7 @@ import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
 import Zeze.Builtin.Dbh2.Master.CreateTable;
+import Zeze.Builtin.Dbh2.Master.DestroyBucket;
 import Zeze.Builtin.Dbh2.Master.EndMove;
 import Zeze.Builtin.Dbh2.Master.EndSplit;
 import Zeze.Builtin.Dbh2.Master.GetBuckets;
@@ -34,15 +35,20 @@ public class MasterAgent extends AbstractMasterAgent {
 	public static final String eServiceName = "Zeze.Dbh2.Master.Agent";
 	private final Service service;
 	private ProtocolHandle<CreateBucket> createBucketHandle;
+	private ProtocolHandle<DestroyBucket> destroyBucketHandle;
 
 	public MasterAgent(Config config) {
 		service = new Service(config);
 		RegisterProtocols(service);
 	}
 
-	public MasterAgent(Config config, ProtocolHandle<CreateBucket> handle, Service service) {
+	// handle参数为Master→Manager方向rpc（CreateBucket/DestroyBucket）在manager侧的处理器；
+	// 纯客户端（Dbh2AgentManager等）用上面的构造器，handle为null时按NotImplement拒绝。
+	public MasterAgent(Config config, ProtocolHandle<CreateBucket> handle,
+					   ProtocolHandle<DestroyBucket> destroyHandle, Service service) {
 		this.service = service;
 		this.createBucketHandle = handle;
+		this.destroyBucketHandle = destroyHandle;
 		RegisterProtocols(this.service);
 	}
 
@@ -149,6 +155,13 @@ public class MasterAgent extends AbstractMasterAgent {
 		if (null == createBucketHandle)
 			return Procedure.NotImplement;
 		return createBucketHandle.handle(r);
+	}
+
+	@Override
+	protected long ProcessDestroyBucketRequest(DestroyBucket r) throws Exception {
+		if (null == destroyBucketHandle)
+			return Procedure.NotImplement;
+		return destroyBucketHandle.handle(r);
 	}
 
 	public static class Service extends Zeze.Net.Service {

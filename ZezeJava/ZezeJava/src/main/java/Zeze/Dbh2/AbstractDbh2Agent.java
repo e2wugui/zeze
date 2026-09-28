@@ -19,6 +19,7 @@ public abstract class AbstractDbh2Agent implements Zeze.IModule {
     public static final int eBucketNotFound = 1;
     public static final int eBucketMismatch = 2;
     public static final int eDuplicateTid = 3;
+    public static final int eBucketNotReady = 4;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());

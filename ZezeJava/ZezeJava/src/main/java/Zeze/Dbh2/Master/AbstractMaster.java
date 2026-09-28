@@ -66,6 +66,13 @@ public abstract class AbstractMaster implements Zeze.IModule {
             service.AddFactoryHandle(47364327162209L, factoryHandle); // 11027, -572178079
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.DestroyBucket.class, Zeze.Builtin.Dbh2.Master.DestroyBucket.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.DestroyBucket::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessDestroyBucketResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessDestroyBucketResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47364135315790L, factoryHandle); // 11027, -764024498
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.CreateSplitBucket.class, Zeze.Builtin.Dbh2.Master.CreateSplitBucket.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.CreateSplitBucket::new;
             factoryHandle.Handle = this::ProcessCreateSplitBucketRequest;
@@ -185,6 +192,7 @@ public abstract class AbstractMaster implements Zeze.IModule {
         service.getFactorys().remove(47361973054464L);
         service.getFactorys().remove(47363344664675L);
         service.getFactorys().remove(47364327162209L);
+        service.getFactorys().remove(47364135315790L);
         service.getFactorys().remove(47362664777370L);
         service.getFactorys().remove(47364347310157L);
         service.getFactorys().remove(47362692171977L);

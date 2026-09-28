@@ -63,6 +63,14 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
             service.AddFactoryHandle(47364327162209L, factoryHandle); // 11027, -572178079
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.DestroyBucket.class, Zeze.Builtin.Dbh2.Master.DestroyBucket.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.DestroyBucket::new;
+            factoryHandle.Handle = this::ProcessDestroyBucketRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessDestroyBucketRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessDestroyBucketRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47364135315790L, factoryHandle); // 11027, -764024498
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.CreateSplitBucket.class, Zeze.Builtin.Dbh2.Master.CreateSplitBucket.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.CreateSplitBucket::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessCreateSplitBucketResponse", Zeze.Transaction.TransactionLevel.None);
@@ -168,6 +176,7 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
         service.getFactorys().remove(47361973054464L);
         service.getFactorys().remove(47363344664675L);
         service.getFactorys().remove(47364327162209L);
+        service.getFactorys().remove(47364135315790L);
         service.getFactorys().remove(47362664777370L);
         service.getFactorys().remove(47364347310157L);
         service.getFactorys().remove(47362692171977L);
@@ -194,4 +203,5 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     }
 
     protected abstract long ProcessCreateBucketRequest(Zeze.Builtin.Dbh2.Master.CreateBucket r) throws Exception;
+    protected abstract long ProcessDestroyBucketRequest(Zeze.Builtin.Dbh2.Master.DestroyBucket r) throws Exception;
 }

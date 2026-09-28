@@ -11,10 +11,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Dbh2.Master.BDbh2Config;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
+import Zeze.Builtin.Dbh2.Master.DestroyBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Raft.ProxyServer;
 import Zeze.Raft.RaftConfig;
+import Zeze.Raft.LogSequence;
 import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.DaemonTimer;
 import Zeze.Util.KV;
@@ -106,6 +108,33 @@ public class Dbh2Manager {
 		return 0;
 	}
 
+	// 销毁本manager为该桶建的raft（DestroyBucket，建桶半失败回滚协议）：先摘proxyServer派发与
+	// dbh2s账目，再关raft（释放bucket端口），最后删桶目录——raft.xml残留会被start()的目录扫描
+	// 复活。幂等：raft不存在（从未建或已销毁）也删目录并成功返回。包内可见供同包测试直驱。
+	void destroyBucket(String databaseName, String tableName, String raftConfigStr) throws IOException {
+		var raftConfig = RaftConfig.loadFromString(raftConfigStr);
+		var portId = Integer.parseInt(raftConfig.getName().split("_")[1]);
+		var bucketDir = Path.of(home, databaseName, tableName, String.valueOf(portId));
+		logger.info("DestroyBucket: db={}, table={}, raftName='{}'", databaseName, tableName, raftConfig.getName());
+		var dbh2 = dbh2s.remove(raftConfig.getSortedNames());
+		if (null != dbh2) {
+			proxyServer.removeRaft(dbh2.getRaft());
+			// close失败（RuntimeException）不删目录：对打开的rocksdb删目录会留坏库，
+			// 留着等下次销毁重试或人工核查。
+			dbh2.close();
+		} else
+			logger.info("DestroyBucket: raft not found (idempotent). raftName='{}'", raftConfig.getName());
+		// 失败重试后仍存在即抛（目录不存在时直通）：raft.xml残留会被start()扫描复活成幽灵raft。
+		LogSequence.deletedDirectoryAndCheck(bucketDir.toFile());
+	}
+
+	protected long ProcessDestroyBucketRequest(DestroyBucket r) throws Exception {
+		destroyBucket(r.Argument.getDatabaseName(), r.Argument.getTableName(), r.Argument.getRaftConfig());
+		r.SendResult();
+		masterAgent.reportBucketCount(dbh2s.size());
+		return 0;
+	}
+
 	public static class Service extends MasterAgent.Service {
 		private final ProxyServer proxyServer;
 
@@ -133,7 +162,7 @@ public class Dbh2Manager {
 		config.parseCustomize(this.dbh2Config);
 		proxyServer = new ProxyServer(config, dbh2Config.getRpcTimeout());
 		masterService = new Service(config, proxyServer);
-		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, masterService);
+		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, this::ProcessDestroyBucketRequest, masterService);
 		database = new RocksDatabase(Paths.get(home, "db").toString());
 	}
 
