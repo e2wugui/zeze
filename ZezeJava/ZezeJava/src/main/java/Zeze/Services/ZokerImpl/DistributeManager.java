@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Zoker.CommitService;
@@ -55,6 +56,10 @@ public class DistributeManager {
 	// 同服务 commit 串行化锁（services/<svc> 粒度）。键先过 isSafePathSegment 校验，
 	// 条目数以服务名为界，无攻击面放大。跨服务不受影响。
 	private final ConcurrentHashMap<String, Object> commitLocks = new ConcurrentHashMap<>();
+	// commit 进行中的服务前缀（distributes/&lt;svc&gt; 的 canonical 路径+分隔符）：open 的入账
+	// 原子段内检查命中即拒绝——closeUnder 清账与 renameTo 之间新开的 FileBin 会漏出回收面。
+	// 条目数=并发 commit 数，随 commit 结束摘除。
+	private final Set<String> committingPrefixes = ConcurrentHashMap.newKeySet();
 	private volatile int keepVersions = KEEP_VERSIONS_DEFAULT;
 
 	public DistributeManager(Zoker zoker) {
@@ -89,17 +94,66 @@ public class DistributeManager {
 		// 拒绝"../"逃逸和绝对路径，防止越界写/截断任意文件。
 		checkInsideDir(distributeDir, path);
 		var relativeCanonicalFileName = fileKey(path);
-			// 建表与socket记账必须原子：锁外两步之间断链清账会把新建的FileBin
-		// 漏出回收面（句柄泄漏+死socket映射永驻）。closeAndVerify/closeBySocket持同锁清账。
-		// FileBin构造含md5读IO，持锁窗口为部署级QPS可接受。
-		FileBin fileBin;
-		synchronized (filesBySocket) {
-			fileBin = files.computeIfAbsent(relativeCanonicalFileName,
-					(key) -> new FileBin(key, distributeDir, path));
-			if (sender != null)
-				filesBySocket.computeIfAbsent(sender, __ -> ConcurrentHashMap.newKeySet()).add(relativeCanonicalFileName);
+		var fileBin = files.get(relativeCanonicalFileName);
+		if (null == fileBin) {
+			// FileBin构造对已存在文件全量读盘算md5（断点续传的GB级残留、慢盘可达数十秒），
+			// 不得在filesBySocket锁内执行：closeBySocket在selector/tick线程取同一把锁，
+			// 锁内IO会把该event loop上全部连接的读写与心跳检查停摆成串行点。锁外构造、
+			// 锁内putIfAbsent决胜，并发open同文件时败者关闭丢弃。
+			var candidate = new FileBin(relativeCanonicalFileName, distributeDir, path);
+			FileBin winner = candidate;
+			var rejected = false;
+			synchronized (filesBySocket) {
+				if (isCommitting(relativeCanonicalFileName))
+					// commit清账窗口（barrier在closeUnder之前设置）：新开句柄不得跨越rename——
+					// Windows阻塞rename必败；Linux rename成功则已提交版本内容继续被上传写改。
+					rejected = true;
+				else {
+					// 建表与socket记账必须原子：锁外两步之间断链清账会把新建的FileBin
+					// 漏出回收面（句柄泄漏+死socket映射永驻）。closeAndVerify/closeBySocket持同锁清账。
+					var existing = files.putIfAbsent(relativeCanonicalFileName, candidate);
+					if (null != existing)
+						winner = existing;
+					else if (null != sender)
+						filesBySocket.computeIfAbsent(sender, __ -> ConcurrentHashMap.newKeySet()).add(relativeCanonicalFileName);
+				}
+			}
+			if (rejected) {
+				closeDiscard(candidate);
+				throw new IOException("open file rejected, service committing: " + path);
+			}
+			if (winner == candidate)
+				return candidate;
+			closeDiscard(candidate);
+			accountOpened(sender, relativeCanonicalFileName);
+			return winner;
 		}
+		accountOpened(sender, relativeCanonicalFileName);
 		return fileBin;
+	}
+
+	/** 已入表实例的追加记账：建立者的putIfAbsent+记账已在同一原子段完成，此处只补本连接。 */
+	private void accountOpened(AsyncSocket sender, String relativeCanonicalFileName) {
+		if (null == sender)
+			return;
+		synchronized (filesBySocket) {
+			filesBySocket.computeIfAbsent(sender, __ -> ConcurrentHashMap.newKeySet()).add(relativeCanonicalFileName);
+		}
+	}
+
+	private static void closeDiscard(FileBin fileBin) {
+		try {
+			fileBin.close();
+		} catch (IOException ex) {
+			logger.warn("discard unrecorded FileBin fail: {}", fileBin.getCanonicalFile(), ex);
+		}
+	}
+
+	private boolean isCommitting(String relativeCanonicalFileName) {
+		for (var prefix : committingPrefixes)
+			if (relativeCanonicalFileName.startsWith(prefix))
+				return true;
+		return false;
 	}
 
 	public void append(String serviceName, String fileName, long offset, Binary data)
@@ -287,15 +341,32 @@ public class DistributeManager {
 		// switch 使 current 指向已删除目录（返回 0 但服务永远无法启动，无自愈路径）。
 		// 替代方案"prune 按 beginMillis 只删本次开始前安装的版本"留有交错洞：B 先于 A
 		// 进入、install 晚于 A 的 install 时，B 的 mtime 早于 A 的 cutoff，仍会被 A 删——
-		// 时间戳过滤只能缩窄窗口，互斥才能闭合。锁内为纯本地 FS 操作（rename/fsync/delete），
-		// 不持其他锁（closeUnder 迭代 files 不取 filesBySocket 锁），无锁序环。
+		// 时间戳过滤只能缩窄窗口，互斥才能闭合。锁内为纯本地 FS 操作（rename/fsync/delete）
+		// 加 closeUnder 取 filesBySocket（清账与 open 建账互斥）：锁序 commitLocks→filesBySocket
+		// 单向嵌套，open/close 路径只取 filesBySocket，无反向持锁，无锁序环。
 		// 锁键大小写折叠（与 foldVersionName 同一判据）——裸 serviceName 作键时，
 		// Windows(NTFS) 大小写不敏感解析下 "svc"/"Svc" 指向同一物理容器却各持一把锁，互斥失效，
 		// 上述竞态经大小写变体复活。Linux（大小写敏感 FS）上折叠会过度串行化两个真不同的服务：
 		// commit 非热路径，可接受；canonical 路径作键在目录尚不存在（首次 commit，恰是竞态
 		// 高危形态）时不折叠大小写，弃用。条目数仍以（折叠后的）服务名为界，无攻击面放大。
 		synchronized (commitLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
-			return commitLocked(serviceName, versionNo);
+			// barrier 须在 closeUnder 之前设置：此后 open 对该前缀的入账在原子段内被拒，
+			// 更早完成入账的必被 closeUnder 收殓（sweep 取同一把锁且 CHM 迭代可见先完成的
+			// put）——杜绝 sweep 与 renameTo 之间新开 FileBin 漏出回收面。
+			var serviceFrom = new File(distributeDir, serviceName);
+			String prefix;
+			try {
+				prefix = serviceFrom.getCanonicalPath() + File.separator;
+			} catch (IOException ex) {
+				logger.error("commitService canonical {}", serviceFrom, ex);
+				return err(Zoker.eCommitFail);
+			}
+			committingPrefixes.add(prefix);
+			try {
+				return commitLocked(serviceName, versionNo);
+			} finally {
+				committingPrefixes.remove(prefix);
+			}
 		}
 	}
 
@@ -486,16 +557,23 @@ public class DistributeManager {
 			logger.error("closeUnder canonical {}", dir, ex);
 			return;
 		}
-		for (var e : files.entrySet()) {
-			var key = e.getKey();
-			if (!key.startsWith(prefix))
-				continue;
-			if (files.remove(key, e.getValue())) {
-				try {
-					e.getValue().close();
-				} catch (IOException ex) {
-					logger.error("closeUnder {}", key, ex);
-				}
+		// 摘账持filesBySocket锁（与open建账互斥，配合commit前缀barrier闭合sweep→rename窗口），
+		// close在锁外：FileBin.close含flush IO，不得占全局锁。
+		ArrayList<Map.Entry<String, FileBin>> victims = new ArrayList<>();
+		synchronized (filesBySocket) {
+			for (var e : files.entrySet()) {
+				var key = e.getKey();
+				if (!key.startsWith(prefix))
+					continue;
+				if (files.remove(key, e.getValue()))
+					victims.add(e);
+			}
+		}
+		for (var e : victims) {
+			try {
+				e.getValue().close();
+			} catch (IOException ex) {
+				logger.error("closeUnder {}", e.getKey(), ex);
 			}
 		}
 	}
