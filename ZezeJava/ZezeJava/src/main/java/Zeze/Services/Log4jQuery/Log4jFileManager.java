@@ -446,8 +446,12 @@ public class Log4jFileManager extends ReentrantLock {
 			// 末offset超长使loadIndex的seek落EOF、索引停格不再增长；新时间窗查询经超长offset定位到
 			// EOF空结果，旧时间窗查询被污染的beginTime引到active条目上EOF耗尽、walker只向前推进不
 			// 回读持正确索引的rotate条目——双窗漏读且原状态无自愈路径（条目不摘除、beginTime无重算）。
-			// 判据与装载期（indexPairsLogFile）/漏轮转改指（repointMissedRotation）同源复用：
-			// active索引末offset超出active文件当前长度（正常append只增长，恒不误触发）。
+			// 判据与装载期（indexPairsLogFile）同源复用，两维失配任一即弃旧重建：
+			// 1) offset维（indexExceedsLogFile，与漏轮转改指repointMissedRotation共用）：active索引
+			//    末offset超出active文件当前长度（正常append只增长，恒不误触发）；
+			// 2) 时间维（indexTimeWindowMismatch，判据3的条目内存形态）：case-1补登采样与truncate
+			//    竞速时对空索引只入一条{旧时间, offset≈0}——offset维对0恒不超长、对该形态结构性
+			//    失明（自愈永不触发），时间维以文件首条可解析时间落旧窗外兜住该主路径。
 			// 处置：弃污染索引，openFreshActiveIndex+sampleIndexHead从active当前内容头重建（对账
 			// 时刻距轮转已至少一个watch/5min周期，truncate早已完成，采样必为新内容），余量由随后的
 			// buildIndex增量续建补齐；旧窗数据不由此路径承担——rotate条目在case-1移交时已持有与copy
@@ -463,8 +467,9 @@ public class Log4jFileManager extends ReentrantLock {
 			var activeName = getCurrentLogFileName();
 			if (rotates.isEmpty() && !files.isEmpty() && files.getLast().file.getName().equals(activeName)) {
 				var last = files.getLast();
-				if (last.file.exists() && indexExceedsLogFile(last.index, last.file)) {
-					logger.warn("active index exceeds log file length (copy-truncate rotation?), rebuild: {}", last.file);
+				if (last.file.exists() && (indexExceedsLogFile(last.index, last.file)
+						|| indexTimeWindowMismatch(last.index, last.file))) {
+					logger.warn("active index mismatch log file (copy-truncate rotation?), rebuild: {}", last.file);
 					last.index = sampleIndexHead(last.file, openFreshActiveIndex());
 					removeOldLinkFiles(); // 同case 0/1：换新索引通道之后同步清理被弃索引的链接
 				}
@@ -857,6 +862,27 @@ public class Log4jFileManager extends ReentrantLock {
 	 */
 	private static boolean indexExceedsLogFile(LogIndex index, File logFile) {
 		return index.lowerBound(index.getEndTime()) > logFile.length();
+	}
+
+	/**
+	 * 运行期"索引时间窗与文件内容失配"判据（indexPairsLogFile判据3的条目内存形态，仅reconcile的
+	 * active自检使用，与offset维indexExceedsLogFile并列兜同一自愈路径）：索引有记录且文件首条可解析
+	 * 日志时间落在索引[beginTime,endTime]窗外。兜offset维的结构性盲区：copy-truncate轮转的case-1
+	 * 补登采样与truncate竞速时对空索引只入一条{旧时间, offset≈0}——offset维对0恒不超长（该形态下
+	 * 自愈永不触发），时间维以文件首条（新内容，写在truncate之后）必在旧窗外完成检测。
+	 * 误触发面：自洽索引的beginTime即由本文件首条可解析日志采样/续建而来（sampleIndexHead/loadIndex
+	 * 对空索引都自文件头扫描，首条记录即文件首条），正常append下文件首条永不改变——首条时间恒等于
+	 * beginTime、必在窗内；首条落窗外必意味着文件内容已被别的世代替换（copy-truncate/外部截断重建）。
+	 * 文件头不可读/无可解析日志=证据不足不触发（对齐matchRotateHead的宁可漏判）；空索引
+	 * （beginTime=MAX_VALUE哨兵）无内容可失配不触发。active索引的写者均持manager锁（case-1/reconcile/
+	 * buildIndex锁内段），本判据在reconcile锁内调用，beginTime/endTime两读之间无并发推进。
+	 */
+	private boolean indexTimeWindowMismatch(LogIndex index, File logFile) {
+		var beginTime = index.getBeginTime();
+		if (beginTime == Long.MAX_VALUE)
+			return false;
+		var headTime = headTimeOf(logFile);
+		return null != headTime && (headTime < beginTime || headTime > index.getEndTime());
 	}
 
 	/**
