@@ -175,8 +175,10 @@ public class OnzAgent extends AbstractOnzAgent {
 					future.setException(new CallAnsweredException(
 							"call result decode fail: " + onzProcedureName, ex));
 				}
-			} else if (r.isTimeout()) {
-				// 未应答失败（超时）：保持泛型异常形态，cancelSaga归入乱序窗口类。
+			} else if (r.isTimeout() || r.getResultCode() == Procedure.ErrorSendFail) {
+				// 未应答失败（超时，或socket dispose时被回调式派发置ErrorSendFail完成——
+				// 请求从未到达对端）：保持泛型异常形态，cancelSaga归入乱序窗口类；
+				// 误归"已应答"会让乱序窗口内迟到注册的步骤失去补偿（静默部分提交）。
 				future.setException(new RuntimeException(
 						"call error: " + onzProcedureName
 								+ " code=" + r.getResultCode()));
