@@ -156,9 +156,16 @@ public class ApplyHelper extends FastLock {
 						// Exception与Error路径统一收尾（幂等）：回滚存储侧未提交写入，并失效本记录
 						// 触过的LRU键（apply先写LRU后写存储，回滚只撤销存储侧），保证重试完整重放。
 						recordTxn.close();
-						for (var t : touched.entrySet())
-							for (var tableKey : t.getValue())
-								t.getKey().invalidate(tableKey);
+						for (var t : touched.entrySet()) {
+							for (var tableKey : t.getValue()) {
+								try {
+									t.getKey().invalidate(tableKey);
+								} catch (Throwable e) {
+									// finally中抛出的异常会替换正在传播的原始apply异常；单项失效失败仅记日志，继续其余键。
+									logger.debug("history apply rollback invalidate failed. tableKey={}", tableKey, e);
+								}
+							}
+						}
 					}
 				}
 				lastProcessed.value = key;
