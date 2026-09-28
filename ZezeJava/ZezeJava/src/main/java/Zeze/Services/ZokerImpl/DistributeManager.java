@@ -418,6 +418,12 @@ public class DistributeManager {
 	 * 两个来处都命中保护；commitLocked 的指针规范化已使正常路径同名，此处折叠是独立的第二道
 	 * 防（直调/存量分叉指针亦闭合）。Linux 上折叠=过度保护（同名变体目录都被保，有界），
 	 * 与锁键折叠同款裁量。</p>
+	 *
+	 * <p><b>在用版本保护</b>：运行中服务的进程身份（run.pid 的 version 行，launch 时落盘）
+	 * 指向的版本目录同样不进清理面——服务不随 current 切换重启时仍从旧版本目录运行，
+	 * 误删即拆运行中服务的文件（Linux 惰性加载失败；Windows 句柄锁目录使 deleteTree
+	 * 恒 false）。版本不可知（旧格式身份）时整体跳过本服务：宁可不回收空间也不删在用目录。
+	 * 直构形态（zoker==null）无进程身份可查，保护不生效。</p>
 	 */
 	void pruneVersions(File svcDir, String currentVersion) {
 		var keep = keepVersions;
@@ -427,10 +433,24 @@ public class DistributeManager {
 		if (null == listFiles)
 			return;
 		var foldedCurrent = foldVersionName(currentVersion);
+		// 在用版本判据取自盘上进程身份（run.pid），与内存记账无耦合：launch 时写、
+		// 停毕/onExit 删、Alive-After-Force 保留——盘状态即"进程是否仍从该版本运行"。
+		String foldedRunning = null;
+		var processManager = null != zoker ? zoker.getProcessManager() : null;
+		if (null != processManager) {
+			var running = processManager.runningVersion(svcDir.getName());
+			if (null != running && running.isEmpty()) {
+				logger.warn("pruneVersions skip, service running with unknown version: {}", svcDir);
+				return;
+			}
+			if (null != running)
+				foldedRunning = foldVersionName(running);
+		}
 		ArrayList<File> candidates = new ArrayList<>();
 		for (var f : listFiles) {
 			// 只把版本目录纳入清理面：current指针是文件天然排除；名字碰巧等于现役版本的目录不存在（构造上互斥）。
-			if (f.isDirectory() && !foldVersionName(f.getName()).equals(foldedCurrent))
+			if (f.isDirectory() && !foldVersionName(f.getName()).equals(foldedCurrent)
+					&& (null == foldedRunning || !foldVersionName(f.getName()).equals(foldedRunning)))
 				candidates.add(f);
 		}
 		// 现役已占1个名额：非现役里保留最新的 keep-1 个，其余删除。

@@ -90,6 +90,9 @@ public class ServiceManager {
 	// 路径——Windows 的 commandLine 恒 empty、command() 可得；换行清洗）。
 	static final String KEY_PID = "pid";
 	static final String KEY_START = "start";
+	// version=启动时的版本目录名（pruneVersions 在用版本保护的判据）：服务不随 current 切换
+	// 重启时仍从旧版本目录运行，prune 不得删它；旧格式身份/写入时不可得为空串。
+	static final String KEY_VERSION = "version";
 
 	// BService.State 的取值（协议 bean 注释语义：Running,Stopped；stop 结局细化三态）
 	static final String STATE_RUNNING = "Running";
@@ -262,11 +265,17 @@ public class ServiceManager {
 		/** startInstant 的 ISO-8601 文本；写入时不可得为空串（此后对它恒失明，不裸 pid 领养）。 */
 		final String start;
 		final String command;
+		final String version;
 
 		RunPidRecord(long pid, String start, String command) {
+			this(pid, start, command, "");
+		}
+
+		RunPidRecord(long pid, String start, String command, String version) {
 			this.pid = pid;
 			this.start = start;
 			this.command = command;
+			this.version = version;
 		}
 
 		/** 辅证据取值：命令行优先，不可得（Windows 恒 empty）回退可执行路径。 */
@@ -282,6 +291,7 @@ public class ServiceManager {
 			long pid = -1;
 			var start = "";
 			var command = "";
+			var version = "";
 			for (var line : content.split("\n", -1)) {
 				var i = line.indexOf('=');
 				if (i <= 0)
@@ -298,11 +308,12 @@ public class ServiceManager {
 					}
 					case KEY_START -> start = value;
 					case KEY_COMMAND -> command = value;
+					case KEY_VERSION -> version = value;
 					default -> {
 					}
 				}
 			}
-			return pid > 0 ? new RunPidRecord(pid, start, command) : null;
+			return pid > 0 ? new RunPidRecord(pid, start, command, version) : null;
 		}
 	}
 
@@ -477,6 +488,20 @@ public class ServiceManager {
 			logger.warn("run.pid residue clean fail ({}): {}", why, file);
 	}
 
+	/**
+	 * 运行中服务的在用版本目录名（pruneVersions 清理面排除用，只读无副作用——
+	 * 不走 resolveRunPid 的残留清理）。null=服务未运行（无身份/pid 已死，不受保护）；
+	 * 空串=在运行但版本不可知（旧格式身份），调用方须把该服务整体移出清理面；
+	 * 非空=run.pid version 行。只查 pid 存活不核指纹：误报方向是过度保护（多保一个
+	 * 目录，有界），不做误删方向的事。
+	 */
+	@Nullable String runningVersion(String serviceName) {
+		var rec = readRunPid(serviceName);
+		if (null == rec)
+			return null;
+		return ProcessHandle.of(rec.pid).filter(ProcessHandle::isAlive).isPresent() ? rec.version : null;
+	}
+
 	/** 行式文件容错：命令行内嵌换行会破坏 key=value 行结构；写/核两侧同变换，等价比较不受影响。 */
 	private static String sanitize(String commandLine) {
 		return commandLine.replace('\n', ' ').replace('\r', ' ');
@@ -490,16 +515,17 @@ public class ServiceManager {
 	static void writeRunPid(File container, RunPidRecord record) throws IOException {
 		var text = KEY_PID + "=" + record.pid + "\n"
 				+ KEY_START + "=" + record.start + "\n"
-				+ KEY_COMMAND + "=" + record.command + "\n";
+				+ KEY_COMMAND + "=" + record.command + "\n"
+				+ KEY_VERSION + "=" + record.version + "\n";
 		AtomicFileWriter.replace(new File(container, RUN_PID_NAME).toPath(), text.getBytes(StandardCharsets.UTF_8));
 	}
 
-	/** 从活句柄取现值写盘（startService 拉起路径）。 */
-	private static void writeRunPid(File container, Process process) throws IOException {
+	/** 从活句柄取现值写盘（startService 拉起路径）：version=launch 时的工作目录名。 */
+	private static void writeRunPid(File container, Process process, String version) throws IOException {
 		var info = process.info();
 		writeRunPid(container, new RunPidRecord(process.pid(),
 				info.startInstant().map(Object::toString).orElse(""),
-				RunPidRecord.auxOf(info)));
+				RunPidRecord.auxOf(info), version));
 	}
 
 	/**
@@ -664,7 +690,7 @@ public class ServiceManager {
 				// 盘是真相源——写盘失败=不交付：回滚装账+杀候选+eStartFail。
 				// 写盘在挂监控前：失败路径无回调需要拆；成功后候选若恰好已死，onExit 即时收殓。
 				try {
-					writeRunPid(new File(serviceDir, serviceName), candidate);
+					writeRunPid(new File(serviceDir, serviceName), candidate, spec.workingDir.getName());
 				} catch (IOException ex) {
 					logger.error("startService {} write run.pid fail, discard candidate pid={}",
 							serviceName, candidate.pid(), ex);

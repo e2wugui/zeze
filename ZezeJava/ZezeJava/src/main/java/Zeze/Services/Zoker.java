@@ -51,6 +51,11 @@ public class Zoker extends AbstractZoker {
 		return serviceDir;
 	}
 
+	/** 供 DistributeManager.pruneVersions 查询运行中服务的在用版本（进程身份 run.pid）。 */
+	public ServiceManager getProcessManager() {
+		return processManager;
+	}
+
 	public File getDistributeDir() {
 		return distributeDir;
 	}
