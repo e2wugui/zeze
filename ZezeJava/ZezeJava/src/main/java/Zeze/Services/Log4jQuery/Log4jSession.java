@@ -60,10 +60,13 @@ public class Log4jSession {
 		if (this.beginTime == beginTime)
 			return;
 
-		this.beginTime = beginTime;
+		// 先定位后提交去重哨兵：seek链路抛IOException时哨兵未提交，客户端携带同一beginTime
+		// 重试不会命中短路，必重新定位；先提交则重试从被reset归零的最旧文件头全量返回，
+		// 早于beginTime的旧日志混入结果（下界过滤只靠定位保证，扫描循环无下界检查）。
 		this.files.reset();
 		if (beginTime != -1)
 			this.files.seek(beginTime);
+		this.beginTime = beginTime;
 	}
 
 	/**
