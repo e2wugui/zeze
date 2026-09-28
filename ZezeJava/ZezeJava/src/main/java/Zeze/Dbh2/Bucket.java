@@ -176,8 +176,9 @@ public class Bucket {
 	// 主表无主、读写永久失败）。保留旧标志的代价是新迁移失去标志载体，其settle在进程存活期内由
 	// 内存30s重试链兜底；两害相权取其旧：旧迁移的settle已滞留更久，且保留旧标志不劣于覆写：堆叠死亡
 	// 链中旧键域经补发可收敛，新迁移键域两者同样失联（受害者互换）。
-	// 同身份重设幂等放行（raft日志每节点恰apply一次，仅防御）。堆叠窗口本身的完整闭口
-	//（tryStartSplit对pending!=null加闸/多槽标志）二期。
+	// 同身份重设幂等放行（raft日志每节点恰apply一次，仅防御）。堆叠窗口已由tryStartSplit对
+	// pending!=null加闸闭口（新迁移不再于旧标志未清时启动，见Dbh2.tryStartSplit），本条件
+	// 覆写保留为闸失效时的防御层。
 	public void setPendingSettle(BBucketMeta.Data from, BBucketMeta.Data to) throws RocksDBException {
 		var current = pendingSettle;
 		if (null != current && !sameMeta(current.getTo(), to)) {

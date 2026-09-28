@@ -559,6 +559,20 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return; // splitting
 		}
 
+		// pending-settle闸（堆叠窗口闭口，setPendingSettle注释自认的二期缺口）：上一笔迁移
+		// 已commit（LogEndSplit/LogEndMove apply落下标志）但settle未终局（30s内存重试链在途/
+		// master不可达）时不得启动新迁移——否则新迁移完结时setPendingSettle撞上残留旧标志被
+		// 跳过不落盘（单槽保留旧者），进程死亡后recoverSplitting只补发槽内旧迁移，新迁移的
+		// to键域在主表无主、读写永久失败。闸只拦决策入口（loadMonitor路径），recoverSplitting
+		// 的resume不走此处；settle终局（appendClearPendingSettle的apply清除标志）后下一轮
+		// loadMonitor（120s）自然重试。代价：标志滞留期间本桶不分桶/迁移——可用性换正确性，
+		// 恰是"等旧迁移结算"的本意。
+		var pendingSettle = bucket.getPendingSettle();
+		if (null != pendingSettle) {
+			logger.info("start split but pending settle not cleared. to={}", formatMeta(pendingSettle.getTo()));
+			return;
+		}
+
 		startSplit(isMove);
 	}
 
