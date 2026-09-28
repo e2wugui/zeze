@@ -319,7 +319,7 @@ public class MQFileWithIndex {
 									filePosition += messageHead.length;
 									if (filePosition > fileSize)
 										throw new RuntimeException("locate message eof.");
-									fileInput.read(messageHead);
+									fileInput.readFully(messageHead);
 									var bbHead = ByteBuffer.Wrap(messageHead);
 									messageId = bbHead.ReadLong8();
 									messageSize = bbHead.ReadInt4();
@@ -347,7 +347,7 @@ public class MQFileWithIndex {
 									filePosition += messageBuffer.length;
 									if (filePosition > fileSize)
 										throw new RuntimeException("read message body eof.");
-									fileInput.read(messageBuffer);
+									fileInput.readFully(messageBuffer);
 									var message = new BMessage.Data();
 									message.decode(ByteBuffer.Wrap(messageBuffer));
 									messageQueue.add(message);
@@ -359,7 +359,7 @@ public class MQFileWithIndex {
 									filePosition += messageHead.length;
 									if (filePosition > fileSize)
 										throw new RuntimeException("read message head eof.");
-									fileInput.read(messageHead);
+									fileInput.readFully(messageHead);
 									var bbHead = ByteBuffer.Wrap(messageHead);
 									messageId = bbHead.ReadLong8(); // 不再跳过：校验记录 id
 									messageSize = bbHead.ReadInt4();
