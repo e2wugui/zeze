@@ -61,8 +61,15 @@ public class LogIndex {
 		}
 	}
 
+	// 写侧（addIndex）持rwLock.writeLock更新，读侧getter须持同一rwLock.readLock：
+	// 裸读与写无happens-before，长期可见陈旧值（seek跳条目/getIndexOffset回退offset 0全量重扫）。
 	public long getBeginTime() {
-		return beginTime;
+		rwLock.readLock().lock();
+		try {
+			return beginTime;
+		} finally {
+			rwLock.readLock().unlock();
+		}
 	}
 
 	/**
@@ -75,7 +82,12 @@ public class LogIndex {
 	}
 
 	public long getEndTime() {
-		return endTime;
+		rwLock.readLock().lock();
+		try {
+			return endTime;
+		} finally {
+			rwLock.readLock().unlock();
+		}
 	}
 
 	private int mmap(int newAllocateSize) throws IOException {
