@@ -203,6 +203,7 @@ public class MQFileWithIndex {
 				var expectId = base;
 				var indexed = 0;
 				while (fileSize - pos >= 12) {
+					input.seek(pos); // pos含记录体长度（12+size）：readFully只前进头长，须按pos重定位到下条记录头
 					input.readFully(messageHead);
 					var bbHead = ByteBuffer.Wrap(messageHead);
 					var messageId = bbHead.ReadLong8();

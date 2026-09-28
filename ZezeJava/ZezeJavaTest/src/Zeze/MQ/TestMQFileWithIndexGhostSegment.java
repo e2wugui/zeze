@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Builtin.MQ.BMessage;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
@@ -90,6 +91,55 @@ public class TestMQFileWithIndexGhostSegment {
 			var file2 = new MQFileWithIndex(home, database2, "topic", 0);
 			try {
 				Assertions.assertEquals(1, file2.getNextMessageId());
+			} finally {
+				file2.close();
+			}
+		}
+	}
+
+	/**
+	 * FND26 mq-02 形态 I 回归：「索引列族 dropTable 成功 + 段文件 file.delete 失败」的幽灵段
+	 * （列族不在 rocksdb 而文件在、meta 位点完好）重启装载时按文件顺序扫描重建段索引——
+	 * 重建必须覆盖段内全部对齐点位（id%makeIndexPeriod==0）。扫描循环若不按 pos 重定位到
+	 * 下一条记录头（readFully 只前进头长，记录体未跳过），第二条起即把体字节当头错位止步：
+	 * 只入段基一条索引、每次回填退化为从段首线性扫，且对完好文件误报 corrupted record warn。
+	 */
+	@Test
+	public void testDroppedIndexColumnFamilyRebuiltWithAllAlignedPoints(@TempDir Path tempDir) throws Exception {
+		var home = tempDir.resolve("db").toString();
+		var database = new RocksDatabase(home);
+		var file = new MQFileWithIndex(home, database, "topic", 0);
+		try {
+			for (long id = 0; id < 250; ++id)
+				file.appendMessage(Fnd19MqTestSupport.messageOf(id));
+			file.close();
+		} finally {
+			database.close();
+		}
+
+		// 幽灵段构造：只 drop 索引列族（dropTable 成功），保留段文件与 meta 位点（file.delete 失败）。
+		try (var database2 = new RocksDatabase(home)) {
+			database2.dropTable("topic.0.0");
+			var file2 = new MQFileWithIndex(home, database2, "topic", 0);
+			try {
+				Assertions.assertEquals(250, file2.getNextMessageId(), "meta 位点完好，形态 I 重建不失位");
+				var indexTable = database2.getTable("topic.0.0");
+				Assertions.assertNotNull(indexTable, "幽灵段装载重建索引列族");
+				try (var it = indexTable.iterator()) {
+					it.seekToFirst();
+					var expectId = 0L;
+					while (it.isValid()) {
+						Assertions.assertEquals(expectId, ByteBuffer.ToLongBE(it.key(), 0),
+								"对齐点位必须按序恢复");
+						expectId += 100;
+						it.next();
+					}
+					Assertions.assertEquals(300, expectId, "对齐点位 0,100,200 共 3 条必须全部重建"
+							+ "（只重建段基一条=扫描未跳过记录体的错位形态）");
+				}
+				Queue<BMessage.Data> queue = new ConcurrentLinkedQueue<>();
+				file2.fillMessage(queue, 150, 200);
+				assertFillInOrder(queue, 150, 200);
 			} finally {
 				file2.close();
 			}
