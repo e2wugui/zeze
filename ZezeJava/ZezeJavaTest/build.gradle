@@ -152,29 +152,52 @@ tasks.register('bench', Test) {
     shouldRunAfter tasks.named('test')
 }
 
-// Application.start 按 serverId 对缓存目录"先锁后删"，锁文件 zeze_cache_N.lock 由 FileMutex
-// 设计上释放后不删除（删除与后续获取者竞态，见其 javadoc）——动态发号的测试族会累积这些
-// 0 字节文件。任务收尾统一清理：finalizedBy 在测试 JVM 退出后运行（Windows 下被打开的
-// 文件删不掉，此刻必已释放），测试失败/UP-TO-DATE 也会执行；IDEA 直跑不经 gradle，不覆盖。
+// 测试运行残留收尾清理：finalizedBy 在测试 JVM 退出后运行（Windows 下被打开的文件删不掉，
+// 此刻必已释放），测试失败/UP-TO-DATE 也会执行；IDEA 直跑不经 gradle，不覆盖。
+// 清理项（全部为 gitignored 的运行时产物，测试按需重建）：
+// - zeze_cache_*.lock：FileMutex 设计上释放后不删除（删除与后续获取者竞态，见其
+//   javadoc），动态发号测试族累积的 0 字节锁文件；
+// - *.zeze.pal / CommitOnzServer*/ / *.raft/ / testMmapFile* / hs_err_pid*.log：cwd 下的
+//   每次运行产物，测试开头先删后开，无事后取证价值；
+// - log/ 内 7 天前的滚动日志（zeze_error.* 101MB/天）：近 7 天保留失败取证；根治需动
+//   生产共享的 log4j2.xml 保留策略，不在本任务射程。
+// 不清理：zeze_cache_*/ 目录（Application.start 先删后开已自洽，rocksdb 数据有取证价值）、
+// lib/（运行时依赖 jar）、test.ks（SSL 测试密钥库）。
 // 配置缓存兼容：projectDir 在配置期捕获为File，执行期不触碰脚本项目方法。
-def lockDir = projectDir
-def cleanZezeCacheLocks = tasks.register('cleanZezeCacheLocks') {
+def residueDir = projectDir
+def logCutoffMs = 7L * 24 * 3600 * 1000
+def cleanTestResidue = tasks.register('cleanTestResidue') {
     doLast {
-        int n = 0
-        lockDir.listFiles()?.each { f ->
-            if (f.isFile() && f.name.startsWith('zeze_cache_') && f.name.endsWith('.lock') && f.delete())
-                n++
+        int locks = 0, files = 0, dirs = 0, staleLogs = 0
+        residueDir.listFiles()?.each { f ->
+            if (f.isFile()) {
+                if (f.name.startsWith('zeze_cache_') && f.name.endsWith('.lock')) {
+                    if (f.delete()) locks++
+                } else if (f.name.endsWith('.zeze.pal') || f.name.startsWith('hs_err_pid')
+                        || f.name.startsWith('testMmapFile')) {
+                    if (f.delete()) files++
+                }
+            } else if (f.isDirectory() && (f.name.startsWith('CommitOnzServer') || f.name.endsWith('.raft'))) {
+                if (f.deleteDir()) dirs++
+            }
         }
-        if (n > 0)
-            logger.lifecycle("cleaned {} zeze_cache_*.lock file(s)", n)
+        def logDir = new File(residueDir, 'log')
+        def cutoff = System.currentTimeMillis() - logCutoffMs
+        logDir.listFiles()?.each { f ->
+            if (f.isFile() && f.lastModified() < cutoff && f.delete())
+                staleLogs++
+        }
+        if (locks + files + dirs + staleLogs > 0)
+            logger.lifecycle("cleaned {} lock(s), {} residue file(s), {} residue dir(s), {} stale log(s)",
+                    locks, files, dirs, staleLogs)
     }
 }
 tasks.withType(Test).configureEach {
-    finalizedBy cleanZezeCacheLocks
+    finalizedBy cleanTestResidue
     // BenchSocket 等测试分配大 ByteBuffer，默认 512m 堆会 OOM；对齐 IDEA 运行时的大堆
     maxHeapSize = '2g'
     testLogging {
         events 'failed', 'skipped'
-        exceptionFormat = 'full'
+        exceptionFormat 'full'
     }
 }
