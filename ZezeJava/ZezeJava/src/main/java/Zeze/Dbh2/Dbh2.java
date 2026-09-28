@@ -244,6 +244,22 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			if (null == first)
 				first = e;
 		}
+		// 分桶进行中停止：dbh2Splitting不清理则agent的resend任务/连接器/pending表残留至进程结束
+		// （嵌入式/测试反复建销毁桶逐次累积）。先摘引用再close（对齐endSplit2的清理形态）。
+		// 置于raft.shutdown之后：shutdown已convertStateTo(Follower)，迟到的用户任务回调经
+		// splitPutNext身份检查不再触发startSplit重入；stop触发的pending终局经sendHandle对
+		// Timeout早退，不会到达用户handle；driveSplitSync以closed守卫收敛。
+		var splittingAgent = dbh2Splitting;
+		dbh2Splitting = null;
+		if (null != splittingAgent) {
+			try {
+				splittingAgent.close();
+			} catch (Exception e) {
+				logger.error("closeRaft: dbh2Splitting.close fail. {}", raft.getName(), e);
+				if (null == first)
+					first = e;
+			}
+		}
 		if (null != first)
 			throw new RuntimeException(first);
 	}
