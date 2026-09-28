@@ -792,6 +792,15 @@ public class ServiceManager {
 			}
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
+			// waitFor被中断≠进程仍存活：destroyForcibly已发出，进程可能恰已退出——
+			// 复查isAlive再定结局，不把中断误报成Alive-After-Force（假阳性使run.pid不删、
+			// 下次对账又按存活领养，状态层面持续误报）。
+			if (!process.isAlive()) {
+				r.Result.setState(STATE_FORCE_KILLED);
+				r.Result.setPs(deadPs(process));
+				deleteRunPidIfOwn(serviceName, process);
+				return;
+			}
 		}
 		// 强杀限期后仍存活（不可杀子进程残留等极端情形）：句柄交GC收殓，不阻塞派发线程
 		r.Result.setState(STATE_ALIVE_AFTER_FORCE);
