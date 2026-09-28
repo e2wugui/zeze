@@ -216,12 +216,17 @@ public class MQSingle extends ReentrantLock {
 			messageFillFuture = null; // 这个清除没加锁
 			fillFailCount = 0; // 装载成功即清失败计数（瞬时失败自愈的基线复位；同上行不加锁，读侧容忍陈旧值）
 			tryStartBackgroundFill(); // 这个调用是为了解决上面的时间窗口的。
-		} catch (RuntimeException e) {
+		} catch (Throwable e) {
 			// fill 失败必须复位 messageFillFuture 并重算 highLoad，否则 tryStartBackgroundFill 永远
 			// 看到非null而跳过，该分区回填永久停摆。calculateFill 已按快照扣减 highLoad 但装载
 			// 未完成，按盘上真实积压重算；next/first 的所有写点（appendMessage/increaseFirstMessageId）
 			// 都在本锁内执行，锁内读取是精确的。不立即重启 fill（确定性数据损坏时避免紧密
 			// 循环），由后续 sendMessage/ack 事件驱动重试。
+			// 【FND28-F1】catch扩为Throwable（精确重抛，方法无受检异常声明）：任务体经TaskBody
+			// 派发，TaskBody对Throwable（含OOM等Error）记日志后吞掉不终结进程——此前仅catch
+			// RuntimeException时，到达两个清除点之前抛出的Error使两处复位均不执行，
+			// messageFillFuture永久指向已完成任务的Future，tryStartBackgroundFill的提交条件
+			// 恒假：分区装载静默停摆且无自愈（仅删除重建/进程重启可恢复）。复位保证先于重抛。
 			lock();
 			try {
 				highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId() - messageQueue.size();
