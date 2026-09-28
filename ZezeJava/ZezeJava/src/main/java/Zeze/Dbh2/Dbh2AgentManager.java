@@ -228,16 +228,24 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public MasterAgent openMasterAgent(String masterName) {
-		return masterAgent.computeIfAbsent(masterName, _masterName -> {
-			var config1 = new Config();
-			var serviceConf = new ServiceConf();
-			var ipPort = _masterName.split("_");
-			config1.getServiceConfMap().put(MasterAgent.eServiceName, serviceConf);
-			serviceConf.tryGetOrAddConnector(ipPort[0], Integer.parseInt(ipPort[1]), true, null);
-			var m = new MasterAgent(config1);
-			m.startAndWaitConnectionReady();
+		var m = masterAgent.get(masterName);
+		if (null != m)
 			return m;
-		});
+		// 构造与连接等待在map锁外（对齐locateBucket自立的约束：阻塞等待不能放进computeIfAbsent
+		// 的映射函数，持bin锁会阻塞同bin其他master的打开，最长约READY_TIMEOUT）。
+		var config1 = new Config();
+		var serviceConf = new ServiceConf();
+		var ipPort = masterName.split("_");
+		config1.getServiceConfMap().put(MasterAgent.eServiceName, serviceConf);
+		serviceConf.tryGetOrAddConnector(ipPort[0], Integer.parseInt(ipPort[1]), true, null);
+		var newAgent = new MasterAgent(config1);
+		newAgent.startAndWaitConnectionReady();
+		var old = masterAgent.putIfAbsent(masterName, newAgent);
+		if (null != old) {
+			newAgent.stop(); // 竞态败者：已启动的连接器必须回收，不得泄漏
+			return old;
+		}
+		return newAgent;
 	}
 
 	public MasterAgent openDatabase(
