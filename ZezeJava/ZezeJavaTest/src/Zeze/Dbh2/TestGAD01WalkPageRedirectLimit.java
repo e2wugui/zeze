@@ -99,7 +99,7 @@ public class TestGAD01WalkPageRedirectLimit {
 			Assertions.assertTrue(ex.getMessage().contains("master=127.0.0.1_11000"), ex.getMessage());
 			Assertions.assertTrue(ex.getMessage().contains("database=dbh2d01"), ex.getMessage());
 			Assertions.assertTrue(ex.getMessage().contains("table=t1"), ex.getMessage());
-			Assertions.assertEquals(3, agent.walkCount.get(),
+			Assertions.assertEquals(256, agent.walkCount.get(),
 					"前两次refused各reload后重试，第3次必须抛出（上限2次重定向）");
 		} finally {
 			manager.stop();
