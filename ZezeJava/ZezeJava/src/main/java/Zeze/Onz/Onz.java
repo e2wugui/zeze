@@ -333,6 +333,18 @@ public class Onz extends AbstractOnz {
 		var stub = procedureStubs.get(r.Argument.getFuncName());
 		if (stub == null)
 			return errorCode(eProcedureNotFound);
+		// 注册类型与调用协议错配门控（onz-03）：saga注册名被callProcedureAsync调用时，
+		// OnzSagaStub.newProcedure返回的OnzSaga将以procedure语义执行——sendReadyAndWait被
+		// 覆写为"发结果即本地提交"，不进readyProcedures、无两阶段决策、无补偿上下文
+		//（sagas注册只在ProcessFuncSagaRequest路径）；失败路径的Rollback命中null条目假应答
+		// 成功，协调者删记录而参与方写入已持久化=静默部分提交。显式回错让部署错配在调用期
+		// 响亮失败，不依赖类型系统的偶然行为（错误码复用eProcedureNotFound：该名字对
+		// procedure调用形态不存在；新增错误码须改生成物，不在手写域）。
+		if (stub instanceof OnzSagaStub) {
+			logger.error("onz funcProcedure type mismatch: name='{}' registered as saga, use callSagaAsync. tid={}",
+					r.Argument.getFuncName(), r.Argument.getOnzTid());
+			return errorCode(eProcedureNotFound);
+		}
 		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
 		var procedure = stub.newProcedure(r, r.Argument, buffer);
 		return TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
@@ -343,6 +355,13 @@ public class Onz extends AbstractOnz {
 		var stub = procedureStubs.get(r.Argument.getFuncName());
 		if (stub == null)
 			return errorCode(eProcedureNotFound);
+		// 对称门控（onz-03）：procedure注册名被callSagaAsync调用——此前依赖下方(OnzSaga)强转的
+		// CCE偶然响亮，显式回错对齐FuncProcedure方向的错误语义，部署错配可辨识定位。
+		if (!(stub instanceof OnzSagaStub)) {
+			logger.error("onz funcSaga type mismatch: name='{}' registered as procedure, use callProcedureAsync. tid={}",
+					r.Argument.getFuncName(), r.Argument.getOnzTid());
+			return errorCode(eProcedureNotFound);
+		}
 
 		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
 		var procedure = stub.newProcedure(r, r.Argument, buffer);
