@@ -15,6 +15,7 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 与 GlobalCacheManager 的客户端连接服务：负责 Login/ReLogin 握手与 Reduce 等协议的关键派发。 */
 public final class GlobalClient extends Service {
 	private static final IOException loginException = new IOException("login failed");
 	private static final IOException reloginTimeoutException = new IOException("relogin timeout");
@@ -38,7 +39,7 @@ public final class GlobalClient extends Service {
 					so.close(reloginTimeoutException);
 				} else if (reLogin.getResultCode() != 0) {
 					// 清理本地已经分配的记录锁。
-					// 1. 关闭网络。下面两行有点重复，就这样了。
+					// 1. 关闭网络。
 					so.close(new IOException("GlobalAgent.ReLogin Fail code=" + reLogin.getResultCode()));
 					//noinspection DataFlowIssue
 					so.getConnector().stop();

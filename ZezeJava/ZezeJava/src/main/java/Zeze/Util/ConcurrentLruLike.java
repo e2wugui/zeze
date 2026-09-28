@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 分段式并发 LRU：热点 ConcurrentHashMap 按周期轮转入队，后台周期清理到容量并收缩节点队列
 public class ConcurrentLruLike<K, V> {
 	private static final @NotNull Logger logger = LogManager.getLogger(ConcurrentLruLike.class);
 	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
@@ -127,7 +128,7 @@ public class ConcurrentLruLike<K, V> {
 		tryRemoveCallback = tryRemove;
 		newLruHot();
 
-		// 保存句柄供close取消（FND7-36）。schedulePeriodNow（不等事务提交）：
+		// 保存句柄供close取消。schedulePeriodNow（不等事务提交）：
 		// 周期任务属于实例自身的生命周期，随构造注册，不应被事务回滚掉。
 		newLruHotTimer = TaskSpec.ofAction(() -> {
 			if (lruHot.size() > lruInitialCapacity / 2) // 访问很少的时候不创建新的热点
@@ -140,12 +141,11 @@ public class ConcurrentLruLike<K, V> {
 
 	/**
 	 * 取消构造器注册的两个常驻周期任务（热点轮转与cleanNow），此后实例不再被任务强引用，可被整体回收。
-	 * 构造即启动生命周期：句柄曾直接丢弃且无任何取消途径，重建实例（Raft restore/reset重开Table、
-	 * Cache.close）后旧实例的任务仍永续执行，连同其dataMap缓存的对象图一起泄漏（FND7-36）。
-	 * 重建/关闭处必须close旧实例。
+	 * 构造即启动生命周期：不close的实例任务永续执行，连同其dataMap缓存的对象图一起泄漏
+	 * （如 Raft restore/reset 重开 Table、Cache.close 后的旧实例），重建/关闭处必须close旧实例。
 	 * <p>
-	 * 【close语义（复审R3成文）】对"构造即启动"旧契约的兼容：不调用close的行为与历史完全一致
-	 * （任务随进程常驻），close是新增的清理点而非开关。close后实例即终结：热点轮转与过期清理
+	 * 【close语义】对"构造即启动"契约的兼容：不调用close即任务随进程常驻，
+	 * close是新增的清理点而非开关。close后实例即终结：热点轮转与过期清理
 	 * 停止，继续get/put虽可运行但缓存不再自洁（容量上溢不受控），调用方不得在close后继续使用
 	 * 本实例。周期任务改用 schedulePeriodNow 随构造即刻注册（不等事务提交）：事务内构造后回滚
 	 * 的实例由构造方负责close（仓内构造点均在事务外）。
@@ -324,10 +324,9 @@ public class ConcurrentLruLike<K, V> {
 		if (capacity > 0) {
 			var timeBegin = System.nanoTime();
 			int recordCount = 0, nodeCount = 0;
-			// 【FND7-14联动】在用保护（Record.accessors）与使用方回调拒绝会让节点常驻
+			// 在用保护（Record.accessors）与使用方回调拒绝会让节点常驻
 			// 非空——这是保护机制的正常工作状态，不是异常：按周期聚合为一条带实例名与
-			// 规模的warn（原实现对每个未清空节点各打一条无名字无计数的warn，容量压力下
-			// 每2s刷屏），保留信号（可据此发现计数泄漏导致的永久超容量）。
+			// 规模的warn（避免容量压力下每2s刷屏），保留信号（可据此发现计数泄漏导致的永久超容量）。
 			int remainNodeCount = 0, remainRecordCount = 0;
 			// 从最老到最新逐个node尝试驱逐。不对最老node忙等：回调失败（如队列忙）时继续尝试下一个node，
 			// 遍历完仍超容量的等下一次周期调度重试（scheduleWithFixedDelay本身就是重试机制）。

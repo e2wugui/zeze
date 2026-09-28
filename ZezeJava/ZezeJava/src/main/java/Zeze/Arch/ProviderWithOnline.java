@@ -6,6 +6,9 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 带在线表的 Provider 实现模板：组合 Arch.Online，处理 LinkBroken 下线与负载上报。
+ */
 public class ProviderWithOnline extends ProviderImplement {
 	protected Online online; // 需要外面初始化。App.Start.
 	private ProviderLoadWithOnline load;
@@ -23,7 +26,7 @@ public class ProviderWithOnline extends ProviderImplement {
 	protected long ProcessLinkBroken(LinkBroken p) throws Exception {
 		// 目前仅需设置online状态。
 		if (!p.Argument.getUserState().getContext().isEmpty()) {
-			// FND8-75：失败码外传整体回滚（对齐Online.linkBroken的内部外传契约与Game版入口）。
+			// 失败码外传整体回滚（对齐Online.linkBroken的内部外传契约与Game版入口）。
 			return online.linkBroken(p.Argument.getAccount(), p.Argument.getUserState().getContext(),
 					ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}

@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+/** 事务生命周期状态：Running→（Abort / Redo / RedoAndReleaseLock）→Completed 终态。 */
 public enum TransactionState {
     Running, // 正常运行状态。
     Abort, // 事务需要中止。

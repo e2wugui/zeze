@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+// 配置读取辅助：类型化 getProperty 与 "-key [value]" 串解析
 public final class PropertiesHelper {
 	private static final @NotNull Logger logger = LogManager.getLogger(PropertiesHelper.class);
 	private static final @NotNull Pattern PATTERN_SPACES = Pattern.compile("\\s+");
@@ -39,7 +40,6 @@ public final class PropertiesHelper {
 	public static @NotNull Properties parse(@NotNull String props) {
 		// trim+\\s+：容忍连续/首尾空白。split(" ") 会把连续空格产生的空 token 当作“无 -key 的 value”误报。
 		var args = PATTERN_SPACES.split(props.trim());
-		//System.out.println(Arrays.toString(args));
 
 		var result = new Properties();
 		for (var i = 0; i < args.length; ++i) {

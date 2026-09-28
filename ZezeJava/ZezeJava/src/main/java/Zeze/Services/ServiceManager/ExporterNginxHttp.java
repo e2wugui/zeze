@@ -16,6 +16,9 @@ import org.jetbrains.annotations.NotNull;
 /*
 curl -d "server 127.0.0.1:8089;server 127.0.0.1:8088;" 127.0.0.1:8081/upstream/dyhost
 */
+/**
+ * Nginx dyups HTTP导出器：把SM服务地址经HTTP POST写入dyups接口（用法见下方curl示例）。
+ */
 public class ExporterNginxHttp implements IExporter {
 	private static final @NotNull Logger logger = LogManager.getLogger(ExporterNginxHttp.class);
 
@@ -28,7 +31,7 @@ public class ExporterNginxHttp implements IExporter {
 			.build();
 	private final @NotNull String url;
 	private final long version;
-	// FND7-61：选桶不匹配只warn一次（事件风暴下不刷屏）；onEdit由one-by-one单worker串行
+	// 选桶不匹配只warn一次（事件风暴下不刷屏）；onEdit由one-by-one单worker串行
 	// 调用，volatile仅防御对调用线程模型的隐含依赖（对齐Exporter.failedServices风格）。
 	private volatile boolean versionBucketEmptyWarned;
 
@@ -51,7 +54,7 @@ public class ExporterNginxHttp implements IExporter {
 	public void exportAll(@NotNull String serviceName, @NotNull BServiceInfosVersion all) throws Exception {
 		var ver0 = all.getInfos(version);
 		if (ver0 == null) {
-			// FND7-61可观测性：-version是选桶（SM按BServiceInfo注册时的version分桶，导出只取
+			// 可观测性：-version是选桶（SM按BServiceInfo注册时的version分桶，导出只取
 			// 指定桶），桶不匹配时导出被静默跳过、dyups配置停在旧值且无任何留痕。选定桶为空
 			// 且其他桶非空时warn一次（列出非空桶号）提示检查-version；全空（服务全部下线的
 			// 过渡态）保持静默，语义与NginxConfig路径"无可导出地址"的info日志一致。
@@ -84,7 +87,7 @@ public class ExporterNginxHttp implements IExporter {
 		var post = sb.toString();
 
 		logger.info("HttpRequest: url={}, serviceName={}, post={}", url, serviceName, post);
-		// FND6-27：改同步+超时——原sendAsync+whenComplete仅覆盖传输异常，dyups返回非2xx仍只有
+		// 同步+超时——sendAsync+whenComplete仅覆盖传输异常，dyups返回非2xx仍只有
 		// INFO日志，且无超时配置时future永不完成，更新静默丢失。exportAll运行于triggerOnChanged
 		// 的one-by-one后台worker（不在IO/RPC线程），可安全阻塞；失败（传输/超时/非2xx）抛异常，
 		// 由Exporter.onEdit既有的逐服务catch统一记录，本类不重复记error。

@@ -136,8 +136,7 @@ public class ProxyAgent extends Service {
 			if (null != leader) {
 				var proxyArgument = new ProxyArgument(leader.getName(), rpc);
 				var proxyRpc = new ProxyRequest(proxyArgument);
-				// leaderSocket 就是从leader中获取的，这里是为了在循环中发送的时候不用每次获取，优化！
-				//logger.info("send to {}", leaderSocket.getRemoteAddress());
+				// leaderSocket 就是从leader中获取的，这里是为了在循环中发送的时候不用每次获取。
 				return proxyRpc.Send(leaderSocket, (proxyRpcThis) -> {
 					if (proxyRpc.getResultCode() == 0) {
 						var outFh = new OutObject<Service.ProtocolFactoryHandle<?>>();
@@ -151,10 +150,10 @@ public class ProxyAgent extends Service {
 								var originHandle = (ProtocolHandle)rpc.getResponseHandle();
 								localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
 							} else if (rpc.getFuture() != null){
-								// 【FND-R2-7】对齐 Agent.sendForWaitHandle 的收尾：结果（含ResultCode）
-								// 拷回原始rpc再完成future。原来只setRawResult(resultRpc.Result)：
-								// RaftRetry/DuplicateRequest等语义码被丢弃，等待方把空Result当成功，
-								// 恰好绕开Agent的pending重发闭环。
+							// 对齐 Agent.sendForWaitHandle 的收尾：结果（含ResultCode）
+							// 拷回原始rpc再完成future。只setRawResult(resultRpc.Result)会丢弃
+							// RaftRetry/DuplicateRequest等语义码，等待方把空Result当成功，
+							// 恰好绕开Agent的pending重发闭环。
 								rpc.setResultCode(resultRpc.getResultCode());
 								//noinspection UnnecessaryLocalVariable,rawtypes
 								Rpc rawRpc = rpc, rawResultRpc = resultRpc;
@@ -177,7 +176,7 @@ public class ProxyAgent extends Service {
 			// leader 还没有选出。
 			return false;
 		}
-		// 旧的独立的直接的raft访问发送方式。
+		// 未启用代理时的直接raft访问发送方式。
 		return rpc.Send(leaderSocket);
 	}
 }

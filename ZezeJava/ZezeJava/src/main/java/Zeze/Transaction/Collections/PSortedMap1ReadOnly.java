@@ -13,6 +13,7 @@ import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** PSortedMap1 的只读视图：仅暴露查询与遍历，修改入口抛 UnsupportedOperationException。 */
 public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable<Map.Entry<K, V>> {
 	private final @NotNull PSortedMap1<K, V> map;
 

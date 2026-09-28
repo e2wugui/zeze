@@ -32,6 +32,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 看门狗守护进程：监管一个子进程（游戏服务器），经UDP接收子进程注册，按mmap中的
+ * 活跃时间戳超时发送Release或销毁子进程并重启；收到死锁报告立即销毁重启。
+ */
 public class Daemon {
 	public static final String propertyNamePort = "Zeze.ProcessDaemon.Port";
 	public static final String propertyNameClearInUse = "Zeze.Database.ClearInUse";
@@ -54,11 +58,10 @@ public class Daemon {
 	}
 
 	public static void main(String[] args) throws Exception {
-		// 参数契约入口显式化（FND4-72）：args为空时下方command.add(1,...)越界，以意外
-		// IndexOutOfBoundsException而非usage提示失败。无参启动直接给出用法。
+		// args为空时下方command.add(1,...)会越界，以意外IndexOutOfBoundsException
+		// 而非usage提示失败；无参启动直接给出用法。
 		if (args.length < 1) {
-			// FND5-38：args[0]是可执行程序（如java），主类在其后——曾印"<main-class>"，
-			// 按usage启动必然IOException失败，守护从未生效。
+			// args[0]是可执行程序（如java），主类在其后——usage必须按此格式给出。
 			System.err.println("usage: Daemon <java-executable> [jvm-args ...] <main-class> [args...]");
 			return;
 		}
@@ -95,12 +98,12 @@ public class Daemon {
 				}
 				restart = true;
 			}
-		} catch (Throwable ex) { // print stacktrace.
+		} catch (Throwable ex) {
 			logger.error("Daemon.main", ex);
 		} finally {
 			// 退出的时候，确保销毁服务进程。
-			// FND7-60：仅destroy()即退出守护JVM，子进程不响应SIGTERM时无人强杀；
-			// 限时等待后强杀收尸，对齐reapDiagnosticProcess既有模式。
+			// 仅destroy()即退出守护JVM，子进程不响应SIGTERM时无人强杀；
+			// 限时等待后强杀收尸，对齐reapDiagnosticProcess。
 			var subprocess = Daemon.subprocess;
 			if (subprocess != null) {
 				subprocess.destroy();
@@ -119,16 +122,16 @@ public class Daemon {
 				} catch (SocketTimeoutException ex) {
 					// skip
 				} catch (Throwable ex) {
-					// 收到未知/截断/损坏的UDP报文（本地任意进程可向该随机端口发送，FND5-37，
-					// 对齐ProcessDaemon判例）：丢弃并继续，非信任输入不得触发外层catch的
+				// 收到未知/截断/损坏的UDP报文（本地任意进程可向该随机端口发送）：
+				// 丢弃并继续，非信任输入不得触发外层catch的
 					// fatalExit杀掉看门狗与被监管子进程。
 					logger.error("Daemon.receiveCommand bad packet", ex);
 				}
 				if (cmd != null) {
-					// 统一弱校验兜底（FND8-61）：Register以外的命令必须来自已注册Monitor的对端。
+					// 统一弱校验兜底：Register以外的命令必须来自已注册Monitor的对端。
 					// 合法CommonResult与Release在本switch无分支无动作（Daemon只发不收），统一拦截
 					// 零副作用；任意本地进程伪造报文不得触达状态变更/销毁路径。
-					// 残余风险：对端地址校验可被"抢先自注册"满足（Register无发送者凭据），另立发现跟踪。
+					// 残余风险：对端地址校验可被"抢先自注册"满足（Register无发送者凭据）。
 					if (cmd.command() != Register.Command && !isRegisteredPeer(cmd.peer)) {
 						logger.error("Command {} rejected: unregistered peer={}", cmd.command(), cmd.peer);
 					} else
@@ -163,7 +166,7 @@ public class Daemon {
 						code = 0;
 						var monitor = monitors.get(on.serverId);
 						if (monitor != null && !monitor.peerSocketAddress.equals(on.peer)) {
-							// per-monitor强绑定（FND8-61）：该serverId的配置只能由该serverId的注册者
+							// per-monitor强绑定：该serverId的配置只能由该serverId的注册者
 							// （同一子进程udpSocket，对端地址相同）改写——伪造合法编码的GlobalOn（可枚举
 							// serverId/globalIndex试错）改写超时配置可令Monitor反复销毁被监管子进程；
 							// 多Server共存（Simulate）场景同时消除跨Server改写。按未注册应答隐藏区分。
@@ -172,8 +175,7 @@ public class Daemon {
 							code = 1;
 						} else if (monitor != null) {
 							if (on.globalIndex < 0 || on.globalIndex >= monitor.globalConfigs.length()) {
-								// 非信任输入边界校验（FND5-37，对齐ProcessDaemon.Release判例）：
-								// 越界索引丢弃，AIOOBE不得逃逸到外层catch的fatalExit。
+							// 非信任输入边界校验：越界索引丢弃，AIOOBE不得逃逸到外层catch的fatalExit。
 								logger.error("GlobalOn bad globalIndex={}, count={}",
 										on.globalIndex, monitor.globalConfigs.length());
 								code = 2;
@@ -191,7 +193,7 @@ public class Daemon {
 						break;
 
 					case DeadlockReport.Command:
-						// 弱校验（FND5-37复审）：DeadlockReport不带任何字段，子进程侧与Register
+						// 弱校验：DeadlockReport不带任何字段，子进程侧与Register
 						// 走同一个udpSocket（对端地址相同），仅接受已注册Monitor对端的报告——
 						// 任意本地进程伪造报文不得销毁被监管子进程并连带令守护整体退出。
 						if (!isRegisteredPeer(cmd.peer)) {
@@ -215,11 +217,11 @@ public class Daemon {
 		}
 	}
 
-	// Register 校验（FND5-37）：mmap文件由子进程createTempFile("zeze",".mmap")创建，
+	// Register 校验：mmap文件由子进程createTempFile("zeze",".mmap")创建，
 	// 限定临时目录+前缀后缀白名单；copyMMap按globalCount*8布局读活跃时间戳，尺寸必须
 	// 吻合；globalCount上界防伪造巨值OOM（实际=进程内GCM实例数，个位数）。不满足即拒绝，
 	// 杜绝任意路径打开/任意尺寸映射及stopAndJoin的任意路径删除。
-	// 整体catch（FND5-37复审）：Path.of对Windows非法路径字符抛InvalidPathException（合法
+	// 整体catch：Path.of对Windows非法路径字符抛InvalidPathException（合法
 	// 编码的Register报文即可携带），不包则逃逸到mainRun外层catch的fatalExit——单报文
 	// 仍可halt看门狗。非信任输入的解析异常一律按拒绝处理。
 	private static boolean isValidRegister(@NotNull Register reg) {
@@ -250,7 +252,7 @@ public class Daemon {
 	}
 
 	private static void fatalExit() {
-		// FND7-60：destroy后限时等待并强杀收尸（对齐reapDiagnosticProcess），再halt。
+		// destroy后限时等待并强杀收尸（对齐reapDiagnosticProcess），再halt。
 		var subprocess = Daemon.subprocess;
 		if (subprocess != null) {
 			subprocess.destroy();
@@ -269,9 +271,9 @@ public class Daemon {
 	// 锁职责=销毁仲裁：临界区内只做"读-置空"两步，保证同一时刻仅一个线程拿到Process
 	// 去执行销毁（含占坑的读-置空串行化，多GCM同轮超时重复进入、DeadlockReport与Monitor
 	// 跨线程并发时，后来者拿到null幂等返回）。
-	// jstack采样/destroy/joinMonitors全部在锁外：曾经把join留在锁内，被join的Monitor
-	// 若正阻塞在本锁的monitorenter上，形成"持锁者join等锁者"的循环死锁，看门狗整体
-	// 冻结且不可自愈（FND4-67）。现在Monitor等锁者很快拿到锁、发现null返回，再由
+	// jstack采样/destroy/joinMonitors全部在锁外：join若留在锁内，被join的Monitor
+	// 正阻塞在本锁的monitorenter上时，会形成"持锁者join等锁者"的循环死锁，看门狗
+	// 整体冻结且不可自愈。锁外join后，Monitor等锁者很快拿到锁、发现null返回，再由
 	// stopAndJoin置running=false退出循环，join必然返回。
 	private static void destroySubprocess() throws InterruptedException {
 		Process p;
@@ -288,13 +290,13 @@ public class Daemon {
 			// 合并stderr避免缓冲区填满阻塞子进程；显式关闭输入流；限时等待退出，超时强杀。
 			var process = new ProcessBuilder(cmd).redirectErrorStream(true).start();
 			try (var input = new BufferedInputStream(process.getInputStream())) {
-				// FND6-31：Daemon常驻重启后子进程pid复用时目标文件已存在，无REPLACE_EXISTING的
+				// Daemon常驻重启后子进程pid复用时目标文件可能已存在：无REPLACE_EXISTING的
 				// copy抛FileAlreadyExistsException直接跳到外层catch——waitFor/destroyForcibly不执行
 				// （jstack孤儿），本次死锁现场丢失。覆盖旧文件保留最新现场。
 				Files.copy(input, Path.of("jstack." + pid), StandardCopyOption.REPLACE_EXISTING);
 			} finally {
-				// FND6-31补：收尾必须在finally——copy抛其他IOException（磁盘满/权限/目标是目录）
-				// 时原实现同样跳到外层catch，waitFor/destroyForcibly不执行（jstack孤儿）；管道
+				// 收尾必须在finally——copy抛其他IOException（磁盘满/权限/目标是目录）
+				// 时同样跳到外层catch，waitFor/destroyForcibly不执行（jstack孤儿）；管道
 				// 缓冲填满后jstack阻塞在写上成为长存孤儿进程。
 				reapDiagnosticProcess(process);
 			}
@@ -418,7 +420,7 @@ public class Daemon {
 			var tmpRaf = new RandomAccessFile(new File(fileName), "rw");
 			try {
 				var tmpChannel = tmpRaf.getChannel();
-				// 构造期复核尺寸（FND5-37复审）：isValidRegister校验与本构造之间存在TOCTOU窗口，
+				// 构造期复核尺寸：isValidRegister校验与本构造之间存在TOCTOU窗口，
 				// 文件被截断/替换后按当下channel.size()映射，容量!=globalCount*8会使copyMMap
 				// 稳定抛BufferUnderflowException逃逸到run的fatalExit。此处不匹配直接拒绝注册
 				// （由mainRun的catch转为code=2应答）。

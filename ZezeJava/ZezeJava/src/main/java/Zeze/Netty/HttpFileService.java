@@ -25,8 +25,10 @@ import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.AsciiString;
 import org.jetbrains.annotations.NotNull;
 
-// HttpExchange静态文件服务的实现体（sendFile/sendPath的委托目标，从HttpExchange拆出）：
-// 条件请求（If-Modified-Since/Range）、缓存头、零拷贝FileRegion、目录列表。仅包内使用。
+/**
+ * HttpExchange静态文件服务的实现体（sendFile/sendPath的委托目标，从HttpExchange拆出）：
+ * 条件请求（If-Modified-Since/Range）、缓存头、零拷贝FileRegion、目录列表。仅包内使用。
+ */
 final class HttpFileService {
 	private HttpFileService() {
 	}
@@ -133,7 +135,7 @@ final class HttpFileService {
 				headers.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 			if (partial) // Content-Range只属于206/416，200不带
 				headers.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + to + '/' + fsize);
-			x.writeResponse(res, false, x.context.voidPromise()); // N①：响应头经序化器（挂起时FileRegion同队保序）
+			x.writeResponse(res, false, x.context.voidPromise()); // 响应头经序化器（挂起时FileRegion同队保序）
 
 			ChannelFuture lastFuture;
 			if (contentLen > 0 && !HttpMethod.HEAD.equals(req.method())) {

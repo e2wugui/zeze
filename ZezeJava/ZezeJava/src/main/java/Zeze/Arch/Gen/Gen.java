@@ -28,6 +28,9 @@ import Zeze.Util.Action4;
 import Zeze.Util.StringBuilderCs;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * redirect 生成器的编解码源码片段生成：内置类型序列化器表、容器/Bean 形参与结果字段的 encode/decode 生成。
+ */
 final class Gen {
 	static final Gen instance = new Gen();
 
@@ -232,7 +235,7 @@ final class Gen {
 		return klass;
 	}
 
-	// FND8-83：形参/结果字段的编解码资格校验，encode/decode两侧共用；容器元素不满足
+	// 形参/结果字段的编解码资格校验，encode/decode两侧共用；容器元素不满足
 	// Zeze编码谓词时走Java序列化兜底（元素须java.io.Serializable），统一在生成期拒绝。
 	private void checkGenElement(@NotNull AnnotatedElement e, @NotNull Class<?> cls, @NotNull Type type,
 	                             boolean isField) {
@@ -245,7 +248,7 @@ final class Gen {
 				if (!isField)
 					throw new UnsupportedOperationException("redirect param unsupported: abstract Zeze Serialize type "
 							+ cls.getName() + " (use Zeze.Transaction.Bean/Data static type for polymorphism), " + where);
-				// FND8-84 T1：抽象Serializable结果字段原位decode，未初始化即NPE且无法兜底，
+				// 抽象Serializable结果字段原位decode，未初始化即NPE且无法兜底，
 				// 探测初始化器，未初始化生成期拒绝。
 				if (!isFieldInitializerPresent(e))
 					throw new UnsupportedOperationException("redirect result field unsupported: abstract Zeze "
@@ -356,8 +359,8 @@ final class Gen {
 			return;
 		}
 		if (Serializable.class.isAssignableFrom(type)) {
-			// FND8-82：decode按typeId经工厂反建，encode必须对称先写typeId（原先Data漏写，
-			// decode把编码体首字节当typeId消费，乱流或误导性异常）。
+			// decode按typeId经工厂反建，encode必须对称先写typeId（Data漏写时decode把编码体
+			// 首字节当typeId消费，乱流或误导性异常）。
 			if (type == Bean.class || type == Data.class)
 				sb.appendLine("{}{}.WriteLong({}.typeId());", prefix, bbName, varName);
 			sb.appendLine("{}{}.encode({});", prefix, varName, bbName);
@@ -420,7 +423,7 @@ final class Gen {
 		}
 		if (Serializable.class.isAssignableFrom(type)) {
 			// beanFactory符号按"模块类父类链自带可访问静态beanFactory"惯例解析（IModule无
-			// 此契约），生成期由GenModule.checkBeanFactorySymbol校验（FND8-85）。
+			// 此契约），生成期由GenModule.checkBeanFactorySymbol校验。
 			if (type == Bean.class)
 				sb.appendLine("{}{} = beanFactory.createBeanFromSpecialTypeId({}.ReadLong());", prefix, varName, bbName);
 			else if (type == Data.class)
@@ -439,7 +442,7 @@ final class Gen {
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
 								getCollectionType(type).getTypeName().replace('$', '.'));
 					else {
-						// FND8-84：抽象集合字段已初始化则保留用户实现，未初始化判空后new兜底。
+						// 抽象集合字段已初始化则保留用户实现，未初始化判空后new兜底。
 						sb.appendLine("{}if ({} == null)", prefix, varName);
 						sb.appendLine("{}    {} = new {}<>();", prefix, varName,
 								getCollectionType(type).getTypeName().replace('$', '.'));
@@ -471,7 +474,7 @@ final class Gen {
 						sb.appendLine("{}{} = new {}<>();", prefix, varName,
 								getMapType(type).getTypeName().replace('$', '.'));
 					else {
-						// FND8-84：同集合分支，判空后new兜底。
+						// 同集合分支，判空后new兜底。
 						sb.appendLine("{}if ({} == null)", prefix, varName);
 						sb.appendLine("{}    {} = new {}<>();", prefix, varName,
 								getMapType(type).getTypeName().replace('$', '.'));

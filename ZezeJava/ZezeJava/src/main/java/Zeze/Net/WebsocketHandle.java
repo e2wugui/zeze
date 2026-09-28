@@ -11,6 +11,9 @@ import io.netty.buffer.ByteBuf;
 import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 
+/**
+ * websocket 路径处理器：把 HTTP 升级连接包装为 Websocket 会话并接入 Service。
+ */
 public class WebsocketHandle implements HttpWebSocketHandle {
 	private final String path;
 	private Zeze.Netty.HttpServer httpServer;
@@ -43,7 +46,7 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 		var websocket = new Websocket(x, service);
 		if (null != websockets.putIfAbsent(x, websocket))
 			throw new IllegalStateException("duplicate onOpen for a HttpExchange.");
-		// FND8-55：统一走Service.tryAccept（限流+注册+握手完成），websocket接受路径不再
+		// 统一走Service.tryAccept（限流+注册+握手完成），websocket接受路径不再
 		// 游离于maxConnections之外。超限显式关闭返回（不依赖Netty异常兜底——websockets表
 		// 清理走onClose级联，链路迂回）；撞号（addSocket false，连接已被关闭）不再回调
 		// OnHandshakeDone。

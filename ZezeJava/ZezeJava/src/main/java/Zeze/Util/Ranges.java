@@ -3,6 +3,7 @@ package Zeze.Util;
 import java.util.ArrayList;
 import org.jetbrains.annotations.NotNull;
 
+// 整数区间集合（内部半开 [first,last)，字符串形如 "1-5,7"），支持包含与冲突检查
 public final class Ranges {
 	public static final class Range {
 		private final int first; // [first, last)
@@ -33,7 +34,7 @@ public final class Ranges {
 				return String.valueOf(first);
 			}
 			// 打印闭端点（last-1）与解析对称（解析按闭区间 +1 转半开），
-			// 保证 parse(toString(r)) == r，往返不漂移（FND3-17）。
+			// 保证 parse(toString(r)) == r，往返不漂移。
 			return first + "-" + (last - 1);
 		}
 
@@ -78,8 +79,7 @@ public final class Ranges {
 	}
 
 	public boolean include(@NotNull Ranges rs) {
-		// 全包含语义（rs ⊆ this），与assertInclude(Ranges)一致；
-		// 修复前的"任一命中即真"与assert族对同一输入给出相反答案（FND8-09）。
+		// 全包含语义（rs ⊆ this），与assertInclude(Ranges)一致，而非"任一命中即真"。
 		for (Range r : rs.ranges) {
 			if (!include(r))
 				return false;
@@ -109,8 +109,8 @@ public final class Ranges {
 		assertInclude(new Range(type, type + 1));
 	}
 
-	// 逗号分隔的闭区间串，与构造解析同构：parse(toString(rs)) == rs（FND3-17），
-	// 同时让 checkAdd/assertInclude 的冲突消息可读（原为 Object 默认的 类名@hash）。
+	// 逗号分隔的闭区间串，与构造解析同构：parse(toString(rs)) == rs，
+	// 同时让 checkAdd/assertInclude 的冲突消息可读。
 	@Override
 	public @NotNull String toString() {
 		var sb = new StringBuilder();

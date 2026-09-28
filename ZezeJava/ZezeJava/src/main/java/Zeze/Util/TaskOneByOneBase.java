@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// one-by-one 队列引擎抽象基类：按 key 取桶队列（getAndLockQueue）、屏障与批量聚合提交，旧 Execute 委托 TaskSpec
 public abstract class TaskOneByOneBase extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneBase.class);
 

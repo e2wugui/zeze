@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+// 三维格子坐标（x,y,z），可比较、可哈希
 public class CubeIndex implements Comparable<CubeIndex> {
 	private long x;
 	private long y;

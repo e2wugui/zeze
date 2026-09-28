@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 存储过程：封装业务动作在事务中的嵌套执行（保存点、提交/回滚与结果码），是事务的业务入口。 */
 public class Procedure {
 	public static final long Success = 0;
 	public static final long Exception = -1;
@@ -75,7 +76,6 @@ public class Procedure {
 	private final @NotNull TransactionLevel level;
 	private @Nullable FuncLong action;
 	private final @NotNull String actionName;
-	// public Runnable runWhileCommit;
 
 	// 用于继承方式实现 Procedure。
 	public Procedure(@NotNull Application app) {
@@ -156,11 +156,6 @@ public class Procedure {
 		currentT.begin();
 		currentT.getProcedureStack().add(this);
 		try {
-//			var r = runWhileCommit;
-//			if (r != null) {
-//				runWhileCommit = null;
-//				currentT.runWhileCommit(r);
-//			}
 			result = process();
 			currentT.verifyRunning(); // 防止应用抓住了异常，通过return方式返回。
 

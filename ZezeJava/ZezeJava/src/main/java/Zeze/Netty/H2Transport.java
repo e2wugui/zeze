@@ -122,7 +122,7 @@ public final class H2Transport {
 				// 顺序关键：必须先拆h1件再装h2栈——frameCodec的handlerAdded会同步写出服务器
 				// SETTINGS（附CLOSE_ON_FAILURE），若写路径上还残留h1件（HttpResponseEncoder等），
 				// 该原始ByteBuf写会同步失败，CLOSE_ON_FAILURE级联关闭整条连接（prior-knowledge
-				// 握手必死，复现器实证）。先拆后装后写路径干净[marker→head]，握手正常。
+				// 握手必死）。先拆后装后写路径干净[marker→head]，握手正常。
 				pipeline.remove(HttpResponseEncoder.class); // 匿名子类按类型匹配
 				pipeline.remove(HttpRequestDecoder.class);
 				pipeline.remove(server);

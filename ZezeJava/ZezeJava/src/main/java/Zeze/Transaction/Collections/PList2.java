@@ -92,10 +92,10 @@ public class PList2<V extends Bean> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
-			// FND7-06（FND6-02"先验后挂"判例的越界维度）：initRootInfoWithRedo直接改写bean归属
-			// 且不受事务回滚保护，越界IOOBE必须在挂接前抛出（TreePVector.get/with的检查在
-			// listLog.set内、挂接之后），否则调用方catch后复用bean携带脏归属——复用抛
-			// HasManagedException，原位字段修改的日志被encode期静默丢弃。
+			// initRootInfoWithRedo直接改写bean归属且不受事务回滚保护，越界IOOBE必须在挂接前
+			// 抛出（TreePVector.get/with的检查在listLog.set内、挂接之后），否则调用方catch后
+			// 复用bean携带脏归属——复用抛HasManagedException，原位字段修改的日志被encode期
+			// 静默丢弃。
 			var cur = getList();
 			if (index < 0 || index >= cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
@@ -116,7 +116,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
-			// FND7-06：同set，先验界（add合法域0<=index<=size）后挂接，越界IOOBE不得
+			// 同set，先验界（add合法域0<=index<=size）后挂接，越界IOOBE不得
 			// 留下携带脏归属的bean。
 			var cur = getList();
 			if (index < 0 || index > cur.size())
@@ -148,11 +148,11 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (items instanceof PList2)
 			items = ((PList2<? extends V>)items).getList(); // more stable
 		if (isManaged()) {
-			// 双循环（对齐PList1.addAll"先全量校验、后入日志"）：原单循环"边验边改"，靠后null
-			// 抛出时靠前item的initRootInfoWithRedo已改写——普通字段写不受事务回滚保护，
+			// 双循环（对齐PList1.addAll"先全量校验、后入日志"）：单循环"边验边改"时，靠后null
+			// 抛出前靠前item的initRootInfoWithRedo已改写——普通字段写不受事务回滚保护，
 			// 调用方catch后复用bean即携带脏归属。
 			for (V v : items) {
-				if (v == null) // FND6-02：对齐非托管分支与add/PList1，原在initRootInfoWithRedo解引用NPE
+				if (v == null) // 对齐非托管分支与add/PList1：null在initRootInfoWithRedo处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null item");
 			}
 			for (V v : items)
@@ -178,7 +178,7 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.removeAll((Collection<? extends V>)c);
 		}
-		// FND4-08/FND5-05：minusAll同为"逐元素删首个出现"，自实现契约语义（删全部出现），
+		// minusAll同为"逐元素删首个出现"，自实现契约语义（删全部出现），
 		// 与托管路径（LogList2继承LogList1的removeAll）行为对齐；从高索引往低删保持非命中元素顺序。
 		// 命中检测走线性equals：生成bean覆写equals但不覆写hashCode（值等哈希不等），HashSet漏命中。
 		var hit = new ArrayList<>(c);
@@ -199,13 +199,13 @@ public class PList2<V extends Bean> extends PList<V> {
 		var tmpList = new ArrayList<V>(size());
 		if (isManaged()) {
 			// 双循环（对齐PList1.replaceAll"先全量求值校验、后入日志"）：operator只应用一次；
-			// 原单循环"边验边改"，靠后null抛ISE时靠前newV的initRootInfoWithRedo已改写——
+			// 单循环"边验边改"时，靠后null抛ISE前靠前newV的initRootInfoWithRedo已改写——
 			// 普通字段写不受事务回滚保护，调用方catch后复用bean即携带脏归属。
 			// origin快照只取一次，保证两轮循环元素配对（operator若改容器也不失配）。
 			var origin = getList();
 			for (V v : origin) {
 				V newV = operator.apply(v);
-				if (newV == null) // FND6-02：对齐非托管分支，原null在initRootInfoWithRedo或日志路径解引用NPE
+				if (newV == null) // 对齐非托管分支：null在initRootInfoWithRedo或日志路径解引用NPE，先验拒绝
 					throw new IllegalStateException("null item");
 				tmpList.add(newV);
 			}
@@ -275,7 +275,7 @@ public class PList2<V extends Bean> extends PList<V> {
 			// 正常重放下index必在界内（LogList2.encode只保留最终列表中存在的bean并按最终列表计算index），
 			// 越界只能是先行分歧（日志丢失/重复/交错应用）：直接get抛IndexOutOfBoundsException，
 			// 由驱动方裁决——raft路径Rocks.followerApply统一catch+fatalKill（镜像实现CollList2同款）；
-			// History回放路径批中断（不再warn+skip尽力而为）。抛出只证明应用路径无硬分歧，
+				// History回放路径批中断而非warn+skip尽力而为。抛出只证明应用路径无硬分歧，
 			// 不证明最终数值一致：错位应用（stale index落在界内指向错误元素）不抛异常、
 			// 历史缺失不抛异常，仍由Verify.verifyAndClear全量对账兜底。抛出时list未提交，容器保持原状。
 			tmp.get(e.getValue().value).followerApply(e.getKey());

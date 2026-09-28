@@ -87,6 +87,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Game 版角色在线模块（Arch.Online 的孪生实现，差异在各锚点注释标注）：维护角色两级在线状态、
+ * 本地登录数据、可靠通知、transmit 分发与多 OnlineSet，并按 link 分组向客户端发送协议。
+ */
 public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory {
 	protected static final @NotNull Logger logger = LogManager.getLogger(Online.class);
 	protected static final BeanFactory beanFactory = new BeanFactory();
@@ -107,7 +111,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
 	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
 
-	// FND-G1-8：this::方法引用每次求值都产生新实例，而 ConcurrentHashSet（键=元素自身）按实例判等，
+	// this::方法引用每次求值都产生新实例，而 ConcurrentHashSet（键=元素自身）按实例判等，
 	// 直接 add/remove 会导致 stopEvents 重复登记无界增长、remove 永远失败。
 	// 固定为实例字段只求值一次：同一 Online 的登记幂等，注销真正生效。
 	private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
@@ -115,10 +119,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private static final long LOCAL_CHECK_PERIOD = 600 * 1000; // 检查间隔
 	// 周期守护：verifyLocal(walk+批事务)进worker池不占调度线程；stop有界等待在飞一轮，
-	// 链复活口由组件关门封死。周期经setLocalCheckPeriod调整，下一次续约生效（对齐旧自续链）
+	// 链复活口由组件关门封死。周期经setLocalCheckPeriod调整，下一次续约生效。
 	private final DaemonTimer verifyLocalDaemon = new DaemonTimer("Game.Online.verifyLocal", LOCAL_CHECK_PERIOD, this::verifyLocal);
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
-	// P3配置不变式告警一次性开关：OnlineLogoutDelay >= localActiveTimeout 时verifyLocal可能在
+	// 配置不变式告警一次性开关：OnlineLogoutDelay >= localActiveTimeout 时verifyLocal可能在
 	// 重连宽限窗口内提前登出（见start处的校验），重复start不重复告警。
 	private final AtomicBoolean logoutDelayConfigWarned = new AtomicBoolean();
 
@@ -172,7 +176,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	/**
-	 * FND-G1-8：向 hotModule 登记本 Online 的模块停止回调。
+	 * 向 hotModule 登记本 Online 的模块停止回调。
 	 * 必须复用字段 onHotModuleStopRef：this::onHotModuleStop 每次求值都是新实例，
 	 * ConcurrentHashSet（键=元素自身）按实例判等，直接 add 会随调用次数无界增长，
 	 * 且模块停止时同一回调被重复执行多次。
@@ -229,7 +233,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private void saveRetreats(@NotNull ArrayList<Retreat> retreats) {
 		// 【注意，这里不使用 Task.call or run，因为这个在热更流程中调用，避免去使用hotGuard。】
 		// 确认事务可以在更新流程中可以使用。
-		// 也许更优化的方法是为这个更新实现一个不是事务的版本。
 		var rc = providerApp.zeze.newProcedure(() -> {
 			for (var r : retreats) {
 				// stale-local角色（LoginVersion落后于shared，角色已在别服重登，残留待verifyLocal
@@ -244,8 +247,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			}
 			return 0;
 		}, "saveRetreats").call();
-		// FND5-43同口径续清：rc!=0时整批回滚（stale-local跳过也已回滚）无人感知曾是被忽略点，
-		// 热更重登路径会重新save，这里记error可观测即可。
+		// rc!=0时整批回滚（stale-local跳过也已回滚）须可观测，
+		// 热更重登路径会重新save，这里记error即可。
 		if (rc != 0)
 			logger.error("saveRetreats failed: rc={}, count={}", rc, retreats.size());
 	}
@@ -356,7 +359,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public void start() {
-		// P3配置不变式：tryRemoveLocal对eLinkBroken残留重走tryLogout的"不误清"论证仅对
+		// 配置不变式：tryRemoveLocal对eLinkBroken残留重走tryLogout的"不误清"论证仅对
 		// OnlineLogoutDelay < localActiveTimeout成立（默认60s<600s）。若运维把延迟登出配得
 		// 不小于不活跃门槛，verifyLocal会切进延迟登出的重连宽限窗口强制登出可恢复的会话。
 		var logoutDelay = providerApp.zeze.getConfig().getOnlineLogoutDelay();
@@ -381,7 +384,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	/**
-	 * FND-G1-8：注册/注销必须复用同一 tryRecordHotModuleRef（this::每次求值都是新实例，
+	 * 注册/注销必须复用同一 tryRecordHotModuleRef（this::每次求值都是新实例，
 	 * ConcurrentHashSet 按实例判等，remove 新实例永远失败）。
 	 * 提取为方法保证 start/stop 两侧对称。
 	 */
@@ -394,7 +397,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private boolean processOffline(Long roleId, @NotNull BLocal local, boolean serverStart) {
-		// FND5-43：清理事务失败静默（startAfter重启清stale/stopBefore停机清理逐角色路径），
+		// 清理事务失败静默（startAfter重启清stale/stopBefore停机清理逐角色路径），
 		// rc记error含roleId——verifyLocal路径可下轮自愈，重启路径依赖下次重启；不引入重试。
 		var rc = providerApp.zeze.newProcedure(() -> procedureOffline(roleId, local, serverStart), "procedureOffline").call();
 		if (rc != 0)
@@ -435,7 +438,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// for shorter use
 		logger.info("processOffline({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}",
 				multiInstanceName, account, roleId, linkName, linkSid, ret);
-		if (ret != 0) // FND5-41：与removeLocalAndTrigger对齐——失败码外传整体回滚，不推进登出状态机。
+		if (ret != 0) // 与removeLocalAndTrigger对齐——失败码外传整体回滚，不推进登出状态机。
 			return ret;
 
 		// see tryLogout
@@ -715,7 +718,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	private long removeLocalAndTrigger(long roleId, boolean notVerifyCount) throws Exception {
 		var arg = new LocalRemoveEventArgument(roleId, _tlocal.get(roleId));
-		// local 没有数据不触发事件？
 		if (arg.local != null) {
 			_tlocal.remove(roleId); // remove first
 			if (!notVerifyCount)
@@ -796,13 +798,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			return ret;
 		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
 		Transaction.whileCommit(() -> logoutEvents.triggerThread(providerApp.zeze, this, arg, roleId));
-		// FND6-35：最终登出后ReliableNotify队列不再需要（重连同步随会话终结；同roleId重登
-		// 时Login路径本就clear重建）。原根行（空链）随曾登角色数永久残留（慢泄漏），顺带删根行。
+		// 最终登出后ReliableNotify队列不再需要（重连同步随会话终结；同roleId重登
+		// 时Login路径本就clear重建），根行（空链）随曾登角色数残留（慢泄漏），故删根行。
 		// 仅最终登出(LOGOUT)清理：重复登录流程中途以LOGIN/RE_LOGIN补登出时，随后的
 		// reliableNotifySync仍依赖存活队列补投未确认的notify，必须保持队列存活。
 		if (logoutReason == LogoutReason.LOGOUT) {
 			openQueue(roleId).remove();
-			// 自洽性（配套FND6-35）：_tOnline行（承载ReliableNotifyIndex/ConfirmIndex）无删除
+			// 自洽性：_tOnline行（承载ReliableNotifyIndex/ConfirmIndex）无删除
 			// 路径、最终登出后保留；若索引非零而队列根行已删，形成"非零索引+空后备队列"窗口
 			// （随后的ReLogin不重置索引，reliableNotifySync的range校验误判）。同事务清零消除。
 			var online = getOnline(roleId);
@@ -828,7 +830,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private long loginTrigger(@NotNull String account, long roleId) throws Exception {
 		// 计数非幂等，裸递增在redo（锁冲突整体重跑）下一次登录多计一次，
 		// 虚增LoadBase的onlineNew负载上报。挂whileCommit仅最终提交执行一次
-		// （Arch/Online同型FND7-31判例）。
+		// （与Arch/Online同型）。
 		Transaction.whileCommit(loginTimes::incrementAndGet);
 		var arg = new LoginArgument(this, account, roleId);
 		var ret = loginEvents.triggerEmbed(this, arg);
@@ -885,7 +887,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	/**
 	 * 通过 projectName 查找当前 JVM 内的默认 Online 实例。
 	 * 用于 Timer 持久化数据（如 BDelayLogoutCustom）在进程重启后恢复 Online 上下文，
-	 * 替代以前依赖 static Online defaultInstance 的方式。
+	 * 替代 static Online defaultInstance 的方式。
 	 */
 	public static @Nullable Online findOnline(@NotNull String projectName) {
 		var app = Application.getAppInstance(projectName);
@@ -944,14 +946,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// 幂等标记器契约（极简）：onSendError只做"当前link的首个失败报告"标记eLinkBroken，
 		// 不触发登出/事件/清理/调度，全部由既有驱动收敛：
 		//  - 登出：linkBroken的DelayLogout宽限timer；timer失败残留→verifyLocal的eLinkBroken
-		//    分支直接重走tryLogout（FND6-23，见tryRemoveLocal）
+		//    分支直接重走tryLogout（见tryRemoveLocal）
 		//  - 陈旧local（版本不匹配）：登出/重登链的logoutTrigger→tryRedirectRemoveLocal
-		//    主动驱动旧属主清理 + verifyLocal兜底（localActiveTimeout，默认600s）。原先
+		//    主动驱动旧属主清理 + verifyLocal兜底（localActiveTimeout，默认600s）。
 		//    sendError顺带的removeLocalAndTrigger只是加速器，非正确性依赖
 		// 状态守卫三态：eLogined才标记（首报告）；eLinkBroken跳过（重复报告幂等）；eOffline
 		// 跳过（迟到的错误报告不得把已登出状态机回退成eLinkBroken——回退会让verifyLocal对
 		// 其重走tryLogout造成重复logout事件）。
-		// 先查后建（FND4-51对齐Arch版判例）：善后路径不创建状态——原getOrAddOnlineShared
+		// 先查后建（对齐Arch版判例）：善后路径不创建状态——getOrAddOnlineShared
 		// 对已登出角色的迟到错误报告会创建空行并随事务提交残留。
 		var onlineShared = getOnlineShared(roleId);
 		if (onlineShared == null)
@@ -978,7 +980,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 		var local = _tlocal.get(roleId);
 		if (local == null) {
-			// FND5-24（Game同型，与Arch版一并裁定）：provider崩溃/重启后_tlocal（内存表）丢失，
+			// （Game同型，对齐Arch版）：provider崩溃/重启后_tlocal（内存表）丢失，
 			// 但_tOnlineShared行（BOnline.serverId=本机）仍归本机——直接早退让该角色永久
 			// eLogined幽灵在线（isOnline/getLogin误报，不重登则永存）。按serverId归属判定：
 			// 属本机推进eLinkBroken+延迟登出；非本机维持早退。
@@ -1022,7 +1024,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
 		logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}, delay={}",
 				multiInstanceName, account, roleId, linkName, linkSid, ret, delay);
-		if (ret != 0) // FND5-41：失败码外传整体回滚；不再调度DelayLogout（Arch版triggerLinkBroken判例，FND4-50）。
+		if (ret != 0) // 失败码外传整体回滚（对齐Arch版triggerLinkBroken判例），不再调度DelayLogout。
 			return ret;
 		zeze.getTimer().schedule(TimerSpec.ofDelay(delay).times(1), DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
 				multiInstanceName, zeze.getProjectName()));
@@ -1069,7 +1071,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	public <A extends Serializable, R extends Serializable> boolean sendOnlineRpc(
 			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs, boolean quietWhenAbsent) {
 		var service = providerApp.providerService;
-		// try remove. 只维护一个上下文。多次发送相同rpc会如此，这个应该最好报错。沿用老的逻辑吧。see Rpc.Send
+		// try remove. 只维护一个上下文。多次发送相同rpc会移除旧上下文。see Rpc.Send
 		service.removeRpcContext(rpc.getSessionId(), rpc);
 		rpc.setResponseHandle(responseHandle);
 		var sessionId = service.addRpcContext(rpc);
@@ -1194,15 +1196,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		OnlineSpec.ofAllOnline(this, roleIds).sendWhileRollback(p);
 	}
 
-//	public void send(long roleId, long typeId, Binary fullEncodedProtocol) {
-//		// 发送协议请求在另外的事务中执行。
-//		providerApp.zeze.getTaskOneByOneByKey().Execute(roleId,
-//				() -> Task.call(providerApp.zeze.newProcedure(() -> {
-//					sendEmbed(List.of(roleId), typeId, fullEncodedProtocol);
-//					return Procedure.Success;
-//				}, "Online.send")), DispatchMode.Normal);
-//	}
-
 	/**
 	 * @deprecated 使用 {@code OnlineSpec.ofRoles(online, roleIds).withContext().quietWhenAbsent(quietWhenAbsent)
 	 * 		.sendNow(typeId, fullEncodedProtocol)} 替代（立即语义与发送计数保持一致）。
@@ -1241,21 +1234,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		OnlineSpec.ofAllOnline(this, roleIds).send(typeId, fullEncodedProtocol);
 	}
 
-//	public void sendNoBarrier(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
-//		// 发送协议请求在另外的事务中执行。
-//		Task.run(providerApp.zeze.newProcedure(() -> {
-//			sendEmbed(roleIds, typeId, fullEncodedProtocol);
-//			return Procedure.Success;
-//		}, "Online.send"), null, null, DispatchMode.Normal);
-//	}
-
 	private long triggerLinkBroken(@NotNull String linkName, @NotNull LongList errorSids,
 								   @NotNull Map<Long, Long> context) {
 		errorSids.foreach(linkSid -> {
 			var roleId = context.get(linkSid);
 			// 补发的linkBroken没有account上下文。
-			// FND5-43同口径：rc记error（失败时onSendError的清理未生效，断链残留待
-			// CheckLinkSession/verifyLocal路径自愈）。
+			// rc记error（失败时onSendError的清理未生效，断链残留待CheckLinkSession/verifyLocal路径自愈）。
 			var rc = roleId != null
 					? providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, linkSid),
 					"Online.triggerLinkBroken").call()
@@ -1301,33 +1285,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		send.Argument.getLinkSids().add(linkSid);
 		return send(link, roleId != null ? Map.of(linkSid, roleId) : Map.of(), send);
 	}
-
-	//	public void send(Collection<Long> keys, AsyncSocket to, Map<Long, Long> contexts, Send send) {
-//		if (keys.size() > 1) {
-//			send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
-//					send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
-//		} else {
-//			//noinspection CodeBlock2Expr
-//			providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(keys, "sendOneByOne", () -> {
-//				send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
-//						send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
-//			}, null, DispatchMode.Normal);
-//		}
-//	}
-
-//	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
-//		var groups = groupByLink(roleIds);
-//		Transaction.whileCommit(() -> {
-//			for (var group : groups) {
-//				if (group.linkSocket == null)
-//					continue; // skip not online
-//
-//				var send = new Send(new Zeze.Arch.Beans.BSend(typeId, fullEncodedProtocol));
-//				send.Argument.getLinkSids().addAll(group.roles.values());
-//				send(group.linkSocket, group.contexts, send);
-//			}
-//		});
-//	}
 
 	public static final class LinkRoles {
 		final @NotNull String linkName;
@@ -1460,7 +1417,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			logger.warn("sendDirect({}): not found connector for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+			// rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
 			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 				var rc = onSendError("", roleId, linkName, link.getLinkSid());
 				if (rc != 0)
@@ -1474,7 +1431,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			logger.warn("sendDirect({}): not isHandshakeDone for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+			// rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
 			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 				var rc = onSendError("", roleId, linkName, link.getLinkSid());
 				if (rc != 0)
@@ -1490,7 +1447,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			logger.warn("sendDirect({}): closed connector for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+			// rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
 			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 				var rc = onSendError("", roleId, linkName, link.getLinkSid());
 				if (rc != 0)
@@ -1507,7 +1464,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
 				// 补发的linkBroken没有account上下文
-				// FND5-43同口径：rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
+				// rc记error（失败清理待CheckLinkSession/verifyLocal自愈）。
 				var rc = providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, linkSid),
 						"Online.triggerLinkBroken1").call();
 				if (rc != 0)
@@ -1517,54 +1474,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			return Procedure.Success;
 		});
 	}
-
-//	public static final class RoleOnLink {
-//		String linkName = "";
-//		AsyncSocket linkSocket;
-//		// long providerSessionId;
-//		final HashMap<Long, Long> roles = new HashMap<>(); // roleid -> linksid
-//		final HashMap<Long, Long> contexts = new HashMap<>(); // linksid -> roleid
-//	}
-//
-//	public Collection<RoleOnLink> groupByLink(Iterable<Long> roleIds) {
-//		var groups = new HashMap<String, RoleOnLink>();
-//		var groupNotOnline = new RoleOnLink(); // LinkName is Empty And Socket is null.
-//		groups.put(groupNotOnline.linkName, groupNotOnline);
-//
-//		for (var roleId : roleIds) {
-//			var online = _tonline.get(roleId);
-//			if (online == null) {
-//				groupNotOnline.roles.putIfAbsent(roleId, null);
-//				logger.info("groupByLink: not found roleId={} in _tonline", roleId);
-//				continue;
-//			}
-//
-//			var linkName = online.getLink().getLinkName();
-//			var connector = providerApp.providerService.getLinks().get(linkName);
-//			if (connector == null) {
-//				logger.warn("groupByLink: not found connector for linkName={} roleId={}", linkName, roleId);
-//				groupNotOnline.roles.putIfAbsent(roleId, null);
-//				continue;
-//			}
-//			if (!connector.isHandshakeDone()) {
-//				logger.warn("groupByLink: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
-//				groupNotOnline.roles.putIfAbsent(roleId, null);
-//				continue;
-//			}
-//			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
-//			var group = groups.get(linkName);
-//			if (group == null) {
-//				group = new RoleOnLink();
-//				group.linkName = linkName;
-//				group.linkSocket = connector.getSocket();
-//				groups.put(group.linkName, group);
-//			}
-//			var linkSid = online.getLink().getLinkSid();
-//			group.roles.putIfAbsent(roleId, linkSid);
-//			group.contexts.putIfAbsent(linkSid, roleId);
-//		}
-//		return groups.values();
-//	}
 
 	public void addReliableNotifyMark(long roleId, @NotNull String listenerName) {
 		var online = getLoginOnline(roleId);
@@ -1639,7 +1548,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 							AsyncSocket.log("Send", roleId + ":" + listenerName, notify);
 						sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()), quietWhenAbsent);
 					});
-//			sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.encode()));
 					return Procedure.Success;
 				});
 	}
@@ -1669,7 +1577,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : roleIds) {
-				// FND5-43同口径：rc记error（转发动作失败仅本角色受影响，不影响后续target）。
+				// rc记error（转发动作失败仅本角色受影响，不影响后续target）。
 				var rc = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> handle.call(sender, target, parameter),
 						"Online.transmit: " + actionName)).call();
 				if (rc != 0)
@@ -1677,8 +1585,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 							actionName, sender, target, rc);
 			}
 		} else {
-			// FND8-77：远程目标服未注册该action（滚动升级版本偏斜/各OnlineSet注册不对称）时
-			// 曾静默丢弃——本源以为已路由、目标端无痕迹。对齐同handler未知onlineSetName先例
+			// 远程目标服未注册该action（滚动升级版本偏斜/各OnlineSet注册不对称）时
+			// 不得静默丢弃——否则本源以为已路由、目标端无痕迹。对齐同handler未知onlineSetName先例
 			// 记error（Transmit为单向Protocol无错误码通道，抛异常在Task兜底下无增益）。
 			// roles可能是批量广播目标，按size计数+截断采样防日志洪水。
 			var sample = new ArrayList<Long>();
@@ -1768,7 +1676,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				transmit.Argument.setParameter(parameter);
 			var ps = providerApp.providerDirectService.providerByServerId.get(group.serverId);
 			if (ps == null) {
-				// direct路由缺失：降级为本机执行（FND4-84）——transmit契约是"在目标服
+				// direct路由缺失：降级为本机执行——transmit契约是"在目标服
 				// 上下文执行"，依赖目标服local数据的action行为可能错误。等待/重试/显式失败
 				// 属产品决策，本处至少warn使降级可观测（不再静默）。
 				logger.warn("transmitEmbed: provider direct route missing, degrade to local. serverId={}, action={}, roles={}",
@@ -1780,7 +1688,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			}
 			var socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
 			if (socket == null) {
-				// direct连接未就绪：同上（FND4-84），降级必须可观测。
+				// direct连接未就绪：同上，降级必须可观测。
 				logger.warn("transmitEmbed: provider direct socket not ready, degrade to local. serverId={}, action={}, roles={}",
 						group.serverId, actionName, group.roles);
 				if (groupLocal == null)
@@ -1885,7 +1793,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time, boolean onlySameVersion) {
-//		TaskCompletionSource<Long> future = null;
 		ZezeCounter.instance.addSendSize(typeId, fullEncodedProtocol.size()); // 内层协议在包装点归因
 		var broadcast = new Broadcast(new BBroadcast.Data(typeId, fullEncodedProtocol, time, onlySameVersion));
 		var pdata = broadcast.encode();
@@ -1894,12 +1801,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			// 单次读取再判空使用：两次独立getSocket()在Connector.stop置空socket的窗口内TOCTOU NPE。
 			var so = link.getSocket();
 			if (so != null && so.Send(pdata)) {
-				ZezeCounter.instance.addSendSize(Broadcast.TypeId_, pdata.size()); // wrapper归因，对齐旧TcpSocket流解析计数
+				ZezeCounter.instance.addSendSize(Broadcast.TypeId_, pdata.size()); // wrapper归因
 				sendCount++;
 			}
 		}
 //		if (future != null)
-//			future.await();
 		return sendCount;
 	}
 
@@ -1950,7 +1856,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		void perform() {
 			if (!roleIds.isEmpty()) {
 				try {
-					// FND5-43+FND6-23（对齐Arch VerifyBatch）：批内tryRemoveLocal的rc必须传播——
+					// 批内tryRemoveLocal的rc必须传播（对齐Arch VerifyBatch）——
 					// 否则eLinkBroken分支tryLogout的半程失败（eOffline已写、事件被跳过）会随批提交，
 					// 下轮verifyLocal的state守卫判为已登出→空洞成功。rc!=0整批回滚并记error
 					//（探测照发，失败账号由CheckLinkSession应答路径继续驱动verify）。
@@ -1999,7 +1905,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				|| onlineShared.getLoginVersion() != local.getLoginVersion())
 			return removeLocalAndTrigger(roleId, notVerifyCount);
 		if (onlineShared.getLink().getState() == eLinkBroken) {
-			// FND6-23/P2#3（镜像Arch）：eLinkBroken残留（DelayLogout失败回滚后无人驱动）在此收敛——
+			// eLinkBroken残留（DelayLogout失败回滚后无人驱动，镜像Arch）在此收敛——
 			// 重走tryLogout全链（state+版本双守卫内建：延迟期间同roleId重登则no-op）。verifyLocal的
 			// 入选门槛（localActiveTimeout，默认600s）需远超OnlineLogoutDelay（默认60s）才不会误清
 			// 延迟窗口内的可恢复会话（见start处的配置告警）。
@@ -2017,7 +1923,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			// 能收到redirect的肯定是defaultOnline，这里为了保险期间和代码更清楚，直接使用defaultOnline。
 			var onlineSet = defaultOnline.getOnline(instanceName);
 			if (onlineSet != null) {
-				// FND5-43同口径：rc记error（失败时目标服的local行残留，待其verifyLocal周期自愈）。
+				// rc记error（失败时目标服的local行残留，待其verifyLocal周期自愈）。
 				var rc = providerApp.zeze.newProcedure(() -> onlineSet.tryRemoveLocal(roleId, false),
 						"Online.redirectRemoveLocal").call();
 				if (rc != 0)
@@ -2127,7 +2033,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
-			//setUserState.Argument.getUserState().setLoginVersion(loginVersion);
 			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
 			setUserState.Argument.getUserState().setContext(String.valueOf(roleId));
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
@@ -2139,7 +2044,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		online.setReliableNotifyConfirmIndex(0);
 		online.setReliableNotifyIndex(0);
 
-		// var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
 		online.setServerId(providerApp.zeze.getConfig().getServerId());
 
 		// Login的结果先提交进事务，然后再触发loginTrigger，这样loginTrigger中发送的协议排在后面。
@@ -2226,7 +2130,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
-			//setUserState.Argument.getUserState().setLoginVersion(loginVersion);
 			setUserState.Argument.getUserState().setOnlineSetName(multiInstanceName);
 			setUserState.Argument.getUserState().setContext(String.valueOf(roleId));
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
@@ -2263,14 +2166,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (session.getRoleId() == null)
 			return errorCode(ResultCodeNotLogin);
 
-		// FND8-75（孪生）：失败码外传整体回滚（对齐Arch版判例），且respond移到判定之后——
+		// 失败码外传整体回滚（孪生，对齐Arch版），且respond移到判定之后——
 		// 失败回滚时不再发出成功应答（Rpc失败由框架trySendResultCode回发错误码）。
 		var ret = localLogout(session.getRoleId(), rpc.getSender(), session.getLinkSid());
 		if (ret != 0)
 			return ret;
 		session.respond(rpc);
 		// 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
-		// App.Load.LogoutCount.IncrementAndGet();
 		return Procedure.Success;
 	}
 
@@ -2288,7 +2190,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private long localLogout(long roleId, AsyncSocket link, long linkSid) throws Exception {
 		if (null == link)
 			return Procedure.LogicError;
-		//var local = _tlocal.get(session.getRoleId());
 		var onlineShared = getLoginOnlineShared(roleId);
 		if (onlineShared != null) {
 			if (assignLogoutVersion(onlineShared)) {
@@ -2333,7 +2234,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			});
 			session.respond(notify);
 		}
-		//online.getReliableNotifyQueue().RemoveRange(0, confirmCount);
 		online.setReliableNotifyConfirmIndex(index);
 		return ResultCodeSuccess;
 	}
@@ -2370,7 +2270,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	/**
 	 * 动态绑定模块。返回值语义：true 表示 login online 存在且已登记"提交后发送Bind"；
-	 * Bind是否实际送达以linkd侧为准（FND5-25）——whileCommit在事务提交后才执行，
+	 * Bind是否实际送达以linkd侧为准——whileCommit在事务提交后才执行，
 	 * 同步返回值无法承载实际发送结果，link socket缺失或同步发送失败仅记warn，
 	 * 调用方不应据true判定送达成功。
 	 * 另：事务回滚时whileCommit不执行，Bind不会发出——true同样不覆盖该分支

@@ -14,6 +14,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * selector 事件循环线程：多路复用 IO 事件、执行排队任务并管理本地/全局 buffer 池。
+ */
 public class Selector extends Thread implements ByteBufferAllocator {
 	private static final @NotNull Logger logger = LogManager.getLogger(Selector.class);
 
@@ -33,11 +36,6 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	private long selectCount;
 	private boolean firstAction;
 	private volatile boolean running = true;
-
-//	public final AtomicLong wakeupCount0 = new AtomicLong();
-//	public final AtomicLong wakeupCount1 = new AtomicLong();
-//	public final AtomicLong wakeupTime = new AtomicLong();
-//	public long lastTime;
 
 	public Selector(@NotNull Selectors selectors, @NotNull String threadName) throws IOException {
 		super(threadName);
@@ -202,15 +200,11 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	public void wakeup() {
 		int selectTimeout = selectors.getSelectTimeout();
 		if (selectTimeout <= 0 && Thread.currentThread() != this && wakeupNotified.compareAndSet(0, 1)) {
-//			wakeupCount1.incrementAndGet();
-//			long t = System.nanoTime();
 			if (selectTimeout == 0)
 				selector.wakeup();
 			else
 				WakeupThread.postWakeup(selector);
-//			wakeupTime.addAndGet(System.nanoTime() - t);
-		}// else
-//			wakeupCount0.incrementAndGet();
+		}
 	}
 
 	/**
@@ -226,19 +220,8 @@ public class Selector extends Thread implements ByteBufferAllocator {
 
 	@Override
 	public void run() {
-//		lastTime = System.nanoTime();
 		int selectTimeout = Math.max(selectors.getSelectTimeout(), 0);
 		while (running) {
-//			var t = System.nanoTime();
-//			if (t - lastTime >= 1_000_000_000L) {
-//				long time = t - lastTime;
-//				lastTime = t;
-//				long count0 = wakeupCount0.getAndSet(0);
-//				long count1 = wakeupCount1.getAndSet(0);
-//				long wTime = wakeupTime.getAndSet(0);
-//				logger.info("wakeup: {}, {}, {} ns, {} ms", count0, count1, count1 > 0 ? wTime / count1 : -1,
-//						time / 1_000_000);
-//			}
 			try {
 				selectCount++;
 				// 如果在这个时间窗口 wakeup，下面的 select 会马上返回。wakeup 不会丢失。
@@ -276,7 +259,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 				}, selectTimeout);
 				for (Runnable r; (r = taskQueue.poll()) != null; )
 					r.run();
-			} catch (Throwable e) { // ??? 必须捕捉所有异常。
+			} catch (Throwable e) { // 必须捕捉所有异常。
 				logger.error("Selector.run exception:", e);
 			}
 		}

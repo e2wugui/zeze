@@ -94,7 +94,7 @@ public class Cache {
 			return; // 已close（幂等重入；并发下后到者退出）
 		this.db = null;
 		db.close(); // RocksDB.close 自身幂等，并发重复close无害
-		// 级联取消LRU构造器内建的两个周期任务（FND7-36）：只置null不清任务的话，
+		// 级联取消LRU构造器内建的两个周期任务：只置null不清任务的话，
 		// 任务仍每200ms/2s永续执行并强引用整个缓存对象图，"关闭"语义不成立。
 		var lru = this.lru;
 		this.lru = null;
@@ -120,7 +120,7 @@ public class Cache {
 			if (System.currentTimeMillis() - nullCache.CreateTime < 5 * 60 * 1000) // 5 minutes
 				return null; // null cache 不会写入RocksDb，短时间内就会允许再次尝试。
 
-			// remove and try load，下面的流程会浪费一次RocksDb的查询，先这样了。
+			// remove and try load，下面的流程会浪费一次RocksDb的查询。
 			lru.remove(id);
 		}
 
@@ -165,7 +165,7 @@ public class Cache {
 
 		var db = this.db;
 		if (db == null)
-			throw new IllegalStateException("cache is closed: " + name); // 入口检查后loader执行期间close可完成（FND8-08），写路径二次确认
+			throw new IllegalStateException("cache is closed: " + name); // 入口检查后loader执行期间close可完成，写路径二次确认
 
 		var bb = ByteBuffer.Allocate();
 		bb.WriteString(value.cacheId());
@@ -187,9 +187,9 @@ public class Cache {
 			if (closed)
 				throw new IllegalStateException("cache is closed: " + name); // close的置位同在此临界区：检查密闭，关后不再写流/重开流
 			if (todayDays != nowDays) {
-				// 第一次执行时如果nowDays等于0（todayDays的初始值），不会走到这里，这种情况不处理了。
+				// 第一次执行时如果nowDays等于0（todayDays的初始值），不会走到这里，这种情况不处理。
 				// 追加模式：同日重启（新实例todayDays初始0必进此分支）打开已存在的当天清单，
-				// 截断会把前次运行登记的条目清掉——这些key的RocksDb记录从此再没有退役记录（FND4-10）。
+				// 截断会把前次运行登记的条目清掉——这些key的RocksDb记录从此再没有退役记录。
 				var oldFile = todayFile;
 				todayFile = new FileOutputStream(Paths.get(name, "days_" + nowDays).toFile(), true);
 				todayDays = nowDays;
@@ -213,7 +213,7 @@ public class Cache {
 		if (files != null) {
 			for (var file : files) {
 				if (file.getName().startsWith(prefix)) {
-					// 单文件解析包try/catch（FND7-37）：days_前缀+非数字后缀的畸形文件（运维残留、
+					// 单文件解析包try/catch：days_前缀+非数字后缀的畸形文件（运维残留、
 					// 复制/崩溃半成品）会让parseLong抛NumberFormatException穿透整个循环——
 					// 毒文件位于delete之前永不会被删，次日起每天在同一文件上复发，排在它后面的
 					// 合法清单从此永远不被退役。跳过畸形文件继续处理其余清单。

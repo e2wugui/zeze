@@ -29,7 +29,7 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 		super("LogMap2:", headHash, keyClass, get, create);
 	}
 
-	// coll-01根治：GTable外层专用。家族头/name前缀由调用方提供（GTable1/GTable2各自常量，
+	// GTable外层专用。家族头/name前缀由调用方提供（GTable1/GTable2各自常量，
 	// 与PMap2的LogMap2命名空间分流），valueIdentity为完整列/值身份串。
 	Map2Meta(@NotNull String familyHead, long familyHeadHash, @NotNull String namePrefix,
 			 @NotNull Class<K> keyClass, @NotNull Class<V> valueClass,
@@ -80,9 +80,9 @@ public final class Map2Meta<K, V> extends Meta2<K, V> {
 	}
 
 	/**
-	 * GTable外层meta构造（coll-01根治）：valueClass是擦除的共享类（BeanMap1/BeanMap2.class），
+	 * GTable外层meta构造：valueClass是擦除的共享类（BeanMap1/BeanMap2.class），
 	 * 真实列/值类型活在闭包——logTypeId/name由valueIdentity完整身份参与，同keyClass不同
-	 * 列/值类型的GTable不再共享typeId（Log.register先到先得+解码端按typeId全局查表）。
+	 * 列/值类型的GTable不共享typeId（Log.register先到先得+解码端按typeId全局查表）。
 	 * 不进共享缓存，调用方按(row,col,val)自行缓存。wire兼容由调用方裁定（History无生产
 	 * 启用时可直接切换）。
 	 */

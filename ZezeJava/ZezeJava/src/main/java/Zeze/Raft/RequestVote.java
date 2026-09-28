@@ -3,6 +3,9 @@ package Zeze.Raft;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 
+/**
+ * Raft 选举投票 Rpc：候选者增加 term 并携带最后日志位置，请求多数派授予投票。
+ */
 final class RequestVote extends Rpc<BRequestVoteArgument, BRequestVoteResult> {
 	public static final int ProtocolId_ = Bean.hash32(RequestVote.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;

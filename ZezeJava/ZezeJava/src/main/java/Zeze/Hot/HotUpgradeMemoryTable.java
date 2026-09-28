@@ -5,6 +5,9 @@ import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Transaction.Table;
 import Zeze.Util.OutObject;
 
+/**
+ * 内存表热更迁移：把旧表数据逐行重解码进新表并禁用旧表，首键不兼容则整体中止。
+ */
 public class HotUpgradeMemoryTable {
 	private final Table old;
 	private final Table cur;
@@ -35,7 +38,6 @@ public class HotUpgradeMemoryTable {
 			v.encode(bbValue);
 			var newValue = cur.newValue();
 			newValue.decode(bbValue);
-			//logger.info("retreat: " + newKey + " " + newValue);
 			cur.__direct_put_cache__(newKey, newValue, GlobalCacheManagerConst.StateModify);
 			return true;
 		});

@@ -7,6 +7,9 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Vector4;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Vector4 落盘日志：序列化 vector4 字段的新值。
+ */
 public class LogVector4 extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<vector4>");
 

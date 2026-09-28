@@ -26,6 +26,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+/**
+ * 单个服务的配置：socket/握手选项、Acceptor/Connector/Websocket 集合与 XML 解析。
+ */
 public final class ServiceConf extends ReentrantLock {
 	private @Nullable Service service;
 	private final @NotNull String name;

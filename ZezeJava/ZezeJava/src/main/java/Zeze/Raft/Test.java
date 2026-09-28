@@ -41,6 +41,10 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import static Zeze.Util.Args.requireValue;
 
+/**
+ * Raft 集成测试：进程内模拟多节点集群，随机故障注入（重启网络/重启节点/清日志数据）下
+ * 验证计数一致性、选举恢复与 InstallSnapshot。
+ */
 public class Test {
 	private static final Logger logger = LogManager.getLogger(Test.class);
 
@@ -55,9 +59,9 @@ public class Test {
 
 	private static void logDump(String db, String raftName) throws IOException, RocksDBException {
 		RocksDB.loadLibrary();
-		// FND4-30：日志布局已改为共享 <DbHome>/db 库内的 <raftName>.logs 列族
-		// （LogSequence：database.getOrAddTable(raft.getName()+".logs")），原按 <DbHome>/logs
-		// 子目录 openReadOnly 必失败（目录不存在）。只读打开与生产路径同源。
+		// 日志布局为共享 <DbHome>/db 库内的 <raftName>.logs 列族
+		// （LogSequence：database.getOrAddTable(raft.getName()+".logs")），按 <DbHome>/logs
+		// 子目录 openReadOnly 会失败（目录不存在）。只读打开与生产路径同源。
 		var dbPath = Paths.get(db, "db").toString();
 		var cfds = RocksDatabase.getCfDescriptors(dbPath);
 		var cfhs = new ArrayList<org.rocksdb.ColumnFamilyHandle>(cfds.size());
@@ -272,19 +276,14 @@ public class Test {
 				var req = new AddCount();
 				req.setTimeout(3600_000);
 				tasks.add(agent.sendForWait(req));
-				// logger.debug("+++++++ {} new AddCount {}", i, req.getUnique().getRequestId());
 				requests.add(req);
 			} catch (Exception e) {
-				//发送错误不统计。ErrorsAdd(Procedure.ErrorSendFail);
+				//发送错误不统计。
 			}
-			//logger.Debug("+++++++++ REQUEST {0} {1}", stepName, requests[i]);
 		}
-		// int i = 0;
 		for (TaskCompletionSource<?> task : tasks) {
-			// logger.debug("+++++++ {} wait", i++);
 			task.await();
 		}
-		// logger.debug("+++++++ finish");
 		for (var request : requests) {
 			logger.debug("--------- RESPONSE {} {}", stepName, request);
 			if (request.isTimeout())
@@ -297,16 +296,6 @@ public class Test {
 
 	@SuppressWarnings("EmptyMethod")
 	private void setLogLevel(@SuppressWarnings("unused") Level level) {
-		// LogManager.GlobalThreshold = level;
-		/*
-		foreach (var rule in NLog.LogManager.Configuration.LoggingRules)
-		{
-		    //Console.WriteLine($"================ SetLoggingLevels {rule.RuleName}");
-		    rule.DisableLoggingForLevels(NLog.LogLevel.Trace, NLog.LogLevel.Fatal);
-		    rule.EnableLoggingForLevels(level, NLog.LogLevel.Fatal);
-		    //rule.SetLoggingLevels(level, NLog.LogLevel.Fatal);
-		}
-		*/
 	}
 
 	private void testConcurrent(String testName, int count) {
@@ -359,7 +348,7 @@ public class Test {
 		getLeader().restartNet();
 		testConcurrent("TestLeaderNodeRestartNet", 1);
 
-		// Leader节点重启网络，【选举】。
+		// Leader节点重启网络，触发选举。
 		logger.debug("Leader节点重启网络，【选举】");
 		{
 			var leader = getLeader();
@@ -550,7 +539,6 @@ public class Test {
 	private void randomTriggerFailActions() throws Exception {
 		while (running) {
 			var fa = failActions.get(Random.getInstance().nextInt(failActions.size()));
-			// for (var fa : FailActions)
 			{
 				logger.fatal("___________________________ {} _____________________________", fa.name);
 				try {
@@ -572,10 +560,6 @@ public class Test {
 						}
 					}
 					System.exit(-1);
-					/*
-					for (var raft : Rafts.Values)
-					    raft.StartRaft(); // error recover
-					// */
 				}
 				// 等待失败的节点恢复正常并且服务了一些请求。
 				// 由于一个follower失败时，请求处理是能持续进行的，这个等待可能不够。
@@ -697,7 +681,7 @@ public class Test {
 			return count;
 		}
 
-		// 日志输出用的观测计数（FND-R1-7：主源码不再instanceof本类取count）。
+		// 日志输出用的观测计数（主源码不instanceof本类取count）。
 		@Override
 		public long getDebugCount() {
 			return count;
@@ -728,7 +712,6 @@ public class Test {
 			public void apply(RaftLog holder, StateMachine stateMachine) {
 				TestStateMachine tsm = (TestStateMachine)stateMachine;
 				tsm.setCount(tsm.getCount() + 1);
-				// logger.info("--- Apply {}:{} to {}", stateMachine.getRaft().getName(), getUnique().getRequestId(), tsm.getCount());
 			}
 
 			@Override
@@ -816,12 +799,12 @@ public class Test {
 			return raftName;
 		}
 
-		// 【FND7-13】清理一个节点的Raft日志数据，用于故障注入（逼leader对该节点走
-		// InstallSnapshot）。Raft日志/状态已从<DbHome>/logs、<DbHome>/rafts独立目录迁入
-		// <DbHome>/db共享库的列族（LogSequence构造：raft.getName()+".logs"/".rafts"），
-		// 旧版目录已不存在，deletedDirectoryAndCheck静默通过等于没清理——节点带着旧日志/
-		// 旧term重启，InstallSnapshot场景静默失效。按列族精确删除，保留unique存根列族
-		//（重复请求检测）与statemachine状态机目录。须在raft停止（db已关）后调用。
+		// 清理一个节点的Raft日志数据，用于故障注入（逼leader对该节点走InstallSnapshot）。
+		// Raft日志/状态存于<DbHome>/db共享库的列族（LogSequence构造：raft.getName()+".logs"/".rafts"），
+		// 只按目录删除会静默漏掉：<DbHome>/logs、<DbHome>/rafts独立目录已不存在，
+		// deletedDirectoryAndCheck静默通过等于没清理——节点带着旧日志/旧term重启，
+		// InstallSnapshot场景静默失效。按列族精确删除，保留unique存根列族（重复请求检测）
+		// 与statemachine状态机目录。须在raft停止（db已关）后调用。
 		static void resetLogData(String dbHome, String raftName) throws Exception {
 			// 只删除日志相关数据。保留重复请求数据。快照文件按前缀清理整个家族
 			//（legacy/gen/.installing./.tmp/.commit.delayed）。
@@ -872,8 +855,8 @@ public class Test {
 			lock();
 			try {
 				logger.debug("Raft {} Stop ...", raftName);
-				// 在同一个进程中，没法模拟进程退出，
-				// 此时RocksDb应该需要关闭，否则重启会失败吧。
+				// 在同一个进程中，没法模拟进程退出；
+				// RocksDb需要关闭，否则重启会失败。
 				if (raft != null) {
 					raft.shutdown();
 					raft = null;

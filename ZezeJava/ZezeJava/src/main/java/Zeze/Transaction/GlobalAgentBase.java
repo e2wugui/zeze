@@ -9,6 +9,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * GlobalCacheManager 代理基类：维护 activeTime 保活时间、AchillesHeel 配置，
+ * 以及 Releaser 本地锁释放流程与其完成回调队列。
+ */
 public abstract class GlobalAgentBase extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(GlobalAgentBase.class);
 
@@ -81,7 +85,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 			unlock();
 		}
 		// 每次成功Release，设置一次活动时间，阻止AchillesHeelDaemon马上再次触发Release。
-		// 必须先于endAction：start()曾因同步DNS拖延上报被Daemon.Monitor误判idle杀进程（现已非阻塞，防御保留）
+		// 必须先于endAction：start()不得同步阻塞上报（曾因同步DNS拖延被Daemon.Monitor误判idle杀进程，现非阻塞，防御保留）
 		setActiveTime(System.currentTimeMillis());
 		// 排队的endAction在锁外执行（如GlobalClient的连接重启，不持锁等待网络相关操作）。
 		for (var action : drained) {
@@ -109,7 +113,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 		}
 
 		// 纯状态读，无副作用：完成回调统一走pendingEndActions（checkReleaseTimeout锁外执行），
-		// 不再挂在Releaser上——曾由挂载式回调产生锁内执行、回调裸异常逃逸、并发重复执行三类问题。
+		// 不挂在Releaser上——挂载式回调会产生锁内执行、回调裸异常逃逸、并发重复执行三类问题。
 		public final boolean isCompletedSuccessfully() {
 			return done;
 		}
@@ -156,8 +160,8 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 
 	protected abstract void cancelPending();
 
-	// FND10 txn-01：停机关库前有界等待活跃Releaser。Releaser不被任何stop/join收编，其
-	// checkpointRun→flush与LocalRocksCacheDb.close+deleteDirectory并发属ad5801593判例的
+	// 停机关库前有界等待活跃Releaser。Releaser不被任何stop/join收编，其
+	// checkpointRun→flush与LocalRocksCacheDb.close+deleteDirectory并发属
 	// native UAF类窗口（activeFlush计数看不见"已过判空未入闸"者）。join不持锁：Releaser
 	// 不取本锁；超时告警继续，与stopStep语义一致。
 	public void awaitReleaser(long timeoutMillis) {

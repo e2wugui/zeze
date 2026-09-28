@@ -66,7 +66,7 @@ public class Takeover extends AbstractTakeover {
 
 	private final @NotNull CopyOnWriteArrayList<TakeoverScope> scopes = new CopyOnWriteArrayList<>();
 	// 已成功stamp（事务提交后置位）的scope：未scoped的写路径checkFence抛NotStartException拒绝
-	// 而非致命退出——未登记≠被接管，stamp的瞬态失败不该被放大为进程死亡（FND-C1-11）。
+	// 而非致命退出——未登记≠被接管，stamp的瞬态失败不该被放大为进程死亡。
 	// TakeoverScope实现类不覆写equals（按实例标识），可直接做identity集合用。
 	private final @NotNull Set<TakeoverScope> scopedScopes = ConcurrentHashMap.newKeySet();
 	private final @NotNull LongHashMap<Future<?>> retryFutures = new LongHashMap<>(); // key:deadServerId 单发精确重试
@@ -216,9 +216,9 @@ public class Takeover extends AbstractTakeover {
 		if (healed[0])
 			logger.warn("Takeover.stamp: lease row missing, rewritten (self-heal), serverId={} scope={}",
 					zeze.getConfig().getServerId(), scope.name());
-		// FND-C1-11改：瞬态失败（乐观冲突等，rc!=0）不再就地重试——未scoped的scope写路径
+		// 瞬态失败（乐观冲突等，rc!=0）不就地重试——未scoped的scope写路径
 		// checkFence抛NotStartException拒绝（不认领、不致命），stamp由renew周期补做，
-		// 瞬态失败不再可能被放大为进程死亡。
+		// 瞬态失败不会放大为进程死亡。
 		if (r != 0)
 			logger.error("Takeover.stamp scope={} rc={}，等待renew周期补stamp（期间该scope写路径NotStart拒绝）",
 					scope.name(), r);

@@ -5,6 +5,9 @@ import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 不带在线功能的纯 Provider 实现模板：仅做负载上报，忽略 LinkBroken。
+ */
 public class ProviderOnly extends ProviderImplement {
 	private ProviderLoadOnly load;
 

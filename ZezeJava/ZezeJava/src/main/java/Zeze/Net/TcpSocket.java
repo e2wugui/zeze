@@ -30,6 +30,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * TCP 连接与监听实现：基于 Selector 的事件驱动收发、codec 链（加密/压缩）装配与优雅关闭。
+ */
 public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	private static final @NotNull Logger logger = LogManager.getLogger(TcpSocket.class);
 	private static final @NotNull VarHandle closeDetailHandle, outputBufferSizeHandle;
@@ -160,7 +163,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			ssc.configureBlocking(false);
 			ServerSocket ss = ssc.socket();
 			ss.setReuseAddress(true);
-			// xxx 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
+			// 只能设置到 ServerSocket 中，以后 Accept 的连接通过继承机制得到这个配置。
 			Integer recvBufSize = service.getSocketOptions().getReceiveBuffer();
 			if (recvBufSize != null)
 				ss.setReceiveBufferSize(recvBufSize);
@@ -243,7 +246,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		this.type = Type.eServer;
 		resetActiveSendRecvTime();
 
-		// 据说连接接受以后设置无效，应该从 ServerSocket 继承
+		// 连接接受以后设置无效，应该从 ServerSocket 继承
 		sc.configureBlocking(false);
 		Socket so = sc.socket();
 		remoteAddress = so.getRemoteSocketAddress();
@@ -268,7 +271,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		try {
 			service.OnSocketAccept(this);
 		} catch (Exception e) {
-			// OnSocketAccept 已被调用（哪怕抛出）就必须 close→OnSocketClose 恰一次（FND3-27）：
+			// OnSocketAccept 已被调用（哪怕抛出）就必须 close→OnSocketClose 恰一次：
 			// 否则已入 socketMap 的连接永不回调清理（条目滞留、统计不转移、子类状态泄漏，
 			// KeepCheckPeriod=0 时永久）。重抛给 doHandle 的 OP_ACCEPT catch：sc.close() 幂等 +
 			// OnSocketAcceptError 记日志。语义与 C# ProcessAccept 的 accepted?.Close(ce) 对齐。
@@ -646,7 +649,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 					codecBuf.Compact();
 				}
 			} else if (bytesTransferred < 0) {
-				readAgain = false; // N3-F5：EOF分支是do-while三分支中唯一不赋值者——沿用上一轮满读标记，
+				readAgain = false; // EOF分支是do-while三分支中唯一不赋值者——沿用上一轮满读标记，
 				// 在非关闭式OnSocketInputClosed覆写（javadoc允许）+pauseReceive下内层循环恒真，selector线程忙循环挂死
 				getService().OnSocketInputClosed(this);
 			} else
@@ -659,13 +662,13 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	 * 发生在整个 chunk 解压完成之后，恶意压缩数据（MPPC/zstd 放大率可达千倍）会在此之前无上限
 	 * 膨胀输入缓冲（codecBuf 按倍增长直逼百MB）。这里作为解压 sink，边解压边检查总大小
 	 * （含未消费的剩余数据），超过上限即抛异常（连接会被关闭），保持每条连接的输入内存有界。
-	 * 量纲统一（FND6-12）：max 语义=最大协议体大小（不含 12 字节帧头），帧级检查（Protocol.decode
+	 * 量纲统一：max 语义=最大协议体大小（不含 12 字节帧头），帧级检查（Protocol.decode
 	 * 对声明大小的 {@code longSize > maxSize}）允许恰等于 max 的协议；本 sink 须瞬时容纳完整帧
 	 * （12 字节帧头+协议体），故缓冲检查量纲含帧头、允许到 {@code HEADER_SIZE+max}——否则同一
 	 * 协议未压缩可收、压缩后被杀。压缩对不可压数据有约 9/8 膨胀（MPPC），max 配置需给
 	 * readBufferSize 留膨胀 headroom。
 	 */
-	// 45d9b80 残留P3：压缩开启时解压路径的瞬时缓冲上限为 HEADER_SIZE+max（InputLimitCodec 与
+	// 压缩开启时解压路径的瞬时缓冲上限为 HEADER_SIZE+max（InputLimitCodec 与
 	// processReceive 残留检查），而一次 read 事件最多读入 readBufferSize 字节压缩数据，解压输出
 	// 叠加上一轮未消费的残留（且 MPPC 对不可压数据约有 9/8 膨胀），max < 2×readBufferSize 时
 	// 瞬时总量可能超限，误杀 body 接近 max 的合法协议。仅告警一次（静态once标志防止海量连接刷屏）。
@@ -688,7 +691,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		public void update(byte c) {
 			int newSize = sink.size() + 1;
 			int max = socket.getService().getSocketOptions().getInputBufferMaxProtocolSize();
-			if (newSize > Protocol.HEADER_SIZE + max) // FND6-12：量纲含帧头，允许到HEADER_SIZE+max（见类注释）
+			if (newSize > Protocol.HEADER_SIZE + max) // 量纲含帧头，允许到HEADER_SIZE+max（见类注释）
 				throw new IllegalStateException(
 						"InputBufferMaxProtocolSize " + newSize + " > " + (Protocol.HEADER_SIZE + max));
 			sink.update(c);
@@ -698,7 +701,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		public void update(byte @NotNull [] data, int off, int len) {
 			int newSize = sink.size() + len;
 			int max = socket.getService().getSocketOptions().getInputBufferMaxProtocolSize();
-			if (newSize > Protocol.HEADER_SIZE + max) // FND6-12：量纲含帧头，允许到HEADER_SIZE+max（见类注释）
+			if (newSize > Protocol.HEADER_SIZE + max) // 量纲含帧头，允许到HEADER_SIZE+max（见类注释）
 				throw new IllegalStateException(
 						"InputBufferMaxProtocolSize " + newSize + " > " + (Protocol.HEADER_SIZE + max));
 			sink.update(data, off, len);
@@ -721,29 +724,20 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	 * 保持它满载。由于OutputBuffer每次写2个Buffer，所以每次从operates导入时，使得operates为空或者
 	 * OutputBuffer.getBufferSize() > 2；这样既能保持OutputBuffer满载writeTo，又能使得
 	 * interestOps remove write保持一样的逻辑。
-	 * 根据上面原则进行如下修改：
-	 * 1. operates 重新改成 ConcurrentLinkedQueue
-	 * 2. 锁外执行
-	 *		int blockSize = selector.getSelectors().getBufferSize();
-	 *		for (Action0 op; bufSize < blockSize * 2 && (op = operates.poll()) != null; ) {
-	 *			op.run();
-	 *			bufSize = outputBuffer.size();
-	 *		}
-	 * 3. interestOps 保持不变。
-	 * 4. 并发性
-	 *    高并发完全由ConcurrentLinkedQueue决定，在忙碌的情况下，完全不需要lock(Submit的锁)。
-	 * 问题：
-	 * 1. 现在Socket.SendBufferSize是按Service配置的，但是OutputBuffer的Buffer.BlockSize是固定的，
+	 * 实现要点：operates用ConcurrentLinkedQueue，锁外批量导入（每轮至多导入blockSize*2的字节量）；
+	 * interestOps逻辑不变；高并发完全由ConcurrentLinkedQueue承担，忙碌时不需要锁。
+	 * 已知问题：
+	 * 1. Socket.SendBufferSize是按Service配置的，但是OutputBuffer的Buffer.BlockSize是固定的，
 	 *    对于大的SendBufferSize，无法发挥最佳性能。
-	 *    解决方法？
+	 *    可能的解决方法：
 	 *    Service.start的时候把自己的SendBufferSize配置设置Max到相应的Selectors中，其中所有的Selector都采用这个Max。
 	 *    这样的话基本上整个系统还是一个OutputBuffer.BlockSize。如果需要对特别的Service设置特别的BlockSize，让这个
 	 *    Service使用独立的Selectors。
 	 * 2. doWrite while (true)
 	 *    outputBuffer全部刷出后，马上重复检查一次operates是否必要，或者等到下一次doWrite更好。
 	 *    因为刚写完，如果此时operates也是繁忙的，有数据，导致一次导入，但是马上write(socket)可能是失败的，
-	 *    存在浪费一次write(socket)的调用，当然这个比较罕见，因为对于原来的逻辑，outputBuffer全部刷完
-	 *    对于繁忙连接是比较罕见的，但是存在抖动的可能。
+	 *    存在浪费一次write(socket)的调用，当然这个比较罕见，因为对于繁忙连接，outputBuffer全部刷完
+	 *    是比较罕见的，但是存在抖动的可能。
 	 *    考虑清楚以后去掉while(true)？
 	 */
 	private void doWrite(@NotNull SocketChannel sc) throws Exception { // 只在selector线程调用
@@ -863,7 +857,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			logger.error("Service.OnSocketClose exception:", e);
 		}
 
-		// FND5-18：监听socket（ServerSocketChannel的validOps仅OP_ACCEPT）不走优雅路径——
+		// 监听socket（ServerSocketChannel的validOps仅OP_ACCEPT）不走优雅路径——
 		// addInterestOps(OP_WRITE)抛IllegalArgumentException发生在兜底realClose注册之前：
 		// channel未关、置死已生效，后续close()直接返回，端口泄漏不可再关。
 		// 监听socket无输出缓冲，优雅语义本不适用，直接realClose。
@@ -875,7 +869,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			} catch (CancelledKeyException e) {
 				// key已被selector错误路径取消（key.channel().close()）：OP_WRITE事件永不触发，
 				// 异常上抛会跳过兜底注册——直接realClose保证善后（OnSocketDisposed、
-				// outputBuffer释放、codec链close）必达。同型判例FND5-18只防了监听socket的
+				// outputBuffer释放、codec链close）必达。上面的监听socket防护只防了
 				// IllegalArgumentException，本异常发生在其后的正常连接上。
 				realClose();
 				return;

@@ -25,6 +25,9 @@ import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.Task;
 import static Zeze.Util.Args.requireValue;
 
+/**
+ * 热更打包与发布工具：按模块拆分 classes 到 interface.jar/module.jar，上传到各 HotManager 并驱动两阶段安装。
+ */
 public class Distribute {
 	private final String classesDir;
 	private final Path classesHome;
@@ -106,7 +109,6 @@ public class Distribute {
 			System.out.println("-providerModuleBinds or -config not present, skip module config.");
 
 		for (var e : hotModuleJars.entrySet()) {
-			//System.out.println(e.getKey() + " ---- close");
 			e.getValue().close();
 		}
 		hotModuleJars.clear();
@@ -126,7 +128,7 @@ public class Distribute {
 		for (var hotAgent : hotAgents) {
 			hotAgent.distribute(new File(workingDir, "modules"));
 			hotAgent.distribute(new File(workingDir, "interfaces"));
-			// hot-02（FND18）：schemas jar 生成于 workingDir 根（见上），必须一并上传——
+			// schemas jar 生成于 workingDir 根（见上），必须一并上传——
 			// install 无条件装载且装载后即删（loadSchemas finally delete），服务器无残留可自愈。
 			hotAgent.distributeFile(schemasJarFile);
 		}

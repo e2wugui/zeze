@@ -5,9 +5,9 @@ import Zeze.Util.LongHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 保存点：嵌套事务的一层日志与回滚/提交动作容器，commit/rollback 时向上合并。 */
 public final class Savepoint {
 	private @Nullable LongHashMap<Log> logs; // key:objectId+varId
-	// private final LongHashMap<Log> Newly = new LongHashMap<>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
 	private @Nullable ArrayList<Action> actions;
 
 	@Nullable LongHashMap<Log>.Iterator logIterator() {
@@ -25,7 +25,6 @@ public final class Savepoint {
 		if (logs == null)
 			this.logs = logs = new LongHashMap<>();
 		logs.put(log.getLogKey(), log);
-		// Newly.put(log.getLogKey(), log);
 	}
 
 	@NotNull Savepoint beginSavepoint() {

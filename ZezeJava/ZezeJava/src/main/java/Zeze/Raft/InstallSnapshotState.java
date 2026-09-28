@@ -5,6 +5,9 @@ import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Transaction.Procedure;
 
+/**
+ * leader 侧一次 InstallSnapshot 发送会话的状态：快照文件句柄、边界信息与逐块发送/应答驱动。
+ */
 class InstallSnapshotState {
 	// Rpc实例一次性（sessionId不可重用），跨块重用会在第二次Send时抛IllegalStateException，
 	// 之后所有块都发不出去：快照边界信息由state携带，每块new一个InstallSnapshot发送。
@@ -106,7 +109,7 @@ class InstallSnapshotState {
 			c.setAppendLogActiveTime(System.currentTimeMillis());
 
 			var buffer = new byte[32 * 1024];
-			// 【R1-F2】RandomAccessFile.read契约允许短读：循环读满或读到EOF（n<0）再判定done，
+			// RandomAccessFile.read契约允许短读：循环读满或读到EOF（n<0）再判定done，
 			// 否则NFS/FUSE类文件系统上的短读会把截断块当完成块（rc<len→done=true）静默发给
 			// follower。收尾语义不变：满块done=false；未满（含EOF前的最后一块）与EOF后的
 			// 0字节块done=true。

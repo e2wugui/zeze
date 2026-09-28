@@ -4,6 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/** AllocateId应答bean：号段起始long与数量。 */
 public final class BAllocateIdResult implements Serializable {
 	private long startId;
 	private int count;

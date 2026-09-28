@@ -29,7 +29,7 @@ public class ProviderApp extends ReentrantLock {
 
 	public final @NotNull String linkdServiceName;
 
-	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
+	// 这两个参数可以自动设置，但不够可靠，生产环境最好手动设置。
 	public final @NotNull String directIp;
 	public int directPort;
 
@@ -179,7 +179,7 @@ public class ProviderApp extends ReentrantLock {
 	public void startLast(@NotNull ProviderModuleBinds binds, @NotNull Map<String, IModule> modules) throws Exception {
 		lock();
 		try {
-			// FND3-34：本方法恰好执行一次。ProviderApp没有stop、实例不可重启（对齐Application不可复用契约），
+			// 本方法恰好执行一次。ProviderApp没有stop、实例不可重启（对齐Application不可复用契约），
 			// 重入属编程错误，快速失败——否则二次调用会把模块绑定/订阅/timer/safeBatch全部重跑一遍。
 			if (startLast)
 				throw new IllegalStateException("ProviderApp.startLast() already called.");
@@ -207,7 +207,7 @@ public class ProviderApp extends ReentrantLock {
 		}
 	}
 
-	// LoginQueueAgent启动：创建收口在LoadBase.ensureLoginQueueAgent（FND3-34）——
+	// LoginQueueAgent启动：创建收口在LoadBase.ensureLoginQueueAgent——
 	// load没有且配置启用才建，预置/已建复用；不覆盖（覆盖即泄漏+同身份重复注册）。
 	private void startLoginQueueAgent() throws Exception {
 		var load = providerImplement.getLoad();

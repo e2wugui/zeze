@@ -29,6 +29,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 持久化链表 Map：按 id 访问的有序 map，节点分片存储、支持链表序分页读取与 O(1) clear。
+ */
 public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	private static final Logger logger = LogManager.getLogger(LinkedMap.class);
 	public static final BeanFactory beanFactory = new BeanFactory();
@@ -300,7 +303,6 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
 	}
 
-
 	public @Nullable BLinkedMapNodeReadOnly getNode(long nodeId) {
 		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
 	}
@@ -355,7 +357,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 		var values = node.getValues();
 		if (values.isEmpty())
-			// FND2-C0-2：节点行在但Values为空是另一种形态的损坏。下面head/tail快路径的
+			// 节点行在但Values为空是另一种形态的损坏。下面head/tail快路径的
 			// getFirst/getLast会抛NoSuchElementException，统一为同款带语义ISE。
 			throw new IllegalStateException("Node Exist But Values Empty. maybe broken data. id=" + id);
 
@@ -471,7 +473,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 
 		var node = getNodePrivate(nodeId.getNodeId());
 		if (null == node)
-			// FND2-C0-2：索引有效但节点行缺失=数据损坏，带语义ISE而非裸NPE（同put/move的防护）。
+			// 索引有效但节点行缺失=数据损坏，带语义ISE而非裸NPE（同put/move的防护）。
 			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 		for (var e : node.getValues()) {
 			if (e.getId().equals(id)) {
@@ -496,7 +498,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 
 		var node = getNodePrivate(nodeId.getNodeId());
 		if (null == node)
-			// FND2-C0-2：索引有效但节点行缺失=数据损坏，带语义ISE而非裸NPE（同put/move的防护）。
+			// 索引有效但节点行缺失=数据损坏，带语义ISE而非裸NPE（同put/move的防护）。
 			throw new IllegalStateException("NodeId Exist. But Node Not Found. maybe broken data. id=" + id);
 		var values = node.getValues();
 		for (int i = 0, n = values.size(); i < n; i++) {
@@ -640,7 +642,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		var prevNodeId = node.getPrevNodeId();
 		var nextNodeId = node.getNextNodeId();
 
-		// FND2-C0-2：链上邻接节点行缺失=数据损坏。带语义ISE而非裸NPE，避免把半途事务
+		// 链上邻接节点行缺失=数据损坏。带语义ISE而非裸NPE，避免把半途事务
 		// 炸成不可诊断的空指针（调用方吞异常时事务整体回滚，无结构损坏）。
 		if (prevNodeId == 0) // is head
 			root.setHeadNodeId(nextNodeId);

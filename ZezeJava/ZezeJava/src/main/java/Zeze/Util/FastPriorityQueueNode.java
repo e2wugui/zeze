@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+// FastPriorityQueue 的节点接口：维护队列内下标与优先级比较
 public interface FastPriorityQueueNode<T> {
 	/**
 	 * Represents the current position in the queue

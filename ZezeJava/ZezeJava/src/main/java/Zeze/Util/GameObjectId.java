@@ -1,7 +1,7 @@
 package Zeze.Util;
 
 /**
- * Game Helper
+ * 游戏对象标识：type + configId + instanceId 三元组（GameCube/GameMap 中的对象键）
  */
 public class GameObjectId implements Comparable<GameObjectId> {
 	private int type;

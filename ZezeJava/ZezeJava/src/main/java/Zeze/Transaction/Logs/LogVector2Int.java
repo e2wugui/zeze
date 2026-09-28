@@ -13,6 +13,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import org.jetbrains.annotations.NotNull;
 
+/** vector2int 字段原子修改日志：携带新值，commit 经 VarHandle 写回，序列化为两个 int。 */
 public class LogVector2Int extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<vector2int>");
 

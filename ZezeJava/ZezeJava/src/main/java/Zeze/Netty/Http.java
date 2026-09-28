@@ -16,6 +16,9 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * HTTP handler 注册注解（@Path/@Get/@Post）与按注解扫描注册的工具。
+ */
 public final class Http {
 	private Http() {
 	}

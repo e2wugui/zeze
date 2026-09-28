@@ -6,6 +6,9 @@ import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
 import org.pcollections.Empty;
 
+/**
+ * 基础类型 List 容器（值为可编码的普通类型）：结构修改记 LogList1 增量日志。
+ */
 public class CollList1<V> extends CollList<V> {
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 	private final int logTypeId;

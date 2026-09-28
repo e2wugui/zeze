@@ -3,6 +3,7 @@ package Zeze.Util;
 import java.lang.management.ManagementFactory;
 import com.sun.management.OperatingSystemMXBean;
 
+// 简单基准工具：统计任务吞吐、耗时与进程 CPU 时间并打印
 public class Benchmark {
 	private final long startTime;
 	private final long startProcessCpuTime;

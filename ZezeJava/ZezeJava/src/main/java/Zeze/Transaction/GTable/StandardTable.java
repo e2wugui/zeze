@@ -46,7 +46,7 @@ import javax.annotation.CheckForNull;
  * <p>Note that this implementation is not synchronized. If multiple threads access this table
  * concurrently and one of the threads modifies the table, it must be synchronized externally.
  *
- * <p>不实现 java.io.Serializable（TG1-F1）：Guava 移植时的事务内脏（backingMap 指向的
+ * <p>不实现 java.io.Serializable：Guava 移植的事务内脏（backingMap 指向的
  * PMap2 及其 Map2Meta/Factory 含 MethodHandle）不可 Java 序列化，声明恒不可满足，勿再引入。
  *
  * @author Jared Levy
@@ -54,13 +54,6 @@ import javax.annotation.CheckForNull;
 class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
   Map<R, Map<C, V>> backingMap;
   Supplier<? extends Map<C, V>> factory;
-
-  /*
-  StandardTable(Map<R, Map<C, V>> backingMap, Supplier<? extends Map<C, V>> factory) {
-    this.backingMap = backingMap;
-    this.factory = factory;
-  }
-  */
 
   // Accessors
 

@@ -36,18 +36,17 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 基于Raft共识的服务管理器：多节点部署下提供与ServiceManagerServer一致的服务注册/
+ * 发现/负载转发，状态经rocks-raft复制持久化，所有raft侧过程体经SM锁单写者串行执行。
+ */
 public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft implements AutoCloseable {
 	static {
-		// 【FND4-64】原此处还有root logger级别重置（未设logLevel属性时也强制INFO）——类加载即
-		// 篡改全JVM日志配置，已移至构造器的显式启动动作（applyLogLevelProperty，仅显式指定才动）。
-		// 原此处还有tId128.current（Zeze.Util.Id128）的修改日志工厂补注册——tId128表已随
-		// AllocateId128死代码端点一并删除（FND15 svc-01），该注册（Log1.LogBeanKey<Id128>）
-		// 的唯一服务对象就是tId128，随之删除；全仓无其他rocks bean以Id128为变量类型。
 	}
 
 	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
 	private final @NotNull Rocks rocks;
-	// 会话清理对账周期守护（FND4-57兜底层）：body进worker池不占调度线程，close时有界等待在飞一轮。
+	// 会话清理对账周期守护：body进worker池不占调度线程，close时有界等待在飞一轮。
 	private final DaemonTimer reconcileDaemon = new DaemonTimer("ServiceManagerWithRaft.reconcileSessions", 60_000, this::reconcileSessions);
 	// close标记：置位后，SM锁串行的raft侧任务体（dispatchRaftRequest/RpcResponse、closeSession、
 	// reconcileSessions）在锁内首查即退出，不再触碰rocks。与close()的锁屏障配合，见close()。
@@ -67,7 +66,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Config config,
 								  boolean RocksDbWriteOptionSync) throws Exception {
 		ZezeCounter.tryInit();
-		ServiceManagerServer.applyLogLevelProperty(); // FND4-64：显式启动动作（仅显式指定logLevel属性才动配置）
+		ServiceManagerServer.applyLogLevelProperty(); // 显式启动动作（仅显式指定logLevel属性才动配置）
 
 		if (config == null)
 			config = Config.load();
@@ -85,7 +84,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
 		tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
 
-		// 会话清理对账（FND4-57兜底层）：60s粒度足够，快速路径由closeSession的退避重试承担。
+		// 会话清理对账：60s粒度足够，快速路径由closeSession的退避重试承担。
 		reconcileDaemon.start();
 	}
 
@@ -104,7 +103,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		rocks.close();
 	}
 
-	// leader周期对账（FND4-57兜底层）：清理"连接已死但清理事务未落地"的残留会话行。
+	// leader周期对账：清理"连接已死但清理事务未落地"的残留会话行。
 	// closeSession的退避重试只覆盖"断连节点恢复多数派/重新当选"的场景；leader切换后，
 	// 断连风暴的清理在旧leader上永远RaftRetry，进程崩溃则内存待办全丢——对账在现任
 	// leader上周期收敛这两类残余（死agent的注册/订阅行、订阅方的幽灵地址）。
@@ -166,8 +165,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				if (state != null)
 					removeAndCollectNotifyAllVersions(state, unReg.getServiceIdentity(), name, notifies);
 			}
-			// remove通知必须raft提交成功后发出（FND8-64，对齐ProcessEditRequest等7个handler
-			// 的runWhileCommit判例）：appendLog之前发送时，closeSession/reconcileSessions的
+			// remove通知必须raft提交成功后发出：appendLog之前发送时，closeSession/reconcileSessions的
 			// RaftRetry重跑每试一次就重发一批Edit(remove)（订阅者端过滤为无害但成噪声），
 			// 8连败终败则订阅者已删而tServerState残留（新旧订阅者视图分叉窗口）。提交后发送
 			// 维持"订阅者视图⊆已提交的服务端状态"。非事务上下文（不应发生）保持立即发送。
@@ -177,8 +175,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			else
 				sendNotifies(notifies);
 		}
-		// FND4-66：会话关闭联动清理该会话登记的负载观察者——原来仅setLoad转发失败时惰性剔除，
-		// 停止上报的地址行（raft持久表）与死观察者永久残留（无界增长）。observers清空即删地址行。
+		// 会话关闭联动清理该会话登记的负载观察者：仅靠setLoad转发失败时的惰性剔除，
+		// 停止上报的地址行（raft持久表）与死观察者会永久残留（无界增长）。observers清空即删地址行。
 		// walk返回detached解码拷贝（RocksRaft.Table.walk不附着事务），对拷贝的remove不落库：
 		// 只收集命中key，修改必须经getOrAdd拿事务附着bean再remove。
 		var observedRows = new ArrayList<String>();
@@ -194,7 +192,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				if (row.getObservers().size() == 0)
 					tableLoadObservers.remove(key);
 			}
-		} catch (Exception e) { // logger.error
+		} catch (Exception e) {
 			logger.error("cleanup loadObservers for session {} failed", name, e);
 		}
 		tableSession.remove(name);
@@ -260,7 +258,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			super.OnSocketClose(so, e);
 		}
 
-		// 会话清理的raft提交结果必须闭环（FND4-57）：RaftRetry是返回码不是异常
+		// 会话清理的raft提交结果必须闭环：RaftRetry是返回码不是异常
 		// （RocksRaft Transaction.perform捕获RaftRetryException后返回Procedure.RaftRetry），
 		// 曾经的procedure.call()返回码被忽略——leader切换既造成agent断连风暴（旧leader上
 		// OnSocketClose批量触发）又恰使旧leader的appendLog失败，回滚后的清理
@@ -269,7 +267,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 不存在即no-op、Suspect为提示性重发），失败退避重试，上限后fatal留观测。
 		// 残余缺口=进程崩溃窗口内的清理丢失（无持久化待办），周期对账兜底另立项。
 		private void closeSession(Session netSession, int retry) {
-			// svc-03（FND16）：取消KeepAlive定时器先于closed门禁——close()置closed后本方法
+			// 取消KeepAlive定时器先于closed门禁——close()置closed后本方法
 			// 的清理事务不再落地（重启由对账收敛），但定时器若不取消，rocks.close()的
 			// setRaft(null)后任务体每tick对其裸解引用NPE（周期任务显式吞异常永续，对齐
 			// 非raft版OnSocketClose同步取消的语义）。cancelKeepAlive幂等，重复调用无害。
@@ -310,12 +308,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 	}
 
-	/*
-	private static BSubscribeInfo fromRocks(BSubscribeInfoRocks rocks) {
-		return new BSubscribeInfo(rocks.getServiceName(), rocks.getVersion());
-	}
-	*/
-
 	public class Session {
 		private final String name;
 		private final long sessionId;
@@ -332,13 +324,13 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				keepAliveTimerTask = TaskSpec.ofAction(() -> {
 					var s = rocks.getRaft().getServer().GetSocket(sessionId);
 					// socket已不存在（会话断开，GetSocket返回null）：正常断开态而非错误，
-					// 无从发送也无需关闭，会话清理由OnSocketClose负责；曾经null穿透到
-					// Send失败分支的sock.close直接NPE，被外层catch吞成周期性error日志。
+					// 无从发送也无需关闭，会话清理由OnSocketClose负责；null穿透到Send失败
+					// 分支的sock.close直接NPE，被外层catch吞成周期性error日志。
 					if (s == null)
 						return;
 					try {
 						var r = new KeepAlive();
-						// 异步等待应答（FND-S1-10，对齐非raft版）：SendAndWaitCheckResultCode在
+						// 异步等待应答（对齐非raft版）：SendAndWaitCheckResultCode在
 						// 调度池线程上同步阻塞，半开连接堆积时可耗尽调度池拖停全部周期任务。
 						// 回调判活：超时/失败码在回调中关闭连接触发重连。
 						if (!r.Send(s, response -> {
@@ -347,7 +339,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 							return 0;
 						}))
 							s.close(new java.io.IOException("KeepAlive send fail"));
-					} catch (Throwable ex) { // logger.error
+					} catch (Throwable ex) {
 						s.close(ex);
 					}
 				}).schedulePeriodNow(
@@ -357,8 +349,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				keepAliveTimerTask = null;
 		}
 
-		// 取消keepAlive周期任务。除onClose外，重复Login覆盖socket的userState前也必须调用
-		// （FND2-S1-3）：被覆盖的旧Session的onClose永不执行，其定时器永不取消。
+		// 取消keepAlive周期任务。除onClose外，重复Login覆盖socket的userState前也必须调用：
+		// 被覆盖的旧Session的onClose永不执行，其定时器永不取消。
 		public void cancelKeepAlive() {
 			if (keepAliveTimerTask != null)
 				keepAliveTimerTask.cancel(false);
@@ -394,7 +386,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessLoginRequest(Login r) {
-		// FND5-35（A3）：sessionName是tSession主键兼会话归属凭证，空白名（<ServiceManagerConf>
+		// sessionName是tSession主键兼会话归属凭证，空白名（<ServiceManagerConf>
 		// 漏配sessionName属性时Config解析为空串）会使多个server共享同一会话行互相接管——
 		// 推送错乱、断连连带注销对方注册订阅，表现为服务闪断。非空为部署硬约束（唯一性
 		// 仍为部署契约，见Config.ServiceManagerConf），拒绝时不得产生会话行/userState副作用。
@@ -402,18 +394,17 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			return ErrorSessionName;
 		var session = tableSession.getOrAdd(r.Argument.getSessionName());
 		// 重复Login（raftOnSetLeader超时递归重发等）在同一socket上覆盖userState前，先取消旧Session
-		// 的keepAliveTimerTask（FND2-S1-3）：OnSocketClose只回调最后userState的onClose，被覆盖的
+		// 的keepAliveTimerTask：OnSocketClose只回调最后userState的onClose，被覆盖的
 		// Session定时器永不取消——socket关闭后GetSocket(sessionId)恒null，周期性error日志，永不停止。
 		var oldSession = r.getSender().getUserState();
 		if (oldSession instanceof Session old)
 			old.cancelKeepAlive();
 		r.getSender().setUserState(new Session(r.Argument.getSessionName(), r.getSender().getSessionId()));
 		session.setSessionId(r.getSender().getSessionId());
-		// 应答必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d、
-		// ProcessEditRequest的修复47ec96e18）：tSession的getOrAdd/setSessionId依赖raft提交，
+		// 应答必须raft提交成功后发出：tSession的getOrAdd/setSessionId依赖raft提交，
 		// 提交前应答在复制失败回滚后客户端已拿到成功码（假成功），其后续Edit/Subscribe读到
 		// 回滚的会话状态（tableSession无行NPE转错误码）。非事务上下文（不应发生）保持立即应答。
-		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
+		// RocksRaft版事务：本派发链（dispatchRaftRequest→Procedure.call）只创建
 		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
 		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
@@ -424,16 +415,14 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return 0;
 	}
 
-	// ProcessAllocateId128Request已删除（FND15 svc-01）：死代码端点——id128正规路径是UDP
-	//（Id128UdpServer），raft版SM有意不支持id128（ServiceManagerAgentWithRaft构造对History
-	// 组合fail-fast），全仓无该rpc发送方；原handler自注释亦承认"随便写写，实际上没用"。
-	// 注册（生成代码）、tId128表、BId128 bean随solution.zeze.xml定义删除一并消失。
+	// ProcessAllocateId128Request有意不实现：id128正规路径是UDP（Id128UdpServer），
+	// raft版SM不支持id128（ServiceManagerAgentWithRaft构造对History组合fail-fast）。
 
 	@Override
 	protected long ProcessAllocateIdRequest(AllocateId r) throws Exception {
 		var count = r.Argument.getCount();
 		var name = r.Argument.getName();
-		// 入口校验（svc-01，判例同非raft版ServiceManagerServer与UDP面Id128UdpServer/FND6-28）：
+		// 入口校验（同非raft版ServiceManagerServer与UDP面Id128UdpServer口径）：
 		// 该端口无认证（raft对等端口同时服务应用协议，四种EncryptType均密钥协商），name/count
 		// 均对端可控，无界唯一name直接成为tAutoKey持久键并经共识复制放大到全节点。
 		if (count < 1 || count > Tid128Cache.ALLOCATE_COUNT_MAX
@@ -441,7 +430,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			warnAllocateIdRejected("invalid count=" + count + " name.chars=" + name.length());
 			return Zeze.Transaction.Procedure.ErrorRequestId;
 		}
-		// 唯一名上限（svc-01）。raft表逐出不可移植：BAutoKey.Current是已交付位置（无独立
+		// 唯一名上限。raft表逐出不可移植：BAutoKey.Current是已交付位置（无独立
 		// 高水位），删行重建会从默认值重发已交付号段——超限只能拒绝。运维出口：确认攻击后
 		// 清理tAutoKey表攻击行。满员会暂时锁死新合法name（仓内合法基数个位到两位数，
 		// 1024上限余量充分）。walk计数O(表行数)，表行数被上限封顶，可接受。
@@ -468,9 +457,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// 对齐GCM-raft的proc.autoResponse（响应由_final_commit_在appendLog之后发出）；
 		// result已填的startId/count在回滚路径随错误码一起发送，客户端按resultCode!=0丢弃。
 		// 非事务上下文（不应发生）保持立即应答。
-		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
-		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
-		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
@@ -479,7 +465,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return 0;
 	}
 
-	// 拒绝告警限频（判例Id128UdpServer.warnRejected同形态）：无认证端口上高频非法
+	// 拒绝告警限频（同Id128UdpServer.warnRejected）：无认证端口上高频非法
 	// 请求按包记日志可耗尽日志盘/CPU（日志刷屏DoS），60秒一条。
 	private volatile long lastAllocateIdRejectLogMs;
 
@@ -492,7 +478,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		logger.error("AllocateId(raft) rejected (possible attack or misbehaving client): {}", reason);
 	}
 
-	// svc-01（FND16，S1三分面方案）常量与helper：Edit/Subscribe/SetServerLoad入口上限，
+	// Edit/Subscribe/SetServerLoad入口上限常量与helper，
 	// 阈值与非raft版一致（见ServiceManagerServer同名常量注释）。
 	private static final int SVC_NAME_MAX_BYTES = 128;
 	private static final int SVC_IDENTITY_MAX_BYTES = 128;
@@ -517,11 +503,11 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	}
 
 	/**
-	 * svc-01：全局唯一serviceName上限（事务内调用，raft单写者串行）。行不存在且计数达
+	 * 全局唯一serviceName上限（事务内调用，raft单写者串行）。行不存在且计数达
 	 * 上限时先扫除空壳行（无注册无订阅——内容可由客户端重发恢复，非发号器状态删行
 	 * 安全，区别于tAutoKey的只拒不删）腾位；无空壳可扫才拒绝。walk返回detached解码
 	 * 拷贝（RocksRaft.Table.walk不附着事务），只收集key、修改经remove落库——
-	 * 对齐cleanupSessionRow的FND4-66判例。
+	 * 同cleanupSessionRow的负载观察者清理。
 	 */
 	private boolean checkUniqueServiceName(@NotNull String name) {
 		if (tableServerState.get(name) != null)
@@ -572,10 +558,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessSetServerLoadRequest(SetServerLoad r) {
-		// svc-01（FND16）：补Login门禁（原连requireSession都没有——未认证可达即以任意
-		// ip+port建tLoadObservers持久行，且空observers行永不命中cleanupSessionRow的
-		// Contains清理）；ip长度校验；get化——无观察者行则忽略本次上报（零状态变更，
-		// 行创建权收归Login后的addLoadObserver闭环），堵住新空行源头。
+		// SetServerLoad需Login门禁与ip长度校验：未认证可达即可用任意ip+port建
+		// tLoadObservers持久行，空observers行永不命中cleanupSessionRow的Contains清理。
+		// get化——无观察者行则忽略本次上报（零状态变更，行创建权收归Login后的
+		// addLoadObserver闭环），不产生新空行。
 		if (isOverUtf8Bytes(r.Argument.ip, SVC_IP_MAX_BYTES)) {
 			warnSvcRejected("setLoad ip over size");
 			return Zeze.Transaction.Procedure.ErrorRequestId;
@@ -597,7 +583,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				var session = tableSession.get(observer);
 				if (null != session && set.Send(rocks.getRaft().getServer().GetSocket(session.getSessionId())))
 					continue;
-			} catch (Throwable ignored) { // ignored
+			} catch (Throwable ignored) {
 			}
 			if (removed == null)
 				removed = new ArrayList<>();
@@ -607,12 +593,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			for (var remove : removed)
 				observers.remove(remove);
 		}
-		// 应答必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
-		// observers的死条目清理依赖raft提交，提交前应答在复制失败回滚后客户端已拿到成功码。
+		// 应答必须raft提交成功后发出：observers的死条目清理依赖raft提交，提交前应答在复制失败回滚后客户端已拿到成功码。
 		// set.Send的负载转发是对观察者的数据推送（无状态语义），保持在handler内立即发送。
-		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
-		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
-		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
@@ -627,7 +609,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			sessionName, serverInfo.getVersion());
 	}
 
-	// 对齐非raft版ServiceManagerServer.isLegalServiceIdentity（FND-S2-6）：
+	// 对齐非raft版ServiceManagerServer.isLegalServiceIdentity：
 	// 非'@'/'#'前缀必须是可Long.parseLong的数字，否则订阅者侧BServiceInfos.comparer
 	// 在排序上抛NumberFormatException，打断同批全部合法变更的处理。
 	private static boolean isLegalServiceIdentity(@NotNull String identity) {
@@ -657,18 +639,18 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 	}
 
-	// 未Login会话统一拒绝码（FND4-60）：Procedure保留码用到-17，本模块局部取-18。
+	// 未Login会话统一拒绝码：Procedure保留码用到-17，本模块局部取-18。
 	public static final long ErrorNotLogin = -18;
 
-	// 空白sessionName拒绝码（FND5-35）：Procedure保留码现已占到-20（Busy=-19、AuthFail=-20），
+	// 空白sessionName拒绝码：Procedure保留码现已占到-20（Busy=-19、AuthFail=-20），
 	// 本模块局部取-21。
 	public static final long ErrorSessionName = -21;
 
 	/**
-	 * 会话前置条件单点强制（FND4-60）：未Login的连接（userState非Session，或Login事务刚被
-	 * 回滚/清理的窗口——见FND4-57）发Edit/Subscribe/UnSubscribe时tableSession.get(name)
-	 * 为null，原实现三处直接解引用NPE（错误码不明确、日志噪声、恶意可稳定触发服务端NPE
-	 * 路径）。统一应答ErrorNotLogin并返回null，调用方立即返回。
+	 * 会话前置条件单点强制：未Login的连接（userState非Session，或Login事务刚被
+	 * 回滚/清理的窗口——见closeSession与reconcileSessions）发Edit/Subscribe/UnSubscribe
+	 * 时tableSession.get(name)为null，直接解引用NPE（错误码不明确、日志噪声、
+	 * 恶意可稳定触发服务端NPE路径）。统一应答ErrorNotLogin并返回null，调用方立即返回。
 	 */
 	private @Nullable Session requireSession(@NotNull Zeze.Net.Rpc<?, ?> r) {
 		if (!(r.getSender().getUserState() instanceof Session netSession))
@@ -683,7 +665,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessEditRequest(Edit r) {
-		// 服务端注册入口校验identity（FND-S2-6，对齐非raft版isLegalServiceIdentity）：
+		// 服务端注册入口校验identity（对齐非raft版isLegalServiceIdentity）：
 		// 非法identity会令订阅者侧BServiceInfos.comparer的Long.parseLong抛NumberFormatException，
 		// 打断同批全部合法变更的处理。畸形请求整批拒绝（错误码经派发层onError应答）。
 		for (var info : r.Argument.getAdd())
@@ -692,12 +674,12 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		for (var info : r.Argument.getRemove())
 			if (!isLegalServiceIdentity(info.getServiceIdentity()))
 				return Zeze.Transaction.Procedure.ErrorRequestId;
-		var netSession = requireSession(r); // FND4-60
+		var netSession = requireSession(r);
 		if (netSession == null)
 			return 0; // 未Login已应答ErrorNotLogin
 		var notifies = new HashMap<AsyncSocket, Edit>();
 
-		// svc-01（FND16）：字段长度/批/每会话/全局唯一名上限（raft侧经共识复制放大到
+		// 字段长度/批/每会话/全局唯一名上限（raft侧经共识复制放大到
 		// 全节点+WAL，tServerState行壳跨重启永不清理）。阈值与非raft版一致；raft行
 		// 虽是持久表但内容（注册/订阅）可由客户端重发恢复——满员时事务内扫除空壳行
 		// 腾位（非发号器状态，删行安全，区别于tAutoKey的只拒不删），无空壳才拒绝。
@@ -745,13 +727,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			addAndCollectNotify(state, reg, netSession.name, notifies);
 		}
 
-		// 应答与订阅者通知必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
-		// appendLog之前发送，raft复制失败回滚时客户端已拿到成功码、订阅者已收到幽灵
-		// add/remove推送，而服务端状态回滚（提交前应答，状态不一致）。非事务上下文（不应
-		// 发生）保持立即应答。
-		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
-		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
-		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
+		// 应答与订阅者通知必须raft提交成功后发出：appendLog之前发送，raft复制失败回滚时
+		// 客户端已拿到成功码、订阅者已收到幽灵add/remove推送，而服务端状态回滚（提交前
+		// 应答，状态不一致）。非事务上下文（不应发生）保持立即应答。
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null) {
 			t.runWhileCommit(() -> {
@@ -786,8 +764,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 		versions.getServiceInfos().put(info.getServiceIdentity(), toRocks(info, sessionName));
 		collectNotify(state, info, true, notifies);
-		// 新注册实例同样要为现有订阅者登记负载观察者（FND-S1-8）：addLoadObserver此前只在
-		// 订阅时登记，观察者集合是订阅时刻的快照——订阅之后注册的实例，其负载上报永不转发
+		// 新注册实例同样要为现有订阅者登记负载观察者：addLoadObserver若只在订阅时登记，
+		// 观察者集合是订阅时刻的快照——订阅之后注册的实例，其负载上报永不转发
 		// 给订阅者（权重缺失直到重连重订阅）。getSimple的key即订阅会话名；本方法在
 		// ProcessEditRequest事务内，与订阅/退订的simple修改经raft单写者串行，迭代安全。
 		for (var observer : state.getSimple().keys())
@@ -820,10 +798,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	@Override
 	protected long ProcessSubscribeRequest(Subscribe r) {
 		logger.info("{}: Subscribe {}", r.getSender(), r.Argument);
-		var netSession = requireSession(r); // FND4-60
+		var netSession = requireSession(r);
 		if (netSession == null)
 			return 0; // 未Login已应答ErrorNotLogin
-		// svc-01：每会话订阅数+serviceName长度+全局唯一名（对齐Edit面）。
+		// 每会话订阅数+serviceName长度+全局唯一名上限（对齐Edit面）。
 		if (r.Argument.subs.size() > SVC_EDIT_BATCH_MAX) {
 			warnSvcRejected("subscribe batch exceeded " + SVC_EDIT_BATCH_MAX);
 			return Zeze.Transaction.Procedure.ErrorRequestId;
@@ -850,13 +828,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				state.setServiceName(info.getServiceName());
 			subscribeAndCollect(state, r, info, netSession.name);
 		}
-		// 应答必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
-		// 会话subscribes与state.simple的写入、Result.map的快照依赖raft提交，提交前应答在
-		// 复制失败回滚后客户端已拿到成功码与快照（假成功），订阅未生效将收不到增量推送。
+		// 应答必须raft提交成功后发出：会话subscribes与state.simple的写入、Result.map的快照依赖raft提交，
+		// 提交前应答在复制失败回滚后客户端已拿到成功码与快照（假成功），订阅未生效将收不到增量推送。
 		// 回滚路径Result已填的map随错误码一起发送，客户端按resultCode!=0丢弃。
-		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
-		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
-		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);
@@ -892,7 +866,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	@Override
 	protected long ProcessUnSubscribeRequest(UnSubscribe r) {
 		logger.info("{}: UnSubscribe {}", r.getSender(), r.Argument);
-		var netSession = requireSession(r); // FND4-60
+		var netSession = requireSession(r);
 		if (netSession == null)
 			return 0; // 未Login已应答ErrorNotLogin
 		var session = tableSession.get(netSession.name);
@@ -903,12 +877,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				unSubscribeNow(netSession.name, serviceName);
 			}
 		}
-		// 应答必须raft提交成功后发出（对齐ProcessAllocateIdRequest的修复2eee0da1d）：
-		// 会话subscribes与state.simple的移除依赖raft提交，提交前应答在复制失败回滚后
-		// 客户端已拿到成功码（假成功），实际订阅仍生效。
-		// RocksRaft版事务（FND2-S1-1）：本派发链（dispatchRaftRequest→Procedure.call）只创建
-		// RocksRaft事务，Zeze.Transaction.Transaction.getCurrent()在此恒为null——那会令
-		// runWhileCommit永不注册、应答退化为handler内立即发送（提交前应答=假成功）。
+		// 应答必须raft提交成功后发出：会话subscribes与state.simple的移除依赖raft提交，提交前应答在
+		// 复制失败回滚后客户端已拿到成功码（假成功），实际订阅仍生效。
 		var t = Zeze.Raft.RocksRaft.Transaction.getCurrent();
 		if (t != null)
 			t.runWhileCommit(r::SendResult);

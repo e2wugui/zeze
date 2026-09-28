@@ -6,7 +6,7 @@ import Zeze.Net.Binary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-// 暂时只支持读,不支持写
+/** 基于 java.nio.ByteBuffer 的缓冲实现：暂时只支持读，不支持写。 */
 public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	public static final java.nio.ByteBuffer Empty = java.nio.ByteBuffer.wrap(ByteBuffer.Empty);
 
@@ -91,7 +91,6 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 		if (size == 0)
 			return ByteBuffer.Empty;
 		var copy = new byte[size];
-		// bb.get(bb.position(), copy); // need JDK13+
 		int pos = bb.position();
 		bb.get(copy);
 		bb.position(pos);
@@ -349,7 +348,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 		return false;
 	}
 
-	/** 裸数组内容比较的显式出口（FND8-15）：equals不再接受byte[]——数组hashCode是
+	/** 裸数组内容比较的显式出口：equals不接受byte[]——数组hashCode是
 	 * 身份哈希，宽容分支违反"equals相等则hashCode相等"契约，哈希容器传裸数组查询
 	 * 会落错桶静默miss。 */
 	public boolean contentEquals(byte @NotNull [] other) {
@@ -362,7 +361,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public int hashCode() {
-		// FND5-46：与ByteBuffer统一算法——两者equals按内容跨类型互等，原用java.nio内部
+		// 与ByteBuffer统一算法——两者equals按内容跨类型互等，用java.nio内部
 		// hash必然不等，违反"equals相等则hashCode相等"契约，混装同一HashMap/HashSet后
 		// 互相查找失败。纯委托calc_hashnr（heap/direct由其内部分派），算法不在此复制。
 		return ByteBuffer.calc_hashnr(bb);

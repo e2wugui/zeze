@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.PVector;
 
+/** PList2 的变更日志：在 LogList1 的 OpLog 序列之外，另记 changed（元素 Bean 的原位修改日志及最终下标）。 */
 public class LogList2<V extends Bean> extends LogList1<V> {
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
 	private @Nullable IdentityHashSet<V> addSet;

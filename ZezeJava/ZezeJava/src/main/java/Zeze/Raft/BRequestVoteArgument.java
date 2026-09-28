@@ -4,6 +4,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
+/**
+ * RequestVote/PreVote 请求参数：候选者 term、最后日志位置与 nodeReady 标记。
+ */
 final class BRequestVoteArgument extends Bean {
 	private long term;
 	private String candidateId;

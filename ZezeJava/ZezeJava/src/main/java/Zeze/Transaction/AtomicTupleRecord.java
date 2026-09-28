@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 记录装载的原子快照三元组：记录、装载时的强引用值与时间戳，供事务做冲突检测。 */
 public class AtomicTupleRecord<K extends Comparable<K>, V extends Bean> {
 	public final @NotNull Record1<K, V> record;
 	public final @Nullable V strongRef;

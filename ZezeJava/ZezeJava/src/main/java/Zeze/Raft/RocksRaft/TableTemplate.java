@@ -2,6 +2,9 @@ package Zeze.Raft.RocksRaft;
 
 import java.util.function.BiPredicate;
 
+/**
+ * 表模板：按名字与 key/value 类型注册，按 templateId 打开（缓存复用）对应的 Table。
+ */
 public final class TableTemplate<K, V extends Bean> {
 	private final String name;
 	private final Rocks rocks;
@@ -46,7 +49,7 @@ public final class TableTemplate<K, V extends Bean> {
 	public Table<K, V> openTable(int templateId, BiPredicate<K, Record<K>> callback) {
 		var t = (Table<K, V>)rocks.getTables().computeIfAbsent(name + "#" + templateId,
 				__ -> new Table<>(rocks, name, templateId, keyClass, valueClass, callback));
-		// 【RR2-F2】命中已存在表时callback参数不得被静默丢弃（带callback重载的存在意义即被废掉）：
+		// 命中已存在表时callback参数不得被静默丢弃（否则带callback重载的存在意义即被废掉）：
 		// 补设回调，最后一次调用生效。
 		if (callback != null)
 			t.setLruTryRemoveCallback(callback);

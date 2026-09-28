@@ -100,7 +100,7 @@ public class OnlineSpec {
 	/** 事务感知发送：运行中的事务内延迟到 commit 发送，否则立即发送。 */
 	public void send(@NotNull Protocol<?> p) {
 		if (target.isEmpty())
-			return; // 空目标不编码（对齐旧行为）
+			return; // 空目标不编码
 		var o = resolveOnline(); // 此刻解析并固定（commit 回调里上下文已变，不能晚解析）
 		var typeId = p.getTypeId();
 		tryLog(typeId, p, o);

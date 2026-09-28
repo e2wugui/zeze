@@ -3,6 +3,9 @@ package Zeze.Net;
 import Zeze.Util.ZstdFactory;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Zstandard 流式解压 codec。
+ */
 public final class DecompressZstd implements Codec {
 	public static final int DEFAULT_SRC_BUF_SIZE = 1024;
 

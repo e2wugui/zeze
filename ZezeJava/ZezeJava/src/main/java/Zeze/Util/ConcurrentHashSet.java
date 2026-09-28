@@ -5,48 +5,12 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import org.jetbrains.annotations.NotNull;
 
+// 基于 ConcurrentHashMap 的并发 Set：元素本身兼作键与值（putIfAbsent 去重）
 public class ConcurrentHashSet<T> extends ConcurrentHashMap<T, T> implements Iterable<T> {
 	public boolean add(@NotNull T e) {
 		return putIfAbsent(e, e) == null;
 	}
 
-	/*
-	@Override
-	public boolean containsAll(@NotNull Collection<?> c) {
-		return keySet().containsAll(c);
-	}
-
-	@Override
-	public boolean addAll(@NotNull Collection<? extends T> c) {
-		var result = false;
-		for (var o : c)
-			result |= putIfAbsent(o, PRESENT) == null;
-		return result;
-	}
-
-	@Override
-	public boolean retainAll(@NotNull Collection<?> c) {
-		var result = false;
-		for (var e : entrySet()) {
-			if (c.contains(e.getKey()))
-				result |= remove(e.getKey()) != null;
-		}
-		return result;
-	}
-
-	@Override
-	public boolean removeAll(@NotNull Collection<?> c) {
-		var result = false;
-		for (var o : c)
-			result |= remove(o) != null;
-		return result;
-	}
-
-	@Override
-	public Spliterator<T> spliterator() {
-		return Set.super.spliterator();
-	}
-	*/
 	@Override
 	public boolean contains(@NotNull Object e) {
 		return containsKey(e);
@@ -57,17 +21,6 @@ public class ConcurrentHashSet<T> extends ConcurrentHashMap<T, T> implements Ite
 		return keySet().iterator();
 	}
 
-	/*
-	@Override
-	public Object @NotNull [] toArray() {
-		return keySet().toArray();
-	}
-
-	@Override
-	public <T1> T1 @NotNull [] toArray(@NotNull T1[] a) {
-		return keySet().toArray(a);
-	}
-	*/
 	@Override
 	public @NotNull String toString() {
 		return keySet().toString();

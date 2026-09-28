@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.function.IntPredicate;
 
+// Windows 控制台关闭事件的 native 回调桥接（需当前目录存在 WinConsole.dll）
 public final class WinConsole {
 	public static final int CTRL_C_EVENT = 0; // 命令行窗口中按Ctrl+C
 	public static final int CTRL_BREAK_EVENT = 1; // 命令行窗口中按Ctrl+Break
@@ -10,7 +11,6 @@ public final class WinConsole {
 	public static final int CTRL_SHUTDOWN_EVENT = 6; // 系统关机时自动关闭命令行窗口
 
 	static {
-		// if (System.getProperty("os.name").startsWith("Windows"))
 		System.loadLibrary("WinConsole"); // 需要在当前目录存在: WinConsole.dll
 	}
 

@@ -4,6 +4,9 @@ import Zeze.Builtin.Online.BLocal;
 import Zeze.Util.EventDispatcher;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 本地在线移除事件的参数：账号、clientId 与移除时的本地在线数据。
+ */
 public class LocalRemoveEventArgument implements EventDispatcher.EventArgument {
 	public final @NotNull String account;
 	public final @NotNull String clientId;

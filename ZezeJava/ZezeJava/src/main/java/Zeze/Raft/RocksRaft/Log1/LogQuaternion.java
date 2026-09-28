@@ -7,6 +7,9 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Quaternion;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Quaternion 落盘日志：序列化 quaternion 字段的新值。
+ */
 public class LogQuaternion extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<quaternion>");
 

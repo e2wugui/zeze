@@ -24,6 +24,10 @@ import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.params.SetParams;
 
+/**
+ * Redis 数据库后端：以 hash 承载 KV 表，MULTI/EXEC 批量事务落库，
+ * 并提供带租期的全局启动锁与 InUse 登记。
+ */
 // 需要redis支持以下命令(Redis 2.8+, Kvrocks 2.02+, Pika 3.5.2+)
 // get, set(含 set key value nx ex), del
 // hget, hset, hdel, hscan
@@ -313,15 +317,14 @@ public class DatabaseRedis extends Database {
 			throw new IllegalStateException("setInUse tryLock fail.");
 		}
 
-		// txn-01（FND16，用户裁决形态）：对齐 setInUse 的 64 次上限（原为全仓唯一无界自旋
+		// 对齐 setInUse 的 64 次上限：不得无界自旋
 		// ——停机路径无守卫，阻塞使 stop() 持 Application 锁无界；Daemon 形态放大：
 		// achillesHeelDaemon 先停→Monitor 判死→SIGTERM 对 hook 内自旋无效→重启同 serverId
-		// 短暂双开+旧进程 RMW 可能删新注册）。放弃=不执行 RMW，残留与 kill -9 崩溃残留
+		// 短暂双开+旧进程 RMW 可能删新注册。放弃=不执行 RMW，残留与 kill -9 崩溃残留
 		// 同构（锁租期 600s 后自愈；重启路径有 -DZeze.Database.ClearInUse 属性通道，
-		// 见 Application.start 与 Daemon.main）。行为变化如实记录：崩溃后 600s 内的
+		// 见 Application.start 与 Daemon.main）。已知取舍：崩溃后 600s 内的
 		// Daemon 自动重启，clearInUse 将 64 次（约 9.6s）耗尽失败→启动短命退出→
-		// Daemon 按 MinAliveTime 判定终结守护，需人工重启（原为无界等待锁至多 600s
-		// 后自愈成功）——响亮失败优于无界停摆的取舍。
+		// Daemon 按 MinAliveTime 判定终结守护，需人工重启——响亮失败优于无界停摆。
 		@Override
 		public int clearInUse(int localId, @NotNull String global) {
 			for (int i = 0; i < 64; ++i) {
@@ -360,7 +363,7 @@ public class DatabaseRedis extends Database {
 				// set nx ex：获取锁的同时设置租期。持锁进程在持锁窗口内崩溃后，
 				// 锁最多残留 LOCK_LEASE_SECONDS，后续实例不会再无限挂死。
 				// 注：不做续期与持有者校验（unlock 直接 del），慢启动超过租期时存在
-				// 锁误过期与误删他人锁的理论窗口，取舍理由见 review-2026-09/l4/T3-4.md。
+				// 锁误过期与误删他人锁的理论窗口。
 				var success = "OK".equals(jedis.set(lockKey, "1",
 						SetParams.setParams().nx().ex(LOCK_LEASE_SECONDS)));
 				if (success)

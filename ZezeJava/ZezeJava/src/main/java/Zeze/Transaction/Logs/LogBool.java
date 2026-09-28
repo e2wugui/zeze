@@ -7,6 +7,7 @@ import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
+/** bool 字段原子修改日志：携带新值，commit 经 VarHandle 写回，序列化为布尔字节。 */
 public class LogBool extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<bool>");
 

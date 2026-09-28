@@ -35,6 +35,10 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteOptions;
 
+/**
+ * Raft 日志序列：日志与 term/voteFor/firstIndex 等元数据的 RocksDB 持久化、快照的代际提交与清扫、
+ * 唯一请求存根，以及 leader 复制驱动与 follower/leader 两侧的 apply 循环。
+ */
 public class LogSequence {
 	static final Logger logger = LogManager.getLogger(LogSequence.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
@@ -66,7 +70,7 @@ public class LogSequence {
 	private long commitIndex;
 	private long lastApplied;
 
-	// 这个不是日志需要的，因为持久化，所以就定义在这里吧。
+	// voteFor 不属于日志本身，但需要持久化，故定义在这里。
 	private String voteFor;
 	private boolean nodeReady;
 	private long lastLeaderCommitIndex;
@@ -86,7 +90,7 @@ public class LogSequence {
 	private final byte[] raftsTermKey;
 	private final byte[] raftsVoteForKey;
 	private final byte[] raftsFirstIndexKey;
-	private final byte[] raftsNodeReadyKey; // 只会被写一次，所以这个优化可以不做，统一形式吧。
+	private final byte[] raftsNodeReadyKey; // 只会被写一次，与其他key统一形式。
 	private final byte[] lastSnapshotIndexKey;
 
 	public volatile TaskCompletionSource<Boolean> applyFuture; // follower background apply task
@@ -343,9 +347,6 @@ public class LogSequence {
 
 						// 删除快照前的日志时不删唯一请求存根（快照建立时刻稍前的请求仍需唯一保证），存根自行过期清理。
 						// 注意：完全崩溃换新机后仍有小概率无法判断唯一，较好的做法是从工作节点复制unique/作为初始数据。
-
-						//if (raftLog.Log.Unique.RequestId > 0)
-						//    OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
 						it.next();
 					}
 				}
@@ -363,14 +364,6 @@ public class LogSequence {
 			}
 		}).name("RemoveLogBefore" + index).run();
 	}
-
-	/*
-	private void removeLogReverse(long startIndex, long firstIndex)
-	{
-	    for (var index = startIndex; index >= firstIndex; index--)
-	        RemoveLog(index);
-	}
-	*/
 
 	public long getLeaderActiveTime() {
 		return leaderActiveTime;
@@ -405,7 +398,7 @@ public class LogSequence {
 			put(log, isApply, null);
 		}
 
-		// raft-01（FND16）：batch形态——存根与日志合入同一WriteBatch原子提交（见appendLog）。
+		// batch形态——存根与日志合入同一WriteBatch原子提交（见appendLog）。
 		// 查重读（默认ReadOptions）仍在组装期执行，与单写形态语义一致。
 		private void put(RaftLog log, boolean isApply, RocksDatabase.Batch batch) throws RocksDBException {
 			var key = ByteBuffer.Allocate(32);
@@ -516,14 +509,13 @@ public class LogSequence {
 	}
 
 	void close() throws Exception {
-		// must after set Raft.IsShutdown = false;
+		// 必须在 Raft.isShutdown 置位（true）之后调用。
 		cancelPendingAppendLogFutures();
 
 		raft.lock();
 		try {
 			if (logs != null) {
 				logger.info("close logs: {}", raft.getRaftConfig().getDbHome());
-				//logs.close();
 				logs = null;
 			}
 
@@ -816,7 +808,7 @@ public class LogSequence {
 		saveLog(log, null);
 	}
 
-	// raft-01（FND16）：batch形态——与unique存根同一WriteBatch原子提交（见appendLog）。
+	// batch形态——与unique存根同一WriteBatch原子提交（见appendLog）。
 	void saveLog(RaftLog log, RocksDatabase.Batch batch) throws RocksDBException {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(log.getIndex());
@@ -1015,7 +1007,7 @@ public class LogSequence {
 	// 验证apply成功后存根写失败的重试不重放增量。仅测试使用。
 	Action0 testHookBeforeUniqueApply;
 
-	// 一次性测试注入（raft-01钉板）：appendLog内存根写之后、日志写/提交之前抛出——
+	// 一次性测试注入：appendLog内存根写之后、日志写/提交之前抛出——
 	// 合批前=两笔独立写，此位置失败留孤儿存根；合批后=组装失败两笔同弃（try-with-resources
 	// 丢弃未提交batch）。
 	Action0 testHookBetweenStubAndLog;
@@ -1033,8 +1025,7 @@ public class LogSequence {
 			if (raftLog == null) {
 				logger.warn("What Happened! index={} lastApplicableLog={} LastApplied={}",
 						index, lastApplicableLog.getIndex(), lastApplied);
-				// trySnapshot(); // 错误的时候不做这个尝试了。
-				return; // end?
+				return;
 			}
 
 			index = raftLog.getIndex() + 1;
@@ -1082,18 +1073,14 @@ public class LogSequence {
 			lastApplied = raftLog.getIndex(); // 循环可能退出，在这里修改。
 			if (hasUniqueRequest && smRocks != null)
 				smRocks.clearAppliedMark(raftLog.getIndex());
-			//*
 			if (isDebugEnabled && lastIndex - lastApplied < 10) {
 				logger.debug("{}-{} {} RequestId={} LastIndex={} LastApplied={} Count={}",
 						raft.getName(), raft.isLeader(), raft.getRaftConfig().getDbHome(),
 						raftLog.getLog().getUnique().getRequestId(), lastIndex, lastApplied,
 						getTestStateMachineCount());
 			}
-			// */
 			raftLog.invokeCallback();
 		}
-		// if (isDebugEnabled)
-		// logger.debug($"{Raft.Name}-{Raft.IsLeader} CommitIndex={CommitIndex} RequestId={lastApplicableLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
 		trySnapshot();
 	}
 
@@ -1123,7 +1110,6 @@ public class LogSequence {
 		try {
 			var now = System.currentTimeMillis();
 			connector.setHeartbeatTime(now);
-			//connector.setAppendLogActiveTime(now);
 
 			if (!raft.isLeader())
 				return; // skip if is not a leader
@@ -1198,6 +1184,7 @@ public class LogSequence {
 	}
 
 	public static final class AppendLogResult {
+		/** appendLog 的应答：写入的 term 与 index。 */
 		public long term;
 		public long index;
 	}
@@ -1233,10 +1220,7 @@ public class LogSequence {
 	}
 
 	/**
-	 * 等待index日志条目命运确定：已应用（lastApplied>=index）或已从日志删除（截断/丢弃）。
-	 * 用于appendLog超时路径，保证调用方在条目未决期间不释放悲观锁（否则丢失更新）。
-	 * 必须在Raft锁外调用：内部只在检查时短暂持锁。waitMs超时后放弃：集群长期选不出
-	 * leader时条目命运无法确定，继续持锁会无限期挂住业务线程。
+	 * 等待index日志条目命运确定（测试用，显式超时）。语义见下方带 expectTerm 的重载。
 	 */
 	// package-private with explicit timeout for tests.
 	LogFate waitLogFateDetermined(long index, long waitMs) {
@@ -1301,12 +1285,12 @@ public class LogSequence {
 				throw new RaftRetryException("not leader"); // 快速失败
 
 			var raftLog = new RaftLog(term, lastIndex + 1, log);
-			// raft-01（FND16）：unique存根与日志合入同一WriteBatch原子提交。原先两笔独立
-			// sync写，中间失败/崩溃留孤儿存根（!isApplied且日志不存在）：apply遍历日志、
-			// removeLog先readLog（null即跳过）都触达不了它，同号重发命中DuplicateRequest
-			// 不可服务直到按天过期（默认7天）。顺序必须存根先：反序在存根写失败时lastIndex
-			// 未推进，重发以同一(term,index)复用index重写日志——破坏日志匹配不变式（见下方
-			// lastIndex注释），双重执行+状态机分叉双害。合批后两行同生共死，兼省一次fsync。
+			// unique存根与日志合入同一WriteBatch原子提交。两笔独立sync写在中间失败/崩溃时会留
+			// 孤儿存根（!isApplied且日志不存在）：apply遍历日志、removeLog先readLog（null即跳过）
+			// 都触达不了它，同号重发命中DuplicateRequest不可服务直到按天过期（默认7天）。顺序必须
+			// 存根先：反序在存根写失败时lastIndex未推进，重发以同一(term,index)复用index重写日志——
+			// 破坏日志匹配不变式（见下方lastIndex注释），双重执行+状态机分叉双害。合批后两行同生
+			// 共死，兼省一次fsync。
 			try (var batch = database.borrowBatch()) {
 				if (raftLog.getLog().getUnique().getRequestId() > 0)
 					openUniqueRequests(raftLog.getLog().getCreateTime()).save(raftLog, batch);
@@ -1466,7 +1450,7 @@ public class LogSequence {
 					}
 					logger.info("{} EndReceiveInstallSnapshot(ExistLog) Path={} time={}ms",
 							raft.getName(), entry.path, (System.nanoTime() - t) / 1_000_000);
-					// NodeReady：快照是多数派提交产物，装载成功即持有已提交状态（FND12 raft-01）。
+					// NodeReady：快照是多数派提交产物，装载成功即持有已提交状态。
 					trySetNodeReady();
 					return 0;
 				}
@@ -1480,11 +1464,7 @@ public class LogSequence {
 				// 7. Discard the entire log：整个删除后下一次AppendEntries找不到prev，
 				// 所以最后一个trunk带上LastIncludedLog，接收者清除log后插入这条边界日志。
 				logger.info("endReceiveInstallSnapshot: close logs: {}", raft.getRaftConfig().getDbHome());
-				//logs.close();
-				//logs = null;
 				cancelPendingAppendLogFutures();
-				//var logsDir = Paths.get(raft.getRaftConfig().getDbHome(), "logs").toString();
-				//deletedDirectoryAndCheck(new File(logsDir), 10000);
 				logs.drop();
 				logs = database.getOrAddTable(raft.getName() + ".logs");
 				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
@@ -1496,7 +1476,7 @@ public class LogSequence {
 				commitIndex = firstIndex;
 				lastApplied = firstIndex;
 
-				// 【关键】记录这个，放弃当前Term的投票。
+				// 放弃当前Term的投票。
 				setVoteFor(raft.getLeaderId());
 
 				// 8. Reset state machine using snapshot contents (and load
@@ -1515,7 +1495,7 @@ public class LogSequence {
 				}
 				logger.info("{} EndReceiveInstallSnapshot Path={} time={}ms",
 						raft.getName(), entry.path, (System.nanoTime() - t) / 1_000_000);
-				// NodeReady：快照是多数派提交产物，装载成功即持有已提交状态（FND12 raft-01）。
+				// NodeReady：快照是多数派提交产物，装载成功即持有已提交状态。
 				trySetNodeReady();
 				return 0;
 			} finally {
@@ -1629,7 +1609,6 @@ public class LogSequence {
 		if (!raft.isLeader())
 			return; // skip if is not a leader
 
-		// 【注意】
 		// 正在安装Snapshot，此时不复制日志，肯定失败。
 		// 不做这个判断也是可以工作的，算是优化。
 		if (sendSnapshotting.contains(connector.getName()))
@@ -1665,7 +1644,7 @@ public class LogSequence {
 		connector.getPending().Argument.setPrevLogIndex(prevLog.getIndex());
 		connector.getPending().Argument.setPrevLogTerm(prevLog.getTerm());
 
-		// 限制一次发送的日志数量，【注意】这个不是raft要求的。
+		// 限制一次发送的日志数量，这个不是raft要求的。
 		int maxCount = raft.getRaftConfig().getMaxAppendEntriesCount();
 		RaftLog lastCopyLog = nextLog;
 		for (var copyLog = nextLog;
@@ -1774,7 +1753,7 @@ public class LogSequence {
 
 		// NodeReady：正常复制与心跳都会携带 leaderCommit 并在此检测。
 		if (lastLeaderCommitIndex == 0) {
-			// Term 增加时会重置为0，see TrySetTerm。严格点？
+			// Term 增加时会重置为0，see TrySetTerm。
 			lastLeaderCommitIndex = r.Argument.getLeaderCommit();
 		} else if (r.Argument.getLeaderCommit() > lastLeaderCommitIndex) {
 			// 这里只要LeaderCommit推进就行，不需要自己的CommitIndex变更。
@@ -1833,8 +1812,6 @@ public class LogSequence {
 		if (copyLogIndex > lastIndex)
 			lastIndex = copyLogIndex;
 
-		// CheckDump(prevLog.Index, copyLogIndex, r.Argument.Entries);
-
 		// 5. If leaderCommit > commitIndex,
 		// set commitIndex = min(leaderCommit, index of last new entry)
 		// leaderCommit未推进但commitIndex>lastApplied时也要尝试apply：上次apply可能因
@@ -1844,7 +1821,7 @@ public class LogSequence {
 			if (r.Argument.getLeaderCommit() > commitIndex) {
 				commitIndex = Math.min(r.Argument.getLeaderCommit(), lastRaftLogTermIndex().getIndex());
 				// NodeReady：commitIndex推进即已持有多数派提交的数据，追赶完成的节点由此就绪。
-				// 空闲集群leaderCommit恒定，增长见证不可达，否则该节点永不ready（FND12 raft-01）。
+				// 空闲集群leaderCommit恒定，增长见证不可达，否则该节点永不ready。
 				trySetNodeReady();
 			}
 			tryStartApplyTask(readLogForApply(commitIndex, "followerOnAppendEntries"));

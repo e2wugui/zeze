@@ -35,11 +35,10 @@ import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
 
 /**
- * Raft Core
+ * Raft Core：单节点 Raft 协议核心，维护 Follower/Candidate/Leader 状态机与选举、计时器。
  */
 public final class Raft {
 	private static final Logger logger = LogManager.getLogger(Raft.class);
-	// private static final AtomicLong threadPoolCounter = new AtomicLong();
 
 	private volatile String leaderId;
 	private final RaftConfig raftConfig;
@@ -102,24 +101,11 @@ public final class Raft {
 		return raftConfig;
 	}
 
-//	private long lockTime = System.currentTimeMillis();
-//	private long unlockTime = System.currentTimeMillis();
-
 	public void lock() {
-//		var lockBefore = System.currentTimeMillis();
 		mutex.lock();
-//		lockTime = System.currentTimeMillis();
-//		if (lockTime - lockBefore > 500) {
-//			logger.warn("--- wait lock too long: {}, noLockTime: {}", lockTime - lockBefore, lockTime - unlockTime, new Exception());
-//		}
 	}
 
 	public void unlock() {
-//		unlockTime = System.currentTimeMillis();
-//		var t = unlockTime - lockTime;
-//		if (t > 500) {
-//			logger.warn("--- lock time too long: {}", t, new Exception());
-//		}
 		mutex.unlock();
 	}
 
@@ -129,10 +115,6 @@ public final class Raft {
 
 	public void await() {
 		try {
-//			var t = System.currentTimeMillis();
-//			if (t - lockTime > 500) {
-//				logger.warn("--- lock time too long: {}", t - lockTime, new Exception());
-//			}
 			condition.await();
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
@@ -245,7 +227,7 @@ public final class Raft {
 		} catch (InterruptedException ie) { // 先恢复中断标志，再按重试语义包装
 			Thread.currentThread().interrupt();
 			throw new RaftRetryException("Interrupted", ie);
-		} catch (Throwable ex) { // rethrow RaftRetryException
+		} catch (Throwable ex) {
 			throw new RaftRetryException("Inner Exception", ex);
 		}
 	}
@@ -264,7 +246,7 @@ public final class Raft {
 		} catch (InterruptedException ie) { // 先恢复中断标志，再按重试语义包装
 			Thread.currentThread().interrupt();
 			throw new RaftRetryException("Interrupted", ie);
-		} catch (Throwable ex) { // rethrow RaftRetryException
+		} catch (Throwable ex) {
 			throw new RaftRetryException("Inner Exception", ex);
 		}
 	}
@@ -351,7 +333,7 @@ public final class Raft {
 		stateMachine = sm;
 
 		if (RaftName != null && !RaftName.isEmpty()) {
-			// 【FND8-42】改名/联动DbHome在私有副本上执行，不变异调用方传入的配置对象：
+			// 改名/联动DbHome在私有副本上执行，不变异调用方传入的配置对象：
 			// 共享同一RaftConfig的多Raft会互相污染Name/DbHome（快照路径错位、跨实例覆盖）。
 			raftConf = raftConf.derive(RaftName);
 		}
@@ -410,7 +392,7 @@ public final class Raft {
 			r.Result.setTerm(logSequence.getTerm());
 			if (r.Argument.getTerm() < logSequence.getTerm() || r.Argument.getTerm() > LogSequence.TERM_MAX) {
 				// 1. Reply immediately if term < currentTerm
-				// FND6-08：超过TERM_MAX的term非法（trySetTerm拒绝采纳），同样按term错误
+				// 超过TERM_MAX的term非法（trySetTerm拒绝采纳），同样按term错误
 				// 提前返回，不得落穿后续处理接受非法Leader的快照。
 				r.SendResultCode(InstallSnapshot.ResultCodeTermError);
 				return 0;
@@ -500,7 +482,7 @@ public final class Raft {
 
 	/**
 	 * 每个Raft使用一个固定Timer，根据不同的状态执行相应操作。
-	 * 【简化】不同状态下不管维护管理不同的Timer了。
+	 * 各状态共用这一个Timer，不分别维护各自的Timer。
 	 */
 	private void onTimer() throws Exception {
 		lock();
@@ -540,7 +522,6 @@ public final class Raft {
 			}
 		} finally {
 			unlock();
-			//timerTask = Task.scheduleNow(10, this::onTimer);
 		}
 	}
 
@@ -587,7 +568,7 @@ public final class Raft {
 	public boolean isReadyLeader() {
 		lock();
 		try {
-			var volatileTmp = leaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
+			var volatileTmp = leaderReadyFuture;
 			return isLeader() && volatileTmp.isDone() && volatileTmp.get();
 		} finally {
 			unlock();
@@ -825,7 +806,7 @@ public final class Raft {
 	}
 
 	/**
-	 * FND6-08：term 达到上界时拒绝发起选举。term+1 溢出回绕为负值会被 trySetTerm 判 Older，
+	 * term 达到上界时拒绝发起选举。term+1 溢出回绕为负值会被 trySetTerm 判 Older，
 	 * 选举永久冻结；且预投票携带的回绕term会传染。仅在库被旧版本投毒后可达，
 	 * 需人工清理 rocks rafts 表的 term 后才能恢复。
 	 */
@@ -839,9 +820,8 @@ public final class Raft {
 	}
 
 	private void sendPreVote() throws RocksDBException {
-		// FND6-08补：拒绝选举也要推进nextVoteTime——原拒绝路径在设置nextVoteTime之前return，
-		// onTimer的Candidate分支(now>nextVoteTime恒真)每tick重进，20ms一条fatal刷日志，
-		// 恰是本修复在trySetTerm里防的洪泛在自家拒绝路径上的翻版。
+		// 拒绝选举也要推进nextVoteTime，否则onTimer的Candidate分支(now>nextVoteTime恒真)
+		// 每 tick 重进，20ms一条fatal刷日志。
 		nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
 		if (!checkTermCanElect())
 			return;
@@ -949,9 +929,9 @@ public final class Raft {
 			// send initial empty AppendEntries RPCs
 			// (heartbeat)to each server; repeat during
 			// idle periods to prevent election timeouts(§5.2)
-			// 【R3-F3】先于appendLog登记等待条件：appendLog（RocksDB写）失败时state已是Leader，
+			// 先于appendLog登记等待条件：appendLog（RocksDB写）失败时state已是Leader，
 			// 事后登记永远不会执行，setLeaderReady的唯一匹配条件（index/term）永不命中，产生
-			// 永不ready的活Leader且无自愈（心跳照发压制重选举，磁盘恢复也不能自愈，FND10 raft-01）。
+			// 永不ready的活Leader且无自愈（心跳照发压制重选举，磁盘恢复也不能自愈）。
 			// Raft锁内nextIndex==lastIndex+1即appendLog将写入的index，term即logSequence.getTerm()，
 			// 预登记与事后登记的值完全一致。
 			leaderWaitReadyIndex = nextIndex;
@@ -960,8 +940,8 @@ public final class Raft {
 				logSequence.appendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent), null);
 			} catch (Throwable ex) {
 				// appendLog同步写失败（磁盘满/IO故障等）时state已是Leader且只初始化一半，退位路径
-				// 会再次触碰半初始化状态；按"宁死勿僵尸"（fatalKill判例，FND3-21）整进程终止，
-				// 多数派仍在时集群只是少一节点，由外部拉起重启自愈。
+				// 会再次触碰半初始化状态；按"宁死勿僵尸"整进程终止，多数派仍在时集群只是少一节点，
+				// 由外部拉起重启自愈。
 				logger.error("append SetLeaderReadyEvent fail on become leader, fatalKill.", ex);
 				fatalKill();
 			}

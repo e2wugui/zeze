@@ -9,6 +9,7 @@ import java.util.function.LongFunction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// long 键开放寻址哈希表（线性探测，0 键走特例槽），非线程安全
 public class LongHashMap<V> implements Cloneable {
 	private int size;
 	private long @NotNull [] keyTable;
@@ -231,7 +232,7 @@ public class LongHashMap<V> implements Cloneable {
 	public @Nullable V putIfAbsent(long key, @Nullable V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
-			// 值为null的既有条目按Map契约视为absent（FND8-10）：写入新值
+			// 值为null的既有条目按Map契约视为absent：写入新值
 			if (oldV == null) {
 				zeroValue = value;
 				if (!hasZeroKey) {
@@ -255,7 +256,7 @@ public class LongHashMap<V> implements Cloneable {
 			}
 			if (k == key) {
 				final V oldV = vt[i];
-				// 值为null的既有条目按Map契约视为absent（FND8-10）：写入新值，返回旧值null
+				// 值为null的既有条目按Map契约视为absent：写入新值，返回旧值null
 				if (oldV == null)
 					vt[i] = value;
 				return oldV;
@@ -266,7 +267,7 @@ public class LongHashMap<V> implements Cloneable {
 	public V computeIfAbsent(long key, @NotNull LongFunction<? extends V> mappingFunction) {
 		if (key == 0) {
 			V v = zeroValue;
-			// 值为null的既有条目按Map契约视为absent（FND8-10）：需要重算；
+			// 值为null的既有条目按Map契约视为absent：需要重算；
 			// 函数返回null则不写入，保留原条目
 			if (v == null) {
 				V newV = mappingFunction.apply(0);
@@ -296,7 +297,7 @@ public class LongHashMap<V> implements Cloneable {
 				return v;
 			}
 			if (k == key) {
-				// 值为null的既有条目按Map契约视为absent（FND8-10）：需要重算；
+				// 值为null的既有条目按Map契约视为absent：需要重算；
 				// 函数返回null则不写入，保留原null条目
 				V v = vt[i];
 				if (v == null) {
@@ -522,7 +523,7 @@ public class LongHashMap<V> implements Cloneable {
 	}
 
 	private void resize(int newSize) { // [1,2,4,8,...,0x4000_0000]
-		if (newSize < 0) // 1<<30再左移溢出为负（FND4-19，~8.6亿条目，现实不可达）：显式契约
+		if (newSize < 0) // 1<<30再左移溢出为负（~8.6亿条目，现实不可达）：显式契约
 			// 而非 new long[负数] 的 NegativeArraySizeException；构造器tableSize封顶1<<30，扩容同样受约。
 			throw new IllegalStateException("LongHashMap capacity limit reached: " + (1 << 30));
 		threshold = (int)(newSize * loadFactor);

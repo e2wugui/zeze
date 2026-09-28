@@ -2,6 +2,9 @@ package Zeze.Arch;
 
 import Zeze.Application;
 
+/**
+ * 无在线表的 Provider 负载上报实现：在线数与登录次数恒为 0。
+ */
 public class ProviderLoadOnly extends LoadBase {
 
 	public ProviderLoadOnly(Application zeze) {

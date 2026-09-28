@@ -27,6 +27,7 @@ import Zeze.Transaction.TransactionLevel;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 反射工具集：调试模式探测、MethodHandle/StackWalker 便捷方法与类型名稳定化
 public class Reflect {
 	public static final boolean inDebugMode = !"true".equalsIgnoreCase(System.getProperty("noDebugMode")) &&
 			ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;

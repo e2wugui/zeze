@@ -19,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
 public final class StringChecker {
 	private static final @NotNull Logger logger = LogManager.getLogger(StringChecker.class);
 
-	/** 词条长度上限（FND7-75）：calFail按词条长度递归（每字符约3帧，栈深=词长），超长词条
+	/** 词条长度上限：calFail按词条长度递归（每字符约3帧，栈深=词长），超长词条
 	 * （词库被污染/误粘整段文本）会以StackOverflowError击穿reload。实测4096字符在默认
  * 栈（512KB~1MB）已处SOE边缘，取1024留足余量；敏感词场景绰绰有余。 */
 	private static final int MAX_WORD_LENGTH = 1024;
@@ -40,7 +40,7 @@ public final class StringChecker {
 				char c = str.charAt(i);
 				next = trie.get(c);
 				if (++i >= e) {
-					// 词尾统一为真实节点+end标志（FND4-09）：曾经的自引用叶(标记在父的边上)
+					// 词尾统一为真实节点+end标志：自引用叶(标记在父的边上)
 					// 让词尾不占状态，fail链上的输出检查在语义上无法成立——词条是另一词条
 					// 真后缀时，命中信号经由长词前缀路径的fail链到达，只查转移目标必然漏检。
 					if (next == null)
@@ -88,7 +88,7 @@ public final class StringChecker {
 				}
 				if (next.end)
 					return true;
-				// 成功转移后沿fail链检查输出（FND4-09）：词条是另一词条真后缀时，
+				// 成功转移后沿fail链检查输出：词条是另一词条真后缀时，
 				// 命中信号经由长词前缀路径的fail链到达，只查转移目标自身会漏检。
 				for (Trie t = next.fail; ; t = t.fail) {
 					if (t.end)
@@ -142,7 +142,7 @@ public final class StringChecker {
 				}
 				// 非纯词尾转移：计算当前位置命中的最长词（贪心积累，失配或更长词命中时消费）。
 				// 词尾在自身(next.end，非叶形态：还是更长词条的前缀)或在fail链上——
-				// fail链命中即真后缀词条场景（FND4-09）：取链上首个end（最长后缀词）。
+				// fail链命中即真后缀词条场景：取链上首个end（最长后缀词）。
 				int wordLen = 0;
 				if (next.end)
 					wordLen = next.deep;
@@ -159,7 +159,7 @@ public final class StringChecker {
 				trie = next;
 				++i;
 				if (wordLen > 0) {
-					// U5-F1：覆盖积累区间前先 flush 与新区间不重叠（新区间起点不早于旧区间终点）的
+					// 覆盖积累区间前先 flush 与新区间不重叠（新区间起点不早于旧区间终点）的
 					// 旧积累区间，否则同一成功转移段内先前命中的词条被静默覆盖漏替换（如词表
 					// {ab,cde,abcdezq} 遇文本"abcdez"只替换 cde、ab 原样漏过）；新区间起点落在
 					// 旧区间内（重叠词）时不 flush，维持新词覆盖旧词的贪心最长匹配语义。
@@ -198,7 +198,7 @@ public final class StringChecker {
 		int e = line.length();
 		if (e == 0)
 			return false;
-		if (e > MAX_WORD_LENGTH) { // FND7-75：拒绝超长词条，防calFail深递归SOE
+		if (e > MAX_WORD_LENGTH) { // 拒绝超长词条，防calFail深递归SOE
 			logger.warn("StringChecker: word too long ({} > {}), rejected: '{}'...",
 					e, MAX_WORD_LENGTH, line.substring(0, 32));
 			return false;

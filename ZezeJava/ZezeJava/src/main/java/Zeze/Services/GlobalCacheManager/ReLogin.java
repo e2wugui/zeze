@@ -3,6 +3,7 @@ package Zeze.Services.GlobalCacheManager;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.EmptyBean;
 
+/** ReLogin协议：断线重连后重新绑定会话（须在Login成功之后）。 */
 public class ReLogin extends Rpc<BLoginParam, EmptyBean> {
 	public static final int ProtocolId_ = Zeze.Transaction.Bean.hash32(ReLogin.class.getName()); // 1197409195
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1197409195

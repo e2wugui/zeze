@@ -7,6 +7,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 
+/** AllocateId128请求bean：全局名与申请数量。 */
 public final class BAllocateId128Argument implements Serializable {
 	private @NotNull Binary name;
 	private int count;

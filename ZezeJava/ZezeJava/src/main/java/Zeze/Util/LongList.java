@@ -9,6 +9,7 @@ import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// long 基本类型动态数组：可比较/可克隆/可序列化
 public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	public static final long[] EMPTY = new long[0];
 	public static final int DEFAULT_SIZE = 8;

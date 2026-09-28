@@ -39,10 +39,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 数据库管理 Web 端点：全库读/写/删/清表（token 鉴权）。
+ */
 public class DbWeb extends AbstractDbWeb {
 	private static final Logger logger = LogManager.getLogger(DbWeb.class);
 
-	// token鉴权（FND8-66范式，FND14 comp-02用户裁决）：DbWeb暴露全库读/写/删/清表，挂载在
+	// token鉴权（用户裁决）：DbWeb暴露全库读/写/删/清表，挂载在
 	// 共享HttpServer上无法按端点绑地址（官方样例不传host即绑0.0.0.0），"内部网络纪律"不可
 	// 履行——强制token防误触（端口扫描/错端口curl）优先于防攻击。无参构造保持零配置可用：
 	// 自动生成随机token并打日志；Index页保持开放（静态外壳无数据），六个数据端点fail-closed。
@@ -333,7 +336,7 @@ public class DbWeb extends AbstractDbWeb {
 					table.remove(key);
 				return Procedure.Success;
 			}, "DbWeb.clearTable")).call();
-			// 删除批失败必须中止报错（CP1-F3）：lastKey游标已推进（排他），失败批被静默跳过
+			// 删除批失败必须中止报错：lastKey游标已推进（排他），失败批被静默跳过
 			// 后clearTable仍输出"ClearTable done!"，数据静默残留。抛出后OnServletClearTable的
 			// catch把异常栈流式发给运维，可见后重跑即可（clearTable幂等）；不做批内重试。
 			if (rc != Procedure.Success)

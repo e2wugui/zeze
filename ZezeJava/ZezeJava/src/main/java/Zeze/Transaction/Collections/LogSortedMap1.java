@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/** PSortedMap1 的变更日志：以 replaced/removed 增量记录事务内对持久化有序 Map 的修改。 */
 public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V> {
 	protected final @NotNull Meta2<K, V> meta;
 	private final HashMap<K, V> replaced = new HashMap<>();
@@ -146,16 +147,12 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	private void mergeChangeNote(@NotNull LogSortedMap1<K, V> another) {
-		// put,remove 需要确认有没有顺序问题
-		// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
 		for (var e : another.replaced.entrySet()) {
-			// replace 1,2,3 remove 4
 			K k = e.getKey();
 			removed.remove(k);
 			replaced.put(k, e.getValue());
 		}
 		for (K k : another.removed) {
-			// replace 2,3 remove 1,4
 			replaced.remove(k);
 			removed.add(k);
 		}

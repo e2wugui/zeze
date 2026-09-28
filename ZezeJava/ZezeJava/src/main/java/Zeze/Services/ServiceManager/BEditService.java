@@ -7,6 +7,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * EditService协议bean：remove（注销）与add（注册/更新）两个服务信息列表，以name+id为key。
+ */
 public class BEditService implements Serializable {
 	private static final List<BServiceInfo> empty = List.of();
 

@@ -16,6 +16,9 @@ import Zeze.Util.ZezeCounter;
 import com.alibaba.druid.pool.DruidDataSource;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Microsoft SQL Server 数据库后端：KV 表与存储过程版 Operates（同版本保存、带租期全局锁）。
+ */
 public final class DatabaseSqlServer extends DatabaseJdbc {
 	// 与 DatabaseMySql.keyOfLock 相同的固定 flag id（各后端库独立存储，仅保持字节一致）。
 	public static final byte[] keyOfLock =
@@ -74,7 +77,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			= sqlserverObserverCreator.labelValues("replace");
 
 	private final class OperatesSqlServer implements Operates {
-		// 全局启动锁的租期（T3-F1），语义与取值对齐 DatabaseRedis.LOCK_LEASE_SECONDS：
+		// 全局启动锁的租期，语义与取值对齐 DatabaseRedis.LOCK_LEASE_SECONDS：
 		// 持锁进程崩溃后残留的锁最多存活一个租期，之后轮询的实例自动接管。
 		private static final int LOCK_LEASE_SECONDS = 600;
 
@@ -82,7 +85,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		public boolean tryLock() {
 			// 条件写式互斥：锁行version复用为租期到期时间戳，0=空闲，>0=持锁至该时刻
 			// （DB服务器时钟UTC，单一时间来源），到期即可接管。与MySql/PG版同款，
-			// 误过期取舍同review-2026-09/l4/T3-4。
+			// 误过期取舍同Redis版（不做续期与持有者校验）。
 			var createRecordSql = """
 					BEGIN TRY
 					    insert into _ZezeDataWithVersion_ values(?, ?, 0)
@@ -542,7 +545,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				var keyCopy = key.CopyIf();
 				var valueCopy = value.CopyIf();
 				cmd.setBytes(1, valueCopy);
-				cmd.setBytes(2, keyCopy); // 传两次，使用存储过程优化？
+				cmd.setBytes(2, keyCopy); // key在update与insert两分支中各传一次
 				cmd.setBytes(3, keyCopy);
 				cmd.setBytes(4, valueCopy);
 				cmd.executeUpdate();

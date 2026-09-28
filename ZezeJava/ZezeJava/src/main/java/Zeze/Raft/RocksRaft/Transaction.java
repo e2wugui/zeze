@@ -16,6 +16,10 @@ import Zeze.Util.ThrowAgainException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * RocksRaft 事务：线程绑定的事务上下文——savepoint 日志栈、访问记录集与悲观锁，
+ * 驱动存储过程的提交/回滚与 leader 侧 apply。
+ */
 public final class Transaction {
 	private static final Logger logger = LogManager.getLogger(Transaction.class);
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
@@ -40,7 +44,7 @@ public final class Transaction {
 		private final long timestamp;
 		private boolean dirty;
 		// put/remove意图(LogBeanKey)的唯一事实源是所属事务的savepoint日志栈：
-		// 嵌套回滚随savepoint丢弃，读取自动回落到外层已提交意图或origin值（FND4-24）。
+		// 嵌套回滚随savepoint丢弃，读取自动回落到外层已提交意图或origin值。
 		private final Transaction owner;
 
 		public RecordAccessed(Transaction owner, Record<?> origin) {
@@ -139,7 +143,7 @@ public final class Transaction {
 		return saveSize > 0 ? savepoints.get(saveSize - 1).getLog(logKey) : null;
 	}
 
-	/** 当前savepoint（FND5-15）：savepoint的begin/commit/rollback均为public，业务在
+	/** 当前savepoint：savepoint的begin/commit/rollback均为public，业务在
 	 * process体内手动rollback多于begin后，putLog/leaderApply/_final_commit_等在空栈上
 	 * getLast()抛NoSuchElementException——该异常不属于FlushException/RocksDBException，
 	 * 不受followerApply的fatalKill兜底也不被tryApply捕获，沿tryCommit上抛到复制应答
@@ -192,7 +196,7 @@ public final class Transaction {
 		if (lastIndex > 0)
 			savepoints.get(lastIndex - 1).mergeRollbackFrom(last); // 嵌套事务，把日志合并到上一层。
 		else
-			lastRollbackActions = last.getRollbackActions(); // 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。ugly。
+			lastRollbackActions = last.getRollbackActions(); // 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。
 	}
 
 	public long perform(Procedure procedure) throws Exception {
@@ -236,7 +240,7 @@ public final class Transaction {
 			for (var pLock : pessimismLocks)
 				pLock.unlock();
 			pessimismLocks.clear();
-				// 【FND7-14】释放本事务访问记录的在用保护（驱逐允许）。正常路径leaderApply在
+				// 释放本事务访问记录的在用保护（驱逐允许）。正常路径leaderApply在
 				// appendLog等待期间（perform内）已完成应用与flush，此时释放安全；appendLog超时
 				// 未决的条目若已进入flush补偿（flush失败），由putPendingFlush登记继续持有在用，
 				// 直到重试成功或过期丢弃，迟到flush窗口内记录不可被驱逐。
@@ -250,10 +254,10 @@ public final class Transaction {
 		try {
 			leaderApplyInternal(changes, holder, rocks);
 		} catch (Rocks.FlushException e) {
-			// flush失败有补偿重试通道（pendingFlush，FND-R2-4），不是结构性分歧，放行给apply重试。
+			// flush失败有补偿重试通道（pendingFlush），不是结构性分歧，放行给apply重试。
 			throw e;
 		} catch (Throwable e) {
-			// 【FND7-15】对齐Rocks.followerApply的"宁死不糊"：leaderApply链路抛出非Flush
+			// 对齐Rocks.followerApply的"宁死不糊"：leaderApply链路抛出非Flush
 			// 异常（生成leaderApplyNoRecursive的ClassCast/NPE、lastSavepoint的
 			// IllegalStateException等）时，后台apply线程的uncaughtHandler仅记日志，
 			// applyFuture在finally置null后同条目反复重入重抛——lastApplied永久楔死且
@@ -270,18 +274,18 @@ public final class Transaction {
 		var index = holder.getIndex();
 		var pending = rocks.takePendingFlush(index, holder.getTerm());
 		if (pending != null) {
-			// 上次leaderApply已完成内存变更但flush失败（FND-R2-4）：内存已是最终状态，
+			// 上次leaderApply已完成内存变更但flush失败：内存已是最终状态，
 			// 只重试flush。不能重跑下面的日志迭代：业务线程超时回滚后savepoints可能已清空。
 			try {
 				rocks.flush(pending, changes);
 			} catch (Rocks.FlushException e) {
-				// 【FND8-39】重试再失败的重登记用转移语义（addReference=false）：补偿持有的
+				// 重试再失败的重登记用转移语义（addReference=false）：补偿持有的
 				// 计数随消费原样移入新登记，在用保护横跨补偿生命周期不断档；原"先endAccess
 				// 再登记"的归零间隙内LRU驱逐+同key脏重载旧基线，增量日志应用在旧值上即分歧。
 				rocks.putPendingFlush(index, holder.getTerm(), pending, false);
 				throw e;
 			}
-			// 【FND7-14】重试flush成功：释放补偿登记持有的在用保护（业务计数若未随
+			// 重试flush成功：释放补偿登记持有的在用保护（业务计数若未随
 			// perform释放，由其finally释放）。
 			for (var r : pending)
 				r.endAccess();
@@ -306,7 +310,7 @@ public final class Transaction {
 			rocks.flush(rs, changes);
 		} catch (Rocks.FlushException e) {
 			// 内存已变更但落盘失败：记录已应用的记录集合，等下次apply重试时只flush，
-			// 避免重试经readLog解码走增量followerApply造成双重应用（FND-R2-4）。
+			// 避免重试经readLog解码走增量followerApply造成双重应用。
 			rocks.putPendingFlush(index, holder.getTerm(), rs);
 			throw e;
 		}
@@ -322,7 +326,6 @@ public final class Transaction {
 
 	@SuppressWarnings("SameReturnValue")
 	private boolean _lock_and_check_(/*TransactionLevel level*/) {
-//		boolean allRead = true;
 		var saveSize = savepoints.size();
 		if (saveSize > 0) {
 			var it = savepoints.get(saveSize - 1).logIterator();
@@ -338,14 +341,11 @@ public final class Transaction {
 					var record = accessedRecords.get(tkey);
 					if (record != null) {
 						record.setDirty(true);
-//						allRead = false;
 					} else
 						logger.error("impossible! record not found."); // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
 				}
 			}
 		}
-//		if (allRead && level == TransactionLevel.AllowDirtyWhenAllRead)
-//			return true; // 使用一个新的enum表示一下？
 		return true;
 	}
 
@@ -385,7 +385,7 @@ public final class Transaction {
 			try {
 				autoResponse.SendResult();
 			} catch (Throwable ex) {
-				// 决策点（appendLog成功）之后的应答发送失败只降级应答质量（FND4-32）：
+				// 决策点（appendLog成功）之后的应答发送失败只降级应答质量：
 				// 传播出去会让perform的catch在已提交事务上补跑_final_rollback_，
 				// 提交/回滚互斥的回调契约被破坏（提交动作已执行又叠回滚动作）。
 				logger.error("send auto response after commit fail", ex);
@@ -433,7 +433,7 @@ public final class Transaction {
 			try {
 				autoResponse.SendResult();
 			} catch (Throwable ex) {
-				// 回滚已完成，应答发送失败不得把错误码返回路径改写成异常上抛（FND4-32同源）。
+				// 回滚已完成，应答发送失败不得把错误码返回路径改写成异常上抛。
 				logger.error("send auto response after rollback fail", ex);
 			}
 		}

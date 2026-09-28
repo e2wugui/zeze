@@ -1,7 +1,7 @@
 package Zeze.Game;
 
 /**
- * Created by zyao on 2023/2/17 10:39
+ * 登出原因：重复登录、重登或主动登出。
  */
 public enum LogoutReason {
 	LOGIN,

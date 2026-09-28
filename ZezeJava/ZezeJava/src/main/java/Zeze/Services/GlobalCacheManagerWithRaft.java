@@ -44,6 +44,10 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Raft版全局缓存管理器服务器：全局锁所有权状态（Global表）与各Server已获取记录
+ * （Session#serverId表）经rocks-raft复制持久化，申请位等瞬态由pessimism锁与回滚动作维护。
+ */
 public class GlobalCacheManagerWithRaft
 		extends AbstractGlobalCacheManagerWithRaft implements Closeable, GlobalCacheManagerConst {
 	static {
@@ -80,15 +84,15 @@ public class GlobalCacheManagerWithRaft
 
 	private final GlobalCacheManagerServer.GCMConfig gcmConfig = new GlobalCacheManagerServer.GCMConfig();
 	private final AchillesHeelConfig achillesHeelConfig;
-	// FND7-17/18组件化：调度线程只派发、扫描体进worker池、close两段式（关门→cancel→限时等待
-	// 在飞一轮）由DaemonTimer内聚；该模式曾手抄于GCM三版与LoginQueue，拷贝过期即成缺陷。
+	// DaemonTimer内聚"调度线程只派发、扫描体进worker池、close两段式（关门→cancel→限时等待
+	// 在飞一轮）"，避免该模式手抄到GCM三版与LoginQueue后拷贝过期成缺陷。
 	private final DaemonTimer achillesHeelDaemonTimer;
-	// close标记：daemon轮次在模块锁内首查即退出，不再触碰rocks（对齐ServiceManagerWithRaft判例）
+	// close标记：daemon轮次在模块锁内首查即退出，不再触碰rocks（对齐ServiceManagerWithRaft）
 	private volatile boolean closed;
 	private final GlobalCacheManagerPerf perf;
 	private final AtomicLong serialId = new AtomicLong();
 
-	// FND6-24：会话表名前缀。TableTemplate.openTable(int serverId)生成的列族名为
+	// 会话表名前缀。TableTemplate.openTable(int serverId)生成的列族名为
 	// "name#id"，rebuildSessionsFromStorage据此从storage扫描已存在的Session表。
 	private static final String SessionTableNamePrefix = "Session#";
 	// rebuildSessionsFromStorage的storage==null防御分支只告警一次（daemon每5s一tick，
@@ -127,7 +131,7 @@ public class GlobalCacheManagerWithRaft
 		globalStates = globalTemplate.openTable(0);
 		serverAcquiredTemplate = rocks.getTableTemplate("Session");
 
-		// FND6-24：就任即刻重建会话视图，消除daemon首个tick最多5s的盲窗。onLeaderReady在
+		// 就任即刻重建会话视图，消除daemon首个tick最多5s的盲窗。onLeaderReady在
 		// raft的apply路径内执行（持Raft锁），回调必须快且不得抛异常——重建只遍历storage
 		// tableMap的内存键集并putIfAbsent（幂等），异常兜底记日志。GCM独占自己的Raft实例
 		// （本rocks私有，Dbh2等注册的是各自实例），单槽回调无占用冲突。须在server.start()
@@ -135,7 +139,7 @@ public class GlobalCacheManagerWithRaft
 		rocks.getRaft().setOnLeaderReady(() -> {
 			try {
 				rebuildSessionsFromStorage();
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("RebuildSessionsFromStorage(onLeaderReady) exception", e);
 			}
 		});
@@ -145,7 +149,7 @@ public class GlobalCacheManagerWithRaft
 		rocks.getRaft().getServer().start();
 
 		// perf 须在 server.start() 成功之后创建：构造中途失败时实例不可达、close() 永不可达，
-		// 先创建则 1s 周期任务泄漏；perf 在 start() 前无引用方，时序安全（FND17 svc-01）
+		// 先创建则 1s 周期任务泄漏；perf 在 start() 前无引用方，时序安全
 		if (ENABLE_PERF)
 			perf = new GlobalCacheManagerPerf(raftName, serialId); // Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
 
@@ -159,10 +163,10 @@ public class GlobalCacheManagerWithRaft
 	private void achillesHeelDaemon() {
 		lock();
 		try {
-			// closed与rocks首次触碰(getRaft().isLeader)同在本模块锁内，对齐ServiceManagerWithRaft
-			// 判例：close()先置closed再过锁屏障，屏障后进入的轮次见closed即退出——rocks.close()
-			// 不与在飞/逃逸轮的rocks访问并发（原先锁外先摸rocks，getRaft拿到引用后native句柄被
-			// 释放即段错误，S2-F2判空挡不住TOCTOU窗口）。模块锁此前零使用，无既有锁序可反。
+			// closed与rocks首次触碰(getRaft().isLeader)同在本模块锁内（对齐ServiceManagerWithRaft）：
+			// close()先置closed再过锁屏障，屏障后进入的轮次见closed即退出——rocks.close()
+			// 不与在飞/逃逸轮的rocks访问并发：锁外先摸rocks时，getRaft拿到引用后native句柄被
+			// 释放即段错误，判空挡不住TOCTOU窗口。模块锁无其他使用者，无既有锁序约束。
 			if (closed)
 				return;
 			achillesHeelDaemonLocked(System.currentTimeMillis());
@@ -175,19 +179,19 @@ public class GlobalCacheManagerWithRaft
 		var raft = rocks.getRaft();
 		var leader = raft != null && raft.isLeader();
 		if (leader) {
-			// FND6-24：电平触发对账——leader期间每tick重建（putIfAbsent幂等、对已有Holder
-			// 零影响、仅扫storage tableMap的内存键集，成本可忽略）。相比原来的false→true
-			// 边沿触发，单次重建异常不再要等下次leader切换才重跑：下个tick自动重试，自纠错。
+			// 电平触发对账——leader期间每tick重建（putIfAbsent幂等、对已有Holder
+			// 零影响、仅扫storage tableMap的内存键集，成本可忽略）：单次重建异常
+			// 无需等下次leader切换才重跑，下个tick自动重试，自纠错。
 			// 单独兜底，避免重建异常跳过本tick的会话超时检查。
 			try {
 				rebuildSessionsFromStorage();
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("RebuildSessionsFromStorage exception", e);
 			}
 			sessions.forEach(session -> {
 				session.lock();
 				try {
-					// 超时检查必须在锁内复查（理由同同步版FND-S1-6）：检查在锁外时，同serverId新
+					// 超时检查必须在锁内复查（理由同同步版）：检查在锁外时，同serverId新
 					// incarnation恰在"检查→加锁"窗口内Login（bind持锁刷新activeTime），daemon会
 					// kick新连接并回收其新获取的权限。
 					if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
@@ -198,8 +202,6 @@ public class GlobalCacheManagerWithRaft
 							Acquired.walkKey(key -> {
 								// 在循环中删除。这样虽然效率低些，但是能处理更多情况。
 								if (rocks.getRaft().isLeader()) {
-//									logger.info("AchillesHeelDaemon.Release table={} key={} session={}",
-//											Acquired.getName(), key, session);
 									release(session, key);
 									++releaseCount.value;
 									return true;
@@ -209,12 +211,11 @@ public class GlobalCacheManagerWithRaft
 							session.setActiveTime(System.currentTimeMillis());
 							if (releaseCount.value > 0)
 								logger.info("AchillesHeelDaemon.Release session={} count={}", session, releaseCount.value);
-						} catch (Throwable e) { // print stack trace.
+						} catch (Throwable e) {
 							logger.error("AchillesHeelDaemon.Release {} exception", session, e);
 						} finally {
-							// server一直没有恢复，这个减少一点Release。
-							// 完善的做法是session已经全部release以后，删除掉。
-							// 但是删除session并发上复杂点。先这样了。
+							// server一直没有恢复时，刷新activeTime降低Release频率。
+							// 更完善的做法是session全部release后删除之，但删除session的并发较复杂。
 							session.setActiveTime(System.currentTimeMillis());
 						}
 					}
@@ -235,7 +236,7 @@ public class GlobalCacheManagerWithRaft
 		return acquiredState;
 	}
 
-	// FND6-24：sessions为进程内存态（不随raft复制），leader切换后新leader仅含本进程
+	// sessions为进程内存态（不随raft复制），leader切换后新leader仅含本进程
 	// 登录过的serverId——死serverId的CacheHolder缺失：第三方acquire其持有的modify键
 	// 时reduce路径get==null恒false（AcquireModifyFailed重试同败），daemon因无Holder
 	// 不可及（Cleanup恒禁用），稳定新主下wedge无期限。遍历storage已存在的Session表
@@ -407,7 +408,6 @@ public class GlobalCacheManagerWithRaft
 					lockey.pulseAll();
 				}
 			});
-			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
 			serialId.getAndIncrement();
 			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
 			var reduceTid = new OutObject<>(Id128.Zero);
@@ -417,7 +417,7 @@ public class GlobalCacheManagerWithRaft
 					// 又重启连上。更新一下。应该是不需要的。
 					SenderAcquired.put(globalTableKey, newAcquiredState(StateModify));
 					cs.setAcquireStatePending(StateInvalid);
-					lockey.pulseAll(); // 归还申请位必须唤醒等待者（FND4-52，对齐acquireModify同分支）
+					lockey.pulseAll(); // 归还申请位必须唤醒等待者
 					if (isDebugEnabled)
 						logger.debug("4 {} {} {}", sender, StateShare, cs);
 					rpc.Result.setState(StateModify);
@@ -426,7 +426,7 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
-				var reduceDone = new boolean[]{false}; // FND5-28：完成标志（回调锁内置位后再pulse）
+				var reduceDone = new boolean[]{false}; // 完成标志（回调锁内置位后再pulse）
 				if (CacheHolder.reduce(sessions, cs.getModify(), globalTableKey, fresh, r -> {
 					if (ENABLE_PERF)
 						perf.onReduceEnd(r);
@@ -450,7 +450,7 @@ public class GlobalCacheManagerWithRaft
 				})) {
 					if (isDebugEnabled)
 						logger.debug("5 {} {} {}", sender, StateShare, cs);
-					// FND5-28：Condition契约允许伪唤醒——裸await醒来不复查完成谓词，
+					// Condition契约允许伪唤醒——裸await醒来不复查完成谓词，
 					// 直接按默认StateReduceNetError走失败分支而reduce仍在途。谓词循环复查。
 					while (!reduceDone[0])
 						lockey.await();
@@ -472,7 +472,6 @@ public class GlobalCacheManagerWithRaft
 					cs.setAcquireStatePending(StateInvalid);
 					if (ENABLE_PERF)
 						perf.onOthers("XXX Fresh " + StateShare);
-					// logger.error("XXX fresh {} {} {}", sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					lockey.pulseAll(); //notify
 					return StateReduceErrorFreshAcquire; // 事务数据没有改变，回滚
@@ -485,7 +484,6 @@ public class GlobalCacheManagerWithRaft
 					cs.setAcquireStatePending(StateInvalid);
 					if (ENABLE_PERF)
 						perf.onOthers("XXX 8 " + StateShare + " " + reduceResultState.value);
-					// logger.error("XXX 8 state={} {} {} {}", reduceResultState.Value, sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					lockey.pulseAll();
 					return AcquireShareFailed; // 事务数据没有改变，回滚
@@ -572,7 +570,6 @@ public class GlobalCacheManagerWithRaft
 					lockey.pulseAll();
 				}
 			});
-			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
 			serialId.getAndIncrement();
 			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
 			var reduceTid = new OutObject<>(Id128.Zero);
@@ -590,7 +587,7 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
-				var reduceDone = new boolean[]{false}; // FND5-28：完成标志（回调锁内置位后再pulse）
+				var reduceDone = new boolean[]{false}; // 完成标志（回调锁内置位后再pulse）
 				if (CacheHolder.reduce(sessions, cs.getModify(), globalTableKey, fresh, r -> {
 					if (ENABLE_PERF)
 						perf.onReduceEnd(r);
@@ -614,7 +611,7 @@ public class GlobalCacheManagerWithRaft
 				})) {
 					if (isDebugEnabled)
 						logger.debug("5 {} {} {}", sender, StateModify, cs);
-					// FND5-28：同Share侧——谓词循环防伪唤醒直走失败分支。
+					// 同Share侧——谓词循环防伪唤醒直走失败分支。
 					while (!reduceDone[0])
 						lockey.await();
 				}
@@ -629,7 +626,6 @@ public class GlobalCacheManagerWithRaft
 					cs.setAcquireStatePending(StateInvalid);
 					if (ENABLE_PERF)
 						perf.onOthers("XXX Fresh " + StateModify);
-					// logger.error("XXX fresh {} {} {} {}", sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					lockey.pulseAll(); //notify
 					return StateReduceErrorFreshAcquire; // 事务数据没有改变，回滚
@@ -641,7 +637,6 @@ public class GlobalCacheManagerWithRaft
 					cs.setAcquireStatePending(StateInvalid);
 					if (ENABLE_PERF)
 						perf.onOthers("XXX 9 " + StateModify + " " + reduceResultState.value);
-					// logger.error("XXX 9 {} {} {} {}", sender, acquireState, cs, reduceResultState.Value);
 					rpc.Result.setState(StateInvalid);
 					lockey.pulseAll();
 					return AcquireModifyFailed; // 事务数据没有改变，回滚
@@ -661,7 +656,7 @@ public class GlobalCacheManagerWithRaft
 
 			ArrayList<KV<CacheHolder, Reduce>> reducePending = new ArrayList<>();
 			IdentityHashSet<CacheHolder> reduceSucceed = new IdentityHashSet<>();
-			var waitReduceDone = new boolean[]{false}; // FND5-28：runNow完成标志（锁内置位）
+			var waitReduceDone = new boolean[]{false}; // runNow完成标志（锁内置位）
 			boolean senderIsShare = false;
 			// 先把降级请求全部发送给出去。
 			for (var c : cs.getShare()) {
@@ -732,7 +727,7 @@ public class GlobalCacheManagerWithRaft
 					lockey.enter();
 					try {
 						errorFreshAcquire.value = freshAcquire;
-						// 完成标志锁内置位（FND5-28）：主线程谓词循环复查，伪唤醒不得提前
+						// 完成标志锁内置位：主线程谓词循环复查，伪唤醒不得提前
 						// 读取runNow仍在并发填充的reduceSucceed（锁发布快照）。
 						waitReduceDone[0] = true;
 						lockey.pulseAll();
@@ -742,7 +737,7 @@ public class GlobalCacheManagerWithRaft
 				}).name("GlobalCacheManagerWithRaft.AcquireModify.WaitReduce").runNow();
 				if (isDebugEnabled)
 					logger.debug("7 {} {} {}", sender, StateModify, cs);
-				// FND5-28：Condition契约允许伪唤醒——裸await醒来不复查即读取非线程安全的
+				// Condition契约允许伪唤醒——裸await醒来不复查即读取非线程安全的
 				// reduceSucceed构成数据竞争。谓词循环复查完成标志。
 				while (!waitReduceDone[0])
 					lockey.await();
@@ -764,14 +759,13 @@ public class GlobalCacheManagerWithRaft
 			// 如果前面降级发生中断(break)，这里就不会为0。
 			if (cs.getShare().size() != 0) {
 				// senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
-				// 失败了，要把原来是share的sender恢复。先这样吧。
+				// 失败了，要把原来是share的sender恢复。
 				if (senderIsShare)
 					cs.getShare().add(sender.serverId);
 
 				cs.setAcquireStatePending(StateInvalid);
 				if (ENABLE_PERF)
 					perf.onOthers("XXX 10 " + StateModify + ' ' + errorFreshAcquire.value);
-				// logger.error("XXX 10 {} {} {}", sender, acquireState, cs);
 				rpc.Result.setState(StateInvalid);
 				lockey.pulseAll();
 				rpc.setResultCode(errorFreshAcquire.value
@@ -850,7 +844,7 @@ public class GlobalCacheManagerWithRaft
 				// StateRemoved把"记录已删除"当作瞬时状态提前发布，但remove要走raft提交：
 				// _final_commit_失败（raft重试等）回滚后持有者被事务日志复原，占位却不会自动
 				// 复位——该key上所有后续acquire/release进入无await的continue忙自旋，且
-				// globalLruTryRemove只放行Invalid，毒化bean永不逐出缓存（FND3-35）。
+				// globalLruTryRemove只放行Invalid，毒化bean永不逐出缓存。
 				// 注册回滚动作复位，与StateRemoving同一个机制。
 				Transaction.getCurrent().runWhileRollback(() -> {
 					if (cs.getAcquireStatePending() == StateRemoved) {
@@ -883,7 +877,7 @@ public class GlobalCacheManagerWithRaft
 		session.setActiveTime(System.currentTimeMillis());
 		session.setDebugMode(rpc.Argument.isDebugMode());
 		// new login, 比如逻辑服务器重启。release old acquired.
-		// 先快照再逐个释放（FND4-55，对齐同步/异步版判例）：release可阻塞等待，边遍历边
+		// 先快照再逐个释放（对齐同步/异步版）：release可阻塞等待，边遍历边
 		// 释放期间，同会话乐观预发的Acquire经raft提交apply写入同一表，会被迭代器看到并
 		// 错误回收——第三方再获Modify形成双写。快照使窗口由结构关闭，不依赖
 		// "raft提交慢于本地迭代"的时序巧合。
@@ -927,7 +921,7 @@ public class GlobalCacheManagerWithRaft
 			return 0; // not login
 		}
 		/*
-		 * 快照在解绑之前（FND4-55，理由同同步/异步版processNormalClose）：
+		 * 快照在解绑之前（理由同同步/异步版processNormalClose）：
 		 * tryUnBindSocket后同serverId的新进程即可Login并Acquire新权限（raft apply写入
 		 * 同一张表），随后的释放迭代会看到新incarnation刚获取的key并错误回收——其本地
 		 * 仍持Modify，第三方再获Modify形成双写。旧连接未解绑时新进程无法绑定
@@ -1008,7 +1002,7 @@ public class GlobalCacheManagerWithRaft
 		try {
 			// 先停守护再关rocks：在飞扫描持session锁逐key跑raft procedure，rocks.close()
 			// 释放原生句柄后与在飞walk/iterator竞争会段错误杀死JVM
-			// （对齐ServiceManagerWithRaft.close的锁屏障教训）。daemon轮次全程持模块锁且锁内
+			// （对齐ServiceManagerWithRaft.close的锁屏障）。daemon轮次全程持模块锁且锁内
 			// 首查closed：closed先于锁屏障置位，屏障后进入的轮次直接退出，逃逸轮不再触碰已关rocks。
 			closed = true;
 			achillesHeelDaemonTimer.stop();
@@ -1066,7 +1060,7 @@ public class GlobalCacheManagerWithRaft
 				if (newSocket.getUserState() != null && newSocket.getUserState() != this)
 					return false; // 允许重复login|relogin，但不允许切换ServerId。
 
-				// S2-F2：对齐kick()判空——close()后getRaft()为null，裸链式取getServer()即NPE，
+				// 对齐kick()判空——close()后getRaft()为null，裸链式取getServer()即NPE，
 				// 中断在飞会话协议的绑定链。
 				var raft = globalRaft.getRocks().getRaft();
 				if (raft == null)
@@ -1097,7 +1091,7 @@ public class GlobalCacheManagerWithRaft
 				if (oldSocket.getUserState() != this)
 					return false; // not bind to this
 
-				// S2-F2：对齐kick()判空（raft==null直接失败），close后在飞解绑不再NPE。
+				// 对齐kick()判空（raft==null直接失败），close后在飞解绑不NPE。
 				var raft = globalRaft.getRocks().getRaft();
 				if (raft == null)
 					return false;
@@ -1123,7 +1117,7 @@ public class GlobalCacheManagerWithRaft
 			var session = sessions.get(serverId);
 			if (session == null) {
 				// 独立标签：missing-holder正是wedge的前置条件（daemon因无Holder不可及、
-				// Cleanup恒禁用，见rebuildSessionsFromStorage的FND6-24说明）——通用
+				// Cleanup恒禁用，见rebuildSessionsFromStorage的说明）——通用
 				// "Reduce invalid"日志无法与普通失败区分，标签化便于检索与告警。
 				logger.error("ReduceMissingHolder serverId={}", serverId);
 				return false;

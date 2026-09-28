@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/** 过程持锁数监视：事务加锁数超过阈值或刷新历史峰值时告警，辅助发现热点大事务。 */
 public class ProcedureLockWatcher {
 	private static final @NotNull Logger logger = LogManager.getLogger(ProcedureLockWatcher.class);
 	private final int procedureLockWatcherMin;

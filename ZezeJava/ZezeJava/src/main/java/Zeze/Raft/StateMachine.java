@@ -6,6 +6,9 @@ import Zeze.Util.LongConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Raft 复制状态机：注册 Log 工厂、apply 应用日志、快照的保存与装载。
+ */
 public abstract class StateMachine extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger(StateMachine.class);
 
@@ -103,9 +106,7 @@ public abstract class StateMachine extends ReentrantLock {
 
 	/**
 	 * 状态机自定义的观测计数，仅用于日志输出（leader ready、saveLog 等处的 Count 字段），
-	 * 默认 -1 表示无。原来 LogSequence 直接 {@code instanceof Test.TestStateMachine}
-	 * 获取测试计数，使主源码编译期依赖主源码目录里的测试壳类（FND-R1-7）；
-	 * 改为由状态机自己提供，需要观测的状态机重载本方法。
+	 * 默认 -1 表示无。主源码不instanceof测试壳类，需要观测的状态机重载本方法。
 	 */
 	public long getDebugCount() {
 		return -1;

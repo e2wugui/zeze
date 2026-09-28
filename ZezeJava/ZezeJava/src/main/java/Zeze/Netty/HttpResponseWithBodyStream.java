@@ -11,10 +11,12 @@ import io.netty.handler.codec.http.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-// 完全构建于HttpExchange公开流式API（beginStream/sendStream/endStream）之上的OutputStream适配层，
-// 供Prometheus exporter-common等需要OutputStream语义的库使用。无同包特权通道：响应经序化器按
-// pipelining到达序写出（FND8-46），close即endStream（exchange随之终结，幂等，框架auto-close为no-op）。
-// 异常中止路径（Content-Length无法兑现）仍直写ctx并关连接——连接随即失效，无错序可观察。
+/**
+ * 完全构建于HttpExchange公开流式API（beginStream/sendStream/endStream）之上的OutputStream适配层，
+ * 供Prometheus exporter-common等需要OutputStream语义的库使用。无同包特权通道：响应经序化器按
+ * pipelining到达序写出，close即endStream（exchange随之终结，幂等，框架auto-close为no-op）。
+ * 异常中止路径（Content-Length无法兑现）仍直写ctx并关连接——连接随即失效，无错序可观察。
+ */
 public final class HttpResponseWithBodyStream {
 	private static final NoBodyStream noBodyStream = new NoBodyStream();
 

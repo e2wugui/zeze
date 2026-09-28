@@ -51,6 +51,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 持久化定时器组件：simple/cron 定时器的调度与触发、命名/账号/角色各族入口与接管（Takeover）。
+ */
 public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	static final Logger logger = LogManager.getLogger(Timer.class);
 	private static int CountPerNode = Reflect.inDebugMode ? 1 : 3; // 调试状态下减少timer之间的影响,以免频繁redo
@@ -97,11 +100,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
 	final ConcurrentHashMap<String, Future<?>> timerFutures = new ConcurrentHashMap<>();
 	private final HotHandle<TimerHandle> hotHandle = new HotHandle<>();
-	// volatile（FND5-20）：stop()与fireSimple/fireCron尾部的周期重装（whileCommit在提交
+	// volatile：stop()与fireSimple/fireCron尾部的周期重装（whileCommit在提交
 	// 线程异步执行）跨线程可见——stop后重装检查必须读到false，否则残留future停机后继续触发。
 	private volatile boolean started;
 
-	// FND5-20：在线定时器族（TimerOnlineBase）共用timerFutures与stop()语义，
+	// 在线定时器族（TimerOnlineBase）共用timerFutures与stop()语义，
 	// 其安装点与触发入口需要同样的停机闸门，经此读取生命周期状态。
 	final boolean isStarted() {
 		return started;
@@ -156,10 +159,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			}
 			// started必须先于loadTimer置位：loadTimer内的事务在本线程同步提交，提交时同步执行
 			// whileCommit装载（scheduleSimple/scheduleCronNext），此时若started仍为false，
-			// FND5-20的安装闸门会把存量定时器的装载全部拒绝——重启后定时器静默停摆。
+			// 安装闸门会把存量定时器的装载全部拒绝——重启后定时器静默停摆。
 			started = true;
 			try {
-				// Task.run(this::loadTimer, "Timer.loadTimer");
 				loadTimer();
 			} catch (Exception e) {
 				started = false;
@@ -220,7 +222,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				beanFactory.unregisterWatch(this::tryRecordHotModule);
 			}
 
-			// UnRegisterZezeTables(this.zeze); // 构造的时候注册的，在stop这里注销的话，两者不匹配。
+			// 不在此 UnRegisterZezeTables：表在构造时注册，stop时注销两者不匹配。
 		} finally {
 			unlock();
 		}
@@ -862,19 +864,19 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		if (isOnlineTimerIdOccupied(timerId))
-			return false; // FND4-41：同名被在线族定时器占用。三套查重互不相通时同名并存，
+			return false; // 同名被在线族定时器占用。三套查重互不相通时同名并存，
 			// 共用timerFutures相互覆盖——被覆盖一方本地调度被杀（DB记录仍在，静默停摆）。
 		var index = _tIndexs.get(timerId);
 		if (index != null) {
 			if (index.getServerId() != zeze.getConfig().getServerId())
 				return false; // 已经被其它gs调度
 			// 命名timerId碰撞矩阵（offline/global/online三族同名互斥）现状：
-			// [offline→global] 已拒：TimerAccount/TimerRole.scheduleOfflineNamed的族+归属前置守卫（FND6-20）；
-			// [global→online]  已拒：入口isOnlineTimerIdOccupied查在线族表（FND4-41）；
-			// [online→global/offline] 已拒：online入口isNamedTimerIdOccupied查_tIndexs（FND4-41）；
-			// [global→offline] 本守卫闭环（2da917fb残留P2）：原先index命中分支无族校验直接cancel重建，
-			//   残留tAccountOfflineTimers/_tRoleOfflineTimers脏簿记，属主下次登录按簿记反向cancel，
-			//   静默杀死重建后的全局timer。现撞offline族条目直接返回false（对齐"同名timer无法调度
+			// [offline→global] 已拒：TimerAccount/TimerRole.scheduleOfflineNamed的族+归属前置守卫；
+			// [global→online] 已拒：入口isOnlineTimerIdOccupied查在线族表；
+			// [online→global/offline] 已拒：online入口isNamedTimerIdOccupied查_tIndexs；
+			// [global→offline] 本守卫闭环：index命中分支若无族校验直接cancel重建，会残留
+			//   tAccountOfflineTimers/_tRoleOfflineTimers脏簿记，属主下次登录按簿记反向cancel，
+			//   静默杀死重建后的全局timer。撞offline族条目直接返回false（对齐"同名timer无法调度
 			//   返回false"契约，simple/cron两路径共用本判定，置于cronEquals之前），仅全局族条目
 			//   保留下方cancel+重建语义。
 			if (isOfflineFamilyTimer(index, timerId))
@@ -942,21 +944,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			return false; // 忽略没有初始化的timerId。
 		}
 		checkRunningTransaction("cancel");
-		/*
-		try {
-			// XXX 统一通过这里取消定时器，可能会浪费一次内存表查询。
-			// 还是让账户相关Timer自己取消吧。
-			if (null != timerRole && timerRole.cancel(timerId))
-				return; // done
-
-			if (null != timerAccount && timerAccount.cancel(timerId))
-				return; // done
-
-		} catch (Exception ex) {
-			logger.error("ignore cancel error.", ex);
-			return; // done;
-		}
-		*/
 		var index = _tIndexs.get(timerId);
 		if (index != null) {
 			int serverId = index.getServerId();
@@ -979,7 +966,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			cancel(serverId, timerId, nodeId, node, handle);
 			return true;
 		}
-		// FND7-29：index==null不得投机cancelFuture——timerFutures三族（全局/在线/离线）共用
+		// index==null不得投机cancelFuture——timerFutures三族（全局/在线/离线）共用
 		// 同源timerId，传入在线族timerId会误杀其活future：fireOnline不再执行，静默停摆到
 		// 用户下线清理。本族孤儿future由fireSimple自愈（index==null分支自行cancelFuture）。
 		return false;
@@ -1010,7 +997,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	}
 
 	/**
-	 * 命名timerId全局唯一不变量的统一检查点（FND4-41）：全局/离线索引_tIndexs + 在线族全部表
+	 * 命名timerId全局唯一不变量的统一检查点：全局/离线索引_tIndexs + 在线族全部表
 	 * （各onlineSet的Role在线表、Account在线表）。online入口（scheduleOnlineNamed族，无同族
 	 * 重建语义）直接用它；全局/离线入口保留同族同server重建语义，另行叠加
 	 * {@link #isOnlineTimerIdOccupied}。本地timerFutures不查：future的安装晚于且从属于
@@ -1114,7 +1101,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	// 写路径fence：仅当root属于本进程时校验（cancel摘链可能碰到尚未重指向的死者root，不校验）。
 	// root行本就在事务工作集内，零额外IO。被接管（root.epoch != myEpoch）→致命退出。
-	// 未完成stamp登记（stamp瞬态失败等，FND-C1-11）→NotStartException拒绝：不认领数据行、
+	// 未完成stamp登记（stamp瞬态失败等）→NotStartException拒绝：不认领数据行、
 	// 不致命，renew周期补stamp后恢复。
 	private void checkTimerFence(int serverId, @NotNull BNodeRoot root) {
 		var takeover = zeze.getTakeover();
@@ -1123,8 +1110,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			// stamp==0（无主新行/外部清表重建/被接管后的墓碑）一律认领（stamp=myEpoch）而非致命：
 			// 被接管者醒来在空链上复活并继续新写（需求语义）；fence只杀同serverId双进程/外部
 			// 篡改（stamp为别人的epoch）。
-			// FND2-C0-4：认领写（setLoadSerialNo）仅mode=on——与Takeover.start自己stampScope的
-			// 前置一致。dryrun守住"纯簿记不动数据行"的灰度契约；off避免0→0冗余写。
+				// 认领写（setLoadSerialNo）仅mode=on——与Takeover.start自己stampScope的
+				// 前置一致。dryrun守住"纯簿记不动数据行"的灰度契约；off避免0→0冗余写。
 			var stamp = root.getLoadSerialNo();
 			if (stamp == 0 && Takeover.ModeOn.equals(takeover.getMode())) {
 				stamp = takeover.getMyEpoch();
@@ -1151,7 +1138,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				var next = _tNodes.get(nextNodeId);
 				if (next != null && next.getPrevNodeId() == nodeId)
 					next.setPrevNodeId(prevNodeId);
-				// FND2-C1-2：边界修正对index.serverId与本进程root各做一次（幂等：head/tail匹配才写）。
+				// 边界修正对index.serverId与本进程root各做一次（幂等：head/tail匹配才写）。
 				// 接管装载窗口内（transferAll已把死者链splice进本进程root、loadTimer逐节点重写
 				// index.serverId尚未完成），index.serverId仍=死者——只修死者root（墓碑head=0）会让
 				// 本进程root.tail悬挂指向刚摘除且已入GC队列的节点：之后schedule永久"tailNode is null"，
@@ -1208,7 +1195,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	                            long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!started)
-				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
+				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
 				var exist = timerFutures.put(timerId, TaskSpec.ofAction(() -> {
 					if (oneByOneKey == null || oneByOneKey.isEmpty())
@@ -1228,7 +1215,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	private void fireSimple(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
 	                        boolean missfire) {
 		if (!started)
-			return; // FND5-20：stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
+			return; // stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
 		if (TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index == null
@@ -1304,7 +1291,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			long delay = Math.max(cron.getNextExpectedTime() - System.currentTimeMillis(), 1);
 			scheduleCronNext(timerSerialId, serverId, timerId, delay, concurrentSerialNo, putIfAbsent, oneByOneKey);
 		} catch (Exception ex) {
-			// 这个错误是在不好处理。先只记录日志吧。
+			// 此处错误无法进一步处置，仅记录日志。
 			logger.error("", ex);
 		}
 	}
@@ -1313,7 +1300,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	                              long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!started)
-				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
+				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
 				var exist = timerFutures.put(timerId, TaskSpec.ofAction(() -> {
 					if (oneByOneKey == null || oneByOneKey.isEmpty())
@@ -1333,7 +1320,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	private void fireCron(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
 	                      boolean missfire) {
 		if (!started)
-			return; // FND5-20：stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
+			return; // stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
 		if (TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index == null
@@ -1361,9 +1348,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				var context = new TimerContext(this, timer, cronTimer.getHappenTimes(),
 						cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
 
-				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
-				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
-				// 定时器的调度生命期由其他地方保证最终一致。如果保证发生了错误，将一致并发争抢执行权。
+				// 并发触发防护同fireSimple（见其serialId说明）：serialId保证用户回调只发生一次，
+				// 并发争抢不取消定时器，继续尝试调度（去争抢执行权）。
 				var serialSaved = index.getSerialId();
 				var ret = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 					handle.onTimer(context);
@@ -1404,8 +1390,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	private void loadTimer() {
 		var serverId = zeze.getConfig().getServerId();
 		// 接管作用域已在ctor注册（claim前），stamp由Takeover.start()完成；死者链表由
-		// takeover.tryTransfer在同一事务内裁决+搬运，afterTransfer里对搬来的链重调度本地
-		// （附带修复：SM=disable时旧代码无处注册工厂，接管通道整个缺失）。
+		// takeover.tryTransfer在同一事务内裁决+搬运，afterTransfer里对搬来的链重调度本地。
 		var headNodeId = new long[1];
 		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			headNodeId[0] = _tNodeRoot.getOrAdd(serverId).getHeadNodeId();
@@ -1448,7 +1433,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				return 0; // 死者没有定时器链/空链。
 			if (src.getVersion() > zeze.getConfig().getAppVersion())
 				return -1; // 不接管版本高的：veto，不立碑，留给相同或高版本的进程。
-			// FND2-C0-1：不核对stamp==deadEpoch（同CsQueue：调用点同事务重验租约过期已保证归属，
+			// 不核对stamp==deadEpoch（同CsQueue：调用点同事务重验租约过期已保证归属，
 			// 幂等重入由上面head==0短路；claim-stamp崩溃窗口留下的旧stamp链必须搬，否则立碑后永久搁浅）。
 			var srcHead = _tNodes.get(srcHeadNodeId);
 			var srcTail = _tNodes.get(srcTailNodeId);
@@ -1486,7 +1471,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			var last = transferredLast;
 			transferredFirst = 0;
 			transferredLast = 0;
-			loadTimer(first, last); // 对搬来的节点链重新调度本地（仿旧spliceLoadTimer的事务外重调度）
+			loadTimer(first, last); // 对搬来的节点链重新调度本地（事务外重调度）
 		}
 	}
 
@@ -1527,8 +1512,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			nodeId.value = last; // 马上结束外面的循环。last仅用在这里。
 			return; // when root is empty。no node。skip error.
 		}
-		// BUG 修复，如果first.value直接设置，在发生redo时，当前node会被跳过。
-		// 这是因为first是in&out的。另一个解决办法是，first改成只out，当前node用另一个值参数传入。
+		// nodeId是in&out的：直接设置nodeId.value会在redo时跳过当前node，
+		// 须在commit/rollback回调中设置下一个node。
 		Transaction.whileCommit(() -> nodeId.value = node.getNextNodeId()); // 设置下一个node。
 		Transaction.whileRollback(() -> nodeId.value = node.getNextNodeId()); // 设置下一个node。
 
@@ -1546,9 +1531,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					if (index.getVersion() > appVer) // 无法保证高版本定时器的处理,等待各模块启动后重建定时器
 						continue;
 
-					// 优化不能用Config.getServerId整体判断，因为load中断会导致传入的serverId就是当前Config的，
-					// 这回导致load中断后，部分数据没有被设置正确的serverId。
-					// 需要提前到schedule之前，后面的schedule会判断这个值。
+					// 不能用Config.getServerId整体判断：load中断后传入的serverId可能
+					// 就是当前Config的，会导致部分数据没有被设置正确的serverId。
+					// 须提前到schedule之前，后面的schedule会判断这个值。
 					if (index.getServerId() != serverId)
 						index.setServerId(serverId);
 					if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
@@ -1558,12 +1543,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 							case eMissfirePolicyRunOnce:
 							case eMissfirePolicyRunOnceOldNext: {
 								var oneByOneKey = simpleTimer.getOneByOneKey();
-								// missfire补触发不得在commit回调内同步执行（CP2-F1）：whileCommit回调
+								// missfire补触发不得在commit回调内同步执行：whileCommit回调
 								// 运行在提交线程、此刻事务已Completed——空oneByOneKey时dispatchFire直跑
 								// fireSimple，首个bean写必抛IllegalStateException("State Is Not Running")，
-								// 补触发丢失且continue跳过了常规调度，该定时器永久停摆。改用事务感知的
+								// 补触发丢失且continue跳过了常规调度，该定时器永久停摆。用事务感知的
 								// run()（提交后入池执行）：fireSimple/fireCron跑在无事务的池线程上，
-								// newProcedure新建事务，正确（恢复ae7eca8b6回归前的语义）。
+								// newProcedure新建事务，正确。
 								TaskSpec.ofAction(() ->
 										dispatchFire(oneByOneKey, () ->
 												fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
@@ -1593,7 +1578,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 							case eMissfirePolicyRunOnce:
 							case eMissfirePolicyRunOnceOldNext: {
 								var oneByOneKey = cronTimer.getOneByOneKey();
-								// 同simple侧（CP2-F1）：事务感知run()提交后入池，不在commit回调内同步执行。
+								// 同simple侧：事务感知run()提交后入池，不在commit回调内同步执行。
 								TaskSpec.ofAction(() ->
 										dispatchFire(oneByOneKey, () ->
 												fireCron(index.getSerialId(), serverId, timer.getTimerName(),
@@ -1606,10 +1591,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 								try {
 									cronTimer.setNextExpectedTime(CronTimerSpec.cronNextTime(cronTimer.getCronExpression(), now));
 								} catch (IllegalArgumentException e) {
-									// 表达式已耗尽（如固定年份已过）：确定性坏数据，对齐下方摘行判例；
-									// 窄化在此处catch而不并入外层列表——外层try还包着调度等路径，
-									// 捕获那里的意外IAE会把健康行误判摘除。抛出形态走摘行而非冲出
-									// per-timer catch使装载事务失败（同节点无辜定时器被跳过装载）。
+								// 表达式已耗尽（如固定年份已过）：确定性坏数据，与下方摘行处置一致；
+								// 窄化在此处catch而不并入外层列表——外层try还包着调度等路径，
+								// 捕获那里的意外IAE会把健康行误判摘除。抛出形态走摘行而非冲出
+								// per-timer catch使装载事务失败（同节点无辜定时器被跳过装载）。
 									throw new ParseException("cron expression has no next valid time: "
 											+ cronTimer.getCronExpression(), 0);
 								}

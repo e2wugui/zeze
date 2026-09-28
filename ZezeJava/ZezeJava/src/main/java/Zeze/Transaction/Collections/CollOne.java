@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
 public final class CollOne<V extends Bean> extends Collection {
 	@NotNull V value;
-	// FND7-80：按声明类预建的meta（生成端meta1_静态字段，手写Class构造器现建）；
+	// 按声明类预建的meta（生成端meta1_静态字段，手写Class构造器现建）；
 	// null时LogOne退回运行时类。读端工厂按声明类注册（Helper.dependsBean→registerLogOne）。
 	final @Nullable LogOneMeta<V> meta;
 
@@ -102,7 +102,7 @@ public final class CollOne<V extends Bean> extends Collection {
 	@Override
 	public void followerApply(@NotNull Log _log) {
 		var log = (LogOne<V>)_log;
-		if (log.value != null) { // value是否真的可以为null,目前没看到哪里可以让它为null
+		if (log.value != null) {
 			log.value.initRootInfo(rootInfo, this); // 与PList2/PMap2等全部同类实现保持一致
 			value = log.value;
 		} else if (log.logBean != null)

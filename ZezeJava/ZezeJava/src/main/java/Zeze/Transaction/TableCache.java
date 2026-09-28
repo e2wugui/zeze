@@ -18,8 +18,6 @@ import org.jetbrains.annotations.Nullable;
 import static Zeze.Services.GlobalCacheManagerConst.StateInvalid;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 
-// MESI？
-
 /**
  * 普通Lru一般把最新访问的放在列表一端，这直接导致并发上不去。
  * 基本思路是按块（用ConcurrentHashMap）保存最近访问。
@@ -59,7 +57,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		newLruHot();
 		var newLruHotPeriod = table.getTableConf().getCacheNewLruHotPeriod();
 		timerNewHot = TaskSpec.ofAction(() -> {
-			// 访问很少的时候不创建新的热点。这个选项没什么意思。
+			// 访问很少的时候不创建新的热点。
 			if (lruHot.size() > table.getTableConf().getCacheNewAccessHotThreshold())
 				newLruHot();
 		}).schedulePeriodNow(newLruHotPeriod, newLruHotPeriod);
@@ -313,7 +311,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				try {
 					table.rocksCacheRemove(k);
 				} catch (Throwable e) { // logger.error
-					// FND6-01：此处失败可吞。三个理由：
+					// 此处失败可吞。三个理由：
 					// 1.正确性不需要它抛：dataMap.remove先于镜像清理完成，记录已出缓存（无效化成立），
 					//   残余镜像条目没有读者——该key重新可见必须再走慢路径装载，装载的put/remove会
 					//   强制执行且失败即抛（记录进不了clean态），陈旧条目永远到不了被信任的快路径；
@@ -337,11 +335,10 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 	private boolean tryRemoveRecordUnderLock(@NotNull Map.Entry<K, Record1<K, V>> p) {
 		if (table.isMemory()) {
-			// 容量回收（FND5-03复核修正注释）：timerClean对内存表同样调度，超容量即到达本分支
-			//（原注释"内存表不执行clean"已过时）。仅回收非脏驻留（数据在localRocks，重载经
-			// TableX.load以非null strongRef返回，commit不会重复计数）。sizeCounter是commit记账的
-			// 逻辑条目数（put加/remove减），与dataMap驻留数解耦——回收驻留不减计数是有意语义，
-			// 消费方（如Online.getLocalCount在线数）需要的正是逻辑口径。
+			// 容量回收：timerClean对内存表同样调度，超容量即到达本分支。
+			// 仅回收非脏驻留（数据在localRocks，重载经TableX.load以非null strongRef返回，commit不会重复计数）。
+			// sizeCounter是commit记账的逻辑条目数（put加/remove减），与dataMap驻留数解耦——
+			// 回收驻留不减计数是有意语义，消费方（如Online.getLocalCount在线数）需要的正是逻辑口径。
 			if (p.getValue().getDirty())
 				return false;
 			remove(p.getKey(), p.getValue(), false);
@@ -351,9 +348,6 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		// 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
 		// case CheckpointMode.Immediately
 		// 永远不会为false。记录Commit的时候就Flush到数据库。
-		// case CheckpointMode.Period
-		// 修改的时候需要记录锁（lockey）。
-		// 这里只是读取，就不加锁了。
 		// case CheckpointMode.Table 修改的时候需要RelativeRecordSet锁。
 		// （修改为true的时也在记录锁（lockey）下）。
 		// 这里只是读取，就不加锁了。
@@ -386,8 +380,6 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		// lockey 第一优先，和事务并发。
 		final TableKey tkey = new TableKey(table.getId(), p.getKey());
 		final Locks locks = table.getZeze().getLocks();
-//		if (locks == null) // 可能是已经执行Application.Stop导致的
-//			return tryRemoveRecordUnderLock(p); // 临时修正
 		final Lockey lockey = locks.get(tkey);
 		if (!lockey.tryEnterWriteLock(0))
 			return false;
@@ -402,7 +394,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					return false;
 				try {
 					if (rrs.getMergeTo() != null)
-						return false; // // 刚刚被合并或者删除（flushed）的记录认为是活跃的，不删除。
+						return false; // 刚刚被合并或者删除（flushed）的记录认为是活跃的，不删除。
 
 					if (rrs.getRecordSet() != null && rrs.getRecordSet().size() > 1)
 						return false; // 只包含自己的时候才可以删除，多个记录关联起来时不删除。

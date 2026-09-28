@@ -11,6 +11,10 @@ import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 管理 Bean 的 Map 容器增量日志：结构操作记 putted/removed，值 bean 的字段修改记 changedWithKey，
+ * encode 侧按最终 map 现值过滤陈旧条目。
+ */
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogMap2<");
 
@@ -70,7 +74,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			e.getValue().encode(bb);
 		}
 
-		// super.encode(bb);
+		// putted/removed 手工编码（不走 super.encode）：putted 的 value 是 Bean，用 bean.encode 而非 codec。
 		bb.WriteUInt(getPutted().size());
 		for (var p : getPutted().entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
@@ -93,7 +97,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			changedWithKey.put(key, value);
 		}
 
-		// super.decode(bb);
+		// putted/removed 手工解码（不走 super.decode）：putted 的 value 是 Bean，经 valueFactory 构造后 decode。
 		getPutted().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);

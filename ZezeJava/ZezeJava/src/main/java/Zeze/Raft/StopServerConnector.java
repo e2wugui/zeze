@@ -4,9 +4,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
 /**
- * 这条Rpc由Agent使用，用来主动查询Leader；
- * 【注意】
- * 这条Rpc目前仅用于Agent.detectLeader；
+ * 这条Rpc由Agent使用，请求Raft节点停止其全部Connector（驱赶Leader时逐个停非建议节点）。
  */
 public class StopServerConnector extends RaftRpc<EmptyBean, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(StopServerConnector.class.getName());

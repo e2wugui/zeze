@@ -5,6 +5,9 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
 
+/**
+ * 基础类型 Map 容器（键值均为可编码的普通类型）：结构修改记 LogMap1 增量日志。
+ */
 public class CollMap1<K, V> extends CollMap<K, V> {
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;

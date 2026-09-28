@@ -10,6 +10,9 @@ import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 负载上报基类：定时链周期采集在线数与过载状态，向 ServiceManager 与 LoginQueueServer 报告。
+ */
 public abstract class LoadBase {
 	private long lastLoginTime;
 	private int reportDelaySeconds;
@@ -43,7 +46,7 @@ public abstract class LoadBase {
 	}
 
 	/**
-	 * LoginQueueAgent的唯一创建点（FND3-34）：已有（预置或已创建）则复用；没有且配置启用
+	 * LoginQueueAgent的唯一创建点：已有（预置或已创建）则复用；没有且配置启用
 	 * （存在"LoginQueueAgent"服务节）才创建；未启用返回null。不得在别处new后覆盖——
 	 * 已启动的agent被覆盖即泄漏，并以相同(serverId,ip,port)向LoginQueueServer重复注册。
 	 * 创建原料（config/serverId/serviceIp/servicePort）全是load自身状态与抽象，配方收口在所有者。
@@ -68,7 +71,7 @@ public abstract class LoadBase {
 		resume(delaySeconds);
 	}
 
-	// FND2-A1-6：onTimerTask进门检查通过后、尾部重排前，stop()可能并发置位stopped；链内重排若走
+	// onTimerTask进门检查通过后、尾部重排前，stop()可能并发置位stopped；链内重排若走
 	// start()会把stopped复位为false，链条复活且此后永不停（停机后定时链泄漏）。链内改走本方法：
 	// 不复位stopped，重排的下次触发进门即返回，链自然终止。start()的复位语义保留给外部stop后重启。
 	private synchronized void resume(int delaySeconds) {
@@ -108,7 +111,7 @@ public abstract class LoadBase {
 	private synchronized void onTimerTask() {
 		if (stopped)
 			return; // 链在此断开：不再重排。
-		// FND8-90：自续链的重排不得被方法体异常跳过（任何运行时异常=链永久断、负载上报静默
+		// 自续链的重排不得被方法体异常跳过（任何运行时异常=链永久断、负载上报静默
 		// 停止到进程重启），对齐Online.verifyLocal的try/finally形态。各分支只决定下一次延迟，
 		// 重排统一收口到finally（异常路径兜底用默认消化延迟）；与resume同锁（可重入），净效果
 		// 恒为恰好一个在途任务。
@@ -130,7 +133,7 @@ public abstract class LoadBase {
 			if (onlineNewPerSecond > config.getMaxOnlineNew()) {
 				// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
 				report(overload, online, onlineNewPerSecond);
-				// new delay for digestion（Math.max与116/103行既有除零防护惯用法对齐，纵深防御）
+				// new delay for digestion（Math.max除零防护，与reportNow同一惯用法，纵深防御）
 				nextDelaySeconds = onlineNewPerSecond / Math.max(1, config.getMaxOnlineNew())
 						+ config.getDigestionDelayExSeconds();
 				// 消化完后，下一次强迫报告Load。

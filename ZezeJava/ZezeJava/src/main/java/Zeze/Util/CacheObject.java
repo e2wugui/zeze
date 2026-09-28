@@ -5,6 +5,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 
+// Cache 缓存对象接口：cacheId 为缓存键（NullCache 哨兵表示负缓存占位）
 public interface CacheObject extends Serializable {
 	/**
 	 * 系列化时不包括cacheId。

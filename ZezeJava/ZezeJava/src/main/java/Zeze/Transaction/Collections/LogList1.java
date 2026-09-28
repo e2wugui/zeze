@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 import org.pcollections.PVector;
 
+/** PList1 的变更日志：按序记录 OpLog 操作序列（增删改清），供编码及跟随者重放。 */
 public class LogList1<V> extends LogList<V> {
 	public static final class OpLog<V> {
 		public static final int OP_MODIFY = 0; // op+index+value
@@ -79,10 +80,10 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public final boolean removeAll(@NotNull Collection<? extends V> c) {
-		// JDK契约：删除c中每个元素在列表里的全部出现（FND4-08：原逐元素remove(v)只删首个出现，
-		// [x,x].removeAll(Set.of(x))留下[x]，三方一致地违反契约）。从高索引往低删：
+		// JDK契约：删除c中每个元素在列表里的全部出现（逐元素remove(v)只删首个出现，
+		// [x,x].removeAll(Set.of(x))会留下[x]，违反契约）。从高索引往低删：
 		// 生成的OP_REMOVE序列在顺序重放时低位索引不受高位删除影响，opLog词表不变。
-		// 命中检测走线性equals（FND5-05）：生成bean覆写equals但不覆写hashCode（值等哈希不等），
+		// 命中检测走线性equals：生成bean覆写equals但不覆写hashCode（值等哈希不等），
 		// HashSet对bean元素静默漏命中。
 		var hit = new ArrayList<>(c);
 		var list = getValue();

@@ -14,6 +14,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 协议基类：帧编解码（moduleId+protocolId+size 头）、类型注册与派发。
+ */
 public abstract class Protocol<TArgument extends Serializable> implements Serializable {
 	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
 	private static final @NotNull Logger logger = LogManager.getLogger(Protocol.class);
@@ -281,9 +284,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 				throw new IllegalStateException(service.getName() + " reject protocol before admission passed: moduleId="
 						+ moduleId + " protocolId=" + protocolId + " so=" + so);
 
-			// 以前写过的实现在数据不够之前会根据type检查size是否太大。
-			// 现在去掉协议的最大大小的配置了.由总的参数 SocketOptions.InputBufferMaxProtocolSize 限制。
-			// 参考 AsyncSocket
+			// 不按type检查size是否太大；协议最大大小由总参数 SocketOptions.InputBufferMaxProtocolSize
+			// 统一限制。参考 AsyncSocket
 			long longSize = size & 0xffff_ffffL;
 			if (HEADER_SIZE + longSize > bb.size()) {
 				// 数据不够时检查。这个检测不需要严格的。如果数据够，那就优先处理。

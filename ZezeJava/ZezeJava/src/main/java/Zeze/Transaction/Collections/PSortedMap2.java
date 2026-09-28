@@ -32,7 +32,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 
 	public PSortedMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value
 		// 必须用 sortedMap2 家族头哈希：写端 typeId 与读端（Helper.registerLogSortedMap2Dynamic）
-		// 的注册键对称；用错 map2 家族会借道同 keyClass 的 map<K,dynamic> 注册解码成 LogMap2（FND3-04）。
+			// 的注册键对称；用错 map2 家族会借道同 keyClass 的 map<K,dynamic> 注册解码成 LogMap2。
 		meta = SortedMap2Meta.createDynamic(keyClass, get, create);
 	}
 
@@ -104,14 +104,14 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 			m = ((PSortedMap2<? extends K, ? extends V>)m).getMap(); // more stable
 
 		if (isManaged()) {
-			// 双循环（对齐PSortedMap1.putAll"先全量校验、后入日志"）：原单循环"边验边改"，靠后条目
-			// null抛出时靠前bean的initRootInfoWithRedo/mapKey已改写——普通字段写不受事务回滚保护，
+			// 双循环（对齐PSortedMap1.putAll"先全量校验、后入日志"）：单循环"边验边改"时，靠后条目
+			// null抛出前靠前bean的initRootInfoWithRedo/mapKey已改写——普通字段写不受事务回滚保护，
 			// 调用方catch后复用bean即携带脏归属。
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				if (k == null)
 					throw new IllegalArgumentException("null key");
-				if (e.getValue() == null) // FND6-02：对齐put与PMap1.putAll，托管分支原在initRootInfoWithRedo解引用NPE
+				if (e.getValue() == null) // 对齐put与PMap1.putAll：null在托管分支的initRootInfoWithRedo处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null value");
 			}
 			for (var e : m.entrySet()) {
@@ -129,7 +129,7 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 				K k = e.getKey();
 				if (k == null)
 					throw new IllegalArgumentException("null key");
-				if (e.getValue() == null) // FND6-02：非托管分支原在mapKey解引用NPE
+				if (e.getValue() == null) // null在非托管分支的mapKey处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null value");
 				e.getValue().mapKey(k);
 			}

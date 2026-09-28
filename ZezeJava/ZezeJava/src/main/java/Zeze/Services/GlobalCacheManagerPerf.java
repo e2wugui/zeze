@@ -14,6 +14,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 全局缓存管理器的性能统计：按Acquire状态统计计数/耗时/最大值与resultCode分布，
+ * 附带Reduce统计、在飞条目与其他事件计数，1s周期汇总输出日志。
+ */
 public class GlobalCacheManagerPerf extends ReentrantLock {
 	private static final @NotNull String[] ACQUIRE_STATE_NAMES = {"Invalid", "Share  ", "Modify "};
 	private static final int ACQUIRE_STATE_COUNT = ACQUIRE_STATE_NAMES.length;

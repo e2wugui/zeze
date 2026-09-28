@@ -117,7 +117,7 @@ public final class CronTimerSpec implements TimerSpec {
 	}
 
 	// getNextValidTimeAfter对无可行后续时间（如过期年份表达式"0 0 0 1 1 ? 2020"）返回null
-	// （Quartz系文档行为），原直接.getTime()在深处NPE——入口显式拒绝（FND4-46）。
+	// （Quartz系文档行为），直接.getTime()会在深处NPE——入口显式拒绝。
 	private static long cronNextTimeAfter(@NotNull CronExpression cronExpression, long time) {
 		var next = cronExpression.getNextValidTimeAfter(new Date(time));
 		if (next == null)

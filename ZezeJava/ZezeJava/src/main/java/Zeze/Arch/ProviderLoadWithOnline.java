@@ -1,5 +1,8 @@
 package Zeze.Arch;
 
+/**
+ * 带在线表的 Provider 负载上报实现：在线数与登录次数取自 Online。
+ */
 public class ProviderLoadWithOnline extends LoadBase {
 	public final Online online;
 

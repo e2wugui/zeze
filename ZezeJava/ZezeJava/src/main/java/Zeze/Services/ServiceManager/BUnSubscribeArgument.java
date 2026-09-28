@@ -6,6 +6,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 
+/** UnSubscribe请求bean：待退订的服务名列表。 */
 public class BUnSubscribeArgument implements Serializable {
 	public final ArrayList<String> serviceNames = new ArrayList<>();
 

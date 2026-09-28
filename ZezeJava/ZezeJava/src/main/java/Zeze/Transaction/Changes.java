@@ -13,18 +13,20 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 事务提交的变更收集器：汇总日志树与记录级变更（Put/Remove/Edit），
+ * 用于通知 ChangeListener 与序列化传输（History/客户端同步）。
+ */
 public final class Changes {
 	private static final @NotNull Logger logger = LogManager.getLogger(Changes.class);
 
 	private final LongHashMap<LogBean> beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
 	private final HashMap<@NotNull TableKey, @NotNull Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
 	private final IdentityHashMap<@NotNull Table, @NotNull Set<@NotNull ChangeListener>> listeners = new IdentityHashMap<>();
-	// private Transaction transaction;
 	private final boolean isHistory;
 
 	public Changes(@NotNull Transaction t, Procedure proc) {
 		isHistory = proc.getZeze().getConfig().isHistory();
-		// transaction = t;
 		// 建立脏记录的表的监听者的快照，以后收集日志和通知监听者都使用这个快照，避免由于监听者发生变化造成收集和通知不一致。
 		for (var ar : t.getAccessedRecords().values()) {
 			if (ar.dirty) {
@@ -228,9 +230,7 @@ public final class Changes {
 						logger.error("NotifyListener exception:", ex);
 					}
 				}
-			}// else // 由于现在有了History，所以这个变成可能了。
-			//	logger.error("Impossible! Record Log Exist But No Listener");
-
+			}
 			// 这里面记录的日志量可能比较多，超过实际使用，包含了废弃的。
 			// 通知完以后不再需要。
 			// 【注意】history引用了其他部分，不能清除。

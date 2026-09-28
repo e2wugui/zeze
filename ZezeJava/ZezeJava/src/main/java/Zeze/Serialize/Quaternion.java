@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("EqualsAndHashcode")
+/** 四元数（x/y/z/w）：复用 Vector4 的分量语义，序列化为 quaternion。 */
 public class Quaternion extends Vector4 {
 	public static final Quaternion ZERO = new Quaternion(0, 0, 0, 0);
 

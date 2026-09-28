@@ -5,12 +5,15 @@ import Zeze.Util.PropertiesHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 导出器参数配置：共享Properties叠加-private私有参数，统一参数名分配与读取。
+ */
 public class ExporterConfig {
 	// 已经实现的参数都写在这里，统一分配名字。
 	// 分散的话，名字冲突不容易管理。
 	// 这里还做了一些基本校验。更多校验可能在实现中。
 
-	/** -version 选桶语义（FND7-61成文）：SM按服务注册时的version（BServiceInfo.version）分桶
+	/** -version 选桶语义：SM按服务注册时的version（BServiceInfo.version）分桶
 	 * 保存地址，导出器只导出指定桶（BServiceInfosVersion.getInfos(version)），桶不存在时跳过
 	 * 该服务（NginxHttp路径选桶空且其他桶非空会warn一次）——ver必须与服务注册使用的version
 	 * 一致，默认0只匹配注册version=0的服务。 */
@@ -44,9 +47,6 @@ public class ExporterConfig {
 	public ExporterConfig(@NotNull Properties share, @Nullable String privateParam) {
 		this.share = share;
 		this.privates = null == privateParam ? null : PropertiesHelper.parse(privateParam);
-
-		//System.out.println("share: " + share);
-		//System.out.println("private: " + privates);
 	}
 
 	public String getString(String name, String def) {

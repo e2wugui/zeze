@@ -9,6 +9,10 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * DynamicBean 的修改日志：记录 setBean 整体替换（specialTypeId+新bean），
+ * 或未替换时内部bean的修改日志（logBean）；序列化用于历史（History）回放。
+ */
 public class LogDynamic extends LogBean {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.LogDynamic");
 
@@ -116,7 +120,9 @@ public class LogDynamic extends LogBean {
 				throw Task.forceThrow(e);
 			}
 		} else if (bb.ReadBool()) { // hasLogBean
-			logBean = new LogBean(null, 0, null); // XXX 确认直接可以使用这个类？
+			// 解码侧LogBean仅作容器：belong/self为null，内部具体日志由Log.create按typeId构建，
+			// 与LogBean.decodeLogBean的用法同型。
+			logBean = new LogBean(null, 0, null);
 			logBean.decode(bb);
 		}
 	}

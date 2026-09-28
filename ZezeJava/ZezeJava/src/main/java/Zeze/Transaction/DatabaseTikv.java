@@ -27,6 +27,10 @@ import org.tikv.shade.com.google.protobuf.ByteString;
 import org.tikv.txn.KVClient;
 import org.tikv.txn.TwoPhaseCommitter;
 
+/**
+ * TiKV 数据库后端：raw 模式（atomic-for-CAS 条件写）与 distTxn 两阶段提交模式两种形态，
+ * 提供前缀隔离的 KV 表与 Operates 实现；两种模式的数据不能互通。
+ */
 public class DatabaseTikv extends Database {
 	private final TiConfiguration config;
 	private final TiSession session;
@@ -105,8 +109,8 @@ public class DatabaseTikv extends Database {
 			}
 		}
 
-		// raw 模式：读-判-写必须是服务端原子条件写（FND5-02，对齐 Mongo 判例）：原先 find 后
-		// batchPut 裸写，tryLock 又默认恒真，同 serverId 双进程并发 schemasCompatible 时都基于
+		// raw 模式：读-判-写必须是服务端原子条件写（对齐 Mongo 判例）：不得 find 后
+		// 直接 batchPut 裸写——tryLock 又默认恒真，同 serverId 双进程并发 schemasCompatible 时都基于
 		// 版本 N 写 N+1，后写覆盖前写，checkCompatible 在陈旧快照上重复 renameTable 丢表。
 		// compareAndSet 以完整旧值为条件原子替换（旧值null=仅键不存在时写入），冲突返回 false
 		// 交给 Application.schemasCompatible 既有 CAS 重试环路。
@@ -137,9 +141,9 @@ public class DatabaseTikv extends Database {
 			return KV.create(dv.version, true);
 		}
 
-		// distTxn 模式：读必须与提交共用同一 start_ts（FND5-02）：TiKV 乐观事务的冲突检测
-		// 只覆盖事务 start_ts 内读过的 key，原先读用独立快照（现取 TSO）、提交事务另取新
-		// start_ts，并发提交发生在两次取 ts 之间时 prewrite 检测不到，照样覆盖丢更新。
+		// distTxn 模式：读必须与提交共用同一 start_ts：TiKV 乐观事务的冲突检测
+		// 只覆盖事务 start_ts 内读过的 key，读不得用独立快照而提交另取新
+		// start_ts——并发提交发生在两次取 ts 之间时 prewrite 检测不到，照样覆盖丢更新。
 		// 这里 start_ts → 同 ts 快照读 → 同 start_ts 两阶段提交，标准 OCC。
 		private KV<Long, Boolean> saveDataWithSameVersionDistTxn(
 				@NotNull ByteBuffer key, @NotNull ByteBuffer data, long version) {
@@ -167,7 +171,7 @@ public class DatabaseTikv extends Database {
 				// 失败重读诊断（fresh TSO）：版本已变=并发 CAS 输家（含 primary 已提交、secondary
 				// 应答丢失的半成情形），返回 false 由上层环路重读收敛；版本未变=瞬态/未知错误，
 				// 维持抛出不吞真实故障。不按异常类型区分：2PC 冲突异常的包归属跨客户端版本不稳。
-				// FND7-77：诊断重读自身失败（TiKV持续不可达）不得替换原始提交异常——排障时
+				// 诊断重读自身失败（TiKV持续不可达）不得替换原始提交异常——排障时
 				// 看到的必须是真正的提交错误；suppress后照常抛原始异常。
 				try {
 					var current = txnClient.get(keyBs, session.getTimestamp().getVersion());
@@ -352,7 +356,7 @@ public class DatabaseTikv extends Database {
 			throw new UnsupportedOperationException();
 		}
 
-		// OperatesTikv 条件写用：带长度校验的完整 key（FND5-02）。
+		// OperatesTikv 条件写用：带长度校验的完整 key。
 		ByteString prefixedKey(@NotNull ByteBuffer key) {
 			checkKvKeyLength(name, key);
 			return addKeyPrefixBS(key);
@@ -454,7 +458,7 @@ public class DatabaseTikv extends Database {
 			commit(session.getTimestamp().getVersion());
 		}
 
-		// startTs 由调用方提供时必须是刚从 TSO 现取的（FND5-02：OperatesTikv 的快照读与提交
+		// startTs 由调用方提供时必须是刚从 TSO 现取的（OperatesTikv 的快照读与提交
 		// 共用同一 start_ts，冲突检测才覆盖该读）；无参 commit() 维持内部现取的既有语义。
 		void commit(long startTs) {
 			if (datas == null || datas.isEmpty())

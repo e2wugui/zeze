@@ -4,6 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/** Login/ReLogin参数bean：serverId、GCM分片序号与调试模式。 */
 public class BLoginParam implements Serializable {
 	public int serverId;
 

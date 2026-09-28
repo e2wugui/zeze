@@ -4,6 +4,9 @@ import java.util.concurrent.locks.Lock;
 import Zeze.Net.Protocol;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 模块接口：名字/编号、生命周期（Initialize/Register/StartLast/StopBefore/UnRegister）与错误码编码。
+ */
 public interface IModule {
 	@NotNull String getFullName();
 

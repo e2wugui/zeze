@@ -7,6 +7,9 @@ import Zeze.Util.ZstdFactory;
 import Zeze.Util.ZstdFactory.ZstdDecompressStream;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * MPPC 与 zstd 混合解压 codec：解码 MPPC 流并展开其中的 zstd 压缩块。
+ */
 public final class DecompressMppcZstd extends Decompress implements Closeable {
 	public static final class CodecInputStream extends InputStream {
 		private final @NotNull ByteBuffer buffer = ByteBuffer.Allocate(0);

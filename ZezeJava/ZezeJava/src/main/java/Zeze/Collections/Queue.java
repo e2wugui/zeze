@@ -17,6 +17,9 @@ import Zeze.Util.ConcurrentHashSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * 持久化 FIFO 队列：节点分片存储，支持分批读取与断链诊断。
+ */
 public class Queue<V extends Bean> implements HotBeanFactory {
 	private static final BeanFactory beanFactory = new BeanFactory();
 	private static final Logger logger = LogManager.getLogger(Queue.class);
@@ -217,7 +220,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		return root == null || root.getHeadNodeKey().getNodeId() == 0;
 	}
 
-	// FND8-79：根声明链非空但头节点行缺失=断链诊断（pollNode/peekNode/poll/peek共用）。
+	// 根声明链非空但头节点行缺失=断链诊断（pollNode/peekNode/poll/peek共用）。
 	// 持久断链（数据损坏/外部篡改，正常事务不会产生）时静默返空会使size>0却永远取不出
 	//（消费者空转、积压封存且无迹可寻）。不照搬walk的无条件ISE：乐观并发重试交错下的
 	// 瞬时行缺失是良性的（本事务commit时会因root读集冲突回滚重试），纯诊断记error性价比更高。
@@ -249,7 +252,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		root.setHeadNodeKey(head.getNextNodeKey());
 		root.setCount(root.getCount() - head.getValues().size());
 		module._tQueueNodes.remove(headKey);
-		// FND10 coll-01：同poll——被取走的头节点同时是尾节点（单节点队列排空）时同步清尾键，
+		// 同poll——被取走的头节点同时是尾节点（单节点队列排空）时同步清尾键，
 		// 避免排空残尾。用带队列名、nodeId=0的键（空名键会让compatible复活旧指针）。
 		if (root.getTailNodeKey().getNodeId() == headKey.getNodeId())
 			root.setTailNodeKey(new BQueueNodeKey(name, 0));
@@ -263,7 +266,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	}
 
 	/**
-	 * 清空并删除队列根行（FND6-35）：{@link #clear()} 只清节点链，tQueues根行（空链）会
+	 * 清空并删除队列根行：{@link #clear()} 只清节点链，tQueues根行（空链）会
 	 * 永久残留。仅队列所有者在确定不再使用该队列时调用（最终登出等终结语义）；删除与
 	 * 节点清理同事务，回滚时整体还原；再次使用（add/getRoot）会自动重建。
 	 * 删除随事务提交成功后，同步逐出 Module.queues 内存缓存中的本包装对象（P3：根行已删
@@ -334,7 +337,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		if (nodeValues.isEmpty()) {
 			root.setHeadNodeKey(head.getNextNodeKey());
 			module._tQueueNodes.remove(headKey);
-			// FND10 coll-01：取空的节点同时是尾节点时同步清尾键——排空残尾与push的tail修复
+			// 取空的节点同时是尾节点时同步清尾键——排空残尾与push的tail修复
 			// 条件（仅tail.nodeId==0才修）失配，此后push再add会产生零链接尾节点：add的值从
 			// head不可达（永久丢失）且count虚高。带队列名、nodeId=0的键。
 			if (root.getTailNodeKey().getNodeId() == headKey.getNodeId())
@@ -381,10 +384,10 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		var tailNodeKey = root.getTailNodeKey();
 		var tail = tailNodeKey.getNodeId() != 0 ? getNode(tailNodeKey) : null; // 比起直接访问快一些。
 		if (tail == null && root.getHeadNodeKey().getNodeId() != 0) {
-			// FND10 coll-01：尾键非0但尾行缺失且活链存在=真断链（正常序列里poll/pollNode排空时
+			// 尾键非0但尾行缺失且活链存在=真断链（正常序列里poll/pollNode排空时
 			// 已清尾键，head!=0时push/add都会维护尾键）。不能像原来那样零链接另立新尾（新值从
-			// head不可达，FND8-79只告警不阻止）：沿链重定位最后可达节点为真实尾并自愈尾指针；
-			// 链中途断（断点后数据已不可达，数据损坏）用断点前节点，口径对齐FND8-79"诊断告警、
+			// head不可达，断链告警不阻止）：沿链重定位最后可达节点为真实尾并自愈尾指针；
+			// 链中途断（断点后数据已不可达，数据损坏）用断点前节点，口径同上"诊断告警、
 			// 不中断服务"；头节点行也缺失（tail保持null）则回落原行为另立新尾。
 			logger.error("queue add: broken tail, relocate real tail by walking. name={}, count={}, tailKey={}",
 					name, root.getCount(), tailNodeKey);

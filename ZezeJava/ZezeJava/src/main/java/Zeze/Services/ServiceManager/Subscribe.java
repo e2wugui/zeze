@@ -3,6 +3,7 @@ package Zeze.Services.ServiceManager;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 
+/** Subscribe协议：向SM订阅服务列表，应答携带当前快照，此后增量经EditService推送。 */
 public final class Subscribe extends Rpc<BSubscribeArgument, BSubscribeResult> {
 	public static final int ProtocolId_ = Bean.hash32(Subscribe.class.getName()); // 1138220698
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1138220698

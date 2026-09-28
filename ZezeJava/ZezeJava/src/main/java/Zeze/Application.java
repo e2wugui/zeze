@@ -68,10 +68,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 
+/**
+ * Zeze 应用核心：组装数据库、表、锁、组件（Timer/AutoKey/Queue 等）与服务管理器，编排 start/stop 生命周期。
+ */
 public final class Application extends ReentrantLock {
 	static final @NotNull Logger logger = LogManager.getLogger(Application.class);
 
-	// R3-X①：终检点后等待在飞flush归零/被中断时重join检查点线程的上限，超时告警继续关库。
+	// 终检点后等待在飞flush归零/被中断时重join检查点线程的上限，超时告警继续关库。
 	private static final long CHECKPOINT_DRAIN_TIMEOUT_MILLIS = 30_000;
 
 	private final @NotNull String projectName;
@@ -92,7 +95,7 @@ public final class Application extends ReentrantLock {
 	private IGlobalAgent globalAgent;
 	private AchillesHeelDaemon achillesHeelDaemon;
 	private DeadlockBreaker deadlockBreaker;
-	// FND7-54返工：volatile——停机拒绝契约（perform轮次间/tryUpdateAndCheckpoint入口/落库点、
+	// volatile——停机拒绝契约（perform轮次间/tryUpdateAndCheckpoint入口/落库点、
 	// TableX.flushWhenReduce）依赖事务线程及时读到stop()的置null；plain字段无happens-before，
 	// redo轮次里的检查可能长期读到旧引用，注册进已结束终检点的checkpoint（孤儿脏集=原bug复活）。
 	// 读频次每事务个位数，volatile代价可忽略。
@@ -125,7 +128,7 @@ public final class Application extends ReentrantLock {
 	 */
 	private DatabaseRocksDb LocalRocksCacheDb;
 
-	// FND8-26：LocalRocksCacheDb目录（zeze_cache_<serverId>，目录名仅含serverId，同JVM
+	// LocalRocksCacheDb目录（zeze_cache_<serverId>，目录名仅含serverId，同JVM
 	// 多App撞号或跨进程同CWD误配时互删活跃目录）的互斥锁，持有覆盖start与stop两个
 	// 删除入口的整个生命周期；失败语义见FileMutex。
 	private @Nullable FileMutex localRocksCacheMutex;
@@ -139,7 +142,7 @@ public final class Application extends ReentrantLock {
 	private final ArrayList<Table> replaceTableRecent = new ArrayList<>();
 	private final ArrayList<HotUpgradeMemoryTable> hotUpgradeMemoryTables = new ArrayList<>();
 
-	// 只由持锁者（checkpointRunThread/stop）读写；"checkpoint在跑中"=非null且未完成（FND3-49判据化）。
+	// 只由持锁者（checkpointRunThread/stop）读写；"checkpoint在跑中"=非null且未完成。
 	private Future<?> checkpointFuture;
 
 	private static final ConcurrentHashMap<String, Application> instances = new ConcurrentHashMap<>();
@@ -298,21 +301,6 @@ public final class Application extends ReentrantLock {
 		return checkpoint;
 	}
 
-	/*
-	public void setCheckpoint(Checkpoint value) {
-		lock();
-		try {
-			if (value == null)
-				throw new NullPointerException();
-			if (IsStart)
-				throw new IllegalStateException("Checkpoint only can setup before start.");
-			_checkpoint = value;
-		} finally {
-			unlock();
-		}
-	}
-	*/
-
 	public @NotNull Locks getLocks() {
 		return locks;
 	}
@@ -343,8 +331,8 @@ public final class Application extends ReentrantLock {
 
 	public @NotNull Database addTable(@NotNull String dbName, @NotNull Table table) {
 		var db = getDatabase(dbName);
-		// 两道唯一性校验全部通过后再统一登记（异常路径原子化）：原先TableKey.tables.put与
-		// tables.putIfAbsent先于校验执行，表名冲突抛异常后tables残留半注册幻影表（从未open），
+		// 两道唯一性校验全部通过后再统一登记（异常路径原子化）：TableKey.tables.put与
+		// tables.putIfAbsent先于校验执行时，表名冲突抛异常后tables残留半注册幻影表（从未open），
 		// 重复id时还会先污染既有表的id→name映射。调用方均持Application锁（openDynamicTable）
 		// 或处于启动期单线程模块注册，check-then-put无新增并发窗口。
 		if (tables.containsKey(table.getId()))
@@ -408,7 +396,6 @@ public final class Application extends ReentrantLock {
 
 			if (exist.isMemory() && table.isMemory()) {
 				// 内存表特殊处理。
-				//logger.info("+++++++++++++++++++++++++++++++++++ UpgradeMemory " + table.getName());
 				hotUpgradeMemoryTables.add(new HotUpgradeMemoryTable(exist, table));
 				// exist.disable() 在升级之后调用。
 			} else {
@@ -553,23 +540,10 @@ public final class Application extends ReentrantLock {
 
 	public void endStart() {
 		// noDatabase模式不创建delayRemove（构造期跳过）：生命周期钩子对两种模式都要有
-		// 定义良好的行为——no-op（与无数据库语义一致）（FND4-81）。
+		// 定义良好的行为——no-op（与无数据库语义一致）。
 		if (delayRemove != null)
 			delayRemove.continueJobs();
 	}
-
-	/*
-	static byte[] debugDataVersion;
-	static void checkAndSet(ByteBuffer cur) {
-		if (debugDataVersion == null) {
-			debugDataVersion = cur.Copy();
-			return;
-		}
-		if (!Arrays.equals(debugDataVersion, cur.Copy())) {
-			System.out.println("DataVersion.Data Changed!");
-		}
-	}
-	*/
 
 	// 数据库Meta兼容检查，初始化。
 	private void schemasCompatible() throws Exception {
@@ -584,7 +558,6 @@ public final class Application extends ReentrantLock {
 				var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
 				long version = 0;
 				if (dataVersion != null && dataVersion.data != null) {
-					//checkAndSet(dataVersion.data);
 					schemasPrevious = new Schemas();
 					try {
 						schemasPrevious.decode(dataVersion.data);
@@ -602,7 +575,6 @@ public final class Application extends ReentrantLock {
 					version = dataVersion.version;
 				}
 				// schemasPrevious maybe null
-				//schemas.buildRelationalTables(this, schemasPrevious);
 
 				var newData = ByteBuffer.Allocate(1024);
 				schemas.encode(newData);
@@ -711,8 +683,6 @@ public final class Application extends ReentrantLock {
 			if (hasDatabase) {
 				if ("true".equalsIgnoreCase(System.getProperty(Daemon.propertyNameClearInUse))) {
 					conf.clearInUse(databases);
-					//var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
-					//defaultDb.getDirectOperates().unlock();
 				}
 
 				// Set Database InUse
@@ -724,7 +694,7 @@ public final class Application extends ReentrantLock {
 				var dbConf = new Config.DatabaseConf();
 				dbConf.setName("zeze_cache_" + serverId);
 				dbConf.setDatabaseUrl(dbConf.getName());
-				// FND8-26：先锁后删——同JVM/跨进程撞serverId在删目录前即fail-fast。
+				// 先锁后删——同JVM/跨进程撞serverId在删目录前即fail-fast。
 				localRocksCacheMutex = FileMutex.acquire(dbConf.getDatabaseUrl() + ".lock",
 					"zeze_cache dir (serverId=" + conf.getServerId() + ")");
 				deleteDirectory(new File(dbConf.getDatabaseUrl()));
@@ -819,13 +789,13 @@ public final class Application extends ReentrantLock {
 			// 拆解全程处于eStopping。
 			startState = StartState.eStopping;
 
-			// FND-A1-6：同名实例时putIfAbsent只保留先注册者，无条件remove会错删他人的注册，
+			// 同名实例时putIfAbsent只保留先注册者，无条件remove会错删他人的注册，
 			// 导致幸存实例的Online.findOnline失效（延迟登出静默丢失）。remove(key,value)
 			// 只删属于自己的注册（Application按引用判等）。
 			instances.remove(getProjectName(), this);
 
 			if (null != checkpointFuture) {
-				// FND-A1-10：get()在检查点任务以异常完成时抛ExecutionException并从stop逃逸，
+				// get()在检查点任务以异常完成时抛ExecutionException并从stop逃逸，
 				// startState滞留 eStopping、数据库未关，后续start()无法恢复。任务异常
 				// 已由Task框架记录，这里吞掉保证停机流程继续走完。
 				try {
@@ -858,7 +828,7 @@ public final class Application extends ReentrantLock {
 				achillesHeelDaemon = null;
 			}
 
-			// FND7-54：先停事务生产组件（delayRemove/safeBatch/timer）并等待在途任务，再关
+			// 先停事务生产组件（delayRemove/safeBatch/timer）并等待在途任务，再关
 			// globalAgent（组件事务可能还需GCM申请锁），最后checkpoint.stopAndJoin作为终检点
 			// 收尾——保证"最后一个提交先于最后一次flush"。终检点之后到达的提交由
 			// Transaction.perform/RelativeRecordSet.tryUpdateAndCheckpoint的停机拒绝转为
@@ -880,9 +850,9 @@ public final class Application extends ReentrantLock {
 			if (globalAgent != null) {
 				var ga = globalAgent;
 				stopStep("globalAgent.stop", ga::stop);
-				// FND10 txn-01：Releaser（GCM断连/守护Release触发的降级+checkpoint线程）不被stop
-				// 收编，其checkpointRun→flush与下方LocalRocksCacheDb.close+deleteDirectory并发属
-				// ad5801593判例的native UAF类窗口。关库前有界join，超时告警继续。
+				// Releaser（GCM断连/守护Release触发的降级+checkpoint线程）不被stop
+				// 收编，其checkpointRun→flush与下方LocalRocksCacheDb.close+deleteDirectory并发
+				// 存在native UAF类窗口。关库前有界join，超时告警继续。
 				stopStep("globalAgent.awaitReleaser", () -> ga.awaitReleaser(CHECKPOINT_DRAIN_TIMEOUT_MILLIS));
 				globalAgent = null;
 			}
@@ -893,7 +863,7 @@ public final class Application extends ReentrantLock {
 			}
 
 			if (checkpoint != null) {
-				// FND7-54：先置null再join——join期间到达的提交立即进入停机拒绝（Closed），
+				// 先置null再join——join期间到达的提交立即进入停机拒绝（Closed），
 				// 终检点（join内的final flush）只负责此前已注册的脏集。
 				var cp = checkpoint;
 				checkpoint = null;
@@ -901,18 +871,18 @@ public final class Application extends ReentrantLock {
 					try {
 						cp.stopAndJoin();
 					} catch (Throwable ex) {
-						// R3-X①（FND7-56边界收窄）：stopAndJoin的join被中断（forceThrow）时
+						// stopAndJoin的join被中断（forceThrow）时
 						// 检查点线程仍存活（可能正要进入final flush），吞掉异常直接继续会在它
-						// 还要落库时关库——与在飞数据通路并发close是native UAF类（ad5801593）。
-						// 有界忽略中断重join，超时告警继续（FND7-56的"终态必达"不变）。
+						// 还要落库时关库——与在飞数据通路并发close是native UAF类。
+						// 有界忽略中断重join，超时告警继续（终态必达不变）。
 						logger.error("checkpoint stopAndJoin interrupted/failed, bounded re-join before close", ex);
 						cp.joinIgnoreInterrupt(CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
 					}
 				});
-				// R3-X①：mid-flush halt窄窗——FND7-54的停机拒绝只拦新提交，不等待已过门的
+				// mid-flush halt窄窗——停机拒绝只拦新提交，不等待已过门的
 				// 在飞flush（Immediately模式业务线程的checkpoint.flush、Reduce降级flush、
 				// checkpointRun的runOnce）：它们已打开LocalRocksCacheDb事务，与随后的
-				// close+deleteDirectory并发同样属于ad5801593的native UAF类。有界等待归零，
+				// close+deleteDirectory并发同样是native UAF类。有界等待归零，
 				// 超时告警继续（30s上限，保证停机不因此永久挂起）。
 				if (!cp.waitNoActiveFlush(CHECKPOINT_DRAIN_TIMEOUT_MILLIS))
 					logger.error("checkpoint active flush not drained in {}ms, continue to close databases "
@@ -928,7 +898,7 @@ public final class Application extends ReentrantLock {
 				});
 				LocalRocksCacheDb = null;
 			}
-			// FND8-26：start失败于锁后（LocalRocksCacheDb尚未赋值）也要释放，故在块外无条件调用。
+			// start失败于锁后（LocalRocksCacheDb尚未赋值）也要释放，故在块外无条件调用。
 			if (localRocksCacheMutex != null) {
 				localRocksCacheMutex.close();
 				localRocksCacheMutex = null;
@@ -958,8 +928,7 @@ public final class Application extends ReentrantLock {
 				takeover = null;
 			}
 			if (!isNoDatabase())
-				// txn-01（FND16）：Redis 实现内部已有界（64次对齐setInUse，见DatabaseRedis
-				// 注释——原为全仓唯一无界自旋，停机无守卫阻塞+Daemon双开放大器）。
+				// Redis 实现内部已有界（64次对齐setInUse，见DatabaseRedis注释）。
 				stopStep("clearInUse", () -> conf.clearInUse(databases));
 
 			for (var e : databases.entrySet())
@@ -975,10 +944,10 @@ public final class Application extends ReentrantLock {
 		}
 	}
 
-	// FND7-56：停机步骤异常隔离——任一拆卸步骤抛出（Service.stop关连接的IO异常、
+	// 停机步骤异常隔离——任一拆卸步骤抛出（Service.stop关连接的IO异常、
 	// stopAndJoin的join中断forceThrow等）只记日志继续，不得跳过其后步骤
 	// （db.close/clearInUse/各UnRegister），保证终态必达eStopped
-	// （对齐GlobalAgent.stop的per-agent兜底与FND-A1-10意图）。
+	// （对齐GlobalAgent.stop的per-agent兜底）。
 	private static void stopStep(@NotNull String name, @NotNull Action0 action) {
 		try {
 			action.run();
@@ -991,8 +960,8 @@ public final class Application extends ReentrantLock {
 	}
 
 	public void checkpointRun() {
-		// 同endStart（FND4-81）：noDatabase模式不创建checkpoint。
-		// FND8-21：volatile单次快照读——原判空后二次读字段，stop()持Application锁置null
+		// 同endStart：noDatabase模式不创建checkpoint。
+		// volatile单次快照读——判空后二次读字段，stop()持Application锁置null
 		// 恰好落在两条载入之间时解引用得null即NPE（本方法无锁，锁只约束stop与checkpointRunThread）。
 		var cp = checkpoint;
 		if (cp != null)
@@ -1000,9 +969,9 @@ public final class Application extends ReentrantLock {
 	}
 
 	/**
-	 * FND8-21统一收口：checkpoint尽力保存后无条件halt。三处共用（Transaction.perform的
+	 * checkpoint尽力保存后无条件halt。三处共用（Transaction.perform的
 	 * finalCommit失败分支、AchillesHeelDaemon的ProcessDaemon/ThreadDaemon超时分支）——
-	 * FND4-04：checkpointRun/LogManager失败不得吞掉halt本身。fatal自身再包独立try，
+	 * checkpointRun/LogManager失败不得吞掉halt本身。fatal自身再包独立try，
 	 * 日志系统异常也不得拦下终态。
 	 */
 	public static void haltAfterCheckpoint(@NotNull Application zeze, int exitCode) {
@@ -1027,7 +996,7 @@ public final class Application extends ReentrantLock {
 		lock();
 		try {
 			var f = checkpointFuture;
-			// FND3-49："在跑中"是字段的派生判据（非null且未完成），不由任务清零：
+			// "在跑中"是字段的派生判据（非null且未完成），不由任务清零：
 			// pool.submit先入队后返回，任务可能在赋值前完成，任务内finally清空=白清，
 			// 迟到赋值会留下已完成的哨兵future，后续调用被永久阻断。
 			// 字段只由持锁者（本方法/stop）读写，任务不触碰。

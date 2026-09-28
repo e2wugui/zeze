@@ -4,6 +4,9 @@ import java.util.function.Function;
 import Zeze.Net.Binary;
 import Zeze.Transaction.TransactionLevel;
 
+/**
+ * 已注册的 redirect 方法句柄：请求执行体、事务级别、结果编码器与版本。
+ */
 public class RedirectHandle {
 	public interface IRequestHandle {
 		/**

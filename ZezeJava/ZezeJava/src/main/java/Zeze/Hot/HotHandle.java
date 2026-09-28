@@ -8,11 +8,14 @@ import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 按类名缓存的热更句柄表：模块停止时自动清除属于该模块的句柄缓存。
+ */
 public class HotHandle<THandle> extends ReentrantLock {
 	private final ConcurrentHashMap<String, THandle> handleCache = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<HotModule, HashSet<String>> classNameWithHotModule = new ConcurrentHashMap<>();
 
-	// CARRY（FND-G1-8同型）：this::onHotModuleStop每次求值都产生新实例，而stopEvents
+	// this::onHotModuleStop每次求值都产生新实例，而stopEvents
 	// （ConcurrentHashSet，键=元素自身）按实例判等——每次缓存miss（含模块stop清缓存后的
 	// 重新装载）都会叠加一条新回调，模块停止时同一回调被重复执行多次且无法移除。
 	// 固定为实例字段只求值一次：同一HotHandle的登记幂等（总量有界：HotHandle实例数）。

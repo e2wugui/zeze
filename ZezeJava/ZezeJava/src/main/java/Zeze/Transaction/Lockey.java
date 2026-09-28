@@ -7,6 +7,10 @@ import Zeze.Util.ZezeCounter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 记录锁键：包装 TableKey 并持有其读写锁；相同 TableKey 必须通过 Locks 获取同一个 Lockey 实例，
+ * 事务间按 TableKey 全序加锁以防死锁。
+ */
 public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	private final @NotNull TableKey tableKey;
 	private ReentrantReadWriteLock rwLock;
@@ -36,7 +40,6 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 
 	public void enterReadLock() {
 		ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.READ_LOCK).increment();
-		// logger.debug("EnterReadLock {}", TableKey);
 		var readLock = rwLock.readLock();
 		if (readLock.tryLock())
 			return;
@@ -46,14 +49,12 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public void exitReadLock() {
-		// logger.debug("ExitReadLock {}", TableKey);
 		rwLock.readLock().unlock();
 	}
 
 	public void enterWriteLock() {
 		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数
 			ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.WRITE_LOCK).increment();
-		// logger.debug("EnterWriteLock {}", TableKey);
 		var writeLock = rwLock.writeLock();
 		if (writeLock.tryLock())
 			return;
@@ -63,7 +64,6 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public void exitWriteLock() {
-		// logger.debug("ExitWriteLock {}", TableKey);
 		rwLock.writeLock().unlock();
 	}
 
@@ -80,7 +80,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public boolean tryEnterWriteLock(int millisecondsTimeout) {
-		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
+		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数，失败了也计数。
 			ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.TRY_WRITE_LOCK).increment();
 		try {
 			var writeLock = rwLock.writeLock();
@@ -99,37 +99,26 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	/**
 	 * 根据参数进入读或写锁。
 	 * 进入写锁时如果已经获得读锁，会先释放，使用时注意竞争条件。
-	 * EnterUpgradeableReadLock 看起来不好用，慢慢研究。
 	 *
 	 * @param isWrite Write Lock Need.
 	 */
 	public void enterLock(boolean isWrite) {
 		if (isWrite) {
-			/*
-			// 需要试试：拥有 readLock 时，再次去锁 writeLock 会死锁，但java没有提供手段检测。
-			// zeze需要保证不会发生这种情况。
-			if (rwLock.IsReadLockHeld) {
-				throw new AbortException("Invalid Lock State.");
-			}
-			*/
-			// logger.debug("EnterLock::EnterWriteLock {}", TableKey);
+			// 拥有 readLock 时，再次去锁 writeLock 会死锁，但 java 没有提供手段检测，
+			// zeze 需要保证不会发生这种情况。
 			enterWriteLock();
 		} else {
-			// logger.debug("EnterLock::EnterReadLock {}", TableKey);
 			enterReadLock();
 		}
 	}
 
 	public void exitLock() {
 		if (rwLock.isWriteLockedByCurrentThread()) {
-			// logger.debug("ExitLock::ExitWriteLock {}", TableKey);
 			rwLock.writeLock().unlock();
-		} else { // if (rwLock.IsReadLockHeld)
-			// logger.debug("ExitLock::ExitReadLock {}", TableKey);
+		} else {
 			rwLock.readLock().unlock();
 		}
-		// else throw new IllegalStateException("no lock held.");
-		// java 没有判断是否拥有读锁，不严格检查了状态了。
+		// java 没有提供判断是否拥有读锁的手段，此处不严格检查状态。
 	}
 
 	@Override

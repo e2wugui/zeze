@@ -6,6 +6,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Net.Binary;
 import Zeze.Raft.RocksRaft.PessimismLock;
 
+/**
+ * 全局锁键：包装GlobalTableKey的Binary，实现PessimismLock；经GlobalLocks分配实际的
+ * ReentrantLock与Condition，相同key全局唯一实例。
+ */
 public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLock {
 	private final Binary globalKey;
 	private Lock lock;

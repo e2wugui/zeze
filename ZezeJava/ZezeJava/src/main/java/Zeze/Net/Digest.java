@@ -6,6 +6,9 @@ import javax.crypto.spec.SecretKeySpec;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 摘要工具（MD5/HmacMD5）。
+ */
 public final class Digest {
 	// 刻意不缓存：调用点全在每连接握手/建codec路径，getInstance 开销无关紧要；
 	// ThreadLocal 缓存在虚拟线程下实例驻留随线程数无界放大（每线程一 MD5 + 一 Mac）。

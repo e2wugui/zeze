@@ -1,5 +1,9 @@
 package Zeze.Services;
 
+/**
+ * 全局缓存管理的"阿基里斯之踵"超时配置：由maxNetPing与serverProcessTime推导
+ * 守护超时、Release超时、rpc超时与fast-fail窗口等一组相关时限。
+ */
 public class AchillesHeelConfig {
 	// reconnect 这个为静态常量，仅由Server端使用。
 	// Zeze.Transaction.GlobalAgent明确使用了这个常量，会覆盖网络配置。

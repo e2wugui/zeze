@@ -3,6 +3,9 @@ package Zeze.Services.ServiceManager;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 客户端侧long号段缓存：持有[start,end)号段CAS递增发放，耗尽时经Agent申请新段。
+ */
 public class TidCache {
 	public static final int ALLOCATE_COUNT_MIN = 16;
 	public static final int ALLOCATE_COUNT_MAX = 1024 * 1024;

@@ -9,6 +9,9 @@ import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * redirect 单目标结果的 future：onSuccess/onFail 各可注册一次，支持 await 同步等待。
+ */
 public class RedirectFuture<R> extends TaskCompletionSource<R> {
 	private static final @NotNull VarHandle ON_SUCCESS, ON_FAIL;
 	private static final Action1<?> CALLED = __ -> {

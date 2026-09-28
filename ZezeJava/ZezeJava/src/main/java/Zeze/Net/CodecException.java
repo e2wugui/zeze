@@ -2,6 +2,9 @@ package Zeze.Net;
 
 import java.io.Serial;
 
+/**
+ * codec 编解码异常。
+ */
 public class CodecException extends RuntimeException {
 	@Serial private static final long serialVersionUID = 501428574934410873L;
 

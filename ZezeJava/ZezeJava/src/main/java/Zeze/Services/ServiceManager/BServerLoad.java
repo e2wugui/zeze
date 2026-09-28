@@ -5,6 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/** SetServerLoad协议bean：服务地址（ip+port）与附带参数。 */
 public final class BServerLoad implements Serializable {
 	public String ip;
 	public int port;

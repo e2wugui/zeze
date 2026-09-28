@@ -1,5 +1,8 @@
 package Zeze.Raft.RocksRaft;
 
+/**
+ * Set 容器日志基类：在 LogBean 之上携带容器的当前值（PSet）。
+ */
 public abstract class LogSet<V> extends LogBean {
 	private org.pcollections.PSet<V> value;
 

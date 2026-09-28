@@ -11,6 +11,9 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Selector 线程组：管理 selector 池、buffer 池配置与轮询分发（choice）。
+ */
 public class Selectors extends ReentrantLock {
 	public static final class InstanceHolder { // for lazy-init
 		private static final Selectors instance = new Selectors("Selector");
@@ -126,9 +129,9 @@ public class Selectors extends ReentrantLock {
 	public @NotNull Selectors add(int count) {
 		if (closed) // close后不允许重建线程（choice()对closed同样抛IllegalStateException）
 			throw new IllegalStateException("closed");
-		// 持锁（FND4-37）：原"读selectorList→copyOf→start→赋值"无锁check-then-act，并发add
-		// 后写覆盖先写——先注册的Selector线程从数组丢失但仍在运行（daemon泄漏、choice()轮不到）。
-		// 类型自身即ReentrantLock，数组变更与读取互斥由类型保证。
+		// 持锁：add必须整体互斥——无锁的"读selectorList→copyOf→start→赋值"check-then-act
+		// 在并发add时后写覆盖先写，先注册的Selector线程从数组丢失但仍在运行
+		// （daemon泄漏、choice()轮不到）。类型自身即ReentrantLock，数组变更与读取互斥由类型保证。
 		lock();
 		try {
 			Selector[] tmp = selectorList;
@@ -150,7 +153,7 @@ public class Selectors extends ReentrantLock {
 					tmp[i].start();
 				}
 			} catch (IOException e) {
-				// N2-F2：本批已创建/已启动的Selector不在selectorList（数组赋值在循环成功之后），
+				// 本批已创建/已启动的Selector不在selectorList（数组赋值在循环成功之后），
 				// choice()/close()均不可及——线程永久泄漏且重试叠加。关闭本批再重抛；
 				// 已有的旧Selector不受影响（selectorList未变）。
 				for (int k = batchStart; k < n; k++) {

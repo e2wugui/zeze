@@ -5,6 +5,9 @@ import Zeze.Util.ZstdFactory;
 import Zeze.Util.ZstdFactory.ZstdCompressStream;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * MPPC 与 zstd 混合压缩 codec：常规 MPPC 流中可内嵌 zstd 压缩块（块模式）。
+ */
 public final class CompressMppcZstd extends Compress implements Closeable {
 	public static final class SinkWrapper implements Codec {
 		private final @NotNull Codec sink;
@@ -73,7 +76,7 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 
 	public void updateBlock(byte @NotNull [] data, int off, int len) {
 		if (!blockMode) {
-			flushPending(); // N1-F2：进块模式前先落盘挂起的literal/match——逃逸码+块数据必须晚于挂起输出
+			flushPending(); // 进块模式前先落盘挂起的literal/match——逃逸码+块数据必须晚于挂起输出
 			blockMode = true;
 			putBits(0xc000 + 0x1fff, 16); // block mode
 			int pos = getPos();

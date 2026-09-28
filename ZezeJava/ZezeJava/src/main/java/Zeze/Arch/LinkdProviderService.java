@@ -20,6 +20,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Linkd 上接受 Provider 连接的服务：处理 Provider 握手宣告与 Bind/Subscribe 协议派发。
+ */
 public class LinkdProviderService extends HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdProviderService.class);
 	private static final String dumpFilename = System.getProperty("dumpProviderInput");

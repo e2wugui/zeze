@@ -3,11 +3,10 @@ package Zeze.Util;
 import org.jetbrains.annotations.NotNull;
 
 /**
+ * 键值语义去重的锁注册表：
  * <p>
- * Locks原来使用 单个容器管理锁，效率太低：
- * <p>
- * 1. 每次查询都会试图去回收; 以前java版实现一个懒惰的WeakHashSet。c# ConditionalWeakTable 使用 this==another 吧，没有调用 Equals，不能使用。
- * 2. 并发访问效率低. 通过增加segment解决。
+ * 1. 用懒惰回收的 WeakHashSet 管理锁实例（C# ConditionalWeakTable 按 this==another 比较、不调用 Equals，不能使用）。
+ * 2. segment 分片提高并发访问效率。
  */
 public class Locks<T extends Lockey<T>> {
 	/**

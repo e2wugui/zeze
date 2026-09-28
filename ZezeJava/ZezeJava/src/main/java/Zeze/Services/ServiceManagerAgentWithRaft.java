@@ -41,6 +41,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Raft版服务管理器客户端Agent：经raft连接ServiceManagerWithRaft，注册/订阅断线重连后
+ * 自动重放，不支持Id128 UDP发号（History组合构造即fail-fast）。
+ */
 public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWithRaft {
 	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
 	private final @NotNull Agent raftClient;
@@ -63,8 +67,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			throw new IllegalStateException("ServiceManager=raft does not support Id128 allocate: " +
 				"History('" + config.getHistory() + "') requires it. " +
 				"Use a non-raft ServiceManager or disable History.");
-		// FND5-35（A3）：空白sessionName（漏配sessionName属性时解析为空串）会与其它同样漏配的
-		// server共享会话行互相接管（服务闪断，见ServiceManagerWithRaft.ProcessLoginRequest）。
+	// 空白sessionName（漏配sessionName属性时解析为空串）会与其它同样漏配的
+	// server共享会话行互相接管（服务闪断，见ServiceManagerWithRaft.ProcessLoginRequest）。
 		// 经Application+ServiceManager=raft启动已默认为projectName#serverId；直接构造要求显式
 		// 配置非空名字——启动即失败优于连上后被服务端拒绝或与同名者互踩。
 		var smConf = config.getServiceManagerConf();
@@ -84,7 +88,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	private void raftOnSetLeader(@NotNull Agent agent) {
 		// 直接使用自身持有的config。raftClient以Config构造（无Application），getClient().getZeze()为null，
-		// 原来经zeze round-trip取配置会在null检查处直接return，Login永远不发送。
+		// 经zeze round-trip取配置会在null检查处直接return，Login永远不发送。
 		var future = startNewLogin();
 		var login = new Login();
 		login.Argument.setSessionName(config.getServiceManagerConf().getSessionName());
@@ -115,15 +119,15 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			var identify = new Identify();
 			identify.Argument.serverId = config.getServerId();
 			raftClient.send(identify, __ -> 0L);
-		} catch (Throwable ex) { // logger.error
+		} catch (Throwable ex) {
 			logger.error("OnLoginSuccess.Identify", ex);
 		}
 
-		// FND4-65：重放失败原先skip-and-continue——raft应答超时/错误码下注册或订阅重放丢失，
+		// 重放失败若skip-and-continue——raft应答超时/错误码下注册或订阅重放丢失，
 		// 直到下一次换leader才再试。重放源是registers/subscribeStates全量且幂等（见类注释），
 		// 失败安排退避重试整体重放，"重连后状态最终必达"由机制保证。
 		var edit = new BEditService();
-		// 快照在editServiceLock内取（FND5-31复审）：与editService的"变更-发送-回滚"互斥，
+		// 快照在editServiceLock内取：与editService的"变更-发送-回滚"互斥，
 		// 不会捕获未确认即被回滚的中间态——否则重放投递成功+原edit失败回滚=僵尸注册复现。
 		synchronized (editServiceLock) {
 			edit.getAdd().addAll(registers.keySet());
@@ -131,7 +135,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		if (!edit.getAdd().isEmpty()) {
 			try {
 				editService(edit);
-			} catch (Throwable ex) { // logger.error
+			} catch (Throwable ex) {
 				logger.error("OnLoginSuccess.Register, schedule replay retry.", ex);
 				scheduleLoginReplayRetry();
 				return; // 注册未确认，订阅随重试一并重放
@@ -149,7 +153,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 						scheduleLoginReplayRetry();
 					}
 				});
-			} catch (Throwable ex) { // logger.error
+			} catch (Throwable ex) {
 				logger.error("OnLoginSuccess.Subscribe, schedule replay retry.", ex);
 				scheduleLoginReplayRetry();
 			}
@@ -166,7 +170,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	// 时字段仍指向自身任务，新登记被单flight跳过，链就此断裂。
 	private final Object loginReplayRetryLock = new Object();
 	private @Nullable Future<?> loginReplayRetryTask; // guarded-by loginReplayRetryLock
-	// FND5-33：close后拒绝再登记并取消在途重试——raftClient已停，重试里的waitLoginReady
+	// close后拒绝再登记并取消在途重试——raftClient已停，重试里的waitLoginReady
 	// 必失败再登记，形成约17s周期的error循环直到进程退出。
 	private volatile boolean closed;
 
@@ -204,7 +208,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		if (on != null) {
 			try {
 				on.run(r.Argument.serverId);
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("ProcessSuspectRequest serverId={}", r.Argument.serverId, e);
 			}
 		}
@@ -214,7 +218,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	// Direct：Edit推送与Subscribe应答（dispatchRpcResponse内联）同在IO线程按TCP接收序串行应用，
 	// 对齐非raft版Agent的Direct注册。Edit增量无序号，乱序应用会令订阅状态与注册表永久分叉
-	// （FND3-40）；本handler体内全为非阻塞操作（CHM、SubscribeState锁、SendResult异步发、
+	// ；本handler体内全为非阻塞操作（CHM、SubscribeState锁、SendResult异步发、
 	// triggerOnChanged投oneByOne池），内联执行不阻塞IO线程。
 	@Override
 	@DispatchModeAnnotation(mode = DispatchMode.Direct)
@@ -242,7 +246,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		r.SendResult();
 		try {
 			triggerOnChanged(r.Argument);
-		} catch (Throwable e) { // logger.error
+		} catch (Throwable e) {
 			logger.error("ProcessEditRequest: triggerOnChanged exception:", e);
 		}
 		return Procedure.Success;
@@ -258,7 +262,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 					if (onSetLoad != null) {
 						onSetLoad.run(r.Argument);
 					}
-				} catch (Throwable e) { // logger.error
+				} catch (Throwable e) {
 					logger.error("", e);
 				}
 			});
@@ -324,7 +328,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				try {
 					if (volatileTmp.get()) // 到这里future已完成，get()不会park。
 						return;
-				} catch (Throwable ignored) { // ignored
+				} catch (Throwable ignored) {
 					// 等待期间raftOnSetLeader执行startNewLogin，cancel旧future并替换；
 					// 被替换不是失败，重读最新future继续等。
 				}
@@ -344,10 +348,10 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		}
 	}
 
-	// editService专用串行锁（对齐非raft版ServiceManager.Agent.editServiceLock判例）：
+	// editService专用串行锁（对齐非raft版ServiceManager.Agent.editServiceLock）：
 	// 把"变更本地registers-发送-等待应答-提交/回滚"全过程串行化，且onLoginSuccess的重放
 	// 快照在同一锁内取——快照因此只能看到已确认的完整状态，不会捕获"本地已变更、远端未
-	// 确认随后被回滚"的中间态（FND5-31复审：local-first窗口下重放投递成功+原edit失败回滚
+	// 确认随后被回滚"的中间态（local-first窗口下重放投递成功+原edit失败回滚
 	// =僵尸注册复现）。串行化同时消除同key并发edit的交错残留（AbstractAgent类注释豁免项）。
 	// 不复用__thisLock：后者被startNewLogin使用，复用会把换leader登录与edit互相阻塞；
 	// 本锁内等待loginFuture/RPC应答但不获取__thisLock，全局无反序路径。
@@ -358,8 +362,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		synchronized (editServiceLock) {
 			for (var info : arg.getAdd())
 				verify(info.getServiceIdentity());
-			// 先更新本地记录再发送远程请求（重连重放的数据来源）。失败时回滚本次真实变更
-			// （FND5-31）：重放只有add语义（onLoginSuccess全量addAll，无remove），remove失败的
+				// 先更新本地记录再发送远程请求（重连重放的数据来源）。失败时回滚本次真实变更
+				// ：重放只有add语义（onLoginSuccess全量addAll，无remove），remove失败的
 			// 条目若不回滚——本地已删、服务端永续残留，连接存活期间无人再发注销，僵尸注册
 			// 持续分发流量。只记录本次真实变更（新增/覆盖旧值/真实删除）；重放路径的幂等put
 			// 键已存在（prev==reg），不属于变更，回滚不得清空重放源。
@@ -389,7 +393,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			} catch (Throwable ex) {
 				// 引用判等恢复：BServiceInfo.equals按name+identity，值判等无法区分并发写入的
 				// 新版本对象；仅当映射仍是本次写入的实例才回滚，绝不吞并发edit的变更。
-				// 回滚用compute原子完成"判等+修改"（FND5-31复审）：曾用get判等+remove/put两步，
+				// 回滚用compute原子完成"判等+修改"：get判等+remove/put两步的话，
 				// 窗口内并发写入的equals相等新版本对象会被误删/误覆盖（remove按equals匹配键）。
 				for (var reg : added)
 					registers.compute(reg, (k, v) -> v == reg ? null : v);
@@ -421,7 +425,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				var states = new ArrayList<SubscribeState>(r.Argument.subs.size());
 				for (var info : r.Argument.subs) {
 					var state = subscribeStates.computeIfAbsent(info.getServiceName(), ___ -> new SubscribeState(info));
-					state.updateSubscribeInfo(info); // 同名重订阅同步过滤版本（FND-S2-8），防重连重放回退
+					state.updateSubscribeInfo(info); // 同名重订阅同步过滤版本，防重连重放回退
 					states.add(state);
 					var result = r.Result.map.get(info.getServiceName());
 					if (result != null)
@@ -429,7 +433,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				}
 				try {
 					triggerOnChanged(edits);
-				} catch (Throwable e) { // logger.error
+				} catch (Throwable e) {
 					logger.error("subscribeServicesAsync: triggerOnChanged exception:", e);
 				}
 				cf.complete(states);
@@ -461,7 +465,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	@Override
 	public void close() {
-		closed = true; // FND5-33：先置停机标志，再取消在途重试（迟到失败回调不会再登记）
+		closed = true; // 先置停机标志，再取消在途重试（迟到失败回调不会再登记）
 		synchronized (loginReplayRetryLock) {
 			if (loginReplayRetryTask != null) {
 				loginReplayRetryTask.cancel(false);
@@ -471,7 +475,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		try {
 			loginFuture.cancel(true);
 			raftClient.stop();
-		} catch (Throwable e) { // rethrow
+		} catch (Throwable e) {
 			throw Task.forceThrow(e);
 		}
 	}

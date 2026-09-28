@@ -28,6 +28,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * AWS DynamoDB 数据库后端：KV 表以 TransactWriteItems 事务落库，
+ * Operates 用条件写实现同版本保存。
+ */
 public class DatabaseDynamoDb extends Database {
 	private static final @NotNull Logger logger = LogManager.getLogger(DatabaseDynamoDb.class);
 
@@ -48,7 +52,7 @@ public class DatabaseDynamoDb extends Database {
 
 	@Override
 	public void close() {
-		// FND8-22：客户端内含连接池与IdleConnectionReaper强引用，不shutdown即泄漏
+		// 客户端内含连接池与IdleConnectionReaper强引用，不shutdown即泄漏
 		// （SDK明示语义）。双段守卫：super抛错也必达shutdown，与stopStep异常隔离双保险。
 		try {
 			super.close();
@@ -268,7 +272,7 @@ public class DatabaseDynamoDb extends Database {
 				for (var item : scanResult.getItems()) {
 					var key = copyIf(item.get("key").getB());
 					var value = copyIf(item.get("value").getB());
-					count++; // 被回调且返回 false 的中断项也计入（见 AbstractKVTable.walk 契约，T1-F3）
+					count++; // 被回调且返回 false 的中断项也计入（见 AbstractKVTable.walk 契约）
 					if (!callback.handle(key, value))
 						return count;
 				}
@@ -297,7 +301,7 @@ public class DatabaseDynamoDb extends Database {
 				var scanResult = dynamoDbClient.scan(req);
 				for (var item : scanResult.getItems()) {
 					var key = copyIf(item.get("key").getB());
-					count++; // 中断项计入返回值，与其他后端对齐（T1-F3）
+					count++; // 中断项计入返回值，与其他后端对齐
 					if (!callback.handle(key))
 						return count;
 				}

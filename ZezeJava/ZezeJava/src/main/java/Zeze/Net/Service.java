@@ -41,9 +41,12 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 网络服务基类：管理连接（socket）生命周期、协议工厂注册、协议解码与事务派发。
+ */
 public class Service extends ReentrantLock {
 	protected static final @NotNull Logger logger = LogManager.getLogger(Service.class);
-	// FND7-19/R3：默认共享发号流随机63位基址——同JVM内全Service共享一条流保证不撞号，
+	// 默认共享发号流随机63位基址——同JVM内全Service共享一条流保证不撞号，
 	// 随机基址使跨JVM/leader代碰撞概率2^-63量级（ServiceManagerWithRaft按sessionId判活，
 	// 固定从1起号跨代必撞）。
 	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(
@@ -109,7 +112,7 @@ public class Service extends ReentrantLock {
 		this.instanceName = instanceName;
 	}
 
-	// 停机屏障（XA1-F1/N2-F3）：stop最前置位、start复位；addSocket在登记成功后复查，
+	// 停机屏障：stop最前置位、start复位；addSocket在登记成功后复查，
 	// 命中即自查自关——与stop的关闭循环两序either-way必被一方关闭，迟到连接不再泄漏。
 	private volatile boolean stopped;
 
@@ -131,7 +134,7 @@ public class Service extends ReentrantLock {
 		this.config = initConfig(config);
 		socketOptions = this.config.getSocketOptions();
 		noProcedure = app == null || app.isNoDatabase();
-		// FND7-19/R3：模板仅在构造期取用一次（多Service共享同一supplier会撞号，模板语义
+		// 模板仅在构造期取用一次（多Service共享同一supplier会撞号，模板语义
 		// 仅为兼容旧全局安装的单Service用法）。
 		var template = defaultSessionIdGenFunc;
 		if (template != null)
@@ -140,9 +143,9 @@ public class Service extends ReentrantLock {
 		tryStartStatisticLog();
 	}
 
-	// FND7-19/R3：兼容旧全局安装AsyncSocket.setSessionIdGenFunc的模板入口——仅对之后
-	// 构造的Service生效。多Service共享同一supplier仍会撞号（正是被取代的旧缺陷形态，
-	// Zezex linkd/Game.Server拓扑即此），自定义发号请用实例级setSessionIdGenerator
+	// 兼容旧全局安装AsyncSocket.setSessionIdGenFunc的模板入口——仅对之后
+	// 构造的Service生效。多Service共享同一supplier仍会撞号（Zezex linkd/Game.Server
+	// 拓扑即此形态），自定义发号请用实例级setSessionIdGenerator
 	// （须在创建任何socket之前调用，并保证进程内全局值域不重叠）。
 	private static volatile @Nullable LongSupplier defaultSessionIdGenFunc;
 
@@ -256,7 +259,7 @@ public class Service extends ReentrantLock {
 			so.close(new IllegalStateException("duplicate session id: " + so.getSessionId()));
 			return false;
 		}
-		// 登记成功后复查停机屏障（XA1-F1/N2-F3）：stop最前置位后仍在飞的登记在此自查自关。
+		// 登记成功后复查停机屏障：stop最前置位后仍在飞的登记在此自查自关。
 		// 复查读到stopped==false时，put必然先于stop的关闭循环开始——循环遍历live的socketMap
 		// 必然看到已完成的put并关闭它；两序either-way必被一方关闭，无锁封死迟到连接泄漏。
 		if (stopped) {
@@ -318,7 +321,7 @@ public class Service extends ReentrantLock {
 	}
 
 	public void start() throws Exception {
-		stopped = false; // 复位停机屏障（XA1-F1/N2-F3）：支持stop后再start
+		stopped = false; // 复位停机屏障：支持stop后再start
 		// keepalive定时器随服务启动（先于config.start()创建任何socket）；KeepCheckPeriod
 		// 默认0禁用时tryStartKeepAliveCheckTimer内部不创建任务，无开销。
 		keepAliveCheckStopped = false;
@@ -339,7 +342,7 @@ public class Service extends ReentrantLock {
 	 * 只捕获句柄置null，cancel移到锁外。
 	 */
 	public void stop() throws Exception {
-		stopped = true; // 停机屏障最前置位（XA1-F1/N2-F3）：先于关闭循环，addSocket登记后复查据此拒绝迟到连接
+		stopped = true; // 停机屏障最前置位：先于关闭循环，addSocket登记后复查据此拒绝迟到连接
 		config.stop();
 		Future<?> keepTimer;
 		lock();
@@ -349,7 +352,6 @@ public class Service extends ReentrantLock {
 
 			// 不清除_RpcContexts：让Rpc的TimerTask超时后照常触发回调；直接清除会卡死同步等待。
 			// 在飞Rpc的去留可由应用层OnSocketDisposed覆写决定。
-			// _RpcContexts.Clear();
 
 			keepTimer = keepCheckTimer;
 			keepCheckTimer = null;
@@ -452,7 +454,7 @@ public class Service extends ReentrantLock {
 					var factoryHandle = findProtocolFactoryHandle(ctx.getTypeId());
 					if (factoryHandle != null)
 						dispatchRpcResponse(rpc, handle, factoryHandle);
-					else // N2-F4：协议工厂缺失时静默丢弃responseHandle无线索，对齐onRpcLostContext补warn
+					else // 协议工厂缺失时静默丢弃responseHandle无线索，warn对齐onRpcLostContext
 						logger.warn("rpc disposed: protocol factory not found, response handle skipped: {}", rpc);
 				}
 			}
@@ -496,9 +498,9 @@ public class Service extends ReentrantLock {
 	/**
 	 * 给新接受的连接安装 HaProxy 头解析器（ServiceConf 配置了 HaProxyKey 时）。
 	 * 覆写 OnSocketAccept 的服务子类（HandshakeServer/HandshakeBoth/TokenServer 等）不再走
-	 * Service.OnSocketAccept 的默认实现，会丢失这里的安装（FND7-24）：LB 的 "PROXY ..." 头
+	 * Service.OnSocketAccept 的默认实现，会丢失这里的安装：LB 的 "PROXY ..." 头
 	 * 会被当作协议帧头解码成未知协议，所有连接被拒且零告警。覆写点必须在收到任何数据前
-	 * 调用本方法恢复（对齐 HandshakeBase.checkMaxConnections 的 FND-S3-2 判例）。
+	 * 调用本方法恢复（对齐 HandshakeBase.checkMaxConnections 的判例）。
 	 */
 	protected final void setupHaProxyHeader(@NotNull AsyncSocket so) {
 		if (config.getHaProxyKey() != null && so instanceof TcpSocket tcp)
@@ -624,14 +626,7 @@ public class Service extends ReentrantLock {
 											   @Nullable AsyncSocket so, boolean needLog) {
 		var p = factoryHandle.Factory.create();
 		p.decode(bb);
-		// 协议必须完整的解码，为了方便应用某些时候设计出兼容的协议。去掉这个检查。
-		/*
-		if (bb.ReadIndex != endReadIndex)
-			throw new IllegalStateException(
-					String.format("protocol '%s' in '%s' module=%d protocol=%d size=%d!=%d decode error!",
-							p.getClass().getName(), service.getName(), moduleId, protocolId,
-							bb.ReadIndex - beginReadIndex, size));
-		*/
+		// 不强制协议完整解码（不检查bb是否读完），方便应用设计兼容协议。
 		p.setSender(so);
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId) && needLog)
 			AsyncSocket.log("RECV", so == null ? 0 : so.getSessionId(), p);
@@ -694,7 +689,7 @@ public class Service extends ReentrantLock {
 						protocolClassName, new Binary(bytesCopy));
 			} else
 				proc = zeze.newProcedure(action, protocolClassName, factoryHandle.Level);
-			// N2-F1：p==null当且仅当action内decodeProtocol抛出（outProtocol.value未赋值），
+			// p==null当且仅当action内decodeProtocol抛出（outProtocol.value未赋值），
 			// 方法引用Protocol::trySendResultCode不容忍null会NPE吞掉错误处置。此时对齐非事务
 			// 分支（decode异常上抛即断连）的语义close连接——Rpc.Send经连接关闭路径感知
 			// （OnSocketDisposed对在飞上下文立即失败），不再干等超时。
@@ -815,7 +810,7 @@ public class Service extends ReentrantLock {
 		return (T)rpcContexts.remove(sid);
 	}
 
-	// net-01（FND16）：应答会合校验用的非消费读（先校验后消费，伪造帧不触碰map，
+	// 应答会合校验用的非消费读（先校验后消费，伪造帧不触碰map，
 	// 真实应答或超时仍可达）。
 	public final @Nullable Protocol<?> getRpcContext(long sid) {
 		return rpcContexts.get(sid);
@@ -825,7 +820,6 @@ public class Service extends ReentrantLock {
 		return rpcContexts.remove(sid, ctx);
 	}
 
-	// Not Need Now
 	public final @NotNull LongHashMap<Protocol<?>> getRpcContextsToSender(@NotNull AsyncSocket sender) {
 		return getRpcContexts(p -> p.getSender() == sender);
 	}
@@ -923,7 +917,7 @@ public class Service extends ReentrantLock {
 		return r;
 	}
 
-	// 还是不直接暴露内部的容器。提供这个方法给外面用。以后如果有问题，可以改这里。
+	// 不直接暴露内部的容器，提供这个方法给外面用。以后如果有问题，可以改这里。
 
 	public final void foreach(@NotNull Action1<@NotNull AsyncSocket> action) throws Exception {
 		for (var socket : socketMap)
@@ -937,7 +931,7 @@ public class Service extends ReentrantLock {
 	 * 调用方需自行处理这种"未显式配置"的回退值（可参考 getOnePassiveAddress）。
 	 */
 	public @NotNull KV<@NotNull String, @NotNull Integer> getOneAcceptorAddress() {
-		// KV.key构造后不变（FND5-12复审）：累积后create，不再setKey。
+		// KV.key构造后不变：先累积再create。
 		var ip = new String[]{""};
 		var port = new int[]{0};
 		config.forEachAcceptor2(a -> {
@@ -959,8 +953,6 @@ public class Service extends ReentrantLock {
 	public @NotNull KV<@NotNull String, @NotNull Integer> getOnePassiveAddress() {
 		var ipPort = getOneAcceptorAddress();
 		// 允许系统来选择端口。
-		//if (ipPort.getValue() == 0)
-		//	throw new IllegalStateException("Acceptor: No Config.");
 
 		var ip = ipPort.getKey();
 		if (ip.equals("@internal") || ip.isBlank())
@@ -1058,9 +1050,9 @@ public class Service extends ReentrantLock {
 		// 时间源越过2^31秒后使差值变大负数，超时判定恒false（静默死连接永不回收）。
 		long now = GlobalTimer.getCurrentSeconds();
 		foreach(socket -> {
-			// FND7-63：覆盖判据从instanceof TcpSocket放宽为"活跃时间曾被更新"：
+			// 覆盖判据是"活跃时间曾被更新"（不限instanceof TcpSocket）：
 			// Websocket/WebsocketClient建立时reset、收发路径更新，同样被回收/探测，
-			// 静默死链不再泄漏；从不更新活跃时间的连接类型（如未适配的自定义AsyncSocket）
+			// 静默死链不泄漏；从不更新活跃时间的连接类型（如未适配的自定义AsyncSocket）
 			// 保持豁免，避免activeRecvTime==0被当作超时立即误杀。
 			if (socket.getActiveRecvTime() > 0 || socket.getActiveSendTime() > 0) {
 				long recvTime = now - socket.getActiveRecvTime();
@@ -1089,7 +1081,7 @@ public class Service extends ReentrantLock {
 	}
 
 	/**
-	 * 1. 如果你是handshake的service，重载这个方法，按注释发送KeepAlive即可【已改成默认发送，不需要操作】；
+	 * 1. 如果你是handshake的service，默认实现已发送KeepAlive，无需重载；
 	 * 2. 如果你是其他service子类，重载这个方法，按注释发送KeepAlive，并且服务器端需要注册这条协议并写一个不需要处理代码的handler；
 	 * 3. 如果不发送, 会导致KeepTimerClient时间后再次触发, 也可以调用socket.setActiveSendTime()避免频繁触发。
 	 *

@@ -3,7 +3,9 @@ package Zeze.Net;
 import java.util.Arrays;
 import org.jetbrains.annotations.NotNull;
 
-// RFC2118
+/**
+ * MPPC 压缩 codec（RFC2118）。
+ */
 public class Compress implements Codec {
 	private final @NotNull Codec sink;
 	private int pos;
@@ -89,7 +91,7 @@ public class Compress implements Codec {
 	}
 
 	/**
-	 * 落盘挂起的MPPC输出（literal/match，N1-F2）。子类在切换输出模式（如块模式）前必须调用：
+	 * 落盘挂起的MPPC输出（literal/match）。子类在切换输出模式（如块模式）前必须调用：
 	 * 挂起数据须先于模式切换标记与块数据到达下游，否则构成纯流重排，解码端必然失败。
 	 */
 	protected void flushPending() throws CodecException {

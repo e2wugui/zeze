@@ -1,5 +1,8 @@
 package Zeze.Arch;
 
+/**
+ * redirect 失败异常：code 区分服务器未找到、超时、本地/远程执行失败等错误类别。
+ */
 public class RedirectException extends RuntimeException {
 	public static final int GENERIC = 0; // 未知的通用情况,直接用setException方式传递非RedirectException的异常时
 	public static final int SERVER_NOT_FOUND = 1; // 远程进程没连接上或者没提供所需的服务

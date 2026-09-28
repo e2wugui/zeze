@@ -9,6 +9,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import org.jetbrains.annotations.NotNull;
 
+/** decimal 字段原子修改日志：经 VarHandle 提交新值，序列化为全精度字符串。 */
 public class LogDecimal extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<decimal>");
 
@@ -51,7 +52,7 @@ public class LogDecimal extends Log {
 		public void decode(@NotNull IByteBuffer bb) {
 			// 不限精度：encode 写全精度字符串（value.toString()），decode 必须原样还原，
 			// 保持 encode/decode 双射。用 DECIMAL128 会把 >34 位有效数字静默截断，
-			// 与 leader 内存值分叉且无任何检测手段（FND3-06）。
+			// 与 leader 内存值分叉且无任何检测手段。
 			value = new BigDecimal(bb.ReadString());
 		}
 

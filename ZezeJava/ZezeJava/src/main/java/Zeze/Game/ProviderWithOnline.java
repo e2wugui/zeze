@@ -12,11 +12,14 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Game 版带在线表的 Provider 实现模板：管理默认 Online 与多个 OnlineSet，处理 LinkBroken 下线。
+ */
 public class ProviderWithOnline extends ProviderImplement {
 	protected Online online; // 默认的Online. 需要外面调用create方法创建并初始化。App.Start.
 	private ProviderLoadWithOnline load;
 
-	// ConcurrentHashMap（FND4-80）：getOnline/foreachOnline无锁读（登录等业务线程高频），
+	// ConcurrentHashMap：getOnline/foreachOnline无锁读（登录等业务线程高频），
 	// stop()持lock执行clear——普通HashMap与停机clear无happens-before，停机窗口读侧
 	// 可见中间态。运行期只读，CHM读路径零额外成本。
 	protected final ConcurrentHashMap<String, Online> onlineSetMap = new ConcurrentHashMap<>(); // 所有创建过的Online,默认Online的key是空字符串. 需要外面调用默认Online.createOnlineSet创建
@@ -44,15 +47,15 @@ public class ProviderWithOnline extends ProviderImplement {
 			logger.info("LinkBroken[{}]: {}", p.getSender().getSessionId(), AsyncSocket.toStr(p.Argument));
 		// 目前仅需设置online状态。
 		var online = this.online;
-		// context是登录身份槽：Game角色模式为roleId数字串（Game/Online.java:2096/2195）；
-		// 混合装配下Arch账号模式登录（同进程Arch/Online.java:1783/1859）会写入clientId
-		// 任意字符串，解析失败（null）视为非角色会话跳过（镜像50e9520d5的getRoleId约定）。
+		// context是登录身份槽：Game角色模式为roleId数字串；
+		// 混合装配下Arch账号模式登录（同进程Arch.Online）会写入clientId
+		// 任意字符串，解析失败（null）视为非角色会话跳过（getRoleId约定）。
 		var roleId = parseRoleId(p.Argument.getUserState().getContext());
 		if (null != roleId && null != online) {
 			var onlineSet = online.getOnline(p.Argument.getUserState().getOnlineSetName());
 			if (null != onlineSet)
-				// FND8-75：失败码外传整体回滚（对齐Online.linkBroken的FND5-41契约及其余
-				// 五入口），否则事件链半触发时半程写入随Success提交。
+				// 失败码外传整体回滚（对齐Online.linkBroken的内部外传契约及其余五入口），
+				// 否则事件链半触发时半程写入随Success提交。
 				return onlineSet.linkBroken(p.Argument.getAccount(), roleId,
 						ProviderService.getLinkName(p.getSender()), p.Argument.getLinkSid());
 		}

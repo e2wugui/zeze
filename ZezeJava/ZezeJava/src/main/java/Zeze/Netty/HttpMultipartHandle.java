@@ -13,6 +13,9 @@ import io.netty.util.AttributeKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * multipart/form-data 上传处理接口：基于 netty 解码器分发属性/文件字段回调。
+ */
 @SuppressWarnings("RedundantThrows")
 public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamContentHandle, HttpEndStreamHandle {
 	@NotNull AttributeKey<InterfaceHttpPostRequestDecoder> decoderKey = AttributeKey.valueOf("HttpMultipartHandleContext");
@@ -20,9 +23,9 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 
 	private static HttpDataFactory newDefaultHttpDataFactory() {
 		var factory = new DefaultHttpDataFactory();
-		// FND8-58可选加固：multipart溢出临时文件（>16KB落盘）的JVM退出兜底，对齐raw路径
+		// 可选加固：multipart溢出临时文件（>16KB落盘）的JVM退出兜底，对齐raw路径
 		// MixedFileUpload静态默认deleteOnExit=true的语义；JVM内驻留场景由fireEndStreamHandle
-		// 的cancel补偿主修解决。代价是DeleteFileOnExitHook的路径集合驻留，可接受。
+		// 的cancel补偿解决。代价是DeleteFileOnExitHook的路径集合驻留，可接受。
 		factory.setDeleteOnExit(true);
 		return factory;
 	}
@@ -31,23 +34,20 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 	 * 请求过程中上传完一个属性字段时回调
 	 */
 	default void onAttribute(@NotNull HttpExchange x, @NotNull Attribute attr) throws Exception {
-//		System.out.println("onAttribute: " + attr.getName() + " = " + attr.getValue());
 	}
 
 	/**
-	 * 请求过程中上传完一个文件字段时回调
+	 * 请求过程中上传完一个文件字段时回调。
+	 * 可用 fileUpload.renameTo(new File("目标目录", "目标文件")) 把临时文件/数据移动到指定位置的文件。
 	 */
 	default void onFileCompleted(@NotNull HttpExchange x, @NotNull FileUpload fileUpload) throws Exception {
-//		System.out.println("onFileCompleted: " + fileUpload.getName() + " = " + fileUpload.getFilename());
-//		fileUpload.renameTo(new File("目标目录", "目标文件")); // 可把临时文件/数据移动到指定位置的文件
 	}
 
 	/**
-	 * 请求完成时的回调
+	 * 请求完成时的回调。可用 decoder.getBodyHttpDatas() 获取所有的Multipart字段。
 	 */
 	default void onEndRequest(@NotNull HttpExchange x,
 							  @NotNull InterfaceHttpPostRequestDecoder decoder) throws Exception {
-//		decoder.getBodyHttpDatas(); // 可获取所有的Multipart字段
 		x.close(x.sendPlainText(HttpResponseStatus.OK, (String)null));
 	}
 
@@ -115,7 +115,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 				}
 			}
 		} catch (Exception e) {
-			// NY1-F3：解码/回调异常被任务框架吞掉（fireStreamContentHandle仅记日志），不立即处置
+			// 解码/回调异常被任务框架吞掉（fireStreamContentHandle仅记日志），不立即处置
 			// 则onEndStream无条件进onEndRequest默认发200——静默数据丢失。立即取走销毁decoder
 			//（后续畸形chunk不再进解码器，onEndStream因attr已空自然跳过200，无需跨任务状态位），
 			// 回400并断连。

@@ -84,8 +84,8 @@ abstract class TimerOnlineBase<I> {
 	}
 
 	// 检查命名timerId格式合法（非法抛异常）且全局唯一：统一经Timer.isNamedTimerIdOccupied
-	// 查全局/离线索引+全部onlineSet的Role在线表+Account在线表。FND4-41：原实现只查本表，
-	// 三套查重互不相通——同名online/offline/global定时器并存并共用timerFutures相互覆盖。
+	// 查全局/离线索引+全部onlineSet的Role在线表+Account在线表。只查本表会让三套查重互不相通
+	// ——同名online/offline/global定时器并存并共用timerFutures相互覆盖。
 	final boolean isNamedTimerIdOccupied(@NotNull String timerId) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
@@ -147,7 +147,7 @@ abstract class TimerOnlineBase<I> {
 			timer().tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		var delay = Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
-		// FND7-30：oneByOneKey是公开契约参数（随bean持久化），online族安装必须与全局/离线族
+		// oneByOneKey是公开契约参数（随bean持久化），online族安装必须与全局/离线族
 		// 一样尊重——否则共用key的定时器到期并发跑回调，用户按串行假设写的回调产生竞态。
 		var oneByOneKey = simpleTimer.getOneByOneKey();
 		if (hot)
@@ -235,16 +235,16 @@ abstract class TimerOnlineBase<I> {
 		// remove online timer
 		var bTimer = getOnlineTimer(timerId); // table.remove现在不能返回旧值，只能这样写。
 		if (bTimer == null) {
-			// FND7-29：查无本族记录不得投机cancelFuture——timerFutures三族共用同源timerId，
+			// 查无本族记录不得投机cancelFuture——timerFutures三族共用同源timerId，
 			// 传入他族（如全局族）timerId会误杀其活future：记录在而future死，fireSimple尾部的
 			// 周期重装永不发生，停摆到进程重启。孤儿future由fireOnline自愈（bTimer==null分支）。
 			return false;
 		}
 
-		// 归属校验（FND5-19复审）：外部入口曾无校验——timer.roles(A).cancelOnline(B的timerId)
+		// 归属校验：外部入口无校验时，timer.roles(A).cancelOnline(B的timerId)
 		// 可越权取消任意online timer并按B的真实归属误清B的本地行。归属不符即拒绝。
-		// 校验必须先于cancelFuture注册：原先无条件注册在第一步，越权取消虽返回false，
-		// 事务提交后仍会停摆他人future、表项残留成僵尸（FND5-19复审补遗）。
+		// 校验必须先于cancelFuture注册：无条件先注册时，越权取消虽返回false，
+		// 事务提交后仍会停摆他人future、表项残留成僵尸。
 		if (callerId != null && !bTimer.identity().equals(callerId)) {
 			logger.warn("cancelOnlineLocal rejected: timer not owned by caller. timerId={}, owner={}, caller={}",
 					timerId, identityString(bTimer.identity()), identityString(callerId));
@@ -341,13 +341,13 @@ abstract class TimerOnlineBase<I> {
 
 	// ///////////////////////////////////////////////////////////////
 	// 安装到ThreadPool与触发
-	// FND7-30：oneByOneKey非空时fire经Timer.dispatchFire包executeOneByOne（对齐全局族
+	// oneByOneKey非空时fire经Timer.dispatchFire包executeOneByOne（对齐全局族
 	// scheduleSimple/scheduleCronNext），共用key的online定时器回调按key串行。
 	private void scheduleOnlineSimple(@NotNull String timerId, long delay, @Nullable TimerHandle handle,
 									  @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
-				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
+				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId,
 					TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
 							() -> fireOnlineSimple(timerId, handle, false))).scheduleNow(delay));
@@ -356,8 +356,8 @@ abstract class TimerOnlineBase<I> {
 		});
 	}
 
-	// FND-C1-6：hot句柄解析必须发生在fireOnline保护路径之内。原实参位置直接
-	// timer.findTimerHandle(...)，hot模块停用/类改名后到点抛ClassNotFoundException——
+	// hot句柄解析必须发生在fireOnline保护路径之内。在实参位置直接
+	// timer.findTimerHandle(...)时，hot模块停用/类改名后到点抛ClassNotFoundException——
 	// 异常发生在fireOnline之前（实参求值），不进入handle==null→cancelOnlineLocal与
 	// ret!=0→cancel的保护；TaskSpec.ofAction吞异常记日志后future静默消耗，
 	// tRoleTimers行残留成僵尸。解析失败返回null，让fireOnline走既有的清理分支。
@@ -375,7 +375,7 @@ abstract class TimerOnlineBase<I> {
 										 @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
-				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
+				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId, TaskSpec
 					.ofAction(() -> Timer.dispatchFire(oneByOneKey,
 							() -> fireOnlineSimple(timerId, findTimerHandleSafely(handleClass.getName()), true)))
@@ -411,7 +411,7 @@ abstract class TimerOnlineBase<I> {
 										@Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
-				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
+				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId,
 					TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
 							() -> fireOnlineCron(timerId, handle, false))).scheduleNow(delay));
@@ -425,7 +425,7 @@ abstract class TimerOnlineBase<I> {
 										   @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
-				return; // FND5-20：stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
+				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId, TaskSpec
 					.ofAction(() -> Timer.dispatchFire(oneByOneKey,
 							() -> fireOnlineCron(timerId, findTimerHandleSafely(handleClass.getName()), true)))
@@ -539,7 +539,7 @@ abstract class TimerOnlineBase<I> {
 	private void fireOnline(@NotNull String timerId, @Nullable TimerHandle handle, boolean hot,
 							@NotNull String kind, @NotNull FireKind<I> fireKind) {
 		if (!timer().isStarted())
-			return; // FND5-20：stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
+			return; // stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
 		var timer = timer();
 		var procSuffix = handle != null ? "." + handle.getClass().getName() : "";
 		var ret = TaskSpec.ofProcedure(zeze().newProcedure(() -> {

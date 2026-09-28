@@ -7,6 +7,9 @@ import Zeze.Util.FewModifyMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 按主版本区分的 Provider 分发集合：为每个出现过的主版本维护独立的 ProviderDistribute。
+ */
 public class ProviderDistributeVersion {
 	public final Application zeze;
 	public final LoadConfig loadConfig;

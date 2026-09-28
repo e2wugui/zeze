@@ -4,6 +4,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jetbrains.annotations.NotNull;
 
+// 命名线程工厂：前缀+编号命名，支持优先级与虚拟线程，未捕获异常统一记日志
 public class ThreadFactoryWithName implements ThreadFactory {
 	private static final @NotNull Thread.UncaughtExceptionHandler uncaughtHandler =
 			(__, e) -> Task.logger.error("uncaught exception:", e);
@@ -42,7 +43,7 @@ public class ThreadFactoryWithName implements ThreadFactory {
 			// 虚拟线程只能是daemon的,无法设置priority
 		} else {
 			t = new Thread(r, namePrefix + threadNumber.incrementAndGet());
-			t.setDaemon(true); // 先不考虑安全关闭，以后再调整。
+			t.setDaemon(true); // daemon：不阻塞 JVM 退出
 			if (t.getPriority() != priority)
 				t.setPriority(priority);
 			t.setUncaughtExceptionHandler(uncaughtHandler);

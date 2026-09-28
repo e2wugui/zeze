@@ -11,6 +11,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
+/**
+ * 表的一条缓存记录：key、当前值 bean、时间戳与在用计数，配合 LRU 驱逐保护与批量 flush 落盘。
+ */
 public final class Record<K> {
 	private static final Logger logger = LogManager.getLogger(Record.class);
 	public static final class RootInfo {
@@ -45,14 +48,14 @@ public final class Record<K> {
 	private boolean removed;
 	private Table<K, ?> table;
 	private K key;
-	// 跨线程发布（FND4-33）：apply线程在raft锁内setValue发布业务线程构造的bean，
+	// 跨线程发布：apply线程在raft锁内setValue发布业务线程构造的bean，
 	// 读线程（另一业务过程）经Table.get→r.mutex读取——两锁无交点，JMM上无
 	// happens-before保障。volatile让发布语义由字段自身保证（写侧仍在raft锁内，
 	// 语义不变；x86上无额外开销语义变化）。
 	private volatile Bean value;
 	final FastLock mutex = new FastLock();
 
-	// 【FND7-14】在用计数：Table.getOrLoad在r.mutex临界区内beginAccess，驱逐回调在
+	// 在用计数：Table.getOrLoad在r.mutex临界区内beginAccess，驱逐回调在
 	// r.mutex内复查（互斥，不会漏见），保证"事务持有Record引用期间不可被LRU驱逐"——
 	// leader事务原位修改缓存Record的bean，提交时经事务捕获的origin应用并flush，驱逐后
 	// 同key再访问会从storage装载出旧值的新记录，已提交更新被静默覆盖丢失。
@@ -75,19 +78,19 @@ public final class Record<K> {
 	}
 
 	/**
-	 * 【FND7-14联动·截断污染驱逐】flush 补偿因 term 不匹配被丢弃（{@code Rocks.takePendingFlush}
+	 * 截断污染驱逐：flush 补偿因 term 不匹配被丢弃（{@code Rocks.takePendingFlush}
 	 * 的过期分支）时调用：记录的内存 bean 可能已被截断条目应用过（apply 是"先改内存、后flush"，
 	 * flush 失败的补偿窗口内内存态停留在截断条目应用后的样子）。污染记录留在缓存中，后续
 	 * {@code Table.followerApply/getOrLoad} 会命中它，把新条目的增量日志叠加到旧条目的残迹上，
 	 * 双重应用被提交复制出去即 leader/follower 静默分歧。这里把它驱逐出缓存，后续访问从
 	 * storage 重载干净基线（flush 失败时 storage 仍是截断前已提交的状态）。
 	 * <p>
-	 * 【决策】不经使用方回调（{@code lruTryRemoveCallback}）直接 pair-remove：回调语义是
+	 * 决策：不经使用方回调（{@code lruTryRemoveCallback}）直接 pair-remove：回调语义是
 	 * "容量驱逐时征询使用方"（GCM 拒绝协议未完结的记录），而这里是正确性要求的失效——
 	 * 回调拒绝会让污染永久滞留；且使用方的删除变体不置 removed，并发
 	 * {@code getOrLoad} 竞争者仍可能拿到污染引用。在用（isAccessed）时放弃本轮驱逐：
 	 * 强制摘除会让在用方提交时经 origin 应用 flush 后，与驱逐后重装载的记录互相整值覆盖
-	 * （FND7-14 同型丢失更新）；此窗口内污染对并发读方的可见性由"普通表无同 key 并发
+	 * （同型丢失更新）；此窗口内污染对并发读方的可见性由"普通表无同 key 并发
 	 * 隔离"契约覆盖（见 Table 类头）。
 	 */
 	void evictPolluted() {
@@ -180,7 +183,7 @@ public final class Record<K> {
 	public void leaderApply(Transaction.RecordAccessed accessed) {
 		if (accessed.getPutLog() != null)
 			setValue(accessed.getPutLog().value);
-		timestamp = getNextTimestamp(); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
+		timestamp = getNextTimestamp(); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据是旧的。
 	}
 
 	public void flush(RocksDatabase.Batch batch) throws RocksDBException {

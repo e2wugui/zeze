@@ -36,9 +36,9 @@ public final class AtomicOutputFile extends OutputStream {
 			this.channel = FileChannel.open(temp,
 					StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 		} catch (IOException e) {
-			// U1-F1：createTempFile成功后open失败即残留tmp——违反close()注释自立的
-			// "周期性失败的调用点不得累积tmp"纪律（Rocks.java快照zip等周期调用点按失败次数
-			// 累积）。失败即删（best-effort吞异常，对齐deleteTempBestEffort）后重抛。
+			// createTempFile成功后open失败即残留tmp——违反close()注释自立的
+			// "周期性失败的调用点不得累积tmp"纪律。失败即删（best-effort吞异常，
+			// 对齐deleteTempBestEffort）后重抛。
 			deleteTempBestEffort();
 			throw e;
 		}
@@ -71,7 +71,7 @@ public final class AtomicOutputFile extends OutputStream {
 
 	/**
 	 * force必须先于move：新内容未落盘前名字不允许翻过去——此顺序是安全前提，
-	 * 改动须逐字评审（AGENTS.md I1规约）。任何失败（非崩溃：flush/force/move）立即
+	 * 改动须逐字评审。任何失败（非崩溃：flush/force/move）立即
 	 * 清理temp并关闭channel——周期性失败的调用点不得累积tmp与句柄；进程死亡残留的
 	 * tmp才由启动清扫收口。
 	 */

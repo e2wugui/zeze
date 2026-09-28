@@ -3,6 +3,7 @@ package Zeze.Serialize;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 三维单精度向量值类型（float x/y/z），继承 Vector2，提供加减/点叉积/归一化等运算。 */
 public class Vector3 extends Vector2 {
 	public static final Vector3 ZERO = new Vector3(0, 0, 0);
 

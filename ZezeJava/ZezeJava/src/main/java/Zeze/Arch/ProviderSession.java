@@ -6,6 +6,9 @@ import Zeze.Util.Str;
 import Zeze.Util.TimeCounter;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Provider 连接会话基类：保存对端服务器标识、负载、版本与订阅 Ready 状态。
+ */
 public class ProviderSession {
 	protected volatile @NotNull BLoad load = new BLoad();
 	protected final TimeCounter timeCounter = new TimeCounter(5);

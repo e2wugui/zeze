@@ -9,6 +9,7 @@ import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// int 基本类型动态数组：可比较/可克隆/可序列化
 public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	public static final int[] EMPTY = new int[0];
 	public static final int DEFAULT_SIZE = 8;

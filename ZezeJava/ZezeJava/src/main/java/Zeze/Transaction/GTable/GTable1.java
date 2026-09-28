@@ -16,8 +16,8 @@ import static Zeze.Util.Json.ensureNotNull;
 /** 事务二维表（行键×列键→不可变值）：外层 PMap2 装 BeanMap1 行 Bean。 */
 @SuppressWarnings("unchecked")
 public class GTable1<R, C, V> extends StandardTable<R, C, V> {
-	// coll-01：外层logTypeId/name由(row,col,val)完整身份参与（GTable1专用家族头，与PMap2的
-	// LogMap2命名空间分流）——同row不同列/值类型的表不再共享typeId，History回放端Log.create
+	// 外层logTypeId/name由(row,col,val)完整身份参与（GTable1专用家族头，与PMap2的
+	// LogMap2命名空间分流）——同row不同列/值类型的表不共享typeId，History回放端Log.create
 	// 按typeId查表各得其所。身份原料用getStableName（内置类型短名"int"/"string"，bean全名）。
 	static final String OUTER_HEAD = "Zeze.Transaction.GTable.GTable1<";
 	static final String OUTER_NAME_PREFIX = "GTable1:";
@@ -31,19 +31,19 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		Factory(@NotNull Map2Meta<R, BeanMap1<C, V>> pmapMeta, @NotNull Map1Meta<C, V> bmapMeta) {
 			this.pmapMeta = pmapMeta;
 			this.bmapMeta = bmapMeta;
-			// fm1/fm2在构造期一次性构建（FND7-10）：原惰性初始化只校验fm1且两写分离，
+			// fm1/fm2在构造期一次性构建：惰性初始化只校验fm1且两写分离，
 			// 并发首次解析可观察到fm1已写、fm2未写的部分状态，parseMap0解引用null直接NPE。
 			// Factory经factories的ConcurrentHashMap发布，final字段+安全发布根除该类竞态。
 			// 类型实参取自metas的keyClass/valueClass：与解析期宿主字段fieldMeta.paramTypes
 			// 等价，且与factory::get实际创建的容器类型一致。
 			try {
 				var dummyField = GTable1.class.getDeclaredField("pMap2");
-				// keyParser经反射回退工厂（FND8-31）：BeanKey/binary/decimal/vector等
+				// keyParser经反射回退工厂：BeanKey/binary/decimal/vector等
 				// 非内建键不在keyReaderMap，裸取为null时首键解析即NPE。
 				fm1 = new Json.FieldMeta(0x3c, 0, "PMap2", BeanMap1.class, this::get,
 						Json.ClassMeta.getKeyReaderOrFallback(Json.instance, pmapMeta.keyClass, "GTable1 row key"),
 						dummyField);
-				// fm2.klass用真实valueClass（FND8-31孪生）：TYPE_CUSTOM值按Object的
+				// fm2.klass用真实valueClass：TYPE_CUSTOM值按Object的
 				// ClassMeta解析会得到裸空Object（静默数据损坏），Binary等按真实类走
 				// 自定义parser/反射字段解析，与写侧对称。
 				fm2 = new Json.FieldMeta(0x30 + Json.ClassMeta.getType(bmapMeta.valueClass),
@@ -113,16 +113,6 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		pMap2.initRootInfo(rootInfo, parent);
 	}
 
-	/*
-	protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
-		pMap2.initRootInfo(_r_, this);
-	}
-
-	protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
-		pMap2.initRootInfoWithRedo(_r_, this);
-	}
-	*/
-
 	public void assign(GTable1<R, C, V> other) {
 		pMap2.clear();
 		for (var _e_ : other.pMap2.entrySet())
@@ -153,7 +143,7 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		_s_.append(Zeze.Util.Str.indent(_l_)).append('}');
 	}
 
-	// Bean行/列键显式拒绝（R3-T复审C2显式化）：工厂层已拦（Map1Meta/Map2Meta.checkNonBeanKey），但报错深在
+	// Bean行/列键显式拒绝：工厂层已拦（Map1Meta/Map2Meta.checkNonBeanKey），但报错深在
 	// getFactory内部且为"LogMap2/LogMap1 ..."家族名——GTable1的行键走Map2Meta.create会误报
 	// "LogMap2"，不点名GTable也不指明行/列维度。Bean是值语义equals配身份hashCode，行/列任一
 	// Bean维度的哈希put/get/contains失真；schema合法键只有内建类型与BeanKey（Gen/Types/
@@ -168,7 +158,7 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	public GTable1(@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
 		checkNonBeanDimension("row", rowClass);
 		checkNonBeanDimension("column", colClass);
-		// Bean值不支持（FND7-83，PList1/PMap1拒绝Bean值判例同族）：GTable1为动态标量值
+		// Bean值不支持：GTable1为动态标量值
 		// 设计（bean值由GTable2的带valueClass路径承担），Bean值需要GTable2的BeanMap2
 		// 元数据机制才能正确解码。schema层bean值恒产GTable2（History.Helper.
 		// dependsGTable），仅手写可触发，显式失败优于静默数据错误。
@@ -182,7 +172,7 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		super.factory = factory;
 	}
 
-	// Factory唯一来源是getFactory（meta经工厂层Bean拦截），不再重复维度/值check。
+	// Factory唯一来源是getFactory（meta经工厂层Bean拦截），不重复维度/值check。
 	// 供生成代码常量化（static final Factory + 本构造器），消除每实例化的三层缓存探测。
 	public GTable1(@NotNull Factory<R, C, V> factory) {
 		this.pMap2 = new PMap2<>(factory.pmapMeta);

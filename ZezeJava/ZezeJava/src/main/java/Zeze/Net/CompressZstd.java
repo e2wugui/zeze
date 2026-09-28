@@ -5,6 +5,9 @@ import Zeze.Util.ZstdFactory;
 import Zeze.Util.ZstdFactory.ZstdCompressStream;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Zstandard 流式压缩 codec。
+ */
 public final class CompressZstd implements Codec, Closeable {
 	public static final int DEFAULT_SRC_BUF_SIZE = 1024;
 

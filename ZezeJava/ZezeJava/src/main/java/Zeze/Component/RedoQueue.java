@@ -63,7 +63,7 @@ public class RedoQueue extends HandshakeClient {
 			var done = tableLastDoneTaskId.get(lastDoneTaskIdKey);
 			if (done != null)
 				lastDoneTaskId = ByteBuffer.Wrap(done).ReadLong();
-			// 排空队列重启后的水位回绕（CP1-F1）：队列排空时tableTaskQueue已无条目，
+			// 排空队列重启后的水位回绕：队列排空时tableTaskQueue已无条目，
 			// lastTaskId恢复为默认0，而lastDoneTaskId=N（水位表独立持久化）——水位"回绕"为
 			// lastDoneTaskId>lastTaskId：泵条件lastDoneTaskId<lastTaskId永假，新增任务静默滞留；
 			// 且新任务从id=1重新分配，落入水位之下的已删区间（下一次水位推进会连带误删）。
@@ -99,7 +99,7 @@ public class RedoQueue extends HandshakeClient {
 	public void add(int taskType, Serializable taskParam) {
 		lock();
 		try {
-			// FND7-65：先落盘成功再推进内存lastTaskId。原先先++lastTaskId后put，put抛
+			// 先落盘成功再推进内存lastTaskId：先++lastTaskId后put、put抛
 			// RocksDBException时内存已前进而盘上无此任务：后续泵读lastDoneTaskId+1命中空洞
 			// 永久停摆，重启后lastTaskId从DB最大键恢复，洞仍在，不可自愈。
 			var newTaskId = lastTaskId + 1;
@@ -128,7 +128,7 @@ public class RedoQueue extends HandshakeClient {
 		}
 	}
 
-	// FND4-43：删除水位（含）以下条目。重发只读lastDoneTaskId以上，以下条目（任务正文全量落盘）
+	// 删除水位（含）以下条目。重发只读lastDoneTaskId以上，以下条目（任务正文全量落盘）
 	// 永不清理=本地RocksDB无界增长。key为WriteLong变长编码（非负时字节序保序，非定长8字节大端），
 	// [key(0),key(lastDoneTaskId+1))即taskId<=lastDoneTaskId的全部；与水位推进同锁同线程，
 	// 重启时start()再补一次（清崩溃残留）。
@@ -155,7 +155,7 @@ public class RedoQueue extends HandshakeClient {
 				key.WriteLong(taskId);
 				var value = tableTaskQueue.get(key.Bytes, 0, key.WriteIndex);
 				if (value == null) {
-					// FND7-65：水位下一跳任务在DB中不存在（历史put失败留下的空洞，或外部
+					// 水位下一跳任务在DB中不存在（历史put失败留下的空洞，或外部
 					// 删数据）。洞不会自愈：重启后lastTaskId从DB最大键恢复，水位之下的洞
 					// 保持，队列永久停摆且无任何日志。FATAL让运维介入（人工补洞或重置水位）。
 					logger.fatal("task queue hole! queue={}, taskId={}, lastDoneTaskId={}, lastTaskId={}",

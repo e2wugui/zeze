@@ -7,6 +7,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Util.Id128;
 import org.jetbrains.annotations.Nullable;
 
+/** 全局键状态bean：globalKey、锁状态与被降级方事务Id。 */
 public class BGlobalKeyState implements Serializable {
 	public Binary globalKey; // 没有初始化，使用时注意
 	public int state;

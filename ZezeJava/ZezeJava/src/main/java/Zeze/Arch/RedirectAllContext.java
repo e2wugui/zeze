@@ -10,6 +10,9 @@ import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * RedirectAll 的汇聚上下文：按并发级别收集各 hash 分组的结果，完成或超时后触发 future。
+ */
 public final class RedirectAllContext<R extends RedirectResult> extends Service.ManualContext {
 	private final int concurrentLevel;
 	private final IntHashMap<R> hashResults = new IntHashMap<>(); // <hash, result>
@@ -44,7 +47,7 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 		lock.unlock();
 	}
 
-	// RedirectAllFutureImpl.await() 据此拦截“当前线程持本ctx锁时挂起等待”的死锁（FND-A1-9）
+	// RedirectAllFutureImpl.await() 据此拦截“当前线程持本ctx锁时挂起等待”的死锁
 	boolean isLockHeldByCurrentThread() {
 		return lock.isHeldByCurrentThread();
 	}

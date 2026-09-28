@@ -95,7 +95,6 @@ public final class ClassReloader {
 			String path = agentJar.getAbsolutePath();
 			String nameOfRunningVM = ManagementFactory.getRuntimeMXBean().getName();
 			String pid = nameOfRunningVM.substring(0, nameOfRunningVM.indexOf('@'));
-			// System.out.println(pid);
 			Process proc = Runtime.getRuntime().exec(new String[]{"java", "-Djdk.attach.compat=true", "-cp", path, fullClassName, pid, path});
 			int r = proc.waitFor();
 			if (r != 0) {

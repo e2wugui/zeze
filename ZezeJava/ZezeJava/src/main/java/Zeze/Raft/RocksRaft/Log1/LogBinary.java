@@ -7,6 +7,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Binary 落盘日志：序列化 Binary 字段的新值。
+ */
 public class LogBinary extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<binary>");
 

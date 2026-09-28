@@ -17,6 +17,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 客户端 websocket 连接（基于 JDK HttpClient WebSocket 的 AsyncSocket 适配）。
+ */
 public class WebsocketClient extends AsyncSocket {
 	private static final @NotNull Logger logger = LogManager.getLogger(WebsocketClient.class);
 
@@ -31,7 +34,7 @@ public class WebsocketClient extends AsyncSocket {
 	private final @NotNull Object sendLock = new Object();
 	private @NotNull CompletableFuture<Void> sendChain = CompletableFuture.completedFuture(null); // sendLock守护
 
-	// N3-F3：sendChain在途字节（入队加/链节点完成减，sendLock内check-then-add）。排队的
+	// sendChain在途字节（入队加/链节点完成减，sendLock内check-then-add）。排队的
 	// thenCompose节点钉住调用方byte[]，对端零窗口时链不前进，无上限时在途数据无界驻留。
 	private final @NotNull AtomicLong sendPendingBytes = new AtomicLong();
 
@@ -58,18 +61,18 @@ public class WebsocketClient extends AsyncSocket {
 				}
 				webSocket.request(1);
 				WebsocketClient.this.webSocket = webSocket;
-				// FND7-63：HTTP升级即握手完成，连接已建立，纳入KeepAlive管理（对齐TcpSocket连接
+				// HTTP升级即握手完成，连接已建立，纳入KeepAlive管理（对齐TcpSocket连接
 				// 成功时机）；addSocket前reset，checkKeepAlive不会观察到未管理的条目。
 				resetActiveSendRecvTime();
-				// FND4-35补连接成功钩子：url型Connector依赖Connector.OnSocketConnected置
+				// 连接成功钩子：url型Connector依赖Connector.OnSocketConnected置
 				// isConnected=true并回落重连退避，缺调则isConnected恒false、退避封顶后永不回落。
 				// 注意不能改调Service.OnSocketConnected：HandshakeClient/HandshakeBoth家族覆写
 				// 该方法为"仅addSocket、推迟OnHandshakeDone"（等应用层握手协议完成），而websocket
 				// 的HTTP升级本身就是握手完成，必须直调OnHandshakeDone——经OnSocketConnected会令
-				// 握手永不完成，Connector.WaitReady挂死（4d563735e引入、回归修正）。
+				// 握手永不完成，Connector.WaitReady挂死。
 				if (connector != null)
 					connector.OnSocketConnected(WebsocketClient.this);
-				// FND8-55：限流+注册+握手完成统一走tryAccept；超限显式关闭（不走JDK回调异常链），
+				// 限流+注册+握手完成统一走tryAccept；超限显式关闭（不走JDK回调异常链），
 				// 撞号（addSocket false，连接已被关闭）不再回调OnHandshakeDone。
 				try {
 					service.tryAccept(WebsocketClient.this);
@@ -82,10 +85,10 @@ public class WebsocketClient extends AsyncSocket {
 
 			@Override
 			public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
-				setActiveRecvTime(); // FND7-63：维护活跃时间，checkKeepAlive才能回收静默死链
+				setActiveRecvTime(); // 维护活跃时间，checkKeepAlive才能回收静默死链
 				webSocket.request(1);
 				var n = data.remaining();
-				WebsocketClient.this.recvCount++; // N3-F4：补齐流量统计（JDK listener串行回调，裸自增即可）
+				WebsocketClient.this.recvCount++; // 流量统计（JDK listener串行回调，裸自增即可）
 				WebsocketClient.this.recvSize += n;
 				input.EnsureWrite(n);
 				data.get(input.Bytes, input.WriteIndex, n);
@@ -175,14 +178,14 @@ public class WebsocketClient extends AsyncSocket {
 		var ws = webSocket;
 		if (ws == null) // 握手未完成或已关闭
 			return false;
-		setActiveSendTime(); // FND7-63：维护活跃时间（发送已被接受，直接发或按序入队）
+			setActiveSendTime(); // 维护活跃时间（发送已被接受，直接发或按序入队）
 		var bb = ByteBuffer.wrap(bytes, offset, length);
 		synchronized (sendLock) {
-			// N3-F4：补齐流量统计（sendLock内自增，对齐Websocket.Send用锁口径）。
+			// 流量统计（sendLock内自增，对齐Websocket.Send用锁口径）。
 			sendCount++;
 			sendSize += length;
 			sendRawSize += length;
-			// N3-F3：在途上限——对OutputBufferMaxSize设限（TcpSocket.Send同语义），超限回滚
+			// 在途上限——对OutputBufferMaxSize设限（TcpSocket.Send同语义），超限回滚
 			// 配额并返回false，慢速对端下排队链不再无界钉住在途数据。
 			var newSize = sendPendingBytes.addAndGet(length);
 			try {
@@ -196,11 +199,11 @@ public class WebsocketClient extends AsyncSocket {
 				return false;
 			}
 			if (sendChain.isDone()) {
-				// 空闲：直接发送，保留FND3-24同步失败契约（sendBinary异常完成时close并返回false）。
+				// 空闲：直接发送，保持同步失败契约（sendBinary异常完成时close并返回false）。
 				// 链空闲==无在途sendBinary（所有发送都经本链），不会触发JDK单在途约束。
 				var cf = ws.sendBinary(bb, true);
 				sendChain = cf.handle((__, ex) -> {
-					sendPendingBytes.addAndGet(-length); // N3-F3：链节点完成（成败皆然）释放在途配额
+					sendPendingBytes.addAndGet(-length); // 链节点完成（成败皆然）释放在途配额
 					if (ex != null)
 						close(unwrap(ex)); // 异步完成的失败同样close
 					return null; // 链恢复正常完成，后续追加不连带失败
@@ -212,7 +215,7 @@ public class WebsocketClient extends AsyncSocket {
 				return true;
 			}
 			// 有在途sendBinary：直接调用会同步抛IllegalStateException("Send pending")并当连接级
-			// 错误误杀整条ws（第七轮60轮压测11/11的根因：登录期业务线程发rpc与派发线程应答并发）。
+			// 错误误杀整条ws（登录期业务线程发rpc与派发线程应答并发即可触发）。
 			// 按序入队（保持协议顺序）；失败经链上handle close，之后Send见webSocket==null返回false，
 			// 调用方经连接关闭路径感知（不再静默丢帧）。
 			sendChain = sendChain
@@ -221,7 +224,7 @@ public class WebsocketClient extends AsyncSocket {
 						return w != null ? w.sendBinary(bb, true) : CompletableFuture.completedFuture(null);
 					})
 					.handle((__, ex) -> {
-						sendPendingBytes.addAndGet(-length); // N3-F3：本节点完成（含ws已关的空转发）释放在途配额
+						sendPendingBytes.addAndGet(-length); // 本节点完成（含ws已关的空转发）释放在途配额
 						if (ex != null)
 							close(unwrap(ex));
 						return null;

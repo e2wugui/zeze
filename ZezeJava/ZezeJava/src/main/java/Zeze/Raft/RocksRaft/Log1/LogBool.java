@@ -6,6 +6,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * boolean 落盘日志：序列化 bool 字段的新值。
+ */
 public class LogBool extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<bool>");
 

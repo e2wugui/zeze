@@ -3,6 +3,7 @@ package Zeze.Serialize;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 二维单精度向量值类型（float x/y），按位比较相等，可比较可序列化为 vector2。 */
 public class Vector2 implements Comparable<Vector2> {
 	public static final Vector2 ZERO = new Vector2(0, 0);
 

@@ -6,6 +6,7 @@ import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 订阅信息bean：服务名、订阅过滤版本（0=全部版本）与本地附着状态。 */
 public final class BSubscribeInfo implements Serializable {
 	private @NotNull String serviceName;
 	private long version;

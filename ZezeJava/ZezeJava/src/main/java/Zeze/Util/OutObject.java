@@ -4,6 +4,7 @@ import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 对象输出参数包装（模拟 C# out 参数）
 public class OutObject<T> {
 	public T value;
 

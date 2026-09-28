@@ -1,5 +1,8 @@
 package Zeze.Hot;
 
+/**
+ * 可热更服务的生命周期接口：start/stop/upgrade 在热更流程中按序调用。
+ */
 public interface HotService {
 	void start() throws Exception;
 
@@ -20,7 +23,6 @@ public interface HotService {
 	// 用于升级有状态服务
 	void upgrade(HotService old) throws Exception;
 
-	// 当缓存了别的模块创建的数据（一般是Bean），“别的”模块更新以后，通过这个方法通知刷新要求。
-	// 由于缓存别的模块的数据的行为很复杂，所以即时定义了这个接口，可能也不是很好实现。
-	//void refresh(HotService cur) throws Exception;
+	// 当缓存了别的模块创建的数据（一般是Bean），“别的”模块更新以后，理想情况需要刷新；
+	// 由于缓存别的模块的数据的行为很复杂，暂不定义refresh接口。
 }

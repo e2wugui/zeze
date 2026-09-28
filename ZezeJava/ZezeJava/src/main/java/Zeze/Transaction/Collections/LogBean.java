@@ -11,6 +11,7 @@ import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** Bean 自身的日志：聚合各成员变量的子日志，按 variableId 索引，随事务收集向上传递。 */
 public class LogBean extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Collections.LogBean");
 
@@ -66,7 +67,6 @@ public class LogBean extends Log {
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		var vars = variables;
-		//logger.info("LogBean.this=" + getThis().getClass().getName());
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
 			for (var it = vars.iterator(); it.moveToNext(); ) {
@@ -74,7 +74,6 @@ public class LogBean extends Log {
 				bb.WriteInt4(log.getTypeId());
 				bb.WriteUInt(log.getVariableId());
 				log.encode(bb);
-				//logger.info("key=" + it.key() + " typeId=" + log.getTypeId() + " varId=" + log.getVariableId() + " name=" + log.getClass().getName());
 			}
 		} else
 			bb.WriteUInt(0);

@@ -11,7 +11,7 @@ package Zeze.Component;
  * <li>owner死亡后，接管者对每个scope在独立zeze事务内（事务内重验租约过期）调用 {@link #transferAll}：
  *     执行时租约必已过期（复活者被重验拦截），链上有数据（头指针非0）即属于死者、应搬运——
  *     不以 {@code root.loadSerialNo == deadEpoch} 作前置：claim后stamp前的崩溃窗口会留下旧stamp
- *     数据，按epoch折叠会被误判为"已被搬走"，租约照常立碑后积压永久搁浅（FND2-C0-1）；</li>
+ *     数据，按epoch折叠会被误判为"已被搬走"，租约照常立碑后积压永久搁浅；</li>
  * <li>搬运成功后由 {@link #transferAll} 自己清空死者root链指针（幂等重入出口）并把loadSerialNo
  *     清0（墓碑，供复活者认领）。</li>
  * </ul>

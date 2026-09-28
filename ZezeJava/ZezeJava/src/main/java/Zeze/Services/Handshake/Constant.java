@@ -1,5 +1,6 @@
 package Zeze.Services.Handshake;
 
+/** 握手协议的加密与压缩类型常量。 */
 public class Constant {
 	public static final int eEncryptTypeDisable = 0;
 	public static final int eEncryptTypeAes = 1;

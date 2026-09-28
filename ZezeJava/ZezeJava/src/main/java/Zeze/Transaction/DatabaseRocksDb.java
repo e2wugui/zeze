@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDBException;
 
+/** RocksDB 数据库后端：列族承载 KV 表，WAL 写入与 Operates 条件写；也用作本地镜像缓存库。 */
 public class DatabaseRocksDb extends Database {
 	private final @NotNull RocksDatabase rocksDb;
 	// 由构造参数显式指定：Application 启动时为 LocalRocksCacheDb 传入 true，其余（含 XML 配置的主库）为 false。
@@ -53,7 +54,7 @@ public class DatabaseRocksDb extends Database {
 	public void renameTable(String oldName, String newName) throws Exception {
 		// RocksDB 不支持列族重命名：把旧表数据拷贝到备份列族后再删除原列族，
 		// 对齐其他后端（MySQL RENAME TABLE / PG ALTER TABLE RENAME / Mongo renameCollection）
-		// "版本升级时备份旧表"的语义。原来的直接 drop 会销毁旧数据，升级后无任何恢复途径。
+		// "版本升级时备份旧表"的语义。不得直接 drop——会销毁旧数据，升级后无任何恢复途径。
 		var oldTable = rocksDb.getTable(oldName);
 		if (oldTable == null) // 不存在的表保持与 dropTable 相同的 no-op 行为
 			return;

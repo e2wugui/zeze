@@ -4,6 +4,7 @@ import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
+/** UnSubscribe协议：向SM退订指定服务列表。 */
 public final class UnSubscribe extends Rpc<BUnSubscribeArgument, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(UnSubscribe.class.getName()); // -1962944542
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 2332022754

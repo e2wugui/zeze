@@ -4,6 +4,9 @@ import Zeze.Netty.HttpExchange;
 import Zeze.Util.ZezeCounter;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
+/**
+ * 统计查询 servlet：输出 ZezeCounter 的过程与表指标快照。
+ */
 public class Statistics extends AbstractStatistics {
 	@SuppressWarnings("RedundantThrows")
 	@Override

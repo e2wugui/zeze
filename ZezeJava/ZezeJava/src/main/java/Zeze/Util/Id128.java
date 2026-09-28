@@ -8,6 +8,7 @@ import Zeze.Transaction.BeanKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 128 位复合 id（high+low 两个无符号 long）：BeanKey/Serializable，支持递增与比较
 public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneable {
 	public static final Id128 Zero = new Id128() {
 		@Override

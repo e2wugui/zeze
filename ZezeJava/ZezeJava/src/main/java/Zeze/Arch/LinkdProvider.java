@@ -47,13 +47,12 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	protected LinkdApp linkdApp;
 	protected ProviderDistributeVersion distributes;
-	//private int firstModuleWithConfigTypeDefault;
 
-	// 用于客户端选择Provider，只支持一种Provider。如果要支持多种，需要客户端增加参数，这个不考虑了。
+	// 用于客户端选择Provider，只支持一种Provider。如果要支持多种，需要客户端增加参数。
 	// 内部的ModuleRedirect ModuleRedirectAll Transmit都携带了ServiceNamePrefix参数，所以，
 	// 内部的Provider可以支持完全不同的solution，不过这个仅仅保留给未来扩展用，
 	// 不建议在一个项目里面使用多个Prefix。
-	// FND2-A1-4：写者ProcessAnnounceProviderInfo（provider连接EL），读者makeServiceName→choice路由
+	// 写者ProcessAnnounceProviderInfo（provider连接EL），读者makeServiceName→choice路由
 	// （客户端连接EL），两套EventLoop无同步边；无volatile时客户端EL长期读到""，查不到订阅状态，
 	// 假性"无provider"路由失败。对照ProviderSession跨线程字段全volatile。
 	private volatile @NotNull String serverServiceNamePrefix = "";
@@ -108,9 +107,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	 * @return 错误码. 0表示成功; [1,9]表示错误
 	 */
 	public int choiceProvider(@NotNull AsyncSocket link, Binary tokenBin) throws Exception {
-		// FND8-89（修FND5-26判错对象）：可空点是linkdLoad——未配置LoginQueueAgent服务节时
-		// LinkdApp不构造LinkdLoad，原先判内层loginQueueAgent（可达世界恒非空）防护是死代码，
-		// getLinkdLoad()裸解引用照旧NPE且被认证处理吞成无差别断连，掩盖配置缺失根因。
+		// 可空点是linkdLoad——未配置LoginQueueAgent服务节时LinkdApp不构造LinkdLoad，
+		// getLinkdLoad()裸解引用会NPE且被认证处理吞成无差别断连，掩盖配置缺失根因。
+		// 故判外层linkdLoad并返回独立错误码。
 		var load = linkdApp.getLinkdLoad();
 		var loginQueueAgent = load != null ? load.getLoginQueueAgent() : null;
 		if (loginQueueAgent == null) {
@@ -118,7 +117,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 					+ " (linkd config missing 'LoginQueueAgent' service node).");
 			return 4;
 		}
-		// FND8-89孪生：secret仅在连上LoginQueueServer收到AnnounceSecret后写入，冷启动/
+		// secret仅在连上LoginQueueServer收到AnnounceSecret后写入，冷启动/
 		// 重启后依赖未就绪时为null（无需任何配置错误即可达），decodeToken(null,...)在
 		// decrypt内NPE走同一断连路径——判空返回独立错误码，与"未配置"(4)区分。
 		var secret = loginQueueAgent.getSecret();
@@ -257,19 +256,18 @@ public class LinkdProvider extends AbstractLinkdProvider {
 						provider.value = sessionId;
 						break;
 					}
-					providerSocket = null; // BUG，否则如果刚好是最后一个，跳出循环后面的条件就成立了。
+					providerSocket = null; // 置空，否则如果刚好是最后一个，跳出循环后面的条件就成立了。
 				}
 			} finally {
 				providers.unlock();
 			}
-			if (providerSocket == null) // 这个条件，见上BUG。
+			if (providerSocket == null) // 循环内未找到可用provider。
 				return 72;
 		}
 
 		// 动态模块允许使用这个方法查找provider，
 		// 但是不会主动注册到linkUserSession，每次都需要重新查找。
 		// 动态模块需要主动bind/unbind。
-		// XXX
 		if (!providerModuleState.dynamic) {
 			var staticBinds = ((LinkdProviderSession)providerSocket.getUserState()).getStaticBinds();
 			linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
@@ -277,15 +275,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 							" clientVersion={}",
 					linkSession.account, staticBinds.size(), providerSocket.getRemoteAddress(),
 					false, providerModuleState.choiceType, Str.toVersionStr(clientVersion));
-		}/* else if (providerModuleState.dynamic == BModule.ConfigTypeSpecial) {
-			// special 不跟随大部队，单独bind。
-			linkSession.bind(linkdApp.linkdProviderService, link, List.of(moduleId), providerSocket);
-			logger.info("special bind: account={}, moduleId={}, provider={}, configType={}, choiceType={}," +
-							" clientVersion={}",
-					linkSession.account, moduleId, providerSocket.getRemoteAddress(),
-					providerModuleState.dynamic, providerModuleState.choiceType, Str.toVersionStr(clientVersion));
 		}
-		*/
 		return 0;
 	}
 
@@ -297,9 +287,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		// 条件删除：迟到的关闭事件不得误删同serverId的新会话注册
 		// （provider侧先发现半开连接并重连，新连接握手announce已put，旧连接的关闭回调后到）。
 		serverId2ProviderSocket.remove(providerSession.serverId, provider);
-		// providerSessions此前没有删除点：直连ip/port改配或provider缩容时条目会永久残留；同样按所有权条件删除。
+		// providerSessions同样按所有权条件删除，避免直连ip/port改配或provider缩容时条目永久残留。
 		linkdApp.linkdProviderService.providerSessions.remove(providerSession.getServerLoadName(), providerSession);
-		// 会话终结：取消其TimeCounter的每秒discard周期任务，随会话更替无界泄漏（FND7-41）。
+		// 会话终结：取消其TimeCounter的每秒discard周期任务，避免随会话更替无界泄漏。
 		providerSession.timeCounter.close();
 
 		// unbind module
@@ -347,12 +337,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			for (var e : bind.getModules().entrySet()) {
 				var moduleId = e.getKey();
 				var module = e.getValue();
-				/*
-				if (firstModuleWithConfigTypeDefault == 0 && module.getConfigType() == BModule.ConfigTypeDefault) {
-					//noinspection DataFlowIssue,ConstantValue
-					firstModuleWithConfigTypeDefault = module.getConfigType();
-				}
-				*/
 				var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 						moduleId, module.getChoiceType(), module.isDynamic());
 				var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
@@ -522,7 +506,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			length -= size;
 		}
 	}
-//	private final TaskOneByOneByKey oneByOneSender = new TaskOneByOneByKey();
 
 	@Override
 	protected long ProcessSendRequest(@NotNull Send r) throws Exception {
@@ -546,7 +529,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			bb.ReadIndex += Protocol.HEADER_SIZE;
 			AsyncSocket.log("Send", sidStr, r.Argument.getProtocolType(), bb);
 		}
-		//*
 		for (int i = 0; i < sidCount; i++) {
 			var linkSid = linkSids.get(i);
 			var socket = linkdApp.linkdService.GetSocket(linkSid);
@@ -554,7 +536,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			if (socket != null && !socket.isClosed()) {
 				// 探测协议不需要转发给客户端。
 				if (CheckLinkSession.TypeId_ != r.Argument.getProtocolType()) {
-					if (socket.Send(pdata)) // 仅发送成功时计数，对齐原TcpSocket内计数时机
+					if (socket.Send(pdata)) // 仅发送成功时计数。
 						countSendStream(pdata);
 					else
 						socket.close(sendException);
@@ -565,22 +547,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				r.Result.getErrorLinkSids().add(linkSid);
 		}
 		r.SendResult();
-		/*/
-		oneByOneSender.executeBatch(linkSids, (linkSid) -> {
-			var link = linkdApp.linkdService.GetSocket(linkSid);
-			// ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
-			if (link != null) {
-				if (!link.Send(pdata))
-					link.close();
-				if (enableDump)
-					tryDump(link, pdata);
-			} else {
-				synchronized (r) {
-					r.Result.getErrorLinkSids().add(linkSid);
-				}
-			}
-		}, r::SendResult, DispatchMode.Normal);
-		// */
 		return Procedure.Success;
 	}
 
@@ -606,7 +572,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			if (linkSession != null && linkSession.isAuthed() && !linkSession.getUserState().getContext().isEmpty() &&
 					(providerVersion == 0 ||
 							ProviderDistribute.checkAppVersion(providerVersion, linkSession.getClientAppVersion()))) {
-				if (socket.Send(pdata)) // 仅发送成功时计数，对齐原TcpSocket内计数时机
+				if (socket.Send(pdata)) // 仅发送成功时计数。
 					countSendStream(pdata);
 				if (enableDump)
 					tryDump(socket, pdata);

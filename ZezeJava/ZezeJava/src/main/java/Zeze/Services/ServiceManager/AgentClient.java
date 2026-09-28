@@ -9,6 +9,9 @@ import Zeze.Services.HandshakeClient;
 import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 服务管理器Agent的单连接网络客户端：与SM之间只保持一个握手连接，不支持事务。
+ */
 public final class AgentClient extends HandshakeClient {
 	private final Agent agent;
 	/**

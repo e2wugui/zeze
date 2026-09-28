@@ -71,7 +71,7 @@ public final class RoleOnlineSpec extends OnlineSpec {
 		var future = new TaskCompletionSource<R>();
 		rpc.setFuture(future);
 		if (!resolveOnline().sendOnlineRpc(roleId, rpc, null, timeout, quietWhenAbsent))
-			future.setException(new IllegalStateException("sendOnlineRpc fail.")); // 对齐旧 sendOnlineRpcForWait
+			future.setException(new IllegalStateException("sendOnlineRpc fail.")); // 同 sendOnlineRpcForWait 形态
 		return future;
 	}
 

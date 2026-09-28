@@ -5,6 +5,9 @@ import Zeze.Util.Action0;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * 热更文件事务：登记 commit/rollback 动作，安装成功后执行清理，失败时逆序回滚（best-effort）。
+ */
 public class HotTransaction {
 	private static final Logger logger = LogManager.getLogger(HotTransaction.class);
 	private final String name;

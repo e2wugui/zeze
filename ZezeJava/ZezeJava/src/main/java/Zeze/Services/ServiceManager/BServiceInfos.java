@@ -9,6 +9,10 @@ import Zeze.Util.FewModifyList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 同一服务的按identity排序地址列表：数字identity按数值比较（'@'/'#'前缀走字符串比较），
+ * 支持二叉查找插入/删除。
+ */
 public final class BServiceInfos implements Serializable {
 	public static final Comparator<BServiceInfo> comparer = (si1, si2) -> {
 		var id1 = si1.getServiceIdentity();

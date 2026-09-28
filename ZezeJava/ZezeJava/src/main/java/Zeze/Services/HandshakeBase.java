@@ -29,6 +29,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 连接加密握手基类：实现DH/RSA密钥交换与压缩协商协议族（CHandshake/SHandshake0/SHandshake/
+ * CHandshakeDone/KeepAlive），握手完成以OnHandshakeDone回调；子类选择承担服务端/客户端角色。
+ */
 public class HandshakeBase extends Service {
 	private static final @NotNull Logger logger = LogManager.getLogger(HandshakeBase.class);
 
@@ -61,7 +65,7 @@ public class HandshakeBase extends Service {
 	/**
 	 * 连接数上限检查。
 	 * 覆写 OnSocketAccept 的握手服务子类（HandshakeServer/HandshakeBoth/TokenServer 等）不再走
-	 * Service.OnSocketAccept 的默认实现，会丢失其中的 maxConnections 检查（FND-S3-2）；
+	 * Service.OnSocketAccept 的默认实现，会丢失其中的 maxConnections 检查；
 	 * 这些覆写点必须在第一行调用本方法恢复强制。超限时抛出 IllegalStateException，
 	 * 由 accept 流程（TcpSocket 构造的 catch）关闭新连接。
 	 */
@@ -80,7 +84,7 @@ public class HandshakeBase extends Service {
 	private void checkAesSecureIp() {
 		var options = getConfig().getHandshakeOptions();
 		if (options.getEncryptType() == Constant.eEncryptTypeAes && options.getSecureIp() == null) {
-			// FND6-32：仅服务角色（HandshakeServer/HandshakeBoth）告警。客户端侧密钥派生从不
+			// 仅服务角色（HandshakeServer/HandshakeBoth）告警。客户端侧密钥派生从不
 			// 读SecureIp（全仓唯一读取点就是本告警），纯客户端角色（HandshakeClient）启动即
 			// WARN属必然误报——协商值由服务器决定，服务器配SecureIp/直连时客户端完全正常。
 			// serverRole构造期确定（仅服务角色构造器注册CHandshake工厂），无懒注册时序漏判。
@@ -181,7 +185,7 @@ public class HandshakeBase extends Service {
 				throw new IllegalStateException("re-handshake on secured connection");
 
 			// 协商一致性检查：客户端上报的加密类型必须与服务器配置（即SHandshake0发出的推荐值）一致，
-			// 否则握手可能已被篡改（如RsaAes被降级成匿名DH），拒绝（FND-S3-1 部分缓解）。
+			// 否则握手可能已被篡改（如RsaAes被降级成匿名DH），拒绝。
 			if (p.Argument.encryptType != getConfig().getHandshakeOptions().getEncryptType())
 				throw new IllegalStateException("encryptType mismatch: " + p.Argument.encryptType
 						+ " expect " + getConfig().getHandshakeOptions().getEncryptType());
@@ -193,13 +197,6 @@ public class HandshakeBase extends Service {
 			switch (p.Argument.encryptType) {
 			case Constant.eEncryptTypeAes: {
 				// 当group采用客户端参数时需要检查参数正确性，现在统一采用了1，不需要检查了。
-				/*
-				if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
-					p.getSender().close(new UnsupportedOperationException("dhGroup Not Supported"));
-					return 0L;
-				}
-				*/
-
 				BigInteger data = new BigInteger(p.Argument.encryptParam);
 				BigInteger rand = Helper.makeDHRandom();
 				byte[] material = Helper.computeDHKey(group, data, rand).toByteArray();
@@ -254,7 +251,6 @@ public class HandshakeBase extends Service {
 			// 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
 			// 这个本质上是协议相关的问题：就是前面一个协议的处理结果影响后面数据处理。
 			// 所以增加CHandshakeDone协议，在Client进入加密以后发送给Server。
-			// OnHandshakeDone(p.Sender);
 
 			return 0L;
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
@@ -270,12 +266,12 @@ public class HandshakeBase extends Service {
 			if (p.getSender() instanceof TcpSocket tcp && tcp.isSecurity())
 				throw new IllegalStateException("re-handshake on secured connection");
 
-			// 复审R2（FND7-S2②）+R3收窄：服务端推荐的加密类型为Disable（明文）而客户端自身配置了
+			// 服务端推荐的加密类型为Disable（明文）而客户端自身配置了
 			// 加密诉求（EncryptType!=Disable）时不得静默接受——否则"客户端要求加密"的配置被无声降级
 			// 为明文会话。检查必须在分支之前：仅压缩推荐（encryptType=Disable+compress非Disable）也走
 			// startHandshake路径，客户端只会回显服务端推荐（startHandshake不读自身EncryptType），
-			// 降级照样发生且原全Disable分支的检查永远不触发。镜像服务端processCHandshake的回显一致性
-			// 校验（FND-S3-1：服务端拒绝encryptType不一致的CHandshake）：客户端拒绝被降级的推荐，
+			// 降级照样发生且全Disable分支的检查永远不触发。镜像服务端processCHandshake的回显一致性
+			// 校验（服务端拒绝encryptType不一致的CHandshake）：客户端拒绝被降级的推荐，
 			// 断连给出显式配置错误。
 			if (p.Argument.encryptType == Constant.eEncryptTypeDisable
 					&& getConfig().getHandshakeOptions().getEncryptType() != Constant.eEncryptTypeDisable)
@@ -301,7 +297,7 @@ public class HandshakeBase extends Service {
 		try {
 			ctx = dhContext.remove(p.getSender().getSessionId());
 			if (ctx != null) {
-				// 协商一致性检查：SHandshake回显的加密类型必须与CHandshake请求的一致，否则握手可能已被篡改，拒绝（FND-S3-1 部分缓解）。
+				// 协商一致性检查：SHandshake回显的加密类型必须与CHandshake请求的一致，否则握手可能已被篡改，拒绝。
 				if (p.Argument.encryptType != ctx.encryptType)
 					throw new IllegalStateException("encryptType mismatch: " + p.Argument.encryptType
 							+ " expect " + ctx.encryptType);

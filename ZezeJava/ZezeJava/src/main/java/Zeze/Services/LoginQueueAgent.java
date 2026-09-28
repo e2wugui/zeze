@@ -8,6 +8,10 @@ import Zeze.Builtin.Provider.BLoad;
 import Zeze.Config;
 import Zeze.Net.Service;
 
+/**
+ * 登录队列客户端Agent（服务端侧）：provider/linkd连接LoginQueueServer，
+ * 接收secret并周期上报自身负载。
+ */
 public class LoginQueueAgent extends AbstractLoginQueueAgent {
 	/**
 	 * Connector service. 连接LoginQueueServer.

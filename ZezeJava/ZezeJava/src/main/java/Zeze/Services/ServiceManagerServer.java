@@ -83,7 +83,7 @@ import static Zeze.Util.Args.requireValue;
  * 然后开启新的一轮NotifyServiceList，等待时间内没有再次注册的gs以后当作新的处理。
  * b) 启用raft的好处是raft的非master服务器会识别这种状态，并重定向请求到master，使得系统内只有一个master启用服务。
  * 实际上raft不需要维护相同数据状态（gs-list），从空的开始即可，启用raft的话仅使用他的选举功能。
- * #) 由于ServiceManager可以较快恢复，暂时不考虑使用Raft，实现无聊了再来加这个吧
+ * #) Raft版实现见ServiceManagerWithRaft（main -raft启动）。
  * 5. ServiceManager开启一轮变更通告过程中，有新的gs启动停止，将开启新的通告(NotifyServiceList)。
  * ReadyServiceList时会检查ready中的列表是否和当前ServiceManagerList一致，不一致直接忽略。
  * 新的通告流程会促使linkd继续发送ready。
@@ -91,9 +91,8 @@ import static Zeze.Util.Args.requireValue;
  * 原则是：总按最新的gs-list通告。中间不一致的ready全部忽略。
  */
 public final class ServiceManagerServer extends ReentrantLock implements Closeable {
-	// FND4-64：原static块仅类加载即重置全JVM root logger级别（未设logLevel属性时也强制INFO），
-	// 测试/工具/同JVM引用只要碰到该类就静默破坏宿主日志配置。改为显式启动动作（构造器调用），
-	// 且仅当显式指定logLevel属性才动配置。WithRaft版同源调用。
+	// 显式启动动作（构造器调用），仅当显式指定logLevel属性才重置root logger级别——
+	// 不在类加载时静默篡改全JVM日志配置（测试/工具/同JVM引用会受影响）。WithRaft版同源调用。
 	static void applyLogLevelProperty() {
 		var levelProperty = System.getProperty("logLevel");
 		if (levelProperty != null)
@@ -138,7 +137,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					try {
 						if (set.Send(serviceManager.server.GetSocket(observer)))
 							continue;
-					} catch (Throwable ignored) { // ignored
+					} catch (Throwable ignored) {
 					}
 					if (removed == null)
 						removed = new LongList();
@@ -151,8 +150,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		// FND4-66：会话关闭联动剔除该会话登记的观察者（原来仅setLoad转发失败时惰性剔除，
-		// 死观察者滞留到该地址下一次上报）。返回是否已空（地址行随之回收）。
+		// 会话关闭联动剔除该会话登记的观察者（仅靠setLoad转发失败的惰性剔除，
+		// 死观察者会滞留到该地址下一次上报）。返回是否已空（地址行随之回收）。
 		public boolean removeObserver(long sessionId) {
 			lock();
 			try {
@@ -252,8 +251,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 			serviceInfos.computeIfAbsent(info.getVersion(), __ -> new HashMap<>()).put(info.getServiceIdentity(), info);
 			collectNotify(info, true, result);
-			// 新注册实例同样要为现有订阅者登记负载观察者（FND-S1-8）：addLoadObserver此前只在
-			// 订阅时登记，观察者集合是订阅时刻的快照——订阅之后注册的实例，其负载上报永不
+			// 新注册实例同样要为现有订阅者登记负载观察者：addLoadObserver若只在订阅时
+			// 登记，观察者集合是订阅时刻的快照——订阅之后注册的实例，其负载上报永不
 			// 转发给订阅者（权重缺失直到重连重订阅）。simple的key即订阅者sessionId。
 			// 本方法与simple的修改都在editLock内，迭代安全。
 			for (var it = simple.iterator(); it.moveToNext(); )
@@ -305,10 +304,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 						if (s == null)
 							return; // 会话已关闭/已被清理，KeepAlive 无事可做
 						var r = new KeepAlive();
-						// 异步等待应答（FND-S1-10）：SendAndWaitCheckResultCode在调度池线程上同步阻塞
+						// 异步等待应答：SendAndWaitCheckResultCode在调度池线程上同步阻塞
 						// 等待，半开连接（无FIN）堆积时每个KeepAlive各占一个rpc超时时长，数百会话
 						// 即可耗尽调度池，拖停同JVM全部周期任务（含死会话检测本身，恶性循环）。
-						// 改为回调判活：超时/失败码在回调中关闭连接触发重连——对端假死检测语义
+						// 回调判活：超时/失败码在回调中关闭连接触发重连——对端假死检测语义
 						// 不变（只发不等同样测不出假死），调度线程不再被占用。
 						final var sock = s;
 						if (!r.Send(s, response -> {
@@ -335,7 +334,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			if (keepAliveTimerTask != null)
 				keepAliveTimerTask.cancel(false);
 
-			// Suspect广播：立即、不延迟、不挑选、不取SM锁（避开旧双锁序）。仅是提示，
+			// Suspect广播：立即、不延迟、不挑选、不取SM锁（避免锁序问题）。仅是提示，
 			// 由租约表裁决：未过期租约会被接收方安排到过期时刻精确重试。
 			var suspectServerId = identifyServerId;
 			if (suspectServerId >= 0) {
@@ -386,8 +385,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			loads.computeIfAbsent(ip + "_" + port, __ -> new LoadObservers(this)).addObserver(sessionId);
 	}
 
-	// FND4-66：会话关闭联动清理该会话登记的全部负载观察者；地址行在观察者清空时移除——
-	// 原来仅转发失败惰性剔除，服务下线后该地址再无上报则观察者集合与地址行永久残留。
+	// 会话关闭联动清理该会话登记的全部负载观察者；地址行在观察者清空时移除——
+	// 仅靠转发失败惰性剔除，服务下线后该地址再无上报则观察者集合与地址行永久残留。
 	private void removeLoadObservers(long sessionId) {
 		// 死地址回收
 		loads.entrySet().removeIf(entry -> entry.getValue().removeObserver(sessionId));
@@ -395,7 +394,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	private final ReentrantLock editLock = new ReentrantLock(); // 整个edit使用一把锁。不并发了。
 
-	// FND5-29：Critical协议经oneByOne池执行，可能晚于OnSocketClose的会话清理到达（注册报文
+	// Critical协议经oneByOne池执行，可能晚于OnSocketClose的会话清理到达（注册报文
 	// 与RST几乎同时到达是常态）。判活必须在editLock内调用：NetServer.OnSocketClose先从
 	// socketMap摘除再清理（清理持editLock），故锁内GetSocket==sender⟹摘除未发生⟹清理未开始，
 	// 本次处理的写入会被随后的清理收走；GetSocket!=sender⟹会话已死，拒绝即不产生死会话残留。
@@ -432,7 +431,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	// extraInfo 256B（合法形态最坏值余量充分）；
 	// 每请求批 128；
 	// 每会话 registers/subscribes 各 64（合法基数实证 1~3，防一条消息占满全局名额锁死合法订阅）；
-	// 全局唯一 serviceName 1024（复用判例常量）满员时逐出空壳行自愈（内容可由重发恢复）。
+	// 全局唯一 serviceName 1024（复用Id128UdpServer.MAX_UNIQUE_NAMES）满员时逐出空壳行自愈（内容可由重发恢复）。
 	private static final int SVC_NAME_MAX_BYTES = 128;
 	private static final int SVC_IDENTITY_MAX_BYTES = 128;
 	private static final int SVC_IP_MAX_BYTES = 64;
@@ -444,7 +443,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return s != null && s.getBytes(StandardCharsets.UTF_8).length > maxBytes;
 	}
 
-	// 拒绝告警限频（判例Id128UdpServer.warnRejected同形态，60秒一条防日志刷屏DoS）。
+	// 拒绝告警限频（同Id128UdpServer.warnRejected，60秒一条防日志刷屏DoS）。
 	private volatile long lastSvcRejectLogMs;
 
 	private void warnSvcRejected(@NotNull String reason) {
@@ -482,7 +481,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		for (var info : add) {
 			if (!isLegalServiceIdentity(info.getServiceIdentity()))
 				return Procedure.ErrorRequestId;
-			// svc-01：字段长度上限（identity非'@'/'#'通道已被isLegalServiceIdentity数字化封顶）。
+				// 字段长度上限（identity非'@'/'#'通道已被isLegalServiceIdentity数字化封顶）。
 			if (isOverUtf8Bytes(info.getServiceName(), SVC_NAME_MAX_BYTES) ||
 				isOverUtf8Bytes(info.getServiceIdentity(), SVC_IDENTITY_MAX_BYTES) ||
 				isOverUtf8Bytes(info.getPassiveIp(), SVC_IP_MAX_BYTES) ||
@@ -499,11 +498,11 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		// 原子的完成所有编辑的修改和通知。
 		editLock.lock();
 		try {
-			if (!isSenderAlive(r.getSender())) { // FND5-29：迟到协议，会话已清理——拒绝防死注册复活
+			if (!isSenderAlive(r.getSender())) { // 迟到协议，会话已清理——拒绝防死注册复活
 				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
 				return Procedure.Success;
 			}
-			// svc-01：每会话注册数上限（contains判定覆盖式重注册不占新名额）。
+				// 每会话注册数上限（contains判定覆盖式重注册不占新名额）。
 			for (var reg : add) {
 				if (session.registers.size() >= SVC_PER_SESSION_MAX && !session.registers.contains(reg)) {
 					warnSvcRejected("session registers exceeded " + SVC_PER_SESSION_MAX);
@@ -540,7 +539,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 						reg.getPassiveIp(), reg.getPassivePort());
 				}
 				session.registers.add(reg);
-				// svc-01：全局唯一名满员时空壳逐出自愈（无空壳可逐才拒绝——非raft行是
+				// 全局唯一名满员时空壳逐出自愈（无空壳可逐才拒绝——非raft行是
 				// 内存态，攻击壳（注册后即注销）与本轮目标名都被排除在逐出候选外）。
 				if (!serviceStates.containsKey(reg.getServiceName())
 					&& serviceStates.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
@@ -584,11 +583,11 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		editLock.lock();
 		try {
-			if (!isSenderAlive(r.getSender())) { // FND5-29：迟到协议，会话已清理——拒绝防死订阅残留
+			if (!isSenderAlive(r.getSender())) { // 迟到协议，会话已清理——拒绝防死订阅残留
 				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
 				return Procedure.Success;
 			}
-			// svc-01：每会话订阅数上限+全局唯一名满员空壳逐出（对齐Edit面）。
+			// 每会话订阅数上限+全局唯一名满员空壳逐出（对齐Edit面）。
 			for (var sub : r.Argument.subs) {
 				if (session.subscribes.size() >= SVC_PER_SESSION_MAX && !session.subscribes.containsKey(sub.getServiceName())) {
 					warnSvcRejected("session subscribes exceeded " + SVC_PER_SESSION_MAX);
@@ -627,7 +626,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 		editLock.lock();
 		try {
-			if (!isSenderAlive(r.getSender())) { // FND5-29：迟到协议，会话已清理——拒绝防死退订写脏状态
+			if (!isSenderAlive(r.getSender())) { // 迟到协议，会话已清理——拒绝防死退订写脏状态
 				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
 				return Procedure.Success;
 			}
@@ -643,8 +642,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	private long processSetLoad(@NotNull SetServerLoad setServerLoad) {
-		// svc-01：loads键（name）客户端可控——长度校验（空行自愈已有：removeLoadObservers
-		// 在任意会话关闭时按isEmpty扫除，FND4-66）。
+		// loads键（name）客户端可控——长度校验（空行自愈已有：removeLoadObservers
+		// 在任意会话关闭时按isEmpty扫除）。
 		if (isOverUtf8Bytes(setServerLoad.Argument.getName(), SVC_NAME_MAX_BYTES)
 			|| isOverUtf8Bytes(setServerLoad.Argument.ip, SVC_IP_MAX_BYTES)) {
 			warnSvcRejected("setLoad field over size");
@@ -652,7 +651,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 		editLock.lock();
 		try {
-			// FND5-29：迟到的SetLoad会为死会话重建零观察者地址行（绕过FND4-66联动清理）；
+			// 迟到的SetLoad会为死会话重建零观察者地址行（绕过会话联动清理）；
 			// 判活与removeLoadObservers（onClose，editLock内）串行。SetServerLoad非Rpc，
 			// 死连接本就收不到应答，拒绝即静默丢弃。
 			if (!isSenderAlive(setServerLoad.getSender()))
@@ -696,7 +695,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 								@NotNull Config config,
 								@NotNull String autokeys) throws Exception {
 		ZezeCounter.tryInit();
-		applyLogLevelProperty(); // FND4-64：显式启动动作（仅显式指定logLevel属性才动配置）
+		applyLogLevelProperty(); // 显式启动动作（仅显式指定logLevel属性才动配置）
 		config.parseCustomize(this.conf);
 
 		server = new NetServer(this, config);
@@ -751,10 +750,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		// svc-01（FND15）：分配全程持锁（调用前提：已lock且通过"持锁且在册"复核，见
-		// processAllocateId）。原无锁CAS快路径与满员逐出（evictIdleAutoKey的tryLock）
-		// 不相容：CAS推进不持锁，逐出可越过在途分配移除条目，重建后current从持久max
-		// 前移，与孤儿AutoKey的越界慢路径交付重叠重号。持锁后读-推进线性化，CAS循环不再需要。
+		// 分配全程持锁（调用前提：已lock且通过"持锁且在册"复核，见processAllocateId）：
+		// 无锁CAS快路径与满员逐出（evictIdleAutoKey的tryLock）不相容——CAS推进不持锁，
+		// 逐出可越过在途分配移除条目，重建后current从持久max前移，与孤儿AutoKey的越界
+		// 慢路径交付重叠重号。持锁后读-推进线性化，CAS循环不再需要。
 		public void allocateLocked(@NotNull AllocateId rpc, int count) {
 			var c = current.get();
 			if (c + count > max) {
@@ -777,7 +776,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private long processAllocateId(@NotNull AllocateId r) {
 		var name = r.Argument.getName();
 		var count = r.Argument.getCount();
-		// 入口校验（svc-01，判例移植自同端口UDP面Id128UdpServer/FND6-28）：该TCP端口
+		// 入口校验（同端口UDP面Id128UdpServer同口径）：该TCP端口
 		// 同样无认证（四种EncryptType均密钥协商，默认Disable明文帧直达），name/count
 		// 均对端可控。count<=0或超上限会巨幅烧号洞（慢路径count*10抬水位）；超长name
 		// 无界驻留CHM与RocksDB。非法返回错误码（诚实客户端按失败重试）。
@@ -793,7 +792,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 		// 唯一名满员：逐出一个闲置条目自愈（RocksDB高水位行保留，重建安全，见
 		// evictIdleAutoKey）；全部条目持锁（病态并发）时拒绝。竞态窗口内可能略超
-		// 上限（多线程同时computeIfAbsent），有界即可（判例同口径）。
+		// 上限（多线程同时computeIfAbsent），有界即可。
 		if (!autoKeys.containsKey(name) && autoKeys.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
 			&& !evictIdleAutoKey()) {
 			warnAllocateIdRejected("unique names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
@@ -817,9 +816,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return 0;
 	}
 
-	// svc-01：满员自愈。逐出未持锁的闲置条目腾出槽位；RocksDB高水位行保留，重建
+	// 满员自愈。逐出未持锁的闲置条目腾出槽位；RocksDB高水位行保留，重建
 	// （computeIfAbsent）时current向前重置到持久max——在途已分配区间烧成号洞而不
-	// 重发，与进程重启加载同一损失类别（判例Id128UdpServer.evictIdleContext同论证）。
+	// 重发，与进程重启加载同一损失类别（同Id128UdpServer.evictIdleContext的论证）。
 	// 在途分配持锁不可逐出；全部持锁（病态并发）时失败。
 	private boolean evictIdleAutoKey() {
 		for (var e : autoKeys.entrySet()) {
@@ -836,7 +835,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return false;
 	}
 
-	// 拒绝告警限频（判例Id128UdpServer.warnRejected同形态）：无认证端口上高频非法
+	// 拒绝告警限频（同Id128UdpServer.warnRejected）：无认证端口上高频非法
 	// 请求按包记日志可耗尽日志盘/CPU（日志刷屏DoS），60秒一条。
 	private volatile long lastAllocateIdRejectLogMs;
 
@@ -886,7 +885,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		@Override
 		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
 			logger.info("OnSocketClose: {} sessionId={}", so, so.getSessionId());
-			// FND5-29：先经基类从socketMap摘除，再做会话清理——摘除成为关闭的第一可见步骤，
+			// 先经基类从socketMap摘除，再做会话清理——摘除成为关闭的第一可见步骤，
 			// process*的锁内判活（isSenderAlive）才有全序：判活通过⟹清理尚未开始（本次处理
 			// 的写入随后会被清理收走）；判活失败⟹拒绝，死会话状态不会复活。
 			super.OnSocketClose(so, e);
@@ -943,7 +942,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				break;
 			case "-threads":
 				i++;
-				// ThreadPool.SetMinThreads(int.Parse(args[i]), completionPortThreads);
 				break;
 			case "-autokeys":
 				autokeys = requireValue(args, ++i, "-autokeys");

@@ -38,6 +38,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Raft 客户端 Agent：维护到 Leader 的连接与 LeaderIs 跟踪、唯一请求发号、pending rpc 的
+ * 周期重发与超时闭环；可选经 ProxyAgent 走共享代理连接。
+ */
 public final class Agent {
 	private static final Logger logger = LogManager.getLogger(Agent.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
@@ -54,7 +58,7 @@ public final class Agent {
 	private NetClient client;
 	private volatile ConnectorProxy leader;
 	private final ConcurrentHashMapOrdered<Long, RaftRpc<?, ?>> pending = new ConcurrentHashMapOrdered<>();
-	private volatile long term; // 写在mutex内（原子性不变）；volatile保证getTerm()锁外读的可见性（FND4-29）
+	private volatile long term; // 写在mutex内（原子性不变）；volatile保证getTerm()锁外读的可见性
 	/**
 	 * 入站协议默认投入内部线程池执行（防业务handler阻塞IO线程）。
 	 * 显式注册DispatchMode.Direct的协议不受本flag影响——Direct优先于池化，
@@ -63,7 +67,7 @@ public final class Agent {
 	public boolean dispatchProtocolToInternalThreadPool;
 	private volatile int pendingLimit = -1; // -1 no limit // 实际上没有进行线程保护。
 	private Future<?> resendTask;
-	// 【R1-2残留缺口】一次性联动校验告警标志，see checkResendWindow。
+	// 一次性联动校验告警标志，see checkResendWindow。
 	private final AtomicBoolean warnedResendNeverTrigger = new AtomicBoolean();
 
 	private Action1<Agent> onSetLeader;
@@ -284,8 +288,8 @@ public final class Agent {
 
 			// 尽力到底：任何单点失败都不得阻止其余清理与pending future完成——
 			// client.stop()单独兜底（失败记日志后继续），随后无论如何置空client（幂等早退
-			// 依赖它）、清leader、摘除proxy注册、触发pending future。原实现client.stop()抛出
-			// 时后面全部跳过且client不置空：挂起rpc永久挂起、重试路径不一致。
+			// 依赖它）、清leader、摘除proxy注册、触发pending future。不兜底时client.stop()
+			// 抛出会让后面全部跳过且client不置空：挂起rpc永久挂起、重试路径不一致。
 			try {
 				client.stop();
 			} catch (Throwable e) { // logger.error
@@ -303,8 +307,8 @@ public final class Agent {
 
 			leader = null;
 
-			// 先原子摘除再触发（对齐cancelPending，FND4-28）：原"迭代触发后clear"期间，IO线程
-			// 收到真实应答时pending.remove仍成功——用户handle以Timeout与真实结果各执行一次
+			// 先原子摘除再触发（对齐cancelPending）：边迭代边触发后再clear的写法下，IO线程收到
+			// 真实应答时pending.remove仍会成功——用户handle以Timeout与真实结果各执行一次
 			// （send回调路径无CAS保护；sendForWait路径由TaskCompletionSource.setResult兜住）。
 			var removed = new ArrayList<RaftRpc<?, ?>>();
 			for (var rpc : pending) {
@@ -405,7 +409,7 @@ public final class Agent {
 		if (this.client.getConfig().connectorCount() != 0)
 			throw new IllegalStateException("Connector Found!");
 
-		// 【FND8-38】配置级一次性告警：未显式设超时的rpc走Rpc构造默认5000ms，门槛<=间隔时
+		// 配置级一次性告警：未显式设超时的rpc走Rpc构造默认5000ms，门槛<=间隔时
 		// 判死先于首次重发成立（间隔已per-rpc收紧，此处仅提示重发节奏显著变密的部署形态）。
 		if (raftConf.getAppendEntriesTimeout() >= 5000)
 			logger.warn("AppendEntriesTimeout({}ms) >= Rpc default timeout(5000ms):"
@@ -436,7 +440,6 @@ public final class Agent {
 				StartServerConnector::new, null, TransactionLevel.None, DispatchMode.Normal));
 		this.client.AddFactoryHandle(StopServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
 				StopServerConnector::new, null, TransactionLevel.None, DispatchMode.Normal));
-		// ugly
 		resendTask = TaskSpec.ofAction(this::resend).schedulePeriodNow(1000, 1000);
 	}
 
@@ -487,9 +490,8 @@ public final class Agent {
 		} else {
 			// 代理隧道解码的rpc无sender（ProxyAgent.send静态decode不关联socket）：判空后跳过自指检查，仍走直连回落。
 			if (r.getSender() != null && !r.Argument.isLeader() && r.Argument.getLeaderId().equals(r.getSender().getConnector().getName())) {
-				// 【错误处理】用来观察。
 				logger.warn("New Leader Is Not A Leader.");
-				// 发送者不是Leader，但它的发送的LeaderId又是自己，【尝试选择另外一个Node】。
+				// 发送者不是Leader，但它发送的LeaderId又是自己，尝试选择另外一个Node。
 				node = getRandomConnector(node);
 			}
 		}
@@ -505,13 +507,13 @@ public final class Agent {
 		resend(false);
 	}
 
-	// 【R1-2残留缺口→FND8-38修复】重发间隔取 min(AppendEntriesTimeout, rpc判死门槛-扫描周期)：
-	// 原固定间隔=AppendEntriesTimeout（sendTime基准）与判死门槛=rpc.getTimeout()
-	// （createTime基准，判死分支在前）双基准竞速，显式超时<=AppendEntriesTimeout时判死
-	// 先于首次重发成立，重发永不触发，(clientId,requestId)去重闭环失效（应答丢失后无法
-	// 按同号取回结果）。per-rpc间隔保证门槛大于1s扫描周期的rpc在判死前至少经历一次同号
-	// 重发；判死门槛与时延不变（快速失败契约不动）；t<=扫描周期的rpc受tick粒度限制无法
-	// 保证。setTimeout(0)时判死门槛为AgentTimeout=AppendEntriesTimeout+2000，恒安全。
+	// 重发间隔取 min(AppendEntriesTimeout, rpc判死门槛-扫描周期)：固定间隔=AppendEntriesTimeout
+	// （sendTime基准）与判死门槛=rpc.getTimeout()（createTime基准，判死分支在前）双基准竞速，
+	// 显式超时<=AppendEntriesTimeout时判死先于首次重发成立，重发永不触发，(clientId,requestId)
+	// 去重闭环失效（应答丢失后无法按同号取回结果）。per-rpc间隔保证门槛大于1s扫描周期的rpc在
+	// 判死前至少经历一次同号重发；判死门槛与时延不变（快速失败契约不动）；t<=扫描周期的rpc受
+	// tick粒度限制无法保证。setTimeout(0)时判死门槛为AgentTimeout=AppendEntriesTimeout+2000，
+	// 恒安全。
 	private static final int resendScanPeriodMs = 1000; // 与resendTask的schedulePeriodNow(1000,1000)一致
 
 	// per-rpc重发间隔：判死门槛大于扫描周期的rpc保证判死前至少经历一次重发所需的最大间隔。
@@ -554,15 +556,15 @@ public final class Agent {
 		var leaderSocket = leader != null ? leader.getConnector().TryGetReadySocket() : null;
 		ArrayList<RaftRpc<?, ?>> removed = null;
 		long now = System.currentTimeMillis();
-		// 【FND-R1-2】重发间隔必须小于 rpc 判死门槛（rpc.getTimeout()：Rpc 构造默认 5000ms；
-		// setTimeout(0) 时为 AgentTimeout=AppendEntriesTimeout+2000）。原来取 *3（默认6000ms）
-		// 大于全部常见 rpc 超时：判死分支（以 createTime 为基准）先于重发成立，
+		// 重发间隔必须小于 rpc 判死门槛（rpc.getTimeout()：Rpc 构造默认 5000ms；
+		// setTimeout(0) 时为 AgentTimeout=AppendEntriesTimeout+2000）。固定取 *3（默认6000ms）
+		// 会大于全部常见 rpc 超时：判死分支（以 createTime 为基准）先于重发成立，
 		// 默认配置下重发永不触发，请求超时即报 RpcTimeoutException，上层只能用新
 		// requestId 重试，服务器去重失效。单次发送 AppendEntriesTimeout 无应答即可判定
 		// 该次发送无法完成（leader 切换/未 ready/分区），与配置注释"发送失败重试超时"一致；
-		// 服务器按 UniqueRequestId 去重，重发幂等。
-		// 【FND8-38】固定间隔对显式超时<=门槛-扫描周期的rpc仍判死先于首次重发（双基准竞速），
-		// per-rpc取 min(间隔, 门槛-扫描周期)，见 checkResendWindow 注释。
+		// 服务器按 UniqueRequestId 去重，重发幂等。固定间隔对显式超时<=门槛-扫描周期的rpc
+		// 仍判死先于首次重发（双基准竞速），per-rpc取 min(间隔, 门槛-扫描周期)，
+		// 见 checkResendWindow 注释。
 		long timeout = raftConfig.getAppendEntriesTimeout();
 		for (var rpc : pending) {
 			if (rpc.getTimeout() > 0 && now - rpc.getCreateTime() > rpc.getTimeout()) {
@@ -603,10 +605,11 @@ public final class Agent {
 			if (null == r)
 				continue;
 			r.setIsTimeout(true);
-			// 【FND3-38】超时/取消在源头置错误码，与 Rpc.schedule 超时路径（显式 setResultCode(Timeout)）
-			// 一致；原来只 setIsTimeout(true)，handle 分支的调用方若只读 resultCode（如 raft 版
-			// ServiceManager 的订阅/发号回调）会把最终超时误判为成功。future 分支本就走异常，语义不变。
-			// 客户端 rpc 不走 tryMarkSendResultDone 终态守卫（那条约定属于应答侧），此处只写码不发送应答。
+			// 超时/取消在源头置错误码，与 Rpc.schedule 超时路径（显式 setResultCode(Timeout)）
+			// 一致；只 setIsTimeout(true) 时，handle 分支的调用方若只读 resultCode（如 raft 版
+			// ServiceManager 的订阅/发号回调）会把最终超时误判为成功。future 分支本就走异常，
+			// 语义不变。客户端 rpc 不走 tryMarkSendResultDone 终态守卫（那条约定属于应答侧），
+			// 此处只写码不发送应答。
 			r.setResultCode(Procedure.Timeout);
 			if (null != r.future) {
 				r.future.setException(new RpcTimeoutException(reason));
@@ -731,8 +734,8 @@ public final class Agent {
 			// 固定Agent名：pal文件恒为waitForLeader,<serverId>.zeze.pal一个，不随调用/重启积累。
 			var agent = new Agent("waitForLeader", raftConfig);
 			agent.setUniqueClientId(waitForLeaderClientId);
-			// 【FND-R1-3】创建即回填out：调用方（driveOutNotSuggestMajorityLeader）需要agent
-			// 查询活跃建议多数派连接并继续等待后续leader。回填与等待结果无关。
+				// 创建即回填out：调用方（driveOutNotSuggestMajorityLeader）需要agent
+				// 查询活跃建议多数派连接并继续等待后续leader。回填与等待结果无关。
 			if (out != null)
 				out.value = agent;
 			try {
@@ -759,7 +762,7 @@ public final class Agent {
 				}
 				return future.get(timeoutMs, TimeUnit.MILLISECONDS); // 这里使用用户超时，需要确保超时大于选举需要的时间。
 			} finally {
-				// 【FND-R1-3】out非null时agent生命周期移交调用方：
+				// out非null时agent生命周期移交调用方：
 				// stop()会回收client，回填出去的将是无法查询连接状态的失效agent。
 				if (out == null)
 					agent.stop();
@@ -841,9 +844,9 @@ public final class Agent {
 			return ex.toString();
 		} finally {
 			// 重启所有停掉的节点；
-			// 【R1-F1】单个节点重启失败（socket为null时SendForWait抛"Send Fail."、rpc超时等await异常）
-			// 只记日志继续下一个：循环体抛出会中断剩余节点的重启，且跳过循环后同层的agent释放
-			// （FND-R1-3），方法契约从返回错误串劣化为抛异常。
+			// 单个节点重启失败（socket为null时SendForWait抛"Send Fail."、rpc超时等await异常）
+			// 只记日志继续下一个：循环体抛出会中断剩余节点的重启，且跳过循环后同层的agent释放，
+			// 方法契约从返回错误串劣化为抛异常。
 			for (var stopped : stoppeds) {
 				try {
 					var startServer = new StartServerConnector();
@@ -855,7 +858,7 @@ public final class Agent {
 					logger.error("start server for {} error", stopped.getName(), e);
 				}
 			}
-			// 【FND-R1-3】out模式下agent生命周期归本方法，用完释放（含"no leader."等提前返回路径）。
+			// out模式下agent生命周期归本方法，用完释放（含"no leader."等提前返回路径）。
 			if (agentOut.value != null) {
 				try {
 					agentOut.value.stop();

@@ -16,6 +16,7 @@ import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
+/** 标量类型的编解码工厂：按 Class 查表或反射创建 encoder/decoder/CodecFuncs。 */
 public final class SerializeHelper {
 	public interface ObjectIntFunction<T, R> {
 		R apply(T t, int i);
@@ -86,10 +87,10 @@ public final class SerializeHelper {
 				IByteBuffer::ReadVector4, IByteBuffer::ReadVector4));
 		codecs.put(Quaternion.class, new CodecFuncs<>(IByteBuffer.VECTOR4, ByteBuffer::WriteQuaternion,
 				IByteBuffer::ReadQuaternion, IByteBuffer::ReadQuaternion));
-		// decimal（FND8-32）：decimal是注册的内建schema类型且IsKeyable=true，gtable/map/
+		// decimal：decimal是注册的内建schema类型且IsKeyable=true，gtable/map/
 		// list/set/sortedmap全标量集合家族都会把BigDecimal送进createCodec——不注册则
 		// 工厂层抛UnsupportedOperationException（生成器放行，bean类初始化即崩）。
-		// 格式与LogDecimal一致：全精度字符串严格双射（FND3-06），encodeType取BYTES（同String）。
+		// 格式与LogDecimal一致：全精度字符串严格双射，encodeType取BYTES（同String）。
 		codecs.put(BigDecimal.class, new CodecFuncs<>(IByteBuffer.BYTES,
 				(bb, obj) -> bb.WriteString(obj.toString()),
 				bb -> new BigDecimal(bb.ReadString()),

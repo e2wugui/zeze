@@ -5,6 +5,7 @@ import Zeze.Serialize.IByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 空 Bean：无字段占位实现，typeId 固定为 0，用作 DynamicBean 的空值语义。 */
 public class EmptyBean extends Bean {
 	// 只用于协议/RPC的不可修改的共享单例,不能放入数据库中
 	public static final EmptyBean instance = new EmptyBean() {
@@ -50,7 +51,7 @@ public class EmptyBean extends Bean {
 		return Data.instance;
 	}
 
-	public static final long TYPEID = 0; // 用0，而不是Bean.Hash("")，可能0更好吧。
+	public static final long TYPEID = 0; // 用0，而不是Bean.Hash("")。
 
 	@Override
 	public long typeId() {
@@ -113,7 +114,7 @@ public class EmptyBean extends Bean {
 		}
 
 		// 必须和EmptyBean.TYPEID一样。
-		public static final long TYPEID = 0; // 用0，而不是Bean.Hash("")，可能0更好吧。
+		public static final long TYPEID = 0;
 
 		@Override
 		public long typeId() {

@@ -5,6 +5,10 @@ import Zeze.Util.Id128;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 全局缓存管理代理接口：封装对 GlobalCacheManager 集群的 acquire/reduce 权限协调，
+ * 管理多 agent 并提供停机拆除与 Releaser 等待。
+ */
 public interface IGlobalAgent {
 	record AcquireResult(long resultCode, int resultState, @Nullable Id128 reducedTid) {
 			private static final @NotNull AcquireResult @NotNull [] successResults = new AcquireResult[4];
@@ -35,7 +39,7 @@ public interface IGlobalAgent {
 	// Releaser不属网络资源，关库前另有界等待（见awaitReleaser）。
 	void stop() throws Exception;
 
-	// FND10 txn-01：停机关库前有界等待活跃Releaser——遍历内部GlobalAgentBase逐个有界等待，
+	// 停机关库前有界等待活跃Releaser——遍历内部GlobalAgentBase逐个有界等待，
 	// 等待逻辑见GlobalAgentBase.awaitReleaser。
 	default void awaitReleaser(long timeoutMillis) {
 		for (var i = 0; i < getAgentCount(); ++i)

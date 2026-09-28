@@ -5,6 +5,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/**
+ * 唯一请求存根状态：日志位置、是否已应用与已编码应答，用于重复请求检测与 RaftApplied 回放。
+ */
 class UniqueRequestState implements Serializable {
 	public static final UniqueRequestState NOT_FOUND = new UniqueRequestState();
 

@@ -2,6 +2,9 @@ package Zeze.Net;
 
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * socket 与网络相关的可配置选项（系统层与应用层）。
+ */
 public final class SocketOptions {
 	// 系统选项
 	private @Nullable Boolean noDelay; // 不指定的话由系统提供默认值

@@ -3,6 +3,9 @@ package Zeze.Arch;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Services.LoginQueueAgent;
 
+/**
+ * Linkd 侧负载上报：向 LoginQueueAgent 周期报告链接服务的在线数与负载。
+ */
 public class LinkdLoad extends LoadBase {
 	private final LinkdApp linkdApp;
 	private final String linkdIp;

@@ -26,6 +26,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Bean/Data 的 typeId 注册表与工厂：支持热更重定向、懒加载与动态bean创建。
+ */
 public final class BeanFactory {
 	private static final @NotNull Logger logger = LogManager.getLogger(BeanFactory.class);
 	private static final LongHashMap<Object> allClassNameMap = new LongHashMap<>();
@@ -86,7 +89,7 @@ public final class BeanFactory {
 	 * @param hotRedirect   调用方HotManager实例的重定向类加载器。
 	 *                      不经静态zeze.getHotManager()取回：该静态是JVM级、多Application周期
 	 *                      可被并行改写，取回为null时NPE会落入install不可回滚区halt(111222)
-	 *                      （本文件220/303/348行对null hotManager均有防御回退，此处原为唯一裸取点）。
+	 *                      （本文件220/303/348行对null hotManager均有防御回退）。
 	 */
 	public static void resetHot(@NotNull Map<BeanFactory, List<Class<?>>> beanFactories,
 								@NotNull List<JarFile> hotModules,
@@ -498,9 +501,9 @@ public final class BeanFactory {
 			var ctor = factory.get(typeId);
 			if (ctor != null)
 				return (Bean)ctor.invoke();
-			// FND2-C0-6：volatile读快照竞态——并发register(put+置空readingBeanFactory)之前
+			// volatile读快照竞态——并发register(put+置空readingBeanFactory)之前
 			// 已读到的旧快照miss不等于未注册。锁内重克隆刷新快照并从权威writing表再查一次
-			// （与上面factory==null分支同款），仍miss才走findClass：瞬时竞态不再以
+			// （与上面factory==null分支同款），仍miss才走findClass：瞬时竞态不会以
 			// unknown typeId炸掉无辜事务（错误形态误导指向类型缺失）。
 			writingBeanFactoryLock.lock();
 			try {
@@ -547,7 +550,7 @@ public final class BeanFactory {
 			var ctor = factory.get(typeId);
 			if (ctor != null)
 				return (Data)ctor.invoke();
-			// FND2-C0-6：同createBeanFromSpecialTypeId——miss后锁内重克隆刷新快照并从权威
+			// 同createBeanFromSpecialTypeId——miss后锁内重克隆刷新快照并从权威
 			// writing表再查一次，仍miss才走findDataClass。
 			writingDataFactoryLock.lock();
 			try {

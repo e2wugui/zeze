@@ -14,6 +14,10 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 一个事务提交产生的变更集（Raft 日志载体）：按记录收集 put/remove/edit 日志树与原子计数，
+ * 序列化后在 follower 侧重放应用。
+ */
 public final class Changes extends Zeze.Raft.Log {
 	private final Rocks rocks;
 	private final LongHashMap<LogBean> beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
@@ -213,7 +217,6 @@ public final class Changes extends Zeze.Raft.Log {
 				Rocks.logger.debug("{} LeaderApply", rocks.getRaft().getName());
 			transaction.leaderApply(this, holder);
 		} else {
-			// Rocks.logger.debug("{} followerApply", rocks.getRaft().getName());
 			rocks.followerApply(this, holder);
 		}
 	}

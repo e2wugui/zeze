@@ -9,10 +9,13 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 流式（chunked）模板输出 Writer：逐块发送，fail 时改断连使客户端可检测截断。
+ */
 public class HttpExchangeStreamWriter extends Writer {
 	private final @NotNull HttpExchange x;
 	private int contentLength;
-	private boolean failed; // 渲染中途异常由调用方置位：close不得把截断页面按正常终结符收尾（FND5-17复审）
+	private boolean failed; // 渲染中途异常由调用方置位：close不得把截断页面按正常终结符收尾
 
 	public HttpExchangeStreamWriter(@NotNull HttpExchange x) {
 		this.x = x;

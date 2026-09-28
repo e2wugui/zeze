@@ -15,6 +15,7 @@ import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** PSortedMap2 的只读视图：值以只读类型暴露，修改入口抛 UnsupportedOperationException。 */
 public class PSortedMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadOnly>
 		implements Iterable<Map.Entry<K, VReadOnly>> {
 	private final @NotNull PSortedMap2<K, V> map;

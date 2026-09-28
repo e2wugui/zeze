@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import org.jetbrains.annotations.NotNull;
 
+// 全局低精度时钟：后台任务每秒采样 epoch 时间缓存，热路径 opaque 读免系统调用
 public final class GlobalTimer {
 	// 当前的秒级时间戳,由定时器更新,为了性能用opaque方式读写而不用volatile,多数CPU都能让所有线程及时看到最新值
 	@SuppressWarnings("unused")
@@ -19,9 +20,9 @@ public final class GlobalTimer {
 			throw new ExceptionInInitializerError(e);
 		}
 
-		// 两个 getter 同源（epoch），秒值由毫秒值派生（FND8-12）：原 curSec 用 nanoTime
-		// 是任意原点的单调秒，与 getCurrentMillis 相差可达数年，同名族隐含的
-		// getCurrentMillis()/1000 == getCurrentSeconds() 契约不成立；改用 epoch 放弃
+		// 两个 getter 同源（epoch），秒值由毫秒值派生：curSec 不用 nanoTime
+		// ——那是任意原点的单调秒，与 getCurrentMillis 相差可达数年，同名族隐含的
+		// getCurrentMillis()/1000 == getCurrentSeconds() 契约会不成立；用 epoch 放弃
 		// 单调性，NTP回拨期间超时判定/滑窗清零延迟、可自愈，对秒级超时场景可忽略。
 		vhCurMs.setOpaque(System.currentTimeMillis());
 		vhCurSec.setOpaque(System.currentTimeMillis() / 1000);

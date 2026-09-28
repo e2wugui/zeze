@@ -24,10 +24,13 @@ import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * 分布式线程同步组件服务端：为每个全局线程维护 SimulateThread，仲裁 Mutex/Semaphore/ReadWriteLock。
+ */
 public class ThreadingServer extends AbstractThreadingServer {
 	private static final Logger logger = LogManager.getLogger(ThreadingServer.class);
 
-	// FND-C1-7/C1-8：锁操作rpc的结果码约定为非负小整数（0=成功，1=失败/未持有，2=超时未获取）。
+	// 锁操作rpc的结果码约定为非负小整数（0=成功，1=失败/未持有，2=超时未获取）。
 	// 参数非法或操作类型未知时用-1应答：客户端getResultCode()!=0按false处理（exit类走debug日志），
 	// 不再无应答挂满超时（≥5s后以CompletionException抛出，错误形态不可诊断）。
 	public static final int ResultCodeInvalidArgument = -1;
@@ -155,7 +158,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 		// 【通用兜底】动作统一在此包装执行：动作内任何新增可抛路径都会补发结果码-1，
 		// 不再重演"catch(Exception)只记日志、客户端挂满rpc超时（≥5s以CompletionException呈现）"，
-		// 也不再依赖逐点补丁（C1-7/C1-8/C1-3/FND6-21各设一处catch的判例家族——它们保留为快速失败路径）。
+		// 也不再依赖逐点补丁（各处catch保留为快速失败路径）。
 		// 双发防护：handler正常路径已自行SendResultCode应答、之后动作又抛异常时，兜底不能二次发送。
 		// Rpc.trySendResultCode（Zeze.Net.Rpc）先经tryMarkSendResultDone做VarHandle CAS仲裁，
 		// 已应答（sendResultDone=true）则CAS失败直接返回false不发送，天然防双发，无需额外AtomicBoolean。
@@ -226,8 +229,8 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 		// Direct：lastAppSerial的"同连接KeepAlive有序处理"前提（见字段注释）要求IO线程按TCP
 		// 接收序内联串行；Normal经共享线程池派发既不保证同连接顺序也不保证跨连接顺序——迟到的
-		// 旧实例KeepAlive可在新实例接管并持锁后再次触发release，强制释放新实例持有的全部锁
-		// （FND4-40）。处理体轻量（CHM查改+volatile写+非阻塞offer），内联执行不阻塞IO线程。
+			// 旧实例KeepAlive可在新实例接管并持锁后再次触发release，强制释放新实例持有的全部锁。
+			// 处理体轻量（CHM查改+volatile写+非阻塞offer），内联执行不阻塞IO线程。
 		@Override
 		@Zeze.Util.DispatchModeAnnotation(mode = Zeze.Transaction.DispatchMode.Direct)
 		protected long ProcessKeepAlive(KeepAlive p) {
@@ -238,7 +241,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 			return 0; // first keepAlive。record only。
 		}
 		if (threads.lastAppSerial.getAppSerialId() != p.Argument.getAppSerialId()) {
-			// FND5-23：serial无单调性判据——同serverId双实例（重建窗口内旧keepAliveTask在途、
+			// serial无单调性判据——同serverId双实例（重建窗口内旧keepAliveTask在途、
 			// 或错误配置双客户端）时两个appSerialId交替到达，10秒一轮互解，正常持锁者被持续
 			// 强制释放。appSerialId为PersistentAtomicLong单调递增：仅更高的serial接管（release
 			// 旧资源），更低的视为旧实例迟到，忽略不release。
@@ -307,9 +310,9 @@ public class ThreadingServer extends AbstractThreadingServer {
 				r.Argument.getLockName().getGlobalThreadId().getServerId(),
 				r.Argument.getLockName().getGlobalThreadId().getThreadId(),
 				r.Argument.getLockName().getName());
-		// FND-C1-8：tryLock(timeoutMs<0)按JDK契约抛IllegalArgumentException，若在SimulateThread
+		// tryLock(timeoutMs<0)按JDK契约抛IllegalArgumentException，若在SimulateThread
 		// 动作内抛出会被run()吞掉且不再补发结果码（客户端挂满超时后以异常呈现）。入队前校验
-		// 直接应答（结果码见C1-7引入的ResultCodeInvalidArgument，本patch依赖其先行应用）。
+		// 直接应答（结果码ResultCodeInvalidArgument）。
 		if (r.Argument.getTimeoutMs() < 0) {
 			r.SendResultCode(ResultCodeInvalidArgument);
 			return 0;
@@ -355,7 +358,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	@Override
 	protected long ProcessReadWriteLockOperateRequest(ReadWriteLockOperate r) {
-		// FND-C1-8：eEnterRead/eEnterWrite的动作内tryLock(timeoutMs<0)抛IllegalArgumentException
+		// eEnterRead/eEnterWrite的动作内tryLock(timeoutMs<0)抛IllegalArgumentException
 		// 会被SimulateThread.run()吞掉且不补发结果码。入队前校验直接应答。
 		if ((r.Argument.getOperateType() == Threading.eEnterRead
 				|| r.Argument.getOperateType() == Threading.eEnterWrite)
@@ -406,10 +409,10 @@ public class ThreadingServer extends AbstractThreadingServer {
 							try {
 								rwLock.readLock().unlock();
 							} catch (IllegalMonitorStateException e) {
-								// FND6-21：enter/exit模式不对称（如enterWrite后exitRead）时unlock抛
+								// enter/exit模式不对称（如enterWrite后exitRead）时unlock抛
 								// IllegalMonitorStateException，动作在SimulateThread内抛出会被run()
-								// 吞掉且不补发结果码——客户端挂满rpc超时。对齐参数校验系列判例
-								// （C1-7/8）立即应答错误码。
+								// 吞掉且不补发结果码——客户端挂满rpc超时。对齐参数校验系列
+								// 立即应答错误码。
 								logger.error("RWLock.exitRead mode mismatch (thread=({}, {}), name={})",
 										r.Argument.getLockName().getGlobalThreadId().getServerId(),
 										r.Argument.getLockName().getGlobalThreadId().getThreadId(),
@@ -418,7 +421,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 								return;
 							}
 							var hold = rwLock.getReadHoldCount();
-							// FND2-C1-1：rwLockRefs按锁名共享一个条目，读写计数分开持有
+							// rwLockRefs按锁名共享一个条目，读写计数分开持有
 							// （JDK支持写→读降级）。只看本模式计数清零即删条目会让另一模式的持有
 							// 脱离跟踪：之后exit无应答即返回、模拟线程持锁被判空闲退出、
 							// timeoutRelease也遍历不到——锁永久悬挂直到进程重启。双计数都为零才删。
@@ -445,7 +448,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 							try {
 								rwLock.writeLock().unlock();
 							} catch (IllegalMonitorStateException e) {
-								// FND6-21：对称场景（enterRead后exitWrite），同eExitRead。
+								// 对称场景（enterRead后exitWrite），同eExitRead。
 								logger.error("RWLock.exitWrite mode mismatch (thread=({}, {}), name={})",
 										r.Argument.getLockName().getGlobalThreadId().getServerId(),
 										r.Argument.getLockName().getGlobalThreadId().getThreadId(),
@@ -454,7 +457,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 								return;
 							}
 							var hold = rwLock.getWriteHoldCount();
-							// FND2-C1-1：双计数都为零才删（对称场景：先exitRead时writeHold仍>0，
+							// 双计数都为零才删（对称场景：先exitRead时writeHold仍>0，
 							// 提前删条目=写锁悬挂、所有写者永久饥饿）。
 							if (hold == 0 && rwLock.getReadHoldCount() == 0)
 								This.rwLockRefs.remove(r.Argument.getLockName().getName());
@@ -472,8 +475,8 @@ public class ThreadingServer extends AbstractThreadingServer {
 			break;
 
 		default:
-			// FND-C1-7：未知OperateType（buggy客户端/异版本/恶意包）原实现无任何应答，
-			// 客户端等满rpc超时后以CompletionException抛出。
+			// 未知OperateType（buggy客户端/异版本/恶意包）不能无应答，
+			// 否则客户端等满rpc超时后以CompletionException抛出。
 			logger.error("ReadWriteLockOperate: unknown operateType={} (thread=({}, {}), name={})",
 					r.Argument.getOperateType(),
 					r.Argument.getLockName().getGlobalThreadId().getServerId(),
@@ -495,9 +498,9 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	@Override
 	protected long ProcessSemaphoreReleaseRequest(SemaphoreRelease r) {
-		// FND2-C1-3：release(permits<=0)按JDK契约抛IllegalArgumentException，动作在SimulateThread内
+		// release(permits<=0)按JDK契约抛IllegalArgumentException，动作在SimulateThread内
 		// 抛出会被run()吞掉且不补发结果码（客户端挂满rpc超时后以CompletionException呈现）。
-		// 入队前校验直接应答（65c291f2e修了TryAcquire家族，独漏Release，此处补齐同型防护）。
+		// 入队前校验直接应答（TryAcquire家族已有同型防护）。
 		if (r.Argument.getPermits() <= 0) {
 			r.SendResultCode(ResultCodeInvalidArgument);
 			return 0;
@@ -510,8 +513,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 						semaphoreAcq.permits -= r.Argument.getPermits();
 						if (semaphoreAcq.permits <= 0) {
 							// 马上要删除了，这个值本来不需要重置。如果下一次申请继续使用这个对象，必须设为0。
-							// 【现在不清除它，让后面的日志和结果能反应更多信息】
-							// semaphoreAcq.permits = 0;
+							// 现在不清除它（permits = 0），让后面的日志和结果能反应更多信息。
 							This.semaphoreRefs.remove(r.Argument.getLockName().getName());
 						}
 						logger.info("semaphore.release(thread=({}, {}), name={}) permits={}",
@@ -529,7 +531,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	@Override
 	protected long ProcessSemaphoreTryAcquireRequest(SemaphoreTryAcquire r) {
-		// FND-C1-8：tryAcquire(permits<=0)按JDK契约抛IllegalArgumentException，动作内抛出会被
+		// tryAcquire(permits<=0)按JDK契约抛IllegalArgumentException，动作内抛出会被
 		// SimulateThread.run()吞掉且不补发结果码。入队前校验直接应答。
 		if (r.Argument.getPermits() <= 0 || r.Argument.getTimeoutMs() < 0) {
 			r.SendResultCode(ResultCodeInvalidArgument);

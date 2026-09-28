@@ -14,6 +14,9 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 文件扩展名到 MIME 类型的映射表（默认表来自 nginx mime.types，可用 mimes.properties 覆盖）。
+ */
 public class Mimes {
 	// from mime.types in nginx-1.25.2
 	public static final String mimes = """
@@ -146,7 +149,7 @@ public class Mimes {
 			// try load config
 			var file = new File("mimes.properties");
 			if (file.exists()) {
-				// NY2-F3：try-with-resources关掉FileReader——mimes.properties存在时原实现每次JVM泄漏一个FD。
+				// try-with-resources关掉FileReader——否则mimes.properties存在时每次JVM泄漏一个FD。
 				try (var reader = new FileReader(file, StandardCharsets.UTF_8)) {
 					load(reader);
 				}
@@ -158,7 +161,7 @@ public class Mimes {
 
 	// 注意：扩展名不包含字符'.'
 	public static @NotNull String fromFileExtension(@NotNull Object extName) {
-		// NY2-F4：键全小写，查找前归一化——大写扩展名（Windows环境常见，如LOGO.PNG）不得回落text/plain。
+		// 键全小写，查找前归一化——大写扩展名（Windows环境常见，如LOGO.PNG）不得回落text/plain。
 		var mime = mimesMap.get(String.valueOf(extName).toLowerCase(Locale.ROOT));
 		return mime != null ? mime : mimeDefault;
 	}

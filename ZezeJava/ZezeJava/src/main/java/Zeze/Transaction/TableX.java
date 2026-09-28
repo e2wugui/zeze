@@ -28,6 +28,10 @@ import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
+/**
+ * 强类型泛型表：管理记录缓存（TableCache）、本地 Rocks 镜像与后台 Storage，
+ * 提供事务内 CRUD、GCM 降级处理与各类遍历接口。
+ */
 public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
 	private static final @NotNull Logger logger = LogManager.getLogger(TableX.class);
 	private static final boolean isTraceEnabled = logger.isTraceEnabled();
@@ -37,7 +41,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private volatile @Nullable Storage<K, V> storage;
 	private @Nullable Database.Table oldTable;
 	private DatabaseRocksDb.Table localRocksCacheTable;
-	// private boolean useRelationalMapping;
 
 	@Override
 	public void open(@NotNull Table exist, @NotNull Application app) {
@@ -48,9 +51,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var database = exist.getDatabase();
 
 		// replaceTable允许重复调用，热更回滚需要能在旧表上重新打开。see cache init below
-		//if (cache != null)
-		//	throw new IllegalStateException("table has opened: " + getName());
-
 		setZeze(app);
 		setDatabase(database);
 
@@ -141,18 +141,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final int getCacheSize() {
 		return cache != null ? (int)cache.size() : 0;
-		// return cache != null ? cache.getDataMap().size() : 0;
 	}
 
-	// FND6-01根因修复：镜像写失败不得吞。镜像不变式（clean+Share记录 ⇒ 镜像条目存在且==storage真相）
+	// 镜像写失败不得吞。镜像不变式（clean+Share记录 ⇒ 镜像条目存在且==storage真相）
 	// 是softValue被GC后快路径正确性的唯一依托：吞掉写失败会让记录以clean状态失去/背离镜像备份——
 	// 缺失方向把存量记录读成"不存在"（续写覆盖丢数据）；陈旧方向在租约间隙（驱逐/GCM reduce释放后
 	// 其他进程改storage，本进程驱逐remove与重装载put相继被吞）后返回旧值或复活已删记录（磁盘满=
 	// 写全失败读全正常时系统性发生）。失败必须抛出：装载路径由load既有异常出口作废记录（cache.remove）
 	// 并上报（perform回滚返回Procedure.Exception，单次失败不自动redo）；flush路径本就抛出保dirty重试。
 	// 记录永远进不了"clean且靠镜像支撑"的状态，不变式由构造保证而非检测补救。信任只随整体重建恢复
-	// （启动deleteDirectory/热更clear），进程内逐条"自愈"无法证明全镜像健康。仿__direct_put_cache__先例
-	// 包RuntimeException携带表/key上下文；异常由perform错误日志记录，抛出点不再重复log。
+	// （启动deleteDirectory/热更clear），进程内逐条"自愈"无法证明全镜像健康。仿__direct_put_cache__
+	// 包RuntimeException携带表/key上下文；异常由perform错误日志记录，抛出点不重复log。
 	final void rocksCachePut(@NotNull K key, @NotNull V value) {
 		try (var t = getZeze().getLocalRocksCacheDb().beginTransaction()) {
 			localRocksCacheTable.replace(t, encodeKey(key), ByteBuffer.encode(value));
@@ -246,9 +245,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 					var storage = this.storage;
 					if (storage != null) {
-						// FND4-01：先取脏值快照再判脏（原实现先getDirty()后strongDirtyValue两读，
-						// 清脏（flush成功后，不持记录fairLock）交错其间会拿到null当作"记录不存在"，
-						// 已提交未读出的内存脏数据被静默丢弃）。先读快照：非null即内存脏值直接用；
+						// 先取脏值快照再判脏：若先判脏后取脏值，清脏（flush成功后，不持记录
+						// fairLock）交错其间会拿到null当作"记录不存在"，已提交未读出的内存
+						// 脏数据被静默丢弃。先读快照：非null即内存脏值直接用；
 						// null且此刻不脏才读storage（清脏发生在两读之间时flush已完成，storage也是
 						// 新值）；null且仍脏=脏删除，strongRef保持null（记录不存在）。
 						// GCM reduce的flush失败或Releaser降级窗口会留下Invalid+dirty的记录，
@@ -267,7 +266,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 								rocksCacheRemove(key);
 							r.setSoftValue(strongRef); // r.Value still maybe null
 							// 【注意】这个变量不管 OldTable 中是否存在的情况。
-//							r.setExistInBackDatabase(strongRef != null);
 
 							// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
 							// see Record1.Flush
@@ -282,11 +280,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 										var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
 										var t = oldTable.getDatabase().beginTransaction();
 										try {
-											// 【存量缺陷修复】原实现传原始key(K)与Bean给replace(Transaction,Object,Object)，
-											// 该重载按后端盲转（KV转ByteBuffer），RocksDb旧库下每次装载必抛ClassCastException
-											// ——被旧catch吞掉后oldTable与镜像从未写上，记录以clean态仅存oldTable+内存，
-											// 正好落进FND6-01的缺陷形态且逐次刷error日志。与Record1.flush/rocksCachePut
-											// 同型：两侧都传编码后的key/value。
+											// 两侧都必须传编码后的key/value：replace(Transaction,Object,Object)
+											// 按后端盲转（KV转ByteBuffer），传原始key(K)与Bean在RocksDb旧库下
+											// 每次装载必抛ClassCastException——被吞掉后oldTable与镜像从未写上，
+											// 记录以clean态仅存oldTable+内存（镜像缺失/陈旧）。
+											// 与Record1.flush/rocksCachePut同型。
 											var bbKey = encodeKey(key);
 											var bbValue = ByteBuffer.encode(old);
 											oldTable.replace(t, bbKey, bbValue);
@@ -297,7 +295,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 											// rollback.
 											lct.rollback();
 											t.rollback();
-											// FND6-01：此分支不设脏标记，任何写失败被继续都会让记录以clean
+											// 此分支不设脏标记，任何写失败被继续都会让记录以clean
 											// 状态仅存oldTable+内存（镜像缺失/陈旧）——softValue GC后镜像hit返回
 											// 旧值或miss读成不存在。抛出由load异常出口作废记录重试，值仍安全在
 											// oldTable。old侧失败连带抛出（过严格但无害：仅多一次重做）。
@@ -378,7 +376,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (isTraceEnabled)
 						logger.trace("reduceShare SendResult fresh {}", r);
 					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
-					// rpc.SendResult(); // send in finally
 					return;
 				}
 				r.setNotFresh(); // 被降级不再新鲜。
@@ -392,7 +389,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						if (isTraceEnabled)
 							logger.trace("reduceShare SendResult 2 {}", r);
 						rpc.Result.state = StateInvalid; // 必须最后修改结果状态，因为send in finally
-						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
@@ -404,7 +400,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						if (isTraceEnabled)
 							logger.trace("reduceShare SendResult 3 {}", r);
 						rpc.Result.state = StateShare; // 必须最后修改结果状态，因为send in finally
-						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
@@ -416,19 +411,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						if (isTraceEnabled)
 							logger.trace("reduceShare SendResult * {}", r);
 						rpc.Result.state = StateShare; // 必须最后修改结果状态，因为send in finally
-						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
 				}
-				// if (isDebugEnabled)
-				// logger.warn("ReduceShare checkpoint begin. id={} {}", r, tkey);
 				flushWhenReduce(r);
 				if (isTraceEnabled)
 					logger.trace("reduceShare SendResult 4 {}", r);
-				// rpc.SendResult(); // send in finally
-				// if (isDebugEnabled)
-				// logger.warn("ReduceShare checkpoint end. id={} {}", r, tkey);
 				rpc.Result.state = StateShare; // 必须最后修改结果状态，因为send in finally
 			} finally {
 				try {
@@ -444,20 +433,16 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	private void flushWhenReduce(@NotNull Record r) {
 		switch (getZeze().getConfig().getCheckpointMode()) {
-//		case Period:
-//			throw new IllegalStateException("Global Can Not Work With CheckpointMode.Period.");
-
 		case Immediately:
 			break;
 
 		case Table: {
 			var checkpoint = getZeze().getCheckpoint();
 			if (checkpoint == null)
-				// FND7-55：停机窗口（终检点已过）无法履行durability-before-downgrade。
+				// 停机窗口（终检点已过）无法履行durability-before-downgrade。
 				// 抛出让Reduce以默认StateReduceException fail-safe应答（对端acquire失败
 				// 重试），并保住本地脏记录状态：静默跳过flush会把降级当成功应答——GCM把
-				// 权限授予其他进程后，本进程未落库的脏值会跨进程丢失更新；原实现此处
-				// 对null checkpoint解引用直接NPE，异常类型不可辨。
+				// 权限授予其他进程后，本进程未落库的脏值会跨进程丢失更新。
 				throw new IllegalStateException("flushWhenReduce: checkpoint stopped. table="
 						+ getName() + ", record=" + r);
 			RelativeRecordSet.flushWhenReduce(r, checkpoint);
@@ -506,7 +491,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (isTraceEnabled)
 						logger.trace("reduceInvalid SendResult fresh {}", r);
 					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
-					// rpc.SendResult(); // send in finally
 					return;
 				}
 				r.setNotFresh(); // 被降级不再新鲜。
@@ -520,7 +504,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						if (isTraceEnabled)
 							logger.trace("reduceInvalid SendResult 2 {}", r);
 						rpc.Result.state = StateInvalid; // 必须最后修改结果状态，因为send in finally
-						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
@@ -534,7 +517,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						if (isTraceEnabled)
 							logger.trace("reduceInvalid SendResult 3 {}", r);
 						rpc.Result.state = StateInvalid; // 必须最后修改结果状态，因为send in finally
-						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
@@ -547,20 +529,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						if (isTraceEnabled)
 							logger.trace("reduceInvalid SendResult * {}", r);
 						rpc.Result.state = StateInvalid; // 必须最后修改结果状态，因为send in finally
-						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
 				}
-				// if (isDebugEnabled)
-				// logger.warn("ReduceInvalid checkpoint begin. id={} {}", r, tkey);
 				flushWhenReduce(r);
 				if (isTraceEnabled)
 					logger.trace("reduceInvalid SendResult 4 {}", r);
-				// if (isDebugEnabled)
-				// logger.warn("ReduceInvalid checkpoint end. id={} {}", r, tkey);
 				rpc.Result.state = StateInvalid; // 必须最后修改结果状态，因为send in finally
-				// rpc.SendResult(); // send in finally
 			} finally {
 				try {
 					rpc.SendResult(); // send in finally
@@ -641,35 +617,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 			});
 		}
-		/*
-		while (!remain.isEmpty()) {
-			logger.info("ReduceInvalidAllLocalOnly Table={} Remain={}", getName(), remain.size());
-			var remain2 = new ArrayList<KV<Lockey, Record1<K, V>>>(remain.size());
-			for (var e : remain) {
-				var k = e.getKey();
-				if (!k.TryEnterWriteLock(0)) {
-					remain2.add(e);
-					continue;
-				}
-				try {
-					var v = e.getValue();
-					if (!v.TryEnterFairLock()) {
-						remain2.add(e);
-						continue;
-					}
-					try {
-						v.setState(StateInvalid);
-						FlushWhenReduce(v);
-					} finally {
-						v.ExitFairLock();
-					}
-				} finally {
-					k.ExitWriteLock();
-				}
-			}
-			remain = remain2;
-		}
-		*/
 	}
 
 	public final @Nullable V get(@NotNull K key) {
@@ -716,7 +663,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			@SuppressWarnings("unchecked")
 			V crv = (V)cr.newestValue();
 			if (crv != null) {
-				// txn-02（FND16）：已存在路径必须赋false——不赋值时isAdd保持null，调用方
+				// 已存在路径必须赋false——不赋值时isAdd保持null，调用方
 				// if(isAdd.value)拆箱NPE埋雷（对齐RocksDatabase.getOrAddTable家族惯例）。
 				if (isAdd != null)
 					isAdd.value = false;
@@ -730,7 +677,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr, v == null && isMemory());
 			if (v != null) {
 				if (isAdd != null)
-					isAdd.value = false; // txn-02：同上，已存在路径双向赋值。
+					isAdd.value = false; // 同上，已存在路径双向赋值。
 				return v;
 			}
 			// add
@@ -795,7 +742,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		remove(key);
 	}
 
-	// 几乎和Put一样，还是独立开吧。
+	// 逻辑几乎和Put一样，故意保持独立实现。
 	public final void remove(@NotNull K key) {
 		var currentT = Transaction.getCurrent();
 		assert currentT != null;
@@ -1170,7 +1117,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var r = cache.getOrAdd(kk, () -> new Record1<>(this, kk, null));
 		value.initRootInfo(r.createRootInfoIfNeed(tKey), null);
 		r.setState(state);
-		// FND7-01：直写缓存必须同步维护sizeCounter，与Record1.commit的内存表记账同口径
+		// 直写缓存必须同步维护sizeCounter，与Record1.commit的内存表记账同口径
 		// （无值→有值即increment）。热更为新表建全新TableCache后经此入口搬运全部记录，
 		// 不补计数则升级后size()恒0；且搬运记录softValue非null，后续事务删除时commit按
 		// strongRef!=null走decrement，计数永久漂移为负。同key重复直写不重复计数。
@@ -1189,7 +1136,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		} catch (Exception e) {
 			throw new RuntimeException("__direct_put_cache__ write localRocks failed: " + this + " " + key, e);
 		}
-		//logger.info("__direct_put_cache__ " + key + ", " + value);
 	}
 
 	/**
@@ -1202,8 +1148,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
 		// 还是先不限制，可以用于特殊地方。
-		//if (storage != null)
-		//	throw new IllegalStateException("this is not a memory table.");
 
 		// 内存表并且限制了容量，使用本地缓存的walk。
 		if (isMemory() && getTableConf().getRealCacheCapacity() >= 0)
@@ -1264,8 +1208,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				var v = cr.newestValue();
 				return v != null ? (V)v.copy() : null;
 			}
-//			if (currentT.isCompleted())
-//				throw new IllegalStateException("completed transaction can not selectCopy record not accessed");
 			currentT.setAlwaysReleaseLockWhenRedo(getId());
 		}
 
@@ -1366,7 +1308,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							V strongRef = storage.getDatabaseTable().find(this, key);
 							r.setSoftValue(strongRef); // r.Value still maybe null
 							// 【注意】这个变量不管 OldTable 中是否存在的情况。
-//							r.setExistInBackDatabase(strongRef != null);
 							if (strongRef != null) {
 								rocksCachePut(key, strongRef);
 								strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
@@ -1435,7 +1376,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * 内部方法，必须在checkpoint之后并且没有正在执行的事务才是安全的。
 	 */
 	public void __ClearTableCacheUnsafe__() {
-		//System.out.println(getName() + " __ClearTableCacheUnsafe__");
 		// 直接new一个更加干净。
 		var oldCache = cache;
 		cache = new TableCache<>(getZeze(), this);

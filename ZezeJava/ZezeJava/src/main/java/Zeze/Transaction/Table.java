@@ -11,6 +11,7 @@ import Zeze.Services.GlobalCacheManager.Reduce;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 表基类：持有 id/名字/配置/数据库绑定与变更监听器，定义存储打开与 GCM 降级等表级抽象。 */
 public abstract class Table {
 	private final int originalId;
 	private final int id;

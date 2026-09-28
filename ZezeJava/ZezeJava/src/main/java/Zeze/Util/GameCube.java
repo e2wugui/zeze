@@ -3,6 +3,7 @@ package Zeze.Util;
 import org.pcollections.Empty;
 import org.pcollections.PSet;
 
+// 游戏格子：PSet 持有格子内的 GameObjectId（无锁最终一致快照）
 public class GameCube extends Cube<GameObjectId> {
 	private PSet<GameObjectId> objectIds = Empty.set();
 

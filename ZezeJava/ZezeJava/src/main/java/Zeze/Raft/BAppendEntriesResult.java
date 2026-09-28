@@ -4,6 +4,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
+/**
+ * AppendEntries 应答参数：term、是否成功与失配时的 nextIndex（fast locate）。
+ */
 final class BAppendEntriesResult extends Bean {
 	private long term;
 	private boolean success;

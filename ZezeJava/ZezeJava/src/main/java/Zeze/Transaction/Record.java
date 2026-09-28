@@ -8,6 +8,10 @@ import Zeze.Util.Random;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 表格记录：缓存中一条记录的运行时载体，持有软引用值、脏事实、时间戳、
+ * 全局缓存状态（GCM）与所属关联记录集。
+ */
 public abstract class Record extends ReentrantLock {
 	public record RootInfo(@NotNull Record record, @NotNull TableKey tableKey) {
 	}
@@ -22,20 +26,18 @@ public abstract class Record extends ReentrantLock {
 
 	/**
 	 * Record.Dirty 的问题
-	 * 对于新的CheckpointMode，需要实现新的Dirty。
-	 * CheckpointMode.Period
-	 * Snapshot时记住timestamp，Cleanup的时候ClearDirty(snapshot_timestamp)，需要记录锁。
+	 * 不同的CheckpointMode需要不同的Dirty实现。
 	 * CheckpointMode.Immediately
 	 * Commit完成以后马上进行不需要锁的ClearDirty.
 	 * (实际实现：Commit设置Dirty，提交流程 Checkpoint.flush(Iterable&lt;Record&gt;) 同步保存后清除)
 	 * CheckpointMode.Table
 	 * Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
 	 *
-	 * 脏标记与脏期间强引用合并为单一事实源（FND4-01）：null=干净；非null=脏——普通脏值为
+	 * 脏标记与脏期间强引用合并为单一事实源：null=干净；非null=脏——普通脏值为
 	 * 内存值的强引用（正常值走softValue软引用可被GC，脏期间必须另持强引用），脏删除
 	 * （commit的PutLog.getValue()==null，没有Bean可引用）用哨兵DIRTY_NULL维持"脏"事实。
-	 * 原dirty+strongDirtyValue两字段的写与读非原子：TableX.load先判脏后取值，清脏
-	 * （Checkpoint.flush成功后，不持记录fairLock）交错在两读之间会拿到null当作"记录不存在"
+	 * 不得拆成dirty+strongDirtyValue两字段：两字段的写与读非原子，TableX.load先判脏后取值，
+	 * 清脏（Checkpoint.flush成功后，不持记录fairLock）交错在两读之间会拿到null当作"记录不存在"
 	 * ——已提交未读出的内存脏数据被静默丢弃。单volatile引用使每次读取自洽，缺陷从结构上消除。
 	 */
 	private static final @NotNull Object DIRTY_NULL = new Object(); // 脏删除哨兵：有脏事实无脏值
@@ -48,7 +50,7 @@ public abstract class Record extends ReentrantLock {
 
 	// too many try
 	private boolean fresh;
-	private long acquireTime; // acquireTime 改成过期时间
+	private long acquireTime; // 存放过期时间
 
 	private @Nullable Database.Transaction databaseTransactionTmp;
 	private @Nullable Database.Transaction databaseTransactionOldTmp;
@@ -139,7 +141,7 @@ public abstract class Record extends ReentrantLock {
 	}
 
 	final boolean isFreshAcquire() {
-		return fresh && System.currentTimeMillis() < acquireTime; // acquireTime 改成过期时间
+		return fresh && System.currentTimeMillis() < acquireTime;
 	}
 
 	final void setNotFresh() {
@@ -147,7 +149,7 @@ public abstract class Record extends ReentrantLock {
 	}
 
 	final void setFreshAcquire() {
-		acquireTime = System.currentTimeMillis() + 300 + Random.getInstance().nextInt(300); // acquireTime 改成过期时间
+		acquireTime = System.currentTimeMillis() + 300 + Random.getInstance().nextInt(300);
 		fresh = true;
 	}
 

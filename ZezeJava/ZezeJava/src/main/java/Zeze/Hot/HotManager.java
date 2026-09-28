@@ -150,7 +150,6 @@ public class HotManager extends ClassLoader {
 	public HotModule findHotModule(String className) {
 		// 因为存在子模块：
 		// 优先匹配长的名字。
-		// TreeMap是否有更优算法？
 		for (var e : modules.descendingMap().entrySet()) {
 			if (className.startsWith(e.getKey()))
 				return e.getValue();
@@ -354,7 +353,7 @@ public class HotManager extends ClassLoader {
 					exist.stopBefore();
 			}
 			var result = new ArrayList<HotModule>();
-			// startErrors 声明提前到写锁外：锁外的 startLast 收尾循环也要过滤它（hot-01）。
+			// startErrors 声明提前到写锁外：锁外的 startLast 收尾循环也要过滤它。
 			var startErrors = new ArrayList<HotModule>();
 			try (var ignored = enterWriteLock()) {
 				var app = zeze.getAppBase();
@@ -524,7 +523,7 @@ public class HotManager extends ClassLoader {
 			}
 			// 最后启动，startLast.
 			for (var module : result) {
-				// hot-01：启动失败的模块已 stop+stopInternal 完整停机并移出 modules，
+				// 启动失败的模块已 stop+stopInternal 完整停机并移出 modules，
 				// 不得再 startLast 复活（幻影定时器/线程无人回收），对齐上方 addHotModule 的过滤。
 				if (startErrors.contains(module))
 					continue;
@@ -559,7 +558,7 @@ public class HotManager extends ClassLoader {
 		jars.put(file, jar);
 	}
 
-	// hot-01（FND16）：释放putJar打开的jar句柄并清理zipEntries中指向它的索引
+	// 释放putJar打开的jar句柄并清理zipEntries中指向它的索引
 	// （残留索引的findClass会读到IllegalStateException("zip file closed")，对齐
 	// _install旧interface替换路径的清理语义）。回滚路径专用，close失败记日志不抛
 	// （rename回退比句柄释放更重要），无句柄时幂等no-op。
@@ -567,8 +566,8 @@ public class HotManager extends ClassLoader {
 		var jar = jars.remove(file);
 		if (jar == null)
 			return;
-		// zipEntries.entrySet()是FewModifyMap的只读快照，iterator.remove/removeIf必抛UOE
-		//（34f6c6f4f回归点）；清索引必须走map级remove(key,value)，形态同_install旧interface清理。
+		// zipEntries.entrySet()是FewModifyMap的只读快照，iterator.remove/removeIf必抛UOE；
+		// 清索引必须走map级remove(key,value)，形态同_install旧interface清理。
 		for (var e : zipEntries.entrySet()) {
 			if (e.getValue().jar == jar)
 				zipEntries.remove(e.getKey(), e.getValue());
@@ -628,9 +627,9 @@ public class HotManager extends ClassLoader {
 			throw new RuntimeException("rename fail. " + interfaceSrc + "->" + interfaceDst);
 		putJar(interfaceDst);
 		txn.whileRollback(() -> {
-			// hot-01（FND16）：先释放putJar打开的句柄（含zipEntries索引清理）——Windows下
+			// 先释放putJar打开的句柄（含zipEntries索引清理）——Windows下
 			// rename打开着的文件必失败，回退就永远走不到；逆序执行时本动作先于旧interface
-			// 备份回退（:591-596），后者renameTo(interfaceDst)同样依赖句柄已释放。
+			// 备份回退，后者renameTo(interfaceDst)同样依赖句柄已释放。
 			closeJar(interfaceDst);
 			if (!interfaceDst.renameTo(interfaceSrc))
 				logger.error("uninstall interface {} -> {} fail", interfaceDst, interfaceSrc);
@@ -667,7 +666,7 @@ public class HotManager extends ClassLoader {
 
 		var module = new HotModule(this, namespace, moduleDstFile);
 		modules.put(module.getName(), module);
-		// hot-01（FND16）：put 即登记回滚清理。失败点在 setService 之前时该条目是 service==null
+		// put 即登记回滚清理。失败点在 setService 之前时该条目是 service==null
 		// 的半成品，MainRollbackAction.recoverModules 只恢复旧模块（新装条目 exists==null 无恢复
 		// 也无清理），残留条目使下次重装在锁外 stopBefore() 必 NPE，热更通道砖死到进程重启。
 		// 本动作注册最晚、rollback 逆序最先执行：close 释放懒开的 jar 句柄后，前面注册的
@@ -753,8 +752,8 @@ public class HotManager extends ClassLoader {
 		distributeLock.lock();
 		try {
 			var ready = Path.of(distributeDir, "ready");
-			// 会话活跃判定在 distributeLock 内与 ready 存在性同点完成（hot-03）：锁外
-			// 先查后进会漏掉"查完 eIdle、定时器持锁期间会话置位并建 ready"的交错。
+				// 会话活跃判定在 distributeLock 内与 ready 存在性同点完成：锁外
+				// 先查后进会漏掉"查完 eIdle、定时器持锁期间会话置位并建 ready"的交错。
 			if (Files.exists(ready) && !(fromTimer && hotDistribute.isSessionActive())) {
 				handled = true;
 				try {
@@ -763,7 +762,7 @@ public class HotManager extends ClassLoader {
 						try {
 							Files.deleteIfExists(ready); // success
 						} catch (Throwable ex) {
-							// hot-03（FND18）：安装已成功，删除失败不得反转为失败码——!atomicAll 下
+							// 安装已成功，删除失败不得反转为失败码——!atomicAll 下
 							// setIdle 会把 rc 误报给控制台。ready 残留交给下轮定时器空包路径清理
 							// （loadSchemas 抛 not found → renameDistributes 挪走），不走失败清理。
 							logger.error("install success but delete ready fail", ex);
@@ -978,7 +977,6 @@ public class HotManager extends ClassLoader {
 	private static void tryReady(HashSet<String> foundJars, String jarFileName, HashSet<String> readies) {
 		try {
 			final var fileName = jarFileName.substring(0, jarFileName.indexOf(".jar"));
-			//System.out.println("tryInstall " + fileName);
 
 			if (fileName.endsWith(".interface")) {
 				var namespace = fileName.substring(0, fileName.indexOf(".interface"));
@@ -1003,12 +1001,10 @@ public class HotManager extends ClassLoader {
 	private void loadExistDistributes(HashSet<String> foundJars, HashSet<String> readies) {
 		var files = new File(distributeDir).listFiles();
 		if (null == files) {
-			// System.out.println("is null.");
 			return;
 		}
 
 		for (var file : files) {
-			// System.out.println(file + " " + file.isDirectory());
 			if (file.isDirectory())
 				continue; // 不支持子目录。
 

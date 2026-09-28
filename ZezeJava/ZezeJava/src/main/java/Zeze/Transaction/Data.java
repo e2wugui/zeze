@@ -5,6 +5,7 @@ import Zeze.Util.Str;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
+/** Bean 的纯数据形态：与 Bean 可互转（toBean/assign），用于脱离事务的快照拷贝与传输。 */
 public abstract class Data implements Serializable, Cloneable {
 	// 必须兼容旧的Bean，
 	@Override

@@ -155,7 +155,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 
 	@Override
 	public void close() throws IOException {
-		// FND7-48：与其余公开方法一致持自身锁，保证持锁读（fillBuffer→channel.read）期间
+		// 与其余公开方法一致持自身锁，保证持锁读（fillBuffer→channel.read）期间
 		// 文件状态稳定——并发close会使持锁读抛ClosedChannelException且buffer未消费数据作废。
 		lock();
 		try {

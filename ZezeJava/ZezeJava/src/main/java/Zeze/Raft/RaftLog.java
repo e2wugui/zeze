@@ -7,6 +7,9 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Action2;
 
+/**
+ * Raft 日志条目：term+index 定位，内嵌应用 Log 与 leader 侧回调。
+ */
 public final class RaftLog implements Serializable {
 	private long term;
 	private long index;

@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 单点 GlobalCacheManager 的代理实现：管理多个 Agent 连接，分发 acquire/reduce 并汇总停机。 */
 public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 	private static final @NotNull Logger logger = LogManager.getLogger(GlobalAgent.class);
 
@@ -209,11 +210,6 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 			trans.throwAbort("Acquire Failed", e);
 			// never run here
 		}
-		/*
-		if (rpc.ResultCode != 0) { // 这个用来跟踪调试，正常流程使用Result.State检查结果。
-			logger.warn("Acquire ResultCode={} {}", rpc.ResultCode, rpc.Result);
-		}
-		*/
 		if (!rpc.isTimeout())
 			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
 

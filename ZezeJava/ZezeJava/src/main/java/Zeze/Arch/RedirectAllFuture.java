@@ -12,6 +12,9 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * RedirectAll 的结果回调句柄：onResult 逐 hash 回调，onAllDone 完成回调，await 同步等待。
+ */
 public interface RedirectAllFuture<R extends RedirectResult> {
 	// 返回的future不能调用下面的接口方法,只用于给框架提供结果
 	static <R extends RedirectResult> @NotNull RedirectAllFuture<R> result(R r) {
@@ -53,6 +56,7 @@ public interface RedirectAllFuture<R extends RedirectResult> {
 	}
 }
 
+/** 已完成的 RedirectAllFuture：仅包装既有结果，供 RedirectAllFuture.result 静态工厂返回。 */
 final class RedirectAllFutureFinished<R extends RedirectResult> implements RedirectAllFuture<R> {
 	private final R result;
 
@@ -65,6 +69,7 @@ final class RedirectAllFutureFinished<R extends RedirectResult> implements Redir
 	}
 }
 
+/** async() 的单结果实现：结果与回调经 VarHandle 原子交换，先到的一方暂存，后到的一方立即执行。 */
 final class RedirectAllFutureAsync<R extends RedirectResult> implements RedirectAllFuture<R> {
 	private static final @NotNull VarHandle RESULT;
 
@@ -108,6 +113,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 	}
 }
 
+/** RedirectAll 返回的 future 实现：按 hash 去重地回调 onResult，全部完成后回调 onAllDone，并支持 await 同步等待。 */
 final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock implements RedirectAllFuture<R> {
 	private static final @NotNull VarHandle ON_ALL_DONE;
 
@@ -263,9 +269,9 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 			if ((c = ctx) == null || !c.isCompleted() || !ON_ALL_DONE.compareAndSet(this, onAllDone, null)) // 再次确认,避免并发窗口问题
 				return this;
 		}
-		// FND8-81：isCompleted()为真不等于写入结束（processResult越过完成阈值后仍在put，
-		// 或isTimeout置位而迟到结果仍在写），回调遍历hashResults须持ctx锁——与onRemoved→
-		// allDone锁内跑回调先例对齐；ctx锁可重入，锁序保持既有ctx→future。
+		// isCompleted()为真不等于写入结束（processResult越过完成阈值后仍在put，
+		// 或isTimeout置位而迟到结果仍在写），回调遍历hashResults须持ctx锁——与
+		// onRemoved→allDone锁内跑回调先例对齐；ctx锁可重入，锁序保持既有ctx→future。
 		c.lock();
 		try {
 			var zeze = c.getService().getZeze();
@@ -296,7 +302,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	public @NotNull RedirectAllFuture<R> await() {
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
-			// FND-A1-9：onResult回调在ctx锁内同步执行（生产者路径processResult持ctx锁调用result，
+			// onResult回调在ctx锁内同步执行（生产者路径processResult持ctx锁调用result，
 			// 迟注册扫描路径同样在ctx锁内跑回调），此处挂起等待同一ctx只释放future自己的锁，
 			// ctx锁仍被本线程持有，后续processResult/onRemoved全部阻塞，future永不完成。
 			// future完成必经ctx锁，“当前线程持有该ctx锁”即是死锁充要条件（嵌套回调下同样成立），

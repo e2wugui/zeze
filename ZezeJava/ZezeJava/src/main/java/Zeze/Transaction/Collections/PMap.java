@@ -12,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
+/** 事务 Map 基类：基于 pcollections 持久化映射的 Map 视图，托管下的修改经 LogMap 记账。 */
 public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterable<Map.Entry<K, V>> {
 	@NotNull org.pcollections.PMap<K, V> map = Empty.map();
 

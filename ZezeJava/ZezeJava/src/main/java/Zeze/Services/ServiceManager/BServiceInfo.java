@@ -7,6 +7,9 @@ import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 服务信息bean：服务名+identity（equals/key语义）、版本、被动地址与扩展信息。
+ */
 public final class BServiceInfo implements Serializable, Comparable<BServiceInfo> {
 	/**
 	 * 服务名，比如"GameServer"

@@ -4,6 +4,7 @@ import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 
+/** AllocateId128协议：Id128UdpClient/Server间经UDP申请Id128号段的编解码载体。 */
 public final class AllocateId128 extends Rpc<BAllocateId128Argument, BAllocateId128Result> {
 	public static final int ProtocolId_ = Bean.hash32(AllocateId128.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;

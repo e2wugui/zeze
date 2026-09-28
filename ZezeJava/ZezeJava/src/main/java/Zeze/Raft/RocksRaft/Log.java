@@ -7,6 +7,9 @@ import Zeze.Serialize.Serializable;
 import Zeze.Util.LongConcurrentHashMap;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * RocksRaft 修改日志基类：归属 Bean 与 variableId 定位修改点，按 typeId 注册工厂解码。
+ */
 public abstract class Log implements Serializable {
 	private static final LongConcurrentHashMap<Supplier<Log>> factorys = new LongConcurrentHashMap<>();
 

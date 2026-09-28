@@ -19,6 +19,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 检查点：按模式（Immediately/Table）把脏记录集（RelativeRecordSet）成批落库，
+ * 协调多数据库事务与本地 Rocks 镜像的最终持久化，并管理检查点线程的启停与终检点。
+ */
 public final class Checkpoint {
 	static final @NotNull Logger logger = LogManager.getLogger(Checkpoint.class);
 
@@ -26,19 +30,16 @@ public final class Checkpoint {
 	private final @NotNull CheckpointMode mode;
 	private final @NotNull Thread checkpointThread;
 	private final ArrayList<Database> databases = new ArrayList<>();
-	//private final ReentrantReadWriteLock flushReadWriteLock = new ReentrantReadWriteLock();
 	private final FastLock lock = new FastLock();
 	private final Condition cond = lock.newCondition();
 	private int period;
 	private volatile boolean isRunning;
-	//private ArrayList<Runnable> actionCurrent;
-	//private volatile @NotNull ArrayList<Runnable> actionPending = new ArrayList<>();
 	final ConcurrentHashSet<RelativeRecordSet> relativeRecordSetMap = new ConcurrentHashSet<>();
 
-	// R3-X①：在飞flush计数（锁内inc/dec）——Application.stop在终检点后、LocalRocksCacheDb.close前
-	// 有界等待它归零。FND7-54的停机拒绝只拦"新提交"，不等待已过门的在飞flush（Immediately模式
+	// 在飞flush计数（锁内inc/dec）——Application.stop在终检点后、LocalRocksCacheDb.close前
+	// 有界等待它归零。停机拒绝只拦"新提交"，不等待已过门的在飞flush（Immediately模式
 	// 业务线程的checkpoint.flush、Reduce降级flush、checkpointRun的runOnce）：它们已打开
-	// LocalRocksCacheDb事务，与close/deleteDirectory并发是native UAF类（对齐ad5801593的教训）。
+	// LocalRocksCacheDb事务，与close/deleteDirectory并发是native UAF类。
 	// monitor只在计数增减与等待处短暂持有，flush体内不持有——与rrs锁、Application锁无嵌套。
 	private final @NotNull Object activeFlushMonitor = new Object();
 	private int activeFlush; // guarded by activeFlushMonitor
@@ -66,18 +67,6 @@ public final class Checkpoint {
 	public @NotNull CheckpointMode getCheckpointMode() {
 		return mode;
 	}
-
-	/*
-	public void enterFlushReadLock() {
-		if (mode == CheckpointMode.Period)
-			flushReadWriteLock.readLock().lock();
-	}
-
-	public void exitFlushReadLock() {
-		if (mode == CheckpointMode.Period)
-			flushReadWriteLock.readLock().unlock();
-	}
-	*/
 
 	public @NotNull Checkpoint add(@NotNull Iterable<Database> databases) {
 		for (var db : databases) {
@@ -117,9 +106,9 @@ public final class Checkpoint {
 	}
 
 	/**
-	 * R3-X①（FND7-56边界收窄）：有界忽略中断地join检查点线程——stopAndJoin的join被中断
+	 * 有界忽略中断地join检查点线程——stopAndJoin的join被中断
 	 * （forceThrow）时线程仍存活（可能正要进入final flush），调用方继续关库会与它并发
-	 * （ad5801593的close与数据通路并发native UAF类）。中断只恢复标志，join持续到deadline。
+	 * （close与数据通路并发属native UAF类）。中断只恢复标志，join持续到deadline。
 	 *
 	 * @param timeoutMillis 最长等待毫秒数，超时记error返回（调用方自行决定是否继续）
 	 */
@@ -146,7 +135,7 @@ public final class Checkpoint {
 	}
 
 	/**
-	 * R3-X①：有界等待在飞flush归零（{@link #flush(Iterable, Set, History)}入口inc、finally dec）。
+	 * 有界等待在飞flush归零（{@link #flush(Iterable, Set, History)}入口inc、finally dec）。
 	 * 停机序列在终检点后、LocalRocksCacheDb.close前调用，超时返回false由调用方告警继续。
 	 * 中断只恢复标志不提前返回：等待本身已有deadline兜底。
 	 */
@@ -179,12 +168,6 @@ public final class Checkpoint {
 		case Immediately:
 			break;
 
-//		case Period:
-//			final TaskCompletionSource<Integer> source = new TaskCompletionSource<>();
-//			addActionAndPulse(() -> source.setResult(0));
-//			source.await();
-//			break;
-
 		case Table:
 			RelativeRecordSet.flushWhenCheckpoint(this);
 			break;
@@ -197,9 +180,9 @@ public final class Checkpoint {
 		while (isRunning) {
 			try {
 				// 先等后刷：首轮同样受period保护。start()启动的本线程在负载下可能被延迟调度，
-				// 若立即执行首轮flush，会在任意时刻"补跑"一轮（TestFlushUnitIsolation.walkMemory
-				// 曾因此约50%失败：被延迟的首轮把已提交未断言的内存值提前刷进镜像，锁忙回退镜像
-				// 读到新值）。启动时relativeRecordSetMap通常为空，延迟首轮无实际影响。
+				// 若立即执行首轮flush，会在任意时刻"补跑"一轮——被延迟的首轮把已提交未断言的
+				// 内存值提前刷进镜像，锁忙回退镜像读到新值（TestFlushUnitIsolation.walkMemory
+				// 因此约50%失败）。启动时relativeRecordSetMap通常为空，延迟首轮无实际影响。
 				lock.lock();
 				try {
 					//noinspection ResultOfMethodCallIgnored
@@ -211,19 +194,6 @@ public final class Checkpoint {
 					break; // stopAndJoin的signal唤醒：flush交给循环外的final checkpoint。
 				//noinspection SwitchStatementWithTooFewBranches
 				switch (mode) {
-//				case Period:
-//					checkpointPeriod();
-//					for (var action : actionCurrent)
-//						action.run();
-//					lock.lock();
-//					try {
-//						if (!actionPending.isEmpty())
-//							continue; // 如果有未决的任务，马上开始下一次 DoCheckpoint。
-//					} finally {
-//						lock.unlock();
-//					}
-//					break;
-
 				case Table:
 					RelativeRecordSet.flushWhenCheckpoint(this);
 					break;
@@ -239,12 +209,8 @@ public final class Checkpoint {
 		logger.info("final checkpoint start.");
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (mode) {
-//		case Period:
-//			checkpointPeriod();
-//			break;
-
 		case Table:
-			// FND7-54：终检点补轮——停机拒绝生效前已过检查的在途提交可能在终检点轮次进行中
+			// 终检点补轮——停机拒绝生效前已过检查的在途提交可能在终检点轮次进行中
 			// 或之后才注册rrs（_lock_等锁醒来），flush后map仍非空时补轮收敛迟到的脏集；
 			// 必须有界：flush失败的单元保留在map中，不设界会无限重试。
 			for (int round = 0; round < 3; ++round) {
@@ -257,104 +223,6 @@ public final class Checkpoint {
 		logger.info("final checkpoint end.");
 	}
 
-	/**
-	 * 增加 checkpoint 完成一次以后执行的动作，每次 FlushReadWriteLock.EnterWriteLock()
-	 * 之前的动作在本次checkpoint完成时执行，之后的动作在下一次DoCheckpoint后执行。
-	 */
-//	public void addActionAndPulse(@NotNull Runnable action) {
-//		final var r = flushReadWriteLock.readLock();
-//		r.lock();
-//		try {
-//			lock.lock();
-//			try {
-//				actionPending.add(action);
-//				cond.signal();
-//			} finally {
-//				lock.unlock();
-//			}
-//		} finally {
-//			r.unlock();
-//		}
-//	}
-
-	/*
-	private void checkpointPeriod() {
-		logger.info("CheckpointPeriod({}) begin", zeze.getConfig().getServerId());
-		long time0 = System.nanoTime();
-		// encodeN
-		for (var db : databases)
-			db.encodeN();
-		long time1 = System.nanoTime();
-		// snapshot
-		final var w = flushReadWriteLock.writeLock();
-		w.lock();
-		try {
-			actionCurrent = actionPending;
-			actionPending = new ArrayList<>();
-			for (var db : databases)
-				db.snapshot();
-		} finally {
-			w.unlock();
-		}
-		long time2 = System.nanoTime(), time3 = time2, time4 = time2;
-		// flush
-		var dts = new HashMap<Database, Database.Transaction>();
-		Database.Transaction localCacheTransaction = zeze.getLocalRocksCacheDb().beginTransaction();
-		try {
-			for (var db : databases)
-				dts.computeIfAbsent(db, Database::beginTransaction);
-			for (var db : databases)
-				db.flush(dts.get(db), dts, localCacheTransaction);
-			time3 = System.nanoTime();
-			for (var v : dts.values())
-				v.commit();
-			localCacheTransaction.commit();
-			time4 = System.nanoTime();
-			// cleanup
-			try {
-				for (var db : databases)
-					db.cleanup();
-			} catch (Throwable e) { // halt
-				logger.fatal("CheckpointPeriod Cleanup Exception", e);
-				LogManager.shutdown();
-				Runtime.getRuntime().halt(54321);
-			}
-		} catch (Throwable e) { // rethrow
-			for (var t : dts.values()) {
-				try {
-					t.rollback();
-				} catch (Throwable ex) { // logger.error
-					logger.error("CheckpointPeriod Rollback Exception", ex);
-				}
-			}
-			try {
-				localCacheTransaction.rollback();
-			} catch (Throwable ex) { // logger.error
-				logger.error("CheckpointPeriod Rollback Exception", ex);
-			}
-			throw e;
-		} finally {
-			for (var t : dts.values()) {
-				try {
-					t.close();
-				} catch (Throwable ex) { // logger.error
-					logger.error("CheckpointPeriod close Exception transaction={}", t, ex);
-				}
-			}
-			try {
-				localCacheTransaction.close();
-			} catch (Throwable ex) { // logger.error
-				logger.error("CheckpointPeriod close Exception transaction={}", localCacheTransaction, ex);
-			}
-			logger.info("CheckpointPeriod({}) end ({}+{}+{}+{} = {} ms)", zeze.getConfig().getServerId(),
-					(time1 - time0) / 1_000_000,
-					(time2 - time1) / 1_000_000,
-					(time3 - time2) / 1_000_000,
-					(time4 - time3) / 1_000_000,
-					(System.nanoTime() - time0) / 1_000_000);
-		}
-	}
-	*/
 	public void flush(@NotNull Transaction trans, @Nullable OnzProcedure onzProcedure, @Nullable History history) {
 		var records = new ArrayList<Record>(trans.getAccessedRecords().size());
 		for (var ar : trans.getAccessedRecords().values()) {
@@ -375,7 +243,7 @@ public final class Checkpoint {
 
 	public void flush(@NotNull Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
 					  @Nullable History history) {
-		// R3-X①：在飞计数从首个数据库触碰（LocalRocksCacheDb.beginTransaction）前开始，
+		// 在飞计数从首个数据库触碰（LocalRocksCacheDb.beginTransaction）前开始，
 		// 覆盖整个落库过程——stop的waitNoActiveFlush据此等待后才能close/delete目录。
 		synchronized (activeFlushMonitor) {
 			++activeFlush;
@@ -436,7 +304,7 @@ public final class Checkpoint {
 				t.commit();
 			localCacheTransaction.commit();
 			if (history != null)
-				history.commitDone(); // tHistory 行已持久化才清容器；失败回滚后保留，重试幂等重写（FND3-51）
+				history.commitDone(); // tHistory 行已持久化才清容器；失败回滚后保留，重试幂等重写
 			try {
 				// 清除编码状态
 				for (var r : rs)

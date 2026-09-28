@@ -32,6 +32,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Provider 协议实现基类：处理客户端协议的 Dispatch 派发、过载熔断应答与 Kick 发送。
+ */
 public abstract class ProviderImplement extends AbstractProviderImplement {
 	protected static final @NotNull Logger logger = LogManager.getLogger(ProviderImplement.class);
 	private static final ThreadLocal<Dispatch> localDispatch = new ThreadLocal<>();
@@ -133,12 +136,11 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				if (overload == BLoad.eThreshold && factoryHandle.CriticalLevel == Protocol.eSheddable ||
 					overload == BLoad.eOverload && factoryHandle.CriticalLevel != Protocol.eCriticalPlus) {
 					var pdata = arg.getProtocolData();
-					// FND2-A1-8：protocolData是Dispatch透传的客户端可控字节，长度任意。rpc帧布局为
-					// UInt(header)+[Long(resultCode)]+Long(sessionId)（见Rpc.encode）。ReadUInt/SkipLong/
-					// ReadLong都是变长编码（各最多9字节，首字节决定），数字长度门卫不闭合
-					// （07f37f196镜像a26aa9845的>=4/>=16/8，对首字节>=0xf0的构造包仍会越界抛
-					// 异常），故整体try/catch：畸形帧跳过Busy应答（过载本就丢弃该协议），
-					// 解析异常不再刷oneByOne池线程错误日志。
+					// protocolData是Dispatch透传的客户端可控字节，长度任意。rpc帧布局为
+						// UInt(header)+[Long(resultCode)]+Long(sessionId)（见Rpc.encode）。ReadUInt/SkipLong/
+						// ReadLong都是变长编码（各最多9字节，首字节决定），数字长度门卫不闭合
+						// （>=4/>=16/8的长度门卫对首字节>=0xf0的构造包仍会越界抛异常），故整体try/catch：
+						// 畸形帧跳过Busy应答（过载本就丢弃该协议），解析异常不再刷oneByOne池线程错误日志。
 					var sessionId = 0L;
 					var replyBusy = false;
 					try {
@@ -200,7 +202,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						p3.decode(ByteBuffer.Wrap(arg.getProtocolData()));
 						p3.setSender(sender);
 						p3.setUserState(session);
-						var isRpcResponse = !p3.isRequest(); // && p3 instanceof Rpc
+						var isRpcResponse = !p3.isRequest();
 						if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p3.getTypeId())
 							&& outProtocol.value == null) { // redo后不再输出日志
 							var roleId = session.getRoleId();
@@ -241,7 +243,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					roleId = -linkSid;
 				AsyncSocket.log("Recv", roleId, arg.getOnlineSetName(), p2);
 			}
-			var isRpcResponse = !p2.isRequest(); // && p2 instanceof Rpc
+			var isRpcResponse = !p2.isRequest();
 			if (txn != null) { // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
 				txn.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			} else // 应用框架不支持事务或者协议配置了"不需要事务”
@@ -273,7 +275,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var service = providerApp.providerService;
 		// 本方法随action在事务redo时整体重跑，会合消费（removeRpcContext）只能发生一次：
 		// 首轮解析并缓存到当前事务（含null判定），重试直接复用，与 Rpc.handle 同一约定。
-		// net-01（FND16）：会合前校验typeId一致+原连接绑定（见Rpc.removeRpcContextChecked）。
+		// 会合前校验typeId一致+原连接绑定（见Rpc.removeRpcContextChecked）。
 		var txn = Transaction.getCurrent();
 		Rpc<?, ?> context = txn != null
 			? txn.resolveOnce(service, res.getSessionId(),
@@ -293,7 +295,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			logger.info("AnnounceLinkInfo[{}]: {}",
 				protocol.getSender().getSessionId(), AsyncSocket.toStr(protocol.Argument));
 		}
-		// var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
 		return Procedure.Success;
 	}
 }

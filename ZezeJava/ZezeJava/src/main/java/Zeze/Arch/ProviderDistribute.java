@@ -74,9 +74,6 @@ public class ProviderDistribute extends ReentrantLock {
 												  int dataIndex, int dataConcurrentLevel) {
 		if (consistentHash == null)
 			return null;
-//		if (consistentHash.getNodes().size() > dataConcurrentLevel)
-//			throw new IllegalStateException("ChoiceDataIndex: too many servers: "
-//			+ consistentHash.getNodes().size() + " > " + dataConcurrentLevel);
 		var serviceInfo = consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
 		if (serviceInfo != null) {
 			var providerModuleState = (ProviderModuleState)providers.getLocalStates().get(
@@ -98,10 +95,10 @@ public class ProviderDistribute extends ReentrantLock {
 	public @Nullable BServiceInfo choiceHash(@NotNull Agent.SubscribeState providers, int hash,
 											 int dataConcurrentLevel) {
 		var consistentHash = consistentHashes.get(providers.getServiceName());
-		// FND-A1-4：订阅状态先于一致性哈希环构建可见（Agent同步更新serviceInfos，
+		// 订阅状态先于一致性哈希环构建可见（Agent同步更新serviceInfos，
 		// onChanged→applyOnChanged→addServer异步排队），窗口期内环可能尚未建好；此时
 		// 返回null与Request/Load/FeedFull路径的“未找到”语义一致：linkd侧choiceBindSend
-		// 走错误码→ReportError(NoProvider)通告客户端（自愈），不再抛IllegalStateException
+		// 走错误码→ReportError(NoProvider)通告客户端（自愈），而非抛IllegalStateException
 		// 落回TcpSocket读循环→doException→close断开无辜客户端连接。
 		if (consistentHash == null)
 			return null;
@@ -134,7 +131,6 @@ public class ProviderDistribute extends ReentrantLock {
 		if (clientAppVersion == 0) // 表示按以前的默认行为,不判断版本号
 			return true;
 		return (serverAppVersion >>> 48) == (clientAppVersion >>> 48); // 主版本必须一致
-		// && (serverAppVersion >>> 32) >= (clientAppVersion >>> 32); // 次版本不小于客户端次版本(因为ServiceManager暂时只支持管理主版本,没有其它版本号信息,所以先不考虑了)
 	}
 
 	public boolean choiceLoad(@NotNull Agent.SubscribeState providers, @NotNull OutLong provider) {
@@ -156,7 +152,6 @@ public class ProviderDistribute extends ReentrantLock {
 			if (providerModuleState == null) {
 				continue;
 			}
-			// Object tempVar2 = App.ProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
 			var s = providerService.GetSocket(providerModuleState.sessionId);
 			if (s == null)
 				continue;
@@ -222,7 +217,6 @@ public class ProviderDistribute extends ReentrantLock {
 			if (providerModuleState == null) {
 				continue;
 			}
-			// Object tempVar2 = App.ProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
 			var s = providerService.GetSocket(providerModuleState.sessionId);
 			if (s == null)
 				continue;
@@ -266,7 +260,7 @@ public class ProviderDistribute extends ReentrantLock {
 		return false;
 	}
 
-	// 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
+	// 查找时增加索引，和喂饱时增加索引，需要原子化。
 	public boolean choiceFeedFullOneByOne(@NotNull Agent.SubscribeState providers, @NotNull OutLong provider) {
 		lock();
 		try {

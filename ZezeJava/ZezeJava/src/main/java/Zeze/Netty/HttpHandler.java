@@ -5,6 +5,9 @@ import Zeze.Transaction.TransactionLevel;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * HTTP 路径处理器配置：事务级别/派发模式与请求、流式、WebSocket 回调的组合。
+ */
 public class HttpHandler {
 	public final int MaxContentLength; // HTTP请求的body长度限制(只限GET请求时可以限制0长度)以及WebSocket的上传帧长度限制, 只用于非流模式
 	public final @NotNull TransactionLevel Level; // 事务级别

@@ -8,6 +8,9 @@ import Zeze.Netty.HttpServer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 应用基类：管理模块表并定义 createZeze/createService/createModules 组装流程的扩展点。
+ */
 public abstract class AppBase extends ReentrantLock {
 	public abstract Application getZeze();
 
@@ -16,8 +19,7 @@ public abstract class AppBase extends ReentrantLock {
 		return GenModule.instance.createRedirectModules(this, moduleClasses);
 	}
 
-	// 历史上是 public 的。
-	// 先改成 protected 看看。
+	// protected（曾为public）：模块表由框架管理。
 	protected final ConcurrentHashMap<String, Zeze.IModule> modules = new ConcurrentHashMap<>();
 
 	public @NotNull ConcurrentMap<String, IModule> getModules() {
@@ -50,7 +52,7 @@ public abstract class AppBase extends ReentrantLock {
 	}
 
 	/**
-	 * 新增的接口。为了兼容，这里不抛出异常。
+	 * 兼容扩展点：默认空实现，不抛出异常。
 	 */
 	public void startLastModules() throws Exception {
 	}

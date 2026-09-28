@@ -7,6 +7,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * BigDecimal 落盘日志：序列化 decimal 字段的新值。
+ */
 public class LogDecimal extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.Log<decimal>");
 
@@ -30,7 +33,7 @@ public class LogDecimal extends Log {
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		// 不限精度，保持与 encode（全精度字符串）的双射（FND3-06）。
+		// 不限精度，保持与 encode（全精度字符串）的双射。
 		value = new BigDecimal(bb.ReadString());
 	}
 

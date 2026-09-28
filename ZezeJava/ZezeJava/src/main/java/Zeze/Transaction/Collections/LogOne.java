@@ -19,7 +19,7 @@ public class LogOne<V extends Bean> extends LogBean {
 
 	public LogOne(Bean belong, int varId, Bean self, @NotNull V value) {
 		super(belong, varId, self);
-		// 声明类优先（FND7-80）：装子类实例须按声明类建typeId，与读端注册对称
+		// 声明类优先：装子类实例须按声明类建typeId，与读端注册对称
 		// （Helper.dependsBean→registerLogOne）；宿主meta未提供时退回运行时类。
 		var hostMeta = self instanceof CollOne<?> collOne ? collOne.meta : null;
 		meta = hostMeta != null ? (LogOneMeta<V>)hostMeta : LogOneMeta.get((Class<V>)value.getClass());
@@ -67,13 +67,13 @@ public class LogOne<V extends Bean> extends LogBean {
 
 	@Override
 	public void commit() {
-		if (value != null) // value是否真的可以为null,目前没看到哪里可以让它为null
+		if (value != null)
 			((CollOne<V>)getThis()).value = value;
 	}
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		if (value != null) { // value是否真的可以为null,目前没看到哪里可以让它为null
+		if (value != null) {
 			bb.WriteBool(true);
 			value.encode(bb);
 		} else {

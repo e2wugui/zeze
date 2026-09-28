@@ -11,6 +11,7 @@ import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 
+/** PSet1 的变更日志：以 added/removed 两个增量集合记录事务内对持久化 Set 的修改。 */
 public class LogSet1<V> extends LogSet<V> {
 	protected final @NotNull Meta1<V> meta;
 	private final Set<V> added = new HashSet<>();
@@ -54,7 +55,7 @@ public class LogSet1<V> extends LogSet<V> {
 	public final boolean addAll(@NotNull Collection<? extends V> c) {
 		var old = getValue();
 		// MapPSet.plusAll恒新建包装（same-instance判定失效），逐项plus：单项无变化返回同一
-		// 实例，可正确判定"全已存在"（FND7-08）——无变化时不记账不置脏。
+		// 实例，可正确判定"全已存在"——无变化时不记账不置脏。
 		var newSet = old;
 		for (V v : c)
 			newSet = newSet.plus(v);
@@ -81,7 +82,7 @@ public class LogSet1<V> extends LogSet<V> {
 
 	public final boolean removeAll(@NotNull Collection<? extends V> c) {
 		var old = getValue();
-		// 同addAll：MapPSet.minusAll恒新建包装，逐项minus判定真实变化（FND7-08）。
+		// 同addAll：MapPSet.minusAll恒新建包装，逐项minus判定真实变化。
 		var newSet = old;
 		for (V v : c)
 			newSet = newSet.minus(v);
@@ -96,8 +97,6 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	public final void clear() {
-		//for (V v : getValue())
-		//	remove(v);
 		var exist = getValue();
 		added.removeAll(exist);
 		removed.addAll(exist);
@@ -151,14 +150,12 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	private void merge(@NotNull LogSet1<V> from) {
-		// add,remove 需要确认有没有顺序问题
-		// this: add 1,3 remove 2,4 nest: add 2 remove 1
 		for (V v : from.added) {
-			removed.remove(v); // replace 1,2,3 remove 4
+			removed.remove(v);
 			added.add(v);
 		}
 		for (V v : from.removed) {
-			added.remove(v); // replace 2,3 remove 1,4
+			added.remove(v);
 			removed.add(v);
 		}
 	}

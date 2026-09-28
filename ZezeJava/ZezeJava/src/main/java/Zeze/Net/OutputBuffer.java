@@ -8,7 +8,10 @@ import java.util.ArrayDeque;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-// 非线程安全,通常只能在selector线程调用
+/**
+ * 输出缓冲：暂存待发送数据并聚集写（gather write）到 channel。
+ * 非线程安全，通常只能在 selector 线程调用。
+ */
 public final class OutputBuffer implements Codec, Closeable {
 	private final @NotNull ByteBufferAllocator allocator;
 	private final ArrayDeque<ByteBuffer> buffers = new ArrayDeque<>();

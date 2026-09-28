@@ -3,6 +3,9 @@ package Zeze.Hot;
 import Zeze.Arch.Gen.GenModule;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 横向类装载代理：按模块优先把类装载请求转发给对应 HotModule，冷类走标准双亲委派。
+ */
 public class HotRedirect extends ClassLoader {
 	private final @NotNull HotManager manager;
 

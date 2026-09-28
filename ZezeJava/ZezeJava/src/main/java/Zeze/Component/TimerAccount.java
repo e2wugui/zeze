@@ -36,7 +36,6 @@ import org.jetbrains.annotations.Nullable;
  */
 public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	private static final @NotNull Logger logger = LogManager.getLogger(TimerAccount.class);
-	//public static final String eTimerHandleName = "Zeze.Component.TimerArchOnline.Handle";
 	public static final String eOnlineTimers = "Zeze.Component.TimerArchOnline";
 	public static final String eTransmitCronTimer = "Zeze.TimerAccount.TransmitCronTimer";
 	public static final String eTransmitSimpleTimer = "Zeze.TimerAccount.TransmitSimpleTimer";
@@ -495,8 +494,8 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		if (timerId == null)
 			return true;
 		var timer = online.providerApp.zeze.getTimer();
-		// 归属校验（FND4-42，对齐TimerRole.cancelOffline形态）：曾经无校验直接
-		// timer.cancel——传入任意timerId（SafeBatch看门狗、他人offline timer、
+		// 归属校验（对齐TimerRole.cancelOffline）：无校验直接timer.cancel时，
+		// 传入任意timerId（SafeBatch看门狗、他人offline timer、
 		// 全局命名timer）都会被越权取消，且恒返回true掩盖"是否真的取消"。
 		var index = timer.tIndexs().get(timerId);
 		if (index == null)
@@ -715,7 +714,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		return timerId;
 	}
 
-	// FND6-20：查timerId当前登记的账号offline timer归属，查表路径仿cancelOffline：
+	// 查timerId当前登记的账号offline timer归属，查表路径仿cancelOffline：
 	// 非本族timer返回null；本族返回customData，供调用方做族+归属判定。
 	private static @Nullable BOfflineAccountCustom getAccountOfflineCustom(@NotNull Timer timer, @NotNull String timerId) {
 		var index = timer.tIndexs().get(timerId);
@@ -737,11 +736,11 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		var zeze = online.providerApp.zeze;
 		var timer = zeze.getTimer();
 		if (timer.isOnlineTimerIdOccupied(timerId))
-			return false; // FND4-41：同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
+			return false; // 同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
 		var index = timer.tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
-		// FND6-20：族+归属判定——撞本server的命名timer时，非本族（全局/在线timer）cancel
+		// 族+归属判定——撞本server的命名timer时，非本族（全局/在线timer）cancel
 		// 恒false；本族异主（他账号遗留的同名offline timer）cancel因归属不符也恒false。
 		// 两者都会让随后scheduleOffline的_tIndexs.insert撞已存在键抛IAE中断调用方整个事务。
 		// 对齐签名契约直接返回false；仅本族同主放行，走下面cancel+重建。
@@ -764,7 +763,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	/// ///////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
 	public static class OfflineHandle implements TimerHandle {
-		// FND8-72：timer终止的每条路径（打完/回调异常/显式cancel）都经Timer.cancel的
+		// timer终止的每条路径（打完/回调异常/显式cancel）都经Timer.cancel的
 		// onTimerCancel钩子同步清簿记，与onLoginEvent一致，杜绝"index已删簿记残留"
 		// 使同名重调度putIfAbsent撞残留抛IllegalStateException。
 		@Override

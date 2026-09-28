@@ -4,6 +4,7 @@ import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
+/** KeepAlive协议：SM会话保活RPC，空参数空结果。 */
 public final class KeepAlive extends Rpc<EmptyBean, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(KeepAlive.class.getName()); // 1337189598
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1337189598

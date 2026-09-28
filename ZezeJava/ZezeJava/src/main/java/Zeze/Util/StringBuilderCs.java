@@ -3,6 +3,7 @@ package Zeze.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// C# 风格的 StringBuilder 便捷封装：appendLine/格式化 append 链式调用
 public class StringBuilderCs {
 	private final StringBuilder sb = new StringBuilder();
 

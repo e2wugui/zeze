@@ -23,8 +23,8 @@ public class Exporter {
 	private static final @NotNull Logger logger = LogManager.getLogger(Exporter.class);
 	private final AbstractAgent agent;
 	private final java.util.List<IExporter> exports = new ArrayList<>();
-	// 失败待补偿记账：按（导出器,服务名）二元组登记（FND8-68）——原全体eAll导出器共享
-	// 一个服务名集合，混合成败时（如NginxConfig磁盘满+NginxHttp正常）后位成功者无条件
+	// 失败待补偿记账：按（导出器,服务名）二元组登记——若全体eAll导出器共享
+	// 一个服务名集合，混合成败时（如NginxConfig磁盘满+NginxHttp正常）后位成功者会无条件
 	// remove洗掉前位失败者的记账，被洗的导出器进程内永不再补偿、配置无限期陈旧。
 	// 每个导出器只记自己欠的、只清自己还的；eEdit按整个BEditService导出（粒度非单服务，
 	// 二元组键不匹配），失败仅记日志、无补偿记账（现库唯一实现ExporterPrint无失败面）。
@@ -59,15 +59,15 @@ public class Exporter {
 						for (var e : edit.getAdd())
 							editNames.add(e.getServiceName());
 					}
-					// 每个导出器遍历"本次事件服务名 ∪ 自己的失败集"（FND8-68）：
+					// 每个导出器遍历"本次事件服务名 ∪ 自己的失败集"：
 					// 补偿只重导自己欠的，成败记账互不覆盖；已成功的导出器不重复补偿导出。
 					var epFailed = failedServices.computeIfAbsent(ep, k -> java.util.concurrent.ConcurrentHashMap.newKeySet());
 					var serviceSet = new HashSet<String>(editNames);
 					serviceSet.addAll(epFailed);
 					for (var serviceName : serviceSet) {
-						// 与退订竞态（FND4-61）：triggerOnChanged经executeOneByOne异步排队，期间
+						// 与退订竞态：triggerOnChanged经executeOneByOne异步排队，期间
 						// unSubscribeService已remove该服务的subscribeStates——跳过为正确语义（已不
-						// 关心）；原NPE被triggerOnChanged捕获记日志，同批其余服务的导出整体丢失。
+						// 关心）；直接解引用NPE只会被triggerOnChanged捕获记日志，同批其余服务的导出整体丢失。
 						var state = agent.getSubscribeStates().get(serviceName);
 						if (state == null) {
 							// 已退订（不再关心）：同步清除失败记账（所有导出器中该服务条目），
@@ -81,7 +81,7 @@ public class Exporter {
 							// 导出成功：解除本导出器的失败记账（remove幂等，未登记时无副作用）。
 							epFailed.remove(serviceName);
 						} catch (Exception e) {
-							// FND6-26：逐服务隔离——单服务导出失败记错继续，同批其余服务不受影响。
+							// 逐服务隔离——单服务导出失败记错继续，同批其余服务不受影响。
 							logger.error("exportAll fail. exporter={}, service={}", ep.getClass().getName(), serviceName, e);
 							// 失败记账：首次登记（add返回true）记warn说明补偿机制；
 							// 之后任一后续事件都会带上该服务自动重导。
@@ -100,9 +100,9 @@ public class Exporter {
 					break;
 				}
 			} catch (Exception e) {
-				// FND6-26：逐exporter隔离——原任一exporter抛异常（文件IO失败、Runtime.exec失败等）
-				// 中断整个onEdit，同批其余exporter与其余服务的导出全部跳过且无重试，nginx配置
-				// 持续陈旧直到下一事件。FND4-61只修了state==null的NPE特例，未覆盖一般异常。
+			// 逐exporter隔离——任一exporter抛异常（文件IO失败、Runtime.exec失败等）若
+			// 中断整个onEdit，同批其余exporter与其余服务的导出全部跳过且无重试，nginx配置
+			// 持续陈旧直到下一事件。
 				logger.error("export fail. exporter={}", ep.getClass().getName(), e);
 				// 中断卫生：恢复中断标志，避免吞掉one-by-one worker的中断状态。
 				//noinspection ConstantValue
@@ -137,8 +137,8 @@ public class Exporter {
 			exports.add(new ExporterPrint(null));
 			break;
 		default:
-			// FND4-62：未知导出器名（拼写错误等）原静默忽略——部署配置错误零反馈。fail-fast
-			// 启动失败并提示合法值。
+			// 未知导出器名（拼写错误等）静默忽略会让部署配置错误零反馈——
+			// fail-fast启动失败并提示合法值。
 			throw new IllegalArgumentException("unknown exporter '" + name + "', valid: NginxConfig | NginxHttp | Print");
 		}
 	}
@@ -150,7 +150,7 @@ public class Exporter {
 		agent.subscribeServices(sub);
 	}
 
-	// SM1-F4：命令行边界统一为既有错误形态（Usage+IllegalArgumentException）。原三处背离：
+	// 命令行边界统一为既有错误形态（Usage+IllegalArgumentException）。三处边界：
 	// 1) -e为末尾token时args[++i]抛AIOOBE；2) -private为末尾token时peek通过但i+=2越界；
 	// 3) -private后紧跟顶层开关（如"-private -s Bar"）把开关吞为参数值。抽出为可测的静态方法。
 	static void parseArgs(@NotNull String @NotNull [] args, @NotNull Properties shared,

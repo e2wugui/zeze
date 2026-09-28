@@ -12,6 +12,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 服务端 websocket 连接（基于 HttpExchange 的 AsyncSocket 适配）。
+ */
 public class Websocket extends AsyncSocket {
 	private static final @NotNull Logger logger = LogManager.getLogger(Websocket.class);
 
@@ -66,7 +69,7 @@ public class Websocket extends AsyncSocket {
 	}
 
 	void processInput(ByteBuf buf) throws Exception {
-		setActiveRecvTime(); // FND7-63：维护活跃时间，checkKeepAlive才能回收静默死链
+		setActiveRecvTime(); // 维护活跃时间，checkKeepAlive才能回收静默死链
 		int n = buf.readableBytes();
 		super.recvCount++;
 		super.recvSize += n;
@@ -76,7 +79,7 @@ public class Websocket extends AsyncSocket {
 			input.WriteIndex += n;
 			getService().OnSocketProcessInputBuffer(this, input);
 		} catch (Exception e) {
-			// N3-F1：解码异常对齐TcpSocket（异常上抛→doException→close）断连语义。
+			// 解码异常对齐TcpSocket（异常上抛→doException→close）断连语义。
 			// 不关闭则连接存活、后续帧继续注入，且抛出路径跳过Compact——input无界增长，
 			// 远程可触发无界内存增长。
 			close(e);
@@ -96,8 +99,8 @@ public class Websocket extends AsyncSocket {
 		} finally {
 			lock.unlock();
 		}
-		// N3-F2：发送堆积上限——OutputBufferMaxSize此前对websocket服务端连接失效（checkOverflow
-		// 唯一调用方是TcpSocket.Send），慢速客户端下outbound缓冲无界积压可OOM。以channel级在途
+		// 发送堆积上限——websocket服务端连接不走TcpSocket.Send（checkOverflow原来唯一
+		// 的调用方），慢速客户端下outbound缓冲无界积压可OOM。以channel级在途
 		// 字节（totalPendingWriteBytes，HttpServer背压日志同口径）+本帧为newSize做同款上限检查，
 		// 超限返回false（与TcpSocket.Send语义对齐，调用方按发送失败感知）。
 		var outBuf = x.channel().unsafe().outboundBuffer();
@@ -113,7 +116,7 @@ public class Websocket extends AsyncSocket {
 		// 在EventLoop上调用时future同步完成,失败立即close并返回false,调用方(Protocol/Rpc.Send)
 		// 能感知发送失败;非EventLoop线程调用时future异步完成,挂listener失败同样close,
 		// 不再静默丢帧。close的markClosed置死保证OnSocketClose等清理恰好一次。
-		setActiveSendTime(); // FND7-63：维护活跃时间（发送已被接受进入发送管线）
+		setActiveSendTime(); // 维护活跃时间（发送已被接受进入发送管线）
 		var cf = x.sendWebSocket(bytes, offset, length);
 		if (cf.isDone()) {
 			var cause = cf.cause();

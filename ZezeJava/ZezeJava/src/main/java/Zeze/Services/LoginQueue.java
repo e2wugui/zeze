@@ -22,6 +22,9 @@ import static Zeze.Util.Args.requireBool;
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
+/**
+ * 登录排队服务：把瞬时过量的登录连接排队，按provider/link负载与令牌节流分配登录令牌。
+ */
 public class LoginQueue extends AbstractLoginQueue {
 	/**
 	 * 网络服务类 Acceptor
@@ -47,11 +50,10 @@ public class LoginQueue extends AbstractLoginQueue {
 
 	private final LoginQueueServer server;
 	private final ConcurrentLinkedQueue<AsyncSocket> queue = new ConcurrentLinkedQueue<>();
-	// 私有锁: 串行化tryOnAccept/drainQueue/tryResetTimeThrottle;取代原先共用的this监视器,不暴露实例监视器
+	// 私有锁: 串行化tryOnAccept/drainQueue/tryResetTimeThrottle，不暴露实例监视器
 	private final ReentrantLock allocateLock = new ReentrantLock();
-	// FND7-21的组件化：分配tick的start/stop配对、stop限时等待在飞一轮、restart重新武装
-	// 均由DaemonTimer内聚（关门标志+running标志+awaitIdle三件套不再手抄）。tick只做派发，
-	// drainQueue+万级广播搬入worker池执行，不再占用调度线程（FND7-17同款卫生）。
+	// DaemonTimer内聚分配tick的start/stop配对、stop限时等待在飞一轮、restart重新武装。
+	// tick只做派发，drainQueue+万级广播搬入worker池执行，不占用调度线程。
 	private final DaemonTimer allocateDaemon = new DaemonTimer("LoginQueue.allocate", 1000, this::allocateTimer);
 	private int broadcastCount;
 	private final int maxOnlineNew;
@@ -94,11 +96,11 @@ public class LoginQueue extends AbstractLoginQueue {
 	public void start() throws Exception {
 		server.getService().start();
 		service.start();
-		allocateDaemon.start(); // FND7-21：tick随start/stop配对，幂等，stop后restart由组件重新武装
+		allocateDaemon.start(); // tick随start/stop配对，幂等，stop后restart由组件重新武装
 		allocateLock.lock();
 		try {
 			// timeThrottle重置：stop关闭了旧实例（内部timer已cancel、计数永不清零），且
-			// provider全部掉线时曾被tryResetTimeThrottle重建为limit=0的实例——不重置则
+			// provider全部掉线时tryResetTimeThrottle会重建limit=0的实例——不重置则
 			// restart后直到provider重新上报前checkNow恒false，直通分配也被禁。
 			// 重置回首次start的默认状态。
 			var old = timeThrottle;
@@ -113,7 +115,7 @@ public class LoginQueue extends AbstractLoginQueue {
 	public void stop() throws Exception {
 		// 组件内聚两段式：关门→cancel已排期→限时等待在飞一轮（drainQueue持allocateLock，
 		// 此处不持锁调用）。cancel对象为普通JDK ScheduledFuture，不经TimerFuture锁——
-		// 原"cancel必须出锁（复审R2）"的调用纪律就此变成结构属性，无ABBA可能。
+		// "cancel必须出锁"的调用纪律由结构保证，无ABBA可能。
 		allocateDaemon.stop();
 		server.getService().stop();
 		service.stop();

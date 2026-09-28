@@ -456,10 +456,6 @@ public class Schemas implements Serializable {
 		@Override
 		public boolean isCompatible(@NotNull String parent, @Nullable Type other, @NotNull Context context,
 									@Nullable Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
-//			if (name.endsWith(".BTestSchemas")) {
-//				logger.info("break");
-//			}
-//
 			if (compatibleChecked)
 				return true;
 
@@ -590,14 +586,9 @@ public class Schemas implements Serializable {
 										   @NotNull ArrayList<Column> columns,
 										   @NotNull DatabaseRelationalMapping mapping) {
 			for (var e : variables.entrySet()) {
-				// var key = e.getKey();
 				var value = e.getValue();
 				varNames.add(value.name);
 				varIds.add(value.id);
-//				if (value.type.key != null || value.type.value != null) // is collection or map
-//					// 实际上单独判断了也不需要特别处理。先明确写一下。
-//					value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns);
-//				else
 				value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns, mapping);
 				varIds.removeLast();
 				varNames.removeLast();
@@ -853,7 +844,7 @@ public class Schemas implements Serializable {
 			n.valueName = value;
 		}
 		basicTypes.put(fullTypeName, n);
-		n.compile(this); // 容器需要编译。这里的时机不是太好。
+		n.compile(this); // 容器需要编译。
 		return n;
 	}
 
@@ -866,8 +857,6 @@ public class Schemas implements Serializable {
 		if (tables.put(table.name, table) != null)
 			throw new IllegalStateException("AddTable duplicate=" + table.name);
 	}
-
-	//public transient final HashMap<String, RelationalTable> relationalTables = new HashMap<>();
 
 	public static class Column {
 		public final @NotNull String name;
@@ -1022,22 +1011,9 @@ public class Schemas implements Serializable {
 		}
 	}
 
-	// 根据新旧Schemas.Table信息，新建Schemas.RelationalTable。
-	/*
-	public Schemas.RelationalTable diffRelationalTable(Schemas.RelationalTable cur) {
-		var other = tables.get(cur.tableName);
-		if (other != null) {
-			other.buildRelationalColumns(cur.previous);
-			cur.diff();
-		}
-		return cur;
-	}
-	*/
-
 	public static @NotNull RelationalTable newRelationalTable(@NotNull DatabaseRelationalMapping mapping, @NotNull Table cur, @Nullable Table other) {
 		var relational = new RelationalTable(cur.name);
 		relational.currentKeyColumns = cur.buildRelationalColumns(relational.current, mapping);
-		//System.out.println(relational.createTableSql());
 
 		// build other. prepare to alter.
 		// is null if new table
@@ -1060,19 +1036,4 @@ public class Schemas implements Serializable {
 		}
 		return null;
 	}
-
-	// 构建整个应用的需要关系映射的表。
-//	public void buildRelationalTables(@NotNull Application zeze, @Nullable Schemas other) {
-//		for (var db : zeze.getDatabases().values()) {
-//			for (var table : db.getTables()) {
-//				if (table.isRelationalMapping()) {
-//					var relational = newRelationalTable(
-//							tables.get(table.getName()),
-//							other != null ? other.tables.get(table.getName()) : null);
-//					relationalTables.put(table.getName(), relational);
-//				}
-//			}
-//		}
-//		//logger.info("relationalTables: {}", relationalTables);
-//	}
 }

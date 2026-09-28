@@ -15,6 +15,7 @@ import org.apache.logging.log4j.message.ParameterizedMessageFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 字符串工具集：格式化、缩进、字符集查找、大小/版本号解析与 {var} 模板展开
 public final class Str {
 	public static final ParameterizedMessageFactory Formatter = new ParameterizedMessageFactory();
 	public static final int INDENT_MAX = 64;
@@ -169,7 +170,7 @@ public final class Str {
 			if (num instanceof Long || num instanceof Integer)
 				return Math.multiplyExact(num.longValue(), scale);
 		} catch (NumberFormatException e) {
-			// FND6-05：空数字串（空值/纯单位配置）按数字格式错误直通，与本方法非法字符路径
+			// 空数字串（空值/纯单位配置）按数字格式错误直通，与本方法非法字符路径
 			// 的异常类型一致；不伪装成溢出。
 			throw new NumberFormatException("invalid number '" + s + "'");
 		} catch (Exception e) {
@@ -185,7 +186,7 @@ public final class Str {
 		return (long)v;
 	}
 
-	// FND7-53：单位字符之后仅允许间隔符到串尾，否则"1e3"按1E、"10Mx"按10M被静默接受
+	// 单位字符之后仅允许间隔符到串尾，否则"1e3"按1E、"10Mx"按10M被静默接受
 	// ——与本方法对单位前非法字符的fail-fast语义自相矛盾，畸形配置无告警进入内存分配。
 	private static void checkUnitTail(@NotNull String s, int unitIndex) {
 		for (int i = unitIndex + 1, n = s.length(); i < n; i++) {
@@ -196,9 +197,8 @@ public final class Str {
 			//@formatter:on
 				continue; // 允许用的间隔符
 			default:
-				// R3-U2（B）：用户既有部署配置的双字母单位习惯（redis的100mb、SI的64KB）从静默
-				// 按单字符接受变为启动fail-fast——消息自带等效合法写法（截到单位字符为止），
-				// 迁移零思考成本。
+				// 用户既有部署配置的双字母单位习惯（redis的100mb、SI的64KB）不被接受，
+				// 启动fail-fast——消息自带等效合法写法（截到单位字符为止），迁移零思考成本。
 				throw new NumberFormatException("invalid char '" + c + "' after unit in '" + s
 						+ "' (unit is a single letter, size ends at it: '" + s.substring(0, unitIndex + 1) + "')");
 			}
@@ -216,8 +216,8 @@ public final class Str {
 					throw new NumberFormatException(version);
 			} else if (c == '.') {
 				if (s == 0)
-					// FND6-05口径的fail-fast（FND6-06）：4段是既定格式契约，第5个'.'起原静默break
-					// 丢弃——"1.2.3.4.5"与"1.2.3.4"解析相等，第5段差异被忽略，配置错误无告警。
+					// fail-fast：4段是既定格式契约，第5个'.'起不静默break丢弃
+					// ——否则"1.2.3.4.5"与"1.2.3.4"解析相等，第5段差异被忽略，配置错误无告警。
 					throw new NumberFormatException(version);
 				v += (long)t << s;
 				t = 0;
@@ -243,8 +243,8 @@ public final class Str {
 				throw new IllegalArgumentException("var name not found. " + varName);
 
 			// 模板契约是"普通文本+{var}占位"：字面文本不经任何格式符解释，'%'是普通字符
-			// （FND4-12：原先把字面段喂给Formatter，一个%即抛UnknownFormatConversion或
-			// %n/%s等合法符静默注入/吞参错位）。仅参数值按原Formatter类型语义渲染保持
+			// （字面段不喂给Formatter：一个%即抛UnknownFormatConversion或%n/%s等合法符
+			// 静默注入/吞参错位）。仅参数值按原Formatter类型语义渲染保持
 			// 既有输出不变：浮点%f（定点6位小数），其余（%b/%c/%d/%s）与String.valueOf一致。
 			if (p instanceof Float || p instanceof Double)
 				sb.append(String.format("%f", p));

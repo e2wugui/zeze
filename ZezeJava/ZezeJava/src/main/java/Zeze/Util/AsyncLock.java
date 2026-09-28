@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-// 异步锁. 暂不支持重入.
+// 异步锁. 不支持重入.
 // 派发模式由构造参数决定(实例级不可变配置)：
 // 异步(默认)：每次派发把单个回调投入线程池执行，回调收尾的leave()继续派发下一个；
 // 同步：拿到派发权的线程在dispatchLoop里同线程顺序内联执行整个队列，循环独占释放，
@@ -120,11 +120,11 @@ public final class AsyncLock {
 			var onReady = readyQueue.poll(); // onEnter or onNotify
 			if (onReady != null) {
 				try {
-					// poolOrThrow（FND7-44）：池未初始化/已停机（shutdownPools先置null）时
+					// poolOrThrow：池未初始化/已停机（shutdownPools先置null）时
 					// getThreadPool()返回null，裸execute直接NPE且无回滚。
 					Task.poolOrThrow(false).execute(() -> runWithLeave(onReady));
 				} catch (RuntimeException e) {
-					// 派发被拒（FND8-04）：不回滚不复位——复位后不复查队列，与并发enter的
+					// 派发被拒：不回滚不复位——复位后不复查队列，与并发enter的
 					// offer后重试CAS竞态会把回调滞留成无派发者真空（直到下一个enter才自愈）。
 					// 改为就地内联执行（enter快路径本就内联，调用者线程不限），派发链就地
 					// 续走（嵌套深度≤队列长）；回调已实际执行故不重抛（重抛会让调用方二次应答）。

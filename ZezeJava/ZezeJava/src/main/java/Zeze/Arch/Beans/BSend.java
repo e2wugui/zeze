@@ -8,6 +8,9 @@ import Zeze.Util.LongList;
 import Zeze.Util.Str;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * linkd 发送协议的参数 bean：目标 linkSids、协议类型与完整打包数据。
+ */
 public class BSend implements Serializable {
 	public static final long TYPEID = 545774009128015305L;
 

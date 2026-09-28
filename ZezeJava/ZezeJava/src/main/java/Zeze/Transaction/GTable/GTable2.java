@@ -15,12 +15,12 @@ import static Zeze.Util.Json.ensureNotNull;
 /** 事务二维表（行键×列键→受管 Bean 值）：外层 PMap2 装 BeanMap2 行 Bean。 */
 @SuppressWarnings("unchecked")
 public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C, V> {
-	// coll-01：外层logTypeId/name由(row,col,val)完整身份参与（GTable2专用家族头，与PMap2的
-	// LogMap2命名空间分流）——同row不同列/值类型的表不再共享typeId。dynamic值的身份固定
+	// 外层logTypeId/name由(row,col,val)完整身份参与（GTable2专用家族头，与PMap2的
+	// LogMap2命名空间分流）——同row不同列/值类型的表不共享typeId。dynamic值的身份固定
 	// DynamicBean（对齐Meta2.dynamic构造器先例）：同(row,col)的多个dynamic变量共享外层
 	// typeId，回放端Log.create先到先得、经首注册家族的create闭包解码（DynamicBean.decode
 	// 非自描述）——家族不同时默认编号抛incompatible中断回放、显式Bean:id重叠静默解错，
-	// 与FND8-30同构的已接受风险；FND8-30 ROOT（typeId加宿主盐）落地时此处revisit。
+	// 属已接受的dynamic typeId共存风险；ROOT方案（typeId加宿主盐）落地时此处revisit。
 	static final String OUTER_HEAD = "Zeze.Transaction.GTable.GTable2<";
 	static final String OUTER_NAME_PREFIX = "GTable2:";
 
@@ -33,14 +33,14 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		Factory(@NotNull Map2Meta<R, BeanMap2<C, V, VReadOnly>> pmapMeta, @NotNull Map2Meta<C, V> bmapMeta) {
 			this.pmapMeta = pmapMeta;
 			this.bmapMeta = bmapMeta;
-			// fm1/fm2在构造期一次性构建（FND7-10）：原惰性初始化只校验fm1且两写分离，
+			// fm1/fm2在构造期一次性构建：惰性初始化只校验fm1且两写分离，
 			// 并发首次解析可观察到fm1已写、fm2未写的部分状态，parseMap0解引用null直接NPE。
 			// Factory经factories的ConcurrentHashMap发布，final字段+安全发布根除该类竞态。
 			// 类型实参取自metas的keyClass/valueClass：与解析期宿主字段fieldMeta.paramTypes
 			// 等价，且与factory::get实际创建的容器类型一致。V必为Bean，fm2类型恒MAP+CUSTOM。
 			try {
 				var dummyField = GTable2.class.getDeclaredField("pMap2");
-				// keyParser经反射回退工厂（FND8-31）：BeanKey等非内建键不在
+				// keyParser经反射回退工厂：BeanKey等非内建键不在
 				// keyReaderMap，裸取为null时首键解析即NPE。
 				fm1 = new Json.FieldMeta(0x3c, 0, "PMap2", BeanMap2.class, this::get,
 						Json.ClassMeta.getKeyReaderOrFallback(Json.instance, pmapMeta.keyClass, "GTable2 row key"),
@@ -115,16 +115,6 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		pMap2.initRootInfo(rootInfo, parent);
 	}
 
-	/*
-	protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
-		pMap2.initRootInfo(_r_, this);
-	}
-
-	protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
-		pMap2.initRootInfoWithRedo(_r_, this);
-	}
-	*/
-
 	public void assign(GTable2<R, C, V, VReadOnly> other) {
 		pMap2.clear();
 		for (var _e_ : other.pMap2.entrySet())
@@ -155,7 +145,7 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		_s_.append(Zeze.Util.Str.indent(_l_)).append('}');
 	}
 
-	// Bean行/列键显式拒绝（R3-T复审C2显式化）：工厂层已拦（Map2Meta.checkNonBeanKey），但报错深在
+	// Bean行/列键显式拒绝：工厂层已拦（Map2Meta.checkNonBeanKey），但报错深在
 	// getFactory内部且文案是"LogMap2 ..."家族名——不点名GTable也不指明行/列维度。Bean是值语义
 	// equals配身份hashCode（可变bean不覆写hashCode防哈希漂移），行/列任一Bean维度的哈希
 	// put/get/contains失真；schema合法键只有内建类型与BeanKey（Gen/Types/TypeGTable.cs要求
@@ -176,7 +166,7 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		super.factory = factory;
 	}
 
-	// Factory唯一来源是getFactory（meta经工厂层Bean拦截），不再重复维度check。
+	// Factory唯一来源是getFactory（meta经工厂层Bean拦截），不重复维度check。
 	// 供生成代码常量化（static final Factory + 本构造器），消除每实例化的三层缓存探测。
 	public GTable2(@NotNull Factory<R, C, V, VReadOnly> factory) {
 		this.pMap2 = new PMap2<>(factory.pmapMeta);
@@ -186,7 +176,7 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 
 	public static <R, C, V extends Bean, VReadOnly> @NotNull Factory<R, C, V, VReadOnly> getFactory(
 			@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
-		// 【FND8-33】DynamicBean没有无参构造器，Map2Meta.get的深反射抛不带
+		// DynamicBean没有无参构造器，Map2Meta.get的深反射抛不带
 		// "dynamic不支持"信息的NoSuchMethodException——指名拒绝，dynamic值走带
 		// get/create工厂的重载。
 		if (valClass == Zeze.Transaction.DynamicBean.class)
@@ -207,11 +197,11 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		return (Factory<R, C, V, VReadOnly>)factory;
 	}
 
-	// 【FND8-33 A1】dynamic值的工厂路径（对齐PMap2的dynamic构造器判例）：工厂按变量
+	// dynamic值的工厂路径（对齐PMap2的dynamic构造器）：工厂按变量
 	// 成对（不同变量不同工厂），不进按类缓存。bmapMeta与Helper.registerLogMap2Dynamic
 	// 注册的meta同函数同typeId（Log.register先到先得的等价契约）；pmapMeta值身份固定
 	// DynamicBean——同(row,col)的dynamic变量共享外层typeId是接受的风险现状而非安全
-	// 契约：回放解码经首注册家族的create闭包（非自描述），损坏形态与FND8-30同构。
+	// 契约：回放解码经首注册家族的create闭包（非自描述），损坏形态与外层typeId共享风险同构。
 	public static <R, C, VReadOnly> @NotNull Factory<R, C, Zeze.Transaction.DynamicBean, VReadOnly> getFactory(
 			@NotNull Class<R> rowClass, @NotNull Class<C> colClass,
 			@NotNull java.util.function.ToLongFunction<Bean> get,

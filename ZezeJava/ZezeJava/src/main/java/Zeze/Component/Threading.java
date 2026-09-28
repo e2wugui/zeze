@@ -20,6 +20,9 @@ import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * 分布式线程同步组件客户端：跨进程的 Mutex/Semaphore/ReadWriteLock（服务端为 ThreadingServer）。
+ */
 public class Threading extends AbstractThreading {
 	static final Logger logger = LogManager.getLogger(Threading.class);
 
@@ -54,7 +57,7 @@ public class Threading extends AbstractThreading {
 		return Thread.currentThread().getId();
 	}
 
-	// FND8-73：信号量补偿的本地持有计数门控。补偿必须可归因，但协议无逐次获取标识，
+	// 信号量补偿的本地持有计数门控。补偿必须可归因，但协议无逐次获取标识，
 	// 无法区分服务端semaphoreRefs条目来自"本次未知获取"还是"先前持有的获取"——信号量
 	// 持有者无获取优先权，持有中再获取会真实失败，此时无条件补偿必然误释放先前许可、
 	// 虚增容量（容量1即双持有）。以静态表按(serverId,threadId,name)集中计数（同进程多
@@ -69,7 +72,7 @@ public class Threading extends AbstractThreading {
 		return serverId + ":" + threadId + ":" + name;
 	}
 
-	/** 客户端rpc超时=max(timeoutMs+1000, 5000)（FND5-22）：long运算防timeoutMs+1000
+	/** 客户端rpc超时=max(timeoutMs+1000, 5000)：long运算防timeoutMs+1000
 	 * 回绕为负被max取走下限（客户端5秒假超时，服务端仍持锁30分钟）；SendForWait超时
 	 * 参数为int，钳制上限。 */
 	private static int rpcTimeoutMs(int timeoutMs) {
@@ -100,7 +103,7 @@ public class Threading extends AbstractThreading {
 			try {
 				r.SendForWait(service.GetSocket(), timeout).await();
 			} catch (CompletionException e) {
-				// FND7-64：客户端rpc超时＝应答迟到或丢失，服务端可能已授予该锁。只要客户端进程
+				// 客户端rpc超时＝应答迟到或丢失，服务端可能已授予该锁。只要客户端进程
 				// 活着，keepAlive每10s刷新服务端activeTime，timeoutRelease永不触发——授予的锁
 				// 无人unlock，无限期悬挂（同globalThreadId重试还会holdCount累积）。按未获锁继续，
 				// 并对同lockName补发unlock（fire-and-forget）：补偿与tryLock同连接，服务端
@@ -121,7 +124,7 @@ public class Threading extends AbstractThreading {
 			var globalThreadId = new BGlobalThreadId(serverId, curThreadId());
 			var lockName = new BLockName(globalThreadId, name);
 
-			// 完美方案应该unlock成功以后才释放。这里先这样写了。
+			// 完美方案应该unlock成功以后才释放。
 			var r = new MutexUnlock();
 			r.Argument.setLockName(lockName);
 			r.SendForWait(service.GetSocket()).await();
@@ -162,7 +165,7 @@ public class Threading extends AbstractThreading {
 			try {
 				r.SendForWait(service.GetSocket(), timeout).await();
 			} catch (CompletionException e) {
-				// VB①（FND7-64同型）：客户端rpc超时＝应答迟到或丢失，服务端可能已发放permits
+				// 客户端rpc超时＝应答迟到或丢失，服务端可能已发放permits
 				// （semaphoreRefs记账+信号量真实扣减）。只要客户端进程活着，keepAlive每10s刷新
 				// 服务端activeTime，timeoutRelease永不触发——已发放的许可无人release，永久短缺。
 				// 按未获取继续，并对同lockName补发release（fire-and-forget）：与tryAcquire同连接，
@@ -173,7 +176,7 @@ public class Threading extends AbstractThreading {
 				if (!r.isTimeout())
 					throw e;
 				if (permits > 0) {
-					// FND8-73：超时只说明结果未知。本地持有计数>0时，服务端semaphoreRefs条目
+					// 超时只说明结果未知。本地持有计数>0时，服务端semaphoreRefs条目
 					// 可能来自先前持有的获取（信号量持有者无获取优先权，持有中再获取会真实
 					// 失败）——此时补发必然误释放先前许可，虚增真实余量。仅计数==0（条目至多
 					// 来自本次未知获取）才补发；否则放弃并告警，悬挂许可交给timeoutRelease清算。
@@ -206,7 +209,7 @@ public class Threading extends AbstractThreading {
 			var globalThreadId = new BGlobalThreadId(serverId, curThreadId());
 			var lockName = new BLockName(globalThreadId, name);
 
-			// 完美方案应该unlock成功以后才释放。这里先这样写了。
+			// 完美方案应该unlock成功以后才释放。
 			var r = new SemaphoreRelease();
 			r.Argument.setLockName(lockName);
 			r.Argument.setPermits(permits);
@@ -216,10 +219,10 @@ public class Threading extends AbstractThreading {
 			if (rc < 0)
 				logger.error("release error={}", IModule.getErrorCode(rc));
 			else {
-				// FND8-73：服务端确认释放才减本地持有计数（未决/失败不减，漂移向"多计→少补"安全侧）。
+				// 服务端确认释放才减本地持有计数（未决/失败不减，漂移向"多计→少补"安全侧）。
 				var key = semaphoreHoldKey(serverId, curThreadId(), name);
 				var holds = semaphoreLocalHolds.get(key);
-				// 归零即删（CP1-F6，两参条件删防误删并发重建的计数）：静态map原先只增不减，
+				// 归零即删（两参条件删防误删并发重建的计数）：静态map只增不减会令
 				// 动态/虚拟线程场景按(serverId,threadId,name)无界滞留。key含threadId，同key的
 				// acquire/release/补偿读全在同一线程串行，条件删足够安全。
 				if (holds != null && holds.updateAndGet(v -> Math.max(0, v - permits)) == 0)
@@ -281,7 +284,7 @@ public class Threading extends AbstractThreading {
 			try {
 				r.SendForWait(service.GetSocket(), timeout).await();
 			} catch (CompletionException e) {
-				// VB①（FND7-64同型）：客户端rpc超时＝应答迟到或丢失，服务端可能已enter成功
+				// 客户端rpc超时＝应答迟到或丢失，服务端可能已enter成功
 				// （rwLockRefs记账+读写锁真实持有）。只要客户端进程活着，keepAlive每10s刷新
 				// 服务端activeTime，timeoutRelease永不触发——持有的读/写锁无人exit，永久悬挂。
 				// 按未进入继续，并对同lockName补发同模式exit（fire-and-forget）：与enter同连接，
@@ -324,7 +327,7 @@ public class Threading extends AbstractThreading {
 			r.Argument.setOperateType(operateType);
 			r.SendForWait(service.GetSocket()).await();
 			if (r.getResultCode() != 0)
-				// 如实标注为结果码（残留P3：原日志把结果码误标注成hold字段）。
+				// 如实标注为结果码。
 				// 结果码语义见ThreadingServer：>0=exit后剩余hold计数，-1=参数/模式不匹配等错误。
 				logger.debug("exit {} result code={}", operateType, IModule.getErrorCode(r.getResultCode()));
 		}

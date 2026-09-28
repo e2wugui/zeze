@@ -4,6 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/** SHandshake参数bean：加密参数、协商压缩与加密类型。 */
 public final class BSHandshakeArgument implements Serializable {
 	public byte[] encryptParam = ByteBuffer.Empty;
 	public int compressS2c;
@@ -20,7 +21,7 @@ public final class BSHandshakeArgument implements Serializable {
 		if (!bb.isEmpty()) {
 			encryptType = bb.ReadInt();
 		} else {
-			// 新的eEncryptTypeAesNoSecureIp已经过了这个兼容需要了吧。这里不需要考虑这个类型。
+			// eEncryptTypeAesNoSecureIp晚于该兼容路径引入，这里不需要考虑这个类型。
 			encryptType = encryptParam.length != 0 ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable;
 		}
 	}

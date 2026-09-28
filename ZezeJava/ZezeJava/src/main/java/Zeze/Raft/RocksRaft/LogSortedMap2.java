@@ -73,7 +73,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 			e.getValue().encode(bb);
 		}
 
-		// super.encode(bb);
+		// putted/removed 手工编码（不走 super.encode）：putted 的 value 是 Bean，用 bean.encode 而非 codec。
 		bb.WriteUInt(getPutted().size());
 		for (var p : getPutted().entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
@@ -96,7 +96,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 			changedWithKey.put(key, value);
 		}
 
-		// super.decode(bb);
+		// putted/removed 手工解码（不走 super.decode）：putted 的 value 是 Bean，经 valueFactory 构造后 decode。
 		getPutted().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);

@@ -4,6 +4,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
+/**
+ * InstallSnapshot 应答参数：term 与续传定位 offset。
+ */
 final class BInstallSnapshotResult extends Bean {
 	private long term;
 

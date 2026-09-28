@@ -3,6 +3,7 @@ package Zeze.Serialize;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 四维单精度向量值类型（float x/y/z/w）：四分量参与模长/归一化与相等比较。 */
 public class Vector4 extends Vector3 {
 	public static final Vector4 ZERO = new Vector4(0, 0, 0, 0);
 
@@ -66,8 +67,7 @@ public class Vector4 extends Vector3 {
 
 	@Override
 	public float sqrMagnitude() {
-		// SE2-F1：补上w²——原继承Vector3三分量口径，与magnitude()/normalized()的4分量对齐
-		//（Quaternion继承本类自然正确）。
+		// 含w²：与magnitude()/normalized()的4分量口径对齐（Quaternion继承本类自然正确）。
 		return (float)((double)x * x + (double)y * y + (double)z * z + (double)w * w);
 	}
 

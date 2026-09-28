@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 统计接口：protocol/procedure/table/task 等维度的计数与耗时观察者，instance 按系统属性选择实现
 public interface ZezeCounter {
 	@NotNull Logger logger = LogManager.getLogger("StatLog");
 

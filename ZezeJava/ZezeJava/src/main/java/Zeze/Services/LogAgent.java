@@ -16,6 +16,9 @@ import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 日志服务客户端Agent：经ServiceManager订阅LogServiceServer地址，向各日志服务器转发查询。
+ */
 public class LogAgent extends AbstractLogAgent {
 	private final Config conf;
 	private final LogServiceConf logConf;
@@ -48,7 +51,7 @@ public class LogAgent extends AbstractLogAgent {
 		client.start();
 		var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
 		// raft版SM的地址来自raftXml而非ServiceConf节点，按Agent服务名查serviceConfMap必为null，
-		// 旧门槛会跳过serviceManager.start()，raft部署下日志服务静默失效（对齐Application.start）。
+		// 若门槛要求serviceConf非null会跳过serviceManager.start()，raft部署下日志服务静默失效（对齐Application.start）。
 		var isRaftServiceManager = "raft".equals(conf.getServiceManager());
 		if ((serviceManagerConf != null || isRaftServiceManager) && serviceManager != null) {
 			serviceManager.setOnChanged(this::applyOnChanged);
@@ -89,7 +92,7 @@ public class LogAgent extends AbstractLogAgent {
 	}
 
 	public String query(String serverName, String jsonArgument) {
-		// S3-F4：动态增删的日志服务器表（ConcurrentHashMap）未命中返回null，原裸NPE无任何信息。
+		// 动态增删的日志服务器表（ConcurrentHashMap）未命中返回null，裸解引用NPE无任何信息。
 		var logServer = __getLogServer(serverName);
 		if (logServer == null)
 			throw new IllegalArgumentException("unknown log server: " + serverName);

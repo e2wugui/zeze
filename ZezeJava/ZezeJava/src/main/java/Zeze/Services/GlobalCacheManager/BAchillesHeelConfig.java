@@ -4,6 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/** Login应答bean：GCM下发的超时配置（maxNetPing/serverProcessTime/serverReleaseTimeout）。 */
 public class BAchillesHeelConfig implements Serializable {
 	public int maxNetPing;
 	public int serverProcessTime;

@@ -5,6 +5,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Net.Binary;
 import org.jetbrains.annotations.NotNull;
 
+// 随机数工具集：ThreadLocalRandom 入口与 byte/Binary 等随机填充
 public final class Random {
 	public static @NotNull ThreadLocalRandom getInstance() {
 		return ThreadLocalRandom.current();

@@ -19,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * 【安全警示】任意字节码执行端点：上传的class字节码被直接defineClass并实例化执行
  * （Runnable/Callable/main），触达且持有token者即获得服务器任意代码执行权，仍必须仅
- * 绑定回环/内网，绝不可暴露公网。token校验（FND8-66）把"部署纪律"升级为代码不变量：
+ * 绑定回环/内网，绝不可暴露公网。token校验把"部署纪律"升级为代码不变量：
  * 构造时显式传入token，或传null由启动期自动生成随机token并打日志（零配置可用，运维
  * 从日志取token）；请求须以X-Zeze-Token头或"token"查询参数携带，常量时间比较，失配
  * 答403。
@@ -84,7 +84,7 @@ public class RunClassServer implements HttpFileUploadHandle {
 		var patchFileName = fileUpload.getFilename();
 		//noinspection ResultOfMethodCallIgnored
 		new File(uploadDir).mkdirs();
-		final File destFile; // 落盘路径必须经净化（FND4-70）：客户端可控文件名不得携带目录成分
+		final File destFile; // 落盘路径必须经净化：客户端可控文件名不得携带目录成分
 		try {
 			destFile = HttpFileUploadHandle.sanitizeDestFile(new File(uploadDir), patchFileName);
 		} catch (IllegalArgumentException e) {
@@ -98,7 +98,7 @@ public class RunClassServer implements HttpFileUploadHandle {
 			var path = destFile.toPath();
 			var classBytes = Files.readAllBytes(path);
 			var result = "";
-			// S3-F3：执行段三分支（Runnable/Callable/main）与defineClass原均无守卫——
+			// 执行段三分支（Runnable/Callable/main）与defineClass若均无守卫——
 			// getMethod/实例化/invoke/解码失败异常穿透，请求无HTTP应答即断连（同方法其余
 			// 拒绝路径均有显式应答）。catch用Throwable而非Exception：defineClass对损坏
 			// 字节码抛ClassFormatError（Error子类），仅Exception盖不住最常见触发形态。
@@ -116,12 +116,12 @@ public class RunClassServer implements HttpFileUploadHandle {
 					var args = decoder.isMultipart() ? getArgs(decoder) : getArgs(x);
 					result = String.valueOf(mainMethod.invoke(null, (Object)args));
 				}
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("RunClassServer: run failed, file='{}'", patchFileName, e);
 				x.close(x.sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, "run failed: " + e));
 				return;
 			}
-			// 审计（FND8-66）：每次成功使用的留痕
+			// 审计：每次成功使用的留痕
 			logger.info("RunClassServer: authorized run from {}, file='{}'",
 					x.channel().remoteAddress(), patchFileName);
 			x.close(x.sendPlainText(HttpResponseStatus.OK, result));

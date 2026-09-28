@@ -5,6 +5,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.BoolList.BKey;
 import Zeze.Builtin.Collections.BoolList.BValue;
 
+/**
+ * 持久化 bool 位图列表：按位存储，记录分片（512 bool/记录）。
+ */
 public class BoolList {
 	public static class Module extends AbstractBoolList {
 		private final ConcurrentHashMap<String, BoolList> boolLists = new ConcurrentHashMap<>();
@@ -183,7 +186,7 @@ public class BoolList {
 						table.remove(key);
 					return 0;
 				}, "remove some").call();
-				// 删除批失败必须抛出（CO1-F1）：walkKey游标在call前已推进且排他，返回码被
+				// 删除批失败必须抛出：walkKey游标在call前已推进且排他，返回码被
 				// 忽略时失败批被静默跳过——clearAll正常返回但get()仍见true。抛出让调用方感知
 				// 后整体重跑（clearAll幂等）即收敛。
 				if (rc != 0)

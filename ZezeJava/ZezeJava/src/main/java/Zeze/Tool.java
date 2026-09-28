@@ -2,6 +2,9 @@ package Zeze;
 
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 运维小工具入口：按参数清理 MySQL 存储过程或清除数据库打开标志。
+ */
 public class Tool {
 	public static void main(String @NotNull [] args) {
 		var zezeXml = "zeze.xml";

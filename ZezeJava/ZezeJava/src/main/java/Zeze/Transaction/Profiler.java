@@ -67,7 +67,7 @@ public class Profiler {
 
 	public void reset() {
 		// 无条件复位：count==0 但 startTime!=0（onProcedureBegin 置位后全程无 Context）的残留
-		// 会随池化 Transaction 污染同线程下一个事务的诊断输出（T3-F3）。清空本身幂等。
+		// 会随池化 Transaction 污染同线程下一个事务的诊断输出。清空本身幂等。
 		for (int i = 0; i < count; i++)
 			contexts.get(i).clearRef();
 		count = 0;

@@ -1,6 +1,8 @@
 package Zeze.Arch;
 
-// 目前只用于RedirectAll
+/**
+ * RedirectAll 的单个 hash 分组结果：hash 与返回码。（目前只用于RedirectAll）
+ */
 public class RedirectResult {
 	private int hash;
 	private long resultCode;

@@ -15,6 +15,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 强类型表记录实现：绑定 TableX 与具体 key，管理软引用值、LRU 节点、
+ * 编码快照（encode0）与落库 flush/cleanup 生命周期。
+ */
 public final class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private static final @NotNull Logger logger = LogManager.getLogger(Record1.class);
 	private static final boolean isTraceEnabled = logger.isTraceEnabled();
@@ -34,9 +38,6 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	private Object snapshotValue;
 	private Object snapshotKeyLocal;
 	private Object snapshotValueLocal;
-	//	private long savedTimestampForCheckpointPeriod;
-//	private boolean existInBackDatabase;
-//	private boolean existInBackDatabaseSavedForFlushRemove;
 	private volatile @Nullable ConcurrentHashMap<K, Record1<K, V>> lruNode;
 	private @Nullable Id128 tid;
 
@@ -103,10 +104,6 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return key;
 	}
 
-//	void setExistInBackDatabase(boolean value) {
-//		existInBackDatabase = value;
-//	}
-
 	@Nullable ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
 		return lruNode;
 	}
@@ -124,15 +121,9 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return LRU_NODE_HANDLE.compareAndSet(this, c, null);
 	}
 
-	/*
-	void removeFromTableCache() {
-		table.getCache().remove(key, this);
-	}
-	*/
-
 	@Override
 	public @NotNull String toString() {
-		return String.format("T=%s K=%s S=%d T=%d", table.getName(), key, getState(), getTimestamp()); // V {Value}";
+		return String.format("T=%s K=%s S=%d T=%d", table.getName(), key, getState(), getTimestamp());
 		// 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
 	}
 
@@ -166,14 +157,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			var committedPutLog = accessed.committedPutLog;
 			if (committedPutLog != null) {
 				setSoftValue(committedPutLog.getValue());
-				/*
-				 * 内存表启用了soft，不能马上删除，按征程逻辑执行。
-				if (table.isMemory() && committedPutLog.getValue() == null) {
-					// 记录删除并且是内存表，马上删除。
-					table.getCache().remove(key, this);
-					return; // 内存表已经删除，done
-				}
-				*/
+				// 内存表启用了soft，不能马上删除，按正常逻辑执行。
 				// 计算内存表的大小。
 				if (table.isMemory()) {
 					if (accessed.atomicTupleRecord.strongRef == null && committedPutLog.getValue() != null) // add
@@ -184,7 +168,6 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			}
 			setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
 			setDirty();
-			//System.out.println("commit: " + this + " put=" + accessed.CommittedPutLog + " atr=" + accessed.AtomicTupleRecord);
 		} finally {
 			exitFairLock();
 		}
@@ -198,36 +181,14 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		setDirty(true);
 	}
 
-/*
-	boolean tryEncodeN(@NotNull ConcurrentHashMap<K, Record1<K, V>> changed,
-					   @NotNull ConcurrentHashMap<K, Record1<K, V>> encoded) {
-		Lockey lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), key));
-		if (!lockey.tryEnterReadLock(0)) {
-			return false;
-		}
-		try {
-			encode0();
-			encoded.put(key, this);
-			changed.remove(key);
-			return true;
-		} finally {
-			lockey.exitReadLock();
-		}
-	}
-*/
-
 	@Override
 	public void encode0() {
 		if (!getDirty())
 			return;
-		// Under Lock：this.TryEncodeN & Storage.Snapshot
+		// Under Lock：Table模式持有rrs锁（Checkpoint.flushInternal）；Immediately模式在事务持锁提交流程内。
 
-		// 【注意】可能保存多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
-		// 从 Storage.Snapshot 里面修改移到这里，避免Snapshot遍历，减少FlushWriteLock时间。
-//		savedTimestampForCheckpointPeriod = getTimestamp();
-
-		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
-		// 脏值经单次volatile快照获取（FND4-01合并字段）；脏删除快照为null，编码为删除。
+		// 可能编码多次（flush失败重试时重新编码）。
+		// 脏值经单次volatile快照获取；脏删除快照为null，编码为删除。
 		var v = getDirtyValue();
 		if (table.isRelationalMapping() && table.getDatabase() instanceof DatabaseRelationalMapping) {
 			var sqlKey = new SQLStatement();
@@ -250,40 +211,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			snapshotKeyLocal = snapshotKey = table.encodeKey(key);
 			snapshotValueLocal = snapshotValue = v != null ? ByteBuffer.encode(v) : null;
 		}
-		// 【注意】
-		// 这个标志本来应该在真正写到Database之后修改才是最合适的；
-		// 但这样需要再次锁定记录写锁，并发效率比较低，增加Flush时间；
-		// 由于Encode0()之后肯定会进行写Database操作，而写Database是不会并发的，
-		// ExistInBackDatabase也仅在写Database操作使用，所以提前到这里修改；
-		// 【并发简单分析】
-		// 1) FindInCacheOrStorage
-		//    第一次装载时，只会装载一次，记录读锁+lock(record)；
-		// 2.1) CheckpointMode.Period
-		//    a) TryEncodeN 记录读锁，看起来这个锁定是不够的，
-		//       但是由于记录在TableCache中存在时，不会引起再次装载，
-		//       所以实际上不会和FindInCacheOrStorage并发;
-		//    b) Snapshot FlushWriteLock
-		//       此时世界都暂停了，改一点状态完全没问题。
-		// 2.2) CheckpointMode.Table
-		//    rrs.lock()，使得Encode0()不会并发，其他理由同上面2.1)a)，
-		//    这种模式也是可以直接修改的。
-		//【ExistInBackDatabaseSavedForFlushRemove】
-		//    由于这里提前修改，所以需要保存一个副本后面写Database时用。
-		//    see this.Flush
-//		existInBackDatabaseSavedForFlushRemove = existInBackDatabase;
-//		existInBackDatabase = snapshotValue != null;
 	}
-
-/*
-	void flush(@NotNull Database.Transaction t, @NotNull HashMap<Database, Database.Transaction> tss,
-			   @Nullable Database.Transaction lct) {
-		if (table.getOldTable() != null) {
-			// will clear in Cleanup.
-			setDatabaseTransactionOldTmp(tss.get(table.getOldTable().getDatabase()));
-		}
-		flush(t, lct);
-	}
-*/
 
 	@Override
 	public void flush(@Nullable Database.Transaction t, @NotNull Database.Transaction lct) {
@@ -299,10 +227,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			table.getLocalRocksCacheTable().replace(lct, snapshotKeyLocal, snapshotValueLocal);
 		} else {
 			// removed
-//			if (existInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
 			if (storage != null && t != null)
 				storage.getDatabaseTable().remove(t, snapshotKey);
-//			}
 
 			table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
 
@@ -324,22 +250,6 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	public void cleanup() {
 		setDatabaseTransactionTmp(null);
 		setDatabaseTransactionOldTmp(null);
-
-//		if (table.getZeze().getConfig().getCheckpointMode() == CheckpointMode.Period) {
-//			TableKey tkey = new TableKey(table.getId(), key);
-//			Lockey lockey = table.getZeze().getLocks().get(tkey);
-//			lockey.enterWriteLock();
-//			try {
-//				if (savedTimestampForCheckpointPeriod == getTimestamp()) {
-//					setDirty(false);
-//				}
-//				snapshotKey = null;
-//				snapshotValue = null;
-//				return;
-//			} finally {
-//				lockey.exitWriteLock();
-//			}
-//		}
 		// CheckpointMode.Table
 		snapshotKey = null;
 		snapshotValue = null;

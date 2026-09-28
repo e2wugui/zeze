@@ -42,9 +42,9 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 			writeLock.lock();
 			try {
 				if ((r = read) == null) {
-					// 快照必须继承write的比较器（FND4-11）：用Comparator构造的实例，
+					// 快照必须继承write的比较器：用Comparator构造的实例，
 					// 自然序快照会让所有序敏感读与comparator()返回值全部错乱。
-					// util-01（FND16）：快照统一unmodifiable包装（镜像FewModifyMap家族）——
+					// 快照统一unmodifiable包装（镜像FewModifyMap家族）——
 					// 本类的全部视图方法（subMap/keySet/descendingMap等）直通prepareRead，
 					// 裸返TreeMap时写视图会静默腐蚀共享快照并与权威写侧分叉（幻影条目：
 					// 读侧可见、write不知情、下次写重建后蒸发；且无同步并发读写CME）。
@@ -419,7 +419,7 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	@Override
 	public @NotNull FewModifySortedMap<K, V> clone() throws CloneNotSupportedException {
 		if (getClass() == FewModifySortedMap.class) {
-			// clone同源继承比较器（FND4-11）：Map构造器的TreeMap(Map)按自然序建，
+			// clone同源继承比较器：Map构造器的TreeMap(Map)按自然序建，
 			// 会重演prepareRead丢失比较器的问题。
 			var snapshot = prepareRead();
 			var copy = new FewModifySortedMap<K, V>(snapshot.comparator());

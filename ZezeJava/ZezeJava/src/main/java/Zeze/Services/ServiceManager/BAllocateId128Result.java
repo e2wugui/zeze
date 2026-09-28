@@ -6,6 +6,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Util.Id128;
 import org.jetbrains.annotations.NotNull;
 
+/** AllocateId128应答bean：号段起始Id128与数量。 */
 public final class BAllocateId128Result implements Serializable {
 	private @NotNull Id128 startId = new Id128(); // 从0开始
 	private int count;

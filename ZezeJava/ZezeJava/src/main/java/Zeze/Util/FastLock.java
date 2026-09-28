@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 // 利用AbstractQueuedSynchronizer实现简单高效的不可重入锁,性能比ReentrantLock略高一点,开启压缩指针时包括对象头共32字节
 public class FastLock extends AbstractQueuedSynchronizer implements Lock {
-	// FND7-70：锁等待登记表（等待线程→等待的锁）。JDK21没有公开API枚举虚拟线程
+	// 锁等待登记表（等待线程→等待的锁）。JDK21没有公开API枚举虚拟线程
 	// （ThreadGroup.enumerate与Thread.getAllStackTraces均不含VT），findDeadlockedThreads
 	// 也不检测VT的AQS死锁；竞争失败进入慢路径（已是park级开销）的线程在此登记，
 	// DeadlockBreaker据此构建等待图。快路径CAS成功零额外开销。
@@ -18,7 +18,7 @@ public class FastLock extends AbstractQueuedSynchronizer implements Lock {
 	@Override
 	public boolean tryLock() {
 		if (compareAndSetState(0, 1)) {
-			setExclusiveOwnerThread(Thread.currentThread()); // FND7-70：owner供死锁检测
+			setExclusiveOwnerThread(Thread.currentThread()); // owner供死锁检测
 			return true;
 		}
 		return false;
@@ -82,7 +82,7 @@ public class FastLock extends AbstractQueuedSynchronizer implements Lock {
 	@Override
 	protected boolean tryAcquire(int acquires) {
 		if (compareAndSetState(0, acquires)) {
-			setExclusiveOwnerThread(Thread.currentThread()); // FND7-70：owner供死锁检测
+			setExclusiveOwnerThread(Thread.currentThread()); // owner供死锁检测
 			return true;
 		}
 		return false;
@@ -99,7 +99,7 @@ public class FastLock extends AbstractQueuedSynchronizer implements Lock {
 
 	@Override
 	protected boolean isHeldExclusively() {
-		// owner判断（FND8-06）：恒true会令未持锁线程的cond.await()/signal()静默走AQS
+		// owner判断：恒true会令未持锁线程的cond.await()/signal()静默走AQS
 		// 释放路径，把真正持有者的锁释放掉；改为owner判断后await/signal入口即抛IMSE。
 		return getExclusiveOwnerThread() == Thread.currentThread();
 	}

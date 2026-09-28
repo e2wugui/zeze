@@ -25,9 +25,12 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Raft版全局缓存管理器的客户端Agent：按gkey哈希分片到多个raft分片Agent（RaftAgent），
+ * 代替进程内全局锁表执行Acquire/Reduce并处理服务端下发的Reduce请求。
+ */
 public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerWithRaftAgent implements IGlobalAgent {
 	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaftAgent.class);
-	// private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	private final Application zz;
 	private final RaftAgent[] agents;
@@ -86,7 +89,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			for (var agent : agents) {
 				try {
 					agent.close();
-				} catch (Exception e) { // logger.error
+				} catch (Exception e) {
 					// 停机尽力语义：单个agent关闭失败只记日志，继续关闭其余agent，
 					// 避免异常上抛中止后续agent关闭，并中断Application.stop（startState卡在eStopping）。
 					logger.error("GlobalCacheManagerWithRaftAgent.Stop Agent={}",
@@ -112,7 +115,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		public void SendResult(Binary result) {
 			real.Result.setGlobalKey(real.Argument.getGlobalKey()); // no change
 			real.Result.setState(Result.state);
-			// FND4-54：补转发被降级方tid——TableX在bridge（sync族Result）上设置reducedTid，
+			// 补转发被降级方tid——TableX在bridge（sync族Result）上设置reducedTid，
 			// 桥接原本只转state与resultCode，该字段在Raft链路恒为默认值（同步/异步版服务器
 			// 均中继真实值），协议契约静默断裂。
 			real.Result.setReduceTid(Result.reducedTid);
@@ -226,7 +229,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			// never run here
 		}
 		state = rpc.Result.getState();
-		return //rc == 0 ? AcquireResult.getSuccessResult(state) :
+		return
 				new AcquireResult(rc, state, rpc.Result.getReduceTid());
 	}
 
@@ -334,7 +337,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				if (loginTimes.get() > 0)
 					raftClient.sendForWait(new NormalClose()).await(10 * 1000); // 10s
 			} catch (Exception e) {
-				// FND6-25：GCM端ProcessNormalClose在应答前逐key release（可阻塞等待reduce，
+				// GCM端ProcessNormalClose在应答前逐key release（可阻塞等待reduce，
 				// 键多或争用时轻易超10s）或直接超时——future异常完成后await对CompletionException
 				// 重抛。记日志继续，不中断停机流程；raftClient.stop()放到finally，
 				// 保证无论NormalClose是否发送/成功都总是执行，停机尽力语义。

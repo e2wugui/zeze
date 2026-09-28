@@ -84,8 +84,8 @@ import org.jetbrains.annotations.Nullable;
  * h) Server.FastErrorPeriod = ServerDaemonTimeout / 2; // Global请求失败一次即进入这个超时，期间所有的Acquire都本地马上失败。
  * i) Global.ForbidPeriod = ServerDaemonTimeout / 2; // Reduce失败一次即进入这个超时，期间所有的Reduce马上失败。
  * <p>
- * 11. Change Log
- * a) Server在发现Global断开连接，马上释放本地资源。改成由AchillesHeelDaemon处理。
+ * 11. 设计决策（相对基础思路的偏差）
+ * a) Server发现Global断开连接时不马上释放本地资源，由AchillesHeelDaemon处理。
  * b) Global.Cleanup 手动释放锁禁用。
  * <p>
  * 12. Implement
@@ -108,7 +108,7 @@ import org.jetbrains.annotations.Nullable;
  * e) Reduce.Timeout                  Yes   Yes
  * i) Global.ForbidPeriod             Yes   Yes
  * <p>
- * *. 原来的思路参见 zeze/GlobalCacheManager/Cleanup.txt。在这个基础上增加了KeepAlive。
+ * *. 基础思路参见 zeze/GlobalCacheManager/Cleanup.txt，在此之上增加了KeepAlive。
  */
 public class AchillesHeelDaemon {
 	private static final @NotNull Logger logger = LogManager.getLogger(AchillesHeelDaemon.class);
@@ -208,7 +208,7 @@ public class AchillesHeelDaemon {
 			var bb = ByteBuffer.Allocate(8);
 			bb.WriteLong8(value);
 
-			// 不同的GlobalAgent能并发起来。由于上面的低频率报告优化，这个不是很必要了。
+			// 不同的GlobalAgent能并发起来，channelLock串行化对mmap的写。
 			channelLock.lock();
 			try {
 				try (var ignored = channel.lock()) {
@@ -280,7 +280,7 @@ public class AchillesHeelDaemon {
 					// 执行KeepAlive
 					var now = System.currentTimeMillis();
 					for (int i = 0; i < agents.length; i++) {
-						// KeepAlive段局部兜底（FND4-04，对齐本文件既有三处判例：坏包/越界/Release处理体）：
+						// KeepAlive段局部兜底（对齐本文件坏包/越界/Release处理体的同类判例）：
 						// 单轮单agent的异常（关停竞态下schedule拒绝执行、endActions回调抛错等非致命事件）
 						// 记error后继续下一轮——逃逸到外层catch会halt(321321)整个进程。
 						// release超时的自杀halt在haltOnReleaseTimeout内无条件执行，不会被这里吞掉。
@@ -298,7 +298,6 @@ public class AchillesHeelDaemon {
 								haltOnReleaseTimeout(i);
 							var idle = now - agent.getActiveTime();
 							if (idle > config.serverKeepAliveIdleTimeout) {
-								//logger.debug("KeepAlive ServerKeepAliveIdleTimeout={}", config.ServerKeepAliveIdleTimeout);
 								agent.keepAlive();
 							}
 						} catch (Throwable ex) { // logger.error
@@ -313,10 +312,10 @@ public class AchillesHeelDaemon {
 			}
 		}
 
-		// 数据安全停机：checkpoint尽力保存后无条件halt（FND4-04：KeepAlive段局部兜底后，
-		// haltOnReleaseTimeout被catch区覆盖，checkpoint/shutdown失败不得吞掉halt本身）。
-		// FND8-21：实现统一收口到Application.haltAfterCheckpoint（与Transaction.perform、
-		// ThreadDaemon共用），本类不再维护同形副本。
+			// 数据安全停机：checkpoint尽力保存后无条件halt（KeepAlive段局部兜底后，
+			// haltOnReleaseTimeout被catch区覆盖，checkpoint/shutdown失败不得吞掉halt本身）。
+			// 实现统一收口到Application.haltAfterCheckpoint（与Transaction.perform、
+			// ThreadDaemon共用），本类不维护同形副本。
 		private void haltAfterCheckpoint(int exitCode) {
 			Application.haltAfterCheckpoint(zeze, exitCode);
 		}
@@ -375,7 +374,7 @@ public class AchillesHeelDaemon {
 						var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
 						if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 							logger.fatal("global release timeout. index={}", i);
-							// FND8-21（T1）：原内联checkpointRun/shutdown/halt未加守护——
+							// 不得内联checkpointRun/shutdown/halt且不加守护——
 							// checkpointRun双读NPE落进外层catch只记error继续循环，
 							// release-timeout的halt(123123)语义被吞。统一收口到共用助手。
 							Application.haltAfterCheckpoint(zeze, 123123);
@@ -383,7 +382,6 @@ public class AchillesHeelDaemon {
 
 						var idle = now - agent.getActiveTime();
 						if (idle > config.serverKeepAliveIdleTimeout) {
-							//logger.debug("KeepAlive ServerKeepAliveIdleTimeout={}", config.ServerKeepAliveIdleTimeout);
 							agent.keepAlive();
 						}
 
@@ -399,7 +397,7 @@ public class AchillesHeelDaemon {
 						}
 					}
 				} catch (Throwable ex) {
-					// 原实现任何异常直接halt(321321)：测试关停全局线程池等基础设施事件也会
+					// 任何异常不得直接halt(321321)：测试关停全局线程池等基础设施事件也会
 					// 杀掉整个JVM（同会话其他测试全部中断，keepAlive的Rpc.Send在池null时抛
 					// IllegalStateException即触发）。守护线程的职责是持续存活：单轮异常记error
 					// 后继续下一轮，sleep在catch外保证异常时仍按1秒节拍，不致紧密循环刷日志。

@@ -1,5 +1,8 @@
 package Zeze.Raft.RocksRaft;
 
+/**
+ * Map 容器日志基类：在 LogBean 之上携带容器的当前值（PMap）。
+ */
 public abstract class LogMap<K, V> extends LogBean {
 	private org.pcollections.PMap<K, V> value;
 

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import Zeze.Net.Binary;
 import org.jetbrains.annotations.NotNull;
 
+/** SQL 更新语句装配器：按列拼接 "col=value" 子句并收集参数，供 Bean 的 encodeSQLStatement 输出。 */
 public final class SQLStatement {
 	private final StringBuilder sql = new StringBuilder();
 	private final ArrayList<Object> params = new ArrayList<>();

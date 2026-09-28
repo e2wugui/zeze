@@ -5,6 +5,9 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Raft 内部心跳日志：不携带用户数据；SetLeaderReadyEvent 用作 leader-ready 的提交见证。
+ */
 final class HeartbeatLog extends Log {
 	public static final int SetLeaderReadyEvent = 1;
 	public static final int TypeId_ = Bean.hash32(HeartbeatLog.class.getName());

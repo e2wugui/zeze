@@ -17,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
+/** 事务 SortedMap 基类：基于 pcollections 持久化有序映射的 NavigableMap 视图，托管下的修改经 LogSortedMap 记账。 */
 public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 		implements NavigableMap<K, V>, Iterable<Map.Entry<K, V>> {
 	@NotNull org.pcollections.PSortedMap<K, V> map = Empty.sortedMap();

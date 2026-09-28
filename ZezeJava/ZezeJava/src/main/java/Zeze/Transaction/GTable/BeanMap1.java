@@ -283,7 +283,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 	@Override
 	public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
 		var _pn_ = Bean.parentsToName(_p_);
-		// FND7-11：decodeJsonMap按"Map1"反射匹配不到字段pMap1（fieldNameFilter只剥_前缀，
+		// decodeJsonMap按"Map1"反射匹配不到字段pMap1（fieldNameFilter只剥_前缀，
 		// 详见Helper.decodeJsonTypedMap），改按meta定型解码。
 		Zeze.Serialize.Helper.decodeJsonTypedMap(pMap1, pMap1.getMeta(), _r_.getString(_pn_ + "Map1"));
 	}
@@ -296,7 +296,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 
 	@Override
 	public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-		// 行 bean 的唯一变量是列 map（C→V），类型从 meta 推导，与 schema 声明一致（FND3-07）。
+		// 行 bean 的唯一变量是列 map（C→V），类型从 meta 推导，与 schema 声明一致。
 		var _v_ = super.variables();
 		var meta = pMap1.getMeta();
 		_v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Map1", "map",

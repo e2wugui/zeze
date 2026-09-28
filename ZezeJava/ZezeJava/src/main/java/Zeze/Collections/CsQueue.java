@@ -63,10 +63,10 @@ public class CsQueue<V extends Bean> {
 			if (null == src || src.getHeadNodeKey().getNodeId() == 0 || src.getTailNodeKey().getNodeId() == 0)
 				return 0; // 死者没有这个队列/空队列/已被搬走（成功搬运后头尾必为0，幂等出口）。
 
-			// FND2-C0-1：不核对stamp==deadEpoch。调用点（Takeover.transferScope）已在同一事务内
+			// 不核对stamp==deadEpoch。调用点（Takeover.transferScope）已在同一事务内
 			// 重验租约过期，复活者被NotExpired拦截；而"stamp≠epoch但链上有数据"只可能是死者
 			// claim后、stamp前崩溃（或双跳崩溃留下上一代stamp）——数据仍属于死者，必须搬走。
-			// 旧守卫在这里return 0，外层照常立租约墓碑（scanOnce永久跳过墓碑），积压被永久封存。
+			// 在这里return 0会让外层照常立租约墓碑（scanOnce永久跳过墓碑），积压被永久封存。
 
 			// splice 单向链表，新接管的数据拼到开头。
 			var dstName = name + "@" + module.zeze.getConfig().getServerId();
@@ -133,8 +133,6 @@ public class CsQueue<V extends Bean> {
 				throw new IllegalStateException("maybe operate before entry created.");
 
 			// 这是新接管过来的nodeKey范围，如果需要对新接管数据进一步事务外处理，使用out送出事务外。
-			//first.value = new BQueueNodeKey(srcName, src.getHeadNodeId());
-			//last.value = new BQueueNodeKey(dstName, dstRoot.getHeadNodeId());
 
 			// splice 单向链表，新接管的数据拼到开头。
 			srcTail.setNextNodeKey(dstRoot.getHeadNodeKey());
@@ -167,7 +165,7 @@ public class CsQueue<V extends Bean> {
 	}
 
 	// 写路径fence：root行本就在事务工作集内，零额外IO。被接管（root.epoch != myEpoch）→致命退出。
-	// 未完成stamp登记（stamp瞬态失败等，FND-C1-11）→NotStartException拒绝：不认领数据行、不致命，
+	// 未完成stamp登记（stamp瞬态失败等）→NotStartException拒绝：不认领数据行、不致命，
 	// renew周期补stamp后恢复；root.stamp==0（无主新行/外部清表重建/被接管后的墓碑）仅scoped后
 	// 认领（stamp=myEpoch）而非致命：被接管者醒来在空链上复活并继续新写（需求语义）；fence只杀
 	// 同serverId双进程/外部篡改（stamp为别人的epoch）。
@@ -178,7 +176,7 @@ public class CsQueue<V extends Bean> {
 		takeover.requireScoped(takeoverScope); // 未登记：拒绝写，且不认领数据行
 		var root = queue.getOrAddRoot();
 		var stamp = root.getLoadSerialNo();
-		// FND2-C0-4：认领写（setLoadSerialNo）仅mode=on——与Takeover.start自己stampScope的
+		// 认领写（setLoadSerialNo）仅mode=on——与Takeover.start自己stampScope的
 		// 前置一致。dryrun必须守住"纯簿记不动数据行"的灰度契约；off避免0→0冗余写。
 		// 不认领时stamp保持0，checkFence对mode!=on恒通过，不影响早退路径。
 		if (stamp == 0 && Takeover.ModeOn.equals(takeover.getMode())) {

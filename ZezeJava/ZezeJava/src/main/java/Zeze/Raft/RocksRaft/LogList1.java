@@ -8,6 +8,9 @@ import Zeze.Serialize.SerializeHelper;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 
+/**
+ * 基础类型 List 容器的增量日志：按结构操作（add/set/remove/clear）记录 OpLog 序列。
+ */
 public class LogList1<V> extends LogList<V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogList1<");
 

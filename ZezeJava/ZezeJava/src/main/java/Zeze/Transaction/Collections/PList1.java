@@ -138,9 +138,9 @@ public class PList1<V> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.removeAll((Collection<V>)c);
 		}
-		// FND4-08：minusAll同为"逐元素删首个出现"，自实现契约语义（删全部出现），
+		// minusAll同为"逐元素删首个出现"，自实现契约语义（删全部出现），
 		// 与托管路径（LogList1.removeAll）行为对齐；从高索引往低删保持非命中元素顺序。
-		// 命中检测走线性equals（FND5-05）：生成bean覆写equals但不覆写hashCode，HashSet漏命中。
+		// 命中检测走线性equals：生成bean覆写equals但不覆写hashCode，HashSet漏命中。
 		var hit = new ArrayList<>(c);
 		var newList = list;
 		for (var i = newList.size() - 1; i >= 0; i--)

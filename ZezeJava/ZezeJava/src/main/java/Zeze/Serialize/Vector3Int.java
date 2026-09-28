@@ -3,6 +3,7 @@ package Zeze.Serialize;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 三维整型向量值类型（int x/y/z），继承 Vector2Int。 */
 public class Vector3Int extends Vector2Int {
 	public static final Vector3Int ZERO = new Vector3Int(0, 0, 0);
 

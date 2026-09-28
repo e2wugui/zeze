@@ -5,8 +5,7 @@ import Zeze.Transaction.EmptyBean;
 
 /**
  * 这条Rpc由Agent使用，用来主动查询Leader；
- * 【注意】
- * 这条Rpc目前仅用于Agent.detectLeader；
+ * 目前仅用于 Agent.getLeaderAsync（waitForLeader 经它主动触发流程）。
  */
 public class GetLeader extends RaftRpc<EmptyBean, BLeaderIsArgument> {
 	public static final int ProtocolId_ = Bean.hash32(GetLeader.class.getName());

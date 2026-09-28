@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.lang.ref.WeakReference;
 
+// 弱引用元素 Set：条目随元素被 GC 自动清除（派生自 WeakHashMap 的设计）
 public final class WeakHashSet<K> {
 	/**
 	 * The default initial capacity -- MUST be a power of two.

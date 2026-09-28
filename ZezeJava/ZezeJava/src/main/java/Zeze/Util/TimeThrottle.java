@@ -4,6 +4,7 @@ import Zeze.Net.SocketOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 限流器接口：按配置名创建 queue（滑动窗口）或 counter（固定窗口）实现
 public interface TimeThrottle extends AutoCloseable {
 	boolean checkNow(int size);
 

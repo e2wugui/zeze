@@ -1,5 +1,8 @@
 package Zeze.Services.ServiceManager;
 
+/**
+ * SM变更导出器接口：按eAll（全量，按服务）或eEdit（增量）两种模式导出订阅的服务列表。
+ */
 public interface IExporter {
 	enum Type {
 		eAll, // SM服务变化发生的时候回调exportAll，参数是当前所有的服务。

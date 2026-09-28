@@ -4,6 +4,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/**
+ * 唯一请求标识：(clientId, requestId) 二元组，raft 服务端据此对重复请求去重。
+ */
 public class UniqueRequestId implements Serializable {
 	private String clientId = "";
 	private long requestId;

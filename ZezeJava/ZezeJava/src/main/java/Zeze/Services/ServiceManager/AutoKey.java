@@ -4,6 +4,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Util.FastLock;
 import Zeze.Util.TimeAdaptedFund;
 
+/**
+ * 客户端侧发号器：号段耗尽时经Agent向ServiceManager申请AllocateId，本地CAS递增发放。
+ */
 public final class AutoKey extends FastLock {
 	private final String name;
 	private final AbstractAgent agent;

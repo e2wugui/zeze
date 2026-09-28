@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import static Zeze.Util.DeadlockBreaker.MAX_DEPTH;
 
+// 线程诊断：后台线程扫描超时任务（Timeout）与长驻临界区（Critical），超时打栈并中断
 public final class ThreadDiagnosable {
 	private static final @NotNull Logger logger = LogManager.getLogger(ThreadDiagnosable.class);
 	private static final AtomicLong currentSerial = new AtomicLong();
@@ -23,9 +24,9 @@ public final class ThreadDiagnosable {
 					try {
 						var now = System.nanoTime();
 					for (var timeout : timeouts) {
-						// 豁免读timeout创建线程的critical快照（FND7-43）：检查运行在诊断线程上，
-						// 原先读Critical.tlCritical.get()取的是诊断线程自己的ThreadLocal副本（恒null），
-						// enterCritical(true)的豁免从未生效。
+						// 豁免读timeout创建线程的critical快照：检查运行在诊断线程上，
+						// 不能读Critical.tlCritical.get()（那是诊断线程自己的ThreadLocal副本，恒null），
+						// 须读Timeout内构造时刻的快照。
 						if (timeout.timeoutTime <= now && !timeout.isCritical()
 								&& timeouts.remove(timeout) != null) { // 每个timeout仅触发一次
 								timeout.lock();
@@ -78,7 +79,7 @@ public final class ThreadDiagnosable {
 	public static final class Timeout extends ReentrantLock implements AutoCloseable {
 		private @Nullable Thread thread = Thread.currentThread();
 		private final long timeoutTime;
-		// 构造线程（工作线程）的critical标志快照（FND7-43）：豁免以Timeout创建时刻为准，
+		// 构造线程（工作线程）的critical标志快照：豁免以Timeout创建时刻为准，
 		// createTimeout须在enterCritical(true)临界区内调用才受豁免保护。
 		private final boolean critical;
 

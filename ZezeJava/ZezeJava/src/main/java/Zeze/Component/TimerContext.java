@@ -6,6 +6,9 @@ import Zeze.Transaction.EmptyBean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 定时器触发时传给用户回调的上下文。
+ */
 public class TimerContext {
 	public final @NotNull Timer timer; // 所属的Timer模块
 	public final @NotNull String timerId; // 用户指定的timerId, 或"@"+Base64编码的自动分配ID

@@ -5,6 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/** SHandshake0参数bean：推荐的加密/压缩类型与支持列表。 */
 public class BSHandshake0Argument implements Serializable {
 	public int encryptType; // 推荐的加密算法。旧版是boolean
 	public ArrayList<Integer> supportedEncryptList = new ArrayList<>();

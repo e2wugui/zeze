@@ -21,7 +21,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	// 静态共享时同一进程的多个 Memory 库实例互相串扰——库 A 的 schemas 保存让库 B 读到 A 的版本/前像，
 	// B 的兼容检查基于错误前像进行。
 	private static final HashMap<String, HashMap<ByteBuffer, DataWithVersion>> dataWithVersions = new HashMap<>();
-	// 私有哨兵：不能与 ByteBuffer.Empty 别名（T1-F1）——bean 全默认值时编码结果是 0 字节，
+	// 私有哨兵：不能与 ByteBuffer.Empty 别名——bean 全默认值时编码结果是 0 字节，
 	// replace 里 value.Copy() 对 size==0 返回共享的 ByteBuffer.Empty，commit 以引用相等判删
 	// 会把"写入空编码值"误判成 remove，已提交记录静默丢失。独立实例切断该别名。
 	private static final byte @NotNull [] removed = new byte[0];
@@ -62,8 +62,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 	@Override
 	public @Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
-		// FND7-03：dataWithVersions是静态共享结构（多Memory库实例按URL分区访问，见类头注释），
-		// 必须用静态读写锁守卫（对齐databaseTables的约定）。原先的实例锁()每实例一把：
+		// dataWithVersions是静态共享结构（多Memory库实例按URL分区访问，见类头注释），
+		// 必须用静态读写锁守卫（对齐databaseTables的约定）。不得用实例锁——每实例一把：
 		// 跨实例并发get/computeIfAbsent/put可损坏HashMap（桶链断裂），且与静态clear()的
 		// 写锁不互斥，clear期间的put可在被清空的桶上重建出损坏结构。
 		lock.readLock().lock();
@@ -84,7 +84,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	@Override
 	public @NotNull KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
 															  long version) {
-		// FND7-03：同getDataWithVersion，静态写锁守卫共享dataWithVersions。
+		// 同getDataWithVersion，静态写锁守卫共享dataWithVersions。
 		lock.writeLock().lock();
 		try {
 			var db = dataWithVersions.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());
@@ -116,8 +116,6 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 			try {
 				var db = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());
 				for (var e : batch.entrySet()) {
-					//if (e.getValue().size() > 2)
-					//	System.err.println("commit for: " + e.getKey() + " keys:" + e.getValue().keySet());
 					var map = db.computeIfAbsent(e.getKey(), TableMemory::new).map;
 					for (var r : e.getValue().entrySet()) {
 						if (r.getValue() == removed)
@@ -202,7 +200,6 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	// 单表原子查询
 	public @NotNull HashMap<ByteBuffer, ByteBuffer> finds(@NotNull String tableName, @NotNull Set<ByteBuffer> keys) {
 		var result = new HashMap<ByteBuffer, ByteBuffer>(keys.size());
-		// System.err.println("finds for: " + tableName + " keys.size=" + keys.size());
 		lock.readLock().lock();
 		try {
 			var db = databaseTables.get(getDatabaseUrl());
@@ -271,7 +268,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 		@Override
 		public void clear() {
-			// 并发约定归还到类型自身（FND4-06）：find/walk持读锁访问map，clear必须持写锁
+			// 并发约定归还到类型自身：find/walk持读锁访问map，clear必须持写锁
 			// 互斥——裸clear与并发遍历可抛CME或损坏TreeMap结构。静态入口（已持写锁
 			// 调用此处）重入安全。
 			lock.writeLock().lock();

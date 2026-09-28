@@ -59,7 +59,9 @@ import org.jetbrains.annotations.Nullable;
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
-// token续期服务. 跟初始设置的ttl如何兼顾? 覆盖还是选最大值? 目前暂无计划, 等有需求再说
+/**
+ * Token服务：生成/核销一次性令牌（内存SoftReference缓存+RocksDB落库），附带主题订阅广播。
+ */
 public final class Token extends AbstractToken {
 	private static final @NotNull Logger logger = LogManager.getLogger(Token.class);
 	private static final int DEFAULT_PORT = 5003;
@@ -198,10 +200,10 @@ public final class Token extends AbstractToken {
 			return connector.getSocket();
 		}
 
-		// S4-F1：不再覆写OnSocketConnected保留"全Disable连上即完成握手"的快速路径。
-		// 原快速路径按本端单边配置判定握手完成，OnHandshakeDone随连接建立立即回调并重放
-		// SubTopic（明文应用协议）；对端配置加密时其解码准入门禁（FND7-23，双向codec装齐
-		// 才撤销）将确定性拒绝断连。握手完成判定改为双边语义：与HandshakeClient一致推迟到
+		// 不覆写OnSocketConnected保留"全Disable连上即完成握手"的快速路径：
+		// 该快速路径按本端单边配置判定握手完成，OnHandshakeDone随连接建立立即回调并重放
+		// SubTopic（明文应用协议）；对端配置加密时其解码准入门禁（双向codec装齐
+		// 才撤销）将确定性拒绝断连。握手完成判定为双边语义：与HandshakeClient一致推迟到
 		// 对端SHandshake0驱动的握手交换（processSHandshake0的全Disable推荐分支已内建），
 		// WaitReady（futureSocket由OnHandshakeDone链完成）亦随之推迟到握手完成后，
 		// waitReady后立即可发的RPC不再与门禁冲突。全Disable互联代价为一次额外往返。
@@ -299,7 +301,7 @@ public final class Token extends AbstractToken {
 			if (!session.subTopics.add(topic))
 				return false;
 			// compute的remapping对同一key互斥执行：退订的"remove+isEmpty删条目"与订阅的"建表+add"若各自拆成
-			// computeIfAbsent/computeIfPresent两步，交错时订阅会落在已被删条的孤儿列表上，静默丢失订阅（FND-S3-15）。
+			// computeIfAbsent/computeIfPresent两步，交错时订阅会落在已被删条的孤儿列表上，静默丢失订阅。
 			topicMap.compute(topic, (__, ss) -> {
 				if (null == ss)
 					ss = new CopyOnWriteArrayList<>();
@@ -329,13 +331,13 @@ public final class Token extends AbstractToken {
 			}
 		}
 
-		// S4-F1：不再覆写OnSocketAccept保留"全Disable直呼OnHandshakeDone"的服务端快速路径，
+		// 不覆写OnSocketAccept保留"全Disable直呼OnHandshakeDone"的服务端快速路径，
 		// 与HandshakeServer一致无条件发送SHandshake0（全Disable时推荐值亦为全Disable，客户端
 		// processSHandshake0的既有分支以CHandshakeDone+OnHandshakeDone完成握手）。原因见
 		// TokenClient.OnHandshakeDone处注释：保留该快速路径，全Disable客户端就无法改为双边
 		// 语义（收不到SHandshake0则永远等不到握手完成）。Disable互联代价为一次额外往返；
-		// 加密TokenClient对接全Disable本服务端的错误配置，由客户端FND7-S2②的降级拒绝
-		// 显式断连（原为握手永不发生的静默挂起，可诊断性更好）。
+		// 加密TokenClient对接全Disable本服务端的错误配置，由客户端的降级拒绝
+		// 显式断连（否则是握手永不发生的静默挂起，可诊断性更好）。
 		@Override
 		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 			so.setUserState(new Session(so));
@@ -357,7 +359,7 @@ public final class Token extends AbstractToken {
 				throws Exception {
 			try {
 				decodeProtocol(typeId, bb, factoryHandle, so).handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("dispatchProtocol exception:", e);
 			}
 		}
@@ -462,7 +464,7 @@ public final class Token extends AbstractToken {
 				state.count = -1;
 				state.token.tokenMap.remove(state.key, state);
 			}
-		} catch (Throwable e) { // logger.error
+		} catch (Throwable e) {
 			logger.error("cleanTokenRef.moveToDB exception:", e);
 		} finally {
 			if (lock != null)
@@ -491,7 +493,7 @@ public final class Token extends AbstractToken {
 						stateBuf[stateBufCount++] = state;
 					tokenSoftRefCleanCounter.increment();
 				}
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("cleanTokenRef exception:", e);
 			}
 		}
@@ -505,12 +507,12 @@ public final class Token extends AbstractToken {
 	private volatile RocksDatabase.Table tokenMapTable;
 	private TokenServer service;
 	// 周期守护：cleanTokenMap(1s内存扫描，state.tryLock非阻塞)进worker池；stop锁外有界等待
-	// 在飞一轮——模块锁不再跨任何join（原TimerFuture.cancel在Token锁内无界join，body亚毫秒
-	// 无碍，但演化变重会变成持模块锁无界等）。
+	// 在飞一轮——模块锁不跨任何join（若用TimerFuture.cancel在Token锁内join，body变重后
+	// 会演化为持模块锁无界等）。
 	private final DaemonTimer cleanTokenMapDaemon = new DaemonTimer("Token.cleanTokenMap", 1000, this::cleanTokenMap);
 	// 周期守护：cleanTokenMapTableOnce(全表RocksDB迭代+批删)进worker池不占调度线程；
-	// 逐轮delayUntilNextDaily(3,14)重对齐每日03:14（无漂移，对齐旧scheduleAtNow+finally重排链）；
-	// stop()锁外daemon.stop()有界等待在飞一轮（原S4-F3的running标志+1ms轮询等待就此删除），
+	// 逐轮delayUntilNextDaily(3,14)重对齐每日03:14（无漂移）；
+	// stop()锁外daemon.stop()有界等待在飞一轮，
 	// 超预算逃逸轮由body的catch容错（记日志，清理幂等：未删行下次03:14重扫）。
 	private final DaemonTimer cleanTokenMapTableDaemon = new DaemonTimer("Token.cleanTokenMapTable",
 			() -> Task.delayUntilNextDaily(3, 14), 0, this::cleanTokenMapTableOnce);
@@ -527,9 +529,9 @@ public final class Token extends AbstractToken {
 				return this;
 
 			rocksdb = new RocksDatabase(PropertiesHelper.getString("token.rocksdb", "token_db"));
-			// getOrAddTable在下方回滚try块内（FND8-63）：原与建库一起在try之外，getOrAddTable
-			// 失败时rocksdb已赋值无人关闭，后续每次start重复new RocksDatabase对同目录二次
-			// open——Windows下LOCK互斥每次必抛（重试环还先空转10秒），restart永久失败。
+			// getOrAddTable在下方回滚try块内：getOrAddTable失败时若rocksdb已赋值无人关闭，
+			// 后续每次start重复new RocksDatabase对同目录二次open——Windows下LOCK互斥每次必抛
+			// （重试环还先空转10秒），restart永久失败。
 
 			tokenRefCleanerLock.lock();
 			try {
@@ -567,20 +569,20 @@ public final class Token extends AbstractToken {
 				cleanTokenMapTableDaemon.start();
 				return this;
 			} catch (Throwable ex) {
-				// 启动全有或全无（FND4-69）：
+				// 启动全有或全无：
 				// 半途失败清空已建状态，否则重入检查把"未运行的服务"当已启动直接
 				// 返回this——二次start假成功，服务永不监听且清理任务未注册，
 				// getService()非null掩盖故障。
 				cleanTokenMapDaemon.stop();
 				cleanTokenMapTableDaemon.stop();
 				if (service != null) {
-					// 先stop再置null（FND7-22）：config.start()逐个启动acceptor，多acceptor配置下
+					// 先stop再置null：config.start()逐个启动acceptor，多acceptor配置下
 					// 前一个bind成功、后一个失败时，已bind的监听socket与start()启动的keepAlive
 					// 定时器仍在运行；只置null的话无人能再停它们——同端口重试start永远bind冲突，
 					// 直到进程退出。stop失败仅记日志，不掩盖原始启动异常。
 					try {
 						service.stop();
-					} catch (Throwable t) { // logger.error
+					} catch (Throwable t) {
 						logger.error("Token.start rollback service.stop exception:", t);
 					}
 					service = null;
@@ -612,15 +614,15 @@ public final class Token extends AbstractToken {
 		}
 		// 两个守护均在锁外有界等待在飞一轮（预算=timeoutMs+5s；table对齐RocksDatabase关闭契约——
 		// 不等即关库时在飞get/put/commit对已关闭句柄操作可崩JVM）。等待窗口内并发的start()会因
-		// 旧库未关而在目录LOCK互斥上失败（FND8-63既有行为），不产生静默双开。
+		// 旧库未关而在目录LOCK互斥上失败，不产生静默双开。
 		cleanTokenMapDaemon.stop();
 		cleanTokenMapTableDaemon.stop();
 		lock();
 		try {
 			if (rocksdb != null) {
-				// stop关库（FND8-63）：stop只saveDB不关库时rocksdb/tokenMapTable悬挂，restart的
+				// stop关库：stop只saveDB不关库时rocksdb/tokenMapTable悬挂，restart的
 				// start对同目录二次open——Windows下LOCK互斥每次必抛（重试环还先空转10秒），
-				// Linux下双实例双WAL/memtable写同目录。对齐全仓stop关库惯例（RedoQueue等先例）；
+				// Linux下双实例双WAL/memtable写同目录。对齐全仓stop关库惯例（RedoQueue等）；
 				// 重启后ProcessGetTokenRequest对miss的token按需懒加载，无数据语义损失。
 				// saveDB失败记录（不改变stop异常契约）：此时关库，未落库的内存态token会丢。
 				if (!saveDB())
@@ -667,8 +669,8 @@ public final class Token extends AbstractToken {
 		var now = System.currentTimeMillis();
 		var bb = ByteBuffer.Wrap(ByteBuffer.Empty);
 		long n = 0, d = 0;
-		// S4-F2：newBatch用try-with-resources包住（对齐saveDB）——原batch从不close，
-		// WriteBatch持有native内存，每14秒调度一次的任务逐次泄漏累积。
+		// newBatch用try-with-resources包住（对齐saveDB）——WriteBatch持有native内存，
+		// 不close的话周期任务逐次泄漏累积。
 		try (var batch = rocksdb.newBatch()) {
 			try (var it = tokenMapTable.iterator()) {
 				for (it.seekToFirst(); it.isValid(); it.next()) {
@@ -765,8 +767,8 @@ public final class Token extends AbstractToken {
 			var state = tokenMap.get(token);
 			if (state == null) {
 				try {
-					// S4-F3：tokenMapTable为volatile，closeDb/stop置null后miss路径不得裸解引用。
-					// 尽力收窄：判空后关库仍可能与本get竞态（TOCTOU残余接受，裁决既定）。
+					// tokenMapTable为volatile，closeDb/stop置null后miss路径不得裸解引用。
+					// 尽力收窄：判空后关库仍可能与本get竞态（TOCTOU残余接受）。
 					var table = tokenMapTable;
 					if (table != null) {
 						var v = table.get(token.getBytes(StandardCharsets.UTF_8));
@@ -802,11 +804,11 @@ public final class Token extends AbstractToken {
 							// 达到maxCount被成功移除后置-1（与"移除即置-1"约定一致），防止软引用清理时moveToDB写回复活耗尽token。
 							state.count = -1;
 							// 核销还必须删除RocksDB中已落库的副本：核销前saveDB/moveToDB写入的旧count
-							// 会在重启/软引用回收后经DB回载重新起算，同一token可无限次重放
-							// （707a0eff1只封住了核销后被moveToDB写回，未清核销前已落库的副本）。
+							// 会在重启/软引用回收后经DB回载重新起算，同一token可无限次重放——
+							// 仅封住核销后的moveToDB写回不够，核销前已落库的副本也要清除。
 							// moveToDB/saveDB都持state.lock且跳过count==-1的state，删后不会被写回。
 							try {
-								var table = tokenMapTable; // S4-F3：同上，停机窗口尽力收窄
+								var table = tokenMapTable; // 同上，停机窗口尽力收窄
 								if (table != null)
 									table.delete(token.getBytes(StandardCharsets.UTF_8));
 							} catch (Exception e) {

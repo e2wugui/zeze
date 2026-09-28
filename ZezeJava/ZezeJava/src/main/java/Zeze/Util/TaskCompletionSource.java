@@ -12,6 +12,7 @@ import Zeze.Transaction.Profiler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 可手动完成（setResult/setException）的 Future 实现：CAS 单槽结果 + 无锁等待线程栈
 public class TaskCompletionSource<R> implements Future<R> {
 	private static final @NotNull VarHandle RESULT, WAIT_HEAD;
 	protected static final AltResult NULL_RESULT = new AltResult(null);
@@ -149,7 +150,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 				unparkAll();
 			else {
 				timeout = unit.toNanos(timeout);
-				// U5-F2：toNanos 的饱和值与 nanoTime 相加会溢出为负的 deadline（不变式破坏，
+				// toNanos 的饱和值与 nanoTime 相加会溢出为负的 deadline（不变式破坏，
 				// j.u.c 对饱和超时值有"不超时"特判）。检测饱和（now>0 时 MAX-now 不溢出，now<=0 时
 				// now+timeout 不可能溢出）钳制 deadline 为 MAX_VALUE，使"deadline-now 恒为大正数、
 				// 循环等到结果为止"的循环不变式显式成立，不再依赖补码双重回绕的偶然自愈。

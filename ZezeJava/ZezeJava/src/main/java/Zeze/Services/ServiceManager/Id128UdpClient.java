@@ -21,6 +21,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Id128 UDP发号客户端：按name合并请求批量向Id128UdpServer申请号段，FutureNode链表
+ * 等待应答或超时，供Tid128Cache发放。
+ */
 public class Id128UdpClient {
 	private static final @NotNull Logger logger = LogManager.getLogger(Id128UdpClient.class);
 	private static final int eSoTimeoutTick = 15;
@@ -103,7 +107,7 @@ public class Id128UdpClient {
 				udp.send(udpPacket);
 				} catch (Exception e) {
 					current.setException(e);
-					// FND7-62：标记futureNode已设置过结果（对齐processResult/processTick的
+					// 标记futureNode已设置过结果（对齐processResult/processTick的
 					// 既有约定），否则该节点残留"待设置"状态，最迟要到超时检查器
 					// （eRpcTimeout）碰它时才清理。
 					current.pending.set(0);
@@ -120,9 +124,9 @@ public class Id128UdpClient {
 		udp.close();
 		worker.interrupt();
 		worker.join();
-		// SM1-F3：worker.join()后在途FutureNode的唯一定时完成者（processTick的超时检查器）
+		// worker.join()后在途FutureNode的唯一定时完成者（processTick的超时检查器）
 		// 已死，等待分配的线程将永久park（finalCommit链无超时等待）。对三张表内全部未完成
-		// 节点补setException并清空。pending.getAndSet(0)兼作"已设置结果"标记（FND7-62口径），
+		// 节点补setException并清空。pending.getAndSet(0)兼作"已设置结果"标记（既有约定），
 		// 已完成的节点（pending<=0）跳过不重复设置。
 		var stopped = new IllegalStateException("client stopped");
 		for (var futureNode : currentFuture.values())
@@ -160,7 +164,7 @@ public class Id128UdpClient {
 			}
 			try {
 				processTick();
-			} catch (Throwable ex) { // logger.error
+			} catch (Throwable ex) {
 				logger.error("", ex);
 			}
 		}
@@ -202,7 +206,7 @@ public class Id128UdpClient {
 			lastProcessTickTime = now;
 			var bb = ByteBuffer.Allocate();
 			var futureNodesGuard = new ArrayList<FutureNode>();
-			// SM1-F1：已成功发出的节点数（按发送边界分段记账）。原catch对guard表内全部节点
+			// 已成功发出的节点数（按发送边界分段记账）。若catch对guard表内全部节点
 			// setException——中途send失败把已成功发出的分片节点一并判死；经
 			// History.buildLogChanges→finalCommit的halt放大为进程级误杀。guard按节点入表顺序
 			// 与编码入包顺序一致，每次udp.send成功后置sentCount=表长，失败只对未确认发出的
@@ -242,7 +246,7 @@ public class Id128UdpClient {
 			} catch (Exception ex) {
 				for (var futureNode : futureNodesGuard.subList(sentCount, futureNodesGuard.size())) {
 					futureNode.setException(ex);
-					// FND7-62：标记已设置过结果，超时检查器不再延迟清理该节点。
+					// 标记已设置过结果，超时检查器不再延迟清理该节点。
 					futureNode.pending.set(0);
 				}
 				logger.error("", ex);
@@ -267,25 +271,6 @@ public class Id128UdpClient {
 					futureNode.pending.set(0); // 用来标记futureNode已经设置过结果.
 				}
 				pendingRpc.remove(eIt.key());
-				/*
-				// 2. 这里仅仅为了回收rpc-context,不对futureNode队列进行处理.
-				//    如果后面的请求有结果,仍然会得到setResult.
-				pendingRpc.remove(eIt.key());
-
-				// 3. 给当前以及之前的报错.之前的从链表中去掉,当前由于没有实现双向链表残留着.
-				var futureNode = r.getFutureNode();
-				do {
-					var current = futureNode;
-					// 循环中需要再次判断, see eRpcTimeoutChecker, 但是不判断也是可以的,下面码刚好可以工作.
-					if (current.pending.get() > 0) {
-						current.setException(new TimeoutException());
-						current.pending.set(0);
-					}
-					futureNode = current.prev;
-					current.prev = null;
-				} while (futureNode != null);
-				pendingRpc.remove(eIt.key());
-				*/
 			}
 		}
 	}

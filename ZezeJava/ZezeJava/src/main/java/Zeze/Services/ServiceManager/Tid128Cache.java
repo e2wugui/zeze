@@ -4,6 +4,9 @@ import Zeze.Util.FastLock;
 import Zeze.Util.Id128;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 客户端侧Id128号段缓存：持有[start,end)号段逐个发放，耗尽时经Agent申请新段。
+ */
 public class Tid128Cache extends FastLock {
 	public static final int ALLOCATE_COUNT_MIN = 16;
 	public static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
@@ -53,12 +56,12 @@ public class Tid128Cache extends FastLock {
 		lock();
 		try {
 			if (current.compareTo(end) < 0) {
-				// 先返回后自增（对齐TidCache）：按grant区间[start,end)全量发放；旧实现先增后返
-				// 发放[start+1,end]，全局仅首个号（首段start，即(0,0)）永不进入发放域
+				// 先返回后自增（对齐TidCache）：按grant区间[start,end)全量发放；先增后返会发放
+				// [start+1,end]，全局仅首个号（首段start，即(0,0)）永不进入发放域
 				var r = current;
 				current = current.add(1);
 				//noinspection NonAtomicOperationOnVolatileField
-				allocated++; // 这个在锁内了,还警告啊.
+				allocated++;
 				return r;
 			}
 		} finally {

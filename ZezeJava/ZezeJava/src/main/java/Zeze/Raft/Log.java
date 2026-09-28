@@ -7,7 +7,7 @@ import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * 用户接口。
+ * Raft 应用日志基类：状态机操作的单位，由 apply 应用到 StateMachine。
  */
 public abstract class Log implements Serializable {
 	/**
@@ -15,7 +15,7 @@ public abstract class Log implements Serializable {
 	 * 只读，常量即可。
 	 * 在一个StateMachine实现中唯一。
 	 * 不冲突的时候使用默认实现即可。
-	 * 【注意】
+	 * 注意：
 	 * 如果实现类的FullName发生了改变，需要更新所有的Raft-Node。
 	 * 如果不想跟名字相关，重载并提供一个编号。
 	 * Log的typeId只使用低32位
@@ -24,10 +24,10 @@ public abstract class Log implements Serializable {
 	public abstract long typeId();
 
 	// 当前这个Log是哪个应用的Rpc请求引起的。
-	// 【Raft用来检测重复的请求】。
+	// Raft用来检测重复的请求。
 	// RaftConfig里面配置AutoKeyLocalStep开启这个功能。
 	// 启用这个功能要求应用的RpcSessionId持久化，并且全局唯一，对每个AutoKeyLocalStep递增。
-	// 【注意】应用生成的Id必须大于0；0保留给内部；小于0未使用。
+	// 注意：应用生成的Id必须大于0；0保留给内部；小于0未使用。
 	private UniqueRequestId unique = new UniqueRequestId();
 	private long createTime;
 	private Binary rpcResult = Binary.Empty;

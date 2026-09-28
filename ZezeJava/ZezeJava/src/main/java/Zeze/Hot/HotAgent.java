@@ -20,6 +20,9 @@ import Zeze.Net.Connector;
 import Zeze.Net.Service;
 import Zeze.Util.OutObject;
 
+/**
+ * 连接 HotManager（ZokerManager）的控制台代理：上传模块文件并驱动 prepare/try/commit/rollback 分发流程。
+ */
 public class HotAgent extends AbstractHotAgent {
 	public static class HotAgentService extends Service {
 		public HotAgentService() {
@@ -140,7 +143,7 @@ public class HotAgent extends AbstractHotAgent {
 		// 见HotManager.install末尾的sendCommitResultAndWaitCommit2）才发出，
 		// 常超默认的5秒rpc超时：超时把future置异常后，控制台不加入commit2名单，
 		// 服务端sendCommitResultAndWaitCommit2等不到Commit2（10秒超时）→halt(111222)。
-		// 对齐tryDistribute（c624db97d）放宽到60秒。
+		// 对齐tryDistribute，放宽到60秒。
 		r.SendForWait(hotManager, 60_000);
 		return r;
 	}
@@ -171,17 +174,14 @@ public class HotAgent extends AbstractHotAgent {
 
 		for (var file : files) {
 			if (file.isDirectory()) {
-				//distributeFiles(distributeDir);
 				continue;
 			}
-			//if (!file.getName().endsWith(".jar"))
-			//	continue;
 			// file必为distributeDir直接子文件（listFiles保证），相对名即getName()，与distributeFile一致。
 			distributeFile(file);
 		}
 	}
 
-	// hot-02（FND18）：单文件上传变体——schemas jar 生成于 workingDir 根而非 modules/interfaces
+	// 单文件上传变体——schemas jar 生成于 workingDir 根而非 modules/interfaces
 	// 目录，pack 需单独上传它；漏传则 install 无条件 loadSchemas 且装载后即删（无残留自愈），
 	// 远程发布恒 eInstall 失败。平铺落服务器 distributeDir 根（loadExistDistributes 有
 	// SchemasPrefix 排除，不会误当模块配对）。
@@ -200,7 +200,7 @@ public class HotAgent extends AbstractHotAgent {
 			}
 		} catch (Exception primary) {
 			// 传输已失败：closeFile的失败是预期伴生，压制为suppressed，
-			// 不得顶替原始传输异常（GE-D04客户端对齐，与ZokerAgent同构）。
+			// 不得顶替原始传输异常（与ZokerAgent同构）。
 			try {
 				closeFile(fileRelativeName, new Binary(md5.digest()));
 			} catch (Exception suppressed) {

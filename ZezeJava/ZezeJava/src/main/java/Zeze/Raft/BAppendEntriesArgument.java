@@ -6,6 +6,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
+/**
+ * AppendEntries 请求参数：term、prevLog 匹配信息、待复制日志块与 leaderCommit。
+ */
 final class BAppendEntriesArgument extends Bean {
 	private long term;
 	private String leaderId;

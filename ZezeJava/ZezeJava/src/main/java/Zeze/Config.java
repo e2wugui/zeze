@@ -30,6 +30,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+/**
+ * zeze.xml 配置装载与解析：全局参数、数据库/表/服务配置节与自定义扩展节。
+ */
 public final class Config {
 	private static final @NotNull Logger logger = LogManager.getLogger(Config.class);
 	public interface ICustomize {
@@ -703,11 +706,6 @@ public final class Config {
 		if (!attr.isBlank())
 			setCheckpointFlushMode(CheckpointFlushMode.valueOf(attr));
 
-//		if (checkpointMode == CheckpointMode.Period && !globalCacheManagerHostNameOrAddress.isBlank()) {
-//			Application.logger.warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
-//			checkpointMode = CheckpointMode.Table;
-//		}
-
 		attr = self.getAttribute("AutoResetTable");
 		if (!attr.isBlank())
 			autoResetTable = Boolean.parseBoolean(attr);
@@ -813,12 +811,12 @@ public final class Config {
 			}
 		}
 		if (globalCacheManagerHostNameOrAddress.equals("GlobalCacheManagersConf")) {
-			// FND2-A1-7：配置了特殊值但缺少<GlobalCacheManagersConf>子节点时，此前是裸NPE无任何诊断
-			// （对照同文件其它配置错误均抛带名异常）。
+			// 配置了特殊值但缺少<GlobalCacheManagersConf>子节点时须带名报错，
+			// 不得裸NPE无诊断（对照同文件其它配置错误均抛带名异常）。
 			if (globalCacheManagers == null)
 				throw new IllegalStateException("GlobalCacheManagersConf node missing");
 			var parsed = globalCacheManagers.toString();
-			// FND8-19：isBlank不够——>=2个空白<host name=""/>时toString()==";"非blank，
+			// isBlank不够——>=2个空白<host name=""/>时toString()==";"非blank，
 			// 会静默降级为无GCM模式并绕过hasGlobal与setInUse两道下游检查（连主流后端的
 			// 启动期互斥兜底也被绕过）。按消费语义（Str.trim(split(";"))）过滤后判空：
 			// 写了特殊值=显式opt-in，空结果只能是漏写host，必须fail-fast；直接属性写空串
@@ -830,7 +828,7 @@ public final class Config {
 	}
 
 	public static final class ServiceManagerConf {
-		// FND5-35（方案B部署契约）：sessionName是raft版ServiceManager（ServiceManagerWithRaft）
+		// 部署契约：sessionName是raft版ServiceManager（ServiceManagerWithRaft）
 		// 会话表tSession的主键兼会话归属凭证，必须非空且在同一SM集群内全局唯一——同名会话
 		// 互相接管（推送错乱、断连连带注销对方注册订阅，服务闪断）。漏配本属性时解析为空串：
 		// 经Application+ServiceManager=raft启动会默认为projectName#serverId（serverId仍需唯一），
@@ -982,15 +980,6 @@ public final class Config {
 		private DynamoConf dynamoConf; // only valid when dynamodb
 		private boolean distTxn; // 是否启用分布式事务(目前仅TiKV支持)
 		private boolean disableOperates;
-		//private long prepareMaxTime = 10_000; // 10s
-
-		//public long getPrepareMaxTime() {
-		//	return prepareMaxTime;
-		//}
-
-		//public void setPrepareMaxTime(long value) {
-		//	prepareMaxTime = value;
-		//}
 
 		public @NotNull String getName() {
 			return name;
@@ -1066,7 +1055,6 @@ public final class Config {
 
 			switch (self.getAttribute("DatabaseType").trim()) {
 			case "Memory":
-				// databaseType = DbType.Memory;
 				break;
 			case "MySql":
 				databaseType = DbType.MySql;
@@ -1111,9 +1099,6 @@ public final class Config {
 			databaseUrl = self.getAttribute("DatabaseUrl").trim();
 			distTxn = "true".equalsIgnoreCase(self.getAttribute("distTxn").trim());
 			disableOperates = "true".equalsIgnoreCase(self.getAttribute("DisableOperates").trim());
-			//var attr = self.getAttribute("PrepareMaxTime");
-			//if (!attr.isBlank())
-			//	prepareMaxTime = Long.parseLong(attr);
 
 			if (conf.getDatabaseConfMap().putIfAbsent(getName(), this) != null)
 				throw new IllegalStateException("Duplicate Database '" + getName() + "'");

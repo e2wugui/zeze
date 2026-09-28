@@ -10,6 +10,7 @@ import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** PMap2 的只读视图：值以只读类型暴露，修改入口抛 UnsupportedOperationException。 */
 public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map.Entry<K, VReadOnly>> {
 	private final @NotNull PMap2<K, V> map;
 

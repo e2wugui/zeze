@@ -139,12 +139,12 @@ public final class Binary implements Comparable<Binary> {
 		if (other instanceof ByteBuffer bb)
 			return Arrays.equals(bytes, offset, offset + count, bb.Bytes, bb.ReadIndex, bb.WriteIndex);
 		if (other instanceof NioByteBuffer nbb)
-			// 哈希两侧已统一为calc_hashnr（FND5-46），补此分支与NioByteBuffer.equals(Binary)对称闭合
+			// 哈希两侧同为calc_hashnr，本分支与NioByteBuffer.equals(Binary)对称
 			return nbb.bb.equals(java.nio.ByteBuffer.wrap(bytes, offset, count));
 		return false;
 	}
 
-	/** 裸数组内容比较的显式出口（FND8-15）：equals不再接受byte[]——数组hashCode是
+	/** 裸数组内容比较的显式出口：equals不接受byte[]——数组hashCode是
 	 * 身份哈希，宽容分支违反"equals相等则hashCode相等"契约，哈希容器传裸数组查询
 	 * 会落错桶静默miss。跨类型内容比较走本方法（对齐String.contentEquals惯例）。 */
 	public boolean contentEquals(byte @NotNull [] other) {

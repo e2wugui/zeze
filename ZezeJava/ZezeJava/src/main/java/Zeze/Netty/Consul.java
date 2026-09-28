@@ -40,11 +40,11 @@ public class Consul {
 		var newService = new NewService();
 		newService.setAddress(ip);
 		newService.setPort(port);
-		newService.setId(serviceId); // todo 估计需要唯一。
+		newService.setId(serviceId); // consul服务Id须唯一：由ip:port+serviceName构成，重复注册被putIfAbsent拒绝。
 		newService.setName(serviceName); // todo 这是服务名，一个服务名下有多个Id？
 
 		// Consul健康检查的http URL必须是标准形式"schema://host[:port]/path":host只能是ip或主机名,
-		// 不能把serviceId拼进去(原实现"http://@ip:port@serviceName/path"的host部分非法,探活必然失败,服务持续被判不健康)。
+		// 不能把serviceId拼进去(host部分非法则探活必然失败,服务持续被判不健康)。
 		// IPv6字面量地址在URL里必须加方括号。
 		var host = ip.contains(":") ? "[" + ip + "]" : ip;
 		var checker = new NewService.Check();
@@ -53,7 +53,7 @@ public class Consul {
 		checker.setInterval("10s");
 		checker.setDeregisterCriticalServiceAfter("5m");
 		newService.setCheck(checker);
-		/* checker 网上的配置，需要都设置？
+		/* NewService.Check 其余可选配置项示例（摘自 Consul 文档，按需设置）：
 			{
 			"check": {
 			"id": "api",
@@ -67,12 +67,12 @@ public class Consul {
 			}
 		 */
 		try {
-			// 必须在try守护内（FND6-17）：addHandler对重复path抛IllegalStateException时
+			// 必须在try守护内：addHandler对重复path抛IllegalStateException时
 			// 走下方catch回滚services条目，若在try外抛出则条目泄漏，重试恒抛duplicate register。
 			httpServer.addHandler(PassiveKeepAlivePath, 1024, null, null, Consul::passiveKeepAlive);
 			client.agentServiceRegister(newService); // response value is void.
 		} catch (RuntimeException e) {
-			// FND6-17：回滚本地登记与handler——注册时consul瞬断（远端未注册）而本地残留时，
+			// 回滚本地登记与handler——注册时consul瞬断（远端未注册）而本地残留时，
 			// 此后重试注册同server恒抛duplicate直到stop()。登记与远端状态配对。
 			services.remove(httpServer, serviceId);
 			httpServer.removeHandler(PassiveKeepAlivePath);
@@ -87,7 +87,7 @@ public class Consul {
 			try {
 				client.agentServiceDeregister(serviceId);
 			} catch (RuntimeException ex) {
-				// FND6-17：逐个尽力清理——单个deregister网络异常中断循环会让剩余server的
+				// 逐个尽力清理——单个deregister网络异常中断循环会让剩余server的
 				// consul条目永不注销（残留到consul TTL/运维清理）。
 				Netty.logger.error("consul deregister {}", serviceId, ex);
 			}

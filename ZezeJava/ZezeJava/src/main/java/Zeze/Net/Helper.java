@@ -11,6 +11,9 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 网络与缓冲相关的辅助工具。
+ */
 public final class Helper {
 	public static final int MAX_BUFFER_SIZE = 0x4000_0000; // 1G
 

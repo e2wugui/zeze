@@ -5,6 +5,9 @@ import Zeze.Net.Rpc;
 import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 可走代理的 Rpc：持有 ProxyRequest，SendResult/trySendResultCode 在代理路径下改经 proxyRequest 应答。
+ */
 public abstract class ProxyableRpc<A extends Serializable, R extends Serializable> extends Rpc<A, R> {
 	private ProxyRequest proxyRequest;
 
@@ -34,7 +37,7 @@ public abstract class ProxyableRpc<A extends Serializable, R extends Serializabl
 		proxyRequest.SendResult();
 	}
 
-	// 【FND2-R2-4】处理器异常的onError兜底走Rpc.trySendResultCode，代理路径下
+	// 处理器异常的onError兜底走Rpc.trySendResultCode，代理路径下
 	// getSender()==null，直发失败会静默丢弃错误码（客户端等满proxy超时并触发
 	// 重发循环）；与SendResult(Binary)同构，proxy方式置码后经proxyRequest应答。
 	@Override

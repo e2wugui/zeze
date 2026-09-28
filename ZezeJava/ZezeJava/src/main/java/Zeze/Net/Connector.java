@@ -211,7 +211,7 @@ public class Connector extends ReentrantLock {
 	public void OnSocketConnected(@NotNull AsyncSocket so) {
 		lock();
 		try {
-			// socket!=so为stale回调（stop已置null或已被新一代取代）：不得置isConnected（FND8-52）
+			// socket!=so为stale回调（stop已置null或已被新一代取代）：不得置isConnected
 			if (socket != so)
 				return;
 			isConnected = true;

@@ -10,6 +10,7 @@ import Zeze.Transaction.Collections.LogBean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 动态类型 Bean：运行时按 typeId 持有可替换的内部 bean，替换以 LogDynamic 日志参与事务与序列化。 */
 public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	@NotNull Bean bean = new EmptyBean();
 	long typeId = EmptyBean.TYPEID;

@@ -47,6 +47,10 @@ import org.w3c.dom.Element;
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
+/**
+ * 同步版全局缓存管理器服务器（单例）：管理cache-sync的全局锁所有权协商（Acquire/Reduce/Release），
+ * 每个GlobalTableKey一把锁，处理线程在锁与Condition上同步等待。
+ */
 public final class GlobalCacheManagerServer extends ReentrantLock implements GlobalCacheManagerConst {
 	static {
 		var level = Level.toLevel(System.getProperty("logLevel"), Level.INFO);
@@ -62,9 +66,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		return instance;
 	}
 
-	// 墓碑化：start赋值后永不置null，stop只停止对象不杀引用（对齐perf"close但不置null"
-	// 与Service.stopped停机屏障先例）——在飞协议/晚到守护读到的已停止Service上GetSocket
-	// 安全返回null；引用置null正是此前"拆依赖窗口NPE"的来源。open才是活/死闸门。
+	// 墓碑化：start赋值后永不置null，stop只停止对象不杀引用——在飞协议/晚到守护读到的
+	// 已停止Service上GetSocket安全返回null；引用置null会重新引入"拆依赖窗口NPE"。open才是活/死闸门。
 	private volatile ServerService server;
 	private AsyncSocket serverSocket;
 	private ConcurrentHashMap<Binary, CacheState> global;
@@ -82,8 +85,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	private LongConcurrentHashMap<CacheHolder> sessions;
 	private final GCMConfig gcmConfig = new GCMConfig();
 	private AchillesHeelConfig achillesHeelConfig;
-	// FND7-17/18组件化：调度线程只派发、扫描体进worker池、stop两段式（关门→cancel→限时
-	// 等待在飞一轮）由DaemonTimer内聚；该模式曾手抄于GCM三版与LoginQueue，拷贝过期即成缺陷。
+	// DaemonTimer内聚"调度线程只派发、扫描体进worker池、stop两段式（关门→cancel→
+	// 限时等待在飞一轮）"，避免该模式手抄到GCM三版与LoginQueue后拷贝过期成缺陷。
 	private final DaemonTimer achillesHeelDaemonTimer =
 			new DaemonTimer("GlobalCacheManager.AchillesHeelDaemon", 5000, this::achillesHeelDaemon);
 	// open=受理业务闸门（CacheHolder.tryBindSocket据此拒绝停机后的新绑定，无锁读故volatile）；
@@ -94,8 +97,8 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	private GlobalCacheManagerPerf perf;
 
 	public static final class GCMConfig implements Config.ICustomize {
-		// 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
-		// 尽量不重新调整ConcurrentHashMap。
+		// 设置这么大，开始使用后大概会占用700M内存；作为全局服务器足够，
+		// 且尽量不重新调整ConcurrentHashMap。
 		int initialCapacity = 10_000_000;
 
 		int maxNetPing = 3_000;
@@ -141,7 +144,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		lock();
 		try {
 			if (open || stopping)
-				return; // 已在运行，或stop拆除在飞（旧语义下start此时因server非null空转）
+				return; // 已在运行，或stop拆除在飞
 
 			ZezeCounter.tryInit();
 
@@ -177,7 +180,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			open = true;
 			try {
 				// perf 须在 open 之后创建：pre-open 失败路径 stop() 以 !open 早退跳过 close，
-				// 先创建则 1s 周期任务泄漏（FND17 svc-01）
+				// 先创建则 1s 周期任务泄漏
 				if (ENABLE_PERF)
 					perf = new GlobalCacheManagerPerf("", serialIdGenerator);
 				serverSocket = server.newServerSocket(ipaddress, port,
@@ -186,7 +189,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 				achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing,
 						this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
-				achillesHeelDaemonTimer.start(); // DaemonTimer幂等且支持restart，替代原schedulePeriodNow
+				achillesHeelDaemonTimer.start(); // DaemonTimer幂等且支持restart
 			} catch (RuntimeException e) {
 				// 失败走stop()拆除部分态（可重入锁安全）：TcpSocket构造在bind前已对server懒启动
 				// keepCheckTimer须由server.stop()取消，且open的复位应在拆除中完成（残留true时
@@ -211,7 +214,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			try {
 				// 超时检查必须在锁内复查：检查在锁外时，同serverId新incarnation恰在"检查→加锁"
 				// 窗口内Login（tryBindSocket持锁绑定并刷新activeTime），daemon会kick新连接并回收
-				// 其新获取的权限（双Modify窗口，同FND-S1-1后果）。锁内复查与bind内的activeTime
+				// 其新获取的权限（双Modify窗口）。锁内复查与bind内的activeTime
 				// 更新构成同锁全序：bind完成后daemon必读到新值而跳过。
 				if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
 					session.kick();
@@ -249,7 +252,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		} finally {
 			unlock();
 		}
-		// 先停使用者再拆被使用者（对齐Raft版顺序，FND4-53）：daemon经CacheHolder.kick访问
+		// 先停使用者再拆被使用者（对齐Raft版顺序）：daemon经CacheHolder.kick访问
 		// server.GetSocket。组件内聚两段式：关门→cancel已排期→限时等待在飞一轮。
 		// 不持实例锁等待：扫描体持session锁，持锁等待会与之互等。
 		achillesHeelDaemonTimer.stop();
@@ -506,7 +509,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					cs.acquireStatePending = StateInvalid;
 				cs.signalAll(); //notify
 				return StateInvalid;
-				//notify
 			} finally {
 				cs.unlock();
 			}
@@ -574,7 +576,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						// 又重启连上。更新一下。应该是不需要的。
 						sender.acquired.put(gKey, StateModify);
 						cs.acquireStatePending = StateInvalid;
-						cs.signalAll(); // 归还申请位必须唤醒等待者（FND4-52，对齐acquireModify同分支）
+						cs.signalAll(); // 归还申请位必须唤醒等待者
 						if (isDebugEnabled)
 							logger.debug("4 {} {} {}", sender, StateShare, cs);
 						rpc.Result.state = StateModify;
@@ -583,7 +585,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					var reduceDone = new boolean[]{false}; // FND5-28：完成标志（回调锁内置位后再pulse）
+					var reduceDone = new boolean[]{false}; // 完成标志（回调锁内置位后再pulse）
 					if (cs.modify.reduce(gKey, rpc.getResultCode(), r -> { //await 方法内有等待
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
@@ -607,7 +609,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					})) {
 						if (isDebugEnabled)
 							logger.debug("5 {} {} {}", sender, StateShare, cs);
-						// FND5-28：Condition契约允许伪唤醒——裸await醒来不复查完成谓词，
+						// Condition契约允许伪唤醒——裸await醒来不复查完成谓词，
 						// 直接按默认StateReduceNetError走失败分支而reduce仍在途。谓词循环复查。
 						while (!reduceDone[0])
 							cs.await();
@@ -628,7 +630,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						cs.signalAll(); //notify
 						if (ENABLE_PERF)
 							perf.onOthers("XXX Fresh " + StateShare);
-						// logger.error("XXX Fresh {} {} {}", sender, StateShare, cs);
 						rpc.Result.state = StateInvalid;
 						rpc.SendResultCode(StateReduceErrorFreshAcquire);
 						return;
@@ -642,7 +643,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						cs.signalAll(); //notify
 						if (ENABLE_PERF)
 							perf.onOthers("XXX 8 " + StateShare + " " + reduceResultState.value);
-						// logger.error("XXX 8 {} {} {} {}", sender, StateShare, cs, reduceResultState.Value);
 						rpc.Result.state = StateInvalid;
 						rpc.SendResultCode(AcquireShareFailed);
 						return;
@@ -749,7 +749,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					var reduceDone = new boolean[]{false}; // FND5-28：完成标志（回调锁内置位后再pulse）
+					var reduceDone = new boolean[]{false}; // 完成标志（回调锁内置位后再pulse）
 					if (cs.modify.reduce(gKey, rpc.getResultCode(), r -> { //await 方法内有等待
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
@@ -773,7 +773,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					})) {
 						if (isDebugEnabled)
 							logger.debug("5 {} {} {}", sender, StateModify, cs);
-						// FND5-28：同Share侧——谓词循环防伪唤醒直走失败分支。
+						// 同Share侧——谓词循环防伪唤醒直走失败分支。
 						while (!reduceDone[0])
 							cs.await(); //await 等通知
 					}
@@ -788,7 +788,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						cs.signalAll(); //notify
 						if (ENABLE_PERF)
 							perf.onOthers("XXX Fresh " + StateModify);
-						// logger.error("XXX Fresh {} {} {}", sender, StateModify, cs);
 						rpc.Result.state = StateInvalid;
 						rpc.SendResultCode(StateReduceErrorFreshAcquire);
 						return;
@@ -801,7 +800,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						cs.signalAll(); //notify
 						if (ENABLE_PERF)
 							perf.onOthers("XXX 9 " + StateModify + " " + reduceResultState.value);
-						// logger.error("XXX 9 {} {} {} {}", sender, StateModify, cs, reduceResultState.Value);
 						rpc.Result.state = StateInvalid;
 						rpc.SendResultCode(AcquireModifyFailed);
 						return;
@@ -844,7 +842,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				// 1. share是空的, 可以直接升为Modify
 				// 2. sender是share, 而且reducePending的size是0
 				var errorFreshAcquire = new OutObject<>(Boolean.FALSE);
-				var waitReduceDone = new boolean[]{false}; // FND5-28：runNow完成标志（锁内置位）
+				var waitReduceDone = new boolean[]{false}; // runNow完成标志（锁内置位）
 				if (!cs.share.isEmpty() && (!senderIsShare || !reducePending.isEmpty())) {
 					TaskSpec.ofAction(() -> {
 						// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
@@ -882,7 +880,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						errorFreshAcquire.value = freshAcquire;
 						cs.lock();
 						try {
-							// 完成标志锁内置位（FND5-28）：主线程谓词循环复查，伪唤醒不得提前
+							// 完成标志锁内置位：主线程谓词循环复查，伪唤醒不得提前
 							// 读取runNow仍在并发填充的reduceSucceed/errorFreshAcquire（锁发布快照）。
 							waitReduceDone[0] = true;
 							// 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
@@ -893,7 +891,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					}).name("GlobalCacheManager.AcquireModify.WaitReduce").runNow();
 					if (isDebugEnabled)
 						logger.debug("7 {} {} {}", sender, StateModify, cs);
-					// FND5-28：Condition契约允许伪唤醒——裸await醒来不复查即读取非线程安全的
+					// Condition契约允许伪唤醒——裸await醒来不复查即读取非线程安全的
 					// reduceSucceed构成数据竞争。谓词循环复查完成标志。
 					while (!waitReduceDone[0])
 						cs.await(); //await 等通知
@@ -922,22 +920,19 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					rpc.SendResultCode(0);
 				} else {
 					// senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
-					// 失败了，要把原来是share的sender恢复。先这样吧。
+					// 失败了，要把原来是share的sender恢复。
 					if (senderIsShare)
 						cs.share.add(sender);
 					cs.acquireStatePending = StateInvalid;
 					cs.signalAll(); //notify
 					if (ENABLE_PERF)
 						perf.onOthers("XXX 10 " + StateModify + ' ' + errorFreshAcquire.value);
-					// logger.error("XXX 10 {} {} {}", sender, StateModify, cs);
 					rpc.Result.state = StateInvalid;
 					if (errorFreshAcquire.value)
 						rpc.SendResultCode(StateReduceErrorFreshAcquire); // 这个错误不看做失败，允许发送方继续尝试。
 					else
 						rpc.SendResultCode(AcquireModifyFailed);
 				}
-				// 很好，网络失败不再看成成功，发现除了加break，
-				// 其他处理已经能包容这个改动，都不用动。
 				return;
 			} finally {
 				// 异常逃逸时复位本次占住的申请位并唤醒等待者；正常路径已自行复位为StateInvalid
@@ -1043,7 +1038,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
 				}
 
-				// 停机闸门：stop落open=false后拒绝新绑定（对齐原server==null判空的干净失败语义）；
+				// 停机闸门：stop落open=false后拒绝新绑定（干净失败）；
 				// 墓碑化后server引用稳定，此处不存在NPE窗口。
 				if (!instance.open)
 					return false;
@@ -1164,7 +1159,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		@Override
 		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
 			logger.info("OnSocketAccept {}", so);
-			// so.UserState = new CacheHolder(so.SessionId); // Login ReLogin 的时候初始化。
+			// so.UserState 在 Login/ReLogin 的时候初始化。
 			super.OnSocketAccept(so);
 		}
 
@@ -1182,7 +1177,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 																@NotNull ProtocolFactoryHandle<?> factoryHandle) {
 			try {
 				responseHandle.handle(rpc);
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("dispatchRpcResponse exception:", e);
 			}
 		}
@@ -1218,7 +1213,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				break;
 			case "-threads":
 				i++;
-				// ThreadPool.SetMinThreads(int.Parse(args[i]), completionPortThreads);
 				break;
 			default:
 				throw new IllegalArgumentException("unknown argument: " + args[i]);

@@ -286,7 +286,7 @@ final class ReceiveSnapshotting {
 		try {
 			entry.file.close();
 		} catch (IOException e) {
-			logger.warn("{} close Exception", logTag, e); // 文件关闭异常还是不向上抛了
+			logger.warn("{} close Exception", logTag, e); // 文件关闭异常不向上抛
 		}
 		tryDelete(entry.path, logTag);
 	}

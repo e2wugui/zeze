@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import static Zeze.Util.Json.*;
 
+// JSON 输出序列化器：分块字节缓冲 + Grisu2 浮点最短表示，供 Json 反射序列化与手工写出
 public final class JsonWriter {
 	//@formatter:off
 	private static final long DOUBLE_SIGN_MASK        = 0x8000_0000_0000_0000L;
@@ -132,7 +133,7 @@ public final class JsonWriter {
 	// 供 Json 静态入口的重入保护：writer 被 Json 静态入口占用，或已有半成品输出
 	// （直接使用 JsonWriter.local() 的调用方，如 DbWeb/AsyncSocket，序列化中途）。
 	// 此时嵌套调用 Json.toCompact* 必须改用独立实例，否则 clear() 会清掉外层半成品。
-	// FND7-72：free()后tail==null，实例视为永久占用：否则busy()恒false使
+	// free()后tail==null，实例视为永久占用：否则busy()恒false使
 	// acquireLocalWriter取回该实例，clear()首行tail.next即NPE，线程本地writer
 	// 一旦free即永久不可用。
 	@SuppressWarnings({"null", "ConstantValue"})
@@ -246,10 +247,10 @@ public final class JsonWriter {
 	/**
 	 * 释放全部块并把实例置入已释放终态（tail==null，{@link #busy()} 恒 true），同时从当前线程的
 	 * ThreadLocal 登记中摘除本实例（仅当本实例恰为当前线程的登记实例），此后 {@link #local()}
-	 * 自动新建实例。写路径可经 ensure() 重新分配块而复活（历史语义 "can be reused by ensure()"），
+	 * 自动新建实例。写路径可经 ensure() 重新分配块而复活，
 	 * 但 clear()/toString()/charSize() 等遍历路径对已释放实例会 NPE，free 后请勿继续使用。
 	 * <p>
-	 * 【线程封闭契约（FND7-72 复审R3成文）】JsonWriter 实例（含 ThreadLocal 登记实例）线程封闭，
+	 * 【线程封闭契约】JsonWriter 实例（含 ThreadLocal 登记实例）线程封闭，
 	 * free() 必须在登记线程调用：跨线程 free 他人登记的实例摘不掉目标线程的登记（ThreadLocal
 	 * 无跨线程移除途径），目标线程随后的 local() 仍会取回已释放实例，clear() 首行 tail.next
 	 * 即 NPE——该用法属线程封闭违约，本方法对此不设防。
@@ -266,7 +267,7 @@ public final class JsonWriter {
 		pos = 0;
 		size = 0;
 		tabs = 0;
-		// FND7-72补全：摘除ThreadLocal登记——free()后若仍留在localWriters，
+		// 摘除ThreadLocal登记——free()后若仍留在localWriters，
 		// JsonWriter.local()直取路径（DbWeb/AsyncSocket等序列化中途使用者）会拿到
 		// 已释放实例，clear()首行tail.next即NPE。摘除后local()自动新建实例；
 		// 非ThreadLocal登记的手写实例不受影响。busy()的tail==null检查保留作纵深防御。
@@ -592,16 +593,16 @@ public final class JsonWriter {
 				long offset = fieldMeta.offset;
 				if (type > TYPE_DOUBLE && (subObj = unsafe.getObject(obj, offset)) == null && !writeNull)
 					continue;
-				// Pos字段不输出。必须在写逗号/字段名之前判定: 原来先写字段名再回退pos,
-				// 一旦写名字时恰好appendBlock换块, 回退拿旧块偏移配新块buf, 会拼出损坏的JSON。
+				// Pos字段不输出。必须在写逗号/字段名之前判定：
+				// 若先写字段名再回退pos，写名字时恰好appendBlock换块，回退拿旧块偏移配新块buf，会拼出损坏的JSON。
 				if (type == TYPE_POS)
 					continue;
 				byte[] name = fieldMeta.name;
 				if (comma)
 					buf[pos++] = ',';
 				if (!prettyFormat) {
-					// 上界预留（FND4-21）：write(noQuote)内部不ensure，转义每字节最多6输出；
-					// 字段名经fieldNameFilter可为任意串。对齐Map键/字符串值路径的6倍上界判例。
+					// 上界预留：write(noQuote)内部不ensure，转义每字节最多6输出；
+					// 字段名经fieldNameFilter可为任意串。对齐Map键/字符串值路径的6倍上界预留。
 					ensure(name.length * 6 + 3); // "xxxxxx":
 					write(name, noQuote && !needQuoteKey(name));
 					buf[pos++] = ':';
@@ -1215,7 +1216,7 @@ public final class JsonWriter {
 		return n + '0' + (((9 - n) >> 31) & ('A' - '9' - 1));
 	}
 
-	// U3-F4：NO_QUOTE_KEY 模式下键的强制加引号守卫：空串或含任一终止/歧义字符
+	// NO_QUOTE_KEY 模式下键的强制加引号守卫：空串或含任一终止/歧义字符
 	// （≤0x20、':'、','、'}'、']'、'"'、'\''、'\\'、'/'）时必须加引号——写侧 ESCAPE 表
 	// 不转义空格/逗号/花括号/斜杠，读侧 parseStringNoQuot 在 ≤0x20 或 ':' 处截断、
 	// parseKeyHashNoQuot 在 '/' 处提前返回（为注释让路），裸写这些字符的键会产出

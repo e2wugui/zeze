@@ -3,6 +3,9 @@ package Zeze.Raft.RocksRaft;
 import java.util.Iterator;
 import Zeze.Serialize.ByteBuffer;
 
+/**
+ * Set 容器基类：持久化 PSet 存储，事务内经 getSet 读取含未提交日志的最新值。
+ */
 public abstract class CollSet<V> extends Collection implements Iterable<V> {
 	public org.pcollections.PSet<V> set = org.pcollections.Empty.set();
 

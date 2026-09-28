@@ -101,7 +101,6 @@ public abstract class Log implements Serializable {
 	}
 
 	public abstract void commit();
-	// public void rollback() { } // 一般的操作日志不需要实现，特殊日志可能需要。先不实现，参见Savepoint.
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {

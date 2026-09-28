@@ -14,12 +14,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Provider 过载监测：周期向线程池投递探测任务，按任务从入队到执行的延迟判定过载级别。
+ */
 public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 	private static final Logger logger = LogManager.getLogger(ProviderOverload.class);
 	private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
 			new ThreadFactoryWithName("ZezeLoadThread", Thread.MAX_PRIORITY));
 
-	// FND-A1-8：getOverload位于ProcessDispatch热路径且无锁遍历，而register/set（含close置null）
+	// getOverload位于ProcessDispatch热路径且无锁遍历，而register/set（含close置null）
 	// 会结构性修改ArrayList——普通ArrayList无happens-before，无锁读侧可见旧数组。
 	// CopyOnWriteArrayList读无锁安全；写只发生在启动/热更期，复制成本可忽略。
 	private final CopyOnWriteArrayList<ThreadPoolMonitor> threadPools = new CopyOnWriteArrayList<>();
@@ -116,9 +119,9 @@ public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 			overload = (overload & 3) | (System.nanoTime() & ~3L); // 保留低2位保存的上次负载状态
 
 			// todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
-			// FND8-90（孪生）：检测体异常不得跳过尾部重排（否则断链后overload()按起始时间戳
+			// 检测体异常不得跳过尾部重排（否则断链后overload()按起始时间戳
 			// 持续计算、永久判过载，且零日志）；池已关闭等提交失败时任务未入队、finally轮不到，
-			// 链终止但留下痕迹（曾为吞噬进Future的零日志静默断链）。
+			// 链终止但留下痕迹。
 			try {
 				threadPool.execute(() -> {
 					try {

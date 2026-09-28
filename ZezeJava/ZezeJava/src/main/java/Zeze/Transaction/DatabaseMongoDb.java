@@ -25,6 +25,7 @@ import org.bson.types.Binary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** MongoDB 数据库后端：collection 承载 KV 表，会话事务落库，条件写实现 Operates。 */
 public class DatabaseMongoDb extends Database {
 	final @NotNull MongoClient mongoClient;
 	final @NotNull MongoDatabase mongoDatabase;

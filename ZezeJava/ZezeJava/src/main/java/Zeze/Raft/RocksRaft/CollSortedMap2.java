@@ -38,7 +38,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 	@Override
 	public void put(K key, V value) {
 		if (isManaged()) {
-			// 【RR1-F1】对齐经典PMap2的顺序：initRootInfo成功后再mapKey。mapKey先写会在
+			// 对齐经典PMap2的顺序：initRootInfo成功后再mapKey。mapKey先写会在
 			// initRootInfo抛HasManagedException时毒化bean的mapKey（普通字段写不受事务回滚
 			// 保护），LogSortedMap2.encode以getThis()==getValue().get(pkey)过滤changed条目，
 			// 被毒化的bean后续编辑会被静默剔除，follower分歧。
@@ -81,7 +81,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 		@SuppressWarnings("unchecked")
 		var log = (LogSortedMap2<K, V>)_log;
 		var tmp = map;
-		// 【FND2-R2-1】putted 安装前补 mapKey（对齐 put/decode 路径）：本节点
+		// putted 安装前补 mapKey（对齐 put/decode 路径）：本节点
 		// failover 当选新 leader 后编辑该条目时，LogSortedMap2.encode 用 mapKey()
 		// 作为 changed 条目的 key，null 会让 Long key 拆箱 NPE（事务永久失败）或
 		// String key 编码成 ""（follower 静默丢编辑，状态机分歧）。

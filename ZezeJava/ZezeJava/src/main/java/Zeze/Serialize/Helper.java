@@ -19,6 +19,7 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 生成代码的编解码辅助：向量/四元数的 SQL 列装卸载，以及各容器类型的 JSON 解码。 */
 public class Helper {
 	public static @NotNull Vector2 decodeVector2(@NotNull ArrayList<String> parents,
 												 @NotNull ResultSet rs) throws SQLException {
@@ -122,7 +123,7 @@ public class Helper {
 		st.appendInt(_parents_name_ + "z", value.z);
 	}
 
-	private static final @NotNull Json json = Json.instance; // .clone();
+	private static final @NotNull Json json = Json.instance;
 	private static final @NotNull Json.ClassMeta<DynamicBean> dynamicBeanMeta = json.getClassMeta(DynamicBean.class);
 
 	public static void decodeJsonDynamic(@NotNull DynamicBean bean, @Nullable String jsonStr) {
@@ -173,8 +174,7 @@ public class Helper {
 	 * 以 {fieldName:json} 包装走反射字段名匹配，把SQL列JSON解码进宿主bean的map变量。
 	 * 契约：fieldName必须等于宿主字段名经fieldNameFilter过滤后的结果（生成bean字段
 	 * 带下划线前缀_xxx，filter剥前缀得xxx，故生成代码传xxx）。错配时JsonReader对未知key
-	 * 静默跳过——整段JSON空转且前置map.clear()已清空现有数据，无任何报错（FND7-11即
-	 * 此温床：BeanMap手写字段pMap1传"Map1"错配，已改走decodeJsonTypedMap定型解码）。
+	 * 静默跳过——整段JSON空转且前置map.clear()已清空现有数据，无任何报错。
 	 * 新增手写调用方若不确定字段名能否匹配，请优先使用decodeJsonTypedMap。
 	 */
 	@SuppressWarnings("unchecked")
@@ -194,7 +194,7 @@ public class Helper {
 		}
 	}
 
-	// FND7-11：BeanMap1/BeanMap2的行map（C→V）按meta的keyClass/valueClass定型解码。
+	// BeanMap1/BeanMap2的行map（C→V）按meta的keyClass/valueClass定型解码。
 	// decodeJsonMap以{fieldName:json}包装走反射字段名匹配：行bean的字段名经fieldNameFilter
 	// 后为pMap1/pMap2（无下划线前缀可剥），传入"Map1"/"Map2"查不到字段——整段JSON静默空转
 	// 且clear()清空现有数据；且行bean的泛型C/V在声明处是类型变量，反射路径退化为
@@ -211,7 +211,7 @@ public class Helper {
 		var fm = jsonMapFieldMetas.computeIfAbsent(meta, __ -> {
 			try {
 				// dummyField仅填充FieldMeta.field（本解析路径不使用）。
-				// keyParser经反射回退工厂（FND8-31）：BeanKey/binary等非内建键
+				// keyParser经反射回退工厂：BeanKey/binary等非内建键
 				// 不在keyReaderMap，裸取为null时首键解析即NPE。
 				var dummyField = Helper.class.getDeclaredField("jsonMapFieldMetas");
 				return new Json.FieldMeta(0x30 + Json.ClassMeta.getType(meta.valueClass), 0, "Map",

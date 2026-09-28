@@ -21,6 +21,9 @@ import Zeze.Util.TimeAdaptedFund;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 全局唯一ID发号器：serverId前缀+seed变长大端编码，按号段批量发号。
+ */
 public class AutoKey extends ReentrantLock {
 	public static class Module extends AbstractAutoKey {
 		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
@@ -105,7 +108,7 @@ public class AutoKey extends ReentrantLock {
 
 	// 从AutoKey.next|nextId()得到的ID中提取出serverId. 暂不支持serverId=0的情况
 	public static int getServerIdFromId(long id) {
-		if (id == 0) // 0是"未赋值"最常见值：8字节全零会让下面的跳0循环越过缓冲区（CP1-F4）
+		if (id == 0) // 0是"未赋值"最常见值：8字节全零会让下面的跳0循环越过缓冲区
 			throw new IllegalArgumentException("AutoKey.getServerIdFromId: id must not be 0");
 		var bb = ByteBuffer.Allocate(8);
 		bb.WriteLong8BE(id);
@@ -126,7 +129,7 @@ public class AutoKey extends ReentrantLock {
 		if (serverId < 0) // serverId不应该<0,因为会导致nextId返回负值
 			throw new IllegalStateException("AutoKey.setMinId: serverId(" + serverId + ") < 0");
 		if (serverId == 0)
-			return setSeed(minId); // WriteULong(minId)再ToLongBE得到的值一定不小于minId,其实还能再选出符合条件的更小seed值,但serverId极少=0,所以不考虑那么多了
+			return setSeed(minId); // WriteULong(minId)再ToLongBE得到的值一定不小于minId；其实还能选出符合条件的更小seed值，但serverId极少=0，不作优化
 		var bb = ByteBuffer.Allocate(8);
 		bb.WriteUInt(serverId);
 		bb.WriteULong(0);
@@ -200,7 +203,7 @@ public class AutoKey extends ReentrantLock {
 
 	// 抬表水位（setSeed/increaseSeed）必须持AutoKey实例锁穿越提交点，且失效发布先于事务提交：
 	// 若提交后再失效，存在“提交与失效之间”的窗口——快路径在缝里消耗旧段号并通过复核返回，
-	// 合服时与存量id重号（FND4-45）。失效先于提交后：发布到提交期间慢路径等锁进不来，不会用
+	// 合服时与存量id重号。失效先于提交后：发布到提交期间慢路径等锁进不来，不会用
 	// 旧水位重装段；快路径复核必失败（消耗作废成空洞，转慢路径）。失败/异常恢复现役段：水位
 	// 未动，恢复即原状（窗口内被并发消耗过的号已成空洞，无重号）。
 	private boolean raiseWatermark(String action, LongUnaryOperator raiser) {

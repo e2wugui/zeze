@@ -118,11 +118,11 @@ public class HttpExchange {
 	protected @Nullable ArrayList<Object> resHeaders; // key,value,key,value,...
 	protected @Nullable List<Cookie> cookies;
 	// volatile+锁双检：detach后允许多线程并发首调getCookieSession（detach文档"任意线程、任意时机"），
-	// 无同步的双跑会各建会话各发一条Set-Cookie、字段后写覆盖先写（net-06）。
+	// 无同步的双跑会各建会话各发一条Set-Cookie、字段后写覆盖先写。
 	protected volatile @Nullable HttpSession.CookieSession cookieSession;
 	protected @Nullable String path;
 	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
-	// FND8-56后续：end-stream派发任务已提交未跑完期间（LastHttpContent入队任务→任务finally释放，
+	// end-stream派发任务已提交未跑完期间（LastHttpContent入队任务→任务finally释放，
 	// 窗口含排队与用户回调执行），close（拒绝/停机/对端断开/空闲超时）不得抢先释放request与content
 	// ——迟到的任务仍会执行onEndStream用户回调，读到空body。置位在EventLoop上（fireEndStreamHandle
 	// 提交前），与close的closeInEventLoop（恒在EventLoop）串行；任务入口/cancel清位，终态释放由
@@ -132,8 +132,8 @@ public class HttpExchange {
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	protected boolean isWebSocketTextContent;
 	protected long streamContentTotal; // 流模式累计收到的请求body字节数,server.maxUploadSize总量上限检查用
-	// NY1-F6：WebSocket分片消息真实累计（checkWebSocketContentSize用）。websocket帧在channelRead
-	// 经fireWebSocket提前return，addContent永不可达——content恒空，旧检查读content是死检查。
+	// WebSocket分片消息真实累计（checkWebSocketContentSize用）。websocket帧在channelRead
+	// 经fireWebSocket提前return，addContent永不可达——content恒空，不能用作分片累计。
 	// 首帧（Binary/Text）重置、Continuation累加、isFinal清零；fireWebSocket0按channel.id串行
 	//（Direct内联在EventLoop，非Direct经task11Executor同队列串行），无并发访问。
 	protected long webSocketContentTotal;
@@ -156,7 +156,7 @@ public class HttpExchange {
 	}
 
 	// lazy初始化:首次调用时在调用方线程完成(通常已运行在用户handler的事务内,同事务访问session表)。
-	// 不再由channelRead在EventLoop上同步执行DB事务:那会让DB延迟/乐观锁redo直接阻塞IO线程,
+	// 不由channelRead在EventLoop上同步执行DB事务:那会让DB延迟/乐观锁redo直接阻塞IO线程,
 	// DB抖动期间该EventLoop上所有连接的读写/握手/心跳全部停摆。未启用httpSession时返回null。
 	public @Nullable HttpSession.CookieSession getCookieSession() {
 		var cs = cookieSession;
@@ -353,12 +353,12 @@ public class HttpExchange {
 		return s;
 	}
 
-	// FND6-18：RFC 3986中'+'仅在query的form编码里代表空格，path段是普通字面量。
+	// RFC 3986中'+'仅在query的form编码里代表空格，path段是普通字面量。
 	// path解码仅处理百分号编码、'+'保真：%XX连续段按charset解码；十六进制严格限定ASCII
 	// ——HexFormat.fromHexDigit（JDK17+，非法抛NumberFormatException转报IAE），不用
 	// Character.digit(char,16)（会额外接受Unicode Nd数字如'٢'，比URLDecoder语义更宽）。
 	// 畸形/不完整的%序列保持抛IllegalArgumentException（消息沿用URLDecoder风格，异常路径
-	// 500+关连接的既有契约不变，FND-N2-1回归依赖）；不含'+'的路径行为与原实现一致。
+	// 500+关连接的既有契约不变）。
 	private static @NotNull String pathDecode(@NotNull String s) {
 		if (s.indexOf('%') < 0)
 			return s;
@@ -463,7 +463,7 @@ public class HttpExchange {
 									.maxFramePayloadLength(handler.MaxContentLength).build()).build()));
 					// onOpen不能在握手启动前派发:此刻101应答未写出、HttpResponseEncoder未替换为WebSocket帧
 					// 编码器,onOpen内sendWebSocket的帧写入HTTP出站编码路径,写失败(unsupported message
-					// type),Direct模式下onOpen内联执行时首条消息确定性静默丢失。改在握手完成后的
+					// type),Direct模式下onOpen内联执行时首条消息确定性静默丢失。在握手完成后的
 					// HandshakeComplete用户事件时派发:该事件由Netty握手处理器在本handler之后向tail方向触发,
 					// 位于前面的HttpServer收不到,需在管线末尾追加观察者接住;事件触发时101已写出、编码器已替换,
 					// 且必然先于客户端任何帧被读到,保证onOpen派发先于onContent。
@@ -500,11 +500,11 @@ public class HttpExchange {
 					if (!handler.isStreamMode() && HttpUtil.getContentLength(req, 0) > handler.MaxContentLength) {
 						closeConnectionOnFlush(writeResponse(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
 								HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
-								headersFactory, trailersFactory), true, null)); // N①
+								headersFactory, trailersFactory), true, null));
 						return;
 					}
 					writeResponse(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE,
-							Unpooled.EMPTY_BUFFER, headersFactory, trailersFactory), true, context.voidPromise()); // N①
+							Unpooled.EMPTY_BUFFER, headersFactory, trailersFactory), true, context.voidPromise());
 				}
 				return;
 			}
@@ -516,7 +516,7 @@ public class HttpExchange {
 					(msg != null ? msg.getClass() : null), channel.remoteAddress());
 			closeConnectionNow();
 			return;
-		} else if (request == null || handler == null) // 缺失上文的msg,可能很罕见,忽略吧
+		} else if (request == null || handler == null) // 缺失上文的msg,可能很罕见,忽略
 			return;
 
 		var c = (HttpContent)msg;
@@ -534,7 +534,7 @@ public class HttpExchange {
 							channel.remoteAddress());
 					closeConnectionOnFlush(writeResponse(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
 							HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
-							headersFactory, trailersFactory), true, null)); // N①
+							headersFactory, trailersFactory), true, null));
 					return;
 				}
 				fireStreamContentHandle(c);
@@ -544,7 +544,7 @@ public class HttpExchange {
 							handler.MaxContentLength, channel.remoteAddress());
 					closeConnectionOnFlush(writeResponse(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
 							HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, Unpooled.EMPTY_BUFFER,
-							headersFactory, trailersFactory), true, null)); // N①
+							headersFactory, trailersFactory), true, null));
 					return;
 				}
 				addContent(b.retain());
@@ -710,7 +710,7 @@ public class HttpExchange {
 	}
 
 	// 出站tripwire（HttpServer的encoder write钩子调用）：任何响应头(HttpResponse)写出时，序化器持笔
-	// entry必须已开始写——绕过writeResponse直写ctx的响应（FND8-46类）当场抛异常（→exceptionCaught
+	// entry必须已开始写——绕过writeResponse直写ctx的响应当场抛异常（→exceptionCaught
 	// →关连接），把"pipelining客户端静默拿到错配响应"变成测试期响亮失败。宁可断连不可错序。
 	// 豁免：WebSocket升级（管线含协议处理器时整条连接跳过，升级后已无HTTP响应语义）、框架400/503
 	// 拒绝（responseOrderBypassKey声明）。限制：在途全部出队后的迟到直写无法归因，不检查。
@@ -933,7 +933,7 @@ public class HttpExchange {
 				close(null);
 			// close被并发抢先（CAS到2成no-op）时，request/content只能由这里释放（幂等）
 			releaseTerminal();
-			// NY1-F1：清位必须晚于releaseTerminal——任务入口即清位会在回调运行期间打开窗口，
+			// 清位必须晚于releaseTerminal——任务入口即清位会在回调运行期间打开窗口，
 			// 并发close的closeInEventLoop观察到pending==false抢先释放request/content，
 			// 迟到的onEndStream用户回调读到空body/空request。
 			endStreamTaskPending = false;
@@ -947,7 +947,7 @@ public class HttpExchange {
 		// pipelining下本exchange可能已被channelRead的exchanges.put覆盖逐出，停机清扫扫不到它，
 		// 不补偿则永久泄漏。cancel与执行路径互斥（TaskOneByOneQueue保证），close幂等，不会双释放。
 		// 对照:fireStreamContentHandle/fireWebSocket的onCancel同因。
-		// FND8-58：close只释放exchange自身资源，channel attr上的流式上传状态（堆数据、临时文件、
+		// close只释放exchange自身资源，channel attr上的流式上传状态（堆数据、临时文件、
 		// 未关fileChannel）须在此一并资源级销毁（不跑用户回调，对齐fireStreamContentHandle的补偿
 		// 哲学），否则永久驻留static工厂的requestFileDeleteMap、跨close→start重启累积无上界；
 		// 取走即销毁的幂等语义见属主接口destroyChannelDecoder/releaseChannelFileUpload。
@@ -986,7 +986,7 @@ public class HttpExchange {
 							close(null);
 						// close被并发抢先（CAS到2成no-op）时，request/content只能由这里释放（幂等）
 						releaseTerminal();
-						// NY1-F1：清位后移到releaseTerminal之后，任务在途期间close不得提前释放（见invokeEndStream）
+						// 清位后移到releaseTerminal之后，任务在途期间close不得提前释放（见invokeEndStream）
 						endStreamTaskPending = false;
 					}
 				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(cancel)
@@ -1066,8 +1066,8 @@ public class HttpExchange {
 
 	// WebSocket分片消息(首帧isFinal=false+后续Continuation帧)以真实累计字段施行总量上限,单连接即可耗尽堆内存。
 	// 以handler.MaxContentLength(即maxFramePayloadLength的同一配置)作为分片消息的总大小上限:
-	// 单帧本身已受maxFramePayloadLength限制,这里挡的是分片累积总量(NY1-F6:按webSocketContentTotal
-	// 真实累积,不再读恒空的content)。超限按RFC6455回1009(Message Too Big)并关闭连接。
+	// 单帧本身已受maxFramePayloadLength限制,这里挡的是分片累积总量(按webSocketContentTotal
+	// 真实累积)。超限按RFC6455回1009(Message Too Big)并关闭连接。
 	// 返回false表示已超限并关闭连接,调用方不应再继续分发本帧。
 	protected boolean checkWebSocketContentSize(@NotNull WebSocketFrame frame) {
 		if (!(frame instanceof ContinuationWebSocketFrame))
@@ -1135,7 +1135,7 @@ public class HttpExchange {
 				throw Task.forceThrow(e);
 			}
 		}
-		// FND8-56后续：end-stream任务在途时释放权归任务（其finally幂等兜底）——这里抢先释放会让
+		// end-stream任务在途时释放权归任务（其finally幂等兜底）——这里抢先释放会让
 		// 排队中的onEndStream用户回调读到空body/空request（pipelining下被拒请求的503善后即此形态）。
 		if (!endStreamTaskPending)
 			releaseTerminal();
@@ -1180,7 +1180,7 @@ public class HttpExchange {
 				});
 			}
 		}
-		// 释放响应序化占位（N①）：在cf写出提交之后——挂起写（含endStream终结符）先于后续
+		// 释放响应序化占位：在cf写出提交之后——挂起写（含endStream终结符）先于后续
 		// exchange的响应冲刷。FORCE族丢弃挂起写，FINISH族保留按序送出。
 		releaseResponseOrder(method >= CLOSE_FORCE);
 	}
@@ -1225,7 +1225,7 @@ public class HttpExchange {
 			for (int i = 0, n = resHeaders.size(); i < n; i += 2)
 				headers.add((CharSequence)resHeaders.get(i), resHeaders.get(i + 1));
 		}
-		return writeResponse(res, true, null); // N①：响应经per-channel序化器，pipelining按请求序写出
+		return writeResponse(res, true, null); // 响应经per-channel序化器，pipelining按请求序写出
 	}
 
 	public @NotNull ChannelFuture send(@NotNull HttpResponseStatus status, @Nullable String contentType,
@@ -1361,44 +1361,44 @@ public class HttpExchange {
 	public @NotNull ChannelFuture beginStream(@NotNull HttpResponseStatus status, @NotNull HttpHeaders headers) {
 		if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH))
 			headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
-		return writeResponse(new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers), true, null); // N①
+		return writeResponse(new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers), true, null);
 	}
 
 	// 发送后data内容在回调前不能修改（所有权转移）
 	public @NotNull ChannelFuture sendStream(@NotNull ByteBuf data) {
-		return writeResponse(new DefaultHttpContent(data), true, null); // N①
+		return writeResponse(new DefaultHttpContent(data), true, null);
 	}
 
 	// 发送后data内容在回调前不能修改
 	public @NotNull ChannelFuture sendStream(byte @NotNull [] data) {
-		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(data, 0, data.length)), true, null); // N①
+		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(data, 0, data.length)), true, null);
 	}
 
 	// 发送后data内容在回调前不能修改
 	public @NotNull ChannelFuture sendStream(byte @NotNull [] data, int offset, int count) {
-		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(data, offset, count)), true, null); // N①
+		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(data, offset, count)), true, null);
 	}
 
 	// 发送后data内容在回调前不能修改
 	public @NotNull ChannelFuture sendStream(@NotNull Binary b) {
 		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(b.bytesUnsafe(), b.getOffset(), b.size())),
-				true, null); // N①
+				true, null);
 	}
 
 	// 发送后data内容在回调前不能修改
 	public @NotNull ChannelFuture sendStream(@NotNull ByteBuffer bb) {
 		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(bb.Bytes, bb.ReadIndex, bb.size())),
-				true, null); // N①
+				true, null);
 	}
 
 	// 发送后data内容在回调前不能修改
 	public @NotNull ChannelFuture sendStream(@NotNull java.nio.ByteBuffer bb) {
-		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(bb)), true, null); // N①
+		return writeResponse(new DefaultHttpContent(Unpooled.wrappedBuffer(bb)), true, null);
 	}
 
 	/**
 	 * 流式响应终结符（chunked的0\r\n\r\n / 固定长度的空结尾）并结束exchange。
-	 * 幂等：已结束时二次调用no-op（FND7-25——二次终结符会被客户端当作下一响应的前缀垃圾）。
+	 * 幂等：已结束时二次调用no-op（二次终结符会被客户端当作下一响应的前缀垃圾）。
 	 * 终结符经序化器按请求到达序写出。
 	 */
 	public void endStream() {

@@ -12,11 +12,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+/** PSortedMap2 的变更日志：在 replaced/removed 增量之上另记 changed（值 Bean 的原位修改日志，按 key 关联）。 */
 public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogSortedMap1<K, V> {
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private boolean built; // changedWithKey 已构建（encode/decode/mergeChangedToReplaced 触发）
-	// TC1-F2：mergeChangedToReplaced 的已合并标志，独立于 built——History 开启时 collect 阶段
+	// mergeChangedToReplaced 的已合并标志，独立于 built——History 开启时 collect 阶段
 	// encode 先行置 built=true，监听器合并若复用 built 会被短路成 no-op，增量通知丢失原位修改。
 	private boolean merged;
 

@@ -40,7 +40,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	private int timeout = 5000;
 	private boolean isTimeout;
 	private boolean isRequest = true;
-	protected volatile transient boolean sendResultDone; // XXX ugly
+	protected volatile transient boolean sendResultDone;
 
 	@Override
 	public int getFamilyClass() {
@@ -121,11 +121,10 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			else if (responseHandle != null) {
 				// 本来Schedule已经在Task中执行了，这里又派发一次。
 				// 主要是为了让应用能拦截修改Response的处理方式。
-				// Timeout 应该是少的，先这样了。
 				var factoryHandle = service.findProtocolFactoryHandle(getTypeId());
 				if (factoryHandle != null)
 					service.dispatchRpcResponse(this, responseHandle, factoryHandle);
-				else // N2-F4：工厂缺失时静默丢弃responseHandle排障无线索，对齐onRpcLostContext补warn
+				else // 工厂缺失时静默丢弃responseHandle排障无线索，warn对齐onRpcLostContext
 					logger.warn("rpc timeout: protocol factory not found, response handle skipped: {}", this);
 			}
 		// 超时清理必须立即注册（scheduleNow）：此刻请求字节已发出，
@@ -189,7 +188,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 		// 发送失败，一般是连接失效，此时删除上下文。
 		// 其中rpc-trigger-result的原子性由RemoveRpcContext保证。
-		// 恢复最初的语义吧：如果ctx已经被并发的Remove，也就是被处理了，这里返回true。
+		// 如果ctx已经被并发的Remove，也就是被处理了，这里返回true。
 		// 实例不因失败解禁：失败重试同样请新建实例（保持一次性语义简单）。
 		return !service.removeRpcContext(sessionId, this);
 	}
@@ -304,13 +303,13 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			service.dispatchRpcResponse(context, context.responseHandle, factoryHandle);
 	}
 
-	// net-01（FND16）：应答会合先校验后消费。sessionId 发号流全 JVM 共享且明文入帧、
+	// 应答会合先校验后消费。sessionId 发号流全 JVM 共享且明文入帧、
 	// 顺序可枚举，而原会合仅按帧内号消费——任一同 Service 对端可伪造异协议 Response 帧
 	// 劫持他人在飞上下文（注入任意Result/回调CCE，真实应答沦为lost）。校验两层：
 	// ①typeId 一致（上下文协议==应答帧协议，伪造常携异协议 typeId）；②ctx.sender!=null
 	// 时应答必须从原发送连接到达（Raft/SM/GCM 全家原连接应答）。sender==null 的上下文
 	// （Online 经 linkd 转发的合法跨连接应答）仅受①保护——按 linkName 绑定的第三层
-	// 属独立设计（audit-FND16 net-01 案卷）。校验失败不消费上下文（真实应答或超时仍
+	// 属独立设计。校验失败不消费上下文（真实应答或超时仍
 	// 可达），仅限频告警。
 	private static volatile long lastResponseMismatchLogMs; // 告警限频（60秒一条，防日志刷屏DoS）
 

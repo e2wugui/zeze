@@ -189,7 +189,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 				((TcpSocket)r.getSender()).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, clientKey, clientIv));
 				return 0;
 			} catch (Throwable ex) {
-				// FND6-33：与HandshakeBase对齐——密钥交换异常不能只回错误码留活连接
+				// 与HandshakeBase对齐——密钥交换异常不能只回错误码留活连接
 				// （可能已切部分codec成半开状态），断连。
 				r.getSender().close(ex);
 				return Res.ErrorDecryptFailed;
@@ -199,13 +199,13 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 	public long processKeyExchangeRequest(@NotNull PrivateKey priKey, byte @Nullable [] pubKeyMd5,
 										  @Nullable Predicate<byte @NotNull []> clientPubKeyAcceptor) {
-		// FND6-33：KeyExchange.TypeId不在handshakeProtocols中（走Service.dispatchProtocol普通路径，
+		// KeyExchange.TypeId不在handshakeProtocols中（走Service.dispatchProtocol普通路径，
 		// Direct派发的callFuncCore仅trySendResultCode回错误码、连接保持）——恶意/损坏encIvKey
 		// 抛GeneralSecurityException后可在单条连接上无限刷RSA私钥解密（CPU消耗）；伪造
 		// clientPubKey路径更发生在setInputSecurityCodec之后，留下已切codec的半开连接。
-		// 与HandshakeBase各握手handler的「握手错误不能忽略」判例对齐：异常断连。
+		// 与HandshakeBase各握手handler的「握手错误不能忽略」纪律对齐：异常断连。
 		try {
-			// FND8-47：可信客户端公钥校验在任何状态变更（含codec切换）之前——失败时连接零状态
+			// 可信客户端公钥校验在任何状态变更（含codec切换）之前——失败时连接零状态
 			// 变更，回码给合法客户端诊断信息并断连防半开。注册acceptor即要求客户端公钥认证，
 			// clientPubKey为空（未提供身份）同样拒绝。此刻无任何codec已切换、无半开风险，
 			// 优雅关闭让错误码先冲刷到对端再断连（close(ex)非优雅会连错误响应一起丢掉）。
@@ -248,7 +248,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
 			((TcpSocket)getSender()).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, clientKey, clientIv));
 			return 0;
-		} catch (Throwable ex) { // 这个握手错误不能忽略（对齐HandshakeBase判例）。
+		} catch (Throwable ex) { // 这个握手错误不能忽略（对齐HandshakeBase）。
 			getSender().close(ex);
 			return 0;
 		}
@@ -258,7 +258,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	 * 注册KeyExchange处理器（无客户端公钥认证模式）：clientPubKey仅作为回程密钥的加密目标，
 	 * 服务器不校验它。
 	 * <p>
-	 * 同时给目标Service装配明文门禁（FND8-48）：armed后未完成密钥交换（双向codec未装齐）
+	 * 同时给目标Service装配明文门禁：armed后未完成密钥交换（双向codec未装齐）
 	 * 的连接上，除KeyExchange本身外的明文协议帧解码即断连——封死"不握手全程明文"直连与
 	 * 握手完成前的明文注入窗口。本服务上的全部TcpSocket连接自此必须先完成KeyExchange。
 	 * 门禁经连接级解码准入生效（TcpSocket连接构造器装配），须在建立连接前调用本方法。
@@ -268,7 +268,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 	}
 
 	/**
-	 * 注册KeyExchange处理器并启用客户端公钥认证（FND8-47）：clientPubKey非空且被acceptor
+	 * 注册KeyExchange处理器并启用客户端公钥认证：clientPubKey非空且被acceptor
 	 * 接受才继续握手，否则回 {@link Res#ErrorUnknownClientPubKey} 并断连；clientPubKey为空
 	 * （未提供身份）同样拒绝。acceptor收到与getPubKeyMd5相同方式归一前导零后的公钥
 	 * （BigInteger.toByteArray可能带符号位前导0），可直接与配置的N比较或经getPubKeyMd5比对。

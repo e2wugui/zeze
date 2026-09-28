@@ -65,7 +65,7 @@ public class TimeCounter extends ReentrantLock implements AutoCloseable {
 			counters[i] = new CounterSecond();
 
 		// 目前这个用于provider，数量不会很多，简单起见，每个计数启用一个定时任务。
-		// 保存句柄供close取消（FND7-41）：句柄曾直接丢弃且无取消途径，实例被丢弃后
+		// 保存句柄供close取消：句柄直接丢弃则无取消途径，实例被丢弃后
 		// 任务仍每秒永久触发并强引用this，随会话更替无界泄漏。
 		discardTimer = enableDiscardTask
 				? TaskSpec.ofAction(this::discard).schedulePeriodNow(Random.getInstance().nextLong(1000), 1000)

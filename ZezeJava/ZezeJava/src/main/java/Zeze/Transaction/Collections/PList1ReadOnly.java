@@ -5,6 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** PList1 的只读视图：仅暴露查询与遍历，修改入口抛 UnsupportedOperationException。 */
 public class PList1ReadOnly<V> implements Iterable<V> {
 	private final @NotNull PList1<V> list;
 

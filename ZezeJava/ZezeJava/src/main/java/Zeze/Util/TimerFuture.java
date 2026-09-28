@@ -67,7 +67,7 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 		try {
 			acquired = tryLock(timeoutMs + CANCEL_HANG_MARGIN_MS, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt(); // 保留标志：与原先非中断lock()的行为一致
+			Thread.currentThread().interrupt(); // 保留标志：被中断仍继续无界等待，不吞中断
 			interrupted = true;
 		}
 		if (!acquired) {
@@ -117,7 +117,7 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 
 	@Override
 	public boolean isCancelled() {
-		return canceled; // future.isCancelled(); // 调用此方法可能future字段还没赋值
+		return canceled; // 不用 future.isCancelled()：调用时 future 字段可能还没赋值
 	}
 
 	@Override

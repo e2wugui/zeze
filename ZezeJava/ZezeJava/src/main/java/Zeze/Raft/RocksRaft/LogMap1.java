@@ -8,6 +8,9 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 基础类型 Map 容器的增量日志：记录 putted/removed 两个键集差量。
+ */
 public class LogMap1<K, V> extends LogMap<K, V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogMap1<");
 

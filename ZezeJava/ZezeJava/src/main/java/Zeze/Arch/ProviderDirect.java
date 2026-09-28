@@ -189,7 +189,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 				}
 				break;
 			}
-			// 单个分组处理失败继续执行。XXX
+			// 单个分组处理失败，继续执行后续分组。
 			if (future == null)
 				resArg.getHashes().put(hash, hashResult);
 			else if (future.getClass() == RedirectAllFutureFinished.class) {

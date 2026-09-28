@@ -4,6 +4,9 @@ import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
+/**
+ * EditService协议：客户端向SM注册/注销服务（add/remove列表）；SM也用它向订阅者推送增量变更。
+ */
 public class EditService extends Rpc<BEditService, EmptyBean> {
 	public static final int ProtocolId_ = Bean.hash32(EditService.class.getName()); // -1344046521
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 31303

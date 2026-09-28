@@ -7,6 +7,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
+/**
+ * 服务端监听项：绑定 ip/port 配置并持有监听 socket。
+ */
 public class Acceptor extends ReentrantLock {
 	private @NotNull String ip;
 	private int port;

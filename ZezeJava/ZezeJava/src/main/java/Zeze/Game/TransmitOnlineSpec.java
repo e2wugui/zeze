@@ -21,7 +21,7 @@ public final class TransmitOnlineSpec {
 	private final @NotNull String actionName;
 	private final @NotNull List<Long> targets; // 构造时快照
 	private @Nullable Serializable parameter;
-	private boolean processNotOnline = true; // 对齐旧默认值
+	private boolean processNotOnline = true; // 默认值
 	private boolean withContext;
 
 	TransmitOnlineSpec(@NotNull Online online, long sender, @NotNull String actionName,
@@ -56,7 +56,7 @@ public final class TransmitOnlineSpec {
 		return this;
 	}
 
-	private void verify() { // 每个动词开头调用：未知 actionName 立即抛（对齐旧 transmitWhileCommit 的调用时校验）
+	private void verify() { // 每个动词开头调用：未知 actionName 立即抛。
 		if (!online.getTransmitActions().containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 	}

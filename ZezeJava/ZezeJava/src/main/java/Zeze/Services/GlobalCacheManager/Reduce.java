@@ -3,6 +3,9 @@ package Zeze.Services.GlobalCacheManager;
 import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
 
+/**
+ * Reduce协议：GCM要求持有者降级（释放或降为共享）指定全局键；Argument/Result均为键与状态。
+ */
 public class Reduce extends Rpc<BGlobalKeyState, BGlobalKeyState> {
 	public static final int ProtocolId_ = Zeze.Transaction.Bean.hash32(Reduce.class.getName()); // -1004125491
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 3290841805

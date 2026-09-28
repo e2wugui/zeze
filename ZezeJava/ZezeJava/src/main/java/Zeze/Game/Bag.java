@@ -17,6 +17,9 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 
+/**
+ * 游戏背包：按格子管理物品的堆叠、拆分、移动与排序，配套内建 Move/Destroy 协议模块。
+ */
 public class Bag {
 	// 物品加入包裹时，自动注册；
 	// 注册的Bean.ClassName会被持久化保存下来。
@@ -360,7 +363,7 @@ public class Bag {
 
 		// 需要在事务内使用。非建行：行不存在返回null。
 		// 供内建协议(Move/Destroy)使用——bagName虽来自客户端载荷，但表键roleId取自会话，
-		// 寻址被限制在本角色分区内（FND3-50的跨角色越权随BBagKey改造在键结构上关闭，归属钩子checkBagAccess移除）；
+		// 寻址被限制在本角色分区内（跨角色越权随BBagKey改造在键结构上关闭）；
 		// 不建行是因为destroy对空行恒成功，getOrAdd会让任意bagName的空行随事务提交落盘。
 		public Bag openOrNull(long roleId, String bagName) {
 			var b = _tbag.get(new BBagKey(roleId, bagName));

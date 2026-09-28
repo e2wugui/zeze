@@ -15,6 +15,9 @@ import org.jetbrains.annotations.NotNull;
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
+/**
+ * Netty EventLoopGroup 持有者（epoll 可用时优先，否则 nio）。
+ */
 public class Netty implements Closeable {
 	static final @NotNull Logger logger = LogManager.getLogger(Netty.class);
 

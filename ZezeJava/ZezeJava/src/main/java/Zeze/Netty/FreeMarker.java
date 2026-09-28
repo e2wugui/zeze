@@ -11,6 +11,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * FreeMarker 模板渲染服务：渲染页面并通过 HttpExchange 发送（按大小在流式/缓冲两种 writer 间切换）。
+ */
 public class FreeMarker {
 	private static final @NotNull Logger logger = LogManager.getLogger(FreeMarker.class);
 
@@ -61,7 +64,7 @@ public class FreeMarker {
 				try {
 					tmpl.process(modelBean, out);
 				} catch (Throwable t) {
-					out.fail(); // 渲染异常：close不发200截断页（FND5-17）
+					out.fail(); // 渲染异常：close不发200截断页
 					throw t;
 				}
 				if (out.getContentLength() > 64 * 1024)
@@ -72,9 +75,9 @@ public class FreeMarker {
 				try {
 					tmpl.process(modelBean, out);
 				} catch (Throwable t) {
-					// 渲染异常（FND5-17复审）：close改断连（200头已在线无法改写状态码，
+					// 渲染异常：close改断连（200头已在线无法改写状态码，
 					// 不发终结符防截断页伪装完整200），并晋升到缓冲分支——重试走可发500的
-					// 可修复路径（首渲染即失败的模板此前会永远停留在流式分支）。
+					// 可修复路径（否则首渲染即失败的模板会永远停留在流式分支）。
 					out.fail();
 					withContentLength.add(url);
 					throw t;
@@ -83,6 +86,5 @@ public class FreeMarker {
 					withContentLength.add(url);
 			}
 		}
-		// todo Netty 主要是close问题。我印象中只要使用x.send即可，不需要关心close。
 	}
 }

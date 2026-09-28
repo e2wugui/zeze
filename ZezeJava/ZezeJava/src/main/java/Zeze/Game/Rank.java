@@ -26,6 +26,9 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.OutObject;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 分布式排行榜：按并发分段存储、RedirectHash 路由更新，合并分段生成全量快照并缓存。
+ */
 public class Rank extends AbstractRank {
 	private final AppBase app;
 	protected static final BeanFactory beanFactory = new BeanFactory();
@@ -171,7 +174,7 @@ public class Rank extends AbstractRank {
 			}
 			case BConcurrentKey.TimeTypeDay -> c.get(Calendar.DAY_OF_YEAR);
 			case BConcurrentKey.TimeTypeWeek -> {
-				// FND6-34：周榜的年维度用基于周的年（getWeekYear）。WEEK_OF_YEAR在年末按
+				// 周榜的年维度用基于周的年（getWeekYear）。WEEK_OF_YEAR在年末按
 				// 「下一周年的第1周」计数而格里年未变：zh_CN/en_US默认locale（minDays=1）下
 				// 2026-12-28..31得(格里2026,week1)，与2026-01-01同键——12月末的本周榜命中
 				// 年初旧行（陈旧分数混入），同一真实周又被劈成两键（周中换榜、发奖读错行）。
@@ -199,10 +202,10 @@ public class Rank extends AbstractRank {
 
 	public static int getSimpleChineseSeason(Calendar c) {
 		//@formatter:off
-		// Calendar.MONTH 为 0 基（0=1月..11=12月）。原阈值 3/6/9/12 是按 1 基月份书写的，
-		// 整体右移了一个月：12月得季3(秋)、3月得季4(冬)——newRankKey 的 TimeTypeSeason 分支
-		// 「冬季锚定次年」随之失效（12月得(次年,3)，与该年10/11月秋季同键；3月又与1/2月冬季
-		// 同键）。按注释意图修正为 0 基阈值：1/2月冬4、3-5月春1、6-8月夏2、9-11月秋3、12月冬4。
+		// Calendar.MONTH 为 0 基（0=1月..11=12月）。阈值须按 0 基书写；
+		// 按 1 基书写（3/6/9/12）会整体右移一个月：12月得季3(秋)、3月得季4(冬)，
+		// newRankKey 的 TimeTypeSeason 分支「冬季锚定次年」随之失效（12月得(次年,3)，
+		// 与该年10/11月秋季同键；3月又与1/2月冬季同键）。0基阈值：1/2月冬4、3-5月春1、6-8月夏2、9-11月秋3、12月冬4。
 		var month = c.get(Calendar.MONTH);
 		if (month < 2) return 4; // 1,2月（冬）
 		if (month < 5) return 1; // 3,4,5月（春）
@@ -231,7 +234,7 @@ public class Rank extends AbstractRank {
 	public final int getConcurrentLevel(int rankType) {
 		var volatileTmp = funcConcurrentLevel;
 		if (null != volatileTmp) {
-			// 下界钳制（G1-F1）：自定义函数返回0（配置缺项映射成0是常见写法）时，
+			// 下界钳制：自定义函数返回0（配置缺项映射成0是常见写法）时，
 			// Integer.remainderUnsigned(hash, 0)抛ArithmeticException，该榜全部写路径
 			// （含RedirectHash派发）永久崩溃且埋在玩家事务里难定位。
 			// 对齐同包Bag.getItemPileMax既有判例。
@@ -249,7 +252,7 @@ public class Rank extends AbstractRank {
 
 	/**
 	 * rankCached 缓存的容量上限。【有默认值】
-	 * FND-G1-7：周期榜（Day/Week/Season/Year）每个新周期 key、自定义榜（TimeTypeCustomize）
+	 * 周期榜（Day/Week/Season/Year）每个新周期 key、自定义榜（TimeTypeCustomize）
 	 * 每个 customizeId 首次访问都会新建 RankTotal 并持有全量合并快照，旧 key 不再被查询。
 	 * 超过上限时先淘汰已过期的条目，仍超限则按 BuildTime 淘汰最旧的（近似 LRU）。
 	 * 返回 &lt;=0 表示不淘汰（不设上限）。
@@ -292,7 +295,7 @@ public class Rank extends AbstractRank {
 				keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 
 		var rank = _trank.getOrAdd(concurrentKey);
-		// remove if role exist. 看看有没有更快的算法。
+		// remove if role exist.
 		BRankValue exist = null;
 		for (int i = 0; i < rank.getRankList().size(); ++i) {
 			var rankValue = rank.getRankList().get(i);
@@ -405,7 +408,7 @@ public class Rank extends AbstractRank {
 		}
 	}
 
-	// 缓存键=影响结果的全部输入（FND4-79）：countNeed进入键——不同需求各存快照，
+	// 缓存键=影响结果的全部输入：countNeed进入键——不同需求各存快照，
 	// 否则默认getRankSize构建的快照会被更大countNeed的请求命中，静默拿到截断数据
 	//（如发前500名奖励只拿到100条）。包内可见：同包回归测试构造断言键。
 	record RankCacheKey(BConcurrentKey keyHint, int countNeed) {
@@ -414,7 +417,7 @@ public class Rank extends AbstractRank {
 	private final ConcurrentHashMap<RankCacheKey, RankTotal> rankCached = new ConcurrentHashMap<>();
 
 	/**
-	 * FND-G1-7：rankCached 超过容量上限时的淘汰。
+	 * rankCached 超过容量上限时的淘汰。
 	 * 先淘汰已过期的条目（下次访问自动重建，无功能影响），仍超限则按 BuildTime 淘汰最旧的
 	 * （近似 LRU）；当前正在服务的 keep（刚 computeIfAbsent 得到/重建的）受保护，
 	 * 避免新条目因 BuildTime 尚未设置被立即淘汰。
@@ -466,7 +469,7 @@ public class Rank extends AbstractRank {
 			if (now - rank.getBuildTime() < getRankCacheTimeout(keyHint.getRankType()))
 				return rank;
 			rank.setTableValue(getRankDirect(keyHint, countNeed));
-			// game-01：重建快照含本事务读己之写，回滚则数据从未为真——value立即写（保留读己之写），
+			// 重建快照含本事务读己之写，回滚则数据从未为真——value立即写（保留读己之写），
 			// 新鲜度盖章延迟到提交后：未提交/回滚条目永不获freshness（后续访问判过期重建自动覆盖污染），
 			// 提交后窗口从提交时刻起算。先value后time的volatile写序天然保持（事务内写value→提交后写time）。
 			Transaction.whileCommit(() -> rank.setBuildTime(System.currentTimeMillis()));
@@ -505,7 +508,7 @@ public class Rank extends AbstractRank {
 
 		var list = total.value.getTableValue().getRankListReadOnly();
 		if (list.isEmpty())
-			return totalUser; // 空榜无法估计，按排在所有人之后处理（原代码此时取list.get(-1)会越界崩溃）。
+			return totalUser; // 空榜无法估计，按排在所有人之后处理（取list.get(-1)会越界）。
 		var bean = list.get(list.size() - 1).getDynamicReadOnly().getBean();
 		if (bean.typeId() != BValueLong.TYPEID)
 			throw new RuntimeException("only value long has guess.");
@@ -514,8 +517,8 @@ public class Rank extends AbstractRank {
 		if (lastRankScore == 0)
 			return totalUser; // 防除零：score/0 得Infinity，结果为负数。
 
-		// 比值钳制上限1.0（G1-F2）：score超过榜尾分的未上榜高分者是代码自认状态，原线性外推
-		// 返回大幅负数（如1000-10*900=-8000）的域外名次，调用方按名次区间发奖/展示即得错误结果；
+		// 比值钳制上限1.0：score超过榜尾分的未上榜高分者是代码自认状态，线性外推
+		// 会返回大幅负数（如1000-10*900=-8000）的域外名次，调用方按名次区间发奖/展示即得错误结果；
 		// 钳后保守返回lastRankPosition量级（比值=1时恰好等于lastRankPosition）。
 		var scoreRatio = Math.min(1.0, (double)score / lastRankScore);
 		return totalUser - (long)(scoreRatio * (totalUser - lastRankPosition));
@@ -532,12 +535,12 @@ public class Rank extends AbstractRank {
 					keyHint.getOffset());
 			_trank.remove(concurrentKey);
 		}
-		// FND4-77：底表变更⟹缓存失效由写路径承担，否则删除后最长RankCacheTimeout窗口内
+		// 底表变更⟹缓存失效由写路径承担，否则删除后最长RankCacheTimeout窗口内
 		// getRankTotal/getRankPosition仍命中旧榜快照（发奖等依赖排名的逻辑可能按旧榜结算）。
 		invalidateRankCacheWhileCommit(keyHint.getRankType());
 	}
 
-	// FND4-77：按rankType整类失效——rankCached的键是查询调用方传入的hint形态（hash段不参与
+	// 按rankType整类失效——rankCached的键是查询调用方传入的hint形态（hash段不参与
 	// 榜语义），逐段精确匹配不可靠；容量上限内的全类扫描代价可忽略。提交后失效：回滚不浪费重建。
 	private void invalidateRankCacheWhileCommit(int rankType) {
 		Transaction.whileCommit(() -> rankCached.keySet().removeIf(key -> key.keyHint().getRankType() == rankType));
@@ -581,7 +584,7 @@ public class Rank extends AbstractRank {
 			// 两侧表行借用过来的（受管），落表会因元素已受管抛HasManagedException，必须先copy。
 			_trank.put(concurrentKeyTo, merged.copy());
 		}
-		// FND4-77：合并改写目标段底表，同deleteRank需失效缓存（"直接合并hash分组，不适用缓存"
+		// 合并改写目标段底表，同deleteRank需失效缓存（"直接合并hash分组，不适用缓存"
 		// 指合并本身不走缓存，但已建立的to榜缓存必须失效，否则窗口期返回合并前旧快照）。
 		invalidateRankCacheWhileCommit(keyHintFrom.getRankType());
 	}
@@ -610,7 +613,7 @@ public class Rank extends AbstractRank {
 			return new BRankList();
 		if (1 == size) { // only one item
 			var result = datas.iterator().next().copy();
-			// FND7-35：单段同样按countNeed截断——段内允许增长到computeCount（默认2.5×rankSize）
+			// 单段同样按countNeed截断——段内允许增长到computeCount（默认2.5×rankSize）
 			// 作中间数据，不截断则getRankTotal的快照含超容量条目，getRankPosition对第
 			// rankSize+1名之后返回具体名次而非-1（"是否在榜内"契约失真），且与多段路径
 			// （会截断）行为不一致。copy后再删，不能直接删表数据。
@@ -634,7 +637,6 @@ public class Rank extends AbstractRank {
 					current.getRankList().remove(ir);
 			}
 		}
-		// current = current.copy(); // current 可能还直接引用第一个，虽然逻辑上不大可能。先copy。
 		if (current.getRankList().size() > countNeed) { // 再次删除多余的结果。
 			//noinspection ListRemoveInLoop
 			for (int ir = current.getRankList().size() - 1; ir >= countNeed; --ir)

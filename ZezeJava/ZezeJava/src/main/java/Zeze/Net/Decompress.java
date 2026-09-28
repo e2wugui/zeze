@@ -2,7 +2,9 @@ package Zeze.Net;
 
 import org.jetbrains.annotations.NotNull;
 
-// RFC2118
+/**
+ * MPPC 解压 codec（RFC2118）。
+ */
 public class Decompress implements Codec {
 	protected final @NotNull Codec sink;
 	protected int rem;

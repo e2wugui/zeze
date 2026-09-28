@@ -67,7 +67,7 @@ public final class DumpRocksDb {
 		var inputDbPath = args[0];
 		var columnFamilyName = argCount > 2 ? args[1] : null;
 		var outputTxtFile = argCount == 1 ? null : argCount == 2 ? args[1] : args[2];
-		// R2-U2：DBOptions/ColumnFamilyOptions（含compact1的CompactionOptions与listColumnFamilies的
+		// DBOptions/ColumnFamilyOptions（含compact1的CompactionOptions与listColumnFamilies的
 		// Options）都是rocksjava的native对象，必须close释放；各分支open返回的ColumnFamilyHandle
 		// 同样由调用方负责close（在db.close之前，与RocksDatabase.close的释放顺序一致）。
 		try (var cfOptions = new ColumnFamilyOptions();
@@ -260,7 +260,7 @@ public final class DumpRocksDb {
 		}
 	}
 
-	// R2-U2：open(...,outHandles)返回的ColumnFamilyHandle是调用方负责的native对象，
+	// open(...,outHandles)返回的ColumnFamilyHandle是调用方负责的native对象，
 	// 须在db.close之前逐个close（与RocksDatabase.close的destroy顺序一致）；容错吞二次异常。
 	private static void closeHandles(@NotNull Iterable<ColumnFamilyHandle> handles) {
 		for (var h : handles) {
@@ -271,8 +271,8 @@ public final class DumpRocksDb {
 		}
 	}
 
-	// FND7-49：部分RocksDB版本的getLiveFilesMetaData().fileName带前导'/'，compactFiles要求
-	// 相对db目录的文件名——meta与compact1两个分支统一剥离（compact1原漏剥，带'/'时file not found）。
+	// 部分RocksDB版本的getLiveFilesMetaData().fileName带前导'/'，compactFiles要求
+	// 相对db目录的文件名——meta与compact1两个分支统一剥离（不剥离时file not found）。
 	private static @NotNull String stripLeadingSlash(@NotNull String fileName) {
 		return fileName.startsWith("/") ? fileName.substring(1) : fileName;
 	}
@@ -404,7 +404,7 @@ public final class DumpRocksDb {
 				b &= 0xff;
 				if (b < 0xc2 || b > 0xf4) // 0xc0|0xc1仅能构成过长编码；0xf5起不是合法引导字节
 					return false;
-				// FND5-07：连续字节数由引导字节决定（0xC2-0xDF跟1个、0xE0-0xEF跟2个、0xF0-0xF4
+				// 连续字节数由引导字节决定（0xC2-0xDF跟1个、0xE0-0xEF跟2个、0xF0-0xF4
 				// 跟3个，含emoji等4字节字符——游戏聊天数据常见）；续字节掩码为0x80（10xx xxxx）。
 				int continuations = b < 0xe0 ? 1 : b < 0xf0 ? 2 : 3;
 				for (var j = 0; j < continuations; ++j) {

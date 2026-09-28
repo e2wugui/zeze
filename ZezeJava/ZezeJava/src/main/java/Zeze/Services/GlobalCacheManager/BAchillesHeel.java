@@ -4,6 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/** Cleanup协议参数bean：serverId与安全验证字段。 */
 public class BAchillesHeel implements Serializable {
 	public int serverId; // 必须的。
 	public String secureKey; // 安全验证

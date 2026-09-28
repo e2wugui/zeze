@@ -24,6 +24,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 安全批处理组件：以定时器驱动的分批方式遍历/处理大表（带看门狗与断点记录）。
+ */
 public class SafeBatch extends AbstractSafeBatch {
 	static final Logger logger = LogManager.getLogger(SafeBatch.class);
 	private final @NotNull Application zeze;
@@ -170,8 +173,8 @@ public class SafeBatch extends AbstractSafeBatch {
 			return;
 		}
 
-		// FND-C1-9：批处理存续期间表被改名/删除（schema演进、模块下线）后，zeze.getTable
-		// 返回null——原实现继续构造worker，run()首轮walkDatabase即NPE死亡，future已done
+		// 批处理存续期间表被改名/删除（schema演进、模块下线）后，zeze.getTable
+		// 返回null——继续构造worker会在run()首轮walkDatabase即NPE死亡，future已done
 		// 使看门狗每tick重建，形成“僵尸批处理+NPE错误日志”的永久循环（无任何路径清理）。
 		// 表不存在时批处理永远无法推进，与batch==null同款处理：停止并清理记录。
 		if (null == zeze.getTable(batch.getTableName())) {

@@ -3,6 +3,9 @@ package Zeze.Net;
 import java.io.Closeable;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 流式编解码器接口：update 写入数据，flush 落盘，close 释放资源。
+ */
 public interface Codec extends Closeable {
 	void update(byte c) throws CodecException;
 

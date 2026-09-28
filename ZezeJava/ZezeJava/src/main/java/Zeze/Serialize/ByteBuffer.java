@@ -22,6 +22,7 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** Zeze 堆内存字节缓冲：实现变长整数、向量、字符串等的读写协议，容量按2的幂扩容。 */
 public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	public static final @NotNull VarHandle intLeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
 	public static final @NotNull VarHandle intBeHandler = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
@@ -90,17 +91,12 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	public static @NotNull ByteBuffer Allocate(int capacity) {
-		// add pool?
-		// 缓存 ByteBuffer 还是 byte[] 呢？
-		// 最大的问题是怎么归还？而且 Bytes 是公开的，可能会被其他地方引用，很难确定什么时候回收。
-		// buffer 使用2的幂，数量有限，使用简单策略即可。
-		// Dictionary<capacity, List<byte[]>> pool;
-		// socket的内存可以归还。
+		// 不做池化：Bytes是公开的，可能被其他地方引用，无法确定何时回收。
 		return new ByteBuffer(capacity);
 	}
 
 	protected ByteBuffer(int capacity) {
-		Bytes = capacity == 0 ? Empty : new byte[capacity]; // ToPower2(capacity)
+		Bytes = capacity == 0 ? Empty : new byte[capacity];
 	}
 
 	protected ByteBuffer(byte @NotNull [] bytes, int readIndex, int writeIndex) {
@@ -962,7 +958,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	public static int utf8Size(@Nullable String str) {
 		if (str == null)
 			return 0;
-		long bn = 0; // long累加（SE1-F1）：int回绕为负会走WriteString的bn<=0早退，静默编码为空串
+		long bn = 0; // long累加：int回绕为负会走WriteString的bn<=0早退，静默编码为空串
 		for (int i = 0, cn = str.length(); i < cn; i++) {
 			int c = str.charAt(i);
 			if (c < 0x80)
@@ -1121,7 +1117,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return false;
 	}
 
-	/** 裸数组内容比较的显式出口（FND8-15）：equals不再接受byte[]——数组hashCode是
+	/** 裸数组内容比较的显式出口：equals不接受byte[]——数组hashCode是
 	 * 身份哈希，宽容分支违反"equals相等则hashCode相等"契约，哈希容器传裸数组查询
 	 * 会落错桶静默miss。 */
 	public boolean contentEquals(byte @NotNull [] other) {
@@ -1155,7 +1151,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		return hash;
 	}
 
-	/** FNV（FND5-46）：nio形态统一入口——heap走数组版本；direct无backing array，
+	/** FNV：nio形态统一入口——heap走数组版本；direct无backing array，
 	 * duplicate遍历（不动position/limit）。算法仅此一份。 */
 	public static int calc_hashnr(@NotNull java.nio.ByteBuffer bb) {
 		if (bb.hasArray())
@@ -1201,7 +1197,7 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 
 	public int WriteTag(int lastVarId, int varId, int type) {
 		int deltaId = varId - lastVarId;
-		if (deltaId <= 0) // 负delta降序id会写出高位为1的伪装tag字节；deltaId==0同样落入0x00-0x0f控制字节区（SE1-F2）
+		if (deltaId <= 0) // 负delta降序id会写出高位为1的伪装tag字节；deltaId==0同样落入0x00-0x0f控制字节区
 			throw new IllegalStateException("WriteTag: varId " + varId + " <= lastVarId " + lastVarId);
 		if (deltaId < 0xf)
 			WriteByte((deltaId << TAG_SHIFT) + type);

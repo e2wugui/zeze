@@ -1,5 +1,8 @@
 package Zeze.Raft;
 
+/**
+ * Raft 应用 Rpc 的必备接口：唯一请求标识（服务端去重依据）与创建/发送时间。
+ */
 public interface IRaftRpc {
 	long getCreateTime();
 

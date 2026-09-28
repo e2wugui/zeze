@@ -10,6 +10,7 @@ import java.util.function.Predicate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 平行数组的键值对列表（keys/values 同下标成对），可克隆
 public class KVList<K, V> implements Cloneable {
 	public static final Object[] EMPTY = new Object[0];
 	public static final int DEFAULT_SIZE = 8;

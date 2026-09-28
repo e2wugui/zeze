@@ -33,7 +33,7 @@ public class DistributeManager {
 		var file = new File(fileName);
 		var relativeCanonicalFileName = file.getCanonicalFile().toString();
 		// fileName 直接来自网络rpc（OpenFile请求），必须限制在 distributeDir 之内，
-		// 拒绝"../"逃逸和绝对路径，防止越界写/截断任意文件（FND-G1-3）。
+		// 拒绝"../"逃逸和绝对路径，防止越界写/截断任意文件。
 		checkFileNameInsideDir(hotManager.getDistributeDir(), fileName);
 		return files.computeIfAbsent(relativeCanonicalFileName,
 				(key) -> new FileBin(key, new File(hotManager.getDistributeDir()), file.getPath()));

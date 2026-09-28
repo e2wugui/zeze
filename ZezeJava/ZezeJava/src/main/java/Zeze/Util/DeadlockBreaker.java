@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 死锁检测守护线程：monitor/AQS 死锁走 ThreadMXBean，FastLock 等待环（含虚拟线程）走登记表，报告并尝试打断
 public class DeadlockBreaker extends ThreadHelper {
 	private static final @NotNull Logger logger = LogManager.getLogger(DeadlockBreaker.class);
 
@@ -167,7 +168,7 @@ public class DeadlockBreaker extends ThreadHelper {
 			found = true;
 		}
 
-		// FastLock 等待环（含虚拟线程，FND7-70）。
+		// FastLock 等待环（含虚拟线程）。
 		if (reportAndBreakLockWaitCycles())
 			found = true;
 
@@ -175,7 +176,7 @@ public class DeadlockBreaker extends ThreadHelper {
 	}
 
 	/**
-	 * 检测 FastLock 等待死锁环（含虚拟线程，FND7-70）。
+	 * 检测 FastLock 等待死锁环（含虚拟线程）。
 	 * JDK21：findDeadlockedThreads 不检测虚拟线程的 AQS 死锁，而 Task 默认线程池即虚拟线程；
 	 * 也没有公开 API 枚举 VT（ThreadGroup.enumerate 与 Thread.getAllStackTraces 均不含 VT）。
 	 * FastLock 慢路径在 waitingThreads 登记 等待线程→锁，锁的 getOwner() 给出持有者，
@@ -184,7 +185,7 @@ public class DeadlockBreaker extends ThreadHelper {
 	 * blocker），排除登记窗口内已释放的瞬态。等待非 FastLock 的 AQS 锁（如 ReentrantLock）
 	 * 无法确定持有者，不参与检测。
 	 * <p>
-	 * 复审R3成文的覆盖边界：登记点在 FastLock 的 lock/lockInterruptibly/tryLock(t,u) 慢路径，
+	 * 覆盖边界：登记点在 FastLock 的 lock/lockInterruptibly/tryLock(t,u) 慢路径，
 	 * ConditionObject.await 被唤醒后的锁重获取阻塞发生在条件对象内部、不经过登记点，经条件
 	 * 重获取构成的环不在检测范围（纯平台线程时可另由 findDeadlockedThreads 覆盖）。
 	 * 登记以等待者为键（每线程同一时刻最多等一把），与锁的获取路径无关：环成员必然处于
@@ -340,7 +341,7 @@ public class DeadlockBreaker extends ThreadHelper {
 				thread.interrupt();
 				return allThreads;
 			}
-			// FND7-70：查不到目标线程（检测后线程已退出等）降级为含线程名的告警，
+			// 查不到目标线程（检测后线程已退出等）降级为含线程名的告警，
 			// 不再误报为可正常中断的info。
 			logger.warn("thread not found for interrupt (may have exited): {}", tInfo);
 		} catch (Throwable e) { // logger.fatal

@@ -13,6 +13,10 @@ import Zeze.Util.Str;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 受管数据 Bean 基类：承载 objectId、rootInfo/parent 受管关系与修改日志（Log），
+ * 是表格记录与事务化集合元素的数据基元。
+ */
 public abstract class Bean implements Serializable {
 	public static final int OBJECT_ID_STEP = 4096; // 自增长步长。低位保留给Variable.Id。也就是，Variable.Id 最大只能是4095.
 	public static final int MAX_VARIABLE_ID = OBJECT_ID_STEP - 1;
@@ -62,7 +66,7 @@ public abstract class Bean implements Serializable {
 	/**
 	 * 构建 ChangeListener 链。其中第一个KeyValuePair在调用前加入，这个由Log或者ChangeNote提供。
 	 * 每条路径元素为（父Bean, 当前层子Bean的variableId）：第1层是this在自己parent中的编号，
-	 * 更深层各取该层子Bean自己的编号（FND5-04：原先恒用this.variableId，层级≥2错误）。
+	 * 更深层各取该层子Bean自己的编号（不得恒用this.variableId，层级≥2会取错）。
 	 *
 	 * @param path path
 	 */
@@ -78,7 +82,7 @@ public abstract class Bean implements Serializable {
 	// 【bean所有权语义】bean加入受管容器（表记录/受管集合）即被事务占有（rootInfo在此登记，
 	// 经Transaction.whileRedo进redoBeans）：redo重试由triggerRedoActions统一resetRootInfo
 	// 后随重放重新登记；而最终回滚不解除占有（redoBeans仅在redo路径重置，终局回滚不触碰），
-	// redo-only是成文设计。复用被占有的bean（再次加入受管容器）将抛HasManagedException
+	// redo-only是既定设计。复用被占有的bean（再次加入受管容器）将抛HasManagedException
 	// （下方入口检查），请重建实例或copy()。
 	public final void initRootInfoWithRedo(Record.RootInfo rootInfo, @Nullable Bean parent) {
 		if (isManaged())
@@ -174,7 +178,7 @@ public abstract class Bean implements Serializable {
 	}
 
 	// 使用自己的hash算法，因为 TypeId 会持久化，不能因为算法改变导致值变化。
-	// XXX: 这个算法定好之后，就不能变了。
+	// 算法已固化进 TypeId，不得变更，改了即数据不兼容。
 	public static long hash64(long initial, @NotNull String name, int n) {
 		// This is a Knuth hash
 		long hashedValue = initial;

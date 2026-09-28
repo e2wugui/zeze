@@ -79,11 +79,10 @@ public final class GenModule extends ReentrantLock {
 	}
 
 	public static <T extends IModule> T newModule(@NotNull Class<?> cls, @NotNull AppBase app) throws ReflectiveOperationException {
-		// arch-01（FND16）：0参构造器模块放行实例化。createRedirectModules对无redirect方法
+		// 0参构造器模块放行实例化。createRedirectModules对无redirect方法
 		// 的模块直接用原始类实例化（javadoc承诺），getCtor的0参回退（genModuleCode同为活
-		// 消费方）与IModule.Initialize(AppBase)后注入钩子均支持该形态；原硬拒使"仅0参构造器
-		// 的合法模块"启动崩溃且错误文案误导指向redirect配置（A1三案例实证双标准：同形态
-		// 加redirect方法能启动、删光反而崩溃）。
+		// 消费方）与IModule.Initialize(AppBase)后注入钩子均支持该形态——硬拒会使
+		// "仅0参构造器的合法模块"启动崩溃。
 		@SuppressWarnings("unchecked")
 		var ctor = (Constructor<T>)getCtor(cls, app);
 		return ctor.getParameterCount() == 1 ? ctor.newInstance(app) : ctor.newInstance();
@@ -132,10 +131,9 @@ public final class GenModule extends ReentrantLock {
 		}
 	}
 
-	// FND7-67：沿类层级向上收集带注解方法（到IModule为止）。原先仅扫
-	// getDeclaredMethods：基类声明的redirect方法既不生成拦截子类方法、
-	// 也不注册redirect.handles，调用静默本地执行且远程不可达、无任何告警，
-	// 与方法签名非法时的fail-fast形成反差。同签名（名字+参数类型）去重，
+	// 沿类层级向上收集带注解方法（到IModule为止）。仅扫getDeclaredMethods时：基类声明的
+	// redirect方法既不生成拦截子类方法、也不注册redirect.handles，调用静默本地执行且远程
+	// 不可达、无任何告警，与方法签名非法时的fail-fast形成反差。同签名（名字+参数类型）去重，
 	// 派生类声明优先（覆盖者的注解生效）。空=没有需要重定向的方法。
 	private static ArrayList<MethodOverride> collectOverrides(@NotNull Class<?> moduleClass) {
 		var overridesBySignature = new LinkedHashMap<String, MethodOverride>();
@@ -169,7 +167,7 @@ public final class GenModule extends ReentrantLock {
 	 * 生成模式（构建期）：把带redirect注解模块的Redirect_子类源码写到srcRoot（总是覆盖）。
 	 * 只产出源码，不装载不实例化；退出与否由调用方（工具main/应用Start）决定。
 	 *
-	 * @param tryCompile 写盘前逐模块内存javac试编译，不可编译产物不落盘（FND8-83，默认false）
+	 * @param tryCompile 写盘前逐模块内存javac试编译，不可编译产物不落盘（默认false）
 	 */
 	public void generateRedirectSources(@NotNull String srcRoot, @NotNull AppBase userApp,
 										@NotNull Class<?> @NotNull [] moduleClasses, boolean tryCompile) {
@@ -185,7 +183,7 @@ public final class GenModule extends ReentrantLock {
 
 					var genClassName = getRedirectClassName(moduleClass);
 					var code = genModuleCode(genClassName, moduleClass, overrides, userApp);
-					// FND8-83：写盘前试编译，失败即中止不落盘；只取字节码，不在装载器define。
+					// 写盘前试编译，失败即中止不落盘；只取字节码，不在装载器define。
 					if (tryCompile)
 						compiler.compileAllToByteCode(Map.of(genClassName, code));
 					byte[] oldBytes = null;
@@ -331,9 +329,8 @@ public final class GenModule extends ReentrantLock {
 					+ ", expect=" + moduleClass.getName());
 	}
 
-	// FND7-67：方法去重键——同签名（名字+参数类型）视为同一个覆盖点，类层级收集中
+	// 方法去重键——同签名（名字+参数类型）视为同一个覆盖点，类层级收集中
 	// 用于"派生类声明优先、基类声明忽略"。
-
 
 	private static String genModuleCode(@NotNull String genClassName, @NotNull Class<?> moduleClass,
 										@NotNull List<MethodOverride> overrides, @NotNull AppBase userApp) throws Exception {
@@ -390,7 +387,7 @@ public final class GenModule extends ReentrantLock {
 					throw new UnsupportedOperationException("Duplicate redirect method name: " + redirectFullName);
 
 				sb.appendLine("    @Override");
-				sb.appendLine("    {}{} {}({}) {", modifier, returnName, m.method.getName(), parametersDefine); // m.getThrows() // 继承方法允许不标throws
+				sb.appendLine("    {}{} {}({}) {", modifier, returnName, m.method.getName(), parametersDefine); // 继承方法允许不标throws
 				var prefix = "        ";
 				if (!(m.annotation instanceof RedirectAll) && !returnName.equals("void")) {
 					sb.appendLine("{}var _f_ = new Zeze.Arch.RedirectFuture<{}>();", prefix, m.resultTypeName);
@@ -428,8 +425,8 @@ public final class GenModule extends ReentrantLock {
 				}
 				sb.appendLine();
 				if (returnName.equals("void"))
-					// FND8-86：Send失败（socket失效/背压）只返回false不抛异常，原先丢弃布尔值
-					// 无redirect归因——经sendVoid封装，失败记带方法名的error日志（at-most-once不变）。
+					// Send失败（socket失效/背压）只返回false不抛异常，直接丢弃布尔值则无
+					// redirect归因——经sendVoid封装，失败记带方法名的error日志（at-most-once不变）。
 					sb.appendLine("{}_redirect_.sendVoid(_t_, _p_, \"{}:{}\");", prefix, moduleFullName, m.method.getName());
 				else {
 					sb.appendLine("{}if (!_p_.Send(_t_, _rpc_ -> {", prefix);
@@ -549,7 +546,7 @@ public final class GenModule extends ReentrantLock {
 		return sb.toString();
 	}
 
-	// FND8-85：decode生成引用未限定的beanFactory，按"模块类父类链自带可访问静态
+	// decode生成引用未限定的beanFactory，按"模块类父类链自带可访问静态
 	// beanFactory"惯例解析（IModule无此契约）——生成期校验并给出修复提示。
 	private static void checkBeanFactorySymbol
 	(@NotNull Class<?> moduleClass, @NotNull List<MethodOverride> overrides) {

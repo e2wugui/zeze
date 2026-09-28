@@ -28,6 +28,10 @@ import org.jetbrains.annotations.Nullable;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
+/**
+ * PostgreSQL 数据库后端：提供 KV 表与关系映射表的 JDBC 实现，
+ * 以及存储过程（FUNCTION）版 Operates 与带租期的全局启动锁。
+ */
 public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRelationalMapping {
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
@@ -37,7 +41,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 	// SQLException.getMessage()无契约保证非null（驱动包装异常、本地化场景可为null），
 	// catch块内直接contains会NPE：本应幂等继续/死锁重试的路径变成启动失败且掩盖原始异常。
-	// 收口为null安全判定：null消息按不匹配处理，走默认抛出路径（FND4-05）。
+	// 收口为null安全判定：null消息按不匹配处理，走默认抛出路径。
 	private static boolean sqlMessageContains(@NotNull SQLException e, @NotNull String token) {
 		var msg = e.getMessage();
 		return msg != null && msg.contains(token);
@@ -60,7 +64,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 	static {
 		sqlTypeTable.put("bool", "boolean");
-		//sqlTypeTable.put("boolean", "BOOL");
 		sqlTypeTable.put("byte", "smallint");
 		sqlTypeTable.put("short", "smallint");
 		sqlTypeTable.put("int", "integer");
@@ -172,7 +175,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	}
 
 	private final class OperatesPostgreSQL implements Operates {
-		// 全局启动锁的租期（T2-F1），语义与取值对齐 DatabaseRedis.LOCK_LEASE_SECONDS：
+		// 全局启动锁的租期，语义与取值对齐 DatabaseRedis.LOCK_LEASE_SECONDS：
 		// 持锁进程崩溃（kill -9/OOM/断电）后残留的锁最多存活一个租期，之后轮询的
 		// 实例自动接管，无需人工恢复。
 		private static final int LOCK_LEASE_SECONDS = 600;
@@ -441,12 +444,12 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		@Override
 		public boolean tryLock() {
-			// 锁行version复用为租期到期时间戳（T2-F1，对齐DatabaseRedis.LOCK_LEASE_SECONDS的取舍）：
+			// 锁行version复用为租期到期时间戳（对齐DatabaseRedis.LOCK_LEASE_SECONDS的取舍）：
 			// 0=空闲，>0=持锁至该时刻（DB服务器时钟，单一时间来源避免各实例本地时钟漂移），
-			// 到期即可接管——原实现version只在0/1间翻转，持锁进程硬崩溃后残留的1永不恢复，
+			// 到期即可接管——version不得只在0/1间翻转：持锁进程硬崩溃后残留的1永不恢复，
 			// 所有后续实例启动永久挂死。租期须显著大于持锁窗口最坏耗时（atomicOpenDatabase全程，
 			// 含renameTable与大表tryAlter，分钟级）；不做续期与持有者校验（unlock无条件置0），
-			// 慢启动超过租期的误过期窗口是既定取舍（review-2026-09/l4/T3-4，与Redis版一致）。
+			// 慢启动超过租期的误过期窗口是既定取舍（与Redis版一致）。
 			// 升级窗口注意：旧版本持有的version=1会被新代码立即视为已过期而接管，一次性
 			// 退化为无锁并发（schemasCompatible本就保留并发安全）。
 			var createRecordSql = "INSERT INTO _ZezeDataWithVersion_ VALUES(?,?,?) ON CONFLICT(id) DO NOTHING;";
@@ -535,7 +538,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 	private static <K extends Comparable<K>, V extends Bean>
 	@NotNull String buildOrderByDesc(@NotNull TableX<K, V> table) {
-		// 目前考虑keyColumns让Schemas来构造，注意生成顺序最好和encodeKeySQLStatement,decodeKeyResultSet【最好一致】。
 		return " ORDER BY " + table.getRelationalTable().currentKeyColumns.replace(",", " DESC,") + " DESC";
 	}
 
@@ -547,7 +549,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		table.encodeKeySQLStatement(st, exclusiveStartKey);
 		// 复合key必须按元组字典序比较：游标(1,"zzz")之后是(2,"aaa")而非两者都大于。
-		// 原AND形式(col1>? AND col2>?)整块漏掉跨段数据；行值比较(col1,col2)>(v1,v2)与ORDER BY语义一致。
+		// AND形式(col1>? AND col2>?)整块漏掉跨段数据；行值比较(col1,col2)>(v1,v2)与ORDER BY语义一致。
 		// 列值对为 col=?（参数）或 col=字面量（数值内联），按首个'='拆分，params占位符相对顺序不变。
 		var sql = st.getSql().toString();
 		if (!sql.contains(", "))
@@ -592,7 +594,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	}
 
 	public static boolean tableAlreadyExistsWarning(@Nullable SQLWarning warning) {
-		//logger.info(warning.toString());
 		for (; warning != null; warning = warning.getNextWarning()) {
 			var msg = warning.getMessage();
 			if (msg.startsWith("relation") && msg.contains("already exists, skipping"))
@@ -629,24 +630,9 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 		public TablePostgreSQLRelational(@NotNull String name) {
 			this.name = name; // pg 表名被统一转换成小写的了。
-			/*
-			if (name.equals("demo_Module1_Table1") || name.equals("demo_Module1_Table2")) {
-				System.out.println("new " + name);
-			}
-			*/
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
-			// 下面的create table if not exists 在存在的时候会返回warning，isNew是否可以通过这个方法得到？
-			// warning的方案的原子性由数据库保证，比较好，但warning本身可能不是很标准，先保留MetaData方案了。
+			// create table if not exists 在表已存在时返回warning，由此检测isNew（原子性由数据库保证）。
 			isNew = true;
-			/*
-			try (var conn = dataSource.getConnection()) {
-				DatabaseMetaData meta = conn.getMetaData();
-				ResultSet rs = meta.getTables(null, null, this.name, new String[]{"TABLE"});
-				isNew = !rs.next();
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
-			*/
 			var table = getDatabase().getTable(name);
 			if (table == null)
 				throw new IllegalStateException("not found table: " + name);
@@ -763,7 +749,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				}
 			}
 			// 需要独立语句。
-			//sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(')');
 			var sql = sb.toString();
 			logger.info("tryAlter {}", sql);
 
@@ -1248,18 +1233,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		public TablePostgreSQL(@NotNull String name) {
 			this.name = name;
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
-			// 下面的create table if not exists 在存在的时候会返回warning，isNew是否可以通过这个方法得到？
-			// warning的方案的原子性由数据库保证，比较好，但warning本身可能不是很标准，先保留MetaData方案了。
+			// create table if not exists 在表已存在时返回warning，由此检测isNew（原子性由数据库保证）。
 			var isNew = true;
-			/*
-			try (var conn = dataSource.getConnection()) {
-				DatabaseMetaData meta = conn.getMetaData();
-				ResultSet rs = meta.getTables(null, null, this.name, new String[]{"TABLE"});
-				isNew = !rs.next();
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
-			*/
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				var sql = "CREATE TABLE IF NOT EXISTS " + name

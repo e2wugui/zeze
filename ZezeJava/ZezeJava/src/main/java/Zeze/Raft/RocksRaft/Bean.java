@@ -7,6 +7,9 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.HasManagedException;
 import Zeze.Util.Str;
 
+/**
+ * RocksRaft 的 Bean 基类：objectId/rootInfo 挂接管理、修改日志的生成与 leader/follower 应用接口。
+ */
 public abstract class Bean implements Serializable {
 	public static final int OBJECT_ID_STEP = 4096;
 	public static final int MAX_VARIABLE_ID = OBJECT_ID_STEP - 1;

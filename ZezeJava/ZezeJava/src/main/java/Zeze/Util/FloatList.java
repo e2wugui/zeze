@@ -7,6 +7,7 @@ import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// float 基本类型动态数组：可比较/可克隆/可序列化（Vector*List 的基类）
 public class FloatList implements Comparable<FloatList>, Cloneable, Serializable {
 	public static final float[] EMPTY = new float[0];
 	public static final int DEFAULT_SIZE = 8;
@@ -411,8 +412,8 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		float[] data = fl.buffer;
 		for (int i = 0; i < n; i++) {
 			// Float.compare（JDK定义的全序，NaN有确定位次）取代减法判序：Inf-Inf=NaN、含NaN的
-			// 差恒NaN使 c!=0 恒真恒返回1——相等元素比较为"大于"、违反反对称性（FND4-17）。
-			// 对齐 IntList（已修减法溢出）/LongList（FND3-15）的compare形态。
+			// 差恒NaN使 c!=0 恒真恒返回1——相等元素比较为"大于"、违反反对称性。
+			// 对齐 IntList/LongList 的compare形态。
 			int c = Float.compare(buf[i], data[i]);
 			if (c != 0)
 				return c;
@@ -432,7 +433,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		float[] buf = buffer;
 		float[] data = fl.buffer;
 		for (int i = 0; i < n; i++) {
-			// Float.compare与compareTo对齐（FND6-04）：原生!=下双方均NaN时判不等，与compareTo
+			// Float.compare与compareTo对齐：原生!=下双方均NaN时判不等，与compareTo
 			// （compare==0）及JDK Float.equals（floatToIntBits）相反，equals/compareTo矛盾。
 			if (Float.compare(buf[i], data[i]) != 0)
 				return false;
@@ -451,7 +452,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		float[] buf = buffer;
 		float[] data = fl.buffer;
 		for (int i = 0; i < n; i++) {
-			if (Float.compare(buf[i], data[i]) != 0) // 同上，FND6-04
+			if (Float.compare(buf[i], data[i]) != 0) // 同上：与compareTo对齐
 				return false;
 		}
 		return true;

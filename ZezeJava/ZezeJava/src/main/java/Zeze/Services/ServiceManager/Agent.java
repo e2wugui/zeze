@@ -25,6 +25,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
+/**
+ * 服务管理器客户端Agent（非raft版）：连接ServiceManagerServer完成服务注册/订阅/负载上报，
+ * 断线重连自动重放注册与订阅；附带Id128 UDP发号客户端。
+ */
 public final class Agent extends AbstractAgent {
 	static final @NotNull Logger logger = LogManager.getLogger(Agent.class);
 
@@ -103,7 +107,7 @@ public final class Agent extends AbstractAgent {
 				var states = new ArrayList<SubscribeState>(r.Argument.subs.size());
 				for (var info : r.Argument.subs) {
 					var state = subscribeStates.computeIfAbsent(info.getServiceName(), __ -> new SubscribeState(info));
-					state.updateSubscribeInfo(info); // 同名重订阅同步过滤版本（FND-S2-8），防重连重放回退
+					state.updateSubscribeInfo(info); // 同名重订阅同步过滤版本，防重连重放回退
 					states.add(state);
 					var result = r.Result.map.get(info.getServiceName());
 					if (result != null)
@@ -111,7 +115,7 @@ public final class Agent extends AbstractAgent {
 				}
 				try {
 					triggerOnChanged(edits);
-				} catch (Throwable e) { // logger.error
+				} catch (Throwable e) {
 					logger.error("subscribeServicesAsync: triggerOnChanged exception:", e);
 				}
 				cf.complete(states);
@@ -176,23 +180,23 @@ public final class Agent extends AbstractAgent {
 			var identify = new Identify();
 			identify.Argument.serverId = config.getServerId();
 			identify.Send(client.getSocket());
-		} catch (Throwable ex) { // logger.debug
+		} catch (Throwable ex) {
 			logger.debug("OnConnected.Identify", ex);
 		}
 
 		replayRegistersAndSubscribes();
 	}
 
-	// FND4-65：重连重放的失败原先skip-and-continue（editService异常仅debug、订阅future异常
+	// 重连重放的失败若skip-and-continue（editService异常仅debug、订阅future异常
 	// 无人管）——网络flap后注册/订阅重放丢失，直到下一次重连/leader变更才再试，服务长时间
 	// 不可发现。重放源本就是registers/subscribeStates全量（重复重放幂等：服务端允许重复注册、
 	// 订阅状态updateSubscribeInfo同步），失败安排退避重试整体重放，"重连后状态最终必达"由
-	// 机制保证（对齐FND4-57的对账/重试口径）。
+	// 机制保证。
 	private static final long ReplayRetryDelayMs = 5_000;
-	// FND5-34：对齐raft版判例（5d8c5477a）——onConnected同步失败与subscribeServicesAsync
+	// 对齐raft版——onConnected同步失败与subscribeServicesAsync
 	// 的whenComplete异步回调并发失败时，"cancel旧→赋新"两步竞态会登记出多个重试任务
 	//（重放源幂等无状态破坏，但重试链膨胀、日志重复）。小锁原子化"检查-登记/清除"。
-	// FND5-33：stop后拒绝再登记并取消在途任务，否则close后周期重试error日志持续到进程退出。
+	// stop后拒绝再登记并取消在途任务，否则close后周期重试error日志持续到进程退出。
 	private final Object replayRetryLock = new Object();
 	private @Nullable Future<?> replayRetryTask; // guarded-by replayRetryLock
 	private volatile boolean stopped;
@@ -202,7 +206,7 @@ public final class Agent extends AbstractAgent {
 		edit.getAdd().addAll(registers.keySet());
 		try {
 			editService(edit);
-		} catch (Throwable ex) { // logger.warn
+		} catch (Throwable ex) {
 			logger.warn("replay registers failed, schedule retry.", ex);
 			scheduleReplayRetry();
 			return; // 注册未确认，订阅随重试一并重放
@@ -211,10 +215,10 @@ public final class Agent extends AbstractAgent {
 		var subArg = new BSubscribeArgument();
 		for (var e : subscribeStates.values())
 			subArg.subs.add(e.getSubscribeInfo());
-		// FND8-69（对齐raft版onLoginSuccess的双保险结构）：subscribeServicesAsync首行
+		// （对齐raft版onLoginSuccess的双保险结构）：subscribeServicesAsync首行
 		// waitConnectorReady可同步抛出（连接恰在phase-1应答到达后到此处之间死亡，或在
 		// >5s重连退避中阻塞超时）——异常发生在future创建之前，whenComplete不可达，原样
-		// 穿透后被上层ofAction吞掉，scheduleReplayRetry不被调用，重试链断（FND4-65不变量
+		// 穿透后被上层ofAction吞掉，scheduleReplayRetry不被调用，重试链断（"最终必达"不变量
 		// 破口）。同步路径补try/catch；空订阅守卫避免无订阅空发。
 		if (!subArg.subs.isEmpty()) {
 			try {
@@ -272,7 +276,7 @@ public final class Agent extends AbstractAgent {
 		r.SendResult();
 		try {
 			triggerOnChanged(r.Argument);
-		} catch (Throwable e) { // logger.error
+		} catch (Throwable e) {
 			logger.error("processEditService: triggerOnChanged exception:", e);
 		}
 		return 0;
@@ -293,8 +297,7 @@ public final class Agent extends AbstractAgent {
 					if (onSetServerLoad != null) {
 						onSetServerLoad.run(setServerLoad.Argument);
 					}
-				} catch (Throwable e) { // logger.error
-					// run handle.
+				} catch (Throwable e) {
 					logger.error("", e);
 				}
 			});
@@ -309,7 +312,7 @@ public final class Agent extends AbstractAgent {
 		if (on != null) {
 			try {
 				on.run(r.Argument.serverId);
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("processSuspect serverId={}", r.Argument.serverId, e);
 			}
 		}
@@ -365,7 +368,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	public void stop() throws Exception {
-		stopped = true; // FND5-33：先置停机标志，再取消在途重试（迟到失败回调不会再登记）
+		stopped = true; // 先置停机标志，再取消在途重试（迟到失败回调不会再登记）
 		synchronized (replayRetryLock) {
 			if (replayRetryTask != null) {
 				replayRetryTask.cancel(false);

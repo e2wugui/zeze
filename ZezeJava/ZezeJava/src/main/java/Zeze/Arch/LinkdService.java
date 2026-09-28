@@ -27,6 +27,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Linkd 对客户端的监听服务：完成握手认证、按绑定关系把客户端协议转发给 Provider，并处理过载丢弃。
+ */
 public class LinkdService extends HandshakeServer {
 	private static final @NotNull Logger logger = LogManager.getLogger(LinkdService.class);
 	protected LinkdApp linkdApp;
@@ -38,7 +41,7 @@ public class LinkdService extends HandshakeServer {
 
 	public LinkdService(@NotNull String name, Application zeze) {
 		super(name, zeze);
-		setNoProcedure(true); // 应该需要加这个吧。
+		setNoProcedure(true); // 不启用事务。
 
 		if (getSocketOptions().getOverBandwidth() != null) {
 			var lastSendSize = new OutLong();
@@ -73,10 +76,10 @@ public class LinkdService extends HandshakeServer {
 		// 如果是 rpc.request 直接返回Procedure.Busy错误。
 		// see Zeze.Net.Rpc.decode/encode
 		var bb = ByteBuffer.Wrap(dispatch.Argument.getProtocolData());
-		// FND-A1-7：protocolData由客户端拼装、长度任意（可为0）。rpc帧布局为
+		// protocolData由客户端拼装、长度任意（可为0）。rpc帧布局为
 		// UInt(header)+[Long(resultCode)]+Long(sessionId)（见Rpc.encode）。ReadUInt/SkipLong/
-		// ReadLong都是变长编码（各最多9字节，首字节决定），数字长度门卫不闭合（a26aa9845的
-		// >=4/>=16/8对首字节>=0xf0的构造包仍会越界抛异常），故整体try/catch：畸形帧跳过
+		// ReadLong都是变长编码（各最多9字节，首字节决定），数字长度门卫不闭合（>=4/>=16/8的
+		// 长度门卫对首字节>=0xf0的构造包仍会越界抛异常），故整体try/catch：畸形帧跳过
 		// rpc应答部分（只发下面的ReportError），解析异常不再打断IO线程→断开该连接。
 		AsyncSocket so = null;
 		var sessionId = 0L;
@@ -340,7 +343,7 @@ public class LinkdService extends HandshakeServer {
 	@Override
 	public boolean discard(@NotNull AsyncSocket sender, int moduleId, int protocolId, int size) throws Exception {
 		/*
-		【新修订：实现成忽略ProviderService的带宽过载配置，
+		【忽略ProviderService的带宽过载配置，
 		因为ProviderService的输入最终也会反映到LinkdService的输出。
 		否则这里应该是max(LinkdService.Rate, ProviderService.Rate)】
 		*/
@@ -355,12 +358,6 @@ public class LinkdService extends HandshakeServer {
 		if (rate < getSocketOptions().getOverBandwidthNormalRate()) // 0.7
 			return false; // 整体负载小于0.7,全部不丢弃
 
-		/*
-		对于游戏可以针对【Move协议】使用下面的策略.
-		if (moduleId == Map.ModuleId && protocolId == Map.Move.ProtocolId)
-			return Zeze.Util.Random.getInstance().nextInt(100) < (int)((rate - 0.7) / (1.0 - 0.7) * 100);
-		return false; // 其他协议全部不丢弃，除非达到熔断。
-		*/
 		if (linkdApp.discardAction != null)
 			return linkdApp.discardAction.call(sender, moduleId, protocolId, size, rate);
 

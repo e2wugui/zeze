@@ -11,6 +11,9 @@ import Zeze.Util.LongHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 按版本分桶的服务地址集合：version→BServiceInfos，version=0通常表示全部版本。
+ */
 public class BServiceInfosVersion implements Serializable {
 	private final LongHashMap<BServiceInfos> infosVersion = new LongHashMap<>(); // key:version
 
@@ -19,7 +22,7 @@ public class BServiceInfosVersion implements Serializable {
 
 	/** 浅拷贝快照：桶集合（LongHashMap）独立，桶内BServiceInfos引用共享（其FewModifyList读为
 	 * copy-on-read快照安全）。供SubscribeState.getServiceInfosVersion()持锁构造，隔离无锁读者
-	 * 与onRegister/onUnRegister对LongHashMap的结构性修改（FND-S2-5）。 */
+	 * 与onRegister/onUnRegister对LongHashMap的结构性修改。 */
 	public BServiceInfosVersion(@NotNull BServiceInfosVersion other) {
 		for (var it = other.infosVersion.iterator(); it.moveToNext(); )
 			infosVersion.put(it.key(), it.value());

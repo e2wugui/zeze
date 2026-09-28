@@ -6,6 +6,7 @@ import Zeze.Transaction.Log;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.PVector;
 
+/** 事务 List 日志基类：持有持久化向量的当前值，提交时整体写回。 */
 public abstract class LogList<V> extends LogBean {
 	private @NotNull PVector<V> value;
 

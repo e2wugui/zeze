@@ -21,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * 【安全警示】任意字节码注入端点：上传的zip内class被ClassReloader直接替换进已加载类
  * （热更新），触达且持有token者即获得任意代码执行权（替换任意类），仍必须仅绑定回环/
- * 内网，绝不可暴露公网。token校验（FND8-66）把"部署纪律"升级为代码不变量：构造时
+ * 内网，绝不可暴露公网。token校验把"部署纪律"升级为代码不变量：构造时
  * 显式传入token，或传null由启动期自动生成随机token并打日志（零配置可用，运维从日志
  * 取token）；请求须以X-Zeze-Token头或"token"查询参数携带，常量时间比较，失配答403。
  */
@@ -78,7 +78,7 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 		return Base64.getEncoder().encodeToString(bytes);
 	}
 
-	/** token校验（FND8-66）：X-Zeze-Token头或token查询参数携带，MessageDigest常量时间比较。 */
+	/** token校验：X-Zeze-Token头或token查询参数携带，MessageDigest常量时间比较。 */
 	static boolean checkToken(@NotNull String token, @NotNull HttpExchange x) {
 		var request = x.request();
 		var presented = request != null ? request.headers().get(TOKEN_HEADER) : null;
@@ -88,7 +88,7 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 				token.getBytes(StandardCharsets.UTF_8), presented.getBytes(StandardCharsets.UTF_8));
 	}
 
-	/** ReloadClassServer/RunClassServer的onEndRequest共用前置守卫（FND8-66/67）：
+	/** ReloadClassServer/RunClassServer的onEndRequest共用前置守卫：
 	 * token鉴权+multipart字段校验。拒绝路径已代回应答并关闭exchange（403/400），
 	 * 返回null；通过时返回解出的FileUpload。owner/action仅用于403日志归因。 */
 	static @Nullable FileUpload checkTokenAndTakeUpload(@NotNull org.apache.logging.log4j.Logger logger,
@@ -103,7 +103,7 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 			return null;
 		}
 		// 字段守卫：multipart可缺字段（getBodyHttpData返回null）或放同名文本字段（返回
-		// MemoryAttribute），原无守卫强转分别NPE/CCE且异常穿透后请求无应答挂起；
+		// MemoryAttribute），无守卫直接强转会分别NPE/CCE且异常穿透后请求无应答挂起；
 		// instanceof模式匹配同时覆盖两形态，按400明确拒绝（与sanitize拒绝路径同口径）。
 		var data = decoder.getBodyHttpData(fileVarName);
 		if (!(data instanceof FileUpload fileUpload)) {
@@ -141,7 +141,7 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 		var patchFileName = fileUpload.getFilename();
 		//noinspection ResultOfMethodCallIgnored
 		new File(uploadDir).mkdirs();
-		final File destFile; // 落盘路径必须经净化（FND4-70）：客户端可控文件名不得携带目录成分
+		final File destFile; // 落盘路径必须经净化：客户端可控文件名不得携带目录成分
 		try {
 			destFile = HttpFileUploadHandle.sanitizeDestFile(new File(uploadDir), patchFileName);
 		} catch (IllegalArgumentException e) {
@@ -152,14 +152,14 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 		//noinspection ResultOfMethodCallIgnored
 		destFile.delete(); // 只保存一份path_all; skip result.
 		if (fileUpload.renameTo(destFile)) {
-			// S3-F2：热更失败路径原样穿透——异常无HTTP应答（请求挂起）且坏补丁留盘毒化
+			// 热更失败路径若异常直接穿透——无HTTP应答（请求挂起）且坏补丁留盘毒化
 			// uploadDir，linkd启动链（start()对目录内唯一补丁无条件reloadClasses）下次必失败。
 			// catch须同时罩住ZipFile构造（非zip文件时构造即抛）与reloadClasses：失败回500并
 			// 删除destFile，维持uploadDir"只留可用补丁"不变式。redefineClasses单调用原子
 			// （失败不改任何类状态），删文件不会留下"半热更"状态。
 			try (var zipFile = new ZipFile(destFile)) {
 				ClassReloader.reloadClasses(zipFile);
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("ReloadClassServer: hot-reload failed, delete patch file '{}'", destFile, e);
 				//noinspection ResultOfMethodCallIgnored
 				destFile.delete();
@@ -169,7 +169,7 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 			// 维持"目录内唯一补丁"不变式（start()按文件数判定，不同文件名的历史补丁累积会使
 			// 下次重启抛too many patch file阻断启动链）。
 			cleanupOtherPatchFiles(new File(uploadDir), destFile);
-			// 审计（FND8-66）：每次成功使用的留痕
+			// 审计：每次成功使用的留痕
 			logger.info("ReloadClassServer: authorized hot-reload from {}, file='{}'",
 					x.channel().remoteAddress(), patchFileName);
 			x.close(x.sendPlainText(HttpResponseStatus.OK, ""));

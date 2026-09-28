@@ -4,6 +4,9 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * DH密钥交换辅助：标准DH群参数（按RFC组号索引）、安全随机数与DH计算。
+ */
 public final class Helper {
 	private static final BigInteger dh_g = BigInteger.valueOf(2);
 	private static final BigInteger[] dh_group = new BigInteger[]{
@@ -31,7 +34,7 @@ public final class Helper {
 
 	public static byte @NotNull [] makeRandValues(int bytes) {
 		byte[] v = new byte[bytes];
-		random.nextBytes(v); // whf nonzero??
+		random.nextBytes(v);
 		return v;
 	}
 

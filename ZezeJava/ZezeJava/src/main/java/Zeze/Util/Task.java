@@ -32,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("resource")
+// 任务调度静态门面：默认线程池/调度池管理与 Action/Func/Procedure 载荷的 call/run/submit/schedule 执行家族（旧 API 委托 TaskSpec）
 public final class Task {
 	static final @NotNull Logger logger = LogManager.getLogger(Task.class);
 	// 通常不建议开,事务并发量太大时并发冲突可能很高导致频繁redo
@@ -87,7 +88,6 @@ public final class Task {
 			}
 		}
 		return false;
-		//return System.getProperty("sun.java.command").split(" ")[0].endsWith(".JUnitStarter");
 	}
 
 	public static @NotNull TaskOneByOneByKey getOneByOne() {
@@ -224,7 +224,7 @@ public final class Task {
 
 	// 提交/执行/调度路径的池选择：池未初始化或已 shutdown（字段为null）时抛明确异常，替代裸NPE。
 	// 不自动重建池：停机后的提交应显式失败，静默复活可能吞掉停机语义（如 ShutdownHook 内的 flush 任务派发）。
-	// 包内可见：one-by-one 队列引擎的入队前校验共用（FND3-14——入队后派发失败会把队列永久卡死）。
+	// 包内可见：one-by-one 队列引擎的入队前校验共用（入队后派发失败会把队列永久卡死）。
 	static @NotNull ExecutorService poolOrThrow(boolean critical) {
 		var pool = critical ? threadPoolCritical : threadPoolDefault;
 		if (pool == null)
@@ -799,7 +799,7 @@ public final class Task {
 	}
 
 	// 无协议路径已由 TaskBody.OfFunc/OfProcedure 与统一 core（callCore/submitCore/executeCore）覆盖；
-	// 协议感知路径同样由 TaskBody 协议版载荷路由到下方的 call core，不再需要独立的 submit/execute 协议 core。
+	// 协议感知路径同样由 TaskBody 协议版载荷路由到下方的 call core，无需独立的 submit/execute 协议 core。
 
 	/** @deprecated 请使用 {@code TaskSpec.ofFunc(func, p).run()}。 */
 	@Deprecated

@@ -3,6 +3,7 @@ package Zeze.Util;
 import java.nio.charset.StandardCharsets;
 import org.jetbrains.annotations.NotNull;
 
+// 数值/字节与十六进制字符串互转工具（C# BitConverter 风格）
 public final class BitConverter {
 	public static int num2Hex(int n) {
 		return n + '0' + (((9 - n) >> 31) & ('A' - '9' - 1)); // 无分支,比查表快

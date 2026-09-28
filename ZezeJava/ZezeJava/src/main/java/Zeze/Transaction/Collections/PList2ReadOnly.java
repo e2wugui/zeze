@@ -6,6 +6,7 @@ import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** PList2 的只读视图：元素以只读类型暴露，修改入口抛 UnsupportedOperationException。 */
 public class PList2ReadOnly<V extends Bean, VReadOnly> implements Iterable<VReadOnly> {
 	private final @NotNull PList2<V> list;
 

@@ -4,6 +4,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
+/**
+ * RequestVote/PreVote 应答参数：term 与是否授予投票。
+ */
 final class BRequestVoteResult extends Bean {
 	private long term;
 	private boolean voteGranted;

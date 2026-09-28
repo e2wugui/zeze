@@ -12,6 +12,7 @@ import Zeze.Util.Str;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 泛型解码 Bean：不依赖具体 schema，按 varId 将序列化数据解码为通用字段树，供分析与遍历。 */
 public class GenericBean {
 	public static final int INDENT = 4;
 

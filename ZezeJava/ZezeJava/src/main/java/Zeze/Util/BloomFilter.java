@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import org.jetbrains.annotations.NotNull;
 
+// 布隆过滤器：LevelDB 式双哈希探测，位存储由可插拔 BitArray 提供
 public class BloomFilter {
 	public interface BitArray {
 		long getCapacity(); // maxIndex+1 如果是2的N次幂,性能会好很多
@@ -35,7 +36,7 @@ public class BloomFilter {
 		capacity = bitArray.getCapacity();
 		if (capacity <= 0)
 			// isPowerOfTwo(0)==true会让mask=-1，keyHash&mask传出全范围64位索引，
-			// 违反BitArray的index:[0,capacity)契约（FND7-69）。
+			// 违反BitArray的index:[0,capacity)契约。
 			throw new IllegalArgumentException("bitArray capacity must be positive: " + capacity);
 		this.bitArray = bitArray;
 		mask = isPowerOfTwo(capacity) ? capacity - 1 : 0;

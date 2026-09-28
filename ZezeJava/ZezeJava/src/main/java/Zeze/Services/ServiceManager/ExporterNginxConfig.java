@@ -10,6 +10,9 @@ import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
 import Zeze.Util.AtomicFileWriter;
 
+/**
+ * Nginx配置文件导出器：把SM服务地址写入nginx upstream块，未命中块时追加，可执行reload命令。
+ */
 public class ExporterNginxConfig implements IExporter {
 	private static final @NotNull org.apache.logging.log4j.Logger logger =
 			org.apache.logging.log4j.LogManager.getLogger(ExporterNginxConfig.class);
@@ -21,7 +24,7 @@ public class ExporterNginxConfig implements IExporter {
 
 	@Override
 	public void exportAll(String serviceName, BServiceInfosVersion all) throws Exception {
-		// FND6-30补：服务暂无任何可导出地址（无identity或passiveIp全空）时整体跳过、不产出
+		// 服务暂无任何可导出地址（无identity或passiveIp全空）时整体跳过、不产出
 		// 配置——空upstream块会让nginx reload报[emerg] no servers are inside upstream，整个
 		// reload失败波及同文件其他服务的地址更新（且reload不查退出码时完全静默）。追加路径
 		// 跳过不破坏自愈（有地址后的下一轮照常追加）；已存在块路径保持原块不动（下线地址由
@@ -40,7 +43,7 @@ public class ExporterNginxConfig implements IExporter {
 			while ((line = config.readLine()) != null) {
 				if (firstLine) {
 					firstLine = false;
-					// FND6-30补：UTF-8 BOM文件首行同名upstream块不被识别（\uFEFF前缀使startsWith
+					// UTF-8 BOM文件首行同名upstream块不被识别（\uFEFF前缀使startsWith
 					// 失配）→ 误判未命中在文件尾追加重复块，nginx报upstream duplicate emerg。
 					if (!line.isEmpty() && line.charAt(0) == '\uFEFF')
 						line = line.substring(1);
@@ -55,7 +58,7 @@ public class ExporterNginxConfig implements IExporter {
 
 				if (lineTrim.startsWith("upstream")) {
 					var prefix = line.substring(0, line.length() - lineTrim.length());
-					// FND5-36：nginx合法写法多样（"upstream name{"、"upstream<TAB>name {"）——原
+					// nginx合法写法多样（"upstream name{"、"upstream<TAB>name {"）——
 					// split(" ")[1]要么解析出带'{'的错名（块永不重写，下线地址残留），要么
 					// AIOOBE中断整批导出。按空白切分取第二token去尾'{'；解析不出名字记告警跳过。
 					var tokens = lineTrim.split("\\s+");
@@ -73,9 +76,9 @@ public class ExporterNginxConfig implements IExporter {
 				lines.add(line);
 			}
 		}
-		// FND6-30：整文件未命中同名upstream块时原实现恒不更新（hasChanged恒false）——新增服务
+		// 整文件未命中同名upstream块时恒不更新（hasChanged恒false）——新增服务
 		// 或首次部署未预置空块时该服务地址永不进nginx、无自愈无告警（未文档化的隐含契约）。
-		// 改为文件尾追加自产格式块，后续轮转可正常识别重写（空块态由入口的
+		// 文件尾追加自产格式块，后续轮转可正常识别重写（空块态由入口的
 		// hasAnyExportableServer守卫跳过，不再产出）。
 		if (!found) {
 			exportToLines("", lines, serviceName, all);
@@ -87,8 +90,7 @@ public class ExporterNginxConfig implements IExporter {
 			var sb = new StringBuilder();
 			for (var line : lines)
 				sb.append(line).append("\n");
-			//System.out.println(sb);
-			// 原子换版（FND8-71）；move失败由failedServices补偿重试。
+			// 原子换版；move失败由failedServices补偿重试。
 			AtomicFileWriter.replace(Path.of(file), sb.toString().getBytes(StandardCharsets.UTF_8));
 			reload();
 		}
@@ -130,7 +132,7 @@ public class ExporterNginxConfig implements IExporter {
 		if (null == reload || reload.isBlank())
 			return;
 
-		// FND6-30补：reload失败不再静默——不查退出码时配置错误（如nginx -t不过）无任何
+		// reload失败不静默——不查退出码时配置错误（如nginx -t不过）无任何
 		// 可见性，波及同文件其他服务的地址更新。
 		// 本方法运行在Exporter.onEdit的one-by-one单worker：输出DISCARD丢弃（无人读管道时
 		// 输出填满OS缓冲会让命令自身死锁）、有界等待+超时强杀（命令挂起不得冻结worker，
@@ -165,7 +167,5 @@ public class ExporterNginxConfig implements IExporter {
 		this.file = config.getFile();
 		this.version = config.getVersion();
 		this.reload = config.getReload();
-
-		//System.out.println("real file=" + this.file + " version=" + this.version + " reload=" + this.reload);
 	}
 }

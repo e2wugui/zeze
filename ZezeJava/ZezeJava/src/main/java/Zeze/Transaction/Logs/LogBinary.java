@@ -11,6 +11,7 @@ import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
+/** binary 字段原子修改日志：携带新 Binary 值，commit 经 VarHandle 写回，序列化为字节缓冲。 */
 public class LogBinary extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<binary>");
 

@@ -24,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import sun.misc.Unsafe;
 
 // Compile with JDK11+; Run with JDK8+ (JDK9+ is recommended); Android is NOT supported
+// 高性能 JSON 解析/序列化：反射+Unsafe 缓存字段布局，内建 Zeze 容器与可扩展 Parser/Writer 的静态入口
 public final class Json implements Cloneable {
 	static final int TYPE_BOOLEAN = 1; // boolean, Boolean
 	static final int TYPE_BYTE = 2; // byte, Byte
@@ -157,7 +158,7 @@ public final class Json implements Cloneable {
 			keyReaderMap.put(Double.class, JsonReader::parseDoubleKey);
 			keyReaderMap.put(String.class, JsonReader::parseStringKey);
 			keyReaderMap.put(Object.class, JsonReader::parseStringKey);
-			// decimal（FND8-32伴生）：toString/new BigDecimal(String)全精度双射（FND3-06），
+			// decimal：toString/new BigDecimal(String)全精度双射，
 			// 写侧走isInKeyReaderMap的String.valueOf(k)带引号串，对称。
 			keyReaderMap.put(BigDecimal.class, (jr, b) -> new BigDecimal(JsonReader.parseStringKey(jr, b)));
 		}
@@ -414,7 +415,7 @@ public final class Json implements Cloneable {
 				return;
 			}
 			for (; ; ) {
-				if (fm.hash == hash) { // bad luck! 同哈希不同名，桶内链无法再区分（setKeyHashMultiplier已废弃）
+				if (fm.hash == hash) { // bad luck! 同哈希不同名，桶内链无法再区分
 					throw new IllegalStateException("conflicted field names: " + fieldMeta.getName() + " & "
 							+ fm.getName() + " in " + fieldMeta.klass.getName());
 				}
@@ -533,10 +534,6 @@ public final class Json implements Cloneable {
 		assert obj != null;
 		return obj;
 	}
-
-//	public static void setKeyHashMultiplier(int multiplier) { // must be set before any other access
-//		keyHashMultiplier = multiplier;
-//	}
 
 	public static int getKeyHash(byte @NotNull [] buf, int pos, int end) {
 		if (pos >= end)
@@ -696,9 +693,6 @@ public final class Json implements Cloneable {
 			if (obj == null)
 				writer.write(json, null);
 			else {
-				// String s = obj.toString();
-				// writer.ensure(s.length() + 3);
-				// writer.write(s, false);
 				writer.ensure(obj.size() * 6 + 3);
 				writer.write(obj.Bytes, obj.ReadIndex, obj.size(), false);
 			}
@@ -712,9 +706,6 @@ public final class Json implements Cloneable {
 			if (obj == null)
 				writer.write(json, null);
 			else {
-				// String s = obj.toString();
-				// writer.ensure(s.length() + 3);
-				// writer.write(s, false);
 				writer.ensure(obj.size() * 6 + 3);
 				writer.write(obj.bytesUnsafe(), obj.getOffset(), obj.size(), false);
 			}
@@ -730,7 +721,7 @@ public final class Json implements Cloneable {
 			}
 		});
 
-		// decimal（FND8-32伴生）：decimal键/值集合的JSON导入导出。键读回直接构造
+		// decimal：decimal键/值集合的JSON导入导出。键读回直接构造
 		// （keyReaderMap条目），值与bean字段走本自定义读写对（带引号全精度字符串）。
 		json.getClassMeta(BigDecimal.class).setParser((reader, classMeta, fieldMeta, obj, parent) -> {
 			if (reader.next() == 'n')
@@ -754,7 +745,7 @@ public final class Json implements Cloneable {
 				else if (parent instanceof PMap2)
 					obj = (DynamicBean)((PMap2<?, ?>)parent).createValue();
 				else if (parent instanceof BeanMap2)
-					// 【FND8-33 A4】GTable2的dynamic值容器是BeanMap2（内嵌PMap2），
+					// GTable2的dynamic值容器是BeanMap2（内嵌PMap2），
 					// 不适配则返回null，撞PMap2.put的null value。
 					obj = (DynamicBean)((BeanMap2<?, ?, ?>)parent).getPMap2().createValue();
 				if (obj == null)
@@ -1113,16 +1104,15 @@ public final class Json implements Cloneable {
 			Class<?> valueClass;
 			if (fieldMeta != null) {
 				// 字段声明为 raw（如 IntHashMap map;）时 paramTypes 为 null、泛型变量（IntHashMap<T>）时
-				// paramTypes[0] 不是 Class：原实现直接强转，抛出无上下文的 NPE/CCE。这里显式报字段与类名。
+				// paramTypes[0] 不是 Class：显式报告字段与类名，避免无上下文的 NPE/CCE。
 				Type[] params = fieldMeta.paramTypes;
 				if (params == null || params.length == 0 || !(params[0] instanceof Class<?>))
 					throw new InstantiationException("map field without concrete value type: " + fieldMeta.getName()
 							+ " in " + classMeta.klass.getName());
 				valueClass = (Class<?>)params[0];
 			} else
-				// 顶层直接 parse（如 Json.parse(s, IntHashMap.class)）没有字段上下文可取值类型：原实现
-				// valueMeta=null，parseNested(null) 不消费值 token，所有值静默变成 null。对齐 c40b54a93 的
-				// fail-fast 原则显式抛错，不再产出全 null 的错误结果。
+				// 顶层直接 parse（如 Json.parse(s, IntHashMap.class)）没有字段上下文可取值类型：
+				// fail-fast 显式抛错，不产出全 null 的错误结果。
 				throw new InstantiationException("top-level parse of " + classMeta.klass.getName()
 						+ " without concrete value type");
 			ClassMeta<?> valueMeta = instance.getClassMeta(valueClass);
@@ -1210,17 +1200,12 @@ public final class Json implements Cloneable {
 				obj.clear();
 			Class<?> valueClass;
 			if (fieldMeta != null) {
-				// 字段声明为 raw（如 IntHashMap map;）时 paramTypes 为 null、泛型变量（IntHashMap<T>）时
-				// paramTypes[0] 不是 Class：原实现直接强转，抛出无上下文的 NPE/CCE。这里显式报字段与类名。
 				Type[] params = fieldMeta.paramTypes;
 				if (params == null || params.length == 0 || !(params[0] instanceof Class<?>))
 					throw new InstantiationException("map field without concrete value type: " + fieldMeta.getName()
 							+ " in " + classMeta.klass.getName());
 				valueClass = (Class<?>)params[0];
 			} else
-				// 顶层直接 parse（如 Json.parse(s, LongHashMap.class)）没有字段上下文可取值类型：原实现
-				// valueMeta=null，parseNested(null) 不消费值 token，所有值静默变成 null。对齐 c40b54a93 的
-				// fail-fast 原则显式抛错，不再产出全 null 的错误结果。
 				throw new InstantiationException("top-level parse of " + classMeta.klass.getName()
 						+ " without concrete value type");
 			ClassMeta<?> valueMeta = instance.getClassMeta(valueClass);
@@ -1308,17 +1293,12 @@ public final class Json implements Cloneable {
 				obj.clear();
 			Class<?> valueClass;
 			if (fieldMeta != null) {
-				// 字段声明为 raw（如 IntHashMap map;）时 paramTypes 为 null、泛型变量（IntHashMap<T>）时
-				// paramTypes[0] 不是 Class：原实现直接强转，抛出无上下文的 NPE/CCE。这里显式报字段与类名。
 				Type[] params = fieldMeta.paramTypes;
 				if (params == null || params.length == 0 || !(params[0] instanceof Class<?>))
 					throw new InstantiationException("map field without concrete value type: " + fieldMeta.getName()
 							+ " in " + classMeta.klass.getName());
 				valueClass = (Class<?>)params[0];
 			} else
-				// 顶层直接 parse（如 Json.parse(s, LongConcurrentHashMap.class)）没有字段上下文可取值类型：
-				// 原实现 valueMeta=null，parseNested(null) 不消费值 token，所有值静默变成 null。对齐
-				// c40b54a93 的 fail-fast 原则显式抛错，不再产出全 null 的错误结果。
 				throw new InstantiationException("top-level parse of " + classMeta.klass.getName()
 						+ " without concrete value type");
 			ClassMeta<?> valueMeta = instance.getClassMeta(valueClass);

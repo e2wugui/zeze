@@ -69,7 +69,7 @@ public class HaProxyHeader {
 			return new InetSocketAddress(InetAddress.getByName(host), port);
 		} catch (UnknownHostException | IllegalArgumentException e) {
 			// IllegalArgumentException（端口越界等）与DNS失败同型处理：log+null，
-			// 消除懒getter的未声明unchecked异常（FND8-17纵深防御；入口校验为主修）。
+			// 消除懒getter的未声明unchecked异常。
 			logger.warn("HaProxyHeader resolve failed: {}:{}", host, port, e);
 			return null;
 		}
@@ -93,7 +93,7 @@ public class HaProxyHeader {
 	}
 
 	// null=尚未出现CRLF（等待更多数据）；""=CRLF紧跟前缀（空行，畸形头）。
-	// 两态必须区分：空行若走"等待"路径，连接将永久停在头解析态（net-02）。
+	// 两态必须区分：空行若走"等待"路径，连接将永久停在头解析态。
 	public static @Nullable String findV1Line(byte @NotNull [] bytes, int offset, int end) {
 		end--;
 		for (int i = offset; i < end; i++) {
@@ -111,7 +111,7 @@ public class HaProxyHeader {
 			throw new RuntimeException("haproxy v2 address length " + (size - 16) + " < " + addressLength);
 	}
 
-	// 保留throws UnknownHostException仅为兼容既有调用方的catch，本方法已不再抛出（解析移到getter）。
+	// 保留throws UnknownHostException仅为兼容既有调用方的catch；解析移到getter后本方法不抛出。
 	public boolean decodeHeader(@NotNull ByteBuffer bb) throws UnknownHostException {
 		if (done)
 			return true;
@@ -130,7 +130,7 @@ public class HaProxyHeader {
 				switch (fam) {
 				case 0x11: // TCPv4
 					checkV2AddressLength(size, 12); // 4+4地址 + 2+2端口
-					// port读出来，再拼成InetSocketAddress吧。当然拼成Inet，就不需要单独保存了。
+					// port读出来，再拼成InetSocketAddress。拼成Inet，就不需要单独保存了。
 					var remoteInet4Address = Inet4Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 16, bb.ReadIndex + 20));
 					remoteAddress = new InetSocketAddress(remoteInet4Address, javaBb.getShort(bb.ReadIndex + 24) & 0xffff); // 端口是uint16
 					var targetInet4Address = Inet4Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 20, bb.ReadIndex + 24));
@@ -169,7 +169,7 @@ public class HaProxyHeader {
 					throw new RuntimeException("haproxy v1 line too long");
 				return false;
 			}
-			// 整行（含"PROXY "前缀与CRLF）按规范最长107字节（FND8-17）：超长即断连，
+			// 整行（含"PROXY "前缀与CRLF）按规范最长107字节：超长即断连，
 			// 不能只在"永远等不到CRLF"时才拒绝——任意垃圾后补CRLF的行会被原样接受。
 			if (v1sig.length + line.length() + 2 > 107)
 				throw new RuntimeException("haproxy v1 line too long");
@@ -183,7 +183,7 @@ public class HaProxyHeader {
 				case "TCP4":
 				case "TCP6":
 					// 两个协议都用InetAddress.getByName，实现内部会区分。
-					// 【N1-3】不在selector线程解析（见字段remoteHost处的说明），只记录，getter懒解析。
+					// 不在selector线程解析（见字段remoteHost处的说明），只记录，getter懒解析。
 					remotePort = parsePort(tokens[3]);
 					remoteHost = tokens[1];
 					targetPort = parsePort(tokens[4]);
@@ -205,7 +205,7 @@ public class HaProxyHeader {
 		return false;
 	}
 
-	// 端口为16位（FND8-17）：畸形输入在解析处fail-fast断连（规范"不匹配即断连"），
+	// 端口为16位：畸形输入在解析处fail-fast断连（规范"不匹配即断连"），
 	// 不把越界值留到getter的InetSocketAddress构造再抛未捕获异常。
 	private static int parsePort(@NotNull String token) {
 		int port;

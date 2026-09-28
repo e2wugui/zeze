@@ -22,10 +22,13 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Zeze 事务核心：管理保存点、修改日志与记录访问，配合记录锁驱动 redo 重试，直至最终提交或回滚。
+ */
 public final class Transaction {
 	private static final @NotNull Logger logger = LogManager.getLogger(Transaction.class);
 
-	// perform Abort限频（b0d7cfb5a同款限频+计数）：环境异常（如GCM被停的Acquire In Releasing）
+	// perform Abort限频+计数：环境异常（如GCM被停的Acquire In Releasing）
 	// 时bench类负载每笔事务一条带整栈的Abort warn，百万级迭代打成日志洪水拖垮执行。
 	// 窗口外只计数，窗口内首条仍打整栈（保留完整排查信息），计数随下一条一起输出。
 	private static final LongAdder abortWarnCount = new LongAdder();
@@ -131,8 +134,6 @@ public final class Transaction {
 	}
 
 	void reuseTransaction() {
-		// holdLocks.forEach(Lockey::exitLock);
-		// holdLocks.clear(); // 执行完肯定清理了。
 		tid = null;
 		procedureStack.clear();
 		if (null != logActions)
@@ -159,7 +160,6 @@ public final class Transaction {
 			holdLocks.clear();
 		}
 		// retry 可能保持已有的锁，清除记录和保存点。
-		// procedureStack.clear(); // 保留栈底的procedure
 		if (null != logActions)
 			logActions.clear(); // retry 中间的日志不记录。
 		// redo 重做会重新注册本轮回调，但重试耗尽（TooManyTry）终局回滚时最近一轮的
@@ -178,7 +178,6 @@ public final class Transaction {
 		redoBeans.clear();
 		// onceResolved 不清除：它的生命周期是一次 perform（含全部redo重试），
 		// 重试时必须继续复用首轮解析的结果，只在 perform 入口和 reuseTransaction 中清。
-		// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
 	}
 
 	public void begin() {
@@ -190,7 +189,7 @@ public final class Transaction {
 		int saveSize = savepoints.size();
 		if (saveSize > 1)
 			savepoints.get(saveSize - 2).mergeCommitFrom(savepoints.remove(saveSize - 1)); // 嵌套事务，把日志合并到上一层。
-		// else // 最外层存储过程提交在 Perform 中处理
+		// 最外层存储过程提交在 Perform 中处理
 	}
 
 	public void rollback() {
@@ -200,7 +199,6 @@ public final class Transaction {
 			// （如finalRollback清空savepoints后，回调内误调rollback）。显式报错，风格对齐verifyRunning。
 			throw new IllegalStateException("rollback: savepoints is empty. begin/rollback not paired.");
 		Savepoint last = savepoints.remove(lastIndex);
-		// last.Rollback();
 		if (lastIndex > 0)
 			savepoints.get(lastIndex - 1).mergeRollbackFrom(last); // 嵌套事务，把日志合并到上一层。
 		else
@@ -229,11 +227,9 @@ public final class Transaction {
 	private void triggerRedoActions() {
 		profiler.onRedo();
 		redoBeans.forEach(Bean::resetRootInfo);
-		// 确认问题：
-		//  1. triggerRedoActions 上面两个分支调用，第一个分支异常，会导致catch里面再次执行。是不是应该吧两个调回统一到下面的for循环继续的地方？
-		//  2. redo不跟savepoint打交道，总是事务级别的，这个定义应该是正确的吧。
-		//  3. 不要在这里重新引入"为重试做准备"的动作机制（原 tryWhileRedo 已删除）：
-		//     补偿点无法预知"是否还有下一次重试"，一次性资源请用 resolveOnce。
+		// redo 不跟 savepoint 打交道，总是事务级别的。
+		// 不要在这里重新引入"为重试做准备"的动作机制：
+		// 补偿点无法预知"是否还有下一次重试"，一次性资源请用 resolveOnce。
 	}
 
 	/**
@@ -275,7 +271,7 @@ public final class Transaction {
 		// 而RootInfo的设置可能在事务外使用，此时忽略action的执行。
 		// 【bean所有权语义】登记进redoBeans的bean即被本事务占有：redo重试在
 		// triggerRedoActions里resetRootInfo后随重放重新登记；最终回滚不解除占有
-		// （redo-only，成文设计，见Bean.initRootInfoWithRedo）——复用被占有bean
+		// （redo-only，见Bean.initRootInfoWithRedo）——复用被占有bean
 		// 将抛HasManagedException，请重建实例或copy()。
 		var current = getCurrent();
 		if (current != null)
@@ -332,10 +328,8 @@ public final class Transaction {
 				return Procedure.Closed;
 			for (int tryCount = 0; tryCount < 256; ++tryCount) { // 最多尝试次数
 				// 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
-				//checkpoint.enterFlushReadLock();
-				//try {
 				for (; tryCount < 256; ++tryCount) { // 最多尝试次数
-					// FND7-54：重试轮次间重新检查停机状态：终检点已过（checkpoint==null）时，
+					// 重试轮次间重新检查停机状态：终检点已过（checkpoint==null）时，
 					// 在途事务显式失败（Closed）退出，不再重执行业务逻辑后在提交点被静默丢弃。
 					if (procedure.getZeze().getCheckpoint() == null) {
 						if (redoRollbackActions != null)
@@ -343,7 +337,7 @@ public final class Transaction {
 						finalRollback(procedure);
 						return Procedure.Closed;
 					}
-					CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
+					CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 lockAndCheck 明确返回需要释放锁，否则都不释放。
 					try {
 						var result = procedure.call();
 						switch (state) {
@@ -359,7 +353,7 @@ public final class Transaction {
 							checkResult = lockAndCheck(procedure);
 							if (checkResult == CheckResult.Success) {
 								if (result == Procedure.Success) {
-									// onz patch: onz事务执行阶段的2段式同步等待。
+									// onz事务执行阶段的2段式同步等待。
 									OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
 									if (onzProcedure != null) {
 										onzProcedure.sendReadyAndWait();
@@ -368,11 +362,11 @@ public final class Transaction {
 									}
 									try {
 										finalCommit(procedure, flushMode);
-									} catch (RejectWhileStopping e) { // FND7-54
-										// 终检点已过：tryUpdateAndCheckpoint在应用修改前（或落库前）显式拒绝。
-										// 转为finalRollback+Closed显式失败，替代旧的"静默跳过落库+返回Success"
-										// （已应答的提交丢失）。
-										// FND8-76：Onz参与方"结果已发、Commit决策已送达"（能走到这里说明
+									} catch (RejectWhileStopping e) {
+										// 终检点已过：tryUpdateAndCheckpoint在应用修改前（或落库前）显式拒绝，
+										// 转为finalRollback+Closed显式失败，不得静默跳过落库后返回Success
+										// （否则已应答的提交丢失）。
+										// Onz参与方"结果已发、Commit决策已送达"（能走到这里说明
 										// sendReadyAndWait已按Commit决策返回，而协调者侧saveCommitPoint
 										// 严格先行已持久化）而本地因停机回滚——跨集群分歧（协调者按提交推进、
 										// 本地写入未发生）。回滚时刻进程存活、信息完备，是唯一确定性的暴露点，
@@ -395,7 +389,7 @@ public final class Transaction {
 										holdLocks.clear();
 
 										// halt process.
-										// FND8-21：checkpointRun裸调用时双读NPE会吞掉halt（带伤运行，
+										// checkpointRun裸调用时双读NPE会吞掉halt（带伤运行，
 										// 外层catch还可能重跑已炸事务）——统一收口到Application.
 										// haltAfterCheckpoint：checkpoint尽力保存失败也不拦下halt。
 										Application.haltAfterCheckpoint(procedure.getZeze(), 543543);
@@ -414,7 +408,6 @@ public final class Transaction {
 							return Procedure.AbortException;
 
 						case Redo:
-							//checkResult = CheckResult.Redo;
 							break; // retry
 
 						case RedoAndReleaseLock:
@@ -450,8 +443,8 @@ public final class Transaction {
 							break;
 
 						case Abort:
-							// 限频+计数替代旧的按message过滤（Acquire Failed等环境性Abort在bench下
-							// 每笔一条整栈warn是日志洪水）；1秒窗口，窗口内首条打整栈并带上窗口计数。
+							// 限频+计数（Acquire Failed等环境性Abort在bench下每笔一条整栈warn是日志洪水）；
+							// 1秒窗口，窗口内首条打整栈并带上窗口计数。
 							abortWarnCount.increment();
 							var nowMs = System.currentTimeMillis();
 							if (nowMs - lastAbortWarnTime >= 1000) {
@@ -480,16 +473,15 @@ public final class Transaction {
 						triggerRedoActions();
 						// retry
 					} finally {
-						// alwaysReleaseLockWhenRedo 的升级统一放在这里：try 正常返回与异常路径
-						// （throwRedo→GoBackZeze 走 catch）共用，且必须先于 reuseTransactionForRedo——
-						// 它按 checkResult 决定是否释放锁（FND3-01）。
+					// alwaysReleaseLockWhenRedo 的升级统一放在这里：try 正常返回与异常路径
+					// （throwRedo→GoBackZeze 走 catch）共用，且必须先于 reuseTransactionForRedo——
+					// 它按 checkResult 决定是否释放锁。
 						if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
 							checkResult = CheckResult.RedoAndReleaseLock;
 						reuseTransactionForRedo(checkResult);
 					}
 
 					if (checkResult == CheckResult.RedoAndReleaseLock) {
-						// logger.debug("checkResult.RedoAndReleaseLock({}): break", procedure);
 						procedure.procedureCounter().redoAndReleaseLock();
 						break;
 					}
@@ -499,8 +491,8 @@ public final class Transaction {
 				try {
 					Thread.sleep(Random.getInstance().nextInt(80) + 20);
 				} catch (InterruptedException e) {
-					// 恢复中断标志并按取消语义退出重试（FND4-02）：perform跑在业务线程上，
-					// shutdownNow/任务取消依赖interrupt让事务及时让位。原实现吞掉标志继续重试，
+					// 恢复中断标志并按取消语义退出重试：perform跑在业务线程上，
+					// shutdownNow/任务取消依赖interrupt让事务及时让位。不得吞掉标志继续重试：
 					// 停机期间每轮sleep立即再抛形成日志洪水、取消被拖延到255次耗尽。
 					// 中断视为"本事务未执行"：回滚最近一轮回调后按异常码返回。
 					logger.error("perform({}): interrupted, cancel retry", procedure);
@@ -528,7 +520,7 @@ public final class Transaction {
 				try {
 					procedure.getZeze().checkpointRunThread();
 				} catch (Throwable e) { // logger.error
-					// 停机窗口守卫（XA2-F2）：Task.shutdownNow 后 submitNow 链路抛 IllegalStateException，
+					// 停机窗口守卫：Task.shutdownNow 后 submitNow 链路抛 IllegalStateException，
 					// finally 抛异常会吞掉 perform 的正常返回值（已提交事务向客户端报错→重试→重复执行）。
 					// 周期触发丢失无害：后台 checkpoint 线程与 stop 序列仍有兜底。
 					logger.error("perform({}): checkpointRunThread fail", procedure, e);
@@ -556,7 +548,7 @@ public final class Transaction {
 				}
 				logger.error("{} Procedure={} Action={} exception:",
 						typeStr, procedure.getActionName(), action.action.getClass().getName(), e);
-				// FND4-03前恒为包装类名：action是Savepoint$Action，目标Runnable在action.action字段。
+				// action是Savepoint$Action包装，目标Runnable在action.action字段，直接getClass()只会得到包装类名。
 			}
 		}
 	}
@@ -575,7 +567,6 @@ public final class Transaction {
 
 	private void finalCommit(@NotNull Procedure proc, @Nullable OnzProcedure flushMode) throws Exception {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
-		// 可以在最终提交里可以实现每事务checkpoint。
 		proc.getZeze().getProcedureLockWatcher().doWatch(proc, accessedRecords);
 		var lastSp = savepoints.getLast();
 
@@ -597,13 +588,6 @@ public final class Transaction {
 							newValue.version(oldVersion + 1);
 						}
 					}
-					/*
-					else if (v.atomicTupleRecord.strongRef == null) {
-						var r = v.atomicTupleRecord.record;
-						if (r.getTable().isMemory())
-							r.removeFromTableCache();
-					}
-					*/
 				}
 			} catch (Throwable e) { // halt
 				logger.fatal("finalCommit({}) exception:", proc, e);
@@ -616,7 +600,7 @@ public final class Transaction {
 				while (it.moveToNext()) {
 					var log = it.value();
 					if (log.category() != Log.Category.eHistory)
-						continue; //
+						continue;
 					var logBelong = log.getBelong();
 					// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
 					if (logBelong != null && logBelong.isManaged()) {
@@ -643,16 +627,16 @@ public final class Transaction {
 				return History.buildLogChanges(future, cc, null, null);
 			}
 			return null;
-		}); // onz patch: 新增参数
+		});
 
 		// 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
-		// 不再支持在回调中再次执行事务。
+		// 不支持在回调中再次执行事务。
 		// 在Notify之前设置的。
 		state = TransactionState.Completed;
 
 		try {
 			if (null != logActions) {
-				// FND7-02：logActions逐项隔离（与triggerActions同型）。过程日志动作、监听通知、
+				// logActions逐项隔离（与triggerActions同型）。过程日志动作、监听通知、
 				// 提交回调三步语义独立，任一logAction抛错（如用户替换的Procedure.logAction）
 				// 不得吞掉notifyListener与whileCommit回调（典型是Rpc应答，丢失即静默丢语义）。
 				for (var act : logActions) {
@@ -680,7 +664,7 @@ public final class Transaction {
 		state = TransactionState.Completed;
 		try {
 			if (null != logActions) {
-				// FND7-02：同finalCommit，logActions逐项隔离，任一抛错不得吞掉后续项与whileRollback回调。
+				// 同finalCommit，logActions逐项隔离，任一抛错不得吞掉后续项与whileRollback回调。
 				for (var act : logActions) {
 					try {
 						act.run();
@@ -703,33 +687,6 @@ public final class Transaction {
 		verifyRunning();
 		ra.initRootInfo(root, null);
 		accessedRecords.put(root.tableKey(), ra);
-		/*
-		if (removeWhileRollback) {
-			runWhileRollback(() -> {
-				// 1. 目前这是memory表专用的。
-				// 2. rollback的时候调用。
-				// 3. 锁定方式，
-				// a) 简单就是单个记录锁定，需要考虑死锁可能。rollback有可能持有锁。
-				// b) rollback的时候，收集这种特别的记录，按commit方式锁定，允许多个表。
-				//    这个复杂点，估计需要重构代码。
-				// c) 无锁？
-				// 4. 删除条件（AND）
-				// a) timestamp 不变
-				// b) value == null，这是保护性，限定条件，使得功能仅限于cache.remove，专用。
-				//noinspection DataFlowIssue
-				var lockey = getLockey(ra.tableKey());
-				lockey.enterReadLock();
-				try {
-					var tr = ra.atomicTupleRecord;
-					var r = tr.record;
-					if (r.getTimestamp() == tr.timestamp && r.getSoftValue() == null)
-						r.removeFromTableCache();
-				} finally {
-					lockey.exitReadLock();
-				}
-			});
-		}
-		*/
 	}
 
 	public @Nullable RecordAccessed getRecordAccessed(@NotNull TableKey key) {
@@ -793,7 +750,7 @@ public final class Transaction {
 						e.atomicTupleRecord.record.setNotFresh(); // 抢失败不再新鲜。
 						logger.debug("Acquire Failed. Maybe DeadLock Found: record={}, time={}, resultCode={}",
 								e.atomicTupleRecord.record, e.atomicTupleRecord.timestamp, acquire.resultCode());
-						e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateInvalid); // 这里保留StateShare更好吗？
+						e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateInvalid);
 						return CheckResult.RedoAndReleaseLock;
 					}
 					e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateModify);
@@ -849,7 +806,7 @@ public final class Transaction {
 
 					var tkey = belong.tableKey();
 					if (tkey == null) {
-						// 非受管bean没有tableKey（注释：只有测试代码会把非Managed的Bean的日志加进来）。
+						// 非受管bean没有tableKey。
 						// 必须跳过：继续走下去TreeMap.get(null)必然NPE，防御分支自己先崩，掩盖真实诊断信息。
 						logger.error("impossible! log bean({}): {}", belong.getClass().getName(), belong);
 						continue;
@@ -865,7 +822,7 @@ public final class Transaction {
 		}
 
 		if (allRead && level == TransactionLevel.AllowDirtyWhenAllRead)
-			return CheckResult.Success; // 使用一个新的enum表示一下？
+			return CheckResult.Success;
 
 		boolean conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
 		if (holdLocks.isEmpty()) {
@@ -921,7 +878,7 @@ public final class Transaction {
 					// 重新从当前 e 继续锁。
 					continue;
 				}
-				// BUG 即使锁内。Record.Global.State 可能没有提升到需要水平。需要重新_check_。
+					// 即使锁内，Record.Global.State 也可能没有提升到需要的水平，需要重新_check_。
 				var r = _check_(e.getValue().dirty, e.getValue());
 				switch (r) {
 				case Success:
@@ -1006,10 +963,10 @@ public final class Transaction {
 	}
 
 	/**
-	 * FND7-54：停机窗口拒绝提交——终检点已过（checkpoint==null），修改无法保证落库。
+	 * 停机窗口拒绝提交——终检点已过（checkpoint==null），修改无法保证落库。
 	 * RelativeRecordSet.tryUpdateAndCheckpoint在应用修改前（或落库/注册脏集前）抛出，
-	 * perform捕获后转为finalRollback+Procedure.Closed显式失败，替代旧的
-	 * "commit照常应用+静默跳过落库+返回Success"（已应答的提交丢失）。
+	 * perform捕获后转为finalRollback+Procedure.Closed显式失败，
+	 * 不得静默跳过落库后返回Success（否则已应答的提交丢失）。
 	 */
 	static final class RejectWhileStopping extends RuntimeException {
 		@Serial

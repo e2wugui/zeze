@@ -9,6 +9,9 @@ import Zeze.Util.ThrowAgainException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * RocksRaft 存储过程：在（新建或嵌套的）事务内执行回调，按返回值提交/回滚并驱动唯一请求应答。
+ */
 public class Procedure {
 	private static final Logger logger = LogManager.getLogger(Procedure.class);
 

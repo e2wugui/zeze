@@ -49,7 +49,6 @@ public class DistributeServer {
 		var b = new Benchmark();
 		for (var path : Reflect.collectClassPaths(ClassLoader.getSystemClassLoader())) {
 			if (path.endsWith(".jar")) {
-				//System.out.println("---->" + path);
 				loadJar(path);
 				continue;
 			}
@@ -59,7 +58,6 @@ public class DistributeServer {
 			}
 			var file = new File(path);
 			if (file.isDirectory()) {
-				//System.out.println("---->" + file);
 				loadBean(file.toPath(), file);
 				continue;
 			}
@@ -117,7 +115,6 @@ public class DistributeServer {
 
 	private static void loadBean(String className) throws Exception {
 		++count;
-		//System.out.println(className);
 		if (className.startsWith(solution)) {
 			var cls = Class.forName(className);
 			if (Bean.class.isAssignableFrom(cls)) // is bean

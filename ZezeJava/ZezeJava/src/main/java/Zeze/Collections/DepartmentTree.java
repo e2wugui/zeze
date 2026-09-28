@@ -12,6 +12,9 @@ import Zeze.Transaction.DynamicBean;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.OutLong;
 
+/**
+ * 部门树集合：树/部门/管理员/成员的存储与管理员权限检查（事务表实现）。
+ */
 public class DepartmentTree<
 		TManager extends Bean,
 		TMember extends Bean,
@@ -156,7 +159,6 @@ public class DepartmentTree<
 		this.groupDataTypeId = BeanFactory.typeId(groupDataClass);
 		this.departmentDataTypeId = BeanFactory.typeId(departmentDataClass);
 
-		//this.managerClass = managerClass;
 		this.memberBeanTypeId = BeanFactory.typeId(memberClass);
 		this.departmentMemberBeanTypeId = BeanFactory.typeId(departmentMemberClass);
 	}
@@ -203,7 +205,7 @@ public class DepartmentTree<
 		if (departmentId == 0) {
 			// root
 			var root = getRoot();
-			if (root == null) // 根行缺失（未create/已destroy）：与department查不到的分支对齐（CO1-F4）
+			if (root == null) // 根行缺失（未create/已destroy）：与department查不到的分支对齐
 				return module.errorCode(Module.ErrorDepartmentNotExist);
 			if (root.getRoot().equals(account))
 				return 0; // parent, 对于根节点定义成root，grant
@@ -230,7 +232,7 @@ public class DepartmentTree<
 		if (departmentId == 0) {
 			// root
 			var root = getRoot();
-			if (root == null) // 根行缺失（未create/已destroy）：与department查不到的分支对齐（CO1-F4）
+			if (root == null) // 根行缺失（未create/已destroy）：与department查不到的分支对齐
 				return module.errorCode(Module.ErrorDepartmentNotExist);
 			if (root.getManagers().containsKey(account) || root.getRoot().equals(account))
 				return 0; // grant
@@ -288,7 +290,7 @@ public class DepartmentTree<
 	}
 
 	/**
-	 * 销毁整棵部门树（FND4-83/FND5-42）：必须与deleteDepartment的递归删除对称——
+	 * 销毁整棵部门树：必须与deleteDepartment的递归删除对称——
 	 * 只删根行会残留全部子部门行（_tDepartmentTree）与成员数据；且重建同名树时
 	 * NextDepartmentId归零、新部门从dId=1重新分配，按(name,dId)命中旧残留行，
 	 * 新旧数据混串，无清理路径覆盖孤儿。根级group成员map（"0@"+name）不在任何
@@ -303,7 +305,7 @@ public class DepartmentTree<
 			for (var dId : root.getChildren().values().toArray(new Long[0]))
 				deleteDepartment(dId, true);
 		}
-		getGroupMembers().clear(); // FND5-42：根级成员map与子部门dId空间不相交，删除根行前单独清理
+		getGroupMembers().clear(); // 根级成员map与子部门dId空间不相交，删除根行前单独清理
 		module._tDepartment.remove(name);
 	}
 
@@ -337,7 +339,7 @@ public class DepartmentTree<
 			return getOrAddRootManager(name);
 
 		var d = getDepartmentTreeNode(departmentId);
-		// FND2-C0-3：部门行缺失（并发已删/调用方传错id）时d==null，原实现裸NPE。
+		// 部门行缺失（并发已删/调用方传错id）时d==null会裸NPE。
 		// 抛带语义异常（与getDepartmentMembers的not found处理对齐）。
 		if (null == d)
 			throw new IllegalArgumentException("department not found: " + departmentId);
@@ -365,7 +367,7 @@ public class DepartmentTree<
 
 		var d = getDepartmentTreeNode(departmentId);
 		if (null == d)
-			// FND2-C0-3：部门行缺失时按"没有这个管理员"处理返回null，不抛（删除语义幂等，
+			// 部门行缺失时按"没有这个管理员"处理返回null，不抛（删除语义幂等，
 			// 与deleteDepartment对旧父行缺失的宽容处理对齐）。
 			return null;
 		var m = d.getManagers().remove(name);
@@ -384,7 +386,7 @@ public class DepartmentTree<
 		} else {
 			var parent = getDepartmentTreeNode(departmentParent);
 			if (null == parent)
-				return module.errorCode(Module.ErrorDepartmentParentNotExist); // 对齐moveDepartment的同类检查，原实现直接NPE
+				return module.errorCode(Module.ErrorDepartmentParentNotExist); // 对齐moveDepartment的同类检查：缺失会直接NPE
 			if (parent.getChildren().size() >= childrenLimit)
 				return module.errorCode(Module.ErrorTooManyChildren);
 			if (null != parent.getChildren().putIfAbsent(dName, dId))

@@ -8,6 +8,9 @@ import Zeze.Serialize.SerializeHelper;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 
+/**
+ * 基础类型 Set 容器的增量日志：记录 added/removed 两个差量集合。
+ */
 public class LogSet1<V> extends LogSet<V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogSet1<");
 
@@ -101,8 +104,8 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	private void merge(LogSet1<V> from) {
-		// Put,Remove 需要确认有没有顺序问题
-		// this: add 1,3 remove 2,4 nest: add 2 remove 1
+		// 嵌套的增量覆盖同 key 的外层增量（add覆盖remove、remove覆盖add）：
+		// 例：this: add 1,3 remove 2,4; nest: add 2 remove 1 → 合并后 added=2,3 removed=1,4。
 		for (var e : from.added) {
 			removed.remove(e); // replace 1,2,3 remove 4
 			added.add(e);

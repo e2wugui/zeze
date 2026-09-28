@@ -187,37 +187,7 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	// 由于sm的服务信息是碎片传递给订阅者的，所以本质上得到的快照在启动的时候几乎总是不完整的，
-	// 为了得到真正所有的服务器信息，只有sleep。
-	// 先不提供waitAllDirectServerReady了。
-	/*
-	public void waitAllDirectServerReady(Action0 callback) {
-		// 得到当前provider服务集合（快照）。
-		var servers = new HashSet<Integer>();
-		for (var ss : providerApp.zeze.getServiceManager().getSubscribeStates().values()) {
-			if (ss.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
-				for (var info : ss.getServiceInfos().getServiceInfoListSortedByIdentity()) {
-					var serverId = Integer.parseInt(info.serviceIdentity);
-					servers.add(serverId);
-				}
-			}
-		}
-		// 得到没有direct没有好的。
-		var pending = new HashSet<Integer>();
-		lock();
-		try {
-			for (var serverId : servers) {
-				if (!providerByServerId.containsKey(serverId))
-					pending.add(serverId);
-			}
-		} finally {
-			unlock();
-		}
-		// 订阅没有准备好的。
-		for (var pend : pending) {
-
-		}
-	}
-	*/
+	// 为了得到真正所有的服务器信息，只有sleep。因此不提供waitAllDirectServerReady。
 
 	// under lock
 	private void notifyServerReady(int serverId) {
@@ -242,11 +212,11 @@ public class ProviderDirectService extends HandshakeBoth {
 			if (old != null) {
 				if (old == ps)
 					return;
-				// 接管式注册（对齐linkd侧FND3-33判例）：同loadName只允许一条活跃会话，新会话替换
-				// 两张表并异步踢旧连接。原putIfAbsent忽略新会话后，旧会话迟到的OnSocketClose按
-				// 所有权条件删除清空路由（新会话从未注册），且存活的新连接不再重连/announce——
-				// 注册永久丢失无法自愈。先put再踢，读侧无空窗；被踢会话的OnSocketClose条件删除
-				// 因所有权已换而空转，不会误删现任注册。
+				// 接管式注册：同loadName只允许一条活跃会话，新会话替换两张表并异步踢旧连接。
+				// 若putIfAbsent忽略新会话：旧会话迟到的OnSocketClose按所有权条件删除清空路由
+				// （新会话从未注册），且存活的新连接不再重连/announce——注册永久丢失无法自愈。
+				// 先put再踢，读侧无空窗；被踢会话的OnSocketClose条件删除因所有权已换而空转，
+				// 不会误删现任注册。
 				if (ps.getServerId() != getZeze().getConfig().getServerId())
 					logger.warn("setRelativeServiceReady: supersede old session {} with new {} for {}",
 							old, ps, ps.getServerLoadName());
@@ -328,7 +298,7 @@ public class ProviderDirectService extends HandshakeBoth {
 			// （remove+add churn时新会话先完成握手，旧连接的关闭回调后到）。
 			providerByLoadName.remove(ps.getServerLoadName(), ps);
 			providerByServerId.remove(ps.getServerId(), ps);
-			// 会话终结：取消其TimeCounter的每秒discard周期任务，随会话更替无界泄漏（FND7-41）。
+			// 会话终结：取消其TimeCounter的每秒discard周期任务，避免随会话更替无界泄漏。
 			ps.timeCounter.close();
 		}
 		super.OnSocketClose(socket, ex);
@@ -368,7 +338,6 @@ public class ProviderDirectService extends HandshakeBoth {
 		// 所有的Direct都不启用存储过程。
 		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode)
 				.dispatchMode(factoryHandle.Mode).runNow();
-		//super.DispatchProtocol(p, factoryHandle);
 	}
 
 	@Override
@@ -390,7 +359,6 @@ public class ProviderDirectService extends HandshakeBoth {
 
 		// no procedure.
 		TaskSpec.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
-		//super.dispatchRpcResponse(rpc, responseHandle, factoryHandle);
 	}
 
 	@Override

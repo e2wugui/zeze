@@ -14,6 +14,9 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.OutObject;
 
+/**
+ * Raft 代理服务端：进程内多个 raft 共用一个对外 Service，按 raftName 把代理请求派发到对应的 Raft 执行。
+ */
 public class ProxyServer extends Service {
 	public static final String eProxyServerName = "Zeze.Raft.ProxyServer";
 	private final int rpcTimeout;
@@ -61,7 +64,7 @@ public class ProxyServer extends Service {
 		var raftRpc = (RaftRpc<?, ?>)p;
 		raftRpc.setProxyRequest(r);
 
-		// 下面的流程从Raft.Server.dispatchProtocol的部分代码拷贝出，请参考原来的地方，进行比较。。
+		// 下面的流程与 Raft.Server.dispatchProtocol 中的对应流程保持一致。
 		if (raft.isWorkingLeader()) {
 			if (raftRpc.getUnique().getRequestId() <= 0) {
 				p.SendResultCode(Procedure.ErrorRequestId);
@@ -121,9 +124,9 @@ public class ProxyServer extends Service {
 							var originHandle = (ProtocolHandle)rpc.getResponseHandle();
 							localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
 						} else if (rpc.getFuture() != null) {
-							// 【FND-R2-7】补全future路径（与ProxyAgent.send对齐）：
-							// 原来无responseHandle的结果被静默丢弃，future等待方永远等不到结果，
-							// 只能等rpc超时；RaftRetry/DuplicateRequest等语义码同样丢失。
+						// 补全future路径（与ProxyAgent.send对齐）：无responseHandle的结果如不处理
+						// 会被静默丢弃，future等待方永远等不到结果，只能等rpc超时；
+						// RaftRetry/DuplicateRequest等语义码同样丢失。
 							rpc.setResultCode(resultRpc.getResultCode());
 							//noinspection rawtypes,UnnecessaryLocalVariable
 							Rpc rawRpc = rpc, rawResultRpc = resultRpc;
@@ -143,7 +146,7 @@ public class ProxyServer extends Service {
 			}, proxyServer.rpcTimeout);
 		}
 
-		// 旧的独立的直接的raft访问发送方式。
+		// 未启用代理时的直接raft访问发送方式。
 		return rpc.Send(sender); // ignore response
 	}
 }

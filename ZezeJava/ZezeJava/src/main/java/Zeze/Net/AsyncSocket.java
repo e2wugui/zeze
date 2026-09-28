@@ -20,7 +20,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * @since 1.7.0 不再实现 java.io.Closeable：socket 引用为共享借用，所有权归连接管理层（Service 等），
+ * 异步连接抽象基类：定义生命周期状态机（置死/登记互斥）、解码准入与收发统计。
+ * @since 1.7.0 起不实现 java.io.Closeable：socket 引用为共享借用，所有权归连接管理层（Service 等），
  * 		不满足 Closeable"获取即拥有"的契约；关闭请使用显式的 {@link #close(Throwable, boolean)}
  * 		或 {@link #closeGracefully()}。
  */
@@ -115,7 +116,7 @@ public abstract class AsyncSocket {
 
 	// close收尾时通知服务销毁会话（在飞Rpc上下文立即失败处置）。与各close实现里
 	// OnSocketClose回调的try/catch同款防护：回调异常只记日志不外抛。
-	// DatagramSession/Websocket/WebsocketClient共用（FND8-50补充/FND8-55路径统一）。
+	// DatagramSession/Websocket/WebsocketClient共用。
 	protected final void fireOnSocketDisposed() {
 		try {
 			getService().OnSocketDisposed(this);
@@ -139,7 +140,7 @@ public abstract class AsyncSocket {
 	/**
 	 * @deprecated 全局静态发号在同JVM多App拓扑下互踩（Zezex linkd与Game.Server各自的
 	 * 		PersistentAtomicLong值域重叠且全局共享，SM服务端socket表按sessionId索引必撞号，
-	 * 		GetSocket(sessionId)把同号新连接误判为旧会话）。sessionId发号已下沉到Service实例
+	 * 		GetSocket(sessionId)把同号新连接误判为旧会话）。sessionId发号由Service实例负责
 	 * 		（随机63位基址）。本方法保留兼容，等价于{@link Service#setDefaultSessionIdGenFunc}
 	 * 		——仅作为之后构造的Service的默认模板，多个Service共享同一supplier仍会撞号，
 	 * 		仅单Service进程安全；自定义发号请改用Service实例级setSessionIdGenFunc。
@@ -184,9 +185,9 @@ public abstract class AsyncSocket {
 		activeSendTime = activeRecvTime = GlobalTimer.getCurrentSeconds();
 	}
 
-	// FND7-19/R3：sessionId从所属Service实例发号（随机63位基址+实例内递增）——跨JVM与
-	// 同JVM多App（Zezex linkd/Game.Server拓扑，原全局静态发号互踩致SM服务端socket表撞号）
-	// 均唯一。自定义发号迁移到Service实例级setSessionIdGenFunc。
+	// sessionId从所属Service实例发号（随机63位基址+实例内递增）——跨JVM与
+	// 同JVM多App（Zezex linkd/Game.Server拓扑，全局静态发号互踩会致SM服务端socket表撞号）
+	// 均唯一。自定义发号用Service实例级setSessionIdGenFunc。
 	private final long sessionId;
 
 	public long getSessionId() {
@@ -225,7 +226,7 @@ public abstract class AsyncSocket {
 		var bb = p.encode();
 		var size = bb.size(); // Send交接后bb不可再动，先取计数所需值
 		var r = Send(bb);
-		if (r) // 仅发送被接受时计数，对齐原TcpSocket在selector线程内的计数时机
+		if (r) // 仅发送被接受时计数，时机与TcpSocket在selector线程内的计数一致
 			ZezeCounter.instance.addSendSize(p.getTypeId(), size);
 		return r;
 	}

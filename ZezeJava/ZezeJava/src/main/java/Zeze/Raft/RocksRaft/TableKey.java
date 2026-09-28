@@ -1,5 +1,8 @@
 package Zeze.Raft.RocksRaft;
 
+/**
+ * 表键：表名 + 业务 key 的复合键，用作事务访问记录集的索引。
+ */
 public final class TableKey implements Comparable<TableKey> {
 	public String name;
 	public Object key;

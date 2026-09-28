@@ -14,6 +14,7 @@ import Zeze.Transaction.TableKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 性能计数器：按 protocol/procedure/table/runkey 维度聚合统计并周期输出日志（ZezeCounter 的主力实现）
 public final class PerfCounter extends FastLock implements ZezeCounter {
 	public static class LongAdderCounter extends LongAdder implements LongCounter {
 		@Override
@@ -71,10 +72,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
 
 		final @NotNull String name;
-		// FND5-11：热路径getOrAddResult无锁读写resultMap，getLogAndReset持锁换新——引用必须
+		// 热路径getOrAddResult无锁读写resultMap，getLogAndReset持锁换新——引用必须
 		// volatile发布，否则业务线程可无限期读旧引用，自增落在已消费的resultMapLast上丢统计。
 		volatile @NotNull LongConcurrentHashMap<LongAdder> resultMap = new LongConcurrentHashMap<>();
-		// FND5-11同族（FND5-11复审）：锁内写（getLogAndReset），getResultMapLast()被定时器线程
+		// 锁内写（getLogAndReset），getResultMapLast()被定时器线程
 		// （ProcedureStatistics.Watcher）与HTTP查询线程无锁读——同样需要volatile发布，否则读者
 		// 可长期读到旧快照，watch的(total-last)增量恒为0导致回调永不触发。
 		volatile @NotNull LongConcurrentHashMap<LongAdder> resultMapLast = new LongConcurrentHashMap<>();
@@ -215,11 +216,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private volatile @NotNull Snapshot lastSnapshot = Snapshot.EMPTY;
 	private long lastLogTime = System.currentTimeMillis();
 	private long lastCpuTime = PlatformMetrics.osBean.getProcessCpuTime();
-	// FND7-52：锁内唯一写（resetCounter的clearSerial++）、锁外多读（getRunInfoWithSerial、
+	// 锁内唯一写（resetCounter的clearSerial++）、锁外多读（getRunInfoWithSerial、
 	// observer闭包、PerfProcedureCounter.info）——必须volatile发布，否则锁外普通字段读
 	// 无happens-before，可被JIT提升出外层循环而长期读到旧代际，闭包绑定reset前已从map
-	// 移除的统计对象，自增落在无人收集的对象上丢统计（同族resultMap/resultMapLast/
-	// PerfProcedureCounter.bound均已volatile，本字段是漏改的一个）。
+	// 移除的统计对象，自增落在无人收集的对象上丢统计（resultMap/resultMapLast/
+	// PerfProcedureCounter.bound均已volatile，本字段同族）。
 	private volatile int clearSerial;
 	private @Nullable ScheduledFuture<?> scheduleFuture;
 	private final LongCounter transactionRedoCounter = allocCounter("Transaction.Redo");
@@ -475,7 +476,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	public void resetCounter() {
-		// 与getLogAndReset互斥（FND4-23）：clearSerial代际推进与四个map清空
+		// 与getLogAndReset互斥：clearSerial代际推进与四个map清空
 		// 不是原子的，无锁并发reset会互相覆盖统计窗口。
 		lock();
 		try {

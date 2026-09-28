@@ -3,6 +3,9 @@ package Zeze.Raft;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 
+/**
+ * Raft 快照安装 Rpc：leader 向日志落后到 firstIndex 的 follower 分块传输已提交快照。
+ */
 final class InstallSnapshot extends Rpc<BInstallSnapshotArgument, BInstallSnapshotResult> {
 	public static final int ProtocolId_ = Bean.hash32(InstallSnapshot.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;

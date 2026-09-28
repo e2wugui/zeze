@@ -5,6 +5,7 @@ import Zeze.Serialize.IByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 事务内对某记录的访问登记：包装原子快照，持有 dirty 标记与 PutLog（put/remove 语义）。 */
 public final class RecordAccessed extends Bean {
 	static final class PutLog extends LogSpecial<RecordAccessed, Bean> {
 		PutLog(@NotNull RecordAccessed bean, @Nullable Bean putValue) {

@@ -14,6 +14,9 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import org.jetbrains.annotations.NotNull;
 import static Zeze.Util.Args.requireValue;
 
+/**
+ * 独立的链接列表 HTTP 服务：订阅 Linkd 服务信息，以文本方式对外返回可用链接地址列表。
+ */
 public class LinksInfo extends AbstractLinksInfo {
 	private final Netty netty = new Netty();
 	private final @NotNull HttpServer httpServer;

@@ -231,7 +231,7 @@ public class IntHashMap<V> implements Cloneable {
 	public @Nullable V putIfAbsent(int key, @Nullable V value) {
 		if (key == 0) {
 			final V oldV = zeroValue;
-			// 值为null的既有条目按Map契约视为absent（FND8-10）：写入新值
+			// 值为null的既有条目按Map契约视为absent：写入新值
 			if (oldV == null) {
 				zeroValue = value;
 				if (!hasZeroKey) {
@@ -255,7 +255,7 @@ public class IntHashMap<V> implements Cloneable {
 			}
 			if (k == key) {
 				final V oldV = vt[i];
-				// 值为null的既有条目按Map契约视为absent（FND8-10）：写入新值，返回旧值null
+				// 值为null的既有条目按Map契约视为absent：写入新值，返回旧值null
 				if (oldV == null)
 					vt[i] = value;
 				return oldV;
@@ -266,7 +266,7 @@ public class IntHashMap<V> implements Cloneable {
 	public V computeIfAbsent(int key, @NotNull IntFunction<? extends V> mappingFunction) {
 		if (key == 0) {
 			V v = zeroValue;
-			// 值为null的既有条目按Map契约视为absent（FND8-10）：需要重算；
+			// 值为null的既有条目按Map契约视为absent：需要重算；
 			// 函数返回null则不写入，保留原条目
 			if (v == null) {
 				V newV = mappingFunction.apply(0);
@@ -296,7 +296,7 @@ public class IntHashMap<V> implements Cloneable {
 				return v;
 			}
 			if (k == key) {
-				// 值为null的既有条目按Map契约视为absent（FND8-10）：需要重算；
+				// 值为null的既有条目按Map契约视为absent：需要重算；
 				// 函数返回null则不写入，保留原null条目
 				V v = vt[i];
 				if (v == null) {
@@ -522,7 +522,7 @@ public class IntHashMap<V> implements Cloneable {
 	}
 
 	private void resize(int newSize) { // [1,2,4,8,...,0x4000_0000]
-		if (newSize < 0) // 1<<30再左移溢出为负（FND5-08，FND4-19姊妹点）：显式契约而非NegativeArraySizeException
+		if (newSize < 0) // 1<<30再左移溢出为负：显式契约而非NegativeArraySizeException
 			throw new IllegalStateException("IntHashMap capacity limit reached: " + (1 << 30));
 		threshold = (int)(newSize * loadFactor);
 		final int m = newSize - 1;

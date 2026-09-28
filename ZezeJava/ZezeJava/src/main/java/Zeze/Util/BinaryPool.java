@@ -7,6 +7,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
+// Binary 内容去重池（intern）：同一内容返回同一引用，读写锁分护探测与插入
 public class BinaryPool {
 	private static final long HASH_BASE = 3074457345618258791L;
 	private final LongHashMap<Binary> pool = new LongHashMap<>();
@@ -30,7 +31,7 @@ public class BinaryPool {
 		try {
 			var h64 = hash64;
 			// i从1起：i=0的种子HASH_BASE+0与初值hash64相同，会把首槽探测两遍（32轮仅覆盖31槽）
-			for (int i = 1; i < 32; i++) { // 超过32的冲突可能性极低,一旦遇到就覆盖掉吧
+			for (int i = 1; i < 32; i++) { // 超过32的冲突可能性极低,一旦遇到就覆盖
 				b = pool.get(h64);
 				if (b == null) {
 					hash64 = h64;
@@ -65,7 +66,7 @@ public class BinaryPool {
 		try {
 			var h64 = hash64;
 			// i从1起：i=0的种子HASH_BASE+0与初值hash64相同，会把首槽探测两遍（32轮仅覆盖31槽）
-			for (int i = 1; i < 32; i++) { // 超过32的冲突可能性极低,一旦遇到就覆盖掉吧
+			for (int i = 1; i < 32; i++) { // 超过32的冲突可能性极低,一旦遇到就覆盖
 				b = pool.get(h64);
 				if (b == null) {
 					hash64 = h64;
@@ -80,7 +81,6 @@ public class BinaryPool {
 		}
 		int n = endIndex - beginIndex;
 		var bytes = new byte[n];
-		// bb.get(beginIndex, bytes, 0, n);
 		var p = bb.position();
 		bb.position(beginIndex);
 		bb.get(bytes, 0, n);
@@ -117,7 +117,7 @@ public class BinaryPool {
 			return false;
 		var bytes = b.bytesUnsafe();
 		// 字节序是 buffer 的共享可变状态：比较需要按小端读多字节值，改写后必须恢复
-		// （FND7-38）——否则调用方后续按默认 BIG_ENDIAN 的 getInt/getLong 静默读出错值，
+		// ——否则调用方后续按默认 BIG_ENDIAN 的 getInt/getLong 静默读出错值，
 		// buffer 被共享时还是无同步的状态篡改。比较全程按绝对索引读取，不动 position。
 		var savedOrder = bb.order();
 		bb.order(ByteOrder.LITTLE_ENDIAN);

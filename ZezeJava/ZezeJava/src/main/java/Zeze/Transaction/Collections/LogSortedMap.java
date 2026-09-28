@@ -5,6 +5,7 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import org.jetbrains.annotations.NotNull;
 
+/** 事务 SortedMap 日志基类：持有持久化有序映射的当前值，提交时整体写回。 */
 public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogBean {
 	private @NotNull org.pcollections.PSortedMap<K, V> value;
 

@@ -21,6 +21,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+/**
+ * Raft 集群配置：xml/字符串装载、节点表、选举/复制/快照等参数及其校验，支持按 RaftName 派生副本。
+ */
 public final class RaftConfig {
 	public static final int DefaultAppendEntriesTimeout = 2000;
 	public static final int DefaultLeaderHeartbeatTimer = DefaultAppendEntriesTimeout + 200;
@@ -35,7 +38,7 @@ public final class RaftConfig {
 	private final byte[] sortedNamesUtf8;
 	private final Binary sortedNamesBinary;
 
-	private String name; // 【这个参数不保存】可以在启动的时候从参数读取并设置
+	private String name; // 这个参数不保存，可以在启动的时候从参数读取并设置
 	private String dbHome;
 	private int appendEntriesTimeout = DefaultAppendEntriesTimeout; // 复制日志超时，以及发送失败重试超时
 	private int leaderHeartbeatTimer = DefaultLeaderHeartbeatTimer; // 不精确 Heartbeat Idle 算法
@@ -232,7 +235,7 @@ public final class RaftConfig {
 		}
 	}
 
-	// 【FND8-42】按RaftName派生私有副本：Raft构造器不得变异调用方传入的配置对象——
+	// 按RaftName派生私有副本：Raft构造器不得变异调用方传入的配置对象——
 	// 共享同一RaftConfig实例的多Raft（多库/多桶共用一份集群配置的便捷用法）会互相
 	// 污染Name/DbHome，getSnapshotFullName等路径错位造成跨实例数据覆盖。
 	// 派生副本共享不可变部分（xmlDocument/nodes条目/sortedNames），复制全部可变标量；
@@ -261,7 +264,7 @@ public final class RaftConfig {
 		return copy;
 	}
 
-	// 【FND8-42】derive的拷贝构造：共享只读的xml与节点（构造后不再变化），nodes
+	// derive的拷贝构造：共享只读的xml与节点（构造后不再变化），nodes
 	// 复制进自己的map（addNode只在装载期发生，条目本身全final不可变）。
 	private RaftConfig(Document xmlDocument, String xmlFileName, Element self,
 					   ConcurrentHashMap<String, Node> nodes,
@@ -340,18 +343,18 @@ public final class RaftConfig {
 		if (leaderHeartbeatTimer < appendEntriesTimeout + 200)
 			throw new IllegalStateException("LeaderHeartbeatTimer < AppendEntriesTimeout + 200");
 		if (backgroundApplyCount < 1)
-			// FND5-14：0/负数使后台apply的tryApply(count=0)一条不应用且退出条件永不成，
+			// 0/负数使后台apply的tryApply(count=0)一条不应用且退出条件永不成，
 			// 无限yield忙轮询、applyFuture永不完成、shutdown的await挂死。fail-fast对齐verify口径。
 			throw new IllegalStateException("BackgroundApplyCount < 1");
 		if (electionRandomMax < 1)
-			// FND6-09（FND5-14姊妹）：getElectionTimeout的Random.nextInt(n<=0)抛IllegalArgumentException，
+			// getElectionTimeout的Random.nextInt(n<=0)抛IllegalArgumentException，
 			// 被定时器吞掉仅记日志——onTimer的Follower分支永不选举、followerOnAppendEntries的
 			// setLeaderActiveTime同抛致AppendEntries无应答，节点静默僵死只剩error日志。
 			throw new IllegalStateException("ElectionRandomMax < 1");
 		if (uniqueRequestExpiredDays < 1)
-			// FND6-09姊妹：isUniqueRequestCreateTimeValid对expiredDays<=0把所有请求判RaftExpired
+			// isUniqueRequestCreateTimeValid对expiredDays<=0把所有请求判RaftExpired
 			// （0时(now-create)/86400_000>=0恒真，负数连未来时间也拒绝）——集群功能瘫痪但
-			// 无异常无日志（每请求确定性拒绝），同属「非法值静默失效」靶型。
+			// 无异常无日志（每请求确定性拒绝）。
 			throw new IllegalStateException("UniqueRequestExpiredDays < 1");
 		if (maxAppendEntriesCount < 100)
 			maxAppendEntriesCount = 100;

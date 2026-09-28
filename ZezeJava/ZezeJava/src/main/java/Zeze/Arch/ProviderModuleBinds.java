@@ -18,6 +18,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+/**
+ * provider.module.binds.xml 配置解析：定义各模块的静态/动态绑定与 choiceType、providers 归属。
+ */
 public final class ProviderModuleBinds {
 	public static @NotNull ProviderModuleBinds load() {
 		return load(null);

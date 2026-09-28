@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+// 可停循环线程基类：isRunning/sleepIdle 控制生命周期，派生类实现 run 主体
 public class ThreadHelper extends Thread {
 	private static final @NotNull Logger logger = LogManager.getLogger(ThreadHelper.class);
 

@@ -3,6 +3,7 @@ package Zeze.Serialize;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 二维整型向量值类型（int x/y），可比较可序列化为 vector2int。 */
 public class Vector2Int implements Comparable<Vector2Int> {
 	public static final Vector2Int ZERO = new Vector2Int(0, 0);
 

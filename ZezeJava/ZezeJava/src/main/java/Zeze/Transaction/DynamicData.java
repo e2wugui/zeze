@@ -6,6 +6,7 @@ import Zeze.Util.Json;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** DynamicBean 的纯数据形态：按 typeId 持有可替换的内部 Data，用于快照与序列化。 */
 public abstract class DynamicData extends Data {
 	protected @NotNull Data data = EmptyBean.Data.instance;
 	protected long typeId = EmptyBean.Data.TYPEID;

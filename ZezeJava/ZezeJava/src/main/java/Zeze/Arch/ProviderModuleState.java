@@ -1,5 +1,8 @@
 package Zeze.Arch;
 
+/**
+ * 模块在某个 Provider 连接上的订阅状态：会话、choiceType 与是否动态模块。
+ */
 public class ProviderModuleState {
 	public final long sessionId;
 	public final int moduleId;

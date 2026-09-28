@@ -16,14 +16,17 @@ import io.netty.util.AttributeKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 文件上传处理接口：支持 multipart 与 raw（查询参数指定文件名）两种上传形态。
+ */
 public interface HttpFileUploadHandle extends HttpMultipartHandle {
 	@NotNull AttributeKey<MixedFileUpload> fileUploadKey = AttributeKey.valueOf("HttpFileUploadHandleContext");
 	int MemoryBufSize = 16 * 1024;
 
 	/**
-	 * 净化客户端可控的上传文件名并解析落盘目标（FND4-70）：仅保留basename（'/'与'\'都视为
-	 * 分隔符）且canonical路径必须落在uploadDir内，双保险拦截"../"穿越——原实现直接
-	 * new File(uploadDir, filename)并先delete，以JVM工作目录为基准越权删除/覆盖任意文件
+	 * 净化客户端可控的上传文件名并解析落盘目标：仅保留basename（'/'与'\'都视为
+	 * 分隔符）且canonical路径必须落在uploadDir内，双保险拦截"../"穿越——直接
+	 * new File(uploadDir, filename)并先delete会以JVM工作目录为基准越权删除/覆盖任意文件
 	 * （可覆盖启动脚本/jar，结合重启形成RCE链）。非法名抛IllegalArgumentException，
 	 * 调用方应答400。
 	 */
@@ -91,7 +94,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 			try {
 				fileUpload.addContent(content.content().retain(), false);
 			} catch (IOException e) {
-				// NY1-F4：raw上传超过声明大小时addContent抛IOException且被任务框架吞掉，
+				// raw上传超过声明大小时addContent抛IOException且被任务框架吞掉，
 				// onEndRequest永不执行、invokeEndStream的close(null)空写无响应体——客户端零字节
 				// 挂到空闲超时。对齐HttpExchange的streamContentTotal超限处置：回413并断连，
 				// 同时取走释放attr上的上传缓冲（取走即负责，后续LastHttpContent因exchange已终结不再路由进来）。
@@ -113,7 +116,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 				try {
 					fileUpload.addContent(Unpooled.EMPTY_BUFFER, true);
 				} catch (IOException e) {
-					// NY1-F4：终结帧同样可能越过声明大小，处置同onStreamContent（413+断连，跳过onFileCompleted/onEndRequest）。
+					// 终结帧同样可能越过声明大小，处置同onStreamContent（413+断连，跳过onFileCompleted/onEndRequest）。
 					Netty.logger.error("upload size exceeds defined size from {}", x.channel().remoteAddress(), e);
 					x.closeConnectionOnFlush(x.send(HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE,
 							"text/plain; charset=utf-8", "upload too large"));

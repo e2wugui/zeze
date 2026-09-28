@@ -2,6 +2,9 @@ package Zeze.Raft.RocksRaft;
 
 import org.pcollections.PVector;
 
+/**
+ * List 容器日志基类：在 LogBean 之上携带容器的当前值（PVector）。
+ */
 public abstract class LogList<V> extends LogBean {
 	private PVector<V> value;
 

@@ -12,11 +12,15 @@ import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 管理 Bean 的 List 容器增量日志：结构操作记 OpLog，值 bean 的字段修改记 changed，
+ * encode 侧按 addSet 身份过滤冗余条目。
+ */
 public class LogList2<V extends Bean> extends LogList1<V> {
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogList2<");
 
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
-	// 【FND3-19】本日志记录过的结构op携带的bean身份（对齐经典 Transaction.Collections.LogList2.addSet）：
+	// 本日志记录过的结构op携带的bean身份（对齐经典 Transaction.Collections.LogList2.addSet）：
 	// 这些bean的最终状态由opLogs携带的value编码（提交时刻才encode，含后续编辑），其changed条目
 	// 是冗余的——follower侧全量应用changed，冗余条目会叠加应用两次（内部非幂等op双重执行）。
 	private IdentityHashSet<V> addSet;
@@ -130,7 +134,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
 				var e = it.next();
 				var logBean = e.getKey();
-				// 【RR2-F1】对齐经典Transaction.Collections.LogList2的身份扫描（v==bean）：
+				// 对齐经典Transaction.Collections.LogList2的身份扫描（v==bean）：
 				// indexOf的equals语义在覆写equals的V（经典迁移bean必然如此）下会错位——
 				// 与已删bean equals相等的存活bean会吃错下标（错位应用），已删bean因equals
 				// 命中存活条目而被误保留（死bean日志叠加应用）。对身份equals的bean行为不变。
@@ -141,7 +145,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 						break;
 					idxExist++;
 				}
-				// 【FND3-19】不在最终列表（已被结构op移除）或∈addSet（由结构op携带最终状态）的
+				// 不在最终列表（已被结构op移除）或∈addSet（由结构op携带最终状态）的
 				// 条目剔除：follower侧changed按最终index全量应用，冗余条目会双重应用。
 				if (idxExist >= curList.size() || addSet != null && addSet.contains(bean))
 					it.remove();
@@ -155,7 +159,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			bb.WriteUInt(e.getValue().value);
 		}
 
-		// super.encode(bb);
+		// opLogs 手工编码（不走 super.encode）：value 是 Bean，用 bean.encode 而非 codec。
 		bb.WriteUInt(opLogs.size());
 		for (var opLog : opLogs) {
 			bb.WriteUInt(opLog.op);
@@ -178,7 +182,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			changed.put(value, new OutInt(index));
 		}
 
-		// super.decode(bb);
+		// opLogs 手工解码（不走 super.decode）：value 是 Bean，经 valueFactory 构造后 decode。
 		opLogs.clear();
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
 			int op = bb.ReadUInt();

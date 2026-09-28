@@ -15,6 +15,7 @@ import com.github.luben.zstd.ZstdOutputStreamNoFinalizer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// zstd-jni 无 finalizer 流式压缩/解压封装：直接驱动 native stream 上下文，封死 InputStream/OutputStream 多态面
 public final class ZstdFactory {
 	private static final @NotNull Field fCStream, fCSrcPos, fCDstPos;
 	private static final @NotNull Field fDStream, fDSrcPos, fDDstPos;
@@ -111,10 +112,10 @@ public final class ZstdFactory {
 				ctxPtr = fCStream.getLong(this);
 				if (ctxPtr == 0)
 					throw new IllegalStateException("ctxPtr = 0");
-				if (dstBufSize == 0) // U6-F1：dstBufSize==0（new byte[0]静默接受）时压缩主循环/flush循环
+				if (dstBufSize == 0) // dstBufSize==0（new byte[0]静默接受）时压缩主循环/flush循环
 					// 0输出0消耗永久自旋，归一为默认尺寸（对齐解压侧"<=0当默认值"的语义中真正有害的==0）。
 					// 负值保持既有契约：new byte[负数]抛NegativeArraySizeException（fail-fast，
-					// FND7-46回归钉死的构造失败→ctx释放路径），无挂死风险，不吞。
+					// 构造失败走ctx释放路径），无挂死风险，不吞。
 					dstBufSize = DEFAULT_DST_BUF_SIZE;
 				dstBuf = new byte[dstBufSize];
 				//noinspection resource
@@ -125,7 +126,7 @@ public final class ZstdFactory {
 				if (r != 0)
 					throw new IllegalStateException("mhResetCStream = " + r);
 			} catch (Throwable e) { // MethodHandle.invoke
-				// FND7-46：super构造已建native cstream（ZstdOutputStreamNoFinalizer构造调createCStream），
+				// super构造已建native cstream（ZstdOutputStreamNoFinalizer构造调createCStream），
 				// 构造失败则对象不可达、close()永不会被调用——catch中显式释放ctxPtr再重抛，
 				// 否则越界level/windowLog等配置错误每次泄漏一个native压缩上下文。
 				long ptr = ctxPtr;
@@ -274,10 +275,10 @@ public final class ZstdFactory {
 				if (dstBufSize > 0)
 					dstBuf = new byte[dstBufSize];
 			} catch (Throwable e) { // 反射字段访问及dstBuf分配的OutOfMemoryError（超大dstBufSize）
-				// R2-U2（FND7-46姊妹点）：super构造已建native dstream（ZstdInputStreamNoFinalizer构造
+				// super构造已建native dstream（ZstdInputStreamNoFinalizer构造
 				// 调createDStream），构造失败则对象不可达、close()永不会被调用——catch中显式释放ctxPtr
-				// 再重抛，否则dstBuf分配OOM等失败路径每次泄漏一个native解压上下文（压缩侧FND7-46
-				// 已收口；负dstBufSize被上面的>0守卫跳过，可达路径为超大值的OOM）。
+				// 再重抛，否则dstBuf分配OOM等失败路径每次泄漏一个native解压上下文（负dstBufSize
+				// 被上面的>0守卫跳过，可达路径为超大值的OOM）。
 				long ptr = ctxPtr;
 				ctxPtr = 0;
 				if (ptr != 0) {

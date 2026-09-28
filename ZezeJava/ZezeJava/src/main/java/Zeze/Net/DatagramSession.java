@@ -18,10 +18,13 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * UDP 会话：以 tokenId 标识的单条 UDP 虚拟连接（AsyncSocket 的数据报适配）。
+ */
 public class DatagramSession extends AsyncSocket {
 	private static final @NotNull Logger logger = LogManager.getLogger(DatagramSession.class);
 	private final @NotNull DatagramSocket socket;
-	// N1-F1：跨线程可见性——selector线程在processDatagram写（NAT重绑），Send可在任意业务线程读；
+	// 跨线程可见性——selector线程在processDatagram写（NAT重绑），Send可在任意业务线程读；
 	// 无happens-before边时应答持续发往失效地址。单引用读写无复合操作，volatile即可。
 	private volatile @NotNull InetSocketAddress remote;
 	private final long tokenId;
@@ -99,11 +102,11 @@ public class DatagramSession extends AsyncSocket {
 			}
 			bb = bc;
 		}
-		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送。这是udp，不解决这个问题了。
+		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送；UDP 语义下不保证发送顺序。
 		try {
 			socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
 		} catch (IOException e) {
-			// FND8-50：履行AsyncSocket布尔契约（对齐TcpSocket）：IO失败close并返回false，
+			// 履行AsyncSocket布尔契约（对齐TcpSocket）：IO失败close并返回false，
 			// 不抛RuntimeException——否则上层Rpc.Send在addRpcContext之后、清理之前被异常
 			// 穿透，rpcContexts条目永久泄漏（无超时定时器兜底）。UDP非阻塞send的现实IOException
 			// 基本只有ClosedChannelException（会话随channel生死），close不过激；丢包/缓冲满
@@ -143,11 +146,11 @@ public class DatagramSession extends AsyncSocket {
 			}
 			bb = bc;
 		}
-		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送。这是udp，不解决这个问题了。
+		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送；UDP 语义下不保证发送顺序。
 		try {
 			socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
 		} catch (IOException e) {
-			close(e); // 同Send(byte[],int,int)：布尔契约，不抛RuntimeException（FND8-50）
+			close(e); // 同Send(byte[],int,int)：布尔契约，不抛RuntimeException
 			return false;
 		}
 		return true;
@@ -213,8 +216,8 @@ public class DatagramSession extends AsyncSocket {
 		} catch (Exception e) {
 			logger.error("OnSocketClose exception:", e);
 		}
-		// 对齐TcpSocket.realClose：会话销毁后将在飞Rpc上下文立即失败处置（FND8-50补充，
-		// 与FND8-44同点）——否则等待方只能干等Rpc超时，且OnSocketDisposed覆写永不触发。
+		// 对齐TcpSocket.realClose：会话销毁后将在飞Rpc上下文立即失败处置
+		// ——否则等待方只能干等Rpc超时，且OnSocketDisposed覆写永不触发。
 		fireOnSocketDisposed();
 	}
 
@@ -222,7 +225,6 @@ public class DatagramSession extends AsyncSocket {
 	public @Nullable TimeThrottle getTimeThrottle() {
 		return null;
 	}
-
 
 	@Override
 	public @NotNull String toString() {

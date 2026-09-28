@@ -36,7 +36,6 @@ import org.jetbrains.annotations.Nullable;
 public class TimerRole extends TimerOnlineBase<Long> {
 	private static final @NotNull Logger logger = LogManager.getLogger(TimerRole.class);
 	public static final String eOnlineTimers = "Zeze.Component.TimerGameOnline";
-	// public static final String eTimerHandleName = "Zeze.Component.TimerGameOnline.Handle";
 	public static final String eTransmitCronTimer = "Zeze.TimerRole.TransmitCronTimer";
 	public static final String eTransmitSimpleTimer = "Zeze.TimerRole.TransmitSimpleTimer";
 	public static final String eTransmitCancelRoleTimer = "Zeze.TimerRole.TransmitCancelRoleTimer";
@@ -450,9 +449,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	// ///////////////////////////////////////////////////////////////
 	// 取消
 	public boolean cancel(@Nullable String timerId, long roleId) {
-		// offline也走带归属校验的入口（FND5-19复审）：曾用单参cancelOffline(timerId)——它自推导
+		// offline也走带归属校验的入口：单参cancelOffline(timerId)自推导
 		// 真实归属后即取消，无调用者身份校验，timer.roles(A).cancel(B的offline timerId)可越权
-		// 取消B的定时器（对齐TimerAccount复合入口判例）。
+		// 取消B的定时器（对齐TimerAccount复合入口）。
 		return cancelOnline(timerId, roleId) || cancelOffline(timerId, roleId);
 	}
 
@@ -489,8 +488,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 			return true; // 取消不存在的timer，认为成功。
 
 		var timer = online.providerApp.zeze.getTimer();
-		// 归属校验（FND5-19，对齐TimerAccount.cancelOffline判例FND4-42）：曾无校验直接
-		// timer.cancel——传入任意timerId（他人offline timer、全局命名timer）都会被越权取消，
+		// 归属校验（对齐TimerAccount.cancelOffline）：无校验直接timer.cancel时，
+		// 传入任意timerId（他人offline timer、全局命名timer）都会被越权取消，
 		// 且按调用者传入的roleId清理_tRoleOfflineTimers（typo时误删他行/真实归属行残留脏条目）。
 		var index = timer.tIndexs().get(timerId);
 		if (index == null)
@@ -506,7 +505,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 			return false; // 不是角色offline timer，归属不符拒绝
 		if (custom.getRoleId() != roleId)
 			return false;
-		// 簿记先于timer.cancel清理（FND8-72）：cancel的onTimerCancel钩子也会清簿记，
+		// 簿记先于timer.cancel清理：cancel的onTimerCancel钩子也会清簿记，
 		// 若r的判定放在钩子之后，remove将恒为null，对真实成功的取消误报false。
 		var bTimers = online._tRoleOfflineTimers().get(roleId);
 		var r = bTimers != null && bTimers.getOfflineTimers().remove(timerId) != null;
@@ -564,7 +563,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		var config = timer.zeze.getConfig();
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
-			// throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
 			logger.error("scheduleOffline(simple): too many timers. roleId={}, timerId={}, handle={}, size={} > {}",
 					roleId, timerId, handleClass.getName(), offline.getOfflineTimers().size(),
 					config.getOfflineTimerLimit());
@@ -659,7 +657,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		var config = timer.zeze.getConfig();
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
-			// throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
 			logger.error("scheduleOffline(cron): too many timers. roleId={}, timerId={}, handle={}, size={} > {}",
 					roleId, timerId, handleClass.getName(), offline.getOfflineTimers().size(),
 					config.getOfflineTimerLimit());
@@ -718,7 +715,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		return timerId;
 	}
 
-	// FND6-20：查timerId当前登记的角色offline timer归属，查表路径仿cancelOffline：
+	// 查timerId当前登记的角色offline timer归属，查表路径仿cancelOffline：
 	// 非本族timer返回null；本族返回customData，供调用方做族+归属判定。
 	private static @Nullable BOfflineRoleCustom getRoleOfflineCustom(@NotNull Timer timer, @NotNull String timerId) {
 		var index = timer.tIndexs().get(timerId);
@@ -739,11 +736,11 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		var zeze = online.providerApp.zeze;
 		var timer = zeze.getTimer();
 		if (timer.isOnlineTimerIdOccupied(timerId))
-			return false; // FND4-41：同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
+			return false; // 同名被在线族定时器占用，不得并存（否则共用timerFutures相互覆盖）
 		var index = timer.tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
-		// FND6-20：族+归属判定——撞本server的命名timer时，非本族（全局/在线timer）cancel
+		// 族+归属判定——撞本server的命名timer时，非本族（全局/在线timer）cancel
 		// 恒false（cancelOnline查在线表为null，cancelOffline因customData非本族拒绝）；
 		// 本族异主（他角色遗留的同名offline timer）cancelOffline因roleId不符也恒false。
 		// 都会让随后scheduleOffline的_tIndexs.insert撞已存在键抛IAE中断调用方整个事务，
@@ -767,7 +764,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	/// ///////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
 	public static class OfflineHandle implements TimerHandle {
-		// FND8-72：timer终止的每条路径（打完/回调异常/显式cancel）都经Timer.cancel的
+		// timer终止的每条路径（打完/回调异常/显式cancel）都经Timer.cancel的
 		// onTimerCancel钩子同步清簿记，与onLoginEvent一致，杜绝"index已删簿记残留"
 		// 使同名重调度putIfAbsent撞残留抛IllegalStateException。
 		@Override

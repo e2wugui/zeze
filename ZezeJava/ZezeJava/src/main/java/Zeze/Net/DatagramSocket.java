@@ -18,6 +18,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * UDP socket：绑定本地端口，按 tokenId 将数据报分发到会话。
+ */
 public class DatagramSocket extends ReentrantLock implements SelectorHandle, Closeable {
 	private static final @NotNull Logger logger = LogManager.getLogger(DatagramSocket.class);
 	private final @NotNull Service service;
@@ -87,7 +90,7 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, 0, size), peer);
 	}
 
-	// FND8-53：close后拒绝新建（close在锁内置空selectionKey，双侧同锁封死竞态——
+	// close后拒绝新建（close在锁内置空selectionKey，双侧同锁封死竞态——
 	// 否则快照后加入的会话不在任何关闭路径上：OnSocketClose永不触发、isClosed恒false）。
 	// 抛ISE对齐Service.OnSocketAccept判例；null保留给tokenId撞号语义。
 	// 仅在持有本锁的临界区内调用。

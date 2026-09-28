@@ -38,6 +38,7 @@ import sun.security.x509.X509CertImpl;
 // 参考: https://docs.oracle.com/en/java/javase/11/tools/keytool.html
 // 参考: https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html
 // 编译时需要: --add-exports java.base/sun.security.x509=ALL-UNNAMED
+// 证书与密钥工具：自签证书/KeyPair 生成、KeyStore 加载保存与 SSLContext 配置
 public final class Cert {
 	static {
 		try {
@@ -134,7 +135,7 @@ public final class Cert {
 			return 1 + 1 + 1 + dataSize; // tag+sizeLen+size+data
 		if (dataSize < 0x1_0000)
 			return 1 + 1 + 2 + dataSize;
-		throw new IllegalArgumentException(); // 暂时不支持更长的
+		throw new IllegalArgumentException(); // 不支持更长的
 	}
 
 	private static int encodeDerValueHeader(byte[] encoded, int offset, int tag, int dataSize) {
@@ -149,7 +150,7 @@ public final class Cert {
 			encoded[offset++] = (byte)(dataSize >> 8);
 			encoded[offset++] = (byte)dataSize;
 		} else
-			throw new IllegalArgumentException(); // 暂时不支持更长的
+			throw new IllegalArgumentException(); // 不支持更长的
 		return offset;
 	}
 

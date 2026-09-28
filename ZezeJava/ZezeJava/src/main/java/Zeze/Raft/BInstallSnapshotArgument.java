@@ -5,6 +5,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
+/**
+ * InstallSnapshot 请求参数：快照边界（lastIncludedIndex/Term）、分块 offset/data 与收尾标记。
+ */
 final class BInstallSnapshotArgument extends Bean {
 	private long term;
 	private String leaderId; // Ip:Port

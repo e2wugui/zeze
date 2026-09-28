@@ -6,6 +6,9 @@ import javax.crypto.ShortBufferException;
 import javax.crypto.spec.SecretKeySpec;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 旧版 AES 解密 codec（与 Encrypt 配对）。
+ */
 public class Decrypt implements Codec {
 	private final @NotNull Codec sink;
 	private final @NotNull Cipher cipher;

@@ -89,14 +89,14 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			m = ((PMap2<? extends K, ? extends V>)m).getMap(); // more stable
 
 		if (isManaged()) {
-			// 双循环（对齐PMap1.putAll"先全量校验、后入日志"）：原单循环"边验边改"，靠后条目null
-			// 抛出时靠前bean的initRootInfoWithRedo/mapKey已改写——普通字段写不受事务回滚保护，
+			// 双循环（对齐PMap1.putAll"先全量校验、后入日志"）：单循环"边验边改"时，靠后条目null
+			// 抛出前靠前bean的initRootInfoWithRedo/mapKey已改写——普通字段写不受事务回滚保护，
 			// 调用方catch后复用bean即携带脏归属。
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				if (k == null)
 					throw new IllegalArgumentException("null key");
-				if (e.getValue() == null) // FND6-02：对齐put与PMap1.putAll，托管分支原在initRootInfoWithRedo解引用NPE
+				if (e.getValue() == null) // 对齐put与PMap1.putAll：null在托管分支的initRootInfoWithRedo处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null value");
 			}
 			for (var e : m.entrySet()) {
@@ -113,7 +113,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				K k = e.getKey();
 				if (k == null)
 					throw new IllegalArgumentException("null key");
-				if (e.getValue() == null) // FND6-02：非托管分支原在mapKey解引用NPE
+				if (e.getValue() == null) // null在非托管分支的mapKey处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null value");
 				e.getValue().mapKey(k);
 			}
@@ -180,7 +180,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			// 正常重放下changed只含最终map存在的key（LogMap2.buildChangedWithKey编码时已过滤
 			// removed/replaced），follower侧null即先行分歧（日志丢失/重复/交错应用）：直接递归
 			// 抛NPE，由驱动方裁决——raft路径Rocks.followerApply统一catch+fatalKill（镜像实现
-			// CollMap2同款）；History回放路径批中断（不再warn+skip尽力而为）。抛出只证明应用
+				// CollMap2同款）；History回放路径批中断而非warn+skip尽力而为。抛出只证明应用
 			// 路径无硬分歧，不证明最终数值一致（错位应用/历史缺失不抛异常），仍由
 			// Verify.verifyAndClear全量对账兜底。抛出时map未提交。
 			tmp.get(e.getKey()).followerApply(e.getValue());

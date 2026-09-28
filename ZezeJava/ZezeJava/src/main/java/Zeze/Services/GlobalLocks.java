@@ -6,7 +6,7 @@ import Zeze.Util.WeakHashSet;
 
 /**
  * <p>
- * Locks原来使用 单个容器管理锁，效率太低：
+ * 全局锁的分段（segment）容器：相同值的key得到同一个Lockey实例。
  * <p>
  * 1. 每次查询都会试图去回收; 以前java版实现一个懒惰的WeakHashSet。c# ConditionalWeakTable 使用 this==another 吧，没有调用 Equals，不能使用。
  * 2. 并发访问效率低. 通过增加segment解决。

@@ -8,21 +8,10 @@ import Zeze.Transaction.Log;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 未解码的原始 Bean：仅持有 typeId 与原始字节，编码时按透明字节原样转发。 */
 public class RawBean extends Bean {
 	private final long typeId;
 	private @NotNull Binary rawData = Binary.Empty;
-
-	/*
-	private static final @NotNull VarHandle vh_rawData;
-
-	static {
-		try {
-			vh_rawData = MethodHandles.lookup().findVarHandle(RawBean.class, "rawData", Binary.class);
-		} catch (ReflectiveOperationException e) {
-			throw Task.forceThrow(e);
-		}
-	}
-	*/
 
 	public RawBean(long typeId) {
 		this.typeId = typeId;
@@ -102,7 +91,7 @@ public class RawBean extends Bean {
 
 	@Override
 	public void followerApply(@NotNull Log log) {
-		// 本来想在这里几个日志，因为此时这个代理Bean已经没法使用了，后面肯定会知道发生了某个问题。先不记录了。
+		// 代理Bean没有可应用的字段日志，空实现。
 	}
 
 	@Override

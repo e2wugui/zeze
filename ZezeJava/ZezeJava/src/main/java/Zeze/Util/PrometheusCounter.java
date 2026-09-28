@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// ZezeCounter 的 Prometheus 实现：指标注册到 prometheus-client 并经 /metrics HTTP 暴露
 public class PrometheusCounter implements ZezeCounter {
 	private static final Logger logger = LogManager.getLogger(PrometheusCounter.class);
 
@@ -310,7 +311,7 @@ public class PrometheusCounter implements ZezeCounter {
 	public @NotNull LongObserver getRunTimeObserver(@NotNull Object key) {
 		// key归一化：Class取类名、其余toString，缓存与统计统一按字符串名聚合
 		var name = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
-		// U4-F3：以规范化后的名字作 map 键。原实现 map 按原始 name 去重、注册名却经
+		// 以规范化后的名字作 map 键。原始 name 直接去重、注册名却经
 		// builder 内部规范化，二者非单射——不同 key（如 "Foo.Bar"/"Foo-Bar"）注册出同名
 		// 指标时 register() 抛异常打穿调用方（静态初始化路径即死）。规范化取
 		// sanitizeMetricName+prometheusName 的复合（前者折 '-'/' '等、后者折 '.'，与

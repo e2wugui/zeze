@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.Arrays;
 
+// 防重放窗口（long 位图版）：环形位图记录 maxSerialId 回溯窗口内的已见 id
 public class ReplayAttackGrowRange2 extends FastLock implements ReplayAttack {
 	private static final int BITS_SHIFT = 6; // 1 << 6 = 64 (bit count for long)
 	private static final int BITS_MASK = (1 << BITS_SHIFT) - 1; // 63

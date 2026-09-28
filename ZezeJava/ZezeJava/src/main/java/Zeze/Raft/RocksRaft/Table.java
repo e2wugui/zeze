@@ -17,7 +17,7 @@ import org.rocksdb.RocksDBException;
 
 /**
  * RocksRaft 的表：{@link Record} 缓存（{@link ConcurrentLruLike}）+ RocksDB 存储的读写面。
- * 【隔离契约】普通表（未接使用方串行化）没有同 key 并发隔离：多个并发事务对同一 key
+ * 隔离契约：普通表（未接使用方串行化）没有同 key 并发隔离：多个并发事务对同一 key
  * 的读写交织在同一个缓存 Record/bean 上（无乐观冲突检测——{@code Transaction.
  * _lock_and_check_} 恒通过；无记录锁），后提交者的整值 flush 会覆盖并发方的修改，
  * 回滚也不还原内存态（见 {@link Savepoint#rollback} 的契约声明）。同 key 串行化责任
@@ -61,20 +61,20 @@ public final class Table<K, V extends Bean> {
 		} catch (RocksDBException e) {
 			throw Task.forceThrow(e);
 		}
-		// 【FND7-36联动】restore/reset重开Table时先关闭旧lruCache：其构造器注册的两个
+		// restore/reset重开Table时先关闭旧lruCache：其构造器注册的两个
 		// 周期任务（热点轮转+cleanNow）不取消的话，旧实例任务永续执行并强引用dataMap
 		//（每表最多容量条Record/Bean），随InstallSnapshot恢复/状态机重置的重开次数无界泄漏。
 		var oldLru = lruCache;
 		if (oldLru != null)
 			oldLru.close();
-		// 【FND7-14】总是安装自带在用保护的驱逐回调（生成代码注册表模板时不会传callback，
-		// 原实现走ConcurrentLruLike.cleanNow的无回调分支无条件remove，事务正在使用的记录
+		// 总是安装自带在用保护的驱逐回调（生成代码注册表模板时不会传callback，
+		// 不安装则走ConcurrentLruLike.cleanNow的无回调分支无条件remove，事务正在使用的记录
 		// 也会被驱逐）。使用方回调（如GlobalCacheManagerWithRaft）在保护检查之后执行。
 		lruCache = new ConcurrentLruLike<>(name, cacheCapacity, this::tryRemoveRecord, 200, 2000, 1024);
 	}
 
 	/**
-	 * 【FND7-36联动】关闭记录缓存内建的两个周期任务（热点轮转+cleanNow），实例随之可
+	 * 关闭记录缓存内建的两个周期任务（热点轮转+cleanNow），实例随之可
 	 * 被整体回收。由 {@link Rocks#close()} 级联调用；缓存条目不清理（实例已到生命周期末尾）。
 	 */
 	public void close() {
@@ -86,12 +86,12 @@ public final class Table<K, V extends Bean> {
 	}
 
 	/**
-	 * 【FND7-14】LRU驱逐的在用保护（对齐经典Zeze.Transaction.TableCache的驱逐语义）。
+	 * LRU驱逐的在用保护（对齐经典Zeze.Transaction.TableCache的驱逐语义）。
 	 * leader业务事务从get()拿到Record引用后原位修改其bean，提交时leaderApply经事务
 	 * 捕获的origin记录应用并flush到RocksDB——若驱逐无保护，驱逐后同key再访问会从
 	 * storage装载出旧值的新记录C：后续读经过期值，再修改提交则已提交更新被C的旧值
 	 * 全量覆盖静默丢失（follower侧单线程apply自愈，无此问题）。Record.removed标志与
-	 * getOrLoad的重试环正是为此设计（原为死代码，setRemoved零调用者）。
+	 * getOrLoad的重试环正是为此设计。
 	 * 在用（isAccessed）时拒绝驱逐；确无在用时在r.mutex内置removed=true（让并发拿到
 	 * 旧引用的getOrLoad重试换新记录）并pair-remove。
 	 */
@@ -166,7 +166,7 @@ public final class Table<K, V extends Bean> {
 		}
 	}
 
-	// 【FND-R2-8】RocksRaft的Table要求显式事务（rocks.newProcedure(...)内部）：
+	// RocksRaft的Table要求显式事务（rocks.newProcedure(...)内部）：
 	// 无事务时Transaction.getCurrent()返回null，直接解引用只会NPE且堆栈指向框架内部，
 	// 迁移自经典Zeze Table（自动隐式建事务）的代码很容易在启动初始化/后台线程/定时器
 	// 任务体里踩中；给出带表名与用法的明确错误。selectDirty是唯一例外：无事务时降级直读存储。
@@ -251,7 +251,7 @@ public final class Table<K, V extends Bean> {
 					r.setState(Record.StateLoad);
 				}
 				// else in cache
-				// 【FND7-14】在r.mutex临界区内登记在用：与驱逐回调的r.mutex互斥，
+				// 在r.mutex临界区内登记在用：与驱逐回调的r.mutex互斥，
 				// 保证调用方拿到引用时驱逐方不可能漏见在用状态。
 				r.beginAccess();
 				return r;
@@ -320,7 +320,7 @@ public final class Table<K, V extends Bean> {
 		cr.put(currentT, value);
 	}
 
-	// 几乎和Put一样，还是独立开吧。
+	// 几乎和put一样，还是独立开一个方法。
 	public void remove(K key) {
 		Transaction currentT = requireCurrentTransaction();
 		TableKey tkey = new TableKey(name, key);

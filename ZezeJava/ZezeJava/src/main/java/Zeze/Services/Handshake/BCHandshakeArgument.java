@@ -4,6 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/** CHandshake参数bean：加密类型/参数与两个方向的压缩意向。 */
 public final class BCHandshakeArgument implements Serializable {
 	public int encryptType;
 	public byte[] encryptParam = ByteBuffer.Empty;

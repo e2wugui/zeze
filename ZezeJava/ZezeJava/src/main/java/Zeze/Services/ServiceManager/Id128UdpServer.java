@@ -28,7 +28,7 @@ public class Id128UdpServer {
 	private static final @NotNull Logger logger = LogManager.getLogger(Id128UdpServer.class);
 
 	/**
-	 * FND6-28：唯一name数量上限（防御注释曾宣称但实现缺失）。该UDP端口无认证，攻击者以
+	 * 唯一name数量上限。该UDP端口无认证，攻击者以
 	 * 合法count+海量不同name可无界撑爆cache/RocksDB。合法部署的name数量=History集群名
 	 * 数量，量级极小，1024远高于任何合理用量；纯内存部署（table==null）超限拒绝整包，
 	 * 持久化部署（table!=null）逐出闲置条目自愈（见evictIdleContext）。
@@ -84,7 +84,6 @@ public class Id128UdpServer {
 	public void stop() throws Exception {
 		logger.info("stop begin");
 		udpChannel.close();
-		// worker.interrupt();
 		worker.join();
 		logger.info("stop end");
 	}
@@ -104,12 +103,12 @@ public class Id128UdpServer {
 				bbSend.Reset();
 				try {
 					while (!bbRecv.isEmpty()) {
-						// SM1-F2：解码异常单独隔离限频并丢弃剩余报文。纯垃圾报文走
+						// 解码异常单独隔离限频并丢弃剩余报文。纯垃圾报文走
 						// Rpc.decode的IllegalStateException（非IllegalArgumentException），
-						// 原落入共享catch的全栈error按包记录，FND6-28防护在最易构造的攻击
+						// 落入共享catch的全栈error会按包记录，入口防护在最易构造的攻击
 						// 向量上失效。不按异常类型放宽共享catch——那会把encode段内部故障
 						// （如RocksDB异常路径上的RuntimeException）也降级为限频单行，违背
-						// FND6-28"全栈与告警留给内部故障"的意图；decode输入完全对端可控，
+						// "全栈与告警留给内部故障"的意图；decode输入完全对端可控，
 						// 天然只覆盖攻击面。剩余报文不可信（帧边界已错乱），丢弃。
 						try {
 							rpc.decode(bbRecv);
@@ -123,7 +122,7 @@ public class Id128UdpServer {
 					}
 				} catch (Exception e) {
 					if (e instanceof IllegalArgumentException) {
-						// FND6-28补：入口校验拒绝（对端可控输入）限频记一条、不打栈——无认证
+						// 入口校验拒绝（对端可控输入）限频记一条、不打栈——无认证
 						// 端口上高频非法包按包全栈error可耗尽日志盘/CPU（日志刷屏DoS），全栈与
 						// 告警留给内部故障（RocksDB异常等）。
 						warnRejected(e);
@@ -140,7 +139,7 @@ public class Id128UdpServer {
 					if (r != sendSize)
 						logger.error("send failed: r={} != {}", r, sendSize);
 				}
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				if (!udpChannel.isOpen()) {
 					logger.info("{}: {}", e.getClass().getName(), e.getMessage());
 					break;
@@ -166,7 +165,7 @@ public class Id128UdpServer {
 	}
 
 	/**
-	 * 逐出一个未持锁的cache条目腾出槽位（FND6-28补：满员自愈）。在途分配持锁不可逐出；
+	 * 逐出一个未持锁的cache条目腾出槽位（满员自愈）。在途分配持锁不可逐出；
 	 * max推进即在锁内table.put持久化，逐出后按需经computeIfAbsent从RocksDB恢复，
 	 * 语义等同进程重启加载（put失败即进程重启同样丢失，不引入新损失类别）。
 	 * 全部条目持锁（病态并发）时失败。
@@ -198,7 +197,7 @@ public class Id128UdpServer {
 			throw new IllegalArgumentException("AllocateId128 invalid count=" + count + " name.size=" + name.size());
 		if (name.size() > 128)
 			throw new IllegalArgumentException("AllocateId128 name too long: size=" + name.size());
-		// FND6-28补：新name（cache未命中）满员时不再一律拒绝——持久化部署逐出一个闲置条目
+		// 新name（cache未命中）满员时不一律拒绝——持久化部署逐出一个闲置条目
 		// 自愈（重启冷却后cache为空，谁先请求谁占槽，一律拒绝会把合法History name锁死在
 		// rocks外，rpc超时直击finalCommit主路径）；纯内存部署无恢复手段（逐出即丢状态），
 		// 维持拒绝。竞态窗口内可能略超上限（多线程同时computeIfAbsent），有界即可。
@@ -226,7 +225,7 @@ public class Id128UdpServer {
 				context = c;
 				break; // 持锁且在册：逐出需tryLock本上下文，临界区内不会被逐出。
 			}
-			// FND6-28补（多worker前瞻）：computeIfAbsent插入后未首次上锁的窗口内，条目可被
+			// （多worker前瞻）：computeIfAbsent插入后未首次上锁的窗口内，条目可被
 			// evictIdleContext逐出、并发同name请求从rocks重建新上下文——孤儿上下文放锁重试。
 			// 不闭环则双上下文各持独立current/max分配重叠号段，孤儿的table.put还可能把max
 			// 写回旧值导致重载重发已交付区间。当前单worker不可达（worker注释「以后可能多个」）。
@@ -238,7 +237,7 @@ public class Id128UdpServer {
 			current.increment(count);
 			var max = context.max;
 			if (current.compareTo(max) > 0) {
-				// 先落库再推进内存max（AutoKey判例）：新水位至少覆盖本次交付终点；put失败
+				// 先落库再推进内存max（同AutoKey）：新水位至少覆盖本次交付终点；put失败
 				// max原地不动（丢弃的响应形成无害号洞），成功响应的号段必被已持久化水位覆盖。
 				var newMax = max.clone();
 				newMax.increment(Math.max(fund.next(), count));

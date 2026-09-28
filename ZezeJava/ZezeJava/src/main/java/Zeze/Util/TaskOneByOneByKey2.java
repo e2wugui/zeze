@@ -18,8 +18,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * 同TaskOneByOneByKey,只是用ConcurrentLinkedQueue代替ArrayDeque和锁.
- * 另外由于不用临界区,shutdown和加任务的并发很难做,所以暂时不支持shutdown,也不支持cancel了.
- * 例外：executeCyclicBarrier 的桶派发失败需要内部 canceled 收尾（FND12 util-03），见 Barrier。
+ * 另外由于不用临界区,shutdown和加任务的并发很难做,所以不支持shutdown,也不支持cancel.
+ * 例外：executeCyclicBarrier 的桶派发失败需要内部 canceled 收尾，见 Barrier。
  */
 public final class TaskOneByOneByKey2 extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
@@ -722,11 +722,11 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				executeOrRollback(task);
 		}
 
-		/** 派发并处理失败（FND7-42）：execute 抛 RuntimeException（自定义 executor 拒绝 REE、
+		/** 派发并处理失败：execute 抛 RuntimeException（自定义 executor 拒绝 REE、
 		 * 全局池停机时 poolOrThrow 的 ISE）时认领（submitted==true）已置位而 run() 没进过池——
 		 * submitted 的唯一自愈复位在 pollTask/peekTask 的消费路径里，无人消费即永不复位：
 		 * 后续 submit 的 CAS 恒失败也不再派发，该桶（及其映射的所有 key）永久卡死。
-		 * 对齐 TaskOneByOneQueue.executeOrRollback（FND5-13/FND6-07）回滚认领后按原类型重抛：
+		 * 对齐 TaskOneByOneQueue.executeOrRollback 回滚认领后按原类型重抛：
 		 * submit 路径同步反馈调用方；run/barrier 路径异常会被 executor 吞掉，回滚内 warn 保证可诊断。
 		 * 队列保留不清：Key2 无 onCancel 补偿钩子，清队列会静默丢任务；积压任务由后续
 		 * submit 重新认领派发（executor 恢复后照常执行）。 */

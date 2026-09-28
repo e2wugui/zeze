@@ -417,8 +417,8 @@ public abstract class Database extends ReentrantLock {
 			return callback.handle(k);
 		}
 
-		// 带游标遍历统一在此编码并检查 key 长度预算（FND3-02：walkKey/walkDesc 家族曾在
-		// MySql/SqlServer 整批遗漏、DatabaseMemory 一处都没有，靠后端手工复制执法不可靠）。
+		// 带游标遍历统一在此编码并检查 key 长度预算（不得依赖后端手工复制执法：
+		// walkKey/walkDesc 家族曾在 MySql/SqlServer 整批遗漏、DatabaseMemory 一处都没有）。
 		private static <K extends Comparable<K>, V extends Bean> @Nullable ByteBuffer encodeStartKeyChecked(
 				@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey) {
 			if (exclusiveStartKey == null)

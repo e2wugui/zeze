@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.concurrent.locks.ReentrantLock;
 
+// 三维空间格子的基类：持有格子状态（负数保留给内部），子类挂载格子内的对象集合
 public abstract class Cube<TObject> extends ReentrantLock {
 	public static final int StateNormal = 0;
 	public static final int StateRemoved = -1;

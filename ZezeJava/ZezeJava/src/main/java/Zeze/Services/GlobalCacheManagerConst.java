@@ -2,6 +2,9 @@ package Zeze.Services;
 
 import java.io.IOException;
 
+/**
+ * 全局缓存管理器协议共用的锁状态码与Acquire/Reduce/Cleanup错误码常量。
+ */
 public interface GlobalCacheManagerConst {
 	IOException kickException = new IOException("GlobalCacheManager kick");
 

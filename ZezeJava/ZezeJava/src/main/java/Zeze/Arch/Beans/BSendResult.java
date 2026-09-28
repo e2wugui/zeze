@@ -6,6 +6,9 @@ import Zeze.Serialize.Serializable;
 import Zeze.Util.LongList;
 import Zeze.Util.Str;
 
+/**
+ * linkd 发送协议的结果 bean：发送失败的 linkSids 列表。
+ */
 public final class BSendResult implements Serializable {
 	public static final long TYPEID = -7186434891670297524L;
 

@@ -12,6 +12,9 @@ import Zeze.Util.SimpleAssert;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
 
+/**
+ * RocksRaft 状态机测试：三节点集群上验证变更收集（Changes）、嵌套过程与换主后的数据读取。
+ */
 public final class Test {
 	public static final class Bean1 extends Bean {
 		private int _i;
@@ -415,7 +418,7 @@ public final class Test {
 		}
 	}
 
-	// 【RR3-F1】getLeader轮询的isLeader()在state置位即真，而最后一条日志要等新leader的
+	// getLeader轮询的isLeader()在state置位即真，而最后一条日志要等新leader的
 	// SetLeaderReadyEvent获多数、tryApply推进lastApplied后才落RocksDB：只读过程无任何屏障，
 	// 负载高时verifyData会读到滞后状态而偶发断言失败。轮询lastApplied>=lastIndex消除竞态
 	// （新leader追加SetLeaderReadyEvent并提交应用后两值相等且不再变动）。
@@ -478,9 +481,6 @@ public final class Test {
 
 		editAndPut(rocks, table);
 		verifyData(rocks, table, "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
-
-		// 再次运行本测试，才会执行到 LoadSnapshot。
-		// rocks.getRaft().getLogSequence().Snapshot(true);
 	}
 
 	public static void main(String[] args) throws Exception {

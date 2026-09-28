@@ -16,8 +16,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * 写少读多的List：写侧ArrayList加锁修改，读侧走不可变快照（写后首次读重建）。
- * null契约与ArrayList一致：允许null元素（FND7-39起快照为ArrayList拷贝，
- * 不再因null元素建不成）。
+ * null契约与ArrayList一致：允许null元素（快照为ArrayList拷贝，
+ * 不因null元素建不成）。
  */
 public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	private transient volatile @Nullable List<E> read;
@@ -42,7 +42,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 			writeLock.lock();
 			try {
 				if ((r = read) == null) {
-					// ArrayList 拷贝允许 null 元素（FND7-39，对齐 FewModifySortedMap 的 TreeMap 快照）：
+					// ArrayList 拷贝允许 null 元素（对齐 FewModifySortedMap 的 TreeMap 快照）：
 					// List.copyOf 遇 null 抛 NPE 且快照建不成（read 恒 null），此后任意读方法
 					// 重复抛 NPE，读侧永久瘫痪。unmodifiable 包装保持快照只读契约不弱化。
 					//noinspection Java9CollectionFactory

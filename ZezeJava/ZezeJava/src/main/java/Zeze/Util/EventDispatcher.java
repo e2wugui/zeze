@@ -5,9 +5,8 @@ import Zeze.Application;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 事件分发器：按事件注册处理器，支持嵌入/存储过程/线程三种派发模式并聚合结果码
 public class EventDispatcher {
-	// private static final @NotNull Logger logger = LogManager.getLogger(EventDispatcher.class);
-
 	@FunctionalInterface
 	public interface EventHandle {
 		long invoke(@NotNull Object sender, @NotNull EventArgument arg) throws Exception;

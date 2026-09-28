@@ -7,7 +7,9 @@ import static Zeze.Net.Encrypt2.mhCryptCtor;
 import static Zeze.Net.Encrypt2.mhCryptEncrypt;
 import static Zeze.Net.Encrypt2.mhCryptInit;
 
-// AES(CFB) Decrypt
+/**
+ * AES(CFB) 解密 codec。
+ */
 public final class Decrypt2 implements Codec {
 	private final @NotNull Object aesCrypt;
 	private final byte[] in = new byte[BLOCK_SIZE];

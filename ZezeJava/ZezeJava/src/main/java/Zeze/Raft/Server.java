@@ -25,9 +25,8 @@ import org.jetbrains.annotations.Nullable;
  * 同时配置 Acceptor 和 Connector。
  * 逻辑上主要使用 Connector。
  * 两个Raft之间会有两个连接。
- * 【注意】
  * 为了简化配置，应用可以注册协议到Server，使用同一个Acceptor进行连接。
- * 【注意】注册的应用协议必须是 RaftRpc/IRaftRpc 族（raft复制与唯一请求去重依赖
+ * 注册的应用协议必须是 RaftRpc/IRaftRpc 族（raft复制与唯一请求去重依赖
  * UniqueRequestId，非IRaftRpc注册在启动期被拒绝）；到达的非IRaftRpc流量按普通
  * 协议派发（不参与raft复制，不中断连接）。
  */
@@ -170,7 +169,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	private boolean isImportantProtocol(long typeId) {
-		return isHandshakeProtocol(typeId) // 【注意】下面这些模块的Id总是为0。
+		return isHandshakeProtocol(typeId) // 下面这些模块的Id总是为0。
 				|| typeId == PreVote.TypeId_
 				|| typeId == RequestVote.TypeId_
 				|| typeId == AppendEntries.TypeId_
@@ -178,7 +177,7 @@ public class Server extends HandshakeBoth {
 				|| typeId == LeaderIs.TypeId_;
 	}
 
-	// 【FND8-41】注册期守卫：Raft复制语义（UniqueRequestId去重/RaftApplied回放）要求
+	// 注册期守卫：Raft复制语义（UniqueRequestId去重/RaftApplied回放）要求
 	// 应用协议为IRaftRpc族；内部Raft协议与握手协议（自身不是IRaftRpc）白名单放行，
 	// 误注册拦在启动期，而非Leader态强转杀连接。
 	@Override
@@ -237,7 +236,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	/**
-	 * Raft.Server的线程派发模式总是完全
+	 * Raft.Server 的派发模式：总是完全派发（不使用事务）。
 	 */
 	@Override
 	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
@@ -262,11 +261,11 @@ public class Server extends HandshakeBoth {
 			// 这几条协议定义成了普通的用户请求，
 			// 但是这条协议不需要自己是Leader也能工作，
 			// 所以提前拦截，派发处理。see Raft::processGetLeader
-			// 【R3-F2】直接派发p.handle：原来转processRequest会强制leader-ready门槛+
+			// 直接派发p.handle：转processRequest会强制leader-ready门槛+
 			// 唯一请求createTime校验，而Agent直发不填createTime（=0），
 			// isUniqueRequestCreateTimeValid恒拒→RaftExpired，processGetLeader/processStartServer/
 			// processStopServer在唯一发送路径上不可达；保留dispatchRaftRequest包装、错误码回发
-			// 与RaftRetry错误路径（与原processRequest内的包装同构，仅去掉门槛与去重校验）。
+			// 与RaftRetry错误路径（与processRequest内的包装同构，仅去掉门槛与去重校验）。
 			dispatchRaftRequest(p, () -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle),
 							p, Protocol::trySendResultCode).call(),
 					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);
@@ -275,7 +274,7 @@ public class Server extends HandshakeBoth {
 
 		// User Request
 		if (!(p instanceof IRaftRpc raftRpc)) {
-			// 【FND8-41】非IRaftRpc协议（误注册/误发）：不裸强转——Leader态CCE从IO线程
+			// 非IRaftRpc协议（误注册/误发）：不裸强转——Leader态CCE从IO线程
 			// 一路抛出杀掉整个连接（含其上全部Raft流量）。按普通协议经基类派发：
 			// TaskSpec尊重注册的DispatchMode（不在IO线程跑handle），setNoProcedure(true)
 			// 走非事务分支；处理失败时Rpc族由trySendResultCode回错误码（普通Protocol
@@ -289,7 +288,7 @@ public class Server extends HandshakeBoth {
 				p.SendResultCode(Procedure.ErrorRequestId);
 				return;
 			}
-			//【防止重复的请求】
+			// 防止重复的请求
 			// see Log.java::LogSequence.TryApply
 			dispatchRaftRequest((RaftRpc<?, ?>)raftRpc, () -> processRequest(p, factoryHandle),
 					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);

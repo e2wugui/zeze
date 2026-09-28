@@ -2,8 +2,9 @@ package Zeze.Util;
 
 import java.util.Arrays;
 
+// 防重放窗口（可增长位图）：serialId 滑窗判定，窗口满时倍增扩容
 public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
-	// max哨兵保持0（FND4-20）：改-1会把整个滑窗位图偏移一位（既有位图状态测试全部漂移）。
+	// max哨兵保持0：改-1会把整个滑窗位图偏移一位（既有位图状态测试全部漂移）。
 	// max=0+position=0下replay(0)走后向分支（bit0未置→置位放行）即正确，仅需把<=0收窄为<0。
 	private long max;
 	private final byte[] range;
@@ -41,7 +42,7 @@ public class ReplayAttackGrowRange extends FastLock implements ReplayAttack {
 	@Override
 	public boolean replay(long serialId) {
 		if (serialId < 0)
-			return true; // invalid id（契约：serialId应该≥0，0合法——FND4-20）
+			return true; // invalid id（契约：serialId应该≥0，0合法）
 		long grow = serialId - max;
 		if (grow > Integer.MAX_VALUE)
 			return true; // 跳的太远，拒绝掉。

@@ -5,6 +5,7 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import org.jetbrains.annotations.NotNull;
 
+/** 事务 Map 日志基类：持有持久化映射的当前值，提交时整体写回。 */
 public abstract class LogMap<K, V> extends LogBean {
 	private @NotNull org.pcollections.PMap<K, V> value;
 

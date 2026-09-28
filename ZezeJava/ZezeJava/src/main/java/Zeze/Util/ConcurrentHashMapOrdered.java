@@ -22,8 +22,8 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	private final static Object deleted = new Object();
 
 	/**
-	 * queue/map/size 三组件的整体快照（FND4-14）：clear 以原子替换 state 完成，三组件间永不出中间态。
-	 * 原实现 clear 三步分离（queue.clear/map.clear/size.set(0)），与并发 put 交错时 increment 被
+	 * queue/map/size 三组件的整体快照：clear 以原子替换 state 完成，三组件间永不出中间态。
+	 * clear 三步分离（queue.clear/map.clear/size.set(0)）与并发 put 交错时 increment 会被
 	 * set(0) 永久覆盖——map 有条目而 size()==0/isEmpty()，后续 remove 再减成负数。整体替换后，
 	 * clear 竞态期间迟到 put 的增量落在废弃 state 上（对齐 CHM 自身 clear 的弱一致语义：并发更新
 	 * 下 clear 与 put 的胜负本就未定义），新 state 的计数与内容恒一致。

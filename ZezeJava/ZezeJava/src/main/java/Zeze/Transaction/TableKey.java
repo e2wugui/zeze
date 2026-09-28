@@ -4,6 +4,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 记录锁的全序键：表 id + 记录 key，按 (id,key) 字典序比较以统一加锁顺序防死锁。 */
 public final class TableKey implements Comparable<TableKey> {
 	// 用来做名字转换，不检查Table.Id唯一性。
 	public static final LongConcurrentHashMap<String> tables = new LongConcurrentHashMap<>();

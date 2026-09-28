@@ -6,7 +6,9 @@ import Zeze.Util.Json;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-// AES(CFB) Encrypt
+/**
+ * AES(CFB) 加密 codec。
+ */
 public final class Encrypt2 implements Codec {
 	static final int BLOCK_SIZE = 16;
 	static final @NotNull MethodHandle mhCryptCtor;

@@ -9,6 +9,7 @@ import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** PMap1 的只读视图：仅暴露查询与遍历，所有修改入口抛 UnsupportedOperationException。 */
 public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 	private final @NotNull PMap1<K, V> map;
 

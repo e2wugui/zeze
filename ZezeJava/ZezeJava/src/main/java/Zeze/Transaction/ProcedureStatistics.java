@@ -5,6 +5,7 @@ import Zeze.Util.TimerFuture;
 import Zeze.Util.ZezeCounter;
 import org.jetbrains.annotations.NotNull;
 
+/** 过程执行速率监视：按名称周期统计 QPS，达到阈值时触发回调（如动态降级）。 */
 public final class ProcedureStatistics {
 	private ProcedureStatistics() {
 	}

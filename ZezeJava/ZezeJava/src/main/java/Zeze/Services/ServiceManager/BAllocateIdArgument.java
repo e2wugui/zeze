@@ -4,6 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/** AllocateId请求bean：全局名与申请数量。 */
 public final class BAllocateIdArgument implements Serializable {
 	private String name;
 	private int count;

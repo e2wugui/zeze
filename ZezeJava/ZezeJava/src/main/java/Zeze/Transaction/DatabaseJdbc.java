@@ -10,6 +10,7 @@ import com.alibaba.druid.pool.DruidDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** JDBC 数据库公共基类：统一 Druid 连接池配置与 JdbcTrans 连接事务的借还管理。 */
 public abstract class DatabaseJdbc extends Database {
 	protected final DruidDataSource dataSource = new DruidDataSource();
 

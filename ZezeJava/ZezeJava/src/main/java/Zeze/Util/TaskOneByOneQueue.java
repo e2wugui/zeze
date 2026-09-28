@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 单桶串行任务队列（按 key 分桶后每桶一个）：批量调度、屏障任务、shutdown(true) 补偿与 waitComplete
 public class TaskOneByOneQueue extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneQueue.class);
 	private final @NotNull Condition cond = newCondition();
@@ -129,7 +130,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		return null;
 	}
 
-	/** 派发并处理失败（FND5-13/FND6-07）：execute在锁外与停机（Task.shutdownPools先置null再
+	/** 派发并处理失败：execute在锁外与停机（Task.shutdownPools先置null再
 	 * shutdownNow）或自定义池拒绝并发时抛RejectedExecutionException，池已置null时
 	 * poolOrThrow抛IllegalStateException——任务已入队且已认领（size==1分支），直接抛回
 	 * 会让队列非空且再无派发点（后续submit全走size!=1分支），该桶永久卡死、
@@ -138,7 +139,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		try {
 			getExecutor(mode).execute(batch);
 		} catch (RuntimeException e) {
-			// FND6-07：除RejectedExecutionException外，停机序（Task.shutdownPools先置null
+			// 除RejectedExecutionException外，停机序（Task.shutdownPools先置null
 			// 再等待）与在飞派发并发时getExecutor的poolOrThrow抛IllegalStateException——
 			// ISE逃出原REE catch即无人回滚，队列非空且再无派发点，桶永久卡死、
 			// waitComplete永等。派发失败形态统一回滚善后，按原类型重抛。
@@ -160,7 +161,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			cancelCount = cancels.size();
 			queue = new ArrayDeque<>();
 			batch.count = 0; // 认领作废
-			// FND6-07：pendingCancelCount挡住waitComplete直到补偿执行完（对齐runNext的
+			// pendingCancelCount挡住waitComplete直到补偿执行完（对齐runNext的
 			// shutdown-cancel路径）——否则signalAll后等待者即放行，停机流程可能在补偿
 			// （onCancel承担重复发货/重复扣款类二次处理的守护语义）完成前推进甚至退出进程。
 			pendingCancelCount++;

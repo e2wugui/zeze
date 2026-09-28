@@ -6,6 +6,9 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * WebSocket 事件回调接口。
+ */
 @SuppressWarnings("RedundantThrows")
 public interface HttpWebSocketHandle {
 	default void onOpen(@NotNull HttpExchange x) throws Exception {

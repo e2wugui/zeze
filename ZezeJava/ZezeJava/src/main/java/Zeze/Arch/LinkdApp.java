@@ -14,13 +14,16 @@ import Zeze.Util.CommandConsoleService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Linkd 应用组装入口：聚合 LinkdService、LinkdProvider 与负载上报，并向服务管理器注册链接服务。
+ */
 public class LinkdApp {
 	public final @NotNull String linkdServiceName;
 	public final @NotNull Application zeze;
 	public final @NotNull LinkdProvider linkdProvider;
 	public final @NotNull LinkdProviderService linkdProviderService;
 	public final @NotNull LinkdService linkdService;
-	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
+	// 这两个参数可以自动设置，但不够可靠，生产环境最好手动设置。
 	public final @NotNull String providerIp;
 	public int providerPort;
 	public @Nullable Action1<ServerSocket> onServerSocketBindAction;

@@ -130,7 +130,7 @@ public class ProviderUserSession {
 			send.Send(link);
 			return;
 		}
-		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠了，先这样写着吧。
+		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠。
 		var connector = getService().getLinks().get(getLinkName());
 		if (connector != null && connector.isHandshakeDone()) {
 			dispatch.setSender(link = connector.getSocket());
@@ -194,7 +194,7 @@ public class ProviderUserSession {
 		var link = getLink();
 		if (link != null && !link.isClosed())
 			return sendOnline(link, send);
-		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠了，先这样写着吧。
+		// 可能发生了重连，尝试再次查找发送。网络断开以后，linkSid已经不可靠。
 		var connector = getService().getLinks().get(getLinkName());
 		if (connector != null && connector.isHandshakeDone()) {
 			dispatch.setSender(link = connector.getSocket());
@@ -263,7 +263,7 @@ public class ProviderUserSession {
 		Transaction.whileCommit(() -> sendResponse(p));
 	}
 
-	// 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
+	// 这个方法用来优化广播协议。不能用于Rpc。
 	@SuppressWarnings("unused")
 	@Deprecated
 	protected void sendResponseWhileRollback(long typeId, @NotNull Binary fullEncodedProtocol) {

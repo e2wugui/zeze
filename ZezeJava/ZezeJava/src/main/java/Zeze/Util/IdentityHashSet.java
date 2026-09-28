@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 引用相等（identity）语义的开放寻址哈希 Set：System.identityHashCode 探测，非线程安全
 public class IdentityHashSet<T> implements Cloneable {
 	private int size;
 	private @Nullable T @NotNull [] keyTable;
@@ -87,8 +88,8 @@ public class IdentityHashSet<T> implements Cloneable {
 
 	public boolean containsAll(@NotNull Collection<?> c) {
 		for (Object e : c)
-			if (e == null || !contains(e)) // U2-F3：本集合契约上永不含null（add参数即@NotNull），
-				// null元素按 JDK Set.containsAll 语义返回"不包含"——原 e!=null 短路把null误判为已包含
+			if (e == null || !contains(e)) // 本集合契约上永不含null（add参数即@NotNull），
+				// null元素按 JDK Set.containsAll 语义返回"不包含"
 				return false;
 		return true;
 	}
@@ -193,7 +194,7 @@ public class IdentityHashSet<T> implements Cloneable {
 	}
 
 	private void resize(int newSize) {
-		if (newSize < 0) // 1<<30再左移溢出为负（FND5-08，FND4-19姊妹点）：显式契约而非NegativeArraySizeException
+		if (newSize < 0) // 1<<30再左移溢出为负：显式契约而非NegativeArraySizeException
 			throw new IllegalStateException("IdentityHashSet capacity limit reached: " + (1 << 30));
 		int m = newSize - 1;
 		threshold = (int)(newSize * loadFactor);
@@ -234,7 +235,7 @@ public class IdentityHashSet<T> implements Cloneable {
 			if (k != null)
 				a[i++] = (A)k;
 		if (a.length > size)
-			a[size] = null; // Collection契约：容量富余时size紧邻槽位置null，供调用方判定结束点（FND4-15）
+			a[size] = null; // Collection契约：容量富余时size紧邻槽位置null，供调用方判定结束点
 		return a;
 	}
 

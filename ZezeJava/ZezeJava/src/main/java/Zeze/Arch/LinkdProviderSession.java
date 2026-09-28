@@ -6,6 +6,9 @@ import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 
+/**
+ * Linkd 侧 Provider 连接会话：记录 Provider 宣告信息与其上绑定的 LinkSession、静态/动态模块集合。
+ */
 public class LinkdProviderSession extends ProviderSession {
 	protected BAnnounceProviderInfo.Data info;
 
@@ -26,8 +29,8 @@ public class LinkdProviderSession extends ProviderSession {
 	protected final ConcurrentHashSet<Integer> staticBinds = new ConcurrentHashSet<>(); // <moduleId>
 
 	/**
-	 * 维护此Provider通过Subscribe注册的动态模块，用来在Provider关闭的时候清理localStates。
-	 * （Subscribe写入的localStates此前没有删除点，连接关闭后死sessionId状态永久残留。）
+	 * 维护此Provider通过Subscribe注册的动态模块，用来在Provider关闭的时候清理localStates
+	 * （否则Subscribe写入的localStates在连接关闭后残留死sessionId状态）。
 	 */
 	protected final ConcurrentHashSet<Integer> dynamicSubscribes = new ConcurrentHashSet<>(); // <moduleId>
 
@@ -85,7 +88,6 @@ public class LinkdProviderSession extends ProviderSession {
 				if (linkSids.remove(linkSessionId)) {
 					// 下线时Provider会进行统计，这里避免二次计数，
 					// 没有扣除不会有问题，本来Load应该总是由Provider报告的。
-					// --Load.Online;
 					if (linkSids.isEmpty())
 						linkSessionIds.remove(moduleId);
 				}

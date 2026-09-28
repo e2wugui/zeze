@@ -1,5 +1,8 @@
 package Zeze.Arch;
 
+/**
+ * 负载报告配置：上报周期、消化延迟、在线数阈值与 Linkd 数量估算等参数。
+ */
 public class LoadConfig {
 	private int maxOnlineNew = 100;
 	private int approximatelyLinkdCount = 100; // 大致的Linkd数量。在Provider报告期间，用来估算负载均衡。
@@ -13,9 +16,8 @@ public class LoadConfig {
 	}
 
 	public final void setMaxOnlineNew(int value) {
-		// FND8-90（加固二）：0会让LoadBase.onTimerTask的消化延迟除法除零断链（纵深防护
-		// 已用Math.max兜底，此处再拒绝非法值）。"禁新增"语义由消费端onlineNew>maxOnlineNew
-		// 门承担，应用以1表达近似语义。主源码零调用方，无兼容性破坏。
+		// 0 会让 LoadBase.onTimerTask 的消化延迟除法除零断链（纵深防护已用 Math.max 兜底，此处再拒绝非法值）。
+		// "禁新增"语义由消费端 onlineNew>maxOnlineNew 门承担，应用以 1 表达近似语义。
 		if (value <= 0)
 			throw new IllegalArgumentException("maxOnlineNew must be > 0");
 		maxOnlineNew = value;

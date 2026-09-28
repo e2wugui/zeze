@@ -124,7 +124,7 @@ public class InMemoryJavaCompiler {
 
 	// 同实例对已define名字的二次编译：defineCompiled直调findClass（不经loadClass的
 	// findLoadedClass缓存），重复defineClass必LinkageError，二次编译的字节码还与已
-	// 定义身份错配——编译入口fail-fast（FND8-11）。redirect流程不会合法走到这里（热
+	// 定义身份错配——编译入口fail-fast。redirect流程不会合法走到这里（热
 	// 产物define进各代HotModule，冷名字先被genClassMap/classpath装载拦截），命中即
 	// 装载器混用；换新实例或加载器仅适用于直接复用本工具类、确需新身份的场景。
 	private void checkNotDefined(String className) {

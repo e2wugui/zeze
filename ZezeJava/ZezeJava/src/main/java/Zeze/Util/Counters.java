@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 简单命名计数器集合：周期输出各计数与增量报告
 public class Counters extends ReentrantLock {
 	private static volatile boolean enable;
 

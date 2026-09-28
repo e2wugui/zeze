@@ -39,7 +39,6 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 	public HotModule(HotManager parent, String namespace, File jarFile) throws Exception {
 		super(namespace, parent);
 		this.jarFile = jarFile;
-		//this.jar = new JarFile(jarFile);
 		// App.ModuleClassName：MySolution.MyName.ModuleMyName，namespace=MySolution.MyName
 		// MyName 一般就叫模块名字。
 		var moduleClassName = namespace + ".Module" + last(namespace);
@@ -96,7 +95,7 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 		return service;
 	}
 
-	// start 用来初始化，还没想好可能需要的初始化。
+	// start 用来初始化。
 	public void start() throws Exception {
 		if (null == this.jar)
 			this.jar = new JarFile(jarFile);
@@ -188,7 +187,7 @@ public class HotModule extends ClassLoader implements AutoCloseable, GenModule.R
 		String classFileName = className.replace('.', '/') + ".class";
 		ZipEntry entry;
 		try {
-			// 构造器会调loadClass，此时jar可能尚未打开（7e8403ab8延迟打开），必须走lazy的getJarFile
+			// 构造器会调loadClass，此时jar可能尚未打开（延迟打开），必须走lazy的getJarFile
 			entry = getJarFile().getEntry(classFileName);
 		} catch (IOException e) {
 			throw new RuntimeException(e);

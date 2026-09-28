@@ -8,6 +8,9 @@ import Zeze.Services.HandshakeServer;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
 
+/**
+ * RedoQueue 的服务端：接收 RunTask，按 prevTaskId 幂等地执行注册的任务处理谓词。
+ */
 public class RedoQueueServer extends AbstractRedoQueueServer {
 	private final ConcurrentHashMap<String, LongConcurrentHashMap<Predicate<Binary>>> handles = new ConcurrentHashMap<>();
 	private final Server server;
@@ -63,10 +66,10 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		public Server(Application zeze) {
 			super("RedoQueueServer", zeze);
 		}
-		// 不覆写dispatchProtocol（CP1-F2）：基类对事务级协议copy网络buffer后
+		// 不覆写dispatchProtocol：基类对事务级协议copy网络buffer后
 		// 在procedure内重解码（Service.dispatchProtocol(long,ByteBuffer,...)），redo安全且
 		// 不异步引用可回收的网络缓冲；RunTask的factoryHandle.Level默认Serializable，
-		// 事务语义与原覆写一致。原覆写在procedure内直接设bb.ReadIndex=0重解码网络buffer，
+		// 事务语义与覆写一致。在procedure内直接设bb.ReadIndex=0重解码网络buffer，
 		// 派发入池后缓冲可能被回收复用，解码出错误协议内容。
 	}
 }

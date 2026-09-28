@@ -4,6 +4,9 @@ import Zeze.Builtin.Game.Online.BLocal;
 import Zeze.Util.EventDispatcher;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 本地在线移除事件的参数：roleId 与移除时的本地在线数据。
+ */
 public class LocalRemoveEventArgument implements EventDispatcher.EventArgument {
 	public final long roleId;
 	public final @Nullable BLocal local;

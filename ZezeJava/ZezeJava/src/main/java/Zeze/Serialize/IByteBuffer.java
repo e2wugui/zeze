@@ -13,6 +13,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** Zeze 缓冲区读取接口：定义变长整数、向量、Bean 及未知字段的解码与跳过协议。 */
 public interface IByteBuffer {
 	boolean IGNORE_INCOMPATIBLE_FIELD = false; // 不忽略兼容字段则会抛异常
 

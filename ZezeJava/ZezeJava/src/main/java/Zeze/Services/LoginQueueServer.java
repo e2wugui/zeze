@@ -21,10 +21,14 @@ import Zeze.Util.Random;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 登录队列服务端：向provider/linkd分发secret并接收负载上报，按负载选择服务器，
+ * 签发加密登录令牌供LoginQueue分配。
+ */
 public class LoginQueueServer extends AbstractLoginQueueServer {
-    // 令牌防伪依赖secretKey/secretIv保密：必须CSPRNG——原ThreadLocalRandom可离线穷举
-    // 伪造任意serverId/expireTime令牌（FND7-20）。secret经AnnounceSecret分发给所有可达
-    // 内部对端（linkd与全部provider），保密边界是部署层端口可达性而非访问控制（FND16 svc-02）。
+    // 令牌防伪依赖secretKey/secretIv保密：必须CSPRNG——ThreadLocalRandom可被离线穷举后
+    // 伪造任意serverId/expireTime令牌。secret经AnnounceSecret分发给所有可达
+    // 内部对端（linkd与全部provider），保密边界是部署层端口可达性而非访问控制。
     private static final SecureRandom secureRandom = new SecureRandom();
 
     private static Binary nextSecretBinary() {
@@ -35,8 +39,8 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
     private final ConcurrentHashMap<AsyncSocket, BServerLoad.Data> providers = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<AsyncSocket, BServerLoad.Data> links = new ConcurrentHashMap<>();
-    // S3-F1：负载登记与关闭清理的串行锁（对齐姊妹类ServiceManagerServer的editLock+FND5-29
-    // 判活纪律）。Report*经DispatchMode.Normal跑在worker线程，与IO线程的OnSocketClose竞态：
+    // 负载登记与关闭清理的串行锁（对齐姊妹类ServiceManagerServer的editLock与判活纪律）。
+    // Report*经DispatchMode.Normal跑在worker线程，与IO线程的OnSocketClose竞态：
     // 迟到的上报在清理remove之后重新put即产生永久幽灵条目（死服务器持续被choice分配且
     // 永不回收）。锁内判活（GetSocket==sender）+锁内清理互相串行化后：判活通过⟹清理未开始
     // （NetServer.OnSocketClose先从socketMap摘除再回调onClose，摘除后判活必失败），
@@ -45,7 +49,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     private final LoginQueueService service;
     private final LoginQueue loginQueue;
 
-    /** S3-F1：锁内判活（见editLock注释）。死会话的迟到上报静默丢弃（Report*非Rpc，
+    /** 锁内判活（见editLock注释）。死会话的迟到上报静默丢弃（Report*非Rpc，
      * 死连接本就收不到应答）。 */
     private boolean isSenderAlive(@NotNull AsyncSocket sender) {
         return service.GetSocket(sender.getSessionId()) == sender;
@@ -119,7 +123,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
 
     public static BToken.Data decodeToken(BSecret.Data secret, Binary token) {
-        // 双试探+语义校验（FND8-65，判别式见下方迁移注释）：先按新格式（IV=前16B）解并验
+        // 双试探+语义校验（判别式见下方迁移注释）：先按新格式（IV=前16B）解并验
         // BToken合法性与语义，失败再按旧格式（secretIv）解并验，均败则拒。
         var bytes = token.bytesUnsafe();
         var offset = token.getOffset();
@@ -159,17 +163,17 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         }
     }
 
-    // FND8-65（FND7-20复审R3既定决策落地）：IV不再随进程固定复用——固定IV的AES-CBC是
-    // 确定性加密（IND-CPA不成立）。对抗复核已证伪具体的跨令牌泄露通道（BToken首字段是
-    // 每令牌唯一递增的serialId，任意两令牌首块明文必不同），本修复属密码学卫生。
-    // 令牌格式改为 IV(16字节)||AES-CBC-PKCS5(key,IV,明文)；弃AES-GCM（nonce复用后果
+    // IV不随进程固定复用——固定IV的AES-CBC是确定性加密（IND-CPA不成立）。
+    // （具体的跨令牌泄露通道已证伪：BToken首字段是每令牌唯一递增的serialId，
+    // 任意两令牌首块明文必不同；本设计属密码学卫生。）
+    // 令牌格式为 IV(16字节)||AES-CBC-PKCS5(key,IV,明文)；弃AES-GCM（nonce复用后果
     // 灾难性、无现成GCM管线，CBC+随机IV对本威胁模型已足够且是最小改动），弃"按天轮换IV"
     // （需重发AnnounceSecret+linkd双IV窗口，同为linkd联动且天内仍复用，劣于per-token）。
-    // 迁移判别（对抗修正：BToken是变长编码，旧密文可为16B或32B，新格式总长=16+旧，
+    // 迁移判别（BToken是变长编码，旧密文可为16B或32B，新格式总长=16+旧，
     // 32B在双格式并存窗口二义，纯长度判别不成立）：解码端双试探+语义校验（见decodeToken），
     // 误判只会落在已过期令牌上，由expireTime新鲜度+linkServerId==本机校验兜底；
     // 旧格式全程可解（编码端可随时回退）。
-    // AnnounceSecret协议不变：secretKey仍16字节；secretIv在新格式下不再参与编码，
+    // AnnounceSecret协议不变：secretKey仍16字节；secretIv在新格式下不参与编码，
     // 迁移期保留供旧令牌解码，全部升级后可从BSecret移除。
     private static final String AES_CBC_PKCS5 = "AES/CBC/PKCS5Padding";
     private static final int TOKEN_IV_SIZE = 16;
@@ -177,7 +181,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
     public static byte[] encrypt(BSecret.Data secret, byte[] bytes, int offset, int size) throws Exception {
         var keySpec = new SecretKeySpec(secret.getSecretKey().bytesUnsafe(), "AES");
-        // per-token随机IV前缀（FND8-65）：输出=IV||密文
+        // per-token随机IV前缀：输出=IV||密文
         var iv = new byte[TOKEN_IV_SIZE];
         tokenIvRandom.nextBytes(iv);
 
@@ -206,7 +210,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 	protected long ProcessReportProviderLoad(Zeze.Builtin.LoginQueueServer.ReportProviderLoad r) throws Exception {
 		editLock.lock();
 		try {
-			if (!isSenderAlive(r.getSender())) // S3-F1：迟到上报，会话已清理——拒绝防死服务器复活
+			if (!isSenderAlive(r.getSender())) // 迟到上报，会话已清理——拒绝防死服务器复活
 				return 0;
 			r.getSender().setUserState(providers);
 			providers.put(r.getSender(), r.Argument);
@@ -222,7 +226,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 	protected long ProcessReportLinkLoad(Zeze.Builtin.LoginQueueServer.ReportLinkLoad r) throws Exception {
 		editLock.lock();
 		try {
-			if (!isSenderAlive(r.getSender())) // S3-F1：同上
+			if (!isSenderAlive(r.getSender())) // 同上
 				return 0;
 			r.getSender().setUserState(links);
 			links.put(r.getSender(), r.Argument);

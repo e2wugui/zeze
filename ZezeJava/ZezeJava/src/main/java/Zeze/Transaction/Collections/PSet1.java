@@ -71,7 +71,7 @@ public class PSet1<V> extends PSet<V> {
 			return setLog.addAll(c);
 		}
 		// MapPSet.plusAll恒新建包装（same-instance前提不成立），逐项plus判定真实变化：
-		// 单项plus无变化时返回同一实例（FND7-08），全已存在时正确返回false。
+		// 单项plus无变化时返回同一实例，全已存在时正确返回false。
 		var newSet = set;
 		for (V v : c)
 			newSet = newSet.plus(v);
@@ -90,7 +90,7 @@ public class PSet1<V> extends PSet<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return setLog.removeAll((Collection<? extends V>)c);
 		}
-		// 同addAll：MapPSet.minusAll恒新建包装，逐项minus判定真实变化（FND7-08）。
+		// 同addAll：MapPSet.minusAll恒新建包装，逐项minus判定真实变化。
 		var newSet = set;
 		for (Object v : c)
 			newSet = newSet.minus(v);

@@ -5,6 +5,9 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Bean 修改的聚合日志：按 variableId 汇集各字段的子日志，提交时逐级向上收集成日志树。
+ */
 public class LogBean extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.hash32("Zeze.Raft.RocksRaft.LogBean");
 

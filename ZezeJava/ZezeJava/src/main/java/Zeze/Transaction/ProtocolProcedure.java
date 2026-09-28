@@ -6,6 +6,7 @@ import Zeze.Util.FuncLong;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 由协议处理函数发起的过程：额外携带协议类名与原始参数，供 History 记录变更来源。 */
 public class ProtocolProcedure extends Procedure {
 	private final @NotNull String protocolClassName;
 	private final @NotNull Binary protocolRawArgument;

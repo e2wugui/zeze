@@ -6,6 +6,7 @@ import java.util.function.LongConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// long 基本类型开放寻址哈希 Set（0 键走特例槽），非线程安全
 public class LongHashSet implements Cloneable {
 	private int size;
 	private long @NotNull [] keyTable;
@@ -185,7 +186,7 @@ public class LongHashSet implements Cloneable {
 	}
 
 	private void resize(int newSize) {
-		if (newSize < 0) // 1<<30再左移溢出为负（FND4-19）：显式契约而非NegativeArraySizeException
+		if (newSize < 0) // 1<<30再左移溢出为负：显式契约而非NegativeArraySizeException
 			throw new IllegalStateException("LongHashSet capacity limit reached: " + (1 << 30));
 		threshold = (int)(newSize * loadFactor);
 		int m = newSize - 1;

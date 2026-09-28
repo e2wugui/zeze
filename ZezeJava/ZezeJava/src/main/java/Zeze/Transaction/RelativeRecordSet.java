@@ -45,7 +45,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		if (h == null)
 			history = new History(logChanges);
 		else
-			h.addLogChanges(logChanges); // 这是锁内的，可以不考虑这个警告。怎么去除？
+			h.addLogChanges(logChanges); // 这是锁内的，可以不考虑这个警告。
 	}
 
 	@Nullable HashSet<Record> getRecordSet() {
@@ -69,9 +69,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	private void merge(@NotNull Record r) {
-		//if (r.getRelativeRecordSet().RecordSet != null)
-		//    return; // 这里仅合并孤立记录。外面检查。
-
 		if (recordSet == null)
 			recordSet = new HashSet<>();
 		recordSet.add(r);
@@ -123,7 +120,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	static void tryUpdateAndCheckpoint(@NotNull Transaction trans, @NotNull Procedure procedure,
 									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
 									   @NotNull Callable<BLogChanges.Data> collectChanges) throws Exception {
-		// FND7-54：入口拒绝——终检点已过（checkpoint==null）时修改无法保证落库，
+		// 入口拒绝——终检点已过（checkpoint==null）时修改无法保证落库，
 		// 显式抛RejectWhileStopping（perform转为Closed），不执行commit后静默丢弃（假成功）。
 		if (procedure.getZeze().getCheckpoint() == null)
 			throw new Transaction.RejectWhileStopping("commit rejected while stopping: " + procedure.getActionName());
@@ -136,12 +133,12 @@ public final class RelativeRecordSet extends ReentrantLock {
 				logChanges = collectChanges.call();
 				var checkpoint = procedure.getZeze().getCheckpoint();
 				if (checkpoint == null)
-					// FND7-54：修改已应用但终检点恰在此间过去，无法落库——显式失败优于静默假成功。
+					// 修改已应用但终检点恰在此间过去，无法落库——显式失败优于静默假成功。
 					throw new Transaction.RejectWhileStopping(
 							"immediate flush rejected while stopping: " + procedure.getActionName());
 				checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
 			} catch (Throwable ex) {
-				// FND8-18：修改已应用（commit.run）而收集/落库失败——runOnce对Immediately是no-op，
+				// 修改已应用（commit.run）而收集/落库失败——runOnce对Immediately是no-op，
 				// perform的halt兜底刷不到这批"已应用未落库"的数据。趁记录锁未释放（holdLocks在
 				// finalCommit返回后才清）用同一入口做一次受控补刷：成功则数据已落库，fatal记原异常
 				// 后吞掉继续；再失败则重抛原异常走halt（DB硬故障，明确接受丢失）。
@@ -161,21 +158,12 @@ public final class RelativeRecordSet extends ReentrantLock {
 			return; // done
 		}
 
-//		case Period:
-//			if (onzProcedure != null)
-//				throw new RuntimeException("Onz Procedure Not Supported On Period Mode.");
-//			commit.run();
-//			collectChanges.call(); // skip result, 这个模式不支持History.
-//			return; // done
-
 		default:
 			break;
 		}
 
 		// CheckpointMode.Table
 		boolean needFlushNow = onzProcedure != null; // 此参数存在即表示Onz.eFlushImmediately。
-		//boolean allCheckpointWhenCommit = true;
-
 		var all = new TreeMap<Long, RelativeRecordSet>();
 		var transAccessRecords = new HashSet<Record>();
 		boolean allRead = true;
@@ -189,30 +177,12 @@ public final class RelativeRecordSet extends ReentrantLock {
 				if (ar.dirty) {
 					needFlushNow = true;
 				}
-			//} else {
-			//	allCheckpointWhenCommit = false;
 			}
 			// 读写都需要收集。
 			transAccessRecords.add(record);
 			var volatileRrs = record.getRelativeRecordSet();
 			all.putIfAbsent(volatileRrs.id, volatileRrs);
 		}
-
-		/*
-		if (allCheckpointWhenCommit) {
-			// && procedure.Zeze.Config.CheckpointMode != CheckpointMode.Period
-			// CheckpointMode.Period上面已经处理了，此时不会是它。
-			// 【优化】，事务内访问的所有记录都是Immediately的，马上提交，不需要更新关联记录集合。
-			commit.run();
-			var logChanges = collectChanges.call();
-			var checkpoint = procedure.getZeze().getCheckpoint();
-			if (checkpoint != null)
-				checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
-			// 这种情况下 RelativeRecordSet 都是空的。
-			//logger.Debug($"allCheckpointWhenCommit AccessedCount={trans.AccessedRecords.Count}");
-			return;
-		}
-		*/
 
 		var locked = new ArrayList<RelativeRecordSet>();
 		try {
@@ -229,38 +199,37 @@ public final class RelativeRecordSet extends ReentrantLock {
 					if (needFlushNow) {
 						var checkpoint = procedure.getZeze().getCheckpoint();
 						if (checkpoint == null)
-							// FND7-54：needFlushNow的修改已应用但终检点已过，无法落库——显式失败。
+							// needFlushNow的修改已应用但终检点已过，无法落库——显式失败。
 							throw new Transaction.RejectWhileStopping(
 									"flush-now rejected while stopping: " + procedure.getActionName());
 						if (mergedSet.recordSet != null) {
 							checkpoint.flush(mergedSet);
 						} else if (onzProcedure != null) {
-							// T4-F1：孤立mergedSet（只读/全默认值访问不合并）不会被flush(RelativeRecordSet)
+							// 孤立mergedSet（只读/全默认值访问不合并）不会被flush(RelativeRecordSet)
 							// 下传握手，Onz参与方永不发FlushReady，协调者每笔等满flushTimeout后降级。
 							// 在此直接补发，语义对齐Immediately模式的flush(空记录集, Set.of(onz), null)。
 							OnzProcedure.sendFlushAndWait(Set.of(onzProcedure));
 						}
 						mergedSet.delete();
-						//logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
 					} else if (mergedSet.recordSet != null) {
 						// mergedSet 合并结果是孤立的，不需要Flush。
 						// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
 						var checkpoint = procedure.getZeze().getCheckpoint();
 						if (checkpoint == null)
-							// FND7-54：修改已应用但无法注册待flush脏集（注册不了=孤儿脏集必丢）——
+							// 修改已应用但无法注册待flush脏集（注册不了=孤儿脏集必丢）——
 							// 显式失败，不静默跳过。
 							throw new Transaction.RejectWhileStopping(
 									"rrs register rejected while stopping: " + procedure.getActionName());
 						checkpoint.relativeRecordSetMap.add(mergedSet);
 					}
 				} catch (Throwable ex) {
-					// FND8-18：修改已应用（commit.run）而收集/落库失败——原代码此处直接向上抛，
+					// 修改已应用（commit.run）而收集/落库失败——直接向上抛则
 					// mergedSet不进relativeRecordSetMap，perform的halt兜底checkpointRun只遍历map，
 					// 已应用的脏数据（含_merge_并入的存量脏集）无任何落库通道，halt后丢失。
 					// 把mergedSet注册进map交给后台checkpoint重试后再重抛：mergedSet锁全程由本线程
 					// 持有（finally统一释放），map为ConcurrentHashSet，注册并发安全；flush失败时
 					// flushInternal已回滚DB事务、记录保持dirty，正是"保留dirty留待重试"的既有语义。
-					// 停机中（checkpoint==null，RejectWhileStopping）无注册通道，维持FND7-54语义。
+					// 停机中（checkpoint==null，RejectWhileStopping）无注册通道，维持停机拒绝语义。
 					if (mergedSet.recordSet != null) {
 						var checkpoint = procedure.getZeze().getCheckpoint();
 						if (checkpoint != null)
@@ -271,8 +240,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 			} else {
 				// 本次事务没有访问任何数据，也要执行提交，否则 whileCommit 回调会丢失。
 				commit.run();
-				// T4-F1：空记录集的Onz参与方同样要完成FlushReady握手（Immediately模式对空记录集
-				// 无条件握手，Table模式原先遗漏），否则协调者waitFlushDone计数永不满足，
+				// 空记录集的Onz参与方同样要完成FlushReady握手（Immediately模式对空记录集
+				// 无条件握手，Table模式不可遗漏），否则协调者waitFlushDone计数永不满足，
 				// 每笔等满flushTimeout后降级（放行+全参与方checkpoint）。
 				if (onzProcedure != null)
 					OnzProcedure.sendFlushAndWait(Set.of(onzProcedure));
@@ -353,13 +322,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 			}
 		}
 
-		/*
-		var groupLocked = new ArrayList<TreeMap<String, ArrayList<Object>>>();
-		var groupTrans = new TreeMap<String, ArrayList<Object>>();
-		build(locked, groupLocked);
-		build(trans, groupTrans);
-		*/
-
 		// merge all other set to largest
 		for (var r : locked) {
 			if (r != largest) // skip self
@@ -376,7 +338,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 					largest.merge(record); // 合并孤立记录。这里包含largest是孤立记录的情况。
 			}
 		}
-		//verify(groupLocked, groupTrans, largest);
 		return largest;
 	}
 
@@ -441,14 +402,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 				// flush 后进入这个状态。此时表示旧的关联集合的checkpoint点已经完成。
 				// 但仍然需要重新获得当前事务中访问的记录的rrs。
 				// 进入 deleted 以后，rrs.recordSet 不再发生变化。只读，锁外使用。
-				//Checkpoint.logger.info("deleted rrs=" + rrs.id);
 				for (var r : transAccessRecords) {
 					//noinspection DataFlowIssue
 					if (rrs.recordSet.contains(r)) {
 						var volatileTmp = r.getRelativeRecordSet();
 						all.putIfAbsent(volatileTmp.id, volatileTmp);
-						//if (all.putIfAbsent(volatileTmp.id, volatileTmp) == null)
-						//	Checkpoint.logger.info("deleted rrs=" + rrs.id + " get rrs=" + volatileTmp.id);
 					}
 				}
 				return false;
@@ -459,21 +417,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 		locked.add(rrs);
 		return true;
 	}
-
-	/*
-	private static void FlushAndDelete(Checkpoint checkpoint, RelativeRecordSet rrs) {
-		rrs.Lock();
-		try {
-			if (rrs.MergeTo == null) {
-				checkpoint.Flush(rrs);
-				rrs.Delete();
-			}
-			checkpoint.RelativeRecordSetMap.remove(rrs);
-		} finally {
-			rrs.UnLock();
-		}
-	}
-	*/
 
 	static class FlushSet {
 		private final @NotNull Checkpoint checkpoint;
@@ -511,23 +454,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 					//noinspection DataFlowIssue
 					nr += rrs.recordSet.size();
 				}
-				/*
-				if (checkpoint.zeze.getConfig().isHistory()) {
-					for (var rrs : sortedRrs.values()) {
-						rrs.lock();
-						locks.add(rrs);
-						//noinspection DataFlowIssue
-						nr += rrs.recordSet.size();
-					}
-				} else {
-					for (var rrs : sortedRrs.values()) {
-						rrs.lock();
-						locks.add(rrs);
-						//noinspection DataFlowIssue
-						nr += rrs.recordSet.size();
-					}
-				}
-				*/
 				var rs = new ArrayList<Record>(nr);
 				var onzProcedures = new HashSet<OnzProcedure>();
 				History history = null;
@@ -536,25 +462,19 @@ public final class RelativeRecordSet extends ReentrantLock {
 						continue; // merged or deleted
 					rs.addAll(rrs.recordSet);
 					history = History.merge(history, rrs.getHistory());
-					// 恢复被注释的onz聚集（f3c3bf129遗留，原行addAll(null)会NPE故需判空）：
+					// 恢复onz聚集（判空后addAll，直接addAll(null)会NPE）：
 					// 正常流程带onz的rrs恒为flush-now（needFlushNow=onzProcedure!=null）不进
-					// relativeRecordSetMap，此处恒为空集；唯一的真实到达路径是FND8-18的失败
+					// relativeRecordSetMap，此处恒为空集；唯一的真实到达路径是失败
 					// 重注册——needFlushNow的flush失败后mergedSet（可携带onzProcedures且握手
 					// 可能未完成）被重新注册进map，此后Merge模式经FlushSet重试落库。不聚集则
 					// 重试永不补发FlushReady，协调者每笔等满flushTimeout后降级，两段式提交被
-					// 静默绕过（与T4-F1补孤立/空记录集握手的意图矛盾）。锁域安全：本循环持有
-					// 全部成员rrs锁，addOnzProcedures的写与merge()的转移（:105）互斥；被
+					// 静默绕过（与补孤立/空记录集握手的意图矛盾）。锁域安全：本循环持有
+					// 全部成员rrs锁，addOnzProcedures的写与merge()的转移互斥；被
 					// mergeTo跳过的成员其onz已转移至存活者，不丢不重（HashSet去重）。
 					var onz = rrs.getOnzProcedures();
 					if (onz != null)
 						onzProcedures.addAll(onz);
 				}
-				/*
-				var debug = new java.util.HashMap<String, ArrayList<Object>>();
-				for (var r : rs)
-					debug.computeIfAbsent(r.getTable().getName(), __ -> new ArrayList<>()).add(r.getObjectKey());
-				Checkpoint.logger.info(debug.toString() + sortedRrs.keySet());
-				*/
 
 				checkpoint.flush(rs, onzProcedures, history);
 
@@ -579,9 +499,9 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	static void flush(@NotNull Checkpoint checkpoint, @NotNull RelativeRecordSet rrs) {
 
-		// 编码统一由 Checkpoint.flush 锁内 encode0 承担。曾有锁外 encodeN 预编码，
-		// 但它与并发轮的 writeOnly/commitDone、并发事务 merge 存在桶级交错：搬运者
-		// 拿锁后发现 rrs 已 deleted/merged 而跳过 flush，滞留条目永不落库（FND3-51残余）。
+		// 编码统一由 Checkpoint.flush 锁内 encode0 承担。不得锁外 encodeN 预编码：
+		// 它与并发轮的 writeOnly/commitDone、并发事务 merge 存在桶级交错：搬运者
+		// 拿锁后发现 rrs 已 deleted/merged 而跳过 flush，滞留条目永不落库。
 		rrs.lock();
 		try {
 			if (rrs.mergeTo == null) {
@@ -643,7 +563,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 		break;
 
 		case MultiThreadMerge: {
-			//Checkpoint.logger.info("Global.Releaser rrs={}", checkpoint.relativeRecordSetMap.size());
 			var flushSetMap = new ConcurrentHashMap<Thread, FlushSet>();
 			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> {
 				var fs = parallelFlushSet(checkpoint, flushSetMap);
@@ -709,8 +628,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 			// 这个方法是在 Reduce 获得记录锁，并降级（设置状态）以后才调用。
 			// 已经不会有后续的修改（但可能有读取并且被合并然后又被Flush），
 			// 或者被 Checkpoint Flush。
-			// 此时可以认为直接成功了吧？
-			// 或者不判断这个，总是由上面的步骤中处理。
 			if (mergeTo == RelativeRecordSet.deleted)
 				return null; // has flush
 

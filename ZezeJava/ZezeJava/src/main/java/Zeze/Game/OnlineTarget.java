@@ -18,7 +18,7 @@ sealed interface OnlineTarget {
 	/** 协议日志标识。需要 online 是因为日志包含 onlineSetName。 */
 	@NotNull String describe(@NotNull Online online);
 
-	/** 空目标：OnlineSpec 在编码前短路（对齐旧 API 空集合直接返回、不编码的行为）。 */
+	/** 空目标：OnlineSpec 在编码前短路（空集合直接返回、不编码）。 */
 	default boolean isEmpty() {
 		return false;
 	}
@@ -26,7 +26,7 @@ sealed interface OnlineTarget {
 	/**
 	 * 0/1/N 分派，Roles 与 AllRoles 共用，全包唯一一份。
 	 * 前置条件：roleIds 是不可变快照（各 record 规范构造器 Set.copyOf 保证），
-	 * 因此 size==1 时必有元素，无需旧 API 针对调用方活集合的 hasNext 防御。
+	 * 因此 size==1 时必有元素，无需防御空迭代器。
 	 */
 	static int dispatch(@NotNull Online online, @NotNull Collection<Long> roleIds, long typeId,
 						@NotNull Binary data, boolean quietWhenAbsent) {

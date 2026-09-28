@@ -8,9 +8,12 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 分片并发 HashMap：按 hash 分桶到多个 LinkedMap，降低单行写冲突。
+ */
 public class CHashMap<V extends Bean> {
 	private final LinkedMap<V>[] buckets;
-	// AtomicLongArray（FND4-82）：写在事务提交回调（提交线程），读在任意业务线程
+	// AtomicLongArray：写在事务提交回调（提交线程），读在任意业务线程
 	//（size()/isEmpty）——普通long[]跨线程无happens-before；数组元素无法volatile，
 	// set/get是单次volatile读写，且写为绝对值快照，并发set按last-writer-wins语义无损。
 	private final AtomicLongArray sizes;

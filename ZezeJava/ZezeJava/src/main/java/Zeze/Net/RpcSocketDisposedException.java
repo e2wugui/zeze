@@ -3,7 +3,7 @@ package Zeze.Net;
 import java.io.Serial;
 
 /**
- * 连接释放（{@link Service#OnSocketDisposed}）时在飞 Rpc 立即失败的异常（复审R3，FND7-S1③）。
+ * 连接释放（{@link Service#OnSocketDisposed}）时在飞 Rpc 立即失败的异常。
  * 单例无栈形态对齐 {@link RpcTimeoutException}：区分"等满超时"与"连接已释放立即失败"，
  * 便于调用方诊断与分类处理。
  */

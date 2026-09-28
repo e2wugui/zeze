@@ -28,6 +28,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Provider 连接 Linkd 的客户端服务：维护到各 Linkd 的连接，握手时宣告自身信息并完成模块 Bind/Subscribe。
+ */
 public class ProviderService extends HandshakeClient {
 	private static final @NotNull Logger logger = LogManager.getLogger(ProviderService.class);
 
@@ -211,8 +214,8 @@ public class ProviderService extends HandshakeClient {
 		}
 		var linkName = getLinkName(so);
 		bind.Send(so, rpc -> {
-			// FND8-88：超时/失败不得置位完成信号——该信号是应用层启动门禁API，
-			// 原先无条件setResult(true)等于撒谎。见checkLinkdHandshakeResult。
+			// 超时/失败不得置位完成信号——该信号是应用层启动门禁API，
+			// 无条件setResult(true)等于谎报完成。见checkLinkdHandshakeResult。
 			if (checkLinkdHandshakeResult(rpc, so, linkName, "Bind"))
 				providerStaticBindCompleted.setResult(true);
 			return 0;
@@ -235,11 +238,11 @@ public class ProviderService extends HandshakeClient {
 			trySetLinkChoice(c);
 	}
 
-	// FND8-88：Bind/Subscribe应答检查——超时或错误码时断连（Connector自动重连→重握手→
+	// Bind/Subscribe应答检查——超时或错误码时断连（Connector自动重连→重握手→
 	// OnHandshakeDone重发Bind/Subscribe；Rpc实例一次性，回调内自行重发会踩禁令，重连路径
 	// 天然以新实例重试），且失败不置位完成信号，由真实成功最终置位。对齐GlobalClient登录
 	// 失败so.close走重连、本文件sendDisableChoiceToLink检查isTimeout/resultCode的判例。
-	// 返回true表示应答成功。多link的first-wins语义维持不变（语义增强另行立项）。
+	// 返回true表示应答成功；多link为first-wins语义。
 	static boolean checkLinkdHandshakeResult(@NotNull Rpc<?, ?> rpc, @NotNull AsyncSocket so,
 	                                         @NotNull String linkName, @NotNull String what) {
 		if (rpc.isTimeout() || rpc.getResultCode() != 0) {
@@ -281,7 +284,7 @@ public class ProviderService extends HandshakeClient {
 		// 并通知所有links。
 		// Bind/Subscribe 是 Rpc，实例一次性（Send 后 sessionId 永久占用）：每个 link 各自 new
 		// 发送，对齐 OnHandshakeDone 的每连接新实例形态——复用单实例在 ≥2 条就绪连接时第二次
-		// Send 必抛 IllegalStateException，直落热更不可回滚区 halt（FND17 arch-01）。
+		// Send 必抛 IllegalStateException，直落热更不可回滚区 halt。
 		if (!config.isDynamic()) {
 			providerApp.lock();
 			try {
@@ -322,20 +325,4 @@ public class ProviderService extends HandshakeClient {
 		} else
 			super.dispatchProtocol(p, factoryHandle);
 	}
-
-	/*
-	public void reportLoad(int online, int proposeMaxOnline, int onlineNew) {
-		var report = new ReportLoad();
-
-		report.Argument.setOnline(online);
-		report.Argument.setProposeMaxOnline(proposeMaxOnline);
-		report.Argument.setOnlineNew(onlineNew);
-
-		for (var link : Links.values()) {
-			if (link.isHandshakeDone()) {
-				link.getSocket().Send(report);
-			}
-		}
-	}
-	*/
 }

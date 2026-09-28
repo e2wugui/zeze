@@ -10,6 +10,7 @@ import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
+/** string 字段原子修改日志：携带新值（内部以 Object 持有），commit 经 VarHandle 写回，序列化为字符串。 */
 public class LogString extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<string>");
 

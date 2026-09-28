@@ -23,6 +23,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
 import org.rocksdb.*;
 
+// RocksDB 封装：列族 Table 管理、Batch/Batch2 批量写、备份恢复与 close-safe 停机排空
 public class RocksDatabase extends ReentrantLock implements Closeable {
 	static {
 		RocksDB.loadLibrary();
@@ -41,7 +42,6 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		.setCreateIfMissing(true)
 		.setDbWriteBufferSize(dbBuffer) // total write buffer bytes, include all the columns
 		.setKeepLogFileNum(5) // reserve "LOG.old.*" file count
-		// .setAtomicFlush(true); // atomic batch 独立于这个选项？
 		.setMaxWriteBatchGroupSizeBytes(100 * 1024 * 1024);
 	private static final ColumnFamilyOptions commonCfOptions = new ColumnFamilyOptions()
 		.setTableFormatConfig(tableCfg);
@@ -49,7 +49,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	private static final WriteOptions defaultWriteOptions = new WriteOptions();
 	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
 	private static final TransactionDBOptions transactionDbOptions = new TransactionDBOptions();
-	/** close-safe 门（FND19-22 复盘）：契约从"调用方先静默"下沉到资源层。 */
+	/** close-safe 门：close 安全契约在资源层实现（见 {@link #close()} 的契约说明）。 */
 	private volatile boolean closing = false;
 	private final java.util.concurrent.atomic.LongAdder inflightOps = new java.util.concurrent.atomic.LongAdder();
 	// 登记在册迭代器（创建时登记；排空时按 isOwningHandle 剔除已关闭的——无法hook其close()，
@@ -143,8 +143,8 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 
 	private final ConcurrentHashMap<String, Table> tableMap = new ConcurrentHashMap<>();
 	private @Nullable Map<String, Table> tableMapView;
-	// 急切初始化（原懒初始化@Nullable：borrowBatch建池、Batch.close归还都要null防——
-	// 一个ArrayList的分配不值得三处.Nullable，且IDE保守告警曾诱发剥除承重墙的自动清理）。
+	// 急切初始化（非懒）：borrowBatch 建池与 Batch.close 归还都无需 null 防护，
+	// 一个 ArrayList 的分配不值得三处 @Nullable。
 	private final ArrayList<Batch> batchPool = new ArrayList<>();
 
 	public RocksDatabase(@NotNull String homePath) throws RocksDBException {
@@ -199,7 +199,6 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			case eRocksDb -> RocksDB.open(options, path, cfds, cfhs);
 			case eOptimisticTransactionDb -> OptimisticTransactionDB.open(options, path, cfds, cfhs);
 			case eTransactionDb -> TransactionDB.open(options, transactionDbOptions, path, cfds, cfhs);
-			// default -> throw new UnsupportedOperationException("unknown dbType=" + dbType);
 		};
 	}
 
@@ -216,7 +215,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			try {
 				var rocksDb = realOpen(dbType, options, path, cfds, cfhs);
 				if (cfds.size() != cfhs.size()) {
-					// 句柄数不匹配（重试污染等）：销毁已创建句柄并关库后再抛（FND4-22），
+					// 句柄数不匹配（重试污染等）：销毁已创建句柄并关库后再抛，
 					// 否则成功打开的db与cfhs全部泄漏且调用方无引用可回收。
 					int cfhCount = cfhs.size();
 					for (var cfh : cfhs) {
@@ -232,7 +231,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				return rocksDb;
 			} catch (RocksDBException e) {
 				// 失败尝试可能已创建部分句柄：销毁并清空后重试，避免句柄累积
-				// 并污染下一次尝试的cfhs（FND4-22）。
+				// 并污染下一次尝试的cfhs。
 				for (var cfh : cfhs) {
 					try {
 						cfh.close();
@@ -360,8 +359,8 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			if (n > 0) {
 				var cfhs = rocksDb.createColumnFamilies(commonCfOptions, newNames);
 				if (cfhs.size() != newNames.size()) {
-					// 句柄数不匹配（JNI重试/并发污染，open()同型场景FND4-22）：抛出前关闭已创建的
-					// native列族句柄（FND7-45），否则异常上抛后调用方无引用可回收，句柄泄漏累积
+					// 句柄数不匹配（JNI重试/并发污染）：抛出前关闭已创建的
+					// native列族句柄，否则异常上抛后调用方无引用可回收，句柄泄漏累积
 					// 侵蚀进程句柄与RocksDB内部表。
 					int cfhCount = cfhs.size();
 					for (var cfh : cfhs) {
@@ -396,7 +395,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			try {
 				rocksDb.dropColumnFamily(cfh);
 			} finally {
-				// U4-F2：drop 失败也必须关闭 native 列族句柄（对齐 open()/getOrAddTables 的既有模式）：
+				// drop 失败也必须关闭 native 列族句柄（对齐 open()/getOrAddTables 的既有模式）：
 				// remove 已把 table 除名，异常上抛后调用方无引用可回收——列族未删不妨碍事后按重启
 				// 重建句柄，句柄泄漏则不可自愈。销毁失败自身吞掉，不掩盖原始 drop 异常。
 				try {
@@ -424,7 +423,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				rocksDb.dropColumnFamilies(cfhs);
 				return cfhs.size();
 			} finally {
-				// U4-F2：同 dropTable——drop 失败也逐个关闭句柄，单个销毁失败不影响其余
+				// 同 dropTable——drop 失败也逐个关闭句柄，单个销毁失败不影响其余
 				for (var cfh : cfhs) {
 					try {
 						rocksDb.destroyColumnFamilyHandle(cfh);
@@ -457,7 +456,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			public void close() {
 				RocksDatabase.this.lock();
 				try {
-					if (!batchPool.contains(this)) { // 防止double-close导致同一Batch重复入池（16b540a15承重墙，勿删）
+					if (!batchPool.contains(this)) { // 防止double-close导致同一Batch重复入池（承重判断，勿删）
 						clear();
 						batchPool.add(this);
 					}
@@ -508,7 +507,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	}
 
 	/**
-	 * 关闭契约（close-safe，FND19-22 复盘后由"调用方先静默"下沉到资源层）：
+	 * 关闭契约（close-safe，不依赖"调用方先静默"）：
 	 * 1. close 后迟到的数据通路调用（Table.get/put/delete/deleteRange/事务写/Batch/
 	 *    Batch2/迭代器创建）立即抛 {@link IllegalStateException}——可捕获，非JNI崩溃。
 	 * 2. close 与在飞调用并发：先置 closing，锁外有界排空（默认30s，系统属性
@@ -518,8 +517,8 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	 * 3. 残余ε（与全仓有界排空口径一致）：排空超预算则告警后继续释放，此时仍在飞的
 	 *    调用/未关闭迭代器的后续操作有崩溃风险；泄漏未 close 的迭代器会使每次 close
 	 *    等满预算——迭代器须 try-with-resources（仓内纪律）。
-	 * 各模块自建的停机闸（stopped/入口拒绝/锁内双检）自此降级为语义清洁层（迟到提交
-	 * 以 Closed 码反馈客户端而非半处理），不再是 native 安全的必要条件。
+	 * 各模块自建的停机闸（stopped/入口拒绝/锁内双检）是语义清洁层（迟到提交
+	 * 以 Closed 码反馈客户端而非半处理），非 native 安全的必要条件。
 	 */
 	@Override
 	public void close() {
@@ -545,7 +544,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			for (var b : batchPool)
 				b.batch.close();
 			batchPool.clear();
-			// 释放Table持有的列族句柄（FND4-22）：tableMap.clear()直接丢弃会漏掉
+			// 释放Table持有的列族句柄：tableMap.clear()直接丢弃会漏掉
 			// 堆外句柄（依赖GC滞后清理且不保证）。destroy须在db.close()前，
 			// 与dropTable的释放模式收口；只释放句柄不drop数据（close不删列族）。
 			for (var table : tableMap.values()) {
@@ -573,12 +572,12 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			 var backupOptions = new BackupEngineOptions(backupDir);
 			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
 			backup.createNewBackup(src, true);
-			// 【FND2-R2-3】BackupEngine 按增量链追加，从不删除旧备份会随数据 churn 无界
+			// BackupEngine 按增量链追加，从不删除旧备份会随数据 churn 无界
 			// 增长（调用方 Rocks.snapshot/Dbh2StateMachine 都会把整个 backupDir 打成
 			// 快照 zip，多代备份没有消费方）；只保留最新一份。
 			backup.purgeOldBackups(1);
 		} finally {
-			// realOpen产生的列族句柄随用随销（FND4-22姊妹点）：
+			// realOpen产生的列族句柄随用随销：
 			// src关闭不会释放cfhs，泄漏量级为列族数。
 			for (var cfh : cfhs) {
 				try {
@@ -809,7 +808,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 						byte[] value, int valueOff, int valueLen) throws RocksDBException {
 			RocksDatabase.this.enterOp();
 			try {
-				// batch 优化成内部方法调用了？仅在keyOff不等于0时拷贝！！！
+				// 仅在keyOff不等于0时拷贝
 				var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 				key = Database.copyIf(key, keyOff, keyLen);
 				value = Database.copyIf(value, valueOff, valueLen);
@@ -836,7 +835,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		public void delete(@NotNull Transaction t, byte[] key, int keyOff, int keyLen) throws RocksDBException {
 			RocksDatabase.this.enterOp();
 			try {
-				// batch 优化成内部方法调用了？仅在keyOff不等于0时拷贝！！！
+				// 仅在keyOff不等于0时拷贝
 				var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 				key = Database.copyIf(key, keyOff, keyLen);
 				t.delete(cfHandle, key);
@@ -931,7 +930,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			return it;
 		}
 
-		// 有数据的时候可以直接删除family吧！
+		// 有数据时也可以直接删除整个列族。
 		public void drop() throws Exception {
 			dropTable(name);
 		}
