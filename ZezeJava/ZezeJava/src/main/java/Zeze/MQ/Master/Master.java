@@ -152,6 +152,10 @@ public class Master extends AbstractMaster {
                 var e = managers.get(i);
                 if (e.socket == manager) {
                     managers.remove(i);
+                    // 断连终态：该 manager 的孤儿候选键不再被任何上报收敛（收敛只清在册上报者
+                    // 自己的前缀），同步清理——legacy "sock"+hash 键跨 socket 世代永不复用，
+                    // 不清则永久驻留。同 id 重连的旧条目已在 Register 替换路径处理。
+                    removeOrphanCandidates(e);
                     break;
                 }
             }
@@ -326,7 +330,14 @@ public class Master extends AbstractMaster {
                     break;
                 }
             }
-            managers.add(new Manager(r.getSender(), r.Argument));
+            var fresh = new Manager(r.getSender(), r.Argument);
+            managers.add(fresh);
+            // 替换终态且键已变更（重铸 managerId / legacy 换代 / legacy→铸 id 等同址换身份形态）
+            // 才清理旧键：旧键不再被任何上报命中，且被替换条目此后不会走 tryRemoveManager
+            // （旧 socket 断连时已查不到条目），只能在此收尾。同 id 重连键不变则保留候选，
+            // 不重置宽限期（保持收敛语义）。
+            if (null != replaced && !orphanManagerKey(replaced).equals(orphanManagerKey(fresh)))
+                removeOrphanCandidates(replaced);
             r.SendResult();
             // 联动重写路由：mqTable 中该 manager 承载的 servers 条目改写为新地址（换地址
             // 重注册→路由自愈）。注册本身已成功，重写失败仅记日志等下次重注册重试（Register 每次重连
@@ -444,6 +455,27 @@ public class Master extends AbstractMaster {
         }
     }
 
+    // 孤儿候选键的 manager 维度（构造单点：对账收敛与终态清理共用）：稳定 ManagerId（非0）
+    // 跨重连不变；legacy（未铸 id，Register 带 0）按 socket 身份临时命名——socket 世代更替即
+    // 换键，旧键只能靠终态清理收尾。
+    private static String orphanManagerKey(Manager manager) {
+        return manager.info.getManagerId() != 0
+                ? Long.toString(manager.info.getManagerId()) : "sock" + System.identityHashCode(manager.socket);
+    }
+
+    // 终态清理（模块锁内调用）：移除该 manager 前缀下的全部孤儿候选键。Manager 条目离开
+    // managers（断连摘除/被替换）即终态——legacy "sock"+hash 键随 socket 世代死亡永不复用；
+    // 重铸 managerId（home 损坏重造）的旧 id 键同样不会再被任何上报命中（reconcileOrphanReport
+    // 的收敛循环只清当前上报者自己的前缀），不清理则永久驻留 orphanFirstSeen（确定性泄漏）。
+    private void removeOrphanCandidates(Manager manager) {
+        var prefix = orphanManagerKey(manager) + "|";
+        for (var it = orphanFirstSeen.keySet().iterator(); it.hasNext(); ) {
+            var key = it.next();
+            if (key.startsWith(prefix))
+                it.remove();
+        }
+    }
+
     /**
      * 孤儿对账（包内可见，测试直构判定）：上报条目在 mqTable 无对应 topic、或该 topic 的
      * servers 不含此 manager 承载该分区 → 孤儿候选；候选连续存活超宽限期（OrphanGracePeriodMs，
@@ -454,8 +486,7 @@ public class Master extends AbstractMaster {
      */
     void reconcileOrphanReport(Manager manager, BReportPartitions.Data report) throws Exception {
         var now = System.currentTimeMillis();
-        var managerKey = manager.info.getManagerId() != 0
-                ? Long.toString(manager.info.getManagerId()) : "sock" + System.identityHashCode(manager.socket);
+        var managerKey = orphanManagerKey(manager);
         var prefix = managerKey + "|";
         // 本轮候选收集（宽限期从首见起算，putIfAbsent 保持原值）
         var seenKeys = new HashSet<String>();
