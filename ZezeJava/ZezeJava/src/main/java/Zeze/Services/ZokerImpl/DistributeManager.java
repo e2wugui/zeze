@@ -56,9 +56,11 @@ public class DistributeManager {
 	// 同服务 commit 串行化锁（services/<svc> 粒度）。键先过 isSafePathSegment 校验，
 	// 条目数以服务名为界，无攻击面放大。跨服务不受影响。
 	private final ConcurrentHashMap<String, Object> commitLocks = new ConcurrentHashMap<>();
-	// commit 进行中的服务前缀（distributes/&lt;svc&gt; 的 canonical 路径+分隔符）：open 的入账
+	// commit 进行中的服务前缀（distributes/<svc> 的 canonical 路径+分隔符）：open 的入账
 	// 原子段内检查命中即拒绝——closeUnder 清账与 renameTo 之间新开的 FileBin 会漏出回收面。
-	// 条目数=并发 commit 数，随 commit 结束摘除。
+	// 条目数=并发 commit 数，随 commit 结束摘除。Set按canonical前缀去重：折叠后不同但
+	// canonical同一的svc名（如Windows "svc"与"svc."）本就击穿commitLocks互斥，属既有多射面，
+	// 先结束者提前摘barrier的边缘随之留观（计数化可闭合，不值当）。
 	private final Set<String> committingPrefixes = ConcurrentHashMap.newKeySet();
 	private volatile int keepVersions = KEEP_VERSIONS_DEFAULT;
 
@@ -94,6 +96,10 @@ public class DistributeManager {
 		// 拒绝"../"逃逸和绝对路径，防止越界写/截断任意文件。
 		checkInsideDir(distributeDir, path);
 		var relativeCanonicalFileName = fileKey(path);
+		// commit窗口的无锁预检：命中即拒，省掉锁外构造的全量md5读盘白工（续传GB级残留可达
+		// 数十秒）；判据权威仍是锁内原子段的复检——预检通过到建账之间commit开始的情形由锁内检查闭合。
+		if (isCommitting(relativeCanonicalFileName))
+			throw new IOException("open file rejected, service committing: " + path);
 		var fileBin = files.get(relativeCanonicalFileName);
 		if (null == fileBin) {
 			// FileBin构造对已存在文件全量读盘算md5（断点续传的GB级残留、慢盘可达数十秒），
