@@ -392,7 +392,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RoleId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TimerObj", "dynamic", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TimerObj", "dynamic", "", "Zeze.Builtin.Timer.BCronTimer,Zeze.Builtin.Timer.BSimpleTimer"));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LoginVersion", "long", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "SerialId", "long", "", ""));
         return _v_;

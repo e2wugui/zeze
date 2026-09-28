@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using Zeze.Gen.Types;
 using Enum = Zeze.Gen.Types.Enum;
 using Type = Zeze.Gen.Types.Type;
@@ -427,6 +428,13 @@ namespace Zeze.Gen.java
                     {
                         key = $"{Variable.GetTypeFullName(table.RowKeyType)},{Variable.GetTypeFullName(table.ColKeyType)}";
                         value = Variable.GetTypeFullName(table.ValueType);
+                    }
+                    else if (vType is TypeDynamic dynamic)
+                    {
+                        // dynamic 变量的 value 携带允许 bean 集全名（逗号分隔）：History.Helper
+                        // 依赖它遍历仅经 dynamic 可达的 bean 注册回放日志工厂——元数据缺失时
+                        // 该类 bean 的集合日志 typeId 永不注册，回放解码抛 unknown log typeId。
+                        value = string.Join(",", dynamic.RealBeans.Values.Select(b => b.FullName));
                     }
                     sw.WriteLine($"{prefix}    _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{type}\", \"{key}\", \"{value}\"));");
                 }

@@ -182,6 +182,16 @@ public class Helper {
 						var keys = v.getKey().split(",");
 						dependsGTable(beanClass, v, keys[0].trim(), keys[1].trim(), v.getValue(), result);
 						break;
+					case "dynamic":
+						// dynamic 变量的 value 由生成器携带允许 bean 集全名（逗号分隔，见
+						// Gen BeanFormatter）——仅经 dynamic 可达的 bean 的集合/BeanKey 日志
+						// 工厂依赖它注册（isBuiltinType("dynamic") 为真，default 分支直接跳过
+						// 且无其他数据源），缺失时该类日志 typeId 永不注册，回放端 Log.create
+						// 抛 unknown log typeId 毒记录卡死游标。空集=无可达 bean，无注册义务。
+						if (!v.getValue().isEmpty())
+							for (var beanName : v.getValue().split(","))
+								dependsBean(Class.forName(beanName.trim()), result);
+						break;
 					default:
 						if (!isBuiltinType(type))
 							dependsBean(Class.forName(type), result);

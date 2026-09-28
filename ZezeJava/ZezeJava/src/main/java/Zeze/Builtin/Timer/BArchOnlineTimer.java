@@ -448,7 +448,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Account", "string", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ClientId", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimerObj", "dynamic", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimerObj", "dynamic", "", "Zeze.Builtin.Timer.BCronTimer,Zeze.Builtin.Timer.BSimpleTimer"));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LoginVersion", "long", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SerialId", "long", "", ""));
         return _v_;

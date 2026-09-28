@@ -462,7 +462,7 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TimerName", "string", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "HandleName", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimerObj", "dynamic", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimerObj", "dynamic", "", "Zeze.Builtin.Timer.BCronTimer,Zeze.Builtin.Timer.BSimpleTimer"));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "CustomData", "dynamic", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "ConcurrentFireSerialNo", "long", "", ""));
         return _v_;
