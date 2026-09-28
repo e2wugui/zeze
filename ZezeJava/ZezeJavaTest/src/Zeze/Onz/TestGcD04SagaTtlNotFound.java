@@ -28,9 +28,14 @@ import static Zeze.Onz.Fnd19GcOnzTestSupport.*;
  * 静默忽略并删记录——超 TTL 预算的 NotFound（恶性成因：参与方上下文已被清理，补偿
  * 丢失）无任何协调者侧信号。修复：记录年龄超预算（对齐 Onz.eDefaultSagaContext
  * TimeoutMs）的升格 error（按 tid 去重，对齐 hangWarnedTids）并保留决策记录（人工
- * 对账需要记录在场）；年龄内的 NotFound 与 commit 决策（cancel=false 的 end 无数据
- * 效应）维持静默忽略（年轻路径由 TestGcC01RedoResultCode.testRedoIgnoresSaga
- * NotFound 钉住：121s 龄记录照常清理）。
+ * 对账需要记录在场）；年龄内的 rollback NotFound 维持静默移除（年轻路径由
+ * TestGcC01RedoResultCode.testRedoIgnoresSagaNotFound 钉住：121s 龄 ePreparing
+ * 记录照常清理）。
+ * <b>onz-05 对齐（8b082688b，FND25 裁定）</b>：commit 决策（cancel=false 的 end）的
+ * NotFound 不再维持静默——年轻保留记录重试（end 是上下文唯一正常清理者，年轻
+ * NotFound 无良性解释）；超龄与 rollback 决策统一升格 error（按 tid 去重）保留记录
+ * 交 settleStuckRecord 人工清算（丢写嫌疑 ONZ-F25-05，形态由
+ * testRedoAgedCommitNotFoundKeepsRecordForSettle 钉住）。
  * 场景构造：手动以协调者身份发 FuncSaga/FuncSagaEnd（不走 perform）+ 孤儿决策记录
  * 注入 + redoTimer 反射驱动（TestGcC01RedoResultCode 桩形态）。
  */
@@ -150,20 +155,45 @@ public class TestGcD04SagaTtlNotFound {
 		Assertions.assertEquals(0, CancelCount, "无参与方上下文不得触发补偿");
 	}
 
-	/** C对照组：commit决策（cancel=false的end无数据效应）的NotFound维持静默——即使超龄也不分诊，记录照常清理。 */
+	/**
+	 * C 对照组→onz-05 裁定对齐（8b082688b）：commit 决策（cancel=false 的 end 补发）的
+	 * 超龄 NotFound 与 rollback 决策统一升格 error（按 tid 去重）并保留决策记录，终清走
+	 * settleStuckRecord 人工清算通道。8b082688b 前：commit 决策的 NotFound 一刀切静默
+	 * 忽略并删记录——"发结果→本地落库"间隙宕机的丢写（ONZ-F25-05）无任何协调者侧信号。
+	 * 收敛链（裁定推演，fixnotes/onz-ruling.md onz-05 节）：超龄首轮分诊登记
+	 * agedNotFoundWarnedTids + error 一次 + 保留；后续每轮 redo 重发 NotFound 仅去重后
+	 * 零日志复核（重发幂等无副作用）；守卫集合内的 tid 由 settleStuckRecord 删除两表
+	 * 并回收告警 tid——记录有终清、日志/网络/空间有界，无永不清理的空转。
+	 */
 	@Test
 	@Timeout(120)
-	public void testRedoAgedCommitNotFoundStaysSilent() throws Exception {
+	public void testRedoAgedCommitNotFoundKeepsRecordForSettle() throws Exception {
 		waitOnzReady(onzServer);
 		writeOrphanRecords(AgedCommitTid, AbstractOnz.eCommitting, Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs + 100_000);
 
 		invokeRedoTimer(onzServer);
 
-		Assertions.assertEquals(0, count(tableOf(onzServer, "commitIndex")),
-				"commit决策的NotFound维持静默忽略，记录照常清理");
-		Assertions.assertEquals(0, count(tableOf(onzServer, "commitPoint")), "两表同生命周期：一起清理");
+		Assertions.assertEquals(1, count(tableOf(onzServer, "commitIndex")),
+				"超龄commit决策的NotFound必须升格保留决策记录（onz-05：end未送达而上下文已消失"
+						+ "=丢写嫌疑，人工对账需要记录在场；8b082688b前：静默忽略并删除，丢写零信号）");
+		Assertions.assertEquals(1, count(tableOf(onzServer, "commitPoint")), "两表同生命周期（FND4-88）：一起保留");
+		Assertions.assertTrue(agedNotFoundWarnedTids().contains(AgedCommitTid),
+				"超龄commit决策的NotFound必须触发error告警（与rollback决策共用超龄分诊，决策分型=eCommitting）");
+
+		// 第二轮redo：保留的记录重发→再次超龄NotFound→按tid去重不重复告警，记录维持保留
+		invokeRedoTimer(onzServer);
+		Assertions.assertEquals(1, agedNotFoundWarnedTids().size(), "告警按tid去重：每tid只error一次（对齐hangWarnedTids）");
+		Assertions.assertEquals(1, count(tableOf(onzServer, "commitIndex")), "保留的超龄决策记录维持，等人工对账");
+
+		// 终清（harness可达：settleStuckRecord公开方法，守卫=agedNotFoundWarnedTids等滞留集合）：
+		// 人工清算通道删除两表并回收告警去重tid——超龄保留不是永久滞留。
+		Assertions.assertTrue(onzServer.settleStuckRecord(AgedCommitTid),
+				"已分诊滞留的tid必须可被settleStuckRecord清算（守卫放行agedNotFoundWarnedTids成员）");
+		Assertions.assertEquals(0, count(tableOf(onzServer, "commitIndex")), "settle终清索引");
+		Assertions.assertEquals(0, count(tableOf(onzServer, "commitPoint")), "settle终清点表（单batch原子双删）");
 		Assertions.assertFalse(agedNotFoundWarnedTids().contains(AgedCommitTid),
-				"commit决策（cancel=false）不得触发超龄NotFound分诊");
+				"记录关闭后回收告警去重tid（对齐removeOk分支的集合回收）");
+		Assertions.assertEquals(0, CancelCount, "无参与方上下文不得触发补偿");
 	}
 
 	/** 手动以协调者身份向zeze1发起FuncSaga（不走perform）：参与方注册上下文并提交业务，滞留等FuncSagaEnd。 */

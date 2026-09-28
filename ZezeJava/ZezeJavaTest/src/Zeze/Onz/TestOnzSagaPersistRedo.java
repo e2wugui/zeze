@@ -65,6 +65,18 @@ public class TestOnzSagaPersistRedo {
 		deleteRecursively(Path.of(dbHome));
 
 		App.Instance.Start();
+		// onz-05（8b082688b）对齐的fixture隔离：App.Instance跨测试类进程级持久——
+		// (a)前序类（TestOnzSagaCleanup/TestOnzSagaBusinessLockGuard）离场时
+		// sagaContextTimeoutMs=1ms不复位，60s周期清理会在本类用例窗口内清掉刚注册的
+		// 上下文，redo补发的end得NotFound，新语义下年轻+commit保留记录重试，用例将在
+		// 索引断言处失败（8b082688b前该形态静默删记录假通过）；(b)前序类（如
+		// TestOnzSagaCompensateFailErrorCode）按断言形态在sagas留有放回的补偿上下文，
+		// 本类用例按sagaCount绝对值断言（==1/==0），残留使首个waitUntil提前通过、
+		// 末个waitUntil永不归零。清理残留并恢复TTL默认（对齐TestGcD04SagaTtlNotFound
+		// 的止损先例：先1ms+cleanupTimeoutSagas收割存量，再恢复默认隔离周期清理）。
+		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(1);
+		App.Instance.Zeze.getOnz().cleanupTimeoutSagas();
+		App.Instance.Zeze.getOnz().setSagaContextTimeoutMs(Zeze.Onz.Onz.eDefaultSagaContextTimeoutMs);
 		var config2 = Config.load("./zeze_cluster_2.xml");
 		zeze2.Start(config2);
 
@@ -163,6 +175,13 @@ public class TestOnzSagaPersistRedo {
 	 * OH1-F1（eCommitting孤儿→结束）：协调者崩溃在commit决策落盘后、endSaga完成前——
 	 * redo必须发FuncSagaEnd(cancel=false)结束参与方上下文（幂等，重复发送无害）。
 	 * 修复前：残留记录被直接删除，参与方上下文滞留sagas（1小时超时清理前占用rpc与bean）。
+	 * <p>
+	 * onz-05（8b082688b）语义对齐：上下文在场的主路径不变——end应答0，本轮即清理上下文
+	 * 并收敛删除两表记录。上下文在end送达前消失（TTL清理/应答回收迟于预算的良性窗口）
+	 * 时redo的NotFound不再静默删记录：年轻保留重试、超龄error+settle终清（分诊形态由
+	 * TestGcD04SagaTtlNotFound钉住）——该保留语义与本用例的fixture前提（上下文注册后
+	 * 在场、sagas起点为空）由before()隔离（收割前序类残留上下文+恢复TTL默认），本用例
+	 * 只钉住end送达清理的主路径。
 	 */
 	@Test
 	@Timeout(120)
