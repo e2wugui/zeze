@@ -20,7 +20,10 @@ import org.w3c.dom.Element;
  * 2. 动态创建并加入Service
  */
 public class Connector extends ReentrantLock {
-	private static final int READY_TIMEOUT = 5000;
+	// 须覆盖dnsResolver的getByName文档化最坏时长（同步不可中断，可达5-30秒，见
+	// TcpSocket.connectAsync）再加停顿余量：5s预算下回环连接也会被STW/整机瞬时冻结顶穿
+	// （压测实证：共享selector的OP_CONNECT处理停顿>5s即TimeoutException）。
+	private static final int READY_TIMEOUT = 30_000;
 
 	private final @NotNull String hostNameOrAddress;
 	private final int port;
