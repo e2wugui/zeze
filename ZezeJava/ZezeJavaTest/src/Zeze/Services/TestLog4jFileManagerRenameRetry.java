@@ -66,6 +66,11 @@ public class TestLog4jFileManagerRenameRetry {
 			// 移交成功：R.index 硬链接接管同 inode，记录完整保留。
 			assertTrue(Files.exists(logDir.resolve(RotateName + ".index")), "rotate索引接管应成功");
 			assertEquals(32, Files.size(logDir.resolve(RotateName + ".index")), "rotate索引记录应完整保留");
+			// 判别不变量（新契约核心）：接管=同 inode 硬链接——current.index（装载期滞后链接）
+			// 与 R.index 指向同一物理文件；旧 rename 语义下 inode 被"搬走"后 current 名下是
+			// 重建的新文件，必不同 inode。
+			assertTrue(Files.isSameFile(logDir.resolve(RotateName + ".index"), logDir.resolve(Active + ".index")),
+					"接管必须为同inode链接（rename语义下current名下是重建的新文件）");
 
 			// active 条目挂全新空索引（新 inode 从零开始）；current.index 为装载期重建的滞后链接（仍在）。
 			var entries = entriesOf(manager);
@@ -79,6 +84,27 @@ public class TestLog4jFileManagerRenameRetry {
 			var out = new OutInt();
 			assertNotNull(manager.seek(millis(Base), out), "seek应命中rotate条目");
 			assertEquals(0, out.value);
+		} finally {
+			manager.stop();
+			deleteBestEffort(logDir);
+		}
+	}
+
+	@Test
+	public void test3_ExternalPinDoesNotBlockRotation() throws Exception {
+		var logDir = Files.createTempDirectory("zeze-log4j-external-pin-test");
+		var manager = newManager(logDir);
+		// 外部句柄占用 current.index（java.io 流不带 FILE_SHARE_DELETE，模拟杀软/备份）：
+		// 新契约下轮转移交（rotate 名下硬链接接管）不触碰 current 名——占用不再阻塞轮转；
+		// 旧 rename 语义下该占用令 rename 必败、case-1 中止（判别点：修复前只有 1 个条目）。
+		try (var pin = new java.io.FileOutputStream(logDir.resolve(Active + ".index").toFile(), true)) {
+			assertEquals(1, manager.size());
+			freezeAndRotate(manager, logDir);
+			invokeOnFileCreated(manager, Path.of(RotateName));
+			invokeOnFileCreated(manager, Path.of(Active));
+
+			assertEquals(2, manager.size(), "外部占用current名不得阻塞轮转（旧rename语义下中止=1个条目）");
+			assertEquals(32, Files.size(logDir.resolve(RotateName + ".index")), "接管照常完成，记录完整保留");
 		} finally {
 			manager.stop();
 			deleteBestEffort(logDir);
