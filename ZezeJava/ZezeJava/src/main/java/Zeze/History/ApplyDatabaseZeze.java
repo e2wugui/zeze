@@ -109,13 +109,13 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 			try {
 				dbTxn.commit();
 			} catch (Exception ex) {
-				dbTxn.rollback();
+				rollback(); // 契约：不抛出，不掩盖原始提交异常
 				throw Task.forceThrow(ex);
-			} finally {
-				// commit成败都结束本事务；close失败按原样传播（此时无待保护的原始异常）
-				dbTxn.close();
-				finish();
 			}
+			// commit 已成功：数据与持久游标均已生效，此后任何失败都不得让调用方按未提交处理
+			// （重试整条重放，Edit 非幂等会叠加重复元素）；close 失败仅记录。
+			finish();
+			closeQuietly();
 		}
 
 		@Override
@@ -124,6 +124,11 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 				return;
 			try {
 				dbTxn.rollback();
+			} catch (Exception e) {
+				// 契约（IApplyRecordTxn）：不抛出，不得掩盖正在传播的原始 apply 异常；
+				// 回滚失败按回滚完成收尾，写入撤销与否不确定，由 ApplyHelper.finally 的
+				// LRU 失效兜底（否则重试命中脏缓存，等价对已回滚记录二次应用）。
+				logger.warn("record txn rollback failed", e);
 			} finally {
 				closeQuietly();
 				finish();
@@ -135,13 +140,13 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 			rollback(); // 幂等：未commit则按回滚收尾
 		}
 
-		// 回滚路径中的dbTxn.close()不能抛出（会掩盖正在传播的原始apply异常），失败仅记录；
-		// 事务此时已回滚，关闭失败的后果限于底层资源清理。
+		// dbTxn.close() 不能抛出：回滚路径会掩盖正在传播的原始 apply 异常；提交成功路径
+		// close 失败不得让调用方按未提交处理。失败仅记录，后果限于底层资源清理。
 		private void closeQuietly() {
 			try {
 				dbTxn.close();
 			} catch (Exception e) {
-				logger.warn("record txn close failed after rollback", e);
+				logger.warn("record txn close failed", e);
 			}
 		}
 
