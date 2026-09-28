@@ -32,7 +32,17 @@ public class Client extends Service {
 		if (getConfig().tryGetOrAddConnector(si.getPassiveIp(), si.getPassivePort(), true, out)) {
 			// 新建的Connector。开始连接。
 			out.value.start();
-			logServers.put(si.getServiceIdentity(), out.value);
+		}
+		// 同identity地址变更（自定义ServiceIdentity不含地址时可达；默认identity内嵌地址，
+		// 地址变更即identity变更走onSmRemoved配对）：put改指新Connector并回收旧值——
+		// 旧Connector不stop则autoReconnect永久重连旧地址且条目残留config.connectors；
+		// tryGetOrAddConnector命中既有键（地址回切）返回false时同样必须put改指现有Connector，
+		// 否则logServers仍指向死地址。stop+removeConnector与onSmRemoved同构；
+		// Connector按name（host_port）键控，old!=out.value即地址不同（同地址必命中同一实例）。
+		var old = logServers.put(si.getServiceIdentity(), out.value);
+		if (old != null && old != out.value) {
+			old.stop(); // stop作废在途重连排程，阻断对旧地址的永久重连
+			getConfig().removeConnector(old);
 		}
 	}
 
