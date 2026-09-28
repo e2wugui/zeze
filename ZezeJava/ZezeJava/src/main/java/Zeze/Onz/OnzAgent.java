@@ -1,5 +1,6 @@
 package Zeze.Onz;
 
+import java.io.Serial;
 import Zeze.Builtin.Onz.FlushReady;
 import Zeze.Builtin.Onz.FuncProcedure;
 import Zeze.Builtin.Onz.FuncSaga;
@@ -53,6 +54,23 @@ public class OnzAgent extends AbstractOnzAgent {
 	// redoTimer 以在途登记过滤，redo 只处理真残留（perform 线程已死亡的）。
 	boolean hasTransaction(long onzTid) {
 		return transactions.containsKey(onzTid);
+	}
+
+	/** 参与方已应答的调用失败（业务非0结果码，或应答载荷decode失败）——应答到达即
+	 * FuncSaga已被参与方处理过，注册必然先于任何FuncSagaEnd。与"未应答"的失败
+	 * （超时/发送失败，可能处于FuncSagaEnd先于FuncSaga注册被处理的乱序窗口）区分：
+	 * cancelSaga仅对未应答失败的步骤做eSagaNotFound的单次延迟重试（见OnzTransaction.cancelSaga）。 */
+	static final class CallAnsweredException extends RuntimeException {
+		@Serial
+		private static final long serialVersionUID = 1L;
+
+		CallAnsweredException(String message) {
+			super(message);
+		}
+
+		CallAnsweredException(String message, Throwable cause) {
+			super(message, cause);
+		}
 	}
 
 	@Override
@@ -153,11 +171,18 @@ public class OnzAgent extends AbstractOnzAgent {
 					result.decode(bbResult);
 					future.setResult(result);
 				} catch (Throwable ex) {
-					future.setException(new RuntimeException(
+					// 应答已到达（decode失败不影响"已应答"的判别），以CallAnsweredException完成。
+					future.setException(new CallAnsweredException(
 							"call result decode fail: " + onzProcedureName, ex));
 				}
-			} else {
+			} else if (r.isTimeout()) {
+				// 未应答失败（超时）：保持泛型异常形态，cancelSaga归入乱序窗口类。
 				future.setException(new RuntimeException(
+						"call error: " + onzProcedureName
+								+ " code=" + r.getResultCode()));
+			} else {
+				// 已应答的业务失败（非0结果码），以CallAnsweredException完成。
+				future.setException(new CallAnsweredException(
 						"call error: " + onzProcedureName
 								+ " code=" + r.getResultCode()));
 			}
