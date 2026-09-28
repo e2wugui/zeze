@@ -126,10 +126,14 @@ public class Log4jFileWalker {
 	}
 
 	private void closeCurrent() throws IOException {
-		if (current != null) {
-			current.close();
+		var stale = current;
+		if (stale != null) {
+			// 先复位再关闭（与seek路径"先接管新会话再关旧会话"同构的隔离）：close抛IOException时
+			// 引用不残留——残留的已关/半关会话会让后续hasNext/next对死会话连锁抛ClosedChannelException
+			// 等二次异常（每次翻页重放）；复位后advance/next路径按列表重开文件（响亮失败至多一次）。
 			current = null;
 			currentEntry = null;
+			stale.close();
 		}
 	}
 
