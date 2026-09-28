@@ -148,6 +148,14 @@ public class MasterDatabase {
 					return null;
 				}
 
+				// 持久化滞后窗口（次序约束，非可随意对调）：saveRocks必须排在
+				// createBucketRafts/setBucketMeta成功之后——提前落盘会把未经 rpc 验证可用
+				// 的raft发布进主表（窗口内崩溃重启后created=true但桶未初始化/半建，客户端
+				// 路由到坏桶且无重建路径，劣于孤儿）。现序的残余窗口：三者成功而saveRocks
+				// 未完成时崩溃，重启后created=false走重建——choiceManagers分配新端口建全
+				// 新raft，旧raft成为无主孤儿（manager扫描raft.xml仍加载，仅占端口/内存/
+				// 磁盘目录，无数据丢失），需人工清理。孤儿收养（重入时查询manager既有
+				// raftName幂等复用）或Register对账回收需跨进程协议，不在本处内联。
 				var raftNames = buildRaftConfig(bucket, managers);
 				table.buckets.put(bucket.getKeyFirst(), bucket);
 				try {
@@ -363,8 +371,17 @@ public class MasterDatabase {
 				return consumeDeadSplitting(splitting, tableName, to.getKeyFirst());
 			}
 
-			splitting.buckets.remove(to.getKeyFirst());
-			table.buckets.put(to.getKeyFirst(), to);
+			// 内存先行、磁盘后写的失败回滚：下面的remove/put先于batch.commit执行，commit抛出
+			//（磁盘错误）时内存已是"已结算"形态而磁盘是旧值——重试按已修改的内存返回
+			// eSplittingBucketNotFound，重试端按"已结算终局证据"停链并触发源桶清除补发源
+			//（appendClearPendingSettle），master若在此刻崩溃重启，磁盘splitting条目复活且
+			// 无人消费（主表旧边界指向已deleteToEnd的源桶，键域失联）。捕获后按捕获的旧值
+			// 精确还原内存再上抛：持主表+splitting双锁期间无并发写者（全部写路径同序持锁），
+			// 回滚即还原到guard判定时的状态，重试按未结算语义正常进行。
+			var settledSplitting = splitting.buckets.remove(to.getKeyFirst());
+			var oldTo = table.buckets.put(to.getKeyFirst(), to);
+			var fromReplaced = false;
+			BBucketMeta.Data oldFrom = null;
 			// 不变量：合法split恒from.keyFirst<to.keyFirst（locateMiddle取的中位key严格大于源桶首key）。
 			// >=仅出现在move被recoverSplitting的data[0]==keyFirst启发式误判为split时
 			//（from=[M,M)空区间，to即move目标）：此时按endMove语义不put from——to的put已是
@@ -384,8 +401,10 @@ public class MasterDatabase {
 				if (null != existFrom && compareKeyLast(existFrom.getKeyLast(), from.getKeyLast()) < 0)
 					logger.error("settleSplitting late from skipped (main narrower). existFrom={} from={}",
 							existFrom, from);
-				else
-					table.buckets.put(from.getKeyFirst(), from); // replace
+				else {
+					oldFrom = table.buckets.put(from.getKeyFirst(), from); // replace
+					fromReplaced = true;
+				}
 			} else if (from != null)
 				logger.error("settleSplitting from.keyFirst>=to.keyFirst, skip from. from={} to={}", from, to);
 
@@ -398,6 +417,19 @@ public class MasterDatabase {
 				rocksSplitting.put(batch, key, 0, key.length,
 						bbSplitting.Bytes, bbSplitting.ReadIndex, bbSplitting.size());
 				batch.commit();
+			} catch (RocksDBException ex) {
+				splitting.buckets.put(to.getKeyFirst(), settledSplitting);
+				if (null != oldTo)
+					table.buckets.put(to.getKeyFirst(), oldTo);
+				else
+					table.buckets.remove(to.getKeyFirst());
+				if (fromReplaced) {
+					if (null != oldFrom)
+						table.buckets.put(from.getKeyFirst(), oldFrom);
+					else
+						table.buckets.remove(from.getKeyFirst());
+				}
+				throw ex;
 			}
 			splittingAgeRemoveQuietly(tableName, to.getKeyFirst());
 			r.SendResult();
@@ -411,8 +443,17 @@ public class MasterDatabase {
 	//（endMove/endSplit路径）与splitting锁。
 	private long consumeDeadSplitting(MasterTable.Data splitting, String tableName, Binary keyFirst)
 			throws RocksDBException {
-		splitting.buckets.remove(keyFirst);
-		saveRocks(rocksSplitting, tableName, splitting);
+		var dead = splitting.buckets.remove(keyFirst);
+		try {
+			saveRocks(rocksSplitting, tableName, splitting);
+		} catch (RocksDBException ex) {
+			// 同settleSplitting的失败回滚：save失败时磁盘仍是旧值，内存先行不还原会让重试按
+			// 已修改的内存误判"已消费"（get返回null→eSplittingBucketNotFound终局停链），master
+			// 崩溃重启后磁盘条目复活无人消费。
+			if (null != dead)
+				splitting.buckets.put(keyFirst, dead);
+			throw ex;
+		}
 		splittingAgeRemoveQuietly(tableName, keyFirst);
 		return master.errorCode(Master.eSplittingBucketNotFound);
 	}
@@ -528,8 +569,15 @@ public class MasterDatabase {
 					return false; // 结构证明不足或真在途：维持拒绝
 				logger.error("dead splitting entry consumed on collision (INV1): database={} table={} entry={}",
 						databaseName, tableName, exist);
-				splittingTable.buckets.remove(request.getKeyFirst());
-				saveRocks(rocksSplitting, tableName, splittingTable);
+				var dead = splittingTable.buckets.remove(request.getKeyFirst());
+				try {
+					saveRocks(rocksSplitting, tableName, splittingTable);
+				} catch (RocksDBException ex) {
+					// 同settleSplitting的失败回滚（save失败内存还原，重试按未消费语义进行）。
+					if (null != dead)
+						splittingTable.buckets.put(request.getKeyFirst(), dead);
+					throw ex;
+				}
 				splittingAgeRemoveQuietly(tableName, request.getKeyFirst());
 				return true;
 			} finally {
