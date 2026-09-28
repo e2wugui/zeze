@@ -1,5 +1,6 @@
 package Zeze.Onz;
 
+import java.net.BindException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -9,6 +10,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.rocksdb.RocksDBException;
 
 import Zeze.Builtin.Onz.BSavedCommits;
 import Zeze.Config;
@@ -184,8 +187,29 @@ public class TestGcC01StopPerformMutex {
 		}
 	}
 
-	/** 进程内SM + 两参构造器协调者（单集群"名=配置"，零桩参与方）；半途失败best-effort回滚。 */
+	/** 进程内SM + 两参构造器协调者（单集群"名=配置"，零桩参与方）；半途失败best-effort回滚。
+	 * 有界重试启动链两处瞬态占用（verify轮两连红实证，同一外部瞬态句柄现象族）：
+	 * ①bind撞临时端口源占用——51910/51911落在本机临时端口范围(49152-65535)内，并行测试的
+	 * 出站连接可被OS分配同号源端口（SO_REUSEADDR只救TIME_WAIT不救活跃占用）；
+	 * ②RocksDB LOCK创建撞AV扫描器瞬态句柄——非同路径双开（db路径本类独占、事后LOCK可删）。
+	 * 真持续持有者/真端口冲突重试耗尽仍红，不掩盖。全套件20+固定5xxxx端口同暴露①，
+	 * 系统性迁出待桌批，此处只收敛已命中者。 */
 	private static Fixture buildServer(int serverId, int smPort, int clusterServerId, Path tempDir) throws Exception {
+		for (var attempt = 0; ; ++attempt) {
+			try {
+				return buildServerOnce(serverId, smPort, clusterServerId, tempDir);
+			} catch (IllegalStateException e) {
+				if (!(e.getCause() instanceof BindException) || attempt >= 6)
+					throw e;
+			} catch (RocksDBException e) {
+				if (attempt >= 6 || !e.getMessage().contains("Failed to create lock file"))
+					throw e;
+			}
+			Thread.sleep(500);
+		}
+	}
+
+	private static Fixture buildServerOnce(int serverId, int smPort, int clusterServerId, Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
 		Files.createDirectories(Path.of("autokeys"));
 		deleteRecursively(Path.of("CommitOnzServer" + serverId));
