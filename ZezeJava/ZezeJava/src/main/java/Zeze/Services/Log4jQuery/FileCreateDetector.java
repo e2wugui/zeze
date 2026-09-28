@@ -77,17 +77,24 @@ public class FileCreateDetector {
 		while (running) {
 			try {
 				var key = watchService.take();
-				for (var event : key.pollEvents()) {
-					var kind = event.kind();
-					if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-						@SuppressWarnings("unchecked") WatchEvent<Path> eventPath = (WatchEvent<Path>)event;
-						consumer.accept(eventPath.context());
-					} else if (kind == StandardWatchEventKinds.OVERFLOW) {
-						// 事件溢出=可能已丢失：warn+节流触发一次对账补偿，不静默吞掉。
-						logger.warn("watch OVERFLOW, events may be lost: {}", watchDir);
-						if (null != onOverflowConsumer)
-							onOverflowConsumer.run();
+				try {
+					for (var event : key.pollEvents()) {
+						var kind = event.kind();
+						if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
+							@SuppressWarnings("unchecked") WatchEvent<Path> eventPath = (WatchEvent<Path>)event;
+							consumer.accept(eventPath.context());
+						} else if (kind == StandardWatchEventKinds.OVERFLOW) {
+							// 事件溢出=可能已丢失：warn+节流触发一次对账补偿，不静默吞掉。
+							logger.warn("watch OVERFLOW, events may be lost: {}", watchDir);
+							if (null != onOverflowConsumer)
+								onOverflowConsumer.run();
+						}
 					}
+				} catch (Throwable eventEx) {
+					// 事件处理抛Error（OOM等）不得杀线程也不得跳过reset：signalled的key不reset
+					// 永不再排队——等效监听静默死亡。记error后继续消费（停止中不记，保留原语义）。
+					if (running)
+						logger.error("watch event process fail: {}", watchDir, eventEx);
 				}
 				if (!key.reset()) {
 					// 目录不可访问/被删除，监听从此死亡：error告警后退出循环，退出前触发最终对账。
@@ -98,9 +105,11 @@ public class FileCreateDetector {
 				}
 			} catch (ClosedWatchServiceException ex) {
 				break; // stopAndJoin关闭了watchService，正常退出
-			} catch (Exception ex) {
+			} catch (Throwable ex) {
+				// take()抛Error（OOM等）同样不得静默杀线程：Error只记日志继续循环（无限重试take），
+				// 停止中的异常不当错误处理（保留原退出语义）。
 				if (!running)
-					break; // 停止过程中出现的异常不当错误处理
+					break;
 				logger.error("", ex);
 			}
 		}
