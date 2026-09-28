@@ -15,6 +15,15 @@ import Zeze.Util.Task;
 
 /**
  * 单个分发文件在 Zoker 侧的传输载体：RandomAccessFile 断点续传，边写边维护全量 md5 供 CloseFile 校验。
+ *
+ * <p><b>线程安全（zoker-04）</b>：实例可被多连接共享（open 幂等复用同一 FileBin），共享的可变状态
+ * （os/randFile 的写指针、共享 MessageDigest——JDK 明示非线程安全）在并发 append/truncate/md5Digest/close
+ * 交错下会使 seek/write 与 digest 累计搅乱（CloseFile 校验必失败触发删档重传）。四个方法以实例监视器序化：
+ * 交错要么完整串行（等值断点续传常态，md5 与写入同源一致）要么退化为先后到达（close 后 append 得
+ * IOException→eAppendOffset，客户端重开重传）——消除交错中间态。监视器是叶子锁（方法内不再取其他锁），
+ * 调用方（DistributeManager）的全部 append/close 均在 filesBySocket 锁外执行，无锁序交互。
+ * per-file 粒度：仅共享同一文件的连接互斥，阻塞窗口=单次 append（truncate 路径含全量 md5 重算，
+ * 与该文件自身的续传代价同阶）。</p>
  */
 public class FileBin {
 	private final String relativeCanonicalFileName;
@@ -66,7 +75,7 @@ public class FileBin {
 		return randFile.getChannel().size();
 	}
 
-	public void truncate(long offset) throws IOException {
+	public synchronized void truncate(long offset) throws IOException {
 		randFile.seek(offset);
 		randFile.setLength(offset);
 		os = new BufferedOutputStream(new FileOutputStream(randFile.getFD()));
@@ -83,7 +92,7 @@ public class FileBin {
 		}
 	}
 
-	public void append(long offset, Binary data) throws IOException, NoSuchAlgorithmException {
+	public synchronized void append(long offset, Binary data) throws IOException, NoSuchAlgorithmException {
 		// 先flush缓冲数据再读channel长度：BufferedOutputStream对len<8192的写只进缓冲，
 		// 不flush时channel.size()滞后，后续小块append会误判offset越界，或truncate重建os丢弃未落盘的缓冲。
 		os.flush();
@@ -109,11 +118,12 @@ public class FileBin {
 		os.flush();
 	}
 
-	public byte[] md5Digest() {
+	/** 惰性收口：digest() 终结化共享 digest，必须与 append 的 update 序化（在 close 之后调用也安全）。 */
+	public synchronized byte[] md5Digest() {
 		return md5.digest();
 	}
 
-	public void close() throws IOException {
+	public synchronized void close() throws IOException {
 		os.close(); // 关闭前flush缓冲数据
 		randFile.close();
 	}
