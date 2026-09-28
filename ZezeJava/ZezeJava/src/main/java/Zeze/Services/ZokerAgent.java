@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -63,6 +64,20 @@ public class ZokerAgent extends AbstractZokerAgent {
     protected long ProcessRegisterRequest(Zeze.Builtin.Zoker.Register r) {
         var sender = r.getSender();
         var zokerName = r.Argument.getZokerName();
+        var registered = registeredNames(sender);
+        // 摘旧面快照（装账时刻之前本连接已注册的旧名，不含本次名）：Register为Normal派发
+        //（线程池并发），同连接两帧可在不同池线程并发执行——摘旧若遍历活集合，A的摘旧会看见
+        // B在A快照之后装账的新名并互摘（值恰为本socket，remove(name,sender)命中），已应答
+        // 成功的注册被静默丢弃（getZoker恒抛，长连接下无自愈）。快照取在装账循环之前：
+        // 并发双方各自的摘旧面都不含对方新名，互不摘除、两名并存（断链时OnSocketClose按
+        // 集合全量条件摘除，零滞留）；顺序到达的换名注册，后到者的快照必含旧名，
+        // 换名摘除语义不变。RegisteredNames仍记全部历史名（不退回单值记忆：并发交错/换名-
+        // 断链交错下漏摘的条目值指向已死socket永久滞留，无认证acceptor上Register洪泛=无界增长）。
+        var staleNames = new ArrayList<String>();
+        registered.forEach(name -> {
+            if (!name.equals(zokerName))
+                staleNames.add(name);
+        });
         while (true) {
             var old = zokers.putIfAbsent(zokerName, sender);
             if (null == old)
@@ -73,21 +88,12 @@ public class ZokerAgent extends AbstractZokerAgent {
                 break; // 现存 socket 已死：接管
             // CAS 失败：并发注册已改写条目——重读评估
         }
-        // 同 socket 换名注册——本 socket 名下旧名条目条件摘除（值仍是本 socket 才摘）。
-        // userState 持有本连接注册过的全部名字（RegisteredNames）：摘旧扫全集合，不再单值
-        // 只记/只摘紧邻前名——单值记忆在同连接 Register 并发交错或换名-断链交错下会漏摘，
-        // 漏出的条目值指向已死 socket 永久滞留（无认证 acceptor 上 Register 洪泛=无界增长）；
-        // 扫集合后 zokers 中本 socket 名下至多剩当前名一个条目，断链时 OnSocketClose
-        // 按集合全量条件摘除，零滞留。
         // 条件移除（remove(name, sender)）防误摘：旧名若已被他方接管（本 socket 曾死过、
         // 条目被 CAS 接管），值不是本 socket，不摘继承者。摘旧在装新成功之后：
         // 装新后、入集合前的极小关闭窗内关闭时，新名条目由下次同名
-        // Register 的 isClosed 接管回收，有界。
-        var registered = registeredNames(sender);
-        registered.forEach(name -> {
-            if (!name.equals(zokerName))
-                zokers.remove(name, sender);
-        });
+        // Register 的 isClosed 接管回收，有界。摘除面=上方快照（装账前旧名）。
+        for (var name : staleNames)
+            zokers.remove(name, sender);
         registered.add(zokerName);
         r.SendResult();
         return 0;
