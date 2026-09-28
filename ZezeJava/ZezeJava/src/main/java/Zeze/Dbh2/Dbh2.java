@@ -204,12 +204,26 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return;
 		closed = true;
 		logger.info("closeRaft: {}", raft.getName());
+		// 生命周期不变量：stateMachine.close()（bucket的rocksdb句柄/onTimer/commitAgent）必须无条件
+		// 执行——raft.shutdown()抛异常时跳过它会把句柄泄漏到进程存续期；destroyBucket重试走幂等
+		// 分支（条目已摘除）不再close，泄漏句柄钉死目录删除（Windows），销毁回滚永久卡死。
+		// 分别捕获，首个异常在全部清理执行完后重抛（保持close失败不删目录的调用方语义）。
+		Exception first = null;
 		try {
 			raft.shutdown();
+		} catch (Exception e) {
+			first = e;
+			logger.error("closeRaft: raft.shutdown fail. {}", raft.getName(), e);
+		}
+		try {
 			stateMachine.close();
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			logger.error("closeRaft: stateMachine.close fail. {}", raft.getName(), e);
+			if (null == first)
+				first = e;
 		}
+		if (null != first)
+			throw new RuntimeException(first);
 	}
 
 	@Override
