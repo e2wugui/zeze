@@ -46,6 +46,12 @@ public class Master extends AbstractMaster {
     // 错误码9：BOptions 传入了未实现的队列类型（DoubleWrite/Raft3 及其他非 Single 值）。
     // 定义在手写子类，不改生成的AbstractMaster（与eTopicEmpty同法）。
     public static final int eOptionsNotImplemented = 9;
+    // CreateMQ分区数上界：每分区在Manager侧对应一个MQSingle（列族+文件流），Master侧对应
+    // 一条servers条目；协议不鉴权（MQPartition自述），无上界时单个请求（int上限）可先在
+    // 循环内构造2^31-1条copy打挂Master（OOM/长CPU），侥幸下发后Manager对等膨胀连锁耗尽。
+    // 常量上限挡失控/恶意请求即可（超限ePartition）；真实需要更多分区属部署扩容议题，
+    // 上调常量重发版。1024对单topic分区已远超常规部署（默认单Manager部署形态）。
+    public static final int MaxPartitionsPerTopic = 1024;
     private final String home;
     private final RocksDatabase masterDb;
     private final RocksDatabase.Table mqTable; // key:utf8(topic), value:encode(BMQServers)
@@ -220,7 +226,7 @@ public class Master extends AbstractMaster {
                 return errorCode(eOptionsNotImplemented);
             }
             servers.getInfo().setOptions(r.Argument.getOptions());
-            if (r.Argument.getPartition() < 1)
+            if (r.Argument.getPartition() < 1 || r.Argument.getPartition() > MaxPartitionsPerTopic)
                 return errorCode(ePartition);
 
             servers.setSessionId(sessionIdGen.incrementAndGet());
