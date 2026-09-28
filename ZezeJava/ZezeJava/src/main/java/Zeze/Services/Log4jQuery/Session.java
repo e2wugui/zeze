@@ -91,6 +91,21 @@ public class Session implements AutoCloseable {
 		return result;
 	}
 
+	/** checked()抛出的会话级错误消息前缀（判据单点：错误码只嵌在消息文本里）。 */
+	static final String SESSION_LEVEL_ERROR_PREFIX = "search/browse error ";
+
+	/**
+	 * 会话级错误判别（N02）：checked()抛出的"search/browse error N"（服务端拒绝本会话——典型：
+	 * 闲置被回收的死会话）与网络/超时类异常（CompletionException等，无此前缀）的区分判据。
+	 * 消息前缀识别是唯一可捕获层（代码嵌在文本里）；调用方（SessionAll成员自愈、
+	 * FileSessionManager.operateRecovering）据此只对会话级死亡触发重建——网络类瞬时失败重建无益
+	 * （白白丢弃仍有效的会话与游标）。
+	 */
+	public static boolean isSessionLevelError(Throwable e) {
+		var message = e.getMessage();
+		return e instanceof RuntimeException && null != message && message.startsWith(SESSION_LEVEL_ERROR_PREFIX);
+	}
+
 	private volatile boolean closed;
 
 	@Override
