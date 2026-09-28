@@ -135,6 +135,10 @@ public class OnzServer extends AbstractOnz {
 				var zezeNameAndConfig = zeze.split("=");
 				if (zezeNameAndConfig.length != 2)
 					throw new RuntimeException("error zezes=" + zezeConfigs);
+				// 空名集群（"=config"）拒绝：注册后以空名路由/订阅，业务每笔调用以晦涩的
+				// "subscribe not found"收场，错误配置须在构造期暴露（对齐length!=2的严格度）。
+				if (zezeNameAndConfig[0].isBlank())
+					throw new IllegalArgumentException("empty zeze name. zezes=" + zezeConfigs);
 				if (this.zezes.containsKey(zezeNameAndConfig[0]))
 					throw new RuntimeException("duplicate zeze=" + zezeNameAndConfig[0] + " zezes=" + zezeConfigs);
 				var zezeConfig = Config.load(zezeNameAndConfig[1]);
@@ -753,6 +757,10 @@ public class OnzServer extends AbstractOnz {
 			startAgentAndWaitReady(sharedAgent);
 			var zezeArray = specialZezeNames.split(";");
 			for (var zeze : zezeArray) {
+				// 空段（""/"a;;b"）拒绝：空名注册+subscribeService("")后按空名解析恒失败，
+				// 错误配置须在构造期暴露（对齐duplicate检查的严格度）。
+				if (zeze.isBlank())
+					throw new IllegalArgumentException("empty zeze name. zezes=" + specialZezeNames);
 				if (this.zezes.containsKey(zeze))
 					throw new RuntimeException("duplicate zeze=" + zeze + " zezes=" + specialZezeNames);
 				this.zezes.put(zeze, sharedAgent);
