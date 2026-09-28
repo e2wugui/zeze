@@ -17,8 +17,20 @@ import org.jetbrains.annotations.NotNull;
 public class Log4jSession {
 	private static final @NotNull Logger logger = LogManager.getLogger(Log4jSession.class);
 
-	/** 服务端单请求limit强制上限：协议字段是客户端可控的裸int，clamp后按上限执行（超出部分静默截断）。 */
-	public static final int MAX_LIMIT = 10_000;
+	/**
+	 * 单页应答编码体量预算（FND28-L1）：对齐Net默认传输上限（SocketOptions双向2MB）的保守页
+	 * 预算——取其半，为发送侧堆积留余量（TcpSocket.checkOverflow按"堆积+本包&gt;上限"整包
+	 * 静默丢弃）。页内结果UTF-8字节总量超预算即以Remain=true截断返回（客户端续页，不丢不重），
+	 * 单页编码体量有界、不再触顶丢页；Net层"溢出整包静默丢弃+游标已推进"的根因留越界。
+	 */
+	public static final int PAGE_RESULT_BYTES_BUDGET = 1024 * 1024;
+	/** clampLimit推导用的保守行均值（UTF-8字节）：常规行数百字节、多行聚合（堆栈）数KB，取1KB；
+	 * 真实分布由各查询循环的页字节预算兜底（条数上限只是第一道，不单独依赖均值假设）。 */
+	private static final int CONSERVATIVE_AVG_LINE_BYTES = 1024;
+	/** 服务端单请求limit强制上限：协议字段是客户端可控的裸int，clamp后按上限执行（超出部分静默截断）。
+	 * 取值=页字节预算/保守行均值（FND28-L1）：旧值10_000在默认配置下行均~250B×数千条即编码
+	 * 超2MB传输上限，应答整包被静默丢弃而服务端游标已推进——页级结果永久跳过。 */
+	public static final int MAX_LIMIT = PAGE_RESULT_BYTES_BUDGET / CONSERVATIVE_AVG_LINE_BYTES;
 	/** 单请求扫描日志条数预算：超预算置Remain=true提前返回，客户端按翻页协议继续，对现有客户端透明。 */
 	public static final int MAX_SCAN_LOGS = 100_000;
 	/** 单请求扫描字节预算：防超大日志行（多行续行聚合）绕过条数预算。 */
@@ -110,6 +122,16 @@ public class Log4jSession {
 		return files.hasNext() ? files.next() : null;
 	}
 
+	/** UTF-8编码字节数（无分配精确计数；代理对按2×3计，≥真实的4，保守方向）。 */
+	private static long utf8Length(CharSequence s) {
+		long n = 0;
+		for (var i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			n += c < 0x80 ? 1 : (c < 0x800 ? 2 : 3);
+		}
+		return n;
+	}
+
 	/**
 	 * 按 string.find 方式搜索日志，结果通过 result 获取；
 	 *
@@ -127,6 +149,7 @@ public class Log4jSession {
 
 		var scanned = 0;
 		var scannedBytes = 0L;
+		var resultBytes = 0L; // 本页结果UTF-8字节（FND28-L1页字节预算）
 		// 同searchRegex：取条统一走nextLog()——regex页预算中止的暂存条（pendingNext）必须被
 		// 同会话后续的contains查询消费（Search/Browse按请求内容在words/pattern间路由，同sid
 		// 交错可达），直走walker.next()会越过已取出的暂存条，该条静默漏出结果。
@@ -144,9 +167,21 @@ public class Log4jSession {
 				}
 
 				if (containsCheck(log, words, containsType)) {
-					result.add(log);
-					if (--limit <= 0)
-						break; // maybe remain
+					var lineBytes = utf8Length(log.getLog());
+					if (lineBytes > PAGE_RESULT_BYTES_BUDGET && result.isEmpty()) {
+						// 单条超整页预算（FND28-L1）：任何条数limit下都无法经传输上限送达，跳过并warn
+						// （不暂存——暂存会使下一页空结果+Remain死循环）。
+						logger.warn("skip single log exceeding page byte budget: {} bytes", lineBytes);
+					} else if (resultBytes + lineBytes > PAGE_RESULT_BYTES_BUDGET) {
+						// 页字节预算满：本条暂存下一页重取（不丢不重），Remain让客户端续页。
+						pendingNext = log;
+						return true; // remain
+					} else {
+						result.add(log);
+						resultBytes += lineBytes;
+						if (--limit <= 0)
+							break; // maybe remain
+					}
 				}
 				// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
 				if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
@@ -191,6 +226,7 @@ public class Log4jSession {
 		var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE); // 循环外编译一次复用
 		var scanned = 0;
 		var scannedBytes = 0L;
+		var resultBytes = 0L; // 本页结果UTF-8字节（FND28-L1页字节预算）
 		var regexChars = MAX_SCAN_REGEX_CHARS; // 正则预算跨行共享，在matcher内部生效（见常量注释）
 		try {
 			while (true) {
@@ -216,9 +252,20 @@ public class Log4jSession {
 				}
 				regexChars = budget.remaining();
 				if (matched) {
-					result.add(log);
-					if (--limit <= 0)
-						break; // maybe remain
+					var lineBytes = utf8Length(log.getLog());
+					if (lineBytes > PAGE_RESULT_BYTES_BUDGET && result.isEmpty()) {
+						// 同searchContains：单条超整页预算，跳过并warn（不暂存防死循环）。
+						logger.warn("skip single log exceeding page byte budget: {} bytes", lineBytes);
+					} else if (resultBytes + lineBytes > PAGE_RESULT_BYTES_BUDGET) {
+						// 同searchContains：页字节预算满，暂存下一页重取，Remain续页。
+						pendingNext = log;
+						return true; // remain
+					} else {
+						result.add(log);
+						resultBytes += lineBytes;
+						if (--limit <= 0)
+							break; // maybe remain
+					}
 				}
 				// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
 				if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
@@ -254,6 +301,7 @@ public class Log4jSession {
 		var locate = false;
 		var scanned = 0;
 		var scannedBytes = 0L;
+		var resultBytes = 0L; // 当前deque内容UTF-8字节（pollFirst时扣减；FND28-L1页字节预算）
 		// 同searchContains：取条统一走nextLog()消费可能的暂存条（见searchContains循环处注释）。
 		try {
 			while (true) {
@@ -266,19 +314,32 @@ public class Log4jSession {
 					return false; // end search
 				}
 
-				result.add(log);
-				if (locate) {
-					--limit;
-					if (limit <= 0)
-						break;
+				var lineBytes = utf8Length(log.getLog());
+				if (lineBytes > PAGE_RESULT_BYTES_BUDGET) {
+					// 单条超整页预算（FND28-L1）：任何形态都无法经传输上限送达，跳过并warn
+					// （browse逐行入列，暂存会重演同样超限，不暂存防死循环）。
+					logger.warn("skip single log exceeding page byte budget: {} bytes", lineBytes);
+				} else if (!result.isEmpty() && resultBytes + lineBytes > PAGE_RESULT_BYTES_BUDGET) {
+					// 页字节预算满：本条暂存下一页重取（不丢不重），Remain让客户端续页。
+					pendingNext = log;
+					return true; // remain
 				} else {
-					if (containsCheck(log, words, containsType)) {
-						locate = true;
-						limit -= result.size();
+					result.add(log);
+					resultBytes += lineBytes;
+					if (locate) {
+						--limit;
 						if (limit <= 0)
 							break;
-					} else if (result.size() > offset)
-						result.pollFirst(); // 只在开头保留offset数量不匹配行。
+					} else {
+						if (containsCheck(log, words, containsType)) {
+							locate = true;
+							limit -= result.size();
+							if (limit <= 0)
+								break;
+						} else if (result.size() > offset) {
+							resultBytes -= utf8Length(result.pollFirst().getLog()); // 只在开头保留offset数量不匹配行。
+						}
+					}
 				}
 				// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
 				if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
@@ -311,6 +372,7 @@ public class Log4jSession {
 		var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE); // 循环外编译一次复用
 		var scanned = 0;
 		var scannedBytes = 0L;
+		var resultBytes = 0L; // 当前deque内容UTF-8字节（poll时扣减；FND28-L1页字节预算）
 		var regexChars = MAX_SCAN_REGEX_CHARS; // 正则预算跨行共享，在matcher内部生效（见常量注释）
 		try {
 			while (true) {
@@ -323,33 +385,46 @@ public class Log4jSession {
 					return false; // end search
 				}
 
-				result.add(log);
-				if (locate) {
-					--limit;
-					if (limit <= 0)
-						break;
+				var lineBytes = utf8Length(log.getLog());
+				if (lineBytes > PAGE_RESULT_BYTES_BUDGET) {
+					// 同browseContains：单条超整页预算，跳过并warn（不暂存防死循环）。
+					logger.warn("skip single log exceeding page byte budget: {} bytes", lineBytes);
+				} else if (!result.isEmpty() && resultBytes + lineBytes > PAGE_RESULT_BYTES_BUDGET) {
+					// 同browseContains：页字节预算满，暂存下一页重取，Remain续页。
+					pendingNext = log;
+					return true; // remain
 				} else {
-					var budget = new RegexBudget(log.getLog(), regexChars);
-					var matcher = regex.matcher(budget);
-					boolean matched;
-					try {
-						matched = matcher.find();
-					} catch (RegexBudgetExceeded e) {
-						// 本条已add进result且未判定（locate分支不触matcher，此处必为locate==false）：
-						// 移除后暂存重判（不丢不重），返回部分结果+Remain，客户端续页后预算重置。
-						result.pollLast();
-						pendingNext = log;
-						logger.warn("browseRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
-						return true; // remain
-					}
-					regexChars = budget.remaining();
-					if (matched) {
-						locate = true;
-						limit -= result.size();
+					result.add(log);
+					resultBytes += lineBytes;
+					if (locate) {
+						--limit;
 						if (limit <= 0)
 							break;
-					} else if (result.size() > offset)
-						result.pollFirst(); // 只在开头保留offset数量不匹配行。
+					} else {
+						var budget = new RegexBudget(log.getLog(), regexChars);
+						var matcher = regex.matcher(budget);
+						boolean matched;
+						try {
+							matched = matcher.find();
+						} catch (RegexBudgetExceeded e) {
+							// 本条已add进result且未判定（locate分支不触matcher，此处必为locate==false）：
+							// 移除后暂存重判（不丢不重），返回部分结果+Remain，客户端续页后预算重置。
+							result.pollLast();
+							resultBytes -= lineBytes;
+							pendingNext = log;
+							logger.warn("browseRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
+							return true; // remain
+						}
+						regexChars = budget.remaining();
+						if (matched) {
+							locate = true;
+							limit -= result.size();
+							if (limit <= 0)
+								break;
+						} else if (result.size() > offset) {
+							resultBytes -= utf8Length(result.pollFirst().getLog()); // 只在开头保留offset数量不匹配行。
+						}
+					}
 				}
 				// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
 				if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
