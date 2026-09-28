@@ -114,10 +114,12 @@ public class ServiceManager {
 	// start 按 run.pid 领养"正在被终止"的进程并回执 Running：回执即谎言且终局服务死
 	// （领养判据只看"pid 存活+指纹相符"，无法区分现役
 	// 与正被杀）。互斥使两序皆自洽：stop 先完成→start 见无身份/死残留重新拉起（回执诚实）；
-	// start 先完成→stop 正常停它（回执亦诚实）。锁序安全：与 commitLocks 无嵌套（commit 不碰
-	// 进程记账，start/stop 不碰版本目录），watchExit 回调不取本锁。键大小写折叠
-	// （toLowerCase(Locale.ROOT)）：Windows 上 "svc"/"Svc" 同一物理容器，裸键两把锁互斥失效；
-	// Linux 过度串行化可接受（生命周期 RPC 非热路径）。条目数以
+	// start 先完成→stop 正常停它（回执亦诚实）。锁序：commit 的 prune 段经
+	// {@link #withServiceLock} 取本锁（commitLocks→opsLocks 单向嵌套——prune 的在用版本判据
+	// run.pid 与 start 的 writeRunPid 互斥，否则 launch→writeRunPid 窗口内正在启动的版本目录
+	// 被当非在用删除）；start/stop 不取 commitLocks（无反向持锁路径，无环）；watchExit 回调
+	// 不取本锁。键大小写折叠（toLowerCase(Locale.ROOT)）：Windows 上 "svc"/"Svc" 同一物理容器，
+	// 裸键两把锁互斥失效；Linux 过度串行化可接受（生命周期 RPC 非热路径）。条目数以
 	// （折叠后的）服务名为界，与 isSafePathSegment 守卫后的名字面同量级，无攻击面放大。
 	private final ConcurrentHashMap<String, Object> opsLocks = new ConcurrentHashMap<>();
 
@@ -629,6 +631,18 @@ public class ServiceManager {
 	private static String deadPs(Process process) {
 		return process instanceof AdoptedProcess adopted
 				? "pid=" + adopted.pid() + ",exit=n/a(adopted)" : formatPs(exitCode(process));
+	}
+
+	/**
+	 * 在与 startService/stopService 同粒度的服务锁（opsLocks）下执行 action。
+	 * 供 DistributeManager.pruneVersions（zoker-02）把"在用版本判据（run.pid）→deleteTree"
+	 * 与 start 的 launch→writeRunPid 窗口互斥：prune 由 commit 调用（持 commitLocks 后取本锁，
+	 * 单向嵌套见 opsLocks 字段注释）；start/stop 全程持本锁但不取 commitLocks，无环。
+	 */
+	void withServiceLock(String serviceName, Runnable action) {
+		synchronized (opsLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
+			action.run();
+		}
 	}
 
 	/**

@@ -568,13 +568,33 @@ public class DistributeManager {
 	 * <p><b>在用版本保护</b>：运行中服务的进程身份（run.pid 的 version 行，launch 时落盘）
 	 * 指向的版本目录同样不进清理面——服务不随 current 切换重启时仍从旧版本目录运行，
 	 * 误删即拆运行中服务的文件（Linux 惰性加载失败；Windows 句柄锁目录使 deleteTree
-	 * 恒 false）。版本不可知（旧格式身份）时整体跳过本服务：宁可不回收空间也不删在用目录。
-	 * 直构形态（zoker==null）无进程身份可查，保护不生效。</p>
+	 * 恒 false）。判据读取与 startService 的 writeRunPid 经 ServiceManager.opsLocks 互斥
+	 * （见方法体，zoker-02）——launch→writeRunPid 窗口内 run.pid 还是旧身份，无互斥时
+	 * 正在启动的版本目录会被当非在用删除。版本不可知（旧格式身份）时整体跳过本服务：
+	 * 宁可不回收空间也不删在用目录。直构形态（zoker==null）无进程身份可查，保护不生效。</p>
 	 */
 	void pruneVersions(File svcDir, String currentVersion) {
 		var keep = keepVersions;
 		if (keep <= 0)
 			return; // 全保留
+		// zoker-02：prune 段纳入与 start/stop 同粒度互斥（ServiceManager.opsLocks，键同
+		// toLowerCase 折叠）。start 持锁的 launch→writeRunPid 窗口内 run.pid 是旧身份，
+		// 本判据读到 null/旧版本就会把正在启动的版本目录当非在用删除（进程炸/NoClassDefFound，
+		// 两个 RPC 各自"成功"的静默错账）；共锁后 start 必先在锁内落盘新身份，prune 判得到它。
+		// 锁序 commitLocks→opsLocks 单向嵌套（调用方 commit 全程持 commitLocks）：start/stop
+		// 不取 commitLocks，无反向持锁路径，无环。锁键用容器目录名（=commit 请求的 serviceName
+		// 原样拼写），与 start/stop 的 RPC 名同拼写经同一 toLowerCase 折叠后同键；大小写/尾点
+		// 变体名的同型分叉与 opsLocks 既有键折叠面一致（首波 zoker-07 笔记已记的未闭合族）。
+		var processManager = null != zoker ? zoker.getProcessManager() : null;
+		if (null != processManager)
+			processManager.withServiceLock(svcDir.getName(),
+					() -> pruneLocked(svcDir, currentVersion, keep, processManager));
+		else
+			// 直构测试形态：无进程身份可锁/可保护（测试直调本方法验证清理面语义，原行为）。
+			pruneLocked(svcDir, currentVersion, keep, null);
+	}
+
+	private static void pruneLocked(File svcDir, String currentVersion, int keep, @Nullable ServiceManager processManager) {
 		var listFiles = svcDir.listFiles();
 		if (null == listFiles)
 			return;
@@ -582,7 +602,6 @@ public class DistributeManager {
 		// 在用版本判据取自盘上进程身份（run.pid），与内存记账无耦合：launch 时写、
 		// 停毕/onExit 删、Alive-After-Force 保留——盘状态即"进程是否仍从该版本运行"。
 		String foldedRunning = null;
-		var processManager = null != zoker ? zoker.getProcessManager() : null;
 		if (null != processManager) {
 			var running = processManager.runningVersion(svcDir.getName());
 			if (null != running && running.isEmpty()) {
