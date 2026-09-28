@@ -99,6 +99,8 @@ public class Producer extends AbstractProducer implements TransactionListener {
 
 	/**
 	 * 发送消息，并且把消息跟一个事务绑定起来。仅当事务执行成功时，消息才会被发送。如果事务回滚，消息将被取消。
+	 * 前置 tSent 预插行过程失败（冲突重试耗尽、库异常等）时不发送消息、不执行 procedureAction，
+	 * 记 error 日志并返回 null。
 	 */
 	public @Nullable TransactionSendResult sendMessageWithTransaction(@NotNull Message msg,
 																	  @NotNull FuncLong procedureAction)
@@ -109,9 +111,14 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			_tSent.insert(txnId, new BTransactionMessageResult(false, System.currentTimeMillis()));
 			return 0;
 		}, "RocketMQ.executeLocalTransaction")).call();
+		if (r != 0) {
+			logger.error("sendMessageWithTransaction: tSent pre-insert procedure fail (rc={}), message not sent."
+					+ " topic={}", r, msg.getTopic());
+			return null;
+		}
 		// txnId经arg载体传递：rocketmq-client发送半消息成功后会用UNIQ_KEY覆写msg.transactionId
 		//（DefaultMQProducerImpl.sendMessageInTransaction），executeLocalTransaction无法再从msg取回txnId。
-		return r == 0 ? producer.sendMessageInTransaction(msg, new TxnAction(txnId, procedureAction)) : null;
+		return producer.sendMessageInTransaction(msg, new TxnAction(txnId, procedureAction));
 	}
 
 	private record TxnAction(String txnId, FuncLong action) {
