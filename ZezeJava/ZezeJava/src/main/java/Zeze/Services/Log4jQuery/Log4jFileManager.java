@@ -608,7 +608,7 @@ public class Log4jFileManager extends ReentrantLock {
 				var logFile = new File(logConf.logDir, kv.getValue());
 				// 启动装载同样按内容时间归位（addByContentTime）：名字日期与内容时序不一致时
 				// 按名序追加会从构造起就打破列表时序不变式（reconcile期间无补登可纠正）。
-				addByContentTime(Log4jFile.of(logFile, loadIndex(logFile, openRotateIndex(kv.getValue() + ".index"))));
+				addByContentTime(Log4jFile.of(logFile, loadIndex(logFile, openRotateIndex(logFile))));
 			}
 		}
 	}
@@ -706,9 +706,26 @@ public class Log4jFileManager extends ReentrantLock {
 	 * 打开（必要时创建）rotate名索引并装载LogIndex，不扫描日志文件：直接以rotate名打开
 	 * （文件不存在时LogIndex构造内创建）。旧代码对current名的硬链接特殊处理已随轮转方案移除
 	 * （见openActiveIndexAtLoad/openFreshActiveIndex——运行期不再使用current.index名字）。
+	 * 内容配对校验（装载loadRotates/对账补登共用收口，判据与active侧indexPairsLogFile同构）：
+	 * 磁盘上的rotate名.index可能是陈旧残留（外部清理只删.log、logDatePattern无年份的年度同名
+	 * 重现、备份回拷同名不同内容），其time+offset描述的是别的内容——直接装载后loadIndex/
+	 * sampleIndexHead以陈旧末记录续建：offset超长则seek落EOF续建静默停止（索引永久陈旧），
+	 * 落在文件内则从错位位置续读，该rotate时间窗错读或漏读，且重启走同一无校验路径不能自愈。
+	 * 失配按"陈旧残留"处置——删除让位后按原名重建（装载期无存活映射删除必成；对账期可能被
+	 * 本进程早前实例的未释放mmap钉住（Windows），此时不删不覆盖——对齐transferIndexToRotate
+	 * "不动既有文件"的语义，改在indexLinks下全新索引由buildIndex重建，残留文件原地不动）。
+	 * 校验经readIndexHeadTail直读（不经LogIndex实例化）：候选文件不会被mmap钉住，删除路径可行。
 	 */
-	private LogIndex openRotateIndex(String logIndexFileName) throws Exception {
-		return new LogIndex(new File(logConf.logDir, logIndexFileName));
+	private LogIndex openRotateIndex(File rotateFile) throws Exception {
+		var indexFile = new File(logConf.logDir, rotateFile.getName() + ".index");
+		if (indexFile.exists() && !indexPairsLogFile(indexFile, rotateFile)) {
+			logger.warn("rotate index not paired with log, drop stale: {}", indexFile);
+			if (!indexFile.delete()) {
+				logger.warn("drop stale rotate index fail (pinned?), rebuild with fresh link index: {}", indexFile);
+				return openFreshActiveIndex();
+			}
+		}
+		return new LogIndex(indexFile);
 	}
 
 	/**
@@ -739,11 +756,20 @@ public class Log4jFileManager extends ReentrantLock {
 	private LogIndex openActiveIndexAtLoad(File activeFile) throws Exception {
 		var currentIndexFile = new File(logConf.logDir, getCurrentIndexFileName());
 		if (currentIndexFile.exists()) {
-			if (indexPairsActiveFile(currentIndexFile, activeFile)) {
-				// 配对成功：链接接管（装载期无映射必成），沿用"链接是存活索引增长通道"的既有机制。
+			if (indexPairsLogFile(currentIndexFile, activeFile)) {
+				// 配对成功：链接接管（装载期无存活映射），沿用"链接是存活索引增长通道"的既有机制。
 				var linkFile = nextLinkFile();
-				var linkPath = Files.createLink(linkFile.toPath(), currentIndexFile.toPath());
-				return new LogIndex(linkPath.toFile());
+				try {
+					return new LogIndex(Files.createLink(linkFile.toPath(), currentIndexFile.toPath()).toFile());
+				} catch (IOException linkEx) {
+					// FAT/exFAT等不支持硬链接的文件系统上createLink抛IOException：不回退则异常
+					// 上抛令LogService构造失败、服务起不来（配置本身合法）。降级为直接以
+					// current.index为增长通道（对齐transferIndexToRotate链接失败降级+warn的语义）：
+					// 原名增长与链接增长等价，后续轮转对它的移交走复制接管、新active走indexLinks
+					// 全新文件，同样不依赖链接能力。
+					logger.warn("load: link takeover fail, use current index directly: {}", currentIndexFile, linkEx);
+					return new LogIndex(currentIndexFile);
+				}
 			}
 			logger.warn("load: current index not paired with active, drop stale: {}", currentIndexFile);
 			if (!currentIndexFile.delete())
@@ -767,13 +793,15 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * 装载期"索引与active内容配对"校验（判据与repointMissedRotation同构）：
+	 * "索引与日志文件内容配对"校验（判据与repointMissedRotation同构）：装载期active候选
+	 * （current.index/indexLinks最大编号）与rotate名残留.index（openRotateIndex）共用。
 	 * 1) 空索引恒配对（无内容可失配，装载后由loadIndex重建）；
-	 * 2) 末记录offset超出active文件长度=索引描述的是别的内容（自洽索引的offset必落在文件长度内）；
-	 * 3) 内容抽查：active首条可解析日志时间须落索引[beginTime,endTime]窗内——真配对时索引首
-	 *    记录即由该首条采样而来（时间相等）；停机期轮转错配时索引窗口整体早于active内容，必在窗外。
+	 * 2) 末记录offset超出日志文件长度=索引描述的是别的内容（自洽索引的offset必落在文件长度内）；
+	 * 3) 内容抽查：文件首条可解析日志时间须落索引[beginTime,endTime]窗内——真配对时索引首
+	 *    记录即由该首条采样而来（时间相等）；错配（停机期轮转/陈旧残留）时索引窗口与文件内容
+	 *    分属不同世代，首条时间必在窗外。
 	 */
-	private boolean indexPairsActiveFile(File indexFile, File activeFile) {
+	private boolean indexPairsLogFile(File indexFile, File logFile) {
 		long[] headTail;
 		try {
 			headTail = readIndexHeadTail(indexFile);
@@ -782,16 +810,16 @@ public class Log4jFileManager extends ReentrantLock {
 		}
 		if (null == headTail)
 			return true;
-		if (headTail[2] > activeFile.length())
+		if (headTail[2] > logFile.length())
 			return false;
-		var headTime = headTimeOf(activeFile);
+		var headTime = headTimeOf(logFile);
 		return null != headTime && headTime >= headTail[0] && headTime <= headTail[1];
 	}
 
 	/**
-	 * 候选索引的首末有效记录：不经LogIndex实例化读取（mmap会钉住文件，Windows下随后删除被
-	 * 否决的current.index必败）。尾部连续零记录与LogIndex构造器清理同语义跳过（否则endTime=0
-	 * 必然否决真配对）。
+	 * 候选索引的首末有效记录：不经LogIndex实例化读取（mmap会钉住文件，Windows下随后删除
+	 * 被否决的current.index/rotate名残留.index必败）。尾部连续零记录与LogIndex构造器清理同语义跳过
+	 * （否则endTime=0必然否决真配对）。
 	 * @return {beginTime, endTime, 末记录offset}；null=无有效记录（空索引）。
 	 */
 	private static long[] readIndexHeadTail(File indexFile) throws IOException {
