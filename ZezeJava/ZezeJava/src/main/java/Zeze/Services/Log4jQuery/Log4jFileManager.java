@@ -513,7 +513,7 @@ public class Log4jFileManager extends ReentrantLock {
 		var rotateIndex = transferIndexToRotate(activeEntry.index, rotateName);
 		if (null == rotateIndex) // 失败即中止改指（回滚语义，与case-1共用）
 			return;
-		logger.warn("reconcile missed rotation: repoint active entry {} -> {} with copied index",
+		logger.warn("reconcile missed rotation: repoint active entry {} -> {} with transferred index",
 				activeName, rotateName);
 		activeEntry.index = rotateIndex;
 		activeEntry.file = new File(logConf.logDir, rotateName);
