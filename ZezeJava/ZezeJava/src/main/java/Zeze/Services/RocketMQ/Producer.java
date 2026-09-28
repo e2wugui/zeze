@@ -170,12 +170,23 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		return LocalTransactionState.ROLLBACK_MESSAGE;
 	}
 
+	/**
+	 * 事务回查：行存在且 result=true 返回 COMMIT；行不存在或 result=false 返回 UNKNOW。
+	 * 行不存在不回 ROLLBACK：uniqKey 行由 executeLocalTransaction 在本地过程内写入，过程提交后
+	 * 才对 selectDirty 可见——本地过程耗时超过 broker 回查免疫窗口（transactionTimeOut 量级，
+	 * 冲突重试/过程内长 IO 可达）时回查先到，"不存在"无法区分"过程在飞"与"从未执行/已回滚/
+	 * 已被过期清理"（回查报文只有 UNIQ_KEY，无 txnId→uniqKey 链接，键设计下不可分辨），
+	 * ROLLBACK 会丢弃在飞过程的半消息而本地事务随后提交成功，静默违背"仅当事务成功才发送"。
+	 * UNKNOW 依赖 broker 回查策略收敛：在飞过程提交后，后续回查命中 result=true → COMMIT 救回；
+	 * 行真不存在时由 broker 最大回查次数耗尽丢弃半消息，终态与 ROLLBACK 等效，仅丢弃时点
+	 * 推迟（回查次数×间隔量级）。
+	 */
 	@Override
 	public @NotNull LocalTransactionState checkLocalTransaction(@NotNull MessageExt msg) {
 		var uniqKey = msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
 		var sent = uniqKey != null ? _tSent.selectDirty(uniqKey) : null;
 		if (sent == null)
-			return LocalTransactionState.ROLLBACK_MESSAGE;
+			return LocalTransactionState.UNKNOW;
 		return sent.isResult() ? LocalTransactionState.COMMIT_MESSAGE : LocalTransactionState.UNKNOW;
 	}
 
