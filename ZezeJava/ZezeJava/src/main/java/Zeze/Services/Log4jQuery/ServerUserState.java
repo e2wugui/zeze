@@ -19,7 +19,17 @@ public class ServerUserState {
 	}
 
 	public Log4jSession getLogSession(long sid) {
-		return logSessions.get(sid);
+		var logSession = logSessions.get(sid);
+		if (null != logSession)
+			// 命中即锁外前置刷新（volatile写）：把"查询受理"提前到拿引用时刻。原窗口=拿引用到
+			// 进会话锁（touchActive在锁内首行），含等锁——可被并发长查询钉住秒级，恰到期会话在
+			// 窗口内被惰性清理回收，查询随后对已关walker抛IllegalStateException。前置刷新后
+			// 清理的锁内复核读到的必是新值（volatile写先于该读发生），该形态消除。剩余窗口=map.get
+			// 到本行之间被抢占且清理方完整走过锁内复核并close——纳秒级无锁窗口内的完整竞争，
+			// 实际不可达；即便命中，touchActive是幂等volatile写，对已移除会话无副作用，
+			// 查询失败形态与修复前相同（可见错误码、客户端可重建会话恢复）。
+			logSession.touchActive();
+		return logSession;
 	}
 
 	public void newLogSession(String logName, long sid) throws IOException {
