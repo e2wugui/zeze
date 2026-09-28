@@ -8,7 +8,9 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Services.Log4jQuery.Session;
 import Zeze.Services.LogAgent;
 import Zeze.Util.Func1;
 import org.apache.logging.log4j.LogManager;
@@ -39,6 +41,9 @@ import org.apache.logging.log4j.Logger;
  * 视图间切换）交替查询会互相顶掉对方的会话——每次不匹配都重建，游标/过滤条件互相重置，
  * 结果正确但体验差。彻底解耦传输地址与会话身份需要显式会话令牌（响应带回
  * sessionToken、前端后续携带、IP 仅作审计），横跨 web 前端改造。</li>
+ * <li><b>同IP并发拒绝（N03，FND28）</b>：同 IP 并发同参数请求曾共享同一会话使服务端游标被
+ * 并发推进（跳页/重复/丢页且各自 success），现按在飞守卫（见 operateRecovering）快速拒绝
+ * 并发者——可见 system error，重试即得串行结果；服务端游标的并发语义不动（留档）。</li>
  * <li><b>替换关闭的竞态</b>：换绑瞬间另一在飞请求
  * 可能正持有旧会话的 future（search/browse 最长 1 分钟），旧会话被关闭后该请求拿到
  * 旧数据源的完整结果或异常，不会拿到混合结果；彻底消除需要引用计数/版本化句柄，
@@ -67,6 +72,13 @@ public class FileSessionManager {
 		t.setDaemon(true);
 		return t;
 	});
+
+	// N03（FND28）：同源IP的search/browse在飞守卫（键与map同源，值=占用标记）。同IP并发同参数
+	// 请求会共享同一绑定会话（resolve复用命中），服务端按会话推进游标——两个并发翻页各推一次
+	// =跳页/重复/丢页且各自应答success；不同参数的并发本就会被resolve互顶重建（既有"同IP互顶"
+	// 已知限制），按IP粒度守卫一致。条目不随清扫移除：移除与在飞请求的交错会分裂出两个flag放过
+	// 并发；条目以源IP为界，量级与map同阶（每IP一个16字节对象）。
+	private static final ConcurrentHashMap<String, AtomicBoolean> inFlightByIp = new ConcurrentHashMap<>();
 
 	/** 存入绑定记录，返回被替换的旧绑定（无则null）。旧会话的关闭见{@link #resolve}的收口。 */
 	public static LogSessionBinding put(SocketAddress socketAddress, LogSessionBinding binding) {
@@ -119,36 +131,44 @@ public class FileSessionManager {
 	}
 
 	/**
-	 * 会话级错误的可捕获特征（zoker-03）：Session.checkResultCode（Log4jQuery 域，只读）对非零
-	 * resultCode 的 search/browse 应答在 get 时抛 {@code RuntimeException("search/browse error <code>")}
-	 * ——错误码只嵌在消息文本里，按前缀识别是唯一可捕获层。网络/超时类异常
-	 * （CompletionException 等）无此前缀，不触发重建。
-	 */
-	private static final String SESSION_LEVEL_ERROR_PREFIX = "search/browse error ";
-
-	/**
 	 * resolve + operate 的会话级错误自愈包装（zoker-03）：首次 operate 抛会话级错误
 	 * （服务端已拒绝本会话——典型：闲置超 sessionIdleTimeoutMillis 被 cleanIdleLogSessions
 	 * 回收后的 LogicError；复用判据只比静态三元组，死会话被永久复用、同 IP 同参数查询恒
 	 * system error 无自愈）时：以 changeSession 语义驱逐重建（resolve 的关旧建新路径，
 	 * 旧会话走 closeExecutor 关闭）→ 同参数重建 → 重试一次；重试仍失败原样上抛
-	 * （只一层，防循环）。非会话级错误（网络/超时）原样上抛不重建——重建会白白丢弃
-	 * 仍有效的会话与游标。重建后游标归零：continuation 请求（reset=false）的重试返回
-	 * 首页数据——死会话本无正确续页可言，首页数据优于永久报错。
+	 * （只一层，防循环）。非会话级错误（网络/超时，判据见
+	 * {@link Session#isSessionLevelError}——消息前缀是唯一可捕获层：错误码只嵌在
+	 * search/browse 应答异常的文本里）原样上抛不重建——重建会白白丢弃仍有效的会话与游标。
+	 * 重建后游标归零：continuation 请求（reset=false）的重试返回首页数据——死会话本无
+	 * 正确续页可言，首页数据优于永久报错。
+	 * 外层套 N03（FND28）的同IP在飞守卫：并发共享会话使服务端游标被并发推进（跳页/重复/
+	 * 丢页且各自success），并发者快速失败重试，不排队。
 	 */
 	public static <T> T operateRecovering(LogAgent logAgent, SocketAddress socketAddress,
 										  boolean changeSession, boolean requestAll,
 										  String serverName, String logName,
 										  Func1<Object, T> operate) throws Exception {
-		var session = resolve(logAgent, socketAddress, changeSession, requestAll, serverName, logName);
+		// N03（FND28）：同IP同时只允许一个search/browse在飞（守卫 rationale 见inFlightByIp注释）；
+		// 并发者快速失败（可见system error+warn）不排队——慢查询（最长60s）下排队只会堆积放大。
+		var ip = getIP(socketAddress);
+		var inFlight = inFlightByIp.computeIfAbsent(ip, __ -> new AtomicBoolean());
+		if (!inFlight.compareAndSet(false, true)) {
+			logger.warn("concurrent search/browse rejected: same client session in flight"
+					+ " (server session cursor would advance concurrently -> skipped/duplicated/lost pages). ip={}", ip);
+			throw new IllegalStateException("concurrent search/browse on same session, retry after current request completes");
+		}
 		try {
-			return operate.call(session);
-		} catch (RuntimeException e) {
-			var message = e.getMessage();
-			if (null == message || !message.startsWith(SESSION_LEVEL_ERROR_PREFIX))
-				throw e;
-			var fresh = resolve(logAgent, socketAddress, true, requestAll, serverName, logName);
-			return operate.call(fresh);
+			var session = resolve(logAgent, socketAddress, changeSession, requestAll, serverName, logName);
+			try {
+				return operate.call(session);
+			} catch (RuntimeException e) {
+				if (!Session.isSessionLevelError(e))
+					throw e;
+				var fresh = resolve(logAgent, socketAddress, true, requestAll, serverName, logName);
+				return operate.call(fresh);
+			}
+		} finally {
+			inFlight.set(false);
 		}
 	}
 
