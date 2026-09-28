@@ -111,9 +111,19 @@ public class Log4jFileWalker {
 	private void advanceCurrent() throws IOException {
 		var pos = files.indexOf(currentEntry);
 		currentIndex = pos >= 0 ? pos + 1 : Math.min(currentIndex, files.size());
-		closeCurrent(); // 耗尽即关句柄，不滞留到下次open/close才释放
-		if (currentIndex < files.size())
-			nextCurrent();
+		// 后继条目引用必须在closeCurrent之前捕获（log4j-01）：close的RAF IO（毫秒级）期间
+		// currentEntry已置null、hasNext入口的引用重同步失效，窗口内COW摘除（reconcile/
+		// removeMissingFile）左移会使定格下标错位——按定格下标get开出原后继的后继（整文件
+		// 静默跳过）或越界。按引用开文件后窗口内的摘除不再影响目标：引用即后继；恰被摘除
+		// 则FNFE走清理收尾（耗尽或hasNext循环重开），单次摘除数学与indexOf求值之前的形态一致。
+		var next = files.entryAt(currentIndex);
+		closeCurrent();
+		if (next != null) {
+			current = files.open(next);
+			currentEntry = current != null ? next : null;
+			// currentIndex维持定格值即可：currentEntry非空时hasNext入口按引用重同步即时校正；
+			// open失败（null）时hasNext循环按该下标走既有get重试路径（含FNFE摘除重试形态）。
+		}
 	}
 
 	private void nextCurrent() throws IOException {
