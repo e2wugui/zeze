@@ -799,8 +799,8 @@ public final class Task {
 		} finally {
 			//noinspection ConstantValue
 			if (func != null && timeBegin != 0) { // 统计禁用时零开销
-				ZezeCounter.instance.addTaskRunTime(aName != null ? aName : (p != null ? p : func).getClass(),
-					System.nanoTime() - timeBegin);
+				runTimeObservers.computeIfAbsent(aName != null ? aName : (p != null ? p : func).getClass(),
+						ZezeCounter.instance::getRunTimeObserver).observe(System.nanoTime() - timeBegin);
 			}
 		}
 	}

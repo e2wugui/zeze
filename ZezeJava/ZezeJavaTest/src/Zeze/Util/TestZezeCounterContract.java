@@ -41,8 +41,8 @@ public class TestZezeCounterContract {
 		observer.labelValues("x").observe(1_000_000);
 
 		c.getRunTimeObserver("ContractRunKey").observe(2_000_000);
-		c.addTaskRunTime("ContractTask", 3_000_000);
-		c.addTaskRunTime(TestZezeCounterContract.class, 4_000_000); // Class键归一化为类名，与字符串键同条目
+		c.getRunTimeObserver("ContractTask").observe(3_000_000);
+		c.getRunTimeObserver(TestZezeCounterContract.class).observe(4_000_000); // Class键归一化为类名，与字符串键同条目
 
 		var proc = c.allocProcedureCounter("ContractProc");
 		proc.start();
@@ -102,7 +102,7 @@ public class TestZezeCounterContract {
 		Assertions.assertTrue(scrape.contains("procedure_completed"), "procedure metric");
 		Assertions.assertTrue(scrape.contains("protocol_recv_bytes"), "protocol metric");
 		Assertions.assertTrue(scrape.contains("database_table_operation"), "table metric");
-		Assertions.assertTrue(scrape.contains("task_duration_seconds"), "task metric");
+		Assertions.assertTrue(scrape.contains("task_duration_seconds"), "run-time observer 走 task_duration_seconds{task=...} 标签聚合");
 		Assertions.assertTrue(scrape.contains("protocol_dispatch_seconds"), "dispatch metric");
 
 		// result_code基数封顶：procedure_completed的标签值应包含other且不超过20+1个
@@ -126,20 +126,21 @@ public class TestZezeCounterContract {
 	}
 
 	/**
-	 * U4-F3：getRunTimeObserver 的 key 规范化后查重。原实现 map 按原始 name 去重、
-	 * 注册名却经 builder 内部规范化，二者非单射——不同 key（如 "Foo.Bar"/"Foo-Bar"）
-	 * 注册出同名指标时 register() 抛异常打穿调用方（静态初始化路径即死）。
-	 * 修复：以 sanitizeMetricName+prometheusName 复合规范化后的名字作 map 键，
-	 * 碰撞 key 共享同一 observer（Prometheus 侧指标名即身份，共享是唯一优雅降级）。
+	 * U4-F3（历史）：getRunTimeObserver 曾按逐键指标名注册，规范化非单射导致
+	 * register() 抛异常打穿静态初始化路径，靠 sanitize 复合规范化+碰撞共享收口。
+	 * 改标签形态（task_duration_seconds{task=...}）后指标名恒定、label 值无合法性约束，
+	 * 该失败模式整体消失：任意键（含历史碰撞对）各自成为独立 label 值，注册与观测都不抛。
 	 */
 	@Test
-	public void testGetRunTimeObserverSanitizeDedup() {
+	public void testGetRunTimeObserverLabeledForm() {
 		var o1 = prometheus.getRunTimeObserver("Contract.Sanitize.Key");
-		var o2 = prometheus.getRunTimeObserver("Contract-Sanitize-Key"); // 规范化后同名
-		Assertions.assertSame(o1, o2, "规范化碰撞的 key 必须共享同一 observer（修复前此处抛 IllegalStateException）");
+		var o2 = prometheus.getRunTimeObserver("Contract-Sanitize-Key"); // 历史碰撞对
+		var o3 = prometheus.getRunTimeObserver(TestZezeCounterContract.class); // Class键归一化为类名
 		Assertions.assertSame(o1, prometheus.getRunTimeObserver("Contract.Sanitize.Key"), "同 key 幂等");
+		Assertions.assertNotSame(o1, o2, "不同 key 各自独立 label 值");
 		o1.observe(1_000_000);
-		o2.observe(2_000_000); // 共享 observer，不抛
+		o2.observe(2_000_000);
+		o3.observe(3_000_000); // 三键都不抛即通过
 	}
 
 	@Test

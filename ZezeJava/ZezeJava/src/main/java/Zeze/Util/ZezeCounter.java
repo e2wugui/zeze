@@ -105,11 +105,6 @@ public interface ZezeCounter {
 	@NotNull LongObserver getRunTimeObserver(@NotNull Object key);
 
 	/**
-	 * 通过指定的key累加其绑定的时间累加器(纳秒)并自增次数累加器. 通过equals方法判断绑定的key
-	 */
-	void addTaskRunTime(@NotNull Object key, long timeNs);
-
-	/**
 	 * 服务开启
 	 */
 	void serviceStart(@NotNull Service service);

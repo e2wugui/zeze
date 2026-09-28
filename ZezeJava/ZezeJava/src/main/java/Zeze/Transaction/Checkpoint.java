@@ -173,8 +173,13 @@ public final class Checkpoint {
 			break;
 		}
 		if (timeBegin != 0)
-			ZezeCounter.instance.addTaskRunTime("Checkpoint.runOnce", System.nanoTime() - timeBegin);
+			RunOnceObserver.observe(System.nanoTime() - timeBegin);
 	}
+
+	// 常量键的统计句柄一次解析终身复用（对齐 Task.runTimeObservers 惯例；
+	// 观察者内部自带代际重绑）
+	private static final ZezeCounter.LongObserver RunOnceObserver =
+			ZezeCounter.instance.getRunTimeObserver("Checkpoint.runOnce");
 
 	private void run() {
 		while (isRunning) {

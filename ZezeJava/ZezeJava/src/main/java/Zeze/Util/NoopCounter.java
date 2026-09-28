@@ -60,10 +60,6 @@ public final class NoopCounter implements ZezeCounter {
 	}
 
 	@Override
-	public void addTaskRunTime(@NotNull Object key, long timeNs) {
-	}
-
-	@Override
 	public void serviceStart(@NotNull Service service) {
 	}
 

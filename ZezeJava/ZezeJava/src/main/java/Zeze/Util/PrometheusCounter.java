@@ -309,27 +309,13 @@ public class PrometheusCounter implements ZezeCounter {
 
 	@Override
 	public @NotNull LongObserver getRunTimeObserver(@NotNull Object key) {
-		// key归一化：Class取类名、其余toString，缓存与统计统一按字符串名聚合
-		var name = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
-		// 以规范化后的名字作 map 键。原始 name 直接去重、注册名却经
-		// builder 内部规范化，二者非单射——不同 key（如 "Foo.Bar"/"Foo-Bar"）注册出同名
-		// 指标时 register() 抛异常打穿调用方（静态初始化路径即死）。规范化取
-		// sanitizeMetricName+prometheusName 的复合（前者折 '-'/' '等、后者折 '.'，与
-		// builder→registry 实际生成的指标名一致），碰撞 key 共享同一 observer：Prometheus
-		// 侧指标名即身份，本就无法区分，共享是唯一优雅降级。allocCounter 是一次性分配
-		// 语义（契约明示 uniqueName），不适用此收口。
-		name = PrometheusNaming.prometheusName(PrometheusNaming.sanitizeMetricName(name));
-		return fastGetOrAdd(runTimeMap, name, k -> {
-			Histogram histogram = Histogram.builder().name(k).unit(Unit.SECONDS).register();
-			return (LongObserver)amount -> histogram.observe(Unit.nanosToSeconds(amount));
-		});
-	}
-
-	@Override
-	public void addTaskRunTime(@NotNull Object key, long timeNs) {
+		// 标签形态：task_duration_seconds{task="<键>"}——指标名承载语义、label承载维度，
+		// 跨任务聚合（histogram_quantile by task）与注册表规模（单一指标族）都优于逐键指标名。
+		// label 值无名字合法性约束，原 sanitize/prometheusName 规范化与指标名碰撞去重
+		// （U4-F3：register() 抛异常打穿静态初始化路径）随之整体消失。
 		var task = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
-		fastGetOrAdd(taskDurationMap, task, task_duration_seconds::labelValues)
-				.observe(Unit.nanosToSeconds(timeNs));
+		return fastGetOrAdd(runTimeMap, task, k -> (LongObserver)amount
+				-> task_duration_seconds.labelValues(k).observe(Unit.nanosToSeconds(amount)));
 	}
 
 	private record ServiceOutputObserve(Service service, DistributionDataPoint outputObserve) implements Action0 {

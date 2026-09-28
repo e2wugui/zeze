@@ -295,15 +295,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	@Override
-	public void addTaskRunTime(@NotNull Object key, long timeNs) {
-		var ri = getRunInfoWithSerial(key);
-		if (ri != null) {
-			ri.procCount.increment();
-			ri.procTime.add(timeNs);
-		}
-	}
-
-	@Override
 	public void serviceStart(@NotNull Service service) {
 	}
 
