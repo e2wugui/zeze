@@ -64,6 +64,10 @@ public class Log4jFileSession implements Closeable {
 	public boolean seek(long offset, long time) throws IOException {
 		if (offset >= 0) {
 			randomAccessFile.seek(offset);
+			// 残留stash属于旧游标位置（构造预读/上一轮迭代），不清会被tryNext当作第一条返回——
+			// offset落在stash位置之前时迭代乱序+重复（与reset()的stash清理同构；FND24审视波锁定：
+			// manager.seek每次"新构造session+立即seek(索引offset)"，查文件头窗口必踩此形态）。
+			this.nextNextMaybePartLog = null;
 			this.nextLog = tryNext();
 			return detailSeek(time);
 		}
