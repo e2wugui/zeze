@@ -266,8 +266,16 @@ public class Dbh2Manager {
 		ShutdownHook.remove(this);
 		proxyServer.stop();
 		masterAgent.stop();
-		for (var dbh2 : dbh2s.values())
-			dbh2.close();
+		// 逐桶独立捕获：某桶close失败（raft.shutdown RocksDB错误等）不得中断循环——
+		// 后续桶的句柄/定时任务将全部泄漏且database.close被跳过（Dbh2.close内部已保证
+		// stateMachine清理必然执行，此处只需保证每桶都得到close机会）。
+		for (var dbh2 : dbh2s.values()) {
+			try {
+				dbh2.close();
+			} catch (Exception e) {
+				logger.error("stop close dbh2 fail. raft={}", dbh2.getRaft().getName(), e);
+			}
+		}
 		dbh2s.clear();
 		database.close();
 	}
