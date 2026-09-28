@@ -157,9 +157,24 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		return newCall.value;
 	}
 
-	private void endSaga() {
+	/** @return 决策是否对全部saga参与方干净投递了end（无eSagaNotFound应答）；false=存在
+	 * NotFound应答的参与方——调用方据此置commitFail保留eCommitting记录交redo的超龄NotFound
+	 * 分诊终判（onz-05）。发送/等待异常仍只记error不置失败：end无数据效应，投递不确定
+	 * （超时/发送失败）不是对账依据，滞留上下文由参与方cleanupTimeoutSagas兜底回收；
+	 * 只有NotFound（参与方明确应答"上下文不在"）才是丢写嫌疑信号。
+	 * <p>
+	 * onz-05语义论证：endSaga只在全部步骤成功应答后发送（commit()在perform rc==0路径），
+	 * 成功步骤的上下文在end送达前不应消失——end本身是上下文的唯一正常清理者；业务失败
+	 * 自清理不可能（失败步骤不进入本路径）；TTL清理需上下文空闲超sagaContextTimeoutMs
+	 *（默认1h），与end的正常送达时延（秒级）矛盾。故NotFound指向异常消失：最恶性的形态
+	 * 是参与方在"发结果（sendReadyAndWait发即返回）→本地finalCommit落库"间隙宕机（写丢失，
+	 * 协调者却已把该步骤计入成功链路不再补偿=假成功丢写），也可能是end已应用的重复
+	 * （窄窗口）/参与方在落库后宕机（写安全）——参与方侧不可区分，交redo按记录年龄统一分诊。 */
+	private boolean endSaga() {
 		// 执行过程中发生异常或者错误不能到达这里，而是rollback里面的cancelSaga。
 		var futures = new ArrayList<TaskCompletionSource<?>>();
+		var rpcs = new ArrayList<Rpc<?, ?>>();
+		var stepZeze = new ArrayList<String>();
 		// 逐参与方容错（同cancelSaga/commit()）——发送循环若无
 		// try/catch，第一个参与方的getZezeInstance/SendForWait异常中断整个循环：后续参与方
 		// 收不到FuncSagaEnd(cancel=false)，上下文与setEnd滞留，只能等参与方cleanupTimeoutSagas
@@ -174,6 +189,8 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				// 应答可能慢于rpc默认超时，等待沿用flushTimeout——默认5s超时只会产生噪声
 				// error日志，不改变任何决策（end无数据效应）。
 				futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey()), flushTimeout));
+				rpcs.add(r);
+				stepZeze.add(e.getKey());
 			} catch (Exception ex) {
 				logger.error("end saga send fail. tid={}, zeze={}", onzTid, e.getKey(), ex);
 			}
@@ -185,6 +202,19 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				logger.error("await end saga result. tid={}", onzTid, ex);
 			}
 		}
+		// 应答非0码是正常完成（Rpc直接setResult），必须显式检查（对齐cancelSaga/commit()）；
+		// 线上结果码为moduleId组合值，解码后比较。
+		var allEnded = true;
+		for (int i = 0; i < rpcs.size(); i++) {
+			if (IModule.getErrorCode(rpcs.get(i).getResultCode()) == AbstractOnz.eSagaNotFound) {
+				allEnded = false;
+				logger.error("end saga eSagaNotFound: 成功步骤的上下文在end送达前消失"
+						+ " (possible lost write if participant crashed between result-send and local commit,"
+						+ " ONZ-F25-05; keep eCommitting record for redo aged triage). tid={}, zeze={}",
+						onzTid, stepZeze.get(i));
+			}
+		}
+		return allEnded;
 	}
 
 	/** @return 决策是否对全部saga参与方投递了结（成功/终态NotFound）；false=存在投递
@@ -419,8 +449,15 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		// 对于procedure，下面函数里面访问的zezeSagas是空的。
 		// saga同样已过决策点（成功步骤已提交）：endSaga失败不能转rollback，
 		// 否则cancelSaga会把已成功的步骤补偿掉。滞留的saga上下文由参与方超时清理兜底（Onz.cleanupTimeoutSagas）。
+		// onz-05（FND25裁定）：endSaga的eSagaNotFound应答置commitFail保留eCommitting记录交redo
+		// ——此前NotFound被静默吞掉且记录照删，"发结果→本地落库"间隙宕机的丢写无任何对账通道。
+		// redo按60s周期幂等重发end：上下文复活不可能但重发无副作用（在则end成功应答0），
+		// NotFound由redo既有超龄分诊（SagaNotFoundAgedBudgetMs，OnzServer）终判——年轻保留重试、
+		// 超龄error+保留交settleStuckRecord人工清算，复用rollback决策NotFound的同一条老化路径。
+		// 发送/等待异常不置commitFail（end无数据效应，见endSaga javadoc）。
 		try {
-			endSaga();
+			if (!endSaga())
+				commitFail = true;
 		} catch (Exception ex) {
 			logger.fatal("endSaga fail. tid={}", onzTid, ex);
 		}

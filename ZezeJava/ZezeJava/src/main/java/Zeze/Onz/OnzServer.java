@@ -487,18 +487,31 @@ public class OnzServer extends AbstractOnz {
 				// eSagaNotFound：上下文已清理（业务失败自清理/参与方TTL回收/已处理过的
 				// 重复发送），无补偿对象，可忽略（线上为moduleId组合值，解码后比较）。
 				if (IModule.getErrorCode(rpc.getResultCode()) == AbstractOnz.eSagaNotFound) {
-					// 超龄分诊：rollback决策（cancel=true路径）的NotFound有两种不可
-					// 区分成因——良性（业务失败自清理/已补偿的重复发送）与恶性（参与方上下文
-					// 已被TTL清理，补偿永久丢失）。记录年龄超参与方TTL预算（SagaNotFoundAged
-					// BudgetMs）的升格为error（按tid去重防每轮刷屏）并保留决策记录（人工对账
-					// 需要记录在场）；年龄内与commit决策（cancel=false的end无数据效应）维持静默。
+					// 超龄分诊：NotFound的成因不可区分——rollback决策（cancel=true）为良性
+					// （业务失败自清理/已补偿的重复发送）或恶性（上下文被TTL清理，补偿永久丢失）；
+					// commit决策（cancel=false的end，onz-05）为良性（end已应用的重复/参与方落库
+					// 完成后宕机、上下文TTL清理——写安全）或恶性（参与方在发结果后本地提交前宕机
+					// =丢写而协调者按成功收场）。记录年龄超参与方TTL预算（SagaNotFoundAged
+					// BudgetMs）的升格error（按tid去重防每轮刷屏）并保留决策记录（人工对账
+					// 需要记录在场）；年龄内的rollback NotFound维持静默移除。
 					var recordAge = System.currentTimeMillis() - rec.stamp;
-					if (!rec.commitDecision && recordAge >= SagaNotFoundAgedBudgetMs) {
+					if (recordAge >= SagaNotFoundAgedBudgetMs) {
 						removeOk = false;
 						if (agedNotFoundWarnedTids.add(tid))
-							logger.error("onz redo: rollback决策的saga参与方应答eSagaNotFound且决策记录超龄"
-											+ "（tid={}, age={}ms）：补偿可能已因参与方TTL清理而丢失，需人工对账（决策记录保留在库）",
-									tid, recordAge);
+							logger.error("onz redo: saga参与方应答eSagaNotFound且决策记录超龄"
+											+ "（tid={}, age={}ms, decision={}）：{}，需人工对账（决策记录保留在库）",
+									tid, recordAge, rec.commitDecision ? "eCommitting" : "ePreparing",
+									rec.commitDecision
+											? "end未送达而上下文已消失——参与方可能在发结果后、本地提交前宕机（丢写嫌疑，ONZ-F25-05）"
+											: "补偿可能已因参与方TTL清理而丢失");
+					} else if (rec.commitDecision) {
+						// onz-05：commit决策（end补发）的年轻NotFound保留记录重试——成功步骤的
+						// 上下文在end送达前不应消失（end是唯一正常清理者；业务失败自清理不可能：
+						// end只在全部步骤成功后发送；TTL清理需空闲超1h，与年轻记录矛盾），
+						// 消失即丢写嫌疑。保留至超龄由上面的分诊终判（重发幂等：上下文在则end成功
+						// 应答0并收敛，不在则NotFound，均无副作用）。rollback决策不适用：其年轻
+						// NotFound=无补偿对象的良性终态，移除。
+						removeOk = false;
 					}
 					continue;
 				}
