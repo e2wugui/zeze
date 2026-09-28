@@ -64,8 +64,16 @@ public class Log4jSession {
 		// 重试不会命中短路，必重新定位；先提交则重试从被reset归零的最旧文件头全量返回，
 		// 早于beginTime的旧日志混入结果（下界过滤只靠定位保证，扫描循环无下界检查）。
 		this.files.reset();
-		if (beginTime != -1)
-			this.files.seek(beginTime);
+		if (beginTime != -1) {
+			try {
+				this.files.seek(beginTime);
+			} catch (IOException e) {
+				// walker已reset而this.beginTime仍指向旧定位：下次同beginTime查询命中去重短路，
+				// 从被归零的位置返回早于beginTime的旧日志。置-2（失效标记）强制下次必重定位。
+				this.beginTime = -2;
+				throw e;
+			}
+		}
 		this.beginTime = beginTime;
 	}
 
