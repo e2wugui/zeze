@@ -3,6 +3,7 @@ package Zeze.Dbh2;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -29,6 +30,27 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private Bucket bucket;
 	private TidAllocator tidAllocator;
 	private final ConcurrentHashMap<Long, Dbh2Transaction> transactions = new ConcurrentHashMap<>();
+
+	// 分桶事务同步持久队列（dbh2-01）：复用bucket的meta列族，key首字节区分用途（既有meta键
+	// {1}..{4}与空键不冲突）：5+BE seq=队列记录（value=BSplitPut(fromTransaction=true)编码，
+	// delete编码为Binary.Empty墓碑put）；{6}=入队序号计数器；{7}=已投递水位。与bucket同库：
+	// 随checkpoint快照、随raft日志apply确定重放——任何副本（含换主后的新leader）apply后即持有
+	// 同一队列，事务同步义务不随leader死亡灭失。
+	// 写线程约束：记录/计数器只在raft apply线程写（enqueue/clear，与既有apply串行）；水位只在
+	// 投递回调线程写（单rpc在途，Dbh2.driveSplitSync的CAS串行）。volatile供对端线程读到最新值。
+	private static final byte SplitSyncRecordPrefix = 5;
+	private static final byte[] SplitSyncSeqKey = {6};
+	private static final byte[] SplitSyncWatermarkKey = {7};
+	private RocksDatabase.Table splitSyncTable;
+	private volatile long splitSyncSeq;
+	private volatile long splitSyncWatermark;
+
+	private static byte[] splitSyncRecordKey(long seq) {
+		var bb = ByteBuffer.Allocate(9); // 1前缀+8BE long：BE序=数值序（seq单调非负），键序即投递序
+		bb.WriteByte(SplitSyncRecordPrefix);
+		bb.WriteLong8BE(seq);
+		return bb.Bytes;
+	}
 	// eCommitting悬挂告警阈值=10×bucketMaxTime（默认1000s）。推导：正常redo收敛时间=redoDaemon周期
 	//（60s）+目标桶raft可用时间，bucketMaxTime(100s)>prepareMaxTime(80s)的既有排序已覆盖协调周期；
 	// 10×（默认1000s，约16个redo周期）远超任何正常收敛时间仍停在此状态，才认定"协调者已决定提交
@@ -209,6 +231,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			return;
 		bucket = new Bucket(getRaft().getRaftConfig());
 		tidAllocator = new TidAllocator();
+		// 同步队列依附bucket的meta列族打开，并从落盘状态恢复序号/水位（restore路径同样经此重开）。
+		try {
+			splitSyncTable = bucket.getDb().getOrAddTable("meta");
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e); // 与Bucket构造同形态：打开期rocksdb失败即建桶失败
+		}
+		splitSyncSeq = readSplitSyncCounter(SplitSyncSeqKey);
+		splitSyncWatermark = readSplitSyncCounter(SplitSyncWatermarkKey);
 
 		if (null == timer) {
 			var period = getRaft().getRaftConfig().getAppendEntriesTimeout() + 200;
@@ -218,6 +248,15 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 		if (null == commitAgent)
 			commitAgent = new CommitAgent();
+	}
+
+	private long readSplitSyncCounter(byte[] key) {
+		try {
+			var value = splitSyncTable.get(key);
+			return null == value ? 0 : ByteBuffer.Wrap(value).ReadLong8BE();
+		} catch (RocksDBException e) {
+			throw new RuntimeException(e); // 与Bucket构造同形态：打开期rocksdb读失败即建桶失败
+		}
 	}
 
 	private void onTimer() {
@@ -260,6 +299,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	public void setSplittingMeta(BBucketMeta.Data argument) {
 		try {
 			bucket.setSplittingMeta(argument);
+			// 新分桶世代起点：防御清零（正常上一世代已在EndSplit/EndMove apply时清空；本apply
+			// 在日志序上先于任何入队，清零不吞记录——快照恢复的副本不会重放本日志）。
+			clearSplitSyncQueue();
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -292,13 +334,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		bucket.addMoveMetaHistory(to);
 		// pending-settle标志：与既有meta写入同一apply内落盘（派生状态，随raft
 		// 复制/快照）——迁移已在源桶commit的持久证据，leader-ready据此幂等补发settle通知。
-		bucket.setPendingSettle(null, to);
-		bucket.deleteSplittingMeta();
-		} catch (RocksDBException e) {
-			logger.error("", e);
-			getRaft().fatalKill();
+			bucket.setPendingSettle(null, to);
+			bucket.deleteSplittingMeta();
+			clearSplitSyncQueue(); // 迁移完结：义务已全部送达（endSplit0门槛），队列随世代消亡
+			} catch (RocksDBException e) {
+				logger.error("", e);
+				getRaft().fatalKill();
+			}
 		}
-	}
 
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
 		try (var it = bucket.getData().iterator()) {
@@ -309,6 +352,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		// 同endMove：pending-settle标志随迁移commit在apply内落盘。
 		bucket.setPendingSettle(from, to);
 		bucket.deleteSplittingMeta();
+		clearSplitSyncQueue(); // 迁移完结：义务已全部送达（endSplit0门槛），队列随世代消亡
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -364,7 +408,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			counterCommitBatch.incrementAndGet();
 			committingHangWarnedTids.remove(tid); // 悬挂告警集合随事务完结回收（有界性）
 			if (null != txn) {
-				dbh2.onCommitBatch(txn);
+				// 分桶中的事务同步：入队（持久、可靠重投）替代原急切rpc（dbh2-01）。入队先于本地
+				// 落盘：两写在同一apply内，崩溃经raft重放整体重演，先后无原子性要求。
+				enqueueSplitSync(txn.getBatch());
 				txn.commitBatch(bucket);
 			} else
 				logger.warn("commitBatch but transaction not found. tid={}", tid);
@@ -388,6 +434,111 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			logger.error("", e);
 			getRaft().fatalKill();
 		}
+	}
+
+	// 分桶事务同步入队（dbh2-01）：入队条件=splittingMeta!=null——LogSetSplittingMeta的apply序
+	// 即日志序边界，全副本确定一致；边界后提交的事务要么入队（可靠重投，见Dbh2.driveSplitSync），
+	// 要么在复制迭代器视图内（迭代器在meta apply之后才创建，见Dbh2.startSplit），无第三种去向。
+	// delete编码为Binary.Empty墓碑put（目标侧applySplitPut的fromTransaction分支原样落盘）。
+	private void enqueueSplitSync(BBatch.Data batch) throws RocksDBException {
+		var splitting = bucket.getSplittingMeta();
+		if (null == splitting)
+			return;
+		var puts = new HashMap<Binary, Binary>();
+		for (var e : batch.getPuts().entrySet()) {
+			if (splitting.getKeyFirst().compareTo(e.getKey()) <= 0)
+				puts.put(e.getKey(), e.getValue());
+		}
+		for (var del : batch.getDeletes()) {
+			if (splitting.getKeyFirst().compareTo(del) <= 0)
+				puts.put(del, Binary.Empty); // 同批put+delete同key时delete后写覆盖——与txn.commitBatch先put后delete的落盘序一致
+		}
+		if (puts.isEmpty())
+			return;
+		// 记录先写、计数器后写：两写间崩溃时raft重放本条日志，seq按持久计数器重算，同seq重写同内容
+		//（幂等）；极端交错至多多出一条同内容重复记录，重复投递幂等无害。
+		var seq = splitSyncSeq + 1;
+		var bb = ByteBuffer.Allocate();
+		new BSplitPut.Data(true, puts).encode(bb);
+		var key = splitSyncRecordKey(seq);
+		splitSyncTable.put(bucket.getWriteOptions(), key, 0, key.length, bb.Bytes, bb.ReadIndex, bb.WriteIndex);
+		splitSyncSeq = seq;
+		var seqBb = ByteBuffer.Allocate(8);
+		seqBb.WriteLong8BE(seq);
+		splitSyncTable.put(bucket.getWriteOptions(), SplitSyncSeqKey, 0, SplitSyncSeqKey.length, seqBb.Bytes, 0, 8);
+		// 唤醒投递链（非阻塞；直发还是围栏延迟由Dbh2.driveSplitSync自决）。
+		dbh2.driveSplitSync();
+	}
+
+	public static final class SplitSyncBatch {
+		public final BSplitPut.Data data;
+		public final long lastSeq;
+
+		SplitSyncBatch(BSplitPut.Data data, long lastSeq) {
+			this.data = data;
+			this.lastSeq = lastSeq;
+		}
+	}
+
+	// 取一批待投递记录（水位+1起至多maxCount条，按seq序合并为一个puts——后写覆盖先写=提交序，
+	// 重复键保留最后值）。只读不推进：水位推进仅在投递ACK后（advanceSplitSyncWatermark）。
+	// 调用方串行约束：仅Dbh2.driveSplitSync（CAS单飞）调用。
+	public SplitSyncBatch pollSplitSync(int maxCount) throws RocksDBException {
+		var watermark = splitSyncWatermark;
+		if (watermark >= splitSyncSeq)
+			return null;
+		var puts = new HashMap<Binary, Binary>();
+		long lastSeq = watermark;
+		try (var it = splitSyncTable.iterator()) {
+			it.seek(splitSyncRecordKey(watermark + 1));
+			for (var count = 0; it.isValid() && count < maxCount; it.next()) {
+				var key = it.key();
+				if (key.length != 9 || key[0] != SplitSyncRecordPrefix)
+					break; // 越出记录键域（{6}/{7}或其他meta键）：seq连续下不会发生，防御截断
+				var record = new BSplitPut.Data();
+				record.decode(ByteBuffer.Wrap(it.value()));
+				puts.putAll(record.getPuts());
+				lastSeq = ByteBuffer.Wrap(key, 1, 8).ReadLong8BE();
+				count++;
+			}
+		}
+		return lastSeq == watermark ? null : new SplitSyncBatch(new BSplitPut.Data(true, puts), lastSeq);
+	}
+
+	// 投递ACK后推进水位（只前进）并持久化：同进程重启/复选续投免重放；其余副本水位为旧值，换主后
+	// 从旧水位FIFO重投——重复投递幂等（replace同值），有序重放收敛无害。
+	public void advanceSplitSyncWatermark(long seq) throws RocksDBException {
+		if (seq <= splitSyncWatermark)
+			return;
+		splitSyncWatermark = seq;
+		var bb = ByteBuffer.Allocate(8);
+		bb.WriteLong8BE(seq);
+		splitSyncTable.put(bucket.getWriteOptions(), SplitSyncWatermarkKey, 0, SplitSyncWatermarkKey.length, bb.Bytes, 0, 8);
+	}
+
+	// endSplit前置门槛（Dbh2.endSplit0）：false=全部事务同步已送达目标。
+	public boolean hasPendingSplitSync() {
+		return splitSyncWatermark < splitSyncSeq;
+	}
+
+	// 清空队列：EndSplit/EndMove apply=迁移完结、义务已全部送达（endSplit0门槛保证）；SetSplittingMeta
+	// apply=新世代起点防御清零。全副本按apply序确定性执行，崩溃重放幂等。
+	private void clearSplitSyncQueue() throws RocksDBException {
+		if (splitSyncSeq == 0 && splitSyncWatermark == 0)
+			return;
+		try (var it = splitSyncTable.iterator()) {
+			it.seek(splitSyncRecordKey(1));
+			for (; it.isValid(); it.next()) { // 迭代器为快照视图，遍历中delete不影响遍历
+				var key = it.key();
+				if (key.length != 9 || key[0] != SplitSyncRecordPrefix)
+					break;
+				splitSyncTable.delete(bucket.getWriteOptions(), key, 0, key.length);
+			}
+		}
+		splitSyncTable.delete(bucket.getWriteOptions(), SplitSyncSeqKey, 0, SplitSyncSeqKey.length);
+		splitSyncTable.delete(bucket.getWriteOptions(), SplitSyncWatermarkKey, 0, SplitSyncWatermarkKey.length);
+		splitSyncSeq = 0;
+		splitSyncWatermark = 0;
 	}
 
 	////////////////////////////////////////////////////////////
@@ -526,7 +677,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		try {
 			var table = bucket.getData();
 			if (puts.isFromTransaction()) {
-				// 事务同步流程：分桶期间的delete被编码为Binary.Empty的put（见Dbh2.onCommitBatch）。
+				// 事务同步流程：分桶期间的delete被编码为Binary.Empty的put（入队见enqueueSplitSync，
+				// 投递见Dbh2.driveSplitSync的队列重投）。
 				// 空值必须作为墓碑标记原样落盘，不能解码成硬delete：复制流（fromTransaction=false，
 				// 钉定T0视图、可能仍含旧值）晚于墓碑到达时，putIfAbsent靠"get非null"被标记挡住；
 				// 硬delete会使get返回null而复活旧值（已删记录在新桶以旧值重现）。

@@ -1,6 +1,7 @@
 package Zeze.Dbh2;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BWalkKeyValue;
@@ -532,6 +533,9 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		if (!raft.isLeader())
 			return;
 
+		// 换主围栏锚点：本节点本次leader-ready时刻（driveSplitSync据此延迟replace语义的投递，
+		// 避免旧leader在途投递rpc迟到覆盖，见driveSplitSync注释）。
+		splitLeaderReadyTime = System.currentTimeMillis();
 		stateMachine.setLoadSwitch(true);
 		var bucket = stateMachine.getBucket();
 		var splitting = bucket.getSplittingMeta();
@@ -597,8 +601,10 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	private volatile long splitSerialNo;
 	private volatile Dbh2Agent dbh2Splitting;
-	// 分桶事务同步的过滤器（见onCommitBatch注释：先于dbh2Splitting置位，与复制迭代器的创建同线程排序）。
-	private volatile BBucketMeta.Data splittingSync;
+	// 事务同步投递链状态（持久队列在Dbh2StateMachine.splitSync*，dbh2-01）。inFlight保证同一时刻
+	// 至多一个投递rpc在途（提交序FIFO）；leaderReadyTime是换主围栏锚点（见driveSplitSync注释）。
+	private final AtomicBoolean splitSyncInFlight = new AtomicBoolean();
+	private volatile long splitLeaderReadyTime;
 
 	private RocksIterator locateFirst() {
 		var bucket = stateMachine.getBucket();
@@ -674,7 +680,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	// 池派发不阻塞，均无取raft锁的路径），回调线程只入队不等待结果。延迟窗口由startSplit既有守卫
 	// 幂等收敛：isLeader失配即no-op；resume重读splittingMeta，窗口内其值不变（LogSet/EndSplit/
 	// EndMove的append均源自排在本次任务之后的同队列续链），窗口内新提交事务被重拷贝迭代器的
-	// 后建视图覆盖（splittingSync先于迭代器创建置位，见startSplit内注释）。
+	// 后建视图覆盖（复制迭代器在splittingMeta apply之后才创建，见startSplit内注释；meta apply
+	// 后提交的事务则进同步队列，两者并集无遗漏）。
 	private void startSplitAsync(boolean isMove) {
 		getRaft().executeUserTask(() -> {
 			try {
@@ -746,12 +753,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 						isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
 			}
 
-			// 同步先于复制视图：onCommitBatch的同步条件（splittingSync+dbh2Splitting非空）
-			// 必须在创建复制迭代器之前全部就位：复制迭代器钉定创建时刻的视图，同步就位与迭代器
-			// 创建之间提交的事务将既不在复制视图中、也不被同步——永久丢失。
-			// LogSetSplittingMeta的apply是异步的，同步过滤器不能依赖stateMachine的splittingMeta
-			// （apply前为null），故用本进程volatile成员（先写splittingSync再写dbh2Splitting）。
-			splittingSync = splitting;
 			if (null == dbh2Splitting) {
 				dbh2Splitting = new Dbh2Agent(splitting.getRaftConfig(), RaftAgentNetClient::new);
 				dbh2Splitting.getRaftAgent().setPendingLimit(Integer.MAX_VALUE);
@@ -759,6 +760,24 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 			var server = (Dbh2RaftServer)getRaft().getServer();
 			performPrepareQueue(server.takePrepareQueue());
+
+			// 同步先于复制视图（队列版不变量，dbh2-01）：事务同步的入队条件=splittingMeta!=null
+			// （apply序=日志序），复制迭代器必须在LogSetSplittingMeta apply之后钉定视图——否则
+			// （钉定,apply）窗口内apply的事务delete既不在视图（物理删除）也不在队列（meta仍null），
+			// 永久丢失。resume路径meta已apply，立即通过。等待仅阻塞其它startSplit重入（Dbh2.lock
+			// 不被raft apply路径持有），不影响正常读写。
+			var waitApplyCount = 0;
+			while (null == bucket.getSplittingMeta()) {
+				if (++waitApplyCount > 1500) { // 30s：apply需多数派往返，正常毫秒级；超时属raft异常
+					logger.warn("splitting wait splittingMeta apply before copy. isMove={}", isMove);
+					return; // 放弃本轮，桶保持可写；换主后recoverSplitting自愈
+				}
+				//noinspection BusyWait
+				Thread.sleep(20);
+			}
+			// 唤醒队列投递：此后提交的事务开始入队；agent刚就位（就位前入队的条目无人投递）或
+			// 前一轮驱动停摆的积压在此统一唤醒。
+			driveSplitSync();
 
 			// 复制迭代器总是同步就位之后新建（首轮也走这里，不复用定位middle的旧迭代器）。
 			it = isMove ? locateFirst() : locateMiddle(splitting.getKeyFirst());
@@ -818,7 +837,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				it.close();
 				// 身份失配不重试：重试的前提是回调仍代表当前轮（本机leader且serialNo未失配），
 				// 对齐下面hasError分支"本机仍leader才重试"的本意。失配分支的经典来源：新轮启动后
-				// （recoverSplitting重入/事务同步失败重启），endSplit2的dbh2Splitting.close()以
+				// （recoverSplitting重入），endSplit2的dbh2Splitting.close()以
 				// Procedure.Timeout同步触发旧轮悬挂中的SplitPut回调——此时要么已有更新的轮次接管
 				// （重试职责属于它），要么分桶已完结（是否再分桶交还loadMonitor决策）。以陈旧上下文
 				// 无差别重试startSplit，会在无人决策的情况下发起一轮全新的分桶：再建桶、全量拷贝、
@@ -881,6 +900,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	}
 
 	private void endSplit0(boolean isMove) {
+		if (!raft.isLeader())
+			return; // 掉主：重试链就此终止，新leader经recoverSplitting→startSplit续走全流程
 		var splittingMeta = stateMachine.getBucket().getSplittingMeta();
 		if (null == splittingMeta) {
 			// 安全网：任何路径在LogSetSplittingMeta apply前触达这里都不能带null继续——
@@ -888,6 +909,16 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			// 延迟重试而非直接重排：transactions为空时setupOneShotIfNoTransaction会立即内联执行，
 			// 直接重排等于热自旋（已提交日志必会apply；未提交则换主后recoverSplitting自愈）。
 			logger.warn("endSplit0 wait splittingMeta apply. isMove={}", isMove);
+			TaskSpec.ofAction(() -> getRaft().executeUserTask(
+					() -> stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove)))).schedule(1000);
+			return;
+		}
+		// 【endSplit前置条件·dbh2-01】事务同步队列必须全部送达（水位==序号）才能进入收尾：
+		// 此刻无在途事务（one-shot保证）且prepare已被拦截，队列不再增长；未清空先尝试投递，
+		// 1s后经one-shot重查（防热自旋，与上面null-meta分支同机制）。不得越过本门槛——
+		// setBucketMeta/EndSplit随后的源桶deleteToEnd会物理销毁[M,∞)，未送达的写与墓碑将无处可寻。
+		if (stateMachine.hasPendingSplitSync()) {
+			driveSplitSync();
 			TaskSpec.ofAction(() -> getRaft().executeUserTask(
 					() -> stateMachine.setupOneShotIfNoTransaction(() -> endSplit0(isMove)))).schedule(1000);
 			return;
@@ -945,7 +976,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			logger.error("", ex);
 		}
 		dbh2Splitting = null;
-		splittingSync = null;
 
 		var meta = stateMachine.getBucket().getBucketMeta();
 		if (isMove) {
@@ -964,38 +994,67 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		logger.info("splitting end done. isMove={} {}", isMove, formatMeta(meta));
 	}
 
-	public void onCommitBatch(Dbh2Transaction txn) {
-		// 同步过滤器用本进程volatile成员（startSplit里先于dbh2Splitting置位、先于复制迭代器创建），
-		// 不能用stateMachine的splittingMeta：后者要等LogSetSplittingMeta异步apply，
-		// apply前提交的事务不在（后建的）复制迭代器视图中，若再跳过同步就永久丢失了。
-		var splittingMeta = splittingSync;
-		if (splittingMeta == null || dbh2Splitting == null)
-			return;
-
-		var r = new SplitPut();
-		r.Argument.setFromTransaction(true);
-
-		// 如果修改的记录落在分桶目标桶中，则同步过去。
-		for (var e : txn.getBatch().getPuts().entrySet()) {
-			if (splittingMeta.getKeyFirst().compareTo(e.getKey()) <= 0)
-				r.Argument.getPuts().put(e.getKey(), e.getValue());
-		}
-		for (var delete : txn.getBatch().getDeletes()) {
-			if (splittingMeta.getKeyFirst().compareTo(delete) <= 0)
-				r.Argument.getPuts().put(delete, Binary.Empty);
-		}
-
-		// 事务同步流程不能重试，因为提交之后就有新的并发事务过来，而这里是异步的，重试时数据可能不是最新的了。
-		dbh2Splitting.getRaftAgent().send(r, (p) -> {
-			try {
-				if (r.getResultCode() != 0)
-					recoverSplitting(); // restart split.
-				return 0;
-			} catch (Exception ex) {
-				logger.error("", ex);
-				return Procedure.Exception;
+	// 分桶事务同步投递链（dbh2-01）：持久队列（Dbh2StateMachine.splitSync*）按seq序合并取批、
+	// 单rpc在途（inFlight的CAS串行，全调用源非阻塞）、ACK 0推进水位后续投、终局失败不推进水位
+	// 1s后重投——条目留队列直到送达，无"发出但结果不明"的中间态。与页面拷贝链互不干扰：页面
+	// putIfAbsent只增（对非null含墓碑跳过），投递replace覆盖且队列FIFO后缀必然覆盖一切旧值，
+	// 两类rpc任意乱序到达目标桶都收敛到提交序终值。
+	// 换主围栏：replace语义的投递rpc迟到落盘会以旧值覆盖新值（跨leader打破FIFO）。旧leader在途
+	// 投递rpc的最迟重发时刻=创建+AgentTimeout，而其创建早于本节点leaderReady——故本任期内首个
+	// 投递不得早于leaderReadyTime+AgentTimeout+裕量。页面拷贝不受此限（只增语义，迟到旧页面无害）。
+	// 调用源：enqueue（apply线程）、startSplit/endSplit0（user task）、ACK回调、失败重试定时。
+	public void driveSplitSync() {
+		if (!splitSyncInFlight.compareAndSet(false, true))
+			return; // 已有在途投递，其回调会续链
+		try {
+			var agent = dbh2Splitting; // 快照：与endSplit2置null的并发窗口内不产生NPE噪声
+			if (closed || !raft.isLeader() || null == agent) {
+				splitSyncInFlight.set(false);
+				return; // 条目留队列：leader-ready恢复（recoverSplitting→startSplit）或endSplit0门槛再驱动
 			}
-		});
+			var delay = splitLeaderReadyTime + splitSyncFenceDelayMs(agent) - System.currentTimeMillis();
+			if (delay > 0) {
+				splitSyncInFlight.set(false); // 先放行再调度：调度任务重新CAS进入
+				TaskSpec.ofAction(this::driveSplitSync).schedule(delay);
+				return;
+			}
+			var batch = stateMachine.pollSplitSync(dbh2Config.getSplitPutCount());
+			if (null == batch) {
+				splitSyncInFlight.set(false);
+				return; // 队列空：等待下一次enqueue或门槛驱动
+			}
+			var r = new SplitPut(batch.data);
+			agent.getRaftAgent().send(r, (p) -> {
+				// 回调在user-task线程（RaftAgentNetClient.dispatchRpcResponse→executeUserTask按raft名串行）
+				if (r.getResultCode() != 0) {
+					splitSyncInFlight.set(false);
+					// 终局失败（超时/非重试错误）：不推进水位，条目留队列定时重投——目标桶恢复即送达
+					TaskSpec.ofAction(this::driveSplitSync).schedule(1000);
+					return 0;
+				}
+				try {
+					stateMachine.advanceSplitSyncWatermark(batch.lastSeq); // ACK=目标raft已commit并apply，送达成立
+				} catch (Exception ex) {
+					logger.error("advanceSplitSyncWatermark", ex);
+					splitSyncInFlight.set(false);
+					TaskSpec.ofAction(this::driveSplitSync).schedule(1000); // 水位未推进：重投（幂等）
+					return 0;
+				}
+				splitSyncInFlight.set(false);
+				driveSplitSync(); // 续投下一批（CAS重入）
+				return 0;
+			});
+		} catch (Exception ex) {
+			logger.error("driveSplitSync", ex);
+			splitSyncInFlight.set(false);
+			TaskSpec.ofAction(this::driveSplitSync).schedule(1000);
+		}
+	}
+
+	private static long splitSyncFenceDelayMs(Dbh2Agent agent) {
+		// AgentTimeout=投递rpc判死门槛（不设显式超时，走Agent默认）：旧leader的rpc在创建+
+		// AgentTimeout后从pending移除、不再重发；+2000为1s重发扫描周期与调度抖动裕量。
+		return agent.getRaftAgent().getRaftConfig().getAgentTimeout() + 2000L;
 	}
 
 	@Override
