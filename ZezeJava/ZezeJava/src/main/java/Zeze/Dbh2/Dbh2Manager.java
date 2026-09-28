@@ -229,9 +229,15 @@ public class Dbh2Manager {
 		double maxLoad = 0.0f;
 		var hasSplitting = false;
 		for (var dbh2 : dbh2s.values()) {
+			// 快照恢复窗口（loadSnapshot→restore持raft锁：close置bucket=null，RocksDatabase.restore
+			// 大桶可长达秒~分钟期间保持null；loadMonitor不持raft锁）内该桶不参与本轮统计：
+			// null解引用（getSplittingMeta/load内getBucketMeta）会以NPE中止整轮loadMonitor链。
+			var bucket = dbh2.getStateMachine().getBucket();
+			if (null == bucket)
+				continue;
 			var load = dbh2.getStateMachine().load();
 			loadManager += load;
-			hasSplitting |= dbh2.getStateMachine().getBucket().getSplittingMeta() != null;
+			hasSplitting |= bucket.getSplittingMeta() != null;
 
 			// 达到分桶条件之一：负载高于最大值的80%。
 			if (load > dbh2.getDbh2Config().getSplitLoad())
