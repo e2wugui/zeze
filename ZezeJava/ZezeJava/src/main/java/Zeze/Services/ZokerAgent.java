@@ -119,7 +119,7 @@ public class ZokerAgent extends AbstractZokerAgent {
         r.Argument.setFileName(fileName);
         // 断点续传时服务端对已存在文件全量读盘算md5（FileBin构造），应答随文件体积线性增长
         // ——默认5s会把大文件续传当失败（commit/stopService 同族），60s=部署级操作裕量。
-        // append/close 为毫秒级（锁内无IO），默认超时不受影响。
+        // append/close 已同放宽至60s（FND26 zoker-04，见各自调用点：truncate路径并非毫秒级）。
         r.SendForWait(zoker, 60_000).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("open file error. " + IModule.getErrorCode(r.getResultCode()));
@@ -137,7 +137,11 @@ public class ZokerAgent extends AbstractZokerAgent {
         r.Argument.setFileName(fileName);
         r.Argument.setOffset(offset);
         r.Argument.setChunk(new Binary(data, dataOffset, dataLength));
-        r.SendForWait(zoker).await();
+        // offset回退（服务端残留长于本地续传点）或并发同文件分发时，服务端append走truncate路径：
+        // FileBin监视器内truncate+全量md5重算（GB级残留、慢盘可达数十秒），并发append还要排队等
+        // 监视器——默认5s会把照常完成的append当失败中断整个distribute（openFile/commit同族），
+        // 60s=部署级操作裕量。
+        r.SendForWait(zoker, 60_000).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("append file error. " + IModule.getErrorCode(r.getResultCode()));
     }
@@ -147,7 +151,10 @@ public class ZokerAgent extends AbstractZokerAgent {
         var r = new CloseFile();
         r.Argument.setFileName(fileName);
         r.Argument.setMd5(md5);
-        r.SendForWait(zoker).await();
+        // close要拿FileBin监视器（close内flush落盘）：可能排在并发append的truncate全量md5重算
+        // （GB级、慢盘数十秒）之后——默认5s会把照常完成的收尾当失败（appendFile/openFile同族），
+        // 对齐部署级60s。
+        r.SendForWait(zoker, 60_000).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("close file error. " + IModule.getErrorCode(r.getResultCode()));
     }
