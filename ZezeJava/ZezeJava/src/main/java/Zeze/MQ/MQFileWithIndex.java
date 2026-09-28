@@ -101,6 +101,7 @@ public class MQFileWithIndex {
 		var topicDir = new File(home, topic);
 		topicDir.mkdirs();
 		var files = topicDir.listFiles();
+		var ghostSegments = new ArrayList<Long>();
 		if (null != files) {
 			for (var file : files) {
 				var partIndex = file.getName().split("\\.");
@@ -114,8 +115,14 @@ public class MQFileWithIndex {
 					if (pid != partitionId)
 						continue;
 					var index = Long.parseLong(partIndex[1]);
-					indexes.put(index, database.getOrAddTable(
-							topic + "." + partitionId + "." + index));
+					var tableName = topic + "." + partitionId + "." + index;
+					// mq-02 幽灵段登记：getTable 不创建列族（对照 getOrAddTable），tableMap 在库打开时
+					// 按 listColumnFamilies 全量装载——返回 null 即该列族在 rocksdb 中不存在而文件在，
+					// 也就是「dropTable 成功 + file.delete 失败」的残留；下面 getOrAddTable 会为它重建出
+					// 【空】索引列族，装载期须按位点形态恢复（见下方删除残留收尾与 rebuildSegmentIndex）。
+					if (null == database.getTable(tableName))
+						ghostSegments.add(index);
+					indexes.put(index, database.getOrAddTable(tableName));
 				} catch (NumberFormatException ex) {
 						// 忽略无法解析为"分区号.消息号"的杂散文件名。
 				}
@@ -125,13 +132,105 @@ public class MQFileWithIndex {
 		if (lastEntry == null) {
 			lastFile = new File(topicDir, partitionId + ".0");
 			indexes.put(0L, database.getOrAddTable(topic + "." + partitionId + ".0"));
+		} else if (nextMessageId == 0 && firstMessageId == 0 && lastEntry.getKey() > 0
+				&& ghostSegments.size() == indexes.size()) {
+			// mq-02 删除残留收尾：位点全零（meta 无 next/first 键=本代际零提交，写路径 next 恒 ≥1）
+			// + 高位段文件在 + 全部段列族都是重建的空表。正常生命周期不可达（滚段前必先 meta.put），
+			// 唯一系统可达路径=deletePartitionStorage 的「索引/meta 列族 dropTable 全部成功 +
+			// file.delete 失败」（meta 能 drop 必然全部段列族已 drop，见其执行顺序）。原死结：
+			// recoverTornTail 的 next<segBase 检查 fatal，而磁盘真相上报/对账自愈链全部依赖进程
+			// 启动——Manager 反复起不来。收尾=完成被中断的删除并重置为全新分区。
+			completeInterruptedDeletion(topicDir, ghostSegments);
+			lastFile = new File(topicDir, partitionId + ".0");
+			indexes.put(0L, database.getOrAddTable(topic + "." + partitionId + ".0"));
 		} else {
 			lastFile = new File(topicDir, partitionId + "." + lastEntry.getKey());
 		}
 		// 追加流打开前先恢复撕裂尾：一旦放任孤儿字节，之后的 appendMessage 会把
 		// 新消息接在垃圾后面，错位被固化进文件，fillMessage 的按 id 跳扫从此确定性失败。
 		recoverTornTail();
+		// mq-02 幽灵段索引重建：必须在 recoverTornTail 之后（末段先截掉未提交尾巴，重建只面对
+		// 已提交内容）；删除残留路径的 ghostSegments 已清空，此处只覆盖 meta 位点完好的形态。
+		for (var base : ghostSegments)
+			rebuildSegmentIndex(base, topicDir);
 		lastFileOutputStream = new FileOutputStream(lastFile, true);
+	}
+
+	// mq-02（分区删除残留收尾，构造器调用）：完成 deletePartitionStorage 被中断的清理并重置分区。
+	// 数据不丢论证：触发条件即位点全零 ⟺ meta 未承诺任何已提交消息；残留文件内容是删除裁决
+	// 已放弃的数据（dropTable 成功=删除的提交点，与 recycleSegment 同口径），重建出的空列族
+	// 无任何索引项。删文件再失败不阻塞装载：残留文件继续被磁盘真相上报（buildPartitionReport
+	// 扫目录）→ Master 对账按孤儿重发 DeletePartition → deletePartitionStorage 重试，自愈链闭合
+	// 且不再以「进程起不来」为代价。rocksdb 双故障（丢 meta 键且丢全部索引列族而文件健在）
+	// 与本形态签名不可区分，同样收尾：无位点无索引的数据本已系统不可达，恢复服务优先于留档。
+	private void completeInterruptedDeletion(File topicDir, ArrayList<Long> ghostSegments) {
+		logger.warn("mq partition deletion residue detected, completing interrupted deletion and reset to fresh."
+				+ " topic={} partition={} segments={}", topic, partitionId, ghostSegments);
+		for (var base : ghostSegments) {
+			try {
+				database.dropTable(topic + "." + partitionId + "." + base);
+			} catch (RocksDBException e) {
+				logger.error("mq partition deletion residue: drop recreated index table failed, orphan column family kept."
+						+ " topic={} partition={} segment={}", topic, partitionId, base, e);
+			}
+			var file = new File(topicDir, partitionId + "." + base);
+			if (!file.delete())
+				logger.warn("mq partition deletion residue: delete file failed, retry via master reconciliation."
+						+ " topic={} partition={} file={}", topic, partitionId, file);
+		}
+		indexes.clear();
+		ghostSegments.clear();
+	}
+
+	// mq-02（幽灵段索引重建，构造器调用、recoverTornTail 之后）：meta 位点完好而段索引列族丢失
+	// 时，firstMessageId 落入该段区间会使 fillMessage 的 seekForPrev 在空表上定位失败——
+	// messageIndexNotFound → MQSingle 构造失败 → loadMQ 抛 → Manager 启动死结（水位推进依赖
+	// 投递、投递依赖 fill，无自愈）。段文件自描述（记录=12字节头+体，id 自段基连续——滚段
+	// 不变式保证首条 id==文件名基），顺序扫描即可重建定位能力；建索引规则与 appendMessage
+	// 一致（id%makeIndexPeriod 对齐处落项，段基必对齐→段首可达，floorEntry+seekForPrev 完整恢复）。
+	// 记录错位/负长度/越界=真损坏（撕裂写只能产生前缀，产生不了中间错位），保守停在有效前缀：
+	// 不静默截断，也不覆盖 fillMessage 对确定性损坏的既有响亮报错——未覆盖区间仍会失败报错。
+	private void rebuildSegmentIndex(long base, File topicDir) {
+		var indexTable = indexes.get(base);
+		var file = new File(topicDir, partitionId + "." + base);
+		if (null == indexTable || file.length() == 0)
+			return; // 空文件（滚段后未追加即中断，或已恢复截断）：无索引可建
+		try {
+			try (var input = new RandomAccessFile(file, "r")) {
+				var fileSize = input.getChannel().size();
+				var messageHead = new byte[12]; // Long8(messageId) + Int4(messageSize)，读写序与fillMessage一致
+				var pos = 0L;
+				var expectId = base;
+				var indexed = 0;
+				while (fileSize - pos >= 12) {
+					input.readFully(messageHead);
+					var bbHead = ByteBuffer.Wrap(messageHead);
+					var messageId = bbHead.ReadLong8();
+					var messageSize = bbHead.ReadInt4();
+					if (messageId != expectId || messageSize < 0 || messageSize > fileSize - pos - 12)
+						break; // 真损坏形态：有效前缀止步，交由既有响亮语义处置（下方 warn 留痕）
+					if (messageId % makeIndexPeriod == 0) {
+						var bytesMessageId = new byte[8];
+						ByteBuffer.longBeHandler.set(bytesMessageId, 0, messageId);
+						var bytesFileOffset = new byte[8];
+						ByteBuffer.longBeHandler.set(bytesFileOffset, 0, pos);
+						indexTable.put(bytesMessageId, bytesFileOffset);
+						++indexed;
+					}
+					pos += 12L + messageSize;
+					++expectId;
+				}
+				if (pos < fileSize)
+					logger.warn("mq segment index rebuild stopped at corrupted record, uncovered tail will fail loudly"
+							+ " if filled. topic={} partition={} segment={} position={} fileSize={}",
+							topic, partitionId, file.getName(), pos, fileSize);
+				logger.warn("mq segment index rebuilt from file. topic={} partition={} segment={} fileBytes={} indexed={}",
+						topic, partitionId, file.getName(), fileSize, indexed);
+			}
+		} catch (Exception e) {
+			// 与 recoverTornTail 同口径：装载期恢复失败=分区不可用，宁可响亮不可静默。
+			throw Task.forceThrow(e);
+		}
 	}
 
 	// 撕裂尾恢复（类 WAL recovery，仅构造时执行一次，在打开追加流之前）。
