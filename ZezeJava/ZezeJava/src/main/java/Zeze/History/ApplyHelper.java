@@ -46,9 +46,12 @@ public class ApplyHelper extends FastLock {
 	private final int holeGraceMs;
 	private final ConcurrentHashMap<Integer, ApplyTable<?, ?>> applyTables = new ConcurrentHashMap<>();
 	private Id128 exclusiveStartKey;
-	// 当前阻塞游标的空洞（空洞前一个已确认的key）及首次发现时间。
+	// 当前阻塞游标的空洞（空洞前一个已确认的key）及首次发现时刻。老化计时用单调时钟
+	// System.nanoTime（hist-05）：只测"停了多久"，墙钟回拨（NTP）会使墙钟差为负、空洞永不
+	// 老化；与业务timestamp的墙钟边界判定解耦。进程内字段不持久化，重启后随holeAfterKey
+	// （null）一起重新登记，不受nanoTime原点跨进程变化影响。
 	private Id128 holeAfterKey;
-	private long holeSince;
+	private long holeSinceNanos;
 	// 已告警的未来时间戳记录（hist-04去重标记）：该记录把游标挡在时间边界上时warn一次，
 	// 游标越过它（已应用）之前不重复告警。
 	private Id128 futureAfterKey;
@@ -93,6 +96,7 @@ public class ApplyHelper extends FastLock {
 		lock();
 		try {
 			var now = System.currentTimeMillis();
+			var nowNanos = System.nanoTime(); // 空洞老化专用（单调）：now墙钟仍用于endTime与未来时间戳告警
 			var endTime = now - beforeTimeMs;
 			var result = new HashMap<ApplyTable<?, ?>, Set<Object>>();
 			var lastProcessed = new OutObject<Id128>();
@@ -108,17 +112,17 @@ public class ApplyHelper extends FastLock {
 				var prev = prevKey.value;
 				if (prev != null && key.compareTo(prev.add(1)) > 0) {
 					var aged = holeAfterKey != null && prev.compareTo(holeAfterKey) == 0
-							&& now - holeSince > holeGraceMs;
+							&& nowNanos - holeSinceNanos > holeGraceMs * 1_000_000L;
 					if (!aged) {
 						if (holeAfterKey == null || prev.compareTo(holeAfterKey) != 0) {
 							holeAfterKey = prev.clone();
-							holeSince = now;
+							holeSinceNanos = nowNanos;
 						}
 						stopByHole.value = true;
 						return false;
 					}
 					logger.warn("history apply cross key hole after {} ({}ms), skip missing GlobalSerialId(s)",
-							prev, now - holeSince);
+							prev, (nowNanos - holeSinceNanos) / 1_000_000);
 				}
 				var timestamp = value.getTimestamp();
 				if (timestamp >= endTime) {
@@ -209,7 +213,7 @@ public class ApplyHelper extends FastLock {
 			// 避免已老化的空洞因时间边界反复重置老化时钟。
 			if (!Boolean.TRUE.equals(stopByHole.value) && lastProcessed.value != null) {
 				holeAfterKey = null;
-				holeSince = 0;
+				holeSinceNanos = 0;
 			}
 			// 游标已越过（含已应用）此前告警的未来时间戳记录：解除告警去重标记。
 			// 停摆期间游标停在该记录之前，标记保留，跨轮不重复告警。
