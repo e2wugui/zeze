@@ -251,7 +251,7 @@ public class OnzServer extends AbstractOnz {
 	// 滞留决策数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> redoFailWarnedTids = ConcurrentHashMap.newKeySet();
 
-	private void redoTimer() throws RocksDBException {
+	private void redoTimer() {
 		if (stopped)
 			return;
 		dbLock.lock();
@@ -345,7 +345,7 @@ public class OnzServer extends AbstractOnz {
 	// saga参与方发FuncSagaEnd——commit决策补发endSaga未完成的结束(cancel=false)，
 	// rollback决策补偿已提交的步骤(cancel=true)，参与方幂等。
 	// stamp=commitIndex写入时戳，供超龄NotFound分诊。
-	private void redo(byte[] key, boolean commitDecision, long stamp) throws RocksDBException {
+	private void redo(byte[] key, boolean commitDecision, long stamp) {
 		var tid = ByteBuffer.ToLongBE(key, 0);
 		var zezeOnzs = new HashMap<String, Connector>();
 		try {

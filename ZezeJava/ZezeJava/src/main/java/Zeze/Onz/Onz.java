@@ -227,14 +227,14 @@ public class Onz extends AbstractOnz {
 	}
 
 	@Override
-	protected long ProcessCheckpointRequest(Checkpoint r) throws Exception {
+	protected long ProcessCheckpointRequest(Checkpoint r) {
 		service.getZeze().checkpointRun();
 		r.SendResult();
 		return 0;
 	}
 
 	@Override
-	protected long ProcessCommitRequest(Commit r) throws Exception {
+	protected long ProcessCommitRequest(Commit r) {
 		var tid = r.Argument.getOnzTid();
 		var procedure = readyProcedures.remove(tid);
 		if (null != procedure) {
@@ -255,7 +255,7 @@ public class Onz extends AbstractOnz {
 	}
 
 	@Override
-	protected long ProcessRollbackRequest(Rollback r) throws Exception {
+	protected long ProcessRollbackRequest(Rollback r) {
 		var tid = r.Argument.getOnzTid();
 		var procedure = readyProcedures.remove(tid);
 		if (null != procedure) {

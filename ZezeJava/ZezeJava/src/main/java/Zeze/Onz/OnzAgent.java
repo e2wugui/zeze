@@ -56,7 +56,7 @@ public class OnzAgent extends AbstractOnzAgent {
 	}
 
 	@Override
-	protected long ProcessFlushReadyRequest(FlushReady r) throws Exception {
+	protected long ProcessFlushReadyRequest(FlushReady r) {
 		var pending = transactions.get(r.Argument.getOnzTid());
 		if (null == pending) {
 			// 迟到的FlushReady：参与方能走到flush阶段，说明它已收到Commit决策
