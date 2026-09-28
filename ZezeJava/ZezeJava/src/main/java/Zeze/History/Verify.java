@@ -24,6 +24,11 @@ public class Verify {
 	/**
 	 * 校验历史回放与源表一致。前置：所有app已checkpoint且当前app已停写（如先
 	 * WaitAllRunningTasksAndClear 静默），否则并发提交窗口会误报 record miss——详见方法内注释。
+	 * <p>
+	 * 覆盖边界：只校验 tHistory 记录中出现过的表（applyTables 按记录内的 tableId 建立）——
+	 * 从未产生过 history 记录的表静默不校验；且要求被校验表的 history 覆盖其全生命周期：
+	 * history 启用前已有存量数据、启用后又有写入的表，verifyAndClear 的合并视图能看到存量
+	 * 记录而回放副本无对应 Put，将确定性误报 record miss（规避法见 Simulate 的 clearTables）。
 	 */
 	public static void run(Application zeze) throws Exception {
 		var applyDb = new ApplyDatabaseMemory();
