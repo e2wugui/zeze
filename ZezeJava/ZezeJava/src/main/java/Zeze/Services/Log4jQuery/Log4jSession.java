@@ -130,24 +130,38 @@ public class Log4jSession {
 		// 同searchRegex：取条统一走nextLog()——regex页预算中止的暂存条（pendingNext）必须被
 		// 同会话后续的contains查询消费（Search/Browse按请求内容在words/pattern间路由，同sid
 		// 交错可达），直走walker.next()会越过已取出的暂存条，该条静默漏出结果。
-		while (true) {
-			var log = nextLog();
-			if (null == log)
-				break;
-			if (endTime != -1 && log.getTime() > endTime)
-				return false; // end search
+		try {
+			while (true) {
+				var log = nextLog();
+				if (null == log)
+					break;
+				if (endTime != -1 && log.getTime() > endTime) {
+					// 终止判定的这条被消费但不进结果也不暂存：固定窗口翻页（查完remain=false即止）
+					// 不受影响；同会话同beginTime渐进扩大endTime续窗时，该边界日志不属于任何一页。
+					logger.debug("query terminated by endTime, boundary log dropped: logTime={}, endTime={}",
+							log.getTime(), endTime);
+					return false; // end search
+				}
 
-			if (containsCheck(log, words, containsType)) {
-				result.add(log);
-				if (--limit <= 0)
-					break; // maybe remain
+				if (containsCheck(log, words, containsType)) {
+					result.add(log);
+					if (--limit <= 0)
+						break; // maybe remain
+				}
+				// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
+				if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
+					return true; // remain
 			}
-			// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
-			if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
-				return true; // remain
-		}
 
-		return files.hasNext(); // remain maybe
+			return files.hasNext(); // remain maybe
+		} catch (IOException e) {
+			// 页扫描中途IO失败：已消费日志与已填result的部分结果均未发出（handler上抛不发应答），
+			// 客户端同beginTime重试命中去重短路会从游标当前位置续读——定位点与失败点之间的日志
+			// 不属于任何一页。失效beginTime哨兵（与trySetBeginTime的seek链路失败处置同构）：
+			// 重试必重定位重读，以已发页重读的重复换取不丢窗。
+			this.beginTime = -2;
+			throw e;
+		}
 	}
 
 	private static boolean containsCheck(Log4jLog log, List<String> words, int containsType) {
@@ -178,36 +192,45 @@ public class Log4jSession {
 		var scanned = 0;
 		var scannedBytes = 0L;
 		var regexChars = MAX_SCAN_REGEX_CHARS; // 正则预算跨行共享，在matcher内部生效（见常量注释）
-		while (true) {
-			var log = nextLog();
-			if (null == log)
-				break;
-			if (endTime != -1 && log.getTime() > endTime)
-				return false; // end search
+		try {
+			while (true) {
+				var log = nextLog();
+				if (null == log)
+					break;
+				if (endTime != -1 && log.getTime() > endTime) {
+					logger.debug("query terminated by endTime, boundary log dropped: logTime={}, endTime={}",
+							log.getTime(), endTime); // 同searchContains：边界条既不进结果也不暂存
+					return false; // end search
+				}
 
-			var budget = new RegexBudget(log.getLog(), regexChars);
-			var matcher = regex.matcher(budget);
-			boolean matched;
-			try {
-				matched = matcher.find();
-			} catch (RegexBudgetExceeded e) {
-				// 判定中止的本条：暂存重判（不丢不重），返回部分结果+Remain，客户端续页后预算重置。
-				pendingNext = log;
-				logger.warn("searchRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
-				return true; // remain
+				var budget = new RegexBudget(log.getLog(), regexChars);
+				var matcher = regex.matcher(budget);
+				boolean matched;
+				try {
+					matched = matcher.find();
+				} catch (RegexBudgetExceeded e) {
+					// 判定中止的本条：暂存重判（不丢不重），返回部分结果+Remain，客户端续页后预算重置。
+					pendingNext = log;
+					logger.warn("searchRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
+					return true; // remain
+				}
+				regexChars = budget.remaining();
+				if (matched) {
+					result.add(log);
+					if (--limit <= 0)
+						break; // maybe remain
+				}
+				// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
+				if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
+					return true; // remain
 			}
-			regexChars = budget.remaining();
-			if (matched) {
-				result.add(log);
-				if (--limit <= 0)
-					break; // maybe remain
-			}
-			// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
-			if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
-				return true; // remain
+
+			return files.hasNext(); // remain maybe
+		} catch (IOException e) {
+			// 同searchContains：扫描中途IO失败失效beginTime哨兵，重试重定位重读不丢窗。
+			this.beginTime = -2;
+			throw e;
 		}
-
-		return files.hasNext(); // remain maybe
 	}
 
 	public void close() throws IOException {
@@ -232,33 +255,42 @@ public class Log4jSession {
 		var scanned = 0;
 		var scannedBytes = 0L;
 		// 同searchContains：取条统一走nextLog()消费可能的暂存条（见searchContains循环处注释）。
-		while (true) {
-			var log = nextLog();
-			if (null == log)
-				break;
-			if (endTime != -1 && log.getTime() > endTime)
-				return false; // end search
-
-			result.add(log);
-			if (locate) {
-				--limit;
-				if (limit <= 0)
+		try {
+			while (true) {
+				var log = nextLog();
+				if (null == log)
 					break;
-			} else {
-				if (containsCheck(log, words, containsType)) {
-					locate = true;
-					limit -= result.size();
+				if (endTime != -1 && log.getTime() > endTime) {
+					logger.debug("query terminated by endTime, boundary log dropped: logTime={}, endTime={}",
+							log.getTime(), endTime); // 同searchContains：边界条既不进结果也不暂存
+					return false; // end search
+				}
+
+				result.add(log);
+				if (locate) {
+					--limit;
 					if (limit <= 0)
 						break;
-				} else if (result.size() > offset)
-					result.pollFirst(); // 只在开头保留offset数量不匹配行。
+				} else {
+					if (containsCheck(log, words, containsType)) {
+						locate = true;
+						limit -= result.size();
+						if (limit <= 0)
+							break;
+					} else if (result.size() > offset)
+						result.pollFirst(); // 只在开头保留offset数量不匹配行。
+				}
+				// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
+				if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
+					return true; // remain
 			}
-			// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
-			if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
-				return true; // remain
-		}
 
-		return files.hasNext(); // remain maybe
+			return files.hasNext(); // remain maybe
+		} catch (IOException e) {
+			// 同searchContains：扫描中途IO失败失效beginTime哨兵，重试重定位重读不丢窗。
+			this.beginTime = -2;
+			throw e;
+		}
 	}
 
 	public boolean browseRegex(Deque<Log4jLog> result,
@@ -280,47 +312,56 @@ public class Log4jSession {
 		var scanned = 0;
 		var scannedBytes = 0L;
 		var regexChars = MAX_SCAN_REGEX_CHARS; // 正则预算跨行共享，在matcher内部生效（见常量注释）
-		while (true) {
-			var log = nextLog();
-			if (null == log)
-				break;
-			if (endTime != -1 && log.getTime() > endTime)
-				return false; // end search
-
-			result.add(log);
-			if (locate) {
-				--limit;
-				if (limit <= 0)
+		try {
+			while (true) {
+				var log = nextLog();
+				if (null == log)
 					break;
-			} else {
-				var budget = new RegexBudget(log.getLog(), regexChars);
-				var matcher = regex.matcher(budget);
-				boolean matched;
-				try {
-					matched = matcher.find();
-				} catch (RegexBudgetExceeded e) {
-					// 本条已add进result且未判定（locate分支不触matcher，此处必为locate==false）：
-					// 移除后暂存重判（不丢不重），返回部分结果+Remain，客户端续页后预算重置。
-					result.pollLast();
-					pendingNext = log;
-					logger.warn("browseRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
-					return true; // remain
+				if (endTime != -1 && log.getTime() > endTime) {
+					logger.debug("query terminated by endTime, boundary log dropped: logTime={}, endTime={}",
+							log.getTime(), endTime); // 同searchContains：边界条既不进结果也不暂存
+					return false; // end search
 				}
-				regexChars = budget.remaining();
-				if (matched) {
-					locate = true;
-					limit -= result.size();
+
+				result.add(log);
+				if (locate) {
+					--limit;
 					if (limit <= 0)
 						break;
-				} else if (result.size() > offset)
-					result.pollFirst(); // 只在开头保留offset数量不匹配行。
+				} else {
+					var budget = new RegexBudget(log.getLog(), regexChars);
+					var matcher = regex.matcher(budget);
+					boolean matched;
+					try {
+						matched = matcher.find();
+					} catch (RegexBudgetExceeded e) {
+						// 本条已add进result且未判定（locate分支不触matcher，此处必为locate==false）：
+						// 移除后暂存重判（不丢不重），返回部分结果+Remain，客户端续页后预算重置。
+						result.pollLast();
+						pendingNext = log;
+						logger.warn("browseRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
+						return true; // remain
+					}
+					regexChars = budget.remaining();
+					if (matched) {
+						locate = true;
+						limit -= result.size();
+						if (limit <= 0)
+							break;
+					} else if (result.size() > offset)
+						result.pollFirst(); // 只在开头保留offset数量不匹配行。
+				}
+				// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
+				if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
+					return true; // remain
 			}
-			// 扫描预算：当前条已处理完毕才判预算，超预算置Remain提前返回，下一页从下一条继续（不丢不重）。
-			if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
-				return true; // remain
-		}
 
-		return files.hasNext(); // remain maybe
+			return files.hasNext(); // remain maybe
+		} catch (IOException e) {
+			// 同searchContains：扫描中途IO失败失效beginTime哨兵，重试重定位重读不丢窗。
+			this.beginTime = -2;
+			throw e;
+		}
 	}
 
 	/** 预算耗尽：经charAt从matcher.find()内部抛出中止匹配——行间预算检查拦不住单条find的回溯钉住。 */
