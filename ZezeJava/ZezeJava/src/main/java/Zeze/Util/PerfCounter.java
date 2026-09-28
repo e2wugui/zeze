@@ -207,6 +207,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private final ConcurrentHashMap<String, RunInfoWithSerial> runInfoMap = new ConcurrentHashMap<>(); // key: 统计名（归一化后）
 	private final LongConcurrentHashMap<ProtocolInfo> protocolInfoMap = new LongConcurrentHashMap<>(); // key: typeId
 	private final ConcurrentHashMap<String, ProcedureInfo> procedureInfoMap = new ConcurrentHashMap<>(); // key: procedureName
+	// 句柄按 name 缓存复用：Procedure 实例每笔事务新建，其懒解析字段让 allocProcedureCounter
+	// 每事务执行一次；句柄本身线程安全（volatile bound 良性竞争 + LongAdder 聚合），
+	// 共享后 Bound 代际重绑也按 name 摊销。语义不变（契约本就是"同 name 聚合统计"）。
+	private final ConcurrentHashMap<String, ProcedureCounter> procedureCounterMap = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<TableInfo> tableInfoMap = new LongConcurrentHashMap<>(); // key: tableId
 	private CountInfo[] countInfos = new CountInfo[0];
 	// exclude 随时可配置；已存在的统计条目要等空闲回收才会消失，并发读写安全
@@ -368,7 +372,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public @NotNull ProcedureCounter allocProcedureCounter(@NotNull String name) {
-		return new PerfProcedureCounter(name);
+		return procedureCounterMap.computeIfAbsent(name, PerfProcedureCounter::new);
 	}
 
 	// handle绑定的ProcedureInfo随resetCounter清空失效：按代际serial重绑（同getRunTimeObserver闭包模式）。
