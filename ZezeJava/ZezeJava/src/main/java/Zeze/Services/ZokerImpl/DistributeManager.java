@@ -146,6 +146,14 @@ public class DistributeManager {
 					// stat是微秒级syscall（对照：closeUnder的close含flush IO禁入锁内），锁内这一下
 					// 是"复检与建账"的线性化点，不可外移（锁外复检与建账之间的rename窗口无法闭合）。
 					rejectReason = "service directory generation changed (commit raced during construction)";
+				else if (null != sender && sender.isClosed())
+					// zoker-01：为已死 socket 不建账。断链回收（closeBySocket，OnSocketClose 内）与
+					// 本临界区取同一把 filesBySocket 锁，两序必居其一：先于本段执行则 close 回调已跑完、
+					// 此刻再建的 socket 集合此后无任何路径回收（永驻死记账+持有已关 AsyncSocket）；
+					// 后于本段执行则 isClosed 必为 false（markClosed 先于 OnSocketClose，终态不回退），
+					// 建账条目由该次 closeBySocket 正常摘除。isClosed 在锁内的这一次复检是两种结局的
+					// 线性化判别。拒绝方向安全：客户端断链收不到应答，重连重试即得活连接的账。
+					rejectReason = "sender closed";
 				else {
 					// 建表与socket记账必须原子：锁外两步之间断链清账会把新建的FileBin
 					// 漏出回收面（句柄泄漏+死socket映射永驻）。closeAndVerify/closeBySocket持同锁清账。
@@ -170,11 +178,17 @@ public class DistributeManager {
 		return fileBin;
 	}
 
-	/** 已入表实例的追加记账：建立者的putIfAbsent+记账已在同一原子段完成，此处只补本连接。 */
+	/**
+	 * 已入表实例的追加记账：建立者的putIfAbsent+记账已在同一原子段完成，此处只补本连接。
+	 * zoker-01同治：锁内复检sender已死则不补——其close回调已跑完（或即将，届时摘的是既有条目），
+	 * 补上的集合条目无回收路径（快路径 files.get 命中与 putIfAbsent 败者两处调用同暴露）。
+	 */
 	private void accountOpened(AsyncSocket sender, String relativeCanonicalFileName) {
 		if (null == sender)
 			return;
 		synchronized (filesBySocket) {
+			if (sender.isClosed())
+				return;
 			filesBySocket.computeIfAbsent(sender, __ -> ConcurrentHashMap.newKeySet()).add(relativeCanonicalFileName);
 		}
 	}
