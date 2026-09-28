@@ -24,22 +24,34 @@ public class FileBin {
 	private MessageDigest md5;
 
 	public FileBin(String relativeCanonicalFileName, File baseDir, String path) {
+		this.relativeCanonicalFileName = relativeCanonicalFileName;
+		RandomAccessFile openRandFile = null;
 		try {
-			this.relativeCanonicalFileName = relativeCanonicalFileName;
-			canonicalFile = new File(baseDir, path).getCanonicalFile();
 			// 先确保文件存在（含创建父目录）再计算md5：md5CurrentData对不存在的文件必抛
 			// FileNotFoundException，全新文件的首次OpenFile会直接失败；而嵌套路径
 			// （如server/lib/x.jar）的父目录RandomAccessFile("rw")也不会创建。
+			canonicalFile = new File(baseDir, path).getCanonicalFile();
 			var parent = canonicalFile.getParentFile();
 			if (parent != null)
 				//noinspection ResultOfMethodCallIgnored
 				parent.mkdirs();
-			randFile = new RandomAccessFile(canonicalFile, "rw");
+			openRandFile = new RandomAccessFile(canonicalFile, "rw");
 			md5CurrentData();
-			os = new BufferedOutputStream(new FileOutputStream(randFile.getFD()));
+			os = new BufferedOutputStream(new FileOutputStream(openRandFile.getFD()));
 		} catch (Exception ex) {
+			// 构造失败必须关闭已打开的句柄：泄漏的RandomAccessFile在Windows上锁住
+			// distributes下的文件，后续commit的renameTo对该文件恒失败（直到GC/进程重启），
+			// 调用方每次重试再泄一个。
+			if (null != openRandFile) {
+				try {
+					openRandFile.close();
+				} catch (IOException closeEx) {
+					ex.addSuppressed(closeEx);
+				}
+			}
 			throw Task.forceThrow(ex);
 		}
+		randFile = openRandFile;
 	}
 
 	public String getRelativeCanonicalFileName() {
