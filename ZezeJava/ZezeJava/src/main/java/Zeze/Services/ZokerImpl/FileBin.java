@@ -124,7 +124,25 @@ public class FileBin {
 	}
 
 	public synchronized void close() throws IOException {
-		os.close(); // 关闭前flush缓冲数据
-		randFile.close();
+		// 分段收尾（构造器同款）：os.close()抛IOException（缓冲flush落盘失败等）时randFile.close()
+		// 仍须执行——泄漏的RandomAccessFile在Windows上锁住distributes下的文件，后续commit的
+		// renameTo恒败且无自愈（调用方全部捕获-记日志-放弃，无人补关）。randFile失败添为suppressed，
+		// 首个异常清理完后重抛。
+		IOException primary = null;
+		try {
+			os.close(); // 关闭前flush缓冲数据
+		} catch (IOException ex) {
+			primary = ex;
+		}
+		try {
+			randFile.close();
+		} catch (IOException ex) {
+			if (null == primary)
+				primary = ex;
+			else
+				primary.addSuppressed(ex);
+		}
+		if (null != primary)
+			throw primary;
 	}
 }
