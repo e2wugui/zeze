@@ -110,6 +110,15 @@ public class MQPartition extends ReentrantLock {
 				return;
 			}
 			var subs = subscribes.entrySet().toArray();
+			if (subs.length == 0) {
+				// TOCTOU 收口：subscribes 的变更（subscribe/unsubscribe/onSocketClose）都在本锁外，
+				// isEmpty 判真之后、toArray 之前可被并发清空——空数组使下方 % subs.length 除零
+				// （ArithmeticException 从订阅应答/关闭回调炸出，重排中断且分区残留死绑定）。
+				// 复查为空则与 isEmpty 分支同构收口：全部分区 bind(0,null)。
+				for (var partition : partitions.values())
+					partition.bind(0, null);
+				return;
+			}
 			Arrays.sort(subs, new SessionIdComparator());
 			for (var partition : partitions.values()) {
 				var subIndex = partition.getPartitionIndex() % subs.length;
