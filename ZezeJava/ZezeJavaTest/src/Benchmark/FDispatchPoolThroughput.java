@@ -56,6 +56,28 @@ public class FDispatchPoolThroughput {
 		}
 	}
 
+	// ofAction 派发（生产协议处理器的真实路径；ofProcedure 的 statsKey 为 null 不走
+	// addTaskRunTime 统计路径，本变体补该覆盖）。任务体不含事务，纯派发+统计开销。
+	@Test
+	public void testActionDispatch() throws Exception {
+		var virtual = PropertiesHelper.getBool("useVirtualThread", true);
+		MacroBench.run("F_DispatchAction_" + (virtual ? "Virtual" : "Platform"), Warmups, Rounds, AddCount, () -> {
+			var tasks = new ArrayList<Future<?>>(Batch);
+			var counter = new java.util.concurrent.atomic.AtomicLong();
+			for (int i = 0; i < AddCount; ++i) {
+				tasks.add(TaskSpec.ofAction(counter::incrementAndGet).name("dispatchAction").submitNow());
+				if ((i + 1) % Batch == 0) {
+					for (var task : tasks)
+						task.get();
+					tasks.clear();
+				}
+			}
+			for (var task : tasks)
+				task.get();
+			Assertions.assertEquals(AddCount, counter.get());
+		});
+	}
+
 	private static long Check() {
 		long sum = 0;
 		for (long key = 0; key < ConcurrentLevel; ++key) {

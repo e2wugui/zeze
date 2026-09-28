@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -350,9 +351,15 @@ public final class Task {
 	}
 
 	// ZezeCounter 计数辅助：key 为 null 表示统计已在 body.call 内部完成（OfFunc/OfProcedure），外层不再计数。
+	// statsKey → 观察者句柄缓存：statsKey 通常是调用点恒定的字面量 name 或 Class，
+	// 逐笔 addTaskRunTime（String.valueOf+excludeRunKeys.contains+runInfoMap.get+代际分支）
+	// 是派发热路径的共享结构跨核访问；句柄内部自带代际重绑（对齐 PerfProcedureCounter 惯例）。
+	private static final ConcurrentHashMap<Object, ZezeCounter.LongObserver> runTimeObservers = new ConcurrentHashMap<>();
+
 	private static void addTaskRunTime(@Nullable Object key, long timeBegin) {
 		if (key != null && timeBegin != 0) // 统计禁用时零开销
-			ZezeCounter.instance.addTaskRunTime(key, System.nanoTime() - timeBegin);
+			runTimeObservers.computeIfAbsent(key, ZezeCounter.instance::getRunTimeObserver)
+					.observe(System.nanoTime() - timeBegin);
 	}
 
 	// TaskBody 统一核心：载荷间差异（异常/结果策略、日志名、统计位置）由 TaskBody 实现封装，
