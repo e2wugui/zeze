@@ -24,7 +24,12 @@ public class Verify {
 	public static void run(Application zeze) throws Exception {
 		var applyDb = new ApplyDatabaseMemory();
 		var applyTables = new ConcurrentHashMap<Integer, ApplyTable<?, ?>>();
-		zeze.checkpointRun(); // 【注意】如果存在多个app，需要所有app都checkpoint，这里只保证当前app提交。
+		// 【注意】如果存在多个app，需要所有app都checkpoint，这里只保证当前app提交。
+		// 且当前app必须已停写（如先 WaitAllRunningTasksAndClear 静默，见 Simulate 用法）：
+		// checkpoint 后新提交的记录对 tHistory 的 walkDatabase 不可见（Table 模式下最多延迟
+		// 一个 period 才 flush），而 verifyAndClear 的 originTable.walk 走 cache+db 合并视图
+		// 可见，将误报 record miss。
+		zeze.checkpointRun();
 		var counter = new AtomicLong();
 		var total = new AtomicLong();
 		// null哨兵：(0,0)是合法的首个gid（Tid128Cache对齐TidCache先返后增后，SM从零起grant的段首号
