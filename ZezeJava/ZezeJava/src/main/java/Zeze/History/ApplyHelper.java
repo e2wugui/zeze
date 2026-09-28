@@ -44,6 +44,9 @@ public class ApplyHelper extends FastLock {
 	private final IApplyDatabase dbApplied;
 	private final int beforeTimeMs;
 	private final int holeGraceMs;
+	// 只在ApplyHelper锁内（apply单线程）读写，不提供公开访问面（hist-05）：
+	// ApplyTable的LRU缓存与本map的结构修改均无并发保护，经公开API泄漏内部map
+	// 即引入结构性损坏；外部需要的是apply(count)的返回值（受影响表与键）。
 	private final ConcurrentHashMap<Integer, ApplyTable<?, ?>> applyTables = new ConcurrentHashMap<>();
 	private Id128 exclusiveStartKey;
 	// 当前阻塞游标的空洞（空洞前一个已确认的key）及首次发现时刻。老化计时用单调时钟
@@ -71,10 +74,6 @@ public class ApplyHelper extends FastLock {
 		// 持久化后端必须恢复游标——否则重启后游标归零从表头整段重放到已有状态上
 		// （Edit类日志非幂等，重放污染回放副本）。内存后端loadCursor返回null，天然一致。
 		exclusiveStartKey = dbApplied.loadCursor();
-	}
-
-	public ConcurrentHashMap<Integer, ApplyTable<?, ?>> getApplyTables() {
-		return applyTables;
 	}
 
 	public @Nullable Id128 getExclusiveStartKey() {
