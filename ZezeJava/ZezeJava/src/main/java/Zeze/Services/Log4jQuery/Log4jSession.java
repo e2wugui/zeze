@@ -1,24 +1,40 @@
 package Zeze.Services.Log4jQuery;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.util.List;
 import java.util.Deque;
 import java.util.regex.Pattern;
 import Zeze.Builtin.LogService.BCondition;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 服务端单份日志的查询会话：持有 Log4jFileWalker 游标，执行 contains/regex 的 search/browse，
  * 并施加 limit 与扫描预算约束。
  */
 public class Log4jSession {
+	private static final @NotNull Logger logger = LogManager.getLogger(Log4jSession.class);
+
 	/** 服务端单请求limit强制上限：协议字段是客户端可控的裸int，clamp后按上限执行（超出部分静默截断）。 */
 	public static final int MAX_LIMIT = 10_000;
 	/** 单请求扫描日志条数预算：超预算置Remain=true提前返回，客户端按翻页协议继续，对现有客户端透明。 */
 	public static final int MAX_SCAN_LOGS = 100_000;
 	/** 单请求扫描字节预算：防超大日志行（多行续行聚合）绕过条数预算。 */
 	public static final long MAX_SCAN_BYTES = 256L * 1024 * 1024;
+	/** 单请求正则预算（matcher访问的字符数）：病态模式（嵌套量词等）对长行产生指数回溯，会话锁
+	 * 与处理线程被单条find()钉住且无法从外部中断——预算必须经CharSequence.charAt在matcher
+	 * 内部生效（回溯重读重复计入，这正是被约束的资源）。超限中止当次search/browse返回部分结果
+	 * +Remain=true并告警一次，客户端续页（每请求预算重置，单请求工作量有界即服务可用性有界）。
+	 * 量级：正常模式每字符O(1)次访问，64M字符远超常规查询窗；MAX_SCAN_BYTES满额扫描的请求
+	 * 可能先触本预算而多翻一页，语义不变。 */
+	public static final long MAX_SCAN_REGEX_CHARS = 64L * 1024 * 1024;
 
 	private final Log4jFileWalker files;
+	// 正则预算中止的本条日志暂存（walker.next()取出即前进、判定未完成）：下一请求以重置后的
+	// 预算重新判定，不丢不重。游标重定位（reset/seek）时丢弃——重新定位后的扫描按新窗口重读。
+	private Log4jLog pendingNext;
 	private long beginTime = -2; // 用来检测发现开始时间发生变化，此时需要重置并且seek。
 	// 最后活动时间：Browse/Search进入会话锁后刷新，服务端据此惰性清理空闲会话。
 	private volatile long lastActiveTime = System.currentTimeMillis();
@@ -50,7 +66,13 @@ public class Log4jSession {
 		// beginTime的日志混入结果（查询契约违反）且全历史线性重扫。失效为-2后下一查询必走
 		// reset+seek重定位；beginTime=-1流程不变（-2→-1变化，reset后不seek）。
 		this.beginTime = -2;
-		this.files.reset();
+		resetWalker();
+	}
+
+	// 游标重定位即丢弃暂存条：它属于旧位置，重新定位后的扫描按新窗口重新读取（与等价的全新查询一致）。
+	private void resetWalker() throws IOException {
+		pendingNext = null;
+		files.reset();
 	}
 
 	private void trySetBeginTime(long beginTime) throws IOException {
@@ -63,7 +85,7 @@ public class Log4jSession {
 		// 先定位后提交去重哨兵：seek链路抛IOException时哨兵未提交，客户端携带同一beginTime
 		// 重试不会命中短路，必重新定位；先提交则重试从被reset归零的最旧文件头全量返回，
 		// 早于beginTime的旧日志混入结果（下界过滤只靠定位保证，扫描循环无下界检查）。
-		this.files.reset();
+		resetWalker();
 		if (beginTime != -1) {
 			try {
 				this.files.seek(beginTime);
@@ -75,6 +97,17 @@ public class Log4jSession {
 			}
 		}
 		this.beginTime = beginTime;
+	}
+
+	// 取下一条（含正则预算中止的暂存重判）：walker.next()取出即前进，预算中止的本条经暂存槽
+	// 由下一请求重新判定，不丢不重。
+	private Log4jLog nextLog() throws IOException {
+		if (null != pendingNext) {
+			var pending = pendingNext;
+			pendingNext = null;
+			return pending;
+		}
+		return files.hasNext() ? files.next() : null;
 	}
 
 	/**
@@ -139,13 +172,27 @@ public class Log4jSession {
 		var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE); // 循环外编译一次复用
 		var scanned = 0;
 		var scannedBytes = 0L;
-		while (files.hasNext()) {
-			var log = files.next();
+		var regexChars = MAX_SCAN_REGEX_CHARS; // 正则预算跨行共享，在matcher内部生效（见常量注释）
+		while (true) {
+			var log = nextLog();
+			if (null == log)
+				break;
 			if (endTime != -1 && log.getTime() > endTime)
 				return false; // end search
 
-			var matcher = regex.matcher(log.getLog());
-			if (matcher.find()) {
+			var budget = new RegexBudget(log.getLog(), regexChars);
+			var matcher = regex.matcher(budget);
+			boolean matched;
+			try {
+				matched = matcher.find();
+			} catch (RegexBudgetExceeded e) {
+				// 判定中止的本条：暂存重判（不丢不重），返回部分结果+Remain，客户端续页后预算重置。
+				pendingNext = log;
+				logger.warn("searchRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
+				return true; // remain
+			}
+			regexChars = budget.remaining();
+			if (matched) {
 				result.add(log);
 				if (--limit <= 0)
 					break; // maybe remain
@@ -224,8 +271,11 @@ public class Log4jSession {
 		var regex = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE); // 循环外编译一次复用
 		var scanned = 0;
 		var scannedBytes = 0L;
-		while (files.hasNext()) {
-			var log = files.next();
+		var regexChars = MAX_SCAN_REGEX_CHARS; // 正则预算跨行共享，在matcher内部生效（见常量注释）
+		while (true) {
+			var log = nextLog();
+			if (null == log)
+				break;
 			if (endTime != -1 && log.getTime() > endTime)
 				return false; // end search
 
@@ -235,8 +285,21 @@ public class Log4jSession {
 				if (limit <= 0)
 					break;
 			} else {
-				var matcher = regex.matcher(log.getLog());
-				if (matcher.find()) {
+				var budget = new RegexBudget(log.getLog(), regexChars);
+				var matcher = regex.matcher(budget);
+				boolean matched;
+				try {
+					matched = matcher.find();
+				} catch (RegexBudgetExceeded e) {
+					// 本条已add进result且未判定（locate分支不触matcher，此处必为locate==false）：
+					// 移除后暂存重判（不丢不重），返回部分结果+Remain，客户端续页后预算重置。
+					result.pollLast();
+					pendingNext = log;
+					logger.warn("browseRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
+					return true; // remain
+				}
+				regexChars = budget.remaining();
+				if (matched) {
 					locate = true;
 					limit -= result.size();
 					if (limit <= 0)
@@ -250,5 +313,43 @@ public class Log4jSession {
 		}
 
 		return files.hasNext(); // remain maybe
+	}
+
+	/** 预算耗尽：经charAt从matcher.find()内部抛出中止匹配——行间预算检查拦不住单条find的回溯钉住。 */
+	private static final class RegexBudgetExceeded extends RuntimeException {
+		@Serial
+		private static final long serialVersionUID = 1L;
+	}
+
+	/** 正则预算CharSequence：regex引擎读输入只经charAt，在此计数、超限抛出中止（回溯重读重复计入）。 */
+	private static final class RegexBudget implements CharSequence {
+		private final CharSequence delegate;
+		private long remaining;
+
+		RegexBudget(CharSequence delegate, long budget) {
+			this.delegate = delegate;
+			this.remaining = budget;
+		}
+
+		long remaining() {
+			return remaining;
+		}
+
+		@Override
+		public char charAt(int index) {
+			if (--remaining < 0)
+				throw new RegexBudgetExceeded();
+			return delegate.charAt(index);
+		}
+
+		@Override
+		public int length() {
+			return delegate.length();
+		}
+
+		@Override
+		public CharSequence subSequence(int start, int end) {
+			return new RegexBudget(delegate.subSequence(start, end), remaining);
+		}
 	}
 }
