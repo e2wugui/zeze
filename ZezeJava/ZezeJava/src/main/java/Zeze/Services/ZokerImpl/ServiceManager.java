@@ -108,8 +108,9 @@ public class ServiceManager {
 	private final @Nullable Zoker zoker;
 	private final File serviceDir;
 	private final ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
-	// 同服务 start/stop 互斥（services/<svc> 折叠键，对齐 DistributeManager.commitLocks
-	// 的形态与判据）。stopService 首行摘账、此后最长 10s优雅+10s强杀 的停机窗口——窗口内并发
+	// 同服务 start/stop 互斥（services/<svc> 折叠键，形态对齐 DistributeManager.commitLocks；
+	// 键折叠判据已分叉——commitLocks 键现用 foldVersionName 折叠（剥尾点/空格+小写），
+	// 本锁族维持 toLowerCase）。stopService 首行摘账、此后最长 10s优雅+10s强杀 的停机窗口——窗口内并发
 	// start 按 run.pid 领养"正在被终止"的进程并回执 Running：回执即谎言且终局服务死
 	// （领养判据只看"pid 存活+指纹相符"，无法区分现役
 	// 与正被杀）。互斥使两序皆自洽：stop 先完成→start 见无身份/死残留重新拉起（回执诚实）；
@@ -191,6 +192,10 @@ public class ServiceManager {
 		try (var input = new FileInputStream(file)) {
 			content = new String(input.readAllBytes(), StandardCharsets.UTF_8);
 		}
+		// BOM吸收：UTF-8 BOM（U+FEFF，Windows记事本类工具常见输出）会粘在首行key上——
+		// trim()只剥<=U+0020的字符剥不掉它，key失配解析不到command，误报eNoServiceProperties。
+		if (content.startsWith("\uFEFF"))
+			content = content.substring(1);
 		String command = null;
 		String args = null;
 		String env = null;
