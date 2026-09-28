@@ -207,6 +207,14 @@ public class Onz extends AbstractOnz {
 			var tid = it.next();
 			var stamp = timeoutRolledBack.get(tid);
 			if (stamp != null && now - stamp >= TimeoutRolledBackTtlMs) {
+				// onz-04：摘哨兵=分歧信号消失点。此后迟到的Commit命中remove=null走幂等应答0
+				//（与已提交的重复发送不可区分，见ProcessCommitRequest），协调者按提交收场而
+				// 本地已回滚=静默分歧。warn对齐本方法saga上下文清理的"放弃对象"口径：预算契约
+				//（协调者恢复≤TTL）被打破的最后留痕——saga路径同场景有协调者侧超龄NotFound
+				// 分诊（OnzServer.SagaNotFoundAgedBudgetMs），本warn是其参与方侧对称信号。
+				logger.warn("expire timeout-rolled-back sentinel. tid={} age={}ms"
+						+ " (recovery budget exceeded; Commit/Rollback arriving later resolves"
+						+ " to the idempotent unknown-tid path without divergence signal)", tid, now - stamp);
 				timeoutRolledBack.remove(tid);
 				readyProcedures.remove(tid, TimeoutRolledBackMarker); // 连同槽位哨兵一起过期
 			}
@@ -253,8 +261,16 @@ public class Onz extends AbstractOnz {
 				timeoutRolledBack.remove(tid); // 记账清理（漏删亦由TTL回收）
 			} else
 				procedure.commit();
+		} else {
+			// onz-04：null两源不可区分——已提交的重复发送（redo重发/应答丢失，正常幂等），
+			// 或哨兵TTL过期后迟到的Commit（本地已回滚、协调者按提交收场=静默分歧；参与方
+			// 无决策时戳，无法像协调者对saga NotFound那样按记录年龄分诊）。warn带tid暴露
+			// 信号（对齐saga路径超龄分诊的可观测口径）：重复发送的良性warn是该可观测性的
+			// 既定代价，频度有界于redo轮次；应答语义不变。
+			logger.warn("Commit for unknown onz tid={}"
+					+ " (duplicate after commit -- normal idempotent redo; or participant state lost"
+					+ " / timeout-rolled-back sentinel expired -- possible data divergence)", tid);
 		}
-		// else：已提交后的重复发送（redo重发/应答丢失），正常幂等路径。
 		r.SendResult();
 		return 0;
 	}
