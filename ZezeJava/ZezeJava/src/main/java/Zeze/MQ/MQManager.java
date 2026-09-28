@@ -285,7 +285,14 @@ public class MQManager extends AbstractMQManager {
 				var pa = partition.getName().split("\\.");
 				if (pa.length == 2) {
 					try {
-						partitionIndexes.add(Integer.parseInt(pa[0]));
+						var index = Integer.parseInt(pa[0]);
+						// 分区号必须非负：负值入集合会使 arrangeConsumer 的 sessionId 取模下标为负
+						//（AIOOBE），该 topic 的订阅事件全部失效。Master 只派生 0..P-1，
+						// 负值必为杂散文件，与非数字名一样拒绝注册。
+						if (index >= 0)
+							partitionIndexes.add(index);
+						else if (warnUnrecognized)
+							logger.warn("scanDiskPartitions skip negative partition file: {}", partition.getName());
 					} catch (NumberFormatException e) {
 						// 忽略目录下混入了非"分区号.消息号"命名的杂散文件。
 						if (warnUnrecognized)
