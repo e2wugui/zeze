@@ -30,6 +30,8 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 	}
 
 	private final Database dbForApply;
+	// 仅用于误配报错指认配置名（构造期校验见构造器）；openTable不需要名字。
+	private final String applyDbName;
 	private final Database.AbstractKVTable cursorStorage;
 	private final ConcurrentHashMap<String, ApplyTableZeze> tables = new ConcurrentHashMap<>();
 	// 当前打开的记录级事务。apply在ApplyHelper锁内单线程驱动，同一时刻至多一个。
@@ -44,6 +46,17 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		if (applyDbName.isBlank())
 			throw new RuntimeException("apply database must have a name.");
 		dbForApply = zeze.getDatabase(applyDbName);
+		this.applyDbName = applyDbName;
+		// 误配fail-fast（hist-02）：applyDbName误配为任一业务库名（<DatabaseConf Name>相同→
+		// 同一Database对象）时，openTable(业务表名,业务表id)返回业务表同一个存储对象，
+		// 回放写入与游标直落业务表——静默数据损坏。apply库不得承载任何已注册业务表；
+		// 构造之后才注册/打开的表由ApplyTableZeze构造器按同判据兜底。
+		for (var t : zeze.getTables().values()) {
+			if (t.getDatabase() == dbForApply)
+				throw new RuntimeException("apply database config conflict: '" + applyDbName
+						+ "' is also the database of business table '" + t.getName()
+						+ "'. apply data and replay cursor must persist to a separate kv database.");
+		}
 		var storage = dbForApply.openTable(cursorTableName, Bean.hash32(cursorTableName));
 		if (!(storage instanceof Database.AbstractKVTable kvStorage))
 			throw new RuntimeException("apply database need a kv-table for cursor. name=" + applyDbName);
@@ -183,6 +196,13 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 			var table = dbForApply.getZeze().getTable(tableName);
 			if (null == table)
 				throw new RuntimeException("table not exist in zeze. name=" + tableName);
+			// 兜底判据（同构造器，hist-02）：本表在apply库中打开，业务表却登记在apply库上
+			// ——同库同名同id时openTable返回业务表同一存储对象，回放写入直落业务表。
+			// 晚于ApplyDatabaseZeze构造注册/打开的表只能在此处核对。
+			if (table.getDatabase() == dbForApply)
+				throw new RuntimeException("apply table config conflict: business table '" + tableName
+						+ "' is hosted in the apply database '" + applyDbName
+						+ "'. apply data and replay cursor must persist to a separate kv database.");
 			var storage = dbForApply.openTable(tableName, table.getId());
 			if (!(storage instanceof Database.AbstractKVTable))
 				throw new RuntimeException("apply table need a kv-table.");
