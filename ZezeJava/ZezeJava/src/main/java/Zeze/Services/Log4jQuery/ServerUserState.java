@@ -1,7 +1,10 @@
 package Zeze.Services.Log4jQuery;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import Zeze.Services.LogService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,6 +14,20 @@ import org.apache.logging.log4j.Logger;
  */
 public class ServerUserState {
 	private static final Logger logger = LogManager.getLogger(ServerUserState.class);
+
+	// 连接关闭的会话回收执行面：进程级守护单线程。OnSocketClose 可运行在 selector 线程
+	// （TcpSocket.doClose 在发起关闭线程同步回调），而逐会话 close 须与 Browse/Search 持同一
+	// 会话锁互斥——慢盘/大文件下单请求扫描可达分钟级，回调线程同步等锁会把该 selector 上全部
+	// 连接的 IO 一并钉停（Service.stop 锁内路径同理，框架锁序契约本就要求回调内业务锁单向不等待）。
+	// 关闭只做句柄回收、无时序与结果可见性要求，投递专职线程排队执行（排队期间 fd 迟回收，无正确性影响；
+	// 单线程即够——不等锁的 close 毫秒级，等锁则该会话的查询正在等价地占用工作线程，串行化只推迟
+	// 回收不放大拥塞）。守护线程不参与服务生命周期：stop 不等待还卡在等锁上的回收，JVM 退出不受阻。
+	private static final ExecutorService LOG_SESSION_CLOSER = Executors.newSingleThreadExecutor(r -> {
+		var thread = new Thread(r, "Zeze.LogService.LogSessionCloser");
+		thread.setDaemon(true);
+		return thread;
+	});
+
 	private final LogService logService;
 	private final ConcurrentHashMap<Long, Log4jSession> logSessions = new ConcurrentHashMap<>();
 
@@ -80,9 +97,44 @@ public class ServerUserState {
 	}
 
 	public void close() throws IOException {
-		// 逐个关闭并收集异常：首个close失败中断循环会让其余会话的文件句柄泄漏（对齐客户端SessionAll.close）。
+		// 摘除后关闭全部快照内会话并收集异常（首个close失败不中断循环，否则其余会话句柄泄漏，
+		// 对齐客户端SessionAll.close），全部处理完统一抛首个异常。
+		var first = closeSessions(detachSessions());
+		if (first != null)
+			throw first;
+	}
+
+	/**
+	 * OnSocketClose 专用关闭入口：会话表摘除在调用线程同步完成（连接已死，逻辑上立即不可再查询，
+	 * 惰性清理/迟到 getLogSession 随即看到空表），逐会话按会话锁互斥的物理 close 投递专职守护线程
+	 * ——回调线程（可能是 selector）不得同步等会话锁（等锁语义见 LOG_SESSION_CLOSER 注释）。
+	 * close 失败无处上抛（回调上游只记日志不补调），在 closer 线程 warn（对齐 cleanIdleLogSessions）。
+	 */
+	public void closeAsync() {
+		var pending = detachSessions();
+		if (pending.isEmpty())
+			return; // 无会话不投递：closer线程零任务，也不为空连接排队
+		LOG_SESSION_CLOSER.execute(() -> {
+			var first = closeSessions(pending);
+			if (first != null)
+				logger.warn("close log sessions after socket close fail", first);
+		});
+	}
+
+	/** 摘除全部会话（快照+清空）：返回的快照由调用方负责逐个关闭。 */
+	private List<Log4jSession> detachSessions() {
+		var pending = List.copyOf(logSessions.values());
+		logSessions.clear();
+		return pending;
+	}
+
+	/**
+	 * 逐会话按会话锁互斥关闭（与 Browse/Search 同锁序，close 不打断并发查询），异常收集不中断：
+	 * @return 首个 IOException（其余 addSuppressed），null=全部成功。
+	 */
+	private static IOException closeSessions(List<Log4jSession> sessions) {
 		IOException first = null;
-		for (var logSession : logSessions.values()) {
+		for (var logSession : sessions) {
 			try {
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (logSession) {
@@ -95,8 +147,6 @@ public class ServerUserState {
 					first.addSuppressed(e);
 			}
 		}
-		logSessions.clear();
-		if (first != null)
-			throw first;
+		return first;
 	}
 }

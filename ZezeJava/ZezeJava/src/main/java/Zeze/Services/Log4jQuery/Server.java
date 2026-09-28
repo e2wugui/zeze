@@ -29,7 +29,11 @@ public class Server extends Service {
 		var agent = (ServerUserState)so.getUserState();
 		try {
 			if (agent != null)
-				agent.close(); // 任一会话close抛IOException即上抛，但不得因此跳过super
+				// 逐会话close与Browse/Search按同一会话锁互斥（慢扫描分钟级），而本回调可运行在selector线程
+				// （TcpSocket.doClose在发起线程同步回调）——同步等锁会把该selector上全部连接的IO钉停。
+				// closeAsync在本线程只做会话表摘除，等锁的物理close投递专职守护线程；close失败不再经
+				// 本回调上抛（上游只记日志不补调），改由closer线程warn。
+				agent.closeAsync();
 		} finally {
 			// 必达：super负责socketMap摘除与收发统计归集，上游TcpSocket.doClose对异常只记日志不补调，
 			// 跳过即该连接连同缓冲滞留socketMap永久泄漏。

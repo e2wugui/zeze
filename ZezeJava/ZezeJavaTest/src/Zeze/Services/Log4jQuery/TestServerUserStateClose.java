@@ -84,6 +84,44 @@ public class TestServerUserStateClose {
 		assertEquals(0, sessions.size());
 	}
 
+	/**
+	 * FND25 log4j-02 回归：closeAsync（OnSocketClose 专用入口）不得同步等会话锁——
+	 * 逐会话 close 与 Browse/Search 持同一会话锁互斥，慢扫描分钟级持锁下，selector 线程
+	 * 同步等锁会把该 selector 上全部连接的 IO 钉停。会话表摘除必须同步完成（连接死亡即
+	 * 逻辑不可查询），物理 close 投递专职线程。
+	 */
+	@Test
+	public void testCloseAsyncDoesNotBlockOnHeldSessionLock() throws Exception {
+		var state = new ServerUserState(null);
+		var sessions = sessionsOf(state);
+		var slow = new FixtureSession(null);
+		sessions.put(1L, slow);
+
+		// 另一线程持该会话的监视器锁 2s（等价"Browse 正在慢扫描"）。
+		var entered = new java.util.concurrent.CountDownLatch(1);
+		var release = new java.util.concurrent.CountDownLatch(1);
+		var holder = Thread.ofPlatform().daemon().start(() -> {
+			synchronized (slow) {
+				entered.countDown();
+				try {
+					release.await();
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+			}
+		});
+		assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS), "持锁线程必须就位");
+
+		var begin = System.nanoTime();
+		state.closeAsync();
+		var elapsedMs = (System.nanoTime() - begin) / 1_000_000;
+		assertTrue(elapsedMs < 800, "closeAsync不得同步等会话锁（selector钉停），elapsed=" + elapsedMs + "ms");
+		assertEquals(0, sessions.size(), "会话表摘除必须在调用线程同步完成");
+
+		release.countDown();
+		holder.join(3000);
+	}
+
 	@SuppressWarnings("unchecked")
 	private static ConcurrentHashMap<Long, Log4jSession> sessionsOf(ServerUserState state) throws Exception {
 		Field field = ServerUserState.class.getDeclaredField("logSessions");
