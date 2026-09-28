@@ -200,7 +200,11 @@ public class OnzProcedure implements FuncLong {
 		// flushTimeout"的最坏持有；max防非正值劣化（2×负值更小），min防int溢出。
 		var flushReadyTimeoutMs = (int) Math.min(Integer.MAX_VALUE,
 				Math.max(2L * funcArgument.getFlushTimeout(), (long) funcArgument.getFlushTimeout()));
-		if (!r.Send(rpc.getSender(), (p) -> {
+		// onz-A（FND28）：目标经断连感知解析——原sender（请求到达的连接）已死时按对端IP重路由到
+		// 同一协调者的存活连接（见Onz.resolveFlushSocket），不再对死socket重发致flush永不收敛；
+		// 解析不到目标等同发送失败，留待下轮checkpoint重试（协调者恢复活动即收敛）。
+		var target = stub.getOnz().resolveFlushSocket(rpc.getSender());
+		if (null == target || !r.Send(target, (p) -> {
 			if (r.getResultCode() == 0) {
 				future.setResult(0L);
 				return 0;

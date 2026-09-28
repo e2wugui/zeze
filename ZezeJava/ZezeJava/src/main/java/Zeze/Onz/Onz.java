@@ -7,6 +7,7 @@ import Zeze.Application;
 import Zeze.Builtin.Onz.Checkpoint;
 import Zeze.Builtin.Onz.Commit;
 import Zeze.Builtin.Onz.Rollback;
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BServiceInfo;
@@ -127,6 +128,40 @@ public class Onz extends AbstractOnz {
 		return participantName;
 	}
 
+	/**
+	 * onz-A（FND28）：FlushReady发送目标的断连感知重路由。
+	 * 原sender是FuncProcedure/FuncSaga请求到达的连接（协调者出站连接在参与方侧的accept形态），
+	 * 断开后原实现仍对死socket重发——Send恒false→flush失败→RelativeRecordSet失败保留→每轮
+	 * checkpoint对同一死socket重发，永不收敛：已应答写入滞留内存直至停机丢失（eFlushAsync）；
+	 * eFlushImmediately在业务线程同步失败则halt(543543)。协调者重启/闪断后会重建到本服务的
+	 * 连接（其Connector自动重连/OnzServer.getZezeInstance现查新地址），但新连接只承载新请求——
+	 * 这里按对端IP在本服务的存活连接中现查同一协调者的通道重路由（对齐"现查新地址、不缓存
+	 * 死地址"的既有形态）。找不到时返回null，调用方按发送失败处理，留待下轮checkpoint重试；
+	 * 协调者恢复对本集群的任何活动（新事务/redo/降级Checkpoint）都会带来新连接，重路由即收敛。
+	 * 错投容忍：同IP多OnzServer进程时可能投给同IP的另一协调者——其OnzAgent按tid查无在途
+	 * 事务则幂等放行应答（OnzAgent.ProcessFlushReadyRequest），参与方得以落库；flush闸门本为
+	 * 尽力同时性（waitFlushDone超时降级随意放行），落库是数据保全方向。
+	 */
+	AsyncSocket resolveFlushSocket(AsyncSocket sender) {
+		if (null != sender && !sender.isClosed())
+			return sender;
+		var remote = null != sender ? sender.getRemoteInet() : null;
+		var remoteIp = null != remote ? remote.getAddress() : null;
+		if (null != remoteIp && null != service) {
+			for (var so : service.establishedSockets()) {
+				if (so.isClosed())
+					continue;
+				var inet = so.getRemoteInet();
+				if (null != inet && remoteIp.equals(inet.getAddress())) {
+					logger.warn("onz flush reroute: coordinator socket closed, FlushReady over live socket."
+							+ " participant={} oldSocket={} newSocket={}", participantName, sender, so);
+					return so;
+				}
+			}
+		}
+		return null;
+	}
+
 	// 共享SM部署（OnzServer三参构造器）下本集群Onz服务的SM注册名：共享SM里
 	// 多个集群若都按缺省"Onz"注册，同名条目混在一张通告表里，协调者无从按集群路由——共享模式
 	// 要求各集群配置互异唯一名（与协调者specialZezeNames逐名对齐，协调者按名订阅+按名查询）。
@@ -160,6 +195,12 @@ public class Onz extends AbstractOnz {
 			RegisterProtocols(service);
 		} else {
 			service = null;
+		}
+
+		/** 当前全部已建立连接（含已关闭未摘除的条目，调用方自理isClosed）——
+		 * onz-A的FlushReady重路由枚举用，包内可见。 */
+		Iterable<AsyncSocket> establishedSockets() {
+			return socketMap;
 		}
 	}
 
