@@ -129,10 +129,16 @@ public class Log4jFileManager extends ReentrantLock {
 	 */
 	public Log4jFileSession seek(long time, OutInt out, OutObject<Log4jFile> outEntry) throws IOException {
 		// 无锁读：迭代期间列表可被并发摘除收缩（reconcile整批/removeMissingFile），i只减不增但
-		// 上界须每轮复查——i落在收缩后size之外时COW的get越界抛未检查异常。越界退出=遍历耗尽，
-		// 与walker的while(currentIndex<size)/get的上界检查同构，返回null由walker走slowSeek线性兜底。
+		// 上界须每轮复查——复查与get之间仍有并发收缩的残余窗口（TOCTOU，复查消除不了），get的
+		// 越界按遍历耗尽兜底（break出循环返回null），与walker的while(currentIndex<size)/get的
+		// 上界检查同构，返回null由walker走slowSeek线性兜底，不让未检查异常沿查询路径逃逸。
 		for (var i = files.size() - 1; i >= 0 && i < files.size(); --i) {
-			var file = files.get(i);
+			final Log4jFile file;
+			try {
+				file = files.get(i);
+			} catch (IndexOutOfBoundsException e) {
+				break;
+			}
 			if (time >= file.index.getBeginTime()) {
 				var target = file.file;
 				Log4jFileSession logFileSession;
