@@ -20,9 +20,13 @@ import org.jetbrains.annotations.Nullable;
 public final class Changes {
 	private static final @NotNull Logger logger = LogManager.getLogger(Changes.class);
 
-	private final LongHashMap<LogBean> beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
+	// 惰性字段：无监听者且非 history 的普通事务（绝大多数）里 collect/collectRecord 在
+	// listeners 检查处早退，三个容器全程为空——IdentityHashMap 构造即分配 64 槽背板、
+	// LongHashMap 构造即建表，占单字段事务每笔分配的约三成。null 即空，getBeans 惰性建以保持
+	// 非空契约（Raft/History 消费者直接迭代返回值）。
+	private @Nullable LongHashMap<LogBean> beans; // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
 	private final HashMap<@NotNull TableKey, @NotNull Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
-	private final IdentityHashMap<@NotNull Table, @NotNull Set<@NotNull ChangeListener>> listeners = new IdentityHashMap<>();
+	private @Nullable IdentityHashMap<@NotNull Table, @NotNull Set<@NotNull ChangeListener>> listeners;
 	private final boolean isHistory;
 
 	public Changes(@NotNull Transaction t, Procedure proc) {
@@ -31,14 +35,18 @@ public final class Changes {
 		for (var ar : t.getAccessedRecords().values()) {
 			if (ar.dirty) {
 				var listeners = ar.atomicTupleRecord.record().getTable().getChangeListenerMap().getListeners();
-				if (!listeners.isEmpty())
+				if (!listeners.isEmpty()) {
+					if (this.listeners == null)
+						this.listeners = new IdentityHashMap<>();
 					this.listeners.putIfAbsent(ar.atomicTupleRecord.record().getTable(), listeners);
+				}
 			}
 		}
 	}
 
 	public @NotNull LongHashMap<LogBean> getBeans() {
-		return beans;
+		var b = beans;
+		return b != null ? b : (beans = new LongHashMap<>());
 	}
 
 	public @NotNull HashMap<@NotNull TableKey, @NotNull Record> getRecords() {
@@ -158,7 +166,7 @@ public final class Changes {
 	public void collect(@NotNull Bean recent, @NotNull Log log) {
 		// is table has listener
 		//noinspection DataFlowIssue
-		if (!isHistory && listeners.get(recent.rootInfo.record().getTable()) == null)
+		if (!isHistory && (listeners == null || listeners.get(recent.rootInfo.record().getTable()) == null))
 			return;
 
 		var belong = log.getBelong();
@@ -175,7 +183,7 @@ public final class Changes {
 			return; // root
 		}
 
-		var logBean = beans.get(belong.objectId());
+		var logBean = getBeans().get(belong.objectId());
 		if (logBean == null) {
 			if (belong instanceof Collection || belong instanceof DynamicBean) {
 				// 容器和DynamicBean使用共享的日志。需要先去查询，没有的话才创建。
@@ -187,14 +195,14 @@ public final class Changes {
 			}
 			if (logBean == null)
 				logBean = belong.createLogBean();
-			beans.put(belong.objectId(), logBean);
+			getBeans().put(belong.objectId(), logBean);
 		}
 		logBean.collect(this, belong, log);
 	}
 
 	public void collectRecord(@NotNull RecordAccessed ar) {
 		// is table has listener
-		if (!isHistory && listeners.get(ar.atomicTupleRecord.record().getTable()) == null)
+		if (!isHistory && (listeners == null || listeners.get(ar.atomicTupleRecord.record().getTable()) == null))
 			return;
 
 		var tkey = ar.tableKey();
@@ -217,9 +225,12 @@ public final class Changes {
 	}
 
 	public void notifyListener() {
+		var ls = listeners;
+		if (ls == null)
+			return;
 		for (var e : records.entrySet()) {
 			var v = e.getValue();
-			var listeners = this.listeners.get(v.table);
+			var listeners = ls.get(v.table);
 			if (listeners != null) {
 				var k = e.getKey();
 				for (var l : listeners) {
