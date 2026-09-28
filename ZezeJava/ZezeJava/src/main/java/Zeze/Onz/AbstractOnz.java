@@ -21,6 +21,7 @@ public abstract class AbstractOnz implements Zeze.IModule {
     public static final int eSagaTidExist = 3;
     public static final int eOnzTidNotFound = 4;
     public static final int eRollback = 5;
+    public static final int eCompensateFail = 6; // 用户补偿执行失败（用户结果码记录在参与方日志，上下文保留sagas待重发）
     public static final int eFlushAsync = 1;
     public static final int eFlushImmediately = 2;
     public static final int eCommitNotExist = 0;

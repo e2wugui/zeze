@@ -359,7 +359,12 @@ public class Onz extends AbstractOnz {
 						// 放回即最后活动（计时基准见OnzSaga.lastActiveTime）：
 						// 等待重发的窗口不消耗TTL预算。
 						context.refreshLastActive();
-					return rc;
+					// 裸rc禁止上线：用户补偿结果码与协议错误码共用低32位命名空间（协调者统一
+					// getErrorCode解码），rc恰为2时被误判eSagaNotFound而删决策记录——放回的
+					// 补偿上下文永无重试。统一回eCompensateFail（协调者按未知非零码保留记录
+					// 交redo重发），用户rc记录在此。
+					logger.warn("saga compensate fail, keep context for resend. tid={} userRc={}", tid, rc);
+					return errorCode(eCompensateFail);
 				}
 			} else {
 				if (!sagas.remove(tid, context))
