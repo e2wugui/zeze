@@ -33,7 +33,7 @@ public abstract class AsyncSocket {
 	public static final boolean ENABLE_PROTOCOL_LOG_OLD = "true".equalsIgnoreCase(System.getProperty("protocolLogOld"));
 	private static final LongHashSet protocolLogExcept = new LongHashSet();
 
-	protected Object userState;
+	protected volatile Object userState;
 
 	static {
 		var str = System.getProperty("protocolLogExcept");

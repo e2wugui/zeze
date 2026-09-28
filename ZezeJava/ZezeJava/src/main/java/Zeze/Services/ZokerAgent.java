@@ -6,7 +6,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import Zeze.Builtin.Zoker.AppendFile;
 import Zeze.Builtin.Zoker.BListServiceResult;
 import Zeze.Builtin.Zoker.BService;
@@ -71,19 +73,37 @@ public class ZokerAgent extends AbstractZokerAgent {
                 break; // 现存 socket 已死：接管
             // CAS 失败：并发注册已改写条目——重读评估
         }
-        // 同 socket 换名注册——旧名条目条件摘除（值仍是本 socket 才摘）。
-        // userState 单值只记末名，OnSocketClose 按它条件移除也只摘一个：换名前的条目永久滞留
-        // （值指向已关闭 socket），无认证 acceptor 上单连接 Register 洪泛=无界内存增长。
-        // 条件移除（remove(prev, sender)）防误摘：旧名若已被他方接管（本 socket 曾死过、
+        // 同 socket 换名注册——本 socket 名下旧名条目条件摘除（值仍是本 socket 才摘）。
+        // userState 持有本连接注册过的全部名字（RegisteredNames）：摘旧扫全集合，不再单值
+        // 只记/只摘紧邻前名——单值记忆在同连接 Register 并发交错或换名-断链交错下会漏摘，
+        // 漏出的条目值指向已死 socket 永久滞留（无认证 acceptor 上 Register 洪泛=无界增长）；
+        // 扫集合后 zokers 中本 socket 名下至多剩当前名一个条目，断链时 OnSocketClose
+        // 按集合全量条件摘除，零滞留。
+        // 条件移除（remove(name, sender)）防误摘：旧名若已被他方接管（本 socket 曾死过、
         // 条目被 CAS 接管），值不是本 socket，不摘继承者。摘旧在装新成功之后：
-        // 装新后、setUserState 前的极小关闭窗内关闭时，新名条目由下次同名
+        // 装新后、入集合前的极小关闭窗内关闭时，新名条目由下次同名
         // Register 的 isClosed 接管回收，有界。
-        var prev = (String) sender.getUserState();
-        if (null != prev && !prev.equals(zokerName))
-            zokers.remove(prev, sender);
-        sender.setUserState(zokerName);
+        var registered = registeredNames(sender);
+        registered.forEach(name -> {
+            if (!name.equals(zokerName))
+                zokers.remove(name, sender);
+        });
+        registered.add(zokerName);
         r.SendResult();
         return 0;
+    }
+
+    /**
+     * 取本连接的名字集合（userState 载荷）。网络路径由 {@link ZokerAgentService#OnSocketAccept}
+     * 预装——accept 先于本连接任何协议派发，Register 到达时集合必已就位，无并发补装；
+     * 未走 accept 的桩形态（null-service 直构）惰性补装，仅存在于单线程直调场景。
+     */
+    private static RegisteredNames registeredNames(AsyncSocket sender) {
+        if (sender.getUserState() instanceof RegisteredNames names)
+            return names;
+        var created = new RegisteredNames();
+        sender.setUserState(created);
+        return created;
     }
 
     private @NotNull AsyncSocket getZoker(String zokerName) {
@@ -234,5 +254,30 @@ public class ZokerAgent extends AbstractZokerAgent {
         if (r.getResultCode() != 0)
             throw new RuntimeException("stop service error. " + IModule.getErrorCode(r.getResultCode()));
         return r.Result;
+    }
+
+    /**
+     * 本连接注册过的全部 zokerName（含换名淘汰的历史名）：Register 维护，断链时
+     * {@link ZokerAgentService#OnSocketClose} 按集合逐一条件摘除 zokers 条目。集合为并发容器：
+     * Register（派发线程）与 OnSocketClose（selector/tick/stop 线程）可能交错，弱一致迭代
+     * 与并发 add 安全共存（交错漏摘的极小窗口由下次同名 Register 的 isClosed 接管兜底，有界）。
+     */
+    public static final class RegisteredNames {
+        private final Set<String> names = ConcurrentHashMap.newKeySet();
+
+        /** Register 装账成功后记账（重复名幂等）。 */
+        public void add(String name) {
+            names.add(name);
+        }
+
+        /** 遍历本连接注册过的全部名字（Register 摘旧与 OnSocketClose 收殓共用）。 */
+        public void forEach(Consumer<String> action) {
+            names.forEach(action);
+        }
+
+        /** OnSocketClose 收殓后清空（socket 即将不可达，名字串提前释放）。 */
+        public void clear() {
+            names.clear();
+        }
     }
 }
