@@ -49,11 +49,19 @@ public class DistributeManager {
 	private final @Nullable Zoker zoker;
 	private final File distributeDir;
 	private final File serviceDir;
-	// 键为distributeDir内实体文件的canonical路径：键与实体位置一致（FileBin.getCanonicalFile()），
-	// commitService按服务目录前缀回收、CWD无关。
+	// 键为distributeDir内实体文件的canonical路径经foldBarrierPath折叠（FND26 zoker-02，单点fileKey）：
+	// canonical不归一大小写（仅剥尾点/尾空格），Windows上"Svc"/"svc"同一物理文件的变体拼写裸canonical
+	// 分叉两键——closeUnder裸前缀扫不到（句柄幸存使renameTo恒false，eCommitFail无自愈直至持有方断链）、
+	// 同物理文件双FileBin双写者（实例监视器互斥失效）、md5失败删除被孪生句柄钉死（删档重传的协议
+	// 契约破裂成死循环）。折叠并键三面同闭。物理位置仍由FileBin.getCanonicalFile()承载——键折叠后
+	// 不可作盘上路径用；commitService按（折叠）服务目录前缀回收、CWD无关（canonical基座不变）。
+	// 平台边界：Linux上被并键的是不同物理文件（"Svc"/"svc"真两目录）——变体拼写并发操作同一部署
+	// 属病态输入（与commitLocks/opsLocks/processes键折叠同款裁量），并键退化为共用一个FileBin与
+	// 暂存面，内容冲突由CloseFile的md5收口挡在commit之前（可见失败，不静默错账）。
 	private final ConcurrentHashMap<String, FileBin> files = new ConcurrentHashMap<>();
-	// 每个agent连接打开的文件键：agent在OpenFile之后、CloseFile之前断链时按连接回收FileBin，
-	// 否则RandomAccessFile句柄常驻泄漏，Windows上还锁住distributes下的文件使commit的rename失败。
+	// 每个agent连接打开的文件键（=files的折叠记账键）：agent在OpenFile之后、CloseFile之前断链时
+	// 按连接回收FileBin，否则RandomAccessFile句柄常驻泄漏，Windows上还锁住distributes下的文件
+	// 使commit的rename失败。
 	private final ConcurrentHashMap<AsyncSocket, Set<String>> filesBySocket = new ConcurrentHashMap<>();
 	// 同服务 commit 串行化锁（services/<svc> 粒度）。键为 foldVersionName(serviceName) 折叠
 	// （serviceName 已过 isSafePathSegment 校验；折叠可能并键的仅尾点/空格与大小写变体，
@@ -292,8 +300,10 @@ public class DistributeManager {
 		}
 	}
 
+	// 记账键单点（files/filesBySocket存取与closeUnder扫描共用的键形态，FND26 zoker-02）：
+	// canonical路径经foldBarrierPath折叠——理由与平台边界见files字段注释；对已折叠键再折叠幂等。
 	private String fileKey(String path) throws IOException {
-		return new File(distributeDir, path).getCanonicalFile().toString();
+		return foldBarrierPath(new File(distributeDir, path).getCanonicalFile().toString());
 	}
 
 	/**
@@ -380,7 +390,8 @@ public class DistributeManager {
 	 * 即"请求文本"与"盘上实际目录名"可能是同一物理实体的两个拼写。所有需要"请求名与盘上名
 	 * 判同"的位置（保留字碰撞 {@link #isReservedVersionName}、现役保护 pruneVersions、
 	 * 指针规范化 commitLocked、commitLocks 键、ServiceManager 的 opsLocks/processes 记账键
-	 * （serviceKey 单点）、barrier 前缀比对的段折叠 {@link #foldBarrierPath}）必须统一用本折叠，
+	 * （serviceKey 单点）、files/filesBySocket 记账键（fileKey 单点，FND26 zoker-02）、
+	 * barrier 前缀比对的段折叠 {@link #foldBarrierPath}）必须统一用本折叠，
 	 * 不得裸 equals/裸 toLowerCase——分叉即互斥面击穿或现役目录落入清理面。
 	 * Linux（大小写敏感 FS）上折叠会把 "V1"/"v1" 判同——过度保护（多保一个目录）与
 	 * commitLocks 键的过度串行化同款裁量：版本清理非正确性路径、commit 非热路径，可接受。
@@ -397,18 +408,23 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 整路径的段级折叠（zoker-03，barrier 匹配专用）：按 '/'/'\\' 切分后每段过
+	 * 整路径的段级折叠（zoker-03 起为 barrier 匹配；FND26 zoker-02 起亦为 files/filesBySocket
+	 * 记账键与 closeUnder 扫描前缀）：按 '/'/'\\' 切分后每段过
 	 * {@link #foldVersionName}（剥尾点/空格+小写，判据同源单点不另立），分隔符统一 '/'，
 	 * 保留首尾空段（前导根符号与尾随分隔符——后者是前缀比对不误吞相邻段
-	 * （"…/svc/"不得命中"…/svc2/x"）的关键）。committingPrefixes 的存键与 isCommitting
-	 * 的键折叠两侧共用本函数：canonical（getCanonicalPath/getCanonicalFile）不做大小写归一、
-	 * 不剥尾点，Windows(Win32) 解析下同物理目录的变体拼写（distributes\Svc\… vs
-	 * distributes\svc.\）裸 startsWith 分叉即绕过 barrier；折叠后必匹配。
-	 * Linux 上折叠把变体（真不同物理目录）误判为提交中——方向是过度拒绝（barrier 本是
-	 * 省工预检，权威防线是锁内复检+closeUnder sweep+世代锚点），瞬时失败重试即过，
-	 * 与 foldVersionName 的 Linux 过度折叠裁量同款。仅用于 barrier 比对：
-	 * files/filesBySocket 的记账键保持 canonical 原样——折叠并键在 Linux 上会合并
-	 * 不同物理文件的记账。
+	 * （"…/svc/"不得命中"…/svc2/x"）的关键）。committingPrefixes 的存键、isCommitting 的键
+	 * 折叠、fileKey 的记账键与 closeUnder 的扫描前缀两侧共用本函数：canonical
+	 * （getCanonicalPath/getCanonicalFile）不做大小写归一、不剥尾点，Windows(Win32) 解析下
+	 * 同物理目录的变体拼写（distributes\Svc\… vs distributes\svc.\）裸 equals/裸 startsWith
+	 * 分叉——barrier 被绕过、记账键分叉成同物理文件双 FileBin（实例监视器互斥失效、
+	 * closeUnder 漏扫阻塞 rename、md5 失败删除被孪生句柄钉死）；折叠后必同键、必匹配。
+	 * Linux 上折叠把变体（真不同物理目录/文件）判为同键或提交中——barrier 方向是过度拒绝
+	 * （barrier 本是省工预检，权威防线是锁内复检+closeUnder sweep+世代锚点），瞬时失败重试
+	 * 即过；记账并键方向是共用一个 FileBin 与暂存面，内容冲突由 CloseFile 的 md5 收口挡在
+	 * commit 之前（可见失败）。FND25 曾以"Linux 折叠并键合并不同物理文件"裁定记账键保持
+	 * canonical——本波推翻该裁定：Windows 上折叠变体=同一物理文件（并键正是修复），Linux 上
+	 * 并键触发面（变体拼写并发操作同一部署）与 commitLocks/opsLocks 键折叠同款属病态输入，
+	 * 两平台权衡后统一折叠（详见 files 字段注释）。
 	 */
 	static String foldBarrierPath(String path) {
 		var segments = path.split("[/\\\\]", -1); // -1保留尾空段=尾随分隔符
@@ -690,7 +706,11 @@ public class DistributeManager {
 	private void closeUnder(File dir) {
 		String prefix;
 		try {
-			prefix = dir.getCanonicalPath() + File.separator;
+			// 前缀与files记账键同经foldBarrierPath折叠（FND26 zoker-02）：canonical不归一大小写，
+			// Windows上变体拼写（Svc vs svc，同一物理目录）的记账键裸前缀扫不到——句柄幸存使
+			// renameTo恒false（eCommitFail无自愈）。FND25"精确匹配、不做变体推断"的前提是记账键
+			// canonical原样；键既已折叠，扫描随之同折叠才与键空间一致（非推断，是同键判同）。
+			prefix = foldBarrierPath(dir.getCanonicalPath() + File.separator);
 		} catch (IOException ex) {
 			logger.error("closeUnder canonical {}", dir, ex);
 			return;
