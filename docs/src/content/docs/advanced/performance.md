@@ -203,23 +203,29 @@ Zeze 使用后台 key-value 数据库保存数据，记录读取和写入是作�
 
 ## Benchmark
 
-以下测试数据来自 `ZezeJavaTest` 中的基准测试，供参考：
+基准体系分两层（2026-09 重建，`ZezeJavaTest`）：
 
-* **单线程顺序事务**
+* **宏观场景**：`gradlew :ZezeJavaTest:benchCore [-PbenchTag=名]`。`@Bench+@Tag("core")` 六场景
+  （A 单线程 / B 强冲突 / C 一般并发 / D 容器事务 / E checkpoint 稳态 / F 调度形态），多轮迭代取中位数，
+  JSON 留档 `bench-results/<benchTag>/`（gitignored）。F 的平台线程池对照组：`gradlew benchCorePlatform`。
+* **微基准**：`gradlew :ZezeJavaTest:jmh [-PjmhFilter=正则]`（JMH，`src-jmh` 源集，Serialize/Collections/Conflict 三族）。
+* **对比判定**：`java -cp ZezeJavaTest/build/classes/java/test harness.BenchCompare <目录A> <目录B>`，
+  宏观以中位数变化 > 3×合成噪声判显著，JMH 以置信区间不重叠判显著。绝对数机器相关不进文档，
+  同机同配置 before/after 对比才有意义。
 
-tasks/s=1495740.77 time=6.69s cpu=8.27s concurrent=1.24
-`ZezeJavaTest::ABasicSimpleAddOneThread.java` — 循环执行存储过程估计被 Java 强烈优化，数值偏高。
+**相对结论**（2026-09，JDK21，16 核 Windows；数字为比值非绝对值）：
 
-* **多线程并发强冲突事务**
+* 强冲突（全部事务互踩同一记录）吞吐约为单线程的 1/6~1/5：乐观锁重做经记录锁串行化，
+  park/unpark 交接是主要成本；重试路径日志已限频 1/s（曾因逐笔 info 日志损失一个数量级）。
+* checkpoint flush：`MultiThreadMerge` 约为 `SingleThread` 的 8~10 倍（rec/s），大表务必用多线程合并模式。
+  Memory 库 flush 与 RocksDB flush 相比约 4~5 倍（后者含磁盘 IO，机器相关更大）。
+* 线程池形态：**JDK21 上固定数量虚拟线程池的过程派发吞吐不低于平台线程池**（同负载对比约 +20~30%）。
+  早期"虚拟线程 15w/s 远低于 Async"的结论在当前代码已不复现；强冲突重做路径虚拟线程池同样占优。
+  （测试 JVM 内 `useVirtualThread` 默认即虚拟线程池；`-DuseVirtualThread=false` 切平台池对照。）
+* 事务固定开销（空过程）与单字段读改写事务相比约 1:1.5~2.5；容器 bean 事务（嵌套持久化 map）
+  成本约为单字段事务的 2~3 倍，主要在 delta-log 与提交时的快照维护。
+* 无监听者、非 History 的普通事务每笔分配约 1KB 量级（曾为 ~1.4KB，Changes 容器惰性化后 -33%）。
 
-tasks/s=252613.37 time=3.96s cpu=9.84s concurrent=2.49
-`ZezeJavaTest::BBasicSimpleAddConcurrentWithConflict.java` — 强烈冲突意味着事务几乎总是重做，由于乐观锁重做时保持锁定状态，只会重做一次，concurrent=2.49 符合预期。
-
-* **多线程并发一般冲突事务**
-
-tasks/s=1140652.44 time=4.38s cpu=15.58s concurrent=3.55
-`ZezeJavaTest::CBasicSimpleAddConcurrent.java`
-
-* **GlobalAsync** > 50w/s
-* **Global 虚拟线程** > 15w/s（当前锁不匹配虚拟线程，否则应该接近 Async）
-* **GlobalWithRaft 虚拟线程** 5w/s
+历史参考数字（`performance.md` 2026-09 前版本，参数与当前基准文件已漂移，仅存档）：
+单线程 149w/s；强冲突 25w/s；一般并发 114w/s；GlobalAsync >50w/s；Global 虚拟线程 >15w/s；
+GlobalWithRaft 虚拟线程 5w/s。
