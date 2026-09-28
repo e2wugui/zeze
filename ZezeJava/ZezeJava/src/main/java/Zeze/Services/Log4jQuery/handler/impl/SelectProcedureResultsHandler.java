@@ -6,6 +6,9 @@ import Zeze.Services.Log4jQuery.handler.HandlerCmd;
 import Zeze.Services.Log4jQuery.handler.QueryHandler;
 import Zeze.Util.ZezeCounter;
 
+/**
+ * procedure_results 命令：按过程名返回 resultCode 到计数的统计列表。
+ */
 @HandlerCmd("procedure_results")
 public class SelectProcedureResultsHandler implements QueryHandler<String, List<SelectProcedureResultsHandler.ResultLog>> {
 	public static final class ResultLog {

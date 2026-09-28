@@ -6,6 +6,9 @@ import Zeze.Net.Binary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Dbh2 事务的记录键锁，serialize 模式下基于信号量实现单键互斥。
+ */
 public class Lockey implements Zeze.Util.Lockey<Lockey>{
 
 	private final Binary key;

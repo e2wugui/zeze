@@ -31,14 +31,14 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 服务进程生命周期（GE-D01 方案A：部署描述文件约定；GE-D01(FND21) 方案A：进程记账领养）。
+ * 服务进程生命周期（部署描述文件约定；进程记账领养）。
  *
  * <p>命令来源：services/&lt;svc&gt;/current 指向的版本目录下的部署描述文件
- * {@link #SERVICE_PROPERTIES_NAME}（Properties 格式：{@code command=} 必需；
+ * {@link #SERVICE_PROPERTIES_NAME}（行式 key=value 格式：{@code command=} 必需；
  * {@code args=} 可选，空白分隔；{@code env=} 可选，k=v 逗号分隔），随分发内容自带，
  * commitService 原样落盘——"分发即自包含"，启动命令不进协议参数。
  * 描述文件缺失/不可解析（含无现役版本）→ eNoServiceProperties；进程创建失败 → eStartFail。
- * 两者都是协议错误码不再异常上抛（上抛无结果包，客户端只能等满 RPC 超时）。</p>
+ * 两者都是协议错误码，不异常上抛（上抛无结果包，客户端只能等满 RPC 超时）。</p>
  *
  * <p>进程记账与真实进程一致：启动装账后挂 {@code onExit()} 退出监控，进程退出时清理
  * processes 条目并记录退出码；listService 以 {@code isAlive()} 判 Running（死条目不报
@@ -49,7 +49,7 @@ import org.jetbrains.annotations.Nullable;
  * Stopped（优雅退出/本已退出）/ Force-Killed（超时强杀成功）/ Alive-After-Force（强杀仍存活），
  * Ps 字段携带退出码。</p>
  *
- * <p><b>GE-D01(FND21) 盘上进程身份与跨 Zoker 重启的记账连续</b>：内存记账随 Zoker 进程消失，
+ * <p><b>盘上进程身份与跨 Zoker 重启的记账连续</b>：内存记账随 Zoker 进程消失，
  * 唯一跨生命周期可信的载体是盘上文件。服务启动成功时把进程身份原子写入容器根
  * {@code services/<svc>/run.pid}（与 current 指针同层、同 AtomicFileWriter 原语；容器根
  * 不随版本切换/清理消失——pruneVersions 只纳入目录，文件天然不在清理面）。内容=pid+
@@ -62,13 +62,13 @@ import org.jetbrains.annotations.Nullable;
  * Running（Ps 标记 adopted+pid），绝不盲目双启；拉起路径写盘失败=不交付（destroy 候选+
  * eStartFail——盘是真相源，无盘身份的进程不允许存在）。</li>
  * <li>stopService 查重：条目缺失≠not-running，同样先解析 run.pid 再判；领养句柄可停。
- * 停毕与 onExit 回调按内容比对条件删除 run.pid（pid 仍是自己的才删，对齐 GE-C03 条件移除）。</li>
+ * 停毕与 onExit 回调按内容比对条件删除 run.pid（pid 仍是自己的才删）。</li>
  * </ul>
  * <p>领养门槛=身份核实通过，指纹不可核实时宁可失明（告警+视为无条目）绝不按裸 pid 领养
  * ——只杀领养过的，杜绝 PID 复用误杀（误杀比失明危险：失明的代价只是下次 start 重新拉起，
- * 误杀的代价是无辜进程）。领养句柄经 {@link AdoptedProcess} 适配入账（设计文"统一为
- * ProcessHandle"的方向在此落地为"统一为 Process"：纯 ProcessHandle 记账会丢掉 spawned 的
- * 退出码——ProcessHandle 无 exitValue，而 Ps=exit=N 是 FND19 的三态契约；适配后两种形态
+ * 误杀的代价是无辜进程）。领养句柄经 {@link AdoptedProcess} 适配入账（记账类型统一为
+ * Process：纯 ProcessHandle 记账会丢掉 spawned 的
+ * 退出码——ProcessHandle 无 exitValue，而 Ps=exit=N 是三态契约；适配后两种形态
  * 同型同语义，差异只在退出码/管道不可得）。零协议面变更。</p>
  */
 public class ServiceManager {
@@ -81,13 +81,13 @@ public class ServiceManager {
 	static final String KEY_ENV = "env";
 
 	/**
-	 * 服务容器根的进程身份文件名（GE-D01(FND21)）：services/&lt;svc&gt;/run.pid，与 current
+	 * 服务容器根的进程身份文件名：services/&lt;svc&gt;/run.pid，与 current
 	 * 指针同层。Zoker 自写自清（unlike service.properties 要打包方生成），无部署工具链耦合。
 	 */
 	static final String RUN_PID_NAME = "run.pid";
 	// run.pid 行式内容（key=value，首个'='分隔）的键：pid=进程号，start=startInstant 指纹
 	// （ISO-8601 文本，写入时不可得为空串），command=辅证据（命令行，不可得时回退可执行
-	// 路径——Windows 的 commandLine 恒 empty、command() 可得，本机探针实证；换行清洗）。
+	// 路径——Windows 的 commandLine 恒 empty、command() 可得；换行清洗）。
 	static final String KEY_PID = "pid";
 	static final String KEY_START = "start";
 
@@ -105,15 +105,15 @@ public class ServiceManager {
 	private final @Nullable Zoker zoker;
 	private final File serviceDir;
 	private final ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
-	// GE-C02(FND22)：同服务 start/stop 互斥（services/<svc> 折叠键，对齐 DistributeManager.commitLocks
+	// 同服务 start/stop 互斥（services/<svc> 折叠键，对齐 DistributeManager.commitLocks
 	// 的形态与判据）。stopService 首行摘账、此后最长 10s优雅+10s强杀 的停机窗口——窗口内并发
 	// start 按 run.pid 领养"正在被终止"的进程并回执 Running：回执即谎言且终局服务死
-	// （GE-D01(FND21) 领养落地引入的行为退化；领养判据只看"pid 存活+指纹相符"，无法区分现役
+	// （领养判据只看"pid 存活+指纹相符"，无法区分现役
 	// 与正被杀）。互斥使两序皆自洽：stop 先完成→start 见无身份/死残留重新拉起（回执诚实）；
 	// start 先完成→stop 正常停它（回执亦诚实）。锁序安全：与 commitLocks 无嵌套（commit 不碰
 	// 进程记账，start/stop 不碰版本目录），watchExit 回调不取本锁。键大小写折叠
-	// （toLowerCase(Locale.ROOT)）：Windows 上 "svc"/"Svc" 同一物理容器，裸键两把锁互斥失效
-	// （TestFnd21E02 同论证）；Linux 过度串行化可接受（生命周期 RPC 非热路径）。条目数以
+	// （toLowerCase(Locale.ROOT)）：Windows 上 "svc"/"Svc" 同一物理容器，裸键两把锁互斥失效；
+	// Linux 过度串行化可接受（生命周期 RPC 非热路径）。条目数以
 	// （折叠后的）服务名为界，与 isSafePathSegment 守卫后的名字面同量级，无攻击面放大。
 	private final ConcurrentHashMap<String, Object> opsLocks = new ConcurrentHashMap<>();
 
@@ -133,10 +133,10 @@ public class ServiceManager {
 	}
 
 	public void listService(ArrayList<BService.Data> out) {
-		// GE-D02 新布局：services/ 的每个子目录是一个服务容器（services/<svc>/<versionNo>/... + current），
-		// 服务存在性仍以"services/<svc> 目录存在"为准；运行状态来自本进程的processes记账，
-		// 以 isAlive 判定（GE-D01）：死条目（onExit回调未及清理的窗口）不报 running。
-		// GE-D01(FND21)：对账领养过的孤儿在本记账里（adopted 标记可观测），跨 Zoker 重启连续。
+		// services/ 的每个子目录是一个服务容器（services/<svc>/<versionNo>/... + current），
+		// 服务存在性以"services/<svc> 目录存在"为准；运行状态来自本进程的processes记账，
+		// 以 isAlive 判定：死条目（onExit回调未及清理的窗口）不报 running。
+		// 对账领养过的孤儿在本记账里（adopted 标记可观测），跨 Zoker 重启连续。
 		var listFiles = serviceDir.listFiles();
 		if (null != listFiles) {
 			for (var file : listFiles) {
@@ -148,7 +148,7 @@ public class ServiceManager {
 						service.setState(STATE_RUNNING);
 						service.setPs(psOf(process));
 					} else if (null != process) {
-						// 条目在但进程死=Stopped；无条目（含指纹不可核实失明的孤儿）保持""（原语义）
+						// 条目在但进程死=Stopped；无条目（含指纹不可核实失明的孤儿）保持""
 						service.setState(STATE_STOPPED);
 					}
 					out.add(service);
@@ -174,13 +174,13 @@ public class ServiceManager {
 	 * 调用方统一映射 eNoServiceProperties（缺少可用的部署描述文件）。
 	 * 约定：args 按空白分隔不支持引号包裹；env 值内不支持逗号。
 	 *
-	 * <p><b>GE-C04(FND22)：行式 key=value 解析（首个'='分隔，值原样保留）——与
-	 * {@link RunPidRecord#parse} 同法</b>，不再用 {@code Properties.load}：Properties 对值内
+	 * <p><b>行式 key=value 解析（首个'='分隔，值原样保留）——与
+	 * {@link RunPidRecord#parse} 同法</b>，不用 {@code Properties.load}：Properties 对值内
 	 * 反斜杠做转义还原（{@code C:\srv\app.exe}→{@code C:srvapp.exe}，未识别转义直接丢反斜杠，
 	 * Java 规范行为），Windows 路径形态的 command/env/args 静默损坏且 eStartFail 日志显示
 	 * 损坏后命令——同文件内 run.pid 的自写解析正是为此弃用 Properties，部署描述对齐同一标准，
 	 * 反斜杠无任何转义语义、Windows 路径可直写。顺带的语义收窄（#注释行/续行/unicode转义
-	 * 不再识别）对本机器生成的小型描述文件零成本。</p>
+	 * 不识别）对本机器生成的小型描述文件零成本。</p>
 	 */
 	static LaunchSpec parseLaunchSpec(File currentVersionDir) throws IOException {
 		var file = new File(currentVersionDir, SERVICE_PROPERTIES_NAME);
@@ -224,7 +224,7 @@ public class ServiceManager {
 	}
 
 	private LaunchSpec loadLaunchSpec(String serviceName) throws IOException {
-		// GE-D02 新布局：服务文件在 services/<svc>/<current指向的版本>/ 下。
+		// 服务文件在 services/<svc>/<current指向的版本>/ 下。
 		// 无现役指针（从未commit/现场被破坏）= 描述文件必然缺失，同映射 eNoServiceProperties。
 		var workingDir = DistributeManager.currentVersionDir(new File(serviceDir, serviceName));
 		if (null == workingDir)
@@ -235,9 +235,9 @@ public class ServiceManager {
 	/**
 	 * 启动描述：command+args 组命令、env 注入进程环境、工作目录=现役版本目录。
 	 *
-	 * <p><b>GE-C05(FND22) 输出契约：子进程 stdout/stderr 丢弃（Redirect.DISCARD）</b>。
+	 * <p><b>输出契约：子进程 stdout/stderr 丢弃（Redirect.DISCARD）</b>。
 	 * ProcessBuilder 默认 PIPE 而本记账从不读取流——子进程累计输出越过 OS 管道缓冲（~64KB）
-	 * 后 write 阻塞，服务静默冻结而 listService 恒 Running（历轮短命测试进程从未越线故未暴露）。
+	 * 后 write 阻塞，服务静默冻结而 listService 恒 Running。
 	 * DISCARD 零线程零 fd；需要保留输出的部署在 command 自行重定向到文件
 	 * （{@code command=cmd} + {@code args=/c app.exe > app.log 2>&1} 形态）。领养形态
 	 * （AdoptedProcess）无管道，不受影响。</p>
@@ -248,13 +248,13 @@ public class ServiceManager {
 		pb.command(spec.command);
 		if (!spec.env.isEmpty())
 			pb.environment().putAll(spec.env);
-		// GE-C05(FND22)：无人消费的管道=64KB 后写阻塞冻结（见上输出契约），丢弃即闭合。
+		// 无人消费的管道=64KB 后写阻塞冻结（见上输出契约），丢弃即闭合。
 		pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
 		pb.redirectError(ProcessBuilder.Redirect.DISCARD);
 		return pb.start();
 	}
 
-	// ---------- GE-D01(FND21)：盘上进程身份（run.pid）----------
+	// ---------- 盘上进程身份（run.pid） ----------
 
 	/** run.pid 内容：pid+startInstant 指纹为主、command 为辅（均为写入时文本）。 */
 	static final class RunPidRecord {
@@ -307,7 +307,7 @@ public class ServiceManager {
 	}
 
 	/**
-	 * 领养句柄的记账适配器（GE-D01(FND21)）：把身份核实通过的 ProcessHandle 适配回记账值
+	 * 领养句柄的记账适配器：把身份核实通过的 ProcessHandle 适配回记账值
 	 * 类型 Process——两种形态（spawned 的子进程/领养的裸句柄）同入一张账，watchExit 的
 	 * 条件移除 {@code remove(key,process)} 对适配器（同一实例）同样成立。
 	 * 进程面全部委托句柄；子进程面退化：退出码不可得（ProcessHandle 无 exitValue，恒 ITSE，
@@ -421,14 +421,14 @@ public class ServiceManager {
 	}
 
 	/**
-	 * GE-D01(FND21) run.pid 身份解析——启动对账/start 查重/stop 查重三路共用的同一解析：
+	 * run.pid 身份解析——启动对账/start 查重/stop 查重三路共用的同一解析：
 	 * 返回"pid 存活且指纹核实通过"的领养句柄。
 	 * <ul>
 	 * <li>不存在：无身份（常态），返回 null；损坏：清理残留（对账收敛一切残局）。</li>
 	 * <li>pid 死：清理残留返回 null。</li>
 	 * <li>startInstant 不符（同 pid 已是另一个进程实例=PID 复用）：清理残留返回 null
 	 * ——绝不领养、绝不误杀。startInstant 是判别门：进程创建时间在 exec 链下不变，
-	 * 同 pid+同 startInstant 即同一进程实例（设计身份强度残余条款：碰撞概率=pid 池复用
+	 * 同 pid+同 startInstant 即同一进程实例（残余风险：碰撞概率=pid 池复用
 	 * 落进同一时间片，接受为残余）。</li>
 	 * <li>指纹不可核实（盘上 start 空=写入时就不可得，或现场 startInstant 读不到）：
 	 * 告警+视为无条目（失明），文件保留（证据留给人工，与死/损坏/不符的清理面区分）。</li>
@@ -503,11 +503,11 @@ public class ServiceManager {
 	}
 
 	/**
-	 * 停毕/onExit 的条件删除（对齐 GE-C03 条件移除形态）：run.pid 内容 pid 仍是本句柄的才删
+	 * 停毕/onExit 的条件删除：run.pid 内容 pid 仍是本句柄的才删
 	 * ——新 start（或他方）已改写身份的文件必须留下，迟到的收殓不误删别人的真相源。
 	 * 读-判-删非原子：与新 start 的"写新身份"窗口理论上可交错（读得旧 pid 后对方刚写完即被
 	 * 误删），但该窗口需在微秒级读删间隙内塞进一次完整进程拉起，且后果只是下次重启失明
-	 * （非误杀），接受残余（与 GE-C03 条件移除同残度量级）。
+	 * （非误杀），接受残余。
 	 */
 	private void deleteRunPidIfOwn(String serviceName, Process process) {
 		var rec = readRunPid(serviceName);
@@ -519,7 +519,7 @@ public class ServiceManager {
 	}
 
 	/**
-	 * GE-D01(FND21) 启动对账（领养）：Zoker.start() 在 listen 之前扫描各服务容器的 run.pid，
+	 * 启动对账（领养）：Zoker.start() 在 listen 之前扫描各服务容器的 run.pid，
 	 * 身份核实通过（pid 存活+指纹相符）的孤儿装账并挂退出监控——从此刻起 list 可见、stop 可停、
 	 * start 幂等复用，三个生命周期 RPC 的语义跨 Zoker 重启连续。对账点=启动扫描（单一入口，
 	 * list 零额外盘 IO，领养即挂 onExit 使外部死亡自愈）；start/stop 路径的按需解析
@@ -549,11 +549,11 @@ public class ServiceManager {
 	// ---------- 进程记账与生命周期 ----------
 
 	/**
-	 * 进程退出监控（GE-D01）：启动/领养装账后注册，进程退出时清理processes条目并记录退出码，
-	 * 死进程不再占用"running"语义。
+	 * 进程退出监控：启动/领养装账后注册，进程退出时清理processes条目并记录退出码，
+	 * 死进程不占用"running"语义。
 	 * {@code remove(key, process)} 条件移除：startService 替换重启死句柄后，
 	 * 旧句柄迟到的退出回调不会误删新条目（AdoptedProcess 为实例等价，同构成立）。
-	 * GE-D01(FND21)：回调内按内容比对条件删除 run.pid（pid 仍是自己的才删）——外部死亡/
+	 * 回调内按内容比对条件删除 run.pid（pid 仍是自己的才删）——外部死亡/
 	 * 自然退出后盘上身份同步收敛，残留不留给下次对账。
 	 */
 	private void watchExit(String serviceName, Process process) {
@@ -592,13 +592,13 @@ public class ServiceManager {
 	/**
 	 * 启动服务。成功填 Result（State=Running）返回 0；失败返回协议错误码
 	 * （eNoServiceProperties/eStartFail），不发结果包。
-	 * GE-D01(FND21)：条目缺失/死时先按 run.pid 身份解析查重（与 stop/启动对账共用同一解析）
+	 * 条目缺失/死时先按 run.pid 身份解析查重（与 stop/启动对账共用同一解析）
 	 * ——存活且核实=上一代 Zoker 的现役进程，领养并幂等返回 Running（Ps 标记 adopted+pid），
 	 * 绝不盲目双启；拉起成功后写盘身份，写盘失败=不交付（盘是真相源，无盘身份的进程不允许存在）。
 	 */
 	public long startService(StartService r) {
 		var serviceName = r.Argument.getServiceName();
-		// GE-C01：serviceName 直接拼入 services/<svc> 容器路径（loadLaunchSpec→currentVersionDir），
+		// serviceName 直接拼入 services/<svc> 容器路径（loadLaunchSpec→currentVersionDir），
 		// 非单段名（".."逃逸/分隔符/绝对盘符）可把解析范围指到 services/ 之外——与 open 写入的
 		// distributes 内容组合即成完整 RCE 链（Zoker 端口无认证，任意 TCP 可发协议帧）。
 		// 对齐 commitService 的既有同构守卫（DistributeManager.isSafePathSegment）直接拒绝，
@@ -607,7 +607,7 @@ public class ServiceManager {
 			logger.error("startService rejected: unsafe serviceName='{}'", serviceName);
 			return err(Zoker.eNoServiceProperties);
 		}
-		// GE-C02(FND22)：同服务 start/stop 全程持 opsLocks（见字段注释）——领养查重与 stop 的
+		// 同服务 start/stop 全程持 opsLocks（见字段注释）——领养查重与 stop 的
 		// 摘账-停机窗口不得交错，否则"start 领养正被杀的进程并回执 Running"。
 		synchronized (opsLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
 			return startServiceLocked(r, serviceName);
@@ -624,7 +624,7 @@ public class ServiceManager {
 				break;
 			}
 			// 条目缺失或死句柄（进程自然退出/被外部杀死，onExit回调未及清理的窗口）：
-			// GE-D01(FND21) 先按 run.pid 查重——上一代 Zoker（或崩溃窗口残留）的存活且
+			// 先按 run.pid 查重——上一代 Zoker（或崩溃窗口残留）的存活且
 			// 核实通过的进程领养复用；死/损坏/不符的残留在解析内一并清理。
 			var orphan = resolveRunPid(serviceName);
 			if (null != orphan) {
@@ -661,7 +661,7 @@ public class ServiceManager {
 					? processes.putIfAbsent(serviceName, candidate) == null
 					: processes.replace(serviceName, existing, candidate);
 			if (installed) {
-				// GE-D01(FND21)：盘是真相源——写盘失败=不交付：回滚装账+杀候选+eStartFail。
+				// 盘是真相源——写盘失败=不交付：回滚装账+杀候选+eStartFail。
 				// 写盘在挂监控前：失败路径无回调需要拆；成功后候选若恰好已死，onExit 即时收殓。
 				try {
 					writeRunPid(new File(serviceDir, serviceName), candidate);
@@ -688,18 +688,18 @@ public class ServiceManager {
 	}
 
 	/**
-	 * 停止服务，结局三态写进 Result（GE-D01，零协议形状变更）：
+	 * 停止服务，结局三态写进 Result（零协议形状变更）：
 	 * Stopped（优雅退出/停时本已退出，Ps=exit=N）/ Force-Killed（超时强杀成功，Ps=exit=N）/
 	 * Alive-After-Force（强杀限期后仍存活的极端残留，error日志，Ps=进程info）。
 	 * 未运行（从未启动/已停止/已被onExit清理）幂等成功：State=Stopped，Ps=not-running。
-	 * GE-D01(FND21)：条目缺失≠not-running——先按 run.pid 身份解析（与 start 共用）：
+	 * 条目缺失≠not-running——先按 run.pid 身份解析（与 start 共用）：
 	 * 存活且核实的孤儿领养句柄直接进入停机路径（"stop 能真停"），死/缺失/不可核实才幂等
 	 * not-running。停毕按内容比对条件删除 run.pid；Alive-After-Force 不删（进程仍活着，
 	 * 身份仍真——误删=下次对账失明）。领养句柄的退出码不可得，Ps 以 pid 表达。
 	 */
 	public void stopService(StopService r) throws InterruptedException {
 		var serviceName = r.Argument.getServiceName();
-		// GE-C02(FND22)：同服务 start/stop 全程持 opsLocks（见字段注释）——摘账后的停机窗口内
+		// 同服务 start/stop 全程持 opsLocks（见字段注释）——摘账后的停机窗口内
 		// 并发 start 不得进入（否则领养"正在被终止"的进程，回执 Running 即谎言）。
 		synchronized (opsLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
 			stopServiceLocked(r, serviceName);
@@ -709,7 +709,7 @@ public class ServiceManager {
 	private void stopServiceLocked(StopService r, String serviceName) throws InterruptedException {
 		var process = processes.remove(serviceName);
 		if (null == process) {
-			// GE-D01(FND21)：条目缺失先解析盘上身份再判 not-running（三态结局对领养句柄同样成立）。
+			// 条目缺失先解析盘上身份再判 not-running（三态结局对领养句柄同样成立）。
 			// 不装账直接停：stop 语义本就是"移除并终止"，装回账里反而制造停机窗口的假 Running。
 			var orphan = resolveRunPid(serviceName);
 			if (null == orphan) {
@@ -756,7 +756,7 @@ public class ServiceManager {
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
-		// 强杀限期后仍存活（不可杀子进程残留等极端情形）：句柄交GC收殓，不再阻塞派发线程
+		// 强杀限期后仍存活（不可杀子进程残留等极端情形）：句柄交GC收殓，不阻塞派发线程
 		r.Result.setState(STATE_ALIVE_AFTER_FORCE);
 		r.Result.setPs(process.info().toString());
 		logger.error("stopService: process still alive after destroyForcibly: {}", serviceName);
@@ -776,7 +776,7 @@ public class ServiceManager {
 	}
 
 	// 直构测试 seam：注入/读取进程记账（模拟 onExit 回调未及清理的死句柄窗口）。
-	// GE-D01(FND21)：领养条目是 AdoptedProcess（instanceof 即领养形态），亦经同一 seam 可观测。
+	// 领养条目是 AdoptedProcess（instanceof 即领养形态），亦经同一 seam 可观测。
 	Process getProcessForTest(String serviceName) {
 		return processes.get(serviceName);
 	}

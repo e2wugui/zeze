@@ -5,6 +5,7 @@ import Zeze.Net.Rpc;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
+/** procedure注册条目：绑定Onz实例、注册名与业务函数，解码请求参数并创建OnzProcedure。 */
 public class OnzProcedureStub<A extends Bean, R extends Bean> {
 	private final Onz onz;
 	private final String name;

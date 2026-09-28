@@ -20,16 +20,20 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import static Zeze.MQ.Master.AbstractMaster.eConsumerNotFound;
 
+/**
+ * MQ 客户端代理（进程级静态共享）：管理与各 Manager 的连接，承载消费者订阅/退订、
+ * 消息推送分发与引用计数生命周期。
+ */
 public class MQAgent extends AbstractMQAgent {
     private static final Logger logger = LogManager.getLogger();
 
 	private final Service service;
 	private final ConcurrentHashMap<Long, MQConsumer> consumers = new ConcurrentHashMap<>();
 
-	// 【GB-D04】客户端生命周期（拍板方案A：引用计数+显式MQ.shutdown()双轨）：
+	// 客户端生命周期（引用计数+显式MQ.shutdown()双轨）：
 	// 静态共享的agent一旦启动即进程永生——close全部MQ/MQConsumer后connector仍按1..8秒退避
 	// 无限重连Manager（端口/线程/连接资源不释放，网络错误日志不停）。引用计数归零时停connector
-	// 重连（不再续排）；agent是进程级设施，归零停机不拒绝复活（新引用到达即随getOrAddConnector
+	// 重连；agent是进程级设施，归零停机不拒绝复活（新引用到达即随getOrAddConnector
 	// 重启重连——"close即终态"的口径在MQ/MQConsumer实例层）；MQ.shutdown()为终态强制全停。
 	private final Object lifecycleLock = new Object();
 	// 持有方计数：MQ实例+MQConsumer实例（构造addRef，close/构造失败release）。
@@ -39,7 +43,7 @@ public class MQAgent extends AbstractMQAgent {
 	// MQ.shutdown()终态：此后addRef明确报错（进程停机中，重用需新进程）。
 	private volatile boolean terminated;
 	// 在飞网络轮计数（subscribe/unsubscribe/reSubscribe的fan-out）：归零停机前有界排空，
-	// 避免停socket打断进行中的订阅事务（"先关门再等在飞一轮"，对齐Manager侧GB-C02形态；
+	// 避免停socket打断进行中的订阅事务（"先关门再等在飞一轮"，对齐Manager侧管理面排空形态；
 	// 关门=引用已归零：addRef与本锁互斥，排空期间新引用到达则复活不停）。
 	private final AtomicInteger netRounds = new AtomicInteger();
 	// 排空预算=Rpc默认超时5s+5s余量（subscribe的SendForWait不传超时，按Rpc字段默认5000ms）。
@@ -59,7 +63,7 @@ public class MQAgent extends AbstractMQAgent {
 		service.stop();
 	}
 
-	/** 【GB-D04】取一个引用；MQ.shutdown()后明确报错。MQ/MQConsumer构造（经MQ.clientAddRefs）调用。 */
+	/** 取一个引用；MQ.shutdown()后明确报错。MQ/MQConsumer构造（经MQ.clientAddRefs）调用。 */
 	public void addRef() {
 		synchronized (lifecycleLock) {
 			if (terminated)
@@ -70,7 +74,7 @@ public class MQAgent extends AbstractMQAgent {
 		}
 	}
 
-	/** 【GB-D04】释放一个引用；归零时"先关门再等在飞一轮"后有界停connector重连。 */
+	/** 释放一个引用；归零时"先关门再等在飞一轮"后有界停connector重连。 */
 	public void release() {
 		int after;
 		synchronized (lifecycleLock) {
@@ -93,7 +97,7 @@ public class MQAgent extends AbstractMQAgent {
 		}
 	}
 
-	/** 【GB-D04】强制全停（MQ.shutdown()调用，不等引用归零）：停service（含全部connector重连+socket）。幂等。 */
+	/** 强制全停（MQ.shutdown()调用，不等引用归零）：停service（含全部connector重连+socket）。幂等。 */
 	public void shutdown() {
 		synchronized (lifecycleLock) {
 			terminated = true;
@@ -175,12 +179,10 @@ public class MQAgent extends AbstractMQAgent {
 					futures.add(r);
 					sentManagers.add(manager);
 				}
-				// await all
 				for (var future : futures) {
 					assert future.getFuture() != null;
 					future.getFuture().await();
 				}
-				// check all result code
 				for (var future : futures) {
 					if (future.getResultCode() != 0)
 						throw new RuntimeException("subscribe consumer error=" + IModule.getErrorCode(future.getResultCode()));
@@ -248,9 +250,9 @@ public class MQAgent extends AbstractMQAgent {
 	}
 
 	// Manager重启即丢失subscribes（纯内存态，不持久化），消费者连接自动重连后必须重发Subscribe，
-	// 否则全部既有消费者静默饿死（修复前仅MQConsumer构造时订阅一次，无重连钩子——与ef63301b8
-	// 修复的Manager→Master方向重注册对称的Consumer→Manager方向机制）。Manager端MQPartition.subscribe
-	// 按sessionId幂等：同socket重复无害；旧socket未及关闭时新socket的订阅替换旧条目。
+	// 否则全部既有消费者静默饿死（与Manager→Master方向重注册对称的Consumer→Manager方向机制）。
+	// Manager端MQPartition.subscribe按sessionId幂等：同socket重复无害；旧socket未及关闭时新socket
+	// 的订阅替换旧条目。
 	// 重发失败仅记日志等下次重连再试，不引入新定时器。
 	void onManagerConnected(AsyncSocket so) {
 		// IO线程回调，不得同步等待rpc，提交任务池异步重发。

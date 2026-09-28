@@ -57,6 +57,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
+/**
+ * 回放端日志注册助手：扫描全部表的键值依赖，注册各集合/变量类型 Log 的解码工厂。
+ */
 public class Helper {
 	private static final Logger logger = LogManager.getLogger(Helper.class);
 
@@ -77,7 +80,7 @@ public class Helper {
 		public final HashSet<Class<? extends Serializable>> beanKeys = new HashSet<>();
 		public final HashSet<Class<?>> list1 = new HashSet<>();
 		public final HashSet<Class<? extends Bean>> list2 = new HashSet<>();
-		// dynamic list 家族按固定哨兵键登记（GC-C02(FND22)）：List2Meta 的 dynamic 构造器
+		// dynamic list 家族按固定哨兵键登记：List2Meta 的 dynamic 构造器
 		// typeId 是全局固定单值（Meta1.dynamicBeanTypeId，连 keyClass 分桶都没有）——任意两个
 		// dynamic list 变量必然同 typeId，全部家族同键（哨兵）恰好表达"任意两个都冲突"。
 		public final HashMap<KV<Class<?>, Class<?>>, DynamicFamily> list2Dynamic = new HashMap<>();
@@ -195,11 +198,10 @@ public class Helper {
 		var valueClass = getBuiltinBoxingClass(valueType);
 		if (valueClass != null) {
 			if (valueClass == DynamicBean.class) {
-				// list dynamic 家族同走 putDynamicFamily（GC-C02(FND22)）：原先直 add HashSet——
-				// KV 值equals但lambda/method-ref工厂按对象身份比较，去重本就不生效，且零告警：
-				// FND8-30 的 warn 覆盖漏接 list 分支（只接了 map2/sortedMap2/gtable），而 list 家族
-				// 的冲突面比 map 更无条件（map 的 typeId 至少按 keyClass 分桶，list 是全局固定单值，
-				// 见DependsResult.list2Dynamic注释）。对齐 map2Dynamic 形态：先到家族保留，
+				// list dynamic 家族同走 putDynamicFamily：HashSet 去重对 lambda/method-ref 工厂
+				// 不生效（KV 值equals但工厂按对象身份比较）且无告警；而 list 家族的冲突面比
+				// map 更无条件（map 的 typeId 至少按 keyClass 分桶，list 是全局固定单值，见
+				// DependsResult.list2Dynamic注释）。对齐 map2Dynamic 形态：先到家族保留，
 				// 后到不同工厂的家族warn留痕后丢弃（Log.register 同 typeId 先到先得，丢弃不改注册
 				// 终态，只补上"回放端将用先注册家族的工厂解码"的信号）。list 无 key 维度，
 				// 键用固定哨兵（与 map2Dynamic 的 (keyClass,DynamicBean) 键同形态）。
@@ -226,12 +228,12 @@ public class Helper {
 		}
 	}
 
-	// 【FND8-30】dynamic集合的logTypeId不含值工厂身份：同(keyClass,DynamicBean)的第二个
+	// dynamic集合的logTypeId不含值工厂身份：同(keyClass,DynamicBean)的第二个
 	// 家族与首个同typeId，Log.register先到先得，后注册家族的日志在回放端用别人的create工厂
 	// 解码（显式Bean:id编号重叠时静默解出错误bean，默认编号抛incompatible中断回放）。
-	// 原computeIfAbsent静默丢弃后续家族——改为warn留痕（含两个宿主bean类名与变量名），
-	// 语义冲突的启动error需要每变量的specialTypeId→beanClass映射表（生成器侧暴露，另行跟进）。
-	// 【GC-C02(FND22)】list分支（dependsList）接入同型登记：List2Meta 的 dynamic typeId 是
+	// 后到的不同工厂家族不静默丢弃，warn留痕（含两个宿主bean类名与变量名）；
+	// 语义冲突的启动error需要每变量的specialTypeId→beanClass映射表（生成器侧暴露）。
+	// list分支（dependsList）接入同型登记：List2Meta 的 dynamic typeId 是
 	// 全局固定单值（无keyClass分桶），list 家族冲突比 map 更无条件——warn 是当前唯一的检测面。
 	@SuppressWarnings({"unchecked", "rawtypes"})
 	private static void putDynamicFamily(@NotNull HashMap families, @NotNull Object key,
@@ -314,8 +316,7 @@ public class Helper {
 			result.map2Metas.add(factory.getPmapMeta());
 			result.map2Metas.add(factory.getBmapMeta());
 		} else if (valueClass == DynamicBean.class) {
-			// 【FND8-33 A3】先取每变量的get/create工厂，再经dynamic重载构建
-			//（三参版对DynamicBean必抛：无无参构造器）。
+			// 先取每变量的get/create工厂，再经dynamic重载构建（三参版对DynamicBean必抛：无无参构造器）。
 			var family = newDynamicFamily(beanClass, v);
 			var factory = GTable2.getFactory(key1Class, key2Class, family.factories.getKey(), family.factories.getValue());
 			result.map2Metas.add(factory.getPmapMeta());

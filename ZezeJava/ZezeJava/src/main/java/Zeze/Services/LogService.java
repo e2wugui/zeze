@@ -29,6 +29,10 @@ import static Zeze.Util.Args.requireValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Log4jQuery 服务入口：按 LogConf 管理各份日志的 Log4jFileManager，处理 NewSession/Search/Browse/
+ * CloseSession/Query 协议，并向 ServiceManager 注册服务。
+ */
 public class LogService extends AbstractLogService {
 	private static final @NotNull Logger logger = LogManager.getLogger(LogService.class);
 	private final AtomicLong sidSeed = new AtomicLong();
@@ -75,7 +79,6 @@ public class LogService extends AbstractLogService {
 		var kv = server.getOnePassiveAddress();
 		passiveIp = kv.getKey();
 		passivePort = kv.getValue();
-		// build serviceIdentity
 		buildLogManagers(logConfs, logManagers);
 		logConfs.formatServiceIdentity(conf.getServerId(), passiveIp, passivePort);
 		serviceManager = Application.createServiceManager(conf, "LogServiceServer");
@@ -83,9 +86,9 @@ public class LogService extends AbstractLogService {
 	}
 
 	/**
-	 * 逐LogConf构造manager（案外#3）：多manager中途失败时回收前面已成功者的detector线程与索引定时器
-	 * （对齐GD-C07单manager构造内回收形态）——嵌入宿主进程时不泄漏；standalone main随进程退出无害。
-	 * 中途失败的manager自身由GD-C07在其构造内回收，未入表无需再管。
+	 * 逐LogConf构造manager：多manager中途失败时回收前面已成功者的detector线程与索引定时器
+	 * （对齐单manager构造内回收形态）——嵌入宿主进程时不泄漏；standalone main随进程退出无害。
+	 * 中途失败的manager自身在其构造内回收，未入表无需再管。
 	 */
 	private static void buildLogManagers(LogServiceConf logConfs,
 										 ConcurrentHashMap<String, Log4jFileManager> logManagers) throws Exception {
@@ -105,7 +108,7 @@ public class LogService extends AbstractLogService {
 		server.start();
 		var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
 		// raft版SM的地址来自raftXml而非ServiceConf节点，按Agent服务名查serviceConfMap必为null，
-		// 旧门槛会跳过serviceManager.start()，raft部署下日志服务静默失效（对齐Application.start）。
+		// 门槛若仅凭serviceConfMap非空判断会跳过serviceManager.start()，raft部署下日志服务静默失效（对齐Application.start）。
 		var isRaftServiceManager = "raft".equals(conf.getServiceManager());
 		if ((serviceManagerConf != null || isRaftServiceManager) && serviceManager != null) {
 			serviceManager.start();
@@ -126,7 +129,7 @@ public class LogService extends AbstractLogService {
 	public void stop() throws Exception {
 		this.server.stop();
 		for (var manager : logManagers.values())
-			manager.stop(); // 停掉日志文件监视线程与索引定时器（stopAndJoin不再挂起）
+			manager.stop(); // 停掉日志文件监视线程与索引定时器
 		if (serviceManager != null)
 			serviceManager.close();
 	}
@@ -145,7 +148,7 @@ public class LogService extends AbstractLogService {
 		if (null == getLogManager(r.Argument.getLogName()))
 			return Procedure.LogicError;
 		var agent = (ServerUserState)r.getSender().getUserState();
-		// 顺带惰性清理空闲超龄会话（GD-D03）：新建会话时不持任何会话锁，无死锁面。
+		// 顺带惰性清理空闲超龄会话：新建会话时不持任何会话锁，无死锁面。
 		agent.cleanIdleLogSessions(logConfs.sessionIdleTimeoutMillis);
 		r.Result.setId(sidSeed.incrementAndGet());
 		agent.newLogSession(r.Argument.getLogName(), r.Result.getId());
@@ -161,7 +164,7 @@ public class LogService extends AbstractLogService {
 			return Procedure.LogicError;
 		var result = new LinkedList<Log4jLog>();
 
-		// limit clamp（GD-D04）：协议字段是客户端可控的裸int，超出服务端上限按上限执行，clamp记一条可辨识日志。
+		// limit clamp：协议字段是客户端可控的裸int，超出服务端上限按上限执行，clamp记一条可辨识日志。
 		var limit = Log4jSession.clampLimit(r.Argument.getLimit());
 		if (limit != r.Argument.getLimit())
 			logger.info("browse limit clamped: {} -> {}", r.Argument.getLimit(), limit);
@@ -169,7 +172,7 @@ public class LogService extends AbstractLogService {
 		boolean remain;
 		// Log4jFileWalker非线程安全（currentIndex/current无锁），同sid并发Browse/Search会损坏游标并泄漏文件句柄，按会话串行化。
 		synchronized (logSession) {
-			logSession.touchActive(); // 查询即活跃（GD-D03）：进锁首行刷新，惰性清理据此判定空闲。
+			logSession.touchActive(); // 查询即活跃：进锁首行刷新，惰性清理据此判定空闲。
 			if (!r.Argument.getCondition().getWords().isEmpty()) {
 				if (r.Argument.isReset())
 					logSession.reset();
@@ -192,7 +195,7 @@ public class LogService extends AbstractLogService {
 		for (var log : result)
 			r.Result.getLogs().add(new BLog.Data(log.getTime(), log.getLog()));
 		r.SendResult();
-		// 顺带惰性清理（GD-D03）：锁外调用（不持本会话锁再去获取其他会话锁，避免锁序环），响应已发出不增加时延。
+		// 顺带惰性清理：锁外调用（不持本会话锁再去获取其他会话锁，避免锁序环），响应已发出不增加时延。
 		agent.cleanIdleLogSessions(logConfs.sessionIdleTimeoutMillis);
 		return 0;
 	}
@@ -205,15 +208,15 @@ public class LogService extends AbstractLogService {
 			return Procedure.LogicError;
 		var result = new ArrayList<Log4jLog>();
 
-		// limit clamp（GD-D04）：同Browse。
+		// limit clamp：同Browse。
 		var limit = Log4jSession.clampLimit(r.Argument.getLimit());
 		if (limit != r.Argument.getLimit())
 			logger.info("search limit clamped: {} -> {}", r.Argument.getLimit(), limit);
 
 		boolean remain;
-		// 同Browse：walker非线程安全，按会话串行化（FND-S3-9）。
+		// 同Browse：walker非线程安全，按会话串行化。
 		synchronized (logSession) {
-			logSession.touchActive(); // 查询即活跃（GD-D03）：进锁首行刷新。
+			logSession.touchActive(); // 查询即活跃：进锁首行刷新。
 			if (!r.Argument.getCondition().getWords().isEmpty()) {
 				if (r.Argument.isReset())
 					logSession.reset();
@@ -236,7 +239,7 @@ public class LogService extends AbstractLogService {
 		for (var log : result)
 			r.Result.getLogs().add(new BLog.Data(log.getTime(), log.getLog()));
 		r.SendResult();
-		// 顺带惰性清理（GD-D03）：同Browse，锁外调用。
+		// 顺带惰性清理：同Browse，锁外调用。
 		agent.cleanIdleLogSessions(logConfs.sessionIdleTimeoutMillis);
 		return 0;
 	}

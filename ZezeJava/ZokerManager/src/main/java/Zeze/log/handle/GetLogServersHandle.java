@@ -10,6 +10,9 @@ import Zeze.log.LogAgentManager;
 import Zeze.log.handle.entity.BaseResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
+/**
+ * /api/get_log_servers 处理器：返回当前可用的日志服务器名列表。
+ */
 public class GetLogServersHandle implements HttpEndStreamHandle {
 	@Override
 	public void onEndStream(HttpExchange x) throws Exception {

@@ -8,9 +8,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * /api/search 与 /api/browse 的公共请求参数：数据源、时间范围、关键词、分页等及其解析。
+ */
 public class SearchLogParam {
 	// HTTP处理器并发parse，formatter必须不可变线程安全（SimpleDateFormat共享实例会竞争错乱）。
-	// 语义对齐原SimpleDateFormat默认时区。
+	// 语义对齐SimpleDateFormat默认时区。
 	private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 	private String serverName;

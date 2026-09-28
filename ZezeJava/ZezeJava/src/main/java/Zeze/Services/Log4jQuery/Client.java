@@ -7,6 +7,9 @@ import Zeze.Net.Service;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Util.OutObject;
 
+/**
+ * Log4jQuery 客户端网络服务：按 ServiceManager 通告动态维护到各日志服务端的 Connector。
+ */
 public class Client extends Service {
 	private final LogServiceConf logConf;
 	private final ConcurrentHashMap<String, Connector> logServers = new ConcurrentHashMap<>();

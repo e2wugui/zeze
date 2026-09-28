@@ -7,9 +7,9 @@ import Zeze.Netty.Netty;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
- * 回放消费链为实验特性（GC-D01裁撤半接线）：内存后端、不跨重启、仅进程内演示。
+ * 回放消费链为实验特性：内存后端、不跨重启、仅进程内演示。
  * 持久化后端机制（ApplyDatabaseZeze，含游标/记录级原子单元）保留但未接线——
- * 接线需要配置通道与affects输出契约设计，按需整体复活。
+ * 接线需要配置通道与affects输出契约设计。
  */
 public class HistoryModule extends AbstractHistoryModule {
 	private final Application zeze;
@@ -74,8 +74,7 @@ public class HistoryModule extends AbstractHistoryModule {
 			}
 		}
 
-		// 实验边界（GC-D01）：本批affects（受影响表与键）丢弃，恒答OK——回放链
-		// 不承诺增量输出契约。
+		// 实验边界：本批affects（受影响表与键）丢弃，恒答OK——回放链不承诺增量输出契约。
 		applyHelper.apply(countValue);
 
 		x.sendPlainText(HttpResponseStatus.OK, "OK");

@@ -21,6 +21,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
+/**
+ * Master 侧单数据库的元数据存储：主表与 splitting 分桶表的内存映射及 RocksDB 持久化。
+ */
 public class MasterDatabase {
 	private static final Logger logger = LogManager.getLogger(MasterDatabase.class);
 	private final String databaseName;
@@ -33,9 +36,9 @@ public class MasterDatabase {
 	// tables 包含分桶目标。
 	private final ConcurrentHashMap<String, MasterTable.Data> splitting = new ConcurrentHashMap<>();
 	private final RocksDatabase.Table rocksSplitting;
-	// splitting条目年龄副表（INV5，GA-D01 A4）：key=tableName+keyFirst→创建时间戳。独立副表
+	// splitting条目年龄副表：key=tableName+keyFirst→创建时间戳。独立副表
 	// 不动MasterTable.Data手写编码格式（旧数据decode兼容零成本）。只观测不动作：超龄error
-	// 告警（阈值Dbh2Config.SplittingAgeWarnMs，默认10min量级），消费必须结构驱动（A2的INV1）。
+	// 告警（阈值Dbh2Config.SplittingAgeWarnMs，默认10min量级），消费必须结构驱动（INV1）。
 	private final RocksDatabase.Table rocksSplittingAge;
 	private final Master master;
 
@@ -179,7 +182,6 @@ public class MasterDatabase {
 		}
 		sbRaft.append("</raft>");
 		bucket.setRaftConfig(sbRaft.toString());
-		//System.out.println(bucket.getRaftConfig());
 		return raftNames;
 	}
 
@@ -194,7 +196,6 @@ public class MasterDatabase {
 			// 用于manager服务器的需要replace RaftName.
 			//noinspection DynamicRegexReplaceableByCompiledPattern
 			r.Argument.setRaftConfig(r.Argument.getRaftConfig().replaceAll("RaftName", raftNames.get(i++)));
-			//System.out.println(r.Argument.getRaftConfig());
 			rpcs.add(r);
 			futures.add(r.SendForWait(e.socket, 30_000));
 		}
@@ -266,28 +267,28 @@ public class MasterDatabase {
 				return master.errorCode(Master.eSplittingBucketNotFound);
 
 			var exist = table.buckets.get(to.getKeyFirst());
-			// 【already-settled守卫（GA-D01 A1，补发的安全性前提）】主表同keyFirst现存条目与to
+			// already-settled守卫：主表同keyFirst现存条目与to
 			// 四元组+raftConfig全等 = 本迁移已结算过（重试/leader-ready补发的幂等重复，或settle
 			// 成功而响应丢失后的重发）。返回已结算终局码且**不消费splitting条目**：此刻表内的
 			// 条目可能是在途的新世代条目（同四元组、不同raftConfig——master重启/补发间隙内
 			// createSplitBucket重建），被旧迁移的补发抢占消费会让新迁移永不settle。raftConfig
 			// 全等比较在此合法：两侧都是master已知的完整meta（与resume场景请求方raftConfig=""
-			// 不同，不触碰R1钉死约束）。
+			// 不同）。
 			if (null != exist && sameBucketMeta(exist, to) && exist.getRaftConfig().equals(to.getRaftConfig())) {
 				logger.info("settleSplitting already settled, keep in-flight entry. to={}", to);
 				return master.errorCode(Master.eSplittingBucketNotFound);
 			}
 
-			// 【迟到settle守卫（GA-C01路径C收口 + GA-D01 A2落地INV1）】from==null即endMove。
+			// 迟到settle守卫：from==null即endMove。
 			// 不变式：主表只会收窄不会变宽，合法的move settle时刻主表同keyFirst现存条目只能是
 			// 同边界旧raft源桶（move在主表只改写raftConfig），keyLast必相等。不等按方向分治：
 			//  - 更窄（INV1死信）：更晚的settle已越过该keyFirst收窄主表——to的宽边界是过期快照，
 			//    put会覆盖收窄后的主表（宣称已deleteToEnd的键域仍归本桶），永久元数据谎言。拒绝
 			//    且**同步消费死信条目**（remove+落盘）：该条目永远不可能再合法settle，滞留只会被
-			//    后续同边界操作收养（(B)）或永久拒绝（变体）。GA-C01留的接缝在此闭合。
-			//  - 更宽：本迁移**之前**另有settle丢失、主表陈旧（条目比主表新，仍活）——拒绝不消费
-			//    （GA-C01原语义），pending-settle补发（A1）或在途settle链收敛主表后重试可过。
-			// 错误码按方向分离（FND22 GA-C01）：死信与幂等完成证据用终局码eSplittingBucketNotFound
+			//    后续同边界操作收养或永久拒绝（变体）。
+			//  - 更宽：本迁移**之前**另有settle丢失、主表陈旧（条目比主表新，仍活）——拒绝不消费，
+			//    pending-settle补发或在途settle链收敛主表后重试可过。
+			// 错误码按方向分离：死信与幂等完成证据用终局码eSplittingBucketNotFound
 			//（MasterAgent重试端按"已settle"停止重试+onSettled清标志）；宽方向用**可重试码**
 			// eSplittingStaleMain——仍活的迁移不得被终局码杀死（停重试+清标志后条目虽保留却无人
 			// 再结算，[F,L)键域永久失联），非终局码让30s重试链存活，"收敛后重试可过"由此成立。
@@ -306,7 +307,7 @@ public class MasterDatabase {
 				// cmp==0：同边界旧raft源桶——正常move settle。
 			}
 
-			// 【endSplit to侧变宽守卫（GA-D01 A2，INV1；增量审留注#1的对称收口）】同款单调性
+			// endSplit to侧变宽守卫（INV1）：同款单调性
 			// 论证对from!=null成立：主表现存同keyFirst条目比to更窄 = 更晚的settle已越过，to的
 			// put会重新变宽主表——本迁移的目标键域已被后续世代接管，整笔拒绝且消费死信。
 			if (from != null && null != exist && compareKeyLast(exist.getKeyLast(), to.getKeyLast()) < 0) {
@@ -322,12 +323,12 @@ public class MasterDatabase {
 			//（from=[M,M)空区间，to即move目标）：此时按endMove语义不put from——to的put已是
 			// move完成的正确终态，from的put会把刚发布的新桶覆盖回死源桶，[M,L)键域在master表永久丢失。
 			if (from != null && from.getKeyFirst().compareTo(to.getKeyFirst()) < 0) {
-				// 【from侧对称守卫（增量审留注#1）】主表现存from.keyFirst条目比from更窄 = 更晚的
+				// from侧对称守卫：主表现存from.keyFirst条目比from更窄 = 更晚的
 				// settle已收窄（本from是过期快照），put会重新变宽主表（宣称源桶仍持有已迁走/已删
 				// 的键域，键域静默失联）。只跳过from的put：to的put仍是正确发布——迟到settle的to桶
 				// 确持有该键域数据（典型形态：split1的settle丢失→split2先行settle→迟到split1补发，
 				// 跳过from1、发布to1，主表恰补齐[M1,L)缺口）。settle成功，条目正常消费。
-				// 宽/等界维持put（FND22 GA-C01配套评估）：更宽=正常split settle的必经形态（主表
+				// 宽/等界维持put：更宽=正常split settle的必经形态（主表
 				// [F,L2)收窄为from[F,L)），跳过即破坏一切正常split发布；堆叠形态（源桶已被move
 				// 置死、迟到split settle发布死源桶）的发布是暂态——move侧重试链（宽方向改可重试码
 				// 后存活）在≤30s内以同界to替换之；等界不同raft的主表形态经推演不可达（需settle
@@ -451,12 +452,12 @@ public class MasterDatabase {
 	}
 
 	/**
-	 * 碰撞条目的INV1死信判定与消费（GA-D01 A2）。判死依据（不变式INV1）：条目[k,K)活⟺
+	 * 碰撞条目的INV1死信判定与消费。判死依据（不变式INV1）：条目[k,K)活⟺
 	 * 主表floor(k).keyLast==K——主表只会收窄不会变宽、splitting消费与主表收窄同批落盘，
 	 * keyLast不等且**更窄**的唯一构造路径是"更晚的settle已越过该keyFirst收窄主表"=死信
 	 * （变体的eSplittingBucketExist永久拒绝由此转一次自愈：删除后按新请求重建）。
 	 * 更宽方向不判死：那是本迁移之前另有settle丢失、主表陈旧（条目比主表新，仍活），
-	 * 留给pending-settle补发（A1）收敛；floor不存在（生产不可达：主表首桶keyFirst=Empty
+	 * 留给pending-settle补发收敛；floor不存在（生产不可达：主表首桶keyFirst=Empty
 	 * 覆盖一切key）也不判死——结构证明不足时保守拒绝，不为不可达形态引入误删面。
 	 * 锁序固定主表→splitting（settleSplitting同款）：两阶段复查防消费窗口内条目被并发
 	 * 消费/重建。
@@ -540,9 +541,9 @@ public class MasterDatabase {
 	}
 
 	/**
-	 * splitting年龄扫描（INV5，GA-D01 A4）：超龄（≥SplittingAgeWarnMs）条目error告警
+	 * splitting年龄扫描：超龄（≥SplittingAgeWarnMs）条目error告警
 	 * （含条目与源桶信息），返回告警条数。**只观测不动作**——观测可时间驱动，消费必须
-	 * 结构驱动（A2）；无时间戳的存量条目按首次扫描起点起算（首扫只立基线不告警）。
+	 * 结构驱动；无时间戳的存量条目按首次扫描起点起算（首扫只立基线不告警）。
 	 * 告警取源桶信息需读主表floor：锁序主表→splitting，故在splitting锁外逐条取主表锁
 	 * （splitting锁内嵌套取主表锁违反锁序）；条目为锁内copy快照，与消费并发时最多告警
 	 * 一条已消失的条目（观测无害）。

@@ -29,8 +29,10 @@ import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskCompletionSourceX;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Dbh2 客户端到单个桶 Raft 集群的代理连接，封装对桶的读写与事务 RPC。
+ */
 public class Dbh2Agent extends AbstractDbh2Agent {
-	// private static final Logger logger = LogManager.getLogger(Dbh2Agent.class);
 	private final Agent raftClient;
 	private final TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	private volatile long lastErrorTime;

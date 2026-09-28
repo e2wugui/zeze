@@ -39,6 +39,9 @@ import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
+/**
+ * Dbh2 单桶 Raft 服务节点：负责一个桶的数据存储、协议处理与分桶/迁移流程。
+ */
 public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private static final Logger logger = LogManager.getLogger(Dbh2.class);
 	private final Dbh2Config dbh2Config = new Dbh2Config();
@@ -131,9 +134,9 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return typeId == PrepareBatch.TypeId_;
 	}
 
-	// 【meta-less守卫（INV4，GA-D01 A5）】新raft在SetBucketMeta（桶协议第一条）之前
+	// meta-less守卫：新raft在SetBucketMeta（桶协议第一条）之前
 	// bucketMeta==null，此前Get/Walk/WalkKey/PrepareBatch入口经inBucket对meta的解引用以
-	// 框架层NPE面目出现；显式判定返回专用错误码eBucketNotReady（additive），孤儿收养
+	// 框架层NPE面目出现；显式判定返回专用错误码eBucketNotReady，孤儿收养
 	// 路径可辨识、可重试。SetBucketMeta/SplitPut不拦——前者即初始化入口，后者是目标桶
 	// 在meta就位前的数据灌入通道。
 	private boolean isBucketNotReady() {
@@ -222,9 +225,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		if (isBucketNotReady())
 			return errorCode(eBucketNotReady);
 		stateMachine.counterGet.incrementAndGet();
-//		var lock = getLocks().get(r.Argument.getKey());
-//		lock.lock(this);
-//		try {
 		// 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
 		var bucket = stateMachine.getBucket();
 		if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
@@ -237,9 +237,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			stateMachine.sizeGet.addAndGet(value.size());
 		}
 		r.SendResult();
-//		} finally {
-//			lock.unlock();
-//		}
 		return 0;
 	}
 
@@ -253,17 +250,14 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	protected long ProcessPrepareBatchRequest(PrepareBatch r) throws Exception {
 		if (isBucketNotReady())
 			return errorCode(eBucketNotReady);
-		// lock
 		var txn = new Dbh2Transaction(this, r.Argument.getBatch());
 		try {
-			// save txn
 			if (null != stateMachine.getTransactions().putIfAbsent(r.Argument.getBatch().getTid(), txn))
 				return errorCode(eDuplicateTid);
-			// check inBucket
 			if (!stateMachine.getBucket().inBucket(r.Argument.getDatabase(), r.Argument.getTable()))
 				return errorCode(eBucketMismatch);
 
-			var refused = r.Result; // 对于puts可以考虑只传key，网络占用少一些。
+			var refused = r.Result;
 			var splitHistory = stateMachine.getBucket().getSplitMetaHistory();
 			for (var e : r.Argument.getBatch().getPuts().entrySet()) {
 				var key = e.getKey();
@@ -298,7 +292,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 					r.Argument.getBatch().getDeletes().remove(d);
 			}
 
-			// apply to raft
 			getRaft().appendLog(new LogPrepareBatch(r), r.Result,
 					(raftLog, result) -> r.SendResultCode(result ? 0 : Procedure.CancelException));
 
@@ -487,7 +480,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 		@Override
 		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-			// 虚拟线程创建太多Critical线程反而容易卡,以后考虑跑另个虚拟线程池里
 			if (p.getTypeId() == Zeze.Raft.LeaderIs.TypeId_) {
 				Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
 			} else {
@@ -530,7 +522,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		var bucket = stateMachine.getBucket();
 		var splitting = bucket.getSplittingMeta();
 		if (null != splitting) {
-			// 【move/split身份=纯元数据判别】不变式（startSplit准备段构造splitting时成立，
+			// move/split身份=纯元数据判别不变式（startSplit准备段构造splitting时成立，
 			// splitting期间保持成立，恢复时刻可直接依赖）：
 			//  - move：splitting是源桶meta的副本（copy后仅清raftConfig），恒同keyFirst同keyLast；
 			//  - split：splitting.keyFirst=locateMiddle取的中位key，位于第keyNumbers/2>=1个
@@ -539,7 +531,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			//    LogEndSplit/LogEndMove收尾会改写，而两者apply的同时删除splitting。
 			// 故"splitting与源meta同keyFirst且同keyLast"即move，否则（keyFirst严格更大）为split。
 			// 判别只读meta、不受拷贝窗口内数据增删影响，同时消灭两个误判方向：
-			//  ① split误判为move（旧"data[0]==keyFirst"启发式的本案）：源桶事务delete是物理删除
+			//  ① split误判为move（“data[0]==keyFirst”启发式的误判方向）：源桶事务delete是物理删除
 			//    （commitBatch直接WriteBatch delete，无墓碑），[F,M)左半段清空后data[0]右移到
 			//    分界key M——move收尾endMove从apply时刻的data[0]删到尾且源桶置死桶meta{1},{1}，
 			//    [F,M)窗口写入被静默物理删除、键域永久失联且无自愈，master侧settle守卫对
@@ -555,8 +547,8 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return;
 		}
 
-		// 【pending-settle补发（INV2，GA-D01 A1）】splittingMeta==null且标志非空 = 迁移已在本桶
-		// raft上commit并apply（LogEndSplit/LogEndMove），但settle通知未达master——(A)路径：
+		// pending-settle补发：splittingMeta==null且标志非空 = 迁移已在本桶
+		// raft上commit并apply（LogEndSplit/LogEndMove），但settle通知未达master——
 		// 原append节点在commit→apply→invokeCallback之间死亡，endSplit2的内存重试链随进程
 		// 消失，master侧splitting条目与旧主表条目永存。标志是apply派生状态、随raft复制/快照，
 		// 任何后来当选的leader都持有它——此处幂等补发（复用既有endSplit/endMoveWithRetryAsync）：
@@ -576,7 +568,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 	}
 
-	// settle终局清除标志（GA-D01 A1）：追加清除日志，apply侧身份匹配清除。非leader窗口
+	// settle终局清除标志：追加清除日志，apply侧身份匹配清除。非leader窗口
 	// appendLog抛RaftRetryException——不清除仅意味着标志多活到下一轮leader-ready补发的
 	// 终局，幂等收敛，无害。
 	private void appendClearPendingSettle(BBucketMeta.Data to) {
@@ -622,12 +614,11 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		var it = bucket.getData().iterator();
 		var keyNumbers = bucket.getData().getKeyNumbers();
 		var count = keyNumbers / 2;
-		if (count <= 0) { // 这里可以考虑配置一个较大的值，即记录数很少的时候不分桶。
+		if (count <= 0) {
 			it.close();
 			return null;
 		}
 		for (it.seekToFirst(); it.isValid() && count > 0; it.next(), --count) {
-			// searching middle
 		}
 		if (!it.isValid()) {
 			it.close();
@@ -668,7 +659,6 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			if (!getRaft().isLeader())
 				return;
 
-			// 后面需要在lambda中传递系列号作为上下文，使用成员变量是不是会跟随变化？
 			var serialNo = manager.atomicSerialNo.incrementAndGet();
 			splitSerialNo = serialNo;
 			var bucket = stateMachine.getBucket();
@@ -688,7 +678,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 				// 定位middle只用临时迭代器，取到key立即关闭：迭代器钉定创建时刻的视图，
 				// 跨createSplitBucket rpc（分钟级）持有的话，rpc期间提交的事务会落在
-				// 复制视图之外（详见下面【同步先于复制视图】的注释）。
+				// 复制视图之外（详见下面"同步先于复制视图"的注释）。
 				var locateIt = isMove ? locateFirst() : locateMiddle();
 				if (null == locateIt) {
 					logger.info("splitting break start: it is null. isMove={}", isMove);
@@ -702,14 +692,14 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 				splitting = manager.getMasterAgent().createSplitBucket(newMeta);
 
-				// 【自指守卫（INV3，GA-D01 A3）】resume撞上指向自身的陈旧splitting条目——(B)自搬运
+				// 自指守卫：resume撞上指向自身的陈旧splitting条目——自搬运
 				// 形态：move1(A→B)完成而endMove未达master，B的loadMonitor再决策move，同四元组
 				// resume命中指向B自身的条目，随后B对自身putIfAbsent拷贝（无错）、endMove把源桶
 				// 数据从data[0]删到尾并置死桶——数据物理灭失。判据：返回条目raftConfig的
 				// sortedNames与本桶全等（新建条目恒为新端口新raft，全等只在自指时出现）。
-				// 身份只在请求方本地持有（R1钉死raftConfig不能经rpc进身份判据），故拦截位在
-				// 请求方。中止本轮：不发LogSetSplittingMeta，桶保持完整服务；条目由A1补发
-				// （原源leader-ready）或A2消费（INV1死信）收敛，每120s一轮的重试噪声是正确的拒绝。
+				// 身份只在请求方本地持有（raftConfig不能经rpc进入身份判据），故拦截位在
+				// 请求方。中止本轮：不发LogSetSplittingMeta，桶保持完整服务；条目由源桶
+				// leader-ready补发或master侧死信消费收敛，每120s一轮的重试噪声是正确的拒绝。
 				if (isSelfReference(splitting)) {
 					logger.error("startSplit self-reference refused, abort this round. self={} entry={}",
 							raft.getRaftConfig().getSortedNames(), splitting.getRaftConfig());
@@ -723,7 +713,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 						isMove, formatMeta(bucket.getBucketMeta()), formatMeta(splitting));
 			}
 
-			// 【同步先于复制视图】onCommitBatch的同步条件（splittingSync+dbh2Splitting非空）
+			// 同步先于复制视图：onCommitBatch的同步条件（splittingSync+dbh2Splitting非空）
 			// 必须在创建复制迭代器之前全部就位：复制迭代器钉定创建时刻的视图，同步就位与迭代器
 			// 创建之间提交的事务将既不在复制视图中、也不被同步——永久丢失。
 			// LogSetSplittingMeta的apply是异步的，同步过滤器不能依赖stateMachine的splittingMeta
@@ -737,7 +727,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			var server = (Dbh2RaftServer)getRaft().getServer();
 			performPrepareQueue(server.takePrepareQueue());
 
-			// 复制迭代器总是同步就位之后新建（首轮也走这里，不再复用定位middle的旧迭代器）。
+			// 复制迭代器总是同步就位之后新建（首轮也走这里，不复用定位middle的旧迭代器）。
 			it = isMove ? locateFirst() : locateMiddle(splitting.getKeyFirst());
 			if (null == it) {
 				// 无可复制数据（如定位与重定位之间分界key及以右被全部删除）：
@@ -793,7 +783,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			var hasError = r.getResultCode() != 0;
 			if (!raft.isLeader() || dbh2Splitting == null || serialNo != splitSerialNo) {
 				it.close();
-				// 【身份失配不重试（GA-C03）】重试的前提是回调仍代表当前轮（本机leader且serialNo未失配），
+				// 身份失配不重试：重试的前提是回调仍代表当前轮（本机leader且serialNo未失配），
 				// 对齐下面hasError分支"本机仍leader才重试"的本意。失配分支的经典来源：新轮启动后
 				// （recoverSplitting重入/事务同步失败重启），endSplit2的dbh2Splitting.close()以
 				// Procedure.Timeout同步触发旧轮悬挂中的SplitPut回调——此时要么已有更新的轮次接管
@@ -889,7 +879,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			getRaft().appendLog(new LogEndMove(bucket.getSplittingMeta()),
 					(raftLog, result) -> endSplit2(raftLog, result, true));
 		} else {
-			// 【原子化】设置源桶状态（修改源桶Meta；保存新桶Meta到历史中；删除分桶Meta）。
+			// 原子化设置源桶状态（修改源桶Meta；保存新桶Meta到历史中；删除分桶Meta）。
 			var from = bucket.getBucketMeta().copy();
 			var to = bucket.getSplittingMeta();
 			from.setKeyLast(to.getKeyFirst());
@@ -909,9 +899,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			return;
 		}
 
-		// 【此时进入拒绝模式】
-		// 【此时进入拒绝模式】
-		// 【此时进入拒绝模式】
+		// 此时进入拒绝模式
 		var server = (Dbh2RaftServer)getRaft().getServer();
 		performPrepareQueue(server.takePrepareQueue());
 
@@ -927,7 +915,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		var meta = stateMachine.getBucket().getBucketMeta();
 		if (isMove) {
 			var endMove = (LogEndMove)raftLog.getLog();
-			// onSettled终局回调（GA-D01 A1）：settle成功（rc==0）或eSplittingBucketNotFound
+			// onSettled终局回调：settle成功（rc==0）或eSplittingBucketNotFound
 			// （已结算证据）时追加标志清除日志——apply侧随LogEndMove落下的pending-settle
 			// 标志由此收回；进程在终局前死亡则标志留存，下轮leader-ready补发终局后同样清除。
 			manager.getMasterAgent().endMoveWithRetryAsync(endMove.getTo(),

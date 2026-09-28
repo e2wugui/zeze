@@ -6,6 +6,9 @@ import Zeze.Net.Service;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * MQ Master 的网络服务：socket 关闭时联动摘除对应的 Manager 注册条目。
+ */
 public class MasterService extends Service {
 	private final Main main;
 

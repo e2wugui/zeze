@@ -12,6 +12,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 类扫描工具：按包名收集类全名，支持目录与 jar 两种 classpath 形态。
+ */
 public class ClassUtils {
 	private static final @NotNull Logger logger = LogManager.getLogger(ClassUtils.class);
 
@@ -41,12 +44,12 @@ public class ClassUtils {
 						logger.error("invalid file url: {}", url, e);
 					}
 				} else if ("jar".equals(protocol)) {
-					// getJarFile()返回JDK全局缓存（JarFileFactory按URL缓存）的共享实例（FND22 GD-C04）：
+					// getJarFile()返回JDK全局缓存（JarFileFactory按URL缓存）的共享实例：
 					// 借来的实例不关闭——try-with-resources的close会关闭底层zip且不驱散factory缓存，
 					// jar部署形态下URLClassPath的JarLoader持同一实例，后续（含懒加载）类加载读该jar
 					// 抛zip closed系异常，init的catch吞掉后handler静默缺失；同JVM第二次扫描从缓存拿到
 					// 已关闭实例entries()直接抛IllegalStateException穿透签名。生命周期归factory自持有。
-					// synchronized（FND21 a049278f0）保留：消除本方法并发双扫的迭代/关闭竞速。
+					// synchronized保留：消除本方法并发双扫的迭代/关闭竞速。
 					var jarFile = ((JarURLConnection)url.openConnection()).getJarFile();
 					getAllClassNameByJar(result, jarFile, packageName, includeSubPath);
 				}

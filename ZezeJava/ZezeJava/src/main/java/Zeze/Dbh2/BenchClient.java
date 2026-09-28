@@ -20,6 +20,9 @@ import org.apache.logging.log4j.Logger;
 import static Zeze.Util.Args.requireInt;
 import static Zeze.Util.Args.requireValue;
 
+/**
+ * Dbh2 性能压测客户端。
+ */
 public class BenchClient {
 	private static final Logger logger = LogManager.getLogger(BenchClient.class);
 
@@ -206,7 +209,7 @@ public class BenchClient {
 			while (Boolean.TRUE.equals(running.value)) {
 				// 限制所有key的范围，防止服务器占用太大硬盘。
 				try (var trans = database.beginTransaction()) {
-					// 局部集合改名为batchKeys：不能遮蔽字段rrs——清理需对字段（跨轮去重表）操作，
+					// 局部集合batchKeys不得遮蔽字段rrs——清理需对字段（跨轮去重表）操作，
 					// 遮蔽时rrs.remove(r)作用于正被增强for迭代的局部HashSet（tableAccess>1时CME），
 					// 且字段只增不删无界增长。
 					var batchKeys = rrs(tables, tableAccess);

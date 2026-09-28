@@ -14,7 +14,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * 用来根据时间快速定位到日志数据文件。
  * 每个索引记录固定长度=time(8bytes)+offset(8bytes)。
  * <p>
- * 【扩展】如果索引记录可变长并可以自定义，这个类用途会更加广泛。
+ * 如果索引记录可变长并可以自定义，这个类用途会更加广泛。
  * 变长的实现方式：1. 限制最长记录长度，按最长存储（变成定长）；2. 记录边界可识别（如文本加回车）。
  * 扩展需要实现的话，在新的类中实现，这里仅仅实现Log4jQuery需要的特性。
  */
@@ -42,7 +42,7 @@ public class LogIndex {
 	private long endTime;
 
 	public LogIndex(File file) throws Exception {
-		// 修正由于文件系统刷新不是原子导致的索引记录可能不完整的问题。
+		// 文件系统刷新非原子，尾部索引记录可能不完整：打开时截掉不完整的尾部记录。
 		try (var fos = new FileOutputStream(file, true); var channel = fos.getChannel()) {
 			var fileSize = channel.size();
 			if ((fileSize & (eIndexRecordSize - 1)) != 0)
@@ -51,7 +51,6 @@ public class LogIndex {
 		this.file = file;
 		mmap(0);
 
-		// initialize beginTime & endTime
 		if (mmap.limit() >= eIndexRecordSize) {
 			this.beginTime = mmap.getLong(0);
 			this.endTime = mmap.getLong(mmap.limit() - eIndexRecordSize);
@@ -67,7 +66,7 @@ public class LogIndex {
 	}
 
 	/**
-	 * 索引文件路径（FND22 GD-C03）：current索引经硬链接打开时即链接路径——LogIndex的mmap增长
+	 * 索引文件路径：current索引经硬链接打开时即链接路径——LogIndex的mmap增长
 	 * （addIndex→mmap(newSize)）按此路径重开文件，链接是存活索引的增长通道。清理方据此识别
 	 * "仍被存活条目持有的链接"，不得删除（Linux下删了增长即FNFE、Windows下mmap钉住删不掉）。
 	 */
@@ -105,7 +104,6 @@ public class LogIndex {
 				mmap.putLong(r.offset);
 			}
 
-			// new beginTime & endTime
 			var first = rs.getFirst();
 			var last = rs.getLast();
 			if (first.time < beginTime)

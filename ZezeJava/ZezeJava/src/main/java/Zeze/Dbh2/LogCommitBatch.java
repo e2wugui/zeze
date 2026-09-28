@@ -8,6 +8,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 事务批量提交的 Raft 日志。
+ */
 public class LogCommitBatch extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogCommitBatch.class.getName());
 

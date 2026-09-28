@@ -1,5 +1,8 @@
 package Zeze.Services.Log4jQuery.handler.entity;
 
+/**
+ * 字段描述：名称与类型名（JSON 序列化用）。
+ */
 public class SimpleField {
 	private String name;
 	private String type;

@@ -23,6 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/** 协调者侧的Onz分布式事务抽象：由业务实现perform，经callProcedure/callSaga驱动参与方，并负责Commit/Rollback决策与flush等待。 */
 public abstract class OnzTransaction<A extends Data, R extends Data> extends ReentrantLock {
 	protected static final @NotNull Logger logger = LogManager.getLogger(OnzTransaction.class);
 
@@ -97,11 +98,11 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	// 远程调用辅助函数
 	public <A2 extends Data, R2 extends Data> TaskCompletionSource<R2>
 	callProcedureAsync(String zezeName, String onzProcedureName, A2 argument, R2 result) {
-		// procedure sage 互斥。
+		// procedure saga 互斥。
 		if (!zezeSagas.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. saga has called.");
 		var zezeInstance = onzServer.getZezeInstance(zezeName);
-		// 限制每个zeze集群最多一个调用：键为集群名（FND4-90），重连返回新socket不再绕过限制。
+		// 限制每个zeze集群最多一个调用：键为集群名，重连返回新socket不能绕过限制。
 		var newCall = new OutObject<TaskCompletionSource<R2>>();
 		zezeProcedures.computeIfAbsent(zezeName, __ -> newCall.value
 				= OnzAgent.callProcedureAsync(
@@ -113,11 +114,11 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 
 	public <A2 extends Data, R2 extends Data> TaskCompletionSource<R2>
 	callSagaAsync(String zezeName, String onzProcedureName, A2 argument, R2 result) {
-		// procedure sage 互斥。
+		// procedure saga 互斥。
 		if (!zezeProcedures.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. procedure has called.");
 		var zezeInstance = onzServer.getZezeInstance(zezeName);
-		// 限制每个zeze集群最多一个调用：键为集群名（FND4-90）。
+		// 限制每个zeze集群最多一个调用：键为集群名。
 		var newCall = new OutObject<TaskCompletionSource<R2>>();
 		zezeSagas.computeIfAbsent(zezeName, __ -> newCall.value
 				= OnzAgent.callSagaAsync(
@@ -130,11 +131,11 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	private void endSaga() {
 		// 执行过程中发生异常或者错误不能到达这里，而是rollback里面的cancelSaga。
 		var futures = new ArrayList<TaskCompletionSource<?>>();
-		// R2-M③：逐参与方容错（对齐cancelSaga/commit()的FND4-86模式）——原先发送循环无
+		// 逐参与方容错（同cancelSaga/commit()）——发送循环若无
 		// try/catch，第一个参与方的getZezeInstance/SendForWait异常中断整个循环：后续参与方
 		// 收不到FuncSagaEnd(cancel=false)，上下文与setEnd滞留，只能等参与方cleanupTimeoutSagas
 		// （默认1小时）回收；await循环同理，一个异常跳过其余等待。记error后继续，保证全部
-		// 参与方都被通知。调用方commit()已有兜底catch（endSaga失败不转rollback），语义不变。
+		// 参与方都被通知。调用方commit()已有兜底catch（endSaga失败不转rollback）。
 		for (var e : zezeSagas.entrySet()) {
 			try {
 				var r = new FuncSagaEnd();
@@ -170,14 +171,14 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		}
 		var futures = new ArrayList<TaskCompletionSource<?>>();
 		var rpcs = new ArrayList<FuncSagaEnd>();
-		// R3-C D①（M②）：记录每个步骤的rpc是否以异常收场（超时/发送失败）——只有这类步骤
+		// 记录每个步骤的rpc是否以异常收场（超时/发送失败）——只有这类步骤
 		// 才可能处于"FuncSagaEnd先于FuncSaga注册被处理"的乱序窗口（成功/业务失败步骤的
 		// FuncSaga已被参与方处理过，注册必然先于任何FuncSagaEnd），其eSagaNotFound需要重试。
 		var stepRpcFailed = new ArrayList<Boolean>();
 		var stepZeze = new ArrayList<String>();
 		for (var e : zezeSagas.entrySet()) {
 			try {
-				// FND7-34：失败/超时的步骤同样发送cancel——不再只补偿成功的步骤。
+				// 失败/超时的步骤同样发送cancel——不只补偿成功的步骤。
 				// saga参与方sendReadyAndWait覆写为"发结果即本地提交"，协调者rpc超时不代表
 				// 参与方未提交：跳过补偿的话，超时步骤的写已持久化而协调者按失败补偿其余
 				// 步骤并报告整体失败——部分提交的静默分歧。超时步骤的上下文在参与方1h超时
@@ -204,14 +205,14 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		for (int i = 0; i < futures.size(); i++) {
 			try {
 				futures.get(i).get();
-				// R3-C复审：参与方处理器 return errorCode(eSagaNotFound) 时线上结果码是
-				// makeTypeId(ModuleId, code) 的组合值（rpc 的 resultCode 原样携带），直接与
-				// 常量2比较恒不相等——NotFound落进 fatal 分支（假致命日志）且"可辨识忽略"
-				// 从未生效。先经 IModule.getErrorCode 解码再比较。
+					// 参与方处理器 return errorCode(eSagaNotFound) 时线上结果码是
+					// makeTypeId(ModuleId, code) 的组合值（rpc 的 resultCode 原样携带），直接与
+					// 常量2比较恒不相等——NotFound会落进 fatal 分支（假致命日志），"可辨识忽略"
+					// 失效。先经 IModule.getErrorCode 解码再比较。
 				var code = IModule.getErrorCode(rpcs.get(i).getResultCode());
 				if (code == AbstractOnz.eSagaNotFound) {
 					// 步骤从未注册或已自清理：无补偿对象，可辨识忽略。但rpc层失败的步骤可能
-					// 是FuncSagaEnd先于FuncSaga注册被处理（R3-C D①乱序窗口）——单次延迟重试。
+					// 是FuncSagaEnd先于FuncSaga注册被处理（乱序窗口）——单次延迟重试。
 					if (stepRpcFailed.get(i))
 						retryCancelNotFoundOnce(stepZeze.get(i));
 					continue;
@@ -221,11 +222,11 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				}
 			} catch (Exception e) {
 				logger.error("await cancel result.", e);
-				// R3-C补遗：应答超时=结果未知——NotFound可能正在途中（参与方已应答但协调者
+				// 应答超时=结果未知——NotFound可能正在途中（参与方已应答但协调者
 				// 未收到）。乱序窗口的重试补偿不得依赖应答必达：rpcFailed步骤超时同样调度单次
 				// 重试。幂等安全：迟到NotFound即放弃；成功补偿后再cancel得NotFound同样无害；
 				// 请求未到达则这次到达完成补偿。非rpcFailed步骤不重试（正常完成步骤的NotFound
-				// 是终态，cancel在途终会到达，语义与主分支一致）。30轮压测轮5/9实证丢失窗口。
+				// 是终态，cancel在途终会到达，语义与主分支一致）。
 				if (stepRpcFailed.get(i))
 					retryCancelNotFoundOnce(stepZeze.get(i));
 			}
@@ -233,7 +234,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	}
 
 	/**
-	 * R3-C D①（M② 乱序窗口）：FuncSaga与FuncSagaEnd在参与方侧同为Normal派发（共享线程池，
+	 * 乱序窗口：FuncSaga与FuncSagaEnd在参与方侧同为Normal派发（共享线程池，
 	 * 不保证同连接处理顺序，参见ThreadingServer.ProcessKeepAlive的Direct注解），理论上补偿
 	 * 请求可先于原请求被处理——参与方查无上下文应答eSagaNotFound，而上下文随后才注册并
 	 * 执行业务，该次补偿被静默吞掉且无人再发。窗口的现实前提是参与方派发线程在出队后停滞
@@ -270,7 +271,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		}
 	}
 
-	// saga参与方持久化编码（OH1-F1）：BSavedCommits.Onzs是set[string]的集群名集合，bean为
+	// saga参与方持久化编码：BSavedCommits.Onzs是set[string]的集群名集合，bean为
 	// 生成代码（不可加字段），以带前缀编码区分参与方类型——集群名是zezeConfigs解析的'='左段，
 	// 不可能包含'='（分隔符），"saga="前缀与任何集群名（以及旧版本持久化的ip_port）零碰撞；
 	// 旧记录无前缀即procedure参与方，格式向后兼容。
@@ -289,12 +290,12 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 
 	public BSavedCommits.Data buildSavedCommits() {
 		var bState = new BSavedCommits.Data();
-		// 按集群名持久化（FND4-90）：地址会漂移（重连/SM通告变更），redo时由
-		// getZezeInstance现查当前地址——旧地址不再作为幻影参与方被反复重试。
+		// 按集群名持久化：地址会漂移（重连/SM通告变更），redo时由
+		// getZezeInstance现查当前地址——旧地址不作为幻影参与方被反复重试。
 		for (var e : zezeProcedures.keySet()) {
 			bState.getOnzs().add(e);
 		}
-		// saga参与方同样持久化（OH1-F1）：原先只收集zezeProcedures，saga事务该集合恒空——
+		// saga参与方同样持久化：若只收集zezeProcedures，saga事务该集合恒空——
 		// 协调者在saveCommitPoint后崩溃（或cancelSaga的FuncSagaEnd超时丢失且不重试）时，
 		// redoTimer对残留决策记录解出空参与方列表直接removeCommitRecord，已提交步骤永久
 		// 未补偿，整体事务按失败收场——静默部分提交分歧。带前缀编码，redo按参与方类型分流。
@@ -368,11 +369,11 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				if (r.getResultCode() != 0) {
 					logger.fatal("rollback error {}", IModule.getErrorCode(r.getResultCode()));
 				}
-			} catch (Exception ex) { // FND7-68：逐参与方捕获（对齐commit()的FND4-86模式）。
+			} catch (Exception ex) { // 逐参与方捕获（同commit()）。
 				// rollback()运行在OnzServer.perform的rc!=0路径或catch块内：异常外传会被
 				// perform的catch二次rollback从头重试，再抛则替换原始错误（业务rc丢失，最终
 				// 只报Procedure.Exception）；且第一个参与方失败即中断循环，后续参与方收不到
-				// Rollback，只能等参与方ready等待超时自愈（FND5-45）与redoTimer的老化回滚
+				// Rollback，只能等参与方ready等待超时自愈与redoTimer的老化回滚
 				// 兜底，不一致窗口被拉长。记fatal后继续，保证全部参与方都收到Rollback。
 				logger.fatal("rollback send/await fail. tid={}, zeze={}", onzTid, zeze, ex);
 			}
@@ -385,7 +386,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	void waitFlushDone() {
 		if (flushMode != Onz.eFlushImmediately || zezeProcedures.isEmpty()) {
 			// saga事务（或eFlushAsync）不计数等待：参与方首次flush早于FuncSagaEnd（setEnd），
-			// 按设计不发FlushReady，计数永不满足，等待只会固定挂满flushTimeout再降级（FND3-52）。
+			// 按设计不发FlushReady，计数永不满足，等待只会固定挂满flushTimeout再降级。
 			// 开闸：此后到达的ready（saga重试flush等）一律立即应答。
 			flushGateOpen = true;
 			return;
@@ -399,12 +400,12 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				replyReady(ready);
 			// 触发当前没有flushReady或者所有相关zeze的完整Checkpoint。
 			//  1. 安全起见是所有zeze，上面的ready.SendResult也可能丢失。
-			//  2. 需要完整Checkpoint的zeze要不要持久化，以后持续触发。这点看起来没有必要。
-			//  3. 这里要不要等待触发结果返回。先处理成等待。
+			//  2. 需要完整Checkpoint的zeze不持久化，以后也不持续触发。
+			//  3. 这里等待触发结果返回。
 			// 决策点(commit已持久化)之后的异常不外传（对齐commit()的同类原则）：
 			// 单个checkpoint失败仅记fatal，该参与方由redoTimer的Commit重发兜底，
 			// 异常逃逸会让OnzServer.perform的catch执行rollback()并向调用方返回失败
-			// ——已实际提交的事务报告假阴性，调用方重发导致业务重复执行（FND4-86）。
+				// ——已实际提交的事务报告假阴性，调用方重发导致业务重复执行。
 			for (var zeze : zezeProcedures.keySet()) {
 				try {
 					checkpoint(onzServer.getZezeInstance(zeze));
@@ -422,7 +423,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	}
 
 	/** 应答一条FlushReady（幂等）：参与方在Checkpoint.flush提交路径死等应答，
-	 * 任何状态不被应答的ready都会演变成参与方事务失败halt（FND3-52）。 */
+	 * 任何状态不被应答的ready都会演变成参与方事务失败halt。 */
 	private static void replyReady(Rpc<?, ?> ready) {
 		if (!ready.isSendResultDone()) // 这里忽略重复发送警告。
 			ready.SendResult();
@@ -435,20 +436,20 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 
 	private long onzTid;
 	// 全量ready登记（按rpc对象）：开闸/降级时逐条应答用，只增不清（每条ready背后是一个
-	// 等待应答的参与方事务）。计数判据不在本集合上（见GC-D03的distinctParticipants）。
+	// 等待应答的参与方事务）。计数判据不在本集合上（见distinctParticipants）。
 	private final ConcurrentHashSet<Rpc<?, ?>> flushReadies = new ConcurrentHashSet<>();
-	// GC-D03：完成判据按参与方身份去重计数——flush失败重试（FND8-18）每次new FlushReady
-	// 发出新的rpc对象，按rpc对象计数会被重试虚增（旧判据下闸门可提前打开且无任何日志）。
+	// 完成判据按参与方身份去重计数——flush失败重试每次new FlushReady
+	// 发出新的rpc对象，按rpc对象计数会被重试虚增（闸门可提前打开且无任何日志）。
 	// distinctParticipants=已确认的不同参与方集合（key=FlushReady.Participant，参与方集群身份）；
 	// legacyReadies=空Participant（旧版本参与方）按rpc对象身份兜底计数的兼容集合。
 	private final Set<String> distinctParticipants = ConcurrentHashMap.newKeySet();
 	private final ConcurrentHashSet<Rpc<?, ?>> legacyReadies = new ConcurrentHashSet<>();
 	private final TaskCompletionSource<Integer> flushDone = new TaskCompletionSource<>();
-	// true之后到达的FlushReady一律立即应答（不再计数门控）：等待收齐、降级、或免等（saga/eFlushAsync）。
+	// true之后到达的FlushReady一律立即应答（不计数门控）：等待收齐、降级、或免等（saga/eFlushAsync）。
 	private volatile boolean flushGateOpen;
 
 	// 以下两个集合在一个事务内只能启用一个。即不能混用FuncProcedure和FuncSaga
-	// 去重键=集群名（FND4-90）：socket实例在重连后变化——以实例为键使"每集群最多一个调用"
+	// 去重键=集群名：socket实例在重连后变化——以实例为键使"每集群最多一个调用"
 	// 在事务内重连窗口失效，且新旧两个地址都被持久化为参与方，redo对死地址永不收敛。
 	private final ConcurrentHashMap<String, TaskCompletionSource<?>> zezeProcedures = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, TaskCompletionSource<?>> zezeSagas = new ConcurrentHashMap<>();
@@ -460,19 +461,19 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	void trySetFlushReady(FlushReady r) {
 		logger.debug("FlushReady sender={} argument={}", r.Argument, r.getSender());
 
-		// saga事务不计数等待：重试flush的ready到达时协调者已越过等待点，立即应答（FND3-52）。
+		// saga事务不计数等待：重试flush的ready到达时协调者已越过等待点，立即应答。
 		if (flushGateOpen || !zezeSagas.isEmpty()) {
 			replyReady(r);
 			return;
 		}
 
 		flushReadies.add(r);
-		// GC-D03：按参与方身份去重计数（协议新增Participant字段，Gen重生成）。
+		// 按参与方身份去重计数。
 		var participant = r.Argument.getParticipant();
 		if (participant.isEmpty()) {
 			// 兼容窗口：旧版本参与方的协议没有Participant（decode缺省空串，异常路径同理），
-			// 无法按身份去重，按rpc对象身份兜底计数——退回修复前语义（旧版本重发仍可能虚增
-			// 计数提前开闸）。每事务warn一次暴露兼容窗口的存在，升级完成即消失。
+			// 无法按身份去重，按rpc对象身份兜底计数——旧版本重发仍可能虚增
+			// 计数提前开闸。每事务warn一次暴露兼容窗口的存在，升级完成即消失。
 			if (legacyReadies.isEmpty())
 				logger.warn("FlushReady without Participant (old client?), count by rpc identity. tid={}", onzTid);
 			legacyReadies.add(r);
@@ -481,7 +482,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			logger.warn("duplicate FlushReady from same participant (flush retry?). tid={}, participant={}",
 					onzTid, participant);
 		}
-		// 完成判据=不同参与方计数==procedure参与方数（zezeProcedures的key就是集群名，FND4-90）。
+		// 完成判据=不同参与方计数==procedure参与方数（zezeProcedures的key就是集群名）。
 		// ready最早在Commit决策之后才可能到达，那时zezeProcedures已定型（commit()在
 		// waitPendingAsync之后），N是稳定值；>=防并发add后单次检查跳过N（错过开闸只能等
 		// flushTimeout降级，方向安全但无谓）。

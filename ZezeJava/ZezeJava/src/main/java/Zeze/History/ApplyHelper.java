@@ -16,6 +16,10 @@ import Zeze.Util.Id128;
 import Zeze.Util.OutObject;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * tHistory 历史记录的回放驱动：在自身锁内单线程按序消费记录，经记录级事务应用到回放库，
+ * 并随每条记录原子保存回放游标。
+ */
 public class ApplyHelper extends FastLock {
 	private static final Logger logger = LogManager.getLogger(ApplyHelper.class);
 
@@ -49,7 +53,7 @@ public class ApplyHelper extends FastLock {
 		this.dbApplied = dbApplied;
 		this.beforeTimeMs = beforeTimeMs;
 		this.holeGraceMs = holeGraceMs;
-		// FND8-28：持久化后端必须恢复游标——否则重启后游标归零从表头整段重放到已有状态上
+		// 持久化后端必须恢复游标——否则重启后游标归零从表头整段重放到已有状态上
 		// （Edit类日志非幂等，重放污染回放副本）。内存后端loadCursor返回null，天然一致。
 		exclusiveStartKey = dbApplied.loadCursor();
 	}
@@ -107,7 +111,7 @@ public class ApplyHelper extends FastLock {
 				if (value.getTimestamp() >= endTime)
 					return false;
 
-				// 单条tHistory记录=原子应用单元（c67a10b9残留P2）：记录内全部entry的写入先
+				// 单条tHistory记录=原子应用单元：记录内全部entry的写入先
 				// 计入记录级事务（暂存/挂起，不即时落库），全部entry成功后commit一次性生效；
 				// 任一entry异常则rollback丢弃本记录已产生的全部写入后原样重抛。否则前缀entry
 				// 已落库而游标停在上条记录，重试整条记录时前缀被二次应用（PList2的OP_ADD按
@@ -131,14 +135,14 @@ public class ApplyHelper extends FastLock {
 						var affectKeys = result.computeIfAbsent(applyTable, __ -> new HashSet<>());
 						affectKeys.add(applyTable.apply(r.getKey(), r.getValue()));
 					}
-					// FND8-28：游标在记录级事务内与记录数据同原子单元保存——持久化后端
+					// 游标在记录级事务内与记录数据同原子单元保存——持久化后端
 					// 把它与entry写入路由进同一个底层事务，commit成功才一起生效；
 					// 失败随记录整体回滚，游标停在上条记录，重试从断点续传。
 					dbApplied.saveCursor(key, recordTxn);
 					recordTxn.commit();
 					committed = true;
 				} catch (Exception ex) {
-					// 毒记录可观测性（残留P3）：此异常将穿透walkDatabase中断本批，游标停在上条
+					// 毒记录可观测性：此异常将穿透walkDatabase中断本批，游标停在上条
 					// 记录，下轮apply会整条重放本记录（已原子回滚，重放从干净状态开始、不会叠加
 					// 脏写）；若是确定性失败（如Edit目标不存在的分歧NPE）将反复卡死游标，需按此
 					// GlobalSerialId人工排查tHistory记录。回滚与LRU失效统一在finally兜底。
@@ -159,9 +163,9 @@ public class ApplyHelper extends FastLock {
 				}
 				lastProcessed.value = key;
 				prevKey.value = key;
-				// FND6-37：批内逐条成功即推进游标——callback异常（Edit分歧检测fail-fast的
-				// NPE等）穿透walkDatabase时，游标停在批前（现为停在毒记录前：该记录已整体
-				// 回滚，无部分落库），下次apply从断点续传，重放的是干净状态而非损坏状态。
+				// 批内逐条成功即推进游标——callback异常（Edit分歧检测fail-fast的
+				// NPE等）穿透walkDatabase时，游标停在毒记录前（该记录已整体回滚，
+				// 无部分落库），下次apply从断点续传，重放的是干净状态而非损坏状态。
 				exclusiveStartKey = key;
 				return true;
 			});

@@ -13,6 +13,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 目录文件创建监视器：后台线程消费 WatchService 的 ENTRY_CREATE 事件，
+ * 并在 OVERFLOW 与监听失效时触发回调补偿。
+ */
 public class FileCreateDetector {
 	private static final @NotNull Logger logger = LogManager.getLogger(FileCreateDetector.class);
 	private final WatchService watchService;
@@ -20,7 +24,7 @@ public class FileCreateDetector {
 	private final Thread watchThread;
 	private volatile boolean running = true;
 	private final Consumer<Path> consumer;
-	// OVERFLOW：warn+节流对账；监听失效（key.reset()==false）：error+最终对账（GD-D02）。可为null（不关心）。
+	// OVERFLOW：warn+节流对账；监听失效（key.reset()==false）：error+最终对账。可为null（不关心）。
 	private final Runnable onOverflowConsumer;
 	private final Runnable onWatchInvalidConsumer;
 
@@ -54,14 +58,14 @@ public class FileCreateDetector {
 						@SuppressWarnings("unchecked") WatchEvent<Path> eventPath = (WatchEvent<Path>)event;
 						consumer.accept(eventPath.context());
 					} else if (kind == StandardWatchEventKinds.OVERFLOW) {
-						// 事件溢出=可能已丢失（GD-D02）：warn+节流触发一次对账补偿，不静默吞掉。
+						// 事件溢出=可能已丢失：warn+节流触发一次对账补偿，不静默吞掉。
 						logger.warn("watch OVERFLOW, events may be lost: {}", watchDir);
 						if (null != onOverflowConsumer)
 							onOverflowConsumer.run();
 					}
 				}
 				if (!key.reset()) {
-					// 目录不可访问/被删除，监听从此死亡（GD-D02）：error告警后退出循环，退出前触发最终对账。
+					// 目录不可访问/被删除，监听从此死亡：error告警后退出循环，退出前触发最终对账。
 					logger.error("watch key reset fail, watch dead: {}", watchDir);
 					if (null != onWatchInvalidConsumer)
 						onWatchInvalidConsumer.run();

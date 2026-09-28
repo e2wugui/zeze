@@ -15,6 +15,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * tHistory 回放全量校验：独立重放历史到内存库，逐表比对业务库与回放副本。
+ */
 public class Verify {
 	private static final @NotNull Logger logger = LogManager.getLogger(Verify.class);
 
@@ -30,7 +33,7 @@ public class Verify {
 		zeze.getHistoryModule().getHistoryTable().walkDatabase((key, value) -> {
 			if (lastK.value != null && lastK.value.compareTo(key) >= 0) {
 				logger.error("out of Id128 order: {}, {}", lastK.value, key);
-				assert false; // XXX 这里会出现断言失败。
+				assert false;
 			}
 			lastK.value = key;
 

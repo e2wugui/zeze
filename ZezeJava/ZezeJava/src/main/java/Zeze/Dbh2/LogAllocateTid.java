@@ -7,6 +7,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 分配事务 Tid 区间的 Raft 日志。
+ */
 public class LogAllocateTid extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogAllocateTid.class.getName());
 

@@ -10,12 +10,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 查询处理器管理器：扫描 impl 包按 @HandlerCmd 注册处理器，将 JSON 请求按 cmd 分发调用。
+ */
 public class QueryHandlerManager {
 	private static final @NotNull Logger logger = LogManager.getLogger(QueryHandlerManager.class);
 	private static final Map<String, QueryHandleContainer> handlerMap = new HashMap<>();
 
 	static {
-		// 类初始化锁保证仅执行一次且安全发布。原来的懒初始化+非volatile标志在多客户端并发首查时
+		// 类初始化锁保证仅执行一次且安全发布：懒初始化+非volatile标志在多客户端并发首查时
 		// 会并发执行init、并发put同一个HashMap（丢条目/结构损坏），且initFinish不可见会反复init。
 		init();
 	}

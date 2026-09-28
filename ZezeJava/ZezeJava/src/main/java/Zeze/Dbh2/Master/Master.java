@@ -23,18 +23,21 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
+/**
+ * Dbh2 Master 服务：管理数据库与表的元数据、manager 注册与负载调度、全局实例数据。
+ */
 public class Master extends AbstractMaster {
 	private static final Logger logger = LogManager.getLogger(Master.class);
 	public static final String MasterDbName = "__master__";
 
-	// 【宽方向拒绝的可重试码（FND22 GA-C01）】settleSplitting对from==null的主表陈旧宽拒绝
+	// 宽方向拒绝的可重试码：settleSplitting对from==null的主表陈旧宽拒绝
 	//（条目比主表新、仍活：本迁移之前另有settle丢失）专用。区别于终局码eSplittingBucketNotFound
 	//（MasterAgent重试端按"已settle"证据停重试+onSettled清标志），本码走"非终局码保留重试"
 	// 分支——pending-settle补发/在途settle链收敛主表后，30s重试自然通过（正是拒绝注释承诺的
-	// 契约）。终局语义只保留给幂等完成证据与INV1死信消费（更窄方向）。
+	// 契约）。终局语义只保留给幂等完成证据与死信消费（更窄方向）。
 	// 值8是模块错误码空闲位（生成侧1-7已用）。本常量定义在手写Master而非生成的AbstractMaster：
-	// 改solution.zeze.xml需全量重生成（gen_use_publish.bat），超出本轮只动Dbh2源的最小边界；
-	// 下次协议重生成时应把eSplittingStaleMain=8迁入xml枚举（同值迁移，此处删除即可）。
+	// 改solution.zeze.xml需全量重生成（gen_use_publish.bat）；下次协议重生成时应把
+	// eSplittingStaleMain=8迁入xml枚举（同值迁移）。
 	public static final int eSplittingStaleMain = 8;
 
 	private final ConcurrentHashMap<String, MasterDatabase> databases = new ConcurrentHashMap<>();
@@ -61,8 +64,8 @@ public class Master extends AbstractMaster {
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private final Config zezeConfig;
 
-	// splitting年龄观测（INV5，GA-D01 A4）：周期扫描全部MasterDatabase的splitting条目，
-	// 超龄error告警。只观测不动作（消费必须结构驱动=A2/INV1）。形态对齐Dbh2Manager.loadMonitor。
+	// splitting年龄观测：周期扫描全部MasterDatabase的splitting条目，
+	// 超龄error告警。只观测不动作（消费必须结构驱动）。形态对齐Dbh2Manager.loadMonitor。
 	private final DaemonTimer splittingAgeMonitor = new DaemonTimer(
 			"Zeze.Dbh2.Master.splittingAge", 60_000, this::scanSplittingAges);
 
@@ -103,7 +106,7 @@ public class Master extends AbstractMaster {
 	}
 
 	/**
-	 * 启动splitting年龄观测扫描（INV5，GA-D01 A4）。生产入口Main.start()调用；构造期不
+	 * 启动splitting年龄观测扫描。生产入口Main.start()调用；构造期不
 	 * 自动启动（对齐Dbh2Manager.loadMonitor在start()启动的形态——嵌入式/测试直接构造
 	 * Master时无调度池依赖、零线程副作用，扫描可经MasterDatabase.scanSplittingAge直接驱动）。
 	 */
@@ -315,7 +318,6 @@ public class Master extends AbstractMaster {
 				}
 			}
 		}
-		//logger.info("{}, rafts=\n{}", managerHostPort, r.Result);
 		r.SendResult();
 		return 0;
 	}
@@ -403,7 +405,7 @@ public class Master extends AbstractMaster {
 			// insert instance
 			var existInstance = zezeInstanceTable.get(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
 			if (null != existInstance) {
-				// 错误码保真（FND19 GA-C06备注留档→拍板修）：finally的SendResult抢在派发层之前发送
+				// 错误码保真：finally的SendResult抢在派发层之前发送
 				//（trySendResultCode输给发送CAS），早退路径必须预置resultCode，否则客户端收到的是
 				// 上一步预置码的变形（eDefaultError等）。返回值保持不变（直调断言不受影响）。
 				r.setResultCode(errorCode(BSetInUse.eInstanceAlreadyExists));
@@ -476,7 +478,7 @@ public class Master extends AbstractMaster {
 					// 这个流程请参考 DatabaseMySql procedure _ZezeClearInUse_。
 					trans.commit(); // eSuccess在commit之后置位（见SetInUse注释）
 					r.setResultCode(errorCode(BClearInUse.eSuccess));
-					return 0; // done;
+					return 0;
 				}
 			}
 			// 到达这里表示zezeInstanceTable为空或者只存在将被删除的key。
@@ -503,7 +505,7 @@ public class Master extends AbstractMaster {
 			if (null != exist) {
 				var dvExist = Database.DataWithVersion.decode(exist);
 				if (dvExist.version != r.Argument.getVersion()) {
-					// 错误码保真（FND19 GA-C06备注留档→拍板修）：变形=eVersionMismatch在客户端
+					// 错误码保真：变形=eVersionMismatch在客户端
 					// 收到eDefaultError（finally的SendResult发送预置码，派发层返回值输给发送CAS）。
 					// e2e钉死见TestFnd19GAMasterErrorCodeFidelity（Dbh2TestEnv真实rpc派发路径）。
 					r.setResultCode(errorCode(BSaveDataWithSameVersion.eVersionMismatch));

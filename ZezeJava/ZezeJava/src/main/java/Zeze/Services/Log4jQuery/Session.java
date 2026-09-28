@@ -13,6 +13,9 @@ import Zeze.Net.Rpc;
 import Zeze.Services.LogAgent;
 import Zeze.Util.TaskCompletionSource;
 
+/**
+ * 客户端日志查询会话：封装对单个日志服务端的 NewSession/Search/Browse/CloseSession RPC 生命周期。
+ */
 public class Session implements AutoCloseable {
 	private final String serverName;
 	private final LogAgent agent;
@@ -31,8 +34,8 @@ public class Session implements AutoCloseable {
 		this.serverName = serverName;
 		var r = new NewSession();
 		r.Argument.setLogName(logName);
-		// 与browse/search/close同宽60s（案外#4，对齐CloseSession先例00fd190c0）：服务端NewSession含
-		// 惰性清理（GD-D03，逐会话锁）与索引装载等重活，默认5s在多会话/慢盘下超时即建会话失败。
+		// 与browse/search/close同宽60s：服务端NewSession含惰性清理（逐会话锁）与索引装载等重活，
+		// 默认5s在多会话/慢盘下超时即建会话失败。
 		r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("error " + r.getResultCode());
@@ -48,12 +51,12 @@ public class Session implements AutoCloseable {
 	public TaskCompletionSource<BResult.Data> browse(int limit, float offsetFactor, boolean reset,
 													 BCondition.Data condition) {
 		var r = new Browse(new BBrowse.Data(sessionId, limit, offsetFactor, reset, condition));
-		// 服务端扫描量级与search相同（beginTime=-1或索引缺失时全量线性扫），不能用RPC默认5s（GD-C03）。
+		// 服务端扫描量级与search相同（beginTime=-1或索引缺失时全量线性扫），不能用RPC默认5s。
 		return checkResultCode(r, r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000));
 	}
 
 	/**
-	 * GE-C03（含盲审案外#1）：search/browse 的应答 TCS 加 resultCode 检查。
+	 * search/browse 的应答 TCS 加 resultCode 检查。
 	 * Zeze RPC 对非零 resultCode 的应答也<b>正常完成</b> future（resultCode 只是 rpc 对象字段，
 	 * Rpc.dispatch/handle 无条件 future.setResult），典型受害者是闲置超时被服务端回收的死会话
 	 * （LogService getLogSession==null → Procedure.LogicError）：未解码的空 Result（logs 空、
@@ -96,7 +99,7 @@ public class Session implements AutoCloseable {
 			return;
 		closed = true; // 先立墓碑：RPC失败时会话状态未知，不允许重发CloseSession
 		var r = new CloseSession();
-		// 与browse/search同宽60s：服务端关会话含逐个RAF关闭（GD-D03事实链），默认5s在
+		// 与browse/search同宽60s：服务端关会话含逐个RAF关闭，默认5s在
 		// 多会话/慢盘下超时即泄漏（服务端会话无过期回收前的唯一出口）。
 		r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000).await();
 		if (r.getResultCode() != 0)

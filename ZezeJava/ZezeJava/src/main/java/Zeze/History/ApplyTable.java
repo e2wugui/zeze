@@ -15,6 +15,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 回放侧的业务表封装：带 LRU 缓存读写回放库表，按 tHistory 记录中的 Put/Remove/Edit 变更应用。
+ */
 public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	private static final @NotNull Logger logger = LogManager.getLogger(ApplyTable.class);
 	private static final @NotNull Pattern diffPat = Pattern.compile("\r?\n");
@@ -64,8 +67,8 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 
 		case Changes.Record.Edit:
 			var value = get(key);
-			// value==null即先行分歧（编辑目标不存在）：直接递归抛NPE中断回放批，不再静默忽略
-			// （旧代码曾newValue()重建，更早版本break跳过）。logBean为null是合法的空编辑，保留判空。
+			// value==null即先行分歧（编辑目标不存在）：直接递归抛NPE中断回放批，不得静默忽略
+			// （不得newValue()重建或跳过）。logBean为null是合法的空编辑，保留判空。
 			var log = logRecord.getLogBean();
 			if (log != null)
 				value.followerApply(log);
@@ -146,7 +149,6 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		});
 
 		if (!table.isEmpty()) {
-			// dump
 			logger.info("remain records in apply table:");
 			table.walk((key, value) -> {
 				logger.info("{}->{}", originTable.decodeKey(key), originTable.decodeValue(value));

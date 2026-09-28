@@ -17,14 +17,13 @@ import org.jetbrains.annotations.Nullable;
  * logChanges（原始对象）--encode0--&gt; encoded（编码字节）--writeOnly--&gt; tHistory库事务。
  * 不变量：容器只在 rrs 锁内变更；条目离开 logChanges 前必已进 encoded；encoded 只能
  * 由 commitDone 清空——它在数据库事务全部提交成功后由 Checkpoint.flush 调用，失败回滚
- * 后容器保留，重试按系列号幂等重写（FND3-51）。
+ * 后容器保留，重试按系列号幂等重写。
  */
 public class History {
 	// 为了节约内存，在确实需要的时候才分配。
-	// 容器访问已全部在 rrs 锁内，保留并发Map是历史选择，改动无收益。
+	// 容器访问已全部在 rrs 锁内，并发Map非必需，改动无收益。
 	private volatile @Nullable ConcurrentHashMap<Id128, BLogChanges.Data> logChanges;
 
-	// 这里为了并发接收数据，不能优化为可null？需要确认。
 	private final ConcurrentHashMap<Id128, Binary> encoded = new ConcurrentHashMap<>();
 
 	public History(@NotNull BLogChanges.Data firstData) {
@@ -86,9 +85,8 @@ public class History {
 	// merge 辅助方法，完整的判断to,from及里面的logChanges的null状况。
 	public static @Nullable History merge(@Nullable History to, @Nullable History from) {
 		// rrs 锁内
-		// 整体查看
 		if (to == null)
-			return from; // still maybe null. 直接全部接管。需要确认from不会再被修改。
+			return from; // still maybe null. 直接全部接管。
 
 		// 合并encoded
 		if (from != null)

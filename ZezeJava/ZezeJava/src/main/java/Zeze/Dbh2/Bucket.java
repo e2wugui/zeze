@@ -34,10 +34,10 @@ public class Bucket {
 	private final byte[] metaPendingSettleKey = new byte[]{4};
 
 	/**
-	 * pending-settle标志（GA-D01 A1/INV2）：最近一次已commit迁移（LogEndSplit/LogEndMove
+	 * pending-settle标志：最近一次已commit迁移（LogEndSplit/LogEndMove
 	 * 的apply）的完整from/to meta。它是**派生状态**（从raft日志参数派生，不新增日志schema），
 	 * 天然随raft复制、随快照持久化——commit过的日志在多数派上，任何后来当选的leader
-	 * apply后即持有标志。这是(A)路径缺失的状态源：settle通知的持久载体，leader-ready时
+	 * apply后即持有标志。它是settle通知的持久载体，leader-ready时
 	 * 据此幂等补发。from为null即move。
 	 */
 	public static final class PendingSettle {
@@ -163,12 +163,12 @@ public class Bucket {
 	}
 
 	// 与既有meta写入同批（同一apply内顺序落盘），标志在LogEndSplit/LogEndMove的apply里设置。
-	// 【条件覆写（FND22 GA-C02）】旧标志未清且属不同迁移（to身份不等，判据与clearPendingSettle
+	// 条件覆写：旧标志未清且属不同迁移（to身份不等，判据与clearPendingSettle
 	// 同源）时不覆写：旧标志在=旧迁移的settle未到终局=其补发源仍被需要——单槽无条件覆盖会灭失
 	// 旧迁移唯一的死亡恢复源（进程死后recoverSplitting只补发槽内标志，旧迁移永不结算，其to键域
 	// 主表无主、读写永久失败）。保留旧标志的代价是新迁移失去标志载体，其settle在进程存活期内由
 	// 内存30s重试链兜底；两害相权取其旧：旧迁移的settle已滞留更久，且保留旧标志不劣于覆写：堆叠死亡
-	// 链中旧键域经补发可收敛，新迁移键域两者同样失联（受害者互换，GA-C02增量审措辞收窄）。
+	// 链中旧键域经补发可收敛，新迁移键域两者同样失联（受害者互换）。
 	// 同身份重设幂等放行（raft日志每节点恰apply一次，仅防御）。堆叠窗口本身的完整闭口
 	//（tryStartSplit对pending!=null加闸/多槽标志）二期。
 	public void setPendingSettle(BBucketMeta.Data from, BBucketMeta.Data to) throws RocksDBException {
@@ -188,7 +188,7 @@ public class Bucket {
 	}
 
 	// 身份匹配才清除（四元组+raftConfig全等，两侧都是完整meta——与resume场景请求方
-	// raftConfig=""不同，全等比较在此合法，不触碰R1钉死约束）：陈旧世代的清除日志不得
+	// raftConfig=""不同，全等比较在此合法）：陈旧世代的清除日志不得
 	// 清掉新世代的标志（跨世代倒灌防护：旧迁移终局时新迁移可能已apply了自己的标志）。
 	public void clearPendingSettle(BBucketMeta.Data to) throws RocksDBException {
 		var current = pendingSettle;

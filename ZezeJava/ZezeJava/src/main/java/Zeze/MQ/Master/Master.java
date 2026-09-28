@@ -33,6 +33,10 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDBException;
 
+/**
+ * MQ Master：维护 mqTable 路由（topic→分区→Manager），管理 Manager 注册与负载，
+ * 并以磁盘真相对账裁决孤儿分区。
+ */
 public class Master extends AbstractMaster {
     private static final Logger logger = LogManager.getLogger();
     public static final String MasterDbName = "__mq_master__";
@@ -51,32 +55,31 @@ public class Master extends AbstractMaster {
     // （旧消费者永久收不到消息）。基线随时间前进，重叠仅在旧进程发号平均
     // 速率超过 256/ms 时才可能（发号点仅 openMQ/createMQ，远达不到）。
     private final AtomicLong sessionIdGen = new AtomicLong(System.currentTimeMillis() << 8);
-    // 【GB-D01】Master 侧配置（仅 OrphanGracePeriodMs 参与；Manager 侧字段无 Master 语义）。
+    // Master 侧配置（仅 OrphanGracePeriodMs 参与；Manager 侧字段无 Master 语义）。
     private final MQConfig mqConfig = new MQConfig();
-    // 【GB-D01】孤儿候选状态（内存态）：key = {managerKey}|{topic}|{partition} → 候选首见时间。
+    // 孤儿候选状态（内存态）：key = {managerKey}|{topic}|{partition} → 候选首见时间。
     // 覆盖判定见 notCoveredPartitions；候选在册化/从上报中消失时除名（CreateMQ 部分成功窗口自愈）。
     final ConcurrentHashMap<String, Long> orphanFirstSeen = new ConcurrentHashMap<>();
-    // 【GB-D01】包内可见：孤儿删除下发钩子（默认真实 rpc；测试注入捕获断言"对哪些条目下发了删除"）。
+    // 包内可见：孤儿删除下发钩子（默认真实 rpc；测试注入捕获断言"对哪些条目下发了删除"）。
     @FunctionalInterface
     interface DeletePartitionIssuer {
         void issue(BMQServer.Data managerInfo, AsyncSocket socket, String topic, HashSet<Integer> partitionIndexes)
                 throws Exception;
     }
     DeletePartitionIssuer deleteIssuer = this::sendDeletePartition;
-    // 【FND20 GB-C01】Master 侧停机静默标志（对齐 MQManager.stopped 的 FND19 GB-C02 形态）：
+    // Master 侧停机静默标志（对齐 MQManager.stopped 的同型形态）：
     // Main.stop 最前置位。Service.stop 只置停机屏障、关 socket、停 keepalive，不清 worker 池
-    // 已派发的任务（MQManager 侧修复注释亲证的同一事实）：stop 时刻在飞的触库 handler 与
-    // masterDb.close 并发是 native use-after-free（RocksDatabase.close 契约：管理锁只串行化
-    // 管理操作，不保护 native 句柄生命周期）。置位后到达/在飞的触库 handler 在入口或模块锁内
-    // 复查拒绝，不再触碰 mqTable。
+    // 已派发的任务：stop 时刻在飞的触库 handler 与 masterDb.close 并发是 native use-after-free
+    // （RocksDatabase.close 契约：管理锁只串行化管理操作，不保护 native 句柄生命周期）。置位后
+    // 到达/在飞的触库 handler 在入口或模块锁内复查拒绝，不再触碰 mqTable。
     private volatile boolean stopped;
 
-    // 【FND20 GB-C01】包内可见（测试直驱停机竞态的契约面）。
+    // 包内可见（测试直驱停机竞态的契约面）。
     boolean isStopped() {
         return stopped;
     }
 
-    // 【FND20 GB-C01】置位停机静默标记（Main.stop 最前调用，先于 service.stop：晚到的已派发
+    // 置位停机静默标记（Main.stop 最前调用，先于 service.stop：晚到的已派发
     // 任务在入口即拒，无需等锁）。
     void markStopped() {
         stopped = true;
@@ -104,13 +107,13 @@ public class Master extends AbstractMaster {
         mqTable = masterDb.getOrAddTable("mq");
     }
 
-    // 【GB-D01】包内可见：配置（测试收缩宽限期）。
+    // 包内可见：配置（测试收缩宽限期）。
     MQConfig getMqConfig() {
         return mqConfig;
     }
 
     public void close() {
-        // 【FND20 GB-C01】关库前有界排空在飞触库 handler：全部触库 handler 持模块锁执行（入口闸
+        // 关库前有界排空在飞触库 handler：全部触库 handler 持模块锁执行（入口闸
         // +锁内复查），close 先取同一把锁即等它们出锁再关库——同构 MQSingle.close 持分区锁关
         // 文件流后、晚到任务锁内复查拒绝的收口形态。锁上最长等待者=CreateMQ 的 CreatePartition
         // rpc（5s×N）与对账链的阻塞 DeletePartition rpc（RpcTimeout 量级），预算对齐
@@ -170,7 +173,7 @@ public class Master extends AbstractMaster {
 
     @Override
     protected long ProcessCreateMQRequest(CreateMQ r) throws Exception {
-        // 【FND20 GB-C01】停机闸（入口快路径）：stopped 置位后到达的请求直接回 Closed，
+        // 停机闸（入口快路径）：stopped 置位后到达的请求直接回 Closed，
         // 不触碰 mqTable（masterDb.close 的 native use-after-free 契约）。
         if (stopped)
             return Procedure.Closed;
@@ -181,7 +184,7 @@ public class Master extends AbstractMaster {
         // 最长5秒超时，仅推迟并发的Register/ReportLoad，无死锁）。
         lock();
         try {
-            // 【FND20 GB-C01】锁内复查：close 持本锁关 masterDb，过闸晚到任务在此拒绝
+            // 锁内复查：close 持本锁关 masterDb，过闸晚到任务在此拒绝
             //（同构 MQSingle.sendMessage 的锁内复查）。
             if (stopped)
                 return Procedure.Closed;
@@ -228,7 +231,7 @@ public class Master extends AbstractMaster {
             var managerPartitionIndexes = new HashMap<Manager, HashSet<Integer>>();
             for (var i = 0; i < r.Argument.getPartition(); ++i) {
                 var manager = managers[i % managers.length];
-                // manager.info 即 Register 上报的 BMQServer（含稳定 ManagerId，【GB-D05】）：
+                // manager.info 即 Register 上报的 BMQServer（含稳定 ManagerId）：
                 // copy 后按本 topic 改写分区号/主题名，ManagerId 随 copy 写入 servers 条目——
                 // 路由表按 id 关联，Manager 换地址重注册时 Register 联动重写可命中。
                 var info = manager.info.copy();
@@ -237,11 +240,10 @@ public class Master extends AbstractMaster {
                 servers.getServers().add(info);
                 managerPartitionIndexes.computeIfAbsent(manager, __ -> new HashSet<>()).add(i);
             }
-            // 【GB-D01a】部分失败残留指明：两阶段创建（先各Manager建分区，全部成功后才登记mqTable）
+            // 部分失败残留指明：两阶段创建（先各Manager建分区，全部成功后才登记mqTable）
             // 在中间失败时，已成功下发的分区在Manager磁盘上持久残留（重启loadMQ照常加载），而Master
             // 登记未落——openMQ永远eTopicNotExist，残留分区无主可寻。error必须逐项列出
-            // "哪些Manager上已成功创建哪些分区"，供运维立即定位回收（对账收敛的完整形态见GB-D01，
-            // 此为先行止血日志，拍板"立即补失败残留日志"项）。
+            // "哪些Manager上已成功创建哪些分区"，供运维立即定位回收（对账收敛的完整形态见孤儿对账）。
             var createdSoFar = new StringBuilder();
             for (var manager : managers) {
                 var indexes = managerPartitionIndexes.get(manager);
@@ -276,8 +278,8 @@ public class Master extends AbstractMaster {
 
     @Override
     protected long ProcessOpenMQRequest(Zeze.Builtin.MQ.Master.OpenMQ r) throws Exception {
-        // 【FND20 GB-C01】停机闸 + 模块锁内复查：mqTable.get 是 native 触点，须与 close 的
-        // 关库互斥（原先无锁读的入口闸窗口由锁内复查收口）。
+        // 停机闸 + 模块锁内复查：mqTable.get 是 native 触点，须与 close 的
+        // 关库互斥（无锁读的入口闸窗口由锁内复查收口）。
         if (stopped)
             return Procedure.Closed;
         lock();
@@ -300,18 +302,18 @@ public class Master extends AbstractMaster {
 
     @Override
     protected long ProcessRegisterRequest(Register r) throws Exception {
-        // 【FND20 GB-C01】停机闸（入口快路径）。
+        // 停机闸（入口快路径）。
         if (stopped)
             return Procedure.Closed;
         lock();
         try {
-            // 【FND20 GB-C01】锁内复查：rewriteRoutes 的全表迭代+put 是长触库路径。
+            // 锁内复查：rewriteRoutes 的全表迭代+put 是长触库路径。
             if (stopped)
                 return Procedure.Closed;
             // 幂等：重连/重注册会重复到达（首连时start()注册与连接建立钩子各一次；Master重启后
             // 重连重注册），同socket重复append会堆积；且新连接的Register可能先于旧socket的
             // OnSocketClose到达，须替换旧条目，避免死连接滞留managers被choiceManager选中。
-            // 【GB-D05】匹配优先级：稳定 ManagerId（新路径，地址全换也能关联）> socket > host:port
+            // 匹配优先级：稳定 ManagerId（新路径，地址全换也能关联）> socket > host:port
             // （存量兜底）。host:port 匹配保留：ManagerId==0 视为未知身份（老版本Manager/存量注册表）。
             Manager replaced = null;
             for (int i = 0; i < managers.size(); ++i) {
@@ -326,7 +328,7 @@ public class Master extends AbstractMaster {
             }
             managers.add(new Manager(r.getSender(), r.Argument));
             r.SendResult();
-            // 【GB-D05】联动重写路由：mqTable 中该 manager 承载的 servers 条目改写为新地址（换地址
+            // 联动重写路由：mqTable 中该 manager 承载的 servers 条目改写为新地址（换地址
             // 重注册→路由自愈）。注册本身已成功，重写失败仅记日志等下次重注册重试（Register 每次重连
             // 都会到达，收敛有保障）。
             try {
@@ -342,7 +344,7 @@ public class Master extends AbstractMaster {
     }
 
     /**
-     * 【GB-D05】包内可见：Register 联动重写 mqTable 路由（测试直驱存量兼容路径）。
+     * 包内可见：Register 联动重写 mqTable 路由（测试直驱存量兼容路径）。
      * <p>
      * 对全表每个 topic 的 servers 条目，两路匹配：
      * <ul>
@@ -400,7 +402,7 @@ public class Master extends AbstractMaster {
         return server.getHost().equals(host) && server.getPort() == port;
     }
 
-    /** 【GB-D05/GB-D01】包内可见：读回 mqTable 条目（对账覆盖判定共用；测试断言路由内容）。 */
+    /** 包内可见：读回 mqTable 条目（对账覆盖判定共用；测试断言路由内容）。 */
     @Nullable BMQServers getServers(String topic) throws RocksDBException {
         var mq = mqTable.get(topic.getBytes(StandardCharsets.UTF_8));
         if (null == mq)
@@ -410,7 +412,7 @@ public class Master extends AbstractMaster {
         return servers;
     }
 
-    /** 【GB-D01】包内可见：mqTable 播种（测试直构对账判定的前置，与 ProcessCreateMQRequest 落表同构）。 */
+    /** 包内可见：mqTable 播种（测试直构对账判定的前置，与 ProcessCreateMQRequest 落表同构）。 */
     void putMqServers(String topic, BMQServers servers) throws RocksDBException {
         var topicBytes = topic.getBytes(StandardCharsets.UTF_8);
         var bb = ByteBuffer.Allocate();
@@ -420,12 +422,12 @@ public class Master extends AbstractMaster {
 
     @Override
     protected long ProcessReportPartitionsRequest(ReportPartitions r) throws Exception {
-        // 【FND20 GB-C01】停机闸（入口快路径）。
+        // 停机闸（入口快路径）。
         if (stopped)
             return Procedure.Closed;
         lock();
         try {
-            // 【FND20 GB-C01】锁内复查：对账链（notCoveredPartitions 的 mqTable.get + 宽限期后的
+            // 锁内复查：对账链（notCoveredPartitions 的 mqTable.get + 宽限期后的
             // 阻塞 DeletePartition rpc）是长触库路径。
             if (stopped)
                 return Procedure.Closed;
@@ -443,7 +445,7 @@ public class Master extends AbstractMaster {
     }
 
     /**
-     * 【GB-D01】孤儿对账（包内可见，测试直构判定）：上报条目在 mqTable 无对应 topic、或该 topic 的
+     * 孤儿对账（包内可见，测试直构判定）：上报条目在 mqTable 无对应 topic、或该 topic 的
      * servers 不含此 manager 承载该分区 → 孤儿候选；候选连续存活超宽限期（OrphanGracePeriodMs，
      * 覆盖 CreateMQ 部分成功/创建中的正常窗口）才下发 DeletePartition，动作记 warn（审计）。
      * <p>
@@ -578,8 +580,8 @@ public class Master extends AbstractMaster {
 
     @Override
     protected long ProcessSubscribeRequest(Subscribe r) throws Exception {
-        // 【FND20 GB-C01】停机闸 + 模块锁内复查（与 ProcessOpenMQRequest 同构：mqTable.get 是
-        // native 触点，原先无锁读的入口闸窗口由锁内复查收口）。
+        // 停机闸 + 模块锁内复查（与 ProcessOpenMQRequest 同构：mqTable.get 是
+        // native 触点，无锁读的入口闸窗口由锁内复查收口）。
         if (stopped)
             return Procedure.Closed;
         lock();

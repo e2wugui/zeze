@@ -12,6 +12,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.TaskCompletionSource;
 
+/** 协调者侧代理：维护在途OnzTransaction登记供redo过滤真残留，并提供远程procedure/saga调用的发送辅助。 */
 public class OnzAgent extends AbstractOnzAgent {
 	private final LongConcurrentHashMap<OnzTransaction<?, ?>> transactions = new LongConcurrentHashMap<>();
 	private final AgentService service = new AgentService();
@@ -49,7 +50,7 @@ public class OnzAgent extends AbstractOnzAgent {
 		transactions.remove(t.getOnzTid());
 	}
 
-	// FND6-36：redoTimer 以在途登记过滤，redo 只处理真残留（perform 线程已死亡的）。
+	// redoTimer 以在途登记过滤，redo 只处理真残留（perform 线程已死亡的）。
 	boolean hasTransaction(long onzTid) {
 		return transactions.containsKey(onzTid);
 	}
@@ -83,7 +84,7 @@ public class OnzAgent extends AbstractOnzAgent {
 		r.Argument.setFuncName(onzProcedureName);
 		r.Argument.setFlushMode(flushMode);
 		r.Argument.setFlushTimeout(pending.getFlushTimeout());
-		// FND7-34：rpc超时不再用字段默认5s——复用flushTimeout（默认10s，随事务可配）。
+		// rpc超时不使用字段默认5s——复用flushTimeout（默认10s，随事务可配）。
 		// 步骤业务+网络往返超过5s时固定超时把仍会成功的调用判为失败，触发不必要的回滚。
 		r.setTimeout(pending.getFlushTimeout());
 		var bbArgument = ByteBuffer.Allocate();
@@ -93,9 +94,9 @@ public class OnzAgent extends AbstractOnzAgent {
 		// Send false（socket断开窗口）时回调不注册、无超时调度，future必须完成，否则perform的future.get()永久挂起
 		if (!r.Send(zezeOnzInstance, (p) ->{
 			if (r.getResultCode() == 0) {
-				// GC-C02(FND21)：回调式发送没有框架future，本局部TCS的唯一完成者是这条回调；
+				// 回调式发送没有框架future，本局部TCS的唯一完成者是这条回调；
 				// 真实应答消费rpc上下文后，超时兜底的双参remove必失败直接return（Rpc.schedule），
-				// 不会重放回调——decode抛出（载荷结构性损坏/空载荷decode不足1字节）原先发生在
+				// 不会重放回调——decode抛出（载荷结构性损坏/空载荷decode不足1字节）若发生在
 				// setResult之前，异常冲出回调被派发框架吞掉，future永pending，业务的future.get()
 				// 无超时永久挂起且零可观测性。对齐sendFlushReady"失败路径必须完成future"与Rpc.handle
 				// "resultCode先于future"的先立结果形态：decode失败同样以异常完成future，业务走正常
@@ -132,9 +133,9 @@ public class OnzAgent extends AbstractOnzAgent {
 		r.Argument.setFuncName(onzProcedureName);
 		r.Argument.setFlushMode(flushMode);
 		r.Argument.setFlushTimeout(pending.getFlushTimeout());
-		// FND7-34：rpc超时不再用字段默认5s——复用flushTimeout（默认10s，随事务可配）。
+		// rpc超时不使用字段默认5s——复用flushTimeout（默认10s，随事务可配）。
 		// saga参与方"发结果即本地提交"（OnzSaga.sendReadyAndWait），固定5s超时把实际会提交
-		// 的步骤判为失败，而cancelSaga原只补偿成功步骤，超时步骤的写入永久残留（部分提交
+		// 的步骤判为失败，若该步骤未被cancel补偿则写入永久残留（部分提交
 		// 的静默分歧）。
 		r.setTimeout(pending.getFlushTimeout());
 		var bbArgument = ByteBuffer.Allocate();
@@ -144,7 +145,7 @@ public class OnzAgent extends AbstractOnzAgent {
 		// 同上：Send false必须完成future
 		if (!r.Send(zezeOnzInstance, (p) ->{
 			if (r.getResultCode() == 0) {
-				// 同callProcedureAsync（GC-C02(FND21)）：回调是TCS唯一完成者，超时兜底被真实
+				// 同callProcedureAsync：回调是TCS唯一完成者，超时兜底被真实
 				// 应答短路不重放——decode抛出必须以异常完成future，否则cancelSaga的无超时
 				// saga.get()（await saga result）在协调者线程上永久挂起，补偿链无人触发。
 				try {

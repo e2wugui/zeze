@@ -1,16 +1,16 @@
 package Zeze.log.handle.entity;
 
+/**
+ * HTTP API 的通用响应封装：status（状态码）+ desc（说明）+ data（结果数据）。
+ */
 public class BaseResponse<T> {
 	public static final int SUCC = 200;
 	public static final int REDIRECT_INDEX = 400;
 	public static final int ERROR = 500;
 
 	private static final String SUCC_STR = "success";
-	//状态码
 	protected int status;
-	//状态 说明
 	protected String desc;
-	//结果数据
 	protected T data;
 
 	public static BaseResponse<Object> succResult(Object data) {

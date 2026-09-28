@@ -2,6 +2,9 @@ package Zeze.Services.Log4jQuery.handler.entity;
 
 import java.util.List;
 
+/**
+ * 命令参数的类描述：是否基础类型、类名与字段列表（JSON 序列化用）。
+ */
 public class ClassInfo {
 	private boolean baseType;
 	private String className;

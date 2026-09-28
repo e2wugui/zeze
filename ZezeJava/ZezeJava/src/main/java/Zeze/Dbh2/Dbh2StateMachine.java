@@ -21,6 +21,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
+/**
+ * Dbh2 桶的 Raft 状态机：apply 各类日志到桶存储，管理桶内事务与负载统计。
+ */
 public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private static final Logger logger = LogManager.getLogger(Dbh2StateMachine.class);
 	private Bucket bucket;
@@ -263,7 +266,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	// LogClearPendingSettle.apply入口（GA-D01 A1）：身份匹配清除标志，不匹配为陈旧世代日志，no-op。
+	// LogClearPendingSettle.apply入口：身份匹配清除标志，不匹配为陈旧世代日志，no-op。
 	public void clearPendingSettle(BBucketMeta.Data to) {
 		try {
 			bucket.clearPendingSettle(to);
@@ -287,7 +290,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		emptyMeta.setKeyLast(emptyBucketMetaKey);
 		bucket.setBucketMeta(emptyMeta);
 		bucket.addMoveMetaHistory(to);
-		// pending-settle标志（GA-D01 A1）：与既有meta写入同一apply内落盘（派生状态，随raft
+		// pending-settle标志：与既有meta写入同一apply内落盘（派生状态，随raft
 		// 复制/快照）——迁移已在源桶commit的持久证据，leader-ready据此幂等补发settle通知。
 		bucket.setPendingSettle(null, to);
 		bucket.deleteSplittingMeta();
@@ -303,7 +306,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		bucket.getData().deleteToEnd(it);
 		bucket.setBucketMeta(from);
 		bucket.addSplitMetaHistory(from, to);
-		// 同endMove：pending-settle标志随迁移commit在apply内落盘（GA-D01 A1）。
+		// 同endMove：pending-settle标志随迁移commit在apply内落盘。
 		bucket.setPendingSettle(from, to);
 		bucket.deleteSplittingMeta();
 		} catch (RocksDBException e) {
@@ -537,7 +540,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					table.put(key.bytesUnsafe(), key.getOffset(), key.size(),
 							value.bytesUnsafe(), value.getOffset(), value.size());
 				}
-				return; // done;
+				return;
 			}
 
 			// 数据复制流程

@@ -6,6 +6,9 @@ import Zeze.Net.Service;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Zoker 的网络服务：承载与 agent 的文件分发连接，连接断开时回收该连接打开的 FileBin。
+ */
 public class ZokerService extends Service {
 	private final DistributeManager distributeManager;
 

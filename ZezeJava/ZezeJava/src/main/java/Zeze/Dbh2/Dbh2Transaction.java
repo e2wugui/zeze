@@ -6,6 +6,9 @@ import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Serialize.ByteBuffer;
 import org.rocksdb.RocksDBException;
 
+/**
+ * Dbh2 桶内事务：构造时按 batch 记录键加锁，执行 prepare/commit/undo 的存储操作。
+ */
 public class Dbh2Transaction implements Closeable {
 	private final HashMap<Lockey, Lockey> locks = new HashMap<>();
 	private final BBatch.Data batch;

@@ -6,6 +6,9 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Util.DispatchModeAnnotation;
 import org.rocksdb.RocksDBException;
 
+/**
+ * Dbh2 事务提交服务，组合本地 CommitRocks 存储与网络协议处理。
+ */
 public class Commit extends AbstractCommit {
 	private CommitRocks rocks;
 	private final CommitService service;

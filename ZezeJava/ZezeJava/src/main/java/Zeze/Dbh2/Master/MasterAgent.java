@@ -26,6 +26,9 @@ import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Dbh2 客户端访问 Master 服务的代理，封装建库建表、迁移结算与负载上报 RPC。
+ */
 public class MasterAgent extends AbstractMasterAgent {
 	private static final Logger logger = LogManager.getLogger(MasterAgent.class);
 	public static final String eServiceName = "Zeze.Dbh2.Master.Agent";
@@ -180,7 +183,7 @@ public class MasterAgent extends AbstractMasterAgent {
 			throw new RuntimeException("error=" + IModule.getErrorCode(r.getResultCode()));
 	}
 
-	// end重试间隔（对齐GA-D04 createTableRetryBudgetMs形态）：非final便于测试收缩。
+	// end重试间隔（对齐createTableRetryBudgetMs形态）：非final便于测试收缩。
 	static volatile long endRetryDelayMs = 30_000L;
 
 	public void endMoveWithRetryAsync(BBucketMeta.Data to) {
@@ -189,7 +192,7 @@ public class MasterAgent extends AbstractMasterAgent {
 
 	/**
 	 * @param onSettled settle终局回调（rc==0成功，或eSplittingBucketNotFound=已结算证据），
-	 *                  至多执行一次；null=无回调（原语义）。GA-D01 A1：源桶Dbh2借此追加
+	 *                  至多执行一次；null=无回调（原语义）。源桶Dbh2借此追加
 	 *                  pending-settle清除日志（LogClearPendingSettle），进程在终局前死亡则
 	 *                  标志留存，下轮leader-ready补发终局后同样清除。
 	 */

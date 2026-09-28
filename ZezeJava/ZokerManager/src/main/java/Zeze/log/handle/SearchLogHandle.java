@@ -18,6 +18,9 @@ import Zeze.log.handle.entity.SearchLogParam;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
+/**
+ * /api/search 处理器：按条件搜索日志（复用或重建查询会话）。
+ */
 public class SearchLogHandle implements HttpEndStreamHandle {
 	@Override
 	public void onEndStream(HttpExchange x) {
@@ -40,8 +43,8 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 			con.setContainsType(searchLogParam.getContainsType());
 			con.setPattern(searchLogParam.getPattern());
 
-			// GE-D06 会话回执比对：复用会话前比对请求的(会话类型, serverName, logName)与绑定记录，
-			// 不匹配（或changeSession强制重建）时关旧建新——正确性不再依赖前端记得置changeSession。
+			// 会话回执比对：复用会话前比对请求的(会话类型, serverName, logName)与绑定记录，
+			// 不匹配（或changeSession强制重建）时关旧建新——正确性不依赖前端记得置changeSession。
 			SocketAddress socketAddress = x.channel().remoteAddress();
 			if (serverName != null && !serverName.trim().isEmpty()) {
 				Session session = (Session)FileSessionManager.resolve(logAgent, socketAddress,

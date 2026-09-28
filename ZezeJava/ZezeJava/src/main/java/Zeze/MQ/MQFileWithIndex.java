@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
+// 单分区消息存储：段文件顺序追加 + rocksdb 索引（按消息 id 定位）与 meta（位点持久化）。
 // 文件路径: {ManagerHome}/{topic}/{partitionId}.{nextMessageId}
 // meta表名: {topic}.{partitionId}
 // index表名: {topic}.{partitionId}.{nextMessageId}
@@ -45,19 +46,19 @@ public class MQFileWithIndex {
 	private static final byte[] firstMessageIdName = "firstMessageId".getBytes(StandardCharsets.UTF_8);
 	private long firstMessageId;
 
-	// fillMessage在飞计数（段回收排空依据，GB-D02）：fill持段索引迭代器与文件句柄期间，
+	// fillMessage在飞计数（段回收排空依据）：fill持段索引迭代器与文件句柄期间，
 	// dropTable/close是native use-after-free（RocksDatabase.close同型契约），回收须等其归零。
 	private final AtomicInteger activeFills = new AtomicInteger();
 	// 软删除窗口状态（lock内）：当前候选最老已确认段的段基 + 首次观察到的时间。
 	private long recycleCandidateBase = -1;
 	private long recycleCandidateSince;
-	// 【FND20 GB-C03】撕裂写悬挂状态（lock内）：上次 appendMessage 的 write 失败（POSIX 短写
+	// 撕裂写悬挂状态（lock内）：上次 appendMessage 的 write 失败（POSIX 短写
 	// 语义：出错前记录前缀已持久化——磁盘满/IO错）且回滚截断未证实成功时置位，并记录
 	// "上次成功结尾"（回滚目标位）。悬挂未解除前不得再追加：追加流是 O_APPEND，写入恒落
 	// 物理尾，孤儿前缀不物理除掉，后续记录必然接错位（段内布局错位的根源）。
 	private boolean tornWritePending;
 	private long tornRollbackOffset;
-	// 【FND22 GB-C01】分区关闭标志（lock内）：close 在自身锁内置位（流关闭一并移入锁内，锁序
+	// 分区关闭标志（lock内）：close 在自身锁内置位（流关闭一并移入锁内，锁序
 	// MQSingle→fileWithIndex 既有方向不变，无新交叠），tryRecycle 入口锁内复查即返回。闭合回收
 	// 定时器（loadMonitorTimer 120s 周期驱动，原通路无 stopped/closed/managementLock 任何闸）与
 	// 分区删除路径（removePartition→close→deletePartitionStorage 的 dropTable 从 tableMap 除名并
@@ -115,7 +116,7 @@ public class MQFileWithIndex {
 					indexes.put(index, database.getOrAddTable(
 							topic + "." + partitionId + "." + index));
 				} catch (NumberFormatException ex) {
-					// continue; 忽略无法解析为"分区号.消息号"的杂散文件名。
+						// 忽略无法解析为"分区号.消息号"的杂散文件名。
 				}
 			}
 		}
@@ -126,16 +127,16 @@ public class MQFileWithIndex {
 		} else {
 			lastFile = new File(topicDir, partitionId + "." + lastEntry.getKey());
 		}
-		// 【FND2-G2-1】追加流打开前先恢复撕裂尾：一旦放任孤儿字节，之后的 appendMessage 会把
+		// 追加流打开前先恢复撕裂尾：一旦放任孤儿字节，之后的 appendMessage 会把
 		// 新消息接在垃圾后面，错位被固化进文件，fillMessage 的按 id 跳扫从此确定性失败。
 		recoverTornTail();
-		lastFileOutputStream = new FileOutputStream(lastFile, true); // todo 没有buffer是不是很慢？
+		lastFileOutputStream = new FileOutputStream(lastFile, true);
 	}
 
-	// 【FND2-G2-1】撕裂尾恢复（类 WAL recovery，仅构造时执行一次，在打开追加流之前）。
+	// 撕裂尾恢复（类 WAL recovery，仅构造时执行一次，在打开追加流之前）。
 	// appendMessage 先写文件后写 meta：崩溃/掉电/磁盘满会把"半条记录"留在文件尾（掉电丢页缓存时
 	// 甚至连已提交记录都会缺尾）；无恢复时下一条消息接在孤儿字节之后，fillMessage 按 12 字节头
-	// 跳扫从错位处步步读歪——回填确定性永久失败，分区投递停摆（70a4f65cd 的失败-复位-重试
+	// 跳扫从错位处步步读歪——回填确定性永久失败，分区投递停摆（失败-复位-重试路径
 	// 对确定性损坏无能为力，每条新消息触发一次失败）。
 	// 策略：从最近已提交索引项（无则段首）顺序校验记录头连续性，按 meta 的 next 截断未提交
 	// 尾巴（含撕裂字节与未提交的完好孤儿记录）并回拨位点与索引；只处理"尾部撕裂"——
@@ -313,7 +314,6 @@ public class MQFileWithIndex {
 								long messageId;
 								int messageSize;
 								var messageHead = new byte[12];
-								// locate headMessageId
 								while (true) {
 									filePosition += messageHead.length;
 									if (filePosition > fileSize)
@@ -336,7 +336,6 @@ public class MQFileWithIndex {
 									filePosition += messageSize;
 								}
 
-								// fill now
 								while (true) {
 									var messageBuffer = new byte[messageSize];
 									filePosition += messageBuffer.length;
@@ -379,7 +378,7 @@ public class MQFileWithIndex {
 	}
 
 	/**
-	 * 【GB-D02】水位线整段回收（拍板方案A：loadMonitorTimer 周期触发，批量低频不占热路径）。
+	 * 水位线整段回收（loadMonitorTimer 周期触发，批量低频不占热路径）。
 	 * <p>
 	 * 条件：firstMessageId 越过段尾（即该段全部消息已确认）才整段回收——at-least-once 契约不破；
 	 * 水位在段中间不触发（只整段回收，天然防御历史损坏形态"first 回拨到段中间"）。
@@ -388,14 +387,14 @@ public class MQFileWithIndex {
 	 * 软删除窗口：候选段自首次被观察到"完全确认"起保留 delayMs 再回收（误判水位的最后防线，
 	 * MQConfig.SegmentRecycleDelayMs，窗口粒度受 loadMonitorTimer 周期约束）。
 	 * <p>
-	 * 与 fillMessage 读路径互斥：入口与锁内双检 + remove 后终检-放回（【FND21 GB-C03】，在飞 fill
+	 * 与 fillMessage 读路径互斥：入口与锁内双检 + remove 后终检-放回（在飞 fill
 	 * 持段索引迭代器与文件句柄，dropTable/删文件与其并发是 native use-after-free）；非零则本轮
 	 * 跳过或放回，下轮再试。计数只提供观察不提供互斥，终检-放回闭合"复查读0 与 indexes.remove
 	 * 之间插入 increment"的 TOCTOU 缺口（正确性论证见 recycleSegment 注释）。
 	 * 残余竞态（fill 任务已按旧水位计算出区间、尚未开始执行）在 fill 侧表现为
 	 * messageIndexNotFound 的瞬时失败，由 pullMessage 既有的失败-复位-重试路径自愈，无数据损坏。
 	 * <p>
-	 * 【FND22 GB-C01】与删除路径互斥：close 在本类锁内置 closed，tryRecycle 入口锁内复查即返回
+	 * 与删除路径互斥：close 在本类锁内置 closed，tryRecycle 入口锁内复查即返回
 	 * ——回收定时器（loadMonitorTimer 周期驱动，无 stopped/managementLock 闸）与
 	 * deletePartitionStorage（removePartition→close 之后 dropTable 毁 meta/index 句柄）不再相交。
 	 */
@@ -405,7 +404,7 @@ public class MQFileWithIndex {
 		lock.lock();
 		try {
 			if (closed)
-				return; // 【FND22 GB-C01】分区已 close（删除/停机路径先行，见字段注释）：closed 在
+				return; // 分区已 close（删除/停机路径先行，见字段注释）：closed 在
 					// close 的本锁内置位，此处锁内读即精确——置位后回收通路（metaConsistent 的
 					// meta.get、recycleSegment 的 dropTable）不再触碰可能已被 deletePartitionStorage
 					// 毁掉的句柄。停机方向的 belt-and-braces 闸见 MQSingle.tryRecycleSegments。
@@ -434,7 +433,7 @@ public class MQFileWithIndex {
 				if (activeFills.get() != 0)
 					return; // 锁内复查：入口检查后有新fill进入
 				if (!recycleSegment(oldest))
-					return; // 【FND21 GB-C03】TOCTOU插入：段已放回，候选窗口观察起点保持
+					return; // TOCTOU插入：段已放回，候选窗口观察起点保持
 						//（since 不重起，下轮归零即回收，收敛有保障）
 				recycleCandidateBase = -1; // 下一个候选重新起算窗口
 			}
@@ -460,10 +459,10 @@ public class MQFileWithIndex {
 		}
 	}
 
-	// 三步同一锁序（tryRecycle的lock内，拍板定序）：indexes移除 → 终检activeFills → dropTable索引列族
+	// 三步同一锁序（tryRecycle的lock内）：indexes移除 → 终检activeFills → dropTable索引列族
 	// → 删数据文件。先从map移除再删文件：移除后fill的floorEntry定位到后继段，不再触碰被删段
 	//（防悬垂定位）。
-	// 【FND21 GB-C03】remove后终检-放回：双检的计数器只提供观察不提供互斥——"锁内复查读0 →
+	// remove后终检-放回：双检的计数器只提供观察不提供互斥——"锁内复查读0 →
 	// fill increment → floorEntry命中本段"的插入使 fill 的迭代器生命周期横跨 dropTable
 	//（native use-after-free，正是守卫注释自认要防的形态，从"入口漏检"换型为"复查后插入"）。
 	// 终检正确性（hb 论证）：fill 的 increment 严格先于其 floorEntry（程序序）；floor 命中本段
@@ -472,7 +471,6 @@ public class MQFileWithIndex {
 	//（本段已出 map，不在删除集——该形态本身无害）。非零放回本轮放弃：fill 若已在 remove 前
 	// 拿到 floor，其迭代器只与"放回不删"的段相交——无害；真删除留待归零后的下一轮。
 	// dropTable/删文件失败仅记日志不重试：重启后loadMQ按文件扫描重注册列族，下轮回收重新收敛。
-	//
 	// @return true=段已出map（回收完成/本就不在/drop失败留残file）；false=TOCTOU插入已放回本轮放弃。
 	private boolean recycleSegment(long base) {
 		var indexTable = indexes.remove(base); // ConcurrentSkipListMap.remove原子，锁外fill立即可见
@@ -530,7 +528,7 @@ public class MQFileWithIndex {
 			message.encode(bb);
 			ByteBuffer.intLeHandler.set(bb.Bytes, sizeOffset, bb.WriteIndex - sizeOffset - 4);
 
-			// 【FND20 GB-C03】上次短写的回滚未证实成功：先补齐回滚（O_APPEND 恒接物理尾，
+			// 上次短写的回滚未证实成功：先补齐回滚（O_APPEND 恒接物理尾，
 			// 孤儿前缀不物理除掉，本次追加必错位）。补齐仍失败则拒绝追加——fail-safe 优于
 			// 错位追加（调用方回 rpc 错误，等磁盘恢复后的下次重试）。
 			if (tornWritePending) {
@@ -543,7 +541,7 @@ public class MQFileWithIndex {
 			try {
 				lastFileOutputStream.write(bb.Bytes, bb.ReadIndex, bb.size());
 			} catch (IOException e) {
-				// 【FND20 GB-C03】短写回滚：write 出错前可能已持久化记录的前缀字节（磁盘满/IO错，
+				// 短写回滚：write 出错前可能已持久化记录的前缀字节（磁盘满/IO错，
 				// POSIX 短写语义），且进程继续运行（磁盘腾空后生产者重发是运维常态）。不回滚的话，
 				// O_APPEND 使下一次 append 接在孤儿前缀之后——完整记录接在自己的撕裂前缀后面，
 				// 段内物理布局错位：fillMessage 定位环按孤儿头（id/size 与真记录相同）命中后跨界
@@ -575,13 +573,13 @@ public class MQFileWithIndex {
 			// 除了文件大小，还需额外判断下一个消息Id也是makeIndexPeriod整除，这样新文件的第一个消息肯定会被建立索引，
 			// 新文件第一个消息必须建立索引，否则开头的消息定位不到。
 			if (fileOffset + bb.size() >= trunkFileSize && nextMessageId % makeIndexPeriod == 0) {
-				// 【FND21 GB-C04】先开后关+资源就绪才发布：旧形态 close→new 之间构造失败（EMFILE/
+				// 先开后关+资源就绪才发布：close→new 顺序下构造失败（EMFILE/
 				// ENOSPC/目录项冲突等）使字段停留在已关闭的旧流上——此后每次 append 在
 				// getChannel().size() 恒抛 ClosedChannelException，分区追加能力到重启前永久丧失
-				//（本条消息已提交，无数据损坏，纯运行期可用性损失）。新序三要点：
+				//（本条消息已提交，无数据损坏，纯运行期可用性损失）。三要点：
 				// ① getOrAddTable 幂等先行（文件面失败无外渗：open 失败原子不留文件，文件扫描发现规则
-				// 不注册无文件段——重启无幽灵 lastEntry；列族面的外渗由【FND22 GB-C03】的失败回滚闭合，
-				// 见下方 catch——"失败无外渗"对列族维度原不成立）；
+				// 不注册无文件段——重启无幽灵 lastEntry；列族面的外渗由失败回滚闭合，
+				// 见下方 catch——"失败无外渗"对列族维度不成立）；
 				// ② new 新流先于关旧流：构造失败则旧流仍开、字段未动，滚段留待条件重合自然重试
 				//（size 条件持续成立，modulo 条件在下一个 makeIndexPeriod 整除点重合，旧段有限
 				// 超限 <makeIndexPeriod 条）；
@@ -592,7 +590,7 @@ public class MQFileWithIndex {
 				var topicDir = new File(home, topic);
 				var nextFile = new File(topicDir, partitionId + "." + nextMessageId);
 				var nextTableName = topic + "." + partitionId + "." + nextMessageId;
-				// 【FND22 GB-C03】isNew 判"本调用新建"：createColumnFamily 是即刻持久化的外部副作用，
+				// isNew 判"本调用新建"：createColumnFamily 是即刻持久化的外部副作用，
 				// open 失败时列族已建已注册而无数据文件——不在 indexes、重启扫描不注册（无文件）、
 				// deletePartitionStorage 按文件名反推列族名也清不到（无文件则永不 drop），成为
 				// rocksdb 元数据里的永久孤儿；且 EMFILE 持续期间每次失败尝试的 base 名不同
@@ -604,7 +602,7 @@ public class MQFileWithIndex {
 				var nextTable = database.getOrAddTable(nextTableName, isNew);
 				FileOutputStream next;
 				try {
-					next = new FileOutputStream(nextFile, true); // todo 没有buffer是不是很慢？
+					next = new FileOutputStream(nextFile, true);
 				} catch (IOException e) {
 					if (Boolean.TRUE.equals(isNew.value))
 						try {
@@ -615,7 +613,7 @@ public class MQFileWithIndex {
 							logger.error("mq segment roll rollback dropTable failed, orphan column family kept."
 									+ " topic={} partition={} segment={}", topic, partitionId, nextMessageId, dropEx);
 						}
-					throw e; // 上抛（外层包 RuntimeException）：字段未动，GB-C04 的旧流可用语义不变
+					throw e; // 上抛（外层包 RuntimeException）：字段未动，旧流可用语义不变
 				}
 				var oldStream = lastFileOutputStream;
 				lastFile = nextFile;
@@ -630,7 +628,7 @@ public class MQFileWithIndex {
 		}
 	}
 
-	// 【FND20 GB-C03】撕裂写回滚（lock内调用）：截回 tornRollbackOffset（上次成功结尾）。
+	// 撕裂写回滚（lock内调用）：截回 tornRollbackOffset（上次成功结尾）。
 	// 成功即清悬挂——此后 O_APPEND 的写入位置与"已提交结尾"重新对齐；失败保持悬挂
 	//（下次 append 前重试，期间 fillMessage 只读已提交区 [firstMessageId,nextMessageId)，
 	// 不受孤儿字节影响；若进程就此退出，重启时 recoverTornTail 亦按未提交尾巴正确截断——
@@ -648,7 +646,7 @@ public class MQFileWithIndex {
 	}
 
 	public void close() throws IOException {
-		// 【FND22 GB-C01】置位与关流均在自身锁内：close 返回即不变式"此后 tryRecycle 恒被 closed
+		// 置位与关流均在自身锁内：close 返回即不变式"此后 tryRecycle 恒被 closed
 		// 拒绝"成立——与 tryRecycle 临界区（锁内 meta.get → dropTable → 删文件）互斥，其后的
 		// deletePartitionStorage（dropTable meta/index 列族并销毁句柄）与回收通路不再相交。关流
 		// 一并移入锁内：锁序 MQSingle→fileWithIndex（MQSingle.close 持分区锁调用本方法）与

@@ -5,6 +5,9 @@ import java.io.File;
 import java.io.IOException;
 import Zeze.Util.BufferedRandomFile;
 
+/**
+ * 单个日志文件的顺序读取会话：按行解析日志（多行续行聚合），支持按索引与时间定位。
+ */
 public class Log4jFileSession implements Closeable {
 	private final File file;
 	private final BufferedRandomFile randomAccessFile;
@@ -62,7 +65,7 @@ public class Log4jFileSession implements Closeable {
 			var offset = index.lowerBound(time);
 			if (offset != -1)
 				return offset;
-			// lowerBound的-1混装了"空索引"与"time超出索引末端"两种情形（FND22 GD-C02）：
+			// lowerBound的-1混装了"空索引"与"time超出索引末端"两种情形：
 			// 后者是常态——buildIndex按5分钟周期推进，查询时间落在索引末端之后的滞后带内
 			//（监控端"最近N分钟"尾窗查询恰是最高频形状），此时末记录offset是现成最佳起点，
 			// 回落0等于把整个已索引区间重读一遍（GB级文件整读只为定位尾部几行，预算

@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * RocketMQ 消费侧桥（GE-D05：薄包装+幂等指南，不建桥级存根表）。
+ * RocketMQ 消费侧桥（薄包装+幂等指南，不建桥级存根表）。
  *
  * <p>与 {@link Producer} 的"消息与本地事务原子绑定"对偶，本桥只提供事务边界包装：
  * {@link #wrapTransactional(Func1)} 把 listener 收到的每条消息放进一个独立的 Zeze
@@ -53,7 +53,7 @@ import org.jetbrains.annotations.Nullable;
  * <p><b>机制级去重只挡投递重复，挡不住业务重发</b>：msgId 在 broker 侧重投时稳定，但
  * producer 侧重发（业务层重试）会产生新 msgId/UNIQ_KEY——范式 3 对此无效，范式 1/2
  * 的业务键才能收敛。这正是本桥不内建存根表的原因（零表开销；等第一个真实消费者出现
- * 再评估要不要进桥）。毒消息/退避上限/死信语义与 GB-D06 同域，宜与 Zeze 自家 MQ 的
+ * 再评估要不要进桥）。毒消息/退避上限/死信语义宜与 Zeze 自家 MQ 的
  * 消费失败语义统一设计，本桥不先行实现。</p>
  *
  * <p>包装只覆盖并发消费（MessageListenerConcurrently，默认形态）；顺序消费
@@ -81,7 +81,7 @@ public class Consumer {
 	}
 
 	/**
-	 * 注册"每消息一个 Zeze 过程"的监听器（GE-D05 薄包装）：
+	 * 注册"每消息一个 Zeze 过程"的监听器（薄包装）：
 	 * handler 在存储过程内执行，返回 0 = CONSUME_SUCCESS；非 0 或抛异常 = RECONSUME_LATER。
 	 * 批量投递（consumeMessageBatchMaxSize&gt;1）时逐条执行，任一失败即整批 RECONSUME_LATER，
 	 * 已成功条目会随重投再次到达——幂等责任见类注释。

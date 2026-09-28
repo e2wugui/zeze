@@ -65,7 +65,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 							logger.warn("refresh master table fail. master={} database={} table={}",
 									masterName, databaseName, tableName, e);
 						} finally {
-							// 【失败也必须复位（GA-C02）】置null不能只在reload成功路径执行：reload抛异常
+							// 失败也必须复位：置null不能只在reload成功路径执行：reload抛异常
 							//（getBuckets对master短暂不可达即抛）时任务体异常完结，下面的复位若被跳过，
 							// startRefreshMasterTable的门槛if(null!=refreshMasterTableTask)对一个早已
 							// 完结的Future永久成立，之后所有拒绝触发的刷新成为no-op直到进程重启——
@@ -105,13 +105,12 @@ public class Dbh2AgentManager extends ReentrantLock {
 		if (serverId != -1) // 为了测试能指定一个不一样的serverId用来连续运行测试。
 			config.setServerId(serverId);
 		this.config = config;
-		// ugly
 		if (config.isDbh2LocalCommit()) {
 			if (null == commit) {
 				commit = new Commit(this, config);
 			}
 		} else {
-			// fail-fast（GA-D03）：远程提交模式必须显式配置Dbh2Config的CommitServerAddress（单实例），
+			// fail-fast：远程提交模式必须显式配置Dbh2Config的CommitServerAddress（单实例），
 			// 构造期报配置错误，不等第一次commit才失败。
 			if (null == dbh2Config.getCommitServerHost())
 				throw new RuntimeException("Dbh2LocalCommit=false but Dbh2Config CommitServerAddress not configured.");
@@ -127,7 +126,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public KV<String, Integer> commitServiceAcceptor() {
-		// KV.key构造后不变（FND5-12复审）：累积首个acceptor后create，不再setKey。
+		// KV.key构造后不变：累积首个acceptor后create，不再setKey。
 		var ip = new String[1];
 		var port = new int[1];
 		commit.getService().getConfig().forEachAcceptor2((a) -> {
@@ -146,12 +145,10 @@ public class Dbh2AgentManager extends ReentrantLock {
 			var state = CommitRocks.buildTransactionState(batches);
 			commit.getRocks().prepare(query.getKey(), query.getValue(), state, batches, null);
 		}
-		// 这个仅仅用来调试，不报错了。
-		// else throw new RuntimeException("commitBreakAfterPrepareForDebugOnly only work with local commit.");
 	}
 
 	private KV<String, Integer> choiceCommitServer() {
-		// 配置直连（GA-D03）：Dbh2Config的CommitServerAddress，单实例；构造期已fail-fast校验过配置存在。
+		// 配置直连：Dbh2Config的CommitServerAddress，单实例；构造期已fail-fast校验过配置存在。
 		return KV.create(dbh2Config.getCommitServerHost(), dbh2Config.getCommitServerPort());
 	}
 
@@ -159,7 +156,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 		if (config.isDbh2LocalCommit()) {
 			var query = commitServiceAcceptor();
 			commit.getRocks().commit(query.getKey(), query.getValue(), batches);
-			return; // done;
+			return;
 		}
 		var query = choiceCommitServer();
 		commitAgent.commit(query.getKey(), query.getValue(), batches, dbh2Config.getRpcTimeout());
@@ -168,7 +165,6 @@ public class Dbh2AgentManager extends ReentrantLock {
 	// Dbh2Agent 嵌入服务器需要初始化；
 	// CommitServer 独立服务器需要初始化；
 	public void start() throws Exception {
-		// ugly
 		if (config.isDbh2LocalCommit()) {
 			commit.start();
 		} else {

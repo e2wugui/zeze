@@ -23,6 +23,9 @@ import Zeze.Net.Binary;
 import Zeze.Services.ZokerImpl.ZokerAgentService;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Zoker 的本地代理：维持与各 Zoker 的注册连接，代理文件分发与服务生命周期 RPC。
+ */
 public class ZokerAgent extends AbstractZokerAgent {
     private final ZokerAgentService clientWithAcceptor; // Zoker是server，但是Zoker主动连接client。
     private final ConcurrentHashMap<String, AsyncSocket> zokers = new ConcurrentHashMap<>();
@@ -45,11 +48,11 @@ public class ZokerAgent extends AbstractZokerAgent {
     }
 
     /**
-     * GE-C03（FND21）：注册表存活校验+死条目接管。注册条目的唯一常规出口是旧连接
+     * 注册表存活校验+死条目接管。注册条目的唯一常规出口是旧连接
      * OnSocketClose 的 remove；从连接死亡（{@code isClosed} 已置位）到该回调被执行存在窗口
      * （半开连接可达 keepalive 检查周期，KeepCheckPeriod/KeepRecvTimeout 未配置时更长），
      * 期间 daemon 重连的 Register 被 putIfAbsent 恒拒 eDuplicateZoker——zokerName 被死条目
-     * 锁死，manager 侧 getZoker 恒抛且无任何重注册/接管路径。修复：putIfAbsent 冲突时检查
+     * 锁死，manager 侧 getZoker 恒抛且无任何重注册/接管路径。putIfAbsent 冲突时检查
      * 现存 socket——已死则 CAS 接管（replace 失败=并发注册已改写条目，重读重试：新主人已死
      * 可再接管、活着则是真重复，循环必收敛）；仍活着才是真重复。接管成功后旧连接迟到的
      * close 回调由 {@link ZokerAgentService#OnSocketClose} 的条件移除兜底，不会误摘继承者条目。
@@ -68,12 +71,12 @@ public class ZokerAgent extends AbstractZokerAgent {
                 break; // 现存 socket 已死：接管
             // CAS 失败：并发注册已改写条目——重读评估
         }
-        // GE-C03(FND22)：同 socket 换名注册——旧名条目条件摘除（值仍是本 socket 才摘）。
+        // 同 socket 换名注册——旧名条目条件摘除（值仍是本 socket 才摘）。
         // userState 单值只记末名，OnSocketClose 按它条件移除也只摘一个：换名前的条目永久滞留
         // （值指向已关闭 socket），无认证 acceptor 上单连接 Register 洪泛=无界内存增长。
         // 条件移除（remove(prev, sender)）防误摘：旧名若已被他方接管（本 socket 曾死过、
-        // FND21 的 CAS replace），值不是本 socket，不摘继承者。摘旧在装新成功之后：与
-        // FND21 的"userState 前极小关闭窗"同形态自愈——窗口内关闭时新名条目由下次同名
+        // 条目被 CAS 接管），值不是本 socket，不摘继承者。摘旧在装新成功之后：
+        // 装新后、setUserState 前的极小关闭窗内关闭时，新名条目由下次同名
         // Register 的 isClosed 接管回收，有界。
         var prev = (String) sender.getUserState();
         if (null != prev && !prev.equals(zokerName))
@@ -98,7 +101,6 @@ public class ZokerAgent extends AbstractZokerAgent {
         if (r.getResultCode() != 0)
             throw new RuntimeException("open file error. " + IModule.getErrorCode(r.getResultCode()));
 
-        // 更多返回结果，修改 BOpenFileResult 并修改返回值。
         return r.Result.getOffset();
     }
 
@@ -115,7 +117,6 @@ public class ZokerAgent extends AbstractZokerAgent {
         r.SendForWait(zoker).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("append file error. " + IModule.getErrorCode(r.getResultCode()));
-        // 需要返回结果，修改 BAppendFileResult
     }
 
     public void closeFile(String zokerName, String fileName, Binary md5) {
@@ -144,7 +145,7 @@ public class ZokerAgent extends AbstractZokerAgent {
         r.Argument.setServiceName(serviceName);
         r.Argument.setVersionNo(versionNo);
         // 应答路径含 pruneVersions 整树删除（服务包体量+磁盘速度无界）——默认 5s 会把成功部署
-        // 当失败（stopService 同族，27e4dfcd3 先例），60s=部署级操作裕量。
+        // 当失败（stopService 同族），60s=部署级操作裕量。
         r.SendForWait(getZoker(zokerName), 60_000).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("commit service error=" + IModule.getErrorCode(r.getResultCode()));
@@ -188,7 +189,7 @@ public class ZokerAgent extends AbstractZokerAgent {
                 }
             } catch (Exception primary) {
                 // 传输已失败：closeFile的失败（部分digest的eMd5Mismatch/断链回收后的eNotOpened）
-                // 是预期伴生，压制为suppressed，不得顶替原始异常（GE-D04）。
+                // 是预期伴生，压制为suppressed，不得顶替原始异常。
                 try {
                     closeFile(zokerName, fileRelativeName, new Binary(md5.digest()));
                 } catch (Exception suppressed) {
@@ -225,8 +226,7 @@ public class ZokerAgent extends AbstractZokerAgent {
         r.Argument.setServiceName(serviceName);
         r.Argument.setForce(force);
         // 服务端 stop 三态最坏路径 10s 优雅+10s 强杀（ServiceManager），默认 5s 超时会让
-        // Force-Killed/Alive-After-Force 两态不可达（迟到结果包被丢上下文）。60s=最坏路径3倍裕量，
-        // 对齐 00fd190c0 的 60s 族先例。
+        // Force-Killed/Alive-After-Force 两态不可达（迟到结果包被丢上下文）。60s=最坏路径3倍裕量。
         r.SendForWait(zoker, 60_000).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("stop service error. " + IModule.getErrorCode(r.getResultCode()));

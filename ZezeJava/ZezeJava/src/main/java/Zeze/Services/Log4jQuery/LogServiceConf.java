@@ -8,6 +8,9 @@ import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
+/**
+ * LogService 配置：解析 xml 中的服务标识、查询会话空闲阈值与多份 LogConf（每份日志一套文件名与格式）。
+ */
 public class LogServiceConf implements Config.ICustomize {
 	public static class LogConf {
 		public String logActive;
@@ -41,7 +44,7 @@ public class LogServiceConf implements Config.ICustomize {
 	}
 
 	public String serviceIdentity = "#LogService_{serverId}_{host}_{port}";
-	// 查询会话空闲过期阈值（毫秒，GD-D03）：NewSession/查询路径顺带清理超龄会话；<=0禁用。默认1小时（小时级，
+	// 查询会话空闲过期阈值（毫秒）：NewSession/查询路径顺带清理超龄会话；<=0禁用。默认1小时（小时级，
 	// 需显著大于正常翻页间隔——回收正在翻页的会话会打断查询）。
 	public long sessionIdleTimeoutMillis = 3_600_000;
 	private final ConcurrentHashMap<String, LogConf> logConfs = new ConcurrentHashMap<>();

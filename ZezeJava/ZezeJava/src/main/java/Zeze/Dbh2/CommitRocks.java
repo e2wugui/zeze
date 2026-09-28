@@ -24,6 +24,9 @@ import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 
+/**
+ * Dbh2 事务提交点存储（RocksDB），负责事务 prepare/commit/undo 记录与失败重做。
+ */
 public class CommitRocks {
 	private static final Logger logger = LogManager.getLogger(CommitRocks.class);
 
@@ -33,7 +36,7 @@ public class CommitRocks {
 	private final RocksDatabase.Table commitIndex;
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 	// 周期守护：redoTimer(RocksDB迭代+逐桶RPC get阻塞等待)进worker池不占调度线程；
-	// close有界等待在飞一轮（原TimerFuture.cancel为无界join）
+	// close有界等待在飞一轮
 	private final DaemonTimer redoDaemon = new DaemonTimer("CommitRocks.redoTimer", 60_000, this::redoTimer);
 
 	public CommitRocks(Dbh2AgentManager manager, int serverId) throws RocksDBException {
@@ -54,7 +57,6 @@ public class CommitRocks {
 		} catch (Exception ex) {
 			logger.error("first try.", ex);
 		}
-		// 1 minute?
 		redoDaemon.start();
 	}
 
@@ -97,7 +99,6 @@ public class CommitRocks {
 			}
 			removeTransactionRecord(key);
 		} catch (Throwable ex) {
-			// timer will redo
 			logger.error("", ex);
 		}
 	}
@@ -134,7 +135,6 @@ public class CommitRocks {
 	}
 
 	private void undo(long tid, BTransactionState.Data state) {
-		// undo
 		var futures = new ArrayList<TaskCompletionSource<?>>();
 		for (var e : state.getBuckets()) {
 			futures.add(manager.openBucket(e).undoBatch(tid));
@@ -180,7 +180,6 @@ public class CommitRocks {
 		ByteBuffer.longBeHandler.set(tidBytes, 0, tid);
 		var prepareTime = System.currentTimeMillis();
 		try {
-			// prepare
 			saveCommitPoint(tidBytes, state, Commit.ePreparing);
 			var futures = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
 			for (var e : batches.getDatas().entrySet()) {
@@ -238,7 +237,6 @@ public class CommitRocks {
 			throw new RuntimeException(ex);
 		}
 
-		// commit
 		try {
 			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>>>();
 			for (var e : state.getBuckets()) {
@@ -252,14 +250,12 @@ public class CommitRocks {
 			}
 			removeTransactionRecord(tidBytes);
 		} catch (Throwable ex) {
-			// timer will redo
 			logger.error("", ex);
 		}
 	}
 
 	public static BTransactionState.Data buildTransactionState(BPrepareBatches.Data batches) {
 		var bState = new BTransactionState.Data();
-		//bState.setTimestamp(System.currentTimeMillis());
 		for (var e : batches.getDatas().entrySet()) {
 			bState.getBuckets().add(e.getKey());
 		}
@@ -268,13 +264,11 @@ public class CommitRocks {
 
 	private void saveCommitPoint(byte[] tidBytes, BTransactionState.Data bState, int state) throws RocksDBException {
 		bState.setState(state);
-		//bState.setTimestamp(System.currentTimeMillis());
 		var bb = ByteBuffer.Allocate();
 		bState.encode(bb);
 		var bbIndex = ByteBuffer.Allocate(5);
 		bbIndex.WriteUInt(state);
 		try (var batch = database.borrowBatch()) {
-			// putIfAbsent ？？？ 报错！
 			commitPoint.put(batch, tidBytes, tidBytes.length, bb.Bytes, bb.WriteIndex);
 			commitIndex.put(batch, tidBytes, tidBytes.length, bbIndex.Bytes, bbIndex.WriteIndex);
 			batch.commit(writeOptions);

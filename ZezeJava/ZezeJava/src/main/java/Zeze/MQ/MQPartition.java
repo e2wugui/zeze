@@ -10,6 +10,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Net.AsyncSocket;
 
+/**
+ * 同一 topic 的分区集合：维护分区表与订阅的消费者，按 sessionId 将分区绑定到消费者连接。
+ */
 public class MQPartition extends ReentrantLock {
 	private static final Logger logger = LogManager.getLogger();
 	private final ConcurrentHashMap<Integer, MQSingle> partitions = new ConcurrentHashMap<>();
@@ -31,7 +34,7 @@ public class MQPartition extends ReentrantLock {
 		return load;
 	}
 
-	// 【GB-D02】loadMonitorTimer 周期驱动：逐分区尝试水位线整段回收（条件自判，见MQFileWithIndex.tryRecycle）。
+	// loadMonitorTimer 周期驱动：逐分区尝试水位线整段回收（条件自判，见MQFileWithIndex.tryRecycle）。
 	public void tryRecycleSegments(long delayMs) {
 		for (var partition : partitions.values())
 			partition.tryRecycleSegments(delayMs);
@@ -50,7 +53,7 @@ public class MQPartition extends ReentrantLock {
 			partitions.computeIfAbsent(index, (key) -> new MQSingle(this, topic, index));
 	}
 
-	// 【GB-D01】删除活分区：先摘除（此后 SendMessage/Subscribe 走 eTopicNotExist/ePartition 拒绝，
+	// 删除活分区：先摘除（此后 SendMessage/Subscribe 走 eTopicNotExist/ePartition 拒绝，
 	// 新的 fill/推送无从发起），再 bind(null) 静默在途推送、close 有界排空在飞回填（MQSingle.close 契约）。
 	// 之后由 MQManager.deletePartition 清理段文件/索引列族/meta。分区删除不触发 arrangeConsumer：
 	// 订阅集合未变，其余分区的 sessionId 取模绑定不受影响。
@@ -134,7 +137,7 @@ public class MQPartition extends ReentrantLock {
 		close(Long.MAX_VALUE);
 	}
 
-	public void close(long drainDeadlineMs) throws IOException { // GB-D01：总额包络下传
+	public void close(long drainDeadlineMs) throws IOException { // 总额包络下传
 		for (var partition : partitions.values())
 			partition.close(drainDeadlineMs);
 	}

@@ -12,6 +12,9 @@ import Zeze.Services.ZokerImpl.DistributeManager;
 import Zeze.Services.ZokerImpl.ServiceManager;
 import Zeze.Services.ZokerImpl.ZokerService;
 
+/**
+ * 服务分发管理端：接收 ZokerAgent 上传的服务文件，提交为版本目录，并管理服务进程的启停。
+ */
 public class Zoker extends AbstractZoker {
 	private static final Logger logger = LogManager.getLogger(Zoker.class);
 
@@ -26,8 +29,8 @@ public class Zoker extends AbstractZoker {
 		// init/create dir
 		zokerDir = new File(baseDir);
 		Files.createDirectories(zokerDir.toPath());
-		// services/ 是版本容器布局（GE-D02）：services/<svc>/<versionNo>/... + services/<svc>/current 指针。
-		// 旧布局的 servicesOld/ 备份目录概念随版本目录回滚点一并消失，不再创建。
+		// services/ 是版本容器布局：services/<svc>/<versionNo>/... + services/<svc>/current 指针。
+		// 不创建旧布局的 servicesOld/ 备份目录（回滚点由保留的版本目录承担）。
 		serviceDir = Path.of(baseDir, "services").toFile();
 		Files.createDirectories(serviceDir.toPath());
 		distributeDir = Path.of(baseDir, "distributes").toFile();
@@ -53,7 +56,7 @@ public class Zoker extends AbstractZoker {
 	}
 
 	public void start() throws Exception {
-		// GE-D01(FND21)：listen 前启动对账领养——上一代 Zoker 留下的孤儿先按 run.pid 身份核实
+		// listen 前启动对账领养——上一代 Zoker 留下的孤儿先按 run.pid 身份核实
 		// 装账，start/stop/list 从第一帧起即跨 Zoker 重启连续（对账点=启动扫描，单一入口）。
 		processManager.adoptOrphans();
 		serverWithConnector.start();
@@ -96,8 +99,8 @@ public class Zoker extends AbstractZoker {
 		return 0;
 	}
 
-	// CloseFile 错误码路径（GE-D04 三态）：eCloseError=系统异常；eNotOpened=文件不在传输中
-	// （未Open/已收尾/断链回收后补发——agent重连补发的close走此路径，不再谎报校验成功）；
+	// CloseFile 错误码路径（三态）：eCloseError=系统异常；eNotOpened=文件不在传输中
+	// （未Open/已收尾/断链回收后补发——agent重连补发的close走此路径，不谎报校验成功）；
 	// eMd5Mismatch=校验失败（服务端已删除损坏中间产物，重传从0开始）。
 	@Override
 	protected long ProcessCloseFileRequest(Zeze.Builtin.Zoker.CloseFile r) throws Exception {
@@ -127,8 +130,8 @@ public class Zoker extends AbstractZoker {
 		return 0;
 	}
 
-	// StartService 的失败映射协议错误码（GE-D01）：eNoServiceProperties=缺少部署描述文件
-	// service.properties（含无现役版本）；eStartFail=进程创建失败。不再异常上抛（无结果包=客户端超时）。
+	// StartService 的失败映射协议错误码：eNoServiceProperties=缺少部署描述文件
+	// service.properties（含无现役版本）；eStartFail=进程创建失败。不异常上抛（无结果包=客户端超时）。
 	@Override
 	protected long ProcessStartServiceRequest(Zeze.Builtin.Zoker.StartService r) {
 		var rc = processManager.startService(r);

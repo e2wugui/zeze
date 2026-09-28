@@ -7,6 +7,9 @@ import Zeze.Services.Log4jQuery.handler.QueryHandlerManager;
 import Zeze.Services.Log4jQuery.handler.entity.ClassInfo;
 import Zeze.Services.Log4jQuery.handler.entity.SimpleField;
 
+/**
+ * cmd_param 命令：返回指定命令的参数类描述（基础类型或字段列表）。
+ */
 @HandlerCmd("cmd_param")
 public class SelectCmdParamHandler implements QueryHandler<String, ClassInfo> {
 		@Override

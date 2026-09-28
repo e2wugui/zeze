@@ -1,5 +1,8 @@
 package Zeze.Services.Log4jQuery.handler.entity;
 
+/**
+ * JSON 序列化测试对象（test_json 命令的演示参数）。
+ */
 public class JsonTestObj {
 	private String name;
 	private int age;

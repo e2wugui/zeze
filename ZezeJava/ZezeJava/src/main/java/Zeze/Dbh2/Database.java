@@ -49,11 +49,6 @@ public class Database extends Zeze.Transaction.Database {
 			databaseName = new java.io.File(url.getPath()).getName();
 			if (databaseName.contains("@"))
 				throw new RuntimeException("databaseName: '@' is reserve.");
-			/*
-			var query = HttpExchange.parseQuery(url.getQuery());
-			user = query.get("user");
-			passwd = query.get("passwd");
-			*/
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -167,7 +162,7 @@ public class Database extends Zeze.Transaction.Database {
 			var tableName = name.substring(idx + special.length());
 			return new Dbh2PrefixTable(tables.computeIfAbsent(tableName, __ -> new Dbh2Table(tableName, true)), id);
 		}
-		// 这里不使用tables，保留的旧的逻辑不变。
+		// 这里不使用tables。
 		return new Dbh2Table(name, false);
 	}
 
@@ -362,23 +357,23 @@ public class Database extends Zeze.Transaction.Database {
 			}
 		}
 
-		// 建表重试总预算（GA-D04）：非final便于测试收缩。master/manager空窗（重启、扩容、选举）以十秒计，
+		// 建表重试总预算：非final便于测试收缩。master/manager空窗（重启、扩容、选举）以十秒计，
 		// 5分钟覆盖滚动重启窗口后仍有界。
 		static volatile long createTableRetryBudgetMs = 5 * 60_000L;
 
 		public Dbh2Table(String tableName, boolean registered) {
 			this.name = tableName;
 			this.registered = registered;
-			// 第一次立即发起（保持原行为），重试才有延迟。
+			// 第一次立即发起，重试才有延迟。
 			createTableWithRetry(1_000, System.currentTimeMillis() + createTableRetryBudgetMs);
 		}
 
-		// 建表异步重试（GA-D04）：eTableNotFound/eTooFewManager是master/manager空窗的暂时性失败
+		// 建表异步重试：eTableNotFound/eTooFewManager是master/manager空窗的暂时性失败
 		//（master侧createTable幂等：存在即返回，重试无重复建桶副作用），1s起指数退避封顶30s，
 		// 超总预算才setException；其他错误码（配置类，如eDatabaseNotFound）立即失败。
 		// Procedure.Exception（-1）：master侧handler异常逃逸（createBucketRafts超时/建桶rpc失败等）
 		// 被noProcedure派发层统一翻成的码——扩容滚动窗口的现实暂时性失败，码面无法区分暂时/永久，
-		// 重试并以总预算兜底（FND20 GA-C04）。
+		// 重试并以总预算兜底。
 		private void createTableWithRetry(long retryDelayMs, long deadlineMs) {
 			dbh2AgentManager.createTableAsync(
 					Database.this.masterAgent, Database.this.masterName,

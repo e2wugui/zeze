@@ -11,6 +11,9 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Util.OutObject;
 
+/**
+ * Dbh2 客户端访问 Commit 服务的代理，提供事务状态查询与提交。
+ */
 public class CommitAgent extends AbstractCommitAgent {
 	public static final String eServiceName = "Zeze.Dbh2.CommitAgent";
 

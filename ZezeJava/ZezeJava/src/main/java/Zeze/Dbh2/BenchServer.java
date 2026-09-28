@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import Zeze.Config;
 import Zeze.Util.Task;
 
+/**
+ * Dbh2 压测服务端：拉起 master 与多个 manager 后运行 BenchClient。
+ */
 public class BenchServer {
 	@SuppressWarnings("unused")
 	private static Database newDatabase(Dbh2AgentManager dbh2AgentManager, String dbName) {

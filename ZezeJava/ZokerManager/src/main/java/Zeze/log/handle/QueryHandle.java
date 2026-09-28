@@ -11,6 +11,9 @@ import Zeze.log.handle.entity.QueryParam;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
+/**
+ * /api/query 处理器：把查询请求转发给指定日志服务器并回传结果。
+ */
 public class QueryHandle implements HttpEndStreamHandle {
 	@Override
 	public void onEndStream(HttpExchange x) throws Exception {

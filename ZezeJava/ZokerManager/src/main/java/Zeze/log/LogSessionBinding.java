@@ -1,10 +1,10 @@
 package Zeze.log;
 
 /**
- * Search/Browse 会话的数据源绑定回执（GE-D06 方案A：会话回执比对）。
+ * Search/Browse 会话的数据源绑定回执（会话回执比对）。
  * 会话创建时记录 (会话类型, serverName, logName) 三元组，HTTP 层复用会话前用
  * {@link #matches} 比对请求参数，不匹配即视为新会话（关旧建新）——服务端自证，
- * 不再依赖前端"切换数据源必须置 changeSession"的客户端侧契约。
+ * 不依赖前端"切换数据源必须置 changeSession"的客户端侧契约。
  * Session/SessionAll 在 Zeze.Services.Log4jQuery（协议侧），绑定回执属于
  * HTTP 层的会话身份管理，故记录在 ZokerManager 侧随会话对象一并存表。
  */

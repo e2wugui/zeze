@@ -16,6 +16,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 跨全部日志服务端的聚合查询会话：对每台建 Session，归并 search/browse 结果并跟踪各台完成状态。
+ */
 public class SessionAll implements AutoCloseable {
 	private static final @NotNull Logger logger = LogManager.getLogger(SessionAll.class);
 
@@ -52,7 +55,7 @@ public class SessionAll implements AutoCloseable {
 	public BResult.Data operate(Func1<Session, TaskCompletionSource<BResult.Data>> op)
 			throws Exception {
 
-		// 逐台收集失败（GD-D06）：单台异常（RPC超时/连接抖动/发送失败）不牺牲其余台结果，
+		// 逐台收集失败：单台异常（RPC超时/连接抖动/发送失败）不牺牲其余台结果，
 		// 与构造期"跳过不可用台"降级及close()的逐台收集同构；失败台不标记finishedSession——下次operate自然重试它。
 		Exception firstFailure = null;
 		var failedServers = new ArrayList<String>();
@@ -93,11 +96,10 @@ public class SessionAll implements AutoCloseable {
 					firstFailure.addSuppressed(e);
 				continue;
 			}
-			// GE-C03 不变式：错误码台（死会话的服务端 LogicError）不会走到这里——Session.search/browse
+			// 不变式：错误码台（死会话的服务端 LogicError）不会走到这里——Session.search/browse
 			// 返回的 TCS 在 get 时对非零 resultCode 抛异常（Session.checkResultCode），与 RPC 超时/
 			// 连接抖动同走上面的 failedServers 路径：不标记 finishedSession（下次 operate 重试）、
 			// 全败时上抛。因此能到达本行的只剩零码结果，!isRemain() 才可信地表示"该台查完"。
-			// 返回的结果基本有序，只是偶尔log4j会有一点点乱序，这里该用什么sort更快？
 			r.getLogs().sort(comparator);
 			remain = remain || r.isRemain();
 			if (!r.isRemain())
@@ -106,7 +108,7 @@ public class SessionAll implements AutoCloseable {
 		}
 		if (firstFailure != null) {
 			if (rs.isEmpty())
-				// 全部失败必须抛（GD-D06）：空BResult.Data在调用方语义是"查完无匹配"，与"查询失败"不可混淆。
+				// 全部失败必须抛：空BResult.Data在调用方语义是"查完无匹配"，与"查询失败"不可混淆。
 				throw firstFailure;
 			// 部分失败：降级返回已有结果（失败台的remain遗漏是降级语义的一部分），warn是唯一可观测补偿。
 			logger.warn("operate partial fail, success={}, failed={}", rs.size(), failedServers, firstFailure);
@@ -126,13 +128,12 @@ public class SessionAll implements AutoCloseable {
 			throw new IllegalArgumentException("rs.isEmpty.");
 
 		case 1:
-			return rs.get(0); // 只有一个。
+			return rs.get(0);
 
 		case 2:
 			return merge(rs.get(0), rs.get(1));
 
 		default:
-			// 这里直接一个循环处理不差吧，递归好像不能省什么。
 			var tmp = new ArrayList<BResult.Data>();
 			var odd = rs.size() % 2 == 1;
 			var pairEnd = odd ? rs.size() - 1 : rs.size();

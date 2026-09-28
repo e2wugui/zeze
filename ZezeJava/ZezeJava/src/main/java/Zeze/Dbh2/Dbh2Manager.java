@@ -87,7 +87,7 @@ public class Dbh2Manager {
 		dbHome.mkdirs();
 		raftConfig.setDbHome(dbHome.toString());
 		var file = new File(raftConfig.getDbHome(), "raft.xml");
-		// 经原语落盘：原Files.writeString默认截断，崩溃留半截xml。
+		// 原子落盘：Files.writeString默认截断，崩溃留半截xml。
 		AtomicFileWriter.replace(file.toPath(), raftConfigStr.getBytes(StandardCharsets.UTF_8));
 		dbh2s.computeIfAbsent(raftConfig.getSortedNames(), __ -> {
 			var dbh2 = new Dbh2(this, raftConfig.getName(),
@@ -177,7 +177,6 @@ public class Dbh2Manager {
 		var acceptorAddress = masterService.getAcceptorAddress();
 		var dbh2sAtMaster = masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2s.size());
 		logger.info("{}, {} - rafts=\n{}\n{}", acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2sAtMaster, dbh2s.keySet());
-		// build map
 		var dbh2sAtMasterMiss = new HashMap<String, BDbh2Config.Data>();
 		for (var dbh2 : dbh2sAtMaster.getDbh2Configs()) {
 			if (!dbh2s.containsKey(dbh2.getRaftConfig()))
@@ -188,7 +187,6 @@ public class Dbh2Manager {
 		for (var dbh2 : dbh2sAtMasterMiss.values()) {
 			createBucket(dbh2.getDatabase(), dbh2.getTable(), dbh2.getRaftConfig());
 		}
-		// set ready
 		masterAgent.setDbh2Ready();
 		proxyServer.start();
 
@@ -207,7 +205,6 @@ public class Dbh2Manager {
 			hasSplitting |= dbh2.getStateMachine().getBucket().getSplittingMeta() != null;
 
 			// 达到分桶条件之一：负载高于最大值的80%。
-			// 这里可以考虑dbFileSize(min,max)，当库比较大时也分桶，另外库很小时即使负载高也不分桶。
 			if (load > dbh2.getDbh2Config().getSplitLoad())
 				willSplit.add(dbh2);
 			if (load > maxLoad) {
@@ -230,7 +227,7 @@ public class Dbh2Manager {
 	}
 
 	public void stop() throws Exception {
-		loadMonitorTimer.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s），不再interrupt池线程
+		loadMonitorTimer.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s），不interrupt池线程
 		ShutdownHook.remove(this);
 		proxyServer.stop();
 		masterAgent.stop();

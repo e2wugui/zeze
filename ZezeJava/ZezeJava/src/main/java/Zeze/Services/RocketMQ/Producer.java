@@ -26,6 +26,9 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * RocketMQ 事务消息生产者：本地 Zeze 过程与半消息 COMMIT/ROLLBACK 绑定，并维护事务回查表 tSent。
+ */
 public class Producer extends AbstractProducer implements TransactionListener {
 	private static final @NotNull Logger logger = LogManager.getLogger(Producer.class);
 
@@ -53,7 +56,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 
 	public void start() throws MQClientException {
 		producer.start();
-		// 每日清理tSent过期行（FND2-S3-4）：COMMIT路径保留的事务行此前无任何删除路径，表无界增长。
+		// 每日清理tSent过期行：COMMIT路径保留的事务行若不定期删除，表会无界增长。
 		if (tSentCleanFuture == null)
 			tSentCleanFuture = TaskSpec.ofAction(this::cleanExpiredTSent)
 					.scheduleAtPeriodNow(3, 30, 24 * 60 * 60 * 1000);
@@ -84,7 +87,6 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	public @Nullable TransactionSendResult sendMessageWithTransaction(@NotNull Message msg,
 																	  @NotNull FuncLong procedureAction)
 			throws MQClientException {
-		// msg = new Message("Topic", "tag1 || tag2", "key1", "Message Body".getBytes(RemotingHelper.DEFAULT_CHARSET));
 		var txnId = zeze.getAutoKey("RocketMQ").nextString();
 		msg.setTransactionId(txnId);
 		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
@@ -112,9 +114,9 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			if (uniqKey != null) {
 				var exist = _tSent.get(uniqKey);
 				if (exist != null)
-					// 同一Message对象重复发送：UNIQ_KEY复用，按首跑结果分流（增量审R1-03：
+					// 同一Message对象重复发送：UNIQ_KEY复用，按首跑结果分流——
 					// 无条件return 0会把首跑失败残留的result=false行也COMMIT，违背
-					// "仅当事务成功才发送"）。
+					// "仅当事务成功才发送"。
 					return exist.isResult() ? 0 : 1;
 			}
 			var sent = _tSent.get(action.txnId());

@@ -5,6 +5,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
+/**
+ * Dbh2 配置项：从 Config 自定义节解析 RPC 超时、分桶与提交模式等参数。
+ */
 public class Dbh2Config implements Config.ICustomize {
 	private int rpcTimeout = 60_000;
 	private long prepareMaxTime = 80_000; // 一般大于rpcTimeout
@@ -16,8 +19,8 @@ public class Dbh2Config implements Config.ICustomize {
 	private int raftClusterCount = 3;
 	private boolean serialize = true;
 	private int splitCleanCount = 200;
-	// splitting条目超龄告警阈值（GA-D01 A4/INV5，默认10min量级）：master周期扫描，超龄error
-	// 告警。只观测不动作——超大桶拷贝可超过任何阈值，超龄自动删除会人为重演(A)的永久读失败。
+	// splitting条目超龄告警阈值（默认10min量级）：master周期扫描，超龄error
+	// 告警。只观测不动作——超大桶拷贝可超过任何阈值，超龄自动删除会人为重演永久读失败。
 	private long splittingAgeWarnMs = 600_000;
 	// 远程提交模式（Dbh2LocalCommit=false）的CommitServer直连地址，属性CommitServerAddress="host:port"，可空。
 	// 单实例语义：commitPoint集中在该CommitServer的CommitRocks库，多实例时事务跨服务器无统一redo视角。

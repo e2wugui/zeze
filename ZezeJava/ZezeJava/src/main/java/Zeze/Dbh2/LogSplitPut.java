@@ -9,6 +9,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * 分裂数据搬迁写入的 Raft 日志。
+ */
 public class LogSplitPut extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogSplitPut.class.getName());
 

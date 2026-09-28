@@ -9,6 +9,9 @@ import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 import static Zeze.Util.Args.requireInt;
 
+/**
+ * Dbh2 Master 服务进程入口。
+ */
 public class Main {
 	private static final Logger logger = LogManager.getLogger(Main.class);
 
@@ -32,7 +35,7 @@ public class Main {
 
 	public void start() throws Exception {
 		service.start();
-		master.startSplittingAgeMonitor(); // splitting年龄观测（GA-D01 A4/INV5）：周期扫描超龄告警
+		master.startSplittingAgeMonitor(); // splitting年龄观测：周期扫描超龄告警
 		ShutdownHook.add(this, this::stop);
 	}
 

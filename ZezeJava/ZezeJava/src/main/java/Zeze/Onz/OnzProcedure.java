@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** 参与方侧procedure执行上下文：承载一次FuncProcedure调用的业务执行、ready上报与Commit/Rollback/flush两阶段应答。 */
 public class OnzProcedure implements FuncLong {
 	private static final @NotNull Logger logger = LogManager.getLogger(OnzProcedure.class);
 	private final BFuncProcedure.Data funcArgument;
@@ -94,7 +95,6 @@ public class OnzProcedure implements FuncLong {
 		commitFuture = new TaskCompletionSource<>();
 		stub.getOnz().markReadyProcedure(this);
 
-		// 发送rpc结果
 		var req = (FuncProcedure)rpc;
 		var bbResult = ByteBuffer.Allocate();
 		getResult().encode(bbResult);
@@ -102,7 +102,7 @@ public class OnzProcedure implements FuncLong {
 		req.SendResult();
 
 		// 发送事务执行阶段的两段式提交的准备完成，同时等待一起提交的信号。
-		// FND5-45：协调者在perform阶段崩溃（决策未持久化：commitIndex尚无记录，重启后的
+		// 协调者在perform阶段崩溃（决策未持久化：commitIndex尚无记录，重启后的
 		// redoTimer不会重发Rollback）时，无超时等待使参与方事务线程永久挂起并持有行锁。
 		// 超时按Rollback自愈：清理登记后以异常结束等待，本地事务回滚、锁释放。
 		// flushTimeout为协调者随请求下发的既有参数，等待语义与flush路径（sendFlushReady）一致。
@@ -111,7 +111,7 @@ public class OnzProcedure implements FuncLong {
 				// CAS占用成功（条目仍是自己的）：无并发决策，安全以超时异常结束（抛出→本地事务回滚）。
 				// 槽位哨兵即超时标记：迟到的Commit取走哨兵即真实不一致（协调者提交了已回滚的
 				// 参与方），由ProcessCommitRequest记error暴露——取走与标记在同一map的CAS原子域
-				// 内互斥可见（FND6-38），无漏报窗口。
+				// 内互斥可见，无漏报窗口。
 				commitFuture.setException(new RuntimeException(
 						"onz wait commit/rollback timeout. tid=" + getOnzTid() + " name=" + getName()));
 			}
@@ -126,8 +126,8 @@ public class OnzProcedure implements FuncLong {
 		var future = new TaskCompletionSource<Long>();
 		var r = new FlushReady();
 		r.Argument.setOnzTid(getOnzTid());
-		// GC-D03：携带本集群身份（Onz.getParticipantName）。flush失败重试会重走本方法发出
-		// 新的rpc对象（FND8-18的正确性机制），协调者按Participant去重计数——重发不再虚增
+		// 携带本集群身份（Onz.getParticipantName）。flush失败重试会重走本方法发出
+		// 新的rpc对象，协调者按Participant去重计数——重发不虚增
 		// 计数提前打开"已全部flush"闸门。身份不填（旧版本参与方）时协调者按rpc对象兜底计数。
 		r.Argument.setParticipant(stub.getOnz().getParticipantName());
 		if (!r.Send(rpc.getSender(), (p) -> {
@@ -149,7 +149,7 @@ public class OnzProcedure implements FuncLong {
 	}
 
 	/**
-	 * FND8-76：ready后本地回滚（perform停机拒绝等"结果已发、决策已到而本地落库失败"）——
+	 * ready后本地回滚（perform停机拒绝等"结果已发、决策已到而本地落库失败"）——
 	 * 由Transaction.perform在RejectWhileStopping分支调用：记分歧error的补充动作，
 	 * 回填超时哨兵覆盖迟到redo Commit的二次确认（见Onz.markRolledBackAfterReady）。
 	 */
@@ -157,16 +157,13 @@ public class OnzProcedure implements FuncLong {
 		stub.getOnz().markRolledBackAfterReady(this);
 	}
 
-	// helper
 	public static void sendFlushAndWait(@Nullable Set<OnzProcedure> onzProcedures) {
 		if (onzProcedures != null) {
-			// send all
 			var futures = new ArrayList<TaskCompletionSource<Long>>();
 			for (var onz : onzProcedures) {
 				if (onz != null && onz.isEnd())
 					futures.add(onz.sendFlushReady());
 			}
-			// wait all
 			for (var future : futures)
 				future.await();
 		}

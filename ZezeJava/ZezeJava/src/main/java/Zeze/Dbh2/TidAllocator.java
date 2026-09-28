@@ -3,6 +3,9 @@ package Zeze.Dbh2;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * 事务 Tid 分配器：在 Raft 日志分配的区间内本地发号。
+ */
 public class TidAllocator extends ReentrantLock {
 	private volatile Range range; // 只有 raft 修改，单线程。
 	private static final int ALLOCATE_COUNT_MIN = 64;

@@ -53,7 +53,7 @@ public class Log4jFileManager extends ReentrantLock {
 	private final String logFileEnd;
 	private final LogServiceConf.LogConf logConf;
 	private final Future<?> buildIndexTimer;
-	// OVERFLOW触发的对账节流状态（GD-D02）：溢出语义是"可能丢失"，不拉满对账频率，窗口内重复触发不重复执行。
+	// OVERFLOW触发的对账节流状态：溢出语义是"可能丢失"，不拉满对账频率，窗口内重复触发不重复执行。
 	private static final long RECONCILE_THROTTLE_MS = 60_000;
 	private final AtomicLong lastReconcileTime = new AtomicLong();
 
@@ -64,35 +64,34 @@ public class Log4jFileManager extends ReentrantLock {
 		this.logFileEnd = fulls.length > 1 ? fulls[fulls.length - 1] : "";
 		this.logFileBegin = fulls.length > 1 ? String.join(".", Arrays.copyOf(fulls, fulls.length - 1)) : fulls[0];
 
-		// OVERFLOW节流对账/监听失效最终对账的入口（GD-D02）。
+		// OVERFLOW节流对账/监听失效最终对账的入口。
 		this.fileCreateDetector = new FileCreateDetector(logConf.logDir, this::onFileCreated,
 				this::reconcileThrottled, this::reconcile);
 
 		// 装载期间持有锁：onFileCreated跑在监视线程（构造即启动），不持锁装载会与其交错，
-		// 产生幽灵条目或索引未随行改名；持锁后启动瞬间的create事件排队到装载完成后按序处理（FND-S3-13）。
+		// 产生幽灵条目或索引未随行改名；持锁后启动瞬间的create事件排队到装载完成后按序处理。
 		try {
 			lock();
 			try {
 				loadRotates(logConf.logDir);
 				var active = new File(logConf.logDir, logConf.logActive);
 				if (active.exists()) {
-					// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile，
-					// 搜索的时候忽略文件不存在的错误？
-					// 暂时先不处理！（WatchService对rename的CREATE事件乱序时仍可能漏登新active，见挂档记录）
+					// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile。
+					// WatchService对rename的CREATE事件递交乱序时仍可能漏登新active。
 					files.add(Log4jFile.of(active, loadIndex(active, logConf.logActive + ".index")));
 				}
 			} finally {
 				unlock();
 			}
 		} catch (Exception e) {
-			// 构造失败回收detector：其线程在构造函数里已start并强引用this，不join则watch永驻半构造对象（GD-C07）。
+			// 构造失败回收detector：其线程在构造函数里已start并强引用this，不join则watch永驻半构造对象。
 			fileCreateDetector.stopAndJoin();
 			throw e;
 		}
 		var period = 300_000L;
 		buildIndexTimer = TaskSpec.ofAction(this::buildIndex)
 				.schedulePeriodNow(Random.getInstance().nextLong(period), period);
-		// 持锁调用（GD-C03增量审收口）：与onFileCreated同一串行点，构造尾锁外调用与
+		// 持锁调用：与onFileCreated同一串行点，构造尾锁外调用与
 		// 并发轮转的链接清理/登记交错时存活句柄计算可读到中间态。
 		lock();
 		try {
@@ -107,7 +106,7 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * outEntry回传实际打开的条目（GD-C01）：与out.value同源捕获，walker以条目引用为可收缩列表的重定位锚点，
+	 * outEntry回传实际打开的条目：与out.value同源捕获，walker以条目引用为可收缩列表的重定位锚点，
 	 * 出参风格与get(int, OutObject)同构。
 	 */
 	public Log4jFileSession seek(long time, OutInt out, OutObject<Log4jFile> outEntry) throws IOException {
@@ -119,8 +118,8 @@ public class Log4jFileManager extends ReentrantLock {
 				try {
 					logFileSession = new Log4jFileSession(target, file.index, logConf.charsetName, logConf.logTimeFormat);
 				} catch (FileNotFoundException e) {
-					// 文件被外部清理（logrotate压缩/保留期删除）：跳过该条目继续更旧的，持锁摘除+warn（GD-D01）；
-					// 轮转宽限未摘除（GD-C02）时同样continue降级——active条目留给case-1/repointMissedRotation改指。
+					// 文件被外部清理（logrotate压缩/保留期删除）：跳过该条目继续更旧的，持锁摘除+warn；
+					// 轮转宽限未摘除时同样continue降级——active条目留给case-1/repointMissedRotation改指。
 					removeMissingFile(file, target, e);
 					continue;
 				}
@@ -181,7 +180,7 @@ public class Log4jFileManager extends ReentrantLock {
 						&& (files.isEmpty() || !files.getLast().file.getName().equals(currentLogFileName))) {
 					var logFile = new File(logConf.logDir, fileName);
 					files.add(Log4jFile.of(logFile, loadIndex(logFile, getCurrentIndexFileName())));
-					// 登记即建硬链接，同步清理旧链接：removeOldLinkFiles只在构造期执行，不在此调用则链接随轮转累积（GD-C08）。
+					// 登记即建硬链接，同步清理旧链接：removeOldLinkFiles只在构造期执行，不在此调用则链接随轮转累积。
 					removeOldLinkFiles();
 				}
 				break;
@@ -192,7 +191,7 @@ public class Log4jFileManager extends ReentrantLock {
 
 				var last = files.getLast();
 				if (last.file.getName().equals(getCurrentLogFileName())) {
-					// 改名失败即中止改指与补登（GD-C01回滚语义，与repointMissedRotation共用helper）：
+					// 改名失败即中止改指与补登（回滚语义，与repointMissedRotation共用helper）：
 					// 失败后继续会让rotate条目与补登的active条目共享同一索引文件（openIndex对既存
 					// current索引新建硬链接mmap同一inode）交叉读写制造混合索引，错位跨重启固化。
 					// 中止后条目仍指current名，由下一轮reconcile摘除+常规补登收敛（配对重新正确）。
@@ -200,7 +199,7 @@ public class Log4jFileManager extends ReentrantLock {
 						return;
 					// 修改file指向新的logFile。index保持不变。
 					last.file = new File(logConf.logDir, fileName);
-					// 顺序无关补登（FND2-S3-5）：部分平台WatchService对rotate双CREATE事件的递交顺序
+					// 顺序无关补登：部分平台WatchService对rotate双CREATE事件的递交顺序
 					// 不保证，新active事件先到时被case 0同名守卫跳过漏登。这里在改指后主动补登：
 					// 乱序时由本分支兜底；正序时新active尚未创建或已由case 0登记，守卫去重。
 					var activeName = getCurrentLogFileName();
@@ -234,7 +233,7 @@ public class Log4jFileManager extends ReentrantLock {
 
 	/**
 	 * 打开files[index]的文件会话。
-	 * 文件被外部清理（FileNotFoundException）时跳过该条目继续（GD-D01）：持锁摘除+warn使后续条目前移，
+	 * 文件被外部清理（FileNotFoundException）时跳过该条目继续：持锁摘除+warn使后续条目前移，
 	 * 用同一index重试即得原来的下一个文件；残余条目全部打不开时返回null（此时index已不小于files.size()，
 	 * walker按遍历耗尽处理）。
 	 */
@@ -243,7 +242,7 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * outEntry回传实际打开的条目（GD-C01）：同index重试摘除后，回传的是重试最终打开的条目——
+	 * outEntry回传实际打开的条目：同index重试摘除后，回传的是重试最终打开的条目——
 	 * walker以此引用锚定可收缩的files列表（整型下标摘除左移后失真），出参风格与seek(time, OutInt)同构。
 	 */
 	public Log4jFileSession get(int index, OutObject<Log4jFile> outEntry) throws IOException {
@@ -256,8 +255,8 @@ public class Log4jFileManager extends ReentrantLock {
 					outEntry.value = file;
 				return session;
 			} catch (FileNotFoundException e) {
-				// 摘除（GD-D01）或并发改指后同index重试：摘除左移得到原后继、改指后重试开新目标；
-				// 轮转宽限保留（GD-C02）且仍指向失败目标时同index重试必然再FNFE——前移下标跳过，
+				// 摘除或并发改指后同index重试：摘除左移得到原后继、改指后重试开新目标；
+				// 轮转宽限保留且仍指向失败目标时同index重试必然再FNFE——前移下标跳过，
 				// 残余打不开由耗尽收尾（null）。
 				if (!removeMissingFile(file, target, e) && file.file == target)
 					++index;
@@ -267,7 +266,7 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * COW无锁身份查找（Log4jFile未覆写equals即引用同一性，GD-C01）：walker在hasNext入口/耗尽推进时
+	 * COW无锁身份查找（Log4jFile未覆写equals即引用同一性）：walker在hasNext入口/耗尽推进时
 	 * 按条目引用重同步currentIndex。列表快照与调用方读到的一致（COW不变式）。
 	 */
 	public int indexOf(Log4jFile file) {
@@ -275,14 +274,14 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * 条目指向的文件已被外部清理（FileNotFoundException）：持锁摘除条目并warn（GD-D01）。
+	 * 条目指向的文件已被外部清理（FileNotFoundException）：持锁摘除条目并warn。
 	 * 持锁复核failedTarget的identity：并发轮转（onFileCreated改指新文件）后条目已指向有效文件时不摘。
-	 * 轮转宽限（GD-C02）：active名条目 + 磁盘存在未登记rotate = 轮转进行中的磁盘证据——log4j轮转
+	 * 轮转宽限：active名条目 + 磁盘存在未登记rotate = 轮转进行中的磁盘证据——log4j轮转
 	 * 先rename旧内容到rotate名、后重建active，两步之间active路径短暂不存在；此窗口内摘除active条目
 	 * 会使case-1守卫（last==current名）落空，"索引改名+改指"整体跳过，旧索引残留current名下被
 	 * case-0挂到新内容上（错窗空查）。宽限保留条目，交给case-1/repointMissedRotation改指；
 	 * 条目指名不存在的文件只影响选中它的查询降级continue（无崩溃），rotate登记后宽限自然解除。
-	 * 摘除后文件又回来的恢复不做（罕见，记档），由对账（GD-D02）低频重扫补登。
+	 * 摘除后文件又回来的恢复不做（罕见），由对账低频重扫补登。
 	 * @return 是否实际摘除（未摘除时get的同index重试须防自旋）。
 	 */
 	private boolean removeMissingFile(Log4jFile file, File failedTarget, FileNotFoundException cause) {
@@ -291,11 +290,11 @@ public class Log4jFileManager extends ReentrantLock {
 			if (file.file != failedTarget)
 				return false; // 并发轮转已改指：条目现指有效文件，不摘
 			if (file.file.getName().equals(getCurrentLogFileName()) && hasUnregisteredRotateOnDisk()) {
-				// 宽限可观测（FND22 GD-C05）：正常轮转窗口毫秒级即收敛，本告警持续出现即宽限滞留
+				// 宽限可观测：正常轮转窗口毫秒级即收敛，本告警持续出现即宽限滞留
 				// （active真被外部删除+未登记rotate长期补登受阻）——区分"轮转进行中"与"无限期滞留"
 				// 的最低成本手段，滞留条目只造成查询降级，但不可静默。
 				logger.warn("log file missing but rotation unconverged, keep entry: {}", failedTarget);
-				return false; // 轮转进行中（GD-C02）：active条目是case-1改指的载体，不摘
+				return false; // 轮转进行中：active条目是case-1改指的载体，不摘
 			}
 			if (files.remove(file)) {
 				logger.warn("log file missing, remove entry: {}", failedTarget, cause);
@@ -308,7 +307,7 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * 磁盘上是否存在未登记的rotate名（GD-C02，须持manager锁调用）：即"轮转正在进行"的磁盘证据，
+	 * 磁盘上是否存在未登记的rotate名（须持manager锁调用）：即"轮转正在进行"的磁盘证据，
 	 * 供removeMissingFile/reconcile摘除循环对active名条目宽限判据。目录不可访问时查无证据，
 	 * 维持原摘除语义。
 	 */
@@ -329,7 +328,7 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * OVERFLOW/监听失效触发的对账入口（GD-D02）：节流——窗口内重复触发不重复对账（周期任务兜底收敛）。
+	 * OVERFLOW/监听失效触发的对账入口：节流——窗口内重复触发不重复对账（周期任务兜底收敛）。
 	 * 竞态下多执行一轮对账无害（reconcile幂等）。
 	 */
 	private void reconcileThrottled() {
@@ -342,8 +341,8 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * 目录对账（GD-D02）：磁盘为真相源，把files收敛到与logDir一致。
-	 * 消失条目摘除（与GD-D01查询路径同一形态：持锁remove+warn）；未登记的合法文件名补登
+	 * 目录对账：磁盘为真相源，把files收敛到与logDir一致。
+	 * 消失条目摘除（与查询路径同一形态：持锁remove+warn）；未登记的合法文件名补登
 	 * （loadIndex幂等，testFileName是现成判定器）。目录不存在/不可访问时跳过并保留告警，不视为错误。
 	 * 低频挂在buildIndexTimer（5分钟）上，不做独立定时器。
 	 */
@@ -374,18 +373,18 @@ public class Log4jFileManager extends ReentrantLock {
 			}
 
 			rotates.sort(Comparator.comparingLong(KV::getKey));
-			// 漏轮转改指（GD-C03）排在摘除循环前：active条目若先被摘除（active文件已消失的变体）即失去
+			// 漏轮转改指排在摘除循环前：active条目若先被摘除（active文件已消失的变体）即失去
 			// 携旧索引改指rotate的机会；改指后条目指向存在的rotate文件，摘除循环自然放行。
 			repointMissedRotation(rotates);
 
 			// 摘除消失条目：磁盘上已不存在的登记条目（.gz压缩/保留期删除无事件，只能靠重扫发现）。
-			// active名条目轮转宽限（GD-C02）：repointMissedRotation改名失败中止（GD-C01）时条目仍指
+			// active名条目轮转宽限：repointMissedRotation改名失败中止时条目仍指
 			// current名且文件不存在，但它是下轮改指重试的载体——磁盘有未登记rotate即轮转未收敛的证据，
 			// 不摘；rotate常规补登登记后宽限自然解除（下轮若文件仍缺失则摘）。
 			for (var file : files) {
 				if (!file.file.exists()) {
 					if (file.file.getName().equals(getCurrentLogFileName()) && hasUnregisteredRotateOnDisk()) {
-						// 宽限可观测（FND22 GD-C05）：同removeMissingFile——5min周期下持续出现本告警
+						// 宽限可观测：同removeMissingFile——5min周期下持续出现本告警
 						// 即宽限滞留形态（active真删+rotate补登持续失败），需人工介入。
 						logger.warn("log file missing (reconcile) but rotation unconverged, keep entry: {}", file.file);
 						continue; // 轮转进行中：active条目是改指载体，不摘
@@ -397,7 +396,7 @@ public class Log4jFileManager extends ReentrantLock {
 
 			// 补登：rotate按时间序插入到既有active条目之前（锁内active推进要求active==last；直接追加会把
 			// active挤到中间，触发下方守卫把active重复登记——同一文件双条目，搜索结果重复）。
-			// 补登只做头部采样（GD-D01）：GB级轮转文件的全量扫描让锁内补登分钟级、watch线程（恢复场景
+			// 补登只做头部采样：GB级轮转文件的全量扫描让锁内补登分钟级、watch线程（恢复场景
 			// 对账内联在其本尊上）被钉住、新CREATE事件堆积再触发OVERFLOW——"恢复动作自己制造下一轮丢失"。
 			// 采样后锁内只剩列表收敛+首条记录入索引（毫秒级，与单文件体量解耦）；余量由buildIndex锁外
 			// 续建通道增量补齐。两半缺一不可：只采样不续建=永久残索引、该条目查询永久线性定位。
@@ -429,18 +428,18 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * 补登漏轮转的case-1"索引改名+条目改指"语义（GD-C03）：轮转双CREATE事件被OVERFLOW吞掉/watch失效时，
+	 * 补登漏轮转的case-1"索引改名+条目改指"语义：轮转双CREATE事件被OVERFLOW吞掉/watch失效时，
 	 * 磁盘形态是"旧名消失+rotate名出现+active重建"，而既有active条目仍持旧内容的LogIndex（offset全是旧
 	 * 内容的文件内位置）——旧时间窗查询命中错文件、buildIndex给旧索引续写制造新旧混合索引且错位跨重启固化。
 	 * 检测：存在未登记rotate && active条目索引的末记录offset超出active文件当前长度——自洽索引的offset必落
 	 * 在文件长度内，超出即索引描述的是别的内容（即最早漏登rotate承载的旧内容；空索引lowerBound返回-1恒不触发）。
 	 * 处置（与onFileCreated case-1同构三步）：
-	 * 1. current索引改名跟随rotate（失败即中止改指——回滚语义与case-1共用renameCurrentIndexTo，
-	 *    GD-C01收口：继续改指会让rotate与新active双条目共享同一索引文件交叉读写）；
+	 * 1. current索引改名跟随rotate（失败即中止改指——回滚语义与case-1共用renameCurrentIndexTo：
+	 *    继续改指会让rotate与新active双条目共享同一索引文件交叉读写）；
 	 * 2. active条目改指rotate（LogIndex对象随行，mmap按inode有效）；
 	 * 3. active名留给reconcile既有守卫按新索引补登（loadIndex发现current索引已改名即全新建）。
 	 * 其余漏登rotate（更晚的轮转）走常规全量补登。
-	 * 限制：buildIndex已给旧索引混入新内容记录后（offset不再超长）检测不到，维持既有行为（案卷GD-C03限制条件）。
+	 * 限制：buildIndex已给旧索引混入新内容记录后（offset不再超长）检测不到，维持既有行为。
 	 */
 	private void repointMissedRotation(ArrayList<KV<Long, String>> rotates) {
 		if (rotates.isEmpty())
@@ -458,11 +457,11 @@ public class Log4jFileManager extends ReentrantLock {
 
 		var lastOffset = activeEntry.index.lowerBound(activeEntry.index.getEndTime());
 		var activeFile = new File(logConf.logDir, activeName);
-		if (lastOffset <= activeFile.length()) // 文件不存在时length()==0：索引有记录即判失配——失配只证明索引与active不配，配给谁由下方内容抽查裁决（GD-C05）
+		if (lastOffset <= activeFile.length()) // 文件不存在时length()==0：索引有记录即判失配——失配只证明索引与active不配，配给谁由下方内容抽查裁决
 			return;
 
 		var rotateName = rotates.getFirst().getValue(); // 时间序最早的漏登rotate：active索引内容所在
-		// 内容配对抽查（FND22 GD-C05）：lastOffset超长+未登记rotate都是推断，在"active真被外部
+		// 内容配对抽查：lastOffset超长+未登记rotate都是推断，在"active真被外部
 		// 误删+磁盘恰有无关rotate名文件（人工拷入/误放/上轮未收敛残留）"叠加形态下双双失真——
 		// 直接改名会把现存索引错挂到无关文件名上（不可逆且无告警：错配.index跨重启经补登挂载，
 		// 该rotate自身时间窗永久不可查）。读rotate首条日志，时间落在索引时间窗内才认定配对
@@ -470,7 +469,7 @@ public class Log4jFileManager extends ReentrantLock {
 		// 证据不足不改名不改指，留给摘除循环宽限+rotate常规补登（全新索引正确配对）收敛。
 		if (!matchRotateHead(new File(logConf.logDir, rotateName), activeEntry.index))
 			return;
-		if (!renameCurrentIndexTo(rotateName)) // 失败即中止改指（GD-C01回滚语义，与case-1共用）
+		if (!renameCurrentIndexTo(rotateName)) // 失败即中止改指（回滚语义，与case-1共用）
 			return;
 		logger.warn("reconcile missed rotation: repoint active entry {} -> {} with renamed index",
 				activeName, rotateName);
@@ -479,7 +478,7 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * 改名前内容配对抽查（FND22 GD-C05）：读rotate文件首条可解析日志，时间落在既有索引
+	 * 改名前内容配对抽查：读rotate文件首条可解析日志，时间落在既有索引
 	 * [beginTime,endTime]窗内即认可"rotate承载的正是索引描述的内容"。真漏轮转/mv型归档形态下
 	 * rotate首条=索引首条（同内容）恒配对；无关文件首条时间在窗外即否决。不可读/无日志=证据不足
 	 * 同样否决——改名不可逆，宁可留给摘除+常规补登收敛（补登建全新索引，正确性无损只多一轮）。
@@ -496,10 +495,9 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * current名索引改名跟随rotate（case-1与repointMissedRotation共用，GD-C01）：改名失败必须让
+	 * current名索引改名跟随rotate（case-1与repointMissedRotation共用）：改名失败必须让
 	 * 调用方中止后续"条目改指+active补登"——继续会让两个条目经各自硬链接mmap同一索引inode
-	 * 交叉读写（混合索引错位跨重启固化）。FND20只在repointMissedRotation落地了该回滚语义，
-	 * watch路径（case-1）漏落实即GD-C01，此处收口为单一实现防语义再漂移。
+	 * 交叉读写（混合索引错位跨重启固化）。单一实现收口，防止两条路径的回滚语义漂移。
 	 * @return false=改名失败（调用方须中止）；true=成功或本无current索引文件（继续后续步骤）。
 	 */
 	private boolean renameCurrentIndexTo(String rotateFileName) {
@@ -534,9 +532,9 @@ public class Log4jFileManager extends ReentrantLock {
 
 	private void removeOldLinkFiles() {
 		var linkDir = new File(logConf.logDir, "indexLinks");
-		// 存活条目mmap持有的链接（FND22 GD-C03）：链接是LogIndex的增长通道（addIndex按链接路径
+		// 存活条目mmap持有的链接：链接是LogIndex的增长通道（addIndex按链接路径
 		// 重开文件扩映射）——不检查持有就删，Linux下条目尾部索引续建必FNFE（每5min ERROR无限重试，
-		// 该窗口索引永久缺失），Windows下映射钉住删除必败（GD-C08的链接累积未消除+逐链接warn）。
+		// 该窗口索引永久缺失），Windows下映射钉住删除必败（链接累积未消除+逐链接warn）。
 		// 持锁调用（构造/onFileCreated），files快照与条目生命周期一致；条目被retention/reconcile摘除后
 		// 其LogIndex无引用、映射可被GC释放，链接下次清理即可删——累积从无界收敛为与保留窗口内条目同阶。
 		var heldLinks = new HashSet<Path>();
@@ -624,7 +622,7 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * 头部采样（GD-D01）：扫描到首条记录入索引即停——beginTime可用的最小充分集，不是妥协：
+	 * 头部采样：扫描到首条记录入索引即停——beginTime可用的最小充分集，不是妥协：
 	 * 空索引beginTime=Long.MAX_VALUE使seek选中条件恒假（空表不能入列），首条之后任意time的
 	 * 正确定位由getIndexOffset回退offset 0 + detailSeek线性推进兜底（既有行为，非新机制）。
 	 * 扫描向前使首条即最早、此后不变，beginTime在COW发布前写入（安全发布）。
@@ -674,14 +672,14 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	private void buildIndex() {
-		reconcile(); // 低频对账（GD-D02）：挂在buildIndexTimer上，先把files收敛到磁盘真相，再推进索引。
-		// 锁外增量续建全部非active条目（GD-D01）：补登头部采样只保证条目可入列，余量在此收敛——
-		// 该通道对补登条目此前并不存在（旧代码只推进last==当前名，而补登rotate恰插在active之前，永远轮不到），
+		reconcile(); // 低频对账：挂在buildIndexTimer上，先把files收敛到磁盘真相，再推进索引。
+		// 锁外增量续建全部非active条目：补登头部采样只保证条目可入列，余量在此收敛——
+		// 补登的rotate条目插在active之前，仅推进last==当前名的通道覆盖不到它，
 		// 两半缺一不可。锁外正当性：loadIndex(File,LogIndex)只触碰(logFile,index)二元组、不读写files，
 		// LogIndex自带rwLock（查询路径本就与其无锁并发），manager锁真正要保的只有files变更与轮转
-		// "索引改名+条目改指"的串行——锁内全量扫描是历史形状，不是正确性需求；sealed rotate内容不可变、
+		// "索引改名+条目改指"的串行——锁内全量扫描并非正确性需求；sealed rotate内容不可变、
 		// 不参与改名/改指，锁外安全。新→旧序使近期时间窗最先获得精确跳转；逐条目隔离异常：单文件损坏/
-		// 消失只损失该条目本轮续建，不再中止整轮（旧代码单catch包全局）。
+		// 消失只损失该条目本轮续建，不中止整轮。
 		// COW toArray是快照语义：锁外遍历期间watch线程的并发摘除/补登不移花接木；被摘除条目的续建
 		// 读已失效文件，异常由逐条目隔离吞掉，无害。
 		var snapshot = files.toArray(new Log4jFile[0]);
@@ -695,8 +693,8 @@ public class Log4jFileManager extends ReentrantLock {
 				logger.error("buildIndex entry fail: {}", entry.file, ex);
 			}
 		}
-		// active条目维持锁内推进现状（GD-D01）：GD-C03错位检测（repointMissedRotation读endTime对照
-		// 文件长度）与case-1改名/改指依赖addIndex与轮转处理同锁串行——移出锁会重建R1刚关闭的竞态窗口。
+		// active条目维持锁内推进现状：错位检测（repointMissedRotation读endTime对照
+		// 文件长度）与case-1改名/改指依赖addIndex与轮转处理同锁串行——移出锁会重新打开刚关闭的竞态窗口。
 		lock();
 		try {
 			if (files.isEmpty())

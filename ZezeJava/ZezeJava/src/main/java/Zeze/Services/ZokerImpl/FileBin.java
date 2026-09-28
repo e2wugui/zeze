@@ -13,6 +13,9 @@ import java.security.NoSuchAlgorithmException;
 import Zeze.Net.Binary;
 import Zeze.Util.Task;
 
+/**
+ * 单个分发文件在 Zoker 侧的传输载体：RandomAccessFile 断点续传，边写边维护全量 md5 供 CloseFile 校验。
+ */
 public class FileBin {
 	private final String relativeCanonicalFileName;
 	private final File canonicalFile;

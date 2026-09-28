@@ -12,6 +12,9 @@ import Zeze.log.handle.GetLogServersHandle;
 import Zeze.log.handle.QueryHandle;
 import Zeze.log.handle.SearchLogHandle;
 
+/**
+ * 日志查询代理管理：持有 LogAgent，并注册查询 HTTP 服务的各 API 路由与静态页面。
+ */
 public class LogAgentManager {
 	private static LogAgentManager logAgentManager;
 	public static HttpServer httpServer;

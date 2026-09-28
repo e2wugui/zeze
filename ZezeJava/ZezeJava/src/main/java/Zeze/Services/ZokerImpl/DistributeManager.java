@@ -24,7 +24,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * 管理文件。
  *
- * <p>服务目录布局（GE-D02 版本目录+current 指针）：</p>
+ * <p>服务目录布局（版本目录+current 指针）：</p>
  * <pre>
  * services/&lt;svc&gt;/&lt;versionNo&gt;/...   版本目录（服务文件整包）
  * services/&lt;svc&gt;/current            小文件指针，内容=现役版本号（UTF-8 文本）
@@ -52,7 +52,7 @@ public class DistributeManager {
 	// 每个agent连接打开的文件键：agent在OpenFile之后、CloseFile之前断链时按连接回收FileBin，
 	// 否则RandomAccessFile句柄常驻泄漏，Windows上还锁住distributes下的文件使commit的rename失败。
 	private final ConcurrentHashMap<AsyncSocket, Set<String>> filesBySocket = new ConcurrentHashMap<>();
-	// GE-C04：同服务 commit 串行化锁（services/<svc> 粒度）。键先过 isSafePathSegment 校验，
+	// 同服务 commit 串行化锁（services/<svc> 粒度）。键先过 isSafePathSegment 校验，
 	// 条目数以服务名为界，无攻击面放大。跨服务不受影响。
 	private final ConcurrentHashMap<String, Object> commitLocks = new ConcurrentHashMap<>();
 	private volatile int keepVersions = KEEP_VERSIONS_DEFAULT;
@@ -89,7 +89,7 @@ public class DistributeManager {
 		// 拒绝"../"逃逸和绝对路径，防止越界写/截断任意文件。
 		checkInsideDir(distributeDir, path);
 		var relativeCanonicalFileName = fileKey(path);
-		// 建表与socket记账必须原子（增量审R1-04）：锁外两步之间断链清账会把新建的FileBin
+			// 建表与socket记账必须原子：锁外两步之间断链清账会把新建的FileBin
 		// 漏出回收面（句柄泄漏+死socket映射永驻）。closeAndVerify/closeBySocket持同锁清账。
 		// FileBin构造含md5读IO，持锁窗口为部署级QPS可接受。
 		FileBin fileBin;
@@ -111,9 +111,9 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 关闭并校验，三态返回协议错误码（GE-D04 方案A）：
+	 * 关闭并校验，三态返回协议错误码：
 	 * 0=校验一致（文件保留，等待commit消费）；
-	 * eNotOpened=文件不在传输中（未Open/已收尾/断链回收后补发的close），不再谎报成功；
+	 * eNotOpened=文件不在传输中（未Open/已收尾/断链回收后补发的close），不谎报成功；
 	 * eMd5Mismatch=校验失败，close 后删除物理文件（暂存区损坏中间产物无保留价值），
 	 * 下次 OpenFile 从 0 续传，状态机闭合——坏起点不再占位把续传打回人工清理。
 	 */
@@ -121,7 +121,7 @@ public class DistributeManager {
 			throws IOException {
 		var relativeCanonicalFileName = fileKey(new File(serviceName, fileName).getPath());
 		FileBin fileBin;
-		// 清账与并发open的记账原子（增量审R1-04同源）：isEmpty判定remove与重开窗口互斥。
+		// 清账与并发open的记账原子：isEmpty判定remove与重开窗口互斥。
 		synchronized (filesBySocket) {
 			fileBin = files.remove(relativeCanonicalFileName);
 			if (sender != null) {
@@ -149,7 +149,7 @@ public class DistributeManager {
 	/** agent断链（ZokerService.OnSocketClose）时回收该连接打开的全部FileBin。 */
 	public void closeBySocket(AsyncSocket socket) {
 		ArrayList<String> keys;
-		// 摘除记账与并发open原子（增量审R1-04），close在锁外（FileBin.close含md5读）。
+		// 摘除记账与并发open原子，close在锁外（FileBin.close含md5读）。
 		synchronized (filesBySocket) {
 			var opened = filesBySocket.remove(socket);
 			if (opened == null)
@@ -208,20 +208,20 @@ public class DistributeManager {
 	}
 
 	/**
-	 * GE-C01（FND21）：versionNo 与容器根保留字（current 指针、run.pid 身份文件）的碰撞判别
+	 * versionNo 与容器根保留字（current 指针、run.pid 身份文件）的碰撞判别
 	 * ——先剥尾部点/空格，再忽略大小写比较。Windows(Win32) 路径解析大小写不敏感且规范化剥
-	 * 尾部点/空格："Current"/"CURRENT" 与 current 是同一物理名字（exists 跨大小写命中，本机
-	 * 探针实证），"current." 的 renameTo 落盘名就是 current——前者首次部署可把版本目录 rename
+	 * 尾部点/空格："Current"/"CURRENT" 与 current 是同一物理名字（exists 跨大小写命中），
+	 * "current." 的 renameTo 落盘名就是 current——前者首次部署可把版本目录 rename
 	 * 进指针固有位置（此后该服务一切 commit 恒 AccessDenied，容器报废），指针已存在时则命中
 	 * 指针文件跳过安装、switchCurrent 覆盖指针造成"返回 0 但 currentVersionDir 恒 null"的假
-	 * 成功；尾部点形态同链路（探针实证落盘名脱点后占位）。Linux（大小写敏感 FS）上 "Current"
+	 * 成功；尾部点形态同链路（落盘名脱点后占位）。Linux（大小写敏感 FS）上 "Current"
 	 * 本是合法版本名，一并排除零成本且跨平台同一 versionNo 得到同一裁决——两端都闭合。
-	 * GE-D01（FND21）：run.pid 同族扩入——它是容器根的进程身份文件（与 current 同层同碰撞面），
+	 * run.pid 同族扩入——它是容器根的进程身份文件（与 current 同层同碰撞面），
 	 * 版本目录 rename 占据该位置后 startService 的身份落盘（AtomicFileWriter 对目录目标
 	 * rename）恒失败 → 按"写盘失败=不交付"一切 start 恒 eStartFail（服务永不可启动，无自愈）。
 	 * 仅用于 versionNo：serviceName 与保留字无碰撞面（services/Current、services/run.pid
 	 * 都是合法服务容器名——保留字在容器<b>之内</b>，容器名本身单段即安全），不得套用。
-	 * GE-C01(FND22)：折叠判据抽为 {@link #foldVersionName} 单点，与 pruneVersions 的
+	 * 折叠判据抽为 {@link #foldVersionName} 单点，与 pruneVersions 的
 	 * 现役保护、commitLocked 的指针规范化共用同一语义。
 	 */
 	static boolean isReservedVersionName(String name) {
@@ -231,9 +231,9 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 版本名的盘上解析折叠（GE-C01(FND22)，单点判据）：剥尾部点/空格 + 忽略大小写
+	 * 版本名的盘上解析折叠（单点判据）：剥尾部点/空格 + 忽略大小写
 	 * （toLowerCase(Locale.ROOT)）。Windows(Win32) 路径解析大小写不敏感且规范化剥尾部点/空格
-	 * （FND21 GE-C01 修复轮本机探针实证：跨大小写 exists 命中、renameTo 落盘名脱尾点占位），
+	 * （跨大小写 exists 命中、renameTo 落盘名脱尾点占位），
 	 * 即"请求文本"与"盘上实际目录名"可能是同一物理实体的两个拼写。所有需要"请求名与盘上名
 	 * 判同"的位置（保留字碰撞 {@link #isReservedVersionName}、现役保护 pruneVersions、
 	 * 指针规范化 commitLocked）必须统一用本折叠，不得裸 equals——分叉即现役目录落入清理面。
@@ -265,31 +265,31 @@ public class DistributeManager {
 	}
 
 	/**
-	 * GE-D02 版本目录+current 指针的提交流程（包内可见供直构测试）。
+	 * 版本目录+current 指针的提交流程（包内可见供直构测试）。
 	 * 两步各自失败/重试的收敛性见类注释。eServiceOldExists/eMoveOldFail 是旧
-	 * servicesOld 布局的错误码，随布局移除检查路径后不再返回（死码留待 Gen 批清理协议定义）。
+	 * servicesOld 布局的错误码，检查路径已随布局移除，不会返回（死码留待 Gen 批清理协议定义）。
 	 */
 	long commit(String serviceName, String versionNo) {
-		// GE-C02(FND20)/GE-C01(FND21)：versionNo 排除保留字 current——services/<svc>/current
+		// versionNo 排除保留字 current——services/<svc>/current
 		// 是现役指针文件的固有位置，版本目录 rename 占据该位置后（首次部署=指针尚不存在的
 		// 常态即可 rename 成功），switchCurrent 的原子 rename 对目录目标必失败：此后对该服务的
 		// 一切 commit 恒失败、currentVersionDir 恒 null、pruneVersions 永远执行不到（不自愈），
-		// 需人工删目录。FND21 GE-C01：原精确 equals 只挡逐字节的 "current"，Windows 大小写
-		// 不敏感 FS 上 "Current"/"CURRENT"/"current." 变体照旧碰撞（见 isReservedVersionName）。
+		// 需人工删目录。精确 equals 只挡逐字节的 "current"，Windows 大小写
+		// 不敏感 FS 上 "Current"/"CURRENT"/"current." 变体仍会碰撞（见 isReservedVersionName）。
 		if (!isSafePathSegment(serviceName) || !isSafePathSegment(versionNo)
 				|| isReservedVersionName(versionNo)) {
 			logger.error("commitService rejected: unsafe serviceName='{}' versionNo='{}'", serviceName, versionNo);
 			return err(Zoker.eCommitFail);
 		}
-		// GE-C04：同服务 commit 串行化（对齐 R1-04 的对象锁形态，services/<svc> 粒度）。
+		// 同服务 commit 串行化（services/<svc> 粒度）。
 		// commit 三步（install→switch→prune）间无自洽性，CommitService 为 Normal 派发可并发：
 		// keepVersions=1 时 A 的 prune 可删除并发 B 已 install 未 switch 的版本目录，B 随后
 		// switch 使 current 指向已删除目录（返回 0 但服务永远无法启动，无自愈路径）。
-		// 案卷的替代方案"prune 按 beginMillis 只删本次开始前安装的版本"留有交错洞：B 先于 A
+		// 替代方案"prune 按 beginMillis 只删本次开始前安装的版本"留有交错洞：B 先于 A
 		// 进入、install 晚于 A 的 install 时，B 的 mtime 早于 A 的 cutoff，仍会被 A 删——
 		// 时间戳过滤只能缩窄窗口，互斥才能闭合。锁内为纯本地 FS 操作（rename/fsync/delete），
 		// 不持其他锁（closeUnder 迭代 files 不取 filesBySocket 锁），无锁序环。
-		// GE-C02（FND21）：锁键大小写折叠（与 GE-C01 同一判据）——裸 serviceName 作键时，
+		// 锁键大小写折叠（与 foldVersionName 同一判据）——裸 serviceName 作键时，
 		// Windows(NTFS) 大小写不敏感解析下 "svc"/"Svc" 指向同一物理容器却各持一把锁，互斥失效，
 		// 上述竞态经大小写变体复活。Linux（大小写敏感 FS）上折叠会过度串行化两个真不同的服务：
 		// commit 非热路径，可接受；canonical 路径作键在目录尚不存在（首次 commit，恰是竞态
@@ -314,7 +314,7 @@ public class DistributeManager {
 				return err(Zoker.eCommitFail);
 			}
 			try {
-				// renameTo不创建父目录：services/<svc>/这层缺失时renameTo必false（对齐R1 GE-C04的修复点）
+				// renameTo不创建父目录：services/<svc>/这层缺失时renameTo必false
 				Files.createDirectories(svcDir.toPath());
 			} catch (IOException ex) {
 				logger.error("commitService createDirectories {}", svcDir, ex);
@@ -328,7 +328,7 @@ public class DistributeManager {
 			if (!versionTo.setLastModified(System.currentTimeMillis()))
 				logger.warn("commitService setLastModified fail: {}", versionTo);
 		}
-		// GE-C01(FND22)：指针与 prune 参数用盘上实际目录名，不用请求原样文本。Win32 解析下
+		// 指针与 prune 参数用盘上实际目录名，不用请求原样文本。Win32 解析下
 		// "V1"跨大小写命中 v1 跳装、"v1."renameTo 落盘为 v1——原样文本写指针后 currentVersionDir
 		// 靠跨规范化解析侥幸能启动，但 pruneVersions 的现役保护面对"盘上真名 vs 请求文本"分叉
 		// 时物理现役目录落入清理面被删（keep=3 三版本存量即 wedge：current 悬空、start 恒
@@ -346,11 +346,11 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 把请求 versionNo 规范化为 services/&lt;svc&gt; 下折叠同名的<b>盘上实际目录名</b>
-	 * （GE-C01(FND22)）：找不到折叠命中的实体时原样返回（首次安装未落盘/目标是文件等场景）。
+	 * 把请求 versionNo 规范化为 services/&lt;svc&gt; 下折叠同名的<b>盘上实际目录名</b>：
+	 * 找不到折叠命中的实体时原样返回（首次安装未落盘/目标是文件等场景）。
 	 * commit 全程持 commitLocks（折叠键），listFiles 与 install/switch/prune 之间无并发 commit
 	 * 交错；跨服务无关。找不到命中却已过 exists 跳装的情形只在非目录实体占位时出现——
-	 * 原样返回与旧行为等价（currentVersionDir 的 isDirectory 校验兜底）。
+	 * 原样返回语义不变（currentVersionDir 的 isDirectory 校验兜底）。
 	 */
 	private static String onDiskVersionName(File svcDir, String versionNo) {
 		var listFiles = svcDir.listFiles();
@@ -374,7 +374,7 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 原子切换现役指针：内容=版本号，经 AtomicFileWriter（fsync+原子 rename 换版，I1 规约）
+	 * 原子切换现役指针：内容=版本号，经 AtomicFileWriter（fsync+原子 rename 换版）
 	 * 写 current——任何时刻读到的都是完整的旧版本号或新版本号，无截断/半内容中间态。
 	 */
 	private static void switchCurrent(File svcDir, String versionNo) throws IOException {
@@ -387,7 +387,7 @@ public class DistributeManager {
 	 *
 	 * <p>调用方须保证容器目录在管理范围内（services/&lt;svc&gt;，经 isSafePathSegment 校验的
 	 * 单段服务名拼出）——本方法只校验指针<b>内容</b>是单段名，不校验传入的容器目录自身边界
-	 * （GE-C01：入口校验在 {@code ServiceManager.startService}，这里不重复设防）。</p>
+	 * （入口校验在 {@code ServiceManager.startService}，这里不重复设防）。</p>
 	 */
 	public static @Nullable File currentVersionDir(File serviceContainerDir) {
 		var current = new File(serviceContainerDir, CURRENT_NAME);
@@ -412,7 +412,7 @@ public class DistributeManager {
 	 * 现役版本永不删除；超出的最老版本整树删除。删除失败仅告警，残留等待下次commit重试
 	 * （纯空间回收，不影响正确性）。listFiles的null（目录消失/权限）视为无事可做。
 	 *
-	 * <p>现役保护按 {@link #foldVersionName} 折叠比对（GE-C01(FND22)）：参数来自 commit 的
+	 * <p>现役保护按 {@link #foldVersionName} 折叠比对：参数来自 commit 的
 	 * 请求 versionNo，而 Win32 解析下请求文本与盘上目录名可能分叉（"V1"vs"v1"、"v1."vs"v1"）
 	 * ——裸 equals 使物理现役目录落入清理面被删（current 悬空）。折叠后指针文本与盘上真名
 	 * 两个来处都命中保护；commitLocked 的指针规范化已使正常路径同名，此处折叠是独立的第二道

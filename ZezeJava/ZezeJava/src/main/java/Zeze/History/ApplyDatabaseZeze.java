@@ -15,11 +15,13 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * IApplyDatabase 的 Zeze Database 实现：apply 数据与回放游标持久化到独立的 KV 库。
+ */
 public class ApplyDatabaseZeze implements IApplyDatabase {
 	private static final Logger logger = LogManager.getLogger(ApplyDatabaseZeze.class);
 
-	// FND8-28：游标持久化的伪表与固定键——库独立于业务表的命名空间，经openTable直开
-	// （不要求在zeze注册，对齐OperatesDynamoDb的schema表先例）。
+	// 游标持久化的伪表与固定键——库独立于业务表的命名空间，经openTable直开（不要求在zeze注册）。
 	private static final String cursorTableName = "__cursor__";
 	private static final byte[] cursorKeyBytes = {0};
 

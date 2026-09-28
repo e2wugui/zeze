@@ -9,6 +9,9 @@ import Zeze.Transaction.TableWalkHandleRaw;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * IApplyDatabase 的内存实现：apply 数据保存在进程内内存表中，不持久化（游标恒为null）。
+ */
 public class ApplyDatabaseMemory implements IApplyDatabase {
 	private final ConcurrentHashMap<String, ApplyTableMemory> tables = new ConcurrentHashMap<>();
 	// 当前打开的记录级事务。apply在ApplyHelper锁内单线程驱动，同一时刻至多一个。

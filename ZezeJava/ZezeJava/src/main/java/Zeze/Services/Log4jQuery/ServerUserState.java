@@ -6,6 +6,9 @@ import Zeze.Services.LogService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * 服务端每连接状态：管理该连接上的 Log4jSession 表（新建/查询/关闭与空闲超龄会话惰性清理）。
+ */
 public class ServerUserState {
 	private static final Logger logger = LogManager.getLogger(ServerUserState.class);
 	private final LogService logService;
@@ -31,14 +34,14 @@ public class ServerUserState {
 	public void closeLogSession(long sid) throws IOException {
 		var logSession = logSessions.remove(sid);
 		if (null != logSession) {
-			synchronized (logSession) { // 与Browse/Search按同一会话锁互斥，close不再打断并发查询（FND-S3-9）
+			synchronized (logSession) { // 与Browse/Search按同一会话锁互斥，close不打断并发查询
 				logSession.close();
 			}
 		}
 	}
 
 	/**
-	 * 惰性清理空闲超龄会话（GD-D03）：NewSession/查询路径顺带调用，不做定期任务、不做数量上限。
+	 * 惰性清理空闲超龄会话：NewSession/查询路径顺带调用，不做定期任务、不做数量上限。
 	 * 复用closeLogSession的按会话锁互斥范式：锁前先查lastActiveTime（正在查询的会话进锁首行已刷新，
 	 * 不阻塞不清理）；锁内复核——"查询中的会话不会过期"。
 	 * 单个会话close失败只warn不中断（会话已从map移除，失败只影响该会话的句柄释放）。

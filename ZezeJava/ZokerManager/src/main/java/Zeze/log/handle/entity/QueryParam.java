@@ -1,5 +1,8 @@
 package Zeze.log.handle.entity;
 
+/**
+ * /api/query 的请求参数：目标日志服务器名与透传的查询 json。
+ */
 public class QueryParam {
 	private String serverName;
 	private String json;

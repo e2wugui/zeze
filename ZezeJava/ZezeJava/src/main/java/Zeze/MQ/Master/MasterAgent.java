@@ -19,15 +19,19 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Transaction.Procedure;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Master 客户端代理：封装到 Master 的 RPC（创建/打开 MQ、注册、负载与分区上报）；
+ * Manager 形态另接收 Master 下发的分区创建/删除。
+ */
 public class MasterAgent extends AbstractMasterAgent {
 	public static final String eServiceName = "Zeze.MQ.Master.Agent";
 	private final Service service;
 	private final ProtocolHandle<CreatePartition> createPartitionHandle;
-	// 【GB-D01】Master 对账裁决孤儿后下发的删除（仅 Manager 形态的 agent 持有；客户端形态为 null → NotImplement）
+	// Master 对账裁决孤儿后下发的删除（仅 Manager 形态的 agent 持有；客户端形态为 null → NotImplement）
 	private final ProtocolHandle<DeletePartition> deletePartitionHandle;
 
-	// 【GB-D04】客户端生命周期（拍板方案A，与MQAgent同型）：静态共享的agent引用计数，归零时停
-	// connector重连（不再退避续排）；新引用复活（重用需重建的口径在MQ/MQConsumer实例层）；
+	// 客户端生命周期（与MQAgent同型）：静态共享的agent引用计数，归零时停
+	// connector重连（不退避续排）；新引用复活（重用需重建的口径在MQ/MQConsumer实例层）；
 	// MQ.shutdown()为终态强制全停，此后addRef明确报错。
 	// MasterAgent的RPC轮（createMQ/openMQ/subscribe）都发生在引用持有期间（客户端构造先addRef
 	// 后调用），归零时无在飞轮，无需MQAgent那样的排空等待。
@@ -68,7 +72,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		}
 	}
 
-	/** 【GB-D04】取一个引用；MQ.shutdown()后明确报错。MQ/MQConsumer构造（经MQ.clientAddRefs）调用。 */
+	/** 取一个引用；MQ.shutdown()后明确报错。MQ/MQConsumer构造（经MQ.clientAddRefs）调用。 */
 	public void addRef() {
 		synchronized (lifecycleLock) {
 			if (terminated)
@@ -79,7 +83,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		}
 	}
 
-	/** 【GB-D04】释放一个引用；归零时停connector重连（无在飞轮可等，见字段区注释）。 */
+	/** 释放一个引用；归零时停connector重连（无在飞轮可等，见字段区注释）。 */
 	public void release() {
 		synchronized (lifecycleLock) {
 			if (--refs > 0)
@@ -96,7 +100,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		}
 	}
 
-	/** 【GB-D04】强制全停（MQ.shutdown()调用，不等引用归零）：停service（含connector重连+socket）。幂等。 */
+	/** 强制全停（MQ.shutdown()调用，不等引用归零）：停service（含connector重连+socket）。幂等。 */
 	public void shutdown() {
 		synchronized (lifecycleLock) {
 			terminated = true;
@@ -188,7 +192,7 @@ public class MasterAgent extends AbstractMasterAgent {
 		return r.Result;
 	}
 
-	// 【GB-D05】Register 携带 Manager 稳定身份（持久化于 Manager home 的自铸 id）：
+	// Register 携带 Manager 稳定身份（持久化于 Manager home 的自铸 id）：
 	// Master 除幂等替换注册条目外，按 id 联动重写 mqTable 路由（换地址重注册→路由自愈）。
 	public void register(String host, int port, int queueCount, long managerId) {
 		var r = new Register();
@@ -202,7 +206,7 @@ public class MasterAgent extends AbstractMasterAgent {
 			throw new RuntimeException("register error=" + IModule.getErrorCode(r.getResultCode()));
 	}
 
-	// 【GB-D01】周期上报本地分区清单（磁盘真相），Master 与 mqTable 对账（孤儿超宽限期下发删除）。
+	// 周期上报本地分区清单（磁盘真相），Master 与 mqTable 对账（孤儿超宽限期下发删除）。
 	public void reportPartitions(BReportPartitions.Data report) {
 		var r = new ReportPartitions();
 		r.Argument.getTopics().addAll(report.getTopics());

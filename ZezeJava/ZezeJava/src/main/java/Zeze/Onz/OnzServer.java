@@ -65,13 +65,13 @@ public class OnzServer extends AbstractOnz {
 	private final AbstractAgent myServiceManager;
 	private final AutoKey onzTidAutoKey;
 
-	// 生命周期（FND3-54）：stop后拒绝新工作；stop幂等；stop后不可再start（终态）。
+	// 生命周期：stop后拒绝新工作；stop幂等；stop后不可再start（终态）。
 	private volatile boolean stopped;
-	// getZezeInstance的"选择→创建→登记"按名原子化（FND3-53）。
+	// getZezeInstance的"选择→创建→登记"按名原子化。
 	private final ConcurrentHashMap<String, ReentrantLock> nameLocks = new ConcurrentHashMap<>();
 	// redo轮次与database.close()互斥：stop()超预算逃逸的轮次仍可能在库上，直接关库会与
 	// 遍历/写入commitPoint竞态。轮次内的网络等待只发生在有未决事务时（常态为空）。
-	// perform的写库点（saveCommitPoint/removeCommitRecord，GC-C01(FND22)）同入dbLock域：
+	// perform的写库点（saveCommitPoint/removeCommitRecord）同入dbLock域：
 	// 锁内只含毫秒级写库操作，不含perform业务窗口（那会把长业务与redo串行化）。
 	private final ReentrantLock dbLock = new ReentrantLock();
 
@@ -141,9 +141,9 @@ public class OnzServer extends AbstractOnz {
 				var serviceManager = Application.createServiceManager(zezeConfig, "OnzServerServiceManager");
 				if (serviceManager == null)
 					throw new RuntimeException("serviceManager not found for " + zezeNameAndConfig[0] + " zezes=" + zezeConfigs);
-				// 先登记再启动/订阅（FND4-89/FND5-48）：start/waitReady/订阅任一步失败时，回滚
+				// 先登记再启动/订阅：start/waitReady/订阅任一步失败时，回滚
 				// 循环都要能找到这个可能已占用网络线程的实例——put在start之后会漏掉
-				// "start成功但waitReady二次失败"窗口（FND4-89红测注入的null在start之前，恰好绕开）。
+				// "start成功但waitReady二次失败"窗口。
 				this.zezes.put(zezeNameAndConfig[0], serviceManager);
 				startAgentAndWaitReady(serviceManager);
 				serviceManager.subscribeService(new BSubscribeInfo(Onz.eServiceName));
@@ -154,7 +154,7 @@ public class OnzServer extends AbstractOnz {
 			onzAgent = new OnzAgent();
 			RegisterProtocols(service);
 		} catch (Throwable ex) {
-			// 构造的全有或全无（FND4-89）：逆序释放已获取资源——半途失败时stop()不可达
+			// 构造的全有或全无：逆序释放已获取资源——半途失败时stop()不可达
 			// （对象未构造完成），不回收会泄漏网络线程、端口与RocksDB目录锁，阻碍同进程重试。
 			// 各zeze的SM为独立实例（重名在启动前被拒），逐个close。
 			for (var agent : zezes.values())
@@ -175,10 +175,9 @@ public class OnzServer extends AbstractOnz {
 			} catch (Exception ex) {
 				logger.error("first try.", ex);
 			}
-			// 1 minute?
 			redoDaemon.start();
 		} catch (Throwable ex) {
-			// start的全有或全无（FND4-89）：半途失败按停机路径回收已启动资源。
+			// start的全有或全无：半途失败按停机路径回收已启动资源。
 			// stop幂等且best-effort；此后对象为终态（stopped），与构造失败不逃逸同口径。
 			try {
 				stop();
@@ -189,7 +188,7 @@ public class OnzServer extends AbstractOnz {
 		}
 	}
 
-	// ePreparing最小redo年龄（FND5-44）：perform从saveCommitPoint(ePreparing)到txn.commit
+	// ePreparing最小redo年龄：perform从saveCommitPoint(ePreparing)到txn.commit
 	// 覆盖为eCommitting之间存在waitPendingAsync等待窗口（业务异步放大，时长不定），
 	// redoTimer的iterator快照会捕获窗口内的ePreparing——不看年龄直接Rollback命中进行中
 	// 事务：参与方回滚后对迟到Commit假应答成功（readyProcedures.remove为null直接
@@ -198,40 +197,40 @@ public class OnzServer extends AbstractOnz {
 	// flushTimeout(10s)量级的业务等待放大。
 	private static final long RedoPreparingMinAgeMs = 120_000;
 
-	// redo封锁告警去重（FND6-36可观测性）：登记中的ePreparing年龄超过2×RedoPreparingMinAgeMs
+	// redo封锁告警去重：登记中的ePreparing年龄超过2×RedoPreparingMinAgeMs
 	// 仍存活时按tid只warn一次，防每轮redo刷屏。perform结束（finally）即回收tid，
 	// 集合有界于挂死perform数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> hangWarnedTids = ConcurrentHashMap.newKeySet();
 
-	// 超龄NotFound分诊预算（GC-D04-C）：对齐参与方sagaContextTimeoutMs默认值——协调者
+	// 超龄NotFound分诊预算：对齐参与方sagaContextTimeoutMs默认值——协调者
 	// 无从得知各参与方的实际TTL配置，按默认预算分诊（联动契约推导见Onz.sagaContextTimeoutMs）。
 	// rollback决策记录年龄≥本预算的eSagaNotFound按恶性升格error并保留记录。
 	private static final long SagaNotFoundAgedBudgetMs = Onz.eDefaultSagaContextTimeoutMs;
 
-	// 超龄NotFound告警去重（GC-D04-C）：分诊保留的决策记录每轮redo重发都会再次
+	// 超龄NotFound告警去重：分诊保留的决策记录每轮redo重发都会再次
 	// NotFound，按tid只error一次防刷屏（对齐hangWarnedTids形态）。决策记录收敛
 	// 删除时回收tid，集合有界于在库的超龄未决决策数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> agedNotFoundWarnedTids = ConcurrentHashMap.newKeySet();
 
-	// 未知state告警去重（GC-C02）：commitIndex值可解但state∉{ePreparing,eCommitting}的
-	// 条目（损坏但未截断的垃圾值/未来版本前向写入降级运行）原先每轮redo静默跳过且
-	// 永不清算——零信号（同函数hang/超龄NotFound/毒值均有告警，唯此支没有）。按tid
-	// 只error一次（对齐agedNotFoundWarnedTids形态）。该类条目不会被redo收敛删除，
+	// 未知state告警去重：commitIndex值可解但state∉{ePreparing,eCommitting}的
+	// 条目（损坏但未截断的垃圾值/未来版本前向写入降级运行）不会被redo收敛删除，
+	// 只静默跳过则零信号（同函数hang/超龄NotFound/毒值均有告警，唯此支没有）。按tid
+	// 只error一次（对齐agedNotFoundWarnedTids形态）。
 	// tid不回收，集合有界于在库的未知state条目数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> unknownStateWarnedTids = ConcurrentHashMap.newKeySet();
 
-	// redo结果错误告警去重（GC-C03）：非0非eSagaNotFound应答保留的决策记录每轮redo
+	// redo结果错误告警去重：非0非eSagaNotFound应答保留的决策记录每轮redo
 	// 重发、确定性补偿失败每轮再现——按tid只error一次防刷屏（对齐agedNotFound
 	// WarnedTids形态）。记录收敛删除时回收tid，集合有界于在库的失败重试决策数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> redoResultWarnedTids = ConcurrentHashMap.newKeySet();
 
-	// redo整体失败分诊预算（GC-D01(FND21)）：redo参与者循环内任何异常（按名解析
+	// redo整体失败分诊预算：redo参与者循环内任何异常（按名解析
 	// unknown zeze/subscribe not found/no advertised service——集群除名、无通告；
 	// openRedoConnection的GetReadySocket满时超时——旧格式死地址；点表
 	// requireNonNull/decode——缺失/错配/损坏毒值；futures await超时——参与方僵死）
-	// 全部落入redo唯一catch，原先走不到任何告警集合的add点：对settle守卫不可见，
+	// 全部落入redo唯一catch，走不到任何告警集合的add点：对settle守卫不可见，
 	// 确定性滞留（地址漂移后每轮建连失败、除名集群按名解析恒抛）每60s重放一条带栈
-	// error（每tid每天1440条）且永不可清算——运维被拒绝文案指引"等下一轮redo≤60s
+	// error（每tid每天1440条）且永不可清算——settle拒绝文案指引"等下一轮redo≤60s
 	// 重新分诊"，该指引对此类永不兑现（其redo路径永远到不了集合add点）。记录年龄
 	// （redo既有stamp入参，零新状态）≥本预算的本轮异常才登记第四集合并error一次。
 	// 年龄即持续失败时长的下界证据（无需失败计数器）：redoTimer每轮尝试所有在库
@@ -245,7 +244,7 @@ public class OnzServer extends AbstractOnz {
 	// 影响"可清算延迟"不影响正确性。
 	private static final long RedoFailAgedBudgetMs = Onz.eDefaultSagaContextTimeoutMs;
 
-	// redo整体失败告警去重（GC-D01(FND21)）：超龄分诊登记的redo失败滞留每轮redo
+	// redo整体失败告警去重：超龄分诊登记的redo失败滞留每轮redo
 	// 重放同型异常——按tid只error一次防刷屏（对齐redoResultWarnedTids形态，成因
 	// 片段只记首见形态是dedup既定代价）。瞬态失败自愈（参与方恢复→某轮全0→
 	// removeOk）与人工清算（settleStuckRecord）时回收tid，集合有界于在库的异常
@@ -263,23 +262,23 @@ public class OnzServer extends AbstractOnz {
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					var key = it.key();
 					var value = it.value();
-					// 索引侧毒条目单条隔离（GC-C01）：索引自身的值空/截断（ReadUInt抛）或key短于
-					// 8字节（ToLongBE越界抛）时，异常原先直接冲出循环体中止整个commitIndex遍历
+					// 索引侧毒条目单条隔离：索引自身的值空/截断（ReadUInt抛）或key短于
+					// 8字节（ToLongBE越界抛）时，异常若直接冲出循环体会中止整个commitIndex遍历
 					// ——周期路径被DaemonTimer.runBody吞掉后下一轮从头再撞同一条，排序在后的
-					// 未决决策redo永久停滞（GC-C02(FND19)只闭合了点表侧的requireNonNull/decode，
-					// 索引侧同型洞仍在）。单条处理整体包try，毒条目记error（带key/tid）后跳过
+					// 未决决策redo永久停滞（redo内层隔离只覆盖点表侧的requireNonNull/decode，
+					// 索引侧需在本层隔离）。单条处理整体包try，毒条目记error（带key/tid）后跳过
 					// 留库人工排查，不阻塞其后记录的收敛（对齐ApplyHelper逐记录隔离形态；与
-					// redo内层GC-C02(FND19)隔离构成两层防御，内层保留不动）。毒条目留库期间每轮
+					// redo内层隔离构成两层防御）。毒条目留库期间每轮
 					// redo都会再撞到并再记一条（对齐内层"redo fail"形态——真损坏必被持续看见，
 					// 条目被人工清除/修复后即静默）。
 					try {
 						var bb = ByteBuffer.Wrap(value);
 						var state = bb.ReadUInt();
 						var tid = ByteBuffer.ToLongBE(key, 0);
-						// FND5-44：新格式值=state(varint)+写入时戳(8B BE)；旧格式（仅state，
-						// 升级遗留的未决决策）读不到时戳视为年龄无穷——行为与修复前一致（立即redo）。
+						// 新格式值=state(varint)+写入时戳(8B BE)；旧格式（仅state，
+						// 升级遗留的未决决策）读不到时戳视为年龄无穷——立即redo。
 						var stamp = bb.size() >= 8 ? bb.ReadLong8BE() : 0L;
-						// FND6-36（skip收窄）：先读状态再判登记，skip仅作用于登记中的ePreparing。
+						// 先读状态再判登记，skip仅作用于登记中的ePreparing。
 						// ePreparing的redo是Rollback，回滚不可逆：登记窗口从addTransaction覆盖到
 						// finally removeTransaction，其中saveCommitPoint(ePreparing)→无界
 						// waitPendingAsync是年龄闸挡不住的进行中窗口，误发Rollback回滚存活参与方后
@@ -287,7 +286,7 @@ public class OnzServer extends AbstractOnz {
 						// perform静默全量回滚却返回0——必须skip。真残留只能源于进程崩溃（登记表
 						// 与perform同进程同生共死：perform异常结束必经finally摘除登记，进程存活则
 						// 登记必在），崩溃重启后onzAgent为空，skip天然放行；存活perform的finally
-						// 摘除登记后下轮redo可见。年龄闸（FND5-44）只作用于未登记的ePreparing
+						// 摘除登记后下轮redo可见。年龄闸只作用于未登记的ePreparing
 						// （区分崩溃残留与刚落盘的窗口条目），登记中的条目与年龄无关。
 						// eCommitting不做skip：其redo是幂等Commit重发（参与方已ready，重复Commit
 						// 亦应答成功；且redo经getZezeInstance现查新地址），登记中执行也安全——它
@@ -312,10 +311,10 @@ public class OnzServer extends AbstractOnz {
 							// else：进行中窗口，等超过年龄后的下一轮
 							break;
 						default:
-							// 未知state（GC-C02）：值可解但state∉{ePreparing,eCommitting}——损坏但
-							// 未截断的垃圾值（截断/空值走外层GC-C01的catch），或未来版本新增
+							// 未知state：值可解但state∉{ePreparing,eCommitting}——损坏但
+							// 未截断的垃圾值（截断/空值走外层的catch），或未来版本新增
 							// state常量写入后降级运行。语义未知不盲目redo（补发Commit/Rollback都可能
-							// 制造协调者与参与方分歧），条目原先每轮静默跳过：永不清算且零信号
+							// 制造协调者与参与方分歧），只静默跳过则永不清算且零信号
 							// （同函数hang/超龄NotFound/毒值均有告警，唯此支没有）。按tid只error一次
 							// （集合见unknownStateWarnedTids）暴露后跳过，留库人工排查。
 							if (unknownStateWarnedTids.add(tid))
@@ -324,7 +323,7 @@ public class OnzServer extends AbstractOnz {
 							break;
 						}
 					} catch (Throwable ex) {
-						// 单条隔离的兜底跳过（GC-C01）：key/tid尽力携带——key短于8字节时tid本就
+						// 单条隔离的兜底跳过：key/tid尽力携带——key短于8字节时tid本就
 						// 解不出（这正是被隔离的异常形态之一），用原始key字节定位。
 						logger.error("onz redo: commitIndex毒条目解码失败跳过（key={}，tid={}），留库人工排查",
 								java.util.Arrays.toString(key),
@@ -342,15 +341,15 @@ public class OnzServer extends AbstractOnz {
 	// 每轮redo重试收敛，取小于redo周期(60s)的量级。
 	private static final int RedoSagaEndTimeoutMs = 30_000;
 
-	// redo按决策与参与方类型分流（OH1-F1）：procedure参与方发Commit/Rollback；
+	// redo按决策与参与方类型分流：procedure参与方发Commit/Rollback；
 	// saga参与方发FuncSagaEnd——commit决策补发endSaga未完成的结束(cancel=false)，
 	// rollback决策补偿已提交的步骤(cancel=true)，参与方幂等。
-	// stamp=commitIndex写入时戳（FND5-44），供超龄NotFound分诊（GC-D04-C）。
+	// stamp=commitIndex写入时戳，供超龄NotFound分诊。
 	private void redo(byte[] key, boolean commitDecision, long stamp) throws RocksDBException {
 		var tid = ByteBuffer.ToLongBE(key, 0);
 		var zezeOnzs = new HashMap<String, Connector>();
 		try {
-			// 毒记录隔离（GC-C02）：索引有条目而点表无（错配/遗留）或值损坏（截断）时
+			// 毒记录隔离：索引有条目而点表无（错配/遗留）或值损坏（截断）时
 			// requireNonNull/decode抛运行时异常，在try内捕获记error——本条留库人工排查，
 			// 不得中止迭代：排序在其后的未决决策redo是它们唯一的收敛通道。
 			var value = Objects.requireNonNull(commitPoint.get(key));
@@ -360,13 +359,13 @@ public class OnzServer extends AbstractOnz {
 			var futures = new ArrayList<TaskCompletionSource<?>>();
 			var rpcs = new ArrayList<Rpc<?, ?>>();
 			for (var e : state.getOnzs()) {
-				// saga参与方带前缀持久化（OH1-F1），其余为procedure参与方（含旧版本ip_port格式）。
+				// saga参与方带前缀持久化，其余为procedure参与方（含旧版本ip_port格式）。
 				var sagaName = OnzTransaction.decodeSagaParticipant(e);
 				var zezeName = sagaName != null ? sagaName : e;
 				AsyncSocket socket;
 				if (zezes.containsKey(zezeName)) {
-					// 参与方按集群名持久化（FND4-90起）：现查当前地址——地址漂移后redo
-					// 不再对死地址重试（连接器由instances缓存管理生命周期）。
+					// 参与方按集群名持久化：现查当前地址——地址漂移后redo
+					// 不对死地址重试（连接器由instances缓存管理生命周期）。
 					socket = getZezeInstance(zezeName);
 				} else {
 					// 旧版本持久化的ip_port（升级窗口遗留的未决决策）：按地址建连兜底。
@@ -387,7 +386,7 @@ public class OnzServer extends AbstractOnz {
 				// eSagaNotFound：上下文已清理（业务失败自清理/参与方TTL回收/已处理过的
 				// 重复发送），无补偿对象，可忽略（线上为moduleId组合值，解码后比较）。
 				if (IModule.getErrorCode(rpc.getResultCode()) == AbstractOnz.eSagaNotFound) {
-					// GC-D04-C 超龄分诊：rollback决策（cancel=true路径）的NotFound有两种不可
+					// 超龄分诊：rollback决策（cancel=true路径）的NotFound有两种不可
 					// 区分成因——良性（业务失败自清理/已补偿的重复发送）与恶性（参与方上下文
 					// 已被TTL清理，补偿永久丢失）。记录年龄超参与方TTL预算（SagaNotFoundAged
 					// BudgetMs）的升格为error（按tid去重防每轮刷屏）并保留决策记录（人工对账
@@ -403,7 +402,7 @@ public class OnzServer extends AbstractOnz {
 					continue;
 				}
 				removeOk = false;
-				// 周期重试防刷屏（GC-C03）：非0非eSagaNotFound应答保留决策记录等重试，
+				// 周期重试防刷屏：非0非eSagaNotFound应答保留决策记录等重试，
 				// 确定性补偿失败每轮redo重发重失败——按tid只error一次（对齐agedNotFound
 				// WarnedTids形态，集合见redoResultWarnedTids）：首条error已含tid与
 				// resultCode，后续每轮重发无新信息，纯日志洪水（每tid每天1440条）还会
@@ -415,22 +414,21 @@ public class OnzServer extends AbstractOnz {
 			if (removeOk) {
 				removeCommitRecord(key);
 				agedNotFoundWarnedTids.remove(tid); // 记录收敛后回收告警去重项
-				redoResultWarnedTids.remove(tid); // 同上（GC-C03）：结果错误告警一并回收
-				redoFailWarnedTids.remove(tid); // 同上（GC-D01(FND21)）：瞬态失败自愈（参与方恢复→本轮
+				redoResultWarnedTids.remove(tid); // 同上：结果错误告警一并回收
+				redoFailWarnedTids.remove(tid); // 同上：瞬态失败自愈（参与方恢复→本轮
 				// 全0）后tid离开第四集合，集合有界于在库的异常滞留决策数。
 			}
 		} catch (Throwable ex) {
 			// timer will redo
-			// 年龄门槛分诊（GC-D01(FND21)）：参与者循环/点表读取的任一异常原先只落本处
+			// 年龄门槛分诊：参与者循环/点表读取的任一异常未达门槛时只落本处
 			// "redo fail"全量日志——走不到任何告警集合add点，确定性滞留（死地址/除名
 			// 集群/毒点表）对settle守卫不可见且每60s刷一条带栈error。记录年龄≥
 			// RedoFailAgedBudgetMs的本轮异常转去重形态：按tid登记第四告警集合并
 			// error一次（成因片段=异常类名+消息——诊断"先修参与方还是改库"的依据，
-			// 首见形态即可，门槛内的年轻阶段已留全量带栈日志），登记即可被
-			// settleStuckRecord清算；已登记的后续轮次静默（重放无新信息，对齐
-			// GC-C03形态）。未达门槛保持现状全量日志：瞬态/年轻失败完全可见，且
-			// 行数有界（门槛/60s轮后转去重形态）。旧格式记录（stamp=0）年龄视为
-			// 无穷（对齐redoTimer读时戳口径），首轮异常即分诊。
+			// 首见形态即可，门槛内的年轻阶段有全量带栈日志），登记即可被
+			// settleStuckRecord清算；已登记的后续轮次静默（重放无新信息）。未达门槛
+			// 记全量日志：瞬态/年轻失败完全可见，且行数有界（门槛/60s轮后转去重形态）。
+			// 旧格式记录（stamp=0）年龄视为无穷（对齐redoTimer读时戳口径），首轮异常即分诊。
 			var recordAge = System.currentTimeMillis() - stamp;
 			if (recordAge >= RedoFailAgedBudgetMs) {
 				if (redoFailWarnedTids.add(tid))
@@ -445,7 +443,7 @@ public class OnzServer extends AbstractOnz {
 		}
 	}
 
-	// redo的发送分流（OH1-F1，决策语义见redo）：saga参与方发FuncSagaEnd（cancel取反决策，
+	// redo的发送分流（决策语义见redo）：saga参与方发FuncSagaEnd（cancel取反决策，
 	// 等待超时见RedoSagaEndTimeoutMs），procedure参与方发Commit/Rollback。
 	// future入列供统一await，返回rpc供结果码检查。
 	private static Rpc<?, ?> sendRedoDecision(AsyncSocket socket, long tid,
@@ -469,10 +467,10 @@ public class OnzServer extends AbstractOnz {
 		bState.encode(bb);
 		var bbIndex = ByteBuffer.Allocate(13);
 		bbIndex.WriteUInt(state);
-		bbIndex.WriteLong8BE(System.currentTimeMillis()); // FND5-44：ePreparing年龄判据，见redoTimer
-		// perform写库点纳入dbLock域+锁内stopped双检（GC-C01(FND22)，对齐redoTimer头部/
-		// settleStuckRecord的锁内双检形态）：本方法与commit()内的调用都跑在业务线程、原先
-		// 不持dbLock也不复查stopped——perform的业务长窗口（txn.perform()时长无上界）期间
+		bbIndex.WriteLong8BE(System.currentTimeMillis()); // ePreparing年龄判据，见redoTimer
+		// perform写库点纳入dbLock域+锁内stopped双检（对齐redoTimer头部/
+		// settleStuckRecord的锁内双检形态）：本方法与commit()内的调用都跑在业务线程、若不
+		// 持dbLock也不复查stopped——perform的业务长窗口（txn.perform()时长无上界）期间
 		// stop()可以走完整个关库链，此后写点对已释放的列族/db句柄做native写，正是
 		// RocksDatabase.close契约声明的use-after-free直接崩溃。互斥只需覆盖写库本身（毫秒级，
 		// 不含业务窗口——那会把长业务与redo轮串行化）：与stop()的database.close()（同在
@@ -480,14 +478,13 @@ public class OnzServer extends AbstractOnz {
 		// RuntimeException（对齐getZezeInstance的"stopped"拒绝形态）：perform/commit的既有
 		// catch→rollback链把停机时在飞事务转为显式失败（stop javadoc"在途事务可能失败"——
 		// 失败而非崩溃）；此刻ePreparing/eCommitting均未落盘，回滚是正确的2pc决策，参与方由
-		// ready等待超时自愈（FND5-45）与重启redo兜底。
+		// ready等待超时自愈与重启redo兜底。
 		dbLock.lock();
 		try {
 			if (stopped)
 				throw new RuntimeException("OnzServer stopped: saveCommitPoint rejected. tid="
 						+ ByteBuffer.ToLongBE(tidBytes, 0));
 			try (var batch = database.borrowBatch()) {
-				// putIfAbsent ？？？ 报错！
 				commitPoint.put(batch, tidBytes, tidBytes.length, bb.Bytes, bb.WriteIndex);
 				commitIndex.put(batch, tidBytes, tidBytes.length, bbIndex.Bytes, bbIndex.WriteIndex);
 				batch.commit(writeOptions);
@@ -498,7 +495,7 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	void removeCommitRecord(byte[] tidBytes) {
-		// 同saveCommitPoint纳入dbLock+锁内stopped双检（GC-C01(FND22)）：commit()两处调用
+		// 同saveCommitPoint纳入dbLock+锁内stopped双检：commit()两处调用
 		//（失败分支/成功路径）都跑在业务线程。redo()/settleStuckRecord的既有调用点本就在
 		// dbLock域内（ReentrantLock可重入，行为不变）。stopped时拒删不是错误：与下方
 		// RocksDBException分支同语义——记录留库，由下次进程启动的redo恢复（stop javadoc
@@ -512,7 +509,7 @@ public class OnzServer extends AbstractOnz {
 				return;
 			}
 			try {
-				// 两表同key生命周期（FND4-88）：索引删则点删，同一batch原子落地。
+				// 两表同key生命周期：索引删则点删，同一batch原子落地。
 				// commitPoint只在redo（遍历commitIndex时requireNonNull读取）被消费，
 				// 孤儿点条目永不被读还占磁盘——磁盘随事务数单调增长。
 				try (var batch = database.borrowBatch()) {
@@ -530,29 +527,28 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	/**
-	 * 滞留决策记录的人工清算（GC-D01）："保留 + 曝光"（GC-D04-C 超龄NotFound / GC-C02
-	 * 未知state / GC-C03 确定性补偿失败 / GC-D01(FND21) 超龄redo整体失败）之后的可达
-	 * 终点——对账完成后（如参与方带外补了数据），运维按 tid 显式关闭滞留记录。暴露惯例
-	 * 对齐 Onz.cleanupTimeoutSagas：嵌入方从自己的运维面调用（全仓无独立OnzServer部署
-	 * 形态），方法体即未来任何远程形态的 handler 体；测试可直接调用。
+	 * 滞留决策记录的人工清算："保留 + 曝光"（超龄NotFound / 未知state / 确定性补偿失败 /
+	 * 超龄redo整体失败）之后的可达终点——对账完成后（如参与方带外补了数据），运维按 tid
+	 * 显式关闭滞留记录。暴露惯例对齐 Onz.cleanupTimeoutSagas：嵌入方从自己的运维面调用
+	 * （全仓无独立OnzServer部署形态），方法体即未来任何远程形态的 handler 体；测试可直接调用。
 	 * <p>
 	 * 守卫（下限）：只放行协调者自己已报告为滞留的 tid——agedNotFoundWarnedTids ∪
 	 * redoResultWarnedTids ∪ unknownStateWarnedTids ∪ redoFailWarnedTids。清算的正确性
 	 * 依赖"操作者已完成对账"这一协调者不可验证的外部事实，设计的本质不是验证它，而是
 	 * 把该断言约束在最小爆破半径内：集合成员资格是协调者自己"redo 收敛不动此记录"的
 	 * 证据，进行中事务的 tid 不可达——误删进行中事务唯一收敛通道（redo）的操作因此
-	 * 不可达。不在集合的分型如实指引（GC-D01(FND21)撤"≤60s重新分诊"的全称断言——
-	 * 它对redo失败类永不兑现：该类要等记录年龄超 RedoFailAgedBudgetMs 后的下一轮
-	 * redo才分诊，而进行中/未分诊才走"下一轮≤60s重诊"路径）：进行中 / 未分诊（进程
+	 * 不可达。不在集合的分型如实指引（redo失败类不适用"下一轮≤60s重新分诊"的指引——
+	 * 它要等记录年龄超 RedoFailAgedBudgetMs 后的下一轮 redo才分诊，进行中/未分诊才走
+	 * "下一轮≤60s重诊"路径）：进行中 / 未分诊（进程
 	 * 重启后集合清空，等下一轮 redo 重新分诊）/ redo失败未达龄（等超龄后的下一轮），
 	 * 拒绝并 error。
 	 * <p>
 	 * 删除：dbLock 域内 + stopped 双检（对齐 redoTimer 头部，与 stop 的关库互斥）；
 	 * 删前读 commitIndex/commitPoint 原值记审计日志（被放弃的补偿对象的最后留痕——
-	 * 记录内容删除后不可再读）；复用 removeCommitRecord 单 batch 原子双删（FND4-88 两表
-	 * 同 key 生命周期）；四个告警去重集合同步回收（回收点对齐 redo 的 removeOk 分支；
-	 * unknownStateWarnedTids 此前无回收点——GC-C02 条目按设计永不 redo 收敛，本方法是
-	 * 其唯一回收通道，汇流闭合同形滞留四类）。
+	 * 记录内容删除后不可再读）；复用 removeCommitRecord 单 batch 原子双删（两表同
+	 * key 生命周期）；四个告警去重集合同步回收（回收点对齐 redo 的 removeOk 分支；
+	 * unknownState 条目按设计永不 redo 收敛，本方法是该集合唯一回收通道，汇流闭合
+	 * 同形滞留四类）。
 	 *
 	 * @return true=记录已关闭（删除，或守卫通过后已不在库的幂等no-op）；false=拒绝
 	 * （tid未被报告滞留/服务器已停止），库与集合均不动。
@@ -566,9 +562,8 @@ public class OnzServer extends AbstractOnz {
 		}
 		if (!(agedNotFoundWarnedTids.contains(tid) || redoResultWarnedTids.contains(tid)
 				|| unknownStateWarnedTids.contains(tid) || redoFailWarnedTids.contains(tid))) {
-			// 分型如实指引（GC-D01(FND21)）：撤"下一轮redo≤60s重新分诊"的全称断言——它对
-			// redo失败类永不兑现（异常轮走不到任何集合add点，分诊要等记录年龄超
-			// RedoFailAgedBudgetMs后的下一轮），原指引把操作者指向永不兑现的等待路径。
+			// 分型如实指引：redo失败类不适用"下一轮redo≤60s重新分诊"——异常轮走不到任何
+			// 集合add点，分诊要等记录年龄超RedoFailAgedBudgetMs后的下一轮，该指引对这类永不兑现。
 			logger.error("onz settle rejected: tid={} 不是协调者已报告滞留的tid（进行中/未分诊/redo失败未达龄："
 							+ "未分诊（含进程重启后集合清空）等下一轮redo重新分诊；redo失败类等记录年龄超"
 							+ RedoFailAgedBudgetMs + "ms后的下一轮redo分诊），记录不动", tid);
@@ -589,9 +584,9 @@ public class OnzServer extends AbstractOnz {
 			auditRetainedRecord(tid, tidBytes);
 			removeCommitRecord(tidBytes);
 			agedNotFoundWarnedTids.remove(tid); // 记录关闭后回收告警去重项（对齐removeOk分支）
-			redoResultWarnedTids.remove(tid); // 同上（GC-C03）
-			unknownStateWarnedTids.remove(tid); // 同上（GC-C02）：本方法是该集合唯一的tid回收点
-			redoFailWarnedTids.remove(tid); // 同上（GC-D01(FND21)）：与removeOk双回收点，人工清算后
+			redoResultWarnedTids.remove(tid); // 同上
+			unknownStateWarnedTids.remove(tid); // 同上：本方法是该集合唯一的tid回收点
+			redoFailWarnedTids.remove(tid); // 同上：与removeOk双回收点，人工清算后
 			// tid离开第四集合（redo失败类的分诊登记在redo的catch内，回收点对齐既有两处）。
 			return true;
 		} finally {
@@ -600,7 +595,7 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	/**
-	 * 删除前的滞留记录审计留痕（GC-D01）：tid/原state/年龄/参与方清单——记录两表条目
+	 * 删除前的滞留记录审计留痕：tid/原state/年龄/参与方清单——记录两表条目
 	 * 删除后内容即不可再读，日志是被放弃的补偿对象的最后痕迹。审计尽力而为：守卫已确认
 	 * 滞留，个别字段读不到（已不在库/无点条目/毒值）不得阻断清算——删除本身的正确性
 	 * 不依赖审计，只依赖守卫 + removeCommitRecord 的原子性。
@@ -628,7 +623,7 @@ public class OnzServer extends AbstractOnz {
 					saved.decode(ByteBuffer.Wrap(pointValue));
 					onzs = String.valueOf(saved.getOnzs());
 				} else {
-					// 未知state条目可无点条目（GC-C02形态：索引直注）；索引在而点不在的
+					// 未知state条目可无点条目（索引直注）；索引在而点不在的
 					// 错配条目同样如实记录。
 					onzs = "无点条目";
 				}
@@ -658,13 +653,13 @@ public class OnzServer extends AbstractOnz {
 	 * 停止OnzServer（幂等，可重入）。语义：不做优雅排空——在途事务可能失败，
 	 * 未完成的补发记录（commitIndex）留在库中由下次进程启动的redo恢复；终态，不可再start。
 	 * 在飞perform的写库点（saveCommitPoint/removeCommitRecord）在dbLock内复查stopped后
-	 * 拒写（GC-C01(FND22)）——停机时在飞事务显式失败（perform/commit的catch→rollback链），
+	 * 拒写——停机时在飞事务显式失败（perform/commit的catch→rollback链），
 	 * 不再对已释放句柄做native写（RocksDatabase.close契约的use-after-free）。
 	 * 停机为best-effort：任一步失败仅记error并继续——半途上抛会让幂等守卫把停机
 	 * 永久卡在半途（库/代理无法补关），失败步骤由日志定位人工处理。
 	 * 顺序：拒绝新工作 → 停定时器 → 停缓存connector（必须先于服务停止：
 	 * 服务关socket会触发connector自动重连，停止后仍无限重连）→ close各SM代理
-	 * （按identity去重，共享配置是同一实例）→ 停服务 → 最后关库（FND3-54）。
+	 * （按identity去重，共享配置是同一实例）→ 停服务 → 最后关库。
 	 */
 	public void stop() throws Exception {
 		if (stopped)
@@ -682,7 +677,7 @@ public class OnzServer extends AbstractOnz {
 			for (var connector : instances.values()) {
 				try {
 					connector.stop();
-				} catch (Throwable e) { // logger.error
+				} catch (Throwable e) {
 					logger.error("stop connector {}", connector.getName(), e);
 				}
 			}
@@ -695,30 +690,30 @@ public class OnzServer extends AbstractOnz {
 					continue;
 				try {
 					agent.close();
-				} catch (Throwable e) { // logger.error
+				} catch (Throwable e) {
 					logger.error("close ServiceManager agent", e);
 				}
 			}
 			try {
 				myServiceManager.close();
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("close myServiceManager", e);
 			}
 
 			try {
 				onzAgent.stop();
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("stop onzAgent", e);
 			}
 			try {
 				service.stop();
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("stop service", e);
 			}
 
 			try {
 				database.close();
-			} catch (Throwable e) { // logger.error
+			} catch (Throwable e) {
 				logger.error("close database", e);
 			}
 		} finally {
@@ -761,11 +756,11 @@ public class OnzServer extends AbstractOnz {
 				if (this.zezes.containsKey(zeze))
 					throw new RuntimeException("duplicate zeze=" + zeze + " zezes=" + specialZezeNames);
 				this.zezes.put(zeze, sharedAgent);
-				// 订阅键=查询键（GC-C01(FND21)）：getZezeInstance在shared模式下按集群名查
-				// subscribeStates（Agent以订阅请求里的服务名为键建表），原先在共享agent上只订阅
+				// 订阅键=查询键：getZezeInstance在shared模式下按集群名查
+				// subscribeStates（Agent以订阅请求里的服务名为键建表），共享agent上若只订阅
 				// 固定名"Onz"而按别名查询——别名键永不存在，共享模式下每次地址解析恒抛
-				// "subscribe not found"，所有Onz事务/redo/commit路径100%失败（fd7b9eea6初版即坏，
-				// 零存量调用方）。逐名订阅与702行的按名查询对齐；各名对应的参与方以同名注册进
+				// "subscribe not found"，所有Onz事务/redo/commit路径100%失败。
+				// 逐名订阅与getZezeInstance的按名查询对齐；各名对应的参与方以同名注册进
 				// 共享SM（Onz.setRegisterServiceName，构造器javadoc的配对说明），两头对名后该
 				// 模式才真正可用。
 				sharedAgent.subscribeService(new BSubscribeInfo(zeze));
@@ -775,7 +770,7 @@ public class OnzServer extends AbstractOnz {
 			onzAgent = new OnzAgent();
 			RegisterProtocols(service);
 		} catch (Throwable ex) {
-			// 构造的全有或全无（FND4-89）：逆序释放——共享SM（zezes各值同一实例，只关一次）
+			// 构造的全有或全无：逆序释放——共享SM（zezes各值同一实例，只关一次）
 			// → 库 → myServiceManager。
 			rollbackClose("shared agent", sharedAgent);
 			rollbackClose("database", db);
@@ -810,7 +805,7 @@ public class OnzServer extends AbstractOnz {
 		if (null == onzServices)
 			throw new RuntimeException("serviceManager subscribe not found. " + zezeName);
 
-		// "选择→创建→登记"按名原子化（FND3-53）：无同步时并发冷路径互相stop对方的connector
+		// "选择→创建→登记"按名原子化：无同步时并发冷路径互相stop对方的connector
 		// （GetReadySocket等待者收到异常，事务假性失败），重连窗口每个新请求都杀死上一个
 		// 正在握手的尝试（churn，连接永远建立不起来）。
 		var nameLock = nameLocks.computeIfAbsent(zezeName, __ -> new ReentrantLock());
@@ -917,20 +912,19 @@ public class OnzServer extends AbstractOnz {
 			var tidBytes = new byte[8];
 			ByteBuffer.longBeHandler.set(tidBytes, 0, txn.getOnzTid());
 			saveCommitPoint(tidBytes, state, ePreparing);
-			// 这里和下面的txn.Commit分成两步saveCommitPoint，
-			// 实际上这中间没有做太多额外的事情，可以考虑合并成异步，
-			// 但为了明确两个事务状态，仍然分开。原因如下：
+			// 这里和下面的txn.commit分成两步saveCommitPoint，
+			// 中间没有做太多额外的事情，但为了明确两个事务状态，仍然分开。原因如下：
 			// 参考Dbh2的两步：由于Dbh2一开始就知道所有的服务器，所以可以一开始就保存一次ePreparing，
-			// 而这上面的perform是便执行边产生服务器地址，无法一开始保存事务状态。
+			// 而这上面的perform是边执行边产生服务器地址，无法一开始保存事务状态。
 			// 最严格的做法是每产生一个服务器地址，就写一次ePreparing（包含所有的服务器地址）。
-			// 现在先简单处理为：等待perform完成。
+			// 此处处理为：等待perform完成。
 			if (0 == rc) {
 				txn.waitPendingAsync();
-				// pendingAsync窗口内注册的参与方不进上面的ePreparing快照（OH1-F4）：窗口后
+				// pendingAsync窗口内注册的参与方不进上面的ePreparing快照：窗口后
 				// 重建快照再传给commit——txn.commit内saveCommitPoint(eCommitting)持久化的
 				// 参与方列表完整，崩溃/commitFail后redo补发不缺迟到参与方（迟到者等不到
-				// Commit会ready超时自愈回滚，与已报成功的协调者分歧）。592行的ePreparing快照
-				// 保持不动：窗口内落盘可观察是FND5-44/FND6-36回归契约与redo所有权门控的依赖，
+				// Commit会ready超时自愈回滚，与已报成功的协调者分歧）。上面的ePreparing快照
+				// 保持不动：窗口内落盘可观察是redo年龄闸与在途登记skip的依赖，
 				// 其内容不全无害（崩溃走redo(rollback)整体回滚一致）。
 				state = txn.buildSavedCommits();
 				txn.commit(tidBytes, state);
@@ -948,7 +942,7 @@ public class OnzServer extends AbstractOnz {
 		} finally {
 			onzAgent.removeTransaction(txn);
 			// 慢而最终完成的perform也会触发过封锁告警（登记中+超龄即入集合），完成即回收，
-			// 集合真正有界于挂死数——否则按tid无界累积（GC-C04）。
+			// 集合真正有界于挂死数——否则按tid无界累积。
 			hangWarnedTids.remove(txn.getOnzTid());
 		}
 	}
@@ -965,7 +959,7 @@ public class OnzServer extends AbstractOnz {
 
 	@Override
 	protected long ProcessFuncProcedureRequest(FuncProcedure r) throws Exception {
-		// 这个本来是嵌入zeze的组件Onz的处理协议，直接拿来作为OnzServer的远程调用，够用，还超了一点。
+		// 复用嵌入zeze的Onz组件协议来处理OnzServer的远程调用。
 		var stub = remoteStubs.get(r.Argument.getFuncName());
 		if (stub == null)
 			return errorCode(eProcedureNotFound);

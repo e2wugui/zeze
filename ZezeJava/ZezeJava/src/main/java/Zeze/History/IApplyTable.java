@@ -5,6 +5,9 @@ import Zeze.Transaction.TableWalkHandleRaw;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 回放库中一张表的原始 KV 访问接口：get/put/remove/walk/isEmpty。
+ */
 public interface IApplyTable {
 	@NotNull String getTableName();
 

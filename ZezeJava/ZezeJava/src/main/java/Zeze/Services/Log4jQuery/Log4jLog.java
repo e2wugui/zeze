@@ -5,6 +5,9 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * 单条日志：首行解析出的时间与文件内偏移，多行续行聚合拼接（完整文本惰性生成）。
+ */
 public class Log4jLog extends ReentrantLock {
 	private final long time;
 	private final long offset;

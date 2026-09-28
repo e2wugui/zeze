@@ -8,12 +8,15 @@ import Zeze.Builtin.MQ.Master.BMQInfo;
 import Zeze.Net.Connector;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * MQ 消费者：订阅 topic 的全部 Manager 分区，接收推送消息并转交 listener 回调。
+ */
 public class MQConsumer {
 	private final MQListener listener;
 	private final long sessionId;
 	private final BMQInfo.Data info;
 	private final HashSet<Connector> managers = new HashSet<>();
-	// 【GB-D04】close幂等标志：close即终态（重复close空转；重用需重新构造实例）。
+	// close幂等标志：close即终态（重复close空转；重用需重新构造实例）。
 	private final AtomicBoolean closed = new AtomicBoolean();
 
 	public static Collection<MQConsumer> getConsumers() {
@@ -23,7 +26,7 @@ public class MQConsumer {
 	public MQConsumer(String topic, MQListener listener) {
 		this.listener = listener;
 
-		// 【GB-D04】先取引用再触网络：构造失败必须成对释放（引用泄漏会使静态agent的归零停机
+		// 先取引用再触网络：构造失败必须成对释放（引用泄漏会使静态agent的归零停机
 		// 永不触发——connector无限重连正是要消灭的残留形态）；MQ.shutdown()后addRef在此明确报错。
 		MQ.clientAddRefs();
 		try {
@@ -68,7 +71,7 @@ public class MQConsumer {
 	}
 
 	public void close() {
-		// 【GB-D04】幂等close：退订（必达移除consumers条目）+引用释放（归零触发静态agent停重连）。
+		// 幂等close：退订（必达移除consumers条目）+引用释放（归零触发静态agent停重连）。
 		if (!closed.compareAndSet(false, true))
 			return;
 		try {

@@ -17,6 +17,7 @@ import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/** Onz分布式事务参与方：嵌入zeze应用，注册本地procedure/saga，处理两阶段提交的ready/Commit/Rollback与flush应答，并管理saga上下文生命周期。 */
 public class Onz extends AbstractOnz {
 	public static final String eServiceName = "Onz";
 
@@ -27,7 +28,7 @@ public class Onz extends AbstractOnz {
 	private final LongConcurrentHashMap<OnzSaga> sagas = new LongConcurrentHashMap<>();
 	private final OnzService service;
 	private final Application zeze;
-	// GC-D03：本集群的Onz参与方身份（FlushReady.Participant，协调者按它去重计数）。
+	// 本集群的Onz参与方身份（FlushReady.Participant，协调者按它去重计数）。
 	// 组成=projectName#serverId（对齐raft版SM会话名的缺省全局唯一约定，见
 	// Config.ServiceManagerConf注释）。协调者按参与方去重只需要"不同集群不同名、
 	// 同集群重试同名"，本身份与协调者在zezeConfigs里为本集群起的别名（zezeProcedures
@@ -35,20 +36,20 @@ public class Onz extends AbstractOnz {
 	// 参与方无从得知）是否一致不影响计数正确性：别名不参与去重键。
 	private final String participantName;
 	// saga上下文兜底清理：正常流程FuncSagaEnd在步骤成功后数秒内到达；发送失败或
-	// 协调者崩溃由redo重发（OH1-F1起saga参与方进持久化快照）——TTL清理是资源回收
-	// 兜底（防rpc/bean泄漏，FND-G1-6），不是正确性机制：正确性依赖redo在本TTL内到达。
-	//【GC-D04-B2 联动契约】本值必须 ≥ 协调者最大恢复预算 = 崩溃检测+重启+
+	// 协调者崩溃由redo重发（saga参与方进持久化快照）——TTL清理是资源回收
+	// 兜底（防rpc/bean泄漏），不是正确性机制：正确性依赖redo在本TTL内到达。
+	// 联动契约：本值必须 ≥ 协调者最大恢复预算 = 崩溃检测+重启+
 	// RedoPreparingMinAgeMs(120s，OnzServer)+redo周期(60s，OnzServer)。预算内恢复
 	// 则redo补发的FuncSagaEnd(cancel)必命中存活上下文；超预算恢复命中已清上下文
 	// =eSagaNotFound，补偿丢失（超龄者由OnzServer.redo分诊error，人工对账）。
-	// 计时基准为最后活动时间（GC-D04-B1：构造/补偿失败放回时刻，见OnzSaga.lastActiveTime）。
+	// 计时基准为最后活动时间（构造/补偿失败放回时刻，见OnzSaga.lastActiveTime）。
 	public static final long eDefaultSagaContextTimeoutMs = 3600_000;
 	private long sagaContextTimeoutMs = eDefaultSagaContextTimeoutMs;
 	private Future<?> sagaCleanupTimer;
-	// FND5-45联动/FND6-38：ready等待超时自愈回滚的tid记账（值=回滚时刻，有界），仅供
+	// ready等待超时自愈回滚的tid记账（值=回滚时刻，有界），仅供
 	// 过期清理循迹；决定性状态在readyProcedures的槽位哨兵（TimeoutRolledBackMarker）——
-	// 「取走登记」（Commit/Rollback的remove）与「自愈标记」（replace CAS置哨兵）在同一
-	// map的CAS原子域内互斥可见，消除原remove→mark两语句间隙被并发Commit穿过（两表皆null
+	//「取走登记」（Commit/Rollback的remove）与「自愈标记」（replace CAS置哨兵）在同一
+	// map的CAS原子域内互斥可见，消除remove→mark两语句间隙被并发Commit穿过（两表皆null
 	// 按已提交幂等重发假应答成功，分歧暴露日志漏报）的窗口；先mark后remove则产生假阳性。
 	// 条目随saga清理周期过期（过期时连同槽位哨兵一起回收）。
 	private static final long TimeoutRolledBackTtlMs = 3600_000;
@@ -68,7 +69,7 @@ public class Onz extends AbstractOnz {
 			throw new RuntimeException("ready procedure exist. " + procedure.getOnzTid());
 	}
 
-	/** FND5-45/FND6-38：参与方ready等待超时自愈——CAS把槽位原子置换为超时哨兵。
+	/** 参与方ready等待超时自愈——CAS把槽位原子置换为超时哨兵。
 	 * 仅当条目仍是自己时成功：迟到的Commit/Rollback可能已并发取走，由调用方等待
 	 * 既成决策（不得覆盖）。成功即已标记，另记时间戳供TTL清理。 */
 	boolean markTimeoutRolledBack(OnzProcedure procedure) {
@@ -80,7 +81,7 @@ public class Onz extends AbstractOnz {
 	}
 
 	/**
-	 * FND8-76：参与方"ready已发、Commit决策已送达"后本地失败回滚（如perform的停机拒绝）——
+	 * 参与方"ready已发、Commit决策已送达"后本地失败回滚（如perform的停机拒绝）——
 	 * putIfAbsent回填超时哨兵：决策RPC已先行取走条目（replace必失败，故用putIfAbsent），
 	 * 回填成功则迟到的redo Commit取到哨兵走ProcessCommitRequest的分歧error路径二次确认；
 	 * 条目仍在（决策未到达/已是哨兵）时失败不覆盖。成功后与markTimeoutRolledBack同型记账，
@@ -98,12 +99,12 @@ public class Onz extends AbstractOnz {
 		return zeze;
 	}
 
-	/** GC-D03：FlushReady.Participant 的取值来源（构造期固定，见participantName注释）。 */
+	/** FlushReady.Participant 的取值来源（构造期固定，见participantName注释）。 */
 	public String getParticipantName() {
 		return participantName;
 	}
 
-	// 共享SM部署（OnzServer三参构造器）下本集群Onz服务的SM注册名（GC-C01(FND21)）：共享SM里
+	// 共享SM部署（OnzServer三参构造器）下本集群Onz服务的SM注册名：共享SM里
 	// 多个集群若都按缺省"Onz"注册，同名条目混在一张通告表里，协调者无从按集群路由——共享模式
 	// 要求各集群配置互异唯一名（与协调者specialZezeNames逐名对齐，协调者按名订阅+按名查询）。
 	// 非共享模式（每集群独立SM）保持缺省"Onz"不动：协调者按"Onz"订阅，既有用法零变化。
@@ -148,7 +149,7 @@ public class Onz extends AbstractOnz {
 			var zeze = service.getZeze();
 			var config = zeze.getConfig();
 			var identity = String.valueOf(config.getServerId());
-			// 注册名可配（GC-C01(FND21)）：共享SM部署下各集群以唯一名注册（协调者按名订阅路由），
+			// 注册名可配：共享SM部署下各集群以唯一名注册（协调者按名订阅路由），
 			// 非共享缺省"Onz"（协调者按"Onz"订阅，见registerServiceName注释）。
 			zeze.getServiceManager().registerService(new BServiceInfo(registerServiceName, identity, 0, ip, port));
 		}
@@ -165,9 +166,9 @@ public class Onz extends AbstractOnz {
 	}
 
 	/**
-	 * 清理超时仍未收到FuncSagaEnd的saga上下文，超时按最后活动时间计（GC-D04-B1：
-	 * 构造/补偿失败放回时刻）。定时器周期调用，测试可直接调用。
-	 * 业务在途（执行中/FuncSagaEnd补偿中等锁）的条目跳过本轮（OH1-F3），等业务完成
+	 * 清理超时仍未收到FuncSagaEnd的saga上下文，超时按最后活动时间计
+	 * （构造/补偿失败放回时刻）。定时器周期调用，测试可直接调用。
+	 * 业务在途（执行中/FuncSagaEnd补偿中等锁）的条目跳过本轮，等业务完成
 	 * 后的下个周期再清。按最后活动计时保证补偿重试链不被构造时刻的TTL掐断（完整
 	 * 因果链见sagaContextTimeoutMs契约）；超龄的NotFound由OnzServer.redo分诊error。
 	 */
@@ -176,11 +177,11 @@ public class Onz extends AbstractOnz {
 		for (var saga : sagas) {
 			if (!saga.isEnd() && now - saga.getLastActiveTime() >= sagaContextTimeoutMs) {
 				// 正常流程FuncSagaEnd在步骤成功后数秒内到达；协调者崩溃后重启，redo会补发
-				// FuncSagaEnd（OH1-F1起saga参与方进buildSavedCommits持久化快照）。但补发收敛
-				// 以sagaContextTimeoutMs为预算（GC-D04-B2联动契约）：协调者超预算恢复时上下文
+				// FuncSagaEnd（saga参与方进buildSavedCommits持久化快照）。但补发收敛
+				// 以sagaContextTimeoutMs为预算：协调者超预算恢复时上下文
 				// 已被本清理回收，redo只得超龄NotFound（OnzServer.redo分诊error，人工对账）。
 				// 滞留条目持有rpc（sender socket引用）与业务bean，且end=false会扭曲flush语义判断。
-				// 先tryLock businessLock（OH1-F3）：拿不到=业务在途（含FuncSagaEnd正
+				// 先tryLock businessLock：拿不到=业务在途（含FuncSagaEnd正
 				// 阻塞等慢业务），删条目会让等待方remove失败应答eSagaNotFound——
 				// 补偿丢失。跳过本轮，等下个周期。
 				if (!saga.tryLockBusiness())
@@ -195,14 +196,14 @@ public class Onz extends AbstractOnz {
 				}
 			}
 		}
-		// FND5-45联动的超时回滚登记过期：Rollback最迟在崩溃协调者重启+redo一轮内到达，
+		// 超时回滚登记过期：Rollback最迟在崩溃协调者重启+redo一轮内到达，
 		// 1小时足够（对齐sagaContextTimeoutMs默认）。
 		for (var it = timeoutRolledBack.keyIterator(); it.hasNext(); ) {
 			var tid = it.next();
 			var stamp = timeoutRolledBack.get(tid);
 			if (stamp != null && now - stamp >= TimeoutRolledBackTtlMs) {
 				timeoutRolledBack.remove(tid);
-				readyProcedures.remove(tid, TimeoutRolledBackMarker); // FND6-38：连同槽位哨兵一起过期
+				readyProcedures.remove(tid, TimeoutRolledBackMarker); // 连同槽位哨兵一起过期
 			}
 		}
 	}
@@ -238,7 +239,7 @@ public class Onz extends AbstractOnz {
 		var procedure = readyProcedures.remove(tid);
 		if (null != procedure) {
 			if (procedure == TimeoutRolledBackMarker) {
-				// FND5-44/45联动（FND6-38原子化）：本参与方已超时自愈回滚，协调者却持久化了
+				// 本参与方已超时自愈回滚，协调者却持久化了
 				// commit决策——真实不一致（静默部分提交），error暴露。仍应答成功：改错误码会让
 				// redo无限重发（条目已不存在，永无应答成功的可能），且无法与已提交后的重复发送区分。
 				logger.error("Commit for timeout-rolled-back onz tid={}"
@@ -289,15 +290,15 @@ public class Onz extends AbstractOnz {
 
 		// 步骤失败（业务返回非0或异常）时本地事务已回滚：协调者cancelSaga只对成功的
 		// 步骤发FuncSagaEnd（失败步骤被跳过），正常结束路径endSaga也只在成功时到达，
-		// 这里不清理则条目永久滞留（持有rpc与业务bean，FND-G1-6）。
-		// FND7-34：业务执行期间持有businessLock，与并发的FuncSagaEnd(cancel/end)互斥——
+		// 这里不清理则条目永久滞留（持有rpc与业务bean）。
+		// 业务执行期间持有businessLock，与并发的FuncSagaEnd(cancel/end)互斥——
 		// 协调者超时补偿会在业务仍执行时到达，不互斥则补偿与业务并发/抢先，业务随后
 		// 失败回滚时补偿就成了过补偿。
-		// 注册必须在businessLock之内（OH1-F2）：原先putIfAbsent先于lockBusiness，停滞
+		// 注册必须在businessLock之内：putIfAbsent若先于lockBusiness，停滞
 		// 窗口内并发的FuncSagaEnd(cancel)（同为Normal派发，不保证处理顺序）可抢先拿锁、
 		// remove并补偿一个从未执行的业务，随后真实业务提交且无人补偿——双向分歧。
 		// 先拿锁再注册后，等锁的FuncSagaEnd必然观察到已注册条目（锁的happens-before）。
-		// 移动产生的新窗口"注册前FuncSagaEnd到达→eSagaNotFound"由协调者既有
+		// 注册前FuncSagaEnd到达→eSagaNotFound的窗口由协调者既有
 		// retryCancelNotFoundOnce兜底：此时协调者对本步骤的rpc必未完成（业务还没跑），
 		// cancelSaga将其归入rpcFailed类单次延迟重试，重试时业务在途或已完成，补偿串行正确。
 		var rc = Procedure.Exception;
@@ -309,7 +310,7 @@ public class Onz extends AbstractOnz {
 				return errorCode(eSagaTidExist);
 			rc = TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
 		} finally {
-			// 失败清理必须在businessLock之内、解锁之前（R3-C复审）：解锁与remove的间隙里，
+			// 失败清理必须在businessLock之内、解锁之前：解锁与remove的间隙里，
 			// 等锁的FuncSagaEnd(cancel)会抢先 acquire 并在sagas.remove(tid,context)成功后
 			// 对已回滚（写从未发生）的业务执行补偿——过补偿（反向分歧）。锁内先remove再
 			// unlock，等锁方醒来必然观察到条目已消失（锁的happens-before），应答eSagaNotFound。
@@ -327,15 +328,15 @@ public class Onz extends AbstractOnz {
 		if (context == null)
 			return errorCode(eSagaNotFound);
 
-		// FND7-34：等业务完成再决策（FuncSagaEnd可能在慢业务执行期间到达）。
+		// 等业务完成再决策（FuncSagaEnd可能在慢业务执行期间到达）。
 		// 业务失败已在finally中自清理条目：锁到手后remove失败即eSagaNotFound，
 		// 失败步骤不会被补偿（无过补偿）；业务成功则条目仍在，补偿/结束串行执行。
 		context.lockBusiness();
 		try {
 			// 没有设置cancel标志时，表示事务正常结束，用来删除sagas上下文。
 			if (r.Argument.isCancel()) {
-				// R2-M①：补偿参数decode必须先于sagas.remove——decode抛异常（载荷损坏截断/
-				// cancelClass构造失败）原先发生在remove之后，putIfAbsent回补被跳过：上下文
+				// 补偿参数decode必须先于sagas.remove——decode抛异常（载荷损坏截断/
+				// cancelClass构造失败）若发生在remove之后，putIfAbsent回补被跳过：上下文
 				// 已删除，补偿永久丢失（因果链见sagaContextTimeoutMs契约）。decode先行，失败时
 				// 条目仍在（协调者/人工可重试），由cleanupTimeoutSagas（默认1小时）兜底。
 				final var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
@@ -350,7 +351,7 @@ public class Onz extends AbstractOnz {
 					if (null != sagas.putIfAbsent(tid, context))
 						logger.error("saga context re-insert conflict. tid={}", tid);
 					else
-						// 放回即最后活动（GC-D04-B1，计时基准见OnzSaga.lastActiveTime）：
+						// 放回即最后活动（计时基准见OnzSaga.lastActiveTime）：
 						// 等待重发的窗口不消耗TTL预算。
 						context.refreshLastActive();
 					return rc;

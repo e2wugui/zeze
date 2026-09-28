@@ -10,6 +10,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
+/**
+ * Master 侧表元数据：桶区间 TreeMap（嵌套 Data）及其序列化编解码。
+ */
 public class MasterTable {
 	public static class Data extends ReentrantLock implements Serializable {
 		final TreeMap<Binary, BBucketMeta.Data> buckets = new TreeMap<>(); // key is meta.first

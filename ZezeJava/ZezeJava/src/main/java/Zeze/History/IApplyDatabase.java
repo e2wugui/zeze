@@ -4,6 +4,9 @@ import Zeze.Util.Id128;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 回放库后端接口：打开回放表、开启“单条tHistory记录”级原子事务、保存/恢复回放游标。
+ */
 public interface IApplyDatabase {
 	@NotNull IApplyTable open(@NotNull String tableName);
 
@@ -17,7 +20,7 @@ public interface IApplyDatabase {
 	@NotNull IApplyRecordTxn beginRecordTxn();
 
 	/**
-	 * FND8-28：恢复回放游标（ApplyHelper构造时调用一次）。
+	 * 恢复回放游标（ApplyHelper构造时调用一次）。
 	 * 持久化后端必须返回上次{@link #saveCursor}随记录数据同事务提交的游标，
 	 * 否则重启后游标归零、apply从tHistory表头整段重放到已有状态上
 	 * （Edit类日志非幂等：PList2的OP_ADD按索引插入，重放产生重复元素）。
@@ -28,7 +31,7 @@ public interface IApplyDatabase {
 	}
 
 	/**
-	 * FND8-28：保存回放游标——必须在当前记录级事务内与记录数据同原子单元写入
+	 * 保存回放游标——必须在当前记录级事务内与记录数据同原子单元写入
 	 * （commit成功才生效）；default覆盖内存后端：丢弃。
 	 */
 	default void saveCursor(@NotNull Id128 key, @NotNull IApplyRecordTxn txn) throws Exception {
