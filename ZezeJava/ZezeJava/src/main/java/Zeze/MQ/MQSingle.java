@@ -346,6 +346,12 @@ public class MQSingle extends ReentrantLock {
 				TaskSpec.ofAction(() -> mqPartition.unsubscribe(ghostSocket, ghostSessionId))
 						.name("MQSingle.unsubscribeGhost")
 						.submitNow();
+				// 失败处置对齐 onPushFailure（计数+退避+死信兜底）：不设退避时 finally 的无条件续推
+				// 会以 RTT 速度把同一条消息重推给同一个 socket（bind 未变），零退避热循环且每轮
+				// 累积一个 ghost 清理任务。退避窗口压住重推直到清理生效（重绑/解绑后 tryPushMessage
+				// 自然恢复）；持续收不到消费者则按 PushRetryMax 转死信保队头推进——该消息本身无毒，
+				// 死信可重放，at-least-once 不破。
+				onPushFailure();
 			} else {
 				// 其余非0结果=投递失败（消费端异常/超时）：计数、退避/死信处置。
 				onPushFailure();
