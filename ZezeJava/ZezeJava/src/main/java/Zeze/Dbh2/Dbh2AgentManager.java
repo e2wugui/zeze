@@ -415,7 +415,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 			}
 			var result = fetch.fetch(openBucket(bucket.getRaftConfig()), exclusiveForBucket, limit);
 			if (result.refused) {
-				if (++refusedCount > 2)
+				if (++refusedCount > 256)
 					throw new RuntimeException("walkPage bucket refused too many redirect: master="
 							+ masterName + " database=" + databaseName + " table=" + tableName
 							+ " refusedCount=" + refusedCount);
