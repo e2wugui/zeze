@@ -34,6 +34,11 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 	private final ConcurrentHashMap<String, ApplyTableZeze> tables = new ConcurrentHashMap<>();
 	// 当前打开的记录级事务。apply在ApplyHelper锁内单线程驱动，同一时刻至多一个。
 	private IApplyRecordTxn activeRecordTxn;
+	// 记录级事务的驱动线程（hist-03断言式守卫）：activeRecordTxn活跃期间，其他线程经
+	// IApplyTable的put/remove会被静默路由进该事务的底层dbTxn（commit时随别人一起生效/回滚）。
+	// begin时记录驱动线程，路由处核对当前线程——fail-fast暴露并发误用。非同步字段：
+	// 断言式防御不引入锁，最坏漏检（可见性），不误报。
+	private Thread recordTxnOwner;
 
 	public ApplyDatabaseZeze(@NotNull Application zeze, @NotNull String applyDbName) {
 		if (applyDbName.isBlank())
@@ -56,7 +61,16 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 			throw new IllegalStateException("record txn already begun."); // 防御：apply单线程，不应嵌套/泄漏
 		var txn = new RecordTxn();
 		activeRecordTxn = txn;
+		recordTxnOwner = Thread.currentThread();
 		return txn;
+	}
+
+	// 单线程契约守卫（见recordTxnOwner注释）：路由进活跃记录级事务的写入只应来自驱动线程。
+	private void checkRecordTxnOwner() {
+		if (Thread.currentThread() != recordTxnOwner)
+			throw new IllegalStateException("apply record txn is driven by a single thread: concurrent "
+					+ "put/remove would be routed into the active record txn of another thread. owner="
+					+ recordTxnOwner + ", current=" + Thread.currentThread());
 	}
 
 	@Override
@@ -152,8 +166,10 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 
 		private void finish() {
 			finished = true;
-			if (activeRecordTxn == this)
+			if (activeRecordTxn == this) {
 				activeRecordTxn = null;
+				recordTxnOwner = null;
+			}
 		}
 	}
 
@@ -190,6 +206,8 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		public void put(byte @NotNull [] key, int keyOffset, int keyLength, byte @NotNull [] value, int valueOffset, int valueLength) throws Exception {
 			var recordTxn = activeRecordTxn;
 			if (recordTxn != null) {
+				// 单线程契约守卫：事务内写入只应来自驱动线程，其他线程的写入立即暴露而非静默错挂
+				checkRecordTxnOwner();
 				// 记录级事务内：写入共享底层事务，由RecordTxn.commit统一提交，保证单条记录原子
 				recordTxn.put(tableName, new Binary(key, keyOffset, keyLength),
 						new Binary(value, valueOffset, valueLength));
@@ -211,6 +229,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		public void remove(byte @NotNull [] key, int offset, int length) throws Exception {
 			var recordTxn = activeRecordTxn;
 			if (recordTxn != null) {
+				checkRecordTxnOwner();
 				// 记录级事务内：写入共享底层事务，由RecordTxn.rollback可整体撤销
 				recordTxn.remove(tableName, new Binary(key, offset, length));
 				return;
