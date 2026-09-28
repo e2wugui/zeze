@@ -97,7 +97,10 @@ public class ZokerAgent extends AbstractZokerAgent {
         var zoker = getZoker(zokerName);
         var r = new OpenFile();
         r.Argument.setFileName(fileName);
-        r.SendForWait(zoker).await();
+        // 断点续传时服务端对已存在文件全量读盘算md5（FileBin构造），应答随文件体积线性增长
+        // ——默认5s会把大文件续传当失败（commit/stopService 同族），60s=部署级操作裕量。
+        // append/close 为毫秒级（锁内无IO），默认超时不受影响。
+        r.SendForWait(zoker, 60_000).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("open file error. " + IModule.getErrorCode(r.getResultCode()));
 
