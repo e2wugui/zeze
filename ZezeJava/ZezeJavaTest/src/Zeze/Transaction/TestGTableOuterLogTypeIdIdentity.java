@@ -164,6 +164,6 @@ public class TestGTableOuterLogTypeIdIdentity {
 		var real = GTable2.getFactory(String.class, Long.class, B1.class);
 		Assertions.assertNotEquals(real.getPmapMeta().logTypeId, d1.getPmapMeta().logTypeId,
 				"dynamic与真实值bean的外层typeId必须分流");
-		// dynamic值的行roundtrip属FND8-33钉板范围（TestFnd833GTable2Dynamic），此处只钉外层typeId契约。
+		// dynamic值的行roundtrip属FND8-33钉板范围（TestGTable2Dynamic），此处只钉外层typeId契约。
 	}
 }

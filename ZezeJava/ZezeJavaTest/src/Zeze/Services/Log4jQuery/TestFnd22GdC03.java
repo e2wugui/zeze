@@ -88,7 +88,7 @@ public class TestFnd22GdC03 {
 			// 修复前无任何跳过日志；经典Windows形态下另伴随delete失败warn（次级断言）。
 			// 测试另以输入流钉住链接1，确保"若被发起删除则必失败"（Windows无share-delete句柄）。
 			try (var pin = new java.io.FileInputStream(logDir.resolve("indexLinks").resolve("1").toFile())) {
-				try (var capture = new TestFnd22LogCapture(Log4jFileManager.class, Level.DEBUG)) {
+				try (var capture = new TestLogCapture(Log4jFileManager.class, Level.DEBUG)) {
 					invokeRemoveOldLinkFiles(manager);
 					assertTrue(capture.anyMessageContains("skip live index link"),
 							"存活句柄链接应被识别跳过（修复前无识别，直接对存活链接发起删除）");

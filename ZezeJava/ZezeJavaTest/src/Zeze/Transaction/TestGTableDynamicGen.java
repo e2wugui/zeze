@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 修复：dispatch补TypeGTable×TypeDynamic分支→GenDynamicSpecialMethod发四参
  * getFactory(row,col,Bean::getSpecialTypeIdFromBean_id,Bean::createBeanFromSpecialTypeId_id)；
  * Construct统一走factory构造器；三件套由通用段自动补齐。
- * 手写宿主路径的钉板见TestFnd833GTable2Dynamic；本类只钉生成产物。
+ * 手写宿主路径的钉板见TestGTable2Dynamic；本类只钉生成产物。
  */
 @Fast
 public class TestGTableDynamicGen {

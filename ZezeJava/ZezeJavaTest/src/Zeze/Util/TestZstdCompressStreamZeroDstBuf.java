@@ -16,7 +16,7 @@ import java.util.Random;
  * 0 输出 0 消耗永久自旋挂死。修复：构造中 ==0 归一为 DEFAULT_DST_BUF_SIZE
  * （对齐解压侧 "&gt;0 才生效、否则默认" 的语义）；负值保持既有 fail-fast 契约
  * （NegativeArraySizeException，FND7-46 钉死的构造失败→ctx 释放路径，
- * 由 TestFnd746ZstdCompressStreamCtorFree 覆盖）。
+ * 由 TestZstdCompressStreamCtorFree 覆盖）。
  */
 @Fast
 public class TestZstdCompressStreamZeroDstBuf {

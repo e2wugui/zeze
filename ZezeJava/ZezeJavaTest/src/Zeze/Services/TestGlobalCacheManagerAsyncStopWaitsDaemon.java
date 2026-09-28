@@ -26,7 +26,7 @@ import Zeze.Util.Task;
 import harness.Fast;
 
 /**
- * 异步GCM的stop停机钉板（对齐同步版TestFnd718GcmStopWaitsDaemon的构造手法）：
+ * 异步GCM的stop停机钉板（对齐同步版TestGcmStopWaitsDaemon的构造手法）：
  * stop()必须在拆依赖前限时等待在飞守护扫描结束——扫描被阻塞（测试持有会话锁）期间
  * stop不得完成（缺等待形态毫秒级完成，断言即红）；放行后扫描完整跑完本轮
  * （A、B都被kick清零sessionId），stop才返回。

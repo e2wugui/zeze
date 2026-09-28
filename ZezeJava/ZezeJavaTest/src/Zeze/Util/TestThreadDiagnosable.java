@@ -15,7 +15,7 @@ import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * R2稳定性加固：@Isolated 独占运行——startDiagnose/stopDiagnose 经全局 currentSerial
- * 互杀诊断线程，与其他同类（如 TestFnd743CriticalExempt）并行时（套件固定8并发）
+ * 互杀诊断线程，与其他同类（如 TestCriticalExempt）并行时（套件固定8并发）
  * 双方的 stopDiagnose/startDiagnose 会互相杀死对方刚启动的诊断线程，被打断断言假红。
  * <p>
  * R3稳定性加固（对齐 02aab9c3c 判例，仅姊妹测试当时拉宽了窗口）：R2-S 满载实测本类

@@ -75,7 +75,7 @@ public class TestFnd22GdC05 {
 			Files.delete(logDir.resolve(Active));
 			AtomicFileWriter.replace(logDir.resolve(Junk), buildLines(JunkBase, "junk-", 5).getBytes(StandardCharsets.UTF_8));
 
-			try (var capture = new TestFnd22LogCapture(Log4jFileManager.class, Level.DEBUG)) {
+			try (var capture = new TestLogCapture(Log4jFileManager.class, Level.DEBUG)) {
 				// 宽限可观测（查询路径）：窗口内seek打开失败走宽限，修复前静默。
 				assertNull(manager.seek(millis(C1Base.plusSeconds(600)), new OutInt()),
 						"active缺失+未登记rotate：seek安静降级null");
