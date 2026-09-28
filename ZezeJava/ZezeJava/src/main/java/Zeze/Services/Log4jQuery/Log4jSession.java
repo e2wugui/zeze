@@ -127,8 +127,13 @@ public class Log4jSession {
 
 		var scanned = 0;
 		var scannedBytes = 0L;
-		while (files.hasNext()) {
-			var log = files.next();
+		// 同searchRegex：取条统一走nextLog()——regex页预算中止的暂存条（pendingNext）必须被
+		// 同会话后续的contains查询消费（Search/Browse按请求内容在words/pattern间路由，同sid
+		// 交错可达），直走walker.next()会越过已取出的暂存条，该条静默漏出结果。
+		while (true) {
+			var log = nextLog();
+			if (null == log)
+				break;
 			if (endTime != -1 && log.getTime() > endTime)
 				return false; // end search
 
@@ -226,8 +231,11 @@ public class Log4jSession {
 		var locate = false;
 		var scanned = 0;
 		var scannedBytes = 0L;
-		while (files.hasNext()) {
-			var log = files.next();
+		// 同searchContains：取条统一走nextLog()消费可能的暂存条（见searchContains循环处注释）。
+		while (true) {
+			var log = nextLog();
+			if (null == log)
+				break;
 			if (endTime != -1 && log.getTime() > endTime)
 				return false; // end search
 
