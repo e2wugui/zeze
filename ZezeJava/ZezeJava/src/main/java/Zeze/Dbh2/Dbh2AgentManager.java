@@ -41,6 +41,14 @@ public class Dbh2AgentManager extends ReentrantLock {
 			buckets = new ConcurrentHashMap<>();
 	// agent 不同 master 也装在一起。
 	private final ConcurrentHashMap<String, Dbh2Agent> agents = new ConcurrentHashMap<>();
+	// 死桶重定向agent的闲置回收（dbh2-06）：putBuckets只回收"离开主表"的raft，经splitHistory链式
+	// 重定向打开的死桶agent不在任何主表缓存里，既有路径永不回收（连接器+每实例1s resend任务+
+	// pending表单调泄漏）。弱生命周期：openBucket刷新活跃时刻；周期扫描回收"不在任何已知主表
+	// 缓存&&闲置超阈值"的agent。误杀防护见reclaimIdleAgents。
+	private final ConcurrentHashMap<String, Long> agentActiveTimes = new ConcurrentHashMap<>();
+	private static final long IdleAgentReclaimTimeoutMs = 10 * 60_000L; // >>rpcTimeout(默认60s)：正常在飞请求不可能跨越阈值窗口
+	private static final long IdleAgentReclaimPeriodMs = 60_000L;
+	private volatile Future<?> idleReclaimTask;
 
 	private final ProxyAgent proxyAgent;
 	private final Config config;
@@ -192,12 +200,17 @@ public class Dbh2AgentManager extends ReentrantLock {
 			refreshMasterTableTask = null;
 			ShutdownHook.remove(this);
 			proxyAgent.stop();
+			var reclaim = idleReclaimTask;
+			if (null != reclaim)
+				reclaim.cancel(false); // 在途轮由任务体锁内的stopped检查兜底
+			idleReclaimTask = null;
 			for (var ma : masterAgent.values())
 				ma.stop();
 			masterAgent.clear();
 			for (var da : agents.values())
 				da.close();
 			agents.clear();
+			agentActiveTimes.clear();
 			// 清空路由缓存：stop后masterAgent已关，locateBucket不得命中陈旧缓存免rpc。
 			buckets.clear();
 
@@ -308,7 +321,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	public Dbh2Agent openBucket(String raftString) {
-		return agents.computeIfAbsent(raftString, _raft -> {
+		var agent = agents.computeIfAbsent(raftString, _raft -> {
 			logger.info("openBucket: new Dbh2Agent: {}", raftString);
 			try {
 				return new Dbh2Agent(raftString, proxyAgent);
@@ -316,6 +329,71 @@ public class Dbh2AgentManager extends ReentrantLock {
 				throw new RuntimeException(e);
 			}
 		});
+		// 闲置回收的活跃刷新：每次使用（含复用命中）都更新。本管理器全部使用方（walkPage、
+		// CommitRocks的prepare/commit/undo/redirect、Database.find）均按次经openBucket取agent、
+		// 无跨长时间持有agent引用的路径——"最近用过"的agent必然未超闲置阈值。
+		agentActiveTimes.put(raftString, System.currentTimeMillis());
+		startIdleReclaim();
+		return agent;
+	}
+
+	// 周期回收惰性启动：无agent即无扫描任务（首个openBucket启动）；stop取消。
+	private void startIdleReclaim() {
+		if (null != idleReclaimTask)
+			return;
+		lock();
+		try {
+			if (null == idleReclaimTask && !stopped)
+				idleReclaimTask = TaskSpec.ofAction(this::reclaimIdleAgents)
+						.schedulePeriodNow(IdleAgentReclaimPeriodMs, IdleAgentReclaimPeriodMs);
+		} finally {
+			unlock();
+		}
+	}
+
+	// 误杀防护（三重）：
+	//  1) 主表成员永不回收——主表缓存内全部raft的并集视为在役，其存续由putBuckets的旧raft回收
+	//     路径负责（与迁移联动，语义不变）；
+	//  2) 在用保护——openBucket刷新活跃时刻，阈值(10min)内使用过的agent不回收；且无跨长时间
+	//     持有agent的调用方（见openBucket注释），"闲置超10min"即"确无使用"；
+	//  3) 在飞兜底——即使极端交错下回收了仍有pending的agent：Dbh2Agent.close→Agent.stop对
+	//     pending rpc以RpcTimeoutException终局触发，await方得到异常而非悬挂，事务按既有失败
+	//     路径重试并经openBucket重开（同raft串重建agent），最坏代价是一笔在飞请求失败重试。
+	// 本地表陈旧时重定向目标（仍是活桶）可能暂不在主表缓存：闲置10min后被回收属正确弱生命周期
+	// （下次使用重建，仅多一次建连）；链式迁移的已死中间桶则被永久回收，不再泄漏。
+	private void reclaimIdleAgents() {
+		lock();
+		try {
+			if (stopped)
+				return;
+			var now = System.currentTimeMillis();
+			var mainRafts = new HashSet<String>();
+			for (var master : buckets.values())
+				for (var database : master.values())
+					for (var table : database.values())
+						for (var bucket : table.buckets())
+							mainRafts.add(bucket.getRaftConfig());
+			for (var e : agents.entrySet()) {
+				var raft = e.getKey();
+				if (mainRafts.contains(raft))
+					continue;
+				var active = agentActiveTimes.get(raft);
+				if (null == active || now - active < IdleAgentReclaimTimeoutMs)
+					continue;
+				var agent = agents.remove(raft);
+				if (null != agent) {
+					agentActiveTimes.remove(raft);
+					logger.info("reclaim idle dead-bucket agent: {} idleMs={}", raft, now - active);
+					try {
+						agent.close(); // Agent.stop取消resendTask、触发pending终局、回收连接器（只读核对过）
+					} catch (Exception ex) {
+						logger.error("reclaim idle agent close fail: " + raft, ex);
+					}
+				}
+			}
+		} finally {
+			unlock();
+		}
 	}
 
 	public void reload(
@@ -353,6 +431,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 			for (var raft : oldRaft) {
 				var agent = agents.remove(raft);
 				if (null != agent) {
+					agentActiveTimes.remove(raft);
 					try {
 						agent.close();
 					} catch (Exception e) {
