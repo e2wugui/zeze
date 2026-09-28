@@ -26,7 +26,18 @@ public class Log4jFileSession implements Closeable {
 		this.index = index;
 		this.randomAccessFile = new BufferedRandomFile(file, charsetName);
 		this.logTimeFormat = logTimeFormat;
-		this.nextLog = tryNext();
+		try {
+			this.nextLog = tryNext();
+		} catch (IOException e) {
+			// RAF已打开而构造上抛（如tryNext内readLine的IO错误）：必须先关闭，否则fd只能等GC兜底回收
+			// （调用方只捕获FileNotFoundException，构造失败拿不到引用无处close）。close失败不掩盖原始异常。
+			try {
+				randomAccessFile.close();
+			} catch (IOException closeEx) {
+				e.addSuppressed(closeEx);
+			}
+			throw e;
+		}
 	}
 
 	public File getFile() {
