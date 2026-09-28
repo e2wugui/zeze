@@ -669,10 +669,12 @@ public class MQFileWithIndex {
 		try {
 			lastFileOutputStream.getChannel().truncate(tornRollbackOffset);
 			tornWritePending = false;
-			logger.warn("mq append partial-write rolled back. topic={} partition={} file={} truncateTo={}",
+			// 措辞覆盖两种 torn 形态：write 失败的"部分写前缀"与提交点未到（索引/meta put 失败）的
+			// "完整未提交记录"——后者同样在此截除，不能只叫 partial-write 误导排查方向。
+			logger.warn("mq append torn tail rolled back. topic={} partition={} file={} truncateTo={}",
 					topic, partitionId, lastFile.getName(), tornRollbackOffset);
 		} catch (IOException e) {
-			logger.error("mq append partial-write rollback failed, keep pending for retry before next append."
+			logger.error("mq append torn tail rollback failed, keep pending for retry before next append."
 					+ " topic={} partition={} file={}", topic, partitionId, lastFile.getName(), e);
 		}
 	}
