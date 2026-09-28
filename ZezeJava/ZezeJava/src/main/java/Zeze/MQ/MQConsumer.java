@@ -38,7 +38,11 @@ public class MQConsumer {
 			}
 			this.sessionId = servers.getSessionId();
 			MQ.mqAgent.subscribe(topic, sessionId, this, managers);
-		} catch (RuntimeException e) {
+		} catch (Exception e) {
+			// 对齐同族 MQ.createMQ/openMQ 的 catch(Exception)：本 try 块底层经 GetReadySocket/await
+			// 超时或中断时，Task.forceThrow 会 sneaky 抛出受检类型（TimeoutException/
+			// InterruptedException，未经包装），catch(RuntimeException) 挡不住——clientReleaseRefs
+			// 不可达=静态 agent 引用泄漏，归零停机永不触发。try 块无受检声明，精确 rethrow 保持原类型。
 			MQ.clientReleaseRefs();
 			throw e;
 		}
