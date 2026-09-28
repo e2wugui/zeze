@@ -1,5 +1,7 @@
 package Benchmark;
 import harness.Bench;
+import harness.MacroBench;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import demo.App;
@@ -7,21 +9,23 @@ import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("NewClassNamingConvention")
 @Bench
+@Tag("core")
 public class ABasicSimpleAddOneThread {
+	// AddCount 亦被 App.adjustTableConf 引用（按它放大 Table1 缓存容量），改名/删除会破坏缓存配置
 	public final static int AddCount = 1_000_000;
+	public final static int Warmups = 1;
+	public final static int Rounds = 5;
 
 	@Test
-
 	public void testBenchmark() throws Exception {
+		App.Instance.Stop();
 		App.Instance.Start();
 		try {
-			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Remove, "remove").call();
-			System.out.println("benchmark start...");
-			var b = new Zeze.Util.Benchmark();
-			for (int i = 0; i < AddCount; ++i) {
-				App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Add, "Add").call();
-			}
-			b.report(this.getClass().getName(), AddCount);
+			MacroBench.run("A_SimpleAddOneThread", Warmups, Rounds, AddCount, () -> {
+				App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Remove, "remove").call();
+				for (int i = 0; i < AddCount; ++i)
+					App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Add, "Add").call();
+			});
 			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Check, "check").call();
 			App.Instance.Zeze.newProcedure(ABasicSimpleAddOneThread::Remove, "remove").call();
 		} finally {
@@ -32,7 +36,6 @@ public class ABasicSimpleAddOneThread {
 	private static long Check() {
 		var r = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
 		Assertions.assertEquals(AddCount, r.getLong2());
-		//System.out.println(r.getLong2());
 		return 0;
 	}
 

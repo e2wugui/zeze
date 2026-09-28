@@ -152,6 +152,91 @@ tasks.register('bench', Test) {
     shouldRunAfter tasks.named('test')
 }
 
+// gradle benchCore：核心宏观基准（@Bench + @Tag("core")，6 场景：A/B/C/D/E/F）。
+// 与 bench 的区别：多轮迭代+JSON 留档（harness.MacroBench 写 bench-results/<benchTag>/），
+// 供优化循环做 before/after 机器对比（benchTag 命名本次运行：-PbenchTag=baseline）。
+// 同 bench 依赖进程内 SM/Global；绝不并行（与 bench 同因）。
+tasks.register('benchCore', Test) {
+    group = 'verification'
+    description = '核心宏观基准（多轮+JSON 留档，-PbenchTag=xxx 命名运行）。'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'bench & core'
+    }
+    workingDir = projectDir
+    jvmArgs '-ea'
+    systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
+    // 池型对照透传：-PuseVirtualThread=false 走平台线程池（对齐 benchCorePlatform，可全场景）
+    if (findProperty('useVirtualThread') != null)
+        systemProperty 'useVirtualThread', findProperty('useVirtualThread')
+    // 场景类字母序执行（A→B→C→D→E2→E→F）：E/E2 的 Stop+Start(custom cfg) 切换库配置，
+    // 固定顺序避免 F 落在 E 之后继承非默认配置（虽然各场景开场已自带 Stop+Start，此为双保险）。
+    systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
+    shouldRunAfter tasks.named('test')
+}
+
+// gradle benchCorePlatform：benchCore 的平台线程池对照组（-DuseVirtualThread=false），
+// 仅跑 F 调度形态场景（F 类记录 virtualThread 标志进 JSON，两目录同文件名可直接对比）。
+tasks.register('benchCorePlatform', Test) {
+    group = 'verification'
+    description = '核心基准平台线程对照组（仅 F 调度场景，-DuseVirtualThread=false）。'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'bench & core'
+    }
+    filter.includeTestsMatching '*FDispatch*'
+    workingDir = projectDir
+    jvmArgs '-ea'
+    systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
+    systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
+    systemProperty 'useVirtualThread', 'false'
+    shouldRunAfter tasks.named('test')
+}
+
+// JMH 微基准源集：编译依赖 test 源集输出（demo/Gen 生成的 bean 与表）+ test 编译类路径。
+// 手动源集而非 me.champeau.jmh 插件：gradle 9.7 兼容性未验证，且仓库镜像源不含 gradle 插件门户。
+// 源码放 src-jmh（对齐 src-hot 先例）：test 源集 srcDirs=['src'] 递归包含子目录，放 src/ 下会被 test 编译误收。
+sourceSets {
+    jmh {
+        java.srcDir 'src-jmh'
+        compileClasspath += sourceSets.test.output + sourceSets.test.compileClasspath
+        runtimeClasspath += sourceSets.test.output + sourceSets.test.runtimeClasspath
+    }
+}
+
+dependencies {
+    jmhImplementation 'org.openjdk.jmh:jmh-core:1.37'
+    jmhAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+}
+
+// gradle jmh：JMH 微基准（src/jmh）。参数透传（均有默认）：
+//   -PjmhFilter=正则（默认 .*） -PjmhFork=1 -PjmhWi=5 -PjmhI=5 -PjmhW=1s -PjmhR=1s -PbenchTag=adhoc
+// JSON 结果写 bench-results/jmh-<benchTag>.json（一次运行一个文件，JMH 自身格式）。
+tasks.register('jmh', JavaExec) {
+    group = 'verification'
+    description = 'JMH 微基准（src/jmh，JSON 留档）。'
+    mainClass = 'org.openjdk.jmh.Main'
+    classpath = sourceSets.jmh.runtimeClasspath
+    workingDir = projectDir
+    def tag = findProperty('benchTag') ?: 'adhoc'
+    args (findProperty('jmhFilter') ?: '.*'),
+            '-f', findProperty('jmhFork') ?: '1',
+            '-wi', findProperty('jmhWi') ?: '5',
+            '-i', findProperty('jmhI') ?: '5',
+            '-w', findProperty('jmhW') ?: '1s',
+            '-r', findProperty('jmhR') ?: '1s',
+            '-foe', 'true',
+            '-rf', 'json',
+            '-rff', "bench-results/jmh-${tag}.json"
+    if (findProperty('jmhJvmArgsAppend') != null)
+        args '-jvmArgsAppend', findProperty('jmhJvmArgsAppend')
+    if (findProperty('jmhExtraArgs') != null)
+        args findProperty('jmhExtraArgs').toString().split(' ') as List
+    jvmArgs '-Xms2g', '-Xmx2g'
+}
+
 // 测试运行残留收尾清理：finalizedBy 在测试 JVM 退出后运行（Windows 下被打开的文件删不掉，
 // 此刻必已释放），测试失败/UP-TO-DATE 也会执行；IDEA 直跑不经 gradle，不覆盖。
 // 清理项（全部为 gitignored 的运行时产物，测试按需重建）：

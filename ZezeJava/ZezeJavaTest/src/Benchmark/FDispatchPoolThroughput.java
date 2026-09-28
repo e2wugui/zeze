@@ -6,30 +6,34 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.concurrent.Future;
+import Zeze.Util.PropertiesHelper;
 import Zeze.Util.TaskSpec;
 import demo.App;
 import org.junit.jupiter.api.Assertions;
 
+// 调度形态：同负载（5000 key 一般并发）经线程池 submitNow 派发的吞吐。
+// performance.md 的 GlobalAsync>50w/s、虚拟线程>15w/s 在仓内无落成基准，本场景补齐。
+// 跑法：gradle benchCore（默认虚拟线程池）+ gradle benchCorePlatform（-DuseVirtualThread=false
+// 平台线程池，gradle 任务按 *FDispatch* 过滤只跑本类）。两配置各写一份 JSON
+// （F_DispatchPool_Virtual / F_DispatchPool_Platform），吞吐差即锁适配虚拟线程的代价。
 @SuppressWarnings("NewClassNamingConvention")
 @Bench
 @Tag("core")
-public class CBasicSimpleAddConcurrent {
-	public final static int AddCount = 1_000_000;
-	public final static int ConcurrentLevel = 5_000;
+public class FDispatchPoolThroughput {
+	public static final int AddCount = 500_000;
+	public static final int ConcurrentLevel = 5_000;
 	public static final int Batch = 200;
 	public static final int Warmups = 1;
 	public static final int Rounds = 5;
 
 	@Test
 	public void testBenchmark() throws Exception {
+		var virtual = PropertiesHelper.getBool("useVirtualThread", true);
 		App.Instance.Stop();
 		App.Instance.Start();
 		try {
-			MacroBench.run("C_Concurrent", Warmups, Rounds, AddCount, () -> {
-				for (long k = 0; k < ConcurrentLevel; ++k) {
-					final long rk = k;
-					App.Instance.Zeze.newProcedure(() -> Remove(rk), "remove").call();
-				}
+			MacroBench.run("F_DispatchPool_" + (virtual ? "Virtual" : "Platform"), Warmups, Rounds, AddCount, () -> {
+				removeAll();
 				var tasks = new ArrayList<Future<Long>>(Batch);
 				for (int i = 0; i < AddCount; ++i) {
 					final long key = i % ConcurrentLevel;
@@ -45,11 +49,8 @@ public class CBasicSimpleAddConcurrent {
 					task.get();
 			});
 			System.out.println(Zeze.Util.ZezeCounter.instance.collectAndReset().formattedLog());
-			App.Instance.Zeze.newProcedure(CBasicSimpleAddConcurrent::Check, "check").call();
-			for (long k = 0; k < ConcurrentLevel; ++k) {
-				final long rk = k;
-				App.Instance.Zeze.newProcedure(() -> Remove(rk), "remove").call();
-			}
+			App.Instance.Zeze.newProcedure(FDispatchPoolThroughput::Check, "check").call();
+			removeAll();
 		} finally {
 			//App.Instance.Stop();
 		}
@@ -57,18 +58,11 @@ public class CBasicSimpleAddConcurrent {
 
 	private static long Check() {
 		long sum = 0;
-		for (long i = 0; i < ConcurrentLevel; ++i) {
-			var r = App.Instance.demo_Module1.getTable1().getOrAdd(i);
+		for (long key = 0; key < ConcurrentLevel; ++key) {
+			var r = App.Instance.demo_Module1.getTable1().getOrAdd(key);
 			sum += r.getLong2();
 		}
 		Assertions.assertEquals(AddCount, sum);
-		return 0;
-	}
-
-	@SuppressWarnings("unused")
-	private static long Add() {
-		var r = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
-		r.setLong2(r.getLong2() + 1);
 		return 0;
 	}
 
@@ -76,6 +70,13 @@ public class CBasicSimpleAddConcurrent {
 		var r = App.Instance.demo_Module1.getTable1().getOrAdd(key);
 		r.setLong2(r.getLong2() + 1);
 		return 0;
+	}
+
+	private static void removeAll() throws Exception {
+		for (long key = 0; key < ConcurrentLevel; ++key) {
+			final long rk = key;
+			App.Instance.Zeze.newProcedure(() -> Remove(rk), "remove").call();
+		}
 	}
 
 	private static long Remove(long key) {
