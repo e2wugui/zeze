@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -108,10 +107,15 @@ public class ServiceManager {
 
 	private final @Nullable Zoker zoker;
 	private final File serviceDir;
+	// 进程记账。键为 {@link #serviceKey} 折叠（zoker-05）：Windows(Win32) 解析下请求拼写
+	// "Svc"/"svc." 与物理容器 "svc" 同一实体，裸键分立使变体 start 与 adopt 并存同 pid 双条目、
+	// listService 按物理名查表错报 Stopped；折叠后变体同键单条目。装账/查账/摘账（start/stop/
+	// adopt/list/watchExit）全走 serviceKey 单点；盘上路径（run.pid、容器目录）不走折叠——
+	// 见 serviceKey 注释。
 	private final ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
-	// 同服务 start/stop 互斥（services/<svc> 折叠键，形态对齐 DistributeManager.commitLocks；
-	// 键折叠判据已分叉——commitLocks 键现用 foldVersionName 折叠（剥尾点/空格+小写），
-	// 本锁族维持 toLowerCase）。stopService 首行摘账、此后最长 10s优雅+10s强杀 的停机窗口——窗口内并发
+	// 同服务 start/stop 互斥（services/<svc> 折叠键，形态与判据均对齐 DistributeManager.commitLocks
+	// ——键折叠统一 foldVersionName，取键收敛到 opsLock 单点，zoker-02）。stopService 首行摘账、
+	// 此后最长 10s优雅+10s强杀 的停机窗口——窗口内并发
 	// start 按 run.pid 领养"正在被终止"的进程并回执 Running：回执即谎言且终局服务死
 	// （领养判据只看"pid 存活+指纹相符"，无法区分现役
 	// 与正被杀）。互斥使两序皆自洽：stop 先完成→start 见无身份/死残留重新拉起（回执诚实）；
@@ -119,9 +123,13 @@ public class ServiceManager {
 	// {@link #withServiceLock} 取本锁（commitLocks→opsLocks 单向嵌套——prune 的在用版本判据
 	// run.pid 与 start 的 writeRunPid 互斥，否则 launch→writeRunPid 窗口内正在启动的版本目录
 	// 被当非在用删除）；start/stop 不取 commitLocks（无反向持锁路径，无环）；watchExit 回调
-	// 不取本锁。键大小写折叠（toLowerCase(Locale.ROOT)）：Windows 上 "svc"/"Svc" 同一物理容器，
-	// 裸键两把锁互斥失效；Linux 过度串行化可接受（生命周期 RPC 非热路径）。条目数以
-	// （折叠后的）服务名为界，与 isSafePathSegment 守卫后的名字面同量级，无攻击面放大。
+	// 不取本锁。键折叠=serviceKey（foldVersionName：剥尾点/空格+小写）：Windows 上
+	// "svc"/"Svc"/"svc." 同一物理容器，仅小写折叠时尾点/空格变体仍分叉两把锁——commit 的
+	// prune 段（持 commitLocks 折叠键后经 withServiceLock 传入容器目录名）与 startService
+	// 变体拼写互斥失效，正在启动的版本目录被 prune 当非在用删除（首波 zoker-07 笔记已记的
+	// 未闭合族，本波闭合）；Linux 上折叠过度串行化真不同的变体名服务（生命周期 RPC 非热路径，
+	// 可接受）。条目数以（折叠后的）服务名为界，与 isSafePathSegment 守卫后的名字面同量级，
+	// 无攻击面放大。
 	private final ConcurrentHashMap<String, Object> opsLocks = new ConcurrentHashMap<>();
 
 	public ServiceManager(Zoker zoker) {
@@ -137,6 +145,26 @@ public class ServiceManager {
 
 	public @Nullable Zoker getZoker() {
 		return zoker;
+	}
+
+	/**
+	 * 服务名的内存记账键折叠（单点，zoker-02/zoker-05）：processes 记账与 opsLocks 取键共用，
+	 * 判据复用 {@link DistributeManager#foldVersionName}（剥尾点/空格+小写）——与 commitLocks
+	 * 同判据。Windows(Win32) 路径解析下 "svc"/"Svc"/"svc." 是同一物理容器的变体拼写，须折叠后
+	 * 判同：裸键/仅小写折叠的分叉使变体 start 与 adopt 并存同 pid 双条目（listService 错报
+	 * Stopped）、commit 的 prune 与 start 变体拼写互斥击穿（正在启动的版本目录被删）。
+	 * <b>仅用于内存 Map 键</b>：盘上路径（services/&lt;svc&gt;/run.pid、容器/版本目录解析）必须用
+	 * 请求或物理原样名——Linux（大小写敏感 FS）上折叠并键的名字是不同物理目录，路径折叠会
+	 * 读写到错误的服务容器；内存键折叠在 Linux 的代价仅是变体名共条目/共锁（过度合并，与
+	 * commitLocks 过度串行化同款裁量，生命周期 RPC 非热路径）。
+	 */
+	static String serviceKey(String serviceName) {
+		return DistributeManager.foldVersionName(serviceName);
+	}
+
+	/** opsLocks 取键（单点，zoker-02）：withServiceLock/startService/stopService 全部经此取锁对象。 */
+	private Object opsLock(String serviceName) {
+		return opsLocks.computeIfAbsent(serviceKey(serviceName), __ -> new Object());
 	}
 
 	public void listService(ArrayList<BService.Data> out) {
@@ -665,7 +693,9 @@ public class ServiceManager {
 	 * 单向嵌套见 opsLocks 字段注释）；start/stop 全程持本锁但不取 commitLocks，无环。
 	 */
 	void withServiceLock(String serviceName, Runnable action) {
-		synchronized (opsLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
+		// 取键经 opsLock 单点（serviceKey=foldVersionName，zoker-02）：与 startService/stopService
+		// 同判据——变体拼写（Windows 同物理容器）不再分叉互斥面。
+		synchronized (opsLock(serviceName)) {
 			action.run();
 		}
 	}
@@ -692,7 +722,8 @@ public class ServiceManager {
 		}
 		// 同服务 start/stop 全程持 opsLocks（见字段注释）——领养查重与 stop 的
 		// 摘账-停机窗口不得交错，否则"start 领养正被杀的进程并回执 Running"。
-		synchronized (opsLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
+		// 取键经 opsLock 单点（serviceKey=foldVersionName，zoker-02）。
+		synchronized (opsLock(serviceName)) {
 			return startServiceLocked(r, serviceName);
 		}
 	}
@@ -812,7 +843,8 @@ public class ServiceManager {
 		}
 		// 同服务 start/stop 全程持 opsLocks（见字段注释）——摘账后的停机窗口内
 		// 并发 start 不得进入（否则领养"正在被终止"的进程，回执 Running 即谎言）。
-		synchronized (opsLocks.computeIfAbsent(serviceName.toLowerCase(Locale.ROOT), __ -> new Object())) {
+		// 取键经 opsLock 单点（serviceKey=foldVersionName，zoker-02）。
+		synchronized (opsLock(serviceName)) {
 			stopServiceLocked(r, serviceName);
 		}
 	}
