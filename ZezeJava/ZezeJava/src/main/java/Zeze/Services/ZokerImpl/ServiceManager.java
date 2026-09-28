@@ -540,8 +540,19 @@ public class ServiceManager {
 		if (null == rec || rec.pid != process.pid())
 			return;
 		var file = new File(new File(serviceDir, serviceName), RUN_PID_NAME);
-		if (!file.delete())
-			logger.warn("run.pid own-delete fail: {}", file);
+		// 刚写完的文件可被AV实时扫描等外部瞬态句柄占用，单次delete偶发失败（压测实证57/40轮）。
+		// run.pid是身份对账文件，残留=陈旧身份账，下次resolveRunPid按指纹兜底但留脏——有界重试收敛。
+		for (var attempt = 0; attempt < 3; attempt++) {
+			if (file.delete())
+				return;
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				break;
+			}
+		}
+		logger.warn("run.pid own-delete fail: {}", file);
 	}
 
 	/**

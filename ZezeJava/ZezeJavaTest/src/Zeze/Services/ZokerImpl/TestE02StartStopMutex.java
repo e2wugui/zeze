@@ -15,6 +15,7 @@ import Zeze.Builtin.Zoker.StopService;
 import Zeze.IModule;
 import Zeze.Services.Zoker;
 import harness.Fast;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -44,6 +45,15 @@ public class TestE02StartStopMutex {
 	private static final long NO_PROPS = IModule.errorCode(Zoker.ModuleId, Zoker.eNoServiceProperties);
 	private static final boolean WINDOWS =
 			System.getProperty("os.name", "").toLowerCase().contains("win");
+
+	/** 字段注入（每方法新实例=每方法独立目录）：@AfterEach 先行兜底删除见 {@link TempDirBestEffort}。 */
+	@TempDir
+	Path tempDir;
+
+	@AfterEach
+	void cleanupTempDir() {
+		TempDirBestEffort.delete(tempDir);
+	}
 
 	private static File servicesDir(Path tempDir) throws IOException {
 		var f = tempDir.resolve("services").toFile();
@@ -160,7 +170,7 @@ public class TestE02StartStopMutex {
 	 * 谎言——终局记账条目必须真活着。修复前：start 领养正被杀的进程回执 Running(adopted)，
 	 * 进程随后死亡、条目被收殓；修复后：start 串行化到 stop 之后，重新拉起。 */
 	@Test
-	public void testStartDuringKillWindowRelaunchesInsteadOfAdoptingDying(@TempDir Path tempDir) throws Exception {
+	public void testStartDuringKillWindowRelaunchesInsteadOfAdoptingDying() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
@@ -233,7 +243,7 @@ public class TestE02StartStopMutex {
 	/** 持锁结构判别（全平台）：外部持有锁对象时 start/stop 都必须阻塞（全程持锁的直接验证）；
 	 * 释放后都有界完成。修复前红：无 opsLocks 字段（getDeclaredField 抛 NoSuchFieldException）。 */
 	@Test
-	public void testStartAndStopHoldOpsLock(@TempDir Path tempDir) throws Exception {
+	public void testStartAndStopHoldOpsLock() throws Exception {
 		var servicesDir = servicesDir(tempDir);
 		var sm = new ServiceManager(servicesDir);
 		assertEquals(NO_PROPS, sm.startService(startReq()), "无布局→错误码（锁内路径）");
@@ -267,7 +277,7 @@ public class TestE02StartStopMutex {
 
 	/** 锁键大小写折叠（全平台）："svc"/"Svc" 同一物理容器必须同一把锁（TestFnd21E02 同论证）。 */
 	@Test
-	public void testOpsLocksCaseFolding(@TempDir Path tempDir) throws Exception {
+	public void testOpsLocksCaseFolding() throws Exception {
 		var servicesDir = servicesDir(tempDir);
 		var sm = new ServiceManager(servicesDir);
 		assertEquals(NO_PROPS, sm.startService(startReq()));

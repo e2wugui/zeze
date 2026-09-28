@@ -12,6 +12,7 @@ import Zeze.Builtin.Zoker.StopService;
 import Zeze.IModule;
 import Zeze.Services.Zoker;
 import harness.Fast;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -39,6 +40,15 @@ public class TestD01ServiceLifecycle {
 
 	private static final boolean WINDOWS =
 			System.getProperty("os.name", "").toLowerCase().contains("win");
+
+	/** 字段注入（每方法新实例=每方法独立目录）：@AfterEach 先行兜底删除见 {@link TempDirBestEffort}。 */
+	@TempDir
+	Path tempDir;
+
+	@AfterEach
+	void cleanupTempDir() {
+		TempDirBestEffort.delete(tempDir);
+	}
 
 	private static File servicesDir(Path tempDir) throws IOException {
 		var f = tempDir.resolve("services").toFile();
@@ -78,7 +88,7 @@ public class TestD01ServiceLifecycle {
 	// ---------- 描述文件缺失/不可用 → eNoServiceProperties（不再异常上抛超时） ----------
 
 	@Test
-	public void testNoDescriptorRejected(@TempDir Path tempDir) throws Exception {
+	public void testNoDescriptorRejected() throws Exception {
 		var servicesDir = servicesDir(tempDir);
 		var sm = new ServiceManager(servicesDir);
 		// 服务容器存在但从未 commit（无 current 指针）→ 描述文件必然缺失
@@ -95,7 +105,7 @@ public class TestD01ServiceLifecycle {
 
 	/** 命令不存在 → 进程创建失败 eStartFail（区别于描述文件缺失的精确分类）。 */
 	@Test
-	public void testStartFailOnBadCommand(@TempDir Path tempDir) throws Exception {
+	public void testStartFailOnBadCommand() throws Exception {
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=zeze-nonexistent-exe-0123456789");
 		var sm = new ServiceManager(servicesDir);
@@ -105,7 +115,7 @@ public class TestD01ServiceLifecycle {
 	// ---------- 命令解析（command/args/env），纯静态全平台 ----------
 
 	@Test
-	public void testParseLaunchSpecCommandOnly(@TempDir Path tempDir) throws Exception {
+	public void testParseLaunchSpecCommandOnly() throws Exception {
 		var dir = Files.createDirectories(tempDir.resolve("v1"));
 		Files.writeString(dir.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), "command=java\n");
 		var spec = ServiceManager.parseLaunchSpec(dir.toFile());
@@ -115,7 +125,7 @@ public class TestD01ServiceLifecycle {
 	}
 
 	@Test
-	public void testParseLaunchSpecFull(@TempDir Path tempDir) throws Exception {
+	public void testParseLaunchSpecFull() throws Exception {
 		var dir = Files.createDirectories(tempDir.resolve("v1"));
 		// Properties格式：#注释、键值对；args空白分隔；env为k=v逗号分隔（值内可含空格）
 		Files.writeString(dir.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), """
@@ -133,7 +143,7 @@ public class TestD01ServiceLifecycle {
 	}
 
 	@Test
-	public void testParseLaunchSpecMalformed(@TempDir Path tempDir) throws Exception {
+	public void testParseLaunchSpecMalformed() throws Exception {
 		var dir = Files.createDirectories(tempDir.resolve("v1"));
 		// 文件缺失
 		assertThrows(IOException.class, () -> ServiceManager.parseLaunchSpec(dir.toFile()));
@@ -149,7 +159,7 @@ public class TestD01ServiceLifecycle {
 
 	/** 启动→Running→重复start幂等复用→stop三态结局→条目清除，全链路（GE-D01核心闭环）。 */
 	@Test
-	public void testStartListStopLifecycle(@TempDir Path tempDir) throws Exception {
+	public void testStartListStopLifecycle() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping/cmd）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
@@ -183,7 +193,7 @@ public class TestD01ServiceLifecycle {
 
 	/** 死条目（onExit回调未及清理的窗口）：listService 不报 Running；再 start 替换重启。 */
 	@Test
-	public void testDeadHandleRestart(@TempDir Path tempDir) throws Exception {
+	public void testDeadHandleRestart() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping/cmd）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
@@ -209,7 +219,7 @@ public class TestD01ServiceLifecycle {
 
 	/** stop 死条目：结局 Stopped + 自然退出码（优雅退出语义的确定性验证）。 */
 	@Test
-	public void testStopDeadHandleReportsNaturalExitCode(@TempDir Path tempDir) throws Exception {
+	public void testStopDeadHandleReportsNaturalExitCode() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（cmd）");
 		var sm = new ServiceManager(servicesDir(tempDir));
 		var dead = new ProcessBuilder("cmd", "/c", "exit 7").start();
@@ -225,7 +235,7 @@ public class TestD01ServiceLifecycle {
 
 	/** 未运行就 stop（从未启动/已停止/已被onExit清理）：幂等成功。 */
 	@Test
-	public void testStopNotRunningIdempotent(@TempDir Path tempDir) throws Exception {
+	public void testStopNotRunningIdempotent() throws Exception {
 		var sm = new ServiceManager(servicesDir(tempDir));
 		var stop = stopReq(true);
 		sm.stopService(stop);
@@ -236,10 +246,12 @@ public class TestD01ServiceLifecycle {
 
 	/** 进程自然退出 → onExit 退出监控清理条目并记录退出码（死进程不占用 running 语义）。 */
 	@Test
-	public void testOnExitCleansUpEntry(@TempDir Path tempDir) throws Exception {
+	public void testOnExitCleansUpEntry() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（cmd）");
 		var servicesDir = servicesDir(tempDir);
-		layoutVersion(servicesDir, "command=cmd\nargs=/c exit 3\n");
+		// ping -n 2 当延迟自然退出（~1s）：cmd /c exit 毫秒级即死，onExit收殓跑赢下一行的
+		// assertNotNull（test40-4实证round14红）——前提断言需要进程确定存活过断言时刻。
+		layoutVersion(servicesDir, "command=ping\nargs=-n 2 127.0.0.1\n");
 		var sm = new ServiceManager(servicesDir);
 
 		assertEquals(0, sm.startService(startReq()));
@@ -255,10 +267,13 @@ public class TestD01ServiceLifecycle {
 
 	/** env 真注入进程环境（可观察形态：env 变量命中时 cmd 以退出码5退出）。 */
 	@Test
-	public void testEnvAppliedToProcess(@TempDir Path tempDir) throws Exception {
+	public void testEnvAppliedToProcess() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（cmd）");
 		var servicesDir = servicesDir(tempDir);
-		layoutVersion(servicesDir, "command=cmd\nargs=/c if %ZEZE_FND19%==hit exit 5\nenv=ZEZE_FND19=hit\n");
+		// 前置 ping -n 2 延迟（~1s）：裸 if..exit 5 毫秒级即死，onExit收殓跑赢下一行的
+		// assertNotNull（test40-4实证round20红）——需要条目在断言时刻确定在场以取句柄验退出码。
+		layoutVersion(servicesDir,
+				"command=cmd\nargs=/c ping -n 2 127.0.0.1 >nul & if %ZEZE_FND19%==hit exit 5\nenv=ZEZE_FND19=hit\n");
 		var sm = new ServiceManager(servicesDir);
 
 		assertEquals(0, sm.startService(startReq()));
