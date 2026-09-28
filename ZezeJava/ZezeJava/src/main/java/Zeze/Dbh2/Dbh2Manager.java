@@ -14,6 +14,7 @@ import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Builtin.Dbh2.Master.DestroyBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
+import Zeze.Net.AsyncSocket;
 import Zeze.Raft.ProxyServer;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.LogSequence;
@@ -24,11 +25,13 @@ import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
 import static Zeze.Util.Args.requireInt;
 
@@ -137,6 +140,7 @@ public class Dbh2Manager {
 
 	public static class Service extends MasterAgent.Service {
 		private final ProxyServer proxyServer;
+		private volatile Dbh2Manager manager;
 
 		public Service(Config config) {
 			super(config);
@@ -146,6 +150,19 @@ public class Dbh2Manager {
 		public Service(Config config, ProxyServer proxyServer) {
 			super(config);
 			this.proxyServer = proxyServer;
+		}
+
+		public void setManager(Dbh2Manager manager) {
+			this.manager = manager;
+		}
+
+		@Override
+		protected void OnMasterConnected(@NotNull AsyncSocket so) {
+			var m = manager;
+			if (null == m)
+				return;
+			// IO线程回调，不得同步等待rpc（register/setDbh2Ready为阻塞rpc），提交任务池异步重注册。
+			TaskSpec.ofAction(m::reRegister).name("Dbh2Manager.reRegister").submitNow();
 		}
 
 		public KV<String, Integer> getAcceptorAddress() {
@@ -162,6 +179,7 @@ public class Dbh2Manager {
 		config.parseCustomize(this.dbh2Config);
 		proxyServer = new ProxyServer(config, dbh2Config.getRpcTimeout());
 		masterService = new Service(config, proxyServer);
+		masterService.setManager(this);
 		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, this::ProcessDestroyBucketRequest, masterService);
 		database = new RocksDatabase(Paths.get(home, "db").toString());
 	}
@@ -203,6 +221,18 @@ public class Dbh2Manager {
 			}
 		});
 		masterAgent.startAndWaitConnectionReady();
+		registerToMaster();
+		proxyServer.start();
+
+		loadMonitorTimer.start();
+	}
+
+	// 注册三步（register→补齐缺失raft→setDbh2Ready）的单点：start()首注册与reRegister共用。
+	// setDbh2Ready不可省略：Master侧managers为纯内存，重启后重建条目的ready=false，
+	// 不重发则choiceManagers的shadowReadyManager恒空——建表/分桶静默瘫痪（比
+	// eManagerNotFound更隐蔽的失败形态）。补齐缺失raft按master持久化主表对账本manager，
+	// createBucket幂等（dbh2s.computeIfAbsent），重复执行无副作用。
+	private void registerToMaster() throws Exception {
 		var acceptorAddress = masterService.getAcceptorAddress();
 		var dbh2sAtMaster = masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2s.size());
 		logger.info("{}, {} - rafts=\n{}\n{}", acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2sAtMaster, dbh2s.keySet());
@@ -217,9 +247,19 @@ public class Dbh2Manager {
 			createBucket(dbh2.getDatabase(), dbh2.getTable(), dbh2.getRaftConfig());
 		}
 		masterAgent.setDbh2Ready();
-		proxyServer.start();
+	}
 
-		loadMonitorTimer.start();
+	// Master重启丢失managers注册表后由连接建立钩子（OnMasterConnected）重发注册恢复；
+	// 失败仅记日志，等下次重连再试（Connector autoReconnect持续重连）。首连时与start()的
+	// registerToMaster各发一次——重复注册幂等推演：Master侧ProcessRegisterRequest按socket
+	// 与acceptor:port身份先摘同身份旧条目再入列（master锁内串行），任意次重发终态单条目；
+	// tryRemoveManager按socket摘除亦不多摘。
+	void reRegister() {
+		try {
+			registerToMaster();
+		} catch (Exception e) {
+			logger.error("re-register to master failed, wait for next reconnect", e);
+		}
 	}
 
 	private void loadMonitor() throws Exception {

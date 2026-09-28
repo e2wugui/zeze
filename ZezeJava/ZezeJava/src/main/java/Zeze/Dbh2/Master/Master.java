@@ -293,6 +293,21 @@ public class Master extends AbstractMaster {
 		var managerHostPort = r.Argument.getDbh2RaftAcceptorName() + "_" + r.Argument.getPort();
 		lock();
 		try {
+			// 幂等去重（对齐MQ Master.ProcessRegisterRequest形态）：重连/重注册会重复到达
+			//（首连时manager侧start()注册与连接建立钩子各一次；master重启后重连重注册），
+			// 且新连接的Register可能先于旧socket的OnSocketClose到达。同socket或同
+			// acceptor:port身份的旧条目必须替换再入列——裸add会产生同源重复条目
+			//（buildRaftConfig给同一manager分双端口建双节点raft），而tryRemoveManager只摘
+			// 首条匹配，重复条目中的死socket滞留被choiceManagers选中后CreateBucket恒失败，
+			// 建表/分桶永久瘫痪（半开连接的既有窗口一并闭口）。
+			for (int i = 0; i < managers.size(); ++i) {
+				var e = managers.get(i);
+				if (e.socket == r.getSender()
+						|| (e.data.getDbh2RaftAcceptorName() + "_" + e.data.getPort()).equals(managerHostPort)) {
+					managers.remove(i);
+					break;
+				}
+			}
 			managers.add(new Manager(r.getSender(), r.Argument));
 		} finally {
 			unlock();

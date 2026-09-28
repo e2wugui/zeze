@@ -17,6 +17,7 @@ import Zeze.Builtin.Dbh2.Master.ReportLoad;
 import Zeze.Builtin.Dbh2.Master.SetDbh2Ready;
 import Zeze.Config;
 import Zeze.IModule;
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Transaction.Procedure;
@@ -26,6 +27,7 @@ import Zeze.Util.OutObject;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Dbh2 客户端访问 Master 服务的代理，封装建库建表、迁移结算与负载上报 RPC。
@@ -168,6 +170,22 @@ public class MasterAgent extends AbstractMasterAgent {
 		public Service(Config config) {
 			super(eServiceName, config);
 			setNoProcedure(true);
+		}
+
+		@Override
+		public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
+			super.OnHandshakeDone(so);
+			// 只对连向Master的连接（connector方向）触发；此时socket已完成注册可安全发送协议。
+			if (null != so.getConnector())
+				OnMasterConnected(so);
+		}
+
+		/**
+		 * 连向Master的连接（含断线重连）建立完成。在IO线程回调，实现不得同步等待rpc。
+		 * Master重启即丢失managers注册表（纯内存，databases/tables才落盘），子类需在此
+		 * 重发Register（Master端按socket与acceptor:port身份幂等去重，对齐MQ Master先例）。
+		 */
+		protected void OnMasterConnected(@SuppressWarnings("unused") @NotNull AsyncSocket so) throws Exception {
 		}
 	}
 
