@@ -390,13 +390,38 @@ public class MQFileWithIndex {
 	}
 
 	/**
-	 * 从文件中装载消息填充到队列中。
+	 * 装载预算（读体前准入）：通过即视为本条入账（调用方实现检查+记账，见 MQSingle）。
+	 * queueEmpty=true 为队头活性放行：无条件入账并返回 true（预算小于单条也必须装队头）。
+	 */
+	@FunctionalInterface
+	public interface FillBudget {
+		boolean admit(long messageBytes, boolean queueEmpty);
+	}
+
+	// 无预算形态（兼容重载/测试直驱）：恒放行不记账。
+	private static final FillBudget AdmitAllFillBudget = (messageBytes, queueEmpty) -> true;
+
+	/**
+	 * 从文件中装载消息填充到队列中（无预算，恒放行）。
 	 * 注意：参数未经验证，需要外部确保正确（请使用calculateFill得到参数）。
 	 * @param messageQueue 队列
 	 * @param headMessageId 开始Id。
 	 * @param endMessageId 结束Id。
+	 * @return 实际装载终点（== endMessageId 即完整装载）。
 	 */
-	public void fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId) {
+	public long fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId) {
+		return fillMessage(messageQueue, headMessageId, endMessageId, AdmitAllFillBudget);
+	}
+
+	/**
+	 * 从文件中装载消息填充到队列中（字节预算准入）。
+	 * 每条消息读体前查预算：队列为空恒放行（队头活性——预算小于单条也必须装队头，否则推送
+	 * 无源、ack 无事件，分区死锁）；否则 budget.admit(messageSize) 达标才读体入队，不达标即
+	 * 截断返回实际装载终点（调用方据此重算 highLoad）。
+	 * @return 实际装载终点（== endMessageId 即完整装载；&lt; endMessageId 即预算截断点）。
+	 */
+	public long fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId,
+							FillBudget budget) {
 		// 在飞计数先于首个floorEntry与租约检查（mq-02）：终结原语（destroyColumnFamily，段回收/
 		// 分区删除都走它）以"先置标记后读计数"与本处"先计数后查标记"互为双检——计数覆盖整个
 		// 调用（含迭代器 try-with-resources 的 close），原语排空读到 0 即无任何迭代器存活。
@@ -461,6 +486,12 @@ public class MQFileWithIndex {
 								// 布局错位形态）在此响亮抛出，进入 pullMessage 既有的失败-复位-重试
 								// 路径，而不是把错位字节当消息静默装载投递。
 								while (true) {
+									// 字节预算（读体前）：队列空恒放行队头（活性——预算小于单条也必须装
+									// 队头，否则推送无源、ack 无事件，分区死锁），否则准入不达标即截断
+									// 返回——返回值即实际装载终点，调用方重算 highLoad。放行同样入账
+									//（记账与装载同点，无一侧遗漏）。
+									if (!budget.admit(messageSize, messageQueue.isEmpty()))
+										return headMessageId;
 									var messageBuffer = new byte[messageSize];
 									filePosition += messageBuffer.length;
 									if (filePosition > fileSize)
@@ -504,6 +535,7 @@ public class MQFileWithIndex {
 			// 计数与读路径同生共死：任何退出路径（含异常）都必须归零，否则回收从此永久跳过。
 			activeFills.decrementAndGet();
 		}
+		return headMessageId;
 	}
 
 	/**

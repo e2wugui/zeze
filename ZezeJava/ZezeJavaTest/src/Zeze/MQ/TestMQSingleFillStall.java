@@ -47,13 +47,14 @@ public class TestMQSingleFillStall {
 		}
 
 		@Override
-		public void fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId) {
+		public long fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId,
+								 MQFileWithIndex.FillBudget budget) {
 			queueRef = messageQueue;
 			if (failFill) {
 				failedCount.incrementAndGet();
 				throw new RuntimeException("injected fill failure");
 			}
-			super.fillMessage(messageQueue, headMessageId, endMessageId);
+			return super.fillMessage(messageQueue, headMessageId, endMessageId, budget);
 		}
 	}
 

@@ -39,6 +39,21 @@ public class MQConfig implements Config.ICustomize {
 	// = DlqMaxEntries × 消息尺寸上界（协议 100MB 级）。
 	private int dlqMaxEntries = 10_000;
 
+	// 单条消息字节上界（入口校验）：协议层 ProxyServer 放行 100MB，超过本值的消息在
+	// SendMessage/replayDeadLetter 入口被响亮拒绝（eMessageTooLarge）——把"协议合法"收敛到
+	// "部署可承受"。默认 16MB；解析钳制不超过协议上界 100MB。
+	public static final int MaxMessageBytesCeiling = 100 * 1024 * 1024;
+	private int maxMessageBytes = 16 * 1024 * 1024;
+
+	// 单分区在飞字节预算：内存队列驻留（直入+装载）的按字节封顶（条数 4096 为正交维度）。
+	// 判据统一：队列为空恒放行队头（保队头活性），否则分区+全局双预算均达标才装载/直入。
+	private long maxInFlightBytesPerPartition = 64 * 1024 * 1024;
+
+	// Manager 级全局在飞字节预算（全部分区共享）：重启装载（构造期 pullMessage）同受约束
+	//——backlog 存在时"装载→OOM→重启→再装载"崩溃循环的根治点。全局满时各分区仍保队头
+	// 单条推进（跨分区背压有界），不互相饿死。
+	private long maxTotalInFlightBytes = 256 * 1024 * 1024;
+
 	public int getRpcTimeout() {
 		return rpcTimeout;
 	}
@@ -112,6 +127,33 @@ public class MQConfig implements Config.ICustomize {
 		dlqMaxEntries = value;
 	}
 
+	/** 单条消息字节上界（入口校验；默认 16MB，配置不超过协议上界 100MB）。 */
+	public int getMaxMessageBytes() {
+		return maxMessageBytes;
+	}
+
+	public void setMaxMessageBytes(int value) {
+		maxMessageBytes = value;
+	}
+
+	/** 单分区在飞字节预算（默认 64MB）。 */
+	public long getMaxInFlightBytesPerPartition() {
+		return maxInFlightBytesPerPartition;
+	}
+
+	public void setMaxInFlightBytesPerPartition(long value) {
+		maxInFlightBytesPerPartition = value;
+	}
+
+	/** Manager 级全局在飞字节预算（默认 256MB；重启装载同受约束）。 */
+	public long getMaxTotalInFlightBytes() {
+		return maxTotalInFlightBytes;
+	}
+
+	public void setMaxTotalInFlightBytes(long value) {
+		maxTotalInFlightBytes = value;
+	}
+
 	/** 上限后动作是否为丢弃档（其余值一律按死信档处置）。 */
 	public boolean isPushDiscardPolicy() {
 		return "discard".equalsIgnoreCase(pushDeadLetterPolicy);
@@ -151,5 +193,15 @@ public class MQConfig implements Config.ICustomize {
 		attr = self.getAttribute("DlqMaxEntries");
 		if (!attr.isBlank())
 			dlqMaxEntries = Integer.parseInt(attr);
+		attr = self.getAttribute("MaxMessageBytes");
+		if (!attr.isBlank())
+			// 钳制不超过协议上界：超过 100MB 的配置无意义（ProxyServer 入口即拒），静默按上界收。
+			maxMessageBytes = (int)Math.min((long)Integer.parseInt(attr), MaxMessageBytesCeiling);
+		attr = self.getAttribute("MaxInFlightBytesPerPartition");
+		if (!attr.isBlank())
+			maxInFlightBytesPerPartition = Long.parseLong(attr);
+		attr = self.getAttribute("MaxTotalInFlightBytes");
+		if (!attr.isBlank())
+			maxTotalInFlightBytes = Long.parseLong(attr);
 	}
 }

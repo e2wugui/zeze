@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Builtin.MQ.BSendMessage;
@@ -43,6 +44,11 @@ import static Zeze.MQ.Master.AbstractMaster.eTopicNotExist;
  */
 public class MQManager extends AbstractMQManager {
 	private static final Logger logger = LogManager.getLogger();
+
+	// 错误码10：消息超过 MQConfig.MaxMessageBytes 上界（协议层放行 100MB，本配置收敛到部署
+	// 可承受量级）。定义在手写子类，不改生成的 AbstractMQManager（与 Master.eTopicEmpty 同法；
+	// 模块错误码空间 1..7 借用 AbstractMaster 语义，10 起为本模块自留）。
+	public static final int eMessageTooLarge = 10;
 
 	// 死信表：key=binary(topic,partitionIndex,messageId)（WriteString+WriteInt4+WriteLong8），
 	// value=BMessage 编码 + 8 字节 BE 死信时间戳。
@@ -130,6 +136,11 @@ public class MQManager extends AbstractMQManager {
 	// 本manager的所有队列实现。
 	// { topic -> { partitionIndex -> MQFile } }
 	private final ConcurrentHashMap<String, MQPartition> queues = new ConcurrentHashMap<>();
+
+	// Manager 级全局在飞字节（全部分区的内存队列驻留总和，MQSingle 注入共享）：MaxTotalInFlightBytes
+	// 的执行载体——重启装载（MQSingle 构造期 pullMessage）同受约束，backlog 存在时的
+	// "装载→OOM→重启→再装载"崩溃循环根治点。包内可见（测试字节断言）。
+	final AtomicLong totalInFlightBytes = new AtomicLong();
 
 	public MQManager(String home, Config config) throws RocksDBException {
 		this.home = home;
@@ -524,6 +535,12 @@ public class MQManager extends AbstractMQManager {
 						+ " partition=" + partitionIndex + " messageId=" + messageId);
 			var message = new BMessage.Data();
 			message.decode(ByteBuffer.Wrap(Arrays.copyOfRange(value, 0, value.length - 8))); // 尾缀8字节BE时间戳剥除
+			// 入口字节上界（与 SendMessage 入口同尺）：死信是历史写入的消息，可能超过当前配置的
+			// MaxMessageBytes（配置收紧后重放）——拒绝并保留死信键，不重投 oversized 负载进内存。
+			if (MQSingle.messageBytes(message) > mqConfig.getMaxMessageBytes())
+				throw new IllegalArgumentException("dead letter exceeds MaxMessageBytes (eMessageTooLarge="
+						+ eMessageTooLarge + "), replay rejected, dead letter kept. topic=" + topic
+						+ " partition=" + partitionIndex + " messageId=" + messageId);
 			var send = new BSendMessage.Data();
 			send.setMessage(message);
 			single.sendMessage(send); // 追加到原分区尾（新 messageId；失败上抛，死信键保留可再重放）
@@ -546,6 +563,11 @@ public class MQManager extends AbstractMQManager {
 		// 在入口显式拒绝（不发成功应答），不触碰文件与 rocksdb。
 		if (stopped)
 			return Procedure.Closed;
+		// 入口字节上界（响亮拒绝优于 OOM）：协议层 ProxyServer 放行 100MB，超过部署可承受量级
+		//（MQConfig.MaxMessageBytes，默认 16MB）的消息在此拒绝，不进入内存队列（装载治理只按
+		// 条数时，大消息积压/重启装载按"协议上限×条数"承诺内存，Manager 确定性 OOM）。
+		if (MQSingle.messageBytes(r.Argument.getMessage()) > mqConfig.getMaxMessageBytes())
+			return errorCode(eMessageTooLarge);
 		var queue = queues.get(r.Argument.getTopic());
 		if (queue == null)
 			return errorCode(eTopicNotExist);

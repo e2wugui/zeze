@@ -45,9 +45,10 @@ public class TestGBC01PushCallbackClosedGate {
 		}
 
 		@Override
-		public void fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId) {
+		public long fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId,
+								MQFileWithIndex.FillBudget budget) {
 			queueRef = messageQueue; // 捕获 MQSingle 的内存队列引用
-			super.fillMessage(messageQueue, headMessageId, endMessageId);
+			return super.fillMessage(messageQueue, headMessageId, endMessageId, budget);
 		}
 
 		@Override

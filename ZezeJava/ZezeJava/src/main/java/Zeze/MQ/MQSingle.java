@@ -85,6 +85,13 @@ public class MQSingle extends ReentrantLock {
 
 	private final Queue<BMessage.Data> messageQueue = new ConcurrentLinkedQueue<>();
 	private volatile Future<?> messageFillFuture;
+	// 分区在飞字节（内存队列驻留 footprint 的记账，条数 4096 之外的字节维度）：
+	// 直入 offer 与 fill 的 add 入账（fill 在锁外，须原子），ack/死信出队出账，close 终态释放。
+	// 与段记录体同尺（见 messageBytes），两条装载路径计量一致。
+	private final AtomicLong queueBytes = new AtomicLong();
+	// Manager 级全局在飞字节（跨分区共享，MQManager 注入；重启装载同受约束——崩溃循环根治点）。
+	// null-manager 测试形态回退到本实例独立计数（预算退化为单分区维度）。
+	private final AtomicLong totalInFlightBytes;
 
 	public MQPartition getMQPartition() {
 		return mqPartition;
@@ -110,6 +117,8 @@ public class MQSingle extends ReentrantLock {
 		this.mqPartition = partition;
 		this.topic = topic;
 		this.partitionIndex = partitionId;
+		this.totalInFlightBytes = null != partition.getManager()
+				? partition.getManager().totalInFlightBytes : new AtomicLong();
 		try {
 			this.fileWithIndex = fileWithIndex;
 			this.highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
@@ -148,6 +157,9 @@ public class MQSingle extends ReentrantLock {
 			// 池任务滞后执行），这里在锁内复查——close 持同锁关文件流后，晚到任务必经此处拒绝。
 			if (managerStopped())
 				throw new IllegalStateException("mq manager stopped, reject sendMessage. topic=" + topic);
+			// 新消息的字节权重（直入判据与入账同尺；appendMessage 记录的 size 字段即此值）。
+			var bytes = messageBytes(message.getMessage());
+			var config = config();
 			// 【不变量】内存队列必须恰好是盘上积压[firstMessageId,nextMessageId)的连续前缀
 			// （队头id==firstMessageId）。仅当队列已装载全部积压时才允许直入：此时盘上没有
 			// 待回填消息，也不存在还会向队尾追加的后台回填（回填一旦还有消息未装载完，
@@ -158,12 +170,18 @@ public class MQSingle extends ReentrantLock {
 			// 分区内乱序，且ack后increaseFirstMessageId盲目+1越过未投递消息，重启后消息永久丢失。
 			// nextMessageId/firstMessageId的所有写点（appendMessage/increaseFirstMessageId）
 			// 都在本锁内执行，这里锁内读取是精确的。
+			// 字节维度（条数 4096 为正交维度）：双预算（分区+全局）均达标才直入；不达标消息
+			// 落盘走回填路径，由 fill 的"队列空恒放行队头"保队头活性。
 			var directEnqueue = messageQueue.size() < maxFillMessageCount
-					&& messageQueue.size() == fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
+					&& messageQueue.size() == fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId()
+					&& queueBytes.get() + bytes <= config.getMaxInFlightBytesPerPartition()
+					&& totalInFlightBytes.get() + bytes <= config.getMaxTotalInFlightBytes();
 			fileWithIndex.appendMessage(message.getMessage());
 			if (directEnqueue) {
 				// 低负载，缓冲足够大，直接进入缓冲。
 				messageQueue.offer(message.getMessage());
+				queueBytes.addAndGet(bytes);
+				totalInFlightBytes.addAndGet(bytes);
 			} else {
 				highLoad++;
 				// 盘上出现未装载积压：尝试启动回填。fill 失败复位后的重试事件源除了 ack 回调，
@@ -183,7 +201,12 @@ public class MQSingle extends ReentrantLock {
 			// 任务会与 rocksDatabase.close 并发（native use-after-free）。
 			// closed（分区级）：分区删除（removePartition→close）而 Manager 存活
 			// 时 stopped 恒 false，无此检查则晚到的 fill 重排期会在已关闭的文件流/rocksdb 上重试。
-			if (!closed && !managerStopped() && highLoad > 0 && messageFillFuture == null && messageQueue.size() < maxFillMessageCount / 2)
+			// 字节滞回（条数滞回同款）：queueBytes ≥ per/2 时不再排新装载——大消息下条数滞回
+			// 不足以压制（4096 条上限远未到而字节预算已满），无此滞回则"装载→预算截断→
+			// 重排→零进展装载"的任务自旋。
+			if (!closed && !managerStopped() && highLoad > 0 && messageFillFuture == null
+					&& messageQueue.size() < maxFillMessageCount / 2
+					&& queueBytes.get() < config().getMaxInFlightBytesPerPartition() / 2)
 				messageFillFuture = TaskSpec.ofAction(this::pullMessage).name("pullMessage").submitNow();
 		} finally {
 			unlock();
@@ -202,6 +225,7 @@ public class MQSingle extends ReentrantLock {
 		// 在另一个线程中调用，但只有一个线程任务。
 		var first = new OutLong();
 		var last = new OutLong();
+		var progressed = false;
 		try {
 			lock();
 			try {
@@ -212,11 +236,15 @@ public class MQSingle extends ReentrantLock {
 			} finally {
 				unlock();
 			}
-			fileWithIndex.fillMessage(messageQueue, first.value, last.value);
+			// 字节预算截断使 calculateFill 的计数扣减不再可信：返回值=实际装载终点，
+			// 尾部锁内按盘上真相精确重算 highLoad（单一真相，消除双账本漂移）。
+			var newHead = fileWithIndex.fillMessage(messageQueue, first.value, last.value, this::admitFillBytes);
 			// 这里有一个时间窗口：刚刚fill的消息全部都消费完毕，下面才置空，导致fill停止。
 			messageFillFuture = null; // 这个清除没加锁
 			fillFailCount = 0; // 装载成功即清失败计数（瞬时失败自愈的基线复位；同上行不加锁，读侧容忍陈旧值）
-			tryStartBackgroundFill(); // 这个调用是为了解决上面的时间窗口的。
+			// 零进度（预算截断且一条未装）不立即重排：重排=零进展任务的自旋；由 ack（释放字节
+			// 预算）/sendMessage 事件重新驱动。有进度才重排（关掉上面时间窗口的停摆，原语义）。
+			progressed = newHead > first.value;
 		} catch (Throwable e) {
 			// fill 失败必须复位 messageFillFuture 并重算 highLoad，否则 tryStartBackgroundFill 永远
 			// 看到非null而跳过，该分区回填永久停摆。calculateFill 已按快照扣减 highLoad 但装载
@@ -230,7 +258,7 @@ public class MQSingle extends ReentrantLock {
 			// 恒假：分区装载静默停摆且无自愈（仅删除重建/进程重启可恢复）。复位保证先于重抛。
 			lock();
 			try {
-				highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId() - messageQueue.size();
+				recomputeHighLoad();
 				messageFillFuture = null;
 				// 失败点自排期：事件驱动的前提在"队列空+无 ack 在途+无新消息"
 				// 窗口失效（回收竞态/瞬时 IO 错的典型形态），失败自身成为下一个事件。锁内排期：
@@ -246,12 +274,57 @@ public class MQSingle extends ReentrantLock {
 		}
 		// fill 装载完成后，消息队列从空变为非空时（例如ack回调触发fill时队列已空），无人驱动推送，
 		// 这里主动尝试推送；构造函数路径 bindSocket==null 时自然短路。
+		// 统一在锁内：先按盘上真相重算 highLoad（单一真相），续排判据（tryStartBackgroundFill 的
+		// highLoad>0 滞回）读到的必须是重算后的值，不是 calculateFill 扣减后的陈旧账。
 		lock();
 		try {
+			recomputeHighLoad();
+			if (progressed)
+				tryStartBackgroundFill(); // 这个调用是为了解决上面的时间窗口的。
 			tryPushMessage();
 		} finally {
 			unlock();
 		}
+	}
+
+	// 锁内调用：按盘上真相精确重算未装载积压（next/first 的全部写点都在本锁内，读即精确）。
+	// 字节预算截断后 calculateFill 的计数扣减不再可信，本式是 highLoad 的单一真相。
+	private void recomputeHighLoad() {
+		highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId() - messageQueue.size();
+	}
+
+	// fill 预算准入（fillMessage 读体前调用；通过即入账——准入与记账同点）：队列非空时分区与
+	// 全局双预算均达标才放行；队列空（队头活性）无条件入账放行。检查-入账的窗口内跨分区并发
+	// fill 可使 total 有界超出（软预算，OOM 防护语义不受影响）；单分区的 fill 单槽
+	//（messageFillFuture）且直入与 fill 由 gap 不变量互斥，分区维度无并发写点。
+	private boolean admitFillBytes(long messageBytes, boolean queueEmpty) {
+		if (!queueEmpty) {
+			var config = config();
+			if (queueBytes.get() + messageBytes > config.getMaxInFlightBytesPerPartition())
+				return false;
+			if (totalInFlightBytes.get() + messageBytes > config.getMaxTotalInFlightBytes())
+				return false;
+		}
+		queueBytes.addAndGet(messageBytes);
+		totalInFlightBytes.addAndGet(messageBytes);
+		return true;
+	}
+
+	// 出队记账（ack 成功/死信终态出队，锁内调用）：与入账同尺。
+	private void releaseQueueBytes(@Nullable BMessage.Data polled) {
+		if (null == polled)
+			return; // 队列与位点竞态下的防御（正常不可达）
+		var bytes = messageBytes(polled);
+		queueBytes.addAndGet(-bytes);
+		totalInFlightBytes.addAndGet(-bytes);
+	}
+
+	// 消息字节权重：编码尺寸（与段记录体同尺——appendMessage 的 size 字段即编码尺寸），
+	// 直入/装载/出队三处计量同尺。allocate 按 body 预留容量避免增长复制。
+	static long messageBytes(BMessage.Data message) {
+		var bb = ByteBuffer.Allocate(64 + message.getBody().size());
+		message.encode(bb);
+		return bb.size();
 	}
 
 	// 失败点自排期（pullMessage 的 catch 锁内调用）：指数退避后重排一次
@@ -351,7 +424,8 @@ public class MQSingle extends ReentrantLock {
 					onPushFailure();
 					return; // 未出队，处置完毕，仅余 finally 的复位
 				}
-				messageQueue.poll();
+				// 出队出账（与入账同尺；null 容忍——正常不可达的竞态防御）。
+				releaseQueueBytes(messageQueue.poll());
 				headRetryCount = 0; // 队头换消息，重投计数清零
 				tryStartBackgroundFill();
 			} else if (pendingPushMessage.getResultCode()
@@ -422,7 +496,9 @@ public class MQSingle extends ReentrantLock {
 					scheduleRetryPush(retryBackoffMs(headRetryCount, config));
 					return;
 				}
-				messageQueue.poll();
+				// 出队出账（与入账同尺）：死信终态的出队同样释放内存驻留记账——毒消息
+				//（默认上限16投）转死信即释放字节，全局满时的跨分区背压因此有界。
+				releaseQueueBytes(messageQueue.poll());
 				headRetryCount = 0;
 				tryStartBackgroundFill(); // 队头出队腾出空间，续装载（成功路径同款）
 				return;
@@ -568,6 +644,11 @@ public class MQSingle extends ReentrantLock {
 		return fileWithIndex;
 	}
 
+	// 包内可见：分区在飞字节（测试断言字节预算截断/释放）。
+	long queueBytes() {
+		return queueBytes.get();
+	}
+
 	// 包内可见：透传 fileWithIndex 的在飞 fill 计数（mq-02：deletePartitionStorage 传给
 	// RocksDatabase 终结原语的排空依据——close 排空超预算逃逸的 fill 世代由原语等待归零）。
 	RocksDatabase.InFlight inFlightFillCheck() {
@@ -653,6 +734,12 @@ public class MQSingle extends ReentrantLock {
 		lock();
 		try {
 			closed = true;
+			// 终态释放内存驻留记账：close 不清 messageQueue（仅弃用），此后无任何出队事件——
+			// 不释放则全局预算被死分区永久占用（total 永久虚高，活分区装载被挤压）。锁内执行，
+			// 与全部入账/出账点互斥（fill 世代已被上方排空，closed 使新 fill 恒拒绝）。
+			var leaked = queueBytes.getAndSet(0);
+			if (0 != leaked)
+				totalInFlightBytes.addAndGet(-leaked);
 			if (null != retryFuture) {
 				retryFuture.cancel(false);
 				retryFuture = null;

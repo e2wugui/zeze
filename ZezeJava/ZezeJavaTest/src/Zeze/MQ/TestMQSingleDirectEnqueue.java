@@ -61,11 +61,12 @@ public class TestMQSingleDirectEnqueue {
 		}
 
 		@Override
-		public void fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId) {
+		public long fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId,
+								MQFileWithIndex.FillBudget budget) {
 			queueRef = messageQueue;
 			if (headMessageId < endMessageId)
 				fills.add(new Fill(headMessageId, endMessageId, queueIds(messageQueue)));
-			super.fillMessage(messageQueue, headMessageId, endMessageId);
+			return super.fillMessage(messageQueue, headMessageId, endMessageId, budget);
 		}
 
 		List<String> queueNow() {
