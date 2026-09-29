@@ -220,6 +220,23 @@ public class CommitRocks {
 
 			// 处理prepare结果，碰到【拒绝模式重定向】的请求，需要循环处理。
 			while (!futures.isEmpty()) {
+				// 循环顶熔断（dbh2-03）：重定向轮数无上限，每轮每桶rpcAwaitTimeoutMs的
+				// 等待可把总时长叠到远超rpcTimeout，循环后才检查（下方）对此无能为力——
+				// 客户端以rpcTimeout等待，超时即抛"确定失败"而本方法仍在循环、可能最终
+				// 提交成功。每轮顶检查elapsed，超prepareMaxTime即break，交由循环后的
+				// 既有超时分支统一undo+removeRecord（保持超时异常的既有形态：主异常+
+				// undo失败挂suppressed），服务端决策时长由此有界，客户端超时按
+				// prepareMaxTime+rpcTimeout派生覆盖（见Dbh2Config.getCommitRpcTimeout）。
+				if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime()) {
+					// 在途重定向桶纳入undo范围：未处理轮的context尚未随处理入state
+					//（首轮初始futures无context，null过滤）。
+					for (var future : futures) {
+						var ctx = future.getContext();
+						if (null != ctx && !state.getBuckets().contains(ctx))
+							state.getBuckets().add((String)ctx);
+					}
+					break;
+				}
 				futures = processPrepareFutures(tid, queryHost, queryPort, futures);
 				if (!futures.isEmpty()) {
 					for (var future : futures) {
@@ -256,7 +273,24 @@ public class CommitRocks {
 		return tid;
 	}
 
-	public void commit(String queryHost, int queryPort, BPrepareBatches.Data batches) {
+	/** decide+deliver的衔接载荷：应答点（decide返回）与投递点（异步deliver）间的传递。 */
+	public static final class CommitDecision {
+		public final long tid;
+		public final byte[] tidBytes;
+		public final BTransactionState.Data state;
+
+		CommitDecision(long tid, byte[] tidBytes, BTransactionState.Data state) {
+			this.tid = tid;
+			this.tidBytes = tidBytes;
+			this.state = state;
+		}
+	}
+
+	// decide（同步）：prepare+saveCommitPoint(eCommitting，sync写)。完成即事务终局为提交，
+	// 调用方（Commit.ProcessCommitRequest）此刻就可应答——应答0 ⇔ eCommitting已持久化；
+	// 投递由redoTimer兜底，不参与应答条件（dbh2-03应答解绑：同步等投递会把应答时延拉到
+	// rpcTimeout级甚至超时，客户端把"结果不确定"当确定失败，而服务端终局仍是提交）。
+	public CommitDecision commitDecide(String queryHost, int queryPort, BPrepareBatches.Data batches) {
 		var state = buildTransactionState(batches);
 		var tidBytes = new byte[8];
 		var tid = prepare(queryHost, queryPort, state, batches, tidBytes);
@@ -273,11 +307,16 @@ public class CommitRocks {
 			removeTransactionRecord(tidBytes);
 			throw new RuntimeException(ex);
 		}
+		return new CommitDecision(tid, tidBytes, state);
+	}
 
+	// deliver（可异步）：commitBatch送达循环。removeTransactionRecord仅在全部future成功后
+	// （次序保持）；失败/异常只记日志——eCommitting已持久化，redoTimer按周期兜底重发直到完结。
+	public void commitDeliver(CommitDecision decision) {
 		try {
 			var futures = new ArrayList<TaskCompletionSource<RaftRpc<BBatchTid.Data, EmptyBean.Data>>>();
-			for (var e : state.getBuckets()) {
-				futures.add(manager.openBucket(e).commitBatch(tid));
+			for (var e : decision.state.getBuckets()) {
+				futures.add(manager.openBucket(e).commitBatch(decision.tid));
 			}
 			for (var e : futures) {
 				var r = e.get(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
@@ -285,10 +324,15 @@ public class CommitRocks {
 				if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
 					throw new RuntimeException("commit error=" + IModule.getErrorCode(r.getResultCode()));
 			}
-			removeTransactionRecord(tidBytes);
+			removeTransactionRecord(decision.tidBytes);
 		} catch (Throwable ex) {
 			logger.error("", ex);
 		}
+	}
+
+	// 本地提交模式的既有组合：decide+deliver同步串行（默认部署零行为变化）。
+	public void commit(String queryHost, int queryPort, BPrepareBatches.Data batches) {
+		commitDeliver(commitDecide(queryHost, queryPort, batches));
 	}
 
 	public static BTransactionState.Data buildTransactionState(BPrepareBatches.Data batches) {
