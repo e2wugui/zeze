@@ -1,5 +1,7 @@
 package Zeze.Services.Log4jQuery;
 
+import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Config;
@@ -49,6 +51,25 @@ public class LogServiceConf implements Config.ICustomize {
 			attr = self.getAttribute("CharsetName");
 			if (!attr.isBlank())
 				charsetName = attr;
+			// 三项格式配置parse期fail-fast（对齐上方LogActive先例）：非法值此前原样通过，
+			// 要到首次轮转/首次查询才以运行期异常暴露且形态不指向字段——非法LogTimeFormat
+			// 在Log4jFileSession构造的tryNext内new SimpleDateFormat抛IAE（构造失败回收只
+			// catch IOException时fd穿透泄漏）；非法LogDatePattern在testFileName内抛IAE使
+			// 对账/轮转整轮被吞、rotate永不登记。probe一次构造/查表（含默认值同过校验）。
+			try {
+				new SimpleDateFormat(logTimeFormat);
+			} catch (IllegalArgumentException e) {
+				throw new IllegalStateException("LogConf LogTimeFormat must be a legal SimpleDateFormat pattern: <"
+						+ logTimeFormat + "> (" + e.getMessage() + ")");
+			}
+			try {
+				new SimpleDateFormat(logDatePattern);
+			} catch (IllegalArgumentException e) {
+				throw new IllegalStateException("LogConf LogDatePattern must be a legal SimpleDateFormat pattern: <"
+						+ logDatePattern + "> (" + e.getMessage() + ")");
+			}
+			if (!Charset.isSupported(charsetName))
+				throw new IllegalStateException("LogConf CharsetName must be a supported charset: <" + charsetName + ">");
 		}
 
 		public String getName() {
