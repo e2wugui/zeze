@@ -317,6 +317,17 @@ public class Onz extends AbstractOnz {
 			throw new RuntimeException("duplicate Onz Procedure Name=" + name);
 	}
 
+	/**
+	 * 注册saga参与方（业务+补偿）。
+	 *
+	 * <p><b>补偿参数恒为空bean（onz-04，FND26契约明示）</b>：协调者的全部四个FuncSagaEnd生产点
+	 * （endSaga/cancelSaga/retryCancelNotFoundOnce/sendRedoDecision）只设置OnzTid与Cancel标志，
+	 * 从不设置FuncArgument——{@code funcCancel}收到的cancelArgument是cancelClass的默认构造
+	 * 实例（空载荷），补偿函数只能从{@link OnzSaga}上下文自取数据（且业务可能已原地改写
+	 * argument/result bean）。cancelClass仅声明补偿参数的类型面，不承载协调者侧传参语义；
+	 * 协调者无从得知参与方补偿bean类型（发结果即本地提交的saga模型下无该注册面），属有意为之。
+	 * 需要传参的补偿请把参数持久化进业务侧（saga result/自有表），补偿时读回。</p>
+	 */
 	public <A extends Bean, R extends Bean, T extends Bean> void registerSaga(
 			String name, OnzFuncSaga<A, R> func, OnzFuncSagaEnd<T> funcCancel,
 			Class<A> argumentClass, Class<R> resultClass, Class<T> cancelClass) {
