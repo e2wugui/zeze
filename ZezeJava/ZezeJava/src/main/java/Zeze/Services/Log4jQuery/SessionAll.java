@@ -21,11 +21,10 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * 跨全部日志服务端的聚合查询会话：对每台建 Session，归并 search/browse 结果并跟踪各台完成状态。
- * 部分失败降级（单台异常不牺牲其余台）+ 会话成员集维护收敛在 operate 内（增减双向）：在册死亡
- * 成员自愈重建（renewDeadMembers）、缺册成员补入（reconcileMissingMembers）与摘册成员逐出
- * （evictUnregisteredMembers）互补——构造期跳过或构造后上台的由补入收敛，退服摘册的由逐出
- * 收敛，会话构成始终向注册表收敛。死亡成员重建与逐出后重入均从该成员已投递水位续扫
- * （见memberSeekBase），已投递区间不跨页重复投递。
+ * 部分失败降级（单台异常不牺牲其余台）+ 会话成员集在 operate 内向注册表双向收敛：缺册补入
+ * （reconcileMissingMembers）、摘册逐出（evictUnregisteredMembers）、在册死亡自愈重建
+ * （renewDeadMembers）。死亡成员重建与逐出后重入均从该成员已投递水位续扫（见
+ * memberSeekBase），已投递区间不跨页重复投递。
  */
 public class SessionAll implements AutoCloseable {
 	private static final @NotNull Logger logger = LogManager.getLogger(SessionAll.class);
@@ -40,19 +39,13 @@ public class SessionAll implements AutoCloseable {
 	// 缺册补员的 per-member 退避表（服务器名→上次尝试失败时刻，System.nanoTime时基）：
 	// 退避窗内不重试，持续故障期不对死地址逐 operate 打点；成功补入即移除。
 	private final ConcurrentHashMap<String, Long> memberRetryBackoff = new ConcurrentHashMap<>();
-	// 成员级已投递水位（服务器名→该成员最近返回日志的最大time）：死亡成员重建
-	// （renewDeadMembers）后的续扫基点来源。新服务端会话beginTime=-2，翻页仍携带
-	// condition.beginTime会触发服务端reset+seek(beginTime)从查询下界整段重扫——死亡前
-	// 已投递区间跨页重复返回（merge无去重，"不丢不重"契约破坏且无信号）。以水位作为
-	// 重建会话的下发beginTime（协议每请求独立beginTime现成），从首条>=水位处续扫。
-	// 水位取max的损失论证：seek定位点=扫描序中首条time>=水位的日志，末投递页内必有
-	// time==水位的日志，定位点必不晚于它——跳过的扫描前缀全部已投递（不丢）；重复收敛
-	// 为水位边界同时间的少量条目（时间粒度），死亡页未送达区间在定位点之后照常补投。
+	// 成员级已投递水位（服务器名→最近返回日志的最大time）：重建/重入会话的下发beginTime
+	// 来源，从首条>=水位处续扫、已投递区间不整段重扫（末投递页内必有time==水位的日志，
+	// 定位点必不晚于它——不丢；重复收敛为水位边界同时间的少量条目）。
 	private final ConcurrentHashMap<String, Long> deliveredWatermark = new ConcurrentHashMap<>();
-	// 成员级续扫基点（捕获语义）：重建时刻的快照，此后该成员的翻页固定下发该值——
-	// 服务端beginTime去重哨兵据此短路、游标连续推进。不得逐页跟踪水位：每页变值会使
-	// 服务端不断reset+seek到更新的水位，跳过未投递区间丢数据。reset=true（新查询序列）
-	// 与close时失效。
+	// 成员级续扫基点（捕获语义）：重建时刻的水位快照，此后翻页固定下发该值——服务端
+	// beginTime去重哨兵据此短路、游标连续推进。不得逐页跟踪水位（服务端会不断reset+seek
+	// 到更新的水位，跳过未投递区间丢数据）。reset=true（新查询序列）与close时失效。
 	private final ConcurrentHashMap<String, Long> memberSeekBase = new ConcurrentHashMap<>();
 
 	public SessionAll(LogAgent agent, String logName) {
@@ -152,8 +145,7 @@ public class SessionAll implements AutoCloseable {
 			// 连接抖动同走上面的 failedServers 路径：不标记 finishedSession（下次 operate 重试）、
 			// 全败时上抛。因此能到达本行的只剩零码结果，!isRemain() 才可信地表示"该台查完"。
 			r.getLogs().sort(comparator);
-			// 成员级已投递水位推进（重建续扫基点来源，见deliveredWatermark注释）：
-			// 取本页各日志time的最大值与既有水位合并。
+			// 已投递水位推进：取本页各日志time的最大值与既有水位合并（见deliveredWatermark）。
 			for (var log : r.getLogs())
 				deliveredWatermark.merge(future.getValue().getName(), log.getTime(), Math::max);
 			remain = remain || r.isRemain();
@@ -214,16 +206,12 @@ public class SessionAll implements AutoCloseable {
 	}
 
 	/**
-	 * 摘册逐出：alls中已不在注册表的成员（退服/缩容/SM remove通告）移出会话。无此方向则
-	 * 摘除成员永久滞留——其Connector已stop（Client.onSmRemoved），每轮operate对它发起的
-	 * RPC立即失败、恒定warn，聚合结果持续缺台且以remain=false收尾（缺数只有日志可观测）；
-	 * 唯一成员形态下operate恒抛（rs空上抛firstFailure），该logName查询永久不可用直至调用方
-	 * 重建会话——类承诺的"向注册表收敛"此前只在增方向成立。逐出前best-effort发CloseSession
-	 * （摘册≠进程死亡，服务端查询句柄应释放；注册表侧连接已死时快速失败，异常仅warn）。
-	 * 已投递水位保留（重入续扫基点来源）；finishedSession/续扫基点/补员退避同步清理。
-	 * 全员逐出（注册表空）后operate返回空结果："无查询目标"与"查完无匹配"的区分由绑定层
-	 * （zoker FileSessionManager的0成员校验/收敛判定）承担。注册表抖动（摘除后回归）不叠加
-	 * 缓冲窗：补员路径按水位续扫已把重入代价收敛到边界重复，立即逐出换取缩容即时收敛。
+	 * 摘册逐出：alls中已不在注册表的成员（退服/缩容/SM remove）移出会话——滞留成员的
+	 * Connector已stop，每轮operate对它必失败且聚合持续缺台。逐出前best-effort发CloseSession
+	 *（摘册≠进程死亡，服务端句柄应释放）；已投递水位保留（重入续扫基点来源），
+	 * finishedSession/续扫基点/补员退避同步清理。全员逐出后operate返回空结果（"无查询目标"
+	 * 与"查完无匹配"的区分由绑定层承担）；注册表抖动不叠加缓冲窗——补员路径按水位续扫
+	 * 已把重入代价收敛到边界重复，立即逐出换取缩容即时收敛。
 	 */
 	private void evictUnregisteredMembers() {
 		var registered = agent.getLogServers();
@@ -259,9 +247,8 @@ public class SessionAll implements AutoCloseable {
 		for (var name : deadMembers) {
 			try {
 				alls.put(name, agent.newSession(name, logName));
-				// 重建会话的续扫基点=重建时刻的已投递水位（捕获语义，见memberSeekBase注释）：
-				// 下一页起对该成员下发beginTime=水位，新会话从首条>=水位处续扫——已投递区间
-				// 不再整段重扫（无水位=该成员尚未投递过任何页，按原条件从头扫描即正确）。
+				// 续扫基点=重建时刻的已投递水位（见memberSeekBase）；无水位=该成员
+				// 从未投递过任何页，按原条件从头扫描即正确。
 				var watermark = deliveredWatermark.get(name);
 				if (null != watermark)
 					memberSeekBase.put(name, watermark);

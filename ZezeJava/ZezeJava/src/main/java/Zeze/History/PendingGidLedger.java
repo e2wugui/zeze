@@ -15,10 +15,9 @@ import org.jetbrains.annotations.NotNull;
  * tHistory 行随数据库事务提交成功由 History.commitDone 核销；登记后超龄未核销 = 数据已应用
  * 而历史行未落库的确定性缺口，周期对账将其显式化为 error 告警（每 gid 一次），不自动修复。
  * 覆盖边界：进程重启即失——重启窗口的缺口靠消费端空洞老化+离线 Verify 兜底。
- * 账龄测量用单调钟 System.nanoTime（对齐消费端空洞老化 ApplyHelper 的同款判据）：只测
- * "登记后经过多久"，墙钟前向跳变不得把正常流水中的 gid 假告警"回放已分歧"并提前出账
- * （每 gid 一次的告警额度被假阳性消耗），回拨不得推迟真缺口的告警。进程内对象不持久化，
- * nanoTime 原点跨进程差异不可达。
+ * 账龄测量用单调钟 System.nanoTime（对齐消费端空洞老化的同款判据），墙钟跳变不进入判据
+ * ——前跳不得假告警并提前出账，回拨不得推迟真缺口告警。进程内不持久化，nanoTime 原点
+ * 跨进程差异不可达。
  */
 public final class PendingGidLedger {
 	private static final @NotNull Logger logger = LogManager.getLogger(PendingGidLedger.class);
@@ -52,8 +51,8 @@ public final class PendingGidLedger {
 	/**
 	 * 周期对账（包内可见供测试注入时钟）：超龄未核销的 gid 显式 error 告警（每 gid 一次）
 	 * 并出账（防重复告警与无界增长，累计计数保留总量）。告警是运维触发对账/离线 Verify
-	 * 的信号，不自动修复——修复动作依赖缺口成因人工判定。判龄用单调钟差（nowNanos 与
-	 * register 的 atNanos 同基，阈值 ms→ns 换算收在比较点），墙钟跳变不进入判据。
+	 * 的信号，不自动修复——修复动作依赖缺口成因人工判定。判龄为单调钟差（nowNanos 与
+	 * register 的 atNanos 同基，阈值 ms→ns 换算收在比较点）。
 	 *
 	 * @return 本轮告警的 gid 数
 	 */

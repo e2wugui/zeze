@@ -171,17 +171,15 @@ public class Log4jSession {
 				var log = nextLog();
 				if (null == log)
 					break;
-				// 窗口边界逐条过滤：扫描流时间不单调（时钟步进回拨/拷入乱序内容——列表不变式已是
-				// 轮转序，FND29废除"按内容时间有序"），全局早停会在首个超窗条目处终止并谎报查完
-				// （remain=false），其后仍落窗口内的日志（同文件后续行/轮转序更后的文件）静默漏读。
-				// 上界沿用既有边界条丢弃语义（不进结果不暂存）；下界兜定位之后的时间回落行（定位
-				// 只保证起点>=beginTime，其后行不再复查）。终止只由walker耗尽/扫描预算承担，窗口后
-				// 内容的逐页扫描量由MAX_SCAN_*预算封顶（有界查询多付的空页扫描是正确性的代价）。
+				// 窗口边界逐条过滤：扫描流时间不单调（列表不变式是轮转序，非内容时间序），
+				// 全局早停会谎报查完并漏读其后仍落窗口内的日志——终止只由walker耗尽/扫描
+				// 预算承担。上界沿用边界条丢弃语义（不进结果不暂存）；下界兜定位之后的
+				// 时间回落行（定位只保证起点>=beginTime）。窗外条计入扫描预算。
 				var outOfWindow = (endTime != -1 && log.getTime() > endTime)
 						|| (beginTime != -1 && log.getTime() < beginTime);
 				if (outOfWindow) {
 					if (++scanned >= MAX_SCAN_LOGS || (scannedBytes += log.getLog().length()) >= MAX_SCAN_BYTES)
-						return true; // remain：窗外条同样计入扫描预算，防单请求无界扫描
+						return true; // remain：防单请求无界扫描
 					continue;
 				}
 
@@ -252,8 +250,8 @@ public class Log4jSession {
 				var log = nextLog();
 				if (null == log)
 					break;
-				// 同searchContains：窗口边界逐条过滤（扫描流时间不单调，全局早停漏读回归点之后的
-				// 窗口内日志），终止只由walker耗尽/扫描预算承担。
+				// 同searchContains：窗口边界逐条过滤（扫描流时间不单调），终止只由walker
+				// 耗尽/扫描预算承担。
 				var outOfWindow = (endTime != -1 && log.getTime() > endTime)
 						|| (beginTime != -1 && log.getTime() < beginTime);
 				if (outOfWindow) {
@@ -343,8 +341,8 @@ public class Log4jSession {
 				var log = nextLog();
 				if (null == log)
 					break;
-				// 同searchContains：窗口边界逐条过滤（扫描流时间不单调，全局早停漏读回归点之后的
-				// 窗口内日志），终止只由walker耗尽/扫描预算承担。
+				// 同searchContains：窗口边界逐条过滤（扫描流时间不单调），终止只由walker
+				// 耗尽/扫描预算承担。
 				var outOfWindow = (endTime != -1 && log.getTime() > endTime)
 						|| (beginTime != -1 && log.getTime() < beginTime);
 				if (outOfWindow) {
@@ -418,8 +416,8 @@ public class Log4jSession {
 				var log = nextLog();
 				if (null == log)
 					break;
-				// 同searchContains：窗口边界逐条过滤（扫描流时间不单调，全局早停漏读回归点之后的
-				// 窗口内日志），终止只由walker耗尽/扫描预算承担。
+				// 同searchContains：窗口边界逐条过滤（扫描流时间不单调），终止只由walker
+				// 耗尽/扫描预算承担。
 				var outOfWindow = (endTime != -1 && log.getTime() > endTime)
 						|| (beginTime != -1 && log.getTime() < beginTime);
 				if (outOfWindow) {

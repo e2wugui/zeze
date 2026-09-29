@@ -31,10 +31,9 @@ public class Session implements AutoCloseable {
 	}
 
 	/**
-	 * 目标日志服务器就绪 socket：未注册的 serverName（构造期未知名/运行期被 SM 摘除，
-	 * {@code __getLogServer} 的动态表未命中返回 null）裸解引用是无信息 NPE 且调用方
-	 * 不可自愈（NPE 不满足会话级判别，绑定不重建）——对齐 {@link LogAgent#query} 对
-	 * 同一张表的显式判空：抛带名字的 IllegalArgumentException。
+	 * 目标日志服务器就绪 socket：未注册的 serverName（{@code __getLogServer} 未命中返回
+	 * null）抛带名字的 IllegalArgumentException（对齐 {@link LogAgent#query} 的显式判空）
+	 * ——裸解引用的 NPE 不满足会话级判别，调用方不可自愈。
 	 */
 	private Zeze.Net.AsyncSocket readySocket() {
 		var connector = agent.__getLogServer(serverName);
@@ -100,10 +99,8 @@ public class Session implements AutoCloseable {
 
 	private static BResult.Data checked(Rpc<?, BResult.Data> rpc, BResult.Data result) {
 		var code = rpc.getResultCode();
-		// 分诊按结果码显式抛型（FND31 zokermanager-01）：死会话（LogicError）与参数级拒绝
-		// （LogService.INVALID_ARGUMENT）各自成型，其余非零码保持原 RuntimeException 形态——
-		// 调用方（FileSessionManager.operateRecovering、SessionAll 成员自愈）据异常类型决策，
-		// 不再按消息前缀猜类（前缀判别把一切非零码都当成会话死亡，参数错误触发无谓的整组拆建）。
+		// 结果码分诊：死会话（LogicError）与参数级拒绝（INVALID_ARGUMENT）各自显式抛型，
+		// 其余非零码保持原 RuntimeException 形态——调用方据异常类型决策（见 isSessionLevelError）。
 		if (code == Procedure.LogicError)
 			throw new SessionLevelException("search/browse error " + code);
 		if (code == Zeze.Services.LogService.INVALID_ARGUMENT)
@@ -136,11 +133,9 @@ public class Session implements AutoCloseable {
 	}
 
 	/**
-	 * 会话级错误判别（N02）：仅 {@link SessionLevelException}（服务端拒绝本会话——典型：
-	 * 闲置被回收的死会话）判真；网络/超时类异常（CompletionException等）与参数级拒绝
-	 * 判假。调用方（SessionAll成员自愈、FileSessionManager.operateRecovering）据此只对
-	 * 会话级死亡触发重建——网络类瞬时失败重建无益（白白丢弃仍有效的会话与游标），
-	 * 参数级失败重建则必然重蹈覆辙。
+	 * 会话级错误判别：仅 {@link SessionLevelException}（服务端拒绝本会话）判真；网络/超时
+	 * 类异常与参数级拒绝判假。调用方据此只对会话级死亡触发重建——其余失败重建无益
+	 *（白白丢弃仍有效的会话与游标）或必然重蹈覆辙。
 	 */
 	public static boolean isSessionLevelError(Throwable e) {
 		return e instanceof SessionLevelException;

@@ -39,19 +39,17 @@ public class MQConfig implements Config.ICustomize {
 	// = DlqMaxEntries × 消息尺寸上界（协议 100MB 级）。
 	private int dlqMaxEntries = 10_000;
 
-	// 单条消息字节上界（入口校验）：协议层 ProxyServer 放行 100MB，超过本值的消息在
-	// SendMessage/replayDeadLetter 入口被响亮拒绝（eMessageTooLarge）——把"协议合法"收敛到
-	// "部署可承受"。默认 16MB；解析钳制不超过协议上界 100MB。
+	// 单条消息字节上界：协议层放行 100MB，超过本值的消息在 SendMessage/replayDeadLetter
+	// 入口拒绝（eMessageTooLarge）。默认 16MB；解析钳制不超过协议上界 100MB。
 	public static final int MaxMessageBytesCeiling = 100 * 1024 * 1024;
 	private int maxMessageBytes = 16 * 1024 * 1024;
 
 	// 单分区在飞字节预算：内存队列驻留（直入+装载）的按字节封顶（条数 4096 为正交维度）。
-	// 判据统一：队列为空恒放行队头（保队头活性），否则分区+全局双预算均达标才装载/直入。
+	// 队列为空恒放行队头（保队头活性），否则分区+全局双预算均达标才装载/直入。
 	private long maxInFlightBytesPerPartition = 64 * 1024 * 1024;
 
-	// Manager 级全局在飞字节预算（全部分区共享）：重启装载（构造期 pullMessage）同受约束
-	//——backlog 存在时"装载→OOM→重启→再装载"崩溃循环的根治点。全局满时各分区仍保队头
-	// 单条推进（跨分区背压有界），不互相饿死。
+	// Manager 级全局在飞字节预算（全部分区共享）：重启装载（构造期 pullMessage）同受约束；
+	// 全局满时各分区仍保队头单条推进（跨分区背压有界，不互相饿死）。
 	private long maxTotalInFlightBytes = 256 * 1024 * 1024;
 
 	public int getRpcTimeout() {

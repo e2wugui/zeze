@@ -415,9 +415,8 @@ public class MQFileWithIndex {
 
 	/**
 	 * 从文件中装载消息填充到队列中（字节预算准入）。
-	 * 每条消息读体前查预算：队列为空恒放行（队头活性——预算小于单条也必须装队头，否则推送
-	 * 无源、ack 无事件，分区死锁）；否则 budget.admit(messageSize) 达标才读体入队，不达标即
-	 * 截断返回实际装载终点（调用方据此重算 highLoad）。
+	 * 每条消息读体前查预算：队列空恒放行（队头活性——预算小于单条也必须装队头，否则
+	 * 分区死锁）；不达标即截断返回（调用方据此重算 highLoad）。
 	 * @return 实际装载终点（== endMessageId 即完整装载；&lt; endMessageId 即预算截断点）。
 	 */
 	public long fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId,
@@ -486,10 +485,8 @@ public class MQFileWithIndex {
 								// 布局错位形态）在此响亮抛出，进入 pullMessage 既有的失败-复位-重试
 								// 路径，而不是把错位字节当消息静默装载投递。
 								while (true) {
-									// 字节预算（读体前）：队列空恒放行队头（活性——预算小于单条也必须装
-									// 队头，否则推送无源、ack 无事件，分区死锁），否则准入不达标即截断
-									// 返回——返回值即实际装载终点，调用方重算 highLoad。放行同样入账
-									//（记账与装载同点，无一侧遗漏）。
+									// 预算准入（读体前）：队列空恒放行队头；不达标即截断返回。
+									// 放行即入账（准入与记账同点）。
 									if (!budget.admit(messageSize, messageQueue.isEmpty()))
 										return headMessageId;
 									var messageBuffer = new byte[messageSize];

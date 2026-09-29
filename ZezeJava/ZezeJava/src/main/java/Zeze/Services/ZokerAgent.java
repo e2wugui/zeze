@@ -258,11 +258,9 @@ public class ZokerAgent extends AbstractZokerAgent {
     // openFile返回的offset为断点、md5按（已存在前缀+新追加）计算；残留长于本次清单（集合
     // 缩小的重发布中断残留）时追加凑长必失配——直接以空摘要收口触发服务端清场
     //（eMd5Mismatch为预期应答），下一轮从0重传。两轮仍失败上抛（distribute整体失败）。
-    // FND31 zoker-01：同名服务并发分发共享同一暂存区，裸名清单最后写者胜——先到commit
-    // 消费后到者的清单成版（版本内容与版本号错配）。主形态=版本限定名
-    //（.zoker-manifest.<versionNo>，commit按本次版本号对应消费，两路部署互不覆盖）；
-    // 兼容副本=裸名（旧服务端只认裸名，缺失即无屏障走legacy——补传保持混合版本窗口
-    // 内屏障不丢；新服务端优先版本限定名，裸名仅随版本成版存档）。
+    // 清单双名上传：主形态=版本限定名（.zoker-manifest.<versionNo>，commit 按本次版本号
+    // 对应消费，同名服务并发分发互不覆盖）；兼容副本=裸名（旧服务端只认裸名，缺失即走
+    // legacy 无屏障——补传保持混合版本窗口内屏障不丢；新服务端优先版本限定名）。
     private void uploadDistributeManifest(String zokerName, String serviceName,
                                           List<String> fileRelativeNames, String versionNo) throws Exception {
         var content = (String.join("\n", fileRelativeNames) + "\n").getBytes(StandardCharsets.UTF_8);

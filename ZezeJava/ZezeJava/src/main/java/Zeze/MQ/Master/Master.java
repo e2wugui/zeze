@@ -499,10 +499,10 @@ public class Master extends AbstractMaster {
      * 候选除名时机：在册化（CreateMQ 最终登记完成→覆盖命中）或从上报中消失（已删/重建中）；
      * 下发后也除名——删除失败的残留下轮上报重新候选、重新起算宽限期（=宽限期间隔的自动重试）。
      * <p>
-     * 孤儿删除是破坏性裁决，依据须是正面遗弃证据而非"无匹配登记"（managerId 重铸/换代的系统性
-     * 误报形态）：条目属主 id 无存活连接时，持有者（上报者）的报告本身即数据延续证据，判覆盖并
-     * 证据化转移路由（见 notCoveredPartitions 第三路与 transferOrphanEvidence）。整 Manager 面积
-     * （本轮候选覆盖上报者全部上报分区）的候选即使满龄也压一轮再删（面积闸，error 审计）。
+     * 孤儿删除是破坏性裁决，依据须是正面遗弃证据而非"无匹配登记"：属主 id 无存活连接时
+     * 上报者的报告即数据延续证据，判覆盖并证据化转移路由（notCoveredPartitions 第三路 +
+     * transferOrphanEvidence）；整 Manager 面积（候选覆盖上报者全部上报分区）的候选满龄
+     * 也压一轮再删（面积闸，error 审计）。
      */
     void reconcileOrphanReport(Manager manager, BReportPartitions.Data report) throws Exception {
         var now = System.currentTimeMillis();
@@ -544,10 +544,9 @@ public class Master extends AbstractMaster {
         orphanAreaGated.removeIf(key -> key.startsWith(prefix) && !seenKeys.contains(key));
         // 宽限期满 → 下发删除（按 topic 聚合一次 rpc）
         var grace = mqConfig.getOrphanGracePeriodMs();
-        // 整 Manager 面积闸：本轮候选覆盖该上报者全部上报分区 = 全量灭失签名（单文件事件即可
-        // 放大成整 Manager 数据删除的形态）。升级 error 告警，宽限期放大一轮：候选键打闸标记，
-        // 有效宽限翻倍（只放大一次——标记幂等，已放大的候选满 2×宽限后照常下发，全量孤儿
-        //（CreateMQ 部分成功残留等）仍能收敛，只是多等一个宽限间隔）。
+        // 整 Manager 面积闸（全量灭失签名）：候选覆盖该上报者全部上报分区时升级 error 并把
+        // 有效宽限翻倍（只放大一次——标记幂等，已放大的候选满 2×宽限后照常下发），全量孤儿
+        // 仍能收敛、多等一个宽限间隔。
         var candidateTotal = 0;
         for (var e : candidates.entrySet())
             candidateTotal += e.getValue().size();
@@ -590,10 +589,10 @@ public class Master extends AbstractMaster {
         }
     }
 
-    // 证据化转移（模块锁内调用）：把"属主 id 已死（无存活连接）"条目的 id/地址改写为上报者——
-    // 上报者磁盘上仍有该分区数据（报告即证据），路由跟随数据真相，而不是删除数据迎合陈旧路由。
-    // 只改写收集时认定的死属主 id 的条目（同分区的 live 属主/存量条目不动）；上报者为 legacy
-    // （id==0）时与 rewriteRoutes 同口径：改写地址、id 落 0（保持未知身份，按地址兜底匹配）。
+    // 证据化转移（模块锁内调用）：把"属主 id 已死（无存活连接）"条目的 id/地址改写为上报者
+    //（报告即数据延续证据，路由跟随数据真相）。只改写收集时认定的死属主 id 的条目（同分区
+    // 的 live 属主/存量条目不动）；上报者为 legacy（id==0）时与 rewriteRoutes 同口径：改写
+    // 地址、id 落 0（保持未知身份，按地址兜底匹配）。
     private void transferOrphanEvidence(HashMap<String, HashMap<Integer, Long>> transfers, Manager reporter)
             throws RocksDBException {
         for (var e : transfers.entrySet()) {
@@ -623,11 +622,10 @@ public class Master extends AbstractMaster {
     /**
      * 覆盖判定：reported 分区中被 mqTable 登记给该 manager 的部分之外（= 未覆盖）的子集。
      * 匹配三路，前两路与 Register 联动重写一致：ManagerId 为主，存量条目（ManagerId==0）按注册
-     * 地址兜底；第三路为证据化转移——条目属主 id 非零且在 managers 中无存活连接（managerId
-     * 重铸/换代后的系统性形态：注册链路完成换代认定但旧 id 路由永不再被匹配）时，持有该分区的
-     * 上报者的报告即数据延续证据，判覆盖并收集转移候选（reconcileOrphanReport 批量改写路由），
-     * 不判孤儿。属主 live 在场时不走第三路——另一 id 的上报是竞争者（克隆数据目录形态）而非
-     * 延续证据，维持 fail-fast 孤儿裁决，防抢路由。
+     * 地址兜底；第三路为证据化转移——条目属主 id 非零且无存活连接（managerId 重铸/换代形态）
+     * 时，上报者的报告即数据延续证据，判覆盖并收集转移候选（reconcileOrphanReport 批量改写
+     * 路由），不判孤儿。属主 live 在场时不走第三路——另一 id 的上报是竞争者而非延续证据，
+     * 维持 fail-fast 孤儿裁决，防抢路由。
      */
     private HashSet<Integer> notCoveredPartitions(String topic, java.util.Set<Integer> reported, Manager manager,
                                                   HashSet<Long> liveManagerIds,

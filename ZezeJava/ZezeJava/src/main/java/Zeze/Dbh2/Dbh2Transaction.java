@@ -101,9 +101,8 @@ public class Dbh2Transaction implements Closeable {
 		}
 	}
 
-	/** 无锁重建（loadSnapshot墓碑路径，dbh2-01）：墓碑事务的锁在墓碑化时已释放
-	 * （undoBatch的try-with-resources close），装载时刻不存在并发持锁者——直接以
-	 * 持久化blob构造内存对象，锁语义由装载后的新请求按需重建。 */
+	/** 无锁重建（loadSnapshot墓碑路径）：墓碑的锁在墓碑化时已释放，装载时刻无并发
+	 * 持锁者，直接以持久化blob构造内存对象。 */
 	Dbh2Transaction(BBatch.Data batch) {
 		this.batch = batch;
 		this.createTime = System.currentTimeMillis();
@@ -120,16 +119,15 @@ public class Dbh2Transaction implements Closeable {
 		bucket.getTrans().put(tidBytes, 0, tidBytes.length, value.Bytes, value.ReadIndex, value.WriteIndex);
 	}
 
-	/** 墓碑marker落盘（dbh2-01）：空值put幂等（apply重放/重复墓碑化安全），
-	 * 与blob共存于trans列族，loadSnapshot据此分态重建。 */
+	/** 墓碑marker落盘：空值put幂等（apply重放/重复墓碑化安全），与blob共存于trans列族，
+	 * loadSnapshot据此分态重建。 */
 	public void markTombstoned(Bucket bucket) throws RocksDBException {
 		var marker = transTombstoneMarkerKey(batch.getTid());
 		bucket.getTrans().put(bucket.getWriteOptions(), marker, 0, marker.length, ByteBuffer.Empty, 0, 0);
 	}
 
 	public void undoBatch(Bucket bucket) throws RocksDBException {
-		// blob与marker同批删除（终局原子）。不用共享bucket.getBatch()：清扫路径
-		//（dbh2-02日志化前）在onTimer线程调用，与apply线程独占的共享batch并发会互踩。
+		// blob与marker同批删除（终局原子）；独立newBatch，不占用apply路径独占的共享batch。
 		try (var b = bucket.getDb().newBatch()) {
 			var tidBytes = transBlobKey(batch.getTid());
 			bucket.getTrans().delete(b, tidBytes, 0, tidBytes.length);

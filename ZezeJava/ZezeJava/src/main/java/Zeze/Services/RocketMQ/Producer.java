@@ -48,9 +48,8 @@ import org.jetbrains.annotations.Nullable;
  * <li>回查查无行恒答 UNKNOW 的语义（见 {@link #checkLocalTransaction}）：既不答 COMMIT 也不答
  * ROLLBACK，收敛依赖 broker 回查策略 + tSent 保留时长下界。</li>
  * <li>生命周期配对：构造器把 tSent 注册进 Application，{@link #stop()} 反注册并关闭它——
- * 同一 Application 上 stop 后<b>直接</b>重建 Producer 即可（构造器重新注册），无需也不应
- * 手工补 {@code UnRegisterZezeTables}（幂等，补调无害）。重建实例须在 app start 前构造
- * （start 打开当时已注册的表，后注册的表不打开）；app 存续期间"只停不重建"的形态由
+ * 同一 Application 上 stop 后<b>直接</b>重建 Producer 即可（构造器重新注册）。重建实例须
+ * 在 app start 前构造（start 只打开当时已注册的表）；app 存续期间"只停不重建"的形态由
  * stop 自行关表，app 收尾无泄漏。</li>
  * </ul>
  */
@@ -130,12 +129,9 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	 *
 	 * <p>本方法同时反注册 tSent（{@link AbstractProducer#UnRegisterZezeTables}，与构造器的
 	 * {@link AbstractProducer#RegisterZezeTables} 成对）：表从 Application 移除并关闭，同一
-	 * Application 上 stop 后可直接重建 Producer——修复前 stop 不反注册，重建的构造器在表注册处
-	 * 抛 {@code IllegalStateException("duplicate table id=1695098005")}，只能靠调用方手工补
-	 * 反注册。重建实例须在 {@link Application#start()} 之前完成构造（框架规则：start 打开当时
-	 * 已注册的表，后注册的表不打开——已在运行的 app 上重建的 Producer 其 tSent 不会被打开，
-	 * 事务消息发送不可用；该形态需重启 app 或走热更通道）。典型停机顺序 stop()→app.close()
-	 * 不受影响：反注册即关表，app 收尾不再重复关闭。
+	 * Application 上 stop 后可直接重建 Producer（构造器重新注册，不撞 duplicate table）。
+	 * 重建实例须在 {@link Application#start()} 之前完成构造（框架规则：start 只打开当时
+	 * 已注册的表，后注册的表不打开）。典型停机顺序 stop()→app.close() 不受影响。
 	 */
 	public void stop() {
 		if (!stopped.compareAndSet(false, true))
@@ -155,9 +151,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
-		// 在飞回查排空后反注册并关闭 tSent（与构造器注册成对，排在排空之后：在飞
-		// checkLocalTransaction 还要触本表）：同 app 重建不再撞 duplicate table。
-		// removeTable 对已移除表幂等（TableX.close 空判），遗留调用方手工补调无害。
+		// 在飞回查排空后反注册并关闭 tSent（与构造器注册成对；removeTable 幂等，补调无害）。
 		UnRegisterZezeTables(zeze);
 		// 完全停止后递减活实例计数：告警面与生命周期配对。递减与全部停机动作同处
 		// stopped CAS 抢占之内，重复 stop 计数只递减一次。

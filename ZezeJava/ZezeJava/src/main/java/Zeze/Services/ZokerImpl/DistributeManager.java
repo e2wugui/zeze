@@ -58,8 +58,8 @@ public class DistributeManager {
 	 * CloseFile 收口后补传，行=各文件相对 distributeDir 根的路径（与 OpenFile 寻址同根）。
 	 * commit 据此校验清单内文件齐全并清退清单外残留（见 {@link #verifyDistributeManifest}）；
 	 * 该文件随版本目录成版，跳装分支以它为安装完成标志消费（start/prune 不读）。
-	 * 主形态为版本限定名 {@link #distributeManifestName}（FND31 zoker-01：清单按部署
-	 * 归属，同名服务并发分发互不覆盖），本裸名为旧客户端清单与兼容副本的回落消费名。 */
+	 * 主形态为版本限定名 {@link #distributeManifestName}（清单按部署归属，同名服务并发
+	 * 分发互不覆盖），本裸名为旧客户端清单与兼容副本的回落消费名。 */
 	public static final String DISTRIBUTE_MANIFEST_NAME = ".zoker-manifest";
 	/** commit 后保留的版本目录数（含现役），超过的最老版本被清理；&lt;=0 表示全保留。 */
 	static final int KEEP_VERSIONS_DEFAULT = 3;
@@ -566,7 +566,7 @@ public class DistributeManager {
 		// 制造的残缺目录会击穿该不变式：无条件跳装=新上传内容被静默忽略、current切到残缺目录
 		// 返回0的假成功（start恒eNoServiceProperties且获现役保护无自愈）。判不可收养：
 		// (a)自带清单列的文件缺失（清单=安装完成标志）；(b)legacy下限不过（空壳）；
-		// (c)新上传清单条目在盘上版本目录缺失或大小不一致（FND31 zoker-02：存在≠内容）。
+		// (c)新上传清单条目在盘上版本目录缺失或大小不一致（存在≠内容）。
 		// 处置：有新内容→隔离换装（残缺目录原子改名
 		// 进暂存删除名腾位，新内容落正常安装分支）；无新内容→eCommitFail。
 		if (versionTo.exists()
@@ -706,11 +706,9 @@ public class DistributeManager {
 	 * 假成功面）。</li>
 	 * </ul>
 	 */
-	/** 版本限定的清单文件名（FND31 zoker-01）：{@link #DISTRIBUTE_MANIFEST_NAME}.&lt;versionNo&gt;。
-	 * 同名服务并发分发共享同一暂存区，裸名清单是共享路径上的普通文件、最后写者胜——先到的
-	 * commit 消费后到者的清单成版（版本内容与版本号错配的假成功）。清单名带 versionNo 限定
-	 * 后按部署归属：两路部署互不覆盖，commit 只消费本次版本号对应的清单（部署方 ZokerAgent
-	 * 与服务端共用本拼写；versionNo 已过 isSafePathSegment，限定名不构成路径注入）。 */
+	/** 版本限定的清单文件名：{@link #DISTRIBUTE_MANIFEST_NAME}.&lt;versionNo&gt;——清单按部署
+	 * 归属，同名服务并发分发互不覆盖，commit 只消费本次版本号对应的清单（versionNo 已过
+	 * isSafePathSegment，限定名不构成路径注入）。 */
 	public static String distributeManifestName(String versionNo) {
 		return DISTRIBUTE_MANIFEST_NAME + '.' + versionNo;
 	}
@@ -738,18 +736,14 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 跳装分支的新内容比对：distributes/&lt;svc&gt; 带新清单时，条目须全部已存在于既有
-	 * 版本目录且<b>文件大小一致</b>——同内容重提快速跳装幂等（版本纪律：不覆盖已装
-	 * 版本、不动其mtime）。FND31 zoker-02：存在≠内容——同版本号重提新字节（忘递增
-	 * versionNo 的常见运维形态）此前被纯存在性判据静默跳装：回执 0 而现役继续服务
-	 * 旧字节，新字节滞留暂存区（下次 commit 被当残留清退），全程无日志。大小比对=
-	 * 存在性之上的最小实质升级：清单行=纯路径无摘要字段（FND26 格式），哈希需清单
-	 * 格式与部署工具协同演进（慎重）；同大小不同字节仍跳装（接受残余）。大小不符
-	 * 判不可收养走隔离换装（在用版本被 run.pid 保护挡住）。无清单（legacy重提）
-	 * 不设比对，是否收养仅由 {@link #installedVersionHealthy} 决定。
+	 * 跳装分支的新内容比对：distributes/&lt;svc&gt; 带新清单时，条目须全部已存在于既有版本
+	 * 目录且<b>文件大小一致</b>（存在≠内容；清单行无摘要字段，大小是存在性之上的最小实质
+	 * 判据，同大小不同字节仍跳装）——同内容重提快速跳装幂等（不覆盖已装版本、不动其
+	 * mtime）。大小不符判不可收养走隔离换装（在用版本被 run.pid 保护挡住）。无清单
+	 * （legacy重提）不设比对，是否收养仅由 {@link #installedVersionHealthy} 决定。
 	 */
 	private boolean distributesManifestSubsetOf(File serviceFrom, File versionTo) {
-		// versionTo 即按本次 versionNo 构造，限定名归属本次部署（FND31 zoker-01）。
+		// versionTo 即按本次 versionNo 构造，限定名归属本次部署。
 		var manifest = manifestFileOf(serviceFrom, versionTo.getName());
 		if (!manifest.isFile())
 			return true;
@@ -768,8 +762,7 @@ public class DistributeManager {
 				var target = base.resolve(afterFirstSegment(canonical)).normalize();
 				if (!target.startsWith(base) || !Files.isRegularFile(target))
 					return false;
-				// 内容判据（大小）：暂存区新字节（CloseFile已md5验证落盘）vs 已装版本目录
-				// 字节，size 不一致即判不可收养——宁换装不静默。
+				// 内容判据（大小）：暂存区新字节 vs 已装版本目录字节，不一致即判不可收养。
 				try {
 					if (Files.size(distributeDir.toPath().resolve(canonical)) != Files.size(target))
 						return false;
@@ -785,12 +778,10 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 清单条目齐全性（单点，跳装分支两处判据共用）：清单行经
-	 * {@link #canonicalManifestLine} 解析（非法形态=不齐全）且首段折叠等于本服务名
-	 * （跨服务引用行=清单声明了不会被 rename 搬运的文件，收养即残缺版本），
-	 * 剥首段（服务名）后解析进 root 内——须为常规文件且不逃逸 root（清单是数据不是
-	 * 可信输入，逃逸/无分隔符按不齐全收殓）。读失败与零条目清单按不齐全
-	 * （宁隔离换装不收养：重试收敛或新内容成版，方向安全）。
+	 * 清单条目齐全性（单点，跳装分支两处判据共用）：清单行经 {@link #canonicalManifestLine}
+	 * 解析（非法形态=不齐全）且首段折叠等于本服务名（跨服务引用行不会被 rename 搬运，
+	 * 收养即残缺版本），剥首段后须为 root 内常规文件且不逃逸（清单是数据不是可信输入）。
+	 * 读失败与零条目清单按不齐全（宁隔离换装不收养，方向安全）。
 	 */
 	private static boolean manifestEntriesAllPresent(File manifest, File root, String serviceName) {
 		var base = root.toPath().toAbsolutePath().normalize();
@@ -816,23 +807,18 @@ public class DistributeManager {
 		return listed > 0;
 	}
 
-	/** 清单行 canonical 解析+首段判同的合单点（校验侧 verifyDistributeManifest 与跳装侧
-	 * 两侧清单消费共用，FND31 zoker-03 三侧同源的收敛点）：非法返回 null。 */
+	/** 清单行 canonical 解析+首段判同的合单点（校验/跳装两侧清单消费共用）：非法返回 null。 */
 	private static @Nullable String validatedManifestLine(String line, String serviceName) {
 		var canonical = canonicalManifestLine(line);
 		return null != canonical && manifestLineFirstSegmentMatches(canonical, serviceName) ? canonical : null;
 	}
 
 	/**
-	 * 清单行解析单点（校验/清退/跳装收养三侧判据同源，FND31 zoker-03）：合法形态只有
-	 * 一种——相对 distributeDir 根、首段=服务名的多段相对路径（参考客户端 ZokerAgent
-	 * 生成的形态）。按 '/'/'\\' 切分后拒绝空段（首尾分隔符/双分隔符/绝对路径与 UNC 根
-	 * 的前导空段）、"."与".."段及单段行（文件直接位于 distributeDir 顶层，不属于任何
-	 * 服务暂存区，commit 的 rename 永不搬运）。变体行<b>拒绝而非消解</b>：此前校验侧
-	 * 按 lexical normalize+OS 路径解析放行（"svc/sub/../../svc/x.jar"界内且解析命中
-	 * 真实文件），清退侧按原始行折叠比对（".."段折叠为空段）永不命中——已列且在盘的
-	 * 文件被当未列残留删除，成版残缺版本；统一进本解析器后两性同源。返回 '/' 连接的
-	 * canonical 形态（供清退判同集合与首段校验）；非法返回 null。
+	 * 清单行解析单点（校验/清退/跳装收养三侧判据同源）：合法形态唯一——相对 distributeDir
+	 * 根、首段=服务名的多段相对路径。按 '/'/'\\' 切分后拒绝空段（首尾/双分隔符、绝对路径
+	 * 与 UNC 根的前导空段）、"."与".."段及单段行（顶层文件不属于任何服务暂存区，rename
+	 * 永不搬运）；变体行<b>拒绝而非消解</b>（消解会使校验侧与清退侧判据不同源——已列且
+	 * 在盘的文件被当未列残留删除）。返回 '/' 连接的 canonical 形态；非法返回 null。
 	 */
 	static @Nullable String canonicalManifestLine(String line) {
 		if (line.isEmpty())
@@ -847,10 +833,9 @@ public class DistributeManager {
 		return String.join("/", segments);
 	}
 
-	/** 清单行首段（服务名）判同（canonical 形态，至少两段必有'/'）：折叠比对——
-	 * 大小写/尾点空格变体是同一物理部署的拼写分叉（FND29 zoker-01 的变体拼写形态
-	 * 须继续通过），而首段完全不同的行=跨服务引用（文件在别的服务暂存区，校验侧的
-	 * 界内+存在判据会放行，成版版本却缺清单自 declare 的文件——假成功）。 */
+	/** 清单行首段（服务名）判同（canonical 形态）：折叠比对——大小写/尾点空格变体是
+	 * 同一物理部署的拼写分叉须通过；首段不同的行=跨服务引用，收养即成版却缺清单自
+	 * 声明的文件。 */
 	private static boolean manifestLineFirstSegmentMatches(String canonicalLine, String serviceName) {
 		var first = canonicalLine.substring(0, canonicalLine.indexOf('/'));
 		return foldVersionName(first).equals(foldVersionName(serviceName));
@@ -880,14 +865,12 @@ public class DistributeManager {
 
 	/**
 	 * 集合级完整性屏障（zoker-05，FND26）：distributes/&lt;svc&gt;/ 下存在清单时校验并
-	 * 清退残留，不存在走 legacy 路径返回0。清单定位优先版本限定名（归属本次部署，
-	 * FND31 zoker-01：同名服务并发分发的清单互不覆盖，commit 只消费本次版本号对应
-	 * 的清单——裸名最后写者的清单不再被错配消费），缺失回落裸名（旧客户端/兼容副本）。
-	 * 清单行=各文件相对 distributeDir 根的路径（与 OpenFile 寻址同根，ZokerAgent 上传清单
-	 * 与上传文件用同一拼写）。清单是数据不是可信输入：逐行过 {@link #canonicalManifestLine}
-	 * 形态解析与 {@link #manifestLineFirstSegmentMatches} 首段判同（行界守卫
-	 * checkInsideDir 同款拒绝绝对路径/../逃逸/盘符），坏清单响亮拒绝而非侥幸放行。
-	 * 清退判同集合用 canonical 形态（与解析器同源，".."变体行不再使已列文件失配被删）。
+	 * 清退残留，不存在走 legacy 路径返回0。清单定位优先版本限定名（归属本次部署，并发
+	 * 分发互不覆盖，commit 只消费本次版本号对应的清单），缺失回落裸名（旧客户端/兼容
+	 * 副本）。清单行=各文件相对 distributeDir 根的路径（与 OpenFile 寻址同根）。清单是
+	 * 数据不是可信输入：逐行过 {@link #canonicalManifestLine} 形态解析与
+	 * {@link #manifestLineFirstSegmentMatches} 首段判同（checkInsideDir 同款拒绝绝对
+	 * 路径/../逃逸/盘符），坏清单响亮拒绝；清退判同集合用 canonical 形态。
 	 */
 	private long verifyDistributeManifest(File serviceFrom, String versionNo) {
 		var manifest = manifestFileOf(serviceFrom, versionNo);
@@ -937,10 +920,9 @@ public class DistributeManager {
 	 * 清退清单外残留（zoker-05）：barrier+closeUnder 已收殓在途句柄（在途未验证中间产物
 	 * 已被 closeUnder 删除），剩余未列文件=前次中断部署的残留——删除使版本内容=清单声明的
 	 * 精确集合（残留混入即新旧混合的部分集合形态）。listed 为 verifyDistributeManifest
-	 * 产出的 canonical 行（形态与首段已校验），判同（清单行 vs walk路径）两侧拼写
-	 * 不同源（上传侧 vs 提交侧+盘上实际名），统一过 {@link #foldBarrierPath} 段折叠
-	 * ——变体拼写不折叠即已列文件落入清理面（FND29 zoker-01）。删除失败仅warn（该残留
-	 * 将随目录成版，回到部分集合形态，靠warn暴露人工处置）；空子目录不递归清理（无消费者，无害）。
+	 * 产出的 canonical 行（形态与首段已校验）；判同（清单行 vs walk路径）两侧拼写不同源
+	 * （上传侧 vs 提交侧+盘上实际名），统一过 {@link #foldBarrierPath} 段折叠——变体
+	 * 拼写不折叠即已列文件落入清理面。删除失败仅warn；空子目录不递归清理（无消费者，无害）。
 	 */
 	private void pruneUnlistedFiles(File serviceFrom, Set<String> listed, String versionNo) {
 		var root = distributeDir.toPath().toAbsolutePath().normalize();
@@ -950,9 +932,8 @@ public class DistributeManager {
 		var foldedListed = new HashSet<String>();
 		for (var line : listed)
 			foldedListed.add(foldBarrierPath(line));
-		// 幸免面=控制文件：裸名清单（兼容副本）与本次版本限定清单（归属本次部署，
-		// FND31 zoker-01）——他版本的限定清单不是本次部署的控制文件，随清单外残留清退
-		//（暂存区以本次清单为单位原子消费，失败方重传）。
+		// 幸免面=控制文件：裸名清单（兼容副本）与本次版本限定清单——他版本的限定清单
+		// 不是本次部署的控制文件，随清单外残留清退（暂存区以本次清单为单位原子消费）。
 		var spared = Set.of(
 				foldBarrierPath(serviceFrom.getName() + "/" + DISTRIBUTE_MANIFEST_NAME),
 				foldBarrierPath(serviceFrom.getName() + "/" + distributeManifestName(versionNo)));

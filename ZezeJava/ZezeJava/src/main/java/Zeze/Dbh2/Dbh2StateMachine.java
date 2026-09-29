@@ -71,18 +71,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	// 集合有界于悬挂事务数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> committingHangWarnedTids = ConcurrentHashMap.newKeySet();
 
-	// ----- 自主 undo 未确认墓碑（FND29 dbh2-03 断根的兜底层）-----
-	// 桶侧 onTimer 自主 undo 落日志时协调者决策未知：事务不立即毁尸（锁释放、trans blob
-	// 保留、入本表）。墓碑状态持久化为trans列族的marker键（dbh2-01，见Dbh2Transaction.
-	// transTombstoneMarkerKey），loadSnapshot据此分态重建——墓碑窗语义与复活能力跨
-	// 重启/快照装载保留。围栏冲突的三种收敛：①迟到 LogCommitBatch（协调者已持久化
-	// eCommitting，commitPoint 存在）在墓碑窗内到达——复活并提交，数据不丢，客户端
-	// 成功变真；②协调者驱动的 UndoBatch 到达=确认 undo 终局，物理删除；③墓碑窗超时
-	// 仍无协调者消亡（进程丢失/极端病理）——经raft日志终局删除（全副本一致，dbh2-02）
-	// 并响亮 error（可见化，对齐eCommitting悬挂告警姿态）。主防线=onTimer 年龄判据用单调
-	// 钟（Dbh2Transaction.
-	// elapsedMillis，墙钟步进免疫），墓碑是防御纵深：任何残余破栅形态（重启窗口、
-	// 极端速率分歧）由复活/告警兜住，"已确认提交而数据灭失"的形态不再存在。
+	// ----- 自主 undo 未确认墓碑（兜底层）-----
+	// 桶侧 onTimer 自主超时 undo 时协调者决策未知：锁释放、trans blob 保留并入本表；
+	// 墓碑态以 trans 列族 marker 键持久化（见 Dbh2Transaction），loadSnapshot 据此分态
+	// 重建。收敛：迟到 LogCommitBatch 在墓碑窗内复活提交；协调者 UndoBatch 或超窗清扫
+	// （经 raft 日志，全副本一致）物理删除并 error 告警。年龄判据用单调钟（elapsedMillis）。
 	private static final class UndonePending {
 		final Dbh2Transaction txn;
 		final long tombstoneNanos;
@@ -100,10 +93,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		return undonePending.containsKey(tid);
 	}
 
-	/** 墓碑窗（毫秒）：覆盖协调者在其自身 prepare 窗口内的最迟 commit 决策 + CommitBatch
-	 * 在途（rpcTimeout）+ 余量。超窗后的迟到 commit 经同一日志序全网一致删除（不再跨副本
-	 * 分歧）；协调者分钟级冻结后解冻完成 decide 的形态下该数据仍灭失——2PC 超时终局的
-	 * 固有取舍（error 可见 + 窗口可配，见 expireDueTombstones）。 */
+	/** 墓碑窗（毫秒）：prepare 最迟 commit 决策 + CommitBatch 在途（rpcTimeout）+ 余量。
+	 * 超窗迟到 commit 经同一 raft 日志序全网一致删除；协调者冻结后解冻补 decide 的数据
+	 * 仍灭失——2PC 超时终局的固有取舍（error 可见 + 窗口可配，见 expireDueTombstones）。 */
 	long undoResurrectGraceMillis() {
 		var conf = dbh2.getDbh2Config();
 		return conf.getRpcTimeout() + conf.getPrepareMaxTime() + 30_000L;
@@ -118,12 +110,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			if (System.nanoTime() - e.getValue().tombstoneNanos < graceNanos)
 				continue;
 			try {
-				// 墓碑终局必须经raft日志（dbh2-02）：本地直删是不经复制的状态机写入——
-				// follower的blob与内存墓碑原样保留，迟到的LogCommitBatch在leader落
-				// not-found、在follower复活落盘，同一日志跨副本apply分歧（raft确定性
-				// 破坏，leader快照安装可抹掉follower已复活的数据）。复用终局undo日志的
-				// apply路径（undonePending.remove命中→物理删blob+marker），全副本以
-				// 同一日志序收敛。
+				// 墓碑终局删除必须经raft日志：本地直删会与迟到LogCommitBatch跨副本apply
+				// 分歧（follower复活落盘、leader快照安装可抹掉）。复用终局undo日志的apply
+				// 路径（undonePending.remove命中→物理删blob+marker），全副本同一日志序收敛。
 				getRaft().appendLog(new LogUndoBatch(e.getKey(), true));
 				logger.error("undo tombstone expired without coordinator resolution: tid={} (expiry undo"
 						+ " appended to raft log; coordinator neither confirmed undo nor delivered commit"
@@ -415,18 +404,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void endMove(BBucketMeta.Data to) {
 		try (var it = bucket.getData().iterator()) {
-			// 写序不变量（dbh2-04）："meta不再声明的键域才允许物理删除"——meta先置死、
-			// deleteToEnd后行。原序（先删后切）在两写之间的窗口内，并发Get（查询锁外
-			// 常规派发）以旧meta通过inBucket后读已删数据，把已迁往新桶、仍存在的键应答
-			// 为权威"不存在"（静默假缺失，客户端不重试则错误结论被采纳）；反转后窗口内
-			// 新到达的Get以死桶meta被拒（eBucketMismatch→客户端重路由/可见瞬时异常）。
-			// apply内同一日志原子重放，崩溃无部分可见（重放整体重演）。
+			// 写序不变量："meta不再声明的键域才允许物理删除"——meta先置死、deleteToEnd
+			// 后行，消除"数据已删、meta未切"窗口内并发Get把仍存在的键假报"不存在"（反转
+			// 后窗口内Get以死桶meta被拒，客户端重路由）。apply内同一日志原子重放。
 			var emptyMeta = bucket.getBucketMeta().copy();
 			emptyMeta.setKeyFirst(emptyBucketMetaKey);
 			emptyMeta.setKeyLast(emptyBucketMetaKey);
-			bucket.setBucketMeta(emptyMeta); // 死桶meta先置：拒绝一切访问
-			// 被移走的桶Meta置空（使用相同的非空key）。
-			// 将会拒绝所有对这个桶的访问。
+			// 被移走的桶Meta置空（使用相同的非空key），拒绝所有对这个桶的访问。
+			bucket.setBucketMeta(emptyMeta);
 			bucket.addMoveMetaHistory(to);
 			// pending-settle标志：与既有meta写入同一apply内落盘（派生状态，随raft
 			// 复制/快照）——迁移已在源桶commit的持久证据，leader-ready据此幂等补发settle通知。
@@ -444,8 +429,8 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
 		try (var it = bucket.getData().iterator()) {
-			// 写序不变量（dbh2-04）：同endMove——meta先收窄（[from.keyLast,∞)出声明）、
-			// deleteToEnd后行，消除"数据已删、meta未切"的可读窗口（并发Get假报不存在）。
+			// 写序不变量：同endMove——meta先收窄（[from.keyLast,∞)出声明）、deleteToEnd
+			// 后行，消除"数据已删、meta未切"的可读窗口。
 			bucket.setBucketMeta(from);
 			bucket.addSplitMetaHistory(from, to);
 			// 同endMove：pending-settle标志随迁移commit在apply内落盘。
@@ -525,10 +510,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 							+ " tid={} (undo applied first but coordinator commit-point exists)", tid);
 					enqueueSplitSync(pending.txn.getBatch());
 					pending.txn.commitBatch(bucket);
-					} else
-						logger.error("commitBatch but transaction not found. tid={}"
-								+ " (late commit after expiry finalize or unknown tid -- divergence-class"
-								+ " event, manual check recommended)", tid);
+				} else
+					logger.error("commitBatch but transaction not found. tid={}"
+							+ " (late commit after expiry finalize or unknown tid -- divergence-class"
+							+ " event, manual check recommended)", tid);
 			}
 			triggerNoTransactionIf();
 		} catch (RocksDBException e) {
@@ -537,10 +522,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	/** Raft 日志 apply 入口（{@link LogUndoBatch}）。fromCoordinator：true=终局确认的
-	 * undo（协调者驱动的 UndoBatch 或墓碑超窗清扫——决策已终局，立即物理删除，全副本
-	 * 由同一日志序驱动）；false=桶侧 onTimer 自主超时 undo（协调者决策未知，未确认
-	 * 墓碑——迟到 commit 可复活，见 undonePending 注释）。 */
+	/** Raft 日志 apply 入口（{@link LogUndoBatch}）。fromCoordinator：true=终局确认的undo
+	 * （协调者 UndoBatch 或墓碑超窗清扫，apply 即物理删除，全副本同一日志序）；false=桶侧
+	 * onTimer 自主超时 undo（未确认墓碑，迟到 commit 可复活，见 undonePending 注释）。 */
 	public void undoBatch(long tid, boolean fromCoordinator) {
 		try (var txn = transactions.remove(tid)) {
 			counterUndoBatch.incrementAndGet();
@@ -549,9 +533,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				if (fromCoordinator)
 					txn.undoBatch(bucket); // 协调者终局：决策与删除同源，无围栏冲突窗口
 				else {
-					// 墓碑状态持久化（dbh2-01）：marker随墓碑化落盘（put幂等，apply重放安全）。
-					// 装载（loadSnapshot）据此分态重建，墓碑不再被当存活事务持锁重建——
-					// 重叠blob下那是确定性崩溃循环（见loadSnapshot注释）。
+					// 墓碑marker随墓碑化落盘（put幂等，apply重放安全），loadSnapshot据此分态重建。
 					txn.markTombstoned(bucket);
 					undonePending.put(tid, new UndonePending(txn)); // 自主undo：锁随try块释放，blob待终局
 				}
@@ -805,13 +787,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		restore(backupDir);
 
 		// load exist transaction
-		// 分态重建（dbh2-01墓碑状态持久化）：墓碑不是raft状态机一等公民——apply全序
-		// 内"墓碑释放锁后同键新事务加锁"的时序在装载路径丢失，两个键集重叠的blob都按
-		// 存活事务持锁重建必撞锁（修复前loadSnapshot失败→Raft构造失败→manager无法启动，
-		// blob不清则确定性崩溃循环）。第一遍收集墓碑marker的tid集（trans键：blob=
-		// varint(tid)，marker=varint(tid)+0x01空值，见Dbh2Transaction）；第二遍逐blob
-		// 重建：marker命中走无锁墓碑重建（墓碑窗自装载时刻保守重启，复活能力跨重启
-		// 保留）；未命中走既有持锁重建。
+		// 分态重建：第一遍收集墓碑marker的tid集（trans键形态见Dbh2Transaction），第二遍
+		// 逐blob重建——marker命中走无锁墓碑重建（墓碑窗自装载时刻保守重启，复活能力跨
+		// 重启保留），未命中走既有持锁重建。
 		var tombstoned = new HashSet<Long>();
 		try (var it = bucket.getTrans().iterator()) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
@@ -833,10 +811,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					try {
 						getOrAddTransaction(batch);
 					} catch (RuntimeException ex) {
-						// 防御层（兼容升级前已落盘的无marker重叠blob）：输者降级为墓碑
-						//（error留痕）而非装载失败。serialize=true下live重叠不可能（prepare
-						// 必撞锁失败），撞锁必含遗留墓碑blob；两个方向收敛到同一终局——
-						// commit/undo对存活与墓碑的存储结果等价（commit均落数据、undo均删blob）。
+						// 兼容升级前已落盘的无marker重叠blob：撞锁输者降级为墓碑（error留痕）
+						// 而非装载失败——serialize=true下live重叠不可能，撞锁必含遗留墓碑
+						// blob，且两方向终局等价（commit均落数据、undo均删blob）。
 						logger.error("loadSnapshot live rebuild lock conflict, degrade loser to tombstone."
 								+ " tid={} (legacy overlapping blobs without marker; winner stays live)", tid, ex);
 						undonePending.put(tid, new UndonePending(new Dbh2Transaction(batch)));

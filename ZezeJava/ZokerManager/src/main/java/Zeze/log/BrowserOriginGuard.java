@@ -10,23 +10,14 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
- * /api/* 处理器的浏览器源防御（FND31 zokermanager-03）：部署契约（FND29
- * zokermanager-02）的"回环绑定=仅本机进程可达"信任模型没有覆盖受害者浏览器代发的
- * 请求——ApiToken 未启用时（默认回环形态）唯一的门对浏览器失效：
- * <ul>
- * <li><b>CSRF 副作用</b>：跨站页面可用免预检的简单请求（text/plain body）触发
- * search/browse 查询——请求完整送达执行，以受害者机器的 127.0.0.1 为源 IP 进入
- * FileSessionManager，与本地用户共用绑定键（互顶/在飞拒绝），构成持续骚扰；</li>
- * <li><b>DNS rebinding 读取</b>：attacker.com 解析到 127.0.0.1 时受害浏览器访问
- * attacker.com:9980 被同源策略视为 attacker.com 源——无 Host 校验则响应完整交付，
- * 全集群日志与 /api/query 透传被越权读取。配置了 Token 的部署不受影响
- * （Authorization 头无法被简单请求伪造）。</li>
- * </ul>
- * 两道防线：Origin（存在且非同源→拒，浏览器跨站 POST 恒带 Origin 且不可伪造）与
- * Host（回环绑定下非回环主机名→拒，rebinding 请求的 Host 是攻击者域名）。Host
- * 判定用纯文本字面量，不对攻击者可控的主机名做 DNS 解析。无 Origin 的请求
- * （curl/脚本等非浏览器客户端）不受 Origin 防线影响——存量本机使用方式不变；
- * Content-Type 不设限（预编译前端 get_log_servers 以无 body POST 调用，无该头）。
+ * /api/* 处理器的浏览器源防御：ApiToken 未启用时（默认回环形态）"回环绑定=仅本机可达"
+ * 的信任模型不覆盖受害者浏览器代发的请求——跨站简单请求（text/plain）可触发
+ * search/browse 查询副作用；DNS rebinding（attacker.com→127.0.0.1）可越权读取全集群
+ * 日志与 /api/query 透传。配置 Token 的部署不受影响（Authorization 头无法被简单请求伪造）。
+ * 两道防线：Origin 非同源拒（浏览器跨站 POST 恒带 Origin 且不可伪造）；回环绑定下
+ * Host 非回环字面量拒（rebinding 请求的 Host 是攻击者域名；纯文本比对，不对攻击者
+ * 可控的主机名做 DNS 解析）。无 Origin 的非浏览器客户端（curl/脚本）不受影响；
+ * Content-Type 不设限（预编译前端以无 body POST 调用，无该头）。
  * 进程内单例静态配置：由 {@link LogAgentManager#init} 从 ZokerManagerConf 装载。
  */
 public final class BrowserOriginGuard {

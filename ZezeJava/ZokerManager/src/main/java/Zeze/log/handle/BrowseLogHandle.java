@@ -29,8 +29,8 @@ public class BrowseLogHandle implements HttpEndStreamHandle {
 		// token门（FND29 zokermanager-02）：配置了Token则校验Authorization头，未通过已回401。
 		if (!ApiToken.check(x))
 			return;
-		// 浏览器源防御（FND31 zokermanager-03）：Origin 非同源（CSRF）或回环绑定下 Host
-		// 非回环（DNS rebinding）已回403——默认回环+无Token形态对浏览器代发请求设防。
+		// 浏览器源防御：Origin 非同源（CSRF）或回环绑定下 Host 非回环（DNS rebinding）
+		// 已回403——默认回环+无Token形态对浏览器代发请求设防。
 		if (!BrowserOriginGuard.check(x))
 			return;
 		try {

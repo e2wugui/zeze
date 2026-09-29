@@ -39,10 +39,9 @@ public class LogService extends AbstractLogService {
 
 	/**
 	 * Search/Browse 的参数级拒绝码（区别于死会话的 {@link Procedure#LogicError}）：非法
-	 * containsType、words/pattern 双空、offsetFactor∉[0,1)。两类拒绝共用 LogicError 时，
-	 * 客户端只能按非零码整体分诊——参数错误被当成会话级死亡触发整组会话拆建重试后仍恒失败。
-	 * 客户端 {@code Session.checked} 依本码抛参数级异常（不拆会话，直接向调用方报参数错误）。
-	 * 取值避开框架保留码（Procedure 的 -1..-18 小负数段）。
+	 * containsType、words/pattern 双空、offsetFactor∉[0,1)。客户端 {@code Session.checked}
+	 * 依本码抛参数级异常（不拆会话，直接向调用方报参数错误）。取值避开框架保留码
+	 *（Procedure 的 -1..-18 小负数段）。
 	 */
 	public static final long INVALID_ARGUMENT = -100;
 
@@ -169,10 +168,8 @@ public class LogService extends AbstractLogService {
 
 	/**
 	 * Search/Browse 参数校验（入口单点）：containsType 枚举、words/pattern 双空、browse 的
-	 * offsetFactor∈[0,1)——offsetFactor 负值曾静默退化（上下文行逐条 poll 掉，browse 变无上下文
-	 * 过滤搜索），≥1 在深路径抛异常转 Exception 码。参数级拒绝统一回
-	 * {@link #INVALID_ARGUMENT}，与死会话的 LogicError 分离，客户端按码分诊不拆会话。
-	 * offsetFactor 传 null 表示 search（无该参数）。
+	 * offsetFactor∈[0,1)。统一回 {@link #INVALID_ARGUMENT}，与死会话的 LogicError 分离，
+	 * 客户端按码分诊不拆会话。offsetFactor 传 null 表示 search（无该参数）。
 	 */
 	private static long validateArgument(BCondition.Data condition, Float offsetFactor) {
 		var containsType = condition.getContainsType();

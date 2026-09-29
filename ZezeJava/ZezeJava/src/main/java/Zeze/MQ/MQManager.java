@@ -45,9 +45,8 @@ import static Zeze.MQ.Master.AbstractMaster.eTopicNotExist;
 public class MQManager extends AbstractMQManager {
 	private static final Logger logger = LogManager.getLogger();
 
-	// 错误码10：消息超过 MQConfig.MaxMessageBytes 上界（协议层放行 100MB，本配置收敛到部署
-	// 可承受量级）。定义在手写子类，不改生成的 AbstractMQManager（与 Master.eTopicEmpty 同法；
-	// 模块错误码空间 1..7 借用 AbstractMaster 语义，10 起为本模块自留）。
+	// 错误码10：消息超过 MQConfig.MaxMessageBytes 上界。定义在手写子类（不改生成的
+	// AbstractMQManager；模块错误码 1..7 借用 AbstractMaster 语义，10 起为本模块自留）。
 	public static final int eMessageTooLarge = 10;
 
 	// 死信表：key=binary(topic,partitionIndex,messageId)（WriteString+WriteInt4+WriteLong8），
@@ -137,9 +136,9 @@ public class MQManager extends AbstractMQManager {
 	// { topic -> { partitionIndex -> MQFile } }
 	private final ConcurrentHashMap<String, MQPartition> queues = new ConcurrentHashMap<>();
 
-	// Manager 级全局在飞字节（全部分区的内存队列驻留总和，MQSingle 注入共享）：MaxTotalInFlightBytes
-	// 的执行载体——重启装载（MQSingle 构造期 pullMessage）同受约束，backlog 存在时的
-	// "装载→OOM→重启→再装载"崩溃循环根治点。包内可见（测试字节断言）。
+	// Manager 级全局在飞字节（全部分区内存队列驻留总和，MQSingle 注入共享）：
+	// MaxTotalInFlightBytes 的执行载体，重启装载（MQSingle 构造期 pullMessage）同受约束。
+	// 包内可见（测试字节断言）。
 	final AtomicLong totalInFlightBytes = new AtomicLong();
 
 	public MQManager(String home, Config config) throws RocksDBException {
@@ -457,8 +456,8 @@ public class MQManager extends AbstractMQManager {
 	// 铸Manager稳定身份（首启生成，home/.managerId 持久化，此后恒定）：
 	// 生成式=时间基线<<16 | SecureRandom低16位——单调时间基线跨进程基本不撞，随机低位防同毫秒
 	// 多Manager同铸；恒正（BMQServer.negativeCheck 约束 ManagerId>=0）。写入带 fsync：mint 后
-	// 崩溃丢文件会使下次启动铸新身份，旧路由按旧 id 永不再被匹配——收口由 Master 对账的证据化
-	// 转移承担（旧 id 属主无存活连接时，上报即数据延续证据，路由改写为上报者，不再误删分区）。
+	// 崩溃丢文件会使下次启动铸新身份，旧路由按旧 id 永不再被匹配（由 Master 对账的证据化
+	// 转移收敛，见 notCoveredPartitions）。
 	private static long loadOrMintManagerId(String home) {
 		try {
 			var file = new File(home, ".managerId");
@@ -470,13 +469,12 @@ public class MQManager extends AbstractMQManager {
 						if (id > 0)
 							return id;
 					}
-					// 损坏内容按未铸处理，覆盖重铸；旧 id 不可知（文件即身份的唯一载体），换代替换
-					// 与路由收敛依赖 Master 上报侧的证据化转移。
+					// 损坏内容按未铸处理，覆盖重铸；旧 id 不可知（文件即身份唯一载体），
+					// 路由收敛依赖 Master 上报侧的证据化转移（见上）。
 					logger.warn("managerId file corrupted (home={}), re-mint (old id unknowable, convergence relies"
 							+ " on report-side evidence transfer)", home);
 				} catch (NumberFormatException e) {
-					// 非数字损坏同样按未铸处理（最常见损坏形态，不能让构造失败杀启动）：
-					// 旧 id 不可知，依赖上报侧证据化转移收敛（同上）。
+					// 非数字损坏同样按未铸处理（不能让构造失败杀启动）；旧 id 不可知（同上）。
 					logger.warn("managerId file corrupted (home={}), re-mint (old id unknowable, convergence relies"
 							+ " on report-side evidence transfer)", home);
 				}
@@ -563,9 +561,8 @@ public class MQManager extends AbstractMQManager {
 		// 在入口显式拒绝（不发成功应答），不触碰文件与 rocksdb。
 		if (stopped)
 			return Procedure.Closed;
-		// 入口字节上界（响亮拒绝优于 OOM）：协议层 ProxyServer 放行 100MB，超过部署可承受量级
-		//（MQConfig.MaxMessageBytes，默认 16MB）的消息在此拒绝，不进入内存队列（装载治理只按
-		// 条数时，大消息积压/重启装载按"协议上限×条数"承诺内存，Manager 确定性 OOM）。
+		// 入口字节上界（拒绝优于 OOM）：超过 MaxMessageBytes（默认 16MB；协议层放行 100MB）
+		// 的消息在此拒绝，不进入内存队列。
 		if (MQSingle.messageBytes(r.Argument.getMessage()) > mqConfig.getMaxMessageBytes())
 			return errorCode(eMessageTooLarge);
 		var queue = queues.get(r.Argument.getTopic());

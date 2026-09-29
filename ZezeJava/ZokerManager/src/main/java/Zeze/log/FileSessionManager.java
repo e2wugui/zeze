@@ -134,12 +134,10 @@ public class FileSessionManager {
 								 boolean requestAll, String serverName, String logName) throws Exception {
 		maybeSweepIdleBindings();
 		var bound = get(socketAddress);
-		// 复用前置校验——绑定的查询目标必须仍在注册表（FND31 zokermanager-02 续页期摘册）：
-		// 单服务器视图下绑定的服务器被 SM 摘除（Client.onSmRemoved 移除 Connector）后，
+		// 复用前置校验——绑定的查询目标必须仍在注册表：单服务器视图下服务器被 SM 摘除后
 		// matches 三元组恒命中、死绑定恒复用，Session 内对已摘册名的失败每页必现直到 2h
-		// 闲置清扫，滞留绑定的服务端会话句柄不被释放——摘册即视同 changeSession 走重建
-		// （重建对未注册名显式失败，错误可见且不再滞留死绑定复用）。全服视图的摘册收敛
-		// （多余成员重建缩容/缺失成员补员）既有 allViewMembersConverged 承担。
+		// 闲置清扫——摘册即视同 changeSession 走重建（重建对未注册名显式失败）。全服视图
+		// 的摘册收敛由 allViewMembersConverged 承担。
 		var reuseConverged = bound == null || (bound.all()
 				? allViewMembersConverged(logAgent, bound)
 				: logAgent.getLogServers().contains(serverName));
@@ -214,14 +212,11 @@ public class FileSessionManager {
 
 	/**
 	 * resolve + operate 的会话级错误自愈包装（zoker-03）：首次 operate 抛
-	 * {@link Session.SessionLevelException}（服务端已拒绝本会话——典型：闲置超
-	 * sessionIdleTimeoutMillis 被 cleanIdleLogSessions 回收后的 LogicError；复用判据只比
-	 * 静态三元组，死会话被永久复用、同 IP 同参数查询恒 system error 无自愈）时：以
-	 * changeSession 语义驱逐重建（resolve 的关旧建新路径，旧会话走 closeExecutor 关闭）→
-	 * 同参数重建 → 重试一次；重试仍失败原样上抛（只一层，防循环）。非会话级错误
-	 * （网络/超时；参数级拒绝 {@link Session.InvalidArgumentException}——FND31
-	 * zokermanager-01：参数错误拆会话只会重蹈覆辙后仍恒失败）原样上抛不重建——重建会
-	 * 白白丢弃仍有效的会话与游标。
+	 * {@link Session.SessionLevelException}（服务端已拒绝本会话——典型：闲置被回收后的
+	 * LogicError）时：以 changeSession 语义驱逐重建（resolve 的关旧建新路径，旧会话走
+	 * closeExecutor 关闭）→ 同参数重建 → 重试一次；重试仍失败原样上抛（只一层，防循环）。
+	 * 非会话级错误（网络/超时；参数级拒绝 {@link Session.InvalidArgumentException}——参数
+	 * 错误拆会话只会重蹈覆辙）原样上抛不重建——重建会白白丢弃仍有效的会话与游标。
 	 * 重建后游标归零：continuation 请求（reset=false）的重试返回首页数据——死会话本无
 	 * 正确续页可言，首页数据优于永久报错。
 	 * 外层套 N03（FND28）的同IP在飞守卫：并发共享会话使服务端游标被并发推进（跳页/重复/

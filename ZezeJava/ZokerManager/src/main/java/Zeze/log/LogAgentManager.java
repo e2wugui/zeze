@@ -47,12 +47,10 @@ public class LogAgentManager {
 
 	/**
 	 * 起管理口 HTTP 服务并<b>同步确认 bind 结果</b>（9980 固定端口由 startHttpServer
-	 * 收口；port 参数供直测注入）：HttpServer.start 对 b.bind 的 ChannelFuture 不同步
-	 * 不记日志（跨域），bind 失败（端口占用/坏地址）异步发生在 event loop 上——丢弃
-	 * 返回值则进程"正常"运行（startServer 日志在 bind 结果未知时已打出）但 9980 无人
-	 * 监听、无任何错误日志，且 {@code new Netty()} 的非守护 event loop 线程使失败进程
-	 * 存活为零可观测的"健康"僵尸——与 checkDeployPolicy 建立的"启动错误必须显式失败"
-	 * 契约不一致。失败时回收 event loop 线程组与半启动 server 后抛出含 cause 的异常。
+	 * 收口；port 参数供直测注入）：HttpServer.start 不同步 bind 的 ChannelFuture、失败
+	 * 无日志（异步发生在 event loop 上），必须同步确认——否则 bind 失败（端口占用/坏
+	 * 地址）呈零可观测的"健康"僵尸（非守护 event loop 线程使进程存活但 9980 无人监听）。
+	 * 失败时回收 event loop 线程组与半启动 server 后抛出含 cause 的异常。
 	 *
 	 * @return Netty 事件循环组持有者（进程形态由进程生命周期持有；直测形态调用方关闭）。
 	 */
@@ -76,7 +74,7 @@ public class LogAgentManager {
 			netty.close();
 			httpServer = null;
 			throw new IllegalStateException("HTTP admin port bind failed on " + conf.bind + ":" + port
-					+ " - check port conflict or bind address (FND31 zokermanager-04).",
+					+ " - check port conflict or bind address.",
 					future.cause());
 		}
 		return netty;

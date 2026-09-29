@@ -385,12 +385,9 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 							 Action2<Binary, RocksIterator> fill) throws Exception {
 		try (var it = stateMachine.getBucket().getData().iterator()) {
 			if (exclusiveStartKey.size() > 0) {
-				// 越上界游标归一：游标高于前缀上界时seekForPrev(游标)落在区间上方的非前缀
-				// 键上，首循环前缀过滤立即判桶尾，其下方的前缀键整段静默跳过（缺行）。归一
-				// 为seekForPrev(prefixUpper)定位，与空游标路径统一（含等上界键跳过，闭语义：
-				// 恰存在等于上界的key时迭代器落在其上，须先跳过）；prefixUpper==null（全
-				// 0xFF前缀，无有限上界——任何游标下方都可能有前缀键，seekForPrev直接正确）
-				// 不归一。
+				// 越上界游标归一：游标高于前缀上界时seekForPrev(游标)落在非前缀键上会被
+				// 判桶尾，整段前缀键静默跳过——统一seekForPrev(prefixUpper)定位（等上界
+				// 键须再prev跳过）；全0xFF前缀无有限上界，不归一。
 				var prefixUpper = prefix.size() > 0 ? prefixUpperBound(prefix) : null;
 				if (prefixUpper != null && exclusiveStartKey.compareTo(prefixUpper) > 0) {
 					it.seekForPrev(prefixUpper.copyIf());
