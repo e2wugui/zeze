@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -116,13 +115,23 @@ public class SearchLogParam {
 		this.changeSession = changeSession;
 	}
 
+	/**
+	 * 拆分 words 为关键词列表：每段 trim 后过滤空白段（FND30 zokermanager-03）。
+	 * 前导/连续逗号产生的空段若进入 BCondition.Words，服务器字面量子串匹配
+	 * {@code log.contains("")} 恒真——ContainsAny 过滤器整体旁路返回全量、
+	 * ContainsNone 恒返回空。整体无有效关键词时返回空列表（服务器侧 words 空
+	 * 即不过滤，既有语义）。
+	 */
 	public List<String> wordsToList() {
 		List<String> wordList = new ArrayList<>();
 		if (words == null || words.isBlank()) {
 			return wordList;
 		}
-		String[] split = words.split(",");
-		wordList.addAll(Arrays.asList(split));
+		for (String segment : words.split(",")) {
+			String word = segment.trim();
+			if (!word.isEmpty())
+				wordList.add(word);
+		}
 		return wordList;
 	}
 
