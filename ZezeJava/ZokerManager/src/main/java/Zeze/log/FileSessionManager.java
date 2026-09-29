@@ -35,12 +35,20 @@ import org.apache.logging.log4j.Logger;
  * sessionIdleTimeoutMillis（默认 1h），被驱逐的只会是服务端早已回收的死会话，客户端按需
  * 重建无损。</p>
  *
+ * <p><b>总量上限</b>：闲置回收只收敛时间维度（2h 内条目只增不减），无数量维度——HTTP 端口
+ * 未认证，多源 IP 各查一次即可各占一条绑定，并在每台日志服务器上各持一个服务端查询会话
+ * （服务端 Session/SessionAll 持文件 walker 与打开的日志文件句柄），慢速多 IP 即可撑开
+ * 服务端文件句柄。故新键插入使总量超 {@link #MAX_BINDINGS} 时驱逐最久未活跃的绑定并异步
+ * 关闭（{@link #put} / {@link #evictLeastActiveForCap}），同时收敛客户端内存与服务端句柄
+ * 两处资源；驱逐与拒绝的取舍见后者。每 IP 无需上限：键即源 IP，每 IP 恒一条。</p>
+ *
  * <p>已知限制：</p>
  * <ul>
  * <li><b>同IP互顶</b>：键仍是出口 IP，NAT 同出口多用户（或同用户在 Session/SessionAll
  * 视图间切换）交替查询会互相顶掉对方的会话——每次不匹配都重建，游标/过滤条件互相重置，
  * 结果正确但体验差。彻底解耦传输地址与会话身份需要显式会话令牌（响应带回
- * sessionToken、前端后续携带、IP 仅作审计），横跨 web 前端改造。</li>
+ * sessionToken、前端后续携带、IP 仅作审计），横跨 web 前端改造。总量上限驱逐（见
+ * "总量上限"）与此同构：被逐 IP 下次查询重建，游标重置。</li>
  * <li><b>同IP并发拒绝（N03，FND28）</b>：同 IP 并发同参数请求曾共享同一会话使服务端游标被
  * 并发推进（跳页/重复/丢页且各自 success），现按在飞守卫（见 operateRecovering）快速拒绝
  * 并发者——可见 system error，重试即得串行结果；服务端游标的并发语义不动（留档）。</li>
@@ -54,6 +62,11 @@ public class FileSessionManager {
 	private static final Logger logger = LogManager.getLogger(FileSessionManager.class);
 
 	private static final Map<String, LogSessionBinding> map = new ConcurrentHashMap<>(1000);
+
+	// 绑定总量上限（数量维度收敛，见类注释"总量上限"）：1000 对齐建表时的容量提示
+	// （ConcurrentHashMap 初始 1000），内部运维工具的真实用户面（数十~数百浏览器用户）
+	// 远低于此，正常部署不可达、不可见；超限即多源 IP 异常撑面的形态。
+	private static final int MAX_BINDINGS = 1000;
 
 	// 绑定闲置TTL：须大于服务端 sessionIdleTimeoutMillis（LogServiceConf 默认 1h）——客户端 TTL
 	// 大于服务端空闲回收，驱逐的只会是服务端早已回收的死会话（客户端按需重建无损：下次请求
@@ -77,12 +90,19 @@ public class FileSessionManager {
 	// 请求会共享同一绑定会话（resolve复用命中），服务端按会话推进游标——两个并发翻页各推一次
 	// =跳页/重复/丢页且各自应答success；不同参数的并发本就会被resolve互顶重建（既有"同IP互顶"
 	// 已知限制），按IP粒度守卫一致。条目不随清扫移除：移除与在飞请求的交错会分裂出两个flag放过
-	// 并发；条目以源IP为界，量级与map同阶（每IP一个16字节对象）。
+	// 并发；也不受 map 总量上限约束（守卫条目不可移除，且只含无会话无句柄的标记对象——残量是
+	// 每历史源 IP 一个 AtomicBoolean，会话/句柄资源已由 map 上限收敛）。
 	private static final ConcurrentHashMap<String, AtomicBoolean> inFlightByIp = new ConcurrentHashMap<>();
 
-	/** 存入绑定记录，返回被替换的旧绑定（无则null）。旧会话的关闭见{@link #resolve}的收口。 */
+	/** 存入绑定记录，返回被替换的旧绑定（无则null）。旧会话的关闭见{@link #resolve}的收口。
+	 * 新键插入使总量超 {@link #MAX_BINDINGS} 时驱逐最久未活跃的绑定（
+	 * {@link #evictLeastActiveForCap}）——同键替换（换绑/重建/复用回写）不增总量，不触发。 */
 	public static LogSessionBinding put(SocketAddress socketAddress, LogSessionBinding binding) {
-		return map.put(getIP(socketAddress), binding);
+		var ip = getIP(socketAddress);
+		var old = map.put(ip, binding);
+		if (old == null && map.size() > MAX_BINDINGS)
+			evictLeastActiveForCap(ip);
+		return old;
 	}
 
 	public static LogSessionBinding get(SocketAddress socketAddress) {
@@ -210,6 +230,38 @@ public class FileSessionManager {
 				continue;
 			if (map.remove(e.getKey(), binding))
 				closeAsync(binding);
+		}
+	}
+
+	/**
+	 * 总量超限驱逐（put 触发）：挑最久未活跃（lastActiveNanos 最小）且当前无在飞查询的绑定，
+	 * 条件移除（remove(key,binding) 防误关：并发已换绑的条目不是迭代读到的实例，同
+	 * {@link #sweepIdleBindings}）并异步关闭其会话。取舍：
+	 * <ul>
+	 * <li><b>驱逐而非拒绝</b>：拒绝（直接报错）下，垃圾源 IP 各查一次即可占满全部名额，
+	 * 新用户直到 TTL 清扫（最长 2h）都进不来——供给被最廉价的攻击独占；驱逐下新 IP 顶掉
+	 * 最旧绑定，查询路径保持可用。被驱逐者下次请求按需重建（会话本就可安全重建，见类注释
+	 * "同IP互顶"），且驱逐即关闭，同时收敛客户端内存与服务端查询句柄。</li>
+	 * <li><b>跳过在飞</b>（inFlightByIp 为 true 的 IP）：有非在飞候选时不惊扰正持有会话
+	 * future 的在飞请求（关闭在飞会话安全——见"替换关闭的竞态"，但该请求只能拿到异常）；
+	 * 全部在飞时不驱逐，瞬时超限自愈于下次插入。</li>
+	 * <li>O(n) 选最旧仅在超限的新键插入路径执行（n≤上限+并发过冲），遍历微秒级，不挡查询。</li>
+	 * </ul>
+	 */
+	private static void evictLeastActiveForCap(String excludeIp) {
+		Map.Entry<String, LogSessionBinding> victim = null;
+		for (var e : map.entrySet()) {
+			if (e.getKey().equals(excludeIp))
+				continue; // 刚插入的本键时间戳最新，显式排除自证（并发插入时间戳相近时的自保）
+			var inFlight = inFlightByIp.get(e.getKey());
+			if (inFlight != null && inFlight.get())
+				continue;
+			if (victim == null || e.getValue().lastActiveNanos() < victim.getValue().lastActiveNanos())
+				victim = e;
+		}
+		if (victim != null && map.remove(victim.getKey(), victim.getValue())) {
+			logger.warn("session binding evicted: bindings over cap {}. evicted ip={}", MAX_BINDINGS, victim.getKey());
+			closeAsync(victim.getValue());
 		}
 	}
 
