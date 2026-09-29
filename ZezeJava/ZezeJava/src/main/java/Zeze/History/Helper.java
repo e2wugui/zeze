@@ -133,11 +133,10 @@ public class Helper {
 	}
 
 	/**
-	 * 单表形式的依赖注册：后启动态开表（Application.openDynamicTable）的增量入口。
-	 * 表登记与日志工厂注册同构——开表路径不执行扫描的话，该表值 bean 的集合日志
-	 * typeId 永不注册，写侧照常编码落库，回放端 Log.create 抛 unknown log typeId
-	 * 毒记录卡死游标。幂等：dependsBean 按 Class 去重，Log.register 先到先得且
-	 * 同名重复注册无害；只读表/无集合字段表为空操作。
+	 * 单表形式的依赖注册：后启动态开表（Application.openDynamicTable）的增量入口，
+	 * 与启动期全表扫描（registerAllTableLogs）同构——开表不注册则该表的日志 typeId
+	 * 永不注册，回放端解码失败。幂等：dependsBean 按 Class 去重，Log.register 先到
+	 * 先得且同名重复注册无害；只读表/无集合字段表为空操作。
 	 */
 	public static void registerTableLogs(@NotNull Table table) throws Exception {
 		var result = new DependsResult();

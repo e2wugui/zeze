@@ -193,10 +193,9 @@ public class SessionAll implements AutoCloseable {
 	/**
 	 * 瞬时失败（非会话级、非参数级：RPC超时/发送失败/连接抖动）成员的续扫标记：页协议是
 	 * "游标推进+应答"的至多一次语义，失败页可能已被服务端游标越过而未投递——有已投递
-	 * 水位则续扫基点推进到当前水位（下次operate从水位重定位重发丢失页，重复收敛为水位
-	 * 边界同时间少量条目，与renewDeadMembers的基点语义一致）；无水位（首页未投递）置
-	 * 强制reset标记（重定位到查询下界重发，无已投递即无重复）。对已持有续扫基点的成员
-	 * （重建/重入后翻页中）同样推进：水位之前的页均已投递，推进只收敛重复。
+	 * 水位则续扫基点推进到当前水位（重复收敛为水位边界同时间少量条目，与renewDeadMembers
+	 * 的基点语义一致）；无水位置强制reset标记（重定位到查询下界重发，无已投递即无重复）。
+	 * 已持有续扫基点的成员（重建/重入后翻页中）同样推进：水位之前的页均已投递，推进只收敛重复。
 	 */
 	private void markTransientLoss(String name) {
 		var watermark = deliveredWatermark.get(name);

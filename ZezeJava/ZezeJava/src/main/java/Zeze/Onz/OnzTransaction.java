@@ -232,7 +232,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		return allEnded;
 	}
 
-	/** saga步骤的应答形态：cancelSaga对eSagaNotFound的分诊依据（onz-01）。 */
+	/** saga步骤的应答形态：cancelSaga对eSagaNotFound的分诊依据。 */
 	private enum SagaStepAnswer {
 		/** 已应答成功：协调者已收到成功应答——上下文存在过，其缺席非终态（成功步骤上下文的
 		 * 唯一正常清理者是补偿自身；业务失败自清理只适用于失败步骤），NotFound按补偿丢失
@@ -247,20 +247,20 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 
 	// 本事务实例已成功投递cancel的步骤（rpc应答0）：rollback()可在同一实例上重入（commit()
 	// 失败路径抛出前自行rollback，perform的catch再rollback一次），第二轮对已补偿步骤的
-	// NotFound是良性重复，不得再次按"上下文消失"嫌疑登记（防双rollback噪声，onz-01）。
+	// NotFound是良性重复，不得再次按"上下文消失"嫌疑登记（防双rollback噪声）。
 	private final Set<String> cancelDeliveredOk = ConcurrentHashMap.newKeySet();
 
 	/** @return 决策是否对全部saga参与方投递了结（成功/终态NotFound）；false=存在投递
 	 * 不确定（发送失败/超时）或致命应答的步骤，或已应答成功步骤的NotFound（上下文
-	 * 消失嫌疑，onz-01）——rollback()据此供commit失败路径保留决策记录交redo补发。 */
+	 * 消失嫌疑）——rollback()据此供commit失败路径保留决策记录交redo补发。 */
 	private boolean cancelSaga() {
 		// 等待已经发出的saga的结果（包括失败的），
 		// 因为saga可能异步发送，并且中途发生了错误，
 		// 此时需要继续把没得到的结果等到。
-		// 记录每个步骤的应答形态（三分类，onz-01在原rpcFailed二分上细化）：已应答成功/
-		// 已应答业务失败（以OnzAgent.CallAnsweredException完成）/未应答失败（超时/发送失败，
-		// 可能处于"FuncSagaEnd先于FuncSaga注册被处理"的乱序窗口——已应答步骤的FuncSaga
-		// 已被参与方处理过，注册必然先于任何FuncSagaEnd）。
+		// 记录每个步骤的应答形态（三分类）：已应答成功/已应答业务失败（以OnzAgent.
+		// CallAnsweredException完成）/未应答失败（超时/发送失败，可能处于"FuncSagaEnd
+		// 先于FuncSaga注册被处理"的乱序窗口——已应答步骤的FuncSaga已被参与方处理过，
+		// 注册必然先于任何FuncSagaEnd）。
 		var stepAnswers = new HashMap<String, SagaStepAnswer>();
 		for (var e : zezeSagas.entrySet()) {
 			var answer = SagaStepAnswer.RPC_FAILED;
@@ -316,7 +316,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 					// 失效。先经 IModule.getErrorCode 解码再比较。
 				var code = IModule.getErrorCode(rpcs.get(i).getResultCode());
 				if (code == AbstractOnz.eSagaNotFound) {
-					// NotFound按步骤应答形态分诊（onz-01）：
+					// NotFound按步骤应答形态分诊：
 					if (stepAnswer.get(i) == SagaStepAnswer.RPC_FAILED) {
 						// 未应答失败：乱序窗口候选——单次延迟重试（见retryCancelNotFoundOnce）。
 						if (!retryCancelNotFoundOnce(stepZeze.get(i)))
@@ -324,12 +324,9 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 					} else if (stepAnswer.get(i) == SagaStepAnswer.ANSWERED_SUCCESS
 							&& !cancelDeliveredOk.contains(stepZeze.get(i))) {
 						// 已应答成功（且本事务未曾成功投递过cancel——重复补偿后的良性NotFound
-						// 除外）：上下文存在过而缺席——参与方进程崩溃/重启丢失内存上下文（写已随
-						// finalCommit持久化，丢的只是补偿义务）或TTL超龄清理，补偿丢失嫌疑。
-						// 对齐onz-05对commit方向的论证（成功步骤的上下文在决策送达前不应消失，
-						// 消失即异常）：保留决策记录交redo幂等重发+登记嫌疑（error带tid/参与方，
-						// redo对年轻NotFound据此保守保留），终结走人工清算。此前该形态被无日志
-						// 良性化且记录即遭删除——补偿丢失零信号。
+						// 除外）：成功步骤的上下文在决策送达前不应消失，缺席=参与方丢失内存
+						// 上下文或TTL超龄清理——补偿丢失嫌疑。保留决策记录交redo幂等重发并
+						// 登记嫌疑（noteSagaContextLost），终结走人工清算。
 						allDelivered = false;
 						onzServer.noteSagaContextLost(onzTid, stepZeze.get(i));
 					}
@@ -363,18 +360,16 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	 * 不保证同连接处理顺序，参见ThreadingServer.ProcessKeepAlive的Direct注解），理论上补偿
 	 * 请求可先于原请求被处理——参与方查无上下文应答eSagaNotFound，而上下文随后才注册并
 	 * 执行业务，该次补偿被静默吞掉且无人再发。窗口的现实前提是参与方派发线程在出队后停滞
-	 * 约rpc超时（flushTimeout）量级（池饥饿/长GC/检查点占用worker，onz-07），重试延迟取
+	 * 约rpc超时（flushTimeout）量级（池饥饿/长GC/检查点占用worker），重试延迟取
 	 * 同量级的flushTimeout：重发一次cancel。正常完成（成功/业务失败）的步骤不重试——
 	 * 它们的FuncSaga已被参与方应答过，注册必然先于FuncSagaEnd，NotFound是终态。
 	 * <p>
-	 * give-up语义（onz-02）：重试仍eSagaNotFound不再视为了结——"仍NotFound=请求确实未
-	 * 到达或业务已自清理"是不可证前提：停滞无上界（onz-07证明检查点可占用派发worker
-	 * 数秒以上），滞留未处理的FuncSaga使原发+重试两次都命中NotFound，give-up了结+删决策
-	 * 记录后队列才恢复、FuncSaga执行并"发结果即本地提交"，补偿永久失去。返回false把
-	 * 删除推迟到redo轮的重发确认（RedoPreparingMinAgeMs年龄闸+60s周期≈决策后2~4分钟，
-	 * 预算从2×flushTimeout扩约一个量级）：上下文在窗口内注册则redo补发的cancel命中并
-	 * 补偿收敛即删；仍NotFound则redo按年轻良性移除（TestGcC01钉住的孤儿记录契约）——
-	 * 停滞超该预算的残余由超龄NotFound分诊兜底（SagaNotFoundAgedBudgetMs）。
+	 * give-up语义：重试仍eSagaNotFound不视为了结——"仍NotFound=请求确实未到达或业务
+	 * 已自清理"不可证：停滞无上界，滞留未处理的FuncSaga使原发+重试两次都命中NotFound，
+	 * give-up了结+删决策记录后队列才恢复、FuncSaga执行并"发结果即本地提交"，补偿永久
+	 * 失去。返回false把删除推迟到redo轮的重发确认（RedoPreparingMinAgeMs年龄闸+60s
+	 * 周期）：上下文在窗口内注册则redo补发的cancel命中并补偿收敛即删；仍NotFound则
+	 * redo按年轻良性移除；停滞超预算的残余由超龄NotFound分诊兜底（SagaNotFoundAgedBudgetMs）。
 	 * <p>
 	 * 选型说明：不采用"FuncSaga上下文注册改Direct派发"——那需要把整个业务执行（含DB事务与
 	 * sendReadyAndWait）搬进IO线程或拆分生成处理器契约，爆炸半径远大于协调者侧一次延迟重发。

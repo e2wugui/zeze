@@ -15,9 +15,7 @@ public class MainZokerManager {
 		try {
 			start(configXml);
 		} catch (Throwable e) {
-			// start 已回收全部已启动组件：以非零码退出，与部署契约校验的 fail-fast
-			// 姿态对齐——不残留"LogService 照常服务、管理口无人监听"的半启动僵尸
-			//（依赖进程退出动作的守护重启才能触发）。
+			// start 已回收全部已启动组件：以非零码退出（触发部署侧守护重启），不留半启动僵尸。
 			e.printStackTrace();
 			System.exit(1);
 		}
@@ -32,8 +30,8 @@ public class MainZokerManager {
 		Task.tryInitThreadPool();
 
 		var conf = new ZokerManagerConf();
-		// 部署契约（FND29 zokermanager-02）先于一切服务启动校验：非回环 Bind 且未配
-		// Token 直接抛错退出，不启动 LogService/LogAgent——避免 fail-fast 后残留半启动线程。
+		// 部署契约先于一切服务启动校验：非回环 Bind 且未配 Token 直接抛错退出，
+		// 不启动 LogService/LogAgent——避免 fail-fast 后残留半启动线程。
 		Config.load(configXml).parseCustomize(conf);
 		ZokerManagerConf.checkDeployPolicy(conf.bind, conf.token);
 
@@ -42,10 +40,8 @@ public class MainZokerManager {
 			logService.start();
 			LogAgentManager.init(configXml);
 		} catch (Throwable e) {
-			// 半启动回收：LogService 构造即启动文件监视线程（原为非守护，zokermanager-02
-			// 起 daemon 化）并占 (logDir, logActive) 独占登记；init 失败（bind 冲突/SM
-			// waitReady 双败等）若不回收，进程被钉成半启动僵尸且重启撞独占登记。
-			// 逆序回收，回收失败不掩盖原始异常。
+			// 半启动回收：LogService 构造即启动文件监视线程并占 (logDir, logActive) 独占
+			// 登记，init 失败若不回收则重启撞独占登记。逆序回收，回收失败不掩盖原始异常。
 			try {
 				LogAgentManager.stop();
 			} catch (Throwable stopEx) {

@@ -116,11 +116,10 @@ public class Producer extends AbstractProducer implements TransactionListener {
 						+ " process/machine (see class javadoc)", liveInstances.get(), producerGroup);
 			if (!initialized) {
 				liveInstances.decrementAndGet(); // 构造失败归还计数
-				// 表注册回滚（构造侧半边，与stop侧反注册同一配对不变量）：注册之后、initialized
-				// 之前的失败（如copyRoutingIdentity对问题clientConfig的异常）只归还计数的话，tSent
-				// 残留Application注册表且半构造对象不可达——无人再为它调stop()/反注册，同一
-				// Application重建必撞duplicate table（addTable表id查重），本app的事务消息能力
-				// 不可恢复。反注册自身的失败只记日志，不得吞换正在传播的原始异常。
+				// 表注册回滚（构造侧半边，与stop侧反注册同一配对不变量）：注册之后、
+				// initialized 之前的失败须反注册 tSent——半构造对象不可达，无人再为它调
+				// stop()/反注册，同一 Application 重建必撞 duplicate table。反注册自身的
+				// 失败只记日志，不得吞换正在传播的原始异常。
 				if (registered) {
 					try {
 						UnRegisterZezeTables(zeze);
@@ -170,8 +169,8 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			Thread.currentThread().interrupt();
 		}
 		// 在飞回查排空后反注册并关闭 tSent（与构造器注册成对；removeTable 幂等，补调无害）。
-		// 反注册包try/catch（构造侧回滚同族）：getDatabase对不存在的库名抛IllegalStateException等
-		// 不得跳过下方计数递减——计数上漂瓦解多实例告警判据，与丢表同属配对不完整。
+		// 反注册包try/catch（构造侧回滚同族）：失败（如getDatabase对不存在的库名抛
+		// IllegalStateException）不得跳过下方计数递减——计数上漂瓦解多实例告警判据。
 		try {
 			UnRegisterZezeTables(zeze);
 		} catch (Throwable t) {

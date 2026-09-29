@@ -58,10 +58,9 @@ public class BrowseLogHandle implements HttpEndStreamHandle {
 				}
 				LogAgent logAgent = LogAgentManager.getInstance().getLogAgent();
 			String serverName = searchLogParam.getServerName();
-			// 缺省 logName 解析（与 SearchLogHandle 同根同款）：随源码发布的前端请求体
-			// 不携带 logName，缺省 null 透传到 Session 构造即 IAE 坍缩 system error
-			// （全服视图更被 0 成员会话误报 no reachable log server）。部署配置唯一
-			// LogConf 名即默认；无法确定默认时入口即拒，列名引导显式传参，不建/复用会话。
+			// 缺省 logName 解析（与 SearchLogHandle 同根同款）：前端请求体不携带 logName，
+			// 缺省 null 透传到 Session 构造即坍缩 system error。部署配置唯一 LogConf 名即
+			// 默认；无法确定默认时入口即拒（列名引导显式传参），不建/复用会话。
 			var logName = searchLogParam.resolveLogName(logAgent.getLogConf());
 			if (logName == null) {
 				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(

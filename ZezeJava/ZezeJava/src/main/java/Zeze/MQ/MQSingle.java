@@ -134,11 +134,9 @@ public class MQSingle extends ReentrantLock {
 						topic, partitionId, closeEx);
 			}
 			// 记账随实例生命周期终止（与 close() 的终态释放同构）：构造期 pullMessage(true)
-			// 中途抛错时，已装载消息经 admitFillBytes 入账（分区 queueBytes+Manager 级共享
-			// totalInFlightBytes），而实例不发布——releaseQueueBytes（ack/死信出账）与 close()
-			// 均不可达，不在此归还则全局在飞预算被每次失败构造虚占（Master 对 CreatePartition
-			// 的重试可累积至耗尽，全分区退化为队头单条推进且无根因日志）。实例未入表、无并发
-			// 记账方，锁外清账安全。
+			// 中途抛错时已装载消息入账（分区 queueBytes+Manager 级 totalInFlightBytes），而
+			// 实例不发布——releaseQueueBytes 与 close() 均不可达，须在此归还，否则全局在飞
+			// 预算被每次失败构造虚占。实例未入表、无并发记账方，锁外清账安全。
 			var leaked = queueBytes.getAndSet(0);
 			if (0 != leaked)
 				totalInFlightBytes.addAndGet(-leaked);

@@ -65,9 +65,8 @@ public class FileCreateDetector {
 	 */
 	public void start() {
 		var thread = new Thread(this::run, "log4j-watch-" + watchDir);
-		// daemon：线程生命周期由 stopAndJoin 显式管理（close watchService + join），
-		// 不改变正常停机语义；宿主进程启动序列失败/异常退出路径不再被 watch 线程
-		// 钉住（watch 阻塞在 take()，非守护线程会阻止 JVM 退出）。
+		// daemon：线程生命周期由 stopAndJoin 显式管理（close watchService + join），不改
+		// 正常停机语义；宿主启动失败/异常退出路径不被阻塞在 take() 的 watch 线程钉住。
 		thread.setDaemon(true);
 		watchThread = thread; // 先发布再start：stopAndJoin并发读到的线程join立即返回或正常join
 		thread.start();

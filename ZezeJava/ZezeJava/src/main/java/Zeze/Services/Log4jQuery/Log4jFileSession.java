@@ -78,14 +78,10 @@ public class Log4jFileSession implements Closeable {
 		// 没有索引时，从头开始搜索。
 		if (null != index) {
 			// 定位锚=前驱（floor）记录，不是lowerBound（首条>=time的记录）：索引是采样而非
-			// 完备集——10s节拍与装载批间基线推进（loadIndex攒满100条才推进lastIndexTime）都
-			// 留未索引间隙，lowerBound锚从首条>=time的记录起读，前驱与锚之间时间>=time的日志
-			// 物理位置在锚之前，detailSeek只向前推进，永不被读——窗口头部静默漏读（1行/秒
-			// 日志批边界后9条丢失形态；水位续扫的beginTime=已投递日志时间而非记录时间，几乎
-			// 必落间隙，同漏）。前驱锚从其数据位置起线性读、按time谓词推进，最坏多扫一个
-			// 采样节拍段（毫秒级）。floorOffset统一承载边界：time>endTime的前驱即末记录
-			// （尾窗查询从末记录续扫不整读，不回落0）；空索引/time早于首条记录返回-1回落0
-			// ——首条记录之前仍可有窗口内日志，文件头扫描本就正确。
+			// 完备集（10s节拍与装载批间基线推进都留未索引间隙），前驱与锚之间时间>=time的
+			// 日志物理位置在锚之前，detailSeek只向前推进会漏读窗口头部。前驱锚最坏多扫一个
+			// 采样节拍段；边界语义（尾窗=末记录续扫不整读、首前/空索引=-1回落文件头扫描）
+			// 由 floorOffset 统一承载（见其javadoc）。
 			var offset = index.floorOffset(time);
 			if (offset != -1)
 				return offset;

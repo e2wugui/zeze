@@ -182,11 +182,10 @@ public class LogService extends AbstractLogService {
 		var pattern = condition.getPattern();
 		if (condition.getWords().isEmpty() && (pattern == null || pattern.isEmpty()))
 			return INVALID_ARGUMENT;
-		// pattern路由（words为空）预编译校验：pattern是终端用户可控自由文本，写错正则是
-		// 日常输入错误；漏校时PatternSyntaxException在会话锁内的searchRegex/browseRegex
-		// 抛出、被框架统一翻成Procedure.Exception——客户端按瞬时失败无限重试（不进
-		// deadMembers不标finished，每次operate重发），参数级分诊契约失效。words非空时
-		// pattern被handler路由忽略，不校验（不得收紧现有可用的contains请求形态）。
+		// pattern路由（words为空）预编译校验：漏校时PatternSyntaxException在会话锁内的
+		// searchRegex/browseRegex抛出、被框架翻成Procedure.Exception——客户端按瞬时失败
+		// 无限重试，参数级分诊失效。words非空时pattern被路由忽略，不校验（不收紧现有
+		// 可用的contains请求形态）。
 		if (condition.getWords().isEmpty()) {
 			try {
 				Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
@@ -236,9 +235,8 @@ public class LogService extends AbstractLogService {
 							r.Argument.getCondition().getPattern(),
 							limit, r.Argument.getOffsetFactor());
 				} catch (PatternSyntaxException e) {
-					// 防御兜底：入口validateArgument已预编译拒绝，正常不可达；入口校验回归时
-					// 仍以参数级码应答（compile在锁内抛、此处锁外catch），不退化为
-					// Procedure.Exception的瞬时失败无限重试形态。
+				// 防御兜底：入口validateArgument已预编译拒绝，正常不可达；仍以参数级码应答，
+				// 不退化为Procedure.Exception的瞬时失败无限重试形态。
 					logger.warn("browseRegex pattern compile fail, entry validation regressed?", e);
 					return INVALID_ARGUMENT;
 				}
@@ -292,7 +290,7 @@ public class LogService extends AbstractLogService {
 							r.Argument.getCondition().getPattern(),
 							limit);
 				} catch (PatternSyntaxException e) {
-					// 同browse的防御兜底：入口校验回归时仍以参数级码应答。
+					// 防御兜底：同browse，仍以参数级码应答。
 					logger.warn("searchRegex pattern compile fail, entry validation regressed?", e);
 					return INVALID_ARGUMENT;
 				}

@@ -39,9 +39,8 @@ public class LogAgentManager {
 			logAgentManager.logAgent.start();
 			adminNetty = startHttpServer();
 		} catch (Throwable e) {
-			// 半启动回收（zokermanager-02）：agent 启动失败（SM waitReady 双败等）或
-			// 管理口 bind 失败（bind 路径自回收后上抛）时回收本层已启动组件并复位
-			// 静态引用——不把半启动状态留给调用方（MainZokerManager.start 统一收尾）。
+			// 半启动回收：失败时回收本层已启动组件并复位静态引用，不把半启动状态留给
+			// 调用方（MainZokerManager.start 统一收尾）。
 			stop();
 			throw e;
 		}

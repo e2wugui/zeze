@@ -349,10 +349,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	// Database.Table中缓存MasterTableDaTa，减少map查找。
-	//  逐表缓存取快照：miss时GetBuckets拉取。master建表进行中窗口（createTable的
-	// computeIfAbsent先入映射、created=false、0桶）返回rc=0空表快照——MasterTable.locate
-	// 空契约返回null，空表落缓存后该表后续定位持续以NPE面目失败，直到本实例建表流程
-	// putBuckets覆盖；空快照不缓存，每次重新拉取，建表完成即恢复。
+	//  逐表缓存取快照：miss时GetBuckets拉取。建表进行中窗口（createTable的computeIfAbsent
+	// 先入映射、created=false、0桶）返回rc=0空表快照——空快照不缓存（落缓存则该表定位
+	// 持续以NPE面目失败，直到本实例建表流程putBuckets覆盖），每次重新拉取，建表完成即恢复。
 	private MasterTable.Data getBucketsCached(
 			MasterAgent masterAgent, ConcurrentHashMap<String, MasterTable.Data> database,
 			String databaseName, String tableName) {

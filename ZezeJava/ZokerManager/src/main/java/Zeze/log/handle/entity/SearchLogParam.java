@@ -33,12 +33,10 @@ public class SearchLogParam {
 	/**
 	 * 入口参数校验（对齐 {@code limit<=0} 的 invalid limit 形态）：containsType 枚举、
 	 * words/pattern 归一后双空、（browse）offsetFactor∈[0,1)、beginTime/endTime 时间串
-	 * 格式。这些参数透传时服务端回非零结果码，与死会话同族——operateRecovering 会误判
-	 * 会话级死亡，把健康查询会话整组关旧建新后同参数重试再失败，最终恒 system error；
-	 * offsetFactor 负值更在服务端静默退化为无上下文的过滤搜索；时间串笔误的
-	 * DateTimeParseException 则坍缩 system error 引导用户怀疑服务端故障。返回
-	 * null=通过，否则为 errorResult 的 desc（browse 传 true 校验 offsetFactor，
-	 * search 不使用该参数）。
+	 * 格式。这些参数须入口拒绝：透传时服务端回非零结果码与死会话同族（operateRecovering
+	 * 误判会话级死亡，反复重建同参数重试恒失败）、静默退化为无上下文的过滤搜索、或坍缩
+	 * system error。返回 null=通过，否则为 errorResult 的 desc（browse 传 true 校验
+	 * offsetFactor，search 不使用该参数）。
 	 */
 	public String validateError(boolean browse) {
 		if (containsType != BCondition.ContainsAll && containsType != BCondition.ContainsAny
@@ -92,13 +90,10 @@ public class SearchLogParam {
 	}
 
 	/**
-	 * 解析查询目标日志名：随源码发布的 web 前端请求体不携带 logName（searchParam
-	 * 字面量无该字段），缺省 null 透传到 Session 构造的 setLogName(null)（生成代码
-	 * 对 null 抛 IAE）——单服务器与全服视图恒 system error，全服视图更被 0 成员
-	 * 会话误报 no reachable log server。显式非空白名 trim 后原样使用；缺省/空白时
-	 * 部署配置（{@link LogServiceConf}，MainZokerManager 进程与同进程 LogService
-	 * 同源 server.xml）唯一 LogConf 名即默认。零/多份配置无法确定默认，返回 null
-	 * ——调用方以 {@link #missingLogNameDesc} 回显式错误引导显式传参。
+	 * 解析查询目标日志名：显式非空白名 trim 后原样使用；缺省/空白时部署配置
+	 * （{@link LogServiceConf}，与同进程 LogService 同源 server.xml）唯一 LogConf 名即
+	 * 默认。零/多份配置无法确定默认，返回 null——调用方以 {@link #missingLogNameDesc}
+	 * 回显式错误引导显式传参（缺省 null 透传到 Session 构造抛 IAE 坍缩 system error）。
 	 */
 	public String resolveLogName(LogServiceConf deployConf) {
 		if (logName != null && !logName.isBlank())

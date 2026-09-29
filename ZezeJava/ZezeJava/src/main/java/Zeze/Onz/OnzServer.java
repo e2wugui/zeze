@@ -217,7 +217,7 @@ public class OnzServer extends AbstractOnz {
 	// 超龄NotFound告警去重：分诊保留的决策记录每轮redo重发都会再次
 	// NotFound，按tid只error一次防刷屏（对齐hangWarnedTids形态）。决策记录收敛
 	// 删除时回收tid，集合有界于在库的超龄未决决策数。
-	// onz-01扩义：集合同时承载"已应答成功步骤的上下文消失"嫌疑登记（cancel阶段的
+	// 集合同时承载"已应答成功步骤的上下文消失"嫌疑登记（cancel阶段的
 	// noteSagaContextLost，年轻即入集）——复用其按tid去重的error、settle守卫与收敛回收
 	// 链；redoRecord对rollback决策年轻NotFound据成员资格保守保留（缺席非终态）。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> agedNotFoundWarnedTids = ConcurrentHashMap.newKeySet();
@@ -508,20 +508,18 @@ public class OnzServer extends AbstractOnz {
 											? "end未送达而上下文已消失——参与方可能在发结果后、本地提交前宕机（丢写嫌疑，ONZ-F25-05）"
 											: "补偿可能已因参与方TTL清理而丢失");
 					} else if (rec.commitDecision) {
-						// onz-05：commit决策（end补发）的年轻NotFound保留记录重试——成功步骤的
+						// commit决策（end补发）的年轻NotFound保留记录重试——成功步骤的
 						// 上下文在end送达前不应消失（end是唯一正常清理者；业务失败自清理不可能：
 						// end只在全部步骤成功后发送；TTL清理需空闲超1h，与年轻记录矛盾），
 						// 消失即丢写嫌疑。保留至超龄由上面的分诊终判（重发幂等：上下文在则end成功
 						// 应答0并收敛，不在则NotFound，均无副作用）。rollback决策的年轻NotFound
-						// 原为无补偿对象的良性终态一律移除——onz-01补"参与方进程丢失"成因后，
-						// 已被cancel阶段登记嫌疑的tid同样保守保留（见下方else分支）。
+						// 除已被cancel阶段登记嫌疑的tid外按良性终态移除（见下方else分支）。
 						removeOk = false;
 					} else {
 						// rollback决策的年轻NotFound：无补偿对象的良性终态，移除收敛——除非该tid
-						// 已被cancel阶段登记"已应答成功步骤的上下文消失"嫌疑（noteSagaContextLost，
-						// onz-01）：该形态的缺席非终态（上下文存在过），保守保留交redo幂等重发与
-						// 人工清算（对齐commit决策onz-05的年轻保留）；重发幂等无副作用：上下文在
-						// 则补偿成功收敛（本轮即删），不在则NotFound直至settle。
+						// 已被cancel阶段登记"已应答成功步骤的上下文消失"嫌疑（noteSagaContextLost）：
+						// 该形态的缺席非终态（上下文存在过），保守保留交redo幂等重发与人工清算
+						// （上下文在则补偿成功收敛即删，不在则NotFound直至settle）。
 						if (agedNotFoundWarnedTids.contains(tid))
 							removeOk = false;
 						else {
@@ -596,16 +594,13 @@ public class OnzServer extends AbstractOnz {
 		// tid离开第四集合，集合有界于在库的异常滞留决策数。
 	}
 
-	/** onz-01：cancelSaga对"已应答成功步骤"的eSagaNotFound登记——协调者已收到该步骤的
-	 * 成功应答，上下文存在过，其缺席非终态（成功步骤上下文的唯一正常清理者是补偿自身；
-	 * 业务失败自清理只适用于失败步骤）：成因=参与方进程崩溃/重启丢失内存上下文（写已随
-	 * finalCommit持久化，丢的只是补偿义务）或TTL超龄清理——补偿丢失嫌疑。登记复用
-	 * agedNotFoundWarnedTids（按tid去重的error+settle守卫+收敛回收链）：redoRecord对
-	 * rollback决策的年轻NotFound据此保守保留（重发幂等：上下文在则补偿成功收敛即删，
-	 * 不在则NotFound直至人工清算）。此前该形态被无日志良性化且决策记录即遭删除——
-	 * 已持久化的saga写入永无补偿而事务报告失败，零信号。协调者自身重启丢失登记是残余
-	 * （BSavedCommits为生成bean不可加字段，嫌疑无法随决策记录持久化；长期方案=参与方
-	 * 将补偿义务随业务事务持久化，重启后恢复上下文）。 */
+	/** cancelSaga对"已应答成功步骤"的eSagaNotFound登记：协调者已收到该步骤的成功应答，
+	 * 上下文存在过，其缺席非终态（成功步骤上下文的唯一正常清理者是补偿自身；业务失败
+	 * 自清理只适用于失败步骤；成因=参与方丢失内存上下文或TTL超龄清理）——补偿丢失
+	 * 嫌疑。登记复用 agedNotFoundWarnedTids（按tid去重的error+settle守卫+收敛回收链）：
+	 * redoRecord对rollback决策的年轻NotFound据此保守保留（重发幂等：上下文在则补偿成功
+	 * 收敛即删，不在则NotFound直至人工清算）。协调者自身重启丢失登记是残余（嫌疑无法
+	 * 随决策记录持久化）。 */
 	void noteSagaContextLost(long tid, String zezeName) {
 		if (agedNotFoundWarnedTids.add(tid))
 			logger.error("onz saga context lost: 已应答成功步骤的上下文在cancel送达前消失"
