@@ -108,12 +108,12 @@ public class TestHistoryFlushCommitBinding {
 	}
 
 	/** 把夹带的 gid 登记进 app 的对账账本（对齐真实路径 buildLogChanges 的 register：
-	 * gid 消费即入账，commitDone 核销）。账本方法为 Zeze.History 包内可见，测试在
-	 * Zeze.Transaction 包（FlushSet 为包内类），经反射桥接，仅断言用。 */
+	 * gid 消费即入账（单调钟基），commitDone 核销）。账本方法为 Zeze.History 包内可见，
+	 * 测试在 Zeze.Transaction 包（FlushSet 为包内类），经反射桥接，仅断言用。 */
 	private static void ledgerRegister(Application app, Id128 gid) throws Exception {
 		var register = Zeze.History.PendingGidLedger.class.getDeclaredMethod("register", Id128.class, long.class);
 		register.setAccessible(true);
-		register.invoke(app.getPendingGidLedger(), gid, System.currentTimeMillis());
+		register.invoke(app.getPendingGidLedger(), gid, System.nanoTime());
 	}
 
 	/** 账本是否仍登记该 gid（未被 commitDone 核销）。 */

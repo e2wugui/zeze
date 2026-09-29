@@ -167,7 +167,7 @@ public class History {
 															@NotNull Changes changes,
 															@Nullable String protocolClassName,
 															@Nullable Binary protocolArgument) {
-		ledger.register(globalSerialId, System.currentTimeMillis());
+		ledger.register(globalSerialId, System.nanoTime()); // 单调基入账，与 sweep 判龄同基
 		var logChanges = new BLogChanges.Data();
 		if (protocolClassName != null)
 			logChanges.setProtocolClassName(protocolClassName);
