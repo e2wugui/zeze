@@ -36,7 +36,9 @@ import org.jetbrains.annotations.Nullable;
  * <p>commitService 的两步：distributes/&lt;svc&gt; rename 到 services/&lt;svc&gt;/&lt;versionNo&gt;
  * （纯新增，不动现役），然后原子切换 current（同目录写临时文件+rename，单步原子）。
  * 旧版本目录留作回滚点，由保留策略（{@link #keepVersions}）清理最老的。
- * 失败恢复：装版本失败无副作用（现役未动）；切换失败现役未动（新版本已装好，重试直接进入切换收敛）；
+ * 失败恢复：装版本失败无副作用（现役未动：验货前置，隔离腾位后的安装失败经回滚恢复
+ * 原位，回滚失败为声明残余——响亮error供人工抢救）；切换失败现役未动（新版本已装好，
+ * 重试直接进入切换收敛）；
  * 重试幂等：目标版本目录已存在（上次中断的残留，经完整性校验：自身清单齐全/legacy下限/
  * 新清单条目已在盘上且大小一致）= 跳过安装直接切换，同为成功——"存在=完整"由构造保证：安装是
  * 原子rename，删除（prune与隔离换装）先原子改名进暂存删除名再清树，版本名位置不出现
@@ -562,102 +564,118 @@ public class DistributeManager {
 		// 消费distributes/<svc>前先关闭其下仍打开的FileBin：正常流程CloseFile已收尾，
 		// 这里兜底跳过CloseFile的连接，同时释放Windows上阻塞rename的文件句柄。
 		closeUnder(serviceFrom);
-		// 跳装分支的完整性判据："存在=完整"由构造保证（原子rename安装+暂存名删除），存量/外部
-		// 制造的残缺目录会击穿该不变式：无条件跳装=新上传内容被静默忽略、current切到残缺目录
-		// 返回0的假成功（start恒eNoServiceProperties且获现役保护无自愈）。判不可收养：
-		// (a)自带清单列的文件缺失（清单=安装完成标志）；(b)legacy下限不过（空壳）；
-		// (c)新上传清单条目在盘上版本目录缺失或大小不一致（存在≠内容）。
-		// 处置：有新内容→隔离换装（残缺目录原子改名
-		// 进暂存删除名腾位，新内容落正常安装分支）；无新内容→eCommitFail。
-		if (versionTo.exists()
-				&& !(installedVersionHealthy(versionTo, serviceName) && distributesManifestSubsetOf(serviceFrom, versionTo))) {
-			if (!serviceFrom.isDirectory()) {
+	// 跳装分支的完整性判据："存在=完整"由构造保证（原子rename安装+暂存名删除），存量/外部
+	// 制造的残缺目录会击穿该不变式：无条件跳装=新上传内容被静默忽略、current切到残缺目录
+	// 返回0的假成功（start恒eNoServiceProperties且获现役保护无自愈）。判不可收养：
+	// (a)自带清单列的文件缺失（清单=安装完成标志）；(b)legacy下限不过（空壳）；
+	// (c)新上传清单条目在盘上版本目录缺失或大小不一致（存在≠内容）。
+	// 处置：有新内容→隔离换装（残缺目录原子改名
+	// 进暂存删除名腾位，新内容落正常安装分支）；无新内容→eCommitFail。
+	var swapNeeded = versionTo.exists()
+			&& !(installedVersionHealthy(versionTo, serviceName) && distributesManifestSubsetOf(serviceFrom, versionTo));
+	// 验货前置：即将安装（隔离换装或全新）时，新内容的全部前置校验先于任何腾位执行
+	// ——源目录存在、清单校验与残留清退、空目录拒绝只读写 distributes/<svc>，与隔离
+	// 无序依赖，"先证明新内容可安装，再动既有版本目录"。修复前隔离分支先腾位（既有
+	// 版本目录可为 current 指向的现役版本，停止态不受 run.pid 保护）再验货/安装，任一
+	// 后置失败 return 无回滚：current 悬空（start 恒 eNoServiceProperties）、旧内容待
+	// 下轮暂存清扫灭失——违反"装版本失败无副作用"不变式。跳装分支（可收养重提）不经
+	// 此处：不清退不消费 distributes，幂等语义不变。
+	if (swapNeeded || !versionTo.exists()) {
+		if (!serviceFrom.isDirectory()) {
+			if (swapNeeded)
 				logger.error("commitService broken version residue and no distribute content: {}", versionTo);
-				return err(Zoker.eCommitFail);
-			}
-			var processManager = null != zoker ? zoker.getProcessManager() : null;
-			var quarantined = new boolean[]{false};
-			Runnable swapStep = () -> {
-				if (null != processManager) {
-					// 在用版本保护：run.pid指向的版本目录不隔离（服务不随current切换重启时仍从
-					// 旧版本目录运行，隔离+暂存清扫=拆运行中服务的文件）。与start的
-					// launch→writeRunPid窗口互斥（withServiceLock；锁序commitLocks→opsLocks单向
-					// 嵌套）；版本不可知（旧格式身份空串）无法证明不是本版本，宁拒不删。
-					var running = processManager.runningVersion(serviceName);
-					if (null != running && (running.isEmpty()
-							|| foldVersionName(running).equals(foldVersionName(versionNo)))) {
-						logger.error("commitService refuse swap, version in use by running service: services/{} version={} running={}",
-								serviceName, versionNo, running);
-						return;
-					}
-				}
-				if (quarantineVersion(svcDir, versionTo))
-					quarantined[0] = true;
-				else
-					logger.error("commitService quarantine rename fail (retryable): {}", versionTo);
-			};
-			if (null != processManager)
-				processManager.withServiceLock(serviceName, swapStep);
 			else
-				// 直构测试形态：无进程身份可锁/可保护。
-				swapStep.run();
-			if (!quarantined[0])
-				return err(Zoker.eCommitFail); // 在用拒绝/隔离rename失败（Windows句柄占用）：可重试，现役未动
-		}
-		if (!versionTo.exists()) {
-			// 先验源存在再动目标目录：step1失败（distributes/<svc>缺失——重复提交/超时重试的
-			// 典型情形）时连services/<svc>容器目录也不创建，彻底无副作用。
-			if (!serviceFrom.isDirectory()) {
 				logger.error("commitService no distribute content: {}", serviceFrom);
-				return err(Zoker.eCommitFail);
-			}
-			// zoker-05（FND26）：集合级完整性屏障——文件级md5（CloseFile）与目录级搬运
-			//（rename）之间缺"本次发布集合已完整"的事实：open预建的空目录、上传中断的
-			// 部分集合都可整目录成版并切current（start从坏版本启动：NoClassDefFound/
-			// eNoServiceProperties，方向可见但已切现役）。屏障=部署方在全部文件收口后补传的
-			// 集合清单：清单存在即声明集合完整，commit校验齐全+清退残留；无清单走legacy
-			// 路径（外部部署工具/直构形态），由下方空目录拒绝兜底。
-			var manifestRc = verifyDistributeManifest(serviceFrom, versionNo);
-			if (manifestRc != 0)
-				return manifestRc;
-			// 空目录拒绝（zoker-05）：closeUnder清掉在途未验证中间产物后目录可能为空——
-			// 空版本切current后start恒eNoServiceProperties直到重新commit，不得成版。
-			var remains = serviceFrom.listFiles();
-			if (null == remains || 0 == remains.length) {
-				logger.error("commitService empty distribute content: {}", serviceFrom);
-				return err(Zoker.eCommitFail);
-			}
-			try {
-				// renameTo不创建父目录：services/<svc>/这层缺失时renameTo必false
-				Files.createDirectories(svcDir.toPath());
-			} catch (IOException ex) {
-				logger.error("commitService createDirectories {}", svcDir, ex);
-				return err(Zoker.eCommitFail);
-			}
-			if (!serviceFrom.renameTo(versionTo)) {
-				logger.error("commitService install version fail: {} -> {}", serviceFrom, versionTo);
-				return err(Zoker.eCommitFail);
-			}
-			// rename保留源目录的最后修改时间（=上传时间），盖写为安装时间，作为保留策略的排序依据。
-			if (!versionTo.setLastModified(System.currentTimeMillis()))
-				logger.warn("commitService setLastModified fail: {}", versionTo);
-		}
-		// 指针与 prune 参数用盘上实际目录名，不用请求原样文本。Win32 解析下
-		// "V1"跨大小写命中 v1 跳装、"v1."renameTo 落盘为 v1——原样文本写指针后 currentVersionDir
-		// 靠跨规范化解析侥幸能启动，但 pruneVersions 的现役保护面对"盘上真名 vs 请求文本"分叉
-		// 时物理现役目录落入清理面被删（keep=3 三版本存量即 wedge：current 悬空、start 恒
-		// eNoServiceProperties）。规范化后指针、prune 参数、盘上目录三者同名，分叉源头闭合。
-		var installed = onDiskVersionName(svcDir, versionNo);
-		try {
-			switchCurrent(svcDir, installed);
-		} catch (IOException ex) {
-			// 现役未动；新版本目录已装好，重试同参数走"目标已存在"分支直接再切，收敛。
-			logger.error("commitService switch current fail: services/{} version={}", serviceName, versionNo, ex);
 			return err(Zoker.eCommitFail);
 		}
-		pruneVersions(svcDir, installed);
-		return 0;
+		// zoker-05（FND26）：集合级完整性屏障——文件级md5（CloseFile）与目录级搬运
+		//（rename）之间缺"本次发布集合已完整"的事实：open预建的空目录、上传中断的
+		// 部分集合都可整目录成版并切current（start从坏版本启动：NoClassDefFound/
+		// eNoServiceProperties，方向可见但已切现役）。屏障=部署方在全部文件收口后补传的
+		// 集合清单：清单存在即声明集合完整，commit校验齐全+清退残留；无清单走legacy
+		// 路径（外部部署工具/直构形态），由下方空目录拒绝兜底。
+		var manifestRc = verifyDistributeManifest(serviceFrom, versionNo);
+		if (manifestRc != 0)
+			return manifestRc;
+		// 空目录拒绝（zoker-05）：closeUnder清掉在途未验证中间产物后目录可能为空——
+		// 空版本切current后start恒eNoServiceProperties直到重新commit，不得成版。
+		var remains = serviceFrom.listFiles();
+		if (null == remains || 0 == remains.length) {
+			logger.error("commitService empty distribute content: {}", serviceFrom);
+			return err(Zoker.eCommitFail);
+		}
 	}
+	// 隔离腾位紧邻安装：腾位与最终 rename 间的悬空窗（current==versionNo 停止态）
+	// 收缩到相邻两句 rename，失败路径由 rollbackQuarantinedVersion 闭合。"先暂存新
+	// 内容再腾位后双rename换位"（distributes→services/.zoker-installing.<millis>）把
+	// 高风险的跨容器 rename 挪到腾位前，但引入第三名字族（保留字/入口清扫/prune候选
+	// 排除/改回路径全要动）且残余面不变（外部句柄可钉暂存名与钉 distributes 同物理
+	// 暴露），KISS 弃；跨平台无目录原子交换 API，残余=回滚失败（见 rollback）。
+	var quarantinedStage = new File[]{null};
+	if (swapNeeded) {
+		var processManager = null != zoker ? zoker.getProcessManager() : null;
+		Runnable swapStep = () -> {
+			if (null != processManager) {
+				// 在用版本保护：run.pid指向的版本目录不隔离（服务不随current切换重启时仍从
+				// 旧版本目录运行，隔离+暂存清扫=拆运行中服务的文件）。与start的
+				// launch→writeRunPid窗口互斥（withServiceLock；锁序commitLocks→opsLocks单向
+				// 嵌套）；版本不可知（旧格式身份空串）无法证明不是本版本，宁拒不删。
+				var running = processManager.runningVersion(serviceName);
+				if (null != running && (running.isEmpty()
+						|| foldVersionName(running).equals(foldVersionName(versionNo)))) {
+					logger.error("commitService refuse swap, version in use by running service: services/{} version={} running={}",
+							serviceName, versionNo, running);
+					return;
+				}
+			}
+			quarantinedStage[0] = quarantineVersion(svcDir, versionTo);
+			if (null == quarantinedStage[0])
+				logger.error("commitService quarantine rename fail (retryable): {}", versionTo);
+		};
+		if (null != processManager)
+			processManager.withServiceLock(serviceName, swapStep);
+		else
+			// 直构测试形态：无进程身份可锁/可保护。
+			swapStep.run();
+		if (null == quarantinedStage[0])
+			return err(Zoker.eCommitFail); // 在用拒绝/隔离rename失败（Windows句柄占用）：可重试，现役未动
+	}
+	if (!versionTo.exists()) {
+		// 先验源存在再动目标目录：step1失败（distributes/<svc>缺失——重复提交/超时重试的
+		// 典型情形）时连services/<svc>容器目录也不创建，彻底无副作用（源目录判别已前置）。
+		try {
+			// renameTo不创建父目录：services/<svc>/这层缺失时renameTo必false
+			Files.createDirectories(svcDir.toPath());
+		} catch (IOException ex) {
+			logger.error("commitService createDirectories {}", svcDir, ex);
+			rollbackQuarantinedVersion(quarantinedStage[0], versionTo);
+			return err(Zoker.eCommitFail);
+		}
+		if (!serviceFrom.renameTo(versionTo)) {
+			logger.error("commitService install version fail: {} -> {}", serviceFrom, versionTo);
+			rollbackQuarantinedVersion(quarantinedStage[0], versionTo);
+			return err(Zoker.eCommitFail); // 腾位已回滚（全新安装则本无腾位）：可重试，现役未动
+		}
+		// rename保留源目录的最后修改时间（=上传时间），盖写为安装时间，作为保留策略的排序依据。
+		if (!versionTo.setLastModified(System.currentTimeMillis()))
+			logger.warn("commitService setLastModified fail: {}", versionTo);
+	}
+	// 指针与 prune 参数用盘上实际目录名，不用请求原样文本。Win32 解析下
+	// "V1"跨大小写命中 v1 跳装、"v1."renameTo 落盘为 v1——原样文本写指针后 currentVersionDir
+	// 靠跨规范化解析侥幸能启动，但 pruneVersions 的现役保护面对"盘上真名 vs 请求文本"分叉
+	// 时物理现役目录落入清理面被删（keep=3 三版本存量即 wedge：current 悬空、start 恒
+	// eNoServiceProperties）。规范化后指针、prune 参数、盘上目录三者同名，分叉源头闭合。
+	var installed = onDiskVersionName(svcDir, versionNo);
+	try {
+		switchCurrent(svcDir, installed);
+	} catch (IOException ex) {
+		// 现役未动；新版本目录已装好，重试同参数走"目标已存在"分支直接再切，收敛。
+		logger.error("commitService switch current fail: services/{} version={}", serviceName, versionNo, ex);
+		return err(Zoker.eCommitFail);
+	}
+	pruneVersions(svcDir, installed);
+	return 0;
+}
 
 	/**
 	 * 把请求 versionNo 规范化为 services/&lt;svc&gt; 下折叠同名的<b>盘上实际目录名</b>：
@@ -853,14 +871,34 @@ public class DistributeManager {
 	/**
 	 * 隔离换装：不可收养的版本目录原子改名进暂存删除名（与 prune 的暂存删除同一前缀，
 	 * 同容器rename）——版本名位置腾给新内容落正常安装分支；暂存名由下一次 pruneVersions
-	 * 入口清扫。rename 失败（Windows句柄占用等）返回 false：eCommitFail 可重试，现役未动。
+	 * 入口清扫。rename 失败（Windows句柄占用等）返回 null：eCommitFail 可重试，现役未动。
+	 * 成功返回暂存名目录：安装期失败时由 {@link #rollbackQuarantinedVersion} 改回原位。
 	 */
-	private static boolean quarantineVersion(File svcDir, File versionTo) {
+	private static @Nullable File quarantineVersion(File svcDir, File versionTo) {
 		var stage = new File(svcDir, DELETING_STAGE_PREFIX + versionTo.getName() + '.' + System.currentTimeMillis());
 		if (!versionTo.renameTo(stage))
-			return false;
+			return null;
 		logger.warn("commitService quarantined unadoptable version dir: {} -> {}", versionTo, stage);
-		return true;
+		return stage;
+	}
+
+	/**
+	 * 隔离换装的失败回滚：腾位后安装失败（容器创建/最终rename）时把暂存名目录
+	 * best-effort 改回原版本名——current 指针内容未被触碰，指针→目录可达性即恢复
+	 * （停止态现役重新可启动）。回滚失败（腾位与回滚之间外部句柄钉住暂存目录：
+	 * AV/备份在窗口内打开其内文件，与安装 rename 失败同源暴露）为声明残余：响亮
+	 * error 携带暂存名与原位置供人工抢救，发生面远小于修复前"任何安装期失败都
+	 * 悬空且只有 quarantine warn"。staged 为 null（未腾位/全新安装失败）时无操作。
+	 */
+	private static void rollbackQuarantinedVersion(@Nullable File staged, File versionTo) {
+		if (null == staged)
+			return;
+		if (staged.renameTo(versionTo)) {
+			logger.warn("commitService rollback: quarantined version restored {} -> {}", staged, versionTo);
+			return;
+		}
+		logger.error("commitService rollback quarantined version FAIL, current dangling: {} -> {} (manual rescue)",
+				staged, versionTo);
 	}
 
 	/**
