@@ -363,17 +363,25 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	 * 不保证同连接处理顺序，参见ThreadingServer.ProcessKeepAlive的Direct注解），理论上补偿
 	 * 请求可先于原请求被处理——参与方查无上下文应答eSagaNotFound，而上下文随后才注册并
 	 * 执行业务，该次补偿被静默吞掉且无人再发。窗口的现实前提是参与方派发线程在出队后停滞
-	 * 约rpc超时（flushTimeout）量级（池饥饿/长GC），重试延迟取同量级的flushTimeout：重发一次
-	 * cancel；仍eSagaNotFound即放弃（请求确实未到达或业务已自清理，无补偿对象）。正常完成
-	 * （成功/业务失败）的步骤不重试——它们的FuncSaga已被参与方应答过，注册必然先于
-	 * FuncSagaEnd，NotFound是终态。
+	 * 约rpc超时（flushTimeout）量级（池饥饿/长GC/检查点占用worker，onz-07），重试延迟取
+	 * 同量级的flushTimeout：重发一次cancel。正常完成（成功/业务失败）的步骤不重试——
+	 * 它们的FuncSaga已被参与方应答过，注册必然先于FuncSagaEnd，NotFound是终态。
+	 * <p>
+	 * give-up语义（onz-02）：重试仍eSagaNotFound不再视为了结——"仍NotFound=请求确实未
+	 * 到达或业务已自清理"是不可证前提：停滞无上界（onz-07证明检查点可占用派发worker
+	 * 数秒以上），滞留未处理的FuncSaga使原发+重试两次都命中NotFound，give-up了结+删决策
+	 * 记录后队列才恢复、FuncSaga执行并"发结果即本地提交"，补偿永久失去。返回false把
+	 * 删除推迟到redo轮的重发确认（RedoPreparingMinAgeMs年龄闸+60s周期≈决策后2~4分钟，
+	 * 预算从2×flushTimeout扩约一个量级）：上下文在窗口内注册则redo补发的cancel命中并
+	 * 补偿收敛即删；仍NotFound则redo按年轻良性移除（TestGcC01钉住的孤儿记录契约）——
+	 * 停滞超该预算的残余由超龄NotFound分诊兜底（SagaNotFoundAgedBudgetMs）。
 	 * <p>
 	 * 选型说明：不采用"FuncSaga上下文注册改Direct派发"——那需要把整个业务执行（含DB事务与
 	 * sendReadyAndWait）搬进IO线程或拆分生成处理器契约，爆炸半径远大于协调者侧一次延迟重发。
 	 * 也不新增"尚未注册"错误码——参与方无法区分"尚未注册"与"已清理"，且错误码常量在生成代码。
 	 *
-	 * @return true=该步骤补偿已了结（补发成功，或重试仍NotFound——上下文确不在，无补偿
-	 * 对象）；false=补发投递不确定/致命应答，调用方保留决策记录交redo。
+	 * @return true=该步骤补偿已了结（补发成功）；false=重试仍NotFound（未证缺席，保留
+	 * 决策记录交redo重发确认）或补发投递不确定/致命应答，调用方保留决策记录交redo。
 	 */
 	private boolean retryCancelNotFoundOnce(@NotNull String zezeName) {
 		try {
@@ -390,8 +398,10 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			r.SendForWait(onzServer.getZezeInstance(zezeName), flushTimeout).get();
 			var code = IModule.getErrorCode(r.getResultCode()); // 线上为moduleId组合值，解码后比较
 			if (code == AbstractOnz.eSagaNotFound) {
-				logger.warn("cancel saga retry still not found, give up. tid={}, zeze={}", onzTid, zezeName);
-				return true;
+				logger.warn("cancel saga retry still not found, keep decision record for redo."
+								+ " tid={}, zeze={}",
+						onzTid, zezeName);
+				return false;
 			}
 			if (code != 0) {
 				logger.fatal("cancel saga retry error {}", code);
