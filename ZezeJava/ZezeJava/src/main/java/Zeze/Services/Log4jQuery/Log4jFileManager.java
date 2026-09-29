@@ -352,6 +352,19 @@ public class Log4jFileManager extends ReentrantLock {
 				break;
 
 			case 1: // rotate target
+				// 事件目标必须是普通文件：rotate名目录（运维/备份/拷贝脚本的中转目录，WatchService
+				// 对目录创建同样递交事件）过日期段名字判定即进入本分支，索引移交+改指会把active条目
+				// 劫持到目录上——查询命中该条目时FileChannel.open(目录)抛非FileNotFoundException的
+				// IOException（Windows AccessDenied/Linux IsADirectory），逃逸seek/open的FNFE降级链
+				// 使整请求失败；reconcile的exists()摘除判据对目录恒假，运行期无自愈（仅重启loadRotates
+				// 的isFile过滤收敛）。非普通文件忽略+warn，reconcile/repointMissedRotation的isFile
+				// 过滤天然排除它（目录不是可查询对象）；后续被替换成真文件时由对账常规补登。
+				// 判定以logDir下的目标为准（与事件路径的绝对/相对形态解耦，同onFileCreated其余
+				// 路径的manager视角）。
+				if (!Files.isRegularFile(new File(logConf.logDir, fileName).toPath())) {
+					logger.warn("rotate target is not a regular file, ignore: {}", fileName);
+					return;
+				}
 				if (files.isEmpty())
 					return;
 
