@@ -53,8 +53,8 @@ public class Dbh2FullTest {
 				table1.replace(trans, key1, env.value);
 				trans.commitBreakAfterPrepareForDebugOnly();
 			}
-			// <CustomizeConf Name="Dbh2Config" RpcTimeout="1000" PrepareMaxTime="2000" BucketMaxTime="3000"/>
-			// BucketMaxTime
+			// <CustomizeConf Name="Dbh2Config" RpcTimeout="1000" PrepareMaxTime="2000" BucketMaxTime="62000"/>
+			// （BucketMaxTime 必须 >= PrepareMaxTime + 60000：低余量会被配置解析fail-fast拒绝）
 			// 由于raft选举，第一服务可用时间比较长，这个超时需要很长，这个回查测试先不做了。
 			// 需要时，去掉这个注释，然后在测试log中查找" query"以及"timeout undo"。验证回查。
 			// Thread.sleep(110_000);

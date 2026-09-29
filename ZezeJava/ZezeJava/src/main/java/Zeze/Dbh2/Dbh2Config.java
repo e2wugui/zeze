@@ -9,9 +9,15 @@ import org.w3c.dom.Element;
  * Dbh2 配置项：从 Config 自定义节解析 RPC 超时、分桶与提交模式等参数。
  */
 public class Dbh2Config implements Config.ICustomize {
+	// 桶侧undo定时相对prepare时限的强制安全余量下界（FND29 dbh2-03止血）：2PC超时围栏的安全性
+	// 建立在协调者与桶两侧墙钟读数一致上，余量必须覆盖最大允许钟差（NTP步进校正/VM暂停恢复的
+	// 阶跃预算，60s量级）。低于此余量的配置会让桶侧在协调者仍合法的prepare窗口内undo已决定
+	// 提交的事务（客户端确认成功而数据灭失），配置解析处fail-fast挡住。index fencing断根留池（独立裁定）。
+	public static final long MinBucketUndoMarginMs = 60_000;
 	private int rpcTimeout = 60_000;
 	private long prepareMaxTime = 80_000; // 一般大于rpcTimeout
-	private long bucketMaxTime = 100_000; // 必须大于prepareMaxTime
+	// 必须 >= prepareMaxTime + MinBucketUndoMarginMs（默认值即满足），见MinBucketUndoMarginMs注释。
+	private long bucketMaxTime = 140_000;
 	private int serverFastErrorPeriod = 5000;
 	private int splitPutCount = 100;
 	private double splitLoad = 5000 * 0.8;
@@ -118,8 +124,14 @@ public class Dbh2Config implements Config.ICustomize {
 		if (!attr.isBlank())
 			bucketMaxTime = Long.parseLong(attr);
 
-		if (bucketMaxTime - prepareMaxTime < 1000)
-			bucketMaxTime = prepareMaxTime + 1000;
+		// fail-fast（FND29 dbh2-03）：低余量误配直接报配置错误而非静默抬高——静默修正会掩盖
+		// "安全围栏依赖跨机墙钟一致"这一部署前提，低余量下桶时钟前跳越余量即undo已决定提交
+		// 的事务。错误信息带字段与要求值（对齐CommitServerAddress的校验惯例）。
+		if (bucketMaxTime - prepareMaxTime < MinBucketUndoMarginMs)
+			throw new RuntimeException("Dbh2Config BucketMaxTime must be >= PrepareMaxTime + "
+					+ MinBucketUndoMarginMs + " (bucket-undo fence safety margin over cross-machine clock skew),"
+					+ " got: RpcTimeout=" + rpcTimeout + " PrepareMaxTime=" + prepareMaxTime
+					+ " (auto-raised to RpcTimeout+1000 if configured lower) BucketMaxTime=" + bucketMaxTime);
 
 		attr = self.getAttribute("ServerFastErrorPeriod");
 		if (!attr.isBlank())

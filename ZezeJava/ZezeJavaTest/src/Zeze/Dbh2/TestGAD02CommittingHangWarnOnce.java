@@ -121,7 +121,7 @@ public class TestGAD02CommittingHangWarnOnce {
 			Assertions.assertTrue(sm.getTransactions().containsKey(TID),
 					"prepare applied must leave live transaction in leader map");
 
-			// 老化createTime：反射置为2000s前，超过告警阈值10×bucketMaxTime（默认1000s）。
+			// 老化createTime：反射置为2000s前，超过告警阈值10×bucketMaxTime（默认1400s）。
 			var txn = sm.getTransactions().get(TID);
 			Field createTimeField = Zeze.Dbh2.Dbh2Transaction.class.getDeclaredField("createTime");
 			createTimeField.setAccessible(true);
