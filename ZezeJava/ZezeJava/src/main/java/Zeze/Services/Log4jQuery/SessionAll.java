@@ -23,8 +23,9 @@ import org.jetbrains.annotations.NotNull;
  * 跨全部日志服务端的聚合查询会话：对每台建 Session，归并 search/browse 结果并跟踪各台完成状态。
  * 部分失败降级（单台异常不牺牲其余台）+ 会话成员集在 operate 内向注册表双向收敛：缺册补入
  * （reconcileMissingMembers）、摘册逐出（evictUnregisteredMembers）、在册死亡自愈重建
- * （renewDeadMembers）。死亡成员重建与逐出后重入均从该成员已投递水位续扫（见
- * memberSeekBase），已投递区间不跨页重复投递。
+ * （renewDeadMembers）。死亡成员重建、逐出后重入与瞬时失败（超时/发送失败页可能已被
+ * 服务端游标越过而未投递）均从该成员已投递水位续扫（见memberSeekBase/markTransientLoss），
+ * 已投递区间不跨页重复投递，重复收敛为水位边界同时间的少量条目。
  */
 public class SessionAll implements AutoCloseable {
 	private static final @NotNull Logger logger = LogManager.getLogger(SessionAll.class);
@@ -46,7 +47,15 @@ public class SessionAll implements AutoCloseable {
 	// 成员级续扫基点（捕获语义）：重建时刻的水位快照，此后翻页固定下发该值——服务端
 	// beginTime去重哨兵据此短路、游标连续推进。不得逐页跟踪水位（服务端会不断reset+seek
 	// 到更新的水位，跳过未投递区间丢数据）。reset=true（新查询序列）与close时失效。
+	// 瞬时失败（RPC超时/发送失败，见markTransientLoss）同样以此为续扫基点：页协议是
+	// "游标推进+应答"的至多一次语义，超时页被服务端游标越过、迟到应答因rpc上下文已
+	// 摘除被丢弃，不重定位则该页窗口在聚合结果中永久缺失。
 	private final ConcurrentHashMap<String, Long> memberSeekBase = new ConcurrentHashMap<>();
+	// 无已投递水位（首页未投递）的瞬时失败成员：下一页强制reset重定位到查询下界重发
+	// ——同beginTime重发被服务端去重哨兵短路、从已越过丢失页的游标续读，唯有reset能
+	// 强制重定位；无已投递即无重复。成功投递一页即清除；参数级失败不置（确定性错误，
+	// 服务端入口校验拒绝、游标未动，重定位无益）。
+	private final ConcurrentHashSet<String> memberForceReset = new ConcurrentHashSet<>();
 
 	public SessionAll(LogAgent agent, String logName) {
 		this.agent = agent;
@@ -111,6 +120,8 @@ public class SessionAll implements AutoCloseable {
 				failedServers.add(session.getName());
 				if (Session.isSessionLevelError(e))
 					deadMembers.add(session.getName());
+				else if (!(e instanceof Session.InvalidArgumentException))
+					markTransientLoss(session.getName());
 				if (firstFailure == null)
 					firstFailure = e;
 				else
@@ -134,6 +145,10 @@ public class SessionAll implements AutoCloseable {
 				failedServers.add(future.getValue().getName());
 				if (Session.isSessionLevelError(e))
 					deadMembers.add(future.getValue().getName());
+				else if (!(e instanceof Session.InvalidArgumentException))
+					// 瞬时失败（超时/网络抖动）页可能已被服务端游标越过而未投递：标记续扫，
+					// 下次operate从已投递水位（或无水位时强制reset）重定位重发，不静默缺页。
+					markTransientLoss(future.getValue().getName());
 				if (firstFailure == null)
 					firstFailure = e;
 				else
@@ -148,6 +163,7 @@ public class SessionAll implements AutoCloseable {
 			// 已投递水位推进：取本页各日志time的最大值与既有水位合并（见deliveredWatermark）。
 			for (var log : r.getLogs())
 				deliveredWatermark.merge(future.getValue().getName(), log.getTime(), Math::max);
+			memberForceReset.remove(future.getValue().getName()); // 成功投递：强制reset使命完成
 			remain = remain || r.isRemain();
 			if (!r.isRemain())
 				finishedSession.add(future.getValue().getName());
@@ -175,6 +191,22 @@ public class SessionAll implements AutoCloseable {
 	}
 
 	/**
+	 * 瞬时失败（非会话级、非参数级：RPC超时/发送失败/连接抖动）成员的续扫标记：页协议是
+	 * "游标推进+应答"的至多一次语义，失败页可能已被服务端游标越过而未投递——有已投递
+	 * 水位则续扫基点推进到当前水位（下次operate从水位重定位重发丢失页，重复收敛为水位
+	 * 边界同时间少量条目，与renewDeadMembers的基点语义一致）；无水位（首页未投递）置
+	 * 强制reset标记（重定位到查询下界重发，无已投递即无重复）。对已持有续扫基点的成员
+	 * （重建/重入后翻页中）同样推进：水位之前的页均已投递，推进只收敛重复。
+	 */
+	private void markTransientLoss(String name) {
+		var watermark = deliveredWatermark.get(name);
+		if (null != watermark)
+			memberSeekBase.put(name, watermark);
+		else
+			memberForceReset.add(name);
+	}
+
+	/**
 	 * 缺册补员：注册表新增或构造期跳过的服务器不在 alls 内，无补入入口则该台数据持续静默缺席、
 	 * remain 提前 false。operate 入口对差集逐台尝试补入，补入的新成员参与本轮查询；失败记
 	 * per-member 退避时间戳（60s 窗内不重试）。与 {@link #renewDeadMembers}（在册死亡重建）互补。
@@ -191,6 +223,8 @@ public class SessionAll implements AutoCloseable {
 				alls.put(serverName, agent.newSession(serverName, logName));
 				// 重入成员（摘册逐出后回归的抖动/重部署形态）若在本会话有投递历史，以水位续扫
 				// （同renewDeadMembers的基点语义）：无水位=本会话从未投递，按原条件从头扫描即正确。
+				// 新会话首个请求必重定位，强制reset标记随之失效清除。
+				memberForceReset.remove(serverName);
 				var watermark = deliveredWatermark.get(serverName);
 				if (null != watermark)
 					memberSeekBase.put(serverName, watermark);
@@ -222,6 +256,7 @@ public class SessionAll implements AutoCloseable {
 			it.remove();
 			finishedSession.remove(entry.getKey());
 			memberSeekBase.remove(entry.getKey());
+			memberForceReset.remove(entry.getKey());
 			memberRetryBackoff.remove(entry.getKey());
 			logger.warn("evicted unregistered member from all-servers session. server='{}', logName '{}'",
 					entry.getKey(), logName);
@@ -248,7 +283,9 @@ public class SessionAll implements AutoCloseable {
 			try {
 				alls.put(name, agent.newSession(name, logName));
 				// 续扫基点=重建时刻的已投递水位（见memberSeekBase）；无水位=该成员
-				// 从未投递过任何页，按原条件从头扫描即正确。
+				// 从未投递过任何页，按原条件从头扫描即正确。新会话beginTime哨兵为初始值，
+				// 首个请求必重定位，强制reset标记随之失效清除。
+				memberForceReset.remove(name);
 				var watermark = deliveredWatermark.get(name);
 				if (null != watermark)
 					memberSeekBase.put(name, watermark);
@@ -328,20 +365,25 @@ public class SessionAll implements AutoCloseable {
 	public BResult.Data search(int limit, boolean reset, BCondition.Data condition) throws Exception {
 		if (reset)
 			clearQuerySequenceState();
-		return operate((session) -> session.search(limit, reset, seekCondition(session.getName(), condition)));
+		return operate((session) -> session.search(limit,
+				reset || memberForceReset.contains(session.getName()),
+				seekCondition(session.getName(), condition)));
 	}
 
 	public BResult.Data browse(int limit, float offsetFactor, boolean reset, BCondition.Data condition) throws Exception {
 		if (reset)
 			clearQuerySequenceState();
-		return operate((session) -> session.browse(limit, offsetFactor, reset, seekCondition(session.getName(), condition)));
+		return operate((session) -> session.browse(limit, offsetFactor,
+				reset || memberForceReset.contains(session.getName()),
+				seekCondition(session.getName(), condition)));
 	}
 
-	/** 新查询序列（reset=true）：完成集与续扫基点/水位随旧序列一起失效。 */
+	/** 新查询序列（reset=true）：完成集与续扫基点/水位/强制reset随旧序列一起失效。 */
 	private void clearQuerySequenceState() {
 		finishedSession.clear();
 		memberSeekBase.clear();
 		deliveredWatermark.clear();
+		memberForceReset.clear();
 	}
 
 	@Override
@@ -362,6 +404,7 @@ public class SessionAll implements AutoCloseable {
 		finishedSession.clear();
 		memberSeekBase.clear();
 		deliveredWatermark.clear();
+		memberForceReset.clear();
 		if (first != null)
 			throw first;
 	}
