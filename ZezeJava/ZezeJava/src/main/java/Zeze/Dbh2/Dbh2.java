@@ -884,7 +884,11 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 	public long splitPutNext(boolean isMove, SplitPut r, RocksIterator it, long serialNo) {
 		try {
-			var hasError = r.getResultCode() != 0;
+			// RaftApplied豁免为成功（FND28 F2，对齐Dbh2Agent.get/CommitRocks四处的既有先例）：
+			// SplitPut应答丢失→Agent 1s重发→服务端unique-request重放回RaftApplied——页面已
+			// 落盘（apply已发生），按错误重入startSplit会从分界键整段重拷贝（目标侧putIfAbsent
+			// 幂等，纯扰动/带宽浪费）。
+			var hasError = r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied;
 			if (!raft.isLeader() || dbh2Splitting == null || serialNo != splitSerialNo) {
 				it.close();
 				// 身份失配不重试：重试的前提是回调仍代表当前轮（本机leader且serialNo未失配），
@@ -1090,7 +1094,10 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			var r = new SplitPut(batch.data);
 			agent.getRaftAgent().send(r, (p) -> {
 				// 回调在user-task线程（RaftAgentNetClient.dispatchRpcResponse→executeUserTask按raft名串行）
-				if (r.getResultCode() != 0) {
+				// RaftApplied豁免（FND28 F2，对齐splitPutNext/Dbh2Agent.get先例）：应答丢失重发被
+				// 服务端unique-request重放回RaftApplied=批次已落盘，照常推进水位续投；不豁免则
+				// 不推水位、1s后重投同批（replace幂等，一轮收敛的纯扰动）。
+				if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied) {
 					splitSyncInFlight.set(false);
 					// 终局失败（超时/非重试错误）：不推进水位，条目留队列定时重投——目标桶恢复即送达
 					TaskSpec.ofAction(this::driveSplitSync).schedule(1000);
