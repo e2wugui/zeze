@@ -232,9 +232,18 @@ public class CommitRocks {
 		}
 
 		if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime()) {
-			undo(tid, state);
+			// 对齐上方catch分支的防护：undo失败不能掩盖超时异常，更不能跳过removeTransactionRecord
+			// ——inFlightTids的唯一移除点在其中，跳过则tid永久滞留，redoTimer对该记录终身免疫。
+			// undo失败留给redoTimer（记录已删、登记已清，可接管重发）与桶侧onTimer收敛。
+			var ex = new RuntimeException(Str.format("max prepare time exceed. time={}",
+					manager.getDbh2Config().getPrepareMaxTime()));
+			try {
+				undo(tid, state);
+			} catch (Throwable undoEx) {
+				ex.addSuppressed(undoEx); // undo失败不能掩盖原始异常
+			}
 			removeTransactionRecord(tidBytes);
-			throw new RuntimeException(Str.format("max prepare time exceed. time={}", manager.getDbh2Config().getPrepareMaxTime()));
+			throw ex;
 		}
 		return tid;
 	}
