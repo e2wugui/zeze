@@ -236,23 +236,32 @@ public class ThreadingServer extends AbstractThreadingServer {
 		protected long ProcessKeepAlive(KeepAlive p) {
 		var threads = simulateThreadsByServerId.computeIfAbsent(p.Argument.getServerId(), SimulateThreads::new);
 		threads.activeTime = System.currentTimeMillis();
-		if (null == threads.lastAppSerial) {
-			threads.lastAppSerial = p.Argument;
-			return 0; // first keepAlive。record only。
-		}
-		if (threads.lastAppSerial.getAppSerialId() != p.Argument.getAppSerialId()) {
-			// serial无单调性判据——同serverId双实例（重建窗口内旧keepAliveTask在途、
-			// 或错误配置双客户端）时两个appSerialId交替到达，10秒一轮互解，正常持锁者被持续
-			// 强制释放。appSerialId为PersistentAtomicLong单调递增：仅更高的serial接管（release
-			// 旧资源），更低的视为旧实例迟到，忽略不release。
-			if (p.Argument.getAppSerialId() > threads.lastAppSerial.getAppSerialId()) {
-				threads.release();
+		// 串行化serial的check-then-act：多selector线程部署下不同连接的KeepAlive在各自IO线程
+		// 并发到达，"读lastAppSerial→比较→release→写回"非原子——同serverId双实例交错时双双通过
+		// 单调判据、双release（合法新owner的锁被误释放），且低serial后写覆盖高serial触发下轮再释放。
+		// 模块锁可重入（SimulateThreads.release同锁），KeepAlive频率低（10s周期）无争用顾虑。
+		lock();
+		try {
+			if (null == threads.lastAppSerial) {
 				threads.lastAppSerial = p.Argument;
+				return 0; // first keepAlive。record only。
 			}
+			if (threads.lastAppSerial.getAppSerialId() != p.Argument.getAppSerialId()) {
+				// serial无单调性判据——同serverId双实例（重建窗口内旧keepAliveTask在途、
+				// 或错误配置双客户端）时两个appSerialId交替到达，10秒一轮互解，正常持锁者被持续
+				// 强制释放。appSerialId为PersistentAtomicLong单调递增：仅更高的serial接管（release
+				// 旧资源），更低的视为旧实例迟到，忽略不release。
+				if (p.Argument.getAppSerialId() > threads.lastAppSerial.getAppSerialId()) {
+					threads.release();
+					threads.lastAppSerial = p.Argument;
+				}
+				return 0;
+			}
+			// same app serialId. done.
 			return 0;
+		} finally {
+			unlock();
 		}
-		// same app serialId. done.
-		return 0;
 	}
 
 	private void timeoutRelease() {
@@ -509,8 +518,11 @@ public class ThreadingServer extends AbstractThreadingServer {
 				(This) -> {
 					var semaphoreAcq = This.semaphoreRefs.get(r.Argument.getLockName().getName());
 					if (null != semaphoreAcq) {
-						semaphoreAcq.semaphore.release(r.Argument.getPermits());
-						semaphoreAcq.permits -= r.Argument.getPermits();
+						// 钳制到入账持有量：客户端bug/恶意输入的超量release会直接膨胀JDK信号量
+						// 真实容量（账面负值删条目、膨胀永久保留），信号量的并发约束被静默击穿。
+						int actual = Math.min(r.Argument.getPermits(), semaphoreAcq.permits);
+						semaphoreAcq.semaphore.release(actual);
+						semaphoreAcq.permits -= actual;
 						if (semaphoreAcq.permits <= 0) {
 							// 马上要删除了，这个值本来不需要重置。如果下一次申请继续使用这个对象，必须设为0。
 							// 现在不清除它（permits = 0），让后面的日志和结果能反应更多信息。
