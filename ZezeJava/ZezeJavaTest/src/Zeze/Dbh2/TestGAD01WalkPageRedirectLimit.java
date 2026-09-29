@@ -18,11 +18,12 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * FND19 GA-D01回归：walkPage对refused重定向设上限2次（对齐Dbh2Table.find先例，
- * 拍板方案A）。场景：master侧表长期陈旧（分桶发布失败等），客户端每轮reload都拿到
- * 同一张陈旧分桶表，桶服务端持续bucketRefuse。bug时无限循环——每轮2次rpc无声占用
- * 线程与配额，调用方永不返回。钉住：第3次连续refused抛RuntimeException，
- * 消息带master/database/table与计数上下文；fetch成功即清零计数不在此测试范围。
+ * FND19 GA-D01回归：walkPage对refused重定向设上限（对齐Dbh2Table.find先例，拍板方案A；
+ * 上限值后经bf8923edc自2放宽、ed89f2d51把判定收敛为refused总数恰256，本测试随新契约对齐）。
+ * 场景：master侧表长期陈旧（分桶发布失败等），客户端每轮reload都拿到同一张陈旧分桶表，
+ * 桶服务端持续bucketRefuse。bug时无限循环——每轮2次rpc无声占用线程与配额，调用方永不返回。
+ * 钉住：连续refused总数达256（前255次各reload后重试、第256次）抛RuntimeException，消息带
+ * master/database/table与计数上下文；fetch成功即清零计数不在此测试范围。
  * 形态：纯桩直构——MasterAgent.getBuckets恒返同一张陈旧表，Dbh2Agent.walk恒返
  * bucketRefuse（真实walk入口的fetcher负责映射isBucketRefuse为REFUSED，一并覆盖）。
  */
@@ -79,7 +80,7 @@ public class TestGAD01WalkPageRedirectLimit {
 
 	@Timeout(60) // bug回归时walkPage无限循环，用超时兜底转成失败而不是挂死车道
 	@Test
-	public void testThirdConsecutiveRefusedThrowsWithContext(@TempDir Path tempDir) throws Exception {
+	public void testConsecutiveRefusedBeyondLimitThrowsWithContext(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
 		var agent = new RefusedAgent();
 		var manager = new Dbh2AgentManager(new Fnd19GADStubSupport.NullServiceAgent(),
@@ -100,7 +101,7 @@ public class TestGAD01WalkPageRedirectLimit {
 			Assertions.assertTrue(ex.getMessage().contains("database=dbh2d01"), ex.getMessage());
 			Assertions.assertTrue(ex.getMessage().contains("table=t1"), ex.getMessage());
 			Assertions.assertEquals(256, agent.walkCount.get(),
-					"前两次refused各reload后重试，第3次必须抛出（上限2次重定向）");
+					"前255次refused各reload后重试，第256次必须抛出（refused总数上限256）");
 		} finally {
 			manager.stop();
 			agent.close();
