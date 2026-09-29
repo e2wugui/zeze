@@ -393,6 +393,11 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 					it.seekForPrev(lastKey.copyIf());
 				else
 					it.seekToLast();
+				// seekForPrev是闭语义（<=target）：桶内恰存在等于上界的key时迭代器落在其上（含
+				// prefixUpper==keyLast的分支），先跳过，否则首循环前缀过滤失败即误判桶尾，
+				// 本桶目标前缀的记录被静默跳过（与下方exclusiveStartKey同款跳过）。
+				if (it.isValid() && prefixUpper != null && prefixUpper.contentEquals(it.key()))
+					it.prev();
 			}
 			if (it.isValid() && exclusiveStartKey.size() > 0 && exclusiveStartKey.contentEquals(it.key()))
 				it.prev(); // skip exclusive key if need.
