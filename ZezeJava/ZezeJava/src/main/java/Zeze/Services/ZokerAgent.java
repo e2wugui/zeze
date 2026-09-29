@@ -213,8 +213,13 @@ public class ZokerAgent extends AbstractZokerAgent {
     private void distributeService(String zokerName, Path localServiceHome, File serviceDir,
                                    List<String> uploaded) throws Exception {
         var files = serviceDir.listFiles();
+        // listFiles()==null=目录列举失败（IO错误/权限拒绝/目录被并发删除），非空目录语义
+        //（zoker-02）：静默 return 会使该子树整棵缺失于 uploaded 与集合清单，服务端清单校验
+        // 只验"清单内齐全"，被裁剪的集合照常成版切 current——回执成功而现役版本缺文件。
+        // 对齐下方读失败路径（FileInputStream 抛错→closeFile 压制+重抛）：列失败同样上抛，
+        // 使整个 distributeService 失败、清单不提交。空数组仍走正常空目录语义。
         if (null == files)
-            return;
+            throw new IOException("listFiles fail: " + serviceDir);
 
         for (var file : files) {
             if (file.isDirectory()) {
