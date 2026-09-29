@@ -32,11 +32,15 @@ import org.jetbrains.annotations.Nullable;
 public class Producer extends AbstractProducer implements TransactionListener {
 	private static final @NotNull Logger logger = LogManager.getLogger(Producer.class);
 
-	// tSent过期行的保留时长（毫秒），默认7天：COMMIT路径保留的行在broker事务回查窗口（秒级起步、
-	// 次数有限，分钟级总窗口）过后即为死数据，7天远超任何回查窗口上界；且回查对已删行答ROLLBACK
-	// （checkLocalTransaction），删除方向幂等安全。可经系统属性覆盖。
+	// tSent过期行的保留时长（毫秒），默认7天：行须存活到 broker 事务回查窗口结束——回查对已删行
+	// 答 UNKNOW（checkLocalTransaction），仍在恢复窗口内的 COMMIT 行被删即失去 COMMIT 丢失时的
+	// 兜底。可经系统属性覆盖，但不得低于 TSENT_KEEP_TIME_MIN（覆盖 broker 回查总窗口的上界估计）。
 	private static final String TSENT_KEEP_TIME_PROPERTY = "RocketMQ.Producer.tSentKeepTimeMillis";
 	private static final long TSENT_KEEP_TIME_DEFAULT = 7L * 24 * 60 * 60 * 1000;
+	// 保留时长下限（毫秒）：必须覆盖 broker 回查总窗口
+	// transactionTimeOut + transactionCheckMax × transactionCheckInterval（默认参数约15分钟），
+	// 取1小时（默认总窗口的约4倍）以容忍 broker 调大回查参数。
+	private static final long TSENT_KEEP_TIME_MIN = 60L * 60 * 1000;
 	// 每批walk的行数上限：每批独立一个事务过程删除，避免单过程长事务。
 	private static final int TSENT_CLEAN_BATCH_SIZE = 1000;
 	// stop 的有界排空预算：事务回查线程池在飞的 checkLocalTransaction（_tSent.selectDirty 触
@@ -191,13 +195,28 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	}
 
 	/**
+	 * 读取 tSent 保留时长配置（系统属性 {@value TSENT_KEEP_TIME_PROPERTY}，毫秒），
+	 * 低于 {@value #TSENT_KEEP_TIME_MIN} 的值钳到下限：deadline=now-keepTime 在 keepTime<=0 时
+	 * 不早于 now，清理会命中所有行（含仍在回查恢复窗口内的 COMMIT 行）。钳制而非抛错：对齐
+	 * PropertiesHelper 对非法配置 warn+安全回退的惯例，且本方法由周期任务调用，抛错会中断清理调度。
+	 */
+	static long tSentKeepTimeMillis() {
+		var keepTime = PropertiesHelper.getLong(TSENT_KEEP_TIME_PROPERTY, TSENT_KEEP_TIME_DEFAULT);
+		if (keepTime < TSENT_KEEP_TIME_MIN) {
+			logger.warn("RocketMQ.Producer tSentKeepTimeMillis={} below floor {}, clamped (must cover broker "
+					+ "transaction-check window)", keepTime, TSENT_KEEP_TIME_MIN);
+			return TSENT_KEEP_TIME_MIN;
+		}
+		return keepTime;
+	}
+
+	/**
 	 * 分批walk tSent，删除Timestamp早于保留阈值（默认now-7天）的行。
 	 * walk要求事务外调用（回调逐记录加读锁），故回调只收集key、每批独立一个事务过程删除；
 	 * 删除幂等（remove不存在行无效果），过程失败或异常留待下个清理周期从头重试。
 	 */
 	private void cleanExpiredTSent() {
-		var deadline = System.currentTimeMillis()
-				- PropertiesHelper.getLong(TSENT_KEEP_TIME_PROPERTY, TSENT_KEEP_TIME_DEFAULT);
+		var deadline = System.currentTimeMillis() - tSentKeepTimeMillis();
 		var expired = new ArrayList<String>(TSENT_CLEAN_BATCH_SIZE);
 		String startKey = null;
 		try {
