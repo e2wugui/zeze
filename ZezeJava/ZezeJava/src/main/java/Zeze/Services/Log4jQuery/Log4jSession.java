@@ -42,6 +42,12 @@ public class Log4jSession {
 	 * 量级：正常模式每字符O(1)次访问，64M字符远超常规查询窗；MAX_SCAN_BYTES满额扫描的请求
 	 * 可能先触本预算而多翻一页，语义不变。 */
 	public static final long MAX_SCAN_REGEX_CHARS = 64L * 1024 * 1024;
+	/** 单条日志参与正则判定的字符上限（log4j-03，FND26）：超长行（误打印的超大base64/JSON单行blob）
+	 * 截断参与匹配——前缀参与，与预算中止的部分匹配口径一致，截断warn留痕。上限必须严格小于
+	 * {@link #MAX_SCAN_REGEX_CHARS}：通读型pattern对截断视图的完整扫描也不触预算中止，保证该行
+	 * 必被判定并推进（不截断时>64M字符的行每页都耗尽整页预算：中止→暂存→重判同一行→再中止，
+	 * 游标永久卡死，每页固定烧满预算）。contains路径无正则预算不受影响，不截断（返回内容保持原样）。 */
+	public static final int MAX_REGEX_LOG_CHARS = 8 * 1024 * 1024;
 
 	private final Log4jFileWalker files;
 	// 正则预算中止的本条日志暂存（walker.next()取出即前进、判定未完成）：下一请求以重置后的
@@ -113,12 +119,19 @@ public class Log4jSession {
 
 	// 取下一条（含正则预算中止的暂存重判）：walker.next()取出即前进，预算中止的本条经暂存槽
 	// 由下一请求重新判定，不丢不重。
+	// lastLogFromPending（log4j-03，FND26）：本次取出的条是否来自暂存重判——首判预算中止
+	// 暂存是翻页协议的既有语义（客户端续页可换pattern/words重判，见FND24暂存交接契约）；
+	// 但暂存条以整页新预算重判仍然中止=该行对当前pattern不可判定，继续暂存只会无限重演
+	// 同一结局（游标永久卡死，每页固定烧满预算）——此时弃置前进。
+	private boolean lastLogFromPending;
 	private Log4jLog nextLog() throws IOException {
 		if (null != pendingNext) {
 			var pending = pendingNext;
 			pendingNext = null;
+			lastLogFromPending = true;
 			return pending;
 		}
+		lastLogFromPending = false;
 		return files.hasNext() ? files.next() : null;
 	}
 
@@ -239,18 +252,30 @@ public class Log4jSession {
 					return false; // end search
 				}
 
-				var budget = new RegexBudget(log.getLog(), regexChars);
+				var budget = new RegexBudget(regexInput(log), regexChars);
 				var matcher = regex.matcher(budget);
 				boolean matched;
 				try {
 					matched = matcher.find();
+					regexChars = budget.remaining(); // 仅成功判定才回收剩余预算（中止路径remaining已毒化为负）
 				} catch (RegexBudgetExceeded e) {
-					// 判定中止的本条：暂存重判（不丢不重），返回部分结果+Remain，客户端续页后预算重置。
-					pendingNext = log;
-					logger.warn("searchRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
-					return true; // remain
+					if (!lastLogFromPending) {
+						// 首判中止的本条：暂存重判（不丢不重），返回部分结果+Remain，客户端续页后
+						// 预算重置（可换pattern/words重判，FND24暂存交接契约）。
+						pendingNext = log;
+						logger.warn("searchRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
+						return true; // remain
+					}
+					// 暂存重判（整页新预算）仍中止（log4j-03死循环面）：该行对当前pattern不可判定，
+					// 继续暂存每页都得到同一结局——游标永久卡死。弃置该条+warn前进
+					//（匹配语义=不可判定即不命中，与截断的部分参与口径一致；客户端换pattern
+					// 的新查询经reset/新会话不受影响）。弃置行已烧满本页正则预算：清零使后续行
+					// 本页不再判定（暂存交下页新预算），单页正则工作量恒有界。
+					logger.warn("searchRegex skip unjudgeable log (re-judge with fresh budget still exceeded), logTime={}",
+							log.getTime());
+					matched = false;
+					regexChars = 0;
 				}
-				regexChars = budget.remaining();
 				if (matched) {
 					var lineBytes = utf8Length(log.getLog());
 					if (lineBytes > PAGE_RESULT_BYTES_BUDGET && result.isEmpty()) {
@@ -401,21 +426,31 @@ public class Log4jSession {
 						if (limit <= 0)
 							break;
 					} else {
-						var budget = new RegexBudget(log.getLog(), regexChars);
+						var budget = new RegexBudget(regexInput(log), regexChars);
 						var matcher = regex.matcher(budget);
 						boolean matched;
 						try {
 							matched = matcher.find();
+							regexChars = budget.remaining(); // 仅成功判定才回收剩余预算（中止路径remaining已毒化为负）
 						} catch (RegexBudgetExceeded e) {
-							// 本条已add进result且未判定（locate分支不触matcher，此处必为locate==false）：
-							// 移除后暂存重判（不丢不重），返回部分结果+Remain，客户端续页后预算重置。
 							result.pollLast();
 							resultBytes -= lineBytes;
-							pendingNext = log;
-							logger.warn("browseRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
-							return true; // remain
+							if (!lastLogFromPending) {
+								// 本条已add进result且未判定（locate分支不触matcher，此处必为locate==false）：
+								// 移除后暂存重判（不丢不重），返回部分结果+Remain，客户端续页后预算重置
+								//（可换pattern/words，FND24暂存交接契约）。
+								pendingNext = log;
+								logger.warn("browseRegex budget exceeded: {}, return partial with remain", MAX_SCAN_REGEX_CHARS);
+								return true; // remain
+							}
+							// 暂存重判（整页新预算）仍中止（log4j-03死循环面，同searchRegex）：
+							// 弃置前进，走matched=false的常规不匹配分支（offset窗口滑动照常）；
+							// 弃置行已烧满本页正则预算，清零使后续行本页不再判定。
+							logger.warn("browseRegex skip unjudgeable log (re-judge with fresh budget still exceeded), logTime={}",
+									log.getTime());
+							matched = false;
+							regexChars = 0;
 						}
-						regexChars = budget.remaining();
 						if (matched) {
 							locate = true;
 							limit -= result.size();
@@ -443,6 +478,15 @@ public class Log4jSession {
 	private static final class RegexBudgetExceeded extends RuntimeException {
 		@Serial
 		private static final long serialVersionUID = 1L;
+	}
+
+	/** 行级正则输入（log4j-03）：超长行截断为前缀参与匹配（语义见MAX_REGEX_LOG_CHARS注释）。 */
+	private CharSequence regexInput(Log4jLog log) {
+		var text = log.getLog();
+		if (text.length() <= MAX_REGEX_LOG_CHARS)
+			return text;
+		logger.warn("regex input truncated: log chars={} limit={}", text.length(), MAX_REGEX_LOG_CHARS);
+		return text.subSequence(0, MAX_REGEX_LOG_CHARS);
 	}
 
 	/** 正则预算CharSequence：regex引擎读输入只经charAt，在此计数、超限抛出中止（回溯重读重复计入）。 */
