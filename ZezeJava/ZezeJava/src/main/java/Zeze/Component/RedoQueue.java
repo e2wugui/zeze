@@ -1,6 +1,7 @@
 package Zeze.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.concurrent.Future;
 import Zeze.Builtin.RedoQueue.BQueueTask;
 import Zeze.Builtin.RedoQueue.BTaskId;
@@ -131,13 +132,15 @@ public class RedoQueue extends HandshakeClient {
 	// 删除水位（含）以下条目。重发只读lastDoneTaskId以上，以下条目（任务正文全量落盘）
 	// 永不清理=本地RocksDB无界增长。key为WriteLong变长编码（非负时字节序保序，非定长8字节大端），
 	// [key(0),key(lastDoneTaskId+1))即taskId<=lastDoneTaskId的全部；与水位推进同锁同线程，
-	// 重启时start()再补一次（清崩溃残留）。
+	// 重启时start()再补一次（清崩溃残留）。边界必须按WriteIndex截断后传入：deleteRange
+	// 按字节序整比较，未截断的enc(N+1)填充数组会把真前缀key(N+1)（下一跳待发任务）也括进区间。
 	private void deleteDoneTasks() throws RocksDBException {
-		var first = ByteBuffer.Allocate(8);
+		var first = ByteBuffer.Allocate(9);
 		first.WriteLong(0);
-		var end = ByteBuffer.Allocate(8);
+		var end = ByteBuffer.Allocate(9);
 		end.WriteLong(lastDoneTaskId + 1);
-		tableTaskQueue.deleteRange(first.Bytes, end.Bytes);
+		tableTaskQueue.deleteRange(Arrays.copyOf(first.Bytes, first.WriteIndex),
+				Arrays.copyOf(end.Bytes, end.WriteIndex));
 	}
 
 	private void tryStartSendNextTask(BQueueTask add, AsyncSocket socket) throws RocksDBException {
