@@ -117,6 +117,10 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 	}
 
 	public void assign(GTable2<R, C, V, VReadOnly> other) {
+		// 自赋值守卫：clear()后遍历_o_（==this已清空）零次迭代，整表被静默清空并随事务提交
+		//（对齐BeanMap1.assign经PMap1.assign先快照再清写的自赋值安全语义）。
+		if (this == other)
+			return;
 		pMap2.clear();
 		for (var _e_ : other.pMap2.entrySet())
 			pMap2.put(_e_.getKey(), _e_.getValue().copy());
