@@ -47,16 +47,12 @@ public class PList2ReadOnly<V extends Bean, VReadOnly> implements Iterable<VRead
 		return list.lastIndexOf(o);
 	}
 
-	public void copyTo(V @NotNull [] array, int arrayIndex) {
-		list.copyTo(array, arrayIndex);
-	}
-
-	public Object @NotNull [] toArray() {
-		return list.toArray();
-	}
-
-	public <T> T @NotNull [] toArray(T @NotNull [] a) {
-		return list.toArray(a);
+	// 2系契约：元素以VReadOnly暴露。copyTo必须声明为只读类型数组（对齐PMap2ReadOnly/
+	// PSortedMap2ReadOnly）；声明为V[]会把受管活Bean直接漏给调用方，绕过只读视图。
+	// toArray()同因移除（2系Map家族无此方法，且无法返回只读化元素）。
+	public void copyTo(VReadOnly @NotNull [] array, int arrayIndex) {
+		for (var v : this)
+			array[arrayIndex++] = v;
 	}
 
 	@Override
