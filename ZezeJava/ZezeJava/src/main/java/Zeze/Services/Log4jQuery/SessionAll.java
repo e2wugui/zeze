@@ -21,9 +21,10 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * 跨全部日志服务端的聚合查询会话：对每台建 Session，归并 search/browse 结果并跟踪各台完成状态。
- * 部分失败降级（单台异常不牺牲其余台）+ 会话成员集维护收敛在 operate 内：在册死亡成员自愈重建
- * （renewDeadMembers）与缺册成员补入（reconcileMissingMembers）互补——构造期跳过或构造后上台的
- * 服务器由后者补入，会话构成始终向注册表收敛。死亡成员重建后从该成员已投递水位续扫
+ * 部分失败降级（单台异常不牺牲其余台）+ 会话成员集维护收敛在 operate 内（增减双向）：在册死亡
+ * 成员自愈重建（renewDeadMembers）、缺册成员补入（reconcileMissingMembers）与摘册成员逐出
+ * （evictUnregisteredMembers）互补——构造期跳过或构造后上台的由补入收敛，退服摘册的由逐出
+ * 收敛，会话构成始终向注册表收敛。死亡成员重建与逐出后重入均从该成员已投递水位续扫
  * （见memberSeekBase），已投递区间不跨页重复投递。
  */
 public class SessionAll implements AutoCloseable {
@@ -93,9 +94,10 @@ public class SessionAll implements AutoCloseable {
 	public BResult.Data operate(Func1<Session, TaskCompletionSource<BResult.Data>> op)
 			throws Exception {
 
-		// 缺册补员先行——补入的新成员须参与本轮查询；与文末renewDeadMembers（在册死亡重建）
-		// 合成会话成员集维护的单点。
+		// 成员集维护单点：缺册补员（增方向，补入的新成员参与本轮查询）与摘册逐出（减方向）
+		// 先行，与文末renewDeadMembers（在册死亡重建）合成会话构成向注册表的双向收敛。
 		reconcileMissingMembers();
+		evictUnregisteredMembers();
 
 		// 逐台收集失败：单台异常（RPC超时/连接抖动/发送失败）不牺牲其余台结果，
 		// 与构造期"跳过不可用台"降级及close()的逐台收集同构；失败台不标记finishedSession——下次operate自然重试它。
@@ -195,6 +197,11 @@ public class SessionAll implements AutoCloseable {
 				continue;
 			try {
 				alls.put(serverName, agent.newSession(serverName, logName));
+				// 重入成员（摘册逐出后回归的抖动/重部署形态）若在本会话有投递历史，以水位续扫
+				// （同renewDeadMembers的基点语义）：无水位=本会话从未投递，按原条件从头扫描即正确。
+				var watermark = deliveredWatermark.get(serverName);
+				if (null != watermark)
+					memberSeekBase.put(serverName, watermark);
 				memberRetryBackoff.remove(serverName);
 				logger.warn("reconciled missing member into all-servers session. server='{}', logName '{}'",
 						serverName, logName);
@@ -202,6 +209,39 @@ public class SessionAll implements AutoCloseable {
 				memberRetryBackoff.put(serverName, now);
 				logger.warn("reconcile missing member fail, backoff before next retry. server='{}', logName '{}'",
 						serverName, logName, e);
+			}
+		}
+	}
+
+	/**
+	 * 摘册逐出：alls中已不在注册表的成员（退服/缩容/SM remove通告）移出会话。无此方向则
+	 * 摘除成员永久滞留——其Connector已stop（Client.onSmRemoved），每轮operate对它发起的
+	 * RPC立即失败、恒定warn，聚合结果持续缺台且以remain=false收尾（缺数只有日志可观测）；
+	 * 唯一成员形态下operate恒抛（rs空上抛firstFailure），该logName查询永久不可用直至调用方
+	 * 重建会话——类承诺的"向注册表收敛"此前只在增方向成立。逐出前best-effort发CloseSession
+	 * （摘册≠进程死亡，服务端查询句柄应释放；注册表侧连接已死时快速失败，异常仅warn）。
+	 * 已投递水位保留（重入续扫基点来源）；finishedSession/续扫基点/补员退避同步清理。
+	 * 全员逐出（注册表空）后operate返回空结果："无查询目标"与"查完无匹配"的区分由绑定层
+	 * （zoker FileSessionManager的0成员校验/收敛判定）承担。注册表抖动（摘除后回归）不叠加
+	 * 缓冲窗：补员路径按水位续扫已把重入代价收敛到边界重复，立即逐出换取缩容即时收敛。
+	 */
+	private void evictUnregisteredMembers() {
+		var registered = agent.getLogServers();
+		for (var it = alls.entrySet().iterator(); it.hasNext(); ) {
+			var entry = it.next();
+			if (registered.contains(entry.getKey()))
+				continue;
+			it.remove();
+			finishedSession.remove(entry.getKey());
+			memberSeekBase.remove(entry.getKey());
+			memberRetryBackoff.remove(entry.getKey());
+			logger.warn("evicted unregistered member from all-servers session. server='{}', logName '{}'",
+					entry.getKey(), logName);
+			try {
+				entry.getValue().close();
+			} catch (Exception e) {
+				logger.warn("close evicted member session fail (best-effort). server='{}', logName '{}'",
+						entry.getKey(), logName, e);
 			}
 		}
 	}

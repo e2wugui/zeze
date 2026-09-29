@@ -154,9 +154,9 @@ public class TestSessionAllOperatePartialFailure {
 	}
 
 	/**
-	 * operate入口的缺册补员（reconcileMissingMembers）读agent.getLogServers()：
-	 * 空注册表使差集为空、补员无操作，不触发newSession真实路径，保持本测试的
-	 * operate循环部分失败降级语义。
+	 * operate入口的成员集维护（reconcileMissingMembers/evictUnregisteredMembers）读
+	 * agent.getLogServers()：注册表返回注入的stub成员名，使补员差集与逐出差集都为空、
+	 * 无newSession/evict真实路径，保持本测试的operate循环部分失败降级语义。
 	 */
 	private static final class StubLogAgent extends LogAgent {
 		// 实例化走newUninitialized（ReflectionFactory绕过构造器），本构造仅为满足编译；
@@ -166,9 +166,11 @@ public class TestSessionAllOperatePartialFailure {
 			super(null);
 		}
 
+		Set<String> servers = Set.of();
+
 		@Override
 		public Set<String> getLogServers() {
-			return Set.of();
+			return servers;
 		}
 	}
 
@@ -189,7 +191,9 @@ public class TestSessionAllOperatePartialFailure {
 		// 成员级水位/续扫基点表（重建续扫用）：注入空表，operate的成功路径会推进水位。
 		setFinalField(sessionAll, "deliveredWatermark", new ConcurrentHashMap<String, Long>());
 		setFinalField(sessionAll, "memberSeekBase", new ConcurrentHashMap<String, Long>());
-		setFinalField(sessionAll, "agent", newUninitialized(StubLogAgent.class));
+		var agent = newUninitialized(StubLogAgent.class);
+		agent.servers = Set.copyOf(alls.keySet()); // 注册表=会话成员：补员/逐出差集为空
+		setFinalField(sessionAll, "agent", agent);
 		return sessionAll;
 	}
 
