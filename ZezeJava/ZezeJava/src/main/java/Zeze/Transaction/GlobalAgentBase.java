@@ -17,7 +17,10 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(GlobalAgentBase.class);
 
 	public final @NotNull Application zeze;
-	private @NotNull AchillesHeelConfig config = new AchillesHeelConfig(1500, 10000, 60 * 1000);
+	// IO线程initialize()替换、daemon/业务线程读取，无共同锁——volatile保证可见性，
+	// 避免daemon持续读到默认serverReleaseTimeout(60s)破坏安全不等式
+	//（ServerDaemonTimeout+ServerReleaseTimeout<GlobalDaemonTimeout）。
+	private volatile @NotNull AchillesHeelConfig config = new AchillesHeelConfig(1500, 10000, 60 * 1000);
 	private volatile long activeTime = System.currentTimeMillis();
 	protected int globalCacheManagerHashIndex;
 	private volatile @Nullable Releaser releaser;
@@ -44,7 +47,12 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 
 	public final void setActiveTime(long value) {
 		activeTime = value;
-		zeze.getAchillesHeelDaemon().setProcessDaemonActiveTime(this, value);
+		// 停机窗口判空：Application.stop先stopAndJoin并置null daemon，之后才globalAgent.stop
+		//（其间组件事务仍可能GCM申请锁、IO线程Login/KeepAlive应答回调仍会到），窗口内解引用
+		// 会把NPE打进事务/IO线程——本可提交的事务假性失败。daemon已停时刷新无意义，跳过。
+		var daemon = zeze.getAchillesHeelDaemon();
+		if (daemon != null)
+			daemon.setProcessDaemonActiveTime(this, value);
 	}
 
 	public boolean isReleasing() {
