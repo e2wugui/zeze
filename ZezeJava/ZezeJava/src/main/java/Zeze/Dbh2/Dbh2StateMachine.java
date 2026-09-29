@@ -78,8 +78,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	// 重启/快照装载保留。围栏冲突的三种收敛：①迟到 LogCommitBatch（协调者已持久化
 	// eCommitting，commitPoint 存在）在墓碑窗内到达——复活并提交，数据不丢，客户端
 	// 成功变真；②协调者驱动的 UndoBatch 到达=确认 undo 终局，物理删除；③墓碑窗超时
-	// 仍无协调者消亡（进程丢失/极端病理）——物理删除并响亮 error（可见化，对齐
-	// eCommitting 悬挂告警姿态）。主防线=onTimer 年龄判据用单调钟（Dbh2Transaction.
+	// 仍无协调者消亡（进程丢失/极端病理）——经raft日志终局删除（全副本一致，dbh2-02）
+	// 并响亮 error（可见化，对齐eCommitting悬挂告警姿态）。主防线=onTimer 年龄判据用单调
+	// 钟（Dbh2Transaction.
 	// elapsedMillis，墙钟步进免疫），墓碑是防御纵深：任何残余破栅形态（重启窗口、
 	// 极端速率分歧）由复活/告警兜住，"已确认提交而数据灭失"的形态不再存在。
 	private static final class UndonePending {
@@ -100,30 +101,35 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	/** 墓碑窗（毫秒）：覆盖协调者在其自身 prepare 窗口内的最迟 commit 决策 + CommitBatch
-	 * 在途（rpcTimeout）+ 余量。低于此窗的迟到 commit 将落入超窗删除分支（协调者 rpc
-	 * 必已失败、客户端已见失败，非静默）。 */
+	 * 在途（rpcTimeout）+ 余量。超窗后的迟到 commit 经同一日志序全网一致删除（不再跨副本
+	 * 分歧）；协调者分钟级冻结后解冻完成 decide 的形态下该数据仍灭失——2PC 超时终局的
+	 * 固有取舍（error 可见 + 窗口可配，见 expireDueTombstones）。 */
 	long undoResurrectGraceMillis() {
 		var conf = dbh2.getDbh2Config();
 		return conf.getRpcTimeout() + conf.getPrepareMaxTime() + 30_000L;
 	}
 
-	/** 墓碑超窗清扫（包内可见供确定性测试）：超窗未决的墓碑物理删除 blob 并响亮告警。 */
+	/** 墓碑超窗清扫（包内可见供确定性测试）：超窗未决的墓碑经 raft 日志终局删除
+	 * （全副本一致）并响亮告警。条目保留至日志apply（apply路径摘墓碑+物理删blob与marker）；
+	 * 单条隔离：掉主等异常只推迟本条到下轮重试。 */
 	void expireDueTombstones(long graceMillis) {
 		var graceNanos = graceMillis * 1_000_000L;
 		for (var e : undonePending.entrySet()) {
 			if (System.nanoTime() - e.getValue().tombstoneNanos < graceNanos)
 				continue;
-			var pending = undonePending.remove(e.getKey());
-			if (null == pending)
-				continue;
 			try {
-				pending.txn.undoBatch(bucket);
-				logger.error("undo tombstone expired without coordinator resolution: tid={} (physical undo"
-						+ " applied; coordinator neither confirmed undo nor delivered commit within {}ms --"
-						+ " divergence possible, manual check)", e.getKey(), graceMillis);
-			} catch (RocksDBException ex) {
+				// 墓碑终局必须经raft日志（dbh2-02）：本地直删是不经复制的状态机写入——
+				// follower的blob与内存墓碑原样保留，迟到的LogCommitBatch在leader落
+				// not-found、在follower复活落盘，同一日志跨副本apply分歧（raft确定性
+				// 破坏，leader快照安装可抹掉follower已复活的数据）。复用终局undo日志的
+				// apply路径（undonePending.remove命中→物理删blob+marker），全副本以
+				// 同一日志序收敛。
+				getRaft().appendLog(new LogUndoBatch(e.getKey(), true));
+				logger.error("undo tombstone expired without coordinator resolution: tid={} (expiry undo"
+						+ " appended to raft log; coordinator neither confirmed undo nor delivered commit"
+						+ " within {}ms -- divergence possible, manual check)", e.getKey(), graceMillis);
+			} catch (Exception ex) {
 				logger.error("expire undo tombstone fail, retain for next round: tid={}", e.getKey(), ex);
-				undonePending.putIfAbsent(e.getKey(), pending);
 			}
 		}
 	}
@@ -510,8 +516,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 							+ " tid={} (undo applied first but coordinator commit-point exists)", tid);
 					enqueueSplitSync(pending.txn.getBatch());
 					pending.txn.commitBatch(bucket);
-				} else
-					logger.warn("commitBatch but transaction not found. tid={}", tid);
+					} else
+						logger.error("commitBatch but transaction not found. tid={}"
+								+ " (late commit after expiry finalize or unknown tid -- divergence-class"
+								+ " event, manual check recommended)", tid);
 			}
 			triggerNoTransactionIf();
 		} catch (RocksDBException e) {
@@ -520,9 +528,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	/** Raft 日志 apply 入口（{@link LogUndoBatch}）。fromCoordinator：true=协调者驱动的
-	 * UndoBatch（决策已终局，立即物理删除）；false=桶侧 onTimer 自主超时 undo（协调者
-	 * 决策未知，未确认墓碑——迟到 commit 可复活，见 undonePending 注释）。 */
+	/** Raft 日志 apply 入口（{@link LogUndoBatch}）。fromCoordinator：true=终局确认的
+	 * undo（协调者驱动的 UndoBatch 或墓碑超窗清扫——决策已终局，立即物理删除，全副本
+	 * 由同一日志序驱动）；false=桶侧 onTimer 自主超时 undo（协调者决策未知，未确认
+	 * 墓碑——迟到 commit 可复活，见 undonePending 注释）。 */
 	public void undoBatch(long tid, boolean fromCoordinator) {
 		try (var txn = transactions.remove(tid)) {
 			counterUndoBatch.incrementAndGet();

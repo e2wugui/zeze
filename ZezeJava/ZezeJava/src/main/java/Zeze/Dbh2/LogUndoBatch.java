@@ -15,8 +15,9 @@ public class LogUndoBatch extends Log {
 	public static final int TypeId_ = Zeze.Transaction.Bean.hash32(LogUndoBatch.class.getName());
 
 	private long tid;
-	// undo 来源（FND29 dbh2-03 断根）：true=协调者驱动的 UndoBatch（决策已终局，apply 即确认）；
-	// false=桶侧 onTimer 自主超时 undo（协调者决策未知，apply 走未确认墓碑——迟到
+	// undo 来源（FND29 dbh2-03 断根）：true=终局确认的undo（协调者驱动的UndoBatch——决策
+	// 已终局，或墓碑超窗清扫dbh2-02——超窗即终局决断），apply即物理删除；false=桶侧
+	// onTimer 自主超时 undo（协调者决策未知，apply 走未确认墓碑——迟到
 	// LogCommitBatch 可复活，协调者 UndoBatch 或墓碑窗超时才物理删除）。
 	private boolean fromCoordinator;
 
@@ -33,8 +34,13 @@ public class LogUndoBatch extends Log {
 	}
 
 	public LogUndoBatch(long tid) {
+		this(tid, false);
+	}
+
+	public LogUndoBatch(long tid, boolean fromCoordinator) {
 		super(null);
 		this.tid = tid;
+		this.fromCoordinator = fromCoordinator;
 	}
 
 	@Override

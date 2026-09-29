@@ -150,7 +150,9 @@ public class TestUndoCommitFenceResurrect {
 		}
 	}
 
-	/** 墓碑窗超时仍未决：物理删除并告警，此后迟到 commit 不复活（协调者 rpc 必已失败、客户端已见失败）。 */
+	/** 墓碑窗超时仍未决：终局删除并告警，此后迟到 commit 不复活（协调者 rpc 必已失败、
+	 * 客户端已见失败）。清扫经raft日志（dbh2-02）apply异步——直驱commit前先轮询等
+	 * 日志apply收敛（直驱改轮询，df318ce58 同款判据适配）。 */
 	@Test
 	public void testTombstoneExpiryPhysicalUndo(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
@@ -172,6 +174,7 @@ public class TestUndoCommitFenceResurrect {
 			waitTransactionApplied(leader, 300L);
 			leader.undoBatch(300L, false);
 			leader.expireDueTombstones(0); // 确定性超窗清扫（生产为 onTimer 周期+配置窗）
+			waitExpiryApplied(leader, 300L); // 等终局日志apply（摘墓碑+物理删除）
 			leader.commitBatch(300L);
 
 			Assertions.assertNull(leader.getBucket().get(key), "超窗墓碑物理删除后迟到 commit 不得复活");
@@ -201,6 +204,16 @@ public class TestUndoCommitFenceResurrect {
 			Thread.sleep(50);
 		}
 		throw new AssertionError("tombstone not applied: tid=" + tid);
+	}
+
+	/** 超窗清扫的终局日志已apply：墓碑出表（apply路径摘墓碑+物理删blob与marker）。 */
+	private static void waitExpiryApplied(Dbh2StateMachine sm, long tid) throws InterruptedException {
+		for (var i = 0; i < 300; ++i) {
+			if (!sm.isTombstonedPending(tid))
+				return;
+			Thread.sleep(50);
+		}
+		throw new AssertionError("expiry undo not applied: tid=" + tid);
 	}
 
 	private static void waitBucketValue(Dbh2StateMachine sm, Binary key, int expected, String message)
@@ -457,6 +470,62 @@ public class TestUndoCommitFenceResurrect {
 		} finally {
 			for (var name : nodeHomeNames())
 				Zeze.Raft.LogSequence.deleteDirectory(tempDir.resolve(name).toFile());
+			rocks.close();
+		}
+	}
+
+	/** 超窗清扫必须经raft日志：修复前leader本地直删trans blob（不经复制），follower的
+	 * blob与内存墓碑原样保留——迟到的LogCommitBatch（经日志复制）在leader落not-found、
+	 * 在follower落复活提交，同一日志跨副本apply分歧，三节点数据不一致（raft确定性破坏，
+	 * leader快照安装可抹掉follower已复活的数据）。修复后清扫经终局undo日志：三副本墓碑
+	 * 出表、blob+marker全网清除，迟到commit全网一致为空。 */
+	@Test
+	public void testTombstoneExpiryKeepsReplicasConsistent(@TempDir Path tempDir) throws Exception {
+		Task.tryInitThreadPool();
+		var key = new Binary(new byte[]{6});
+		var rocks = new RocksDatabase(tempDir.resolve("dbh2FenceExpiryConsistency").toString());
+		var nodes = startBucket(rocks, tempDir);
+		var agent = new Dbh2Agent(RAFT);
+		try {
+			var meta = new BBucketMeta.Data();
+			meta.setDatabaseName("database");
+			meta.setTableName("table1");
+			meta.setRaftConfig("");
+			meta.setKeyFirst(Binary.Empty);
+			meta.setKeyLast(Binary.Empty);
+			agent.setBucketMeta(meta);
+
+			prepare(agent, 600L, key);
+			var leader = leaderStateMachine(nodes);
+			waitTransactionApplied(leader, 600L);
+			// 桶侧自主undo经raft日志（生产onTimer同款）：全副本墓碑化，锁释放、blob保留
+			leader.getRaft().appendLog(new LogUndoBatch(600L));
+			for (var n : nodes)
+				waitTombstoned(n.getStateMachine(), 600L);
+
+			leader.expireDueTombstones(0); // 确定性超窗清扫（生产为 onTimer 周期+配置窗）
+
+			// 迟到CommitBatch经日志序落在expiry之后（生产形态：协调者解冻后deliver）
+			agent.commitBatch(600L).await();
+
+			// apply收敛标记：追加一笔可观测的prepare日志，全副本入表即已apply过commit
+			prepare(agent, 601L, new Binary(new byte[]{7}));
+			for (var n : nodes)
+				waitTransactionApplied(n.getStateMachine(), 601L);
+
+			// 三副本终态必须一致：清扫经日志后迟到commit全网一致为空（不得follower复活）
+			for (var n : nodes) {
+				var sm = n.getStateMachine();
+				Assertions.assertNull(sm.getBucket().get(key),
+						"超窗终局后迟到commit必须全网一致为空（不得跨副本分歧）");
+				Assertions.assertFalse(sm.isTombstonedPending(600L),
+						"清扫终局日志apply后墓碑必须出表");
+				waitTransCleared(sm, Dbh2Transaction.transBlobKey(600L), "blob_600终局必须全网清除");
+				waitTransCleared(sm, Dbh2Transaction.transTombstoneMarkerKey(600L), "marker_600终局必须全网清除");
+			}
+		} finally {
+			stopBucket(nodes);
+			agent.close();
 			rocks.close();
 		}
 	}
