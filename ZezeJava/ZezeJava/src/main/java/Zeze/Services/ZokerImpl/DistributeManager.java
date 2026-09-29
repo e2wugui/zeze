@@ -731,12 +731,47 @@ public class DistributeManager {
 		return DISTRIBUTE_MANIFEST_NAME + '.' + versionNo;
 	}
 
-	/** 清单文件定位单点（安装校验/跳装收养两处消费面共用）：优先版本限定名（归属本次
-	 * 提交的部署会话），缺失回落裸名（旧客户端清单/新客户端的兼容副本，既有语义）。
-	 * 两者皆缺时返回裸名 File（isFile=false，调用方按 legacy 处置）。 */
+	/** 清单文件定位单点（已安装版本目录的收养判据消费，installedVersionHealthy）：
+	 * 优先版本限定名，缺失回落裸名——版本目录内的裸名是安装方自己的兼容副本（随
+	 * 版本成版的密封快照，无并发面）。两者皆缺时返回裸名 File（isFile=false，调用
+	 * 方按 legacy 处置）。distributes 暂存区的消费（安装校验/跳装比对）走
+	 * {@link #stagedManifestOf}（回落带归属防线）。 */
 	private static File manifestFileOf(File dir, String versionNo) {
 		var versioned = new File(dir, distributeManifestName(versionNo));
 		return versioned.isFile() ? versioned : new File(dir, DISTRIBUTE_MANIFEST_NAME);
+	}
+
+	/** 暂存区清单定位（安装校验/跳装比对两处消费面共用，FND32 zoker-02）：优先本次
+	 * 版本限定名；缺失时若暂存区存在<b>他版本</b>的限定清单，裸名内容无法证明归属
+	 * 本次部署——并发分发会话在途、或先到 commit 的清退已删除本次限定清单（其安装
+	 * 失败遗留的暂存区），消费裸名即校验他方条目、以自己的 versionNo 成版切
+	 * current——静默错版。拒绝回落返回 null，调用方响亮失败（重传补齐自己的限定
+	 * 清单后正常消费）；无任何限定清单的 legacy 形态回落语义不变。 */
+	private static @Nullable File stagedManifestOf(File serviceFrom, String versionNo) {
+		var versioned = new File(serviceFrom, distributeManifestName(versionNo));
+		if (versioned.isFile())
+			return versioned;
+		if (hasForeignVersionedManifest(serviceFrom, versionNo))
+			return null;
+		return new File(serviceFrom, DISTRIBUTE_MANIFEST_NAME);
+	}
+
+	/** 暂存区内是否存在他版本的限定清单：文件名折叠（变体拼写判同，与幸免面/保留字
+	 * 同判据）后以 {@link #DISTRIBUTE_MANIFEST_NAME} 加点开头且不等于本次限定名。 */
+	private static boolean hasForeignVersionedManifest(File dir, String versionNo) {
+		var listFiles = dir.listFiles();
+		if (null == listFiles)
+			return false;
+		var foldedPrefix = DISTRIBUTE_MANIFEST_NAME + '.';
+		var foldedOwn = foldVersionName(distributeManifestName(versionNo));
+		for (var f : listFiles) {
+			if (f.isFile()) {
+				var folded = foldVersionName(f.getName());
+				if (folded.startsWith(foldedPrefix) && !folded.equals(foldedOwn))
+					return true;
+			}
+		}
+		return false;
 	}
 
 	private static boolean installedVersionHealthy(File versionTo, String serviceName) {
@@ -762,7 +797,11 @@ public class DistributeManager {
 	 */
 	private boolean distributesManifestSubsetOf(File serviceFrom, File versionTo) {
 		// versionTo 即按本次 versionNo 构造，限定名归属本次部署。
-		var manifest = manifestFileOf(serviceFrom, versionTo.getName());
+		var manifest = stagedManifestOf(serviceFrom, versionTo.getName());
+		if (null == manifest)
+			// 裸名回落被拒（他版本限定清单在场=并发会话面）：不可经跳装收养，
+			// 交安装分支的校验统一拒绝。
+			return false;
 		if (!manifest.isFile())
 			return true;
 		var serviceName = serviceFrom.getName();
@@ -905,13 +944,19 @@ public class DistributeManager {
 	 * 集合级完整性屏障（zoker-05，FND26）：distributes/&lt;svc&gt;/ 下存在清单时校验并
 	 * 清退残留，不存在走 legacy 路径返回0。清单定位优先版本限定名（归属本次部署，并发
 	 * 分发互不覆盖，commit 只消费本次版本号对应的清单），缺失回落裸名（旧客户端/兼容
-	 * 副本）。清单行=各文件相对 distributeDir 根的路径（与 OpenFile 寻址同根）。清单是
+	 * 副本；他版本限定清单在场时拒绝回落，见 {@link #stagedManifestOf}）。清单行=各文件相对
+	 * distributeDir 根的路径（与 OpenFile 寻址同根）。清单是
 	 * 数据不是可信输入：逐行过 {@link #canonicalManifestLine} 形态解析与
 	 * {@link #manifestLineFirstSegmentMatches} 首段判同（checkInsideDir 同款拒绝绝对
 	 * 路径/../逃逸/盘符），坏清单响亮拒绝；清退判同集合用 canonical 形态。
 	 */
 	private long verifyDistributeManifest(File serviceFrom, String versionNo) {
-		var manifest = manifestFileOf(serviceFrom, versionNo);
+		var manifest = stagedManifestOf(serviceFrom, versionNo);
+		if (null == manifest) {
+			logger.error("commitService refuse bare manifest fallback, other version manifests present "
+					+ "(concurrent distribute?): {}", serviceFrom);
+			return err(Zoker.eCommitFail);
+		}
 		if (!manifest.isFile())
 			return 0; // legacy：无清单不设障（空目录拒绝另行兜底）
 		var serviceName = serviceFrom.getName();
@@ -972,6 +1017,10 @@ public class DistributeManager {
 			foldedListed.add(foldBarrierPath(line));
 		// 幸免面=控制文件：裸名清单（兼容副本）与本次版本限定清单——他版本的限定清单
 		// 不是本次部署的控制文件，随清单外残留清退（暂存区以本次清单为单位原子消费）。
+		// 他版本清单与其数据被清退是响亮裁量（该会话 commit 可见失败、重传收敛）；
+		// 由此触发的"限定清单缺失→裸名回落"错版面由 stagedManifestOf 拒绝闭合（FND32
+		// zoker-02）：幸免面扩到全部限定清单的方案与整目录 rename 安装互斥——被幸免的
+		// 他方数据将随 rename 混入本次版本内容（版本内容=清单精确集合的屏障击穿），不取。
 		var spared = Set.of(
 				foldBarrierPath(serviceFrom.getName() + "/" + DISTRIBUTE_MANIFEST_NAME),
 				foldBarrierPath(serviceFrom.getName() + "/" + distributeManifestName(versionNo)));
