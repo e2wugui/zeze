@@ -581,7 +581,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		stateMachine.setLoadSwitch(true);
 	}
 
-	private void recoverSplitting() throws Exception {
+	private void recoverSplitting() {
 		if (!raft.isLeader())
 			return;
 
@@ -691,6 +691,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 			it.close();
 			return null;
 		}
+		//noinspection StatementWithEmptyBody
 		for (it.seekToFirst(); it.isValid() && count > 0; it.next(), --count) {
 		}
 		if (!it.isValid()) {

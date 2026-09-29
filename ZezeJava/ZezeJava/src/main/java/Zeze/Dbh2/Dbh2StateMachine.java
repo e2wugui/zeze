@@ -48,6 +48,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private volatile long splitSyncSeq;
 	private volatile long splitSyncWatermark;
 	private volatile long splitSyncGeneration;
+	// advance与clear互斥：世代守卫是check-then-act（读世代→写水位→持久化{7}），不互斥时apply线程
+	// 的clear可插进守卫与写之间——陈旧ACK把旧世代seq写回水位并复活磁盘{7}（重启经openBucket复活），
+	// hasPendingSplitSync假通使endSplit0门槛失守、deleteToEnd灭失未投递记录。叶子锁：apply线程在
+	// raft.mutex下取本锁，投递回调线程只取本锁（锁内仅rocksdb写，不回取raft锁），单向无ABBA。
+	private final ReentrantLock splitSyncLock = new ReentrantLock();
 
 	private static byte[] splitSyncRecordKey(long seq) {
 		var bb = ByteBuffer.Allocate(9); // 1前缀+8BE long：BE序=数值序（seq单调非负），键序即投递序
@@ -55,6 +60,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		bb.WriteLong8BE(seq);
 		return bb.Bytes;
 	}
+
 	// eCommitting悬挂告警阈值=10×bucketMaxTime（默认1000s）。推导：正常redo收敛时间=redoDaemon周期
 	//（60s）+目标桶raft可用时间，bucketMaxTime(100s)>prepareMaxTime(80s)的既有排序已覆盖协调周期；
 	// 10×（默认1000s，约16个redo周期）远超任何正常收敛时间仍停在此状态，才认定"协调者已决定提交
@@ -284,7 +290,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					logger.warn("timeout undo tid={} state={}", tid, state);
 					getRaft().appendLog(new LogUndoBatch(tid));
 				} else if (Commit.eCommitting == state.getState()
-						&& now - t.getCreateTime() >= (long) dbh2.getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
+						&& now - t.getCreateTime() >= dbh2.getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
 						&& committingHangWarnedTids.add(tid)) {
 					// 2PC语义：协调者已保存commitPoint(eCommitting)，桶侧无信息安全终局（误undo=跨桶
 					// 部分提交），只告警不自动终局；恢复依赖协调者CommitRocks存活，灾难场景重建协调者
@@ -339,39 +345,39 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 			// 被移走的桶Meta置空（使用相同的非空key）。
 			// 将会拒绝所有对这个桶的访问。
-		var emptyMeta = bucket.getBucketMeta().copy();
-		emptyMeta.setKeyFirst(emptyBucketMetaKey);
-		emptyMeta.setKeyLast(emptyBucketMetaKey);
-		bucket.setBucketMeta(emptyMeta);
-		bucket.addMoveMetaHistory(to);
-		// pending-settle标志：与既有meta写入同一apply内落盘（派生状态，随raft
-		// 复制/快照）——迁移已在源桶commit的持久证据，leader-ready据此幂等补发settle通知。
+			var emptyMeta = bucket.getBucketMeta().copy();
+			emptyMeta.setKeyFirst(emptyBucketMetaKey);
+			emptyMeta.setKeyLast(emptyBucketMetaKey);
+			bucket.setBucketMeta(emptyMeta);
+			bucket.addMoveMetaHistory(to);
+			// pending-settle标志：与既有meta写入同一apply内落盘（派生状态，随raft
+			// 复制/快照）——迁移已在源桶commit的持久证据，leader-ready据此幂等补发settle通知。
 			bucket.setPendingSettle(null, to);
 			bucket.deleteSplittingMeta();
 			clearSplitSyncQueue(); // 迁移完结：义务已全部送达（endSplit0门槛），队列随世代消亡
-			} catch (RocksDBException e) {
-				logger.error("", e);
-				getRaft().fatalKill();
-			}
-		}
-
-	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
-		try (var it = bucket.getData().iterator()) {
-		it.seek(from.getKeyLast().copyIf());
-		bucket.getData().deleteToEnd(it);
-		bucket.setBucketMeta(from);
-		bucket.addSplitMetaHistory(from, to);
-		// 同endMove：pending-settle标志随迁移commit在apply内落盘。
-		bucket.setPendingSettle(from, to);
-		bucket.deleteSplittingMeta();
-		clearSplitSyncQueue(); // 迁移完结：义务已全部送达（endSplit0门槛），队列随世代消亡
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
 		}
 	}
 
-	/////////////////////////////////////////////////////////////////////
+	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
+		try (var it = bucket.getData().iterator()) {
+			it.seek(from.getKeyLast().copyIf());
+			bucket.getData().deleteToEnd(it);
+			bucket.setBucketMeta(from);
+			bucket.addSplitMetaHistory(from, to);
+			// 同endMove：pending-settle标志随迁移commit在apply内落盘。
+			bucket.setPendingSettle(from, to);
+			bucket.deleteSplittingMeta();
+			clearSplitSyncQueue(); // 迁移完结：义务已全部送达（endSplit0门槛），队列随世代消亡
+		} catch (RocksDBException e) {
+			logger.error("", e);
+			getRaft().fatalKill();
+		}
+	}
+
+	/// //////////////////////////////////////////////////////////////////
 	// 下面这些方法用于Log.apply，不能失败，失败将停止程序。
 	public void allocateTid(long range) {
 		try {
@@ -499,7 +505,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	// 调用方串行约束：仅Dbh2.driveSplitSync（CAS单飞）调用。
 	// 世代戳在读取任何队列状态之前快照：与并发clear（apply线程）的交错中，旧世代记录要么
 	// 携旧戳（ACK被拒，见advanceSplitSyncWatermark）要么已不可见（迭代器晚于删除创建，返回空）。
-	public SplitSyncBatch pollSplitSync(int maxCount) throws RocksDBException {
+	public SplitSyncBatch pollSplitSync(int maxCount) {
 		var generation = splitSyncGeneration;
 		var watermark = splitSyncWatermark;
 		if (watermark >= splitSyncSeq)
@@ -525,21 +531,32 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	// 投递ACK后推进水位。世代失配=本批取自已清空换代的旧队列（EndSplit/EndMove/SetSplittingMeta
 	// apply清空后seq重新分配）：拒绝推进——旧批的送达事实属于已消亡的世代，按其seq推进会跳过
 	// 新世代尚未投递的同号记录。拒绝不抛错：投递链照常续投（下批读当前世代）。
+	// 守卫与写水位、持久化同在splitSyncLock临界区内：与clear的交错中关死check-then-act窗口。
 	public void advanceSplitSyncWatermark(SplitSyncBatch batch) throws RocksDBException {
-		if (batch.generation != splitSyncGeneration)
-			return;
-		advanceSplitSyncWatermark(batch.lastSeq);
+		splitSyncLock.lock();
+		try {
+			if (batch.generation != splitSyncGeneration)
+				return;
+			advanceSplitSyncWatermark(batch.lastSeq);
+		} finally {
+			splitSyncLock.unlock();
+		}
 	}
 
 	// 投递ACK后推进水位（只前进）并持久化：同进程重启/复选续投免重放；其余副本水位为旧值，换主后
 	// 从旧水位FIFO重投——重复投递幂等（replace同值），有序重放收敛无害。
 	public void advanceSplitSyncWatermark(long seq) throws RocksDBException {
-		if (seq <= splitSyncWatermark)
-			return;
-		splitSyncWatermark = seq;
-		var bb = ByteBuffer.Allocate(8);
-		bb.WriteLong8BE(seq);
-		splitSyncTable.put(bucket.getWriteOptions(), SplitSyncWatermarkKey, 0, SplitSyncWatermarkKey.length, bb.Bytes, 0, 8);
+		splitSyncLock.lock();
+		try {
+			if (seq <= splitSyncWatermark)
+				return;
+			splitSyncWatermark = seq;
+			var bb = ByteBuffer.Allocate(8);
+			bb.WriteLong8BE(seq);
+			splitSyncTable.put(bucket.getWriteOptions(), SplitSyncWatermarkKey, 0, SplitSyncWatermarkKey.length, bb.Bytes, 0, 8);
+		} finally {
+			splitSyncLock.unlock();
+		}
 	}
 
 	// endSplit前置门槛（Dbh2.endSplit0）：false=全部事务同步已送达目标。
@@ -550,25 +567,32 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	// 清空队列：EndSplit/EndMove apply=迁移完结、义务已全部送达（endSplit0门槛保证）；SetSplittingMeta
 	// apply=新世代起点防御清零。全副本按apply序确定性执行，崩溃重放幂等。
 	private void clearSplitSyncQueue() throws RocksDBException {
-		if (splitSyncSeq == 0 && splitSyncWatermark == 0)
-			return;
-		try (var it = splitSyncTable.iterator()) {
-			it.seek(splitSyncRecordKey(1));
-			for (; it.isValid(); it.next()) { // 迭代器为快照视图，遍历中delete不影响遍历
-				var key = it.key();
-				if (key.length != 9 || key[0] != SplitSyncRecordPrefix)
-					break;
-				splitSyncTable.delete(bucket.getWriteOptions(), key, 0, key.length);
+		splitSyncLock.lock();
+		try {
+			if (splitSyncSeq == 0 && splitSyncWatermark == 0)
+				return;
+			try (var it = splitSyncTable.iterator()) {
+				it.seek(splitSyncRecordKey(1));
+				for (; it.isValid(); it.next()) { // 迭代器为快照视图，遍历中delete不影响遍历
+					var key = it.key();
+					if (key.length != 9 || key[0] != SplitSyncRecordPrefix)
+						break;
+					splitSyncTable.delete(bucket.getWriteOptions(), key, 0, key.length);
+				}
 			}
+			splitSyncTable.delete(bucket.getWriteOptions(), SplitSyncSeqKey, 0, SplitSyncSeqKey.length);
+			splitSyncTable.delete(bucket.getWriteOptions(), SplitSyncWatermarkKey, 0, SplitSyncWatermarkKey.length);
+			splitSyncSeq = 0;
+			splitSyncWatermark = 0;
+			// 单写者=apply线程串行（见字段区线程约束），++无丢失更新，volatile只为跨线程读可见
+			//noinspection NonAtomicOperationOnVolatileField
+			splitSyncGeneration++; // 换代：作废一切在途/未决的旧世代投递ACK（seq即将从1重新分配）
+		} finally {
+			splitSyncLock.unlock();
 		}
-		splitSyncTable.delete(bucket.getWriteOptions(), SplitSyncSeqKey, 0, SplitSyncSeqKey.length);
-		splitSyncTable.delete(bucket.getWriteOptions(), SplitSyncWatermarkKey, 0, SplitSyncWatermarkKey.length);
-		splitSyncSeq = 0;
-		splitSyncWatermark = 0;
-		splitSyncGeneration++; // 换代：作废一切在途/未决的旧世代投递ACK（seq即将从1重新分配）
 	}
 
-	////////////////////////////////////////////////////////////
+	/// /////////////////////////////////////////////////////////
 	// raft implement
 	public String getDbHome() {
 		return getRaft().getRaftConfig().getDbHome();

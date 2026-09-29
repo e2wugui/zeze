@@ -481,7 +481,7 @@ public class Log4jSession {
 	}
 
 	/** 行级正则输入（log4j-03）：超长行截断为前缀参与匹配（语义见MAX_REGEX_LOG_CHARS注释）。 */
-	private CharSequence regexInput(Log4jLog log) {
+	private static CharSequence regexInput(Log4jLog log) {
 		var text = log.getLog();
 		if (text.length() <= MAX_REGEX_LOG_CHARS)
 			return text;

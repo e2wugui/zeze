@@ -71,7 +71,9 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 			// （不得newValue()重建或跳过）。logBean为null是合法的空编辑，保留判空。
 			var log = logRecord.getLogBean();
 			if (log != null)
+				//noinspection DataFlowIssue
 				value.followerApply(log);
+			//noinspection DataFlowIssue
 			put(key, value);
 			break;
 

@@ -97,7 +97,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 	}
 
 	@Override
-	public void saveCursor(@NotNull Id128 key, @NotNull IApplyRecordTxn txn) throws Exception {
+	public void saveCursor(@NotNull Id128 key, @NotNull IApplyRecordTxn txn) {
 		// 必须走当前记录级事务的底层dbTxn：游标与记录数据同事务提交，杜绝
 		// "数据持久而进度丢失"的错配（重启后游标归零整段重放，Edit非幂等即污染）。
 		if (!(txn instanceof RecordTxn recordTxn))
@@ -118,19 +118,19 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		private boolean finished;
 
 		@Override
-		public void put(@NotNull String tableName, @NotNull Binary key, @NotNull Binary value) throws Exception {
+		public void put(@NotNull String tableName, @NotNull Binary key, @NotNull Binary value) {
 			tables.computeIfAbsent(tableName, ApplyTableZeze::new).storage
 					.replace(dbTxn, ByteBuffer.Wrap(key), ByteBuffer.Wrap(value));
 		}
 
 		@Override
-		public void remove(@NotNull String tableName, @NotNull Binary key) throws Exception {
+		public void remove(@NotNull String tableName, @NotNull Binary key) {
 			tables.computeIfAbsent(tableName, ApplyTableZeze::new).storage
 					.remove(dbTxn, ByteBuffer.Wrap(key));
 		}
 
 		@Override
-		public void commit() throws Exception {
+		public void commit() {
 			if (finished)
 				return;
 			try {
