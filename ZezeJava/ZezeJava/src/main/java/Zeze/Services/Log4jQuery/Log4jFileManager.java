@@ -217,8 +217,8 @@ public class Log4jFileManager extends ReentrantLock {
 		// 2) 头锚（新增）：从头向尾第一个endTime>=time——条目时间窗重叠（轮转内容时间晚于active、
 		//    补登索引滞后）时，更早条目也可能含>=time的记录；头锚之前的条目endTime<time（索引
 		//    endTime=已索引记录的最大时间），不含>=time的记录，跳过安全。
-		// walker只向前推进：起点偏早只是多读（可由endTime提前终止收口），偏晚即整窗漏读——
-		// 两锚冲突时保守取早，不再以时间序为锚。
+		// walker只向前推进：起点偏早只是多读（窗口边界在查询循环逐条过滤，扫描量由页预算封顶），
+		// 偏晚即整窗漏读——两锚冲突时保守取早，不再以时间序为锚。
 		// 无锁读：迭代期间列表可被并发摘除收缩（reconcile整批/removeMissingFile），get的越界按
 		// 遍历耗尽兜底（break/continue重选），与walker的while(currentIndex<size)/get的上界检查
 		// 同构，最终无候选返回null由walker走slowSeek线性兜底，不让未检查异常沿查询路径逃逸。
