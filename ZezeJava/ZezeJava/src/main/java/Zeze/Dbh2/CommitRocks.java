@@ -3,6 +3,7 @@ package Zeze.Dbh2;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Builtin.Dbh2.BRefused;
@@ -61,6 +62,13 @@ public class CommitRocks {
 		return manager;
 	}
 
+	// 2pc链路的rpc等待兜底（FND29 dbh2-02）：rpc判死门槛=rpcTimeout（resend扫描1s粒度驱动），
+	// 等待超时=rpcTimeout+余量。正常完成恒先于兜底；兜底仅在future完成路径整体失效
+	// （agent被并发close且注册竞态等极端窗口）时把无界悬挂转为可重试的超时异常。
+	private long rpcAwaitTimeoutMs() {
+		return manager.getDbh2Config().getRpcTimeout() + Dbh2Agent.SendForWaitGraceMs;
+	}
+
 	public void start() {
 		try {
 			redoTimer();
@@ -110,7 +118,7 @@ public class CommitRocks {
 				futures.add(func.call(manager.openBucket(e), tid));
 			}
 			for (var e : futures) {
-				var r = e.get();
+				var r = e.get(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
 				// appendLog失败（丢leader/多数派未达成）时服务端以非零码正常回包（Dbh2.ProcessCommitBatchRequest），
 				// 不检查就删重做索引会使该桶的事务永久滞留在eCommitting，客户端却已拿到成功。对齐prepare路径的检查。
 				if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
@@ -159,7 +167,7 @@ public class CommitRocks {
 			futures.add(manager.openBucket(e).undoBatch(tid));
 		}
 		for (var e : futures)
-			e.await();
+			e.await(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
 	}
 
 	private ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> processPrepareFutures(
@@ -167,7 +175,7 @@ public class CommitRocks {
 			ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>> futures) {
 		var futuresRedirect = new ArrayList<TaskCompletionSourceX<RaftRpc<BPrepareBatch.Data, BRefused.Data>>>();
 		for (var e : futures) {
-			var r = e.get();
+			var r = e.get(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
 			if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
 				throw new RuntimeException("prepare error=" + IModule.getErrorCode(r.getResultCode()));
 			// 【dbh2 拒绝模式结果处理】
@@ -272,7 +280,7 @@ public class CommitRocks {
 				futures.add(manager.openBucket(e).commitBatch(tid));
 			}
 			for (var e : futures) {
-				var r = e.get();
+				var r = e.get(rpcAwaitTimeoutMs(), TimeUnit.MILLISECONDS);
 				// 同redo：非零回包（raft appendLog失败）不抛异常但事务未apply，必须留给redoTimer重试
 				if (r.getResultCode() != 0 && r.getResultCode() != Procedure.RaftApplied)
 					throw new RuntimeException("commit error=" + IModule.getErrorCode(r.getResultCode()));

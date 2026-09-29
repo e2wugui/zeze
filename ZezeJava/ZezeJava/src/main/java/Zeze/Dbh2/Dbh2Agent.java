@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import java.util.concurrent.TimeUnit;
 import java.util.function.ToLongFunction;
 import Zeze.Builtin.Dbh2.BBatchTid;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -33,6 +34,10 @@ import org.jetbrains.annotations.Nullable;
  * Dbh2 客户端到单个桶 Raft 集群的代理连接，封装对桶的读写与事务 RPC。
  */
 public class Dbh2Agent extends AbstractDbh2Agent {
+	// sendForWait等待兜底余量（FND29 dbh2-02）：rpc判死由resend扫描驱动（1s粒度），
+	// 等待超时=rpcTimeout+本余量，仅在future完成路径整体失效（agent被并发close等）时兜底唤醒，
+	// 正常路径永远先由rpc超时/应答完成，不改变请求语义。
+	static final long SendForWaitGraceMs = 5_000;
 	private final Agent raftClient;
 	private final TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 	private volatile long lastErrorTime;
@@ -53,7 +58,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		var r = new SetBucketMeta();
 		r.Argument = meta;
 		r.setTimeout(config.getRpcTimeout());
-		raftClient.sendForWait(r).await();
+		raftClient.sendForWait(r).await(config.getRpcTimeout() + SendForWaitGraceMs, TimeUnit.MILLISECONDS);
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("fail! code=" + r.getResultCode());
 	}
@@ -70,7 +75,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		r.Argument.setTable(tableName);
 		r.Argument.setKey(key);
 		r.setTimeout(config.getRpcTimeout());
-		raftClient.sendForWait(r).await();
+		raftClient.sendForWait(r).await(config.getRpcTimeout() + SendForWaitGraceMs, TimeUnit.MILLISECONDS);
 
 		if (r.getResultCode() == errorCode(eBucketMismatch))
 			return KV.create(false, null);
@@ -175,7 +180,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		if (prefix != null)
 			r.Argument.setPrefix(new Binary(prefix));
 		r.setTimeout(config.getRpcTimeout());
-		raftClient.sendForWait(r).await();
+		raftClient.sendForWait(r).await(config.getRpcTimeout() + SendForWaitGraceMs, TimeUnit.MILLISECONDS);
 		// 错误在外面处理。
 		return r;
 	}
@@ -188,7 +193,7 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		if (prefix != null)
 			r.Argument.setPrefix(new Binary(prefix));
 		r.setTimeout(config.getRpcTimeout());
-		raftClient.sendForWait(r).await();
+		raftClient.sendForWait(r).await(config.getRpcTimeout() + SendForWaitGraceMs, TimeUnit.MILLISECONDS);
 		// 错误在外面处理。
 		return r;
 	}

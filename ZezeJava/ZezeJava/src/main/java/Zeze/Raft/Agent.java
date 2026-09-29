@@ -1,6 +1,7 @@
 package Zeze.Raft;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -67,6 +68,10 @@ public final class Agent {
 	public boolean dispatchProtocolToInternalThreadPool;
 	private volatile int pendingLimit = -1; // -1 no limit // 实际上没有进行线程保护。
 	private Future<?> resendTask;
+	// stop置位且不可复位（Agent无重启路径，FND29 dbh2-02）。volatile写发生在stop的pending排空
+	// 之前、读发生在send/sendForWait的pending注册之后：注册后读到false ⟹ 排空尚未开始 ⟹
+	// 排空（更晚）必然覆盖本注册；读到true则由发送方自行补完成——两者必居其一，无永久悬挂窗口。
+	private volatile boolean stopped;
 	// 一次性联动校验告警标志，see checkResendWindow。
 	private final AtomicBoolean warnedResendNeverTrigger = new AtomicBoolean();
 
@@ -142,6 +147,14 @@ public final class Agent {
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
 
 		rpc.setResponseHandle(p -> sendHandle(p, rpc));
+		// FND29 dbh2-02：stop后注册进pending的rpc不再有任何驱动（resendTask已取消、client/leader
+		// 已置空，stop的排空先于本注册）——必须在此补完成（终局异常触发handle），否则静默滞留pending。
+		// 与stop的排空互斥：remove仅一方成功，不会双触发。
+		if (stopped) {
+			if (pending.remove(rpc.getUnique().getRequestId()) != null)
+				trigger(List.of(rpc), "AgentStopped");
+			return;
+		}
 		ConnectorProxy leader = this.leader;
 		if (!ProxyAgent.send(client, proxyAgent, rpc, leader,
 				leader != null ? leader.getConnector().TryGetReadySocket() : null))
@@ -230,6 +243,13 @@ public final class Agent {
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
 
 		rpc.setResponseHandle(p -> sendForWaitHandle(p, rpc));
+		// 同send()的FND29 dbh2-02契约：stop后注册的future无驱动路径，立即以异常终局补完成，
+		// 等待者有界醒来（await得到RpcTimeoutException）而非永久悬挂；不再尝试底层发送。
+		if (stopped) {
+			if (pending.remove(rpc.getUnique().getRequestId()) != null)
+				trigger(List.of(rpc), "AgentStopped");
+			return future; // future已完成异常，调用方await立即失败（可见失败）
+		}
 		ConnectorProxy leader = this.leader;
 		if (!ProxyAgent.send(client, proxyAgent, rpc, leader,
 				leader != null ? leader.getConnector().TryGetReadySocket() : null))
@@ -279,6 +299,9 @@ public final class Agent {
 	public void stop() throws Exception {
 		mutex.lock(); // stop 不中断
 		try {
+			// 置位先于一切清理（含pending排空），与send/sendForWait注册后的检查共同封住
+			// "stop后注册、无人驱动"窗口（FND29 dbh2-02），见stopped字段注释。
+			stopped = true;
 			if (resendTask != null) {
 				resendTask.cancel(true);
 				resendTask = null;

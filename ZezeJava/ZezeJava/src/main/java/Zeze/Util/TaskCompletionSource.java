@@ -204,6 +204,14 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return this;
 	}
 
+	// 带超时的await（FND29 dbh2-02）：超时抛TimeoutException（同get(timeout,unit)的既有形态，
+	// 经forceThrow以未检查异常传播）。rpc等待等"future完成路径可能整体失效"（如发送容器已关闭）
+	// 的场景必须用带超时版本兜底，不得使用无参await无界悬挂。返回this保持链式（await()同款）。
+	public @NotNull TaskCompletionSource<R> await(long timeout, @NotNull TimeUnit unit) { // throws InterruptedException, TimeoutException, CompletionException, CancellationException
+		get(timeout, unit);
+		return this;
+	}
+
 	/**
 	 * @return 是否得到结果, 取消或超时会返回false
 	 */
