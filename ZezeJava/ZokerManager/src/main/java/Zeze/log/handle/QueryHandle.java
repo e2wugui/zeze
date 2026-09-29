@@ -6,6 +6,7 @@ import Zeze.Netty.HttpExchange;
 import Zeze.Services.LogAgent;
 import Zeze.Util.Json;
 import Zeze.log.ApiToken;
+import Zeze.log.BrowserOriginGuard;
 import Zeze.log.LogAgentManager;
 import Zeze.log.handle.entity.BaseResponse;
 import Zeze.log.handle.entity.QueryParam;
@@ -20,6 +21,10 @@ public class QueryHandle implements HttpEndStreamHandle {
 	public void onEndStream(HttpExchange x) throws Exception {
 		// token门（FND29 zokermanager-02）：配置了Token则校验Authorization头，未通过已回401。
 		if (!ApiToken.check(x))
+			return;
+		// 浏览器源防御（FND31 zokermanager-03）：Origin 非同源（CSRF）或回环绑定下 Host
+		// 非回环（DNS rebinding）已回403——query 透传全集群查询面，同受防线覆盖。
+		if (!BrowserOriginGuard.check(x))
 			return;
 		try {
 			ByteBuf content = x.content();

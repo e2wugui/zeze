@@ -31,6 +31,7 @@ public class LogAgentManager {
 		conf = new ZokerManagerConf();
 		config.parseCustomize(conf);
 		ApiToken.configure(conf.token);
+		BrowserOriginGuard.configure(conf.bind);
 		logAgentManager.logAgent = new LogAgent(config);
 		logAgentManager.logAgent.start();
 		startHttpServer();
