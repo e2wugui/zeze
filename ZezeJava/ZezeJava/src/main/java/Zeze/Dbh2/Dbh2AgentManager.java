@@ -273,8 +273,17 @@ public class Dbh2AgentManager extends ReentrantLock {
 		var m = masterAgent.get(masterName);
 		if (null != m)
 			return m;
-		// 构造与连接等待在map锁外（对齐locateBucket自立的约束：阻塞等待不能放进computeIfAbsent
-		// 的映射函数，持bin锁会阻塞同bin其他master的打开，最长约READY_TIMEOUT）。
+		// stopped门禁（对齐openBucket）：stop清理后本类不可重启，此后新建的MasterAgent（连接器+
+		// 重连）无人回收必泄漏。构造与连接等待仍在锁外（对齐locateBucket自立的约束：阻塞的连接
+		// 等待不能持管理器锁，会阻塞同锁的其他操作，最长约READY_TIMEOUT），故构造前先查一次，
+		// putIfAbsent前在锁内复查：构造期间发生stop则回收自建agent并失败。
+		lock();
+		try {
+			if (stopped)
+				throw new IllegalStateException("Dbh2AgentManager stopped.");
+		} finally {
+			unlock();
+		}
 		var config1 = new Config();
 		var serviceConf = new ServiceConf();
 		var ipPort = masterName.split("_");
@@ -282,12 +291,21 @@ public class Dbh2AgentManager extends ReentrantLock {
 		serviceConf.tryGetOrAddConnector(ipPort[0], Integer.parseInt(ipPort[1]), true, null);
 		var newAgent = new MasterAgent(config1);
 		newAgent.startAndWaitConnectionReady();
-		var old = masterAgent.putIfAbsent(masterName, newAgent);
-		if (null != old) {
-			newAgent.stop(); // 竞态败者：已启动的连接器必须回收，不得泄漏
-			return old;
+		lock();
+		try {
+			if (stopped) {
+				newAgent.stop(); // 构造期间已stop：回收自建agent（连接器+重连），不得泄漏
+				throw new IllegalStateException("Dbh2AgentManager stopped.");
+			}
+			var old = masterAgent.putIfAbsent(masterName, newAgent);
+			if (null != old) {
+				newAgent.stop(); // 竞态败者：已启动的连接器必须回收，不得泄漏
+				return old;
+			}
+			return newAgent;
+		} finally {
+			unlock();
 		}
-		return newAgent;
 	}
 
 	public MasterAgent openDatabase(
