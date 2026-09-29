@@ -111,7 +111,7 @@ public class DistributeManager {
 	}
 
 	public FileBin open(String serviceName, String fileName, AsyncSocket sender) throws IOException {
-		var path = new File(serviceName, fileName).getPath();
+		var path = synthPath(serviceName, fileName);
 		// serviceName/fileName直接来自网络rpc（OpenFile请求），必须限制在distributeDir之内，
 		// 拒绝"../"逃逸和绝对路径，防止越界写/截断任意文件。
 		checkInsideDir(distributeDir, path);
@@ -229,7 +229,7 @@ public class DistributeManager {
 
 	public void append(String serviceName, String fileName, long offset, Binary data)
 			throws IOException, NoSuchAlgorithmException {
-		var fileBin = files.get(fileKey(new File(serviceName, fileName).getPath()));
+		var fileBin = files.get(fileKey(synthPath(serviceName, fileName)));
 		if (null == fileBin)
 			throw new IOException("file not opened: " + serviceName + "/" + fileName); // 与Hot版一致，未Open直接Append会NPE且无上下文
 		fileBin.append(offset, data);
@@ -244,7 +244,7 @@ public class DistributeManager {
 	 */
 	public long closeAndVerify(String serviceName, String fileName, Binary md5, AsyncSocket sender)
 			throws IOException {
-		var relativeCanonicalFileName = fileKey(new File(serviceName, fileName).getPath());
+		var relativeCanonicalFileName = fileKey(synthPath(serviceName, fileName));
 		FileBin fileBin;
 		// 清账与并发open的记账原子：isEmpty判定remove与重开窗口互斥。
 		synchronized (filesBySocket) {
@@ -310,6 +310,23 @@ public class DistributeManager {
 	// canonical路径经foldBarrierPath折叠——理由与平台边界见files字段注释；对已折叠键再折叠幂等。
 	private String fileKey(String path) throws IOException {
 		return foldBarrierPath(new File(distributeDir, path).getCanonicalFile().toString());
+	}
+
+	/**
+	 * serviceName/fileName 到相对路径的合成单点（FND30 zoker-01）。
+	 * ZokerAgent 的三个文件 RPC 从不设置 ServiceName（bean 默认空串），文件相对路径
+	 * （带服务名首段，形如 "svc/lib/x.jar"）整体放在 FileName 里——空 serviceName 是真实
+	 * 流量形态。{@code new File("", child)} 的空父目录会被 JDK 替换为默认父
+	 * （Windows "\"、Linux "/"），得到根相对/绝对路径（\svc\lib\x.jar / /svc/lib/x.jar），
+	 * checkInsideDir 的 base.resolve 对带根成分的路径不再拼接到 base 之下，判为越界逃逸拒绝
+	 * ——真实流量的 OpenFile 100% 失败。空 serviceName 时直接采用 fileName（纯相对路径，
+	 * 边界守卫仍由 checkInsideDir 承担）；非空 serviceName 保持既有合成。open/append/
+	 * closeAndVerify 的路径与记账键合成必须同走本单点，保证三处键一致。
+	 */
+	private static String synthPath(String serviceName, String fileName) {
+		// serviceName 为空串是 ZokerAgent 真实流量形态（FileName 已含服务名首段）；
+		// new File("", child) 会被 JDK 解析为根相对/绝对路径，必须特判。
+		return serviceName.isEmpty() ? fileName : new File(serviceName, fileName).getPath();
 	}
 
 	/**
