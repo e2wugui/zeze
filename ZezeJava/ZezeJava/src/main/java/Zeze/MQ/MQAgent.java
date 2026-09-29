@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Builtin.MQ.BSendMessage;
 import Zeze.Builtin.MQ.PushMessage;
@@ -13,11 +14,13 @@ import Zeze.Builtin.MQ.Unsubscribe;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
+import Zeze.Util.Action0;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import static Zeze.MQ.Master.AbstractMaster.eConsumerNotFound;
 
 /**
@@ -253,18 +256,46 @@ public class MQAgent extends AbstractMQAgent {
 	// 否则全部既有消费者静默饿死（与Manager→Master方向重注册对称的Consumer→Manager方向机制）。
 	// Manager端MQPartition.subscribe按sessionId幂等：同socket重复无害；旧socket未及关闭时新socket
 	// 的订阅替换旧条目。
-	// 重发失败仅记日志等下次重连再试，不引入新定时器。
 	void onManagerConnected(AsyncSocket so) {
-		// IO线程回调，不得同步等待rpc，提交任务池异步重发。
-		TaskSpec.ofAction(() -> reSubscribe(so)).name("MQAgent.reSubscribe").submitNow();
+		// IO线程回调，不得同步等待rpc，提交任务池异步重发（failCount=0：新连接新链，退避重新起算）。
+		TaskSpec.ofAction(() -> reSubscribeRound(so, 0)).name("MQAgent.reSubscribe").submitNow();
+	}
+
+	// mq-03（reconciler 兜底）：reSubscribe 失败不再只记日志"等下次重连"——OnHandshakeDone 是
+	// 唯一触发点，socket 保持健康时它不再来（Manager 端 MQPartition 锁竞争的 Subscribe rpc 超时
+	// 等单次瞬时失败即命中），该会话在这台 Manager 上的分区订阅永久丢失、静默饿死。
+	// 失败进指数退避重试（重发幂等；订阅表 vs Manager 侧登记的差异即重试依据，全部成功=收敛即清）；
+	// socket 关闭取消排期（重连新 socket 由 OnHandshakeDone 重新起链，无僵尸任务）。
+	// 每socket单槽排期句柄，pending 数自限。
+	private final ConcurrentHashMap<AsyncSocket, Future<?>> reSubscribeRetryFutures = new ConcurrentHashMap<>();
+
+	// 包内可见：重订阅重试调度器（默认 TaskSpec 延迟调度，DaemonTimer 续约同形态）；
+	// 测试注入捕获延迟序列/手动驱动以测退避形态（MQSingle.RetryScheduler 先例）。
+	@FunctionalInterface
+	interface RetryScheduler {
+		Future<?> schedule(long delayMs, Action0 action) throws Exception;
+	}
+	@NotNull RetryScheduler reSubscribeRetryScheduler =
+			(delayMs, action) -> TaskSpec.ofAction(action).name("MQAgent.reSubscribeRetry").scheduleNow(delayMs);
+
+	// 指数退避：min(Cap, Base<<failCount)，移位钳制21位防溢出（MQSingle.retryBackoffMs 同公式，
+	// 客户端侧常量：本类无 MQConfig）。封顶使持续故障下重试频率有界，收敛后自动清零。
+	static long reSubscribeBackoffMs(int failCount) {
+		return Math.min(1_000L << Math.min(failCount, 21), 60_000L);
 	}
 
 	// 不另建connector→consumers反向登记表：consumers（生命周期由subscribe/unsubscribe维护，
 	// 失败回滚与finally必删保证无泄漏）×consumer.getManagers()（构造时确定）即完整映射，
 	// 派生遍历免登记/断连清理，无第二份可失步的状态。
-	private void reSubscribe(AsyncSocket so) {
+	// 包内可见（测试直驱一轮重订阅）：返回本轮失败数（>0 由调用侧排期重试）。
+	int reSubscribeRound(AsyncSocket so, int failCount) {
 		netRounds.incrementAndGet(); // 归零停机排空的在飞轮之一（consumers空时即刻返回）
 		try {
+			// 兜底双保险：OnSocketClose 取消后的迟到触发/取消面遗漏——死 socket 上重发必然
+			// 逐个超时（每消费者 Rpc 默认 5s），还把重试链挂在已死的 so 上，到此为止。
+			if (so.isClosed())
+				return 0;
+			int failed = 0;
 			var connector = so.getConnector();
 			for (var consumer : consumers.values()) {
 				if (!consumer.getManagers().contains(connector))
@@ -278,18 +309,52 @@ public class MQAgent extends AbstractMQAgent {
 					r.Argument.setTopic(consumer.getTopic());
 					r.Argument.setSessionId(consumer.getSessionId());
 					r.SendForWait(so).await();
-					if (r.getResultCode() != 0)
+					if (r.getResultCode() != 0) {
+						++failed;
 						logger.error("re-subscribe error={} manager={} topic={} sessionId={}",
 								IModule.getErrorCode(r.getResultCode()), connector.getName(),
 								consumer.getTopic(), consumer.getSessionId());
+					}
 				} catch (Exception e) {
-					logger.error("re-subscribe failed, wait for next reconnect. manager={} topic={} sessionId={}",
+					++failed;
+					logger.error("re-subscribe failed, will retry with backoff. manager={} topic={} sessionId={}",
 							connector.getName(), consumer.getTopic(), consumer.getSessionId(), e);
 				}
 			}
+			if (failed > 0)
+				scheduleReSubscribeRetry(so, failCount + 1);
+			else
+				reSubscribeRetryFutures.remove(so); // 收敛：订阅表与 Manager 侧登记重新一致
+			return failed;
 		} finally {
 			netRounds.decrementAndGet();
 		}
+	}
+
+	// 失败排期下一轮（reSubscribeRound 锁外调用）：指数退避，单槽句柄（旧排期 cancel+replace）。
+	// 调度失败（调度池关闭等停机窗口）链止于本轮：连接仍在时下次事件（推送/新订阅）不触发重订阅，
+	// 但停机场景 socket 关闭后本链亦无意义；残余=进程存活且调度池关闭的窄窗口，接受。
+	private void scheduleReSubscribeRetry(AsyncSocket so, int failCount) {
+		var delayMs = reSubscribeBackoffMs(failCount);
+		try {
+			var future = reSubscribeRetryScheduler.schedule(delayMs, () -> reSubscribeRound(so, failCount));
+			var old = reSubscribeRetryFutures.put(so, future);
+			if (null != old)
+				old.cancel(false); // 单槽：新排期作废旧排期（正常链上槽空入，防御替换）
+		} catch (Exception e) {
+			reSubscribeRetryFutures.remove(so);
+			logger.error("re-subscribe retry schedule failed, backoff chain ends (next reconnect re-triggers)"
+					+ " manager={}", so.getConnector() != null ? so.getConnector().getName() : so, e);
+		}
+	}
+
+	// socket 关闭取消重试排期（Service.OnSocketClose 调用）：重连的新 socket 由 OnHandshakeDone
+	// 重新起链，旧句柄不取消则成为指向死 socket 的僵尸重试（每轮逐消费者超时后退避再排）。
+	// 包内可见（测试直驱）。
+	void cancelReSubscribeRetry(AsyncSocket so) {
+		var future = reSubscribeRetryFutures.remove(so);
+		if (null != future)
+			future.cancel(false);
 	}
 
 	public static class Service extends Zeze.Net.Service {
@@ -310,6 +375,15 @@ public class MQAgent extends AbstractMQAgent {
 			var a = agent;
 			if (null != a && null != so.getConnector())
 				a.onManagerConnected(so);
+		}
+
+		@Override
+		public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+			super.OnSocketClose(so, e);
+			// 只关心连向Manager的连接（connector方向）：其上的重订阅重试随 socket 失效一并取消。
+			var a = agent;
+			if (null != a && null != so.getConnector())
+				a.cancelReSubscribeRetry(so);
 		}
 	}
 }
