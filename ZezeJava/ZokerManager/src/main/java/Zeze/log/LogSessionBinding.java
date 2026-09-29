@@ -9,11 +9,13 @@ package Zeze.log;
  * HTTP 层的会话身份管理，故记录在 ZokerManager 侧随会话对象一并存表。
  * 另记最后活跃时间（创建与复用命中时刷新，System.nanoTime 单调时基）：
  * FileSessionManager 的闲置清扫据此判闲置驱逐。
- * 全服视图（all）另记创建时刻的服务器键集快照（zoker-04）：SessionAll 构造时一次性
- * 快照 getLogServers()，扩容/故障恢复上台后键集漂移，复用旧会话=新服务器永不纳入
- * 会话、全服视图静默缺数——resolve 复用前比对当前键集，不一致视同 changeSession
- * 走重建。空串快照（未记录，如直构测试形态）不可证明成员不变，比对恒不匹配
- * （安全方向：重建）。
+ * 全服视图（all）另记创建时刻的成员集键串快照（zoker-04 起为注册表键集，FND30
+ * zokermanager-02 起为会话实际成员集——注册表键集不可证明会话构成：构造期跳过/
+ * 注册竞态窗口）：摘除下台后复用旧会话=成员集漂移，resolve 复用前以会话实际成员集
+ * 比对当前注册表收敛（多余成员走重建缩容，缺失成员由 SessionAll.operate 的缺册补员
+ * 自愈，见 FileSessionManager.allViewMembersConverged）。快照仅供会话非 SessionAll 的
+ * 直构形态回退比对；空串快照（未记录，如直构测试形态）不可证明成员不变，比对恒不
+ * 匹配（安全方向：重建）。
  */
 public record LogSessionBinding(boolean all, String serverName, String logName, Object session,
 								long lastActiveNanos, String allServersKey) {

@@ -4,6 +4,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -117,10 +118,11 @@ public class FileSessionManager {
 	 * 异步关闭旧会话（替换关闭语义：释放服务端查询句柄，避免替换出的旧会话句柄滞留到进程结束）。
 	 * 建新失败（目标服务器不可达等）直接上抛，旧绑定保持原样不受影响——下次请求可继续收敛。
 	 *
-	 * <p>zoker-04 键集漂移比对：全服视图（SessionAll）复用前另比对 getLogServers() 当前键集
-	 * 与绑定记录的创建时快照——SessionAll 构造时一次性快照，扩容/故障恢复上台后复用旧会话
-	 * =新服务器永不纳入、全服视图静默缺数；键集不一致视同 changeSession 走关旧建新。
-	 * 单服务器视图无集合语义，不比对。</p>
+	 * <p>全服视图复用收敛比对（zoker-04 键集漂移 + FND30 zokermanager-02 成员集权威）：
+	 * SessionAll 复用前以会话实际成员集比对当前注册表（allViewMembersConverged）——多余
+	 * 成员（∈会话∉注册表：服务器摘除/键集漂移）视同 changeSession 走关旧建新缩容；缺失
+	 * 成员（∈注册表∉会话：构造期跳过/扩容上台）不重建，由 SessionAll.operate 的缺册补员
+	 * 自愈承担，避免持续故障期逐请求全量重建抖动。单服务器视图无集合语义，不比对。</p>
 	 *
 	 * <p>全服视图成员校验：newSessionAll 对不可达台逐台跳过，服务发现空集或注册表非空但全部
 	 * 不可达（进程刚死/SM 分区/重启窗口，租约未过期）时构造出 0 成员会话并成功返回空结果——
@@ -133,7 +135,7 @@ public class FileSessionManager {
 		maybeSweepIdleBindings();
 		var bound = get(socketAddress);
 		if (!changeSession && bound != null && bound.matches(requestAll, serverName, logName)
-				&& (!bound.all() || bound.allServersKey().equals(allServersKeyOf(logAgent)))) {
+				&& (!bound.all() || allViewMembersConverged(logAgent, bound))) {
 			// 复用命中刷新活跃时间：条件 replace 只在条目仍是同一绑定时生效——并发 resolve
 			// 已换绑（changeSession/参数变化/键集漂移重建）时不回写旧绑定覆盖新会话；本次返回的旧会话
 			// 由换绑方的替换关闭收口（既有"替换关闭的竞态"裁量）。
@@ -158,7 +160,7 @@ public class FileSessionManager {
 					+ " (registered=" + registered + ", members=0)");
 		}
 		var binding = requestAll
-				? LogSessionBinding.allView(logName, session, allServersKeyOf(logAgent))
+				? LogSessionBinding.allView(logName, session, membersKeyOf(((SessionAll) session).memberNames()))
 				: LogSessionBinding.server(serverName, logName, session);
 		var old = put(socketAddress, binding);
 		if (old != null && old.session() != session)
@@ -166,9 +168,39 @@ public class FileSessionManager {
 		return session;
 	}
 
+	/**
+	 * 全服视图复用收敛判定（FND30 zokermanager-01/02）：会话为 SessionAll 时以其实际成员集
+	 * 为唯一权威——多余成员（∈会话∉注册表：服务器摘除/下线）不收敛，视同 changeSession 走
+	 * 关旧建新缩容；缺失成员（∈注册表∉会话：构造期跳过/扩容上台）不重建，由
+	 * SessionAll.operate 的缺册补员（reconcileMissingMembers）自愈承担——持续故障期缺员若
+	 * 逐请求全量重建，每页查询都重付全服建会话成本且游标归零抖动。会话对象非 SessionAll
+	 * （直构测试形态，无成员集可查）退回快照等值比对（空快照恒不匹配，原语义）。
+	 */
+	static boolean allViewMembersConverged(LogAgent logAgent, LogSessionBinding bound) {
+		if (bound.session() instanceof SessionAll sessionAll)
+			return allViewMembersConverged(sessionAll.memberNames(), logAgent.getLogServers());
+		return bound.allServersKey().equals(allServersKeyOf(logAgent));
+	}
+
+	/**
+	 * 全服视图收敛判定（纯函数，直测面）：会话成员集为空恒不收敛（0 成员会话不可复用——重建
+	 * 路径的成员校验会显式失败）；否则注册表包含全部会话成员（无多余）即收敛——缺失成员由
+	 * 补员承担，不算不收敛。
+	 */
+	static boolean allViewMembersConverged(Set<String> memberNames, Set<String> registeredServers) {
+		return !memberNames.isEmpty() && registeredServers.containsAll(memberNames);
+	}
+
 	/** 当前日志服务器键集快照（排序 join——集合无序，比对须与顺序无关；键集小，构建开销可忽略）。 */
 	private static String allServersKeyOf(LogAgent logAgent) {
 		return String.join(",", new TreeSet<>(logAgent.getLogServers()));
+	}
+
+	/** 会话实际成员集键串（排序 join，与 {@link #allServersKeyOf} 同形）：全服视图绑定快照
+	 * 记录会话构成而非注册表键集（FND30 zokermanager-02）——注册表键集不可证明会话构成
+	 * （构造期跳过/注册竞态窗口）；快照仅供会话非 SessionAll 的直构形态回退比对。 */
+	private static String membersKeyOf(Set<String> memberNames) {
+		return String.join(",", new TreeSet<>(memberNames));
 	}
 
 	/**

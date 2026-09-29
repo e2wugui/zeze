@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -20,16 +21,24 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * 跨全部日志服务端的聚合查询会话：对每台建 Session，归并 search/browse 结果并跟踪各台完成状态。
- * 部分失败降级（单台异常不牺牲其余台）+ 会话级死亡成员的自愈重建（renewDeadMembers，N02）。
+ * 部分失败降级（单台异常不牺牲其余台）+ 会话成员集维护单点（FND30 zokermanager-02）：在册
+ * 死亡成员自愈重建（renewDeadMembers，N02）与缺册成员补入（reconcileMissingMembers）都收敛
+ * 在 operate 内——构造期跳过或构造后上台的服务器由后者补入，会话构成始终向注册表收敛。
  */
 public class SessionAll implements AutoCloseable {
 	private static final @NotNull Logger logger = LogManager.getLogger(SessionAll.class);
+
+	private static final long MEMBER_RETRY_BACKOFF_NANOS = Duration.ofSeconds(60).toNanos();
 
 	private final LogAgent agent;
 	// N02：成员会话死亡自愈重建需要（newSession(serverName, logName)），构造期固定。
 	private final String logName;
 	private final ConcurrentHashMap<String, Session> alls = new ConcurrentHashMap<>();
 	private final ConcurrentHashSet<String> finishedSession = new ConcurrentHashSet<>();
+	// FND30 zokermanager-02：缺册补员的 per-member 退避表（服务器名→上次尝试失败时刻，
+	// System.nanoTime 单调时基）。键仅为补入失败的注册台；退避窗内不重试——持续故障期不对
+	// 死地址逐 operate 打点。成员成功补入即移除。
+	private final ConcurrentHashMap<String, Long> memberRetryBackoff = new ConcurrentHashMap<>();
 
 	public SessionAll(LogAgent agent, String logName) {
 		this.agent = agent;
@@ -69,6 +78,10 @@ public class SessionAll implements AutoCloseable {
 
 	public BResult.Data operate(Func1<Session, TaskCompletionSource<BResult.Data>> op)
 			throws Exception {
+
+		// FND30 zokermanager-02：缺册补员先行——补入的新成员须参与本轮查询；与文末
+		// renewDeadMembers（在册死亡重建）合成会话成员集维护的单点。
+		reconcileMissingMembers();
 
 		// 逐台收集失败：单台异常（RPC超时/连接抖动/发送失败）不牺牲其余台结果，
 		// 与构造期"跳过不可用台"降级及close()的逐台收集同构；失败台不标记finishedSession——下次operate自然重试它。
@@ -147,6 +160,35 @@ public class SessionAll implements AutoCloseable {
 		var rData =  merge(rs);
 		rData.setRemain(remain);
 		return rData;
+	}
+
+	/**
+	 * 缺册补员（FND30 zokermanager-02）：注册表新增（扩容上台/SM 推送竞态）或构造期跳过
+	 * （当时不可达）的服务器不在 alls 内，此前无任何补入入口——注册表键集稳定时该台数据
+	 * 持续静默缺席，remain 提前 false。operate 入口对差集（注册表\成员集）逐台尝试补入，
+	 * 补入的新成员参与本轮查询；失败记 per-member 退避时间戳（60s 窗内不重试——持续故障期
+	 * 不对死地址逐 operate 打点）。与 {@link #renewDeadMembers}（在册死亡重建）互补，合成
+	 * 会话成员集维护的单点。
+	 */
+	private void reconcileMissingMembers() {
+		var now = System.nanoTime();
+		for (var serverName : agent.getLogServers()) {
+			if (alls.containsKey(serverName))
+				continue;
+			var lastFail = memberRetryBackoff.get(serverName);
+			if (lastFail != null && now - lastFail < MEMBER_RETRY_BACKOFF_NANOS)
+				continue;
+			try {
+				alls.put(serverName, agent.newSession(serverName, logName));
+				memberRetryBackoff.remove(serverName);
+				logger.warn("reconciled missing member into all-servers session. server='{}', logName '{}'",
+						serverName, logName);
+			} catch (Exception e) {
+				memberRetryBackoff.put(serverName, now);
+				logger.warn("reconcile missing member fail, backoff before next retry. server='{}', logName '{}'",
+						serverName, logName, e);
+			}
+		}
 	}
 
 	/**
