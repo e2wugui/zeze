@@ -32,11 +32,13 @@ public class SearchLogParam {
 
 	/**
 	 * 入口参数校验（对齐 {@code limit<=0} 的 invalid limit 形态）：containsType 枚举、
-	 * words/pattern 归一后双空、（browse）offsetFactor∈[0,1)。这些参数透传时服务端回
-	 * 非零结果码，与死会话同族——operateRecovering 会误判会话级死亡，把健康查询会话
-	 * 整组关旧建新后同参数重试再失败，最终恒 system error；offsetFactor 负值更在服务端
-	 * 静默退化为无上下文的过滤搜索。返回 null=通过，否则为 errorResult 的 desc
-	 * （browse 传 true 校验 offsetFactor，search 不使用该参数）。
+	 * words/pattern 归一后双空、（browse）offsetFactor∈[0,1)、beginTime/endTime 时间串
+	 * 格式。这些参数透传时服务端回非零结果码，与死会话同族——operateRecovering 会误判
+	 * 会话级死亡，把健康查询会话整组关旧建新后同参数重试再失败，最终恒 system error；
+	 * offsetFactor 负值更在服务端静默退化为无上下文的过滤搜索；时间串笔误的
+	 * DateTimeParseException 则坍缩 system error 引导用户怀疑服务端故障。返回
+	 * null=通过，否则为 errorResult 的 desc（browse 传 true 校验 offsetFactor，
+	 * search 不使用该参数）。
 	 */
 	public String validateError(boolean browse) {
 		if (containsType != BCondition.ContainsAll && containsType != BCondition.ContainsAny
@@ -49,7 +51,28 @@ public class SearchLogParam {
 			if (!(factor >= 0f && factor < 1f)) // NaN 落 false 同拒
 				return "invalid offsetFactor";
 		}
+		var timeError = timeFormatError();
+		if (timeError != null)
+			return timeError;
 		return null;
+	}
+
+	/** beginTime/endTime 非空白时的格式预检：返回 desc（null=通过）。空串=null 语义（不限时间）。 */
+	private String timeFormatError() {
+		if (beginTime != null && !beginTime.isBlank() && !isParsableTime(beginTime))
+			return "invalid beginTime, expect yyyy-MM-dd HH:mm:ss";
+		if (endTime != null && !endTime.isBlank() && !isParsableTime(endTime))
+			return "invalid endTime, expect yyyy-MM-dd HH:mm:ss";
+		return null;
+	}
+
+	private static boolean isParsableTime(String time) {
+		try {
+			parseTime(time);
+			return true;
+		} catch (RuntimeException e) { // LocalDateTime.parse 的 DateTimeParseException
+			return false;
+		}
 	}
 
 	public String getServerName() {

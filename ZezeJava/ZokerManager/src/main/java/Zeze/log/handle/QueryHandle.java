@@ -35,6 +35,21 @@ public class QueryHandle implements HttpEndStreamHandle {
 			QueryParam queryParam = Json.parse(str, QueryParam.class);
 			LogAgent logAgent = LogAgentManager.getInstance().getLogAgent();
 			String serverName = queryParam.getServerName();
+			// serverName 入口预校验（对称 search/browse 的注册表比对）：缺字段/空白透传到
+			// LogAgent.query 的 ConcurrentHashMap.get(null) 是 NPE、未注册名的显式 IAE
+			// 同被兜底 catch 坍缩 system error——最平凡的客户端参数笔误应以明确
+			// errorResult 分诊，不进入代理透传。
+			if (serverName == null || serverName.trim().isEmpty()) {
+				x.sendJson(HttpResponseStatus.OK,
+						Json.toCompactString(BaseResponse.errorResult("missing serverName")));
+				return;
+			}
+			serverName = serverName.trim();
+			if (!logAgent.getLogServers().contains(serverName)) {
+				x.sendJson(HttpResponseStatus.OK,
+						Json.toCompactString(BaseResponse.errorResult("unknown log server: " + serverName)));
+				return;
+			}
 			String result = logAgent.query(serverName, queryParam.getJson());
 			x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.succResult(result)));
 		} catch (Exception e) {
