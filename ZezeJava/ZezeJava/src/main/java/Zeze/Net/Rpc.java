@@ -219,7 +219,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			return true;
 
 		this.setIsTimeout(true);
-		this.setResultCode(Procedure.FailCallback);
+		this.setResultCode(Procedure.FailSend);
 		// 无事务或者whileCommit中都需要立即回调(now）。事务中调用也是立即。另起线程避免whileCommit中调用这个函数，回调的时候不能启用事务。
 		TaskSpec.ofFunc(() -> responseHandle.handle(this)).executeSystemOneByOne();
 		return false;
@@ -240,9 +240,9 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			return Procedure.FailDiscard; // 失败，仍然丢了callback
 
 		this.setIsTimeout(true);
-		this.setResultCode(Procedure.FailCallback);
+		this.setResultCode(Procedure.FailSend);
 		TaskSpec.ofFunc(() -> responseHandle.handle(this)).executeSystemOneByOne();
-		return Procedure.FailCallback;
+		return Procedure.FailSend;
 	}
 
 	public final TaskCompletionSource<TResult> SendForWait(@Nullable AsyncSocket so) {

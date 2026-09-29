@@ -195,7 +195,7 @@ public class Connector extends ReentrantLock {
 	public boolean checkBrokenTimeout(long timeout) {
 		lock();
 		try {
-			return socket == null && (System.currentTimeMillis() - brokenTime > timeout);
+			return !isConnected && (System.currentTimeMillis() - brokenTime > timeout);
 		} finally {
 			unlock();
 		}
