@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult;
@@ -76,6 +77,9 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	private final @NotNull TransactionMQProducer producer;
 	private final @NotNull ThreadPoolExecutor checkExecutor;
 	private @Nullable TimerFuture<?> tSentCleanFuture;
+	// stop 幂等标志：stop 里 shutdown 族调用天然幂等，唯 liveInstances 递减不是——
+	// 重复 stop 必须由本标志 CAS 抢占整体只执行一次，否则计数下漂瓦解多实例告警判据。
+	private final @NotNull AtomicBoolean stopped = new AtomicBoolean();
 
 	public Producer(@NotNull Application zeze, @NotNull String producerGroup, @NotNull ClientConfig clientConfig) {
 		boolean initialized = false;
@@ -111,7 +115,14 @@ public class Producer extends AbstractProducer implements TransactionListener {
 					.scheduleAtPeriodNow(3, 30, 24 * 60 * 60 * 1000);
 	}
 
+	/**
+	 * 停止生产者（幂等，可重复调用）：全部停机动作只在首次调用执行（stopped CAS 抢占），
+	 * 后续调用直接返回——对齐 {@link Consumer#stop()} 与 rocketmq-client shutdown 族的整体幂等语义，
+	 * 保障 liveInstances 计数与生命周期严格配对（见构造器多实例告警）。
+	 */
 	public void stop() {
+		if (!stopped.compareAndSet(false, true))
+			return;
 		if (tSentCleanFuture != null) {
 			tSentCleanFuture.cancel(false);
 			tSentCleanFuture = null;
@@ -127,8 +138,9 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
-		// 完全停止后递减活实例计数：告警面与生命周期配对（重复 stop 的重复递减由
-		// stopped 标志之下的整体幂等性约束，本方法重复调用的既有语义不变）。
+		// 完全停止后递减活实例计数：告警面与生命周期配对。递减与全部停机动作同处 stopped
+		// CAS 抢占之内，重复调用 stop 直接返回，计数只递减一次（此前注释声称的 stopped 标志
+		// 并不存在、递减无守卫，重复 stop 使计数下漂、多实例告警判据被静默瓦解）。
 		liveInstances.decrementAndGet();
 	}
 
