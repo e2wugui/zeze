@@ -31,7 +31,6 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		var txn = Transaction.getCurrentVerifyRead(this);
 		if (txn == null)
 			return bean;
-		//noinspection DataFlowIssue
 		var log = (LogDynamic)txn.getLog(dynamicLogKey());
 		//noinspection DataFlowIssue
 		return log != null ? log.value : bean;
@@ -63,7 +62,6 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		var txn = Transaction.getCurrentVerifyWrite(this);
 		bean.initRootInfoWithRedo(rootInfo, this);
 		bean.variableId(1); // 只有一个变量
-		//noinspection DataFlowIssue
 		var log = (LogDynamic)txn.logGetOrAdd(dynamicLogKey(), this::createLogBean);
 		log.setValue(specialTypeId, bean);
 	}
@@ -76,7 +74,6 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		if (txn == null)
 			return typeId;
 		// 不能独立设置，总是设置Bean时一起Commit，所以这里访问Bean的Log。
-		//noinspection DataFlowIssue
 		var log = (LogDynamic)txn.getLog(dynamicLogKey());
 		return log != null ? log.specialTypeId : typeId;
 	}
@@ -88,6 +85,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	 * objectId按{@link #OBJECT_ID_STEP}(4096)步长自增、低12位保留给varId，自身键落在
 	 * 自己号段的0槽位，与任何"宿主objectId+varId"键（宿主号段内非0槽位）互不重叠。
 	 */
+	@SuppressWarnings("DataFlowIssue")
 	long dynamicLogKey() {
 		return parent() instanceof Collection ? objectId() : parent().objectId() + variableId();
 	}
