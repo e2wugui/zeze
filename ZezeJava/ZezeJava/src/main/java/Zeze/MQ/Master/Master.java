@@ -499,8 +499,9 @@ public class Master extends AbstractMaster {
      * 候选除名时机：在册化（CreateMQ 最终登记完成→覆盖命中）或从上报中消失（已删/重建中）；
      * 下发后也除名——删除失败的残留下轮上报重新候选、重新起算宽限期（=宽限期间隔的自动重试）。
      * <p>
-     * 孤儿删除是破坏性裁决，依据须是正面遗弃证据而非"无匹配登记"：属主 id 无存活连接时
-     * 上报者的报告即数据延续证据，判覆盖并证据化转移路由（notCoveredPartitions 第三路 +
+     * 孤儿删除是破坏性裁决，依据须是正面遗弃证据而非"无匹配登记"：属主不在场（非零 id
+     * 无存活连接，或存量 id==0 条目地址无存活注册=地址级死属主）时上报者的报告即数据
+     * 延续证据，判覆盖并证据化转移路由（notCoveredPartitions 第三路 +
      * transferOrphanEvidence）；整 Manager 面积（候选覆盖上报者全部上报分区）的候选满龄
      * 也压一轮再删（面积闸，error 审计）。
      */
@@ -516,6 +517,14 @@ public class Master extends AbstractMaster {
             if (id != 0 && null != e.socket && !e.socket.isClosed())
                 liveManagerIds.add(id);
         }
+        // 地址级存活快照（存量 id==0 条目的死属主判据）：有未关闭连接的注册条目即占着
+        // 该地址（含 legacy id==0——旧版 Manager 同样在役）。条目地址不在快照中=旧址已
+        // 无任何存活注册=地址级死属主（换地址迁移形态）。
+        var liveAddresses = new HashSet<String>();
+        for (var e : managers) {
+            if (null != e.socket && !e.socket.isClosed())
+                liveAddresses.add(e.info.getHost() + ":" + e.info.getPort());
+        }
         // 本轮候选收集（宽限期从首见起算，putIfAbsent 保持原值）+ 证据化转移候选收集
         var seenKeys = new HashSet<String>();
         var candidates = new HashMap<String, HashSet<Integer>>();
@@ -523,7 +532,8 @@ public class Master extends AbstractMaster {
         var reportedTotal = 0;
         for (var tp : report.getTopics()) {
             reportedTotal += tp.getPartitionIndexes().size();
-            var notCovered = notCoveredPartitions(tp.getTopic(), tp.getPartitionIndexes(), manager, liveManagerIds, transfers);
+            var notCovered = notCoveredPartitions(tp.getTopic(), tp.getPartitionIndexes(), manager,
+                    liveManagerIds, liveAddresses, transfers);
             if (notCovered.isEmpty())
                 continue;
             candidates.put(tp.getTopic(), notCovered);
@@ -589,10 +599,11 @@ public class Master extends AbstractMaster {
         }
     }
 
-    // 证据化转移（模块锁内调用）：把"属主 id 已死（无存活连接）"条目的 id/地址改写为上报者
-    //（报告即数据延续证据，路由跟随数据真相）。只改写收集时认定的死属主 id 的条目（同分区
-    // 的 live 属主/存量条目不动）；上报者为 legacy（id==0）时与 rewriteRoutes 同口径：改写
-    // 地址、id 落 0（保持未知身份，按地址兜底匹配）。
+    // 证据化转移（模块锁内调用）：把"属主不在场"（非零 id 无存活连接；存量 id==0 且地址
+    // 无存活注册——deadOwnerId==0 即此形态）条目的 id/地址改写为上报者（报告即数据延续
+    // 证据，路由跟随数据真相）。只改写收集时认定的死属主条目（同分区的 live 属主/在役
+    // 地址条目不动）；上报者为 legacy（id==0）时与 rewriteRoutes 同口径：改写地址、id
+    // 落 0（保持未知身份，按地址兜底匹配）。
     private void transferOrphanEvidence(HashMap<String, HashMap<Integer, Long>> transfers, Manager reporter)
             throws RocksDBException {
         for (var e : transfers.entrySet()) {
@@ -622,13 +633,14 @@ public class Master extends AbstractMaster {
     /**
      * 覆盖判定：reported 分区中被 mqTable 登记给该 manager 的部分之外（= 未覆盖）的子集。
      * 匹配三路，前两路与 Register 联动重写一致：ManagerId 为主，存量条目（ManagerId==0）按注册
-     * 地址兜底；第三路为证据化转移——条目属主 id 非零且无存活连接（managerId 重铸/换代形态）
-     * 时，上报者的报告即数据延续证据，判覆盖并收集转移候选（reconcileOrphanReport 批量改写
-     * 路由），不判孤儿。属主 live 在场时不走第三路——另一 id 的上报是竞争者而非延续证据，
-     * 维持 fail-fast 孤儿裁决，防抢路由。
+     * 地址兜底；第三路为证据化转移——属主不在场时上报者的报告即数据延续证据，判覆盖并收集
+     * 转移候选（reconcileOrphanReport 批量改写路由），不判孤儿。属主不在场的两种形态统一
+     * 表达：非零 id 无存活连接（managerId 重铸/换代），或存量 id==0 条目的地址无任何存活
+     * 注册（换地址迁移——旧址已无在役 Manager）。属主 live 在场（id 命中或地址仍在役）时不走
+     * 第三路——另一上报是竞争者而非延续证据，维持 fail-fast 孤儿裁决，防抢路由。
      */
     private HashSet<Integer> notCoveredPartitions(String topic, java.util.Set<Integer> reported, Manager manager,
-                                                  HashSet<Long> liveManagerIds,
+                                                  HashSet<Long> liveManagerIds, HashSet<String> liveAddresses,
                                                   HashMap<String, HashMap<Integer, Long>> transfers)
             throws RocksDBException {
         var servers = getServers(topic);
@@ -654,12 +666,19 @@ public class Master extends AbstractMaster {
                 }
             }
             if (!covered) {
-                // 第三路（证据化转移）：条目存在、属主 id 非零、非上报者、且无存活连接。
+                // 第三路（证据化转移，属主不在场的统一表达）：条目存在且属主不在场——非零 id
+                // 无存活连接（managerId 重铸/换代形态），或存量 id==0 条目地址无任何存活注册
+                // （换地址迁移形态，地址级死属主）。上报者的报告即数据延续证据，判覆盖并收集
+                // 转移候选；属主在场（id live 或地址在役）不走此路——另一上报是竞争者而非
+                // 延续证据，维持 fail-fast 孤儿裁决，防克隆数据目录抢路由。
                 for (var server : servers.getServers()) {
                     if (server.getPartitionIndex() != p)
                         continue;
                     var ownerId = server.getManagerId();
-                    if (ownerId != 0 && ownerId != mid && !liveManagerIds.contains(ownerId)) {
+                    var ownerGone = ownerId != 0
+                            ? ownerId != mid && !liveManagerIds.contains(ownerId)
+                            : !liveAddresses.contains(server.getHost() + ":" + server.getPort());
+                    if (ownerGone) {
                         transfers.computeIfAbsent(topic, __ -> new HashMap<>()).putIfAbsent(p, ownerId);
                         covered = true;
                         break;
