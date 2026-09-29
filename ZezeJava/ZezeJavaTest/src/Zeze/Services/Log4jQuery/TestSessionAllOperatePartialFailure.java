@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,7 @@ import Zeze.Builtin.LogService.BLog;
 import Zeze.Builtin.LogService.BResult;
 import Zeze.Services.Log4jQuery.Session;
 import Zeze.Services.Log4jQuery.SessionAll;
+import Zeze.Services.LogAgent;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -151,6 +153,25 @@ public class TestSessionAllOperatePartialFailure {
 		}
 	}
 
+	/**
+	 * operate入口的缺册补员（reconcileMissingMembers）读agent.getLogServers()：
+	 * 空注册表使差集为空、补员无操作，不触发newSession真实路径，保持本测试的
+	 * operate循环部分失败降级语义。
+	 */
+	private static final class StubLogAgent extends LogAgent {
+		// 实例化走newUninitialized（ReflectionFactory绕过构造器），本构造仅为满足编译；
+		// 一旦被误调即触真实初始化暴露。
+		@SuppressWarnings("unused")
+		StubLogAgent() throws Exception {
+			super(null);
+		}
+
+		@Override
+		public Set<String> getLogServers() {
+			return Set.of();
+		}
+	}
+
 	private static StubSession newStub(String name) throws Exception {
 		var stub = newUninitialized(StubSession.class);
 		stub.stubName = name;
@@ -164,6 +185,7 @@ public class TestSessionAllOperatePartialFailure {
 			alls.put(session.getName(), session);
 		setFinalField(sessionAll, "alls", alls);
 		setFinalField(sessionAll, "finishedSession", new ConcurrentHashSet<String>());
+		setFinalField(sessionAll, "agent", newUninitialized(StubLogAgent.class));
 		return sessionAll;
 	}
 
