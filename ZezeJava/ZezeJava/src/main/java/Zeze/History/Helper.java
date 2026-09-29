@@ -53,6 +53,7 @@ import Zeze.Transaction.Logs.LogVector2Int;
 import Zeze.Transaction.Logs.LogVector3;
 import Zeze.Transaction.Logs.LogVector3Int;
 import Zeze.Transaction.Logs.LogVector4;
+import Zeze.Transaction.Table;
 import Zeze.Util.KV;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,7 +62,8 @@ import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 /**
- * 回放端日志注册助手：扫描全部表的键值依赖，注册各集合/变量类型 Log 的解码工厂。
+ * 回放端日志注册助手：扫描表（启动期全部表，或后启开的单表）的键值依赖，
+ * 注册各集合/变量类型 Log 的解码工厂。
  */
 public class Helper {
 	private static final Logger logger = LogManager.getLogger(Helper.class);
@@ -124,15 +126,36 @@ public class Helper {
 		var result = new DependsResult();
 		for (var db : zeze.getDatabases().values()) {
 			for (var table : db.getTables()) {
-				var keyClass = table.getKeyClass();
-				if (Serializable.class.isAssignableFrom(keyClass)) {
-					// must be BeanKey.
-					dependsBean(keyClass, result);
-				}
-				var valueClass = table.getValueClass();
-				dependsBean(valueClass, result);
+				dependsTable(table, result);
 			}
 		}
+		applyRegistrations(result);
+	}
+
+	/**
+	 * 单表形式的依赖注册：后启动态开表（Application.openDynamicTable）的增量入口。
+	 * 表登记与日志工厂注册同构——开表路径不执行扫描的话，该表值 bean 的集合日志
+	 * typeId 永不注册，写侧照常编码落库，回放端 Log.create 抛 unknown log typeId
+	 * 毒记录卡死游标。幂等：dependsBean 按 Class 去重，Log.register 先到先得且
+	 * 同名重复注册无害；只读表/无集合字段表为空操作。
+	 */
+	public static void registerTableLogs(@NotNull Table table) throws Exception {
+		var result = new DependsResult();
+		dependsTable(table, result);
+		applyRegistrations(result);
+	}
+
+	private static void dependsTable(@NotNull Table table, @NotNull DependsResult result) throws Exception {
+		var keyClass = table.getKeyClass();
+		if (Serializable.class.isAssignableFrom(keyClass)) {
+			// must be BeanKey.
+			dependsBean(keyClass, result);
+		}
+		var valueClass = table.getValueClass();
+		dependsBean(valueClass, result);
+	}
+
+	private static void applyRegistrations(@NotNull DependsResult result) throws Exception {
 		for (var beanClass : result.beans)
 			registerLogOne(beanClass); // 没做为其他Bean的变量时是不需要注册的。这里区分了。
 		for (var beanKeyClass : result.beanKeys)

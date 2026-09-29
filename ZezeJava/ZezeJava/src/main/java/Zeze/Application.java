@@ -424,6 +424,15 @@ public final class Application extends ReentrantLock {
 	public void openDynamicTable(@NotNull String dbName, @NotNull Table table) {
 		lock();
 		try {
+			// 与启动期 atomicOpenDatabase 的顺序同构：先注册回放日志工厂再开表，
+			// 注册失败（bean 元数据异常）时 fail-loud 且不留半登记表。
+			if (conf.isHistory()) {
+				try {
+					Zeze.History.Helper.registerTableLogs(table);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
 			addTable(dbName, table).openDynamicTable(this, table);
 		} finally {
 			unlock();

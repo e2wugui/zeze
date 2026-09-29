@@ -166,6 +166,7 @@ public final class FastServerIds {
 	public static final int TEST_SET_MAP_PARTIAL_CHANGE_PHANTOM_DELTA = seg("TestSetMapPartialChangePhantomDelta", 16271, 2);
 	public static final int TEST_GTABLE_STALE_PHANTOM_ROW = seg("TestGTableStaleRowAndPhantomRow", 16281, 2);
 	public static final int TEST_PMAP2_COPY_DEEP = seg("TestPMap2CopyDeep", 16291, 1);
+	public static final int TEST_DYNAMIC_TABLE_LOG_REGISTRY = seg("TestDynamicTableLogRegistry", 16301, 1);
 
 	private FastServerIds() {
 	}
