@@ -140,6 +140,10 @@ public class Profiler {
 		c.name = name;
 		c.timeBegin = System.nanoTime();
 		c.timeEnd = 0;
+		// 必须推进count：toString/genInfo只迭代[0,count)，不推进则begin登记的上下文全部
+		// 不可见，同事务多次begin互相覆写同一槽位，onRedo再覆写begin占用的槽位
+		// （88aeceec1加timeEnd=0时误删此行，af6708415初版语义即有）。
+		count = n + 1;
 		return c;
 	}
 
