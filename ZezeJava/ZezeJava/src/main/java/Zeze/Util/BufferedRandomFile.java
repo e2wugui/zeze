@@ -2,10 +2,13 @@ package Zeze.Util;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.StandardOpenOption;
 import java.util.concurrent.locks.ReentrantLock;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
  * 4. 支持buffered
  */
 public final class BufferedRandomFile extends ReentrantLock implements Closeable {
-	private final RandomAccessFile randomAccessFile;
+	private final FileChannel channel;
 	private final ByteBuffer buffer;
 	private long pos = 0;
 	private final Charset charset;
@@ -28,7 +31,18 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 
 	public BufferedRandomFile(File file, Charset charset) throws IOException {
 		this.charset = charset;
-		randomAccessFile = new RandomAccessFile(file, "r");
+		// log4j-02（FND26）：NIO FileChannel 默认全共享打开（Windows 含 FILE_SHARE_DELETE），
+		// 查询/buildIndex 的分钟级读持有窗口内写方对 active 的 rename 型轮转不被阻断——
+		// RandomAccessFile 在 Windows 不带 FILE_SHARE_DELETE，持句柄期间写方轮转恒败
+		// （log4j2 报错回退、active 无界增长）。Linux 语义不变（O_RDONLY 下 rename/unlink 本合法）。
+		// 文件不存在保持 FileNotFoundException 契约：FileChannel.open 抛的 NoSuchFileException
+		// 不是 FileNotFoundException 子类，而调用方（Log4jFileSession 构造失败回收链、
+		// manager 装载路径）按 FileNotFoundException 捕获轮转竞态的条目消失。
+		try {
+			channel = FileChannel.open(file.toPath(), StandardOpenOption.READ);
+		} catch (NoSuchFileException e) {
+			throw new FileNotFoundException(e.getMessage());
+		}
 		buffer = ByteBuffer.allocate(16 * 1024);
 		buffer.flip(); // ready for read out
 	}
@@ -45,7 +59,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 	public void seek(long offset) throws IOException {
 		lock();
 		try {
-			randomAccessFile.seek(offset);
+			channel.position(offset);
 			buffer.clear();
 			buffer.flip(); // ready for read out
 			pos = offset;
@@ -98,7 +112,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 	private boolean fillBuffer() throws IOException {
 		if (0 == buffer.remaining()) {
 			buffer.clear();
-			var rc = randomAccessFile.getChannel().read(buffer);
+			var rc = channel.read(buffer); // 位置读：从channel.position读并前移，与seek配对
 			buffer.flip();
 			return rc != -1;
 		}
@@ -159,7 +173,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 		// 文件状态稳定——并发close会使持锁读抛ClosedChannelException且buffer未消费数据作废。
 		lock();
 		try {
-			randomAccessFile.close();
+			channel.close();
 		} finally {
 			unlock();
 		}
