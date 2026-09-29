@@ -847,6 +847,15 @@ public final class Application extends ReentrantLock {
 				timer = null;
 			}
 
+			// durability-before-downgrade（TableX.reduceInvalid同款不变式）：NormalClose会让
+			// GCM立即释放本server全部记录锁，他进程随后可Acquire并从后台库读旧值改写提交；
+			// 本进程上一个周期检点后累积的脏记录若在释放后才由终检点flush，旧脏值会覆盖他进程
+			// 的新值（跨进程丢更新）。组件已全停（无新事务生产者），先冲刷一轮已注册脏集再释放锁。
+			// 残余窗口（本轮回调内迟到提交，由停机拒绝转Closed）由终检点兜底，量级已从
+			// “整段停机窗口”收敛到“冲刷与NormalClose之间的微窗”。
+			if (globalAgent != null && checkpoint != null)
+				stopStep("checkpointRun before globalAgent stop", this::checkpointRun);
+
 			if (globalAgent != null) {
 				var ga = globalAgent;
 				stopStep("globalAgent.stop", ga::stop);
