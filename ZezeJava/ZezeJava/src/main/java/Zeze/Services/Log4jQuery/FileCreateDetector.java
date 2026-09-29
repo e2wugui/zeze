@@ -64,7 +64,11 @@ public class FileCreateDetector {
 	 * 注册到start之间发生的创建事件已在内核排队，start后按序补处理。
 	 */
 	public void start() {
-		var thread = new Thread(this::run);
+		var thread = new Thread(this::run, "log4j-watch-" + watchDir);
+		// daemon：线程生命周期由 stopAndJoin 显式管理（close watchService + join），
+		// 不改变正常停机语义；宿主进程启动序列失败/异常退出路径不再被 watch 线程
+		// 钉住（watch 阻塞在 take()，非守护线程会阻止 JVM 退出）。
+		thread.setDaemon(true);
 		watchThread = thread; // 先发布再start：stopAndJoin并发读到的线程join立即返回或正常join
 		thread.start();
 	}

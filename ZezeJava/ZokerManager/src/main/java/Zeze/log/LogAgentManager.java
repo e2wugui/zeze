@@ -18,6 +18,8 @@ import Zeze.log.handle.SearchLogHandle;
 public class LogAgentManager {
 	private static LogAgentManager logAgentManager;
 	public static HttpServer httpServer;
+	// 管理口 event loop 线程组：进程形态由进程生命周期持有；stop（启动失败清理）关闭。
+	private static Netty adminNetty;
 	private static ZokerManagerConf conf;
 	private LogAgent logAgent;
 
@@ -27,22 +29,50 @@ public class LogAgentManager {
 
 	public static void init(String configXml) throws Exception {
 		logAgentManager = new LogAgentManager();
-		var config = Config.load(configXml);
-		conf = new ZokerManagerConf();
-		config.parseCustomize(conf);
-		ApiToken.configure(conf.token);
-		BrowserOriginGuard.configure(conf.bind);
-		logAgentManager.logAgent = new LogAgent(config);
-		logAgentManager.logAgent.start();
-		startHttpServer();
+		try {
+			var config = Config.load(configXml);
+			conf = new ZokerManagerConf();
+			config.parseCustomize(conf);
+			ApiToken.configure(conf.token);
+			BrowserOriginGuard.configure(conf.bind);
+			logAgentManager.logAgent = new LogAgent(config);
+			logAgentManager.logAgent.start();
+			adminNetty = startHttpServer();
+		} catch (Throwable e) {
+			// 半启动回收（zokermanager-02）：agent 启动失败（SM waitReady 双败等）或
+			// 管理口 bind 失败（bind 路径自回收后上抛）时回收本层已启动组件并复位
+			// 静态引用——不把半启动状态留给调用方（MainZokerManager.start 统一收尾）。
+			stop();
+			throw e;
+		}
+	}
+
+	/**
+	 * 停止查询代理与管理口 HTTP 服务（启动失败清理与停机共用）：幂等，按启动逆序
+	 * 回收（先关管理口断流量入口，再停 agent），复位静态引用。
+	 */
+	public static void stop() throws Exception {
+		if (httpServer != null) {
+			httpServer.close();
+			httpServer = null;
+		}
+		if (adminNetty != null) {
+			adminNetty.close();
+			adminNetty = null;
+		}
+		if (logAgentManager != null) {
+			if (logAgentManager.logAgent != null)
+				logAgentManager.logAgent.stop();
+			logAgentManager = null;
+		}
 	}
 
 	public LogAgent getLogAgent() {
 		return logAgent;
 	}
 
-	private static void startHttpServer() throws Exception {
-		startAdminHttpServer(conf, 9980);
+	private static Netty startHttpServer() throws Exception {
+		return startAdminHttpServer(conf, 9980);
 	}
 
 	/**
