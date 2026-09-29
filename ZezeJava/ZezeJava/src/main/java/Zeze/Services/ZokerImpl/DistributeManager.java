@@ -57,7 +57,9 @@ public class DistributeManager {
 	/** distributes/&lt;svc&gt;/ 下的集合完整性清单文件名：部署方在全部文件
 	 * CloseFile 收口后补传，行=各文件相对 distributeDir 根的路径（与 OpenFile 寻址同根）。
 	 * commit 据此校验清单内文件齐全并清退清单外残留（见 {@link #verifyDistributeManifest}）；
-	 * 该文件随版本目录成版，跳装分支以它为安装完成标志消费（start/prune 仍不读）。 */
+	 * 该文件随版本目录成版，跳装分支以它为安装完成标志消费（start/prune 不读）。
+	 * 主形态为版本限定名 {@link #distributeManifestName}（FND31 zoker-01：清单按部署
+	 * 归属，同名服务并发分发互不覆盖），本裸名为旧客户端清单与兼容副本的回落消费名。 */
 	public static final String DISTRIBUTE_MANIFEST_NAME = ".zoker-manifest";
 	/** commit 后保留的版本目录数（含现役），超过的最老版本被清理；&lt;=0 表示全保留。 */
 	static final int KEEP_VERSIONS_DEFAULT = 3;
@@ -615,7 +617,7 @@ public class DistributeManager {
 			// eNoServiceProperties，方向可见但已切现役）。屏障=部署方在全部文件收口后补传的
 			// 集合清单：清单存在即声明集合完整，commit校验齐全+清退残留；无清单走legacy
 			// 路径（外部部署工具/直构形态），由下方空目录拒绝兜底。
-			var manifestRc = verifyDistributeManifest(serviceFrom);
+			var manifestRc = verifyDistributeManifest(serviceFrom, versionNo);
 			if (manifestRc != 0)
 				return manifestRc;
 			// 空目录拒绝（zoker-05）：closeUnder清掉在途未验证中间产物后目录可能为空——
@@ -704,10 +706,27 @@ public class DistributeManager {
 	 * 假成功面）。</li>
 	 * </ul>
 	 */
+	/** 版本限定的清单文件名（FND31 zoker-01）：{@link #DISTRIBUTE_MANIFEST_NAME}.&lt;versionNo&gt;。
+	 * 同名服务并发分发共享同一暂存区，裸名清单是共享路径上的普通文件、最后写者胜——先到的
+	 * commit 消费后到者的清单成版（版本内容与版本号错配的假成功）。清单名带 versionNo 限定
+	 * 后按部署归属：两路部署互不覆盖，commit 只消费本次版本号对应的清单（部署方 ZokerAgent
+	 * 与服务端共用本拼写；versionNo 已过 isSafePathSegment，限定名不构成路径注入）。 */
+	public static String distributeManifestName(String versionNo) {
+		return DISTRIBUTE_MANIFEST_NAME + '.' + versionNo;
+	}
+
+	/** 清单文件定位单点（安装校验/跳装收养两处消费面共用）：优先版本限定名（归属本次
+	 * 提交的部署会话），缺失回落裸名（旧客户端清单/新客户端的兼容副本，既有语义）。
+	 * 两者皆缺时返回裸名 File（isFile=false，调用方按 legacy 处置）。 */
+	private static File manifestFileOf(File dir, String versionNo) {
+		var versioned = new File(dir, distributeManifestName(versionNo));
+		return versioned.isFile() ? versioned : new File(dir, DISTRIBUTE_MANIFEST_NAME);
+	}
+
 	private static boolean installedVersionHealthy(File versionTo, String serviceName) {
 		if (!versionTo.isDirectory())
 			return false;
-		var manifest = new File(versionTo, DISTRIBUTE_MANIFEST_NAME);
+		var manifest = manifestFileOf(versionTo, versionTo.getName());
 		if (manifest.isFile())
 			return manifestEntriesAllPresent(manifest, versionTo, serviceName);
 		try (var walk = Files.walk(versionTo.toPath())) {
@@ -730,7 +749,8 @@ public class DistributeManager {
 	 * 不设比对，是否收养仅由 {@link #installedVersionHealthy} 决定。
 	 */
 	private boolean distributesManifestSubsetOf(File serviceFrom, File versionTo) {
-		var manifest = new File(serviceFrom, DISTRIBUTE_MANIFEST_NAME);
+		// versionTo 即按本次 versionNo 构造，限定名归属本次部署（FND31 zoker-01）。
+		var manifest = manifestFileOf(serviceFrom, versionTo.getName());
 		if (!manifest.isFile())
 			return true;
 		var serviceName = serviceFrom.getName();
@@ -859,16 +879,18 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 集合级完整性屏障（zoker-05，FND26）：distributes/&lt;svc&gt;/ 下存在
-	 * {@link #DISTRIBUTE_MANIFEST_NAME} 时校验清单并清退残留，不存在走 legacy 路径返回0。
+	 * 集合级完整性屏障（zoker-05，FND26）：distributes/&lt;svc&gt;/ 下存在清单时校验并
+	 * 清退残留，不存在走 legacy 路径返回0。清单定位优先版本限定名（归属本次部署，
+	 * FND31 zoker-01：同名服务并发分发的清单互不覆盖，commit 只消费本次版本号对应
+	 * 的清单——裸名最后写者的清单不再被错配消费），缺失回落裸名（旧客户端/兼容副本）。
 	 * 清单行=各文件相对 distributeDir 根的路径（与 OpenFile 寻址同根，ZokerAgent 上传清单
 	 * 与上传文件用同一拼写）。清单是数据不是可信输入：逐行过 {@link #canonicalManifestLine}
 	 * 形态解析与 {@link #manifestLineFirstSegmentMatches} 首段判同（行界守卫
 	 * checkInsideDir 同款拒绝绝对路径/../逃逸/盘符），坏清单响亮拒绝而非侥幸放行。
 	 * 清退判同集合用 canonical 形态（与解析器同源，".."变体行不再使已列文件失配被删）。
 	 */
-	private long verifyDistributeManifest(File serviceFrom) {
-		var manifest = new File(serviceFrom, DISTRIBUTE_MANIFEST_NAME);
+	private long verifyDistributeManifest(File serviceFrom, String versionNo) {
+		var manifest = manifestFileOf(serviceFrom, versionNo);
 		if (!manifest.isFile())
 			return 0; // legacy：无清单不设障（空目录拒绝另行兜底）
 		var serviceName = serviceFrom.getName();
@@ -907,7 +929,7 @@ public class DistributeManager {
 			logger.error("commitService empty distribute manifest: {}", manifest);
 			return err(Zoker.eCommitFail); // 零文件的版本不可启动，与空目录同拒
 		}
-		pruneUnlistedFiles(serviceFrom, listed);
+		pruneUnlistedFiles(serviceFrom, listed, versionNo);
 		return 0;
 	}
 
@@ -920,7 +942,7 @@ public class DistributeManager {
 	 * ——变体拼写不折叠即已列文件落入清理面（FND29 zoker-01）。删除失败仅warn（该残留
 	 * 将随目录成版，回到部分集合形态，靠warn暴露人工处置）；空子目录不递归清理（无消费者，无害）。
 	 */
-	private void pruneUnlistedFiles(File serviceFrom, Set<String> listed) {
+	private void pruneUnlistedFiles(File serviceFrom, Set<String> listed, String versionNo) {
 		var root = distributeDir.toPath().toAbsolutePath().normalize();
 		// 判同两侧拼写不同源：清单行=上传侧拼写，walk相对路径=提交侧服务名+盘上实际名。
 		// Win32 变体拼写（Svc/svc.）指向同一物理文件时裸 contains 必失配——已列文件
@@ -928,12 +950,17 @@ public class DistributeManager {
 		var foldedListed = new HashSet<String>();
 		for (var line : listed)
 			foldedListed.add(foldBarrierPath(line));
-		var foldedManifestRel = foldBarrierPath(serviceFrom.getName() + "/" + DISTRIBUTE_MANIFEST_NAME);
+		// 幸免面=控制文件：裸名清单（兼容副本）与本次版本限定清单（归属本次部署，
+		// FND31 zoker-01）——他版本的限定清单不是本次部署的控制文件，随清单外残留清退
+		//（暂存区以本次清单为单位原子消费，失败方重传）。
+		var spared = Set.of(
+				foldBarrierPath(serviceFrom.getName() + "/" + DISTRIBUTE_MANIFEST_NAME),
+				foldBarrierPath(serviceFrom.getName() + "/" + distributeManifestName(versionNo)));
 		try (var walk = Files.walk(serviceFrom.toPath())) {
 			walk.filter(Files::isRegularFile).forEach(file -> {
 				var rel = root.relativize(file.toAbsolutePath().normalize()).toString().replace('\\', '/');
 				var foldedRel = foldBarrierPath(rel);
-				if (foldedListed.contains(foldedRel) || foldedRel.equals(foldedManifestRel))
+				if (foldedListed.contains(foldedRel) || spared.contains(foldedRel))
 					return;
 				try {
 					Files.delete(file);
