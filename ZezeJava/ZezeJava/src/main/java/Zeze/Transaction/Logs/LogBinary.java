@@ -72,6 +72,7 @@ public class LogBinary extends Log {
 
 	@Override
 	public @NotNull BigDecimal decimalValue() {
-		return new BigDecimal(stringValue(), MathContext.DECIMAL128);
+		// 不用DECIMAL128：静默截断>34位有效数字（LogDecimal.decode同款已修），字符串构造本就精确
+		return new BigDecimal(stringValue());
 	}
 }
