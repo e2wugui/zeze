@@ -117,20 +117,24 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	/**
-	 * 历史变更收集的两阶段契约（history-01）：走查与取号在日志应用（commit.run）之前，
+	 * 历史变更收集的两阶段契约（history-01）：取号在日志应用（commit.run）之前，走查与
 	 * 编码在应用之后。取号是对 Id128 发号服务的阻塞等待，若发生在应用之后，失败时数据已
 	 * 生效而 tHistory 永久缺失（gid 未消费，键空间连空洞都没有，回放端无从感知），
 	 * Immediately 模式补刷后更是吞异常报假成功——前移到应用前，失败=事务未应用即干净失败
 	 * （{@code Transaction.RejectHistoryAllocFailed}，RejectWhileStopping 同款路径），
-	 * 历史与数据同生共死。走查（cc.collect）只读执行期结构（日志树/committedPutLog/dirty），
-	 * 与应用前后无序；编码（buildLogChanges）读应用后的值/日志对象，必须留在应用后。
+	 * 历史与数据同生共死。走查/编码必须后置：Record.collect 对 Put/Remove 的分类读
+	 * ar.committedPutLog，它由应用期（PutLog.commit）填充——前置走查会把 put 误分类为
+	 * edit（监听者拿到 null LogBean、History 编码错误）。beforeApply 的门控（isHistory &&
+	 * anyDirty）与走查后的 History 分支门（isHistory && records非空）精确等价：isHistory 下
+	 * collectRecord 无早退、每个 dirty 记录必登记；!isHistory 时 records 仍会因监听者登记
+	 * 而非空，但 History 分支被 isHistory 挡住，不参与等价。
 	 */
 	interface HistoryChangesCollector {
-		/** commit.run() 之前调用：走查日志建 Changes；isHistory 且有记录时阻塞解析 gid。 */
+		/** commit.run() 之前调用：isHistory 且有 dirty 记录时阻塞解析 gid；不做任何走查。 */
 		void beforeApply() throws Exception;
 
-		/** commit.run() 之后调用：用已解析的 gid 编码日志变更；未解析 gid（历史关闭或
-		 * 无记录）时返回 null。 */
+		/** commit.run() 之后调用：走查日志建 Changes（供监听者与 History），用已解析的
+		 * gid 编码日志变更；未解析 gid（历史关闭或无记录）时返回 null。 */
 		@Nullable BLogChanges.Data afterApply();
 	}
 

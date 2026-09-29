@@ -616,6 +616,35 @@ public final class Transaction {
 
 			@Override
 			public void beforeApply() {
+				// 门控与走查分离：走查/编码必须留在应用后——Record.collect 对 Put/Remove 的
+				// 分类读 ar.committedPutLog，它由应用期（PutLog.commit）填充，前置走查会把
+				// put 误分类为 edit（监听者拿到 null LogBean、History 编码错误）。取号门控用
+				// anyDirty：isHistory 下 collectRecord 对每个 dirty 记录必登记，与走查后的
+				// records 非空精确等价。
+				var zeze = proc.getZeze();
+				if (!zeze.getConfig().isHistory())
+					return;
+				for (var ar : accessedRecords.values()) {
+					if (!ar.dirty)
+						continue;
+					// 上一次分配可能已异常完成（Udp超时毒化），直接get()会抛异常——毒化时
+					// 兜底发起新分配替换。get() 阻塞等待批次，此刻数据尚未应用：任何失败转
+					// RejectHistoryAllocFailed（RejectWhileStopping 同款干净失败路径：
+					// finalRollback+Closed），不把"已应用数据+历史缺失"的静默分歧留给应用后。
+					try {
+						@SuppressWarnings("DataFlowIssue")
+						var future = zeze.getServiceManager().getUsableTid128CacheFuture(zeze.getConfig().getHistory());
+						tid128Cache.set(future.get());
+					} catch (Throwable ex) {
+						logger.error("finalCommit({}) history gid alloc fail before apply:", proc.getActionName(), ex);
+						throw new RejectHistoryAllocFailed("history gid alloc fail before apply: " + proc.getActionName());
+					}
+					break;
+				}
+			}
+
+			@Override
+			public @Nullable BLogChanges.Data afterApply() {
 				var it = lastSp.logIterator();
 				if (it != null) {
 					while (it.moveToNext()) {
@@ -636,32 +665,21 @@ public final class Transaction {
 						cc.collectRecord(ar);
 				}
 
-				var zeze = proc.getZeze();
-				if (zeze.getConfig().isHistory() && !cc.getRecords().isEmpty()) {
-					// 上一次分配可能已异常完成（Udp超时毒化），直接get()会抛异常——毒化时
-					// 兜底发起新分配替换。get() 阻塞等待批次，此刻数据尚未应用：任何失败转
-					// RejectHistoryAllocFailed（RejectWhileStopping 同款干净失败路径：
-					// finalRollback+Closed），不把"已应用数据+历史缺失"的静默分歧留给应用后。
-					try {
-						@SuppressWarnings("DataFlowIssue")
-						var future = zeze.getServiceManager().getUsableTid128CacheFuture(zeze.getConfig().getHistory());
-						tid128Cache.set(future.get());
-					} catch (Throwable ex) {
-						logger.error("finalCommit({}) history gid alloc fail before apply:", proc.getActionName(), ex);
-						throw new RejectHistoryAllocFailed("history gid alloc fail before apply: " + proc.getActionName());
+				// 门控与原callable同形（isHistory&&records非空）：records 在 !isHistory 时也会
+				// 因监听者登记而非空（collectRecord 对有 listener 的表无早退），不能单看 records。
+				if (proc.getZeze().getConfig().isHistory() && !cc.getRecords().isEmpty()) {
+					var cache = tid128Cache.get();
+					// 不变量守卫：isHistory 下门控（anyDirty）与本走查的 records 非空精确等价
+					//（collectRecord 无早退必登记），cache 缺席属不可达形态——宁可响亮失败也
+					// 不静默产出无历史的数据。
+					if (null == cache)
+						throw new IllegalStateException("history changes without gid: " + proc.getActionName());
+					if (proc instanceof ProtocolProcedure pp) {
+						return History.buildLogChanges(cache.next(), cc, pp.getProtocolClassName(), pp.getProtocolRawArgument());
 					}
+					return History.buildLogChanges(cache.next(), cc, null, null);
 				}
-			}
-
-			@Override
-			public @Nullable BLogChanges.Data afterApply() {
-				var cache = tid128Cache.get();
-				if (null == cache)
-					return null;
-				if (proc instanceof ProtocolProcedure pp) {
-					return History.buildLogChanges(cache.next(), cc, pp.getProtocolClassName(), pp.getProtocolRawArgument());
-				}
-				return History.buildLogChanges(cache.next(), cc, null, null);
+				return null;
 			}
 		});
 
