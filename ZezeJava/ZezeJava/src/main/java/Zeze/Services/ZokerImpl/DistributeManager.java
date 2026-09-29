@@ -567,7 +567,7 @@ public class DistributeManager {
 		// (c)新上传清单条目在盘上版本目录缺失。处置：有新内容→隔离换装（残缺目录原子改名
 		// 进暂存删除名腾位，新内容落正常安装分支）；无新内容→eCommitFail。
 		if (versionTo.exists()
-				&& !(installedVersionHealthy(versionTo) && distributesManifestSubsetOf(serviceFrom, versionTo))) {
+				&& !(installedVersionHealthy(versionTo, serviceName) && distributesManifestSubsetOf(serviceFrom, versionTo))) {
 			if (!serviceFrom.isDirectory()) {
 				logger.error("commitService broken version residue and no distribute content: {}", versionTo);
 				return err(Zoker.eCommitFail);
@@ -703,12 +703,12 @@ public class DistributeManager {
 	 * 假成功面）。</li>
 	 * </ul>
 	 */
-	private static boolean installedVersionHealthy(File versionTo) {
+	private static boolean installedVersionHealthy(File versionTo, String serviceName) {
 		if (!versionTo.isDirectory())
 			return false;
 		var manifest = new File(versionTo, DISTRIBUTE_MANIFEST_NAME);
 		if (manifest.isFile())
-			return manifestEntriesAllPresent(manifest, versionTo);
+			return manifestEntriesAllPresent(manifest, versionTo, serviceName);
 		try (var walk = Files.walk(versionTo.toPath())) {
 			return walk.anyMatch(Files::isRegularFile);
 		} catch (IOException ex) {
@@ -727,16 +727,18 @@ public class DistributeManager {
 		var manifest = new File(serviceFrom, DISTRIBUTE_MANIFEST_NAME);
 		if (!manifest.isFile())
 			return true;
-		return manifestEntriesAllPresent(manifest, versionTo);
+		return manifestEntriesAllPresent(manifest, versionTo, serviceFrom.getName());
 	}
 
 	/**
-	 * 清单条目齐全性（单点，跳装分支两处判据共用）：清单行相对 distributeDir 根
-	 * （"svc/lib/x.jar"，与OpenFile寻址同根），剥首段（服务名）后解析进 root 内——须为
-	 * 常规文件且不逃逸 root（清单是数据不是可信输入，逃逸/无分隔符按不齐全收殓）。
-	 * 读失败与零条目清单按不齐全（宁隔离换装不收养：重试收敛或新内容成版，方向安全）。
+	 * 清单条目齐全性（单点，跳装分支两处判据共用）：清单行经
+	 * {@link #canonicalManifestLine} 解析（非法形态=不齐全）且首段折叠等于本服务名
+	 * （跨服务引用行=清单声明了不会被 rename 搬运的文件，收养即残缺版本），
+	 * 剥首段（服务名）后解析进 root 内——须为常规文件且不逃逸 root（清单是数据不是
+	 * 可信输入，逃逸/无分隔符按不齐全收殓）。读失败与零条目清单按不齐全
+	 * （宁隔离换装不收养：重试收敛或新内容成版，方向安全）。
 	 */
-	private static boolean manifestEntriesAllPresent(File manifest, File root) {
+	private static boolean manifestEntriesAllPresent(File manifest, File root, String serviceName) {
 		var base = root.toPath().toAbsolutePath().normalize();
 		var listed = 0;
 		try (var reader = Files.newBufferedReader(manifest.toPath(), StandardCharsets.UTF_8)) {
@@ -745,9 +747,10 @@ public class DistributeManager {
 				if (line.isBlank())
 					continue;
 				listed++;
-				var rel = afterFirstSegment(line);
-				if (rel.isEmpty())
+				var canonical = canonicalManifestLine(line);
+				if (null == canonical || !manifestLineFirstSegmentMatches(canonical, serviceName))
 					return false;
+				var rel = afterFirstSegment(canonical);
 				var target = base.resolve(rel).normalize();
 				if (!target.startsWith(base) || !Files.isRegularFile(target))
 					return false;
@@ -757,6 +760,39 @@ public class DistributeManager {
 			return false;
 		}
 		return listed > 0;
+	}
+
+	/**
+	 * 清单行解析单点（校验/清退/跳装收养三侧判据同源，FND31 zoker-03）：合法形态只有
+	 * 一种——相对 distributeDir 根、首段=服务名的多段相对路径（参考客户端 ZokerAgent
+	 * 生成的形态）。按 '/'/'\\' 切分后拒绝空段（首尾分隔符/双分隔符/绝对路径与 UNC 根
+	 * 的前导空段）、"."与".."段及单段行（文件直接位于 distributeDir 顶层，不属于任何
+	 * 服务暂存区，commit 的 rename 永不搬运）。变体行<b>拒绝而非消解</b>：此前校验侧
+	 * 按 lexical normalize+OS 路径解析放行（"svc/sub/../../svc/x.jar"界内且解析命中
+	 * 真实文件），清退侧按原始行折叠比对（".."段折叠为空段）永不命中——已列且在盘的
+	 * 文件被当未列残留删除，成版残缺版本；统一进本解析器后两性同源。返回 '/' 连接的
+	 * canonical 形态（供清退判同集合与首段校验）；非法返回 null。
+	 */
+	static @Nullable String canonicalManifestLine(String line) {
+		if (line.isEmpty())
+			return null;
+		var segments = line.split("[/\\\\]", -1);
+		if (segments.length < 2)
+			return null;
+		for (var segment : segments) {
+			if (segment.isEmpty() || segment.equals(".") || segment.equals(".."))
+				return null;
+		}
+		return String.join("/", segments);
+	}
+
+	/** 清单行首段（服务名）判同（canonical 形态，至少两段必有'/'）：折叠比对——
+	 * 大小写/尾点空格变体是同一物理部署的拼写分叉（FND29 zoker-01 的变体拼写形态
+	 * 须继续通过），而首段完全不同的行=跨服务引用（文件在别的服务暂存区，校验侧的
+	 * 界内+存在判据会放行，成版版本却缺清单自 declare 的文件——假成功）。 */
+	private static boolean manifestLineFirstSegmentMatches(String canonicalLine, String serviceName) {
+		var first = canonicalLine.substring(0, canonicalLine.indexOf('/'));
+		return foldVersionName(first).equals(foldVersionName(serviceName));
 	}
 
 	private static String afterFirstSegment(String line) {
@@ -785,19 +821,42 @@ public class DistributeManager {
 	 * 集合级完整性屏障（zoker-05，FND26）：distributes/&lt;svc&gt;/ 下存在
 	 * {@link #DISTRIBUTE_MANIFEST_NAME} 时校验清单并清退残留，不存在走 legacy 路径返回0。
 	 * 清单行=各文件相对 distributeDir 根的路径（与 OpenFile 寻址同根，ZokerAgent 上传清单
-	 * 与上传文件用同一拼写）。清单是数据不是可信输入：逐行过 {@link #checkInsideDir} 同款
-	 * 边界守卫（open 的防线纵深，拒绝绝对路径/../逃逸/盘符），坏清单响亮拒绝而非侥幸放行。
+	 * 与上传文件用同一拼写）。清单是数据不是可信输入：逐行过 {@link #canonicalManifestLine}
+	 * 形态解析与 {@link #manifestLineFirstSegmentMatches} 首段判同（行界守卫
+	 * checkInsideDir 同款拒绝绝对路径/../逃逸/盘符），坏清单响亮拒绝而非侥幸放行。
+	 * 清退判同集合用 canonical 形态（与解析器同源，".."变体行不再使已列文件失配被删）。
 	 */
 	private long verifyDistributeManifest(File serviceFrom) {
 		var manifest = new File(serviceFrom, DISTRIBUTE_MANIFEST_NAME);
 		if (!manifest.isFile())
 			return 0; // legacy：无清单不设障（空目录拒绝另行兜底）
+		var serviceName = serviceFrom.getName();
 		var listed = new HashSet<String>();
 		try (var reader = Files.newBufferedReader(manifest.toPath(), StandardCharsets.UTF_8)) {
 			String line;
 			while (null != (line = reader.readLine())) {
-				if (!line.isBlank())
-					listed.add(line);
+				if (line.isBlank())
+					continue;
+				var canonical = canonicalManifestLine(line);
+				if (null == canonical) {
+					logger.error("commitService manifest malformed entry: '{}' (dot/empty segment or single segment)", line);
+					return err(Zoker.eCommitFail);
+				}
+				if (!manifestLineFirstSegmentMatches(canonical, serviceName)) {
+					logger.error("commitService manifest entry not under this service: '{}'", line);
+					return err(Zoker.eCommitFail);
+				}
+				try {
+					checkInsideDir(distributeDir, canonical);
+				} catch (IOException ex) {
+					logger.error("commitService manifest unsafe entry: '{}'", line);
+					return err(Zoker.eCommitFail);
+				}
+				if (!new File(distributeDir, canonical).isFile()) {
+					logger.error("commitService manifest entry missing on disk: '{}' (upload interrupted?)", canonical);
+					return err(Zoker.eCommitFail); // 部分集合不得成版：部署方重传后重commit
+				}
+				listed.add(canonical);
 			}
 		} catch (IOException ex) {
 			logger.error("commitService read distribute manifest fail: {}", manifest, ex);
@@ -807,18 +866,6 @@ public class DistributeManager {
 			logger.error("commitService empty distribute manifest: {}", manifest);
 			return err(Zoker.eCommitFail); // 零文件的版本不可启动，与空目录同拒
 		}
-		for (var line : listed) {
-			try {
-				checkInsideDir(distributeDir, line);
-			} catch (IOException ex) {
-				logger.error("commitService manifest unsafe entry: '{}'", line);
-				return err(Zoker.eCommitFail);
-			}
-			if (!new File(distributeDir, line).isFile()) {
-				logger.error("commitService manifest entry missing on disk: '{}' (upload interrupted?)", line);
-				return err(Zoker.eCommitFail); // 部分集合不得成版：部署方重传后重commit
-			}
-		}
 		pruneUnlistedFiles(serviceFrom, listed);
 		return 0;
 	}
@@ -826,8 +873,9 @@ public class DistributeManager {
 	/**
 	 * 清退清单外残留（zoker-05）：barrier+closeUnder 已收殓在途句柄（在途未验证中间产物
 	 * 已被 closeUnder 删除），剩余未列文件=前次中断部署的残留——删除使版本内容=清单声明的
-	 * 精确集合（残留混入即新旧混合的部分集合形态）。判同（清单行 vs walk路径）两侧
-	 * 拼写不同源（上传侧 vs 提交侧+盘上实际名），统一过 {@link #foldBarrierPath} 段折叠
+	 * 精确集合（残留混入即新旧混合的部分集合形态）。listed 为 verifyDistributeManifest
+	 * 产出的 canonical 行（形态与首段已校验），判同（清单行 vs walk路径）两侧拼写
+	 * 不同源（上传侧 vs 提交侧+盘上实际名），统一过 {@link #foldBarrierPath} 段折叠
 	 * ——变体拼写不折叠即已列文件落入清理面（FND29 zoker-01）。删除失败仅warn（该残留
 	 * 将随目录成版，回到部分集合形态，靠warn暴露人工处置）；空子目录不递归清理（无消费者，无害）。
 	 */
