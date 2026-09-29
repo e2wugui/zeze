@@ -30,6 +30,13 @@ public class LogServiceConf implements Config.ICustomize {
 
 		public LogConf(@NotNull Element self) {
 			logActive = self.getAttribute("LogActive");
+			// 空白/纯点号（漏配时getAttribute返回""）在manager构造期才爆，异常无配置指向
+			//（log4jquery-01）：纯点号串split("\\.")为空数组、取fulls[0]裸越界，空串则退化成
+			// 对logDir目录本身开文件。配置错误在parse期fail-fast为指向字段的明确异常
+			//（对齐Config侧"字段名 must ...: 值"惯例）。
+			if (!isValidLogActive(logActive))
+				throw new IllegalStateException("LogConf LogActive must be a non-blank file name and not '.'-only: <"
+						+ logActive + "> (漏配LogActive？它是active日志文件名，如zeze.log)");
 			var attr = self.getAttribute("LogDir");
 			if (!attr.isBlank())
 				logDir = attr;
@@ -46,6 +53,14 @@ public class LogServiceConf implements Config.ICustomize {
 
 		public String getName() {
 			return logActive;
+		}
+
+		/** LogActive合法性判据（LogConf(Element)的parse校验与Log4jFileManager构造的防御校验共用）：
+		 * 非null、非空白、按'.'分段非空。纯点号串（"."、".."）的split("\\.")为空数组——manager
+		 * 构造对其取fulls[0]裸越界；空串则getCurrentLogFileName()为""、退化成对logDir目录本身
+		 * 开文件。两类退化形态都在入口拒绝，不让配置错误以运行时越界/文件系统异常的形态逃逸。 */
+		public static boolean isValidLogActive(String logActive) {
+			return logActive != null && !logActive.isBlank() && logActive.split("\\.").length > 0;
 		}
 	}
 

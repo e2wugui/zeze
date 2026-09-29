@@ -93,6 +93,14 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	public Log4jFileManager(LogServiceConf.LogConf logConf) throws Exception {
+		// 防御性前置校验（log4jquery-01）：LogConf是公共可变POJO，parse期校验覆盖不到程序化
+		// 构造/改写——空白logActive退化成对logDir目录本身开文件、纯点号串split("\\.")为空数组
+		// 使下方fulls[0]取值裸越界，都不是指向配置的异常。前置为指向字段的明确配置错误
+		//（对齐本构造duplicate登记拒绝的IllegalArgumentException形态），且先于独占登记与
+		// 任何文件系统动作，不产生登记-回滚与半途磁盘副作用。
+		if (!LogServiceConf.LogConf.isValidLogActive(logConf.logActive))
+			throw new IllegalArgumentException("Log4jFileManager LogActive must be a non-blank file name and not '.'-only: <"
+					+ logConf.logActive + "> (logActive漏设或被改写为空白/纯点号？active日志文件名如zeze.log)");
 		// 独占登记必须先于任何文件系统动作（log4j-02）：构造内的装载/清理即创建与删除
 		// indexLinks条目与交接名，后到者须在对端存活期间被拒，不得先污染再失败。
 		this.dirKey = logDirKey(logConf.logDir, logConf.logActive);
@@ -109,6 +117,8 @@ public class Log4jFileManager extends ReentrantLock {
 			// active名可含多个点号（如a.b.log）：begin=末段之外的全部，end=末段；
 			// 单段名（无点号，如zeze）end=""，rotate名=begin+日期模式（无尾部分隔点），
 			// 名字生成与匹配（getCurrentLogFileName/testFileName）都按此形态工作。
+			// 构造入口的isValidLogActive前置校验保证fulls非空（纯点号串split为空数组、
+			// 空串split得[""]使fulls[0]为""——都在入口被拒，这里不再防越界）。
 			this.logFileEnd = fulls.length > 1 ? fulls[fulls.length - 1] : "";
 			this.logFileBegin = fulls.length > 1 ? String.join(".", Arrays.copyOf(fulls, fulls.length - 1)) : fulls[0];
 
