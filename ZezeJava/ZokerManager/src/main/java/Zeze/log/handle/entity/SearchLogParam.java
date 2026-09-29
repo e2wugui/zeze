@@ -6,7 +6,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 import Zeze.Builtin.LogService.BCondition;
+import Zeze.Services.Log4jQuery.LogServiceConf;
 
 /**
  * /api/search 与 /api/browse 的公共请求参数：数据源、时间范围、关键词、分页等及其解析。
@@ -64,6 +66,30 @@ public class SearchLogParam {
 
 	public void setLogName(String logName) {
 		this.logName = logName;
+	}
+
+	/**
+	 * 解析查询目标日志名：随源码发布的 web 前端请求体不携带 logName（searchParam
+	 * 字面量无该字段），缺省 null 透传到 Session 构造的 setLogName(null)（生成代码
+	 * 对 null 抛 IAE）——单服务器与全服视图恒 system error，全服视图更被 0 成员
+	 * 会话误报 no reachable log server。显式非空白名 trim 后原样使用；缺省/空白时
+	 * 部署配置（{@link LogServiceConf}，MainZokerManager 进程与同进程 LogService
+	 * 同源 server.xml）唯一 LogConf 名即默认。零/多份配置无法确定默认，返回 null
+	 * ——调用方以 {@link #missingLogNameDesc} 回显式错误引导显式传参。
+	 */
+	public String resolveLogName(LogServiceConf deployConf) {
+		if (logName != null && !logName.isBlank())
+			return logName.trim();
+		var names = deployConf.getLogConfs().keySet();
+		return names.size() == 1 ? names.iterator().next() : null;
+	}
+
+	/** 缺省 logName 无法确定默认时的 errorResult desc：列出部署配置的日志名引导显式传参。 */
+	public static String missingLogNameDesc(LogServiceConf deployConf) {
+		var names = new TreeSet<>(deployConf.getLogConfs().keySet());
+		if (names.isEmpty())
+			return "missing logName: LogServiceConf defines no LogConf";
+		return "missing logName: multiple logs " + names + ", send logName explicitly";
 	}
 
 	public boolean isReset() {
