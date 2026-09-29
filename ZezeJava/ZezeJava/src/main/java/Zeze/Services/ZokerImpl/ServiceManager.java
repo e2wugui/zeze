@@ -212,7 +212,8 @@ public class ServiceManager {
 	 * 解析版本目录下的 {@code service.properties}（包内静态供直构测试）。
 	 * 文件缺失（FileNotFoundException）/command 键缺失或为空/env 条目非法 → IOException，
 	 * 调用方统一映射 eNoServiceProperties（缺少可用的部署描述文件）。
-	 * 约定：args 按空白分隔不支持引号包裹；env 值内不支持逗号。
+	 * 约定：args 按空白分隔不支持引号包裹；env 值内不支持逗号；env 键/值不得含 NUL
+	 * （进程环境不收，泄漏到 launch 期处理则行为随 JDK 漂移，解析期拒绝）。
 	 *
 	 * <p><b>行式 key=value 解析（首个'='分隔，值原样保留）——与
 	 * {@link RunPidRecord#parse} 同法</b>，不用 {@code Properties.load}：Properties 对值内
@@ -259,7 +260,14 @@ public class ServiceManager {
 			for (var pair : env.trim().split(",")) {
 				var kv = pair.split("=", 2);
 				var key = kv[0].trim();
-				if (kv.length != 2 || key.isEmpty())
+				// 键/值含 NUL 在此拒绝（zoker-03）：泄漏到 launch 的 pb.environment().putAll
+				// 时行为随 JDK 漂移——校验 NUL 的 JDK 抛 IllegalArgumentException，逃逸出
+				// startServiceLocked 的 IOException-catch，无结果包，客户端等满 60s 超时且
+				// 错误分类全失（违背 StartService 失败映射协议错误码的契约）；不校验的 JDK
+				// 则 NUL 静默进入子进程环境块（损坏）。解析期按"env 条目非法"既有类别拒绝，
+				// 错误位置精确到条目，两种形态都闭合。env/key 的 trim 只剥两端（<=U+0020），
+				// 嵌入 NUL 原样保留；pair 级校验连将被 trim 静默剥边改写的键也一并拦截。
+				if (kv.length != 2 || key.isEmpty() || pair.indexOf('\0') >= 0)
 					throw new IOException("service.properties bad 'env' entry '" + pair + "': " + file);
 				spec.env.put(key, kv[1]);
 			}
