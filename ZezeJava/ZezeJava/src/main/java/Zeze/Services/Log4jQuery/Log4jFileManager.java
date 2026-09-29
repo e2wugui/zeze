@@ -119,6 +119,12 @@ public class Log4jFileManager extends ReentrantLock {
 					+ " (同一日志文件被两个manager管理：indexLinks子目录撞号交错写、链接互删；"
 					+ " 不同logActive同目录是合法形态，检查配置是否重复条目)");
 		var constructed = false;
+		// start之后失败段的回收句柄（log4jquery-02）：final字段（buildIndexTimer）在schedulePeriodNow
+		// 抛出的路径上未赋值——Java不允许读未明确赋值的final字段，timer句柄以局部变量持有；
+		// detector句柄在start()前发布（start自身抛出时watchService也须回收，stopAndJoin对未start
+		// 形态幂等安全）。装载段失败由下方内层catch回收（startedDetector尚未发布，不重复join）。
+		FileCreateDetector startedDetector = null;
+		Future<?> scheduledTimer = null;
 		try {
 			this.logConf = logConf;
 			var fulls = logConf.logActive.split("\\.");
@@ -166,10 +172,13 @@ public class Log4jFileManager extends ReentrantLock {
 			// 锁已释放）后启动：排队事件按序补处理，files已非空走完整case-1；装载完成到start之间发生
 			// 的轮转由5分钟reconcile兜底（未登记rotate走repointMissedRotation补移交+改指；
 			// 装载前已完成的轮转由openActiveIndexAtLoad配对校验兜住）。
+			startedDetector = fileCreateDetector; // 先发布句柄再start：start自身失败的回收面同样覆盖
 			fileCreateDetector.start();
 			var period = 300_000L;
-			buildIndexTimer = TaskSpec.ofAction(this::buildIndex)
+			var timer = TaskSpec.ofAction(this::buildIndex)
 					.schedulePeriodNow(Random.getInstance().nextLong(period), period);
+			buildIndexTimer = timer; // final字段赋值后局部句柄同样有效，异常路径统一走局部句柄回收
+			scheduledTimer = timer;
 			// 持锁调用：与onFileCreated同一串行点，构造尾锁外调用与
 			// 并发轮转的链接清理/登记交错时存活句柄计算可读到中间态。
 			lock();
@@ -180,8 +189,21 @@ public class Log4jFileManager extends ReentrantLock {
 			}
 			constructed = true;
 		} finally {
-			if (!constructed)
+			if (!constructed) {
+				// start之后失败段的统一回收（log4jquery-02）：此前本分支只回滚登记——schedulePeriodNow
+				// 失败（Task池未初始化/停机拆池，scheduledPoolOrThrow抛IllegalStateException且不自动
+				// 重建，停机语义）或尾部removeOldLinkFiles的IO错误发生后，已启动的watch线程携本实例
+				// 引用永驻并继续处理CREATE写indexLinks；登记先被回滚，同（目录,活性）重建立即成功
+				// =双管并发写同一索引命名空间（nextLinkFile读max+1分派撞号），logDirOwners要防的
+				// 形态被它自己的回滚缺口击穿。回收顺序对齐stop()：先cancel定时器（TimerFuture.cancel
+				// 取消并join在飞一轮），再join watch线程，登记最后释放——此后同目录重建不再与本实例
+				// 的任何索引写入并发。
+				if (null != scheduledTimer)
+					scheduledTimer.cancel(false);
+				if (null != startedDetector)
+					startedDetector.stopAndJoin();
 				logDirOwners.remove(dirKey, this); // 构造失败回滚登记：不阻塞同目录重建
+			}
 		}
 	}
 
