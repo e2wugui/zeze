@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import Zeze.Application;
 import Zeze.Builtin.LogService.BCondition;
 import Zeze.Builtin.LogService.BLog;
@@ -167,7 +169,8 @@ public class LogService extends AbstractLogService {
 	}
 
 	/**
-	 * Search/Browse 参数校验（入口单点）：containsType 枚举、words/pattern 双空、browse 的
+	 * Search/Browse 参数校验（入口单点）：containsType 枚举、words/pattern 双空、pattern
+	 * 可编译性（words为空走regex路由时，与查询路径同flags预编译）、browse 的
 	 * offsetFactor∈[0,1)。统一回 {@link #INVALID_ARGUMENT}，与死会话的 LogicError 分离，
 	 * 客户端按码分诊不拆会话。offsetFactor 传 null 表示 search（无该参数）。
 	 */
@@ -179,6 +182,18 @@ public class LogService extends AbstractLogService {
 		var pattern = condition.getPattern();
 		if (condition.getWords().isEmpty() && (pattern == null || pattern.isEmpty()))
 			return INVALID_ARGUMENT;
+		// pattern路由（words为空）预编译校验：pattern是终端用户可控自由文本，写错正则是
+		// 日常输入错误；漏校时PatternSyntaxException在会话锁内的searchRegex/browseRegex
+		// 抛出、被框架统一翻成Procedure.Exception——客户端按瞬时失败无限重试（不进
+		// deadMembers不标finished，每次operate重发），参数级分诊契约失效。words非空时
+		// pattern被handler路由忽略，不校验（不得收紧现有可用的contains请求形态）。
+		if (condition.getWords().isEmpty()) {
+			try {
+				Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+			} catch (PatternSyntaxException e) {
+				return INVALID_ARGUMENT;
+			}
+		}
 		if (offsetFactor != null && !(offsetFactor >= 0f && offsetFactor < 1f)) // NaN 落 false 同拒
 			return INVALID_ARGUMENT;
 		return Procedure.Success;
@@ -215,10 +230,18 @@ public class LogService extends AbstractLogService {
 			} else if (!r.Argument.getCondition().getPattern().isEmpty()) {
 				if (r.Argument.isReset())
 					logSession.reset();
-				remain = logSession.browseRegex(result,
-						r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
-						r.Argument.getCondition().getPattern(),
-						limit, r.Argument.getOffsetFactor());
+				try {
+					remain = logSession.browseRegex(result,
+							r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
+							r.Argument.getCondition().getPattern(),
+							limit, r.Argument.getOffsetFactor());
+				} catch (PatternSyntaxException e) {
+					// 防御兜底：入口validateArgument已预编译拒绝，正常不可达；入口校验回归时
+					// 仍以参数级码应答（compile在锁内抛、此处锁外catch），不退化为
+					// Procedure.Exception的瞬时失败无限重试形态。
+					logger.warn("browseRegex pattern compile fail, entry validation regressed?", e);
+					return INVALID_ARGUMENT;
+				}
 			} else
 				return INVALID_ARGUMENT; // 空条件参数级拒绝（入口单点已拦，此处防御重复）；精确码应答而非异常通道
 		}
@@ -263,10 +286,16 @@ public class LogService extends AbstractLogService {
 			} else if (!r.Argument.getCondition().getPattern().isEmpty()) {
 				if (r.Argument.isReset())
 					logSession.reset();
-				remain = logSession.searchRegex(result,
-						r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
-						r.Argument.getCondition().getPattern(),
-						limit);
+				try {
+					remain = logSession.searchRegex(result,
+							r.Argument.getCondition().getBeginTime(), r.Argument.getCondition().getEndTime(),
+							r.Argument.getCondition().getPattern(),
+							limit);
+				} catch (PatternSyntaxException e) {
+					// 同browse的防御兜底：入口校验回归时仍以参数级码应答。
+					logger.warn("searchRegex pattern compile fail, entry validation regressed?", e);
+					return INVALID_ARGUMENT;
+				}
 			} else
 				return INVALID_ARGUMENT; // 空条件参数级拒绝（入口单点已拦，此处防御重复）；精确码应答而非异常通道
 		}
