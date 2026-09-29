@@ -66,6 +66,9 @@ public class Master extends AbstractMaster {
     // 孤儿候选状态（内存态）：key = {managerKey}|{topic}|{partition} → 候选首见时间。
     // 覆盖判定见 notCoveredPartitions；候选在册化/从上报中消失时除名（CreateMQ 部分成功窗口自愈）。
     final ConcurrentHashMap<String, Long> orphanFirstSeen = new ConcurrentHashMap<>();
+    // 整 Manager 面积闸标记（key 同 orphanFirstSeen）：本轮候选覆盖上报者全部上报分区（全量灭失
+    // 签名）时不下发删除，宽限期放大一轮（只放大一次）；生命期与 orphanFirstSeen 的各除名点同步。
+    final java.util.Set<String> orphanAreaGated = ConcurrentHashMap.newKeySet();
     // 包内可见：孤儿删除下发钩子（默认真实 rpc；测试注入捕获断言"对哪些条目下发了删除"）。
     @FunctionalInterface
     interface DeletePartitionIssuer {
@@ -437,6 +440,11 @@ public class Master extends AbstractMaster {
         mqTable.put(topicBytes, 0, topicBytes.length, bb.Bytes, bb.ReadIndex, bb.size());
     }
 
+    // 包内可见：managers 注册表播种（测试直构对账判定的存活属主扫描输入；与 Register 落表同构）。
+    void putManager(Manager manager) {
+        managers.add(manager);
+    }
+
     @Override
     protected long ProcessReportPartitionsRequest(ReportPartitions r) throws Exception {
         // 停机闸（入口快路径）。
@@ -480,6 +488,7 @@ public class Master extends AbstractMaster {
             if (key.startsWith(prefix))
                 it.remove();
         }
+        orphanAreaGated.removeIf(key -> key.startsWith(prefix));
     }
 
     /**
@@ -489,22 +498,41 @@ public class Master extends AbstractMaster {
      * <p>
      * 候选除名时机：在册化（CreateMQ 最终登记完成→覆盖命中）或从上报中消失（已删/重建中）；
      * 下发后也除名——删除失败的残留下轮上报重新候选、重新起算宽限期（=宽限期间隔的自动重试）。
+     * <p>
+     * 孤儿删除是破坏性裁决，依据须是正面遗弃证据而非"无匹配登记"（managerId 重铸/换代的系统性
+     * 误报形态）：条目属主 id 无存活连接时，持有者（上报者）的报告本身即数据延续证据，判覆盖并
+     * 证据化转移路由（见 notCoveredPartitions 第三路与 transferOrphanEvidence）。整 Manager 面积
+     * （本轮候选覆盖上报者全部上报分区）的候选即使满龄也压一轮再删（面积闸，error 审计）。
      */
     void reconcileOrphanReport(Manager manager, BReportPartitions.Data report) throws Exception {
         var now = System.currentTimeMillis();
         var managerKey = orphanManagerKey(manager);
         var prefix = managerKey + "|";
-        // 本轮候选收集（宽限期从首见起算，putIfAbsent 保持原值）
+        // 存活属主扫描（模块锁内，managers 稳定）：id 在 managers 有条目且 socket 未关 = live。
+        // tryRemoveManager 异步摘除的窗口内条目仍在但 socket 已关，按死判（连接确已终止）。
+        var liveManagerIds = new HashSet<Long>();
+        for (var e : managers) {
+            var id = e.info.getManagerId();
+            if (id != 0 && null != e.socket && !e.socket.isClosed())
+                liveManagerIds.add(id);
+        }
+        // 本轮候选收集（宽限期从首见起算，putIfAbsent 保持原值）+ 证据化转移候选收集
         var seenKeys = new HashSet<String>();
         var candidates = new HashMap<String, HashSet<Integer>>();
+        var transfers = new HashMap<String, HashMap<Integer, Long>>(); // topic -> partition -> 死属主 id
+        var reportedTotal = 0;
         for (var tp : report.getTopics()) {
-            var notCovered = notCoveredPartitions(tp.getTopic(), tp.getPartitionIndexes(), manager);
+            reportedTotal += tp.getPartitionIndexes().size();
+            var notCovered = notCoveredPartitions(tp.getTopic(), tp.getPartitionIndexes(), manager, liveManagerIds, transfers);
             if (notCovered.isEmpty())
                 continue;
             candidates.put(tp.getTopic(), notCovered);
             for (var p : notCovered)
                 seenKeys.add(prefix + tp.getTopic() + "|" + p);
         }
+        // 证据化转移（锁内批量改写，collect-then-put 对齐 rewriteRoutes 的快照模式）：
+        // 先于候选记账执行——转移命中的分区本轮已判覆盖，不产生候选。
+        transferOrphanEvidence(transfers, manager);
         for (var key : seenKeys)
             orphanFirstSeen.putIfAbsent(key, now);
         // 收敛：本 manager 的候选中已不在本轮上报/已覆盖的除名（其他 manager 的键不受影响）
@@ -513,23 +541,46 @@ public class Master extends AbstractMaster {
             if (key.startsWith(prefix) && !seenKeys.contains(key))
                 it.remove();
         }
+        orphanAreaGated.removeIf(key -> key.startsWith(prefix) && !seenKeys.contains(key));
         // 宽限期满 → 下发删除（按 topic 聚合一次 rpc）
         var grace = mqConfig.getOrphanGracePeriodMs();
+        // 整 Manager 面积闸：本轮候选覆盖该上报者全部上报分区 = 全量灭失签名（单文件事件即可
+        // 放大成整 Manager 数据删除的形态）。升级 error 告警，宽限期放大一轮：候选键打闸标记，
+        // 有效宽限翻倍（只放大一次——标记幂等，已放大的候选满 2×宽限后照常下发，全量孤儿
+        //（CreateMQ 部分成功残留等）仍能收敛，只是多等一个宽限间隔）。
+        var candidateTotal = 0;
+        for (var e : candidates.entrySet())
+            candidateTotal += e.getValue().size();
+        var wholeManagerArea = reportedTotal > 0 && candidateTotal == reportedTotal;
+        if (wholeManagerArea) {
+            logger.error("mq orphan candidates cover ALL reported partitions of manager, grace widened one round"
+                            + " before any delete: managerId={} manager={}:{} reported={} candidates={} topics={}"
+                            + " (whole-manager area signature, manual check advised)",
+                    manager.info.getManagerId(), manager.info.getHost(), manager.info.getPort(),
+                    reportedTotal, candidateTotal, candidates.keySet());
+            for (var e : candidates.entrySet())
+                for (var p : e.getValue())
+                    orphanAreaGated.add(prefix + e.getKey() + "|" + p);
+        }
         var toDelete = new HashMap<String, HashSet<Integer>>();
         var orphanAges = new HashMap<String, Long>(); // 审计用：key=topic，value=最老候选年龄
         for (var e : candidates.entrySet()) {
             for (var p : e.getValue()) {
                 var key = prefix + e.getKey() + "|" + p;
                 var firstSeen = orphanFirstSeen.get(key);
-                if (null != firstSeen && now - firstSeen >= grace) {
+                var effectiveGrace = orphanAreaGated.contains(key) ? grace * 2 : grace;
+                if (null != firstSeen && now - firstSeen >= effectiveGrace) {
                     toDelete.computeIfAbsent(e.getKey(), __ -> new HashSet<>()).add(p);
                     orphanAges.merge(e.getKey(), now - firstSeen, Math::min);
                 }
             }
         }
         for (var e : toDelete.entrySet()) {
-            for (var p : e.getValue())
-                orphanFirstSeen.remove(prefix + e.getKey() + "|" + p);
+            for (var p : e.getValue()) {
+                var key = prefix + e.getKey() + "|" + p;
+                orphanFirstSeen.remove(key);
+                orphanAreaGated.remove(key);
+            }
             // 动作审计：删除了什么、为什么删（对账裁决不可静默）
             logger.warn("mq orphan partitions delete issued: managerId={} manager={}:{} topic={} partitions={}"
                             + " orphanAgeMs={} (reported by manager but not registered in mqTable, grace {}ms exceeded)",
@@ -539,11 +590,48 @@ public class Master extends AbstractMaster {
         }
     }
 
+    // 证据化转移（模块锁内调用）：把"属主 id 已死（无存活连接）"条目的 id/地址改写为上报者——
+    // 上报者磁盘上仍有该分区数据（报告即证据），路由跟随数据真相，而不是删除数据迎合陈旧路由。
+    // 只改写收集时认定的死属主 id 的条目（同分区的 live 属主/存量条目不动）；上报者为 legacy
+    // （id==0）时与 rewriteRoutes 同口径：改写地址、id 落 0（保持未知身份，按地址兜底匹配）。
+    private void transferOrphanEvidence(HashMap<String, HashMap<Integer, Long>> transfers, Manager reporter)
+            throws RocksDBException {
+        for (var e : transfers.entrySet()) {
+            var servers = getServers(e.getKey());
+            if (null == servers)
+                continue;
+            var changed = false;
+            for (var server : servers.getServers()) {
+                var deadOwnerId = e.getValue().get(server.getPartitionIndex());
+                if (null == deadOwnerId || server.getManagerId() != deadOwnerId)
+                    continue;
+                server.setHost(reporter.info.getHost());
+                server.setPort(reporter.info.getPort());
+                server.setManagerId(reporter.info.getManagerId());
+                changed = true;
+                logger.warn("mq orphan-evidence transfer: route entry rewritten from dead managerId={} to"
+                                + " reporter managerId={} {}:{} topic={} partition={}"
+                                + " (reporter's disk report is data-continuity evidence, data kept)",
+                        deadOwnerId, reporter.info.getManagerId(), reporter.info.getHost(),
+                        reporter.info.getPort(), e.getKey(), server.getPartitionIndex());
+            }
+            if (changed)
+                putMqServers(e.getKey(), servers);
+        }
+    }
+
     /**
      * 覆盖判定：reported 分区中被 mqTable 登记给该 manager 的部分之外（= 未覆盖）的子集。
-     * 匹配两路与 Register 联动重写一致：ManagerId 为主，存量条目（ManagerId==0）按注册地址兜底。
+     * 匹配三路，前两路与 Register 联动重写一致：ManagerId 为主，存量条目（ManagerId==0）按注册
+     * 地址兜底；第三路为证据化转移——条目属主 id 非零且在 managers 中无存活连接（managerId
+     * 重铸/换代后的系统性形态：注册链路完成换代认定但旧 id 路由永不再被匹配）时，持有该分区的
+     * 上报者的报告即数据延续证据，判覆盖并收集转移候选（reconcileOrphanReport 批量改写路由），
+     * 不判孤儿。属主 live 在场时不走第三路——另一 id 的上报是竞争者（克隆数据目录形态）而非
+     * 延续证据，维持 fail-fast 孤儿裁决，防抢路由。
      */
-    private HashSet<Integer> notCoveredPartitions(String topic, java.util.Set<Integer> reported, Manager manager)
+    private HashSet<Integer> notCoveredPartitions(String topic, java.util.Set<Integer> reported, Manager manager,
+                                                  HashSet<Long> liveManagerIds,
+                                                  HashMap<String, HashMap<Integer, Long>> transfers)
             throws RocksDBException {
         var servers = getServers(topic);
         var notCovered = new HashSet<Integer>();
@@ -565,6 +653,19 @@ public class Master extends AbstractMaster {
                 if (server.getManagerId() == 0 && addressEquals(server, manager.info.getHost(), manager.info.getPort())) {
                     covered = true;
                     break;
+                }
+            }
+            if (!covered) {
+                // 第三路（证据化转移）：条目存在、属主 id 非零、非上报者、且无存活连接。
+                for (var server : servers.getServers()) {
+                    if (server.getPartitionIndex() != p)
+                        continue;
+                    var ownerId = server.getManagerId();
+                    if (ownerId != 0 && ownerId != mid && !liveManagerIds.contains(ownerId)) {
+                        transfers.computeIfAbsent(topic, __ -> new HashMap<>()).putIfAbsent(p, ownerId);
+                        covered = true;
+                        break;
+                    }
                 }
             }
             if (!covered)

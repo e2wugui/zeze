@@ -446,7 +446,8 @@ public class MQManager extends AbstractMQManager {
 	// 铸Manager稳定身份（首启生成，home/.managerId 持久化，此后恒定）：
 	// 生成式=时间基线<<16 | SecureRandom低16位——单调时间基线跨进程基本不撞，随机低位防同毫秒
 	// 多Manager同铸；恒正（BMQServer.negativeCheck 约束 ManagerId>=0）。写入带 fsync：mint 后
-	// 崩溃丢文件会使下次启动铸新身份，旧路由按旧 id 永不再被匹配（按孤儿对账口径还会误删其分区）。
+	// 崩溃丢文件会使下次启动铸新身份，旧路由按旧 id 永不再被匹配——收口由 Master 对账的证据化
+	// 转移承担（旧 id 属主无存活连接时，上报即数据延续证据，路由改写为上报者，不再误删分区）。
 	private static long loadOrMintManagerId(String home) {
 		try {
 			var file = new File(home, ".managerId");
@@ -458,11 +459,15 @@ public class MQManager extends AbstractMQManager {
 						if (id > 0)
 							return id;
 					}
-					logger.warn("managerId file corrupted (home={}), re-mint", home); // 损坏内容按未铸处理，覆盖重铸
+					// 损坏内容按未铸处理，覆盖重铸；旧 id 不可知（文件即身份的唯一载体），换代替换
+					// 与路由收敛依赖 Master 上报侧的证据化转移。
+					logger.warn("managerId file corrupted (home={}), re-mint (old id unknowable, convergence relies"
+							+ " on report-side evidence transfer)", home);
 				} catch (NumberFormatException e) {
 					// 非数字损坏同样按未铸处理（最常见损坏形态，不能让构造失败杀启动）：
-					// 重铸新身份的代价是旧路由按旧id永不再匹配+孤儿对账回收，属可接受的降级。
-					logger.warn("managerId file corrupted (home={}), re-mint", home);
+					// 旧 id 不可知，依赖上报侧证据化转移收敛（同上）。
+					logger.warn("managerId file corrupted (home={}), re-mint (old id unknowable, convergence relies"
+							+ " on report-side evidence transfer)", home);
 				}
 			}
 			var id = (System.currentTimeMillis() << 16) | (new SecureRandom().nextInt() & 0xFFFFL);

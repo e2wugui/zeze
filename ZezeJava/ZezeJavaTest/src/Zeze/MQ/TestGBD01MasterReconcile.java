@@ -9,6 +9,8 @@ import Zeze.Builtin.MQ.Master.BReportPartitions;
 import Zeze.Builtin.MQ.Master.BTopicPartitions;
 import Zeze.Builtin.MQ.Master.BMQServers;
 import Zeze.Config;
+import Zeze.MQ.Fnd19MqTestSupport;
+import Zeze.Net.Service;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -114,6 +116,95 @@ public class TestGBD01MasterReconcile {
 			master.reconcileOrphanReport(manager, reportOf(
 					"live", setOf(0), "leg", setOf(0), "ghost", setOf(0, 1)));
 			Assertions.assertTrue(master.orphanFirstSeen.isEmpty(), "候选从上报消失即除名");
+		} finally {
+			master.close();
+		}
+	}
+
+	// FND31 mq-01：managerId 换代（.managerId 损坏重铸）后旧 id 条目的孤儿裁决须走证据化转移。
+	// 旧代码对"条目挂旧 id、上报者是新 id"恒判未覆盖，宽限期满即下发 DeletePartition——
+	// 同 home 健康分区的全部数据被自动删除。修复后：旧 id 属主在 managers 中无存活连接时，
+	// 上报本身即数据延续证据，判覆盖不删，并把条目 id/地址改写为上报者（路由跟随数据真相）。
+	@Test
+	public void testDeadOwnerEvidenceTransferInsteadOfDelete(@TempDir Path tempDir) throws Exception {
+		var master = new Master(tempDir.resolve("master").toString(), new Config());
+		try {
+			master.getMqConfig().setOrphanGracePeriodMs(0); // 宽限 0：候选即满龄（判定与默认10分钟同构）
+			var issued = new HashMap<String, TreeSet<Integer>>();
+			master.deleteIssuer = (info, socket, topic, indexes) ->
+					issued.computeIfAbsent(topic, __ -> new TreeSet<>()).addAll(indexes);
+
+			var oldId = 111L; // 换代前属主 id：不在 managers（被注册替换/摘除），无存活连接
+			var newId = 222L; // 重铸后的上报者 id
+			// 播种同址重铸形态：条目挂旧 id，地址与上报者相同。
+			seed(master, "t", managerHost, managerPort, oldId, 0);
+			var reporter = new Master.Manager(null, new BMQServer.Data(managerHost, managerPort, 0, "", newId));
+
+			master.reconcileOrphanReport(reporter, reportOf("t", setOf(0)));
+
+			Assertions.assertTrue(issued.isEmpty(), "属主已死（无存活连接）时上报即数据延续证据，不得下发删除");
+			var servers = master.getServers("t").getServers();
+			Assertions.assertEquals(1, servers.size());
+			Assertions.assertEquals(newId, servers.get(0).getManagerId(), "路由条目须证据化转移为上报者 id");
+			Assertions.assertEquals(managerPort, servers.get(0).getPort());
+			Assertions.assertTrue(master.orphanFirstSeen.isEmpty(), "证据化覆盖不入孤儿候选");
+		} finally {
+			master.close();
+		}
+	}
+
+	// 变体：迁移+换代（home 迁址且 .managerId 丢失）——上报者地址也不同，转移须一并改写地址。
+	@Test
+	public void testDeadOwnerMigratedAddressTransfer(@TempDir Path tempDir) throws Exception {
+		var master = new Master(tempDir.resolve("master").toString(), new Config());
+		try {
+			master.getMqConfig().setOrphanGracePeriodMs(0);
+			var issued = new HashMap<String, TreeSet<Integer>>();
+			master.deleteIssuer = (info, socket, topic, indexes) ->
+					issued.computeIfAbsent(topic, __ -> new TreeSet<>()).addAll(indexes);
+
+			var oldPort = 40001;
+			var newPort = 40002;
+			seed(master, "t", managerHost, oldPort, 333L, 0, 1); // 旧 id@旧地址承载分区 0/1
+			var reporter = new Master.Manager(null, new BMQServer.Data(managerHost, newPort, 0, "", 444L));
+
+			master.reconcileOrphanReport(reporter, reportOf("t", setOf(0, 1)));
+
+			Assertions.assertTrue(issued.isEmpty(), "迁移+换代同为旧 id 无存活连接形态，不得下发删除");
+			for (var server : master.getServers("t").getServers()) {
+				Assertions.assertEquals(444L, server.getManagerId(), "全部上报分区条目转移为上报者 id");
+				Assertions.assertEquals(newPort, server.getPort(), "条目地址一并改写为上报者地址");
+			}
+		} finally {
+			master.close();
+		}
+	}
+
+	// 防抢路由锚：属主 live 在场（managers 有该 id 的未关闭连接）时维持现行 fail-fast 孤儿裁决
+	//——同 id 属主仍在服役，另一 id 的上报（克隆数据目录形态）不是延续证据而是竞争者，须照删。
+	@Test
+	public void testLiveOwnerStillFailFastOrphan(@TempDir Path tempDir) throws Exception {
+		var master = new Master(tempDir.resolve("master").toString(), new Config());
+		try {
+			master.getMqConfig().setOrphanGracePeriodMs(0);
+			var issued = new HashMap<String, TreeSet<Integer>>();
+			master.deleteIssuer = (info, socket, topic, indexes) ->
+					issued.computeIfAbsent(topic, __ -> new TreeSet<>()).addAll(indexes);
+
+			var ownerId = 555L;
+			seed(master, "t", managerHost, managerPort, ownerId, 0);
+			// 属主 live 在场：managers 注册条目 + 未关闭连接。
+			var ownerSocket = new Fnd19MqTestSupport.FakeSocket(new Service("TestGBD01MasterReconcile.liveOwner"));
+			master.putManager(new Master.Manager(ownerSocket, new BMQServer.Data(managerHost, managerPort, 0, "", ownerId)));
+			// 另一 id 的上报者（新铸/克隆形态）。
+			var stranger = new Master.Manager(null, new BMQServer.Data(managerHost, managerPort + 1, 0, "", 666L));
+
+			master.reconcileOrphanReport(stranger, reportOf("t", setOf(0)));
+
+			Assertions.assertEquals(new TreeSet<>(java.util.List.of(0)), issued.get("t"),
+					"属主 live 在场时仍判孤儿（防克隆数据目录抢路由）");
+			Assertions.assertEquals(ownerId, master.getServers("t").getServers().get(0).getManagerId(),
+					"路由不得被 live 属主的竞争者改写");
 		} finally {
 			master.close();
 		}

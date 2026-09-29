@@ -15,7 +15,8 @@ import Zeze.Raft.ProxyServer;
  * 端口注册表（固定端口，新网络测试在用段之外选取并回填此处）：TestMQ 26000-26003、
  * TestMQConsumerResubscribe 26102（master 复用 26000）、TestMQManagerReregister 26100/26101、
  * TestMQManagerStopLive 26200/26201、TestBOptionsServerReject 26210/26211、
- * TestGBD05RouteRewrite 26220/26221/26222。
+ * TestGBD05RouteRewrite 26220/26221/26222、TestMQManagerRemintKeepsPartitions 26231
+ * （master 复用 26000）。
  */
 final class Fnd19MqNetTestSupport {
 	private Fnd19MqNetTestSupport() {
