@@ -207,8 +207,14 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@Override
 	public @NotNull PMap2<K, V> copy() {
+		// 深拷贝值Bean：浅拷贝共享原记录树内的受管活Bean，经ReadOnly.copy()交出的“副本”
+		// 拿到的是可变后门（copy.get(k).setField改的是原记录），且副本元素再put进受管容器
+		// 抛HasManagedException——与CollOne.copy()/生成代码Bean.assign的深拷贝语义对齐。
 		var copy = new PMap2<>(meta);
-		copy.map = getMap();
+		var newMap = org.pcollections.Empty.<K, V>map();
+		for (var e : getMap().entrySet())
+			newMap = newMap.plus(e.getKey(), (V)e.getValue().copy());
+		copy.map = newMap;
 		return copy;
 	}
 

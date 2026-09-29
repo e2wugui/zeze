@@ -297,8 +297,14 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public @NotNull PList2<V> copy() {
+		// 深拷贝值Bean：浅拷贝共享原记录树内的受管活Bean，经ReadOnly.copy()交出的“副本”
+		// 拿到的是可变后门（copy.get(k).setField改的是原记录），且副本元素再put进受管容器
+		// 抛HasManagedException——与CollOne.copy()/生成代码Bean.assign的深拷贝语义对齐。
 		var copy = new PList2<>(meta);
-		copy.list = getList();
+		var newList = org.pcollections.Empty.<V>vector();
+		for (var v : getList())
+			newList = newList.plus((V)v.copy());
+		copy.list = newList;
 		return copy;
 	}
 
