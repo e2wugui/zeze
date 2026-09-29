@@ -11,6 +11,7 @@ import Zeze.Services.Log4jQuery.Session;
 import Zeze.Services.Log4jQuery.SessionAll;
 import Zeze.Services.LogAgent;
 import Zeze.Util.Json;
+import Zeze.log.ApiToken;
 import Zeze.log.FileSessionManager;
 import Zeze.log.LogAgentManager;
 import Zeze.log.handle.entity.BaseResponse;
@@ -24,6 +25,9 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 public class BrowseLogHandle implements HttpEndStreamHandle {
 	@Override
 	public void onEndStream(HttpExchange x) throws Exception {
+		// token门（FND29 zokermanager-02）：配置了Token则校验Authorization头，未通过已回401。
+		if (!ApiToken.check(x))
+			return;
 		try {
 			ByteBuf content = x.content();
 			int readableBytes = content.readableBytes();

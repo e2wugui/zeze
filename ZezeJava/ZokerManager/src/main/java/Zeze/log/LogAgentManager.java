@@ -18,6 +18,7 @@ import Zeze.log.handle.SearchLogHandle;
 public class LogAgentManager {
 	private static LogAgentManager logAgentManager;
 	public static HttpServer httpServer;
+	private static ZokerManagerConf conf;
 	private LogAgent logAgent;
 
 	public static LogAgentManager getInstance() {
@@ -26,7 +27,11 @@ public class LogAgentManager {
 
 	public static void init(String configXml) throws Exception {
 		logAgentManager = new LogAgentManager();
-		logAgentManager.logAgent = new LogAgent(Config.load(configXml));
+		var config = Config.load(configXml);
+		conf = new ZokerManagerConf();
+		config.parseCustomize(conf);
+		ApiToken.configure(conf.token);
+		logAgentManager.logAgent = new LogAgent(config);
 		logAgentManager.logAgent.start();
 		startHttpServer();
 	}
@@ -36,6 +41,10 @@ public class LogAgentManager {
 	}
 
 	private static void startHttpServer() throws Exception {
+		// 部署契约（FND29 zokermanager-02）：默认绑回环；绑非回环必须同时配置 Token，
+		// 未配则此处 fail-fast，杜绝"无认证的全集群日志读取面绑上网络"的组合。
+		ZokerManagerConf.checkDeployPolicy(conf.bind, conf.token);
+
 		httpServer = new HttpServer();
 		var netty = new Netty();
 
@@ -44,11 +53,12 @@ public class LogAgentManager {
 		addHandler("/api/search", new SearchLogHandle());
 		addHandler("/api/query", new QueryHandle());
 		httpServer.addFileHandler("/", "web");
-		httpServer.start(netty, 9980);
+		httpServer.start(netty, conf.bind, 9980);
 	}
 
-	// 四个JSON API的实际body仅几KB：无界上限（Integer.MAX_VALUE）下未认证端口的单个
-	// 大请求体即整体入堆（OOM/长GC），拖垮整个进程（含LogService）。
+	// 四个JSON API的实际body仅几KB：无界上限（Integer.MAX_VALUE）下单个大请求体即整体
+	// 入堆（OOM/长GC），拖垮整个进程（含LogService）。上限与token门（ApiToken）互相独立：
+	// 认证不收敛请求体大小。
 	private static final int API_MAX_CONTENT_LENGTH = 1024 * 1024;
 
 	private static void addHandler(String path, HttpEndStreamHandle handle) {

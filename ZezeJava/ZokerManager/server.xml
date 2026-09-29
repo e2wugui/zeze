@@ -37,6 +37,17 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 		<LogConf LogActive="zeze_error.log" logDir="log"/>
 	</CustomizeConf>
 
+	<!-- ZokerManager HTTP 管理口（端口9980）部署契约（FND29 zokermanager-02）。
+	     迁移项：旧版本默认绑全部网卡(0.0.0.0)且无认证；新默认 Bind="127.0.0.1"（仅本机，
+	     与上方 LogService Acceptor 同姿态）。
+	     - 仅本机访问：无需配置，维持默认即可。
+	     - 需远程访问（旧默认全网卡）：必须显式 Bind="0.0.0.0"（或指定网卡IP）并配置 Token，
+	       否则启动直接报错退出（fail-fast，不允许无认证裸奔上网络）。
+	     - Token 配置后，四个 /api/* 处理器校验请求头 Authorization（原值等于 Token，常量时间比较）；
+	       web 页面需在浏览器控制台执行 sessionStorage.setItem("zokerToken", "<Token>") 后刷新，
+	       即自动携带该头。Token 留空表示不校验（默认回环部署形态）。 -->
+	<CustomizeConf Name="ZokerManagerConf" Bind="127.0.0.1" Token=""/>
+
 	<ServiceConf Name="Zeze.LogService.Server">
 		<Acceptor Ip="127.0.0.1" Port="7790"/>
 	</ServiceConf>
