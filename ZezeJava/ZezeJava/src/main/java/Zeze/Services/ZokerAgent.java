@@ -4,9 +4,11 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -176,7 +178,14 @@ public class ZokerAgent extends AbstractZokerAgent {
         var serviceDir = new File(localServiceHome, serviceName);
         if (!serviceDir.isDirectory() || !serviceDir.exists())
             throw new RuntimeException("service dir error.");
-        distributeService(zokerName, localServiceHome.toPath(), serviceDir);
+        var uploaded = new ArrayList<String>();
+        distributeService(zokerName, localServiceHome.toPath(), serviceDir, uploaded);
+        // zoker-05（FND26）：集合完整性清单——全部文件CloseFile收口后作为最后一个文件补传
+        //（清单存在=声明本次发布集合已完整），服务端commit据此校验齐全并清退残留
+        //（DistributeManager.verifyDistributeManifest）。零文件不上传清单：空集合由服务端
+        // 空目录/空清单拒绝。
+        if (!uploaded.isEmpty())
+            uploadDistributeManifest(zokerName, serviceName, uploaded);
         var r = new CommitService();
         r.Argument.setServiceName(serviceName);
         r.Argument.setVersionNo(versionNo);
@@ -201,14 +210,15 @@ public class ZokerAgent extends AbstractZokerAgent {
         }
     }
 
-    private void distributeService(String zokerName, Path localServiceHome, File serviceDir) throws Exception {
+    private void distributeService(String zokerName, Path localServiceHome, File serviceDir,
+                                   List<String> uploaded) throws Exception {
         var files = serviceDir.listFiles();
         if (null == files)
             return;
 
         for (var file : files) {
             if (file.isDirectory()) {
-                distributeService(zokerName, localServiceHome, file);
+                distributeService(zokerName, localServiceHome, file, uploaded);
                 continue;
             }
             var fileRelativeName = localServiceHome.relativize(file.toPath()).toString().replace("\\", "/");
@@ -234,6 +244,43 @@ public class ZokerAgent extends AbstractZokerAgent {
                 throw primary;
             }
             closeFile(zokerName, fileRelativeName, new Binary(md5.digest())); // 正常路径直线收尾，失败照抛
+            uploaded.add(fileRelativeName);
+        }
+    }
+
+    // 集合完整性清单上传（zoker-05，FND26）：内容=各文件相对distributeDir根的路径（与
+    // OpenFile寻址同根），UTF-8每行一条，md5收口与普通文件同协议。断点续传对齐普通文件：
+    // openFile返回的offset为断点、md5按（已存在前缀+新追加）计算；残留长于本次清单（集合
+    // 缩小的重发布中断残留）时追加凑长必失配——直接以空摘要收口触发服务端清场
+    //（eMd5Mismatch为预期应答），下一轮从0重传。两轮仍失败上抛（distribute整体失败）。
+    private void uploadDistributeManifest(String zokerName, String serviceName, List<String> fileRelativeNames) throws Exception {
+        var relativeName = serviceName + "/" + Zeze.Services.ZokerImpl.DistributeManager.DISTRIBUTE_MANIFEST_NAME;
+        var content = (String.join("\n", fileRelativeNames) + "\n").getBytes(StandardCharsets.UTF_8);
+        for (var attempt = 0; ; ++attempt) {
+            var md5 = MessageDigest.getInstance("MD5");
+            var offset = openFile(zokerName, relativeName);
+            if (offset > content.length) {
+                try {
+                    closeFile(zokerName, relativeName, new Binary(md5.digest()));
+                } catch (Exception expected) {
+                    // md5必然失配：服务端已清场（预期路径）
+                }
+                if (attempt > 0)
+                    throw new RuntimeException("upload distribute manifest failed to clear overlong residue: " + relativeName);
+                continue;
+            }
+            if (offset > 0)
+                md5.update(content, 0, (int)offset);
+            if (offset < content.length)
+                appendFile(zokerName, relativeName, offset, content, (int)offset, content.length - (int)offset);
+            try {
+                closeFile(zokerName, relativeName, new Binary(md5.digest()));
+                return;
+            } catch (Exception e) {
+                if (attempt > 0)
+                    throw e; // 两轮仍失败：上抛，整个distribute失败由调用方重试
+                // eMd5Mismatch等：服务端已清场或残留不匹配，下一轮从0重传
+            }
         }
     }
 

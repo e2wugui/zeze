@@ -10,6 +10,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +44,11 @@ public class DistributeManager {
 
 	/** services/&lt;svc&gt;/ 下的现役版本指针文件名，内容为版本号文本。 */
 	static final String CURRENT_NAME = "current";
+	/** distributes/&lt;svc&gt;/ 下的集合完整性清单文件名（zoker-05，FND26）：部署方在全部文件
+	 * CloseFile 收口后补传，行=各文件相对 distributeDir 根的路径（与 OpenFile 寻址同根）。
+	 * commit 据此校验清单内文件齐全并清退清单外残留（见 {@link #verifyDistributeManifest}）；
+	 * 该文件随版本目录成版，无消费者（start/prune 不读）。 */
+	public static final String DISTRIBUTE_MANIFEST_NAME = ".zoker-manifest";
 	/** commit 后保留的版本目录数（含现役），超过的最老版本被清理；&lt;=0 表示全保留。 */
 	static final int KEEP_VERSIONS_DEFAULT = 3;
 
@@ -513,8 +519,7 @@ public class DistributeManager {
 		}
 	}
 
-	private long commitLocked(String serviceName, String versionNo) {
-		var serviceFrom = new File(distributeDir, serviceName);
+	private long commitLocked(String serviceName, String versionNo) {		var serviceFrom = new File(distributeDir, serviceName);
 		var svcDir = new File(serviceDir, serviceName);
 		var versionTo = new File(svcDir, versionNo);
 		// 消费distributes/<svc>前先关闭其下仍打开的FileBin：正常流程CloseFile已收尾，
@@ -525,6 +530,22 @@ public class DistributeManager {
 			// 典型情形）时连services/<svc>容器目录也不创建，彻底无副作用。
 			if (!serviceFrom.isDirectory()) {
 				logger.error("commitService no distribute content: {}", serviceFrom);
+				return err(Zoker.eCommitFail);
+			}
+			// zoker-05（FND26）：集合级完整性屏障——文件级md5（CloseFile）与目录级搬运
+			//（rename）之间缺"本次发布集合已完整"的事实：open预建的空目录、上传中断的
+			// 部分集合都可整目录成版并切current（start从坏版本启动：NoClassDefFound/
+			// eNoServiceProperties，方向可见但已切现役）。屏障=部署方在全部文件收口后补传的
+			// 集合清单：清单存在即声明集合完整，commit校验齐全+清退残留；无清单走legacy
+			// 路径（外部部署工具/直构形态），由下方空目录拒绝兜底。
+			var manifestRc = verifyDistributeManifest(serviceFrom);
+			if (manifestRc != 0)
+				return manifestRc;
+			// 空目录拒绝（zoker-05）：closeUnder清掉在途未验证中间产物后目录可能为空——
+			// 空版本切current后start恒eNoServiceProperties直到重新commit，不得成版。
+			var remains = serviceFrom.listFiles();
+			if (null == remains || 0 == remains.length) {
+				logger.error("commitService empty distribute content: {}", serviceFrom);
 				return err(Zoker.eCommitFail);
 			}
 			try {
@@ -593,6 +614,74 @@ public class DistributeManager {
 	 */
 	private static void switchCurrent(File svcDir, String versionNo) throws IOException {
 		AtomicFileWriter.replace(new File(svcDir, CURRENT_NAME).toPath(), versionNo.getBytes(StandardCharsets.UTF_8));
+	}
+
+	/**
+	 * 集合级完整性屏障（zoker-05，FND26）：distributes/&lt;svc&gt;/ 下存在
+	 * {@link #DISTRIBUTE_MANIFEST_NAME} 时校验清单并清退残留，不存在走 legacy 路径返回0。
+	 * 清单行=各文件相对 distributeDir 根的路径（与 OpenFile 寻址同根，ZokerAgent 上传清单
+	 * 与上传文件用同一拼写）。清单是数据不是可信输入：逐行过 {@link #checkInsideDir} 同款
+	 * 边界守卫（open 的防线纵深，拒绝绝对路径/../逃逸/盘符），坏清单响亮拒绝而非侥幸放行。
+	 */
+	private long verifyDistributeManifest(File serviceFrom) {
+		var manifest = new File(serviceFrom, DISTRIBUTE_MANIFEST_NAME);
+		if (!manifest.isFile())
+			return 0; // legacy：无清单不设障（空目录拒绝另行兜底）
+		var listed = new HashSet<String>();
+		try (var reader = Files.newBufferedReader(manifest.toPath(), StandardCharsets.UTF_8)) {
+			String line;
+			while (null != (line = reader.readLine())) {
+				if (!line.isBlank())
+					listed.add(line);
+			}
+		} catch (IOException ex) {
+			logger.error("commitService read distribute manifest fail: {}", manifest, ex);
+			return err(Zoker.eCommitFail);
+		}
+		if (listed.isEmpty()) {
+			logger.error("commitService empty distribute manifest: {}", manifest);
+			return err(Zoker.eCommitFail); // 零文件的版本不可启动，与空目录同拒
+		}
+		for (var line : listed) {
+			try {
+				checkInsideDir(distributeDir, line);
+			} catch (IOException ex) {
+				logger.error("commitService manifest unsafe entry: '{}'", line);
+				return err(Zoker.eCommitFail);
+			}
+			if (!new File(distributeDir, line).isFile()) {
+				logger.error("commitService manifest entry missing on disk: '{}' (upload interrupted?)", line);
+				return err(Zoker.eCommitFail); // 部分集合不得成版：部署方重传后重commit
+			}
+		}
+		pruneUnlistedFiles(serviceFrom, listed);
+		return 0;
+	}
+
+	/**
+	 * 清退清单外残留（zoker-05）：barrier+closeUnder 已收殓在途句柄（在途未验证中间产物
+	 * 已被 closeUnder 删除），剩余未列文件=前次中断部署的残留——删除使版本内容=清单声明的
+	 * 精确集合（残留混入即新旧混合的部分集合形态）。删除失败仅warn（该残留将随目录成版，
+	 * 回到部分集合形态，靠warn暴露人工处置）；空子目录不递归清理（无消费者，无害）。
+	 */
+	private void pruneUnlistedFiles(File serviceFrom, Set<String> listed) {
+		var root = distributeDir.toPath().toAbsolutePath().normalize();
+		var manifestRel = serviceFrom.getName() + "/" + DISTRIBUTE_MANIFEST_NAME;
+		try (var walk = Files.walk(serviceFrom.toPath())) {
+			walk.filter(Files::isRegularFile).forEach(file -> {
+				var rel = root.relativize(file.toAbsolutePath().normalize()).toString().replace('\\', '/');
+				if (listed.contains(rel) || rel.equals(manifestRel))
+					return;
+				try {
+					Files.delete(file);
+					logger.info("commitService pruned unlisted residue: {}", rel);
+				} catch (IOException ex) {
+					logger.warn("commitService prune unlisted fail (committed with it, manual check): {}", rel, ex);
+				}
+			});
+		} catch (IOException ex) {
+			logger.warn("commitService prune walk fail: {}", serviceFrom, ex);
+		}
 	}
 
 	/**
