@@ -197,7 +197,15 @@ public class RedoQueue extends HandshakeClient {
 			if (null == tableTaskQueue)
 				return Procedure.LogicError; // stop与响应回调竞态：stop持锁清理时未清pending，表已置null（同scheduleRetry内的守卫）
 			if (rpc.getResultCode() == 0L || rpc.getResultCode() == Procedure.ErrorRequestId) {
-				lastDoneTaskId = rpc.Result.getTaskId();
+				// 服务端水位只能单向推进：ErrorRequestId回包携带的服务端进度在服务端状态回退
+				//（换库/清数据/同名队列接新实例）时会小于本地水位，反向写小并持久化会让
+				// deleteDoneTasks删错区间、泵读已删区间命中hole停摆。钳制+告警。
+				if (rpc.Result.getTaskId() < lastDoneTaskId) {
+					logger.warn("server watermark regressed, keep local. queue={}, local={}, server={}",
+							getName(), lastDoneTaskId, rpc.Result.getTaskId());
+				} else {
+					lastDoneTaskId = rpc.Result.getTaskId();
+				}
 				var value = ByteBuffer.Allocate(9);
 				value.WriteLong(lastDoneTaskId);
 				tableLastDoneTaskId.put(lastDoneTaskIdKey, 0, lastDoneTaskIdKey.length, value.Bytes, 0, value.WriteIndex);
