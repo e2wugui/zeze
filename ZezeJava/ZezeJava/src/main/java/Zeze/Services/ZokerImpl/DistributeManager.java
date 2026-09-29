@@ -38,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
  * 旧版本目录留作回滚点，由保留策略（{@link #keepVersions}）清理最老的。
  * 失败恢复：装版本失败无副作用（现役未动）；切换失败现役未动（新版本已装好，重试直接进入切换收敛）；
  * 重试幂等：目标版本目录已存在（上次中断的残留，经完整性校验：自身清单齐全/legacy下限/
- * 新清单条目已在盘上）= 跳过安装直接切换，同为成功——"存在=完整"由构造保证：安装是
+ * 新清单条目已在盘上且大小一致）= 跳过安装直接切换，同为成功——"存在=完整"由构造保证：安装是
  * 原子rename，删除（prune与隔离换装）先原子改名进暂存删除名再清树，版本名位置不出现
  * 残缺目录；校验不过的残缺目录不可收养：有新内容→隔离换装（残缺目录改名腾位），无新
  * 内容→eCommitFail。</p>
@@ -564,7 +564,8 @@ public class DistributeManager {
 		// 制造的残缺目录会击穿该不变式：无条件跳装=新上传内容被静默忽略、current切到残缺目录
 		// 返回0的假成功（start恒eNoServiceProperties且获现役保护无自愈）。判不可收养：
 		// (a)自带清单列的文件缺失（清单=安装完成标志）；(b)legacy下限不过（空壳）；
-		// (c)新上传清单条目在盘上版本目录缺失。处置：有新内容→隔离换装（残缺目录原子改名
+		// (c)新上传清单条目在盘上版本目录缺失或大小不一致（FND31 zoker-02：存在≠内容）。
+		// 处置：有新内容→隔离换装（残缺目录原子改名
 		// 进暂存删除名腾位，新内容落正常安装分支）；无新内容→eCommitFail。
 		if (versionTo.exists()
 				&& !(installedVersionHealthy(versionTo, serviceName) && distributesManifestSubsetOf(serviceFrom, versionTo))) {
@@ -718,16 +719,49 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 跳装分支的新内容比对：distributes/&lt;svc&gt; 带新清单时，其条目须全部已存在于既有
-	 * 版本目录——同内容重提快速跳装幂等（版本纪律：不覆盖已装版本、不动其mtime）；缺文件
-	 * 即判不可收养（静默忽略=提交方以为新包已生效的假成功）。无清单（legacy重提）不设比对，
-	 * 是否收养仅由 {@link #installedVersionHealthy} 决定。
+	 * 跳装分支的新内容比对：distributes/&lt;svc&gt; 带新清单时，条目须全部已存在于既有
+	 * 版本目录且<b>文件大小一致</b>——同内容重提快速跳装幂等（版本纪律：不覆盖已装
+	 * 版本、不动其mtime）。FND31 zoker-02：存在≠内容——同版本号重提新字节（忘递增
+	 * versionNo 的常见运维形态）此前被纯存在性判据静默跳装：回执 0 而现役继续服务
+	 * 旧字节，新字节滞留暂存区（下次 commit 被当残留清退），全程无日志。大小比对=
+	 * 存在性之上的最小实质升级：清单行=纯路径无摘要字段（FND26 格式），哈希需清单
+	 * 格式与部署工具协同演进（慎重）；同大小不同字节仍跳装（接受残余）。大小不符
+	 * 判不可收养走隔离换装（在用版本被 run.pid 保护挡住）。无清单（legacy重提）
+	 * 不设比对，是否收养仅由 {@link #installedVersionHealthy} 决定。
 	 */
-	private static boolean distributesManifestSubsetOf(File serviceFrom, File versionTo) {
+	private boolean distributesManifestSubsetOf(File serviceFrom, File versionTo) {
 		var manifest = new File(serviceFrom, DISTRIBUTE_MANIFEST_NAME);
 		if (!manifest.isFile())
 			return true;
-		return manifestEntriesAllPresent(manifest, versionTo, serviceFrom.getName());
+		var serviceName = serviceFrom.getName();
+		var base = versionTo.toPath().toAbsolutePath().normalize();
+		var listed = 0;
+		try (var reader = Files.newBufferedReader(manifest.toPath(), StandardCharsets.UTF_8)) {
+			String line;
+			while (null != (line = reader.readLine())) {
+				if (line.isBlank())
+					continue;
+				listed++;
+				var canonical = validatedManifestLine(line, serviceName);
+				if (null == canonical)
+					return false;
+				var target = base.resolve(afterFirstSegment(canonical)).normalize();
+				if (!target.startsWith(base) || !Files.isRegularFile(target))
+					return false;
+				// 内容判据（大小）：暂存区新字节（CloseFile已md5验证落盘）vs 已装版本目录
+				// 字节，size 不一致即判不可收养——宁换装不静默。
+				try {
+					if (Files.size(distributeDir.toPath().resolve(canonical)) != Files.size(target))
+						return false;
+				} catch (IOException ex) {
+					return false; // 条目不可 stat（缺失等）=不齐全，由安装分支校验收口
+				}
+			}
+		} catch (IOException ex) {
+			logger.error("distributes manifest subset check read fail: {}", manifest, ex);
+			return false;
+		}
+		return listed > 0;
 	}
 
 	/**
@@ -747,8 +781,8 @@ public class DistributeManager {
 				if (line.isBlank())
 					continue;
 				listed++;
-				var canonical = canonicalManifestLine(line);
-				if (null == canonical || !manifestLineFirstSegmentMatches(canonical, serviceName))
+				var canonical = validatedManifestLine(line, serviceName);
+				if (null == canonical)
 					return false;
 				var rel = afterFirstSegment(canonical);
 				var target = base.resolve(rel).normalize();
@@ -760,6 +794,13 @@ public class DistributeManager {
 			return false;
 		}
 		return listed > 0;
+	}
+
+	/** 清单行 canonical 解析+首段判同的合单点（校验侧 verifyDistributeManifest 与跳装侧
+	 * 两侧清单消费共用，FND31 zoker-03 三侧同源的收敛点）：非法返回 null。 */
+	private static @Nullable String validatedManifestLine(String line, String serviceName) {
+		var canonical = canonicalManifestLine(line);
+		return null != canonical && manifestLineFirstSegmentMatches(canonical, serviceName) ? canonical : null;
 	}
 
 	/**
