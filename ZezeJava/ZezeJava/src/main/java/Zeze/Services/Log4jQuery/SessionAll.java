@@ -21,9 +21,9 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * 跨全部日志服务端的聚合查询会话：对每台建 Session，归并 search/browse 结果并跟踪各台完成状态。
- * 部分失败降级（单台异常不牺牲其余台）+ 会话成员集维护单点（FND30 zokermanager-02）：在册
- * 死亡成员自愈重建（renewDeadMembers，N02）与缺册成员补入（reconcileMissingMembers）都收敛
- * 在 operate 内——构造期跳过或构造后上台的服务器由后者补入，会话构成始终向注册表收敛。
+ * 部分失败降级（单台异常不牺牲其余台）+ 会话成员集维护收敛在 operate 内：在册死亡成员自愈重建
+ * （renewDeadMembers）与缺册成员补入（reconcileMissingMembers）互补——构造期跳过或构造后上台的
+ * 服务器由后者补入，会话构成始终向注册表收敛。
  */
 public class SessionAll implements AutoCloseable {
 	private static final @NotNull Logger logger = LogManager.getLogger(SessionAll.class);
@@ -35,9 +35,8 @@ public class SessionAll implements AutoCloseable {
 	private final String logName;
 	private final ConcurrentHashMap<String, Session> alls = new ConcurrentHashMap<>();
 	private final ConcurrentHashSet<String> finishedSession = new ConcurrentHashSet<>();
-	// FND30 zokermanager-02：缺册补员的 per-member 退避表（服务器名→上次尝试失败时刻，
-	// System.nanoTime 单调时基）。键仅为补入失败的注册台；退避窗内不重试——持续故障期不对
-	// 死地址逐 operate 打点。成员成功补入即移除。
+	// 缺册补员的 per-member 退避表（服务器名→上次尝试失败时刻，System.nanoTime时基）：
+	// 退避窗内不重试，持续故障期不对死地址逐 operate 打点；成功补入即移除。
 	private final ConcurrentHashMap<String, Long> memberRetryBackoff = new ConcurrentHashMap<>();
 
 	public SessionAll(LogAgent agent, String logName) {
@@ -69,8 +68,8 @@ public class SessionAll implements AutoCloseable {
 
 	/**
 	 * 会话当前实际成员集（已成功入会的服务器名，副本快照）：会话构成是绑定快照与复用判定的
-	 * 唯一权威（FND30 zokermanager-01/02）——注册表键集不可证明会话构成：构造期不可达台被
-	 * 跳过，构造迭代与注册表更新（SM 事件线程并发 put）之间存在竞态窗口。
+	 * 唯一权威——注册表键集不可证明会话构成：构造期不可达台被跳过，构造迭代与注册表更新
+	 * 之间存在竞态窗口。
 	 */
 	public Set<String> memberNames() {
 		return Set.copyOf(alls.keySet());
@@ -79,8 +78,8 @@ public class SessionAll implements AutoCloseable {
 	public BResult.Data operate(Func1<Session, TaskCompletionSource<BResult.Data>> op)
 			throws Exception {
 
-		// FND30 zokermanager-02：缺册补员先行——补入的新成员须参与本轮查询；与文末
-		// renewDeadMembers（在册死亡重建）合成会话成员集维护的单点。
+		// 缺册补员先行——补入的新成员须参与本轮查询；与文末renewDeadMembers（在册死亡重建）
+		// 合成会话成员集维护的单点。
 		reconcileMissingMembers();
 
 		// 逐台收集失败：单台异常（RPC超时/连接抖动/发送失败）不牺牲其余台结果，
@@ -163,12 +162,9 @@ public class SessionAll implements AutoCloseable {
 	}
 
 	/**
-	 * 缺册补员（FND30 zokermanager-02）：注册表新增（扩容上台/SM 推送竞态）或构造期跳过
-	 * （当时不可达）的服务器不在 alls 内，此前无任何补入入口——注册表键集稳定时该台数据
-	 * 持续静默缺席，remain 提前 false。operate 入口对差集（注册表\成员集）逐台尝试补入，
-	 * 补入的新成员参与本轮查询；失败记 per-member 退避时间戳（60s 窗内不重试——持续故障期
-	 * 不对死地址逐 operate 打点）。与 {@link #renewDeadMembers}（在册死亡重建）互补，合成
-	 * 会话成员集维护的单点。
+	 * 缺册补员：注册表新增或构造期跳过的服务器不在 alls 内，无补入入口则该台数据持续静默缺席、
+	 * remain 提前 false。operate 入口对差集逐台尝试补入，补入的新成员参与本轮查询；失败记
+	 * per-member 退避时间戳（60s 窗内不重试）。与 {@link #renewDeadMembers}（在册死亡重建）互补。
 	 */
 	private void reconcileMissingMembers() {
 		var now = System.nanoTime();

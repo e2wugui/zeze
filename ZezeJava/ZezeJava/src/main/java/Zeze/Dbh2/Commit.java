@@ -48,16 +48,16 @@ public class Commit extends AbstractCommit {
 	@Override
 	protected long ProcessCommitRequest(Zeze.Builtin.Dbh2.Commit.Commit r) throws Exception {
 		var query = rocks.getManager().commitServiceAcceptor();
-		// 应答解绑投递（dbh2-03）：decide（prepare+saveCommitPoint(eCommitting)）同步完成后
-		// 立即应答——应答0 ⇔ eCommitting已持久化，此后事务终局为提交；commitBatch投递
-		// 转投执行器异步执行，不阻塞应答线程，失败/超时由redoTimer兜底重发。
+		// 应答与投递解绑：decide（prepare+saveCommitPoint(eCommitting)）同步完成后立即应答，
+		// 应答0 ⇔ eCommitting已持久化、事务终局为提交；commitBatch投递异步执行，
+		// 失败/超时由redoTimer兜底重发。
 		var decision = rocks.commitDecide(query.getKey(), query.getValue(), r.Argument);
 		r.SendResult();
 		var pool = Zeze.Util.Task.getThreadPool();
 		if (null != pool)
 			pool.execute(() -> rocks.commitDeliver(decision));
 		else
-			rocks.commitDeliver(decision); // 池不可用（未初始化/已停机）时同步兜底，投递必达
+			rocks.commitDeliver(decision); // 池不可用时同步兜底，投递必达
 		return 0;
 	}
 

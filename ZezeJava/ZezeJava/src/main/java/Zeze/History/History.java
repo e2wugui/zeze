@@ -18,13 +18,11 @@ import org.jetbrains.annotations.Nullable;
  * 离开 logChanges 前必已进 encoded；encoded 只能由 commitDone 清空——它在数据库事务全部
  * 提交成功后由 Checkpoint.flush 调用，失败回滚后容器保留，重试按系列号幂等重写。
  * merge 仅用于事务路径的所有权转移（from 即死，条目归幸存 rrs 所有）；combine 用于
- * FlushSet 的 flush 组装只读快照（绝不写参数容器、绝不共享 map 引用）——快照的
- * encode0/writeOnly/commitDone 只作用于快照，tHistory 行的写入/核销集合结构上等于
- * 本轮成员集合，失败轮不污染成员自有容器（history-01：重分组后幽灵行/跨组核销）。
+ * FlushSet 的 flush 组装只读快照（绝不写参数容器、绝不共享 map 引用）——快照的写入/核销
+ * 集合恒等于本轮成员集合，失败轮不污染成员自有容器。
  *
- * 已发 gid 的落库对账账本（FND29 history-02）见 {@link PendingGidLedger}：账本随
- * register/commitDone 由调用方携带（Application 实例维度，FND30 history-02），本类
- * 不持有账本状态。
+ * 已发 gid 的落库对账账本见 {@link PendingGidLedger}：随 register/commitDone 由调用方
+ * 携带（Application 实例维度），本类不持有账本状态。
  */
 public class History {
 
@@ -77,8 +75,7 @@ public class History {
 	}
 
 	/** 数据库事务全部提交成功后调用：tHistory 行已持久化，容器可以安全清空。
-	 * 清空前按 gid 核销对账账本（FND29 history-02）。账本由调用方携带（Application
-	 * 实例维度，FND30 history-02）：同一数值 gid 在不同 app 的账本间互不干扰。 */
+	 * 清空前按 gid 核销对账账本（Application 实例维度）：同一数值 gid 在不同 app 间互不干扰。 */
 	public void commitDone(@NotNull PendingGidLedger ledger) {
 		for (var k : encoded.keySet())
 			ledger.retire(k);
@@ -102,7 +99,7 @@ public class History {
 	}
 
 	// merge 仅用于事务路径（RelativeRecordSet.merge）的所有权转移：from 的 rrs 即死
-	// （mergeTo 指向幸存者，记录全部改挂），条目归幸存 rrs 所有，允许写入 to 的持久容器。
+	// （mergeTo 指向幸存者），条目归幸存 rrs 所有，允许写入 to 的持久容器。
 	// FlushSet 的组组装不得走这里——见 combine。
 	public static @Nullable History merge(@Nullable History to, @Nullable History from) {
 		// rrs 锁内
@@ -116,8 +113,7 @@ public class History {
 		// 合并logChanges
 		var toLogChanges = to.logChanges;
 		if (toLogChanges == null) {
-			// 拷贝收编，不共享 map 引用：别名会让幸存者 commitDone 的清空波及死者容器，
-			// 死者若被复活观察（如测试/诊断持有）即读到被掏空的状态。
+			// 拷贝收编，不共享 map 引用：别名会让幸存者 commitDone 的清空波及死者容器。
 			var fromLogChanges = from == null ? null : from.logChanges; // still maybe null
 			if (fromLogChanges != null) {
 				to.logChanges = new ConcurrentHashMap<>();
@@ -134,12 +130,10 @@ public class History {
 		return to;
 	}
 
-	/** FlushSet 组快照组装（history-01）：把 a、b 的条目收编进全新容器返回快照，绝不写
-	 * 参数容器、绝不共享 map 引用（putIfAbsent 语义与 merge 一致，gid 相同即同内容）。
-	 * Merge 模式的组 flush 用它代替 merge 组装历史：失败轮回滚后成员 rrs 的自有容器
-	 * 原样保留，重试轮（MultiThreadMerge 每轮按线程重分组）无论怎么拆组，每个快照
-	 * 的写入/核销集合都结构上等于本轮成员集合——幸存者组不会带出别人的幽灵 tHistory
-	 * 行，也不会把别人的 gid 从对账账本跨组核销。 */
+	/** FlushSet 组快照组装：把 a、b 的条目收编进全新容器返回快照，绝不写参数容器、
+	 * 绝不共享 map 引用（putIfAbsent 语义与 merge 一致，gid 相同即同内容）。失败轮回滚
+	 * 后成员 rrs 的自有容器原样保留，重试轮无论怎么重分组，每个快照的写入/核销集合都
+	 * 恒等于本轮成员集合——不会带出幽灵 tHistory 行、不会跨组核销别人的 gid。 */
 	public static @Nullable History combine(@Nullable History a, @Nullable History b) {
 		// rrs 锁内（调用方 FlushSet.flush 持有全部成员锁）
 		if (a == null && b == null)
@@ -166,8 +160,8 @@ public class History {
 
 	/** globalSerialId 必须在日志应用（finalCommit 的 commit.run）之前解析：取号失败时数据
 	 * 未应用、事务干净失败，历史与数据同生共死（调用方 Transaction.finalCommit 的
-	 * HistoryChangesCollector.beforeApply）。gid 在此消费即入对账账本（见类注释账本段，
-	 * 账本为调用方 Application 实例维度），随 tHistory 行提交成功由 commitDone 核销。 */
+	 * HistoryChangesCollector.beforeApply）。gid 在此消费即入对账账本（Application 实例
+	 * 维度），随 tHistory 行提交成功由 commitDone 核销。 */
 	public static @NotNull BLogChanges.Data buildLogChanges(@NotNull PendingGidLedger ledger,
 															@NotNull Id128 globalSerialId,
 															@NotNull Changes changes,

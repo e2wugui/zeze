@@ -41,7 +41,7 @@ import org.jetbrains.annotations.Nullable;
  * 新清单条目已在盘上）= 跳过安装直接切换，同为成功——"存在=完整"由构造保证：安装是
  * 原子rename，删除（prune与隔离换装）先原子改名进暂存删除名再清树，版本名位置不出现
  * 残缺目录；校验不过的残缺目录不可收养：有新内容→隔离换装（残缺目录改名腾位），无新
- * 内容→eCommitFail（FND30 zoker-02，旧版prune的deleteTree部分失败可制造残缺版本目录）。</p>
+ * 内容→eCommitFail。</p>
  */
 public class DistributeManager {
 	private static final Logger logger = LogManager.getLogger(DistributeManager.class);
@@ -49,17 +49,15 @@ public class DistributeManager {
 	/** services/&lt;svc&gt;/ 下的现役版本指针文件名，内容为版本号文本。 */
 	static final String CURRENT_NAME = "current";
 	/** services/&lt;svc&gt;/ 下的暂存删除名前缀：{@code .zoker-deleting.<原目录名>.<millis>}。
-	 * prune 的 victim 与 commit 的隔离换装共用（FND30 zoker-02）：先同容器原子 rename 再
-	 * 整树删除——deleteTree 的部分失败（Windows外部句柄占用）只可能残缺暂存名，不再制造
-	 * "存在但不完整"的版本名目录（跳装判据"存在=完整"的构造性保证）。暂存名排除出保留
-	 * 计数与候选（pruneLocked），上一轮残留由下一轮 prune 入口先清扫；versionNo 折叠后
-	 * 以前缀开头的按保留字拒绝（isReservedVersionName）。 */
+	 * prune 的 victim 与 commit 的隔离换装共用：先同容器原子 rename 再整树删除——deleteTree
+	 * 的部分失败只可能残缺暂存名，不再制造"存在但不完整"的版本名目录。暂存名排除出保留
+	 * 计数与候选，上一轮残留由下一轮 prune 入口先清扫；versionNo 折叠后以前缀开头的按
+	 * 保留字拒绝（isReservedVersionName）。 */
 	static final String DELETING_STAGE_PREFIX = ".zoker-deleting.";
-	/** distributes/&lt;svc&gt;/ 下的集合完整性清单文件名（zoker-05，FND26）：部署方在全部文件
+	/** distributes/&lt;svc&gt;/ 下的集合完整性清单文件名：部署方在全部文件
 	 * CloseFile 收口后补传，行=各文件相对 distributeDir 根的路径（与 OpenFile 寻址同根）。
 	 * commit 据此校验清单内文件齐全并清退清单外残留（见 {@link #verifyDistributeManifest}）；
-	 * 该文件随版本目录成版，跳装分支以它为安装完成标志消费（FND30 zoker-02；
-	 * start/prune 仍不读）。 */
+	 * 该文件随版本目录成版，跳装分支以它为安装完成标志消费（start/prune 仍不读）。 */
 	public static final String DISTRIBUTE_MANIFEST_NAME = ".zoker-manifest";
 	/** commit 后保留的版本目录数（含现役），超过的最老版本被清理；&lt;=0 表示全保留。 */
 	static final int KEEP_VERSIONS_DEFAULT = 3;
@@ -325,19 +323,15 @@ public class DistributeManager {
 	}
 
 	/**
-	 * serviceName/fileName 到相对路径的合成单点（FND30 zoker-01）。
-	 * ZokerAgent 的三个文件 RPC 从不设置 ServiceName（bean 默认空串），文件相对路径
-	 * （带服务名首段，形如 "svc/lib/x.jar"）整体放在 FileName 里——空 serviceName 是真实
-	 * 流量形态。{@code new File("", child)} 的空父目录会被 JDK 替换为默认父
-	 * （Windows "\"、Linux "/"），得到根相对/绝对路径（\svc\lib\x.jar / /svc/lib/x.jar），
-	 * checkInsideDir 的 base.resolve 对带根成分的路径不再拼接到 base 之下，判为越界逃逸拒绝
-	 * ——真实流量的 OpenFile 100% 失败。空 serviceName 时直接采用 fileName（纯相对路径，
-	 * 边界守卫仍由 checkInsideDir 承担）；非空 serviceName 保持既有合成。open/append/
-	 * closeAndVerify 的路径与记账键合成必须同走本单点，保证三处键一致。
+	 * serviceName/fileName 到相对路径的合成单点。ZokerAgent 的三个文件 RPC 从不设置
+	 * ServiceName（bean 默认空串），文件相对路径（含服务名首段）整体放在 FileName 里——
+	 * 空 serviceName 是真实流量形态。{@code new File("", child)} 的空父目录会被 JDK 替换为
+	 * 默认父（Windows "\"、Linux "/"），得到根相对/绝对路径，被 checkInsideDir 判为越界
+	 * 逃逸拒绝——故空 serviceName 时直接采用 fileName（纯相对路径，边界守卫仍由
+	 * checkInsideDir 承担）；非空 serviceName 保持既有合成。open/append/closeAndVerify
+	 * 的路径与记账键必须同走本单点，保证三处键一致。
 	 */
 	private static String synthPath(String serviceName, String fileName) {
-		// serviceName 为空串是 ZokerAgent 真实流量形态（FileName 已含服务名首段）；
-		// new File("", child) 会被 JDK 解析为根相对/绝对路径，必须特判。
 		return serviceName.isEmpty() ? fileName : new File(serviceName, fileName).getPath();
 	}
 
@@ -418,8 +412,8 @@ public class DistributeManager {
 	 * rename）恒失败 → 按"写盘失败=不交付"一切 start 恒 eStartFail（服务永不可启动，无自愈）。
 	 * 仅用于 versionNo：serviceName 与保留字无碰撞面（services/Current、services/run.pid
 	 * 都是合法服务容器名——保留字在容器<b>之内</b>，容器名本身单段即安全），不得套用。
-	 * 暂存删除名族（{@link #DELETING_STAGE_PREFIX} 前缀，FND30 zoker-02）同面扩入：跳装/
-	 * 指针收养一个 deleteTree 半途残缺的暂存目录=收养残缺版本（跳装完整性判据的破坏面）。
+	 * 暂存删除名族（{@link #DELETING_STAGE_PREFIX} 前缀）同面扩入：跳装/指针收养一个
+	 * deleteTree 半途残缺的暂存目录=收养残缺版本（跳装完整性判据的破坏面）。
 	 * 折叠判据抽为 {@link #foldVersionName} 单点，与 pruneVersions 的
 	 * 现役保护、commitLocked 的指针规范化共用同一语义。
 	 */
@@ -430,9 +424,9 @@ public class DistributeManager {
 				|| isDeletingStageName(name);
 	}
 
-	/** 暂存删除名判别（pruneLocked 的排除/入口清扫与保留字增补共用的单点）：折叠后
+	/** 暂存删除名判别（排除/入口清扫与保留字增补共用的单点）：折叠后
 	 * （剥尾点/空格+小写，与盘上解析同判据）以 {@link #DELETING_STAGE_PREFIX} 开头——
-	 * 暂存名由本类生成（前缀+原名+毫秒，折叠不伤前缀），折叠只影响 Windows 变体拼写判同。 */
+	 * 暂存名由本类生成，折叠只影响 Windows 变体拼写判同。 */
 	static boolean isDeletingStageName(String name) {
 		return foldVersionName(name).startsWith(DELETING_STAGE_PREFIX);
 	}
@@ -566,15 +560,12 @@ public class DistributeManager {
 		// 消费distributes/<svc>前先关闭其下仍打开的FileBin：正常流程CloseFile已收尾，
 		// 这里兜底跳过CloseFile的连接，同时释放Windows上阻塞rename的文件句柄。
 		closeUnder(serviceFrom);
-		// 跳装分支的完整性判据（FND30 zoker-02）：版本名目录"存在=完整"由构造保证
-		//（原子rename安装+暂存名删除），但存量/外部制造的残缺目录（旧版prune的
-		// deleteTree部分失败残留——清单列的文件被削/清空的目录壳）会击穿该不变式：
-		// 无条件跳装=新上传内容被静默忽略、current切到残缺目录返回0的假成功
-		//（start恒eNoServiceProperties，残缺目录获现役保护无自愈）。判不可收养：
+		// 跳装分支的完整性判据："存在=完整"由构造保证（原子rename安装+暂存名删除），存量/外部
+		// 制造的残缺目录会击穿该不变式：无条件跳装=新上传内容被静默忽略、current切到残缺目录
+		// 返回0的假成功（start恒eNoServiceProperties且获现役保护无自愈）。判不可收养：
 		// (a)自带清单列的文件缺失（清单=安装完成标志）；(b)legacy下限不过（空壳）；
-		// (c)新上传清单条目在盘上版本目录缺失（新内容≠盘上内容）。处置：有新内容→
-		// 隔离换装（残缺目录原子改名进暂存删除名腾位，新内容落正常安装分支）；无新
-		// 内容→eCommitFail（假成功变可见失败）。
+		// (c)新上传清单条目在盘上版本目录缺失。处置：有新内容→隔离换装（残缺目录原子改名
+		// 进暂存删除名腾位，新内容落正常安装分支）；无新内容→eCommitFail。
 		if (versionTo.exists()
 				&& !(installedVersionHealthy(versionTo) && distributesManifestSubsetOf(serviceFrom, versionTo))) {
 			if (!serviceFrom.isDirectory()) {
@@ -585,11 +576,10 @@ public class DistributeManager {
 			var quarantined = new boolean[]{false};
 			Runnable swapStep = () -> {
 				if (null != processManager) {
-					// 在用版本保护：run.pid指向的版本目录不隔离（服务不随current切换重启时
-					// 仍从旧版本目录运行，隔离+暂存清扫=拆运行中服务的文件）。与start的
-					// launch→writeRunPid窗口互斥（withServiceLock；锁序commitLocks→opsLocks
-					// 单向嵌套，同pruneVersions段）；版本不可知（旧格式身份空串）无法证明
-					// 不是本版本，宁拒不删（prune的保守方向同款）。
+					// 在用版本保护：run.pid指向的版本目录不隔离（服务不随current切换重启时仍从
+					// 旧版本目录运行，隔离+暂存清扫=拆运行中服务的文件）。与start的
+					// launch→writeRunPid窗口互斥（withServiceLock；锁序commitLocks→opsLocks单向
+					// 嵌套）；版本不可知（旧格式身份空串）无法证明不是本版本，宁拒不删。
 					var running = processManager.runningVersion(serviceName);
 					if (null != running && (running.isEmpty()
 							|| foldVersionName(running).equals(foldVersionName(versionNo)))) {
@@ -703,11 +693,10 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 跳装分支的完整性判据（FND30 zoker-02）：版本名目录的存在不再无条件等价于完整。
+	 * 跳装分支的完整性判据：版本名目录的存在不无条件等价于完整。
 	 * <ul>
-	 * <li>自带 {@link #DISTRIBUTE_MANIFEST_NAME}（随版本成版的自身清单，FND26 引入，
-	 * 本分支是它的第一个消费者）=安装完成标志：清单列的文件须全部在版本目录内
-	 * （安装经 verifyDistributeManifest 的版本必满足；缺失=目录被削过=残缺）。</li>
+	 * <li>自带 {@link #DISTRIBUTE_MANIFEST_NAME}（随版本成版的自身清单）=安装完成标志：
+	 * 清单列的文件须全部在版本目录内（缺失=目录被削过=残缺）。</li>
 	 * <li>无清单（legacy/外部部署工具）：下限=目录树内至少一个常规文件（完全空壳不可
 	 * 收养：switch过去start恒eNoServiceProperties）。</li>
 	 * <li>非目录实体（文件占位版本名）恒不可收养（跳装切换=currentVersionDir恒null的
@@ -729,11 +718,10 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 跳装分支的新内容比对（FND30 zoker-02）：distributes/&lt;svc&gt; 带新清单时，其条目
-	 * 须全部已存在于既有版本目录——同内容重提快速跳装幂等（版本纪律：不覆盖已装版本、
-	 * 不动其mtime）；缺文件即判不可收养（新内容≠盘上内容，静默忽略=提交方以为新包已
-	 * 生效的假成功）。无清单（legacy重提）不设比对——是否收养仅由
-	 * {@link #installedVersionHealthy} 决定（legacy非空即保留的既有版本纪律不变）。
+	 * 跳装分支的新内容比对：distributes/&lt;svc&gt; 带新清单时，其条目须全部已存在于既有
+	 * 版本目录——同内容重提快速跳装幂等（版本纪律：不覆盖已装版本、不动其mtime）；缺文件
+	 * 即判不可收养（静默忽略=提交方以为新包已生效的假成功）。无清单（legacy重提）不设比对，
+	 * 是否收养仅由 {@link #installedVersionHealthy} 决定。
 	 */
 	private static boolean distributesManifestSubsetOf(File serviceFrom, File versionTo) {
 		var manifest = new File(serviceFrom, DISTRIBUTE_MANIFEST_NAME);
@@ -781,10 +769,9 @@ public class DistributeManager {
 	}
 
 	/**
-	 * 隔离换装（FND30 zoker-02）：不可收养的版本目录原子改名进暂存删除名（与 prune 的
-	 * 暂存删除同一前缀，同容器rename）——版本名位置腾给新内容落正常安装分支；暂存名由
-	 * 下一次 pruneVersions 入口清扫（本轮commit末尾的prune即执行）。rename 失败
-	 * （Windows句柄占用等）返回 false：eCommitFail 可重试，现役未动。
+	 * 隔离换装：不可收养的版本目录原子改名进暂存删除名（与 prune 的暂存删除同一前缀，
+	 * 同容器rename）——版本名位置腾给新内容落正常安装分支；暂存名由下一次 pruneVersions
+	 * 入口清扫。rename 失败（Windows句柄占用等）返回 false：eCommitFail 可重试，现役未动。
 	 */
 	private static boolean quarantineVersion(File svcDir, File versionTo) {
 		var stage = new File(svcDir, DELETING_STAGE_PREFIX + versionTo.getName() + '.' + System.currentTimeMillis());
@@ -899,10 +886,10 @@ public class DistributeManager {
 
 	/**
 	 * 保留策略：按安装时间（版本目录mtime，commit时盖写）保留最近 keepVersions 个版本目录，
-	 * 现役版本永不删除；超出的最老版本先原子改名进暂存删除名（{@link #DELETING_STAGE_PREFIX}）
-	 * 再整树删除——删除的部分失败只可能残缺暂存名（非版本名目录），暂存残留由下一轮
-	 * prune 入口清扫（FND30 zoker-02："存在=完整"对版本名目录由构造保持，跳装判据的
-	 * 前提）。listFiles的null（目录消失/权限）视为无事可做。
+ * 现役版本永不删除；超出的最老版本先原子改名进暂存删除名（{@link #DELETING_STAGE_PREFIX}）
+ * 再整树删除——删除的部分失败只可能残缺暂存名（非版本名目录），暂存残留由下一轮
+ * prune 入口清扫（"存在=完整"对版本名目录由构造保持，跳装判据的前提）。
+ * listFiles的null（目录消失/权限）视为无事可做。
 	 *
 	 * <p>现役保护按 {@link #foldVersionName} 折叠比对：参数来自 commit 的
 	 * 请求 versionNo，而 Win32 解析下请求文本与盘上目录名可能分叉（"V1"vs"v1"、"v1."vs"v1"）
@@ -943,9 +930,9 @@ public class DistributeManager {
 		var listFiles = svcDir.listFiles();
 		if (null == listFiles)
 			return;
-		// 暂存删除名的入口清扫（FND30 zoker-02）：上一轮prune/隔离换装的deleteTree失败残留。
-		// 暂存名不在版本语义面内（不进keep计数/候选/现役保护），清扫是纯垃圾回收——
-		// 不受keep<=0（全保留）与在用版本未知跳过的约束。
+		// 暂存删除名的入口清扫：上一轮prune/隔离换装的deleteTree失败残留。暂存名不在
+		// 版本语义面内（不进keep计数/候选/现役保护），清扫是纯垃圾回收——不受keep<=0
+		// （全保留）与在用版本未知跳过的约束。
 		for (var f : listFiles) {
 			if (f.isDirectory() && isDeletingStageName(f.getName()) && !deleteTree(f))
 				logger.warn("pruneVersions sweep staged residue fail, retry next commit: {}", f);
@@ -968,8 +955,8 @@ public class DistributeManager {
 		ArrayList<File> candidates = new ArrayList<>();
 		for (var f : listFiles) {
 			// 只把版本目录纳入清理面：current指针是文件天然排除；名字碰巧等于现役版本的目录不存在（构造上互斥）。
-			// 暂存删除名排除（FND30 zoker-02）：不在版本语义面内（入口已清扫/清扫失败
-			// 残留等下一轮），也不得挤占keep名额把真实版本挤入清理面。
+			// 暂存删除名排除：不在版本语义面内（入口已清扫/清扫失败残留等下一轮），
+			// 也不得挤占keep名额把真实版本挤入清理面。
 			if (f.isDirectory() && !isDeletingStageName(f.getName())
 					&& !foldVersionName(f.getName()).equals(foldedCurrent)
 					&& (null == foldedRunning || !foldVersionName(f.getName()).equals(foldedRunning)))
@@ -981,10 +968,9 @@ public class DistributeManager {
 		candidates.sort(Comparator.comparingLong(File::lastModified).reversed()); // 新→旧
 		for (int i = keep - 1; i < candidates.size(); i++) {
 			var victim = candidates.get(i);
-			// 暂存名先行（FND30 zoker-02）：同容器原子rename后再整树删除——部分失败
-			//（Windows外部句柄占用，deleteTree中途返回false）只可能残缺暂存名，版本名
-			// 位置不再出现"存在但不完整"的目录（跳装判据的构造性保证）。rename失败
-			//（victim被句柄钉住）=本轮跳过该victim，残留完整待下轮重试。
+			// 暂存名先行：同容器原子rename后再整树删除——部分失败只可能残缺暂存名，版本名
+			// 位置不再出现"存在但不完整"的目录。rename失败（victim被句柄钉住）=本轮跳过
+			// 该victim，残留完整待下轮重试。
 			var stage = new File(svcDir, DELETING_STAGE_PREFIX + victim.getName() + '.' + System.currentTimeMillis());
 			if (!victim.renameTo(stage)) {
 				logger.warn("pruneVersions stage rename fail, keep on next commit: {}", victim);

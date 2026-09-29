@@ -265,12 +265,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	// 门槛触发（commitBatch/undoBatch的apply尾部，raft apply线程）：锁内摘handle后转投
-	// raft串行执行器重新过闸（setupOneShotIfNoTransaction），不得在apply线程内联运行——
-	// 全序化不变量（dbh2-01）：所有门槛判定与所有PrepareBatch注册必须落在同一条FIFO序
-	// 上：装载（拦截队列）先于提交⇒拦截；提交先于装载⇒FIFO先注册⇒过闸看到非空事务而
-	// 推迟。内联运行时门槛收口无序于拦截排空的注册，晚注册事务落入迁出键域的写入被收尾
-	// deleteToEnd静默丢弃。
+	// 门槛触发（commitBatch/undoBatch的apply尾部）：锁内摘handle后转投raft串行执行器
+	// 重新过闸（setupOneShotIfNoTransaction），不得在apply线程内联——全序化不变量：
+	// 所有门槛判定与所有PrepareBatch注册必须落在同一条FIFO序上（装载先于提交⇒拦截；
+	// 提交先于装载⇒先注册⇒过闸看到非空事务而推迟），内联运行会破坏该序，晚注册事务
+	// 落入迁出键域的写入被收尾deleteToEnd静默丢弃。
 	private void triggerNoTransactionIf() {
 		Runnable handle;
 		noTransactionLock.lock();

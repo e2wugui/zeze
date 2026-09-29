@@ -80,10 +80,8 @@ public final class Application extends ReentrantLock {
 
 	private final @NotNull String projectName;
 	private final @NotNull Config conf;
-	// 已发 gid 落库对账账本（FND29 history-02）：Application 实例维度（FND30 history-02）
-	// ——不同 history 发号名的 gid 数值空间重叠，进程级共享账本会跨 app 互相覆盖/误核销。
-	// 构造期创建、final、停机不置 null：Transaction.afterApply 在飞窗口不得依赖可空组件
-	//（historyModule 停机置 null 晚于 checkpoint，afterApply 携账本穿过该窗口）。
+	// 已发 gid 落库对账账本，实例维度：不同 history 发号名的 gid 数值空间重叠，进程级共享会跨 app 误核销。
+	// 构造期创建、final、停机不置 null——afterApply 在飞窗口依赖它穿过 historyModule 置 null 的停机窗口。
 	private final @NotNull PendingGidLedger pendingGidLedger;
 	private final @NotNull HashMap<String, Database> databases = new HashMap<>();
 	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
@@ -481,7 +479,7 @@ public final class Application extends ReentrantLock {
 		return historyModule;
 	}
 
-	/** 已发 gid 落库对账账本（每 Application 一份，FND30 history-02），生命周期同本实例。 */
+	/** 已发 gid 落库对账账本（每 Application 一份），生命周期同本实例。 */
 	public PendingGidLedger getPendingGidLedger() {
 		return pendingGidLedger;
 	}

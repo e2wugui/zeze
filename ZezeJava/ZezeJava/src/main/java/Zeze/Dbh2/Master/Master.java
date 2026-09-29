@@ -247,8 +247,8 @@ public class Master extends AbstractMaster {
 		var table = database.createTable(r.Argument.getTable(), outIsNew);
 		if (null == table)
 			return errorCode(eTableNotFound);
-		// 快照（对齐下方GetBuckets先例）：createTable返回live主表对象，rpc序列化遍历
-		// 与分桶结算（endSplit/endMove持表锁结构性put/remove）并发会CME/应答失败。
+		// 必须快照（对齐下方GetBuckets先例）：rpc序列化遍历live主表对象与分桶结算
+		// （endSplit/endMove结构性put/remove）并发会CME/应答失败。
 		r.Result = table.snapshot();
 		if (Boolean.TRUE.equals(outIsNew.value))
 			r.setResultCode(errorCode(eTableIsNew));

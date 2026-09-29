@@ -450,8 +450,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 			checkpoint = cp;
 		}
 
-		// package-private：测试（TestHistoryFlushCommitBinding）需手工组装分组复现
-		// FlushSet 失败轮重分组形态（同包既有惯例）。
+		// package-private：测试需手工组装分组复现失败轮重分组形态。
 		boolean add(@NotNull RelativeRecordSet rrs) {
 			if (sortedRrs.putIfAbsent(rrs.id, rrs) != null)
 				throw new IllegalStateException("duplicate rrs");
@@ -486,11 +485,9 @@ public final class RelativeRecordSet extends ReentrantLock {
 					if (rrs.mergeTo != null)
 						continue; // merged or deleted
 					rs.addAll(rrs.recordSet);
-					// combine（非 merge）组装组快照：不写成员 rrs 的自有 History 容器（History.merge
-					// 会把后者的条目原地污染进幸存者）。失败轮回滚后成员容器原样保留，重试轮
-					// （MultiThreadMerge 每轮按线程重分组）无论怎么拆组，快照的写入/核销集合
-					// 结构上等于本轮成员集合——不会带出别人的幽灵 tHistory 行、不会把别人的
-					// gid 从对账账本跨组核销（history-01）。
+					// combine（非 merge）只读组装快照，不写成员 rrs 的自有 History 容器：
+					// 失败轮回滚后成员容器原样保留，重试轮无论怎么重分组，每个快照的写入/核销
+					// 集合恒等于本轮成员集合——不会带出幽灵 tHistory 行、不会跨组核销别人的 gid。
 					history = History.combine(history, rrs.getHistory());
 					// 恢复onz聚集（判空后addAll，直接addAll(null)会NPE）：
 					// 正常流程带onz的rrs恒为flush-now（needFlushNow=onzProcedure!=null）不进

@@ -497,8 +497,7 @@ public class Onz extends AbstractOnz {
 			return errorCode(eSagaNotFound);
 		}
 		var context = sagas.get(tid);
-		// onz-01（FND30）：eSagaNotFound只在缺席为终态时应答（见下方cancel分支的
-		// 不变量注释——条目在场+businessLock=compensating互斥域，无摘除窗口）。
+		// eSagaNotFound 只在缺席为终态时应答；补偿期间条目在场+businessLock 互斥，无摘除窗口。
 		if (context == null)
 			return errorCode(eSagaNotFound);
 
@@ -528,27 +527,21 @@ public class Onz extends AbstractOnz {
 		try {
 			// 没有设置cancel标志时，表示事务正常结束，用来删除sagas上下文。
 			if (r.Argument.isCancel()) {
-				// onz-01（FND30）不变量：eSagaNotFound只得上面"条目缺席"的路径应答——缺席即
-				// 终态（从未注册/已终结/业务失败自清理/TTL回收）。补偿期间条目保持在sagas
-				// 在场、businessLock全程持有=compensating互斥域：重发/并发的FuncSagaEnd先
-				// get命中再在tryLockBusiness上排队，不出现"补偿执行中上下文却不在sagas"
-				// 的窗口——摘除点在补偿成功之后，失败则条目原地保留等redo重发（协调者按
-				// eCompensateFail保留决策记录逐轮补发，重发在锁上排队串行重试）。
-				// 补偿参数decode先于补偿执行：载荷损坏截断/cancelClass构造失败时抛出，条目
-				// 原样在表（协调者redo可重试），由cleanupTimeoutSagas（默认1小时）兜底。
+				// 不变量：eSagaNotFound 只得上面"条目缺席"的路径应答（缺席即终态）。补偿期间
+				// 条目保持在 sagas 在场、businessLock 全程持有：重发/并发的 FuncSagaEnd 在锁上
+				// 排队串行执行；摘除点在补偿成功之后，失败则原地保留等 redo 重发。补偿参数
+				// decode 先于补偿执行：decode 抛出时条目原样在表（redo 可重试），
+				// 由 cleanupTimeoutSagas（默认1小时）兜底。
 				final var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
 				final var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
-				// 在场复核（锁内happens-before观察点，对齐ProcessFuncSagaRequest的finally
-				// 注释）：get命中的引用可能在等锁期间被业务失败自清理摘除（锁内remove后
-				// unlock），写从未落库，补偿即过补偿（反向分歧）；条目不在/已换实例=缺席
-				// 终态，不得执行补偿。
+				// 在场复核（锁内观察点）：get 命中的引用可能在等锁期间被业务失败自清理摘除，
+				// 其写从未落库，补偿即过补偿；条目不在/已换实例=缺席终态，不得执行补偿。
 				if (sagas.get(tid) != context)
 					return errorCode(eSagaNotFound);
 				var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> stub.end(context, cancelArgument), context.getName())).call();
 				if (rc != 0) {
-					// 补偿失败：条目从未摘除、留在sagas等redo重发，由cleanupTimeoutSagas
-					// 超时兜底（默认1小时，可配置）。refreshLastActive（计时基准见
-					// OnzSaga.lastActiveTime）：等待重发的窗口不消耗TTL预算。
+					// 补偿失败：条目留在sagas等redo重发，由cleanupTimeoutSagas超时兜底（默认1小时）。
+					// refreshLastActive：等待重发的窗口不消耗TTL预算。
 					context.refreshLastActive();
 					// 裸rc禁止上线：用户补偿结果码与协议错误码共用低32位命名空间（协调者统一
 					// getErrorCode解码），rc恰为2时被误判eSagaNotFound而删决策记录——留在表中的
@@ -557,9 +550,8 @@ public class Onz extends AbstractOnz {
 					logger.warn("saga compensate fail, keep context for resend. tid={} userRc={}", tid, rc);
 					return errorCode(eCompensateFail);
 				}
-				// 补偿成功才摘除（摘除点后移的核心）。两参remove失败→条目已不在（或已换
-				// 实例）：缺席是终态，eSagaNotFound为真良性应答；锁内串行域推演不可达
-				//（锁内能摘除本条目的只有本分支），纯防御。
+				// 补偿成功才摘除。两参remove失败=条目已不在（或已换实例）：缺席是终态，
+				// eSagaNotFound为真良性应答；锁内串行域下不可达，纯防御。
 				if (!sagas.remove(tid, context))
 					return errorCode(eSagaNotFound);
 			} else {

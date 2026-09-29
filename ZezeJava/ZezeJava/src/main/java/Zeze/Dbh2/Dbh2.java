@@ -113,14 +113,11 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				return;
 			}
 
-			// 全序化不变量（dbh2-01）：非query请求（含PrepareBatch）的"拦截检查"与
-			// "提交raft串行执行器"必须在prepareQueueLock临界区内原子完成。装载
-			// （setupPrepareQueue，同锁）要么先于本临界区（请求入队被拦截），要么后于
-			// 提交完成——此时请求按提交序排在装载后的one-shot任务之前，one-shot看到
-			// 非空事务而推迟，两个方向都安全；检查与提交分离（锁在提交前释放）则存在
-			// "判空后、提交前被装载+one-shot抢先"的TOCTOU击穿缝（事务注册晚于门槛
-			// 收口，其落入迁出键域的写入被收尾deleteToEnd静默丢弃）。提交仅短暂持有
-			// per-key队列锁并向池派发（非阻塞），prepareQueueLock→队列锁单向无环。
+			// 全序化不变量：非query请求（含PrepareBatch）的"拦截检查"与"提交raft串行执行器"
+			// 必须在prepareQueueLock临界区内原子完成——与装载（setupPrepareQueue，同锁）任一先后
+			// 都安全；分离则存在"判空后、提交前被装载+one-shot抢先"的窗口，晚注册事务落入迁出
+			// 键域的写入被收尾deleteToEnd静默丢弃。提交仅短暂持per-key队列锁（非阻塞），
+			// prepareQueueLock→队列锁单向无环。
 			prepareQueueLock.lock();
 			try {
 				if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {

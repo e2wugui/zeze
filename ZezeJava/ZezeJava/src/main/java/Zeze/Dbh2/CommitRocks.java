@@ -220,16 +220,11 @@ public class CommitRocks {
 
 			// 处理prepare结果，碰到【拒绝模式重定向】的请求，需要循环处理。
 			while (!futures.isEmpty()) {
-				// 循环顶熔断（dbh2-03）：重定向轮数无上限，每轮每桶rpcAwaitTimeoutMs的
-				// 等待可把总时长叠到远超rpcTimeout，循环后才检查（下方）对此无能为力——
-				// 客户端以rpcTimeout等待，超时即抛"确定失败"而本方法仍在循环、可能最终
-				// 提交成功。每轮顶检查elapsed，超prepareMaxTime即break，交由循环后的
-				// 既有超时分支统一undo+removeRecord（保持超时异常的既有形态：主异常+
-				// undo失败挂suppressed），服务端决策时长由此有界，客户端超时按
-				// prepareMaxTime+rpcTimeout派生覆盖（见Dbh2Config.getCommitRpcTimeout）。
+				// 循环顶熔断：重定向轮数无上限，须在每轮顶检查elapsed，超prepareMaxTime即break，
+				// 交由循环后的既有超时分支统一undo+removeRecord——服务端决策时长由此有界，
+				// 客户端超时按prepareMaxTime+rpcTimeout派生覆盖（见Dbh2Config.getCommitRpcTimeout）。
 				if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime()) {
-					// 在途重定向桶纳入undo范围：未处理轮的context尚未随处理入state
-					//（首轮初始futures无context，null过滤）。
+					// 在途重定向桶纳入undo范围：未处理轮的context尚未入state（首轮初始futures无context，null过滤）。
 					for (var future : futures) {
 						var ctx = future.getContext();
 						if (null != ctx && !state.getBuckets().contains(ctx))
@@ -287,9 +282,7 @@ public class CommitRocks {
 	}
 
 	// decide（同步）：prepare+saveCommitPoint(eCommitting，sync写)。完成即事务终局为提交，
-	// 调用方（Commit.ProcessCommitRequest）此刻就可应答——应答0 ⇔ eCommitting已持久化；
-	// 投递由redoTimer兜底，不参与应答条件（dbh2-03应答解绑：同步等投递会把应答时延拉到
-	// rpcTimeout级甚至超时，客户端把"结果不确定"当确定失败，而服务端终局仍是提交）。
+	// 调用方此刻就可应答——应答0 ⇔ eCommitting已持久化；投递由redoTimer兜底，不参与应答条件。
 	public CommitDecision commitDecide(String queryHost, int queryPort, BPrepareBatches.Data batches) {
 		var state = buildTransactionState(batches);
 		var tidBytes = new byte[8];
@@ -330,7 +323,7 @@ public class CommitRocks {
 		}
 	}
 
-	// 本地提交模式的既有组合：decide+deliver同步串行（默认部署零行为变化）。
+	// 本地提交模式：decide+deliver同步串行。
 	public void commit(String queryHost, int queryPort, BPrepareBatches.Data batches) {
 		commitDeliver(commitDecide(queryHost, queryPort, batches));
 	}

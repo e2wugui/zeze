@@ -121,8 +121,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 
 	/**
 	 * 停止生产者（幂等，可重复调用）：全部停机动作只在首次调用执行（stopped CAS 抢占），
-	 * 后续调用直接返回——对齐 {@link Consumer#stop()} 与 rocketmq-client shutdown 族的整体幂等语义，
-	 * 保障 liveInstances 计数与生命周期严格配对（见构造器多实例告警）。
+	 * 后续调用直接返回，保障 liveInstances 计数与生命周期严格配对。
 	 */
 	public void stop() {
 		if (!stopped.compareAndSet(false, true))
@@ -142,9 +141,8 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
-		// 完全停止后递减活实例计数：告警面与生命周期配对。递减与全部停机动作同处 stopped
-		// CAS 抢占之内，重复调用 stop 直接返回，计数只递减一次（此前注释声称的 stopped 标志
-		// 并不存在、递减无守卫，重复 stop 使计数下漂、多实例告警判据被静默瓦解）。
+		// 完全停止后递减活实例计数：告警面与生命周期配对。递减与全部停机动作同处
+		// stopped CAS 抢占之内，重复 stop 计数只递减一次。
 		liveInstances.decrementAndGet();
 	}
 

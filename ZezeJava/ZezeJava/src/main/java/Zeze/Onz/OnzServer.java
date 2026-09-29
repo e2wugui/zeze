@@ -513,9 +513,8 @@ public class OnzServer extends AbstractOnz {
 						// NotFound=无补偿对象的良性终态，移除。
 						removeOk = false;
 					} else {
-						// rollback决策的年轻NotFound：无补偿对象的良性终态（业务失败自清理/
-						// 已补偿终结的重复发送），移除收敛。info留痕（onz-01，FND30）：补偿链的
-						// 收敛删除点完全静默则事后对账零线索，一条带tid的低成本日志即可定位。
+						// rollback决策的年轻NotFound：无补偿对象的良性终态，移除收敛；
+						// info留痕带tid，补偿链的收敛删除点不至于事后对账零线索。
 						logger.info("onz redo: saga参与方应答eSagaNotFound，rollback决策年轻记录按良性终态移除"
 										+ "（tid={}, age={}ms）", tid, recordAge);
 					}

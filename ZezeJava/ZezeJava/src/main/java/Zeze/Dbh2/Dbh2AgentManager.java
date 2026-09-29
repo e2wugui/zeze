@@ -175,8 +175,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 			return;
 		}
 		var query = choiceCommitServer();
-		// 超时覆盖服务端有界决策+应答（不变量见Dbh2Config.getCommitRpcTimeout），
-		// 不用裸rpcTimeout（<prepareMaxTime会制造"报失败实已提交"）。
+		// 超时须覆盖服务端有界决策+应答（见Dbh2Config.getCommitRpcTimeout）：
+		// 裸rpcTimeout（<prepareMaxTime）会把服务端已提交的事务判成确定失败。
 		commitAgent.commit(query.getKey(), query.getValue(), batches, (int)dbh2Config.getCommitRpcTimeout());
 	}
 
