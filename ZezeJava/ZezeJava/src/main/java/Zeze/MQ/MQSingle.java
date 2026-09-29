@@ -12,6 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Builtin.MQ.BSendMessage;
 import Zeze.Builtin.MQ.PushMessage;
+import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action0;
@@ -348,9 +349,14 @@ public class MQSingle extends ReentrantLock {
 				messageQueue.poll();
 				headRetryCount = 0; // 队头换消息，重投计数清零
 				tryStartBackgroundFill();
-			} else if (pendingPushMessage.getResultCode() == eConsumerNotFound) {
+			} else if (pendingPushMessage.getResultCode()
+					== IModule.errorCode(AbstractMQAgent.ModuleId, eConsumerNotFound)) {
 				// 幽灵订阅自愈：消费端条目已删（退订 best-effort 失败/超时遗留），继续重推只会
 				// 永远收到 eConsumerNotFound 空转，该分区位点永不推进——清掉 Manager 侧订阅并重排。
+				// 结果码是组合值：消费端 MQAgent.ProcessPushMessageRequest 返回
+				// errorCode(eConsumerNotFound)=(moduleId<<32)|code，组合模块是应答方 MQAgent
+				//（11039）而非常量定义所在的 AbstractMaster（11040），与裸码比较永不相等
+				//——本分支曾是死代码（mq-01）。
 				// 必须异步执行：arrangeConsumer 持 MQPartition 锁后经 partition.bind() 进各 MQSingle
 				// 锁，这里正持本 MQSingle 锁，同步反向取 MQPartition 锁构成 AB-BA 死锁。
 				// 会话标识取 pending 里发送时记录的值而非当前 bind 字段：推送在途期间分区可能已

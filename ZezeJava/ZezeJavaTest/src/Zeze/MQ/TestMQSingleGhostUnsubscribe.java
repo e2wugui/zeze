@@ -8,6 +8,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import Zeze.Builtin.MQ.PushMessage;
+import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
@@ -134,8 +135,24 @@ public class TestMQSingleGhostUnsubscribe {
 			push.Argument.setTopic("topic");
 			push.Argument.setSessionId(100L);
 			push.setSender(ghostSocket);
-			push.setResultCode(eConsumerNotFound);
 			setPending(single, push);
+
+			// 应答结果码必须走真实编码路径（直灌裸值 setResultCode(5) 会绕过组合编码，
+			// 使"裸码比较"的生产缺陷测试不出来）：消费端真实 handler 对幽灵会话返回
+			// errorCode(eConsumerNotFound)——组合值，组合模块=应答方 MQAgent 的 11039
+			// （常量本身定义在 AbstractMaster，组合模块与常量所属模块无关）；
+			// 框架经 trySendResultCode 原样写入应答，Manager 端 setupRpcResponseContext
+			// 原样拷贝进 pending——与生产 handlePushResult 读到的值完全一致。
+			var request = new PushMessage();
+			request.Argument.setTopic("topic");
+			request.Argument.setSessionId(100L);
+			request.setSender(ghostSocket);
+			var agent = new MQAgent(); // 不 start：仅借真实 handler 编码应答码，无网络副作用
+			var rc = agent.ProcessPushMessageRequest(request);
+			Assertions.assertEquals(IModule.errorCode(AbstractMQAgent.ModuleId, eConsumerNotFound), rc,
+					"消费端handler必须按MQAgent模块组合eConsumerNotFound，Manager端按同一组合值识别幽灵订阅");
+			Assertions.assertTrue(request.trySendResultCode(rc)); // 框架回发路径：setResultCode(组合值)
+			request.setupRpcResponseContext(push); // Manager端应答会合：resultCode原样拷贝进pending
 
 			// 另一线程持 MQPartition 锁不放（模拟 arrangeConsumer 进行中，它随后还会经
 			// bind() 进各 MQSingle 锁）：handlePushResult 若同步调用 unsubscribe 将与之互等。
