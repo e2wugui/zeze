@@ -349,22 +349,45 @@ public class Dbh2AgentManager extends ReentrantLock {
 	}
 
 	// Database.Table中缓存MasterTableDaTa，减少map查找。
-	//  难点是信息发生了变更需要刷新Table中缓存的数据。
+	//  逐表缓存取快照：miss时GetBuckets拉取。master建表进行中窗口（createTable的
+	// computeIfAbsent先入映射、created=false、0桶）返回rc=0空表快照——MasterTable.locate
+	// 空契约返回null，空表落缓存后该表后续定位持续以NPE面目失败，直到本实例建表流程
+	// putBuckets覆盖；空快照不缓存，每次重新拉取，建表完成即恢复。
+	private MasterTable.Data getBucketsCached(
+			MasterAgent masterAgent, ConcurrentHashMap<String, MasterTable.Data> database,
+			String databaseName, String tableName) {
+		var table = database.get(tableName);
+		if (null != table)
+			return table;
+		// getBuckets是阻塞RPC，不能放进computeIfAbsent的映射函数（持bin锁会阻塞同bin其他键的访问）；重复RPC幂等无害。
+		table = masterAgent.getBuckets(databaseName, tableName);
+		if (!table.getBuckets().isEmpty()) {
+			var old = database.putIfAbsent(tableName, table);
+			if (null != old)
+				table = old;
+		}
+		return table;
+	}
+
+	// 空表快照=建表进行中，调用方（事务replace/remove、find、walk）按可重试错误失败；
+	// NPE无错误语义，静默空迭代（walk零行）是错果。
+	private static RuntimeException tableNotReady(String databaseName, String tableName) {
+		return new RuntimeException("locateBucket: table not ready (empty buckets snapshot): "
+				+ databaseName + '.' + tableName);
+	}
+
 	public String locateBucket(
 			MasterAgent masterAgent, String masterName,
 			String databaseName, String tableName,
 			Binary key) {
 		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
 		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
-		var table = database.get(tableName);
-		if (null == table) {
-			// getBuckets是阻塞RPC，不能放进computeIfAbsent的映射函数（持bin锁会阻塞同bin其他键的访问）；重复RPC幂等无害。
-			table = masterAgent.getBuckets(databaseName, tableName);
-			var old = database.putIfAbsent(tableName, table);
-			if (null != old)
-				table = old;
-		}
-		return table.locate(key).getRaftConfig();
+		var table = getBucketsCached(masterAgent, database, databaseName, tableName);
+		// locate空契约（空表/越界键返回null）：就绪表首桶keyFirst=Empty覆盖全键域，null即空表。
+		var bucket = table.locate(key);
+		if (null == bucket)
+			throw tableNotReady(databaseName, tableName);
+		return bucket.getRaftConfig();
 	}
 
 	public Iterator<BBucketMeta.Data> locateBucketIterator(
@@ -373,14 +396,9 @@ public class Dbh2AgentManager extends ReentrantLock {
 			Binary key, boolean desc) {
 		var master = buckets.computeIfAbsent(masterName, __ -> new ConcurrentHashMap<>());
 		var database = master.computeIfAbsent(databaseName, __ -> new ConcurrentHashMap<>());
-		var table = database.get(tableName);
-		if (null == table) {
-			// 同locateBucket：阻塞RPC不能放进computeIfAbsent的映射函数。
-			table = masterAgent.getBuckets(databaseName, tableName);
-			var old = database.putIfAbsent(tableName, table);
-			if (null != old)
-				table = old;
-		}
+		var table = getBucketsCached(masterAgent, database, databaseName, tableName);
+		if (table.getBuckets().isEmpty())
+			throw tableNotReady(databaseName, tableName);
 		// 从key所在桶（含）开始迭代：asc向后（keyFirst递增），desc向前（keyFirst递减）。
 		// desc且key为空表示从表尾开始：直接全表降序。
 		if (desc)
