@@ -47,6 +47,17 @@ public class OnzSaga extends OnzProcedure {
 		return businessLock.tryLock();
 	}
 
+	/**
+	 * 有界等锁（onz-02，FND26）：FuncSagaEnd处理器专用——挂死业务（扛过看门狗一次性中断）
+	 * 永久持有businessLock时，无界{@link #lockBusiness()}使协调者/redo每轮重发的FuncSagaEnd
+	 * 都永久钉死一个派发worker，数十轮后耗尽全池（参与方所有Normal派发停摆）。有界等待超时
+	 * 后由调用方放弃本次处理（不应答=rpc超时语义，决策记录保留交redo重发），worker有界归还。
+	 * 中断传递：等待线程被派发框架看门狗中断时提前返回false（锁本身不可中断——补偿正确性机制）。
+	 */
+	final boolean tryLockBusiness(long timeoutMs) throws InterruptedException {
+		return businessLock.tryLock(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+	}
+
 	final void unlockBusiness() {
 		businessLock.unlock();
 	}

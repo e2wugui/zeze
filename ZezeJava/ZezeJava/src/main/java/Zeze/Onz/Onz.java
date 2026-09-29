@@ -45,6 +45,10 @@ public class Onz extends AbstractOnz {
 	// =eSagaNotFound，补偿丢失（超龄者由OnzServer.redo分诊error，人工对账）。
 	// 计时基准为最后活动时间（构造/补偿失败放回时刻，见OnzSaga.lastActiveTime）。
 	public static final long eDefaultSagaContextTimeoutMs = 3600_000;
+	// FuncSagaEnd处理器对businessLock的有界等待预算（onz-02，FND26）：对齐Task看门狗的
+	// 全额（Task.defaultTimeout=120s，只中断一次）——存活慢业务在其自然生命周期内完成，
+	// 挂死业务等满后放弃本次处理交redo重发（详见ProcessFuncSagaEndRequest）。
+	private static final long SAGA_END_LOCK_WAIT_MS = 120_000;
 	private long sagaContextTimeoutMs = eDefaultSagaContextTimeoutMs;
 	private Future<?> sagaCleanupTimer;
 	// ready等待超时自愈回滚的tid记账（值=回滚时刻，有界），仅供
@@ -488,7 +492,26 @@ public class Onz extends AbstractOnz {
 		// 等业务完成再决策（FuncSagaEnd可能在慢业务执行期间到达）。
 		// 业务失败已在finally中自清理条目：锁到手后remove失败即eSagaNotFound，
 		// 失败步骤不会被补偿（无过补偿）；业务成功则条目仍在，补偿/结束串行执行。
-		context.lockBusiness();
+		// 等锁有界（onz-02，FND26）：挂死业务（扛过看门狗一次性中断，Task.defaultTimeout只中断
+		// 一次）永久持有businessLock且无TTL回收路径（cleanupTimeoutSagas对tryLock失败的条目永久
+		// 跳过），redo每60s重发的FuncSagaEnd若无界等锁，每轮净增一个永久阻塞的Normal派发worker
+		// ——数十轮后耗尽全池，参与方整体活性死亡。等待预算对齐看门狗的全额（120s）：存活业务
+		// （慢而非死）在其自然生命周期内完成并释放锁，FuncSagaEnd串行正确执行；挂死业务则等满
+		// 预算后放弃本次——不应答（返回0不SendResult，等价rpc超时：协调者保留决策记录交redo
+		// 重发，连接断开时由重连重注册路径自愈），worker有界归还。不引入锁中断：
+		// businessLock的不可中断性是补偿与业务互斥的正确性机制。等待线程被看门狗中断时
+		// 同样放弃（中断标记保留，由派发框架收尾）。
+		var locked = false;
+		try {
+			locked = context.tryLockBusiness(SAGA_END_LOCK_WAIT_MS);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+		if (!locked) {
+			logger.warn("FuncSagaEnd wait businessLock timeout, give up this round (redo will resend)."
+					+ " tid={} cancel={} sagaContextTimeoutMs兜底仍在", tid, r.Argument.isCancel());
+			return 0; // 不应答：等价rpc超时，协调者侧按投递失败保留决策记录
+		}
 		try {
 			// 没有设置cancel标志时，表示事务正常结束，用来删除sagas上下文。
 			if (r.Argument.isCancel()) {
