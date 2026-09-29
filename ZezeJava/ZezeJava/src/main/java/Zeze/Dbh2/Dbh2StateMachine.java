@@ -415,21 +415,27 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void endMove(BBucketMeta.Data to) {
 		try (var it = bucket.getData().iterator()) {
-			it.seekToFirst();
-			bucket.getData().deleteToEnd(it);
-
-			// 被移走的桶Meta置空（使用相同的非空key）。
-			// 将会拒绝所有对这个桶的访问。
+			// 写序不变量（dbh2-04）："meta不再声明的键域才允许物理删除"——meta先置死、
+			// deleteToEnd后行。原序（先删后切）在两写之间的窗口内，并发Get（查询锁外
+			// 常规派发）以旧meta通过inBucket后读已删数据，把已迁往新桶、仍存在的键应答
+			// 为权威"不存在"（静默假缺失，客户端不重试则错误结论被采纳）；反转后窗口内
+			// 新到达的Get以死桶meta被拒（eBucketMismatch→客户端重路由/可见瞬时异常）。
+			// apply内同一日志原子重放，崩溃无部分可见（重放整体重演）。
 			var emptyMeta = bucket.getBucketMeta().copy();
 			emptyMeta.setKeyFirst(emptyBucketMetaKey);
 			emptyMeta.setKeyLast(emptyBucketMetaKey);
-			bucket.setBucketMeta(emptyMeta);
+			bucket.setBucketMeta(emptyMeta); // 死桶meta先置：拒绝一切访问
+			// 被移走的桶Meta置空（使用相同的非空key）。
+			// 将会拒绝所有对这个桶的访问。
 			bucket.addMoveMetaHistory(to);
 			// pending-settle标志：与既有meta写入同一apply内落盘（派生状态，随raft
 			// 复制/快照）——迁移已在源桶commit的持久证据，leader-ready据此幂等补发settle通知。
 			bucket.setPendingSettle(null, to);
 			bucket.deleteSplittingMeta();
 			clearSplitSyncQueue(); // 迁移完结：义务已全部送达（endSplit0门槛），队列随世代消亡
+
+			it.seekToFirst(); // meta已死，安全回收全部数据
+			bucket.getData().deleteToEnd(it);
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -438,14 +444,17 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
 		try (var it = bucket.getData().iterator()) {
-			it.seek(from.getKeyLast().copyIf());
-			bucket.getData().deleteToEnd(it);
+			// 写序不变量（dbh2-04）：同endMove——meta先收窄（[from.keyLast,∞)出声明）、
+			// deleteToEnd后行，消除"数据已删、meta未切"的可读窗口（并发Get假报不存在）。
 			bucket.setBucketMeta(from);
 			bucket.addSplitMetaHistory(from, to);
 			// 同endMove：pending-settle标志随迁移commit在apply内落盘。
 			bucket.setPendingSettle(from, to);
 			bucket.deleteSplittingMeta();
 			clearSplitSyncQueue(); // 迁移完结：义务已全部送达（endSplit0门槛），队列随世代消亡
+
+			it.seek(from.getKeyLast().copyIf()); // meta已收窄，安全回收[M,∞)
+			bucket.getData().deleteToEnd(it);
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
