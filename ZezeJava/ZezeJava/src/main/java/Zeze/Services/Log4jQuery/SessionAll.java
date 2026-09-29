@@ -3,6 +3,7 @@ package Zeze.Services.Log4jQuery;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.LogService.BCondition;
 import Zeze.Builtin.LogService.BLog;
@@ -55,6 +56,15 @@ public class SessionAll implements AutoCloseable {
 
 	public LogAgent getAgent() {
 		return agent;
+	}
+
+	/**
+	 * 会话当前实际成员集（已成功入会的服务器名，副本快照）：会话构成是绑定快照与复用判定的
+	 * 唯一权威（FND30 zokermanager-01/02）——注册表键集不可证明会话构成：构造期不可达台被
+	 * 跳过，构造迭代与注册表更新（SM 事件线程并发 put）之间存在竞态窗口。
+	 */
+	public Set<String> memberNames() {
+		return Set.copyOf(alls.keySet());
 	}
 
 	public BResult.Data operate(Func1<Session, TaskCompletionSource<BResult.Data>> op)

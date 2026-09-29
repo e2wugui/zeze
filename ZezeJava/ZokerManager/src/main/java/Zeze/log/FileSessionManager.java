@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Services.Log4jQuery.Session;
+import Zeze.Services.Log4jQuery.SessionAll;
 import Zeze.Services.LogAgent;
 import Zeze.Util.Func1;
 import org.apache.logging.log4j.LogManager;
@@ -121,10 +122,11 @@ public class FileSessionManager {
 	 * =新服务器永不纳入、全服视图静默缺数；键集不一致视同 changeSession 走关旧建新。
 	 * 单服务器视图无集合语义，不比对。</p>
 	 *
-	 * <p>全服视图零服务器显式失败：服务发现空集（启动窗口/SM 分区/全部日志服务器下线）时
-	 * newSessionAll 会构造出 0 成员会话并成功返回空结果——空 BResult.Data 在前端语义是
-	 * "查完无匹配"，与"一个查询目标都没有"不可混淆。空集时抛错，走 HTTP 层既有错误承载
-	 * （BaseResponse status=500，前端按 desc 报错），见下方重建路径的卫语句。</p>
+	 * <p>全服视图成员校验：newSessionAll 对不可达台逐台跳过，服务发现空集或注册表非空但全部
+	 * 不可达（进程刚死/SM 分区/重启窗口，租约未过期）时构造出 0 成员会话并成功返回空结果——
+	 * 空 BResult.Data 在前端语义是"查完无匹配"，与"一个查询目标都没有/全部不可达"不可混淆。
+	 * 构造后按会话实际成员集校验，0 成员抛错且不入库绑定（毒化复用不存在），走 HTTP 层既有
+	 * 错误承载（BaseResponse status=500，前端按 desc 报错），见下方重建路径的成员校验。</p>
 	 */
 	public static Object resolve(LogAgent logAgent, SocketAddress socketAddress, boolean changeSession,
 								 boolean requestAll, String serverName, String logName) throws Exception {
@@ -138,18 +140,23 @@ public class FileSessionManager {
 			map.replace(getIP(socketAddress), bound, bound.touched(System.nanoTime()));
 			return bound.session();
 		}
-		// 全服视图零服务器卫语句：空集下 newSessionAll 零异常构造 0 成员会话、operate 零 future
-		// 返回空 BResult.Data，HTTP 层包装成成功应答——"基础设施未就绪"被误分类为"查完无数据"。
-		// 对齐同体系既有语义边界（SessionAll.operate 全败必抛："空结果≠失败"），空成员集必须显式
-		// 失败。复用路径无需同查：键集漂移比对已把"快照非空、当前空集"导向本重建路径。
-		// 单服务器视图不查：newSession 对未知服务器本就失败（有明确错误），无静默面。
-		if (requestAll && logAgent.getLogServers().isEmpty()) {
-			logger.warn("all-servers view rejected: no log server registered (service discovery empty). logName={}", logName);
-			throw new IllegalStateException("no log server registered for all-servers view (service discovery empty)");
-		}
 		var session = requestAll
 				? logAgent.newSessionAll(logName)
 				: logAgent.newSession(serverName, logName);
+		// 全服视图会话成员校验（FND30 zokermanager-01）：newSessionAll 对不可达台逐台 warn 跳过，
+		// 注册表非空但全部不可达（进程刚死/网络分区/重启窗口，SM 租约未过期）时构造出 0 成员会话
+		// ——operate 零 future 返回空 BResult.Data，HTTP 层包装成空成功："全部查询目标不可达"被
+		// 误分类为"查完无匹配"；且 0 成员会话入库绑定后注册表键集不漂移即恒复用，故障恢复后同 IP
+		// 仍恒空结果。以构造出的实际成员集为权威单点校验（空注册表→0 成员→同一抛错，原"零服务器
+		// 卫语句"并入此处），未 put 即抛，毒化绑定不存在；0 成员无服务端句柄可泄漏，无需收尾。
+		// 单服务器视图不查：newSession 对不可达/未知服务器本就显式失败。
+		if (requestAll && ((SessionAll) session).memberNames().isEmpty()) {
+			var registered = logAgent.getLogServers().size();
+			logger.warn("all-servers view rejected: no reachable log server. registered={}, members=0, logName={}",
+					registered, logName);
+			throw new IllegalStateException("no reachable log server for all-servers view"
+					+ " (registered=" + registered + ", members=0)");
+		}
 		var binding = requestAll
 				? LogSessionBinding.allView(logName, session, allServersKeyOf(logAgent))
 				: LogSessionBinding.server(serverName, logName, session);
