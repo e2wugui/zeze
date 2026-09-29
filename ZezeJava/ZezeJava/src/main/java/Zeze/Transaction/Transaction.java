@@ -675,9 +675,10 @@ public final class Transaction {
 					if (null == cache)
 						throw new IllegalStateException("history changes without gid: " + proc.getActionName());
 					if (proc instanceof ProtocolProcedure pp) {
-						return History.buildLogChanges(cache.next(), cc, pp.getProtocolClassName(), pp.getProtocolRawArgument());
+						return History.buildLogChanges(proc.getZeze().getPendingGidLedger(), cache.next(), cc,
+								pp.getProtocolClassName(), pp.getProtocolRawArgument());
 					}
-					return History.buildLogChanges(cache.next(), cc, null, null);
+					return History.buildLogChanges(proc.getZeze().getPendingGidLedger(), cache.next(), cc, null, null);
 				}
 				return null;
 			}

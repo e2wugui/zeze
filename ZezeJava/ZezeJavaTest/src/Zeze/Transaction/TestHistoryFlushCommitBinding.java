@@ -187,7 +187,7 @@ public class TestHistoryFlushCommitBinding {
 				txn.close();
 			}
 		}
-		history.commitDone(); // 仅在提交成功后调用
+		history.commitDone(new Zeze.History.PendingGidLedger("TestHistoryFlushCommitBinding")); // 仅在提交成功后调用
 
 		var keys = new HashSet<ByteBuffer>();
 		table.walk((key, value) -> {

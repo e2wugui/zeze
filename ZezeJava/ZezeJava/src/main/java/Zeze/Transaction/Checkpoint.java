@@ -309,7 +309,7 @@ public final class Checkpoint {
 				t.commit();
 			localCacheTransaction.commit();
 			if (history != null)
-				history.commitDone(); // tHistory 行已持久化才清容器；失败回滚后保留，重试幂等重写
+				history.commitDone(zeze.getPendingGidLedger()); // tHistory 行已持久化才清容器；失败回滚后保留，重试幂等重写
 			try {
 				// 清除编码状态
 				for (var r : rs)

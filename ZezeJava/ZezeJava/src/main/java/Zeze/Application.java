@@ -23,6 +23,7 @@ import Zeze.Component.Takeover;
 import Zeze.Component.Timer;
 import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.History.HistoryModule;
+import Zeze.History.PendingGidLedger;
 import Zeze.Hot.HotHandle;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotUpgradeMemoryTable;
@@ -79,6 +80,11 @@ public final class Application extends ReentrantLock {
 
 	private final @NotNull String projectName;
 	private final @NotNull Config conf;
+	// 已发 gid 落库对账账本（FND29 history-02）：Application 实例维度（FND30 history-02）
+	// ——不同 history 发号名的 gid 数值空间重叠，进程级共享账本会跨 app 互相覆盖/误核销。
+	// 构造期创建、final、停机不置 null：Transaction.afterApply 在飞窗口不得依赖可空组件
+	//（historyModule 停机置 null 晚于 checkpoint，afterApply 携账本穿过该窗口）。
+	private final @NotNull PendingGidLedger pendingGidLedger;
 	private final @NotNull HashMap<String, Database> databases = new HashMap<>();
 	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Table> tableNameMap = new ConcurrentHashMap<>();
@@ -227,6 +233,7 @@ public final class Application extends ReentrantLock {
 	public Application(@NotNull String projectName, @Nullable Config config) throws Exception {
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
+		pendingGidLedger = new PendingGidLedger(projectName);
 		if (conf.getServerId() > 0x3FFF) // 16383 encoded size = 2 bytes
 			throw new IllegalStateException("serverId too big. > 16383.");
 		procedureLockWatcher = new ProcedureLockWatcher(this);
@@ -472,6 +479,11 @@ public final class Application extends ReentrantLock {
 
 	public HistoryModule getHistoryModule() {
 		return historyModule;
+	}
+
+	/** 已发 gid 落库对账账本（每 Application 一份，FND30 history-02），生命周期同本实例。 */
+	public PendingGidLedger getPendingGidLedger() {
+		return pendingGidLedger;
 	}
 
 	public DelayRemove getDelayRemove() {
