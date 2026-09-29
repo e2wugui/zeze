@@ -69,8 +69,7 @@ public class TestClientConfigPassThrough {
 			assertEquals("unitA", inner.getUnitName(), "unitName 同属路由/身份字段，须一并透传");
 			assertEquals("127.0.0.1:9876", inner.getNamesrvAddr(), "namesrvAddr 既有透传行为不回归");
 		} finally {
-			p.stop();
-			p.UnRegisterZezeTables(app);
+			p.stop(); // stop 自带 tSent 反注册（成对收口）
 		}
 	}
 

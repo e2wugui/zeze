@@ -55,8 +55,7 @@ public class TestProducerTxnSendRejectsEnvTransaction {
 
 	@AfterEach
 	public void tearDown() throws Exception {
-		producer.stop();
-		producer.UnRegisterZezeTables(app);
+		producer.stop(); // stop 自带 tSent 反注册（成对收口）
 		app.stop();
 	}
 

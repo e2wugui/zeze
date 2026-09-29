@@ -76,18 +76,15 @@ public class TestProducerStopIdempotency {
 			assertEquals(before + 1, liveInstances(),
 					"p1 仍在线：重复 stop 不得重复递减 liveInstances（修复前下漂到 " + (before)
 							+ "，多实例告警判据被静默瓦解）");
-			p2.UnRegisterZezeTables(app2);
 			// p1 在线时重建：构造点计数应达 before+2（&gt;before+1），warn 判据成立——修复前仅 before+1 不告警。
+			// stop 已自带 tSent 反注册（成对收口），同 app 重建无需手工补。
 			p3 = assertDoesNotThrow(() -> new Producer(app2, GROUP, new ClientConfig()),
 					"stop 幂等修复不得影响重建路径");
 			assertEquals(before + 2, liveInstances(), "p1+p3 双在线：构造点计数使 liveInstances>1 告警判据成立");
 		} finally {
-			if (p3 != null) {
+			if (p3 != null)
 				p3.stop();
-				p3.UnRegisterZezeTables(app2);
-			}
 			p1.stop();
-			p1.UnRegisterZezeTables(app);
 		}
 		assertEquals(before, liveInstances(), "全部停机后计数归还基线");
 	}
