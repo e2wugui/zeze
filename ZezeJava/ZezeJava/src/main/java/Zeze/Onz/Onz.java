@@ -239,6 +239,18 @@ public class Onz extends AbstractOnz {
 			sagaCleanupTimer.cancel(false);
 			sagaCleanupTimer = null;
 		}
+		// onz-01：未决saga上下文的停机清单——上下文纯内存，进程终止即丢（写已持久化，
+		// 丢的只是补偿义务），重启后协调者的FuncSagaEnd(cancel)命中eSagaNotFound；对已应答
+		// 成功的步骤，协调者按"上下文消失"嫌疑保守保留决策记录+error（OnzServer.
+		// noteSagaContextLost）。这里输出可对账清单（tid/注册名/空闲年龄）把"重启即丢"从
+		// 静默变为可审计；不做停机补偿——补偿决策权在协调者，抢先补偿未决业务=过补偿。
+		for (var saga : sagas) {
+			if (!saga.isEnd())
+				logger.warn("onz stop: 未决saga上下文随进程丢失（重启后不恢复，协调者的cancel/redo将得"
+								+ " eSagaNotFound）. tid={}, name={}, idle={}ms",
+						saga.getOnzTid(), saga.getName(),
+						System.currentTimeMillis() - saga.getLastActiveTime());
+		}
 		if (null != service)
 			service.stop();
 	}

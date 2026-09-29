@@ -232,34 +232,53 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		return allEnded;
 	}
 
+	/** saga步骤的应答形态：cancelSaga对eSagaNotFound的分诊依据（onz-01）。 */
+	private enum SagaStepAnswer {
+		/** 已应答成功：协调者已收到成功应答——上下文存在过，其缺席非终态（成功步骤上下文的
+		 * 唯一正常清理者是补偿自身；业务失败自清理只适用于失败步骤），NotFound按补偿丢失
+		 * 嫌疑保守保留。 */
+		ANSWERED_SUCCESS,
+		/** 已应答业务失败：参与方失败自清理（ProcessFuncSagaRequest的finally），NotFound是良性终态。 */
+		ANSWERED_FAIL,
+		/** 未应答失败（超时/发送失败）：FuncSagaEnd先于FuncSaga注册被处理的乱序窗口候选，
+		 * NotFound单次延迟重试。 */
+		RPC_FAILED
+	}
+
+	// 本事务实例已成功投递cancel的步骤（rpc应答0）：rollback()可在同一实例上重入（commit()
+	// 失败路径抛出前自行rollback，perform的catch再rollback一次），第二轮对已补偿步骤的
+	// NotFound是良性重复，不得再次按"上下文消失"嫌疑登记（防双rollback噪声，onz-01）。
+	private final Set<String> cancelDeliveredOk = ConcurrentHashMap.newKeySet();
+
 	/** @return 决策是否对全部saga参与方投递了结（成功/终态NotFound）；false=存在投递
-	 * 不确定（发送失败/超时）或致命应答的步骤——rollback()据此供commit失败路径保留
-	 * 决策记录交redo补发。 */
+	 * 不确定（发送失败/超时）或致命应答的步骤，或已应答成功步骤的NotFound（上下文
+	 * 消失嫌疑，onz-01）——rollback()据此供commit失败路径保留决策记录交redo补发。 */
 	private boolean cancelSaga() {
 		// 等待已经发出的saga的结果（包括失败的），
 		// 因为saga可能异步发送，并且中途发生了错误，
 		// 此时需要继续把没得到的结果等到。
-		// 记录每个步骤的rpc是否"未被应答地失败"（超时/发送失败）——只有这类步骤
-		// 才可能处于"FuncSagaEnd先于FuncSaga注册被处理"的乱序窗口（已应答步骤——成功/
-		// 业务失败/应答decode失败，以OnzAgent.CallAnsweredException完成——的FuncSaga
-		// 已被参与方处理过，注册必然先于任何FuncSagaEnd），其eSagaNotFound需要重试。
-		var rpcFailedSteps = new HashMap<String, Boolean>();
+		// 记录每个步骤的应答形态（三分类，onz-01在原rpcFailed二分上细化）：已应答成功/
+		// 已应答业务失败（以OnzAgent.CallAnsweredException完成）/未应答失败（超时/发送失败，
+		// 可能处于"FuncSagaEnd先于FuncSaga注册被处理"的乱序窗口——已应答步骤的FuncSaga
+		// 已被参与方处理过，注册必然先于任何FuncSagaEnd）。
+		var stepAnswers = new HashMap<String, SagaStepAnswer>();
 		for (var e : zezeSagas.entrySet()) {
-			var rpcFailed = true;
+			var answer = SagaStepAnswer.RPC_FAILED;
 			try {
 				e.getValue().get();
-				rpcFailed = false;
+				answer = SagaStepAnswer.ANSWERED_SUCCESS;
 			} catch (Exception ex) {
 				logger.error("await saga result.", ex);
-				rpcFailed = !(ex instanceof CompletionException
-						&& ex.getCause() instanceof OnzAgent.CallAnsweredException);
+				answer = ex instanceof CompletionException
+						&& ex.getCause() instanceof OnzAgent.CallAnsweredException
+						? SagaStepAnswer.ANSWERED_FAIL : SagaStepAnswer.RPC_FAILED;
 			}
-			rpcFailedSteps.put(e.getKey(), rpcFailed);
+			stepAnswers.put(e.getKey(), answer);
 		}
 		var allDelivered = true;
 		var futures = new ArrayList<TaskCompletionSource<?>>();
 		var rpcs = new ArrayList<FuncSagaEnd>();
-		var stepRpcFailed = new ArrayList<Boolean>();
+		var stepAnswer = new ArrayList<SagaStepAnswer>();
 		var stepZeze = new ArrayList<String>();
 		for (var e : zezeSagas.entrySet()) {
 			try {
@@ -269,8 +288,8 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				// 步骤并报告整体失败——部分提交的静默分歧。超时步骤的上下文在参与方1h超时
 				// 清理（Onz.cleanupTimeoutSagas）前仍在，cancel能真正补偿；上下文不存在
 				// （业务失败已自清理、请求从未到达）则应答eSagaNotFound，可辨识忽略。
-				var rpcFailed = rpcFailedSteps.getOrDefault(e.getKey(), true);
-				if (rpcFailed)
+				var answer = stepAnswers.getOrDefault(e.getKey(), SagaStepAnswer.RPC_FAILED);
+				if (answer == SagaStepAnswer.RPC_FAILED)
 					logger.warn("saga step failed (maybe timeout), send cancel anyway. tid={}, zeze={}",
 							onzTid, e.getKey());
 				var r = new FuncSagaEnd();
@@ -281,7 +300,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				// 等待沿用flushTimeout，不用默认5s过早放弃。
 				futures.add(r.SendForWait(onzServer.getZezeInstance(e.getKey()), flushTimeout));
 				rpcs.add(r);
-				stepRpcFailed.add(rpcFailed);
+				stepAnswer.add(answer);
 				stepZeze.add(e.getKey());
 			} catch (Exception ex) {
 				allDelivered = false; // 发送失败=投递不确定（返回值契约见方法javadoc）
@@ -297,16 +316,33 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 					// 失效。先经 IModule.getErrorCode 解码再比较。
 				var code = IModule.getErrorCode(rpcs.get(i).getResultCode());
 				if (code == AbstractOnz.eSagaNotFound) {
-					// 步骤从未注册或已自清理：无补偿对象，可辨识忽略。但未应答失败的步骤可能
-					// 是FuncSagaEnd先于FuncSaga注册被处理（乱序窗口）——单次延迟重试。
-					if (stepRpcFailed.get(i) && !retryCancelNotFoundOnce(stepZeze.get(i)))
+					// NotFound按步骤应答形态分诊（onz-01）：
+					if (stepAnswer.get(i) == SagaStepAnswer.RPC_FAILED) {
+						// 未应答失败：乱序窗口候选——单次延迟重试（见retryCancelNotFoundOnce）。
+						if (!retryCancelNotFoundOnce(stepZeze.get(i)))
+							allDelivered = false;
+					} else if (stepAnswer.get(i) == SagaStepAnswer.ANSWERED_SUCCESS
+							&& !cancelDeliveredOk.contains(stepZeze.get(i))) {
+						// 已应答成功（且本事务未曾成功投递过cancel——重复补偿后的良性NotFound
+						// 除外）：上下文存在过而缺席——参与方进程崩溃/重启丢失内存上下文（写已随
+						// finalCommit持久化，丢的只是补偿义务）或TTL超龄清理，补偿丢失嫌疑。
+						// 对齐onz-05对commit方向的论证（成功步骤的上下文在决策送达前不应消失，
+						// 消失即异常）：保留决策记录交redo幂等重发+登记嫌疑（error带tid/参与方，
+						// redo对年轻NotFound据此保守保留），终结走人工清算。此前该形态被无日志
+						// 良性化且记录即遭删除——补偿丢失零信号。
 						allDelivered = false;
+						onzServer.noteSagaContextLost(onzTid, stepZeze.get(i));
+					}
+					// ANSWERED_FAIL：失败步骤自清理，NotFound良性终态，可辨识忽略（无信号，防噪声）。
 					continue;
 				}
 				if (code != 0) {
 					allDelivered = false;
 					logger.fatal("cancel saga error {}", code);
+					continue;
 				}
+				// code==0：cancel已成功投递并执行补偿——重入rollback对这一步骤的NotFound是良性重复。
+				cancelDeliveredOk.add(stepZeze.get(i));
 			} catch (Exception e) {
 				allDelivered = false;
 				logger.error("await cancel result.", e);
@@ -315,7 +351,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				// 重试。幂等安全：迟到NotFound即放弃；成功补偿后再cancel得NotFound同样无害；
 				// 请求未到达则这次到达完成补偿。已应答步骤不重试（其NotFound是终态，
 				// cancel在途终会到达，语义与主分支一致）。
-				if (stepRpcFailed.get(i))
+				if (stepAnswer.get(i) == SagaStepAnswer.RPC_FAILED)
 					retryCancelNotFoundOnce(stepZeze.get(i));
 			}
 		}
