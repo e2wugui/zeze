@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import Zeze.Application;
 import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult;
 import Zeze.Transaction.Transaction;
@@ -29,9 +30,31 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * RocketMQ 事务消息生产者：本地 Zeze 过程与半消息 COMMIT/ROLLBACK 绑定，并维护事务回查表 tSent。
+ *
+ * <p>部署契约（本桥事务回查设计的硬约束，违反即静默丢消息）：
+ * <ul>
+ * <li>承载事务消息的 producerGroup 必须<b>全集群单实例</b>（每 JVM 至多一个 Producer，跨机每个
+ * producerGroup 只部署一个进程实例）：broker 的事务回查按 producerGroup 从组内<b>任一</b>存活
+ * producer 通道中选一个发送 CHECK_TRANSACTION_STATE，而回查依据的 tSent 是随<b>本进程</b>
+ * Application 注册的本地表——组内出现第二个实例时，回查可能路由到没有该行的实例恒答 UNKNOW，
+ * 半消息最终被回查次数耗尽丢弃（本地事务已成功提交而消息灭失，且发送方对 endTransaction
+ * 丢失本就无感）。进程内多实例由构造时的单例登记拒绝（第二个实例构造即抛）；跨机形态无法在
+ * 进程内防御，必须由部署保证。</li>
+ * <li>tSent 生命周期：executeLocalTransaction 提交时随业务事务落盘（result=true 的行即
+ * "本地事务已成功"的证据），由周期清理按 {@link #tSentKeepTimeMillis()}（默认7天，下限1小时）
+ * 删除过期行——保留时长必须覆盖 broker 回查总窗口，否则 COMMIT 行被提前清理后，endTransaction
+ * 丢失的半消息失去回查兜底。</li>
+ * <li>回查查无行恒答 UNKNOW 的语义（见 {@link #checkLocalTransaction}）：既不答 COMMIT 也不答
+ * ROLLBACK，收敛依赖 broker 回查策略 + tSent 保留时长下界。</li>
+ * </ul>
  */
 public class Producer extends AbstractProducer implements TransactionListener {
 	private static final @NotNull Logger logger = LogManager.getLogger(Producer.class);
+
+	// 进程内单例占位：同 JVM 第二个 Producer 实例会让 broker 回查路由到无 tSent 行的实例
+	//（见类 javadoc 部署契约），构造即拒绝；stop() 释放占位后允许重建（demo App stop/start
+	// 重启路径）。跨机多实例本进程无法防御，靠部署契约约束。
+	private static final @NotNull AtomicReference<Producer> processInstance = new AtomicReference<>();
 
 	// tSent过期行的保留时长（毫秒），默认7天：行须存活到 broker 事务回查窗口结束——回查对已删行
 	// 答 UNKNOW（checkLocalTransaction），仍在恢复窗口内的 COMMIT 行被删即失去 COMMIT 丢失时的
@@ -54,15 +77,29 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	private @Nullable TimerFuture<?> tSentCleanFuture;
 
 	public Producer(@NotNull Application zeze, @NotNull String producerGroup, @NotNull ClientConfig clientConfig) {
-		this.zeze = zeze;
-		RegisterZezeTables(zeze);
-		producer = new TransactionMQProducer(producerGroup);
-		producer.setNamesrvAddr(clientConfig.getNamesrvAddr()); // "127.0.0.1:9876"
-		producer.setTransactionListener(this);
-		// 自建回查线程池保留引用：destroyTransactionEnv 只对它 shutdown() 不等待，stop 需自行有界排空。
-		checkExecutor = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2000),
-				r -> new Thread(r, "client-transaction-msg-check-thread"));
-		producer.setExecutorService(checkExecutor);
+		// 占位须先于一切初始化：进程内多实例是部署级错误（回查路由灭失，见类 javadoc），
+		// 要在构造副作用（表注册、线程池创建）发生前拒绝；初始化中途失败则归还占位，
+		// 不阻塞后续重建。
+		if (!processInstance.compareAndSet(null, this))
+			throw new IllegalStateException("RocketMQ.Producer: process already has a Producer instance."
+					+ " tSent 事务回查表是进程本地表，同 JVM 第二个实例会使 broker 回查路由到无行实例恒答 UNKNOW，"
+					+ "半消息被回查次数耗尽丢弃（消息灭失）；跨机同样必须保证 producerGroup 单实例部署（见类 javadoc）");
+		boolean initialized = false;
+		try {
+			this.zeze = zeze;
+			RegisterZezeTables(zeze);
+			producer = new TransactionMQProducer(producerGroup);
+			producer.setNamesrvAddr(clientConfig.getNamesrvAddr()); // "127.0.0.1:9876"
+			producer.setTransactionListener(this);
+			// 自建回查线程池保留引用：destroyTransactionEnv 只对它 shutdown() 不等待，stop 需自行有界排空。
+			checkExecutor = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2000),
+					r -> new Thread(r, "client-transaction-msg-check-thread"));
+			producer.setExecutorService(checkExecutor);
+			initialized = true;
+		} finally {
+			if (!initialized)
+				processInstance.compareAndSet(this, null); // 构造失败归还占位
+		}
 	}
 
 	public void start() throws MQClientException {
@@ -89,6 +126,9 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
+		// 完全停止后释放进程内单例占位：允许后续重建（demo App stop/start 重启路径）。
+		// compareAndSet 幂等：重复 stop 或对已重建实例的旧引用 stop 都是无害空操作。
+		processInstance.compareAndSet(this, null);
 	}
 
 	public @NotNull TransactionMQProducer getProducer() {
@@ -200,6 +240,12 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	 * UNKNOW 依赖 broker 回查策略收敛：在飞过程提交后，后续回查命中 result=true → COMMIT 救回；
 	 * 行真不存在时由 broker 最大回查次数耗尽丢弃半消息，终态与 ROLLBACK 等效，仅丢弃时点
 	 * 推迟（回查次数×间隔量级）。
+	 *
+	 * <p>查无行也<b>恒不答 COMMIT</b>（钉住的决定，勿改）：查无行在多实例误部署等场景下意味着
+	 * "行在别的实例上"（本应答 COMMIT），但也可能是"本地事务从未执行/已回滚/已清理"——答 COMMIT
+	 * 会把真丢的事务误提交，违背"仅当事务成功才发送"，且比 UNKNOW-丢弃更隐蔽（错误投递无法回收）。
+	 * 两难的收敛出口是部署契约（producerGroup 单实例，见类 javadoc）+ tSentKeepTime 下界，
+	 * 不是放宽本方法的回答。
 	 */
 	@Override
 	public @NotNull LocalTransactionState checkLocalTransaction(@NotNull MessageExt msg) {
