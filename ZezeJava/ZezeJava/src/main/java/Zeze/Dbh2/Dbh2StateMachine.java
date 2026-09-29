@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -72,7 +73,9 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	// ----- 自主 undo 未确认墓碑（FND29 dbh2-03 断根的兜底层）-----
 	// 桶侧 onTimer 自主 undo 落日志时协调者决策未知：事务不立即毁尸（锁释放、trans blob
-	// 保留、入本表）。围栏冲突的三种收敛：①迟到 LogCommitBatch（协调者已持久化
+	// 保留、入本表）。墓碑状态持久化为trans列族的marker键（dbh2-01，见Dbh2Transaction.
+	// transTombstoneMarkerKey），loadSnapshot据此分态重建——墓碑窗语义与复活能力跨
+	// 重启/快照装载保留。围栏冲突的三种收敛：①迟到 LogCommitBatch（协调者已持久化
 	// eCommitting，commitPoint 存在）在墓碑窗内到达——复活并提交，数据不丢，客户端
 	// 成功变真；②协调者驱动的 UndoBatch 到达=确认 undo 终局，物理删除；③墓碑窗超时
 	// 仍无协调者消亡（进程丢失/极端病理）——物理删除并响亮 error（可见化，对齐
@@ -90,6 +93,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	private final ConcurrentHashMap<Long, UndonePending> undonePending = new ConcurrentHashMap<>();
+
+	// 包内可见供确定性测试观测墓碑表（重启装载分态重建的断言锚点）。
+	boolean isTombstonedPending(long tid) {
+		return undonePending.containsKey(tid);
+	}
 
 	/** 墓碑窗（毫秒）：覆盖协调者在其自身 prepare 窗口内的最迟 commit 决策 + CommitBatch
 	 * 在途（rpcTimeout）+ 余量。低于此窗的迟到 commit 将落入超窗删除分支（协调者 rpc
@@ -522,8 +530,13 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			if (null != txn) {
 				if (fromCoordinator)
 					txn.undoBatch(bucket); // 协调者终局：决策与删除同源，无围栏冲突窗口
-				else
+				else {
+					// 墓碑状态持久化（dbh2-01）：marker随墓碑化落盘（put幂等，apply重放安全）。
+					// 装载（loadSnapshot）据此分态重建，墓碑不再被当存活事务持锁重建——
+					// 重叠blob下那是确定性崩溃循环（见loadSnapshot注释）。
+					txn.markTombstoned(bucket);
 					undonePending.put(tid, new UndonePending(txn)); // 自主undo：锁随try块释放，blob待终局
+				}
 			} else {
 				var pending = undonePending.remove(tid);
 				if (null != pending)
@@ -774,11 +787,43 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		restore(backupDir);
 
 		// load exist transaction
+		// 分态重建（dbh2-01墓碑状态持久化）：墓碑不是raft状态机一等公民——apply全序
+		// 内"墓碑释放锁后同键新事务加锁"的时序在装载路径丢失，两个键集重叠的blob都按
+		// 存活事务持锁重建必撞锁（修复前loadSnapshot失败→Raft构造失败→manager无法启动，
+		// blob不清则确定性崩溃循环）。第一遍收集墓碑marker的tid集（trans键：blob=
+		// varint(tid)，marker=varint(tid)+0x01空值，见Dbh2Transaction）；第二遍逐blob
+		// 重建：marker命中走无锁墓碑重建（墓碑窗自装载时刻保守重启，复活能力跨重启
+		// 保留）；未命中走既有持锁重建。
+		var tombstoned = new HashSet<Long>();
 		try (var it = bucket.getTrans().iterator()) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
+				var tid = Dbh2Transaction.decodeTombstoneMarkerTid(it.key());
+				if (null != tid)
+					tombstoned.add(tid);
+			}
+		}
+		try (var it = bucket.getTrans().iterator()) {
+			for (it.seekToFirst(); it.isValid(); it.next()) {
+				if (null != Dbh2Transaction.decodeTombstoneMarkerTid(it.key()))
+					continue; // marker已在第一遍消费
 				var batch = new BBatch.Data();
 				batch.decode(ByteBuffer.Wrap(it.value()));
-				getOrAddTransaction(batch);
+				var tid = batch.getTid();
+				if (tombstoned.contains(tid))
+					undonePending.put(tid, new UndonePending(new Dbh2Transaction(batch)));
+				else {
+					try {
+						getOrAddTransaction(batch);
+					} catch (RuntimeException ex) {
+						// 防御层（兼容升级前已落盘的无marker重叠blob）：输者降级为墓碑
+						//（error留痕）而非装载失败。serialize=true下live重叠不可能（prepare
+						// 必撞锁失败），撞锁必含遗留墓碑blob；两个方向收敛到同一终局——
+						// commit/undo对存活与墓碑的存储结果等价（commit均落数据、undo均删blob）。
+						logger.error("loadSnapshot live rebuild lock conflict, degrade loser to tombstone."
+								+ " tid={} (legacy overlapping blobs without marker; winner stays live)", tid, ex);
+						undonePending.put(tid, new UndonePending(new Dbh2Transaction(batch)));
+					}
+				}
 			}
 		}
 	}

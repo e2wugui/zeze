@@ -3,10 +3,12 @@ package Zeze.Dbh2;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
@@ -14,6 +16,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.rocksdb.RocksDBException;
 
 /**
  * 桶侧自主 undo 与协调者 commit 决策的围栏冲突终局（dbh2-03 断根）：undo 落日志时协调者
@@ -36,10 +39,19 @@ public class TestUndoCommitFenceResurrect {
 			</raft>
 			""";
 
+	// 重启装载测试用：调小SnapshotLogCount让少量日志即跨快照边界（Dbh2的
+	// SnapshotCommitDelayed下已提交快照=倒数第二代，见LogSequence.commitSnapshot）。
+	private static final String RAFT_SNAPSHOT = RAFT.replaceFirst("<raft ",
+			"<raft SnapshotLogCount=\"10\" ");
+
 	private static List<Dbh2> startBucket(RocksDatabase database, Path tempDir) {
+		return startBucket(database, tempDir, RAFT);
+	}
+
+	private static List<Dbh2> startBucket(RocksDatabase database, Path tempDir, String raftConfig) {
 		var nodes = new ArrayList<Dbh2>();
-		for (var config : RaftConfig.loadFromString(RAFT).getNodes().values()) {
-			var nodeConfig = RAFT.replaceFirst("<raft ",
+		for (var config : RaftConfig.loadFromString(raftConfig).getNodes().values()) {
+			var nodeConfig = raftConfig.replaceFirst("<raft ",
 					"<raft DbHome=\"" + tempDir.resolve(config.getName().replace(':', '_')) + "\" ");
 			nodes.add(new Dbh2(null, config.getName(), database,
 					RaftConfig.loadFromString(nodeConfig), null, false, taskOneByOne));
@@ -179,5 +191,273 @@ public class TestUndoCommitFenceResurrect {
 			Thread.sleep(50);
 		}
 		throw new AssertionError("prepare not applied: tid=" + tid);
+	}
+
+	/** 墓碑化经 raft 日志后等待 apply 收敛（墓碑入表、事务出表、锁已释放）。 */
+	private static void waitTombstoned(Dbh2StateMachine leader, long tid) throws InterruptedException {
+		for (var i = 0; i < 300; ++i) {
+			if (leader.isTombstonedPending(tid) && !leader.getTransactions().containsKey(tid))
+				return;
+			Thread.sleep(50);
+		}
+		throw new AssertionError("tombstone not applied: tid=" + tid);
+	}
+
+	private static void waitBucketValue(Dbh2StateMachine sm, Binary key, int expected, String message)
+			throws InterruptedException {
+		for (var i = 0; i < 300; ++i) {
+			try {
+				var v = sm.getBucket().get(key);
+				if (null != v && v.size() > 0 && v.bytesUnsafe()[0] == expected)
+					return;
+			} catch (RocksDBException e) {
+				// 轮询期间 rocks 读失败按未就绪处理
+			}
+			Thread.sleep(50);
+		}
+		Assertions.fail(message);
+	}
+
+	/** 等待trans列族指定键被终局清除（多数派commit不等于全副本apply，须轮询等apply收敛）。 */
+	private static void waitTransCleared(Dbh2StateMachine sm, byte[] key, String message) throws InterruptedException {
+		for (var i = 0; i < 300; ++i) {
+			try {
+				if (null == sm.getBucket().getTrans().get(key))
+					return;
+			} catch (RocksDBException e) {
+				// 轮询期间 rocks 读失败按未就绪处理
+			}
+			Thread.sleep(50);
+		}
+		Assertions.fail(message);
+	}
+
+	private static void tryClose(Dbh2 node) {
+		try {
+			node.close();
+		} catch (Exception e) {
+			// 清理尽力而为，不掩盖测试断言
+		}
+	}
+
+	private static String rootMessage(Throwable t) {
+		var sb = new StringBuilder();
+		for (var e = t; null != e; e = e.getCause())
+			sb.append(e.getMessage()).append(" <- ");
+		return sb.toString();
+	}
+
+	private static List<String> nodeHomeNames() {
+		var names = new ArrayList<String>();
+		for (var config : RaftConfig.loadFromString(RAFT).getNodes().values())
+			names.add(config.getName().replace(':', '_'));
+		return names;
+	}
+
+	/** 灌日志过快照边界：持续prepare唯键事务，直到全副本已提交快照index>=requireIndex
+	 * （延时提交下已提交快照为倒数第二代，其index覆盖的日志必已含此前全部状态）。
+	 * 返回前静置等在途快照任务（backup重写共享DbHome/backup目录）排空，避免与
+	 * 重启装载的extract/restore竞争。 */
+	private static void pushLogsOverSnapshotBoundary(Dbh2Agent agent, List<Dbh2> nodes,
+													 long firstTid, long requireIndex) throws Exception {
+		var deadline = System.currentTimeMillis() + 60_000;
+		for (var tid = firstTid; System.currentTimeMillis() < deadline; ++tid) {
+			if (allCommittedSnapshotIndexAtLeast(nodes, requireIndex)) {
+				Thread.sleep(1500); // 无新日志即无新快照任务，静置等在途者完成
+				return;
+			}
+			prepare(agent, tid, fillerKey(tid));
+		}
+		throw new AssertionError("snapshot boundary not reached in time. requireIndex=" + requireIndex);
+	}
+
+	private static boolean allCommittedSnapshotIndexAtLeast(List<Dbh2> nodes, long requireIndex) {
+		for (var n : nodes) {
+			var file = new java.io.File(n.getRaft().getLogSequence().getCommittedSnapshotFile());
+			if (!file.isFile())
+				return false;
+			var name = file.getName(); // snapshot.dat.<index>
+			var index = Long.parseLong(name.substring(name.lastIndexOf('.') + 1));
+			if (index < requireIndex)
+				return false;
+		}
+		return true;
+	}
+
+	private static Binary fillerKey(long tid) {
+		return new Binary(new byte[]{(byte)0xC0, (byte)tid, (byte)(tid >>> 8)});
+	}
+
+	/** 手工注入的trans blob编码（与Dbh2Transaction.prepareBatch同款）。 */
+	private static byte[] encodeBatch(long tid, Binary key, byte value) {
+		var batch = new BBatch.Data();
+		batch.setTid(tid);
+		batch.getPuts().put(key, new Binary(new byte[]{value}));
+		return ByteBuffer.encode(batch).Copy();
+	}
+
+	/** 墓碑blob与后续同键事务blob重叠+快照+重启：装载必须按marker分态重建，不得把
+	 * 两个重叠blob都当存活事务持锁重建——修复前第二个blob构造即lock timeout，Raft
+	 * 构造失败，节点确定性崩溃循环，唯一恢复=人工删桶目录。墓碑化走raft日志（生产
+	 * onTimer同款路径），全副本marker落盘；重启后复活能力必须保留（迟到commit复活
+	 * 落盘），终局blob与marker同批清除。 */
+	@Test
+	public void testTombstoneOverlapBlobsSurviveRestart(@TempDir Path tempDir) throws Exception {
+		Task.tryInitThreadPool();
+		var key = new Binary(new byte[]{4});
+		var rocks = new RocksDatabase(tempDir.resolve("dbh2FenceRestart").toString());
+		var nodes = startBucket(rocks, tempDir, RAFT_SNAPSHOT);
+		try {
+			try {
+				var agent = new Dbh2Agent(RAFT_SNAPSHOT);
+				try {
+					var meta = new BBucketMeta.Data();
+					meta.setDatabaseName("database");
+					meta.setTableName("table1");
+					meta.setRaftConfig("");
+					meta.setKeyFirst(Binary.Empty);
+					meta.setKeyLast(Binary.Empty);
+					agent.setBucketMeta(meta);
+
+					prepare(agent, 400L, key); // blob_A
+					var leader = leaderStateMachine(nodes);
+					waitTransactionApplied(leader, 400L);
+					// 桶侧自主undo经raft日志（生产onTimer同款）：全副本墓碑化，锁释放、blob保留
+					leader.getRaft().appendLog(new LogUndoBatch(400L));
+					waitTombstoned(leader, 400L);
+					prepare(agent, 401L, key); // blob_B：同键重叠blob（锁已释放，prepare成功）
+
+					// 灌日志过快照边界：blob_B为第4条日志，全副本已提交快照index>=4即含两个blob
+					pushLogsOverSnapshotBoundary(agent, nodes, 402L, 4);
+				} finally {
+					agent.close();
+				}
+			} finally {
+				for (var n : nodes)
+					tryClose(n); // 关全部节点，保留DbHome
+			}
+
+			var rebooted = new ArrayList<Dbh2>();
+			try {
+				Exception startFail = null;
+				try {
+					rebooted.addAll(startBucket(rocks, tempDir, RAFT_SNAPSHOT));
+				} catch (Exception ex) {
+					startFail = ex;
+				}
+				Assertions.assertTrue(null == startFail,
+						"重叠blob重启装载不得失败: " + rootMessage(startFail));
+
+				var leader2 = leaderStateMachine(rebooted);
+				Assertions.assertTrue(leader2.isTombstonedPending(400L),
+						"墓碑必须经marker跨重启保留（复活能力不灭失）");
+				Assertions.assertTrue(leader2.getTransactions().containsKey(401L),
+						"墓碑后同键新事务必须存活重建");
+
+				var agent2 = new Dbh2Agent(RAFT_SNAPSHOT);
+				try {
+					agent2.commitBatch(400L).await(); // 迟到commit复活
+					waitBucketValue(leader2, key, 9, "墓碑事务的迟到commit必须复活落盘");
+					agent2.commitBatch(401L).await(); // 后续事务终值
+					for (var n : rebooted)
+						waitBucketValue(n.getStateMachine(), key, 9, "全副本终值必须一致");
+					// 终局后blob与marker同批清除（等全副本apply收敛）
+					for (var n : rebooted) {
+						var sm = n.getStateMachine();
+						waitTransCleared(sm, Dbh2Transaction.transBlobKey(400L), "blob_A终局必须清除");
+						waitTransCleared(sm, Dbh2Transaction.transTombstoneMarkerKey(400L), "marker_A终局必须清除");
+						waitTransCleared(sm, Dbh2Transaction.transBlobKey(401L), "blob_B终局必须清除");
+					}
+				} finally {
+					agent2.close();
+				}
+			} finally {
+				for (var n : rebooted)
+					tryClose(n);
+			}
+		} finally {
+			for (var name : nodeHomeNames())
+				Zeze.Raft.LogSequence.deleteDirectory(tempDir.resolve(name).toFile());
+			rocks.close();
+		}
+	}
+
+	/** 升级兼容：升级前已落盘的无marker重叠blob（旧版本墓碑态）装载不得失败——防御层
+	 * 把锁竞争输者降级为墓碑（error留痕），启动成功且终局与分态重建收敛到同一结果
+	 * （commit/undo对存活与墓碑的存储终局等价）。手工注入两个同键blob直写各副本trans列族。 */
+	@Test
+	public void testLegacyOverlapBlobsDegradeToTombstone(@TempDir Path tempDir) throws Exception {
+		Task.tryInitThreadPool();
+		var key = new Binary(new byte[]{5});
+		var rocks = new RocksDatabase(tempDir.resolve("dbh2FenceLegacy").toString());
+		var nodes = startBucket(rocks, tempDir, RAFT_SNAPSHOT);
+		try {
+			try {
+				var agent = new Dbh2Agent(RAFT_SNAPSHOT);
+				try {
+					var meta = new BBucketMeta.Data();
+					meta.setDatabaseName("database");
+					meta.setTableName("table1");
+					meta.setRaftConfig("");
+					meta.setKeyFirst(Binary.Empty);
+					meta.setKeyLast(Binary.Empty);
+					agent.setBucketMeta(meta);
+
+					// 手工注入两个无marker的重叠blob（升级前磁盘形态）：直写各副本trans列族
+					for (var n : nodes) {
+						var trans = n.getStateMachine().getBucket().getTrans();
+						trans.put(Dbh2Transaction.transBlobKey(500L), encodeBatch(500L, key, (byte)5));
+						trans.put(Dbh2Transaction.transBlobKey(501L), encodeBatch(501L, key, (byte)6));
+					}
+					// 灌日志过快照边界：注入先于一切快照，已提交快照必含注入blob
+					pushLogsOverSnapshotBoundary(agent, nodes, 502L, 1);
+				} finally {
+					agent.close();
+				}
+			} finally {
+				for (var n : nodes)
+					tryClose(n); // 保留DbHome
+			}
+
+			var rebooted = new ArrayList<Dbh2>();
+			try {
+				Exception startFail = null;
+				try {
+					rebooted.addAll(startBucket(rocks, tempDir, RAFT_SNAPSHOT));
+				} catch (Exception ex) {
+					startFail = ex;
+				}
+				Assertions.assertTrue(null == startFail,
+						"遗留重叠blob装载不得失败: " + rootMessage(startFail));
+
+				var leader2 = leaderStateMachine(rebooted);
+				// 防御层确定性：trans键序tid小者赢锁存活，输者降级为墓碑
+				Assertions.assertTrue(leader2.getTransactions().containsKey(500L), "锁竞争赢者必须存活重建");
+				Assertions.assertTrue(leader2.isTombstonedPending(501L), "输者必须降级为墓碑而非装载失败");
+
+				var agent2 = new Dbh2Agent(RAFT_SNAPSHOT);
+				try {
+					agent2.commitBatch(500L).await(); // 存活路径提交
+					waitBucketValue(leader2, key, 5, "存活事务提交必须落盘");
+					agent2.commitBatch(501L).await(); // 墓碑复活路径提交
+					for (var n : rebooted)
+						waitBucketValue(n.getStateMachine(), key, 6, "全副本终值必须一致（后提交者胜）");
+					for (var n : rebooted) {
+						var sm = n.getStateMachine();
+						waitTransCleared(sm, Dbh2Transaction.transBlobKey(500L), "blob_500终局必须清除");
+						waitTransCleared(sm, Dbh2Transaction.transBlobKey(501L), "blob_501终局必须清除");
+					}
+				} finally {
+					agent2.close();
+				}
+			} finally {
+				for (var n : rebooted)
+					tryClose(n);
+			}
+		} finally {
+			for (var name : nodeHomeNames())
+				Zeze.Raft.LogSequence.deleteDirectory(tempDir.resolve(name).toFile());
+			rocks.close();
+		}
 	}
 }

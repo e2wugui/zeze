@@ -45,6 +45,32 @@ public class Dbh2Transaction implements Closeable {
 		return (System.nanoTime() - createNanos) / 1_000_000L;
 	}
 
+	// trans列族键形态：blob=varint(tid)→BBatch编码；墓碑marker=varint(tid)+0x01尾字节
+	//→空值（varint终结字节<0x80，0x01尾字节不可能被并入varint，形态无歧义）。marker
+	// 仅在墓碑化apply写入、终局与blob同批删除，loadSnapshot据此分态重建。
+	// 包内可见供确定性测试直接构造/检查键。
+	static final byte TransTombstoneMarker = 1;
+
+	static byte[] transBlobKey(long tid) {
+		var bb = ByteBuffer.Allocate(9);
+		bb.WriteLong(tid);
+		return bb.Copy();
+	}
+
+	static byte[] transTombstoneMarkerKey(long tid) {
+		var bb = ByteBuffer.Allocate(10);
+		bb.WriteLong(tid);
+		bb.WriteByte(TransTombstoneMarker);
+		return bb.Copy();
+	}
+
+	/** key为墓碑marker（varint(tid)+0x01尾字节）时返回tid，blob（恰为varint(tid)）返回null。 */
+	static Long decodeTombstoneMarkerTid(byte[] key) {
+		var bb = ByteBuffer.Wrap(key);
+		var tid = bb.ReadLong();
+		return bb.size() == 1 && key[key.length - 1] == TransTombstoneMarker ? tid : null;
+	}
+
 	/**
 	 * 锁住输入batch中的所有记录。
 	 *
@@ -75,25 +101,42 @@ public class Dbh2Transaction implements Closeable {
 		}
 	}
 
+	/** 无锁重建（loadSnapshot墓碑路径，dbh2-01）：墓碑事务的锁在墓碑化时已释放
+	 * （undoBatch的try-with-resources close），装载时刻不存在并发持锁者——直接以
+	 * 持久化blob构造内存对象，锁语义由装载后的新请求按需重建。 */
+	Dbh2Transaction(BBatch.Data batch) {
+		this.batch = batch;
+		this.createTime = System.currentTimeMillis();
+	}
+
 	/**
 	 * 把batch数据写入db，并且构造出undo logs。
 	 *
 	 * @param bucket bucket
 	 */
 	public void prepareBatch(Bucket bucket) throws RocksDBException {
-		var tid = batch.getTid();
 		var value = ByteBuffer.encode(batch);
-		var tidBytes = ByteBuffer.Allocate();
-		tidBytes.WriteLong(tid);
-		bucket.getTrans().put(tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size(),
-				value.Bytes, value.ReadIndex, value.WriteIndex);
+		var tidBytes = transBlobKey(batch.getTid());
+		bucket.getTrans().put(tidBytes, 0, tidBytes.length, value.Bytes, value.ReadIndex, value.WriteIndex);
+	}
+
+	/** 墓碑marker落盘（dbh2-01）：空值put幂等（apply重放/重复墓碑化安全），
+	 * 与blob共存于trans列族，loadSnapshot据此分态重建。 */
+	public void markTombstoned(Bucket bucket) throws RocksDBException {
+		var marker = transTombstoneMarkerKey(batch.getTid());
+		bucket.getTrans().put(bucket.getWriteOptions(), marker, 0, marker.length, ByteBuffer.Empty, 0, 0);
 	}
 
 	public void undoBatch(Bucket bucket) throws RocksDBException {
-		var tid = batch.getTid();
-		var tidBytes = ByteBuffer.Allocate();
-		tidBytes.WriteLong(tid);
-		bucket.getTrans().delete(tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size());
+		// blob与marker同批删除（终局原子）。不用共享bucket.getBatch()：清扫路径
+		//（dbh2-02日志化前）在onTimer线程调用，与apply线程独占的共享batch并发会互踩。
+		try (var b = bucket.getDb().newBatch()) {
+			var tidBytes = transBlobKey(batch.getTid());
+			bucket.getTrans().delete(b, tidBytes, 0, tidBytes.length);
+			var marker = transTombstoneMarkerKey(batch.getTid());
+			bucket.getTrans().delete(b, marker, 0, marker.length);
+			b.commit(bucket.getWriteOptions());
+		}
 	}
 
 	public void commitBatch(Bucket bucket) throws RocksDBException {
@@ -108,10 +151,11 @@ public class Dbh2Transaction implements Closeable {
 			bucket.getData().delete(b, del);
 		}
 
-		var tid = batch.getTid();
-		var tidBytes = ByteBuffer.Allocate();
-		tidBytes.WriteLong(tid);
-		bucket.getTrans().delete(b, tidBytes.Bytes, tidBytes.ReadIndex, tidBytes.size());
+		// 终局：blob与marker同批删除（与数据写同一WriteBatch，apply内原子重放）。
+		var tidBytes = transBlobKey(batch.getTid());
+		bucket.getTrans().delete(b, tidBytes, 0, tidBytes.length);
+		var markerBytes = transTombstoneMarkerKey(batch.getTid());
+		bucket.getTrans().delete(b, markerBytes, 0, markerBytes.length);
 
 		b.commit(bucket.getWriteOptions());
 	}
