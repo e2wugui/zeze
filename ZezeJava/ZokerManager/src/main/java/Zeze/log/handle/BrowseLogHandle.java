@@ -34,8 +34,16 @@ public class BrowseLogHandle implements HttpEndStreamHandle {
 			byte[] bytes = new byte[readableBytes];
 			content.readBytes(bytes);
 			String str = new String(bytes, StandardCharsets.UTF_8);
-			SearchLogParam searchLogParam = Json.parse(str, SearchLogParam.class);
-			LogAgent logAgent = LogAgentManager.getInstance().getLogAgent();
+				SearchLogParam searchLogParam = Json.parse(str, SearchLogParam.class);
+				// limit 下界校验（FND30 zokermanager-04，与 SearchLogHandle 同根同款）：
+				// 漏传（JSON缺字段→默认0）/0/负值若透传，服务器把 limit<=0 当"翻页终结"——
+				// 零扫描返回空成功 remain=false，与"查完无匹配"同形；且请求已先创建查询会话。
+				// 入口即拒：明确 errorResult，不建/复用会话。上界不重复：服务器 clampLimit 已收敛。
+				if (searchLogParam.getLimit() <= 0) {
+					x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult("invalid limit")));
+					return;
+				}
+				LogAgent logAgent = LogAgentManager.getInstance().getLogAgent();
 			String serverName = searchLogParam.getServerName();
 			var logName = searchLogParam.getLogName();
 
