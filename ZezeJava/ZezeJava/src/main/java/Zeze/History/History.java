@@ -14,9 +14,13 @@ import org.jetbrains.annotations.Nullable;
 /**
  * 一个事务关联集合（rrs）的tHistory变更缓冲，两段流水线：
  * logChanges（原始对象）--encode0--&gt; encoded（编码字节）--writeOnly--&gt; tHistory库事务。
- * 不变量：容器只在 rrs 锁内变更；条目离开 logChanges 前必已进 encoded；encoded 只能
- * 由 commitDone 清空——它在数据库事务全部提交成功后由 Checkpoint.flush 调用，失败回滚
- * 后容器保留，重试按系列号幂等重写。
+ * 不变量：容器只被 owner rrs 的 addLogChanges/encode0/commitDone 变更（rrs 锁内）；条目
+ * 离开 logChanges 前必已进 encoded；encoded 只能由 commitDone 清空——它在数据库事务全部
+ * 提交成功后由 Checkpoint.flush 调用，失败回滚后容器保留，重试按系列号幂等重写。
+ * merge 仅用于事务路径的所有权转移（from 即死，条目归幸存 rrs 所有）；combine 用于
+ * FlushSet 的 flush 组装只读快照（绝不写参数容器、绝不共享 map 引用）——快照的
+ * encode0/writeOnly/commitDone 只作用于快照，tHistory 行的写入/核销集合结构上等于
+ * 本轮成员集合，失败轮不污染成员自有容器（history-01：重分组后幽灵行/跨组核销）。
  *
  * 已发 gid 的落库对账账本（FND29 history-02）见 {@link PendingGidLedger}：账本随
  * register/commitDone 由调用方携带（Application 实例维度，FND30 history-02），本类
@@ -32,6 +36,10 @@ public class History {
 
 	public History(@NotNull BLogChanges.Data firstData) {
 		addLogChanges(firstData);
+	}
+
+	/** 仅供 {@link #combine} 组装快照用：空容器起步，条目由收编填充。 */
+	private History() {
 	}
 
 	public void addLogChanges(@NotNull BLogChanges.Data _logChanges) {
@@ -93,7 +101,9 @@ public class History {
 		other.forEach(to::putIfAbsent);
 	}
 
-	// merge 辅助方法，完整的判断to,from及里面的logChanges的null状况。
+	// merge 仅用于事务路径（RelativeRecordSet.merge）的所有权转移：from 的 rrs 即死
+	// （mergeTo 指向幸存者，记录全部改挂），条目归幸存 rrs 所有，允许写入 to 的持久容器。
+	// FlushSet 的组组装不得走这里——见 combine。
 	public static @Nullable History merge(@Nullable History to, @Nullable History from) {
 		// rrs 锁内
 		if (to == null)
@@ -106,8 +116,13 @@ public class History {
 		// 合并logChanges
 		var toLogChanges = to.logChanges;
 		if (toLogChanges == null) {
-			if (from != null)
-				to.logChanges = from.logChanges; // still maybe null
+			// 拷贝收编，不共享 map 引用：别名会让幸存者 commitDone 的清空波及死者容器，
+			// 死者若被复活观察（如测试/诊断持有）即读到被掏空的状态。
+			var fromLogChanges = from == null ? null : from.logChanges; // still maybe null
+			if (fromLogChanges != null) {
+				to.logChanges = new ConcurrentHashMap<>();
+				putLogChangesAll(to.logChanges, fromLogChanges);
+			}
 			return to;
 		}
 
@@ -117,6 +132,36 @@ public class History {
 				putLogChangesAll(toLogChanges, fromLogChanges);
 		}
 		return to;
+	}
+
+	/** FlushSet 组快照组装（history-01）：把 a、b 的条目收编进全新容器返回快照，绝不写
+	 * 参数容器、绝不共享 map 引用（putIfAbsent 语义与 merge 一致，gid 相同即同内容）。
+	 * Merge 模式的组 flush 用它代替 merge 组装历史：失败轮回滚后成员 rrs 的自有容器
+	 * 原样保留，重试轮（MultiThreadMerge 每轮按线程重分组）无论怎么拆组，每个快照
+	 * 的写入/核销集合都结构上等于本轮成员集合——幸存者组不会带出别人的幽灵 tHistory
+	 * 行，也不会把别人的 gid 从对账账本跨组核销。 */
+	public static @Nullable History combine(@Nullable History a, @Nullable History b) {
+		// rrs 锁内（调用方 FlushSet.flush 持有全部成员锁）
+		if (a == null && b == null)
+			return null;
+		var combined = new History();
+		if (a != null)
+			combined.absorb(a);
+		if (b != null)
+			combined.absorb(b);
+		return combined;
+	}
+
+	/** 快照收编：把 other 的 encoded/logChanges 条目浅拷贝进本容器（putIfAbsent）。 */
+	private void absorb(@NotNull History other) {
+		putEncodedAll(encoded, other.encoded);
+		var otherLogChanges = other.logChanges;
+		if (otherLogChanges != null) {
+			var logChanges = this.logChanges;
+			if (logChanges == null)
+				this.logChanges = logChanges = new ConcurrentHashMap<>();
+			putLogChangesAll(logChanges, otherLogChanges);
+		}
 	}
 
 	/** globalSerialId 必须在日志应用（finalCommit 的 commit.run）之前解析：取号失败时数据

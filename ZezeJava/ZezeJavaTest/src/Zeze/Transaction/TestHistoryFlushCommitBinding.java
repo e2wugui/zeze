@@ -96,8 +96,8 @@ public class TestHistoryFlushCommitBinding {
 
 	/** 手工向 rrs 夹带一条历史记录：绕开 SM 发号（构造期 History 采集需要 tid128），
 	 * 直接构造 BLogChanges.Data 挂进事务留下的 rrs，走真实 flush 路径。 */
-	private Id128 smuggleHistory(long serialLo) {
-		var record = table.getCache().get(1L);
+	private Id128 smuggleHistory(long key, long serialLo) {
+		var record = table.getCache().get(key);
 		var rrs = record.getRelativeRecordSet();
 		var serial = new Id128(0x51D3L, serialLo);
 		var lc = new BLogChanges.Data();
@@ -105,6 +105,24 @@ public class TestHistoryFlushCommitBinding {
 		lc.setTimestamp(System.currentTimeMillis());
 		rrs.addLogChanges(lc);
 		return serial;
+	}
+
+	/** 把夹带的 gid 登记进 app 的对账账本（对齐真实路径 buildLogChanges 的 register：
+	 * gid 消费即入账，commitDone 核销）。账本方法为 Zeze.History 包内可见，测试在
+	 * Zeze.Transaction 包（FlushSet 为包内类），经反射桥接，仅断言用。 */
+	private static void ledgerRegister(Application app, Id128 gid) throws Exception {
+		var register = Zeze.History.PendingGidLedger.class.getDeclaredMethod("register", Id128.class, long.class);
+		register.setAccessible(true);
+		register.invoke(app.getPendingGidLedger(), gid, System.currentTimeMillis());
+	}
+
+	/** 账本是否仍登记该 gid（未被 commitDone 核销）。 */
+	private static boolean ledgerContains(Application app, Id128 gid) throws Exception {
+		var field = Zeze.History.PendingGidLedger.class.getDeclaredField("pendingCommitGids");
+		field.setAccessible(true);
+		@SuppressWarnings("unchecked")
+		var map = (java.util.Map<Id128, Long>)field.get(app.getPendingGidLedger());
+		return map.containsKey(gid);
 	}
 
 	private HashSet<ByteBuffer> tHistoryKeys() throws Exception {
@@ -136,7 +154,7 @@ public class TestHistoryFlushCommitBinding {
 			startApp(mode.name());
 			putValue(1, 11);
 
-			var serial = smuggleHistory(7);
+			var serial = smuggleHistory(1L, 7);
 
 			// 毒化 commit：flush 走到写库之后、提交时失败，回滚，rrs 留待下轮重试。
 			FlakyDatabase.poisonCommit = true;
@@ -196,6 +214,141 @@ public class TestHistoryFlushCommitBinding {
 		});
 		Assertions.assertEquals(1, keys.size(), "重试不得产生重复行");
 		Assertions.assertTrue(keys.contains(encodedKey(serial)), "提交成功后历史行必须存在");
+	}
+
+	/** FlushSet 失败轮重分组（history-01）：Merge 模式把成员 rrs 的 History 原地合并污染
+	 * 幸存者容器后，重试轮（MultiThreadMerge 每轮按线程重组 FlushSet）把幸存者与外来
+	 * gid 的真正主人拆进不同组——幸存者组成功即把别人的 tHistory 行写入并提交、把别人
+	 * 的 gid 从对账账本跨组核销；主人的组此后持续失败（或进程先崩溃），业务数据永不落库：
+	 * 幽灵历史行 + 账本击穿 + 回放副本永久分歧。修复后组快照（combine）与成员容器解耦，
+	 * 写入/核销集合结构上等于本轮成员集合。 */
+	@Test
+	public void testFlushSetFailRegroupNoGhostRow() throws Exception {
+		try {
+			startApp("regroup_ghost");
+			putValue(1, 11); // rrs A
+			putValue(2, 22); // rrs B（两条记录无事务交集，各自独立成集）
+			var rrsA = table.getCache().get(1L).getRelativeRecordSet();
+			var rrsB = table.getCache().get(2L).getRelativeRecordSet();
+			Assertions.assertNotSame(rrsA, rrsB, "无交集的两条记录必须留在不同 rrs");
+			var g7 = smuggleHistory(1L, 7);
+			var g8 = smuggleHistory(2L, 8);
+			ledgerRegister(app, g7);
+			ledgerRegister(app, g8);
+
+			// 轮1：{A,B} 合并组在提交期毒化失败——失败形态对齐既有语义（回滚、成员留待下轮）。
+			var fs1 = new RelativeRecordSet.FlushSet(app.getCheckpoint());
+			fs1.add(rrsA);
+			fs1.add(rrsB);
+			FlakyDatabase.poisonCommit = true;
+			Assertions.assertThrows(Throwable.class, fs1::flush, "毒化轮必须失败");
+			FlakyDatabase.poisonCommit = false;
+
+			// 轮2：重分组——A 单独成组成功（B 被拆去别的组是 parallelStream 重组的常态形态）。
+			var fs2 = new RelativeRecordSet.FlushSet(app.getCheckpoint());
+			fs2.add(rrsA);
+			fs2.flush();
+
+			Assertions.assertEquals(Long.valueOf(11), dbValue(1), "A 的数据记录必须落库");
+			var keys = tHistoryKeys();
+			Assertions.assertTrue(keys.contains(encodedKey(g7)), "A 自己的历史行必须落库");
+			Assertions.assertFalse(keys.contains(encodedKey(g8)),
+					"B 不在本轮，其 gid 行不得落库（幽灵行：描述永不落库数据的历史）");
+			Assertions.assertTrue(ledgerContains(app, g8),
+					"B 的 gid 登记不得被 A 的组跨组核销（对账账本击穿，缺口永远扫不出来）");
+
+			// 轮3：B 的组此后持续失败——g8 行永不落库，账本登记必须保留（缺口可告警）。
+			var fs3 = new RelativeRecordSet.FlushSet(app.getCheckpoint());
+			fs3.add(rrsB);
+			FlakyDatabase.poisonCommit = true;
+			Assertions.assertThrows(Throwable.class, fs3::flush, "B 的组持续失败");
+			Assertions.assertFalse(tHistoryKeys().contains(encodedKey(g8)), "失败轮不得落历史行");
+			Assertions.assertTrue(ledgerContains(app, g8), "持续失败下账本登记必须保留");
+			Assertions.assertNull(dbValue(2), "B 的数据未落库（与历史行同生共死，不产生分歧）");
+		} finally {
+			FlakyDatabase.poisonCommit = false;
+			if (app != null)
+				stopApp();
+		}
+	}
+
+	private static BLogChanges.Data logChanges(Id128 gid) {
+		var lc = new BLogChanges.Data();
+		lc.setGlobalSerialId(gid.clone());
+		lc.setTimestamp(System.currentTimeMillis());
+		return lc;
+	}
+
+	/** 组合并不得共享/污染成员容器（history-01 修复核心，单元形态）：combine 组装的快照
+	 * 经历失败回滚→重写→成功→核销（容器清空）全周期后，成员 rrs 的 History 容器必须
+	 * 不含外来 gid（污染形态）且与快照无共享 map 引用（别名形态：核销清空会波及成员，
+	 * 成员此后写不出自己的历史行）。 */
+	@Test
+	public void testMergeNoSharedContainer() throws Exception {
+		var gA = new Id128(0x51D3L, 71);
+		var gB = new Id128(0x51D3L, 72);
+		var hA = new Zeze.History.History(logChanges(gA));
+		var hB = new Zeze.History.History(logChanges(gB));
+
+		var conf = new Config.DatabaseConf();
+		conf.setDatabaseType(Config.DbType.Memory);
+		conf.setDatabaseUrl(FastServerIds.URL_TEST_HISTORY_FLUSH_COMMIT_BINDING);
+		var flaky = new FlakyDatabase(conf);
+		var tableCombined = (FlakyDatabase.FlakyTable)flaky.openTable("unit_tHistory_combine", 1);
+		var tableA = (FlakyDatabase.FlakyTable)flaky.openTable("unit_tHistory_combine_A", 1);
+		var tableB = (FlakyDatabase.FlakyTable)flaky.openTable("unit_tHistory_combine_B", 1);
+
+		var combined = Zeze.History.History.combine(hA, hB); // FlushSet.flush 的组快照组装
+
+		// 失败形态：快照编码落库后回滚（失败轮容器保留在快照里，成员不受波及）。
+		var txn = flaky.beginTransaction();
+		try {
+			combined.encode0();
+			combined.writeOnly(tableCombined, txn);
+			txn.rollback();
+		} finally {
+			txn.close();
+		}
+		// 成功形态：快照重写提交并核销（清空的是快照容器）。
+		var txn2 = flaky.beginTransaction();
+		try {
+			combined.writeOnly(tableCombined, txn2);
+			txn2.commit();
+		} finally {
+			txn2.close();
+		}
+		combined.commitDone(new Zeze.History.PendingGidLedger("TestHistoryFlushCommitBinding"));
+		Assertions.assertEquals(new HashSet<>(java.util.List.of(encodedKey(gA), encodedKey(gB))),
+				walkKeys(tableCombined), "快照必须含双方条目");
+
+		// 周期结束后成员各自落库：只能写出自己的 gid——外来 gid（污染）或零行（共享引用
+		// 被核销清空）都违反容器契约。
+		hA.encode0();
+		hB.encode0();
+		var txnA = flaky.beginTransaction();
+		var txnB = flaky.beginTransaction();
+		try {
+			hA.writeOnly(tableA, txnA);
+			txnA.commit();
+			hB.writeOnly(tableB, txnB);
+			txnB.commit();
+		} finally {
+			txnA.close();
+			txnB.close();
+		}
+		Assertions.assertEquals(new HashSet<>(java.util.List.of(encodedKey(gA))), walkKeys(tableA),
+				"rrsA 容器不得含外来 gid");
+		Assertions.assertEquals(new HashSet<>(java.util.List.of(encodedKey(gB))), walkKeys(tableB),
+				"rrsB 容器不得含外来 gid");
+	}
+
+	private static HashSet<ByteBuffer> walkKeys(FlakyDatabase.FlakyTable table) throws Exception {
+		var keys = new HashSet<ByteBuffer>();
+		table.walk((key, value) -> {
+			keys.add(ByteBuffer.Wrap(key));
+			return true;
+		});
+		return keys;
 	}
 
 	// ---------------------------------------------------------------
