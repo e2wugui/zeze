@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult;
 import Zeze.Transaction.Transaction;
@@ -38,8 +38,8 @@ import org.jetbrains.annotations.Nullable;
  * producer 通道中选一个发送 CHECK_TRANSACTION_STATE，而回查依据的 tSent 是随<b>本进程</b>
  * Application 注册的本地表——组内出现第二个实例时，回查可能路由到没有该行的实例恒答 UNKNOW，
  * 半消息最终被回查次数耗尽丢弃（本地事务已成功提交而消息灭失，且发送方对 endTransaction
- * 丢失本就无感）。进程内多实例由构造时的单例登记拒绝（第二个实例构造即抛）；跨机形态无法在
- * 进程内防御，必须由部署保证。</li>
+ * 丢失本就无感）。进程内多活实例由构造时计数告警（多 app 同进程的惰性拓扑不阻断，见 liveInstances）；
+ * 跨机形态无法在进程内防御，必须由部署保证。</li>
  * <li>tSent 生命周期：executeLocalTransaction 提交时随业务事务落盘（result=true 的行即
  * "本地事务已成功"的证据），由周期清理按 {@link #tSentKeepTimeMillis()}（默认7天，下限1小时）
  * 删除过期行——保留时长必须覆盖 broker 回查总窗口，否则 COMMIT 行被提前清理后，endTransaction
@@ -51,10 +51,11 @@ import org.jetbrains.annotations.Nullable;
 public class Producer extends AbstractProducer implements TransactionListener {
 	private static final @NotNull Logger logger = LogManager.getLogger(Producer.class);
 
-	// 进程内单例占位：同 JVM 第二个 Producer 实例会让 broker 回查路由到无 tSent 行的实例
-	//（见类 javadoc 部署契约），构造即拒绝；stop() 释放占位后允许重建（demo App stop/start
-	// 重启路径）。跨机多实例本进程无法防御，靠部署契约约束。
-	private static final @NotNull AtomicReference<Producer> processInstance = new AtomicReference<>();
+	// 同 JVM 多实例计数（FND29 rocketmq-02 告警面）：多 app 同进程（如 Infinite.Simulate 五 app
+	// 拓扑）仅构造未 start 的实例是惰性的，硬拒绝会把合法拓扑一刀切死（终验 Simulate 级联
+	// 139 败实锤）——降级为 warn 保留可观测性；真正危险的是多实例同时在线（同组回查路由
+	// 串本地 tSent 台），部署契约见类 javadoc，跨机形态本进程无法防御。
+	private static final @NotNull AtomicInteger liveInstances = new AtomicInteger();
 
 	// tSent过期行的保留时长（毫秒），默认7天：行须存活到 broker 事务回查窗口结束——回查对已删行
 	// 答 UNKNOW（checkLocalTransaction），仍在恢复窗口内的 COMMIT 行被删即失去 COMMIT 丢失时的
@@ -77,14 +78,9 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	private @Nullable TimerFuture<?> tSentCleanFuture;
 
 	public Producer(@NotNull Application zeze, @NotNull String producerGroup, @NotNull ClientConfig clientConfig) {
-		// 占位须先于一切初始化：进程内多实例是部署级错误（回查路由灭失，见类 javadoc），
-		// 要在构造副作用（表注册、线程池创建）发生前拒绝；初始化中途失败则归还占位，
-		// 不阻塞后续重建。
-		if (!processInstance.compareAndSet(null, this))
-			throw new IllegalStateException("RocketMQ.Producer: process already has a Producer instance."
-					+ " tSent 事务回查表是进程本地表，同 JVM 第二个实例会使 broker 回查路由到无行实例恒答 UNKNOW，"
-					+ "半消息被回查次数耗尽丢弃（消息灭失）；跨机同样必须保证 producerGroup 单实例部署（见类 javadoc）");
 		boolean initialized = false;
+		// 计数先于一切初始化：构造中途失败（finally 归还）不留僵尸计数。
+		liveInstances.incrementAndGet();
 		try {
 			this.zeze = zeze;
 			RegisterZezeTables(zeze);
@@ -97,8 +93,13 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			producer.setExecutorService(checkExecutor);
 			initialized = true;
 		} finally {
+			if (initialized && liveInstances.get() > 1)
+				logger.warn("RocketMQ.Producer: {} live instances in one process (producerGroup={}):"
+						+ " concurrent live instances route broker transaction-checks across local tSent tables"
+						+ " (UNKNOW -> half-message drop); ensure single live instance per producerGroup per"
+						+ " process/machine (see class javadoc)", liveInstances.get(), producerGroup);
 			if (!initialized)
-				processInstance.compareAndSet(this, null); // 构造失败归还占位
+				liveInstances.decrementAndGet(); // 构造失败归还计数
 		}
 	}
 
@@ -126,9 +127,9 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
-		// 完全停止后释放进程内单例占位：允许后续重建（demo App stop/start 重启路径）。
-		// compareAndSet 幂等：重复 stop 或对已重建实例的旧引用 stop 都是无害空操作。
-		processInstance.compareAndSet(this, null);
+		// 完全停止后递减活实例计数：告警面与生命周期配对（重复 stop 的重复递减由
+		// stopped 标志之下的整体幂等性约束，本方法重复调用的既有语义不变）。
+		liveInstances.decrementAndGet();
 	}
 
 	public @NotNull TransactionMQProducer getProducer() {

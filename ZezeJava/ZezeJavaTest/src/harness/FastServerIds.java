@@ -156,7 +156,7 @@ public final class FastServerIds {
 	public static final int TEST_LOAD_BASE_CHAIN_RESILIENCE = seg("TestLoadBaseChainResilience", 16211, 10);
 	public static final int TEST_QUEUE_BROKEN_CHAIN_DIAGNOSIS = seg("TestQueueBrokenChainDiagnosis", 16221, 3);
 	public static final int TEST_PRODUCER_TXN_SEND_REJECTS_ENV_TRANSACTION = seg("TestProducerTxnSendRejectsEnvTransaction", 16231, 1);
-	public static final int TEST_PRODUCER_SINGLE_INSTANCE_PER_PROCESS = seg("TestProducerSingleInstancePerProcess", 16241, 1);
+	public static final int TEST_PRODUCER_MULTIPLE_INSTANCES_SHARE_PROCESS = seg("TestProducerMultipleInstancesShareProcess", 16241, 2);
 
 	private FastServerIds() {
 	}
