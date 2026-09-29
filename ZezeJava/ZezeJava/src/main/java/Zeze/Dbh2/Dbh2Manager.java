@@ -232,6 +232,7 @@ public class Dbh2Manager {
 	// 不重发则choiceManagers的shadowReadyManager恒空——建表/分桶静默瘫痪（比
 	// eManagerNotFound更隐蔽的失败形态）。补齐缺失raft按master持久化主表对账本manager，
 	// createBucket幂等（dbh2s.computeIfAbsent），重复执行无副作用。
+	private volatile boolean masterRegisterReady = false;
 	private void registerToMaster() throws Exception {
 		var acceptorAddress = masterService.getAcceptorAddress();
 		var dbh2sAtMaster = masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2s.size());
@@ -247,6 +248,7 @@ public class Dbh2Manager {
 			createBucket(dbh2.getDatabase(), dbh2.getTable(), dbh2.getRaftConfig());
 		}
 		masterAgent.setDbh2Ready();
+		masterRegisterReady = true;
 	}
 
 	// Master重启丢失managers注册表后由连接建立钩子（OnMasterConnected）重发注册恢复；
@@ -258,11 +260,23 @@ public class Dbh2Manager {
 		try {
 			registerToMaster();
 		} catch (Exception e) {
-			logger.error("re-register to master failed, wait for next reconnect", e);
+			logger.error("re-register to master failed, wait for next reconnect or loadMonitor retry", e);
 		}
 	}
 
 	private void loadMonitor() throws Exception {
+		// R1（FND27审视残余）：register成功而setDbh2Ready rpc失败（拥塞超时、连接未断）时，
+		// master侧条目停留ready=false且无事件再触发——OnMasterConnected只在（重）连接事件触发，
+		// 连接健在则永不重发：shadowReadyManager恒空、建表/分桶静默瘫痪正是本类要消灭的形态。
+		// 周期补触发完整重注册（register幂等：master按socket/acceptor:port先摘同身份旧条目
+		// 再入列，任意次重发终态单条目）；仍失败则跳过本轮负载上报与分桶决策（两者都依赖
+		// master侧注册就绪），等下一轮（120s）。
+		if (!masterRegisterReady) {
+			logger.warn("loadMonitor: master registration incomplete (register or setDbh2Ready failed), re-registering");
+			reRegister();
+			if (!masterRegisterReady)
+				return;
+		}
 		var loadManager = 0.0;
 		var willSplit = new ArrayList<Dbh2>();
 		Dbh2 maxLoadDbh2 = null;
