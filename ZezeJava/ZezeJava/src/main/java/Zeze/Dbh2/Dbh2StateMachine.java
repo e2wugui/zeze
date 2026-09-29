@@ -604,25 +604,31 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		SnapshotResult result = new SnapshotResult();
 		var cpHome = checkpoint(result);
 
-		long t1 = System.nanoTime();
-		var backupDir = Paths.get(getDbHome(), "backup").toString();
-		var backupFile = new File(backupDir);
-		if (!backupFile.isDirectory() && !backupFile.mkdirs())
-			logger.error("create backup directory failed: {}", backupDir);
-		RocksDatabase.backup(RocksDatabase.DbType.eRocksDb, cpHome, backupDir);
+		// cpHome必须在所有离开路径上删除（try-finally）：backup及其后任一步抛出时遗留的
+		// checkpoint_<ts>目录无回收路径（目录名含时间戳不复用），持续故障（备份盘满/IO错误）下
+		// 随失败次数无界累积。deleteDirectory为best-effort不抛，不会掩盖try内原始异常。
+		try {
+			long t1 = System.nanoTime();
+			var backupDir = Paths.get(getDbHome(), "backup").toString();
+			var backupFile = new File(backupDir);
+			if (!backupFile.isDirectory() && !backupFile.mkdirs())
+				logger.error("create backup directory failed: {}", backupDir);
+			RocksDatabase.backup(RocksDatabase.DbType.eRocksDb, cpHome, backupDir);
 
-		long t2 = System.nanoTime();
-		LogSequence.deleteDirectory(new File(cpHome));
-		Zeze.Raft.RocksRaft.Rocks.createZipFromDirectory(backupDir, path);
+			long t2 = System.nanoTime();
+			Zeze.Raft.RocksRaft.Rocks.createZipFromDirectory(backupDir, path);
 
-		long t3 = System.nanoTime();
-		getRaft().getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
+			long t3 = System.nanoTime();
+			getRaft().getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
 
-		result.success = true;
-		result.checkPointNanoTime = t1 - t0;
-		result.backupNanoTime = t2 - t1;
-		result.zipNanoTime = t3 - t2;
-		result.totalNanoTime = System.nanoTime() - t0;
+			result.success = true;
+			result.checkPointNanoTime = t1 - t0;
+			result.backupNanoTime = t2 - t1;
+			result.zipNanoTime = t3 - t2;
+			result.totalNanoTime = System.nanoTime() - t0;
+		} finally {
+			LogSequence.deleteDirectory(new File(cpHome));
+		}
 		return result;
 	}
 
