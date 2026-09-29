@@ -161,6 +161,8 @@ public final class FastServerIds {
 	public static final int TEST_DYNAMIC_BEAN_ELEMENT_LOG_KEY = seg("TestDynamicBeanElementLogKey", 16251, 4);
 	public static final int TEST_TIMER_HOT_WATCH_REF = seg("TestTimerHotWatchRef", 16261, 4);
 	public static final int TEST_SET_MAP_PARTIAL_CHANGE_PHANTOM_DELTA = seg("TestSetMapPartialChangePhantomDelta", 16271, 2);
+	public static final int TEST_GTABLE_STALE_PHANTOM_ROW = seg("TestGTableStaleRowAndPhantomRow", 16281, 2);
+	public static final int TEST_PMAP2_COPY_DEEP = seg("TestPMap2CopyDeep", 16291, 1);
 
 	private FastServerIds() {
 	}

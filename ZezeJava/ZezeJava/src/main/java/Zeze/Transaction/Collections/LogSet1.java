@@ -61,9 +61,13 @@ public class LogSet1<V> extends LogSet<V> {
 			newSet = newSet.plus(v);
 		if (newSet == old)
 			return false;
+		// 只记真实新增：已存在的元素混入added会作为幻影增量进入Changes通知链，
+		// 按增量驱动的下游监听器会产生错误动作（plus(v)含v时返回同一实例，等价判定）。
 		for (V v : c) {
-			removed.remove(v);
-			added.add(v);
+			if (!old.contains(v)) {
+				removed.remove(v);
+				added.add(v);
+			}
 		}
 		setValue(newSet);
 		return true;
@@ -88,9 +92,12 @@ public class LogSet1<V> extends LogSet<V> {
 			newSet = newSet.minus(v);
 		if (newSet == old)
 			return false;
+		// 只记真实移除：不在集合中的元素混入removed同样是幻影增量（minus等价判定）。
 		for (V v : c) {
-			added.remove(v);
-			removed.add(v);
+			if (old.contains(v)) {
+				added.remove(v);
+				removed.add(v);
+			}
 		}
 		setValue(newSet);
 		return true;

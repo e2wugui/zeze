@@ -61,13 +61,17 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	}
 
 	public final void putAll(@NotNull Map<? extends K, ? extends V> m) {
-		var newMap = getValue().plusAll(m);
-		if (newMap != getValue()) {
+		var old = getValue();
+		var newMap = old.plusAll(m);
+		if (newMap != old) {
 			setValue(newMap);
+			// 只记值真实变化的键：值未变的键混入replaced是幻影增量，误导增量驱动的监听器。
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
-				removed.remove(k);
-				replaced.put(k, e.getValue());
+				if (!java.util.Objects.equals(old.get(k), e.getValue())) {
+					removed.remove(k);
+					replaced.put(k, e.getValue());
+				}
 			}
 		}
 	}
