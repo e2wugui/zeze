@@ -81,6 +81,10 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	// 重复 stop 必须由本标志 CAS 抢占整体只执行一次，否则计数下漂瓦解多实例告警判据。
 	private final @NotNull AtomicBoolean stopped = new AtomicBoolean();
 
+	/**
+	 * @param clientConfig 传入即生效：namesrvAddr/namespace/instanceName 等路由/身份字段透传给
+	 *                     内部 producer（见 {@link ClientConfigs}），未列字段可经 {@link #getProducer()} 设置。
+	 */
 	public Producer(@NotNull Application zeze, @NotNull String producerGroup, @NotNull ClientConfig clientConfig) {
 		boolean initialized = false;
 		// 计数先于一切初始化：构造中途失败（finally 归还）不留僵尸计数。
@@ -89,7 +93,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			this.zeze = zeze;
 			RegisterZezeTables(zeze);
 			producer = new TransactionMQProducer(producerGroup);
-			producer.setNamesrvAddr(clientConfig.getNamesrvAddr()); // "127.0.0.1:9876"
+			ClientConfigs.copyRoutingIdentity(clientConfig, producer);
 			producer.setTransactionListener(this);
 			// 自建回查线程池保留引用：destroyTransactionEnv 只对它 shutdown() 不等待，stop 需自行有界排空。
 			checkExecutor = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2000),

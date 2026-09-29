@@ -70,10 +70,14 @@ public class Consumer {
 	public final @NotNull Application zeze;
 	private final @NotNull DefaultMQPushConsumer consumer;
 
+	/**
+	 * @param clientConfig 传入即生效：namesrvAddr/namespace/instanceName 等路由/身份字段透传给
+	 *                     内部 consumer（见 {@link ClientConfigs}），未列字段可经 {@link #getConsumer()} 设置。
+	 */
 	public Consumer(@NotNull Application zeze, @NotNull String consumerGroup, @NotNull ClientConfig clientConfig) {
 		this.zeze = zeze;
 		consumer = new DefaultMQPushConsumer(consumerGroup);
-		consumer.setNamesrvAddr(clientConfig.getNamesrvAddr());
+		ClientConfigs.copyRoutingIdentity(clientConfig, consumer);
 		consumer.setAwaitTerminationMillisWhenShutdown(STOP_AWAIT_MILLIS);
 	}
 
