@@ -64,8 +64,9 @@ public class Master extends AbstractMaster {
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 	private final Config zezeConfig;
 
-	// splitting年龄观测：周期扫描全部MasterDatabase的splitting条目，
-	// 超龄error告警。只观测不动作（消费必须结构驱动）。形态对齐Dbh2Manager.loadMonitor。
+	// splitting年龄扫描（FND29 dbh2-04升格为回收）：周期扫描全部MasterDatabase的splitting条目，
+	// 超龄且结构判死（世代/INV1）的孤儿条目回收managers侧raft并tombstone；超龄但结构存活的
+	// 只error告警（判死永远结构驱动，防误杀在途split）。形态对齐Dbh2Manager.loadMonitor。
 	private final DaemonTimer splittingAgeMonitor = new DaemonTimer(
 			"Zeze.Dbh2.Master.splittingAge", 60_000, this::scanSplittingAges);
 
@@ -342,6 +343,21 @@ public class Master extends AbstractMaster {
 			if (manager.socket == sender)
 				return manager;
 		return null;
+	}
+
+	// 按注册身份（acceptorName_port，与splitting条目host2Raft的key同构）查manager（FND29
+	// dbh2-04孤儿raft回收用）。master锁内串行（managers为普通ArrayList，对齐findManager的
+	// 调用形态）。
+	public Manager findManagerByIdentity(String managerHostPort) {
+		lock();
+		try {
+			for (var e : managers)
+				if ((e.data.getDbh2RaftAcceptorName() + "_" + e.data.getPort()).equals(managerHostPort))
+					return e;
+			return null;
+		} finally {
+			unlock();
+		}
 	}
 
 	@Override

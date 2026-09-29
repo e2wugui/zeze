@@ -14,12 +14,14 @@ import Zeze.Dbh2.Dbh2Agent;
 import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Net.Rpc;
+import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutObject;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDBException;
 
 /**
@@ -37,9 +39,10 @@ public class MasterDatabase {
 	// tables 包含分桶目标。
 	private final ConcurrentHashMap<String, MasterTable.Data> splitting = new ConcurrentHashMap<>();
 	private final RocksDatabase.Table rocksSplitting;
-	// splitting条目年龄副表：key=tableName+keyFirst→创建时间戳。独立副表
-	// 不动MasterTable.Data手写编码格式（旧数据decode兼容零成本）。只观测不动作：超龄error
-	// 告警（阈值Dbh2Config.SplittingAgeWarnMs，默认10min量级），消费必须结构驱动（INV1）。
+	// splitting条目年龄+世代副表：key=tableName+keyFirst→[创建时间戳,源桶raft身份]。
+	// 独立副表不动MasterTable.Data手写编码格式（旧数据decode兼容零成本）。年龄只做观测与
+	// 回收门槛（阈值Dbh2Config.SplittingAgeWarnMs），判死永远结构驱动（世代/INV1，见
+	// scanSplittingAge）；旧格式仅8字节时间戳（无世代身份，判死退回INV1）。
 	private final RocksDatabase.Table rocksSplittingAge;
 	private final Master master;
 
@@ -487,6 +490,7 @@ public class MasterDatabase {
 		}
 
 		var table = splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
+		BBucketMeta.Data created = null;
 		while (true) {
 			table.lock();
 			try {
@@ -511,11 +515,14 @@ public class MasterDatabase {
 						destroyBucketRafts(managers, bucket, raftNames);
 						throw e;
 					}
-					splittingAgeCreateQuietly(tableName, bucket.getKeyFirst());
+					// 基线（仅时间戳）先立：世代登记需要主表锁（锁序主表→splitting，不能在下方
+					// splitting锁内嵌套取），若登记前崩溃，扫描侧按无身份条目保守处理（仅INV1判据）。
+					splittingAgeWriteQuietly(tableName, bucket.getKeyFirst(), null);
 
 					r.Result = bucket;
 					r.SendResult();
-					return 0;
+					created = bucket;
+					break; // 出循环（splitting锁已释放）后再做世代登记
 				}
 				if (sameBucketMeta(exist, bucket)) {
 					// 桶已经存在。响应丢失/日志截断后manager重试时走这里：必须把已存在的桶
@@ -539,6 +546,11 @@ public class MasterDatabase {
 			// 重建了条目，重查按同四元组resume或再碰撞（真在途则维持拒绝）。每轮不返回即
 			// 必消费一条死信，循环有进展保证。
 		}
+		// 世代登记（FND29 dbh2-04）：记录"谁的孩子"（创建时刻+源桶raft身份），供年龄扫描对
+		// 中位键漂移产生的旧世代孤儿做结构性判死（见isDeadSplittingEntry）。登记失败只记日志
+		// （quietly语义）：无身份条目判死退回INV1，保守不误杀。
+		registerSplittingGeneration(tableName, created);
+		return 0;
 	}
 
 	/**
@@ -602,14 +614,17 @@ public class MasterDatabase {
 	}
 
 	// 观测专用写入：失败只记error不阻断协议路径——年龄基线在下一轮扫描按首扫起点重建。
-	private void splittingAgeCreateQuietly(String tableName, Binary keyFirst) {
+	// sourceRaft非null时写为带世代形态（时间戳+源桶raft身份），null=仅时间戳（基线/旧格式）。
+	private void splittingAgeWriteQuietly(String tableName, Binary keyFirst, @Nullable String sourceRaft) {
 		try {
 			var key = splittingAgeKey(tableName, keyFirst);
-			var bb = ByteBuffer.Allocate(8);
+			var bb = ByteBuffer.Allocate(16 + (null != sourceRaft ? sourceRaft.length() * 2 : 0));
 			bb.WriteLong(System.currentTimeMillis());
+			if (null != sourceRaft)
+				bb.WriteString(sourceRaft);
 			rocksSplittingAge.put(key, 0, key.length, bb.Bytes, 0, bb.WriteIndex);
 		} catch (RocksDBException ex) {
-			logger.error("splittingAgeCreate fail (observation only). database={} table={}", databaseName, tableName, ex);
+			logger.error("splittingAgeWrite fail (observation only). database={} table={}", databaseName, tableName, ex);
 		}
 	}
 
@@ -625,55 +640,233 @@ public class MasterDatabase {
 
 	/** 条目创建时间戳（年龄观测用）；无记录（存量条目未立基线）返回null。 */
 	public Long getSplittingAgeCreateTime(String tableName, Binary keyFirst) {
+		var rec = readSplittingAge(tableName, keyFirst);
+		return null != rec ? rec.createTimeMs() : null;
+	}
+
+	// 年龄+世代记录：[long创建时间戳][WriteString源桶raft身份]；仅8字节=旧格式/纯基线（无世代
+	// 身份，判死退回INV1）。读取失败按无记录处理（下轮扫描重建基线）。
+	private record AgeRecord(long createTimeMs, @Nullable String sourceRaft) {
+	}
+
+	private @Nullable AgeRecord readSplittingAge(String tableName, Binary keyFirst) {
 		try {
-			var ts = rocksSplittingAge.get(splittingAgeKey(tableName, keyFirst));
-			return null != ts ? ByteBuffer.Wrap(ts).ReadLong() : null;
+			var value = rocksSplittingAge.get(splittingAgeKey(tableName, keyFirst));
+			if (null == value)
+				return null;
+			var bb = ByteBuffer.Wrap(value);
+			var ts = bb.ReadLong();
+			return value.length > 8 ? new AgeRecord(ts, bb.ReadString()) : new AgeRecord(ts, null);
 		} catch (RocksDBException ex) {
-			logger.error("getSplittingAgeCreateTime fail. database={} table={}", databaseName, tableName, ex);
+			logger.error("readSplittingAge fail. database={} table={}", databaseName, tableName, ex);
 			return null;
 		}
 	}
 
-	private record AgedEntry(BBucketMeta.Data entry, long ageMs) {
+	// 桶的raft集群身份：raftConfig解析出的sortedNames（库内 raft 身份判据的既有先例：
+	// Dbh2Manager.dbh2s、Dbh2.isSelfReference）。解析失败返回null——无身份不参与世代判死（保守）。
+	private static @Nullable String raftIdentityOf(BBucketMeta.Data bucket) {
+		try {
+			return RaftConfig.loadFromString(bucket.getRaftConfig()).getSortedNames();
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	// 区间包含（keyLast的Empty=+∞，序同compareKeyLast）：inner ⊆ outer。
+	private static boolean rangeContains(Binary outerFirst, Binary outerLast, Binary innerFirst, Binary innerLast) {
+		if (innerFirst.compareTo(outerFirst) < 0)
+			return false;
+		if (outerLast.size() == 0)
+			return true;
+		return innerLast.size() > 0 && innerLast.compareTo(outerLast) <= 0;
+	}
+
+	// 世代登记（FND29 dbh2-04）：年龄记录补写源桶身份（"谁的孩子"）。源桶=主表floor(entry.keyFirst)
+	// 且现行区间完整包含条目区间（创建时刻恒成立；不成立=条目已死或登记过晚，保守不登记——无身份
+	// 条目判死退回INV1）。取主表锁，必须在splitting锁外调用（锁序主表→splitting不可反取）。
+	private void registerSplittingGeneration(String tableName, BBucketMeta.Data entry) {
+		String source = null;
+		var mainTable = tables.get(tableName);
+		if (null != mainTable) {
+			mainTable.lock();
+			try {
+				var floor = mainTable.buckets.floorEntry(entry.getKeyFirst());
+				if (null != floor && rangeContains(floor.getValue().getKeyFirst(), floor.getValue().getKeyLast(),
+						entry.getKeyFirst(), entry.getKeyLast()))
+					source = raftIdentityOf(floor.getValue());
+			} finally {
+				mainTable.unlock();
+			}
+		}
+		if (null != source)
+			splittingAgeWriteQuietly(tableName, entry.getKeyFirst(), source);
+	}
+
+	// 结构判死（FND29 dbh2-04）。判死证据永远结构驱动，年龄只是回收门槛（双保险防误杀在途split）：
+	//  - 有世代身份：源桶（登记的raft身份）的现行主表区间必须完整包含条目区间。主表区间只会
+	//    收窄（INV1），一旦条目区间越出源桶现行区间，源桶任何后续meta都不再覆盖该区间；而条目
+	//    只能由其源桶settle（endSplit/endMove恒来自源桶，且源桶单slot只可能持有最新一次
+	//    createSplitBucket返回的meta）——中位键漂移的旧世代条目结构上不可达=死。源桶raft已不在
+	//    主表（被move替换等）同理必死。
+	//  - 无世代身份（存量/登记失败）：退回INV1判据——floor比条目更窄=更晚的settle已收窄
+	//    （与consumeDeadSplittingOnCollision同判据）。
+	// 调用方须已持该表主表锁。
+	private boolean isDeadSplittingEntry(MasterTable.Data mainTable, BBucketMeta.Data entry,
+										 @Nullable String sourceRaft) {
+		if (null != sourceRaft) {
+			BBucketMeta.Data source = null;
+			for (var b : mainTable.buckets.values())
+				if (sourceRaft.equals(raftIdentityOf(b))) {
+					source = b;
+					break;
+				}
+			return null == source || !rangeContains(source.getKeyFirst(), source.getKeyLast(),
+					entry.getKeyFirst(), entry.getKeyLast());
+		}
+		var floor = mainTable.buckets.floorEntry(entry.getKeyFirst());
+		return null != floor && compareKeyLast(floor.getValue().getKeyLast(), entry.getKeyLast()) < 0;
+	}
+
+	// 孤儿raft回收（FND29 dbh2-04）：对条目host2Raft登记的各manager发DestroyBucket（幂等：
+	// manager侧未建/已销毁都成功，并删除桶目录——目录残留会被Dbh2Manager.start()目录扫描复活；
+	// master的Register应答只含主表桶，孤儿splitting raft不会被registerToMaster对账重建）。
+	// 任一manager未注册/未确认返回false：条目保留（未tombstone），下一轮扫描重试——回收幂等。
+	// 必须在主表/splitting锁外调用（内含30s阻塞rpc）。
+	private boolean destroyOrphanRafts(String tableName, BBucketMeta.Data dead) {
+		var allAcked = true;
+		for (var e : dead.getHost2Raft().entrySet()) {
+			var manager = master.findManagerByIdentity(e.getKey());
+			if (null == manager) {
+				logger.warn("orphan splitting raft recycle: manager not registered, keep entry for retry."
+								+ " database={} table={} manager={} raftName={}",
+						databaseName, tableName, e.getKey(), e.getValue());
+				allAcked = false;
+				continue;
+			}
+			var r = new DestroyBucket();
+			r.Argument.assign(dead);
+			// host2Raft.value是该manager侧的raftName，配置内占位符按它替换（对齐destroyBucketRafts）。
+			r.Argument.setRaftConfig(dead.getRaftConfig().replace("RaftName", e.getValue()));
+			try {
+				r.SendForWait(manager.socket, 30_000).await();
+				if (r.getResultCode() != 0) {
+					logger.error("orphan splitting raft recycle: DestroyBucket fail. database={} table={}"
+									+ " manager={} raftName={} rc={}",
+							databaseName, tableName, e.getKey(), e.getValue(), IModule.getErrorCode(r.getResultCode()));
+					allAcked = false;
+				}
+			} catch (Exception ex) {
+				logger.error("orphan splitting raft recycle: DestroyBucket await fail. database={} table={}"
+								+ " manager={} raftName={}",
+						databaseName, tableName, e.getKey(), e.getValue(), ex);
+				allAcked = false;
+			}
+		}
+		return allAcked;
+	}
+
+	private record AgedEntry(BBucketMeta.Data entry, long ageMs, @Nullable String sourceRaft) {
+	}
+
+	// 首扫无记录的存量条目：锁内立时间戳基线，锁外（需主表锁）补世代登记。
+	private record MissingBaseline(String tableName, BBucketMeta.Data entry) {
+	}
+
+	// 超龄孤儿的回收（FND29 dbh2-04，年龄扫描从只观测升格）：快照判死（主表锁内）→ 锁外
+	// destroyOrphanRafts回收managers侧raft（幂等，任一manager未确认即保留条目下轮重试）→
+	// 两阶段（主表→splitting，对齐consumeDeadSplittingOnCollision锁序）锁内复核判死后
+	// tombstone条目。判死不成立/false路径不动作，由调用方按只观测告警。
+	private boolean recycleDeadSplitting(String tableName, AgedEntry a) {
+		var mainTable = tables.get(tableName);
+		if (null == mainTable)
+			return false;
+		mainTable.lock();
+		try {
+			if (!isDeadSplittingEntry(mainTable, a.entry(), a.sourceRaft()))
+				return false;
+		} finally {
+			mainTable.unlock();
+		}
+		logger.error("splitting entry aged ({}ms >= {}ms) and structurally dead, recycle. database={} table={} entry={}",
+				a.ageMs(), master.getDbh2Config().getSplittingAgeWarnMs(), databaseName, tableName, a.entry());
+		// 先回收raft再tombstone：manager未确认时条目必须保留，作为下一轮扫描重试的驱动。
+		if (!destroyOrphanRafts(tableName, a.entry()))
+			return false;
+		var splittingTable = splitting.get(tableName);
+		if (null == splittingTable)
+			return true; // 表条目已被并发清空：目标态已达成（幂等）
+		mainTable.lock();
+		try {
+			splittingTable.lock();
+			try {
+				var exist = splittingTable.buckets.get(a.entry().getKeyFirst());
+				if (null == exist || !sameBucketMeta(exist, a.entry()))
+					return true; // 已被并发settle/消费/重建：幂等达成
+				if (!isDeadSplittingEntry(mainTable, exist, a.sourceRaft()))
+					return false; // 复核不通过：保守放弃本轮，条目保留
+				try {
+					splittingTable.buckets.remove(a.entry().getKeyFirst());
+					saveRocks(rocksSplitting, tableName, splittingTable);
+				} catch (RocksDBException ex) {
+					// 同既有回滚：save失败还原内存（磁盘仍是旧值），重试按未消费语义进行。
+					splittingTable.buckets.put(a.entry().getKeyFirst(), exist);
+					logger.error("recycleDeadSplitting saveRocks fail, keep entry for retry."
+							+ " database={} table={}", databaseName, tableName, ex);
+					return false;
+				}
+			} finally {
+				splittingTable.unlock();
+			}
+		} finally {
+			mainTable.unlock();
+		}
+		splittingAgeRemoveQuietly(tableName, a.entry().getKeyFirst());
+		return true;
 	}
 
 	/**
-	 * splitting年龄扫描：超龄（≥SplittingAgeWarnMs）条目error告警
-	 * （含条目与源桶信息），返回告警条数。**只观测不动作**——观测可时间驱动，消费必须
-	 * 结构驱动；无时间戳的存量条目按首次扫描起点起算（首扫只立基线不告警）。
-	 * 告警取源桶信息需读主表floor：锁序主表→splitting，故在splitting锁外逐条取主表锁
-	 * （splitting锁内嵌套取主表锁违反锁序）；条目为锁内copy快照，与消费并发时最多告警
-	 * 一条已消失的条目（观测无害）。
+	 * splitting年龄扫描+孤儿回收（FND29 dbh2-04升格：原只观测）：
+	 *  - 超龄且**结构判死**（世代/INV1双保险，isDeadSplittingEntry）：destroyOrphanRafts回收
+	 *    managers侧孤儿raft（gracefulStop+删目录）后tombstone条目；manager未确认则保留条目
+	 *    下轮重试（回收幂等）。
+	 *  - 超龄但结构存活（典型：超大桶在途拷贝可超过任何阈值）**只告警不动作**——判死永远结构
+	 *    驱动，年龄仅是回收门槛（阈值不变：SplittingAgeWarnMs，默认10min量级）。
+	 *  - 无时间戳的存量条目按首次扫描起点立基线（首扫只立基线不告警），基线同轮补登记世代身份。
+	 * 返回超龄条数（告警+回收）。
+	 * 锁序：splitting锁内取条目快照；主表锁、世代登记与回收动作（含rpc）均在splitting锁外。
 	 */
 	public int scanSplittingAge() {
 		var now = System.currentTimeMillis();
 		var warnMs = master.getDbh2Config().getSplittingAgeWarnMs();
 		var aged = new ArrayList<AgedEntry>();
-		try {
-			for (var e : splitting.entrySet()) {
-				var tableName = e.getKey();
-				var splittingTable = e.getValue();
-				splittingTable.lock(); // 与settle/createSplitBucket/死信消费的splitting写互斥
-				try {
-					for (var b : splittingTable.buckets.entrySet()) {
-						var keyFirst = b.getKey();
-						var ts = rocksSplittingAge.get(splittingAgeKey(tableName, keyFirst));
-						if (null == ts) {
-							splittingAgeCreateQuietly(tableName, keyFirst); // 存量条目：首扫起点起算
-							continue;
-						}
-						var ageMs = now - ByteBuffer.Wrap(ts).ReadLong();
-						if (ageMs >= warnMs)
-							aged.add(new AgedEntry(b.getValue().copy(), ageMs));
+		var baselines = new ArrayList<MissingBaseline>();
+		for (var e : splitting.entrySet()) {
+			var tableName = e.getKey();
+			var splittingTable = e.getValue();
+			splittingTable.lock(); // 与settle/createSplitBucket/死信消费的splitting写互斥
+			try {
+				for (var b : splittingTable.buckets.entrySet()) {
+					var keyFirst = b.getKey();
+					var rec = readSplittingAge(tableName, keyFirst);
+					if (null == rec) {
+						splittingAgeWriteQuietly(tableName, keyFirst, null); // 先立时间戳基线（防登记前崩溃）
+						baselines.add(new MissingBaseline(tableName, b.getValue().copy()));
+						continue;
 					}
-				} finally {
-					splittingTable.unlock();
+					var ageMs = now - rec.createTimeMs();
+					if (ageMs >= warnMs)
+						aged.add(new AgedEntry(b.getValue().copy(), ageMs, rec.sourceRaft()));
 				}
+			} finally {
+				splittingTable.unlock();
 			}
-		} catch (RocksDBException ex) {
-			logger.error("scanSplittingAge fail. database={}", databaseName, ex);
 		}
+		for (var m : baselines)
+			registerSplittingGeneration(m.tableName(), m.entry());
 		for (var a : aged) {
+			if (recycleDeadSplitting(a.entry().getTableName(), a))
+				continue;
 			BBucketMeta.Data source = null;
 			var mainTable = tables.get(a.entry().getTableName());
 			if (null != mainTable) {
