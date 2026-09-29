@@ -100,6 +100,11 @@ public class FileSessionManager {
 	 * 与绑定记录的创建时快照——SessionAll 构造时一次性快照，扩容/故障恢复上台后复用旧会话
 	 * =新服务器永不纳入、全服视图静默缺数；键集不一致视同 changeSession 走关旧建新。
 	 * 单服务器视图无集合语义，不比对。</p>
+	 *
+	 * <p>全服视图零服务器显式失败：服务发现空集（启动窗口/SM 分区/全部日志服务器下线）时
+	 * newSessionAll 会构造出 0 成员会话并成功返回空结果——空 BResult.Data 在前端语义是
+	 * "查完无匹配"，与"一个查询目标都没有"不可混淆。空集时抛错，走 HTTP 层既有错误承载
+	 * （BaseResponse status=500，前端按 desc 报错），见下方重建路径的卫语句。</p>
 	 */
 	public static Object resolve(LogAgent logAgent, SocketAddress socketAddress, boolean changeSession,
 								 boolean requestAll, String serverName, String logName) throws Exception {
@@ -112,6 +117,15 @@ public class FileSessionManager {
 			// 由换绑方的替换关闭收口（既有"替换关闭的竞态"裁量）。
 			map.replace(getIP(socketAddress), bound, bound.touched(System.nanoTime()));
 			return bound.session();
+		}
+		// 全服视图零服务器卫语句：空集下 newSessionAll 零异常构造 0 成员会话、operate 零 future
+		// 返回空 BResult.Data，HTTP 层包装成成功应答——"基础设施未就绪"被误分类为"查完无数据"。
+		// 对齐同体系既有语义边界（SessionAll.operate 全败必抛："空结果≠失败"），空成员集必须显式
+		// 失败。复用路径无需同查：键集漂移比对已把"快照非空、当前空集"导向本重建路径。
+		// 单服务器视图不查：newSession 对未知服务器本就失败（有明确错误），无静默面。
+		if (requestAll && logAgent.getLogServers().isEmpty()) {
+			logger.warn("all-servers view rejected: no log server registered (service discovery empty). logName={}", logName);
+			throw new IllegalStateException("no log server registered for all-servers view (service discovery empty)");
 		}
 		var session = requestAll
 				? logAgent.newSessionAll(logName)
