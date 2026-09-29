@@ -36,6 +36,9 @@ test.ks
 /ZezeJavaTest/CommitOnzServer*
 /ZezeJavaTest/CommitRocks*
 /ZezeJavaTest/autokeys2
+# 测试想写 %TEMP%\junit-xxx 但含中文用户名的绝对路径被拼坏成相对路径，落到本目录：
+# 形如 Users<User>AppDataLocalTempjunit-<n>.../ 的 rocksdb 残留。
+/ZezeJavaTest/Users*AppDataLocalTemp*
 /ZezeJavaTest/dbh2TestSimple
 /ZezeJavaTest/DiffLockAndNoLock
 /ZezeJavaTest/hot/distributes
