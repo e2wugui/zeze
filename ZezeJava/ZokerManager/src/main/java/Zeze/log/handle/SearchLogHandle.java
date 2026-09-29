@@ -68,6 +68,16 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 			// 记得置 changeSession，服务端空闲回收后的死会话不再恒 system error。
 			SocketAddress socketAddress = x.channel().remoteAddress();
 			if (serverName != null && !serverName.trim().isEmpty()) {
+				// 单服务器名注册表预校验（对称 /api/query 的 LogAgent.query 显式判空）：未注册
+				// （构造API/注册竞态/已被SM摘除）的名字透传到 Session 的裸解引用是 NPE——无信息、
+				// 不满足会话级判别不自愈，恒 system error 且续页期绑定滞留 2h。归一 trim 后比对，
+				// 未知名入口即拒：明确 errorResult，不建/复用会话。
+				serverName = serverName.trim();
+				if (!logAgent.getLogServers().contains(serverName)) {
+					x.sendJson(HttpResponseStatus.OK,
+							Json.toCompactString(BaseResponse.errorResult("unknown log server: " + serverName)));
+					return;
+				}
 				BResult.Data data = FileSessionManager.operateRecovering(logAgent, socketAddress,
 						searchLogParam.isChangeSession(), false, serverName, logName,
 						session -> {

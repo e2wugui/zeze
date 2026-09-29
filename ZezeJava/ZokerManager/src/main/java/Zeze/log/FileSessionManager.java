@@ -134,8 +134,17 @@ public class FileSessionManager {
 								 boolean requestAll, String serverName, String logName) throws Exception {
 		maybeSweepIdleBindings();
 		var bound = get(socketAddress);
+		// 复用前置校验——绑定的查询目标必须仍在注册表（FND31 zokermanager-02 续页期摘册）：
+		// 单服务器视图下绑定的服务器被 SM 摘除（Client.onSmRemoved 移除 Connector）后，
+		// matches 三元组恒命中、死绑定恒复用，Session 内对已摘册名的失败每页必现直到 2h
+		// 闲置清扫，滞留绑定的服务端会话句柄不被释放——摘册即视同 changeSession 走重建
+		// （重建对未注册名显式失败，错误可见且不再滞留死绑定复用）。全服视图的摘册收敛
+		// （多余成员重建缩容/缺失成员补员）既有 allViewMembersConverged 承担。
+		var reuseConverged = bound == null || (bound.all()
+				? allViewMembersConverged(logAgent, bound)
+				: logAgent.getLogServers().contains(serverName));
 		if (!changeSession && bound != null && bound.matches(requestAll, serverName, logName)
-				&& (!bound.all() || allViewMembersConverged(logAgent, bound))) {
+				&& reuseConverged) {
 			// 复用命中刷新活跃时间：条件 replace 只在条目仍是同一绑定时生效——并发 resolve
 			// 已换绑（changeSession/参数变化/键集漂移重建）时不回写旧绑定覆盖新会话；本次返回的旧会话
 			// 由换绑方的替换关闭收口（既有"替换关闭的竞态"裁量）。

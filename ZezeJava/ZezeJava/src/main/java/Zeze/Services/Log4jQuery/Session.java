@@ -30,6 +30,19 @@ public class Session implements AutoCloseable {
 		return serverName;
 	}
 
+	/**
+	 * 目标日志服务器就绪 socket：未注册的 serverName（构造期未知名/运行期被 SM 摘除，
+	 * {@code __getLogServer} 的动态表未命中返回 null）裸解引用是无信息 NPE 且调用方
+	 * 不可自愈（NPE 不满足会话级判别，绑定不重建）——对齐 {@link LogAgent#query} 对
+	 * 同一张表的显式判空：抛带名字的 IllegalArgumentException。
+	 */
+	private Zeze.Net.AsyncSocket readySocket() {
+		var connector = agent.__getLogServer(serverName);
+		if (connector == null)
+			throw new IllegalArgumentException("unknown log server: " + serverName);
+		return connector.GetReadySocket();
+	}
+
 	public Session(LogAgent agent, String serverName, String logName) {
 		this.agent = agent;
 		this.serverName = serverName;
@@ -37,7 +50,7 @@ public class Session implements AutoCloseable {
 		r.Argument.setLogName(logName);
 		// 与browse/search/close同宽60s：服务端NewSession含惰性清理（逐会话锁）与索引装载等重活，
 		// 默认5s在多会话/慢盘下超时即建会话失败。
-		r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000).await();
+		r.SendForWait(readySocket(), 60_000).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("error " + r.getResultCode());
 		sessionId = r.Result.getId();
@@ -46,14 +59,14 @@ public class Session implements AutoCloseable {
 	public TaskCompletionSource<BResult.Data> search(int limit, boolean reset,
 													 BCondition.Data condition) {
 		var r = new Search(new BSearch.Data(sessionId, limit, reset, condition));
-		return checkResultCode(r, r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000));
+		return checkResultCode(r, r.SendForWait(readySocket(), 60_000));
 	}
 
 	public TaskCompletionSource<BResult.Data> browse(int limit, float offsetFactor, boolean reset,
 													 BCondition.Data condition) {
 		var r = new Browse(new BBrowse.Data(sessionId, limit, offsetFactor, reset, condition));
 		// 服务端扫描量级与search相同（beginTime=-1或索引缺失时全量线性扫），不能用RPC默认5s。
-		return checkResultCode(r, r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000));
+		return checkResultCode(r, r.SendForWait(readySocket(), 60_000));
 	}
 
 	/**
@@ -143,7 +156,7 @@ public class Session implements AutoCloseable {
 		var r = new CloseSession();
 		// 与browse/search同宽60s：服务端关会话含逐个RAF关闭，默认5s在
 		// 多会话/慢盘下超时即泄漏（服务端会话无过期回收前的唯一出口）。
-		r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000).await();
+		r.SendForWait(readySocket(), 60_000).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("close session error " + r.getResultCode());
 	}
