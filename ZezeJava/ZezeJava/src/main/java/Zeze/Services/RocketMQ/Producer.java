@@ -91,11 +91,15 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	 */
 	public Producer(@NotNull Application zeze, @NotNull String producerGroup, @NotNull ClientConfig clientConfig) {
 		boolean initialized = false;
+		// 注册成功标记：失败回滚只反注册自己成功注册过的表——RegisterZezeTables自身抛出
+		//（duplicate table，注册未发生）时反注册会摘掉注册者的活表（removeTable按id/name删）。
+		boolean registered = false;
 		// 计数先于一切初始化：构造中途失败（finally 归还）不留僵尸计数。
 		liveInstances.incrementAndGet();
 		try {
 			this.zeze = zeze;
 			RegisterZezeTables(zeze);
+			registered = true;
 			producer = new TransactionMQProducer(producerGroup);
 			ClientConfigs.copyRoutingIdentity(clientConfig, producer);
 			producer.setTransactionListener(this);
@@ -110,8 +114,22 @@ public class Producer extends AbstractProducer implements TransactionListener {
 						+ " concurrent live instances route broker transaction-checks across local tSent tables"
 						+ " (UNKNOW -> half-message drop); ensure single live instance per producerGroup per"
 						+ " process/machine (see class javadoc)", liveInstances.get(), producerGroup);
-			if (!initialized)
+			if (!initialized) {
 				liveInstances.decrementAndGet(); // 构造失败归还计数
+				// 表注册回滚（构造侧半边，与stop侧反注册同一配对不变量）：注册之后、initialized
+				// 之前的失败（如copyRoutingIdentity对问题clientConfig的异常）只归还计数的话，tSent
+				// 残留Application注册表且半构造对象不可达——无人再为它调stop()/反注册，同一
+				// Application重建必撞duplicate table（addTable表id查重），本app的事务消息能力
+				// 不可恢复。反注册自身的失败只记日志，不得吞换正在传播的原始异常。
+				if (registered) {
+					try {
+						UnRegisterZezeTables(zeze);
+					} catch (Throwable t) {
+						logger.error("RocketMQ.Producer ctor rollback UnRegisterZezeTables fail."
+								+ " producerGroup={}", producerGroup, t);
+					}
+				}
+			}
 		}
 	}
 
@@ -152,7 +170,14 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			Thread.currentThread().interrupt();
 		}
 		// 在飞回查排空后反注册并关闭 tSent（与构造器注册成对；removeTable 幂等，补调无害）。
-		UnRegisterZezeTables(zeze);
+		// 反注册包try/catch（构造侧回滚同族）：getDatabase对不存在的库名抛IllegalStateException等
+		// 不得跳过下方计数递减——计数上漂瓦解多实例告警判据，与丢表同属配对不完整。
+		try {
+			UnRegisterZezeTables(zeze);
+		} catch (Throwable t) {
+			logger.error("RocketMQ.Producer stop UnRegisterZezeTables fail. producerGroup="
+					+ producer.getProducerGroup(), t);
+		}
 		// 完全停止后递减活实例计数：告警面与生命周期配对。递减与全部停机动作同处
 		// stopped CAS 抢占之内，重复 stop 计数只递减一次。
 		liveInstances.decrementAndGet();
