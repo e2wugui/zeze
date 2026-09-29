@@ -54,6 +54,16 @@ public class TestDynamicFamilyStableTieBreak {
 		return v;
 	}
 
+	private static BVariable.Data gtableVar(String name) {
+		var v = new BVariable.Data();
+		v.setId(1);
+		v.setName(name);
+		v.setType("gtable");
+		v.setKey("string,string");
+		v.setValue("dynamic");
+		return v;
+	}
+
 	private static String whereOf(Class<?> host, String varName) {
 		return host.getName() + '#' + varName;
 	}
@@ -96,5 +106,37 @@ public class TestDynamicFamilyStableTieBreak {
 		assertEquals(whereOf(HostAlpha.class, "managers"),
 				result.list2Dynamic.values().iterator().next().where,
 				"list 家族胜者同样=where字典序最小者");
+	}
+
+	// gtable 外层 pmapMeta（FND26 H/M-1 + FND27 H1，外层收口）：同 (rowClass,colClass) 的
+	// dynamic gtable 变量外层 typeId 相同而 valueCtor 各异——修复前走 map2Metas 的 HashSet
+	// 身份序+Log.register 先到先得，胜者跨 JVM/重启翻转（回放解码工厂非确定）。修复后按
+	// 来源名字典序决胜，后到更小者必须替换占位者。
+	@Test
+	public void testOuterGTableMetaStableTieBreak() throws Exception {
+		var result = new Helper.DependsResult();
+		Helper.dependsGTable(HostZulu.class, gtableVar("items"), "string", "string", "dynamic", result);
+		assertEquals(1, result.map2MetasDynamic.size());
+		Helper.dependsGTable(HostAlpha.class, gtableVar("managers"), "string", "string", "dynamic", result);
+
+		assertEquals(1, result.map2MetasDynamic.size(), "同(row,col)冲突仍收敛到单一外层meta");
+		assertEquals(whereOf(HostAlpha.class, "managers"),
+				result.map2MetasDynamic.values().iterator().next().where,
+				"外层胜者=where字典序最小者：后到更小者必须翻转替换占位者（与到达顺序无关）");
+		// 冲突键不串桶：不同(row,col)各自独立决胜（外层typeId按(row,col)分桶）。
+		Helper.dependsGTable(HostAlpha.class, gtableVar("managers"), "string", "long", "dynamic", result);
+		assertEquals(2, result.map2MetasDynamic.size(), "不同(row,col)键互不冲突");
+	}
+
+	// 外层meta到达序无关性（外层收口的契约本体）：反序注册收敛到同一终胜者。
+	@Test
+	public void testOuterGTableMetaWinnerIndependentOfArrivalOrder() throws Exception {
+		var reversed = new Helper.DependsResult();
+		Helper.dependsGTable(HostAlpha.class, gtableVar("managers"), "string", "string", "dynamic", reversed);
+		Helper.dependsGTable(HostZulu.class, gtableVar("items"), "string", "string", "dynamic", reversed);
+
+		assertEquals(whereOf(HostAlpha.class, "managers"),
+				reversed.map2MetasDynamic.values().iterator().next().where,
+				"反序到达的外层终胜者必须与正序相同（argmin(where) 与到达序无关）");
 	}
 }

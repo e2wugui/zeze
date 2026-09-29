@@ -77,6 +77,17 @@ public class Helper {
 		}
 	}
 
+	/** dynamic外层pmapMeta家族登记项：外层meta+来源（宿主bean类#变量名），供同typeId决胜。 */
+	public static final class DynamicMetaFamily {
+		public final Map2Meta<?, ? extends Bean> meta;
+		public final String where;
+
+		DynamicMetaFamily(@NotNull Map2Meta<?, ? extends Bean> meta, @NotNull String where) {
+			this.meta = meta;
+			this.where = where;
+		}
+	}
+
 	public static class DependsResult {
 		public final HashSet<Class<?>> allBeans = new HashSet<>();
 		public final HashSet<Class<? extends Bean>> beans = new HashSet<>();
@@ -92,6 +103,13 @@ public class Helper {
 		public final HashMap<KV<Class<?>, Class<? extends Bean>>, DynamicFamily> map2Dynamic = new HashMap<>();
 		public final HashSet<Map1Meta<?, ?>> map1Metas = new HashSet<>();
 		public final HashSet<Map2Meta<?, ? extends Bean>> map2Metas = new HashSet<>();
+		// dynamic GTable 外层 pmapMeta 按决胜键登记（hist-01 外层收口，FND26/FND27 两波独立发现）：
+		// 外层 typeId 的值身份固定 DynamicBean（GTable2 动态工厂路径），同 (rowClass,colClass) 的
+		// 多个 dynamic gtable 变量产生 typeId 相同、valueCtor（各自家族 create 闭包）不同的
+		// pmapMeta——若走 map2Metas 的 HashSet 身份序注册，Log.register 的 putIfAbsent 先到先得
+		// 使胜者随 JVM 运行变化（identityHashCode 桶序），回放解码工厂跨重启翻转。同型于
+		// map2Dynamic 的 (keyClass,DynamicBean) 决胜，键补齐外层维度 (rowClass,colClass)。
+		public final HashMap<KV<Class<?>, Class<?>>, DynamicMetaFamily> map2MetasDynamic = new HashMap<>();
 		public final HashSet<Class<?>> set1 = new HashSet<>();
 		public final HashSet<KV<Class<? extends Comparable<?>>, Class<?>>> sortedMap1 = new HashSet<>();
 		public final HashSet<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>> sortedMap2 = new HashSet<>();
@@ -123,25 +141,30 @@ public class Helper {
 			registerLogList1(list1Class);
 		for (var list2Class : result.list2)
 			registerLogList2(list2Class);
-		for (var e : sortedDynamic(result.list2Dynamic))
+		for (var e : sortedDynamic(result.list2Dynamic, f -> f.where))
 			registerLogList2Dynamic(e.getValue().factories.getKey(), e.getValue().factories.getValue());
 		for (var map1KV : result.map1)
 			registerLogMap1(map1KV.getKey(), map1KV.getValue());
 		for (var map2KV : result.map2)
 			registerLogMap2(map2KV.getKey(), map2KV.getValue());
-		for (var e : sortedDynamic(result.map2Dynamic))
+		for (var e : sortedDynamic(result.map2Dynamic, f -> f.where))
 			registerLogMap2Dynamic(e.getKey().getKey(), e.getValue().factories.getKey(), e.getValue().factories.getValue());
 		for (var meta : result.map1Metas)
 			registerLogMap1Meta(meta);
 		for (var meta : result.map2Metas)
 			registerLogMap2Meta(meta);
+		// dynamic外层pmapMeta在普通map2Metas之后按确定序注册（hist-01外层收口）：位置固定+
+		// where排序使注册终态与注册顺序都是schema的纯函数（跨key typeId哈希碰撞也由where序
+		// 决出唯一胜者，与内层sortedDynamic同口径）。
+		for (var e : sortedDynamic(result.map2MetasDynamic, f -> f.where))
+			registerLogMap2Meta(e.getValue().meta);
 		for (var set1Class : result.set1)
 			registerLogSet1(set1Class);
 		for (var kv : result.sortedMap1)
 			registerLogSortedMap1((Class<? extends Comparable>)kv.getKey(), kv.getValue());
 		for (var kv : result.sortedMap2)
 			registerLogSortedMap2((Class<? extends Comparable>)kv.getKey(), kv.getValue());
-		for (var e : sortedDynamic(result.sortedMap2Dynamic)) {
+		for (var e : sortedDynamic(result.sortedMap2Dynamic, f -> f.where)) {
 			registerLogSortedMap2Dynamic((Class<? extends Comparable>)e.getKey().getKey(),
 					e.getValue().factories.getKey(), e.getValue().factories.getValue());
 		}
@@ -283,11 +306,39 @@ public class Helper {
 	// （字典序小者胜），本遍历只是按确定顺序注册各key的终胜者：同key胜者唯一；跨key的typeId
 	// 互异（map/sortedMap按keyClass分桶，list全局唯一哨兵键），即使typeId发生跨key哈希碰撞，
 	// 胜者也由where序决定——注册表终态与注册顺序都是schema的纯函数，跨JVM/重启恒定可复现。
-	private static <K> ArrayList<Map.Entry<K, DynamicFamily>> sortedDynamic(
-			@NotNull HashMap<K, DynamicFamily> families) {
-		var list = new ArrayList<Map.Entry<K, DynamicFamily>>(families.entrySet());
-		list.sort(Comparator.comparing(e -> e.getValue().where));
+	// dynamic外层pmapMeta（map2MetasDynamic）同口径接入（hist-01外层收口）：外层typeId按
+	// (rowClass,colClass)分桶、值身份固定DynamicBean，同桶多家族由where决胜，与内层三容器
+	// 共享本遍历的确定序保证。
+	private static <K, F> ArrayList<Map.Entry<K, F>> sortedDynamic(
+			@NotNull HashMap<K, F> families, @NotNull java.util.function.Function<F, String> where) {
+		var list = new ArrayList<Map.Entry<K, F>>(families.entrySet());
+		list.sort(Comparator.comparing(e -> where.apply(e.getValue())));
 		return list;
+	}
+
+	// dynamic外层pmapMeta决胜（hist-01外层收口，FND26 H/M-1 + FND27 H1）：与putDynamicFamily
+	// 同型——同(rowClass,colClass)键的外层pmapMeta按家族来源名字典序稳定决胜，小者胜，败者warn
+	// 留痕。此前外层走map2Metas的HashSet身份序+Log.register先到先得：胜者随JVM运行翻转，
+	// 回放端解码外层LogMap2的行物化工厂跨重启非确定（Bean:id重叠静默解错bean、不重叠毒卡
+	// 游标），且两meta同名连warn都没有。ROOT方案（外层typeId含家族身份，需Gen+全量重生成，
+	// 会改logTypeId使存量tHistory不可解码）另立专项；本收口先消灭"胜者挑选的非确定性"与
+	// 检测面缺失，使回放成为schema的纯函数。
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	private static void putDynamicOuterMeta(@NotNull HashMap families, @NotNull Object key,
+											@NotNull Map2Meta<?, ? extends Bean> meta, @NotNull String where) {
+		var family = new DynamicMetaFamily(meta, where);
+		var exist = (DynamicMetaFamily)families.putIfAbsent(key, family);
+		if (exist == null || exist.meta == meta)
+			return; // 首个家族，或同meta重复登记：无冲突
+		var keep = exist.where.compareTo(where) <= 0 ? exist : family;
+		var drop = keep == exist ? family : exist;
+		if (keep != exist)
+			families.put(key, keep);
+		logger.warn("dynamic gtable outer meta dropped: same log typeId with different value factory."
+				+ " keep={} drop={} key=({},{})。胜者按家族来源名字典序稳定决胜（跨进程恒定，"
+				+ "不由注册顺序决定）；回放端按胜者家族的工厂物化外层行，显式Bean:id编号重叠时"
+				+ "将静默解出错误类型的bean（FND8-30）",
+				keep.where, drop.where, ((KV)key).getKey(), ((KV)key).getValue());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -373,7 +424,10 @@ public class Helper {
 			// 先取每变量的get/create工厂，再经dynamic重载构建（三参版对DynamicBean必抛：无无参构造器）。
 			var family = newDynamicFamily(beanClass, v);
 			var factory = GTable2.getFactory(key1Class, key2Class, family.factories.getKey(), family.factories.getValue());
-			result.map2Metas.add(factory.getPmapMeta());
+			// 外层pmapMeta走决胜登记（hist-01外层收口）：不进map2Metas——其HashSet身份序使
+			// 同(row,col)多dynamic变量的胜者跨JVM翻转（见DependsResult.map2MetasDynamic注释）。
+			putDynamicOuterMeta(result.map2MetasDynamic, KV.create(key1Class, key2Class),
+					factory.getPmapMeta(), family.where);
 			putDynamicFamily(result.map2Dynamic, KV.create(key2Class, (Class<? extends Bean>)valueClass), beanClass, v);
 		} else {
 			var factory = GTable1.getFactory(key1Class, key2Class, valueClass);

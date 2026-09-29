@@ -65,12 +65,14 @@ public class TestGTableDynamicGen {
 		var result = new Helper.DependsResult();
 		assertDoesNotThrow(() -> Helper.dependsGTable(BValue.class, v, "int", "int", "dynamic", result),
 				"dependsGTable必须经生成三件套解析dynamic家族");
-		assertTrue(result.map2Metas.size() >= 1, "外层pmapMeta必须收集（registerAllTableLogs注册原料）");
+		// hist-01外层收口：外层pmapMeta改走map2MetasDynamic决胜登记（registerAllTableLogs按
+		// where确定序注册终胜者，不再进map2Metas的HashSet身份序）。
+		assertEquals(1, result.map2MetasDynamic.size(), "外层pmapMeta必须收集（决胜结构，注册原料）");
 		assertEquals(1, result.map2Dynamic.size(), "dynamic家族按(keyClass,DynamicBean)登记");
 
 		// 外层meta必须走coll-01根治路径：name含GTable2家族前缀与完整身份（int,int,DynamicBean），
 		// 与三参版真实bean身份分流
-		var outer = result.map2Metas.iterator().next();
+		var outer = result.map2MetasDynamic.values().iterator().next().meta;
 		Assertions.assertTrue(outer.name.startsWith("GTable2:"),
 				"外层name必须用GTable2专用家族头，实际=" + outer.name);
 		Assertions.assertTrue(outer.name.endsWith("int, " + "Zeze.Transaction.DynamicBean"),

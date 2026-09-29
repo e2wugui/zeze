@@ -121,7 +121,9 @@ public class TestGTable2Dynamic {
 		var result = new Helper.DependsResult();
 		assertDoesNotThrow(() -> Helper.dependsGTable(HostG.class, v, "string", "long", "dynamic", result),
 				"dependsGTable对dynamic值不得再抛（原实现三参版getFactory必抛）");
-		assertTrue(result.map2Metas.size() >= 1, "pmapMeta必须注册");
+		// hist-01外层收口：外层pmapMeta改走map2MetasDynamic决胜登记（不再进map2Metas的
+		// HashSet身份序——同(row,col)多dynamic变量胜者跨JVM翻转）。
+		assertEquals(1, result.map2MetasDynamic.size(), "外层pmapMeta必须登记（决胜结构）");
 		assertEquals(1, result.map2Dynamic.size(), "dynamic家族按(keyClass,DynamicBean)登记");
 	}
 }
