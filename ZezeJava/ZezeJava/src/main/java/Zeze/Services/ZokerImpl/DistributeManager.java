@@ -406,7 +406,8 @@ public class DistributeManager {
 	 * 判同"的位置（保留字碰撞 {@link #isReservedVersionName}、现役保护 pruneVersions、
 	 * 指针规范化 commitLocked、commitLocks 键、ServiceManager 的 opsLocks/processes 记账键
 	 * （serviceKey 单点）、files/filesBySocket 记账键（fileKey 单点，FND26 zoker-02）、
-	 * barrier 前缀比对的段折叠 {@link #foldBarrierPath}）必须统一用本折叠，
+	 * barrier 前缀比对的段折叠 {@link #foldBarrierPath}、清单残留清理判同
+	 * pruneUnlistedFiles（FND29 zoker-01））必须统一用本折叠，
 	 * 不得裸 equals/裸 toLowerCase——分叉即互斥面击穿或现役目录落入清理面。
 	 * Linux（大小写敏感 FS）上折叠会把 "V1"/"v1" 判同——过度保护（多保一个目录）与
 	 * commitLocks 键的过度串行化同款裁量：版本清理非正确性路径、commit 非热路径，可接受。
@@ -661,16 +662,25 @@ public class DistributeManager {
 	/**
 	 * 清退清单外残留（zoker-05）：barrier+closeUnder 已收殓在途句柄（在途未验证中间产物
 	 * 已被 closeUnder 删除），剩余未列文件=前次中断部署的残留——删除使版本内容=清单声明的
-	 * 精确集合（残留混入即新旧混合的部分集合形态）。删除失败仅warn（该残留将随目录成版，
-	 * 回到部分集合形态，靠warn暴露人工处置）；空子目录不递归清理（无消费者，无害）。
+	 * 精确集合（残留混入即新旧混合的部分集合形态）。判同（清单行 vs walk路径）两侧
+	 * 拼写不同源（上传侧 vs 提交侧+盘上实际名），统一过 {@link #foldBarrierPath} 段折叠
+	 * ——变体拼写不折叠即已列文件落入清理面（FND29 zoker-01）。删除失败仅warn（该残留
+	 * 将随目录成版，回到部分集合形态，靠warn暴露人工处置）；空子目录不递归清理（无消费者，无害）。
 	 */
 	private void pruneUnlistedFiles(File serviceFrom, Set<String> listed) {
 		var root = distributeDir.toPath().toAbsolutePath().normalize();
-		var manifestRel = serviceFrom.getName() + "/" + DISTRIBUTE_MANIFEST_NAME;
+		// 判同两侧拼写不同源：清单行=上传侧拼写，walk相对路径=提交侧服务名+盘上实际名。
+		// Win32 变体拼写（Svc/svc.）指向同一物理文件时裸 contains 必失配——已列文件
+		// 整体落入清理面被删，空壳版本假成功成版（FND29 zoker-01）。判同走段级折叠。
+		var foldedListed = new HashSet<String>();
+		for (var line : listed)
+			foldedListed.add(foldBarrierPath(line));
+		var foldedManifestRel = foldBarrierPath(serviceFrom.getName() + "/" + DISTRIBUTE_MANIFEST_NAME);
 		try (var walk = Files.walk(serviceFrom.toPath())) {
 			walk.filter(Files::isRegularFile).forEach(file -> {
 				var rel = root.relativize(file.toAbsolutePath().normalize()).toString().replace('\\', '/');
-				if (listed.contains(rel) || rel.equals(manifestRel))
+				var foldedRel = foldBarrierPath(rel);
+				if (foldedListed.contains(foldedRel) || foldedRel.equals(foldedManifestRel))
 					return;
 				try {
 					Files.delete(file);
