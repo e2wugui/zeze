@@ -69,6 +69,57 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	// 告警去重（对齐OnzServer.hangWarnedTids形态）：每tid只error一次；事务完结（commit/undo）即回收，
 	// 集合有界于悬挂事务数。
 	private final ConcurrentHashMap.KeySetView<Long, Boolean> committingHangWarnedTids = ConcurrentHashMap.newKeySet();
+
+	// ----- 自主 undo 未确认墓碑（FND29 dbh2-03 断根的兜底层）-----
+	// 桶侧 onTimer 自主 undo 落日志时协调者决策未知：事务不立即毁尸（锁释放、trans blob
+	// 保留、入本表）。围栏冲突的三种收敛：①迟到 LogCommitBatch（协调者已持久化
+	// eCommitting，commitPoint 存在）在墓碑窗内到达——复活并提交，数据不丢，客户端
+	// 成功变真；②协调者驱动的 UndoBatch 到达=确认 undo 终局，物理删除；③墓碑窗超时
+	// 仍无协调者消亡（进程丢失/极端病理）——物理删除并响亮 error（可见化，对齐
+	// eCommitting 悬挂告警姿态）。主防线=onTimer 年龄判据用单调钟（Dbh2Transaction.
+	// elapsedMillis，墙钟步进免疫），墓碑是防御纵深：任何残余破栅形态（重启窗口、
+	// 极端速率分歧）由复活/告警兜住，"已确认提交而数据灭失"的形态不再存在。
+	private static final class UndonePending {
+		final Dbh2Transaction txn;
+		final long tombstoneNanos;
+
+		UndonePending(Dbh2Transaction txn) {
+			this.txn = txn;
+			this.tombstoneNanos = System.nanoTime();
+		}
+	}
+
+	private final ConcurrentHashMap<Long, UndonePending> undonePending = new ConcurrentHashMap<>();
+
+	/** 墓碑窗（毫秒）：覆盖协调者在其自身 prepare 窗口内的最迟 commit 决策 + CommitBatch
+	 * 在途（rpcTimeout）+ 余量。低于此窗的迟到 commit 将落入超窗删除分支（协调者 rpc
+	 * 必已失败、客户端已见失败，非静默）。 */
+	long undoResurrectGraceMillis() {
+		var conf = dbh2.getDbh2Config();
+		return conf.getRpcTimeout() + conf.getPrepareMaxTime() + 30_000L;
+	}
+
+	/** 墓碑超窗清扫（包内可见供确定性测试）：超窗未决的墓碑物理删除 blob 并响亮告警。 */
+	void expireDueTombstones(long graceMillis) {
+		var graceNanos = graceMillis * 1_000_000L;
+		for (var e : undonePending.entrySet()) {
+			if (System.nanoTime() - e.getValue().tombstoneNanos < graceNanos)
+				continue;
+			var pending = undonePending.remove(e.getKey());
+			if (null == pending)
+				continue;
+			try {
+				pending.txn.undoBatch(bucket);
+				logger.error("undo tombstone expired without coordinator resolution: tid={} (physical undo"
+						+ " applied; coordinator neither confirmed undo nor delivered commit within {}ms --"
+						+ " divergence possible, manual check)", e.getKey(), graceMillis);
+			} catch (RocksDBException ex) {
+				logger.error("expire undo tombstone fail, retain for next round: tid={}", e.getKey(), ex);
+				undonePending.putIfAbsent(e.getKey(), pending);
+			}
+		}
+	}
+
 	private Future<?> timer;
 	private CommitAgent commitAgent;
 	private final Dbh2 dbh2;
@@ -275,14 +326,16 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		if (!getRaft().isLeader())
 			return;
 
-		var now = System.currentTimeMillis();
+		// 年龄判据用单调钟（FND29 dbh2-03 断根）：墙钟步进（NTP步进/VM恢复）可把仍在协调者
+		// 合法 prepare 窗口内的事务误判超时，误 undo 已决定提交的事务=客户端确认成功而
+		// 数据灭失；elapsedMillis（nanoTime）对步进免疫，两机真实速率漂移远小于配置余量。
 		for (var e : transactions.entrySet()) {
 			var tid = e.getKey();
 			// 单条隔离：CommitAgent.query对CommitServer短暂不可达抛RuntimeException，不隔离会
 			// 中止本轮剩余悬挂事务的超时检查（不可达查询卡住遍历首位，同轮后续undo判定逐轮推迟）。
 			try {
 				var t = e.getValue();
-				if (now - t.getCreateTime() < dbh2.getDbh2Config().getBucketMaxTime())
+				if (t.elapsedMillis() < dbh2.getDbh2Config().getBucketMaxTime())
 					continue;
 				var state = commitAgent.query(t.getQueryIp(), t.getQueryPort(), tid, dbh2.getDbh2Config().getRpcTimeout());
 				if (Commit.eCommitNotExist == state.getState()
@@ -290,19 +343,20 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					logger.warn("timeout undo tid={} state={}", tid, state);
 					getRaft().appendLog(new LogUndoBatch(tid));
 				} else if (Commit.eCommitting == state.getState()
-						&& now - t.getCreateTime() >= dbh2.getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
+						&& t.elapsedMillis() >= dbh2.getDbh2Config().getBucketMaxTime() * CommittingHangWarnFactor
 						&& committingHangWarnedTids.add(tid)) {
 					// 2PC语义：协调者已保存commitPoint(eCommitting)，桶侧无信息安全终局（误undo=跨桶
 					// 部分提交），只告警不自动终局；恢复依赖协调者CommitRocks存活，灾难场景重建协调者
 					// 进程即收敛（见docs dbh2.md）。
 					logger.error("eCommitting transaction hang: tid={} query={}:{} age={}ms; "
 									+ "coordinator commit-point exists but redo not arriving",
-							tid, t.getQueryIp(), t.getQueryPort(), now - t.getCreateTime());
+							tid, t.getQueryIp(), t.getQueryPort(), t.elapsedMillis());
 				}
 			} catch (Exception ex) {
 				logger.warn("onTimer check hanging transaction fail. tid={}", tid, ex);
 			}
 		}
+		expireDueTombstones(undoResurrectGraceMillis());
 	}
 
 	public void setBucketMeta(BBucketMeta.Data argument) {
@@ -430,8 +484,20 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				// 落盘：两写在同一apply内，崩溃经raft重放整体重演，先后无原子性要求。
 				enqueueSplitSync(txn.getBatch());
 				txn.commitBatch(bucket);
-			} else
-				logger.warn("commitBatch but transaction not found. tid={}", tid);
+			} else {
+				var pending = undonePending.remove(tid);
+				if (null != pending) {
+					// 围栏冲突复活（FND29 dbh2-03）：undo 已落日志但协调者已持久化 eCommitting
+					//（commitPoint 存在，客户端将收到/已收到成功）——迟到的 LogCommitBatch 以
+					// 提交为终局：数据落盘、blob 清除，成功应答变真而非静默灭失；error 留痕供对账。
+					// 复活的 txn 在墓碑化时已释放锁，commitBatch(bucket) 只触存储不触锁。
+					logger.error("commitBatch resurrects tombstoned transaction (undo/commit fence conflict):"
+							+ " tid={} (undo applied first but coordinator commit-point exists)", tid);
+					enqueueSplitSync(pending.txn.getBatch());
+					pending.txn.commitBatch(bucket);
+				} else
+					logger.warn("commitBatch but transaction not found. tid={}", tid);
+			}
 			triggerNoTransactionIf();
 		} catch (RocksDBException e) {
 			logger.error("", e);
@@ -439,14 +505,26 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	public void undoBatch(long tid) {
+	/** Raft 日志 apply 入口（{@link LogUndoBatch}）。fromCoordinator：true=协调者驱动的
+	 * UndoBatch（决策已终局，立即物理删除）；false=桶侧 onTimer 自主超时 undo（协调者
+	 * 决策未知，未确认墓碑——迟到 commit 可复活，见 undonePending 注释）。 */
+	public void undoBatch(long tid, boolean fromCoordinator) {
 		try (var txn = transactions.remove(tid)) {
 			counterUndoBatch.incrementAndGet();
 			committingHangWarnedTids.remove(tid); // 悬挂告警集合随事务完结回收（有界性）
-			if (null != txn)
-				txn.undoBatch(bucket);
-			else
-				logger.warn("undoBatch but transaction not found. tid={}", tid);
+			if (null != txn) {
+				if (fromCoordinator)
+					txn.undoBatch(bucket); // 协调者终局：决策与删除同源，无围栏冲突窗口
+				else
+					undonePending.put(tid, new UndonePending(txn)); // 自主undo：锁随try块释放，blob待终局
+			} else {
+				var pending = undonePending.remove(tid);
+				if (null != pending)
+					// 协调者 UndoBatch 追认自主 undo：undo 终局确认，物理删除。
+					pending.txn.undoBatch(bucket);
+				else
+					logger.warn("undoBatch but transaction not found. tid={}", tid);
+			}
 			triggerNoTransactionIf();
 		} catch (RocksDBException e) {
 			logger.error("", e);

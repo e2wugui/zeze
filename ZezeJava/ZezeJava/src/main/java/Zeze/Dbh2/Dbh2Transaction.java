@@ -13,6 +13,11 @@ public class Dbh2Transaction implements Closeable {
 	private final HashMap<Lockey, Lockey> locks = new HashMap<>();
 	private final BBatch.Data batch;
 	private final long createTime;
+	// 单调钟年龄基准（FND29 dbh2-03）：onTimer 超时围栏的判据。墙钟（createTime）在 NTP
+	// 步进/VM 恢复下可前跳越配置余量，把仍在协调者合法 prepare 窗口内的事务误判超时
+	//（误 undo 已决定提交的事务=客户端确认成功而数据灭失）；nanoTime 不受步进影响，
+	// 两机真实速率漂移（ppm 级）远小于配置余量。createTime 保留供日志展示。
+	private final long createNanos = System.nanoTime();
 
 	public BBatch.Data getBatch() {
 		return batch;
@@ -33,6 +38,11 @@ public class Dbh2Transaction implements Closeable {
 
 	public long getCreateTime() {
 		return createTime;
+	}
+
+	/** 单调钟年龄（毫秒），onTimer 超时围栏判据（见 createNanos 注释）。 */
+	public long elapsedMillis() {
+		return (System.nanoTime() - createNanos) / 1_000_000L;
 	}
 
 	/**
