@@ -121,11 +121,12 @@ public class TestGAD02CommittingHangWarnOnce {
 			Assertions.assertTrue(sm.getTransactions().containsKey(TID),
 					"prepare applied must leave live transaction in leader map");
 
-			// 老化createTime：反射置为2000s前，超过告警阈值10×bucketMaxTime（默认1400s）。
+			// 老化createNanos（onTimer 年龄判据，FND29 dbh2-03 断根后为单调钟）：反射置为
+			// 2000s前，超过告警阈值10×bucketMaxTime（默认1400s）。createTime 仅日志展示，不老化。
 			var txn = sm.getTransactions().get(TID);
-			Field createTimeField = Zeze.Dbh2.Dbh2Transaction.class.getDeclaredField("createTime");
-			createTimeField.setAccessible(true);
-			createTimeField.setLong(txn, System.currentTimeMillis() - 2_000_000L);
+			Field createNanosField = Zeze.Dbh2.Dbh2Transaction.class.getDeclaredField("createNanos");
+			createNanosField.setAccessible(true);
+			createNanosField.setLong(txn, System.nanoTime() - 2_000_000_000_000L);
 
 			// 手动驱动onTimer三次：必须告警且仅告警一次（每tid去重）。
 			Method onTimer = Zeze.Dbh2.Dbh2StateMachine.class.getDeclaredMethod("onTimer");

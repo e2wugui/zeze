@@ -58,8 +58,10 @@ public class TestUndoCommitFenceResurrect {
 	}
 
 	private static void stopBucket(List<Dbh2> nodes) {
-		for (var n : nodes)
+		for (var n : nodes) {
 			n.close();
+			Zeze.Raft.LogSequence.deleteDirectory(new java.io.File(n.getRaft().getRaftConfig().getDbHome()));
+		}
 	}
 
 	/** 经 raft prepare 一笔单 key 事务，返回批次（tid 已设）。 */
@@ -99,6 +101,7 @@ public class TestUndoCommitFenceResurrect {
 					"围栏冲突必须以提交终局复活（修复前：undo 毁尸、commit 落 not-found warn，数据灭失）");
 		} finally {
 			stopBucket(nodes);
+			agent.close();
 			rocks.close();
 		}
 	}
@@ -130,6 +133,7 @@ public class TestUndoCommitFenceResurrect {
 			Assertions.assertNull(leader.getBucket().get(key), "已确认 undo 后迟到 commit 不得复活");
 		} finally {
 			stopBucket(nodes);
+			agent.close();
 			rocks.close();
 		}
 	}
@@ -162,6 +166,7 @@ public class TestUndoCommitFenceResurrect {
 			leader.expireDueTombstones(0); // 幂等：空墓碑表再扫不炸
 		} finally {
 			stopBucket(nodes);
+			agent.close();
 			rocks.close();
 		}
 	}
