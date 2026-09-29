@@ -53,6 +53,14 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	// 持锁写（onFileCreated/buildIndex/reconcile）、无锁读（seek/size/get），用COW保证读安全。
+	// 列表不变式=轮转序（FND29 log4jquery-02）：条目按内容世代（写入先后）排列，active=当前正被
+	// 写的世代恒末位，由append-only维护（轮转移交原位改指+新active追加、装载rotates在前active
+	// 补末）——结构序，任何时钟形态下可维持。不保持"按内容时间有序"：它与"active恒last"在rotate
+	// 内容时间晚于active首条时（时钟步进回拨后轮转/拷入新内容rotate名文件）不可兼得，旧实现为守
+	// 后者钳制插入产生"前项内容更新"的列表，seek/walker信任时间序使该窗口静默漏读且跨重启重建。
+	// 正确性不落在列表时间序上：active按名显式锚定（activeEntry）、seek双锚选条目（见seek）、
+	// walker后继文件按下界锚定位（Log4jFileWalker.seekTime）。rotate间按内容时间排序
+	// （addByContentTime）只是典型时间推进下的定位效率启发式，不是正确性前提。
 	private final CopyOnWriteArrayList<Log4jFile> files = new CopyOnWriteArrayList<>();
 	private final FileCreateDetector fileCreateDetector;
 	private final String logFileBegin;
@@ -140,6 +148,8 @@ public class Log4jFileManager extends ReentrantLock {
 						// WatchService对rename的CREATE事件递交乱序时仍可能漏登新active。
 						// 索引解析含配对校验（openActiveIndexAtLoad）：停机期/装载前轮转留下的旧内容
 						// 索引不会被配给新active（否则错配终态无修复路径——rotate已登记，repoint永不触发）。
+						// active=最新世代，轮转序恒末位（FND29 log4jquery-02）：装载与运行期case-0/
+						// reconcile补登同以append锚定，重启重建的列表序与运行期等价（见files注释）。
 						files.add(Log4jFile.of(active, loadIndex(active, openActiveIndexAtLoad(active))));
 					}
 				} finally {
@@ -184,46 +194,82 @@ public class Log4jFileManager extends ReentrantLock {
 	 * 出参风格与get(int, OutObject)同构。
 	 */
 	public Log4jFileSession seek(long time, OutInt out, OutObject<Log4jFile> outEntry) throws IOException {
-		// 无锁读：迭代期间列表可被并发摘除收缩（reconcile整批/removeMissingFile），i只减不增但
-		// 上界须每轮复查——复查与get之间仍有并发收缩的残余窗口（TOCTOU，复查消除不了），get的
-		// 越界按遍历耗尽兜底（break出循环返回null），与walker的while(currentIndex<size)/get的
-		// 上界检查同构，返回null由walker走slowSeek线性兜底，不让未检查异常沿查询路径逃逸。
-		for (var i = files.size() - 1; i >= 0 && i < files.size(); --i) {
+		// FND29 log4jquery-02：选条目不再信任"列表按内容时间有序+active恒last"（该双不变式在
+		// rotate内容时间晚于active首条时不可兼得，已废除，见files注释）。双锚各取候选、取更早者：
+		// 1) 尾锚（既有形态）：从尾向头第一个beginTime<=time——时间正常推进下即覆盖窗口的条目，
+		//    且兜住time超出全部索引末端的尾窗查询（beginTime<=time即选中，不回落线性慢扫）；
+		// 2) 头锚（新增）：从头向尾第一个endTime>=time——条目时间窗重叠（轮转内容时间晚于active、
+		//    补登索引滞后）时，更早条目也可能含>=time的记录；头锚之前的条目endTime<time（索引
+		//    endTime=已索引记录的最大时间），不含>=time的记录，跳过安全。
+		// walker只向前推进：起点偏早只是多读（可由endTime提前终止收口），偏晚即整窗漏读——
+		// 两锚冲突时保守取早，不再以时间序为锚。
+		// 无锁读：迭代期间列表可被并发摘除收缩（reconcile整批/removeMissingFile），get的越界按
+		// 遍历耗尽兜底（break/continue重选），与walker的while(currentIndex<size)/get的上界检查
+		// 同构，最终无候选返回null由walker走slowSeek线性兜底，不让未检查异常沿查询路径逃逸。
+		var failed = new HashSet<Log4jFile>(); // FNFE降级已试条目（含轮转宽限保留形态），排除后重选
+		while (true) {
+			var tailAnchor = -1;
+			for (var i = files.size() - 1; i >= 0 && i < files.size(); --i) {
+				final Log4jFile file;
+				try {
+					file = files.get(i);
+				} catch (IndexOutOfBoundsException e) {
+					break;
+				}
+				if (!failed.contains(file) && time >= file.index.getBeginTime()) {
+					tailAnchor = i;
+					break;
+				}
+			}
+			var headAnchor = -1;
+			for (var i = 0; i < files.size(); ++i) {
+				final Log4jFile file;
+				try {
+					file = files.get(i);
+				} catch (IndexOutOfBoundsException e) {
+					break;
+				}
+				if (!failed.contains(file) && time <= file.index.getEndTime()) {
+					headAnchor = i;
+					break;
+				}
+			}
+			var pick = tailAnchor >= 0 ? (headAnchor >= 0 ? Math.min(tailAnchor, headAnchor) : tailAnchor) : headAnchor;
+			if (pick < 0)
+				return null; // 双锚皆空（列表空/全空索引）：walker走slowSeek线性兜底
 			final Log4jFile file;
 			try {
-				file = files.get(i);
+				file = files.get(pick);
 			} catch (IndexOutOfBoundsException e) {
-				break;
+				continue; // size复查与get之间并发收缩：重选（被摘条目自然出局）
 			}
-			if (time >= file.index.getBeginTime()) {
-				var target = file.file;
-				Log4jFileSession logFileSession;
-				try {
-					logFileSession = new Log4jFileSession(target, file.index, logConf.charsetName, logConf.logTimeFormat);
-				} catch (FileNotFoundException e) {
-					// 文件被外部清理（logrotate压缩/保留期删除）：跳过该条目继续更旧的，持锁摘除+warn；
-					// 轮转宽限未摘除时同样continue降级——active条目留给case-1/repointMissedRotation改指。
-					removeMissingFile(file, target, e);
-					continue;
-				}
-				out.value = i;
-				if (null != outEntry)
-					outEntry.value = file;
-				try {
-					logFileSession.seek(time);
-				} catch (IOException e) {
-					// 已构造的会话（RAF已打开）在定位失败时必须关闭，否则fd只能等GC兜底回收
-					try {
-						logFileSession.close();
-					} catch (IOException closeEx) {
-						e.addSuppressed(closeEx);
-					}
-					throw e;
-				}
-				return logFileSession;
+			Log4jFileSession logFileSession;
+			try {
+				logFileSession = new Log4jFileSession(file.file, file.index, logConf.charsetName, logConf.logTimeFormat);
+			} catch (FileNotFoundException e) {
+				// 文件被外部清理（logrotate压缩/保留期删除）：跳过该条目继续更旧的，持锁摘除+warn；
+				// 轮转宽限未摘除时同样降级——active条目留给case-1/repointMissedRotation改指。
+				// 摘除或宽限保留均排除出候选，防宽限形态原地自旋。
+				removeMissingFile(file, file.file, e);
+				failed.add(file);
+				continue;
 			}
+			out.value = pick;
+			if (null != outEntry)
+				outEntry.value = file;
+			try {
+				logFileSession.seek(time);
+			} catch (IOException e) {
+				// 已构造的会话（RAF已打开）在定位失败时必须关闭，否则fd只能等GC兜底回收
+				try {
+					logFileSession.close();
+				} catch (IOException closeEx) {
+					e.addSuppressed(closeEx);
+				}
+				throw e;
+			}
+			return logFileSession;
 		}
-		return null;
 	}
 
 	public String getCurrentLogFileName() {
@@ -276,11 +322,13 @@ public class Log4jFileManager extends ReentrantLock {
 			switch (type) {
 			case 0: // current log file created
 				var currentLogFileName = getCurrentLogFileName();
-				if (fileName.equals(currentLogFileName)
-						&& (files.isEmpty() || !files.getLast().file.getName().equals(currentLogFileName))) {
+				// 活性锚（按名守卫去重，FND29 log4jquery-02）：不以末位名字推断——按名判存在，
+				// active任何位置已登记即跳过（同一文件双条目不可表达）。
+				if (fileName.equals(currentLogFileName) && activeEntry() == null) {
 					var logFile = new File(logConf.logDir, fileName);
 					// 运行期active索引一律新建（openFreshActiveIndex不复用current.index名字），
 					// 头部采样给beginTime使seek可选中条目，余量由buildIndex增量补齐。
+					// 新active=最新世代，轮转序恒末位：append锚定，不依赖时钟（见files注释）。
 					files.add(Log4jFile.of(logFile, sampleIndexHead(logFile, openFreshActiveIndex())));
 					// 登记即建索引文件，同步清理旧链接：removeOldLinkFiles只在构造期执行，不在此调用则链接随轮转累积。
 					removeOldLinkFiles();
@@ -291,8 +339,10 @@ public class Log4jFileManager extends ReentrantLock {
 				if (files.isEmpty())
 					return;
 
-				var last = files.getLast();
-				if (last.file.getName().equals(getCurrentLogFileName())) {
+				// 活性锚（按名查找，FND29 log4jquery-02）：不以"末位==active名"位置推断——列表
+				// 不变量已是轮转序，active身份=名字（与repointMissedRotation的按名查找先例一致）。
+				var active = activeEntry();
+				if (null != active) {
 					// 索引移交而非改名：active条目的索引被存活mmap持有（经indexLinks链接映射），
 					// Windows对该inode的rename/delete必败（旧方案renameCurrentIndexTo在Windows上
 					// 自首次轮转起即断裂）。改为rotate名下链接接管承载inode（条目实例/增长通道不变，
@@ -300,18 +350,19 @@ public class Log4jFileManager extends ReentrantLock {
 					// 移交失败即中止改指与补登（回滚语义，与repointMissedRotation共用helper）：
 					// 失败后继续会让rotate条目与补登的active条目错配内容。中止后条目仍指current名，
 					// 由下一轮reconcile摘除+常规补登收敛（配对重新正确）。
-					var rotateIndex = transferIndexToRotate(last.index, fileName);
+					var rotateIndex = transferIndexToRotate(active.index, fileName);
 					if (null == rotateIndex)
 						return;
 					// 修改file指向新的logFile；index随移交设定（链接接管=原实例，复制接管=新实例）。
-					last.index = rotateIndex;
-					last.file = new File(logConf.logDir, fileName);
+					// 条目原位保留：该位置即其世代在轮转序中的位置（不以内容时间重排——见files注释）。
+					active.index = rotateIndex;
+					active.file = new File(logConf.logDir, fileName);
 					// 顺序无关补登：部分平台WatchService对rotate双CREATE事件的递交顺序
 					// 不保证，新active事件先到时被case 0同名守卫跳过漏登。这里在改指后主动补登：
 					// 乱序时由本分支兜底；正序时新active尚未创建或已由case 0登记，守卫去重。
 					var activeName = getCurrentLogFileName();
 					var activeFile = new File(logConf.logDir, activeName);
-					if (activeFile.exists() && !files.getLast().file.getName().equals(activeName)) {
+					if (activeFile.exists() && activeEntry() == null) { // 改指后按名查必空，守卫防与case-0竞态重复
 						files.add(Log4jFile.of(activeFile, sampleIndexHead(activeFile, openFreshActiveIndex())));
 						removeOldLinkFiles(); // 同case 0：新建索引链接之后同步清理。
 					}
@@ -569,9 +620,10 @@ public class Log4jFileManager extends ReentrantLock {
 			// 优先留给repoint移交（保留全量索引，优于丢弃重建）；repoint中止时active旧索引仍是排队中
 			// case-1事件的正确移交素材——抢先重建会让迟到的case-1把新内容索引错挂到rotate名上。rotate
 			// 由本轮补登登记后（rotate名.index必然在场，case-1移交对既存文件中止），下一轮对账即可检测。
-			var activeName = getCurrentLogFileName();
-			if (rotates.isEmpty() && !files.isEmpty() && files.getLast().file.getName().equals(activeName)) {
-				var last = files.getLast();
+			// 活性锚（按名查找，FND29 log4jquery-02）：不以末位名字推断active条目。
+			var activeSelfCheck = activeEntry();
+			if (rotates.isEmpty() && null != activeSelfCheck) {
+				var last = activeSelfCheck;
 				if (last.file.exists() && (indexExceedsLogFile(last.index, last.file)
 						|| indexTimeWindowMismatch(last.index, last.file))) {
 					logger.warn("active index mismatch log file (copy-truncate rotation?), rebuild: {}", last.file);
@@ -580,11 +632,11 @@ public class Log4jFileManager extends ReentrantLock {
 				}
 			}
 
-			// 补登：按内容时间归位插入（addByContentTime），不按文件名日期整块插到active之前——
-			// 名字日期与内容时序不一致（时钟回拨/人工拷入）时整块插入会打破列表内容时序不变式，
-			// endTime提前终止+seek选择据不变式工作，错位条目整文件漏读。active恒为last不变
-			//（锁内active推进要求active==last；直接追加会把active挤到中间，触发下方守卫把
-			// active重复登记——同一文件双条目，搜索结果重复）。
+			// 补登：rotate走addByContentTime（插在active锚位之前、其余rotate间按内容时间，见其注释），
+			// 不按文件名日期整块插入——名字日期与内容时序不一致（时钟回拨/人工拷入）时整块插入会把
+			// 更晚世代的条目排到更早位置，同样窗口的定位效率变差。active按名守卫（活性锚）判存在，
+			// append到末位=最新世代锚定（FND29 log4jquery-02，见files注释）——不以末位名字判"已登记"，
+			// 该判据在位置与名字失配的形态下会重复登记同一文件（双条目、搜索结果重复）。
 			// 补登只做头部采样：GB级轮转文件的全量扫描让锁内补登分钟级、watch线程（恢复场景
 			// 对账内联在其本尊上）被钉住、新CREATE事件堆积再触发OVERFLOW——"恢复动作自己制造下一轮丢失"。
 			// 采样后锁内只剩列表收敛+首条记录入索引（毫秒级，与单文件体量解耦）；余量由buildIndex锁外
@@ -596,10 +648,11 @@ public class Log4jFileManager extends ReentrantLock {
 							sampleIndexHead(logFile, openRotateIndex(logFile))));
 				}
 			}
-			if (activeOnDisk && (files.isEmpty() || !files.getLast().file.getName().equals(getCurrentLogFileName()))) {
+			if (activeOnDisk && activeEntry() == null) {
 				var activeFile = new File(logConf.logDir, getCurrentLogFileName());
 				// 运行期active索引一律新建（openFreshActiveIndex），不复用current.index——
 				// 它可能仍指向旧轮转世代的内容（Windows下被存活mmap钉住不可换绑）。
+				// 新active=最新世代，轮转序恒末位：append锚定（同装载/case-0，见files注释）。
 				files.add(Log4jFile.of(activeFile,
 						sampleIndexHead(activeFile, openFreshActiveIndex())));
 			}
@@ -751,31 +804,47 @@ public class Log4jFileManager extends ReentrantLock {
 				}
 			}
 			rotates.sort(Comparator.comparingLong(KV::getKey));
-			for (var kv : rotates) {
-				var logFile = new File(logConf.logDir, kv.getValue());
-				// 启动装载同样按内容时间归位（addByContentTime）：名字日期与内容时序不一致时
-				// 按名序追加会从构造起就打破列表时序不变式（reconcile期间无补登可纠正）。
-				addByContentTime(Log4jFile.of(logFile, loadIndex(logFile, openRotateIndex(logFile))));
-			}
+				for (var kv : rotates) {
+					var logFile = new File(logConf.logDir, kv.getValue());
+					// 启动装载同样经addByContentTime归位（rotates间按内容时间、上界active锚位，
+					// FND29 log4jquery-02）：与运行期reconcile补登同一插入语义，重启重建的列表序
+					// 与运行期等价（时序错位的名字日期不放大为错位插入——见addByContentTime注释）。
+					addByContentTime(Log4jFile.of(logFile, loadIndex(logFile, openRotateIndex(logFile))));
+				}
 		}
 	}
 
 	/**
-	 * 按内容时间归位插入条目（持manager锁调用）：列表不变式=内容时间旧→新——walker顺序遍历、
-	 * endTime提前终止（time>endTime即停）与seek从尾向头选条目都以它为前提。插入点=内容时间
-	 * （索引beginTime，即首条记录时间）不晚于新条目的最后一个既有条目之后；active条目恒为last
-	 * （锁内推进要求active==last），其后区间不可插入。空索引（beginTime=MAX_VALUE，无合格记录）
-	 * 时间不可知，插在active之前保持轮转序。
+	 * 活性锚（FND29 log4jquery-02）：active条目=文件名等于当前active名的唯一条目，按名显式查找。
+	 * 不得用files末位位置推断"谁是active"——旧代码多处以"last==active名"为判据，该位置不变式
+	 * 与"按内容时间有序"在rotate内容时间晚于active首条时不可兼得（正是本案缺陷根源）；按名查找
+	 * 与repointMissedRotation的既有先例一致，收口为单一查找点，所有需要"当前active条目"的路径
+	 * （onFileCreated/reconcile/buildIndex/本方法）共用。COW无锁读安全（与seek/get同一形态）。
+	 */
+	private Log4jFile activeEntry() {
+		var activeName = getCurrentLogFileName();
+		for (var file : files)
+			if (file.file.getName().equals(activeName))
+				return file;
+		return null;
+	}
+
+	/**
+	 * rotate条目归位插入（持manager锁调用）。列表不变式=轮转序（FND29 log4jquery-02，见files注释）：
+	 * active（当前正被写的世代，activeEntry按名显式锚定）恒为末位，rotate条目在其前按世代排列。
+	 * 本方法把新rotate插在active锚位之前、其余rotate之间按内容时间（索引beginTime）排序——
+	 * 该排序只是典型时间推进下seek定位效率的启发式，不再是正确性不变式：时钟回拨/拷入新内容使
+	 * rotate内容时间晚于active时，条目照插active之前（轮转序不依赖墙钟，磁盘上的rotate是已封盘
+	 * 世代，写入必先于当前活性世代），查询正确性由seek双锚选条目与walker下界锚（Log4jFileWalker
+	 * .seekTime）保证，不依赖本排序。旧不变式"按内容时间有序+active恒last"在该形态下不可兼得：
+	 * 旧实现为守后者把插入上界钳死active之前，产生"前项内容更新"的列表，seek旧尾锚从尾按
+	 * beginTime选中active（beginTime最小却居末位）、walker只向前推进，前段条目整窗静默漏读，
+	 * 装载路径（loadRotates+active append）原样重建无自愈。空索引（beginTime=MAX_VALUE，无合格
+	 * 记录）时间不可知，插在active之前保持轮转序。
 	 */
 	private void addByContentTime(Log4jFile entry) {
-		var activePos = -1;
-		for (var i = files.size() - 1; i >= 0; --i) {
-			if (files.get(i).file.getName().equals(getCurrentLogFileName())) {
-				activePos = i;
-				break;
-			}
-		}
-		var limit = activePos >= 0 ? activePos : files.size(); // 插入上界：active之前
+		var active = activeEntry();
+		var limit = active != null ? files.indexOf(active) : files.size(); // 插入上界：active锚位之前
 		var insertPos = 0;
 		for (var i = limit - 1; i >= 0; --i) {
 			if (files.get(i).index.getBeginTime() <= entry.index.getBeginTime()) {
@@ -1084,7 +1153,7 @@ public class Log4jFileManager extends ReentrantLock {
 	private void buildIndex() {
 		reconcile(); // 低频对账：挂在buildIndexTimer上，先把files收敛到磁盘真相，再推进索引。
 		// 锁外增量续建全部非active条目：补登头部采样只保证条目可入列，余量在此收敛——
-		// 补登的rotate条目插在active之前，仅推进last==当前名的通道覆盖不到它，
+		// 补登的rotate条目在active锚位之前，仅推进active（下方锁内段）的通道覆盖不到它，
 		// 两半缺一不可。锁外正当性：loadIndex(File,LogIndex)只触碰(logFile,index)二元组、不读写files，
 		// LogIndex自带rwLock（查询路径本就与其无锁并发），manager锁真正要保的只有files变更与轮转
 		// "索引改名+条目改指"的串行——锁内全量扫描并非正确性需求；sealed rotate内容不可变、
@@ -1110,11 +1179,12 @@ public class Log4jFileManager extends ReentrantLock {
 			if (files.isEmpty())
 				return;
 
-			var last = files.getLast();
-			if (!last.file.getName().equals(getCurrentLogFileName()))
+			// 活性锚（按名查找，FND29 log4jquery-02）：不以末位名字推断active条目。
+			var active = activeEntry();
+			if (null == active)
 				return;
 
-			loadIndex(last.file, last.index);
+			loadIndex(active.file, active.index);
 		} catch (Exception ex) {
 			logger.error("", ex);
 		} finally {

@@ -20,6 +20,13 @@ public class Log4jFileWalker {
 	private int currentIndex;
 	private Log4jFileSession current;
 	private Log4jFileManager.Log4jFile currentEntry;
+	// 查询下界锚（FND29 log4jquery-02）：seek(time)记录、reset清零；advance/next打开的每个后继
+	// 文件会话按它定位到首条>=time的记录，不再从文件头裸读。旧设计靠"列表按内容时间有序"保证
+	// seek选中条目之后的所有文件头部必>=查询时间（后继条目beginTime更大，从头读即已定位）——
+	// 该不变式已废除（列表改为轮转序，rotate内容时间可晚于active，后继文件头部可能早于查询时间，
+	// 从头读会把早于查询下界的记录混入结果），后继文件必须按锚显式定位。正常时间推进下锚定位
+	// 落在文件头（首条即>=time），与从头读等价。-1=无下界（browse/从头查）。
+	private long seekTime = -1;
 	// close终态墓碑：先置位再动作（对齐Session.closed惯例）。
 	// 惰性清理与并发查询的取锁竞速只防"关的时候正在查"，不防"关完了才查"——
 	// 无终态时迟到的hasNext会重开files.get(0)复活会话（句柄泄漏+从头重扫返回错窗数据）。
@@ -31,6 +38,9 @@ public class Log4jFileWalker {
 	}
 
 	public void reset() throws IOException {
+		// 下界锚随游标一起失效（FND29 log4jquery-02）：reset语义=从头重新定位，定位前不得按
+		// 旧查询的锚跳读（对齐Log4jSession.reset同时失效beginTime去重哨兵的形态）。
+		this.seekTime = -1;
 		// 复用判定按条目引用定位：摘除左移后"currentIndex==0"可能指向别的条目或已摘除的当前条目
 		//（僵尸会话从头重扫，Linux下打开中文件可被unlink）。indexOf==-1自然落入关闭分支。
 		if (current != null && files.indexOf(currentEntry) == 0) {
@@ -44,6 +54,7 @@ public class Log4jFileWalker {
 	public void seek(long time) throws IOException {
 		if (closed)
 			throw new IllegalStateException("walker closed"); // close后不得复活
+		this.seekTime = time; // 先立锚：files.seek空结果走slowSeek时，其后advance同样按锚定位
 		var out = new OutInt();
 		var outEntry = new OutObject<Log4jFileManager.Log4jFile>();
 		var log4jFileSession = files.seek(time, out, outEntry);
@@ -121,6 +132,9 @@ public class Log4jFileWalker {
 		if (next != null) {
 			current = files.open(next);
 			currentEntry = current != null ? next : null;
+			// 后继文件按下界锚定位（FND29 log4jquery-02，锚语义见seekTime注释）：不从文件头
+			// 裸读——轮转序下后继文件头部可能早于查询下界。
+			anchorSeek(current);
 			// currentIndex维持定格值即可：currentEntry非空时hasNext入口按引用重同步即时校正；
 			// open失败（null）时hasNext循环按该下标走既有get重试路径（含FNFE摘除重试形态）。
 		}
@@ -133,6 +147,31 @@ public class Log4jFileWalker {
 		var outEntry = new OutObject<Log4jFileManager.Log4jFile>();
 		current = files.get(currentIndex, outEntry);
 		currentEntry = current != null ? outEntry.value : null;
+		// 同advance：打开的会话按下界锚定位（FND29 log4jquery-02）。覆盖slowSeek/翻页续读等
+		// 经由本方法开文件的路径——锚定位与slowSeek线性推进同收敛（首条>=锚）。
+		anchorSeek(current);
+	}
+
+	/**
+	 * 打开的会话按下界锚定位（FND29 log4jquery-02，锚语义见seekTime注释）；无锚（-1，从头查）
+	 * 保持从文件头读。定位失败先复位current/currentEntry再关闭会话、上抛IOException（fd不泄漏，
+	 * 不残留已关/半关会话引用——对齐closeCurrent"先复位再关闭"与manager.seek定位失败的关闭形态）。
+	 */
+	private void anchorSeek(Log4jFileSession session) throws IOException {
+		if (null == session || seekTime == -1)
+			return;
+		try {
+			session.seek(seekTime);
+		} catch (IOException e) {
+			current = null;
+			currentEntry = null;
+			try {
+				session.close();
+			} catch (IOException closeEx) {
+				e.addSuppressed(closeEx);
+			}
+			throw e;
+		}
 	}
 
 	private void closeCurrent() throws IOException {
