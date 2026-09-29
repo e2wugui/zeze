@@ -46,9 +46,17 @@ public class MQFileWithIndex {
 	private static final byte[] firstMessageIdName = "firstMessageId".getBytes(StandardCharsets.UTF_8);
 	private long firstMessageId;
 
-	// fillMessage在飞计数（段回收排空依据）：fill持段索引迭代器与文件句柄期间，
-	// dropTable/close是native use-after-free（RocksDatabase.close同型契约），回收须等其归零。
+	// fillMessage在飞计数（mq-02 终结原语的排空依据）：fill持段索引迭代器与文件句柄期间，
+	// dropTable/destroyColumnFamily/close是native use-after-free（RocksDatabase.close同型契约）。
+	// 计数经 inFlightFillCheck() 注册给终结原语，段回收与分区删除共用同一排空（不设两套语义）。
 	private final AtomicInteger activeFills = new AtomicInteger();
+
+	// 包内可见：在飞 fill 计数（RocksDatabase.destroyColumnFamily 的排空依据）：分区删除链
+	// （removePartition→deletePartitionStorage）传入——close 的有界排空超预算逃逸的 fill 世代
+	// 持段索引迭代器，drop 前由原语等待归零（mq-02）。
+	RocksDatabase.InFlight inFlightFillCheck() {
+		return activeFills::get;
+	}
 	// 软删除窗口状态（lock内）：当前候选最老已确认段的段基 + 首次观察到的时间。
 	private long recycleCandidateBase = -1;
 	private long recycleCandidateSince;
@@ -389,13 +397,23 @@ public class MQFileWithIndex {
 	 * @param endMessageId 结束Id。
 	 */
 	public void fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId) {
-		// 在飞计数先于首个floorEntry：段回收据此排空（见tryRecycle），计数与读路径同生共死。
+		// 在飞计数先于首个floorEntry与租约检查（mq-02）：终结原语（destroyColumnFamily，段回收/
+		// 分区删除都走它）以"先置标记后读计数"与本处"先计数后查标记"互为双检——计数覆盖整个
+		// 调用（含迭代器 try-with-resources 的 close），原语排空读到 0 即无任何迭代器存活。
 		activeFills.incrementAndGet();
 		// 锁内计算需要读取的消息数量，并且推进firstMessageId。
 		try {
 			while (headMessageId < endMessageId) {
 				var floor = indexes.floorEntry(headMessageId);
 				if (null != floor) {
+					// mq-02 迭代器租约：每轮批量迭代前检查——终结原语已置毁标记即放弃本轮，
+					// 不得再获取该列族迭代器（其后原语的 drop 与迭代器并发是 native
+					// use-after-free）。抛出走 pullMessage 既有的失败-复位-重试路径
+					//（不静默返回：partial 装载会留下 highLoad 已扣而积压未装的停摆窗口）。
+					if (floor.getValue().isDestroyPending())
+						throw new IllegalStateException("segment index destroy pending, abort fill. topic=" + topic
+								+ " partition=" + partitionId + " segment=" + floor.getKey()
+								+ " headMessageId=" + headMessageId);
 					var headMessageIdValue = new byte[8];
 					ByteBuffer.longBeHandler.set(headMessageIdValue, 0, headMessageId);
 					try (var floorIt = floor.getValue().iterator()) {
@@ -498,12 +516,13 @@ public class MQFileWithIndex {
 	 * 软删除窗口：候选段自首次被观察到"完全确认"起保留 delayMs 再回收（误判水位的最后防线，
 	 * MQConfig.SegmentRecycleDelayMs，窗口粒度受 loadMonitorTimer 周期约束）。
 	 * <p>
-	 * 与 fillMessage 读路径互斥：入口与锁内双检 + remove 后终检-放回（在飞 fill
-	 * 持段索引迭代器与文件句柄，dropTable/删文件与其并发是 native use-after-free）；非零则本轮
-	 * 跳过或放回，下轮再试。计数只提供观察不提供互斥，终检-放回闭合"复查读0 与 indexes.remove
-	 * 之间插入 increment"的 TOCTOU 缺口（正确性论证见 recycleSegment 注释）。
-	 * 残余竞态（fill 任务已按旧水位计算出区间、尚未开始执行）在 fill 侧表现为
-	 * messageIndexNotFound 的瞬时失败，由 pullMessage 既有的失败-复位-重试路径自愈，无数据损坏。
+	 * 与 fillMessage 读路径互斥：入口与锁内双检跳过 + 终结原语排空（在飞 fill
+	 * 持段索引迭代器与文件句柄，dropTable/删文件与其并发是 native use-after-free）。
+	 * 非零时本轮跳过（不持锁等待 fill 批次，appendMessage 不被回收阻塞），下轮再试；
+	 * 双检后与 remove 之间插入的逃逸 fill 由原语的置标记→排空→drop 三段承接（正确性
+	 * 论证见 recycleSegment 注释）。残余竞态（fill 任务已按旧水位计算出区间、尚未开始执行）
+	 * 在 fill 侧表现为 messageIndexNotFound / destroy-pending 的瞬时失败，由 pullMessage
+	 * 既有的失败-复位-重试路径自愈，无数据损坏。
 	 * <p>
 	 * 与删除路径互斥：close 在本类锁内置 closed，tryRecycle 入口锁内复查即返回
 	 * ——回收定时器（loadMonitorTimer 周期驱动，无 stopped/managementLock 闸）与
@@ -542,10 +561,8 @@ public class MQFileWithIndex {
 				if (now - recycleCandidateSince < delayMs)
 					break; // 窗口内保留
 				if (activeFills.get() != 0)
-					return; // 锁内复查：入口检查后有新fill进入
-				if (!recycleSegment(oldest))
-					return; // TOCTOU插入：段已放回，候选窗口观察起点保持
-						//（since 不重起，下轮归零即回收，收敛有保障）
+					return; // 锁内复查：入口检查后有新fill进入（跳过而非持锁等待，下轮再试）
+				recycleSegment(oldest);
 				recycleCandidateBase = -1; // 下一个候选重新起算窗口
 			}
 			if (indexes.size() <= 1)
@@ -570,33 +587,27 @@ public class MQFileWithIndex {
 		}
 	}
 
-	// 三步同一锁序（tryRecycle的lock内）：indexes移除 → 终检activeFills → dropTable索引列族
-	// → 删数据文件。先从map移除再删文件：移除后fill的floorEntry定位到后继段，不再触碰被删段
-	//（防悬垂定位）。
-	// remove后终检-放回：双检的计数器只提供观察不提供互斥——"锁内复查读0 →
-	// fill increment → floorEntry命中本段"的插入使 fill 的迭代器生命周期横跨 dropTable
-	//（native use-after-free，正是守卫注释自认要防的形态，从"入口漏检"换型为"复查后插入"）。
-	// 终检正确性（hb 论证）：fill 的 increment 严格先于其 floorEntry（程序序）；floor 命中本段
-	// ⟹ 该 map 读先于 remove 的线性化（CSLM 原子性）；remove 之后的终检经 happens-before 传递
-	// 必见该 increment（AtomicInteger volatile）。终检读到 0 则此后进入的 fill 只能定位到后继段
-	//（本段已出 map，不在删除集——该形态本身无害）。非零放回本轮放弃：fill 若已在 remove 前
-	// 拿到 floor，其迭代器只与"放回不删"的段相交——无害；真删除留待归零后的下一轮。
-	// dropTable/删文件失败仅记日志不重试：重启后loadMQ按文件扫描重注册列族，下轮回收重新收敛。
-	// @return true=段已出map（回收完成/本就不在/drop失败留残file）；false=TOCTOU插入已放回本轮放弃。
-	private boolean recycleSegment(long base) {
+	// 销毁走 RocksDatabase 单一终结原语（mq-02：原"终检-放回"语义并入原语，不设两套）：
+	// indexes 移除（锁外 fill 即不可再定位本段，防悬垂定位）→ destroyColumnFamily
+	//（①除名+置毁标记 ②等在飞 fill 计数归零 ③drop）→ 删数据文件。
+	// remove 与置标记之间插入的逃逸 fill（已取 floorEntry、尚未过租约检查点）由原语双检序
+	// 承接（hb 论证）：fill 的 increment 严格先于其租约检查点（程序序）；检查点先于标记则其
+	// increment 先于原语的计数读（AtomicInteger volatile 传递）——排空必见并等其退出（检查点
+	// 在标记后则该轮放弃，同样退出）；排空读到 0 后进入的 fill 只能定位后继段（本段已出 map）。
+	// 等待期间本类锁仍持有（tryRecycle 的 lock 内）：fill 的退出路径不取本锁（fillMessage 无锁）
+	// 无自阻；常态（入口+锁内双检读0）等待为零，仅双检后的逃逸者会阻塞 appendMessage 至多一个
+	// fill 批次。
+	// drop/删文件失败仅记日志不重试：重启后loadMQ按文件扫描重注册列族，下轮回收重新收敛。
+	private void recycleSegment(long base) {
 		var indexTable = indexes.remove(base); // ConcurrentSkipListMap.remove原子，锁外fill立即可见
 		if (null == indexTable)
-			return true;
-		if (activeFills.get() != 0) {
-			indexes.put(base, indexTable); // 放回（CSLM 原子，锁外fill立即可见）：迭代器只与放回不删的段相交
-			return false;
-		}
+			return;
 		try {
-			database.dropTable(topic + "." + partitionId + "." + base);
+			database.destroyColumnFamily(topic + "." + partitionId + "." + base, inFlightFillCheck());
 		} catch (RocksDBException e) {
 			logger.error("mq segment recycle dropTable failed, keep data file for restart rescan."
 					+ " topic={} partition={} segment={}", topic, partitionId, base, e);
-			return true; // 不删文件：残留供重启重扫（段已出indexes，不再被读路径定位）
+			return; // 不删文件：残留供重启重扫（段已出indexes，不再被读路径定位）
 		}
 		var file = new File(new File(home, topic), partitionId + "." + base);
 		var bytes = file.length();
@@ -606,7 +617,6 @@ public class MQFileWithIndex {
 		else
 			logger.warn("mq segment recycle delete file failed. topic={} partition={} file={}",
 					topic, partitionId, file);
-		return true;
 	}
 
 	public void increaseFirstMessageId() {

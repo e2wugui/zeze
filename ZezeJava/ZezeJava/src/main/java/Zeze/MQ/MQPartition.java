@@ -57,7 +57,9 @@ public class MQPartition extends ReentrantLock {
 	// 新的 fill/推送无从发起），再 bind(null) 静默在途推送、close 有界排空在飞回填（MQSingle.close 契约）。
 	// 之后由 MQManager.deletePartition 清理段文件/索引列族/meta。分区删除不触发 arrangeConsumer：
 	// 订阅集合未变，其余分区的 sessionId 取模绑定不受影响。
-	public void removePartition(int index) throws IOException {
+	// @return 被摘除的分区（mq-02：其 fileWithIndex 的在飞 fill 计数供 deletePartitionStorage
+	// 的终结原语排空；不在活集合返回 null）。
+	public MQSingle removePartition(int index) throws IOException {
 		// 全程持本锁，与 arrangeConsumer 串行化：锁外摘除时其 CHM 弱一致迭代可在 remove 落地前
 		// 读到本分区，随后的 bind 阻塞在 MQSingle 锁上待下方 close 排空让锁，之后在已 close 分区上
 		// 重设 bindSocket 并重推（closed 拒绝见 MQSingle.bind/tryPushMessage）。锁序沿既有方向
@@ -69,6 +71,7 @@ public class MQPartition extends ReentrantLock {
 				partition.bind(0, null);
 				partition.close();
 			}
+			return partition;
 		} finally {
 			unlock();
 		}

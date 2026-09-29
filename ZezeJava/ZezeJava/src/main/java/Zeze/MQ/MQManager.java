@@ -392,18 +392,22 @@ public class MQManager extends AbstractMQManager {
 	// 包内可见（测试直驱删除路径）：活分区先摘 + 存储全清。
 	void deletePartition(String topic, Set<Integer> partitionIndexes) throws Exception {
 		var queue = queues.get(topic);
-		if (null != queue) {
-			for (var index : partitionIndexes)
-				queue.removePartition(index);
+		for (var index : partitionIndexes) {
+			// mq-02：活分区的在飞 fill 计数随存储删除传入终结原语——close 的有界排空超预算
+			// 逃逸的 fill 世代持段索引迭代器，drop 前由原语等待归零（不再"一个出口有防护
+			// 一个没有"）。逐分区摘除+清存储（等在飞期间不占其他分区的删除进度）。
+			var partition = null != queue ? queue.removePartition(index) : null;
+			deletePartitionStorage(topic, index, null != partition ? partition.inFlightFillCheck() : null);
 		}
-		for (var index : partitionIndexes)
-			deletePartitionStorage(topic, index);
 	}
 
 	// 单分区存储清理（锁序对齐 recycleSegment：先摘引用（queues/partitions map 已移除）→
-	// dropTable 索引列族 → 删段文件；meta 列族最后 drop）。对不在活集合的分区同样有效（按目录扫描）。
-	// dropTable 对不存在的表是空操作（RocksDatabase 契约），杂散文件名（非"num.num"）直接跳过。
-	private void deletePartitionStorage(String topic, int index) throws RocksDBException {
+	// destroyColumnFamily 索引列族 → 删段文件；meta 列族最后 drop）。对不在活集合的分区
+	// 同样有效（按目录扫描，inFlight=null——无活实例即无在飞 fill）。
+	// destroyColumnFamily 对不存在的表是空操作（RocksDatabase 契约），杂散文件名（非"num.num"）
+	// 直接跳过。
+	private void deletePartitionStorage(String topic, int index, @Nullable RocksDatabase.InFlight inFlight)
+			throws RocksDBException {
 		var topicDir = new File(home, topic);
 		var files = topicDir.listFiles();
 		if (null != files) {
@@ -412,7 +416,7 @@ public class MQManager extends AbstractMQManager {
 				if (pa.length != 2 || !pa[0].equals(String.valueOf(index)))
 					continue;
 				try {
-					rocksDatabase.dropTable(topic + "." + index + "." + Long.parseLong(pa[1]));
+					rocksDatabase.destroyColumnFamily(topic + "." + index + "." + Long.parseLong(pa[1]), inFlight);
 				} catch (NumberFormatException e) {
 					// 段基非数字的杂散文件：不触碰列族，仅删文件。
 				}
@@ -420,7 +424,7 @@ public class MQManager extends AbstractMQManager {
 				file.delete();
 			}
 		}
-		rocksDatabase.dropTable(topic + "." + index); // meta
+		rocksDatabase.destroyColumnFamily(topic + "." + index, inFlight); // meta
 		// 死信生命周期与分区绑定：分区存储删除时联动清 dlq 中该 (topic,partition)
 		// 前缀的死信键——否则对账删除的分区（含其上已转死信的消息）在 dlq 成为永无人认领的死数据；
 		// 且分区重建后位点从 0 重计（meta 列族被 drop 后重建），旧死信键与新代际同 id 消息的键空间

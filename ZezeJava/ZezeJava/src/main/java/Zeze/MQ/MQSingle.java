@@ -563,14 +563,20 @@ public class MQSingle extends ReentrantLock {
 		return fileWithIndex;
 	}
 
+	// 包内可见：透传 fileWithIndex 的在飞 fill 计数（mq-02：deletePartitionStorage 传给
+	// RocksDatabase 终结原语的排空依据——close 排空超预算逃逸的 fill 世代由原语等待归零）。
+	RocksDatabase.InFlight inFlightFillCheck() {
+		return fileWithIndex.inFlightFillCheck();
+	}
+
 	// 包内可见：loadMonitorTimer 周期驱动的段回收透传（fileWithIndex 私有）。
 	// 回收通路三闸补齐：① 本闸 managerStopped（停机方向 belt-and-braces——timer
 	// 的有界 stop 只兜住预算内一轮，超预算逃逸的晚到轮次在此静默；主闸是 fileWithIndex.closed，
 	// close 在其自身锁内置位，回收临界区与其严格互斥）；② fileWithIndex.closed（tryRecycle 锁内
 	// 复查，闭合回收×deletePartitionStorage 毁句柄的 native use-after-free）；③ 既有 activeFills
-	// 双检+终检-放回（recycle×fill 面）。
+	// 双检+终结原语排空（recycle×fill 面，mq-02 收口进 destroyColumnFamily）。
 	// "无需本类锁——其全部写点在 fileWithIndex 锁内"的论证只对 appendMessage/increaseFirstMessageId
-	// 成立，对删除路径（deletePartitionStorage 不取任何 MQ 锁直接 dropTable）不成立；
+	// 成立，对删除路径（deletePartitionStorage 不取任何 MQ 锁直接 destroyColumnFamily）不成立；
 	// 主闸收在 fileWithIndex 自身锁内，不在本类锁内包裹 tryRecycle（避免把 dropTable/删文件的 IO
 	// 塞进数据面锁，每 120s 造成该分区 sendMessage 尖刺）。
 	void tryRecycleSegments(long delayMs) {
