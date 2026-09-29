@@ -202,7 +202,7 @@ public class LogIndex {
 	}
 
 	/**
-	 * std::lower_bound 定义。返回指定key为上限的索引。即在≥key范围内找最小的key的索引
+	 * std::lower_bound 定义。返回指定key为上限的索引。即在>=key范围内找最小的key的索引
 	 *
 	 * @param time time
 	 * @return index.offset 不存在时返回-1。
@@ -215,6 +215,32 @@ public class LogIndex {
 			if (idx >= size)
 				return -1;
 			return mmap.getLong(idx * eIndexRecordSize + 8);
+		} finally {
+			rwLock.readLock().unlock();
+		}
+	}
+
+	/**
+	 * 前驱记录（floor）：最后一个 time&lt;=key 的记录的 offset。查询定位（seek）专用锚：
+	 * 索引是采样而非完备集（10s节拍+装载批间基线推进都留未索引间隙），取lowerBound锚
+	 * （首条&gt;=key的记录）会使前驱与锚之间未入索引的日志（时间可&gt;=key、物理位置在
+	 * 锚之前）不被读到——窗口头部静默漏读。恰等于某记录时间时该记录即前驱；key早于
+	 * 首条记录/空索引返回-1（无前驱可用，调用方回落文件头扫描）；key超出末端的前驱即
+	 * 末记录（尾窗续扫语义由此统一承载）。
+	 *
+	 * @param time time
+	 * @return index.offset 不存在时返回-1。
+	 */
+	public long floorOffset(long time) {
+		rwLock.readLock().lock();
+		try {
+			var size = mmap.limit() / eIndexRecordSize;
+			var idx = lowerBoundIndex(time, size);
+			if (idx < size && mmap.getLong(idx * eIndexRecordSize) == time)
+				return mmap.getLong(idx * eIndexRecordSize + 8);
+			if (idx > 0)
+				return mmap.getLong((idx - 1) * eIndexRecordSize + 8);
+			return -1;
 		} finally {
 			rwLock.readLock().unlock();
 		}
