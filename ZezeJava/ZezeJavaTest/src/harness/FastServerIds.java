@@ -155,6 +155,7 @@ public final class FastServerIds {
 	public static final int TEST_TRANSMIT_UNKNOWN_ACTION = seg("TestTransmitUnknownAction", 16201, 3);
 	public static final int TEST_LOAD_BASE_CHAIN_RESILIENCE = seg("TestLoadBaseChainResilience", 16211, 10);
 	public static final int TEST_QUEUE_BROKEN_CHAIN_DIAGNOSIS = seg("TestQueueBrokenChainDiagnosis", 16221, 3);
+	public static final int TEST_PRODUCER_TXN_SEND_REJECTS_ENV_TRANSACTION = seg("TestProducerTxnSendRejectsEnvTransaction", 16231, 1);
 
 	private FastServerIds() {
 	}

@@ -7,6 +7,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import Zeze.Application;
 import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.TaskSpec;
@@ -105,10 +106,25 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	 * 发送消息，并且把消息跟一个事务绑定起来。仅当事务执行成功时，消息才会被发送。如果事务回滚，消息将被取消。
 	 * 前置 tSent 预插行过程失败（冲突重试耗尽、库异常等）时不发送消息、不执行 procedureAction，
 	 * 记 error 日志并返回 null。
+	 *
+	 * <p>必须在<b>环境事务之外</b>调用（调用线程不得处于运行中的 Zeze 事务内）：环境事务内调用
+	 * 立即抛 {@link UnsupportedOperationException}（本方法第一行 fail-fast，先于一切副作用）。
+	 * 事务联动发送（外层事务提交后再发 COMMIT）需独立设计，当前不支持。
 	 */
 	public @Nullable TransactionSendResult sendMessageWithTransaction(@NotNull Message msg,
 																	  @NotNull FuncLong procedureAction)
 			throws MQClientException {
+		// 环境事务内禁发事务消息。判据与 Procedure.call() 选择嵌套路径的判据完全一致
+		//（Transaction.getCurrent() 非空）：此时 executeLocalTransaction 里的本地事务走
+		// savepoint 合并、不落盘，而 rocketmq-client 在其返回 COMMIT_MESSAGE 后立即向 broker
+		// 发出 EndTransaction(COMMIT)——外层事务随后回滚即成"幽灵消息"（本地无变更但消息已
+		// 投递），外层冲突 redo 重跑则再发一条新 UNIQ_KEY 的半消息（同一笔本地事务重复投递）。
+		// 不用 isRunning() 收窄：whileCommit 回调在事务 Completed 后、线程归还前执行，
+		// getCurrent() 仍非空，此时嵌套过程写进无宿主的 savepoint 同样不落盘，一样产生幽灵消息。
+		if (Transaction.getCurrent() != null)
+			throw new UnsupportedOperationException("sendMessageWithTransaction: 环境事务内发送事务消息会产生"
+					+ "幽灵消息/重复投递（内层本地事务走嵌套 savepoint 不落盘，而 COMMIT 已先发给 broker）。"
+					+ "请在 Zeze 事务外发送，或改用 sendMessage 发非事务消息。");
 		var txnId = zeze.getAutoKey("RocketMQ").nextString();
 		msg.setTransactionId(txnId);
 		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
