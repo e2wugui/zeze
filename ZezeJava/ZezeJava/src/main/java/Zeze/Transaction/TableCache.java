@@ -62,7 +62,14 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				newLruHot();
 		}).schedulePeriodNow(newLruHotPeriod, newLruHotPeriod);
 		var cleanPeriod = this.table.getTableConf().getCacheCleanPeriod();
-		timerClean = TaskSpec.ofAction(this::cleanNow).schedulePeriodNow(cleanPeriod, cleanPeriod);
+		try {
+			timerClean = TaskSpec.ofAction(this::cleanNow).schedulePeriodNow(cleanPeriod, cleanPeriod);
+		} catch (Throwable e) {
+			// 第二个周期注册失败（如CacheCleanPeriod<=0抛IllegalArgumentException）时，
+			// 已注册的timerNewHot无引用可cancel，闭包持有整个TableCache/table永久泄漏。
+			timerNewHot.cancel(false);
+			throw e;
+		}
 	}
 
 	final @NotNull ConcurrentHashMap<K, Record1<K, V>> getDataMap() {
