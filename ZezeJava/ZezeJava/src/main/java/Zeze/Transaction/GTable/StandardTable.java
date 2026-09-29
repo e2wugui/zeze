@@ -127,7 +127,17 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     Utils.checkNotNull(rowKey);
     Utils.checkNotNull(columnKey);
     Utils.checkNotNull(value);
-    return getOrCreate(rowKey).put(columnKey, value);
+    // 先写内层再挂外层：getOrCreate先把空行put进外层容器（托管路径当场记LogMap2）后内层
+    // put抛异常（如值bean已受管的HasManagedException）时，catch后继续提交会残留并持久化
+    // 幻影空行——对齐PMap2.putAll“先全量校验后入日志”的防边改边记惯例。
+    Map<C, V> map = backingMap.get(rowKey);
+    if (map == null) {
+      map = factory.get();
+      V old = map.put(columnKey, value);
+      backingMap.put(rowKey, map);
+      return old;
+    }
+    return map.put(columnKey, value);
   }
 
   @Override
@@ -337,6 +347,12 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     public V put(C key, V value) {
       Utils.checkNotNull(value);
       if (backingRowMap != null && !backingRowMap.isEmpty()) {
+        // 陈旧视图守卫：行已被rowMap().remove(rowKey)/clear()整体摘除后，缓存的
+        // backingRowMap仍非空，直接写入会落到已脱离backingMap的旧行（托管路径还记
+        // 挂在脱树bean上的幻影redo）——写入静默丢失。Guava原版同构缺陷，Zeze下丢的
+        // 是持久化数据，响亮失败优于静默丢失。
+        if (!backingMap.containsKey(rowKey))
+          throw new IllegalStateException("stale row view: row " + rowKey + " has been removed from table");
         return backingRowMap.put(key, value);
       }
       return StandardTable.this.put(rowKey, key, value);
