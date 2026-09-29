@@ -35,6 +35,7 @@ public class Procedure {
 	public static final long Busy = -19;
 	public static final long AuthFail = -20;
 	public static final long FailCallback = -21;
+	public static final long FailDiscard = -22;
 	// >0 用户自定义。
 
 	@FunctionalInterface

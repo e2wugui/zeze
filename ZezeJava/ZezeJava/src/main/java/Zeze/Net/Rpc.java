@@ -38,6 +38,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	private transient @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle;
 	private transient @Nullable TaskCompletionSource<TResult> future;
 	private int timeout = 5000;
+	private int timeoutBroken = 30_000;
 	private boolean isTimeout;
 	private boolean isRequest = true;
 	protected volatile transient boolean sendResultDone;
@@ -73,6 +74,14 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	public int getTimeout() {
 		return timeout;
+	}
+
+	public int getTimeoutBroken() {
+		return timeoutBroken;
+	}
+
+	public void setTimeoutBroken(int timeoutBroken) {
+		this.timeoutBroken = timeoutBroken;
 	}
 
 	public void setTimeout(int timeout) {
@@ -199,25 +208,41 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	 *
 	 * @param so socket
 	 * @param responseHandle response handle
-	 * @param millisecondsTimeout timeout(MS)
-	 * @return true success, false fail.
+\	 * @return true success, false fail.
 	 */
 	public boolean sendCallbackAlways(@Nullable AsyncSocket so,
-									  @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
-									  int millisecondsTimeout) {
+									  @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
 		if (responseHandle == null)
 			throw new IllegalStateException("responseHandle is null"); // 调用这个函数不允许没有回调。
 
-		if (Send(so, responseHandle, millisecondsTimeout))
+		if (Send(so, responseHandle, timeout))
 			return true;
 
 		this.setIsTimeout(true);
 		this.setResultCode(Procedure.FailCallback);
-		// 无事务或者whileCommit中都需要立即回调(now）。
-		// 事务中调用也是立即。
-		// 另起线程避免whileCommit中调用这个函数，回调的时候不能启用事务。
+		// 无事务或者whileCommit中都需要立即回调(now）。事务中调用也是立即。另起线程避免whileCommit中调用这个函数，回调的时候不能启用事务。
 		TaskSpec.ofFunc(() -> responseHandle.handle(this)).executeSystemOneByOne();
 		return false;
+	}
+
+	public long sendCallbackBrokenTimeout(@NotNull Connector c,
+										 @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
+		if (responseHandle == null)
+			throw new IllegalStateException("responseHandle is null"); // 调用这个函数不允许没有回调。
+
+		if (timeout + 1000 > timeoutBroken)
+			throw new IllegalArgumentException("timeoutRpc + 1000 > timeoutBroken");
+
+		if (Send(c.getSocket(), responseHandle, timeout))
+			return Procedure.Success;
+
+		if (!c.checkBrokenTimeout(timeoutBroken))
+			return Procedure.FailDiscard; // 失败，仍然丢了callback
+
+		this.setIsTimeout(true);
+		this.setResultCode(Procedure.FailCallback);
+		TaskSpec.ofFunc(() -> responseHandle.handle(this)).executeSystemOneByOne();
+		return Procedure.FailCallback;
 	}
 
 	public final TaskCompletionSource<TResult> SendForWait(@Nullable AsyncSocket so) {

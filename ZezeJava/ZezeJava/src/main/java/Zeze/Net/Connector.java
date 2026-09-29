@@ -20,10 +20,7 @@ import org.w3c.dom.Element;
  * 2. 动态创建并加入Service
  */
 public class Connector extends ReentrantLock {
-	// 须覆盖dnsResolver的getByName文档化最坏时长（同步不可中断，可达5-30秒，见
-	// TcpSocket.connectAsync）再加停顿余量：5s预算下回环连接也会被STW/整机瞬时冻结顶穿
-	// （压测实证：共享selector的OP_CONNECT处理停顿>5s即TimeoutException）。
-	private static final int READY_TIMEOUT = 30_000;
+	private static final int READY_TIMEOUT = 5000;
 
 	private final @NotNull String hostNameOrAddress;
 	private final int port;
@@ -43,6 +40,7 @@ public class Connector extends ReentrantLock {
 	private long epoch;
 	private int maxReconnectDelay = 8000; // 毫秒
 	private int reConnectDelay;
+	private long brokenTime = System.currentTimeMillis();
 
 	public static @NotNull Connector Create(@NotNull Element e) {
 		String className = e.getAttribute("Class");
@@ -194,6 +192,15 @@ public class Connector extends ReentrantLock {
 		}
 	}
 
+	public boolean checkBrokenTimeout(long timeout) {
+		lock();
+		try {
+			return socket == null && (System.currentTimeMillis() - brokenTime > timeout);
+		} finally {
+			unlock();
+		}
+
+	}
 	/**
 	 * 契约：仅由 AsyncSocket 死亡流程（doClose，置死之后）调用——本方法持锁经 stop(e) 重入
 	 * as.close(e)，"socket==closed ⇒ 已置死"使其恒为no-op；否则doClose将在Connector锁内展开
@@ -203,6 +210,7 @@ public class Connector extends ReentrantLock {
 		lock();
 		try {
 			if (socket == closed) {
+				brokenTime = System.currentTimeMillis();
 				stop(e);
 				tryReconnect();
 			}

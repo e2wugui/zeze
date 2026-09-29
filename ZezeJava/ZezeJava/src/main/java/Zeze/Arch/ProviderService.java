@@ -163,7 +163,7 @@ public class ProviderService extends HandshakeClient {
 	private static void sendDisableChoiceToLink(@NotNull Connector link, boolean value) {
 		var r = new SetDisableChoice();
 		r.Argument.setDisableChoice(value);
-		r.Send(link.getSocket(), (p) -> {
+		r.sendCallbackAlways(link.getSocket(), (p) -> {
 			if (r.isTimeout() || r.getResultCode() != 0)
 				logger.error("setDisableChoice fail. {}", link.getName());
 			return 0;

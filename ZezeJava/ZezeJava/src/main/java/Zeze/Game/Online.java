@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1255,8 +1256,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * 直接通过Link链接发送Send协议。
 	 */
 	public boolean send(@NotNull AsyncSocket link, @NotNull Map<Long, Long> contexts, @NotNull Send send) {
-		return send.Send(link, rpc -> triggerLinkBroken(ProviderService.getLinkName(link),
-				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+		return 0 == send.sendCallbackBrokenTimeout(Objects.requireNonNull(link.getConnector()),
+			rpc -> triggerLinkBroken(
+				ProviderService.getLinkName(link),
+				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(),
+				contexts));
 	}
 
 	// 直接通过 linkName, linkSid 发送协议。
@@ -1381,7 +1385,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			}
 
 			group.roleIds.foreach(this::setLocalActiveTimeIfPresent);
-			if (group.send.Send(group.linkSocket, rpc -> {
+			if (0 == group.send.sendCallbackBrokenTimeout(
+				Objects.requireNonNull(group.linkSocket.getConnector()),
+				rpc -> {
 				var send = group.send;
 				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
 				processErrorSids(errorSids, group);
@@ -1460,7 +1466,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(link.getLinkSid());
 		setLocalActiveTimeIfPresent(roleId);
-		return send.Send(linkSocket, rpc -> {
+		return 0 == send.sendCallbackBrokenTimeout(
+			connector,
+			rpc -> {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
 				// 补发的linkBroken没有account上下文

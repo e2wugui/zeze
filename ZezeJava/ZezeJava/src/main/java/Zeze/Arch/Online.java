@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -802,8 +803,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public boolean send(@NotNull AsyncSocket to, @NotNull Map<Long, BLoginKey> contexts, @NotNull Send send) {
-		return send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
-				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
+		return 0 == send.sendCallbackBrokenTimeout(Objects.requireNonNull(to.getConnector()),
+			rpc -> triggerLinkBroken(
+				ProviderService.getLinkName(to),
+				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(),
+				contexts));
 	}
 
 	public boolean send(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
@@ -936,7 +940,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				continue; // link miss process done
 			}
 
-			if (group.send.Send(group.linkSocket, rpc -> {
+			if (0 == group.send.sendCallbackBrokenTimeout(
+				Objects.requireNonNull(group.linkSocket.getConnector()),
+				rpc -> {
 				var send = group.send;
 				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
 				processErrorSids(errorSids, group);
@@ -1022,7 +1028,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		ZezeCounter.instance.addSendSize(typeId, fullEncodedProtocol.size()); // 内层协议在包装点归因
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
 		send.Argument.getLinkSids().add(link.getLinkSid());
-		return send.Send(linkSocket, rpc -> {
+		return 0 == send.sendCallbackBrokenTimeout(
+			connector,
+			rpc -> {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
 				// 对齐同方法上方closed分支的既有形态（TaskSpec.run），
@@ -1151,7 +1159,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				processErrorSids(group.send.Argument.getLinkSids(), group);
 				continue; // link miss process done.
 			}
-			if (group.send.Send(group.linkSocket, rpc -> {
+			if (0 == group.send.sendCallbackBrokenTimeout(
+				Objects.requireNonNull(group.linkSocket.getConnector()), rpc -> {
 				var send = group.send;
 				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
 				processErrorSids(errorSids, group);
@@ -1202,7 +1211,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				continue; // link miss process done.
 			}
 
-			if (group.send.Send(group.linkSocket, rpc -> {
+			if (0 == group.send.sendCallbackBrokenTimeout(
+				Objects.requireNonNull(group.linkSocket.getConnector()), rpc -> {
 				var send = group.send;
 				var errorSids = send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids();
 				processErrorSids(errorSids, group);
