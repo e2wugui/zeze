@@ -113,8 +113,14 @@ public class TestRotateNewerThanActiveStillQueryable {
 	/**
 	 * 等价触发向量（拷入，不需时钟事件）：向logDir拷入符合rotate命名、内容时间晚于active首条
 	 * 的文件（从另一台时钟超前的服务器拷日志来排查）。reconcile补登（头部采样+归位插入）落进
-	 * 同一列表形态，索引续建通道（buildIndex）收敛补登条目余量后，该内容的时间窗必须可查——
-	 * 修复前尾锚恒选中active，即便索引完整也永久漏读（拷贝来排查的内容反而不可查）。
+	 * 同一列表形态，该内容的时间窗必须可查——修复前尾锚恒选中active，即便索引完整也永久漏读
+	 * （拷贝来排查的内容反而不可查）。
+	 * log4jquery-01：补登采样态（endTime=首条时间）到索引续建完成之间有最长一个buildIndex
+	 * 周期（生产5分钟）的空窗——timer路径的reconcile与续建同tick闭合，唯独watch线程路径
+	 * （OVERFLOW节流对账/监听失效最终对账）的补登没有同tick续建；空窗内查重叠窗seek双锚可
+	 * 双双漏选拷入条目（尾锚被active更早beginTime拦截、头锚被采样endTime滞后拦截），整窗
+	 * 空结果且remain=false，客户端误判"该时段无日志"。修复后reconcile对本次补登集合锁外
+	 * 即时续建，空窗消除：invokeReconcile后不调buildIndex直接查询即须可查。
 	 */
 	@Test
 	public void testCopiedFutureRotateSearchableAfterReconcile() throws Exception {
@@ -131,33 +137,46 @@ public class TestRotateNewerThanActiveStillQueryable {
 			AtomicFileWriter.replace(logDir.resolve(Copied), buildLines(FastBase, "r-",
 					0, 600, 1200, 1800, 2400, 3000, 3540).getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			invokeReconcile(manager); // 补登：sampleIndexHead采样+addByContentTime归位（active锚位之前）
-			invokeBuildIndex(manager); // 索引续建收敛补登条目余量（生产由5分钟周期承担）
 
 			// 列表形态：拷入条目内容时间晚于active首条，归位在active锚位之前。
 			var entries = entriesOf(manager);
 			assertEquals(List.of(Copied, Active), fileNamesOf(manager));
 			assertEquals(millis(FastBase), entries.get(0).index.getBeginTime());
 			assertEquals(millis(RealBase.plusSeconds(60)), entries.get(1).index.getBeginTime());
+			// 补登即时续建（log4jquery-01修复）：endTime须即时收敛到文件末条。修复前补登只做
+			// 头部采样（endTime=首条时间15:00），空窗内头锚漏选该条目。
+			assertEquals(millis(FastBase.plusSeconds(3540)), entries.get(0).index.getEndTime(),
+					"reconcile补登应即时续建到文件末条（修复前采样态endTime=首条时间）");
 
-			// 查未来窗口[15:05,15:55]：返回拷入内容的r-1..r-5（修复前返回空且remain=false）。
-			var session = new Log4jSession(manager);
-			try {
-				var result = new ArrayList<Log4jLog>();
-				assertFalse(session.searchContains(result, millis(FastBase.plusSeconds(300)),
-						millis(FastBase.plusSeconds(3300)), List.of("r-"), BCondition.ContainsAll, 100),
-						"窗口内全部命中后应无剩余");
-				assertEquals(5, result.size(), "被拷入遮蔽窗口应返回r-1..r-5（修复前整窗静默漏读）");
-				for (var i = 0; i < 5; ++i) {
-					assertTrue(result.get(i).getLog().contains("r-" + (i + 1)),
-							"顺序必须有序：第" + i + "条应为r-" + (i + 1));
-					assertEquals(millis(FastBase.plusSeconds(600L * (i + 1))), result.get(i).getTime());
-				}
-			} finally {
-				session.close();
-			}
+			// 空窗形态直查：不调buildIndex（生产watch线程路径补登后没有同tick续建，正是本形态），
+			// 查未来窗口[15:05,15:55]必须返回r-1..r-5——修复前空结果且remain=false。
+			assertCopiedWindowSearchable(manager);
+
+			// 续建完成后（原形态保留）：buildIndex收敛后同窗仍可查。
+			invokeBuildIndex(manager);
+			assertCopiedWindowSearchable(manager);
 		} finally {
 			manager.stop();
 			deleteBestEffort(logDir);
+		}
+	}
+
+	/** 未来窗口[15:05,15:55]必须返回拷入内容的r-1..r-5，且查完无剩余。 */
+	private static void assertCopiedWindowSearchable(Log4jFileManager manager) throws Exception {
+		var session = new Log4jSession(manager);
+		try {
+			var result = new ArrayList<Log4jLog>();
+			assertFalse(session.searchContains(result, millis(FastBase.plusSeconds(300)),
+					millis(FastBase.plusSeconds(3300)), List.of("r-"), BCondition.ContainsAll, 100),
+					"窗口内全部命中后应无剩余（修复前空结果且remain=false，客户端误判查完无数据）");
+			assertEquals(5, result.size(), "被拷入遮蔽窗口应返回r-1..r-5（修复前整窗静默漏读）");
+			for (var i = 0; i < 5; ++i) {
+				assertTrue(result.get(i).getLog().contains("r-" + (i + 1)),
+						"顺序必须有序：第" + i + "条应为r-" + (i + 1));
+				assertEquals(millis(FastBase.plusSeconds(600L * (i + 1))), result.get(i).getTime());
+			}
+		} finally {
+			session.close();
 		}
 	}
 

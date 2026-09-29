@@ -16,6 +16,10 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +44,10 @@ import harness.Fast;
  * 2. buildIndex扩为锁外全条目增量续建——非active条目不持manager锁逐个loadIndex续建（该通道对补登
  *    条目此前不存在：旧代码只推进last==当前名，补登rotate恰插在active之前永远轮不到——只采样不续建
  *    =永久残索引）；active条目维持锁内推进（GD-C03错位检测的串行点，不动）。
- * 补齐窗口内未覆盖区间走既有"无索引回退文件头线性定位"路径——慢而不错，代价随续建单调消失。
+ * log4jquery-01修订：rotate补登的采样与续建闭合到同一执行面——reconcile锁内采样补登后，对本次
+ * 补登集合在锁外立即执行与buildIndex锁外段相同的loadIndex续建（timer路径本就同tick闭合，watch
+ * 线程路径原先隔着最多一个buildIndex周期的空窗，窗内seek双锚可双双漏选采样态条目，其承载时间窗
+ * 整窗空结果且remain=false）。锁持有解耦不变：采样仍在锁内毫秒级，续建全程锁外。
  */
 @Fast
 public class TestReconcileOutOfLockIndexBuild {
@@ -56,8 +63,9 @@ public class TestReconcileOutOfLockIndexBuild {
 	}
 
 	/**
-	 * 第一半（rotate补登分支）：大文件补登锁内毫秒级（计时+确定性双层断言），采样后条目即可被seek
-	 * 选中、未覆盖区间线性回退定位正确（慢而不错）。
+	 * 第一半（rotate补登分支）：大文件补登的锁内登记毫秒级（与文件体量解耦）、续建全程锁外
+	 * （查询不被大文件续建阻塞）；补登返回时索引已即时续建到全量（log4jquery-01，不再有
+	 * 采样态空窗），条目可被seek选中且定位精确。
 	 */
 	@Test
 	public void testReconcileSamplesHeadFastAndSeekable() throws Exception {
@@ -71,30 +79,55 @@ public class TestReconcileOutOfLockIndexBuild {
 			AtomicFileWriter.replace(logDir.resolve("zeze.2026-01-01.log"),
 					buildLines(base, BigLines).getBytes(StandardCharsets.UTF_8));
 
-			// 计时断言（反向验证形态）：reconcile全程持manager锁，墙钟=锁持有时长。
-			// 修复前：锁内同步全量扫描15万行（分钟级量级的缩小版）；修复后：采样1行，毫秒级。
+			// 锁持有解耦断言（log4jquery-01起reconcile=锁内采样登记+锁外即时续建，总墙钟随文件
+			// 体量增长是有意代价——watch线程IO有既有先例；要保的是锁只在采样段持有）。对账在后台
+			// 线程执行，主线程轮询观察：（a）条目毫秒级登记入列（锁内段完成）；（b）对账仍在进行
+			//（大文件续建中）时锁已可空闲获取（查询路径不被续建钉住）。
+			var reconcileDone = new CountDownLatch(1);
+			var registeredMs = new AtomicLong(-1);
+			var lockFreeDuringReconcile = new AtomicBoolean(false);
 			var beginNano = System.nanoTime();
-			invokeReconcile(manager);
-			var elapsedMs = (System.nanoTime() - beginNano) / 1_000_000;
-			assertTrue(elapsedMs < MaxReconcileMs,
-					"补登锁持有应毫秒级（与文件体量解耦），实际" + elapsedMs + "ms（修复前全量扫描线性放大）");
+			var reconciler = new Thread(() -> {
+				try {
+					invokeReconcile(manager);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				} finally {
+					reconcileDone.countDown();
+				}
+			});
+			reconciler.start();
+			while (!reconcileDone.await(1, TimeUnit.MILLISECONDS)) {
+				if (registeredMs.get() < 0 && manager.size() == 2)
+					registeredMs.set((System.nanoTime() - beginNano) / 1_000_000);
+				if (registeredMs.get() >= 0 && manager.tryLock()) {
+					manager.unlock();
+					lockFreeDuringReconcile.set(true);
+				}
+			}
+			assertTrue(registeredMs.get() >= 0 && registeredMs.get() < MaxReconcileMs,
+					"补登登记（锁内段）应毫秒级（与文件体量解耦），实际" + registeredMs.get() + "ms");
+			assertTrue(lockFreeDuringReconcile.get(),
+					"续建须在锁外执行：对账进行期间（大文件续建中）锁应可获取（修复前锁内全量扫描恒不可得）");
 
 			assertEquals(List.of("zeze.2026-01-01.log", Active), fileNamesOf(manager), "rotate补登在active之前");
 
-			// 确定性采样断言：索引只有首条记录（beginTime=首行时间；无任何≥首行+35s的记录）。
-			// 修复前此处即全量索引（第二条记录在首行+30s处）。
+			// 即时续建断言（log4jquery-01）：补登返回时索引已收敛到全量——不再有"采样后等5分钟
+			// 周期"的空窗（空窗内seek双锚可双双漏选该条目，其承载时间窗整窗空结果且remain=false）。
 			var entry = entriesOf(manager).get(0);
 			assertEquals(millis(base), entry.index.getBeginTime(), "首条记录入索引，beginTime可用");
-			assertEquals(-1L, entry.index.lowerBound(millis(base.plusSeconds(35))),
-					"补登只采样头部（修复前锁内已全量建索引）");
+			var last = millis(base.plusSeconds(30L * (BigLines - 1)));
+			assertTrue(entry.index.lowerBound(last) >= 0, "补登即时续建覆盖到末条（修复前采样态只有首条）");
+			assertEquals(-1L, entry.index.lowerBound(last + 5_000), "末条之后无越界记录（增量从endTime续，不重不漏）");
 
-			// 补齐窗口内的查询语义不变：midTime未覆盖，走offset 0回退+detailSeek线性定位——慢而不错。
+			// 中点查询定位精确（旧采样态走offset 0回退+detailSeek线性定位——慢而不错；全量索引下
+			// 精确跳转，结果同一）。
 			var midTime = millis(base.plusSeconds(30L * 1000));
 			var out = new OutInt();
 			var session = manager.seek(midTime, out);
-			assertNotNull(session, "采样后的条目即可被seek选中");
+			assertNotNull(session, "补登后的条目即可被seek选中");
 			assertEquals("zeze.2026-01-01.log", session.getFile().getName());
-			assertEquals(midTime, session.current().getTime(), "线性回退定位精确（首条≥time的记录）");
+			assertEquals(midTime, session.current().getTime(), "定位精确（首条≥time的记录）");
 			assertTrue(session.current().getLog().contains("line-01000"), "定位到正确行内容");
 			session.close();
 		} finally {
@@ -104,9 +137,10 @@ public class TestReconcileOutOfLockIndexBuild {
 	}
 
 	/**
-	 * 第二半（全条目续建通道）：采样补登的两个rotate条目由一次buildIndex锁外增量续建到全量——
-	 * 该通道对补登条目此前不存在（旧代码只推进last==当前名，补登rotate永远轮不到=永久残索引）。
-	 * 续建后索引覆盖到末条且边界精确（无越界记录），全部条目内容可查。
+	 * 第二半（全条目续建通道）：非active条目由buildIndex锁外增量续建覆盖（该通道对补登条目此前
+	 * 不存在：旧代码只推进last==当前名，补登rotate永远轮不到=永久残索引）。log4jquery-01后补登
+	 * 条目在reconcile内即时续建，本通道转为兜底+边界维持：一次buildIndex幂等重扫两个rotate条目，
+	 * 索引覆盖到末条且边界精确（无越界、无重复），全部条目内容可查。
 	 */
 	@Test
 	public void testBuildIndexContinuesAllNonActiveEntries() throws Exception {
@@ -127,11 +161,15 @@ public class TestReconcileOutOfLockIndexBuild {
 			invokeReconcile(manager);
 			assertEquals(List.of("zeze.2026-01-01.log", "zeze.2026-02-01.log", Active), fileNamesOf(manager));
 			var entries = entriesOf(manager);
+			// 即时续建断言（log4jquery-01）：补登返回时索引已收敛——不再有"采样态等周期续建"的
+			// 空窗（修复前此处只有首条采样记录）。
 			for (var base : List.of(base1, base2))
-				assertEquals(-1L, entries.get(base == base1 ? 0 : 1).index.lowerBound(millis(base.plusSeconds(35))),
-						"补登只采样头部，余量待续建（修复前此处已是全量）");
+				assertTrue(entries.get(base == base1 ? 0 : 1).index.lowerBound(millis(base.plusSeconds(60))) >= 0,
+						"补登即时续建：次条记录已在索引（修复前采样态只有首条）");
 
 			// 一次buildIndex：锁外遍历全部非active条目逐个续建（新→旧序），再锁内推进active。
+			// log4jquery-01后本通道对补登条目是兜底（即时续建单条目失败/进程在两半之间重启时由
+			// 周期补齐），幂等重扫不重不漏。
 			invokeBuildIndex(manager);
 
 			var r1 = entries.get(0).index;

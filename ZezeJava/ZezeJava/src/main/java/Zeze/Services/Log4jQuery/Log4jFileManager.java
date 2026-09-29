@@ -545,7 +545,16 @@ public class Log4jFileManager extends ReentrantLock {
 	 * （loadIndex幂等，testFileName是现成判定器）。目录不存在/不可访问时跳过并保留告警，不视为错误。
 	 * 低频挂在buildIndexTimer（5分钟）上，不做独立定时器。
 	 */
-	private void reconcile() {		lock();
+	private void reconcile() {
+		// 本次补登的rotate条目集合（log4jquery-01）：锁内采样补登只保证条目可入列（endTime=首条
+		// 时间），seek头锚以endTime判条目覆盖——采样态与索引续建完成之间有空窗：timer路径的
+		// reconcile与续建同tick闭合（buildIndex首行调用本方法），唯独watch线程路径（OVERFLOW
+		// 节流对账/监听失效最终对账）的补登与5分钟周期续建之间隔着最多一个周期的空窗，窗内
+		// 查询落在重叠时间带时双锚可双双漏选该条目（尾锚被active更早beginTime拦截、头锚被采样
+		// endTime滞后拦截），其承载时间窗整窗空结果且remain=false。锁外对本集合立即执行与
+		// buildIndex锁外段完全相同的loadIndex续建，endTime即时收敛到文件实际内容，空窗消除。
+		var backfilled = new ArrayList<Log4jFile>();
+		lock();
 		try {
 			var listFiles = new File(logConf.logDir).listFiles();
 			if (null == listFiles) {
@@ -638,14 +647,17 @@ public class Log4jFileManager extends ReentrantLock {
 			// append到末位=最新世代锚定（FND29 log4jquery-02，见files注释）——不以末位名字判"已登记"，
 			// 该判据在位置与名字失配的形态下会重复登记同一文件（双条目、搜索结果重复）。
 			// 补登只做头部采样：GB级轮转文件的全量扫描让锁内补登分钟级、watch线程（恢复场景
-			// 对账内联在其本尊上）被钉住、新CREATE事件堆积再触发OVERFLOW——"恢复动作自己制造下一轮丢失"。
-			// 采样后锁内只剩列表收敛+首条记录入索引（毫秒级，与单文件体量解耦）；余量由buildIndex锁外
-			// 续建通道增量补齐。两半缺一不可：只采样不续建=永久残索引、该条目查询永久线性定位。
+			// 对账内联在其本尊上）持锁被钉住、查询/轮转处理全被阻塞、新CREATE事件堆积再触发
+			// OVERFLOW——"恢复动作自己制造下一轮丢失"。采样后锁内只剩列表收敛+首条记录入索引
+			// （毫秒级，与单文件体量解耦）；余量由锁外续建通道收敛：本方法尾部的即时续建（主通道，
+			// log4jquery-01）与buildIndex周期续建（兜底：即时续建单条目失败/进程在两半之间重启时
+			// 由下一周期补齐）。两半缺一不可：只采样不续建=永久残索引、该条目查询永久线性定位。
 			if (!rotates.isEmpty()) {
 				for (var kv : rotates) {
 					var logFile = new File(logConf.logDir, kv.getValue());
-					addByContentTime(Log4jFile.of(logFile,
-							sampleIndexHead(logFile, openRotateIndex(logFile))));
+					var entry = Log4jFile.of(logFile, sampleIndexHead(logFile, openRotateIndex(logFile)));
+					addByContentTime(entry);
+					backfilled.add(entry); // 采样态条目记入即时续建集合（见方法头部注释）
 				}
 			}
 			if (activeOnDisk && activeEntry() == null) {
@@ -666,6 +678,24 @@ public class Log4jFileManager extends ReentrantLock {
 			logger.error("reconcile error", ex);
 		} finally {
 			unlock();
+		}
+		// 锁外即时续建（log4jquery-01，与buildIndex锁外段同一通道、同一持锁论证）：loadIndex只触碰
+		// (logFile,index)二元组、不读写files，manager锁真正要保的只有files变更与"索引改名+条目改指"
+		// 的串行——rotate补登条目不参与改名/改指（那是active条目的处置），锁外安全。集合按构造只含
+		// rotate名条目（testFileName判1），无active名，不需要buildIndex锁外段的active跳过守卫。
+		// 与timer路径并发续建同一补登条目（本方法在watch线程执行、buildIndex在timer线程执行）时，
+		// LogIndex.addIndex的写边界不变量按当前endTime对齐丢弃重复/乱序批次，mmap扩展经其rwLock
+		// 串行，收敛正确只多一轮扫描；条目被并发摘除（retention删除/下轮对账）时loadIndex读已失效
+		// 文件，异常由逐条目隔离吞掉，无害（与buildIndex锁外段的暴露面同构）。
+		// watch线程执行IO有既有先例（上方采样本身就在watch线程做）；代价与文件体量相关，但锁已
+		// 释放——查询/轮转处理不被阻塞，watch事件消费延迟由内核队列有界背压。逐条目隔离异常：
+		// 单文件损坏/消失只损失该条目本轮续建，余量由buildIndex周期兜底。
+		for (var entry : backfilled) {
+			try {
+				loadIndex(entry.file, entry.index);
+			} catch (Exception ex) {
+				logger.error("reconcile buildIndex backfilled entry fail: {}", entry.file, ex);
+			}
 		}
 	}
 
@@ -1152,9 +1182,10 @@ public class Log4jFileManager extends ReentrantLock {
 
 	private void buildIndex() {
 		reconcile(); // 低频对账：挂在buildIndexTimer上，先把files收敛到磁盘真相，再推进索引。
-		// 锁外增量续建全部非active条目：补登头部采样只保证条目可入列，余量在此收敛——
-		// 补登的rotate条目在active锚位之前，仅推进active（下方锁内段）的通道覆盖不到它，
-		// 两半缺一不可。锁外正当性：loadIndex(File,LogIndex)只触碰(logFile,index)二元组、不读写files，
+		// 锁外增量续建全部非active条目：reconcile补登的rotate条目已在reconcile返回前即时续建收敛
+		//（log4jquery-01主通道），本循环兜住即时续建单条目失败/进程在两半之间重启的残量，并推进
+		// 其余非active条目——补登条目在active锚位之前，仅推进active（下方锁内段）的通道覆盖不到它。
+		// 锁外正当性：loadIndex(File,LogIndex)只触碰(logFile,index)二元组、不读写files，
 		// LogIndex自带rwLock（查询路径本就与其无锁并发），manager锁真正要保的只有files变更与轮转
 		// "索引改名+条目改指"的串行——锁内全量扫描并非正确性需求；sealed rotate内容不可变、
 		// 不参与改名/改指，锁外安全。新→旧序使近期时间窗最先获得精确跳转；逐条目隔离异常：单文件损坏/
