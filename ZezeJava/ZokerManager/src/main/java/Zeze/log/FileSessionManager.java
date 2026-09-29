@@ -204,14 +204,15 @@ public class FileSessionManager {
 	}
 
 	/**
-	 * resolve + operate 的会话级错误自愈包装（zoker-03）：首次 operate 抛会话级错误
-	 * （服务端已拒绝本会话——典型：闲置超 sessionIdleTimeoutMillis 被 cleanIdleLogSessions
-	 * 回收后的 LogicError；复用判据只比静态三元组，死会话被永久复用、同 IP 同参数查询恒
-	 * system error 无自愈）时：以 changeSession 语义驱逐重建（resolve 的关旧建新路径，
-	 * 旧会话走 closeExecutor 关闭）→ 同参数重建 → 重试一次；重试仍失败原样上抛
-	 * （只一层，防循环）。非会话级错误（网络/超时，判据见
-	 * {@link Session#isSessionLevelError}——消息前缀是唯一可捕获层：错误码只嵌在
-	 * search/browse 应答异常的文本里）原样上抛不重建——重建会白白丢弃仍有效的会话与游标。
+	 * resolve + operate 的会话级错误自愈包装（zoker-03）：首次 operate 抛
+	 * {@link Session.SessionLevelException}（服务端已拒绝本会话——典型：闲置超
+	 * sessionIdleTimeoutMillis 被 cleanIdleLogSessions 回收后的 LogicError；复用判据只比
+	 * 静态三元组，死会话被永久复用、同 IP 同参数查询恒 system error 无自愈）时：以
+	 * changeSession 语义驱逐重建（resolve 的关旧建新路径，旧会话走 closeExecutor 关闭）→
+	 * 同参数重建 → 重试一次；重试仍失败原样上抛（只一层，防循环）。非会话级错误
+	 * （网络/超时；参数级拒绝 {@link Session.InvalidArgumentException}——FND31
+	 * zokermanager-01：参数错误拆会话只会重蹈覆辙后仍恒失败）原样上抛不重建——重建会
+	 * 白白丢弃仍有效的会话与游标。
 	 * 重建后游标归零：continuation 请求（reset=false）的重试返回首页数据——死会话本无
 	 * 正确续页可言，首页数据优于永久报错。
 	 * 外层套 N03（FND28）的同IP在飞守卫：并发共享会话使服务端游标被并发推进（跳页/重复/
@@ -234,9 +235,7 @@ public class FileSessionManager {
 			var session = resolve(logAgent, socketAddress, changeSession, requestAll, serverName, logName);
 			try {
 				return operate.call(session);
-			} catch (RuntimeException e) {
-				if (!Session.isSessionLevelError(e))
-					throw e;
+			} catch (Session.SessionLevelException e) {
 				var fresh = resolve(logAgent, socketAddress, true, requestAll, serverName, logName);
 				return operate.call(fresh);
 			}

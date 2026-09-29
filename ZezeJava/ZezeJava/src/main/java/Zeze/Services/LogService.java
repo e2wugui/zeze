@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
+import Zeze.Builtin.LogService.BCondition;
 import Zeze.Builtin.LogService.BLog;
 import Zeze.Builtin.LogService.Browse;
 import Zeze.Builtin.LogService.CloseSession;
@@ -35,6 +36,16 @@ import org.apache.logging.log4j.Logger;
  */
 public class LogService extends AbstractLogService {
 	private static final @NotNull Logger logger = LogManager.getLogger(LogService.class);
+
+	/**
+	 * Search/Browse 的参数级拒绝码（区别于死会话的 {@link Procedure#LogicError}）：非法
+	 * containsType、words/pattern 双空、offsetFactor∉[0,1)。两类拒绝共用 LogicError 时，
+	 * 客户端只能按非零码整体分诊——参数错误被当成会话级死亡触发整组会话拆建重试后仍恒失败。
+	 * 客户端 {@code Session.checked} 依本码抛参数级异常（不拆会话，直接向调用方报参数错误）。
+	 * 取值避开框架保留码（Procedure 的 -1..-18 小负数段）。
+	 */
+	public static final long INVALID_ARGUMENT = -100;
+
 	private final AtomicLong sidSeed = new AtomicLong();
 	private final Config conf;
 	private final LogServiceConf logConfs;
@@ -156,8 +167,32 @@ public class LogService extends AbstractLogService {
 		return 0;
 	}
 
+	/**
+	 * Search/Browse 参数校验（入口单点）：containsType 枚举、words/pattern 双空、browse 的
+	 * offsetFactor∈[0,1)——offsetFactor 负值曾静默退化（上下文行逐条 poll 掉，browse 变无上下文
+	 * 过滤搜索），≥1 在深路径抛异常转 Exception 码。参数级拒绝统一回
+	 * {@link #INVALID_ARGUMENT}，与死会话的 LogicError 分离，客户端按码分诊不拆会话。
+	 * offsetFactor 传 null 表示 search（无该参数）。
+	 */
+	private static long validateArgument(BCondition.Data condition, Float offsetFactor) {
+		var containsType = condition.getContainsType();
+		if (containsType != BCondition.ContainsAll && containsType != BCondition.ContainsAny
+				&& containsType != BCondition.ContainsNone)
+			return INVALID_ARGUMENT;
+		var pattern = condition.getPattern();
+		if (condition.getWords().isEmpty() && (pattern == null || pattern.isEmpty()))
+			return INVALID_ARGUMENT;
+		if (offsetFactor != null && !(offsetFactor >= 0f && offsetFactor < 1f)) // NaN 落 false 同拒
+			return INVALID_ARGUMENT;
+		return Procedure.Success;
+	}
+
 	@Override
 	protected long ProcessBrowseRequest(Browse r) throws Exception {
+		// 参数级拒绝入口单点（见 INVALID_ARGUMENT）：在触碰会话前校验，参数错误与死会话分诊。
+		var argCode = validateArgument(r.Argument.getCondition(), r.Argument.getOffsetFactor());
+		if (argCode != Procedure.Success)
+			return argCode;
 		var agent = (ServerUserState)r.getSender().getUserState();
 		var logSession = agent.getLogSession(r.Argument.getId());
 		if (null == logSession)
@@ -188,7 +223,7 @@ public class LogService extends AbstractLogService {
 						r.Argument.getCondition().getPattern(),
 						limit, r.Argument.getOffsetFactor());
 			} else
-				return Procedure.LogicError; // 空条件以精确错误码应答：异常路径虽也会经框架回发Exception码，但错误码含糊且带ERROR日志噪音
+				return INVALID_ARGUMENT; // 空条件参数级拒绝（入口单点已拦，此处防御重复）；精确码应答而非异常通道
 		}
 
 		r.Result.setRemain(remain);
@@ -202,6 +237,10 @@ public class LogService extends AbstractLogService {
 
 	@Override
 	protected long ProcessSearchRequest(Search r) throws Exception {
+		// 参数级拒绝入口单点（见 INVALID_ARGUMENT）：在触碰会话前校验，参数错误与死会话分诊。
+		var argCode = validateArgument(r.Argument.getCondition(), null);
+		if (argCode != Procedure.Success)
+			return argCode;
 		var agent = (ServerUserState)r.getSender().getUserState();
 		var logSession = agent.getLogSession(r.Argument.getId());
 		if (null == logSession)
@@ -232,7 +271,7 @@ public class LogService extends AbstractLogService {
 						r.Argument.getCondition().getPattern(),
 						limit);
 			} else
-				return Procedure.LogicError; // 空条件以精确错误码应答：异常路径虽也会经框架回发Exception码，但错误码含糊且带ERROR日志噪音
+				return INVALID_ARGUMENT; // 空条件参数级拒绝（入口单点已拦，此处防御重复）；精确码应答而非异常通道
 		}
 
 		r.Result.setRemain(remain);

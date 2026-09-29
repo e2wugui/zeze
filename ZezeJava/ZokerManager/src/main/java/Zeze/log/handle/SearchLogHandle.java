@@ -44,6 +44,14 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 					x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult("invalid limit")));
 					return;
 				}
+				// 参数级入口校验（与 limit 同根同款）：containsType 枚举/words+pattern 归一后双空——
+				// 透传时服务端回非零码（与死会话同族），operateRecovering 会误判会话死亡整组拆建
+				// 重试后仍恒失败且错误不可区分。入口即拒：明确 errorResult，不建/复用会话。
+				var invalid = searchLogParam.validateError(false);
+				if (invalid != null) {
+					x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult(invalid)));
+					return;
+				}
 				LogAgent logAgent = LogAgentManager.getInstance().getLogAgent();
 			String serverName = searchLogParam.getServerName();
 			String logName = searchLogParam.getLogName();
@@ -77,6 +85,9 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 						});
 				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.succResult(data)));
 			}
+		} catch (Session.InvalidArgumentException e) {
+			// 服务端参数级拒绝（入口校验的兜底承载）：不拆会话，明确报参数错误而非 system error。
+			x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult("invalid search condition")));
 		} catch (Exception e) {
 			x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult("system error")));
 			e.printStackTrace();

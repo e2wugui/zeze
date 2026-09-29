@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import Zeze.Builtin.LogService.BCondition;
 
 /**
  * /api/search 与 /api/browse 的公共请求参数：数据源、时间范围、关键词、分页等及其解析。
@@ -26,6 +27,28 @@ public class SearchLogParam {
 	private int containsType;
 	private String pattern;
 	private boolean changeSession;
+
+	/**
+	 * 入口参数校验（对齐 {@code limit<=0} 的 invalid limit 形态）：containsType 枚举、
+	 * words/pattern 归一后双空、（browse）offsetFactor∈[0,1)。这些参数透传时服务端回
+	 * 非零结果码，与死会话同族——operateRecovering 会误判会话级死亡，把健康查询会话
+	 * 整组关旧建新后同参数重试再失败，最终恒 system error；offsetFactor 负值更在服务端
+	 * 静默退化为无上下文的过滤搜索。返回 null=通过，否则为 errorResult 的 desc
+	 * （browse 传 true 校验 offsetFactor，search 不使用该参数）。
+	 */
+	public String validateError(boolean browse) {
+		if (containsType != BCondition.ContainsAll && containsType != BCondition.ContainsAny
+				&& containsType != BCondition.ContainsNone)
+			return "invalid containsType";
+		if (wordsToList().isEmpty() && (pattern == null || pattern.isBlank()))
+			return "empty condition";
+		if (browse) {
+			var factor = offsetFactor;
+			if (!(factor >= 0f && factor < 1f)) // NaN 落 false 同拒
+				return "invalid offsetFactor";
+		}
+		return null;
+	}
 
 	public String getServerName() {
 		return serverName;

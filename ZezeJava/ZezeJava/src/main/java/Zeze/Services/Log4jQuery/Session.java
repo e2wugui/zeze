@@ -11,6 +11,7 @@ import Zeze.Builtin.LogService.NewSession;
 import Zeze.Builtin.LogService.Search;
 import Zeze.Net.Rpc;
 import Zeze.Services.LogAgent;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.TaskCompletionSource;
 
 /**
@@ -86,24 +87,50 @@ public class Session implements AutoCloseable {
 
 	private static BResult.Data checked(Rpc<?, BResult.Data> rpc, BResult.Data result) {
 		var code = rpc.getResultCode();
+		// 分诊按结果码显式抛型（FND31 zokermanager-01）：死会话（LogicError）与参数级拒绝
+		// （LogService.INVALID_ARGUMENT）各自成型，其余非零码保持原 RuntimeException 形态——
+		// 调用方（FileSessionManager.operateRecovering、SessionAll 成员自愈）据异常类型决策，
+		// 不再按消息前缀猜类（前缀判别把一切非零码都当成会话死亡，参数错误触发无谓的整组拆建）。
+		if (code == Procedure.LogicError)
+			throw new SessionLevelException("search/browse error " + code);
+		if (code == Zeze.Services.LogService.INVALID_ARGUMENT)
+			throw new InvalidArgumentException("search/browse error " + code);
 		if (code != 0)
 			throw new RuntimeException("search/browse error " + code);
 		return result;
 	}
 
-	/** checked()抛出的会话级错误消息前缀（判据单点：错误码只嵌在消息文本里）。 */
-	static final String SESSION_LEVEL_ERROR_PREFIX = "search/browse error ";
+	/**
+	 * 会话级死亡（服务端拒绝本会话——典型：闲置超时被回收后的 LogicError）：调用方据此
+	 * 触发驱逐重建（FileSessionManager.operateRecovering 关旧建新重试一次、SessionAll
+	 * renewDeadMembers 成员自愈）；网络/参数类失败重建无益，原样上抛。
+	 */
+	public static final class SessionLevelException extends RuntimeException {
+		public SessionLevelException(String message) {
+			super(message);
+		}
+	}
 
 	/**
-	 * 会话级错误判别（N02）：checked()抛出的"search/browse error N"（服务端拒绝本会话——典型：
-	 * 闲置被回收的死会话）与网络/超时类异常（CompletionException等，无此前缀）的区分判据。
-	 * 消息前缀识别是唯一可捕获层（代码嵌在文本里）；调用方（SessionAll成员自愈、
-	 * FileSessionManager.operateRecovering）据此只对会话级死亡触发重建——网络类瞬时失败重建无益
-	 * （白白丢弃仍有效的会话与游标）。
+	 * 参数级拒绝（服务端 {@code LogService.INVALID_ARGUMENT}：非法 containsType、
+	 * words/pattern 双空、offsetFactor∉[0,1)）：会话仍有效，不得拆建——直接向调用方
+	 * 报参数错误（ZokerManager 处理器映射为明确的 errorResult desc）。
+	 */
+	public static final class InvalidArgumentException extends RuntimeException {
+		public InvalidArgumentException(String message) {
+			super(message);
+		}
+	}
+
+	/**
+	 * 会话级错误判别（N02）：仅 {@link SessionLevelException}（服务端拒绝本会话——典型：
+	 * 闲置被回收的死会话）判真；网络/超时类异常（CompletionException等）与参数级拒绝
+	 * 判假。调用方（SessionAll成员自愈、FileSessionManager.operateRecovering）据此只对
+	 * 会话级死亡触发重建——网络类瞬时失败重建无益（白白丢弃仍有效的会话与游标），
+	 * 参数级失败重建则必然重蹈覆辙。
 	 */
 	public static boolean isSessionLevelError(Throwable e) {
-		var message = e.getMessage();
-		return e instanceof RuntimeException && null != message && message.startsWith(SESSION_LEVEL_ERROR_PREFIX);
+		return e instanceof SessionLevelException;
 	}
 
 	private volatile boolean closed;
