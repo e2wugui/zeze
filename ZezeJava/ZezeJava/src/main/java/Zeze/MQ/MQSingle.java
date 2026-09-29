@@ -304,9 +304,17 @@ public class MQSingle extends ReentrantLock {
 				handlePushResult();
 				return 0;
 			}, mqPartition.getManager().getMqConfig().getRpcTimeout())) {
-				// Send失败（连接失效）时回调不会被调用，必须在这里清理，
-				// 否则pendingPushMessage永久悬挂，该分区消息投递永久停止，bind()也无法恢复。
+				// Send false ⟺ 请求未发出且 rpc 上下文已由 Send 尾部的双参 remove 回收、
+				// 应答/超时回调永不触发（Rpc 契约，无双重回调）。成因除"连接失效"外还有
+				// "输出缓冲溢出静默丢弃"（checkOverflow 拒写但连接健康、订阅不动）——后者若只清
+				// pending，分区推送将失去全部事件源：无在飞 rpc、无退避排期、订阅未变、盘上无积压
+				// 时也无后台回填，安静 topic 永久停摆，退避与 PushRetryMax 死信兜底整体被绕过
+				//（mq-01）。故统一并入 onPushFailure：计数+指数退避，达上限按配置转死信/丢弃。
 				pendingPushMessage = null;
+				onPushFailure();
+				// 对齐 handlePushResult finally 的续推：死信出队后立即推下一条（退避窗口内
+				// tryPushMessage 自行短路），closed 已在方法入口持锁检查。
+				tryPushMessage();
 			}
 		}
 	}
