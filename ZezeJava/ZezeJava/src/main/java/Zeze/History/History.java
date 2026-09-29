@@ -5,7 +5,6 @@ import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Builtin.HistoryModule.BTableKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Services.ServiceManager.Id128UdpClient;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Database;
 import Zeze.Util.Id128;
@@ -108,7 +107,10 @@ public class History {
 		return to;
 	}
 
-	public static @NotNull BLogChanges.Data buildLogChanges(@NotNull Id128UdpClient.FutureNode future,
+	/** globalSerialId 必须在日志应用（finalCommit 的 commit.run）之前解析：取号失败时数据
+	 * 未应用、事务干净失败，历史与数据同生共死（调用方 Transaction.finalCommit 的
+	 * HistoryChangesCollector.beforeApply）。 */
+	public static @NotNull BLogChanges.Data buildLogChanges(@NotNull Id128 globalSerialId,
 															@NotNull Changes changes,
 															@Nullable String protocolClassName,
 															@Nullable Binary protocolArgument) {
@@ -129,7 +131,7 @@ public class History {
 			}
 		}
 		logChanges.setTimestamp(System.currentTimeMillis());
-		logChanges.setGlobalSerialId(future.get().next());
+		logChanges.setGlobalSerialId(globalSerialId);
 		return logChanges;
 	}
 }

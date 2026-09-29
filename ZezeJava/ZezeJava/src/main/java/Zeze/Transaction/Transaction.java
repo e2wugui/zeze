@@ -6,14 +6,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import Zeze.Application;
+import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.History.History;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
+import Zeze.Services.ServiceManager.Tid128Cache;
 import Zeze.Util.Random;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
@@ -605,39 +608,61 @@ public final class Transaction {
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
-		}, flushMode, () -> {
-			var it = lastSp.logIterator();
-			if (it != null) {
-				while (it.moveToNext()) {
-					var log = it.value();
-					if (log.category() != Log.Category.eHistory)
-						continue;
-					var logBelong = log.getBelong();
-					// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
-					if (logBelong != null && logBelong.isManaged()) {
-						// 第一个参数Owner为null，表示bean属于record，到达root了。
-						cc.collect(logBelong, log);
+		}, flushMode, new RelativeRecordSet.HistoryChangesCollector() {
+			// 历史 gid 前移到日志应用之前解析（history-01）：取号（Id128 发号服务的阻塞等待）
+			// 若在应用后失败，数据已生效而 tHistory 永久缺失（gid 未消费，键空间连空洞都
+			// 没有，回放端无从感知），Immediately 模式更是补刷后吞异常报假成功。
+			private final AtomicReference<Tid128Cache> tid128Cache = new AtomicReference<>();
+
+			@Override
+			public void beforeApply() {
+				var it = lastSp.logIterator();
+				if (it != null) {
+					while (it.moveToNext()) {
+						var log = it.value();
+						if (log.category() != Log.Category.eHistory)
+							continue;
+						var logBelong = log.getBelong();
+						// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
+						if (logBelong != null && logBelong.isManaged()) {
+							// 第一个参数Owner为null，表示bean属于record，到达root了。
+							cc.collect(logBelong, log);
+						}
+					}
+				}
+
+				for (var ar : accessedRecords.values()) {
+					if (ar.dirty)
+						cc.collectRecord(ar);
+				}
+
+				var zeze = proc.getZeze();
+				if (zeze.getConfig().isHistory() && !cc.getRecords().isEmpty()) {
+					// 上一次分配可能已异常完成（Udp超时毒化），直接get()会抛异常——毒化时
+					// 兜底发起新分配替换。get() 阻塞等待批次，此刻数据尚未应用：任何失败转
+					// RejectHistoryAllocFailed（RejectWhileStopping 同款干净失败路径：
+					// finalRollback+Closed），不把"已应用数据+历史缺失"的静默分歧留给应用后。
+					try {
+						@SuppressWarnings("DataFlowIssue")
+						var future = zeze.getServiceManager().getUsableTid128CacheFuture(zeze.getConfig().getHistory());
+						tid128Cache.set(future.get());
+					} catch (Throwable ex) {
+						logger.error("finalCommit({}) history gid alloc fail before apply:", proc.getActionName(), ex);
+						throw new RejectHistoryAllocFailed("history gid alloc fail before apply: " + proc.getActionName());
 					}
 				}
 			}
 
-			for (var ar : accessedRecords.values()) {
-				if (ar.dirty)
-					cc.collectRecord(ar);
-			}
-
-			var zeze = proc.getZeze();
-			if (zeze.getConfig().isHistory() && !cc.getRecords().isEmpty()) {
-				// 上一次分配可能已异常完成（Udp超时毒化），直接get()会抛异常导致finalCommit
-				// 失败halt(543543)。毒化时兜底发起新分配替换。
-				@SuppressWarnings("DataFlowIssue")
-				var future = zeze.getServiceManager().getUsableTid128CacheFuture(zeze.getConfig().getHistory());
+			@Override
+			public @Nullable BLogChanges.Data afterApply() {
+				var cache = tid128Cache.get();
+				if (null == cache)
+					return null;
 				if (proc instanceof ProtocolProcedure pp) {
-					return History.buildLogChanges(future, cc, pp.getProtocolClassName(), pp.getProtocolRawArgument());
+					return History.buildLogChanges(cache.next(), cc, pp.getProtocolClassName(), pp.getProtocolRawArgument());
 				}
-				return History.buildLogChanges(future, cc, null, null);
+				return History.buildLogChanges(cache.next(), cc, null, null);
 			}
-			return null;
 		});
 
 		// 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
@@ -979,11 +1004,26 @@ public final class Transaction {
 	 * perform捕获后转为finalRollback+Procedure.Closed显式失败，
 	 * 不得静默跳过落库后返回Success（否则已应答的提交丢失）。
 	 */
-	static final class RejectWhileStopping extends RuntimeException {
+	static class RejectWhileStopping extends RuntimeException {
 		@Serial
 		private static final long serialVersionUID = 0L;
 
 		RejectWhileStopping(@NotNull String msg) {
+			super(msg);
+		}
+	}
+
+	/**
+	 * 历史 gid 分配失败（日志应用前拒绝，history-01）：继承 RejectWhileStopping 的 perform
+	 * 处理路径（finalRollback+Closed）。抛出点在 commit.run 之前，数据未应用，干净失败回滚，
+	 * 历史与数据同生共死；onz 参与方已收 Commit 决策时的跨集群分歧由既有停机分歧告警覆盖
+	 * （同为"决策已持久化而本地回滚"的暴露点）。
+	 */
+	static final class RejectHistoryAllocFailed extends RejectWhileStopping {
+		@Serial
+		private static final long serialVersionUID = 0L;
+
+		RejectHistoryAllocFailed(@NotNull String msg) {
 			super(msg);
 		}
 	}

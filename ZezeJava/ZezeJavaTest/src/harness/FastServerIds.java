@@ -89,6 +89,7 @@ public final class FastServerIds {
 	public static final int TEST_LIST_ITERATOR_FAILFAST = seg("TestListIteratorFailFast", 7070, 1);
 	public static final int TEST_SET_BULK_CHANGE_RETURN = seg("TestSetBulkChangeReturn", 7080, 1);
 	public static final int TEST_CHECKPOINT_IMMEDIATELY = seg("TestCheckpointImmediately", 7123, 1);
+	public static final int TEST_HISTORY_GID_FAIL_CLEAN = seg("TestHistoryGidFailClean", 7125, 1);
 	public static final int TEST_ONLINE_HOT_STOP_EVENT_REF = seg("TestOnlineHotStopEventRef", 7150, 3);
 	public static final int TEST_TIMER_STOP_START_RESTART = seg("TestTimerStopStartRestart", 7160, 2);
 	public static final int TEST_PROCESS_LINK_BROKEN_NON_ROLE_CONTEXT = seg("TestProcessLinkBrokenNonRoleContext", 7250, 3);

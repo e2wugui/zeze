@@ -2,7 +2,6 @@ package Zeze.Transaction;
 
 import harness.FastServerIds;
 import java.nio.file.Path;
-import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -18,7 +17,7 @@ import Zeze.Util.FuncLong;
 
 /**
  * FND8-18 回归：提交路径"修改已应用（commit.run完成）但未登记进任何落库通道"的窗口。
- * Table模式：collectChanges（History开启时的tid128 UDP等待）或needFlushNow的
+ * Table模式：收集/编码（afterApply）或needFlushNow的
  * checkpoint.flush 抛出时，原代码直接向上传播，mergedSet不进relativeRecordSetMap，
  * perform的halt兜底checkpointRun只遍历map——已应用数据连同_merge_并入的存量脏集
  * 一并丢失（Immediately模式则连理论通道都没有）。
@@ -87,7 +86,8 @@ public class TestCommitPathSalvage {
 	 * 直接驱动 RelativeRecordSet.tryUpdateAndCheckpoint 的 Table 提交通道：
 	 * 手工构造与 perform 到达 finalCommit 时等价的事务状态（accessedRecords 携带 PutLog
 	 * 且置 dirty），commit 运行等价 Savepoint.commit + Record1.commit 的应用效果。
-	 * failCollect：让 collectChanges 抛异常（模拟 History tid128 UDP 超时）。
+	 * failCollect：让收集/编码（afterApply）抛异常（模拟应用后收集失败——tid128 取号已
+	 * 前移到应用前干净失败，不再是此路径的触发形态；编码失败等仍走此语义）。
 	 * 这样异常在测试线程可控地重抛出来（经 perform 则直接 halt 进程，无法在测试内断言）。
 	 */
 	private Exception runManualCommit(long key, long value, boolean failCollect) throws Exception {
@@ -112,10 +112,17 @@ public class TestCommitPathSalvage {
 						record.commit(ar); // finalCommit 的应用效果：setSoftValue + 置脏
 				}
 			};
-			Callable<BLogChanges.Data> collect = () -> {
-				if (failCollect)
-					throw new RuntimeException("FND8-18 simulated history tid128 udp timeout");
-				return null;
+			RelativeRecordSet.HistoryChangesCollector collect = new RelativeRecordSet.HistoryChangesCollector() {
+				@Override
+				public void beforeApply() {
+				}
+
+				@Override
+				public BLogChanges.Data afterApply() {
+					if (failCollect)
+						throw new RuntimeException("FND8-18 simulated post-apply collect fail");
+					return null;
+				}
 			};
 			RelativeRecordSet.tryUpdateAndCheckpoint(trans, proc, commit, null, collect);
 			return null;
@@ -136,7 +143,7 @@ public class TestCommitPathSalvage {
 
 			var ex = Assertions.assertThrows(Exception.class, () -> runManualCommit(1L, 20L, true),
 					"收集失败必须重抛（perform仍走halt，语义不变）");
-			Assertions.assertTrue(ex.getMessage().contains("tid128"), "重抛的必须是原始异常");
+			Assertions.assertTrue(ex.getMessage().contains("post-apply"), "重抛的必须是原始异常");
 			Assertions.assertFalse(app.getCheckpoint().relativeRecordSetMap.isEmpty(),
 					"修复点：重抛前mergedSet必须注册进relativeRecordSetMap（修复前map为空，已应用数据无任何落库通道）");
 

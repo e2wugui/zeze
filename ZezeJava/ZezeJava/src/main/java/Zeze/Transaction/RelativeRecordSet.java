@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -117,9 +116,27 @@ public final class RelativeRecordSet extends ReentrantLock {
 		return !hasQueuedThreads() && tryLock();
 	}
 
+	/**
+	 * 历史变更收集的两阶段契约（history-01）：走查与取号在日志应用（commit.run）之前，
+	 * 编码在应用之后。取号是对 Id128 发号服务的阻塞等待，若发生在应用之后，失败时数据已
+	 * 生效而 tHistory 永久缺失（gid 未消费，键空间连空洞都没有，回放端无从感知），
+	 * Immediately 模式补刷后更是吞异常报假成功——前移到应用前，失败=事务未应用即干净失败
+	 * （{@code Transaction.RejectHistoryAllocFailed}，RejectWhileStopping 同款路径），
+	 * 历史与数据同生共死。走查（cc.collect）只读执行期结构（日志树/committedPutLog/dirty），
+	 * 与应用前后无序；编码（buildLogChanges）读应用后的值/日志对象，必须留在应用后。
+	 */
+	interface HistoryChangesCollector {
+		/** commit.run() 之前调用：走查日志建 Changes；isHistory 且有记录时阻塞解析 gid。 */
+		void beforeApply() throws Exception;
+
+		/** commit.run() 之后调用：用已解析的 gid 编码日志变更；未解析 gid（历史关闭或
+		 * 无记录）时返回 null。 */
+		@Nullable BLogChanges.Data afterApply();
+	}
+
 	static void tryUpdateAndCheckpoint(@NotNull Transaction trans, @NotNull Procedure procedure,
 									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
-									   @NotNull Callable<BLogChanges.Data> collectChanges) throws Exception {
+									   @NotNull HistoryChangesCollector collectChanges) throws Exception {
 		// 入口拒绝——终检点已过（checkpoint==null）时修改无法保证落库，
 		// 显式抛RejectWhileStopping（perform转为Closed），不执行commit后静默丢弃（假成功）。
 		if (procedure.getZeze().getCheckpoint() == null)
@@ -127,10 +144,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately: {
+			collectChanges.beforeApply(); // 取号在应用前（HistoryChangesCollector）：失败时数据未应用
 			commit.run();
 			BLogChanges.Data logChanges = null;
 			try {
-				logChanges = collectChanges.call();
+				logChanges = collectChanges.afterApply();
 				var checkpoint = procedure.getZeze().getCheckpoint();
 				if (checkpoint == null)
 					// 修改已应用但终检点恰在此间过去，无法落库——显式失败优于静默假成功。
@@ -189,10 +207,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 			_lock_(locked, all, transAccessRecords);
 			if (!locked.isEmpty()) {
 				var mergedSet = _merge_(locked, trans, allRead);
+				collectChanges.beforeApply(); // 取号在应用前（HistoryChangesCollector）：失败时数据未应用
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
 				mergedSet.addOnzProcedures(onzProcedure);
 				try {
-					var logChanges = collectChanges.call();
+					var logChanges = collectChanges.afterApply();
 					if (logChanges != null)
 						mergedSet.addLogChanges(logChanges); // History存在并且开启，则加入rrs。
 
