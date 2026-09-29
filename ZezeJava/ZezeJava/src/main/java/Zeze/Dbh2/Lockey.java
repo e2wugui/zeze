@@ -39,8 +39,13 @@ public class Lockey implements Zeze.Util.Lockey<Lockey>{
 	}
 
 	public void unlock() {
-		if (locked)
+		if (locked) {
+			// 复位先于release：后续获取方经信号量的happens-before观察到复位后的false，
+			// 其重置的true不会被本次写覆盖（release在前会与下一获取方交错丢true致泄漏）。
+			// 复位后locked准确表达"当前持有"，误触的unlock不再凭空增发permit。
+			locked = false;
 			semaphore.release();
+		}
 	}
 
 	@Override

@@ -3,6 +3,7 @@ package Zeze.Dbh2;
 import java.io.Closeable;
 import java.util.HashMap;
 import Zeze.Builtin.Dbh2.BBatch;
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import org.rocksdb.RocksDBException;
 
@@ -81,22 +82,31 @@ public class Dbh2Transaction implements Closeable {
 		this.createTime = System.currentTimeMillis();
 
 		try {
-			for (var put : batch.getPuts().entrySet()) {
-				var key = put.getKey();
-				var lock = dbh2.getLocks().get(key);
-				if (null == locks.putIfAbsent(lock, lock))
-					lock.lock(dbh2);
-			}
-			for (var del : batch.getDeletes()) {
-				var lock = dbh2.getLocks().get(del);
-				if (null == locks.putIfAbsent(lock, lock))
-					lock.lock(dbh2);
-			}
+			for (var put : batch.getPuts().entrySet())
+				acquire(dbh2, put.getKey());
+			for (var del : batch.getDeletes())
+				acquire(dbh2, del);
 		} catch (RuntimeException | InterruptedException e) {
 			// serialize模式下中途键冲突抛出时必须释放已获取的锁，否则泄漏的锁会让
-			// 该键的事务在GC清理WeakHashSet之前全部prepare失败。unlock只作用于
-			// locked=true的条目，map中未获取成功的（含冲突键）不会被误放。
+			// 该键的事务在GC清理WeakHashSet之前全部prepare失败。map中只含成功获取的
+			// 条目（见acquire），失败键不触持有者的共享实例。
 			close();
+			throw e;
+		}
+	}
+
+	// 成功获取后才入map：Lockey是Locks按值去重的共享canonical实例，失败键若留在map，
+	// close()按locked标志release时放掉的是持有者的信号量（locked=true为持有者所置）——
+	// 互斥破坏+permit凭空膨胀（unlock不复位），热键无自愈。先判重复再加锁，同batch重复
+	// 键（puts/deletes交叠）只锁一次。
+	private void acquire(Dbh2 dbh2, Binary key) throws InterruptedException {
+		var lock = dbh2.getLocks().get(key);
+		if (null != locks.putIfAbsent(lock, lock))
+			return;
+		try {
+			lock.lock(dbh2);
+		} catch (RuntimeException | InterruptedException e) {
+			locks.remove(lock); // 未由本事务获取，不得进入待释放集合
 			throw e;
 		}
 	}
