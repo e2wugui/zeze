@@ -58,9 +58,11 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			this.bean = bean;
 			return;
 		}
+		// 先写校验后挂接：verifyWrite抛IllegalStateException（不在事务中/记录不受控）时，
+		// 新bean已受管却从未入日志（redo-only外的脏归属），此后复用必抛HasManagedException。
+		var txn = Transaction.getCurrentVerifyWrite(this);
 		bean.initRootInfoWithRedo(rootInfo, this);
 		bean.variableId(1); // 只有一个变量
-		var txn = Transaction.getCurrentVerifyWrite(this);
 		//noinspection DataFlowIssue
 		var log = (LogDynamic)txn.logGetOrAdd(dynamicLogKey(), this::createLogBean);
 		log.setValue(specialTypeId, bean);
