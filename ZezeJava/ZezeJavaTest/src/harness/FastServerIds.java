@@ -62,6 +62,7 @@ public final class FastServerIds {
 	public static final String URL_TEST_HISTORY_FLUSH_COMMIT_BINDING = memUrl("history_commit_binding_unit");
 	public static final String URL_TEST_HOT_TRY_DISTRIBUTE_GUARD = memUrl("hot_trydistribute_test");
 	public static final String URL_TEST_KV_KEY_LENGTH_PAGED_WALK = memUrl("t1_kv_keylen_pagedwalk");
+	public static final String URL_TEST_DYNAMIC_BEAN_ELEMENT_LOG_KEY = memUrl("test_dynamic_elk_memory");
 
 
 	// 按基点升序；growth 取该类 @Test 数×发号调用点（计数器）或 1（固定号）。
@@ -157,6 +158,7 @@ public final class FastServerIds {
 	public static final int TEST_QUEUE_BROKEN_CHAIN_DIAGNOSIS = seg("TestQueueBrokenChainDiagnosis", 16221, 3);
 	public static final int TEST_PRODUCER_TXN_SEND_REJECTS_ENV_TRANSACTION = seg("TestProducerTxnSendRejectsEnvTransaction", 16231, 1);
 	public static final int TEST_PRODUCER_MULTIPLE_INSTANCES_SHARE_PROCESS = seg("TestProducerMultipleInstancesShareProcess", 16241, 2);
+	public static final int TEST_DYNAMIC_BEAN_ELEMENT_LOG_KEY = seg("TestDynamicBeanElementLogKey", 16251, 4);
 
 	private FastServerIds() {
 	}

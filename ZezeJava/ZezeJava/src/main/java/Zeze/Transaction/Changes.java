@@ -189,9 +189,11 @@ public final class Changes {
 				// 容器和DynamicBean使用共享的日志。需要先去查询，没有的话才创建。
 				// DynamicBean的setBean把新bean保存在事务日志的value中，必须复用；新建的日志
 				// value为null，编码时只剩内部bean的字段日志，会丢失setBean（含typeId变更）的修改。
+				// DynamicBean用dynamicLogKey：集合元素形态下parent()+variableId()跨元素碰撞。
 				//noinspection ConstantConditions
 				logBean = (LogBean)Transaction.getCurrent().getLog(
-						belong.parent().objectId() + belong.variableId());
+						belong instanceof DynamicBean dynamic ? dynamic.dynamicLogKey()
+								: belong.parent().objectId() + belong.variableId());
 			}
 			if (logBean == null)
 				logBean = belong.createLogBean();

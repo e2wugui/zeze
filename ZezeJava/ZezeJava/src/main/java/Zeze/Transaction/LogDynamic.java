@@ -24,6 +24,20 @@ public class LogDynamic extends LogBean {
 		super(belong, varId, self);
 	}
 
+	/**
+	 * Savepoint存储键，必须与DynamicBean.getBean/getTypeId/setBean的查找键一致：
+	 * 集合元素形态（self.parent为Collection）下belong(集合)+varId在同组元素间碰撞，
+	 * 用self的dynamicLogKey（见该方法注释的号段论证）。decode构造的日志（self=null，
+	 * 仅History回放用）不进Savepoint，落回基类实现。
+	 */
+	@Override
+	public long getLogKey() {
+		var self = getThis();
+		if (self instanceof DynamicBean dynamic)
+			return dynamic.dynamicLogKey();
+		return super.getLogKey();
+	}
+
 	@Override
 	public int getTypeId() {
 		return TYPE_ID;

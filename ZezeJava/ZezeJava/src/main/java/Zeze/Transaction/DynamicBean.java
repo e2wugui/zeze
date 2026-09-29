@@ -32,7 +32,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		if (txn == null)
 			return bean;
 		//noinspection DataFlowIssue
-		var log = (LogDynamic)txn.getLog(parent().objectId() + variableId());
+		var log = (LogDynamic)txn.getLog(dynamicLogKey());
 		//noinspection DataFlowIssue
 		return log != null ? log.value : bean;
 	}
@@ -62,7 +62,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		bean.variableId(1); // 只有一个变量
 		var txn = Transaction.getCurrentVerifyWrite(this);
 		//noinspection DataFlowIssue
-		var log = (LogDynamic)txn.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
+		var log = (LogDynamic)txn.logGetOrAdd(dynamicLogKey(), this::createLogBean);
 		log.setValue(specialTypeId, bean);
 	}
 
@@ -75,8 +75,19 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			return typeId;
 		// 不能独立设置，总是设置Bean时一起Commit，所以这里访问Bean的Log。
 		//noinspection DataFlowIssue
-		var log = (LogDynamic)txn.getLog(parent().objectId() + variableId());
+		var log = (LogDynamic)txn.getLog(dynamicLogKey());
 		return log != null ? log.specialTypeId : typeId;
+	}
+
+	/**
+	 * 事务日志键。字段形态（宿主bean的变量）=宿主objectId+varId；集合元素形态（parent为
+	 * Collection）所有元素共用同一parent且variableId不参与唯一性（用户工厂元素恒为生成
+	 * varId、decode工厂元素恒为0），宿主公式在同组元素间完全碰撞，改用自身objectId：
+	 * objectId按{@link #OBJECT_ID_STEP}(4096)步长自增、低12位保留给varId，自身键落在
+	 * 自己号段的0槽位，与任何"宿主objectId+varId"键（宿主号段内非0槽位）互不重叠。
+	 */
+	long dynamicLogKey() {
+		return parent() instanceof Collection ? objectId() : parent().objectId() + variableId();
 	}
 
 	@Override
