@@ -58,6 +58,7 @@ import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.Action1;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
@@ -88,6 +89,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	// 缓存拥有Local数据的HotModule，用来优化。
 	private final ConcurrentHashSet<HotModule> hotModulesHaveLocal = new ConcurrentHashSet<>();
+	// this::方法引用每次求值都产生新实例，ConcurrentHashSet按实例判等：stopEvents.add
+	// 每次净增不可去重。固定为实例字段只求值一次，登记幂等（同Game.Online的Ref修复）。
+	private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
 	private final AtomicBoolean freshStopModule = new AtomicBoolean();
 
 	private void onHotModuleStop(@NotNull HotModule hot) {
@@ -389,7 +393,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (HotManager.isHotModule(bean.getClass().getClassLoader())) {
 			var hotModule = (HotModule)bean.getClass().getClassLoader();
 			Transaction.whileCommit(() -> {
-				hotModule.stopEvents.add(this::onHotModuleStop);
+				hotModule.stopEvents.add(onHotModuleStopRef);
 				hotModulesHaveLocal.add(hotModule);
 			});
 		}
@@ -430,7 +434,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (HotManager.isHotModule(defaultHint.getClass().getClassLoader())) {
 			var hotModule = (HotModule)defaultHint.getClass().getClassLoader();
 			Transaction.whileCommit(() -> {
-				hotModule.stopEvents.add(this::onHotModuleStop);
+				hotModule.stopEvents.add(onHotModuleStopRef);
 				hotModulesHaveLocal.add(hotModule);
 			});
 		}

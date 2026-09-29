@@ -23,6 +23,7 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.Action1;
 import Zeze.Util.OutLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,6 +46,9 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
+	// this::方法引用每次求值都产生新实例，ConcurrentHashSet按实例判等：stopEvents.add
+	// 每次净增不可去重。固定为实例字段只求值一次，登记幂等（同Game.Online的Ref修复）。
+	private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
 	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
 
 	private void onHotModuleStop(HotModule hot) {
@@ -56,7 +60,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		var cl = customClass.getClassLoader();
 		if (HotManager.isHotModule(cl)) {
 			var hotModule = (HotModule)cl;
-			hotModule.stopEvents.add(this::onHotModuleStop);
+			hotModule.stopEvents.add(onHotModuleStopRef);
 			hotModulesHaveDynamic.add(hotModule);
 		}
 	}

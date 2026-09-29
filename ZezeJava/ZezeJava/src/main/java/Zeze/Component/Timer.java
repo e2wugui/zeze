@@ -8,6 +8,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
@@ -44,6 +45,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.OutLong;
 import Zeze.Util.Reflect;
+import Zeze.Util.Action1;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
@@ -59,6 +61,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	private static int CountPerNode = Reflect.inDebugMode ? 1 : 3; // 调试状态下减少timer之间的影响,以免频繁redo
 	private static final BeanFactory beanFactory = new BeanFactory();
 	private static final LongConcurrentHashMap<AtomicLong> exceptCounter = new LongConcurrentHashMap<>();
+
+	// this::方法引用每次求值都产生新实例，而ConcurrentHashSet（键=元素自身）按实例判等：
+	// start/stop用不同实例registerWatch/unregisterWatch永远注销失败（static beanFactory
+	// 持有死Timer），stopEvents.add每次净增不可去重（条目持有this，热模块classloader无法
+	// 卸载）。固定为实例字段只求值一次：登记幂等，注销真正生效。同Game.Online的Ref修复。
+	private final Action1<HotModule> onHotModuleStopRef = this::onHotModuleStop;
+	private final Consumer<Class<?>> tryRecordHotModuleRef = this::tryRecordHotModule;
 
 	public static void setCountPerNode(int countPerNode) {
 		CountPerNode = Math.max(countPerNode, 1);
@@ -155,7 +164,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			var hotManager = zeze.getHotManager();
 			if (hotManager != null) {
 				hotManager.addHotBeanFactory(this);
-				beanFactory.registerWatch(this::tryRecordHotModule);
+				beanFactory.registerWatch(tryRecordHotModuleRef);
 			}
 			// started必须先于loadTimer置位：loadTimer内的事务在本线程同步提交，提交时同步执行
 			// whileCommit装载（scheduleSimple/scheduleCronNext），此时若started仍为false，
@@ -219,7 +228,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			var hotManager = zeze.getHotManager();
 			if (hotManager != null) {
 				hotManager.removeHotBeanFactory(this);
-				beanFactory.unregisterWatch(this::tryRecordHotModule);
+				beanFactory.unregisterWatch(tryRecordHotModuleRef);
 			}
 
 			// 不在此 UnRegisterZezeTables：表在构造时注册，stop时注销两者不匹配。
@@ -1634,7 +1643,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		if (HotManager.isHotModule(cl)) {
 			var hotModule = (HotModule)cl;
 			Transaction.whileCommit(() -> {
-				hotModule.stopEvents.add(this::onHotModuleStop);
+				hotModule.stopEvents.add(onHotModuleStopRef);
 				hotModulesHaveDynamic.add(hotModule);
 			});
 		}
@@ -1644,7 +1653,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		var cl = customClass.getClassLoader();
 		if (HotManager.isHotModule(cl)) {
 			var hotModule = (HotModule)cl;
-			hotModule.stopEvents.add(this::onHotModuleStop);
+			hotModule.stopEvents.add(onHotModuleStopRef);
 			hotModulesHaveDynamic.add(hotModule);
 		}
 	}
