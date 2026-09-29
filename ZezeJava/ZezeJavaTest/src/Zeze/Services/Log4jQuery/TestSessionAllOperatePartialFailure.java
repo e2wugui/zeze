@@ -185,6 +185,10 @@ public class TestSessionAllOperatePartialFailure {
 			alls.put(session.getName(), session);
 		setFinalField(sessionAll, "alls", alls);
 		setFinalField(sessionAll, "finishedSession", new ConcurrentHashSet<String>());
+		setFinalField(sessionAll, "memberRetryBackoff", new ConcurrentHashMap<String, Long>());
+		// 成员级水位/续扫基点表（重建续扫用）：注入空表，operate的成功路径会推进水位。
+		setFinalField(sessionAll, "deliveredWatermark", new ConcurrentHashMap<String, Long>());
+		setFinalField(sessionAll, "memberSeekBase", new ConcurrentHashMap<String, Long>());
 		setFinalField(sessionAll, "agent", newUninitialized(StubLogAgent.class));
 		return sessionAll;
 	}

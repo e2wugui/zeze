@@ -23,7 +23,8 @@ import org.jetbrains.annotations.NotNull;
  * 跨全部日志服务端的聚合查询会话：对每台建 Session，归并 search/browse 结果并跟踪各台完成状态。
  * 部分失败降级（单台异常不牺牲其余台）+ 会话成员集维护收敛在 operate 内：在册死亡成员自愈重建
  * （renewDeadMembers）与缺册成员补入（reconcileMissingMembers）互补——构造期跳过或构造后上台的
- * 服务器由后者补入，会话构成始终向注册表收敛。
+ * 服务器由后者补入，会话构成始终向注册表收敛。死亡成员重建后从该成员已投递水位续扫
+ * （见memberSeekBase），已投递区间不跨页重复投递。
  */
 public class SessionAll implements AutoCloseable {
 	private static final @NotNull Logger logger = LogManager.getLogger(SessionAll.class);
@@ -38,6 +39,20 @@ public class SessionAll implements AutoCloseable {
 	// 缺册补员的 per-member 退避表（服务器名→上次尝试失败时刻，System.nanoTime时基）：
 	// 退避窗内不重试，持续故障期不对死地址逐 operate 打点；成功补入即移除。
 	private final ConcurrentHashMap<String, Long> memberRetryBackoff = new ConcurrentHashMap<>();
+	// 成员级已投递水位（服务器名→该成员最近返回日志的最大time）：死亡成员重建
+	// （renewDeadMembers）后的续扫基点来源。新服务端会话beginTime=-2，翻页仍携带
+	// condition.beginTime会触发服务端reset+seek(beginTime)从查询下界整段重扫——死亡前
+	// 已投递区间跨页重复返回（merge无去重，"不丢不重"契约破坏且无信号）。以水位作为
+	// 重建会话的下发beginTime（协议每请求独立beginTime现成），从首条>=水位处续扫。
+	// 水位取max的损失论证：seek定位点=扫描序中首条time>=水位的日志，末投递页内必有
+	// time==水位的日志，定位点必不晚于它——跳过的扫描前缀全部已投递（不丢）；重复收敛
+	// 为水位边界同时间的少量条目（时间粒度），死亡页未送达区间在定位点之后照常补投。
+	private final ConcurrentHashMap<String, Long> deliveredWatermark = new ConcurrentHashMap<>();
+	// 成员级续扫基点（捕获语义）：重建时刻的快照，此后该成员的翻页固定下发该值——
+	// 服务端beginTime去重哨兵据此短路、游标连续推进。不得逐页跟踪水位：每页变值会使
+	// 服务端不断reset+seek到更新的水位，跳过未投递区间丢数据。reset=true（新查询序列）
+	// 与close时失效。
+	private final ConcurrentHashMap<String, Long> memberSeekBase = new ConcurrentHashMap<>();
 
 	public SessionAll(LogAgent agent, String logName) {
 		this.agent = agent;
@@ -135,6 +150,10 @@ public class SessionAll implements AutoCloseable {
 			// 连接抖动同走上面的 failedServers 路径：不标记 finishedSession（下次 operate 重试）、
 			// 全败时上抛。因此能到达本行的只剩零码结果，!isRemain() 才可信地表示"该台查完"。
 			r.getLogs().sort(comparator);
+			// 成员级已投递水位推进（重建续扫基点来源，见deliveredWatermark注释）：
+			// 取本页各日志time的最大值与既有水位合并。
+			for (var log : r.getLogs())
+				deliveredWatermark.merge(future.getValue().getName(), log.getTime(), Math::max);
 			remain = remain || r.isRemain();
 			if (!r.isRemain())
 				finishedSession.add(future.getValue().getName());
@@ -193,17 +212,38 @@ public class SessionAll implements AutoCloseable {
 	 * （含网络类瞬时失败的）游标不动。旧成员不发CloseSession：会话级死亡=服务端已无此会话
 	 * （无服务端句柄可释放），对死id再发Close只会得到同样的拒绝。新建失败（服务器暂不可达）
 	 * 保留死成员条目并warn——下轮operate继续失败并重试重建，不静默缺席成员。
+	 * 重建会话从该成员已投递水位续扫（memberSeekBase捕获，见其注释）——本页按降级语义缺
+	 * 该台数据，下一页起恢复投递且不重扫已投递区间。
 	 */
 	private void renewDeadMembers(List<String> deadMembers) {
 		for (var name : deadMembers) {
 			try {
 				alls.put(name, agent.newSession(name, logName));
+				// 重建会话的续扫基点=重建时刻的已投递水位（捕获语义，见memberSeekBase注释）：
+				// 下一页起对该成员下发beginTime=水位，新会话从首条>=水位处续扫——已投递区间
+				// 不再整段重扫（无水位=该成员尚未投递过任何页，按原条件从头扫描即正确）。
+				var watermark = deliveredWatermark.get(name);
+				if (null != watermark)
+					memberSeekBase.put(name, watermark);
 				logger.warn("renewed dead member session. server='{}', logName '{}'", name, logName);
 			} catch (Exception e) {
 				logger.warn("renew dead member session fail, keep dead entry for next retry. server='{}', logName '{}'",
 						name, logName, e);
 			}
 		}
+	}
+
+	/**
+	 * 重建/续扫成员的下发条件：beginTime覆写为该成员的续扫基点（无基点=原样）。
+	 * 每请求按需拷贝（只在有基点的成员上），其余成员共享原条件对象零开销。
+	 */
+	private BCondition.Data seekCondition(String memberName, BCondition.Data condition) {
+		var base = memberSeekBase.get(memberName);
+		if (null == base)
+			return condition;
+		var overridden = condition.copy();
+		overridden.setBeginTime(base);
+		return overridden;
 	}
 
 	public static BResult.Data merge(java.util.List<BResult.Data> rs) {
@@ -260,14 +300,21 @@ public class SessionAll implements AutoCloseable {
 
 	public BResult.Data search(int limit, boolean reset, BCondition.Data condition) throws Exception {
 		if (reset)
-			finishedSession.clear();
-		return operate((session) -> session.search(limit, reset, condition));
+			clearQuerySequenceState();
+		return operate((session) -> session.search(limit, reset, seekCondition(session.getName(), condition)));
 	}
 
 	public BResult.Data browse(int limit, float offsetFactor, boolean reset, BCondition.Data condition) throws Exception {
 		if (reset)
-			finishedSession.clear();
-		return operate((session) -> session.browse(limit, offsetFactor, reset, condition));
+			clearQuerySequenceState();
+		return operate((session) -> session.browse(limit, offsetFactor, reset, seekCondition(session.getName(), condition)));
+	}
+
+	/** 新查询序列（reset=true）：完成集与续扫基点/水位随旧序列一起失效。 */
+	private void clearQuerySequenceState() {
+		finishedSession.clear();
+		memberSeekBase.clear();
+		deliveredWatermark.clear();
 	}
 
 	@Override
@@ -286,6 +333,8 @@ public class SessionAll implements AutoCloseable {
 		}
 		alls.clear();
 		finishedSession.clear();
+		memberSeekBase.clear();
+		deliveredWatermark.clear();
 		if (first != null)
 			throw first;
 	}
