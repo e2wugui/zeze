@@ -67,8 +67,13 @@ public class DatabaseMongoDb extends Database {
 
 	@Override
 	public void close() {
-		super.close();
-		mongoClient.close();
+		// 双段守卫（同DatabaseDynamoDb）：super.close()抛异常时mongoClient（连接池+后台线程）
+		// 仍需关闭，否则永久泄漏。
+		try {
+			super.close();
+		} finally {
+			mongoClient.close();
+		}
 	}
 
 	private class OperatesMongoDb implements Operates {

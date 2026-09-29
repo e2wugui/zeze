@@ -20,6 +20,7 @@ import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.model.Put;
 import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
 import com.amazonaws.services.dynamodbv2.model.ResourceInUseException;
+import com.amazonaws.services.dynamodbv2.model.TableStatus;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.model.ScanRequest;
 import com.amazonaws.services.dynamodbv2.model.TransactWriteItem;
@@ -218,6 +219,31 @@ public class DatabaseDynamoDb extends Database {
 		@Override
 		public boolean isNew() {
 			return isNew;
+		}
+
+		/**
+		 * AWS createTable是异步的：CREATING期间任何读写抛ResourceNotFoundException。
+		 * open()的waitReady()默认空实现，不覆写则启动期schemasCompatible的首次GetItem
+		 * 直接启动失败（该循环不重试）、首批flush反复失败。轮询describeTable直到ACTIVE。
+		 */
+		@Override
+		public void waitReady() {
+			// isNew=false（表已存在）时通常早已ACTIVE，一次describe即过，无额外启动延迟。
+			var deadline = System.currentTimeMillis() + 60_000;
+			while (true) {
+				var status = dynamoDbClient.describeTable(name).getTable().getTableStatus();
+				// SDK v1的getTableStatus()返回String（如"CREATING"/"ACTIVE"）
+				if (TableStatus.ACTIVE.toString().equals(status) || TableStatus.UPDATING.toString().equals(status))
+					return;
+				if (System.currentTimeMillis() > deadline)
+					throw new IllegalStateException("DynamoDb table not ready: " + name + ", status=" + status);
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					throw new IllegalStateException("interrupted while waiting table ready: " + name, e);
+				}
+			}
 		}
 
 		@Override

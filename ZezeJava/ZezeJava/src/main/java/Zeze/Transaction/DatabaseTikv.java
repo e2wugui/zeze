@@ -45,7 +45,15 @@ public class DatabaseTikv extends Database {
 			config = TiConfiguration.createDefault(getDatabaseUrl());
 			session = TiSession.create(config);
 			client = null;
-			txnClient = session.createKVClient();
+			try {
+				txnClient = session.createKVClient();
+			} catch (RuntimeException e) {
+				try {
+					session.close(); // 同上：构造中途失败关session
+				} catch (Exception ignored) {
+				}
+				throw e;
+			}
 		} else {
 			config = TiConfiguration.createRawDefault(getDatabaseUrl());
 			// compareAndSet/putIfAbsent 入口门禁：未启用时 raw client 方法体开头即抛
@@ -56,7 +64,15 @@ public class DatabaseTikv extends Database {
 			config.setEnableAtomicForCAS(true);
 			logger.info("DatabaseTikv({}): enable_atomic_for_cas 已开启，raw 写均走 atomic 路径（get/scan 不受影响），要求 TiKV >= 5.0。", getDatabaseUrl());
 			session = TiSession.create(config);
-			client = session.createRawClient();
+			try {
+				client = session.createRawClient();
+			} catch (RuntimeException e) {
+				try {
+					session.close(); // 构造中途失败必须关session（PD连接+线程池），否则每失败一次泄漏一个
+				} catch (Exception ignored) {
+				}
+				throw e;
+			}
 			txnClient = null;
 		}
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesTikv());
