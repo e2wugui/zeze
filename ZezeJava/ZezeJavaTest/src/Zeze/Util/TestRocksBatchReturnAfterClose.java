@@ -41,5 +41,39 @@ public class TestRocksBatchReturnAfterClose {
 		}
 	}
 
-
+	@Test
+	public void closeWaitsForColumnFamilyDestructionToFinish() throws Exception {
+		RocksDB.loadLibrary();
+		var database = new RocksDatabase(directory.resolve("destroy").toString());
+		database.getOrAddTable("pending");
+		var drainReached = new CountDownLatch(1);
+		var releaseDrain = new CountDownLatch(1);
+		try (var executor = Executors.newFixedThreadPool(2)) {
+			var destroy = executor.submit(() -> {
+				database.destroyColumnFamily("pending", () -> {
+					drainReached.countDown();
+					return releaseDrain.getCount() != 0 ? 1 : 0;
+				});
+				return null;
+			});
+			try {
+				assertTrue(drainReached.await(3, TimeUnit.SECONDS));
+				var close = executor.submit(database::close);
+				try {
+					assertThrows(TimeoutException.class, () -> close.get(100, TimeUnit.MILLISECONDS),
+							"整库关闭必须等待锁外列族排空及native销毁结束");
+					assertFalse(database.isClosed());
+				} finally {
+					releaseDrain.countDown();
+				}
+				destroy.get(3, TimeUnit.SECONDS);
+				close.get(3, TimeUnit.SECONDS);
+				assertTrue(database.isClosed());
+			} finally {
+				releaseDrain.countDown();
+			}
+		} finally {
+			database.close();
+		}
+	}
 }

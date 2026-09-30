@@ -430,6 +430,15 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	 * @param inFlight 使用方注册的在飞检查；null=无长期租约使用方（行为与旧 dropTable 一致）
 	 */
 	public void destroyColumnFamily(@NotNull String name, @Nullable InFlight inFlight) throws RocksDBException {
+		enterOp();
+		try {
+			destroyColumnFamilyCore(name, inFlight);
+		} finally {
+			exitOp();
+		}
+	}
+
+	private void destroyColumnFamilyCore(@NotNull String name, @Nullable InFlight inFlight) throws RocksDBException {
 		Table table;
 		lock();
 		try {
