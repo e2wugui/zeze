@@ -358,20 +358,15 @@ public class MQAgent extends AbstractMQAgent {
 			future.cancel(false);
 	}
 
-	// mq-02（路由快照对账，拉式）：消费者构造时把 openMQ 解析的地址集固化为 managers 连接集
-	// ——Master 侧为换址迁移实现了完整路由自愈（Register 联动 rewriteRoutes、孤儿证据化转移），
-	// 但只覆盖路由表与新建客户端：既存消费者持旧地址连接器无限重连旧址（握手永不成功），
-	// 重订阅链（OnHandshakeDone→reSubscribeRound）只遍历既有连接器——新 Manager 的订阅表为空
-	// （subscribes 纯内存态），分区 bind(0,null)、tryPushMessage 静默短路，消息无限积压且
-	// 应用侧零信号（MQListener 只收消息不收错误）。周期拉式对账闭合该缺口（对齐 Manager 侧
-	// loadMonitorTimer 的对账收敛先例，零协议改动）：对每个存活消费者重取一次 Master 路由，
-	// 地址集差量补建 connector 并入 managers（只增不减：分区全迁走的旧址无人推送，close 退订
-	// best-effort 容死址）——新连接器握手完成后由既有重订阅链以原 sessionId 幂等补发
-	// Subscribe，恢复推送。Master 不可达等失败记日志等下一周期（有界时间内最终一致）。
+	// 路由快照对账（周期拉式）：managers 连接集在消费者构造时固化、不随 Master 路由刷新，
+	// Manager 换址迁移后既存消费者持旧址连接器静默饿死（新 Manager 订阅表为空、消息积压
+	// 且应用侧零信号）。每轮对每个存活消费者重取一次 Master 路由，地址集差量补建 connector
+	// 入 managers（只增不减），新连接器握手后由既有重订阅链以原 sessionId 幂等补发
+	// Subscribe；失败记日志等下一周期，有界时间内最终一致。
 	private final Object routeRefreshLock = new Object();
-	// 单飞排期句柄（锁内维护）：本轮执行即清空重排——不信任布尔标志（"对账轮见空终止 vs
-	// 并发订阅武装"的窄窗下标志形态会漏排期成死链）；订阅与续排都以"无在飞排期才排"收敛，
-	// 消费者清空则本轮终止不续排，链的生命周期=首个订阅武装、末个消费者退订后的下一轮终止。
+	// 单飞排期句柄（锁内维护，不用布尔标志——对账轮见空终止与并发订阅武装的窄窗下标志形态
+	// 会漏排期成死链）：本轮执行即清空重排；消费者清空则本轮终止不续排，链的生命周期=首个
+	// 订阅武装、末个消费者退订后的下一轮终止。
 	private Future<?> routeRefreshFuture;
 	// 包内可见（测试反射缩短周期求确定性）：路由对账周期。
 	long routeRefreshPeriodMs = 30_000;
@@ -398,8 +393,8 @@ public class MQAgent extends AbstractMQAgent {
 	}
 
 	// 一轮路由对账（周期排期驱动，任务池线程）：锁内先清句柄续排期再做慢路径（master rpc
-	// 不持锁）。计入 netRounds：归零停机的排空等待覆盖本轮——最后一个消费者 close 与对账
-	// 增补 connector 的竞态不再造出"引用已空却重启重连"的僵尸连接器（FND19 要消灭的形态）。
+	// 不持锁）。计入 netRounds 使归零停机的排空等待覆盖本轮，最后一个消费者 close 与对账
+	// 增补 connector 的竞态不造出引用已空的僵尸连接器。
 	private void routeRefreshRound() {
 		synchronized (routeRefreshLock) {
 			routeRefreshFuture = null; // 本轮即排期之执行

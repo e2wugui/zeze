@@ -149,13 +149,10 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return typeId == PrepareBatch.TypeId_;
 	}
 
-	// PrepareBatch自指守卫判据：死桶（keyFirst==keyLast==DeadBucketMetaBound哨兵）不拥有任何
-	// 键域，其分裂历史首键条目已被迁移目标同键覆写（endMove的addMoveMetaHistory(to)），locate
-	// 命中必指向他桶，一律refused重定向自愈——哨兵{1}与真实单字节keyFirst[0x01]字节相等，死桶
-	// 若仍参与keyFirst判等，该键形的重定向被误判"又找到了自己"返回终局eBucketNotFound，而客户端
-	// （CommitRocks.processPrepareFutures）只对refused触发startRefreshMasterTable，陈旧路由的
-	// 纯写负载下该表写入持续失败。活桶首键条目恒指向本桶（每次endSplit的from原地刷新），
-	// 等值判等保持原语义（重定向会自旋，终局错误）。
+	// PrepareBatch自指守卫判据：死桶（keyFirst==keyLast==DeadBucketMetaBound哨兵）不拥有
+	// 键域，locate命中必指向他桶，恒按refused重定向自愈——哨兵与真实单字节keyFirst字节
+	// 相等，死桶参与keyFirst判等会把重定向误判自指成终局eBucketNotFound，客户端只对
+	// refused刷新路由，写入持续失败。活桶首键条目恒指向本桶，等值判等保持原语义。
 	private static boolean isLocateSelf(BBucketMeta.Data bucketMeta, BBucketMeta.Data locate) {
 		if (Bucket.DeadBucketMetaBound.equals(bucketMeta.getKeyFirst())
 				&& Bucket.DeadBucketMetaBound.equals(bucketMeta.getKeyLast()))

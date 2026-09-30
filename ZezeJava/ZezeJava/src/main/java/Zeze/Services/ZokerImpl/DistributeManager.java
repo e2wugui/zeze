@@ -252,8 +252,8 @@ public class DistributeManager {
 		fileBin.append(offset, data);
 	}
 
-	// 直构测试 seam（closeAndVerify 交错注入点）：md5 失配判定后、清场删除前的暂停/
-	// 并发动作注入——红绿测试在此构造失配删除与同服务 commit 的确定性交错。生产恒 null。
+	// 测试 seam（closeAndVerify 交错注入点）：md5 失配判定后、清场删除前注入暂停/并发
+	// 动作；生产恒 null。
 	private volatile Runnable closeVerifyBeforeDeleteHookForTest;
 
 	void setCloseVerifyBeforeDeleteHookForTest(Runnable hook) {
@@ -268,21 +268,13 @@ public class DistributeManager {
 	 * 下次 OpenFile 从 0 续传，状态机闭合——坏起点不再占位把续传打回人工清理。
 	 *
 	 * <p><b>摘账→close→校验→删除全程持同服务 {@link #commitLocks}</b>（折叠服务段，与
-	 * commit 同锁，FND35 zoker-01）：不持锁时摘账后的 FileBin 脱离 closeUnder 回收面，
-	 * 而清单校验（isFile）与 renameTo 之间无复查——并发同名分发会话（或单客户端 close
-	 * 60s 超时-重试形成的新旧会话重叠——closeAndVerify 摘账后不查 sender 存活照常执行）
-	 * 中一次常规的 md5 失配清场删除落进该窗口，即提交出缺文件/混合内容的版本并回执 0
-	 * 切 current，击穿"版本内容=清单声明的精确集合"屏障。同锁后两序必居其一：删除先于
-	 * commit 的清单校验（isFile 见缺文件→eCommitFail，部署方重传后重 commit 收敛），或
-	 * commit 先行（摘账尚未发生，closeUnder 在同一 commitLocks 内清账删掉在途产物→
-	 * 清单见缺文件同样 eCommitFail）。锁序 commitLocks→filesBySocket 与 commit 的
-	 * closeUnder 同向单向，无环；close/md5 的 IO 在 filesBySocket 外、commitLocks 内——
-	 * 后者本就是 commit 全程持有的纯本地 FS 操作锁（rename/delete/walk 同阶），阻塞面
-	 * 仅同服务的并发 commit 与并发 close，无 selector/tick 线程介入（closeBySocket 不取
-	 * commitLocks：其摘账与 files.remove 亚微秒相邻，无本案的删除窗口，且它在 event loop
-	 * 线程上等 commitLocks 会把该 loop 全部连接的读写停摆成串行点，违背 IO 禁入纪律）。
-	 * 次选方案（删除前复检 isCommitting 跳过删除）不闭合"混合内容随 rename 成版"形态
-	 * ——脏文件留在暂存区被 commit 搬走，仅消除缺文件形态，弃用。</p>
+	 * commit 同锁）：commit 的清单校验（isFile）与 renameTo 之间无复查，不持锁时并发的
+	 * md5 失配清场删除落进该窗口会提交出缺文件/混合内容的版本并回执 0 切 current。同锁
+	 * 后删除与 commit 两序必居其一，均收敛 eCommitFail（删除先于清单校验见缺文件；或
+	 * commit 先行、closeUnder 在同锁内清账删掉在途产物）。锁序 commitLocks→filesBySocket
+	 * 与 commit 同向无环；close/md5 的 IO 在纯本地 FS 操作锁 commitLocks 内，阻塞面仅
+	 * 同服务并发 commit/close（closeBySocket 不取 commitLocks：摘账与 remove 亚微秒相邻
+	 * 无删除窗口，且 event loop 线程等锁会停摆该 loop 全部连接读写）。</p>
 	 */
 	public long closeAndVerify(String serviceName, String fileName, Binary md5, AsyncSocket sender)
 			throws IOException {
@@ -320,13 +312,12 @@ public class DistributeManager {
 	}
 
 	/**
-	 * closeAndVerify 的 commit 同锁键（FND35 zoker-01）：真实流量 serviceName 为空串、
-	 * 服务段取自合成相对路径首段（与 {@link #open} 的目录世代锚点同判据），键走
-	 * {@link #foldVersionName} 折叠——与 commit 的锁键（foldVersionName(RPC serviceName)）
-	 * 在真实流量与变体拼写（Windows 同物理目录的 "Svc"/"svc."）下必同键。文件直接位于
-	 * distributes 顶层（一级段即文件本身）时返回一次性空对象（无互斥）：commit 的 rename
-	 * 单元是 distributes/&lt;一级段&gt; 目录，顶层文件永不被搬运，无屏障窗口；越界拼写
-	 * （checkInsideDir 会拒的形态）同样无账可摘，取空对象即原行为。
+	 * closeAndVerify 的 commit 同锁键：真实流量 serviceName 为空串、服务段取自合成相对
+	 * 路径首段（与 {@link #open} 的目录世代锚点同判据），经 {@link #foldVersionName} 折叠
+	 * 后与 commit 的锁键（foldVersionName(RPC serviceName)）在真实流量与变体拼写下必同
+	 * 键。文件直接位于 distributes 顶层（一级段即文件本身）时返回一次性空对象（无互斥）：
+	 * commit 的 rename 单元是 distributes/&lt;一级段&gt; 目录，顶层文件永不被搬运；越界
+	 * 拼写（checkInsideDir 会拒的形态）同样无账可摘，取空对象即原行为。
 	 */
 	private Object commitLockOf(String path) {
 		var base = distributeDir.toPath().toAbsolutePath().normalize();

@@ -135,10 +135,10 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 	}
 
 	/**
-	 * 兜底 catch 的 desc 分诊：desc 是前端唯一错误通道，模块内为分诊精心措辞的拒绝必须
-	 * 透传 message——0 成员全服视图拒绝与同 IP 在飞并发拒绝（FileSessionManager 的
-	 * IllegalStateException）、全服 operate 总时限到点（SessionAll 的带信息
-	 * TimeoutException）；其余异常保持 "system error"（不向浏览器透内部细节）。
+	 * 兜底 catch 的 desc 分诊：desc 是前端唯一错误通道，模块内精心措辞的拒绝——0 成员
+	 * 全服拒绝与同 IP 在飞并发拒绝（FileSessionManager 的 IllegalStateException）、全服
+	 * operate 总时限到点（SessionAll 的 TimeoutException）——透传 message；其余异常保持
+	 * "system error"（不向浏览器透内部细节）。
 	 */
 	static String knownRejectionDesc(Exception e) {
 		return (e instanceof IllegalStateException || e instanceof TimeoutException) && e.getMessage() != null

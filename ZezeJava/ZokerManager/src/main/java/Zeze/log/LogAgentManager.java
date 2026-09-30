@@ -28,12 +28,10 @@ public class LogAgentManager {
 	}
 
 	public static void init(String configXml) throws Exception {
-		// 重入守卫：未先 stop 的二次 init 会先覆盖静态引用再走启动序列——bind"成功"
-		// （SO_REUSEADDR/REUSEPORT 同口双绑）时双 HttpServer 分流、第一实例组件全部
-		// 失联泄漏；bind 失败时收尾 stop() 按静态字段回收，误关第一实例的 adminNetty、
-		// 停第二实例的 agent，第一 LogAgent 永久泄漏。已初始化即拒（logAgentManager
-		// 非 null ⇔ 已初始化：成功即置位、失败收尾 stop() 复位），重启语义由调用方
-		// 显式 stop 后再 init 承担。
+		// 重入守卫：未先 stop 的二次 init 会先覆盖静态引用——bind"成功"（同口双绑）时双
+		// HttpServer 分流、第一实例失联泄漏；bind 失败时收尾 stop() 按静态字段误关第一
+		// 实例组件。已初始化即拒（logAgentManager 非 null ⇔ 已初始化：成功即置位、失败
+		// 收尾 stop() 复位），重启语义由调用方显式 stop 后再 init 承担。
 		if (logAgentManager != null)
 			throw new IllegalStateException("LogAgentManager already initialized; call stop() before re-init");
 		logAgentManager = new LogAgentManager();
@@ -72,11 +70,10 @@ public class LogAgentManager {
 			adminNetty.close();
 			adminNetty = null;
 		}
-		// 会话绑定表是 FileSessionManager 的类级静态，不随 agent 生命周期走：stop 不清
-		// 时嵌入宿主 stop→init 后同 IP 复用持有已停 agent 的死会话（恒 system error 且
-		// 闲置清扫被复用前的活跃刷新挡住）。断流量入口后、停 agent 前清理（CloseSession
-		// RPC 仍可经 agent 连接发出，异步不挡停机）；纯绑定形态（logAgentManager 为
-		// null）同样清理。
+		// 会话绑定表是 FileSessionManager 的类级静态，不随 agent 生命周期走，不清理时嵌入
+		// 宿主 stop→init 后同 IP 复用持有已停 agent 的死会话（见 closeAllBindings）。
+		// 断流量入口后、停 agent 前清理（CloseSession RPC 仍经 agent 连接发出，异步不挡
+		// 停机）；纯绑定形态（logAgentManager 为 null）同样清理。
 		FileSessionManager.closeAllBindings();
 		if (logAgentManager != null) {
 			if (logAgentManager.logAgent != null)

@@ -23,11 +23,10 @@ public class HistoryModule extends AbstractHistoryModule {
 
 	/**
 	 * 起回放分析端点（WalkPage）并<b>同步确认bind结果</b>：HttpServer.start对b.bind的
-	 * ChannelFuture不同步不记日志，bind失败（端口占用/坏地址）异步发生在event loop上——
-	 * 丢弃返回值则调用方正常返回且startServer的info日志已打出，端点静默缺失、零错误日志。
-	 * 失败时回收半启动server（其内部已注册周期scheduler）后抛含cause的IllegalStateException
-	 * （对齐Netty.java的.sync()规范）；httpServer字段只在成功后发布，失败不闩死幂等分支，
-	 * 修复端口/地址后重调即进入。netty为调用方持有，不在此回收。
+	 * ChannelFuture不同步不记日志，不同步确认则bind失败（端口占用/坏地址）端点静默缺失。
+	 * 失败时回收半启动server后抛含cause的IllegalStateException（对齐Netty.java的.sync()
+	 * 规范）；httpServer字段只在成功后发布，失败不闩死幂等分支，修复后重调即进入。
+	 * netty为调用方持有，不在此回收。
 	 */
 	public void startHttpServer(Netty netty, String host, int port) throws Exception {
 		lock();

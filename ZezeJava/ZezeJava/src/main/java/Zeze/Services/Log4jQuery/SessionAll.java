@@ -36,11 +36,9 @@ public class SessionAll implements AutoCloseable {
 
 	private static final long MEMBER_RETRY_BACKOFF_NANOS = Duration.ofSeconds(60).toNanos();
 
-	// operate 总时限（毫秒）：单服查询分支（ZokerManager 处理器）对 search/browse 的
-	// future.get 有 1 分钟上界，聚合分支的补员/发送/等待此前无界——注册表含死条目的
-	// 部分失败期，单请求可串行阻塞 5s×N（补员/发送逐台 readySocket）+ RPC 60s，占满
-	// 派发线程与同 IP 在飞守卫窗口。单次 readySocket/NewSession 的内部等待（5s/60s）
-	// 不可中断，总上界为时限+单步时长（有界过冲）；逐出成员的 best-effort close 同理。
+	// operate 总时限（毫秒）：对齐单服查询分支对 search/browse 的 1 分钟上界——聚合分支
+	// 无界时部分失败期单请求可串行阻塞 5s×N（逐台 readySocket）+ RPC 60s，占满派发线程
+	// 与同 IP 在飞守卫窗口。单步内部等待不可中断，总上界为时限+单步时长（有界过冲）。
 	private static final long OPERATE_TOTAL_TIMEOUT_MILLIS = 60_000;
 
 	private final LogAgent agent;
@@ -55,14 +53,12 @@ public class SessionAll implements AutoCloseable {
 	// 来源，从首条>=水位处续扫、已投递区间不整段重扫（末投递页内必有time==水位的日志，
 	// 定位点必不晚于它——不丢；重复收敛为水位边界同时间的少量条目）。
 	private final ConcurrentHashMap<String, Long> deliveredWatermark = new ConcurrentHashMap<>();
-	// 成员扫描流时间回退观测（FND35 log4jquery-02）：该成员已投递页序列出现过 time 低于
-	// 先前水位的日志=扫描流时间非单调（服务端列表不变式是轮转序非内容时间序，rotate
-	// 内容时间可晚于active——Log4jSession自述"扫描流时间不单调"）。非单调流上 max-时间
-	// 水位不可作续扫重定位下界：水位=T2（rotate段）而未投递段在active（time=T1<T2），
-	// 重定位beginTime=水位使服务端seek(T2)+查询下界覆写把active未投递段逐条滤除——聚合
-	// 静默缺窗且remain正常收敛不可观测。观测到回退的成员续扫保守回落（见
-	// resumeFromDeliveredWatermark），单调成员保持水位紧凑续扫（FND31/FND34语义不变）。
-	// 与deliveredWatermark同生命周期（重入保留、reset/close清除）：回退由已投递历史推出。
+	// 成员扫描流时间回退观测：已投递页序列出现过 time 低于先前水位的日志=扫描流非单调
+	// （服务端列表不变式是轮转序非内容时间序，rotate 内容时间可晚于 active）。非单调流的
+	// max-时间水位不可作续扫重定位下界（按水位 seek+beginTime 覆写会把未投递段逐条滤除，
+	// 聚合静默缺窗），观测到回退的成员续扫保守回落原始条件（见
+	// resumeFromDeliveredWatermark），单调成员保持水位紧凑续扫。与 deliveredWatermark
+	// 同生命周期（重入保留、reset/close 清除）。
 	private final ConcurrentHashSet<String> memberTimeRegression = new ConcurrentHashSet<>();
 	// 成员级续扫基点（捕获语义）：重建时刻的水位快照，此后翻页固定下发该值——服务端
 	// beginTime去重哨兵据此短路、游标连续推进。不得逐页跟踪水位（服务端会不断reset+seek
@@ -121,9 +117,8 @@ public class SessionAll implements AutoCloseable {
 	/**
 	 * 带总时限的 operate（默认口径见 {@link #OPERATE_TOTAL_TIMEOUT_MILLIS}，重载供直测
 	 * 注入短时限）：补员、发送、等待全程携带 deadline——等待按剩余时限 get、补员与发送
-	 * 按剩余时限跳过（补员有 60s 退避窗、未发送成员按瞬时失败降级由下次 operate 重试，
-	 * 跳过不损正确性）。到点成员与单台失败同构：部分成功降级返回，全败抛带信息的
-	 * TimeoutException。
+	 * 按剩余时限跳过（未发送成员按瞬时失败降级由下次 operate 重试）。到点成员与单台
+	 * 失败同构：部分成功降级返回，全败抛带信息的 TimeoutException。
 	 */
 	public BResult.Data operate(Func1<Session, TaskCompletionSource<BResult.Data>> op, long totalTimeoutMillis)
 			throws Exception {
@@ -266,11 +261,10 @@ public class SessionAll implements AutoCloseable {
 	}
 
 	/**
-	 * 续扫基点捕获单点（瞬时失败/死亡重建/重入补员三路共用，FND35 log4jquery-01/02）：
-	 * 单调成员取水位（紧凑续扫，重复收敛为水位边界同时间条目）；观测到时间回退的成员
-	 * （见memberTimeRegression）清除基点回落原始条件——时间水位高于未投递日志时间，
-	 * 按水位重定位+beginTime覆写会把未投递段滤除（静默缺窗），宁整窗重扫重复可观测
-	 * 可幂等去重、不丢失（重扫量以查询窗口为界，翻页协议有界）。
+	 * 续扫基点捕获单点（瞬时失败/死亡重建/重入补员三路共用）：单调成员取水位（紧凑续扫，
+	 * 重复收敛为水位边界同时间条目）；观测到时间回退的成员（见memberTimeRegression）
+	 * 清除基点回落原始条件——时间水位高于未投递日志时间，按水位重定位+beginTime覆写
+	 * 会把未投递段滤除成静默缺窗，宁整窗重扫（重复可观测可去重、不丢失）。
 	 */
 	private void resumeFromDeliveredWatermark(String name) {
 		if (memberTimeRegression.contains(name)) {

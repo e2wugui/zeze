@@ -50,11 +50,10 @@ import org.jetbrains.annotations.Nullable;
  * ROLLBACK，收敛依赖 broker 回查策略 + tSent 保留时长下界。</li>
  * <li>tSent必须落在<b>持久数据库</b>：默认 {@link Zeze.Config.DatabaseConf} 的
  * databaseType 即 Memory，漏配数据库的应用静默落入该形态——tSent 数据随进程重启灭失，
- * 重启前"本地已提交+COMMIT 应答丢失"的半消息回查恒 UNKNOW，被 broker 回查耗尽丢弃。
- * 注意区分两类 memory 语义：库类型 Memory 只决定后端是 DatabaseMemory（表仍建 storage，
- * 每日清理的 walk 照常可用），表级 kind="memory" 才是无 storage 的形态。{@link #start()}
- * 显式拒绝该形态；联调/demo形态可经系统属性 {@value #TSENT_ALLOW_MEMORY_PROPERTY}=true
- * 显式豁免。</li>
+ * 重启前"本地已提交+COMMIT 应答丢失"的半消息回查恒 UNKNOW 被 broker 丢弃。库类型
+ * Memory 只决定后端是 DatabaseMemory（表仍建 storage、walk 照常可用），表级
+ * kind="memory" 才是无 storage 的形态。{@link #start()} 显式拒绝该形态；联调/demo
+ * 形态可经系统属性 {@value #TSENT_ALLOW_MEMORY_PROPERTY}=true 显式豁免。</li>
  * <li>停机窗口：{@link #stop()} 先有界排空回查线程池（在飞回查趁客户端存活把COMMIT应答
  * 发回broker）再关闭客户端；停机超过 broker 回查总窗口（transactionTimeOut +
  * transactionCheckMax × transactionCheckInterval，默认约15分钟）时窗口外未决半消息失去
@@ -222,18 +221,16 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	/**
 	 * 发送普通消息。没有相关事务。
 	 *
-	 * <p>必须在<b>环境事务之外</b>调用（调用线程不得处于运行中的 Zeze 事务内）：环境事务内调用
-	 * 立即抛 {@link UnsupportedOperationException}（本方法第一行 fail-fast，先于触网）。普通消息
-	 * 同步立即投递，与所在事务的提交/回滚完全脱钩——外层回滚成"幽灵消息"（本地无变更但消息已
-	 * 投递、不可回收），外层锁冲突 redo 重跑每轮再发（同一笔本地事务重复投递）。事务感知发送
-	 * 惯用法：{@code TaskSpec.ofAction(() -> producer.send(msg)).run()} 注册到外层事务的
-	 * whileCommit（提交后执行、回滚跳过）。
+	 * <p>必须在<b>环境事务之外</b>调用：环境事务内调用立即抛 {@link UnsupportedOperationException}
+	 * （第一行 fail-fast，先于触网）。普通消息同步立即投递、与外层事务的提交/回滚完全脱钩——
+	 * 外层回滚成幽灵消息（本地无变更但消息已投递），redo 重跑每轮再发。事务感知发送惯用法：
+	 * {@code TaskSpec.ofAction(() -> producer.send(msg)).run()} 注册到外层事务的 whileCommit
+	 * （提交后执行、回滚跳过）。
 	 */
 	public SendResult sendMessage(@NotNull Message msg) throws Exception {
-		// 环境事务内禁发（与sendMessageWithTransaction同款防线，判据一致：Transaction.getCurrent()
-		// 非空）：普通消息同步立即投递，与外层事务的提交/回滚完全脱钩——外层回滚即幽灵消息，
-		// 外层redo重跑（Transaction.perform最多256轮）每轮再发。不用isRunning()收窄：
-		// whileCommit回调在事务Completed后、线程归还前执行，getCurrent()仍非空。
+		// 环境事务内禁发（与sendMessageWithTransaction同款判据 Transaction.getCurrent() 非空；
+		// 不用 isRunning() 收窄——whileCommit 回调在事务 Completed 后、线程归还前执行仍非空）：
+		// 普通消息同步立即投递与外层提交/回滚脱钩，回滚即幽灵消息、redo 重跑每轮再发。
 		if (Transaction.getCurrent() != null)
 			throw new UnsupportedOperationException("sendMessage: 环境事务内发送普通消息会产生"
 					+ "幽灵消息/重复投递（消息同步立即投递，与外层事务的提交/回滚脱钩）。"

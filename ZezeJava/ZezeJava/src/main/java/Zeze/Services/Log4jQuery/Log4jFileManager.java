@@ -210,8 +210,7 @@ public class Log4jFileManager extends ReentrantLock {
 		return seek(time, out, null);
 	}
 
-	// 直构测试 seam（seek 交错注入点）：双锚扫描完成、pick 条目打开前的暂停/并发动作注入
-	// ——红绿测试在此构造并发摘除左移与取条目的确定性交错。生产恒 null。
+	// 测试 seam（seek 交错注入点）：pick 条目打开前注入暂停/并发动作；生产恒 null。
 	private volatile Runnable seekBeforePickOpenHookForTest;
 
 	void setSeekBeforePickOpenHookForTest(Runnable hook) {
@@ -232,15 +231,11 @@ public class Log4jFileManager extends ReentrantLock {
 		//    endTime=已索引记录的最大时间），不含>=time的记录，跳过安全。
 		// walker只向前推进：起点偏早只是多读（窗口边界在查询循环逐条过滤，扫描量由页预算封顶），
 		// 偏晚即整窗漏读——两锚冲突时保守取早，不再以时间序为锚。
-		// 快照+引用锚定（FND35 log4jquery-01）：双锚扫描与取条目在同一个COW快照（toArray，
-		// 与buildIndex同型）上以条目引用衔接——活列表上按下标扫描后裸下标二次get，会与并发
-		// 摘除左移（removeMissingFile/reconcile摘除循环）交错出"pick界内却指向偏移后另一条目"
-		// 的形态（IOOBE兜底只覆盖越界），偏移条目被当作锚定结果发布，walker只向前推进使原目标
-		// 条目整窗静默漏读。快照一致后打开的要么是被锚点选中的条目、要么其文件已被并发清理
-		// （FNFE走下方降级收敛）；发布下标改取该引用的当前存活位置（indexOf，walker入口本就
-		// 按引用重同步，下标仅供循环条件参考——发布时已摘除的-1钳到0，walker从表头按seekTime
-		// 锚定位推进，保守多读不漏读）。快照期间并发补登的新条目本轮不可见（下一查询收敛），
-		// 与COW读的既有语义一致。
+	// 快照+引用锚定：双锚扫描与取条目在同一个COW快照（toArray）上以条目引用衔接——活列表
+	// 上按下标扫描后裸下标二次get，会与并发摘除左移交错取到偏移条目（IOOBE兜底只覆盖越界），
+	// 偏移条目被当作锚定结果发布致原目标条目整窗漏读。发布下标取该引用的当前存活位置
+	// （indexOf，walker入口按引用重同步，已摘除的-1钳到0保守多读不漏读）；快照期间并发
+	// 补登的新条目本轮不可见（下一查询收敛），与COW读的既有语义一致。
 		var failed = new HashSet<Log4jFile>(); // FNFE降级已试条目（含轮转宽限保留形态），排除后重选
 		while (true) {
 			var snapshot = files.toArray(new Log4jFile[0]);
