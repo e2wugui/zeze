@@ -446,6 +446,8 @@ final class Gen {
 						sb.appendLine("{}if ({} == null)", prefix, varName);
 						sb.appendLine("{}    {} = new {}<>();", prefix, varName,
 								getCollectionType(type).getTypeName().replace('$', '.'));
+						sb.appendLine("{}else", prefix);
+						sb.appendLine("{}    {}.clear();", prefix, varName);
 					}
 					sb.appendLine("{}for (int _n_ = {}.ReadUIntPositive(); _n_ > 0; _n_--) {", prefix, bbName);
 					var prefix1 = prefix + "    ";
@@ -478,6 +480,8 @@ final class Gen {
 						sb.appendLine("{}if ({} == null)", prefix, varName);
 						sb.appendLine("{}    {} = new {}<>();", prefix, varName,
 								getMapType(type).getTypeName().replace('$', '.'));
+						sb.appendLine("{}else", prefix);
+						sb.appendLine("{}    {}.clear();", prefix, varName);
 					}
 					sb.appendLine("{}for (int _n_ = {}.ReadUIntPositive(); _n_ > 0; _n_--) {", prefix, bbName);
 					var prefix1 = prefix + "    ";
