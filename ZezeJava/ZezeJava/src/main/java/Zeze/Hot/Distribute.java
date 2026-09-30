@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -22,6 +23,8 @@ import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.AtomicOutputFile;
+import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import static Zeze.Util.Args.requireValue;
 
@@ -41,6 +44,49 @@ public class Distribute {
 
 	private final HashMap<String, JarOutputStream> hotModuleJars = new HashMap<>();
 	private JarOutputStream projectJar; // 所有非热更代码都打包到这里。
+	private final IdentityHashMap<JarOutputStream, AtomicOutputFile> pendingJars = new IdentityHashMap<>();
+
+	private JarOutputStream openJar(Path path, Manifest manifest) throws IOException {
+		var output = AtomicFileWriter.openOutput(path);
+		try {
+			var jar = new JarOutputStream(output, manifest);
+			pendingJars.put(jar, output);
+			return jar;
+		} catch (Throwable e) {
+			try { output.abort(); } catch (Throwable abortError) { e.addSuppressed(abortError); }
+			throw e;
+		}
+	}
+
+	private void abortJar(JarOutputStream jar, Throwable cause) {
+		var output = pendingJars.remove(jar);
+		if (output != null) {
+			try { output.abort(); } catch (Throwable e) { cause.addSuppressed(e); }
+		}
+		try { jar.close(); } catch (Throwable e) { cause.addSuppressed(e); }
+	}
+
+	private void closeJar(JarOutputStream jar) throws IOException {
+		try {
+			jar.finish(); // finish失败时先abort，不能由close发布缺少中央目录的临时jar。
+			jar.close();
+			pendingJars.remove(jar);
+		} catch (Throwable e) {
+			abortJar(jar, e);
+			throw e;
+		}
+	}
+
+	private void writeJar(Path path, Manifest manifest, Action1<JarOutputStream> writer) throws Exception {
+		var jar = openJar(path, manifest);
+		try {
+			writer.run(jar);
+			closeJar(jar);
+		} catch (Throwable e) {
+			abortJar(jar, e); // 必须先abort后close；try-with-resources的close会提交输出。
+			throw e;
+		}
+	}
 
 	// 兼容测试。
 	@SuppressWarnings("ResultOfMethodCallIgnored")
@@ -66,6 +112,18 @@ public class Distribute {
 	public void pack(Set<String> hotModules,
 					 String projectName,
 					 String solutionName) throws Exception {
+		try {
+			packInternal(hotModules, projectName, solutionName);
+		} catch (Throwable e) {
+			for (var jar : new ArrayList<>(pendingJars.keySet()))
+				abortJar(jar, e);
+			projectJar = null;
+			hotModuleJars.clear();
+			throw e;
+		}
+	}
+
+	private void packInternal(Set<String> hotModules, String projectName, String solutionName) throws Exception {
 		this.hotModules = hotModules;
 		this.projectName = projectName;
 
@@ -76,20 +134,20 @@ public class Distribute {
 		packages.getFirst().pack();
 
 		if (null != projectJar) {
-			projectJar.close();
+			closeJar(projectJar);
 			projectJar = null;
 		}
 
 		var schemasManifest = new Manifest();
 		var schemasJarFile = Path.of(workingDir, HotManager.SchemasPrefix + solutionName + HotManager.SchemasSuffix).toFile();
-		try (var schemasJar = new JarOutputStream(AtomicFileWriter.openOutput(schemasJarFile.toPath()), schemasManifest)) {
+		writeJar(schemasJarFile.toPath(), schemasManifest, schemasJar -> {
 			var schemasFile = Path.of(classesDir, solutionName, "Schemas.class");
 			var entry = new ZipEntry(solutionName + "/Schemas.class");
 			entry.setTime(schemasFile.toFile().lastModified());
 			schemasJar.putNextEntry(entry);
 			var bytes = Files.readAllBytes(schemasFile);
 			schemasJar.write(bytes);
-		}
+		});
 
 		if (!providerModuleBinds.isEmpty() && !configXml.isEmpty()) {
 			var config = Config.load(configXml);
@@ -109,7 +167,7 @@ public class Distribute {
 			System.out.println("-providerModuleBinds or -config not present, skip module config.");
 
 		for (var e : hotModuleJars.entrySet()) {
-			e.getValue().close();
+			closeJar(e.getValue());
 		}
 		hotModuleJars.clear();
 
@@ -310,7 +368,7 @@ public class Distribute {
 		if (null == projectJar) {
 			var manifest = new Manifest();
 			var serverJarFile = Path.of(workingDir, projectName + ".jar").toFile();
-			projectJar = new JarOutputStream(AtomicFileWriter.openOutput(serverJarFile.toPath()), manifest);
+			projectJar = openJar(serverJarFile.toPath(), manifest);
 		}
 		return projectJar;
 	}
@@ -368,9 +426,9 @@ public class Distribute {
 			// 打包热更模块, HotModule
 			var interfaceJarFile = Path.of(workingDir, "interfaces", module + ".interface.jar").toFile();
 			var moduleJarFile = Path.of(workingDir, "modules", module + ".jar").toFile();
-			try (var interfaceJar = new JarOutputStream(AtomicFileWriter.openOutput(interfaceJarFile.toPath()), interfaceManifest)) {
+			writeJar(interfaceJarFile.toPath(), interfaceManifest, interfaceJar -> {
 				// moduleJar 后面还可能添加文件，这里不关闭。
-				var moduleJar = new JarOutputStream(AtomicFileWriter.openOutput(moduleJarFile.toPath()), moduleManifest);
+				var moduleJar = openJar(moduleJarFile.toPath(), moduleManifest);
 				hotModuleJars.put(module, moduleJar);
 				var beanNames = new HashSet<String>();
 				var logClasses = new ArrayList<PackEntry>();
@@ -431,7 +489,7 @@ public class Distribute {
 						interfaceJar.write(Files.readAllBytes(e.file.toPath()));
 					}
 				}
-			}
+			});
 		}
 
 		@Override
