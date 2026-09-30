@@ -1452,6 +1452,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				throw new IllegalStateException("maybe operate before timer created.");
 
 			var root = _tNodeRoot.getOrAdd(zeze.getConfig().getServerId());
+			root.setVersion(Math.max(root.getVersion(), src.getVersion())); // 后续接管仍须保留整条链的版本门槛。
 			var headNodeId = root.getHeadNodeId();
 			var tailNodeId = root.getTailNodeId();
 			var head = _tNodes.get(headNodeId);
