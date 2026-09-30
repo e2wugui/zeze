@@ -16,6 +16,8 @@ import java.util.concurrent.RejectedExecutionException;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Transaction.EmptyBean;
+import Zeze.Transaction.Log;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
@@ -116,6 +118,50 @@ public class HttpExchange {
 	protected @NotNull ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
 	protected @Nullable Object userState;
 	protected @Nullable ArrayList<Object> resHeaders; // key,value,key,value,...
+	private @Nullable EmptyBean responseHeadersBean; // 仅事务内修改header时分配独立objectId，this守护
+
+	private final class HeadersLog extends Log {
+		final ArrayList<Object> headers;
+
+		HeadersLog(ArrayList<Object> headers) {
+			super(responseHeadersBean, 0);
+			this.headers = headers;
+		}
+
+		@Override
+		public @NotNull Category category() {
+			return Category.eUser;
+		}
+
+		@Override
+		public int getTypeId() {
+			return 0; // eUser只用于本地提交，不进入wire/history
+		}
+
+		@Override
+		public @NotNull Log beginSavepoint() {
+			return new HeadersLog(new ArrayList<>(headers));
+		}
+
+		@Override
+		public void commit() {
+			synchronized (HttpExchange.this) {
+				resHeaders = new ArrayList<>(headers);
+			}
+		}
+	}
+
+	// 调用方持有this。header的增加共用同一个保存点视图。
+	private HeadersLog headersLog(Transaction t) {
+		if (responseHeadersBean == null)
+			responseHeadersBean = new EmptyBean();
+		var log = (HeadersLog)t.getLog(responseHeadersBean.objectId());
+		if (log == null) {
+			log = new HeadersLog(resHeaders != null ? new ArrayList<>(resHeaders) : new ArrayList<>());
+			t.putLog(log);
+		}
+		return log;
+	}
 	protected @Nullable List<Cookie> cookies;
 	// volatile+锁双检：detach后允许多线程并发首调getCookieSession（detach文档"任意线程、任意时机"），
 	// 无同步的双跑会各建会话各发一条Set-Cookie、字段后写覆盖先写。
@@ -179,12 +225,29 @@ public class HttpExchange {
 	/**
 	 * @param key 建议从Netty的HttpHeaderNames类里取字符串常量
 	 */
-	public void addHeader(@NotNull CharSequence key, @NotNull Object value) {
-		var headers = resHeaders;
-		if (headers == null)
-			resHeaders = headers = new ArrayList<>();
+	public synchronized void addHeader(@NotNull CharSequence key, @NotNull Object value) {
+		var t = Transaction.getCurrent();
+		ArrayList<Object> headers;
+		if (t != null && t.isRunning()) {
+			// redo清除日志，嵌套保存点复制列表；普通Java字段不再保存失败尝试的cookie/header。
+			headers = headersLog(t).headers;
+		} else {
+			headers = resHeaders;
+			if (headers == null)
+				resHeaders = headers = new ArrayList<>();
+		}
 		headers.add(key);
 		headers.add(value);
+	}
+
+	private synchronized @NotNull ArrayList<Object> responseHeaders() {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning() && responseHeadersBean != null) {
+			var log = (HeadersLog)t.getLog(responseHeadersBean.objectId());
+			if (log != null)
+				return new ArrayList<>(log.headers);
+		}
+		return resHeaders != null ? new ArrayList<>(resHeaders) : new ArrayList<>();
 	}
 
 	public void addCookie(@NotNull String name, @NotNull String value) {
@@ -1221,10 +1284,9 @@ public class HttpExchange {
 			headers.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 		if (contentType != null)
 			headers.set(HttpHeaderNames.CONTENT_TYPE, contentType);
-		if (resHeaders != null) {
-			for (int i = 0, n = resHeaders.size(); i < n; i += 2)
-				headers.add((CharSequence)resHeaders.get(i), resHeaders.get(i + 1));
-		}
+		var extraHeaders = responseHeaders();
+		for (int i = 0, n = extraHeaders.size(); i < n; i += 2)
+			headers.add((CharSequence)extraHeaders.get(i), extraHeaders.get(i + 1));
 		return writeResponse(res, true, null); // 响应经per-channel序化器，pipelining按请求序写出
 	}
 
