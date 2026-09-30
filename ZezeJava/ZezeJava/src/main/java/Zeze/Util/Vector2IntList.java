@@ -62,61 +62,61 @@ public class Vector2IntList extends IntList {
 	}
 
 	public int getX(int idx) {
-		return buffer[idx * 2];
+		return buffer[VectorListBounds.index(idx, 2)];
 	}
 
 	public int getY(int idx) {
-		return buffer[idx * 2 + 1];
+		return buffer[VectorListBounds.index(idx, 2, 1)];
 	}
 
 	public Vector2Int getVector(int idx) {
 		int[] buf = buffer;
-		idx *= 2;
+		idx = VectorListBounds.index(idx, 2);
 		return new Vector2Int(buf[idx], buf[idx + 1]);
 	}
 
 	public void setX(int idx, int x) {
-		buffer[idx * 2] = x;
+		buffer[VectorListBounds.index(idx, 2)] = x;
 	}
 
 	public void setY(int idx, int y) {
-		buffer[idx * 2 + 1] = y;
+		buffer[VectorListBounds.index(idx, 2, 1)] = y;
 	}
 
 	public void set(int idx, int x, int y) {
 		int[] buf = buffer;
-		idx *= 2;
+		idx = VectorListBounds.index(idx, 2);
 		buf[idx] = x;
 		buf[idx + 1] = y;
 	}
 
 	public int addValueX(int idx, int x) {
 		int[] buf = buffer;
-		idx *= 2;
+		idx = VectorListBounds.index(idx, 2);
 		buf[idx] = x += buf[idx];
 		return x;
 	}
 
 	public int addValueY(int idx, int y) {
 		int[] buf = buffer;
-		idx = idx * 2 + 1;
+		idx = VectorListBounds.index(idx, 2, 1);
 		buf[idx] = y += buf[idx];
 		return y;
 	}
 
 	public void addValue(int idx, int x, int y) {
 		int[] buf = buffer;
-		idx *= 2;
+		idx = VectorListBounds.index(idx, 2);
 		buf[idx] += x;
 		buf[idx + 1] += y;
 	}
 
 	public int @NotNull [] toArrayVector(int fromIdx, int count) {
-		return toArray(fromIdx * 2, count * 2);
+		return toArray(VectorListBounds.rangeIndex(fromIdx, 2), VectorListBounds.count(count, 2));
 	}
 
 	public @NotNull Vector2IntList wrapsVector(int @NotNull [] data, int count) {
-		super.wraps(data, count * 2);
+		super.wraps(data, VectorListBounds.count(count, 2));
 		return this;
 	}
 
@@ -127,28 +127,28 @@ public class Vector2IntList extends IntList {
 	}
 
 	public void shrinkVector(int count) {
-		shrink(count * 2);
+		shrink(VectorListBounds.count(count, 2));
 	}
 
 	public void reserveVector(int count) {
-		reserve(count * 2);
+		reserve(VectorListBounds.count(count, 2));
 	}
 
 	public void reserveSpaceVector(int count) {
-		reserveSpace(count * 2);
+		reserveSpace(VectorListBounds.count(count, 2));
 	}
 
 	public void resizeVector(int count) {
-		resize(count * 2);
+		resize(VectorListBounds.count(count, 2));
 	}
 
 	public void replaceVector(int @NotNull [] data, int fromIdx, int count) {
-		replace(data, fromIdx * 2, count * 2);
+		replace(data, VectorListBounds.rangeIndex(fromIdx, 2), VectorListBounds.count(count, 2));
 	}
 
 	public @NotNull Vector2IntList add(int x, int y) {
 		int n = count;
-		int nNew = n + 2;
+		int nNew = Math.addExact(n, 2);
 		reserve(nNew);
 		int[] buf = buffer;
 		buf[n] = x;
@@ -187,7 +187,7 @@ public class Vector2IntList extends IntList {
 
 	public @NotNull Vector2IntList addAllVector(@NotNull Collection<Vector2Int> c) {
 		int n = count;
-		reserve(n + c.size() * 2);
+		reserve(Math.addExact(n, VectorListBounds.count(c.size(), 2)));
 		int[] buf = buffer;
 		for (Vector2Int v : c) {
 			buf[n++] = v.x;
@@ -204,18 +204,18 @@ public class Vector2IntList extends IntList {
 	}
 
 	public @NotNull Vector2IntList insertVector(int fromIdx, int x, int y) {
-		fromIdx *= 2;
+		fromIdx = VectorListBounds.rangeIndex(fromIdx, 2);
 		int n = count;
 		if (fromIdx < 0)
 			fromIdx = 0;
 		if (fromIdx >= n)
 			return add(x, y);
-		reserve(n + 2);
+		reserve(Math.addExact(n, 2));
 		int[] buf = buffer;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + 2, n - fromIdx);
 		buf[fromIdx] = x;
 		buf[fromIdx + 1] = y;
-		count = n + 2;
+		count = Math.addExact(n, 2);
 		return this;
 	}
 
@@ -238,7 +238,9 @@ public class Vector2IntList extends IntList {
 	}
 
 	public @NotNull Vector2IntList removeVector(int idx) {
-		idx *= 2;
+		if (idx < 0 || idx >= vectorSize())
+			return this;
+		idx = VectorListBounds.index(idx, 2);
 		int lastIdx = count - 2;
 		if (idx < 0 || idx > lastIdx)
 			return this;
@@ -249,7 +251,9 @@ public class Vector2IntList extends IntList {
 	}
 
 	public @NotNull Vector2IntList removeAndExchangeLastVector(int idx) {
-		idx *= 2;
+		if (idx < 0 || idx >= vectorSize())
+			return this;
+		idx = VectorListBounds.index(idx, 2);
 		int lastIdx = count - 2;
 		if (idx >= 0 && idx <= lastIdx) {
 			int[] buf = buffer;
@@ -261,12 +265,12 @@ public class Vector2IntList extends IntList {
 	}
 
 	public @NotNull Vector2IntList eraseVector(int fromIdx, int toIdx) {
-		super.erase(fromIdx * 2, toIdx * 2);
+		super.erase(VectorListBounds.rangeIndex(fromIdx, 2), VectorListBounds.rangeIndex(toIdx, 2));
 		return this;
 	}
 
 	public @NotNull Vector2IntList eraseFrontVector(int count) {
-		super.eraseFront(count * 2);
+		super.eraseFront(VectorListBounds.rangeIndex(count, 2));
 		return this;
 	}
 
@@ -276,7 +280,7 @@ public class Vector2IntList extends IntList {
 
 	public int indexOfVector(int x, int y, int fromIdx) {
 		int[] buf = buffer;
-		for (int i = fromIdx * 2, n = count - 1; i < n; i += 2) {
+		for (int i = fromIdx < 0 ? VectorListBounds.index(fromIdx, 2) : VectorListBounds.rangeIndex(fromIdx, 2), n = count - 1; i < n; i += 2) {
 			if (buf[i] == x && buf[i + 1] == y)
 				return i >> 1;
 		}

@@ -62,46 +62,46 @@ public class Vector4List extends FloatList {
 	}
 
 	public float getX(int idx) {
-		return buffer[idx * 4];
+		return buffer[VectorListBounds.index(idx, 4)];
 	}
 
 	public float getY(int idx) {
-		return buffer[idx * 4 + 1];
+		return buffer[VectorListBounds.index(idx, 4, 1)];
 	}
 
 	public float getZ(int idx) {
-		return buffer[idx * 4 + 2];
+		return buffer[VectorListBounds.index(idx, 4, 2)];
 	}
 
 	public float getW(int idx) {
-		return buffer[idx * 4 + 3];
+		return buffer[VectorListBounds.index(idx, 4, 3)];
 	}
 
 	public Vector4 getVector(int idx) {
 		float[] buf = buffer;
-		idx *= 4;
+		idx = VectorListBounds.index(idx, 4);
 		return new Vector4(buf[idx], buf[idx + 1], buf[idx + 2], buf[idx + 3]);
 	}
 
 	public void setX(int idx, float x) {
-		buffer[idx * 4] = x;
+		buffer[VectorListBounds.index(idx, 4)] = x;
 	}
 
 	public void setY(int idx, float y) {
-		buffer[idx * 4 + 1] = y;
+		buffer[VectorListBounds.index(idx, 4, 1)] = y;
 	}
 
 	public void setZ(int idx, float z) {
-		buffer[idx * 4 + 2] = z;
+		buffer[VectorListBounds.index(idx, 4, 2)] = z;
 	}
 
 	public void setW(int idx, float w) {
-		buffer[idx * 4 + 3] = w;
+		buffer[VectorListBounds.index(idx, 4, 3)] = w;
 	}
 
 	public void set(int idx, float x, float y, float z, float w) {
 		float[] buf = buffer;
-		idx *= 4;
+		idx = VectorListBounds.index(idx, 4);
 		buf[idx] = x;
 		buf[idx + 1] = y;
 		buf[idx + 2] = z;
@@ -110,35 +110,35 @@ public class Vector4List extends FloatList {
 
 	public float addValueX(int idx, float x) {
 		float[] buf = buffer;
-		idx *= 4;
+		idx = VectorListBounds.index(idx, 4);
 		buf[idx] = x += buf[idx];
 		return x;
 	}
 
 	public float addValueY(int idx, float y) {
 		float[] buf = buffer;
-		idx = idx * 4 + 1;
+		idx = VectorListBounds.index(idx, 4, 1);
 		buf[idx] = y += buf[idx];
 		return y;
 	}
 
 	public float addValueZ(int idx, float z) {
 		float[] buf = buffer;
-		idx = idx * 4 + 2;
+		idx = VectorListBounds.index(idx, 4, 2);
 		buf[idx] = z += buf[idx];
 		return z;
 	}
 
 	public float addValueW(int idx, float w) {
 		float[] buf = buffer;
-		idx = idx * 4 + 3;
+		idx = VectorListBounds.index(idx, 4, 3);
 		buf[idx] = w += buf[idx];
 		return w;
 	}
 
 	public void addValue(int idx, float x, float y, float z, float w) {
 		float[] buf = buffer;
-		idx *= 4;
+		idx = VectorListBounds.index(idx, 4);
 		buf[idx] += x;
 		buf[idx + 1] += y;
 		buf[idx + 2] += z;
@@ -146,11 +146,11 @@ public class Vector4List extends FloatList {
 	}
 
 	public float @NotNull [] toArrayVector(int fromIdx, int count) {
-		return toArray(fromIdx * 4, count * 4);
+		return toArray(VectorListBounds.rangeIndex(fromIdx, 4), VectorListBounds.count(count, 4));
 	}
 
 	public @NotNull Vector4List wrapsVector(float @NotNull [] data, int count) {
-		super.wraps(data, count * 4);
+		super.wraps(data, VectorListBounds.count(count, 4));
 		return this;
 	}
 
@@ -161,28 +161,28 @@ public class Vector4List extends FloatList {
 	}
 
 	public void shrinkVector(int count) {
-		shrink(count * 4);
+		shrink(VectorListBounds.count(count, 4));
 	}
 
 	public void reserveVector(int count) {
-		reserve(count * 4);
+		reserve(VectorListBounds.count(count, 4));
 	}
 
 	public void reserveSpaceVector(int count) {
-		reserveSpace(count * 4);
+		reserveSpace(VectorListBounds.count(count, 4));
 	}
 
 	public void resizeVector(int count) {
-		resize(count * 4);
+		resize(VectorListBounds.count(count, 4));
 	}
 
 	public void replaceVector(float @NotNull [] data, int fromIdx, int count) {
-		replace(data, fromIdx * 4, count * 4);
+		replace(data, VectorListBounds.rangeIndex(fromIdx, 4), VectorListBounds.count(count, 4));
 	}
 
 	public @NotNull Vector4List add(float x, float y, float z, float w) {
 		int n = count;
-		int nNew = n + 4;
+		int nNew = Math.addExact(n, 4);
 		reserve(nNew);
 		float[] buf = buffer;
 		buf[n] = x;
@@ -223,7 +223,7 @@ public class Vector4List extends FloatList {
 
 	public @NotNull Vector4List addAllVector(@NotNull Collection<Vector4> c) {
 		int n = count;
-		reserve(n + c.size() * 4);
+		reserve(Math.addExact(n, VectorListBounds.count(c.size(), 4)));
 		float[] buf = buffer;
 		for (Vector4 v : c) {
 			buf[n++] = v.x;
@@ -242,20 +242,20 @@ public class Vector4List extends FloatList {
 	}
 
 	public @NotNull Vector4List insertVector(int fromIdx, float x, float y, float z, float w) {
-		fromIdx *= 4;
+		fromIdx = VectorListBounds.rangeIndex(fromIdx, 4);
 		int n = count;
 		if (fromIdx < 0)
 			fromIdx = 0;
 		if (fromIdx >= n)
 			return add(x, y, z, w);
-		reserve(n + 4);
+		reserve(Math.addExact(n, 4));
 		float[] buf = buffer;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + 4, n - fromIdx);
 		buf[fromIdx] = x;
 		buf[fromIdx + 1] = y;
 		buf[fromIdx + 2] = z;
 		buf[fromIdx + 3] = w;
-		count = n + 4;
+		count = Math.addExact(n, 4);
 		return this;
 	}
 
@@ -278,7 +278,9 @@ public class Vector4List extends FloatList {
 	}
 
 	public @NotNull Vector4List removeVector(int idx) {
-		idx *= 4;
+		if (idx < 0 || idx >= vectorSize())
+			return this;
+		idx = VectorListBounds.index(idx, 4);
 		int lastIdx = count - 4;
 		if (idx < 0 || idx > lastIdx)
 			return this;
@@ -289,7 +291,9 @@ public class Vector4List extends FloatList {
 	}
 
 	public @NotNull Vector4List removeAndExchangeLastVector(int idx) {
-		idx *= 4;
+		if (idx < 0 || idx >= vectorSize())
+			return this;
+		idx = VectorListBounds.index(idx, 4);
 		int lastIdx = count - 4;
 		if (idx >= 0 && idx <= lastIdx) {
 			float[] buf = buffer;
@@ -303,12 +307,12 @@ public class Vector4List extends FloatList {
 	}
 
 	public @NotNull Vector4List eraseVector(int fromIdx, int toIdx) {
-		super.erase(fromIdx * 4, toIdx * 4);
+		super.erase(VectorListBounds.rangeIndex(fromIdx, 4), VectorListBounds.rangeIndex(toIdx, 4));
 		return this;
 	}
 
 	public @NotNull Vector4List eraseFrontVector(int count) {
-		super.eraseFront(count * 4);
+		super.eraseFront(VectorListBounds.rangeIndex(count, 4));
 		return this;
 	}
 
@@ -318,7 +322,7 @@ public class Vector4List extends FloatList {
 
 	public int indexOfVector(float x, float y, float z, float w, int fromIdx) {
 		float[] buf = buffer;
-		for (int i = fromIdx * 4, n = count - 3; i < n; i += 4) {
+		for (int i = fromIdx < 0 ? VectorListBounds.index(fromIdx, 4) : VectorListBounds.rangeIndex(fromIdx, 4), n = count - 3; i < n; i += 4) {
 			if (buf[i] == x && buf[i + 1] == y && buf[i + 2] == z && buf[i + 3] == w)
 				return i >> 2;
 		}
