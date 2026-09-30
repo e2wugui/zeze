@@ -274,17 +274,29 @@ public class Bucket {
 		data.delete(batch, key);
 	}
 
+	// meta参数化重载：查询路径对meta做"快照→校验→（读数据）→复核"的seqlock式闭环，
+	// 必须对同一份meta快照判定（this.bucketMeta每次读取是独立的volatile读，跨语句
+	// 两次读取可能分属新旧两代meta——收尾apply整体替换meta、从不原地改写）。
+	public boolean inBucket(BBucketMeta.Data meta, Binary key) {
+		return key.compareTo(meta.getKeyFirst()) >= 0
+				&& (meta.getKeyLast().size() == 0 || key.compareTo(meta.getKeyLast()) < 0);
+	}
+
+	public boolean inBucket(BBucketMeta.Data meta, String databaseName, String tableName, Binary key) {
+		return databaseName.equals(meta.getDatabaseName()) && tableName.equals(meta.getTableName())
+				&& inBucket(meta, key);
+	}
+
 	public boolean inBucket(String databaseName, String tableName) {
 		return databaseName.equals(bucketMeta.getDatabaseName()) && tableName.equals(bucketMeta.getTableName());
 	}
 
 	public boolean inBucket(Binary key) {
-		return key.compareTo(bucketMeta.getKeyFirst()) >= 0
-				&& (bucketMeta.getKeyLast().size() == 0 || key.compareTo(bucketMeta.getKeyLast()) < 0);
+		return inBucket(bucketMeta, key);
 	}
 
 	public boolean inBucket(String databaseName, String tableName, Binary key) {
-		return inBucket(databaseName, tableName) && inBucket(key);
+		return inBucket(bucketMeta, databaseName, tableName, key);
 	}
 
 	public void close() {

@@ -53,6 +53,15 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private final Dbh2Manager manager;
 	private final Locks locks = new Locks();
 
+	// 正向交错的确定性测试钩子（生产恒null，热路径仅一次null检查；先例：
+	// Dbh2AgentManager.commitBreakAfterPrepareForDebugOnly）。在Get/Walk/WalkKey的
+	// "meta入口校验通过"之后、"读数据"之前回调，携带请求参数——测试线程在此暂停，
+	// 令收尾apply在查询两读之间完整执行（跨线程暂停无法从外部构造，只能注入）。
+	// 消费方必须自行过滤请求（@Fast类级并行下同JVM有其他桶的查询在飞），
+	// 且在finally中置回null。
+	static volatile java.util.function.Consumer<Zeze.Builtin.Dbh2.Get> interposeGetAfterMetaCheckForTest;
+	static volatile java.util.function.Consumer<BWalk.Data> interposeWalkAfterMetaCheckForTest;
+
 	public Locks getLocks() {
 		return locks;
 	}
@@ -286,12 +295,28 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		stateMachine.counterGet.incrementAndGet();
 		// 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
 		var bucket = stateMachine.getBucket();
-		if (!bucket.inBucket(r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
+		// 正向交错闭合（seqlock式复核）：查询锁外派发（见dispatchRaftRequest），与raft apply
+		// 线程的收尾（endSplit/endMove：meta先整体替换、deleteToEnd后行）并发。读者可能在
+		// "meta校验通过"与"读数据"之间被抢占，apply在其间完整执行——已迁往新桶、仍存在的键
+		// 会读到已删状态。miss（null或墓碑）时重读meta复核：与快照身份不等（meta整体替换、
+		// 每次apply都是新实例，无ABA）或键已出新界，则以eBucketMismatch应答走KV(false)重路由，
+		// 不得把收尾跨骑的null当权威"不存在"。身份相等即权威miss的论证：deleteToEnd只发生在
+		// meta替换之后（写序不变量），数据读观察到删除效果⟹替换已先行发生⟹复核volatile读
+		// 必见新meta（happens-before经apply程序序与rocksdb内部同步传递）。
+		var metaOnCheck = bucket.getBucketMeta();
+		if (!bucket.inBucket(metaOnCheck, r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
 			return errorCode(eBucketMismatch);
+		var interpose = interposeGetAfterMetaCheckForTest;
+		if (null != interpose)
+			interpose.accept(r);
 		var value = bucket.get(r.Argument.getKey());
-		if (null == value || value.size() == 0) // 空值是分桶墓碑标记，逻辑上不存在（存储不变量：空value==墓碑）
+		if (null == value || value.size() == 0) { // 空值是分桶墓碑标记，逻辑上不存在（存储不变量：空value==墓碑）
+			var metaOnMiss = bucket.getBucketMeta();
+			if (metaOnMiss != metaOnCheck
+					|| !bucket.inBucket(metaOnMiss, r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
+				return errorCode(eBucketMismatch);
 			r.Result.setNull(true);
-		else {
+		} else {
 			r.Result.setValue(value);
 			stateMachine.sizeGet.addAndGet(value.size());
 		}
@@ -497,13 +522,12 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	// 的桶对新鲜客户端是合法遍历目标，服务端无法单方面识别陈旧，预期界须客户端回带）。
 	// 客户端收bucketRefuse即reload重定位（与Get的eBucketMismatch自愈同构）；master侧表
 	// 长期陈旧的连续拒绝由walkPage既有256上限兜底。
-	private boolean isWalkBucketRefuse(BWalk.Data argument) {
-		var meta = stateMachine.getBucket().getBucketMeta();
+	private boolean isWalkBucketRefuse(BWalk.Data argument, BBucketMeta.Data meta) {
 		if (Bucket.DeadBucketMetaBound.equals(meta.getKeyFirst())
 				&& Bucket.DeadBucketMetaBound.equals(meta.getKeyLast()))
 			return true;
 		var exclusiveStartKey = argument.getExclusiveStartKey();
-		if (exclusiveStartKey.size() > 0 && !stateMachine.getBucket().inBucket(exclusiveStartKey))
+		if (exclusiveStartKey.size() > 0 && !stateMachine.getBucket().inBucket(meta, exclusiveStartKey))
 			return true;
 		return argument.isVerifyBucketMeta()
 				&& (!meta.getKeyFirst().equals(argument.getExpectedKeyFirst())
@@ -514,17 +538,33 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	protected long ProcessWalkRequest(Walk r) throws Exception {
 		if (isBucketNotReady())
 			return errorCode(eBucketNotReady);
-		if (isWalkBucketRefuse(r.Argument)) {
+		var bucket = stateMachine.getBucket();
+		var metaOnCheck = bucket.getBucketMeta();
+		if (isWalkBucketRefuse(r.Argument, metaOnCheck)) {
 			r.Result.setBucketRefuse(true);
 			r.SendResult();
 			return 0;
 		}
+		var interpose = interposeWalkAfterMetaCheckForTest;
+		if (null != interpose)
+			interpose.accept(r.Argument);
 		var bucketEnd = walk(
 				r.Argument.getExclusiveStartKey(),
 				r.Argument.getProposeLimit(),
 				r.Argument.isDesc(),
 				r.Argument.getPrefix(),
 				(key, it) -> r.Result.getKeyValues().add(new BWalkKeyValue.Data(key, new Binary(it.value()))));
+		// 正向交错复核（与Get的miss-recheck同构）：入口拒绝检查通过后、迭代器读数据前，
+		// 收尾apply可能完整执行（meta收窄/置死+deleteToEnd）——此时桶尾语义已失效
+		//（被删键域属于新桶），按正常bucketEnd应答会让客户端陈旧视图静默跳过新桶键域。
+		// meta身份不等即拒（整体替换、无ABA），客户端走既有refused路径reload重定位；
+		// 不依赖VerifyBucketMeta（旧客户端不置位也受保护），已收集行随refuse丢弃。
+		if (bucket.getBucketMeta() != metaOnCheck) {
+			r.Result.getKeyValues().clear();
+			r.Result.setBucketRefuse(true);
+			r.SendResult();
+			return 0;
+		}
 		r.Result.setBucketEnd(bucketEnd);
 		r.SendResult();
 		return 0;
@@ -534,18 +574,29 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	protected long ProcessWalkKeyRequest(WalkKey r) throws Exception {
 		if (isBucketNotReady())
 			return errorCode(eBucketNotReady);
-		if (isWalkBucketRefuse(r.Argument)) {
+		var bucket = stateMachine.getBucket();
+		var metaOnCheck = bucket.getBucketMeta();
+		if (isWalkBucketRefuse(r.Argument, metaOnCheck)) {
 			r.Result.setBucketRefuse(true);
 			r.SendResult();
 			return 0;
 		}
-
+		var interpose = interposeWalkAfterMetaCheckForTest;
+		if (null != interpose)
+			interpose.accept(r.Argument);
 		var bucketEnd = walk(
 				r.Argument.getExclusiveStartKey(),
 				r.Argument.getProposeLimit(),
 				r.Argument.isDesc(),
 				r.Argument.getPrefix(),
 				(key, it) -> r.Result.getKeys().add(key));
+		// 同ProcessWalkRequest的正向交错复核。
+		if (bucket.getBucketMeta() != metaOnCheck) {
+			r.Result.getKeys().clear();
+			r.Result.setBucketRefuse(true);
+			r.SendResult();
+			return 0;
+		}
 		r.Result.setBucketEnd(bucketEnd);
 		r.SendResult();
 		return 0;
