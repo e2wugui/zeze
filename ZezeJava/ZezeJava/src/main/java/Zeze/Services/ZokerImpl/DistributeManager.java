@@ -37,12 +37,14 @@ import org.jetbrains.annotations.Nullable;
  * （纯新增，不动现役），然后原子切换 current（同目录写临时文件+rename，单步原子）。
  * 旧版本目录留作回滚点，由保留策略（{@link #keepVersions}）清理最老的。
  * 失败恢复：装版本失败无副作用（现役未动：验货前置，隔离腾位后的安装失败经回滚恢复
- * 原位，回滚失败为声明残余）；切换失败现役未动（新版本已装好，重试直接进入切换收敛）；
- * 重试幂等：目标版本目录已存在（上次中断的残留，经完整性校验：自身清单齐全/legacy下限/
- * 新清单条目已在盘上且大小一致）= 跳过安装直接切换，同为成功——"存在=完整"由构造保证：安装是
- * 原子rename，删除（prune与隔离换装）先原子改名进暂存删除名再清树，版本名位置不出现
- * 残缺目录；校验不过的残缺目录不可收养：有新内容→隔离换装（残缺目录改名腾位），无新
- * 内容→eCommitFail。</p>
+ * 原位，回滚失败为声明残余）；切换失败在换装路径回滚（新内容退回 distributes、旧内容
+ * 复位版本名——同版本重部署形态下 current 指针文本未变，复位即现役内容恢复，重试重走
+ * 换装收敛），纯新增路径现役未动（新版本目录已装好，重试直接进入切换收敛）；回滚的
+ * rename 失败为声明残余。重试幂等：目标版本目录已存在（上次中断的残留，经完整性校验：
+ * 自身清单齐全/legacy下限/新清单条目已在盘上且大小一致）= 跳过安装直接切换，同为成功
+ * ——"存在=完整"由构造保证：安装是原子rename，删除（prune与隔离换装）先原子改名进暂存
+ * 删除名再清树，版本名位置不出现残缺目录；校验不过的残缺目录不可收养：有新内容→隔离
+ * 换装（残缺目录改名腾位），无新内容→eCommitFail。</p>
  */
 public class DistributeManager {
 	private static final Logger logger = LogManager.getLogger(DistributeManager.class);
@@ -657,7 +659,9 @@ public class DistributeManager {
 		try {
 			switchCurrent(svcDir, installed);
 		} catch (IOException ex) {
-			// 现役未动；新版本目录已装好，重试同参数走"目标已存在"分支直接再切，收敛。
+			// 换装路径（腾位+安装已成功）补回滚：新内容退回 distributes、旧内容复位版本名
+			//（见 rollbackSwitchFailure）；纯新增安装无腾位，current 未动，重试跳装再切收敛。
+			rollbackSwitchFailure(serviceName, serviceFrom, versionTo, quarantinedStage[0]);
 			logger.error("commitService switch current fail: services/{} version={}", serviceName, versionNo, ex);
 			return err(Zoker.eCommitFail);
 		}
@@ -923,6 +927,49 @@ public class DistributeManager {
 		}
 		logger.error("commitService rollback quarantined version FAIL, current dangling: {} -> {} (manual rescue)",
 				staged, versionTo);
+	}
+
+	/**
+	 * switchCurrent 失败的换装路径回滚（腾位+安装均已成功的形态）：撤销安装——新内容
+	 * rename 回 distributes/&lt;svc&gt;，重试重走完整换装收敛（跳装判据比对暂存区新内容与
+	 * 已复位旧内容，大小不符再触发换装），不产生"旧内容复位+暂存区空"的跳装假成功
+	 * （回执 0 而现役仍是旧字节）；旧内容复位——暂存名改回版本名（
+	 * {@link #rollbackQuarantinedVersion}），同版本重部署形态下 current 指针文本本就等于
+	 * versionNo，版本名位置内容恢复即现役内容恢复——修复前该失败分支不回滚，指针目标
+	 * 内容被静默换新（回执失败而部署实际生效），旧内容仅存暂存名待下轮 prune 入口清扫
+	 * 无差别灭失。撤销目标被并发 open 的残留占位时先清：barrier 在场，该目录下只可能是
+	 * 被拒候选的未验证产物（句柄已关、无并发写者）。新内容退不回（外部句柄钉住等）时
+	 * 退路=新内容改名进暂存删除名腾出版本名，此形态重试跳装假成功（旧内容在位、暂存区
+	 * 空）——响亮 error 声明。全程 best-effort：失败为声明残余（供人工抢救），与安装期
+	 * 回滚同裁量。未腾位（纯新增安装）无操作：current 未动，重试跳装再切收敛（既有语义）。
+	 * 与腾位同持 opsLocks：回滚两 rename 之间不与 start/stop 交错（start 落盘 run.pid 的
+	 * 版本身份不指向中途消失/换血的版本名）。
+	 */
+	private void rollbackSwitchFailure(String serviceName, File serviceFrom, File versionTo,
+									   @Nullable File quarantinedStage) {
+		if (null == quarantinedStage)
+			return;
+		var processManager = null != zoker ? zoker.getProcessManager() : null;
+		Runnable rollbackStep = () -> {
+			if (serviceFrom.exists() && !deleteTree(serviceFrom))
+				logger.warn("commitService rollback clear distributes residue fail: {}", serviceFrom);
+			if (!versionTo.renameTo(serviceFrom)) {
+				var stage = new File(versionTo.getParent(),
+						DELETING_STAGE_PREFIX + versionTo.getName() + '.' + System.currentTimeMillis());
+				if (versionTo.renameTo(stage))
+					logger.error("commitService rollback restage new content (retry adopts old version"
+							+ " as installed, manual rescue): {} -> {}", versionTo, stage);
+				else
+					logger.error("commitService rollback uninstall FAIL, version name still holds new"
+							+ " content (manual rescue): {}", versionTo);
+			}
+			rollbackQuarantinedVersion(quarantinedStage, versionTo);
+		};
+		if (null != processManager)
+			processManager.withServiceLock(serviceName, rollbackStep);
+		else
+			// 直构测试形态：无进程身份可锁（与腾位 swapStep 同裁量）。
+			rollbackStep.run();
 	}
 
 	/**
