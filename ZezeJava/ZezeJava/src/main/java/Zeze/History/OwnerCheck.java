@@ -17,7 +17,8 @@ import org.jetbrains.annotations.NotNull;
  * 必须同一发号名（同名 gid 从同一 SM 取号天然不重叠）或为 tHistory 显式分库；换名重启
  * 同样拒绝（新名从零发号，对存量行即"他名覆盖"，须显式迁移：清理旧名数据并删除标记）。
  *
- * 并发首启的认领竞态由"写后重读终值"裁决——后写者胜，败者见他名即失败，至多一方通过。
+ * 并发首启先以 version=0 认领，再用同版本 CAS 把匹配的归属推进到非零版本并回读。
+ * 成功校验前必须封存归属，拒绝随后携带旧空读的 version=0 认领覆盖。
  * disableOperates（NullOperates）读不到标记，校验跳过（info 留痕）。
  */
 public final class OwnerCheck {
@@ -42,8 +43,7 @@ public final class OwnerCheck {
 		var ops = db.getDirectOperates();
 		var exist = ops.getDataWithVersion(key);
 		if (exist == null || exist.data == null) {
-			// 首见：认领（version=0 插入）。并发认领由随后的重读终值裁决——后写者胜，
-			// 先写者重读到他名即 fail-fast，至多一方通过。
+			// 首见：认领（version=0 插入）。此版本仍能被旧空读覆盖，尚不能返回成功。
 			ops.saveDataWithSameVersion(key, encodeName(name), 0);
 			exist = ops.getDataWithVersion(key);
 			if (exist == null || exist.data == null) {
@@ -53,6 +53,15 @@ public final class OwnerCheck {
 			}
 		}
 		var owner = exist.data.ReadString();
+		if (owner.equals(name) && exist.version == 0) {
+			// 首次插入保存版本0，已有同名标记也可能正处于这个窗口。
+			// 更新成功会推进版本，后续旧空读仍以0认领便不能覆盖；失败时回读真正胜者。
+			ops.saveDataWithSameVersion(key, encodeName(name), 0);
+			exist = ops.getDataWithVersion(key);
+			if (exist == null || exist.data == null || exist.version == 0)
+				throw new IllegalStateException("tHistory owner could not be stabilized: db=" + db.getDatabaseUrl());
+			owner = exist.data.ReadString();
+		}
 		if (!owner.equals(name))
 			throw new IllegalStateException("tHistory physical table owner mismatch: db(url="
 					+ db.getDatabaseUrl() + ") is owned by history name '" + owner + "' but this app uses '"
