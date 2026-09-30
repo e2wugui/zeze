@@ -21,6 +21,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private final MethodHandle valueFactory;
+	private boolean decoded; // 解码后的索引是完整日志，不从旧的源Map重新构建。
 
 	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
 		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
@@ -53,7 +54,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		if (getValue() != null) {
+		if (!decoded && getValue() != null) {
 			changedWithKey.clear(); // live日志重建最终视图；decode日志保留wire中的changed。
 			for (var c : changed) {
 				Object pkey = c.getThis().mapKey();
@@ -89,6 +90,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
+		changed.clear();
 		changedWithKey.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
@@ -114,6 +116,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		getRemoved().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)
 			getRemoved().add(keyDecoder.apply(bb));
+		decoded = true;
 	}
 
 	@Override

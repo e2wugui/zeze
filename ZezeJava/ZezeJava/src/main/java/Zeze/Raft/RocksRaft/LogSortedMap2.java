@@ -22,6 +22,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private Map<K, LogBean> changedWithKey = new TreeMap<>(); // changed with key. using in encode/decode followerApply
 	private final MethodHandle valueFactory;
+	private boolean decoded; // 解码后的索引是完整日志，不从旧的源Map重新构建。
 
 	public LogSortedMap2(Class<K> keyClass, Class<V> valueClass) {
 		this(keyClass, valueClass, null);
@@ -68,7 +69,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 	@SuppressWarnings("unchecked")
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		if (getValue() != null) {
+		if (!decoded && getValue() != null) {
 			changedWithKey.clear(); // 重建最终视图，重复编码不能保留已删除/覆盖的旧changed。
 			for (var c : changed) {
 				Object pkey = c.getThis().mapKey();
@@ -104,6 +105,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
+		changed.clear();
 		changedWithKey.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
@@ -129,6 +131,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 		getRemoved().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)
 			getRemoved().add(keyDecoder.apply(bb));
+		decoded = true;
 	}
 
 	@Override
