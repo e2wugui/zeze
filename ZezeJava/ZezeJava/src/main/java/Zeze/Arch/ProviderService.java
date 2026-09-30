@@ -74,6 +74,7 @@ public class ProviderService extends HandshakeClient {
 	public void start() throws Exception {
 		// copy Config.Connector to Links
 		getConfig().forEachConnector(c -> links.putIfAbsent(c.getName(), c));
+		refreshLinkConnectors();
 		super.start();
 	}
 
