@@ -114,12 +114,15 @@ public class TestLog4jFileManagerRenameRetry {
 	@Test
 	public void test2_TransferFailAbortsRepointKeepsEntriesUsable() throws Exception {
 		var logDir = Files.createTempDirectory("zeze-log4j-takeover-fail-test");
-		// 既存目标名=注入移交失败（新契约下外部句柄不再钉住轮转；FileAlreadyExists 按既存中止）。
-		Files.writeString(logDir.resolve(RotateName + ".index"), "occupied");
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
 			freezeAndRotate(manager, logDir);
+			// 既存目标名=注入移交失败（新契约下外部句柄不再钉住轮转；FileAlreadyExists 按既存中止）。
+			// 注入须在rotate日志在场后放置：装载清扫会回收"rotate名.index无对应日志"的孤儿
+			//（TestOrphanRotateIndexReclaimed契约），构造前放置会被当孤儿清掉——真实磁盘上
+			// R.index不可能先于R.log存在（transferIndexToRotate只在看到R.log后创建R.index）。
+			Files.writeString(logDir.resolve(RotateName + ".index"), "occupied");
 			invokeOnFileCreated(manager, Path.of(RotateName));
 			invokeOnFileCreated(manager, Path.of(Active));
 
