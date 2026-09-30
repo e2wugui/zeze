@@ -143,7 +143,118 @@ public final class ZstdFactory {
 			}
 		}
 
-		public void compress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull ByteBuffer dst) {
+		// 基类保存的 stream 字段不会随包装 close 清零，所有 native 配置必须先检查包装生命周期。
+		private void ensureOpen() {
+			if (ctxPtr == 0)
+				throw new IllegalStateException("stream is closed");
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setChecksum(boolean value) throws IOException {
+			ensureOpen();
+			super.setChecksum(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setLevel(int value) throws IOException {
+			ensureOpen();
+			super.setLevel(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setLong(int value) throws IOException {
+			ensureOpen();
+			super.setLong(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setWorkers(int value) throws IOException {
+			ensureOpen();
+			super.setWorkers(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setOverlapLog(int value) throws IOException {
+			ensureOpen();
+			super.setOverlapLog(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setJobSize(int value) throws IOException {
+			ensureOpen();
+			super.setJobSize(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setTargetLength(int value) throws IOException {
+			ensureOpen();
+			super.setTargetLength(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setMinMatch(int value) throws IOException {
+			ensureOpen();
+			super.setMinMatch(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setSearchLog(int value) throws IOException {
+			ensureOpen();
+			super.setSearchLog(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setChainLog(int value) throws IOException {
+			ensureOpen();
+			super.setChainLog(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setHashLog(int value) throws IOException {
+			ensureOpen();
+			super.setHashLog(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setWindowLog(int value) throws IOException {
+			ensureOpen();
+			super.setWindowLog(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setStrategy(int value) throws IOException {
+			ensureOpen();
+			super.setStrategy(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setDict(byte @NotNull [] value) throws IOException {
+			ensureOpen();
+			super.setDict(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdCompressStream setDict(com.github.luben.zstd.ZstdDictCompress value) throws IOException {
+			ensureOpen();
+			super.setDict(value);
+			return this;
+		}
+
+		public synchronized void compress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull ByteBuffer dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -161,7 +272,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public void compress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull Codec dst) {
+		public synchronized void compress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull Codec dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -179,7 +290,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public void flush(@NotNull ByteBuffer dst) {
+		public synchronized void flush(@NotNull ByteBuffer dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -196,7 +307,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public void flush(@NotNull Codec dst) {
+		public synchronized void flush(@NotNull Codec dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -238,7 +349,7 @@ public final class ZstdFactory {
 		}
 
 		@Override
-		public void close() {
+		public synchronized void close() {
 			// 不能调基类close()：它会往DummyBufferPool的0长缓冲写帧尾字节（越过数组末端的native写），
 			// 再经OutputStream.write的边界检查抛IndexOutOfBoundsException；本包装的输出都走调用方
 			// 传入的dst，close只负责释放native上下文。帧不收尾是既有线格式，流式解码端兼容。
@@ -293,7 +404,41 @@ public final class ZstdFactory {
 			}
 		}
 
-		public void decompress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull ByteBuffer dst) {
+		// 基类保存的 stream 字段不会随包装 close 清零，所有 native 配置必须先检查包装生命周期。
+		private void ensureOpen() {
+			if (ctxPtr == 0)
+				throw new IllegalStateException("stream is closed");
+		}
+
+		@Override
+		public synchronized @NotNull ZstdDecompressStream setDict(byte @NotNull [] value) throws IOException {
+			ensureOpen();
+			super.setDict(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdDecompressStream setDict(com.github.luben.zstd.ZstdDictDecompress value) throws IOException {
+			ensureOpen();
+			super.setDict(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdDecompressStream setLongMax(int value) throws IOException {
+			ensureOpen();
+			super.setLongMax(value);
+			return this;
+		}
+
+		@Override
+		public synchronized @NotNull ZstdDecompressStream setRefMultipleDDicts(boolean value) throws IOException {
+			ensureOpen();
+			super.setRefMultipleDDicts(value);
+			return this;
+		}
+
+		public synchronized void decompress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull ByteBuffer dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -343,7 +488,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public void decompress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull Codec dst) {
+		public synchronized void decompress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull Codec dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			if (dstBuf == null)
@@ -404,7 +549,7 @@ public final class ZstdFactory {
 		}
 
 		@Override
-		public void close() {
+		public synchronized void close() {
 			// 与压缩侧同理：基类close()会调 in.close()（DummyInputStream共享单例）和池release，
 			// 这些都是被架空的内部管线，安全性依赖Dummy组件的偶然实现；这里只释放native上下文。
 			long ptr = ctxPtr;
