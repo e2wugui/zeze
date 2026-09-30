@@ -112,15 +112,34 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		@Override
-		public void SendResult(Binary result) {
+		public void SendResult(@Nullable Binary result) {
+			if (!tryMarkSendResultDone())
+				return;
+			resultEncoded = result;
+			setRequest(false);
+			forwardResult(result);
+		}
+
+		@Override
+		protected boolean sendResultCode(long code, @Nullable Binary result) {
+			if (!tryMarkSendResultDone())
+				return false;
+			setResultCode(code);
+			resultEncoded = result;
+			setRequest(false);
+			forwardResult(result);
+			return true; // 与Rpc一致，表示赢得应答权，并非网络已经成功写出。
+		}
+
+		private void forwardResult(@Nullable Binary result) {
 			real.Result.setGlobalKey(real.Argument.getGlobalKey()); // no change
 			real.Result.setState(Result.state);
 			// 补转发被降级方tid——TableX在bridge（sync族Result）上设置reducedTid，
 			// 桥接原本只转state与resultCode，该字段在Raft链路恒为默认值（同步/异步版服务器
 			// 均中继真实值），协议契约静默断裂。
 			real.Result.setReduceTid(Result.reducedTid);
-			real.setResultCode(getResultCode());
-			real.SendResult(result);
+			// real也先CAS再设置code；代理路径继续由ProxyableRpc的hook路由。
+			real.SendResultCode(getResultCode(), result);
 		}
 	}
 

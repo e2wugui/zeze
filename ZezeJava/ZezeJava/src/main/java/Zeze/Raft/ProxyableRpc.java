@@ -6,7 +6,7 @@ import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 可走代理的 Rpc：持有 ProxyRequest，SendResult/trySendResultCode 在代理路径下改经 proxyRequest 应答。
+ * 可走代理的 Rpc：持有 ProxyRequest，所有应答入口在代理路径下改经 proxyRequest 应答。
  */
 public abstract class ProxyableRpc<A extends Serializable, R extends Serializable> extends Rpc<A, R> {
 	private ProxyRequest proxyRequest;
@@ -23,12 +23,10 @@ public abstract class ProxyableRpc<A extends Serializable, R extends Serializabl
 			return;
 		}
 
-		// proxy 方式，基本逻辑拷贝自 Rpc.SendResult(Binary result)。
-		if (sendResultDone) {
+		if (!tryMarkSendResultDone()) {
 			logger.warn("Rpc.SendResult Already Done: {} {}", getSender(), this, new Exception());
 			return;
 		}
-		sendResultDone = true;
 		resultEncoded = result;
 		setRequest(false);
 
@@ -37,24 +35,19 @@ public abstract class ProxyableRpc<A extends Serializable, R extends Serializabl
 		proxyRequest.SendResult();
 	}
 
-	// 处理器异常的onError兜底走Rpc.trySendResultCode，代理路径下
-	// getSender()==null，直发失败会静默丢弃错误码（客户端等满proxy超时并触发
-	// 重发循环）；与SendResult(Binary)同构，proxy方式置码后经proxyRequest应答。
+	// Protocol的两个SendResultCode和Rpc.trySendResultCode共用这个多态入口。
+	// 代理内层通常没有sender，不能直接发送；先取得CAS发送权，再改字段并走代理。
 	@Override
-	public boolean trySendResultCode(long code) {
+	protected boolean sendResultCode(long code, @Nullable Binary result) {
 		if (proxyRequest == null) {
 			// 原始raft连接方式。
-			return super.trySendResultCode(code);
+			return super.sendResultCode(code, result);
 		}
 
-		// proxy 方式，基本逻辑拷贝自 Rpc.trySendResultCode(long)。
-		if (sendResultDone) {
-			logger.warn("Rpc.trySendResultCode Already Done: {} {}", getSender(), this, new Exception());
+		if (!tryMarkSendResultDone())
 			return false;
-		}
-		sendResultDone = true;
 		setResultCode(code);
-		resultEncoded = null;
+		resultEncoded = result;
 		setRequest(false);
 
 		// 填写proxyRequest.Result并发送。Rpc.encode 带 BitResultCode，解码侧码可达。

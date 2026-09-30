@@ -285,8 +285,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	// sendResultDone的检查-设置必须原子：responseHandle回调线程与派发层onError兜底（trySendResultCode）
 	// 可能并发应答，两线程都过检查会双重发送Result，破坏"最多一次"语义。VarHandle CAS仲裁。
 	// mark先于resultCode等字段写：只有赢家写字段，输家不会污染赢家在途的encode；
-	// 轮询isSendResultDone后读resultCode仅SendResultCode路径有可见性保证（它先写resultCode再mark）。
-	private boolean tryMarkSendResultDone() {
+	// sendResultDone用于仲裁发送权；它不表示编码/发送已经完成。
+	protected final boolean tryMarkSendResultDone() {
 		return (boolean)SEND_RESULT_DONE.compareAndSet(this, false, true);
 	}
 
@@ -297,10 +297,15 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	@Override
 	public boolean trySendResultCode(long code) {
+		return sendResultCode(code, null);
+	}
+
+	@Override
+	protected boolean sendResultCode(long code, @Nullable Binary result) {
 		if (!tryMarkSendResultDone())
 			return false;
 		setResultCode(code);
-		resultEncoded = null;
+		resultEncoded = result;
 		isRequest = false;
 		if (!super.Send(getSender()))
 			logger.warn("Rpc.trySendResultCode Failed: {} {}", getSender(), this);

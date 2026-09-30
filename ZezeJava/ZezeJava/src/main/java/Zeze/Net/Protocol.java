@@ -196,9 +196,14 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		SendResultCode(code, null);
 	}
 
-	public final void SendResultCode(long code, @SuppressWarnings("unused") @Nullable Binary result) {
+	public final void SendResultCode(long code, @Nullable Binary result) {
+		sendResultCode(code, result);
+	}
+
+	protected boolean sendResultCode(long code, @Nullable Binary result) {
 		resultCode = code;
 		SendResult(result);
+		return true;
 	}
 
 	public void dispatch(@NotNull Service service,
