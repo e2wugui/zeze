@@ -231,6 +231,12 @@ public final class JsonReader {
 
 	public int next() {
 		for (int b; ; pos++) {
+			if (pos >= buf.length)
+				return 0; // 输入耗尽（空/全空白/纯注释）：NUL哨兵——实字节0x00本被当空白跳过，
+			          // 永不为真实token，无碰撞。调用面全是"期待定界符否则宽容回退"形态
+			          //（parse0:next()!='{'返回默认对象、parseArray0/parseMap0同理），
+			          // 耗尽回0统一走回退；此前buf[pos]直接AIOOBE——空body请求打进
+			          // /api/search即500（应答器catch兜成system error，ERROR日志+栈）。
 			if ((b = buf[pos] & 0xff) > ' ') {
 				if (b != '/') // check comment
 					return b;
@@ -457,8 +463,14 @@ public final class JsonReader {
 			classMeta = json.getClassMeta((Class<T>)obj.getClass());
 		} else {
 			KeyReader kr = ClassMeta.getKeyReader(classMeta.klass);
-			if (kr != null)
-				return (T)kr.parse(this, next());
+			if (kr != null) {
+				int b = next();
+				// 0=输入耗尽哨兵（见next()）：keyed类型（String/Integer/Object——Json.java
+				// keyReaderMap把Object.class注册为parseStringKey）无token可读，回退null，
+				// 对齐parse(Object,int)未知token→null的宽容契约。不挡则哨兵流进
+				// parseStringKey按"非引号裸串"直读buffer，空输入AIOOBE原样复发。
+				return (T)(b == 0 ? null : kr.parse(this, b));
+			}
 		}
 		Parser<? super T> parser = classMeta.parser;
 		if (parser != null)
