@@ -128,13 +128,13 @@ public class Selectors extends ReentrantLock {
 	}
 
 	public @NotNull Selectors add(int count) {
-		if (closed) // close后不允许重建线程（choice()对closed同样抛IllegalStateException）
-			throw new IllegalStateException("closed");
 		// 持锁：add必须整体互斥——无锁的"读selectorList→copyOf→start→赋值"check-then-act
 		// 在并发add时后写覆盖先写，先注册的Selector线程从数组丢失但仍在运行
 		// （daemon泄漏、choice()轮不到）。类型自身即ReentrantLock，数组变更与读取互斥由类型保证。
 		lock();
 		try {
+			if (closed) // 与close的状态变更互斥，排队中的add也不得复活线程。
+				throw new IllegalStateException("closed");
 			Selector[] tmp = selectorList;
 			int i, n;
 			if (tmp == null) {
