@@ -1,8 +1,10 @@
 package Zeze.Raft.RocksRaft;
 
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
@@ -17,31 +19,54 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 
-	private final HashMap<K, V> putted = new HashMap<>();
-	private final Set<K> removed = new HashSet<>();
+	private Map<K, V> putted;
+	private Set<K> removed;
 
 	public LogSortedMap1(Class<K> keyClass, Class<V> valueClass) {
-		this(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
+		this(keyClass, valueClass, null);
+	}
+
+	/** 自定义比较器须在复制双方的日志工厂一致配置；wire不携带比较器。 */
+	public LogSortedMap1(Class<K> keyClass, Class<V> valueClass, Comparator<? super K> comparator) {
+		this(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass, comparator);
 	}
 
 	LogSortedMap1(int typeId, Class<K> keyClass, Class<V> valueClass) {
-		super(typeId);
+		this(typeId, keyClass, valueClass, null);
+	}
+
+	LogSortedMap1(int typeId, Class<K> keyClass, Class<V> valueClass, Comparator<? super K> comparator) {
+		super(typeId, comparator);
+		putted = new TreeMap<>(comparator);
+		removed = new TreeSet<>(comparator);
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 	}
 
 	LogSortedMap1(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
 		super(typeId);
+		putted = new TreeMap<>();
+		removed = new TreeSet<>();
 		this.keyCodecFuncs = keyCodecFuncs;
 		this.valueCodecFuncs = valueCodecFuncs;
 	}
 
-	public final HashMap<K, V> getPutted() {
+	public final Map<K, V> getPutted() {
 		return putted;
 	}
 
 	public final Set<K> getRemoved() {
 		return removed;
+	}
+
+	@Override
+	protected void onComparatorChanged(Comparator<? super K> comparator) {
+		var newPutted = new TreeMap<K, V>(comparator);
+		newPutted.putAll(putted);
+		putted = newPutted;
+		var newRemoved = new TreeSet<K>(comparator);
+		newRemoved.addAll(removed);
+		removed = newRemoved;
 	}
 
 	public final V get(K key) {

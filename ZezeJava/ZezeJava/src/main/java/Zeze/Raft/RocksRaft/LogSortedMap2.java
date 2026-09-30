@@ -1,9 +1,11 @@
 package Zeze.Raft.RocksRaft;
 
 import java.lang.invoke.MethodHandle;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.SerializeHelper;
@@ -18,11 +20,17 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 	private static final long logTypeIdHead = Zeze.Transaction.Bean.hash64("Zeze.Raft.RocksRaft.LogSortedMap2<");
 
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
-	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
+	private Map<K, LogBean> changedWithKey = new TreeMap<>(); // changed with key. using in encode/decode followerApply
 	private final MethodHandle valueFactory;
 
 	public LogSortedMap2(Class<K> keyClass, Class<V> valueClass) {
-		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass);
+		this(keyClass, valueClass, null);
+	}
+
+	/** 自定义比较器须在复制双方的日志工厂一致配置；wire不携带比较器。 */
+	public LogSortedMap2(Class<K> keyClass, Class<V> valueClass, Comparator<? super K> comparator) {
+		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, keyClass, valueClass), keyClass, valueClass, comparator);
+		changedWithKey = new TreeMap<>(comparator);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 
@@ -35,8 +43,16 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 		return changed;
 	}
 
-	public final HashMap<K, LogBean> getChangedWithKey() {
+	public final Map<K, LogBean> getChangedWithKey() {
 		return changedWithKey;
+	}
+
+	@Override
+	protected void onComparatorChanged(Comparator<? super K> comparator) {
+		super.onComparatorChanged(comparator);
+		var newChangedWithKey = new TreeMap<K, LogBean>(comparator);
+		newChangedWithKey.putAll(changedWithKey);
+		changedWithKey = newChangedWithKey;
 	}
 
 	@Override
