@@ -38,7 +38,8 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 	}
 
 	public void stop() {
-		httpServer.removeHandler(path);
+		if (httpServer != null)
+			httpServer.removeHandler(path);
 	}
 
 	@Override
