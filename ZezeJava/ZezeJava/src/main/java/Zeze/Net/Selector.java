@@ -8,8 +8,8 @@ import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import Zeze.Util.PlatformMetrics;
 import Zeze.Util.FastLock;
+import Zeze.Util.PlatformMetrics;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -66,9 +66,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		taskLock.lock();
 		try {
 			taskQueue.offer(task);
-			drain = taskQueueClosed && !drainingTasks;
-			if (drain)
-				drainingTasks = true;
+			drain = claimTaskDrain();
 		} finally {
 			taskLock.unlock();
 		}
@@ -89,14 +87,20 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		taskLock.lock();
 		try {
 			taskQueueClosed = true;
-			drain = !drainingTasks;
-			if (drain)
-				drainingTasks = true;
+			drain = claimTaskDrain();
 		} finally {
 			taskLock.unlock();
 		}
 		if (drain)
 			drainClosedTasks();
+	}
+
+	// 调用方持有taskLock；关闭队列的执行权只能交给一个排干者。
+	private boolean claimTaskDrain() {
+		if (!taskQueueClosed || drainingTasks)
+			return false;
+		drainingTasks = true;
+		return true;
 	}
 
 	private void drainClosedTasks() {

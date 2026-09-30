@@ -38,6 +38,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	private static final @NotNull VarHandle closeDetailHandle, outputBufferSizeHandle;
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
+	private static final int MAX_OPERATES_PER_WRITE = 1024;
 	private static final IOException connectFailedException = new IOException("connect failed");
 	// DNS解析专用daemon线程：getByName同步且不可中断（可达5-30秒），不得占用selector/Task池线程；
 	// 在途解析数受连接器数约束（每连接器至多一条），cached即可。
@@ -738,11 +739,12 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	private void doWrite(@NotNull SocketChannel sc) throws Exception { // 只在selector线程调用
 		sendCount++;
 		int blockSize = selector.getSelectors().getBbPoolBlockSize();
+		long byteBudget = (long)blockSize * 2;
 		int bufSize = outputBuffer.size();
 		int operateCount = 0;
 		long written = 0;
-		while (operateCount < 1024 && written < (long)blockSize * 2) {
-			for (Action0 op; operateCount < 1024 && bufSize < (long)blockSize * 2
+		while (operateCount < MAX_OPERATES_PER_WRITE && written < byteBudget) {
+			for (Action0 op; operateCount < MAX_OPERATES_PER_WRITE && bufSize < byteBudget
 					&& (op = operates.poll()) != null; ) {
 				operateCount++;
 				op.run();
