@@ -44,8 +44,11 @@ public class WebsocketClient extends AsyncSocket {
 		super.userState = userState;
 		this.connector = connector;
 		var uri = URI.create(wsUrl);
+		var port = uri.getPort();
+		if (port < 0)
+			port = "wss".equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
 		// createUnresolved：构造非阻塞（Connector锁内调用前提），解析由buildAsync异步进行；remote仅日志用
-		remote = InetSocketAddress.createUnresolved(uri.getHost(), uri.getPort());
+		remote = InetSocketAddress.createUnresolved(uri.getHost(), port);
 		timeThrottle = TimeThrottle.create(getService().getSocketOptions());
 		httpClient = HttpClient.newHttpClient();
 		httpClient.newWebSocketBuilder().buildAsync(uri, new WebSocket.Listener() {
