@@ -196,15 +196,27 @@ public class Master extends AbstractMaster {
     }
 
     // 新建 topic 的结构性危险名校验（仅 CreateMQ 入口生效，存量放行）：返回 null=合法，
-    // 非 null=拒绝原因（日志用）。覆盖折叠检测抓不到的形态：控制字符（目录名非法/终端
-    // 注入）与 Windows 保留设备名（CON/PRN/AUX/NUL/COM1-9/LPT1-9，mkdirs 失败仅留列族
-    // 孤儿）。其余字符（含非ASCII）合法——白名单收紧会破坏存量命名习惯，不做。
+    // 非 null=拒绝原因（日志用）。覆盖折叠检测抓不到的形态（全新名字无碰撞对象）：
+    // (1) 控制字符（目录名非法/终端注入）与 Windows 保留设备名（CON/PRN/AUX/NUL/COM1-9/
+    // LPT1-9，mkdirs 失败仅留列族孤儿）；(2) 自身折叠后改变（尾随空白/点）——名字在
+    // Win32 剥离规则下物理目录名必然 != topic 名：剥离型版本实建无空白目录，重启 loadMQ
+    // 按目录名装载成另一 topic（列族名全错位=幽灵段+位点全零=恢复逻辑亲手清光全部落盘
+    // 数据），拒绝型版本（现行构建对尾随空白）Manager 构造直接失败回误导性部分失败；
+    // (3) 跨平台保留字符 <>:"|*?（Win32 文件名非法集）——Linux 合法创建、home 迁移
+    // Windows 后 loadMQ 构造抛异常、进程无法启动。黑名单口径而非白名单：非 ASCII
+    // （中文等）名按 FND33 声明继续合法，不收紧存量命名习惯。
     public static @Nullable String validateNewTopicName(String topic) {
         for (var i = 0; i < topic.length(); ++i) {
             var c = topic.charAt(i);
             if (c < 0x20 || c == 0x7F)
                 return "control char U+" + Integer.toHexString(c) + " at " + i;
+            if ("<>:\"|?*".indexOf(c) >= 0)
+                return "reserved filesystem char '" + c + "' at " + i;
         }
+        // 自身折叠改变（只查尾随空白/点归一，不含大小写：Win32 创建目录保留给定大小写，
+        // 仅查找不敏感——大小写混合名不自分叉，不得误伤）。
+        if (topic.replaceAll("[\\s.]+$", "").length() != topic.length())
+            return "trailing whitespace/dot (fs directory name divergence)";
         var base = fsNamespaceKey(topic); // 保留名匹配用同款折叠（大小写不敏感+尾空白归一）
         if (WindowsReservedNames.contains(base))
             return "windows reserved device name: " + base;

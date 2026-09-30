@@ -108,6 +108,12 @@ public class MQFileWithIndex {
 
 		var topicDir = new File(home, topic);
 		topicDir.mkdirs();
+		if (!topicDir.isDirectory())
+			// 防御纵深（CreateMQ 入口已拒非法名字，此处自保存量/迁移形态）：明确报错带 topic
+			// 名与路径——非法字符名（如 Linux 创建后 home 迁移 Windows）在此先行失败，
+			// 替代下方 FileOutputStream 指向不明的 FileNotFoundException。
+			throw new FileNotFoundException("mq topic directory unavailable (illegal topic name on this filesystem?)"
+					+ " topic=" + topic + " dir=" + topicDir);
 		var files = topicDir.listFiles();
 		var ghostSegments = new ArrayList<Long>();
 		if (null != files) {
