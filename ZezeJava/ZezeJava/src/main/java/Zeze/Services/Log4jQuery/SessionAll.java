@@ -6,6 +6,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import Zeze.Builtin.LogService.BCondition;
 import Zeze.Builtin.LogService.BLog;
 import Zeze.Builtin.LogService.BResult;
@@ -33,6 +35,13 @@ public class SessionAll implements AutoCloseable {
 	private static final @NotNull Logger logger = LogManager.getLogger(SessionAll.class);
 
 	private static final long MEMBER_RETRY_BACKOFF_NANOS = Duration.ofSeconds(60).toNanos();
+
+	// operate 总时限（毫秒）：单服查询分支（ZokerManager 处理器）对 search/browse 的
+	// future.get 有 1 分钟上界，聚合分支的补员/发送/等待此前无界——注册表含死条目的
+	// 部分失败期，单请求可串行阻塞 5s×N（补员/发送逐台 readySocket）+ RPC 60s，占满
+	// 派发线程与同 IP 在飞守卫窗口。单次 readySocket/NewSession 的内部等待（5s/60s）
+	// 不可中断，总上界为时限+单步时长（有界过冲）；逐出成员的 best-effort close 同理。
+	private static final long OPERATE_TOTAL_TIMEOUT_MILLIS = 60_000;
 
 	private final LogAgent agent;
 	// N02：成员会话死亡自愈重建需要（newSession(serverName, logName)），构造期固定。
@@ -106,10 +115,23 @@ public class SessionAll implements AutoCloseable {
 
 	public BResult.Data operate(Func1<Session, TaskCompletionSource<BResult.Data>> op)
 			throws Exception {
+		return operate(op, OPERATE_TOTAL_TIMEOUT_MILLIS);
+	}
+
+	/**
+	 * 带总时限的 operate（默认口径见 {@link #OPERATE_TOTAL_TIMEOUT_MILLIS}，重载供直测
+	 * 注入短时限）：补员、发送、等待全程携带 deadline——等待按剩余时限 get、补员与发送
+	 * 按剩余时限跳过（补员有 60s 退避窗、未发送成员按瞬时失败降级由下次 operate 重试，
+	 * 跳过不损正确性）。到点成员与单台失败同构：部分成功降级返回，全败抛带信息的
+	 * TimeoutException。
+	 */
+	public BResult.Data operate(Func1<Session, TaskCompletionSource<BResult.Data>> op, long totalTimeoutMillis)
+			throws Exception {
+		var deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(totalTimeoutMillis);
 
 		// 成员集维护单点：缺册补员（增方向，补入的新成员参与本轮查询）与摘册逐出（减方向）
 		// 先行，与文末renewDeadMembers（在册死亡重建）合成会话构成向注册表的双向收敛。
-		reconcileMissingMembers();
+		reconcileMissingMembers(deadlineNanos);
 		evictUnregisteredMembers();
 
 		// 逐台收集失败：单台异常（RPC超时/连接抖动/发送失败）不牺牲其余台结果，
@@ -124,6 +146,15 @@ public class SessionAll implements AutoCloseable {
 		for (var session : alls.values()) {
 			if (finishedSession.contains(session.getName()))
 				continue;
+			if (remainingMillis(deadlineNanos) <= 0) {
+				// 总时限到点未发送的成员按瞬时失败降级：页未发出（游标未动），
+				// markTransientLoss 置续扫标记，下次 operate 重发。
+				failedServers.add(session.getName());
+				markTransientLoss(session.getName());
+				if (firstFailure == null)
+					firstFailure = totalTimeoutExceeded(totalTimeoutMillis);
+				continue;
+			}
 			try {
 				futures.add(KV.create(op.call(session), session));
 			} catch (Exception e) {
@@ -151,7 +182,9 @@ public class SessionAll implements AutoCloseable {
 		for (var future : futures) {
 			BResult.Data r;
 			try {
-				r = future.getKey().get();
+				// 剩余时限到 0 时 get 对已完成 future 仍即时返回、未完成的立即超时——总等待随
+				// deadline 封顶，不依赖各 RPC 自身的 60s 超时兜底。
+				r = future.getKey().get(remainingMillis(deadlineNanos), TimeUnit.MILLISECONDS);
 			} catch (Exception e) {
 				failedServers.add(future.getValue().getName());
 				if (Session.isSessionLevelError(e))
@@ -160,10 +193,13 @@ public class SessionAll implements AutoCloseable {
 					// 瞬时失败（超时/网络抖动）页可能已被服务端游标越过而未投递：标记续扫，
 					// 下次operate从已投递水位（或无水位时强制reset）重定位重发，不静默缺页。
 					markTransientLoss(future.getValue().getName());
+				// 总时限到点的超时替换为带信息的承载（raw TimeoutException 的 message 为
+				// null，调用方无法分诊）；其余异常原样聚合。
+				var reported = e instanceof TimeoutException ? totalTimeoutExceeded(totalTimeoutMillis) : e;
 				if (firstFailure == null)
-					firstFailure = e;
+					firstFailure = reported;
 				else
-					firstFailure.addSuppressed(e);
+					firstFailure.addSuppressed(reported);
 				continue;
 			}
 			// 不变式：错误码台（死会话的服务端 LogicError）不会走到这里——Session.search/browse
@@ -219,8 +255,18 @@ public class SessionAll implements AutoCloseable {
 		memberForceReset.add(name);
 	}
 
+	/** 总时限剩余毫秒（到点为 0）：deadline 语义下 get(0) 对已完成 future 仍即时返回。 */
+	private static long remainingMillis(long deadlineNanos) {
+		return TimeUnit.NANOSECONDS.toMillis(Math.max(0, deadlineNanos - System.nanoTime()));
+	}
+
+	/** 总时限到点的失败承载：带信息便于调用方分诊（HTTP 层 desc 透出），TimeoutException 语义。 */
+	private static TimeoutException totalTimeoutExceeded(long totalTimeoutMillis) {
+		return new TimeoutException("all-servers operate total timeout " + totalTimeoutMillis + "ms exceeded");
+	}
+
 	/**
-	 * 续扫基点捕获单点（瞬时失败/死亡重建/重入补员三路共用，FND35 log4jquery-02）：
+	 * 续扫基点捕获单点（瞬时失败/死亡重建/重入补员三路共用，FND35 log4jquery-01/02）：
 	 * 单调成员取水位（紧凑续扫，重复收敛为水位边界同时间条目）；观测到时间回退的成员
 	 * （见memberTimeRegression）清除基点回落原始条件——时间水位高于未投递日志时间，
 	 * 按水位重定位+beginTime覆写会把未投递段滤除（静默缺窗），宁整窗重扫重复可观测
@@ -241,7 +287,7 @@ public class SessionAll implements AutoCloseable {
 	 * remain 提前 false。operate 入口对差集逐台尝试补入，补入的新成员参与本轮查询；失败记
 	 * per-member 退避时间戳（60s 窗内不重试）。与 {@link #renewDeadMembers}（在册死亡重建）互补。
 	 */
-	private void reconcileMissingMembers() {
+	private void reconcileMissingMembers(long deadlineNanos) {
 		var now = System.nanoTime();
 		for (var serverName : agent.getLogServers()) {
 			if (alls.containsKey(serverName))
@@ -249,6 +295,8 @@ public class SessionAll implements AutoCloseable {
 			var lastFail = memberRetryBackoff.get(serverName);
 			if (lastFail != null && now - lastFail < MEMBER_RETRY_BACKOFF_NANOS)
 				continue;
+			if (remainingMillis(deadlineNanos) <= 0)
+				continue; // 总时限到点：本轮不再补员（重试连同退避窗留给下次 operate）
 			try {
 				alls.put(serverName, agent.newSession(serverName, logName));
 				// 重入成员（摘册逐出后回归的抖动/重部署形态）若在本会话有投递历史，以水位续扫
