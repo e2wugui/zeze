@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult;
+import Zeze.Config;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.PropertiesHelper;
@@ -47,6 +48,12 @@ import org.jetbrains.annotations.Nullable;
  * 丢失的半消息失去回查兜底。</li>
  * <li>回查查无行恒答 UNKNOW 的语义（见 {@link #checkLocalTransaction}）：既不答 COMMIT 也不答
  * ROLLBACK，收敛依赖 broker 回查策略 + tSent 保留时长下界。</li>
+ * <li>tSent必须落在<b>持久数据库</b>（默认 {@link Zeze.Config.DatabaseConf} 的 databaseType
+ * 即 Memory，漏配数据库的应用静默落入该形态）：memory形态下两项自述保障双双静默失效——每日
+ * 清理对无storage的表walk必抛错被吞（表无界增长），进程重启即失去全部回查证据
+ * （checkLocalTransaction恒UNKNOW，已提交本地事务的半消息被回查耗尽丢弃）。
+ * {@link #start()} 显式拒绝该形态；联调/demo形态可经系统属性
+ * {@value #TSENT_ALLOW_MEMORY_PROPERTY}=true 显式豁免（自担上述风险）。</li>
  * <li>停机窗口：{@link #stop()} 先有界排空回查线程池（在飞回查趁客户端存活把COMMIT应答
  * 发回broker）再关闭客户端；停机时长超过 broker 回查总窗口（transactionTimeOut +
  * transactionCheckMax × transactionCheckInterval，默认参数约15分钟）时，窗口外未决半消息
@@ -78,6 +85,10 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	private static final long TSENT_KEEP_TIME_MIN = 60L * 60 * 1000;
 	// 每批walk的行数上限：每批独立一个事务过程删除，避免单过程长事务。
 	private static final int TSENT_CLEAN_BATCH_SIZE = 1000;
+	// tSent落memory库的显式豁免开关（系统属性，默认关）：联调/demo形态（无持久库部署，如
+	// TestRocketMQ的内存库拓扑）自担"每日清理对无storage的表walk抛错停摆+重启回查证据灭失"
+	// 的风险后可打开。生产部署不得开启（见类javadoc的tSent持久库部署契约）。
+	private static final String TSENT_ALLOW_MEMORY_PROPERTY = "RocketMQ.Producer.tSentAllowMemory";
 	// stop 的有界排空预算：事务回查线程池在飞任务的完成等待——checkLocalTransaction触
 	// Zeze表须在app.close()前完成（典型停机顺序stop()→app.close()，越过即对已关表的
 	// 访问），且决策后的应答发送（endTransactionOneway）须在producer.shutdown()之前的
@@ -140,6 +151,23 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	}
 
 	public void start() throws MQClientException {
+		// tSent所在库必须为持久类型（部署契约，见类javadoc）：start()是生产入口，memory形态在此
+		// 显式拒绝——默认Config.DatabaseConf的databaseType即Memory，漏配数据库的应用此前静默落入
+		// 该形态（清理定时器照常注册、到点walk对无storage的表抛错被吞，重启即失去回查证据，两项
+		// 保障静默失效且零告警指向配置）。校验以Config判库（与RegisterZezeTables的表→库解析同源），
+		// 不依赖表是否已打开（app.start与producer.start次序皆可）；库名失配（null）不在此拦——
+		// Application打开表时自会响亮失败。测试普遍以内存库构造Producer但不调start()，不受影响；
+		// 联调/demo形态经TSENT_ALLOW_MEMORY_PROPERTY显式豁免。
+		var dbConf = zeze.getConfig().getDatabaseConfMap()
+				.get(zeze.getConfig().getTableConf(_tSent.getName()).getDatabaseName());
+		if (dbConf != null && dbConf.getDatabaseType() == Config.DbType.Memory
+				&& !Boolean.getBoolean(TSENT_ALLOW_MEMORY_PROPERTY))
+			throw new IllegalStateException("RocketMQ.Producer tSent must reside in a persistent database,"
+					+ " but its DatabaseConf is Memory (该形态下每日清理walk抛错停摆致表无界增长、"
+					+ "进程重启即失去回查证据，已提交本地事务的半消息被回查耗尽丢弃；"
+					+ "默认DatabaseConf即Memory，漏配数据库的应用静默落入)。"
+					+ "为tSent显式配置持久库，或联调形态经系统属性 " + TSENT_ALLOW_MEMORY_PROPERTY
+					+ "=true 显式豁免。 producerGroup=" + producer.getProducerGroup());
 		producer.start();
 		// 每日清理tSent过期行：COMMIT路径保留的事务行若不定期删除，表会无界增长。
 		if (tSentCleanFuture == null)
