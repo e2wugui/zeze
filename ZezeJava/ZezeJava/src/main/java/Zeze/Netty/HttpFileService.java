@@ -54,6 +54,7 @@ final class HttpFileService {
 	}
 
 	static void sendFile(@NotNull HttpExchange x, @NotNull File file, int fileCacheSeconds) throws Exception {
+		HttpExchange.requireNonTransactionalStreaming();
 		if (!file.isFile()) { // 缺失/非普通文件回404而非让FileChannel.open抛异常走500（对齐sendPath）
 			x.close(x.send404());
 			return;
@@ -180,6 +181,7 @@ final class HttpFileService {
 	}
 
 	static void sendPath(@NotNull HttpExchange x, @NotNull File file) {
+		HttpExchange.requireNonTransactionalStreaming();
 		if (!file.isDirectory() || file.isHidden()) {
 			x.close(x.send404());
 			return;

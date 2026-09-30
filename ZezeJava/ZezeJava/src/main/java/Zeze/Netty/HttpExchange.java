@@ -26,6 +26,7 @@ import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -35,6 +36,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpHeadersFactory;
 import io.netty.handler.codec.http.DefaultHttpResponse;
@@ -123,6 +125,9 @@ public class HttpExchange {
 	private final class HeadersLog extends Log {
 		final ArrayList<Object> headers;
 		@Nullable String sessionCookie;
+		@Nullable DeferredResponse response;
+		@Nullable Integer closeMethod;
+		@Nullable ChannelFuture closeFuture;
 
 		HeadersLog(ArrayList<Object> headers, @Nullable String sessionCookie) {
 			super(responseHeadersBean, 0);
@@ -142,7 +147,11 @@ public class HttpExchange {
 
 		@Override
 		public @NotNull Log beginSavepoint() {
-			return new HeadersLog(new ArrayList<>(headers), sessionCookie);
+			var copy = new HeadersLog(new ArrayList<>(headers), sessionCookie);
+			copy.response = response;
+			copy.closeMethod = closeMethod;
+			copy.closeFuture = closeFuture;
+			return copy;
 		}
 
 		@Override
@@ -150,6 +159,7 @@ public class HttpExchange {
 			synchronized (HttpExchange.this) {
 				resHeaders = new ArrayList<>(headers);
 				sessionCookieHeader = sessionCookie;
+				committedHeadersLog = this;
 			}
 		}
 	}
@@ -162,8 +172,41 @@ public class HttpExchange {
 		if (log == null) {
 			log = new HeadersLog(resHeaders != null ? new ArrayList<>(resHeaders) : new ArrayList<>(), sessionCookieHeader);
 			t.putLog(log);
+			// 只登记一次。保存点commit发布最终Log，回调统一先写最终响应、再兑现关闭意图。
+			t.runWhileCommit(this::publishTransactionalOutput);
 		}
 		return log;
+	}
+
+	private record DeferredResponse(HttpVersion version, HttpResponseStatus status, byte[] body,
+			HttpHeaders headers, HttpHeaders trailers, boolean flush, ChannelPromise promise) {
+	}
+
+	private @Nullable HeadersLog committedHeadersLog; // this守护，仅Log.commit发布
+	private final ArrayList<ChannelPromise> deferredResponsePromises = new ArrayList<>(); // 包含redo丢弃的尝试
+
+	private void publishTransactionalOutput() {
+		HeadersLog log;
+		ArrayList<ChannelPromise> abandoned;
+		synchronized (this) {
+			log = committedHeadersLog;
+			committedHeadersLog = null;
+			if (log == null)
+				return;
+			abandoned = new ArrayList<>(deferredResponsePromises);
+			deferredResponsePromises.clear();
+			if (log.response != null)
+				abandoned.remove(log.response.promise);
+		}
+		for (var promise : abandoned)
+			promise.tryFailure(new IllegalStateException("HTTP response superseded by committed transaction"));
+		ChannelFuture future = log.closeFuture;
+		var response = log.response;
+		if (response != null)
+			future = writeResponse(new DefaultFullHttpResponse(response.version, response.status,
+					Unpooled.wrappedBuffer(response.body), response.headers, response.trailers), response.flush, response.promise);
+		if (log.closeMethod != null)
+			close(log.closeMethod, future);
 	}
 	protected @Nullable List<Cookie> cookies;
 	// volatile+锁双检：detach后允许多线程并发首调getCookieSession（detach文档"任意线程、任意时机"），
@@ -916,6 +959,14 @@ public class HttpExchange {
 	ChannelFuture writeResponse(@NotNull Object msg, boolean flush, @Nullable ChannelPromise promise) {
 		if (promise == null)
 			promise = context.newPromise();
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning()) {
+			if (!(msg instanceof FullHttpResponse response)) {
+				ReferenceCountUtil.release(msg);
+				throw new IllegalStateException("HTTP streaming/file responses require TransactionLevel.None");
+			}
+			return deferFullResponse(t, response, flush, promise);
+		}
 		var finalPromise = promise;
 		//noinspection resource
 		var loop = context.channel().eventLoop();
@@ -930,6 +981,40 @@ public class HttpExchange {
 			}
 		}
 		return finalPromise;
+	}
+
+	private ChannelFuture deferFullResponse(Transaction t, FullHttpResponse response,
+			boolean flush, ChannelPromise promise) {
+		// redo丢弃提交闭包时只留下可GC的堆快照，不能把池化ByteBuf交给不会执行的回调。
+		byte[] body;
+		HttpHeaders headers;
+		HttpHeaders trailers;
+		var version = response.protocolVersion();
+		var status = response.status();
+		try {
+			body = ByteBufUtil.getBytes(response.content());
+			headers = response.headers().copy();
+			trailers = response.trailingHeaders().copy();
+		} finally {
+			ReferenceCountUtil.release(response);
+		}
+		synchronized (this) {
+			headersLog(t).response = new DeferredResponse(version, status, body, headers, trailers, flush, promise);
+			deferredResponsePromises.add(promise);
+		}
+		t.runWhileRollback(() -> {
+			synchronized (this) {
+				deferredResponsePromises.remove(promise);
+			}
+			promise.tryFailure(new IllegalStateException("HTTP handler transaction rolled back"));
+		});
+		return promise;
+	}
+
+	static void requireNonTransactionalStreaming() {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			throw new IllegalStateException("HTTP streaming/file responses require TransactionLevel.None");
 	}
 
 	// 仅EventLoop线程调用：按orderId与writingOrderId的关系及entry终结态直写/挂起/拒绝迟到写。
@@ -1097,7 +1182,7 @@ public class HttpExchange {
 			}, "fireEndStreamHandle");
 			if (handler.Mode == DispatchMode.Direct) {
 				try {
-					TaskSpec.ofProcedure(p).call();
+					TaskSpec.ofFunc(() -> callEndStreamProcedure(p)).name(p.getActionName()).call();
 				} finally {
 					if (detached == 0)
 						close(null);
@@ -1106,7 +1191,7 @@ public class HttpExchange {
 				endStreamTaskPending = true;
 				TaskSpec.ofFunc(() -> {
 					try {
-						return p.call();
+						return callEndStreamProcedure(p);
 					} finally {
 						if (detached == 0)
 							close(null);
@@ -1126,6 +1211,13 @@ public class HttpExchange {
 					.name("fireEndStreamHandle").dispatchMode(handler.Mode).onCancel(cancel)
 					.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
+	}
+
+	private long callEndStreamProcedure(@NotNull Procedure procedure) {
+		long rc = procedure.call();
+		if (rc != Procedure.Success && detached != 2)
+			close(sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, "HTTP handler transaction failed"));
+		return rc;
 	}
 
 	protected void fireWebSocket(@NotNull WebSocketFrame frame) {
@@ -1280,6 +1372,22 @@ public class HttpExchange {
 	}
 
 	protected void close(int method, @Nullable ChannelFuture cf) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning()) {
+			synchronized (this) {
+				var log = headersLog(t);
+				log.closeMethod = method;
+				log.closeFuture = cf;
+			}
+			return;
+		}
+		ArrayList<ChannelPromise> abandoned;
+		synchronized (this) {
+			abandoned = new ArrayList<>(deferredResponsePromises);
+			deferredResponsePromises.clear();
+		}
+		for (var promise : abandoned)
+			promise.tryFailure(new IllegalStateException("HTTP transaction completed without committing response"));
 		if ((int)detachedHandle.getAndSet(this, 2) == 2)
 			return;
 		var ch = context.channel();
@@ -1429,6 +1537,7 @@ public class HttpExchange {
 	}
 
 	public void sendFile(@NotNull File file) throws Exception {
+		requireNonTransactionalStreaming();
 		HttpFileService.sendFile(this, file, 10 * 60);
 	}
 
@@ -1439,10 +1548,12 @@ public class HttpExchange {
 	 * @param fileCacheSeconds 客户端缓存秒数（Expires与max-age）
 	 */
 	public void sendFile(@NotNull File file, int fileCacheSeconds) throws Exception {
+		requireNonTransactionalStreaming();
 		HttpFileService.sendFile(this, file, fileCacheSeconds);
 		}
 
 	public void sendPath(@NotNull File file) {
+		requireNonTransactionalStreaming();
 		HttpFileService.sendPath(this, file);
 		}
 
@@ -1484,6 +1595,7 @@ public class HttpExchange {
 	 * {@link #endStream}收尾；高吞吐大流量建议按块检查{@link #isWritable()}（背压）。
 	 */
 	public @NotNull ChannelFuture beginStream(@NotNull HttpResponseStatus status, @NotNull HttpHeaders headers) {
+		requireNonTransactionalStreaming();
 		if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH))
 			headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
 		return writeResponse(new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers), true, null);
@@ -1527,6 +1639,7 @@ public class HttpExchange {
 	 * 终结符经序化器按请求到达序写出。
 	 */
 	public void endStream() {
+		requireNonTransactionalStreaming();
 		if ((int)detachedHandle.getAndSet(this, 2) == 2)
 			return;
 		server.exchanges.remove(context.channel().id(), this);

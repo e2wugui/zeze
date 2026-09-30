@@ -99,11 +99,121 @@ public class TestHttpTransactionBoundary {
 		}
 	}
 
+	@Test
+	public void testRedoSendsOnlyCommittedResponseAndSessionCookie() throws Exception {
+		try (var env = new Env(); var scope = new ChannelScope()) {
+			var channel = scope.channel;
+			var x = new Exchange(env.server, channel);
+			x.addHeader(HttpHeaderNames.SET_COOKIE, "OTHER=keep");
+			var attempts = new AtomicInteger();
+			var bodies = new ArrayList<ByteBuf>();
+			var sessions = new ArrayList<HttpSession.CookieSession>();
+			long rc = env.app.newProcedure(() -> {
+				int attempt = attempts.incrementAndGet();
+				var cs = x.getCookieSession();
+				Assertions.assertNotNull(cs);
+				sessions.add(cs);
+				cs.setProperty("value", "attempt-" + attempt);
+				x.setCookie("ATTEMPT", "attempt-" + attempt, null, null, -1);
+				var body = Unpooled.copiedBuffer("attempt-" + attempt, StandardCharsets.UTF_8);
+				bodies.add(body);
+				x.send(HttpResponseStatus.OK, "text/plain", body);
+				Assertions.assertNull(channel.readOutbound(), "提交前不可有网络响应");
+				if (attempt == 1)
+					Transaction.getCurrent().throwRedo(
+							env.app.getTable("Zeze_Builtin_HttpSession_tSession").getId(), "forced HTTP redo");
+				return Procedure.Success;
+			}, "HttpTransactionBoundary.redo").call();
+			Assertions.assertEquals(Procedure.Success, rc);
+			Assertions.assertEquals(2, attempts.get());
+			Assertions.assertNotSame(sessions.get(0), sessions.get(1));
+			Assertions.assertEquals("attempt-2", x.getCookieSession().getProperty("value"));
+			Assertions.assertEquals(3, x.cookieHeaders().size(), "保留无关cookie及提交轮的session/普通cookie");
+			Assertions.assertTrue(x.cookieHeaders().contains("ATTEMPT=attempt-2"));
+			Assertions.assertFalse(x.cookieHeaders().contains("ATTEMPT=attempt-1"));
+			bodies.forEach(body -> Assertions.assertEquals(0, body.refCnt()));
+			channel.runPendingTasks();
+			FullHttpResponse response = channel.readOutbound();
+			Assertions.assertNotNull(response);
+			try {
+				Assertions.assertEquals("attempt-2", response.content().toString(StandardCharsets.UTF_8));
+				Assertions.assertEquals(3, response.headers().getAll(HttpHeaderNames.SET_COOKIE).size());
+			} finally {
+				response.release();
+			}
+			Assertions.assertNull(channel.readOutbound(), "redo首轮响应不可出现");
+			x.closeConnectionNow();
+		}
+	}
 
+	@Test
+	public void testFailedHandlersSend500AndReleaseProvisionalBodies() throws Exception {
+		try (var env = new Env()) {
+			for (var mode : new DispatchMode[]{DispatchMode.Direct, DispatchMode.Normal}) {
+				try (var scope = new ChannelScope()) {
+					var channel = scope.channel;
+					var x = new Exchange(env.server, channel);
+					var body = Unpooled.copiedBuffer("provisional 200", StandardCharsets.UTF_8);
+					var entered = new CountDownLatch(1);
+					x.fire(new HttpHandler(1024, TransactionLevel.Serializable, mode, exchange -> {
+						entered.countDown();
+						exchange.send(HttpResponseStatus.OK, "text/plain", body);
+						throw new IllegalStateException("forced terminal rollback");
+					}));
+					Assertions.assertTrue(entered.await(5, TimeUnit.SECONDS));
+					long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+					while (x.pending() && System.nanoTime() < deadline)
+						Thread.sleep(1);
+					Assertions.assertFalse(x.pending(), "handler任务须已完成");
+					channel.runPendingTasks();
+					FullHttpResponse response = channel.readOutbound();
+					Assertions.assertNotNull(response, "失败须返回状态，不可只flush空buffer挂起客户端");
+					try {
+						Assertions.assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
+					} finally {
+						response.release();
+					}
+					Assertions.assertEquals(0, body.refCnt());
+					Object next;
+					while ((next = channel.readOutbound()) != null) {
+						Assertions.assertFalse(next instanceof FullHttpResponse, "不得追加旧200响应");
+						ReferenceCountUtil.release(next);
+					}
+				}
+			}
+		}
+	}
 
-
-
-
+	@Test
+	public void testRollbackClearsSessionCacheAndStreamingGuardPrecedesMutation() throws Exception {
+		try (var env = new Env(); var scope = new ChannelScope()) {
+			var channel = scope.channel;
+			var x = new Exchange(env.server, channel);
+			var old = new HttpSession.CookieSession[1];
+			x.addHeader(HttpHeaderNames.SET_COOKIE, "OTHER=keep");
+			long rc = env.app.newProcedure(() -> {
+				old[0] = x.getCookieSession();
+				old[0].setProperty("value", "rolled back");
+				throw new IllegalStateException("forced terminal rollback");
+			}, "HttpTransactionBoundary.rollback").call();
+			Assertions.assertNotEquals(Procedure.Success, rc);
+			Assertions.assertEquals(java.util.List.of("OTHER=keep"), x.cookieHeaders());
+			var fresh = x.getCookieSession();
+			Assertions.assertNotSame(old[0], fresh);
+			fresh.setProperty("value", "fresh");
+			Assertions.assertEquals("fresh", fresh.getProperty("value"));
+			var headers = new DefaultHttpHeaders();
+			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
+				var error = Assertions.assertThrows(IllegalStateException.class,
+						() -> x.beginStream(HttpResponseStatus.OK, headers));
+				Assertions.assertTrue(error.getMessage().contains("TransactionLevel.None"));
+				Assertions.assertFalse(headers.contains(HttpHeaderNames.TRANSFER_ENCODING));
+				Assertions.assertNull(channel.readOutbound());
+				return Procedure.Success;
+			}, "HttpTransactionBoundary.streaming").call());
+			x.closeConnectionNow();
+		}
+	}
 
 	@Test
 	public void testNestedRollbackAndRedoPreserveOnlyCommittedHeaders() throws Exception {
@@ -138,7 +248,43 @@ public class TestHttpTransactionBoundary {
 		}
 	}
 
-
+	@Test
+	public void testNestedResponseAndCloseSelectTheCommittedSavepoint() throws Exception {
+		try (var env = new Env()) {
+			for (boolean commitNested : new boolean[]{false, true}) {
+				try (var scope = new ChannelScope()) {
+					var channel = scope.channel;
+					var x = new Exchange(env.server, channel);
+					var futures = new ChannelFuture[2];
+					Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
+						futures[0] = x.sendPlainText(HttpResponseStatus.OK, "outer");
+						x.close(futures[0]);
+						var nestedResult = env.app.newProcedure(() -> {
+							futures[1] = x.sendPlainText(HttpResponseStatus.OK, "inner");
+							return commitNested ? Procedure.Success : Procedure.Unknown;
+						}, "HttpTransactionBoundary.nestedResponse").call();
+						Assertions.assertEquals(commitNested ? Procedure.Success : Procedure.Unknown, nestedResult);
+						Assertions.assertNull(channel.readOutbound());
+						return Procedure.Success;
+					}, "HttpTransactionBoundary.responseAndClose").call());
+					channel.runPendingTasks();
+					FullHttpResponse response = channel.readOutbound();
+					Assertions.assertNotNull(response, "nested分支不能抹掉最终有效响应");
+					try {
+						Assertions.assertEquals(commitNested ? "inner" : "outer",
+								response.content().toString(StandardCharsets.UTF_8));
+					} finally {
+						response.release();
+					}
+					Assertions.assertTrue(futures[commitNested ? 1 : 0].isSuccess());
+					Assertions.assertTrue(futures[commitNested ? 0 : 1].isDone());
+					Assertions.assertFalse(futures[commitNested ? 0 : 1].isSuccess());
+					Assertions.assertFalse(x.hasRequest(), "close意图须在最终响应完成后兑现");
+					Assertions.assertNull(channel.readOutbound(), "只能发出一个完整响应");
+				}
+			}
+		}
+	}
 
 
 
