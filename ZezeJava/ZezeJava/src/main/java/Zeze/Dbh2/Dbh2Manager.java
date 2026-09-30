@@ -234,6 +234,9 @@ public class Dbh2Manager {
 	// createBucket幂等（dbh2s.computeIfAbsent），重复执行无副作用。
 	private volatile boolean masterRegisterReady = false;
 	private void registerToMaster() throws Exception {
+		// Register replaces the master's manager entry with ready=false on every retry.
+		// Only this registration's successful SetDbh2Ready may restore local readiness.
+		masterRegisterReady = false;
 		var acceptorAddress = masterService.getAcceptorAddress();
 		var dbh2sAtMaster = masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2s.size());
 		logger.info("{}, {} - rafts=\n{}\n{}", acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2sAtMaster, dbh2s.keySet());
