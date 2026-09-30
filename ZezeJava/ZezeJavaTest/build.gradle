@@ -49,6 +49,9 @@ dependencies {
     // ZezeJava 侧为 compileOnly 可选集成，版本保持一致）
     testImplementation 'com.ecwid.consul:consul-api:1.4.5'
 
+    // DynamoDB 客户端边界契约测试；与主工程的可选 SDK 版本一致。
+    testImplementation 'com.amazonaws:aws-java-sdk-dynamodb:1.12.797'
+
     // for GTable
     //implementation 'com.google.guava:guava:33.4.0-jre'
 

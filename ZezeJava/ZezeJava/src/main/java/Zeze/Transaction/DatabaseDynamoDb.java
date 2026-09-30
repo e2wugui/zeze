@@ -39,16 +39,23 @@ public class DatabaseDynamoDb extends Database {
 	private final AmazonDynamoDB dynamoDbClient;
 
 	public DatabaseDynamoDb(Application zeze, Config.DatabaseConf conf) {
-		super(zeze, conf);
+		this(zeze, conf, createClient(conf));
+	}
 
+	DatabaseDynamoDb(Application zeze, Config.DatabaseConf conf, AmazonDynamoDB client) {
+		super(zeze, conf);
+		dynamoDbClient = client;
+		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesDynamoDb());
+	}
+
+	private static AmazonDynamoDB createClient(Config.DatabaseConf conf) {
 		var dynamoConf = conf.getDynamoConf();
 		// 这里验证证书是通过配置文件指定的。
 		// 增加参数指定endpoint，用来支持明确的服务器，便于测试。
-		dynamoDbClient = AmazonDynamoDBClientBuilder.standard()
+		return AmazonDynamoDBClientBuilder.standard()
 				.withRegion(dynamoConf.region)
 				.enableEndpointDiscovery()
 				.build();
-		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesDynamoDb());
 	}
 
 	@Override
@@ -83,6 +90,8 @@ public class DatabaseDynamoDb extends Database {
 		public OperatesDynamoDb() {
 			var schemaTableName = "Zeze_OperatesDynamoDb_Schemas";
 			dataWithVersion = (TableDynamoDb)openTable(schemaTableName, Bean.hash32(schemaTableName));
+			// Schema compatibility reads this table before Database.open waits for user tables.
+			dataWithVersion.waitReady();
 		}
 
 		@Override
