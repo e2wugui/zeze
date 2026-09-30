@@ -478,9 +478,15 @@ public class DepartmentTree<
 		// 先验证目标处不重名，再从旧父摘除：验证失败路径零改动——调用方吞掉错误码时也不会留下孤儿部门。
 		if (null != newParent.getChildren().putIfAbsent(department.getName(), departmentId))
 			return module.errorCode(Module.ErrorDepartmentDuplicate);
-		var oldParent = getDepartmentTreeNode(department.getParentDepartment());
-		if (null != oldParent) // 旧父行缺失（孤儿部门）时跳过摘除，继续修复归属
-			oldParent.getChildren().remove(department.getName());
+		if (department.getParentDepartment() == 0) {
+			var root = module._tDepartment.get(name);
+			if (root != null)
+				root.getChildren().remove(department.getName());
+		} else {
+			var oldParent = getDepartmentTreeNode(department.getParentDepartment());
+			if (oldParent != null)
+				oldParent.getChildren().remove(department.getName());
+		}
 		department.setParentDepartment(parent);
 		return 0;
 	}

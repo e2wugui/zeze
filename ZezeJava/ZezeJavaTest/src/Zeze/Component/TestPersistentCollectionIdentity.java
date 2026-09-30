@@ -97,5 +97,28 @@ public class TestPersistentCollectionIdentity {
 		}
 	}
 
-
+	@Test
+	public void rootDepartmentCanMoveUnderAnotherDepartment() throws Exception {
+		var app = new Application("RootDepartmentMove", TakeoverTestEnv.newConf("off", 600_000, 600_000));
+		var linked = new LinkedMap.Module(app);
+		var module = new DepartmentTree.Module(app, linked);
+		try {
+			app.start();
+			var tree = module.open("move", BMyBean.class, BMyBean.class, BMyBean.class, BMyBean.class, BMyBean.class);
+			assertEquals(0, app.newProcedure(() -> {
+				tree.create();
+				var a = new OutLong();
+				var b = new OutLong();
+				assertEquals(0, tree.createDepartment(0, "A", 10, a));
+				assertEquals(0, tree.createDepartment(0, "B", 10, b));
+				assertEquals(0, tree.moveDepartment(a.value, b.value));
+				return 0;
+			}, "move").call());
+			assertFalse(tree.selectRoot().getChildren().containsKey("A"));
+			assertEquals(2, tree.selectDepartmentTreeNode(1).getParentDepartment());
+			assertEquals(1L, tree.selectDepartmentTreeNode(2).getChildren().get("A").longValue());
+		} finally {
+			app.stop();
+		}
+	}
 }
