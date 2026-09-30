@@ -44,6 +44,9 @@ import harness.Fast;
  */
 @Fast
 public class TestLog4jAllViewNoReachableServer {
+	/** 会话身份条件指纹样本（值任意，比对按值等价）。 */
+	private static final String COND = "search|-1|-1|1|[error]|";
+
 	@BeforeEach
 	public void before() {
 		Task.tryInitThreadPool();
@@ -72,7 +75,7 @@ public class TestLog4jAllViewNoReachableServer {
 			// 源 IP 用独立网段，避免与并行车道的其他 FileSessionManager 直测互踩静态表。
 			var client = new InetSocketAddress(InetAddress.getByName("10.200.30.40"), 45678);
 			var ex = assertThrows(IllegalStateException.class, () -> FileSessionManager.resolve(
-					logAgent, client, false, true, null, "zeze.log"),
+					logAgent, client, false, true, null, "zeze.log", COND),
 					"注册表非空但全部不可达：resolve 必须显式失败而非返回 0 成员会话");
 			assertTrue(ex.getMessage().contains("no reachable log server for all-servers view"),
 					"错误须指向全部不可达：\n" + ex.getMessage());

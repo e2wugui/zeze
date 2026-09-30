@@ -84,8 +84,12 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 			con.getWords().addAll(searchLogParam.wordsToList());
 			con.setContainsType(searchLogParam.getContainsType());
 			con.setPattern(searchLogParam.getPattern());
+			// 条件指纹参与会话身份（FND34 zokermanager-02）：改条件再搜（前端成功回调后
+			// changeSession/reset 恒 false）不得复用旧游标会话——服务端仅 beginTime 有
+			// 去重哨兵，条件变即关旧建新，新条件从查询窗口头完整求值。
+			String conditionKey = searchLogParam.conditionFingerprint(false);
 
-			// 会话回执比对（FileSessionManager.resolve：三元组+allView键集快照，不匹配/漂移即关旧建新）
+			// 会话回执比对（FileSessionManager.resolve：四元组+allView键集快照，不匹配/漂移即关旧建新）
 			// + 会话级错误驱逐重建重试一次（operateRecovering，zoker-03）：正确性不依赖前端
 			// 记得置 changeSession，服务端空闲回收后的死会话不再恒 system error。
 			SocketAddress socketAddress = x.channel().remoteAddress();
@@ -101,7 +105,7 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 					return;
 				}
 				BResult.Data data = FileSessionManager.operateRecovering(logAgent, socketAddress,
-						searchLogParam.isChangeSession(), false, serverName, logName,
+						searchLogParam.isChangeSession(), false, serverName, logName, conditionKey,
 						session -> {
 							x.setUserState(session);
 							return ((Session)session).search(searchLogParam.getLimit(), searchLogParam.isReset(), con)
@@ -110,7 +114,7 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.succResult(data)));
 			} else {
 				BResult.Data data = FileSessionManager.operateRecovering(logAgent, socketAddress,
-						searchLogParam.isChangeSession(), true, null, logName,
+						searchLogParam.isChangeSession(), true, null, logName, conditionKey,
 						session -> {
 							x.setUserState(session);
 							return ((SessionAll)session).search(searchLogParam.getLimit(), searchLogParam.isReset(), con);

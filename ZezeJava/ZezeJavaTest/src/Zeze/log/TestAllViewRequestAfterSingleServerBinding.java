@@ -35,6 +35,8 @@ import harness.Fast;
 @Isolated
 public class TestAllViewRequestAfterSingleServerBinding {
 
+	/** 会话身份条件指纹样本（值任意，比对按值等价）。 */
+	private static final String COND = "search|-1|-1|1|[error]|";
 	@BeforeEach
 	public void before() {
 		Task.tryInitThreadPool();
@@ -48,9 +50,9 @@ public class TestAllViewRequestAfterSingleServerBinding {
 		agent.registry = Set.of("game1"); // 不可含 null：contains(null) 抛 NPE（CHM keySet 同契约）
 		var bound = newUninitialized(StubSession.class);
 		var addr = clientAddr(58);
-		FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", bound));
+		FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", "search|-1|-1|1|[error]|", bound));
 
-		var sessionAll = FileSessionManager.resolve(agent, addr, false, true, null, "zeze");
+		var sessionAll = FileSessionManager.resolve(agent, addr, false, true, null, "zeze", COND);
 
 		assertSame(agent.sessionAll, sessionAll, "全服视图请求走关旧建新（修复前 NPE）");
 		assertEquals(1, agent.newSessionAllCalls, "必须重建全服会话而非复用单服绑定");
@@ -67,9 +69,9 @@ public class TestAllViewRequestAfterSingleServerBinding {
 		agent.registry = Set.of("game1");
 		var bound = newUninitialized(StubSession.class);
 		var addr = clientAddr(59);
-		FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", bound));
+		FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", "search|-1|-1|1|[error]|", bound));
 
-		var rebuilt = FileSessionManager.resolve(agent, addr, true, true, null, "zeze");
+		var rebuilt = FileSessionManager.resolve(agent, addr, true, true, null, "zeze", COND);
 		assertSame(agent.sessionAll, rebuilt, "changeSession 强制重建同样不得 NPE");
 		assertTrue(FileSessionManager.get(addr).all());
 	}
@@ -82,9 +84,9 @@ public class TestAllViewRequestAfterSingleServerBinding {
 		agent.registry = Set.of("game1");
 		var bound = newUninitialized(StubSessionAll.class);
 		var addr = clientAddr(60);
-		FileSessionManager.put(addr, LogSessionBinding.allView("zeze", bound));
+		FileSessionManager.put(addr, LogSessionBinding.allView("zeze", "search|-1|-1|1|[error]|", bound));
 
-		var rebuilt = FileSessionManager.resolve(agent, addr, false, false, "game1", "zeze");
+		var rebuilt = FileSessionManager.resolve(agent, addr, false, false, "game1", "zeze", COND);
 		assertSame(agent.session, rebuilt, "视图切换走关旧建新");
 		assertEquals(1, agent.newSessionCalls);
 	}
@@ -96,9 +98,9 @@ public class TestAllViewRequestAfterSingleServerBinding {
 		agent.registry = Set.of("game1");
 		var bound = newUninitialized(StubSession.class);
 		var addr = clientAddr(61);
-		FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", bound));
+		FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", "search|-1|-1|1|[error]|", bound));
 
-		assertSame(bound, FileSessionManager.resolve(agent, addr, false, false, "game1", "zeze"),
+		assertSame(bound, FileSessionManager.resolve(agent, addr, false, false, "game1", "zeze", COND),
 				"在册单服绑定照常复用");
 		assertEquals(0, agent.newSessionCalls);
 	}

@@ -37,6 +37,8 @@ import harness.Fast;
 @Isolated
 public class TestParamErrorNoSessionRebuild {
 
+	/** 会话身份条件指纹样本（值任意，比对按值等价）。 */
+	private static final String COND = "search|-1|-1|1|[error]|";
 	@BeforeEach
 	public void before() {
 		Task.tryInitThreadPool();
@@ -54,7 +56,7 @@ public class TestParamErrorNoSessionRebuild {
 
 		var addr = clientAddr(51);
 		var ex = assertThrows(RuntimeException.class,
-				() -> FileSessionManager.operateRecovering(agent, addr, false, false, "game1", "zeze",
+				() -> FileSessionManager.operateRecovering(agent, addr, false, false, "game1", "zeze", COND,
 						this::opSearch));
 		assertTrue(ex.getMessage().startsWith("search/browse error "),
 				"参数级异常必须原样上抛（消息保留便于诊断）: " + ex.getMessage());
@@ -69,7 +71,7 @@ public class TestParamErrorNoSessionRebuild {
 
 		var addr = clientAddr(52);
 		assertThrows(RuntimeException.class,
-				() -> FileSessionManager.operateRecovering(agent, addr, false, false, "game1", "zeze",
+				() -> FileSessionManager.operateRecovering(agent, addr, false, false, "game1", "zeze", COND,
 						this::opSearch));
 		assertEquals(1, agent.newSessionCalls, "网络类瞬时失败不触发会话重建");
 	}

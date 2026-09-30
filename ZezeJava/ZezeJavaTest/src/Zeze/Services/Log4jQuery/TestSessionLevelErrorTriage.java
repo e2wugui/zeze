@@ -40,6 +40,9 @@ import harness.Fast;
 @Isolated
 public class TestSessionLevelErrorTriage {
 
+	/** 会话身份条件指纹样本（值任意，比对按值等价）。 */
+	private static final String COND = "search|-1|-1|1|[error]|";
+
 	@BeforeEach
 	public void before() {
 		Task.tryInitThreadPool();
@@ -92,7 +95,7 @@ public class TestSessionLevelErrorTriage {
 		agent.sessionFailure = new Session.SessionLevelException("search/browse error -6");
 		// 首会话死亡、重建会话成功：agent.sessionFailure 在首次失败后清除（模拟服务端重建后正常）。
 		var addr = clientAddr(61);
-		var result = FileSessionManager.operateRecovering(agent, addr, false, false, "game1", "zeze",
+		var result = FileSessionManager.operateRecovering(agent, addr, false, false, "game1", "zeze", COND,
 				TestSessionLevelErrorTriage::opSearch);
 		assertEquals(2, agent.newSessionCalls, "会话级死亡触发关旧建新（newSession 两次）");
 		assertEquals(1, result.getLogs().size(), "重建后同参数重试一次必须返回结果");
@@ -105,7 +108,7 @@ public class TestSessionLevelErrorTriage {
 		agent.sessionFailure = new Session.InvalidArgumentException("search/browse error -100");
 		var addr = clientAddr(62);
 		assertThrows(Session.InvalidArgumentException.class,
-				() -> FileSessionManager.operateRecovering(agent, addr, false, false, "game1", "zeze",
+				() -> FileSessionManager.operateRecovering(agent, addr, false, false, "game1", "zeze", COND,
 						TestSessionLevelErrorTriage::opSearch));
 		assertEquals(1, agent.newSessionCalls, "参数级拒绝不得触发会话驱逐重建");
 	}

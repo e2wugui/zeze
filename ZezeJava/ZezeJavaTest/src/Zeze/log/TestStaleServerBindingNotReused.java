@@ -35,6 +35,8 @@ import harness.Fast;
 @Isolated
 public class TestStaleServerBindingNotReused {
 
+	/** 会话身份条件指纹样本（值任意，比对按值等价）。 */
+	private static final String COND = "search|-1|-1|1|[error]|";
 	@BeforeEach
 	public void before() {
 		Task.tryInitThreadPool();
@@ -47,10 +49,10 @@ public class TestStaleServerBindingNotReused {
 		agent.registry = Set.of(); // game1 已被 SM 摘除
 		var bound = newUninitialized(StubSession.class);
 		var addr = clientAddr(55);
-		FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", bound));
+		FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", "search|-1|-1|1|[error]|", bound));
 
 		var ex = assertThrows(IllegalArgumentException.class,
-				() -> FileSessionManager.resolve(agent, addr, false, false, "game1", "zeze"),
+				() -> FileSessionManager.resolve(agent, addr, false, false, "game1", "zeze", COND),
 				"摘册的绑定不得复用——重建对未注册名必须显式失败");
 		assertTrue(ex.getMessage().contains("game1"), "异常携带服务器名便于诊断: " + ex.getMessage());
 		assertEquals(1, agent.newSessionCalls, "摘册绑定必须走重建路径（newSession 被调用）");
@@ -63,9 +65,9 @@ public class TestStaleServerBindingNotReused {
 		agent.registry = Set.of("game1");
 		var bound = newUninitialized(StubSession.class);
 		var addr = clientAddr(56);
-		FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", bound));
+		FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", "search|-1|-1|1|[error]|", bound));
 
-		assertSame(bound, FileSessionManager.resolve(agent, addr, false, false, "game1", "zeze"),
+		assertSame(bound, FileSessionManager.resolve(agent, addr, false, false, "game1", "zeze", COND),
 				"在册服务器的绑定照常复用");
 		assertEquals(0, agent.newSessionCalls, "复用命中不得重建");
 	}

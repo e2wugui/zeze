@@ -232,6 +232,27 @@ public class SearchLogParam {
 		return wordList;
 	}
 
+	/**
+	 * 会话身份的查询条件指纹（FND34 zokermanager-02）：words（归一列表，与
+	 * 服务端过滤同源）、pattern、containsType、beginTime/endTime（解析值——空串
+	 * 与缺省归一为 -1，等值不同写法不误判漂移）拼接的确定性串，browse 另含
+	 * offsetFactor（定位窗口因子，变更即重新定位，语义同条件变更）并以模式前缀
+	 * 区分（search/browse 对游标的消费形态不同，不共享会话身份）。翻页路径条件
+	 * 不变，指纹稳定。调用时序：入口校验之后（时间串已预检可解析、words/pattern
+	 * 归一后非双空）。
+	 * <p>会话回执比对以它扩维（{@code LogSessionBinding.matches}）：服务端仅
+	 * beginTime 有去重哨兵（Log4jSession.trySetBeginTime），words/pattern/
+	 * containsType/endTime 变更复用旧会话只从当前游标向前求值——新条件在游标
+	 * 之前的匹配静默缺失且 200 成功；条件变即视同 changeSession 关旧建新，
+	 * 新条件从查询窗口头完整求值（丢水位/游标正是"新条件新查询"的应有语义）。</p>
+	 */
+	public String conditionFingerprint(boolean browse) throws ParseException {
+		return (browse ? "browse|" : "search|")
+				+ parseBeginTime() + "|" + parseEndTime() + "|" + getContainsType()
+				+ "|" + wordsToList() + "|" + (getPattern() == null ? "" : getPattern())
+				+ (browse ? "|" + getOffsetFactor() : "");
+	}
+
 	public long parseBeginTime() throws ParseException {
 		if (beginTime == null || beginTime.isBlank()) {
 			return -1;

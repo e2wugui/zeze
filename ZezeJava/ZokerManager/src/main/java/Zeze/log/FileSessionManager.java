@@ -20,13 +20,16 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * Search/Browse 的会话身份表：键为客户端出口 IP（纯IP，无端口，IPv6 取规范host地址），
- * 值为 {@link LogSessionBinding}（会话对象 + (会话类型, serverName, logName) 绑定三元组）。
- * HTTP处理器在Normal线程池并发取/存，必须是并发容器。
+ * 值为 {@link LogSessionBinding}（会话对象 + (会话类型, serverName, logName, 条件指纹)
+ * 绑定四元组）。HTTP处理器在Normal线程池并发取/存，必须是并发容器。
  *
  * <p>会话回执比对：复用会话前用 {@link LogSessionBinding#matches} 比对
- * 请求三元组与绑定记录（allView 另比对服务器键集快照，zoker-04），不匹配（或
- * changeSession 强制重建）时关旧建新——客户端漏置 changeSession 不会串数据源，
- * changeSession 只是"强制重建"提示符而非正确性前提。比对+重建的收口见 {@link #resolve}。
+ * 请求四元组（数据源三元组 + 查询条件指纹；allView 另比对服务器键集快照，
+ * zoker-04；条件指纹 FND34 zokermanager-02——服务端仅 beginTime 有去重哨兵，
+ * 条件变更必须关旧建新防静默漏早段匹配），不匹配（或
+ * changeSession 强制重建）时关旧建新——客户端漏置 changeSession 不会串数据源
+ * 也不会串条件，changeSession 只是"强制重建"提示符而非正确性前提。比对+重建的
+ * 收口见 {@link #resolve}。
  * 死会话自愈（zoker-03）：复用命中但服务端已拒绝本会话（空闲回收后的 LogicError）时，
  * {@link #operateRecovering} 驱逐重建并重试一次，同 IP 同参数查询不再恒 system error。</p>
  *
@@ -113,10 +116,14 @@ public class FileSessionManager {
 
 	/**
 	 * 会话回执比对 + 替换关闭（SearchLogHandle/BrowseLogHandle 共用）：
-	 * 请求三元组与现绑定一致（且未强制 changeSession、allView 键集未漂移）时复用会话并
-	 * 刷新最后活跃时间（闲置回收见 {@link #sweepIdleBindings}）；否则建新会话、替换绑定并
-	 * 异步关闭旧会话（替换关闭语义：释放服务端查询句柄，避免替换出的旧会话句柄滞留到进程结束）。
-	 * 建新失败（目标服务器不可达等）直接上抛，旧绑定保持原样不受影响——下次请求可继续收敛。
+	 * 请求四元组（会话类型, serverName, logName, 查询条件指纹——条件指纹见
+	 * {@link LogSessionBinding}，FND34 zokermanager-02 起参与会话身份：条件变即
+	 * 视同 changeSession 关旧建新，防"改条件再搜复用旧游标静默漏早段匹配"）与现
+	 * 绑定一致（且未强制 changeSession、allView 键集未漂移）时复用会话并刷新最后
+	 * 活跃时间（闲置回收见 {@link #sweepIdleBindings}）；否则建新会话、替换绑定并
+	 * 异步关闭旧会话（替换关闭语义：释放服务端查询句柄，避免替换出的旧会话句柄
+	 * 滞留到进程结束）。建新失败（目标服务器不可达等）直接上抛，旧绑定保持原样
+	 * 不受影响——下次请求可继续收敛。
 	 *
 	 * <p>全服视图复用收敛比对（zoker-04 键集漂移 + FND30 zokermanager-02 成员集权威）：
 	 * SessionAll 复用前以会话实际成员集比对当前注册表（allViewMembersConverged）——多余
@@ -131,17 +138,18 @@ public class FileSessionManager {
 	 * 错误承载（BaseResponse status=500，前端按 desc 报错），见下方重建路径的成员校验。</p>
 	 */
 	public static Object resolve(LogAgent logAgent, SocketAddress socketAddress, boolean changeSession,
-								 boolean requestAll, String serverName, String logName) throws Exception {
+								 boolean requestAll, String serverName, String logName,
+								 String conditionKey) throws Exception {
 		maybeSweepIdleBindings();
 		var bound = get(socketAddress);
 		// 复用前置校验——绑定的查询目标必须仍在注册表：单服务器视图下服务器被 SM 摘除后
-		// matches 三元组恒命中、死绑定恒复用，Session 内对已摘册名的失败每页必现直到 2h
+		// matches 四元组恒命中、死绑定恒复用，Session 内对已摘册名的失败每页必现直到 2h
 		// 闲置清扫——摘册即视同 changeSession 走重建（重建对未注册名显式失败）。全服视图
 		// 的摘册收敛由 allViewMembersConverged 承担。
 		// 校验按请求可达性惰性求值（matches 之后）：matches 已短路视图不一致，单服绑定的
 		// contains(serverName) 求值时请求必为单服视图（serverName 非 null，无 NPE 面）；
 		// 全服视图请求（serverName=null）对单服绑定走关旧建新，不触碰 contains(null)。
-		if (!changeSession && bound != null && bound.matches(requestAll, serverName, logName)
+		if (!changeSession && bound != null && bound.matches(requestAll, serverName, logName, conditionKey)
 				&& reuseConverged(logAgent, bound, serverName)) {
 			// 复用命中刷新活跃时间：条件 replace 只在条目仍是同一绑定时生效——并发 resolve
 			// 已换绑（changeSession/参数变化/键集漂移重建）时不回写旧绑定覆盖新会话；本次返回的旧会话
@@ -167,8 +175,8 @@ public class FileSessionManager {
 					+ " (registered=" + registered + ", members=0)");
 		}
 		var binding = requestAll
-				? LogSessionBinding.allView(logName, session, membersKeyOf(((SessionAll) session).memberNames()))
-				: LogSessionBinding.server(serverName, logName, session);
+				? LogSessionBinding.allView(logName, conditionKey, session, membersKeyOf(((SessionAll) session).memberNames()))
+				: LogSessionBinding.server(serverName, logName, conditionKey, session);
 		var old = put(socketAddress, binding);
 		if (old != null && old.session() != session)
 			closeAsync(old);
@@ -233,7 +241,7 @@ public class FileSessionManager {
 	 */
 	public static <T> T operateRecovering(LogAgent logAgent, SocketAddress socketAddress,
 										  boolean changeSession, boolean requestAll,
-										  String serverName, String logName,
+										  String serverName, String logName, String conditionKey,
 										  Func1<Object, T> operate) throws Exception {
 		// N03（FND28）：同IP同时只允许一个search/browse在飞（守卫 rationale 见inFlightByIp注释）；
 		// 并发者快速失败（可见system error+warn）不排队——慢查询（最长60s）下排队只会堆积放大。
@@ -245,11 +253,13 @@ public class FileSessionManager {
 			throw new IllegalStateException("concurrent search/browse on same session, retry after current request completes");
 		}
 		try {
-			var session = resolve(logAgent, socketAddress, changeSession, requestAll, serverName, logName);
+			var session = resolve(logAgent, socketAddress, changeSession, requestAll, serverName, logName,
+					conditionKey);
 			try {
 				return operate.call(session);
 			} catch (Session.SessionLevelException e) {
-				var fresh = resolve(logAgent, socketAddress, true, requestAll, serverName, logName);
+				var fresh = resolve(logAgent, socketAddress, true, requestAll, serverName, logName,
+						conditionKey);
 				return operate.call(fresh);
 			}
 		} finally {

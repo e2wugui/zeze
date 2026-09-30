@@ -53,10 +53,10 @@ public class TestD07IdleBindingSweep {
 	public void testIdleBindingEvictedAndFreshKept() throws Exception {
 		var staleSession = new StubSession();
 		// 闲置超过 TTL（2h）：以 touched 回拨 3h 摆出闲置形态（touched 只前移时间戳，三元组/会话不变）
-		var staleBinding = LogSessionBinding.server("server1", "app.log", staleSession)
+		var staleBinding = LogSessionBinding.server("server1", "app.log", "search|-1|-1|1|[error]|", staleSession)
 				.touched(System.nanoTime() - Duration.ofHours(3).toNanos());
 		var freshSession = new StubSession();
-		var freshBinding = LogSessionBinding.server("server1", "app.log", freshSession);
+		var freshBinding = LogSessionBinding.server("server1", "app.log", "search|-1|-1|1|[error]|", freshSession);
 
 		var staleAddr = addr("10.9.9.9");
 		var freshAddr = addr("10.9.9.8");
