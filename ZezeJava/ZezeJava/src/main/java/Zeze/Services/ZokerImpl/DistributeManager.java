@@ -11,9 +11,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Zoker.CommitService;
@@ -85,8 +87,8 @@ public class DistributeManager {
 	// 每个agent连接打开的文件键（=files的折叠记账键）：agent在OpenFile之后、CloseFile之前断链时
 	// 按连接回收FileBin，否则RandomAccessFile句柄常驻泄漏，Windows上还锁住distributes下的文件
 	// 使commit的rename失败。
-	private final ConcurrentHashMap<AsyncSocket, ConcurrentHashMap<String, FileBin>> filesBySocket
-			= new ConcurrentHashMap<>();
+	// 内外记账表都只在此监视器内访问，普通map与这一唯一同步边界保持一致。
+	private final HashMap<AsyncSocket, HashMap<String, FileBin>> filesBySocket = new HashMap<>();
 	// 同服务 commit 串行化锁（services/<svc> 粒度）。键为 foldVersionName(serviceName) 折叠
 	// （serviceName 已过 isSafePathSegment 校验；折叠可能并键的仅尾点/空格与大小写变体，
 	// 过度串行化有界），条目数以（折叠后的）服务名为界，无攻击面放大。跨服务不受影响。
@@ -195,7 +197,7 @@ public class DistributeManager {
 					if (null != existing)
 						winner = existing;
 					else if (null != sender)
-						filesBySocket.computeIfAbsent(sender, __ -> new ConcurrentHashMap<>())
+						filesBySocket.computeIfAbsent(sender, __ -> new HashMap<>())
 								.put(relativeCanonicalFileName, candidate);
 				}
 			}
@@ -224,7 +226,7 @@ public class DistributeManager {
 		synchronized (filesBySocket) {
 			if (sender.isClosed() || files.get(relativeCanonicalFileName) != fileBin)
 				return;
-			filesBySocket.computeIfAbsent(sender, __ -> new ConcurrentHashMap<>())
+			filesBySocket.computeIfAbsent(sender, __ -> new HashMap<>())
 					.put(relativeCanonicalFileName, fileBin);
 		}
 	}
@@ -336,7 +338,7 @@ public class DistributeManager {
 		var victims = new ArrayList<FileBin>();
 		// 摘除记账与并发open原子，close在锁外（FileBin.close含md5读）。
 		synchronized (filesBySocket) {
-			var opened = filesBySocket.remove(socket);
+			var opened = filesBySocket.remove(Objects.requireNonNull(socket));
 			if (opened == null)
 				return;
 			// 记账携带实例身份；旧上传者的迟到断链不能摘掉同路径的新一轮上传。
