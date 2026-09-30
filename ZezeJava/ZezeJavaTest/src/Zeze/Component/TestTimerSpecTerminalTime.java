@@ -25,7 +25,15 @@ public class TestTimerSpecTerminalTime {
 		assertEquals(0, timer.getNextExpectedTime());
 	}
 
-
+	@Test
+	public void buildersRejectAnInitialTriggerBeyondTheDeadline() {
+		var end = System.currentTimeMillis() + 60_000;
+		assertThrows(IllegalArgumentException.class, () -> TimerSpec.ofDelay(3_600_000).endTime(end).build());
+		var nextYear = ZonedDateTime.now().getYear() + 1;
+		assertThrows(IllegalArgumentException.class,
+				() -> TimerSpec.ofCron("0 0 0 1 1 ? " + nextYear).endTime(end).build());
+		assertDoesNotThrow(() -> TimerSpec.ofDelay(0).endTime(end).build());
+	}
 
 
 }

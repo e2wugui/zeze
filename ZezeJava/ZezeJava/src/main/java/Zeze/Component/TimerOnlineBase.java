@@ -449,6 +449,8 @@ abstract class TimerOnlineBase<I> {
 			public long execute(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle)
 					throws Exception {
 				var cronTimer = (BCronTimer)bTimer.getTimerObj();
+				if (cronTimer.getEndTime() > 0 && cronTimer.getNextExpectedTime() > cronTimer.getEndTime())
+					return Procedure.Success; // hasNextFlag=false，由外层取消旧数据中的过界首发。
 				Bean customData = null;
 				var localBean = getLocalTimers(id);
 				if (localBean != null) {
@@ -493,6 +495,10 @@ abstract class TimerOnlineBase<I> {
 			@Override
 			public long execute(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle) {
 				var simpleTimer = (BSimpleTimer)bTimer.getTimerObj();
+				if (simpleTimer.getEndTime() > 0 && simpleTimer.getNextExpectedTime() > simpleTimer.getEndTime()) {
+					simpleTimer.setNextExpectedTime(0);
+					return Procedure.Success;
+				}
 				SimpleTimerSpec.beforeCallSimpleTimer(simpleTimer, false);
 				return TaskSpec.ofProcedure(zeze().newProcedure(() -> {
 					Bean customData = null;

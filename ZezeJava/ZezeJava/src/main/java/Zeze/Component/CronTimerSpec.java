@@ -68,7 +68,7 @@ public final class CronTimerSpec implements TimerSpec {
 	}
 
 	/**
-	 * @param endTime 限制触发的最后时间(unix毫秒时间戳), 只有大于0会限制
+	 * @param endTime 限制预定触发的最后时间(unix毫秒时间戳), 只有大于0会限制；迟到补触发沿用missfire策略
 	 */
 	public @NotNull CronTimerSpec endTime(long endTime) {
 		this.endTime = endTime;
@@ -95,7 +95,10 @@ public final class CronTimerSpec implements TimerSpec {
 		var cronTimer = new BCronTimer();
 		cronTimer.setCronExpression(cronExpression);
 		var now = System.currentTimeMillis();
-		cronTimer.setNextExpectedTime(cronNextTimeAfter(cron, now));
+		var firstTime = cronNextTimeAfter(cron, now);
+		if (endTime > 0 && firstTime > endTime)
+			throw new IllegalArgumentException("first trigger exceeds endTime.");
+		cronTimer.setNextExpectedTime(firstTime);
 		cronTimer.setRemainTimes(times);
 		cronTimer.setEndTime(endTime);
 		cronTimer.setOneByOneKey(oneByOneKey);

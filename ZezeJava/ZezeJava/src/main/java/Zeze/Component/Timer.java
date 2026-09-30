@@ -1259,6 +1259,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				throw new IllegalStateException("maybe operate before timer created");
 			var handle = findTimerHandle(timer.getHandleName());
 			var simpleTimer = timer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
+			if (simpleTimer.getEndTime() > 0 && simpleTimer.getNextExpectedTime() > simpleTimer.getEndTime()) {
+				cancel(serverId, timerId, nodeId, node, handle);
+				return 0; // 兼容旧数据：endTime约束预定触发时间，过界首发也不能执行用户回调。
+			}
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
 				SimpleTimerSpec.beforeCallSimpleTimer(simpleTimer, missfire);
 				var context = new TimerContext(this, timer, simpleTimer.getHappenTimes(),
@@ -1361,6 +1365,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				throw new IllegalStateException("maybe operate before timer created");
 			var handle = findTimerHandle(timer.getHandleName());
 			var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
+			if (cronTimer.getEndTime() > 0 && cronTimer.getNextExpectedTime() > cronTimer.getEndTime()) {
+				cancel(serverId, timerId, nodeId, node, handle);
+				return 0;
+			}
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
 				var hasNext = CronTimerSpec.nextCronTimer(cronTimer, missfire);
 				var context = new TimerContext(this, timer, cronTimer.getHappenTimes(),

@@ -71,7 +71,7 @@ public final class SimpleTimerSpec implements TimerSpec {
 	}
 
 	/**
-	 * @param endTime 限制触发的最后时间(unix毫秒时间戳), 只有大于0会限制
+	 * @param endTime 限制预定触发的最后时间(unix毫秒时间戳), 只有大于0会限制；迟到补触发沿用missfire策略
 	 */
 	public @NotNull SimpleTimerSpec endTime(long endTime) {
 		this.endTime = endTime;
@@ -98,6 +98,8 @@ public final class SimpleTimerSpec implements TimerSpec {
 		var now = System.currentTimeMillis();
 		if (delay > Long.MAX_VALUE - now)
 			throw new IllegalArgumentException("delay overflow.");
+		if (endTime > 0 && now + delay > endTime)
+			throw new IllegalArgumentException("first trigger exceeds endTime.");
 
 		var simpleTimer = new BSimpleTimer();
 		simpleTimer.setPeriod(period);
