@@ -1851,9 +1851,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (online == null)
 			return errorCode(ResultCodeOnlineDataNotFound);
 
+		session.respond(rpc); // 同步前提交。
 		var syncResultCode = reliableNotifySync(session.getAccount(), clientId,
 				session, rpc.Argument.getReliableNotifyConfirmIndex(), rpc.Argument.isSync());
-		session.respond(rpc); // 同步前提交。
 
 		if (ResultCodeSuccess != syncResultCode)
 			return errorCode((short)syncResultCode);
