@@ -1,8 +1,10 @@
 package Zeze.Raft;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,6 +16,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import Zeze.Net.Binary;
+import Zeze.Util.AtomicFileWriter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
@@ -364,25 +367,16 @@ public final class RaftConfig {
 		if (null == self || null == xmlDocument)
 			return; // client 可能不是从xml装载，不需要保存。
 
-		// skip default
-		if (appendEntriesTimeout != DefaultAppendEntriesTimeout)
-			self.setAttribute("AppendEntriesTimeout", String.valueOf(appendEntriesTimeout));
-		if (leaderHeartbeatTimer != DefaultLeaderHeartbeatTimer)
-			self.setAttribute("LeaderHeartbeatTimer", String.valueOf(leaderHeartbeatTimer));
-		if (electionRandomMax != 1000)
-			self.setAttribute("ElectionRandomMax", String.valueOf(electionRandomMax));
-		if (maxAppendEntriesCount != 500)
-			self.setAttribute("MaxAppendEntriesCount", String.valueOf(maxAppendEntriesCount));
-		if (snapshotLogCount != 100_0000)
-			self.setAttribute("SnapshotLogCount", String.valueOf(snapshotLogCount));
-		if (snapshotCommitDelayed)
-			self.setAttribute("SnapshotCommitDelayed", "true");
-		if (!preVote)
-			self.setAttribute("PreVote", "false");
-		if (backgroundApplyCount != 500)
-			self.setAttribute("BackgroundApplyCount", String.valueOf(backgroundApplyCount));
-		if (uniqueRequestExpiredDays != 7)
-			self.setAttribute("UniqueRequestExpiredDays", String.valueOf(uniqueRequestExpiredDays));
+		// 包括恢复默认值：沿用装载时的 DOM，跳过默认值会把旧属性再次保存。
+		self.setAttribute("AppendEntriesTimeout", String.valueOf(appendEntriesTimeout));
+		self.setAttribute("LeaderHeartbeatTimer", String.valueOf(leaderHeartbeatTimer));
+		self.setAttribute("ElectionRandomMax", String.valueOf(electionRandomMax));
+		self.setAttribute("MaxAppendEntriesCount", String.valueOf(maxAppendEntriesCount));
+		self.setAttribute("SnapshotLogCount", String.valueOf(snapshotLogCount));
+		self.setAttribute("SnapshotCommitDelayed", String.valueOf(snapshotCommitDelayed));
+		self.setAttribute("PreVote", String.valueOf(preVote));
+		self.setAttribute("BackgroundApplyCount", String.valueOf(backgroundApplyCount));
+		self.setAttribute("UniqueRequestExpiredDays", String.valueOf(uniqueRequestExpiredDays));
 
 		for (var node : nodes.values())
 			node.save(xmlDocument, self);
@@ -392,7 +386,13 @@ public final class RaftConfig {
 			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
 			var transformer = factory.newTransformer();
 			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-			transformer.transform(new DOMSource(xmlDocument), new StreamResult(new File(xmlFileName)));
+			var output = new ByteArrayOutputStream();
+			transformer.transform(new DOMSource(xmlDocument), new StreamResult(output));
+			try {
+				AtomicFileWriter.replace(new File(xmlFileName).toPath(), output.toByteArray());
+			} catch (IOException e) {
+				throw new TransformerException(e);
+			}
 		}
 	}
 
