@@ -9,6 +9,8 @@ import Zeze.Util.Action1;
 import Zeze.Util.FastLock;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -115,6 +117,7 @@ final class RedirectAllFutureAsync<R extends RedirectResult> implements Redirect
 
 /** RedirectAll 返回的 future 实现：按 hash 去重地回调 onResult，全部完成后回调 onAllDone，并支持 await 同步等待。 */
 final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock implements RedirectAllFuture<R> {
+	private static final Logger logger = LogManager.getLogger(RedirectAllFutureImpl.class);
 	private static final @NotNull VarHandle ON_ALL_DONE;
 
 	static {
@@ -169,8 +172,8 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		} else {
 			try {
 				onRes.run(result);
-			} catch (Exception e) {
-				throw Task.forceThrow(e);
+			} catch (Throwable e) {
+				logger.error("RedirectAll onResult failed: hash={}", result.getHash(), e);
 			}
 		}
 	}
@@ -211,8 +214,13 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 					}, "RedirectAllFutureImpl.onResult").call();
 				}
 			} else {
-				for (R result : readyResults)
-					onResult.run(result);
+				for (R result : readyResults) {
+					try {
+						onResult.run(result);
+					} catch (Throwable e) {
+						logger.error("RedirectAll onResult failed: hash={}", result.getHash(), e);
+					}
+				}
 			}
 		} finally {
 			c.unlock();
