@@ -176,13 +176,23 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	}
 
 	public @NotNull Transaction beginOptimisticTransaction() {
-		//noinspection DataFlowIssue
-		return optimisticTransactionDb.beginTransaction(getDefaultWriteOptions());
+		enterOp();
+		try {
+			//noinspection DataFlowIssue
+			return optimisticTransactionDb.beginTransaction(getDefaultWriteOptions());
+		} finally {
+			exitOp();
+		}
 	}
 
 	public @NotNull Transaction beginTransaction() {
-		//noinspection DataFlowIssue
-		return transactionDb.beginTransaction(getDefaultWriteOptions());
+		enterOp();
+		try {
+			//noinspection DataFlowIssue
+			return transactionDb.beginTransaction(getDefaultWriteOptions());
+		} finally {
+			exitOp();
+		}
 	}
 
 	// RocksDB用完时需确保调用close回收堆外内存
@@ -315,6 +325,8 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		throws RocksDBException {
 		lock();
 		try {
+			if (closing)
+				throw new IllegalStateException("RocksDatabase is closing");
 			var table = tableMap.get(name);
 			if (table != null) {
 				if (isNew != null)
@@ -340,6 +352,8 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 													 boolean @Nullable [] isNews) throws RocksDBException {
 		lock();
 		try {
+			if (closing)
+				throw new IllegalStateException("RocksDatabase is closing");
 			var n = names.length;
 			var tables = new Table[n];
 			var newIndexes = new IntList();
@@ -498,6 +512,8 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	public @NotNull Batch borrowBatch() {
 		lock();
 		try {
+			if (closing)
+				throw new IllegalStateException("RocksDatabase is closing");
 			int n = batchPool.size();
 			if (n > 0)
 				return batchPool.remove(n - 1);
@@ -530,7 +546,12 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 
 	// Checkpoint用完时需确保调用close回收堆外内存,推荐使用try(var c = newCheckpoint()) {...}
 	public @NotNull Checkpoint newCheckpoint() {
-		return Checkpoint.create(rocksDb);
+		enterOp();
+		try {
+			return Checkpoint.create(rocksDb);
+		} finally {
+			exitOp();
+		}
 	}
 
 	public boolean isClosed() {
