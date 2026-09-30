@@ -56,8 +56,8 @@ public final class TransmitOnlineSpec {
 		return this;
 	}
 
-	private void verify() { // 每个动词开头调用：未知 actionName 立即抛。
-		if (!online.getTransmitActions().containsKey(actionName))
+	private void verify(@NotNull Online resolvedOnline) { // 校验实际执行的OnlineSet。
+		if (!resolvedOnline.getTransmitActions().containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 	}
 
@@ -67,8 +67,8 @@ public final class TransmitOnlineSpec {
 
 	/** 事务感知：运行中的事务内延迟到 commit 执行，否则立即执行。 */
 	public void transmit() {
-		verify();
 		var o = resolveOnline(); // 此刻解析并固定（commit 回调里上下文已变，不能晚解析）
+		verify(o);
 		var sd = sender; // 字段全部读进局部变量：闭包不捕获 spec 实例
 		var an = actionName;
 		var tg = targets;
@@ -79,14 +79,15 @@ public final class TransmitOnlineSpec {
 
 	/** 立即执行，不等事务提交。 */
 	public void transmitNow() {
-		verify();
-		resolveOnline().transmit(sender, actionName, targets, parameter, processNotOnline);
+		var o = resolveOnline();
+		verify(o);
+		o.transmit(sender, actionName, targets, parameter, processNotOnline);
 	}
 
 	/** 事务回滚时执行。 */
 	public void transmitWhileRollback() {
-		verify();
 		var o = resolveOnline();
+		verify(o);
 		var sd = sender;
 		var an = actionName;
 		var tg = targets;
