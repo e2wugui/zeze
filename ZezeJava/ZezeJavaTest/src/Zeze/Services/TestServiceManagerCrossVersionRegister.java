@@ -150,7 +150,7 @@ public class TestServiceManagerCrossVersionRegister {
 
 		// 会话关闭：Session.registers以name+id为key只保留最后一次注册（info6），注销后全部桶清空。
 		state.removeAndCollectNotify(info6, 7L, notifies);
-		Assertions.assertTrue(buckets.get(6L).isEmpty());
+		Assertions.assertTrue(buckets.get(6L) == null || buckets.get(6L).isEmpty());
 
 		// 新订阅者的快照（遍历全部桶构造）不含幽灵。
 		var snapshot = new BServiceInfosVersion(0, state);
@@ -169,7 +169,7 @@ public class TestServiceManagerCrossVersionRegister {
 
 		// 注销参数版本不匹配（version=0）也按name+id收敛到全部版本桶。
 		state.removeAndCollectNotify(new BServiceInfo(serviceName, "1"), 7L, notifies);
-		Assertions.assertTrue(state.getServiceInfos().get(5L).isEmpty());
+		Assertions.assertNull(state.getServiceInfos().get(5L), "注销后删除空版本桶");
 	}
 
 	@Test
@@ -187,6 +187,6 @@ public class TestServiceManagerCrossVersionRegister {
 
 		// 属主会话注销才移除。
 		state.removeAndCollectNotify(infoNew, 9L, notifies);
-		Assertions.assertTrue(state.getServiceInfos().get(5L).isEmpty());
+		Assertions.assertNull(state.getServiceInfos().get(5L), "属主注销后删除空版本桶");
 	}
 }

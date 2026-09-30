@@ -249,6 +249,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				if (old != null)
 					collectNotify(old, false, result);
 			}
+			serviceInfos.values().removeIf(HashMap::isEmpty);
 			serviceInfos.computeIfAbsent(info.getVersion(), __ -> new HashMap<>()).put(info.getServiceIdentity(), info);
 			collectNotify(info, true, result);
 			// 新注册实例同样要为现有订阅者登记负载观察者：addLoadObserver若只在订阅时
@@ -270,6 +271,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				e.getValue().remove(info.getServiceIdentity());
 				collectNotify(exist, false, result);
 			}
+			serviceInfos.values().removeIf(HashMap::isEmpty);
 		}
 
 		public void subscribeAndCollectResult(@NotNull Subscribe r, @NotNull BSubscribeInfo subInfo, long sessionId) {

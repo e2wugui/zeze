@@ -30,6 +30,24 @@ public class TestSubscribeStateNewestInfos {
 	}
 
 	@Test
+	public void testVersionChurnDoesNotRetainEmptyBuckets() {
+		var state = newState();
+		for (int version = 1; version <= 1000; ++version)
+			state.onRegister(new BServiceInfo(serviceName, "77", version));
+		var infos = state.getServiceInfosVersion();
+		int buckets = 0;
+		for (var it = infos.getInfosIterator(); it.moveToNext(); ) {
+			++buckets;
+			Assertions.assertEquals(1000, it.key());
+		}
+		Assertions.assertEquals(1, buckets);
+		state.onUnRegister(new BServiceInfo(serviceName, "77", 1000));
+		Assertions.assertFalse(state.getServiceInfosVersion().getInfosIterator().moveToNext());
+	}
+
+
+
+	@Test
 	public void testRegisterAfterSubscribeVisible() {
 		var state = newState();
 		state.onRegister(new BServiceInfo(serviceName, "77", 1));

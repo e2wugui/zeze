@@ -383,6 +383,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 				}
 				var versions = serviceInfos.getOrAddInfos(info.getVersion());
 				var exist = versions.insert(info);
+				serviceInfos.pruneEmptyVersions();
 				if (oldNotSame == null && null != exist && !exist.fullEquals(info))
 					oldNotSame = exist;
 				return oldNotSame;
@@ -401,6 +402,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 					if (it.value().remove(info) != null)
 						removed = true;
 				}
+				serviceInfos.pruneEmptyVersions();
 				return removed;
 			} finally {
 				unlock();

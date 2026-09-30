@@ -758,6 +758,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				collectNotify(state, fromRocks(old), false, notifies);
 			}
 		}
+		pruneEmptyVersions(state);
 		var versions = state.getServiceInfosVersion().get(info.getVersion());
 		if (null == versions)
 			state.getServiceInfosVersion().put(info.getVersion(), versions = new BServiceInfosVersionRocks());
@@ -861,6 +862,17 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			e.getValue().getServiceInfos().remove(serviceIdentity);
 			removeAndCollectNotify(state, fromRocks(exist), notifies);
 		}
+		pruneEmptyVersions(state);
+	}
+
+	private static void pruneEmptyVersions(BServerState state) {
+		var empty = new ArrayList<Long>();
+		for (var entry : state.getServiceInfosVersion().entrySet()) {
+			if (entry.getValue().getServiceInfos().size() == 0)
+				empty.add(entry.getKey());
+		}
+		for (var version : empty)
+			state.getServiceInfosVersion().remove(version);
 	}
 
 	@Override

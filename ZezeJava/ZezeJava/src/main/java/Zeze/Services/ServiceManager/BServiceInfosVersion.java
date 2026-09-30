@@ -1,6 +1,7 @@
 package Zeze.Services.ServiceManager;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 import Zeze.Builtin.ServiceManagerWithRaft.BServerState;
 import Zeze.Builtin.ServiceManagerWithRaft.BServiceInfosVersionRocks;
 import Zeze.Serialize.ByteBuffer;
@@ -100,6 +101,16 @@ public class BServiceInfosVersion implements Serializable {
 
 	public @NotNull LongHashMap<BServiceInfos>.Iterator getInfosIterator() {
 		return infosVersion.iterator();
+	}
+
+	void pruneEmptyVersions() {
+		var empty = new ArrayList<Long>();
+		for (var it = infosVersion.iterator(); it.moveToNext(); ) {
+			if (it.value().getSortedIdentities().isEmpty())
+				empty.add(it.key());
+		}
+		for (var version : empty)
+			infosVersion.remove(version); // 在遍历之后删除，避免开放寻址挪桶使迭代漏项
 	}
 
 	public @Nullable BServiceInfos getNewestInfos() {
