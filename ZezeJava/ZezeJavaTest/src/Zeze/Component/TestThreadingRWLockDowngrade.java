@@ -7,6 +7,7 @@ import Zeze.Builtin.Threading.ReadWriteLockOperate;
 import Zeze.Builtin.Threading.SemaphoreRelease;
 import Zeze.Net.Service;
 import Zeze.Services.ServiceManagerServer;
+import Zeze.Util.Task;
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -39,6 +40,7 @@ public class TestThreadingRWLockDowngrade {
 
 	@BeforeEach
 	public void setup() {
+		Task.tryInitThreadPool();
 		server = new ThreadingServer(new Service("TestThreadingRWLockDowngrade"), new ServiceManagerServer.Conf());
 	}
 
