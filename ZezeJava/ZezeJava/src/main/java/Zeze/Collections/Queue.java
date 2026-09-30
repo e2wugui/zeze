@@ -258,7 +258,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		module._tQueueNodes.remove(headKey);
 		// 同poll——被取走的头节点同时是尾节点（单节点队列排空）时同步清尾键，
 		// 避免排空残尾。用带队列名、nodeId=0的键（空名键会让compatible复活旧指针）。
-		if (root.getTailNodeKey().getNodeId() == headKey.getNodeId())
+		if (root.getTailNodeKey().equals(headKey))
 			root.setTailNodeKey(new BQueueNodeKey(name, 0));
 		return head;
 	}
@@ -344,7 +344,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			// 取空的节点同时是尾节点时同步清尾键——排空残尾与push的tail修复
 			// 条件（仅tail.nodeId==0才修）失配，此后push再add会产生零链接尾节点：add的值从
 			// head不可达（永久丢失）且count虚高。带队列名、nodeId=0的键。
-			if (root.getTailNodeKey().getNodeId() == headKey.getNodeId())
+			if (root.getTailNodeKey().equals(headKey))
 				root.setTailNodeKey(new BQueueNodeKey(name, 0));
 		}
 
