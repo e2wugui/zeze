@@ -53,14 +53,16 @@ public class ZokerAgent extends AbstractZokerAgent {
     }
 
     /**
-     * 注册表存活校验+死条目接管。注册条目的唯一常规出口是旧连接
+     * 注册表存活校验+死条目接管+自归属重放幂等。注册条目的唯一常规出口是旧连接
      * OnSocketClose 的 remove；从连接死亡（{@code isClosed} 已置位）到该回调被执行存在窗口
      * （半开连接可达 keepalive 检查周期，KeepCheckPeriod/KeepRecvTimeout 未配置时更长），
      * 期间 daemon 重连的 Register 被 putIfAbsent 恒拒 eDuplicateZoker——zokerName 被死条目
-     * 锁死，manager 侧 getZoker 恒抛且无任何重注册/接管路径。putIfAbsent 冲突时检查
-     * 现存 socket——已死则 CAS 接管（replace 失败=并发注册已改写条目，重读重试：新主人已死
-     * 可再接管、活着则是真重复，循环必收敛）；仍活着才是真重复。接管成功后旧连接迟到的
-     * close 回调由 {@link ZokerAgentService#OnSocketClose} 的条件移除兜底，不会误摘继承者条目。
+     * 锁死，manager 侧 getZoker 恒抛且无任何重注册/接管路径。putIfAbsent 冲突时先判自归属
+     * （old==sender：同连接对已注册名的重放，客户端 RPC 超时重试的常规形态——幂等成功，
+     * 不误报名字冲突），再检查现存 socket——已死则 CAS 接管（replace 失败=并发注册已改写
+     * 条目，重读重试：新主人已死可再接管、活着则是真重复，循环必收敛）；仍活着才是真
+     * 重复。接管成功后旧连接迟到的 close 回调由
+     * {@link ZokerAgentService#OnSocketClose} 的条件移除兜底，不会误摘继承者条目。
      */
     @Override
     protected long ProcessRegisterRequest(Zeze.Builtin.Zoker.Register r) {
@@ -84,8 +86,15 @@ public class ZokerAgent extends AbstractZokerAgent {
             var old = zokers.putIfAbsent(zokerName, sender);
             if (null == old)
                 break; // 空位直接注册
+            if (old == sender)
+                // 自归属重放：同连接对自己已注册成功的名字重发 Register（客户端 RPC 超时
+                // 重试的常规形态）——注册实际已成功，误回 eDuplicateZoker 是比"注册未完成"
+                // 严重得多的"名字被他人占用"误诊信号，重试型客户端在同连接上永不收敛。
+                // 幂等成功应答：摘旧面快照不含本次名（同名）、registered.add 幂等、
+                // SendResult 照发。
+                break;
             if (!old.isClosed())
-                return eDuplicateZoker; // 现存 socket 活着：真重复
+                return eDuplicateZoker; // 他方活连接占用：真重复
             if (zokers.replace(zokerName, old, sender))
                 break; // 现存 socket 已死：接管
             // CAS 失败：并发注册已改写条目——重读评估
