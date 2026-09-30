@@ -288,5 +288,19 @@ public class TestHttpTransactionBoundary {
 
 
 
-
+	@Test
+	public void testDetachedHandlerKeepsRequestBodyUntilOwnerCloses() throws Exception {
+		try (var server = new HttpServer(); var scope = new ChannelScope()) {
+			var channel = scope.channel;
+			var x = new Exchange(server, channel);
+			var body = Unpooled.copiedBuffer("owned body", StandardCharsets.UTF_8);
+			x.addContent(body);
+			x.fire(new HttpHandler(1024, TransactionLevel.None, DispatchMode.Direct, HttpExchange::detach));
+			Assertions.assertEquals(1, body.refCnt());
+			Assertions.assertEquals("owned body", body.toString(StandardCharsets.UTF_8));
+			x.closeConnectionNow();
+			channel.runPendingTasks();
+			Assertions.assertEquals(0, body.refCnt());
+		}
+	}
 }

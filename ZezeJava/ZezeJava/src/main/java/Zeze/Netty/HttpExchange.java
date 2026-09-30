@@ -1142,12 +1142,11 @@ public class HttpExchange {
 		} finally {
 			if (detached == 0)
 				close(null);
-			// close被并发抢先（CAS到2成no-op）时，request/content只能由这里释放（幂等）
-			releaseTerminal();
-			// 清位必须晚于releaseTerminal——任务入口即清位会在回调运行期间打开窗口，
-			// 并发close的closeInEventLoop观察到pending==false抢先释放request/content，
-			// 迟到的onEndStream用户回调读到空body/空request。
+			// 回调已经结束，交还close的释放权；再复查关闭状态，覆盖close因pending而跳过释放的窗口。
+			// detached==1仍由用户持有，直到用户调用close才释放。
 			endStreamTaskPending = false;
+			if (detached == 2)
+				releaseTerminal();
 		}
 	}
 
@@ -1195,10 +1194,9 @@ public class HttpExchange {
 					} finally {
 						if (detached == 0)
 							close(null);
-						// close被并发抢先（CAS到2成no-op）时，request/content只能由这里释放（幂等）
-						releaseTerminal();
-						// 清位后移到releaseTerminal之后，任务在途期间close不得提前释放（见invokeEndStream）
 						endStreamTaskPending = false;
+						if (detached == 2)
+							releaseTerminal();
 					}
 				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(cancel)
 						.executeOneByOne(context.channel().id(), server.task11Executor);
