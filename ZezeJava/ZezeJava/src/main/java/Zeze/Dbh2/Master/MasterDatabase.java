@@ -492,6 +492,7 @@ public class MasterDatabase {
 		var table = splitting.computeIfAbsent(tableName, __ -> new MasterTable.Data());
 		BBucketMeta.Data created = null;
 		while (true) {
+			var resume = false;
 			table.lock();
 			try {
 				var exist = table.buckets.get(bucket.getKeyFirst());
@@ -525,18 +526,40 @@ public class MasterDatabase {
 					break; // 出循环（splitting锁已释放）后再做世代登记
 				}
 				if (sameBucketMeta(exist, bucket)) {
-					// 桶已经存在。响应丢失/日志截断后manager重试时走这里：必须把已存在的桶
-					// 幂等返回（对齐createTable"存在即返回"），否则eSplittingBucketExist让
-					// agent端抛异常，源桶splittingMeta为null永远到不了endSplit，分桶永久卡死。
-					logger.info("bucket exist, resume. database={} table={}", databaseName, tableName);
-					r.Result = exist;
-					r.SendResult();
-					return 0;
+					// 同边界也可能属于已经收窄的旧源桶。放锁后按主表→splitting复查世代，
+					// 防新源桶收养旧目标后被年龄扫描销毁，也不能复用其中的旧数据副本。
+					resume = true;
 				}
 				// 同keyFirst四元组不等（碰撞）。持splitting锁期间不能嵌套取主表锁判INV1（锁序
 				// 固定主表→splitting）——放锁后按序两阶段复查（consumeDeadSplittingOnCollision）。
 			} finally {
 				table.unlock();
+			}
+			if (resume) {
+				mainTable.lock();
+				try {
+					table.lock();
+					try {
+						var exist = table.buckets.get(bucket.getKeyFirst());
+						if (exist == null || !sameBucketMeta(exist, bucket))
+							continue; // 放锁期间已被消费或重建，交回创建/碰撞流程。
+						var age = readSplittingAge(tableName, exist.getKeyFirst());
+						if (isDeadSplittingEntry(mainTable, exist, age != null ? age.sourceRaft() : null)) {
+							logger.warn("bucket exist but source generation is obsolete, await recycling."
+									+ " database={} table={}", databaseName, tableName);
+							return master.errorCode(Master.eSplittingBucketExist);
+						}
+						// 同源在途条目的幂等重试仍返回原目标；旧世代由扫描先销毁raft再摘元数据。
+						logger.info("bucket exist, resume. database={} table={}", databaseName, tableName);
+						r.Result = exist;
+						r.SendResult();
+						return 0;
+					} finally {
+						table.unlock();
+					}
+				} finally {
+					mainTable.unlock();
+				}
 			}
 			if (!consumeDeadSplittingOnCollision(tableName, mainTable, table, bucket)) {
 				logger.info("bucket exist but mismatch (in-flight). database={} table={}", databaseName, tableName);
