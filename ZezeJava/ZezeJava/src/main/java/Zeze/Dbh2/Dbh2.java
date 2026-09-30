@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Builtin.Dbh2.BWalk;
 import Zeze.Builtin.Dbh2.BWalkKeyValue;
 import Zeze.Builtin.Dbh2.CommitBatch;
 import Zeze.Builtin.Dbh2.Get;
@@ -490,12 +491,38 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 	}
 
+	// 桶失效与正常桶尾的区分（walk陈旧视图检测）：客户端walk分页以缓存主表视图定位桶，
+	// 空游标/收窄后仍在界内的桶内游标在此前不触发任何拒绝——分裂/迁移完结后源桶按收窄
+	// keyLast应答bucketEnd=true，客户端按陈旧视图推进迭代器，新桶（分裂产生的
+	// [keyLast,∞)键域或迁移目标桶整个键域）被静默跳过，全表遍历不完整且无错误信号。
+	// 拒绝条件三重（覆盖一切游标形态）：
+	//  1) 置死桶（endMove的{1},{1}哨兵meta）无条件拒绝：死桶无合法walk语义，
+	//     任何视图指向它都是陈旧（主表从不发布死桶），新旧客户端一律经refuse收敛；
+	//  2) 既有条件保留：非空游标出界的拒绝；
+	//  3) 新客户端置位VerifyBucketMeta时比对权威meta与缓存视图预期界，不等即拒。
+	//     服务端无法单方面识别陈旧——收窄后的桶对新鲜客户端是合法遍历目标，无条件
+	//     拒绝会使其拒绝循环直至上限，预期界必须由客户端回带（协议additive，
+	//     旧客户端不置位则不校验）。
+	// 客户端收到bucketRefuse即reload重定位当前游标区间（与Get的eBucketMismatch
+	// 自愈同构）；master侧表长期陈旧的连续拒绝由walkPage既有256上限兜底。
+	private boolean isWalkBucketRefuse(BWalk.Data argument) {
+		var meta = stateMachine.getBucket().getBucketMeta();
+		if (Bucket.DeadBucketMetaBound.equals(meta.getKeyFirst())
+				&& Bucket.DeadBucketMetaBound.equals(meta.getKeyLast()))
+			return true;
+		var exclusiveStartKey = argument.getExclusiveStartKey();
+		if (exclusiveStartKey.size() > 0 && !stateMachine.getBucket().inBucket(exclusiveStartKey))
+			return true;
+		return argument.isVerifyBucketMeta()
+				&& (!meta.getKeyFirst().equals(argument.getExpectedKeyFirst())
+				|| !meta.getKeyLast().equals(argument.getExpectedKeyLast()));
+	}
+
 	@Override
 	protected long ProcessWalkRequest(Walk r) throws Exception {
 		if (isBucketNotReady())
 			return errorCode(eBucketNotReady);
-		if (r.Argument.getExclusiveStartKey().size() > 0
-				&& !stateMachine.getBucket().inBucket(r.Argument.getExclusiveStartKey())) {
+		if (isWalkBucketRefuse(r.Argument)) {
 			r.Result.setBucketRefuse(true);
 			r.SendResult();
 			return 0;
@@ -515,8 +542,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	protected long ProcessWalkKeyRequest(WalkKey r) throws Exception {
 		if (isBucketNotReady())
 			return errorCode(eBucketNotReady);
-		if (r.Argument.getExclusiveStartKey().size() > 0
-			&& !stateMachine.getBucket().inBucket(r.Argument.getExclusiveStartKey())) {
+		if (isWalkBucketRefuse(r.Argument)) {
 			r.Result.setBucketRefuse(true);
 			r.SendResult();
 			return 0;

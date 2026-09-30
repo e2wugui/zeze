@@ -173,12 +173,25 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	}
 
 	public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, byte @Nullable [] prefix) {
+		return walk(exclusiveStartKey, proposeLimit, desc, prefix, null, null);
+	}
+
+	// expectedKeyFirst/expectedKeyLast非null时置位VerifyBucketMeta并回带缓存视图的
+	// 预期桶边界：服务端meta已收窄/置死（分裂/迁移完结）时不等即bucketRefuse，
+	// 调用方（walkPage）经既有refused路径reload重定位。null表示不校验（旧语义）。
+	public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, byte @Nullable [] prefix,
+					  @Nullable Binary expectedKeyFirst, @Nullable Binary expectedKeyLast) {
 		var r = new Walk();
 		r.Argument.setExclusiveStartKey(exclusiveStartKey);
 		r.Argument.setProposeLimit(proposeLimit);
 		r.Argument.setDesc(desc);
 		if (prefix != null)
 			r.Argument.setPrefix(new Binary(prefix));
+		if (expectedKeyFirst != null && expectedKeyLast != null) {
+			r.Argument.setVerifyBucketMeta(true);
+			r.Argument.setExpectedKeyFirst(expectedKeyFirst);
+			r.Argument.setExpectedKeyLast(expectedKeyLast);
+		}
 		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await(config.getRpcTimeout() + SendForWaitGraceMs, TimeUnit.MILLISECONDS);
 		// 错误在外面处理。
@@ -186,12 +199,22 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 	}
 
 	public WalkKey walkKey(Binary exclusiveStartKey, int proposeLimit, boolean desc, byte @Nullable [] prefix) {
+		return walkKey(exclusiveStartKey, proposeLimit, desc, prefix, null, null);
+	}
+
+	public WalkKey walkKey(Binary exclusiveStartKey, int proposeLimit, boolean desc, byte @Nullable [] prefix,
+						   @Nullable Binary expectedKeyFirst, @Nullable Binary expectedKeyLast) {
 		var r = new WalkKey();
 		r.Argument.setExclusiveStartKey(exclusiveStartKey);
 		r.Argument.setProposeLimit(proposeLimit);
 		r.Argument.setDesc(desc);
 		if (prefix != null)
 			r.Argument.setPrefix(new Binary(prefix));
+		if (expectedKeyFirst != null && expectedKeyLast != null) {
+			r.Argument.setVerifyBucketMeta(true);
+			r.Argument.setExpectedKeyFirst(expectedKeyFirst);
+			r.Argument.setExpectedKeyLast(expectedKeyLast);
+		}
 		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await(config.getRpcTimeout() + SendForWaitGraceMs, TimeUnit.MILLISECONDS);
 		// 错误在外面处理。

@@ -1419,6 +1419,13 @@
 				<variable id="2" name="ProposeLimit" type="int"/>
 				<variable id="3" name="Desc" type="bool"/>
 				<variable id="4" name="Prefix" type="binary"/>
+				<!-- 陈旧视图检测（additive，向后兼容）：客户端置位VerifyBucketMeta并回带其缓存视图
+				的预期桶边界；服务端权威meta已收窄（endSplit）或置死（endMove）时不等即bucketRefuse，
+				客户端reload重定位——修复空游标/收窄后仍在界内的桶内游标被按收窄keyLast应答正常桶尾、
+				新桶键域被静默跳过的遍历不完整。旧客户端不置位则不校验（保持旧语义）。 -->
+				<variable id="5" name="VerifyBucketMeta" type="bool"/>
+				<variable id="6" name="ExpectedKeyFirst" type="binary"/>
+				<variable id="7" name="ExpectedKeyLast" type="binary"/>
 			</bean>
 			<bean name="BWalkKeyValue">
 				<variable id="1" name="Key" type="binary"/>

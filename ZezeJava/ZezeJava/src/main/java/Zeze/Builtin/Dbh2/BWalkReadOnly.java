@@ -20,4 +20,7 @@ public interface BWalkReadOnly {
     int getProposeLimit();
     boolean isDesc();
     Zeze.Net.Binary getPrefix();
+    boolean isVerifyBucketMeta();
+    Zeze.Net.Binary getExpectedKeyFirst();
+    Zeze.Net.Binary getExpectedKeyLast();
 }

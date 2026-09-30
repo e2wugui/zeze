@@ -582,7 +582,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 
 	@FunctionalInterface
 	private interface PageFetcher {
-		FetchResult fetch(Dbh2Agent agent, Binary exclusiveKey, int limit) throws Exception;
+		FetchResult fetch(Dbh2Agent agent, BBucketMeta.Data bucket, Binary exclusiveKey, int limit) throws Exception;
 	}
 
 	// 抓取一页（可跨桶）：从exclusiveKey起按方向交付最多proposeLimit条（交付由fetcher执行），
@@ -608,7 +608,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 				bucket = bucketIt.next();
 				continue;
 			}
-			var result = fetch.fetch(openBucket(bucket.getRaftConfig()), exclusiveForBucket, limit);
+			var result = fetch.fetch(openBucket(bucket.getRaftConfig()), bucket, exclusiveForBucket, limit);
 			if (result.refused) {
 				if (++refusedCount > 255)
 					throw new RuntimeException("walkPage bucket refused too many redirect: master="
@@ -650,8 +650,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 		var exclusiveKey = Binary.Empty;
 		while (true) {
 			var cursor = walkPage(masterAgent, masterName, databaseName, tableName, exclusiveKey, 5000, desc, prefix,
-					(agent, exclusive, limit) -> {
-						var r = agent.walk(exclusive, limit, desc, prefix);
+					(agent, bucket, exclusive, limit) -> {
+						var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 						if (r.getResultCode() != 0)
 							throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
 						if (r.Result.isBucketRefuse())
@@ -678,8 +678,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 						   byte @Nullable [] prefix) throws Exception {
 		return walkPage(masterAgent, masterName, databaseName, tableName,
 				exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty, proposeLimit, desc, prefix,
-				(agent, exclusive, limit) -> {
-					var r = agent.walk(exclusive, limit, desc, prefix);
+				(agent, bucket, exclusive, limit) -> {
+					var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 					if (r.getResultCode() != 0)
 						throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
 					if (r.Result.isBucketRefuse())
@@ -702,8 +702,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 		var exclusiveKey = Binary.Empty;
 		while (true) {
 			var cursor = walkPage(masterAgent, masterName, databaseName, tableName, exclusiveKey, 5000, desc, prefix,
-					(agent, exclusive, limit) -> {
-						var r = agent.walkKey(exclusive, limit, desc, prefix);
+					(agent, bucket, exclusive, limit) -> {
+						var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 						if (r.getResultCode() != 0)
 							throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
 						if (r.Result.isBucketRefuse())
@@ -730,8 +730,8 @@ public class Dbh2AgentManager extends ReentrantLock {
 							  byte @Nullable [] prefix) throws Exception {
 		return walkPage(masterAgent, masterName, databaseName, tableName,
 				exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty, proposeLimit, desc, prefix,
-				(agent, exclusive, limit) -> {
-					var r = agent.walkKey(exclusive, limit, desc, prefix);
+				(agent, bucket, exclusive, limit) -> {
+					var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 					if (r.getResultCode() != 0)
 						throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
 					if (r.Result.isBucketRefuse())

@@ -400,16 +400,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	private static final Binary emptyBucketMetaKey = new Binary(new byte[]{1});
-
 	public void endMove(BBucketMeta.Data to) {
 		try (var it = bucket.getData().iterator()) {
 			// 写序不变量："meta不再声明的键域才允许物理删除"——meta先置死、deleteToEnd
 			// 后行，消除"数据已删、meta未切"窗口内并发Get把仍存在的键假报"不存在"（反转
 			// 后窗口内Get以死桶meta被拒，客户端重路由）。apply内同一日志原子重放。
 			var emptyMeta = bucket.getBucketMeta().copy();
-			emptyMeta.setKeyFirst(emptyBucketMetaKey);
-			emptyMeta.setKeyLast(emptyBucketMetaKey);
+			emptyMeta.setKeyFirst(Bucket.DeadBucketMetaBound);
+			emptyMeta.setKeyLast(Bucket.DeadBucketMetaBound);
 			// 被移走的桶Meta置空（使用相同的非空key），拒绝所有对这个桶的访问。
 			bucket.setBucketMeta(emptyMeta);
 			bucket.addMoveMetaHistory(to);

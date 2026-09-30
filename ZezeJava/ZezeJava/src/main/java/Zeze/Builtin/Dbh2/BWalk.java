@@ -12,11 +12,17 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     private int _ProposeLimit;
     private boolean _Desc;
     private Zeze.Net.Binary _Prefix;
+    private boolean _VerifyBucketMeta;
+    private Zeze.Net.Binary _ExpectedKeyFirst;
+    private Zeze.Net.Binary _ExpectedKeyLast;
 
     private static final java.lang.invoke.VarHandle vh_ExclusiveStartKey;
     private static final java.lang.invoke.VarHandle vh_ProposeLimit;
     private static final java.lang.invoke.VarHandle vh_Desc;
     private static final java.lang.invoke.VarHandle vh_Prefix;
+    private static final java.lang.invoke.VarHandle vh_VerifyBucketMeta;
+    private static final java.lang.invoke.VarHandle vh_ExpectedKeyFirst;
+    private static final java.lang.invoke.VarHandle vh_ExpectedKeyLast;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
@@ -25,6 +31,9 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
             vh_ProposeLimit = _l_.findVarHandle(BWalk.class, "_ProposeLimit", int.class);
             vh_Desc = _l_.findVarHandle(BWalk.class, "_Desc", boolean.class);
             vh_Prefix = _l_.findVarHandle(BWalk.class, "_Prefix", Zeze.Net.Binary.class);
+            vh_VerifyBucketMeta = _l_.findVarHandle(BWalk.class, "_VerifyBucketMeta", boolean.class);
+            vh_ExpectedKeyFirst = _l_.findVarHandle(BWalk.class, "_ExpectedKeyFirst", Zeze.Net.Binary.class);
+            vh_ExpectedKeyLast = _l_.findVarHandle(BWalk.class, "_ExpectedKeyLast", Zeze.Net.Binary.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -114,14 +123,80 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 4, vh_Prefix, _v_));
     }
 
+    @Override
+    public boolean isVerifyBucketMeta() {
+        if (!isManaged())
+            return _VerifyBucketMeta;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _VerifyBucketMeta;
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 5);
+        return log != null ? log.value : _VerifyBucketMeta;
+    }
+
+    public void setVerifyBucketMeta(boolean _v_) {
+        if (!isManaged()) {
+            _VerifyBucketMeta = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 5, vh_VerifyBucketMeta, _v_));
+    }
+
+    @Override
+    public Zeze.Net.Binary getExpectedKeyFirst() {
+        if (!isManaged())
+            return _ExpectedKeyFirst;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _ExpectedKeyFirst;
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 6);
+        return log != null ? log.value : _ExpectedKeyFirst;
+    }
+
+    public void setExpectedKeyFirst(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _ExpectedKeyFirst = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 6, vh_ExpectedKeyFirst, _v_));
+    }
+
+    @Override
+    public Zeze.Net.Binary getExpectedKeyLast() {
+        if (!isManaged())
+            return _ExpectedKeyLast;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _ExpectedKeyLast;
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 7);
+        return log != null ? log.value : _ExpectedKeyLast;
+    }
+
+    public void setExpectedKeyLast(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _ExpectedKeyLast = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 7, vh_ExpectedKeyLast, _v_));
+    }
+
     @SuppressWarnings("deprecation")
     public BWalk() {
         _ExclusiveStartKey = Zeze.Net.Binary.Empty;
         _Prefix = Zeze.Net.Binary.Empty;
+        _ExpectedKeyFirst = Zeze.Net.Binary.Empty;
+        _ExpectedKeyLast = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BWalk(Zeze.Net.Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_, Zeze.Net.Binary _Prefix_) {
+    public BWalk(Zeze.Net.Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_, Zeze.Net.Binary _Prefix_, boolean _VerifyBucketMeta_, Zeze.Net.Binary _ExpectedKeyFirst_, Zeze.Net.Binary _ExpectedKeyLast_) {
         if (_ExclusiveStartKey_ == null)
             _ExclusiveStartKey_ = Zeze.Net.Binary.Empty;
         _ExclusiveStartKey = _ExclusiveStartKey_;
@@ -130,6 +205,13 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         if (_Prefix_ == null)
             _Prefix_ = Zeze.Net.Binary.Empty;
         _Prefix = _Prefix_;
+        _VerifyBucketMeta = _VerifyBucketMeta_;
+        if (_ExpectedKeyFirst_ == null)
+            _ExpectedKeyFirst_ = Zeze.Net.Binary.Empty;
+        _ExpectedKeyFirst = _ExpectedKeyFirst_;
+        if (_ExpectedKeyLast_ == null)
+            _ExpectedKeyLast_ = Zeze.Net.Binary.Empty;
+        _ExpectedKeyLast = _ExpectedKeyLast_;
     }
 
     @Override
@@ -138,6 +220,9 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         setProposeLimit(0);
         setDesc(false);
         setPrefix(Zeze.Net.Binary.Empty);
+        setVerifyBucketMeta(false);
+        setExpectedKeyFirst(Zeze.Net.Binary.Empty);
+        setExpectedKeyLast(Zeze.Net.Binary.Empty);
         _unknown_ = null;
     }
 
@@ -158,6 +243,9 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         setProposeLimit(_o_._ProposeLimit);
         setDesc(_o_._Desc);
         setPrefix(_o_._Prefix);
+        setVerifyBucketMeta(_o_._VerifyBucketMeta);
+        setExpectedKeyFirst(_o_._ExpectedKeyFirst);
+        setExpectedKeyLast(_o_._ExpectedKeyLast);
         _unknown_ = null;
     }
 
@@ -166,6 +254,9 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         setProposeLimit(_o_.getProposeLimit());
         setDesc(_o_.isDesc());
         setPrefix(_o_.getPrefix());
+        setVerifyBucketMeta(_o_.isVerifyBucketMeta());
+        setExpectedKeyFirst(_o_.getExpectedKeyFirst());
+        setExpectedKeyLast(_o_.getExpectedKeyLast());
         _unknown_ = _o_._unknown_;
     }
 
@@ -205,7 +296,10 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         _s_.append(_i1_).append("ExclusiveStartKey=").append(getExclusiveStartKey()).append(",\n");
         _s_.append(_i1_).append("ProposeLimit=").append(getProposeLimit()).append(",\n");
         _s_.append(_i1_).append("Desc=").append(isDesc()).append(",\n");
-        _s_.append(_i1_).append("Prefix=").append(getPrefix()).append('\n');
+        _s_.append(_i1_).append("Prefix=").append(getPrefix()).append(",\n");
+        _s_.append(_i1_).append("VerifyBucketMeta=").append(isVerifyBucketMeta()).append(",\n");
+        _s_.append(_i1_).append("ExpectedKeyFirst=").append(getExpectedKeyFirst()).append(",\n");
+        _s_.append(_i1_).append("ExpectedKeyLast=").append(getExpectedKeyLast()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -265,6 +359,27 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
                 _o_.WriteBinary(_x_);
             }
         }
+        {
+            boolean _x_ = isVerifyBucketMeta();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
+        {
+            var _x_ = getExpectedKeyFirst();
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        {
+            var _x_ = getExpectedKeyLast();
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -290,6 +405,18 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
             setPrefix(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 5) {
+            setVerifyBucketMeta(_o_.ReadBool(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            setExpectedKeyFirst(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            setExpectedKeyLast(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -309,6 +436,12 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         if (isDesc() != _b_.isDesc())
             return false;
         if (!getPrefix().equals(_b_.getPrefix()))
+            return false;
+        if (isVerifyBucketMeta() != _b_.isVerifyBucketMeta())
+            return false;
+        if (!getExpectedKeyFirst().equals(_b_.getExpectedKeyFirst()))
+            return false;
+        if (!getExpectedKeyLast().equals(_b_.getExpectedKeyLast()))
             return false;
         return true;
     }
@@ -333,6 +466,9 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
                 case 2: _ProposeLimit = _v_.intValue(); break;
                 case 3: _Desc = _v_.booleanValue(); break;
                 case 4: _Prefix = _v_.binaryValue(); break;
+                case 5: _VerifyBucketMeta = _v_.booleanValue(); break;
+                case 6: _ExpectedKeyFirst = _v_.binaryValue(); break;
+                case 7: _ExpectedKeyLast = _v_.binaryValue(); break;
             }
         }
     }
@@ -344,6 +480,9 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         setProposeLimit(_r_.getInt(_pn_ + "ProposeLimit"));
         setDesc(_r_.getBoolean(_pn_ + "Desc"));
         setPrefix(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "Prefix")));
+        setVerifyBucketMeta(_r_.getBoolean(_pn_ + "VerifyBucketMeta"));
+        setExpectedKeyFirst(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "ExpectedKeyFirst")));
+        setExpectedKeyLast(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "ExpectedKeyLast")));
     }
 
     @Override
@@ -353,6 +492,9 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         _s_.appendInt(_pn_ + "ProposeLimit", getProposeLimit());
         _s_.appendBoolean(_pn_ + "Desc", isDesc());
         _s_.appendBinary(_pn_ + "Prefix", getPrefix());
+        _s_.appendBoolean(_pn_ + "VerifyBucketMeta", isVerifyBucketMeta());
+        _s_.appendBinary(_pn_ + "ExpectedKeyFirst", getExpectedKeyFirst());
+        _s_.appendBinary(_pn_ + "ExpectedKeyLast", getExpectedKeyLast());
     }
 
     @Override
@@ -362,6 +504,9 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ProposeLimit", "int", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Desc", "bool", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Prefix", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "VerifyBucketMeta", "bool", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "ExpectedKeyFirst", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "ExpectedKeyLast", "binary", "", ""));
         return _v_;
     }
 
@@ -373,6 +518,9 @@ public static final class Data extends Zeze.Transaction.Data {
     private int _ProposeLimit;
     private boolean _Desc;
     private Zeze.Net.Binary _Prefix;
+    private boolean _VerifyBucketMeta;
+    private Zeze.Net.Binary _ExpectedKeyFirst;
+    private Zeze.Net.Binary _ExpectedKeyLast;
 
     public Zeze.Net.Binary getExclusiveStartKey() {
         return _ExclusiveStartKey;
@@ -410,14 +558,44 @@ public static final class Data extends Zeze.Transaction.Data {
         _Prefix = _v_;
     }
 
+    public boolean isVerifyBucketMeta() {
+        return _VerifyBucketMeta;
+    }
+
+    public void setVerifyBucketMeta(boolean _v_) {
+        _VerifyBucketMeta = _v_;
+    }
+
+    public Zeze.Net.Binary getExpectedKeyFirst() {
+        return _ExpectedKeyFirst;
+    }
+
+    public void setExpectedKeyFirst(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
+            throw new IllegalArgumentException();
+        _ExpectedKeyFirst = _v_;
+    }
+
+    public Zeze.Net.Binary getExpectedKeyLast() {
+        return _ExpectedKeyLast;
+    }
+
+    public void setExpectedKeyLast(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
+            throw new IllegalArgumentException();
+        _ExpectedKeyLast = _v_;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _ExclusiveStartKey = Zeze.Net.Binary.Empty;
         _Prefix = Zeze.Net.Binary.Empty;
+        _ExpectedKeyFirst = Zeze.Net.Binary.Empty;
+        _ExpectedKeyLast = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Net.Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_, Zeze.Net.Binary _Prefix_) {
+    public Data(Zeze.Net.Binary _ExclusiveStartKey_, int _ProposeLimit_, boolean _Desc_, Zeze.Net.Binary _Prefix_, boolean _VerifyBucketMeta_, Zeze.Net.Binary _ExpectedKeyFirst_, Zeze.Net.Binary _ExpectedKeyLast_) {
         if (_ExclusiveStartKey_ == null)
             _ExclusiveStartKey_ = Zeze.Net.Binary.Empty;
         _ExclusiveStartKey = _ExclusiveStartKey_;
@@ -426,6 +604,13 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Prefix_ == null)
             _Prefix_ = Zeze.Net.Binary.Empty;
         _Prefix = _Prefix_;
+        _VerifyBucketMeta = _VerifyBucketMeta_;
+        if (_ExpectedKeyFirst_ == null)
+            _ExpectedKeyFirst_ = Zeze.Net.Binary.Empty;
+        _ExpectedKeyFirst = _ExpectedKeyFirst_;
+        if (_ExpectedKeyLast_ == null)
+            _ExpectedKeyLast_ = Zeze.Net.Binary.Empty;
+        _ExpectedKeyLast = _ExpectedKeyLast_;
     }
 
     @Override
@@ -434,6 +619,9 @@ public static final class Data extends Zeze.Transaction.Data {
         _ProposeLimit = 0;
         _Desc = false;
         _Prefix = Zeze.Net.Binary.Empty;
+        _VerifyBucketMeta = false;
+        _ExpectedKeyFirst = Zeze.Net.Binary.Empty;
+        _ExpectedKeyLast = Zeze.Net.Binary.Empty;
     }
 
     @Override
@@ -453,6 +641,9 @@ public static final class Data extends Zeze.Transaction.Data {
         _ProposeLimit = _o_.getProposeLimit();
         _Desc = _o_.isDesc();
         _Prefix = _o_.getPrefix();
+        _VerifyBucketMeta = _o_.isVerifyBucketMeta();
+        _ExpectedKeyFirst = _o_.getExpectedKeyFirst();
+        _ExpectedKeyLast = _o_.getExpectedKeyLast();
     }
 
     public void assign(BWalk.Data _o_) {
@@ -460,6 +651,9 @@ public static final class Data extends Zeze.Transaction.Data {
         _ProposeLimit = _o_._ProposeLimit;
         _Desc = _o_._Desc;
         _Prefix = _o_._Prefix;
+        _VerifyBucketMeta = _o_._VerifyBucketMeta;
+        _ExpectedKeyFirst = _o_._ExpectedKeyFirst;
+        _ExpectedKeyLast = _o_._ExpectedKeyLast;
     }
 
     @Override
@@ -499,7 +693,10 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("ExclusiveStartKey=").append(_ExclusiveStartKey).append(",\n");
         _s_.append(_i1_).append("ProposeLimit=").append(_ProposeLimit).append(",\n");
         _s_.append(_i1_).append("Desc=").append(_Desc).append(",\n");
-        _s_.append(_i1_).append("Prefix=").append(_Prefix).append('\n');
+        _s_.append(_i1_).append("Prefix=").append(_Prefix).append(",\n");
+        _s_.append(_i1_).append("VerifyBucketMeta=").append(_VerifyBucketMeta).append(",\n");
+        _s_.append(_i1_).append("ExpectedKeyFirst=").append(_ExpectedKeyFirst).append(",\n");
+        _s_.append(_i1_).append("ExpectedKeyLast=").append(_ExpectedKeyLast).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -544,6 +741,27 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteBinary(_x_);
             }
         }
+        {
+            boolean _x_ = _VerifyBucketMeta;
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
+        {
+            var _x_ = _ExpectedKeyFirst;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
+        {
+            var _x_ = _ExpectedKeyLast;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -567,6 +785,18 @@ public static final class Data extends Zeze.Transaction.Data {
             _Prefix = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 5) {
+            _VerifyBucketMeta = _o_.ReadBool(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 6) {
+            _ExpectedKeyFirst = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 7) {
+            _ExpectedKeyLast = _o_.ReadBinary(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -588,6 +818,12 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Desc != _b_._Desc)
             return false;
         if (!_Prefix.equals(_b_._Prefix))
+            return false;
+        if (_VerifyBucketMeta != _b_._VerifyBucketMeta)
+            return false;
+        if (!_ExpectedKeyFirst.equals(_b_._ExpectedKeyFirst))
+            return false;
+        if (!_ExpectedKeyLast.equals(_b_._ExpectedKeyLast))
             return false;
         return true;
     }

@@ -43,7 +43,8 @@ public class TestGAD01WalkPageRedirectLimit {
 		}
 
 		@Override
-		public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, byte[] prefix) {
+		public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, byte[] prefix,
+						 Binary expectedKeyFirst, Binary expectedKeyLast) {
 			walkCount.incrementAndGet();
 			var r = new Walk();
 			r.Result.setBucketRefuse(true);

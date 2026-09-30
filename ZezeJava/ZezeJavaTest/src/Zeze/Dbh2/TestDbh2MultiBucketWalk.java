@@ -152,7 +152,7 @@ public class TestDbh2MultiBucketWalk {
 			manager.putBuckets(tableData, "testMaster", db, table);
 			registerDirectAgents(manager, RAFT_A, agentA, RAFT_B, agentB);
 
-			// 全表版 asc：跨桶升序收齐（回归保护，当前应绿）。
+			// 全表版 asc：跨桶升序收齐（回归保护）。
 			{
 				var keys = new ArrayList<Binary>();
 				var count = manager.walk(null, "testMaster", db, table,
@@ -160,7 +160,7 @@ public class TestDbh2MultiBucketWalk {
 				Assertions.assertEquals(9, count);
 				Assertions.assertEquals(expectedKeys(1, 9), keys);
 			}
-			// 全表版 desc：全局降序（当前红：桶间升序）。
+			// 全表版 desc：全局降序。
 			{
 				var keys = new ArrayList<Binary>();
 				var count = manager.walk(null, "testMaster", db, table,
@@ -168,7 +168,7 @@ public class TestDbh2MultiBucketWalk {
 				Assertions.assertEquals(9, count);
 				Assertions.assertEquals(expectedKeys(9, 1), keys);
 			}
-			// 分页版 asc：循环到null收齐全部（当前红：桶A尾部即返回null，丢桶B）。
+			// 分页版 asc：循环到null收齐全部。
 			{
 				var keys = new ArrayList<Binary>();
 				ByteBuffer cursor = null;
@@ -179,7 +179,7 @@ public class TestDbh2MultiBucketWalk {
 				} while (cursor != null && ++rounds < 100);
 				Assertions.assertEquals(expectedKeys(1, 9), keys);
 			}
-			// 分页版 desc：循环到null收齐全局降序（当前红：定位方向错+桶尾终止）。
+			// 分页版 desc：循环到null收齐全局降序。
 			{
 				var keys = new ArrayList<Binary>();
 				ByteBuffer cursor = null;
@@ -201,7 +201,7 @@ public class TestDbh2MultiBucketWalk {
 				} while (cursor != null && ++rounds < 100);
 				Assertions.assertEquals(expectedKeys(1, 9), keys);
 			}
-			// 全表版 walkKey desc（当前红）。
+			// 全表版 walkKey desc。
 			{
 				var keys = new ArrayList<Binary>();
 				manager.walkKey(null, "testMaster", db, table, k -> keys.add(new Binary(k)), true, null);
