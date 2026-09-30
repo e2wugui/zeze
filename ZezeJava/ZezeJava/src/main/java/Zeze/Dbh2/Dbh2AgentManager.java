@@ -5,8 +5,11 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
+import Zeze.Builtin.Dbh2.Walk;
+import Zeze.Builtin.Dbh2.WalkKey;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Dbh2.Master.MasterTable;
@@ -582,6 +585,42 @@ public class Dbh2AgentManager extends ReentrantLock {
 
 	private static final FetchResult REFUSED = new FetchResult(true, false, false, 0, null);
 
+	private static FetchResult deliverWalkPage(Walk r, TableWalkHandleRaw callback,
+			Function<Binary, byte[]> callbackBytes) throws Exception {
+		if (r.Result.isBucketRefuse())
+			return REFUSED;
+		Binary lastKey = null;
+		var count = 0;
+		var stopped = false;
+		for (var keyValue : r.Result.getKeyValues()) {
+			lastKey = keyValue.getKey();
+			count++;
+			if (!callback.handle(callbackBytes.apply(lastKey), callbackBytes.apply(keyValue.getValue()))) {
+				stopped = true;
+				break;
+			}
+		}
+		return new FetchResult(false, r.Result.isBucketEnd(), stopped, count, lastKey);
+	}
+
+	private static FetchResult deliverWalkPage(WalkKey r, TableWalkKeyRaw callback,
+			Function<Binary, byte[]> callbackBytes) throws Exception {
+		if (r.Result.isBucketRefuse())
+			return REFUSED;
+		Binary lastKey = null;
+		var count = 0;
+		var stopped = false;
+		for (var key : r.Result.getKeys()) {
+			lastKey = key;
+			count++;
+			if (!callback.handle(callbackBytes.apply(key))) {
+				stopped = true;
+				break;
+			}
+		}
+		return new FetchResult(false, r.Result.isBucketEnd(), stopped, count, lastKey);
+	}
+
 	@FunctionalInterface
 	private interface PageFetcher {
 		FetchResult fetch(Dbh2Agent agent, BBucketMeta.Data bucket, Binary exclusiveKey, int limit) throws Exception;
@@ -659,20 +698,10 @@ public class Dbh2AgentManager extends ReentrantLock {
 						var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 						if (r.getResultCode() != 0)
 							throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
-						if (r.Result.isBucketRefuse())
-							return REFUSED;
-						Binary lastKey = null;
-						var count = 0;
-						for (var keyValue : r.Result.getKeyValues()) {
-							lastKey = keyValue.getKey();
-							count++;
-							if (!callback.handle(lastKey.bytesUnsafe(), keyValue.getValue().bytesUnsafe())) {
-								stopped[0] = true;
-								break;
-							}
-						}
-						total[0] += count;
-						return new FetchResult(false, r.Result.isBucketEnd(), stopped[0], count, lastKey);
+						var result = deliverWalkPage(r, callback, Binary::bytesUnsafe);
+						total[0] += result.count;
+						stopped[0] = result.stopped;
+						return result;
 					});
 			if (stopped[0] || cursor == null)
 				return total[0];
@@ -692,20 +721,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 					var r = agent.walk(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 					if (r.getResultCode() != 0)
 						throw new RuntimeException("walk result=" + IModule.getErrorCode(r.getResultCode()));
-					if (r.Result.isBucketRefuse())
-						return REFUSED;
-					Binary lastKey = null;
-					var count = 0;
-					var stopped = false;
-					for (var keyValue : r.Result.getKeyValues()) {
-						lastKey = keyValue.getKey();
-						count++;
-						if (!callback.handle(lastKey.copyIf(), keyValue.getValue().copyIf())) {
-							stopped = true;
-							break;
-						}
-					}
-					return new FetchResult(false, r.Result.isBucketEnd(), stopped, count, lastKey);
+					return deliverWalkPage(r, callback, Binary::copyIf);
 				});
 	}
 
@@ -723,20 +739,10 @@ public class Dbh2AgentManager extends ReentrantLock {
 						var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 						if (r.getResultCode() != 0)
 							throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
-						if (r.Result.isBucketRefuse())
-							return REFUSED;
-						Binary lastKey = null;
-						var count = 0;
-						for (var key : r.Result.getKeys()) {
-							lastKey = key;
-							count++;
-							if (!callback.handle(key.bytesUnsafe())) {
-								stopped[0] = true;
-								break;
-							}
-						}
-						total[0] += count;
-						return new FetchResult(false, r.Result.isBucketEnd(), stopped[0], count, lastKey);
+						var result = deliverWalkPage(r, callback, Binary::bytesUnsafe);
+						total[0] += result.count;
+						stopped[0] = result.stopped;
+						return result;
 					});
 			if (stopped[0] || cursor == null)
 				return total[0];
@@ -756,20 +762,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 					var r = agent.walkKey(exclusive, limit, desc, prefix, bucket.getKeyFirst(), bucket.getKeyLast());
 					if (r.getResultCode() != 0)
 						throw new RuntimeException("walkKey result=" + IModule.getErrorCode(r.getResultCode()));
-					if (r.Result.isBucketRefuse())
-						return REFUSED;
-					Binary lastKey = null;
-					var count = 0;
-					var stopped = false;
-					for (var key : r.Result.getKeys()) {
-						lastKey = key;
-						count++;
-						if (!callback.handle(key.copyIf())) {
-							stopped = true;
-							break;
-						}
-					}
-					return new FetchResult(false, r.Result.isBucketEnd(), stopped, count, lastKey);
+					return deliverWalkPage(r, callback, Binary::copyIf);
 				});
 	}
 }
