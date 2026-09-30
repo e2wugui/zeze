@@ -360,6 +360,11 @@ public class KVList<K, V> implements Cloneable {
 			return this;
 		if (count > (len -= idx))
 			count = len;
+		if (keys == this.keys || keys == this.values || values == this.keys || values == this.values) {
+			keys = Arrays.copyOfRange(keys, idx, idx + count);
+			values = Arrays.copyOfRange(values, idx, idx + count);
+			idx = 0;
+		}
 		reserve(n + count);
 		Object[] buf = this.keys;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + count, n - fromIdx);

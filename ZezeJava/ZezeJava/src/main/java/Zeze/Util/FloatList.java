@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Arrays;
+
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -301,6 +303,10 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 			return this;
 		if (count > (len -= idx))
 			count = len;
+		if (data == buffer) {
+			data = Arrays.copyOfRange(data, idx, idx + count);
+			idx = 0;
+		}
 		reserve(n + count);
 		float[] buf = buffer;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + count, n - fromIdx);

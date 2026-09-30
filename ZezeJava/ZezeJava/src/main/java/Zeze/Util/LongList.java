@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Arrays;
+
 import java.util.Collection;
 import java.util.function.LongConsumer;
 import java.util.function.LongPredicate;
@@ -301,6 +303,10 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 			return this;
 		if (count > (len -= idx))
 			count = len;
+		if (data == buffer) {
+			data = Arrays.copyOfRange(data, idx, idx + count);
+			idx = 0;
+		}
 		reserve(n + count);
 		long[] buf = buffer;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + count, n - fromIdx);

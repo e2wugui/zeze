@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.util.Arrays;
+
 import java.util.Collection;
 import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
@@ -303,6 +305,10 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 			return this;
 		if (count > (len -= idx))
 			count = len;
+		if (data == buffer) {
+			data = Arrays.copyOfRange(data, idx, idx + count);
+			idx = 0;
+		}
 		reserve(n + count);
 		int[] buf = buffer;
 		System.arraycopy(buf, fromIdx, buf, fromIdx + count, n - fromIdx);
