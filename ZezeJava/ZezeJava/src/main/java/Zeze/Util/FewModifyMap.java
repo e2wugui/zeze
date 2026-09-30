@@ -168,8 +168,8 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable {
 		writeLock.lock();
 		try {
 			write.putAll(m);
-			read = null;
 		} finally {
+			read = null;
 			writeLock.unlock();
 		}
 	}
@@ -181,8 +181,8 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable {
 			if (write.isEmpty())
 				return;
 			write.replaceAll(function);
-			read = null;
 		} finally {
+			read = null;
 			writeLock.unlock();
 		}
 	}

@@ -12,7 +12,27 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Fast
 public class TestMutableContainerContracts {
-
+	@Test
+	public void partialReplacementInvalidatesReadSnapshots() {
+		var list = new FewModifyList<>(List.of(1, 2));
+		assertEquals(List.of(1, 2), list.snapshot());
+		assertThrows(IllegalStateException.class, () -> list.replaceAll(value -> {
+			if (value == 2)
+				throw new IllegalStateException("operator failure");
+			return value * 10;
+		}));
+		assertEquals(List.of(10, 2), list.snapshot());
+		var map = new FewModifySortedMap<Integer, Integer>();
+		map.put(1, 1);
+		map.put(2, 2);
+		assertEquals(1, map.get(1));
+		assertThrows(IllegalStateException.class, () -> map.replaceAll((key, value) -> {
+			if (key == 2)
+				throw new IllegalStateException("operator failure");
+			return value * 10;
+		}));
+		assertEquals(10, map.get(1));
+	}
 
 	@Test
 	public void aliasedInsertionReadsTheOriginalSlice() {

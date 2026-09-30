@@ -216,11 +216,9 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	public boolean removeAll(@NotNull Collection<?> c) {
 		writeLock.lock();
 		try {
-			if (!write.removeAll(c))
-				return false;
-			read = null;
-			return true;
+			return write.removeAll(c);
 		} finally {
+			read = null;
 			writeLock.unlock();
 		}
 	}
@@ -229,11 +227,9 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	public boolean retainAll(@NotNull Collection<?> c) {
 		writeLock.lock();
 		try {
-			if (!write.retainAll(c))
-				return false;
-			read = null;
-			return true;
+			return write.retainAll(c);
 		} finally {
+			read = null;
 			writeLock.unlock();
 		}
 	}
@@ -243,8 +239,8 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 		writeLock.lock();
 		try {
 			write.replaceAll(operator);
-			read = null;
 		} finally {
+			read = null;
 			writeLock.unlock();
 		}
 	}
@@ -267,8 +263,8 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 		writeLock.lock();
 		try {
 			write.sort(c);
-			read = null;
 		} finally {
+			read = null;
 			writeLock.unlock();
 		}
 	}

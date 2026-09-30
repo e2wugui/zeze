@@ -171,8 +171,8 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 		writeLock.lock();
 		try {
 			write.putAll(m);
-			read = null;
 		} finally {
+			read = null;
 			writeLock.unlock();
 		}
 	}
@@ -184,8 +184,8 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 			if (write.isEmpty())
 				return;
 			write.replaceAll(function);
-			read = null;
 		} finally {
+			read = null;
 			writeLock.unlock();
 		}
 	}
