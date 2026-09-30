@@ -604,12 +604,10 @@ public final class Token extends AbstractToken {
 				}
 				if (rocksdb != null) {
 					try {
-						rocksdb.close();
+						closeDb();
 					} catch (Throwable ignored) {
 					}
-					rocksdb = null;
 				}
-				tokenMapTable = null;
 				throw ex;
 			}
 		} finally {
@@ -633,6 +631,7 @@ public final class Token extends AbstractToken {
 		cleanTokenMapDaemon.stop();
 		cleanTokenMapTableDaemon.stop();
 		lock();
+		tokenStoreLock.lock();
 		try {
 			if (rocksdb != null) {
 				// stop关库：stop只saveDB不关库时rocksdb/tokenMapTable悬挂，restart的
@@ -646,12 +645,14 @@ public final class Token extends AbstractToken {
 			}
 			tokenMap.clear();
 		} finally {
+			tokenStoreLock.unlock();
 			unlock();
 		}
 	}
 
 	public void closeDb() {
 		lock();
+		tokenStoreLock.lock();
 		try {
 			if (rocksdb != null) {
 				rocksdb.close();
@@ -659,6 +660,7 @@ public final class Token extends AbstractToken {
 			}
 			tokenMapTable = null;
 		} finally {
+			tokenStoreLock.unlock();
 			unlock();
 		}
 	}
@@ -680,6 +682,17 @@ public final class Token extends AbstractToken {
 	}
 
 	private void cleanTokenMapTableOnce() {
+		tokenStoreLock.lock();
+		try {
+			if (rocksdb == null || tokenMapTable == null)
+				return;
+			cleanTokenMapTableLocked();
+		} finally {
+			tokenStoreLock.unlock();
+		}
+	}
+
+	private void cleanTokenMapTableLocked() {
 		logger.info("cleanTokenMapTable: begin ...");
 		var now = System.currentTimeMillis();
 		var bb = ByteBuffer.Wrap(ByteBuffer.Empty);
@@ -758,6 +771,19 @@ public final class Token extends AbstractToken {
 
 	@Override
 	protected long ProcessNewTokenRequest(@NotNull Zeze.Builtin.Token.NewToken r) {
+		tokenStoreLock.lock();
+		try {
+			if (tokenMapTable == null) {
+				r.SendResultCode(-1);
+				return Procedure.Success;
+			}
+			return newTokenLocked(r);
+		} finally {
+			tokenStoreLock.unlock();
+		}
+	}
+
+	private long newTokenLocked(@NotNull Zeze.Builtin.Token.NewToken r) {
 		var arg = r.Argument;
 		var ttl = arg.getTtl();
 		if (ttl <= 0) {
@@ -794,14 +820,18 @@ public final class Token extends AbstractToken {
 	private long getTokenLocked(@NotNull Zeze.Builtin.Token.GetToken r) {
 		var arg = r.Argument;
 		var res = r.Result;
+		if (tokenMapTable == null) {
+			res.setTime(-3);
+			r.SendResultCode(0);
+			return Procedure.Success;
+		}
 		var token = arg.getToken();
 		var maxCount = arg.getMaxCount();
 		for (; ; ) {
 			var state = tokenMap.get(token);
 			if (state == null) {
 				try {
-					// tokenMapTable为volatile，closeDb/stop置null后miss路径不得裸解引用。
-					// 尽力收窄：判空后关库仍可能与本get竞态（TOCTOU残余接受）。
+					// tokenStoreLock把DB使用与closeDb串行；启动前/关闭后不访问native句柄。
 					var table = tokenMapTable;
 					if (table != null) {
 						var v = table.get(token.getBytes(StandardCharsets.UTF_8));
