@@ -2,20 +2,37 @@ package Zeze.Transaction;
 
 import java.math.BigDecimal;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogSortedMap1;
 import Zeze.Transaction.Collections.LogSortedMap2;
 import Zeze.Transaction.Collections.PSortedMap1;
 import Zeze.Transaction.Collections.PSortedMap2;
 import Zeze.Transaction.Collections.SortedMap1Meta;
 import Zeze.Transaction.Collections.SortedMap2Meta;
+import Zeze.Transaction.Logs.LogLong;
+import demo.Module1.BValue;
 import demo.ModuleGTable.Bean1;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Fast
 public class TestSortedMapEquivalentKeysReplay {
+	static {
+		Log.register(LogLong::new);
+	}
+
+	private static PSortedMap2<String, BValue> newCaseInsensitiveBeanMap() {
+		var map = new PSortedMap2<String, BValue>(String.class, BValue.class);
+		var initial = new LogSortedMap2<String, BValue>(null, 1, map,
+				org.pcollections.TreePMap.empty(String.CASE_INSENSITIVE_ORDER), map.getMeta());
+		initial.commit();
+		return map;
+	}
+
+
 
 	@Test
 	public void removalWithEquivalentDecimalKeySurvivesReplay() {
@@ -120,6 +137,63 @@ public class TestSortedMapEquivalentKeysReplay {
 		assertTrue(leader.isEmpty());
 		assertTrue(follower.isEmpty(), "Bean map replay must preserve deletion of the equivalent key");
 	}
+
+	@Test
+	public void beanChangesWithEquivalentDecimalKeysSurviveEncodingAndReplay() {
+		var leader = new PSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
+		var value = new BValue();
+		leader.put(new BigDecimal("1.0"), value);
+		var follower = new PSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
+		follower.put(new BigDecimal("1.00"), new BValue());
+		assertBeanChangeReplay(leader, follower, new BigDecimal("1.000"));
+	}
+
+	@Test
+	public void beanChangesUseTheValuesCustomComparator() {
+		var leader = newCaseInsensitiveBeanMap();
+		leader.put("Alpha", new BValue());
+		var follower = newCaseInsensitiveBeanMap();
+		follower.put("ALPHA", new BValue());
+		assertBeanChangeReplay(leader, follower, "alpha");
+	}
+
+	private static <K extends Comparable<K>> void assertBeanChangeReplay(
+			PSortedMap2<K, BValue> leader, PSortedMap2<K, BValue> follower, K equivalentKey) {
+		var value = leader.get(equivalentKey);
+		value.setLong2(7);
+		var change = new LogBean(null, 0, value);
+		var field = new LogLong(2); // BValue.long2
+		field.value = 7;
+		change.getVariablesOrNew().put(2, field);
+		@SuppressWarnings("unchecked")
+		var log = (LogSortedMap2<K, BValue>)leader.createLogBean();
+		log.getChanged().add(change);
+		assertTrue(log.buildChangedWithKey());
+		assertEquals(1, log.getChangedWithKey().size());
+		assertSame(change, log.getChangedWithKey().get(equivalentKey),
+				"原位修改索引须使用底层映射的键等价关系");
+
+		var input = encode(log);
+		@SuppressWarnings("unchecked")
+		var decoded = (LogSortedMap2<K, BValue>)follower.createLogBean();
+		decoded.decode(input);
+		assertTrue(input.isEmpty());
+		assertEquals(1, decoded.getChangedWithKey().size());
+		assertEquals(7, ((LogLong)decoded.getChangedWithKey().get(equivalentKey)
+				.getVariables().get(2)).value);
+		var followerValue = follower.get(equivalentKey);
+		follower.followerApply(decoded);
+		assertSame(followerValue, follower.get(equivalentKey), "回放须原位编辑已有 Bean");
+		assertEquals(value.getLong2(), followerValue.getLong2());
+		assertEquals(1, follower.size());
+
+		log.mergeChangedToReplaced();
+		assertSame(value, log.getReplaced().get(equivalentKey));
+	}
+
+
+
+
 
 	private static ByteBuffer encode(Log log) {
 		var buffer = ByteBuffer.Allocate();
