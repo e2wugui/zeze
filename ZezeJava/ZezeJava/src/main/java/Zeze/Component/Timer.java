@@ -977,7 +977,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		}
 		// index==null不得投机cancelFuture——timerFutures三族（全局/在线/离线）共用
 		// 同源timerId，传入在线族timerId会误杀其活future：fireOnline不再执行，静默停摆到
-		// 用户下线清理。本族孤儿future由fireSimple自愈（index==null分支自行cancelFuture）。
+		// 用户下线清理。正常取消负责清理旧future，缺行fire直接返回以保护同名新注册。
 		return false;
 	}
 
@@ -1289,7 +1289,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			return 0;
 		}, "Timer.fireSimple")).call() != 0) {
 			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
-				cancel(timerId);
+				// The failed fire released its locks; the registration may have been replaced or transferred.
+				var index = _tIndexs.get(timerId);
+				if (index != null && index.getSerialId() == timerSerialId
+						&& index.getServerId() == zeze.getConfig().getServerId())
+					cancel(timerId);
 				return 0;
 			}, "Timer.cancelTimer")).call();
 		}
@@ -1392,7 +1396,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			return 0;
 		}, "Timer.fireCron")).call() != 0) {
 			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
-				cancel(timerId);
+				var index = _tIndexs.get(timerId);
+				if (index != null && index.getSerialId() == timerSerialId
+						&& index.getServerId() == zeze.getConfig().getServerId())
+					cancel(timerId);
 				return 0;
 			}, "Timer.cancelTimer")).call();
 		}

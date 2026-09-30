@@ -237,7 +237,7 @@ abstract class TimerOnlineBase<I> {
 		if (bTimer == null) {
 			// 查无本族记录不得投机cancelFuture——timerFutures三族共用同源timerId，
 			// 传入他族（如全局族）timerId会误杀其活future：记录在而future死，fireSimple尾部的
-			// 周期重装永不发生，停摆到进程重启。孤儿future由fireOnline自愈（bTimer==null分支）。
+			// 周期重装永不发生，停摆到进程重启。正常取消清理旧future，缺行fire直接返回。
 			return false;
 		}
 
