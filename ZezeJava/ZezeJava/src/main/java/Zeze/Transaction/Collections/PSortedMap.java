@@ -247,6 +247,46 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 			public int size() {
 				return getMap().size();
 			}
+
+			@Override
+			public boolean contains(Object key) {
+				return PSortedMap.this.containsKey(key);
+			}
+
+			@Override
+			public boolean remove(Object key) {
+				return PSortedMap.this.remove(key) != null;
+			}
+
+			@Override
+			public boolean removeAll(java.util.Collection<?> keys) {
+				boolean changed = false;
+				for (Object key : keys)
+					changed |= remove(key);
+				return changed;
+			}
+
+			@Override
+			public boolean retainAll(java.util.Collection<?> keys) {
+				java.util.Objects.requireNonNull(keys);
+				var comparator = getMap().comparator();
+				boolean changed = false;
+				for (var it = iterator(); it.hasNext(); ) {
+					K key = it.next();
+					boolean retained = false;
+					for (Object candidate : keys) {
+						if (equivalentKey(comparator, key, candidate)) {
+							retained = true;
+							break;
+						}
+					}
+					if (!retained) {
+						it.remove();
+						changed = true;
+					}
+				}
+				return changed;
+			}
 		};
 	}
 
@@ -315,7 +355,67 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 			public int size() {
 				return getMap().size();
 			}
+
+			@Override
+			public boolean contains(Object item) {
+				if (!(item instanceof Map.Entry<?, ?> entry))
+					return false;
+				V value = getMap().get(entry.getKey());
+				return value != null && value.equals(entry.getValue());
+			}
+
+			@Override
+			public boolean remove(Object item) {
+				if (!contains(item))
+					return false;
+				PSortedMap.this.remove(((Map.Entry<?, ?>)item).getKey());
+				return true;
+			}
+
+			@Override
+			public boolean removeAll(java.util.Collection<?> entries) {
+				boolean changed = false;
+				for (Object entry : entries)
+					changed |= remove(entry);
+				return changed;
+			}
+
+			@Override
+			public boolean retainAll(java.util.Collection<?> entries) {
+				java.util.Objects.requireNonNull(entries);
+				var comparator = getMap().comparator();
+				boolean changed = false;
+				for (var it = iterator(); it.hasNext(); ) {
+					var entry = it.next();
+					boolean retained = false;
+					for (Object candidate : entries) {
+						if (candidate instanceof Map.Entry<?, ?> other
+								&& equivalentKey(comparator, entry.getKey(), other.getKey())
+								&& entry.getValue().equals(other.getValue())) {
+							retained = true;
+							break;
+						}
+					}
+					if (!retained) {
+						it.remove();
+						changed = true;
+					}
+				}
+				return changed;
+			}
 		};
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <K extends Comparable<K>> boolean equivalentKey(Comparator<? super K> comparator,
+			K key, Object candidate) {
+		if (candidate == null)
+			return false;
+		try {
+			return (comparator != null ? comparator.compare(key, (K)candidate) : key.compareTo((K)candidate)) == 0;
+		} catch (ClassCastException ignored) {
+			return false;
+		}
 	}
 
 	@Override
