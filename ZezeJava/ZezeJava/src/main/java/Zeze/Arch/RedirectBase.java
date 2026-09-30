@@ -16,6 +16,8 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.Func0;
 import Zeze.Util.LongHashMap;
+import Zeze.Util.OutObject;
+import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -259,16 +261,33 @@ public class RedirectBase {
 		}
 
 		var future = new RedirectFuture<T>();
-		// 由于返回的future暴露出来,很可能await同步等待,所以这里不能whileCommit时执行,否则会死锁等待
-		TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
+		// 本体立即在独立事务运行，候选结果只在最终提交成功后关联到外层future。
+		// Procedure.call内部可重做，不能让已回滚轮次的成功值抢先完成外层future。
+		TaskSpec.ofAction(() -> {
+			var candidate = new OutObject<RedirectFuture<T>>();
+			var failure = new OutObject<Throwable>();
 			try {
-				func.call().onSuccess(future::setResult).onFail(future::setException);
-			} catch (Exception e) {
+				var rc = providerApp.zeze.newProcedure(() -> {
+					candidate.value = null;
+					failure.value = null;
+					try {
+						candidate.value = Objects.requireNonNull(func.call());
+					} catch (Throwable e) {
+						failure.value = e;
+						throw Task.forceThrow(e);
+					}
+					return Procedure.Success;
+				}, actionName, level).call();
+				if (rc == Procedure.Success)
+					candidate.value.onSuccess(future::setResult).onFail(future::setException);
+				else
+					future.setException(failure.value != null ? failure.value
+							: new RedirectException(RedirectException.LOCAL_EXECUTION,
+									"redirect loop-back transaction failed: " + rc));
+			} catch (Throwable e) {
 				future.setException(e);
-				throw e;
 			}
-			return Procedure.Success;
-		}, actionName, level)).runNow();
+		}).name(actionName).runNow();
 		return future;
 	}
 

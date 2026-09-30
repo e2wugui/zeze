@@ -134,6 +134,7 @@ public final class FastServerIds {
 	public static final int TEST_COMP02_DB_WEB_TOKEN = seg("TestComp02DbWebToken", 7690, 1);
 	public static final int TEST_FINAL_ACTIONS_ISOLATION = seg("TestFinalActionsIsolation", 7700, 2);
 	public static final int TEST_PLIST2_ATTACH_ORDER = seg("TestPList2AttachOrder", 7710, 1);
+	public static final int TEST_REDIRECT_FUTURE_COMMITTED_RESULT = seg("TestRedirectFutureCommittedResult", 7720, 2);
 	public static final int TEST_LINKED_MAP_BROKEN_CHAIN_LOGGED = seg("TestLinkedMapBrokenChainLogged", 8790, 4);
 	public static final int TEST_ONLINE_RELIABLE_LOGOUT = seg("TestOnlineReliableLogout", 8810, 2);
 	public static final int TEST_ONLINE_LOGIN_RETRY_LIMIT = seg("TestOnlineLoginRetryLimit", 8820, 2);
