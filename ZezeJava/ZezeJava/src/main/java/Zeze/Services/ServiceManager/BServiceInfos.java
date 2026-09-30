@@ -21,7 +21,8 @@ public final class BServiceInfos implements Serializable {
 		if (id1.isEmpty() || id1.charAt(0) == '@' || id1.charAt(0) == '#'
 				|| id2.isEmpty() || id2.charAt(0) == '@' || id2.charAt(0) == '#')
 			return id1.compareTo(id2);
-		return Long.compare(Long.parseLong(id1), Long.parseLong(id2));
+		int cmp = Long.compare(Long.parseLong(id1), Long.parseLong(id2));
+		return cmp != 0 ? cmp : id1.compareTo(id2); // 数值相同的不同字符串仍是不同注册identity。
 	};
 
 	private final FewModifyList<BServiceInfo> sortedIdentities = new FewModifyList<>(); // sorted by ServiceIdentity
