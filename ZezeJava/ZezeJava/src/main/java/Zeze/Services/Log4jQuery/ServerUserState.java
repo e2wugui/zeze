@@ -30,12 +30,15 @@ public class ServerUserState {
 
 	private final LogService logService;
 	private final ConcurrentHashMap<Long, Log4jSession> logSessions = new ConcurrentHashMap<>();
+	private volatile boolean closed;
 
 	public ServerUserState(LogService logService) {
 		this.logService = logService;
 	}
 
 	public Log4jSession getLogSession(long sid) {
+		if (closed)
+			return null;
 		var logSession = logSessions.get(sid);
 		if (null != logSession)
 			// 命中即锁外前置刷新（volatile写）：把"查询受理"提前到拿引用时刻。原窗口=拿引用到
@@ -50,12 +53,25 @@ public class ServerUserState {
 	}
 
 	public void newLogSession(String logName, long sid) throws IOException {
+		if (closed)
+			throw new IllegalStateException("log connection closed");
 		var logSession = new Log4jSession(logService.getLogManager(logName));
-		var exist = logSessions.putIfAbsent(sid, logSession);
-		if (null != exist) {
-			logSession.close();
-			throw new IllegalArgumentException("duplicate sid=" + sid);
+		RuntimeException rejected;
+		// 只串行登记与关闭快照：构造及逐会话close都在锁外，selector不等查询锁。
+		synchronized (this) {
+			if (closed)
+				rejected = new IllegalStateException("log connection closed");
+			else if (logSessions.putIfAbsent(sid, logSession) != null)
+				rejected = new IllegalArgumentException("duplicate sid=" + sid);
+			else
+				return;
 		}
+		try {
+			logSession.close();
+		} catch (IOException e) {
+			rejected.addSuppressed(e);
+		}
+		throw rejected;
 	}
 
 	public void closeLogSession(long sid) throws IOException {
@@ -122,7 +138,8 @@ public class ServerUserState {
 	}
 
 	/** 摘除全部会话（快照+清空）：返回的快照由调用方负责逐个关闭。 */
-	private List<Log4jSession> detachSessions() {
+	private synchronized List<Log4jSession> detachSessions() {
+		closed = true; // 即使空表也保留终态：迟到Normal派发请求不得重新登记。
 		var pending = List.copyOf(logSessions.values());
 		logSessions.clear();
 		return pending;
