@@ -318,6 +318,7 @@ public class Database extends Zeze.Transaction.Database {
 			var agent = dbh2AgentManager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = batches.getDatas().computeIfAbsent(agent,
 					_agent_ -> new BPrepareBatch.Data(masterName, databaseName, tableName, null));
+			batch.getBatch().getDeletes().remove(bKey);
 			batch.getBatch().getPuts().put(bKey, bValue);
 		}
 
@@ -326,6 +327,7 @@ public class Database extends Zeze.Transaction.Database {
 			var agent = dbh2AgentManager.locateBucket(masterAgent, masterName, databaseName, tableName, bKey);
 			var batch = batches.getDatas().computeIfAbsent(agent,
 					_agent_ -> new BPrepareBatch.Data(masterName, databaseName, tableName, null));
+			batch.getBatch().getPuts().remove(bKey);
 			batch.getBatch().getDeletes().add(bKey);
 		}
 
