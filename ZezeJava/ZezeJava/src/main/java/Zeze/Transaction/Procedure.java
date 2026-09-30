@@ -166,8 +166,14 @@ public class Procedure {
 			}
 			currentT.rollback();
 			var tmpLogAction = logAction;
-			if (tmpLogAction != null)
-				tmpLogAction.run(null, result, this, "");
+			if (tmpLogAction != null) {
+				try {
+					tmpLogAction.run(null, result, this, "");
+				} catch (Throwable e) { // logger.error
+					// 当前保存点已经回滚，日志异常不能进入下方再次 rollback 的分支。
+					logger.error("Procedure logAction failed: {}", this, e);
+				}
+			}
 			return result;
 		} catch (GoBackZeze goBackZeze) {
 			// 单独抓住这个异常，是为了能原样抛出，并且使用不同的级别记录日志。
