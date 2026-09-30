@@ -92,7 +92,6 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 	public final void clear() {
 		for (var key : getValue().keySet())
 			remove(key);
-		setValue(org.pcollections.Empty.sortedMap());
 	}
 
 	@Override

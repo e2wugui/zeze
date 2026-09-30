@@ -73,7 +73,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
-			map = org.pcollections.Empty.sortedMap();
+			map = map.minusAll(map.keySet()); // 清空仍保留原比较器。
 	}
 
 	@Override

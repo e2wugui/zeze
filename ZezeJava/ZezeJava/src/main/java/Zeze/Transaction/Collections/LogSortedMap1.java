@@ -8,6 +8,7 @@ import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
+import org.pcollections.TreePMap;
 
 import java.util.Map;
 import java.util.Set;
@@ -105,7 +106,8 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 			replaced.remove(ks);
 			removed.add(ks);
 		}
-		setValue(Empty.sortedMap());
+		var comparator = getValue().comparator();
+		setValue(comparator != null ? TreePMap.empty(comparator) : Empty.sortedMap());
 	}
 
 	@Override

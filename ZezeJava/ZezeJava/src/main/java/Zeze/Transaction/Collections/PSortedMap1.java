@@ -8,6 +8,7 @@ import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
+import org.pcollections.TreePMap;
 
 /** 事务 SortedMap（1系）：Comparable 键，不可变值按值拷贝记账。 */
 @SuppressWarnings({"unchecked", "DataFlowIssue"})
@@ -116,8 +117,10 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
-		} else
-			map = Empty.sortedMap();
+		} else {
+			var comparator = map.comparator();
+			map = comparator != null ? TreePMap.empty(comparator) : Empty.sortedMap();
+		}
 	}
 
 	@Override

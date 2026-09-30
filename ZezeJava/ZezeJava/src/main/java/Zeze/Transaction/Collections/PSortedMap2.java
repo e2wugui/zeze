@@ -16,6 +16,7 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
+import org.pcollections.TreePMap;
 
 /** 事务 SortedMap（2系）：Comparable 键，Bean 值受管。 */
 @SuppressWarnings({"unchecked"})
@@ -178,8 +179,10 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
-		} else
-			map = Empty.sortedMap();
+		} else {
+			var comparator = map.comparator();
+			map = comparator != null ? TreePMap.empty(comparator) : Empty.sortedMap();
+		}
 	}
 
 	@Override

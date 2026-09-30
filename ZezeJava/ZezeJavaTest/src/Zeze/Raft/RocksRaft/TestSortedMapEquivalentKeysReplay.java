@@ -117,11 +117,55 @@ public class TestSortedMapEquivalentKeysReplay {
 		assertEquals(30, follower.get(decimal("1")));
 	}
 
+	@Test
+	public void customComparatorSurvivesClearSavepointAndReplay() {
+		var comparator = String.CASE_INSENSITIVE_ORDER;
+		var leader = new CollSortedMap1<String, Integer>(String.class, Integer.class);
+		leader.map = TreePMap.empty(comparator);
+		leader.put("alpha", 10);
+		leader.clear();
+		assertSame(comparator, leader.map.comparator());
+		var log = new LogSortedMap1<String, Integer>(String.class, Integer.class);
+		log.setBelong(new BValue());
+		log.setValue(leader.map);
+		log.put("alpha", 10);
+		var savepoint = new Savepoint();
+		savepoint.putLog(log);
+		@SuppressWarnings("unchecked")
+		var nested = (LogSortedMap1<String, Integer>)log.beginSavepoint();
+		nested.clear();
+		assertSame(comparator, nested.getValue().comparator());
+		nested.put("ALPHA", 20);
+		nested.endSavepoint(savepoint);
+		var decoded = new LogSortedMap1<String, Integer>(String.class, Integer.class, comparator);
+		decoded.decode(encode(log));
+		var follower = new CollSortedMap1<String, Integer>(String.class, Integer.class);
+		follower.map = TreePMap.empty(comparator);
+		follower.followerApply(decoded);
+		assertEquals(1, follower.size());
+		assertEquals(20, follower.get("alpha"));
+	}
 
 
 
-
-
+	@Test
+	public void comparatorFinerThanNaturalOrderSurvivesConfiguredDecode() {
+		var comparator = java.util.Comparator.comparing(BigDecimal::toString);
+		var log = new LogSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class, comparator);
+		log.setValue(TreePMap.empty(comparator));
+		log.put(decimal("1.0"), new BValue(10));
+		log.put(decimal("1.00"), new BValue(20));
+		var decoded = new LogSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class, comparator);
+		decoded.decode(encode(log));
+		var follower = new CollSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
+		follower.map = TreePMap.empty(comparator);
+		follower.followerApply(decoded);
+		assertEquals(2, follower.size());
+		assertEquals(10, follower.get(decimal("1.0")).value);
+		assertEquals(20, follower.get(decimal("1.00")).value);
+		follower.clear();
+		assertSame(comparator, follower.map.comparator());
+	}
 
 	@Test
 	public void managedCopyRetainsCurrentStructureAndComparator() {
