@@ -188,9 +188,10 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 
 	@Override
 	public boolean addAll(@NotNull Collection<? extends E> c) {
+		var snapshot = new ArrayList<>(c);
 		writeLock.lock();
 		try {
-			if (!write.addAll(c))
+			if (!write.addAll(snapshot))
 				return false;
 			read = null;
 			return true;
@@ -201,9 +202,10 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 
 	@Override
 	public boolean addAll(int index, @NotNull Collection<? extends E> c) {
+		var snapshot = new ArrayList<>(c);
 		writeLock.lock();
 		try {
-			if (!write.addAll(index, c))
+			if (!write.addAll(index, snapshot))
 				return false;
 			read = null;
 			return true;
@@ -214,9 +216,10 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 
 	@Override
 	public boolean removeAll(@NotNull Collection<?> c) {
+		var membership = c instanceof FewModifyList<?> other ? other.snapshot() : c;
 		writeLock.lock();
 		try {
-			return write.removeAll(c);
+			return write.removeAll(membership);
 		} finally {
 			read = null;
 			writeLock.unlock();
@@ -225,9 +228,10 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 
 	@Override
 	public boolean retainAll(@NotNull Collection<?> c) {
+		var membership = c instanceof FewModifyList<?> other ? other.snapshot() : c;
 		writeLock.lock();
 		try {
-			return write.retainAll(c);
+			return write.retainAll(membership);
 		} finally {
 			read = null;
 			writeLock.unlock();

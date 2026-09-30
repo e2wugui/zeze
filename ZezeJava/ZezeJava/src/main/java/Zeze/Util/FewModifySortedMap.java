@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
@@ -168,9 +169,10 @@ public class FewModifySortedMap<K extends Comparable<? super K>, V> implements N
 	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
 		if (m.isEmpty())
 			return;
+		var snapshot = new LinkedHashMap<K, V>(m);
 		writeLock.lock();
 		try {
-			write.putAll(m);
+			write.putAll(snapshot);
 		} finally {
 			read = null;
 			writeLock.unlock();

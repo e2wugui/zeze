@@ -66,5 +66,34 @@ public class TestFewModifyBulkBoundaries {
 		assertEquals(Map.of(1, 1, 2, 2), target.snapshot());
 	}
 
-
+	@Test
+	public void mapReadsTheForeignInputBeforeTakingItsWriteLock() throws Exception {
+		for (Map<Integer, Integer> target : List.<Map<Integer, Integer>>of(
+				new FewModifyMap<>(), new FewModifySortedMap<>())) {
+			target.put(1, 1); // read snapshot remains absent, so a different reader must acquire the lock.
+			try (var reader = Executors.newSingleThreadExecutor()) {
+				var source = new AbstractMap<Integer, Integer>() {
+					@Override
+					public boolean isEmpty() {
+						return false;
+					}
+					@Override
+					public int size() {
+						return 2;
+					}
+					@Override
+					public Set<Entry<Integer, Integer>> entrySet() {
+						try {
+							assertEquals(1, reader.submit(target::size).get(2, TimeUnit.SECONDS));
+						} catch (Exception e) {
+							throw new IllegalStateException("foreign input was read while blocking another reader", e);
+						}
+						return Map.of(2, 2, 3, 3).entrySet();
+					}
+				};
+				target.putAll(source);
+				assertEquals(Map.of(1, 1, 2, 2, 3, 3), target);
+			}
+		}
+	}
 }

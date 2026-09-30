@@ -3,6 +3,7 @@ package Zeze.Util;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
@@ -165,9 +166,10 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable {
 		if (m.isEmpty())
 			return;
 
+		var snapshot = new LinkedHashMap<K, V>(m);
 		writeLock.lock();
 		try {
-			write.putAll(m);
+			write.putAll(snapshot);
 		} finally {
 			read = null;
 			writeLock.unlock();
