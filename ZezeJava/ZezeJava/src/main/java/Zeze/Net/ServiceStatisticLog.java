@@ -66,8 +66,6 @@ public final class ServiceStatisticLog implements Action0 {
 					outBufSize.value += tcp.getOutputBufferSize();
 				}
 			});
-			operates.value /= periodSec;
-			outBufSize.value /= periodSec;
 			logger.info("{}.{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
 					service.getName(), service.getInstanceName(), sn, selectors.getCount(), rs, rc, ss, sc, sr,
 					service.getSocketCount(), operates.value, outBufSize.value);
