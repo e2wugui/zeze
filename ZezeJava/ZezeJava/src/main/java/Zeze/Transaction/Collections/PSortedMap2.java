@@ -231,8 +231,11 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		// 拿到的是可变后门（copy.get(k).setField改的是原记录），且副本元素再put进受管容器
 		// 抛HasManagedException——与CollOne.copy()/生成代码Bean.assign的深拷贝语义对齐。
 		var copy = new PSortedMap2<>(meta);
-		var newMap = org.pcollections.Empty.<K, V>sortedMap();
-		for (var e : getMap().entrySet())
+		var source = getMap();
+		var comparator = source.comparator();
+		org.pcollections.PSortedMap<K, V> newMap = comparator != null
+				? TreePMap.empty(comparator) : Empty.sortedMap();
+		for (var e : source.entrySet())
 			newMap = newMap.plus(e.getKey(), (V)e.getValue().copy());
 		copy.map = newMap;
 		return copy;
