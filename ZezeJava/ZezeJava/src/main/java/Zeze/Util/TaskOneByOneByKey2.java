@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 public final class TaskOneByOneByKey2 extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
 	private static final @NotNull VarHandle vhSubmitted;
+	private static final ConcurrentHashMap<TaskOneByOne.Dispatch, Executor> pendingDispatches = new ConcurrentHashMap<>();
 
 	static {
 		try {
@@ -576,6 +578,13 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				: Zeze.Util.Task.poolOrThrow(mode == DispatchMode.Critical);
 	}
 
+	static void cancelPendingDispatches(@NotNull Executor executor) {
+		for (var entry : pendingDispatches.entrySet()) {
+			if (entry.getValue() == executor)
+				entry.getKey().cancelBeforeRun();
+		}
+	}
+
 	static abstract class Task {
 		final @NotNull String name;
 		final @Nullable DispatchMode mode;
@@ -731,13 +740,42 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		 * 队列保留不清：Key2 无 onCancel 补偿钩子，清队列会静默丢任务；积压任务由后续
 		 * submit 重新认领派发（executor 恢复后照常执行）。 */
 		private void executeOrRollback(@NotNull Task task) {
+			Dispatch dispatch = null;
 			try {
-				getExecutor(task.mode).execute(this);
+				var target = getExecutor(task.mode);
+				dispatch = new Dispatch();
+				pendingDispatches.put(dispatch, target);
+				target.execute(dispatch);
 			} catch (RuntimeException e) {
-				submitted = false; // 回滚认领：execute抛出即run()未进池，不存在并发驱动者
-				logger.warn("TaskOneByOneByKey2: dispatch rejected, rollback claim, {} pending task(s), head: [{}]",
-						queue.size(), task.name, e);
+				boolean rolledBack;
+				if (dispatch == null) {
+					submitted = false;
+					rolledBack = true;
+				} else
+					rolledBack = dispatch.cancelBeforeRun();
+				if (rolledBack)
+					logger.warn("TaskOneByOneByKey2: dispatch rejected, rollback claim, {} pending task(s), head: [{}]",
+							queue.size(), task.name, e);
 				throw e;
+			}
+		}
+
+		// 每次派发独立票据；shutdownNow丢弃未运行驱动时只归还认领，保留noCancel任务。
+		private final class Dispatch extends AtomicInteger implements Runnable {
+			@Override
+			public void run() {
+				if (!compareAndSet(0, 1))
+					return;
+				pendingDispatches.remove(this);
+				TaskOneByOne.this.run();
+			}
+
+			boolean cancelBeforeRun() {
+				if (!compareAndSet(0, 2))
+					return false;
+				pendingDispatches.remove(this);
+				submitted = false;
+				return true;
 			}
 		}
 

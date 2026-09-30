@@ -217,12 +217,15 @@ public final class Task {
 			// 不依赖返回的 Runnable 形态；补偿在 taskLock 外，允许回调重新初始化/提交。
 			if (scheduledTmp != null) {
 				TaskOneByOneQueue.cancelPendingDispatches(scheduledTmp);
+				TaskOneByOneByKey2.cancelPendingDispatches(scheduledTmp);
 			}
 			if (defaultTmp != null) {
 				TaskOneByOneQueue.cancelPendingDispatches(defaultTmp);
+				TaskOneByOneByKey2.cancelPendingDispatches(defaultTmp);
 			}
 			if (criticalTmp != null) {
 				TaskOneByOneQueue.cancelPendingDispatches(criticalTmp);
+				TaskOneByOneByKey2.cancelPendingDispatches(criticalTmp);
 			}
 		}
 

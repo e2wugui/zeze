@@ -78,6 +78,8 @@ public class TestTaskShutdown {
 		var oldRuns = new AtomicInteger();
 		var cancellations = new AtomicInteger();
 		var originalQueue = Task.getOneByOne();
+		var retainedQueue = new TaskOneByOneByKey2(1);
+		var retainedRuns = new AtomicInteger();
 		try {
 			pool.execute(() -> {
 				busy.countDown();
@@ -92,15 +94,19 @@ public class TestTaskShutdown {
 					.executeOneByOne(37, originalQueue);
 			TaskSpec.ofAction(oldRuns::incrementAndGet).onCancel(cancellations::incrementAndGet)
 					.executeOneByOne(37, Task.getSystemOneByOne());
+			TaskSpec.ofAction(retainedRuns::incrementAndGet).executeOneByOne(37, retainedQueue);
 			Task.shutdownNow(5_000);
 			Assertions.assertEquals(0, oldRuns.get());
 			Assertions.assertEquals(2, cancellations.get());
+			Assertions.assertEquals(0, retainedRuns.get());
 			Task.tryInitThreadPool();
 			Assertions.assertSame(originalQueue, Task.getOneByOne());
-			var resumed = new CountDownLatch(2);
+			var resumed = new CountDownLatch(3);
 			TaskSpec.ofAction(resumed::countDown).executeOneByOne(37, originalQueue);
 			TaskSpec.ofAction(resumed::countDown).executeOneByOne(37, Task.getSystemOneByOne());
+			TaskSpec.ofAction(resumed::countDown).executeOneByOne(37, retainedQueue);
 			Assertions.assertTrue(resumed.await(5, TimeUnit.SECONDS), "同 key 必须在重建后恢复派发");
+			Assertions.assertEquals(1, retainedRuns.get(), "Key2保留的旧任务必须在新提交时恢复运行");
 		} finally {
 			release.countDown();
 			if (Task.getThreadPool() == pool)
