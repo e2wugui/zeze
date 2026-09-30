@@ -362,6 +362,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				var link = linkdApp.linkdService.GetSocket(linkSid);
 				if (link != null) {
 					var linkSession = (LinkdUserSession)link.getUserState();
+					if (linkSession == null)
+						continue;
 					linkSession.bind(linkdApp.linkdProviderService, link, bind.getModules().keySet(), rpc.getSender());
 					logger.info("dynamic bind: account={}, moduleIds={}, provider={}", linkSession.account,
 							bind.getModules().keySet(), rpc.getSender().getRemoteAddress());
@@ -434,7 +436,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			for (var linkSid : rpc.Argument.getLinkSids()) {
 				var link = linkdApp.linkdService.GetSocket(linkSid);
 				if (link != null) {
-					((LinkdUserSession)link.getUserState()).unbind(linkdApp.linkdProviderService,
+					var linkSession = (LinkdUserSession)link.getUserState();
+					if (linkSession == null)
+						continue;
+					linkSession.unbind(linkdApp.linkdProviderService,
 							link, rpc.Argument.getModules().keySet(), rpc.getSender());
 				}
 			}
