@@ -16,7 +16,15 @@ public class TestFuzzySearchRankingAndRemoval {
 		assertArrayEquals(new String[]{"aaaaa", "a"}, results);
 	}
 
-
+	@Test
+	public void aLongQueryDoesNotOverflowAccumulatedWeights() {
+		var search = new StringFuzzySearch();
+		search.add("aaaaa");
+		search.add("a");
+		var results = new String[2];
+		assertEquals(2, search.search("a".repeat(65_560), results));
+		assertArrayEquals(new String[]{"aaaaa", "a"}, results);
+	}
 
 	@Test
 	public void deletionReclaimsEveryEmptyPostingButPreservesSharedGrams() throws Exception {

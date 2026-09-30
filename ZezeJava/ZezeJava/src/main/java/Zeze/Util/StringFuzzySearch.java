@@ -102,7 +102,7 @@ public final class StringFuzzySearch {
 		final int n = s.length();
 		if (n == 0) // 空串不参与索引合并，后面 0x1_0000_0000L / n 会除零
 			return 0;
-		final var m = new LongHashMap<OutInt>();
+		final var m = new LongHashMap<OutLong>();
 		if (n >= 4) {
 			var k = ((long)s.charAt(0) << 32) + ((long)s.charAt(1) << 16) + s.charAt(2);
 			for (int i = 3; i < n; i++)
@@ -138,11 +138,11 @@ public final class StringFuzzySearch {
 		return i;
 	}
 
-	private static void merge(final @NotNull LongHashMap<OutInt> m, final @Nullable LongList list, final int f) {
+	private static void merge(final @NotNull LongHashMap<OutLong> m, final @Nullable LongList list, final int f) {
 		if (list != null) {
 			for (int i = 0, n = list.size(); i < n; i++) {
 				final var k = list.get(i);
-				m.computeIfAbsent(k, __ -> new OutInt()).value += (int)(k >>> 48) * f;
+				m.computeIfAbsent(k, __ -> new OutLong()).value += (int)(k >>> 48) * f;
 			}
 		}
 	}
