@@ -48,7 +48,7 @@ public class LogAgentManager {
 
 	/**
 	 * 停止查询代理与管理口 HTTP 服务（启动失败清理与停机共用）：幂等，按启动逆序
-	 * 回收（先关管理口断流量入口，再停 agent），复位静态引用。
+	 * 回收（先关管理口断流量入口，再清会话绑定表，最后停 agent），复位静态引用。
 	 */
 	public static void stop() throws Exception {
 		if (httpServer != null) {
@@ -59,6 +59,12 @@ public class LogAgentManager {
 			adminNetty.close();
 			adminNetty = null;
 		}
+		// 会话绑定表是 FileSessionManager 的类级静态，不随 agent 生命周期走：stop 不清
+		// 时嵌入宿主 stop→init 后同 IP 复用持有已停 agent 的死会话（恒 system error 且
+		// 闲置清扫被复用前的活跃刷新挡住）。断流量入口后、停 agent 前清理（CloseSession
+		// RPC 仍可经 agent 连接发出，异步不挡停机）；纯绑定形态（logAgentManager 为
+		// null）同样清理。
+		FileSessionManager.closeAllBindings();
 		if (logAgentManager != null) {
 			if (logAgentManager.logAgent != null)
 				logAgentManager.logAgent.stop();

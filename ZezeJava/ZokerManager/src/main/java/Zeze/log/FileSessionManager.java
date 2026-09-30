@@ -275,6 +275,24 @@ public class FileSessionManager {
 	}
 
 	/**
+	 * 停机清理（LogAgentManager.stop 收尾）：清空绑定表并异步关闭全部会话、复位清扫
+	 * 时钟。绑定表是类级静态，不随 stop 复位时，嵌入宿主 stop→init 后同 IP 同参数请求
+	 * 经 matches（纯四元组 + 新 agent 注册表，不感知 agent 更替）复用持有已停 agent 的
+	 * 死会话——operate 走旧 Client 的已停 Connector，非会话级异常不触发重建，恒
+	 * system error；且复用前刷新 lastActiveNanos 使闲置清扫对持续重试的客户端永不命中。
+	 * 会话关闭仍走 closeExecutor（CloseSession RPC 最长 60s，不挡停机线程）；
+	 * inFlightByIp 为无资源标记，且移除与在飞请求的交错会分裂出两个 flag 放过并发
+	 * （见其注释），保留不动。
+	 */
+	public static void closeAllBindings() {
+		for (var e : map.entrySet()) {
+			if (map.remove(e.getKey(), e.getValue()))
+				closeAsync(e.getValue());
+		}
+		lastSweepNanos.set(0);
+	}
+
+	/**
 	 * 驱逐闲置超 {@link #IDLE_TTL_NANOS} 的绑定并异步关闭其会话。条件移除
 	 * （remove(key, binding)）防误关：并发 resolve 已换绑时条目非读到的实例，不摘新绑定
 	 * （新会话有自己的生命周期，由后续替换/清扫管理）。极小竞态：判闲置到移除之间恰被
