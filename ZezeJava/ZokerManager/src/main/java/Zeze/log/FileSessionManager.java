@@ -138,11 +138,14 @@ public class FileSessionManager {
 		// matches 三元组恒命中、死绑定恒复用，Session 内对已摘册名的失败每页必现直到 2h
 		// 闲置清扫——摘册即视同 changeSession 走重建（重建对未注册名显式失败）。全服视图
 		// 的摘册收敛由 allViewMembersConverged 承担。
-		var reuseConverged = bound == null || (bound.all()
-				? allViewMembersConverged(logAgent, bound)
-				: logAgent.getLogServers().contains(serverName));
+		// 校验按请求可达性惰性求值（matches 之后）：单服绑定的 contains(serverName) 只在
+		// matches 通过（请求同为单服视图，serverName 必非 null——HTTP 侧单服分支恒传 trim
+		// 后非空名）时求值；全服视图请求（serverName=null）对单服绑定被 matches 的视图
+		// 判别短路走关旧建新——按绑定视图分支且先于 matches 求值的旧形态对 contains(null)
+		// 恒抛 NPE（CHM keySet 不接受 null 键），NPE 先于 put，绑定永不被替换：全服视图
+		//（前端默认形态）对该源 IP 恒 system error，粘滞最长 2h，NAT 同出口相互阻断。
 		if (!changeSession && bound != null && bound.matches(requestAll, serverName, logName)
-				&& reuseConverged) {
+				&& reuseConverged(logAgent, bound, serverName)) {
 			// 复用命中刷新活跃时间：条件 replace 只在条目仍是同一绑定时生效——并发 resolve
 			// 已换绑（changeSession/参数变化/键集漂移重建）时不回写旧绑定覆盖新会话；本次返回的旧会话
 			// 由换绑方的替换关闭收口（既有"替换关闭的竞态"裁量）。
@@ -187,6 +190,15 @@ public class FileSessionManager {
 		if (bound.session() instanceof SessionAll sessionAll)
 			return allViewMembersConverged(sessionAll.memberNames(), logAgent.getLogServers());
 		return bound.allServersKey().equals(allServersKeyOf(logAgent));
+	}
+
+	/** 复用前置校验单点（按绑定视图分支）：单服绑定比对 serverName 仍在注册表（matches 已
+	 * 短路视图不一致——求值时请求必为单服视图、serverName 非 null，contains 无 NPE 面）；
+	 * 全服绑定比对成员集收敛。changeSession=true 不进复用路径，不参与本校验。 */
+	private static boolean reuseConverged(LogAgent logAgent, LogSessionBinding bound, String serverName) {
+		return bound.all()
+				? allViewMembersConverged(logAgent, bound)
+				: logAgent.getLogServers().contains(serverName);
 	}
 
 	/**
