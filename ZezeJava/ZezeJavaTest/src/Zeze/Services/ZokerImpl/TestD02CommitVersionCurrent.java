@@ -126,8 +126,11 @@ public class TestD02CommitVersionCurrent {
 	}
 
 	/**
-	 * 重试幂等：成功后同参数重试=成功；step1已成功但切换未做的中间态（版本目录已存在）重试=成功。
-	 * 同 versionNo 必须同内容（版本纪律）：已装版本不会被 distributes 的新内容覆盖。
+	 * 重试幂等：成功后同参数重试=成功；step1已成功但切换未做的中间态（版本目录已存在）
+	 * 重试=成功。真实重试=重发同一包：跳装的内容判据（逐文件 md5，legacy 形态与
+	 * distributes 源文件比对）对同字节必过，已装版本不被覆盖；重发内容与已装版本
+	 * 不一致时的处置（换装新内容，不再零比对跳装旧字节）由
+	 * TestCommitSameVersionDifferentContent 固化。
 	 */
 	@Test
 	public void testRetryIdempotent(@TempDir Path tempDir) throws Exception {
@@ -144,14 +147,15 @@ public class TestD02CommitVersionCurrent {
 		assertEquals("v1", Files.readString(Path.of(servicesDir.getPath(), "svc", "current")));
 		assertArrayEquals(new String[]{"v1"}, versionDirs(servicesDir, "svc"));
 
-		// 中间态重试形态：模拟"step1成功后中断"——版本目录已存在但current未指
+		// 中间态重试形态：模拟"step1成功后中断"——版本目录已存在但current未指，
+		// 重试上传与已装内容同字节（部署方重发同一包）
 		Files.createDirectories(Path.of(servicesDir.getPath(), "svc", "v3"));
-		Files.writeString(Path.of(servicesDir.getPath(), "svc", "v3", "app.jar"), "installed-only");
-		upload(distributeDir, "svc", "retry-upload");
+		Files.writeString(Path.of(servicesDir.getPath(), "svc", "v3", "app.jar"), "same-package");
+		upload(distributeDir, "svc", "same-package");
 		assertEquals(0, dm.commit("svc", "v3"));
 		assertEquals("v3", Files.readString(Path.of(servicesDir.getPath(), "svc", "current")));
-		// 版本纪律：已装版本内容保持安装时的现场，不被distributes新内容覆盖
-		assertEquals("installed-only", Files.readString(Path.of(servicesDir.getPath(), "svc", "v3", "app.jar")));
+		// 版本纪律：同字节重试不覆盖已装版本现场（内容判据对同字节必过，快速跳装）
+		assertEquals("same-package", Files.readString(Path.of(servicesDir.getPath(), "svc", "v3", "app.jar")));
 	}
 
 	/** current 切换是整文件替换（写tmp+rename），非追加：升级后内容恰为新版本号，旧版本留作回滚点。 */

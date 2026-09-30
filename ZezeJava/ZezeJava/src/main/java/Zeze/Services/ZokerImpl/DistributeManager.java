@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,7 +42,8 @@ import org.jetbrains.annotations.Nullable;
  * 复位版本名——同版本重部署形态下 current 指针文本未变，复位即现役内容恢复，重试重走
  * 换装收敛），纯新增路径现役未动（新版本目录已装好，重试直接进入切换收敛）；回滚的
  * rename 失败为声明残余。重试幂等：目标版本目录已存在（上次中断的残留，经完整性校验：
- * 自身清单齐全/legacy下限/新清单条目已在盘上且大小一致）= 跳过安装直接切换，同为成功
+ * 自身清单齐全/legacy下限/新内容与已装版本逐文件内容一致——大小短路之上复算 md5，
+ * legacy 形态与暂存区源文件逐一比对）= 跳过安装直接切换，同为成功
  * ——"存在=完整"由构造保证：安装是原子rename，删除（prune与隔离换装）先原子改名进暂存
  * 删除名再清树，版本名位置不出现残缺目录；校验不过的残缺目录不可收养：有新内容→隔离
  * 换装（残缺目录改名腾位），无新内容→eCommitFail。</p>
@@ -568,7 +570,8 @@ public class DistributeManager {
 		// 跳装分支的完整性判据："存在=完整"由构造保证（原子rename安装+暂存名删除），
 		// 残缺目录不可收养（无条件跳装=current切到残缺目录的假成功）。判不可收养：
 		// (a)自带清单列的文件缺失（清单=安装完成标志）；(b)legacy下限不过（空壳）；
-		// (c)新上传清单条目在盘上版本目录缺失或大小不一致（存在≠内容）。
+		// (c)新上传内容与已装版本目录字节不一致（存在≠内容：清单条目逐文件比对
+		// 大小+md5，legacy 形态与暂存区源文件逐一比对）。
 		// 处置：有新内容→隔离换装（残缺目录原子改名进暂存删除名腾位，新内容落正常
 		// 安装分支）；无新内容→eCommitFail。
 		var swapNeeded = versionTo.exists()
@@ -781,10 +784,14 @@ public class DistributeManager {
 
 	/**
 	 * 跳装分支的新内容比对：distributes/&lt;svc&gt; 带新清单时，条目须全部已存在于既有版本
-	 * 目录且<b>文件大小一致</b>（存在≠内容；清单行无摘要字段，大小是存在性之上的最小实质
-	 * 判据，同大小不同字节仍跳装）——同内容重提快速跳装幂等（不覆盖已装版本、不动其
-	 * mtime）。大小不符判不可收养走隔离换装（在用版本被 run.pid 保护挡住）。无清单
-	 * （legacy重提）不设比对，是否收养仅由 {@link #installedVersionHealthy} 决定。
+	 * 目录且<b>内容一致</b>——大小相等短路之上逐文件复算两侧全量 md5（CloseFile 会话期
+	 * 已算过的 md5 不落盘、commit 时不可复用，对暂存区新字节与已装版本目录现役字节
+	 * 各自流式现算；commit 非热路径，读盘成本可接受）——同内容重提快速跳装幂等
+	 * （不覆盖已装版本、不动其 mtime）。任何不一致（含同大小不同字节——同版本号重发
+	 * 同尺寸异内容=部署陈旧字节，回执成功与现役内容不符是正确性缺口）判不可收养走
+	 * 隔离换装（在用版本被 run.pid 保护挡住）。无清单（legacy重提）：与 distributes
+	 * 源文件逐一内容比对（修复前零比对纯存在性即跳装）；暂存区不存在/无常规文件
+	 * （无新内容的幂等重试）比对空过，跳装语义不变。
 	 */
 	private boolean distributesManifestSubsetOf(File serviceFrom, File versionTo) {
 		// versionTo 即按本次 versionNo 构造，限定名归属本次部署。
@@ -794,7 +801,7 @@ public class DistributeManager {
 			// 交安装分支的校验统一拒绝。
 			return false;
 		if (!manifest.isFile())
-			return true;
+			return stagedLegacyFilesAllMatchInstalled(serviceFrom, versionTo);
 		var serviceName = serviceFrom.getName();
 		var base = versionTo.toPath().toAbsolutePath().normalize();
 		var listed = 0;
@@ -810,19 +817,68 @@ public class DistributeManager {
 				var target = base.resolve(afterFirstSegment(canonical)).normalize();
 				if (!target.startsWith(base) || !Files.isRegularFile(target))
 					return false;
-				// 内容判据（大小）：暂存区新字节 vs 已装版本目录字节，不一致即判不可收养。
-				try {
-					if (Files.size(distributeDir.toPath().resolve(canonical)) != Files.size(target))
-						return false;
-				} catch (IOException ex) {
-					return false; // 条目不可 stat（缺失等）=不齐全，由安装分支校验收口
-				}
+				// 内容判据（大小短路+md5）：暂存区新字节 vs 已装版本目录字节，任一
+				// 不一致即判不可收养（宁换装不收养，方向与存在性判据同裁量）。
+				if (!stagedFileEqualsInstalled(distributeDir.toPath().resolve(canonical), target))
+					return false;
 			}
 		} catch (IOException ex) {
 			logger.error("distributes manifest subset check read fail: {}", manifest, ex);
 			return false;
 		}
 		return listed > 0;
+	}
+
+	/**
+	 * legacy（无清单）形态的跳装比对：暂存区全部常规文件与已装版本目录对应文件逐一
+	 * 内容比对（{@link #stagedFileEqualsInstalled}）。暂存区不存在（无新内容——重复
+	 * 提交/超时重试的典型情形）比对空过返回 true，跳装语义不变；暂存区存在但任一
+	 * 文件缺失/不等（含清单外新文件——已装版本没有对应物）即非同一内容，走隔离换装。
+	 */
+	private static boolean stagedLegacyFilesAllMatchInstalled(File serviceFrom, File versionTo) {
+		if (!serviceFrom.isDirectory())
+			return true;
+		var stagedRoot = serviceFrom.toPath().toAbsolutePath().normalize();
+		var base = versionTo.toPath().toAbsolutePath().normalize();
+		try (var walk = Files.walk(stagedRoot)) {
+			return walk.filter(Files::isRegularFile)
+					.allMatch(file -> stagedFileEqualsInstalled(file, base.resolve(stagedRoot.relativize(
+							file.toAbsolutePath().normalize()))));
+		} catch (IOException ex) {
+			logger.error("legacy staged content compare walk fail: {}", serviceFrom, ex);
+			return false;
+		}
+	}
+
+	/**
+	 * 跳装比对的逐文件内容判据：两侧均存在为前提上先比大小（快速短路），相等再各自
+	 * 流式复算全量 md5 比对。任一侧不可读/不可 stat 判不等（由安装分支的校验收口）。
+	 */
+	private static boolean stagedFileEqualsInstalled(Path stagedFile, Path installedFile) {
+		try {
+			if (!Files.isRegularFile(installedFile) || Files.size(stagedFile) != Files.size(installedFile))
+				return false;
+		} catch (IOException ex) {
+			return false;
+		}
+		try {
+			return Arrays.equals(md5Of(stagedFile), md5Of(installedFile));
+		} catch (IOException | NoSuchAlgorithmException ex) {
+			logger.error("skip-install md5 compare fail: {} vs {}", stagedFile, installedFile, ex);
+			return false;
+		}
+	}
+
+	/** 文件全量 md5 流式计算（与 FileBin 传输校验同算法、非同会话——CloseFile 会话
+	 * 摘要不落盘，跳装比对在 commit 期对盘上两侧文件现算）。 */
+	private static byte[] md5Of(Path file) throws IOException, NoSuchAlgorithmException {
+		var digest = MessageDigest.getInstance("MD5");
+		try (var input = Files.newInputStream(file)) {
+			var buffer = new byte[32 * 1024];
+			for (int n; (n = input.read(buffer)) >= 0; )
+				digest.update(buffer, 0, n);
+		}
+		return digest.digest();
 	}
 
 	/**
