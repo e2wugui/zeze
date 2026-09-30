@@ -4,7 +4,10 @@ import java.io.Closeable;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -473,6 +476,41 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return false;
 	}
 
+	// 只规划、不修改：整批验证成功后，先注销，再应用逐出计划，最后注册/订阅并通知。
+	private ArrayList<String> planServiceNames(Set<String> requested, Set<BServiceInfo> removes, long sessionId) {
+		int needed = 0;
+		for (var name : requested) {
+			if (!serviceStates.containsKey(name))
+				++needed;
+		}
+		int deficit = serviceStates.size() + needed - Id128UdpServer.MAX_UNIQUE_NAMES;
+		var evictions = new ArrayList<String>();
+		if (deficit <= 0)
+			return evictions;
+		for (var entry : serviceStates.entrySet()) {
+			var state = entry.getValue();
+			if (requested.contains(entry.getKey()) || !state.simple.isEmpty())
+				continue;
+			boolean idle = true;
+			for (var bucket : state.serviceInfos.values()) {
+				for (var info : bucket.values()) {
+					if (!Long.valueOf(sessionId).equals(info.getSessionId()) || !removes.contains(info)) {
+						idle = false;
+						break;
+					}
+				}
+				if (!idle)
+					break;
+			}
+			if (idle) {
+				evictions.add(entry.getKey());
+				if (evictions.size() == deficit)
+					return evictions;
+			}
+		}
+		return null;
+	}
+
 	private long processEditService(@NotNull EditService r) {
 		var add = r.Argument.getAdd();
 		var remove = r.Argument.getRemove();
@@ -512,6 +550,15 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					return Procedure.Success;
 				}
 			}
+			var requestedNames = new HashSet<String>();
+			for (var info : add)
+				requestedNames.add(info.getServiceName());
+			var evictions = planServiceNames(requestedNames, new HashSet<>(remove), session.sessionId);
+			if (evictions == null) {
+				warnSvcRejected("edit final capacity exceeded");
+				r.SendResultCode(Procedure.ErrorRequestId);
+				return Procedure.Success;
+			}
 			// step 1: remove
 			for (var unReg : r.Argument.getRemove()) {
 				var info = session.registers.remove(unReg);
@@ -528,6 +575,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				}
 			}
 
+			for (var name : evictions)
+				serviceStates.remove(name);
+
 			// step 2: add
 			// 允许重复登录，断线重连Agent不好原子实现重发。
 			for (var reg : r.Argument.getAdd()) {
@@ -541,15 +591,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 						reg.getPassiveIp(), reg.getPassivePort());
 				}
 				session.registers.add(reg);
-				// 全局唯一名满员时空壳逐出自愈（无空壳可逐才拒绝——非raft行是
-				// 内存态，攻击壳（注册后即注销）与本轮目标名都被排除在逐出候选外）。
-				if (!serviceStates.containsKey(reg.getServiceName())
-					&& serviceStates.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
-					&& !evictIdleServiceState(reg.getServiceName())) {
-					warnSvcRejected("unique service names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
-					r.SendResultCode(Procedure.ErrorRequestId);
-					return Procedure.Success;
-				}
 				var state = serviceStates.computeIfAbsent(reg.getServiceName(), name -> new ServiceState(this, name));
 
 				// 【警告】
