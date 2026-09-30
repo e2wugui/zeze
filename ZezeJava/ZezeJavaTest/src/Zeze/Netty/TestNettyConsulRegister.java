@@ -157,7 +157,7 @@ public class TestNettyConsulRegister {
 
 	// FND6-17低成本覆盖:addHandler也在try守护内——保活path被占用时addHandler抛
 	// IllegalStateException(重复path),同样走catch回滚services条目后原样抛出。
-	// 注意按当前实现,回滚的removeHandler会把预占path上的handler一并清掉(为重试让路)。
+		// 回滚不能移除预占path的其他属主；该属主释放path后可重试，验证services条目已回滚。
 	@Test
 	public void testRegisterRollbackOnDuplicateHandlerPath() throws Exception {
 		var httpServer = new HttpServer();
@@ -165,6 +165,7 @@ public class TestNettyConsulRegister {
 		try {
 			// 预先占用保活path,把失败点定位到try块内的addHandler(agentServiceRegister之前)
 			httpServer.addHandler(KeepAlivePath, 1024, null, null, x -> { });
+			var originalHandler = httpServer.getHandler(KeepAlivePath);
 			var capturing = new CapturingClient();
 			var consul = new Consul(capturing);
 
@@ -173,11 +174,12 @@ public class TestNettyConsulRegister {
 			Assertions.assertTrue(ex.getMessage().contains("duplicate path"), ex.getMessage());
 			// 失败发生在远端调用之前,consul注册请求不得发出
 			Assertions.assertNull(capturing.captured, "addHandler失败时不得调用agentServiceRegister");
-			// 回滚清掉了保活path(含预占的handler),为重试让路——按当前实现的最终状态断言
-			Assertions.assertNull(httpServer.getHandler(KeepAlivePath), "回滚必须清空保活path");
+			Assertions.assertSame(originalHandler, httpServer.getHandler(KeepAlivePath),
+					"安装冲突的回滚必须保留其他属主的handler");
 
 			// 重试注册同一server必须成功:services条目已回滚(否则抛duplicate register),
-			// path已清空(addHandler不再抛duplicate path)
+			// 预占path由原属主显式移除(addHandler不再抛duplicate path)
+			httpServer.removeHandler(KeepAlivePath);
 			consul.register("dupPathService", httpServer);
 			Assertions.assertNotNull(httpServer.getHandler(KeepAlivePath), "重试后handler必须重新登记");
 		} finally {

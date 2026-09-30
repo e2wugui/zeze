@@ -66,16 +66,19 @@ public class Consul {
 			"timeout": "1s"
 			}
 		 */
+		boolean handlerAdded = false;
 		try {
 			// 必须在try守护内：addHandler对重复path抛IllegalStateException时
 			// 走下方catch回滚services条目，若在try外抛出则条目泄漏，重试恒抛duplicate register。
 			httpServer.addHandler(PassiveKeepAlivePath, 1024, null, null, Consul::passiveKeepAlive);
+			handlerAdded = true;
 			client.agentServiceRegister(newService); // response value is void.
 		} catch (RuntimeException e) {
 			// 回滚本地登记与handler——注册时consul瞬断（远端未注册）而本地残留时，
 			// 此后重试注册同server恒抛duplicate直到stop()。登记与远端状态配对。
 			services.remove(httpServer, serviceId);
-			httpServer.removeHandler(PassiveKeepAlivePath);
+			if (handlerAdded)
+				httpServer.removeHandler(PassiveKeepAlivePath);
 			throw e;
 		}
 	}
