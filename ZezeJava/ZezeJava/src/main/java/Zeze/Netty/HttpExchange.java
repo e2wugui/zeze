@@ -1286,6 +1286,25 @@ public class HttpExchange {
 	// 真实累积)。超限按RFC6455回1009(Message Too Big)并关闭连接。
 	// 返回false表示已超限并关闭连接,调用方不应再继续分发本帧。
 	protected boolean checkWebSocketContentSize(@NotNull WebSocketFrame frame) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			return t.resolveOnce(new FrameIdentity(frame), 0, __ -> checkWebSocketContentSizeOnce(frame));
+		return checkWebSocketContentSizeOnce(frame);
+	}
+
+	private record FrameIdentity(WebSocketFrame frame) {
+		@Override
+		public boolean equals(Object other) {
+			return other instanceof FrameIdentity identity && frame == identity.frame;
+		}
+
+		@Override
+		public int hashCode() {
+			return System.identityHashCode(frame);
+		}
+	}
+
+	private boolean checkWebSocketContentSizeOnce(@NotNull WebSocketFrame frame) {
 		if (!(frame instanceof ContinuationWebSocketFrame))
 			webSocketContentTotal = 0; // 新消息（Binary/Text首帧）：重新累计
 		webSocketContentTotal += frame.content().readableBytes();
