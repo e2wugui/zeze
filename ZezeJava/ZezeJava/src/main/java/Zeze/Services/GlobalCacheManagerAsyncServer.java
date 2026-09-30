@@ -263,6 +263,10 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		}
 
 		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder(this));
+		ArrayList<Binary> releaseKeys;
+		long fireGeneration;
+		session.lock();
+		try {
 		if (session.globalCacheManagerHashIndex != rpc.Argument.globalCacheManagerHashIndex) {
 			// 多点验证
 			logger.warn("ProcessCleanup: {} RequestId={} result={}",
@@ -278,15 +282,20 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			rpc.SendResultCode(CleanupErrorHasConnection);
 			return 0;
 		}
+			releaseKeys = new ArrayList<>(session.acquired.keySet());
+			fireGeneration = session.generation;
+		} finally {
+			session.unlock();
+		}
 
 		// 还有更多的防止出错的手段吗？
 
 		// XXX verify danger
 		TaskSpec.ofAction(() -> { // delay 5 mins
 			var allReleaseFuture = new CountDownFuture();
-			for (var k : session.acquired.keySet()) {
+			for (var k : releaseKeys) {
 				// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-				releaseAsync(session, k, allReleaseFuture.createOne());
+				releaseAsync(session, k, allReleaseFuture.createOne(), fireGeneration);
 			}
 			allReleaseFuture.then(__ -> rpc.SendResultCode(0));
 		}).schedule(5 * 60 * 1000);
@@ -297,20 +306,28 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private long processLogin(@NotNull Login rpc) {
 		logger.info("ProcessLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder(this));
-		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, true)) {
-			rpc.SendResultCode(LoginBindSocketFail);
-			return 0;
+		ArrayList<Binary> releaseKeys;
+		long fireGeneration;
+		session.lock();
+		try {
+			if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, true)) {
+				rpc.SendResultCode(LoginBindSocketFail);
+				return 0;
+			}
+			session.setActiveTime(System.currentTimeMillis());
+			session.setDebugMode(rpc.Argument.debugMode);
+			releaseKeys = new ArrayList<>(session.acquired.keySet());
+			fireGeneration = session.generation;
+		} finally {
+			session.unlock();
 		}
-		session.setActiveTime(System.currentTimeMillis());
-		session.setDebugMode(rpc.Argument.debugMode);
 		// new login, 比如逻辑服务器重启。release old acquired.
 		// 先快照再逐个释放（理由同processNormalClose）：只回收绑定时刻已存在的旧权限，
 		// 防止迭代期间新到达的Acquire被本循环错误回收。
-		var releaseKeys = new ArrayList<>(session.acquired.keySet());
 		var allReleaseFuture = new CountDownFuture();
 		for (var k : releaseKeys) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-			releaseAsync(session, k, allReleaseFuture.createOne());
+			releaseAsync(session, k, allReleaseFuture.createOne(), fireGeneration);
 		}
 		rpc.Result.maxNetPing = gcmConfig.maxNetPing;
 		rpc.Result.serverProcessTime = gcmConfig.serverProcessTime;
@@ -347,17 +364,25 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		 * 无法绑定，故快照内不可能出现新incarnation的权限。异步版迭代本身快，但releaseAsync是
 		 * 异步完成的，弱一致迭代同样可能看到迭代期间新加入的key。
 		 */
-		var releaseKeys = new ArrayList<>(session.acquired.keySet());
-		if (!session.tryUnBindSocket(rpc.getSender())) {
+		ArrayList<Binary> releaseKeys;
+		long fireGeneration;
+		session.lock();
+		try {
+			releaseKeys = new ArrayList<>(session.acquired.keySet());
+			fireGeneration = session.generation;
+			if (!session.tryUnBindSocket(rpc.getSender())) {
 			logger.warn("ProcessNormalClose: {} RequestId={} result={}",
 					rpc.getSender(), rpc.getSessionId(), NormalCloseUnbindFail);
 			rpc.SendResultCode(NormalCloseUnbindFail);
 			return 0;
+			}
+		} finally {
+			session.unlock();
 		}
 		var allReleaseFuture = new CountDownFuture();
 		for (var k : releaseKeys) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-			releaseAsync(session, k, allReleaseFuture.createOne());
+			releaseAsync(session, k, allReleaseFuture.createOne(), fireGeneration);
 		}
 		allReleaseFuture.then(__ -> {
 			rpc.SendResultCode(0);
@@ -450,8 +475,12 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private void releaseAsync(@NotNull CacheHolder sender, @NotNull Binary _gKey, @NotNull CountDownFuture future) {
+		releaseAsync(sender, _gKey, future, sender.generation);
+	}
+
+	private void releaseAsync(@NotNull CacheHolder sender, @NotNull Binary _gKey,
+			@NotNull CountDownFuture future, long fireGeneration) {
 		var cs = global.computeIfAbsent(_gKey, CacheState::new);
-		var fireGeneration = sender.generation; // 发射世代：移除前复查（见CacheHolder.generation）
 		var state = new Object() {
 			int stage;
 		};
@@ -466,7 +495,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				} else if (cs.acquireStatePending == StateRemoved && state.stage == 0) {
 					// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 					cs.lock.leave();
-					releaseAsync(sender, gKey, future); // retry
+					releaseAsync(sender, gKey, future, fireGeneration); // retry保持发射代次
 					return;
 				}
 
@@ -487,7 +516,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				}
 					if (cs.acquireStatePending == StateRemoved) {
 						cs.lock.leave();
-						releaseAsync(sender, gKey, future); // retry
+						releaseAsync(sender, gKey, future, fireGeneration); // retry保持发射代次
 						return;
 					}
 					if (sender.generation != fireGeneration) {
@@ -537,8 +566,26 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				perf.onAcquireEnd(rpc, StateInvalid);
 			return;
 		}
+		long fireGeneration;
+		sender.lock();
+		try {
+			fireGeneration = rpc.getSender().getUserState() == sender
+					&& sender.sessionId == rpc.getSender().getSessionId() ? sender.generation : -1;
+		} finally {
+			sender.unlock();
+		}
+		if (fireGeneration == -1) {
+			rpc.Result.state = StateInvalid;
+			rpc.SendResultCode(AcquireNotLogin);
+			if (ENABLE_PERF)
+				perf.onAcquireEnd(rpc, StateInvalid);
+			return;
+		}
+		releaseAsync(rpc, sender, fireGeneration);
+	}
+
+	private void releaseAsync(@NotNull Acquire rpc, @NotNull CacheHolder sender, long fireGeneration) {
 		var cs = global.computeIfAbsent(rpc.Argument.globalKey, CacheState::new);
-		var fireGeneration = sender.generation; // 发射世代：移除前复查（见CacheHolder.generation）
 		var state = new Object() {
 			int stage;
 		};
@@ -552,7 +599,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				} else if (cs.acquireStatePending == StateRemoved && state.stage == 0) {
 					// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 					cs.lock.leave();
-					releaseAsync(rpc); // retry
+					releaseAsync(rpc, sender, fireGeneration); // retry keeps the original owner generation
 					return;
 				}
 
@@ -578,7 +625,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				}
 				if (cs.acquireStatePending == StateRemoved) {
 					cs.lock.leave();
-					releaseAsync(rpc); // retry
+					releaseAsync(rpc, sender, fireGeneration); // retry keeps the original owner generation
 					return;
 				}
 				if (sender.generation != fireGeneration) {
@@ -1192,17 +1239,22 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			this.debugMode = debugMode;
 		}
 
-		// not under lock（调用方achillesHeelDaemon持session锁，单写者）
+		// 与绑定共用session锁，代次递增不会丢失。
 		void kick() {
-			++generation; // 世代更替：此后重绑递增一次，在飞的旧release据此识别过期
-			// 墓碑化后裸解引用安全：server引用稳定（stop只停止对象不杀引用），已停止Service的
-			// GetSocket返回null即跳过；不存在读到null引用的NPE窗口。
-			var peer = owner.server.GetSocket(sessionId);
-			if (null != peer) {
-				peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
-				peer.close(kickException); // 关闭连接，强制Agent重新登录。
+			lock();
+			try {
+				++generation; // 世代更替：此后重绑递增一次，在飞的旧release据此识别过期
+				// 墓碑化后裸解引用安全：server引用稳定（stop只停止对象不杀引用），已停止Service的
+				// GetSocket返回null即跳过；不存在读到null引用的NPE窗口。
+				var peer = owner.server.GetSocket(sessionId);
+				if (null != peer) {
+					peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
+					peer.close(kickException); // 关闭连接，强制Agent重新登录。
+				}
+				sessionId = 0; // 清除网络状态。
+			} finally {
+				unlock();
 			}
-			sessionId = 0; // 清除网络状态。
 		}
 
 		boolean tryBindSocket(@NotNull AsyncSocket newSocket, int globalCacheManagerHashIndex, boolean login) {
@@ -1261,6 +1313,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					return false; // not same socket
 
 				sessionId = 0;
+				oldSocket.setUserState(null); // 已解绑连接的迟到请求不能使用后来重绑的Holder代次
 				return true;
 			} finally {
 				unlock();

@@ -237,10 +237,15 @@ public final class Raft {
 	}
 
 	public void appendLog(Log log, Serializable result) {
+		appendLog(log, result, -1);
+	}
+
+	/** expectedTerm为负时不限定任期；非负时在实际追加日志的锁内校验。 */
+	public void appendLog(Log log, Serializable result, long expectedTerm) {
 		if (result != null)
 			log.setRpcResult(new Binary(ByteBuffer.encode(result)));
 		try {
-			logSequence.appendLog(log);
+			logSequence.appendLog(log, expectedTerm);
 		} catch (RaftRetryException | TaskCanceledException er) {
 			throw er;
 		} catch (InterruptedException ie) { // 先恢复中断标志，再按重试语义包装

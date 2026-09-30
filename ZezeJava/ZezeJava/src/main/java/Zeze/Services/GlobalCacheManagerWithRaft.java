@@ -179,6 +179,7 @@ public class GlobalCacheManagerWithRaft
 		var raft = rocks.getRaft();
 		var leader = raft != null && raft.isLeader();
 		if (leader) {
+			var fireTerm = raft.getLogSequence().getTerm();
 			// 电平触发对账——leader期间每tick重建（putIfAbsent幂等、对已有Holder
 			// 零影响、仅扫storage tableMap的内存键集，成本可忽略）：单次重建异常
 			// 无需等下次leader切换才重跑，下个tick自动重试，自纠错。
@@ -196,13 +197,14 @@ public class GlobalCacheManagerWithRaft
 					// kick新连接并回收其新获取的权限。
 					if (now - session.getActiveTime() > achillesHeelConfig.globalDaemonTimeout && !session.debugMode) {
 						session.kick();
+						var fireGeneration = session.generation;
 						var Acquired = serverAcquiredTemplate.openTable(session.serverId);
 						try {
 							var releaseCount = new OutLong();
 							Acquired.walkKey(key -> {
 								// 在循环中删除。这样虽然效率低些，但是能处理更多情况。
-								if (rocks.getRaft().isLeader()) {
-									release(session, key);
+								if (raft.isLeader() && raft.getLogSequence().getTerm() == fireTerm) {
+									release(session, key, fireGeneration, fireTerm);
 									++releaseCount.value;
 									return true;
 								}
@@ -298,10 +300,25 @@ public class GlobalCacheManagerWithRaft
 				rpc.SendResultCode(Zeze.Transaction.Procedure.RaftRetry);
 				result = 0;
 			} else {
+				long fireGeneration;
+				sender.lock();
+				try {
+					fireGeneration = rpc.getSender().getUserState() == sender
+							&& sender.sessionId == rpc.getSender().getSessionId() ? sender.generation : -1;
+				} finally {
+					sender.unlock();
+				}
+				if (acquireState == StateInvalid && fireGeneration == -1) {
+					rpc.Result.setState(StateInvalid);
+					rpc.SendResultCode(Zeze.Transaction.Procedure.RaftRetry);
+					return 0;
+				}
+				var raft = rocks.getRaft();
+				var fireTerm = raft != null ? raft.getLogSequence().getTerm() : -1;
 				var proc = new Procedure(rocks, () -> {
 					switch (acquireState) {
 					case StateInvalid: // release
-						rpc.Result.setState(release(sender, rpc.Argument.getGlobalKey(), true));
+							rpc.Result.setState(release(sender, rpc.Argument.getGlobalKey(), true, fireGeneration, fireTerm));
 						rpc.setResultCode(0);
 						return 0;
 					case StateShare:
@@ -314,6 +331,8 @@ public class GlobalCacheManagerWithRaft
 						return AcquireErrorState;
 					}
 				});
+					if (acquireState == StateInvalid)
+						proc.setExpectedTerm(fireTerm);
 				proc.autoResponse = rpc; // 启用自动发送rpc结果，但不做唯一检查。
 				result = proc.call();
 			}
@@ -787,13 +806,28 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	private void release(CacheHolder sender, Binary gkey) throws Exception {
-		rocks.newProcedure(() -> {
-			release(sender, gkey, false);
+		var raft = rocks.getRaft();
+		release(sender, gkey, sender.generation, raft != null ? raft.getLogSequence().getTerm() : -1);
+	}
+
+	private void release(CacheHolder sender, Binary gkey, long generation, long term) throws Exception {
+		var procedure = rocks.newProcedure(() -> {
+			release(sender, gkey, false, generation, term);
 			return 0L;
-		}).call();
+		});
+		// 任期约束在实际append的raft锁内检查，不让旧释放跨任期提交。
+		procedure.setExpectedTerm(term);
+		procedure.call();
 	}
 
 	private int release(CacheHolder sender, Binary gkey, boolean noWait) throws InterruptedException {
+		var raft = rocks.getRaft();
+		return release(sender, gkey, noWait, sender.generation,
+				raft != null ? raft.getLogSequence().getTerm() : -1);
+	}
+
+	private int release(CacheHolder sender, Binary gkey, boolean noWait, long generation, long term)
+			throws InterruptedException {
 		while (true) {
 			var lockey = Transaction.getCurrent().addPessimismLock(locks.get(gkey));
 
@@ -821,6 +855,12 @@ public class GlobalCacheManagerWithRaft
 			}
 			if (cs.getAcquireStatePending() == StateRemoved)
 				continue;
+			var raft = rocks.getRaft();
+			// 代次只守护本进程绑定；term另行关闭旧leader工作逃逸到再次就任后的窗口。
+			// 持有key的悲观锁直到事务提交，新Acquire不能在检查与移除之间发布新的权限。
+			if (sender.generation != generation || raft == null || !raft.isLeader()
+					|| raft.getLogSequence().getTerm() != term)
+				return getSenderCacheState(cs, sender);
 			cs.setAcquireStatePending(StateRemoving);
 			// StateRemoving是transient（无事务日志），未提交路径不复位的话该key上所有后续
 			// acquire/release进入无超时await（key永久冻结、procedure线程与守护停摆）；
@@ -870,25 +910,33 @@ public class GlobalCacheManagerWithRaft
 	@Override
 	protected long ProcessLoginRequest(Login rpc) throws Exception {
 		var session = sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder(this, (int)serverId));
-		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
-			rpc.SendResultCode(LoginBindSocketFail);
-			return 0;
+		var releaseKeys = new ArrayList<Binary>();
+		long generation;
+		long term;
+		session.lock();
+		try {
+				if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex(), true)) {
+				rpc.SendResultCode(LoginBindSocketFail);
+				return 0;
+			}
+			session.setActiveTime(System.currentTimeMillis());
+			session.setDebugMode(rpc.Argument.isDebugMode());
+			generation = session.generation;
+			term = rocks.getRaft().getLogSequence().getTerm();
+			serverAcquiredTemplate.openTable(session.serverId).walkKey(key -> {
+				releaseKeys.add(key);
+				return true;
+			});
+		} finally {
+			session.unlock();
 		}
-		session.setActiveTime(System.currentTimeMillis());
-		session.setDebugMode(rpc.Argument.isDebugMode());
 		// new login, 比如逻辑服务器重启。release old acquired.
 		// 先快照再逐个释放（对齐同步/异步版）：release可阻塞等待，边遍历边
 		// 释放期间，同会话乐观预发的Acquire经raft提交apply写入同一表，会被迭代器看到并
 		// 错误回收——第三方再获Modify形成双写。快照使窗口由结构关闭，不依赖
 		// "raft提交慢于本地迭代"的时序巧合。
-		var SenderAcquired = serverAcquiredTemplate.openTable(session.serverId);
-		var releaseKeys = new ArrayList<Binary>();
-		SenderAcquired.walkKey(key -> {
-			releaseKeys.add(key);
-			return true; // continue walk
-		});
 		for (var key : releaseKeys)
-			release(session, key);
+			release(session, key, generation, term);
 
 		rpc.Result.setMaxNetPing(gcmConfig.maxNetPing);
 		rpc.Result.setServerProcessTime(gcmConfig.serverProcessTime);
@@ -927,25 +975,38 @@ public class GlobalCacheManagerWithRaft
 		 * 仍持Modify，第三方再获Modify形成双写。旧连接未解绑时新进程无法绑定
 		 * （tryBindSocket失败），故快照内不可能出现新incarnation的权限。
 		 */
-		var SenderAcquired = serverAcquiredTemplate.openTable(session.serverId);
 		var releaseKeys = new ArrayList<Binary>();
-		SenderAcquired.walkKey(key -> {
-			releaseKeys.add(key);
-			return true; // continue walk
-		});
-		if (!session.tryUnBindSocket(rpc.getSender())) {
-			rpc.SendResultCode(NormalCloseUnbindFail);
-			return 0;
+		long generation;
+		long term;
+		session.lock();
+		try {
+			var raft = rocks.getRaft();
+			if (raft == null) {
+				rpc.SendResultCode(NormalCloseUnbindFail);
+				return 0;
+			}
+			generation = session.generation;
+			term = raft.getLogSequence().getTerm();
+			serverAcquiredTemplate.openTable(session.serverId).walkKey(key -> {
+				releaseKeys.add(key);
+				return true;
+			});
+			if (!session.tryUnBindSocket(rpc.getSender())) {
+				rpc.SendResultCode(NormalCloseUnbindFail);
+				return 0;
+			}
+		} finally {
+			session.unlock();
 		}
 		for (var key : releaseKeys)
-			release(session, key);
+			release(session, key, generation, term);
 		rpc.SendResultCode(0);
 		logger.info("NormalClose {} {}", rocks.getRaft().getName(), rpc.getSender());
 		return 0;
 	}
 
 	@Override
-	protected long ProcessCleanupRequest(Cleanup rpc) {
+	protected long ProcessCleanupRequest(Cleanup rpc) throws Exception {
 		if (achillesHeelConfig != null) { // disable cleanup.
 			rpc.SendResultCode(CleanupErrorDisabled);
 			return 0;
@@ -958,6 +1019,11 @@ public class GlobalCacheManagerWithRaft
 		}
 
 		var session = sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder(this, (int)serverId));
+		var releaseKeys = new ArrayList<Binary>();
+		long generation;
+		long term;
+		session.lock();
+		try {
 		if (session.globalCacheManagerHashIndex != rpc.Argument.getGlobalCacheManagerHashIndex()) {
 			// 多点验证
 			rpc.SendResultCode(CleanupErrorGlobalCacheManagerHashIndex);
@@ -969,16 +1035,22 @@ public class GlobalCacheManagerWithRaft
 			rpc.SendResultCode(CleanupErrorHasConnection);
 			return 0;
 		}
+			generation = session.generation;
+			term = rocks.getRaft().getLogSequence().getTerm();
+			serverAcquiredTemplate.openTable(session.serverId).walkKey(key -> {
+				releaseKeys.add(key);
+				return true;
+			});
+		} finally {
+			session.unlock();
+		}
 
 		// 还有更多的防止出错的手段吗？
 
 		// XXX verify danger
 		TaskSpec.ofAction(() -> { // delay 5 mins
-			var SenderAcquired = serverAcquiredTemplate.openTable(session.serverId);
-			SenderAcquired.walkKey(key -> {
-				release(session, key);
-				return true; // continue release;
-			});
+			for (var key : releaseKeys)
+				release(session, key, generation, term);
 			rpc.SendResultCode(0);
 		}).schedule(5 * 60 * 1000);
 
@@ -1019,22 +1091,29 @@ public class GlobalCacheManagerWithRaft
 		final GlobalCacheManagerWithRaft globalRaft;
 		final int serverId;
 		private long sessionId;
+		private volatile long generation;
 		private int globalCacheManagerHashIndex;
 		private volatile long activeTime = System.currentTimeMillis();
 		private volatile long lastErrorTime;
 		private volatile boolean debugMode;
 
-		// not under lock
+		// 与绑定共用session锁，代次递增不会丢失。
 		void kick() {
-			var raft = globalRaft.getRocks().getRaft();
-			if (raft != null) {
-				var peer = raft.getServer().GetSocket(sessionId);
-				if (peer != null) {
-					peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
-					peer.close(kickException); // 关闭连接，强制Agent重新登录。
+			lock();
+			try {
+				++generation;
+				var raft = globalRaft.getRocks().getRaft();
+				if (raft != null) {
+					var peer = raft.getServer().GetSocket(sessionId);
+					if (peer != null) {
+						peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
+						peer.close(kickException); // 关闭连接，强制Agent重新登录。
+					}
 				}
+				sessionId = 0; // 清除网络状态。
+			} finally {
+				unlock();
 			}
-			sessionId = 0; // 清除网络状态。
 		}
 
 		CacheHolder(GlobalCacheManagerWithRaft globalRaft, int serverId) {
@@ -1055,6 +1134,10 @@ public class GlobalCacheManagerWithRaft
 		}
 
 		boolean tryBindSocket(AsyncSocket newSocket, int globalCacheManagerHashIndex) {
+			return tryBindSocket(newSocket, globalCacheManagerHashIndex, false);
+		}
+
+		private boolean tryBindSocket(AsyncSocket newSocket, int globalCacheManagerHashIndex, boolean newLogin) {
 			lock();
 			try {
 				if (newSocket.getUserState() != null && newSocket.getUserState() != this)
@@ -1068,6 +1151,9 @@ public class GlobalCacheManagerWithRaft
 				var socket = raft.getServer().GetSocket(sessionId);
 				if (socket == null || socket == newSocket) {
 					// old socket not exist or has lost.
+					// 同一socket重复Login也开启新的清理轮次；ReLogin只恢复连接，不清理权限。
+					if (newLogin || sessionId != newSocket.getSessionId())
+						++generation;
 					sessionId = newSocket.getSessionId();
 					newSocket.setUserState(this);
 					this.globalCacheManagerHashIndex = globalCacheManagerHashIndex;
@@ -1100,6 +1186,7 @@ public class GlobalCacheManagerWithRaft
 					return false; // not same socket
 
 				sessionId = 0;
+				oldSocket.setUserState(null); // 已解绑连接的迟到请求不能使用后来重绑的Holder代次
 				return true;
 			} finally {
 				unlock();

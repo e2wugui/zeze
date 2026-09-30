@@ -293,6 +293,10 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		}
 
 		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
+		ArrayList<Binary> releaseKeys;
+		long fireGeneration;
+		session.lock();
+		try {
 		if (session.globalCacheManagerHashIndex != rpc.Argument.globalCacheManagerHashIndex) {
 			// 多点验证
 			logger.warn("ProcessCleanup: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), CleanupErrorGlobalCacheManagerHashIndex);
@@ -306,14 +310,19 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			rpc.SendResultCode(CleanupErrorHasConnection);
 			return 0;
 		}
+			releaseKeys = new ArrayList<>(session.acquired.keySet());
+			fireGeneration = session.generation;
+		} finally {
+			session.unlock();
+		}
 
 		// 还有更多的防止出错的手段吗？
 
 		// XXX verify danger
 		TaskSpec.ofAction(() -> { // delay 5 mins
-			for (var k : session.acquired.keySet()) {
+			for (var k : releaseKeys) {
 				// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-				release(session, k, false);
+				release(session, k, false, fireGeneration);
 			}
 			rpc.SendResultCode(0);
 		}).schedule(5 * 60 * 1000);
@@ -330,20 +339,28 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	private long processLogin(Login rpc) throws Exception {
 		logger.info("ProcessLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = sessions.computeIfAbsent(rpc.Argument.serverId, __ -> new CacheHolder());
-		if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, true)) {
-			rpc.SendResultCode(LoginBindSocketFail);
-			return 0;
+		ArrayList<Binary> releaseKeys;
+		long fireGeneration;
+		session.lock();
+		try {
+			if (!session.tryBindSocket(rpc.getSender(), rpc.Argument.globalCacheManagerHashIndex, true)) {
+				rpc.SendResultCode(LoginBindSocketFail);
+				return 0;
+			}
+			releaseKeys = new ArrayList<>(session.acquired.keySet());
+			fireGeneration = session.generation;
+			session.setActiveTime(System.currentTimeMillis());
+			session.setDebugMode(rpc.Argument.debugMode);
+		} finally {
+			session.unlock();
 		}
 		// new login, 比如逻辑服务器重启。release old acquired.
 		// 先快照再逐个释放：应答发出前，同会话乐观预发的Acquire（Acquire走Normal池，可与本Critical池
 		// 的Login并发）会写入acquired，弱一致迭代器会看到并错误回收新获取的权限。
-		var releaseKeys = new ArrayList<>(session.acquired.keySet());
 		for (var k : releaseKeys) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-			release(session, k, false);
+			release(session, k, false, fireGeneration);
 		}
-		session.setActiveTime(System.currentTimeMillis());
-		session.setDebugMode(rpc.Argument.debugMode);
 		rpc.Result.maxNetPing = gcmConfig.maxNetPing;
 		rpc.Result.serverProcessTime = gcmConfig.serverProcessTime;
 		rpc.Result.serverReleaseTimeout = gcmConfig.serverReleaseTimeout;
@@ -382,16 +399,23 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		 * Reduce 自愈（agent 对未缓存记录应答降级成功）。快照内旧 key 被新 incarnation 重取后再被
 		 * 本循环延迟 release 回收的面，由 CacheHolder.generation 的发射世代守卫关闭（见release）。
 		 */
-		var releaseKeys = new ArrayList<>(session.acquired.keySet());
-		if (!session.tryUnBindSocket(rpc.getSender())) {
+		ArrayList<Binary> releaseKeys;
+		long fireGeneration;
+		session.lock();
+		try {
+			releaseKeys = new ArrayList<>(session.acquired.keySet());
+			fireGeneration = session.generation;
+			if (!session.tryUnBindSocket(rpc.getSender())) {
 			logger.warn("ProcessNormalClose: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), NormalCloseUnbindFail);
 			rpc.SendResultCode(NormalCloseUnbindFail);
 			return 0;
+			}
+		} finally {
+			session.unlock();
 		}
 		// 循环级发射世代：整个释放循环共用解绑时刻的世代。release在阻塞循环中串行进入，
 		// 若各自捕获，重绑后才进入的key以新世代自证通过守卫，多key快照第2..n个key的
 		// 误杀面重新打开（A2攻防R1-I01）。
-		var fireGeneration = session.generation;
 		for (var k : releaseKeys) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 			release(session, k, false, fireGeneration);
@@ -430,8 +454,21 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				sender.setActiveTime(System.currentTimeMillis());
 				switch (acquireState) {
 				case StateInvalid: // release
-					rpc.Result.state = release(sender, rpc.Argument.globalKey, true); //await 方法内有等待
-					rpc.SendResultCode(0);
+						long fireGeneration;
+						sender.lock();
+						try {
+							fireGeneration = rpc.getSender().getUserState() == sender
+									&& sender.sessionId == rpc.getSender().getSessionId() ? sender.generation : -1;
+						} finally {
+							sender.unlock();
+						}
+						if (fireGeneration == -1) {
+							rpc.Result.state = StateInvalid;
+							rpc.SendResultCode(AcquireNotLogin);
+						} else {
+							rpc.Result.state = release(sender, rpc.Argument.globalKey, true, fireGeneration);
+							rpc.SendResultCode(0);
+						}
 					break;
 				case StateShare:
 					acquireShare(rpc); //await 方法内有等待
@@ -996,18 +1033,23 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		// （daemon/后续争用者Reduce自愈），不误杀。对齐异步版CacheHolder.generation。
 		private volatile long generation;
 
-		// not under lock
+		// 与绑定共用session锁，代次递增不会丢失。
 		void kick() {
-			// 墓碑化后裸解引用安全：server引用稳定（stop只停止对象不杀引用），已停止Service的
-			// GetSocket返回null即跳过；不存在读到null引用的NPE窗口。
-			var peer = instance.server.GetSocket(sessionId);
-			if (null != peer) {
-				peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
-				peer.close(kickException); // 关闭连接，强制Agent重新登录。
+			lock();
+			try {
+				// 墓碑化后裸解引用安全：server引用稳定（stop只停止对象不杀引用），已停止Service的
+				// GetSocket返回null即跳过；不存在读到null引用的NPE窗口。
+				var peer = instance.server.GetSocket(sessionId);
+				if (null != peer) {
+					peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
+					peer.close(kickException); // 关闭连接，强制Agent重新登录。
+				}
+				sessionId = 0; // 清除网络状态。
+				//noinspection NonAtomicOperationOnVolatileField
+				++generation; // 世代更替：此后重绑递增一次，在飞的旧release据此识别过期
+			} finally {
+				unlock();
 			}
-			sessionId = 0; // 清除网络状态。
-			//noinspection NonAtomicOperationOnVolatileField
-			++generation; // 世代更替：此后重绑递增一次，在飞的旧release据此识别过期
 		}
 
 		long getActiveTime() {
@@ -1078,6 +1120,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					return false; // not same socket
 
 				sessionId = 0;
+				oldSocket.setUserState(null); // 已解绑连接的迟到请求不能使用后来重绑的Holder代次
 				return true;
 			} finally {
 				unlock();

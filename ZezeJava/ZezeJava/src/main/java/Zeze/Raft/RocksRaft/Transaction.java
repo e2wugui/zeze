@@ -375,7 +375,7 @@ public final class Transaction {
 		if (!changes.getRecords().isEmpty()) { // has changes
 			procedure.getRocks().updateAtomicLongs(changes.getAtomicLongs());
 			var resultBean = null != procedure.uniqueRequest ? procedure.uniqueRequest.getResultBean() : null;
-			procedure.getRocks().getRaft().appendLog(changes, resultBean);
+			procedure.getRocks().getRaft().appendLog(changes, resultBean, procedure.getExpectedTerm());
 		}
 
 		_trigger_commit_actions_(procedure, sp);

@@ -1197,13 +1197,17 @@ public class LogSequence {
 	}
 
 	public AppendLogResult appendLog(Log log) throws Exception {
+		return appendLog(log, -1);
+	}
+
+	public AppendLogResult appendLog(Log log, long expectedTerm) throws Exception {
 		var future = new TaskCompletionSource<RaftLog>();
 		var result = appendLog(log, (raftLog, success) -> {
 			if (success)
 				future.setResult(raftLog);
 			else
 				future.cancel(false);
-		});
+		}, expectedTerm);
 		if (!future.await(raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000)) {
 			leaderAppendLogs.remove(result.index);
 			// 超时/取消后条目仍留在日志中（lastIndex不回退），命运未定：可能稍后被确认应用，
@@ -1279,10 +1283,18 @@ public class LogSequence {
 	}
 
 	public AppendLogResult appendLog(Log log, Action2<RaftLog, Boolean> callback) throws Exception {
+		return appendLog(log, callback, -1);
+	}
+
+	public AppendLogResult appendLog(Log log, Action2<RaftLog, Boolean> callback, long expectedTerm) throws Exception {
 		raft.lock();
 		try {
 			if (!raft.isLeader())
 				throw new RaftRetryException("not leader"); // 快速失败
+			// 业务层检查后仍可能换主再当选；只认生成本次操作时冻结的任期。
+			// 必须与日志构造/落库持同一把锁，拒绝不能留下日志或unique请求存根。
+			if (expectedTerm >= 0 && term != expectedTerm)
+				throw new RaftRetryException("term changed: expected=" + expectedTerm + ", actual=" + term);
 
 			var raftLog = new RaftLog(term, lastIndex + 1, log);
 			// unique存根与日志合入同一WriteBatch原子提交。两笔独立sync写在中间失败/崩溃时会留

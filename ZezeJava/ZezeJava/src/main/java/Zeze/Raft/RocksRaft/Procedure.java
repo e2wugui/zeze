@@ -17,6 +17,7 @@ public class Procedure {
 
 	private Rocks rocks;
 	private FuncLong func;
+	private long expectedTerm = -1;
 
 	public RaftRpc<?, ?> uniqueRequest;
 	public Protocol<?> autoResponse;
@@ -48,6 +49,18 @@ public class Procedure {
 
 	public final void setFunc(FuncLong value) {
 		func = value;
+	}
+
+	public final long getExpectedTerm() {
+		return expectedTerm;
+	}
+
+	/**
+	 * 限定本顶层过程产生的日志只能在指定任期追加；负值保留通常的追加语义。
+	 * 校验在Raft锁内进行，任期变化按RaftRetry回滚。嵌套过程由顶层过程控制提交。
+	 */
+	public final void setExpectedTerm(long value) {
+		expectedTerm = value;
 	}
 
 	protected long process() throws Exception {
