@@ -417,6 +417,8 @@ public class DatabaseTikv extends Database {
 
 		public void put(ByteString key, ByteString value) {
 			getDatas().put(key, value);
+			if (deleteKeys != null)
+				deleteKeys.removeIf(key::equals);
 		}
 
 		public void delete(ByteString key) {
