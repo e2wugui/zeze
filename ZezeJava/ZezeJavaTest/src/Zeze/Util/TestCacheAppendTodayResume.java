@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Base64;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -84,6 +85,8 @@ public class TestCacheAppendTodayResume {
 				.toList();
 		Assertions.assertEquals(1, daysFiles.size(), "同日重启共用一个days文件");
 		List<String> lines = Files.readAllLines(daysFiles.get(0), StandardCharsets.UTF_8);
+		if (daysFiles.get(0).getFileName().toString().endsWith(".b64"))
+			lines = lines.stream().map(line -> new String(Base64.getDecoder().decode(line), StandardCharsets.UTF_8)).toList();
 		Assertions.assertTrue(lines.contains("key1"), "重启前登记的key1必须保留，实际: " + lines);
 		Assertions.assertTrue(lines.contains("key2"), "重启前登记的key2必须保留，实际: " + lines);
 		Assertions.assertTrue(lines.contains("key3"), "重启后登记的key3必须在，实际: " + lines);

@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
@@ -191,12 +192,14 @@ public class Cache {
 				// 追加模式：同日重启（新实例todayDays初始0必进此分支）打开已存在的当天清单，
 				// 截断会把前次运行登记的条目清掉——这些key的RocksDb记录从此再没有退役记录。
 				var oldFile = todayFile;
-				todayFile = new FileOutputStream(Paths.get(name, "days_" + nowDays).toFile(), true);
+				todayFile = new FileOutputStream(Paths.get(name, "days_" + nowDays + ".b64").toFile(), true);
 				todayDays = nowDays;
 				if (oldFile != null)
 					oldFile.close();
 			}
-			todayFile.write((id + "\n").getBytes(StandardCharsets.UTF_8));
+			// 新文件显式标记编码版本；旧 days_N 清单继续按原格式读取。
+			String encoded = Base64.getEncoder().encodeToString(id.getBytes(StandardCharsets.UTF_8));
+			todayFile.write((encoded + "\n").getBytes(StandardCharsets.US_ASCII));
 		} finally {
 			todayLock.unlock();
 		}
@@ -219,7 +222,10 @@ public class Cache {
 					// 合法清单从此永远不被退役。跳过畸形文件继续处理其余清单。
 					long days;
 					try {
-						days = Long.parseLong(file.getName().substring(prefix.length()));
+						String suffix = file.getName().substring(prefix.length());
+						if (suffix.endsWith(".b64"))
+							suffix = suffix.substring(0, suffix.length() - 4);
+						days = Long.parseLong(suffix);
 					} catch (NumberFormatException e) {
 						logger.warn("Cache {}: skip malformed manifest file '{}'", name, file.getName());
 						continue;
@@ -248,8 +254,16 @@ public class Cache {
 	private static @NotNull ArrayList<String> tryRemove(@NotNull RocksDB db, @NotNull ConcurrentLruLike<String, CacheObject> lru,
 														@NotNull File file) throws IOException, RocksDBException {
 		var skipped = new ArrayList<String>();
+		boolean encoded = file.getName().endsWith(".b64");
 		try (var r = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
 			for (var id = r.readLine(); id != null; id = r.readLine()) {
+				if (encoded) {
+					try {
+						id = new String(Base64.getDecoder().decode(id), StandardCharsets.UTF_8);
+					} catch (IllegalArgumentException e) {
+						throw new IOException("invalid encoded cache manifest: " + file, e);
+					}
+				}
 				if (lru.get(id) != null) {
 					skipped.add(id); // 当前使用中的项不删除，交给调用方转移登记到当天的清单里。
 					continue;
