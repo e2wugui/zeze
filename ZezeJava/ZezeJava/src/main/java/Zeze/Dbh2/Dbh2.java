@@ -149,6 +149,20 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		return typeId == PrepareBatch.TypeId_;
 	}
 
+	// PrepareBatch自指守卫判据：死桶（keyFirst==keyLast==DeadBucketMetaBound哨兵）不拥有任何
+	// 键域，其分裂历史首键条目已被迁移目标同键覆写（endMove的addMoveMetaHistory(to)），locate
+	// 命中必指向他桶，一律refused重定向自愈——哨兵{1}与真实单字节keyFirst[0x01]字节相等，死桶
+	// 若仍参与keyFirst判等，该键形的重定向被误判"又找到了自己"返回终局eBucketNotFound，而客户端
+	// （CommitRocks.processPrepareFutures）只对refused触发startRefreshMasterTable，陈旧路由的
+	// 纯写负载下该表写入持续失败。活桶首键条目恒指向本桶（每次endSplit的from原地刷新），
+	// 等值判等保持原语义（重定向会自旋，终局错误）。
+	private static boolean isLocateSelf(BBucketMeta.Data bucketMeta, BBucketMeta.Data locate) {
+		if (Bucket.DeadBucketMetaBound.equals(bucketMeta.getKeyFirst())
+				&& Bucket.DeadBucketMetaBound.equals(bucketMeta.getKeyLast()))
+			return false;
+		return locate.getKeyFirst().equals(bucketMeta.getKeyFirst());
+	}
+
 	// meta-less守卫：新raft在SetBucketMeta（桶协议第一条）之前
 	// bucketMeta==null，此前Get/Walk/WalkKey/PrepareBatch入口经inBucket对meta的解引用以
 	// 框架层NPE面目出现；显式判定返回专用错误码eBucketNotReady，孤儿收养
@@ -344,7 +358,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				if (!stateMachine.getBucket().inBucket(key)) {
 					var locate = splitHistory.locate(key);
 
-					if (null == locate || locate.getKeyFirst().equals(stateMachine.getBucket().getBucketMeta().getKeyFirst()))
+					if (null == locate || isLocateSelf(stateMachine.getBucket().getBucketMeta(), locate))
 						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
 
 					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
@@ -355,7 +369,7 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				if (!stateMachine.getBucket().inBucket(del)) {
 					var locate = splitHistory.locate(del);
 
-					if (null == locate || locate.getKeyFirst().equals(stateMachine.getBucket().getBucketMeta().getKeyFirst()))
+					if (null == locate || isLocateSelf(stateMachine.getBucket().getBucketMeta(), locate))
 						return errorCode(eBucketNotFound); // 找不到或者又找到了自己。
 
 					var batches = refused.getRefused().computeIfAbsent(locate.getRaftConfig(), (__) -> new BBatch.Data());
