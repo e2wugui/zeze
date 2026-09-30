@@ -108,8 +108,19 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 				batches = reached.keySet().toArray(new TaskOneByOne[0]);
 				reached.clear();
 			}
-			for (var taskOneByOne : batches)
-				taskOneByOne.runNext();
+			RuntimeException failure = null;
+			for (var taskOneByOne : batches) {
+				try {
+					taskOneByOne.runNext();
+				} catch (RuntimeException e) {
+					if (failure == null)
+						failure = e;
+					else if (failure != e)
+						failure.addSuppressed(e);
+				}
+			}
+			if (failure != null)
+				throw failure;
 		}
 
 		/**

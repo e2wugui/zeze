@@ -450,8 +450,20 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			} finally {
 				unlock();
 			}
-			for (var batch : batches)
-				batch.runNext();
+			RuntimeException failure = null;
+			for (var batch : batches) {
+				try {
+					batch.runNext();
+				} catch (RuntimeException e) {
+					// reached已清空：即使首桶派发被拒，也必须推进其余桶的收尾。
+					if (failure == null)
+						failure = e;
+					else if (failure != e)
+						failure.addSuppressed(e);
+				}
+			}
+			if (failure != null)
+				throw failure;
 		}
 
 		public boolean reach(@NotNull BatchTask batch, int sum) {
