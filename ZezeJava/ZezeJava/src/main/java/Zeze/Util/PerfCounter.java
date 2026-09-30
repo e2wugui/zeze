@@ -381,8 +381,16 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 		private @NotNull ProcedureInfo info() {
 			var b = bound;
-			if (b == null || b.serial() != clearSerial)
-				bound = b = new Bound(getOrAddProcedureInfo(name), clearSerial);
+			if (b == null || b.serial() != clearSerial) {
+				PerfCounter.this.lock();
+				try {
+					b = bound;
+					if (b == null || b.serial() != clearSerial)
+						bound = b = new Bound(getOrAddProcedureInfo(name), clearSerial);
+				} finally {
+					PerfCounter.this.unlock();
+				}
+			}
 			return b.info();
 		}
 
@@ -479,10 +487,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			protocolInfoMap.clear();
 			procedureInfoMap.clear();
 			tableInfoMap.clear();
-			// clearSerial++ 必须在四个 map.clear() 之后：若推进在前，锁外的 info() 等绑定端
-			// 可在 clear 生效前以新 serial 绑定旧代际条目——serial 恒等匹配导致永不重绑，该 procedure
-			// 统计静默丢失到下次 reset；换序后"绑定到当前 serial"的条目必然建于 clear 之后，serial
-			// 失配重绑即可自愈全部瞬态窗口。
+			// info() 的慢路径同样持有此锁，旧条目与新 clearSerial 不会被组装成同一个 Bound。
 			//noinspection NonAtomicOperationOnVolatileField
 			clearSerial++;
 			for (var ci : countInfos) {
