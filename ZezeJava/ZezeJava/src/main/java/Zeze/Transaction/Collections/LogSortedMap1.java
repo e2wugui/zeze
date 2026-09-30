@@ -69,12 +69,12 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 		var newMap = old.plusAll(m);
 		if (newMap != old) {
 			setValue(newMap);
-			// 只记值真实变化的键：值未变的键混入replaced是幻影增量，误导增量驱动的监听器。
-			for (var e : m.entrySet()) {
-				K k = e.getKey();
-				if (!java.util.Objects.equals(old.get(k), e.getValue())) {
+			// 输入可能包含多个比较器等价的键，必须记最终值而非中间输入值。
+			for (K k : m.keySet()) {
+				V v = newMap.get(k);
+				if (!java.util.Objects.equals(old.get(k), v)) {
 					removed.remove(k);
-					replaced.put(k, e.getValue());
+					replaced.put(k, v);
 				}
 			}
 		}

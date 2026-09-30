@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.LogSortedMap1;
@@ -198,7 +199,33 @@ public class TestSortedMapEquivalentKeysReplay {
 		assertSame(value, log.getReplaced().get(equivalentKey));
 	}
 
-
+	@Test
+	public void putAllEquivalentKeysRecordsTheFinalValue() {
+		for (boolean priorReplacement : new boolean[] {false, true}) {
+			var leader = new PSortedMap1<BigDecimal, Integer>(BigDecimal.class, Integer.class);
+			leader.put(new BigDecimal("1"), 10);
+			var follower = leader.copy();
+			@SuppressWarnings("unchecked")
+			var log = (LogSortedMap1<BigDecimal, Integer>)leader.createLogBean();
+			if (priorReplacement)
+				log.put(new BigDecimal("1.000"), 20);
+			var input = new LinkedHashMap<BigDecimal, Integer>();
+			input.put(new BigDecimal("1.0"), 30);
+			input.put(new BigDecimal("1.00"), 10);
+			log.putAll(input);
+			assertEquals(10, log.get(new BigDecimal("1")));
+			if (priorReplacement)
+				assertEquals(10, log.getReplaced().get(new BigDecimal("1")));
+			else
+				assertTrue(log.getReplaced().isEmpty(), "恢复旧值不得留下中间输入的替换日志");
+			log.commit();
+			@SuppressWarnings("unchecked")
+			var decoded = (LogSortedMap1<BigDecimal, Integer>)follower.createLogBean();
+			decoded.decode(encode(log));
+			follower.followerApply(decoded);
+			assertEquals(leader.get(new BigDecimal("1")), follower.get(new BigDecimal("1")));
+		}
+	}
 
 	@Test
 	public void clearAndCopyPreserveCustomComparator() {
