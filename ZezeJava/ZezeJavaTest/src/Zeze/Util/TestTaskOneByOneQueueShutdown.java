@@ -165,4 +165,73 @@ public class TestTaskOneByOneQueueShutdown {
 			Assertions.assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS));
 		}
 	}
+
+	@Test
+	public void testWaitCompleteIncludesShutdownCancellation() throws Exception {
+		var pool = Executors.newSingleThreadExecutor();
+		var running = new CountDownLatch(1);
+		var releaseRun = new CountDownLatch(1);
+		var cancelling = new CountDownLatch(1);
+		var releaseCancel = new CountDownLatch(1);
+		var waiting = new CountDownLatch(1);
+		var completed = new CountDownLatch(1);
+		Thread stopper = null;
+		Thread waiter = null;
+		try {
+			var queue = new TaskOneByOneQueue(pool);
+			queue.lock();
+			Runnable dispatch;
+			try {
+				dispatch = queue.submit(new RecordingTask("running", () -> {
+					running.countDown();
+					runLatch(releaseRun);
+				}, null));
+			} finally {
+				queue.unlock();
+			}
+			Assertions.assertNotNull(dispatch);
+			dispatch.run();
+			Assertions.assertTrue(running.await(5, TimeUnit.SECONDS));
+			queue.lock();
+			try {
+				queue.submit(new RecordingTask("pending", () -> Assertions.fail("pending task ran"), () -> {
+					cancelling.countDown();
+					runLatch(releaseCancel);
+				}));
+			} finally {
+				queue.unlock();
+			}
+			stopper = Thread.ofPlatform().daemon().start(() -> queue.shutdown(true));
+			Assertions.assertTrue(cancelling.await(5, TimeUnit.SECONDS));
+			releaseRun.countDown();
+			var started = System.nanoTime();
+			while (queue.size() != 0) {
+				if (System.nanoTime() - started >= TimeUnit.SECONDS.toNanos(5))
+					Assertions.fail("running task did not leave the queue");
+				Thread.yield();
+			}
+			waiter = Thread.ofPlatform().daemon().start(() -> {
+				waiting.countDown();
+				try {
+					queue.waitComplete();
+					completed.countDown();
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+			});
+			Assertions.assertTrue(waiting.await(5, TimeUnit.SECONDS));
+			Assertions.assertFalse(completed.await(100, TimeUnit.MILLISECONDS), "取消补偿未结束不能放行");
+			releaseCancel.countDown();
+			Assertions.assertTrue(completed.await(5, TimeUnit.SECONDS));
+		} finally {
+			releaseRun.countDown();
+			releaseCancel.countDown();
+			if (stopper != null)
+				stopper.join(5_000);
+			if (waiter != null)
+				waiter.join(5_000);
+			pool.shutdownNow();
+			Assertions.assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+		}
+	}
 }

@@ -171,18 +171,14 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 		// 整队补偿零日志不可接受：回滚承担onCancel守护语义（重复发货/扣款类二次处理）却运维不可见，
 		// warn列出被补偿任务名与原因（cancels已脱离队列，锁外遍历安全）。
-		var names = new StringBuilder();
-		for (var task : cancels)
-			names.append(task.name).append(',');
-		logger.warn("TaskOneByOneQueue: dispatch rejected, rollback & compensate {} task(s): [{}]",
-				cancelCount, names, cause);
-		runCancel(cancels);
-		lock();
 		try {
-			pendingCancelCount--;
-			cond.signalAll();
+			var names = new StringBuilder();
+			for (var task : cancels)
+				names.append(task.name).append(',');
+			logger.warn("TaskOneByOneQueue: dispatch rejected, rollback & compensate {} task(s): [{}]",
+					cancelCount, names, cause);
 		} finally {
-			unlock();
+			runCancelAndSignal(cancels); // 日志故障也不能跳过补偿与 pending 核销。
 		}
 	}
 
@@ -210,14 +206,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			unlock();
 		}
 		if (cancels != null) {
-			runCancel(cancels);
-			lock();
-			try {
-				pendingCancelCount--;
-				cond.signalAll();
-			} finally {
-				unlock();
-			}
+			runCancelAndSignal(cancels);
 			return;
 		}
 		executeOrRollback(batch.mode);
@@ -231,6 +220,20 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				} catch (Throwable e) { // logger.error
 					logger.error("CancelAction={}", task.name, e);
 				}
+			}
+		}
+	}
+
+	private void runCancelAndSignal(@NotNull ArrayDeque<Task> tasks) {
+		try {
+			runCancel(tasks);
+		} finally {
+			lock();
+			try {
+				pendingCancelCount--;
+				cond.signalAll();
+			} finally {
+				unlock();
 			}
 		}
 	}
@@ -257,10 +260,11 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				queue.addLast(oldQueue.pollFirst());
 			if (oldQueue.isEmpty())
 				return;
+			pendingCancelCount++; // 摘出队列的补偿也属于 waitComplete 等待范围。
 		} finally {
 			unlock();
 		}
-		runCancel(oldQueue); // 未认领的任务：未运行，立即补偿
+		runCancelAndSignal(oldQueue); // 未认领的任务：未运行，立即补偿
 	}
 
 	public void waitComplete() throws InterruptedException {
