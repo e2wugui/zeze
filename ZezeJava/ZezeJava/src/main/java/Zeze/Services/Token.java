@@ -633,17 +633,20 @@ public final class Token extends AbstractToken {
 		lock();
 		tokenStoreLock.lock();
 		try {
+			boolean saved = rocksdb != null || tokenMap.isEmpty();
 			if (rocksdb != null) {
 				// stop关库：stop只saveDB不关库时rocksdb/tokenMapTable悬挂，restart的
 				// start对同目录二次open——Windows下LOCK互斥每次必抛（重试环还先空转10秒），
 				// Linux下双实例双WAL/memtable写同目录。对齐全仓stop关库惯例（RedoQueue等）；
 				// 重启后ProcessGetTokenRequest对miss的token按需懒加载，无数据语义损失。
-				// saveDB失败记录（不改变stop异常契约）：此时关库，未落库的内存态token会丢。
-				if (!saveDB())
+				// saveDB失败保留内存态以便重启后重试；进程退出前仍无法保证未落库状态持久化。
+				saved = saveDB();
+				if (!saved)
 					logger.error("Token.stop saveDB failed, in-memory token states may be lost.");
 				closeDb(); // 先saveDB后关库（closeDb置null两字段；可重入锁安全）
 			}
-			tokenMap.clear();
+			if (saved)
+				tokenMap.clear(); // 保存失败保留内存态，后续start/stop可重试
 		} finally {
 			tokenStoreLock.unlock();
 			unlock();
@@ -738,6 +741,7 @@ public final class Token extends AbstractToken {
 		try {
 			var timeBegin = System.nanoTime();
 			long n = 0;
+			var saved = new java.util.ArrayList<TokenState>();
 			var bb = ByteBuffer.Allocate(32);
 			try (var batch = rocksdb.newBatch()) {
 				var now = System.currentTimeMillis();
@@ -751,8 +755,7 @@ public final class Token extends AbstractToken {
 								var v = state.encode(bb);
 								tokenMapTable.put(batch, k, 0, k.length, v.Bytes, 0, v.WriteIndex);
 							}
-							state.count = -1;
-							tokenMap.remove(state.key, state);
+							saved.add(state);
 							n++;
 						}
 					} finally {
@@ -760,6 +763,16 @@ public final class Token extends AbstractToken {
 					}
 				}
 				batch.commit();
+				// 与单条moveToDB相同：落库成功以后才丢弃内存态，提交失败仍可重试。
+				for (var state : saved) {
+					state.lock.lock();
+					try {
+						state.count = -1;
+						tokenMap.remove(state.key, state);
+					} finally {
+						state.lock.unlock();
+					}
+				}
 			}
 			logger.info("saveDB end ({}, {} ms)", n, (System.nanoTime() - timeBegin) / 1_000_000);
 			return true;
