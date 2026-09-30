@@ -483,8 +483,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		// 仅最终登出清理ReliableNotify队列根行（对称Game版；登录路径的clear只清节点链，
 		// 根行会残留）。重复登录/重登中途的补Logout不能清理：随后的
 		// reliableNotifySync仍依赖存活队列补投未确认的notify。
-		if (finalLogout)
+		if (finalLogout) {
 			openQueue(account, clientId).remove();
+			var login = getOrAddOnline(account).getLogins().getOrAdd(clientId);
+			login.setReliableNotifyConfirmIndex(0);
+			login.setReliableNotifyIndex(0);
+		}
 		return 0;
 	}
 
