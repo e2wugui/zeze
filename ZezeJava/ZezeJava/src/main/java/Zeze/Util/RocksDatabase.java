@@ -525,6 +525,10 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			public void close() {
 				RocksDatabase.this.lock();
 				try {
+					if (closing) {
+						super.close(); // 终结后迟到归还不能重新把native句柄放进已排空的池。
+						return;
+					}
 					if (!batchPool.contains(this)) { // 防止double-close导致同一Batch重复入池（承重判断，勿删）
 						clear();
 						batchPool.add(this);
