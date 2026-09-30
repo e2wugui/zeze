@@ -173,6 +173,8 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	public void start() throws Exception {
+		if (stopped)
+			throw new IllegalStateException("OnzServer stopped: start rejected");
 		try {
 			service.start();
 			onzAgent.start();
