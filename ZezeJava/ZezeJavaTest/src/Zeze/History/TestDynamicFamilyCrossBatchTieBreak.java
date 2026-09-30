@@ -9,6 +9,7 @@ import Zeze.Transaction.GTable.GTable2;
 import Zeze.Transaction.Log;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -30,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
  * 触达，不污染真实注册。
  */
 @Fast
-@ResourceLock("history-helper-logger") // 跨批次决胜触发Helper的drop/replace warn，与共享logger appender断言类互斥（TestDynamicFamilyDropLogged先例）
+@ResourceLock(value = "history-helper-logger", mode = ResourceAccessMode.READ_WRITE) // 必须READ_WRITE：默认READ对READ不互斥，本类按设计触发cross-batch warn，与DropLogged/GcC02的appender断言必须真互斥
 public class TestDynamicFamilyCrossBatchTieBreak {
 
 	/** 字典序较大的家族（批1占位者）。 */

@@ -16,6 +16,7 @@ import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 静态方法的宿主类（与生成代码同形态）。
  */
 @Fast
-@ResourceLock("history-helper-logger") // 共享log4j2 Helper logger的appender操纵/drop告警触发互斥（对齐onz-server-logger先例；test40-4实证并行类告警串扰假红2轮）
+@ResourceLock(value = "history-helper-logger", mode = ResourceAccessMode.READ_WRITE) // 必须READ_WRITE：默认READ对READ不互斥（读者共享锁），三类曾全为默认READ=零互斥，CrossBatchTieBreak的cross-batch warn串扰进本类appender假红过（test40-4先例只改了调度运气，没修锁语义）
 public class TestDynamicFamilyDropLogged {
 
 	/** 家族1宿主：map<string,dynamic>变量managers（生成newDynamicBean_Xxx同形态）。 */
