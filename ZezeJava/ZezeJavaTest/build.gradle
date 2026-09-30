@@ -124,6 +124,10 @@ tasks.named('test', Test) {
 }
 
 // gradle integrationTest：全量功能测试（含依赖 SM 5001/Global 5002 的 A/B 类），不含 @Bench 吞吐基准。
+// 排序必须 mustRunAfter（家族全链见 bench 处注释）：org.gradle.parallel=true 下 shouldRunAfter 软序
+// 被 Gradle 忽略——2026-09-30 实证 `test integrationTest bench` 一条命令三相并发 fork，test worker
+// 与 IT worker 跨 JVM 互踩 zeze_cache_0.lock（FileMutex 报 "another process"）与 Dbh2 11000/7788
+// 端口，IT 相 135/238 级联假红（共享 demo.App 卡 eStarting）。
 tasks.register('integrationTest', Test) {
     group = 'verification'
     description = '全量功能测试（不含 @Bench 吞吐基准），需要（或自动创建）SM(5001)/Global(5002) 环境。'
@@ -134,11 +138,15 @@ tasks.register('integrationTest', Test) {
     }
     workingDir = projectDir
     jvmArgs '-ea'
-    shouldRunAfter tasks.named('test')
+    mustRunAfter tasks.named('test')
 }
 
 // gradle bench：吞吐基准（@Bench 标注，Benchmark 包整体）。基准靠打印 M/s 观察，不设断言；
 // 其中 A/B/C 事务场景依赖 SM/Global（进程内 harness 自动提供，不设 zeze.test.env=off）。
+// 家族全链硬序（test→integrationTest→bench→benchCore→benchCorePlatform）：四测试任务共享
+// demo.App 单例/dbhome/固定端口，任意子集同图调用都必须串行——只对 test 排序时 IT 与 bench
+// 之间零约束（首事故 bench 14:51-14:53 落在 IT 窗口内）。mustRunAfter 不产生依赖，单独调用
+// 任一任务不会拉起前序任务，语义与原 shouldRunAfter 兼容。
 tasks.register('bench', Test) {
     group = 'verification'
     description = '吞吐基准（@Bench 标注）。'
@@ -149,7 +157,7 @@ tasks.register('bench', Test) {
     }
     workingDir = projectDir
     jvmArgs '-ea'
-    shouldRunAfter tasks.named('test')
+    mustRunAfter tasks.named('test'), tasks.named('integrationTest')
 }
 
 // gradle benchCore：核心宏观基准（@Bench + @Tag("core")，6 场景：A/B/C/D/E/F）。
@@ -173,7 +181,7 @@ tasks.register('benchCore', Test) {
     // 场景类字母序执行（A→B→C→D→E2→E→F）：E/E2 的 Stop+Start(custom cfg) 切换库配置，
     // 固定顺序避免 F 落在 E 之后继承非默认配置（虽然各场景开场已自带 Stop+Start，此为双保险）。
     systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
-    shouldRunAfter tasks.named('test')
+    mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('bench')
 }
 
 // gradle benchCorePlatform：benchCore 的平台线程池对照组（-DuseVirtualThread=false），
@@ -192,7 +200,7 @@ tasks.register('benchCorePlatform', Test) {
     systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
     systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
     systemProperty 'useVirtualThread', 'false'
-    shouldRunAfter tasks.named('test')
+    mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('bench'), tasks.named('benchCore')
 }
 
 // JMH 微基准源集：编译依赖 test 源集输出（demo/Gen 生成的 bean 与表）+ test 编译类路径。
