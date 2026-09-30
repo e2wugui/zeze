@@ -58,7 +58,44 @@ public class TestPersistentCollectionIdentity {
 		}
 	}
 
+	@Test
+	@SuppressWarnings("unchecked")
+	public void bothConcurrentOverloadsHonorThePersistedLegacyLayout() throws Exception {
+		var app = new Application("ConcurrentLayout", TakeoverTestEnv.newConf("off", 600_000, 600_000));
+		var module = new LinkedMap.Module(app);
+		try {
+			app.start();
+			var key = "key";
+			for (var i = 0; Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), 256) < 128; i++)
+				key = "key" + i;
+			final var highKey = key;
+			var fresh = module.openConcurrent("fresh", BMyBean.class, 20);
+			assertEquals(0, app.newProcedure(() -> { fresh.put(highKey, value(7)); return 0; }, "put-fresh").call());
+			var cacheField = LinkedMap.Module.class.getDeclaredField("linkedMaps");
+			cacheField.setAccessible(true);
+			var cache = (ConcurrentHashMap<String, Object>)cacheField.get(module);
+			cache.remove("fresh");
+			var reopenedFresh = module.openConcurrent("fresh", BMyBean.class);
+			assertEquals(0, app.newProcedure(() -> { assertEquals(7, reopenedFresh.get(highKey).getI()); return 0; }, "read-fresh").call());
 
+			// 只伪造升级前的公开布局：真实LinkedMap.put产生旧256桶业务记录，没有元数据。
+			var openBucket = LinkedMap.Module.class.getDeclaredMethod("_open", String.class, Class.class, int.class);
+			openBucket.setAccessible(true);
+			var bucketId = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(highKey), 256);
+			var bucket = (LinkedMap<BMyBean>)openBucket.invoke(module, "legacy@" + bucketId, BMyBean.class, 30);
+			assertEquals(0, app.newProcedure(() -> { bucket.put(highKey, value(9)); return 0; }, "legacy-put").call());
+			assertThrows(IllegalStateException.class, () -> module.openConcurrent("legacy", BMyBean.class));
+			assertThrows(IllegalStateException.class, () -> module.adoptLegacyConcurrentLayout("legacy", 128));
+			module.adoptLegacyConcurrentLayout("legacy", 256);
+			CHashMap<BMyBean> first = module.openConcurrent("legacy", BMyBean.class);
+			assertEquals(0, app.newProcedure(() -> { assertEquals(9, first.get(highKey).getI()); return 0; }, "legacy-read").call());
+			cache.remove("legacy");
+			var second = module.openConcurrent("legacy", BMyBean.class, 20);
+			assertEquals(0, app.newProcedure(() -> { assertEquals(9, second.get(highKey).getI()); return 0; }, "legacy-read-other-overload").call());
+		} finally {
+			app.stop();
+		}
+	}
 
 
 }

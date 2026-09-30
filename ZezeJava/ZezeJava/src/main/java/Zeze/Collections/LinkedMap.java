@@ -94,6 +94,9 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		// delayClearJob每个事务清理的节点数：事务数降为1/K（行删除日志只记key，K个节点的事务仍然小）。
 		// K越大，与"clear后立刻按旧id重建"的并发写冲突窗口越大（映射行读写交叉），失败整批回滚重试，自愈。
 		public static final int clearJobBatchNodes = 16;
+		private static final int concurrentBuckets = 128;
+		// 公共名字禁止'@'，内部桶名以非空业务名字开头，所以该元数据名字不能与业务根/桶冲突。
+		private static final String concurrentLayoutPrefix = "@CHashMap.Layout/";
 
 		public Module(@NotNull Zeze.Application zeze) {
 			this.zeze = zeze;
@@ -161,29 +164,55 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 
 		public <T extends Bean> @NotNull CHashMap<T> openConcurrent(
 				@NotNull String name, @NotNull Class<T> valueClass) {
-			return openConcurrent(name, valueClass, 128, 30);
+			return openConcurrent(name, valueClass, 30);
 		}
 
 		public <T extends Bean> @NotNull CHashMap<T> openConcurrent(
 				@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
-			return openConcurrent(name, valueClass, 256, nodeSize);
+			return openConcurrentWithLayout(name, valueClass, nodeSize);
 		}
 
-		@SuppressWarnings({"unchecked", "SameParameterValue"})
-		private <T extends Bean> @NotNull CHashMap<T> openConcurrent(
-				@NotNull String name, @NotNull Class<T> valueClass, int concurrencyLevel, int nodeSize) {
+		/**
+		 * 升级前停掉该map的旧写入者，再显式登记历史桶数（旧无nodeSize重载128，旧有nodeSize重载256）。
+		 * 不重排业务记录：以后所有普通openConcurrent重载均使用持久登记的布局。
+		 * 已混用两个旧布局的数据必须先由业务方核对合并，不能通过本入口自动判断。
+		 */
+		public void adoptLegacyConcurrentLayout(@NotNull String name, int bucketCount) {
+			validateConcurrentName(name);
+			if (bucketCount != 128 && bucketCount != 256)
+				throw new IllegalArgumentException("legacy bucketCount must be 128 or 256");
+			if (linkedMaps.containsKey(name))
+				throw new IllegalStateException("adopt layout before opening '" + name + "'");
+			var rc = zeze.newProcedure(() -> {
+				var layout = _tLinkedMaps.getOrAdd(concurrentLayoutPrefix + name);
+				if (layout.getCount() != 0 && layout.getCount() != bucketCount)
+					throw new IllegalStateException("concurrent layout already registered: " + layout.getCount());
+				for (var i = bucketCount; i < 256; i++) {
+					var root = _tLinkedMaps.get(name + '@' + i);
+					if (root != null && (root.getCount() != 0 || root.getHeadNodeId() != 0))
+						throw new IllegalStateException("data exists outside requested layout: bucket " + i);
+				}
+				layout.setCount(bucketCount);
+				return 0;
+			}, "CHashMap.adoptLegacyLayout").call();
+			if (rc != 0)
+				throw new IllegalStateException("adoptLegacyConcurrentLayout failed, rc=" + rc);
+		}
+
+		private static void validateConcurrentName(@NotNull String name) {
+			if (name.isEmpty() || name.contains("@"))
+				throw new IllegalArgumentException("concurrent name must be nonempty and cannot contain '@'");
+		}
+
+		@SuppressWarnings("unchecked")
+		private <T extends Bean> @NotNull CHashMap<T> openConcurrentWithLayout(
+				@NotNull String name, @NotNull Class<T> valueClass, int nodeSize) {
 			if (name.isEmpty())
 				throw new IllegalArgumentException("name is empty.");
 			if (nodeSize < 1)
 				throw new IllegalArgumentException("nodeSize < 1");
 
-			// concurrencyLevel 应该持久化？因为现在写法，本进程访问会忽略后续不一样的concurrencyLevel，
-			//  但是多进程，没有保护到，会出错。
-			//  但是如果concurrencyLevel持久化，要不要提供修改它的能力？
-			//  题外话：LinkedMap的nodeSize是可以随时改的，它只影响新的node的大小，node大小不一样是可以的。
-			//  先不直接暴露这个方法，只暴露固定级别的方法。
-			if (name.contains("@"))
-				throw new IllegalArgumentException("name contains '@', that is reserved.");
+			validateConcurrentName(name);
 			// CHashMap和LinkedMap共享一个名字空间，并且CHashMap内部还会创建一批LinkedMap。
 			// 不能在linkedMaps.computeIfAbsent的mapping function内构造CHashMap：
 			// 其构造函数会_open(name@i)对同一个map做嵌套computeIfAbsent，JDK抛Recursive update。
@@ -193,7 +222,26 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 				return (CHashMap<T>)exist;
 			if (null != exist)
 				throw new IllegalArgumentException("name '" + name + "' already opened as LinkedMap.");
-			var created = new CHashMap<>(this, name, valueClass, concurrencyLevel, nodeSize);
+			var bucketCount = new OutLong();
+			var rc = zeze.newProcedure(() -> {
+				var layout = _tLinkedMaps.get(concurrentLayoutPrefix + name);
+				if (layout == null) {
+					for (var i = 0; i < 256; i++) {
+						var root = _tLinkedMaps.get(name + '@' + i);
+						if (root != null && (root.getCount() != 0 || root.getHeadNodeId() != 0))
+							throw new IllegalStateException("legacy concurrent data requires adoptLegacyConcurrentLayout: " + name);
+					}
+					layout = _tLinkedMaps.getOrAdd(concurrentLayoutPrefix + name);
+					layout.setCount(concurrentBuckets);
+				}
+				if (layout.getCount() != 128 && layout.getCount() != 256)
+					throw new IllegalStateException("invalid concurrent layout: " + layout.getCount());
+				bucketCount.value = layout.getCount();
+				return 0;
+			}, "CHashMap.openLayout").call();
+			if (rc != 0)
+				throw new IllegalStateException("openConcurrent layout failed, rc=" + rc + "; legacy data requires explicit adoption");
+			var created = new CHashMap<>(this, name, valueClass, (int)bucketCount.value, nodeSize);
 			var prev = linkedMaps.putIfAbsent(name, created);
 			if (null != prev) {
 				if (prev instanceof CHashMap)
