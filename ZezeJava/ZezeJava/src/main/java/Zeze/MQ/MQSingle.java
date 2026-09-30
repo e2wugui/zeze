@@ -692,6 +692,35 @@ public class MQSingle extends ReentrantLock {
 		return null != manager && manager.isStopped();
 	}
 
+	// 仅锁外等待；true表示本世代已终止，false表示预算耗尽或中断，应停止观察后继世代。
+	private boolean awaitFillDrain(Future<?> fill, long drainDeadlineMs, String logSuffix) {
+		var manager = mqPartition.getManager();
+		var ownBudgetMs = (null != manager ? manager.getMqConfig().getRpcTimeout() : 20_000) + 5_000L;
+		var remainingMs = drainDeadlineMs - System.currentTimeMillis();
+		if (remainingMs <= 0) {
+			logger.warn("mq fill{} drain budget exhausted by envelope, skip wait. topic={} partition={}",
+					logSuffix, topic, partitionIndex);
+			return false;
+		}
+		var budgetMs = Math.min(ownBudgetMs, remainingMs);
+		try {
+			fill.get(budgetMs, TimeUnit.MILLISECONDS);
+			return true;
+		} catch (TimeoutException e) {
+			logger.warn("mq fill{} not drained in {}ms, continue close. topic={} partition={}",
+					logSuffix.isEmpty() ? " task" : logSuffix, budgetMs, topic, partitionIndex);
+			return false;
+		} catch (ExecutionException e) {
+			// fill 自身失败已在 pullMessage 的 catch 记录日志。
+			return true;
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			logger.warn("mq fill{} drain interrupted, continue close. topic={} partition={}",
+					logSuffix, topic, partitionIndex);
+			return false;
+		}
+	}
+
 	public void close() throws IOException {
 		close(Long.MAX_VALUE); // 无包络调用方：保持原有单段全额预算
 	}
@@ -717,26 +746,8 @@ public class MQSingle extends ReentrantLock {
 		} finally {
 			unlock();
 		}
-		if (null != fill) {
-			var manager = mqPartition.getManager();
-			var ownBudgetMs = (null != manager ? manager.getMqConfig().getRpcTimeout() : 20_000) + 5_000L;
-			var remainingMs = drainDeadlineMs - System.currentTimeMillis();
-			if (remainingMs <= 0) {
-				logger.warn("mq fill drain budget exhausted by envelope, skip wait. topic={} partition={}",
-						topic, partitionIndex);
-			} else
-			try {
-				fill.get(Math.min(ownBudgetMs, remainingMs), TimeUnit.MILLISECONDS);
-			} catch (TimeoutException e) {
-				logger.warn("mq fill task not drained in {}ms, continue close. topic={} partition={}",
-						Math.min(ownBudgetMs, Math.max(remainingMs, 0)), topic, partitionIndex);
-			} catch (ExecutionException e) {
-				// fill 自身失败已在 pullMessage 的 catch 记录日志。
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				logger.warn("mq fill drain interrupted, continue close. topic={} partition={}", topic, partitionIndex);
-			}
-		}
+		if (null != fill)
+			awaitFillDrain(fill, drainDeadlineMs, "");
 		// 持锁关文件流：与在飞 sendMessage（appendMessage 同锁）串行；close 过后晚到的任务在
 		// 锁内复查 stopped 拒绝，不再触碰文件与 rocksdb。一并取消退避重推排期并静默
 		// 绑定（迟到触发的 runRetryPush 因 bindSocket=null 自然短路）。一并取消
@@ -783,31 +794,8 @@ public class MQSingle extends ReentrantLock {
 			} finally {
 				unlock();
 			}
-			if (null == escapee)
+			if (null == escapee || !awaitFillDrain(escapee, drainDeadlineMs, " escapee"))
 				break;
-			var manager = mqPartition.getManager();
-			var remainingMs = drainDeadlineMs - System.currentTimeMillis();
-			if (remainingMs <= 0) {
-				logger.warn("mq fill escapee drain budget exhausted by envelope, skip wait. topic={} partition={}",
-						topic, partitionIndex);
-				break;
-			}
-			var budgetMs = Math.min(
-					(null != manager ? manager.getMqConfig().getRpcTimeout() : 20_000) + 5_000L, remainingMs);
-			try {
-				escapee.get(budgetMs, TimeUnit.MILLISECONDS);
-			} catch (TimeoutException e) {
-				logger.warn("mq fill escapee not drained in {}ms, continue close. topic={} partition={}",
-						budgetMs, topic, partitionIndex);
-				break;
-			} catch (ExecutionException e) {
-				// fill 自身失败已在 pullMessage 的 catch 记录日志。
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				logger.warn("mq fill escapee drain interrupted, continue close. topic={} partition={}",
-						topic, partitionIndex);
-				break;
-			}
 		}
 	}
 }
