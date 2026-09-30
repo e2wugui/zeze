@@ -48,6 +48,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 	private final ConcurrentHashMap<String, ReentrantReadWriteLock> rwLocks = new ConcurrentHashMap<>();
 
 	private final Future<?> timeoutReleaseTask;
+	private volatile boolean closed;
 
 	public ThreadingServer(Service service, ServiceManagerServer.Conf conf) {
 		this.service = service;
@@ -57,6 +58,30 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 	public void close() {
 		timeoutReleaseTask.cancel(false);
+		SimulateThread[] threads;
+		lock();
+		try {
+			closed = true;
+			threads = simulateThreads.values().toArray(SimulateThread[]::new);
+		} finally {
+			unlock();
+		}
+		for (var thread : threads)
+			thread.interrupt(); // Interrupt timed acquisitions; release must run on the owning thread.
+		boolean interrupted = false;
+		for (var thread : threads) {
+			if (thread == Thread.currentThread())
+				continue;
+			while (thread.isAlive()) {
+				try {
+					thread.join();
+				} catch (InterruptedException e) {
+					interrupted = true;
+				}
+			}
+		}
+		if (interrupted)
+			Thread.currentThread().interrupt();
 	}
 
 	public Service getService() {
@@ -131,28 +156,40 @@ public class ThreadingServer extends AbstractThreadingServer {
 
 		@Override
 		public void run() {
-			while (true) {
-				try {
-					// 持有资源期间也必须带超时等待，否则无超时poll会空转占满CPU。
-					var action = actions.poll(200, TimeUnit.MILLISECONDS);
-					if (null != action) {
-						runAction(action);
-					}
-
-					if (acquireNothing()) {
-						// 没有已分配资源的时候，延时200ms，准备退出。
-						action = actions.poll(200, TimeUnit.MILLISECONDS);
+			try {
+				while (!closed) {
+					try {
+						// 持有资源期间也必须带超时等待，否则无超时poll会空转占满CPU。
+						var action = actions.poll(200, TimeUnit.MILLISECONDS);
 						if (null != action) {
 							runAction(action);
-							continue; // 发现新任务，继续工作，中断退出。
 						}
-						if (simulateThreadExit(id))
-							break; // 真正退出...
-						// else continue
+
+						if (acquireNothing()) {
+							// 没有已分配资源的时候，延时200ms，准备退出。
+							action = actions.poll(200, TimeUnit.MILLISECONDS);
+							if (null != action) {
+								runAction(action);
+								continue; // 发现新任务，继续工作，中断退出。
+							}
+							if (simulateThreadExit(id, this))
+								break; // 真正退出...
+							// else continue
+						}
+					} catch (Exception e) {
+						if (!closed)
+							logger.error("", e);
 					}
-				} catch (Exception e) {
-					logger.error("", e);
 				}
+			} finally {
+				if (!acquireNothing())
+					release();
+				SimulateThreadAction pending;
+				while ((pending = actions.poll()) != null) {
+					if (pending.rpc() != null)
+						pending.rpc().trySendResultCode(ResultCodeInvalidArgument);
+				}
+				simulateThreadExit(id, this);
 			}
 		}
 
@@ -219,6 +256,8 @@ public class ThreadingServer extends AbstractThreadingServer {
 		public void release() {
 			lock();
 			try {
+				if (closed)
+					return;
 				for (var thread : threads)
 					thread.actions.offer(new SimulateThreadAction(null, SimulateThread::release));
 			} finally {
@@ -275,11 +314,11 @@ public class ThreadingServer extends AbstractThreadingServer {
 		}
 	}
 
-	private boolean simulateThreadExit(BGlobalThreadId id) {
+	private boolean simulateThreadExit(BGlobalThreadId id, SimulateThread expected) {
 		lock();
 		try {
 			return null == simulateThreads.computeIfPresent(id, (key, This) -> {
-				if (This.actions.isEmpty()) {
+				if (This == expected && This.actions.isEmpty()) {
 					logger.info("simulate exit thread=({}, {})", id.getServerId(), id.getThreadId());
 					var x = simulateThreadsByServerId.get(This.id.getServerId());
 					if (null != x)
@@ -296,6 +335,10 @@ public class ThreadingServer extends AbstractThreadingServer {
 	private void simulateThreadOffer(Rpc<?, ?> rpc, BGlobalThreadId id, Action1<SimulateThread> action) {
 		lock();
 		try {
+			if (closed) {
+				rpc.trySendResultCode(ResultCodeInvalidArgument);
+				return;
+			}
 			var st = simulateThreads.computeIfAbsent(
 					id,
 					(key) -> {
