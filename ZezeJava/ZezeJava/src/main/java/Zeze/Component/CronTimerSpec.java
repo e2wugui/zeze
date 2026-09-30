@@ -125,6 +125,11 @@ public final class CronTimerSpec implements TimerSpec {
 		return next.getTime();
 	}
 
+	private static long nextCronTimeOrZero(@NotNull String expression, long time) throws ParseException {
+		var next = new CronExpression(expression).getNextValidTimeAfter(new Date(time));
+		return next != null ? next.getTime() : 0;
+	}
+
 	public static boolean nextCronTimer(@NotNull BCronTimer cronTimer, boolean missfire) throws ParseException {
 		// 当前回调（包括最后一次）都必须先记录本次触发的元数据。
 		var nextExpectedTime = cronTimer.getNextExpectedTime();
@@ -150,14 +155,16 @@ public final class CronTimerSpec implements TimerSpec {
 			baseTime = now;
 		} else
 			baseTime = nextExpectedTime;
-		nextExpectedTime = cronNextTime(cronTimer.getCronExpression(), baseTime);
-		if (nextExpectedTime <= now) {
+		nextExpectedTime = nextCronTimeOrZero(cronTimer.getCronExpression(), baseTime);
+		if (nextExpectedTime != 0 && nextExpectedTime <= now) {
 			// 迟到超过一个整触发槽（下一个触发点仍在过去；判据避开毫秒级抖动，运行期与装载期
 			// 一致，不依赖missfire标志）：追赶终止。cron触发点是绝对时间，从now重算即未来
 			// 最近的定点——OldNext保持对齐，其余策略等价于以当前时间重设。
-			nextExpectedTime = cronNextTime(cronTimer.getCronExpression(), now);
+			nextExpectedTime = nextCronTimeOrZero(cronTimer.getCronExpression(), now);
 		}
 		cronTimer.setNextExpectedTime(nextExpectedTime);
+		if (nextExpectedTime == 0)
+			return false; // 自然耗尽只终止续调；当前合法时刻的回调仍由调用者执行。
 
 		// check endTime
 		var endTime = cronTimer.getEndTime();
