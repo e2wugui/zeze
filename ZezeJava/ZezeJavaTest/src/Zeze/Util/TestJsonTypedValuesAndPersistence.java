@@ -76,7 +76,20 @@ public class TestJsonTypedValuesAndPersistence {
 		assertNull(new JsonReader().buf("null").parse(Node.class));
 	}
 
-
+	@Test
+	public void persistenceRejectsTruncationAndWriterRecovers() {
+		List<Object> root = new ArrayList<>();
+		List<Object> leaf = root;
+		for (int i = 0; i < 20; i++) {
+			var next = new ArrayList<Object>();
+			leaf.add(next);
+			leaf = next;
+		}
+		leaf.add("preserve");
+		assertThrows(IllegalStateException.class, () -> Helper.encodeJson(root));
+		assertEquals("[1,2]", Helper.encodeJson(List.of(1, 2)));
+		assertTrue(Json.toCompactString(root).contains("!OVERDEPTH!"));
+	}
 
 	@Test
 	public void compactPrimitiveMapsRespectDepthAndNormalOutput() {

@@ -25,7 +25,8 @@ public final class JsonWriter {
 	public static final int FLAG_NO_QUOTE_KEY  = 0x2;
 	public static final int FLAG_WRITE_NULL    = 0x4;
 	public static final int FLAG_WRAP_ELEMENT  = 0x8; // need FLAG_PRETTY_FORMAT
-	public static final int FLAG_ALL           = 0xf;
+	public static final int FLAG_THROW_ON_DEPTH_LIMIT = 0x10;
+	public static final int FLAG_ALL           = 0x1f;
 	public static final int FLAG_PRETTY_FORMAT_AND_WRAP_ELEMENT = FLAG_PRETTY_FORMAT | FLAG_WRAP_ELEMENT;
 	//@formatter:on
 
@@ -435,6 +436,8 @@ public final class JsonWriter {
 		case TYPE_OBJECT:
 		case TYPE_CUSTOM:
 			if (tabs >= getDepthLimit()) {
+				if ((flags & FLAG_THROW_ON_DEPTH_LIMIT) != 0)
+					throw new IllegalStateException("json nesting depth exceeds " + getDepthLimit());
 				ensure(14);
 				buf[pos++] = '"';
 				buf[pos++] = '!';

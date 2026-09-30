@@ -269,10 +269,13 @@ public class Helper {
 
 	public static @NotNull String encodeJson(@Nullable Object obj) {
 		var jw = JsonWriter.local();
+		int previousFlags = jw.getFlags();
+		int previousDepth = jw.getDepthLimit();
 		try {
-			return jw.clear().setFlagsAndDepthLimit(0, 16).write(json, obj).toString();
+			return jw.clear().setFlagsAndDepthLimit(JsonWriter.FLAG_THROW_ON_DEPTH_LIMIT, 16)
+					.write(json, obj).toString();
 		} finally {
-			jw.clear();
+			jw.clear().setFlagsAndDepthLimit(previousFlags, previousDepth);
 		}
 	}
 }
