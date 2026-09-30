@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
@@ -16,7 +15,7 @@ import Zeze.History.History;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Services.ServiceManager.Tid128Cache;
+import Zeze.Util.Id128;
 import Zeze.Util.Random;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
@@ -609,10 +608,18 @@ public final class Transaction {
 				Runtime.getRuntime().halt(54321);
 			}
 		}, flushMode, new RelativeRecordSet.HistoryChangesCollector() {
-			// 历史 gid 前移到日志应用之前解析（history-01）：取号（Id128 发号服务的阻塞等待）
-			// 若在应用后失败，数据已生效而 tHistory 永久缺失（gid 未消费，键空间连空洞都
-			// 没有，回放端无从感知），Immediately 模式更是补刷后吞异常报假成功。
-			private final AtomicReference<Tid128Cache> tid128Cache = new AtomicReference<>();
+			// 历史 gid 前移到日志应用之前解析（history-01/FND29）：取号（Id128 发号服务的
+			// 阻塞等待）若在应用后失败，数据已生效而 tHistory 永久缺失（gid 未消费，键空间
+			// 连空洞都没有，回放端无从感知），Immediately 模式更是补刷后吞异常报假成功。
+			// FND33 history-03：前移收口整个取号——beforeApply 此前只 future.get() 预热共享
+			// cache（不保证余号），真正的 cache.next() 仍在 afterApply（数据应用后）：段耗尽的
+			// 续段分配失败时数据已应用，且 PendingGidLedger.register 位于 next() 之后必然未执行
+			//——账本对自身主防场景失明（多 app HistoryAllocCount=1 每事务都走分配路径）。
+			// 现在 next()（含续段分配）整体前移到 beforeApply：任何取号失败=数据未应用即干净
+			// 失败（RejectHistoryAllocFailed）；成功取号立即入账，此后任何失败（应用/收集/落库）
+			// 都留下账本痕迹（超龄未核销=确定性缺口告警）。count=1 的顺序保证不变：取号仍
+			// 在 rrs 锁内（Table 模式）/记录锁持有期（Immediately），SM 按请求到达序发号。
+			private Id128 historyGid;
 
 			@Override
 			public void beforeApply() {
@@ -631,10 +638,15 @@ public final class Transaction {
 					// 兜底发起新分配替换。get() 阻塞等待批次，此刻数据尚未应用：任何失败转
 					// RejectHistoryAllocFailed（RejectWhileStopping 同款干净失败路径：
 					// finalRollback+Closed），不把"已应用数据+历史缺失"的静默分歧留给应用后。
+					// 段耗尽的续段分配同样在此（cache.next() 内同步换段）——失败同款干净失败。
 					try {
 						@SuppressWarnings("DataFlowIssue")
 						var future = zeze.getServiceManager().getUsableTid128CacheFuture(zeze.getConfig().getHistory());
-						tid128Cache.set(future.get());
+						historyGid = future.get().next();
+						// 取号即入账（FND33 history-03）：gid 消费先于数据应用，此后任何失败
+						//（应用/收集/落库）都在账本留下"已发号未核销"痕迹，sweep 显式化为
+						// 确定性缺口告警——不再依赖应用后的 register（取号失败时它必然未执行）。
+						zeze.getPendingGidLedger().register(historyGid, System.nanoTime());
 					} catch (Throwable ex) {
 						logger.error("finalCommit({}) history gid alloc fail before apply:", proc.getActionName(), ex);
 						throw new RejectHistoryAllocFailed("history gid alloc fail before apply: " + proc.getActionName());
@@ -668,17 +680,17 @@ public final class Transaction {
 				// 门控与原callable同形（isHistory&&records非空）：records 在 !isHistory 时也会
 				// 因监听者登记而非空（collectRecord 对有 listener 的表无早退），不能单看 records。
 				if (proc.getZeze().getConfig().isHistory() && !cc.getRecords().isEmpty()) {
-					var cache = tid128Cache.get();
+					var gid = historyGid;
 					// 不变量守卫：isHistory 下门控（anyDirty）与本走查的 records 非空精确等价
-					//（collectRecord 无早退必登记），cache 缺席属不可达形态——宁可响亮失败也
+					//（collectRecord 无早退必登记），gid 缺席属不可达形态——宁可响亮失败也
 					// 不静默产出无历史的数据。
-					if (null == cache)
+					if (null == gid)
 						throw new IllegalStateException("history changes without gid: " + proc.getActionName());
 					if (proc instanceof ProtocolProcedure pp) {
-						return History.buildLogChanges(proc.getZeze().getPendingGidLedger(), cache.next(), cc,
+						return History.buildLogChanges(gid, cc,
 								pp.getProtocolClassName(), pp.getProtocolRawArgument());
 					}
-					return History.buildLogChanges(proc.getZeze().getPendingGidLedger(), cache.next(), cc, null, null);
+					return History.buildLogChanges(gid, cc, null, null);
 				}
 				return null;
 			}

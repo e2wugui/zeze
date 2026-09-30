@@ -158,16 +158,14 @@ public class History {
 		}
 	}
 
-	/** globalSerialId 必须在日志应用（finalCommit 的 commit.run）之前解析：取号失败时数据
-	 * 未应用、事务干净失败，历史与数据同生共死（调用方 Transaction.finalCommit 的
-	 * HistoryChangesCollector.beforeApply）。gid 在此消费即入对账账本（Application 实例
-	 * 维度），随 tHistory 行提交成功由 commitDone 核销。 */
-	public static @NotNull BLogChanges.Data buildLogChanges(@NotNull PendingGidLedger ledger,
-															@NotNull Id128 globalSerialId,
+	/** 用已解析的 gid 编码日志变更。gid 必须在日志应用（finalCommit 的 commit.run）之前
+	 * 解析并登记对账账本（FND33 history-03：取号与入账都在调用方 Transaction.beforeApply
+	 * ——取号失败时数据未应用即干净失败；取号成功即入账，此后任何失败都留下账本痕迹），
+	 * tHistory 行随数据库事务提交成功由 commitDone 核销。 */
+	public static @NotNull BLogChanges.Data buildLogChanges(@NotNull Id128 globalSerialId,
 															@NotNull Changes changes,
 															@Nullable String protocolClassName,
 															@Nullable Binary protocolArgument) {
-		ledger.register(globalSerialId, System.nanoTime()); // 单调基入账，与 sweep 判龄同基
 		var logChanges = new BLogChanges.Data();
 		if (protocolClassName != null)
 			logChanges.setProtocolClassName(protocolClassName);
