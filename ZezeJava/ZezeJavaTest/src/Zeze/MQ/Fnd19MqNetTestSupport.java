@@ -16,7 +16,7 @@ import Zeze.Raft.ProxyServer;
  * TestMQConsumerResubscribe 26102（master 复用 26000）、TestMQManagerReregister 26100/26101、
  * TestMQManagerStopLive 26200/26201、TestBOptionsServerReject 26210/26211、
  * TestGBD05RouteRewrite 26220/26221/26222、TestMQManagerRemintKeepsPartitions 26231
- * （master 复用 26000）。
+ * （master 复用 26000）、TestTopicNameFsAliasRejected 26240/26241。
  */
 final class Fnd19MqNetTestSupport {
 	private Fnd19MqNetTestSupport() {

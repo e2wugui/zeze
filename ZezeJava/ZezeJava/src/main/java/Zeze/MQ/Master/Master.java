@@ -46,6 +46,9 @@ public class Master extends AbstractMaster {
     // 错误码9：BOptions 传入了未实现的队列类型（DoubleWrite/Raft3 及其他非 Single 值）。
     // 定义在手写子类，不改生成的AbstractMaster（与eTopicEmpty同法）。
     public static final int eOptionsNotImplemented = 9;
+    // 错误码10：topic 名与既有 topic 文件系统命名空间折叠冲突（仅大小写/尾随空白不同）。
+    // 定义在手写子类，不改生成的AbstractMaster（与eTopicEmpty同法）。
+    public static final int eTopicFsAlias = 10;
     // CreateMQ分区数上界：每分区在Manager侧对应一个MQSingle（列族+文件流），Master侧对应
     // 一条servers条目；协议不鉴权（MQPartition自述），无上界时单个请求（int上限）可先在
     // 循环内构造2^31-1条copy打挂Master（OOM/长CPU），侥幸下发后Manager对等膨胀连锁耗尽。
@@ -184,6 +187,40 @@ public class Master extends AbstractMaster {
         }
     }
 
+    // topic 名的文件系统命名空间折叠键（mq-02）：topic 字符串直接用作 Manager home 下的
+    // 子目录名与 rocksdb 列族名，大小写不敏感文件系统（Windows NTFS、macOS 默认）上仅
+    // 大小写或尾随空白/点不同的两个名字（mqTable 与列族是两个）解析到同一物理目录——
+    // 别名 topic 的 MQFileWithIndex 构造把共享段文件按"幽灵段+未提交尾巴"判定 truncate(0)，
+    // 既有 topic 的全部盘上积压被创建别名这一无预警操作摧毁。折叠口径=尾随空白/点归一
+    // （Win32 CreateDirectory 的剥离规则）+大小写不敏感（toLowerCase(Locale.ROOT)）；
+    // 内部空白与不同名不折叠。跨平台一致执行（含大小写敏感的Linux）：防"创建后迁移到
+    // 大小写不敏感介质"的形态；存量名永远等于自身折叠，不自拒。
+    public static String fsNamespaceKey(String topic) {
+        return topic.replaceAll("[\\s.]+$", "").toLowerCase(java.util.Locale.ROOT);
+    }
+
+    // 新建 topic 的结构性危险名校验（mq-02，仅 CreateMQ 入口生效，存量放行）：返回 null=
+    // 合法；非 null=拒绝原因（日志用）。覆盖折叠检测抓不到的形态——全新名字没有碰撞
+    // 对象但仍不可用：控制字符（目录名非法/终端注入）、Windows 保留设备名（CON/PRN/
+    // AUX/NUL/COM1-9/LPT1-9，mkdirs 失败被忽略，仅留列族孤儿+响亮创建失败）。
+    // 其余字符（含非ASCII，如中文topic）合法：白名单收紧会破坏存量命名习惯，不做。
+    public static @Nullable String validateNewTopicName(String topic) {
+        for (var i = 0; i < topic.length(); ++i) {
+            var c = topic.charAt(i);
+            if (c < 0x20 || c == 0x7F)
+                return "control char U+" + Integer.toHexString(c) + " at " + i;
+        }
+        var base = fsNamespaceKey(topic); // 保留名匹配用同款折叠（大小写不敏感+尾空白归一）
+        if (WindowsReservedNames.contains(base))
+            return "windows reserved device name: " + base;
+        return null;
+    }
+
+    private static final java.util.Set<String> WindowsReservedNames = java.util.Set.of(
+            "con", "prn", "aux", "nul",
+            "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
+            "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9");
+
     @Override
     protected long ProcessCreateMQRequest(CreateMQ r) throws Exception {
         // 停机闸（入口快路径）：stopped 置位后到达的请求直接回 Closed，
@@ -209,10 +246,33 @@ public class Master extends AbstractMaster {
                 return errorCode(eTopicHasReserveChar);
             if (r.Argument.getTopic().contains("\\"))
                 return errorCode(eTopicHasReserveChar);
+            // mq-02 结构性危险名（仅新建校验，存量放行）：控制字符与Windows保留设备名。
+            // 折叠检测抓不到全新名字（无碰撞对象），这两类仍不可用。
+            var nameReject = validateNewTopicName(r.Argument.getTopic());
+            if (null != nameReject) {
+                logger.error("createMQ topic name rejected: {}. topic={}", nameReject, r.Argument.getTopic());
+                return errorCode(eTopicHasReserveChar);
+            }
             var topicBytes = r.Argument.getTopic().getBytes(StandardCharsets.UTF_8);
             var mq = mqTable.get(topicBytes);
             if (null != mq)
                 return errorCode(eTopicExist);
+            // mq-02 折叠冲突检测：topic 直接作 Manager home 子目录名与列族名，大小写不敏感
+            // FS 上仅大小写/尾随空白不同的名字解析到同一物理目录——别名 topic 的分区构造
+            // 把共享段文件按"幽灵段+未提交尾巴"truncate(0)，既有 topic 的全部盘上积压被
+            // 一次创建操作摧毁。对 mqTable 已有条目按折叠键查重，命中即拒（跨平台一致执行，
+            // 防"创建后迁移到大小写不敏感介质"的形态；存量名等于自身折叠，不自拒）。
+            var foldKey = fsNamespaceKey(r.Argument.getTopic());
+            try (var it = mqTable.iterator()) {
+                for (it.seekToFirst(); it.isValid(); it.next()) {
+                    if (fsNamespaceKey(new String(it.key(), StandardCharsets.UTF_8)).equals(foldKey)) {
+                        logger.error("createMQ topic name rejected: filesystem namespace alias of existing topic."
+                                        + " new={} existing={}",
+                                r.Argument.getTopic(), new String(it.key(), StandardCharsets.UTF_8));
+                        return errorCode(eTopicFsAlias);
+                    }
+                }
+            }
 
             var servers = r.Result;
 
