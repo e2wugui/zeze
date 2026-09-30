@@ -1,7 +1,8 @@
 package Zeze.MQ;
 
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.Builtin.MQ.Master.BMQInfo;
@@ -15,7 +16,9 @@ public class MQConsumer {
 	private final MQListener listener;
 	private final long sessionId;
 	private final BMQInfo.Data info;
-	private final HashSet<Connector> managers = new HashSet<>();
+	// 并发集：构造线程建立 + MQAgent 路由对账链差量增补（Manager 换址迁移跟随），
+	// 与 reSubscribeRound/退订的遍历并发（弱一致迭代足够：Subscribe/Unsubscribe 幂等）。
+	private final Set<Connector> managers = ConcurrentHashMap.newKeySet();
 	// close幂等标志：close即终态（重复close空转；重用需重新构造实例）。
 	private final AtomicBoolean closed = new AtomicBoolean();
 
@@ -52,9 +55,10 @@ public class MQConsumer {
 		return sessionId;
 	}
 
-	// 只读约定：该消费者订阅的全部manager连接（构造时确定，不再变更）。
+	// 该消费者订阅的全部manager连接：构造时按 Master 路由建立；MQAgent 路由对账在
+	// Manager 换址迁移后差量补建新地址 connector（只增不减，见 MQAgent 路由对账）。
 	// MQAgent重连重订阅由此派生connector→consumers映射，调用方不得修改。
-	public @NotNull HashSet<Connector> getManagers() {
+	public @NotNull Set<Connector> getManagers() {
 		return managers;
 	}
 

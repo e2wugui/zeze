@@ -2,8 +2,8 @@ package Zeze.MQ;
 
 import java.lang.reflect.Field;
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.Config;
@@ -98,10 +98,10 @@ public class TestMQAgentSubscribeRollback {
     }
 
     @SuppressWarnings("unchecked")
-    private static HashSet<Connector> consumerManagers(MQConsumer consumer) throws Exception {
+    private static Set<Connector> consumerManagers(MQConsumer consumer) throws Exception {
         var f = MQConsumer.class.getDeclaredField("managers");
         f.setAccessible(true);
-        return (HashSet<Connector>)f.get(consumer);
+        return (Set<Connector>)f.get(consumer);
     }
 
     @SuppressWarnings("unchecked")

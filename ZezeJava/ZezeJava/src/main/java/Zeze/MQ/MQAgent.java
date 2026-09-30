@@ -2,7 +2,7 @@ package Zeze.MQ;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -159,7 +159,7 @@ public class MQAgent extends AbstractMQAgent {
 		return out.value;
 	}
 
-	public void subscribe(String topic, long sessionId, MQConsumer consumer, HashSet<Connector> managers) {
+	public void subscribe(String topic, long sessionId, MQConsumer consumer, Set<Connector> managers) {
 		netRounds.incrementAndGet();
 		try {
 			subscribeInternal(topic, sessionId, consumer, managers);
@@ -168,7 +168,7 @@ public class MQAgent extends AbstractMQAgent {
 		}
 	}
 
-	private void subscribeInternal(String topic, long sessionId, MQConsumer consumer, HashSet<Connector> managers) {
+	private void subscribeInternal(String topic, long sessionId, MQConsumer consumer, Set<Connector> managers) {
 		if (consumers.putIfAbsent(sessionId, consumer) == null) {
 			var futures = new ArrayList<Subscribe>();
 			// 与futures同步：只记录已实际发出Subscribe的manager，回滚时精确撤销。
@@ -198,10 +198,11 @@ public class MQAgent extends AbstractMQAgent {
 				consumers.remove(sessionId, consumer);
 				throw ex;
 			}
+			armRouteRefresh(); // 订阅成功即武装路由对账链（幂等，链已在位则空转）
 		}
 	}
 
-	public void unsubscribe(MQConsumer consumer, HashSet<Connector> managers) {
+	public void unsubscribe(MQConsumer consumer, Set<Connector> managers) {
 		netRounds.incrementAndGet();
 		try {
 			unsubscribeFromManagers(consumer.getTopic(), consumer.getSessionId(), managers);
@@ -285,8 +286,8 @@ public class MQAgent extends AbstractMQAgent {
 	}
 
 	// 不另建connector→consumers反向登记表：consumers（生命周期由subscribe/unsubscribe维护，
-	// 失败回滚与finally必删保证无泄漏）×consumer.getManagers()（构造时确定）即完整映射，
-	// 派生遍历免登记/断连清理，无第二份可失步的状态。
+	// 失败回滚与finally必删保证无泄漏）×consumer.getManagers()（构造建立+路由对账增补，
+	// 见 routeRefreshRound）即完整映射，派生遍历免登记/断连清理，无第二份可失步的状态。
 	// 包内可见（测试直驱一轮重订阅）：返回本轮失败数（>0 由调用侧排期重试）。
 	int reSubscribeRound(AsyncSocket so, int failCount) {
 		netRounds.incrementAndGet(); // 归零停机排空的在飞轮之一（consumers空时即刻返回）
@@ -355,6 +356,85 @@ public class MQAgent extends AbstractMQAgent {
 		var future = reSubscribeRetryFutures.remove(so);
 		if (null != future)
 			future.cancel(false);
+	}
+
+	// mq-02（路由快照对账，拉式）：消费者构造时把 openMQ 解析的地址集固化为 managers 连接集
+	// ——Master 侧为换址迁移实现了完整路由自愈（Register 联动 rewriteRoutes、孤儿证据化转移），
+	// 但只覆盖路由表与新建客户端：既存消费者持旧地址连接器无限重连旧址（握手永不成功），
+	// 重订阅链（OnHandshakeDone→reSubscribeRound）只遍历既有连接器——新 Manager 的订阅表为空
+	// （subscribes 纯内存态），分区 bind(0,null)、tryPushMessage 静默短路，消息无限积压且
+	// 应用侧零信号（MQListener 只收消息不收错误）。周期拉式对账闭合该缺口（对齐 Manager 侧
+	// loadMonitorTimer 的对账收敛先例，零协议改动）：对每个存活消费者重取一次 Master 路由，
+	// 地址集差量补建 connector 并入 managers（只增不减：分区全迁走的旧址无人推送，close 退订
+	// best-effort 容死址）——新连接器握手完成后由既有重订阅链以原 sessionId 幂等补发
+	// Subscribe，恢复推送。Master 不可达等失败记日志等下一周期（有界时间内最终一致）。
+	private final Object routeRefreshLock = new Object();
+	// 单飞排期句柄（锁内维护）：本轮执行即清空重排——不信任布尔标志（"对账轮见空终止 vs
+	// 并发订阅武装"的窄窗下标志形态会漏排期成死链）；订阅与续排都以"无在飞排期才排"收敛，
+	// 消费者清空则本轮终止不续排，链的生命周期=首个订阅武装、末个消费者退订后的下一轮终止。
+	private Future<?> routeRefreshFuture;
+	// 包内可见（测试反射缩短周期求确定性）：路由对账周期。
+	long routeRefreshPeriodMs = 30_000;
+
+	// 订阅成功即确保对账链在排期（幂等：已有在飞排期则空转）。
+	private void armRouteRefresh() {
+		synchronized (routeRefreshLock) {
+			scheduleRouteRefreshLocked();
+		}
+	}
+
+	private void scheduleRouteRefreshLocked() {
+		if (null != routeRefreshFuture && !routeRefreshFuture.isDone())
+			return; // 已有在飞排期
+		if (consumers.isEmpty())
+			return; // 无消费者不排期（链终止态，重新武装由下一次订阅）
+		try {
+			routeRefreshFuture = TaskSpec.ofAction(this::routeRefreshRound).name("MQAgent.routeRefresh")
+					.scheduleNow(routeRefreshPeriodMs);
+		} catch (Exception e) {
+			routeRefreshFuture = null; // 链止于本轮（调度池关闭等停机窗口），下次订阅重新武装
+			logger.error("route refresh schedule failed (next subscribe re-arms)", e);
+		}
+	}
+
+	// 一轮路由对账（周期排期驱动，任务池线程）：锁内先清句柄续排期再做慢路径（master rpc
+	// 不持锁）。计入 netRounds：归零停机的排空等待覆盖本轮——最后一个消费者 close 与对账
+	// 增补 connector 的竞态不再造出"引用已空却重启重连"的僵尸连接器（FND19 要消灭的形态）。
+	private void routeRefreshRound() {
+		synchronized (routeRefreshLock) {
+			routeRefreshFuture = null; // 本轮即排期之执行
+			scheduleRouteRefreshLocked(); // 消费者仍在则续排下一轮；见空则链终止
+		}
+		netRounds.incrementAndGet();
+		try {
+			for (var consumer : consumers.values()) {
+				try {
+					// close()竞态防护（对齐 reSubscribeRound）：条目身份校验仍在才增补。
+					if (consumers.get(consumer.getSessionId()) != consumer)
+						continue;
+					var servers = MQ.masterAgent.subscribe(consumer.getTopic());
+					for (var server : servers.getServers()) {
+						// getOrAddConnector 按地址幂等（同址返回既有实例），set.add 的去重即地址集差量。
+						var connector = getOrAddConnector(server.getHost(), server.getPort());
+						if (!consumer.getManagers().add(connector))
+							continue;
+						logger.info("consumer route refreshed (manager address migration followed)."
+								+ " topic={} sessionId={} manager={}",
+								consumer.getTopic(), consumer.getSessionId(), connector.getName());
+						// 竞态收口：握手可能早于入集完成（OnHandshakeDone 触发的重订阅轮见不到该
+						// 连接器而漏订），已就绪则直接驱动一轮重订阅（幂等；未就绪由即将到来的握手触发）。
+						var so = connector.TryGetReadySocket();
+						if (null != so && !so.isClosed())
+							reSubscribeRound(so, 0);
+					}
+				} catch (Exception e) {
+					logger.error("consumer route refresh failed, retry next round. topic={} sessionId={}",
+							consumer.getTopic(), consumer.getSessionId(), e);
+				}
+			}
+		} finally {
+			netRounds.decrementAndGet();
+		}
 	}
 
 	public static class Service extends Zeze.Net.Service {
