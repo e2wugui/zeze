@@ -16,6 +16,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private boolean built; // changedWithKey 已构建（encode/decode/mergeChangedToReplaced 触发）
+	private boolean decoded; // 解码后的 changedWithKey 是完整日志，不能从无源 Bean 的 changed 重建。
 	// mergeChangedToReplaced 的已合并标志，独立于 built——History 开启时 collect 阶段
 	// encode 先行置 built=true，监听器合并若复用 built 会被短路成 no-op，增量通知丢失原位修改。
 	private boolean merged;
@@ -68,9 +69,11 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		built = false;
-		changedWithKey.clear();
-		buildChangedWithKey();
+		if (!decoded) {
+			built = false;
+			changedWithKey.clear();
+			buildChangedWithKey();
+		}
 
 		bb.WriteUInt(changedWithKey.size());
 		var keyEncoder = meta.keyEncoder;
@@ -91,6 +94,8 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
+		changed.clear();
+		merged = false;
 		changedWithKey.clear();
 		var keyDecoder = meta.keyDecoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
@@ -114,6 +119,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		getRemoved().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)
 			getRemoved().add(keyDecoder.apply(bb));
+		decoded = true;
 	}
 
 	@Override
