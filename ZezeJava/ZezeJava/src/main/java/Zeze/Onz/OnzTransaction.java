@@ -132,14 +132,22 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		if (!zezeSagas.isEmpty())
 			throw new RuntimeException("can not mix funcProcedure and funcSaga. saga has called.");
 		var zezeInstance = onzServer.getZezeInstance(zezeName);
-		// 限制每个zeze集群最多一个调用：键为集群名，重连返回新socket不能绕过限制。
-		var newCall = new OutObject<TaskCompletionSource<R2>>();
-		zezeProcedures.computeIfAbsent(zezeName, __ -> newCall.value
-				= OnzAgent.callProcedureAsync(
-				this, zezeInstance, onzProcedureName, argument, result, flushMode));
-		if (newCall.value == null)
-			throw new RuntimeException("too many funcProcedure on same zezeInstance.");
-		return newCall.value;
+		lock();
+		try {
+			// 与saga登记同锁复核：建连期间并发续作可能已登记另一种调用。
+			if (!zezeSagas.isEmpty())
+				throw new RuntimeException("can not mix funcProcedure and funcSaga. saga has called.");
+			// 限制每个zeze集群最多一个调用：键为集群名，重连返回新socket不能绕过限制。
+			var newCall = new OutObject<TaskCompletionSource<R2>>();
+			zezeProcedures.computeIfAbsent(zezeName, __ -> newCall.value
+					= OnzAgent.callProcedureAsync(
+					this, zezeInstance, onzProcedureName, argument, result, flushMode));
+			if (newCall.value == null)
+				throw new RuntimeException("too many funcProcedure on same zezeInstance.");
+			return newCall.value;
+		} finally {
+			unlock();
+		}
 	}
 
 	public <A2 extends Data, R2 extends Data> TaskCompletionSource<R2>
@@ -158,6 +166,9 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		// 的短暂临界区互相拖延。
 		lock();
 		try {
+			// procedure登记也持本锁，检查与登记原子互斥；锁外检查仅供快速拒绝。
+			if (!zezeProcedures.isEmpty())
+				throw new RuntimeException("can not mix funcProcedure and funcSaga. procedure has called.");
 			zezeSagas.computeIfAbsent(zezeName, __ -> newCall.value
 					= OnzAgent.callSagaAsync(
 					this, zezeInstance, onzProcedureName, argument, result, flushMode));
