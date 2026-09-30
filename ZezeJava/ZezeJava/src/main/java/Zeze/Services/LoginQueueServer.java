@@ -104,7 +104,8 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
             // 不依赖userState指向（漏清的幽灵服务器永久参与权重选择）。
             if (providers.remove(so) != null)
                 loginQueue.tryResetTimeThrottle(providers.size());
-            links.remove(so);
+            if (links.remove(so) != null)
+                loginQueue.tryResetTimeThrottle(providers.size());
         } finally {
             editLock.unlock();
         }
@@ -233,6 +234,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 		} finally {
 			editLock.unlock();
 		}
+		loginQueue.tryResetTimeThrottle(providers.size());
 		loginQueue.drainQueue();
 		return 0;
 	}
@@ -240,6 +242,10 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     public int providerSize() {
         return providers.size();
     }
+
+	    public int linkSize() {
+	        return links.size();
+	    }
 
     public BServerLoad.Data choiceLink() {
         return choiceServer(links);

@@ -80,6 +80,8 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	void tryResetTimeThrottle(int providerSize) {
+		if (choiceLinkOnly)
+			providerSize = server.linkSize();
 		allocateLock.lock();
 		try {
 			if (this.providerSize != providerSize) {
@@ -151,7 +153,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		allocateLock.lock();
 		try {
 			// 每个server分配OnlineNew，随机一半以上的分配量。
-			var max = server.providerSize() * maxOnlineNew;
+			var max = (choiceLinkOnly ? server.linkSize() : server.providerSize()) * maxOnlineNew;
 			var half = max / 2;
 			if (half > 0)
 				max = half + Zeze.Util.Random.getInstance().nextInt(half);
