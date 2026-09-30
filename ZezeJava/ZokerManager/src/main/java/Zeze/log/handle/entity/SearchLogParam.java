@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.TreeSet;
 import Zeze.Builtin.LogService.BCondition;
 import Zeze.Services.Log4jQuery.LogServiceConf;
+import Zeze.Util.Json;
 
 /**
  * /api/search 与 /api/browse 的公共请求参数：数据源、时间范围、关键词、分页等及其解析。
@@ -231,7 +232,7 @@ public class SearchLogParam {
 	/**
 	 * 会话身份的查询条件指纹：words（归一列表，与服务端过滤同源）、pattern、
 	 * containsType、beginTime/endTime（解析值——空串与缺省归一为 -1，等值不同写法
-	 * 不误判漂移）拼接的确定性串；browse 另含 offsetFactor 并以模式前缀区分
+	 * 不误判漂移）序列化的确定性串；browse 另含 offsetFactor 并以模式字段区分
 	 * （search/browse 对游标的消费形态不同，不共享会话身份）。同条件翻页指纹稳定；
 	 * 须在入口校验之后调用（时间串已预检可解析）。
 	 * <p>会话回执比对以它扩维（{@code LogSessionBinding.matches}）：服务端仅 beginTime
@@ -240,10 +241,9 @@ public class SearchLogParam {
 	 * changeSession 关旧建新，从查询窗口头完整求值。</p>
 	 */
 	public String conditionFingerprint(boolean browse) throws ParseException {
-		return (browse ? "browse|" : "search|")
-				+ parseBeginTime() + "|" + parseEndTime() + "|" + getContainsType()
-				+ "|" + wordsToList() + "|" + (getPattern() == null ? "" : getPattern())
-				+ (browse ? "|" + getOffsetFactor() : "");
+		// JSON 保留字段与字符串边界，关键词/正则中的分隔符不能冒充另一字段。
+		return Json.toCompactString(new Object[]{browse, parseBeginTime(), parseEndTime(), getContainsType(),
+				wordsToList(), getPattern() == null ? "" : getPattern(), browse ? getOffsetFactor() : 0f});
 	}
 
 	public long parseBeginTime() throws ParseException {
