@@ -3,6 +3,10 @@ package Zeze.Util;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -61,6 +65,51 @@ public class TestTaskShutdown {
 		}).name("schedule").scheduleNow(1));
 		assertThrowsIllegalState("schedulePeriod", () -> TaskSpec.ofAction(() -> {
 		}).name("schedulePeriod").schedulePeriodNow(1, 1));
+	}
+
+	@Test
+	public void testShutdownNowSettlesQueuedDriversAndAllowsSameKeyReuse() throws Exception {
+		shutdownIgnoringTerminationTimeout(true);
+		var pool = Executors.newSingleThreadExecutor();
+		var scheduler = Executors.newSingleThreadScheduledExecutor();
+		Task.initThreadPool(pool, scheduler);
+		var busy = new CountDownLatch(1);
+		var release = new CountDownLatch(1);
+		var oldRuns = new AtomicInteger();
+		var cancellations = new AtomicInteger();
+		var originalQueue = Task.getOneByOne();
+		try {
+			pool.execute(() -> {
+				busy.countDown();
+				try {
+					release.await();
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+			});
+			Assertions.assertTrue(busy.await(5, TimeUnit.SECONDS));
+			TaskSpec.ofAction(oldRuns::incrementAndGet).onCancel(cancellations::incrementAndGet)
+					.executeOneByOne(37, originalQueue);
+			TaskSpec.ofAction(oldRuns::incrementAndGet).onCancel(cancellations::incrementAndGet)
+					.executeOneByOne(37, Task.getSystemOneByOne());
+			Task.shutdownNow(5_000);
+			Assertions.assertEquals(0, oldRuns.get());
+			Assertions.assertEquals(2, cancellations.get());
+			Task.tryInitThreadPool();
+			Assertions.assertSame(originalQueue, Task.getOneByOne());
+			var resumed = new CountDownLatch(2);
+			TaskSpec.ofAction(resumed::countDown).executeOneByOne(37, originalQueue);
+			TaskSpec.ofAction(resumed::countDown).executeOneByOne(37, Task.getSystemOneByOne());
+			Assertions.assertTrue(resumed.await(5, TimeUnit.SECONDS), "同 key 必须在重建后恢复派发");
+		} finally {
+			release.countDown();
+			if (Task.getThreadPool() == pool)
+				shutdownIgnoringTerminationTimeout(true);
+			pool.shutdownNow();
+			scheduler.shutdownNow();
+			Assertions.assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
+			Assertions.assertTrue(scheduler.awaitTermination(5, TimeUnit.SECONDS));
+		}
 	}
 
 	// 停机并忽略终止等待超时：静态池字段在等待前已置 null（shutdownPools 先置 null 再关池），

@@ -212,6 +212,20 @@ public final class Task {
 			taskLock.unlock();
 		}
 
+		if (now) {
+			// shutdownNow 可丢弃已接收而未运行的驱动（执行器也可将其包装）。按池登记结算，
+			// 不依赖返回的 Runnable 形态；补偿在 taskLock 外，允许回调重新初始化/提交。
+			if (scheduledTmp != null) {
+				TaskOneByOneQueue.cancelPendingDispatches(scheduledTmp);
+			}
+			if (defaultTmp != null) {
+				TaskOneByOneQueue.cancelPendingDispatches(defaultTmp);
+			}
+			if (criticalTmp != null) {
+				TaskOneByOneQueue.cancelPendingDispatches(criticalTmp);
+			}
+		}
+
 		var timeout = "";
 		if (scheduledTmp != null && !scheduledTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
 			timeout += "await threadPoolScheduled timeout,";

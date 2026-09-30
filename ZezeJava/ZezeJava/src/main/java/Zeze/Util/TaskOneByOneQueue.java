@@ -1,8 +1,12 @@
 package Zeze.Util;
 
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
@@ -15,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 // 单桶串行任务队列（按 key 分桶后每桶一个）：批量调度、屏障任务、shutdown(true) 补偿与 waitComplete
 public class TaskOneByOneQueue extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneQueue.class);
+	private static final ConcurrentHashMap<Dispatch, Executor> pendingDispatches = new ConcurrentHashMap<>();
 	private final @NotNull Condition cond = newCondition();
 	private final BatchTask batch = new BatchTask();
 	private @NotNull ArrayDeque<Task> queue = new ArrayDeque<>();
@@ -136,15 +141,48 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	 * 会让队列非空且再无派发点（后续submit全走size!=1分支），该桶永久卡死、
 	 * waitComplete永等。回滚认领后重抛：队列回到未派发状态。 */
 	private void executeOrRollback(@Nullable DispatchMode mode) {
+		Dispatch dispatch = null;
 		try {
-			getExecutor(mode).execute(batch);
+			var target = getExecutor(mode);
+			dispatch = new Dispatch();
+			pendingDispatches.put(dispatch, target);
+			target.execute(dispatch);
 		} catch (RuntimeException e) {
 			// 除RejectedExecutionException外，停机序（Task.shutdownPools先置null
 			// 再等待）与在飞派发并发时getExecutor的poolOrThrow抛IllegalStateException——
 			// ISE逃出原REE catch即无人回滚，队列非空且再无派发点，桶永久卡死、
 			// waitComplete永等。派发失败形态统一回滚善后，按原类型重抛。
-			rollbackRejectedDispatch(e);
+			if (dispatch == null)
+				rollbackRejectedDispatch(e);
+			else
+				dispatch.cancelBeforeRun(e);
 			throw e;
+		}
+	}
+
+	// 每次派发独立认领，不能在复用 BatchTask 上放状态：旧驱动可能迟到，而桶已派发新一批。
+	private final class Dispatch extends AtomicInteger implements Runnable {
+		@Override
+		public void run() {
+			if (!compareAndSet(0, 1))
+				return;
+			pendingDispatches.remove(this);
+			batch.run();
+		}
+
+		void cancelBeforeRun(@NotNull RuntimeException cause) {
+			if (!compareAndSet(0, 2))
+				return;
+			pendingDispatches.remove(this);
+			rollbackRejectedDispatch(cause);
+		}
+	}
+
+	static void cancelPendingDispatches(@NotNull Executor executor) {
+		var cause = new RejectedExecutionException("one-by-one dispatch canceled by pool shutdownNow");
+		for (var entry : pendingDispatches.entrySet()) {
+			if (entry.getValue() == executor)
+				entry.getKey().cancelBeforeRun(cause);
 		}
 	}
 
@@ -161,6 +199,8 @@ public class TaskOneByOneQueue extends ReentrantLock {
 			cancelCount = cancels.size();
 			queue = new ArrayDeque<>();
 			batch.count = 0; // 认领作废
+			if (batch.tasks != null)
+				Arrays.fill(batch.tasks, null); // 未运行驱动已作废，不保留旧任务/闭包的资源图。
 			// pendingCancelCount挡住waitComplete直到补偿执行完（对齐runNext的
 			// shutdown-cancel路径）——否则signalAll后等待者即放行，停机流程可能在补偿
 			// （onCancel承担重复发货/重复扣款类二次处理的守护语义）完成前推进甚至退出进程。
