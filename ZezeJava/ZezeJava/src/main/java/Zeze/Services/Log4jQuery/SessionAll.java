@@ -51,10 +51,12 @@ public class SessionAll implements AutoCloseable {
 	// "游标推进+应答"的至多一次语义，超时页被服务端游标越过、迟到应答因rpc上下文已
 	// 摘除被丢弃，不重定位则该页窗口在聚合结果中永久缺失。
 	private final ConcurrentHashMap<String, Long> memberSeekBase = new ConcurrentHashMap<>();
-	// 无已投递水位（首页未投递）的瞬时失败成员：下一页强制reset重定位到查询下界重发
-	// ——同beginTime重发被服务端去重哨兵短路、从已越过丢失页的游标续读，唯有reset能
-	// 强制重定位；无已投递即无重复。成功投递一页即清除；参数级失败不置（确定性错误，
-	// 服务端入口校验拒绝、游标未动，重定位无益）。
+	// 瞬时失败成员的强制重定位标记（FND34 log4jquery-01 起有水位也置，见markTransientLoss）：
+	// 下一页对该成员 reset=true 重定位到续扫基点/查询下界重发——续扫基点==服务端已提交的
+	// beginTime去重哨兵时（重建/重入成员的首页丢失、水位==原始beginTime的同值页边界）
+	// beginTime覆写被短路，唯有reset能强制重定位；无已投递水位时重定位到查询下界（无已
+	// 投递即无重复）。成功投递一页即清除；参数级失败不置（确定性错误，服务端入口校验
+	// 拒绝时游标未动，重定位无益）。
 	private final ConcurrentHashSet<String> memberForceReset = new ConcurrentHashSet<>();
 
 	public SessionAll(LogAgent agent, String logName) {
@@ -193,16 +195,20 @@ public class SessionAll implements AutoCloseable {
 	/**
 	 * 瞬时失败（非会话级、非参数级：RPC超时/发送失败/连接抖动）成员的续扫标记：页协议是
 	 * "游标推进+应答"的至多一次语义，失败页可能已被服务端游标越过而未投递——有已投递
-	 * 水位则续扫基点推进到当前水位（重复收敛为水位边界同时间少量条目，与renewDeadMembers
-	 * 的基点语义一致）；无水位置强制reset标记（重定位到查询下界重发，无已投递即无重复）。
-	 * 已持有续扫基点的成员（重建/重入后翻页中）同样推进：水位之前的页均已投递，推进只收敛重复。
+	 * 水位则续扫基点推进到当前水位，且<b>无条件</b>置强制reset标记（FND34 log4jquery-01：
+	 * 覆写值==服务端已提交的去重哨兵时——重建/重入成员的首页丢失（基点之后尚无成功投递
+	 * 推进水位，基点==水位）或水位==原始beginTime的同值页边界（无既有基点，"基点未推进"
+	 * 判不住）——trySetBeginTime 短路命中，从已越过丢失页的游标续读，丢失页窗口永久缺失，
+	 * 唯有reset能强制重定位；其余形态 reset+seek(水位) 与哨兵变化路径的 resetWalker+
+	 * seek(水位) 状态转移等价，重定位目标=首条>=水位不早于任何已投递日志，重复收敛为
+	 * 水位边界同时间条目，不回退游标）。无水位（首页未投递）置强制reset标记（重定位到
+	 * 查询下界重发，无已投递即无重复）。成功投递一页即清除（operate）。
 	 */
 	private void markTransientLoss(String name) {
 		var watermark = deliveredWatermark.get(name);
 		if (null != watermark)
 			memberSeekBase.put(name, watermark);
-		else
-			memberForceReset.add(name);
+		memberForceReset.add(name);
 	}
 
 	/**
