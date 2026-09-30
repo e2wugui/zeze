@@ -18,12 +18,15 @@ public class TaskCompletionSource<R> implements Future<R> {
 	protected static final AltResult NULL_RESULT = new AltResult(null);
 
 	private volatile @SuppressWarnings("unused") Object result;
-	private volatile @SuppressWarnings("unused") Object waitHead; // Node -> Node -> ... -> Thread
+	private volatile @SuppressWarnings("unused") Node waitHead;
 
-	/**
-	 * @param next Node or Thread
-	 */
-	private record Node(@NotNull Thread thread, @NotNull Object next) {
+	private static final class Node {
+		volatile @Nullable Thread thread;
+		volatile @Nullable Node next;
+
+		Node(@NotNull Thread thread) {
+			this.thread = thread;
+		}
 	}
 
 	protected static final class AltResult {
@@ -38,20 +41,40 @@ public class TaskCompletionSource<R> implements Future<R> {
 		try {
 			var lookup = MethodHandles.lookup();
 			RESULT = lookup.findVarHandle(TaskCompletionSource.class, "result", Object.class);
-			WAIT_HEAD = lookup.findVarHandle(TaskCompletionSource.class, "waitHead", Object.class);
+			WAIT_HEAD = lookup.findVarHandle(TaskCompletionSource.class, "waitHead", Node.class);
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
 		}
 	}
 
-	private void push(@NotNull Thread t) {
+	private @NotNull Node push(@NotNull Thread t) {
+		var node = new Node(t);
 		for (; ; ) {
 			var h = waitHead;
-			if (h == null) {
-				if (WAIT_HEAD.compareAndSet(this, null, t))
-					return;
-			} else if (WAIT_HEAD.compareAndSet(this, h, new Node(t, h)))
-				return;
+			node.next = h;
+			if (WAIT_HEAD.compareAndSet(this, h, node))
+				return node;
+		}
+	}
+
+	private void removeWaiter(@NotNull Node node) {
+		node.thread = null;
+		retry:
+		for (; ; ) {
+			Node predecessor = null;
+			for (var current = waitHead; current != null; ) {
+				var next = current.next;
+				if (current.thread != null)
+					predecessor = current;
+				else if (predecessor != null) {
+					predecessor.next = next;
+					if (predecessor.thread == null)
+						continue retry;
+				} else if (!WAIT_HEAD.compareAndSet(this, current, next))
+					continue retry;
+				current = next;
+			}
+			return;
 		}
 	}
 
@@ -61,15 +84,14 @@ public class TaskCompletionSource<R> implements Future<R> {
 			if (h == null)
 				return;
 			if (WAIT_HEAD.compareAndSet(this, h, null)) {
-				for (; ; ) {
-					if (h instanceof Thread) {
-						LockSupport.unpark((Thread)h);
-						return;
-					}
-					var n = (Node)h;
-					LockSupport.unpark(n.thread);
-					h = n.next;
+				while (h != null) {
+					var thread = h.thread;
+					h.thread = null;
+					if (thread != null)
+						LockSupport.unpark(thread);
+					h = h.next;
 				}
+				return;
 			}
 		}
 	}
@@ -123,17 +145,19 @@ public class TaskCompletionSource<R> implements Future<R> {
 		if (r == null) {
 			var ct = Thread.currentThread();
 			assert !ct.getName().startsWith("Selector");
-			push(ct);
-			if ((r = result) != null)
-				unparkAll();
-			else {
-				try (var ignored = Profiler.begin("TaskCompletionSource")) {
-					do {
-						LockSupport.park();
-						if (Thread.interrupted())
-							throw Task.forceThrow(new InterruptedException());
-					} while ((r = result) == null);
+			var waiter = push(ct);
+			try {
+				if ((r = result) == null) {
+					try (var ignored = Profiler.begin("TaskCompletionSource")) {
+						do {
+							LockSupport.park();
+							if (Thread.interrupted())
+								throw Task.forceThrow(new InterruptedException());
+						} while ((r = result) == null);
+					}
 				}
+			} finally {
+				removeWaiter(waiter);
 			}
 		}
 		return toResult(r);
@@ -145,31 +169,34 @@ public class TaskCompletionSource<R> implements Future<R> {
 		if (r == null) {
 			var ct = Thread.currentThread();
 			assert !ct.getName().startsWith("Selector");
-			push(ct);
-			if ((r = result) != null)
-				unparkAll();
-			else {
-				timeout = unit.toNanos(timeout);
-				// toNanos 的饱和值与 nanoTime 相加会溢出为负的 deadline（不变式破坏，
-				// j.u.c 对饱和超时值有"不超时"特判）。检测饱和（now>0 时 MAX-now 不溢出，now<=0 时
-				// now+timeout 不可能溢出）钳制 deadline 为 MAX_VALUE，使"deadline-now 恒为大正数、
-				// 循环等到结果为止"的循环不变式显式成立，不再依赖补码双重回绕的偶然自愈。
-				var now = System.nanoTime();
-				var deadline = timeout >= Long.MAX_VALUE - now ? Long.MAX_VALUE : now + timeout;
-				try (var ignored = Profiler.begin("TaskCompletionSource")) {
-					do {
-						if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
-							throw Task.forceThrow(new TimeoutException());
-						LockSupport.parkNanos(timeout);
-						if (Thread.interrupted())
-							throw Task.forceThrow(new InterruptedException());
-						timeout = deadline - System.nanoTime();
-					} while ((r = result) == null);
+			var waiter = push(ct);
+			try {
+				if ((r = result) == null) {
+					timeout = unit.toNanos(timeout);
+					// toNanos 的饱和值与 nanoTime 相加会溢出为负的 deadline（不变式破坏，
+					// j.u.c 对饱和超时值有"不超时"特判）。检测饱和（now>0 时 MAX-now 不溢出，now<=0 时
+					// now+timeout 不可能溢出）钳制 deadline 为 MAX_VALUE，使"deadline-now 恒为大正数、
+					// 循环等到结果为止"的循环不变式显式成立，不再依赖补码双重回绕的偶然自愈。
+					var now = System.nanoTime();
+					var deadline = timeout >= Long.MAX_VALUE - now ? Long.MAX_VALUE : now + timeout;
+					try (var ignored = Profiler.begin("TaskCompletionSource")) {
+						do {
+							if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
+								throw Task.forceThrow(new TimeoutException());
+							LockSupport.parkNanos(timeout);
+							if (Thread.interrupted())
+								throw Task.forceThrow(new InterruptedException());
+							timeout = deadline - System.nanoTime();
+						} while ((r = result) == null);
+					}
 				}
+			} finally {
+				removeWaiter(waiter);
 			}
 		}
 		return toResult(r);
 	}
+
 
 	protected @Nullable R toResult(@NotNull Object o) { // throws CompletionException
 		if (o instanceof AltResult) {
