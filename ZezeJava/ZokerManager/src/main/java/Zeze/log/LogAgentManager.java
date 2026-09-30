@@ -48,8 +48,13 @@ public class LogAgentManager {
 			adminNetty = startHttpServer();
 		} catch (Throwable e) {
 			// 半启动回收：失败时回收本层已启动组件并复位静态引用，不把半启动状态留给
-			// 调用方（MainZokerManager.start 统一收尾）。
-			stop();
+			// 调用方（MainZokerManager.start 统一收尾）。回收失败不掩盖原始启动异常
+			// （对齐 MainZokerManager.start 的收尾纪律）：回收异常以 suppressed 附着。
+			try {
+				stop();
+			} catch (Throwable stopEx) {
+				e.addSuppressed(stopEx);
+			}
 			throw e;
 		}
 	}
