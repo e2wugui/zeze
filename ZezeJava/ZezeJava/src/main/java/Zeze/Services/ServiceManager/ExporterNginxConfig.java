@@ -202,16 +202,15 @@ public class ExporterNginxConfig implements IExporter {
 		try {
 			if (!p.waitFor(30, TimeUnit.SECONDS)) {
 				p.destroyForcibly();
-				logger.error("ExporterNginxConfig: reload command '{}' timed out after 30s, forcibly killed", reload);
-				return;
+				throw new IOException("nginx reload timed out after 30s: " + reload);
 			}
 			var exit = p.exitValue();
 			if (exit != 0)
-				logger.error("ExporterNginxConfig: reload command '{}' exited with {}, config may be invalid",
-						reload, exit);
+				throw new IOException("nginx reload exited with " + exit + ": " + reload);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			p.destroyForcibly();
+			throw new IOException("nginx reload interrupted: " + reload, e);
 		}
 	}
 

@@ -22,6 +22,30 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestExporterNginxParse {
+	@org.junit.jupiter.api.io.TempDir
+	Path tempDir;
+
+	@Test
+	public void testInlineBlockPreservesFollowingConfigurationAndReportsReloadFailure() throws Exception {
+		var cfgFile = tempDir.resolve("nginx.conf");
+		Zeze.Util.AtomicFileWriter.replace(cfgFile,
+				("upstream svc { server 1.1.1.1:1; } # keep\nserver { listen 8080; }\n"
+						+ "upstream other { server 9.9.9.9:9; }\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+		var share = new Properties();
+		share.setProperty("-file", cfgFile.toString());
+		share.setProperty("-version", "0");
+		share.setProperty("-reload", System.getProperty("os.name").startsWith("Windows")
+				? "cmd /c exit 7" : "sh -c false");
+		var exporter = new ExporterNginxConfig(new ExporterConfig(share, null));
+		var all = new BServiceInfosVersion();
+		all.getOrAddInfos(0).insert(new BServiceInfo("svc", "1", 0, "2.2.2.2", 2));
+		Assertions.assertThrows(java.io.IOException.class, () -> exporter.exportAll("svc", all));
+		var out = Files.readString(cfgFile);
+		Assertions.assertTrue(out.contains("2.2.2.2:2"));
+		Assertions.assertFalse(out.contains("1.1.1.1:1"));
+		Assertions.assertTrue(out.contains("# keep\nserver { listen 8080; }"), out);
+		Assertions.assertTrue(out.contains("upstream other { server 9.9.9.9:9; }"), out);
+	}
 
 	@Test
 	public void testUpstreamNoSpaceBeforeBraceRewritten() throws Exception {
