@@ -374,15 +374,9 @@ public final class JsonReader {
 			c = new ArrayList<>();
 		ClassMeta<T> classMeta = json.getClassMeta(elemClass);
 		Parser<T> parser = classMeta.parser;
-		if (parser != null) {
-			for (int b = skipNext(); b != ']'; b = skipVar(']'))
-				c.add(b == 'n' ? null : parser.parse(this, classMeta, null, null, null));
-		} else {
-			if (ClassMeta.isAbstract(elemClass))
-				throw new InstantiationException("abstract element class: " + elemClass.getName());
-			for (int b = skipNext(); b != ']'; b = skipVar(']'))
-				c.add(b == 'n' ? null : parse0(classMeta.ctor.create(), classMeta));
-		}
+		for (int b = skipNext(); b != ']'; b = skipVar(']'))
+			c.add(b == 'n' ? null : parser != null
+					? parser.parse(this, classMeta, null, null, null) : parse(json, null, classMeta));
 		pos++;
 		depth--;
 		return c;
@@ -464,6 +458,11 @@ public final class JsonReader {
 		} else {
 			if (next() == 'n')
 				return null;
+			Parser<? super T> parser = classMeta.parser;
+			if (parser != null)
+				return (T)parser.parse0(this, classMeta, null, obj, null);
+			if (classMeta.klass == Object.class)
+				return (T)parse(obj, next());
 			KeyReader kr = ClassMeta.getKeyReader(classMeta.klass);
 			if (kr != null) {
 				int b = next();
@@ -1058,12 +1057,11 @@ public final class JsonReader {
 			v = jr.buf[++jr.pos] == 't';
 			jr.skipQuot(b);
 		} else {
-			// 无引号分支pos已在词首（skipNext返回时定位）：从词首判定真值并消费整个词，
-			// pos推进到分隔符上（家族约定：parseInt/parseStringNoQuot均停在':'/空白上，
-			// 随后skipColon→next()从buf[pos]起读）。词尾按parseInt同款长度防护。
+			// 同时用于键与 typed 值：停在冒号、容器分隔符或注释开头，交给外层消费。
 			v = jr.buf[jr.pos] == 't';
 			//noinspection StatementWithEmptyBody
-			for (int c; jr.pos < jr.buf.length && (c = jr.buf[jr.pos] & 0xff) > ' ' && c != ':'; jr.pos++) {
+			for (int c; jr.pos < jr.buf.length && (c = jr.buf[jr.pos] & 0xff) > ' '
+					&& c != ':' && c != ',' && c != ']' && c != '}' && c != '/'; jr.pos++) {
 			}
 		}
 		return v;
