@@ -56,5 +56,53 @@ public class TestLruAndDaemonGeneration {
 		}
 	}
 
-
+	@Test
+	@Timeout(20)
+	public void anOldRoundCannotScheduleWhileRestartedRoundIsRunning() throws Exception {
+		Task.tryInitThreadPool();
+		var current = new AtomicReference<DaemonTimer>();
+		var entered = new CountDownLatch(1);
+		var handoff = new CountDownLatch(1);
+		var restarted = new CountDownLatch(1);
+		var release = new CountDownLatch(1);
+		var rounds = new AtomicInteger();
+		var delayCalls = new AtomicInteger();
+		var timer = new DaemonTimer("restart-generation", () -> {
+			delayCalls.incrementAndGet();
+			return 20;
+		}, 10_000, () -> {
+			int round = rounds.incrementAndGet();
+			if (round == 1) {
+				entered.countDown();
+				if (!handoff.await(5, TimeUnit.SECONDS))
+					throw new IllegalStateException("handoff timed out");
+				current.get().stop();
+				current.get().start();
+				if (!restarted.await(5, TimeUnit.SECONDS))
+					throw new IllegalStateException("restart timed out");
+			} else {
+				restarted.countDown();
+				if (!release.await(10, TimeUnit.SECONDS))
+					throw new IllegalStateException("release timed out");
+			}
+		});
+		current.set(timer);
+		try {
+			timer.start();
+			assertTrue(entered.await(5, TimeUnit.SECONDS));
+			var field = DaemonTimer.class.getDeclaredField("inFlight");
+			field.setAccessible(true);
+			var first = (CompletableFuture<?>)field.get(timer);
+			assertNotNull(first);
+			handoff.countDown();
+			assertTrue(restarted.await(5, TimeUnit.SECONDS));
+			first.get(5, TimeUnit.SECONDS);
+			assertEquals(2, delayCalls.get(), "旧轮收尾不得给运行中的新轮增加排期");
+			assertTrue(timer.isBusy());
+		} finally {
+			handoff.countDown();
+			release.countDown();
+			timer.stop();
+		}
+	}
 }

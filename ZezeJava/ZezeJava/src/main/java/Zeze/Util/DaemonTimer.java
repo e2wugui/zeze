@@ -41,6 +41,7 @@ public final class DaemonTimer {
 	// 在飞一轮的完成信号：fire派发前置位，一轮收尾时完成（无论成败）。stop据此限时等待。
 	private volatile CompletableFuture<Void> inFlight;
 	private ScheduledFuture<?> pending; // 已排期未触发的下一次fire；fire触发时消费置null
+	private long generation; // gate 内递增；已取消的旧 tick 不得进入重新启动后的链。
 	// 在飞body的执行线程：fire清场、runBody入口置位、finishRound归属清除；stop据此识别body内自调。
 	private volatile Thread bodyThread;
 
@@ -87,6 +88,7 @@ public final class DaemonTimer {
 			if (!shutdown)
 				return;
 			shutdown = false;
+			generation++;
 			rescheduleLocked();
 		} finally {
 			gate.unlock();
@@ -152,11 +154,11 @@ public final class DaemonTimer {
 	}
 
 	// 调度线程上的tick入口：只判关门+置在飞+派发，微秒级，绝不内联执行守护体。
-	private void fire() {
+	private void fire(long expectedGeneration) {
 		final CompletableFuture<Void> f;
 		gate.lock();
 		try {
-			if (shutdown)
+			if (shutdown || generation != expectedGeneration)
 				return; // stop()已关门：本次触发作废
 			pending = null; // 消费本次排期（链上恒至多一个pending）
 			f = new CompletableFuture<>();
@@ -174,11 +176,19 @@ public final class DaemonTimer {
 	}
 
 	private void runBody(@NotNull CompletableFuture<Void> f) {
-		if (shutdown) { // stop在派发后、启动前关门（worker池排队滞后）：迟到轮作废，不空跑守护体
+		boolean obsolete;
+		gate.lock();
+		try {
+			obsolete = shutdown || inFlight != f;
+			if (!obsolete)
+				bodyThread = Thread.currentThread();
+		} finally {
+			gate.unlock();
+		}
+		if (obsolete) { // stop/restart 后排队的旧轮次不得执行新链的守护体。
 			finishRound(f); // 仍完成在飞信号：正在限时等待的stop立即醒来
 			return;
 		}
-		bodyThread = Thread.currentThread();
 		try {
 			body.run();
 		} catch (Throwable e) { // 守护体异常不致命：记日志，链继续
@@ -196,8 +206,8 @@ public final class DaemonTimer {
 			if (inFlight == f) {
 				inFlight = null;
 				bodyThread = null;
+				rescheduleLocked();
 			}
-			rescheduleLocked();
 		} finally {
 			gate.unlock();
 		}
@@ -223,7 +233,8 @@ public final class DaemonTimer {
 			return;
 		}
 		try {
-			pending = TaskSpec.ofAction(this::fire).name(name).scheduleNow(delay);
+			long expectedGeneration = generation;
+			pending = TaskSpec.ofAction(() -> fire(expectedGeneration)).name(name).scheduleNow(delay);
 		} catch (Throwable e) { // 调度池已关（非瞬时故障）：关门让状态诚实，链断记error
 			shutdown = true;
 			logger.error("DaemonTimer {} reschedule failed, daemon terminated", name, e);
