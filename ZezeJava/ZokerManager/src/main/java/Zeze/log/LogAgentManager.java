@@ -28,6 +28,14 @@ public class LogAgentManager {
 	}
 
 	public static void init(String configXml) throws Exception {
+		// 重入守卫：未先 stop 的二次 init 会先覆盖静态引用再走启动序列——bind"成功"
+		// （SO_REUSEADDR/REUSEPORT 同口双绑）时双 HttpServer 分流、第一实例组件全部
+		// 失联泄漏；bind 失败时收尾 stop() 按静态字段回收，误关第一实例的 adminNetty、
+		// 停第二实例的 agent，第一 LogAgent 永久泄漏。已初始化即拒（logAgentManager
+		// 非 null ⇔ 已初始化：成功即置位、失败收尾 stop() 复位），重启语义由调用方
+		// 显式 stop 后再 init 承担。
+		if (logAgentManager != null)
+			throw new IllegalStateException("LogAgentManager already initialized; call stop() before re-init");
 		logAgentManager = new LogAgentManager();
 		try {
 			var config = Config.load(configXml);
