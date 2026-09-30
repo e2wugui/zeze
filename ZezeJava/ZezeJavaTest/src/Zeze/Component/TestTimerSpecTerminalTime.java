@@ -35,5 +35,22 @@ public class TestTimerSpecTerminalTime {
 		assertDoesNotThrow(() -> TimerSpec.ofDelay(0).endTime(end).build());
 	}
 
-
+	@Test
+	public void lateSimpleTimerCannotOverflowTheCurrentTimeAnchor() {
+		for (var policy : new int[] {Timer.eMissfirePolicyNothing, Timer.eMissfirePolicyRunOnce,
+				Timer.eMissfirePolicyRunOnceOldNext}) {
+			for (boolean missfire : new boolean[] {false, true}) {
+				var timer = new BSimpleTimer();
+				timer.setNextExpectedTime(1);
+				timer.setPeriod(Long.MAX_VALUE - 2);
+				timer.setRemainTimes(-1);
+				timer.setMissfirePolicy(policy);
+				SimpleTimerSpec.beforeCallSimpleTimer(timer, missfire);
+				assertEquals(1, timer.getExpectedTime());
+				assertEquals(1, timer.getHappenTimes());
+				assertEquals(missfire && policy == Timer.eMissfirePolicyRunOnce ? 0 : Long.MAX_VALUE - 1,
+						timer.getNextExpectedTime());
+			}
+		}
+	}
 }

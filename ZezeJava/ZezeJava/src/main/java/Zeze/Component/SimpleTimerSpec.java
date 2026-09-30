@@ -133,8 +133,7 @@ public final class SimpleTimerSpec implements TimerSpec {
 			else if (period > Long.MAX_VALUE - nextExpectedTime)
 				// 溢出防护（与build的delay检查同源）：period会使推进回绕为负，
 				// 负值<=now恒真→fireSimple的delay恒Math.max(...,1)=1ms无限重触发（每轮含
-				// 事务与DB写）。极端period直接终止调度。nextExpectedTime<=now（刚触发），
-				// 该判据同时覆盖now+period路径。
+				// 事务与DB写）。极端period直接终止调度；以now为锚点的分支另行检查。
 				nextExpectedTime = 0;
 			else {
 				var endTime = simpleTimer.getEndTime();
@@ -145,7 +144,7 @@ public final class SimpleTimerSpec implements TimerSpec {
 						// 装载期补触发：loadTimer对任何迟到都dispatch（missfire=true），此策略以当前时间重设，
 						// 定时器将在新的开始时间之后按原来的间隔执行。
 						// simpleTimer.setStartTime(now);
-						nextExpectedTime = now + period;
+						nextExpectedTime = period <= Long.MAX_VALUE - now ? now + period : 0;
 					} else { // 定点推进：OldNext，以及迟到不足一周期的其余策略
 						nextExpectedTime += period;
 						if (nextExpectedTime <= now) {
@@ -154,9 +153,10 @@ public final class SimpleTimerSpec implements TimerSpec {
 							// OldNext保持定点对齐，跳到未来最近的定点；其余策略以当前时间重设。
 							if (simpleTimer.getMissfirePolicy() == AbstractTimer.eMissfirePolicyRunOnceOldNext) {
 								var step = (now - nextExpectedTime) / period + 1;
-								nextExpectedTime += step * period;
+								nextExpectedTime = step <= (Long.MAX_VALUE - nextExpectedTime) / period
+										? nextExpectedTime + step * period : 0;
 							} else
-								nextExpectedTime = now + period;
+								nextExpectedTime = period <= Long.MAX_VALUE - now ? now + period : 0;
 						}
 					}
 					if (endTime > 0 && nextExpectedTime > endTime)

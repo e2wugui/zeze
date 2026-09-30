@@ -1582,6 +1582,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 							case eMissfirePolicyNothing:
 								// 重置启动时间，调度下一个（未来）间隔的时间。没有考虑对齐。
 								var period = simpleTimer.getPeriod();
+								if (period > Long.MAX_VALUE - now) {
+									cancel(serverId, timer.getTimerName(), nodeId.value, node,
+											findTimerHandle(timer.getHandleName()));
+									continue; // 下个预定时刻不能表示，不能把回绕时间交给调度器。
+								}
 								simpleTimer.setNextExpectedTime(period > 0 ? now + period : now);
 								//TODO: 考虑nextExpectedTime超过endTime的情况要不要取消
 								break;
