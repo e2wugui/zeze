@@ -143,29 +143,29 @@ public class Log4jFileManager extends ReentrantLock {
 
 			// 装载持锁：loadRotates/addByContentTime按持锁契约调用；装载完成start后，
 			// onFileCreated（监视线程）与reconcile同以此锁为串行点，交错会产生幽灵条目或索引未随行移交。
+			try {
+				lock();
 				try {
-					lock();
-					try {
-						loadRotates(logConf.logDir);
-						var active = new File(logConf.logDir, logConf.logActive);
-						if (active.exists()) {
-							// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile。
-							// WatchService对rename的CREATE事件递交乱序时仍可能漏登新active。
-							// 索引解析含配对校验（openActiveIndexAtLoad）：停机期/装载前轮转留下的旧内容
-							// 索引不会被配给新active（否则错配终态无修复路径——rotate已登记，repoint永不触发）。
-							// active=最新世代，轮转序恒末位（FND29 log4jquery-02）：装载与运行期case-0/
-							// reconcile补登同以append锚定，重启重建的列表序与运行期等价（见files注释）。
-							files.add(Log4jFile.of(active, loadIndex(active, openActiveIndexAtLoad(active))));
-						}
-						// 装载即清扫停机期间被外部清理遗留的孤儿rotate名索引（判据见removeOrphanRotateIndexes）：
-						// 停机期R.log被删无任何事件，孤儿跨重启永存。
-						var sweep = new File(logConf.logDir).listFiles();
-						if (null != sweep)
-							removeOrphanRotateIndexes(sweep);
-					} finally {
-						unlock();
+					loadRotates(logConf.logDir);
+					var active = new File(logConf.logDir, logConf.logActive);
+					if (active.exists()) {
+						// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile。
+						// WatchService对rename的CREATE事件递交乱序时仍可能漏登新active。
+						// 索引解析含配对校验（openActiveIndexAtLoad）：停机期/装载前轮转留下的旧内容
+						// 索引不会被配给新active（否则错配终态无修复路径——rotate已登记，repoint永不触发）。
+						// active=最新世代，轮转序恒末位（FND29 log4jquery-02）：装载与运行期case-0/
+						// reconcile补登同以append锚定，重启重建的列表序与运行期等价（见files注释）。
+						files.add(Log4jFile.of(active, loadIndex(active, openActiveIndexAtLoad(active))));
 					}
-				} catch (Exception e) {
+					// 装载即清扫停机期间被外部清理遗留的孤儿rotate名索引（判据见removeOrphanRotateIndexes）：
+					// 停机期R.log被删无任何事件，孤儿跨重启永存。
+					var sweep = new File(logConf.logDir).listFiles();
+					if (null != sweep)
+						removeOrphanRotateIndexes(sweep);
+				} finally {
+					unlock();
+				}
+			} catch (Exception e) {
 				// 构造失败回收detector：关闭watchService（close幂等）；此时未start、无线程可join，stopAndJoin立即返回。
 				fileCreateDetector.stopAndJoin();
 				throw e;
@@ -943,17 +943,14 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	/**
-	 * 回收孤儿rotate名索引（持manager锁调用，装载与对账各扫一遍，与removeOldLinkFiles同一
-	 * 兜底清理面）：transferIndexToRotate每次轮转在logDir留下R.index（链接/复制两分支皆然），
-	 * 而其唯一按名删除路径openRotateIndex只在同名R.log在场时可达——外部保留期策略
-	 * （logrotate/运维脚本）只清R.log不知晓R.index时，摘除循环/removeMissingFile只动内存列表，
-	 * R.index成孤儿后无任何回收路径：每个被清理的轮转世代遗留一个索引文件，无界累积（默认
-	 * 10s节拍一天约138KB；链接接管形态下还经最后一条链接钉住索引inode的数据块不放）。
-	 * 判据严格限定本manager的rotate名形态：文件名去掉".index"后须是testFileName==1的rotate名
-	 * 且对应日志已不在磁盘（与openRotateIndex的按名删除面同构）——base=active名
-	 * （&lt;active&gt;.index交接名惯例，openActiveIndexAtLoad候选）与他方logActive名
-	 * （同目录多日志合法共存，见logDirOwners注释）都不触碰。best-effort删除：Windows下
-	 * 被本进程早前实例的未释放mmap钉住时删失败warn留待下轮（与removeOldLinkFiles同形态）。
+	 * 回收孤儿rotate名索引（持manager锁调用，装载与对账各扫一遍）：transferIndexToRotate
+	 * 每次轮转在logDir留下R.index，而其唯一按名删除路径openRotateIndex只在同名R.log在场
+	 * 时可达——外部保留期策略只清R.log不知晓R.index时，R.index成孤儿无界累积（链接接管
+	 * 形态下还经最后一条链接钉住索引inode的数据块不放）。
+	 * 判据严格限定本manager的rotate名形态：文件名去掉".index"后须是testFileName==1的
+	 * rotate名且对应日志已不在磁盘（与openRotateIndex的按名删除面同构）——base=active名
+	 * 与他方logActive名都不触碰。best-effort删除：Windows下被未释放mmap钉住时删失败warn
+	 * 留待下轮。
 	 */
 	private void removeOrphanRotateIndexes(File[] listFiles) {
 		for (var f : listFiles) {

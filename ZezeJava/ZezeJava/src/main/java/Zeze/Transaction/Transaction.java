@@ -608,17 +608,13 @@ public final class Transaction {
 				Runtime.getRuntime().halt(54321);
 			}
 		}, flushMode, new RelativeRecordSet.HistoryChangesCollector() {
-			// 历史 gid 前移到日志应用之前解析（history-01/FND29）：取号（Id128 发号服务的
-			// 阻塞等待）若在应用后失败，数据已生效而 tHistory 永久缺失（gid 未消费，键空间
-			// 连空洞都没有，回放端无从感知），Immediately 模式更是补刷后吞异常报假成功。
-			// FND33 history-03：前移收口整个取号——beforeApply 此前只 future.get() 预热共享
-			// cache（不保证余号），真正的 cache.next() 仍在 afterApply（数据应用后）：段耗尽的
-			// 续段分配失败时数据已应用，且 PendingGidLedger.register 位于 next() 之后必然未执行
-			//——账本对自身主防场景失明（多 app HistoryAllocCount=1 每事务都走分配路径）。
-			// 现在 next()（含续段分配）整体前移到 beforeApply：任何取号失败=数据未应用即干净
-			// 失败（RejectHistoryAllocFailed）；成功取号立即入账，此后任何失败（应用/收集/落库）
-			// 都留下账本痕迹（超龄未核销=确定性缺口告警）。count=1 的顺序保证不变：取号仍
-			// 在 rrs 锁内（Table 模式）/记录锁持有期（Immediately），SM 按请求到达序发号。
+			// 历史 gid 的整个取号（cache.next()，含段耗尽的续段分配）都在日志应用之前：
+			// 取号若在应用后失败，数据已生效而 tHistory 永久缺失（gid 未消费，键空间连
+			// 空洞都没有，回放端无从感知），Immediately 模式更是补刷后吞异常报假成功。
+			// 任何取号失败=数据未应用即干净失败（RejectHistoryAllocFailed）；成功取号
+			// 立即入账，此后任何失败（应用/收集/落库）都留下账本痕迹（超龄未核销=
+			// 确定性缺口告警）。count=1 的顺序保证不变：取号仍在 rrs 锁内（Table 模式）/
+			// 记录锁持有期（Immediately），SM 按请求到达序发号。
 			private Id128 historyGid;
 
 			@Override
@@ -643,9 +639,8 @@ public final class Transaction {
 						@SuppressWarnings("DataFlowIssue")
 						var future = zeze.getServiceManager().getUsableTid128CacheFuture(zeze.getConfig().getHistory());
 						historyGid = future.get().next();
-						// 取号即入账（FND33 history-03）：gid 消费先于数据应用，此后任何失败
-						//（应用/收集/落库）都在账本留下"已发号未核销"痕迹，sweep 显式化为
-						// 确定性缺口告警——不再依赖应用后的 register（取号失败时它必然未执行）。
+						// 取号即入账：gid 消费先于数据应用，此后任何失败（应用/收集/落库）
+						// 都在账本留下"已发号未核销"痕迹（超龄=sweep的确定性缺口告警）。
 						zeze.getPendingGidLedger().register(historyGid, System.nanoTime());
 					} catch (Throwable ex) {
 						logger.error("finalCommit({}) history gid alloc fail before apply:", proc.getActionName(), ex);

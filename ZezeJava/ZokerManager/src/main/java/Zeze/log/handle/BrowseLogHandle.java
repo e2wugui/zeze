@@ -61,19 +61,19 @@ public class BrowseLogHandle implements HttpEndStreamHandle {
 			// 缺省 logName 解析（与 SearchLogHandle 同根同款）：前端请求体不携带 logName，
 			// 缺省 null 透传到 Session 构造即坍缩 system error。部署配置唯一 LogConf 名即
 			// 默认；无法确定默认时入口即拒（列名引导显式传参），不建/复用会话。
-				var logName = searchLogParam.resolveLogName(logAgent.getLogConf());
-				if (logName == null) {
-					x.sendJson(HttpResponseStatus.OK, Json.toCompactString(
-							BaseResponse.errorResult(SearchLogParam.missingLogNameDesc(logAgent.getLogConf()))));
-					return;
-				}
-				// 显式未知 logName 入口即拒（对称 serverName 预校验，与 SearchLogHandle
-				// 同根同款）：透传则坍缩 system error 或误报 no reachable log server。
-				var unknownLogName = searchLogParam.unknownLogNameDesc(logAgent.getLogConf());
-				if (unknownLogName != null) {
-					x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult(unknownLogName)));
-					return;
-				}
+			var logName = searchLogParam.resolveLogName(logAgent.getLogConf());
+			if (logName == null) {
+				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(
+						BaseResponse.errorResult(SearchLogParam.missingLogNameDesc(logAgent.getLogConf()))));
+				return;
+			}
+			// 显式未知 logName 入口即拒（对称 serverName 预校验，与 SearchLogHandle
+			// 同根同款）：透传则坍缩 system error 或误报 no reachable log server。
+			var unknownLogName = searchLogParam.unknownLogNameDesc(logAgent.getLogConf());
+			if (unknownLogName != null) {
+				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult(unknownLogName)));
+				return;
+			}
 
 			BCondition.Data con = new BCondition.Data();
 			con.setBeginTime(searchLogParam.parseBeginTime());

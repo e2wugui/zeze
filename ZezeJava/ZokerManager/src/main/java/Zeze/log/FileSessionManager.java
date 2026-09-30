@@ -138,12 +138,9 @@ public class FileSessionManager {
 		// matches 三元组恒命中、死绑定恒复用，Session 内对已摘册名的失败每页必现直到 2h
 		// 闲置清扫——摘册即视同 changeSession 走重建（重建对未注册名显式失败）。全服视图
 		// 的摘册收敛由 allViewMembersConverged 承担。
-		// 校验按请求可达性惰性求值（matches 之后）：单服绑定的 contains(serverName) 只在
-		// matches 通过（请求同为单服视图，serverName 必非 null——HTTP 侧单服分支恒传 trim
-		// 后非空名）时求值；全服视图请求（serverName=null）对单服绑定被 matches 的视图
-		// 判别短路走关旧建新——按绑定视图分支且先于 matches 求值的旧形态对 contains(null)
-		// 恒抛 NPE（CHM keySet 不接受 null 键），NPE 先于 put，绑定永不被替换：全服视图
-		//（前端默认形态）对该源 IP 恒 system error，粘滞最长 2h，NAT 同出口相互阻断。
+		// 校验按请求可达性惰性求值（matches 之后）：matches 已短路视图不一致，单服绑定的
+		// contains(serverName) 求值时请求必为单服视图（serverName 非 null，无 NPE 面）；
+		// 全服视图请求（serverName=null）对单服绑定走关旧建新，不触碰 contains(null)。
 		if (!changeSession && bound != null && bound.matches(requestAll, serverName, logName)
 				&& reuseConverged(logAgent, bound, serverName)) {
 			// 复用命中刷新活跃时间：条件 replace 只在条目仍是同一绑定时生效——并发 resolve

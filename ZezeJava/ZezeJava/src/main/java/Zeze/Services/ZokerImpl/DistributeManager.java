@@ -930,20 +930,15 @@ public class DistributeManager {
 	}
 
 	/**
-	 * switchCurrent 失败的换装路径回滚（腾位+安装均已成功的形态）：撤销安装——新内容
-	 * rename 回 distributes/&lt;svc&gt;，重试重走完整换装收敛（跳装判据比对暂存区新内容与
-	 * 已复位旧内容，大小不符再触发换装），不产生"旧内容复位+暂存区空"的跳装假成功
-	 * （回执 0 而现役仍是旧字节）；旧内容复位——暂存名改回版本名（
-	 * {@link #rollbackQuarantinedVersion}），同版本重部署形态下 current 指针文本本就等于
-	 * versionNo，版本名位置内容恢复即现役内容恢复——修复前该失败分支不回滚，指针目标
-	 * 内容被静默换新（回执失败而部署实际生效），旧内容仅存暂存名待下轮 prune 入口清扫
-	 * 无差别灭失。撤销目标被并发 open 的残留占位时先清：barrier 在场，该目录下只可能是
-	 * 被拒候选的未验证产物（句柄已关、无并发写者）。新内容退不回（外部句柄钉住等）时
-	 * 退路=新内容改名进暂存删除名腾出版本名，此形态重试跳装假成功（旧内容在位、暂存区
-	 * 空）——响亮 error 声明。全程 best-effort：失败为声明残余（供人工抢救），与安装期
-	 * 回滚同裁量。未腾位（纯新增安装）无操作：current 未动，重试跳装再切收敛（既有语义）。
-	 * 与腾位同持 opsLocks：回滚两 rename 之间不与 start/stop 交错（start 落盘 run.pid 的
-	 * 版本身份不指向中途消失/换血的版本名）。
+	 * switchCurrent 失败的换装路径回滚（腾位+安装均已成功）：撤销安装——新内容 rename 回
+	 * distributes/&lt;svc&gt;（撤销目标被并发 open 的残留占位时先清，barrier 在场只可能是被拒
+	 * 候选的未验证产物），重试重走完整换装收敛，不产生"旧内容复位+暂存区空"的跳装假成功；
+	 * 旧内容复位——暂存名改回版本名（{@link #rollbackQuarantinedVersion}），同版本重部署
+	 * 形态下 current 指针文本本就等于 versionNo，版本名复位即现役内容恢复。新内容退不回
+	 * （外部句柄钉住等）时退路=改名进暂存删除名腾出版本名并响亮 error（此形态重试跳装假
+	 * 成功，需人工）。全程 best-effort：失败为声明残余，与安装期回滚同裁量。未腾位（纯新增
+	 * 安装）无操作：current 未动，重试跳装再切收敛。与腾位同持 opsLocks：回滚两 rename
+	 * 之间不与 start/stop 交错。
 	 */
 	private void rollbackSwitchFailure(String serviceName, File serviceFrom, File versionTo,
 									   @Nullable File quarantinedStage) {

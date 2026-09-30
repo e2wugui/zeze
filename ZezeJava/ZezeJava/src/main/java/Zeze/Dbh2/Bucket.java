@@ -66,8 +66,8 @@ public class Bucket {
 	}
 
 	// 置死桶meta哨兵（endMove写入keyFirst=keyLast={1}）：死桶不再声明任何键域，
-	// Get/PrepareBatch经inBucket天然拒绝；walk也以它识别死桶（拒绝一切游标形态，
-	// 见Dbh2.isWalkBucketRefuse）。活桶边界不可能同时为{1}（首桶keyFirst=Empty）。
+	// Get/PrepareBatch经inBucket天然拒绝，walk也以此识别死桶（见Dbh2.isWalkBucketRefuse）。
+	// 活桶边界不可能同时为{1}（首桶keyFirst=Empty）。
 	public static final Binary DeadBucketMetaBound = new Binary(new byte[]{1});
 
 	private volatile PendingSettle pendingSettle;

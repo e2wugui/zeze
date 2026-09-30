@@ -48,10 +48,8 @@ public class QueryHandle implements HttpEndStreamHandle {
 						Json.toCompactString(BaseResponse.errorResult("unknown log server: " + serverName)));
 				return;
 			}
-			// json 入口预校验（与 serverName 同款分诊纪律）：缺失（JSON缺字段→null）透传
-			// 到 BJson 编码对 null 调 isEmpty() 抛 NPE；空白串按空序列化省略，服务端
-			// Json.parse("") 越界抛异常回错误码——两者同坍缩 system error（空串形态还
-			// 放大成两端日志噪音）。入口即拒：明确 errorResult，不进代理透传。
+			// json 入口预校验（与 serverName 同款分诊纪律）：缺失（null）透传到 BJson 编码
+			// 抛 NPE、空白串服务端 Json.parse("") 越界，同坍缩 system error——入口即拒。
 			String json = queryParam.getJson();
 			if (json == null || json.isBlank()) {
 				x.sendJson(HttpResponseStatus.OK,

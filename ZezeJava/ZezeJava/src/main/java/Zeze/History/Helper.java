@@ -362,11 +362,11 @@ public class Helper {
 		var drop = keep == exist ? family : exist;
 		if (keep != exist)
 			families.put(key, keep);
-				logger.warn("dynamic gtable outer meta dropped: same log typeId with different value factory."
-						+ " keep={} drop={} key=({},{})。胜者按家族来源名字典序稳定决胜（跨进程恒定，"
-						+ "不由注册顺序决定）；回放端按胜者家族的工厂物化外层行，显式Bean:id编号重叠时"
-						+ "将静默解出错误类型的bean（FND8-30）",
-						keep.where, drop.where, ((KV)key).getKey(), ((KV)key).getValue());
+		logger.warn("dynamic gtable outer meta dropped: same log typeId with different value factory."
+				+ " keep={} drop={} key=({},{})。胜者按家族来源名字典序稳定决胜（跨进程恒定，"
+				+ "不由注册顺序决定）；回放端按胜者家族的工厂物化外层行，显式Bean:id编号重叠时"
+				+ "将静默解出错误类型的bean",
+				keep.where, drop.where, ((KV)key).getKey(), ((KV)key).getValue());
 	}
 
 	/** 跨批次dynamic家族决胜的进程级登记项：胜者工厂按对象身份跟踪（工厂闭包无equals语义）。 */
@@ -380,17 +380,11 @@ public class Helper {
 		}
 	}
 
-	// 跨批次dynamic家族决胜的进程级累积状态（history-01增量收口，FND33）：typeId→当前胜者。
-	// 决胜此前只在单次applyRegistrations的DependsResult容器内生效——增量开表
-	// （openDynamicTable→registerTableLogs）的批次与启动期已注册的同typeId家族冲突时走
-	// Log.register的putIfAbsent先到先得：新家族工厂被静默丢弃（dynamic家族getTypeName相同，
-	// 连error都没有，仅debug），后开表的dynamic集合日志回放仍用旧家族工厂解码（Bean:id重叠
-	// 静默解错bean、不重叠毒卡游标），且注册终态由注册时机决定、跨重启可翻转。
-	// 收口：跨批次同样按家族来源名字典序决胜——新到家族更小时定向替换注册槽位，更大时warn
-	// 留痕，注册终态=全部批次的argmin(where)，与启动期批内决胜同构（schema的纯函数，
-	// 跨JVM/重启恒定）。到达串行化：登记发生在Application启动与openDynamicTable（均持
-	// Application锁），多Application实例并发到达时"查胜者+条件替换"须原子——静态锁足够
-	//（频度为启动/开表级，无竞争压力）。
+	// dynamic家族跨批次决胜的进程级累积状态：typeId→当前胜者，与启动期applyRegistrations
+	// 批内决胜同构——按家族来源名字典序取argmin，注册终态=schema的纯函数，跨批次/JVM/重启
+	// 恒定（不走Log.register的putIfAbsent先到先得，否则增量开表的新家族工厂被静默丢弃、
+	// 终态由注册时机决定）。登记点（Application启动与openDynamicTable）各自持Application
+	// 锁，多Application实例并发时"查胜者+条件替换"仍须原子，静态锁串行化（频度启动/开表级）。
 	private static final Object dynamicRegisterLock = new Object();
 	private static final ConcurrentHashMap<Integer, DynamicWinner> dynamicWinners = new ConcurrentHashMap<>();
 
@@ -399,13 +393,11 @@ public class Helper {
 		synchronized (dynamicRegisterLock) {
 			var cur = dynamicWinners.get(typeId);
 			if (cur == null) {
-				// 进程首见该typeId：正常注册。槽位已被非dynamic注册占用（跨家族空间哈希碰撞，
-				// 如普通List2Meta/Map2Meta先到）时不接管——维持先到先得现状，warn补齐检测面
-				//（此前该形态完全静默，仅Log.register内一条debug）。
+				// 进程首见该typeId：正常注册。槽位已被非dynamic注册占用（跨家族typeId
+				// 哈希碰撞，如普通List2Meta/Map2Meta先到）时不接管——维持先到先得，warn留痕。
 				if (Log.getRegistered(typeId) != null) {
 					logger.warn("dynamic collection family skipped: log typeId({}) already occupied by"
-							+ " non-dynamic registration, first registered wins（跨家族空间哈希碰撞，"
-							+ "不接管外来注册） where={}", typeId, where);
+							+ " non-dynamic registration, first registered wins. where={}", typeId, where);
 					return;
 				}
 				Log.register(factory);
@@ -415,25 +407,20 @@ public class Helper {
 			if (cur.where.equals(where))
 				return; // 同家族重复登记（多Application实例重扫同schema）：幂等，槽位保持。
 			if (cur.where.compareTo(where) < 0) {
-				// 存量胜者字典序更小：新到家族落败——不再静默（先到先得时代该形态只有debug）。
+				// 存量胜者字典序更小：新到家族落败，不进注册表，warn留痕。
 				logger.warn("dynamic collection family dropped (cross-batch): same log typeId({}) with"
-						+ " different factories. keep={} drop={}。跨批冲突（增量开表/多Application批次"
-						+ "与既有注册）仍按家族来源名字典序稳定决胜，与启动期批内决胜同构；败者工厂"
-						+ "不进注册表，回放端按胜者家族的工厂解码", typeId, cur.where, where);
+						+ " different factories. keep={} drop={}", typeId, cur.where, where);
 				return;
 			}
-			// 新到家族字典序更小：跨批翻转接管——仅当槽位仍为本表先前登记的工厂（按对象身份
-			// 条件替换）时生效；被外来注册占用则不接管（防御分支，槽位无删除路径，理论上不可达）。
+			// 新到家族字典序更小：跨批翻转接管——仅当槽位仍是本表先前登记的工厂（按对象
+			// 身份条件替换）时生效；被外来注册占用则不接管（防御分支，理论上不可达）。
 			if (Log.replaceRegistered(typeId, cur.factory, factory)) {
 				dynamicWinners.put(typeId, new DynamicWinner(factory, where));
 				logger.warn("dynamic collection family replaced (cross-batch): same log typeId({}) with"
-						+ " different factories. keep={} drop={}。新到家族字典序更小，接管注册槽位"
-						+ "（注册终态=全部批次的argmin(where)，跨JVM/重启恒定）；此后回放按新胜者"
-						+ "家族的工厂解码", typeId, where, cur.where);
+						+ " different factories. keep={} drop={}", typeId, where, cur.where);
 			} else {
 				logger.warn("dynamic collection family replace failed (cross-batch): log typeId({}) slot"
-						+ " not held by previous winner, keep={} drop={}。槽位被外来注册占用，"
-						+ "不强制接管（维持先到先得现状）", typeId, cur.where, where);
+						+ " not held by previous winner, keep={} drop={}", typeId, cur.where, where);
 			}
 		}
 	}
@@ -619,8 +606,7 @@ public class Helper {
 		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta));
 	}
 
-	/** dynamic GTable 外层 pmapMeta 注册：经进程级跨批次决胜（hist-01外层收口+
-	 * history-01增量收口），与普通 map2Metas 的先到先得分流。 */
+	/** dynamic GTable 外层 pmapMeta 注册：经进程级跨批次决胜，与普通 map2Metas 的先到先得分流。 */
 	public static <K, V extends Bean> void registerLogMap2MetaDynamic(@NotNull Map2Meta<K, V> meta,
 																	  @NotNull String where) {
 		registerDynamicWinner(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta), where);

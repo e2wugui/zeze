@@ -12,11 +12,10 @@ import org.jetbrains.annotations.NotNull;
 /**
  * 已发 gid 的落库对账账本，每个 Application 一个实例：不同 history 发号名的 gid 数值空间
  * 重叠，进程级共享账本会跨 app 互相覆盖/误核销。gid 在 Transaction.finalCommit 的
- * beforeApply 取号即登记（FND33 history-03：取号整体前移到数据应用之前——登记先于
- * 应用，取号失败=干净失败不入账，取号成功后任何失败都留下"已发号未核销"痕迹），
- * tHistory 行随数据库事务提交成功由 History.commitDone 核销；登记后超龄未核销 = 数据
- * 已应用而历史行未落库的确定性缺口，周期对账将其显式化为 error 告警（每 gid 一次），
- * 不自动修复。
+ * beforeApply 取号即登记（登记先于数据应用——取号失败=干净失败不入账，成功后任何失败
+ * 都留下"已发号未核销"痕迹），tHistory 行随数据库事务提交成功由 History.commitDone 核销；
+ * 登记后超龄未核销 = 数据已应用而历史行未落库的确定性缺口，周期对账将其显式化为 error
+ * 告警（每 gid 一次），不自动修复。
  * 覆盖边界：进程重启即失——重启窗口的缺口靠消费端空洞老化+离线 Verify 兜底。
  * 账龄测量用单调钟 System.nanoTime（对齐消费端空洞老化的同款判据），墙钟跳变不进入判据
  * ——前跳不得假告警并提前出账，回拨不得推迟真缺口告警。进程内不持久化，nanoTime 原点
@@ -40,8 +39,8 @@ public final class PendingGidLedger {
 
 	/** gid 已消费、绑定历史数据进入（或即将进入）落库流水线——入账并惰性启动对账。
 	 * 调用点：Transaction.finalCommit 的 beforeApply 取号成功即入账（先于数据应用，
-	 * FND33 history-03），失败路径不产生无 gid 的登记。atNanos 为单调钟读数
-	 * （System.nanoTime），与 sweep 的判龄钟同基。 */
+	 * 失败路径不产生无 gid 的登记）。atNanos 为单调钟读数（System.nanoTime），
+	 * 与 sweep 的判龄钟同基。 */
 	public void register(@NotNull Id128 gid, long atNanos) {
 		pendingCommitGids.put(gid, atNanos);
 		if (sweepStarted.compareAndSet(false, true))

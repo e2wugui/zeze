@@ -117,18 +117,17 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	/**
-	 * 历史变更收集的两阶段契约（history-01/FND29+FND33 history-03）：取号（含段耗尽的
-	 * 续段分配）在日志应用（commit.run）之前，走查与编码在应用之后。取号是对 Id128 发号
-	 * 服务的阻塞等待，若发生在应用之后，失败时数据已生效而 tHistory 永久缺失（gid 未消费，
-	 * 键空间连空洞都没有，回放端无从感知），Immediately 模式补刷后更是吞异常报假成功
-	 * ——前移到应用前，失败=事务未应用即干净失败（{@code Transaction.RejectHistoryAllocFailed}，
-	 * RejectWhileStopping 同款路径），历史与数据同生共死。取号成功立即入对账账本
-	 * （PendingGidLedger.register）：此后任何失败（应用/收集/落库）都留下"已发号未核销"
-	 * 痕迹，账本对自身主防场景不再失明。走查/编码必须后置：Record.collect 对 Put/Remove
-	 * 的分类读 ar.committedPutLog，它由应用期（PutLog.commit）填充——前置走查会把 put
-	 * 误分类为 edit（监听者拿到 null LogBean、History 编码错误）。beforeApply 的门控
-	 * （isHistory && anyDirty）与走查后的 History 分支门（isHistory && records非空）精确
-	 * 等价：isHistory 下 collectRecord 无早退、每个 dirty 记录必登记；!isHistory 时
+	 * 历史变更收集的两阶段契约：取号（含段耗尽的续段分配）在日志应用（commit.run）之前，
+	 * 走查与编码在应用之后。取号是对 Id128 发号服务的阻塞等待，若发生在应用之后，失败时
+	 * 数据已生效而 tHistory 永久缺失（gid 未消费，键空间连空洞都没有，回放端无从感知），
+	 * Immediately 模式补刷后更是吞异常报假成功——前移到应用前，失败=事务未应用即干净失败
+	 * （{@code Transaction.RejectHistoryAllocFailed}，RejectWhileStopping 同款路径），历史
+	 * 与数据同生共死。取号成功立即入对账账本（PendingGidLedger.register）：此后任何失败
+	 * （应用/收集/落库）都留下"已发号未核销"痕迹。走查/编码必须后置：Record.collect 对
+	 * Put/Remove 的分类读 ar.committedPutLog，它由应用期（PutLog.commit）填充——前置走查
+	 * 会把 put 误分类为 edit（监听者拿到 null LogBean、History 编码错误）。beforeApply 的
+	 * 门控（isHistory && anyDirty）与走查后的 History 分支门（isHistory && records非空）
+	 * 精确等价：isHistory 下 collectRecord 无早退、每个 dirty 记录必登记；!isHistory 时
 	 * records 仍会因监听者登记而非空，但 History 分支被 isHistory 挡住，不参与等价。
 	 */
 	interface HistoryChangesCollector {

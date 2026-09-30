@@ -48,17 +48,14 @@ import org.jetbrains.annotations.Nullable;
  * 丢失的半消息失去回查兜底。</li>
  * <li>回查查无行恒答 UNKNOW 的语义（见 {@link #checkLocalTransaction}）：既不答 COMMIT 也不答
  * ROLLBACK，收敛依赖 broker 回查策略 + tSent 保留时长下界。</li>
- * <li>tSent必须落在<b>持久数据库</b>（默认 {@link Zeze.Config.DatabaseConf} 的 databaseType
- * 即 Memory，漏配数据库的应用静默落入该形态）：memory形态下两项自述保障双双静默失效——每日
- * 清理对无storage的表walk必抛错被吞（表无界增长），进程重启即失去全部回查证据
- * （checkLocalTransaction恒UNKNOW，已提交本地事务的半消息被回查耗尽丢弃）。
- * {@link #start()} 显式拒绝该形态；联调/demo形态可经系统属性
- * {@value #TSENT_ALLOW_MEMORY_PROPERTY}=true 显式豁免（自担上述风险）。</li>
+ * <li>tSent必须落在<b>持久数据库</b>：默认 {@link Zeze.Config.DatabaseConf} 的
+ * databaseType 即 Memory，漏配数据库的应用静默落入该形态——每日清理对无storage的表walk
+ * 必抛错被吞（表无界增长），重启即失去全部回查证据。{@link #start()} 显式拒绝该形态；
+ * 联调/demo形态可经系统属性 {@value #TSENT_ALLOW_MEMORY_PROPERTY}=true 显式豁免。</li>
  * <li>停机窗口：{@link #stop()} 先有界排空回查线程池（在飞回查趁客户端存活把COMMIT应答
- * 发回broker）再关闭客户端；停机时长超过 broker 回查总窗口（transactionTimeOut +
- * transactionCheckMax × transactionCheckInterval，默认参数约15分钟）时，窗口外未决半消息
- * 失去回查兜底——计划内发版的停机窗口本身是部署契约的一部分（tSent保留7天远大于回查窗口，
- * 兜底实际收敛于"回查窗口内重启"）。</li>
+ * 发回broker）再关闭客户端；停机超过 broker 回查总窗口（transactionTimeOut +
+ * transactionCheckMax × transactionCheckInterval，默认约15分钟）时窗口外未决半消息失去
+ * 回查兜底（tSent保留7天远大于回查窗口，兜底实际收敛于"回查窗口内重启"）。</li>
  * <li>生命周期配对：构造器把 tSent 注册进 Application，{@link #stop()} 反注册并关闭它——
  * 同一 Application 上 stop 后<b>直接</b>重建 Producer 即可（构造器重新注册）。重建实例须
  * 在 app start 前构造（start 只打开当时已注册的表）；app 存续期间"只停不重建"的形态由
@@ -85,14 +82,13 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	private static final long TSENT_KEEP_TIME_MIN = 60L * 60 * 1000;
 	// 每批walk的行数上限：每批独立一个事务过程删除，避免单过程长事务。
 	private static final int TSENT_CLEAN_BATCH_SIZE = 1000;
-	// tSent落memory库的显式豁免开关（系统属性，默认关）：联调/demo形态（无持久库部署，如
-	// TestRocketMQ的内存库拓扑）自担"每日清理对无storage的表walk抛错停摆+重启回查证据灭失"
-	// 的风险后可打开。生产部署不得开启（见类javadoc的tSent持久库部署契约）。
+	// tSent落memory库的显式豁免开关（系统属性，默认关）：联调/demo形态（无持久库部署）
+	// 自担"每日清理walk抛错停摆+重启回查证据灭失"的风险后可打开，生产部署不得开启
+	//（见类javadoc的tSent持久库部署契约）。
 	private static final String TSENT_ALLOW_MEMORY_PROPERTY = "RocketMQ.Producer.tSentAllowMemory";
-	// stop 的有界排空预算：事务回查线程池在飞任务的完成等待——checkLocalTransaction触
-	// Zeze表须在app.close()前完成（典型停机顺序stop()→app.close()，越过即对已关表的
-	// 访问），且决策后的应答发送（endTransactionOneway）须在producer.shutdown()之前的
-	// 客户端存活窗口内完成（排空先于关客户端，见stop()内注释）。
+	// stop 的有界排空预算：在飞checkLocalTransaction（触Zeze表）须在app.close()前完成
+	//（典型停机顺序stop()→app.close()，越过即对已关表的访问），且决策应答
+	//（endTransactionOneway）须在producer.shutdown()之前的客户端存活窗口内发出。
 	private static final long STOP_AWAIT_MILLIS = 10_000L;
 
 	public final @NotNull Application zeze;
@@ -151,13 +147,11 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	}
 
 	public void start() throws MQClientException {
-		// tSent所在库必须为持久类型（部署契约，见类javadoc）：start()是生产入口，memory形态在此
-		// 显式拒绝——默认Config.DatabaseConf的databaseType即Memory，漏配数据库的应用此前静默落入
-		// 该形态（清理定时器照常注册、到点walk对无storage的表抛错被吞，重启即失去回查证据，两项
-		// 保障静默失效且零告警指向配置）。校验以Config判库（与RegisterZezeTables的表→库解析同源），
-		// 不依赖表是否已打开（app.start与producer.start次序皆可）；库名失配（null）不在此拦——
-		// Application打开表时自会响亮失败。测试普遍以内存库构造Producer但不调start()，不受影响；
-		// 联调/demo形态经TSENT_ALLOW_MEMORY_PROPERTY显式豁免。
+		// tSent必须落持久库（部署契约，见类javadoc）：start()是生产入口，memory形态在此
+		// 显式拒绝（默认DatabaseConf即Memory，漏配数据库的应用静默落入该形态）。校验以
+		// Config判库（与RegisterZezeTables的表→库解析同源），不依赖表是否已打开（app.start
+		// 与producer.start次序皆可）；库名失配（null）不在此拦——Application打开表时自会
+		// 响亮失败。测试普遍以内存库构造但不调start()；联调/demo经豁免属性放行。
 		var dbConf = zeze.getConfig().getDatabaseConfMap()
 				.get(zeze.getConfig().getTableConf(_tSent.getName()).getDatabaseName());
 		if (dbConf != null && dbConf.getDatabaseType() == Config.DbType.Memory
@@ -192,15 +186,11 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			tSentCleanFuture.cancel(false);
 			tSentCleanFuture = null;
 		}
-		// 排空回查线程池必须先于producer.shutdown()：回查任务不止"查表"——checkLocalTransaction
-		// 得出COMMIT决策后还要经客户端把应答发回broker（endTransactionOneway依赖被shutdown关闭的
-		// remoting通道）。客户端先关则排空窗口内执行完的在飞/排队回查的决策确定性送不出去，且producer
-		// 已从broker反注册、后续回查无应答，broker回查次数耗尽后丢弃半消息——停机超过回查窗口即
-		// "本地事务已提交而消息灭失"（类javadoc部署契约）。tSent反注册必须在排空之后（在飞回查查表
-		// 需要它，次序与构造器配对结构不变）。destroyTransactionEnv对注入池只shutdown()不等待，
-		// 这里自行有界排空；排空期间新到回查的提交被拒绝，与排空后同形态（无更差）。
-		// shutdown幂等（下方producer.shutdown()内destroyTransactionEnv再调一次为no-op），
-		// 超时仅告警继续，不无限等待。
+		// 排空回查线程池先于producer.shutdown()：回查的COMMIT决策要经客户端endTransactionOneway
+		// 发回broker（依赖被shutdown关闭的remoting通道），客户端先关则决策确定性送不出去，
+		// broker回查耗尽后丢弃半消息（部署契约见类javadoc）。tSent反注册在排空之后（在飞回查
+		// 查表需要它，与构造器配对）。destroyTransactionEnv对注入池只shutdown()不等待，这里
+		// 自行有界排空；超时仅告警继续，不无限等待。
 		checkExecutor.shutdown();
 		try {
 			if (!checkExecutor.awaitTermination(STOP_AWAIT_MILLIS, TimeUnit.MILLISECONDS))

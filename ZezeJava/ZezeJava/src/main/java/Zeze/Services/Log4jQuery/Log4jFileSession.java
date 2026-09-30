@@ -31,9 +31,8 @@ public class Log4jFileSession implements Closeable {
 		} catch (IOException | RuntimeException e) {
 			// RAF已打开而构造上抛：必须先关闭，否则fd只能等GC兜底回收（调用方只捕获
 			// FileNotFoundException，构造失败拿不到引用无处close）。RuntimeException必须
-			// 同收（不只IOException）：非法LogTimeFormat在tryNext→Log4jLog.tryParse内
-			// new SimpleDateFormat抛IAE，穿透构造即fd随每查询/每轮转单调泄漏
-			// （parse期已校验拦截xml路径；程序化改写LogConf绕过parse时由此兜底）。
+			// 同收（不只IOException）：非法LogTimeFormat在tryNext内new SimpleDateFormat抛
+			// IAE穿透构造即fd泄漏（parse期校验拦xml路径，程序化改写LogConf由此兜底）。
 			// close失败不掩盖原始异常。
 			try {
 				randomAccessFile.close();

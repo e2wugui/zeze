@@ -491,20 +491,12 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		}
 	}
 
-	// 桶失效与正常桶尾的区分（walk陈旧视图检测）：客户端walk分页以缓存主表视图定位桶，
-	// 空游标/收窄后仍在界内的桶内游标在此前不触发任何拒绝——分裂/迁移完结后源桶按收窄
-	// keyLast应答bucketEnd=true，客户端按陈旧视图推进迭代器，新桶（分裂产生的
-	// [keyLast,∞)键域或迁移目标桶整个键域）被静默跳过，全表遍历不完整且无错误信号。
-	// 拒绝条件三重（覆盖一切游标形态）：
-	//  1) 置死桶（endMove的{1},{1}哨兵meta）无条件拒绝：死桶无合法walk语义，
-	//     任何视图指向它都是陈旧（主表从不发布死桶），新旧客户端一律经refuse收敛；
-	//  2) 既有条件保留：非空游标出界的拒绝；
-	//  3) 新客户端置位VerifyBucketMeta时比对权威meta与缓存视图预期界，不等即拒。
-	//     服务端无法单方面识别陈旧——收窄后的桶对新鲜客户端是合法遍历目标，无条件
-	//     拒绝会使其拒绝循环直至上限，预期界必须由客户端回带（协议additive，
-	//     旧客户端不置位则不校验）。
-	// 客户端收到bucketRefuse即reload重定位当前游标区间（与Get的eBucketMismatch
-	// 自愈同构）；master侧表长期陈旧的连续拒绝由walkPage既有256上限兜底。
+	// walk陈旧视图检测——桶收窄（分裂/迁移完结）或置死后不得按正常桶尾应答，否则客户端
+	// 按陈旧视图推进迭代器会静默跳过新桶键域。拒绝条件：置死桶（{1},{1}哨兵meta）无条件
+	// 拒；非空游标出界拒；VerifyBucketMeta置位时缓存视图预期界与权威meta不等即拒（收窄后
+	// 的桶对新鲜客户端是合法遍历目标，服务端无法单方面识别陈旧，预期界须客户端回带）。
+	// 客户端收bucketRefuse即reload重定位（与Get的eBucketMismatch自愈同构）；master侧表
+	// 长期陈旧的连续拒绝由walkPage既有256上限兜底。
 	private boolean isWalkBucketRefuse(BWalk.Data argument) {
 		var meta = stateMachine.getBucket().getBucketMeta();
 		if (Bucket.DeadBucketMetaBound.equals(meta.getKeyFirst())

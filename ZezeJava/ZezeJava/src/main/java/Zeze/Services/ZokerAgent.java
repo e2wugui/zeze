@@ -87,11 +87,9 @@ public class ZokerAgent extends AbstractZokerAgent {
             if (null == old)
                 break; // 空位直接注册
             if (old == sender)
-                // 自归属重放：同连接对自己已注册成功的名字重发 Register（客户端 RPC 超时
-                // 重试的常规形态）——注册实际已成功，误回 eDuplicateZoker 是比"注册未完成"
-                // 严重得多的"名字被他人占用"误诊信号，重试型客户端在同连接上永不收敛。
-                // 幂等成功应答：摘旧面快照不含本次名（同名）、registered.add 幂等、
-                // SendResult 照发。
+                // 自归属重放：同连接对自己已注册名的重发（客户端 RPC 超时重试的常规形态），
+                // 幂等成功应答——误回 eDuplicateZoker 会让重试型客户端在同连接上永不收敛。
+                // （摘旧面快照不含本次名、registered.add 幂等、SendResult 照发。）
                 break;
             if (!old.isClosed())
                 return eDuplicateZoker; // 他方活连接占用：真重复

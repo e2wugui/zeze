@@ -187,23 +187,18 @@ public class Master extends AbstractMaster {
         }
     }
 
-    // topic 名的文件系统命名空间折叠键（mq-02）：topic 字符串直接用作 Manager home 下的
-    // 子目录名与 rocksdb 列族名，大小写不敏感文件系统（Windows NTFS、macOS 默认）上仅
-    // 大小写或尾随空白/点不同的两个名字（mqTable 与列族是两个）解析到同一物理目录——
-    // 别名 topic 的 MQFileWithIndex 构造把共享段文件按"幽灵段+未提交尾巴"判定 truncate(0)，
-    // 既有 topic 的全部盘上积压被创建别名这一无预警操作摧毁。折叠口径=尾随空白/点归一
-    // （Win32 CreateDirectory 的剥离规则）+大小写不敏感（toLowerCase(Locale.ROOT)）；
-    // 内部空白与不同名不折叠。跨平台一致执行（含大小写敏感的Linux）：防"创建后迁移到
-    // 大小写不敏感介质"的形态；存量名永远等于自身折叠，不自拒。
+    // topic 名的文件系统命名空间折叠键：topic 直接用作 Manager home 子目录名与 rocksdb
+    // 列族名，大小写不敏感文件系统上仅大小写或尾随空白/点不同的名字解析到同一物理目录。
+    // 折叠口径=尾随空白/点归一（Win32 CreateDirectory 剥离规则）+大小写不敏感（ROOT）；
+    // 跨平台一致执行（防创建后迁移到大小写不敏感介质），存量名恒等于自身折叠，不自拒。
     public static String fsNamespaceKey(String topic) {
         return topic.replaceAll("[\\s.]+$", "").toLowerCase(java.util.Locale.ROOT);
     }
 
-    // 新建 topic 的结构性危险名校验（mq-02，仅 CreateMQ 入口生效，存量放行）：返回 null=
-    // 合法；非 null=拒绝原因（日志用）。覆盖折叠检测抓不到的形态——全新名字没有碰撞
-    // 对象但仍不可用：控制字符（目录名非法/终端注入）、Windows 保留设备名（CON/PRN/
-    // AUX/NUL/COM1-9/LPT1-9，mkdirs 失败被忽略，仅留列族孤儿+响亮创建失败）。
-    // 其余字符（含非ASCII，如中文topic）合法：白名单收紧会破坏存量命名习惯，不做。
+    // 新建 topic 的结构性危险名校验（仅 CreateMQ 入口生效，存量放行）：返回 null=合法，
+    // 非 null=拒绝原因（日志用）。覆盖折叠检测抓不到的形态：控制字符（目录名非法/终端
+    // 注入）与 Windows 保留设备名（CON/PRN/AUX/NUL/COM1-9/LPT1-9，mkdirs 失败仅留列族
+    // 孤儿）。其余字符（含非ASCII）合法——白名单收紧会破坏存量命名习惯，不做。
     public static @Nullable String validateNewTopicName(String topic) {
         for (var i = 0; i < topic.length(); ++i) {
             var c = topic.charAt(i);
@@ -246,7 +241,7 @@ public class Master extends AbstractMaster {
                 return errorCode(eTopicHasReserveChar);
             if (r.Argument.getTopic().contains("\\"))
                 return errorCode(eTopicHasReserveChar);
-            // mq-02 结构性危险名（仅新建校验，存量放行）：控制字符与Windows保留设备名。
+            // 结构性危险名校验（仅新建，存量放行）：控制字符与Windows保留设备名——
             // 折叠检测抓不到全新名字（无碰撞对象），这两类仍不可用。
             var nameReject = validateNewTopicName(r.Argument.getTopic());
             if (null != nameReject) {
@@ -257,11 +252,9 @@ public class Master extends AbstractMaster {
             var mq = mqTable.get(topicBytes);
             if (null != mq)
                 return errorCode(eTopicExist);
-            // mq-02 折叠冲突检测：topic 直接作 Manager home 子目录名与列族名，大小写不敏感
-            // FS 上仅大小写/尾随空白不同的名字解析到同一物理目录——别名 topic 的分区构造
-            // 把共享段文件按"幽灵段+未提交尾巴"truncate(0)，既有 topic 的全部盘上积压被
-            // 一次创建操作摧毁。对 mqTable 已有条目按折叠键查重，命中即拒（跨平台一致执行，
-            // 防"创建后迁移到大小写不敏感介质"的形态；存量名等于自身折叠，不自拒）。
+            // 折叠冲突检测：别名 topic 会与既有 topic 解析到同一物理目录，分区构造把共享
+            // 段文件按"幽灵段+未提交尾巴"truncate(0)——既有 topic 的全部盘上积压被一次
+            // 创建操作摧毁。对 mqTable 已有条目按折叠键查重，命中即拒。
             var foldKey = fsNamespaceKey(r.Argument.getTopic());
             try (var it = mqTable.iterator()) {
                 for (it.seekToFirst(); it.isValid(); it.next()) {

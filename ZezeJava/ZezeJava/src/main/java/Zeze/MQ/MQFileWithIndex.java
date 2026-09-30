@@ -390,12 +390,12 @@ public class MQFileWithIndex {
 	}
 
 	/**
-	 * 装载预算（读体前准入）：通过即视为本条入账（调用方实现检查+记账，见 MQSingle）。
+	 * 装载预算（准入与入账同点）：通过即视为本条入账（调用方实现检查+记账，见 MQSingle）。
 	 * queueEmpty=true 为队头活性放行：无条件入账并返回 true（预算小于单条也必须装队头）。
 	 * <p>
-	 * 调用时序契约（mq-01）：admit 在记录体已成功读取并 decode 之后调用，返回 true 后
-	 * 装载环立即入队（两步之间无任何失败点）——admit 的入账因此不会产生"已入账未入队"
-	 * 的残留，实现方不得在 admit 内抛出非拒绝型异常。
+	 * 调用时序契约：admit 在记录体已成功读取并 decode 之后调用，返回 true 后装载环立即
+	 * 入队（两步之间无失败点）——入账不会产生"已入账未入队"的残留，实现方不得在 admit
+	 * 内抛出非拒绝型异常。
 	 */
 	@FunctionalInterface
 	public interface FillBudget {
@@ -419,7 +419,7 @@ public class MQFileWithIndex {
 
 	/**
 	 * 从文件中装载消息填充到队列中（字节预算准入）。
-	 * 每条消息读体前查预算：队列空恒放行（队头活性——预算小于单条也必须装队头，否则
+	 * 每条消息读体解码后查预算：队列空恒放行（队头活性——预算小于单条也必须装队头，否则
 	 * 分区死锁）；不达标即截断返回（调用方据此重算 highLoad）。
 	 * @return 实际装载终点（== endMessageId 即完整装载；&lt; endMessageId 即预算截断点）。
 	 */
@@ -489,13 +489,10 @@ public class MQFileWithIndex {
 								// 布局错位形态）在此响亮抛出，进入 pullMessage 既有的失败-复位-重试
 								// 路径，而不是把错位字节当消息静默装载投递。
 								while (true) {
-									// 先读体解码、后准入入账（mq-01）：admit=检查+入账同点，入账与
-									// 入队之间不得再留任何失败点——体长越界/readFully IO错/decode失败
-									// 都发生在入账之前，异常路径零残留记账。此前admit先于读体，三类
-									// 失败把已入账字节留在账上且无任何出账方（ack/死信只处理"在队"、
-									// close只处理"实例销毁"），退避重试每轮重新准入（队列空恒放行）
-									// 再泄漏一条，直至耗干Manager级全局在飞预算。
-									var messageBuffer = new byte[messageSize];
+								// 先读体解码、后准入入账：admit=检查+入账同点，入账与入队
+								// 之间不留失败点——体长越界/readFully IO错/decode失败都
+								// 发生在入账之前，异常路径零残留记账。
+								var messageBuffer = new byte[messageSize];
 									var bodyEnd = filePosition + messageBuffer.length;
 									if (bodyEnd > fileSize)
 										throw new RuntimeException("read message body eof.");

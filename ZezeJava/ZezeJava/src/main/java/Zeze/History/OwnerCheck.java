@@ -7,23 +7,18 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * tHistory 物理表归属校验（FND33 history-02）：gid（GlobalSerialId）的数值空间绑定
- * history 发号名（Config.getHistory），不同发号名的 gid 数值重叠；而 tHistory 主键裸用
- * gid，两个不同发号名的 app 若解析到同一物理存储（默认表配置即同库），History.writeOnly
- * 的 replace 会以数值相等的 gid 静默互覆——历史行丢失，且两套序列各自连续（空洞检测的
- * 前提是单序列连续），回放端与账本双双无感。对比：ApplyDatabaseZeze 对 apply 库误配已
- * 显式 fail-fast；PendingGidLedger 只做了账本侧按 Application 隔离，表侧无对称防护。
+ * tHistory 物理表归属校验：gid 数值空间绑定 history 发号名（Config.getHistory），不同
+ * 发号名的 gid 数值重叠，而 tHistory 主键裸用 gid——两个不同发号名的 app 解析到同一物理
+ * 存储时，History.writeOnly 的 replace 会以数值相等的 gid 静默互覆（历史行丢失，回放端
+ * 与账本双双无感）。
  *
- * 收口为部署契约的启动期校验（KISS，不改盘上格式）：在 tHistory 所属数据库的
- * DirectOperates 区写入归属标记（键 {@link #OWNER_KEY}，值为发号名），Application 启动
- * （atomicOpenDatabase）时校验——同库多 app 必须同一发号名（多 app 协作的既有语义：
- * 同名 gid 从同一 SM 取号天然不重叠），或为 tHistory 显式分库；换名重启同样被拦截
- * （新名从零发号，对存量行就是"他名覆盖"，必须显式迁移：清理旧名数据并删除归属标记）。
- * 把发号名维度纳入 tHistory 键编码属盘上格式迁移，另立专项，不在本收口。
+ * 收口为启动期部署契约校验（不改盘上格式）：在 tHistory 所属数据库的 DirectOperates 区
+ * 写归属标记（键 {@link #OWNER_KEY}，值为发号名），Application 启动时校验——同库多 app
+ * 必须同一发号名（同名 gid 从同一 SM 取号天然不重叠）或为 tHistory 显式分库；换名重启
+ * 同样拒绝（新名从零发号，对存量行即"他名覆盖"，须显式迁移：清理旧名数据并删除标记）。
  *
- * 并发首启：两个不同名 app 同时首启（标记缺失）存在认领竞态，由"写后重读终值"裁决
- * ——后写者胜出，败者在重读中看到他名即失败，至多一方通过。disableOperates 的
- * NullOperates 降级读不到标记，校验跳过（info 留痕），该配置本身即放弃直接操作面。
+ * 并发首启的认领竞态由"写后重读终值"裁决——后写者胜，败者见他名即失败，至多一方通过。
+ * disableOperates（NullOperates）读不到标记，校验跳过（info 留痕）。
  */
 public final class OwnerCheck {
 	private static final Logger logger = LogManager.getLogger(OwnerCheck.class);
