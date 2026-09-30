@@ -31,9 +31,9 @@ public class ConcurrentLruLike<K, V> {
 		}
 
 		final @NotNull V value;
-		volatile @NotNull ConcurrentHashMap<K, LruItem<K, V>> lruNode;
+		volatile @Nullable ConcurrentHashMap<K, LruItem<K, V>> lruNode;
 
-		LruItem(@NotNull V value, @NotNull ConcurrentHashMap<K, LruItem<K, V>> lruNode) {
+		LruItem(@NotNull V value, @Nullable ConcurrentHashMap<K, LruItem<K, V>> lruNode) {
 			this.value = value;
 			this.lruNode = lruNode;
 		}
@@ -51,6 +51,8 @@ public class ConcurrentLruLike<K, V> {
 	private final @NotNull String name;
 	private final @NotNull ConcurrentHashMap<K, LruItem<K, V>> dataMap;
 	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, LruItem<K, V>>> lruQueue = new ConcurrentLinkedQueue<>();
+	// 只保护节点登记、轮转和退役；factory、驱逐回调与 dataMap 写操作均在锁外。
+	private final Object lruGate = new Object();
 	private volatile @NotNull ConcurrentHashMap<K, LruItem<K, V>> lruHot;
 	private final @NotNull TimerFuture<?> newLruHotTimer;
 	private final @NotNull TimerFuture<?> cleanTimer;
@@ -167,37 +169,27 @@ public class ConcurrentLruLike<K, V> {
 
 	private void newLruHot() {
 		var newLru = new ConcurrentHashMap<K, LruItem<K, V>>(lruInitialCapacity);
-		lruHot = newLru;
-		lruQueue.add(newLru);
+		synchronized (lruGate) {
+			lruQueue.add(newLru);
+			lruHot = newLru;
+		}
 	}
 
-	private void adjustLru(@NotNull K key, @NotNull LruItem<K, V> lruItem,
-						   @NotNull ConcurrentHashMap<K, LruItem<K, V>> curLruHot) {
-		var oldNode = lruItem.getAndSetLruNodeNull();
-		if (oldNode == null)
-			return;
-		// 必须使用 Pair：lruItem可能是并发remove后残留的过期引用，oldNode里面可能已经是并发新建的记录。
-		oldNode.remove(key, lruItem);
-		// 仅当key仍映射到本条目时才登记：get/getOrAdd读取dataMap与这里之间并发的remove可能已完成
-		//（remove的摘除读到null的lruNode而跳过），死条目登记进节点后没人再摘除，将永久滞留节点。
-		// see get/remove/cleanNow
-		while (dataMap.get(key) == lruItem) {
-			var prev = curLruHot.putIfAbsent(key, lruItem);
-			if (prev == null) {
-				lruItem.lruNode = curLruHot;
-				if (dataMap.get(key) != lruItem)
-					curLruHot.remove(key, lruItem); // 登记过程中被并发remove：回滚，不让死条目滞留节点
+	private void adjustLru(@NotNull K key, @NotNull LruItem<K, V> lruItem) {
+		synchronized (lruGate) {
+			var oldNode = lruItem.getAndSetLruNodeNull();
+			if (oldNode != null)
+				oldNode.remove(key, lruItem);
+			if (dataMap.get(key) != lruItem)
 				return;
+			// 登记时才取得热点，和轮转/退役互斥；新映射的登记也持此锁。
+			var currentHot = lruHot;
+			currentHot.put(key, lruItem);
+			lruItem.lruNode = currentHot;
+			if (dataMap.get(key) != lruItem) {
+				currentHot.remove(key, lruItem);
+				lruItem.lruNode = null;
 			}
-			// 坑位被占。存活检查（循环条件）与putIfAbsent之间可能发生remove+重建：
-			// 重建走getOrAdd的computeIfAbsent并【无条件put登记】进当前热点（MUST replace），
-			// 占坑的prev可能是活条目——盲摘会让它脱管（lruNode指向热点但登记被摘，
-			// 容量驱逐与cleanNow都看不见，兜底无法收敛）。占坑者身份不会复活（dataMap同key只有唯一映射）：
-			// 是当前活映射就让位放弃登记（此时本条目已非映射，不登记也正确）；
-			// 确定过期才摘除重试，放任会让本条目永久脱离所有节点、无法被容量驱逐。
-			if (dataMap.get(key) == prev)
-				return;
-			curLruHot.remove(key, prev);
 		}
 	}
 
@@ -206,18 +198,15 @@ public class ConcurrentLruLike<K, V> {
 	 * （Factory.create() 契约，requireNonNull 强制）。
 	 */
 	public final @NotNull V getOrAdd(@NotNull K key, @NotNull Factory<V> factory) {
-		var lruHot = this.lruHot;
 		var lruItem = dataMap.get(key);
 		if (lruItem == null) { // slow-path
 			lruItem = dataMap.computeIfAbsent(key, k -> {
 				// factory产null即违约（Factory.create()契约）：fail-fast且不登记——注解配运行时强制才是承诺。
-				var item = new LruItem<>(Objects.requireNonNull(factory.create()), lruHot);
-				lruHot.put(k, item); // MUST replace
-				return item;
+				return new LruItem<>(Objects.requireNonNull(factory.create()), null);
 			});
 		}
-		if (lruItem.lruNode != lruHot)
-			adjustLru(key, lruItem, lruHot);
+		if (lruItem.lruNode != this.lruHot)
+			adjustLru(key, lruItem);
 		return lruItem.value;
 	}
 
@@ -232,7 +221,7 @@ public class ConcurrentLruLike<K, V> {
 		if (adjustLru) {
 			var lruHot = this.lruHot;
 			if (lruItem.lruNode != lruHot)
-				adjustLru(key, lruItem, lruHot);
+				adjustLru(key, lruItem);
 		}
 		return lruItem.value;
 	}
@@ -263,60 +252,63 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	private void removeLruRecord(@NotNull K key, @NotNull LruItem<K, V> item) {
-		var node = item.lruNode;
-		//noinspection ConstantValue
-		if (node != null)
-			node.remove(key, item);
+		synchronized (lruGate) {
+			var node = item.getAndSetLruNodeNull();
+			if (node != null)
+				node.remove(key, item);
+		}
 	}
 
 	private void tryPollLruQueue() {
-		if (lruQueue.size() <= MAX_NODE_COUNT)
-			return;
+		synchronized (lruGate) {
+			if (lruQueue.size() <= MAX_NODE_COUNT)
+				return;
 
-		var timeBegin = System.nanoTime();
-		int recordCount = 0, nodeCount = 0;
-		var polls = new ArrayList<ConcurrentHashMap<K, LruItem<K, V>>>(lruQueue.size() - SHRINK_NODE_COUNT);
-		while (lruQueue.size() > SHRINK_NODE_COUNT) {
-			// 大概，删除超过一天的节点。
-			var node = lruQueue.poll();
-			if (node == null)
-				break;
-			polls.add(node);
-			nodeCount++;
-		}
+			var timeBegin = System.nanoTime();
+			int recordCount = 0, nodeCount = 0;
+			var polls = new ArrayList<ConcurrentHashMap<K, LruItem<K, V>>>(lruQueue.size() - SHRINK_NODE_COUNT);
+			while (lruQueue.size() > SHRINK_NODE_COUNT) {
+				// 大概，删除超过一天的节点。
+				var node = lruQueue.poll();
+				if (node == null)
+					break;
+				polls.add(node);
+				nodeCount++;
+			}
 
-		// 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
-		var head = lruQueue.peek();
-		assert head != null;
-		for (var poll : polls) {
-			for (var e : poll.entrySet()) {
-				// concurrent see adjustLru
-				var r = e.getValue();
-				if (!r.compareAndSetLruNodeNull(poll))
-					continue; // 并发访问导致这个记录已经被迁移走。
-				var key = e.getKey();
-				// 仅迁移仍是dataMap活映射的条目；死条目随poll节点一起废弃，
-				// 否则迁移目标head将滞留永久清不掉的条目（并发的remove可能已跳过摘除）。
-				while (dataMap.get(key) == r) {
-					var prev = head.putIfAbsent(key, r);
-					if (prev == null) {
-						r.lruNode = head;
-						if (dataMap.get(key) == r)
-							recordCount++;
-						else
-							head.remove(key, r); // 登记过程中被并发remove：回滚
-						break;
+			// 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
+			var head = lruQueue.peek();
+			assert head != null;
+			for (var poll : polls) {
+				for (var e : poll.entrySet()) {
+					// concurrent see adjustLru
+					var r = e.getValue();
+					if (!r.compareAndSetLruNodeNull(poll))
+						continue; // 并发访问导致这个记录已经被迁移走。
+					var key = e.getKey();
+					// 仅迁移仍是dataMap活映射的条目；死条目随poll节点一起废弃，
+					// 否则迁移目标head将滞留永久清不掉的条目（并发的remove可能已跳过摘除）。
+					while (dataMap.get(key) == r) {
+						var prev = head.putIfAbsent(key, r);
+						if (prev == null) {
+							r.lruNode = head;
+							if (dataMap.get(key) == r)
+								recordCount++;
+							else
+								head.remove(key, r); // 登记过程中被并发remove：回滚
+							break;
+						}
+						// 同adjustLru的占坑协议：占坑者是当前活映射就不摘（防御性：当前结构下重建只登记进
+						// 当前热点、必新于head，此分支不可达；防未来结构变化）；确定过期才摘除后重试。
+						if (dataMap.get(key) == prev)
+							break;
+						head.remove(key, prev);
 					}
-					// 同adjustLru的占坑协议：占坑者是当前活映射就不摘（防御性：当前结构下重建只登记进
-					// 当前热点、必新于head，此分支不可达；防未来结构变化）；确定过期才摘除后重试。
-					if (dataMap.get(key) == prev)
-						break;
-					head.remove(key, prev);
 				}
 			}
-		}
-		logger.info("{}: shrank {} nodes, moved {} records, {} ms, result: {}/{}", name,
+			logger.info("{}: shrank {} nodes, moved {} records, {} ms, result: {}/{}", name,
 				nodeCount, recordCount, (System.nanoTime() - timeBegin) / 1_000_000, lruQueue.size(), MAX_NODE_COUNT);
+		}
 	}
 
 	private void cleanNow() {
@@ -362,18 +354,21 @@ public class ConcurrentLruLike<K, V> {
 						if (dataMap.get(k) != e.getValue()) {
 							// 过期登记：dataMap已无此映射，remove(k)会直接返回且不摘节点条目，这里直接清。
 							node.remove(k, e.getValue());
-						} else if (remove(k) != null) {
+						} else if (dataMap.remove(k, e.getValue())) {
+							removeLruRecord(k, e.getValue());
 							recordCount++;
 						}
 					}
 				}
 
-				if (node.isEmpty()) {
-					lruQueue.remove(node);
-					nodeCount++;
-				} else {
-					remainNodeCount++;
-					remainRecordCount += node.size();
+				synchronized (lruGate) {
+					if (node.isEmpty() && node != lruHot) {
+						lruQueue.removeIf(candidate -> candidate == node);
+						nodeCount++;
+					} else {
+						remainNodeCount++;
+						remainRecordCount += node.size();
+					}
 				}
 			}
 			if (remainNodeCount > 0)

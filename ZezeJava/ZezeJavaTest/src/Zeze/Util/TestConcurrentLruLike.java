@@ -138,7 +138,7 @@ public class TestConcurrentLruLike {
 		var item = dataMapOf(lru).remove("k");
 		hot0.remove("k", item);
 		Assertions.assertNull(lru.get("k"));
-		invokeAdjustLru(lru, "k", item, hot1);
+		invokeAdjustLru(lru, "k", item);
 
 		Assertions.assertNull(hot1.get("k"), "死条目不得登记进热点节点");
 	}
@@ -162,7 +162,7 @@ public class TestConcurrentLruLike {
 		hot1.put("k", stale);
 
 		var item = dataMapOf(lru).get("k");
-		invokeAdjustLru(lru, "k", item, hot1);
+		invokeAdjustLru(lru, "k", item);
 
 		Assertions.assertSame(item, hot1.get("k"), "活条目必须完成登记（否则永久脱离LRU）");
 	}
@@ -284,40 +284,43 @@ public class TestConcurrentLruLike {
 	}
 
 	/**
-	 * FND3-09 加固回归：adjustLru 存活检查（循环条件）与 putIfAbsent 之间发生 remove+重建时，
-	 * 占坑的 prev 是并发重建后【无条件 put 登记】进本热点的活条目（getOrAdd.computeIfAbsent MUST replace），
-	 * 不得盲摘——误摘会让活条目脱管（lruNode 指向热点但登记被摘，容量驱逐与 cleanNow 都看不见，兜底无法收敛）。
-	 * 用 rigged 热点在 putIfAbsent 调用点精确注入该交错。
+	 * FND3-09 加固回归：get取得旧item后，remove与getOrAdd已经删除并重建同key，
+	 * 迟到的adjust不得摘掉新活item的登记。登记如今在锁内读取当前hot，
+	 * 不再注入旧的目标node；除了保留新值，还检验新映射仍受轮转后的容量驱逐管理。
 	 */
 	@Test
 	public void testAdjustLruNotEvictLiveOccupant() throws Exception {
 		// period 调大，避免测试期间 lruHot 轮换/clean 干扰
 		var lru = new ConcurrentLruLike<String, Object>("testAdjNotEvictLive", 100, null, 600_000, 600_000, 16);
-		var v1 = new Object();
-		Assertions.assertSame(v1, lru.getOrAdd("k", () -> v1));
-		var hot0 = lruHotOf(lru);
-		invokeNewLruHot(lru);
+		try {
+			var v1 = new Object();
+			Assertions.assertSame(v1, lru.getOrAdd("k", () -> v1));
+			var hot0 = lruHotOf(lru);
+			var itemA = dataMapOf(lru).get("k"); // get在并发remove前取得的引用，延迟到重建后才adjust。
+			invokeNewLruHot(lru);
+			var hot1 = lruHotOf(lru);
+			Assertions.assertSame(v1, lru.remove("k"));
+			var v2 = new Object();
+			Assertions.assertSame(v2, lru.getOrAdd("k", () -> v2));
+			var itemC = dataMapOf(lru).get("k");
+			invokeAdjustLru(lru, "k", itemA);
 
-		var dataMap = dataMapOf(lru);
-		var itemA = dataMap.get("k"); // A：验活时仍活的旧条目，随即"挂起"在 putIfAbsent 前
-		var rigged = new InterleavingHot();
-		rigged.interleave = () -> {
-			try {
-				// B：remove 完成（dataMap 删除；摘除因读到 null 的 lruNode 跳过——A 已取走，无需模拟）
-				dataMap.remove("k", itemA);
-				// C：getOrAdd 重建：computeIfAbsent 创建 + 热点无条件 put 登记（MUST replace）
-				var itemC = newLruItem(new Object(), rigged);
-				dataMap.put("k", itemC);
-				rigged.put("k", itemC);
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		};
-		invokeAdjustLru(lru, "k", itemA, rigged);
+			Assertions.assertNull(hot0.get("k"), "旧节点条目已由真实remove摘除");
+			Assertions.assertSame(v2, lru.get("k", false));
+			Assertions.assertSame(itemC, hot1.get("k"), "迟到旧引用不得摘掉新活条目的登记");
+			Assertions.assertNotSame(itemA, hot1.get("k"), "死条目不得完成登记");
 
-		Assertions.assertNull(hot0.get("k"), "旧节点条目已被迁移方摘除");
-		Assertions.assertSame(dataMap.get("k"), rigged.get("k"), "占坑的活条目登记不得被误摘（否则活条目脱管）");
-		Assertions.assertNotSame(itemA, rigged.get("k"), "死条目不得完成登记");
+			// 新值从热点轮转为普通节点后，必须仍可驱逐；extra留在新热点，维持容量压力。
+			invokeNewLruHot(lru);
+			var extra = new Object();
+			lru.getOrAdd("extra", () -> extra);
+			lru.setCapacity(1);
+			invokeCleanNow(lru);
+			Assertions.assertNull(lru.get("k", false), "保留下来的新值仍须受容量驱逐管理");
+			Assertions.assertSame(extra, lru.get("extra", false));
+		} finally {
+			lru.close();
+		}
 	}
 
 	/**
@@ -413,12 +416,12 @@ public class TestConcurrentLruLike {
 		return ctor.newInstance(value, node);
 	}
 
-	private static void invokeAdjustLru(ConcurrentLruLike<?, ?> lru, Object key, Object item, Object hot)
+	private static void invokeAdjustLru(ConcurrentLruLike<?, ?> lru, Object key, Object item)
 			throws Exception {
 		var m = ConcurrentLruLike.class.getDeclaredMethod("adjustLru", Object.class,
-				Class.forName("Zeze.Util.ConcurrentLruLike$LruItem"), ConcurrentHashMap.class);
+				Class.forName("Zeze.Util.ConcurrentLruLike$LruItem"));
 		m.setAccessible(true);
-		m.invoke(lru, key, item, hot);
+		m.invoke(lru, key, item);
 	}
 
 	private static void invokeTryPollLruQueue(ConcurrentLruLike<?, ?> lru) throws Exception {
