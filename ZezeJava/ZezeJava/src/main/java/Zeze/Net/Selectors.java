@@ -128,6 +128,8 @@ public class Selectors extends ReentrantLock {
 	}
 
 	public @NotNull Selectors add(int count) {
+		if (count < 0)
+			throw new IllegalArgumentException("negative selector count: " + count);
 		// 持锁：add必须整体互斥——无锁的"读selectorList→copyOf→start→赋值"check-then-act
 		// 在并发add时后写覆盖先写，先注册的Selector线程从数组丢失但仍在运行
 		// （daemon泄漏、choice()轮不到）。类型自身即ReentrantLock，数组变更与读取互斥由类型保证。
