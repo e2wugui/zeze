@@ -819,6 +819,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public boolean send(@Nullable BLoginKey loginKey, @NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
+		if (p instanceof Rpc && p.isRequest())
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (connector == null) {
 			logger.warn("send({}): link connector not found. name={}", p.getTypeId(), linkName);
@@ -1515,6 +1517,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public int broadcast(@NotNull Protocol<?> p, int time, boolean onlySameVersion) {
+		if (p instanceof Rpc && p.isRequest())
+			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
