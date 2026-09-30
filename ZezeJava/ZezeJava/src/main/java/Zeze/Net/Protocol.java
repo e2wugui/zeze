@@ -240,8 +240,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		// 帧头声明的size大于实际数据时，抬WriteIndex会让p.decode越过真实数据末端，
 		// 以裸ArrayIndexOutOfBoundsException爆栈（Raft代理转发损坏/恶意数据路径）。
 		// 这里提前给出干净的解码错误，调用方按异常处理（应答错误码）。
-		if (endReadIndex > singleEncodedProtocol.WriteIndex)
-			throw new IllegalStateException("protocol decode: size " + size + " too large, buffer "
+		if (size < 0 || size > singleEncodedProtocol.WriteIndex - beginReadIndex)
+			throw new IllegalStateException("protocol decode: invalid size " + size + ", buffer "
 					+ (singleEncodedProtocol.WriteIndex - beginReadIndex)
 					+ ", moduleId=" + moduleId + " protocolId=" + protocolId);
 		int savedWriteIndex = singleEncodedProtocol.WriteIndex;
