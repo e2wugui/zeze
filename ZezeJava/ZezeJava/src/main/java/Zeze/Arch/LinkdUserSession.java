@@ -134,6 +134,8 @@ public class LinkdUserSession {
 				var exist = binds.get(moduleId);
 				if (exist != null && exist.longValue() != providerSessionId.longValue()) {
 					var s = linkdProviderService.GetSocket(exist);
+					if (s != null && s.getUserState() instanceof LinkdProviderSession oldSession)
+						oldSession.removeLinkSession(moduleId, link.getSessionId());
 					logger.warn("bind: replace provider moduleId={}, account={}, from={}, to={}",
 							moduleId, account, s != null ? s.getRemoteAddress() : null, provider.getRemoteAddress());
 				}

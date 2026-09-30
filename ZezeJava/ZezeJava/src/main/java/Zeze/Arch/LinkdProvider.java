@@ -319,9 +319,19 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				if (link != null) {
 					var linkSession = (LinkdUserSession)link.getUserState();
 					if (linkSession != null) {
-						linkSession.unbind(linkdApp.linkdProviderService, link, moduleId, provider, true);
-						if (p != null)
-							p.Send(link);
+						// 快照取出后仍可能换绑，归属检查、解绑和通告须与bind保持全序。
+						var writeLock = linkSession.bindsLock.writeLock();
+						writeLock.lock();
+						try {
+							var owner = linkSession.binds.get(moduleId);
+							if (owner == null || owner != provider.getSessionId())
+								continue;
+							linkSession.unbind(linkdApp.linkdProviderService, link, moduleId, provider, true);
+							if (p != null)
+								p.Send(link);
+						} finally {
+							writeLock.unlock();
+						}
 					}
 				}
 			}
