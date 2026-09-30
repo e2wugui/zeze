@@ -83,6 +83,47 @@ public class TestId128UdpServerValidation {
 	}
 
 	@Test
+	public void testBatchRepliesSplitAtRpcBoundaries() throws Exception {
+		final int requestCount = 350;
+		var requests = ByteBuffer.Allocate();
+		var modeledReplies = ByteBuffer.Allocate();
+		for (int i = 1; i <= requestCount; ++i) {
+			var r = new AllocateId128();
+			r.setSessionId(i);
+			r.Argument.setName("b");
+			r.Argument.setCount(1);
+			r.encode(requests);
+			// 相同name从0发号：用实际编码确认响应总量确实越过分包及旧发送数组的上限。
+			r.setRequest(false);
+			r.Result.getStartId().assign(0, i - 1);
+			r.Result.setCount(1);
+			r.encode(modeledReplies);
+		}
+		Assertions.assertTrue(requests.size() <= 2048, "请求批次应能放入旧协议接收容量");
+		Assertions.assertTrue(modeledReplies.size() > 2048, "用例须触发应答扩张，不能依赖小值个数猜测字节数");
+		client.send(new DatagramPacket(requests.Bytes, requests.ReadIndex, requests.size(), serverAddress));
+		var sessions = new java.util.HashSet<Long>();
+		var starts = new java.util.HashSet<String>();
+		int datagrams = 0;
+		while (sessions.size() < requestCount) {
+			var bytes = new byte[2048];
+			var p = new DatagramPacket(bytes, bytes.length);
+			client.receive(p);
+			Assertions.assertTrue(p.getLength() <= 1472, "每个完整RPC分包须兼容旧客户端接收容量");
+			++datagrams;
+			var replies = ByteBuffer.Wrap(bytes, p.getOffset(), p.getLength());
+			while (!replies.isEmpty()) {
+				var r = new AllocateId128();
+				r.decode(replies);
+				Assertions.assertTrue(sessions.add(r.getSessionId()), "一个请求只能收到一次完整应答");
+				Assertions.assertTrue(starts.add(r.Result.getStartId().toString()), "发出的号段不得重复");
+				Assertions.assertEquals(1, r.Result.getCount());
+			}
+		}
+		Assertions.assertTrue(datagrams >= 2, "应答应按完整RPC切成多个兼容旧客户端的报文");
+	}
+
+	@Test
 	public void testIllegalCountRejectedAndNoRegression() throws Exception {
 		var r1 = alloc(NAME, 100);
 		Assertions.assertEquals(100, r1.Result.getCount());

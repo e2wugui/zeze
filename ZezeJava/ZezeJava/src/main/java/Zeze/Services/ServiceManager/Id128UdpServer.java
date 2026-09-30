@@ -93,6 +93,7 @@ public class Id128UdpServer {
 		var bbRecv = NioByteBuffer.allocate(2048);
 		var dbb = bbRecv.getNioByteBuffer();
 		var bbSend = ByteBuffer.Allocate(2048);
+		var bbReply = ByteBuffer.Allocate(64);
 		var rpc = new AllocateId128();
 		var bbTemp = ByteBuffer.Allocate(32);
 		for (; ; ) {
@@ -118,7 +119,14 @@ public class Id128UdpServer {
 						}
 						process(rpc, bbTemp);
 						rpc.setRequest(false);
-						rpc.encode(bbSend);
+						bbReply.Reset();
+						rpc.encode(bbReply);
+						// 老客户端按1472字节接收；回复比请求更长，按完整RPC边界拆包，不能使用接收缓冲容量发送。
+						if (bbSend.size() + bbReply.size() > 1472) {
+							sendReplies(bbSend, addr);
+							bbSend.Reset();
+						}
+						bbSend.Append(bbReply.Bytes, bbReply.ReadIndex, bbReply.size());
 					}
 				} catch (Exception e) {
 					if (e instanceof IllegalArgumentException) {
@@ -130,15 +138,7 @@ public class Id128UdpServer {
 						logger.error("process exception:", e);
 					}
 				}
-				int sendSize = bbSend.WriteIndex;
-				if (sendSize > 0) {
-					dbb.clear();
-					dbb.put(bbSend.Bytes, 0, sendSize); // NioByteBuffer还不支持写,这里只能多一次复制
-					dbb.flip();
-					int r = udpChannel.send(dbb, addr);
-					if (r != sendSize)
-						logger.error("send failed: r={} != {}", r, sendSize);
-				}
+				sendReplies(bbSend, addr);
 			} catch (Throwable e) {
 				if (!udpChannel.isOpen()) {
 					logger.info("{}: {}", e.getClass().getName(), e.getMessage());
@@ -150,6 +150,15 @@ public class Id128UdpServer {
 			}
 		}
 		logger.info("worker end");
+	}
+
+	private void sendReplies(@NotNull ByteBuffer replies, java.net.SocketAddress address) throws IOException {
+		int size = replies.size();
+		if (size > 0) {
+			int sent = udpChannel.send(java.nio.ByteBuffer.wrap(replies.Bytes, replies.ReadIndex, size), address);
+			if (sent != size)
+				logger.error("send failed: r={} != {}", sent, size);
+		}
 	}
 
 	private volatile long lastRejectLogMs; // 拒绝告警限频（60秒一次）
