@@ -90,8 +90,9 @@ public class EventDispatcher {
 
 	// 启动新的线程执行。
 	public void triggerThread(@NotNull Application app, @NotNull Object sender, @NotNull EventArgument arg, @Nullable Object oneByOneKey) {
+		var handles = runThreadEvents.toArray(HandleClass[]::new);
 		if (oneByOneKey == null) {
-			for (var handle : runThreadEvents) {
+			for (var handle : handles) {
 				var classNameOrHandle = handle.classNameOrHandle;
 				if (classNameOrHandle instanceof EventHandle) {
 					var actionName = "EventDispatch." + name + ".runAsync." + classNameOrHandle.getClass().getName();
@@ -103,7 +104,7 @@ public class EventDispatcher {
 				}
 			}
 		} else {
-			for (var handle : runThreadEvents) {
+			for (var handle : handles) {
 				var classNameOrHandle = handle.classNameOrHandle;
 				if (classNameOrHandle instanceof EventHandle) {
 					var actionName = "EventDispatch." + name + ".runAsync." + classNameOrHandle.getClass().getName();
@@ -119,7 +120,7 @@ public class EventDispatcher {
 
 	// 嵌入当前线程执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
 	public long triggerEmbed(@NotNull Object sender, EventArgument arg) throws Exception {
-		for (var handle : runEmbedEvents) {
+		for (var handle : runEmbedEvents.toArray(HandleClass[]::new)) {
 			var classNameOrHandle = handle.classNameOrHandle;
 			var ret = classNameOrHandle instanceof EventHandle
 					? ((EventHandle)classNameOrHandle).invoke(sender, arg)
@@ -132,7 +133,7 @@ public class EventDispatcher {
 
 	// 在当前线程中，创建新的存储过程并嵌套执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
 	public void triggerProcedure(@NotNull Application app, @NotNull Object sender, @NotNull EventArgument arg) {
-		for (var handle : runProcedureEvents) {
+		for (var handle : runProcedureEvents.toArray(HandleClass[]::new)) {
 			var classNameOrHandle = handle.classNameOrHandle;
 			if (classNameOrHandle instanceof EventHandle) {
 				var actionName = "EventDispatcher." + name + ".triggerProcedure." + classNameOrHandle.getClass().getName();
