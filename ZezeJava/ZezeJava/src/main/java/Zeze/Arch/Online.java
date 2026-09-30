@@ -1368,7 +1368,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				continue;
 			}
 			var login = online.getLogins().get(account.getClientId());
-			if (null == login) {
+			if (login == null || login.getLink().getState() != eLogined) {
 				groupNotOnline.accounts.add(account);
 				continue;
 			}
