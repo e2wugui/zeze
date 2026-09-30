@@ -24,8 +24,10 @@ import org.jetbrains.annotations.NotNull;
  * 部分失败降级（单台异常不牺牲其余台）+ 会话成员集在 operate 内向注册表双向收敛：缺册补入
  * （reconcileMissingMembers）、摘册逐出（evictUnregisteredMembers）、在册死亡自愈重建
  * （renewDeadMembers）。死亡成员重建、逐出后重入与瞬时失败（超时/发送失败页可能已被
- * 服务端游标越过而未投递）均从该成员已投递水位续扫（见memberSeekBase/markTransientLoss），
- * 已投递区间不跨页重复投递，重复收敛为水位边界同时间的少量条目。
+ * 服务端游标越过而未投递）均从该成员已投递水位续扫（见memberSeekBase/
+ * resumeFromDeliveredWatermark），已投递区间不跨页重复投递，重复收敛为水位边界同时间的
+ * 少量条目；观测到页序时间回退的成员（扫描流非单调，轮转序形态）时间水位不可作重定位
+ * 下界，保守回落原始条件整窗重扫（见memberTimeRegression——宁重复可去重不静默丢失）。
  */
 public class SessionAll implements AutoCloseable {
 	private static final @NotNull Logger logger = LogManager.getLogger(SessionAll.class);
@@ -44,6 +46,15 @@ public class SessionAll implements AutoCloseable {
 	// 来源，从首条>=水位处续扫、已投递区间不整段重扫（末投递页内必有time==水位的日志，
 	// 定位点必不晚于它——不丢；重复收敛为水位边界同时间的少量条目）。
 	private final ConcurrentHashMap<String, Long> deliveredWatermark = new ConcurrentHashMap<>();
+	// 成员扫描流时间回退观测（FND35 log4jquery-02）：该成员已投递页序列出现过 time 低于
+	// 先前水位的日志=扫描流时间非单调（服务端列表不变式是轮转序非内容时间序，rotate
+	// 内容时间可晚于active——Log4jSession自述"扫描流时间不单调"）。非单调流上 max-时间
+	// 水位不可作续扫重定位下界：水位=T2（rotate段）而未投递段在active（time=T1<T2），
+	// 重定位beginTime=水位使服务端seek(T2)+查询下界覆写把active未投递段逐条滤除——聚合
+	// 静默缺窗且remain正常收敛不可观测。观测到回退的成员续扫保守回落（见
+	// resumeFromDeliveredWatermark），单调成员保持水位紧凑续扫（FND31/FND34语义不变）。
+	// 与deliveredWatermark同生命周期（重入保留、reset/close清除）：回退由已投递历史推出。
+	private final ConcurrentHashSet<String> memberTimeRegression = new ConcurrentHashSet<>();
 	// 成员级续扫基点（捕获语义）：重建时刻的水位快照，此后翻页固定下发该值——服务端
 	// beginTime去重哨兵据此短路、游标连续推进。不得逐页跟踪水位（服务端会不断reset+seek
 	// 到更新的水位，跳过未投递区间丢数据）。reset=true（新查询序列）与close时失效。
@@ -160,10 +171,16 @@ public class SessionAll implements AutoCloseable {
 			// 连接抖动同走上面的 failedServers 路径：不标记 finishedSession（下次 operate 重试）、
 			// 全败时上抛。因此能到达本行的只剩零码结果，!isRemain() 才可信地表示"该台查完"。
 			r.getLogs().sort(comparator);
-			// 已投递水位推进：取本页各日志time的最大值与既有水位合并（见deliveredWatermark）。
-			for (var log : r.getLogs())
-				deliveredWatermark.merge(future.getValue().getName(), log.getTime(), Math::max);
-			memberForceReset.remove(future.getValue().getName()); // 成功投递：强制reset使命完成
+			// 已投递水位推进：取本页各日志time的最大值与既有水位合并（见deliveredWatermark）；
+			// 后页时间低于先前水位=扫描流非单调的观测点（轮转序形态，见memberTimeRegression）。
+			var memberName = future.getValue().getName();
+			for (var log : r.getLogs()) {
+				var prev = deliveredWatermark.get(memberName);
+				if (null != prev && prev > log.getTime())
+					memberTimeRegression.add(memberName);
+				deliveredWatermark.merge(memberName, log.getTime(), Math::max);
+			}
+			memberForceReset.remove(memberName); // 成功投递：强制reset使命完成
 			remain = remain || r.isRemain();
 			if (!r.isRemain())
 				finishedSession.add(future.getValue().getName());
@@ -198,10 +215,25 @@ public class SessionAll implements AutoCloseable {
 	 * 任何已投递日志）；无水位置reset重定位到查询下界重发（无重复）。成功投递一页即清除。
 	 */
 	private void markTransientLoss(String name) {
+		resumeFromDeliveredWatermark(name);
+		memberForceReset.add(name);
+	}
+
+	/**
+	 * 续扫基点捕获单点（瞬时失败/死亡重建/重入补员三路共用，FND35 log4jquery-02）：
+	 * 单调成员取水位（紧凑续扫，重复收敛为水位边界同时间条目）；观测到时间回退的成员
+	 * （见memberTimeRegression）清除基点回落原始条件——时间水位高于未投递日志时间，
+	 * 按水位重定位+beginTime覆写会把未投递段滤除（静默缺窗），宁整窗重扫重复可观测
+	 * 可幂等去重、不丢失（重扫量以查询窗口为界，翻页协议有界）。
+	 */
+	private void resumeFromDeliveredWatermark(String name) {
+		if (memberTimeRegression.contains(name)) {
+			memberSeekBase.remove(name);
+			return;
+		}
 		var watermark = deliveredWatermark.get(name);
 		if (null != watermark)
 			memberSeekBase.put(name, watermark);
-		memberForceReset.add(name);
 	}
 
 	/**
@@ -223,9 +255,7 @@ public class SessionAll implements AutoCloseable {
 				// （同renewDeadMembers的基点语义）：无水位=本会话从未投递，按原条件从头扫描即正确。
 				// 新会话首个请求必重定位，强制reset标记随之失效清除。
 				memberForceReset.remove(serverName);
-				var watermark = deliveredWatermark.get(serverName);
-				if (null != watermark)
-					memberSeekBase.put(serverName, watermark);
+				resumeFromDeliveredWatermark(serverName);
 				memberRetryBackoff.remove(serverName);
 				logger.warn("reconciled missing member into all-servers session. server='{}', logName '{}'",
 						serverName, logName);
@@ -284,9 +314,7 @@ public class SessionAll implements AutoCloseable {
 				// 从未投递过任何页，按原条件从头扫描即正确。新会话beginTime哨兵为初始值，
 				// 首个请求必重定位，强制reset标记随之失效清除。
 				memberForceReset.remove(name);
-				var watermark = deliveredWatermark.get(name);
-				if (null != watermark)
-					memberSeekBase.put(name, watermark);
+				resumeFromDeliveredWatermark(name);
 				logger.warn("renewed dead member session. server='{}', logName '{}'", name, logName);
 			} catch (Exception e) {
 				logger.warn("renew dead member session fail, keep dead entry for next retry. server='{}', logName '{}'",
@@ -376,11 +404,12 @@ public class SessionAll implements AutoCloseable {
 				seekCondition(session.getName(), condition)));
 	}
 
-	/** 新查询序列（reset=true）：完成集与续扫基点/水位/强制reset随旧序列一起失效。 */
+	/** 新查询序列（reset=true）：完成集与续扫基点/水位/回退观测/强制reset随旧序列一起失效。 */
 	private void clearQuerySequenceState() {
 		finishedSession.clear();
 		memberSeekBase.clear();
 		deliveredWatermark.clear();
+		memberTimeRegression.clear();
 		memberForceReset.clear();
 	}
 
@@ -402,6 +431,7 @@ public class SessionAll implements AutoCloseable {
 		finishedSession.clear();
 		memberSeekBase.clear();
 		deliveredWatermark.clear();
+		memberTimeRegression.clear();
 		memberForceReset.clear();
 		if (first != null)
 			throw first;

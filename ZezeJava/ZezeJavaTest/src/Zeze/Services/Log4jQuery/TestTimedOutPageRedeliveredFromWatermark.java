@@ -381,6 +381,7 @@ public class TestTimedOutPageRedeliveredFromWatermark {
 		setField(sessionAll, "memberSeekBase", new ConcurrentHashMap<String, Long>());
 		// 修复新增字段（红阶段不存在则跳过，行为断言承载红绿）。
 		setFieldIfPresent(sessionAll, "memberForceReset", new ConcurrentHashSet<String>());
+		setFieldIfPresent(sessionAll, "memberTimeRegression", new ConcurrentHashSet<String>());
 		agent.servers = Set.copyOf(alls.keySet());
 		setField(sessionAll, "agent", agent);
 		return sessionAll;

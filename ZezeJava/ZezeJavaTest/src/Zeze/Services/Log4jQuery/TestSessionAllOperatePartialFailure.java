@@ -193,6 +193,8 @@ public class TestSessionAllOperatePartialFailure {
 		setFinalField(sessionAll, "memberSeekBase", new ConcurrentHashMap<String, Long>());
 		// 瞬时失败成员的强制reset标记表（超时页水位续扫用）：注入空表。
 		setFinalField(sessionAll, "memberForceReset", new ConcurrentHashSet<String>());
+		// 成员扫描流时间回退观测表（非单调成员保守续扫用）：注入空表。
+		setFinalField(sessionAll, "memberTimeRegression", new ConcurrentHashSet<String>());
 		var agent = newUninitialized(StubLogAgent.class);
 		agent.servers = Set.copyOf(alls.keySet()); // 注册表=会话成员：补员/逐出差集为空
 		setFinalField(sessionAll, "agent", agent);
