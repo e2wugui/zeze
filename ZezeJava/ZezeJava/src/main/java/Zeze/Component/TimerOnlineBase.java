@@ -345,12 +345,13 @@ abstract class TimerOnlineBase<I> {
 	// scheduleSimple/scheduleCronNext），共用key的online定时器回调按key串行。
 	private void scheduleOnlineSimple(@NotNull String timerId, long delay, @Nullable TimerHandle handle,
 									  @Nullable String oneByOneKey) {
+		var timerSerialId = getOnlineTimer(timerId).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId,
 					TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
-							() -> fireOnlineSimple(timerId, handle, false))).scheduleNow(delay));
+						() -> fireOnlineSimple(timerId, timerSerialId, handle, false))).scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
@@ -373,12 +374,14 @@ abstract class TimerOnlineBase<I> {
 	private void scheduleOnlineSimpleHot(@NotNull String timerId, long delay,
 										 @NotNull Class<? extends TimerHandle> handleClass,
 										 @Nullable String oneByOneKey) {
+		var timerSerialId = getOnlineTimer(timerId).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId, TaskSpec
 					.ofAction(() -> Timer.dispatchFire(oneByOneKey,
-							() -> fireOnlineSimple(timerId, findTimerHandleSafely(handleClass.getName()), true)))
+							() -> fireOnlineSimple(timerId, timerSerialId,
+									findTimerHandleSafely(handleClass.getName()), true)))
 					.scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
@@ -409,12 +412,13 @@ abstract class TimerOnlineBase<I> {
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
 	private void scheduleOnlineCronNext(@NotNull String timerId, long delay, @Nullable TimerHandle handle,
 										@Nullable String oneByOneKey) {
+		var timerSerialId = getOnlineTimer(timerId).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId,
 					TaskSpec.ofAction(() -> Timer.dispatchFire(oneByOneKey,
-							() -> fireOnlineCron(timerId, handle, false))).scheduleNow(delay));
+						() -> fireOnlineCron(timerId, timerSerialId, handle, false))).scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
@@ -423,20 +427,22 @@ abstract class TimerOnlineBase<I> {
 	private void scheduleOnlineCronNextHot(@NotNull String timerId, long delay,
 										   @NotNull Class<? extends TimerHandle> handleClass,
 										   @Nullable String oneByOneKey) {
+		var timerSerialId = getOnlineTimer(timerId).getSerialId();
 		Transaction.whileCommit(() -> {
 			if (!timer().isStarted())
 				return; // stop后拒绝再安装——周期重装可能晚于stop的cancel+clear到达
 			var exist = timer().timerFutures.put(timerId, TaskSpec
 					.ofAction(() -> Timer.dispatchFire(oneByOneKey,
-							() -> fireOnlineCron(timerId, findTimerHandleSafely(handleClass.getName()), true)))
+							() -> fireOnlineCron(timerId, timerSerialId,
+									findTimerHandleSafely(handleClass.getName()), true)))
 					.scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
 	}
 
-	private void fireOnlineCron(@NotNull String timerId, @Nullable TimerHandle handle, boolean hot) {
-		fireOnline(timerId, handle, hot, "Cron", new FireKind<>() {
+	private void fireOnlineCron(@NotNull String timerId, long timerSerialId, @Nullable TimerHandle handle, boolean hot) {
+		fireOnline(timerId, timerSerialId, handle, hot, "Cron", new FireKind<>() {
 			private boolean hasNextFlag;
 
 			@Override
@@ -482,8 +488,8 @@ abstract class TimerOnlineBase<I> {
 		});
 	}
 
-	private void fireOnlineSimple(@NotNull String timerId, @Nullable TimerHandle handle, boolean hot) {
-		fireOnline(timerId, handle, hot, "Simple", new FireKind<>() {
+	private void fireOnlineSimple(@NotNull String timerId, long timerSerialId, @Nullable TimerHandle handle, boolean hot) {
+		fireOnline(timerId, timerSerialId, handle, hot, "Simple", new FireKind<>() {
 			@Override
 			public long execute(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle) {
 				var simpleTimer = (BSimpleTimer)bTimer.getTimerObj();
@@ -536,20 +542,22 @@ abstract class TimerOnlineBase<I> {
 		void scheduleNext(@NotNull OnlineTimer<T> bTimer, @NotNull T id, @NotNull TimerHandle handle, boolean hot);
 	}
 
-	private void fireOnline(@NotNull String timerId, @Nullable TimerHandle handle, boolean hot,
+	private void fireOnline(@NotNull String timerId, long timerSerialId, @Nullable TimerHandle handle, boolean hot,
 							@NotNull String kind, @NotNull FireKind<I> fireKind) {
 		if (!timer().isStarted())
 			return; // stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
 		var timer = timer();
 		var procSuffix = handle != null ? "." + handle.getClass().getName() : "";
 		var ret = TaskSpec.ofProcedure(zeze().newProcedure(() -> {
-			if (handle == null) {
-				cancelOnlineLocal(timerId, null);
-				return 0;
-			}
 			var bTimer = getOnlineTimer(timerId);
 			if (bTimer == null) {
 				Transaction.whileCommit(() -> timer.cancelFuture(timerId));
+				return 0;
+			}
+			if (bTimer.getSerialId() != timerSerialId)
+				return 0; // 旧fire不能使用旧handle操作同名新注册（含hot解析失败的清理）。
+			if (handle == null) {
+				cancelOnlineLocal(timerId, null);
 				return 0;
 			}
 			var timerLoginVersion = bTimer.getLoginVersion();
@@ -587,8 +595,11 @@ abstract class TimerOnlineBase<I> {
 		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
 		if (ret != 0) {
 			TaskSpec.ofProcedure(zeze().newProcedure(() -> {
-				logger.info("cancel online {} timer for ret={}: {}", kind.toLowerCase(), ret, timerId);
-				cancelOnlineLocal(timerId, null);
+				var bTimer = getOnlineTimer(timerId);
+				if (bTimer != null && bTimer.getSerialId() == timerSerialId) {
+					logger.info("cancel online {} timer for ret={}: {}", kind.toLowerCase(), ret, timerId);
+					cancelOnlineLocal(timerId, null);
+				}
 				return 0;
 			}, name() + " finally cancel impossible!")).call();
 		}

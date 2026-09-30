@@ -15,14 +15,20 @@ final class TimerTestEnv implements AutoCloseable {
 	final Application app;
 	final Timer timer;
 	final TakeoverTestEnv.TestAppBase appBase;
+	final TestOnline online;
 
 	TimerTestEnv(String name) throws Exception {
+		this(name, false);
+	}
+
+	TimerTestEnv(String name, boolean withOnline) throws Exception {
 		Task.tryInitThreadPool();
 		var conf = TakeoverTestEnv.newConf("off", 600_000, 600_000);
 		app = new Application(name + conf.getServerId(), conf);
 		new ProviderApp(app);
 		appBase = new TakeoverTestEnv.TestAppBase(app);
 		app.initialize(appBase);
+		online = withOnline ? new TestOnline(appBase) : null;
 		app.start();
 		timer = app.getTimer();
 		timer.start();
@@ -35,6 +41,12 @@ final class TimerTestEnv implements AutoCloseable {
 	@Override
 	public void close() throws Exception {
 		app.stop();
+	}
+
+	static final class TestOnline extends Zeze.Game.Online {
+		TestOnline(TakeoverTestEnv.TestAppBase appBase) {
+			super(appBase);
+		}
 	}
 
 	/** Holds the public one-by-one queue until a scheduled fire has been dispatched into it. */
