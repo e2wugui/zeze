@@ -126,6 +126,13 @@ public final class CronTimerSpec implements TimerSpec {
 	}
 
 	public static boolean nextCronTimer(@NotNull BCronTimer cronTimer, boolean missfire) throws ParseException {
+		// 当前回调（包括最后一次）都必须先记录本次触发的元数据。
+		var nextExpectedTime = cronTimer.getNextExpectedTime();
+		cronTimer.setExpectedTime(nextExpectedTime);
+		cronTimer.setHappenTimes(cronTimer.getHappenTimes() + 1);
+		var now = System.currentTimeMillis();
+		cronTimer.setHappenTime(now);
+
 		// check remain times
 		var remainTimes = cronTimer.getRemainTimes();
 		if (remainTimes >= 0) {
@@ -134,12 +141,6 @@ public final class CronTimerSpec implements TimerSpec {
 			if (remainTimes == 0)
 				return false;
 		}
-
-		var nextExpectedTime = cronTimer.getNextExpectedTime();
-		cronTimer.setExpectedTime(nextExpectedTime);
-		cronTimer.setHappenTimes(cronTimer.getHappenTimes() + 1);
-		var now = System.currentTimeMillis();
-		cronTimer.setHappenTime(now);
 
 		long baseTime;
 		if (missfire && cronTimer.getMissfirePolicy() == AbstractTimer.eMissfirePolicyRunOnce) {
