@@ -9,6 +9,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Util.PlatformMetrics;
+import Zeze.Util.FastLock;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,6 +34,9 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	private final AtomicInteger wakeupNotified = new AtomicInteger();
 	private final ArrayList<ByteBuffer> bbPool = new ArrayList<>(); // 当前selector的本地池,不会并发
 	private final ConcurrentLinkedQueue<Runnable> taskQueue = new ConcurrentLinkedQueue<>();
+	private final FastLock taskLock = new FastLock();
+	private boolean taskQueueClosed; // taskLock守护；关闭后由唯一排干者串行执行。
+	private boolean drainingTasks; // taskLock守护；执行用户任务时不持锁。
 	private long selectCount;
 	private boolean firstAction;
 	private volatile boolean running = true;
@@ -58,7 +62,58 @@ public class Selector extends Thread implements ByteBufferAllocator {
 	}
 
 	public void addTask(@NotNull Runnable task) {
-		taskQueue.offer(task);
+		boolean drain;
+		taskLock.lock();
+		try {
+			taskQueue.offer(task);
+			drain = taskQueueClosed && !drainingTasks;
+			if (drain)
+				drainingTasks = true;
+		} finally {
+			taskLock.unlock();
+		}
+		if (drain)
+			drainClosedTasks();
+	}
+
+	private static void runTask(@NotNull Runnable task) {
+		try {
+			task.run();
+		} catch (Throwable e) {
+			logger.error("Selector task exception:", e);
+		}
+	}
+
+	private void closeTaskQueue() {
+		boolean drain;
+		taskLock.lock();
+		try {
+			taskQueueClosed = true;
+			drain = !drainingTasks;
+			if (drain)
+				drainingTasks = true;
+		} finally {
+			taskLock.unlock();
+		}
+		if (drain)
+			drainClosedTasks();
+	}
+
+	private void drainClosedTasks() {
+		for (;;) {
+			Runnable task;
+			taskLock.lock();
+			try {
+				task = taskQueue.poll();
+				if (task == null) {
+					drainingTasks = false;
+					return;
+				}
+			} finally {
+				taskLock.unlock();
+			}
+			runTask(task);
+		}
 	}
 
 	@Override
@@ -160,6 +215,8 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		} catch (Exception e) {
 			logger.error("selector.close {} exception:", getClass().getName(), e);
 		}
+		if (!isAlive())
+			closeTaskQueue();
 	}
 
 	private static final class WakeupThread {
@@ -263,5 +320,6 @@ public class Selector extends Thread implements ByteBufferAllocator {
 				logger.error("Selector.run exception:", e);
 			}
 		}
+		closeTaskQueue();
 	}
 }

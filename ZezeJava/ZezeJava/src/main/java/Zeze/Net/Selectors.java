@@ -58,6 +58,7 @@ public class Selectors extends ReentrantLock {
 	private final ArrayList<ByteBuffer> bbGlobalPool = new ArrayList<>(); // 全局池,需要考虑并发访问
 	private final FastLock bbGlobalPoolLock = new FastLock(); // 全局池的锁
 	private volatile @NotNull Selector[] selectorList;
+	private @Nullable Selector[] closingSelectors; // 管理器锁内移交；并发close等待同一批线程。
 	private volatile boolean closed;
 	private final AtomicLong choiceCount = new AtomicLong();
 
@@ -181,17 +182,38 @@ public class Selectors extends ReentrantLock {
 	}
 
 	public void close() {
+		if (Thread.currentThread() instanceof Selector current && current.getSelectors() == this) {
+			Task.getCriticalThreadPool().execute(this::close);
+			return;
+		}
+		Selector[] tmp;
 		lock();
 		try {
 			closed = true;
-			Selector[] tmp = selectorList;
+			tmp = selectorList;
 			if (tmp != null) {
+				closingSelectors = tmp;
 				selectorList = null;
-				for (Selector s : tmp)
-					s.close();
-			}
+			} else
+				tmp = closingSelectors;
 		} finally {
 			unlock();
+		}
+		// dispose回调可能访问Selectors，等待线程终止时不能持有管理器锁。
+		if (tmp != null) {
+			for (Selector s : tmp)
+				s.close();
+			lock();
+			try {
+				for (Selector s : tmp) {
+					if (s.isAlive())
+						return;
+				}
+				if (closingSelectors == tmp)
+					closingSelectors = null;
+			} finally {
+				unlock();
+			}
 		}
 	}
 }
