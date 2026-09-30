@@ -33,7 +33,14 @@ public class TestMutableContainerContracts {
 		assertEquals(4, pairs.size());
 	}
 
-
+	@Test
+	public void zeroAdditionReturnsAMutableValueAndSelfRemovalClears() {
+		var one = Id128.Zero.add(1);
+		assertEquals(1, one.getLow());
+		one.increment(1);
+		assertEquals(2, one.getLow());
+		assertEquals(0, Id128.Zero.getLow());
+	}
 
 
 }

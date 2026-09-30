@@ -88,7 +88,7 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 	 * @return new Id128 instance that added.
 	 */
 	public @NotNull Id128 add(long num) {
-		var result = clone();
+		var result = new Id128(high, low);
 		result.increment(num);
 		return result;
 	}
