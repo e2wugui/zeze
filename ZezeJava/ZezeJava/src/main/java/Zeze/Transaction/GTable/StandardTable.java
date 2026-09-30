@@ -310,9 +310,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     @CheckForNull Map<C, V> backingRowMap;
 
     final void updateBackingRowMapField() {
-      if (backingRowMap == null || (backingRowMap.isEmpty() && backingMap.containsKey(rowKey))) {
-        backingRowMap = computeBackingRowMap();
-      }
+      // The same row key can now refer to a different row after removal and reinsertion.
+      backingRowMap = computeBackingRowMap();
     }
 
     @CheckForNull
@@ -347,12 +346,11 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     public V put(C key, V value) {
       Utils.checkNotNull(value);
       if (backingRowMap != null && !backingRowMap.isEmpty()) {
-        // 陈旧视图守卫：行已被rowMap().remove(rowKey)/clear()整体摘除后，缓存的
-        // backingRowMap仍非空，直接写入会落到已脱离backingMap的旧行（托管路径还记
-        // 挂在脱树bean上的幻影redo）——写入静默丢失。Guava原版同构缺陷，Zeze下丢的
-        // 是持久化数据，响亮失败优于静默丢失。
-        if (!backingMap.containsKey(rowKey))
+        // Bind to a recreated row, while retaining the guard for a row that is still absent.
+        Map<C, V> currentRowMap = computeBackingRowMap();
+        if (currentRowMap == null)
           throw new IllegalStateException("stale row view: row " + rowKey + " has been removed from table");
+        backingRowMap = currentRowMap;
         return backingRowMap.put(key, value);
       }
       return StandardTable.this.put(rowKey, key, value);
