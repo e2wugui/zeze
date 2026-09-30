@@ -102,7 +102,7 @@ public class CollSortedMap1<K extends Comparable<K>, V> extends CollSortedMap<K,
 	@Override
 	public CollSortedMap1<K, V> copy() {
 		var copy = new CollSortedMap1<>(logTypeId, keyCodecFuncs, valueCodecFuncs);
-		copy.map = map;
+		copy.map = getMap();
 		return copy;
 	}
 

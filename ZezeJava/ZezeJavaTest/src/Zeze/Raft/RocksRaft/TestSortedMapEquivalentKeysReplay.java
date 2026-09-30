@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.pcollections.TreePMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Fast
@@ -122,7 +123,28 @@ public class TestSortedMapEquivalentKeysReplay {
 
 
 
-
+	@Test
+	public void managedCopyRetainsCurrentStructureAndComparator() {
+		var comparator = String.CASE_INSENSITIVE_ORDER;
+		var map = new CollSortedMap2<String, BValue>(String.class, BValue.class);
+		map.map = TreePMap.empty(comparator);
+		var parent = new BValue();
+		map.initRootInfo(new Record.RootInfo(null, new TableKey("Copy", 1)), parent);
+		var transaction = Transaction.create();
+		transaction.begin();
+		try {
+			map.put("alpha", new BValue(10));
+			map.remove("ALPHA");
+			map.put("Alpha", new BValue(20));
+			var copy = map.copy();
+			assertSame(comparator, copy.map.comparator());
+			assertEquals(1, copy.size());
+			assertEquals(20, copy.get("ALPHA").value);
+			assertSame(map.get("alpha"), copy.get("alpha"), "保留已有Bean浅共享契约");
+		} finally {
+			Transaction.destroy();
+		}
+	}
 
 
 

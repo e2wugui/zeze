@@ -172,7 +172,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public CollList2<V> copy() {
 		var copy = new CollList2<V>(logTypeId, valueFactory);
-		copy.list = list;
+		copy.list = getList();
 		return copy;
 	}
 

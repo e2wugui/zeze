@@ -93,7 +93,7 @@ public class CollSet1<V> extends CollSet<V> {
 	@Override
 	public CollSet1<V> copy() {
 		var copy = new CollSet1<>(logTypeId, valueCodecFuncs);
-		copy.set = set;
+		copy.set = getSet();
 		return copy;
 	}
 

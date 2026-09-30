@@ -101,7 +101,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	@Override
 	public CollMap1<K, V> copy() {
 		var copy = new CollMap1<>(logTypeId, keyCodecFuncs, valueCodecFuncs);
-		copy.map = map;
+		copy.map = getMap();
 		return copy;
 	}
 

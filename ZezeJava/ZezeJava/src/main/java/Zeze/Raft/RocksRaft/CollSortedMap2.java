@@ -126,7 +126,7 @@ public class CollSortedMap2<K extends Comparable<K>, V extends Bean> extends Col
 	@Override
 	public CollSortedMap2<K, V> copy() {
 		var copy = new CollSortedMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
-		copy.map = map;
+		copy.map = getMap();
 		return copy;
 	}
 
