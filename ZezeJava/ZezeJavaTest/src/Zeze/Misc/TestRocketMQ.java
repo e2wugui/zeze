@@ -34,7 +34,7 @@ public class TestRocketMQ {
 	@BeforeEach
 	public void before() throws Exception {
 		// demo拓扑的默认库是内存库（zeze.xml）：tSent落内存库被Producer.start()按部署契约拒绝
-		//（重启回查证据灭失+清理停摆），联调形态显式豁免（Producer.TSENT_ALLOW_MEMORY_PROPERTY）。
+		//（重启灭失回查证据），联调形态显式豁免（Producer.TSENT_ALLOW_MEMORY_PROPERTY）。
 		System.setProperty("RocketMQ.Producer.tSentAllowMemory", "true");
 		App.Instance.Start();
 	}

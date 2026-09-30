@@ -49,9 +49,12 @@ import org.jetbrains.annotations.Nullable;
  * <li>回查查无行恒答 UNKNOW 的语义（见 {@link #checkLocalTransaction}）：既不答 COMMIT 也不答
  * ROLLBACK，收敛依赖 broker 回查策略 + tSent 保留时长下界。</li>
  * <li>tSent必须落在<b>持久数据库</b>：默认 {@link Zeze.Config.DatabaseConf} 的
- * databaseType 即 Memory，漏配数据库的应用静默落入该形态——每日清理对无storage的表walk
- * 必抛错被吞（表无界增长），重启即失去全部回查证据。{@link #start()} 显式拒绝该形态；
- * 联调/demo形态可经系统属性 {@value #TSENT_ALLOW_MEMORY_PROPERTY}=true 显式豁免。</li>
+ * databaseType 即 Memory，漏配数据库的应用静默落入该形态——tSent 数据随进程重启灭失，
+ * 重启前"本地已提交+COMMIT 应答丢失"的半消息回查恒 UNKNOW，被 broker 回查耗尽丢弃。
+ * 注意区分两类 memory 语义：库类型 Memory 只决定后端是 DatabaseMemory（表仍建 storage，
+ * 每日清理的 walk 照常可用），表级 kind="memory" 才是无 storage 的形态。{@link #start()}
+ * 显式拒绝该形态；联调/demo形态可经系统属性 {@value #TSENT_ALLOW_MEMORY_PROPERTY}=true
+ * 显式豁免。</li>
  * <li>停机窗口：{@link #stop()} 先有界排空回查线程池（在飞回查趁客户端存活把COMMIT应答
  * 发回broker）再关闭客户端；停机超过 broker 回查总窗口（transactionTimeOut +
  * transactionCheckMax × transactionCheckInterval，默认约15分钟）时窗口外未决半消息失去
@@ -82,8 +85,8 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	private static final long TSENT_KEEP_TIME_MIN = 60L * 60 * 1000;
 	// 每批walk的行数上限：每批独立一个事务过程删除，避免单过程长事务。
 	private static final int TSENT_CLEAN_BATCH_SIZE = 1000;
-	// tSent落memory库的显式豁免开关（系统属性，默认关）：联调/demo形态（无持久库部署）
-	// 自担"每日清理walk抛错停摆+重启回查证据灭失"的风险后可打开，生产部署不得开启
+	// tSent落memory库的显式豁免开关（系统属性，默认关）：联调/demo形态（无持久库部署）自担
+	//"tSent数据随进程重启灭失（回查证据不保）"的风险后可打开，生产部署不得开启
 	//（见类javadoc的tSent持久库部署契约）。
 	private static final String TSENT_ALLOW_MEMORY_PROPERTY = "RocketMQ.Producer.tSentAllowMemory";
 	// stop 的有界排空预算：在飞checkLocalTransaction（触Zeze表）须在app.close()前完成
@@ -157,9 +160,8 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		if (dbConf != null && dbConf.getDatabaseType() == Config.DbType.Memory
 				&& !Boolean.getBoolean(TSENT_ALLOW_MEMORY_PROPERTY))
 			throw new IllegalStateException("RocketMQ.Producer tSent must reside in a persistent database,"
-					+ " but its DatabaseConf is Memory (该形态下每日清理walk抛错停摆致表无界增长、"
-					+ "进程重启即失去回查证据，已提交本地事务的半消息被回查耗尽丢弃；"
-					+ "默认DatabaseConf即Memory，漏配数据库的应用静默落入)。"
+					+ " but its DatabaseConf is Memory (tSent 数据随进程重启灭失，重启前已提交本地事务的半消息"
+					+ "回查恒 UNKNOW 被 broker 回查耗尽丢弃；默认DatabaseConf即Memory，漏配数据库的应用静默落入)。"
 					+ "为tSent显式配置持久库，或联调形态经系统属性 " + TSENT_ALLOW_MEMORY_PROPERTY
 					+ "=true 显式豁免。 producerGroup=" + producer.getProducerGroup());
 		producer.start();

@@ -1,11 +1,15 @@
 package Zeze.Services.RocketMQ;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.ArrayList;
 import Zeze.Application;
+import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult;
 import Zeze.Config;
 import harness.Fast;
 import harness.FastServerIds;
@@ -17,13 +21,15 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * tSent 落 memory 库必须显式拒绝（部署契约）：默认 Config.DatabaseConf 的
- * databaseType 即 Memory，漏配数据库的应用静默把 tSent 落进内存库——该形态下模块
- * 两项自述保障双双静默失效：1) start() 无条件注册的每日清理对无 storage 的表
- * walk 必抛 IllegalStateException 被吞（表无界增长，恰是清理注释宣称要防的）；
- * 2) tSent 行随进程重启灭失，重启前"本地已提交+COMMIT 应答丢失"的半消息回查恒
- * UNKNOW，broker 回查次数耗尽后丢弃（违背"仅当事务成功才发送"）。修复前构造器
- * 与 start() 对落库形态零校验。校验落在 start()（生产入口；@Fast 测试不调
- * start()，内存库夹具不受影响），联调/demo 形态经系统属性显式豁免。
+ * databaseType 即 Memory，漏配数据库的应用静默把 tSent 落进内存库——tSent 数据随
+ * 进程重启灭失，重启前"本地已提交+COMMIT 应答丢失"的半消息回查恒 UNKNOW，broker
+ * 回查次数耗尽后丢弃（违背"仅当事务成功才发送"）。修复前构造器与 start() 对落库
+ * 形态零校验。校验落在 start()（生产入口；@Fast 测试不调 start()，内存库夹具不受
+ * 影响），联调/demo 形态经系统属性显式豁免。
+ * 另锚定该形态的真实可用面：memory 库的表仍建 storage（TableX.open 只对表级
+ * kind="memory" 置 storage=null），TableMemory 的分页 walk 正常工作——旧契约
+ * 声明"每日清理 walk 必抛错停摆、表无界增长"不成立（真实且唯一的危害是重启
+ * 灭失），勿混淆"库类型 Memory"与"表 kind=memory"两类语义。
  */
 @Fast
 @ResourceLock("rocketmq.producer.processSlot") // 构造 Producer 占用进程级静态计数，与其它 Producer 测试串行
@@ -56,7 +62,7 @@ public class TestProducerStartRejectsMemoryTSent {
 		app.stop();
 	}
 
-	/** memory 形态在 start() 显式拒绝（修复前静默接受，定时器照常注册、每日清理抛错停摆无感）。 */
+	/** memory 形态在 start() 显式拒绝（修复前静默接受，重启灭失回查证据的风险零告警）。 */
 	@Test
 	public void startRejectsMemoryTSentDatabase() {
 		var producer = new Producer(app, "testMemReject", new ClientConfig());
@@ -87,6 +93,43 @@ public class TestProducerStartRejectsMemoryTSent {
 		} finally {
 			producer.stop();
 			System.clearProperty(ALLOW_MEMORY_PROPERTY);
+		}
+	}
+
+	/**
+	 * memory 库形态的可用面锚点：tSent 未声明 kind="memory"，TableX.open 为它创建
+	 * 真实 storage（包装 DatabaseMemory.TableMemory），walk 正常分页遍历——本锚点
+	 * 机械化否证"该形态下每日清理 walk 必抛错停摆"的旧契约声明（真实危害是重启
+	 * 灭失，见类 javadoc）。walk 读落库面，先 runOnce 把提交记录 flush 到 storage
+	 * （每日清理的7天保留窗远大于任何 checkpoint 周期，生产语义不受影响）。若未来
+	 * tSent 改为 kind="memory"（storage=null，walk 抛 IllegalStateException），
+	 * 部署契约与豁免开关的风险声明需随之重新评估。
+	 */
+	@Test
+	public void memoryDatabaseTSentWalkStillWorks() throws Exception {
+		var producer = new Producer(app, "testMemWalk", new ClientConfig());
+		try {
+			app.start(); // 打开 tSent（storage 就位）——与 start() 门禁不同，walk 需要表已打开
+			var keyPrefix = "walkAnchor";
+			var rc = app.newProcedure(() -> {
+				for (var i = 0; i < 3; ++i)
+					producer._tSent.insert(keyPrefix + i,
+							new BTransactionMessageResult(false, System.currentTimeMillis()));
+				return 0L;
+			}, "TestProducerStartRejectsMemoryTSent.walkAnchor").call();
+			assertEquals(0L, rc, "预插 tSent 行必须成功");
+			app.getCheckpoint().runOnce(); // 提交记录 flush 到 storage（walk 的数据面）
+			var keys = new ArrayList<String>();
+			var lastKey = producer._tSent.walk(null, 100, (key, value) -> {
+				if (key.startsWith(keyPrefix))
+					keys.add(key);
+				return true; // 继续
+			});
+			assertEquals(3, keys.size(), "memory 库上 tSent.walk 必须正常遍历"
+					+ "（storage 非空，TableMemory 分页实现）");
+			assertNotNull(lastKey, "非空表 walk 必须返回最后键");
+		} finally {
+			producer.stop();
 		}
 	}
 }

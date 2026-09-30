@@ -108,7 +108,8 @@ public class TestProducerTxnSendRejectsEnvTransaction {
 			}, "TestProducerTxnSendRejectsEnvTransaction.clean").call();
 	}
 
-	// DatabaseMemory 表无 storage（walk 不可用），用 walkMemory 遍历缓存（事务外调用）。
+	// tSent落memory库仍建storage（walk可用），此处要断言的是缓存内无残留，
+	// walkMemory直遍缓存更直接（事务外调用，且不需先checkpoint flush）。
 	private ArrayList<String> walkAllTSentKeys() throws Exception {
 		var keys = new ArrayList<String>();
 		producer._tSent.walkMemory((key, value) -> {
