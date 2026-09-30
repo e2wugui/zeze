@@ -31,6 +31,11 @@ import harness.Fast;
  * closeExecutor 异步关闭会话，重启后同 IP 请求按需干净重建。
  *
  * <p>@Isolated：写 FileSessionManager/LogAgentManager JVM 级静态状态，独占运行。</p>
+ *
+ * <p>源 IP 段（127.0.0.N 末字节）：63/64。段是全局共享资源——TestSessionLevelErrorTriage
+ * （Services/Log4jQuery 包）占 61/62 且按"惰性清扫域自管理"设计故意留 map 残留，本类首占
+ * 61 时跨类先后跑必撞"首次入库无替换"假红（2026-09-30 IDEA 全量轮实证；对齐 serverId
+ * 全局唯一铁律：占段前全树 grep clientAddr 盘点，已占 51/52/55/56/58/59/60/61/62）。</p>
  */
 @Fast
 @Isolated
@@ -44,7 +49,7 @@ public class TestStopClearsFileSessionBindings {
 	public void testStopEvictsAllBindingsAndClosesSessions() throws Exception {
 		Task.tryInitThreadPool();
 		var session = new CloseCountingSession();
-		var addr = clientAddr(61);
+		var addr = clientAddr(63);
 		assertNull(FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", COND, session)),
 				"摆盘：绑定首次入库无替换");
 		try {
@@ -62,7 +67,7 @@ public class TestStopClearsFileSessionBindings {
 	public void testRequestAfterStopRebuildsInsteadOfReusingStaleSession() throws Exception {
 		Task.tryInitThreadPool();
 		var stale = newUninitialized(StubSession.class);
-		var addr = clientAddr(62);
+		var addr = clientAddr(64);
 		FileSessionManager.put(addr, LogSessionBinding.server("game1", "zeze", COND, stale));
 		var agent = newUninitialized(StubLogAgent.class);
 		try {

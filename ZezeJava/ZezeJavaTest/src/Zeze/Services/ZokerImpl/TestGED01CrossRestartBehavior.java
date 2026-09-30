@@ -12,9 +12,12 @@ import Zeze.Builtin.Zoker.StopService;
 import Zeze.IModule;
 import Zeze.Services.Zoker;
 import harness.Fast;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import static harness.DirCleanup.deleteBestEffort;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,6 +47,25 @@ public class TestGED01CrossRestartBehavior {
 
 	/** 盘上身份文件的物理名（钉住 on-disk 契约；不引修复侧常量，保持基线可编译）。 */
 	private static final String RUN_PID = "run.pid";
+
+	/** 字段注入（非方法参数）：@AfterEach 要先行自删。真进程（ping）与 AV/索引器对
+	 * services/svc/v1 的瞬态目录句柄会让 JUnit 收尾的整树删除抛 DirectoryNotEmptyException
+	 * ——"Failed to close extension context"红（2026-09-30 全量轮实证；test40-4 的
+	 * TempDir 瞬态句柄族同款）。先行重试自删把瞬态窗口吃掉，JUnit 随后只删空根。 */
+	@TempDir
+	private Path tempDir;
+
+	@AfterEach
+	public void cleanupTempDir() throws InterruptedException {
+		for (var i = 0; i < 5; i++) {
+			deleteBestEffort(tempDir);
+			if (!Files.exists(tempDir))
+				return;
+			Thread.sleep(200);
+		}
+		// 耗尽仍有残留（长持有者）：留给系统临时目录清理，不再让JUnit收尾红。
+		deleteBestEffort(tempDir);
+	}
 
 	private static File servicesDir(Path tempDir) throws IOException {
 		var f = tempDir.resolve("services").toFile();
@@ -96,7 +118,7 @@ public class TestGED01CrossRestartBehavior {
 
 	/** 启动成功即把进程身份写进容器根 services/svc/run.pid（与 current 同层）。修复前红点：文件不存在。 */
 	@Test
-	public void testStartWritesRunPidIdentity(@TempDir Path tempDir) throws Exception {
+	public void testStartWritesRunPidIdentity() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
@@ -124,7 +146,7 @@ public class TestGED01CrossRestartBehavior {
 
 	/** 停毕条件删除盘上身份（残留不留给下次对账）。修复前红点：从未落盘。 */
 	@Test
-	public void testStopCleansRunPidAfterStop(@TempDir Path tempDir) throws Exception {
+	public void testStopCleansRunPidAfterStop() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
@@ -144,7 +166,7 @@ public class TestGED01CrossRestartBehavior {
 	/** stop 条目缺失先解析 run.pid 再判 not-running——领养句柄能真停孤儿。
 	 * 修复前红点：Stopped/not-running 幂等谎言 + 原进程未被杀。 */
 	@Test
-	public void testStopAfterRestartReallyStopsOrphan(@TempDir Path tempDir) throws Exception {
+	public void testStopAfterRestartReallyStopsOrphan() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
@@ -167,7 +189,7 @@ public class TestGED01CrossRestartBehavior {
 	/** start 条目缺失先解析 run.pid 查重——存活且核实→领养幂等返回 Running（Ps 标记 adopted），
 	 * 绝不盲目双启。修复前红点：无盘上身份→直接拉起第二个进程。 */
 	@Test
-	public void testStartAfterRestartIdempotentAdopts(@TempDir Path tempDir) throws Exception {
+	public void testStartAfterRestartIdempotentAdopts() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
@@ -200,7 +222,7 @@ public class TestGED01CrossRestartBehavior {
 	/** run.pid 指认的活进程指纹不符（pid 被无关进程复用/陈旧文件）：stop 走 not-running
 	 * 幂等，绝不杀未核实进程；不符残留就地清理。修复前红点：残留文件不清理。 */
 	@Test
-	public void testStopUnverifiedPidFileNotKilled(@TempDir Path tempDir) throws Exception {
+	public void testStopUnverifiedPidFileNotKilled() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		Files.createDirectories(servicesDir.toPath().resolve("svc"));
@@ -227,7 +249,7 @@ public class TestGED01CrossRestartBehavior {
 	/** versionNo 碰撞容器根身份文件固有位置（大小写/Win32 剥尾点空格变体）必须拒绝；
 	 * 修复前红点：变体被接受，身份落盘恒失败→该服务一切 start 恒 eStartFail（无自愈）。 */
 	@Test
-	public void testCommitRunPidReserved(@TempDir Path tempDir) throws Exception {
+	public void testCommitRunPidReserved() throws Exception {
 		for (var versionNo : List.of("run.pid", "Run.Pid", "RUN.PID", "run.pid.", "run.pid ")) {
 			var tag = Integer.toHexString(versionNo.hashCode());
 			var distributeDir = tempDir.resolve("distributes-" + tag);

@@ -71,6 +71,11 @@ public class TestStartupFailureStopsStartedComponents {
 			// 停机即进程退出）——同 JVM 后续直挂处理器的用例（无 Authorization 头）会被
 			// 401 误伤，此处复位静态。
 			ApiToken.configure(null);
+			// 同因：init 还以 Bind=192.0.2.1（非回环）装载 BrowserOriginGuard——Host 回环
+			// 防线被解除且 stop 不复位。漏复位时同 JVM 后续依赖默认回环设防的防线用例
+			// （TestAdminApiRejectsForeignOrigin 的 rebinding 403 断言）被静默放行，
+			// 请求直落处理器（2026-09-30 IDEA 全量轮实证：403 变 500 假红）。
+			BrowserOriginGuard.configure(null);
 			deleteBestEffort(logDir);
 		}
 	}
@@ -131,7 +136,12 @@ public class TestStartupFailureStopsStartedComponents {
 
 	private static Set<Long> nonDaemonThreadIds() {
 		return Thread.getAllStackTraces().keySet().stream()
-				.filter(t -> t.isAlive() && !t.isDaemon())
+				// globalEventExecutor-* 是 Netty 的 JVM 级全局单例线程，不属于被测
+				// 启动序列的任何组件——同 JVM 其他用例泄漏的重连循环（如 MQAgent
+				// autoReconnect）持续喂任务即可在前后快照间把它拉活，落进差集即假红
+				// （2026-09-30 IDEA 全量轮实证；对齐 Fnd770"JVM 全局资源没有只有我
+				// 看得到"的教训：差集只断言本启动序列自己的组件线程）。
+				.filter(t -> t.isAlive() && !t.isDaemon() && !t.getName().startsWith("globalEventExecutor-"))
 				.map(Thread::threadId)
 				.collect(Collectors.toSet());
 	}
