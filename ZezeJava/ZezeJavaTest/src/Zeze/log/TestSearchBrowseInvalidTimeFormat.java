@@ -68,8 +68,9 @@ public class TestSearchBrowseInvalidTimeFormat {
 					"invalid beginTime, expect yyyy-MM-dd HH:mm:ss", "search beginTime 非时间串");
 
 			// 负对照：合法格式不被拒绝——走到代理层以既有失败形态承载（空注册表
-			// 全服视图 0 成员拒绝），证明预检只收敛格式错误、不扩大化误伤。
-			assertEquals("system error", post(client, uri, body("2026-09-01 00:00:00", null)).getString("desc"),
+			// 全服视图 0 成员拒绝，desc 透传该分诊），证明预检只收敛格式错误、不扩大化误伤。
+			assertEquals("no reachable log server for all-servers view (registered=0, members=0)",
+					post(client, uri, body("2026-09-01 00:00:00", null)).getString("desc"),
 					"合法时间格式不得被 invalid 拒绝");
 		} finally {
 			server.close();

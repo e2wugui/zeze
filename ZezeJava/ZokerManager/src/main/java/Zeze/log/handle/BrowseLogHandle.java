@@ -19,11 +19,14 @@ import Zeze.log.handle.entity.BaseResponse;
 import Zeze.log.handle.entity.SearchLogParam;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * /api/browse 处理器：按条件过滤翻页浏览日志（复用或重建查询会话）。
  */
 public class BrowseLogHandle implements HttpEndStreamHandle {
+	private static final Logger logger = LogManager.getLogger(BrowseLogHandle.class);
 	@Override
 	public void onEndStream(HttpExchange x) throws Exception {
 		// token门（FND29 zokermanager-02）：配置了Token则校验Authorization头，未通过已回401。
@@ -123,8 +126,9 @@ public class BrowseLogHandle implements HttpEndStreamHandle {
 			// 服务端参数级拒绝（入口校验的兜底承载）：不拆会话，明确报参数错误而非 system error。
 			x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult("invalid search condition")));
 		} catch (Exception e) {
-			x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult("system error")));
-			e.printStackTrace();
+			x.sendJson(HttpResponseStatus.OK,
+					Json.toCompactString(BaseResponse.errorResult(SearchLogHandle.knownRejectionDesc(e))));
+			logger.error("/api/browse failed", e);
 		}
 	}
 }

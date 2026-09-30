@@ -12,11 +12,14 @@ import Zeze.log.handle.entity.BaseResponse;
 import Zeze.log.handle.entity.QueryParam;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * /api/query 处理器：把查询请求转发给指定日志服务器并回传结果。
  */
 public class QueryHandle implements HttpEndStreamHandle {
+	private static final Logger logger = LogManager.getLogger(QueryHandle.class);
 	@Override
 	public void onEndStream(HttpExchange x) throws Exception {
 		// token门（FND29 zokermanager-02）：配置了Token则校验Authorization头，未通过已回401。
@@ -59,8 +62,9 @@ public class QueryHandle implements HttpEndStreamHandle {
 			String result = logAgent.query(serverName, json);
 			x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.succResult(result)));
 		} catch (Exception e) {
-			x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult("system error")));
-			e.printStackTrace();
+			x.sendJson(HttpResponseStatus.OK,
+					Json.toCompactString(BaseResponse.errorResult(SearchLogHandle.knownRejectionDesc(e))));
+			logger.error("/api/query failed", e);
 		}
 	}
 }

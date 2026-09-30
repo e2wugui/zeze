@@ -67,6 +67,10 @@ public class TestStartupFailureStopsStartedComponents {
 			assertNull(LogAgentManager.httpServer, "失败后不得残留半启动 server 引用");
 			assertNull(LogAgentManager.getInstance(), "失败后不得残留半启动 manager 引用");
 		} finally {
+			// init 经配置 ApiToken.configure("t") 配置了静态门禁，stop 不复位（生产形态
+			// 停机即进程退出）——同 JVM 后续直挂处理器的用例（无 Authorization 头）会被
+			// 401 误伤，此处复位静态。
+			ApiToken.configure(null);
 			deleteBestEffort(logDir);
 		}
 	}

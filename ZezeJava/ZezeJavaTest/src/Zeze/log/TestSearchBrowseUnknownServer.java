@@ -66,12 +66,13 @@ public class TestSearchBrowseUnknownServer {
 			assertUnknown(client, uri, "ghost-server", "search 未注册名");
 			assertUnknown(client, uri, " game1", "search 带首空白名（归一后仍未注册）");
 
-			assertNoSessionBinding();
-			// 负对照：全服视图（serverName 空）不经单服务器名校验，走全服路径的既有
-			// "no reachable log server" 失败（空注册表构造 0 成员会话被拒）——
-			// 仍是 system error 承载，与未知名单服务器路径的明确错误形成对照。
-			assertEquals("system error", post(client, uri, allViewBody()).getString("desc"),
-					"全服视图不走单服务器名校验");
+				assertNoSessionBinding();
+				// 负对照：全服视图（serverName 空）不经单服务器名校验，走全服路径的既有
+				// "no reachable log server" 失败（空注册表构造 0 成员会话被拒）——desc 透传
+				// 该分诊（兜底 catch 的已知族映射），与未知名单服务器路径的明确错误同形。
+				assertEquals("no reachable log server for all-servers view (registered=0, members=0)",
+						post(client, uri, allViewBody()).getString("desc"),
+						"全服视图不走单服务器名校验，0 成员拒绝的 desc 透传");
 		} finally {
 			server.close();
 			netty.close();

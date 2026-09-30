@@ -3,6 +3,7 @@ package Zeze.log.handle;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import Zeze.Builtin.LogService.BCondition;
 import Zeze.Builtin.LogService.BResult;
 import Zeze.Netty.HttpEndStreamHandle;
@@ -19,11 +20,14 @@ import Zeze.log.handle.entity.BaseResponse;
 import Zeze.log.handle.entity.SearchLogParam;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * /api/search 处理器：按条件搜索日志（复用或重建查询会话）。
  */
 public class SearchLogHandle implements HttpEndStreamHandle {
+	private static final Logger logger = LogManager.getLogger(SearchLogHandle.class);
 	@Override
 	public void onEndStream(HttpExchange x) {
 		// token门（FND29 zokermanager-02）：配置了Token则校验Authorization头，未通过已回401。
@@ -125,8 +129,20 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 			// 服务端参数级拒绝（入口校验的兜底承载）：不拆会话，明确报参数错误而非 system error。
 			x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult("invalid search condition")));
 		} catch (Exception e) {
-			x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult("system error")));
-			e.printStackTrace();
+			x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult(knownRejectionDesc(e))));
+			logger.error("/api/search failed", e);
 		}
+	}
+
+	/**
+	 * 兜底 catch 的 desc 分诊：desc 是前端唯一错误通道，模块内为分诊精心措辞的拒绝必须
+	 * 透传 message——0 成员全服视图拒绝与同 IP 在飞并发拒绝（FileSessionManager 的
+	 * IllegalStateException）、全服 operate 总时限到点（SessionAll 的带信息
+	 * TimeoutException）；其余异常保持 "system error"（不向浏览器透内部细节）。
+	 */
+	static String knownRejectionDesc(Exception e) {
+		return (e instanceof IllegalStateException || e instanceof TimeoutException) && e.getMessage() != null
+				? e.getMessage()
+				: "system error";
 	}
 }
