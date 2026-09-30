@@ -16,6 +16,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 操作日志。
@@ -58,6 +59,20 @@ public abstract class Log implements Serializable {
 		if (factory != null)
 			return factory.apply(varId);
 		throw new UnsupportedOperationException("unknown log typeId=" + typeId);
+	}
+
+	/** typeId 当前占用的工厂（未占用为 null）。dynamic 家族跨批次决胜
+	 * （Zeze.History.Helper）用它确认槽位归属后做定向替换。 */
+	public static @Nullable IntFunction<Log> getRegistered(int typeId) {
+		return factories.get(typeId);
+	}
+
+	/** 条件替换（按对象身份）：仅当 typeId 当前占用者为 expect 时替换为 update。
+	 * 供 Helper 跨批次字典序决胜在确认槽位确为自己先前登记的 dynamic 家族工厂后
+	 * 定向接管——不会误伤其他子系统的注册（工厂闭包无 equals 语义，身份即相等）。 */
+	public static boolean replaceRegistered(int typeId, @NotNull IntFunction<Log> expect,
+											@NotNull IntFunction<Log> update) {
+		return factories.replace(typeId, expect, update);
 	}
 
 	private final Bean belong;
