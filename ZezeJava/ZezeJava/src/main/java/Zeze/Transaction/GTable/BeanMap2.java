@@ -177,11 +177,12 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 			_x_.clear();
 			if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
 				int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+				int valueType = _t_ & ByteBuffer.TAG_MASK;
 				for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
 					var _k_ = meta.keyDecoderWithType.apply(_o_, _s_);
 					var _v_ = pMap2.createValue();
-					if (_v_ instanceof DynamicBean && (_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.DYNAMIC)
-						_o_.ReadDynamic((DynamicBean)_v_, _t_);
+					if (_v_ instanceof DynamicBean dynamicValue && valueType == ByteBuffer.DYNAMIC)
+						_o_.ReadDynamic(dynamicValue, _t_);
 					else
 						// Older dynamic rows used a BEAN tag while still writing the dynamic type id.
 						_o_.ReadBean(_v_, _t_);
