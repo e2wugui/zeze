@@ -17,13 +17,19 @@ public final class BServiceInfos implements Serializable {
 	public static final Comparator<BServiceInfo> comparer = (si1, si2) -> {
 		var id1 = si1.getServiceIdentity();
 		var id2 = si2.getServiceIdentity();
-		// '#'（如LogService）和'@'前缀一样不是数字identity，走字符串比较。参见AbstractAgent.verify。
-		if (id1.isEmpty() || id1.charAt(0) == '@' || id1.charAt(0) == '#'
-				|| id2.isEmpty() || id2.charAt(0) == '@' || id2.charAt(0) == '#')
+		// 分类必须独立于另一侧：parseLong接受Unicode数字，混合词法/数值比较会出现比较环。
+		int kind1 = identityKind(id1), kind2 = identityKind(id2);
+		if (kind1 != kind2)
+			return Integer.compare(kind1, kind2);
+		if (kind1 != 1)
 			return id1.compareTo(id2);
 		int cmp = Long.compare(Long.parseLong(id1), Long.parseLong(id2));
 		return cmp != 0 ? cmp : id1.compareTo(id2); // 数值相同的不同字符串仍是不同注册identity。
 	};
+
+	private static int identityKind(String identity) {
+		return identity.isEmpty() || identity.charAt(0) == '#' ? 0 : identity.charAt(0) == '@' ? 2 : 1;
+	}
 
 	private final FewModifyList<BServiceInfo> sortedIdentities = new FewModifyList<>(); // sorted by ServiceIdentity
 

@@ -45,7 +45,24 @@ public class TestSubscribeStateNewestInfos {
 		Assertions.assertFalse(state.getServiceInfosVersion().getInfosIterator().moveToNext());
 	}
 
-
+	@Test
+	public void testNumericAliasesAndUnicodeDigitsUseOneTransitiveOrder() {
+		var infos = new BServiceInfos();
+		for (var identity : java.util.List.of("@a", "3", "\u0662", "02", "2", "#a"))
+			infos.insert(new BServiceInfo(serviceName, identity, 1));
+		Assertions.assertEquals(java.util.List.of("#a", "02", "2", "\u0662", "3", "@a"),
+				infos.getSortedIdentities().stream().map(BServiceInfo::getServiceIdentity).toList());
+		for (var a : infos.getSortedIdentities()) {
+			Assertions.assertSame(a, infos.findServiceInfoByIdentity(a.getServiceIdentity()));
+			for (var b : infos.getSortedIdentities())
+				for (var c : infos.getSortedIdentities())
+					if (BServiceInfos.comparer.compare(a, b) < 0 && BServiceInfos.comparer.compare(b, c) < 0)
+						Assertions.assertTrue(BServiceInfos.comparer.compare(a, c) < 0);
+		}
+		Assertions.assertNotNull(infos.remove(new BServiceInfo(serviceName, "02", 1)));
+		Assertions.assertNotNull(infos.findServiceInfoByIdentity("2"));
+		Assertions.assertNotNull(infos.findServiceInfoByIdentity("\u0662"));
+	}
 
 	@Test
 	public void testRegisterAfterSubscribeVisible() {
