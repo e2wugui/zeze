@@ -89,6 +89,59 @@ public class TestLinkdProviderRebind {
 		}
 	}
 
+	@Test
+	public void closedProviderRejectsLateBindingWithoutReplacingHealthyOwner() throws Exception {
+		try (var fixture = new Fixture(false)) {
+			int moduleId = Online.ModuleId;
+			fixture.user.bind(fixture.providers, fixture.link, List.of(moduleId), fixture.newProvider);
+			fixture.providerModule.onProviderClose(fixture.oldProvider);
+			fixture.user.bind(fixture.providers, fixture.link, List.of(moduleId), fixture.oldProvider);
+			assertEquals(fixture.newProvider.getSessionId(), fixture.user.tryGetProvider(moduleId));
+			assertTrue(contains(fixture.newSession, moduleId, fixture.link.getSessionId()));
+			assertFalse(contains(fixture.oldSession, moduleId, fixture.link.getSessionId()));
+			assertFalse(fixture.oldSession.tryAddLinkSession(moduleId, fixture.link.getSessionId()));
+			fixture.oldSession.addLinkSession(moduleId, fixture.link.getSessionId());
+			assertFalse(contains(fixture.oldSession, moduleId, fixture.link.getSessionId()));
+			assertEquals(0, fixture.link.providerBrokenReports.get());
+		}
+	}
+
+	@Test
+	public void aBindAfterTheCloseSnapshotCannotEscapeCleanup() throws Exception {
+		try (var fixture = new Fixture(true)) {
+			int existingModule = Zeze.Game.Online.ModuleId;
+			int lateModule = Online.ModuleId;
+			fixture.user.bind(fixture.providers, fixture.link, List.of(existingModule), fixture.oldProvider);
+			var session = (PausingSession)fixture.oldSession;
+			var failure = new AtomicReference<Throwable>();
+			var close = new Thread(() -> {
+				try {
+					fixture.providerModule.onProviderClose(fixture.oldProvider);
+				} catch (Throwable e) {
+					failure.set(e);
+				}
+			}, "linkd-provider-close-admission");
+			close.start();
+			try {
+				assertTrue(session.snapshotTaken.await(5, TimeUnit.SECONDS));
+				fixture.user.bind(fixture.providers, fixture.link, List.of(lateModule), fixture.oldProvider);
+				assertNull(fixture.user.tryGetProvider(lateModule));
+				assertFalse(contains(session, lateModule, fixture.link.getSessionId()));
+				session.resumeClose.countDown();
+				close.join(5_000);
+				assertFalse(close.isAlive());
+				assertNull(failure.get());
+				assertNull(fixture.user.tryGetProvider(existingModule));
+				assertEquals(1, fixture.link.providerBrokenReports.get());
+			} finally {
+				session.resumeClose.countDown();
+				close.interrupt();
+				close.join(5_000);
+				assertFalse(close.isAlive());
+			}
+		}
+	}
+
 	private static boolean contains(LinkdProviderSession session, int moduleId, long linkId) {
 		session.linkSessionIdsLock.lock();
 		try {

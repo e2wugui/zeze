@@ -19,6 +19,7 @@ public class LinkdProviderSession extends ProviderSession {
 	 */
 	protected IntHashMap<LongHashSet> linkSessionIds = new IntHashMap<>();
 	protected final ReentrantLock linkSessionIdsLock = new ReentrantLock();
+	private boolean linkSessionsClosed; // 与反向索引登记/关闭快照由同一把锁保护。
 
 	/**
 	 * 维护此Provider上绑定的StaticBinds，用来在Provider关闭的时候，进行 UnBind。
@@ -56,9 +57,16 @@ public class LinkdProviderSession extends ProviderSession {
 	}
 
 	public void addLinkSession(int moduleId, long linkSessionId) {
+		tryAddLinkSession(moduleId, linkSessionId);
+	}
+
+	public boolean tryAddLinkSession(int moduleId, long linkSessionId) {
 		linkSessionIdsLock.lock();
 		try {
+			if (linkSessionsClosed)
+				return false;
 			linkSessionIds.computeIfAbsent(moduleId, __ -> new LongHashSet()).add(linkSessionId);
+			return true;
 		} finally {
 			linkSessionIdsLock.unlock();
 		}
@@ -72,6 +80,7 @@ public class LinkdProviderSession extends ProviderSession {
 	public IntHashMap<LongHashSet> swapLinkSessionIds() {
 		linkSessionIdsLock.lock();
 		try {
+			linkSessionsClosed = true; // 换出后不再准入，迟到的bind不能写入无人清理的新map。
 			var old = linkSessionIds;
 			linkSessionIds = new IntHashMap<>();
 			return old;

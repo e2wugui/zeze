@@ -131,6 +131,11 @@ public class LinkdUserSession {
 				return;
 			}
 			for (var moduleId : moduleIds) {
+				var ps = (LinkdProviderSession)provider.getUserState();
+				// 先在provider索引锁下准入，再换正向归属。close先取快照则拒绝；登记先发生
+				// 则条目进入close快照，其锁外清理会等本bindsLock释放后核对当前归属。
+				if (ps != null && !ps.tryAddLinkSession(moduleId, link.getSessionId()))
+					continue;
 				var exist = binds.get(moduleId);
 				if (exist != null && exist.longValue() != providerSessionId.longValue()) {
 					var s = linkdProviderService.GetSocket(exist);
@@ -140,9 +145,6 @@ public class LinkdUserSession {
 							moduleId, account, s != null ? s.getRemoteAddress() : null, provider.getRemoteAddress());
 				}
 				binds.put(moduleId, providerSessionId);
-				var ps = (LinkdProviderSession)provider.getUserState();
-				if (ps != null)
-					ps.addLinkSession(moduleId, link.getSessionId());
 			}
 		} finally {
 			writeLock.unlock();
