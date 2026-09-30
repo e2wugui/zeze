@@ -15,9 +15,8 @@ import org.jetbrains.annotations.Nullable;
  * 周期任务句柄（{@link Task#schedulePeriodCore} 创建，TaskSpec.schedulePeriodNow 返回）。
  * 目的：补 JDK ScheduledFuture.cancel 的缺口——它只阻断后续触发，对已开始的当前轮既不阻止
  * 也不可等待，调用方"cancel 后即拆资源"会与在飞一轮竞态。
- * 机制：任务体在本对象锁内执行并复查取消标志，cancel 取同一把锁，因此
- * ①与"检查→执行"互斥：cancel 返回后不会再启动新的一轮；
- * ②隐式 join 在飞的一轮：返回即可安全拆除任务体访问的资源。
+ * 机制：先发布取消标志并向底层 Future 发送取消/中断，再取任务体所持锁等待当前轮结束。
+ * 任务体在锁内复查取消标志；cancel 返回后不会再启动新的一轮，并已 join 在飞的一轮。
  * 代价：cancel 成为阻塞原语，受 {@link #cancel} 的 ABBA 调用约束；等锁超过任务自身的看门狗
  * 预算+{@link #CANCEL_HANG_MARGIN_MS} 时发出双栈告警（无声挂死→有声，契约不变）。
  */
@@ -35,6 +34,7 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 	private volatile ScheduledFuture<V> future;
 	// volatile: isCancelled() 在任务线程中无锁轮询，需与 cancel() 的写入保持可见性
 	private volatile boolean canceled;
+	private volatile boolean interruptRequested;
 
 	TimerFuture(@Nullable String name, long timeoutMs) {
 		this.name = name;
@@ -44,6 +44,8 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 	@SuppressWarnings("unchecked")
 	public void setFuture(@NotNull ScheduledFuture<?> future) {
 		this.future = (ScheduledFuture<V>)future;
+		if (canceled)
+			future.cancel(interruptRequested); // 取消可能先于调度句柄发布。
 	}
 
 	/**
@@ -62,6 +64,12 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 	 */
 	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {
+		if (mayInterruptIfRunning)
+			interruptRequested = true;
+		canceled = true;
+		var current = future;
+		// 必须先中断，再等任务体锁；否则可中断等待中的 body 永远收不到中断。
+		boolean result = current == null || current.cancel(mayInterruptIfRunning);
 		boolean acquired = false;
 		boolean interrupted = false;
 		try {
@@ -76,8 +84,7 @@ public class TimerFuture<V> extends ReentrantLock implements ScheduledFuture<V> 
 			lock(); // 契约不变：无界等到获取为止（!acquired时此处才持锁一次，避免重入计数多一）
 		}
 		try {
-			canceled = true;
-			return future.cancel(mayInterruptIfRunning);
+			return result;
 		} finally {
 			unlock();
 		}
