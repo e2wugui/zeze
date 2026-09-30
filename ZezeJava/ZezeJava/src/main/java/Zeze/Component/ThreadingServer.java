@@ -201,6 +201,11 @@ public class ThreadingServer extends AbstractThreadingServer {
 		// 已应答（sendResultDone=true）则CAS失败直接返回false不发送，天然防双发，无需额外AtomicBoolean。
 		private void runAction(SimulateThreadAction a) {
 			try {
+				if (closed) {
+					if (a.rpc() != null)
+						a.rpc().trySendResultCode(ResultCodeInvalidArgument);
+					return;
+				}
 				a.action().run(this);
 			} catch (Exception e) {
 				logger.error("simulate action exception (thread=({}, {}))",
