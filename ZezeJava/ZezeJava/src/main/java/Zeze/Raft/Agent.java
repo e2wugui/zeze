@@ -820,6 +820,8 @@ public final class Agent {
 	public java.util.List<ConnectorProxy> getActiveSuggestMajorityConnectors() {
 		var result = new ArrayList<ConnectorProxy>();
 		for (var node : raftConfig.getNodes().values()) {
+			if (!node.isSuggestMajority())
+				continue;
 			var connector = client.getConfig().findConnector(node.getName());
 			if (null != connector && connector.TryGetReadySocket() != null)
 				result.add(new ConnectorProxy(connector));
