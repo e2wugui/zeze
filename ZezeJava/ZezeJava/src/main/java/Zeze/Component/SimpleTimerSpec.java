@@ -157,6 +157,8 @@ public final class SimpleTimerSpec implements TimerSpec {
 								nextExpectedTime = now + period;
 						}
 					}
+					if (endTime > 0 && nextExpectedTime > endTime)
+						nextExpectedTime = 0; // 检查推进/补触发后的候选时间，不再安装越界的一跳。
 				}
 			}
 		}
