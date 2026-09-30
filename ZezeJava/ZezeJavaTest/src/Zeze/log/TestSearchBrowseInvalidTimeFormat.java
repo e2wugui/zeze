@@ -17,6 +17,7 @@ import org.junit.jupiter.api.parallel.Isolated;
 import Zeze.Config;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
+import Zeze.Services.Log4jQuery.LogServiceConf;
 import Zeze.Services.LogAgent;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
@@ -129,7 +130,7 @@ public class TestSearchBrowseInvalidTimeFormat {
 	private static AutoCloseable installEmptyRegistryAgent() throws Exception {
 		var conf = new Config().loadAndParse();
 		conf.setServiceManager("disable");
-		var agent = new LogAgent(conf);
+		var agent = new ZezeLogConfAgent(conf);
 
 		@SuppressWarnings("unchecked")
 		Constructor<LogAgentManager> ctor = (Constructor<LogAgentManager>)sun.reflect.ReflectionFactory
@@ -150,6 +151,26 @@ public class TestSearchBrowseInvalidTimeFormat {
 		};
 	}
 
+
+	/** 部署配置恒含请求所用的 logName "zeze"（getLogConf 覆写，摆脱对环境 xml 的依赖）：
+	 * 显式 logName 存在性入口校验（TestSearchBrowseUnknownLogName）之后，空 LogConf 的
+	 * 裸真实 agent 会在到达本测试的目标防线（serverName/时间格式/代理层）前先拒
+	 * "unknown logName: zeze"——测试环境无 LogServiceConf 节点，覆写配置使校验门可过。 */
+	private static final class ZezeLogConfAgent extends LogAgent {
+		private final LogServiceConf deployConf = new LogServiceConf();
+
+		ZezeLogConfAgent(Config config) throws Exception {
+			super(config);
+			var logConf = new LogServiceConf.LogConf();
+			logConf.logActive = "zeze";
+			deployConf.getLogConfs().put("zeze", logConf);
+		}
+
+		@Override
+		public LogServiceConf getLogConf() {
+			return deployConf;
+		}
+	}
 	/** 兜底复位静态注入（测试中途失败的兜底；正常路径由 try-with-resources 恢复）。 */
 	@AfterAll
 	public static void resetManager() throws Exception {

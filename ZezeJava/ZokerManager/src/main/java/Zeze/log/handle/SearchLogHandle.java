@@ -62,12 +62,20 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 			// 缺省 logName 解析：前端请求体不携带 logName，缺省 null 透传到 Session 构造
 			// 即坍缩 system error。部署配置唯一 LogConf 名即默认；无法确定默认时入口即拒
 			//（列名引导显式传参），不建/复用会话。
-			String logName = searchLogParam.resolveLogName(logAgent.getLogConf());
-			if (logName == null) {
-				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(
-						BaseResponse.errorResult(SearchLogParam.missingLogNameDesc(logAgent.getLogConf()))));
-				return;
-			}
+				String logName = searchLogParam.resolveLogName(logAgent.getLogConf());
+				if (logName == null) {
+					x.sendJson(HttpResponseStatus.OK, Json.toCompactString(
+							BaseResponse.errorResult(SearchLogParam.missingLogNameDesc(logAgent.getLogConf()))));
+					return;
+				}
+				// 显式未知 logName 入口即拒（对称 serverName 预校验）：透传则单服视图
+				// Session 构造抛裸 RuntimeException 坍缩 system error、全服视图逐台跳过
+				// 成 0 成员被误报 no reachable log server——错误归因失真。
+				var unknownLogName = searchLogParam.unknownLogNameDesc(logAgent.getLogConf());
+				if (unknownLogName != null) {
+					x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.errorResult(unknownLogName)));
+					return;
+				}
 
 			BCondition.Data con = new BCondition.Data();
 			con.setBeginTime(searchLogParam.parseBeginTime());

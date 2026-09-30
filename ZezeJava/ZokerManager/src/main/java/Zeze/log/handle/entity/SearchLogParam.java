@@ -94,12 +94,29 @@ public class SearchLogParam {
 	 * （{@link LogServiceConf}，与同进程 LogService 同源 server.xml）唯一 LogConf 名即
 	 * 默认。零/多份配置无法确定默认，返回 null——调用方以 {@link #missingLogNameDesc}
 	 * 回显式错误引导显式传参（缺省 null 透传到 Session 构造抛 IAE 坍缩 system error）。
+	 * 显式名的<b>存在性</b>不在此判（返回值语义=解析，不=校验通过），由
+	 * {@link #unknownLogNameDesc} 承担。
 	 */
 	public String resolveLogName(LogServiceConf deployConf) {
 		if (logName != null && !logName.isBlank())
 			return logName.trim();
 		var names = deployConf.getLogConfs().keySet();
 		return names.size() == 1 ? names.iterator().next() : null;
+	}
+
+	/**
+	 * 显式 logName 的存在性校验（对称 serverName 的注册表预校验与缺省形态的
+	 * {@link #missingLogNameDesc}，补两条既有防线之间的缺口）：显式非空白名不在部署配置
+	 * 的 LogConf 名集（拼写错误/跨部署拷贝的请求模板）时返回 "unknown logName: X"——
+	 * 透传则单服视图 Session 构造抛裸 RuntimeException 坍缩 system error、全服视图逐台
+	 * 跳过成 0 成员被误报 "no reachable log server"，错误归因失真。缺省形态返回 null
+	 * （默认解析的产出必在配置集内）；已知名返回 null=通过。
+	 */
+	public String unknownLogNameDesc(LogServiceConf deployConf) {
+		if (logName == null || logName.isBlank())
+			return null;
+		var trimmed = logName.trim();
+		return deployConf.getLogConfs().containsKey(trimmed) ? null : "unknown logName: " + trimmed;
 	}
 
 	/** 缺省 logName 无法确定默认时的 errorResult desc：列出部署配置的日志名引导显式传参。 */
