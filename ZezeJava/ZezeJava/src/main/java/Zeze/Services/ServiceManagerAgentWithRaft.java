@@ -126,20 +126,17 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		// 重放失败若skip-and-continue——raft应答超时/错误码下注册或订阅重放丢失，
 		// 直到下一次换leader才再试。重放源是registers/subscribeStates全量且幂等（见类注释），
 		// 失败安排退避重试整体重放，"重连后状态最终必达"由机制保证。
-		var edit = new BEditService();
-		// 快照在editServiceLock内取：与editService的"变更-发送-回滚"互斥，
-		// 不会捕获未确认即被回滚的中间态——否则重放投递成功+原edit失败回滚=僵尸注册复现。
-		synchronized (editServiceLock) {
-			edit.getAdd().addAll(registers.keySet());
-		}
-		if (!edit.getAdd().isEmpty()) {
-			try {
+		try {
+			synchronized (editServiceLock) {
+				var edit = new BEditService();
+				edit.getAdd().addAll(registers.values());
+				if (!edit.getAdd().isEmpty())
 				editService(edit);
-			} catch (Throwable ex) {
+			}
+		} catch (Throwable ex) {
 				logger.error("OnLoginSuccess.Register, schedule replay retry.", ex);
 				scheduleLoginReplayRetry();
 				return; // 注册未确认，订阅随重试一并重放
-			}
 		}
 
 		var subArg = new BSubscribeArgument();

@@ -202,10 +202,12 @@ public final class Agent extends AbstractAgent {
 	private volatile boolean stopped;
 
 	private void replayRegistersAndSubscribes() {
-		var edit = new BEditService();
-		edit.getAdd().addAll(registers.keySet());
 		try {
-			editService(edit);
+			synchronized (editServiceLock) {
+				var edit = new BEditService();
+				edit.getAdd().addAll(registers.values());
+				editService(edit);
+			}
 		} catch (Throwable ex) {
 			logger.warn("replay registers failed, schedule retry.", ex);
 			scheduleReplayRetry();
