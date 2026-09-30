@@ -234,26 +234,29 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 			this.ctx = ctx;
 		@SuppressWarnings("unchecked")
 		var onA = (Action1<RedirectAllContext<R>>)ON_ALL_DONE.getAndSet(this, null);
-		if (onA != null) {
-			var zeze = ctx.getService().getZeze();
-			if (zeze != null && !zeze.isNoDatabase()) {
-				zeze.newProcedure(() -> {
-					onA.run(ctx);
-					return Procedure.Success;
-				}, "RedirectAllFutureImpl.allDone").call();
-			} else {
-				try {
-					onA.run(ctx);
-				} catch (Exception e) {
-					throw Task.forceThrow(e);
+		try {
+			if (onA != null) {
+				var zeze = ctx.getService().getZeze();
+				if (zeze != null && !zeze.isNoDatabase()) {
+					zeze.newProcedure(() -> {
+						onA.run(ctx);
+						return Procedure.Success;
+					}, "RedirectAllFutureImpl.allDone").call();
+				} else {
+					try {
+						onA.run(ctx);
+					} catch (Exception e) {
+						throw Task.forceThrow(e);
+					}
 				}
 			}
-		}
-		lock();
-		try {
-			cond.signalAll();
 		} finally {
-			unlock();
+			lock();
+			try {
+				cond.signalAll();
+			} finally {
+				unlock();
+			}
 		}
 	}
 
