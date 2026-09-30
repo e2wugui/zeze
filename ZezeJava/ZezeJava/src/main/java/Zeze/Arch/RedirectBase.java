@@ -170,6 +170,10 @@ public class RedirectBase {
 		var providers = providerApp.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		var localServiceIdentity = String.valueOf(providerApp.zeze.getConfig().getServerId());
 		for (int i = 0; i < arg.getHashCodeConcurrentLevel(); ++i) {
+			if (providers == null) {
+				addMiss(miss, i, Procedure.ProviderNotExist);
+				continue;
+			}
 			var target = providerApp.distribute.choiceDataIndex(providers, consistent, i,
 					arg.getHashCodeConcurrentLevel());
 			if (target == null) {
