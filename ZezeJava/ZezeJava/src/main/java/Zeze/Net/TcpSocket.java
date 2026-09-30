@@ -179,7 +179,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 			selectionKey = selector.register(ssc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 			addInterestOps(SelectionKey.OP_ACCEPT);
 			selector.wakeup();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			if (ssc != null) {
 				try {
 					ssc.close();
