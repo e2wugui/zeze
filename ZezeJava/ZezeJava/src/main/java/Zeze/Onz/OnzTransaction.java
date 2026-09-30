@@ -21,6 +21,7 @@ import Zeze.Transaction.Data;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -478,6 +479,11 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				r.SendForWait(onzServer.getZezeInstance(zeze)).await();
 			} catch (Exception ex) { // await 不声明受检异常（中断在内部分理），统一捕获
 				commitFail = true;
+				// 投递失败者不发FlushReady（onz-01）：从flush闸门分母剔除，不占健康参与方的
+				// 等待预算——否则死/慢参与方把首个已提交参与方的持有时间推过其2×flushTimeout
+				// 预算，Table检查点模式重抛halt(543543)。未决者经redo迟到Commit后发的ready
+				// 落在开闸后，被立即应答。
+				markParticipantFlushImpossible(zeze);
 				logger.fatal("commit await fail. tid={}, keep eCommitting for redo.", onzTid, ex);
 				continue; // 继续通知其余参与方
 			}
@@ -490,6 +496,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				// 已回滚的参与方，保留记录空转一轮毫无收益且与"应答0"语义等价（防循环）。
 				// 死线传播（Commit下发前对最早ready参与方剩余预算的强制检查/心跳续期）留后续设计。
 				if (IModule.getErrorCode(r.getResultCode()) == AbstractOnz.eDivergence) {
+					markParticipantFlushImpossible(zeze); // 已回滚者不发FlushReady，同出分母
 					logger.error("onz divergence: 已超时回滚的参与方收到迟到决策=部分提交分歧"
 							+ " (participant rolled back before Commit arrived while coordinator committed;"
 							+ " data divergence). tid={}, zeze={}. 收场不变：不置commitFail、记录照删、不重发.",
@@ -498,6 +505,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 				}
 				// 参与方未决（ready条目还在），保留索引重发是唯一收敛路径。
 				commitFail = true;
+				markParticipantFlushImpossible(zeze); // 应答非0者同样不发本事务的FlushReady
 				logger.fatal("commit error {}", IModule.getErrorCode(r.getResultCode()));
 			}
 		}
@@ -629,6 +637,9 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 	// legacyReadies=空Participant（旧版本参与方）按rpc对象身份兜底计数的兼容集合。
 	private final Set<String> distinctParticipants = ConcurrentHashMap.newKeySet();
 	private final ConcurrentHashSet<Rpc<?, ?>> legacyReadies = new ConcurrentHashSet<>();
+	// Commit投递失败的参与方（commit()记录）：永不发本事务的FlushReady，从闸门分母剔除。
+	// 见markParticipantFlushImpossible。
+	private final Set<String> flushImpossibleParticipants = ConcurrentHashMap.newKeySet();
 	private final TaskCompletionSource<Integer> flushDone = new TaskCompletionSource<>();
 	// true之后到达的FlushReady一律立即应答（不计数门控）：等待收齐、降级、或免等（saga/eFlushAsync）。
 	private volatile boolean flushGateOpen;
@@ -652,6 +663,16 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			return;
 		}
 
+		if (flushReadies.isEmpty()) {
+			// 首条被扣ready起排持有期限定时（onz-01）：协调者对被扣ready的实际放行上限必须
+			// 覆盖参与方FlushReady预算（2×flushTimeout，OnzProcedure.sendFlushReady）——
+			// commit循环尾部对死/慢参与方的串行等待（每参与方≈建连5s或Commit rpc默认超时5s，
+			// 参与方数未知、无上界）+waitFlushDone的flushTimeout降级，在T_tail>flushTimeout时
+			// 必然超出预算：健康参与方的FlushReady先超时，Table检查点模式重抛→halt(543543)。
+			// 持有期限1.5×flushTimeout（<2F，余0.5F给rpc往返与调度抖动）到期强制开闸：同时性
+			// 尽力语义降级为异步flush（与waitFlushDone降级同构），闸门对任何死/慢/未知形态收敛。
+			TaskSpec.ofAction(this::openFlushGateOnHoldExpired).schedule(flushTimeout + Math.max(1, flushTimeout / 2));
+		}
 		flushReadies.add(r);
 		// 按参与方身份去重计数。
 		var participant = r.Argument.getParticipant();
@@ -667,20 +688,56 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			logger.warn("duplicate FlushReady from same participant (flush retry?). tid={}, participant={}",
 					onzTid, participant);
 		}
-		// 完成判据=不同参与方计数==procedure参与方数（zezeProcedures的key就是集群名）。
-		// ready最早在Commit决策之后才可能到达，那时zezeProcedures已定型（commit()在
-		// waitPendingAsync之后），N是稳定值；>=防并发add后单次检查跳过N（错过开闸只能等
-		// flushTimeout降级，方向安全但无谓）。
-		if (distinctParticipants.size() + legacyReadies.size() >= zezeProcedures.size()) {
-			flushGateOpen = true;
-			for (var ready : flushReadies)
-				replyReady(ready);
-			flushDone.setResult(0);
-			return;
-		}
-		// 计数未满足但闸已开（与waitFlushDone收尾并发）：立即应答，等waitFlushDone的扫尾
+		// 完成判据=不同参与方计数==可flush参与方数（zezeProcedures减去Commit投递失败者，
+		// 见markParticipantFlushImpossible）。ready最早在Commit决策之后才可能到达，那时
+		// zezeProcedures已定型（commit()在waitPendingAsync之后）；>=防并发add后单次检查
+		// 跳过（错过开闸只会等到持有期限或降级兜底，方向安全但无谓）。
+		checkFlushGate();
+		// 计数未满足但闸已开（与waitFlushDone收尾/持有期限并发）：立即应答，等waitFlushDone的扫尾
 		// 应答覆盖本条会多等其剩余的checkpoint等待时长。
 		if (flushGateOpen)
 			replyReady(r);
+	}
+
+	/** 开闸的公共动作（幂等）：应答全部被扣ready并置位flushDone（waitFlushDone随即快速返回）。
+	 * 并发重入容忍：flushGateOpen的检查-设置无锁（对齐既有trySetFlushReady形态），双入时
+	 * replyReady自身幂等（isSendResultDone守卫），flushDone.setResult二次调用no-op。 */
+	private void openFlushGate() {
+		if (flushGateOpen)
+			return;
+		flushGateOpen = true;
+		for (var ready : flushReadies)
+			replyReady(ready);
+		flushDone.setResult(0);
+	}
+
+	// 持有期限到期开闸（onz-01，排期见trySetFlushReady）：期限前闸已开（计数满足/降级）则no-op。
+	// 到期开闸后未发ready的参与方自行flush：可达者迟到的ready被开闸后的trySetFlushReady立即
+	// 应答；Commit失败者由redo补发路径收场。不触发waitFlushDone降级的主动checkpoint（那是
+	// "参与方可能漏flush"的兜底；这里未ready者要么仍在commit链路（自己的checkpoint会再握手）
+	// 要么已失败，与计数开闸（同样不触发checkpoint）同构）。
+	private void openFlushGateOnHoldExpired() {
+		if (flushGateOpen)
+			return;
+		logger.warn("FlushReady hold budget (1.5*flushTimeout) expired, degrade flush to async. tid={}", onzTid);
+		openFlushGate();
+	}
+
+	// Commit投递失败（发送/等待异常或非0应答）的参与方永不发本事务的FlushReady（未决者即使
+	// 经redo迟到Commit，其ready也落在开闸后被立即应答）——从闸门分母剔除（onz-01根因）：
+	// 死/慢参与方不再占用健康参与方的等待预算，闸门对"实际可flush的参与方集合"收敛；
+	// waitFlushDone的flushTimeout降级保留为真异常（ready丢失/极慢）的兜底。
+	void markParticipantFlushImpossible(String zeze) {
+		flushImpossibleParticipants.add(zeze);
+		checkFlushGate();
+	}
+
+	private void checkFlushGate() {
+		if (flushGateOpen)
+			return;
+		if (distinctParticipants.size() + legacyReadies.size()
+				>= zezeProcedures.size() - flushImpossibleParticipants.size()) {
+			openFlushGate();
+		}
 	}
 }

@@ -40,6 +40,9 @@ public class TestGcD03FlushReadyDedup {
 
 	@BeforeEach
 	public void before() {
+		// trySetFlushReady对首条被扣ready排持有期限定时（TaskSpec.schedule，生产由
+		// Application初始化调度池）——直构测试自行初始化。
+		Zeze.Util.Task.tryInitThreadPool();
 		txnLogger = (Logger)LogManager.getLogger(OnzTransaction.class);
 		appender = new CapturingAppender();
 		appender.start();
