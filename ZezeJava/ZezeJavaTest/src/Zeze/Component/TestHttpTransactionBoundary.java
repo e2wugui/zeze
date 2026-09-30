@@ -286,7 +286,50 @@ public class TestHttpTransactionBoundary {
 		}
 	}
 
-
+	@Test
+	public void testWebSocketRedoAndRollbackDoNotPublishProvisionalFrames() throws Exception {
+		try (var env = new Env(); var scope = new ChannelScope()) {
+			var channel = scope.channel;
+			var x = new Exchange(env.server, channel);
+			var attempts = new AtomicInteger();
+			var transferred = new ArrayList<ByteBuf>();
+			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
+				int attempt = attempts.incrementAndGet();
+				x.sendWebSocket("text-" + attempt);
+				var data = Unpooled.copiedBuffer("binary-" + attempt, StandardCharsets.UTF_8);
+				transferred.add(data);
+				x.sendWebSocket(new BinaryWebSocketFrame(false, 0, data));
+				Assertions.assertEquals(0, data.refCnt());
+				Assertions.assertNull(channel.readOutbound());
+				if (attempt == 1)
+					Transaction.getCurrent().throwRedo(
+							env.app.getTable("Zeze_Builtin_HttpSession_tSession").getId(), "forced websocket redo");
+				return Procedure.Success;
+			}, "HttpTransactionBoundary.websocket").call());
+			channel.runPendingTasks();
+			TextWebSocketFrame text = channel.readOutbound();
+			BinaryWebSocketFrame binary = channel.readOutbound();
+			Assertions.assertNotNull(text);
+			Assertions.assertNotNull(binary);
+			try {
+				Assertions.assertEquals("text-2", text.text());
+				Assertions.assertEquals("binary-2", binary.content().toString(StandardCharsets.UTF_8));
+				Assertions.assertFalse(binary.isFinalFragment());
+			} finally {
+				text.release();
+				binary.release();
+			}
+			Assertions.assertNull(channel.readOutbound());
+			Assertions.assertEquals(Procedure.Unknown, env.app.newProcedure(() -> {
+				x.sendWebSocket(new TextWebSocketFrame("discard"));
+				return Procedure.Unknown;
+			}, "HttpTransactionBoundary.websocketRollback").call());
+			channel.runPendingTasks();
+			Assertions.assertNull(channel.readOutbound());
+			transferred.forEach(body -> Assertions.assertEquals(0, body.refCnt()));
+			x.closeConnectionNow();
+		}
+	}
 
 	@Test
 	public void testDetachedHandlerKeepsRequestBodyUntilOwnerCloses() throws Exception {

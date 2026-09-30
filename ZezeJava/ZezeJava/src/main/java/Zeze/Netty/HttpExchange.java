@@ -1568,19 +1568,60 @@ public class HttpExchange {
 	}
 
 	public @NotNull ChannelFuture sendWebSocket(@NotNull WebSocketFrame frame) { // frame所有权会被转移
-		return context.writeAndFlush(frame);
+		var t = Transaction.getCurrent();
+		if (t == null || !t.isRunning())
+			return context.writeAndFlush(frame);
+		// 只持有堆快照：redo不执行回调，池化frame不能留在提交闭包里等待release。
+		byte[] body;
+		int kind;
+		boolean finalFragment = frame.isFinalFragment();
+		int rsv = frame.rsv();
+		try {
+			kind = switch (frame) {
+			case TextWebSocketFrame ignored -> 0;
+			case BinaryWebSocketFrame ignored -> 1;
+			case ContinuationWebSocketFrame ignored -> 2;
+			case CloseWebSocketFrame ignored -> 3;
+			case PingWebSocketFrame ignored -> 4;
+			case PongWebSocketFrame ignored -> 5;
+			default -> throw new IllegalArgumentException("unsupported transactional WebSocket frame: " + frame.getClass());
+			};
+			body = ByteBufUtil.getBytes(frame.content());
+		} finally {
+			frame.release();
+		}
+		var promise = context.newPromise();
+		t.runWhileCommit(() -> {
+			var data = Unpooled.wrappedBuffer(body);
+			WebSocketFrame committed = switch (kind) {
+			case 0 -> new TextWebSocketFrame(finalFragment, rsv, data);
+			case 1 -> new BinaryWebSocketFrame(finalFragment, rsv, data);
+			case 2 -> new ContinuationWebSocketFrame(finalFragment, rsv, data);
+			case 3 -> new CloseWebSocketFrame(finalFragment, rsv, data);
+			case 4 -> new PingWebSocketFrame(finalFragment, rsv, data);
+			default -> new PongWebSocketFrame(finalFragment, rsv, data);
+			};
+			try {
+				context.writeAndFlush(committed, promise);
+			} catch (Throwable e) {
+				committed.release();
+				promise.tryFailure(e);
+			}
+		});
+		t.runWhileRollback(() -> promise.tryFailure(new IllegalStateException("WebSocket handler transaction rolled back")));
+		return promise;
 	}
 
 	public @NotNull ChannelFuture sendWebSocket(@NotNull String text) {
-		return context.writeAndFlush(new TextWebSocketFrame(text));
+		return sendWebSocket(new TextWebSocketFrame(text));
 	}
 
 	public @NotNull ChannelFuture sendWebSocket(byte @NotNull [] data) {
-		return context.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data, 0, data.length)));
+		return sendWebSocket(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data, 0, data.length)));
 	}
 
 	public @NotNull ChannelFuture sendWebSocket(byte @NotNull [] data, int offset, int count) {
-		return context.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data, offset, count)));
+		return sendWebSocket(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data, offset, count)));
 	}
 
 	/// //////////////////////////////////////////////////////////////////////////////////////////////
