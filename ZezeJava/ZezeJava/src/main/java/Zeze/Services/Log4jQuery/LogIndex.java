@@ -122,6 +122,16 @@ public class LogIndex {
 		}
 	}
 
+	/** 最后一个物理索引记录的偏移；空索引从文件头读，用于检查尚未采样的尾部。 */
+	long lastOffset() {
+		rwLock.readLock().lock();
+		try {
+			return mmap.limit() >= eIndexRecordSize ? mmap.getLong(mmap.limit() - 8) : 0;
+		} finally {
+			rwLock.readLock().unlock();
+		}
+	}
+
 	private int mmap(int newAllocateSize) throws IOException {
 		try (var raf = new RandomAccessFile(file, "rw"); var channel = raf.getChannel()) {
 			var currentSize = channel.size();

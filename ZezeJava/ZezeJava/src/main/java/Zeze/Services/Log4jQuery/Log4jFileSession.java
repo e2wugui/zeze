@@ -22,11 +22,19 @@ public class Log4jFileSession implements Closeable {
 	}
 
 	public Log4jFileSession(File file, LogIndex index, String charsetName, String logTimeFormat) throws IOException {
+		this(file, index, charsetName, logTimeFormat, 0);
+	}
+
+	// 尾部校验在首次预读前定位，避免构造先聚合巨大文件头日志、随后seek又把它丢弃。
+	Log4jFileSession(File file, LogIndex index, String charsetName, String logTimeFormat, long initialOffset)
+			throws IOException {
 		this.file = file;
 		this.index = index;
 		this.randomAccessFile = new BufferedRandomFile(file, charsetName);
 		this.logTimeFormat = logTimeFormat;
 		try {
+			if (initialOffset != 0)
+				randomAccessFile.seek(initialOffset);
 			this.nextLog = tryNext();
 		} catch (IOException | RuntimeException e) {
 			// RAF已打开而构造上抛：必须先关闭，否则fd只能等GC兜底回收（调用方只捕获

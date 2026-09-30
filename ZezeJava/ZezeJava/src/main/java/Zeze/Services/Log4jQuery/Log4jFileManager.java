@@ -228,7 +228,7 @@ public class Log4jFileManager extends ReentrantLock {
 		//    且兜住time超出全部索引末端的尾窗查询（beginTime<=time即选中，不回落线性慢扫）；
 		// 2) 头锚（新增）：从头向尾第一个endTime>=time——条目时间窗重叠（轮转内容时间晚于active、
 		//    补登索引滞后）时，更早条目也可能含>=time的记录；头锚之前的条目endTime<time（索引
-		//    endTime=已索引记录的最大时间），不含>=time的记录，跳过安全。
+		//    endTime=已索引记录的最大时间），仍可能在未采样尾部包含>=time的记录，需下方尾部复核。
 		// walker只向前推进：起点偏早只是多读（窗口边界在查询循环逐条过滤，扫描量由页预算封顶），
 		// 偏晚即整窗漏读——两锚冲突时保守取早，不再以时间序为锚。
 	// 快照+引用锚定：双锚扫描与取条目在同一个COW快照（toArray）上以条目引用衔接——活列表
@@ -258,6 +258,28 @@ public class Log4jFileManager extends ReentrantLock {
 			var pick = tailAnchor >= 0 ? (headAnchor >= 0 ? Math.min(tailAnchor, headAnchor) : tailAnchor) : headAnchor;
 			if (pick < 0)
 				return null; // 双锚皆空（列表空/全空索引）：walker走slowSeek线性兜底
+			// 采样endTime不是文件内容上界：轮转移交保留的索引可能落后于末条不足10s，
+			// 时钟回拨后后继active的beginTime更早，双锚会跳过旧世代的这段尾部。
+			// 只复核拟跳过条目的最后物理索引之后，不重扫已索引文件主体；空索引从头。
+			for (var i = 0; i < pick; ++i) {
+				var earlier = snapshot[i];
+				if (failed.contains(earlier))
+					continue;
+				var target = earlier.file;
+				var index = earlier.index;
+				try (var tail = new Log4jFileSession(target, null, logConf.charsetName, logConf.logTimeFormat,
+						index.lastOffset())) {
+					while (tail.hasNext()) {
+						if (tail.next().getTime() >= time) {
+							pick = i;
+							break;
+						}
+					}
+				} catch (FileNotFoundException e) {
+					removeMissingFile(earlier, target, e);
+					failed.add(earlier); // 宽限保留的失效条目也不原地重试。
+				}
+			}
 			var hook = seekBeforePickOpenHookForTest;
 			if (null != hook)
 				hook.run();
