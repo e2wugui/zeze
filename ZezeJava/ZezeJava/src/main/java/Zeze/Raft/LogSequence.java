@@ -900,12 +900,20 @@ public class LogSequence {
 			return SetTermResult.Older;
 		}
 		if (term > this.term) {
-			this.term = term;
 			var termValue = ByteBuffer.Allocate(9);
 			termValue.WriteLong(term);
-			rafts.put(writeOptions, raftsTermKey, 0, raftsTermKey.length, termValue.Bytes, 0, termValue.WriteIndex);
+			var voteForValue = ByteBuffer.Allocate(1);
+			voteForValue.WriteString("");
+			// 任期推进与清空投票必须同生共死，且持久化成功后才能改变内存状态。
+			try (var batch = database.borrowBatch()) {
+				rafts.put(batch, raftsTermKey, 0, raftsTermKey.length, termValue.Bytes, 0, termValue.WriteIndex);
+				rafts.put(batch, raftsVoteForKey, 0, raftsVoteForKey.length,
+						voteForValue.Bytes, 0, voteForValue.WriteIndex);
+				batch.commit(writeOptions);
+			}
+			this.term = term;
+			voteFor = "";
 			raft.setLeaderId("");
-			setVoteFor("");
 			lastLeaderCommitIndex = 0;
 			return SetTermResult.Newer;
 		}
@@ -919,11 +927,11 @@ public class LogSequence {
 
 	public void setVoteFor(String voteFor) throws RocksDBException {
 		if (!this.voteFor.equals(voteFor)) {
-			this.voteFor = voteFor;
 			var voteForValue = ByteBuffer.Allocate(5 + voteFor.length());
 			voteForValue.WriteString(voteFor);
 			rafts.put(writeOptions, raftsVoteForKey, 0, raftsVoteForKey.length,
 					voteForValue.Bytes, 0, voteForValue.WriteIndex);
+			this.voteFor = voteFor;
 		}
 	}
 
