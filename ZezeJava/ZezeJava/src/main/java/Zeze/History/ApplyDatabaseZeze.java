@@ -6,6 +6,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Database;
+import Zeze.Transaction.DatabaseMemory;
 import Zeze.Transaction.TableWalkHandleRaw;
 import Zeze.Util.Id128;
 import Zeze.Util.OutObject;
@@ -47,12 +48,12 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 			throw new RuntimeException("apply database must have a name.");
 		dbForApply = zeze.getDatabase(applyDbName);
 		this.applyDbName = applyDbName;
-		// 误配fail-fast（hist-02）：applyDbName误配为任一业务库名（<DatabaseConf Name>相同→
-		// 同一Database对象）时，openTable(业务表名,业务表id)返回业务表同一个存储对象，
+		// 误配fail-fast：apply库与业务库是同一对象，或Memory库用不同配置名指向同一URL时，
+		// openTable(业务表名,业务表id)返回业务表同一个存储对象，
 		// 回放写入与游标直落业务表——静默数据损坏。apply库不得承载任何已注册业务表；
 		// 构造之后才注册/打开的表由ApplyTableZeze构造器按同判据兜底。
 		for (var t : zeze.getTables().values()) {
-			if (t.getDatabase() == dbForApply)
+			if (isApplyDatabase(t.getDatabase()))
 				throw new RuntimeException("apply database config conflict: '" + applyDbName
 						+ "' is also the database of business table '" + t.getName()
 						+ "'. apply data and replay cursor must persist to a separate kv database.");
@@ -61,6 +62,14 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		if (!(storage instanceof Database.AbstractKVTable kvStorage))
 			throw new RuntimeException("apply database need a kv-table for cursor. name=" + applyDbName);
 		cursorStorage = kvStorage;
+	}
+
+	private boolean isApplyDatabase(@Nullable Database database) {
+		// Memory后端按URL共享静态命名空间，配置名不同并不隔离物理表。
+		// 其他后端的URL之外还可能有schema/用户等配置，此处只拒绝已能证明的同库情形。
+		return database == dbForApply || database instanceof DatabaseMemory
+				&& dbForApply instanceof DatabaseMemory
+				&& database.getDatabaseUrl().equals(dbForApply.getDatabaseUrl());
 	}
 
 	@Override
@@ -199,7 +208,7 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 			// 兜底判据（同构造器，hist-02）：本表在apply库中打开，业务表却登记在apply库上
 			// ——同库同名同id时openTable返回业务表同一存储对象，回放写入直落业务表。
 			// 晚于ApplyDatabaseZeze构造注册/打开的表只能在此处核对。
-			if (table.getDatabase() == dbForApply)
+			if (isApplyDatabase(table.getDatabase()))
 				throw new RuntimeException("apply table config conflict: business table '" + tableName
 						+ "' is hosted in the apply database '" + applyDbName
 						+ "'. apply data and replay cursor must persist to a separate kv database.");
