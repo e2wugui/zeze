@@ -54,11 +54,9 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 	private final Locks locks = new Locks();
 
 	// 正向交错的确定性测试钩子（生产恒null，热路径仅一次null检查；先例：
-	// Dbh2AgentManager.commitBreakAfterPrepareForDebugOnly）。在Get/Walk/WalkKey的
-	// "meta入口校验通过"之后、"读数据"之前回调，携带请求参数——测试线程在此暂停，
-	// 令收尾apply在查询两读之间完整执行（跨线程暂停无法从外部构造，只能注入）。
-	// 消费方必须自行过滤请求（@Fast类级并行下同JVM有其他桶的查询在飞），
-	// 且在finally中置回null。
+	// Dbh2AgentManager.commitBreakAfterPrepareForDebugOnly）：在Get/Walk/WalkKey的
+	// "meta入口校验通过"之后、"读数据"之前回调，测试线程在此暂停，令收尾apply在查询
+	// 两读之间完整执行。消费方须自行过滤请求（@Fast类级并行）并在finally中置回null。
 	static volatile java.util.function.Consumer<Zeze.Builtin.Dbh2.Get> interposeGetAfterMetaCheckForTest;
 	static volatile java.util.function.Consumer<BWalk.Data> interposeWalkAfterMetaCheckForTest;
 
@@ -295,14 +293,11 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 		stateMachine.counterGet.incrementAndGet();
 		// 直接读取数据库。是否可以读取由raft控制。raft启动时有准备阶段。
 		var bucket = stateMachine.getBucket();
-		// 正向交错闭合（seqlock式复核）：查询锁外派发（见dispatchRaftRequest），与raft apply
-		// 线程的收尾（endSplit/endMove：meta先整体替换、deleteToEnd后行）并发。读者可能在
-		// "meta校验通过"与"读数据"之间被抢占，apply在其间完整执行——已迁往新桶、仍存在的键
-		// 会读到已删状态。miss（null或墓碑）时重读meta复核：与快照身份不等（meta整体替换、
-		// 每次apply都是新实例，无ABA）或键已出新界，则以eBucketMismatch应答走KV(false)重路由，
-		// 不得把收尾跨骑的null当权威"不存在"。身份相等即权威miss的论证：deleteToEnd只发生在
-		// meta替换之后（写序不变量），数据读观察到删除效果⟹替换已先行发生⟹复核volatile读
-		// 必见新meta（happens-before经apply程序序与rocksdb内部同步传递）。
+		// 正向交错复核（seqlock式）：查询与raft apply的收尾（endSplit/endMove：meta先整体
+		// 替换、deleteToEnd后行）并发，miss可能是apply在"meta校验通过"与"读数据"之间跨骑
+		// 所致（已迁往新桶的键读到已删状态）。miss时重读meta复核：身份不等（整体替换、
+		// 无ABA）或键出新界→eBucketMismatch走KV(false)重路由，不得当权威"不存在"；
+		// 身份相等即权威miss（deleteToEnd后于替换，读到删除效果⟹复核必见新meta）。
 		var metaOnCheck = bucket.getBucketMeta();
 		if (!bucket.inBucket(metaOnCheck, r.Argument.getDatabase(), r.Argument.getTable(), r.Argument.getKey()))
 			return errorCode(eBucketMismatch);
@@ -554,11 +549,10 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 				r.Argument.isDesc(),
 				r.Argument.getPrefix(),
 				(key, it) -> r.Result.getKeyValues().add(new BWalkKeyValue.Data(key, new Binary(it.value()))));
-		// 正向交错复核（与Get的miss-recheck同构）：入口拒绝检查通过后、迭代器读数据前，
-		// 收尾apply可能完整执行（meta收窄/置死+deleteToEnd）——此时桶尾语义已失效
-		//（被删键域属于新桶），按正常bucketEnd应答会让客户端陈旧视图静默跳过新桶键域。
-		// meta身份不等即拒（整体替换、无ABA），客户端走既有refused路径reload重定位；
-		// 不依赖VerifyBucketMeta（旧客户端不置位也受保护），已收集行随refuse丢弃。
+		// 正向交错复核（与Get的miss-recheck同构）：迭代期间收尾apply完整执行（meta收窄/
+		// 置死+deleteToEnd）后桶尾语义已失效，按正常bucketEnd应答会让客户端陈旧视图静默跳过
+		// 新桶键域。meta身份不等即拒（整体替换、无ABA），客户端走既有refused路径reload
+		// 重定位，已收集行随refuse丢弃；不依赖VerifyBucketMeta（旧客户端也受保护）。
 		if (bucket.getBucketMeta() != metaOnCheck) {
 			r.Result.getKeyValues().clear();
 			r.Result.setBucketRefuse(true);

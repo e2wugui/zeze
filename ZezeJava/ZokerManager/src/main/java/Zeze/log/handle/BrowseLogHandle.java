@@ -58,10 +58,9 @@ public class BrowseLogHandle implements HttpEndStreamHandle {
 				}
 				LogAgent logAgent = LogAgentManager.getInstance().getLogAgent();
 			String serverName = searchLogParam.getServerName();
-			// 缺省 logName 解析（与 SearchLogHandle 同根同款）：前端请求体不携带 logName，
-			// 缺省 null 透传到 Session 构造即坍缩 system error。部署配置的主 LogConf
-			//（server.xml 配置顺序首个）即默认；零 LogConf 无法确定默认时入口即拒
-			//（明确 errorResult），不建/复用会话。
+			// 缺省 logName 解析（与 SearchLogHandle 同根同款）：缺省 null 透传到 Session 构造
+			// 即坍缩 system error。部署配置的主 LogConf（配置顺序首个）即默认；零 LogConf
+			// 无法确定默认时入口即拒（明确 errorResult），不建/复用会话。
 			var logName = searchLogParam.resolveLogName(logAgent.getLogConf());
 			if (logName == null) {
 				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(
@@ -82,8 +81,8 @@ public class BrowseLogHandle implements HttpEndStreamHandle {
 			con.getWords().addAll(searchLogParam.wordsToList());
 			con.setContainsType(searchLogParam.getContainsType());
 			con.setPattern(searchLogParam.getPattern());
-			// 条件指纹参与会话身份（FND34 zokermanager-02，与 SearchLogHandle 同根同款）：
-			// browse 另含 offsetFactor（定位窗口因子）并以模式前缀区分。
+			// 条件指纹参与会话身份（与 SearchLogHandle 同根同款）：browse 另含
+			// offsetFactor（定位窗口因子）并以模式前缀区分。
 			String conditionKey = searchLogParam.conditionFingerprint(true);
 
 			// 会话回执比对（FileSessionManager.resolve：四元组+allView键集快照，不匹配/漂移即关旧建新）

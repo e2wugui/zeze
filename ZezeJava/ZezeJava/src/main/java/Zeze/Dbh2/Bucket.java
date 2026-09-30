@@ -274,9 +274,8 @@ public class Bucket {
 		data.delete(batch, key);
 	}
 
-	// meta参数化重载：查询路径对meta做"快照→校验→（读数据）→复核"的seqlock式闭环，
-	// 必须对同一份meta快照判定（this.bucketMeta每次读取是独立的volatile读，跨语句
-	// 两次读取可能分属新旧两代meta——收尾apply整体替换meta、从不原地改写）。
+	// meta参数化重载：查询路径的"快照→校验→读数据→复核"须对同一份meta快照判定——
+	// bucketMeta是volatile，跨语句两次读取可能分属新旧两代（收尾apply整体替换、从不原地改写）。
 	public boolean inBucket(BBucketMeta.Data meta, Binary key) {
 		return key.compareTo(meta.getKeyFirst()) >= 0
 				&& (meta.getKeyLast().size() == 0 || key.compareTo(meta.getKeyLast()) < 0);

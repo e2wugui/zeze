@@ -89,10 +89,9 @@ public class LogServiceConf implements Config.ICustomize {
 	// 需显著大于正常翻页间隔——回收正在翻页的会话会打断查询）。
 	public long sessionIdleTimeoutMillis = 3_600_000;
 	private final ConcurrentHashMap<String, LogConf> logConfs = new ConcurrentHashMap<>();
-	// 主 LogConf 名（parse 顺序的首个）：多日志部署的缺省查询目标。map 无序（ConcurrentHashMap
-	// 不保插入序），配置序单独记忆——部署配置顺序即部署者的意图序（文档化契约：首个 LogConf
-	// 是主日志），ZokerManager 等无日志名参数的查询前端以它为缺省解析（见其
-	// SearchLogParam.resolveLogName）。仅 parse 填写；无 LogConf 时保持 null。
+	// 主 LogConf 名（配置顺序首个）：多日志部署的缺省查询目标。map 无序（CHM 不保
+	// 插入序），配置序单独记忆——首个 LogConf 是主日志，无日志名参数的查询前端以它
+	// 为缺省解析（见 SearchLogParam.resolveLogName）。仅 parse 填写；无 LogConf 时为 null。
 	private String primaryLogName;
 
 	@Override

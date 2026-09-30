@@ -53,12 +53,8 @@ public final class PendingGidLedger {
 	}
 
 	/**
-	 * 停止对账守护（Application.stop 收编）：幂等。与 register 的惰性启动对齐——
-	 * stop 后复位 sweepStarted，Application 再次 start 后的首个登记重新拉起守护
-	 * （对齐 DaemonTimer"stop 后可再次 start"的重启语义）。停止时点由调用方安排在
-	 * 终检点之后：在途 tHistory 行已由终检点收尾、停机拒绝使新事务不再产生，账本
-	 * 的对账意义消亡；不收编则定时链经 finishRound→rescheduleLocked 无条件自续，
-	 * 随 Application 实例数无界累积（对象图+全局调度池任务）。
+	 * 停止对账守护（Application.stop 终检点之后收编）：幂等。复位 sweepStarted，
+	 * 使再次 start 后的首个登记重新拉起守护。
 	 */
 	public void stop() {
 		sweepDaemon.stop();

@@ -196,12 +196,11 @@ public class OnzProcedure implements FuncLong {
 		// 剩余参与方的建连+Commit rpc默认超时，量级5s/个）+waitFlushDone的flushTimeout——
 		// 最坏持有可超过单倍flushTimeout；参与方按flushTimeout设超时会先于降级放行超时
 		// （满负载flush排队超默认10s致waitFlushReady timeout→halt(543543)有IT实证，见
-		// ZezeJavaTest的LateRegisterTransaction）。取2×flushTimeout对齐"Commit尾部+
-		// flushTimeout"的最坏持有；max防非正值劣化（2×负值更小），min防int溢出。
-		// onz-01：该2F推导原对"commit尾部无上界（死/慢参与方每个≈5s，参与方数未知）"不成立，
-		// 现由协调者侧持有期限兜底（首条被扣ready起1.5×flushTimeout强制开闸，见
-		// OnzTransaction.trySetFlushReady）+Commit失败参与方即时出分母——放行上限收敛到
-		// 1.5F+rpc往返，2F预算恢复自洽。
+			// ZezeJavaTest的LateRegisterTransaction）。取2×flushTimeout对齐"Commit尾部+
+			// flushTimeout"的最坏持有；max防非正值劣化（2×负值更小），min防int溢出。
+			// commit尾部本身无上界（死/慢参与方每个≈5s，参与方数未知），放行上限实际由
+			// 协调者侧持有期限（1.5×flushTimeout强制开闸）+Commit失败参与方出分母收敛，
+			// 2F预算自洽（见OnzTransaction.trySetFlushReady）。
 		var flushReadyTimeoutMs = (int) Math.min(Integer.MAX_VALUE,
 				Math.max(2L * funcArgument.getFlushTimeout(), (long) funcArgument.getFlushTimeout()));
 		// onz-A（FND28）：目标经断连感知解析——原sender（请求到达的连接）已死时按对端IP重路由到

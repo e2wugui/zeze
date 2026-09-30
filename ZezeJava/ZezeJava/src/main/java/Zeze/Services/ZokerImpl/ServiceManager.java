@@ -123,8 +123,9 @@ public class ServiceManager {
 	// {@link #withServiceLock} 取本锁（commitLocks→opsLocks 单向嵌套——prune 的在用版本判据
 	// run.pid 与 start 的 writeRunPid 互斥，否则 launch→writeRunPid 窗口内正在启动的版本目录
 	// 被当非在用删除）；start/stop 不取 commitLocks（无反向持锁路径，无环）；watchExit 回调
-	// 的 run.pid 条件删除经 deleteRunPidIfOwn 取本锁（叶子获取、不持他锁，与既有序一致无环；
-	// 回调线程在 stop 停机窗口内最长排队 ~20s，死锁推演见该方法注释）。键折叠=serviceKey（foldVersionName：剥尾点/空格+小写）：Windows 上
+	// 的 run.pid 条件删除经 deleteRunPidIfOwn 取本锁（叶子获取、不持他锁，与既有序一致
+	// 无环；回调线程在 stop 停机窗口内最长排队 ~20s，死锁推演见该方法注释）。
+	// 键折叠=serviceKey（foldVersionName：剥尾点/空格+小写）：Windows 上
 	// "svc"/"Svc"/"svc." 同一物理容器，仅小写折叠时尾点/空格变体仍分叉两把锁——commit 的
 	// prune 段（持 commitLocks 折叠键后经 withServiceLock 传入容器目录名）与 startService
 	// 变体拼写互斥失效，正在启动的版本目录被 prune 当非在用删除（首波 zoker-07 笔记已记的
@@ -608,20 +609,15 @@ public class ServiceManager {
 	/**
 	 * 停毕/onExit 的条件删除：run.pid 内容 pid 仍是本句柄的才删
 	 * ——新 start（或他方）已改写身份的文件必须留下，迟到的收殓不误删别人的真相源。
-	 * 包内可见供直构测试直接驱动（watchExit 回调上下文的无锁调用面）。
+	 * 包内可见供直构测试直接驱动（watchExit 回调上下文的调用面）。
 	 *
-	 * <p><b>读-判-删全程持 {@link #opsLock}（与 startService 的 launch→writeRunPid
-	 * 同锁互斥）</b>：比对用的是读时刻的内容、删除打的是路径，无锁时与新 start 的
-	 * "写新身份"可交错——且窗口并非"微秒级"：删除失败重试 sleep(100)×3 把它结构性
-	 * 拉宽到 100-300ms，进程退出→外部守护亚秒级重启（部署模型常态）恰落窗内时，
-	 * 回调按旧内容的比对删掉新身份文件：pruneVersions 在用保护失明（误删在用版本
-	 * 目录）、Zoker 重启后 adoptOrphans 失明（同服务双实例）。锁序安全：回调线程
-	 * （进程退出收割线程）进本方法时不持任何其他锁（processes 条件移除是 CHM
-	 * 非阻塞），单向叶子获取，与 commit 的 commitLocks→opsLocks 既有序一致；
-	 * stopServiceLocked 的调用点已持本锁（可重入）。代价：重试睡眠最长 ~300ms
-	 * 顺延同服务 start/stop/prune（生命周期 RPC 非热路径）；回调在 stop 停机窗口
-	 * （最长 20s）内排队等待——stop 的 waitFor 只等进程终止、不依赖本回调完成，
-	 * 无死锁。</p>
+	 * <p><b>读-判-删全程持 {@link #opsLock}</b>（与 startService 的 launch→writeRunPid
+	 * 同锁互斥）：比对用的是读时刻的内容、删除打的是路径，无锁时与新 start 的"写新身份"
+	 * 可交错，且删除失败重试 sleep(100)×3 把窗口结构性拉宽到 100-300ms——外部守护
+	 * 亚秒级重启恰落窗内时按旧内容删掉新身份文件，pruneVersions 在用保护与
+	 * adoptOrphans 防双启同时失明。锁序：回调线程不持其他锁，叶子获取与 commit 的
+	 * commitLocks→opsLocks 既有序一致（stopServiceLocked 调用点已持本锁，可重入）；
+	 * stop 的 waitFor 只等进程终止、不依赖本回调完成，停机窗口内排队等待无死锁。</p>
 	 */
 	void deleteRunPidIfOwn(String serviceName, Process process) {
 		synchronized (opsLock(serviceName)) {

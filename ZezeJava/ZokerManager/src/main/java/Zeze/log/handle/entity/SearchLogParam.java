@@ -92,16 +92,12 @@ public class SearchLogParam {
 	/**
 	 * 解析查询目标日志名：显式非空白名 trim 后原样使用；缺省/空白时取部署配置
 	 * （{@link LogServiceConf}，与同进程 LogService 同源 server.xml）的主 LogConf
-	 * ——配置顺序的首个（单日志部署即唯一名），部署配置顺序即部署者的意图序，
-	 * 是多日志形态下缺省目标的权威定义。零 LogConf（或程序化填 map 未记主名）无法
-	 * 确定默认，返回 null——调用方以 {@link #missingLogNameDesc} 回显式错误引导
-	 * 显式传参（缺省 null 透传到 Session 构造抛 IAE 坍缩 system error）。
-	 * 显式名的<b>存在性</b>不在此判（返回值语义=解析，不=校验通过），由
-	 * {@link #unknownLogNameDesc} 承担。
-	 *
-	 * <p>语义沿革（FND34 zokermanager-01）：多份 LogConf 曾返回 null 回
-	 * "multiple logs" 拒绝——但随发 server.xml 即双 LogConf 而随发前端请求体无
-	 * logName 通路，核心查询在随发形态开箱恒拒；多份歧义改由配置顺序定主。</p>
+	 * ——配置顺序的首个（单日志部署即唯一名），配置顺序即多日志形态下缺省目标的
+	 * 权威定义（此前多份即拒绝，随发双 LogConf 形态的开箱查询恒拒，故改由配置顺序
+	 * 定主）。零 LogConf（或程序化填 map 未记主名）无法确定默认，返回 null——调用方
+	 * 以 {@link #missingLogNameDesc} 回显式错误引导显式传参（缺省 null 透传到
+	 * Session 构造抛 IAE 坍缩 system error）。显式名的<b>存在性</b>不在此判
+	 * （返回值语义=解析，不=校验通过），由 {@link #unknownLogNameDesc} 承担。
 	 */
 	public String resolveLogName(LogServiceConf deployConf) {
 		if (logName != null && !logName.isBlank())
@@ -233,18 +229,15 @@ public class SearchLogParam {
 	}
 
 	/**
-	 * 会话身份的查询条件指纹（FND34 zokermanager-02）：words（归一列表，与
-	 * 服务端过滤同源）、pattern、containsType、beginTime/endTime（解析值——空串
-	 * 与缺省归一为 -1，等值不同写法不误判漂移）拼接的确定性串，browse 另含
-	 * offsetFactor（定位窗口因子，变更即重新定位，语义同条件变更）并以模式前缀
-	 * 区分（search/browse 对游标的消费形态不同，不共享会话身份）。翻页路径条件
-	 * 不变，指纹稳定。调用时序：入口校验之后（时间串已预检可解析、words/pattern
-	 * 归一后非双空）。
-	 * <p>会话回执比对以它扩维（{@code LogSessionBinding.matches}）：服务端仅
-	 * beginTime 有去重哨兵（Log4jSession.trySetBeginTime），words/pattern/
-	 * containsType/endTime 变更复用旧会话只从当前游标向前求值——新条件在游标
-	 * 之前的匹配静默缺失且 200 成功；条件变即视同 changeSession 关旧建新，
-	 * 新条件从查询窗口头完整求值（丢水位/游标正是"新条件新查询"的应有语义）。</p>
+	 * 会话身份的查询条件指纹：words（归一列表，与服务端过滤同源）、pattern、
+	 * containsType、beginTime/endTime（解析值——空串与缺省归一为 -1，等值不同写法
+	 * 不误判漂移）拼接的确定性串；browse 另含 offsetFactor 并以模式前缀区分
+	 * （search/browse 对游标的消费形态不同，不共享会话身份）。同条件翻页指纹稳定；
+	 * 须在入口校验之后调用（时间串已预检可解析）。
+	 * <p>会话回执比对以它扩维（{@code LogSessionBinding.matches}）：服务端仅 beginTime
+	 * 有去重哨兵（Log4jSession.trySetBeginTime），其余条件变更复用旧会话只从当前
+	 * 游标向前求值——新条件在游标之前的匹配静默缺失且 200 成功；条件变即视同
+	 * changeSession 关旧建新，从查询窗口头完整求值。</p>
 	 */
 	public String conditionFingerprint(boolean browse) throws ParseException {
 		return (browse ? "browse|" : "search|")

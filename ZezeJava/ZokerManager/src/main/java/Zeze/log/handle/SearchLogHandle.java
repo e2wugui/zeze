@@ -59,10 +59,10 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 				}
 				LogAgent logAgent = LogAgentManager.getInstance().getLogAgent();
 			String serverName = searchLogParam.getServerName();
-			// 缺省 logName 解析：前端请求体不携带 logName，缺省 null 透传到 Session 构造
-			// 即坍缩 system error。部署配置的主 LogConf（server.xml 配置顺序首个，随发
-			// 形态 zeze.log）即默认——多日志部署的缺省目标由配置顺序定义；零 LogConf
-			// 无法确定默认时入口即拒（明确 errorResult），不建/复用会话。
+			// 缺省 logName 解析：缺省 null 透传到 Session 构造即坍缩 system error。
+			// 部署配置的主 LogConf（server.xml 配置顺序首个，随发形态 zeze.log）即默认
+			// ——多日志部署的缺省目标由配置顺序定义；零 LogConf 无法确定默认时入口
+			// 即拒（明确 errorResult），不建/复用会话。
 			String logName = searchLogParam.resolveLogName(logAgent.getLogConf());
 			if (logName == null) {
 				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(
@@ -84,9 +84,9 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 			con.getWords().addAll(searchLogParam.wordsToList());
 			con.setContainsType(searchLogParam.getContainsType());
 			con.setPattern(searchLogParam.getPattern());
-			// 条件指纹参与会话身份（FND34 zokermanager-02）：改条件再搜（前端成功回调后
-			// changeSession/reset 恒 false）不得复用旧游标会话——服务端仅 beginTime 有
-			// 去重哨兵，条件变即关旧建新，新条件从查询窗口头完整求值。
+			// 条件指纹参与会话身份：改条件再搜（changeSession/reset 恒 false）不得复用
+			// 旧游标会话——服务端仅 beginTime 有去重哨兵，条件变即关旧建新，
+			// 新条件从查询窗口头完整求值。
 			String conditionKey = searchLogParam.conditionFingerprint(false);
 
 			// 会话回执比对（FileSessionManager.resolve：四元组+allView键集快照，不匹配/漂移即关旧建新）

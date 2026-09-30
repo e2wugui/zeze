@@ -7,12 +7,12 @@ package Zeze.log;
  * 服务端自证，不依赖前端"切换数据源/改条件必须置 changeSession"的客户端侧契约。
  * Session/SessionAll 在 Zeze.Services.Log4jQuery（协议侧），绑定回执属于
  * HTTP 层的会话身份管理，故记录在 ZokerManager 侧随会话对象一并存表。
- * 条件指纹（FND34 zokermanager-02）：数据源三元组之外，查询条件（words/pattern/
- * containsType/beginTime/endTime，browse 另含 offsetFactor）也参与会话身份——
- * 服务端仅 beginTime 有去重哨兵，其余条件变更复用旧游标会话会静默漏掉游标之前
- * 的匹配；指纹由 {@code SearchLogParam.conditionFingerprint} 归一生成（值语义：
- * 同条件翻页指纹稳定，条件变即视同 changeSession 关旧建新，重建丢游标/水位正是
- * "新条件新查询"从头求值的应有语义）。
+ * 条件指纹：数据源三元组之外，查询条件（words/pattern/containsType/beginTime/
+ * endTime，browse 另含 offsetFactor）也参与会话身份——服务端仅 beginTime 有去重
+ * 哨兵，其余条件变更复用旧游标会话会静默漏掉游标之前的匹配。指纹由
+ * {@code SearchLogParam.conditionFingerprint} 归一生成（值语义：同条件翻页指纹
+ * 稳定，条件变即视同 changeSession 关旧建新，重建丢游标/水位正是"新条件新查询"
+ * 从头求值的应有语义）。
  * 另记最后活跃时间（创建与复用命中时刷新，System.nanoTime 单调时基）：
  * FileSessionManager 的闲置清扫据此判闲置驱逐。
  * 全服视图（all）另记创建时刻的成员集键串快照（zoker-04 起为注册表键集，FND30

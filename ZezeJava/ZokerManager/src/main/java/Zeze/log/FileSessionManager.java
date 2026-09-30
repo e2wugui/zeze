@@ -24,11 +24,10 @@ import org.apache.logging.log4j.Logger;
  * 绑定四元组）。HTTP处理器在Normal线程池并发取/存，必须是并发容器。
  *
  * <p>会话回执比对：复用会话前用 {@link LogSessionBinding#matches} 比对
- * 请求四元组（数据源三元组 + 查询条件指纹；allView 另比对服务器键集快照，
- * zoker-04；条件指纹 FND34 zokermanager-02——服务端仅 beginTime 有去重哨兵，
- * 条件变更必须关旧建新防静默漏早段匹配），不匹配（或
- * changeSession 强制重建）时关旧建新——客户端漏置 changeSession 不会串数据源
- * 也不会串条件，changeSession 只是"强制重建"提示符而非正确性前提。比对+重建的
+ * 请求四元组（数据源三元组 + 查询条件指纹；allView 另比对服务器键集快照，zoker-04），
+ * 不匹配（或 changeSession 强制重建）时关旧建新——客户端漏置 changeSession 不会串
+ * 数据源也不会串条件（服务端仅 beginTime 有去重哨兵，条件变更必须关旧建新防静默漏
+ * 早段匹配），changeSession 只是"强制重建"提示符而非正确性前提。比对+重建的
  * 收口见 {@link #resolve}。
  * 死会话自愈（zoker-03）：复用命中但服务端已拒绝本会话（空闲回收后的 LogicError）时，
  * {@link #operateRecovering} 驱逐重建并重试一次，同 IP 同参数查询不再恒 system error。</p>
@@ -116,14 +115,12 @@ public class FileSessionManager {
 
 	/**
 	 * 会话回执比对 + 替换关闭（SearchLogHandle/BrowseLogHandle 共用）：
-	 * 请求四元组（会话类型, serverName, logName, 查询条件指纹——条件指纹见
-	 * {@link LogSessionBinding}，FND34 zokermanager-02 起参与会话身份：条件变即
-	 * 视同 changeSession 关旧建新，防"改条件再搜复用旧游标静默漏早段匹配"）与现
+	 * 请求四元组（会话类型, serverName, logName, 查询条件指纹——见{@link LogSessionBinding}，
+	 * 条件变即视同 changeSession 关旧建新，防改条件再搜复用旧游标静默漏早段匹配）与现
 	 * 绑定一致（且未强制 changeSession、allView 键集未漂移）时复用会话并刷新最后
 	 * 活跃时间（闲置回收见 {@link #sweepIdleBindings}）；否则建新会话、替换绑定并
-	 * 异步关闭旧会话（替换关闭语义：释放服务端查询句柄，避免替换出的旧会话句柄
-	 * 滞留到进程结束）。建新失败（目标服务器不可达等）直接上抛，旧绑定保持原样
-	 * 不受影响——下次请求可继续收敛。
+	 * 异步关闭旧会话（替换关闭语义：释放服务端查询句柄，不滞留到进程结束）。建新失败
+	 * （目标服务器不可达等）直接上抛，旧绑定保持原样不受影响——下次请求可继续收敛。
 	 *
 	 * <p>全服视图复用收敛比对（zoker-04 键集漂移 + FND30 zokermanager-02 成员集权威）：
 	 * SessionAll 复用前以会话实际成员集比对当前注册表（allViewMembersConverged）——多余

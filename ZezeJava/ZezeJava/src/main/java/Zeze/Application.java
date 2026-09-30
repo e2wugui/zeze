@@ -923,12 +923,8 @@ public final class Application extends ReentrantLock {
 						+ "(risk of close racing in-flight flush)", CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
 			}
 
-			// pendingGidLedger 的对账守护（周期 DaemonTimer，register 惰性启动）：终检点之后
-			// 收编——在途 tHistory 行已由终检点收尾、停机拒绝使新事务不再产生，账本的对账
-			// 意义消亡。它是 Application.stop 逐一收编的周期守护族（achillesHeelDaemon/
-			// delayRemove/safeBatch/timer/checkpoint）的一员：不收编则定时链经 reschedule
-			// 无条件自续，每个启用 history 且发生过登记的实例都在进程内遗留一条永久自续的
-			// 守护链（含账本对象图），随实例数无界累积。final 字段构造期创建，无条件调用。
+			// 对账守护与其他周期守护一样须在 stop 中收编：不收编则定时链经 reschedule 无条件
+			// 自续，随实例数无界累积。终检点之后调用——在途行已收尾、停机拒绝使新事务不再产生。
 			stopStep("pendingGidLedger.stop", pendingGidLedger::stop);
 
 			if (LocalRocksCacheDb != null) {
