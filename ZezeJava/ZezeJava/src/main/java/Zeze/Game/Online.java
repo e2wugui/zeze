@@ -1,12 +1,14 @@
 package Zeze.Game;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1510,7 +1512,37 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private @NotNull Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
-		return providerApp.zeze.getQueueModule().open("Zeze.Game.Online.ReliableNotifyQueue:" + roleId, BNotify.class);
+		return providerApp.zeze.getQueueModule().open(reliableNotifyQueueName(roleId), BNotify.class);
+	}
+
+	private @NotNull String reliableNotifyQueueName(long roleId) {
+		var prefix = "Zeze.Game.Online.ReliableNotifyQueue:";
+		if (multiInstanceName.isEmpty())
+			return prefix + roleId; // 默认集合保持旧键。
+		var setName = Base64.getUrlEncoder().withoutPadding()
+				.encodeToString(multiInstanceName.getBytes(StandardCharsets.UTF_8));
+		return prefix + "Set:" + setName + ':' + roleId;
+	}
+
+	/**
+	 * 在事务中迁移旧的非默认OnlineSet可靠通知索引。先停止旧写入者、结束旧会话并排空共享旧队列。
+	 * 旧消息没有OnlineSet标识，不能自动拆分；队列非空时拒绝，默认集合旧键/索引保持原状。
+	 */
+	public void migrateLegacyReliableNotifyQueue(long roleId) {
+		if (multiInstanceName.isEmpty())
+			throw new IllegalStateException("default OnlineSet retains the legacy queue");
+		var shared = getOnlineShared(roleId);
+		if (shared != null && shared.getLink().getState() != eOffline)
+			throw new IllegalStateException("end the OnlineSet session before migration");
+		var oldQueue = providerApp.zeze.getQueueModule()
+				.open("Zeze.Game.Online.ReliableNotifyQueue:" + roleId, BNotify.class);
+		if (!oldQueue.isEmpty() || !openQueue(roleId).isEmpty())
+			throw new IllegalStateException("drain reliable notifications before migration");
+		var online = getOnline(roleId);
+		if (online != null) {
+			online.setReliableNotifyConfirmIndex(0);
+			online.setReliableNotifyIndex(0);
+		}
 	}
 
 	/**
