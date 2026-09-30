@@ -1,6 +1,7 @@
 package Zeze.Arch;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -701,8 +702,61 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private @NotNull Zeze.Collections.Queue<BNotify> openQueue(@NotNull String account, @NotNull String clientId) {
+		if (usesEncodedReliableQueue(account, clientId) && account.indexOf('@') < 0 && clientId.indexOf('@') < 0) {
+			// 旧colon身份可能与其他身份共享队列，消息没有身份标记，不能自动归属/搬运。
+			var legacy = providerApp.zeze.getQueueModule().open(legacyReliableQueueName(account, clientId), BNotify.class);
+			if (!legacy.isEmpty())
+				throw new IllegalStateException("drain the legacy reliable queue before migrating account/clientId");
+		}
 		return providerApp.zeze.getQueueModule().open(
-				"Zeze.Arch.Online.ReliableNotifyQueue:" + account + ":" + clientId, BNotify.class);
+				reliableNotifyQueueName(account, clientId), BNotify.class);
+	}
+
+	private static boolean usesEncodedReliableQueue(String account, String clientId) {
+		return account.indexOf(':') >= 0 || clientId.indexOf(':') >= 0
+				|| account.indexOf('@') >= 0 || clientId.indexOf('@') >= 0;
+	}
+
+	private static String legacyReliableQueueName(String account, String clientId) {
+		return "Zeze.Arch.Online.ReliableNotifyQueue:" + account + ':' + clientId;
+	}
+
+	private static String encodeReliableQueueIdentity(String identity) {
+		// 原始UTF-16 code unit编码，避免UTF-8替换孤立surrogate时使两个Java身份再次碰撞。
+		var bytes = new byte[Math.multiplyExact(identity.length(), 2)];
+		for (int i = 0; i < identity.length(); i++) {
+			var c = identity.charAt(i);
+			bytes[i * 2] = (byte)(c >>> 8);
+			bytes[i * 2 + 1] = (byte)c;
+		}
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+	}
+
+	private static String reliableNotifyQueueName(String account, String clientId) {
+		if (!usesEncodedReliableQueue(account, clientId))
+			return legacyReliableQueueName(account, clientId);
+		// 新名字不含':'或'@'，与必含':'的全部旧键不相交；Base64url也不含分隔符'/'。
+		return "Zeze.Arch.Online.ReliableNotifyQueue2/" + encodeReliableQueueIdentity(account)
+				+ '/' + encodeReliableQueueIdentity(clientId);
+	}
+
+	/**
+	 * 事务内迁移含':'或'@'身份的可靠通知索引。停旧写入者、结束会话、排空旧共享队列和新队列后调用。
+	 * 旧消息没有身份字段，不能拆分；含'@'的旧键原API拒绝，历史上不存在由该API写入的旧队列。
+	 */
+	public void migrateLegacyReliableNotifyQueue(@NotNull String account, @NotNull String clientId) {
+		if (!usesEncodedReliableQueue(account, clientId))
+			throw new IllegalStateException("this identity retains the legacy reliable queue");
+		var online = getOnline(account);
+		var login = online != null ? online.getLogins().get(clientId) : null;
+		if (login != null && login.getLink().getState() != eOffline)
+			throw new IllegalStateException("end the account/clientId session before migration");
+		if (!openQueue(account, clientId).isEmpty())
+			throw new IllegalStateException("drain reliable notifications before migration");
+		if (login != null) {
+			login.setReliableNotifyConfirmIndex(0);
+			login.setReliableNotifyIndex(0);
+		}
 	}
 
 	/**
