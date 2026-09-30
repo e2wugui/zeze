@@ -268,18 +268,19 @@ public class Daemon {
 		monitors.clear();
 	}
 
-	// 锁职责=销毁仲裁：临界区内只做"读-置空"两步，保证同一时刻仅一个线程拿到Process
-	// 去执行销毁（含占坑的读-置空串行化，多GCM同轮超时重复进入、DeadlockReport与Monitor
-	// 跨线程并发时，后来者拿到null幂等返回）。
+	// 锁职责=销毁仲裁：标记destroying后由唯一线程销毁，后来者幂等返回。
+	// subprocess仍指向旧进程，确认死亡后才清空，防止mainRun提前启动替代进程。
 	// jstack采样/destroy/joinMonitors全部在锁外：join若留在锁内，被join的Monitor
 	// 正阻塞在本锁的monitorenter上时，会形成"持锁者join等锁者"的循环死锁，看门狗
-	// 整体冻结且不可自愈。锁外join后，Monitor等锁者很快拿到锁、发现null返回，再由
+	// 整体冻结且不可自愈。锁外join后，Monitor等锁者很快拿到锁、发现销毁已在途返回，再由
 	// stopAndJoin置running=false退出循环，join必然返回。
 	private static void destroySubprocess() throws InterruptedException {
 		Process p;
 		synchronized (Daemon.class) {
 			p = subprocess;
-			subprocess = null;
+			if (p == null || destroyingSubprocess)
+				return;
+			destroyingSubprocess = true;
 		}
 		if (p == null)
 			return;
@@ -303,9 +304,27 @@ public class Daemon {
 		} catch (Exception ex) {
 			logger.error("", ex);
 		}
-		p.destroy();
-		joinMonitors();
+		try {
+			p.destroy();
+			if (!p.waitFor(30, TimeUnit.SECONDS)) {
+				p.destroyForcibly();
+				if (!p.waitFor(30, TimeUnit.SECONDS))
+					throw new IllegalStateException("subprocess did not terminate: " + p.pid());
+			}
+			// mainRun只能在旧进程已经终止后观察到null，从而允许启动下一代。
+			synchronized (Daemon.class) {
+				if (subprocess == p)
+					subprocess = null;
+			}
+			joinMonitors();
+		} finally {
+			synchronized (Daemon.class) {
+				destroyingSubprocess = false;
+			}
+		}
 	}
+
+	private static boolean destroyingSubprocess; // Daemon.class守护
 
 	/** 限时等待诊断子进程退出，超时或中断强杀收尸（防jstack孤儿；中断不吞根因异常）。 */
 	private static void reapDiagnosticProcess(Process process) {
