@@ -25,9 +25,13 @@ public final class ResultCodeCap {
 	public boolean accept(long code) {
 		if (seen.containsKey(code))
 			return true;
-		if (seen.size() >= max)
-			return false;
-		seen.putIfAbsent(code, Boolean.TRUE);
-		return true;
+		synchronized (this) {
+			if (seen.containsKey(code))
+				return true;
+			if (seen.size() >= max)
+				return false;
+			seen.putIfAbsent(code, Boolean.TRUE);
+			return true;
+		}
 	}
 }

@@ -48,5 +48,28 @@ public class TestMutableContainerContracts {
 		assertFalse(set.removeAll(set));
 	}
 
-
+	@Test
+	@Timeout(15)
+	public void concurrentNewCodesCannotExceedTheCap() throws Exception {
+		var cap = new ResultCodeCap(2);
+		assertTrue(cap.accept(0));
+		var start = new CountDownLatch(1);
+		try (var pool = Executors.newFixedThreadPool(16)) {
+			var futures = new ArrayList<java.util.concurrent.Future<Boolean>>();
+			for (int i = 1; i <= 16; i++) {
+				long code = i;
+				futures.add(pool.submit(() -> {
+					assertTrue(start.await(5, TimeUnit.SECONDS));
+					return cap.accept(code);
+				}));
+			}
+			start.countDown();
+			int accepted = 0;
+			for (var future : futures)
+				if (future.get(5, TimeUnit.SECONDS))
+					accepted++;
+			assertEquals(1, accepted);
+			assertTrue(cap.accept(0));
+		}
+	}
 }
