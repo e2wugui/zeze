@@ -63,6 +63,8 @@ import static Zeze.Util.Args.requireValue;
  * Token服务：生成/核销一次性令牌（内存SoftReference缓存+RocksDB落库），附带主题订阅广播。
  */
 public final class Token extends AbstractToken {
+	// 缓存缺失回载、迁移落库、核销删除必须共用稳定锁；TokenState锁随缓存条目更换，不能仲裁回载。
+	private final java.util.concurrent.locks.ReentrantLock tokenStoreLock = new java.util.concurrent.locks.ReentrantLock();
 	private static final @NotNull Logger logger = LogManager.getLogger(Token.class);
 	private static final int DEFAULT_PORT = 5003;
 	private static final int TOKEN_CHAR_USED = 62; // 10+26+26
@@ -447,6 +449,19 @@ public final class Token extends AbstractToken {
 	}
 
 	private static boolean moveToDB(@NotNull TokenState state, @NotNull ByteBuffer bb, boolean waitLock) {
+		var storeLock = state.token.tokenStoreLock;
+		if (waitLock)
+			storeLock.lock();
+		else if (!storeLock.tryLock())
+			return false;
+		try {
+			return moveToDBLocked(state, bb, waitLock);
+		} finally {
+			storeLock.unlock();
+		}
+	}
+
+	private static boolean moveToDBLocked(@NotNull TokenState state, @NotNull ByteBuffer bb, boolean waitLock) {
 		FastLock lock = null;
 		try {
 			var k = state.key.getBytes(StandardCharsets.UTF_8);
@@ -697,6 +712,15 @@ public final class Token extends AbstractToken {
 	}
 
 	private boolean saveDB() {
+		tokenStoreLock.lock();
+		try {
+			return saveDBLocked();
+		} finally {
+			tokenStoreLock.unlock();
+		}
+	}
+
+	private boolean saveDBLocked() {
 		logger.info("saveDB begin ...");
 		try {
 			var timeBegin = System.nanoTime();
@@ -759,6 +783,15 @@ public final class Token extends AbstractToken {
 
 	@Override
 	protected long ProcessGetTokenRequest(@NotNull Zeze.Builtin.Token.GetToken r) {
+		tokenStoreLock.lock();
+		try {
+			return getTokenLocked(r);
+		} finally {
+			tokenStoreLock.unlock();
+		}
+	}
+
+	private long getTokenLocked(@NotNull Zeze.Builtin.Token.GetToken r) {
 		var arg = r.Argument;
 		var res = r.Result;
 		var token = arg.getToken();
@@ -797,23 +830,22 @@ public final class Token extends AbstractToken {
 					res.setTime(-2);
 				} else {
 					count++;
-					if (maxCount > 0 && count >= maxCount && !tokenMap.remove(token, state))
-						res.setTime(-3);
-					else {
+					{
 						if (maxCount > 0 && count >= maxCount) {
-							// 达到maxCount被成功移除后置-1（与"移除即置-1"约定一致），防止软引用清理时moveToDB写回复活耗尽token。
-							state.count = -1;
-							// 核销还必须删除RocksDB中已落库的副本：核销前saveDB/moveToDB写入的旧count
-							// 会在重启/软引用回收后经DB回载重新起算，同一token可无限次重放——
-							// 仅封住核销后的moveToDB写回不够，核销前已落库的副本也要清除。
-							// moveToDB/saveDB都持state.lock且跳过count==-1的state，删后不会被写回。
+							// 删除成功后才发布核销结果；失败保留原计数，客户端可以重试，不能返回一次成功消费。
 							try {
-								var table = tokenMapTable; // 同上，停机窗口尽力收窄
-								if (table != null)
-									table.delete(token.getBytes(StandardCharsets.UTF_8));
+								var table = tokenMapTable;
+								if (table == null)
+									throw new IllegalStateException("token store closed");
+								table.delete(token.getBytes(StandardCharsets.UTF_8));
 							} catch (Exception e) {
 								logger.warn("tokenMapTable.delete on consume exception:", e);
+								res.setTime(-3);
+								r.SendResultCode(0);
+								return Procedure.Success;
 							}
+							state.count = -1;
+							tokenMap.remove(token, state);
 						} else
 							state.count = count;
 						res.setContext(state.context);
