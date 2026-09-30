@@ -172,7 +172,11 @@ public class ProviderDirectService extends HandshakeBoth {
 	public void waitDirectServerReady(int serverId, @NotNull Action0 callback) {
 		lock();
 		try {
-			if (!providerByServerId.containsKey(serverId)) {
+			var ps = providerByServerId.get(serverId);
+			var socket = ps != null ? GetSocket(ps.getSessionId()) : null;
+			boolean local = ps != null && ps.getSessionId() == 0
+					&& serverId == getZeze().getConfig().getServerId();
+			if (!local && (socket == null || socket.isClosed())) {
 				serverReadyEvents.computeIfAbsent(serverId, __ -> new ConcurrentHashSet<>()).add(callback);
 				return;
 			}

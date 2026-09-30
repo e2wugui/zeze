@@ -69,7 +69,8 @@ public class RedirectBase {
 						+ module.getFullName() + ", serverId=" + serverId);
 			}
 			providerApp.providerDirectService.waitDirectServerReady(serverId, 120_000);
-			socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
+			ps = providerApp.providerDirectService.providerByServerId.get(serverId);
+			socket = ps != null ? providerApp.providerDirectService.GetSocket(ps.getSessionId()) : null;
 			if (socket == null || socket.isClosed()) {
 				if (orOtherServer)
 					return choiceHash(module, serverId, 1);
