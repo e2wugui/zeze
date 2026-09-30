@@ -108,9 +108,10 @@ public class MQPartition extends ReentrantLock {
 	// 不清理则死socket永久占槽，绑到它的分区消息永久积压。
 	public void onSocketClose(AsyncSocket sender) {
 		boolean changed = false;
-		for (var it = subscribes.entrySet().iterator(); it.hasNext(); ) {
-			if (it.next().getValue() == sender) {
-				it.remove();
+		for (var entry : subscribes.entrySet()) {
+			// 迭代器读到旧 socket 后，同 sessionId 可能已重订阅换绑新 socket。
+			// 条件删除与 unsubscribe 同义，不能用按 key 无条件删的 iterator.remove。
+			if (entry.getValue() == sender && subscribes.remove(entry.getKey(), sender)) {
 				changed = true;
 			}
 		}
