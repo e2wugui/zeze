@@ -78,5 +78,18 @@ public class TestJsonTypedValuesAndPersistence {
 
 
 
-
+	@Test
+	public void compactPrimitiveMapsRespectDepthAndNormalOutput() {
+		var ints = new IntHashMap<Object>();
+		ints.put(1, ints);
+		assertTrue(Json.toCompactString(ints).contains("!OVERDEPTH!"));
+		var longs = new LongHashMap<Object>();
+		longs.put(1, longs);
+		assertTrue(Json.toCompactString(longs).contains("!OVERDEPTH!"));
+		var concurrent = new LongConcurrentHashMap<Object>();
+		concurrent.put(1, concurrent);
+		assertTrue(Json.toCompactString(concurrent).contains("!OVERDEPTH!"));
+		ints.put(1, 2);
+		assertEquals("{\"1\":2}", Json.toCompactString(ints));
+	}
 }

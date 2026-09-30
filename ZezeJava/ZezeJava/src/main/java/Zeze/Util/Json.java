@@ -1165,6 +1165,7 @@ public final class Json implements Cloneable {
 					} else
 						writer.ensure(2);
 				} else {
+					writer.incTab();
 					for (IntHashMap<?>.Iterator it = obj.iterator(); it.moveToNext(); ) {
 						Object v = it.value();
 						if (v == null && !writer.isWriteNull())
@@ -1185,6 +1186,7 @@ public final class Json implements Cloneable {
 						writer.write(v);
 						comma = true;
 					}
+					writer.decTab();
 					writer.ensure(2);
 				}
 				writer.writeByteUnsafe((byte)'}');
@@ -1258,6 +1260,7 @@ public final class Json implements Cloneable {
 					} else
 						writer.ensure(2);
 				} else {
+					writer.incTab();
 					for (LongHashMap<?>.Iterator it = obj.iterator(); it.moveToNext(); ) {
 						Object v = it.value();
 						if (v == null && !writer.isWriteNull())
@@ -1278,6 +1281,7 @@ public final class Json implements Cloneable {
 						writer.write(v);
 						comma = true;
 					}
+					writer.decTab();
 					writer.ensure(2);
 				}
 				writer.writeByteUnsafe((byte)'}');
@@ -1351,6 +1355,7 @@ public final class Json implements Cloneable {
 					} else
 						writer.ensure(2);
 				} else {
+					writer.incTab();
 					for (LongMap.MapIterator<?> it = obj.entryIterator(); it.moveToNext(); ) {
 						Object v = it.value();
 						if (v == null && !writer.isWriteNull())
@@ -1371,6 +1376,7 @@ public final class Json implements Cloneable {
 						writer.write(v);
 						comma = true;
 					}
+					writer.decTab();
 					writer.ensure(2);
 				}
 				writer.writeByteUnsafe((byte)'}');
