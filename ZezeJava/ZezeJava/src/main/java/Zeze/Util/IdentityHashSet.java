@@ -157,6 +157,11 @@ public class IdentityHashSet<T> implements Cloneable {
 	}
 
 	public boolean removeAll(@NotNull IdentityHashSet<?> set) {
+		if (set == this) {
+			boolean changed = size != 0;
+			clear();
+			return changed;
+		}
 		boolean r = false;
 		for (Object k : set.keyTable)
 			if (k != null)

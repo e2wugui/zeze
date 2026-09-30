@@ -40,6 +40,12 @@ public class TestMutableContainerContracts {
 		one.increment(1);
 		assertEquals(2, one.getLow());
 		assertEquals(0, Id128.Zero.getLow());
+		var set = new IdentityHashSet<Object>();
+		for (int i = 0; i < 200; i++)
+			set.add(new Object());
+		assertTrue(set.removeAll(set));
+		assertEquals(0, set.size());
+		assertFalse(set.removeAll(set));
 	}
 
 
