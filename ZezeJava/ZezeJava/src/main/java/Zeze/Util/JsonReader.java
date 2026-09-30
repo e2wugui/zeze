@@ -376,12 +376,12 @@ public final class JsonReader {
 		Parser<T> parser = classMeta.parser;
 		if (parser != null) {
 			for (int b = skipNext(); b != ']'; b = skipVar(']'))
-				c.add(parser.parse(this, classMeta, null, null, null));
+				c.add(b == 'n' ? null : parser.parse(this, classMeta, null, null, null));
 		} else {
 			if (ClassMeta.isAbstract(elemClass))
 				throw new InstantiationException("abstract element class: " + elemClass.getName());
 			for (int b = skipNext(); b != ']'; b = skipVar(']'))
-				c.add(parse0(classMeta.ctor.create(), classMeta));
+				c.add(b == 'n' ? null : parse0(classMeta.ctor.create(), classMeta));
 		}
 		pos++;
 		depth--;
@@ -462,6 +462,8 @@ public final class JsonReader {
 				return null;
 			classMeta = json.getClassMeta((Class<T>)obj.getClass());
 		} else {
+			if (next() == 'n')
+				return null;
 			KeyReader kr = ClassMeta.getKeyReader(classMeta.klass);
 			if (kr != null) {
 				int b = next();
@@ -472,6 +474,8 @@ public final class JsonReader {
 				return (T)(b == 0 ? null : kr.parse(this, b));
 			}
 		}
+		if (next() == 'n')
+			return null;
 		Parser<? super T> parser = classMeta.parser;
 		if (parser != null)
 			return (T)parser.parse0(this, classMeta, null, obj, null);
@@ -744,14 +748,14 @@ public final class JsonReader {
 			Parser<?> parser = subClassMeta.parser;
 			if (parser != null) {
 				for (; b != ']'; b = skipVar(']'))
-					c.add(parser.parse0(this, subClassMeta, fm, null, c));
+						c.add(b == 'n' ? null : parser.parse0(this, subClassMeta, fm, null, c));
 			} else {
 				if (ClassMeta.isAbstract(subClassMeta.klass)) {
 					throw new InstantiationException(
 							"abstract element class: " + fm.getName() + " in " + classMeta.klass.getName());
 				}
 				for (; b != ']'; b = skipVar(']'))
-					c.add(parse0(subClassMeta.ctor.create(), subClassMeta));
+						c.add(b == 'n' ? null : parse0(subClassMeta.ctor.create(), subClassMeta));
 			}
 			break;
 		}
@@ -842,8 +846,7 @@ public final class JsonReader {
 			if (parser != null) {
 				for (; b != '}'; b = skipVar('}')) {
 					Object k = keyParser.parse(this, b);
-					skipColon();
-					m.put(k, parser.parse0(this, subClassMeta, fm, null, m));
+						m.put(k, skipColon() == 'n' ? null : parser.parse0(this, subClassMeta, fm, null, m));
 				}
 			} else {
 				if (ClassMeta.isAbstract(subClassMeta.klass)) {
@@ -852,8 +855,7 @@ public final class JsonReader {
 				}
 				for (; b != '}'; b = skipVar('}')) {
 					Object k = keyParser.parse(this, b);
-					skipColon();
-					m.put(k, parse0(subClassMeta.ctor.create(), subClassMeta));
+						m.put(k, skipColon() == 'n' ? null : parse0(subClassMeta.ctor.create(), subClassMeta));
 				}
 			}
 			break;
