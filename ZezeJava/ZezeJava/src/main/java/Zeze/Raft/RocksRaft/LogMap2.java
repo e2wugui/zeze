@@ -54,6 +54,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		if (getValue() != null) {
+			changedWithKey.clear(); // live日志重建最终视图；decode日志保留wire中的changed。
 			for (var c : changed) {
 				Object pkey = c.getThis().mapKey();
 				// 第三条过滤对齐Transaction.Collections.LogMap2.buildChangedWithKey：

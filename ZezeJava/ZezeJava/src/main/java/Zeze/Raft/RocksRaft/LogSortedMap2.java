@@ -69,6 +69,7 @@ public class LogSortedMap2<K extends Comparable<K>, V extends Bean> extends LogS
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		if (getValue() != null) {
+			changedWithKey.clear(); // 重建最终视图，重复编码不能保留已删除/覆盖的旧changed。
 			for (var c : changed) {
 				Object pkey = c.getThis().mapKey();
 				// 第三条过滤对齐Transaction.Collections.LogMap2.buildChangedWithKey：

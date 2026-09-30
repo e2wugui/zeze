@@ -146,7 +146,38 @@ public class TestSortedMapEquivalentKeysReplay {
 		assertEquals(20, follower.get("alpha"));
 	}
 
-
+	@Test
+	public void beanReinsertionAndRepeatedEncodingUseFinalEquivalentKey() {
+		Log.register(LogInt::new);
+		var leader = new CollSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
+		var bean = new BValue(10);
+		leader.put(decimal("1.0"), bean);
+		var log = new LogSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
+		log.setValue(leader.map);
+		var fieldChange = new LogBean();
+		fieldChange.setThis(bean);
+		fieldChange.getVariablesOrNew().put(1, new LogInt(bean, 1, 42));
+		log.getChanged().add(fieldChange);
+		var edit = new LogSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
+		edit.decode(encode(log));
+		assertTrue(edit.getChangedWithKey().containsKey(decimal("1.00")));
+		var follower = new CollSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
+		follower.put(decimal("1.0"), new BValue(10));
+		follower.followerApply(edit);
+		assertEquals(42, follower.get(decimal("1")).value, "正常changed日志须继续回放");
+		log.remove(decimal("1.00"));
+		var replacement = new BValue(20);
+		replacement.mapKey(decimal("1.000"));
+		log.put(decimal("1.000"), replacement);
+		var decoded = new LogSortedMap2<BigDecimal, BValue>(BigDecimal.class, BValue.class);
+		decoded.decode(encode(log));
+		assertTrue(decoded.getChangedWithKey().isEmpty(), "再次编码须剔除被替换bean的旧changed");
+		assertTrue(decoded.getRemoved().isEmpty());
+		follower.followerApply(decoded);
+		assertEquals(1, follower.size());
+		assertEquals(20, follower.get(decimal("1")).value);
+		assertTrue(((BigDecimal)follower.get(decimal("1")).mapKey()).compareTo(decimal("1")) == 0);
+	}
 
 	@Test
 	public void comparatorFinerThanNaturalOrderSurvivesConfiguredDecode() {
@@ -190,7 +221,34 @@ public class TestSortedMapEquivalentKeysReplay {
 		}
 	}
 
-
+	@Test
+	public void ordinaryMapRepeatedEncodingDropsReplacedChangedAndRetainsDecodedChanges() {
+		Log.register(LogInt::new);
+		var leader = new CollMap2<Integer, BValue>(Integer.class, BValue.class);
+		var bean = new BValue(10);
+		leader.put(1, bean);
+		var log = new LogMap2<Integer, BValue>(Integer.class, BValue.class);
+		log.setValue(leader.map);
+		var fieldChange = new LogBean();
+		fieldChange.setThis(bean);
+		fieldChange.getVariablesOrNew().put(1, new LogInt(bean, 1, 42));
+		log.getChanged().add(fieldChange);
+		var decodedEdit = new LogMap2<Integer, BValue>(Integer.class, BValue.class);
+		decodedEdit.decode(encode(log));
+		var reencodedEdit = new LogMap2<Integer, BValue>(Integer.class, BValue.class);
+		reencodedEdit.decode(encode(decodedEdit));
+		assertEquals(1, reencodedEdit.getChangedWithKey().size(), "decode-only再次编码须保留changed");
+		var replacement = new BValue(20);
+		replacement.mapKey(1);
+		log.put(1, replacement);
+		var decoded = new LogMap2<Integer, BValue>(Integer.class, BValue.class);
+		decoded.decode(encode(log));
+		assertTrue(decoded.getChangedWithKey().isEmpty());
+		var follower = new CollMap2<Integer, BValue>(Integer.class, BValue.class);
+		follower.put(1, new BValue(10));
+		follower.followerApply(decoded);
+		assertEquals(20, follower.get(1).value);
+	}
 
 	private static BigDecimal decimal(String value) {
 		return new BigDecimal(value);
