@@ -89,6 +89,9 @@ public class MQSingle extends ReentrantLock {
 	// fill add 入账（须原子），ack/死信出队出账，close 终态释放；计量与段记录体同尺
 	//（见 messageBytes），两条装载路径一致。
 	private final AtomicLong queueBytes = new AtomicLong();
+	// 仅串行化 fill 入账与 close 的置闸清账；fill 不取 MQSingle 锁，避免与持
+	// fileWithIndex 锁等待 activeFills 的段回收、持 MQSingle 锁的 append 形成死锁。
+	private final Object fillBudgetLock = new Object();
 	// Manager 级全局在飞字节（MQManager 注入共享，重启装载同受约束；null-manager 测试
 	// 形态回退为本实例独立计数，预算退化为单分区维度）。
 	private final AtomicLong totalInFlightBytes;
@@ -299,20 +302,24 @@ public class MQSingle extends ReentrantLock {
 		highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId() - messageQueue.size();
 	}
 
-	// fill 预算准入（通过即入账，准入与记账同点）：队列非空时分区+全局双预算均达标才放行，
-	// 队列空无条件放行（队头活性）。跨分区并发 fill 的检查-入账窗口可使 total 有界超出
-	//（软预算）；分区维度无并发写点（fill 单槽，直入与 fill 由 gap 不变量互斥）。
+	// fill 预算准入（通过即入账，准入与记账同点）：与 close 的终态清账持同预算锁，
+	// 排空超预算后的晚到 fill 不得重新占用已关闭分区的全局预算。队列空保队头活性；
+	// 跨分区并发准入仍可能有界超出 total（软预算）。
 	private boolean admitFillBytes(long messageBytes, boolean queueEmpty) {
-		if (!queueEmpty) {
-			var config = config();
-			if (queueBytes.get() + messageBytes > config.getMaxInFlightBytesPerPartition())
+		synchronized (fillBudgetLock) {
+			if (closed)
 				return false;
-			if (totalInFlightBytes.get() + messageBytes > config.getMaxTotalInFlightBytes())
-				return false;
+			if (!queueEmpty) {
+				var config = config();
+				if (queueBytes.get() + messageBytes > config.getMaxInFlightBytesPerPartition())
+					return false;
+				if (totalInFlightBytes.get() + messageBytes > config.getMaxTotalInFlightBytes())
+					return false;
+			}
+			queueBytes.addAndGet(messageBytes);
+			totalInFlightBytes.addAndGet(messageBytes);
+			return true;
 		}
-		queueBytes.addAndGet(messageBytes);
-		totalInFlightBytes.addAndGet(messageBytes);
-		return true;
 	}
 
 	// 出队记账（ack 成功/死信终态出队，锁内调用）：与入账同尺。
@@ -737,12 +744,14 @@ public class MQSingle extends ReentrantLock {
 		// 检查短路，不再提交新 fill）。
 		lock();
 		try {
-			closed = true;
-			// 终态释放记账：close 不清 messageQueue，此后无出队事件，不释放则全局预算被
-			// 死分区永久占用。锁内执行，与全部入账/出账点互斥（fill 世代已被上方排空）。
-			var leaked = queueBytes.getAndSet(0);
-			if (0 != leaked)
-				totalInFlightBytes.addAndGet(-leaked);
+			// 与晚到 fill 入账互斥：首轮排空超预算或出现逃逸世代时，清账后不再准入。
+			// 外层 MQSingle 锁仍与直入、ack/死信出队串行；fill 只取短期预算锁。
+			synchronized (fillBudgetLock) {
+				closed = true;
+				var leaked = queueBytes.getAndSet(0);
+				if (0 != leaked)
+					totalInFlightBytes.addAndGet(-leaked);
+			}
 			if (null != retryFuture) {
 				retryFuture.cancel(false);
 				retryFuture = null;
