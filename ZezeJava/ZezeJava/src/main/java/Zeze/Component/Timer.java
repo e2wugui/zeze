@@ -1229,11 +1229,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			var index = _tIndexs.get(timerId);
 			if (index == null
 					|| index.getServerId() != zeze.getConfig().getServerId() // 不是拥有者，取消本地调度，应该是不大可能发生的。
-					|| index.getSerialId() != timerSerialId // 新注册的，旧的future需要取消。
 			) {
 				Transaction.whileCommit(() -> cancelFuture(timerId));
 				return 0;
 			}
+			if (index.getSerialId() != timerSerialId)
+				return 0; // 旧fire已排队；同名新timer的future不能按timerId取消。
 
 			var nodeId = index.getNodeId();
 			var node = _tNodes.get(nodeId);
@@ -1334,11 +1335,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			var index = _tIndexs.get(timerId);
 			if (index == null
 					|| index.getServerId() != zeze.getConfig().getServerId() // 不是拥有者，取消本地调度，应该是不大可能发生的。
-					|| index.getSerialId() != timerSerialId // 新注册的，旧的future需要取消。
 			) {
 				Transaction.whileCommit(() -> cancelFuture(timerId));
 				return 0;
 			}
+			if (index.getSerialId() != timerSerialId)
+				return 0; // 旧fire已排队；同名新timer的future不能按timerId取消。
 
 			var nodeId = index.getNodeId();
 			var node = _tNodes.get(nodeId);
