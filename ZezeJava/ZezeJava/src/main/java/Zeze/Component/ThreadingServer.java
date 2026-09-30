@@ -68,6 +68,10 @@ public class ThreadingServer extends AbstractThreadingServer {
 		}
 		for (var thread : threads)
 			thread.interrupt(); // Interrupt timed acquisitions; release must run on the owning thread.
+		awaitTermination(threads);
+	}
+
+	private static void awaitTermination(SimulateThread[] threads) {
 		boolean interrupted = false;
 		for (var thread : threads) {
 			if (thread == Thread.currentThread())
@@ -100,6 +104,10 @@ public class ThreadingServer extends AbstractThreadingServer {
 	// 动作队列元素：携带发起该动作的rpc句柄，供SimulateThread.runAction()在动作异常时统一补应答。
 	// rpc允许为null：内部动作（如超时release）没有对应的客户端请求，异常时只记日志不补应答。
 	private record SimulateThreadAction(Rpc<?, ?> rpc, Action1<SimulateThread> action) {
+		void reject() {
+			if (rpc != null)
+				rpc.trySendResultCode(ResultCodeInvalidArgument);
+		}
 	}
 
 	public class SimulateThread extends Thread {
@@ -185,10 +193,8 @@ public class ThreadingServer extends AbstractThreadingServer {
 				if (!acquireNothing())
 					release();
 				SimulateThreadAction pending;
-				while ((pending = actions.poll()) != null) {
-					if (pending.rpc() != null)
-						pending.rpc().trySendResultCode(ResultCodeInvalidArgument);
-				}
+				while ((pending = actions.poll()) != null)
+					pending.reject();
 				simulateThreadExit(id, this);
 			}
 		}
@@ -202,16 +208,14 @@ public class ThreadingServer extends AbstractThreadingServer {
 		private void runAction(SimulateThreadAction a) {
 			try {
 				if (closed) {
-					if (a.rpc() != null)
-						a.rpc().trySendResultCode(ResultCodeInvalidArgument);
+					a.reject();
 					return;
 				}
 				a.action().run(this);
 			} catch (Exception e) {
 				logger.error("simulate action exception (thread=({}, {}))",
 						id.getServerId(), id.getThreadId(), e);
-				if (a.rpc() != null)
-					a.rpc().trySendResultCode(ResultCodeInvalidArgument);
+				a.reject();
 			}
 		}
 
