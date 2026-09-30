@@ -122,10 +122,12 @@ public class HttpExchange {
 
 	private final class HeadersLog extends Log {
 		final ArrayList<Object> headers;
+		@Nullable String sessionCookie;
 
-		HeadersLog(ArrayList<Object> headers) {
+		HeadersLog(ArrayList<Object> headers, @Nullable String sessionCookie) {
 			super(responseHeadersBean, 0);
 			this.headers = headers;
+			this.sessionCookie = sessionCookie;
 		}
 
 		@Override
@@ -140,24 +142,25 @@ public class HttpExchange {
 
 		@Override
 		public @NotNull Log beginSavepoint() {
-			return new HeadersLog(new ArrayList<>(headers));
+			return new HeadersLog(new ArrayList<>(headers), sessionCookie);
 		}
 
 		@Override
 		public void commit() {
 			synchronized (HttpExchange.this) {
 				resHeaders = new ArrayList<>(headers);
+				sessionCookieHeader = sessionCookie;
 			}
 		}
 	}
 
-	// 调用方持有this。header的增加共用同一个保存点视图。
+	// 调用方持有this。header的增加、会话cookie替换和删除共用同一个保存点视图。
 	private HeadersLog headersLog(Transaction t) {
 		if (responseHeadersBean == null)
 			responseHeadersBean = new EmptyBean();
 		var log = (HeadersLog)t.getLog(responseHeadersBean.objectId());
 		if (log == null) {
-			log = new HeadersLog(resHeaders != null ? new ArrayList<>(resHeaders) : new ArrayList<>());
+			log = new HeadersLog(resHeaders != null ? new ArrayList<>(resHeaders) : new ArrayList<>(), sessionCookieHeader);
 			t.putLog(log);
 		}
 		return log;
@@ -206,19 +209,79 @@ public class HttpExchange {
 	// DB抖动期间该EventLoop上所有连接的读写/握手/心跳全部停摆。未启用httpSession时返回null。
 	public @Nullable HttpSession.CookieSession getCookieSession() {
 		var cs = cookieSession;
-		if (cs != null)
+		var t = Transaction.getCurrent();
+		if (cs != null && (t == null || !t.isRunning()))
 			return cs;
 		var httpSession = server.getHttpSession();
 		if (httpSession == null)
 			return null;
 		try {
 			synchronized (this) { // detach后并发首调：双检保证会话只建一次、Set-Cookie只发一条
-				if (cookieSession == null)
+				// 事务redo会丢弃首轮插入，普通Java缓存不会回滚；每轮从当前事务视图核对行。
+				if (cookieSession == null || t != null && t.isRunning() && !cookieSession.existsInCurrentTransaction()) {
 					cookieSession = httpSession.getCookieSession(this);
+					if (t != null && t.isRunning()) {
+						var initialized = cookieSession;
+						t.runWhileRollback(() -> {
+							synchronized (this) {
+								if (cookieSession == initialized)
+									cookieSession = null;
+							}
+						});
+					}
+				}
 			}
 			return cookieSession;
 		} catch (Exception e) {
 			throw Task.forceThrow(e);
+		}
+	}
+
+	private @Nullable String sessionCookieHeader;
+
+	void setSessionCookieHeader(@NotNull String value) {
+		synchronized (this) {
+			var t = Transaction.getCurrent();
+			if (t != null && t.isRunning()) {
+				var log = headersLog(t);
+				removeSessionCookieHeader(log.sessionCookie);
+				log.headers.add(HttpHeaderNames.SET_COOKIE);
+				log.headers.add(value);
+				log.sessionCookie = value;
+			} else {
+				removeSessionCookieHeader(sessionCookieHeader);
+				addHeader(HttpHeaderNames.SET_COOKIE, value);
+				sessionCookieHeader = value;
+			}
+		}
+	}
+
+	private synchronized void removeSessionCookieHeader(@Nullable String expected) {
+		if (expected == null)
+			return;
+		var t = Transaction.getCurrent();
+		ArrayList<Object> headers;
+		if (t != null && t.isRunning()) {
+			var log = headersLog(t);
+			if (log.sessionCookie != expected)
+				return;
+			headers = log.headers;
+			log.sessionCookie = null;
+		} else {
+			if (sessionCookieHeader != expected)
+				return;
+			headers = resHeaders;
+			sessionCookieHeader = null;
+		}
+		if (headers != null) {
+			for (int i = headers.size() - 2; i >= 0; i -= 2) {
+				if (headers.get(i + 1) == expected
+						&& HttpHeaderNames.SET_COOKIE.contentEqualsIgnoreCase((CharSequence)headers.get(i))) {
+					headers.remove(i + 1);
+					headers.remove(i);
+					break;
+				}
+			}
 		}
 	}
 

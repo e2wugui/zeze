@@ -43,6 +43,10 @@ public class HttpSession extends AbstractHttpSession {
 			this.cookieSessionId = cookieSessionId;
 		}
 
+		boolean existsInCurrentTransaction() {
+			return _tSession.get(cookieSessionId) != null;
+		}
+
 		// @Get/@Post 默认 TransactionLevel.None，无事务上下文时 TableX.get 内
 		// Transaction.getCurrent() 为 null（assert 运行期禁用）必 NPE。同 getCookieSession
 		// 的处理：有运行事务时直接同事务访问表，否则包短 Procedure。
@@ -201,7 +205,7 @@ public class HttpSession extends AbstractHttpSession {
 			var cookie = new DefaultCookie(ZEZE_SESSION_ID_NAME, sessionId.value);
 			cookie.setHttpOnly(true);
 			cookie.setMaxAge(httpSessionExpire / 1000);
-			x.addHeader(HttpHeaderNames.SET_COOKIE, ServerCookieEncoder.LAX.encode(cookie) + "; SameSite=Lax");
+			x.setSessionCookieHeader(ServerCookieEncoder.LAX.encode(cookie) + "; SameSite=Lax");
 		}
 		return new CookieSession(sessionId.value); // value 不能记住，每次访问重新从表中读取。
 	}
