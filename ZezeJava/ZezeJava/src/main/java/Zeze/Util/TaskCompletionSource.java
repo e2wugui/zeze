@@ -167,26 +167,23 @@ public class TaskCompletionSource<R> implements Future<R> {
 	public R get(long timeout, @NotNull TimeUnit unit) { // throws InterruptedException, TimeoutException, CompletionException, CancellationException
 		var r = result;
 		if (r == null) {
+			var duration = unit.toNanos(timeout);
+			if (duration <= 0)
+				throw Task.forceThrow(new TimeoutException());
+			var started = System.nanoTime();
 			var ct = Thread.currentThread();
 			assert !ct.getName().startsWith("Selector");
 			var waiter = push(ct);
 			try {
 				if ((r = result) == null) {
-					timeout = unit.toNanos(timeout);
-					// toNanos 的饱和值与 nanoTime 相加会溢出为负的 deadline（不变式破坏，
-					// j.u.c 对饱和超时值有"不超时"特判）。检测饱和（now>0 时 MAX-now 不溢出，now<=0 时
-					// now+timeout 不可能溢出）钳制 deadline 为 MAX_VALUE，使"deadline-now 恒为大正数、
-					// 循环等到结果为止"的循环不变式显式成立，不再依赖补码双重回绕的偶然自愈。
-					var now = System.nanoTime();
-					var deadline = timeout >= Long.MAX_VALUE - now ? Long.MAX_VALUE : now + timeout;
 					try (var ignored = Profiler.begin("TaskCompletionSource")) {
 						do {
-							if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
+							var remaining = remainingNanos(started, duration, System.nanoTime());
+							if (remaining <= 0)
 								throw Task.forceThrow(new TimeoutException());
-							LockSupport.parkNanos(timeout);
+							LockSupport.parkNanos(remaining);
 							if (Thread.interrupted())
 								throw Task.forceThrow(new InterruptedException());
-							timeout = deadline - System.nanoTime();
 						} while ((r = result) == null);
 					}
 				}
@@ -197,6 +194,10 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return toResult(r);
 	}
 
+	static long remainingNanos(long started, long duration, long now) {
+		// nanoTime 起点可为负、也可回绕；相减仅依赖不足 2^63 纳秒的经过时间。
+		return duration - (now - started);
+	}
 
 	protected @Nullable R toResult(@NotNull Object o) { // throws CompletionException
 		if (o instanceof AltResult) {

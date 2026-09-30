@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +28,7 @@ public final class ThreadDiagnosable {
 						// 豁免读timeout创建线程的critical快照：检查运行在诊断线程上，
 						// 不能读Critical.tlCritical.get()（那是诊断线程自己的ThreadLocal副本，恒null），
 						// 须读Timeout内构造时刻的快照。
-						if (timeout.timeoutTime <= now && !timeout.isCritical()
+						if (timeout.isExpired(now) && !timeout.isCritical()
 								&& timeouts.remove(timeout) != null) { // 每个timeout仅触发一次
 								timeout.lock();
 								try {
@@ -78,21 +79,21 @@ public final class ThreadDiagnosable {
 
 	public static final class Timeout extends ReentrantLock implements AutoCloseable {
 		private @Nullable Thread thread = Thread.currentThread();
-		private final long timeoutTime;
+		private final long started = System.nanoTime();
+		private final long duration;
 		// 构造线程（工作线程）的critical标志快照：豁免以Timeout创建时刻为准，
 		// createTimeout须在enterCritical(true)临界区内调用才受豁免保护。
 		private final boolean critical;
 
 		// 注意必须使用try包装,确保new和close配对
 		public Timeout(long timeout) {
-			if (timeout > Long.MAX_VALUE / 1_000_000)
-				timeout = Long.MAX_VALUE / 1_000_000;
-			else if (timeout < 0)
-				timeout = 0;
-			timeout = timeout * 1_000_000 + System.nanoTime();
-			timeoutTime = timeout < 0 ? Long.MAX_VALUE : timeout;
+			duration = TimeUnit.MILLISECONDS.toNanos(Math.max(timeout, 0));
 			critical = Boolean.TRUE.equals(Critical.tlCritical.get());
 			timeouts.add(this);
+		}
+
+		boolean isExpired(long now) {
+			return now - started >= duration;
 		}
 
 		boolean isCritical() {

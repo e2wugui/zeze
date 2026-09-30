@@ -78,7 +78,25 @@ public class TestAsyncLifecycleBehavior {
 		}
 	}
 
-
+	@Test
+	public void testElapsedBudgetAcceptsNegativeOriginAndClockWrap() throws Exception {
+		assertEquals(800_000_000L,
+				TaskCompletionSource.remainingNanos(-10_000_000_000L, 1_000_000_000L, -9_800_000_000L));
+		assertEquals(299, TaskCompletionSource.remainingNanos(Long.MAX_VALUE - 100, 500, Long.MIN_VALUE + 100));
+		assertEquals(Long.MAX_VALUE - 50,
+				TaskCompletionSource.remainingNanos(-100, Long.MAX_VALUE, -50));
+		try (var critical = new ThreadDiagnosable.Critical(true);
+			 var timeout = new ThreadDiagnosable.Timeout(Long.MAX_VALUE)) {
+			var started = ThreadDiagnosable.Timeout.class.getDeclaredField("started");
+			var duration = ThreadDiagnosable.Timeout.class.getDeclaredField("duration");
+			started.setAccessible(true);
+			duration.setAccessible(true);
+			started.setLong(timeout, -10_000_000_000L);
+			duration.setLong(timeout, 1_000_000_000L);
+			assertFalse(timeout.isExpired(-9_800_000_000L));
+			assertTrue(timeout.isExpired(-9_000_000_000L));
+		}
+	}
 
 	@Test
 	public void testCancelTrueInterruptsBeforeJoiningBody() throws Exception {
