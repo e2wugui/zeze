@@ -185,8 +185,9 @@ public class Profiler {
 						.append(strace.getFileName()).append(':').append(strace.getLineNumber()).append(")\n");
 			}
 		}
-		while (++idx < count && (c = contexts.get(idx)).timeBegin < timeEnd)
-			genInfo(sb, indent + 2, idx, c);
+		++idx;
+		while (idx < count && (c = contexts.get(idx)).timeBegin < timeEnd)
+			idx = genInfo(sb, indent + 2, idx, c);
 		return idx;
 	}
 
