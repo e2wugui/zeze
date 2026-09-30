@@ -47,6 +47,11 @@ import org.jetbrains.annotations.Nullable;
  * 丢失的半消息失去回查兜底。</li>
  * <li>回查查无行恒答 UNKNOW 的语义（见 {@link #checkLocalTransaction}）：既不答 COMMIT 也不答
  * ROLLBACK，收敛依赖 broker 回查策略 + tSent 保留时长下界。</li>
+ * <li>停机窗口：{@link #stop()} 先有界排空回查线程池（在飞回查趁客户端存活把COMMIT应答
+ * 发回broker）再关闭客户端；停机时长超过 broker 回查总窗口（transactionTimeOut +
+ * transactionCheckMax × transactionCheckInterval，默认参数约15分钟）时，窗口外未决半消息
+ * 失去回查兜底——计划内发版的停机窗口本身是部署契约的一部分（tSent保留7天远大于回查窗口，
+ * 兜底实际收敛于"回查窗口内重启"）。</li>
  * <li>生命周期配对：构造器把 tSent 注册进 Application，{@link #stop()} 反注册并关闭它——
  * 同一 Application 上 stop 后<b>直接</b>重建 Producer 即可（构造器重新注册）。重建实例须
  * 在 app start 前构造（start 只打开当时已注册的表）；app 存续期间"只停不重建"的形态由
@@ -73,8 +78,10 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	private static final long TSENT_KEEP_TIME_MIN = 60L * 60 * 1000;
 	// 每批walk的行数上限：每批独立一个事务过程删除，避免单过程长事务。
 	private static final int TSENT_CLEAN_BATCH_SIZE = 1000;
-	// stop 的有界排空预算：事务回查线程池在飞的 checkLocalTransaction（_tSent.selectDirty 触
-	// Zeze 表）须在 stop 返回前完成——典型停机顺序 stop()→app.close()，越过即对已关表的访问。
+	// stop 的有界排空预算：事务回查线程池在飞任务的完成等待——checkLocalTransaction触
+	// Zeze表须在app.close()前完成（典型停机顺序stop()→app.close()，越过即对已关表的
+	// 访问），且决策后的应答发送（endTransactionOneway）须在producer.shutdown()之前的
+	// 客户端存活窗口内完成（排空先于关客户端，见stop()内注释）。
 	private static final long STOP_AWAIT_MILLIS = 10_000L;
 
 	public final @NotNull Application zeze;
@@ -157,10 +164,15 @@ public class Producer extends AbstractProducer implements TransactionListener {
 			tSentCleanFuture.cancel(false);
 			tSentCleanFuture = null;
 		}
-		producer.shutdown();
-		// destroyTransactionEnv 对注入的回查线程池只 shutdown() 不等待：在飞 checkLocalTransaction
-		//（触 Zeze 表）须在 stop 返回前有界排空（典型停机顺序 stop()→app.close()，越过即对已关表的
-		// 访问）。shutdown 幂等（destroyTransactionEnv 已调过），超时仅告警继续，不无限等待。
+		// 排空回查线程池必须先于producer.shutdown()：回查任务不止"查表"——checkLocalTransaction
+		// 得出COMMIT决策后还要经客户端把应答发回broker（endTransactionOneway依赖被shutdown关闭的
+		// remoting通道）。客户端先关则排空窗口内执行完的在飞/排队回查的决策确定性送不出去，且producer
+		// 已从broker反注册、后续回查无应答，broker回查次数耗尽后丢弃半消息——停机超过回查窗口即
+		// "本地事务已提交而消息灭失"（类javadoc部署契约）。tSent反注册必须在排空之后（在飞回查查表
+		// 需要它，次序与构造器配对结构不变）。destroyTransactionEnv对注入池只shutdown()不等待，
+		// 这里自行有界排空；排空期间新到回查的提交被拒绝，与排空后同形态（无更差）。
+		// shutdown幂等（下方producer.shutdown()内destroyTransactionEnv再调一次为no-op），
+		// 超时仅告警继续，不无限等待。
 		checkExecutor.shutdown();
 		try {
 			if (!checkExecutor.awaitTermination(STOP_AWAIT_MILLIS, TimeUnit.MILLISECONDS))
@@ -168,7 +180,8 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
-		// 在飞回查排空后反注册并关闭 tSent（与构造器注册成对；removeTable 幂等，补调无害）。
+		producer.shutdown(); // 排空完成后才关客户端：在飞回查的应答发送有完整存活的通道
+		// 反注册并关闭 tSent（与构造器注册成对；removeTable 幂等，补调无害）。
 		// 反注册包try/catch（构造侧回滚同族）：失败（如getDatabase对不存在的库名抛
 		// IllegalStateException）不得跳过下方计数递减——计数上漂瓦解多实例告警判据。
 		try {

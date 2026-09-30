@@ -168,6 +168,7 @@ public final class FastServerIds {
 	public static final int TEST_PMAP2_COPY_DEEP = seg("TestPMap2CopyDeep", 16291, 1);
 	public static final int TEST_DYNAMIC_TABLE_LOG_REGISTRY = seg("TestDynamicTableLogRegistry", 16301, 1);
 	public static final int TEST_PRODUCER_CTOR_FAIL_REBUILDS = seg("TestProducerCtorFailRebuildsSameApplication", 16311, 1);
+	public static final int TEST_PRODUCER_STOP_DRAINS_CHECK_BEFORE_SHUTDOWN = seg("TestProducerStopDrainsCheckBeforeShutdown", 16321, 1);
 
 	private FastServerIds() {
 	}
