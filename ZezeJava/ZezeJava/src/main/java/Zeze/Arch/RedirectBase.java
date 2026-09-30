@@ -261,34 +261,37 @@ public class RedirectBase {
 		}
 
 		var future = new RedirectFuture<T>();
+		TaskSpec.ofAction(() -> runFutureInTransaction(level, func, actionName, future)).name(actionName).runNow();
+		return future;
+	}
+
+	private <T> void runFutureInTransaction(@Nullable TransactionLevel level,
+			@NotNull Func0<RedirectFuture<T>> func, @NotNull String actionName, @NotNull RedirectFuture<T> future) {
 		// 本体立即在独立事务运行，候选结果只在最终提交成功后关联到外层future。
 		// Procedure.call内部可重做，不能让已回滚轮次的成功值抢先完成外层future。
-		TaskSpec.ofAction(() -> {
-			var candidate = new OutObject<RedirectFuture<T>>();
-			var failure = new OutObject<Throwable>();
-			try {
-				var rc = providerApp.zeze.newProcedure(() -> {
-					candidate.value = null;
-					failure.value = null;
-					try {
-						candidate.value = Objects.requireNonNull(func.call());
-					} catch (Throwable e) {
-						failure.value = e;
-						throw Task.forceThrow(e);
-					}
-					return Procedure.Success;
-				}, actionName, level).call();
-				if (rc == Procedure.Success)
-					candidate.value.onSuccess(future::setResult).onFail(future::setException);
-				else
-					future.setException(failure.value != null ? failure.value
-							: new RedirectException(RedirectException.LOCAL_EXECUTION,
-									"redirect loop-back transaction failed: " + rc));
-			} catch (Throwable e) {
-				future.setException(e);
-			}
-		}).name(actionName).runNow();
-		return future;
+		var candidate = new OutObject<RedirectFuture<T>>();
+		var failure = new OutObject<Throwable>();
+		try {
+			var rc = providerApp.zeze.newProcedure(() -> {
+				candidate.value = null;
+				failure.value = null;
+				try {
+					candidate.value = Objects.requireNonNull(func.call());
+				} catch (Throwable e) {
+					failure.value = e;
+					throw Task.forceThrow(e);
+				}
+				return Procedure.Success;
+			}, actionName, level).call();
+			if (rc == Procedure.Success)
+				candidate.value.onSuccess(future::setResult).onFail(future::setException);
+			else
+				future.setException(failure.value != null ? failure.value
+						: new RedirectException(RedirectException.LOCAL_EXECUTION,
+								"redirect loop-back transaction failed: " + rc));
+		} catch (Throwable e) {
+			future.setException(e);
+		}
 	}
 
 	public void runVoid(@Nullable TransactionLevel level, @NotNull Action0 action) {

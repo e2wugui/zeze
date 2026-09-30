@@ -316,25 +316,29 @@ public class LinkdProvider extends AbstractLinkdProvider {
 					null)) : null;
 			for (var it2 = it.value().iterator(); it2.moveToNext(); ) {
 				var link = linkdApp.linkdService.GetSocket(it2.value());
-				if (link != null) {
-					var linkSession = (LinkdUserSession)link.getUserState();
-					if (linkSession != null) {
-						// 快照取出后仍可能换绑，归属检查、解绑和通告须与bind保持全序。
-						var writeLock = linkSession.bindsLock.writeLock();
-						writeLock.lock();
-						try {
-							var owner = linkSession.binds.get(moduleId);
-							if (owner == null || owner != provider.getSessionId())
-								continue;
-							linkSession.unbind(linkdApp.linkdProviderService, link, moduleId, provider, true);
-							if (p != null)
-								p.Send(link);
-						} finally {
-							writeLock.unlock();
-						}
-					}
-				}
+				if (link != null)
+					unbindClosedProvider(provider, link, moduleId, p);
 			}
+		}
+	}
+
+	private void unbindClosedProvider(@NotNull AsyncSocket provider, @NotNull AsyncSocket link,
+			int moduleId, @Nullable ReportError report) {
+		var linkSession = (LinkdUserSession)link.getUserState();
+		if (linkSession == null)
+			return;
+		// 快照取出后仍可能换绑，归属检查、解绑和通告须与bind保持全序。
+		var writeLock = linkSession.bindsLock.writeLock();
+		writeLock.lock();
+		try {
+			var owner = linkSession.binds.get(moduleId);
+			if (owner == null || owner != provider.getSessionId())
+				return;
+			linkSession.unbind(linkdApp.linkdProviderService, link, moduleId, provider, true);
+			if (report != null)
+				report.Send(link);
+		} finally {
+			writeLock.unlock();
 		}
 	}
 

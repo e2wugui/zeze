@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.concurrent.locks.Condition;
+import Zeze.Application;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
 import Zeze.Util.FastLock;
@@ -163,15 +164,24 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		} finally {
 			unlock();
 		}
+		invokeResult(getTransactionalApp(ctx), result, onRes, "RedirectAllFutureImpl.result");
+	}
+
+	private static @Nullable Application getTransactionalApp(@NotNull RedirectAllContext<?> ctx) {
 		var zeze = ctx.getService().getZeze();
-		if (zeze != null && !zeze.isNoDatabase()) {
+		return zeze != null && !zeze.isNoDatabase() ? zeze : null;
+	}
+
+	private void invokeResult(@Nullable Application zeze, @NotNull R result,
+			@NotNull Action1<R> callback, @NotNull String actionName) {
+		if (zeze != null) {
 			zeze.newProcedure(() -> {
-				onRes.run(result);
+				callback.run(result);
 				return Procedure.Success;
-			}, "RedirectAllFutureImpl.result").call();
+			}, actionName).call();
 		} else {
 			try {
-				onRes.run(result);
+				callback.run(result);
 			} catch (Throwable e) {
 				logger.error("RedirectAll onResult failed: hash={}", result.getHash(), e);
 			}
@@ -205,23 +215,9 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 					unlock();
 				}
 			}
-			var zeze = c.getService().getZeze();
-			if (zeze != null && !zeze.isNoDatabase()) {
-				for (R result : readyResults) {
-					zeze.newProcedure(() -> {
-						onResult.run(result);
-						return Procedure.Success;
-					}, "RedirectAllFutureImpl.onResult").call();
-				}
-			} else {
-				for (R result : readyResults) {
-					try {
-						onResult.run(result);
-					} catch (Throwable e) {
-						logger.error("RedirectAll onResult failed: hash={}", result.getHash(), e);
-					}
-				}
-			}
+			var zeze = getTransactionalApp(c); // 同一批结果保持开始时选定的事务模式。
+			for (R result : readyResults)
+				invokeResult(zeze, result, onResult, "RedirectAllFutureImpl.onResult");
 		} finally {
 			c.unlock();
 		}
