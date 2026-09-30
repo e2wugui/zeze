@@ -786,7 +786,14 @@ public class MQSingle extends ReentrantLock {
 			if (null == escapee)
 				break;
 			var manager = mqPartition.getManager();
-			var budgetMs = (null != manager ? manager.getMqConfig().getRpcTimeout() : 20_000) + 5_000L;
+			var remainingMs = drainDeadlineMs - System.currentTimeMillis();
+			if (remainingMs <= 0) {
+				logger.warn("mq fill escapee drain budget exhausted by envelope, skip wait. topic={} partition={}",
+						topic, partitionIndex);
+				break;
+			}
+			var budgetMs = Math.min(
+					(null != manager ? manager.getMqConfig().getRpcTimeout() : 20_000) + 5_000L, remainingMs);
 			try {
 				escapee.get(budgetMs, TimeUnit.MILLISECONDS);
 			} catch (TimeoutException e) {
