@@ -219,8 +219,23 @@ public class Producer extends AbstractProducer implements TransactionListener {
 
 	/**
 	 * 发送普通消息。没有相关事务。
+	 *
+	 * <p>必须在<b>环境事务之外</b>调用（调用线程不得处于运行中的 Zeze 事务内）：环境事务内调用
+	 * 立即抛 {@link UnsupportedOperationException}（本方法第一行 fail-fast，先于触网）。普通消息
+	 * 同步立即投递，与所在事务的提交/回滚完全脱钩——外层回滚成"幽灵消息"（本地无变更但消息已
+	 * 投递、不可回收），外层锁冲突 redo 重跑每轮再发（同一笔本地事务重复投递）。事务感知发送
+	 * 惯用法：{@code TaskSpec.ofAction(() -> producer.send(msg)).run()} 注册到外层事务的
+	 * whileCommit（提交后执行、回滚跳过）。
 	 */
 	public SendResult sendMessage(@NotNull Message msg) throws Exception {
+		// 环境事务内禁发（与sendMessageWithTransaction同款防线，判据一致：Transaction.getCurrent()
+		// 非空）：普通消息同步立即投递，与外层事务的提交/回滚完全脱钩——外层回滚即幽灵消息，
+		// 外层redo重跑（Transaction.perform最多256轮）每轮再发。不用isRunning()收窄：
+		// whileCommit回调在事务Completed后、线程归还前执行，getCurrent()仍非空。
+		if (Transaction.getCurrent() != null)
+			throw new UnsupportedOperationException("sendMessage: 环境事务内发送普通消息会产生"
+					+ "幽灵消息/重复投递（消息同步立即投递，与外层事务的提交/回滚脱钩）。"
+					+ "请在 Zeze 事务外发送。");
 		return producer.send(msg);
 	}
 
@@ -246,7 +261,7 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		if (Transaction.getCurrent() != null)
 			throw new UnsupportedOperationException("sendMessageWithTransaction: 环境事务内发送事务消息会产生"
 					+ "幽灵消息/重复投递（内层本地事务走嵌套 savepoint 不落盘，而 COMMIT 已先发给 broker）。"
-					+ "请在 Zeze 事务外发送，或改用 sendMessage 发非事务消息。");
+					+ "请在 Zeze 事务外发送（事务内发普通消息同样被拒，见 sendMessage）。");
 		var txnId = zeze.getAutoKey("RocketMQ").nextString();
 		msg.setTransactionId(txnId);
 		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {

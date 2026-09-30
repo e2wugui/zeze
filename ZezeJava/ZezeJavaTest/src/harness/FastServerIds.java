@@ -174,6 +174,7 @@ public final class FastServerIds {
 	public static final int TEST_HISTORY_SEGMENT_EXHAUST_CLEAN_FAIL = seg("TestHistorySegmentExhaustCleanFail", 16351, 1);
 	public static final int TEST_PENDING_GID_LEDGER_SWEEP_STOPS_WITH_APP = seg("TestPendingGidLedgerSweepStopsWithApplication", 16361, 2);
 	public static final int TEST_HISTORY_HTTP_SERVER_BIND_FAILURE = seg("TestHistoryHttpServerBindFailureFailsFast", 16371, 1);
+	public static final int TEST_PRODUCER_PLAIN_SEND_REJECTS_ENV_TRANSACTION = seg("TestProducerPlainSendRejectsEnvTransaction", 16381, 1);
 
 	private FastServerIds() {
 	}
