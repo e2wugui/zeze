@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Set;
 import Zeze.Util.KV;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
@@ -258,28 +259,7 @@ public class Log4jFileManager extends ReentrantLock {
 			var pick = tailAnchor >= 0 ? (headAnchor >= 0 ? Math.min(tailAnchor, headAnchor) : tailAnchor) : headAnchor;
 			if (pick < 0)
 				return null; // 双锚皆空（列表空/全空索引）：walker走slowSeek线性兜底
-			// 采样endTime不是文件内容上界：轮转移交保留的索引可能落后于末条不足10s，
-			// 时钟回拨后后继active的beginTime更早，双锚会跳过旧世代的这段尾部。
-			// 只复核拟跳过条目的最后物理索引之后，不重扫已索引文件主体；空索引从头。
-			for (var i = 0; i < pick; ++i) {
-				var earlier = snapshot[i];
-				if (failed.contains(earlier))
-					continue;
-				var target = earlier.file;
-				var index = earlier.index;
-				try (var tail = new Log4jFileSession(target, null, logConf.charsetName, logConf.logTimeFormat,
-						index.lastOffset())) {
-					while (tail.hasNext()) {
-						if (tail.next().getTime() >= time) {
-							pick = i;
-							break;
-						}
-					}
-				} catch (FileNotFoundException e) {
-					removeMissingFile(earlier, target, e);
-					failed.add(earlier); // 宽限保留的失效条目也不原地重试。
-				}
-			}
+			pick = findEarlierTailCandidate(snapshot, pick, time, failed);
 			var hook = seekBeforePickOpenHookForTest;
 			if (null != hook)
 				hook.run();
@@ -311,6 +291,33 @@ public class Log4jFileManager extends ReentrantLock {
 			}
 			return logFileSession;
 		}
+	}
+
+	private int findEarlierTailCandidate(Log4jFile[] snapshot, int pick, long time, Set<Log4jFile> failed)
+			throws IOException {
+		// 采样endTime不是文件内容上界：轮转移交保留的索引可能落后于末条不足10s，
+		// 时钟回拨后后继active的beginTime更早，双锚会跳过旧世代的这段尾部。
+		// 只复核拟跳过条目的最后物理索引之后，不重扫已索引文件主体；空索引从头。
+		for (var i = 0; i < pick; ++i) {
+			var earlier = snapshot[i];
+			if (failed.contains(earlier))
+				continue;
+			var target = earlier.file;
+			var index = earlier.index;
+			try (var tail = new Log4jFileSession(target, null, logConf.charsetName, logConf.logTimeFormat,
+					index.lastOffset())) {
+				while (tail.hasNext()) {
+					if (tail.next().getTime() >= time) {
+						pick = i;
+						break;
+					}
+				}
+			} catch (FileNotFoundException e) {
+				removeMissingFile(earlier, target, e);
+				failed.add(earlier); // 宽限保留的失效条目也不原地重试。
+			}
+		}
+		return pick;
 	}
 
 	public String getCurrentLogFileName() {
