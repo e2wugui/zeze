@@ -542,19 +542,16 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
 				return Procedure.Success;
 			}
-				// 每会话注册数上限（contains判定覆盖式重注册不占新名额）。
-			for (var reg : add) {
-				if (session.registers.size() >= SVC_PER_SESSION_MAX && !session.registers.contains(reg)) {
-					warnSvcRejected("session registers exceeded " + SVC_PER_SESSION_MAX);
-					r.SendResultCode(Procedure.ErrorRequestId);
-					return Procedure.Success;
-				}
-			}
+			var finalRegisters = new HashSet<BServiceInfo>();
+			for (var info : session.registers)
+				finalRegisters.add(info);
+			finalRegisters.removeAll(remove);
+			finalRegisters.addAll(add);
 			var requestedNames = new HashSet<String>();
 			for (var info : add)
 				requestedNames.add(info.getServiceName());
 			var evictions = planServiceNames(requestedNames, new HashSet<>(remove), session.sessionId);
-			if (evictions == null) {
+			if (finalRegisters.size() > SVC_PER_SESSION_MAX || evictions == null) {
 				warnSvcRejected("edit final capacity exceeded");
 				r.SendResultCode(Procedure.ErrorRequestId);
 				return Procedure.Success;
@@ -630,21 +627,20 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				r.SendResultCode(ServiceManagerWithRaft.ErrorNotLogin);
 				return Procedure.Success;
 			}
-			// 每会话订阅数上限+全局唯一名满员空壳逐出（对齐Edit面）。
+			var finalSubscriptions = new HashSet<>(session.subscribes.keySet());
+			var requestedNames = new HashSet<String>();
 			for (var sub : r.Argument.subs) {
-				if (session.subscribes.size() >= SVC_PER_SESSION_MAX && !session.subscribes.containsKey(sub.getServiceName())) {
-					warnSvcRejected("session subscribes exceeded " + SVC_PER_SESSION_MAX);
-					r.SendResultCode(Procedure.ErrorRequestId);
-					return Procedure.Success;
-				}
-				if (!serviceStates.containsKey(sub.getServiceName())
-					&& serviceStates.size() >= Id128UdpServer.MAX_UNIQUE_NAMES
-					&& !evictIdleServiceState(sub.getServiceName())) {
-					warnSvcRejected("unique service names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
-					r.SendResultCode(Procedure.ErrorRequestId);
-					return Procedure.Success;
-				}
+				finalSubscriptions.add(sub.getServiceName());
+				requestedNames.add(sub.getServiceName());
 			}
+			var evictions = planServiceNames(requestedNames, Set.of(), session.sessionId);
+			if (finalSubscriptions.size() > SVC_PER_SESSION_MAX || evictions == null) {
+				warnSvcRejected("subscribe final capacity exceeded");
+				r.SendResultCode(Procedure.ErrorRequestId);
+				return Procedure.Success;
+			}
+			for (var name : evictions)
+				serviceStates.remove(name);
 			for (var sub : r.Argument.subs) {
 				session.subscribes.put(sub.getServiceName(), sub);
 				serviceStates.computeIfAbsent(sub.getServiceName(), name -> new ServiceState(this, name))

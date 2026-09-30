@@ -3,6 +3,8 @@ package Zeze.Services;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Future;
 
 import Zeze.Builtin.ServiceManagerWithRaft.*;
@@ -510,30 +512,52 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	 * 同cleanupSessionRow的负载观察者清理。
 	 */
 	private boolean checkUniqueServiceName(@NotNull String name) {
-		if (tableServerState.get(name) != null)
-			return true;
+		var plan = planUniqueServiceNames(Set.of(name), Set.of(), "");
+		if (plan == null)
+			return false;
+		for (var key : plan)
+			tableServerState.remove(key);
+		return true;
+	}
+
+	private ArrayList<String> planUniqueServiceNames(Set<String> requested, Set<BServiceInfoKeyRocks> removes, String sessionName) {
+		int needed = 0;
+		for (var name : requested) {
+			if (tableServerState.get(name) == null)
+				++needed;
+		}
 		var count = new int[1];
 		var idleKeys = new ArrayList<String>();
 		try {
 			tableServerState.walk((key, row) -> {
-				count[0]++;
-				if (!key.equals(name) && row.getServiceInfosVersion().entrySet().isEmpty()
-					&& row.getSimple().entrySet().isEmpty())
-					idleKeys.add(key); // 先收集：walk内remove不落库
-				return count[0] < Id128UdpServer.MAX_UNIQUE_NAMES || !idleKeys.isEmpty();
+				++count[0];
+				if (!requested.contains(key) && row.getSimple().size() == 0) {
+					boolean idle = true;
+					for (var bucket : row.getServiceInfosVersion().values()) {
+						for (var info : bucket.getServiceInfos().values()) {
+							if (!info.getSessionName().equals(sessionName)
+									|| !removes.contains(new BServiceInfoKeyRocks(info.getServiceName(), info.getServiceIdentity()))) {
+								idle = false;
+								break;
+							}
+						}
+						if (!idle)
+							break;
+					}
+					if (idle)
+						idleKeys.add(key);
+				}
+				return true;
 			});
 		} catch (Exception e) {
 			throw Zeze.Util.Task.forceThrow(e);
 		}
-		if (count[0] < Id128UdpServer.MAX_UNIQUE_NAMES)
-			return true;
-		if (idleKeys.isEmpty()) {
+		int deficit = count[0] + needed - Id128UdpServer.MAX_UNIQUE_NAMES;
+		if (deficit > idleKeys.size()) {
 			warnSvcRejected("unique service names exceeded " + Id128UdpServer.MAX_UNIQUE_NAMES);
-			return false;
+			return null;
 		}
-		for (var key : idleKeys)
-			tableServerState.remove(key); // 只需腾一个位，但同批扫除的空壳一并清（幂等增益）
-		return true;
+		return new ArrayList<>(idleKeys.subList(0, Math.max(deficit, 0)));
 	}
 
 	// 只写session上一个int（对齐非raft版：无状态簿记、无取消语义）。虽然走raft请求通道，
@@ -697,15 +721,27 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			}
 		}
 		var sessionRow = tableSession.get(netSession.name);
-		for (var reg : r.Argument.getAdd()) {
-			if (sessionRow.getRegisters().size() >= SVC_PER_SESSION_MAX
-				&& !sessionRow.getRegisters().containsKey(toRocksKey(reg))) {
-				warnSvcRejected("session registers exceeded " + SVC_PER_SESSION_MAX);
-				return Zeze.Transaction.Procedure.ErrorRequestId;
-			}
-			if (!checkUniqueServiceName(reg.getServiceName()))
-				return Zeze.Transaction.Procedure.ErrorRequestId;
+		var finalRegisters = new HashSet<BServiceInfoKeyRocks>();
+		for (var key : sessionRow.getRegisters().keys())
+			finalRegisters.add(key);
+		var removeKeys = new HashSet<BServiceInfoKeyRocks>();
+		for (var info : r.Argument.getRemove()) {
+			var key = toRocksKey(info);
+			finalRegisters.remove(key);
+			removeKeys.add(key);
 		}
+		var requestedNames = new HashSet<String>();
+		for (var info : r.Argument.getAdd()) {
+			finalRegisters.add(toRocksKey(info));
+			requestedNames.add(info.getServiceName());
+		}
+		if (finalRegisters.size() > SVC_PER_SESSION_MAX) {
+			warnSvcRejected("session registers exceeded " + SVC_PER_SESSION_MAX);
+			return Zeze.Transaction.Procedure.ErrorRequestId;
+		}
+		var evictions = planUniqueServiceNames(requestedNames, removeKeys, netSession.name);
+		if (evictions == null)
+			return Zeze.Transaction.Procedure.ErrorRequestId;
 
 		// step 1: remove
 		for (var unReg : r.Argument.getRemove()) {
@@ -715,6 +751,9 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			var session = tableSession.get(netSession.name);
 			session.getRegisters().remove(toRocksKey(unReg)); // ignore remove failed
 		}
+
+		for (var name : evictions)
+			tableServerState.remove(name);
 
 		// step 2: add
 		for (var reg : r.Argument.getAdd()) {
@@ -807,20 +846,27 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			warnSvcRejected("subscribe batch exceeded " + SVC_EDIT_BATCH_MAX);
 			return Zeze.Transaction.Procedure.ErrorRequestId;
 		}
+		var finalSubscriptions = new HashSet<String>();
+		for (var name : tableSession.get(netSession.name).getSubscribes().keys())
+			finalSubscriptions.add(name);
+		var requestedNames = new HashSet<String>();
 		for (var info : r.Argument.subs) {
 			if (isOverUtf8Bytes(info.getServiceName(), SVC_NAME_MAX_BYTES)) {
 				warnSvcRejected("subscribe name over size");
 				return Zeze.Transaction.Procedure.ErrorRequestId;
 			}
-			var session0 = tableSession.get(netSession.name);
-			if (session0.getSubscribes().size() >= SVC_PER_SESSION_MAX
-				&& !session0.getSubscribes().containsKey(info.getServiceName())) {
-				warnSvcRejected("session subscribes exceeded " + SVC_PER_SESSION_MAX);
-				return Zeze.Transaction.Procedure.ErrorRequestId;
-			}
-			if (!checkUniqueServiceName(info.getServiceName()))
-				return Zeze.Transaction.Procedure.ErrorRequestId;
+			finalSubscriptions.add(info.getServiceName());
+			requestedNames.add(info.getServiceName());
 		}
+		if (finalSubscriptions.size() > SVC_PER_SESSION_MAX) {
+			warnSvcRejected("session subscribes exceeded " + SVC_PER_SESSION_MAX);
+			return Zeze.Transaction.Procedure.ErrorRequestId;
+		}
+		var evictions = planUniqueServiceNames(requestedNames, Set.of(), netSession.name);
+		if (evictions == null)
+			return Zeze.Transaction.Procedure.ErrorRequestId;
+		for (var name : evictions)
+			tableServerState.remove(name);
 		var session = tableSession.get(netSession.name);
 		for (var info : r.Argument.subs) {
 			session.getSubscribes().put(info.getServiceName(), toRocks(info));
