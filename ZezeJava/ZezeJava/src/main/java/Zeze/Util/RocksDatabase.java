@@ -994,14 +994,19 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		// RocksIterator用完时需确保调用close回收堆外内存,推荐使用try(var it = iterator()) {...}
 		public @NotNull RocksIterator iterator() {
 			RocksDatabase.this.enterOp();
-			RocksIterator it;
 			try {
-				it = rocksDb.newIterator(cfHandle, defaultReadOptions);
+				var it = rocksDb.newIterator(cfHandle, defaultReadOptions);
+				// 登记完成后才释放创建租约，close 的两种排空保护连续交接。
+				try {
+					RocksDatabase.this.openIterators.add(it);
+				} catch (Throwable e) {
+					it.close();
+					throw e;
+				}
+				return it;
 			} finally {
 				RocksDatabase.this.exitOp();
 			}
-			RocksDatabase.this.openIterators.add(it); // 排空时按 isOwningHandle 剔除已关闭者
-			return it;
 		}
 
 		// 有数据时也可以直接删除整个列族。
