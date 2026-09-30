@@ -437,26 +437,30 @@ public class Service extends ReentrantLock {
 		if (ctxSends.isEmpty())
 			return;
 		for (var it = ctxSends.iterator(); it.moveToNext(); ) {
-			var sid = it.key();
-			var ctx = removeRpcContext(sid);
-			if (ctx == null)
-				continue; // 已被应答/超时消费
-			if (!(ctx instanceof Rpc<?, ?> rpc))
-				continue; // 当前addRpcContext只有Rpc，防御未来扩展
-			rpc.setResultCode(Procedure.ErrorSendFail);
-			var future = rpc.getFuture();
-			if (future != null)
-				future.setException(RpcSocketDisposedException.getInstance());
-			else {
-				@SuppressWarnings("unchecked") // responseHandle的参数化类型不可具体化，实际类型由注册侧保证
-				var handle = (ProtocolHandle<Rpc<?, ?>>)(ProtocolHandle<?>)rpc.getResponseHandle();
-				if (handle != null) {
-					var factoryHandle = findProtocolFactoryHandle(ctx.getTypeId());
-					if (factoryHandle != null)
-						dispatchRpcResponse(rpc, handle, factoryHandle);
-					else // 协议工厂缺失时静默丢弃responseHandle无线索，warn对齐onRpcLostContext
-						logger.warn("rpc disposed: protocol factory not found, response handle skipped: {}", rpc);
+			try {
+				var sid = it.key();
+				var ctx = removeRpcContext(sid);
+				if (ctx == null)
+					continue; // 已被应答/超时消费
+				if (!(ctx instanceof Rpc<?, ?> rpc))
+					continue; // 当前addRpcContext只有Rpc，防御未来扩展
+				rpc.setResultCode(Procedure.ErrorSendFail);
+				var future = rpc.getFuture();
+				if (future != null)
+					future.setException(RpcSocketDisposedException.getInstance());
+				else {
+					@SuppressWarnings("unchecked") // responseHandle的参数化类型不可具体化，实际类型由注册侧保证
+					var handle = (ProtocolHandle<Rpc<?, ?>>)(ProtocolHandle<?>)rpc.getResponseHandle();
+					if (handle != null) {
+						var factoryHandle = findProtocolFactoryHandle(ctx.getTypeId());
+						if (factoryHandle != null)
+							dispatchRpcResponse(rpc, handle, factoryHandle);
+						else // 协议工厂缺失时静默丢弃responseHandle无线索，warn对齐onRpcLostContext
+							logger.warn("rpc disposed: protocol factory not found, response handle skipped: {}", rpc);
+					}
 				}
+			} catch (Throwable e) {
+				logger.error("rpc disposed: context {} dispatch failed:", it.key(), e);
 			}
 		}
 	}
