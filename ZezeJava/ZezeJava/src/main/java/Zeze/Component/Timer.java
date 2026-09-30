@@ -1221,6 +1221,17 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		});
 	}
 
+	private void cancelFailedTimer(@NotNull String timerId, long timerSerialId) {
+		TaskSpec.ofProcedure(zeze.newProcedure(() -> {
+			// The failed fire released its locks; the registration may have been replaced or transferred.
+			var index = _tIndexs.get(timerId);
+			if (index != null && index.getSerialId() == timerSerialId
+					&& index.getServerId() == zeze.getConfig().getServerId())
+				cancel(timerId);
+			return 0;
+		}, "Timer.cancelTimer")).call();
+	}
+
 	private void fireSimple(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
 	                        boolean missfire) {
 		if (!started)
@@ -1287,16 +1298,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1),
 					concurrentSerialNo + 1, false, simpleTimer.getOneByOneKey());
 			return 0;
-		}, "Timer.fireSimple")).call() != 0) {
-			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
-				// The failed fire released its locks; the registration may have been replaced or transferred.
-				var index = _tIndexs.get(timerId);
-				if (index != null && index.getSerialId() == timerSerialId
-						&& index.getServerId() == zeze.getConfig().getServerId())
-					cancel(timerId);
-				return 0;
-			}, "Timer.cancelTimer")).call();
-		}
+		}, "Timer.fireSimple")).call() != 0)
+			cancelFailedTimer(timerId, timerSerialId);
 	}
 
 	private void scheduleCron(long timerSerialId, int serverId, @NotNull String timerId, @NotNull BCronTimer cron,
@@ -1394,15 +1397,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					Math.max(cronTimer.getNextExpectedTime() - System.currentTimeMillis(), 1),
 					concurrentSerialNo + 1, false, cronTimer.getOneByOneKey());
 			return 0;
-		}, "Timer.fireCron")).call() != 0) {
-			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
-				var index = _tIndexs.get(timerId);
-				if (index != null && index.getSerialId() == timerSerialId
-						&& index.getServerId() == zeze.getConfig().getServerId())
-					cancel(timerId);
-				return 0;
-			}, "Timer.cancelTimer")).call();
-		}
+		}, "Timer.fireCron")).call() != 0)
+			cancelFailedTimer(timerId, timerSerialId);
 	}
 
 	private void loadTimer() {
