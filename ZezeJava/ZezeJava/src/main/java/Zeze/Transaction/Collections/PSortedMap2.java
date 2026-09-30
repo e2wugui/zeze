@@ -235,8 +235,11 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		var comparator = source.comparator();
 		org.pcollections.PSortedMap<K, V> newMap = comparator != null
 				? TreePMap.empty(comparator) : Empty.sortedMap();
-		for (var e : source.entrySet())
-			newMap = newMap.plus(e.getKey(), (V)e.getValue().copy());
+		for (var e : source.entrySet()) {
+			V value = (V)e.getValue().copy();
+			value.mapKey(e.getKey());
+			newMap = newMap.plus(e.getKey(), value);
+		}
 		copy.map = newMap;
 		return copy;
 	}

@@ -212,8 +212,12 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		// 抛HasManagedException——与CollOne.copy()/生成代码Bean.assign的深拷贝语义对齐。
 		var copy = new PMap2<>(meta);
 		var newMap = org.pcollections.Empty.<K, V>map();
-		for (var e : getMap().entrySet())
-			newMap = newMap.plus(e.getKey(), (V)e.getValue().copy());
+		for (var e : getMap().entrySet()) {
+			var value = (V)e.getValue().copy();
+			// mapKey是瞬态容器归属，不由Bean.copy/assign复制；后续原位changed仍需定位该键。
+			value.mapKey(e.getKey());
+			newMap = newMap.plus(e.getKey(), value);
+		}
 		copy.map = newMap;
 		return copy;
 	}

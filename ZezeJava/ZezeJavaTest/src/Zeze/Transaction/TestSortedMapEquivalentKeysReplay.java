@@ -16,6 +16,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Fast
@@ -32,7 +33,13 @@ public class TestSortedMapEquivalentKeysReplay {
 		return map;
 	}
 
-
+	private static PSortedMap1<String, Integer> newCaseInsensitiveValueMap() {
+		var map = new PSortedMap1<String, Integer>(String.class, Integer.class);
+		var initial = new LogSortedMap1<String, Integer>(null, 1, map,
+				org.pcollections.TreePMap.empty(String.CASE_INSENSITIVE_ORDER), map.getMeta());
+		initial.commit();
+		return map;
+	}
 
 	@Test
 	public void removalWithEquivalentDecimalKeySurvivesReplay() {
@@ -193,7 +200,50 @@ public class TestSortedMapEquivalentKeysReplay {
 
 
 
+	@Test
+	public void clearAndCopyPreserveCustomComparator() {
+		var values = newCaseInsensitiveValueMap();
+		values.put("Alpha", 1);
+		var valueCopy = values.copy();
+		assertSame(String.CASE_INSENSITIVE_ORDER, valueCopy.comparator());
+		assertEquals(1, valueCopy.get("ALPHA"));
+		@SuppressWarnings("unchecked")
+		var log = (LogSortedMap1<String, Integer>)values.createLogBean();
+		log.clear();
+		assertSame(String.CASE_INSENSITIVE_ORDER, log.getValue().comparator());
+		log.put("Beta", 2);
+		log.put("BETA", 3);
+		assertEquals(1, log.getValue().size());
+		log.commit();
+		@SuppressWarnings("unchecked")
+		var decoded = (LogSortedMap1<String, Integer>)valueCopy.createLogBean();
+		decoded.decode(encode(log));
+		valueCopy.followerApply(decoded);
+		assertEquals(values.get("beta"), valueCopy.get("beta"));
+		values.clear();
+		assertSame(String.CASE_INSENSITIVE_ORDER, values.comparator());
+		values.put("Gamma", 4);
+		values.put("GAMMA", 5);
+		assertEquals(1, values.size());
 
+		var beans = newCaseInsensitiveBeanMap();
+		var value = new BValue();
+		value.setLong2(7);
+		beans.put("Alpha", value);
+		var beanCopy = beans.copy();
+		assertSame(String.CASE_INSENSITIVE_ORDER, beanCopy.comparator());
+		assertEquals(7, beanCopy.get("ALPHA").getLong2());
+		assertNotSame(value, beanCopy.get("alpha"), "Bean copy 仍须深拷贝");
+		assertEquals("Alpha", beanCopy.get("alpha").mapKey());
+		var follower = newCaseInsensitiveBeanMap();
+		follower.put("ALPHA", new BValue());
+		assertBeanChangeReplay(beanCopy, follower, "alpha");
+		beans.clear();
+		assertSame(String.CASE_INSENSITIVE_ORDER, beans.comparator());
+		beans.put("Beta", new BValue());
+		beans.put("BETA", new BValue());
+		assertEquals(1, beans.size());
+	}
 
 	private static ByteBuffer encode(Log log) {
 		var buffer = ByteBuffer.Allocate();
