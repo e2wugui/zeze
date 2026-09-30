@@ -157,18 +157,16 @@ public class DatabaseDynamoDb extends Database {
 	}
 
 	private final class TransDynamoDb implements Transaction {
-		// DynamoDb TransactWriteItems 单请求最多 100 个 item（服务端硬限）。
 		private static final int TRANSACT_WRITE_ITEMS_MAX = 100;
 		private final ArrayList<TransactWriteItem> writes = new ArrayList<>();
 
 		@Override
 		public void commit() {
-			// FlushSet 默认攒批阈值（50 rrs / 10000 条记录）远超单事务 100 item 上限，
-			// 一次性提交会让 checkpoint flush 永久失败（脏记录只增不减，直至 OOM）。
-			// 这里按上限分批顺序提交：每批内部保持 transactWriteItems 原子；
-			// 跨批失败时由 Checkpoint 保留 rrs 脏标记、整批幂等重试自愈
-			// （replace/remove 均为最终值覆盖写，重放安全；与 DatabaseTikv raw 模式
-			// batchPut/batchDelete 的非原子批处理同型）。失败时 transactWriteItems 抛异常上抛。
+			// AWS TransactWriteItems 每请求最多100项，同一请求不能对同一表的同一键操作两次。
+			// 上层须控制关联记录集及聚批，不能依靠拆分一个业务事务/RRS来维持原子性。
+			// 现有切批只保证各请求内部原子：前批已提交、后批失败/进程退出会留下部分提交；
+			// checkpoint的整组幂等重试不能保证崩溃后的事务原子恢复。同键等服务端限制也可能
+			// 让checkpoint持续重试失败；这些后端容量限制需要上层约束，当前保留切批行为。
 			for (var begin = 0; begin < writes.size(); begin += TRANSACT_WRITE_ITEMS_MAX) {
 				var items = writes.subList(begin, Math.min(begin + TRANSACT_WRITE_ITEMS_MAX, writes.size()));
 				dynamoDbClient.transactWriteItems(new TransactWriteItemsRequest().withTransactItems(items));
