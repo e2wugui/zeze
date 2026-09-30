@@ -136,6 +136,7 @@ public final class FastServerIds {
 	public static final int TEST_PLIST2_ATTACH_ORDER = seg("TestPList2AttachOrder", 7710, 1);
 	public static final int TEST_LINKED_MAP_BROKEN_CHAIN_LOGGED = seg("TestLinkedMapBrokenChainLogged", 8790, 4);
 	public static final int TEST_ONLINE_RELIABLE_LOGOUT = seg("TestOnlineReliableLogout", 8810, 2);
+	public static final int TEST_ONLINE_LOGIN_RETRY_LIMIT = seg("TestOnlineLoginRetryLimit", 8820, 2);
 
 	public static final int TEST_HOT01_INSTALL_START_LAST_FILTER = seg("TestHot01InstallStartLastFilter", 12810, 1);
 	public static final int TEST_HOT03_TRY_DISTRIBUTE_SUCCESS_DELETE_FAIL = seg("TestHot03TryDistributeSuccessDeleteFail", 12811, 1);

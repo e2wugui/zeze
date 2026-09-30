@@ -1632,12 +1632,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@Override
 	protected long ProcessLoginRequest(@NotNull Login rpc) {
 		var done = new OutObject<>(false);
-		while (!done.value) {
+		for (var i = 0; i < 3 && !done.value; ++i) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest")).call();
 			if (r != 0)
 				return r;
 		}
-		return 0;
+		return done.value ? Procedure.Success : Procedure.LogicError;
 	}
 
 	private long ProcessLoginRequest(@NotNull Login rpc, @NotNull OutObject<Boolean> done) throws Exception {
@@ -1707,12 +1707,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@Override
 	protected long ProcessReLoginRequest(@NotNull ReLogin rpc) {
 		var done = new OutObject<>(false);
-		while (!done.value) {
+		for (var i = 0; i < 3 && !done.value; ++i) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest")).call();
 			if (r != 0)
 				return r;
 		}
-		return 0;
+		return done.value ? Procedure.Success : Procedure.LogicError;
 	}
 
 	private long ProcessReLoginRequest(@NotNull ReLogin rpc, @NotNull OutObject<Boolean> done) throws Exception {
