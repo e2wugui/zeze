@@ -172,6 +172,7 @@ public final class FastServerIds {
 	public static final int TEST_HISTORY_SHARED_TABLE_OWNER_NAME_MISMATCH = seg("TestHistorySharedTableOwnerNameMismatch", 16331, 6);
 	public static final int TEST_PRODUCER_START_REJECTS_MEMORY_TSENT = seg("TestProducerStartRejectsMemoryTSent", 16341, 1);
 	public static final int TEST_HISTORY_SEGMENT_EXHAUST_CLEAN_FAIL = seg("TestHistorySegmentExhaustCleanFail", 16351, 1);
+	public static final int TEST_PENDING_GID_LEDGER_SWEEP_STOPS_WITH_APP = seg("TestPendingGidLedgerSweepStopsWithApplication", 16361, 2);
 
 	private FastServerIds() {
 	}

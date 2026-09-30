@@ -53,6 +53,19 @@ public final class PendingGidLedger {
 	}
 
 	/**
+	 * 停止对账守护（Application.stop 收编）：幂等。与 register 的惰性启动对齐——
+	 * stop 后复位 sweepStarted，Application 再次 start 后的首个登记重新拉起守护
+	 * （对齐 DaemonTimer"stop 后可再次 start"的重启语义）。停止时点由调用方安排在
+	 * 终检点之后：在途 tHistory 行已由终检点收尾、停机拒绝使新事务不再产生，账本
+	 * 的对账意义消亡；不收编则定时链经 finishRound→rescheduleLocked 无条件自续，
+	 * 随 Application 实例数无界累积（对象图+全局调度池任务）。
+	 */
+	public void stop() {
+		sweepDaemon.stop();
+		sweepStarted.set(false);
+	}
+
+	/**
 	 * 周期对账（包内可见供测试注入时钟）：超龄未核销的 gid 显式 error 告警（每 gid 一次）
 	 * 并出账（防重复告警与无界增长，累计计数保留总量）。告警是运维触发对账/离线 Verify
 	 * 的信号，不自动修复——修复动作依赖缺口成因人工判定。判龄为单调钟差（nowNanos 与

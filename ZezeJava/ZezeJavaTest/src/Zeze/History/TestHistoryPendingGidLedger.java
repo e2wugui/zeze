@@ -104,4 +104,25 @@ public class TestHistoryPendingGidLedger {
 		Assertions.assertEquals(0, app1.sweep(NANO_BASE), "app1 核销自己的登记后不得告警");
 		Assertions.assertEquals(1, app2.sweep(NANO_BASE), "app2 的登记不得被 app1 的 commitDone 误删");
 	}
+
+	/** stop（Application.stop 收编入口）后首个登记重新拉起守护：对齐 DaemonTimer
+	 * "stop 后可再次 start"的重启语义——Application 再次 start 后账本不因上一世
+	 * 的 stop 而失去对账守护。守护态经反射读（与 app 级测试同法，不为主流程增设
+	 * 只读访问面）。 */
+	@Test
+	public void testStopThenRegisterRestartsSweepDaemon() throws Exception {
+		var ledger = new PendingGidLedger("app");
+		var field = PendingGidLedger.class.getDeclaredField("sweepDaemon");
+		field.setAccessible(true);
+		var daemon = (Zeze.Util.DaemonTimer) field.get(ledger);
+		Assertions.assertTrue(daemon.isShutdown(), "前置：构造后未启动（关门态）");
+		ledger.register(new Id128(NANO_BASE, 7), NANO_BASE);
+		Assertions.assertFalse(daemon.isShutdown(), "首个登记惰性启动守护");
+		ledger.stop();
+		Assertions.assertTrue(daemon.isShutdown(), "stop 关停守护");
+		ledger.stop();
+		Assertions.assertTrue(daemon.isShutdown(), "stop 幂等");
+		ledger.register(new Id128(NANO_BASE, 8), NANO_BASE);
+		Assertions.assertFalse(daemon.isShutdown(), "stop 后首个登记重新拉起守护（重启语义）");
+	}
 }
