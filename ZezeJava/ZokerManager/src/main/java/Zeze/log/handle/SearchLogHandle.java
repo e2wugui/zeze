@@ -60,8 +60,9 @@ public class SearchLogHandle implements HttpEndStreamHandle {
 				LogAgent logAgent = LogAgentManager.getInstance().getLogAgent();
 			String serverName = searchLogParam.getServerName();
 			// 缺省 logName 解析：前端请求体不携带 logName，缺省 null 透传到 Session 构造
-			// 即坍缩 system error。部署配置唯一 LogConf 名即默认；无法确定默认时入口即拒
-			//（列名引导显式传参），不建/复用会话。
+			// 即坍缩 system error。部署配置的主 LogConf（server.xml 配置顺序首个，随发
+			// 形态 zeze.log）即默认——多日志部署的缺省目标由配置顺序定义；零 LogConf
+			// 无法确定默认时入口即拒（明确 errorResult），不建/复用会话。
 			String logName = searchLogParam.resolveLogName(logAgent.getLogConf());
 			if (logName == null) {
 				x.sendJson(HttpResponseStatus.OK, Json.toCompactString(

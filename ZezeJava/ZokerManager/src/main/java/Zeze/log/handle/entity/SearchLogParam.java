@@ -90,17 +90,29 @@ public class SearchLogParam {
 	}
 
 	/**
-	 * 解析查询目标日志名：显式非空白名 trim 后原样使用；缺省/空白时部署配置
-	 * （{@link LogServiceConf}，与同进程 LogService 同源 server.xml）唯一 LogConf 名即
-	 * 默认。零/多份配置无法确定默认，返回 null——调用方以 {@link #missingLogNameDesc}
-	 * 回显式错误引导显式传参（缺省 null 透传到 Session 构造抛 IAE 坍缩 system error）。
+	 * 解析查询目标日志名：显式非空白名 trim 后原样使用；缺省/空白时取部署配置
+	 * （{@link LogServiceConf}，与同进程 LogService 同源 server.xml）的主 LogConf
+	 * ——配置顺序的首个（单日志部署即唯一名），部署配置顺序即部署者的意图序，
+	 * 是多日志形态下缺省目标的权威定义。零 LogConf（或程序化填 map 未记主名）无法
+	 * 确定默认，返回 null——调用方以 {@link #missingLogNameDesc} 回显式错误引导
+	 * 显式传参（缺省 null 透传到 Session 构造抛 IAE 坍缩 system error）。
 	 * 显式名的<b>存在性</b>不在此判（返回值语义=解析，不=校验通过），由
 	 * {@link #unknownLogNameDesc} 承担。
+	 *
+	 * <p>语义沿革（FND34 zokermanager-01）：多份 LogConf 曾返回 null 回
+	 * "multiple logs" 拒绝——但随发 server.xml 即双 LogConf 而随发前端请求体无
+	 * logName 通路，核心查询在随发形态开箱恒拒；多份歧义改由配置顺序定主。</p>
 	 */
 	public String resolveLogName(LogServiceConf deployConf) {
 		if (logName != null && !logName.isBlank())
 			return logName.trim();
 		var names = deployConf.getLogConfs().keySet();
+		if (names.isEmpty())
+			return null;
+		var primary = deployConf.getPrimaryLogName();
+		if (primary != null && names.contains(primary))
+			return primary;
+		// 防御回退：程序化填 map（未走 parse）不记主名——单份无歧义取之，多份维持旧拒绝。
 		return names.size() == 1 ? names.iterator().next() : null;
 	}
 
@@ -119,12 +131,13 @@ public class SearchLogParam {
 		return deployConf.getLogConfs().containsKey(trimmed) ? null : "unknown logName: " + trimmed;
 	}
 
-	/** 缺省 logName 无法确定默认时的 errorResult desc：列出部署配置的日志名引导显式传参。 */
+	/** 缺省 logName 无法确定默认时的 errorResult desc：零 LogConf 指向配置漏配
+	 * （唯一现役形态）；多份无主名仅程序化填 map 的防御形态可达，列出日志名引导显式传参。 */
 	public static String missingLogNameDesc(LogServiceConf deployConf) {
 		var names = new TreeSet<>(deployConf.getLogConfs().keySet());
 		if (names.isEmpty())
 			return "missing logName: LogServiceConf defines no LogConf";
-		return "missing logName: multiple logs " + names + ", send logName explicitly";
+		return "missing logName: multiple logs " + names + " without primary, send logName explicitly";
 	}
 
 	public boolean isReset() {

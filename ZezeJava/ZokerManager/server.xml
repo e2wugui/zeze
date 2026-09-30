@@ -32,6 +32,9 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 
 
 	//LogActive="log/zeze.log"
+	<!-- LogConf 顺序有语义：首个 LogConf 是主日志，作为 web 前端日志查询的缺省目标
+	     （前端请求不携带 logName，多日志部署的默认查询落在首个 LogConf 上；
+	     其余日志需客户端显式传 logName 查询）。 -->
 	<CustomizeConf Name="LogServiceConf">
 		<LogConf LogActive="zeze.log" logDir="log"/>
 		<LogConf LogActive="zeze_error.log" logDir="log"/>
