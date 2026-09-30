@@ -897,8 +897,8 @@ public final class Application extends ReentrantLock {
 			}
 
 			if (checkpoint != null) {
-				// 先置null再join——join期间到达的提交立即进入停机拒绝（Closed），
-				// 终检点（join内的final flush）只负责此前已注册的脏集。
+				// 先撤销入口；stopAndJoin关闭提交使用权并等待已取得使用权的提交完成登记/落库，
+				// 此后终检点才运行，不会漏掉仍持有旧checkpoint引用的迟到登记。
 				var cp = checkpoint;
 				checkpoint = null;
 				stopStep("checkpoint.stopAndJoin", () -> {

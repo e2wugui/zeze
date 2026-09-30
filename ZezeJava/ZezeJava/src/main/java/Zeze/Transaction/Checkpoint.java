@@ -43,6 +43,43 @@ public final class Checkpoint {
 	// monitor只在计数增减与等待处短暂持有，flush体内不持有——与rrs锁、Application锁无嵌套。
 	private final @NotNull Object activeFlushMonitor = new Object();
 	private int activeFlush; // guarded by activeFlushMonitor
+	private boolean acceptingFlushes = true; // guarded by activeFlushMonitor
+	private final @NotNull Object commitMonitor = new Object();
+	private boolean acceptingCommits = true; // guarded by commitMonitor
+	private int activeCommits; // guarded by commitMonitor
+
+	boolean tryBeginCommit() {
+		synchronized (commitMonitor) {
+			if (!acceptingCommits)
+				return false;
+			++activeCommits;
+			return true;
+		}
+	}
+
+	void endCommit() {
+		synchronized (commitMonitor) {
+			--activeCommits;
+			commitMonitor.notifyAll();
+		}
+	}
+
+	private void stopAcceptingCommitsAndWait() {
+		boolean interrupted = false;
+		synchronized (commitMonitor) {
+			acceptingCommits = false;
+			// 使用权覆盖日志应用至脏集登记/同步落库。终检点不能越过仍可能登记的提交。
+			while (activeCommits != 0) {
+				try {
+					commitMonitor.wait();
+				} catch (InterruptedException e) {
+					interrupted = true;
+				}
+			}
+		}
+		if (interrupted)
+			Thread.currentThread().interrupt();
+	}
 
 	public Checkpoint(@NotNull Application zeze, @NotNull CheckpointMode mode, int serverId) {
 		this(zeze, mode, null, serverId);
@@ -91,6 +128,7 @@ public final class Checkpoint {
 	}
 
 	public void stopAndJoin() {
+		stopAcceptingCommitsAndWait();
 		lock.lock();
 		try {
 			isRunning = false;
@@ -144,6 +182,7 @@ public final class Checkpoint {
 		boolean interrupted = false;
 		try {
 			synchronized (activeFlushMonitor) {
+				acceptingFlushes = false;
 				while (activeFlush > 0) {
 					var remaining = deadline - System.nanoTime();
 					if (remaining <= 0)
@@ -251,6 +290,8 @@ public final class Checkpoint {
 		// 在飞计数从首个数据库触碰（LocalRocksCacheDb.beginTransaction）前开始，
 		// 覆盖整个落库过程——stop的waitNoActiveFlush据此等待后才能close/delete目录。
 		synchronized (activeFlushMonitor) {
+			if (!acceptingFlushes)
+				throw new IllegalStateException("checkpoint flush rejected after drain started");
 			++activeFlush;
 		}
 		try {

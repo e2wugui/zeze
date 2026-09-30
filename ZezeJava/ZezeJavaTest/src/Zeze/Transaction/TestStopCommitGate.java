@@ -4,8 +4,12 @@ import harness.FastServerIds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -164,5 +168,40 @@ public class TestStopCommitGate {
 		}, "Fnd754.AfterStop", null).call();
 		assertEquals(Procedure.Closed, rc, "终检点已过，perform入口必须拒绝");
 		assertEquals(0, calls.get(), "action不得执行");
+	}
+
+	@Test
+	public void testStopWaitsForCommitPermitAndRejectsOldFlushReference() throws Exception {
+		var checkpoint = app.getCheckpoint();
+		assertTrue(checkpoint.tryBeginCommit());
+		var stopped = new CountDownLatch(1);
+		var error = new AtomicReference<Throwable>();
+		var stopThread = Thread.ofPlatform().daemon().start(() -> {
+			try {
+				app.stop();
+			} catch (Throwable e) {
+				error.set(e);
+			} finally {
+				stopped.countDown();
+			}
+		});
+		try {
+			var started = System.nanoTime();
+			while (checkpoint.tryBeginCommit()) {
+				checkpoint.endCommit();
+				if (System.nanoTime() - started >= TimeUnit.SECONDS.toNanos(10))
+					throw new AssertionError("stop must close the commit gate");
+				Thread.yield();
+			}
+			assertEquals(1, stopped.getCount(), "终检点必须等待已有提交使用权释放");
+		} finally {
+			checkpoint.endCommit();
+			stopThread.join(10_000);
+		}
+		assertFalse(stopThread.isAlive());
+		assertNull(error.get());
+		assertFalse(checkpoint.tryBeginCommit());
+		assertThrows(IllegalStateException.class, () -> checkpoint.flush(List.of(), null, null),
+				"旧引用不得在停机排空后重新开始 flush");
 	}
 }

@@ -143,10 +143,19 @@ public final class RelativeRecordSet extends ReentrantLock {
 	static void tryUpdateAndCheckpoint(@NotNull Transaction trans, @NotNull Procedure procedure,
 									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
 									   @NotNull HistoryChangesCollector collectChanges) throws Exception {
-		// 入口拒绝——终检点已过（checkpoint==null）时修改无法保证落库，
-		// 显式抛RejectWhileStopping（perform转为Closed），不执行commit后静默丢弃（假成功）。
-		if (procedure.getZeze().getCheckpoint() == null)
+		var checkpoint = procedure.getZeze().getCheckpoint();
+		if (checkpoint == null || !checkpoint.tryBeginCommit())
 			throw new Transaction.RejectWhileStopping("commit rejected while stopping: " + procedure.getActionName());
+		try {
+			tryUpdateAndCheckpointWithPermit(trans, procedure, commit, onzProcedure, collectChanges, checkpoint);
+		} finally {
+			checkpoint.endCommit();
+		}
+	}
+
+	private static void tryUpdateAndCheckpointWithPermit(@NotNull Transaction trans, @NotNull Procedure procedure,
+			@NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
+			@NotNull HistoryChangesCollector collectChanges, @NotNull Checkpoint checkpoint) throws Exception {
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately: {
@@ -155,21 +164,13 @@ public final class RelativeRecordSet extends ReentrantLock {
 			BLogChanges.Data logChanges = null;
 			try {
 				logChanges = collectChanges.afterApply();
-				var checkpoint = procedure.getZeze().getCheckpoint();
-				if (checkpoint == null)
-					// 修改已应用但终检点恰在此间过去，无法落库——显式失败优于静默假成功。
-					throw new Transaction.RejectWhileStopping(
-							"immediate flush rejected while stopping: " + procedure.getActionName());
 				checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
 			} catch (Throwable ex) {
 				// 修改已应用（commit.run）而收集/落库失败——runOnce对Immediately是no-op，
 				// perform的halt兜底刷不到这批"已应用未落库"的数据。趁记录锁未释放（holdLocks在
 				// finalCommit返回后才清）用同一入口做一次受控补刷：成功则数据已落库，fatal记原异常
 				// 后吞掉继续；再失败则重抛原异常走halt（DB硬故障，明确接受丢失）。
-				// 停机中（checkpoint==null，RejectWhileStopping）无补刷通道，保持原语义转Closed。
-				var checkpoint = procedure.getZeze().getCheckpoint();
-				if (checkpoint == null)
-					throw ex;
+				// 提交使用权使同步补刷与停机终检点互斥，不会在修改应用后失去补刷通道。
 				try {
 					checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
 				} catch (Throwable ex2) { // logger.fatal
@@ -222,11 +223,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 						mergedSet.addLogChanges(logChanges); // History存在并且开启，则加入rrs。
 
 					if (needFlushNow) {
-						var checkpoint = procedure.getZeze().getCheckpoint();
-						if (checkpoint == null)
-							// needFlushNow的修改已应用但终检点已过，无法落库——显式失败。
-							throw new Transaction.RejectWhileStopping(
-									"flush-now rejected while stopping: " + procedure.getActionName());
 						if (mergedSet.recordSet != null) {
 							checkpoint.flush(mergedSet);
 						} else if (onzProcedure != null) {
@@ -239,12 +235,6 @@ public final class RelativeRecordSet extends ReentrantLock {
 					} else if (mergedSet.recordSet != null) {
 						// mergedSet 合并结果是孤立的，不需要Flush。
 						// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
-						var checkpoint = procedure.getZeze().getCheckpoint();
-						if (checkpoint == null)
-							// 修改已应用但无法注册待flush脏集（注册不了=孤儿脏集必丢）——
-							// 显式失败，不静默跳过。
-							throw new Transaction.RejectWhileStopping(
-									"rrs register rejected while stopping: " + procedure.getActionName());
 						checkpoint.relativeRecordSetMap.add(mergedSet);
 					}
 				} catch (Throwable ex) {
@@ -254,12 +244,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 					// 把mergedSet注册进map交给后台checkpoint重试后再重抛：mergedSet锁全程由本线程
 					// 持有（finally统一释放），map为ConcurrentHashSet，注册并发安全；flush失败时
 					// flushInternal已回滚DB事务、记录保持dirty，正是"保留dirty留待重试"的既有语义。
-					// 停机中（checkpoint==null，RejectWhileStopping）无注册通道，维持停机拒绝语义。
-					if (mergedSet.recordSet != null) {
-						var checkpoint = procedure.getZeze().getCheckpoint();
-						if (checkpoint != null)
-							checkpoint.relativeRecordSetMap.add(mergedSet);
-					}
+					if (mergedSet.recordSet != null)
+						checkpoint.relativeRecordSetMap.add(mergedSet);
 					throw ex;
 				}
 			} else {
