@@ -123,7 +123,8 @@ public class ServiceManager {
 	// {@link #withServiceLock} 取本锁（commitLocks→opsLocks 单向嵌套——prune 的在用版本判据
 	// run.pid 与 start 的 writeRunPid 互斥，否则 launch→writeRunPid 窗口内正在启动的版本目录
 	// 被当非在用删除）；start/stop 不取 commitLocks（无反向持锁路径，无环）；watchExit 回调
-	// 不取本锁。键折叠=serviceKey（foldVersionName：剥尾点/空格+小写）：Windows 上
+	// 的 run.pid 条件删除经 deleteRunPidIfOwn 取本锁（叶子获取、不持他锁，与既有序一致无环；
+	// 回调线程在 stop 停机窗口内最长排队 ~20s，死锁推演见该方法注释）。键折叠=serviceKey（foldVersionName：剥尾点/空格+小写）：Windows 上
 	// "svc"/"Svc"/"svc." 同一物理容器，仅小写折叠时尾点/空格变体仍分叉两把锁——commit 的
 	// prune 段（持 commitLocks 折叠键后经 withServiceLock 传入容器目录名）与 startService
 	// 变体拼写互斥失效，正在启动的版本目录被 prune 当非在用删除（首波 zoker-07 笔记已记的
@@ -596,31 +597,57 @@ public class ServiceManager {
 				RunPidRecord.auxOf(info), version));
 	}
 
+	// 直构测试 seam（run.pid 删除交错注入点）：删除线程"比对通过后、删除前"的暂停/
+	// 并发动作注入——红绿测试在此构造并发 start 写入与回调删除的确定性交错。生产恒 null。
+	private volatile Runnable runPidDeleteAfterJudgeHookForTest;
+
+	void setRunPidDeleteAfterJudgeHookForTest(Runnable hook) {
+		runPidDeleteAfterJudgeHookForTest = hook;
+	}
+
 	/**
 	 * 停毕/onExit 的条件删除：run.pid 内容 pid 仍是本句柄的才删
 	 * ——新 start（或他方）已改写身份的文件必须留下，迟到的收殓不误删别人的真相源。
-	 * 读-判-删非原子：与新 start 的"写新身份"窗口理论上可交错（读得旧 pid 后对方刚写完即被
-	 * 误删），但该窗口需在微秒级读删间隙内塞进一次完整进程拉起，且后果只是下次重启失明
-	 * （非误杀），接受残余。
+	 * 包内可见供直构测试直接驱动（watchExit 回调上下文的无锁调用面）。
+	 *
+	 * <p><b>读-判-删全程持 {@link #opsLock}（与 startService 的 launch→writeRunPid
+	 * 同锁互斥）</b>：比对用的是读时刻的内容、删除打的是路径，无锁时与新 start 的
+	 * "写新身份"可交错——且窗口并非"微秒级"：删除失败重试 sleep(100)×3 把它结构性
+	 * 拉宽到 100-300ms，进程退出→外部守护亚秒级重启（部署模型常态）恰落窗内时，
+	 * 回调按旧内容的比对删掉新身份文件：pruneVersions 在用保护失明（误删在用版本
+	 * 目录）、Zoker 重启后 adoptOrphans 失明（同服务双实例）。锁序安全：回调线程
+	 * （进程退出收割线程）进本方法时不持任何其他锁（processes 条件移除是 CHM
+	 * 非阻塞），单向叶子获取，与 commit 的 commitLocks→opsLocks 既有序一致；
+	 * stopServiceLocked 的调用点已持本锁（可重入）。代价：重试睡眠最长 ~300ms
+	 * 顺延同服务 start/stop/prune（生命周期 RPC 非热路径）；回调在 stop 停机窗口
+	 * （最长 20s）内排队等待——stop 的 waitFor 只等进程终止、不依赖本回调完成，
+	 * 无死锁。</p>
 	 */
-	private void deleteRunPidIfOwn(String serviceName, Process process) {
-		var rec = readRunPid(serviceName);
-		if (null == rec || rec.pid != process.pid())
-			return;
-		var file = new File(new File(serviceDir, serviceName), RUN_PID_NAME);
-		// 刚写完的文件可被AV实时扫描等外部瞬态句柄占用，单次delete偶发失败（压测实证57/40轮）。
-		// run.pid是身份对账文件，残留=陈旧身份账，下次resolveRunPid按指纹兜底但留脏——有界重试收敛。
-		for (var attempt = 0; attempt < 3; attempt++) {
-			if (file.delete())
+	void deleteRunPidIfOwn(String serviceName, Process process) {
+		synchronized (opsLock(serviceName)) {
+			var rec = readRunPid(serviceName);
+			if (null == rec || rec.pid != process.pid())
 				return;
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				break;
+			// 直构测试 seam：判后删前注入点（见字段注释）。注入点在锁内——绿路径下
+			// 并发 start 阻塞在锁上，注入点的有界 join 超时放行删除即完成交错推演。
+			var hook = runPidDeleteAfterJudgeHookForTest;
+			if (null != hook)
+				hook.run();
+			var file = new File(new File(serviceDir, serviceName), RUN_PID_NAME);
+			// 刚写完的文件可被AV实时扫描等外部瞬态句柄占用，单次delete偶发失败（压测实证57/40轮）。
+			// run.pid是身份对账文件，残留=陈旧身份账，下次resolveRunPid按指纹兜底但留脏——有界重试收敛。
+			for (var attempt = 0; attempt < 3; attempt++) {
+				if (file.delete())
+					return;
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
 			}
+			logger.warn("run.pid own-delete fail: {}", file);
 		}
-		logger.warn("run.pid own-delete fail: {}", file);
 	}
 
 	/**
