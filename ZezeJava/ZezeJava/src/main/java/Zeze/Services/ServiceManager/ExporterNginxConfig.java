@@ -1,10 +1,9 @@
 package Zeze.Services.ServiceManager;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
@@ -36,46 +35,50 @@ public class ExporterNginxConfig implements IExporter {
 		var lines = new ArrayList<String>();
 		var hasChanged = false;
 		var found = false;
-		try (var config = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
-			String line;
-			var firstLine = true;
-			var skipUntilUpstreamEnd = false;
-			while ((line = config.readLine()) != null) {
-				if (firstLine) {
-					firstLine = false;
-					// UTF-8 BOM文件首行同名upstream块不被识别（\uFEFF前缀使startsWith
-					// 失配）→ 误判未命中在文件尾追加重复块，nginx报upstream duplicate emerg。
-					if (!line.isEmpty() && line.charAt(0) == '\uFEFF')
-						line = line.substring(1);
-				}
-				var lineTrim = line.trim();
-				if (skipUntilUpstreamEnd) {
-					if (!lineTrim.equals("}"))
-						continue; // skip
-					skipUntilUpstreamEnd = false;
-					continue; // skip last "}"
-				}
-
-				if (lineTrim.startsWith("upstream")) {
-					var prefix = line.substring(0, line.length() - lineTrim.length());
-					// nginx合法写法多样（"upstream name{"、"upstream<TAB>name {"）——
-					// split(" ")[1]要么解析出带'{'的错名（块永不重写，下线地址残留），要么
-					// AIOOBE中断整批导出。按空白切分取第二token去尾'{'；解析不出名字记告警跳过。
-					var tokens = lineTrim.split("\\s+");
-					var sName = tokens.length > 1 ? trimSuffixBrace(tokens[1]) : "";
-					if (sName.isEmpty()) {
-						logger.warn("ExporterNginxConfig: unrecognized upstream line skipped: {}", lineTrim);
-					} else if (sName.equals(serviceName)) {
-						skipUntilUpstreamEnd = true;
-						exportToLines(prefix, lines, serviceName, all);
-						hasChanged = true;
-						found = true;
-						continue;
-					}
-				}
-				lines.add(line);
+		var source = Files.readString(Path.of(file), StandardCharsets.UTF_8);
+		if (source.startsWith("\uFEFF"))
+			source = source.substring(1);
+		var rewritten = new StringBuilder();
+		int copied = 0;
+		for (var token = nextToken(source, 0); token != null; token = nextToken(source, token.end)) {
+			if (token.quoted || !token.text.equals("upstream"))
+				continue;
+			var name = nextToken(source, token.end);
+			if (name == null || !name.text.equals(serviceName))
+				continue;
+			var brace = nextToken(source, name.end);
+			if (brace == null || brace.quoted || !brace.text.equals("{"))
+				throw new IOException("missing upstream opening brace: " + serviceName);
+			int depth = 1;
+			Token close = brace;
+			while (depth != 0) {
+				close = nextToken(source, close.end);
+				if (close == null)
+					throw new IOException("unterminated upstream: " + serviceName);
+				if (!close.quoted && close.text.equals("{"))
+					++depth;
+				else if (!close.quoted && close.text.equals("}"))
+					--depth;
 			}
+			int lineStart = source.lastIndexOf('\n', token.start) + 1;
+			var prefix = source.substring(lineStart, token.start);
+			int replaceStart = prefix.isBlank() ? lineStart : token.start;
+			if (!prefix.isBlank())
+				prefix = "";
+			rewritten.append(source, copied, replaceStart);
+			var replacement = new ArrayList<String>();
+			exportToLines(prefix, replacement, serviceName, all);
+			rewritten.append(String.join("\n", replacement));
+			copied = close.end;
+			token = close;
+			found = hasChanged = true;
 		}
+		rewritten.append(source, copied, source.length());
+		if (found)
+			lines.add(rewritten.toString());
+		else
+			lines.add(source);
+
 		// 整文件未命中同名upstream块时恒不更新（hasChanged恒false）——新增服务
 		// 或首次部署未预置空块时该服务地址永不进nginx、无自愈无告警（未文档化的隐含契约）。
 		// 文件尾追加自产格式块，后续轮转可正常识别重写（空块态由入口的
@@ -96,8 +99,61 @@ public class ExporterNginxConfig implements IExporter {
 		}
 	}
 
-	private static String trimSuffixBrace(String token) {
-		return token.endsWith("{") ? token.substring(0, token.length() - 1) : token;
+	private record Token(int start, int end, String text, boolean quoted) {
+	}
+
+	/** 仅词法扫描：引号、转义和注释中的大括号不参与块边界。 */
+	private static Token nextToken(String text, int offset) throws IOException {
+		int length = text.length();
+		while (offset < length) {
+			char ch = text.charAt(offset);
+			if (Character.isWhitespace(ch)) {
+				++offset;
+				continue;
+			}
+			if (ch == '#') {
+				int newline = text.indexOf('\n', offset);
+				offset = newline >= 0 ? newline + 1 : length;
+				continue;
+			}
+			break;
+		}
+		if (offset == length)
+			return null;
+		int start = offset;
+		char first = text.charAt(offset++);
+		if (first == '{' || first == '}' || first == ';')
+			return new Token(start, offset, String.valueOf(first), false);
+		var value = new StringBuilder();
+		char quote = first == '\'' || first == '"' ? first : 0;
+		boolean escaped = first == '\\' && offset < length;
+		if (quote == 0) {
+			if (escaped)
+				value.append(text.charAt(offset++));
+			else
+				value.append(first);
+		}
+		while (offset < length) {
+			char ch = text.charAt(offset);
+			if (ch == '\\' && offset + 1 < length) {
+				escaped = true;
+				value.append(text.charAt(offset + 1));
+				offset += 2;
+			} else if (quote != 0) {
+				++offset;
+				if (ch == quote)
+					return new Token(start, offset, value.toString(), true);
+				value.append(ch);
+			} else if (Character.isWhitespace(ch) || ch == '{' || ch == '}' || ch == ';' || ch == '#')
+				break;
+			else {
+				value.append(ch);
+				++offset;
+			}
+		}
+		if (quote != 0)
+			throw new IOException("unterminated nginx quoted token at " + start);
+		return new Token(start, offset, value.toString(), escaped);
 	}
 
 	/** 服务是否有任何可导出地址（identity存在且passiveIp非空）。 */
