@@ -629,6 +629,12 @@ public final class Application extends ReentrantLock {
 						db.getTables().size(), e.getKey(), (System.nanoTime() - timeBegin) / 1_000_000);
 				}
 
+				// tHistory 物理归属校验（FND33 history-02）：不同发号名的 gid 数值重叠，
+				// 共享同一物理表经 writeOnly replace 静默互覆——同库多 app 必须同名或分库，
+				// 冲突 fail-fast（换名重启同样被拦截，需显式迁移）。
+				if (conf.isHistory() && historyModule != null)
+					Zeze.History.OwnerCheck.verify(this);
+
 				for (var db : getDatabases().values()) {
 					if (!(db instanceof DatabaseRelationalMapping))
 						continue;

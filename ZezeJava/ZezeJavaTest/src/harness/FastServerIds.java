@@ -169,6 +169,8 @@ public final class FastServerIds {
 	public static final int TEST_DYNAMIC_TABLE_LOG_REGISTRY = seg("TestDynamicTableLogRegistry", 16301, 1);
 	public static final int TEST_PRODUCER_CTOR_FAIL_REBUILDS = seg("TestProducerCtorFailRebuildsSameApplication", 16311, 1);
 	public static final int TEST_PRODUCER_STOP_DRAINS_CHECK_BEFORE_SHUTDOWN = seg("TestProducerStopDrainsCheckBeforeShutdown", 16321, 1);
+	public static final int TEST_HISTORY_SHARED_TABLE_OWNER_NAME_MISMATCH = seg("TestHistorySharedTableOwnerNameMismatch", 16331, 6);
+	public static final int TEST_PRODUCER_START_REJECTS_MEMORY_TSENT = seg("TestProducerStartRejectsMemoryTSent", 16341, 1);
 
 	private FastServerIds() {
 	}
