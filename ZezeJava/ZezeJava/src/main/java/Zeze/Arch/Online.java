@@ -1631,6 +1631,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessLoginRequest(@NotNull Login rpc) {
+		if (rpc.Argument.getClientId().isEmpty())
+			return Procedure.LogicError;
 		var done = new OutObject<>(false);
 		for (var i = 0; i < 3 && !done.value; ++i) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest")).call();
@@ -1706,6 +1708,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessReLoginRequest(@NotNull ReLogin rpc) {
+		if (rpc.Argument.getClientId().isEmpty())
+			return Procedure.LogicError;
 		var done = new OutObject<>(false);
 		for (var i = 0; i < 3 && !done.value; ++i) {
 			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest")).call();
