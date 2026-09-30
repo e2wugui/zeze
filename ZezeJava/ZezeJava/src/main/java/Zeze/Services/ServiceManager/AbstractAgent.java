@@ -410,10 +410,17 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 
 		public void onFirstCommit(@NotNull BServiceInfosVersion infos, @NotNull BEditService edits) {
-			for (var it = infos.getInfosIterator(); it.moveToNext(); )
-				edits.getAdd().addAll(it.value().getSortedIdentities());
 			lock();
 			try {
+				for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
+					var current = infos.getInfos(it.key());
+					for (var old : it.value().getSortedIdentities()) {
+						if (current == null || current.findServiceInfo(old) == null)
+							edits.getRemove().add(old);
+					}
+				}
+				for (var it = infos.getInfosIterator(); it.moveToNext(); )
+					edits.getAdd().addAll(it.value().getSortedIdentities());
 				serviceInfos = infos;
 			} finally {
 				unlock();
