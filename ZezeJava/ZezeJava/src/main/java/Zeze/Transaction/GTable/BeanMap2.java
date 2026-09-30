@@ -7,6 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.Map2Meta;
+import Zeze.Transaction.DynamicBean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -151,7 +152,7 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 			int _n_ = _x_.size();
 			if (_n_ != 0) {
 				_i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
-				_o_.WriteMapType(_n_, meta.keyEncodeType, ByteBuffer.BEAN);
+				_o_.WriteMapType(_n_, meta.keyEncodeType, meta.valueEncodeType);
 				for (var _e_ : _x_.entrySet()) {
 					meta.keyEncoder.accept(_o_, _e_.getKey());
 					_e_.getValue().encode(_o_);
@@ -178,7 +179,12 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 				int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
 				for (int _n_ = _o_.ReadUIntPositive(); _n_ > 0; _n_--) {
 					var _k_ = meta.keyDecoderWithType.apply(_o_, _s_);
-					var _v_ = _o_.ReadBean(pMap2.createValue(), _t_);
+					var _v_ = pMap2.createValue();
+					if (_v_ instanceof DynamicBean && (_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.DYNAMIC)
+						_o_.ReadDynamic((DynamicBean)_v_, _t_);
+					else
+						// Older dynamic rows used a BEAN tag while still writing the dynamic type id.
+						_o_.ReadBean(_v_, _t_);
 					_x_.put(_k_, _v_);
 				}
 			} else
