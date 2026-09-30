@@ -174,8 +174,10 @@ public class Takeover extends AbstractTakeover {
 	 */
 	public void addScope(@NotNull TakeoverScope scope) {
 		scopes.addIfAbsent(scope);
-		if (started && ModeOn.equals(mode))
+		if (started && ModeOn.equals(mode)) {
 			stampScope(scope);
+			scanOnce(); // 新scope也必须检查已有租约墓碑，不能把其他scope完成等同于自己完成。
+		}
 	}
 
 	private void stampScope(@NotNull TakeoverScope scope) {
@@ -330,7 +332,7 @@ public class Takeover extends AbstractTakeover {
 		try {
 			_tTakeoverLease.walk((serverId, lease) -> {
 				var expireAt = lease.getExpireAt();
-				if (expireAt != 0 && expireAt < now) // 墓碑(0)跳过；未过期跳过
+				if (lease.getEpoch() != 0 && expireAt < now) // 墓碑仍可能留下晚注册scope的数据。
 					tryTransfer(serverId);
 				return true;
 			});
@@ -356,20 +358,20 @@ public class Takeover extends AbstractTakeover {
 		Veto,       // scope拒绝搬运（如Timer版本高于本进程）：不立租约墓碑，留给高版本
 		TxFailed,   // 事务失败（冲突等）：本scope留给下轮扫描/重试，其他scope继续
 		NotExpired, // 事务内重验发现租约已续期（死者复活/并发处理）：中止剩余搬运
-		Finished    // 租约已无或已立墓碑（并发接管完成/行被清除）：全部结束
+		Finished    // 租约已无或epoch无效：全部结束
 	}
 
 	private void tryTransferNow(int deadServerId) {
 		if (!started)
 			return;
-		// 【校验】小事务探租约：幂等出口（无租约/墓碑）、未过期精确重试、dryrun都在这里终结。
+		// 【校验】墓碑仅表示当时已登记的scope完成。每个scope的实际root才是持久化幂等依据。
 		var retryAt = new OutLong();
 		var deadEpoch = new OutLong();
 		var expired = new boolean[1];
 		var r = callDirect(() -> {
 			var lease = _tTakeoverLease.get(deadServerId);
-			if (lease == null || lease.getExpireAt() == 0)
-				return 0L; // 幂等出口：无租约或已立墓碑（已被接管搬运完成）
+			if (lease == null || lease.getEpoch() == 0)
+				return 0L;
 			var now = System.currentTimeMillis();
 			if (lease.getExpireAt() >= now) {
 				retryAt.value = lease.getExpireAt();
@@ -391,7 +393,7 @@ public class Takeover extends AbstractTakeover {
 			return;
 		}
 		if (!expired[0])
-			return; // 幂等出口（无租约/墓碑）或dryrun
+			return; // 无租约/epoch无效或dryrun
 
 		// 【搬运】每个scope独立事务：锁足迹小、单scope冲突只影响自己。事务内重验租约——
 		// 搬运中途死者复活续约，后续scope事务看到未过期即中止剩余（原子单位=单个scope，
@@ -449,18 +451,18 @@ public class Takeover extends AbstractTakeover {
 			return; // 立碑事务失败：保持过期态，扫描兜底
 		if (retryAt.value > 0)
 			scheduleRetryAt(deadServerId, retryAt.value);
-		else
+		else if (transferredTotal > 0)
 			logger.info("Takeover: transfer complete, serverId={} total={} scopes={}",
 					deadServerId, transferredTotal, scopeNames());
 	}
 
-	/** 单scope搬运事务：事务内重验租约（无/墓碑→Finished；未过期→NotExpired）后才transferAll。 */
+	/** 单scope搬运事务：重验租约后transferAll；源root的事务内清空防止跨进程重复搬运。 */
 	private @NotNull ScopeTransfer transferScope(int deadServerId, @NotNull TakeoverScope scope,
 	                                             long @NotNull [] moved, @NotNull OutLong retryAt) {
 		var result = new ScopeTransfer[1];
 		var r = callDirect(() -> {
 			var lease = _tTakeoverLease.get(deadServerId);
-			if (lease == null || lease.getExpireAt() == 0) {
+			if (lease == null || lease.getEpoch() == 0) {
 				result[0] = ScopeTransfer.Finished;
 				return 0L;
 			}
