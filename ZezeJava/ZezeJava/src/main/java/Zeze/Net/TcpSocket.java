@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Handshake.Constant;
@@ -414,8 +413,6 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		submitAction(() -> { // 进selector线程调用
 			if (securityCodecReinstalled((byte)1))
 				return;
-			if (compressType != Constant.eCompressTypeDisable)
-				warnDecompressHeadroom(compressType); // 压缩开启：检查max对readBufferSize的headroom
 			// 压缩开启时解压输出经 InputLimitCodec 流式检查增长上限：processReceive 的
 			// InputBufferMaxProtocolSize 检查发生在整个chunk解压完成之后，恶意压缩数据（放大率
 			// 可达千倍）会在此之前无上限膨胀输入缓冲。不压缩（仅加密或全disable）不扩展，保持原路径。
@@ -658,54 +655,42 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 		} while (readAgain);
 	}
 
-	/**
-	 * 解压输出的流式增长上限（防压缩放大）：processReceive 对 InputBufferMaxProtocolSize 的检查
-	 * 发生在整个 chunk 解压完成之后，恶意压缩数据（MPPC/zstd 放大率可达千倍）会在此之前无上限
-	 * 膨胀输入缓冲（codecBuf 按倍增长直逼百MB）。这里作为解压 sink，边解压边检查总大小
-	 * （含未消费的剩余数据），超过上限即抛异常（连接会被关闭），保持每条连接的输入内存有界。
-	 * 量纲统一：max 语义=最大协议体大小（不含 12 字节帧头），帧级检查（Protocol.decode
-	 * 对声明大小的 {@code longSize > maxSize}）允许恰等于 max 的协议；本 sink 须瞬时容纳完整帧
-	 * （12 字节帧头+协议体），故缓冲检查量纲含帧头、允许到 {@code HEADER_SIZE+max}——否则同一
-	 * 协议未压缩可收、压缩后被杀。压缩对不可压数据有约 9/8 膨胀（MPPC），max 配置需给
-	 * readBufferSize 留膨胀 headroom。
-	 */
-	// 压缩开启时解压路径的瞬时缓冲上限为 HEADER_SIZE+max（InputLimitCodec 与
-	// processReceive 残留检查），而一次 read 事件最多读入 readBufferSize 字节压缩数据，解压输出
-	// 叠加上一轮未消费的残留（且 MPPC 对不可压数据约有 9/8 膨胀），max < 2×readBufferSize 时
-	// 瞬时总量可能超限，误杀 body 接近 max 的合法协议。仅告警一次（静态once标志防止海量连接刷屏）。
-	private static final AtomicBoolean decompressHeadroomWarned = new AtomicBoolean();
-
-	// 告警点选在 setInputSecurityCodec：此处首次确知该连接压缩开启（compressType 非 disable），
-	// 且每连接可知其归属 selector 的 readBufferSize（selector.getSelectors().getReadBufferSize()，
-	// 即 processReceive 共享读缓冲的容量来源）。
-	private void warnDecompressHeadroom(int compressType) {
-		int max = getService().getSocketOptions().getInputBufferMaxProtocolSize();
-		int readBufferSize = selector.getSelectors().getReadBufferSize();
-		if (max < 2 * readBufferSize && decompressHeadroomWarned.compareAndSet(false, true))
-			logger.warn("InputBufferMaxProtocolSize({}) < 2*readBufferSize({})：压缩已开启(compressType={})，" +
-					"单次读事件的解压输出叠加残留可能瞬时超过限值(HEADER_SIZE+max)误杀大协议，" +
-					"建议调大 InputBufferMaxProtocolSize 或调小 Selectors.readBufferSize", max, readBufferSize, compressType);
-	}
-
+	/** 解压期间先消费完整协议，限值只约束尚未消费的单帧，避免把合法批量协议当作压缩放大。 */
 	private record InputLimitCodec(@NotNull TcpSocket socket, @NotNull BufferCodec sink) implements Codec {
+		private int room() {
+			long limit = (long)Protocol.HEADER_SIZE + socket.getService().getSocketOptions().getInputBufferMaxProtocolSize();
+			if (sink.size() >= limit) {
+				var buffer = sink.getBuffer();
+				if (buffer.size() >= Protocol.HEADER_SIZE
+						&& (ByteBuffer.ToInt(buffer.Bytes, buffer.ReadIndex + 8) & 0xffff_ffffL)
+						> socket.getService().getSocketOptions().getInputBufferMaxProtocolSize())
+					throw new IllegalStateException("InputBufferMaxProtocolSize: declared frame exceeds limit");
+				try {
+					socket.getService().OnSocketProcessInputBuffer(socket, sink.getBuffer());
+				} catch (Exception e) {
+					throw Task.forceThrow(e);
+				}
+				if (sink.size() >= limit)
+					throw new IllegalStateException("InputBufferMaxProtocolSize: unconsumed frame >= " + limit);
+				sink.getBuffer().Compact();
+			}
+			return (int)Math.min(limit - sink.size(), Integer.MAX_VALUE);
+		}
+
 		@Override
 		public void update(byte c) {
-			int newSize = sink.size() + 1;
-			int max = socket.getService().getSocketOptions().getInputBufferMaxProtocolSize();
-			if (newSize > Protocol.HEADER_SIZE + max) // 量纲含帧头，允许到HEADER_SIZE+max（见类注释）
-				throw new IllegalStateException(
-						"InputBufferMaxProtocolSize " + newSize + " > " + (Protocol.HEADER_SIZE + max));
+			room();
 			sink.update(c);
 		}
 
 		@Override
 		public void update(byte @NotNull [] data, int off, int len) {
-			int newSize = sink.size() + len;
-			int max = socket.getService().getSocketOptions().getInputBufferMaxProtocolSize();
-			if (newSize > Protocol.HEADER_SIZE + max) // 量纲含帧头，允许到HEADER_SIZE+max（见类注释）
-				throw new IllegalStateException(
-						"InputBufferMaxProtocolSize " + newSize + " > " + (Protocol.HEADER_SIZE + max));
-			sink.update(data, off, len);
+			while (len > 0) {
+				int count = Math.min(len, room());
+				sink.update(data, off, count);
+				off += count;
+				len -= count;
+			}
 		}
 
 		@Override

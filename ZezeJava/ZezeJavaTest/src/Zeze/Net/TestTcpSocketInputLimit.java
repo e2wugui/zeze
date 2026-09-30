@@ -151,22 +151,21 @@ public class TestTcpSocketInputLimit {
 				() -> "期待 InputBufferMaxProtocolSize 异常，实际: " + ex);
 	}
 
-	// 全零数据经 MPPC 压缩后放大率极高：解压 sink 应在增长到上限时抛 InputBufferMaxProtocolSize
-	// 关闭连接，而不是无上限解压完再检查。
+	// 首帧声明4MB，超过单帧限制；重复body压缩后仍有很高放大率。
 	@Test
 	public final void testMppcBombClosedAtLimit() throws Exception {
 		var server = new Server("TestTcpSocketInputLimit.Mppc", Constant.eCompressTypeMppc, 64 * 1024);
 		int port = startServer(server);
-		sendAfterCodec(server, port, compressMppc(new byte[4 * 1024 * 1024]));
+		sendAfterCodec(server, port, compressMppc(makeFrame(4 * 1024 * 1024)));
 		assertClosedAtLimit(server);
 	}
 
-	// zstd 同型：全零数据高放大率，首个 128KB 解压批次即应超上限抛异常。
+	// zstd 同型：限制的是首帧大小，不是一个解压批次的总字节数。
 	@Test
 	public final void testZstdBombClosedAtLimit() throws Exception {
 		var server = new Server("TestTcpSocketInputLimit.Zstd", Constant.eCompressTypeZstd, 64 * 1024);
 		int port = startServer(server);
-		sendAfterCodec(server, port, compressZstd(new byte[4 * 1024 * 1024]));
+		sendAfterCodec(server, port, compressZstd(makeFrame(4 * 1024 * 1024)));
 		assertClosedAtLimit(server);
 	}
 
@@ -180,6 +179,30 @@ public class TestTcpSocketInputLimit {
 		sendAfterCodec(server, port, compressMppc(makeFrame(max)));
 		Assertions.assertTrue(server.received.await(5, TimeUnit.SECONDS), "body==max的压缩协议应被完整接收");
 		Assertions.assertEquals(max, server.receivedBodySize, "收到的body大小应恰为max");
+	}
+
+	@Test
+	public void testManySmallCompressedFramesBeyondOneFrameLimit() throws Exception {
+		for (int compressType : new int[]{Constant.eCompressTypeMppc, Constant.eCompressTypeZstd}) {
+			var allReceived = new CountDownLatch(200);
+			var server = new Server("TestTcpSocketInputLimit.Batch." + compressType, compressType, 64 * 1024) {
+				@Override
+				public void dispatchUnknownProtocol(@NotNull AsyncSocket so, int moduleId, int protocolId,
+				                                    @NotNull ByteBuffer data) {
+					Assertions.assertEquals(1024, data.size());
+					allReceived.countDown();
+				}
+			};
+			var frame = makeFrame(1024);
+			var batch = ByteBuffer.Allocate();
+			for (int i = 0; i < 200; ++i)
+				batch.Append(frame);
+			var payload = batch.Copy();
+			var wire = compressType == Constant.eCompressTypeMppc ? compressMppc(payload) : compressZstd(payload);
+			sendAfterCodec(server, startServer(server), wire);
+			Assertions.assertTrue(allReceived.await(5, TimeUnit.SECONDS),
+					"批量合法小帧应逐帧派发，不因总解压大小超过单帧限制而断连");
+		}
 	}
 
 	// 边界回归：直通路径（compressType=disable，codec链不扩展仅透传进 inputBuffer）body恰为max。
