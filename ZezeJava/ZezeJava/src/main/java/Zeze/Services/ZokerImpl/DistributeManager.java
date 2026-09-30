@@ -85,7 +85,8 @@ public class DistributeManager {
 	// 每个agent连接打开的文件键（=files的折叠记账键）：agent在OpenFile之后、CloseFile之前断链时
 	// 按连接回收FileBin，否则RandomAccessFile句柄常驻泄漏，Windows上还锁住distributes下的文件
 	// 使commit的rename失败。
-	private final ConcurrentHashMap<AsyncSocket, Set<String>> filesBySocket = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<AsyncSocket, ConcurrentHashMap<String, FileBin>> filesBySocket
+			= new ConcurrentHashMap<>();
 	// 同服务 commit 串行化锁（services/<svc> 粒度）。键为 foldVersionName(serviceName) 折叠
 	// （serviceName 已过 isSafePathSegment 校验；折叠可能并键的仅尾点/空格与大小写变体，
 	// 过度串行化有界），条目数以（折叠后的）服务名为界，无攻击面放大。跨服务不受影响。
@@ -194,7 +195,8 @@ public class DistributeManager {
 					if (null != existing)
 						winner = existing;
 					else if (null != sender)
-						filesBySocket.computeIfAbsent(sender, __ -> ConcurrentHashMap.newKeySet()).add(relativeCanonicalFileName);
+						filesBySocket.computeIfAbsent(sender, __ -> new ConcurrentHashMap<>())
+								.put(relativeCanonicalFileName, candidate);
 				}
 			}
 			if (!rejectReason.isEmpty()) {
@@ -204,10 +206,10 @@ public class DistributeManager {
 			if (winner == candidate)
 				return candidate;
 			closeDiscard(candidate);
-			accountOpened(sender, relativeCanonicalFileName);
+			accountOpened(sender, relativeCanonicalFileName, winner);
 			return winner;
 		}
-		accountOpened(sender, relativeCanonicalFileName);
+		accountOpened(sender, relativeCanonicalFileName, fileBin);
 		return fileBin;
 	}
 
@@ -216,13 +218,14 @@ public class DistributeManager {
 	 * zoker-01同治：锁内复检sender已死则不补——其close回调已跑完（或即将，届时摘的是既有条目），
 	 * 补上的集合条目无回收路径（快路径 files.get 命中与 putIfAbsent 败者两处调用同暴露）。
 	 */
-	private void accountOpened(AsyncSocket sender, String relativeCanonicalFileName) {
+	private void accountOpened(AsyncSocket sender, String relativeCanonicalFileName, FileBin fileBin) {
 		if (null == sender)
 			return;
 		synchronized (filesBySocket) {
-			if (sender.isClosed())
+			if (sender.isClosed() || files.get(relativeCanonicalFileName) != fileBin)
 				return;
-			filesBySocket.computeIfAbsent(sender, __ -> ConcurrentHashMap.newKeySet()).add(relativeCanonicalFileName);
+			filesBySocket.computeIfAbsent(sender, __ -> new ConcurrentHashMap<>())
+					.put(relativeCanonicalFileName, fileBin);
 		}
 	}
 
@@ -330,22 +333,23 @@ public class DistributeManager {
 
 	/** agent断链（ZokerService.OnSocketClose）时回收该连接打开的全部FileBin。 */
 	public void closeBySocket(AsyncSocket socket) {
-		ArrayList<String> keys;
+		var victims = new ArrayList<FileBin>();
 		// 摘除记账与并发open原子，close在锁外（FileBin.close含md5读）。
 		synchronized (filesBySocket) {
 			var opened = filesBySocket.remove(socket);
 			if (opened == null)
 				return;
-			keys = new ArrayList<>(opened);
+			// 记账携带实例身份；旧上传者的迟到断链不能摘掉同路径的新一轮上传。
+			for (var entry : opened.entrySet()) {
+				if (files.remove(entry.getKey(), entry.getValue()))
+					victims.add(entry.getValue());
+			}
 		}
-		for (var key : keys) {
-			var fileBin = files.remove(key);
-			if (fileBin != null) {
-				try {
-					fileBin.close();
-				} catch (IOException ex) {
-					logger.error("closeBySocket {}", key, ex);
-				}
+		for (var fileBin : victims) {
+			try {
+				fileBin.close();
+			} catch (IOException ex) {
+				logger.error("closeBySocket {}", fileBin.getRelativeCanonicalFileName(), ex);
 			}
 		}
 	}
