@@ -1227,9 +1227,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			return; // stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
 		if (TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
-			if (index == null
-					|| index.getServerId() != zeze.getConfig().getServerId() // 不是拥有者，取消本地调度，应该是不大可能发生的。
-			) {
+			if (index == null)
+				return 0; // 注册已取消，timerId可能已被其他族复用，不能清其future。
+			if (index.getServerId() != zeze.getConfig().getServerId()) { // 不是拥有者，取消本地调度。
 				Transaction.whileCommit(() -> cancelFuture(timerId));
 				return 0;
 			}
@@ -1333,9 +1333,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			return; // stop的cancel+clear窗口内put的残留future停机后触发到这里，直接丢弃
 		if (TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
-			if (index == null
-					|| index.getServerId() != zeze.getConfig().getServerId() // 不是拥有者，取消本地调度，应该是不大可能发生的。
-			) {
+			if (index == null)
+				return 0; // 注册已取消，timerId可能已被其他族复用，不能清其future。
+			if (index.getServerId() != zeze.getConfig().getServerId()) { // 不是拥有者，取消本地调度。
 				Transaction.whileCommit(() -> cancelFuture(timerId));
 				return 0;
 			}

@@ -550,10 +550,8 @@ abstract class TimerOnlineBase<I> {
 		var procSuffix = handle != null ? "." + handle.getClass().getName() : "";
 		var ret = TaskSpec.ofProcedure(zeze().newProcedure(() -> {
 			var bTimer = getOnlineTimer(timerId);
-			if (bTimer == null) {
-				Transaction.whileCommit(() -> timer.cancelFuture(timerId));
-				return 0;
-			}
+			if (bTimer == null)
+				return 0; // 注册已取消，timerId可能已被其他族复用，不能清其future。
 			if (bTimer.getSerialId() != timerSerialId)
 				return 0; // 旧fire不能使用旧handle操作同名新注册（含hot解析失败的清理）。
 			if (handle == null) {
