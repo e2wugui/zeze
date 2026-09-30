@@ -63,11 +63,15 @@ public final class StringFuzzySearch {
 			final var list = index1.get(s.charAt(i));
 			//noinspection DataFlowIssue
 			list.removeAndExchangeLast(list.indexOf(v));
+			if (list.isEmpty())
+				index1.remove(s.charAt(i));
 		}
 		for (int i = 1, j = s.charAt(0); i < n; i++) {
 			final var list = index2.get(j = (j << 16) + s.charAt(i));
 			//noinspection DataFlowIssue
 			list.removeAndExchangeLast(list.indexOf(v));
+			if (list.isEmpty())
+				index2.remove(j);
 		}
 		if (n >= 3) {
 			var k = ((long)s.charAt(0) << 16) + s.charAt(1);
@@ -75,6 +79,8 @@ public final class StringFuzzySearch {
 				final var list = index3.get(k = ((k << 16) + s.charAt(i)) & 0xffff_ffff_ffffL);
 				//noinspection DataFlowIssue
 				list.removeAndExchangeLast(list.indexOf(v));
+				if (list.isEmpty())
+					index3.remove(k);
 			}
 			if (n >= 4) {
 				k = ((long)s.charAt(0) << 32) + ((long)s.charAt(1) << 16) + s.charAt(2);
@@ -82,6 +88,8 @@ public final class StringFuzzySearch {
 					final var list = index4.get(k = (k << 16) + s.charAt(i));
 					//noinspection DataFlowIssue
 					list.removeAndExchangeLast(list.indexOf(v));
+					if (list.isEmpty())
+						index4.remove(k);
 				}
 			}
 		}
