@@ -733,19 +733,18 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	 *    Service.start的时候把自己的SendBufferSize配置设置Max到相应的Selectors中，其中所有的Selector都采用这个Max。
 	 *    这样的话基本上整个系统还是一个OutputBuffer.BlockSize。如果需要对特别的Service设置特别的BlockSize，让这个
 	 *    Service使用独立的Selectors。
-	 * 2. doWrite while (true)
-	 *    outputBuffer全部刷出后，马上重复检查一次operates是否必要，或者等到下一次doWrite更好。
-	 *    因为刚写完，如果此时operates也是繁忙的，有数据，导致一次导入，但是马上write(socket)可能是失败的，
-	 *    存在浪费一次write(socket)的调用，当然这个比较罕见，因为对于繁忙连接，outputBuffer全部刷完
-	 *    是比较罕见的，但是存在抖动的可能。
-	 *    考虑清楚以后去掉while(true)？
+	 * 每次doWrite限制操作数与写出字节数，持续生产操作或codec续作也必须让出selector。
 	 */
 	private void doWrite(@NotNull SocketChannel sc) throws Exception { // 只在selector线程调用
 		sendCount++;
 		int blockSize = selector.getSelectors().getBbPoolBlockSize();
 		int bufSize = outputBuffer.size();
-		while (true) {
-			for (Action0 op; /*bufSize < blockSize * 2 &&*/ (op = operates.poll()) != null; ) {
+		int operateCount = 0;
+		long written = 0;
+		while (operateCount < 1024 && written < (long)blockSize * 2) {
+			for (Action0 op; operateCount < 1024 && bufSize < (long)blockSize * 2
+					&& (op = operates.poll()) != null; ) {
+				operateCount++;
 				op.run();
 				bufSize = outputBuffer.size();
 			}
@@ -774,6 +773,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 					return;
 				}
 				sendSize += rc;
+				written += rc;
 				outputBufferSizeHandle.getAndAdd(this, -rc);
 				bufSize = outputBuffer.size();
 				if (bufSize > 0) {
