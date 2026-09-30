@@ -3,8 +3,10 @@ package Zeze.Raft.RocksRaft;
 import Zeze.Raft.RocksRaft.Log1.LogInt;
 import Zeze.Raft.RocksRaft.TestSortedMapEquivalentKeysReplay.BValue;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.OutInt;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
+import org.pcollections.TreePVector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -49,7 +51,29 @@ public class TestRocksCollectionLogLifecycle {
 		}
 	}
 
-
+	@Test
+	public void listDecodeIntoLiveObjectRetainsWireIndexOnReencode() {
+		Log.register(LogInt::new);
+		var first = new BValue(10);
+		var second = new BValue(20);
+		var source = new LogList2<BValue>(BValue.class);
+		source.setValue(TreePVector.<BValue>empty().plus(first).plus(second));
+		source.getChanged().put(change(second, 42), new OutInt());
+		var reused = new LogList2<BValue>(BValue.class);
+		reused.setValue(TreePVector.<BValue>empty());
+		reused.add(new BValue(99)); // 留有source value及addSet，decode须隔离这些旧状态。
+		reused.decode(encode(source));
+		var replay = new LogList2<BValue>(BValue.class);
+		replay.decode(encode(reused));
+		assertEquals(1, replay.getChanged().size());
+		assertEquals(1, replay.getChanged().values().iterator().next().value);
+		var follower = new CollList2<BValue>(BValue.class);
+		follower.add(new BValue(10));
+		follower.add(new BValue(20));
+		follower.followerApply(replay);
+		assertEquals(10, follower.get(0).value);
+		assertEquals(42, follower.get(1).value);
+	}
 
 	@Test
 	public void mapDecodeIntoLiveObjectRetainsWireChangedOnReencode() {

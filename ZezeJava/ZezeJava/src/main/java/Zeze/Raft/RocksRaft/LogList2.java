@@ -25,6 +25,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	// 是冗余的——follower侧全量应用changed，冗余条目会叠加应用两次（内部非幂等op双重执行）。
 	private IdentityHashSet<V> addSet;
 	private final MethodHandle valueFactory;
+	private boolean decoded; // 解码后的下标来自wire，不能按无源Bean的身份重新计算。
 
 	public LogList2(Class<V> valueClass) {
 		super(Zeze.Transaction.Bean.hashLog(logTypeIdHead, valueClass), SerializeHelper.createCodec(valueClass));
@@ -130,7 +131,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		var curList = getValue();
-		if (curList != null) {
+		if (!decoded && curList != null) {
 			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
 				var e = it.next();
 				var logBean = e.getKey();
@@ -174,6 +175,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
+		addSet = null;
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var value = new LogBean();
@@ -198,6 +200,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			}
 			opLogs.add(new OpLog<>(op, index, value));
 		}
+		decoded = true;
 	}
 
 	@Override
