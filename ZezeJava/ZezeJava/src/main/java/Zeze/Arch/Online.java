@@ -472,7 +472,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		tryRedirectRemoveLocal(loginVersion.getServerId(), account);
 
 		// 总是删除
-		removeLocalAndTrigger(account, clientId);
+		var removeResult = removeLocalAndTrigger(account, clientId);
+		if (removeResult != 0)
+			return removeResult;
 
 		var arg = new LogoutEventArgument(account, clientId);
 		var ret = logoutEvents.triggerEmbed(this, arg);

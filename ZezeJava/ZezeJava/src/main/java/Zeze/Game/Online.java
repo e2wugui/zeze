@@ -793,7 +793,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// 总是尝试通知上一次登录的服务器，里面会忽略本机。
 		tryRedirectRemoveLocal(multiInstanceName, getOrAddOnline(roleId).getServerId(), roleId);
 		// 总是删除
-		removeLocalAndTrigger(roleId);
+		var removeResult = removeLocalAndTrigger(roleId);
+		if (removeResult != 0)
+			return removeResult;
 
 		var arg = new LogoutEventArgument(this, roleId, logoutReason);
 		var ret = logoutEvents.triggerEmbed(this, arg);
