@@ -5,11 +5,14 @@ import java.util.Set;
 import java.util.function.Consumer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.LogBean;
+import Zeze.Transaction.Collections.LogList2;
 import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Transaction.Collections.LogSortedMap2;
 import Zeze.Transaction.Collections.PMap2;
+import Zeze.Transaction.Collections.PList2;
 import Zeze.Transaction.Collections.PSortedMap2;
 import Zeze.Transaction.Logs.LogLong;
+import Zeze.Util.OutInt;
 import demo.Module1.BValue;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
@@ -139,13 +142,82 @@ public class TestMapBeanLogRoundTrip {
 		}
 	}
 
+	private static PList2<BValue> list() {
+		var list = new PList2<BValue>(BValue.class);
+		list.add(new BValue());
+		list.add(new BValue());
+		return list;
+	}
 
+	@SuppressWarnings("unchecked")
+	private static LogList2<BValue> listLog(PList2<BValue> list) {
+		return (LogList2<BValue>)list.createLogBean();
+	}
 
+	@Test
+	public void decodedListChangesSurviveReencodingAndRemainEditable() {
+		var source = list();
+		var sourceLog = listLog(source);
+		sourceLog.getChanged().put(beanLog(source.get(0), 7), new OutInt());
+		var decoded = listLog(list());
+		decoded.decode(encode(sourceLog));
+		var follower = list();
+		var oldBean = follower.get(0);
+		var replay = listLog(follower);
+		replay.decode(encode(decoded));
+		follower.followerApply(replay);
+		assertSame(oldBean, follower.get(0));
+		assertEquals(7, oldBean.getLong2());
+		var entry = decoded.getChanged().entrySet().iterator().next();
+		((LogLong)entry.getKey().getVariables().get(2)).value = 11;
+		entry.getValue().value = 1;
+		replay.decode(encode(decoded));
+		follower.followerApply(replay);
+		assertEquals(7, follower.get(0).getLong2());
+		assertEquals(11, follower.get(1).getLong2());
+		decoded.getChanged().clear();
+		replay.decode(encode(decoded));
+		assertTrue(replay.getChanged().isEmpty());
+	}
 
+	@Test
+	public void reuseListDecodeReplacesChangesAndOperations() {
+		var first = list();
+		var firstLog = listLog(first);
+		firstLog.getChanged().put(beanLog(first.get(0), 3), new OutInt());
+		var second = list();
+		var secondLog = listLog(second);
+		secondLog.getChanged().put(beanLog(second.get(1), 9), new OutInt());
+		var reused = listLog(list());
+		reused.add(new BValue());
+		reused.decode(encode(firstLog));
+		reused.decode(encode(secondLog));
+		assertTrue(reused.getOpLogs().isEmpty());
+		assertEquals(1, reused.getChanged().size());
+		var follower = list();
+		var replay = listLog(follower);
+		replay.decode(encode(reused));
+		follower.followerApply(replay);
+		assertEquals(0, follower.get(0).getLong2());
+		assertEquals(9, follower.get(1).getLong2());
+		assertEquals(2, follower.size());
+	}
 
-
-
-
-
-
+	@Test
+	public void liveListReencodingStillFiltersReplacedBeans() {
+		var source = list();
+		var sourceLog = listLog(source);
+		sourceLog.getChanged().put(beanLog(source.get(0), 7), new OutInt());
+		encode(sourceLog);
+		assertEquals(1, sourceLog.getChanged().size());
+		var replacement = new BValue();
+		replacement.setLong2(13);
+		sourceLog.set(0, replacement);
+		var follower = list();
+		var replay = listLog(follower);
+		replay.decode(encode(sourceLog));
+		assertTrue(replay.getChanged().isEmpty());
+		follower.followerApply(replay);
+		assertEquals(13, follower.get(0).getLong2());
+	}
 }

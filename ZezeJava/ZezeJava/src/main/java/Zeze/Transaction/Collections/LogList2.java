@@ -19,6 +19,7 @@ import org.pcollections.PVector;
 public class LogList2<V extends Bean> extends LogList1<V> {
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
 	private @Nullable IdentityHashSet<V> addSet;
+	private boolean decoded; // 解码日志的下标已在 wire 中，元素日志不再持有原始 Bean。
 
 	public LogList2(Bean belong, int varId, Bean self, @NotNull PVector<V> value, @NotNull Meta1<V> meta) {
 		super(belong, varId, self, value, meta);
@@ -121,20 +122,22 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		var curList = getValue();
-		for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
-			var e = it.next();
-			var bean = e.getKey().getThis();
-			int idxExist = 0;
-			for (V v : curList) {
-				if (v == bean)
-					break;
-				idxExist++;
+		if (!decoded) {
+			var curList = getValue();
+			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
+				var e = it.next();
+				var bean = e.getKey().getThis();
+				int idxExist = 0;
+				for (V v : curList) {
+					if (v == bean)
+						break;
+					idxExist++;
+				}
+				if (idxExist >= curList.size() || addSet != null && addSet.contains(bean))
+					it.remove();
+				else
+					e.getValue().value = idxExist;
 			}
-			if (idxExist >= curList.size() || addSet != null && addSet.contains(bean))
-				it.remove();
-			else
-				e.getValue().value = idxExist;
 		}
 		bb.WriteUInt(changed.size());
 		for (var e : changed.entrySet()) {
@@ -156,6 +159,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
+		addSet = null;
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var logBean = LogMap2.decodeLogBean(bb);
@@ -178,6 +182,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
+		decoded = true;
 	}
 
 	@Override
