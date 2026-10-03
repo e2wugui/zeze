@@ -6,9 +6,12 @@ import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import Zeze.Builtin.Zoker.StartService;
 import harness.Fast;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import static harness.DirCleanup.deleteBestEffort;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -28,6 +31,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestE05SubprocessOutputNoFreeze {
 	private static final boolean WINDOWS =
 			System.getProperty("os.name", "").toLowerCase().contains("win");
+
+	/** 字段注入（非方法参数）：@AfterEach 要先行自删。真子进程（cmd/ping）退出与
+	 * AV/索引器对 services/svc/v1 的瞬态目录句柄会让 JUnit 收尾的整树删除抛
+	 * DirectoryNotEmptyException——"Failed to close extension context"红
+	 * （test40-20261003 批 ×3：r6/r15/r35；GED01 同款，test40-4 TempDir 瞬态
+	 * 句柄族）。先行重试自删把瞬态窗口吃掉，JUnit 随后只删空根。 */
+	@TempDir
+	private Path tempDir;
+
+	@AfterEach
+	public void cleanupTempDir() throws InterruptedException {
+		for (var i = 0; i < 5; i++) {
+			deleteBestEffort(tempDir);
+			if (!Files.exists(tempDir))
+				return;
+			Thread.sleep(200);
+		}
+		// 耗尽仍有残留（长持有者）：留给系统临时目录清理，不再让JUnit收尾红。
+		deleteBestEffort(tempDir);
+	}
 
 	private static void layoutBigOutputService(Path tempDir) throws IOException {
 		var servicesDir = tempDir.resolve("services");
@@ -50,7 +73,7 @@ public class TestE05SubprocessOutputNoFreeze {
 	/** 核心红点：输出跨 64KB 的子进程必须能自行退出（管道丢弃不阻塞）。修复前：waitFor
 	 * 超时（cmd 阻塞在自己的 WriteFile 上，进程活着不推进）。 */
 	@Test
-	public void testBigOutputSubprocessCompletes(@TempDir Path tempDir) throws Exception {
+	public void testBigOutputSubprocessCompletes() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "长输出子进程形态为Windows命令（cmd for 循环 echo）");
 		layoutBigOutputService(tempDir);
 		var sm = new ServiceManager(tempDir.resolve("services").toFile());
@@ -77,7 +100,7 @@ public class TestE05SubprocessOutputNoFreeze {
 
 	/** 正常短输出进程的启停语义不受重定向影响（DISCARD 不破坏生命周期契约，回归钉）。 */
 	@Test
-	public void testNormalLifecycleUnaffected(@TempDir Path tempDir) throws Exception {
+	public void testNormalLifecycleUnaffected() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = tempDir.resolve("services");
 		var v1 = Files.createDirectories(servicesDir.resolve("svc").resolve("v1"));
