@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Util.RocksDatabase;
 import harness.Fast;
-import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -27,7 +26,6 @@ import org.junit.jupiter.api.io.TempDir;
  * 并行测试对该字段的既有容忍口径见 TestMQFileWithIndexTornTail 注释；布局约定见 Fnd19MqTestSupport）。
  */
 @Fast
-@ResourceLock("mq-file-statics") // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
 public class TestGBD02SegmentRecycle {
 
 	/** topic 目录下按"分区号.段基"命名的段基列表（升序）。 */
@@ -54,14 +52,12 @@ public class TestGBD02SegmentRecycle {
 	public void testWatermarkSegmentRecycle(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("db").toString();
 		var topicDir = Path.of(home, "topic");
-		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
-		var oldMakeIndexPeriod = MQFileWithIndex.makeIndexPeriod;
-		MQFileWithIndex.trunkFileSize = 1024; // 小段快滚
-		MQFileWithIndex.makeIndexPeriod = 1;  // 每条建索引，保证fill定位
 		try {
 		java.util.List<Long> bases = null;
 		try (var database = new RocksDatabase(home)) {
 			var file = new MQFileWithIndex(home, database, "topic", 0);
+			file.trunkFileSize = 1024;
+			file.makeIndexPeriod = 1;
 			try {
 				for (long id = 0; id < 200; ++id)
 					file.appendMessage(Fnd19MqTestSupport.messageOf(id));
@@ -104,10 +100,6 @@ public class TestGBD02SegmentRecycle {
 				}
 			}
 		} finally {
-			// 静态字段恢复（注释宣称的先例形态，FND20 R2 补齐）：类级并行下残留 makeIndexPeriod=1
-			// 会改写 TestMQFileWithIndexTornTail 撕裂恢复的锚点选择（其注释记录的干扰面）。
-			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
-			MQFileWithIndex.makeIndexPeriod = oldMakeIndexPeriod;
 		}
 	}
 
@@ -120,13 +112,11 @@ public class TestGBD02SegmentRecycle {
 	public void testFillFailureMustNotLeakActiveCount(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("db2").toString();
 		var topicDir = Path.of(home, "topic");
-		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
-		var oldMakeIndexPeriod = MQFileWithIndex.makeIndexPeriod;
-		MQFileWithIndex.trunkFileSize = 1024;
-		MQFileWithIndex.makeIndexPeriod = 1;
 		try {
 		try (var database = new RocksDatabase(home)) {
 			var file = new MQFileWithIndex(home, database, "topic", 0);
+			file.trunkFileSize = 1024;
+			file.makeIndexPeriod = 1;
 			try {
 				for (long id = 0; id < 200; ++id)
 					file.appendMessage(Fnd19MqTestSupport.messageOf(id));
@@ -148,8 +138,6 @@ public class TestGBD02SegmentRecycle {
 			}
 		}
 		} finally {
-			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
-			MQFileWithIndex.makeIndexPeriod = oldMakeIndexPeriod;
 		}
 	}
 }

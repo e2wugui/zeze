@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import Zeze.Util.RocksDatabase;
 import harness.Fast;
-import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,7 +31,6 @@ import org.junit.jupiter.api.io.TempDir;
  * 恢复（TestGBD02SegmentRecycle 先例）。
  */
 @Fast
-@ResourceLock("mq-file-statics") // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
 public class TestMQRecycleDropWaitsInFlightFill {
 
 	/** topic 目录下按"分区号.段基"命名的段基列表（升序）。 */
@@ -71,13 +69,11 @@ public class TestMQRecycleDropWaitsInFlightFill {
 	public void testRecycleDropWaitsInFlightFill(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("db").toString();
 		var topicDir = Path.of(home, "topic");
-		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
-		var oldMakeIndexPeriod = MQFileWithIndex.makeIndexPeriod;
-		MQFileWithIndex.trunkFileSize = 1024; // 小段快滚
-		MQFileWithIndex.makeIndexPeriod = 1;  // 每条建索引，保证fill定位
 		try {
 			try (var database = new RocksDatabase(home)) {
 				var file = new MQFileWithIndex(home, database, "topic", 0);
+				file.trunkFileSize = 1024;
+				file.makeIndexPeriod = 1;
 				try {
 					for (long id = 0; id < 200; ++id)
 						file.appendMessage(Fnd19MqTestSupport.messageOf(id));
@@ -124,9 +120,6 @@ public class TestMQRecycleDropWaitsInFlightFill {
 				}
 			}
 		} finally {
-			// 静态字段恢复（类级并行下残留值改写他测锚点，08bd9cbe8 教训）
-			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
-			MQFileWithIndex.makeIndexPeriod = oldMakeIndexPeriod;
 		}
 	}
 
@@ -139,13 +132,11 @@ public class TestMQRecycleDropWaitsInFlightFill {
 	public void testEntryActiveFillStillSkipsRecycle(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("db2").toString();
 		var topicDir = Path.of(home, "topic");
-		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
-		var oldMakeIndexPeriod = MQFileWithIndex.makeIndexPeriod;
-		MQFileWithIndex.trunkFileSize = 1024;
-		MQFileWithIndex.makeIndexPeriod = 1;
 		try {
 			try (var database = new RocksDatabase(home)) {
 				var file = new MQFileWithIndex(home, database, "topic", 0);
+				file.trunkFileSize = 1024;
+				file.makeIndexPeriod = 1;
 				try {
 					for (long id = 0; id < 200; ++id)
 						file.appendMessage(Fnd19MqTestSupport.messageOf(id));
@@ -166,8 +157,6 @@ public class TestMQRecycleDropWaitsInFlightFill {
 				}
 			}
 		} finally {
-			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
-			MQFileWithIndex.makeIndexPeriod = oldMakeIndexPeriod;
 		}
 	}
 }

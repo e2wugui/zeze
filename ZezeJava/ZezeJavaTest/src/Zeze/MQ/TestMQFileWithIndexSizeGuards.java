@@ -1,6 +1,5 @@
 package Zeze.MQ;
 
-import org.junit.jupiter.api.parallel.ResourceLock;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -31,7 +30,6 @@ import org.junit.jupiter.api.io.TempDir;
  *（布局约定见 Fnd19MqTestSupport。）
  */
 @Fast
-@ResourceLock("mq-file-statics")
 public class TestMQFileWithIndexSizeGuards {
 
 	/** 顺序扫描段文件前 count 条记录并返回其结尾偏移（记录头布局与实现一致：Long8(id)+Int4(size)）。 */

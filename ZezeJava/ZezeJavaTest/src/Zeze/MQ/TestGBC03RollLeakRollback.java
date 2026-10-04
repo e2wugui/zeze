@@ -8,7 +8,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Util.RocksDatabase;
 import harness.Fast;
-import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,23 +31,19 @@ import org.junit.jupiter.api.io.TempDir;
  * ③ 恢复链（双绿守卫）：解除占位后追加，下一个整除点（base=200）滚段重试成功、fill 跨失败
  * 窗口按 id 有序读回——回滚不破坏 GB-C04 的旧流可用语义。
  * <p>
- * 注：trunkFileSize/makeIndexPeriod 静态字段小值快滚、finally 恢复（TestGBD02SegmentRecycle
- * 先例，08bd9cbe8 教训）。
+ * 注：trunkFileSize/makeIndexPeriod 按实例注入（进程级可变静态已实例化根除跨类漂移）。
  */
 @Fast
-@ResourceLock("mq-file-statics") // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
 public class TestGBC03RollLeakRollback {
 
 	@Test
 	public void testRollOpenFailureRollsBackNewColumnFamily(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("db").toString();
-		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
-		var oldMakeIndexPeriod = MQFileWithIndex.makeIndexPeriod;
-		MQFileWithIndex.trunkFileSize = 512; // 小段快滚
-		MQFileWithIndex.makeIndexPeriod = 100; // 滚段点=nextMessageId=100（整除栅格，与 GB-C04 测试一致）
 		try {
 			try (var database = new RocksDatabase(home)) {
 				var file = new MQFileWithIndex(home, database, "topic", 0);
+				file.trunkFileSize = 512;
+				file.makeIndexPeriod = 100;
 				try {
 					// 写满旧段至 id98（fileOffset 远超 trunk；id98 的 next=99 非整除点不滚段）。
 					for (long id = 0; id < 99; ++id)
@@ -107,9 +102,6 @@ public class TestGBC03RollLeakRollback {
 					"失败尝试的列族不得残留在 rocksdb 元数据（FND22 GB-C03：EMFILE 持续期每"
 							+ " makeIndexPeriod 条泄漏一个、无上界累积）");
 		} finally {
-			// 静态字段恢复（类级并行下残留值改写他测锚点，08bd9cbe8 教训）
-			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
-			MQFileWithIndex.makeIndexPeriod = oldMakeIndexPeriod;
 		}
 	}
 }

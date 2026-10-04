@@ -77,8 +77,14 @@ public class MQFileWithIndex {
 	// use-after-free，RocksDatabase.close/dropTable 契约明示形态）。
 	private boolean closed;
 
-	public static int trunkFileSize = 100 * 1024 * 1024;
-	public static int makeIndexPeriod = 100;
+	// 每实例滚段/索引参数（默认=历史静态默认）。实例化动机：可变静态的跨类漂移——并行
+	// 测试类临时改小做"快滚段注入"时，同窗口的无辜旁观类 append 会滚出段首无索引的新段
+	//（fillMessage seekForPrev 落空即 messageIndexNotFound，test40批 ×3 实证；2026-10-04
+	// 的 ResourceLock 方案又因放锁惊群（28 类齐启动挤兑端口/RocksDB LOCK）revert）。
+	// 测试按实例在构造后注入，实例间互不可见，进程级竞态根除。构造期 rebuildSegmentIndex
+	// 读默认值：依赖小 period 重建的都是测试自建新库（无幽灵段），行为等价。
+	public int trunkFileSize = 100 * 1024 * 1024;
+	public int makeIndexPeriod = 100;
 
 	public File getLastFile() {
 		return lastFile;

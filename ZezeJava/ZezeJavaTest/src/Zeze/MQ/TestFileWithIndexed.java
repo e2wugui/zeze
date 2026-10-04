@@ -1,7 +1,6 @@
 package Zeze.MQ;
 
 import harness.Fast;
-import org.junit.jupiter.api.parallel.ResourceLock;
 import java.io.File;
 import java.util.ArrayDeque;
 import java.util.Random;
@@ -14,16 +13,15 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @Fast
-@ResourceLock("mq-file-statics") // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
 public class TestFileWithIndexed {
 	@Test
 	public void testFile() throws Exception {
 		var home = "testFileWithIndexed";
 		Application.deleteDirectory(new File(home));
 		var database = new RocksDatabase(home);
-		MQFileWithIndex.trunkFileSize = 2048;
-		MQFileWithIndex.makeIndexPeriod = 10;
 		var file = new MQFileWithIndex(home, database, "topic", 0);
+		file.trunkFileSize = 2048;
+		file.makeIndexPeriod = 10;
 		try {
 			var queueOrigin = new ArrayDeque<BMessage.Data>();
 			var rand = new Random();
@@ -74,8 +72,6 @@ public class TestFileWithIndexed {
 		} finally {
 			database.close();
 			file.close();
-			MQFileWithIndex.trunkFileSize = 100 * 1024 * 1024;
-			MQFileWithIndex.makeIndexPeriod = 100;
 			// 注释掉这一行可以看到持久化的结果。
 			Application.deleteDirectory(new File(home));
 		}

@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import Zeze.Config;
 import harness.Fast;
-import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -31,7 +30,6 @@ import org.junit.jupiter.api.io.TempDir;
  * finally 恢复；布局约定见 Fnd19MqTestSupport）。
  */
 @Fast
-@ResourceLock("mq-file-statics") // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
 public class TestGBD01RecycleBeforeRemoteReport {
 
 	/** 反射直驱 loadMonitor（loadMonitorTimer 周期体的同一入口）。 */
@@ -56,8 +54,6 @@ public class TestGBD01RecycleBeforeRemoteReport {
 	public void testRecycleRunsDespiteRemoteReportFailure(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("manager").toString();
 		var topicDir = Path.of(home, "t");
-		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
-		MQFileWithIndex.trunkFileSize = 1024; // 小段快滚
 		// 不动 makeIndexPeriod：默认 100 下滚段发生在整百 id（段基 0,100,200,...），段文件照常多段；
 		// 避免加入 TestMQFileWithIndexTornTail 注释所记录的"并行测试改写该静态"干扰面
 		//（makeIndexPeriod=1 会改变其撕裂恢复的锚点选择）。
@@ -68,6 +64,7 @@ public class TestGBD01RecycleBeforeRemoteReport {
 				manager.createPartition("t", new HashSet<>(List.of(0)));
 				var single = manager.getQueueForTest("t").get(0);
 				var file = single.getFileForTest();
+				file.trunkFileSize = 1024;
 				for (long id = 0; id < 350; ++id)
 					single.sendMessage(Fnd19MqTestSupport.sendMessageOf(id)); // bindSocket=null：只装载不推送
 				var bases = segmentBases(topicDir);
@@ -88,7 +85,6 @@ public class TestGBD01RecycleBeforeRemoteReport {
 				manager.stop(); // 未 start 的 stop 安全（TestFnd19GBD06 同款依据）
 			}
 		} finally {
-			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
 		}
 	}
 }

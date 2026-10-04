@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Util.RocksDatabase;
 import harness.Fast;
-import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -31,19 +30,16 @@ import org.junit.jupiter.api.io.TempDir;
  * 先例）。
  */
 @Fast
-@ResourceLock("mq-file-statics") // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
 public class TestGBC04RollFailureKeepsAppend {
 
 	@Test
 	public void testRollOpenFailureKeepsOldStreamAppendable(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("db").toString();
-		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
-		var oldMakeIndexPeriod = MQFileWithIndex.makeIndexPeriod;
-		MQFileWithIndex.trunkFileSize = 512; // 小段快滚
-		MQFileWithIndex.makeIndexPeriod = 100; // 滚段点=nextMessageId=100（保持默认整除栅格）
 		try {
 			try (var database = new RocksDatabase(home)) {
 				var file = new MQFileWithIndex(home, database, "topic", 0);
+				file.trunkFileSize = 512;
+				file.makeIndexPeriod = 100;
 				try {
 					// 写满旧段至 id98（fileOffset 远超 trunk；id98 的 next=99 非整除点不滚段）。
 					for (long id = 0; id < 99; ++id)
@@ -92,9 +88,6 @@ public class TestGBC04RollFailureKeepsAppend {
 				}
 			}
 		} finally {
-			// 静态字段恢复（类级并行下残留值改写他测锚点，08bd9cbe8 教训）
-			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
-			MQFileWithIndex.makeIndexPeriod = oldMakeIndexPeriod;
 		}
 	}
 }

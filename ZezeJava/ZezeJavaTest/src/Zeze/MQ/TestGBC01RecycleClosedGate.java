@@ -9,7 +9,6 @@ import Zeze.Config;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import harness.Fast;
-import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -34,11 +33,9 @@ import org.junit.jupiter.api.io.TempDir;
  * ② 正控（双绿守卫）：活分区的回收不被 closed 闸禁用（水位越过段尾即整段回收）；
  * ③ 停机方向（MQSingle 闸）：stopped 置位后 tryRecycleSegments 整体静默——旧代码透传回收（判红）。
  * <p>
- * 注：trunkFileSize/makeIndexPeriod 静态字段小值快滚、finally 恢复（TestGBD02SegmentRecycle
- * 先例，08bd9cbe8 教训）。
+ * 注：trunkFileSize/makeIndexPeriod 按实例注入（进程级可变静态已实例化根除跨类漂移）。
  */
 @Fast
-@ResourceLock("mq-file-statics") // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
 public class TestGBC01RecycleClosedGate {
 
 	/** topic 目录下按"分区号.段基"命名的段基列表（升序）。 */
@@ -67,13 +64,11 @@ public class TestGBC01RecycleClosedGate {
 	public void testClosedFileRejectsRecycle(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("db").toString();
 		var topicDir = Path.of(home, "topic");
-		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
-		var oldMakeIndexPeriod = MQFileWithIndex.makeIndexPeriod;
-		MQFileWithIndex.trunkFileSize = 1024; // 小段快滚
-		MQFileWithIndex.makeIndexPeriod = 1;  // 每条建索引，保证fill定位
 		try {
 			try (var database = new RocksDatabase(home)) {
 				var file = new MQFileWithIndex(home, database, "topic", 0);
+				file.trunkFileSize = 1024;
+				file.makeIndexPeriod = 1;
 				try {
 					for (long id = 0; id < 200; ++id)
 						file.appendMessage(Fnd19MqTestSupport.messageOf(id));
@@ -102,9 +97,6 @@ public class TestGBC01RecycleClosedGate {
 				}
 			}
 		} finally {
-			// 静态字段恢复（类级并行下残留值改写他测锚点，08bd9cbe8 教训）
-			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
-			MQFileWithIndex.makeIndexPeriod = oldMakeIndexPeriod;
 		}
 	}
 
@@ -116,13 +108,11 @@ public class TestGBC01RecycleClosedGate {
 	public void testLiveFileStillRecycles(@TempDir Path tempDir) throws Exception {
 		var home = tempDir.resolve("db2").toString();
 		var topicDir = Path.of(home, "topic");
-		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
-		var oldMakeIndexPeriod = MQFileWithIndex.makeIndexPeriod;
-		MQFileWithIndex.trunkFileSize = 1024;
-		MQFileWithIndex.makeIndexPeriod = 1;
 		try {
 			try (var database = new RocksDatabase(home)) {
 				var file = new MQFileWithIndex(home, database, "topic", 0);
+				file.trunkFileSize = 1024;
+				file.makeIndexPeriod = 1;
 				try {
 					for (long id = 0; id < 200; ++id)
 						file.appendMessage(Fnd19MqTestSupport.messageOf(id));
@@ -140,8 +130,6 @@ public class TestGBC01RecycleClosedGate {
 				}
 			}
 		} finally {
-			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
-			MQFileWithIndex.makeIndexPeriod = oldMakeIndexPeriod;
 		}
 	}
 
@@ -155,16 +143,14 @@ public class TestGBC01RecycleClosedGate {
 	public void testStoppedManagerSkipsPartitionRecycle(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
 		var manager = new MQManager(tempDir.resolve("manager").toString(), new Config());
-		var oldTrunkFileSize = MQFileWithIndex.trunkFileSize;
-		var oldMakeIndexPeriod = MQFileWithIndex.makeIndexPeriod;
-		MQFileWithIndex.trunkFileSize = 1024;
-		MQFileWithIndex.makeIndexPeriod = 1;
 		try {
 			manager.createPartition("t", new HashSet<>(List.of(0)));
 			var single = manager.getQueueForTest("t").get(0);
+			var file = single.getFileForTest();
+			file.trunkFileSize = 1024;
+			file.makeIndexPeriod = 1;
 			for (long id = 0; id < 200; ++id)
 				single.sendMessage(Fnd19MqTestSupport.sendMessageOf(id)); // 直入装载，无消费者
-			var file = single.getFileForTest();
 			var bases = segmentBases(Path.of(manager.getHome(), "t"));
 			Assertions.assertTrue(bases.size() >= 3, "多段前提不成立，实际段数=" + bases.size());
 
@@ -178,8 +164,6 @@ public class TestGBC01RecycleClosedGate {
 					"停机后回收扫描必须静默（FND22 GB-C01：rocksDatabase.close 在途/已完成，"
 							+ "回收触库通路不得再进入）");
 		} finally {
-			MQFileWithIndex.trunkFileSize = oldTrunkFileSize;
-			MQFileWithIndex.makeIndexPeriod = oldMakeIndexPeriod;
 			manager.stop();
 		}
 	}

@@ -24,12 +24,10 @@ import org.junit.jupiter.api.io.TempDir;
  * <p>
  * 修复：MQFileWithIndex 与 loadMQ 同规（partIndex.length != 2 跳过），杂散文件不再参与段注册。
  *（布局约定见 Fnd19MqTestSupport。）
- * 类级 @ResourceLock("mq-file-statics")：appendMessage/rebuildSegmentIndex 读公共静态
- * makeIndexPeriod 决定索引落点，须与操纵该静态的测试类互斥（FND26 审视波守卫测试的
- * 并行红根因——未持锁时读到被改周期，索引键序列随并行交错漂移）。
+ * 原"类级 @ResourceLock(mq-file-statics)"（appendMessage/rebuildSegmentIndex 读公共静态
+ * makeIndexPeriod，FND26 并行红）已随静态实例化移除：每实例读自己的周期，跨类漂移根除。
  */
 @Fast
-@ResourceLock("mq-file-statics")
 public class TestMQFileWithIndexGhostSegment {
 
 	private static void assertFillInOrder(Queue<BMessage.Data> queue, long begin, long end) {
