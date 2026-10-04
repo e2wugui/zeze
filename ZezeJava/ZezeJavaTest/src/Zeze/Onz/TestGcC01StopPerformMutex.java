@@ -54,7 +54,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 在锁内看到 stopped 拒写；拒写把停机时在飞事务转为显式失败（perform/commit 的既有
  * catch→rollback 链返回 Procedure.Exception——"在途事务可能失败"的 stop javadoc 语义）。
  * <p>
- * 直构形态（@Fast，serverId 910/912 段、SM 端口 51910/51911）：进程内 ServiceManagerServer
+ * 直构形态（@Fast，serverId 910/912 段、SM 端口 31910/51911）：进程内 ServiceManagerServer
  * + 两参构造器协调者（零桩参与方——本案只涉协调者侧写点，业务事务不调远程过程）。
  * 修复前红测形态：写点对已关库的 native 写（JNI 崩溃或 RocksDBException），见各断言注释。
  */
@@ -91,7 +91,7 @@ public class TestGcC01StopPerformMutex {
 	@Test
 	@Timeout(90)
 	public void testInFlightPerformFailsCleanlyAcrossStop(@TempDir Path tempDir) throws Exception {
-		try (var fixture = buildServer(910, 51910, 911, tempDir)) {
+		try (var fixture = buildServer(910, 31910, 911, tempDir)) {
 			var started = new CountDownLatch(1);
 			var release = new CountDownLatch(1);
 			var txn = new BlockedBusinessTxn(started, release);
@@ -133,7 +133,7 @@ public class TestGcC01StopPerformMutex {
 	@Test
 	@Timeout(90)
 	public void testWritePointsRejectedAfterStopWithoutNativeTouch(@TempDir Path tempDir) throws Exception {
-		try (var fixture = buildServer(912, 51911, 913, tempDir)) {
+		try (var fixture = buildServer(912, 31911, 913, tempDir)) {
 			fixture.onzServer.stop(); // 完整停机（关库）——此后写点只剩拒写一条路
 
 			var tidBytes = new byte[8];
@@ -189,11 +189,13 @@ public class TestGcC01StopPerformMutex {
 
 	/** 进程内SM + 两参构造器协调者（单集群"名=配置"，零桩参与方）；半途失败best-effort回滚。
 	 * 有界重试启动链两处瞬态占用（verify轮两连红实证，同一外部瞬态句柄现象族）：
-	 * ①bind撞临时端口源占用——51910/51911落在本机临时端口范围(49152-65535)内，并行测试的
-	 * 出站连接可被OS分配同号源端口（SO_REUSEADDR只救TIME_WAIT不救活跃占用）；
+	 * ①bind撞临时端口源占用——原51850-51911全段落在本机临时端口范围(49152-65535)内，
+	 * 并行测试的出站连接可被OS分配同号源端口（SO_REUSEADDR只救TIME_WAIT不救活跃占用），
+	 * 另WSL2/Hyper-V动态保留段(~100宽/块，netsh excludedportrange可查)每次开机随机落位，
+	 * 盖住固定口即整段bind红——2026-10-05已全段迁出至31850-31911（临时端口范围之外，
+	 * 对齐TestMQ 26000段先例），①的暴露面消灭；
 	 * ②RocksDB LOCK创建撞AV扫描器瞬态句柄——非同路径双开（db路径本类独占、事后LOCK可删）。
-	 * 真持续持有者/真端口冲突重试耗尽仍红，不掩盖。全套件20+固定5xxxx端口同暴露①，
-	 * 系统性迁出待桌批，此处只收敛已命中者。 */
+	 * 真持续持有者/真端口冲突重试耗尽仍红，不掩盖。 */
 	private static Fixture buildServer(int serverId, int smPort, int clusterServerId, Path tempDir) throws Exception {
 		for (var attempt = 0; ; ++attempt) {
 			try {

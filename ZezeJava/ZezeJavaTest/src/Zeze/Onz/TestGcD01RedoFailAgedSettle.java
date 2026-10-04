@@ -35,7 +35,7 @@ import static Zeze.Onz.Fnd21GcOnzFastSupport.startNonSharedOnzServer;
  * settleStuckRecord 守卫并入第四集合；removeOk 与 settle 双点同步回收；拒绝文案撤
  * "≤60s 重新分诊"全称断言、按实际分型如实指引。
  * 形态：@Fast 自包含（进程内 SM + 无通告 zeze1 集群——getZezeInstance 真实抛出路径，
- * 即立案第五类成因"集群除名/无通告"），serverId 894 段（890-893 已占），端口 51897+；
+ * 即立案第五类成因"集群除名/无通告"），serverId 894 段（890-893 已占），端口 31897+；
  * 自愈用例的 Commit 桩晚于协调者注册上线（TestFnd20GcD01 的晚注册形态）。
  */
 @Fast
@@ -44,8 +44,8 @@ public class TestGcD01RedoFailAgedSettle {
 	// 894段：FND21 Gc系已占890-893，本类错开（894/51897）；Commit桩51898（仅自愈用例单方法
 	// 使用，无跨方法重绑端口问题）、集群xml ServerId=895（C02的"894"只是桩identity字符串）。
 	private static final int ServerId = 894;
-	private static final int SmPort = 51897;
-	private static final int CommitStubPort = 51898;
+	private static final int SmPort = 31897;
+	private static final int CommitStubPort = 31898;
 	private static final int ClusterConfigServerId = 895;
 
 	private static final long AgedTid = 0x5CA1BEEF00000901L; // 超龄redo失败（第五类主路径）

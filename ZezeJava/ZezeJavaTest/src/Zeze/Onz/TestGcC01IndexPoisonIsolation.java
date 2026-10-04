@@ -34,7 +34,7 @@ import static Zeze.Onz.Fnd20GcOnzFastSupport.*;
 public class TestGcC01IndexPoisonIsolation {
 	// 850段：@Fast类并行时本地RocksDB目录与其他测试类（800/810/820段）互不冲突。
 	private static final int ServerId = 850;
-	private static final int SmPort = 51850;
+	private static final int SmPort = 31850;
 
 	// 迭代序（key字节序）：毒短key(0x01..) < 毒空值(tid 0502) < 有效(tid 0503)——
 	// 两条毒都在有效记录之前，修复前迭代根本轮不到有效记录。

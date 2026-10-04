@@ -43,9 +43,9 @@ import static Zeze.Onz.Fnd20GcOnzFastSupport.*;
 public class TestGcD01SettleStuckRecord {
 	// 856段：FND20 Gc系已占850-852，本类错开（856/51856）；Commit桩51866、Rollback桩51867。
 	private static final int ServerId = 856;
-	private static final int SmPort = 51856;
-	private static final int CommitStubPort = 51866;
-	private static final int RollbackStubPort = 51867;
+	private static final int SmPort = 31856;
+	private static final int CommitStubPort = 31866;
+	private static final int RollbackStubPort = 31867;
 
 	// eSagaNotFound的线上组合码形态（moduleId<<32|code，与Onz参与方侧errorCode(eSagaNotFound)
 	// 同构）：redo用IModule.getErrorCode(resultCode)解码比较（OnzServer.redo的NotFound分支）。

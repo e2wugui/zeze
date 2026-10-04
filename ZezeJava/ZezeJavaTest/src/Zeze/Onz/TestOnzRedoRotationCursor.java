@@ -39,8 +39,8 @@ import static Zeze.Onz.Fnd20GcOnzFastSupport.*;
 public class TestOnzRedoRotationCursor {
 	// 857段：与Fnd19-Fnd21系Fast类各自的RocksDB目录/SM端口错开（857/51857），桩参与方51877。
 	private static final int ServerId = 857;
-	private static final int SmPort = 51857;
-	private static final int StubPort = 51877;
+	private static final int SmPort = 31857;
+	private static final int StubPort = 31877;
 
 	// 同高位、末字节跨0x80边界的三连tid：RocksDB key无符号序 A(…7E) < B(…7F) < C(…80)。
 	private static final long TidA = 0x5CA3F0000000007EL;

@@ -32,8 +32,8 @@ import static Zeze.Onz.Fnd20GcOnzFastSupport.*;
 public class TestGcC03RedoResultErrorDedup {
 	// 852段：本组测试类各自的RocksDB目录/SM端口错开（852/51852），桩参与方51862。
 	private static final int ServerId = 852;
-	private static final int SmPort = 51852;
-	private static final int StubPort = 51862;
+	private static final int SmPort = 31852;
+	private static final int StubPort = 31862;
 
 	private static final long FailTid = 0x5CA1BEEF00000701L;
 	private static final long FailTid2 = 0x5CA1BEEF00000702L;

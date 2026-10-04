@@ -18,7 +18,7 @@ import Zeze.Util.Task;
  * 桩参与方（Net.Service监听并以指定服务名向SM注册——模拟各集群Onz.start()的注册侧，
  * GC-C01(FND21)后共享SM部署按集群唯一名注册）+ 临时配置文件构造协调者OnzServer
  * （C01走三参共享SM构造器、C02走两参独立SM构造器），不依赖外部SM/GCM进程与demo.App
- * 集群（对齐Fnd20GcOnzFastSupport先例）。serverId用890-893段、端口51890-51894段——
+ * 集群（对齐Fnd20GcOnzFastSupport先例）。serverId用890-893段、端口31890-51894段——
  * @Fast类并行时与其他测试类的本地目录/端口互不冲突。
  */
 final class Fnd21GcOnzFastSupport {

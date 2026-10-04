@@ -31,11 +31,11 @@ import static Zeze.Onz.Fnd21GcOnzFastSupport.*;
  */
 @Fast
 public class TestGcC02DecodeFailCompletesFuture {
-	// 892段：serverId=892，SM端口51893；桩参与方端口按测试方法错开（51894/51895/51896，
+	// 892段：serverId=892，SM端口51893；桩参与方端口按测试方法错开（31894/31895/51896，
 	// 注册缺省"Onz"——两参构造器路径）：Service.stop()的解绑是异步的，同端口跨方法立即
 	// 重绑会撞TIME_WAIT窗口（FND20一脚手架每类一方法故未暴露）。
 	private static final int ServerId = 892;
-	private static final int SmPort = 51893;
+	private static final int SmPort = 31893;
 	private static final String Cluster = "zeze892";
 	private static final String ProcedureName = "fnd21gcc02proc";
 	private static final String SagaName = "fnd21gcc02saga";
@@ -62,7 +62,7 @@ public class TestGcC02DecodeFailCompletesFuture {
 	@Test
 	@Timeout(90)
 	public void testProcedureDecodeFailCompletesFutureExceptionally() throws Exception {
-		startFixture(51894);
+		startFixture(31894);
 		var txn = new DecodeFailTxn();
 		txn.setOnzServer(fixture.onzServer);
 		var future = txn.callProcedureAsync(Cluster, ProcedureName, EmptyBean.Data.instance, new EvilDecodeResult());
@@ -73,7 +73,7 @@ public class TestGcC02DecodeFailCompletesFuture {
 	@Test
 	@Timeout(90)
 	public void testSagaDecodeFailCompletesFutureExceptionally() throws Exception {
-		startFixture(51895);
+		startFixture(31895);
 		var txn = new DecodeFailTxn();
 		txn.setOnzServer(fixture.onzServer);
 		var future = txn.callSagaAsync(Cluster, SagaName, EmptyBean.Data.instance, new EvilDecodeResult());
@@ -89,7 +89,7 @@ public class TestGcC02DecodeFailCompletesFuture {
 	@Test
 	@Timeout(value = 90, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
 	public void testPerformPathFailsFastInsteadOfHanging() throws Exception {
-		startFixture(51896);
+		startFixture(31896);
 		var txn = new DecodeFailTxn();
 		txn.setOnzServer(fixture.onzServer); // perform契约：业务自设（createTransaction同型）
 		var rc = fixture.onzServer.perform(txn);

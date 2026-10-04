@@ -28,7 +28,7 @@ import static Zeze.Onz.Fnd20GcOnzFastSupport.*;
 public class TestGcC02UnknownStateWarnsOnce {
 	// 851段：本组测试类各自的RocksDB目录/SM端口错开（851/51851）。
 	private static final int ServerId = 851;
-	private static final int SmPort = 51851;
+	private static final int SmPort = 31851;
 
 	// 迭代序：未知state(0601) < 有效eCommitting孤儿(0602)——有效记录在未知条目之后，
 	// 迭代必须越过未知条目继续推进它才收敛。

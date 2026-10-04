@@ -24,14 +24,14 @@ import static Zeze.Onz.Fnd21GcOnzFastSupport.*;
 @Fast
 public class TestGcC01SharedSmNameResolution {
 	// 890段：serverId=890（协调者RocksDB目录CommitOnzServer890），共享配置xml ServerId=893，
-	// 桩端口51891/51892、SM端口51890——@Fast并行与其他类（含FND20的85x/5185x段）零冲突。
+	// 桩端口31891/51892、SM端口51890——@Fast并行与其他类（含FND20的85x/5185x段）零冲突。
 	private static final int ServerId = 890;
-	private static final int SmPort = 51890;
+	private static final int SmPort = 31890;
 	private static final int SharedConfigServerId = 893;
 	private static final String NameA = "zeze890";
 	private static final String NameB = "zeze891";
-	private static final int PortA = 51891;
-	private static final int PortB = 51892;
+	private static final int PortA = 31891;
+	private static final int PortB = 31892;
 
 	/**
 	 * 核心红测：共享SM模式下按集群名逐名解析——zeze890→桩A、zeze891→桩B（各名订阅到
