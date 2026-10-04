@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import Zeze.Config;
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
  * finally 恢复；布局约定见 Fnd19MqTestSupport）。
  */
 @Fast
-@ResourceLock("mq-file-statics") // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
+@ResourceLock(value = "mq-file-statics", mode = ResourceAccessMode.READ_WRITE) // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
 public class TestGBD01RecycleBeforeRemoteReport {
 
 	/** 反射直驱 loadMonitor（loadMonitorTimer 周期体的同一入口）。 */

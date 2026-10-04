@@ -13,6 +13,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND22 GB-C02 回归（fix-the-fix）：FND21 GB-C05 给 replayDeadLetter 加的首尾两道 stopped 闸
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 尾部窗口（sendMessage 后置位）由 TestGBC05ReplayDeadLetterStopGate ③（替身分区）持续
  * 守卫——复查保留在锁内，该测试不回归即尾部闸仍生效。
  */
+@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestGBC02ReplayLockedRecheck {
 

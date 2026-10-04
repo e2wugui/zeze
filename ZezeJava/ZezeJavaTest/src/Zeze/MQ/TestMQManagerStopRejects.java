@@ -9,6 +9,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND19 GB-C02 回归（形态测试）：stop 置位后，在飞数据面入口必须被拒绝且不触碰文件/rocksdb。
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 注：需要 MQSingle 的包内测试缝（handlePushResult）与 MQManager.stopped 的反射置位
  *（布局约定见 Fnd19MqTestSupport）。
  */
+@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQManagerStopRejects {
 

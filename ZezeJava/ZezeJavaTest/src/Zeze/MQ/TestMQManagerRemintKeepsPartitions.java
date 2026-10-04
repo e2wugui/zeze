@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * managerId 重铸（home/.managerId 丢失）后同 home 数据的存活端到端回归：Manager 换代重注册、
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * （MQ/MQProducer/MQConsumer 内的静态 agent）从默认 zeze.xml 读取 26000 连 master。
  * 含 Manager 重启与对账等待，不标 @Fast（integrationTest）。
  */
+@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Isolated // master 端口 26000 与 TestMQ 系列相同（MQConsumer 静态 agent 读默认 zeze.xml），独占运行
 public class TestMQManagerRemintKeepsPartitions {
 	private static final int masterPort = 26000;

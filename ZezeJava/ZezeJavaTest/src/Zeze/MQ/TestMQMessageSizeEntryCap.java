@@ -12,6 +12,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * SendMessage 入口字节上界回归：超过 MQConfig.MaxMessageBytes（默认 16MB）的消息在
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.io.TempDir;
  * topic/分区校验（over-size 对不存在 topic 也必须报 eMessageTooLarge 而非 eTopicNotExist）。
  * 边界值（编码尺寸恰等于上界）必须通过尺寸检查（判 eTopicNotExist，因 topic 不存在）。
  */
+@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQMessageSizeEntryCap {
 

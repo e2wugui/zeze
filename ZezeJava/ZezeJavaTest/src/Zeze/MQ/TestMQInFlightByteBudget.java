@@ -17,6 +17,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * 内存队列在飞字节预算回归：装载治理此前只按条数（4096）封顶，消息字节数无上界——大消息
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 先例一致。ack 经 setPending+handlePushResult 直驱（TestMQSingleAckCallbackStall 先例）；
  * 驱动前以未完成 future 占位 messageFillFuture 排除异步回填竞争（TestMQSingleDirectEnqueue 先例）。
  */
+@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQInFlightByteBudget {
 

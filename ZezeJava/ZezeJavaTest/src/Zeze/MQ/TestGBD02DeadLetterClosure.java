@@ -14,6 +14,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND20 GB-D02 回归：死信表消费侧闭合（拍板 A：本地最小闭合）。
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 新增 API（setDlqMaxEntries/replayDeadLetter）经反射访问：测试需双车道复用（orig 基线缺失
  * 即判红），形态对齐 TestFnd20GBC02 的反射缝先例。
  */
+@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestGBD02DeadLetterClosure {
 

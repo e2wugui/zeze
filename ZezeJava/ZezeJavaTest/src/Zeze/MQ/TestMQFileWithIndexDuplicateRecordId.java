@@ -14,6 +14,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND24 mq-01 回归：段文件出现同 id 双记录（appendMessage 文件写成功后索引/meta put 失败
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 防御，不在本用例），本用例只测 fillMessage 装载路径的校验本身。tail/中部两种注入形态
  * 分别覆盖"孤儿在真实记录之后/之前"两个方向。
  */
+@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQFileWithIndexDuplicateRecordId {
 

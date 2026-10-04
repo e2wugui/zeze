@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND30 mq-01 回归：PushMessage 因消费者 socket 输出缓冲溢出被网络层静默丢弃
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 执行（既有测试缝，见 MQSingle.retryScheduler 注释），确定性走完
  * 失败→退避→重投→…→PushRetryMax 上限，断言消息按策略出队、退避确有排期。
  */
+@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQSinglePushSendFalseStall {
 

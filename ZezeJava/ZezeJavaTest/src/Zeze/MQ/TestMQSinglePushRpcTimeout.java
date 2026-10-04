@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND2-G2-5 回归：MQConfig.RpcTimeout 此前从不作用于 MQ 数据面——tryPushMessage 推送
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 注：文件放 src/MQ/ 但声明 package Zeze.MQ（与 TestMQSingle* 先例一致）；
  * timeout 值取 65432，区别于 MQConfig 默认 20000 与 Rpc 默认 5000，防碰巧相等。
  */
+@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQSinglePushRpcTimeout {
 

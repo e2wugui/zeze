@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Util.RocksDatabase;
 import harness.Fast;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 并行测试对该字段的既有容忍口径见 TestMQFileWithIndexTornTail 注释；布局约定见 Fnd19MqTestSupport）。
  */
 @Fast
-@ResourceLock("mq-file-statics") // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
+@ResourceLock(value = "mq-file-statics", mode = ResourceAccessMode.READ_WRITE) // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
 public class TestGBD02SegmentRecycle {
 
 	/** topic 目录下按"分区号.段基"命名的段基列表（升序）。 */

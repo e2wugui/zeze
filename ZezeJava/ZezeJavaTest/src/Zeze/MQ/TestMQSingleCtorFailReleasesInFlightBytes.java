@@ -11,6 +11,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * MQSingle 构造失败路径的记账归还回归：构造期装载 pullMessage(true) 中途抛错（记录头
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 与 TestMQSingleDirectEnqueue 先例一致。分区级 queueBytes 随实例死亡不可读，
  * 全局 totalInFlightBytes 是其精确镜像（同点同额入/出账），作为断言观察点。
  */
+@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQSingleCtorFailReleasesInFlightBytes {
 

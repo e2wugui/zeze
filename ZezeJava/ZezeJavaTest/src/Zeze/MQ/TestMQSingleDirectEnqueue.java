@@ -11,6 +11,7 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND-G2-1 回归：MQSingle.sendMessage 低负载直入与后台 fillMessage 回填的竞态（确定性单线程复现）。
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 注：文件放在 src/MQ/ 但声明 package Zeze.MQ——需要访问 MQSingle 的包内测试缝
  * （注入 MQFileWithIndex 的构造器与 pullMessage）；与 src/Zeze/Dbh2/Master 下同包测试先例一致。
  */
+@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQSingleDirectEnqueue {
 
