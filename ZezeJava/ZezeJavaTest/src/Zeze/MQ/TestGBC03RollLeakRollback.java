@@ -8,7 +8,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Util.RocksDatabase;
 import harness.Fast;
-import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -37,7 +36,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 先例，08bd9cbe8 教训）。
  */
 @Fast
-@ResourceLock(value = "mq-file-statics", mode = ResourceAccessMode.READ_WRITE) // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
+@ResourceLock("mq-file-statics") // MQFileWithIndex静态字段(trunkFileSize/makeIndexPeriod)操纵的测试类互斥（FND22门禁插曲：并行改写使滚段点漂移注入失灵）
 public class TestGBC03RollLeakRollback {
 
 	@Test

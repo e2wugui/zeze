@@ -18,7 +18,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * MQ 集群（1 master + 3 manager）进程内自包含测试：配置代码构造（见 masterConfig/managerConfig），
@@ -46,7 +45,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * </zeze>
  * }</pre>
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQ {
 	private static final Logger logger = LogManager.getLogger();

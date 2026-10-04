@@ -13,7 +13,6 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND19 GB-D06 毒消息重投上限+死信回归（@Fast，拍板 A-lite：管理端重投计数+指数退避+上限后死信本地表）。
@@ -28,7 +27,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * 失败应答以 TestMQSingleAckCallbackStall 同款缝驱动（反射置 pending + 直调 handlePushResult）；
  * 退避调度器注入同步执行（捕获延迟序列即退避形态断言）。
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestGBD06PoisonRetryDeadLetter {
 

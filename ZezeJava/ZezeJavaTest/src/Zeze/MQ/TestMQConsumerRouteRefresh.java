@@ -20,7 +20,6 @@ import org.junit.jupiter.api.parallel.Isolated;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * Manager 换址迁移（同 home 同 managerId、新 proxy 地址重注册，Master rewriteRoutes 路由
@@ -40,7 +39,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * 客户端（MQConsumer 内的静态 agent）从默认 zeze.xml 读 master 26000，@Isolated
  * 独占；含迁移等待与重连轮询，不标 @Fast（integrationTest）。
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Isolated
 public class TestMQConsumerRouteRefresh {
 	private static final int masterPort = 26000;

@@ -23,7 +23,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.Isolated;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * Manager 重启（同 home）后消费者必须在连接自动重连时重发 Subscribe（FND2-G2-2）：
@@ -36,7 +35,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * <p>
  * 含消费者断线重连（指数退避 1..8 秒）加轮询等待，不标 @Fast（integrationTest）。
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Isolated // master 端口 26000 与 TestMQ 系列相同（MQConsumer 静态 agent 读默认 zeze.xml），类级并发下会端口冲突，独占运行
 public class TestMQConsumerResubscribe {
 	private static final int masterPort = 26000;

@@ -14,7 +14,6 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND-G2-3 回归：推送 ack 回调中 increaseFirstMessageId 抛异常后 pendingPushMessage 永久悬挂，
@@ -34,7 +33,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * 注：文件放在 src/MQ/ 但声明 package Zeze.MQ——需要访问 MQSingle 的包内测试缝（注入
  * MQFileWithIndex 的构造器与 handlePushResult 回调体）；与 TestMQSingleDirectEnqueue 先例一致。
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQSingleAckCallbackStall {
 

@@ -13,7 +13,6 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND20 GB-C02 回归：MQManager 停机闸对"已过闸正在执行"的 Create/DeletePartition handler 的
@@ -32,7 +31,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * 注：managementLock/stopped 经反射置读（前者修复引入，旧基线缺失即判红；形态对齐
  * TestMQManagerStopRejects）。包内缝 createPartition/getQueueForTest 见 Fnd19MqTestSupport。
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestGBC02ManagerManagementDrain {
 

@@ -12,7 +12,6 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * MQSingle 运行期装载失败路径的记账归还回归：fillMessage 装载环中"预算准入已入账、
@@ -30,7 +29,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * 之前的注入。注：文件放 src/MQ/ 但声明 package Zeze.MQ——需要 MQSingle 的包内
  * 测试缝（pullMessage、fillRetryScheduler、queueBytes）。
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQSingleFillFailReleasesInFlightBytes {
 

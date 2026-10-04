@@ -8,7 +8,6 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND19 GB-D01 Manager 侧删除路径回归（@Fast，未 start 的 MQManager 直驱——无网络，
@@ -21,7 +20,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * <p>
  * 注：访问 createPartition/deletePartition/getQueueForTest 包内缝（布局约定见 Fnd19MqTestSupport）。
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestGBD01ManagerDelete {
 

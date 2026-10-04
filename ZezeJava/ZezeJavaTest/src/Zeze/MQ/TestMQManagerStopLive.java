@@ -10,7 +10,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND19 GB-C02 回归（端到端形态）：繁忙 Manager（盘上积压 + 在飞后台回填）收到 stop() 必须
@@ -24,7 +23,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * 关机竞态是否触发 native 崩溃取决于在飞相交的概率（无法确定性复现），本测试固化可确定性的
  * 契约面：stop() 在存在在飞/可再启动回填的负载下正常返回且库已关闭。全程代码构造配置自包含。
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 public class TestMQManagerStopLive {
 	private static final int masterPort = 26200;
 	private static final int proxyPort = 26201;

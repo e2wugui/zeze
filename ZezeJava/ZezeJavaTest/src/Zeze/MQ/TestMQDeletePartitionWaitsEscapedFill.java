@@ -11,7 +11,6 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * mq-02 回归（模式D1）的删除链层：deletePartition 的 drop 必须等在飞 fill 归零。
@@ -31,7 +30,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * 返回，判红）；归零后删除完成且存储全清。native UAF 本身不可注入（SIGSEGV 不可捕获），
  * 以"drop 严格后于在飞归零"的线程时序为可测代理。
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQDeletePartitionWaitsEscapedFill {
 

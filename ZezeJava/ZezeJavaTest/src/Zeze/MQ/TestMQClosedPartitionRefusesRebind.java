@@ -12,7 +12,6 @@ import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * FND25 mq-01 回归：removePartition 与 arrangeConsumer 的交叠窗口内，晚到的 bind 会在
@@ -22,7 +21,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * 直驱判别（免竞速）：close 后 bind(sessionId, socket) 与直调 tryPushMessage 都必须
  * 被 closed 闸拒绝——bindSocket/pendingPushMessage 恒 null、不发起任何推送。
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 @Fast
 public class TestMQClosedPartitionRefusesRebind {
 

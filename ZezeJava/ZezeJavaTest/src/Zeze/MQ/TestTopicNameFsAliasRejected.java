@@ -13,7 +13,6 @@ import Zeze.MQ.Master.Master;
 import Zeze.MQ.Master.MasterAgent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * topic 名文件系统命名空间别名的创建拒绝回归（mq-02）：topic 字符串直接用作 Manager
@@ -31,7 +30,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  * Windows 保留设备名）。存量 topic 名不受影响：open/订阅/发布路径不重新校验，
  * 新校验只在 CreateMQ 入口生效。
  */
-@ResourceLock("mq-file-statics") // 旁观者READ：与改写trunkFileSize/makeIndexPeriod的类互斥——静态被并行改小期间本类append会滚出无索引段，fillMessage seekForPrev落空即messageIndexNotFound假红（2026-10-04 test40批r5实证）；旁观者彼此READ可并行
 public class TestTopicNameFsAliasRejected {
 	private static final int masterPort = 26240;
 	private static final int proxyPort = 26241;

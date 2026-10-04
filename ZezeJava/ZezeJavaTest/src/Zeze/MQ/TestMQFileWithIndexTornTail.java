@@ -1,6 +1,5 @@
 package Zeze.MQ;
 
-import org.junit.jupiter.api.parallel.ResourceAccessMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import java.io.File;
 import java.io.RandomAccessFile;
@@ -33,7 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 注：文件放 src/MQ/ 但声明 package Zeze.MQ，与 TestMQFileWithIndexFillGuards 先例一致。
  */
 @Fast
-@ResourceLock(value = "mq-file-statics", mode = ResourceAccessMode.READ_WRITE)
+@ResourceLock("mq-file-statics")
 public class TestMQFileWithIndexTornTail {
 
 	/** 构造含递增 Timestamp 的消息，回填后按 Timestamp 断言装载顺序。 */
