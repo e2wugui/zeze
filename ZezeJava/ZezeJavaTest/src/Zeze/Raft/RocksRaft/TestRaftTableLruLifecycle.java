@@ -118,6 +118,23 @@ public class TestRaftTableLruLifecycle {
 		return queue.size();
 	}
 
+	/** 冻结判别：相隔>3个轮转周期（200ms）的两采样计数一致即冻结，返回冻结值；超时未
+	 * 冻结返回 -1（周期任务未取消时热点轮转持续入队，采样永不相等——由调用方断言
+	 * frozen>=基线 判红）。在途tick迟到入队只是基线抬升后重测，不判红。 */
+	private static int awaitFrozen(ConcurrentLinkedQueue<Object> queue, long timeoutMs) throws InterruptedException {
+		var deadline = System.currentTimeMillis() + timeoutMs;
+		while (System.currentTimeMillis() < deadline) {
+			int first = queue.size();
+			//noinspection BusyWait
+			Thread.sleep(700);
+			int second = queue.size();
+			if (first == second)
+				return second;
+			// 迟到tick：second为新基线重测（冻结即终态；持续增长则超时返回-1）。
+		}
+		return -1;
+	}
+
 	@Test
 	public void testResetAndCloseCancelOldLruTimers() throws Exception {
 		try (var rocks = new Rocks(raftName, RocksMode.Pessimism, newRaftConfig(), new Config(), false)) {
@@ -137,10 +154,14 @@ public class TestRaftTableLruLifecycle {
 			assertNotNull(lru2);
 			assertNotSame(lru1, lru2, "reset must rebuild the record cache");
 
-			// 旧实例的周期任务已取消：不再访问旧实例，节点数在多个轮转周期后保持不变。
-			//noinspection BusyWait
-			Thread.sleep(700); // >3个轮转周期（200ms）
-			assertEquals(nodes1, queue1.size(), "old lru timers must be cancelled after Table.open rebuild");
+			// 旧实例的周期任务已取消：不再访问旧实例，节点数在取消后冻结。取消与在途轮转
+			// tick 有交错——tick 已过取消检查点后仍完成本轮入队（reset 后最多迟到一个
+			// 周期的 +1），对快照精确等值的断言在此交错下假红（生涯×6，expected 3 was 4
+			// 形态）。改判据为"冻结"：相隔>3个轮转周期的两采样计数一致且不回退；任务若
+			// 未取消，热点轮转持续入队，两采样永不一致（判别力保持）。
+			int frozen1 = awaitFrozen(queue1, 5000);
+			assertTrue(frozen1 >= nodes1, "old lru timers must be cancelled after Table.open rebuild"
+					+ "（基线" + nodes1 + "，冻结于" + frozen1 + "，不得回退）");
 
 			// 3. 新代缓存正常服务（轮转继续驱动），证明重开后功能完好。
 			int nodes2 = driveRotation(rocks, table, lru2);
@@ -150,9 +171,10 @@ public class TestRaftTableLruLifecycle {
 			// 4. Rocks.close()：级联关闭当前表缓存（storage.close()之前）。
 			rocks.close();
 			assertNull(table.getLruCache(), "Rocks.close must cascade-close table caches");
-			//noinspection BusyWait
-			Thread.sleep(700);
-			assertEquals(nodes2, queue2.size(), "lru timers must be cancelled after Rocks.close");
+			// 同①的取消交错：冻结判据替代快照等值（在途tick迟到入队不判红）。
+			int frozen2 = awaitFrozen(queue2, 5000);
+			assertTrue(frozen2 >= nodes2, "lru timers must be cancelled after Rocks.close"
+					+ "（基线" + nodes2 + "，冻结于" + frozen2 + "，不得回退）");
 		}
 	}
 }
