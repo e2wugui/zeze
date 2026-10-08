@@ -23,9 +23,16 @@ final class ClientConfigs {
 	 */
 	static void copyRoutingIdentity(@NotNull ClientConfig src, @NotNull ClientConfig dst) {
 		dst.setNamesrvAddr(src.getNamesrvAddr());
-		var namespace = src.getNamespaceV2();
+		// namespace 与 namespaceV2 是 ClientConfig 的两个独立字段（5.x 里 V2 不是 V1 的
+		// 等价新名——0d4824c07"去idea警告"把 V1 改读 V2 曾致：用户 setNamespace("NS1")
+		// 被静默丢弃（读 V2 空）、TestClientConfigPassThrough 确定性红 ×39/40）。
+		// 透传语义=用户配了哪个传哪个，两字段独立复制。
+		var namespace = src.getNamespace();
 		if (namespace != null && !namespace.isEmpty())
-			dst.setNamespaceV2(namespace);
+			dst.setNamespace(namespace);
+		var namespaceV2 = src.getNamespaceV2();
+		if (namespaceV2 != null && !namespaceV2.isEmpty())
+			dst.setNamespaceV2(namespaceV2);
 		if (src.getInstanceName() != null)
 			dst.setInstanceName(src.getInstanceName());
 		if (src.getUnitName() != null)
