@@ -35,7 +35,7 @@ public class TestDbh2LockeyValueSemantics {
 
 		// contains以前因每次new且身份比较恒false，修复后才有意义
 		Assertions.assertTrue(locks.contains(key1Copy));
-		Assertions.assertFalse(locks.contains(new Binary("a1_fnd801_unknown".getBytes(StandardCharsets.UTF_8))));
+		Assertions.assertFalse(locks.contains(new Binary("lockey_unknown".getBytes(StandardCharsets.UTF_8))));
 	}
 
 	@Test

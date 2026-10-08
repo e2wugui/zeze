@@ -36,7 +36,7 @@ public class TestSendVoidLogsOnFailure {
 
 	public static class VoidModule {
 		public static final int ModuleId = 8861;
-		public static final String ModuleFullName = "TestFnd886.VoidModule";
+		public static final String ModuleFullName = "TestSendVoidLogsOnFailure.VoidModule";
 
 		@RedirectToServer
 		public void cancel(int hash, String id) {

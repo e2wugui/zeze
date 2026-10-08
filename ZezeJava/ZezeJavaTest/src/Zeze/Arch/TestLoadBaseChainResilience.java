@@ -107,7 +107,7 @@ public class TestLoadBaseChainResilience {
 	@Test
 	public void testChainSurvivesTickException() throws Exception {
 		Task.tryInitThreadPool();
-		var load = new TestLoad(newApp("TestFnd890Chain1"));
+		var load = new TestLoad(newApp("LoadBaseChain1"));
 		load.start(1);
 		try {
 			awaitTicks("first tick", load, 1);
@@ -125,7 +125,7 @@ public class TestLoadBaseChainResilience {
 	@Test
 	public void testZeroMaxOnlineNewDivGuard() throws Exception {
 		Task.tryInitThreadPool();
-		var load = new TestLoad(newApp("TestFnd890Chain2"));
+		var load = new TestLoad(newApp("LoadBaseChain2"));
 		var field = LoadConfig.class.getDeclaredField("maxOnlineNew");
 		field.setAccessible(true);
 		field.set(load.config, 0); // 绕过setter，模拟校验前遗留的非法配置
@@ -150,7 +150,7 @@ public class TestLoadBaseChainResilience {
 	@Test
 	public void testStopStillTerminatesChain() throws Exception {
 		Task.tryInitThreadPool();
-		var load = new TestLoad(newApp("TestFnd890Chain3"));
+		var load = new TestLoad(newApp("LoadBaseChain3"));
 		load.start(1);
 		try {
 			awaitTicks("first tick", load, 1);

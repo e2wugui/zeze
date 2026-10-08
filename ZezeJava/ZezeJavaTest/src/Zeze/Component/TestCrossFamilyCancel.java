@@ -214,7 +214,7 @@ public class TestCrossFamilyCancel {
 	/** 方向1：在线族timerId传入全局取消入口Timer.cancel（index==null），不得杀其future。 */
 	@Test
 	public void testGlobalEntryMustNotKillOnlineFuture() throws Exception {
-		try (var env = new TestEnv("TestFnd729CrossFamilyCancel1")) {
+		try (var env = new TestEnv("CrossFamilyCancelEnvA")) {
 			var onlineTid = "UnitTest.CrossFamilyCancel.onlineAlive";
 			// 伪造在线族占用：_tAccountTimers行 + 已安装future（在线族不写_tIndexs）
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {

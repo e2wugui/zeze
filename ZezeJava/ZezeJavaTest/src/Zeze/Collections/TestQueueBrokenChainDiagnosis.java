@@ -71,7 +71,7 @@ public class TestQueueBrokenChainDiagnosis {
 	@Test
 	public void testBrokenHeadDiagnosedOnAllReadPaths() throws Exception {
 		Task.tryInitThreadPool();
-		var zeze = newApp("TestFnd879Head");
+		var zeze = newApp("QueueBrokenHead");
 		zeze.start();
 		var appender = new CapturingAppender("queue_broken_head");
 		var log = (Logger)LogManager.getLogger(Queue.class);
@@ -118,7 +118,7 @@ public class TestQueueBrokenChainDiagnosis {
 	@Test
 	public void testBrokenTailDiagnosedOnAdd() throws Exception {
 		Task.tryInitThreadPool();
-		var zeze = newApp("TestFnd879Tail");
+		var zeze = newApp("QueueBrokenTail");
 		zeze.start();
 		var appender = new CapturingAppender("queue_broken_tail");
 		var log = (Logger)LogManager.getLogger(Queue.class);
@@ -154,7 +154,7 @@ public class TestQueueBrokenChainDiagnosis {
 	@Test
 	public void testDrainedResidualTailNoFalseAlarm() throws Exception {
 		Task.tryInitThreadPool();
-		var zeze = newApp("TestFnd879Drained");
+		var zeze = newApp("QueueBrokenDrained");
 		zeze.start();
 		var appender = new CapturingAppender("queue_broken_drained");
 		var log = (Logger)LogManager.getLogger(Queue.class);

@@ -58,7 +58,7 @@ public class TestVerifyBatchRcLogged extends AppBase {
 		final List<LogEvent> events = new ArrayList<>();
 
 		CapturingAppender() {
-			super("TestFnd732Capture", null, null, true, Property.EMPTY_ARRAY);
+			super("VerifyBatchRcCapture", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

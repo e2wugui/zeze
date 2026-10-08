@@ -34,12 +34,12 @@ public class TestAddHotModulePerLinkRpc {
 	private static final class StubModule implements IModule {
 		@Override
 		public @NotNull String getFullName() {
-			return "Zeze.Arch.TestFnd17StubModule";
+			return "Zeze.Arch.TestArchHotStubModule";
 		}
 
 		@Override
 		public @NotNull String getName() {
-			return "TestFnd17StubModule";
+			return "TestArchHotStubModule";
 		}
 
 		@Override

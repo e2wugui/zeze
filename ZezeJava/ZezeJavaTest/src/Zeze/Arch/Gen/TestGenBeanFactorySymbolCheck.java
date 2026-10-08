@@ -31,7 +31,7 @@ public class TestGenBeanFactorySymbolCheck {
 	/** 无beanFactory的模块：原先生成引用不存在符号的不可编译源码。 */
 	public static class NoFactoryModule {
 		public static final int ModuleId = 8851;
-		public static final String ModuleFullName = "TestFnd885.NoFactoryModule";
+		public static final String ModuleFullName = "TestGenBeanFactorySymbolCheck.NoFactoryModule";
 
 		@RedirectToServer
 		public void update(int hash, Bean value) {
@@ -41,7 +41,7 @@ public class TestGenBeanFactorySymbolCheck {
 	/** private beanFactory（Component.Timer形态）：生成子类跨包继承不可达。 */
 	public static class PrivateFactoryModule {
 		public static final int ModuleId = 8852;
-		public static final String ModuleFullName = "TestFnd885.PrivateFactoryModule";
+		public static final String ModuleFullName = "TestGenBeanFactorySymbolCheck.PrivateFactoryModule";
 
 		@SuppressWarnings("unused")
 		private static final BeanFactory beanFactory = new BeanFactory();
@@ -54,7 +54,7 @@ public class TestGenBeanFactorySymbolCheck {
 	/** protected beanFactory（Rank/Game.Online形态）：合法惯例，照常生成。 */
 	public static class ProtectedFactoryModule {
 		public static final int ModuleId = 8853;
-		public static final String ModuleFullName = "TestFnd885.ProtectedFactoryModule";
+		public static final String ModuleFullName = "TestGenBeanFactorySymbolCheck.ProtectedFactoryModule";
 
 		protected static final BeanFactory beanFactory = new BeanFactory();
 
@@ -66,7 +66,7 @@ public class TestGenBeanFactorySymbolCheck {
 	/** 无Bean/Data形参的模块：不触发校验（护栏，Timer.redirectCancel形态）。 */
 	public static class PlainModule {
 		public static final int ModuleId = 8854;
-		public static final String ModuleFullName = "TestFnd885.PlainModule";
+		public static final String ModuleFullName = "TestGenBeanFactorySymbolCheck.PlainModule";
 
 		@RedirectToServer
 		public void cancel(int hash, String id) {

@@ -30,7 +30,7 @@ public class TestPerfCounterClearSerialRebind {
 		obs.observe(400);
 		var log = pc.getLogAndReset();
 		// 新代际条目：2次、700ns（旧代际计数已被reset清零，若闭包仍绑旧对象则条目缺失）
-		Assertions.assertTrue(log.contains("TestFnd752.run: 0ms = 2 * 350ns"),
+		Assertions.assertTrue(log.contains("PerfClearSerial.run: 0ms = 2 * 350ns"),
 				"observer must rebind after resetCounter, log:\n" + log);
 	}
 
@@ -44,7 +44,7 @@ public class TestPerfCounterClearSerialRebind {
 		counter.end(0, 3);
 		var log = pc.getLogAndReset();
 		// 新代际条目：结果码0计2次、成功率100%
-		Assertions.assertTrue(log.contains("TestFnd752.proc:100%, 0:2"),
+		Assertions.assertTrue(log.contains("PerfClearSerial.proc:100%, 0:2"),
 				"procedure counter must rebind after resetCounter, log:\n" + log);
 	}
 }

@@ -256,7 +256,7 @@ public class TestGenAbstractSerializablePredicate {
 	/** 嵌套模块fixture：生成源码extends二进制名含$，javac必然解析失败（试编译负路径形态）。 */
 	public static class NestModule {
 		public static final int ModuleId = 8832;
-		public static final String ModuleFullName = "TestFnd883.NestModule";
+		public static final String ModuleFullName = "TestGenAbstractSerializablePredicate.NestModule";
 
 		@RedirectToServer
 		public void ping(int serverId) {

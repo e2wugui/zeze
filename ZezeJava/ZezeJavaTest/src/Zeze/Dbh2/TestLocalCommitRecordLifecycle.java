@@ -80,7 +80,7 @@ public class TestLocalCommitRecordLifecycle {
 			Assertions.assertNotNull(loaded);
 			Assertions.assertEquals(0, loaded.version); // 首次插入以参数version落盘
 			Assertions.assertEquals(2, loaded.data.size());
-			Assertions.assertNull(operates.getDataWithVersion(ByteBuffer.Wrap("fnd19ga07missing".getBytes())),
+			Assertions.assertNull(operates.getDataWithVersion(ByteBuffer.Wrap("localCommitMissing".getBytes())),
 					"only eDataNotExists maps to null");
 
 			// === GA-C08：非prefix实例close()不删共享map条目 ===

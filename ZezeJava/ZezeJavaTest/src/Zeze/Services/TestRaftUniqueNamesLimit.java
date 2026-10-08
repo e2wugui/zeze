@@ -314,7 +314,7 @@ public class TestRaftUniqueNamesLimit {
 				"唯一名超限必须确定性拒绝（非漂移瞬态码）");
 
 		// 满员后既有name必须继续可用（拒绝只针对新name）。
-		Assertions.assertEquals(0, allocate("fnd15svc01r-name-0", 1), "既有name满员后必须可用");
+		Assertions.assertEquals(0, allocate("raftnames-name-0", 1), "既有name满员后必须可用");
 	}
 
 	/** leader本地procedure直读tAutoKey行数（walkKey全量计数；只读不产生日志）。 */

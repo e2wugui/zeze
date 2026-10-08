@@ -29,7 +29,7 @@ public class TestPerfCounterIdleEvictionRebind {
 		obs.observe(300); // 低峰恢复：句柄必须重绑新代际条目并继续计数
 		obs.observe(400);
 		var log = pc.getLogAndReset();
-		Assertions.assertTrue(log.contains("TestFnd12Util02.run: 0ms = 2 * 350ns"),
+		Assertions.assertTrue(log.contains("PerfIdleEviction.run: 0ms = 2 * 350ns"),
 				"observer must rebind after idle eviction, log:\n" + log);
 	}
 
@@ -44,7 +44,7 @@ public class TestPerfCounterIdleEvictionRebind {
 		counter.end(0, 2);
 		counter.end(0, 3);
 		var log = pc.getLogAndReset();
-		Assertions.assertTrue(log.contains("TestFnd12Util02.proc:100%, 0:2"),
+		Assertions.assertTrue(log.contains("PerfIdleEviction.proc:100%, 0:2"),
 				"procedure counter must rebind after idle eviction, log:\n" + log);
 	}
 }

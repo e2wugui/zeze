@@ -60,7 +60,7 @@ public class TestRedirectRemoveLocalRcLogged extends AppBase {
 		final List<LogEvent> events = new ArrayList<>();
 
 		CapturingAppender() {
-			super("TestFnd732bCapture", null, null, true, Property.EMPTY_ARRAY);
+			super("RedirectRmRcCapture", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

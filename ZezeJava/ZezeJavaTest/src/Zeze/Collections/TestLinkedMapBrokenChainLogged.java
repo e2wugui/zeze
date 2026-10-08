@@ -57,7 +57,7 @@ public class TestLinkedMapBrokenChainLogged {
 		final List<LogEvent> events = new ArrayList<>();
 
 		CapturingAppender() {
-			super("TestFnd879Capture", null, null, true, Property.EMPTY_ARRAY);
+			super("LinkedMapBrokenCapture", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override
@@ -85,7 +85,7 @@ public class TestLinkedMapBrokenChainLogged {
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseUrl("linkedmap_broken_" + conf.getServerId());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
-		app = new Application("a3TestFnd879_" + conf.getServerId(), conf);
+		app = new Application("linkedmap_broken_app_" + conf.getServerId(), conf);
 		linkedMapModule = new LinkedMap.Module(app);
 		app.start();
 

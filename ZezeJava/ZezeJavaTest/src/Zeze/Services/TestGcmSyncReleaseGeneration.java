@@ -59,8 +59,8 @@ import harness.Fast;
 @ResourceLock("GlobalCacheManagerServer.instance")
 public class TestGcmSyncReleaseGeneration {
 	private static final int PORT = 19713; // @Fast固定端口独占
-	private static final Binary KEY1 = new Binary("UnitTest.GcmSyncRelease.K1".getBytes(StandardCharsets.UTF_8));
-	private static final Binary KEY2 = new Binary("UnitTest.GcmSyncRelease.K2".getBytes(StandardCharsets.UTF_8));
+	private static final Binary KEY1 = new Binary("UnitTest.GcmSync.K1".getBytes(StandardCharsets.UTF_8));
+	private static final Binary KEY2 = new Binary("UnitTest.GcmSync.K2".getBytes(StandardCharsets.UTF_8));
 	private static final int SERVER_ID_S = 9132;
 	private static final int SERVER_ID_T = 9133;
 

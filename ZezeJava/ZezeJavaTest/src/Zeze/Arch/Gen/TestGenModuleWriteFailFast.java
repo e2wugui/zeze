@@ -28,7 +28,7 @@ public class TestGenModuleWriteFailFast {
 
 	public static class TestModule {
 		public static final int ModuleId = 0;
-		public static final String ModuleFullName = "TestFnd733GenModule.TestModule";
+		public static final String ModuleFullName = "TestGenModuleWriteFailFast.TestModule";
 
 		@RedirectToServer
 		public void ping(int serverId, long arg) {

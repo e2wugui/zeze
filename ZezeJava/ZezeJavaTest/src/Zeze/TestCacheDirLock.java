@@ -74,7 +74,7 @@ public class TestCacheDirLock {
 		var app2 = new Application("CacheDirRestartB", newConf());
 		assertDoesNotThrow(app2::start, "锁释放后同serverId再启动不得被残留锁拒绝");
 		try {
-			assertEquals(Procedure.Success, app2.newProcedure(() -> 0L, "Fnd826.AfterRestart").call());
+			assertEquals(Procedure.Success, app2.newProcedure(() -> 0L, "CacheDirLock.AfterRestart").call());
 		} finally {
 			app2.stop();
 		}

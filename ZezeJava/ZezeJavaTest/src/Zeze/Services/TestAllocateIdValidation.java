@@ -99,7 +99,7 @@ public class TestAllocateIdValidation {
 		var client = new Client("UnitTest.AllocateIdValidation.Client");
 		try {
 			var sock = client.connect();
-			Assertions.assertEquals(Procedure.ErrorRequestId, alloc(sock, "fnd15svc01-count0", 0).getResultCode(),
+			Assertions.assertEquals(Procedure.ErrorRequestId, alloc(sock, "allocvalid-count0", 0).getResultCode(),
 					"count=0必须拒绝");
 			Assertions.assertEquals(Procedure.ErrorRequestId,
 					alloc(sock, "allocvalid-countmax", Tid128Cache.ALLOCATE_COUNT_MAX + 1).getResultCode(),
