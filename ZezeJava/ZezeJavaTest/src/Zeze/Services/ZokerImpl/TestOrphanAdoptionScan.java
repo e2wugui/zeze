@@ -14,8 +14,11 @@ import Zeze.Builtin.Zoker.StopService;
 import harness.proc.Procs;
 import harness.Fast;
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import static harness.DirCleanup.deleteBestEffort;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -40,6 +43,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 @Extra
 public class TestOrphanAdoptionScan {
+	@TempDir
+	private Path tempDir;
+
+	@AfterEach
+	public void cleanupTempDir() throws InterruptedException {
+		for (var i = 0; i < 5; i++) {
+			deleteBestEffort(tempDir);
+			if (!Files.exists(tempDir))
+				return;
+			Thread.sleep(200);
+		}
+		deleteBestEffort(tempDir);
+	}
+
 	private static final boolean WINDOWS =
 			System.getProperty("os.name", "").toLowerCase().contains("win");
 
@@ -96,7 +113,7 @@ public class TestOrphanAdoptionScan {
 	/** 核心闭环：Zoker 重启后启动扫描领养活孤儿——list 可见（Ps 标记 adopted）、stop 真停、
 	 * 停毕条件删除盘上身份。 */
 	@Test
-	public void testScanAdoptsLiveOrphan(@TempDir Path tempDir) throws Exception {
+	public void testScanAdoptsLiveOrphan() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
@@ -136,7 +153,7 @@ public class TestOrphanAdoptionScan {
 
 	/** start 条目缺失的领养查重走同一身份解析：装账形态为 AdoptedProcess（类型级验证）。 */
 	@Test
-	public void testStartAdoptsIntoAdoptedProcessEntry(@TempDir Path tempDir) throws Exception {
+	public void testStartAdoptsIntoAdoptedProcessEntry() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
@@ -159,7 +176,7 @@ public class TestOrphanAdoptionScan {
 
 	/** 死 pid 残留：对账清理文件、不领养（全平台，java.home 定位短命进程）。 */
 	@Test
-	public void testScanCleansDeadResidue(@TempDir Path tempDir) throws Exception {
+	public void testScanCleansDeadResidue() throws Exception {
 		var servicesDir = servicesDir(tempDir);
 		var container = svcContainer(servicesDir);
 		ServiceManager.writeRunPid(container,
@@ -175,7 +192,7 @@ public class TestOrphanAdoptionScan {
 
 	/** 损坏文件（不可解析）：对账清理、不领养（全平台纯文件用例）。 */
 	@Test
-	public void testScanCleansCorruptResidue(@TempDir Path tempDir) throws Exception {
+	public void testScanCleansCorruptResidue() throws Exception {
 		var servicesDir = servicesDir(tempDir);
 		svcContainer(servicesDir); // 先建容器目录再摆损坏文件
 		Files.writeString(runPidPath(servicesDir), "this is not a pid file\nno key value\n");
@@ -187,7 +204,7 @@ public class TestOrphanAdoptionScan {
 
 	/** 指纹不符（活 pid 但 startInstant 不符=PID 复用）：不领养、不误杀、残留清理。 */
 	@Test
-	public void testScanMismatchNotAdoptedNotKilled(@TempDir Path tempDir) throws Exception {
+	public void testScanMismatchNotAdoptedNotKilled() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		var container = svcContainer(servicesDir);
@@ -209,7 +226,7 @@ public class TestOrphanAdoptionScan {
 	/** 指纹不可核实（盘上 start 为空）：失明告警不领养，但文件保留（证据），进程不误杀——
 	 * 失明与清理是两个不同的处置面。 */
 	@Test
-	public void testScanUnverifiableBlindKeepsFile(@TempDir Path tempDir) throws Exception {
+	public void testScanUnverifiableBlindKeepsFile() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		var container = svcContainer(servicesDir);
@@ -230,7 +247,7 @@ public class TestOrphanAdoptionScan {
 	/** command（辅证据）不符不否决领养：pid+startInstant 已核实同一进程实例
 	 * （startInstant 是判别门——exec 链下创建时间不变而 command 变，否决会复活双启主缺陷）。 */
 	@Test
-	public void testCommandMismatchDoesNotVetoAdoption(@TempDir Path tempDir) throws Exception {
+	public void testCommandMismatchDoesNotVetoAdoption() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		var container = svcContainer(servicesDir);
@@ -257,7 +274,7 @@ public class TestOrphanAdoptionScan {
 	/** 布局回归钉：容器根 run.pid（与 current 指针）不在版本保留策略清理面
 	 * （pruneVersions 只纳入目录，设计引证 DistributeManager:369-371）。 */
 	@Test
-	public void testPruneVersionsKeepsRunPid(@TempDir Path tempDir) throws Exception {
+	public void testPruneVersionsKeepsRunPid() throws Exception {
 		var servicesDir = servicesDir(tempDir);
 		var svcDir = servicesDir.toPath().resolve("svc");
 		Files.createDirectories(svcDir.resolve("v1"));

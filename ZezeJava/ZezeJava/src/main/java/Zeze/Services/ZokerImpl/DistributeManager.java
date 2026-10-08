@@ -1280,7 +1280,24 @@ public class DistributeManager {
 			// 位置不再出现"存在但不完整"的目录。rename失败（victim被句柄钉住）=本轮跳过
 			// 该victim，残留完整待下轮重试。
 			var stage = new File(svcDir, DELETING_STAGE_PREFIX + victim.getName() + '.' + System.currentTimeMillis());
-			if (!victim.renameTo(stage)) {
+			// rename有界重试（3×100ms，deleteRunPidIfOwn先例）：刚建即删的版本目录被
+			// AV/索引器瞬态句柄钉住时单发rename失败——"留待下轮"对连续commit后立即断言
+			// keep语义的调用方（TestCommitVersionCurrent形态）即红（2026-10-08批 ×7/40
+			// 实证：expected [v2,v3] got [v1,...]）。重试吸收瞬态窗；耗尽仍失败维持
+			// 既有"本轮跳过待下轮"语义（不掩盖长持有者）。
+			var renamed = false;
+			for (var retry = 0; !renamed && retry < 3; retry++) {
+				if (retry > 0) {
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+						break;
+					}
+				}
+				renamed = victim.renameTo(stage);
+			}
+			if (!renamed) {
 				logger.warn("pruneVersions stage rename fail, keep on next commit: {}", victim);
 				continue;
 			}
