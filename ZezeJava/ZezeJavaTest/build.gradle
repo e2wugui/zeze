@@ -273,8 +273,8 @@ tasks.register('jmh', JavaExec) {
 // 清理项（全部为 gitignored 的运行时产物，测试按需重建）：
 // - zeze_cache_*.lock：FileMutex 设计上释放后不删除（删除与后续获取者竞态，见其
 //   javadoc），动态发号测试族累积的 0 字节锁文件；
-// - *.zeze.pal / CommitOnzServer*/ / *.raft/ / testMmapFile* / hs_err_pid*.log：cwd 下的
-//   每次运行产物，测试开头先删后开，无事后取证价值；
+// - *.zeze.pal / CommitOnzServer*/ / *.raft/ / 127.0.0.1_*/ / testMmapFile* / hs_err_pid*.log：cwd 下的
+//   每次运行产物（127.0.0.1_* 为 raft 节点名数据目录：db+statemachine），测试开头先删后开，无事后取证价值；
 // - log/ 内 7 天前的滚动日志（zeze_error.* 101MB/天）：近 7 天保留失败取证；根治需动
 //   生产共享的 log4j2.xml 保留策略，不在本任务射程。
 // 不清理：zeze_cache_*/ 目录（Application.start 先删后开已自洽，rocksdb 数据有取证价值）、
@@ -293,7 +293,8 @@ def cleanTestResidue = tasks.register('cleanTestResidue') {
                         || f.name.startsWith('testMmapFile')) {
                     if (f.delete()) files++
                 }
-            } else if (f.isDirectory() && (f.name.startsWith('CommitOnzServer') || f.name.endsWith('.raft'))) {
+            } else if (f.isDirectory() && (f.name.startsWith('CommitOnzServer') || f.name.endsWith('.raft')
+                    || f.name.startsWith('127.0.0.1_'))) {
                 if (f.deleteDir()) dirs++
             }
         }
