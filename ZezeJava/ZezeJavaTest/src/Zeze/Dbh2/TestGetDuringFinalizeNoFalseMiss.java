@@ -103,6 +103,20 @@ public class TestGetDuringFinalizeNoFalseMiss {
 		}
 	}
 
+	/** 等风暴累计到目标轮次（计数驱动，负载无关）：观察窗从"固定时间窗"改为"固定轮次窗"
+	 * ——原 sleep(300)+sleep(100) 时间窗内每轮是一次完整raft RPC(~8-10ms)，正常负载恰好
+	 * 压线50、负载一抖即44-48，">=50统计有效"断言在墙钟预算下假红（生涯×5：44/15/45/48，
+	 * 2026-10-08批r4实证）。就位/观察都等计数达标（有界），finalize持锁期间风暴阻塞也
+	 * 在预算内被吸收；超时=风暴无进展（真故障，不掩盖）。 */
+	private static void awaitStormCount(GetStorm storm, long target, long timeoutMs) throws InterruptedException {
+		var deadline = System.currentTimeMillis() + timeoutMs;
+		while (storm.total.get() < target) {
+			if (System.currentTimeMillis() >= deadline)
+				throw new IllegalStateException("storm made no progress: total=" + storm.total.get() + " target=" + target);
+			Thread.sleep(10);
+		}
+	}
+
 	@Test
 	public void testGetStormDuringEndSplitSeesValueOrRedirect(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
@@ -137,20 +151,20 @@ public class TestGetDuringFinalizeNoFalseMiss {
 
 				var storm = new GetStorm(agent, db, table, key);
 				storm.start();
-				Thread.sleep(300); // 风暴就位
+				awaitStormCount(storm, 10, 10_000); // 风暴就位（计数驱动替代sleep(300)）
 				var from = leader.getBucket().getBucketMeta().copy();
 				from.setKeyLast(boundary);
 				var to = leader.getBucket().getBucketMeta().copy();
 				to.setKeyFirst(boundary);
 				to.setRaftConfig(RAFT);
+				var base = storm.total.get();
 				leader.endSplit(from, to); // 收尾（原缺陷：µs级"数据已删、meta未切"窗口）
-				Thread.sleep(100); // 观察窗口后效
+				awaitStormCount(storm, base + 50, 10_000); // 观察窗=收尾后50轮（计数驱动替代sleep(100)）
 				storm.stop.set(true);
 				storm.join();
 
 				Assertions.assertEquals(0, storm.authoritativeNull.get(),
 						"endSplit窗口内Get只应命中值或KV(false)重路由，不得权威null（静默假缺失）");
-				Assertions.assertTrue(storm.total.get() >= 50, "风暴轮次过少，统计无意义: " + storm.total.get());
 				// 功能等价：meta已收窄、迁出键已物理删除、未迁出键保留。
 				Assertions.assertEquals(0, boundary.compareTo(leader.getBucket().getBucketMeta().getKeyLast()),
 						"endSplit后meta必须收窄到分界");
@@ -194,17 +208,17 @@ public class TestGetDuringFinalizeNoFalseMiss {
 
 			var storm = new GetStorm(agent, db, table, key);
 			storm.start();
-			Thread.sleep(300); // 风暴就位
+			awaitStormCount(storm, 10, 10_000); // 风暴就位（计数驱动替代sleep(300)）
 			var to = leader.getBucket().getBucketMeta().copy();
 			to.setRaftConfig(RAFT);
+			var base = storm.total.get();
 			leader.endMove(to); // 收尾置死全桶（原缺陷：全桶键域的假缺失窗口）
-			Thread.sleep(100); // 观察窗口后效
+			awaitStormCount(storm, base + 50, 10_000); // 观察窗=收尾后50轮（计数驱动替代sleep(100)）
 			storm.stop.set(true);
 			storm.join();
 
 			Assertions.assertEquals(0, storm.authoritativeNull.get(),
 					"endMove窗口内Get只应命中值或KV(false)重路由，不得权威null（静默假缺失）");
-			Assertions.assertTrue(storm.total.get() >= 50, "风暴轮次过少，统计无意义: " + storm.total.get());
 			// 功能等价：meta已置死、数据已物理删除、后续get恒重路由。
 			var deadMeta = leader.getBucket().getBucketMeta();
 			Assertions.assertNotEquals(0, deadMeta.getKeyFirst().compareTo(Binary.Empty), "endMove后meta必须置死");
