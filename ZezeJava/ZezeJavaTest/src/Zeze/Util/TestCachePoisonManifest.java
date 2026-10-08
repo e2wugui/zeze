@@ -25,17 +25,17 @@ public class TestCachePoisonManifest {
 	@Test
 	public void testPoisonManifestSkippedNotFatal(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
-		var dir = tempDir.resolve("fnd737-cache").toString();
+		var dir = tempDir.resolve("poison-cache").toString();
 		var cache = newCache(dir, "v1");
 		Assertions.assertNotNull(cache.get("key1")); // 登记当天清单并落 RocksDb（v1）
 
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
 		// 毒文件：days_ 前缀 + 非数字后缀（触发 parseLong 抛 NFE）。
 		// 命名让它字典序排在数字清单之前（'!' < '0'），最大化暴露修复前的循环中断。
-		Files.writeString(tempDir.resolve("fnd737-cache").resolve("days_!.tmp"), "garbage\n");
+		Files.writeString(tempDir.resolve("poison-cache").resolve("days_!.tmp"), "garbage\n");
 		// 合法过期清单（40天前）：列出 key1，必须被退役（文件删除、db 记录删除）。
 		var oldDays = nowDays - 40;
-		Files.writeString(tempDir.resolve("fnd737-cache").resolve("days_" + oldDays), "key1\n");
+		Files.writeString(tempDir.resolve("poison-cache").resolve("days_" + oldDays), "key1\n");
 		// 清理筛选跳过"当前使用中"（Lru 命中）的条目，先摘除让 key1 可退役。
 		lruOf(cache).remove("key1");
 
@@ -45,10 +45,10 @@ public class TestCachePoisonManifest {
 				"畸形清单文件必须被跳过，不得中断整个日清任务（FND7-37）");
 
 		// 合法过期清单被正常退役：文件删除。
-		Assertions.assertFalse(Files.exists(tempDir.resolve("fnd737-cache").resolve("days_" + oldDays)),
+		Assertions.assertFalse(Files.exists(tempDir.resolve("poison-cache").resolve("days_" + oldDays)),
 				"毒文件存在时，过期的合法清单仍必须被退役");
 		// 毒文件保留（跳过处理但不删除），当天清单完好。
-		Assertions.assertTrue(Files.exists(tempDir.resolve("fnd737-cache").resolve("days_!.tmp")),
+		Assertions.assertTrue(Files.exists(tempDir.resolve("poison-cache").resolve("days_!.tmp")),
 				"畸形文件跳过处理但不删除（留给运维）");
 		cache.close();
 

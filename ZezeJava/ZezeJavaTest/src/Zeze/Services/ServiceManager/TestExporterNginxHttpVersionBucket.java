@@ -35,7 +35,7 @@ public class TestExporterNginxHttpVersionBucket {
 		private final List<String> messages = new CopyOnWriteArrayList<>();
 
 		CapturingAppender() {
-			super("TestFnd761Capture", null, null, true, Property.EMPTY_ARRAY);
+			super("ExporterCapture", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

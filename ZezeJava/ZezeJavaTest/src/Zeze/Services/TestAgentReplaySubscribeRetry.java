@@ -34,7 +34,7 @@ public class TestAgentReplaySubscribeRetry {
 	public void testReplayFailureAlwaysRegistersRetry() throws Exception {
 		Task.tryInitThreadPool();
 		Files.createDirectories(Path.of("autokeys")); // RocksDB需要父目录存在
-		var sm = new ServiceManagerServer(null, PORT, new Config(), "autokeys/a5-fnd869");
+		var sm = new ServiceManagerServer(null, PORT, new Config(), "autokeys/agent-replay");
 		Agent agent = null;
 		try {
 			var conf = new Config();
@@ -43,7 +43,7 @@ public class TestAgentReplaySubscribeRetry {
 			agent.getClient().getConfig().addConnector(new Connector("127.0.0.1", PORT));
 			agent.start();
 			agent.waitReady();
-			agent.subscribeService(new BSubscribeInfo("Fnd869.Svc", 0)); // 订阅态进入重放源
+			agent.subscribeService(new BSubscribeInfo("AgentReplay.Svc", 0)); // 订阅态进入重放源
 
 			var replay = Agent.class.getDeclaredMethod("replayRegistersAndSubscribes");
 			replay.setAccessible(true);

@@ -102,10 +102,10 @@ public class TestSendFilePipeliningOrder {
 		var netty = new Netty(1);
 		var server = new TestServer();
 		var slowArrived = new CompletableFuture<HttpExchange>();
-		var dir = Files.createTempDirectory("a4_fnd846");
+		var dir = Files.createTempDirectory("sendfile-pipelining");
 		try {
 			var file = dir.resolve("a4_file.txt");
-			Files.writeString(file, "fnd846-body");
+			Files.writeString(file, "sendfile-body");
 			server.addHandler("/slow", 8192, TransactionLevel.None, DispatchMode.Normal, x -> {
 				x.detach(); // 前序请求保持开放（队头），响应延后由测试线程发出
 				slowArrived.complete(x);

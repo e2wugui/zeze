@@ -86,7 +86,7 @@ final class GcOnzFastSupport {
 		Files.createDirectories(Path.of("autokeys"));
 		GcOnzE2eTestSupport.deleteRecursively(Path.of("CommitOnzServer" + serverId));
 
-		var sm = new ServiceManagerServer(null, smPort, new Config(), "autokeys/fnd20-gc-" + serverId);
+		var sm = new ServiceManagerServer(null, smPort, new Config(), "autokeys/gcfast-" + serverId);
 
 		Agent registerAgent = null;
 		Service stubService = null;
@@ -94,7 +94,7 @@ final class GcOnzFastSupport {
 			// 桩参与方先就位再构造OnzServer：其zeze1代理的初始订阅快照即含该"Onz"服务
 			// （同步EditService注册，先于OnzServer构造完成，无传播等待窗口）。
 			if (stubPort > 0) {
-				stubService = new Service("Fnd20GcStubParticipant", new Config());
+				stubService = new Service("GcStubParticipant", new Config());
 				stubService.AddFactoryHandle(Zeze.Builtin.Onz.Commit.TypeId_,
 						new Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.Commit::new, r -> {
 							var rc = stubCommitRc.getAsInt();
@@ -113,7 +113,7 @@ final class GcOnzFastSupport {
 			}
 
 			// zeze1配置必须是文件（OnzServer构造只收路径）；myConfig可程序化构造。
-			var zeze1Xml = tempDir.resolve("fnd20gc-zeze1.xml");
+			var zeze1Xml = tempDir.resolve("gcfast-zeze1.xml");
 			Files.writeString(zeze1Xml, """
 					<?xml version="1.0" encoding="utf-8"?>
 					<zeze ServerId="%d">
@@ -188,7 +188,7 @@ final class GcOnzFastSupport {
 		final java.util.List<LogEvent> events = new java.util.concurrent.CopyOnWriteArrayList<>();
 
 		CaptureAppender() {
-			super("fnd20gc", null, null, true, Property.EMPTY_ARRAY);
+			super("gcfast", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

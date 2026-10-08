@@ -123,7 +123,7 @@ public class TestStaleBeanChangedFilter {
 		var parent = new BValue();
 		var dyn = new DynamicBean(14, b -> 1, id -> new BValue());
 		// encode 需要parent链：手工搭managed状态（TestCollOneFollowerApply 的桩Record范式）。
-		dyn.initRootInfo(new Record.RootInfo(newStubRecord(), new TableKey(1, "a3Fnd829Dynamic")), parent);
+		dyn.initRootInfo(new Record.RootInfo(newStubRecord(), new TableKey(1, "StaleBeanDynamic")), parent);
 
 		var staleInner = new BValue(); // 更早事务 setBean 装入的旧内部bean
 		var currentInner = new BValue(); // 本事务前 setBean 替换上的新内部bean

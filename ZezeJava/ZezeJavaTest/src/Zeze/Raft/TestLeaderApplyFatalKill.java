@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestLeaderApplyFatalKill {
 	private static final String raftName = "127.0.0.1:17690";
 	private static final String dbHome = "TestLeaderApplyFatalKill.raft";
-	private static final String templateName = "tFnd715Throw";
+	private static final String templateName = "tLeaderApplyThrow";
 
 	// 显式DbHome；3节点仅是Raft构造的配置要求，本测试不启动server，不占用任何端口。
 	private static RaftConfig newRaftConfig() {

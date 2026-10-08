@@ -57,7 +57,7 @@ public class TestSendVoidLogsOnFailure {
 		final List<String> messages = new CopyOnWriteArrayList<>();
 
 		CaptureAppender() {
-			super("a7fnd886Capture", null, null, true, Property.EMPTY_ARRAY);
+			super("sendvoidlogsCapture", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override
@@ -72,7 +72,7 @@ public class TestSendVoidLogsOnFailure {
 		var config = new Config();
 		config.setServiceManager("disable");
 		config.setNoDatabase(true);
-		var app = new Application("a7fnd886", config);
+		var app = new Application("sendvoidlogs", config);
 		new ProviderApp(app); // 哑构造：设置app.redirect（RedirectBase）
 		var redirect = app.redirect;
 
@@ -81,12 +81,12 @@ public class TestSendVoidLogsOnFailure {
 		appender.start();
 		logger.addAppender(appender);
 		try {
-			redirect.sendVoid(null, new ModuleRedirect(), "a7fnd886:cancel");
+			redirect.sendVoid(null, new ModuleRedirect(), "sendvoidlogs:cancel");
 		} finally {
 			logger.removeAppender(appender);
 			appender.stop();
 		}
-		Assertions.assertTrue(appender.messages.stream().anyMatch(m -> m.contains("a7fnd886:cancel")),
+		Assertions.assertTrue(appender.messages.stream().anyMatch(m -> m.contains("sendvoidlogs:cancel")),
 				"失败必须记带方法归因的日志，实际: " + appender.messages);
 	}
 

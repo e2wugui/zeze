@@ -51,7 +51,7 @@ public class TestReconcileConvergesToDisk {
 	 */
 	@Test
 	public void testReconcileRemovesVanishedEntry() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-gdd02-remove");
+		var logDir = Files.createTempDirectory("reconcile-remove");
 		Files.write(logDir.resolve(Rotated1),
 				logLine(LocalDateTime.of(2026, 9, 1, 0, 0), "rotate-log").getBytes(StandardCharsets.UTF_8));
 		Files.write(logDir.resolve(Active),
@@ -84,7 +84,7 @@ public class TestReconcileConvergesToDisk {
 	 */
 	@Test
 	public void testReconcileRegistersMissedRotate() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-gdd02-register");
+		var logDir = Files.createTempDirectory("reconcile-register");
 		Files.write(logDir.resolve(Active),
 				logLine(LocalDateTime.now(), "active-log").getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
@@ -119,7 +119,7 @@ public class TestReconcileConvergesToDisk {
 	 */
 	@Test
 	public void testOverflowWiringAndThrottle() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-gdd02-throttle");
+		var logDir = Files.createTempDirectory("reconcile-throttle");
 		Files.write(logDir.resolve(Rotated1),
 				logLine(LocalDateTime.of(2026, 9, 1, 0, 0), "rotate-log").getBytes(StandardCharsets.UTF_8));
 		Files.write(logDir.resolve(Active),

@@ -67,10 +67,10 @@ public class TestCreateDatabaseClosesOnFailure {
 	@Test
 	public void testPartialFailureClosesCreatedDatabases() throws Exception {
 		// 外部持有的锁：占住"fail"目录，使createDatabase在它那里失败。
-		var heldDir = tempDir.resolve("z1f2_held");
+		var heldDir = tempDir.resolve("create_db_held");
 		var holder = new DatabaseRocksDb(app, rocksConf("fail", heldDir), false);
 		try {
-			var okDir = tempDir.resolve("z1f2_ok");
+			var okDir = tempDir.resolve("create_db_ok");
 			var target = new Config();
 			target.setDefaultTableConf(new Config.TableConf());
 			target.getDatabaseConfMap().put("ok", rocksConf("ok", okDir));
@@ -93,7 +93,7 @@ public class TestCreateDatabaseClosesOnFailure {
 	/** 全部成功：不关闭（所有权移交调用方，Application.stop自会关），行为不回归。 */
 	@Test
 	public void testSuccessDoesNotClose() throws Exception {
-		var okDir = tempDir.resolve("z1f2_ok2");
+		var okDir = tempDir.resolve("create_db_ok2");
 		var target = new Config();
 		target.setDefaultTableConf(new Config.TableConf());
 		target.getDatabaseConfMap().put("ok2", rocksConf("ok2", okDir));

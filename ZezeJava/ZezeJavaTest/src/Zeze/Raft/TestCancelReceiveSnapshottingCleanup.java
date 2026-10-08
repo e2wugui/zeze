@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 public class TestCancelReceiveSnapshottingCleanup {
-	private static final String dbHome = "a3_TestFnd843CancelCleanup.raft";
+	private static final String dbHome = "CancelCleanup.raft";
 
 	private Raft raft;
 	private RandomAccessFile file;
@@ -34,7 +34,7 @@ public class TestCancelReceiveSnapshottingCleanup {
 	private static RaftConfig newRaftConfig() {
 		return RaftConfig.loadFromString("""
 				<?xml version="1.0" encoding="utf-8"?>
-				<raft Name="127.0.0.1:26385" DbHome="a3_TestFnd843CancelCleanup.raft">
+				<raft Name="127.0.0.1:26385" DbHome="CancelCleanup.raft">
 					<node Host="127.0.0.1" Port="26385"/>
 					<node Host="127.0.0.1" Port="26386"/>
 					<node Host="127.0.0.1" Port="26387"/>

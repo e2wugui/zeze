@@ -24,7 +24,7 @@ import org.junit.jupiter.api.io.TempDir;
 public class TestCommitServerFailFast {
 
 	private static Path writeConfig(Path tempDir, String address) throws Exception {
-		var xml = tempDir.resolve("fnd19gad03.xml");
+		var xml = tempDir.resolve("commitServerFailFast.xml");
 		Files.writeString(xml, """
 				<?xml version="1.0" encoding="utf-8"?>
 				<zeze Dbh2LocalCommit="false">

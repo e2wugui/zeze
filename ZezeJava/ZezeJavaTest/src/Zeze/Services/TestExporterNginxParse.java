@@ -49,7 +49,7 @@ public class TestExporterNginxParse {
 
 	@Test
 	public void testUpstreamNoSpaceBeforeBraceRewritten() throws Exception {
-		var dir = Files.createTempDirectory("nginx_export_fnd5_36");
+		var dir = Files.createTempDirectory("nginx_export_parse_a");
 		var cfgFile = dir.resolve("nginx.conf");
 		Files.writeString(cfgFile, """
 				upstream demo {
@@ -77,7 +77,7 @@ public class TestExporterNginxParse {
 
 	@Test
 	public void testTabSeparatedAndSelfProducedFormat() throws Exception {
-		var dir = Files.createTempDirectory("nginx_export_fnd5_36b");
+		var dir = Files.createTempDirectory("nginx_export_parse_b");
 		var cfgFile = dir.resolve("nginx.conf");
 		Files.writeString(cfgFile, "upstream\t\tsvc2 {\n    server 1.1.1.1:1;\n}\n");
 		var share = new Properties();

@@ -52,7 +52,7 @@ public class TestOnzRollbackAfterReady {
 		conf.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("a2_fnd876_" + SERVER_ID);
+		dbConf.setDatabaseUrl("onz_rollback_" + SERVER_ID);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = new Application("TestOnzRollbackAfterReady", conf);
 		app.start();
@@ -67,7 +67,7 @@ public class TestOnzRollbackAfterReady {
 
 	private static OnzProcedure newProcedure(Onz onz, long tid) {
 		var stub = new OnzProcedureStub<EmptyBean, EmptyBean>(
-				onz, "Fnd876." + tid, (p, a, r) -> 0L, EmptyBean.class, EmptyBean.class);
+				onz, "OnzRollback." + tid, (p, a, r) -> 0L, EmptyBean.class, EmptyBean.class);
 		var funcArgument = new BFuncProcedure.Data();
 		funcArgument.setOnzTid(tid);
 		funcArgument.setFlushMode(AbstractOnz.eFlushAsync);
@@ -111,7 +111,7 @@ public class TestOnzRollbackAfterReady {
 		funcArgument.setFlushMode(AbstractOnz.eFlushAsync);
 		funcArgument.setFlushTimeout(60_000);
 		var stub = new OnzProcedureStub<EmptyBean, EmptyBean>(
-				onz, "Fnd876.PerformReject", (p, a, r) -> 0L, EmptyBean.class, EmptyBean.class);
+				onz, "OnzRollback.PerformReject", (p, a, r) -> 0L, EmptyBean.class, EmptyBean.class);
 
 		final class ControlledOnz extends OnzProcedure {
 			ControlledOnz() {
@@ -149,7 +149,7 @@ public class TestOnzRollbackAfterReady {
 					Transaction.getCurrent().runWhileCommit(commits::incrementAndGet);
 					Transaction.getCurrent().runWhileRollback(rollbacks::incrementAndGet);
 					return Procedure.Success;
-				}, "Fnd876.OnzReject").call());
+				}, "OnzRollback.OnzReject").call());
 			} catch (Throwable e) {
 				error.set(e);
 			}

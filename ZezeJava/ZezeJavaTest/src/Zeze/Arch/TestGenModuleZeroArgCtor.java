@@ -24,10 +24,10 @@ import org.junit.jupiter.api.Test;
 @Isolated
 public class TestGenModuleZeroArgCtor {
 
-	private static final String MODULE_CLASS = "fnd16arch1.ModuleZero";
+	private static final String MODULE_CLASS = "archzerocrg.ModuleZero";
 
 	private static final String MODULE_SRC = """
-			package fnd16arch1;
+			package archzerocrg;
 			public class ModuleZero implements Zeze.IModule {
 			    public static final int ModuleId = 18792;
 			    // 仅0参构造器（含隐式默认）：修复前的拒绝形态。
@@ -35,7 +35,7 @@ public class TestGenModuleZeroArgCtor {
 			    }
 			    @Override
 			    public String getFullName() {
-			        return "fnd16arch1";
+			        return "archzerocrg";
 			    }
 			    @Override
 			    public String getName() {

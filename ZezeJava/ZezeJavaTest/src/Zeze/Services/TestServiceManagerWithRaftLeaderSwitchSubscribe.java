@@ -39,8 +39,8 @@ import org.junit.jupiter.api.Timeout;
  */
 @Fast
 public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
-	private static final String RAFT_NAME = "fnd5_32_sm_test";
-	private static final String SERVICE_NAME = "Fnd5LeaderSwitch";
+	private static final String RAFT_NAME = "leader_switch_sm_test";
+	private static final String SERVICE_NAME = "LeaderSwitch";
 
 	private static final int[] ports = new int[3];
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
@@ -117,7 +117,7 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 	@Timeout(200)
 	public void testSubscriberSurvivesLeaderSwitch() throws Exception {
 		var seenIdentities = new ConcurrentLinkedQueue<String>();
-		var agent = newAgent("UnitTest.FND5_32.Subscriber");
+		var agent = newAgent("UnitTest.LeaderSwitch.Subscriber");
 		try {
 			agent.start();
 			agent.waitReady();
@@ -131,7 +131,7 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 			agent.subscribeServices(subArg);
 
 			// 前置：切换前Edit推送可达。
-			var registrar1 = newAgent("UnitTest.FND5_32.Reg1");
+			var registrar1 = newAgent("UnitTest.LeaderSwitch.RegA");
 			try {
 				registrar1.start();
 				registrar1.waitReady();
@@ -169,7 +169,7 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 				reconcile.setAccessible(true);
 				reconcile.invoke(servers.get(newLeaderIdx));
 
-				var registrar2 = newAgent("UnitTest.FND5_32.Reg2");
+				var registrar2 = newAgent("UnitTest.LeaderSwitch.RegB");
 				try {
 					registrar2.start();
 					registrar2.waitReady();
@@ -184,7 +184,7 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 			}
 		} finally {
 			agent.close();
-			waitSessionCleaned("UnitTest.FND5_32.Subscriber");
+			waitSessionCleaned("UnitTest.LeaderSwitch.Subscriber");
 		}
 	}
 

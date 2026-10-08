@@ -22,7 +22,7 @@ public class TestPerfCounterClearSerialRebind {
 	@Test
 	public void testRunTimeObserverRebindsAfterReset() {
 		var pc = new PerfCounter();
-		var obs = pc.getRunTimeObserver("TestFnd752.run");
+		var obs = pc.getRunTimeObserver("PerfClearSerial.run");
 		obs.observe(100);
 		obs.observe(200);
 		pc.resetCounter(); // clearSerial代际推进并清空runInfoMap
@@ -37,7 +37,7 @@ public class TestPerfCounterClearSerialRebind {
 	@Test
 	public void testProcedureCounterRebindsAfterReset() {
 		var pc = new PerfCounter();
-		var counter = pc.allocProcedureCounter("TestFnd752.proc");
+		var counter = pc.allocProcedureCounter("PerfClearSerial.proc");
 		counter.end(0, 1);
 		pc.resetCounter(); // 清空procedureInfoMap，代际推进
 		counter.end(0, 2); // PerfProcedureCounter.info按serial重绑

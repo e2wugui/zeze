@@ -75,7 +75,7 @@ public class TestCloseFillGenerationDrain {
 				} catch (Throwable e) {
 					failure.set(e);
 				}
-			}, "fnd21-gbc02-closer");
+			}, "close-drain-closer");
 			closer.start();
 			awaitParked(closer); // closer 停靠在第一段的 f1.get（TIMED_WAITING）⟹ 锁内读已看到 F1
 

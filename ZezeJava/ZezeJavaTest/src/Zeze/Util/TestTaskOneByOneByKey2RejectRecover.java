@@ -41,7 +41,7 @@ public class TestTaskOneByOneByKey2RejectRecover {
 				} catch (RuntimeException e) {
 					caught.compareAndSet(null, e);
 				}
-			}, "fnd742-worker");
+			}, "rejectRecover-worker");
 			t.setDaemon(true);
 			t.start();
 		}
@@ -110,7 +110,7 @@ public class TestTaskOneByOneByKey2RejectRecover {
 		var t2Ran = new CountDownLatch(1);
 		var t3Ran = new CountDownLatch(1);
 
-		queue.executeCyclicBarrier(List.of("kb", "kb"), "fnd742-barrier", () -> {
+		queue.executeCyclicBarrier(List.of("kb", "kb"), "rejectRecover-barrier", () -> {
 			// barrier action 运行在桶驱动线程上：此时入队的 t2 排在屏障任务之后，
 			// reach 收尾的 reachedRunNext 将派发它——先开启拒绝制造派发失败。
 			executor.rejecting.set(true);

@@ -52,7 +52,7 @@ public class TestSecurityCodecReinstall {
 	// 修复前红：第二次装配静默成功、旧zstd链失引用泄漏、连接不关闭（await超时失败）。
 	@Test
 	public final void testReinstallClosesConnection() throws Exception {
-		var server = new Server("TestFnd15Net01.Reinstall");
+		var server = new Server("TestSecurityCodecReinstall");
 		var listen = (TcpSocket)server.newServerSocket("127.0.0.1", 0, null);
 		var local = listen.getLocalInet();
 		Assertions.assertNotNull(local, "listen socket local address");

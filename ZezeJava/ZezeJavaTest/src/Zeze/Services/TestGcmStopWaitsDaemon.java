@@ -79,7 +79,7 @@ public class TestGcmStopWaitsDaemon {
 		// fast套件无其他使用者（TestEnvLauncherListener在test任务被关闭且只启动异步版）。
 		gcm = GlobalCacheManagerServer.getInstance();
 		gcm.start(null, PORT, null);
-		stopExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "UnitTest.FND7_18.stop"));
+		stopExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "UnitTest.GcmStopWait.stop"));
 	}
 
 	@AfterAll
@@ -151,8 +151,8 @@ public class TestGcmStopWaitsDaemon {
 	@Test
 	@Timeout(90)
 	public void testStopWaitsInFlightDaemonAndKicksAllStaleSessions() throws Exception {
-		clientA = new RawClient("UnitTest.FND7_18.A");
-		clientB = new RawClient("UnitTest.FND7_18.B");
+		clientA = new RawClient("UnitTest.GcmStopWait.A");
+		clientB = new RawClient("UnitTest.GcmStopWait.B");
 		login(clientA, SERVER_ID_A);
 		login(clientB, SERVER_ID_B);
 

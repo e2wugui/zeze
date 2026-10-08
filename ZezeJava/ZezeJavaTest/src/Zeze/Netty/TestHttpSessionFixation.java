@@ -58,9 +58,9 @@ public class TestHttpSessionFixation {
 			conf.setServerId(serverId);
 			conf.setDefaultTableConf(new Config.TableConf());
 			var dbConf = new Config.DatabaseConf();
-			dbConf.setDatabaseUrl("a4_fnd857_" + serverId);
+			dbConf.setDatabaseUrl("session_fixation_" + serverId);
 			conf.getDatabaseConfMap().putIfAbsent("", dbConf);
-			app = new Application("a4.fnd857." + serverId, conf);
+			app = new Application("sessionFixation." + serverId, conf);
 			app.initialize(new TestAppBase(app));
 			httpSession = new HttpSession(app);
 			httpSession.RegisterZezeTables(app);
@@ -77,7 +77,7 @@ public class TestHttpSessionFixation {
 			var rc = app.newProcedure(() -> {
 				row.value = httpSession.tSession().get(id);
 				return Procedure.Success;
-			}, "a4.fnd857.get").call();
+			}, "sessionFixation.get").call();
 			Assertions.assertEquals(0L, rc);
 			return row.value;
 		}
@@ -87,7 +87,7 @@ public class TestHttpSessionFixation {
 	private static final class TestExchange extends HttpExchange {
 		TestExchange(@Nullable String cookie) {
 			super(new HttpServer(), null);
-			var req = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/a4_fnd857");
+			var req = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/session_fixation");
 			if (cookie != null)
 				req.headers().set(HttpHeaderNames.COOKIE, cookie);
 			request = req;
@@ -155,7 +155,7 @@ public class TestHttpSessionFixation {
 				row.setExpireTime(2); // 远在过去
 				row.getProperties().clear();
 				return Procedure.Success;
-			}, "a4.fnd857.seed").call();
+			}, "sessionFixation.seed").call();
 			Assertions.assertEquals(0L, rc);
 
 			var x = new TestExchange(HttpSession.ZEZE_SESSION_ID_NAME + "=" + expiredId);

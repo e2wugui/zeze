@@ -105,7 +105,7 @@ public class TestCheckpointRunRace {
 	@Test
 	public void testNormalRunUnaffected() throws Exception {
 		assertDoesNotThrow(app::checkpointRun);
-		var rc = app.newProcedure((FuncLong)() -> 0L, "Fnd821.Nop").call();
+		var rc = app.newProcedure((FuncLong)() -> 0L, "CheckpointRunRace.Nop").call();
 		assertEquals(Procedure.Success, rc);
 		assertDoesNotThrow(app::checkpointRun);
 	}

@@ -54,7 +54,7 @@ public class TestTimerLoadExhaustedCron {
 		dbConf.setDatabaseUrl("timer_load_exhausted_cron_" + ServerId);
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		conf.setTakeoverMode("off");
-		app = new Application("TestFnd14Comp01", conf);
+		app = new Application("TestTimerLoadExhaustedCron", conf);
 		timer = new TakeoverTestEnv.AccessibleTimer(new AppBase() {
 			@Override
 			public Application getZeze() {
@@ -90,7 +90,7 @@ public class TestTimerLoadExhaustedCron {
 							.missfirePolicy(AbstractTimer.eMissfirePolicyNothing),
 					NoopHandle.class, null);
 			return Procedure.Success;
-		}, "TestFnd14Comp01.schedule").call();
+		}, "TestTimerLoadExhaustedCron.schedule").call();
 		assertEquals(Procedure.Success, rc);
 		var timerId = timerIdHolder[0];
 
@@ -104,7 +104,7 @@ public class TestTimerLoadExhaustedCron {
 			cronTimer.setCronExpression("0 0 0 1 1 ? 2020");
 			cronTimer.setNextExpectedTime(System.currentTimeMillis() - 60_000);
 			return Procedure.Success;
-		}, "TestFnd14Comp01.surgery").call();
+		}, "TestTimerLoadExhaustedCron.surgery").call();
 		assertEquals(Procedure.Success, rc);
 
 		// 重启Timer：loadTimer发现missfire（Nothing分支）→cronNextTime对耗尽表达式抛IAE
@@ -121,7 +121,7 @@ public class TestTimerLoadExhaustedCron {
 			assertTrue(node != null, "node行仍在");
 			removedHolder[0] = !node.getTimers().containsKey(timerId);
 			return Procedure.Success;
-		}, "TestFnd14Comp01.verify").call();
+		}, "TestTimerLoadExhaustedCron.verify").call();
 		assertEquals(Procedure.Success, rc);
 		assertTrue(removedHolder[0], "耗尽cron行必须在装载路径被摘除（修复前IAE冲出catch，死行永久残留）");
 	}

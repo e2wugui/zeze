@@ -20,7 +20,7 @@ public class TestRaftConfigBackgroundApplyVerify {
 	private static String xml(String extra) {
 		return """
 				<?xml version="1.0" encoding="utf-8"?>
-				<raft Name="fnd5_14_verify"%s>
+				<raft Name="bg-apply-verify"%s>
 				<node Host="127.0.0.1" Port="23001"/>
 				<node Host="127.0.0.1" Port="23002"/>
 				<node Host="127.0.0.1" Port="23003"/>

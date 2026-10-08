@@ -24,7 +24,7 @@ public class TestCacheGetNullLoader {
 	public void testGetNullLoaderReturnsNullNotSentinel() throws Exception {
 		Task.tryInitThreadPool();
 
-		var name = "TestCache.Fnd14Util01";
+		var name = "TestCache.NullLoader";
 		var cache = new Cache(name, 10, id -> null, (id, bb) -> null);
 		try {
 			// 修复前红：首次get返回NullCache实例（非null），调用方把哨兵当有效CacheObject使用
@@ -44,7 +44,7 @@ public class TestCacheGetNullLoader {
 	public void testDecoderNullAndValidLoaderPaths() throws Exception {
 		Task.tryInitThreadPool();
 
-		var name = "TestCache.Fnd14Util01b";
+		var name = "TestCache.NullLoaderB";
 		// 有效数据路径不受翻译影响：loader返回有效对象原样返回并入库
 		var cache2 = new Cache(name, 10, TestCacheGetNullLoader::newStub, (id, bb) -> null);
 		try {

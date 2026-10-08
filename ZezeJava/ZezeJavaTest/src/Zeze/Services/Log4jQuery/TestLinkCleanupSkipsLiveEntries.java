@@ -56,7 +56,7 @@ public class TestLinkCleanupSkipsLiveEntries {
 
 	@Test
 	public void testRotationKeepsLiveIndexLinks() throws Exception {
-		var logDir = Files.createTempDirectory("fnd22-gdc03-links");
+		var logDir = Files.createTempDirectory("linkcleanup-links");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
@@ -118,7 +118,7 @@ public class TestLinkCleanupSkipsLiveEntries {
 	 */
 	@Test
 	public void testStaleLinksStillCleaned() throws Exception {
-		var logDir = Files.createTempDirectory("fnd22-gdc03-stale");
+		var logDir = Files.createTempDirectory("linkcleanup-stale");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 2).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {

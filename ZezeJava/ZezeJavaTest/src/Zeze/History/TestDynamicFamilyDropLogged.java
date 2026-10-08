@@ -58,7 +58,7 @@ public class TestDynamicFamilyDropLogged {
 		final List<LogEvent> events = new ArrayList<>();
 
 		CapturingAppender() {
-			super("a3Fnd830Capture", null, null, true, Property.EMPTY_ARRAY);
+			super("DynamicFamilyDropCapture", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

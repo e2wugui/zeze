@@ -73,7 +73,7 @@ public class TestLocalCommitRecordLifecycle {
 
 			// === GA-C07：save/get往返与"不存在→null" ===
 			var operates = env.database.getDirectOperates();
-			var gkey = ByteBuffer.Wrap("fnd19ga07key".getBytes());
+			var gkey = ByteBuffer.Wrap("localCommitKey".getBytes());
 			KV<Long, Boolean> saved = operates.saveDataWithSameVersion(gkey, ByteBuffer.Wrap(new byte[]{1, 2}), 0);
 			Assertions.assertTrue(saved.getValue());
 			var loaded = operates.getDataWithVersion(gkey);

@@ -40,7 +40,7 @@ public class TestResetStash {
 
 	@Test
 	public void testResetDropsPrefetchedStash() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-reset-stash");
+		var logDir = Files.createTempDirectory("reset-stash");
 		var times = new long[5];
 		var manager = newManager(logDir, times);
 		try {

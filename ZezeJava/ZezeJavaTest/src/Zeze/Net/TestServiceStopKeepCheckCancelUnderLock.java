@@ -37,7 +37,7 @@ public class TestServiceStopKeepCheckCancelUnderLock {
 		final CountDownLatch proceedToLock = new CountDownLatch(1);
 
 		ServiceEx() {
-			super("TestFnd7R3StopCancel", new Config());
+			super("StopCancelServer", new Config());
 			// keepCheck：period=1s，KeepRecvTimeout=1s（活跃时间1秒即超时触发onKeepAliveTimeout）
 			var opt = getConfig().getHandshakeOptions();
 			opt.setKeepCheckPeriod(1);
@@ -69,7 +69,7 @@ public class TestServiceStopKeepCheckCancelUnderLock {
 	public void testStopMustNotCancelKeepCheckTimerUnderServiceLock() throws Exception {
 		Task.tryInitThreadPool();
 		var server = new ServiceEx();
-		var client = new Service("TestFnd7R3StopCancelClient", new Config());
+		var client = new Service("StopCancelClient", new Config());
 		ExecutorService stopExecutor = null;
 		try {
 			int port;
@@ -88,7 +88,7 @@ public class TestServiceStopKeepCheckCancelUnderLock {
 
 			// 后台启动stop：缺陷形态——持Service锁到达cancel等TimerFuture锁（永久）；
 			// 修复形态——锁内段完成即解锁，cancel在锁外等TimerFuture锁。
-			stopExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "UnitTest.FND7R3.stop"));
+			stopExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "UnitTest.StopKeepCancel.stop"));
 			var stopFuture = stopExecutor.submit(() -> {
 				server.stop();
 				return null;
@@ -112,7 +112,7 @@ public class TestServiceStopKeepCheckCancelUnderLock {
 					client.stop();
 				} catch (Exception ignored) {
 				}
-			}, "UnitTest.FND7R3.cleanup");
+			}, "UnitTest.StopKeepCancel.cleanup");
 			cleanup.setDaemon(true);
 			cleanup.start();
 		}

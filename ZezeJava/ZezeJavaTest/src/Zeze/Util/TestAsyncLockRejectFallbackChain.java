@@ -60,7 +60,7 @@ public class TestAsyncLockRejectFallbackChain {
 					Thread.currentThread().interrupt();
 				}
 			});
-		}, "fnd804-holder");
+		}, "fallback-holder");
 		holder.setDaemon(true);
 		holder.start();
 		Assertions.assertTrue(holderInside.await(5, TimeUnit.SECONDS), "holder必须先占住派发权");
@@ -69,14 +69,14 @@ public class TestAsyncLockRejectFallbackChain {
 		var enqueuer2 = new Thread(() -> lock.enter(() -> {
 			cb2Order.set(order.incrementAndGet());
 			cb2Ran.countDown();
-		}), "fnd804-enqueuer2");
+		}), "fallback-enqueuer2");
 		enqueuer2.setDaemon(true);
 		enqueuer2.start();
 		enqueuer2.join(5000);
 		var enqueuer3 = new Thread(() -> lock.enter(() -> {
 			cb3Order.set(order.incrementAndGet());
 			cb3Ran.countDown();
-		}), "fnd804-enqueuer3");
+		}), "fallback-enqueuer3");
 		enqueuer3.setDaemon(true);
 		enqueuer3.start();
 		enqueuer3.join(5000);

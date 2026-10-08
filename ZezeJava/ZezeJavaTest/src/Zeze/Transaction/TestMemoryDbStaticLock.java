@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestMemoryDbStaticLock {
-	private static final String url = "t1_fnd703_memdb_static_lock";
+	private static final String url = "memdb_static_lock";
 
 	private static DatabaseMemory newDb() {
 		var conf = new Config.DatabaseConf();
@@ -56,7 +56,7 @@ public class TestMemoryDbStaticLock {
 			wl.lock();
 			final var saved = new CountDownLatch(1);
 			var ts = new Thread(() -> {
-				dbB.saveDataWithSameVersion(newBb("fnd703-s"), newBb("x"), 0);
+				dbB.saveDataWithSameVersion(newBb("memdb-s"), newBb("x"), 0);
 				saved.countDown();
 			});
 			ts.start();
@@ -84,7 +84,7 @@ public class TestMemoryDbStaticLock {
 			dbB.close();
 			// 不调用DatabaseMemory.clear()（R2-T复审）：clear是JVM级全局静态清空，@Fast套件8路
 			// 类级并行下会波及同JVM其他正在使用Memory库的测试（先例fd334d7f8/a7450912c）。
-			// 本测试独占URL分区"t1_fnd703_memdb_static_lock"，两方法的键空间互不相交
+			// 本测试独占URL分区"memdb_static_lock"，两方法的键空间互不相交
 			// （zeze.Schemas.V4.0/fnd703-s vs fnd703-k0..31），残留互不可见，无需全局清空。
 		}
 	}
@@ -98,7 +98,7 @@ public class TestMemoryDbStaticLock {
 			// 预建条目（version=0），此后每轮两实例并发以当前版本CAS，恰好一个赢家。
 			var keyList = new ArrayList<ByteBuffer>();
 			for (var k = 0; k < keys; k++)
-				keyList.add(newBb("fnd703-k" + k));
+				keyList.add(newBb("memdb-k" + k));
 			for (var key : keyList)
 				dbA.saveDataWithSameVersion(key, newBb("init"), 0);
 

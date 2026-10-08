@@ -31,18 +31,18 @@ import org.junit.jupiter.api.io.TempDir;
  */
 @Fast
 public class TestInstallRollbackResidue {
-	private static final String NS = "fnd16hot1.A1";
-	private static final String MODULE_CLASS = "fnd16hot1.A1.ModuleA1";
+	private static final String NS = "hotrollback.A1";
+	private static final String MODULE_CLASS = "hotrollback.A1.ModuleA1";
 
 	private static final String MODULE_SRC = """
-			package fnd16hot1.A1;
+			package hotrollback.A1;
 			public class ModuleA1 implements Zeze.IModule {
 			    public static final int ModuleId = 18791;
 			    public ModuleA1(Zeze.AppBase app) {
 			    }
 			    @Override
 			    public String getFullName() {
-			        return "fnd16hot1.A1";
+			        return "hotrollback.A1";
 			    }
 			    @Override
 			    public String getName() {
@@ -65,7 +65,7 @@ public class TestInstallRollbackResidue {
 		var config = new Config();
 		config.setServiceManager("disable");
 		config.setNoDatabase(true);
-		var app = new Application("fnd16hot1", config);
+		var app = new Application("hotrollback", config);
 		dummyApp = new AppBase() {
 			@Override
 			public Application getZeze() {
@@ -93,9 +93,9 @@ public class TestInstallRollbackResidue {
 			var moduleBytes = compiler.compileAllToByteCode(Map.of(MODULE_CLASS, MODULE_SRC)).get(MODULE_CLASS);
 			Assertions.assertNotNull(moduleBytes, "模块类必须编译成功");
 			writeJar(distributeDir.resolve(NS + ".interface.jar"), Map.of()); // putJar 需合法 zip
-			writeJar(distributeDir.resolve(NS + ".jar"), Map.of("fnd16hot1/A1/ModuleA1.class", moduleBytes));
+			writeJar(distributeDir.resolve(NS + ".jar"), Map.of("hotrollback/A1/ModuleA1.class", moduleBytes));
 
-			var txn = new HotTransaction("test-fnd16-hot01");
+			var txn = new HotTransaction("test-install-rollback");
 			var install = HotManager.class.getDeclaredMethod("_install", String.class, HotTransaction.class);
 			install.setAccessible(true);
 			install.invoke(manager, NS, txn);

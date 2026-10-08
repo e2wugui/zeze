@@ -50,7 +50,7 @@ public class TestResetSameBeginTimeRelocates {
 	 */
 	@Test
 	public void testResetRefreshKeepsBeginTimeWindow() throws Exception {
-		var logDir = Files.createTempDirectory("fnd22-gdc01-reset");
+		var logDir = Files.createTempDirectory("reset-relocate");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(Base, "L", 5).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
@@ -83,7 +83,7 @@ public class TestResetSameBeginTimeRelocates {
 	 */
 	@Test
 	public void testBeginTimeMinusOneAndPaginationUnchanged() throws Exception {
-		var logDir = Files.createTempDirectory("fnd22-gdc01-compat");
+		var logDir = Files.createTempDirectory("reset-compat");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(Base, "L", 5).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {

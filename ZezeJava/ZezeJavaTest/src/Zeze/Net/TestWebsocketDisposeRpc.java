@@ -81,7 +81,7 @@ public class TestWebsocketDisposeRpc {
 		var netty = new Netty(1);
 		var server = new HttpServer();
 		try {
-			var serverService = new DisposeCountService("test.fnd844.server");
+			var serverService = new DisposeCountService("ws-dispose.server");
 			var rpc = new NoReplyRpc();
 			serverService.AddFactoryHandle(rpc.getTypeId(), new Service.ProtocolFactoryHandle<>(
 					NoReplyRpc::new, r -> {
@@ -94,7 +94,7 @@ public class TestWebsocketDisposeRpc {
 			handle.start();
 			var port = ((InetSocketAddress)server.start(netty, 0).sync().channel().localAddress()).getPort();
 
-			var clientService = new DisposeCountService("test.fnd844.client");
+			var clientService = new DisposeCountService("ws-dispose.client");
 			var connector = new Connector(true, "ws://127.0.0.1:" + port + "/ws");
 			connector.SetService(clientService);
 			try {
@@ -140,7 +140,7 @@ public class TestWebsocketDisposeRpc {
 		var netty = new Netty(1);
 		var server = new HttpServer();
 		try {
-			var wsService = new DisposeCountService("test.fnd844.wsserver");
+			var wsService = new DisposeCountService("ws-dispose.wsserver");
 			var handle = new WebsocketHandle("/ws", server);
 			handle.setService(wsService);
 			handle.start();

@@ -16,10 +16,10 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestInMemoryCompilerRedefine {
 
-	private static final String CLASS_A = "a1_fnd811.A811";
+	private static final String CLASS_A = "memcompile.CompA";
 	private static final String SRC_A = """
-			package a1_fnd811;
-			public class A811 {
+			package memcompile;
+			public class CompA {
 			    public int f() { return 42; }
 			}
 			""";
@@ -63,17 +63,17 @@ public class TestInMemoryCompilerRedefine {
 	@Test
 	public void testBatchRejectedIfAnyDefined() throws Exception {
 		var compiler = new InMemoryJavaCompiler();
-		var srcB = "package a1_fnd811;\npublic class B811 { public int g() { return 7; } }\n";
-		compiler.compileAllToByteCode(Map.of("a1_fnd811.B811", srcB));
-		compiler.defineCompiled("a1_fnd811.B811");
+		var srcB = "package memcompile;\npublic class CompB { public int g() { return 7; } }\n";
+		compiler.compileAllToByteCode(Map.of("memcompile.CompB", srcB));
+		compiler.defineCompiled("memcompile.CompB");
 
 		// 批次含已define名字：入口fail-fast（修复前：LinkageError或静默错配）
 		Assertions.assertThrows(IllegalStateException.class,
-				() -> compiler.compileAllToByteCode(Map.of("a1_fnd811.C811", SRC_A.replace("A811", "C811"),
-						"a1_fnd811.B811", srcB)));
+				() -> compiler.compileAllToByteCode(Map.of("memcompile.CompC", SRC_A.replace("CompA", "CompC"),
+						"memcompile.CompB", srcB)));
 
 		// 纯新名字批次照常成功
-		var result = compiler.compileAllToByteCode(Map.of("a1_fnd811.D811", SRC_A.replace("A811", "D811")));
-		Assertions.assertNotNull(result.get("a1_fnd811.D811"));
+		var result = compiler.compileAllToByteCode(Map.of("memcompile.CompD", SRC_A.replace("CompA", "CompD")));
+		Assertions.assertNotNull(result.get("memcompile.CompD"));
 	}
 }

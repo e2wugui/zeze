@@ -54,7 +54,7 @@ public class TestDeadlockBreaker {
 			var lockB = new FastLock();
 			var bothHoldFirst = new CountDownLatch(2);
 			var interrupted = new AtomicInteger();
-			var vt1 = Thread.ofVirtual().name("fnd770-vt1").start(() -> {
+			var vt1 = Thread.ofVirtual().name("deadlock-vt1").start(() -> {
 				lockA.lock();
 				try {
 					bothHoldFirst.countDown();
@@ -67,7 +67,7 @@ public class TestDeadlockBreaker {
 					lockA.unlock();
 				}
 			});
-			var vt2 = Thread.ofVirtual().name("fnd770-vt2").start(() -> {
+			var vt2 = Thread.ofVirtual().name("deadlock-vt2").start(() -> {
 				lockB.lock();
 				try {
 					bothHoldFirst.countDown();
@@ -127,7 +127,7 @@ public class TestDeadlockBreaker {
 		var o1 = new Object();
 		var o2 = new Object();
 		var bothHoldFirst = new CountDownLatch(2);
-		var p1 = Thread.ofPlatform().daemon().name("fnd770-p1").start(() -> {
+		var p1 = Thread.ofPlatform().daemon().name("deadlock-p1").start(() -> {
 			synchronized (o1) {
 				bothHoldFirst.countDown();
 				try {
@@ -138,7 +138,7 @@ public class TestDeadlockBreaker {
 				}
 			}
 		});
-		var p2 = Thread.ofPlatform().daemon().name("fnd770-p2").start(() -> {
+		var p2 = Thread.ofPlatform().daemon().name("deadlock-p2").start(() -> {
 			synchronized (o2) {
 				bothHoldFirst.countDown();
 				try {
@@ -186,7 +186,7 @@ public class TestDeadlockBreaker {
 		var bHolds = new CountDownLatch(1);
 		var cHolds = new CountDownLatch(1);
 		var releaseC = new CountDownLatch(1);
-		var a = Thread.ofPlatform().daemon().name("fnd770-chain-a").start(() -> {
+		var a = Thread.ofPlatform().daemon().name("deadlock-chain-a").start(() -> {
 			lock1.lock(); // 快路径无竞争获取，不上登记表
 			try {
 				aHolds.countDown();
@@ -198,7 +198,7 @@ public class TestDeadlockBreaker {
 				lock1.unlock();
 			}
 		});
-		var b = Thread.ofPlatform().daemon().name("fnd770-chain-b").start(() -> {
+		var b = Thread.ofPlatform().daemon().name("deadlock-chain-b").start(() -> {
 			lock2.lock();
 			try {
 				bHolds.countDown();
@@ -210,7 +210,7 @@ public class TestDeadlockBreaker {
 				lock2.unlock();
 			}
 		});
-		var c = Thread.ofPlatform().daemon().name("fnd770-chain-c").start(() -> {
+		var c = Thread.ofPlatform().daemon().name("deadlock-chain-c").start(() -> {
 			lock3.lock();
 			try {
 				cHolds.countDown();
@@ -253,7 +253,7 @@ public class TestDeadlockBreaker {
 		var lockA = new FastLock();
 		var lockB = new FastLock();
 		var bothHoldFirst = new CountDownLatch(2);
-		var p1 = Thread.ofPlatform().daemon().name("fnd770-pf1").start(() -> {
+		var p1 = Thread.ofPlatform().daemon().name("deadlock-pf1").start(() -> {
 			lockA.lock(); // 快路径获取（owner已在CAS路径维护，供ownable-synchronizer死锁检测）
 			try {
 				bothHoldFirst.countDown();
@@ -265,7 +265,7 @@ public class TestDeadlockBreaker {
 				lockA.unlock();
 			}
 		});
-		var p2 = Thread.ofPlatform().daemon().name("fnd770-pf2").start(() -> {
+		var p2 = Thread.ofPlatform().daemon().name("deadlock-pf2").start(() -> {
 			lockB.lock();
 			try {
 				bothHoldFirst.countDown();
@@ -299,7 +299,7 @@ public class TestDeadlockBreaker {
 		private final List<LogEvent> events = new CopyOnWriteArrayList<>();
 
 		private RecordingAppender() {
-			super("fnd770-recorder", null, null, true, Property.EMPTY_ARRAY);
+			super("deadlock-recorder", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

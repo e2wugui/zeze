@@ -44,8 +44,8 @@ import harness.Fast;
  */
 @Fast
 public class TestRaftUniqueNamesLimit {
-	private static final String RAFT_NAME = "fnd15svc01r_sm_test";
-	private static final String SESSION_NAME = "UnitTest.Fnd15Svc01R.Agent";
+	private static final String RAFT_NAME = "raft_unique_names_test";
+	private static final String SESSION_NAME = "UnitTest.RaftUniqueNames.Agent";
 
 	private static final int[] ports = new int[3];
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
@@ -211,7 +211,7 @@ public class TestRaftUniqueNamesLimit {
 					autoKeyField.get(servers.get(rocksList.indexOf(rocks)));
 			try {
 				rocks.newProcedure(() -> {
-					table.put("UnitTest.Fnd15Svc01R.WarmUp", new Zeze.Builtin.ServiceManagerWithRaft.BAutoKey());
+					table.put("UnitTest.RaftUniqueNames.WarmUp", new Zeze.Builtin.ServiceManagerWithRaft.BAutoKey());
 					return 0L;
 				}).call();
 			} catch (Throwable ex) {
@@ -297,14 +297,14 @@ public class TestRaftUniqueNamesLimit {
 		// put无效化，warmup只为触发append全发；不依赖该行为细节，数行补满对warmup占行与否免疫）。
 		var rows = countAutoKeyRows();
 		for (int i = 0; i < max - rows; i++)
-			allocate("fnd15svc01r-name-" + i, 1);
+			allocate("raftnames-name-" + i, 1);
 		Assertions.assertEquals(max, countAutoKeyRows(), "填满后表行数必须恰好达到上限");
 
 		// 第MAX+1个唯一名：拒绝（ErrorRequestId；raft无逐出，超限即拒绝）。
 		// -15（漂移）重试后仍必须是确定性的-13。
 		long lastCode = Long.MIN_VALUE;
 		for (int attempt = 1; attempt <= 12; ++attempt) {
-			lastCode = allocateOnce("fnd15svc01r-overflow", 1);
+			lastCode = allocateOnce("raftnames-overflow", 1);
 			if (lastCode != -15)
 				break;
 			//noinspection BusyWait

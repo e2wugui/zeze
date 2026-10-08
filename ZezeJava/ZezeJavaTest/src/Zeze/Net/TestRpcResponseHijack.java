@@ -26,7 +26,7 @@ public class TestRpcResponseHijack {
 	@BeforeAll
 	public static void setUp() {
 		// 不 start：纯 rpcContexts 会合逻辑，不起任何网络。
-		service = new Service("TestFnd16Net01", new Config());
+		service = new Service("TestRpcHijack", new Config());
 	}
 
 	@Test

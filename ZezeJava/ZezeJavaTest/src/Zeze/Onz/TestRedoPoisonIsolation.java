@@ -28,7 +28,7 @@ import static Zeze.Onz.GcOnzE2eTestSupport.*;
 public class TestRedoPoisonIsolation {
 	// 过程名必须全JVM唯一：demo.App单例的Onz注册表跨测试类持久。
 	private static final AtomicBoolean registeredOnAppInstance = new AtomicBoolean();
-	private static final String SagaName = "fnd19c2SagaPoison";
+	private static final String SagaName = "redoPoisonSaga";
 
 	// 迭代序（key字节序）：毒记录1 < 有效记录 < 毒记录2——毒记录之前与之后的有效决策都必须被处理。
 	private static final long PoisonMissingTid = 0x5CA1BEEF00000311L; // 索引有条目、点表无 → requireNonNull NPE

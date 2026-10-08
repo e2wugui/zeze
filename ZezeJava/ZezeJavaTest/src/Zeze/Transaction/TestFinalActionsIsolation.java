@@ -28,7 +28,7 @@ public class TestFinalActionsIsolation {
 		conf.setServerId(nextServerId.getAndIncrement());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("t1_fnd702_finalactions_" + conf.getServerId());
+		dbConf.setDatabaseUrl("finalactions_" + conf.getServerId());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		return new Application("TestFinalActionsIsolation@" + conf.getServerId(), conf);
 	}
@@ -51,7 +51,7 @@ public class TestFinalActionsIsolation {
 				Transaction.whileCommit(ran::incrementAndGet);
 				table.put(1L, new demo.Bean1());
 				return 0L;
-			}, "TestFnd702.commit")).call();
+			}, "FinalActions.commit")).call();
 			Assertions.assertEquals(0L, rc);
 			Assertions.assertEquals(2, ran.get(), "抛错的logAction不得吞掉后续logAction与whileCommit回调");
 		} finally {
@@ -76,7 +76,7 @@ public class TestFinalActionsIsolation {
 				Transaction.whileRollback(ran::incrementAndGet);
 				table.put(2L, new demo.Bean1());
 				return 1L; // 非0：rollback → finalRollback
-			}, "TestFnd702.rollback")).call();
+			}, "FinalActions.rollback")).call();
 			Assertions.assertEquals(1L, rc);
 			Assertions.assertEquals(2, ran.get(), "抛错的logAction不得吞掉后续logAction与whileRollback回调");
 		} finally {

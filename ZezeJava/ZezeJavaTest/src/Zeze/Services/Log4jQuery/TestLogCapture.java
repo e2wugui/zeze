@@ -53,7 +53,7 @@ final class TestLogCapture implements AutoCloseable {
 		private final List<String> messages = new CopyOnWriteArrayList<>();
 
 		CaptureAppender() {
-			super("fnd22-capture", null, null, true, Property.EMPTY_ARRAY);
+			super("log-capture", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

@@ -44,7 +44,7 @@ public class TestSeekBeyondIndexEndReturnsLastOffset {
 
 	@Test
 	public void testTailSeekStartsFromLastIndexRecord() throws Exception {
-		var logDir = Files.createTempDirectory("fnd22-gdc02-tail");
+		var logDir = Files.createTempDirectory("seek-tail");
 		try {
 			var logFile = logDir.resolve("zeze.log");
 			Files.write(logFile, buildLines(Lines).getBytes(StandardCharsets.UTF_8));
@@ -84,7 +84,7 @@ public class TestSeekBeyondIndexEndReturnsLastOffset {
 	 */
 	@Test
 	public void testTailSeekResultsMatchFullScan() throws Exception {
-		var logDir = Files.createTempDirectory("fnd22-gdc02-match");
+		var logDir = Files.createTempDirectory("seek-match");
 		try {
 			var logFile = logDir.resolve("zeze.log");
 			Files.write(logFile, buildLines(Lines).getBytes(StandardCharsets.UTF_8));

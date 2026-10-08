@@ -98,8 +98,8 @@ public class TestConnectorConnectedOwnerCheck {
 	@Test
 	public void testStaleConnectedAfterStopRejected() throws Exception {
 		Task.tryInitThreadPool();
-		var server = new Service("test.fnd852.server");
-		var client = new GatedResolveService("test.fnd852.client");
+		var server = new Service("owner-check.server");
+		var client = new GatedResolveService("owner-check.client");
 		Connector connector = null;
 		try {
 			var listen = (TcpSocket)server.newServerSocket("127.0.0.1", 0, null);
@@ -138,8 +138,8 @@ public class TestConnectorConnectedOwnerCheck {
 	@Test
 	public void testOwnerSocketConnectedAccepted() throws Exception {
 		Task.tryInitThreadPool();
-		var server = new Service("test.fnd852.b.server");
-		var client = new Service("test.fnd852.b.client");
+		var server = new Service("owner-check.b.server");
+		var client = new Service("owner-check.b.client");
 		Connector connector = null;
 		try {
 			var listen = (TcpSocket)server.newServerSocket("127.0.0.1", 0, null);

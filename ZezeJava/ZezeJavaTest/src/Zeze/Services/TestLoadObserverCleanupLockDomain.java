@@ -39,7 +39,7 @@ public class TestLoadObserverCleanupLockDomain {
 		final String rowKey = "127.0.0.1_" + passivePort;
 		Files.createDirectories(Path.of("autokeys"));
 
-		var sm = new ServiceManagerServer(null, port, new Config(), "autokeys/fnd5-30");
+		var sm = new ServiceManagerServer(null, port, new Config(), "autokeys/load-observer");
 		Agent subscriber = null;
 		Agent provider = null;
 		try {
@@ -57,8 +57,8 @@ public class TestLoadObserverCleanupLockDomain {
 			provider.waitReady();
 
 			// 提供者注册（passive地址非空）→ 订阅者订阅 → 服务端把订阅者登记为该地址的观察者。
-			provider.registerService(new BServiceInfo("Fnd5LoadProvider", "1", 0, "127.0.0.1", passivePort));
-			subscriber.subscribeService(new BSubscribeInfo("Fnd5LoadProvider"));
+			provider.registerService(new BServiceInfo("LoadProvider", "1", 0, "127.0.0.1", passivePort));
+			subscriber.subscribeService(new BSubscribeInfo("LoadProvider"));
 
 			@SuppressWarnings("unchecked")
 			var loads = (ConcurrentHashMap<String, ?>)field(sm, "loads");

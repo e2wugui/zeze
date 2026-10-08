@@ -45,7 +45,7 @@ public class TestSplitBucketIdempotentResume {
 
 	@Test
 	public void testExistBucketReturnedIdempotently() throws Exception {
-		var home = "testFnd19GA04Resume";
+		var home = "testSplitResume";
 		LogSequence.deleteDirectory(new File(home));
 		var master = new Master(home, new Config());
 		var db = new MasterDatabase(master, "db1");

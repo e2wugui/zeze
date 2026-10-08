@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestVerifyBatchRcLogged extends AppBase {
 	// 独占号段7321+：与TestFnd732b(7341+)并行时不再同CWD撞zeze_cache_N（FND8-26目录锁后必炸，同a8a47296f型）
 	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_VERIFY_BATCH_RC_LOGGED);
-	private static final String ACCOUNT = "fnd732_acc";
+	private static final String ACCOUNT = "verify_rc_acc";
 	private static final long FAIL_RC = 7L;
 
 	private Application zeze;
@@ -84,7 +84,7 @@ public class TestVerifyBatchRcLogged extends AppBase {
 		conf.setServerId(NextId.incrementAndGet());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("fnd7_32_test_" + conf.getServerId()); // Memory库，独立url=独立存储
+		dbConf.setDatabaseUrl("verify_rc_test_" + conf.getServerId()); // Memory库，独立url=独立存储
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		zeze = new Application("TestVerifyBatchRcLogged" + conf.getServerId(), conf);
 		new ProviderApp(zeze); // 哑构造，供Online装配

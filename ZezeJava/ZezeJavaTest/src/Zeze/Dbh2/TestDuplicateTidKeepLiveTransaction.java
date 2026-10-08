@@ -28,7 +28,7 @@ public class TestDuplicateTidKeepLiveTransaction {
 	@Test
 	public void testDuplicateTidKeepsLiveTransaction(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
-		var database = new RocksDatabase(tempDir.resolve("fnd19ga01").toString());
+		var database = new RocksDatabase(tempDir.resolve("duplicate_tid").toString());
 		var raftConfig = """
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">

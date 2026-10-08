@@ -73,7 +73,7 @@ public class TestManagerManagementDrain {
 			} catch (Throwable e) {
 				failure.set(e);
 			}
-		}, "fnd20-gbc02-stopper");
+		}, "mgmt-drain-stopper");
 		stopper.start();
 		Thread.sleep(500); // 修复形态停靠在 tryLock（预算25s）；旧代码毫秒级走完 queue.close+关库
 		Assertions.assertFalse(manager.getRocksDatabase().isClosed(),
@@ -109,7 +109,7 @@ public class TestManagerManagementDrain {
 				} catch (Throwable e) {
 					createFailure.set(e);
 				}
-			}, "fnd20-gbc02-creator");
+			}, "mgmt-drain-creator");
 			creator.start();
 			awaitParked(creator);
 			setStopped(manager, true); // stop 最前置位（此刻 handler 在锁上等）

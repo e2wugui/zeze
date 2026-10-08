@@ -20,7 +20,7 @@ public class TestPersistentAtomicLongWrap {
 	@Test
 	public void testWrapPointNeverNegative() throws Exception {
 		// 预置水位 MAX-1=9223372036854775806：currentId=allocatedEnd=MAX-1
-		var name = "UnitTest.FND4_18.WrapTest";
+		var name = "UnitTest.AtomicLongWrap";
 		var fileName = name + ".zeze.pal";
 		var file = Path.of(fileName);
 		Files.deleteIfExists(file);

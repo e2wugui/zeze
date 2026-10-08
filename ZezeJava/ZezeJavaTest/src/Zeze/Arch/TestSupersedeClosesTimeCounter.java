@@ -39,7 +39,7 @@ public class TestSupersedeClosesTimeCounter {
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = ProviderDirectTestSupport.newAppWithFakeAgent("TestA2F3", conf);
 		// 订阅状态为空：setRelativeServiceReady的订阅循环不执行，直达supersede逻辑。
-		pds = new ProviderDirectService("a2f3pds", app);
+		pds = new ProviderDirectService("supersede_pds", app);
 	}
 
 	@AfterEach

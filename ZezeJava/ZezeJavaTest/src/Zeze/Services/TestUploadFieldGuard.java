@@ -26,7 +26,7 @@ import org.junit.jupiter.api.io.TempDir;
  */
 @Fast
 public class TestUploadFieldGuard {
-	private static final String TOKEN = "a5-fnd867-token";
+	private static final String TOKEN = "upload-guard-token";
 	private static Netty netty;
 	private static HttpServer server;
 	private static int port;
@@ -86,13 +86,13 @@ public class TestUploadFieldGuard {
 	@Test
 	public void testMalformedMultipartRejectedWith400() throws Exception {
 		// 形态一：表单完全没有目标字段（原NPE路径）
-		var boundary = "a5fnd867b1";
+		var boundary = "uploadBoundaryA";
 		var res = postMultipart(multipartTextOnly(boundary, "other", "x"), boundary);
 		Assertions.assertEquals(400, res.statusCode(), "缺字段必须400（原为无应答挂起+NPE）");
 		Assertions.assertTrue(res.body().contains("patch"), "应答携带字段名便于诊断: " + res.body());
 
 		// 形态二：目标字段是文本而非文件（原ClassCastException路径）
-		var boundary2 = "a5fnd867b2";
+		var boundary2 = "uploadBoundaryB";
 		res = postMultipart(multipartTextOnly(boundary2, "patch", "not-a-file"), boundary2);
 		Assertions.assertEquals(400, res.statusCode(), "同名文本字段必须400（原为无应答挂起+CCE）");
 		Assertions.assertTrue(res.body().contains("patch"), "应答携带字段名便于诊断: " + res.body());

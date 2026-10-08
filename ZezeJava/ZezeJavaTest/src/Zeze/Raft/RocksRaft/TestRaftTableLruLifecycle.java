@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestRaftTableLruLifecycle {
 	private static final String raftName = "127.0.0.1:17720";
 	private static final String dbHome = "TestRaftTableLruLifecycle.raft";
-	private static final String templateName = "tFnd736Lru";
+	private static final String templateName = "tLru";
 
 	// 最小bean：无变量，仅作缓存载体。
 	public static final class BEmptyBean extends Bean {

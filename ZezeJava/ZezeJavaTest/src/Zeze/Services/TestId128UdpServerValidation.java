@@ -30,7 +30,7 @@ import harness.Fast;
  */
 @Fast
 public class TestId128UdpServerValidation {
-	private static final String NAME = "UnitTest.FND2_S2_2.Validate";
+	private static final String NAME = "UnitTest.Id128UdpValidate";
 	private static Id128UdpServer server;
 	private static DatagramSocket client;
 	private static InetSocketAddress serverAddress;

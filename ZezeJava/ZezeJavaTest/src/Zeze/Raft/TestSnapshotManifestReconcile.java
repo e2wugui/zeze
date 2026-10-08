@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestSnapshotManifestReconcile {
 	private static final String raftName = "127.0.0.1:26370";
-	private static final String dbHome = "a3_TestFnd837SnapshotManifest.raft";
+	private static final String dbHome = "SnapshotManifest.raft";
 
 	private Raft raft;
 
@@ -38,7 +38,7 @@ public class TestSnapshotManifestReconcile {
 	private static RaftConfig newRaftConfig() {
 		return RaftConfig.loadFromString("""
 				<?xml version="1.0" encoding="utf-8"?>
-				<raft Name="127.0.0.1:26370" DbHome="a3_TestFnd837SnapshotManifest.raft">
+				<raft Name="127.0.0.1:26370" DbHome="SnapshotManifest.raft">
 					<node Host="127.0.0.1" Port="26370"/>
 					<node Host="127.0.0.1" Port="26371"/>
 					<node Host="127.0.0.1" Port="26372"/>
@@ -181,10 +181,10 @@ public class TestSnapshotManifestReconcile {
 
 	// 构造测试用快照zip（manifest为null时不含manifest entry）。
 	private static Path newZipWithManifest(Long manifest) throws Exception {
-		var zipPath = Files.createTempFile("a3_fnd837_snap", ".zip");
+		var zipPath = Files.createTempFile("snapshot-manifest-snap", ".zip");
 		Files.delete(zipPath); // 空文件不是合法zip，删除后由ZipFileSystem新建
 		try (var zipFs = FileSystems.newFileSystem(zipPath, Map.of("create", "true"))) {
-			Files.writeString(zipFs.getPath("placeholder"), "fnd837");
+			Files.writeString(zipFs.getPath("placeholder"), "manifest");
 			if (manifest != null)
 				Files.writeString(zipFs.getPath(LogSequence.snapshotManifestEntryName), Long.toString(manifest));
 		}

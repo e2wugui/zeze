@@ -42,7 +42,7 @@ import static Zeze.Onz.GcOnzE2eTestSupport.*;
 public class TestSagaTtlNotFound {
 	// 过程名必须全JVM唯一：demo.App单例的Onz注册表跨测试类持久。
 	private static final AtomicBoolean registeredOnAppInstance = new AtomicBoolean();
-	private static final String SagaName = "fnd19d4SagaTtl";
+	private static final String SagaName = "sagaTtlNotFound";
 
 	// 手动rpc伪造的tid（避开OnzServer.nextOnzTid的分配空间；与其他测试类的0x...02xx段错开）
 	private static final long TtlTid = 0x5CA1BEEF00000401L;

@@ -58,7 +58,7 @@ public class TestTimerCancelUnderLockDeadlock {
 			// 此刻tick体持TimerFuture锁停在releaseBody上（未取allocateLock）。
 			// 后台启动stop：缺陷形态下stop持allocateLock进入cancel等future.lock；
 			// 修复形态下stop在锁外cancel（同样等future.lock，但不持任何tick体需要的锁）。
-			stopExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "UnitTest.FND7R2.stop"));
+			stopExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "UnitTest.TimerCancelDeadlock.stop"));
 			var stopFuture = stopExecutor.submit(() -> {
 				lq.stop();
 				return null;
@@ -82,7 +82,7 @@ public class TestTimerCancelUnderLockDeadlock {
 					lq.stop();
 				} catch (Exception ignored) {
 				}
-			}, "UnitTest.FND7R2.cleanup");
+			}, "UnitTest.TimerCancelDeadlock.cleanup");
 			cleanup.setDaemon(true);
 			cleanup.start();
 		}

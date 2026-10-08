@@ -76,13 +76,13 @@ public class TestWebsocketKeepAlive {
 		var netty = new Netty(1);
 		var server = new HttpServer();
 		try {
-			var wsService = new EchoWsService("test.fnd763.echo");
+			var wsService = new EchoWsService("ws-keepalive.echo");
 			var handle = new WebsocketHandle("/ws", server);
 			handle.setService(wsService);
 			handle.start();
 			var port = ((InetSocketAddress)server.start(netty, 0).sync().channel().localAddress()).getPort();
 
-			var clientService = new EchoWsService("test.fnd763.client");
+			var clientService = new EchoWsService("ws-keepalive.client");
 			var connector = new Connector(true, "ws://127.0.0.1:" + port + "/ws");
 			connector.SetService(clientService);
 			try {
@@ -125,7 +125,7 @@ public class TestWebsocketKeepAlive {
 		server.setReadIdleTimeout(3600);
 		server.setWriteIdleTimeout(3600);
 		try {
-			var wsService = new EchoWsService("test.fnd763.idle");
+			var wsService = new EchoWsService("ws-keepalive.idle");
 			wsService.getConfig().getHandshakeOptions().setKeepCheckPeriod(1);
 			wsService.getConfig().getHandshakeOptions().setKeepRecvTimeout(2);
 			wsService.start();
@@ -229,7 +229,7 @@ public class TestWebsocketKeepAlive {
 	@Test
 	public void testCheckKeepAliveCoverageAndExemption() throws Exception {
 		Task.tryInitThreadPool();
-		var service = new ExposeAddSocketService("test.fnd763.filter");
+		var service = new ExposeAddSocketService("ws-keepalive.filter");
 		service.getConfig().getHandshakeOptions().setKeepCheckPeriod(1);
 		service.getConfig().getHandshakeOptions().setKeepRecvTimeout(1);
 		var managed = new StubSocket(service, true);

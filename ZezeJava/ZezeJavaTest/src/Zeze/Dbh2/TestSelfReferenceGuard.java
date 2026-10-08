@@ -79,7 +79,7 @@ public class TestSelfReferenceGuard {
 		volatile String replyRaftConfig = SOURCE_RAFT; // 默认自指形态
 
 		StubMasterService(int port) {
-			super("stubMasterFnd21GAD03", stubServerConfig(port));
+			super("stubMasterSelfReference", stubServerConfig(port));
 			setNoProcedure(true);
 
 			var fhCheck = new Zeze.Net.Service.ProtocolFactoryHandle<>(CheckFreeManager.class, CheckFreeManager.TypeId_);
@@ -126,7 +126,7 @@ public class TestSelfReferenceGuard {
 		var conf = new ServiceConf();
 		conf.addAcceptor(new Acceptor(port, "127.0.0.1"));
 		var config = new Config();
-		config.getServiceConfMap().put("stubMasterFnd21GAD03", conf);
+		config.getServiceConfMap().put("stubMasterSelfReference", conf);
 		return config;
 	}
 
@@ -155,7 +155,7 @@ public class TestSelfReferenceGuard {
 	}
 
 	private static Dbh2ManagerStub newStubbedManager(MasterAgent stubAgent) throws Exception {
-		var home = Files.createTempDirectory("fnd21gad03-manager");
+		var home = Files.createTempDirectory("self-reference-manager");
 		var xml = home.resolve("manager.xml");
 		Files.writeString(xml, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<zeze ServerId=\"883\"/>\n");
 		return new Dbh2ManagerStub(home, xml.toString(), stubAgent);

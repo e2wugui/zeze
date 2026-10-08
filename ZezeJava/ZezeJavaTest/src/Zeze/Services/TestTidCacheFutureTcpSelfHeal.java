@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @Fast
 public class TestTidCacheFutureTcpSelfHeal {
-	private static final String GLOBAL_NAME = "UnitTest.FND2_S2_4.TcpSelfHeal";
+	private static final String GLOBAL_NAME = "UnitTest.TidTcpSelfHeal";
 
 	@Test
 	public void testTcpPoisonSelfHeal() {

@@ -45,7 +45,7 @@ public class TestDatagramSocketCloseCreate {
 	@Test
 	public void testCreateAfterCloseRejected() throws Exception {
 		Task.tryInitThreadPool();
-		var service = new CloseRecordService("test.fnd853.a");
+		var service = new CloseRecordService("dgram-close.a");
 		try {
 			var socket = service.bindUdp(new InetSocketAddress(0));
 			var pre = socket.createSessionServer(
@@ -69,7 +69,7 @@ public class TestDatagramSocketCloseCreate {
 	@Test
 	public void testConcurrentCreateCloseNoLeakedSession() throws Exception {
 		Task.tryInitThreadPool();
-		var service = new CloseRecordService("test.fnd853.b");
+		var service = new CloseRecordService("dgram-close.b");
 		try {
 			for (int round = 0; round < 200; round++) {
 				final var tokenId = 1000 + round;
@@ -87,7 +87,7 @@ public class TestDatagramSocketCloseCreate {
 						failure.set(e); // close先置终态：合法拒绝
 					} catch (InterruptedException ignored) {
 					}
-				}, "fnd853-creator");
+				}, "dgram-close-creator");
 				creator.start();
 				barrier.countDown();
 				socket.close(); // 与createSession真并发

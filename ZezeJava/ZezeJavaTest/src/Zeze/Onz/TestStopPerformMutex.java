@@ -105,7 +105,7 @@ public class TestStopPerformMutex {
 				} catch (Throwable t) {
 					threadError.set(t); // perform 契约：不向调用方抛（catch 全兜底）
 				}
-			}, "fnd22gc01-performer");
+			}, "stopmutex-performer");
 			performer.start();
 			Assertions.assertTrue(started.await(10, TimeUnit.SECONDS), "perform 必须已进入业务窗口");
 
@@ -216,7 +216,7 @@ public class TestStopPerformMutex {
 		Files.createDirectories(Path.of("autokeys"));
 		deleteRecursively(Path.of("CommitOnzServer" + serverId));
 
-		var clusterXml = tempDir.resolve("fnd22gc-cluster-" + serverId + ".xml");
+		var clusterXml = tempDir.resolve("stopmutex-cluster-" + serverId + ".xml");
 		Files.writeString(clusterXml, """
 				<?xml version="1.0" encoding="utf-8"?>
 				<zeze ServerId="%d">
@@ -226,7 +226,7 @@ public class TestStopPerformMutex {
 				</zeze>
 				""".formatted(clusterServerId, smPort));
 
-		var sm = new ServiceManagerServer(null, smPort, new Config(), "autokeys/fnd22-gc-" + serverId);
+		var sm = new ServiceManagerServer(null, smPort, new Config(), "autokeys/stopmutex-" + serverId);
 		try {
 			var myConfig = new Config();
 			myConfig.setServerId(serverId);
@@ -234,7 +234,7 @@ public class TestStopPerformMutex {
 			sc.addConnector(new Connector("127.0.0.1", smPort, false));
 			myConfig.getServiceConfMap().put(Agent.defaultServiceName, sc);
 
-			var onzServer = new OnzServer("fnd22zeze" + serverId + "=" + clusterXml, myConfig);
+			var onzServer = new OnzServer("stopmutexZeze" + serverId + "=" + clusterXml, myConfig);
 			onzServer.start();
 			return new Fixture(sm, onzServer);
 		} catch (Throwable ex) {
@@ -261,7 +261,7 @@ public class TestStopPerformMutex {
 		final List<LogEvent> events = new ArrayList<>();
 
 		CapturingAppender() {
-			super("aFnd22GcC01Capture", null, null, true, Property.EMPTY_ARRAY);
+			super("StopPerformCapture", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

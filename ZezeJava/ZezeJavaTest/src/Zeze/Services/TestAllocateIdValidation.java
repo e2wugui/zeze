@@ -46,7 +46,7 @@ public class TestAllocateIdValidation {
 	public static void setUp() throws Exception {
 		Task.tryInitThreadPool();
 		Files.createDirectories(Path.of("autokeys")); // autokeys/已被gitignore；RocksDB需要父目录存在
-		sm = new ServiceManagerServer(null, PORT, new Zeze.Config(), "autokeys/fnd15-svc01");
+		sm = new ServiceManagerServer(null, PORT, new Zeze.Config(), "autokeys/allocvalid");
 	}
 
 	@AfterAll
@@ -96,18 +96,18 @@ public class TestAllocateIdValidation {
 	@Test
 	@Timeout(120)
 	public void testValidationReject() throws Exception {
-		var client = new Client("UnitTest.Fnd15Svc01.Client");
+		var client = new Client("UnitTest.AllocateIdValidation.Client");
 		try {
 			var sock = client.connect();
 			Assertions.assertEquals(Procedure.ErrorRequestId, alloc(sock, "fnd15svc01-count0", 0).getResultCode(),
 					"count=0必须拒绝");
 			Assertions.assertEquals(Procedure.ErrorRequestId,
-					alloc(sock, "fnd15svc01-countmax", Tid128Cache.ALLOCATE_COUNT_MAX + 1).getResultCode(),
+					alloc(sock, "allocvalid-countmax", Tid128Cache.ALLOCATE_COUNT_MAX + 1).getResultCode(),
 					"count超上限必须拒绝");
 			Assertions.assertEquals(Procedure.ErrorRequestId,
 					alloc(sock, "x".repeat(129), 1).getResultCode(), "name超128字节必须拒绝");
 
-			var ok = alloc(sock, "fnd15svc01-ok", 100);
+			var ok = alloc(sock, "allocvalid-ok", 100);
 			Assertions.assertEquals(0, ok.getResultCode(), "合法请求不受校验影响");
 			Assertions.assertEquals(100, ok.Result.getCount());
 			Assertions.assertTrue(ok.Result.getStartId() >= 1, "合法startId必须有效");
@@ -119,7 +119,7 @@ public class TestAllocateIdValidation {
 	@Test
 	@Timeout(180)
 	public void testUniqueNamesBoundedEvictNoDup() throws Exception {
-		var client = new Client("UnitTest.Fnd15Svc01.Client2");
+		var client = new Client("UnitTest.AllocateIdValidation.ClientB");
 		try {
 			var sock = client.connect();
 			var max = Id128UdpServer.MAX_UNIQUE_NAMES;
@@ -127,28 +127,28 @@ public class TestAllocateIdValidation {
 			// 填满上限：MAX个不同name全部成功，记录各自首次区间起点。
 			var firstStart = new HashMap<String, Long>();
 			for (int i = 0; i < max; i++) {
-				var name = "fnd15svc01-name-" + i;
+				var name = "allocvalid-name-" + i;
 				var rpc = alloc(sock, name, 1);
 				Assertions.assertEquals(0, rpc.getResultCode(), "填满阶段name必须全部成功: " + name);
 				firstStart.put(name, rpc.Result.getStartId());
 			}
 
 			// 满员自愈：新name触发逐出闲置（全部条目无并发持锁，逐出必然成功）腾位成功。
-			var overflow = alloc(sock, "fnd15svc01-overflow", 1);
+			var overflow = alloc(sock, "allocvalid-overflow", 1);
 			Assertions.assertEquals(0, overflow.getResultCode(), "满员后新name必须经逐出自愈成功");
 			Assertions.assertTrue(overflow.Result.getStartId() >= 1);
 
 			// 不重号不变式：全部name（含被逐出后重建的）再分配，新区间起点必须越过旧区间终点
 			//（未逐出的自然接续+1；被逐出的从持久max向前重置，跳号洞）。
 			for (int i = 0; i < max; i++) {
-				var name = "fnd15svc01-name-" + i;
+				var name = "allocvalid-name-" + i;
 				var rpc = alloc(sock, name, 1);
 				Assertions.assertEquals(0, rpc.getResultCode(), "既有name必须始终可用: " + name);
 				Assertions.assertTrue(rpc.Result.getStartId() >= firstStart.get(name) + 1,
 						"重分配不得重号: " + name + " first=" + firstStart.get(name)
 								+ " second=" + rpc.Result.getStartId());
 			}
-			var ov2 = alloc(sock, "fnd15svc01-overflow", 1);
+			var ov2 = alloc(sock, "allocvalid-overflow", 1);
 			Assertions.assertEquals(0, ov2.getResultCode());
 			Assertions.assertTrue(ov2.Result.getStartId() >= overflow.Result.getStartId() + 1,
 					"overflow重分配不得重号");

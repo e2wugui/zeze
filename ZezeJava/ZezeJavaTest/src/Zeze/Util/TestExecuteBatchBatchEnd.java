@@ -46,7 +46,7 @@ public class TestExecuteBatchBatchEnd {
 
 		@Override
 		public Runnable submit(Task task) {
-			throw new IllegalStateException("a1_fnd803 submit throw");
+			throw new IllegalStateException("batchEndFail submit throw");
 		}
 	}
 
@@ -60,7 +60,7 @@ public class TestExecuteBatchBatchEnd {
 		var ex = Assertions.assertThrows(IllegalStateException.class,
 				() -> rig.executeBatch(List.of(0L, 1L, 2L), (Action1<Long>)k -> actions.incrementAndGet(),
 						batchEnds::incrementAndGet, null));
-		Assertions.assertEquals("a1_fnd803 submit throw", ex.getMessage());
+		Assertions.assertEquals("batchEndFail submit throw", ex.getMessage());
 		Assertions.assertEquals(0, actions.get());
 		// 修复前红：计数悬挂，batchEnd永不执行
 		Assertions.assertEquals(1, batchEnds.get());
@@ -95,7 +95,7 @@ public class TestExecuteBatchBatchEnd {
 				if (dispatches.incrementAndGet() == 1)
 					r.run(); // 第一个key：内联驱动执行
 				else
-					throw new RejectedExecutionException("a1_fnd803 reject");
+					throw new RejectedExecutionException("batchEndFail reject");
 			}
 		};
 		var rig = new Rig(new TaskOneByOneQueue(executor), new TaskOneByOneQueue(executor),
@@ -119,7 +119,7 @@ public class TestExecuteBatchBatchEnd {
 			@Override
 			public void execute(Runnable r) {
 				if (dispatches.incrementAndGet() == 2)
-					throw new RejectedExecutionException("a1_fnd803 reject");
+					throw new RejectedExecutionException("batchEndFail reject");
 				r.run();
 			}
 		};

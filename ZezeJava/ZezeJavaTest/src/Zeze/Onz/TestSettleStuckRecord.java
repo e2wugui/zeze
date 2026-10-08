@@ -219,7 +219,7 @@ public class TestSettleStuckRecord {
 	 * waitZezeInstanceReady轮询等待。
 	 */
 	private static Service startRollbackStub() throws Exception {
-		var stub = new Service("Fnd20GcD01RollbackStub", new Config());
+		var stub = new Service("SettleStuckRollbackStub", new Config());
 		stub.AddFactoryHandle(Zeze.Builtin.Onz.Rollback.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.Rollback::new, r -> {
 					var rc = RollbackRc.get();

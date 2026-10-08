@@ -49,14 +49,14 @@ public class TestSocketDisposedFailsInflightRpc {
 		Task.tryInitThreadPool();
 		// 服务端：收满两个KeepAlive请求后踢连接（不发应答）——复现"被踢连接在途Rpc"场景。
 		var kickCount = new java.util.concurrent.atomic.AtomicInteger();
-		var server = new Service("TestFnd7R3KickServer", new Config());
+		var server = new Service("DisposeKickServer", new Config());
 		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(KeepAlive::new,
 				rpc -> {
 					if (kickCount.incrementAndGet() >= 2)
 						rpc.getSender().close(); // 模拟kick：两个请求都在途后不给应答直接断
 					return 0L;
 				}, TransactionLevel.None, DispatchMode.Direct));
-		var client = new Service("TestFnd7R3VictimClient", new Config());
+		var client = new Service("DisposeVictimClient", new Config());
 		// client侧也注册KeepAlive工厂：dispose失败派发handle需要factoryHandle（Level/Mode）。
 		client.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(KeepAlive::new,
 				null, TransactionLevel.None, DispatchMode.Direct));

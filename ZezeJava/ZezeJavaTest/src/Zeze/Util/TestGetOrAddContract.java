@@ -29,7 +29,7 @@ public class TestGetOrAddContract {
 	@SuppressWarnings("NullableProblems")
 	@Test
 	public void testNullFactoryFailsFastNoRegistration() {
-		var lru = new ConcurrentLruLike<String, String>("TestLru.Fnd15Util01Contract", 4);
+		var lru = new ConcurrentLruLike<String, String>("TestLru.GetOrAddContract", 4);
 		try {
 			Assertions.assertThrows(NullPointerException.class, () -> lru.getOrAdd("k", () -> null),
 					"null产出factory必须立即fail-fast");
@@ -45,7 +45,7 @@ public class TestGetOrAddContract {
 	public void testCacheDecoderNullResidentSentinel() throws Exception {
 		Task.tryInitThreadPool();
 
-		var name = "TestCache.Fnd15Util01";
+		var name = "TestCache.GetOrAdd";
 		// 先以有效loader播种RocksDB，重开后同一id走db命中+decoder路径
 		var seed = new Cache(name, 10, TestGetOrAddContract::newStub, (id, bb) -> null);
 		try {

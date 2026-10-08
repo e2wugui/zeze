@@ -45,7 +45,7 @@ public class TestRemoveServerConditionalRemove {
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = ProviderDirectTestSupport.newAppWithFakeAgent("TestA2F4", conf);
 
-		pds = new ProviderDirectService("a2f4pds", app);
+		pds = new ProviderDirectService("remove_server_pds", app);
 		pds.providerApp = new ProviderApp(app); // 轻量构造：removeServer仅使用providerApp.zeze
 
 		state = new Agent.SubscribeState(new BSubscribeInfo(SERVICE_NAME, 0));

@@ -42,10 +42,10 @@ public class TestCacheDirLock {
 	/** 同JVM同serverId第二实例：必须在deleteDirectory之前被锁拒绝（ISE即时失败），首实例不受影响。 */
 	@Test
 	public void testSameServerIdSecondAppFailsFast() throws Exception {
-		var app1 = new Application("Fnd826First", newConf());
+		var app1 = new Application("CacheDirFirst", newConf());
 		app1.start();
 		try {
-			var app2 = new Application("Fnd826Second", newConf());
+			var app2 = new Application("CacheDirSecond", newConf());
 			var ex = assertThrows(IllegalStateException.class, app2::start,
 					"同serverId第二实例必须在删目录前被锁拒绝（修复前deleteDirectory互删活跃目录）");
 			assertTrue(ex.getMessage().contains("serverId=" + SERVER_ID),
@@ -56,7 +56,7 @@ public class TestCacheDirLock {
 			}
 
 			// 首实例不受影响：目录未被误删，事务照常。
-			var rc = app1.newProcedure(() -> 0L, "Fnd826.StillAlive").call();
+			var rc = app1.newProcedure(() -> 0L, "CacheDirLock.StillAlive").call();
 			assertEquals(Procedure.Success, rc, "首实例必须不受第二实例启动尝试的影响");
 		} finally {
 			app1.stop();
@@ -66,12 +66,12 @@ public class TestCacheDirLock {
 	/** stop释放锁后：同serverId的新实例可以正常启动（锁随生命周期获取与释放）。 */
 	@Test
 	public void testLockReleasedAfterStopAllowsRestart() throws Exception {
-		var app1 = new Application("Fnd826RestartA", newConf());
+		var app1 = new Application("CacheDirRestartA", newConf());
 		app1.start();
 		app1.stop();
 
 		// 前一实例已停（锁释放+目录删除）：同serverId再启必须成功。
-		var app2 = new Application("Fnd826RestartB", newConf());
+		var app2 = new Application("CacheDirRestartB", newConf());
 		assertDoesNotThrow(app2::start, "锁释放后同serverId再启动不得被残留锁拒绝");
 		try {
 			assertEquals(Procedure.Success, app2.newProcedure(() -> 0L, "Fnd826.AfterRestart").call());

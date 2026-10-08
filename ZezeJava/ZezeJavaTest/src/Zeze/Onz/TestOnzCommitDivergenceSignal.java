@@ -54,7 +54,7 @@ public class TestOnzCommitDivergenceSignal {
 	public void testSentinelCommitAnswersDivergenceThenIdempotentZero() throws Exception {
 		var tid = 7001L;
 		var stub = new OnzProcedureStub<EmptyBean, EmptyBean>(
-				onz, "Fnd25Onz01." + tid, (p, a, r) -> 0L, EmptyBean.class, EmptyBean.class);
+				onz, "OnzDivergence." + tid, (p, a, r) -> 0L, EmptyBean.class, EmptyBean.class);
 		var funcArgument = new BFuncProcedure.Data();
 		funcArgument.setOnzTid(tid);
 		funcArgument.setFlushMode(AbstractOnz.eFlushAsync);

@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestPollutedRecordEviction {
 	private static final String raftName = "127.0.0.1:17690";
 	private static final String dbHome = "TestPollutedRecordEviction.raft";
-	private static final String templateName = "tFnd714Polluted";
+	private static final String templateName = "tPolluted";
 
 	// 含 CollList1 的最小bean（对齐TestFlushRetryApply的载体：增量日志OP_ADD按索引追加，
 	// 是污染叠加最直接的观测面）。

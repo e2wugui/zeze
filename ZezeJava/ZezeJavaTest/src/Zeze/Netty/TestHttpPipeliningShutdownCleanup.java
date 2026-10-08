@@ -84,7 +84,7 @@ public class TestHttpPipeliningShutdownCleanup {
 				var x2 = (HttpExchange)server.created.toArray()[2]; // 表内那个
 
 				// close会阻塞在waitComplete直到阻塞的handler返回，放后台线程
-				var closeThread = new Thread(server::close, "fnd7-27-close");
+				var closeThread = new Thread(server::close, "pipelining-close");
 				closeThread.start();
 				// r1的exchange此刻只可能由onCancel补偿关闭（它已被逐出表外，任务被shutdown丢弃，
 				// 同队列前序任务阻塞着不可能执行）——等补偿发生后再放行阻塞任务。

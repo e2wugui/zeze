@@ -30,7 +30,7 @@ public class TestFastRWLockReentrantDoc {
 			} finally {
 				lock.writeUnlock();
 			}
-		}, "fnd805-writer");
+		}, "rwlock-writer");
 		writer.setDaemon(true);
 		writer.start();
 

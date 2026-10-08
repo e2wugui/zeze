@@ -90,13 +90,13 @@ public class TestKeyExchangeClientAuth {
 		var clientKeys = genKeyPair(); // 攻击者自持密钥对
 		var serverPubKey = ((RSAKey)serverKeys.getPublic()).getModulus().toByteArray();
 
-		var server = new CloseCountService("TestFnd847.Server1");
+		var server = new CloseCountService("KeyExchange.Server1");
 		var knownMd5 = KeyExchange.getPubKeyMd5(((RSAKey)genKeyPair().getPublic()).getModulus().toByteArray());
 		KeyExchange.addHandler(server, serverKeys.getPrivate(),
 				pubKey -> Arrays.equals(KeyExchange.getPubKeyMd5(pubKey), knownMd5));
 		int port = startServer(server);
 
-		var client = new Service("TestFnd847.Client1");
+		var client = new Service("KeyExchange.Client1");
 		client.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,
 				r -> Procedure.Success, TransactionLevel.None, DispatchMode.Direct));
 		try {
@@ -122,11 +122,11 @@ public class TestKeyExchangeClientAuth {
 		var serverKeys = genKeyPair();
 		var serverPubKey = ((RSAKey)serverKeys.getPublic()).getModulus().toByteArray();
 
-		var server = new CloseCountService("TestFnd847.Server2");
+		var server = new CloseCountService("KeyExchange.Server2");
 		KeyExchange.addHandler(server, serverKeys.getPrivate(), pubKey -> true); // 全放行的acceptor
 		int port = startServer(server);
 
-		var client = new Service("TestFnd847.Client2");
+		var client = new Service("KeyExchange.Client2");
 		client.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,
 				r -> Procedure.Success, TransactionLevel.None, DispatchMode.Direct));
 		try {
@@ -152,14 +152,14 @@ public class TestKeyExchangeClientAuth {
 		var clientKeys = genKeyPair();
 		var serverPubKey = ((RSAKey)serverKeys.getPublic()).getModulus().toByteArray();
 
-		var server = new CloseCountService("TestFnd847.Server3");
+		var server = new CloseCountService("KeyExchange.Server3");
 		var knownN = ((RSAKey)clientKeys.getPublic()).getModulus().toByteArray(); // 可能带符号位前导0
 		var knownMd5 = KeyExchange.getPubKeyMd5(knownN); // 经前导零归一后的指纹
 		KeyExchange.addHandler(server, serverKeys.getPrivate(),
 				pubKey -> Arrays.equals(KeyExchange.getPubKeyMd5(pubKey), knownMd5));
 		int port = startServer(server);
 
-		var client = new Service("TestFnd847.Client3");
+		var client = new Service("KeyExchange.Client3");
 		client.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,
 				r -> Procedure.Success, TransactionLevel.None, DispatchMode.Direct));
 		try {
@@ -190,11 +190,11 @@ public class TestKeyExchangeClientAuth {
 		var attackerKeys = genKeyPair();
 		var serverPubKey = ((RSAKey)serverKeys.getPublic()).getModulus().toByteArray();
 
-		var server = new CloseCountService("TestFnd847.Server4");
+		var server = new CloseCountService("KeyExchange.Server4");
 		KeyExchange.addHandler(server, serverKeys.getPrivate()); // 旧签名
 		int port = startServer(server);
 
-		var client = new Service("TestFnd847.Client4");
+		var client = new Service("KeyExchange.Client4");
 		client.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,
 				r -> Procedure.Success, TransactionLevel.None, DispatchMode.Direct));
 		try {

@@ -90,16 +90,16 @@ public class TestSemaphoreCompensateGuard {
 	@Test
 	public void testHeldPermitsNotReleasedByCompensation() throws Exception {
 		Task.tryInitThreadPool();
-		var server = new ScriptedSemaphoreServer("TestFnd873GuardSrv1", 2); // 迟到应答=未发放
+		var server = new ScriptedSemaphoreServer("SemGuardSrvA", 2); // 迟到应答=未发放
 		int port = listenPort(server);
-		var client = new Service("TestFnd873GuardCli1");
+		var client = new Service("SemGuardCliA");
 		try {
 			client.newClientSocket("127.0.0.1", port, null, null);
 			await("client connected", 10_000, () -> client.GetSocket() != null);
 
 			var threading = new Threading(client, 61);
 			threading.RegisterProtocols(client);
-			var semaphore = threading.openSemaphore("a6.fnd873.hold");
+			var semaphore = threading.openSemaphore("semaphore.hold");
 			try {
 				Assertions.assertTrue(semaphore.tryAcquire(1, 0), "首次获取（立即成功应答）必须成功");
 				Assertions.assertFalse(semaphore.tryAcquire(1, 0), "迟到未发放应答下客户端按未获取处理");
@@ -128,16 +128,16 @@ public class TestSemaphoreCompensateGuard {
 	@Test
 	public void testZeroHoldStillCompensatesAfterRelease() throws Exception {
 		Task.tryInitThreadPool();
-		var server = new ScriptedSemaphoreServer("TestFnd873GuardSrv2", 0); // 迟到应答=已发放
+		var server = new ScriptedSemaphoreServer("SemGuardSrvB", 0); // 迟到应答=已发放
 		int port = listenPort(server);
-		var client = new Service("TestFnd873GuardCli2");
+		var client = new Service("SemGuardCliB");
 		try {
 			client.newClientSocket("127.0.0.1", port, null, null);
 			await("client connected", 10_000, () -> client.GetSocket() != null);
 
 			var threading = new Threading(client, 62);
 			threading.RegisterProtocols(client);
-			var semaphore = threading.openSemaphore("a6.fnd873.zero");
+			var semaphore = threading.openSemaphore("semaphore.zero");
 			try {
 				Assertions.assertTrue(semaphore.tryAcquire(1, 0), "首次获取（立即成功应答）必须成功");
 				semaphore.release(1); // 本地计数归零
@@ -147,7 +147,7 @@ public class TestSemaphoreCompensateGuard {
 				Assertions.assertFalse(semaphore.tryAcquire(2, 0), "迟到应答下客户端按未获取处理");
 				await("compensating release", 6_500, () -> !server.releasedNames.isEmpty());
 				var release = server.releasedNames.peek();
-				Assertions.assertEquals("a6.fnd873.zero", release[0], "计数==0时超时必须补发release（FND7-64）");
+				Assertions.assertEquals("semaphore.zero", release[0], "计数==0时超时必须补发release（FND7-64）");
 				Assertions.assertEquals(2, release[1], "补发必须携带本次获取的permits");
 			} finally {
 				threading.close();
@@ -165,11 +165,11 @@ public class TestSemaphoreCompensateGuard {
 	@Test
 	public void testRealServerAcquireReleaseSemanticsUnchanged() throws Exception {
 		Task.tryInitThreadPool();
-		var serverService = new Service("TestFnd873RealSrv");
+		var serverService = new Service("SemRealSrv");
 		var threadingServer = new ThreadingServer(serverService, new ServiceManagerServer.Conf());
 		threadingServer.RegisterProtocols(serverService);
 		int port = listenPort(serverService);
-		var client = new Service("TestFnd873RealCli");
+		var client = new Service("SemRealCli");
 		try {
 			client.newClientSocket("127.0.0.1", port, null, null);
 			await("client connected", 10_000, () -> client.GetSocket() != null);
@@ -177,7 +177,7 @@ public class TestSemaphoreCompensateGuard {
 			var threading = new Threading(client, 63);
 			threading.RegisterProtocols(client);
 			try {
-				var semaphore = threading.createSemaphore("a6.fnd873.real", 1);
+				var semaphore = threading.createSemaphore("semaphore.real", 1);
 				Assertions.assertTrue(semaphore.tryAcquire(1, 0), "空闲信号量tryAcquire必须成功");
 
 				var acquired = new boolean[1];

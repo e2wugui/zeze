@@ -134,7 +134,7 @@ public class TestListIteratorFailFast {
 						"托管路径错位场景同样必须fail-fast");
 				Assertions.assertEquals(List.of(2, 3), list.getList());
 				return 0L;
-			}, "TestFnd707Managed").call();
+			}, "TestListIteratorManaged").call();
 			Assertions.assertEquals(Zeze.Transaction.Procedure.Success, result, "事务必须成功");
 		} finally {
 			app.stop();

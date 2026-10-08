@@ -83,7 +83,7 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 		final AtomicInteger endRequests = new AtomicInteger();
 
 		StubMasterService(int port) {
-			super("stubMasterFnd20GAR21", stubServerConfig(port));
+			super("stubMasterRecoverMeta", stubServerConfig(port));
 			setNoProcedure(true);
 
 			var fhSplit = new Zeze.Net.Service.ProtocolFactoryHandle<>(EndSplit.class, EndSplit.TypeId_);
@@ -118,7 +118,7 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 		var conf = new ServiceConf();
 		conf.addAcceptor(new Acceptor(port, "127.0.0.1"));
 		var config = new Config();
-		config.getServiceConfMap().put("stubMasterFnd20GAR21", conf);
+		config.getServiceConfMap().put("stubMasterRecoverMeta", conf);
 		return config;
 	}
 
@@ -151,7 +151,7 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 	private static Dbh2ManagerStub newStubbedManager(MasterAgent stubAgent) throws Exception {
 		// home在系统临时目录而非@TempDir：manager内部rocks句柄只能反射关闭，
 		// 残留不应让JUnit的@TempDir收尾删除失败（Dbh2TestEnv同款取舍）。
-		var home = Files.createTempDirectory("fnd20gar21-manager");
+		var home = Files.createTempDirectory("recover-meta-manager");
 		var xml = home.resolve("manager.xml");
 		Files.writeString(xml, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<zeze/>\n");
 		return new Dbh2ManagerStub(home, xml.toString(), stubAgent);

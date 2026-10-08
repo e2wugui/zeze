@@ -118,10 +118,10 @@ public class TestHandshakeGate {
 		// 全周期小于1ms轮询间隔时采不到（错过即恒0，等多久都假红；2026-09-16全量跑实锤10.4s超时）。
 		// 改用OnSocketAccept计数的单调信号+30s预算（3x惯例），真实不变量仍是processed不得置位。
 		var accepted = new java.util.concurrent.atomic.AtomicInteger();
-		var server = newGateServer("TestFnd723GateSrv", Constant.eEncryptTypeAesNoSecureIp, processed, accepted);
+		var server = newGateServer("HandshakeGateSrv", Constant.eEncryptTypeAesNoSecureIp, processed, accepted);
 		try {
 			var port = listenPort(server);
-			var attacker = new Service("TestFnd723Attacker", new Config()) {
+			var attacker = new Service("HandshakeAttacker", new Config()) {
 				{
 					// 注册SHandshake0/SHandshake工厂消除Unknown Protocol自断连污染（判例：
 					// TestHandshakeDoneErrorClose 的教训），攻击者收到也装作无事。
@@ -156,10 +156,10 @@ public class TestHandshakeGate {
 	public void testDisableServiceStillProcessesPlaintext() throws Exception {
 		Task.tryInitThreadPool();
 		var processed = new AtomicBoolean(false);
-		var server = newGateServer("TestFnd723DisableSrv", Constant.eEncryptTypeDisable, processed);
+		var server = newGateServer("HandshakeDisableSrv", Constant.eEncryptTypeDisable, processed);
 		try {
 			var port = listenPort(server);
-			var client = new Service("TestFnd723DisableClient", new Config()) {
+			var client = new Service("HandshakeDisableClient", new Config()) {
 				{
 					AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(SHandshake0::new,
 							p -> 0L, TransactionLevel.None, DispatchMode.Direct));
@@ -192,10 +192,10 @@ public class TestHandshakeGate {
 	public void testHandshakedConnectionStillProcessesProtocol() throws Exception {
 		Task.tryInitThreadPool();
 		var processed = new AtomicBoolean(false);
-		var server = newGateServer("TestFnd723LegitSrv", Constant.eEncryptTypeAesNoSecureIp, processed);
+		var server = newGateServer("HandshakeLegitSrv", Constant.eEncryptTypeAesNoSecureIp, processed);
 		try {
 			var port = listenPort(server);
-			var client = new HandshakeClient("TestFnd723LegitClient", new Config()) {
+			var client = new HandshakeClient("HandshakeLegitClient", new Config()) {
 				@Override
 				public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 					super.OnHandshakeDone(so);
@@ -227,10 +227,10 @@ public class TestHandshakeGate {
 		var processed = new AtomicBoolean(false);
 		// 同用例1：断连后 socketCount 是瞬态，用 OnSocketAccept 计数做信号。
 		var accepted = new java.util.concurrent.atomic.AtomicInteger();
-		var server = newGateServer("TestFnd723CoalSrv", Constant.eEncryptTypeAesNoSecureIp, processed, accepted);
+		var server = newGateServer("HandshakeCoalSrv", Constant.eEncryptTypeAesNoSecureIp, processed, accepted);
 		try {
 			var port = listenPort(server);
-			var attacker = new Service("TestFnd723CoalAttacker", new Config()) {
+			var attacker = new Service("HandshakeCoalAttacker", new Config()) {
 				{
 					// 注册SHandshake0/SHandshake工厂消除Unknown Protocol自断连污染（同用例1）。
 					AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(SHandshake0::new,

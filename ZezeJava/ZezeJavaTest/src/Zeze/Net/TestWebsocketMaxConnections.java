@@ -95,7 +95,7 @@ public class TestWebsocketMaxConnections {
 		var netty = new Netty(1);
 		var server = new HttpServer();
 		try {
-			var wsService = new HandshakeCountService("test.fnd855.server");
+			var wsService = new HandshakeCountService("ws-maxconn.server");
 			setMaxConnections(wsService, 1);
 			var handle = new WebsocketHandle("/ws", server);
 			handle.setService(wsService);
@@ -142,14 +142,14 @@ public class TestWebsocketMaxConnections {
 	@Test
 	public void testTcpAcceptLimitStillEnforced() throws Exception {
 		Task.tryInitThreadPool();
-		var server = new HandshakeCountService("test.fnd855.tcp");
+		var server = new HandshakeCountService("ws-maxconn.tcp");
 		setMaxConnections(server, 1);
 		var listen = (Zeze.Net.TcpSocket)server.newServerSocket("127.0.0.1", 0, null);
 		var local = listen.getLocalInet();
 		Assertions.assertNotNull(local, "listen socket local address");
 		var port = local.getPort();
 
-		var client = new Service("test.fnd855.tcpclient");
+		var client = new Service("ws-maxconn.tcpclient");
 		try {
 			// 顺序确定化：8a22f09b5建连异步化后两条newClientSocket的TCP完成序不再随调用序
 			//（resolver线程竞速，20轮压测18/20批实测so2可先完成被接受占位、so1反遭拒绝——
@@ -178,13 +178,13 @@ public class TestWebsocketMaxConnections {
 		var netty = new Netty(1);
 		var server = new HttpServer();
 		try {
-			var serverService = new Service("test.fnd855.wsserver");
+			var serverService = new Service("ws-maxconn.wsserver");
 			var handle = new WebsocketHandle("/ws", server);
 			handle.setService(serverService);
 			handle.start();
 			var port = ((InetSocketAddress)server.start(netty, 0).sync().channel().localAddress()).getPort();
 
-			var clientService = new HandshakeCountService("test.fnd855.wsclient");
+			var clientService = new HandshakeCountService("ws-maxconn.wsclient");
 			setMaxConnections(clientService, 1);
 			var c1 = new Connector(true, "ws://127.0.0.1:" + port + "/ws");
 			c1.SetService(clientService);

@@ -49,7 +49,7 @@ public class TestR2F1WalkerOwnEntryRemoved {
 
 	@Test
 	public void testOwnEntryRemovedKeepsUnreadTail() throws Exception {
-		var logDir = Files.createTempDirectory("fnd20-r2f1-tail");
+		var logDir = Files.createTempDirectory("walker-own-tail");
 		var base = LocalDateTime.now();
 		writeLogs(logDir.resolve(Rotated1), base, "r1");
 		writeLogs(logDir.resolve(Rotated2), base, "r2");

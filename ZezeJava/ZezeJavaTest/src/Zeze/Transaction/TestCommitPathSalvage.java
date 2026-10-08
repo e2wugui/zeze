@@ -100,7 +100,7 @@ public class TestCommitPathSalvage {
 			for (var ar : trans.getAccessedRecords().values())
 				ar.dirty = true; // perform的lockAndCheck在这里把有修改日志的记录置脏
 
-			var proc = new Procedure(app, (FuncLong)() -> 0L, "Fnd818.ManualCommit", null);
+			var proc = new Procedure(app, (FuncLong)() -> 0L, "Salvage.ManualCommit", null);
 			Runnable commit = () -> {
 				for (var ar : trans.getAccessedRecords().values()) {
 					var log = trans.getLog(ar.objectId());

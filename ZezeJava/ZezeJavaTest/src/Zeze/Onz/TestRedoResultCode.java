@@ -27,7 +27,7 @@ import static Zeze.Onz.GcOnzE2eTestSupport.*;
 public class TestRedoResultCode {
 	// 过程名必须全JVM唯一：demo.App单例的Onz注册表跨测试类持久。
 	private static final AtomicBoolean registeredOnAppInstance = new AtomicBoolean();
-	private static final String SagaName = "fnd19c1SagaRedo";
+	private static final String SagaName = "redoResultSaga";
 
 	// 手动rpc伪造的孤儿决策tid（避开OnzServer.nextOnzTid的分配空间）
 	private static final long CancelFailTid = 0x5CA1BEEF00000201L;

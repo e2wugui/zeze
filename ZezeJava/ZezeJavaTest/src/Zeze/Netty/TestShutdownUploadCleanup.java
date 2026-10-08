@@ -66,7 +66,7 @@ public class TestShutdownUploadCleanup {
 				sock.setSoTimeout(15_000);
 				OutputStream os = sock.getOutputStream();
 				// raw上传（非multipart）：onBeginStream把MixedFileUpload装入fileUploadKey attr
-				os.write(("POST /upload?filename=a4_fnd858.bin HTTP/1.1\r\nHost: a\r\n"
+				os.write(("POST /upload?filename=shutdownUpload.bin HTTP/1.1\r\nHost: a\r\n"
 						+ "Content-Type: application/octet-stream\r\n"
 						+ "Content-Length: 100000\r\n\r\n").getBytes(StandardCharsets.ISO_8859_1));
 				os.flush();
@@ -103,7 +103,7 @@ public class TestShutdownUploadCleanup {
 			try (var sock = new Socket("127.0.0.1", port)) {
 				sock.setSoTimeout(15_000);
 				OutputStream os = sock.getOutputStream();
-				os.write(("POST /upload?filename=a4_fnd858b.bin HTTP/1.1\r\nHost: a\r\n"
+				os.write(("POST /upload?filename=shutdownUploadB.bin HTTP/1.1\r\nHost: a\r\n"
 						+ "Content-Type: application/octet-stream\r\n"
 						+ "Content-Length: 4\r\n\r\n").getBytes(StandardCharsets.ISO_8859_1));
 				os.write("abcd".getBytes(StandardCharsets.ISO_8859_1)); // 完整body，正常完结路径
@@ -131,7 +131,7 @@ public class TestShutdownUploadCleanup {
 				var ctx = (org.apache.logging.log4j.core.Logger)
 						org.apache.logging.log4j.LogManager.getLogger(Zeze.Netty.Netty.class);
 				var appender = new org.apache.logging.log4j.core.appender.AbstractAppender(
-						"fnd858-watch", null, null, true, org.apache.logging.log4j.core.config.Property.EMPTY_ARRAY) {
+						"shutdown-upload-watch", null, null, true, org.apache.logging.log4j.core.config.Property.EMPTY_ARRAY) {
 					@Override
 					public void append(org.apache.logging.log4j.core.LogEvent event) {
 						if (event.getLevel().isMoreSpecificThan(org.apache.logging.log4j.Level.ERROR)) {

@@ -30,9 +30,9 @@ public class TestGetOrAddIsAddContract {
 		conf.setServerId(nextServerId.getAndIncrement());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("fnd16_txn02_" + conf.getServerId());
+		dbConf.setDatabaseUrl("get_or_add_" + conf.getServerId());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
-		return new Application("TestFnd16Txn02@" + conf.getServerId(), conf);
+		return new Application("TestGetOrAddIsAdd@" + conf.getServerId(), conf);
 	}
 
 	@Test
@@ -47,7 +47,7 @@ public class TestGetOrAddIsAddContract {
 			var rc = TaskSpec.ofProcedure(app.newProcedure(() -> {
 				table.getOrAdd(1L, addFirst); // 新增路径：true
 				return 0L;
-			}, "TestFnd16Txn02.step1")).call();
+			}, "TestGetOrAddIsAdd.step1")).call();
 			Assertions.assertEquals(0L, rc);
 			Assertions.assertEquals(Boolean.TRUE, addFirst.value, "新增路径必须赋true");
 
@@ -59,7 +59,7 @@ public class TestGetOrAddIsAddContract {
 				// 同事务cache命中（cr!=null且newestValue非null）。
 				table.getOrAdd(1L, addCachePath);
 				return 0L;
-			}, "TestFnd16Txn02.step2")).call();
+			}, "TestGetOrAddIsAdd.step2")).call();
 			Assertions.assertEquals(0L, rc);
 			Assertions.assertEquals(Boolean.FALSE, addLoadPath.value,
 					"已存在路径（load命中）必须赋false（修复前保持null）");

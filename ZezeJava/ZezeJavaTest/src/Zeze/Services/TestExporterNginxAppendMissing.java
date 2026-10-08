@@ -24,7 +24,7 @@ public class TestExporterNginxAppendMissing {
 
 	@Test
 	public void testMissingBlockAppendedAndRewrittenNextRound() throws Exception {
-		var dir = Files.createTempDirectory("nginx_export_fnd6_30");
+		var dir = Files.createTempDirectory("nginx_export_retry_a");
 		var cfgFile = dir.resolve("nginx.conf");
 		Files.writeString(cfgFile, """
 				upstream other {
@@ -59,7 +59,7 @@ public class TestExporterNginxAppendMissing {
 
 	@Test
 	public void testEmptyFileAppends() throws Exception {
-		var dir = Files.createTempDirectory("nginx_export_fnd6_30b");
+		var dir = Files.createTempDirectory("nginx_export_retry_b");
 		var cfgFile = dir.resolve("nginx.conf");
 		Files.writeString(cfgFile, "");
 		var share = new Properties();
@@ -75,7 +75,7 @@ public class TestExporterNginxAppendMissing {
 
 	@Test
 	public void testNoIdentitiesSkipsWriteAndReload() throws Exception {
-		var dir = Files.createTempDirectory("nginx_export_fnd6_30c");
+		var dir = Files.createTempDirectory("nginx_export_retry_c");
 		var cfgFile = dir.resolve("nginx.conf");
 		Files.writeString(cfgFile, "");
 		var share = new Properties();
@@ -97,7 +97,7 @@ public class TestExporterNginxAppendMissing {
 
 	@Test
 	public void testExistingBlockAllOfflineKeepsOriginalBlock() throws Exception {
-		var dir = Files.createTempDirectory("nginx_export_fnd6_30d");
+		var dir = Files.createTempDirectory("nginx_export_retry_d");
 		var cfgFile = dir.resolve("nginx.conf");
 		Files.writeString(cfgFile, """
 				upstream svc {
@@ -128,7 +128,7 @@ public class TestExporterNginxAppendMissing {
 
 	@Test
 	public void testBomFirstLineRecognizedNotDuplicated() throws Exception {
-		var dir = Files.createTempDirectory("nginx_export_fnd6_30e");
+		var dir = Files.createTempDirectory("nginx_export_retry_e");
 		var cfgFile = dir.resolve("nginx.conf");
 		Files.writeString(cfgFile, """
 				\uFEFFupstream svc {
@@ -163,7 +163,7 @@ public class TestExporterNginxAppendMissing {
 			Assumptions.assumeTrue(false, "环境无java命令，跳过");
 		}
 
-		var dir = Files.createTempDirectory("nginx_export_fnd6_30f");
+		var dir = Files.createTempDirectory("nginx_export_retry_f");
 		var cfgFile = dir.resolve("nginx.conf");
 		Files.writeString(cfgFile, "");
 		var share = new Properties();

@@ -41,8 +41,8 @@ public class TestClientLifecycle {
 		var config = new Config();
 		var conf = new ServiceConf();
 		conf.addAcceptor(new Acceptor(port, null));
-		config.getServiceConfMap().put("TestFnd19GBD04Server", conf);
-		var server = new Service("TestFnd19GBD04Server", config);
+		config.getServiceConfMap().put("TestClientLifecycleServer", conf);
+		var server = new Service("TestClientLifecycleServer", config);
 		server.start();
 		try {
 			var agent = new MQAgent();

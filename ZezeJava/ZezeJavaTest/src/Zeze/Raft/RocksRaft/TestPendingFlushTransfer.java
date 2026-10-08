@@ -44,8 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestPendingFlushTransfer {
 	private static final String raftName = "127.0.0.1:27680";
-	private static final String dbHome = "a2_TestFnd839PendingFlushTransfer.raft";
-	private static final String templateName = "tFnd839Transfer";
+	private static final String dbHome = "PendingFlushTransfer.raft";
+	private static final String templateName = "tTransfer";
 
 	// 含 CollList1 的最小bean（对齐TestLeaderRecordCacheEviction的载体）。
 	public static final class BListBean extends Bean {
@@ -125,7 +125,7 @@ public class TestPendingFlushTransfer {
 	private static RaftConfig newRaftConfig() {
 		return RaftConfig.loadFromString("""
 				<?xml version="1.0" encoding="utf-8"?>
-				<raft Name="127.0.0.1:27680" DbHome="a2_TestFnd839PendingFlushTransfer.raft">
+				<raft Name="127.0.0.1:27680" DbHome="PendingFlushTransfer.raft">
 					<node Host="127.0.0.1" Port="27680"/>
 					<node Host="127.0.0.1" Port="27681"/>
 					<node Host="127.0.0.1" Port="27682"/>

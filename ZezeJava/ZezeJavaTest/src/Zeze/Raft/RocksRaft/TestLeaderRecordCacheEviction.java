@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestLeaderRecordCacheEviction {
 	private static final String raftName = "127.0.0.1:17680";
 	private static final String dbHome = "TestLeaderRecordCacheEviction.raft";
-	private static final String templateName = "tFnd714Evict";
+	private static final String templateName = "tEvict";
 
 	// 含 CollList1 的最小bean（对齐TestFlushRetryApply的载体：增量日志按索引追加）。
 	public static final class BListBean extends Bean {

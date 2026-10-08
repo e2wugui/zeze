@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Timeout;
  */
 @Fast
 public class TestServiceManagerWithRaftEditRollback {
-	private static final String RAFT_NAME = "fnd5_31_sm_test";
+	private static final String RAFT_NAME = "edit_rollback_sm_test";
 
 	private static final int[] ports = new int[3];
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
@@ -108,13 +108,13 @@ public class TestServiceManagerWithRaftEditRollback {
 	public void testFailedEditRollsBackLocalRegisters() throws Exception {
 		var config = Config.load();
 		config.getServiceManagerConf().setRaftXml(raftXmlFile.toString());
-		config.getServiceManagerConf().setSessionName("UnitTest.FND5_31.Agent");
+		config.getServiceManagerConf().setSessionName("UnitTest.EditRollback.Agent");
 		var agent = new ServiceManagerAgentWithRaft(config);
 		try {
 			agent.start();
 			agent.waitReady();
 
-			var serviceA = new BServiceInfo("Fnd5EditRollback.A", "31", 0, "127.0.0.1", 1231);
+			var serviceA = new BServiceInfo("EditRollback.A", "31", 0, "127.0.0.1", 1231);
 			agent.registerService(serviceA);
 			Assertions.assertTrue(registersOf(agent).containsKey(serviceA), "前置：注册成功");
 
@@ -132,7 +132,7 @@ public class TestServiceManagerWithRaftEditRollback {
 				}
 			try {
 				// 失败注销：抛错且本地回滚——条目必须仍在（修复前本地已删，僵尸注册）。
-				var serviceB = new BServiceInfo("Fnd5EditRollback.B", "32", 0, "127.0.0.1", 1232);
+				var serviceB = new BServiceInfo("EditRollback.B", "32", 0, "127.0.0.1", 1232);
 				Assertions.assertThrows(Exception.class, () -> agent.unRegisterService(serviceA),
 						"失去多数派下注销必须失败");
 				Assertions.assertTrue(registersOf(agent).containsKey(serviceA),
@@ -159,7 +159,7 @@ public class TestServiceManagerWithRaftEditRollback {
 
 	/** 定界等待（≤60s）三个节点的tSession均无本测试会话行；超时仅记录，teardown由@Timeout兜底。 */
 	private static void waitSessionCleaned() throws Exception {
-		var sessionName = "UnitTest.FND5_31.Agent";
+		var sessionName = "UnitTest.EditRollback.Agent";
 		long deadline = System.currentTimeMillis() + 60_000;
 		while (System.currentTimeMillis() < deadline) {
 			var found = new boolean[]{false};

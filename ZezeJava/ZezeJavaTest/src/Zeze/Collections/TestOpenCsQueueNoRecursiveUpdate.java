@@ -26,7 +26,7 @@ public class TestOpenCsQueueNoRecursiveUpdate {
 	public void testOpenManyNamesNoRecursiveUpdate() {
 		var qm = App.getInstance().Zeze.getQueueModule();
 		for (int i = 0; i < 8000; i++) {
-			var name = "Fnd12Coll01#" + i;
+			var name = "OpenCsQueue#" + i;
 			var csq = qm.openCsQueue(name, Bean1.class);
 			Assertions.assertEquals(name, csq.getName());
 		}

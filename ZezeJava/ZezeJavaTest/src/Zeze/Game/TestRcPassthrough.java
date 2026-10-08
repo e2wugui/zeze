@@ -46,7 +46,7 @@ public class TestRcPassthrough {
 		conf.setServerId(NextServerId.getAndIncrement());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("a6_fnd875_" + conf.getServerId());
+		dbConf.setDatabaseUrl("rc_passthrough_" + conf.getServerId());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		return new Application(name, conf);
 	}
@@ -157,7 +157,7 @@ public class TestRcPassthrough {
 	private static void forgeGameLogin(Online online, long roleId) {
 		Assertions.assertEquals(0, online.providerApp.zeze.newProcedure(() -> {
 			var shared = online.getOrAddOnlineShared(roleId);
-			shared.setAccount("a6acc");
+			shared.setAccount("txAcc");
 			shared.setLoginVersion(1L); // logoutVersion(0)不等，localLogout的assignLogoutVersion才推进
 			shared.setLink(new BLink("link1", 42L, AbstractOnline.eLogined));
 			// _tOnline行标记本机：logoutTrigger的tryRedirectRemoveLocal对非本机serverId
@@ -167,7 +167,7 @@ public class TestRcPassthrough {
 			local.setLink(new BLink("link1", 42L, AbstractOnline.eLogined));
 			local.setLoginVersion(shared.getLoginVersion());
 			return 0;
-		}, "a6.fnd875.setup").call());
+		}, "rcPassthrough.setup").call());
 	}
 
 	private static int readState(Online online, long roleId) {
@@ -176,14 +176,14 @@ public class TestRcPassthrough {
 			var shared = online.getOnlineShared(roleId);
 			state[0] = shared != null ? shared.getLink().getState() : AbstractOnline.eOffline;
 			return 0;
-		}, "a6.fnd875.verify").call());
+		}, "rcPassthrough.verify").call());
 		return state[0];
 	}
 
 	/** 主：Game.ProcessLinkBroken透传onlineSet.linkBroken的失败码，状态机不随半程写入推进。 */
 	@Test
 	public void testGameLinkBrokenRcPassedThrough() throws Exception {
-		var zeze = newApp("TestFnd875GameLb");
+		var zeze = newApp("RcPassthroughGameLb");
 		var online = newOnline(zeze);
 		zeze.start();
 		try {
@@ -194,9 +194,9 @@ public class TestRcPassthrough {
 
 			var provider = new ProviderWithOnline();
 			provider.online = online; // protected字段，同包注入
-			var p = newLinkBroken("a6acc", Long.toString(roleId));
+			var p = newLinkBroken("txAcc", Long.toString(roleId));
 			// 真实派发形态：handler在Serializable事务内执行，失败码决定整体回滚。
-			var rc = zeze.newProcedure(() -> provider.ProcessLinkBroken(p), "a6.fnd875.gameLb").call();
+			var rc = zeze.newProcedure(() -> provider.ProcessLinkBroken(p), "rcPassthrough.gameLb").call();
 			Assertions.assertEquals(errRc, rc, "断线处理器错误码必须经入口外传（修复前恒Success）");
 			Assertions.assertEquals(AbstractOnline.eLogined, readState(online, roleId),
 					"失败处理器的半程写入不得随Success提交（eLinkBroken推进须回滚）");
@@ -211,7 +211,7 @@ public class TestRcPassthrough {
 	/** 孪生T1：Game.ProcessLogoutRequestOnlineSet透传localLogout失败码，且失败不respond。 */
 	@Test
 	public void testGameLogoutRequestRcPassedThrough() throws Exception {
-		var zeze = newApp("TestFnd875GameLogout");
+		var zeze = newApp("RcPassthroughGameLogout");
 		var online = newOnline(zeze);
 		zeze.start();
 		try {
@@ -247,7 +247,7 @@ public class TestRcPassthrough {
 			rpc.setSender(new StubSocket());
 			rpc.setUserState(session);
 
-			var rc = zeze.newProcedure(() -> online.ProcessLogoutRequestOnlineSet(rpc), "a6.fnd875.gameLogout").call();
+			var rc = zeze.newProcedure(() -> online.ProcessLogoutRequestOnlineSet(rpc), "rcPassthrough.gameLogout").call();
 			Assertions.assertEquals(errRc, rc, "logout事件链失败码必须经入口外传（修复前恒Success）");
 			Assertions.assertEquals(0, respondCalls.get(), "失败回滚时不得发出成功应答（respond已移到判定之后）");
 			Assertions.assertEquals(AbstractOnline.eLogined, readState(online, roleId),
@@ -263,7 +263,7 @@ public class TestRcPassthrough {
 	/** Arch版：stale-local分支removeLocalAndTrigger失败码经ProcessLinkBroken外传。 */
 	@Test
 	public void testArchLinkBrokenRcPassedThrough() throws Exception {
-		var zeze = newApp("TestFnd875ArchLb");
+		var zeze = newApp("RcPassthroughArchLb");
 		var app = new AppBase() {
 			@Override
 			public Application getZeze() {
@@ -280,17 +280,17 @@ public class TestRcPassthrough {
 			// 前置：tonline侧login（link/版本2/本机）与tlocal侧版本1不一致 → linkBroken走
 			// removeLocalAndTrigger（stale-local分支），其embed失败即本用例注入点。
 			Assertions.assertEquals(0, zeze.newProcedure(() -> {
-				var login = archOnline.getOrAddOnline("a6acc").getLogins().getOrAdd("a6cid");
+				var login = archOnline.getOrAddOnline("txAcc").getLogins().getOrAdd("txCid");
 				login.setLink(new Zeze.Builtin.Online.BLink("link1", 42L, Zeze.Arch.AbstractOnline.eLogined));
 				login.setLoginVersion(2L);
 				login.setServerId(zeze.getConfig().getServerId());
-				archOnline.tlocal().getOrAdd("a6acc").getLogins().getOrAdd("a6cid").setLoginVersion(1L);
+				archOnline.tlocal().getOrAdd("txAcc").getLogins().getOrAdd("txCid").setLoginVersion(1L);
 				return 0;
-			}, "a6.fnd875.archSetup").call());
+			}, "rcPassthrough.archSetup").call());
 
 			var provider = new ArchProvider(archOnline);
-			var p = newLinkBroken("a6acc", "a6cid");
-			var rc = zeze.newProcedure(() -> provider.call(p), "a6.fnd875.archLb").call();
+			var p = newLinkBroken("txAcc", "txCid");
+			var rc = zeze.newProcedure(() -> provider.call(p), "rcPassthrough.archLb").call();
 			Assertions.assertEquals(errRc, rc, "Arch版断线失败码必须经入口外传（修复前恒Success）");
 		} finally {
 			try {

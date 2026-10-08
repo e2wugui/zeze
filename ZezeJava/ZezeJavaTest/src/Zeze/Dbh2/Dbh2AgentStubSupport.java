@@ -86,7 +86,7 @@ final class Dbh2AgentStubSupport {
 	 * 与磁盘副作用，@Fast车道无全局状态竞争）；本组测试不触碰提交路径，地址用不可达值即可。
 	 */
 	static Path writeRemoteCommitConfig(Path tempDir) throws Exception {
-		var xml = tempDir.resolve("fnd19gad-remote-commit.xml");
+		var xml = tempDir.resolve("remote-commit.xml");
 		Files.writeString(xml, """
 				<?xml version="1.0" encoding="utf-8"?>
 				<zeze Dbh2LocalCommit="false">

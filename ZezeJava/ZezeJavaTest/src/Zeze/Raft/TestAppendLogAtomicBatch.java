@@ -34,13 +34,13 @@ import Zeze.Util.Task;
 @Fast
 public class TestAppendLogAtomicBatch {
 	private static final String raftName = "127.0.0.1:17680";
-	private static final String dbHome = "TestFnd16Raft01Atomic.raft";
-	private static final String templateName = "tFnd16Raft01";
+	private static final String dbHome = "AppendLogAtomic.raft";
+	private static final String templateName = "tAppendLogAtomic";
 
 	private static RaftConfig newRaftConfig() {
 		return RaftConfig.loadFromString("""
 				<?xml version="1.0" encoding="utf-8"?>
-				<raft Name="127.0.0.1:17680" DbHome="TestFnd16Raft01Atomic.raft">
+				<raft Name="127.0.0.1:17680" DbHome="AppendLogAtomic.raft">
 					<node Host="127.0.0.1" Port="17680"/>
 					<node Host="127.0.0.1" Port="17681"/>
 					<node Host="127.0.0.1" Port="17682"/>
@@ -74,7 +74,7 @@ public class TestAppendLogAtomicBatch {
 		var changes = ts[0].getChanges();
 		Assertions.assertNotNull(changes);
 		changes.getUnique().setRequestId(42);
-		changes.getUnique().setClientId("test.fnd16.raft01");
+		changes.getUnique().setClientId("test.appendLogAtomic");
 		changes.setCreateTime(System.currentTimeMillis());
 		changes.encode(ByteBuffer.Allocate());
 		return changes;
@@ -101,7 +101,7 @@ public class TestAppendLogAtomicBatch {
 			var changes = newUniqueChanges(rocks, table);
 			var changes2 = newUniqueChanges(rocks, table);
 			changes2.getUnique().setRequestId(42);
-			changes2.getUnique().setClientId("test.fnd16.raft01");
+			changes2.getUnique().setClientId("test.appendLogAtomic");
 			changes2.setCreateTime(changes.getCreateTime());
 			changes2.encode(ByteBuffer.Allocate());
 			becomeLeader(raft);
@@ -133,7 +133,7 @@ public class TestAppendLogAtomicBatch {
 			var changes = newUniqueChanges(rocks, table);
 			var changes2 = newUniqueChanges(rocks, table);
 			changes2.getUnique().setRequestId(42);
-			changes2.getUnique().setClientId("test.fnd16.raft01");
+			changes2.getUnique().setClientId("test.appendLogAtomic");
 			changes2.setCreateTime(changes.getCreateTime());
 			changes2.encode(ByteBuffer.Allocate());
 			becomeLeader(raft);

@@ -36,7 +36,7 @@ public class TestRankCacheRollbackPollution {
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseUrl("rank_g1_rollback_" + ServerId);
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
-		return new Application("TestFnd15Game01", conf);
+		return new Application("TestRankCacheRollback", conf);
 	}
 
 	private static Rank newRank(Application zeze) {

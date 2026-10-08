@@ -40,8 +40,8 @@ import harness.Fast;
  */
 @Fast
 public class TestServiceManagerWithRaftSessionCloseRetry {
-	private static final String RAFT_NAME = "fnd4_57_sm_test";
-	private static final String SESSION_NAME = "UnitTest.FND4_57.Agent";
+	private static final String RAFT_NAME = "session_close_retry_sm_test";
+	private static final String SESSION_NAME = "UnitTest.SessionCloseRetry.Agent";
 
 	private static final int[] ports = new int[3];
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
@@ -267,7 +267,7 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 	@Test
 	@Timeout(200)
 	public void testSessionCloseRetryOrReconcile() throws Exception {
-		client = new Peer("UnitTest.FND4_57.Client");
+		client = new Peer("UnitTest.SessionCloseRetry.Client");
 		var leaderPort = leaderPort();
 		var leaderIdx = -1;
 		for (int i = 0; i < ports.length; i++)

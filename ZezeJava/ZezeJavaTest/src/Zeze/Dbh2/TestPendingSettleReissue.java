@@ -92,7 +92,7 @@ public class TestPendingSettleReissue {
 		volatile BBucketMeta.Data receivedTo;
 
 		StubMasterService(int port) {
-			super("stubMasterFnd21GAD01", stubServerConfig(port));
+			super("stubMasterSettleReissue", stubServerConfig(port));
 			setNoProcedure(true);
 
 			var fhSplit = new Zeze.Net.Service.ProtocolFactoryHandle<>(EndSplit.class, EndSplit.TypeId_);
@@ -131,7 +131,7 @@ public class TestPendingSettleReissue {
 		var conf = new ServiceConf();
 		conf.addAcceptor(new Acceptor(port, "127.0.0.1"));
 		var config = new Config();
-		config.getServiceConfMap().put("stubMasterFnd21GAD01", conf);
+		config.getServiceConfMap().put("stubMasterSettleReissue", conf);
 		return config;
 	}
 
@@ -163,7 +163,7 @@ public class TestPendingSettleReissue {
 	private static Dbh2ManagerStub newStubbedManager(MasterAgent stubAgent, String serverId) throws Exception {
 		// home在系统临时目录而非@TempDir：manager内部rocks句柄只能反射关闭，
 		// 残留不应让JUnit的@TempDir收尾删除失败（TestFnd20GAR21同款取舍）。
-		var home = Files.createTempDirectory("fnd21gad01-manager");
+		var home = Files.createTempDirectory("settle-reissue-manager");
 		var xml = home.resolve("manager.xml");
 		Files.writeString(xml, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<zeze ServerId=\"" + serverId + "\"/>\n");
 		return new Dbh2ManagerStub(home, xml.toString(), stubAgent);

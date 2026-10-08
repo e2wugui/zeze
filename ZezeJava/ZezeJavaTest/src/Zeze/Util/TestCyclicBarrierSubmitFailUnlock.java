@@ -48,7 +48,7 @@ public class TestCyclicBarrierSubmitFailUnlock {
 
 		@Override
 		public Runnable submit(Task task) {
-			throw new IllegalStateException("a1_fnd802 submit throw");
+			throw new IllegalStateException("barrierSubmitFail submit throw");
 		}
 	}
 
@@ -61,13 +61,13 @@ public class TestCyclicBarrierSubmitFailUnlock {
 		var rig = new Rig(q0, q1);
 		var procedure = new Procedure((Application)null, (Zeze.Util.FuncLong)() -> {
 			throw new AssertionError("barrier被取消，procedure不得执行");
-		}, "a1_fnd802", null);
+		}, "barrierSubmitFail", null);
 		var cancelRuns = new AtomicInteger();
 		var keys = new ArrayList<>(List.of(0L, 1L)); // 不同key落不同桶
 
 		var ex = Assertions.assertThrows(IllegalStateException.class,
 				() -> rig.executeCyclicBarrier(keys, procedure, cancelRuns::incrementAndGet, null));
-		Assertions.assertEquals("a1_fnd802 submit throw", ex.getMessage());
+		Assertions.assertEquals("barrierSubmitFail submit throw", ex.getMessage());
 
 		// 修复前红：未轮到的桶队列锁泄漏；同线程重入探不出来，用isLocked
 		Assertions.assertFalse(q0.isLocked(), "bucket queue lock must not leak");
@@ -86,7 +86,7 @@ public class TestCyclicBarrierSubmitFailUnlock {
 				if (dispatches.incrementAndGet() == 1)
 					r.run(); // 第一个桶：内联驱动，barrier任务reach()返回false后stall
 				else
-					throw new RejectedExecutionException("a1_fnd802 reject");
+					throw new RejectedExecutionException("barrierSubmitFail reject");
 			}
 		};
 		var q0 = new TaskOneByOneQueue(executor);
@@ -98,7 +98,7 @@ public class TestCyclicBarrierSubmitFailUnlock {
 		var keys = new ArrayList<>(List.of(0L, 1L, 2L));
 
 		Assertions.assertThrows(RejectedExecutionException.class,
-				() -> rig.executeCyclicBarrier(keys, "a1_fnd802", (Zeze.Util.Action0)actionRuns::incrementAndGet,
+				() -> rig.executeCyclicBarrier(keys, "barrierSubmitFail", (Zeze.Util.Action0)actionRuns::incrementAndGet,
 						cancelRuns::incrementAndGet, null));
 
 		// 修复前红：未轮到的桶队列锁泄漏

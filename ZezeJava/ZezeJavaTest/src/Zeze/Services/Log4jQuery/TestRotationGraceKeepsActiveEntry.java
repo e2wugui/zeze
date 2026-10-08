@@ -58,7 +58,7 @@ public class TestRotationGraceKeepsActiveEntry {
 	 */
 	@Test
 	public void testWindowQueryKeepsActiveEntry() throws Exception {
-		var logDir = Files.createTempDirectory("fnd21-gdc02-window");
+		var logDir = Files.createTempDirectory("grace-window");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
@@ -109,7 +109,7 @@ public class TestRotationGraceKeepsActiveEntry {
 	 */
 	@Test
 	public void testReconcileGraceDuringBlockedRename() throws Exception {
-		var logDir = Files.createTempDirectory("fnd21-gdc02-reconcile");
+		var logDir = Files.createTempDirectory("grace-reconcile");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {

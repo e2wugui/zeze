@@ -80,7 +80,7 @@ public class TestEndSplitTakesSplittingLock {
 
 	@Test
 	public void testEndSplitWaitsSplittingLock() throws Exception {
-		var home = "testFnd19GA05EndSplit";
+		var home = "testEndSplit";
 		LogSequence.deleteDirectory(new File(home));
 		new File(home, "db1").mkdirs();
 		var master = new Master(home, new Config());
@@ -109,7 +109,7 @@ public class TestEndSplitTakesSplittingLock {
 
 	@Test
 	public void testEndMoveWaitsSplittingLock() throws Exception {
-		var home = "testFnd19GA05EndMove";
+		var home = "testEndSplitEndMove";
 		LogSequence.deleteDirectory(new File(home));
 		new File(home, "db1").mkdirs();
 		var master = new Master(home, new Config());

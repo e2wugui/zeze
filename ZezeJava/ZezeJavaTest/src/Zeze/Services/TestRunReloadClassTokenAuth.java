@@ -31,7 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
  */
 @Fast
 public class TestRunReloadClassTokenAuth {
-	private static final String TOKEN = "a5-fnd866-token";
+	private static final String TOKEN = "reload-class-token";
 	private static Netty netty;
 	private static HttpServer server;
 	private static int port;

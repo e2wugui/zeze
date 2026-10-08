@@ -21,7 +21,7 @@ public class TestPerfCounterIdleEvictionRebind {
 	@Test
 	public void testRunTimeObserverRebindsAfterIdleEviction() {
 		var pc = new PerfCounter();
-		var obs = pc.getRunTimeObserver("TestFnd12Util02.run");
+		var obs = pc.getRunTimeObserver("PerfIdleEviction.run");
 		obs.observe(100);
 		pc.getLogAndReset(); // 收集到1次计数：条目存活、idleCount归零
 		for (int i = 0; i < 10; i++)
@@ -36,7 +36,7 @@ public class TestPerfCounterIdleEvictionRebind {
 	@Test
 	public void testProcedureCounterRebindsAfterIdleEviction() {
 		var pc = new PerfCounter();
-		var counter = pc.allocProcedureCounter("TestFnd12Util02.proc");
+		var counter = pc.allocProcedureCounter("PerfIdleEviction.proc");
 		counter.end(0, 1);
 		pc.getLogAndReset();
 		for (int i = 0; i < 10; i++)

@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestAllocateTid128NoLockHold {
-	private static final String NAME = "UnitTest.FND3_39.Tid128NoLockHold";
+	private static final String NAME = "UnitTest.Tid128NoLockHold";
 	private static Id128UdpServer server;
 	private static TestAgent agent;
 

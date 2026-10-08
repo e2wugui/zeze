@@ -110,14 +110,14 @@ final class GcOnzFastStubSupport {
 	 */
 	static OnzFixture startSharedOnzServer(int serverId, int smPort, Path tempDir, int sharedConfigServerId,
 										   String specialZezeNames, StubSpec... stubSpecs) throws Exception {
-		var clusterXml = writeClusterXml(tempDir.resolve("fnd21gc-shared.xml"), sharedConfigServerId, smPort);
+		var clusterXml = writeClusterXml(tempDir.resolve("gcstub-shared.xml"), sharedConfigServerId, smPort);
 		return buildCoordinator(serverId, smPort, true, clusterXml, specialZezeNames, stubSpecs);
 	}
 
 	/** 独立SM协调者（OnzServer两参构造器，C02用；zezes串"名=配置"形态，单集群指向进程内SM）。 */
 	static OnzFixture startNonSharedOnzServer(int serverId, int smPort, Path tempDir, String clusterName,
 											  int clusterConfigServerId, StubSpec... stubSpecs) throws Exception {
-		var clusterXml = writeClusterXml(tempDir.resolve("fnd21gc-cluster.xml"), clusterConfigServerId, smPort);
+		var clusterXml = writeClusterXml(tempDir.resolve("gcstub-cluster.xml"), clusterConfigServerId, smPort);
 		return buildCoordinator(serverId, smPort, false, clusterXml, clusterName + "=" + clusterXml, stubSpecs);
 	}
 
@@ -141,13 +141,13 @@ final class GcOnzFastStubSupport {
 		Files.createDirectories(Path.of("autokeys"));
 		GcOnzE2eTestSupport.deleteRecursively(Path.of("CommitOnzServer" + serverId));
 
-		var sm = new ServiceManagerServer(null, smPort, new Config(), "autokeys/fnd21-gc-" + serverId);
+		var sm = new ServiceManagerServer(null, smPort, new Config(), "autokeys/gcstub-" + serverId);
 		var stubs = new StubParticipant[stubSpecs.length];
 		try {
 			for (int i = 0; i < stubSpecs.length; i++) {
 				var spec = stubSpecs[i];
 				stubs[i] = new StubParticipant(smPort, spec.smServiceName, spec.identity,
-						"fnd21gc-stub-" + spec.smServiceName, spec.port, spec.beforeListen);
+						"gcstub-participant-" + spec.smServiceName, spec.port, spec.beforeListen);
 			}
 
 			var myConfig = new Config();

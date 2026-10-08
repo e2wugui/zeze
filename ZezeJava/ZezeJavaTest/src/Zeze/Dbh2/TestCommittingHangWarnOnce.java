@@ -59,7 +59,7 @@ public class TestCommittingHangWarnOnce {
 		final List<LogEvent> events = new CopyOnWriteArrayList<>();
 
 		CaptureAppender() {
-			super("fnd19gad02", null, null, true, Property.EMPTY_ARRAY);
+			super("committingHang", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override
@@ -78,7 +78,7 @@ public class TestCommittingHangWarnOnce {
 	@Test
 	public void testCommittingHangWarnsOnceAndDedups(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
-		var database = new RocksDatabase(tempDir.resolve("fnd19gad02").toString());
+		var database = new RocksDatabase(tempDir.resolve("committingHang").toString());
 		var raftConfig = """
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">

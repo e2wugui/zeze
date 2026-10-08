@@ -69,7 +69,7 @@ public class TestReconcileOutOfLockIndexBuild {
 	 */
 	@Test
 	public void testReconcileSamplesHeadFastAndSeekable() throws Exception {
-		var logDir = Files.createTempDirectory("fnd20-gdd01-sample");
+		var logDir = Files.createTempDirectory("indexbuild-sample");
 		var base = LocalDateTime.of(2026, 1, 1, 0, 0);
 		writeLogs(logDir.resolve(Active), LocalDateTime.now(), "active-", 3);
 		var manager = newManager(logDir);
@@ -144,7 +144,7 @@ public class TestReconcileOutOfLockIndexBuild {
 	 */
 	@Test
 	public void testBuildIndexContinuesAllNonActiveEntries() throws Exception {
-		var logDir = Files.createTempDirectory("fnd20-gdd01-continue");
+		var logDir = Files.createTempDirectory("indexbuild-continue");
 		var base1 = LocalDateTime.of(2026, 1, 1, 0, 0);
 		var base2 = LocalDateTime.of(2026, 2, 1, 0, 0);
 		var lines = 200; // 每行间隔30s：全量索引=200条
@@ -201,7 +201,7 @@ public class TestReconcileOutOfLockIndexBuild {
 	 */
 	@Test
 	public void testActiveReconcileSamplesThenBuildIndexCompletes() throws Exception {
-		var logDir = Files.createTempDirectory("fnd20-gdd01-active");
+		var logDir = Files.createTempDirectory("indexbuild-active");
 		var base = LocalDateTime.of(2026, 3, 2, 0, 0);
 		var manager = newManager(logDir); // 构造时active不存在：条目空，补登由直调对账发生
 		try {

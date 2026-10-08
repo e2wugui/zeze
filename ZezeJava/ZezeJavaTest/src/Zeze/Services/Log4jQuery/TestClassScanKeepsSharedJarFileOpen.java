@@ -33,12 +33,12 @@ import harness.Fast;
 @Fast
 public class TestClassScanKeepsSharedJarFileOpen {
 	// 唯一包名：父委托链（测试classpath）上不存在同名包，确保只命中本测试构造的jar。
-	private static final String PackageName = "fnd22gd04pkg";
+	private static final String PackageName = "sharedjarscanpkg";
 
 	@Test
 	public void testSharedJarFileNotClosedByScan() throws Exception {
-		var logDir = Files.createTempDirectory("fnd22-gdc04-jar");
-		var jarPath = logDir.resolve("fnd22gd04.jar");
+		var logDir = Files.createTempDirectory("shared-jar-open");
+		var jarPath = logDir.resolve("scan-shared.jar");
 		writeJar(jarPath);
 		var previous = Thread.currentThread().getContextClassLoader();
 		try (var loader = new URLClassLoader(new URL[] {jarPath.toUri().toURL()})) {

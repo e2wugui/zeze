@@ -130,7 +130,7 @@ public class TestAddHotModulePerLinkRpc {
 
 	@Test
 	public void testStaticBindReachesEveryReadyLink() throws Exception {
-		var ps = newProviderService("a7fnd17arch01");
+		var ps = newProviderService("archHotModule");
 		var providerApp = ps.providerApp;
 
 		var so1 = new CountingSocket(ps);
@@ -148,7 +148,7 @@ public class TestAddHotModulePerLinkRpc {
 
 	@Test
 	public void testDynamicSubscribeReachesEveryReadyLink() throws Exception {
-		var ps = newProviderService("a7fnd17arch01d");
+		var ps = newProviderService("archHotModuleB");
 		var providerApp = ps.providerApp;
 
 		var so1 = new CountingSocket(ps);

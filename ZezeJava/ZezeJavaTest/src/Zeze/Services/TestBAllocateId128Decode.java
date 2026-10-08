@@ -22,7 +22,7 @@ import harness.Fast;
 public class TestBAllocateId128Decode {
 	@Test
 	public void testDecodeNoIntern() {
-		var name = "UnitTest.FND2_S2_1.NoIntern.Name";
+		var name = "UnitTest.Id128Decode.NoIntern.Name";
 		var src = new BAllocateId128Argument(name, 100);
 		var bb = ByteBuffer.Allocate();
 		src.encode(bb);
@@ -46,7 +46,7 @@ public class TestBAllocateId128Decode {
 
 	@Test
 	public void testDecodeCopiesBytes() {
-		var name = "UnitTest.FND2_S2_1.Copy";
+		var name = "UnitTest.Id128Decode.Copy";
 		var src = new BAllocateId128Argument(name, 16);
 		var bb = ByteBuffer.Allocate();
 		src.encode(bb);

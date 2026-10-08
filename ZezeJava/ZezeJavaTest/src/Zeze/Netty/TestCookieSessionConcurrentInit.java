@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
  * 依赖demo.App的数据库环境（integrationTest，不标@Fast）。
  */
 public class TestCookieSessionConcurrentInit {
-	private static final String Path = "/testFnd11Net06ConcurrentCookieSession";
+	private static final String Path = "/concurrentCookieSession";
 
 	@BeforeAll
 	public static void setUp() throws Exception {
@@ -56,7 +56,7 @@ public class TestCookieSessionConcurrentInit {
 				} finally {
 					done.countDown();
 				}
-			}, "fnd11-net06-" + idx);
+			}, "cookie-session-" + idx);
 			t.start();
 		}
 		Assertions.assertTrue(done.await(15, java.util.concurrent.TimeUnit.SECONDS), "并发首调必须完成");

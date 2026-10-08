@@ -51,7 +51,7 @@ public class TestReconcileRepairsMissedRotation {
 
 	@Test
 	public void testReconcileRepointsMissedRotation() throws Exception {
-		var logDir = Files.createTempDirectory("fnd20-gdc03-repoint");
+		var logDir = Files.createTempDirectory("rotation-repoint");
 		var c1 = buildLines(C1Base, "c1-", 40);
 		AtomicFileWriter.replace(logDir.resolve(Active), c1.getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
@@ -116,7 +116,7 @@ public class TestReconcileRepairsMissedRotation {
 	 */
 	@Test
 	public void testFreshIndexNotRepointed() throws Exception {
-		var logDir = Files.createTempDirectory("fnd20-gdc03-noop");
+		var logDir = Files.createTempDirectory("rotation-noop");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "a-", 3).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {

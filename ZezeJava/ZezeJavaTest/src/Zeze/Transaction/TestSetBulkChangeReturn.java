@@ -50,10 +50,10 @@ public class TestSetBulkChangeReturn {
 		config.setDefaultTableConf(new Zeze.Config.TableConf());
 		var dbConf = new Zeze.Config.DatabaseConf();
 		dbConf.setDatabaseType(Zeze.Config.DbType.RocksDb);
-		var dbDir = java.nio.file.Files.createTempDirectory("fnd708a");
+		var dbDir = java.nio.file.Files.createTempDirectory("setbulk");
 		dbConf.setDatabaseUrl(dbDir.toString());
 		config.getDatabaseConfMap().put("", dbConf);
-		var app = new Zeze.Application("TestFnd708a", config);
+		var app = new Zeze.Application("TestSetBulkChange", config);
 		var table = new demo.Module1.tflush();
 		app.addTable("", table);
 		app.start();
@@ -71,7 +71,7 @@ public class TestSetBulkChangeReturn {
 				Assertions.assertTrue(set.removeAll(List.of(1, 9)));
 				Assertions.assertEquals(Set.of(2, 3, 4), set.getSet());
 				return 0L;
-			}, "TestFnd708Managed").call();
+			}, "TestSetBulkManaged").call();
 			Assertions.assertEquals(Zeze.Transaction.Procedure.Success, result, "事务必须成功");
 		} finally {
 			app.stop();

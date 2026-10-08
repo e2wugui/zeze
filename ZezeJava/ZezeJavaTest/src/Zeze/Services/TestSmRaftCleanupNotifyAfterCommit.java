@@ -36,10 +36,10 @@ import org.junit.jupiter.api.Timeout;
  */
 @Fast
 public class TestSmRaftCleanupNotifyAfterCommit {
-	private static final String RAFT_NAME = "fnd8_64_sm_a5";
-	private static final String SERVICE = "Fnd864Cleanup.Svc";
-	private static final String SESSION_A = "UnitTest.FND8_64.Reg";
-	private static final String SESSION_B = "UnitTest.FND8_64.Sub";
+	private static final String RAFT_NAME = "cleanup_notify_sm";
+	private static final String SERVICE = "CleanupNotify.Svc";
+	private static final String SESSION_A = "UnitTest.CleanupNotify.Reg";
+	private static final String SESSION_B = "UnitTest.CleanupNotify.Sub";
 
 	private static final int[] ports = new int[3];
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
@@ -194,7 +194,7 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 				for (var it = socketMap.entryIterator(); it.moveToNext(); ) {
 					var so = it.value();
 					if (so.getRemoteAddress() instanceof java.net.InetSocketAddress rsa && rsa.getPort() == leaderPort) {
-						so.close(new Exception("fnd8-64 test kill"));
+						so.close(new Exception("cleanup-notify test kill"));
 						killed[0]++;
 					}
 				}

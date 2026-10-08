@@ -37,13 +37,13 @@ public class TestDecodeFailCompletesFuture {
 	private static final int ServerId = 892;
 	private static final int SmPort = 31893;
 	private static final String Cluster = "zeze892";
-	private static final String ProcedureName = "fnd21gcc02proc";
-	private static final String SagaName = "fnd21gcc02saga";
+	private static final String ProcedureName = "decodeFailProc";
+	private static final String SagaName = "decodeFailSaga";
 
 	private GcOnzFastStubSupport.OnzFixture fixture;
 
 	private void startFixture(int stubPort) throws Exception {
-		fixture = startNonSharedOnzServer(ServerId, SmPort, java.nio.file.Files.createTempDirectory("fnd21gcc02"),
+		fixture = startNonSharedOnzServer(ServerId, SmPort, java.nio.file.Files.createTempDirectory("decodeFail"),
 				Cluster, 891,
 				new StubSpec("Onz", "894", stubPort, TestDecodeFailCompletesFuture::installStubHandles));
 	}
@@ -142,7 +142,7 @@ public class TestDecodeFailCompletesFuture {
 
 	/** 应答载荷decode必抛的result桩（模拟字段类型跨版本改义——decode对未知字段宽容、类型改义即抛）。 */
 	private static final class EvilDecodeResult extends Zeze.Transaction.Data {
-		static final String Marker = "fnd21-gc-c02 evil decode";
+		static final String Marker = "decode-fail evil decode";
 
 		@Override
 		public void decode(Zeze.Serialize.IByteBuffer bb) {

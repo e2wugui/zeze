@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestRedirectRemoveLocalRcLogged extends AppBase {
 	// 独占号段7341+：与TestFnd732(7321+)并行时不再同CWD撞zeze_cache_N（FND8-26目录锁后必炸，同a8a47296f型）
 	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_REDIRECT_REMOVE_LOCAL_RC_LOGGED);
-	private static final String ACCOUNT = "fnd732b_acc";
+	private static final String ACCOUNT = "redirect_rmrc_acc";
 	private static final long FAIL_RC = 7L;
 
 	private Application zeze;
@@ -86,7 +86,7 @@ public class TestRedirectRemoveLocalRcLogged extends AppBase {
 		conf.setServerId(NextId.incrementAndGet());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("fnd7_32b_test_" + conf.getServerId()); // Memory库，独立url=独立存储
+		dbConf.setDatabaseUrl("redirect_rmrc_test_" + conf.getServerId()); // Memory库，独立url=独立存储
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		zeze = new Application("TestRedirectRemoveLocalRcLogged" + conf.getServerId(), conf);
 		new ProviderApp(zeze); // 哑构造，供Online装配

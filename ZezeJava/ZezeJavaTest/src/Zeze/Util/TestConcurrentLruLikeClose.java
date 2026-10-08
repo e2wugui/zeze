@@ -29,7 +29,7 @@ public class TestConcurrentLruLikeClose {
 	@Test
 	public void testCloseStopsPeriodicTasks() throws Exception {
 		// lruInitialCapacity = 31/5 = 6，lruHot 超过 3 个条目即触发轮转任务建新节点。
-		var lru = new ConcurrentLruLike<String, Object>("fnd736-lru", 100, null, 50, 50, 31);
+		var lru = new ConcurrentLruLike<String, Object>("lru-close", 100, null, 50, 50, 31);
 		for (var i = 0; i < 6; i++) {
 			var v = new Object();
 			Assertions.assertSame(v, lru.getOrAdd("k" + i, () -> v));
@@ -59,7 +59,7 @@ public class TestConcurrentLruLikeClose {
 	/** Cache.close 必须级联关闭内部 LRU 的两个周期任务（此前只清自己的 cleanTimer）。 */
 	@Test
 	public void testCacheCloseCascadesToLru(@TempDir Path tempDir) throws Exception {
-		var dir = tempDir.resolve("fnd736-cache").toString();
+		var dir = tempDir.resolve("lru-close-cache").toString();
 		var cache = new Cache(dir, 16, id -> new Zeze.Util.TestCacheAppendTodayResume.Obj(id, "v1"),
 				(id, bb) -> {
 					var o = new Zeze.Util.TestCacheAppendTodayResume.Obj();

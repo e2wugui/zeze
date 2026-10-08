@@ -30,7 +30,7 @@ public class TestStringCheckerWordLimit {
 		private final List<String> messages = new CopyOnWriteArrayList<>();
 
 		CapturingAppender() {
-			super("TestFnd775Capture", null, null, true, Property.EMPTY_ARRAY);
+			super("WordLimitCapture", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

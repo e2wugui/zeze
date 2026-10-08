@@ -30,7 +30,7 @@ public class TestRedirectAllOnResultScanUnderLock {
 	public void setUp() {
 		// 裸Service（不启动、无Application）：getZeze()为null，回调走锁外直跑分支；
 		// 仅用于getService()（tryRemoveManualContext对不存在sessionId为no-op）。
-		service = new Service("a3f2svc", (Zeze.Application)null, new Config());
+		service = new Service("resultscanSvc", (Zeze.Application)null, new Config());
 	}
 
 	/** 迟注册扫描路径的回调必须在ctx锁内执行，且回调期间并发的processResult被互斥。 */
@@ -51,7 +51,7 @@ public class TestRedirectAllOnResultScanUnderLock {
 		var lateWriter = new Thread(() -> {
 			processHashes(ctx, 1);
 			writerRan.set(true);
-		}, "a3f2-late-writer");
+		}, "resultscan-late-writer");
 		var callbackChecked = new AtomicBoolean(false);
 
 		ctx.getFuture().OnResult(r -> {

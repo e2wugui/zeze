@@ -32,7 +32,7 @@ import static Zeze.Onz.GcOnzE2eTestSupport.*;
 public class TestEndSagaTimeout {
 	// 过程名必须全JVM唯一：demo.App单例的Onz注册表跨测试类持久。
 	private static final AtomicBoolean registeredOnAppInstance = new AtomicBoolean();
-	private static final String SlowSagaName = "fnd19c3SagaEnd8s";
+	private static final String SlowSagaName = "endSagaTimeout8s";
 
 	private static final long AccountSlow8 = 305;
 

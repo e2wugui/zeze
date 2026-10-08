@@ -54,7 +54,7 @@ public class TestDatagramSessionSendContract {
 	@Test
 	public void testSendAfterCloseReturnsFalse() throws Exception {
 		Task.tryInitThreadPool();
-		var service = new Service("test.fnd850.a");
+		var service = new Service("datagram-send.a");
 		try {
 			var socketA = service.bindUdp(new InetSocketAddress(0));
 			var sessionA = socketA.createSessionServer(
@@ -80,7 +80,7 @@ public class TestDatagramSessionSendContract {
 	@Test
 	public void testRpcOnClosedSessionCleaned() throws Exception {
 		Task.tryInitThreadPool();
-		var service = new Service("test.fnd850.b");
+		var service = new Service("datagram-send.b");
 		try {
 			var socket = service.bindUdp(new InetSocketAddress(0));
 			var session = socket.createSessionServer(
@@ -109,7 +109,7 @@ public class TestDatagramSessionSendContract {
 	@Test
 	public void testCloseDisposesInflightRpc() throws Exception {
 		Task.tryInitThreadPool();
-		var service = new Service("test.fnd850.c");
+		var service = new Service("datagram-send.c");
 		try {
 			var socket = service.bindUdp(new InetSocketAddress(0));
 			var session = socket.createSessionServer(

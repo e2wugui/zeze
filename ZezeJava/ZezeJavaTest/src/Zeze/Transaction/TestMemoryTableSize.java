@@ -30,7 +30,7 @@ public class TestMemoryTableSize {
 		conf.setServerId(nextServerId.getAndIncrement());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("t1_fnd701_memsize_" + conf.getServerId());
+		dbConf.setDatabaseUrl("memsize_" + conf.getServerId());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		return new Application("TestMemoryTableSize@" + conf.getServerId(), conf);
 	}

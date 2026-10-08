@@ -63,7 +63,7 @@ public class TestRepointVerifiesContentBeforeRename {
 	 */
 	@Test
 	public void testUnrelatedRotateNotRepointed() throws Exception {
-		var logDir = Files.createTempDirectory("fnd22-gdc05-mispair");
+		var logDir = Files.createTempDirectory("repoint-mispair");
 		// C1：40行×30s，构造期全量索引（beginTime=C1Base，末行offset≈1.2KB）。
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
@@ -124,7 +124,7 @@ public class TestRepointVerifiesContentBeforeRename {
 	 */
 	@Test
 	public void testGenuineMissedRotationStillRepointed() throws Exception {
-		var logDir = Files.createTempDirectory("fnd22-gdc05-genuine");
+		var logDir = Files.createTempDirectory("repoint-genuine");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {

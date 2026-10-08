@@ -35,7 +35,7 @@ public class TestLateProtocolAfterClose {
 		final int port = 26111;
 		Files.createDirectories(Path.of("autokeys"));
 
-		var sm = new ServiceManagerServer(null, port, new Config(), "autokeys/fnd5-29");
+		var sm = new ServiceManagerServer(null, port, new Config(), "autokeys/late-protocol");
 		Agent agent = null;
 		try {
 			agent = newAgent(port);
@@ -47,7 +47,7 @@ public class TestLateProtocolAfterClose {
 			Assertions.assertNotNull(serverSide, "agent应已建立服务端会话");
 
 			var arg = new BEditService();
-			arg.getAdd().add(new BServiceInfo("Fnd5LateGhost", "7", 0, "127.0.0.1", 1234));
+			arg.getAdd().add(new BServiceInfo("LateGhost", "7", 0, "127.0.0.1", 1234));
 			var late = new EditService(arg);
 			late.setSender(serverSide);
 
@@ -64,7 +64,7 @@ public class TestLateProtocolAfterClose {
 
 			@SuppressWarnings("unchecked")
 			var serviceStates = (ConcurrentHashMap<String, ?>)field(sm, "serviceStates");
-			Assertions.assertFalse(serviceStates.containsKey("Fnd5LateGhost"),
+			Assertions.assertFalse(serviceStates.containsKey("LateGhost"),
 					"迟到EditService不得在会话清理后落盘死注册");
 		} finally {
 			if (agent != null)

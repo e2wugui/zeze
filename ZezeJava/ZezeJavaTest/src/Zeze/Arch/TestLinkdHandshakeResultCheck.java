@@ -31,7 +31,7 @@ public class TestLinkdHandshakeResultCheck {
 		var config = new Zeze.Config();
 		config.setServiceManager("disable");
 		config.setNoDatabase(true);
-		service = new Zeze.Net.Service("a7fnd888svc", null, config); // 裸Service不启动，仅作socket宿主
+		service = new Zeze.Net.Service("handshakecheckSvc", null, config); // 裸Service不启动，仅作socket宿主
 	}
 
 	private static FakeSocket newSocket() {

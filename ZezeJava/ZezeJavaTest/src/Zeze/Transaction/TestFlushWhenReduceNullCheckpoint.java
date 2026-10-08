@@ -45,7 +45,7 @@ public class TestFlushWhenReduceNullCheckpoint {
 		conf.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("fnd7_55_reduce_flush_" + SERVER_ID);
+		dbConf.setDatabaseUrl("reduce_flush_" + SERVER_ID);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = new Application("TestFlushWhenReduceNullCheckpoint", conf);
 		app.start();

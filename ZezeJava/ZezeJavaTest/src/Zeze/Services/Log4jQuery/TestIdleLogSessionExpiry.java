@@ -42,7 +42,7 @@ public class TestIdleLogSessionExpiry {
 	@BeforeEach
 	public void before() throws Exception {
 		Task.tryInitThreadPool();
-		logDir = Files.createTempDirectory("fnd19-gdd03-idle");
+		logDir = Files.createTempDirectory("idle-expiry");
 		var logConf = new LogServiceConf.LogConf();
 		logConf.logActive = "zeze.log";
 		logConf.logDir = logDir.toString();

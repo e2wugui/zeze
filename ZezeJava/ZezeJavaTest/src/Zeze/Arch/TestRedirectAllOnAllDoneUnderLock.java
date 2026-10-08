@@ -36,7 +36,7 @@ public class TestRedirectAllOnAllDoneUnderLock {
 	public void setUp() {
 		// 裸Service（不启动、无Application）：getZeze()为null，onAllDone走else直跑分支；
 		// 仅用于getService()/manualContexts（tryRemoveManualContext移除不存在的sessionId为no-op）。
-		service = new Service("a7fnd881svc", (Zeze.Application)null, new Config());
+		service = new Service("alldone_svc", (Zeze.Application)null, new Config());
 	}
 
 	/** 直跑路径：完成后再注册的回调必须在ctx锁内执行，且与并发processResult互斥。 */
@@ -64,7 +64,7 @@ public class TestRedirectAllOnAllDoneUnderLock {
 			var late = new Thread(() -> {
 				processHashes(ctx, 99);
 				lateRan.set(true);
-			}, "a7fnd881-late-writer");
+			}, "alldone-late-writer");
 			lateThread.set(late);
 			late.start();
 			// 给迟到线程充足时间尝试进入processResult；互斥成立则它阻塞在ctx锁上不得完成

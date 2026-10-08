@@ -43,7 +43,7 @@ public class TestTransmitUnknownAction {
 		conf.setServerId(NextServerId.getAndIncrement());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("a6_fnd877_" + conf.getServerId());
+		dbConf.setDatabaseUrl("transmit_" + conf.getServerId());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		return new Application(name, conf);
 	}
@@ -70,7 +70,7 @@ public class TestTransmitUnknownAction {
 
 	// 挂临时appender收集目标logger的error消息，动作完成后立即摘除（并行下按内容过滤断言）。
 	private static List<String> captureErrors(Class<?> loggerClass, Runnable action) {
-		var appender = new CapturingAppender("a6_fnd877_capture");
+		var appender = new CapturingAppender("transmit_capture");
 		var log = (Logger)LogManager.getLogger(loggerClass);
 		log.addAppender(appender);
 		try {
@@ -84,7 +84,7 @@ public class TestTransmitUnknownAction {
 	/** Game版：未注册actionName记error（含actionName/roles.size），不再静默。 */
 	@Test
 	public void testGameUnknownActionLogged() throws Exception {
-		var zeze = newApp("TestFnd877Game");
+		var zeze = newApp("TransmitGame");
 		var app = new AppBase() {
 			@Override
 			public Application getZeze() {
@@ -97,10 +97,10 @@ public class TestTransmitUnknownAction {
 		zeze.start();
 		try {
 			var errs = captureErrors(Zeze.Game.Online.class, () ->
-					online.processTransmit(101L, "a6.fnd877.unknown", List.of(161901L, 161902L), null));
+					online.processTransmit(101L, "transmit.unknown", List.of(161901L, 161902L), null));
 			var hit = errs.stream().filter(m -> m.contains("transmit unknown action")).findFirst().orElse(null);
 			Assertions.assertNotNull(hit, "未注册action必须记error（修复前静默丢弃）");
-			Assertions.assertTrue(hit.contains("a6.fnd877.unknown"), "日志必须含actionName");
+			Assertions.assertTrue(hit.contains("transmit.unknown"), "日志必须含actionName");
 			Assertions.assertTrue(hit.contains("roles.size=2"), "日志必须含roles数量");
 		} finally {
 			try {
@@ -113,7 +113,7 @@ public class TestTransmitUnknownAction {
 	/** Game版护栏：已注册action正常执行，不产生unknown日志。 */
 	@Test
 	public void testGameKnownActionStillWorks() throws Exception {
-		var zeze = newApp("TestFnd877GameKnown");
+		var zeze = newApp("TransmitGameKnown");
 		var app = new AppBase() {
 			@Override
 			public Application getZeze() {
@@ -125,9 +125,9 @@ public class TestTransmitUnknownAction {
 		var online = new Online(app);
 		zeze.start();
 		try {
-			online.getTransmitActions().put("a6.fnd877.known", (sender, target, parameter) -> 0);
+			online.getTransmitActions().put("transmit.known", (sender, target, parameter) -> 0);
 			var errs = captureErrors(Zeze.Game.Online.class, () ->
-					online.processTransmit(101L, "a6.fnd877.known", List.of(161903L), null));
+					online.processTransmit(101L, "transmit.known", List.of(161903L), null));
 			Assertions.assertTrue(errs.stream().noneMatch(m -> m.contains("transmit unknown action")),
 					"已注册action不得产生unknown日志");
 		} finally {
@@ -141,7 +141,7 @@ public class TestTransmitUnknownAction {
 	/** Arch版孪生：未注册actionName记error（含action/targets.size）。 */
 	@Test
 	public void testArchUnknownActionLogged() throws Exception {
-		var zeze = newApp("TestFnd877Arch");
+		var zeze = newApp("TransmitArch");
 		var app = new AppBase() {
 			@Override
 			public Application getZeze() {
@@ -159,14 +159,14 @@ public class TestTransmitUnknownAction {
 			var targets = List.of(new BLoginKey("a6t1", "a6c1"), new BLoginKey("a6t2", "a6c2"));
 			var errs = captureErrors(Zeze.Arch.Online.class, () -> {
 				try {
-					method.invoke(archOnline, "a6acc", "a6cid", "a6.fnd877.unknown", targets, null);
+					method.invoke(archOnline, "txAcc", "txCid", "transmit.unknown", targets, null);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
 			});
 			var hit = errs.stream().filter(m -> m.contains("processTransmit unknown action")).findFirst().orElse(null);
 			Assertions.assertNotNull(hit, "Arch版未注册action必须记error（孪生，修复前静默丢弃）");
-			Assertions.assertTrue(hit.contains("a6.fnd877.unknown"), "日志必须含action名");
+			Assertions.assertTrue(hit.contains("transmit.unknown"), "日志必须含action名");
 			Assertions.assertTrue(hit.contains("targets.size=2"), "日志必须含targets数量");
 		} finally {
 			try {

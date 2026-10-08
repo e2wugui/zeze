@@ -31,7 +31,7 @@ public class TestManagerConstructFailCleanup {
 
 	@Test
 	public void testConstructorFailureStopsDetector() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-ctor-fail");
+		var logDir = Files.createTempDirectory("ctor-fail");
 		// 装载抛出注入：active在磁盘触发openActiveIndexAtLoad，indexLinks名被普通文件占据——
 		// nextLinkFile的createDirectories对同名文件跨平台必抛。该失败面是索引通道的真IO错误，
 		// 不在rotate名.index残留的配对校验消费范围内（那是FND25 log4j-04的合法降级面）。

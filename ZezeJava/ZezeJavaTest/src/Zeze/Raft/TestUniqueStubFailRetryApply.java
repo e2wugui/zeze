@@ -102,7 +102,7 @@ public class TestUniqueStubFailRetryApply {
 		assertNotNull(changes);
 		// requestId>0触发tryApply的unique存根写路径（FND3-22窗口的载体）。
 		changes.getUnique().setRequestId(1);
-		changes.getUnique().setClientId("test.fnd3_22");
+		changes.getUnique().setClientId("test.uniqueStubRetry");
 		changes.setCreateTime(System.currentTimeMillis());
 		changes.encode(ByteBuffer.Allocate());
 		return changes;
@@ -194,7 +194,7 @@ public class TestUniqueStubFailRetryApply {
 
 			var changes = captureUniqueChanges(rocks, table);
 			// rpcResult在Raft.appendLog入口（saveLog之前）set到log上，此处同样在落日志前设置。
-			var rpcResult = new Zeze.Net.Binary("fake.rpc.result.fnd3_22".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			var rpcResult = new Zeze.Net.Binary("fake.rpc.result.uniqueStubRetry".getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			changes.setRpcResult(rpcResult);
 			var raftLog = new RaftLog(1, 1, changes);
 			var logSequence = rocks.getRaft().getLogSequence();
@@ -209,7 +209,7 @@ public class TestUniqueStubFailRetryApply {
 			// 修复前：解码requestId==0->follower没写存根->NOT_FOUND->重发重新执行（红）。
 			var retried = new Zeze.Builtin.ServiceManagerWithRaft.Login();
 			retried.getUnique().setRequestId(1);
-			retried.getUnique().setClientId("test.fnd3_22");
+			retried.getUnique().setClientId("test.uniqueStubRetry");
 			retried.setCreateTime(changes.getCreateTime());
 			var state = logSequence.tryGetRequestState(retried);
 			Assertions.assertNotNull(state, "存根必须存在（NOT_FOUND语义用专门对象表达）");

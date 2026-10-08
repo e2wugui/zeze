@@ -23,7 +23,7 @@ public class TestHttpSessionRequiresTimer {
 	public void testEnableHttpSessionWithoutProviderAppThrowsWithGuidance() throws Exception {
 		Task.tryInitThreadPool();
 		var conf = TakeoverTestEnv.newConf("dryrun", 600_000, 600_000);
-		var zeze = new Application("TestFnd776NoProvider", conf);
+		var zeze = new Application("HttpSessionTimerNoProvider", conf);
 		try {
 			zeze.initialize(new TakeoverTestEnv.TestAppBase(zeze)); // redirect==null：不创建timer
 			Assertions.assertNull(zeze.getTimer(), "前提：无ProviderApp的带库应用timer为null");
@@ -44,7 +44,7 @@ public class TestHttpSessionRequiresTimer {
 	public void testEnableHttpSessionWithProviderAppSucceeds() throws Exception {
 		Task.tryInitThreadPool();
 		var conf = TakeoverTestEnv.newConf("dryrun", 600_000, 600_000);
-		var zeze = new Application("TestFnd776WithProvider", conf);
+		var zeze = new Application("HttpSessionTimerWithProvider", conf);
 		try {
 			new ProviderApp(zeze); // fake ProviderApp：建立zeze.redirect，供initialize创建Timer
 			zeze.initialize(new TakeoverTestEnv.TestAppBase(zeze));

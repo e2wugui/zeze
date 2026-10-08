@@ -59,8 +59,8 @@ import harness.Fast;
 @ResourceLock("GlobalCacheManagerServer.instance")
 public class TestGcmSyncReleaseGeneration {
 	private static final int PORT = 19713; // @Fast固定端口独占
-	private static final Binary KEY1 = new Binary("UnitTest.FND14_svc01.K1".getBytes(StandardCharsets.UTF_8));
-	private static final Binary KEY2 = new Binary("UnitTest.FND14_svc01.K2".getBytes(StandardCharsets.UTF_8));
+	private static final Binary KEY1 = new Binary("UnitTest.GcmSyncRelease.K1".getBytes(StandardCharsets.UTF_8));
+	private static final Binary KEY2 = new Binary("UnitTest.GcmSyncRelease.K2".getBytes(StandardCharsets.UTF_8));
 	private static final int SERVER_ID_S = 9132;
 	private static final int SERVER_ID_T = 9133;
 
@@ -186,7 +186,7 @@ public class TestGcmSyncReleaseGeneration {
 	@Timeout(90)
 	public void testNormalCloseDelayedReleaseMustNotRevokeRebindPreserved() throws Exception {
 		// 1. S持K1/K2的Modify（无竞争直接获取）
-		clientS = new RawClient("UnitTest.FND14_svc01.S");
+		clientS = new RawClient("UnitTest.GcmSyncRelease.S");
 		var socketS = clientS.connect();
 		login(socketS, SERVER_ID_S);
 		acquireModify(socketS, KEY1);
@@ -195,7 +195,7 @@ public class TestGcmSyncReleaseGeneration {
 		var csK2AtSetup = cacheStateOf(KEY2);
 
 		// 2. T acquireModify(K1)占住申请位；对S的Reduce被park（不自动应答）
-		clientT = new RawClient("UnitTest.FND14_svc01.T");
+		clientT = new RawClient("UnitTest.GcmSyncRelease.T");
 		var socketT = clientT.connect();
 		login(socketT, SERVER_ID_T);
 		var acquireT = new Acquire(KEY1, GlobalCacheManagerConst.StateModify);
@@ -220,7 +220,7 @@ public class TestGcmSyncReleaseGeneration {
 
 		// 4. S复活：新连接ReLogin重绑（世代+1，此后本循环的release全部过期）——不重新Acquire：
 		// ReLogin保留的所有权即被测对象（重新Acquire会先撞DeadLock检查21，不可达）
-		clientS2 = new RawClient("UnitTest.FND14_svc01.S2");
+		clientS2 = new RawClient("UnitTest.GcmSyncRelease.S2");
 		var socketS2 = clientS2.connect();
 		var relogin = new ReLogin();
 		relogin.Argument.serverId = SERVER_ID_S;

@@ -35,9 +35,9 @@ public class TestUpgradeIncompatibleFailFast {
 		conf.setServerId(serverId);
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("fnd14_hot02_" + serverId);
+		dbConf.setDatabaseUrl("hot_upgrade_" + serverId);
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
-		return new Application("TestFnd14Hot02@" + serverId, conf);
+		return new Application("TestHotUpgrade@" + serverId, conf);
 	}
 
 	@Test
@@ -53,7 +53,7 @@ public class TestUpgradeIncompatibleFailFast {
 				v.setV1(42);
 				oldTable.put(key, v);
 				return 0L;
-			}, "TestFnd14Hot02.put")).call();
+			}, "TestHotUpgrade.put")).call();
 			Assertions.assertEquals(0L, rc);
 			app.checkpointRun(); // 脏数据flush进本地Rocks：tMemorySize受限容量，walkMemoryAny的数据源
 
@@ -70,7 +70,7 @@ public class TestUpgradeIncompatibleFailFast {
 				var v = oldTable.get(key);
 				got[0] = v != null ? v.getV1() : -1;
 				return 0L;
-			}, "TestFnd14Hot02.get")).call();
+			}, "TestHotUpgrade.get")).call();
 			Assertions.assertEquals(0L, rc);
 			Assertions.assertEquals(42, got[0], "回滚语义=旧表保留可用（修复前被无条件disable）");
 		} finally {

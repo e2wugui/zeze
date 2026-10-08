@@ -49,7 +49,7 @@ public class TestQuerySkipsDeletedFileEntry {
 	 */
 	@Test
 	public void testWalkerSkipsDeletedEntry() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-gdd01-walker");
+		var logDir = Files.createTempDirectory("deleted-walker");
 		var base = LocalDateTime.now();
 		Files.write(logDir.resolve(Rotated1),
 				logLine(base.minusDays(2), "rotate-old-log").getBytes(StandardCharsets.UTF_8));
@@ -83,7 +83,7 @@ public class TestQuerySkipsDeletedFileEntry {
 	 */
 	@Test
 	public void testSeekSkipsDeletedEntry() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-gdd01-seek");
+		var logDir = Files.createTempDirectory("deleted-seek");
 		Files.write(logDir.resolve(Rotated1),
 				logLine(LocalDateTime.of(2026, 9, 1, 0, 0), "oldest").getBytes(StandardCharsets.UTF_8));
 		Files.write(logDir.resolve(Rotated2),
@@ -115,7 +115,7 @@ public class TestQuerySkipsDeletedFileEntry {
 	 */
 	@Test
 	public void testAllEntriesMissingExhausts() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-gdd01-all-missing");
+		var logDir = Files.createTempDirectory("deleted-all-missing");
 		Files.write(logDir.resolve(Rotated1),
 				logLine(LocalDateTime.now().minusDays(1), "only-log").getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);

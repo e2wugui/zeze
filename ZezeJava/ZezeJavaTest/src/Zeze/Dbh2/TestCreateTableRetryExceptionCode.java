@@ -59,7 +59,7 @@ public class TestCreateTableRetryExceptionCode {
 	private static Database.Dbh2Table openTable(Dbh2AgentManager manager) {
 		var conf = new Config.DatabaseConf();
 		conf.setDatabaseType(Config.DbType.Dbh2);
-		conf.setDatabaseUrl("dbh2://127.0.0.1:11000/dbh2Fnd20C04");
+		conf.setDatabaseUrl("dbh2://127.0.0.1:11000/dbh2CreateTableRetry");
 		conf.setName("dbh2");
 		var database = new Database(null, manager, conf);
 		return (Database.Dbh2Table)database.openTable("t1", 1);

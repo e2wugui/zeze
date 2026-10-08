@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestBinaryNoByteArrayEquals {
 
-	private static final byte[] BYTES = "a1_fnd815_content".getBytes(StandardCharsets.UTF_8);
+	private static final byte[] BYTES = "binary_content".getBytes(StandardCharsets.UTF_8);
 
 	@Test
 	public void testByteArrayBranchRemovedWithContentEqualsExit() {

@@ -57,13 +57,13 @@ public class TestQueueBrokenChainDiagnosis {
 		conf.setServerId(NextServerId.getAndIncrement());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("a6_fnd879_" + conf.getServerId());
+		dbConf.setDatabaseUrl("queue_broken_" + conf.getServerId());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		return new Application(name, conf);
 	}
 
 	private static void callInTxn(Application zeze, Zeze.Util.FuncLong action) {
-		var rc = zeze.newProcedure(action, "a6.fnd879").call();
+		var rc = zeze.newProcedure(action, "queue.brokenChain").call();
 		Assertions.assertEquals(Procedure.Success, rc);
 	}
 
@@ -73,12 +73,12 @@ public class TestQueueBrokenChainDiagnosis {
 		Task.tryInitThreadPool();
 		var zeze = newApp("TestFnd879Head");
 		zeze.start();
-		var appender = new CapturingAppender("a6_fnd879_head");
+		var appender = new CapturingAppender("queue_broken_head");
 		var log = (Logger)LogManager.getLogger(Queue.class);
 		log.addAppender(appender);
 		try {
 			var module = zeze.getQueueModule();
-			var queue = module.open("a6.fnd879.q1", EmptyBean.class, 30);
+			var queue = module.open("queue.brokenChain.q1", EmptyBean.class, 30);
 			callInTxn(zeze, () -> {
 				queue.add(new EmptyBean());
 				queue.add(new EmptyBean());
@@ -87,7 +87,7 @@ public class TestQueueBrokenChainDiagnosis {
 			// 模拟数据损坏：直接删除头节点行（正常事务路径不可能产生该状态）。
 			var headKeyHolder = new BQueueNodeKey[1];
 			callInTxn(zeze, () -> {
-				headKeyHolder[0] = module._tQueues.get("a6.fnd879.q1").getHeadNodeKey();
+				headKeyHolder[0] = module._tQueues.get("queue.brokenChain.q1").getHeadNodeKey();
 				module._tQueueNodes.remove(headKeyHolder[0]);
 				return 0L;
 			});
@@ -103,7 +103,7 @@ public class TestQueueBrokenChainDiagnosis {
 
 			var msgs = appender.messages;
 			Assertions.assertTrue(msgs.stream().anyMatch(m -> m.contains("queue poll: broken chain")
-					&& m.contains("a6.fnd879.q1")), "poll必须记断链error");
+					&& m.contains("queue.brokenChain.q1")), "poll必须记断链error");
 			Assertions.assertTrue(msgs.stream().anyMatch(m -> m.contains("queue peek: broken chain")), "peek必须记断链error");
 			Assertions.assertTrue(msgs.stream().anyMatch(m -> m.contains("queue pollNode: broken chain")
 					&& m.contains("count=2")), "pollNode日志必须带count");
@@ -120,12 +120,12 @@ public class TestQueueBrokenChainDiagnosis {
 		Task.tryInitThreadPool();
 		var zeze = newApp("TestFnd879Tail");
 		zeze.start();
-		var appender = new CapturingAppender("a6_fnd879_tail");
+		var appender = new CapturingAppender("queue_broken_tail");
 		var log = (Logger)LogManager.getLogger(Queue.class);
 		log.addAppender(appender);
 		try {
 			var module = zeze.getQueueModule();
-			var queue = module.open("a6.fnd879.q2", EmptyBean.class, 1); // nodeSize=1：每个值一个节点
+			var queue = module.open("queue.brokenChain.q2", EmptyBean.class, 1); // nodeSize=1：每个值一个节点
 			callInTxn(zeze, () -> {
 				queue.add(new EmptyBean()); // node1 = head = tail
 				queue.add(new EmptyBean()); // node2 = tail（node1.next=node2）
@@ -133,7 +133,7 @@ public class TestQueueBrokenChainDiagnosis {
 			});
 			// 模拟尾断：删除尾节点行，head（node1）活链仍在。
 			callInTxn(zeze, () -> {
-				var root = module._tQueues.get("a6.fnd879.q2");
+				var root = module._tQueues.get("queue.brokenChain.q2");
 				Assertions.assertNotEquals(root.getHeadNodeKey(), root.getTailNodeKey(), "前置：head与tail分属两节点");
 				module._tQueueNodes.remove(root.getTailNodeKey());
 				return 0L;
@@ -143,7 +143,7 @@ public class TestQueueBrokenChainDiagnosis {
 				return 0L;
 			});
 			Assertions.assertTrue(appender.messages.stream().anyMatch(m -> m.contains("queue add: broken tail")
-					&& m.contains("a6.fnd879.q2")), "真断尾的add必须记error告警");
+					&& m.contains("queue.brokenChain.q2")), "真断尾的add必须记error告警");
 		} finally {
 			log.removeAppender(appender);
 			zeze.stop();
@@ -156,12 +156,12 @@ public class TestQueueBrokenChainDiagnosis {
 		Task.tryInitThreadPool();
 		var zeze = newApp("TestFnd879Drained");
 		zeze.start();
-		var appender = new CapturingAppender("a6_fnd879_drained");
+		var appender = new CapturingAppender("queue_broken_drained");
 		var log = (Logger)LogManager.getLogger(Queue.class);
 		log.addAppender(appender);
 		try {
 			var module = zeze.getQueueModule();
-			var queue = module.open("a6.fnd879.q3", EmptyBean.class, 1);
+			var queue = module.open("queue.brokenChain.q3", EmptyBean.class, 1);
 			callInTxn(zeze, () -> {
 				queue.add(new EmptyBean());
 				Assertions.assertNotNull(queue.poll(), "排空前必须能取出"); // head与tail同步清0（FND10 coll-01）

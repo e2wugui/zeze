@@ -71,7 +71,7 @@ public class TestStaleSplitPutNoRestart {
 		final AtomicInteger checkFreeManagerRequests = new AtomicInteger();
 
 		StubMasterService(int port) {
-			super("stubMasterFnd21GAC03", stubServerConfig(port));
+			super("stubMasterStaleSplit", stubServerConfig(port));
 			setNoProcedure(true);
 
 			var fh = new Zeze.Net.Service.ProtocolFactoryHandle<>(CheckFreeManager.class, CheckFreeManager.TypeId_);
@@ -94,7 +94,7 @@ public class TestStaleSplitPutNoRestart {
 		var conf = new ServiceConf();
 		conf.addAcceptor(new Acceptor(port, "127.0.0.1"));
 		var config = new Config();
-		config.getServiceConfMap().put("stubMasterFnd21GAC03", conf);
+		config.getServiceConfMap().put("stubMasterStaleSplit", conf);
 		return config;
 	}
 
@@ -126,7 +126,7 @@ public class TestStaleSplitPutNoRestart {
 	private static Dbh2ManagerStub newStubbedManager(Path tempDir, MasterAgent stubAgent) throws Exception {
 		// home在系统临时目录而非@TempDir：manager内部rocks句柄只能反射关闭，
 		// 残留不应让JUnit的@TempDir收尾删除失败（TestFnd20GAR21同款取舍）。
-		var home = Files.createTempDirectory("fnd21gac03-manager");
+		var home = Files.createTempDirectory("stale-split-manager");
 		var xml = home.resolve("manager.xml");
 		Files.writeString(xml, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<zeze ServerId=\"881\"/>\n");
 		return new Dbh2ManagerStub(home, xml.toString(), stubAgent);

@@ -94,7 +94,7 @@ public class TestLogOneDeclaredTypeMeta {
 			public void cleanup() {
 			}
 		};
-		return new Record.RootInfo(record, new TableKey(1, "TestFnd780"));
+		return new Record.RootInfo(record, new TableKey(1, "TestLogOneType"));
 	}
 
 	@Test

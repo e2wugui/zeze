@@ -49,7 +49,7 @@ public class TestVersionBucketUsesConfigVersion {
 		conf.setAppVersion(1L << 48);
 		app = ProviderDirectTestSupport.newAppWithFakeAgent("TestA2F1", conf);
 
-		pds = new ProviderDirectService("a2f1pds", app);
+		pds = new ProviderDirectService("version_bucket_pds", app);
 		pds.providerApp = new ProviderApp(app); // 轻量构造（仅zeze被本路径使用）
 		setPrefix(pds.providerApp, PREFIX);
 

@@ -274,13 +274,13 @@ public class TestServiceLifecycle {
 		// 前置 ping -n 2 延迟（~1s）：裸 if..exit 5 毫秒级即死，onExit收殓跑赢下一行的
 		// assertNotNull（test40-4实证round20红）——需要条目在断言时刻确定在场以取句柄验退出码。
 		layoutVersion(servicesDir,
-				"command=cmd\nargs=/c ping -n 2 127.0.0.1 >nul & if %ZEZE_FND19%==hit exit 5\nenv=ZEZE_FND19=hit\n");
+				"command=cmd\nargs=/c ping -n 2 127.0.0.1 >nul & if %ZEZE_SVC_LIFECYCLE%==hit exit 5\nenv=ZEZE_SVC_LIFECYCLE=hit\n");
 		var sm = new ServiceManager(servicesDir);
 
 		assertEquals(0, sm.startService(startReq()));
 		var process = sm.getProcessForTest("svc");
 		assertNotNull(process);
 		assertTrue(process.waitFor(10, TimeUnit.SECONDS));
-		assertEquals(5, process.exitValue(), "env必须注入进程环境（ZEZE_FND19=hit 命中 exit 5）");
+		assertEquals(5, process.exitValue(), "env必须注入进程环境（ZEZE_SVC_LIFECYCLE=hit 命中 exit 5）");
 	}
 }

@@ -31,7 +31,7 @@ public class TestCmdParamBaseType {
 		var handler = new SelectCmdParamHandler();
 		var handlerMap = handlerMap();
 
-		var cmds = new String[] {"fnd19_test_int", "fnd19_test_long", "fnd19_test_string", "fnd19_test_obj"};
+		var cmds = new String[] {"cmd_test_int", "cmd_test_long", "cmd_test_string", "cmd_test_obj"};
 		handlerMap.put(cmds[0], new QueryHandlerManager.QueryHandleContainer(intHandler()));
 		handlerMap.put(cmds[1], new QueryHandlerManager.QueryHandleContainer(longHandler()));
 		handlerMap.put(cmds[2], new QueryHandlerManager.QueryHandleContainer(stringHandler()));

@@ -37,7 +37,7 @@ public class TestServerUserStateClose {
 	@BeforeEach
 	public void before() throws Exception {
 		Task.tryInitThreadPool();
-		logDir = Files.createTempDirectory("fnd19-userstate-close");
+		logDir = Files.createTempDirectory("userstate-close");
 		var logConf = new LogServiceConf.LogConf();
 		logConf.logActive = "zeze.log";
 		logConf.logDir = logDir.toString();

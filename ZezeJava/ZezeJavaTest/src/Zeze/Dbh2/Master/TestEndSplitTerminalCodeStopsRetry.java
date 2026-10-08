@@ -41,7 +41,7 @@ public class TestEndSplitTerminalCodeStopsRetry {
 		private final ArrayDeque<Integer> script;
 
 		StubMasterService(int port, List<Integer> replyCodes) {
-			super("stubMasterFnd20C05", stubServerConfig(port));
+			super("stubMasterTerminalCode", stubServerConfig(port));
 			setNoProcedure(true);
 			script = new ArrayDeque<>(replyCodes);
 
@@ -64,7 +64,7 @@ public class TestEndSplitTerminalCodeStopsRetry {
 			var conf = new ServiceConf();
 			conf.addAcceptor(new Acceptor(port, "127.0.0.1"));
 			var config = new Config();
-			config.getServiceConfMap().put("stubMasterFnd20C05", conf);
+			config.getServiceConfMap().put("stubMasterTerminalCode", conf);
 			return config;
 		}
 	}

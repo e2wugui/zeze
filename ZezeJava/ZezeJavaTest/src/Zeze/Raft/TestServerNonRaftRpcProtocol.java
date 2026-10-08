@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 public class TestServerNonRaftRpcProtocol {
-	private static final String dbHome = "a3_TestFnd841ServerNonRaftRpc.raft";
+	private static final String dbHome = "ServerNonRaftRpc.raft";
 	private static final long fakeTypeId = 0x7a3_0411L; // 非任何白名单typeId
 
 	private Raft raft;
@@ -37,7 +37,7 @@ public class TestServerNonRaftRpcProtocol {
 	private static RaftConfig newRaftConfig() {
 		return RaftConfig.loadFromString("""
 				<?xml version="1.0" encoding="utf-8"?>
-				<raft Name="127.0.0.1:26375" DbHome="a3_TestFnd841ServerNonRaftRpc.raft">
+				<raft Name="127.0.0.1:26375" DbHome="ServerNonRaftRpc.raft">
 					<node Host="127.0.0.1" Port="26375"/>
 					<node Host="127.0.0.1" Port="26376"/>
 					<node Host="127.0.0.1" Port="26377"/>
@@ -60,7 +60,7 @@ public class TestServerNonRaftRpcProtocol {
 			}
 		};
 		raft = new Raft(sm, "127.0.0.1:26375", newRaftConfig());
-		server = new Server(raft, "a3Fnd841Srv", new Config());
+		server = new Server(raft, "NonRaftRpcSrv", new Config());
 	}
 
 	@AfterEach

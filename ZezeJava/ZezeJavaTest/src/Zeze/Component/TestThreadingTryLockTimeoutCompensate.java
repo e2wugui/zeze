@@ -36,7 +36,7 @@ public class TestThreadingTryLockTimeoutCompensate {
 		final ConcurrentLinkedQueue<String> unlockedNames = new ConcurrentLinkedQueue<>();
 
 		DelayedGrantServer() {
-			super("TestFnd764DelaySrv");
+			super("TryLockDelaySrv");
 			AddFactoryHandle(MutexTryLock.TypeId_, new ProtocolFactoryHandle<>(MutexTryLock::new, r -> {
 				TaskSpec.ofAction(() -> r.SendResultCode(0)).scheduleNow(8000); // 授予但迟到
 				return 0L;
@@ -76,14 +76,14 @@ public class TestThreadingTryLockTimeoutCompensate {
 		Task.tryInitThreadPool();
 		var server = new DelayedGrantServer();
 		int port = listenPort(server);
-		var client = new Service("TestFnd764DelayCli");
+		var client = new Service("TryLockDelayCli");
 		try {
 			client.newClientSocket("127.0.0.1", port, null, null);
 			await("client connected", 10_000, () -> client.GetSocket() != null);
 
 			var threading = new Threading(client, 1);
 			threading.RegisterProtocols(client); // 对齐Agent：客户端也要注册工厂（应答按同TypeId解码派发）
-			var mutex = threading.openMutex("fnd764.timeout.mutex");
+			var mutex = threading.openMutex("trylock.timeout.mutex");
 			try {
 				boolean locked;
 				try {
@@ -94,7 +94,7 @@ public class TestThreadingTryLockTimeoutCompensate {
 				Assertions.assertFalse(locked, "客户端rpc超时必须按未获锁处理");
 
 				await("compensating unlock", 5_000, () -> !server.unlockedNames.isEmpty());
-				Assertions.assertEquals("fnd764.timeout.mutex", server.unlockedNames.peek(),
+				Assertions.assertEquals("trylock.timeout.mutex", server.unlockedNames.peek(),
 						"tryLock超时后必须对同lockName补发unlock");
 			} finally {
 				threading.close();
@@ -111,18 +111,18 @@ public class TestThreadingTryLockTimeoutCompensate {
 	@Test
 	public void testExtraUnlockIdempotentOnRealThreadingServer() throws Exception {
 		Task.tryInitThreadPool();
-		var serverService = new Service("TestFnd764RealSrv");
+		var serverService = new Service("TryLockRealSrv");
 		var threadingServer = new ThreadingServer(serverService, new ServiceManagerServer.Conf());
 		threadingServer.RegisterProtocols(serverService);
 		int port = listenPort(serverService);
-		var client = new Service("TestFnd764RealCli");
+		var client = new Service("TryLockRealCli");
 		try {
 			client.newClientSocket("127.0.0.1", port, null, null);
 			await("client connected", 10_000, () -> client.GetSocket() != null);
 
 			var threading = new Threading(client, 2);
 			threading.RegisterProtocols(client); // 对齐Agent：客户端也要注册工厂（应答按同TypeId解码派发）
-			var mutex = threading.openMutex("fnd764.idempotent.mutex");
+			var mutex = threading.openMutex("trylock.idempotent.mutex");
 			try {
 				Assertions.assertTrue(mutex.tryLock(0), "空闲锁tryLock必须成功");
 				mutex.unlock();

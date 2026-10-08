@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Timeout;
 public class TestSagaSlowStep {
 	// 过程名全 JVM 唯一：demo.App 单例的 Onz 注册表跨测试类持久（模式同 TestOnzReadyWaitTimeout）。
 	private static final AtomicBoolean registeredOnAppInstance = new AtomicBoolean();
-	private static final String ProcSlow6 = "fnd734SagaSlow6";
+	private static final String ProcSlow6 = "sagaSlowStep6";
 
 	// 场景A/B 各用独立行键，互不干扰；CancelCountRow 是补偿执行计数行。
 	private static final long AccountSlow6 = 300;

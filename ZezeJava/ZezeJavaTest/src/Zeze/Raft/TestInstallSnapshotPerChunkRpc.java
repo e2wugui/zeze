@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestInstallSnapshotPerChunkRpc {
 	private static final String raftName = "127.0.0.1:26360";
-	private static final String dbHome = "a3_TestFnd836InstallSnapshot.raft";
+	private static final String dbHome = "InstallSnapshot.raft";
 	private static final String snapFile = "a3_snapshot.dat";
 
 	// 计数型假socket：接受所有发送但不实际发网络（TestRpcNoReuse.FakeSocket 范式）。
@@ -95,7 +95,7 @@ public class TestInstallSnapshotPerChunkRpc {
 	private static RaftConfig newRaftConfig() {
 		return RaftConfig.loadFromString("""
 				<?xml version="1.0" encoding="utf-8"?>
-				<raft Name="127.0.0.1:26360" DbHome="a3_TestFnd836InstallSnapshot.raft">
+				<raft Name="127.0.0.1:26360" DbHome="InstallSnapshot.raft">
 					<node Host="127.0.0.1" Port="26360"/>
 					<node Host="127.0.0.1" Port="26361"/>
 					<node Host="127.0.0.1" Port="26362"/>
@@ -149,7 +149,7 @@ public class TestInstallSnapshotPerChunkRpc {
 		stateField.set(raft, Raft.RaftState.Leader);
 
 		// ConnectorEx 不接真实网络，注入假socket（Rpc.Send 全路径需要非 null socket）。
-		socket = new CountingSocket(new Service("a3Fnd836Install"));
+		socket = new CountingSocket(new Service("InstallSnapshotSvc"));
 		c = new Server.ConnectorEx("127.0.0.1", 26361);
 		var futureField = Connector.class.getDeclaredField("futureSocket");
 		futureField.setAccessible(true);

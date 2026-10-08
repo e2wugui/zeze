@@ -46,8 +46,8 @@ import harness.Fast;
  */
 @Fast
 public class TestServiceManagerWithRaftLoginSessionName {
-	private static final String RAFT_NAME = "fnd5_35_sm_test";
-	private static final String VALID_SESSION = "UnitTest.FND5_35.Agent";
+	private static final String RAFT_NAME = "blank_session_sm_test";
+	private static final String VALID_SESSION = "UnitTest.BlankSession.Agent";
 
 	private static final int[] ports = new int[3];
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
@@ -146,7 +146,7 @@ public class TestServiceManagerWithRaftLoginSessionName {
 	@Test
 	@Timeout(200)
 	public void testBlankSessionNameLoginRejected() throws Exception {
-		var peer = new Peer("fnd5_35_blank");
+		var peer = new Peer("blank_session_peer");
 		try {
 			var sock = peer.connect(leaderPort());
 			// 修复前：空串/纯空白名getOrAdd出共享会话行（rc=0），同名（含均漏配）互相接管。

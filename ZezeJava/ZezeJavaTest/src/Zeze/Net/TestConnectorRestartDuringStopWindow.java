@@ -72,8 +72,8 @@ public class TestConnectorRestartDuringStopWindow {
 	@Test
 	public void testStopDuringPendingResolveThenStartReconnects() throws Exception {
 		Task.tryInitThreadPool();
-		var server = new Service("test.fnd849.server");
-		var client = new GatedResolveService("test.fnd849.client", false);
+		var server = new Service("restart-window.server");
+		var client = new GatedResolveService("restart-window.client", false);
 		Connector connector = null;
 		try {
 			int port = startTcpServer(server);
@@ -114,8 +114,8 @@ public class TestConnectorRestartDuringStopWindow {
 	@Test
 	public void testResolveFailureReconnectsViaCloseChain() throws Exception {
 		Task.tryInitThreadPool();
-		var server = new Service("test.fnd849.fail.server");
-		var client = new GatedResolveService("test.fnd849.fail.client", true);
+		var server = new Service("restart-window.fail.server");
+		var client = new GatedResolveService("restart-window.fail.client", true);
 		Connector connector = null;
 		try {
 			int port = startTcpServer(server);
@@ -148,8 +148,8 @@ public class TestConnectorRestartDuringStopWindow {
 	@Test
 	public void testStopEffectiveOnFailingResolve() throws Exception {
 		Task.tryInitThreadPool();
-		var server = new Service("test.fnd849.stop.server");
-		var client = new GatedResolveService("test.fnd849.stop.client", true);
+		var server = new Service("restart-window.stop.server");
+		var client = new GatedResolveService("restart-window.stop.client", true);
 		client.release.countDown(); // 不门控：解析立即失败，仅验证重试链终止
 		Connector connector = null;
 		try {

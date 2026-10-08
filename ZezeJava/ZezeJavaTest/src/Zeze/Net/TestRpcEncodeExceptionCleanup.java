@@ -123,7 +123,7 @@ public class TestRpcEncodeExceptionCleanup {
 	@Test
 	public void testSendEncodeExceptionHasTimeoutFallback() throws Exception {
 		Zeze.Util.Task.tryInitThreadPool();
-		var service = new Service("test.fnd851.a");
+		var service = new Service("rpc-encode.a");
 		var handleResult = new HandleResult();
 		service.AddFactoryHandle(EncodeFailRpc.TypeId_, new Service.ProtocolFactoryHandle<>(EncodeFailRpc::new,
 				r -> Procedure.Success, TransactionLevel.None, DispatchMode.Direct));
@@ -151,7 +151,7 @@ public class TestRpcEncodeExceptionCleanup {
 	@Test
 	public void testSendFalsePathStillCleansContext() throws Exception {
 		Zeze.Util.Task.tryInitThreadPool();
-		var service = new Service("test.fnd851.c");
+		var service = new Service("rpc-encode.c");
 		var callbacks = new CountDownLatch(1);
 		service.AddFactoryHandle(EncodeFailRpc.TypeId_, new Service.ProtocolFactoryHandle<>(EncodeFailRpc::new,
 				r -> Procedure.Success, TransactionLevel.None, DispatchMode.Direct));

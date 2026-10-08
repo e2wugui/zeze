@@ -40,7 +40,7 @@ public class TestIndexLinks {
 
 	@Test
 	public void testJunkEntryToleratedAtStartup() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-links-junk-startup");
+		var logDir = Files.createTempDirectory("links-junk-startup");
 		Files.createFile(logDir.resolve(Active));
 		var indexLinks = Files.createDirectories(logDir.resolve("indexLinks").resolve("zeze.log"));
 		Files.createFile(indexLinks.resolve("desktop.ini"));
@@ -63,7 +63,7 @@ public class TestIndexLinks {
 
 	@Test
 	public void testJunkEntryToleratedDuringRotation() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-links-junk-rotate");
+		var logDir = Files.createTempDirectory("links-junk-rotate");
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
@@ -84,7 +84,7 @@ public class TestIndexLinks {
 
 	@Test
 	public void testRotationCleansStaleLinks() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-links-cleanup");
+		var logDir = Files.createTempDirectory("links-cleanup");
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());

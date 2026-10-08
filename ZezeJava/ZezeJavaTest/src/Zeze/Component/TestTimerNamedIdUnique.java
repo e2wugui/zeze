@@ -43,7 +43,7 @@ public class TestTimerNamedIdUnique {
 	@Test
 	public void testAccountOnlineOccupiesGlobalName() throws Exception {
 		Task.tryInitThreadPool();
-		var timerId = "UnitTest.FND4_41.AccountOnlineOccupied";
+		var timerId = "UnitTest.TimerNamedIdUnique.AccountOnlineOccupied";
 		var conf = TakeoverTestEnv.newConf("dryrun", 600_000, 600_000);
 		var app = new Application("TestTimerNamedIdUnique", conf);
 		var timer = new TakeoverTestEnv.AccessibleTimer(new TakeoverTestEnv.TestAppBase(app));
@@ -56,14 +56,14 @@ public class TestTimerNamedIdUnique {
 			Assertions.assertEquals(Procedure.Success, TaskSpec.ofProcedure(app.newProcedure(() -> {
 				accountTimers(timer).insert(timerId, new BArchOnlineTimer("acc", "cid", 1L, 1L));
 				return Procedure.Success;
-			}, "FND4_41.insertAccountOnline")).call());
+			}, "TimerNamedIdUnique.insertAccountOnline")).call());
 
 			// 全局scheduleNamed同id必须被拒：同名并存会共用timerFutures相互覆盖
 			var accepted = new boolean[1];
 			Assertions.assertEquals(Procedure.Success, TaskSpec.ofProcedure(app.newProcedure(() -> {
 				accepted[0] = timer.scheduleNamed(timerId, TimerSpec.ofDelay(60_000), TestHandle.class);
 				return Procedure.Success;
-			}, "FND4_41.scheduleNamedGlobal")).call());
+			}, "TimerNamedIdUnique.scheduleNamedGlobal")).call());
 			Assertions.assertFalse(accepted[0], "被Account在线定时器占用的timerId，全局scheduleNamed必须返回false");
 		} finally {
 			app.stop();
@@ -74,7 +74,7 @@ public class TestTimerNamedIdUnique {
 	@Test
 	public void testSameFamilyRescheduleStillWorks() throws Exception {
 		Task.tryInitThreadPool();
-		var timerId = "UnitTest.FND4_41.SameFamilyReschedule";
+		var timerId = "UnitTest.TimerNamedIdUnique.SameFamilyReschedule";
 		var conf = TakeoverTestEnv.newConf("dryrun", 600_000, 600_000);
 		var app = new Application("TestTimerNamedIdUnique2", conf);
 		var timer = new TakeoverTestEnv.AccessibleTimer(new TakeoverTestEnv.TestAppBase(app));
@@ -88,7 +88,7 @@ public class TestTimerNamedIdUnique {
 				accepted[0] = timer.scheduleNamed(timerId, TimerSpec.ofDelay(60_000), TestHandle.class);
 				accepted[1] = timer.scheduleNamed(timerId, TimerSpec.ofDelay(90_000), TestHandle.class);
 				return Procedure.Success;
-			}, "FND4_41.sameFamilyReschedule")).call());
+			}, "TimerNamedIdUnique.sameFamilyReschedule")).call());
 			Assertions.assertTrue(accepted[0], "首次调度必须成功");
 			Assertions.assertTrue(accepted[1], "同族同名重调度必须保留重建语义（仍成功）");
 		} finally {

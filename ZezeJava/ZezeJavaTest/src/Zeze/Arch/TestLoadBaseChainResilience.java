@@ -45,7 +45,7 @@ public class TestLoadBaseChainResilience {
 		conf.setServerId(NextServerId.getAndIncrement());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("a6_fnd890_" + conf.getServerId()); // 构造期模块注册需要，不start不真用
+		dbConf.setDatabaseUrl("load_base_chain_" + conf.getServerId()); // 构造期模块注册需要，不start不真用
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		return new Application(name, conf);
 	}
@@ -168,7 +168,7 @@ public class TestLoadBaseChainResilience {
 	public void testOverloadMonitorSubmitFailLogged() throws Exception {
 		Task.tryInitThreadPool();
 		var messages = new CopyOnWriteArrayList<String>();
-		var appender = new AbstractAppender("a6_fnd890_capture", null, null, true, Property.EMPTY_ARRAY) {
+		var appender = new AbstractAppender("load_base_chain_capture", null, null, true, Property.EMPTY_ARRAY) {
 			@Override
 			public void append(@NotNull LogEvent event) {
 				if (event.getLevel() == Level.ERROR)

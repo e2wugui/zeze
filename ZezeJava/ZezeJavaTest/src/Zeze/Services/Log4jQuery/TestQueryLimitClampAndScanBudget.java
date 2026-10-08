@@ -61,7 +61,7 @@ public class TestQueryLimitClampAndScanBudget {
 	@Test
 	public void testScanBudgetRemainAndPagination() throws Exception {
 		var total = Log4jSession.MAX_SCAN_LOGS + 10;
-		var logDir = Files.createTempDirectory("fnd19-gdd04-budget");
+		var logDir = Files.createTempDirectory("query-budget");
 		var base = LocalDateTime.now().minusMinutes(30);
 		var sb = new StringBuilder((int)(total * 32L));
 		for (var i = 1; i <= total; ++i)

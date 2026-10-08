@@ -88,14 +88,14 @@ public class TestBarrierCrossRollbackDeadlock {
 			} catch (RuntimeException e) {
 				rethrows.incrementAndGet();
 			}
-		}, "fnd11-util04-a");
+		}, "barrier-cross-a");
 		var b = new Thread(() -> {
 			try {
 				r4.run();
 			} catch (RuntimeException e) {
 				rethrows.incrementAndGet();
 			}
-		}, "fnd11-util04-b");
+		}, "barrier-cross-b");
 		a.setDaemon(true);
 		b.setDaemon(true);
 		a.start();

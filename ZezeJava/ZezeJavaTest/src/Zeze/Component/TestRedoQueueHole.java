@@ -34,7 +34,7 @@ public class TestRedoQueueHole {
 
 	@Test
 	public void testHoleTriggersFatalLog() throws Exception {
-		var queueName = "fnd7_65_redo_" + System.nanoTime(); // 唯一rocksdb目录
+		var queueName = "redo_queue_hole_" + System.nanoTime(); // 唯一rocksdb目录
 		var config = new Config();
 		config.setServiceManager("disable");
 		var queue = new RedoQueue(queueName, config);
@@ -90,7 +90,7 @@ public class TestRedoQueueHole {
 		private final List<LogEvent> events = new CopyOnWriteArrayList<>();
 
 		private RecordingAppender() {
-			super("fnd765-recorder", null, null, true, Property.EMPTY_ARRAY);
+			super("redo-hole-recorder", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

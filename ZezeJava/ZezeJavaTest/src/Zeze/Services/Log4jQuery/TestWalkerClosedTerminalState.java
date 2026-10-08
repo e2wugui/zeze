@@ -51,7 +51,7 @@ public class TestWalkerClosedTerminalState {
 	 */
 	@Test
 	public void testWalkerClosedFastFails() throws Exception {
-		var logDir = Files.createTempDirectory("fnd20-gdc02-walker");
+		var logDir = Files.createTempDirectory("terminal-walker");
 		writeLogs(logDir.resolve(Active), "log0", "log1");
 		var manager = newManager(logDir);
 		try {
@@ -77,7 +77,7 @@ public class TestWalkerClosedTerminalState {
 	 */
 	@Test
 	public void testSessionClosedFastFails() throws Exception {
-		var logDir = Files.createTempDirectory("fnd20-gdc02-session");
+		var logDir = Files.createTempDirectory("terminal-session");
 		writeLogs(logDir.resolve(Active), "log0", "log1");
 		var manager = newManager(logDir);
 		try {

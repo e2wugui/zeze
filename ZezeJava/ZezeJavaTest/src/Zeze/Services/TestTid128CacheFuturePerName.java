@@ -38,8 +38,8 @@ import org.jetbrains.annotations.NotNull;
  */
 @Fast
 public class TestTid128CacheFuturePerName {
-	private static final String NAME_A = "UnitTest.FND2_S2_6.PerName.A";
-	private static final String NAME_B = "UnitTest.FND2_S2_6.PerName.B";
+	private static final String NAME_A = "UnitTest.Tid128PerName.A";
+	private static final String NAME_B = "UnitTest.Tid128PerName.B";
 	private static Id128UdpServer server;
 	private static TestAgent agent;
 

@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestLoginTimesRedoOnce extends AppBase {
 	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TEST_LOGIN_TIMES_REDO_ONCE);
-	private static final String ACCOUNT = "fnd731_acc";
+	private static final String ACCOUNT = "login_times_acc";
 
 	private Application zeze;
 	private Online onlineModule;
@@ -53,7 +53,7 @@ public class TestLoginTimesRedoOnce extends AppBase {
 		conf.setServerId(NextId.incrementAndGet());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("fnd7_31_test_" + conf.getServerId()); // Memory库，独立url=独立存储
+		dbConf.setDatabaseUrl("login_times_test_" + conf.getServerId()); // Memory库，独立url=独立存储
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		zeze = new Application("TestLoginTimesRedoOnce" + conf.getServerId(), conf);
 		// 哑构造ProviderApp（设置zeze.redirect/providerApp/fake providerService），供Online装配

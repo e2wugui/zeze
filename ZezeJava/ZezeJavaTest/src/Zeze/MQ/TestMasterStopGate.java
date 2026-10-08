@@ -80,7 +80,7 @@ public class TestMasterStopGate {
 			} catch (Throwable e) {
 				failure.set(e);
 			}
-		}, "fnd20-gbc01-closer");
+		}, "master-stop-closer");
 		closer.start();
 		Thread.sleep(500); // 旧代码毫秒级完成关库；修复形态停靠在 tryLock（预算25s）
 		Assertions.assertFalse(db.isClosed(),
@@ -158,7 +158,7 @@ public class TestMasterStopGate {
 				} catch (Throwable e) {
 					failure.set(e);
 				}
-			}, "fnd20-gbc01-handler");
+			}, "master-stop-handler");
 			handler.start();
 			awaitParked(handler);
 			var gated = trySetStopped(master, true); // stop 最前置位（此刻 handler 在锁上等）

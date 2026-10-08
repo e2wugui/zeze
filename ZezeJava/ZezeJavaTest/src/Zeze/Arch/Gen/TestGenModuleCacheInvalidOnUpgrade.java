@@ -45,7 +45,7 @@ public class TestGenModuleCacheInvalidOnUpgrade {
 
 		@Override
 		protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-			if (name.startsWith("a7fnd880.") && currentModuleLoader != null)
+			if (name.startsWith("modcache.") && currentModuleLoader != null)
 				return currentModuleLoader.loadClass(name);
 			return super.loadClass(name, resolve);
 		}
@@ -71,10 +71,10 @@ public class TestGenModuleCacheInvalidOnUpgrade {
 	}
 
 	private static final String MODULE_SRC = """
-			package a7fnd880;
+			package modcache;
 			public class {simple} implements Zeze.IModule {
 			    public static final int ModuleId = 8801;
-			    public static final String ModuleFullName = "a7fnd880.{simple}";
+			    public static final String ModuleFullName = "modcache.{simple}";
 			    public {simple}(Zeze.AppBase app) {
 			    }
 			    @Override
@@ -110,7 +110,7 @@ public class TestGenModuleCacheInvalidOnUpgrade {
 		var config = new Config();
 		config.setServiceManager("disable");
 		config.setNoDatabase(true);
-		app = new Application("a7fnd880", config);
+		app = new Application("modcache", config);
 		new ProviderApp(app); // 哑构造：设置app.redirect（RedirectBase），fake服务不启动
 		dummyApp = new AppBase() {
 			@Override
@@ -170,10 +170,10 @@ public class TestGenModuleCacheInvalidOnUpgrade {
 	 * defineClass到新子装载器（生产等价物：新HotModule），并把编译装载器的"当前模块装载器"切换过去。
 	 */
 	private Class<?> compileAndLoadModule(String simpleName, Path cpDir) throws Exception {
-		var className = "a7fnd880." + simpleName;
+		var className = "modcache." + simpleName;
 		var src = MODULE_SRC.replace("{simple}", simpleName);
 		var bytes = new InMemoryJavaCompiler().compileAllToByteCode(Map.of(className, src)).get(className);
-		var classFile = cpDir.resolve("a7fnd880").resolve(simpleName + ".class");
+		var classFile = cpDir.resolve("modcache").resolve(simpleName + ".class");
 		Files.createDirectories(classFile.getParent());
 		Files.write(classFile, bytes);
 		hotLike.currentModuleLoader = new HotLikeModuleLoader(

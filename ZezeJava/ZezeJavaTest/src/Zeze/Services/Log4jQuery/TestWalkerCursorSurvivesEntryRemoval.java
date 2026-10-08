@@ -53,7 +53,7 @@ public class TestWalkerCursorSurvivesEntryRemoval {
 	 */
 	@Test
 	public void testRemovalBeforeCursorSkipsNoFile() throws Exception {
-		var logDir = Files.createTempDirectory("fnd20-gdc01-skip");
+		var logDir = Files.createTempDirectory("cursor-skip");
 		writeLog(logDir.resolve(Rotated1), "r1");
 		writeLog(logDir.resolve(Rotated2), "r2");
 		writeLog(logDir.resolve(Rotated3), "r3");
@@ -95,7 +95,7 @@ public class TestWalkerCursorSurvivesEntryRemoval {
 	 */
 	@Test
 	public void testRemovalBeforeCursorDropsNoTail() throws Exception {
-		var logDir = Files.createTempDirectory("fnd20-gdc01-tail");
+		var logDir = Files.createTempDirectory("cursor-tail");
 		var base = LocalDateTime.now();
 		writeLogs(logDir.resolve(Rotated1), base, "r1");
 		writeLogs(logDir.resolve(Rotated2), base, "r2");
@@ -135,7 +135,7 @@ public class TestWalkerCursorSurvivesEntryRemoval {
 	 */
 	@Test
 	public void testExhaustedThenGrownContinues() throws Exception {
-		var logDir = Files.createTempDirectory("fnd20-gdc01-grow");
+		var logDir = Files.createTempDirectory("cursor-grow");
 		writeLog(logDir.resolve(Rotated1), "r1");
 		var manager = newManager(logDir);
 		try {

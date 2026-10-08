@@ -58,7 +58,7 @@ public class TestRenameFailureAbortsRepoint {
 	 */
 	@Test
 	public void testRenameFailAbortsRepointAndRegister() throws Exception {
-		var logDir = Files.createTempDirectory("fnd21-gdc01-abort");
+		var logDir = Files.createTempDirectory("rename-abort");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
@@ -90,7 +90,7 @@ public class TestRenameFailureAbortsRepoint {
 	 */
 	@Test
 	public void testAbortConvergesAfterObstacleGone() throws Exception {
-		var logDir = Files.createTempDirectory("fnd21-gdc01-converge");
+		var logDir = Files.createTempDirectory("rename-converge");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
@@ -131,7 +131,7 @@ public class TestRenameFailureAbortsRepoint {
 	public void testDuplicateRotateEventIsNoop() throws Exception {
 		assumeTrue(System.getProperty("os.name").toLowerCase().contains("win"),
 				"File.renameTo对既存目标仅Windows确定性失败");
-		var logDir = Files.createTempDirectory("fnd21-gdc01-dup");
+		var logDir = Files.createTempDirectory("rename-dup");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {

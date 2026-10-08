@@ -60,12 +60,12 @@ public class TestAsyncLockDispatchReject {
 			} catch (Throwable e) {
 				thrown.compareAndSet(null, e);
 			}
-		}, "fnd744-holder");
+		}, "asynclock-holder");
 		holder.setDaemon(true);
 		holder.start();
 		Assertions.assertTrue(holderInside.await(5, TimeUnit.SECONDS), "holder必须先占住派发权");
 
-		var enqueuer = new Thread(() -> lock.enter(cb2Ran::countDown), "fnd744-enqueuer");
+		var enqueuer = new Thread(() -> lock.enter(cb2Ran::countDown), "asynclock-enqueuer");
 		enqueuer.setDaemon(true);
 		enqueuer.start();
 		enqueuer.join(5000); // cb2 已入队（此时派发权在 holder 手里，enter 只入队）

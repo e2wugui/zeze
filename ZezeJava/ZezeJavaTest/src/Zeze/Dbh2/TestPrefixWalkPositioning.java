@@ -120,7 +120,7 @@ public class TestPrefixWalkPositioning {
 		meta.setKeyLast(Binary.Empty);
 		tableData.getBuckets().put(Binary.Empty, meta);
 
-		var rocks = new RocksDatabase(tempDir.resolve("dbh2Fnd20C02").toString());
+		var rocks = new RocksDatabase(tempDir.resolve("dbh2PrefixWalk").toString());
 		var nodes = startBucket(rocks, tempDir);
 		var agent = new Dbh2Agent(RAFT);
 		Dbh2AgentManager manager = null;
@@ -189,7 +189,7 @@ public class TestPrefixWalkPositioning {
 			// 恒返回null游标→walkDesc整体报空表（红）。
 			var databaseConf = new Config.DatabaseConf();
 			databaseConf.setDatabaseType(Config.DbType.Dbh2);
-			databaseConf.setDatabaseUrl("dbh2://127.0.0.1:11000/dbh2Fnd20C02");
+			databaseConf.setDatabaseUrl("dbh2://127.0.0.1:11000/dbh2PrefixWalk");
 			databaseConf.setName("dbh2");
 			var database = new Database(null, manager, databaseConf);
 			var prefixTable = (Zeze.Transaction.Database.AbstractKVTable)database.openTable("x___table1", 2);

@@ -94,7 +94,7 @@ public class TestKeyExchangePlaintextGate {
 	public void testPlaintextWithoutHandshakeRejected() throws Exception {
 		Task.tryInitThreadPool();
 		var serverKeys = genKeyPair();
-		var server = new CloseCountService("TestFnd848.Server1");
+		var server = new CloseCountService("PlaintextGate.Server1");
 		KeyExchange.addHandler(server, serverKeys.getPrivate());
 		server.AddFactoryHandle(Protocol.makeTypeId(PlainProtocol.ModuleId, PlainProtocol.ProtocolId),
 				new Service.ProtocolFactoryHandle<>(PlainProtocol::new,
@@ -104,7 +104,7 @@ public class TestKeyExchangePlaintextGate {
 						}, TransactionLevel.None, DispatchMode.Direct));
 		int port = startServer(server);
 
-		var client = new Service("TestFnd848.Client1");
+		var client = new Service("PlaintextGate.Client1");
 		try {
 			var socket = client.newClientSocket("127.0.0.1", port, null, null);
 			Assertions.assertNotNull(socket);
@@ -127,7 +127,7 @@ public class TestKeyExchangePlaintextGate {
 		Task.tryInitThreadPool();
 		var serverKeys = genKeyPair();
 		var serverPubKey = ((RSAKey)serverKeys.getPublic()).getModulus().toByteArray();
-		var server = new CloseCountService("TestFnd848.Server2");
+		var server = new CloseCountService("PlaintextGate.Server2");
 		KeyExchange.addHandler(server, serverKeys.getPrivate());
 		server.AddFactoryHandle(Protocol.makeTypeId(PlainProtocol.ModuleId, PlainProtocol.ProtocolId),
 				new Service.ProtocolFactoryHandle<>(PlainProtocol::new,
@@ -137,7 +137,7 @@ public class TestKeyExchangePlaintextGate {
 						}, TransactionLevel.None, DispatchMode.Direct));
 		int port = startServer(server);
 
-		var client = new Service("TestFnd848.Client2");
+		var client = new Service("PlaintextGate.Client2");
 		client.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,
 				r -> Procedure.Success, TransactionLevel.None, DispatchMode.Direct));
 		try {
@@ -170,7 +170,7 @@ public class TestKeyExchangePlaintextGate {
 		var clientKeys = genKeyPair();
 		var serverPubKey = ((RSAKey)serverKeys.getPublic()).getModulus().toByteArray();
 
-		var server = new CloseCountService("TestFnd848.Server3");
+		var server = new CloseCountService("PlaintextGate.Server3");
 		KeyExchange.addHandler(server, serverKeys.getPrivate());
 		server.AddFactoryHandle(Protocol.makeTypeId(PlainProtocol.ModuleId, PlainProtocol.ProtocolId),
 				new Service.ProtocolFactoryHandle<>(PlainProtocol::new,
@@ -180,7 +180,7 @@ public class TestKeyExchangePlaintextGate {
 						}, TransactionLevel.None, DispatchMode.Direct));
 		int port = startServer(server);
 
-		var client = new Service("TestFnd848.Client3");
+		var client = new Service("PlaintextGate.Client3");
 		client.AddFactoryHandle(KeyExchange.TypeId, new Service.ProtocolFactoryHandle<>(KeyExchange::new,
 				r -> Procedure.Success, TransactionLevel.None, DispatchMode.Direct));
 		try {

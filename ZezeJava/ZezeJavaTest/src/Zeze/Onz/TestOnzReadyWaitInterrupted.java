@@ -68,7 +68,7 @@ public class TestOnzReadyWaitInterrupted {
 
 	private OnzProcedure newProcedure(long tid) {
 		var stub = new OnzProcedureStub<EmptyBean, EmptyBean>(
-				onz, "Fnd24Onz01." + tid, (p, a, r) -> 0L, EmptyBean.class, EmptyBean.class);
+				onz, "OnzReadyWait." + tid, (p, a, r) -> 0L, EmptyBean.class, EmptyBean.class);
 		var funcArgument = new BFuncProcedure.Data();
 		funcArgument.setOnzTid(tid);
 		funcArgument.setFlushMode(AbstractOnz.eFlushAsync);

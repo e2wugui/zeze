@@ -51,8 +51,8 @@ public class TestMultiConfTimeFormat {
 				</LogServiceConf>
 				""").getLogConfs();
 
-		var dirA = Files.createTempDirectory("fnd19-fmt-a");
-		var dirB = Files.createTempDirectory("fnd19-fmt-b");
+		var dirA = Files.createTempDirectory("fmt-a");
+		var dirB = Files.createTempDirectory("fmt-b");
 		Log4jFileManager managerA = null;
 		Log4jFileManager managerB = null;
 		try {
@@ -83,7 +83,7 @@ public class TestMultiConfTimeFormat {
 	@Test
 	public void testDefaultFormatWhenAttrMissing() throws Exception {
 		var conf = new LogServiceConf.LogConf(); // 不设置logTimeFormat：默认"yy-MM-dd HH:mm:ss.SSS"
-		var dir = Files.createTempDirectory("fnd19-fmt-default");
+		var dir = Files.createTempDirectory("fmt-default");
 		Log4jFileManager manager = null;
 		try {
 			conf.logDir = dir.toString();

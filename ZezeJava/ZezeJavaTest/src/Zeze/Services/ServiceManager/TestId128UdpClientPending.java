@@ -25,7 +25,7 @@ public class TestId128UdpClientPending {
 		var client = new Id128UdpClient(null, "127.0.0.1", 1, nextSessionId::incrementAndGet);
 		client.stop(); // 关闭udp socket；worker未start，join立即返回
 
-		var future = client.allocateFuture("fnd762Global", 128);
+		var future = client.allocateFuture("udpPendingGlobal", 128);
 		assertTrue(future.isCompletedExceptionally(), "发送失败必须异常完成future");
 
 		var pendingField = Id128UdpClient.FutureNode.class.getDeclaredField("pending");

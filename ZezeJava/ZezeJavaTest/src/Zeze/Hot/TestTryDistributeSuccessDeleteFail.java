@@ -35,16 +35,16 @@ import org.junit.jupiter.api.io.TempDir;
  */
 @Fast
 public class TestTryDistributeSuccessDeleteFail {
-	private static final String NS = "fnd18hot3.G1";
-	private static final String CLASS = "fnd18hot3.G1.ModuleG1";
-	private static final String SCHEMAS_CLASS = "fnd18hot3.Schemas";
+	private static final String NS = "hottrydist.G1";
+	private static final String CLASS = "hottrydist.G1.ModuleG1";
+	private static final String SCHEMAS_CLASS = "hottrydist.Schemas";
 
 	private static final String SRC = """
-			package fnd18hot3.G1;
+			package hottrydist.G1;
 			public class ModuleG1 implements Zeze.IModule, Zeze.Hot.HotService {
 			    public static volatile boolean STARTED_LAST = false;
 			    public static final int ModuleId = 18803;
-			    @Override public String getFullName() { return "fnd18hot3.G1"; }
+			    @Override public String getFullName() { return "hottrydist.G1"; }
 			    @Override public String getName() { return "G1"; }
 			    @Override public int getId() { return ModuleId; }
 			    @Override public void start() throws Exception { }
@@ -55,7 +55,7 @@ public class TestTryDistributeSuccessDeleteFail {
 			""";
 
 	private static final String SCHEMAS_SRC = """
-			package fnd18hot3;
+			package hottrydist;
 			public class Schemas extends Zeze.Schemas {
 			    public Schemas() { }
 			}
@@ -77,7 +77,7 @@ public class TestTryDistributeSuccessDeleteFail {
 		dbConf.setDatabaseType(Config.DbType.Memory);
 		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_HOT_TRY_DISTRIBUTE);
 		config.getDatabaseConfMap().put("", dbConf);
-		app = new Application("fnd18hot3", config);
+		app = new Application("hottrydist", config);
 		dummyApp = new AppBase() {
 			@Override
 			public Application getZeze() {
@@ -123,10 +123,10 @@ public class TestTryDistributeSuccessDeleteFail {
 			Assertions.assertNotNull(schemasBytes, "Schemas 类必须编译成功");
 			writeJar(distributeDir.resolve(NS + ".interface.jar"), Map.of());
 			writeJar(distributeDir.resolve(NS + ".jar"), Map.of(
-					"fnd18hot3/G1/ModuleG1.class", moduleBytes,
+					"hottrydist/G1/ModuleG1.class", moduleBytes,
 					"META-INF/module.config", new byte[0]));
-			writeJar(distributeDir.resolve("__hot_schemas__fnd18hot3.jar"), Map.of(
-					"fnd18hot3/Schemas.class", schemasBytes));
+			writeJar(distributeDir.resolve("__hot_schemas__hottrydist.jar"), Map.of(
+					"hottrydist/Schemas.class", schemasBytes));
 
 			var rc = manager.tryDistribute(false, true);
 			Assertions.assertEquals(0L, rc,

@@ -34,21 +34,21 @@ import org.junit.jupiter.api.io.TempDir;
  */
 @Fast
 public class TestInstallStartLastFilter {
-	private static final String NS1 = "fnd18hot1.F1";
-	private static final String CLASS1 = "fnd18hot1.F1.ModuleF1";
-	private static final String NS2 = "fnd18hot1.F2";
-	private static final String CLASS2 = "fnd18hot1.F2.ModuleF2";
-	private static final String SCHEMAS_CLASS = "fnd18hot1.Schemas";
+	private static final String NS1 = "hotstartlast.F1";
+	private static final String CLASS1 = "hotstartlast.F1.ModuleF1";
+	private static final String NS2 = "hotstartlast.F2";
+	private static final String CLASS2 = "hotstartlast.F2.ModuleF2";
+	private static final String SCHEMAS_CLASS = "hotstartlast.Schemas";
 
 	private static final String SRC1 = """
-			package fnd18hot1.F1;
+			package hotstartlast.F1;
 			public class ModuleF1 implements Zeze.IModule, Zeze.Hot.HotService {
 			    public static volatile boolean STARTED_LAST = false;
 			    public static final int ModuleId = 18801;
-			    @Override public String getFullName() { return "fnd18hot1.F1"; }
+			    @Override public String getFullName() { return "hotstartlast.F1"; }
 			    @Override public String getName() { return "F1"; }
 			    @Override public int getId() { return ModuleId; }
-			    @Override public void start() throws Exception { throw new RuntimeException("start-fail-by-fnd18hot1"); }
+			    @Override public void start() throws Exception { throw new RuntimeException("start-fail-by-hotstartlast"); }
 			    @Override public void startLast() throws Exception { STARTED_LAST = true; }
 			    @Override public void stop() throws Exception { }
 			    @Override public void upgrade(Zeze.Hot.HotService old) throws Exception { }
@@ -56,11 +56,11 @@ public class TestInstallStartLastFilter {
 			""";
 
 	private static final String SRC2 = """
-			package fnd18hot1.F2;
+			package hotstartlast.F2;
 			public class ModuleF2 implements Zeze.IModule, Zeze.Hot.HotService {
 			    public static volatile boolean STARTED_LAST = false;
 			    public static final int ModuleId = 18802;
-			    @Override public String getFullName() { return "fnd18hot1.F2"; }
+			    @Override public String getFullName() { return "hotstartlast.F2"; }
 			    @Override public String getName() { return "F2"; }
 			    @Override public int getId() { return ModuleId; }
 			    @Override public void start() throws Exception { }
@@ -71,7 +71,7 @@ public class TestInstallStartLastFilter {
 			""";
 
 	private static final String SCHEMAS_SRC = """
-			package fnd18hot1;
+			package hotstartlast;
 			public class Schemas extends Zeze.Schemas {
 			    public Schemas() { }
 			}
@@ -93,7 +93,7 @@ public class TestInstallStartLastFilter {
 		dbConf.setDatabaseType(Config.DbType.Memory);
 		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_HOT_INSTALL_RESIDUE);
 		config.getDatabaseConfMap().put("", dbConf);
-		app = new Application("fnd18hot1", config);
+		app = new Application("hotstartlast", config);
 		dummyApp = new AppBase() {
 			@Override
 			public Application getZeze() {
@@ -139,14 +139,14 @@ public class TestInstallStartLastFilter {
 
 			writeJar(distributeDir.resolve(NS1 + ".interface.jar"), Map.of());
 			writeJar(distributeDir.resolve(NS1 + ".jar"), Map.of(
-					"fnd18hot1/F1/ModuleF1.class", bytes1,
+					"hotstartlast/F1/ModuleF1.class", bytes1,
 					"META-INF/module.config", new byte[0])); // install 预检要求条目存在（本用例无 ProviderApp 不解析）
 			writeJar(distributeDir.resolve(NS2 + ".interface.jar"), Map.of());
 			writeJar(distributeDir.resolve(NS2 + ".jar"), Map.of(
-					"fnd18hot1/F2/ModuleF2.class", bytes2,
+					"hotstartlast/F2/ModuleF2.class", bytes2,
 					"META-INF/module.config", new byte[0]));
-			writeJar(distributeDir.resolve("__hot_schemas__fnd18hot1.jar"), Map.of(
-					"fnd18hot1/Schemas.class", schemasBytes));
+			writeJar(distributeDir.resolve("__hot_schemas__hotstartlast.jar"), Map.of(
+					"hotstartlast/Schemas.class", schemasBytes));
 
 			result = manager.installReadies(false);
 			Assertions.assertEquals(2, result.size(), "两个模块都应完成安装流程");

@@ -80,13 +80,13 @@ public class TestApplyCursorPersistence {
 		conf.setServerId(serverId);
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("a2_fnd828_hist_" + serverId);
+		dbConf.setDatabaseUrl("apply_cursor_hist_" + serverId);
 		conf.getDatabaseConfMap().put("", dbConf);
 		var appliedConf = new Config.DatabaseConf();
 		appliedConf.setName(APPLIED_DB_NAME);
-		appliedConf.setDatabaseUrl("a2_fnd828_applied_" + serverId);
+		appliedConf.setDatabaseUrl("apply_cursor_applied_" + serverId);
 		conf.getDatabaseConfMap().put(APPLIED_DB_NAME, appliedConf);
-		return new Application("TestFnd828ApplyCursorPersistence_" + serverId, conf);
+		return new Application("TestApplyCursorPersistence_" + serverId, conf);
 	}
 
 	// 直写tHistory底层存储（对齐TestApplyHelperCursorHole）：空changes——本测试聚焦

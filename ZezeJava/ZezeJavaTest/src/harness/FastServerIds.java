@@ -46,22 +46,22 @@ public final class FastServerIds {
 		return List.copyOf(MEMORY_URLS);
 	}
 
-	public static final String URL_TEST_VERSION_BUCKET = memUrl("a2f1_memory");
-	public static final String URL_TEST_SUPERSEDE_CLOSES = memUrl("a2f3_memory");
-	public static final String URL_TEST_REMOVE_SERVER = memUrl("a2f4_memory");
-	public static final String URL_TEST_CACHE_DIR_LOCK = memUrl("a2_fnd826_memory");
-	public static final String URL_TEST_CREATE_DATABASE = memUrl("z1f2_memory");
-	public static final String URL_TEST_RENAME_TABLE = memUrl("z2f1_memory");
-	public static final String URL_TEST_CLEAR_IN_USE = memUrl("a2_fnd824_memory");
+	public static final String URL_TEST_VERSION_BUCKET = memUrl("version_bucket_memory");
+	public static final String URL_TEST_SUPERSEDE_CLOSES = memUrl("supersede_closes_memory");
+	public static final String URL_TEST_REMOVE_SERVER = memUrl("remove_server_memory");
+	public static final String URL_TEST_CACHE_DIR_LOCK = memUrl("cache_dir_lock_memory");
+	public static final String URL_TEST_CREATE_DATABASE = memUrl("create_database_memory");
+	public static final String URL_TEST_RENAME_TABLE = memUrl("rename_table_memory");
+	public static final String URL_TEST_CLEAR_IN_USE = memUrl("clear_in_use_memory");
 	public static final String URL_TEST_REDO_QUEUE_SERVER_DISPATCH = memUrl("redo_queue_server_dispatch_test");
-	public static final String URL_TEST_MEMORY_EMPTY_VALUE_REPLACE = memUrl("t1_f1_empty_value_replace");
-	public static final String URL_TEST_WALK_INTERRUPT_COUNT = memUrl("t1_f3_walk_interrupt_count");
-	public static final String URL_TEST_HOT_INSTALL_RESIDUE = memUrl("fnd18hot1_memory");
-	public static final String URL_TEST_HOT_TRY_DISTRIBUTE = memUrl("fnd18hot3_memory");
-	public static final String URL_TEST_ADD_TABLE = memUrl("z1f3_memory");
+	public static final String URL_TEST_MEMORY_EMPTY_VALUE_REPLACE = memUrl("empty_value_replace");
+	public static final String URL_TEST_WALK_INTERRUPT_COUNT = memUrl("walk_interrupt_count");
+	public static final String URL_TEST_HOT_INSTALL_RESIDUE = memUrl("hot_install_residue_memory");
+	public static final String URL_TEST_HOT_TRY_DISTRIBUTE = memUrl("hot_try_distribute_memory");
+	public static final String URL_TEST_ADD_TABLE = memUrl("add_table_memory");
 	public static final String URL_TEST_HISTORY_FLUSH_COMMIT_BINDING = memUrl("history_commit_binding_unit");
 	public static final String URL_TEST_HOT_TRY_DISTRIBUTE_GUARD = memUrl("hot_trydistribute_test");
-	public static final String URL_TEST_KV_KEY_LENGTH_PAGED_WALK = memUrl("t1_kv_keylen_pagedwalk");
+	public static final String URL_TEST_KV_KEY_LENGTH_PAGED_WALK = memUrl("kv_keylen_pagedwalk");
 	public static final String URL_TEST_DYNAMIC_BEAN_ELEMENT_LOG_KEY = memUrl("test_dynamic_elk_memory");
 
 

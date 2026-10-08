@@ -29,7 +29,7 @@ public class TestMasterGlobalDataSuccessAfterCommit {
 
 	@Test
 	public void testSaveDataWithSameVersion() throws Exception {
-		var home = "testFnd19GA06SaveData";
+		var home = "testMasterSaveData";
 		LogSequence.deleteDirectory(new File(home));
 		var master = new Master(home, new Zeze.Config());
 		try {
@@ -77,7 +77,7 @@ public class TestMasterGlobalDataSuccessAfterCommit {
 
 	@Test
 	public void testSetAndClearInUse() throws Exception {
-		var home = "testFnd19GA06SetInUse";
+		var home = "testMasterSetInUse";
 		LogSequence.deleteDirectory(new File(home));
 		var master = new Master(home, new Zeze.Config());
 		try {

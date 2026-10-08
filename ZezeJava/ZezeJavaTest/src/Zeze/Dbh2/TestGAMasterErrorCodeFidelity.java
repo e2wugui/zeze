@@ -21,7 +21,7 @@ public class TestGAMasterErrorCodeFidelity {
 		env.prepareNewEnvironment();
 		try {
 			var operates = env.database.getDirectOperates();
-			var key = ByteBuffer.Wrap("fnd19.errcode.key".getBytes());
+			var key = ByteBuffer.Wrap("errcode.key".getBytes());
 			// 首次插入（version以参数0落盘）+ 正常CAS推进到version=1。
 			Assertions.assertTrue(operates.saveDataWithSameVersion(key, ByteBuffer.Wrap(new byte[]{1}), 0).getValue());
 			Assertions.assertTrue(operates.saveDataWithSameVersion(key, ByteBuffer.Wrap(new byte[]{2}), 0).getValue());

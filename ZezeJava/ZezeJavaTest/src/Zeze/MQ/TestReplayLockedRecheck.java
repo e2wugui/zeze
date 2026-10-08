@@ -89,7 +89,7 @@ public class TestReplayLockedRecheck {
 				} catch (Throwable e) {
 					failure.set(e);
 				}
-			}, "fnd22-gbc02-replayer");
+			}, "replay-recheck-replayer");
 			replayer.start();
 
 			// 停靠判定：修复代码停驻 managementLock.lock()（WAITING）；旧代码无锁直行、毫秒内终结。

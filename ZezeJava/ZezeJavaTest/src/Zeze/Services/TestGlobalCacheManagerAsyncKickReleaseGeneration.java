@@ -54,7 +54,7 @@ import harness.Fast;
 @Fast
 public class TestGlobalCacheManagerAsyncKickReleaseGeneration {
 	private static final int PORT = 19712; // @Fast固定端口独占
-	private static final Binary KEY = new Binary("UnitTest.FND11_svc03.Key".getBytes(StandardCharsets.UTF_8));
+	private static final Binary KEY = new Binary("UnitTest.GcmAsyncKick.Key".getBytes(StandardCharsets.UTF_8));
 	private static final int SERVER_ID_A = 9121;
 	private static final int SERVER_ID_S = 9122;
 	private static final int SERVER_ID_T = 9123;
@@ -176,14 +176,14 @@ public class TestGlobalCacheManagerAsyncKickReleaseGeneration {
 	@Timeout(90)
 	public void testDelayedKickReleaseMustNotRevokeReacquired() throws Exception {
 		// 1. A持Modify；S申请Share触发对A的降级，A应答StateShare后双方共持Share
-		clientA = new RawClient("UnitTest.FND11_svc03.A");
+		clientA = new RawClient("UnitTest.GcmAsyncKick.A");
 		var socketA = clientA.connect();
 		login(socketA, SERVER_ID_A);
 		var acquireA = new Acquire(KEY, GlobalCacheManagerConst.StateModify);
 		Assertions.assertTrue(acquireA.SendForWait(socketA, 10_000).await(10_000), "A acquire await");
 		Assertions.assertEquals(0, acquireA.getResultCode(), "A acquire resultCode");
 
-		clientS = new RawClient("UnitTest.FND11_svc03.S");
+		clientS = new RawClient("UnitTest.GcmAsyncKick.S");
 		var socketS = clientS.connect();
 		login(socketS, SERVER_ID_S);
 		var acquireS = new Acquire(KEY, GlobalCacheManagerConst.StateShare);
@@ -198,7 +198,7 @@ public class TestGlobalCacheManagerAsyncKickReleaseGeneration {
 		var csAtSetup = cacheStateOf(KEY); // 身份基准：修复前终局将被移除
 
 		// 2. T acquireModify占住申请位；对A/S的Reduce均park（不自动应答）
-		clientT = new RawClient("UnitTest.FND11_svc03.T");
+		clientT = new RawClient("UnitTest.GcmAsyncKick.T");
 		var socketT = clientT.connect();
 		login(socketT, SERVER_ID_T);
 		var acquireT = new Acquire(KEY, GlobalCacheManagerConst.StateModify);
@@ -232,7 +232,7 @@ public class TestGlobalCacheManagerAsyncKickReleaseGeneration {
 
 		// 4. S复活：新连接ReLogin重绑（世代再+1，此后旧release全部过期）——不重新Acquire：
 		// ReLogin保留的所有权即被测对象（重新Acquire会先撞DeadLock检查21，不可达）
-		clientS2 = new RawClient("UnitTest.FND11_svc03.S2");
+		clientS2 = new RawClient("UnitTest.GcmAsyncKick.S2");
 		var socketS2 = clientS2.connect();
 		var relogin = new ReLogin();
 		relogin.Argument.serverId = SERVER_ID_S;

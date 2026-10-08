@@ -69,7 +69,7 @@ public class TestListDynamicFamilyWarn {
 		final List<LogEvent> events = new ArrayList<>();
 
 		CapturingAppender() {
-			super("aFnd22GcC02Capture", null, null, true, Property.EMPTY_ARRAY);
+			super("ListDynamicFamilyCapture", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

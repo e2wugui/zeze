@@ -196,7 +196,7 @@ public class TestCrossFamilyCancel {
 			conf.setServerId(serverId);
 			conf.setDefaultTableConf(new Config.TableConf());
 			var dbConf = new Config.DatabaseConf();
-			dbConf.setDatabaseUrl("fnd7_29_test_" + serverId);
+			dbConf.setDatabaseUrl("cross_family_cancel_test_" + serverId);
 			conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 			app = new Application(appName, conf);
 			timer = new Timer(new TestAppBase(app));
@@ -215,12 +215,12 @@ public class TestCrossFamilyCancel {
 	@Test
 	public void testGlobalEntryMustNotKillOnlineFuture() throws Exception {
 		try (var env = new TestEnv("TestFnd729CrossFamilyCancel1")) {
-			var onlineTid = "UnitTest.FND7_29.onlineAlive";
+			var onlineTid = "UnitTest.CrossFamilyCancel.onlineAlive";
 			// 伪造在线族占用：_tAccountTimers行 + 已安装future（在线族不写_tIndexs）
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
 				env.timer.tAccountTimers().insert(onlineTid, new BArchOnlineTimer("acc", "cid", 1L, 1L));
 				return Procedure.Success;
-			}, "FND7_29.forgeOnlineTimer").call());
+			}, "CrossFamilyCancel.forgeOnlineTimer").call());
 			env.timer.timerFutures.put(onlineTid, new CompletableFuture<>());
 			Assertions.assertTrue(env.timer.timerFutures.containsKey(onlineTid));
 
@@ -228,7 +228,7 @@ public class TestCrossFamilyCancel {
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
 				canceled[0] = env.timer.cancel(onlineTid); // 查无_tIndexs记录，须返回false且不动future
 				return Procedure.Success;
-			}, "FND7_29.globalCancelOnlineTid").call());
+			}, "CrossFamilyCancel.globalCancelOnlineTid").call());
 			Assertions.assertFalse(canceled[0], "全局入口对在线族timerId必须返回false");
 			Assertions.assertTrue(env.timer.timerFutures.containsKey(onlineTid),
 					"查无记录分支不得cancelFuture他族活future（FND7-29：在线族定时器静默停摆）");
@@ -237,7 +237,7 @@ public class TestCrossFamilyCancel {
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
 				onlineRecordAlive[0] = env.timer.tAccountTimers().get(onlineTid) != null;
 				return Procedure.Success;
-			}, "FND7_29.checkOnlineRow").call());
+			}, "CrossFamilyCancel.checkOnlineRow").call());
 			Assertions.assertTrue(onlineRecordAlive[0], "在线表记录必须完好");
 		}
 	}
@@ -245,14 +245,14 @@ public class TestCrossFamilyCancel {
 	/** 方向2：全局族timerId传入在线取消入口cancelOnlineLocal（bTimer==null），不得杀其future。 */
 	@Test
 	public void testOnlineEntryMustNotKillGlobalFuture() throws Exception {
-		try (var env = new TestEnv("TestFnd729CrossFamilyCancel2")) {
+		try (var env = new TestEnv("CrossFamilyCancelEnvB")) {
 			var stub = new StubOnlineTimers(env.timer);
-			var globalTid = "UnitTest.FND7_29.globalAlive";
+			var globalTid = "UnitTest.CrossFamilyCancel.globalAlive";
 			var accepted = new boolean[1];
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
 				accepted[0] = env.timer.scheduleNamed(globalTid, TimerSpec.ofDelay(60_000), TestHandle.class);
 				return Procedure.Success;
-			}, "FND7_29.scheduleGlobal").call());
+			}, "CrossFamilyCancel.scheduleGlobal").call());
 			Assertions.assertTrue(accepted[0]);
 			Assertions.assertTrue(env.timer.timerFutures.containsKey(globalTid), "全局定时器future已安装");
 
@@ -260,7 +260,7 @@ public class TestCrossFamilyCancel {
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
 				canceled[0] = stub.cancelOnlineLocal(globalTid, "someone"); // 查无在线记录，须false且不动future
 				return Procedure.Success;
-			}, "FND7_29.onlineCancelGlobalTid").call());
+			}, "CrossFamilyCancel.onlineCancelGlobalTid").call());
 			Assertions.assertFalse(canceled[0], "在线入口对全局族timerId必须返回false");
 			Assertions.assertTrue(env.timer.timerFutures.containsKey(globalTid),
 					"查无记录分支不得cancelFuture他族活future（FND7-29：全局定时器停摆到重启）");
@@ -268,7 +268,7 @@ public class TestCrossFamilyCancel {
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
 				globalRecordAlive[0] = env.timer.tIndexs().get(globalTid) != null;
 				return Procedure.Success;
-			}, "FND7_29.checkGlobalRow").call());
+			}, "CrossFamilyCancel.checkGlobalRow").call());
 			Assertions.assertTrue(globalRecordAlive[0], "全局定时器存储记录必须完好");
 
 			// 护栏：同族取消（全局入口）语义不变——真取消并卸载future
@@ -276,14 +276,14 @@ public class TestCrossFamilyCancel {
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
 				canceled2[0] = env.timer.cancel(globalTid);
 				return Procedure.Success;
-			}, "FND7_29.globalCancelGlobalTid").call());
+			}, "CrossFamilyCancel.globalCancelGlobalTid").call());
 			Assertions.assertTrue(canceled2[0]);
 			Assertions.assertFalse(env.timer.timerFutures.containsKey(globalTid), "同族取消必须卸载future");
 			var globalRecordGone = new boolean[1];
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
 				globalRecordGone[0] = env.timer.tIndexs().get(globalTid) == null;
 				return Procedure.Success;
-			}, "FND7_29.checkGlobalRowGone").call());
+			}, "CrossFamilyCancel.checkGlobalRowGone").call());
 			Assertions.assertTrue(globalRecordGone[0]);
 		}
 	}
@@ -291,9 +291,9 @@ public class TestCrossFamilyCancel {
 	/** 护栏：在线族同族取消（归属校验通过）仍真取消——移除future与表记录。 */
 	@Test
 	public void testSameFamilyOnlineCancelStillWorks() throws Exception {
-		try (var env = new TestEnv("TestFnd729CrossFamilyCancel3")) {
+		try (var env = new TestEnv("CrossFamilyCancelEnvC")) {
 			var stub = new StubOnlineTimers(env.timer);
-			var onlineTid = "UnitTest.FND7_29.onlineCancelMe";
+			var onlineTid = "UnitTest.CrossFamilyCancel.onlineCancelMe";
 			stub.onlineTimers.put(onlineTid, new StubOnlineTimer(1L));
 			stub.getOrAddLocalTimers("owner1").getTimerIds().getOrAdd(onlineTid);
 			var victimFuture = new CompletableFuture<>();
@@ -303,7 +303,7 @@ public class TestCrossFamilyCancel {
 			Assertions.assertEquals(Procedure.Success, env.app.newProcedure(() -> {
 				canceled[0] = stub.cancelOnlineLocal(onlineTid, "owner1");
 				return Procedure.Success;
-			}, "FND7_29.sameFamilyOnlineCancel").call());
+			}, "CrossFamilyCancel.sameFamilyOnlineCancel").call());
 			Assertions.assertTrue(canceled[0], "同族归属校验通过的取消必须成功");
 			Assertions.assertTrue(victimFuture.isCancelled(), "同族取消必须cancel future");
 			Assertions.assertFalse(env.timer.timerFutures.containsKey(onlineTid));

@@ -51,7 +51,7 @@ public final class TestTaskOneByOneByKey2BarrierCancel {
 		for (int k = 0; k < 64; k++)
 			keys.add(k);
 		assertThrows(RejectedExecutionException.class, () -> key2.executeCyclicBarrier(keys,
-				"Fnd12Util03Barrier", () -> barrierRan.set(true), null));
+				"ByKey2Barrier", () -> barrierRan.set(true), null));
 		assertFalse(barrierRan.get(), "派发失败的屏障回调不得执行");
 
 		// 同批 key 提交普通任务：全部同步完成（内联 executor），被毒桶不被冻结。

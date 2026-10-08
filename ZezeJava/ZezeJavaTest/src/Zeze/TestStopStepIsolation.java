@@ -39,7 +39,7 @@ public class TestStopStepIsolation {
 
 		@Override
 		public void stop() throws Exception {
-			throw new RuntimeException("Fnd756 simulated stop failure");
+			throw new RuntimeException("simulated stop failure");
 		}
 	}
 
@@ -51,7 +51,7 @@ public class TestStopStepIsolation {
 		conf.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("fnd7_56_stop_isolation_" + SERVER_ID);
+		dbConf.setDatabaseUrl("stop_isolation_" + SERVER_ID);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = new Application("TestStopStepIsolation", conf);
 		app.start();

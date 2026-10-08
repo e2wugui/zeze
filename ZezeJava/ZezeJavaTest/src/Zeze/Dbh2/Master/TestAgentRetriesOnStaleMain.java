@@ -42,7 +42,7 @@ public class TestAgentRetriesOnStaleMain {
 		private final ArrayDeque<Integer> script;
 
 		StubMasterService(int port, List<Integer> replyCodes) {
-			super("stubMasterFnd22C01", stubServerConfig(port));
+			super("stubMasterStaleMain", stubServerConfig(port));
 			setNoProcedure(true);
 			script = new ArrayDeque<>(replyCodes);
 
@@ -65,7 +65,7 @@ public class TestAgentRetriesOnStaleMain {
 			var conf = new ServiceConf();
 			conf.addAcceptor(new Acceptor(port, "127.0.0.1"));
 			var config = new Config();
-			config.getServiceConfMap().put("stubMasterFnd22C01", conf);
+			config.getServiceConfMap().put("stubMasterStaleMain", conf);
 			return config;
 		}
 	}

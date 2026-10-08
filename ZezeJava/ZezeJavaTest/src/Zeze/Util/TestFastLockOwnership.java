@@ -31,7 +31,7 @@ public class TestFastLockOwnership {
 			} catch (Throwable e) {
 				thrown.compareAndSet(null, e);
 			}
-		}, "fnd806-unlocker");
+		}, "fastlock-unlocker");
 		other.setDaemon(true);
 		other.start();
 		other.join(5000);
@@ -61,7 +61,7 @@ public class TestFastLockOwnership {
 			} catch (Throwable e) {
 				awaitThrown.compareAndSet(null, e);
 			}
-		}, "fnd806-awaiter");
+		}, "fastlock-awaiter");
 		awaiter.setDaemon(true);
 		awaiter.start();
 		awaiter.join(5000);
@@ -76,7 +76,7 @@ public class TestFastLockOwnership {
 			} catch (Throwable e) {
 				signalThrown.compareAndSet(null, e);
 			}
-		}, "fnd806-signaler");
+		}, "fastlock-signaler");
 		signaler.setDaemon(true);
 		signaler.start();
 		signaler.join(5000);
@@ -107,7 +107,7 @@ public class TestFastLockOwnership {
 			} finally {
 				lock.unlock();
 			}
-		}, "fnd806-waiter");
+		}, "fastlock-waiter");
 		waiter.setDaemon(true);
 		waiter.start();
 		Assertions.assertTrue(waiterReady.await(5, TimeUnit.SECONDS));

@@ -83,7 +83,7 @@ public class TestLinkedMapBrokenChainLogged {
 		conf.setServerId(NextServerId.getAndIncrement());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("a3_fnd879_linkedmap_" + conf.getServerId());
+		dbConf.setDatabaseUrl("linkedmap_broken_" + conf.getServerId());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		app = new Application("a3TestFnd879_" + conf.getServerId(), conf);
 		linkedMapModule = new LinkedMap.Module(app);

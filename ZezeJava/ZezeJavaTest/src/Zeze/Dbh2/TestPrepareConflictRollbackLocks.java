@@ -27,7 +27,7 @@ public class TestPrepareConflictRollbackLocks {
 	@Test
 	public void testConflictPrepareReleasesAcquiredLocks(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
-		var database = new RocksDatabase(tempDir.resolve("fnd19ga02").toString());
+		var database = new RocksDatabase(tempDir.resolve("prepare_conflict").toString());
 		var raftConfig = """
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">

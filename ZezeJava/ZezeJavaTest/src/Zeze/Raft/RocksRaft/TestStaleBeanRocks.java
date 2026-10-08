@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestStaleBeanRocks {
 	private static final String raftName = "127.0.0.1:26365";
-	private static final String dbHome = "a3_TestFnd829StaleBeanRocks.raft";
+	private static final String dbHome = "StaleBeanRocks.raft";
 	private static final String mapTemplateName = "tMap2Stale";
 	private static final String sortedTemplateName = "tSortedMap2Stale";
 
@@ -230,7 +230,7 @@ public class TestStaleBeanRocks {
 	private static RaftConfig newRaftConfig() {
 		return RaftConfig.loadFromString("""
 				<?xml version="1.0" encoding="utf-8"?>
-				<raft Name="127.0.0.1:26365" DbHome="a3_TestFnd829StaleBeanRocks.raft">
+				<raft Name="127.0.0.1:26365" DbHome="StaleBeanRocks.raft">
 					<node Host="127.0.0.1" Port="26365"/>
 					<node Host="127.0.0.1" Port="26366"/>
 					<node Host="127.0.0.1" Port="26367"/>

@@ -129,7 +129,7 @@ public class TestGcmDaemonOffScheduler {
 	@Test
 	@Timeout(90)
 	public void testDaemonScanRunsOffSchedulerThread() throws Exception {
-		clientA = new RawClient("UnitTest.FND7_17.A");
+		clientA = new RawClient("UnitTest.GcmOffScheduler.A");
 		var socketA = clientA.connect();
 		var login = new Login();
 		login.Argument.serverId = SERVER_ID_A;

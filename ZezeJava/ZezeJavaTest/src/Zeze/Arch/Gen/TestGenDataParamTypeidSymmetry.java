@@ -66,7 +66,7 @@ public class TestGenDataParamTypeidSymmetry {
 		var data = new BValue.Data();
 		data.setInt_1(882);
 		data.setLong2(882882L);
-		data.setString3("a7fnd882");
+		data.setString3("paramsym");
 		assertRoundTrip(data);
 
 		// 全默认Data：encode体恰为终止符0x00；修复前typeId读0命中EmptyBean.Data吞掉后续字节

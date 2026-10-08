@@ -61,10 +61,10 @@ import harness.Fast;
  */
 @Fast
 public class TestGlobalCacheManagerRaftReleaseRemovedReset {
-	private static final Binary KEY = new Binary("UnitTest.FND3_35.Key".getBytes(StandardCharsets.UTF_8));
-	private static final Binary WARMUP_KEY = new Binary("UnitTest.FND3_35.WarmUp".getBytes(StandardCharsets.UTF_8));
+	private static final Binary KEY = new Binary("UnitTest.GcmRaftReset.Key".getBytes(StandardCharsets.UTF_8));
+	private static final Binary WARMUP_KEY = new Binary("UnitTest.GcmRaftReset.WarmUp".getBytes(StandardCharsets.UTF_8));
 	private static final int SERVER_ID_A = 9301;
-	private static final String RAFT_NAME = "fnd3_35_gcm_test";
+	private static final String RAFT_NAME = "gcm_raft_reset_test";
 	// AppendEntriesTimeout最小值1000（RaftConfig.verify），LeaderHeartbeatTimer须≥其+200。
 	// 缩短后：每次提交失败的appendLog等待=2*1000+1000ms，加命运判定同额，单次release约6~7s。
 	private static final int APPEND_ENTRIES_TIMEOUT = 1000;
@@ -346,7 +346,7 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 	public void testCommitFailMustResetRemovedPending() throws Throwable {
 
 		// 1. A登录leader并真实获取KEY的Modify（走raft提交）
-		clientA = new Peer("UnitTest.FND3_35.A");
+		clientA = new Peer("UnitTest.GcmRaftReset.A");
 		var socketA = clientA.connect(ports[leaderIndex]);
 		sendLogin(socketA, SERVER_ID_A);
 		sendAcquireModify(socketA);
@@ -379,7 +379,7 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 			} finally {
 				firstDone.countDown();
 			}
-		}, "UnitTest.FND3_35.Releaser1");
+		}, "UnitTest.GcmRaftReset.ReleaserA");
 		releaser1.setDaemon(true);
 		releaser1.start();
 		// appendLog等待3s + 命运判定3s + 余量
@@ -407,7 +407,7 @@ public class TestGlobalCacheManagerRaftReleaseRemovedReset {
 			} finally {
 				secondDone.countDown();
 			}
-		}, "UnitTest.FND3_35.Releaser2");
+		}, "UnitTest.GcmRaftReset.ReleaserB");
 		releaser2.setDaemon(true);
 		releaser2.start();
 		Assertions.assertTrue(secondDone.await(30, TimeUnit.SECONDS), "第二次release不能忙自旋（key冻结/守护停摆）");

@@ -80,7 +80,7 @@ public class TestCriticalExempt {
 			} catch (InterruptedException e) {
 				interrupted.countDown();
 			}
-		}, "fnd743-worker-" + critical);
+		}, "exempt-worker-" + critical);
 		worker.setDaemon(true);
 		Assertions.assertEquals(Thread.NORM_PRIORITY, worker.getPriority(),
 				"用例前提：NORM优先级线程无优先级兜底，只能靠critical豁免保护");

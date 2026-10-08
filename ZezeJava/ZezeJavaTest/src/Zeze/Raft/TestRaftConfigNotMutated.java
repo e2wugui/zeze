@@ -109,7 +109,7 @@ public class TestRaftConfigNotMutated {
 	public void testExplicitDbHomePreserved() {
 		var conf = RaftConfig.loadFromString("""
 				<?xml version="1.0" encoding="utf-8"?>
-				<raft Name="127.0.0.1:26380" DbHome="a3_fnd842_explicit">
+				<raft Name="127.0.0.1:26380" DbHome="config-explicit">
 					<node Host="127.0.0.1" Port="26380"/>
 					<node Host="127.0.0.1" Port="26381"/>
 					<node Host="127.0.0.1" Port="26382"/>
@@ -117,9 +117,9 @@ public class TestRaftConfigNotMutated {
 				""");
 		var derived = conf.derive(nameB);
 		assertEquals(nameB.replace(':', '_'), derived.getName());
-		assertEquals("a3_fnd842_explicit", derived.getDbHome(), "显式DbHome不随RaftName联动");
+		assertEquals("config-explicit", derived.getDbHome(), "显式DbHome不随RaftName联动");
 		assertEquals(conf.getName(), "127.0.0.1_26380", "derive不得变异原对象");
-		assertEquals("a3_fnd842_explicit", conf.getDbHome());
+		assertEquals("config-explicit", conf.getDbHome());
 		// 可变标量完整复制。
 		assertEquals(conf.getAppendEntriesTimeout(), derived.getAppendEntriesTimeout());
 		assertEquals(conf.getSnapshotLogCount(), derived.getSnapshotLogCount());

@@ -37,7 +37,7 @@ public class TestMultiDotActiveName {
 
 	@Test
 	public void testMultiDotNameRecognition() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-multidot-name");
+		var logDir = Files.createTempDirectory("multidot-name");
 		var manager = newManager(logDir);
 		try {
 			assertEquals(Active, manager.getCurrentLogFileName(), "修复前返回'a.b'");
@@ -60,7 +60,7 @@ public class TestMultiDotActiveName {
 
 	@Test
 	public void testMultiDotRotationRegisters() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-multidot-rotate");
+		var logDir = Files.createTempDirectory("multidot-rotate");
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
@@ -77,7 +77,7 @@ public class TestMultiDotActiveName {
 
 	@Test
 	public void testMultiDotRotationRegistersOutOfOrder() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-multidot-rotate-ooo");
+		var logDir = Files.createTempDirectory("multidot-rotate-ooo");
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
@@ -94,7 +94,7 @@ public class TestMultiDotActiveName {
 
 	@Test
 	public void testOverlappingNameNoThrow() throws Exception {
-		var logDir = Files.createTempDirectory("fnd19-overlap-name");
+		var logDir = Files.createTempDirectory("overlap-name");
 		Files.createFile(logDir.resolve("zeze.log"));
 		var logConf = new LogServiceConf.LogConf();
 		logConf.logActive = "zeze.log";

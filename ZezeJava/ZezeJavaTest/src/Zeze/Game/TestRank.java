@@ -138,14 +138,14 @@ public class TestRank {
 			// 删榜：写路径必须失效缓存
 			app.rank.deleteRank(rankKey);
 			return Procedure.Success;
-		}, "FND4_77.setupAndDelete").call();
+		}, "Rank.setupAndDelete").call();
 
 		// 红断言（新事务）：删除后立即查询必须空榜（原实现命中未过期缓存返回旧榜）
 		app.getZeze().newProcedure(() -> {
 			assertTrue(app.rank.getRankTotal(rankKey).getTableValue().getRankListReadOnly().isEmpty(),
 					"deleteRank后不得返回旧榜缓存（FND4-77）");
 			return Procedure.Success;
-		}, "FND4_77.getRankTotalAfterDelete").call();
+		}, "Rank.getRankTotalAfterDelete").call();
 
 		// mergeRank 同理：from/to同rankType不同offset，合并后to的缓存必须失效重建
 		var fromKey = new BConcurrentKey(RANK_TYPE, 0, BConcurrentKey.TimeTypeTotal, 2026, 111);
@@ -158,7 +158,7 @@ public class TestRank {
 			updateOk(app, 0, fromKey, ROLE_ID_BEGIN + 2, 300);
 			app.rank.mergeRank(fromKey, toKey);
 			return Procedure.Success;
-		}, "FND4_77.mergeRank").call();
+		}, "Rank.mergeRank").call();
 
 		// 红断言（新事务）：合并后立即查询必须包含from成员（原实现返回合并前旧快照）
 		app.getZeze().newProcedure(() -> {
@@ -169,7 +169,7 @@ public class TestRank {
 				hasFrom |= v.getRoleId() == ROLE_ID_BEGIN + 2;
 			assertTrue(hasFrom, "from成员必须出现在合并后的to榜");
 			return Procedure.Success;
-		}, "FND4_77.getRankTotalAfterMerge").call();
+		}, "Rank.getRankTotalAfterMerge").call();
 	}
 
 	private void updateOk(SimpleApp app, int hash, BConcurrentKey key, long roleId, long value) {

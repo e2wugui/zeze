@@ -90,7 +90,7 @@ public class TestOfflineTimerBookkeeping {
 			conf.setServerId(serverId);
 			conf.setDefaultTableConf(new Config.TableConf());
 			var dbConf = new Config.DatabaseConf();
-			dbConf.setDatabaseUrl("a6_fnd872_" + serverId); // 独立Memory桶
+			dbConf.setDatabaseUrl("offline_timer_" + serverId); // 独立Memory桶
 			conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 			conf.setTakeoverMode("dryrun");
 			conf.setTakeoverTtl(600_000);
@@ -147,7 +147,7 @@ public class TestOfflineTimerBookkeeping {
 		Assertions.assertEquals(Procedure.Success, TaskSpec.ofProcedure(env.zeze.newProcedure(() -> {
 			gone[0] = env.timer.getTimerIndex(timerId) == null;
 			return 0;
-		}, "a6.fnd872.pollIndex")).call());
+		}, "offlineTimer.pollIndex")).call());
 		return gone[0];
 	}
 
@@ -157,7 +157,7 @@ public class TestOfflineTimerBookkeeping {
 			var row = env.gameOnline._tRoleOfflineTimers().get(roleId);
 			gone[0] = row == null || row.getOfflineTimers().get(timerId) == null;
 			return 0;
-		}, "a6.fnd872.pollRoleBookkeeping")).call());
+		}, "offlineTimer.pollRoleBookkeeping")).call());
 		return gone[0];
 	}
 
@@ -168,21 +168,21 @@ public class TestOfflineTimerBookkeeping {
 			var row = env.timer.tAccountOfflineTimers().get(new BAccountClientId(account, clientId));
 			gone[0] = row == null || row.getOfflineTimers().get(timerId) == null;
 			return 0;
-		}, "a6.fnd872.pollAccountBookkeeping")).call());
+		}, "offlineTimer.pollAccountBookkeeping")).call());
 		return gone[0];
 	}
 
 	/** 打完终止：一次性角色offline timer触发完毕后簿记同步清除，同名重调度不再抛IAE。 */
 	@Test
 	public void testRoleOfflineFiredOutCleansBookkeeping() throws Exception {
-		var timerId = "a6.fnd872.roleFiredOut";
-		try (var env = new Env("TestFnd872RoleFiredOut")) {
+		var timerId = "offlineTimer.roleFiredOut";
+		try (var env = new Env("OfflineTimerRoleFiredOut")) {
 			var r = new boolean[1];
 			Assertions.assertEquals(Procedure.Success, TaskSpec.ofProcedure(env.zeze.newProcedure(() -> {
 				r[0] = env.roleTimer.scheduleOfflineNamed(timerId, 16111L,
 						TimerSpec.ofDelay(50).times(1), NormalHandle.class, null);
 				return 0;
-			}, "a6.fnd872.roleSchedule")).call());
+			}, "offlineTimer.roleSchedule")).call());
 			Assertions.assertTrue(r[0], "首次调度必须成功");
 			Assertions.assertTrue(await(env, () -> indexGone(env, timerId)), "一次性timer触发后index必须消失");
 			Assertions.assertTrue(roleBookkeepingGone(env, 16111L, timerId), "打完后离线簿记必须同步清除");
@@ -191,7 +191,7 @@ public class TestOfflineTimerBookkeeping {
 				r[0] = env.roleTimer.scheduleOfflineNamed(timerId, 16111L,
 						TimerSpec.ofDelay(60_000).times(1), NormalHandle.class, null);
 				return 0;
-			}, "a6.fnd872.roleReschedule")).call());
+			}, "offlineTimer.roleReschedule")).call());
 			Assertions.assertTrue(r[0], "同名重调度必须成功（不再撞残留簿记）");
 		}
 	}
@@ -199,14 +199,14 @@ public class TestOfflineTimerBookkeeping {
 	/** 回调异常终止：角色offline timer的handle抛异常自动取消后簿记同步清除，同名重调度成功。 */
 	@Test
 	public void testRoleOfflineHandleExceptionCleansBookkeeping() throws Exception {
-		var timerId = "a6.fnd872.roleThrow";
-		try (var env = new Env("TestFnd872RoleThrow")) {
+		var timerId = "offlineTimer.roleThrow";
+		try (var env = new Env("OfflineTimerRoleThrow")) {
 			var r = new boolean[1];
 			Assertions.assertEquals(Procedure.Success, TaskSpec.ofProcedure(env.zeze.newProcedure(() -> {
 				r[0] = env.roleTimer.scheduleOfflineNamed(timerId, 16112L,
 						TimerSpec.ofDelay(50).times(3), ThrowHandle.class, null);
 				return 0;
-			}, "a6.fnd872.roleScheduleThrow")).call());
+			}, "offlineTimer.roleScheduleThrow")).call());
 			Assertions.assertTrue(r[0], "首次调度必须成功");
 			Assertions.assertTrue(await(env, () -> indexGone(env, timerId)), "回调异常自动取消后index必须消失");
 			Assertions.assertTrue(roleBookkeepingGone(env, 16112L, timerId), "异常取消后离线簿记必须同步清除");
@@ -214,7 +214,7 @@ public class TestOfflineTimerBookkeeping {
 				r[0] = env.roleTimer.scheduleOfflineNamed(timerId, 16112L,
 						TimerSpec.ofDelay(60_000).times(1), NormalHandle.class, null);
 				return 0;
-			}, "a6.fnd872.roleRescheduleThrow")).call());
+			}, "offlineTimer.roleRescheduleThrow")).call());
 			Assertions.assertTrue(r[0], "同名重调度必须成功（不再撞残留簿记）");
 		}
 	}
@@ -222,14 +222,14 @@ public class TestOfflineTimerBookkeeping {
 	/** 打完终止的账号对称路径。 */
 	@Test
 	public void testAccountOfflineFiredOutCleansBookkeeping() throws Exception {
-		var timerId = "a6.fnd872.accFiredOut";
-		try (var env = new Env("TestFnd872AccFiredOut")) {
+		var timerId = "offlineTimer.accFiredOut";
+		try (var env = new Env("OfflineTimerAccFiredOut")) {
 			var r = new boolean[1];
 			Assertions.assertEquals(Procedure.Success, TaskSpec.ofProcedure(env.zeze.newProcedure(() -> {
 				r[0] = env.accountTimer.scheduleOfflineNamed(timerId, "a6acc1", "a6cid1",
 						TimerSpec.ofDelay(50).times(1), NormalHandle.class, null);
 				return 0;
-			}, "a6.fnd872.accSchedule")).call());
+			}, "offlineTimer.accSchedule")).call());
 			Assertions.assertTrue(r[0], "首次调度必须成功");
 			Assertions.assertTrue(await(env, () -> indexGone(env, timerId)), "一次性timer触发后index必须消失");
 			Assertions.assertTrue(accountBookkeepingGone(env, "a6acc1", "a6cid1", timerId),
@@ -238,7 +238,7 @@ public class TestOfflineTimerBookkeeping {
 				r[0] = env.accountTimer.scheduleOfflineNamed(timerId, "a6acc1", "a6cid1",
 						TimerSpec.ofDelay(60_000).times(1), NormalHandle.class, null);
 				return 0;
-			}, "a6.fnd872.accReschedule")).call());
+			}, "offlineTimer.accReschedule")).call());
 			Assertions.assertTrue(r[0], "同名重调度必须成功（不再撞残留簿记）");
 		}
 	}
@@ -246,14 +246,14 @@ public class TestOfflineTimerBookkeeping {
 	/** 回调异常终止的账号对称路径。 */
 	@Test
 	public void testAccountOfflineHandleExceptionCleansBookkeeping() throws Exception {
-		var timerId = "a6.fnd872.accThrow";
-		try (var env = new Env("TestFnd872AccThrow")) {
+		var timerId = "offlineTimer.accThrow";
+		try (var env = new Env("OfflineTimerAccThrow")) {
 			var r = new boolean[1];
 			Assertions.assertEquals(Procedure.Success, TaskSpec.ofProcedure(env.zeze.newProcedure(() -> {
 				r[0] = env.accountTimer.scheduleOfflineNamed(timerId, "a6acc2", "a6cid2",
 						TimerSpec.ofDelay(50).times(3), ThrowHandle.class, null);
 				return 0;
-			}, "a6.fnd872.accScheduleThrow")).call());
+			}, "offlineTimer.accScheduleThrow")).call());
 			Assertions.assertTrue(r[0], "首次调度必须成功");
 			Assertions.assertTrue(await(env, () -> indexGone(env, timerId)), "回调异常自动取消后index必须消失");
 			Assertions.assertTrue(accountBookkeepingGone(env, "a6acc2", "a6cid2", timerId),
@@ -262,7 +262,7 @@ public class TestOfflineTimerBookkeeping {
 				r[0] = env.accountTimer.scheduleOfflineNamed(timerId, "a6acc2", "a6cid2",
 						TimerSpec.ofDelay(60_000).times(1), NormalHandle.class, null);
 				return 0;
-			}, "a6.fnd872.accRescheduleThrow")).call());
+			}, "offlineTimer.accRescheduleThrow")).call());
 			Assertions.assertTrue(r[0], "同名重调度必须成功（不再撞残留簿记）");
 		}
 	}
@@ -270,15 +270,15 @@ public class TestOfflineTimerBookkeeping {
 	/** 护栏：显式cancelOffline在钩子清理簿记后仍须返回true（TimerScope.cancel契约，判定已前移）。 */
 	@Test
 	public void testRoleExplicitCancelKeepsContract() throws Exception {
-		var timerId = "a6.fnd872.roleCancel";
-		try (var env = new Env("TestFnd872RoleCancel")) {
+		var timerId = "offlineTimer.roleCancel";
+		try (var env = new Env("OfflineTimerRoleCancel")) {
 			var r = new boolean[2];
 			Assertions.assertEquals(Procedure.Success, TaskSpec.ofProcedure(env.zeze.newProcedure(() -> {
 				r[0] = env.roleTimer.scheduleOfflineNamed(timerId, 16113L,
 						TimerSpec.ofDelay(60_000), NormalHandle.class, null);
 				r[1] = env.roleTimer.cancelOffline(timerId, 16113L);
 				return 0;
-			}, "a6.fnd872.roleExplicitCancel")).call());
+			}, "offlineTimer.roleExplicitCancel")).call());
 			Assertions.assertTrue(r[0], "首次调度必须成功");
 			Assertions.assertTrue(r[1], "cancelOffline对真实存在的timer必须返回true（契约不因判定前移破坏）");
 			Assertions.assertTrue(roleBookkeepingGone(env, 16113L, timerId), "显式取消后簿记必须清除");

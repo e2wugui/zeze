@@ -48,7 +48,7 @@ public class TestSmEditSubscribeLimits {
 	public static void setUp() throws Exception {
 		Task.tryInitThreadPool();
 		Files.createDirectories(Path.of("autokeys"));
-		sm = new ServiceManagerServer(null, PORT, new Zeze.Config(), "autokeys/fnd16-svc01b");
+		sm = new ServiceManagerServer(null, PORT, new Zeze.Config(), "autokeys/smedit");
 	}
 
 	@AfterAll
@@ -101,13 +101,13 @@ public class TestSmEditSubscribeLimits {
 	@Test
 	@Timeout(120)
 	public void testFieldSizeRejected() throws Exception {
-		var reg = new Client("UnitTest.Fnd16Svc01.Reg");
+		var reg = new Client("UnitTest.SmEditSubscribe.Reg");
 		try {
 			var sock = reg.connect();
 
 			// 基线：合法注册 rc=0。
 			var okEdit = new BEditService();
-			okEdit.getAdd().add(info("fnd16svc1.ok", "11"));
+			okEdit.getAdd().add(info("smedit.ok", "11"));
 			Assertions.assertEquals(0, editOf(sock, okEdit), "合法注册必须成功（基线自证）");
 
 			// 超长serviceName（129B>128B）与超长identity（'@'+200B）必须错误码拒绝。
@@ -117,20 +117,20 @@ public class TestSmEditSubscribeLimits {
 					"超长serviceName必须拒绝");
 
 			var badIdentity = new BEditService();
-			badIdentity.getAdd().add(info("fnd16svc1.bad", "@" + "y".repeat(200)));
+			badIdentity.getAdd().add(info("smedit.bad", "@" + "y".repeat(200)));
 			Assertions.assertEquals(Procedure.ErrorRequestId, editOf(sock, badIdentity),
 					"超长identity必须拒绝");
 
 			// 超大批量（>128/批）拒绝。
 			var bigBatch = new BEditService();
 			for (var i = 0; i < 129; i++)
-				bigBatch.getAdd().add(info("fnd16svc1-big-" + i, Integer.toString(3000 + i)));
+				bigBatch.getAdd().add(info("smedit-big-" + i, Integer.toString(3000 + i)));
 			Assertions.assertEquals(Procedure.ErrorRequestId, editOf(sock, bigBatch),
 					"超大批量必须拒绝");
 
 			// 拒绝后服务端零状态变更：合法通道仍可用。
 			var again = new BEditService();
-			again.getAdd().add(info("fnd16svc1.after-reject", "13"));
+			again.getAdd().add(info("smedit.after-reject", "13"));
 			Assertions.assertEquals(0, editOf(sock, again), "拒绝后合法注册仍可用");
 		} finally {
 			reg.stop();
@@ -140,23 +140,23 @@ public class TestSmEditSubscribeLimits {
 	@Test
 	@Timeout(120)
 	public void testPerSessionRegistersLimit() throws Exception {
-		var reg = new Client("UnitTest.Fnd16Svc01.RegL");
+		var reg = new Client("UnitTest.SmEditSubscribe.RegLong");
 		try {
 			var sock = reg.connect();
 			// 每会话上限64：64名全部成功（覆盖式重注册不占名额自证一次），第65名拒绝。
 			for (var base = 0; base < 64; base += 32) {
 				var edit = new BEditService();
 				for (var i = base; i < base + 32; i++)
-					edit.getAdd().add(info("fnd16svc1-cap-" + i, Integer.toString(2000 + i)));
+					edit.getAdd().add(info("smedit-cap-" + i, Integer.toString(2000 + i)));
 				Assertions.assertEquals(0, editOf(sock, edit), "限额内注册必须成功");
 			}
 			// 覆盖式重注册（同名同identity）不占新名额：重复第1名仍成功。
 			var overwrite = new BEditService();
-			overwrite.getAdd().add(info("fnd16svc1-cap-0", "2000"));
+			overwrite.getAdd().add(info("smedit-cap-0", "2000"));
 			Assertions.assertEquals(0, editOf(sock, overwrite), "覆盖式重注册不受限");
 
 			var overflow = new BEditService();
-			overflow.getAdd().add(info("fnd16svc1-cap-overflow", "2999"));
+			overflow.getAdd().add(info("smedit-cap-overflow", "2999"));
 			Assertions.assertEquals(Procedure.ErrorRequestId, editOf(sock, overflow),
 					"第65个唯一名必须被每会话上限拒绝");
 		} finally {
@@ -179,23 +179,23 @@ public class TestSmEditSubscribeLimits {
 			states.clear();
 			// 3个空壳+1个非空壳（含注册）+1个目标名占位。
 			for (var i = 0; i < 3; i++)
-				states.put("fnd16svc1-idle-" + i, new ServiceManagerServer.ServiceState(sm, "fnd16svc1-idle-" + i));
-			states.put("fnd16svc1-live", new ServiceManagerServer.ServiceState(sm, "fnd16svc1-live"));
-			states.get("fnd16svc1-live").getServiceInfos().put(1L, new HashMap<>()); // 非空壳：有注册
-			states.put("fnd16svc1-target", new ServiceManagerServer.ServiceState(sm, "fnd16svc1-target"));
+				states.put("smedit-idle-" + i, new ServiceManagerServer.ServiceState(sm, "smedit-idle-" + i));
+			states.put("smedit-live", new ServiceManagerServer.ServiceState(sm, "smedit-live"));
+			states.get("smedit-live").getServiceInfos().put(1L, new HashMap<>()); // 非空壳：有注册
+			states.put("smedit-target", new ServiceManagerServer.ServiceState(sm, "smedit-target"));
 
 			var evict = ServiceManagerServer.class.getDeclaredMethod("evictIdleServiceState", String.class);
 			evict.setAccessible(true);
 
 			// 逐出：排除目标名，只能逐空壳；返回true且恰移除一个。
-			Assertions.assertTrue((boolean)evict.invoke(sm, "fnd16svc1-target"), "必须逐出空壳成功");
+			Assertions.assertTrue((boolean)evict.invoke(sm, "smedit-target"), "必须逐出空壳成功");
 			Assertions.assertEquals(4, states.size(), "恰移除一个空壳");
-			Assertions.assertTrue(states.containsKey("fnd16svc1-live"), "非空壳不得被逐");
-			Assertions.assertTrue(states.containsKey("fnd16svc1-target"), "目标名不得被逐（本轮要使用）");
+			Assertions.assertTrue(states.containsKey("smedit-live"), "非空壳不得被逐");
+			Assertions.assertTrue(states.containsKey("smedit-target"), "目标名不得被逐（本轮要使用）");
 
 			// 清空剩余空壳后：无可逐返回false（满员拒绝路径）。
-			states.keySet().removeIf(k -> k.startsWith("fnd16svc1-idle-"));
-			Assertions.assertFalse((boolean)evict.invoke(sm, "fnd16svc1-target"), "无空壳可逐时返回false（拒绝路径）");
+			states.keySet().removeIf(k -> k.startsWith("smedit-idle-"));
+			Assertions.assertFalse((boolean)evict.invoke(sm, "smedit-target"), "无空壳可逐时返回false（拒绝路径）");
 			Assertions.assertEquals(2, states.size());
 		} finally {
 			states.clear(); // 单元级直填的测试数据清场

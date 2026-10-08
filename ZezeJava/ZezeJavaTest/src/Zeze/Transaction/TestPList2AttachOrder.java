@@ -30,7 +30,7 @@ public class TestPList2AttachOrder {
 		conf.setServerId(nextServerId.getAndIncrement());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("t1_fnd706_plist2_" + conf.getServerId());
+		dbConf.setDatabaseUrl("plist2_attach_" + conf.getServerId());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf); // Memory库，独立url=独立存储
 		var app = new Application("TestPList2AttachOrder@" + conf.getServerId(), conf);
 		// Table1是关系映射表，open需要Schemas（对齐TestDynamicBeanCollect的搭建方式）。
@@ -52,7 +52,7 @@ public class TestPList2AttachOrder {
 				v.getList9().add(new Bean1());
 				table.insert(1L, v);
 				return 0L;
-			}, "TestFnd706.setup")).call());
+			}, "TestPList2Attach.setup")).call());
 
 			// 越界set/add：IOOBE必须抛出，且item不得被挂接（调用方catch后继续，事务正常提交）。
 			final var items = new Bean1[4];
@@ -83,7 +83,7 @@ public class TestPList2AttachOrder {
 					caught[3]++;
 				}
 				return 0L;
-			}, "TestFnd706.oob")).call());
+			}, "TestPList2Attach.oob")).call());
 
 			Assertions.assertEquals(1, caught[0], "set(size)必须抛IOOBE");
 			Assertions.assertEquals(1, caught[1], "add(size+1)必须抛IOOBE");
@@ -99,7 +99,7 @@ public class TestPList2AttachOrder {
 				table.getOrAdd(1L).getList9().add(items[0]); // 复用越界set的item
 				sizeAfterReuse[0] = table.getOrAdd(1L).getList9().size();
 				return 0L;
-			}, "TestFnd706.reuse")).call());
+			}, "TestPList2Attach.reuse")).call());
 			Assertions.assertEquals(2, sizeAfterReuse[0]);
 
 			// 合法index行为不变：set返回旧值，add中间插入。
@@ -111,7 +111,7 @@ public class TestPList2AttachOrder {
 				list.add(1, new Bean1());
 				sizeAfterLegal[0] = list.size();
 				return 0L;
-			}, "TestFnd706.legal")).call());
+			}, "TestPList2Attach.legal")).call());
 			Assertions.assertNotNull(oldSet[0]);
 			Assertions.assertEquals(3, sizeAfterLegal[0]);
 		} finally {

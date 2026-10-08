@@ -109,6 +109,6 @@ public class TestClearInUseClosesCreatedDatabases {
 		conf.setDefaultTableConf(new Config.TableConf());
 		assertDoesNotThrow(() -> conf.clearInUse(app.getDatabases()));
 		// app的库仍可用（未被动过）：正常事务照常执行。
-		assertDoesNotThrow(() -> app.newProcedure(() -> 0L, "Fnd824.StillAlive").call());
+		assertDoesNotThrow(() -> app.newProcedure(() -> 0L, "ClearInUse.StillAlive").call());
 	}
 }

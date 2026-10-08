@@ -45,7 +45,7 @@ public class TestCacheCloseRace {
 	@Test
 	public void testCloseDuringLoaderThrowsCleanClosed(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
-		var dir = tempDir.resolve("a1_fnd808_cache").toString();
+		var dir = tempDir.resolve("cache_close_race").toString();
 		var loaderEntered = new CountDownLatch(1);
 		var releaseLoader = new CountDownLatch(1);
 		var cache = openCache(() -> new Cache(dir, 16,
@@ -71,7 +71,7 @@ public class TestCacheCloseRace {
 			} catch (Throwable e) {
 				getThrown.compareAndSet(null, e);
 			}
-		}, "fnd808-getter");
+		}, "cache-close-getter");
 		getter.setDaemon(true);
 		getter.start();
 		Assertions.assertTrue(loaderEntered.await(5, TimeUnit.SECONDS), "loader必须先执行");
@@ -92,7 +92,7 @@ public class TestCacheCloseRace {
 	@Test
 	public void testAppendTodayAfterCloseThrows(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
-		var dir = tempDir.resolve("a1_fnd808_cache2").toString();
+		var dir = tempDir.resolve("cache_close_race2").toString();
 		var cache = openCache(() -> new Cache(dir, 16,
 				id -> new TestCacheAppendTodayResume.Obj(id, "v1"),
 				(id, bb) -> {

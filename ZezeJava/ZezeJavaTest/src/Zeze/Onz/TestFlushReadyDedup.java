@@ -189,7 +189,7 @@ public class TestFlushReadyDedup {
 		private final List<String> events = new java.util.concurrent.CopyOnWriteArrayList<>();
 
 		private CapturingAppender() {
-			super("fnd19-gc-d03-capture", null, null, true, Property.EMPTY_ARRAY);
+			super("flushready-capture", null, null, true, Property.EMPTY_ARRAY);
 		}
 
 		@Override

@@ -44,11 +44,11 @@ public class TestHaProxyOnHandshakeAccept {
 		Task.tryInitThreadPool();
 		var conf = new Config();
 		var sconf = new ServiceConf();
-		sconf.setHaProxyKey("TestFnd724HaProxyKey");
-		conf.getServiceConfMap().put("TestFnd724Srv", sconf);
+		sconf.setHaProxyKey("HaProxyKey");
+		conf.getServiceConfMap().put("HaProxySrv", sconf);
 
 		var handshakeDone = new TaskCompletionSource<AsyncSocket>();
-		var server = new HandshakeServer("TestFnd724Srv", conf) {
+		var server = new HandshakeServer("HaProxySrv", conf) {
 			@Override
 			public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 				super.OnHandshakeDone(so);
@@ -60,7 +60,7 @@ public class TestHaProxyOnHandshakeAccept {
 
 			// 模拟经LB接入的客户端：连接建立后先发PROXY v1行，再按Disable握手流回CHandshakeDone
 			// （对齐HandshakeBase.processSHandshake0的Disable分支）。
-			var client = new Service("TestFnd724Client", new Config()) {
+			var client = new Service("HaProxyClient", new Config()) {
 				{
 					AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(SHandshake0::new,
 							this::onSHandshake0, TransactionLevel.None, DispatchMode.Direct));
@@ -103,11 +103,11 @@ public class TestHaProxyOnHandshakeAccept {
 		Task.tryInitThreadPool();
 		var conf = new Config();
 		var sconf = new ServiceConf();
-		sconf.setHaProxyKey("TestFnd724HaProxyKey2");
-		conf.getServiceConfMap().put("TestFnd724BothSrv", sconf);
+		sconf.setHaProxyKey("HaProxyKeyB");
+		conf.getServiceConfMap().put("HaProxyBothSrv", sconf);
 
 		var handshakeDone = new TaskCompletionSource<AsyncSocket>();
-		var server = new HandshakeBoth("TestFnd724BothSrv", conf) {
+		var server = new HandshakeBoth("HaProxyBothSrv", conf) {
 			@Override
 			public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 				super.OnHandshakeDone(so);
@@ -116,7 +116,7 @@ public class TestHaProxyOnHandshakeAccept {
 		};
 		try {
 			var port = listenPort(server);
-			var client = new Service("TestFnd724BothClient", new Config()) {
+			var client = new Service("HaProxyBothClient", new Config()) {
 				{
 					AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(SHandshake0::new,
 							this::onSHandshake0, TransactionLevel.None, DispatchMode.Direct));

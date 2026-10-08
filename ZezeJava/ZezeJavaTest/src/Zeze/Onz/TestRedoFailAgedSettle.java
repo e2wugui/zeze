@@ -193,7 +193,7 @@ public class TestRedoFailAgedSettle {
 
 	/** Commit桩参与方（自愈用例专用）：eCommitting的redo发Commit（sendRedoDecision按参与方类型分流），显式应答0。 */
 	private static Service startCommitStub() throws Exception {
-		var stub = new Service("Fnd21GcD01CommitStub", new Config());
+		var stub = new Service("RedoAgedSettleCommitStub", new Config());
 		stub.AddFactoryHandle(Zeze.Builtin.Onz.Commit.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.Commit::new, r -> {
 					r.SendResult(); // 框架仅在非0时回发错误码（TaskSpec契约），0需显式应答

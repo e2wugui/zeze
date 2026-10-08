@@ -43,12 +43,12 @@ public class TestDelayRemoveZombieJobOnContinue {
 			var dr = app.getDelayRemove();
 			var serverId = app.getConfig().getServerId();
 			var tJobs = getJobsTable(dr);
-			dr.register("UnitTest.FND5_21.Legit", (delayRemove, jobId, jobState) -> {
+			dr.register("UnitTest.DelayRemoveZombie.legit", (delayRemove, jobId, jobState) -> {
 			});
 
 			// 合法Job：走正规addJob（行持久化）。
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
-				dr.addJob("UnitTest.FND5_21.Legit", EmptyBean.instance);
+				dr.addJob("UnitTest.DelayRemoveZombie.legit", EmptyBean.instance);
 				return Procedure.Success;
 			}, "addLegitJob").call());
 			Assertions.assertEquals(1, app.newProcedure(dr::jobCount, "countAfterAdd").call());
@@ -56,7 +56,7 @@ public class TestDelayRemoveZombieJobOnContinue {
 			// 注入僵尸行：绕过addJob直接写_tJobs（模拟修复前已持久化的未注册handleName条目）。
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {
 				var bJob = new BJob();
-				bJob.setJobHandleName("UnitTest.FND5_21.Zombie");
+				bJob.setJobHandleName("UnitTest.DelayRemoveZombie.zombie");
 				var bb = ByteBuffer.Allocate(16);
 				EmptyBean.instance.encode(bb);
 				bJob.setJobState(new Binary(bb));

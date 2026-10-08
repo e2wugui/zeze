@@ -48,7 +48,7 @@ public class TestStopCommitGate {
 		conf.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("fnd7_54_stop_gate_" + SERVER_ID);
+		dbConf.setDatabaseUrl("stop_gate_" + SERVER_ID);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = new Application("TestStopCommitGate", conf);
 		app.start();
@@ -82,7 +82,7 @@ public class TestStopCommitGate {
 					// 受控阻塞：事务已过perform入口，等stop()完全结束（终检点已过）再继续。
 					release.await();
 					return Procedure.Success;
-				}, "Fnd754.BlockedCommit").call());
+				}, "StopGate.BlockedCommit").call());
 			} catch (Throwable e) {
 				error.set(e);
 			}
@@ -119,16 +119,16 @@ public class TestStopCommitGate {
 					calls.incrementAndGet();
 					Transaction.getCurrent().runWhileRollback(rollbacks::incrementAndGet);
 					if (calls.get() == 1)
-						Transaction.getCurrent().throwRedo(0, "Fnd754 round1 redo");
+						Transaction.getCurrent().throwRedo(0, "StopGate round1 redo");
 					if (calls.get() == 2) {
 						// 受控阻塞：轮次2已确定进入action后才放行主线程去stop()，
 						// 之后等stop()完全结束（终检点已过）再抛redo进入轮次3。
 						round2InAction.countDown();
 						release.await();
-						Transaction.getCurrent().throwRedo(0, "Fnd754 round2 redo after stop");
+						Transaction.getCurrent().throwRedo(0, "StopGate round2 redo after stop");
 					}
 					return Procedure.Success; // 轮次3不可达：轮次间停机检查必须拦截
-				}, "Fnd754.RedoWhileStop").call());
+				}, "StopGate.RedoWhileStop").call());
 			} catch (Throwable e) {
 				error.set(e);
 			}
@@ -152,7 +152,7 @@ public class TestStopCommitGate {
 		var rc = app.newProcedure(() -> {
 			Transaction.getCurrent().runWhileCommit(commits::incrementAndGet);
 			return Procedure.Success;
-		}, "Fnd754.NormalCommit").call();
+		}, "StopGate.NormalCommit").call();
 		assertEquals(Procedure.Success, rc, "运行期正常提交必须成功");
 		assertEquals(1, commits.get());
 	}
@@ -165,7 +165,7 @@ public class TestStopCommitGate {
 		var rc = new Procedure(app, (Zeze.Util.FuncLong)() -> {
 			calls.incrementAndGet();
 			return Procedure.Success;
-		}, "Fnd754.AfterStop", null).call();
+		}, "StopGate.AfterStop", null).call();
 		assertEquals(Procedure.Closed, rc, "终检点已过，perform入口必须拒绝");
 		assertEquals(0, calls.get(), "action不得执行");
 	}

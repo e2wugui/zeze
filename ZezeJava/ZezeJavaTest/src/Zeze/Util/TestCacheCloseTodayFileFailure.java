@@ -31,7 +31,7 @@ public class TestCacheCloseTodayFileFailure {
 	private static final class Value implements CacheObject {
 		@Override
 		public String cacheId() {
-			return "fnd13-util01";
+			return "cache-close-today";
 		}
 
 		@Override
@@ -52,12 +52,12 @@ public class TestCacheCloseTodayFileFailure {
 
 	@Test
 	public final void testTodayFileCloseFailureStillReleasesDbAndLru() throws Exception {
-		var dir = Files.createTempDirectory("fnd13_util01_cache");
+		var dir = Files.createTempDirectory("cache_close_today");
 		var cache = new Cache(dir.toString(), 4, id -> new Value(), (id, bb) -> new Value());
 		try {
-			Assertions.assertNotNull(cache.get("fnd13-util01")); // loader落库+登记当天清单，todayFile建立
+			Assertions.assertNotNull(cache.get("cache-close-today")); // loader落库+登记当天清单，todayFile建立
 
-			var throwing = new FileOutputStream(Files.createTempFile("fnd13_util01_stream", ".tmp").toFile()) {
+			var throwing = new FileOutputStream(Files.createTempFile("cache_close_stream", ".tmp").toFile()) {
 				@Override
 				public void close() throws IOException {
 					throw new IOException("synthetic close failure (FND13 util-01)");

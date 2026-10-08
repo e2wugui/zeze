@@ -42,8 +42,8 @@ public class TestLogServiceMultiManagerCleanup {
 
 	@Test
 	public void testMidwayFailureStopsPriorManagers() throws Exception {
-		var dirValid = Files.createTempDirectory("fnd20-multi-valid");
-		var dirPoison = Files.createTempDirectory("fnd20-multi-poison");
+		var dirValid = Files.createTempDirectory("multi-valid");
+		var dirPoison = Files.createTempDirectory("multi-poison");
 		// ConcurrentHashMap无插入序：运行时探测迭代序，把毒化conf排在末位，
 		// 保证至少一个manager先成功后失败（毒化形态：indexLinks名被普通文件占据，装载期active
 		// 索引解析的nextLinkFile必抛——rotate名.index残留已被FND25配对校验消费，不再是失败面）。

@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
  */
 @Fast
 public class TestDbWebToken {
-	private static final String TOKEN = "fnd14-comp02-test-token";
+	private static final String TOKEN = "dbweb-test-token";
 	private static final String LIST = "/Zeze/Builtin/DbWeb/ListTable";
 	private static final String INDEX = "/Zeze/Builtin/DbWeb/Index";
 
@@ -50,9 +50,9 @@ public class TestDbWebToken {
 		conf.setServerId(ServerId);
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("fnd14_comp02_dbweb_" + ServerId);
+		dbConf.setDatabaseUrl("dbweb_token_" + ServerId);
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
-		app = new Application("TestFnd14Comp02DbWeb", conf);
+		app = new Application("TestDbWebToken", conf);
 		app.start();
 		var dbWeb = new DbWeb(TOKEN); // 显式token（无参构造的自动生成+日志形态由启动日志断言难做，走显式）
 		dbWeb.Initialize(new AppBase() {
