@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * commit校验齐全+清退清单外残留+空目录拒绝；无清单走legacy路径（既有行为不变）。
  */
 @Fast
-public class TestD05CommitManifestBarrier {
+public class TestCommitManifestBarrier {
 	private static final long COMMIT_FAIL = IModule.errorCode(Zoker.ModuleId, Zoker.eCommitFail);
 
 	/** 在 distributes/<svc> 下放置文件并写集合清单（行含服务名前缀，与ZokerAgent同构）。 */

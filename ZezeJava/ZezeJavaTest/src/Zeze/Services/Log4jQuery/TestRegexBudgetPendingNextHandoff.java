@@ -71,7 +71,7 @@ public class TestRegexBudgetPendingNextHandoff {
 
 	@Test
 	public void testSearchContainsConsumesPendingNext() throws Exception {
-		var logDir = Files.createTempDirectory("fnd24-log4j-pending-search");
+		var logDir = Files.createTempDirectory("log4j-pending-search");
 		var manager = newManager(logDir);
 		try {
 			manager.stop(); // 冻结监视与定时器：行为只由会话扫描决定
@@ -108,7 +108,7 @@ public class TestRegexBudgetPendingNextHandoff {
 
 	@Test
 	public void testBrowseContainsConsumesPendingNext() throws Exception {
-		var logDir = Files.createTempDirectory("fnd24-log4j-pending-browse");
+		var logDir = Files.createTempDirectory("log4j-pending-browse");
 		var manager = newManager(logDir);
 		try {
 			manager.stop();
@@ -140,7 +140,7 @@ public class TestRegexBudgetPendingNextHandoff {
 	 */
 	@Test
 	public void testSearchRegexResumeRejudgesPending() throws Exception {
-		var logDir = Files.createTempDirectory("fnd24-log4j-pending-regex");
+		var logDir = Files.createTempDirectory("log4j-pending-regex");
 		var manager = newManager(logDir);
 		try {
 			manager.stop();

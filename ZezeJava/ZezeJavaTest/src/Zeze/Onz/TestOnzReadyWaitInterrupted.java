@@ -43,7 +43,7 @@ public class TestOnzReadyWaitInterrupted {
 		conf.setDefaultTableConf(new Config.TableConf()); // 裸 Config 不会补默认值
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("fnd24_onz01_" + SERVER_ID);
+		dbConf.setDatabaseUrl("onz_ready_wait_" + SERVER_ID);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = new Application("TestOnzReadyWaitInterrupted", conf);
 		app.start();

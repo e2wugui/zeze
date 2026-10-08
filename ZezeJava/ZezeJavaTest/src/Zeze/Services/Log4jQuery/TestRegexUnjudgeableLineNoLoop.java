@@ -73,7 +73,7 @@ public class TestRegexUnjudgeableLineNoLoop {
 	//（弃置行烧满本页正则预算）；页3判定剩余行并读尽。
 	@Test
 	public void testSearchRegexSamePathologicalPatternPagesConverge() throws Exception {
-		var logDir = Files.createTempDirectory("fnd26-log4j-03-backtrack");
+		var logDir = Files.createTempDirectory("log4j-regex-backtrack");
 		var manager = newManager(logDir, twoLineFixture());
 		try {
 			manager.stop(); // 冻结监视与定时器：行为只由会话扫描决定
@@ -106,7 +106,7 @@ public class TestRegexUnjudgeableLineNoLoop {
 	// browse路径同治：同pattern续页有界收敛。
 	@Test
 	public void testBrowseRegexSamePathologicalPatternPagesConverge() throws Exception {
-		var logDir = Files.createTempDirectory("fnd26-log4j-03-browse");
+		var logDir = Files.createTempDirectory("log4j-regex-browse");
 		var manager = newManager(logDir, twoLineFixture());
 		try {
 			manager.stop();
@@ -130,7 +130,7 @@ public class TestRegexUnjudgeableLineNoLoop {
 	// 超长行面（>64M字符+通读型pattern）：截断后单页即可判定读尽——修复前页1即预算中止。
 	@Test
 	public void testOversizeLineJudgedViaTruncation() throws Exception {
-		var logDir = Files.createTempDirectory("fnd26-log4j-03-oversize");
+		var logDir = Files.createTempDirectory("log4j-regex-oversize");
 		// 首行=合法日志头；第二行无时间戳前缀=续行，聚合出 >64M 字符的单条日志。
 		var content = timestamped(Base, "keyword1") + "\n"
 				+ "y".repeat(64 * 1024 * 1024 + 64) + "\n";
@@ -157,7 +157,7 @@ public class TestRegexUnjudgeableLineNoLoop {
 	// "判定参与"语义（可判定=可推进），送达仍受页预算约束，两者正交。
 	@Test
 	public void testOversizeLineWithPrefixMatchConverges() throws Exception {
-		var logDir = Files.createTempDirectory("fnd26-log4j-03-prefix");
+		var logDir = Files.createTempDirectory("log4j-regex-prefix");
 		// 聚合单条=首行(keyword1)+>8M字符续行；keyword1位于前缀内，截断后判定命中。
 		var content = timestamped(Base, "keyword1") + "\n" + "z".repeat(9 * 1024 * 1024) + "\n";
 		var manager = newManager(logDir, content);

@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * 纯文件直构（parseLaunchSpec 包内静态），全平台确定性；修复前红=IOException(missing command)。
  */
 @Fast
-public class TestE07LaunchSpecBom {
+public class TestLaunchSpecBom {
 
 	private static ServiceManager.LaunchSpec parse(Path versionDir, String content) throws IOException {
 		Files.createDirectories(versionDir);

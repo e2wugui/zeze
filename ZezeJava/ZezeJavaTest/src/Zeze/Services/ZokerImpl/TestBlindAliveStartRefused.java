@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * （存活但指纹不可核实，全平台确定性）。修复前红点：返回 0 且 processes 装账（双实例错账本体）。
  */
 @Fast
-public class TestE09BlindAliveStartRefused {
+public class TestBlindAliveStartRefused {
 
 	private static final long START_FAIL = IModule.errorCode(Zoker.ModuleId, Zoker.eStartFail);
 

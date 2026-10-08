@@ -27,7 +27,7 @@ import static Zeze.Onz.Fnd19GcOnzTestSupport.*;
 public class TestOnzSagaCompensateFailErrorCode {
 	// 过程名必须全 JVM 唯一：demo.App 单例的 Onz 注册表跨测试类持久。
 	private static final AtomicBoolean registeredOnAppInstance = new AtomicBoolean();
-	private static final String SagaName = "fnd24Onz03CompensateRc";
+	private static final String SagaName = "OnzSagaCompensateRc";
 
 	// 手动rpc伪造的孤儿决策tid（避开OnzServer.nextOnzTid的分配空间）
 	private static final long CompensateRcTid = 0x5CA2E5A1000003E1L;

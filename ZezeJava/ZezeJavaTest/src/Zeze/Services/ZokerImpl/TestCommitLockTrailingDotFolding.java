@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * （eCommitFail）不影响锁条目建立，直构空目录即可，无需真实分发。
  */
 @Fast
-public class TestE08CommitLockTrailingDotFolding {
+public class TestCommitLockTrailingDotFolding {
 
 	private static final long COMMIT_FAIL = IModule.errorCode(Zoker.ModuleId, Zoker.eCommitFail);
 

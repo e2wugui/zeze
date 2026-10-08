@@ -56,7 +56,7 @@ public class TestGTableStaleRowAndPhantomRow {
 		conf.setServerId(NextId.incrementAndGet());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("t27_phantom_row_" + conf.getServerId());
+		dbConf.setDatabaseUrl("gtable_stale_phantom_" + conf.getServerId());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		var app = new Application("TestT27PhantomRow" + conf.getServerId(), conf);
 		app.setSchemas(new demo.Schemas());

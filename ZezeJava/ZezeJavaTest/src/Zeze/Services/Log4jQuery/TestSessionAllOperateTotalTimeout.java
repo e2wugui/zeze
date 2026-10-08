@@ -37,7 +37,7 @@ import harness.Fast;
  * 守卫。修复后 operate 携带总 deadline：等待按剩余时限 get、补员与发送按剩余
  * 时限跳过；到点成员按瞬时失败同构降级（部分成功照常返回），全败抛带信息的
  * TimeoutException。直测经反射驱动带时限重载（修复前该方法不存在即红，
- * 先例 TestD07IdleBindingSweep），stub 形制对齐 TestSessionAllOperatePartialFailure
+ * 先例 TestIdleBindingSweep），stub 形制对齐 TestSessionAllOperatePartialFailure
  * （ReflectionFactory 不调构造器，字段由注入驱动）。
  */
 @Fast

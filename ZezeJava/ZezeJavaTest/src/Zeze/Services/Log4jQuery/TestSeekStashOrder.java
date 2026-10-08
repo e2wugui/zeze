@@ -71,7 +71,7 @@ public class TestSeekStashOrder {
 	 */
 	@Test
 	public void testSeekFromFileHeadKeepsOrder() throws Exception {
-		var logDir = Files.createTempDirectory("fnd24-log4j-seek-stash");
+		var logDir = Files.createTempDirectory("log4j-seek-stash");
 		var manager = newManager(logDir, 3);
 		try {
 			manager.stop();

@@ -42,7 +42,7 @@ import harness.Fast;
  * 被持续复用，该台数据静默缺席、remain 提前 false。修复后：operate 入口缺册补员
  * （reconcileMissingMembers），失败记 per-member 退避时间戳（60s 窗内不重试）。
  * <p>
- * 退避表用反射直读（私有实现细节不扩 API；先例 TestD07IdleBindingSweep 反射驱动
+ * 退避表用反射直读（私有实现细节不扩 API；先例 TestIdleBindingSweep 反射驱动
  * sweepIdleBindings）。
  */
 @Fast
@@ -216,7 +216,7 @@ public class TestLog4jAllViewMemberReconcile {
 		}
 	}
 
-	/** 反射直读私有退避表：实现细节不扩 API（先例 TestD07IdleBindingSweep）。 */
+	/** 反射直读私有退避表：实现细节不扩 API（先例 TestIdleBindingSweep）。 */
 	@SuppressWarnings("unchecked")
 	private static ConcurrentHashMap<String, Long> memberBackoffTableOf(SessionAll sessionAll) throws Exception {
 		var field = SessionAll.class.getDeclaredField("memberRetryBackoff");

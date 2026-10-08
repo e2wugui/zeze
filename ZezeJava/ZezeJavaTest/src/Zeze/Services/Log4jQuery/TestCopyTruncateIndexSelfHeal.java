@@ -47,7 +47,7 @@ public class TestCopyTruncateIndexSelfHeal {
 	@BeforeEach
 	public void before() throws Exception {
 		Task.tryInitThreadPool();
-		logDir = Files.createTempDirectory("fnd25-copytruncate");
+		logDir = Files.createTempDirectory("copy-truncate-selfheal");
 		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		manager = newManager(logDir);
 	}

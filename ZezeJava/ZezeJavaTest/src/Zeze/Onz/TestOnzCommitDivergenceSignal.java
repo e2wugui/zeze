@@ -36,7 +36,7 @@ public class TestOnzCommitDivergenceSignal {
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.Memory);
-		dbConf.setDatabaseUrl("fnd25_onz01_" + SERVER_ID);
+		dbConf.setDatabaseUrl("onz_commit_divergence_" + SERVER_ID);
 		conf.getDatabaseConfMap().put("", dbConf);
 		app = new Application("TestOnzCommitDivergenceSignal", conf);
 		app.start();

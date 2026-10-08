@@ -177,7 +177,7 @@ public class TestSplitSyncQueueGenerationGuard {
 	@Test
 	public void testQueueLifecycleTombstoneBoundaryAndGeneration(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
-		var logDb = new RocksDatabase(tempDir.resolve("fnd24syncq-log").toString());
+		var logDb = new RocksDatabase(tempDir.resolve("split-sync-queue-log").toString());
 		var source = startBucket(logDb, SOURCE_RAFT, tempDir, "src");
 		var agent = new Dbh2Agent(SOURCE_RAFT);
 		try {
@@ -269,7 +269,7 @@ public class TestSplitSyncQueueGenerationGuard {
 	@Test
 	public void testDriveSplitSyncFenceAndDelivery(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
-		var logDb = new RocksDatabase(tempDir.resolve("fnd24syncd-log").toString());
+		var logDb = new RocksDatabase(tempDir.resolve("split-sync-delete-log").toString());
 		var source = startBucket(logDb, SOURCE_RAFT, tempDir, "src");
 		var target = startBucket(logDb, TARGET_RAFT, tempDir, "dst");
 		var sourceAgent = new Dbh2Agent(SOURCE_RAFT);

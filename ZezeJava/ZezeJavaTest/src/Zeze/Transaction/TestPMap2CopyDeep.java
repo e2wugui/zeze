@@ -29,7 +29,7 @@ public class TestPMap2CopyDeep {
 		conf.setServerId(NextId.incrementAndGet());
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("t24_copy_deep_" + conf.getServerId());
+		dbConf.setDatabaseUrl("pmap2_copy_deep_" + conf.getServerId());
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf);
 		var app = new Application("TestT24CopyDeep" + conf.getServerId(), conf);
 		app.setSchemas(new demo.Schemas());

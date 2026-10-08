@@ -14,6 +14,7 @@ import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManagerServer;
 import Zeze.Util.Task;
 import harness.Fast;
+import harness.FastServerIds;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,8 +38,9 @@ import static Zeze.Onz.Fnd20GcOnzFastSupport.*;
  */
 @Fast
 public class TestOnzRedoRotationCursor {
-	// 857段：与Fnd19-Fnd21系Fast类各自的RocksDB目录/SM端口错开（857/51857），桩参与方51877。
-	private static final int ServerId = 857;
+	// 号段[857,868)：本类857与桩参与方867（ServerId+10），FastServerIds桌登记；
+	// SM/桩端口31857/31877为净层固定端口，不占缓存目录、不入桌。
+	private static final int ServerId = FastServerIds.TEST_ONZ_REDO_ROTATION_CURSOR;
 	private static final int SmPort = 31857;
 	private static final int StubPort = 31877;
 
@@ -62,11 +64,11 @@ public class TestOnzRedoRotationCursor {
 		Files.createDirectories(Path.of("autokeys"));
 		Fnd19GcOnzTestSupport.deleteRecursively(Path.of("CommitOnzServer" + ServerId));
 
-		sm = new ServiceManagerServer(null, SmPort, new Config(), "autokeys/fnd24-rot-" + ServerId);
+		sm = new ServiceManagerServer(null, SmPort, new Config(), "autokeys/onz-redo-rotation-" + ServerId);
 		try {
 			// 桩参与方先就位再构造OnzServer：其zeze1代理的初始订阅快照即含该"Onz"服务
 			//（同步EditService注册，先于OnzServer构造完成，无传播等待窗口——Fnd20先例）。
-			stubService = new Service("Fnd24RotStubParticipant", new Config());
+			stubService = new Service("OnzRedoRotationStubParticipant", new Config());
 			stubService.AddFactoryHandle(Zeze.Builtin.Onz.Commit.TypeId_,
 					new Service.ProtocolFactoryHandle<>(Zeze.Builtin.Onz.Commit::new, r -> {
 						commitArrivals.add(r.Argument.getOnzTid());
@@ -83,7 +85,7 @@ public class TestOnzRedoRotationCursor {
 			registerAgent.registerService(new BServiceInfo("Onz", "857", 0, "127.0.0.1", StubPort));
 
 			// zeze1配置必须是文件（OnzServer构造只收路径）；myConfig可程序化构造。
-			var zeze1Xml = tempDir.resolve("fnd24rot-zeze1.xml");
+			var zeze1Xml = tempDir.resolve("onz-redo-rotation-zeze1.xml");
 			Files.writeString(zeze1Xml, """
 					<?xml version="1.0" encoding="utf-8"?>
 					<zeze ServerId="%d">

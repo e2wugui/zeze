@@ -38,7 +38,7 @@ public class TestSetMapPartialChangePhantomDelta {
 		config.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.RocksDb);
-		var dbDir = Files.createTempDirectory("fnd_t25_set");
+		var dbDir = Files.createTempDirectory("partial_change_set");
 		dbConf.setDatabaseUrl(dbDir.toString());
 		config.getDatabaseConfMap().put("", dbConf);
 		var app = new Application("TestT25SetPhantom", config);
@@ -85,7 +85,7 @@ public class TestSetMapPartialChangePhantomDelta {
 		config.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseType(Config.DbType.RocksDb);
-		var dbDir = Files.createTempDirectory("fnd_t25_map");
+		var dbDir = Files.createTempDirectory("partial_change_map");
 		dbConf.setDatabaseUrl(dbDir.toString());
 		config.getDatabaseConfMap().put("", dbConf);
 		var app = new Application("TestT25MapPhantom", config);
