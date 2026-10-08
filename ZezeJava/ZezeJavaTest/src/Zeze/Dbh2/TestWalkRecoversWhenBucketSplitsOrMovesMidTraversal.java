@@ -74,7 +74,7 @@ public class TestWalkRecoversWhenBucketSplitsOrMovesMidTraversal {
 		var nodes = new ArrayList<Zeze.Dbh2.Dbh2>();
 		for (var config : RaftConfig.loadFromString(raftConfigString).getNodes().values()) {
 			var nodeConfig = raftConfigString.replaceFirst("<raft ",
-					"<raft DbHome=\"" + tempDir.resolve(config.getName().replace(':', '_')) + "\" ");
+					"<raft DbHome=\"" + java.util.regex.Matcher.quoteReplacement(String.valueOf(tempDir.resolve(config.getName().replace(':', '_')))) + "\" ");
 			nodes.add(new Zeze.Dbh2.Dbh2(null, config.getName(), database,
 					RaftConfig.loadFromString(nodeConfig), null, false, taskOneByOne));
 		}

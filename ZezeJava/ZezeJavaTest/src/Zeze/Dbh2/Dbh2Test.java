@@ -193,7 +193,7 @@ public class Dbh2Test {
 	// 显式设置DbHome后Raft不再按节点名改写目录，所有节点目录落在tempDir下，由@TempDir统一清理。
 	private static Zeze.Dbh2.Dbh2 start(String config, String raftName, RocksDatabase database, Path tempDir) {
 		var nodeConfig = config.replaceFirst("<raft ",
-				"<raft DbHome=\"" + tempDir.resolve(raftName.replace(':', '_')) + "\" ");
+				"<raft DbHome=\"" + java.util.regex.Matcher.quoteReplacement(String.valueOf(tempDir.resolve(raftName.replace(':', '_')))) + "\" ");
 		var raftConfig = RaftConfig.loadFromString(nodeConfig);
 		return new Zeze.Dbh2.Dbh2(null, raftName, database, raftConfig, null, false, taskOneByOne);
 	}
