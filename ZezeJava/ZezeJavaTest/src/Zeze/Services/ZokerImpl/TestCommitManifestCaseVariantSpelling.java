@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * 判同不过段级折叠时已列文件整体落入清理面被删，空壳版本（仅剩清单）假成功成版切current。
  */
 @Fast
+@Extra
 public class TestCommitManifestCaseVariantSpelling {
 	private static final boolean WINDOWS =
 			System.getProperty("os.name", "").toLowerCase().contains("win");

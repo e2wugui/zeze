@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import Zeze.Builtin.Dbh2.Master.BRegisterResult;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Fast
+@Extra
 public class TestManagerReregisterRetriesReadyFailure {
 	private static final class RegistrationAgent extends MasterAgent {
 		int registrations;

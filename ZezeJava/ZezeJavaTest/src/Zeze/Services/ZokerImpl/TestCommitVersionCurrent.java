@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 重试幂等（目标版本已存在=成功）、旧版本保留策略（现役永不删除）。
  */
 @Fast
+@Extra
 public class TestCommitVersionCurrent {
 	private static final long COMMIT_FAIL = IModule.errorCode(Zoker.ModuleId, Zoker.eCommitFail);
 

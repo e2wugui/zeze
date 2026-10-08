@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.Master.CreateSplitBucket;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
  * 分桶卡死直到Master重启）；createTable失败不能残留半初始化bucket。
  */
 @Fast
+@Extra
 public class TestMasterCreateBucketRollback {
 
 	@Test

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Queue;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 注：文件放 src/MQ/ 但声明 package Zeze.MQ（包内缝），与 TestFnd20GB* 先例一致。
  */
 @Fast
+@Extra
 public class TestPushCallbackClosedGate {
 
 	/** increaseFirstMessageId 计数注入（触 meta 面的观察点）与内存队列引用捕获。 */

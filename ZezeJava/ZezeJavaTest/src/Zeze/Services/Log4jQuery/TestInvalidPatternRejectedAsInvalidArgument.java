@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.reflect.Method;
@@ -25,6 +26,7 @@ import harness.Fast;
  * 报参数错误）即刻生效。words非空时pattern被handler路由忽略，不校验。
  */
 @Fast
+@Extra
 public class TestInvalidPatternRejectedAsInvalidArgument {
 	@BeforeEach
 	public void before() {

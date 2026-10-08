@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -33,6 +34,7 @@ import harness.Fast;
  * 超龄会话移除+close；<=0禁用；单个close失败只warn不中断。上限暂不做（拍板：过期覆盖主要风险）。
  */
 @Fast
+@Extra
 public class TestIdleLogSessionExpiry {
 	private static final long TimeoutMillis = 60_000;
 

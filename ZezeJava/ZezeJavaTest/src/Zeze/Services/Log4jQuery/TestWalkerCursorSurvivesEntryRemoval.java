@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,6 +36,7 @@ import harness.Fast;
  * 摘除点在游标之前的左移形态正是TestQuerySkipsDeletedFileEntry三用例（同index重试形态）未覆盖的部分。
  */
 @Fast
+@Extra
 public class TestWalkerCursorSurvivesEntryRemoval {
 	private static final String Active = "zeze.log";
 	private static final String Rotated1 = "zeze.2026-09-01.log";

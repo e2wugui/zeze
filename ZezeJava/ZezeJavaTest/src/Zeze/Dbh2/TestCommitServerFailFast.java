@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 地址格式非法（缺端口）解析期报错。
  */
 @Fast
+@Extra
 public class TestCommitServerFailFast {
 
 	private static Path writeConfig(Path tempDir, String address) throws Exception {

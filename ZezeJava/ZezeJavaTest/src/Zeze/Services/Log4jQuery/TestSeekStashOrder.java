@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static harness.DirCleanup.deleteBestEffort;
@@ -35,6 +36,7 @@ import harness.Fast;
  * 推进吸收错序（自愈），故既有端到端测试未暴露。
  */
 @Fast
+@Extra
 public class TestSeekStashOrder {
 	private static final String Active = "zeze.log";
 	private static final LocalDateTime Base = LocalDateTime.of(2026, 9, 28, 10, 0);

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.net.ServerSocket;
 import Zeze.Config;
 import Zeze.MQ.Master.MasterAgent;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
  * 注：文件放 src/MQ/ 但声明 package Zeze.MQ（与 TestMQAgentSubscribeRollback 先例一致）。
  */
 @Fast
+@Extra
 public class TestClientLifecycle {
 
 	@Test

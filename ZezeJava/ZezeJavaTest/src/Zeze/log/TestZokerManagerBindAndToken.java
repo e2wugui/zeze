@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import java.io.StringReader;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 属 HttpServer 既有代码路径，不在直测面（论证收口）。
  */
 @Fast
+@Extra
 public class TestZokerManagerBindAndToken {
 
 	/** 默认值：无任何 CustomizeConf 节时回环 + 不启用 token；空属性同样不改变默认。 */

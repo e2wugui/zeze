@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 旧代码置闸后直接返回（逃逸代存活到 close 之后，判红：closer 线程已终结）。
  */
 @Fast
+@Extra
 public class TestCloseFillGenerationDrain {
 
 	private static Object getField(MQSingle single, String name) throws Exception {

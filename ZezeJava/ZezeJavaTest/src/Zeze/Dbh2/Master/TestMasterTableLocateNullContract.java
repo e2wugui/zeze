@@ -1,5 +1,6 @@
 package Zeze.Dbh2.Master;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,6 +22,7 @@ import harness.Fast;
  * tailMap同治：越界键回落key自身的tail（小于全部桶first=整表视图），不再NPE。
  */
 @Fast
+@Extra
 public class TestMasterTableLocateNullContract {
 
 	private static Binary key(String s) {

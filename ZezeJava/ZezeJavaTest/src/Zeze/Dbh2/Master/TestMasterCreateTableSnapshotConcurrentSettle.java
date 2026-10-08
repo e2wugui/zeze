@@ -1,5 +1,6 @@
 package Zeze.Dbh2.Master;
 
+import harness.Extra;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
  * 不触网，反射取回播种实例）。
  */
 @Fast
+@Extra
 public class TestMasterCreateTableSnapshotConcurrentSettle {
 
 	private static BBucketMeta.Data newBucket(Binary keyFirst, Binary keyLast) {

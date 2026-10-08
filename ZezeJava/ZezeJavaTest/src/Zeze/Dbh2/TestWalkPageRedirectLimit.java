@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.io.TempDir;
  * bucketRefuse（真实walk入口的fetcher负责映射isBucketRefuse为REFUSED，一并覆盖）。
  */
 @Fast
+@Extra
 public class TestWalkPageRedirectLimit {
 
 	// 恒返bucketRefuse的桶代理。super会启动raft-client指向死端口（后台重连，不影响本测试，

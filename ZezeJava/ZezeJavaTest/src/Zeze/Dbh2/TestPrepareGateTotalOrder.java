@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.io.TempDir;
  * TestUndoCommitFenceResurrect（进程内 raft 桶直驱 leader 状态机）。
  */
 @Fast
+@Extra
 public class TestPrepareGateTotalOrder {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

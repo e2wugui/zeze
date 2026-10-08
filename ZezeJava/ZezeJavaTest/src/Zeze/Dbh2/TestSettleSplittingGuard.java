@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 守卫按endMove语义跳过from的put，误判路径收敛为正确的move完成终态。
  */
 @Fast
+@Extra
 public class TestSettleSplittingGuard {
 
 	private static Binary key(int i) {

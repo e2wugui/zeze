@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -37,6 +38,7 @@ import harness.Fast;
  * reconcile同样终结于files.remove——磁盘文件保留使会话fd可读性与Linux unlink后一致）。
  */
 @Fast
+@Extra
 public class TestR2F1WalkerOwnEntryRemoved {
 	private static final String Active = "zeze.log";
 	private static final String Rotated1 = "zeze.2026-09-01.log";

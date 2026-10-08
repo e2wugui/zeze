@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import Zeze.Net.Binary;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
  * equals/hashCode/compareTo三者一致，Dbh2Transaction的HashMap<Lockey,Lockey>去重随之恢复。
  */
 @Fast
+@Extra
 public class TestDbh2LockeyValueSemantics {
 
 	@Test

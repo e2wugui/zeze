@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Element;
 import harness.Fast;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
  * 断根方案（raft index fencing取代墙钟）为独立裁定，留池。
  */
 @Fast
+@Extra
 public class TestDbh2ConfigBucketUndoMargin {
 
 	private static Element conf(String... attrs) throws Exception {

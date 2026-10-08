@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -47,6 +48,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestSearchBrowseUnknownServer {
 
 	/** search：未注册名与带空白名必须入口即拒（空白名归一到 trim 后比对）。 */

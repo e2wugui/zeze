@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.io.TempDir;
  * ④无记录的存量条目由首扫补基线（getSplittingAgeCreateTime可观测）。
  */
 @Fast
+@Extra
 public class TestSplittingAgeObserve {
 
 	private static Binary key(int i) {

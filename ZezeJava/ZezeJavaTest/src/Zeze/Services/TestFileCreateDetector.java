@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -18,6 +19,7 @@ import harness.Fast;
  * 不关闭 watchService，take() 永不返回，join 永久挂起。
  */
 @Fast
+@Extra
 public class TestFileCreateDetector {
 	@Test
 	@Timeout(15)

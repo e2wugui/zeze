@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.rocksdb.RocksDBException;
  * （对齐 TestPrefixWalkPositioning 的 harness）。
  */
 @Fast
+@Extra
 public class TestUndoCommitFenceResurrect {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

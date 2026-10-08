@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Config;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.io.TempDir;
  * MqTestSupport）。
  */
 @Fast
+@Extra
 public class TestMQPartitionResubscribeReplace {
 
 	@SuppressWarnings("unchecked")

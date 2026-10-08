@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import harness.proc.Procs;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -158,7 +159,7 @@ public class TestExporterNginxAppendMissing {
 		// 用"java -version"（带参、往stderr写输出）钉住：切分正确则正常完成不挂起，
 		// 输出经DISCARD丢弃不填管道。java不在PATH的环境跳过。
 		try {
-			new ProcessBuilder("java", "-version").start().destroyForcibly();
+			new ProcessBuilder(Procs.command("Nap", "60000")).start().destroyForcibly();
 		} catch (IOException e) {
 			Assumptions.assumeTrue(false, "环境无java命令，跳过");
 		}

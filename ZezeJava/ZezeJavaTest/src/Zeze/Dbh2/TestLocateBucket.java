@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import harness.Fast;
 import java.util.TreeMap;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @Fast
+@Extra
 public class TestLocateBucket {
 	public static BBucketMeta.Data locate(TreeMap<Binary, BBucketMeta.Data> buckets, Binary key) {
 		var lower = buckets.floorEntry(key);

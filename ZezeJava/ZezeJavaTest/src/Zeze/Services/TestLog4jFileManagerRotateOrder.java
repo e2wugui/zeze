@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -27,6 +28,7 @@ import harness.Fast;
  * 先 stop() 冻结监视线程再物理 rotate，递交顺序完全受控（真实 WatchService 顺序不定）。
  */
 @Fast
+@Extra
 public class TestLog4jFileManagerRotateOrder {
 	@BeforeEach
 	public void before() {

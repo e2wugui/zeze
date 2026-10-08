@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static harness.DirCleanup.deleteBestEffort;
@@ -34,6 +35,7 @@ import harness.Fast;
  * 已回收的线程不产生磁盘副作用（TestManagerConstructFailCleanup同款观察形态）。
  */
 @Fast
+@Extra
 public class TestLogServiceMultiManagerCleanup {
 	@BeforeEach
 	public void before() {

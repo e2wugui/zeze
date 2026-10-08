@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 注：访问 createPartition/deletePartition/getQueueForTest 包内缝（布局约定见 MqTestSupport）。
  */
 @Fast
+@Extra
 public class TestManagerDelete {
 
 	@Test

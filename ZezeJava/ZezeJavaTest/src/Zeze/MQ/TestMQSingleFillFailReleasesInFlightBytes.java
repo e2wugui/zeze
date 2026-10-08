@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 测试缝（pullMessage、fillRetryScheduler、queueBytes）。
  */
 @Fast
+@Extra
 public class TestMQSingleFillFailReleasesInFlightBytes {
 
 	private static BMessage.Data messageOf(long id) {

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @Fast
+@Extra
 public class TestMQPartitionSocketCloseResubscribe {
 
 	// Pause at the iterator's old-entry snapshot: the replacement subscription arrives

@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import Zeze.Serialize.ByteBuffer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
  * 修复=早退路径预置resultCode再返回（返回值保持原值，直调断言不受影响）。
  * 集成拓扑（Dbh2TestEnv）：走真实rpc派发路径，钉住客户端视角的错误码契约。
  */
+@Extra
 public class TestGAMasterErrorCodeFidelity {
 
 	@Test

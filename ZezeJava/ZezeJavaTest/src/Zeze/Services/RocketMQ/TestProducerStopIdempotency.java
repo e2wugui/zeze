@@ -1,5 +1,6 @@
 package Zeze.Services.RocketMQ;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 @Fast
 @ResourceLock("rocketmq.producer.processSlot") // liveInstances 是进程级静态状态，与其它 Producer 测试串行
+@Extra
 public class TestProducerStopIdempotency {
 	// 两个独立 serverId+派生 url：多实例拓扑=多 Application（对齐 TestProducerMultipleInstancesShareProcess），
 	// 同一 Application 双注册会撞 duplicate table。

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.io.TempDir;
  * MQFileWithIndex 构造对 topicDir 不可用明确报错（防御纵深，替代指向不明的
  * FileNotFoundException）。
  */
+@Extra
 public class TestTopicNameSelfFsAliasRejected {
 	private static final int masterPort = 26242;
 	private static final int proxyPort = 26243;

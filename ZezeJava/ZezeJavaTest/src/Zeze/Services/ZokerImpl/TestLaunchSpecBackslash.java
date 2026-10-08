@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 纯文件直构（parseLaunchSpec 包内静态），全平台可跑；红=现解析 mangle、绿=新解析原样。
  */
 @Fast
+@Extra
 public class TestLaunchSpecBackslash {
 
 	private static ServiceManager.LaunchSpec parse(Path versionDir, String content) throws IOException {

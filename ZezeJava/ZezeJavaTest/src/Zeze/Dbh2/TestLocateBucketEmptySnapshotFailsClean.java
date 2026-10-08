@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 形态：纯桩直构——MasterAgent.getBuckets脚本化返回快照序列，不触网。
  */
 @Fast
+@Extra
 public class TestLocateBucketEmptySnapshotFailsClean {
 
 	// getBuckets脚本化的master：按序返回MasterTable.Data快照，耗尽即失败。

@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * commit校验齐全+清退清单外残留+空目录拒绝；无清单走legacy路径（既有行为不变）。
  */
 @Fast
+@Extra
 public class TestCommitManifestBarrier {
 	private static final long COMMIT_FAIL = IModule.errorCode(Zoker.ModuleId, Zoker.eCommitFail);
 

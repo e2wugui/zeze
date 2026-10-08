@@ -1,5 +1,7 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.proc.Procs;
+import harness.Extra;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -7,6 +9,7 @@ import java.nio.file.Path;
 import Zeze.Builtin.Zoker.StartService;
 import Zeze.IModule;
 import Zeze.Services.Zoker;
+import harness.proc.Procs;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -25,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 其余用例为守卫矩阵回归：非单段名（分隔符/盘符/./..）一律 eNoServiceProperties。
  */
 @Fast
+@Extra
 public class TestStartServicePathGuard {
 	private static final long NO_PROPS = IModule.errorCode(Zoker.ModuleId, Zoker.eNoServiceProperties);
 
@@ -42,7 +46,7 @@ public class TestStartServicePathGuard {
 
 	/**
 	 * 攻击现场（案卷GE-C01三步链的第1、2步产物）：distributes/evil/v1/service.properties
-	 * （command=cmd /c exit 0，良性命令——红跑时即便逃逸成功也只是无害进程）+
+	 * （command=javaw Exit 0，良性命令——红跑时即便逃逸成功也只是无害进程）+
 	 * distributes/evil/current="v1"。第三步 StartService{serviceName="../distributes/evil"}
 	 * 在修复后被 eNoServiceProperties 拒绝，services/ 内无任何落点。
 	 */
@@ -54,7 +58,7 @@ public class TestStartServicePathGuard {
 		var evil = tempDir.resolve("distributes").resolve("evil");
 		Files.createDirectories(evil.resolve("v1"));
 		Files.writeString(evil.resolve("v1").resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
-				"command=cmd\nargs=/c exit 0\n");
+				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Exit", "0") + "\n");
 		Files.writeString(evil.resolve(DistributeManager.CURRENT_NAME), "v1");
 
 		var sm = new ServiceManager(servicesDir);
@@ -87,7 +91,7 @@ public class TestStartServicePathGuard {
 		Files.createDirectories(svc.resolve("v1"));
 		Files.writeString(svc.resolve(DistributeManager.CURRENT_NAME), "v1");
 		Files.writeString(svc.resolve("v1").resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
-				"command=cmd\nargs=/c exit 0\n");
+				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Exit", "0") + "\n");
 		var sm = new ServiceManager(servicesDir);
 		assertEquals(0, sm.startService(startReq("svc")));
 		// 等进程退出（工作目录=版本目录，Windows 上存活期间锁住 @TempDir 无法清理）

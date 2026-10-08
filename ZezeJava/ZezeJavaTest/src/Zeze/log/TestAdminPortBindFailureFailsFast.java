@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -30,6 +31,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestAdminPortBindFailureFailsFast {
 
 	/** bind 失败必须显式抛出（含 cause 指向 BindException），不残留半启动 server 引用。 */

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import harness.Fast;
 import java.nio.file.Path;
 import Zeze.Builtin.MQ.BMessage;
@@ -46,6 +47,7 @@ import org.junit.jupiter.api.io.TempDir;
  * }</pre>
  */
 @Fast
+@Extra
 public class TestMQ {
 	private static final Logger logger = LogManager.getLogger();
 

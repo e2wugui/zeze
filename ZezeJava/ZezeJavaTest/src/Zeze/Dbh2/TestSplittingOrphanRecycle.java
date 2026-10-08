@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
  * ④回收幂等（重扫无残留）。
  */
 @Fast
+@Extra
 public class TestSplittingOrphanRecycle {
 
 	private static final String RaftA = """

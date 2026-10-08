@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -40,6 +41,7 @@ import harness.Fast;
  * "轮转进行中"的证据，保留条目作为case-1/repointMissedRotation改指的载体。
  */
 @Fast
+@Extra
 public class TestRotationGraceKeepsActiveEntry {
 	private static final String Active = "zeze.log";
 	private static final String Rotated = "zeze.2026-09-01.log";

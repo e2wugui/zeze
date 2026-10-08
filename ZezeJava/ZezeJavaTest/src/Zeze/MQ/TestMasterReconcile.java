@@ -1,5 +1,6 @@
 package Zeze.MQ.Master;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.io.TempDir;
  * orphanFirstSeen/deleteIssuer 包内缝）。
  */
 @Fast
+@Extra
 public class TestMasterReconcile {
 
 	private static final long managerId = 7L;

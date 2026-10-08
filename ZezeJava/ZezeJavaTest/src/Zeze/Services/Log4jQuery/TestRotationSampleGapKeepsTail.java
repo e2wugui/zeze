@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /** A sampled index end is not the last timestamp of a rotated log file. */
 @Fast
+@Extra
 public class TestRotationSampleGapKeepsTail {
 	private static final LocalDateTime BASE = LocalDateTime.of(2026, 9, 28, 12, 0);
 	private static final DateTimeFormatter FORMAT = DateTimeFormatter.ofPattern("yy-MM-dd HH:mm:ss.SSS");

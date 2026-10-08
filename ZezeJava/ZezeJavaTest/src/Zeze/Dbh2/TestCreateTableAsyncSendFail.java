@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
  * eTooFewManager（资源暂时不足类码，走白名单重试，重连后照常建表）。
  */
 @Fast
+@Extra
 public class TestCreateTableAsyncSendFail {
 
 	@Test

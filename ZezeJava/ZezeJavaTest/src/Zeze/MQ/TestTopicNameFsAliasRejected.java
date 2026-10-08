@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
  * Windows 保留设备名）。存量 topic 名不受影响：open/订阅/发布路径不重新校验，
  * 新校验只在 CreateMQ 入口生效。
  */
+@Extra
 public class TestTopicNameFsAliasRejected {
 	private static final int masterPort = 26240;
 	private static final int proxyPort = 26241;

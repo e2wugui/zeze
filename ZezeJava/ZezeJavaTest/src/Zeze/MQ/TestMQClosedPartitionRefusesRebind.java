@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 被 closed 闸拒绝——bindSocket/pendingPushMessage 恒 null、不发起任何推送。
  */
 @Fast
+@Extra
 public class TestMQClosedPartitionRefusesRebind {
 
 	private static Object getField(MQSingle single, String name) throws Exception {

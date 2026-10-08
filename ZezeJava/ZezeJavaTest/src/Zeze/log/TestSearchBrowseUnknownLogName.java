@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.reflect.Constructor;
@@ -47,6 +48,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestSearchBrowseUnknownLogName {
 
 	/** search：显式未知 logName 必须入口即拒（含空白包裹形态的 trim 归一）；已知

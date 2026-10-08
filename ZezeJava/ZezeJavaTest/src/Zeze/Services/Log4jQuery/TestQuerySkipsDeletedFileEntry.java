@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -34,6 +35,7 @@ import harness.Fast;
  * 两个打开点（seek按index选中 / walker顺序遍历）分别验证。
  */
 @Fast
+@Extra
 public class TestQuerySkipsDeletedFileEntry {
 	private static final String Active = "zeze.log";
 	private static final String Rotated1 = "zeze.2026-09-01.log";

@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
  * applySplitPut 收到空 value 必须转成真正的 delete；
  * 否则已删除记录在新桶复活为空记录，get 返回"存在，值为空"。
  */
+@Extra
 public class TestSplitPutTombstone {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

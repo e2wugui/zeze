@@ -1,5 +1,7 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.proc.Procs;
+import harness.Extra;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 自身挂死，finally 强杀收殓）。真进程用例 Windows 形态（FND19 降级档）。
  */
 @Fast
+@Extra
 public class TestSubprocessOutputNoFreeze {
 	private static final boolean WINDOWS =
 			System.getProperty("os.name", "").toLowerCase().contains("win");
@@ -56,12 +59,10 @@ public class TestSubprocessOutputNoFreeze {
 		var servicesDir = tempDir.resolve("services");
 		var v1 = Files.createDirectories(servicesDir.resolve("svc").resolve("v1"));
 		Files.writeString(servicesDir.resolve("svc").resolve(DistributeManager.CURRENT_NAME), "v1");
-		// 3000 行 × 81 字节（79 字符 + CRLF）≈ 240KB，约为 64KB 管道缓冲的 3.8 倍；
-		// for 循环写完即退出——输出的持续产生+自行退出正是"无人读管道"的探针形态。
+		// harness.proc.Flood 写 ~256KB（约 4×64KB 管道缓冲）即退出——输出的持续产生
+		// +自行退出正是"无人读管道"的探针形态；javaw 无窗（GUI 子系统）。
 		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
-				"command=cmd\n"
-						+ "args=/c for /l %i in (1,1,3000) do @echo "
-						+ "0123456789012345678901234567890123456789012345678901234567890123456789012345678\n");
+				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Flood") + "\n");
 	}
 
 	private static StartService startReq() {
@@ -106,7 +107,7 @@ public class TestSubprocessOutputNoFreeze {
 		var v1 = Files.createDirectories(servicesDir.resolve("svc").resolve("v1"));
 		Files.writeString(servicesDir.resolve("svc").resolve(DistributeManager.CURRENT_NAME), "v1");
 		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
-				"command=ping\nargs=-n 30 127.0.0.1\n");
+				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "30000") + "\n");
 		var sm = new ServiceManager(servicesDir.toFile());
 
 		assertEquals(0, sm.startService(startReq()));

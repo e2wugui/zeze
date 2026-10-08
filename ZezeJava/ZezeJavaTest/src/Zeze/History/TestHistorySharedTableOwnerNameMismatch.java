@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import Zeze.Application;
 import Zeze.Config;
 import harness.Fast;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
  * 取号天然不重叠）；换名重启同样被拦截（新名从零发号，对存量行就是他名覆盖）。
  */
 @Fast
+@Extra
 public class TestHistorySharedTableOwnerNameMismatch {
 
 	// 独立号段+派生url（每用例独立url隔离DatabaseMemory静态桶的归属标记残留）。

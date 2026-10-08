@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 测试：T1持{k1,k2}；T2={j1,k2}在k2上冲突失败；T3={j1}必须还能prepare成功
  * （bug时j1已随T2泄漏，T3的构造器在j1上冲突）。
  */
+@Extra
 public class TestPrepareConflictRollbackLocks {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

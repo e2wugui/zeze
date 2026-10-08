@@ -1,5 +1,6 @@
 package Zeze.MQ.Master;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 布局约定见 MqTestSupport）。stopped/masterDb 经反射置读（前者修复引入，旧基线缺失即判红）。
  */
 @Fast
+@Extra
 public class TestMasterStopGate {
 
 	/** 反射置 Master.stopped；旧基线无此字段返回 false（修复缺失形态）。 */

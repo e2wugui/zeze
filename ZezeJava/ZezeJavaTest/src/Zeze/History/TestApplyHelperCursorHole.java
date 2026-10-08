@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
  * 空洞填充后继续推进；只有超过holeGraceMs的老化空洞才被越过（崩溃/发号作废产生的永久空洞）。
  */
 @Fast
+@Extra
 public class TestApplyHelperCursorHole {
 	// Application并发需要不同serverId+不同DatabaseUrl：DatabaseMemory的表存储是JVM级
 	// 静态Map按url分桶，@Fast类并行时共用会互相污染。从400起避开Takeover等测试的号段。

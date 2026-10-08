@@ -1,5 +1,7 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.proc.Procs;
+import harness.Extra;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import Zeze.Builtin.Zoker.BService;
 import Zeze.Builtin.Zoker.StartService;
 import Zeze.Builtin.Zoker.StopService;
+import harness.proc.Procs;
 import harness.Fast;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
@@ -35,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 直构 ServiceManager；真进程用例 Windows 形态（FND19 降级档），纯文件用例全平台。
  */
 @Fast
+@Extra
 public class TestOrphanAdoptionScan {
 	private static final boolean WINDOWS =
 			System.getProperty("os.name", "").toLowerCase().contains("win");
@@ -84,8 +88,7 @@ public class TestOrphanAdoptionScan {
 
 	/** 跨进程可移植的短命真进程（java.home 定位，不依赖 PATH）。 */
 	private static long deadProcessPid() throws Exception {
-		var javaBin = Path.of(System.getProperty("java.home"), "bin", WINDOWS ? "java.exe" : "java");
-		var shortLived = new ProcessBuilder(javaBin.toString(), "-version").start();
+		var shortLived = new ProcessBuilder(Procs.command("Exit", "0")).start();
 		assertTrue(shortLived.waitFor(60, TimeUnit.SECONDS));
 		return shortLived.pid();
 	}
@@ -96,7 +99,7 @@ public class TestOrphanAdoptionScan {
 	public void testScanAdoptsLiveOrphan(@TempDir Path tempDir) throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
-		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
+		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
 		var sm1 = new ServiceManager(servicesDir);
 		assertEquals(0, sm1.startService(startReq()));
 		var spawned = sm1.getProcessForTest("svc");
@@ -136,7 +139,7 @@ public class TestOrphanAdoptionScan {
 	public void testStartAdoptsIntoAdoptedProcessEntry(@TempDir Path tempDir) throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
-		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
+		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
 		var sm1 = new ServiceManager(servicesDir);
 		assertEquals(0, sm1.startService(startReq()));
 		var spawned = sm1.getProcessForTest("svc");
@@ -188,7 +191,7 @@ public class TestOrphanAdoptionScan {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		var container = svcContainer(servicesDir);
-		var stranger = new ProcessBuilder("ping", "-n", "60", "127.0.0.1").start();
+		var stranger = new ProcessBuilder(Procs.command("Nap", "60000")).start();
 		try {
 			// 记录 stranger 的 pid 但 startInstant 是错的——同 pid 已是另一个进程实例
 			ServiceManager.writeRunPid(container,
@@ -210,7 +213,7 @@ public class TestOrphanAdoptionScan {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		var container = svcContainer(servicesDir);
-		var stranger = new ProcessBuilder("ping", "-n", "60", "127.0.0.1").start();
+		var stranger = new ProcessBuilder(Procs.command("Nap", "60000")).start();
 		try {
 			ServiceManager.writeRunPid(container, new ServiceManager.RunPidRecord(stranger.pid(), "", ""));
 			var sm = new ServiceManager(servicesDir);
@@ -231,7 +234,7 @@ public class TestOrphanAdoptionScan {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		var container = svcContainer(servicesDir);
-		var stranger = new ProcessBuilder("ping", "-n", "60", "127.0.0.1").start();
+		var stranger = new ProcessBuilder(Procs.command("Nap", "60000")).start();
 		try {
 			// 记录正确的 pid+startInstant（身份核实通过），但 command 写错（模拟 exec 链换命令行）
 			var liveStart = ProcessHandle.of(stranger.pid()).orElseThrow()

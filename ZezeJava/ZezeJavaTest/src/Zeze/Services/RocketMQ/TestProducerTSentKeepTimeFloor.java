@@ -1,5 +1,6 @@
 package Zeze.Services.RocketMQ;
 
+import harness.Extra;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
  * 下限之上（含默认值）的合法配置须原样生效。
  */
 @Fast
+@Extra
 public class TestProducerTSentKeepTimeFloor {
 
 	// 下限取 broker 回查总窗口的上界估计：默认窗口约15分钟，1小时（默认窗口的4倍）

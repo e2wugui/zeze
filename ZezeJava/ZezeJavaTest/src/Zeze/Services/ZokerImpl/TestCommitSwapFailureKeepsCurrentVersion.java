@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 违反"装版本失败无副作用（现役未动）"不变式。
  */
 @Fast
+@Extra
 public class TestCommitSwapFailureKeepsCurrentVersion {
 	private static final long COMMIT_FAIL = IModule.errorCode(Zoker.ModuleId, Zoker.eCommitFail);
 	/** 暂存删除名前缀（与 DistributeManager 的常量同字面；测试内联使红态可先于实现编译）。 */

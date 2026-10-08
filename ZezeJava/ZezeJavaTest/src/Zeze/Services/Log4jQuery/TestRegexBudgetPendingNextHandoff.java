@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static harness.DirCleanup.deleteBestEffort;
@@ -39,6 +40,7 @@ import harness.Fast;
  * jshell >70M charAt 确定性引爆 64M 预算，~300ms）。
  */
 @Fast
+@Extra
 public class TestRegexBudgetPendingNextHandoff {
 	private static final String Active = "zeze.log";
 	private static final LocalDateTime Base = LocalDateTime.of(2026, 9, 28, 10, 0);

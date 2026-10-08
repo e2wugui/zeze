@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -50,6 +51,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestSearchBrowseKnownRejectionDescKept {
 
 	/** 全服视图空注册表（0 成员拒绝）：desc 必须透出"无可达日志服务器"而非 system error。 */

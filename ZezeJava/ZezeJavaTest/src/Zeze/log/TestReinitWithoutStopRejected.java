@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,6 +30,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestReinitWithoutStopRejected {
 
 	/** 二次 init 必须入口即拒，且不得动第一实例的静态引用（覆盖即失联）。 */

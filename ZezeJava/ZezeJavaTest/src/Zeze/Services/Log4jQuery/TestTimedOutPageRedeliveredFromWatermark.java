@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -38,6 +39,7 @@ import harness.Fast;
  * 强制reset能重定位——markTransientLoss 有水位也置 memberForceReset。
  */
 @Fast
+@Extra
 public class TestTimedOutPageRedeliveredFromWatermark {
 	@BeforeEach
 	public void before() {

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 注：文件放 src/MQ/ 但声明 package Zeze.MQ（dlqKey 包内缝），与 TestFnd20GB* 先例一致。
  */
 @Fast
+@Extra
 public class TestReplayDeadLetterStopGate {
 
 	/** 死信值编码（与 MQSingle.tryDeadLetter 同构：BMessage 编码 + 8 字节 BE 时间戳尾缀）。 */

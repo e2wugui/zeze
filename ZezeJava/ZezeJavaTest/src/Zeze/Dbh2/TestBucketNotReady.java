@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
 import Zeze.IModule;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 分桶恢复路径）。端口19200-19202段为本用例预留。
  */
 @Fast
+@Extra
 public class TestBucketNotReady {
 
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();

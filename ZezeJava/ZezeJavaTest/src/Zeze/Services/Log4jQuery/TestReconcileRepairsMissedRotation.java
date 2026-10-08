@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -37,6 +38,7 @@ import harness.Fast;
  * 文件长度内）并按case-1重放：current索引改名跟随最早漏登rotate、条目改指、active按新索引补登。
  */
 @Fast
+@Extra
 public class TestReconcileRepairsMissedRotation {
 	private static final String Active = "zeze.log";
 	private static final String Rotated = "zeze.2026-09-20.log";

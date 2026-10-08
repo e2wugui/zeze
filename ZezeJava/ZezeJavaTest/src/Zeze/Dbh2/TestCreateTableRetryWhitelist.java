@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 不触发openBucket），Dbh2AgentManager只覆写openDatabase返回该桩。
  */
 @Fast
+@Extra
 public class TestCreateTableRetryWhitelist {
 
 	// 建表结果脚本化的master：按序返回rc，rc==0返回空分桶表（isNew=true）。

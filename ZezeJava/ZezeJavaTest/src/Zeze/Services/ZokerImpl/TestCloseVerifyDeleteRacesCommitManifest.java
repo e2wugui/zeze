@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -32,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 删除即完成交错推演（与 TestRunPidDeleteRacesConcurrentStart 同构）。
  */
 @Fast
+@Extra
 public class TestCloseVerifyDeleteRacesCommitManifest {
 	private static final long MD5_MISMATCH = IModule.errorCode(Zoker.ModuleId, Zoker.eMd5Mismatch);
 

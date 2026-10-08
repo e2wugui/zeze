@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.HashMap;
 import Zeze.Builtin.MQ.BMessage;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 边界值（编码尺寸恰等于上界）必须通过尺寸检查（判 eTopicNotExist，因 topic 不存在）。
  */
 @Fast
+@Extra
 public class TestMQMessageSizeEntryCap {
 
 	private static final int MaxMessageBytesDefault = 16 * 1024 * 1024;

@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * md5 成功→文件保留；已收尾的重复 close→eNotOpened（幂等路径的精确三态）。
  */
 @Fast
+@Extra
 public class TestCloseVerify {
 	private static final long NOT_OPENED = IModule.errorCode(Zoker.ModuleId, Zoker.eNotOpened);
 	private static final long MD5_MISMATCH = IModule.errorCode(Zoker.ModuleId, Zoker.eMd5Mismatch);

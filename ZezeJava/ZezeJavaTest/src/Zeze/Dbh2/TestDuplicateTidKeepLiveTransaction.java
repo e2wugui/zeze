@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 测试用不相交的key构造重复tid（serialize默认开启，重叠key会被构造器锁冲突先行拦截，
  * 到不了putIfAbsent分支），钉住两个契约：重复拒绝后存活事务仍在map；其commit数据可读。
  */
+@Extra
 public class TestDuplicateTidKeepLiveTransaction {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

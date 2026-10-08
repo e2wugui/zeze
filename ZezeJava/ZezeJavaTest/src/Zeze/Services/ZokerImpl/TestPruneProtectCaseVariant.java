@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 纯文件用例（折叠保护本体）全平台可跑；commit 变体路径用例为 Windows 形态。
  */
 @Fast
+@Extra
 public class TestPruneProtectCaseVariant {
 	private static final boolean WINDOWS =
 			System.getProperty("os.name", "").toLowerCase().contains("win");

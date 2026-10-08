@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.Test;
  * baseline 编译通过，TestFillRetrySelfSchedule 先例）。全程无网络，@Fast。
  */
 @Fast
+@Extra
 public class TestMQAgentResubscribeRetryBackoff {
 
 	/** 一次捕获的排期（延迟+动作+返回句柄，测试手动驱动=确定性时钟）。 */

@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,6 +34,7 @@ import harness.Fast;
  * 忽略+warn，交给对账的isFile过滤天然排除。
  */
 @Fast
+@Extra
 public class TestRotateNamedDirectoryIgnored {
 	private static final String Active = "zeze.log";
 	private static final String RotateDir = "zeze.2026-09-29.log";

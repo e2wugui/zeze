@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -17,6 +18,7 @@ import harness.Fast;
  * file协议扫描与QueryHandlerManager注册仍完整（换toURI后的行为基线）。
  */
 @Fast
+@Extra
 public class TestClassUtilsScan {
 	@Test
 	public void testScanFindsImplHandlers() {

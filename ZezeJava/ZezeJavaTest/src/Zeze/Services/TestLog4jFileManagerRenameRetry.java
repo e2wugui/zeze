@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,6 +42,7 @@ import harness.Fast;
  *   中止改指与补登——不登记 rotate 条目，active 条目保持可用，由后续 reconcile 收敛。
  */
 @Fast
+@Extra
 public class TestLog4jFileManagerRenameRetry {
 	private static final String RotateName = "zeze.2026-09-08.log";
 	private static final String Active = "zeze.log";

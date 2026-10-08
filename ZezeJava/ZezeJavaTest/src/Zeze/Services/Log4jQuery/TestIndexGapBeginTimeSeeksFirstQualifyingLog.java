@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static harness.DirCleanup.deleteBestEffort;
@@ -31,6 +32,7 @@ import harness.Fast;
  * 读、按time谓词推进（最坏多扫一个采样节拍段）。
  */
 @Fast
+@Extra
 public class TestIndexGapBeginTimeSeeksFirstQualifyingLog {
 	private static final LocalDateTime Base = LocalDateTime.of(2026, 3, 1, 10, 0);
 	// 夹具行距1s（真实日志形态）：loadIndex批语义下批内每行都成记录（lastIndexTime批间

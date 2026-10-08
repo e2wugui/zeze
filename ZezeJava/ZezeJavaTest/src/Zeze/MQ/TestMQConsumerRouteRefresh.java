@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 独占；含迁移等待与重连轮询，不标 @Fast（integrationTest）。
  */
 @Isolated
+@Extra
 public class TestMQConsumerRouteRefresh {
 	private static final int masterPort = 26000;
 	// 避开注册表已用段（TestMQ 26001-26003、TestMQConsumerResubscribe 26102、

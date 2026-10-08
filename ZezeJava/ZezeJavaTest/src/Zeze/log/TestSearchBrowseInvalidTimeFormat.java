@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.reflect.Constructor;
@@ -44,6 +45,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestSearchBrowseInvalidTimeFormat {
 
 	/** search：beginTime/endTime 格式非法必须入口即拒，desc 指明字段与期望格式。 */

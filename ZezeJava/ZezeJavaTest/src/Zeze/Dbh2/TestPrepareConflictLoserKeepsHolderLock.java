@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BPrepareBatch;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
  * {k2}恰好可再持有一个事务（permit不膨胀，第二个并发prepare必须失败）。
  * 形态镜像TestGA02PrepareConflictRollbackLocks（进程内3节点桶，端口段19160-62错开）。
  */
+@Extra
 public class TestPrepareConflictLoserKeepsHolderLock {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

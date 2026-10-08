@@ -1,5 +1,6 @@
 package Zeze.Services.RocketMQ;
 
+import harness.Extra;
 import Zeze.Application;
 import Zeze.Config;
 import harness.Fast;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
  */
 @Fast
 @ResourceLock("rocketmq.producer.processSlot") // 构造 Producer 占用进程级静态计数，与其它 Producer 测试串行
+@Extra
 public class TestProducerStopRebuildSameApplication {
 	private static final int SERVER_ID = FastServerIds.TEST_PRODUCER_STOP_REBUILD_SAME_APPLICATION;
 

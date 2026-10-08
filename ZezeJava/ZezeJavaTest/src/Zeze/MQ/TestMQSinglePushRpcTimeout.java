@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.net.SocketAddress;
 import java.nio.file.Path;
 import Zeze.Builtin.MQ.BMessage;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.io.TempDir;
  * timeout 值取 65432，区别于 MQConfig 默认 20000 与 Rpc 默认 5000，防碰巧相等。
  */
 @Fast
+@Extra
 public class TestMQSinglePushRpcTimeout {
 
 	/** 只假装"已发送"的 AsyncSocket 替身：不走网络，Send 总是成功。 */

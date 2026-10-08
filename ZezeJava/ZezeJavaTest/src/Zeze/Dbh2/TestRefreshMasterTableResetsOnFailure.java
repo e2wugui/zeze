@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 反射观测私有volatile槽位（不启真实master，@Fast无全局状态）。
  */
 @Fast
+@Extra
 public class TestRefreshMasterTableResetsOnFailure {
 
 	// 脚本化桩master：前failTimes次getBuckets抛异常（模拟master短暂不可达），之后返回空表。

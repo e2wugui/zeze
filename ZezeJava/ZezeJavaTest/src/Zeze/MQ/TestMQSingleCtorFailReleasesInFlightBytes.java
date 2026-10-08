@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 全局 totalInFlightBytes 是其精确镜像（同点同额入/出账），作为断言观察点。
  */
 @Fast
+@Extra
 public class TestMQSingleCtorFailReleasesInFlightBytes {
 
 	/**

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.MQ.MQManager;
 import Zeze.MQ.Master.MasterAgent;
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>
  * Master 拓扑见 MqNetTestSupport；含 Manager 重启等待，不标 @Fast（integrationTest）。
  */
+@Extra
 public class TestRouteRewrite {
 	private static final int masterPort = 26220;
 	private static final int proxyPort1 = 26221;

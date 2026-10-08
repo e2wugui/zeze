@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -43,6 +44,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  */
 @Fast
 @ResourceLock("log4jquery-logger") // 同族捕获Log4jFileManager logger的测试互斥（预防性：Onz/MQ两族竞态的同款，FND19-22复盘小集）
+@Extra
 public class TestLinkCleanupSkipsLiveEntries {
 	private static final String Active = "zeze.log";
 	private static final String Rotated = "zeze.2026-09-08.log";

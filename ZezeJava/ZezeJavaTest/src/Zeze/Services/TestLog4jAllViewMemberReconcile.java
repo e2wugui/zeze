@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -46,6 +47,7 @@ import harness.Fast;
  * sweepIdleBindings）。
  */
 @Fast
+@Extra
 public class TestLog4jAllViewMemberReconcile {
 	@BeforeEach
 	public void before() {

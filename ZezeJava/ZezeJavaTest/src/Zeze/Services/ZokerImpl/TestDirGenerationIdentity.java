@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 本守卫锁的是修复所依赖的平台行为链——不依赖时序，全平台确定性。
  */
 @Fast
+@Extra
 public class TestDirGenerationIdentity {
 
 	private static String dirGeneration(Path dir) throws Exception {

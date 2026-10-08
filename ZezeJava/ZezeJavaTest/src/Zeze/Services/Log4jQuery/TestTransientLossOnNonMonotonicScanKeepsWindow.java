@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -35,6 +36,7 @@ import harness.Fast;
  * 幂等去重，丢失不可观测，宁重复不丢失；单调成员保持水位续扫（既有紧凑语义不变）。
  */
 @Fast
+@Extra
 public class TestTransientLossOnNonMonotonicScanKeepsWindow {
 	@BeforeEach
 	public void before() {

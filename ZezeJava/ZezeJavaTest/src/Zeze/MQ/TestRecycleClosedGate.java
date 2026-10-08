@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 注：trunkFileSize/makeIndexPeriod 按实例注入（进程级可变静态已实例化根除跨类漂移）。
  */
 @Fast
+@Extra
 public class TestRecycleClosedGate {
 
 	/** topic 目录下按"分区号.段基"命名的段基列表（升序）。 */

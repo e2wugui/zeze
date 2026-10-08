@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -37,6 +38,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestStartupFailureStopsStartedComponents {
 
 	/** 启动失败注入：bind 失败后不得残留存活的非守护线程与半启动静态引用。 */

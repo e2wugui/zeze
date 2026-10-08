@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
  * finally 恢复；布局约定见 MqTestSupport）。
  */
 @Fast
+@Extra
 public class TestRecycleBeforeRemoteReport {
 
 	/** 反射直驱 loadMonitor（loadMonitorTimer 周期体的同一入口）。 */

@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 幂等（见 TestCommitBrokenVersionResidue 的 mtime 护栏）。
  */
 @Fast
+@Extra
 public class TestCommitSameVersionDifferentContent {
 	/** 暂存删除名前缀（与 DistributeManager 的常量同字面；测试内联使红态可先于实现编译）。 */
 	private static final String STAGE_PREFIX = ".zoker-deleting.";

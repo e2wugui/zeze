@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import harness.Fast;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 @Fast
+@Extra
 public class TestLog4jQ {
 	// 每用例独立 logDir：Log4jFileManager 构造期对同 logDir 独占登记（log4j-02），
 	// 本类旧形态两用例共用缺省目录且不 stop——正是登记表按设计暴露的泄漏形态。

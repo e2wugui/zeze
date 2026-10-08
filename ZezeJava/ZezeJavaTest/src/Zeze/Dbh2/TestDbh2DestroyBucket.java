@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
  * 从未建）重发同样成功。直驱destroyBucket（包内）——rpc链路由MasterDatabase
  * 回滚路径与全栈用例覆盖。
  */
+@Extra
 public class TestDbh2DestroyBucket {
 
 	@Test

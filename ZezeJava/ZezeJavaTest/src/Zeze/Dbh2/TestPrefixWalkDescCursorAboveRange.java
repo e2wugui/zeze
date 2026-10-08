@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 拓扑：单桶[Empty,Empty)端口19270-19272，数据=prefix(2)×2、边界key×1、prefix(3)×1。
  */
 @Fast
+@Extra
 public class TestPrefixWalkDescCursorAboveRange {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

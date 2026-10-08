@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -18,6 +19,7 @@ import harness.Fast;
  * 既有语义）。
  */
 @Fast
+@Extra
 public class TestSearchLogParamWords {
 
 	/** 连续/前导逗号的空段不得进入结果（修复前 split(",") 原样保留 "" 段——本用例红）。 */

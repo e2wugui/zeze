@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.Builtin.Dbh2.Commit.BPrepareBatches;
 import Zeze.Config;
@@ -17,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 /** Database operations must retain their order before the bucket applies a write batch. */
 @Fast
+@Extra
 public class TestTransactionKeepsLastKeyOperation {
 
 	private static final class LocalApplyManager extends Dbh2AgentManager {

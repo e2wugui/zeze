@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,6 +32,7 @@ import harness.Fast;
  * 其后的窗口内日志静默漏读且跨重启不可恢复。
  */
 @Fast
+@Extra
 public class TestEndTimeFilterSurvivesTimeRegression {
 	private static final String Active = "zeze.log";
 	// 回退前（快时钟）的最后一条：时间在endTime之外，其后文件内时间倒退回窗口内。

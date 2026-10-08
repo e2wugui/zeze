@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,6 +34,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestStaleServerBindingNotReused {
 
 	/** 会话身份条件指纹样本（值任意，比对按值等价）。 */

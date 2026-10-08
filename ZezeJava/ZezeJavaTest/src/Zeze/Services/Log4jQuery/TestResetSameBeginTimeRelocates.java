@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,6 +36,7 @@ import harness.Fast;
  * 必走reset+seek重定位。DriverFnd22Reset复刻为标准用例。
  */
 @Fast
+@Extra
 public class TestResetSameBeginTimeRelocates {
 	private static final String Active = "zeze.log";
 	private static final LocalDateTime Base = LocalDateTime.of(2026, 1, 1, 10, 0);

@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.Application;
 import Zeze.Builtin.HistoryModule.tHistory;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 @Fast
+@Extra
 public class TestApplyDatabaseAliasIsolation {
 	private static Application newApp(Path businessPath, Path applyPath) throws Exception {
 		var conf = new Config();

@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import java.util.ArrayList;
 import Zeze.Builtin.LogService.BCondition;
 import Zeze.Config;
@@ -8,6 +9,7 @@ import Zeze.Services.LogService;
 import Zeze.Util.Task;
 import org.junit.jupiter.api.Test;
 
+@Extra
 public class TestLogService {
 	@Test
 	public void testLogService() throws Exception {

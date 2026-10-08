@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
@@ -25,6 +26,7 @@ import org.pcollections.Empty;
  * 修复：openDynamicTable 路径同样执行依赖扫描注册（表登记与日志工厂注册同构）。
  */
 @Fast
+@Extra
 public class TestDynamicTableLogRegistry {
 
 	// 独立serverId+派生url：@Fast类并行时DatabaseMemory静态Map按url分桶互撞规避。

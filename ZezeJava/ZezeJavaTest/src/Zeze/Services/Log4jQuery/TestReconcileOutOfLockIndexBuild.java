@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -50,6 +51,7 @@ import harness.Fast;
  * 整窗空结果且remain=false）。锁持有解耦不变：采样仍在锁内毫秒级，续建全程锁外。
  */
 @Fast
+@Extra
 public class TestReconcileOutOfLockIndexBuild {
 	private static final String Active = "zeze.log";
 	// 大文件计时下限标定：15万行×30s间隔（全量索引15万条），旧代码锁内同步全扫 SimpleDateFormat

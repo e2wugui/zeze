@@ -1,5 +1,6 @@
 package Zeze.MQ.Master;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.Builtin.MQ.Master.BMQServer;
 import Zeze.Builtin.MQ.Master.BMQServers;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
  * rewriteRoutes/getServers/putMqServers，TestSegmentRecycle 先例）。
  */
 @Fast
+@Extra
 public class TestLegacyBackfill {
 
 	private static BMQServer serverOf(String host, int port, int partitionIndex, String topic, long managerId) {

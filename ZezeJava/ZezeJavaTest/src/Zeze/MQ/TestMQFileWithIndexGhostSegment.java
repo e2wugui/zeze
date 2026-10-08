@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Queue;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.io.TempDir;
  * makeIndexPeriod，FND26 并行红）已随静态实例化移除：每实例读自己的周期，跨类漂移根除。
  */
 @Fast
+@Extra
 public class TestMQFileWithIndexGhostSegment {
 
 	private static void assertFillInOrder(Queue<BMessage.Data> queue, long begin, long end) {

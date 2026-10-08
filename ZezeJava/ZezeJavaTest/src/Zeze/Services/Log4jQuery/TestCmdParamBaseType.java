@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -25,6 +26,7 @@ import harness.Fast;
  * 注入容器直接驱动真实invoke路径。
  */
 @Fast
+@Extra
 public class TestCmdParamBaseType {
 	@Test
 	public void testNumberParamMarkedBaseType() throws Exception {

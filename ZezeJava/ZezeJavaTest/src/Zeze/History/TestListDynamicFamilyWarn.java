@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 @ResourceLock(value = "history-helper-logger", mode = ResourceAccessMode.READ_WRITE) // 必须READ_WRITE：默认READ对READ不互斥（读者共享锁），appender操纵/告警触发类须真互斥（TestDynamicFamilyDropLogged先例）
+@Extra
 public class TestListDynamicFamilyWarn {
 
 	/** 家族1宿主：list[dynamic]变量members（生成newDynamicBean_Xxx同形态）。 */

@@ -1,5 +1,6 @@
 package Zeze.MQ.Master;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.TreeSet;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 先例）。
  */
 @Fast
+@Extra
 public class TestMQLegacyRouteMigrationKeepsPartitions {
 
 	private static void seed(Master master, String topic, String host, int port, long mid, int... partitionIndexes)

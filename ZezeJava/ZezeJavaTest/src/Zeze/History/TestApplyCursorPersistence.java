@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import harness.FastServerIds;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -34,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * 修复后从持久游标续传（1条事务）。
  */
 @Fast
+@Extra
 public class TestApplyCursorPersistence {
 	// 独立serverId+url：@Fast类并行时避免DatabaseMemory静态Map按url分桶互撞；
 	// 两个用例各自独立serverId（tHistory存储按url在JVM内持续存在，用例间不得共享）。

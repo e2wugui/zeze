@@ -1,5 +1,7 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.proc.Procs;
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import Zeze.Builtin.Zoker.StartService;
@@ -23,15 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * （存活但指纹不可核实，全平台确定性）。修复前红点：返回 0 且 processes 装账（双实例错账本体）。
  */
 @Fast
+@Extra
 public class TestBlindAliveStartRefused {
 
 	private static final long START_FAIL = IModule.errorCode(Zoker.ModuleId, Zoker.eStartFail);
-
-	/** 跨平台可用命令（java.home 定位）：使修复路径若误走拉起分支必然成功，红点不被 eNoServiceProperties 掩盖。 */
-	private static String javaBin() {
-		return Path.of(System.getProperty("java.home"), "bin",
-				System.getProperty("os.name", "").toLowerCase().contains("win") ? "java.exe" : "java").toString();
-	}
 
 	/** 核心红点：失明存活=拒绝启动（eStartFail）+ 状态零变更（无装账、run.pid 保留）。 */
 	@Test
@@ -40,7 +37,9 @@ public class TestBlindAliveStartRefused {
 		var svc = Files.createDirectories(servicesDir.resolve("svc"));
 		var v1 = Files.createDirectories(svc.resolve("v1"));
 		Files.writeString(svc.resolve(DistributeManager.CURRENT_NAME), "v1");
-		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), "command=" + javaBin() + "\nargs=-version\n");
+		// javaw（GUI 子系统）=无窗真进程：修复路径若误走拉起分支必然成功，红点不被 eNoServiceProperties 掩盖。
+		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
+				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Exit", "0") + "\n");
 
 		// 失明身份：start 行空串（写入时不可得）+ pid 存活（本测试 JVM）
 		ServiceManager.writeRunPid(svc.toFile(), new ServiceManager.RunPidRecord(

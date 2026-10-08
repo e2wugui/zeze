@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 端口19280-19285段为本用例族预留。
  */
 @Fast
+@Extra
 public class TestDeadBucketPrepareRedirectsSingleByteKeyFirst {
 
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();

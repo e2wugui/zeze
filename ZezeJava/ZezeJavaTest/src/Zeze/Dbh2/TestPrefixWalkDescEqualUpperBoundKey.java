@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 拓扑：单桶[Empty,Empty)端口19250-19252，数据=prefix(1)×1、prefix(2)×2、边界key×1、prefix(3)×1。
  */
 @Fast
+@Extra
 public class TestPrefixWalkDescEqualUpperBoundKey {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

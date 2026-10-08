@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.net.SocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 @Fast
+@Extra
 public class TestDisconnectedUploaderKeepsReopenedFile {
 	@Test
 	public void closingAnOldOwnerKeepsTheNewUpload(@TempDir Path temp) throws Exception {

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import harness.Fast;
 import java.io.File;
 import java.util.ArrayDeque;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @Fast
+@Extra
 public class TestFileWithIndexed {
 	@Test
 	public void testFile() throws Exception {

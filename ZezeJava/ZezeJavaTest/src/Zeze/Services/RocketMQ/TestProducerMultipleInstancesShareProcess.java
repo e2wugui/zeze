@@ -1,5 +1,6 @@
 package Zeze.Services.RocketMQ;
 
+import harness.Extra;
 import Zeze.Application;
 import Zeze.Config;
 import harness.Fast;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 @ResourceLock("rocketmq.producer.processSlot") // 与 TestProducerTxnSendRejectsEnvTransaction 串行（共享进程级形态）
+@Extra
 public class TestProducerMultipleInstancesShareProcess {
 	// 两个独立 serverId+派生 url：多实例拓扑=多 Application（Simulate 同构），
 	// 同一 Application 双注册会撞 duplicate table（既有的表级防重）。

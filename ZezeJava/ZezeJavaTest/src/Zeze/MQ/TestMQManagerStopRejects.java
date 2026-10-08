@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.Builtin.MQ.PushMessage;
 import Zeze.Config;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
  *（布局约定见 MqTestSupport）。
  */
 @Fast
+@Extra
 public class TestMQManagerStopRejects {
 
 	private static void setStopped(MQManager manager, boolean value) throws Exception {

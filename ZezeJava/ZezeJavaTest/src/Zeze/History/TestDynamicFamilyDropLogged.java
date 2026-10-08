@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 @Isolated // Helper 的告警来自多个测试类，捕获全局 logger 时须隔离所有并行测试。
+@Extra
 public class TestDynamicFamilyDropLogged {
 
 	/** 家族1宿主：map<string,dynamic>变量managers（生成newDynamicBean_Xxx同形态）。 */

@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -31,6 +32,7 @@ import harness.Fast;
  * getResources→JarURLConnection通道取回共享实例，断言扫描后实例仍可用。
  */
 @Fast
+@Extra
 public class TestClassScanKeepsSharedJarFileOpen {
 	// 唯一包名：父委托链（测试classpath）上不存在同名包，确保只命中本测试构造的jar。
 	private static final String PackageName = "sharedjarscanpkg";

@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,6 +44,7 @@ import harness.Fast;
  * （TestLog4jSessionAllDegraded 覆盖），本校验只收 FileSessionManager.resolve。
  */
 @Fast
+@Extra
 public class TestLog4jAllViewNoReachableServer {
 	/** 会话身份条件指纹样本（值任意，比对按值等价）。 */
 	private static final String COND = "search|-1|-1|1|[error]|";

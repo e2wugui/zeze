@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Late Normal-dispatch NewSession requests must not revive a state closed by the selector. */
 @Fast
+@Extra
 public class TestClosedConnectionRejectsNewSession {
 	private static final class PausedLogService extends LogService {
 		Log4jFileManager manager;

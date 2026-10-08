@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,6 +30,7 @@ import harness.Fast;
  * 残留条目被清理，不断言目录总条数（钉句柄问题属GD-D05记录范畴）。
  */
 @Fast
+@Extra
 public class TestIndexLinks {
 	private static final String Active = "zeze.log";
 	private static final String Rotated = "zeze.2026-09-03.log";

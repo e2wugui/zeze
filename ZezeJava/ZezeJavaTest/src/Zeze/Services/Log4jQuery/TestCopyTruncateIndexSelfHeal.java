@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static harness.DirCleanup.deleteBestEffort;
@@ -36,6 +37,7 @@ import harness.Fast;
  * [beginTime,endTime] 窗外）必须兜住并弃旧重建。
  */
 @Fast
+@Extra
 public class TestCopyTruncateIndexSelfHeal {
 	private static final String Active = "zeze.log";
 	private static final LocalDateTime C1Base = LocalDateTime.of(2026, 9, 29, 10, 0);

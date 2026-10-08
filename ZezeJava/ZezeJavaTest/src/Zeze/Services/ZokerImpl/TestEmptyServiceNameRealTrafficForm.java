@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 形态，本用例补齐缺口。
  */
 @Fast
+@Extra
 public class TestEmptyServiceNameRealTrafficForm {
 
 	private static byte[] md5Of(byte[] data) throws Exception {

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Queue;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
  * JVM 内注入断言（SIGSEGV 不可捕获），以"drop 严格后于在飞归零"的线性化时序为可测代理。
  */
 @Fast
+@Extra
 public class TestMQDestroyColumnFamilyWaitsInFlightFill {
 
 	/** fillMessage 外层 catch(Exception) 会包一层 RuntimeException，取最深层消息做断言。 */

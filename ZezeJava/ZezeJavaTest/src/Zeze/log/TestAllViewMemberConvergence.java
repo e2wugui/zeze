@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -17,6 +18,7 @@ import harness.Fast;
  * 缺员不逐请求全量重建）。
  */
 @Fast
+@Extra
 public class TestAllViewMemberConvergence {
 
 	/** 多余成员（缩容方向）：会话含已摘除服务器——不收敛，视同 changeSession 重建缩容。 */

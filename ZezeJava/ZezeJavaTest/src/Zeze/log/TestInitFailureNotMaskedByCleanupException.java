@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,6 +31,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestInitFailureNotMaskedByCleanupException {
 
 	/** 回收（stop）自身抛异常时，原始启动异常必须保留，回收异常只能 suppressed 附着。 */

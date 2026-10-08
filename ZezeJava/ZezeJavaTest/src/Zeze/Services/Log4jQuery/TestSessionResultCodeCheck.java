@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import java.io.IOException;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 见 SessionAll 注释），其消费面（LogAgent 网络）不在纯逻辑直测面。
  */
 @Fast
+@Extra
 public class TestSessionResultCodeCheck {
 
 	/** 死会话通道：服务端 LogicError 到达时，get 必须抛而非返回空 Result。 */

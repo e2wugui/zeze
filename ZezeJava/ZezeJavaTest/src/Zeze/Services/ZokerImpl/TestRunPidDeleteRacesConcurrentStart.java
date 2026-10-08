@@ -1,5 +1,7 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.proc.Procs;
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
@@ -7,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import Zeze.Builtin.Zoker.StartService;
 import Zeze.Builtin.Zoker.StopService;
+import harness.proc.Procs;
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
@@ -26,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 失明再 start 即同服务双实例。修复前回调删除路径不取锁（读-判-删非原子）。
  */
 @Fast
+@Extra
 public class TestRunPidDeleteRacesConcurrentStart {
 	private static final boolean WINDOWS =
 			System.getProperty("os.name", "").toLowerCase().contains("win");
@@ -53,13 +57,14 @@ public class TestRunPidDeleteRacesConcurrentStart {
 		var svc = servicesDir.toPath().resolve("svc");
 		var v1 = Files.createDirectories(svc.resolve("v1"));
 		Files.writeString(svc.resolve(DistributeManager.CURRENT_NAME), "v1");
-		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), "command=ping\nargs=-n 60 127.0.0.1\n");
+		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
+				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
 
 		// 已退出的旧进程（真死 pid）：删除线程要比对的"自己的"身份。
-		var exited = new ProcessBuilder("cmd", "/c", "exit 0").start();
+		var exited = new ProcessBuilder(Procs.command("Exit", "0")).start();
 		assertTrue(exited.waitFor(10, TimeUnit.SECONDS));
 		ServiceManager.writeRunPid(svc.toFile(), new ServiceManager.RunPidRecord(
-				exited.pid(), "2020-01-01T00:00:00Z", "cmd", "v1"));
+				exited.pid(), "2020-01-01T00:00:00Z", "javaw", "v1"));
 
 		var sm = new ServiceManager(servicesDir);
 

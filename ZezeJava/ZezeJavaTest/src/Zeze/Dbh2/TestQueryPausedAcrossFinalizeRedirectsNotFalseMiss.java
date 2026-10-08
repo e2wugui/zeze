@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 拓扑：单桶[Empty,Empty)端口19380-19382。
  */
 @Fast
+@Extra
 public class TestQueryPausedAcrossFinalizeRedirectsNotFalseMiss {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 见 audit-FND19/raw/实现E报告.md 的"未经运行验证"清单。
  */
 @Fast
+@Extra
 public class TestLogSessionBinding {
 	private static final Object SESSION = new Object();
 	private static final String COND = "search|-1|-1|1|[error]|";

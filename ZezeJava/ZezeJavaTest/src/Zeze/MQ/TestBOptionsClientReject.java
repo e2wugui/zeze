@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.MQ.MQ;
 import harness.Fast;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
  * 同样被拒绝。0/不传=默认 Single（编码省略形态），兼容既有 null 调用。
  */
 @Fast
+@Extra
 public class TestBOptionsClientReject {
 
 	@Test

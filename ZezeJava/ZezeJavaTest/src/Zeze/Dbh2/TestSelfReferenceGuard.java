@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,6 +48,7 @@ import org.junit.jupiter.api.io.TempDir;
  * serverId 883段与raft端口19190-19195段为本用例族预留。
  */
 @Fast
+@Extra
 public class TestSelfReferenceGuard {
 
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicLong;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.io.TempDir;
  * TestMQManagerStopRejects）。包内缝 createPartition/getQueueForTest 见 MqTestSupport。
  */
 @Fast
+@Extra
 public class TestManagerManagementDrain {
 
 	/** 反射读 MQManager.managementLock；旧基线无此字段抛出（修复缺失判红）。 */

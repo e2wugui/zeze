@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 守卫——复查保留在锁内，该测试不回归即尾部闸仍生效。
  */
 @Fast
+@Extra
 public class TestReplayLockedRecheck {
 
 	/** 死信值编码（与 MQSingle.tryDeadLetter 同构：BMessage 编码 + 8 字节 BE 时间戳尾缀）。 */

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 以"drop 严格后于在飞归零"的线程时序为可测代理。
  */
 @Fast
+@Extra
 public class TestMQDeletePartitionWaitsEscapedFill {
 
 	private static AtomicInteger activeFillsOf(MQFileWithIndex file) throws Exception {

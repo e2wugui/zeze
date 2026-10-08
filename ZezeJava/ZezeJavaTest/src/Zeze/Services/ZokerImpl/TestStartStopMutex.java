@@ -1,5 +1,7 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.proc.Procs;
+import harness.Extra;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,6 +16,7 @@ import Zeze.Builtin.Zoker.StartService;
 import Zeze.Builtin.Zoker.StopService;
 import Zeze.IModule;
 import Zeze.Services.Zoker;
+import harness.proc.Procs;
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
@@ -41,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * </ul>
  */
 @Fast
+@Extra
 public class TestStartStopMutex {
 	private static final long NO_PROPS = IModule.errorCode(Zoker.ModuleId, Zoker.eNoServiceProperties);
 	private static final boolean WINDOWS =
@@ -173,11 +177,11 @@ public class TestStartStopMutex {
 	public void testStartDuringKillWindowRelaunchesInsteadOfAdoptingDying() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
-		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
+		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
 		var sm = new ServiceManager(servicesDir);
 
 		// 摆"已拉起"形态：真进程 + 记账注入慢死假句柄 + 盘上真实身份（指纹可核）
-		var real = new ProcessBuilder("ping", "-n", "60", "127.0.0.1").start();
+		var real = new ProcessBuilder(Procs.command("Nap", "60000")).start();
 		try {
 			var container = servicesDir.toPath().resolve("svc").toFile();
 			var startInstant = ProcessHandle.of(real.pid()).orElseThrow()

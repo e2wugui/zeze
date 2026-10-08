@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 需双车道复用（orig 基线缺失即判红），形态对齐 TestFnd20GBC02 反射缝先例。
  */
 @Fast
+@Extra
 public class TestFillRetrySelfSchedule {
 
 	/** 一次捕获的自排期（延迟+动作+返回的句柄，测试手动驱动=确定性时钟）。 */

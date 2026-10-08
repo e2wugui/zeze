@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,6 +40,7 @@ import harness.Fast;
  * 不再落在列表时间序上，冲突形态不可表达。
  */
 @Fast
+@Extra
 public class TestRotateNewerThanActiveStillQueryable {
 	private static final String Active = "zeze.log";
 	private static final String Rotate1 = "zeze.2026-09-28.log";

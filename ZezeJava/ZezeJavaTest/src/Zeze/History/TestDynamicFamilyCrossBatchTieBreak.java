@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import java.math.BigDecimal;
 import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Transaction.Collections.Map2Meta;
@@ -32,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
  */
 @Fast
 @ResourceLock(value = "history-helper-logger", mode = ResourceAccessMode.READ_WRITE) // 必须READ_WRITE：默认READ对READ不互斥，本类按设计触发cross-batch warn，与DropLogged/GcC02的appender断言必须真互斥
+@Extra
 public class TestDynamicFamilyCrossBatchTieBreak {
 
 	/** 字典序较大的家族（批1占位者）。 */

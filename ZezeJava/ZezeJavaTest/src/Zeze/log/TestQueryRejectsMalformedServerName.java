@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.reflect.Constructor;
@@ -41,6 +42,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestQueryRejectsMalformedServerName {
 
 	/** 三种畸形形态都必须明确分诊，不坍缩 system error。 */

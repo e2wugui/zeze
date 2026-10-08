@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 即判红），形态对齐 TestFnd20GBC02 的反射缝先例。
  */
 @Fast
+@Extra
 public class TestDeadLetterClosure {
 
 	/** dlq 表中 (topic,partition,messageId) 的键编码（与 MQSingle.tryDeadLetter 写入端一致）。 */

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>
  * 不可达地址的 GetReadySocket 各含一次 5 秒超时等待，不标 @Fast（integrationTest）。
  */
+@Extra
 public class TestMQAgentSubscribeRollback {
     private static final int masterPort = 26000;
     // 无监听端口：连接拒绝，GetReadySocket 走满 5 秒超时。

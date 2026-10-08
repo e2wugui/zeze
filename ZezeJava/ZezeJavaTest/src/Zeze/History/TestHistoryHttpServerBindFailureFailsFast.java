@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import java.net.BindException;
 import java.net.HttpURLConnection;
 import java.net.ServerSocket;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * 语义使占口复测不稳定，不做直测面）。
  */
 @Fast
+@Extra
 public class TestHistoryHttpServerBindFailureFailsFast {
 	// 独立serverId+派生url：@Fast类并行时避免zeze_cache目录与DatabaseMemory同名url互撞。
 	private static final int SERVER_ID = FastServerIds.TEST_HISTORY_HTTP_SERVER_BIND_FAILURE;

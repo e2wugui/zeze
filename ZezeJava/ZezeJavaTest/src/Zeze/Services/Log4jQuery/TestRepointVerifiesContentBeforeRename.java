@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -43,6 +44,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  */
 @Fast
 @ResourceLock("log4jquery-logger") // 同族捕获Log4jFileManager logger的测试互斥（预防性：Onz/MQ两族竞态的同款，FND19-22复盘小集）
+@Extra
 public class TestRepointVerifiesContentBeforeRename {
 	private static final String Active = "zeze.log";
 	// 无关rotate名文件：时间窗（09-05）与active索引内容（09-10）完全无关——误改指形态的判别点。

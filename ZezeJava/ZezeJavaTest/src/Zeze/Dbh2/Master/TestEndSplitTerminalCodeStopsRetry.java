@@ -1,5 +1,6 @@
 package Zeze.Dbh2.Master;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.net.ServerSocket;
 import java.util.ArrayDeque;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.Test;
  * （终局码仍在无限30s重试），不是字段缺失的链接红（R1增量审F-2修正）。
  */
 @Fast
+@Extra
 public class TestEndSplitTerminalCodeStopsRetry {
 
 	// 桩master服务：注册EndSplit协议，按脚本回码（脚本耗尽回0=成功），统计请求数。

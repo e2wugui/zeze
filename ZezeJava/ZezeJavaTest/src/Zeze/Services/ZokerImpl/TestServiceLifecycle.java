@@ -1,5 +1,7 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.proc.Procs;
+import harness.Extra;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,6 +13,7 @@ import Zeze.Builtin.Zoker.StartService;
 import Zeze.Builtin.Zoker.StopService;
 import Zeze.IModule;
 import Zeze.Services.Zoker;
+import harness.proc.Procs;
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
@@ -34,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 非Windows跳过真进程用例；纯解析/错误码用例全平台可跑。
  */
 @Fast
+@Extra
 public class TestServiceLifecycle {
 	private static final long NO_PROPS = IModule.errorCode(Zoker.ModuleId, Zoker.eNoServiceProperties);
 	private static final long START_FAIL = IModule.errorCode(Zoker.ModuleId, Zoker.eStartFail);
@@ -162,7 +166,7 @@ public class TestServiceLifecycle {
 	public void testStartListStopLifecycle() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping/cmd）");
 		var servicesDir = servicesDir(tempDir);
-		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
+		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
 		var sm = new ServiceManager(servicesDir);
 
 		var r = startReq();
@@ -196,11 +200,11 @@ public class TestServiceLifecycle {
 	public void testDeadHandleRestart() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping/cmd）");
 		var servicesDir = servicesDir(tempDir);
-		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
+		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
 		var sm = new ServiceManager(servicesDir);
 
 		// 注入死句柄：cmd /c exit 7 自然退出（修复前 computeIfAbsent 命中死句柄报 running 且永不重启）
-		var dead = new ProcessBuilder("cmd", "/c", "exit 7").start();
+		var dead = new ProcessBuilder(Procs.command("Exit", "7")).start();
 		assertTrue(dead.waitFor(10, TimeUnit.SECONDS));
 		sm.putProcessForTest("svc", dead);
 
@@ -222,7 +226,7 @@ public class TestServiceLifecycle {
 	public void testStopDeadHandleReportsNaturalExitCode() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（cmd）");
 		var sm = new ServiceManager(servicesDir(tempDir));
-		var dead = new ProcessBuilder("cmd", "/c", "exit 7").start();
+		var dead = new ProcessBuilder(Procs.command("Exit", "7")).start();
 		assertTrue(dead.waitFor(10, TimeUnit.SECONDS));
 		sm.putProcessForTest("svc", dead);
 
@@ -249,9 +253,9 @@ public class TestServiceLifecycle {
 	public void testOnExitCleansUpEntry() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（cmd）");
 		var servicesDir = servicesDir(tempDir);
-		// ping -n 2 当延迟自然退出（~1s）：cmd /c exit 毫秒级即死，onExit收殓跑赢下一行的
+		// Nap 2000 当延迟自然退出（~2s）：Exit 毫秒级即死，onExit收殓跑赢下一行的
 		// assertNotNull（test40-4实证round14红）——前提断言需要进程确定存活过断言时刻。
-		layoutVersion(servicesDir, "command=ping\nargs=-n 2 127.0.0.1\n");
+		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "2000") + "\n");
 		var sm = new ServiceManager(servicesDir);
 
 		assertEquals(0, sm.startService(startReq()));
@@ -271,10 +275,10 @@ public class TestServiceLifecycle {
 	public void testEnvAppliedToProcess() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（cmd）");
 		var servicesDir = servicesDir(tempDir);
-		// 前置 ping -n 2 延迟（~1s）：裸 if..exit 5 毫秒级即死，onExit收殓跑赢下一行的
+		// 前置 Nap 2000 延迟：裸 Exit 5 毫秒级即死，onExit收殓跑赢下一行的
 		// assertNotNull（test40-4实证round20红）——需要条目在断言时刻确定在场以取句柄验退出码。
-		layoutVersion(servicesDir,
-				"command=cmd\nargs=/c ping -n 2 127.0.0.1 >nul & if %ZEZE_SVC_LIFECYCLE%==hit exit 5\nenv=ZEZE_SVC_LIFECYCLE=hit\n");
+		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs="
+				+ Procs.specArgs("NapEnv", "2000", "ZEZE_SVC_LIFECYCLE", "hit", "5") + "\nenv=ZEZE_SVC_LIFECYCLE=hit\n");
 		var sm = new ServiceManager(servicesDir);
 
 		assertEquals(0, sm.startService(startReq()));

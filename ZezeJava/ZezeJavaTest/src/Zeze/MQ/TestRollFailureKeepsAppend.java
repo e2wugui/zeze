@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 先例）。
  */
 @Fast
+@Extra
 public class TestRollFailureKeepsAppend {
 
 	@Test

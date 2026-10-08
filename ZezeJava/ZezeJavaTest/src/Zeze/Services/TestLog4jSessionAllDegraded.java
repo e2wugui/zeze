@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -36,6 +37,7 @@ import harness.Fast;
  * GetReadySocket 抛异常导致构造必失败，且先建成的存活会话无人 close（泄漏服务端句柄）。
  */
 @Fast
+@Extra
 public class TestLog4jSessionAllDegraded {
 	@BeforeEach
 	public void before() {

@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.EmptyBean;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * （与生成代码同形态）。
  */
 @Fast
+@Extra
 public class TestDynamicFamilyStableTieBreak {
 
 	/** 字典序较大的家族（先注册的占位者）。 */

@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
  * （checkpoint与backup不依赖数据量）。
  */
 @Fast
+@Extra
 public class TestSnapshotFailureCleansCheckpointDir {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

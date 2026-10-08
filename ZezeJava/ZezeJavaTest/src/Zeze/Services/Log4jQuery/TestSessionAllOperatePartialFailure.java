@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -31,6 +32,7 @@ import harness.Fast;
  * 实例（字段默认值），再反射注入依赖，直测operate循环。
  */
 @Fast
+@Extra
 public class TestSessionAllOperatePartialFailure {
 	@BeforeEach
 	public void before() {

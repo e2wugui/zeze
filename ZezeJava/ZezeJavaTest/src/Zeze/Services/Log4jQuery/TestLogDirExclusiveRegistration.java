@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -22,6 +23,7 @@ import harness.Fast;
  * 活性大小写折叠同键（Windows同物理文件必须拒；Linux不同文件同键误拒=安全向）。
  */
 @Fast
+@Extra
 public class TestLogDirExclusiveRegistration {
 	@TempDir
 	Path logDir;

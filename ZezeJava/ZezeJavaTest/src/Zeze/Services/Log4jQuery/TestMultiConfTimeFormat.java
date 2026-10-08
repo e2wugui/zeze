@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static harness.DirCleanup.deleteBestEffort;
@@ -36,6 +37,7 @@ import harness.Fast;
  * 确保错格式解析必失败（宽解析下相近格式可能解析成错误时间而非失败）。
  */
 @Fast
+@Extra
 public class TestMultiConfTimeFormat {
 	@BeforeEach
 	public void before() {

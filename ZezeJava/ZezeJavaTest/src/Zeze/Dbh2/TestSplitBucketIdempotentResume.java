@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
  * 一致性校验不匹配（keyLast不同等）时保留eSplittingBucketExist。
  */
 @Fast
+@Extra
 public class TestSplitBucketIdempotentResume {
 
 	private static BBucketMeta.Data newBucketMeta(byte keyFirst, byte keyLast) {

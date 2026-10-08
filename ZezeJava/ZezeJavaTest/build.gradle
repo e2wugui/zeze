@@ -110,9 +110,12 @@ sourceSets {
 }
 
 // gradle test：只跑自包含测试（@Fast / @Tag("fast")），不依赖任何外部进程。
+// @Extra（不常用功能族：zoker/history/dbh2/mq/rocketmq/log4jquery）被排除——它们由
+// extraTest 按需执行，不进默认链（test.bat 亦不含）。
 tasks.named('test', Test) {
     useJUnitPlatform {
         includeTags 'fast'
+        excludeTags 'extra'
     }
     workingDir = projectDir
     jvmArgs '-ea'
@@ -137,16 +140,33 @@ tasks.register('integrationTest', Test) {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform {
-        excludeTags 'bench','fast'
+        excludeTags 'bench','fast','extra'
     }
     workingDir = projectDir
     jvmArgs '-ea'
     mustRunAfter tasks.named('test')
 }
 
+// gradle extraTest：不常用功能族（@Extra：zoker/history/dbh2/mq/rocketmq/log4jquery，
+// 267 类）按需附加车道——移出 test 快速车道与 integrationTest 全量车道，默认链
+// （test.bat: test→integrationTest→bench）不含本任务。同 IT 不并行（族内共享
+// dbhome/固定端口），zeze.test.env 不设 off（族内有依赖进程内 SM 的用例）。
+tasks.register('extraTest', Test) {
+    group = 'verification'
+    description = '不常用功能族附加测试（@Extra：zoker/history/dbh2/mq/rocketmq/log4jquery）。'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'extra'
+    }
+    workingDir = projectDir
+    jvmArgs '-ea'
+    mustRunAfter tasks.named('test'), tasks.named('integrationTest')
+}
+
 // gradle bench：吞吐基准（@Bench 标注，Benchmark 包整体）。基准靠打印 M/s 观察，不设断言；
 // 其中 A/B/C 事务场景依赖 SM/Global（进程内 harness 自动提供，不设 zeze.test.env=off）。
-// 家族全链硬序（test→integrationTest→bench→benchCore→benchCorePlatform）：四测试任务共享
+// 家族全链硬序（test→integrationTest→extraTest→bench→benchCore→benchCorePlatform）：测试任务共享
 // demo.App 单例/dbhome/固定端口，任意子集同图调用都必须串行——只对 test 排序时 IT 与 bench
 // 之间零约束（首事故 bench 14:51-14:53 落在 IT 窗口内）。mustRunAfter 不产生依赖，单独调用
 // 任一任务不会拉起前序任务，语义与原 shouldRunAfter 兼容。
@@ -160,7 +180,7 @@ tasks.register('bench', Test) {
     }
     workingDir = projectDir
     jvmArgs '-ea'
-    mustRunAfter tasks.named('test'), tasks.named('integrationTest')
+    mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('extraTest')
 }
 
 // gradle benchCore：核心宏观基准（@Bench + @Tag("core")，6 场景：A/B/C/D/E/F）。
@@ -184,7 +204,7 @@ tasks.register('benchCore', Test) {
     // 场景类字母序执行（A→B→C→D→E2→E→F）：E/E2 的 Stop+Start(custom cfg) 切换库配置，
     // 固定顺序避免 F 落在 E 之后继承非默认配置（虽然各场景开场已自带 Stop+Start，此为双保险）。
     systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
-    mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('bench')
+    mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('extraTest'), tasks.named('bench')
 }
 
 // gradle benchCorePlatform：benchCore 的平台线程池对照组（-DuseVirtualThread=false），
@@ -203,7 +223,7 @@ tasks.register('benchCorePlatform', Test) {
     systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
     systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
     systemProperty 'useVirtualThread', 'false'
-    mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('bench'), tasks.named('benchCore')
+    mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('extraTest'), tasks.named('bench'), tasks.named('benchCore')
 }
 
 // JMH 微基准源集：编译依赖 test 源集输出（demo/Gen 生成的 bean 与表）+ test 编译类路径。

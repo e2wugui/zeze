@@ -1,5 +1,7 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.proc.Procs;
+import harness.Extra;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,6 +13,7 @@ import Zeze.Builtin.Zoker.StartService;
 import Zeze.Builtin.Zoker.StopService;
 import Zeze.IModule;
 import Zeze.Services.Zoker;
+import harness.proc.Procs;
 import harness.Fast;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
@@ -39,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * （ping 当保活睡眠器），非 Windows 跳过真进程用例；纯文件用例全平台可跑。</p>
  */
 @Fast
+@Extra
 public class TestCrossRestartBehavior {
 	private static final long COMMIT_FAIL = IModule.errorCode(Zoker.ModuleId, Zoker.eCommitFail);
 
@@ -121,7 +125,7 @@ public class TestCrossRestartBehavior {
 	public void testStartWritesRunPidIdentity() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
-		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
+		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
 		var sm = new ServiceManager(servicesDir);
 
 		assertEquals(0, sm.startService(startReq()));
@@ -136,7 +140,7 @@ public class TestCrossRestartBehavior {
 		var command = lineValue(runPid, "command");
 		assertNotNull(command);
 		// Windows 落盘命令行是规范化全路径（如 "C:\Windows\System32\PING.EXE ..."），大小写不敏感比对
-		assertTrue(command.toLowerCase().contains("ping"), "辅指纹=命令行: " + command);
+		assertTrue(command.toLowerCase().contains("javaw"), "辅指纹=命令行: " + command);
 		// 容器根与 current 同层：不随版本切换/清理消失（pruneVersions 只纳入目录）
 		assertTrue(Files.isRegularFile(servicesDir.toPath().resolve("svc").resolve(DistributeManager.CURRENT_NAME)));
 
@@ -149,7 +153,7 @@ public class TestCrossRestartBehavior {
 	public void testStopCleansRunPidAfterStop() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
-		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
+		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
 		var sm = new ServiceManager(servicesDir);
 		assertEquals(0, sm.startService(startReq()));
 		var spawned = sm.getProcessForTest("svc");
@@ -169,7 +173,7 @@ public class TestCrossRestartBehavior {
 	public void testStopAfterRestartReallyStopsOrphan() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
-		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
+		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
 		var sm1 = new ServiceManager(servicesDir);
 		assertEquals(0, sm1.startService(startReq()));
 		var spawned = sm1.getProcessForTest("svc");
@@ -192,7 +196,7 @@ public class TestCrossRestartBehavior {
 	public void testStartAfterRestartIdempotentAdopts() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
-		layoutVersion(servicesDir, "command=ping\nargs=-n 60 127.0.0.1\n");
+		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
 		var sm1 = new ServiceManager(servicesDir);
 		assertEquals(0, sm1.startService(startReq()));
 		var spawned = sm1.getProcessForTest("svc");
@@ -227,7 +231,7 @@ public class TestCrossRestartBehavior {
 		var servicesDir = servicesDir(tempDir);
 		Files.createDirectories(servicesDir.toPath().resolve("svc"));
 		// 无关进程占位：活 ping，但盘上身份记录错误 startInstant（模拟 PID 复用后的陈旧文件）
-		var stranger = new ProcessBuilder("ping", "-n", "60", "127.0.0.1").start();
+		var stranger = new ProcessBuilder(Procs.command("Nap", "60000")).start();
 		try {
 			var runPid = runPidPath(servicesDir);
 			Files.writeString(runPid,

@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Dbh2.Commit;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
  * GA-C08：非prefix路径openTable的实例不入tables共享map，其close()不能删map条目
  *（bug时把prefix路径注册的同名共享实例摘除，引用计数与map错位级联）。
  */
+@Extra
 public class TestLocalCommitRecordLifecycle {
 
 	private static int countEntries(CommitRocks rocks, String fieldName) throws Exception {

@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 钉住：stop后openMasterAgent立即以IllegalStateException失败，且不向masterAgent表复活任何条目。
  */
 @Fast
+@Extra
 public class TestOpenMasterAgentAfterManagerStop {
 
 	@SuppressWarnings("unchecked")

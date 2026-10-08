@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,6 +30,7 @@ import harness.Fast;
  * （绕过 parse）的会话构造失败也先回收 RAF 再重抛原异常。
  */
 @Fast
+@Extra
 public class TestIllegalLogFormatConfRejected {
 	@Test
 	public void testParseRejectsIllegalTimeFormat() throws Exception {

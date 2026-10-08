@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
@@ -34,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Windows 上同一物理目录）由测试线程竞争写/消费属既有良性竞态（失败码/上传异常跳过该轮）。
  */
 @Fast
+@Extra
 public class TestCommitLockCaseFolding {
 	private static final int ROUNDS = 300;
 	private static final String[] OLD_VERSIONS = {

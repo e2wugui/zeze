@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static harness.DirCleanup.deleteBestEffort;
 
@@ -26,6 +27,7 @@ import harness.Fast;
  * 同时锁定GD-opinions#7：begin/end重叠名（"zezelog"）不再substring越界（修复前SIOOBE）。
  */
 @Fast
+@Extra
 public class TestMultiDotActiveName {
 	private static final String Active = "a.b.log";
 	private static final String Rotated = "a.b.2026-09-03.log";

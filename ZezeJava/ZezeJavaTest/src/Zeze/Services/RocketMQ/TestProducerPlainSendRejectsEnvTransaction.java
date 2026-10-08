@@ -1,5 +1,6 @@
 package Zeze.Services.RocketMQ;
 
+import harness.Extra;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
 import Zeze.Application;
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Fast
 @ResourceLock("rocketmq.producer.processSlot") // Producer 进程内单例占位是静态状态，与其它 Producer 测试串行
+@Extra
 public class TestProducerPlainSendRejectsEnvTransaction {
 	// 独立serverId+派生url：@Fast类并行时避免zeze_cache目录与DatabaseMemory同名url互撞。
 	private static final int SERVER_ID = FastServerIds.TEST_PRODUCER_PLAIN_SEND_REJECTS_ENV_TRANSACTION;

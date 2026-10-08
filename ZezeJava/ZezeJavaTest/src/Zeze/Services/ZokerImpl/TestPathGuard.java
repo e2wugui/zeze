@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -18,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 不校验时"../"与绝对路径可把写/截断/rename指向distributes、services目录之外（Hot侧同构缺陷28426a1c4已修）。
  */
 @Fast
+@Extra
 public class TestPathGuard {
 	@Test
 	public void testCheckInsideDirAcceptsNestedRelative(@TempDir Path tempDir) {

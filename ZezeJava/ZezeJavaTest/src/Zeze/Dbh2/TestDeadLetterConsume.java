@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.io.TempDir;
  * （无manager可建）证明"已消费并进入重建"，与eSplittingBucketExist（维持拒绝）可区分。
  */
 @Fast
+@Extra
 public class TestDeadLetterConsume {
 
 	private static Binary key(int i) {

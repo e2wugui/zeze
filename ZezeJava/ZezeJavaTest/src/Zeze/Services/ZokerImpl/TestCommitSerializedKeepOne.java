@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 竞争写/消费属既有良性竞态（失败码/上传异常跳过该轮），不影响被测不变式。
  */
 @Fast
+@Extra
 public class TestCommitSerializedKeepOne {
 	private static final int ROUNDS = 300;
 	private static final String[] OLD_VERSIONS = {

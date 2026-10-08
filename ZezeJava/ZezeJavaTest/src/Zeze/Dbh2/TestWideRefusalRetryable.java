@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
  *（4→8），保持"真实行为红"。
  */
 @Fast
+@Extra
 public class TestWideRefusalRetryable {
 
 	// 修复码eSplittingStaleMain=8（模块错误码生成侧1-7已用，8为空闲位）。

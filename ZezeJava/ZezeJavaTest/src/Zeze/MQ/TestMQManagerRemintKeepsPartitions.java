@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 含 Manager 重启与对账等待，不标 @Fast（integrationTest）。
  */
 @Isolated // master 端口 26000 与 TestMQ 系列相同（MQConsumer 静态 agent 读默认 zeze.xml），独占运行
+@Extra
 public class TestMQManagerRemintKeepsPartitions {
 	private static final int masterPort = 26000;
 	// 避开 TestMQ 26001-26003、TestMQManagerReregister 26101、TestMQConsumerResubscribe 26102、

@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import Zeze.Application;
 import Zeze.Config;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
  * 重新拉起，对齐 DaemonTimer 重启语义）在 Application.stop 的终检点之后收编。
  */
 @Fast
+@Extra
 public class TestPendingGidLedgerSweepStopsWithApplication {
 
 	// 独立号段+派生url（每用例独立url隔离DatabaseMemory静态桶的归属标记残留）。

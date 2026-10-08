@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.io.TempDir;
  * （注入 MQFileWithIndex 的构造器与 pullMessage）；与 src/Zeze/Dbh2/Master 下同包测试先例一致。
  */
 @Fast
+@Extra
 public class TestMQSingleDirectEnqueue {
 
 	/** 记录每次实际装载的区间与装载前的队列内容（消息以 Timestamp 携带 id 便于断言顺序）。 */

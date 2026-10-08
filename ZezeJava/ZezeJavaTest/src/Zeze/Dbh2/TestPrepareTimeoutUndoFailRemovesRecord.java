@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.List;
@@ -43,6 +44,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 注：本地提交模式（CommitRocks落临时目录，System属性窗口只在构造期，跟随Dbh2TestEnv惯例，
  * 不入@Fast并行车道）。
  */
+@Extra
 public class TestPrepareTimeoutUndoFailRemovesRecord {
 	private static final String COMMIT_ROCKS_HOME_PROPERTY = "Dbh2CommitRocksHome";
 

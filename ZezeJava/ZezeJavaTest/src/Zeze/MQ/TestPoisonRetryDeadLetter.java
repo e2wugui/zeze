@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 退避调度器注入同步执行（捕获延迟序列即退避形态断言）。
  */
 @Fast
+@Extra
 public class TestPoisonRetryDeadLetter {
 
 	private static void failOnce(MQSingle single) throws Exception {

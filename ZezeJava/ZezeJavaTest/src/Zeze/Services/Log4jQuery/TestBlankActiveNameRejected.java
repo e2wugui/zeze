@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,6 +29,7 @@ import harness.Fast;
  * （LogConf是公共可变POJO，程序化构造绕过parse）都给出指向LogActive字段的明确异常。
  */
 @Fast
+@Extra
 public class TestBlankActiveNameRejected {
 	@BeforeEach
 	public void before() {

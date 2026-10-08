@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,6 +17,7 @@ import harness.Fast;
  * NPE 无信息且调用方不可自愈。修复后抛带名字的 IllegalArgumentException。
  */
 @Fast
+@Extra
 public class TestSessionUnknownServerName {
 
 	@Test

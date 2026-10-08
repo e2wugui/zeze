@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 合法版本名也一并排除（零成本、跨平台同裁决）。直构 DistributeManager（包内构造器），纯文件逻辑。
  */
 @Fast
+@Extra
 public class TestCommitReservedVersionCaseMatrix {
 	private static final long COMMIT_FAIL = IModule.errorCode(Zoker.ModuleId, Zoker.eCommitFail);
 

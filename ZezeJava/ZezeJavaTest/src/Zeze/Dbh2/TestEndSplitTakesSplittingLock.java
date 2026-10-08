@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
  * （bug时不取该锁，立即完成）。锁序为单向主表→splitting，无死锁环。
  */
 @Fast
+@Extra
 public class TestEndSplitTakesSplittingLock {
 
 	private static BBucketMeta.Data newBucketMeta() {

@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,6 +39,7 @@ import harness.Fast;
  * TestLog4jAllViewMemberReconcile）。
  */
 @Fast
+@Extra
 public class TestEvictsDeregisteredMember {
 	private static final String LogName = "zeze.log";
 	private static final LocalDateTime Base = LocalDateTime.of(2026, 9, 28, 10, 0);

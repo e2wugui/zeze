@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 注：文件放 src/MQ/ 但声明 package Zeze.MQ，与 TestMQSingle* 先例一致。
  */
 @Fast
+@Extra
 public class TestMQFileWithIndexFillGuards {
 
 	/** 旧代码下 G2-3 场景是无限循环：放进守护线程限时执行，超时即失败而不是吊死整个测试。 */

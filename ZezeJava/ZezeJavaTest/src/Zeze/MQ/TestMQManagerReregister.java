@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.Config;
 import Zeze.MQ.MQManager;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>
  * 等待 Manager 断线重连（指数退避 1..8 秒）加轮询恢复，含秒级等待，不标 @Fast（integrationTest）。
  */
+@Extra
 public class TestMQManagerReregister {
     // 避开 TestMQ 系列占用的 26000-26003。
     private static final int masterPort = 26100;

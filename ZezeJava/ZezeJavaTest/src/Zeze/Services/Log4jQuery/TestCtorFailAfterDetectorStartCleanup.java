@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -35,6 +36,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestCtorFailAfterDetectorStartCleanup {
 	@BeforeEach
 	public void before() {

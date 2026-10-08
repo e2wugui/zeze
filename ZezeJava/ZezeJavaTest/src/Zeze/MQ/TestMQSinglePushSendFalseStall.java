@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.net.SocketAddress;
 import java.nio.file.Path;
 import java.util.Queue;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 失败→退避→重投→…→PushRetryMax 上限，断言消息按策略出队、退避确有排期。
  */
 @Fast
+@Extra
 public class TestMQSinglePushSendFalseStall {
 
 	/** 恒拒绝发送的 AsyncSocket 替身：模拟输出缓冲溢出丢弃（连接健康但拒写）。 */

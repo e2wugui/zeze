@@ -1,5 +1,6 @@
 package Zeze.Services.RocketMQ;
 
+import harness.Extra;
 import Zeze.Application;
 import Zeze.Config;
 import harness.Fast;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 @Fast
 @ResourceLock("rocketmq.producer.processSlot") // 构造 Producer 占用进程级静态计数，与其它 Producer 测试串行
+@Extra
 public class TestClientConfigPassThrough {
 	private static final int SERVER_ID = FastServerIds.TEST_CLIENT_CONFIG_PASS_THROUGH;
 

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.MQ.MQManager;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * 对非 Single（0=未指定除外）返回错误码 9（eOptionsNotImplemented，定义在手写子类），Master 日志
  * 含"未实现"。全程代码构造配置自包含。
  */
+@Extra
 public class TestBOptionsServerReject {
 	private static final int masterPort = 26210;
 	private static final int proxyPort = 26211;

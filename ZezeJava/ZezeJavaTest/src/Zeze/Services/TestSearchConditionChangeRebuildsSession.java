@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -55,6 +56,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestSearchConditionChangeRebuildsSession {
 
 	private static final String LOG_ACTIVE = "zeze.log";

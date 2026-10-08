@@ -1,5 +1,6 @@
 package Zeze.Dbh2.Master;
 
+import harness.Extra;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test;
  * rpc序列化遍历TreeMap与写并发会CME/脏结构（分桶完成瞬间客户端reload是常态）。
  */
 @Fast
+@Extra
 public class TestMasterGetBucketsSnapshot {
 
 	private static BBucketMeta.Data newBucket(Binary keyFirst, Binary keyLast) {

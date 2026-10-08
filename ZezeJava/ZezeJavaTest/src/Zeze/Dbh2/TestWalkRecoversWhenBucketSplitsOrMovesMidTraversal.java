@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 桶拓扑：A(19340-42)初始[Empty,Empty)持有全部数据1..9；T(19350-52)分裂产生的
  * 新桶[5,Empty)；C(19360-62)迁移目标桶[5,Empty)（T置死后接管键域）。
  */
+@Extra
 public class TestWalkRecoversWhenBucketSplitsOrMovesMidTraversal {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

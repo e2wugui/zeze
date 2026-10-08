@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import demo.Module1.BItem;
 import demo.Module1.BValue;
 import harness.Fast;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
  * typeId，毒记录确定性卡死游标。
  */
 @Fast
+@Extra
 public class TestHelperDynamicBeanTraversed {
 
 	/** 仅经 dynamic 可达的 bean 必须被 dependsBean 注册（修复前 dynamic 被 isBuiltinType

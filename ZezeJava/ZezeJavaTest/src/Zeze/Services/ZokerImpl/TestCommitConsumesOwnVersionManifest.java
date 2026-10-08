@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * eCommitFail 可见、重传收敛）。裸名清单作为旧客户端/兼容副本回落消费（既有语义）。
  */
 @Fast
+@Extra
 public class TestCommitConsumesOwnVersionManifest {
 
 	/** distributes/&lt;svc&gt;/ 放文件 + 按名写清单（清单名调用方给定：裸名或版本限定名）。 */

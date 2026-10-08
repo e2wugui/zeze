@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,6 +46,7 @@ import harness.Fast;
  * 返回会话级错误，SessionAll 归入 deadMembers 重建。
  */
 @Fast
+@Extra
 public class TestRenewedMemberResumesFromWatermark {
 	private static final String LogName = "zeze.log";
 	private static final LocalDateTime Base = LocalDateTime.of(2026, 9, 28, 10, 0);

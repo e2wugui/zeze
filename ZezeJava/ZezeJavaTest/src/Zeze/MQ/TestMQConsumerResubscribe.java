@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -36,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 含消费者断线重连（指数退避 1..8 秒）加轮询等待，不标 @Fast（integrationTest）。
  */
 @Isolated // master 端口 26000 与 TestMQ 系列相同（MQConsumer 静态 agent 读默认 zeze.xml），类级并发下会端口冲突，独占运行
+@Extra
 public class TestMQConsumerResubscribe {
 	private static final int masterPort = 26000;
 	// 避开 TestMQ 三 manager 的 26001-26003 与 TestMQManagerReregister 的 26101。

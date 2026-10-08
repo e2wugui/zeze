@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Queue;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 并行测试对该字段的既有容忍口径见 TestMQFileWithIndexTornTail 注释；布局约定见 MqTestSupport）。
  */
 @Fast
+@Extra
 public class TestSegmentRecycle {
 
 	/** topic 目录下按"分区号.段基"命名的段基列表（升序）。 */

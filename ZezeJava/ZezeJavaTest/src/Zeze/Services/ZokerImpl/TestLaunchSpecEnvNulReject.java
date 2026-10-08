@@ -1,5 +1,6 @@
 package Zeze.Services.ZokerImpl;
 
+import harness.Extra;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * 修复前红点：解析不抛（NUL 入 spec.env）；startService 红形态随 JDK（IAE 逃逸或 eStartFail）。
  */
 @Fast
+@Extra
 public class TestLaunchSpecEnvNulReject {
 
 	private static final long NO_SERVICE_PROPERTIES = IModule.errorCode(Zoker.ModuleId, Zoker.eNoServiceProperties);

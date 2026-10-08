@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Fast
+@Extra
 public class TestSplitTargetResumeChecksSourceGeneration {
 	private static Binary key(int value) {
 		return new Binary(new byte[]{(byte)value});

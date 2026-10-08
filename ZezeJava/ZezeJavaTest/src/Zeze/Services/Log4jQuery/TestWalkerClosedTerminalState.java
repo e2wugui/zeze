@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -37,6 +38,7 @@ import harness.Fast;
  * 由E组随GE-C03处理，此处只验证walker终态本身。
  */
 @Fast
+@Extra
 public class TestWalkerClosedTerminalState {
 	private static final String Active = "zeze.log";
 

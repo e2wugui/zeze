@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
  * MQFileWithIndex 的构造器与 pullMessage）；与 TestMQSingleDirectEnqueue 先例一致。
  */
 @Fast
+@Extra
 public class TestMQSingleFillStall {
 
 	/** fillMessage 可注入失败的 MQFileWithIndex：failFill=true 时装载抛 RuntimeException。 */

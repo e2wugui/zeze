@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,6 +40,7 @@ import harness.Fast;
  * 失败即return（不改指不补登），条目仍指current名，由下一轮reconcile摘除+常规补登收敛。
  */
 @Fast
+@Extra
 public class TestRenameFailureAbortsRepoint {
 	private static final String Active = "zeze.log";
 	private static final String Rotated = "zeze.2026-09-01.log";

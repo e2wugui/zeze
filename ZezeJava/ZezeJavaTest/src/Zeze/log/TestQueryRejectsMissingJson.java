@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.reflect.Constructor;
@@ -45,6 +46,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestQueryRejectsMissingJson {
 
 	/** 缺字段/空白/纯空白 json 必须明确分诊，不坍缩 system error、不进代理。 */

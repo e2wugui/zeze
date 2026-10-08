@@ -1,5 +1,6 @@
 package Zeze.Services.RocketMQ;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  */
 @Fast
 @ResourceLock("rocketmq.producer.processSlot") // 构造 Producer 占用进程级静态计数，与其它 Producer 测试串行
+@Extra
 public class TestProducerStartRejectsMemoryTSent {
 	private static final int SERVER_ID = FastServerIds.TEST_PRODUCER_START_REJECTS_MEMORY_TSENT;
 	// 与 Producer.TSENT_ALLOW_MEMORY_PROPERTY 同名（private常量，测试用字面量，先例：tSentKeepTimeMillis）

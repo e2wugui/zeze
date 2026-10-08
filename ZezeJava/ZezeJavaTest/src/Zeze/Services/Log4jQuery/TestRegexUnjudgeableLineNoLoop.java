@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,6 +36,7 @@ import harness.Fast;
  * 仍判不完的行弃置前进（warn留痕，匹配语义=不可判定即不命中）。
  */
 @Fast
+@Extra
 public class TestRegexUnjudgeableLineNoLoop {
 	private static final String Active = "zeze.log";
 	private static final LocalDateTime Base = LocalDateTime.of(2026, 9, 28, 10, 0);

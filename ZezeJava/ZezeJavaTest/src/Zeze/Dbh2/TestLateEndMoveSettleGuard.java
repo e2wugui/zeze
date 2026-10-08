@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.io.TempDir;
  * （本迁移之前另有settle丢失、主表陈旧，条目仍活）维持不消费，留pending-settle补发（A1）收敛。
  */
 @Fast
+@Extra
 public class TestLateEndMoveSettleGuard {
 
 	private static Binary key(int i) {

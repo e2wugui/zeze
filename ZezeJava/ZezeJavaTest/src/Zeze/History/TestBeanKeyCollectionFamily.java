@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import Zeze.Builtin.AutoKey.BSeedKey;
 import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Util.KV;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
  * unknown log typeId（回放/Verify确定性中断）。直驱Helper.depends*断言族归属。
  */
 @Fast
+@Extra
 public class TestBeanKeyCollectionFamily {
 
 	private static final String BEAN_KEY = BSeedKey.class.getName();

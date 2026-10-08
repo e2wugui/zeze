@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 驱动前以未完成 future 占位 messageFillFuture 排除异步回填竞争（TestMQSingleDirectEnqueue 先例）。
  */
 @Fast
+@Extra
 public class TestMQInFlightByteBudget {
 
 	private static BMessage.Data messageOf(long id, int bodySize) {

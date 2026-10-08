@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
@@ -57,6 +58,7 @@ import org.junit.jupiter.api.io.TempDir;
  * serverId 882段（manager.xml ServerId）与raft端口19180-19182段为本用例族预留。
  */
 @Fast
+@Extra
 public class TestPendingSettleReissue {
 
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();

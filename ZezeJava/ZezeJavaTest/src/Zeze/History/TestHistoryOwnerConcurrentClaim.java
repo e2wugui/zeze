@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 @Fast
+@Extra
 public class TestHistoryOwnerConcurrentClaim {
 
 	private static Application newApp(String url, String owner) throws Exception {

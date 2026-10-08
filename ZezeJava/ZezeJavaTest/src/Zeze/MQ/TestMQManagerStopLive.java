@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.nio.file.Path;
 import Zeze.MQ.MQManager;
 import Zeze.MQ.MQPartition;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 关机竞态是否触发 native 崩溃取决于在飞相交的概率（无法确定性复现），本测试固化可确定性的
  * 契约面：stop() 在存在在飞/可再启动回填的负载下正常返回且库已关闭。全程代码构造配置自包含。
  */
+@Extra
 public class TestMQManagerStopLive {
 	private static final int masterPort = 26200;
 	private static final int proxyPort = 26201;

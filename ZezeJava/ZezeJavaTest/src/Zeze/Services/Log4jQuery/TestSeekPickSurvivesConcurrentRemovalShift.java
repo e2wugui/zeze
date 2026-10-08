@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static harness.DirCleanup.deleteBestEffort;
@@ -36,6 +37,7 @@ import harness.Fast;
  * （FNFE 走既有降级收敛），发布下标改取该引用的当前存活位置。
  */
 @Fast
+@Extra
 public class TestSeekPickSurvivesConcurrentRemovalShift {
 	private static final String Active = "zeze.log";
 	private static final String Rotate1 = "zeze.2026-09-01.log";

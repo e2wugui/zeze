@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,6 +42,7 @@ import harness.Fast;
  * （ReflectionFactory 不调构造器，字段由注入驱动）。
  */
 @Fast
+@Extra
 public class TestSessionAllOperateTotalTimeout {
 
 	@BeforeEach

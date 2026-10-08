@@ -1,5 +1,6 @@
 package Zeze.Dbh2.Master;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.net.ServerSocket;
 import java.util.ArrayDeque;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Test;
  * 形态对齐TestFnd20GAC05：本机回环桩master（真实rpc派发路径）+反射收缩endRetryDelayMs。
  */
 @Fast
+@Extra
 public class TestAgentRetriesOnStaleMain {
 
 	// 修复码eSplittingStaleMain=8（不静态引用：未修基线无此常量，桩按值回码即可——agent侧

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
  *（布局约定见 MqTestSupport。）
  */
 @Fast
+@Extra
 public class TestMQFileWithIndexSizeGuards {
 
 	/** 顺序扫描段文件前 count 条记录并返回其结尾偏移（记录头布局与实现一致：Long8(id)+Int4(size)）。 */

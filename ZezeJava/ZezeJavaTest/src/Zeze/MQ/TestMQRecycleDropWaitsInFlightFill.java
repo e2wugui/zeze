@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 恢复（TestSegmentRecycle 先例）。
  */
 @Fast
+@Extra
 public class TestMQRecycleDropWaitsInFlightFill {
 
 	/** topic 目录下按"分区号.段基"命名的段基列表（升序）。 */

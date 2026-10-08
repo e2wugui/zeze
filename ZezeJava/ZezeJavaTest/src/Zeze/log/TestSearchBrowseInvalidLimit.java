@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -42,6 +43,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestSearchBrowseInvalidLimit {
 
 	/** search：limit=0/负/漏传（默认0）都必须 errorResult("invalid limit")，且不建会话。 */

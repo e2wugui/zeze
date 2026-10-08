@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -30,6 +31,7 @@ import harness.Fast;
  * 统一抛并清空logSessions（对齐客户端SessionAll.close的既有写法）。
  */
 @Fast
+@Extra
 public class TestServerUserStateClose {
 	private Path logDir;
 	private Log4jFileManager manager;

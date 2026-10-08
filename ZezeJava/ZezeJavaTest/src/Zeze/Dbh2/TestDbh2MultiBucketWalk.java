@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 全表版 walk/walkKey 的 desc 要按 keyFirst 降序迭代桶。
  * 桶拓扑：A=[Empty,5) 端口19110-19112，B=[5,Empty) 端口19120-19122，数据key 1..9。
  */
+@Extra
 public class TestDbh2MultiBucketWalk {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 分别覆盖"孤儿在真实记录之后/之前"两个方向。
  */
 @Fast
+@Extra
 public class TestMQFileWithIndexDuplicateRecordId {
 
 	/** fillMessage 外层 catch(Exception) 会包一层 RuntimeException，取最深层消息做断言。 */

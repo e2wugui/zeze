@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import harness.Extra;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -21,6 +22,7 @@ import harness.Fast;
  * 说明：原缺陷为竞态（少量条目时难以确定性复现红），此用例防回归并固化修复语义。
  */
 @Fast
+@Extra
 public class TestQueryHandlerManager {
 	@Test
 	public void testConcurrentFirstInvoke() throws Exception {

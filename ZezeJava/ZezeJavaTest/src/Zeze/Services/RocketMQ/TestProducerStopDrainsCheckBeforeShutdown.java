@@ -1,5 +1,6 @@
 package Zeze.Services.RocketMQ;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
  */
 @Fast
 @ResourceLock("rocketmq.producer.processSlot") // 构造 Producer 占用进程级静态计数，与其它 Producer 测试串行
+@Extra
 public class TestProducerStopDrainsCheckBeforeShutdown {
 	private static final int SERVER_ID = FastServerIds.TEST_PRODUCER_STOP_DRAINS_CHECK_BEFORE_SHUTDOWN;
 

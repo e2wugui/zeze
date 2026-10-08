@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.io.TempDir;
  * eCommitting（模拟"commitPoint存在但redo长期不到"）；反射老化createTime后手动驱动
  * onTimer三次观察去重（真实定时器并发触发亦被同一去重集合覆盖，断言不受其干扰）。
  */
+@Extra
 public class TestCommittingHangWarnOnce {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 	private static final long TID = 1;

@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.function.Supplier;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.io.TempDir;
  * AgentTimeout+2000=5000ms，使围栏断言可在确定的时间窗内观察）。
  */
 @Fast
+@Extra
 public class TestSplitSyncQueueGenerationGuard {
 
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();

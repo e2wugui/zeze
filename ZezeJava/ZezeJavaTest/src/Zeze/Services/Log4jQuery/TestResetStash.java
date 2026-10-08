@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,6 +33,7 @@ import harness.Fast;
  * 修复后严格L1..L5、续行完整。
  */
 @Fast
+@Extra
 public class TestResetStash {
 	@BeforeEach
 	public void before() {

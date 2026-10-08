@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import harness.Extra;
 import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Util.Id128;
 import harness.Fast;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
  * commitDone 跨 app 误核销。
  */
 @Fast
+@Extra
 public class TestHistoryPendingGidLedger {
 	private static final long NANO_BASE = System.nanoTime();
 

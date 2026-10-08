@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -54,6 +55,7 @@ import Zeze.Util.TaskCompletionSourceX;
  * 本地提交模式CommitRocks落临时目录，System属性窗口只在构造期，
  * 不入@Fast并行车道）。
  */
+@Extra
 public class TestCommitServerTimeoutContract {
 	private static final String COMMIT_ROCKS_HOME_PROPERTY = "Dbh2CommitRocksHome";
 

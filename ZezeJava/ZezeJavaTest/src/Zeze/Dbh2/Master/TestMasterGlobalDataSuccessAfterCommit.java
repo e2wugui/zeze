@@ -1,5 +1,6 @@
 package Zeze.Dbh2.Master;
 
+import harness.Extra;
 import java.io.File;
 import Zeze.Builtin.Dbh2.Master.BClearInUse;
 import Zeze.Builtin.Dbh2.Master.BGetDataWithVersion;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
  * （放本包以直接调用protected的Process*Request。）
  */
 @Fast
+@Extra
 public class TestMasterGlobalDataSuccessAfterCommit {
 
 	@Test

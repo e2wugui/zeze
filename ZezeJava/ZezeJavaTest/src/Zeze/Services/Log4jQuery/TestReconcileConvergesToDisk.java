@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -36,6 +37,7 @@ import harness.Fast;
  * 这里验证的是回调接线与节流窗口；reconcile挂buildIndexTimer（5分钟）低频执行。
  */
 @Fast
+@Extra
 public class TestReconcileConvergesToDisk {
 	private static final String Active = "zeze.log";
 	private static final String Rotated1 = "zeze.2026-09-01.log";

@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -36,6 +37,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestAdminApiRejectsForeignOrigin {
 
 	/** DNS rebinding 读取形态：Host 与 Origin 一致（同为攻击者域名）但非回环——Host 防线拒。 */

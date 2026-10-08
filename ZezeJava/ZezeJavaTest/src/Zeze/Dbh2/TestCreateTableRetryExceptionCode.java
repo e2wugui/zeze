@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 形态：纯桩直构（对齐TestFnd19GAD04）：脚本化MasterAgent按序回码。
  */
 @Fast
+@Extra
 public class TestCreateTableRetryExceptionCode {
 
 	// 建表结果脚本化的master：按序返回rc，rc==0返回空分桶表（isNew=true），脚本耗尽回0。

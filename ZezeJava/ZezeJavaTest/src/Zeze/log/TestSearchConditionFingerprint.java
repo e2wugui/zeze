@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import Zeze.log.handle.entity.SearchLogParam;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 @Fast
+@Extra
 public class TestSearchConditionFingerprint {
 	@Test
 	public void differentConditionsMustNotReuseBinding() throws Exception {

@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
@@ -51,6 +52,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 桩master对EndSplit/EndMove恒回0（终结通知可观测且不产生重试泄漏）。
  */
 @Fast
+@Extra
 public class TestGAR21RecoverSplittingMetaDiscrimination {
 
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();

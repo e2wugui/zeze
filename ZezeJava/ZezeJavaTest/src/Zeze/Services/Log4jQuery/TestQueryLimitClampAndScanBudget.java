@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static harness.DirCleanup.deleteBestEffort;
@@ -33,6 +34,7 @@ import harness.Fast;
  * 注：字节预算（MAX_SCAN_BYTES=256MB）需同量级fixture，行为不测，常量断言记档。
  */
 @Fast
+@Extra
 public class TestQueryLimitClampAndScanBudget {
 	@BeforeEach
 	public void before() {

@@ -1,5 +1,6 @@
 package Zeze.Services.Log4jQuery;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static harness.DirCleanup.deleteBestEffort;
@@ -30,6 +31,7 @@ import harness.Fast;
  * 在场日志的索引、active 交接名与他方 logActive 名形态不受影响。
  */
 @Fast
+@Extra
 public class TestOrphanRotateIndexReclaimed {
 	private static final String Active = "zeze.log";
 	// 孤儿形态：索引在场、对应日志不在（外部保留期只清 .log）

@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,6 +36,7 @@ import harness.Fast;
  */
 @Fast
 @Isolated
+@Extra
 public class TestParamErrorNoSessionRebuild {
 
 	/** 会话身份条件指纹样本（值任意，比对按值等价）。 */

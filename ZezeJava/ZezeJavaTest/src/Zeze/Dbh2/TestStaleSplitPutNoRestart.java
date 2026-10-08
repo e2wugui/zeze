@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.lang.reflect.Field;
 import java.net.ServerSocket;
 import java.nio.file.Files;
@@ -48,6 +49,7 @@ import org.rocksdb.RocksIterator;
  * 在prepare段即中止——观测集中、无建桶副作用）。
  */
 @Fast
+@Extra
 public class TestStaleSplitPutNoRestart {
 
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();

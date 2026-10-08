@@ -1,5 +1,6 @@
 package Zeze.Dbh2;
 
+import harness.Extra;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.io.TempDir;
  * （对齐TestFnd19GAD04，@Fast车道无外部ServiceManager依赖）。
  */
 @Fast
+@Extra
 public class TestPrefixWalkPositioning {
 	private static final TaskOneByOneByKey taskOneByOne = new TaskOneByOneByKey();
 

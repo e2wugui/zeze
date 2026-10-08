@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import harness.Extra;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 修复前红点：NoSuchMethodException（清扫不存在=条目只增不减的病灶本体）。
  */
 @Fast
+@Extra
 public class TestIdleBindingSweep {
 
 	/** 最小可关闭会话桩：记录 close 被调用（closeExecutor 异步，闩同步）。 */

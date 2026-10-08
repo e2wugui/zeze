@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 由断言判红）。布局约定见 MqTestSupport。
  */
 @Fast
+@Extra
 public class TestAppendTornWriteLayout {
 
 	/** 与 appendMessage 完全同构的记录字节（Long8 BE id + Int4 LE size + BMessage 体）。 */

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import java.net.SocketAddress;
 import java.nio.file.Path;
 import java.util.List;
@@ -41,6 +42,7 @@ import static Zeze.MQ.Master.AbstractMaster.eConsumerNotFound;
  * （注入 MQFileWithIndex 的构造器与 handlePushResult 回调体）。
  */
 @Fast
+@Extra
 public class TestMQSingleGhostUnsubscribe {
 
 	/** 只假装"已发送"的 AsyncSocket 替身：rpc 上下文与超时按已发送建立，但不真正走网络。 */

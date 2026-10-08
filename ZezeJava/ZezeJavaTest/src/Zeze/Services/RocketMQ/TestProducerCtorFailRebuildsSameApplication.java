@@ -1,5 +1,6 @@
 package Zeze.Services.RocketMQ;
 
+import harness.Extra;
 import Zeze.Application;
 import Zeze.Config;
 import harness.Fast;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 @Fast
 @ResourceLock("rocketmq.producer.processSlot") // 与其他构造 Producer 的用例串行（共享进程级 liveInstances 计数）
+@Extra
 public class TestProducerCtorFailRebuildsSameApplication {
 	// 独立serverId+派生url：本用例只触登记路径不start（无缓存目录），派生url防Memory桶互撞。
 	private static final int SERVER_ID = FastServerIds.TEST_PRODUCER_CTOR_FAIL_REBUILDS;

@@ -1,5 +1,6 @@
 package Zeze.MQ;
 
+import harness.Extra;
 import harness.Fast;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -32,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  */
 @Fast
 @Isolated // master 端口 26000 与 TestMQ 相同（MQConsumer 静态 agent 读默认 zeze.xml），类级并发下会端口冲突，独占运行
+@Extra
 public class TestMQMasterSessionIdUnique {
     private static final int masterPort = 26000;
 
