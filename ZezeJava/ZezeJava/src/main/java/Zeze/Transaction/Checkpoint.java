@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import Zeze.Application;
 import Zeze.History.History;
@@ -44,32 +45,60 @@ public final class Checkpoint {
 	private final @NotNull Object activeFlushMonitor = new Object();
 	private int activeFlush; // guarded by activeFlushMonitor
 	private boolean acceptingFlushes = true; // guarded by activeFlushMonitor
+
+	// 提交使用权（在飞提交计数+停收门），位编码进单个AtomicInteger：符号位=门开（仍在收），
+	// 低31位=在飞计数。进入=一次getAndIncrement，退出=一次getAndDecrement——热路径全程
+	// 无monitor、无notify（此前monitor版每提交两次synchronized+无条件notifyAll，JDK21无
+	// 偏向锁下空事务内核循环实测-22%，平台线程高并发争用下更甚）。monitor只用于停机侧等待
+	// 与停收后归零退出的唤醒；归零退出可能发生在持rrs锁下（许可证随提交路径finally释放），
+	// 但monitor内只有notify不等待，且无人以相反顺序持锁，不成环。
+	// 唤醒无遗漏：停收CAS与计数增减线性一致地钉在同一字上——若某次退出的prev仍见门开，
+	// 停机线程的停收CAS必然晚于它，其停收后的读数已含这次退出，计数已见0不等待；
+	// 若prev见门已关，计数归零的那次退出负责进monitor notifyAll。
+	private final @NotNull AtomicInteger commitState = new AtomicInteger(Integer.MIN_VALUE);
 	private final @NotNull Object commitMonitor = new Object();
-	private boolean acceptingCommits = true; // guarded by commitMonitor
-	private int activeCommits; // guarded by commitMonitor
 
 	boolean tryBeginCommit() {
-		synchronized (commitMonitor) {
-			if (!acceptingCommits)
-				return false;
-			++activeCommits;
+		// 先自增后验门：门开即成功——热路径恰好一次RMW（get+CAS的合成）。门关时误加的
+		// 计数立即回退（仅停机窗口内的罕见路径），回退若使计数归零同样要补唤醒（停机线程
+		// 可能正等到它）。自增不会把开位挤掉：门开时符号位=1，低31位计数加1不进位到符号位
+		// （2^31在飞提交不可达）。
+		int prev = commitState.getAndIncrement();
+		if (prev < 0)
 			return true;
+		if (commitState.getAndDecrement() == 1) {
+			synchronized (commitMonitor) {
+				commitMonitor.notifyAll();
+			}
 		}
+		return false;
 	}
 
 	void endCommit() {
-		synchronized (commitMonitor) {
-			--activeCommits;
-			commitMonitor.notifyAll();
+		int prev = commitState.getAndDecrement();
+		if (prev < 0)
+			return; // 门仍开：不可能有等待者（停机线程必先关门，见stopAcceptingCommitsAndWait）
+		if ((prev & Integer.MAX_VALUE) == 1) { // 门已关且本次退出使计数归零
+			synchronized (commitMonitor) {
+				commitMonitor.notifyAll();
+			}
 		}
 	}
 
 	private void stopAcceptingCommitsAndWait() {
 		boolean interrupted = false;
+		for (;;) { // 关门：清符号位（幂等，并发stop安全）
+			int s = commitState.get();
+			if (s < 0) {
+				if (commitState.compareAndSet(s, s & Integer.MAX_VALUE))
+					break;
+			} else {
+				break;
+			}
+		}
+		// 使用权覆盖日志应用至脏集登记/同步落库。终检点不能越过仍可能登记的提交。
 		synchronized (commitMonitor) {
-			acceptingCommits = false;
-			// 使用权覆盖日志应用至脏集登记/同步落库。终检点不能越过仍可能登记的提交。
-			while (activeCommits != 0) {
+			while (commitState.get() != 0) { // 门已关，state即计数
 				try {
 					commitMonitor.wait();
 				} catch (InterruptedException e) {

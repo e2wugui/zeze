@@ -144,40 +144,38 @@ public final class RelativeRecordSet extends ReentrantLock {
 									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
 									   @NotNull HistoryChangesCollector collectChanges) throws Exception {
 		var checkpoint = procedure.getZeze().getCheckpoint();
-		if (checkpoint == null || !checkpoint.tryBeginCommit())
+		// 入口终检点检查：所有模式（含空事务）停机后统一显式拒绝（Closed语义）。
+		if (checkpoint == null)
 			throw new Transaction.RejectWhileStopping("commit rejected while stopping: " + procedure.getActionName());
-		try {
-			tryUpdateAndCheckpointWithPermit(trans, procedure, commit, onzProcedure, collectChanges, checkpoint);
-		} finally {
-			checkpoint.endCommit();
-		}
-	}
-
-	private static void tryUpdateAndCheckpointWithPermit(@NotNull Transaction trans, @NotNull Procedure procedure,
-			@NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
-			@NotNull HistoryChangesCollector collectChanges, @NotNull Checkpoint checkpoint) throws Exception {
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately: {
-			collectChanges.beforeApply(); // 取号在应用前（HistoryChangesCollector）：失败时数据未应用
-			commit.run();
-			BLogChanges.Data logChanges = null;
+			// Immediately模式空事务也经checkpoint.flush落库，提交使用权全程持有。
+			if (!checkpoint.tryBeginCommit())
+				throw new Transaction.RejectWhileStopping("commit rejected while stopping: " + procedure.getActionName());
 			try {
-				logChanges = collectChanges.afterApply();
-				checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
-			} catch (Throwable ex) {
-				// 修改已应用（commit.run）而收集/落库失败——runOnce对Immediately是no-op，
-				// perform的halt兜底刷不到这批"已应用未落库"的数据。趁记录锁未释放（holdLocks在
-				// finalCommit返回后才清）用同一入口做一次受控补刷：成功则数据已落库，fatal记原异常
-				// 后吞掉继续；再失败则重抛原异常走halt（DB硬故障，明确接受丢失）。
-				// 提交使用权使同步补刷与停机终检点互斥，不会在修改应用后失去补刷通道。
+				collectChanges.beforeApply(); // 取号在应用前（HistoryChangesCollector）：失败时数据未应用
+				commit.run();
+				BLogChanges.Data logChanges = null;
 				try {
+					logChanges = collectChanges.afterApply();
 					checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
-				} catch (Throwable ex2) { // logger.fatal
-					Checkpoint.logger.fatal("Immediately commit flush fail, salvage flush fail again, accept loss", ex2);
-					throw ex;
+				} catch (Throwable ex) {
+					// 修改已应用（commit.run）而收集/落库失败——runOnce对Immediately是no-op，
+					// perform的halt兜底刷不到这批"已应用未落库"的数据。趁记录锁未释放（holdLocks在
+					// finalCommit返回后才清）用同一入口做一次受控补刷：成功则数据已落库，fatal记原异常
+					// 后吞掉继续；再失败则重抛原异常走halt（DB硬故障，明确接受丢失）。
+					// 提交使用权使同步补刷与停机终检点互斥，不会在修改应用后失去补刷通道。
+					try {
+						checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
+					} catch (Throwable ex2) { // logger.fatal
+						Checkpoint.logger.fatal("Immediately commit flush fail, salvage flush fail again, accept loss", ex2);
+						throw ex;
+					}
+					Checkpoint.logger.fatal("Immediately commit flush fail, salvage flush success, data saved", ex);
 				}
-				Checkpoint.logger.fatal("Immediately commit flush fail, salvage flush success, data saved", ex);
+			} finally {
+				checkpoint.endCommit();
 			}
 			// 这种模式下 RelativeRecordSet 都是空的。
 			return; // done
@@ -213,40 +211,50 @@ public final class RelativeRecordSet extends ReentrantLock {
 		try {
 			_lock_(locked, all, transAccessRecords);
 			if (!locked.isEmpty()) {
-				var mergedSet = _merge_(locked, trans, allRead);
-				collectChanges.beforeApply(); // 取号在应用前（HistoryChangesCollector）：失败时数据未应用
-				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
-				mergedSet.addOnzProcedures(onzProcedure);
+				// 提交使用权延迟到确知非空（已持rrs锁）才获取：空事务else分支不触碰checkpoint
+				// （无脏集登记、无flush），免许可证——内核空事务循环热路径零RMW，只剩入口的
+				// 终检点null检查。拒绝时经外层finally释放rrs锁；tryBeginCommit的CAS不阻塞，
+				// 持锁获取无停等，与停机侧（只等计数、不持rrs锁）无锁序环。
+				if (!checkpoint.tryBeginCommit())
+					throw new Transaction.RejectWhileStopping("commit rejected while stopping: " + procedure.getActionName());
 				try {
-					var logChanges = collectChanges.afterApply();
-					if (logChanges != null)
-						mergedSet.addLogChanges(logChanges); // History存在并且开启，则加入rrs。
+					var mergedSet = _merge_(locked, trans, allRead);
+					collectChanges.beforeApply(); // 取号在应用前（HistoryChangesCollector）：失败时数据未应用
+					commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
+					mergedSet.addOnzProcedures(onzProcedure);
+					try {
+						var logChanges = collectChanges.afterApply();
+						if (logChanges != null)
+							mergedSet.addLogChanges(logChanges); // History存在并且开启，则加入rrs。
 
-					if (needFlushNow) {
-						if (mergedSet.recordSet != null) {
-							checkpoint.flush(mergedSet);
-						} else if (onzProcedure != null) {
-							// 孤立mergedSet（只读/全默认值访问不合并）不会被flush(RelativeRecordSet)
-							// 下传握手，Onz参与方永不发FlushReady，协调者每笔等满flushTimeout后降级。
-							// 在此直接补发，语义对齐Immediately模式的flush(空记录集, Set.of(onz), null)。
-							OnzProcedure.sendFlushAndWait(Set.of(onzProcedure));
+						if (needFlushNow) {
+							if (mergedSet.recordSet != null) {
+								checkpoint.flush(mergedSet);
+							} else if (onzProcedure != null) {
+								// 孤立mergedSet（只读/全默认值访问不合并）不会被flush(RelativeRecordSet)
+								// 下传握手，Onz参与方永不发FlushReady，协调者每笔等满flushTimeout后降级。
+								// 在此直接补发，语义对齐Immediately模式的flush(空记录集, Set.of(onz), null)。
+								OnzProcedure.sendFlushAndWait(Set.of(onzProcedure));
+							}
+							mergedSet.delete();
+						} else if (mergedSet.recordSet != null) {
+							// mergedSet 合并结果是孤立的，不需要Flush。
+							// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
+							checkpoint.relativeRecordSetMap.add(mergedSet);
 						}
-						mergedSet.delete();
-					} else if (mergedSet.recordSet != null) {
-						// mergedSet 合并结果是孤立的，不需要Flush。
-						// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
-						checkpoint.relativeRecordSetMap.add(mergedSet);
+					} catch (Throwable ex) {
+						// 修改已应用（commit.run）而收集/落库失败——直接向上抛则
+						// mergedSet不进relativeRecordSetMap，perform的halt兜底checkpointRun只遍历map，
+						// 已应用的脏数据（含_merge_并入的存量脏集）无任何落库通道，halt后丢失。
+						// 把mergedSet注册进map交给后台checkpoint重试后再重抛：mergedSet锁全程由本线程
+						// 持有（finally统一释放），map为ConcurrentHashSet，注册并发安全；flush失败时
+						// flushInternal已回滚DB事务、记录保持dirty，正是"保留dirty留待重试"的既有语义。
+						if (mergedSet.recordSet != null)
+							checkpoint.relativeRecordSetMap.add(mergedSet);
+						throw ex;
 					}
-				} catch (Throwable ex) {
-					// 修改已应用（commit.run）而收集/落库失败——直接向上抛则
-					// mergedSet不进relativeRecordSetMap，perform的halt兜底checkpointRun只遍历map，
-					// 已应用的脏数据（含_merge_并入的存量脏集）无任何落库通道，halt后丢失。
-					// 把mergedSet注册进map交给后台checkpoint重试后再重抛：mergedSet锁全程由本线程
-					// 持有（finally统一释放），map为ConcurrentHashSet，注册并发安全；flush失败时
-					// flushInternal已回滚DB事务、记录保持dirty，正是"保留dirty留待重试"的既有语义。
-					if (mergedSet.recordSet != null)
-						checkpoint.relativeRecordSetMap.add(mergedSet);
-					throw ex;
+				} finally {
+					checkpoint.endCommit();
 				}
 			} else {
 				// 本次事务没有访问任何数据，也要执行提交，否则 whileCommit 回调会丢失。
