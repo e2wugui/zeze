@@ -61,6 +61,9 @@ import harness.Fast;
  */
 @Fast
 public class TestServiceManagerWithRaftCommitThenResponse {
+
+	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
+	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String RAFT_NAME = "ctr_sm_test";
 	private static final String SERVICE_NAME = "UnitTest.CTR.Service";
 	private static final String ALLOC_NAME = "UnitTest.CTR.AllocId";
@@ -147,7 +150,7 @@ public class TestServiceManagerWithRaftCommitThenResponse {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false));
+			servers.add(fatalGuard.install(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false)));
 			// FND8-42起Raft构造器经derive私有副本联动DbHome，不再改写传入的raftConf——
 			// raftConf.getDbHome()仍是xml Name而非数据目录，收尾删它是空操作，节点目录
 			// 127.0.0.1_<port>因此残留。实际目录由节点名派生（derive口径，同上方预清理）。

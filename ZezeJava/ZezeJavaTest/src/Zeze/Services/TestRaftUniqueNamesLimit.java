@@ -44,6 +44,9 @@ import harness.Fast;
  */
 @Fast
 public class TestRaftUniqueNamesLimit {
+
+	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
+	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String RAFT_NAME = "raft_unique_names_test";
 	private static final String SESSION_NAME = "UnitTest.RaftUniqueNames.Agent";
 
@@ -113,7 +116,7 @@ public class TestRaftUniqueNamesLimit {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false));
+			servers.add(fatalGuard.install(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Zeze.Config(), false)));
 			dbHomes.add(nodeNames.get(i).replace(':', '_'));
 		}
 		waitStableLeader(); // 本机默认定时器下选举初期会抖动十余秒再收敛

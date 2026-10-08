@@ -31,6 +31,9 @@ import harness.Fast;
  */
 @Fast
 public class TestServiceManagerWithRaftSuspect {
+
+	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
+	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String raftXmlString = """
 			<?xml version="1.0" encoding="utf-8"?>
 			<raft Name="s4_sm_test">
@@ -48,9 +51,9 @@ public class TestServiceManagerWithRaftSuspect {
 		cleanDirs();
 		raftXmlFile = Files.createTempFile("s4_sm_test_raft", ".xml");
 		Files.writeString(raftXmlFile, raftXmlString);
-		for (var node : RaftConfig.loadFromString(raftXmlString).getNodes().values())
-			servers.add(new ServiceManagerWithRaft(node.getName(),
-					RaftConfig.loadFromString(raftXmlString), new Config(), false));
+			for (var node : RaftConfig.loadFromString(raftXmlString).getNodes().values())
+				servers.add(fatalGuard.install(new ServiceManagerWithRaft(node.getName(),
+						RaftConfig.loadFromString(raftXmlString), new Config(), false)));
 	}
 
 	@AfterAll

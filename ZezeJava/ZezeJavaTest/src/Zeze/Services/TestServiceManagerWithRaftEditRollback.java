@@ -31,6 +31,9 @@ import org.junit.jupiter.api.Timeout;
  */
 @Fast
 public class TestServiceManagerWithRaftEditRollback {
+
+	/** Raft fatalKill 守卫（halt(-1) 杀死测试 JVM，见 SmRaftFatalGuard）。 */
+	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String RAFT_NAME = "edit_rollback_sm_test";
 
 	private static final int[] ports = new int[3];
@@ -72,7 +75,7 @@ public class TestServiceManagerWithRaftEditRollback {
 			for (var node : raftConf.getNodes().values())
 				if (node.getPort() == ports[i])
 					nodeNames.add(node.getName());
-			servers.add(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Config(), false));
+			servers.add(fatalGuard.install(new ServiceManagerWithRaft(nodeNames.get(i), raftConf, new Config(), false)));
 			// FND8-42起Raft构造器经derive私有副本联动DbHome，不再改写传入的raftConf——
 			// raftConf.getDbHome()仍是xml Name而非数据目录，收尾删它是空操作，节点目录
 			// 127.0.0.1_<port>因此残留。实际目录由节点名派生（derive口径，同上方预清理）。
