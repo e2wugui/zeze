@@ -38,11 +38,11 @@ import static Zeze.Onz.Fnd20GcOnzFastSupport.*;
  */
 @Fast
 public class TestOnzRedoRotationCursor {
-	// 号段[857,868)：本类857与桩参与方867（ServerId+10），FastServerIds桌登记；
-	// SM/桩端口31857/31877为净层固定端口，不占缓存目录、不入桌。
+	// 号段[857,859)（FastServerIds桌登记）：主app 857、zeze1参与方858。净层端口不入桌，
+	// 但由号段成员派生背书唯一（GC族惯例 port=31000+号段成员）：SM=31857、桩监听=31858。
 	private static final int ServerId = FastServerIds.TEST_ONZ_REDO_ROTATION_CURSOR;
-	private static final int SmPort = 31857;
-	private static final int StubPort = 31877;
+	private static final int SmPort = 31000 + ServerId;
+	private static final int StubPort = 31000 + ServerId + 1;
 
 	// 同高位、末字节跨0x80边界的三连tid：RocksDB key无符号序 A(…7E) < B(…7F) < C(…80)。
 	private static final long TidA = 0x5CA3F0000000007EL;
@@ -82,7 +82,7 @@ public class TestOnzRedoRotationCursor {
 			registerAgent.getClient().getConfig().addConnector(new Connector("127.0.0.1", SmPort));
 			registerAgent.start();
 			registerAgent.waitReady();
-			registerAgent.registerService(new BServiceInfo("Onz", "857", 0, "127.0.0.1", StubPort));
+			registerAgent.registerService(new BServiceInfo("Onz", String.valueOf(ServerId), 0, "127.0.0.1", StubPort));
 
 			// zeze1配置必须是文件（OnzServer构造只收路径）；myConfig可程序化构造。
 			var zeze1Xml = tempDir.resolve("onz-redo-rotation-zeze1.xml");
@@ -93,7 +93,7 @@ public class TestOnzRedoRotationCursor {
 							<Connector HostNameOrAddress="127.0.0.1" Port="%d"/>
 						</ServiceConf>
 					</zeze>
-					""".formatted(ServerId + 10, SmPort));
+					""".formatted(ServerId + 1, SmPort));
 			var myConfig = new Config();
 			myConfig.setServerId(ServerId);
 			var sc = new ServiceConf();

@@ -85,7 +85,7 @@ public final class FastServerIds {
 	public static final int TEST_HOT02_UPGRADE_INCOMPATIBLE_FAILFAST = seg("TestHot02UpgradeIncompatibleFailFast", 810, 1);
 	public static final int TEST_TXN02_GET_OR_ADD_IS_ADD_CONTRACT = seg("TestTxn02GetOrAddIsAddContract", 820, 1);
 
-	public static final int TEST_ONZ_REDO_ROTATION_CURSOR = seg("TestOnzRedoRotationCursor", 857, 11);
+	public static final int TEST_ONZ_REDO_ROTATION_CURSOR = seg("TestOnzRedoRotationCursor", 857, 2);
 
 	public static final int TEST_HTTP_SESSION_FIXATION = seg("TestHttpSessionFixation", 1410, 3);
 
