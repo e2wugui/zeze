@@ -86,6 +86,12 @@ public class TestOnz {
 		waitOnzReady();
 		var txn = new KuafuTransaction(1, 1, 1);
 		txn.setOnzServer(onzServer);
+		// flushTimeout 默认10s：finalCommit 的 checkpoint flush 对参与者发 FlushReady 等待
+		// 超该值即 finalCommit exception → halt(543543)（产品契约）。机器 stall 晚曾整批炸
+		//（2026-10-08 test5批r4：同JVM存在卡300s的ePreparing事务=stall实证，kuafu事务
+		// flush 超10s → IT相halt）；对齐 LateRegisterTransaction/TestOnzSagaPersistRedo 先例
+		// 调大到30s——功能断言与计时无关，只放大stall容忍窗。
+		txn.setFlushTimeout(30_000);
 		Assertions.assertEquals(0, onzServer.perform(txn)); // 这里出现过断言失败，是rollback了，有异常日志，但很奇怪，不知道哪里调了rollback。
 		logger.info("after perform m1={} m2={}", txn.m1, txn.m2);
 		Assertions.assertEquals(0, txn.m1 + txn.m2);
