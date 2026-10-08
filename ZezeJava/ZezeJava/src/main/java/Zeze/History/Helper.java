@@ -123,7 +123,6 @@ public class Helper {
 		public final HashSet<SortedMap2Meta<? extends Comparable<?>, ? extends Bean>> sortedMap2Metas = new HashSet<>();
 	}
 
-	@SuppressWarnings({"unchecked", "rawtypes"})
 	public static void registerAllTableLogs(@NotNull Application zeze) throws Exception {
 		var result = new DependsResult();
 		for (var db : zeze.getDatabases().values()) {
@@ -158,7 +157,8 @@ public class Helper {
 	}
 
 	// 包内可见：测试直驱跨批次注册形态（增量开表批次 vs 启动期批次的冲突面）。
-	static void applyRegistrations(@NotNull DependsResult result) throws Exception {
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	static void applyRegistrations(@NotNull DependsResult result) {
 		for (var beanClass : result.beans)
 			registerLogOne(beanClass); // 没做为其他Bean的变量时是不需要注册的。这里区分了。
 		for (var beanKeyClass : result.beanKeys)
@@ -339,7 +339,7 @@ public class Helper {
 	// 共享本遍历的确定序保证。
 	private static <K, F> ArrayList<Map.Entry<K, F>> sortedDynamic(
 			@NotNull HashMap<K, F> families, @NotNull java.util.function.Function<F, String> where) {
-		var list = new ArrayList<Map.Entry<K, F>>(families.entrySet());
+		var list = new ArrayList<>(families.entrySet());
 		list.sort(Comparator.comparing(e -> where.apply(e.getValue())));
 		return list;
 	}
@@ -370,14 +370,7 @@ public class Helper {
 	}
 
 	/** 跨批次dynamic家族决胜的进程级登记项：胜者工厂按对象身份跟踪（工厂闭包无equals语义）。 */
-	private static final class DynamicWinner {
-		final @NotNull IntFunction<Log> factory;
-		final @NotNull String where;
-
-		DynamicWinner(@NotNull IntFunction<Log> factory, @NotNull String where) {
-			this.factory = factory;
-			this.where = where;
-		}
+		private record DynamicWinner(@NotNull IntFunction<Log> factory, @NotNull String where) {
 	}
 
 	// dynamic家族跨批次决胜的进程级累积状态：typeId→当前胜者，与启动期applyRegistrations

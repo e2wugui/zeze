@@ -23,9 +23,9 @@ final class ClientConfigs {
 	 */
 	static void copyRoutingIdentity(@NotNull ClientConfig src, @NotNull ClientConfig dst) {
 		dst.setNamesrvAddr(src.getNamesrvAddr());
-		var namespace = src.getNamespace();
+		var namespace = src.getNamespaceV2();
 		if (namespace != null && !namespace.isEmpty())
-			dst.setNamespace(namespace);
+			dst.setNamespaceV2(namespace);
 		if (src.getInstanceName() != null)
 			dst.setInstanceName(src.getInstanceName());
 		if (src.getUnitName() != null)
