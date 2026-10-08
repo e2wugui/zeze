@@ -107,8 +107,8 @@ public class TestMQDestroyColumnFamilyWaitsInFlightFill {
 		var database = new RocksDatabase(home);
 		var file = new MQFileWithIndex(home, database, "topic", 0);
 		try {
-			file.appendMessage(Fnd19MqTestSupport.messageOf(0));
-			file.appendMessage(Fnd19MqTestSupport.messageOf(1));
+			file.appendMessage(MqTestSupport.messageOf(0));
+			file.appendMessage(MqTestSupport.messageOf(1));
 			var indexTable = database.getTable("topic.0.0");
 			Assertions.assertNotNull(indexTable);
 

@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * FND24 zoker-06 守卫：闲置绑定清扫（FileSessionManager.sweepIdleBindings）直驱。
  * 修复前 map 无淘汰无上限：每源 IP 最后一个会话滞留到进程结束（9980 无认证端口下伪造源 IP
  * 线性放大）。修复=lastActiveNanos+TTL 惰性清扫（驱逐走既有 closeExecutor）。
- * 直驱面（sweepIdleBindings 私有静态，反射先例 TestE02CommitLockCaseFolding；resolve 全链
- * 依赖 LogAgent 网络，见 TestD06LogSessionBinding 的直测边界声明）：
+ * 直驱面（sweepIdleBindings 私有静态，反射先例 TestCommitLockCaseFolding；resolve 全链
+ * 依赖 LogAgent 网络，见 TestLogSessionBinding 的直测边界声明）：
  * <ul>
  * <li>闲置超 TTL 的绑定被逐（条目消失）且其会话经 closeExecutor 异步关闭；</li>
  * <li>未闲置绑定不受波及（误逐=每次查询重建，游标抖动）；</li>

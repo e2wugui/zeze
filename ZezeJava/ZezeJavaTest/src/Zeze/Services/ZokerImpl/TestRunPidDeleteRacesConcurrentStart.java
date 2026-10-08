@@ -49,7 +49,7 @@ public class TestRunPidDeleteRacesConcurrentStart {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping/cmd）");
 		var servicesDir = tempDir.resolve("services").toFile();
 		Files.createDirectories(servicesDir.toPath());
-		// 摆 services/svc/current → v1 + 保活命令（与 TestD01ServiceLifecycle 同构）
+		// 摆 services/svc/current → v1 + 保活命令（与 TestServiceLifecycle 同构）
 		var svc = servicesDir.toPath().resolve("svc");
 		var v1 = Files.createDirectories(svc.resolve("v1"));
 		Files.writeString(svc.resolve(DistributeManager.CURRENT_NAME), "v1");

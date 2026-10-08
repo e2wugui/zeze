@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
-import static Zeze.Onz.Fnd20GcOnzFastSupport.*;
+import static Zeze.Onz.GcOnzFastSupport.*;
 
 /**
  * FND24 审视波守卫：redoTimer 轮转游标的起点扫描必须按 RocksDB 的无符号字节序比较
@@ -32,7 +32,7 @@ import static Zeze.Onz.Fnd20GcOnzFastSupport.*;
  * 轮次下该记录每轮轮不到，onz-05 要根治的尾部饥饿原样回归（正确性无损：重发幂等、
  * 删除有复核，纯收敛性缺陷）。
  * <p>
- * 形态：@Fast 自包含（进程内 SM + OnzServer，对齐 Fnd20GcOnzFastSupport 先例，不复用
+ * 形态：@Fast 自包含（进程内 SM + OnzServer，对齐 GcOnzFastSupport 先例，不复用
  * 其桩是因为要记录 Commit 到达顺序——IntSupplier 观测不到 tid）。反射预置 redoResumeKey
  * 后驱动一轮 redoTimer，断言桩参与方收到的 Commit 顺序 = 无符号序的"游标之后→回卷"。
  */
@@ -62,7 +62,7 @@ public class TestOnzRedoRotationCursor {
 	public void before(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
 		Files.createDirectories(Path.of("autokeys"));
-		Fnd19GcOnzTestSupport.deleteRecursively(Path.of("CommitOnzServer" + ServerId));
+		GcOnzE2eTestSupport.deleteRecursively(Path.of("CommitOnzServer" + ServerId));
 
 		sm = new ServiceManagerServer(null, SmPort, new Config(), "autokeys/onz-redo-rotation-" + ServerId);
 		try {

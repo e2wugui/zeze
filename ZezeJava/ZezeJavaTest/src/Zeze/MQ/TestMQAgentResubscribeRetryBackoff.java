@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
  * 判别：失败注入=替身 socket Send 恒 false（SendForWait 即刻 setException，不等 rpc 5s
  * 超时）；MQConsumer 经 Unsafe 免构造铸造（构造器走网络，测试只读其 managers/topic/
  * sessionId 三者）；调度器/轮次/取消缝均反射访问（baseline 无这些成员判红——测试须在
- * baseline 编译通过，TestGBD03FillRetrySelfSchedule 先例）。全程无网络，@Fast。
+ * baseline 编译通过，TestFillRetrySelfSchedule 先例）。全程无网络，@Fast。
  */
 @Fast
 public class TestMQAgentResubscribeRetryBackoff {

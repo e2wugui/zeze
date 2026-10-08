@@ -160,7 +160,7 @@ public class TestOnzReadyWaitInterrupted {
 		}
 	}
 
-	/** 反射缝：直取 Onz 私有 readyProcedures（模拟决策线程的 remove；先例见 Fnd19MqTestSupport）。 */
+	/** 反射缝：直取 Onz 私有 readyProcedures（模拟决策线程的 remove；先例见 MqTestSupport）。 */
 	@SuppressWarnings("unchecked")
 	private static LongConcurrentHashMap<OnzProcedure> readyProceduresOf(Onz onz) throws Exception {
 		var f = Onz.class.getDeclaredField("readyProcedures");

@@ -13,7 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import static Zeze.Onz.Fnd19GcOnzTestSupport.*;
+import static Zeze.Onz.GcOnzE2eTestSupport.*;
 
 /**
  * FND24 onz-03 回归：补偿失败的线上结果码不得为用户裸 rc——用户补偿函数返回值与协议

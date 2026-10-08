@@ -49,7 +49,7 @@ public class TestPrepareConflictLoserKeepsHolderLock {
 					<node Host="127.0.0.1" Port="19162"/>
 				</raft>
 				""";
-		var nodes = Fnd19GABucketSupport.startBucket(database, raftConfig, tempDir, taskOneByOne);
+		var nodes = RaftBucketTopologySupport.startBucket(database, raftConfig, tempDir, taskOneByOne);
 		var agent = new Dbh2Agent(raftConfig);
 		try {
 			var meta = new BBucketMeta.Data();
@@ -96,7 +96,7 @@ public class TestPrepareConflictLoserKeepsHolderLock {
 			Assertions.assertEquals(0, prepare(agent, 7, k2));
 			agent.commitBatch(7).await();
 		} finally {
-			Fnd19GABucketSupport.stopBucket(nodes, agent, database);
+			RaftBucketTopologySupport.stopBucket(nodes, agent, database);
 		}
 	}
 }

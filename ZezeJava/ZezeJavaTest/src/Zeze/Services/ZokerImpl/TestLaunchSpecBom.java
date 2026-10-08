@@ -43,7 +43,7 @@ public class TestLaunchSpecBom {
 		assertEquals(List.of("cmd", "/c", "app.exe"), spec.command);
 	}
 
-	/** 无 BOM 既有语义不受影响（回归钉，同 TestE04LaunchSpecBackslash 的最小形态）。 */
+	/** 无 BOM 既有语义不受影响（回归钉，同 TestLaunchSpecBackslash 的最小形态）。 */
 	@Test
 	public void testNoBomUnchanged(@TempDir Path tempDir) throws Exception {
 		var spec = parse(tempDir.resolve("v1"), "command=ping\n");

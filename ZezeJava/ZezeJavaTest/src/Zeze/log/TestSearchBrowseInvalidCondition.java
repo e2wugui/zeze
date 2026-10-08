@@ -35,7 +35,7 @@ import harness.Fast;
  * 本环境无 LogAgent（LogAgentManager.getInstance()==null）——漏过校验的参数会进到
  * getLogAgent() 抛 NPE 落入 catch，desc 为 "system error" 而非明确参数错误，恰构成
  * 红/绿判别；服务端的码级分诊（参数级不拆会话）由 TestParamErrorNoSessionRebuild
- * 与 TestE03SessionResultCodeCheck 覆盖。</p>
+ * 与 TestSessionResultCodeCheck 覆盖。</p>
  *
  * <p>@Isolated：FileSessionManager/ApiToken 为 JVM 级静态状态，独占运行避免与其他
  * 摆盘互踩（对齐 TestSearchBrowseInvalidLimit）。</p>

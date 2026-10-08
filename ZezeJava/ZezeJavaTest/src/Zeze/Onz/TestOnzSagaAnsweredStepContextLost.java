@@ -17,7 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import static Zeze.Onz.Fnd19GcOnzTestSupport.*;
+import static Zeze.Onz.GcOnzE2eTestSupport.*;
 
 /**
  * onz-01 回归：saga 参与方补偿上下文纯内存，参与方在"步骤已应答成功且已落库→

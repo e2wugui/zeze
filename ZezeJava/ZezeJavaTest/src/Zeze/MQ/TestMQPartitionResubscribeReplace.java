@@ -26,7 +26,7 @@ import org.junit.jupiter.api.io.TempDir;
  * sessionId put 替换旧 socket 并 arrangeConsumer；同 socket 重复订阅幂等无害。
  * <p>
  * 注：需要 MQSingle 的包内测试缝与 MQPartition.subscribes 的反射观察点（布局约定见
- * Fnd19MqTestSupport）。
+ * MqTestSupport）。
  */
 @Fast
 public class TestMQPartitionResubscribeReplace {
@@ -72,8 +72,8 @@ public class TestMQPartitionResubscribeReplace {
 			injectPartition(partition, 0, single);
 			try {
 				var service = new Service("TestMQPartitionResubscribeReplace");
-				var staleSocket = new Fnd19MqTestSupport.FakeSocket(service);
-				var freshSocket = new Fnd19MqTestSupport.FakeSocket(service);
+				var staleSocket = new MqTestSupport.FakeSocket(service);
+				var freshSocket = new MqTestSupport.FakeSocket(service);
 
 				// 基线：sessionId=1 经 socket A 订阅成功，分区 0 绑定 A。
 				partition.subscribe(staleSocket, 1L);

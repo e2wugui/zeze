@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *     旧目录仍持有原 inode，重建必得新值；Windows 依赖 creationTime，同 tick 碰撞以有界重试
  *     兜底）。退化平台（"?"恒等）在本守卫下必须红——世代防护失效不可静默。</li>
  * </ol>
- * 私有静态方法反射直驱（结构性判别先例：TestE02CommitLockCaseFolding 反射读 commitLocks）。
+ * 私有静态方法反射直驱（结构性判别先例：TestCommitLockCaseFolding 反射读 commitLocks）。
  * 全链"commit 完整起止于 FileBin 构造窗内"的确定性红绿需故障注入缝（README FND25 首项），
  * 本守卫锁的是修复所依赖的平台行为链——不依赖时序，全平台确定性。
  */

@@ -164,8 +164,8 @@ public class TestWalkRecoversWhenBucketSplitsOrMovesMidTraversal {
 		var agentA = new Dbh2Agent(RAFT_A);
 		var agentT = new Dbh2Agent(RAFT_T);
 		var agentC = new Dbh2Agent(RAFT_C);
-		var manager = new Dbh2AgentManager(new Fnd19GADStubSupport.NullServiceAgent(),
-				Config.load(Fnd19GADStubSupport.writeRemoteCommitConfig(tempDir).toString()));
+		var manager = new Dbh2AgentManager(new Dbh2AgentStubSupport.NullServiceAgent(),
+				Config.load(Dbh2AgentStubSupport.writeRemoteCommitConfig(tempDir).toString()));
 		try {
 			var db = "database";
 			var table = "table1";

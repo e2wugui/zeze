@@ -23,7 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
  * Manager 启动失败需人工排障。
  * <p>
  * 修复：MQFileWithIndex 与 loadMQ 同规（partIndex.length != 2 跳过），杂散文件不再参与段注册。
- *（布局约定见 Fnd19MqTestSupport。）
+ *（布局约定见 MqTestSupport。）
  * 原"类级 @ResourceLock(mq-file-statics)"（appendMessage/rebuildSegmentIndex 读公共静态
  * makeIndexPeriod，FND26 并行红）已随静态实例化移除：每实例读自己的周期，跨类漂移根除。
  */
@@ -45,7 +45,7 @@ public class TestMQFileWithIndexGhostSegment {
 		var dataFile = file.getLastFile();
 		try {
 			for (long id = 0; id < 2; ++id)
-				file.appendMessage(Fnd19MqTestSupport.messageOf(id));
+				file.appendMessage(MqTestSupport.messageOf(id));
 			file.close();
 		} finally {
 			database.close();
@@ -65,7 +65,7 @@ public class TestMQFileWithIndexGhostSegment {
 				Assertions.assertEquals("0.0", file2.getLastFile().getName(),
 						"活跃段仍是真实段，不得指向按 key 重建的幽灵文件名");
 				// 打开后的追加与回填照常（回填经索引定位不受幽灵段影响）。
-				file2.appendMessage(Fnd19MqTestSupport.messageOf(2));
+				file2.appendMessage(MqTestSupport.messageOf(2));
 				Queue<BMessage.Data> queue = new ConcurrentLinkedQueue<>();
 				file2.fillMessage(queue, 0, 3);
 				assertFillInOrder(queue, 0, 3);
@@ -83,7 +83,7 @@ public class TestMQFileWithIndexGhostSegment {
 		var file = new MQFileWithIndex(home, database, "topic", 0);
 		var dataFile = file.getLastFile();
 		try {
-			file.appendMessage(Fnd19MqTestSupport.messageOf(0));
+			file.appendMessage(MqTestSupport.messageOf(0));
 			file.close();
 		} finally {
 			database.close();
@@ -114,7 +114,7 @@ public class TestMQFileWithIndexGhostSegment {
 		var file = new MQFileWithIndex(home, database, "topic", 0);
 		try {
 			for (long id = 0; id < 250; ++id)
-				file.appendMessage(Fnd19MqTestSupport.messageOf(id));
+				file.appendMessage(MqTestSupport.messageOf(id));
 			file.close();
 		} finally {
 			database.close();

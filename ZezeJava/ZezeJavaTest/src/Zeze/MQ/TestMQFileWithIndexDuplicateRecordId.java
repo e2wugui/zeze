@@ -94,7 +94,7 @@ public class TestMQFileWithIndexDuplicateRecordId {
 			var file = new MQFileWithIndex(home, database, "topic", 0);
 			try {
 				for (long id = 0; id < 3; ++id)
-					file.appendMessage(Fnd19MqTestSupport.messageOf(id));
+					file.appendMessage(MqTestSupport.messageOf(id));
 				appendDuplicateOfLastRecord(file.getLastFile().toPath());
 
 				Queue<BMessage.Data> queue = new ConcurrentLinkedQueue<>();
@@ -117,7 +117,7 @@ public class TestMQFileWithIndexDuplicateRecordId {
 			var file = new MQFileWithIndex(home, database, "topic", 0);
 			try {
 				for (long id = 0; id < 3; ++id)
-					file.appendMessage(Fnd19MqTestSupport.messageOf(id));
+					file.appendMessage(MqTestSupport.messageOf(id));
 				insertDuplicateOfRecord(file.getLastFile().toPath(), 1);
 
 				Queue<BMessage.Data> queue = new ConcurrentLinkedQueue<>();

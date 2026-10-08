@@ -28,7 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 收敛。②既有入口闸不回归（双绿守卫）：在飞非零时 tryRecycle 入口整体跳过。
  * <p>
  * 注：recycleSegment 反射直驱；trunkFileSize/makeIndexPeriod 静态字段小值快滚、finally
- * 恢复（TestGBD02SegmentRecycle 先例）。
+ * 恢复（TestSegmentRecycle 先例）。
  */
 @Fast
 public class TestMQRecycleDropWaitsInFlightFill {
@@ -76,7 +76,7 @@ public class TestMQRecycleDropWaitsInFlightFill {
 				file.makeIndexPeriod = 1;
 				try {
 					for (long id = 0; id < 200; ++id)
-						file.appendMessage(Fnd19MqTestSupport.messageOf(id));
+						file.appendMessage(MqTestSupport.messageOf(id));
 					var bases = segmentBases(topicDir);
 					Assertions.assertTrue(bases.size() >= 3, "多段前提不成立，实际段数=" + bases.size());
 
@@ -139,7 +139,7 @@ public class TestMQRecycleDropWaitsInFlightFill {
 				file.makeIndexPeriod = 1;
 				try {
 					for (long id = 0; id < 200; ++id)
-						file.appendMessage(Fnd19MqTestSupport.messageOf(id));
+						file.appendMessage(MqTestSupport.messageOf(id));
 					var bases = segmentBases(topicDir);
 					Assertions.assertTrue(bases.size() >= 3);
 

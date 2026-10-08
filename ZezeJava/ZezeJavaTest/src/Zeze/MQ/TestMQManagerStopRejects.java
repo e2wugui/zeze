@@ -23,7 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 端到端"活 Manager 停机不崩"由 TestMQManagerStopLive 覆盖。
  * <p>
  * 注：需要 MQSingle 的包内测试缝（handlePushResult）与 MQManager.stopped 的反射置位
- *（布局约定见 Fnd19MqTestSupport）。
+ *（布局约定见 MqTestSupport）。
  */
 @Fast
 public class TestMQManagerStopRejects {
@@ -47,7 +47,7 @@ public class TestMQManagerStopRejects {
 			var single = new MQSingle(partition, "topic", 0, file);
 			try {
 				// 基线：stop 前 sendMessage 正常落盘。
-				single.sendMessage(Fnd19MqTestSupport.sendMessageOf(0));
+				single.sendMessage(MqTestSupport.sendMessageOf(0));
 				Assertions.assertEquals(1, file.getNextMessageId());
 
 				// 模拟 stop() 最前置位（真实 stop 里发生在关网络之前）。
@@ -56,7 +56,7 @@ public class TestMQManagerStopRejects {
 				// ① 停机后到达的提交被显式拒绝：不落盘（旧代码继续 appendMessage，与随后的
 				// rocksDatabase.close 并发属 native use-after-free）。
 				Assertions.assertThrows(IllegalStateException.class,
-						() -> single.sendMessage(Fnd19MqTestSupport.sendMessageOf(1)),
+						() -> single.sendMessage(MqTestSupport.sendMessageOf(1)),
 						"stopped 后 sendMessage 必须在锁内拒绝（不发成功应答）");
 				Assertions.assertEquals(1, file.getNextMessageId(), "拒绝的提交不得落盘");
 
@@ -65,7 +65,7 @@ public class TestMQManagerStopRejects {
 				push.Argument.setTopic("topic");
 				push.Argument.setSessionId(77L);
 				push.setResultCode(0);
-				Fnd19MqTestSupport.setPending(single, push);
+				MqTestSupport.setPending(single, push);
 				single.handlePushResult(); // 不得抛出、不得触碰 meta
 				Assertions.assertEquals(0, file.getFirstMessageId(), "stopped 后应答回调不得推进 firstMessageId");
 			} finally {

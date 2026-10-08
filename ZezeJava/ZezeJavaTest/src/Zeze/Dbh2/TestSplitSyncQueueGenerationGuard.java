@@ -89,7 +89,7 @@ public class TestSplitSyncQueueGenerationGuard {
 	}
 
 	private static Zeze.Dbh2.Dbh2 waitLeader(ArrayList<Zeze.Dbh2.Dbh2> nodes) throws InterruptedException {
-		return Fnd19GABucketSupport.waitLeader(nodes);
+		return RaftBucketTopologySupport.waitLeader(nodes);
 	}
 
 	private static void setBucketMeta(Dbh2Agent agent, Binary keyFirst, Binary keyLast) {

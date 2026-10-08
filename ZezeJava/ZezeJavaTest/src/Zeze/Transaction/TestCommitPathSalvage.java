@@ -38,10 +38,10 @@ public class TestCommitPathSalvage {
 	Path tempDir;
 
 	private Application app;
-	private tFnd818Table table;
+	private EncodeFailTable table;
 
 	private void startApp(CheckpointMode mode, String dbSubName, Consumer<Config> tweak) throws Exception {
-		F818Bean.encodeFailOnce.set(0);
+		EncodeFailBean.encodeFailOnce.set(0);
 		var config = new Config();
 		config.setServiceManager("disable");
 		config.setCheckpointMode(mode);
@@ -55,7 +55,7 @@ public class TestCommitPathSalvage {
 		if (tweak != null)
 			tweak.accept(config);
 		app = new Application("TestCommitPathSalvage", config);
-		table = new tFnd818Table();
+		table = new EncodeFailTable();
 		app.addTable("", table);
 		app.start();
 	}
@@ -68,7 +68,7 @@ public class TestCommitPathSalvage {
 
 	private void putValue(long key, long value) {
 		var result = app.newProcedure((FuncLong)() -> {
-			var b = new F818Bean();
+			var b = new EncodeFailBean();
 			b.value = value;
 			table.put(key, b);
 			return 0L;
@@ -94,7 +94,7 @@ public class TestCommitPathSalvage {
 		var trans = Transaction.create(app.getLocks());
 		try {
 			trans.begin();
-			var b = new F818Bean();
+			var b = new EncodeFailBean();
 			b.value = value;
 			table.put(key, b);
 			for (var ar : trans.getAccessedRecords().values())
@@ -151,7 +151,7 @@ public class TestCommitPathSalvage {
 			Assertions.assertEquals(Long.valueOf(20L), dbValue(1L), "已应用数据必须经注册的rrs重试落库");
 			Assertions.assertTrue(app.getCheckpoint().relativeRecordSetMap.isEmpty(), "flush后map清空");
 		} finally {
-			F818Bean.encodeFailOnce.set(0);
+			EncodeFailBean.encodeFailOnce.set(0);
 			if (app != null)
 				stopApp();
 		}
@@ -165,7 +165,7 @@ public class TestCommitPathSalvage {
 			putValue(1L, 10L); // checkpointWhenCommit：提交点同步落库，记录不进map
 			Assertions.assertEquals(Long.valueOf(10L), dbValue(1L));
 
-			F818Bean.encodeFailOnce.set(1); // 第一次encode（首刷）抛，第二次（补刷/重试）放行
+			EncodeFailBean.encodeFailOnce.set(1); // 第一次encode（首刷）抛，第二次（补刷/重试）放行
 			var ex = Assertions.assertThrows(Exception.class, () -> runManualCommit(1L, 20L, false),
 					"flush失败必须重抛（perform仍走halt，语义不变）");
 			Assertions.assertNotNull(ex.getCause(), "flushInternal包装重抛，cause为底层异常");
@@ -177,9 +177,9 @@ public class TestCommitPathSalvage {
 			app.getCheckpoint().runOnce();
 			Assertions.assertEquals(Long.valueOf(20L), dbValue(1L), "flush失败保dirty重试落库（既有语义的注册延伸）");
 			Assertions.assertTrue(app.getCheckpoint().relativeRecordSetMap.isEmpty());
-			Assertions.assertEquals(2, F818Bean.encodeFailOnce.get(), "encode只失败一次（毒化自限）");
+			Assertions.assertEquals(2, EncodeFailBean.encodeFailOnce.get(), "encode只失败一次（毒化自限）");
 		} finally {
-			F818Bean.encodeFailOnce.set(0);
+			EncodeFailBean.encodeFailOnce.set(0);
 			if (app != null)
 				stopApp();
 		}
@@ -207,7 +207,7 @@ public class TestCommitPathSalvage {
 			Assertions.assertEquals(Long.valueOf(30L), dbValue(1L),
 					"修复前：两笔孤儿脏集全丢，库中仍是10；修复后：存量随mergedSet得救，最终值30");
 		} finally {
-			F818Bean.encodeFailOnce.set(0);
+			EncodeFailBean.encodeFailOnce.set(0);
 			if (app != null)
 				stopApp();
 		}
@@ -221,12 +221,12 @@ public class TestCommitPathSalvage {
 	public void test04ImmediatelySalvageFlushSavesData() throws Exception {
 		try {
 			startApp(CheckpointMode.Immediately, "t04", null);
-			F818Bean.encodeFailOnce.set(1); // 首刷encode抛，补刷放行
+			EncodeFailBean.encodeFailOnce.set(1); // 首刷encode抛，补刷放行
 			putValue(1L, 20L); // 内部断言Success：补刷成功后异常被吞，perform正常返回
 			Assertions.assertEquals(Long.valueOf(20L), dbValue(1L),
 					"受控补刷必须把已应用数据落库（修复前：halt丢数据且进程死亡）");
 		} finally {
-			F818Bean.encodeFailOnce.set(0);
+			EncodeFailBean.encodeFailOnce.set(0);
 			if (app != null)
 				stopApp();
 		}
@@ -237,7 +237,7 @@ public class TestCommitPathSalvage {
 	// ---------------------------------------------------------------
 
 	/** 值类型：encodeFailOnce==1时下一次encode抛异常（自限一次），模拟flush过程中的瞬时数据库IO错误。 */
-	public static final class F818Bean extends Bean {
+	public static final class EncodeFailBean extends Bean {
 		public static final AtomicInteger encodeFailOnce = new AtomicInteger();
 
 		public long value;
@@ -256,16 +256,16 @@ public class TestCommitPathSalvage {
 
 		@Override
 		public Bean copy() {
-			var c = new F818Bean();
+			var c = new EncodeFailBean();
 			c.value = value;
 			return c;
 		}
 	}
 
-	/** 最小 TableX 实现（Long key → F818Bean），非内存表（RocksDb存储）。 */
-	public static final class tFnd818Table extends TableX<Long, F818Bean> {
-		public tFnd818Table() {
-			super(990818, "UnitTest_TestFnd818CommitPathSalvage_tFnd818");
+	/** 最小 TableX 实现（Long key → EncodeFailBean），非内存表（RocksDb存储）。 */
+	public static final class EncodeFailTable extends TableX<Long, EncodeFailBean> {
+		public EncodeFailTable() {
+			super(990818, "UnitTest_TestCommitPathSalvage_EncodeFailTable");
 		}
 
 		@Override
@@ -274,8 +274,8 @@ public class TestCommitPathSalvage {
 		}
 
 		@Override
-		public Class<F818Bean> getValueClass() {
-			return F818Bean.class;
+		public Class<EncodeFailBean> getValueClass() {
+			return EncodeFailBean.class;
 		}
 
 		@Override
@@ -301,8 +301,8 @@ public class TestCommitPathSalvage {
 		}
 
 		@Override
-		public F818Bean newValue() {
-			return new F818Bean();
+		public EncodeFailBean newValue() {
+			return new EncodeFailBean();
 		}
 	}
 }

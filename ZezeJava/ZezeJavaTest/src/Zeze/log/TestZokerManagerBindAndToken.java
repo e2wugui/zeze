@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * ZokerManager HTTP 管理口部署契约直测（FND29 zokermanager-02，直构形态对齐
- * TestD06LogSessionBinding 的纯逻辑直测 + 真回环 HttpServer 起 0 端口驱动 ApiToken 门）：
+ * TestLogSessionBinding 的纯逻辑直测 + 真回环 HttpServer 起 0 端口驱动 ApiToken 门）：
  * <ol>
  * <li>ZokerManagerConf 默认值与 CustomizeConf 解析——默认回环、空属性不回退旧全网卡语义；</li>
  * <li>checkDeployPolicy——非回环无 Token fail-fast（报错含风险与配置方法）、其余组合放行；</li>

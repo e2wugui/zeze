@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * ——仅 toLowerCase 折叠下三个名字三把锁，commit 三步（install→switch→prune）完全交错，
  * keepVersions=1 时 A 的 prune 可删 B 已 install 未 switch 的版本（current 悬空，返回 0
  * 服务永不可启动）。修复=锁键复用 foldVersionName（剥尾点/空格+小写）。
- * 结构性红（确定性，先例 TestE02CommitLockCaseFolding 反射读 commitLocks）：变体名 commit 后
+ * 结构性红（确定性，先例 TestCommitLockCaseFolding 反射读 commitLocks）：变体名 commit 后
  * 必须共享同一锁条目——修复前为 3 个（"svc"/"svc."/"svc.. "）。commit 无分发内容即失败
  * （eCommitFail）不影响锁条目建立，直构空目录即可，无需真实分发。
  */

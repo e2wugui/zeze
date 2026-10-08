@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
  * 共享线程池不保证同连接处理顺序）——此时 sagas 查无上下文，应答 eSagaNotFound，
  * 迟到的 FuncSaga 随后注册并执行业务，该次补偿被静默吞掉且协调者不再重发。
  * 修复（协调者侧）：cancelSaga 对 rpc 层失败（超时）步骤的 eSagaNotFound 单次延迟重试
- * （见 TestR3cSagaCancelNotFoundRetry）；参与方不新增"尚未注册"错误码——无法与"已清理"
+ * （见 TestSagaCancelNotFoundRetry）；参与方不新增"尚未注册"错误码——无法与"已清理"
  * 区分，且错误码常量在生成代码。本用例受控乱序注入驱动参与方两个处理器的错误顺序，
  * 验证窗口的存在性与重试可达性：先到的 FuncSagaEnd 得 eSagaNotFound（窗口），FuncSaga
  * 注册执行业务后，再发的 FuncSagaEnd 能真正补偿。

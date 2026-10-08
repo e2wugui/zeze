@@ -17,7 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import static Zeze.Onz.Fnd19GcOnzTestSupport.*;
+import static Zeze.Onz.GcOnzE2eTestSupport.*;
 
 /**
  * onz-02 回归：retryCancelNotFoundOnce 单次重试仍 eSagaNotFound 即放弃并返回 true——

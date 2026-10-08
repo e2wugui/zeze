@@ -237,9 +237,9 @@ public class TestGenAbstractSerializablePredicate {
 		};
 
 		// 正路径：顶层模块类可编译，照常写盘
-		GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp, new Class<?>[]{A7Fnd883TopModule.class}, true);
+		GenModule.instance.generateRedirectSources(tempDir.toString(), dummyApp, new Class<?>[]{TrialCompileTopModule.class}, true);
 		var goodFile = tempDir.resolve(GenModule.REDIRECT_PREFIX
-				+ A7Fnd883TopModule.class.getName().replace('.', '_') + ".java");
+				+ TrialCompileTopModule.class.getName().replace('.', '_') + ".java");
 		Assertions.assertTrue(Files.exists(goodFile), "可编译产物必须写盘");
 
 		// 负路径：嵌套fixture类的生成源码（extends含$）不可编译——写盘前必须拦下

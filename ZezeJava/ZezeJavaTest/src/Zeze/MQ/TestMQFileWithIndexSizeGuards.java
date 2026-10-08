@@ -27,7 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 与函数自声明的"中间损坏 fatal，防自动截断静默丢中间消息"策略矛盾。修复：size 损坏发生在
  * 提交区中间（expectId &lt; nextMessageId-1）时按 id 错位同款 fatal；仅最后一条已提交记录的
  * 撕裂尾保留回拨语义（testTornCommittedRecordRollsBack 已固化，本类不重复）。
- *（布局约定见 Fnd19MqTestSupport。）
+ *（布局约定见 MqTestSupport。）
  */
 @Fast
 public class TestMQFileWithIndexSizeGuards {
@@ -96,7 +96,7 @@ public class TestMQFileWithIndexSizeGuards {
 		var dataFile = file.getLastFile();
 		try {
 			for (long id = 0; id < 4; ++id)
-				file.appendMessage(Fnd19MqTestSupport.messageOf(id));
+				file.appendMessage(MqTestSupport.messageOf(id));
 			scrubIndexToFirstEntryOnly(database, "topic.0.0");
 			file.close();
 		} finally {
@@ -150,7 +150,7 @@ public class TestMQFileWithIndexSizeGuards {
 		var dataFile = file.getLastFile();
 		try {
 			for (long id = 0; id < 3; ++id)
-				file.appendMessage(Fnd19MqTestSupport.messageOf(id));
+				file.appendMessage(MqTestSupport.messageOf(id));
 			scrubIndexToFirstEntryOnly(database, "topic.0.0");
 			file.close();
 		} finally {

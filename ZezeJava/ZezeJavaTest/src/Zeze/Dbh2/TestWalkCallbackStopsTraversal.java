@@ -64,8 +64,8 @@ public class TestWalkCallbackStopsTraversal {
 
 	private static Dbh2AgentManager manager(Path tempDir, PageAgent agent) throws Exception {
 		Task.tryInitThreadPool();
-		var manager = new Dbh2AgentManager(new Fnd19GADStubSupport.NullServiceAgent(),
-				Config.load(Fnd19GADStubSupport.writeRemoteCommitConfig(tempDir).toString())) {
+		var manager = new Dbh2AgentManager(new Dbh2AgentStubSupport.NullServiceAgent(),
+				Config.load(Dbh2AgentStubSupport.writeRemoteCommitConfig(tempDir).toString())) {
 			@Override
 			public Dbh2Agent openBucket(String raft) {
 				return agent;

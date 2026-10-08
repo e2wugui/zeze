@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * "Zoker名字重复了"（名字被他人占用的误诊信号），重试型客户端在同连接上永不收敛。
  * 修复后自归属重放幂等成功应答；他方活连接的真重复语义不变。
  * 直构 ZokerAgent（不起网络）：Register 协议 + null-service 桩 socket
- * （TestE03AgentRegisterRename 同形态）。
+ * （TestAgentRegisterRename 同形态）。
  */
 @Fast
 public class TestAgentRegisterReplaySameConnection {

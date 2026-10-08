@@ -56,9 +56,9 @@ public class TestTopicNameFsAliasRejected {
 
 		var masterHome = tempDir.resolve("mqmaster").toString();
 		var managerHome = tempDir.resolve("mqmanager");
-		var master = new Zeze.MQ.Master.Main(masterHome, Fnd19MqNetTestSupport.masterConfig(masterPort));
-		var manager = new MQManager(managerHome.toString(), Fnd19MqNetTestSupport.managerConfig(masterPort, proxyPort));
-		var agent = new MasterAgent(Fnd19MqNetTestSupport.clientConfig(masterPort));
+		var master = new Zeze.MQ.Master.Main(masterHome, MqNetTestSupport.masterConfig(masterPort));
+		var manager = new MQManager(managerHome.toString(), MqNetTestSupport.managerConfig(masterPort, proxyPort));
+		var agent = new MasterAgent(MqNetTestSupport.clientConfig(masterPort));
 		try {
 			master.start();
 			manager.start();
@@ -68,7 +68,7 @@ public class TestTopicNameFsAliasRejected {
 			agent.createMQ("Foo", 1, null);
 			var file = manager.getQueueForTest("Foo").get(0).getFileForTest();
 			for (long id = 0; id < 3; ++id)
-				file.appendMessage(Fnd19MqTestSupport.messageOf(id));
+				file.appendMessage(MqTestSupport.messageOf(id));
 			var fooData = managerHome.resolve("Foo").resolve("0.0");
 			assertTrue(Files.exists(fooData), "Foo 的段文件必须存在");
 			var backlogBytes = fooData.toFile().length();

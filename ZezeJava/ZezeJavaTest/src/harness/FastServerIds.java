@@ -56,8 +56,8 @@ public final class FastServerIds {
 	public static final String URL_TEST_REDO_QUEUE_SERVER_DISPATCH = memUrl("redo_queue_server_dispatch_test");
 	public static final String URL_TEST_MEMORY_EMPTY_VALUE_REPLACE = memUrl("t1_f1_empty_value_replace");
 	public static final String URL_TEST_WALK_INTERRUPT_COUNT = memUrl("t1_f3_walk_interrupt_count");
-	public static final String URL_TEST_HOT01 = memUrl("fnd18hot1_memory");
-	public static final String URL_TEST_HOT03 = memUrl("fnd18hot3_memory");
+	public static final String URL_TEST_HOT_INSTALL_RESIDUE = memUrl("fnd18hot1_memory");
+	public static final String URL_TEST_HOT_TRY_DISTRIBUTE = memUrl("fnd18hot3_memory");
 	public static final String URL_TEST_ADD_TABLE = memUrl("z1f3_memory");
 	public static final String URL_TEST_HISTORY_FLUSH_COMMIT_BINDING = memUrl("history_commit_binding_unit");
 	public static final String URL_TEST_HOT_TRY_DISTRIBUTE_GUARD = memUrl("hot_trydistribute_test");
@@ -82,8 +82,8 @@ public final class FastServerIds {
 	public static final int TEST_BAG_MOVE_ZERO = seg("TestBagMoveZero", 770, 1);
 
 	public static final int TEST_HOT_ROLLBACK_MEMORY_TABLE = seg("TestHotRollbackMemoryTable", 800, 1);
-	public static final int TEST_HOT02_UPGRADE_INCOMPATIBLE_FAILFAST = seg("TestHot02UpgradeIncompatibleFailFast", 810, 1);
-	public static final int TEST_TXN02_GET_OR_ADD_IS_ADD_CONTRACT = seg("TestTxn02GetOrAddIsAddContract", 820, 1);
+	public static final int TEST_HOT_UPGRADE_INCOMPATIBLE_FAILFAST = seg("TestUpgradeIncompatibleFailFast", 810, 1);
+	public static final int TEST_GET_OR_ADD_IS_ADD_CONTRACT = seg("TestGetOrAddIsAddContract", 820, 1);
 
 	public static final int TEST_ONZ_REDO_ROTATION_CURSOR = seg("TestOnzRedoRotationCursor", 857, 2);
 
@@ -97,7 +97,7 @@ public final class FastServerIds {
 	public static final int TEST_TIMER_STOP_START_RESTART = seg("TestTimerStopStartRestart", 7160, 2);
 	public static final int TEST_PROCESS_LINK_BROKEN_NON_ROLE_CONTEXT = seg("TestProcessLinkBrokenNonRoleContext", 7250, 3);
 	public static final int TEST_TRANSACTION_DECODE_FAIL_CLOSES = seg("TestTransactionDecodeFailCloses", 7300, 2);
-	public static final int TEST_R3X_MID_FLUSH_HALT_WINDOW = seg("TestMidFlushHaltWindow", 7310, 1);
+	public static final int TEST_MID_FLUSH_HALT_WINDOW = seg("TestMidFlushHaltWindow", 7310, 1);
 	public static final int TEST_FLUSH_UNIT_ISOLATION = seg("TestFlushUnitIsolation", 7312, 1);
 	public static final int TEST_TABLE_X_MIRROR_MISS_FALLBACK = seg("TestTableXMirrorMissFallback", 7313, 1);
 	public static final int TEST_VERIFY_BATCH_RC_LOGGED = seg("TestVerifyBatchRcLogged", 7320, 2);
@@ -106,7 +106,7 @@ public final class FastServerIds {
 	public static final int TEST_RANK_COUNT_NEED_KEY = seg("TestRankCountNeedKey", 7360, 1);
 	public static final int TEST_RANK_SINGLE_SEGMENT_MERGE = seg("TestRankSingleSegmentMerge", 7370, 1);
 	public static final int TEST_HISTORY_FLUSH_COMMIT_BINDING = seg("TestHistoryFlushCommitBinding", 7371, 1);
-	public static final int TEST_GAME01_RANK_CACHE_ROLLBACK_POLLUTION = seg("TestGame01RankCacheRollbackPollution", 7390, 1);
+	public static final int TEST_RANK_CACHE_ROLLBACK_POLLUTION = seg("TestRankCacheRollbackPollution", 7390, 1);
 	public static final int TEST_PROVIDER_DIRECT_ALL_REDO_LEAK = seg("TestProviderDirectAllRedoLeak", 7410, 1);
 	public static final int TEST_DYNAMIC_BEAN_COLLECT = seg("TestDynamicBeanCollect", 7420, 2);
 	public static final int TEST_SAGA_BUSINESS_LOCK_SERIALIZATION = seg("TestSagaBusinessLockSerialization", 7430, 2);
@@ -129,11 +129,11 @@ public final class FastServerIds {
 	public static final int TEST_MEMORY_TABLE_SIZE = seg("TestMemoryTableSize", 7600, 1);
 	public static final int TEST_CHECKPOINT_RUN_THREAD_SENTINEL = seg("TestCheckpointRunThreadSentinel", 7630, 1);
 	public static final int TEST_TIMER_LOAD_MISSFIRE_ASYNC = seg("TestTimerLoadMissfireAsync", 7640, 1);
-	public static final int TEST_COMP01_TIMER_LOAD_EXHAUSTED_CRON = seg("TestComp01TimerLoadExhaustedCron", 7650, 1);
+	public static final int TEST_TIMER_LOAD_EXHAUSTED_CRON = seg("TestTimerLoadExhaustedCron", 7650, 1);
 	public static final int TEST_STOP_COMMIT_GATE = seg("TestStopCommitGate", 7660, 1);
 	public static final int TEST_FLUSH_WHEN_REDUCE_NULL_CHECKPOINT = seg("TestFlushWhenReduceNullCheckpoint", 7670, 1);
 	public static final int TEST_STOP_STEP_ISOLATION = seg("TestStopStepIsolation", 7680, 1);
-	public static final int TEST_COMP02_DB_WEB_TOKEN = seg("TestComp02DbWebToken", 7690, 1);
+	public static final int TEST_DB_WEB_TOKEN = seg("TestDbWebToken", 7690, 1);
 	public static final int TEST_FINAL_ACTIONS_ISOLATION = seg("TestFinalActionsIsolation", 7700, 2);
 	public static final int TEST_PLIST2_ATTACH_ORDER = seg("TestPList2AttachOrder", 7710, 1);
 	public static final int TEST_REDIRECT_FUTURE_COMMITTED_RESULT = seg("TestRedirectFutureCommittedResult", 7720, 2);
@@ -142,8 +142,8 @@ public final class FastServerIds {
 	public static final int TEST_ONLINE_LOGIN_RETRY_LIMIT = seg("TestOnlineLoginRetryLimit", 8820, 2);
 	public static final int TEST_ONLINE_LOGIN_VALIDATION = seg("TestOnlineLoginValidation", 8830, 2);
 
-	public static final int TEST_HOT01_INSTALL_START_LAST_FILTER = seg("TestHot01InstallStartLastFilter", 12810, 1);
-	public static final int TEST_HOT03_TRY_DISTRIBUTE_SUCCESS_DELETE_FAIL = seg("TestHot03TryDistributeSuccessDeleteFail", 12811, 1);
+	public static final int TEST_HOT_INSTALL_START_LAST_FILTER = seg("TestInstallStartLastFilter", 12810, 1);
+	public static final int TEST_HOT_TRY_DISTRIBUTE_SUCCESS_DELETE_FAIL = seg("TestTryDistributeSuccessDeleteFail", 12811, 1);
 	public static final int TEST_COMMIT_PATH_SALVAGE = seg("TestCommitPathSalvage", 12818, 1);
 	public static final int TEST_CHECKPOINT_RUN_RACE = seg("TestCheckpointRunRace", 12821, 1);
 	public static final int TEST_RENAME_TABLE_AFTER_COMPAT_CHECK = seg("TestRenameTableAfterCompatCheck", 12822, 1);

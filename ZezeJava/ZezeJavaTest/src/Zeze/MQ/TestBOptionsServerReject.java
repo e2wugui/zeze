@@ -29,9 +29,9 @@ public class TestBOptionsServerReject {
 		Task.tryInitThreadPool();
 
 		var masterHome = tempDir.resolve("mqmaster").toString();
-		var master = new Zeze.MQ.Master.Main(masterHome, Fnd19MqNetTestSupport.masterConfig(masterPort));
-		var manager = new MQManager(tempDir.resolve("mqmanager").toString(), Fnd19MqNetTestSupport.managerConfig(masterPort, proxyPort));
-		var agent = new MasterAgent(Fnd19MqNetTestSupport.clientConfig(masterPort));
+		var master = new Zeze.MQ.Master.Main(masterHome, MqNetTestSupport.masterConfig(masterPort));
+		var manager = new MQManager(tempDir.resolve("mqmanager").toString(), MqNetTestSupport.managerConfig(masterPort, proxyPort));
+		var agent = new MasterAgent(MqNetTestSupport.clientConfig(masterPort));
 		try {
 			master.start();
 			manager.start();

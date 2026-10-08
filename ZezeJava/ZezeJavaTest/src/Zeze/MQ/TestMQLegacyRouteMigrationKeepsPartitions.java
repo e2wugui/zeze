@@ -8,7 +8,7 @@ import Zeze.Builtin.MQ.Master.BMQServers;
 import Zeze.Builtin.MQ.Master.BReportPartitions;
 import Zeze.Builtin.MQ.Master.BTopicPartitions;
 import Zeze.Config;
-import Zeze.MQ.Fnd19MqTestSupport;
+import Zeze.MQ.MqTestSupport;
 import Zeze.Net.Service;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
@@ -30,7 +30,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 新地址的上报者是竞争者（克隆数据目录形态）而非延续证据，维持 fail-fast 孤儿裁决。
  * <p>
  * 注：文件放 src/MQ/ 但声明 package Zeze.MQ.Master——访问 reconcileOrphanReport/
- * putMqServers/putManager/orphanFirstSeen/deleteIssuer 包内缝（TestGBD01MasterReconcile
+ * putMqServers/putManager/orphanFirstSeen/deleteIssuer 包内缝（TestMasterReconcile
  * 先例）。
  */
 @Fast
@@ -125,7 +125,7 @@ public class TestMQLegacyRouteMigrationKeepsPartitions {
 
 			seed(master, "t", "10.0.0.1", 20000, 0L, 0);
 			// 旧址在役：旧 Manager（无 id 旧版形态）在旧址持有存活连接。
-			var ownerSocket = new Fnd19MqTestSupport.FakeSocket(
+			var ownerSocket = new MqTestSupport.FakeSocket(
 					new Service("TestMQLegacyRouteMigrationKeepsPartitions.liveLegacyOwner"));
 			master.putManager(new Master.Manager(ownerSocket, new BMQServer.Data("10.0.0.1", 20000, 0, "", 0L)));
 			// 新地址的竞争者（克隆数据目录形态）。

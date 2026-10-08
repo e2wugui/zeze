@@ -23,8 +23,8 @@ public class TestTransactionKeepsLastKeyOperation {
 		private final Bucket bucket;
 
 		LocalApplyManager(Path tempDir, Bucket bucket) throws Exception {
-			super(new Fnd19GADStubSupport.NullServiceAgent(),
-					Config.load(Fnd19GADStubSupport.writeRemoteCommitConfig(tempDir).toString()));
+			super(new Dbh2AgentStubSupport.NullServiceAgent(),
+					Config.load(Dbh2AgentStubSupport.writeRemoteCommitConfig(tempDir).toString()));
 			this.bucket = bucket;
 		}
 

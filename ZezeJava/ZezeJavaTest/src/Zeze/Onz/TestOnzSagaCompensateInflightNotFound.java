@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-import static Zeze.Onz.Fnd19GcOnzTestSupport.*;
+import static Zeze.Onz.GcOnzE2eTestSupport.*;
 
 /**
  * onz-01 回归：补偿执行期间上下文被摘除的窗口。参与方处理 FuncSagaEnd(cancel=true)

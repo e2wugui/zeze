@@ -29,8 +29,8 @@ public class TestOpenMasterAgentAfterManagerStop {
 
 	@Test
 	public void testOpenMasterAgentRejectedAfterStop(@TempDir Path tempDir) throws Exception {
-		var manager = new Dbh2AgentManager(new Fnd19GADStubSupport.NullServiceAgent(),
-				Config.load(Fnd19GADStubSupport.writeRemoteCommitConfig(tempDir).toString()), 832);
+		var manager = new Dbh2AgentManager(new Dbh2AgentStubSupport.NullServiceAgent(),
+				Config.load(Dbh2AgentStubSupport.writeRemoteCommitConfig(tempDir).toString()), 832);
 		try {
 			manager.stop();
 

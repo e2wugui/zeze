@@ -24,7 +24,7 @@ import org.rocksdb.RocksDBException;
  * warn、rc=0，客户端确认成功而数据灭失。修复后自主 undo 走未确认墓碑：迟到 commit 在
  * 墓碑窗内复活并提交（数据不丢、成功变真）；协调者 UndoBatch 到达=确认终局，物理删除；
  * 墓碑窗超时仍未决=物理删除并响亮告警。形态：进程内 raft 桶直驱 leader 状态机
- * （对齐 TestGAC02PrefixWalkPositioning 的 harness）。
+ * （对齐 TestPrefixWalkPositioning 的 harness）。
  */
 @Fast
 public class TestUndoCommitFenceResurrect {

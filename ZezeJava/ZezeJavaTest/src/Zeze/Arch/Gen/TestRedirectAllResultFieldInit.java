@@ -66,7 +66,7 @@ public class TestRedirectAllResultFieldInit {
 
 	public static class AllModule {
 		public static final int ModuleId = 8841;
-		public static final String ModuleFullName = "TestFnd884.AllModule";
+		public static final String ModuleFullName = "TestRedirectAllResultFieldInit.AllModule";
 
 		@RedirectAll
 		public RedirectAllFuture<ResultWithFields> collect(int hash) {

@@ -23,7 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
  * （旧代码会按 sessionId 误删换绑后的新条目）。
  * <p>
  * 注：需要 MQSingle 的包内测试缝与 MQPartition.subscribes 的反射观察点
- * （布局约定见 Fnd19MqTestSupport / TestMQPartitionResubscribeReplace）。
+ * （布局约定见 MqTestSupport / TestMQPartitionResubscribeReplace）。
  */
 @Fast
 public class TestMQPartitionUnsubscribeIdentity {
@@ -61,8 +61,8 @@ public class TestMQPartitionUnsubscribeIdentity {
 			injectPartition(partition, 0, single);
 			try {
 				var service = new Service("TestMQPartitionUnsubscribeIdentity");
-				var ownerSocket = new Fnd19MqTestSupport.FakeSocket(service);
-				var foreignSocket = new Fnd19MqTestSupport.FakeSocket(service);
+				var ownerSocket = new MqTestSupport.FakeSocket(service);
+				var foreignSocket = new MqTestSupport.FakeSocket(service);
 
 				// 基线：sessionId=1 经 socket A 订阅成功，分区 0 绑定 A。
 				partition.subscribe(ownerSocket, 1L);
@@ -105,8 +105,8 @@ public class TestMQPartitionUnsubscribeIdentity {
 			injectPartition(partition, 0, single);
 			try {
 				var service = new Service("TestMQPartitionUnsubscribeIdentity");
-				var staleSocket = new Fnd19MqTestSupport.FakeSocket(service);
-				var freshSocket = new Fnd19MqTestSupport.FakeSocket(service);
+				var staleSocket = new MqTestSupport.FakeSocket(service);
+				var freshSocket = new MqTestSupport.FakeSocket(service);
 
 				// 订阅经旧 socket 建立，随后重订阅换绑新 socket（TestMQPartitionResubscribeReplace 锁定的替换语义）。
 				partition.subscribe(staleSocket, 1L);

@@ -30,7 +30,7 @@ import harness.Fast;
  * 驱逐重建）；参数级拒绝（LogService.INVALID_ARGUMENT）→ InvalidArgumentException
  * （不拆会话直接报参数错误）；其余非零码保持原 RuntimeException 形态。判型不判消息——
  * 消息前缀判别曾把一切非零码（含参数错误）都当成会话死亡，触发无谓的整组会话拆建重试。
- * 直构 Search/Browse rpc（生成类构造不依赖网络，对齐 TestE03SessionResultCodeCheck）
+ * 直构 Search/Browse rpc（生成类构造不依赖网络，对齐 TestSessionResultCodeCheck）
  * + operateRecovering 的重建/不重建行为经 stub agent 驱动（对齐
  * TestSessionAllOperatePartialFailure 的 ReflectionFactory 形制）。
  *

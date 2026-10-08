@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Test;
 @Fast
 public class TestMidFlushHaltWindow {
 	// 独立serverId+url：@Fast类并行时避免本地RocksCache目录互撞（对齐TestStopCommitGate）。
-	private static final int SERVER_ID = FastServerIds.TEST_R3X_MID_FLUSH_HALT_WINDOW;
+	private static final int SERVER_ID = FastServerIds.TEST_MID_FLUSH_HALT_WINDOW;
 
 	private Application app;
 

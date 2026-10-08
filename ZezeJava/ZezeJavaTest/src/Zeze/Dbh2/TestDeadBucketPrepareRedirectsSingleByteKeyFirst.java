@@ -106,13 +106,13 @@ public class TestDeadBucketPrepareRedirectsSingleByteKeyFirst {
 		Task.tryInitThreadPool();
 		var sourceLogDb = new RocksDatabase(tempDir.resolve("src-log").toString());
 		var targetLogDb = new RocksDatabase(tempDir.resolve("dst-log").toString());
-		var source = Fnd19GABucketSupport.startBucket(sourceLogDb, SOURCE_RAFT, tempDir.resolve("src"), taskOneByOne);
-		var target = Fnd19GABucketSupport.startBucket(targetLogDb, TARGET_RAFT, tempDir.resolve("dst"), taskOneByOne);
+		var source = RaftBucketTopologySupport.startBucket(sourceLogDb, SOURCE_RAFT, tempDir.resolve("src"), taskOneByOne);
+		var target = RaftBucketTopologySupport.startBucket(targetLogDb, TARGET_RAFT, tempDir.resolve("dst"), taskOneByOne);
 		var sourceAgent = new Dbh2Agent(SOURCE_RAFT);
 		var targetAgent = new Dbh2Agent(TARGET_RAFT);
 		try {
-			var leader = Fnd19GABucketSupport.waitLeader(source);
-			Fnd19GABucketSupport.waitLeader(target);
+			var leader = RaftBucketTopologySupport.waitLeader(source);
+			RaftBucketTopologySupport.waitLeader(target);
 
 			// 源桶真实键域[[0x01],∞)（单字节keyFirst），目标桶meta就位（迁移收尾的
 			// setBucketMetaAsync等价形态），随后源桶迁移完结置死（endMove等价形态：
@@ -170,10 +170,10 @@ public class TestDeadBucketPrepareRedirectsSingleByteKeyFirst {
 	public void testLiveBucketSelfHistoryStillTerminal(@TempDir Path tempDir) throws Exception {
 		Task.tryInitThreadPool();
 		var logDb = new RocksDatabase(tempDir.resolve("live-log").toString());
-		var nodes = Fnd19GABucketSupport.startBucket(logDb, SOURCE_RAFT, tempDir.resolve("live"), taskOneByOne);
+		var nodes = RaftBucketTopologySupport.startBucket(logDb, SOURCE_RAFT, tempDir.resolve("live"), taskOneByOne);
 		var agent = new Dbh2Agent(SOURCE_RAFT);
 		try {
-			var leader = Fnd19GABucketSupport.waitLeader(nodes);
+			var leader = RaftBucketTopologySupport.waitLeader(nodes);
 			agent.setBucketMeta(metaOf(key(2), key(8), SOURCE_RAFT));
 			// 历史仅剩首键条目且指向本桶（超裁剪代的终局形态）。
 			leader.getStateMachine().getBucket().addMoveMetaHistory(metaOf(key(2), key(8), SOURCE_RAFT));

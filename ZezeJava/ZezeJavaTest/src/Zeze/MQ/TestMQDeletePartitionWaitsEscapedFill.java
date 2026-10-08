@@ -24,7 +24,7 @@ import org.junit.jupiter.api.io.TempDir;
  * RocksDatabase.destroyColumnFamily（单一终结原语），drop 前等待归零——close 排空超预算
  * 不再裸奔。
  * <p>
- * 判别（direct-construct 形态，未 start 的 MQManager 无网络直驱，TestGBD01ManagerDelete
+ * 判别（direct-construct 形态，未 start 的 MQManager 无网络直驱，TestManagerDelete
  * 先例）：模拟 close 排空超预算逃逸的在飞 fill（activeFills 计数非零——fillMessage 已进入、
  * 迭代器在手的落点），删除线程在归零前必须仍阻塞（baseline：dropTable 立即执行，线程即刻
  * 返回，判红）；归零后删除完成且存储全清。native UAF 本身不可注入（SIGSEGV 不可捕获），
@@ -47,7 +47,7 @@ public class TestMQDeletePartitionWaitsEscapedFill {
 		try {
 			manager.createPartition("t", new HashSet<>(java.util.List.of(0)));
 			var single = manager.getQueueForTest("t").get(0);
-			single.sendMessage(Fnd19MqTestSupport.sendMessageOf(1)); // 建段文件/索引/meta
+			single.sendMessage(MqTestSupport.sendMessageOf(1)); // 建段文件/索引/meta
 			Assertions.assertNotNull(manager.getRocksDatabase().getTable("t.0.0"), "索引列族存在（前置）");
 
 			// 模拟 close 排空超预算逃逸的在飞 fill：计数非零（fillMessage 首行 increment 的落点），

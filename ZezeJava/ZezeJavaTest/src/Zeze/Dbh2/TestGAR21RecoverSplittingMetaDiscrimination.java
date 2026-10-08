@@ -286,8 +286,8 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 		var sourceAgent = new Dbh2Agent(SOURCE_RAFT);
 		var targetAgent = new Dbh2Agent(TARGET_RAFT);
 		try {
-			var leader = Fnd19GABucketSupport.waitLeader(source);
-			Fnd19GABucketSupport.waitLeader(target);
+			var leader = RaftBucketTopologySupport.waitLeader(source);
+			RaftBucketTopologySupport.waitLeader(target);
 
 			// 拷贝前形态：源桶[F,L)=[2,8)，6条数据，真实split的splitting=[M,L)=[5,8)。
 			setBucketMeta(sourceAgent, key(2), key(8));
@@ -331,7 +331,7 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 			Assertions.assertEquals(value(5), getValue(targetAgent, 5), "[M,L)数据必须复制到新桶");
 			Assertions.assertEquals(value(6), getValue(targetAgent, 6), "[M,L)数据必须复制到新桶");
 			Assertions.assertEquals(value(7), getValue(targetAgent, 7), "[M,L)数据必须复制到新桶");
-			var targetLeader = Fnd19GABucketSupport.waitLeader(target);
+			var targetLeader = RaftBucketTopologySupport.waitLeader(target);
 			Assertions.assertEquals(0, key(5).compareTo(
 					targetLeader.getStateMachine().getBucket().getBucketMeta().getKeyFirst()), "新桶meta.keyFirst=M");
 			Assertions.assertEquals(0, key(8).compareTo(
@@ -381,8 +381,8 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 		var sourceAgent = new Dbh2Agent(SOURCE_RAFT);
 		var targetAgent = new Dbh2Agent(TARGET_RAFT);
 		try {
-			var leader = Fnd19GABucketSupport.waitLeader(source);
-			Fnd19GABucketSupport.waitLeader(target);
+			var leader = RaftBucketTopologySupport.waitLeader(source);
+			RaftBucketTopologySupport.waitLeader(target);
 
 			// move拷贝窗口：边界key F=2被删（data[0]=3>F），其余数据存活。
 			setBucketMeta(sourceAgent, key(2), key(8));
@@ -409,7 +409,7 @@ public class TestGAR21RecoverSplittingMetaDiscrimination {
 			Assertions.assertEquals(value(3), getValue(targetAgent, 3), "move必须全量复制存活数据");
 			Assertions.assertEquals(value(5), getValue(targetAgent, 5), "move必须全量复制存活数据");
 			Assertions.assertEquals(value(7), getValue(targetAgent, 7), "move必须全量复制存活数据");
-			var targetLeader = Fnd19GABucketSupport.waitLeader(target);
+			var targetLeader = RaftBucketTopologySupport.waitLeader(target);
 			Assertions.assertEquals(0, key(2).compareTo(
 					targetLeader.getStateMachine().getBucket().getBucketMeta().getKeyFirst()), "move目标桶meta.keyFirst=F");
 			Assertions.assertEquals(0, key(8).compareTo(

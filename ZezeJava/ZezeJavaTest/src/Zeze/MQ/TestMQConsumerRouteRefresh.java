@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestMQConsumerRouteRefresh {
 	private static final int masterPort = 26000;
 	// 避开注册表已用段（TestMQ 26001-26003、TestMQConsumerResubscribe 26102、
-	// TestGBD05RouteRewrite 26221/26222、TestTopicNameSelfFsAliasRejected 26242/26243）。
+	// TestRouteRewrite 26221/26222、TestTopicNameSelfFsAliasRejected 26242/26243）。
 	private static final int proxyPortOld = 26244;
 	private static final int proxyPortNew = 26245;
 
@@ -57,7 +57,7 @@ public class TestMQConsumerRouteRefresh {
 		var topic = "topicConsumerRouteRefresh";
 		var master = new Zeze.MQ.Master.Main(masterHome, masterConfig());
 		var manager = new MQManager(managerHome, managerConfig(proxyPortOld));
-		var agent = new MasterAgent(Fnd19MqNetTestSupport.clientConfig(masterPort));
+		var agent = new MasterAgent(MqNetTestSupport.clientConfig(masterPort));
 		MQConsumer consumer = null;
 		MQProducer producer = null;
 		try {

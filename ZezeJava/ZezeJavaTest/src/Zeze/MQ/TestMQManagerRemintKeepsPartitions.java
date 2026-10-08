@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestMQManagerRemintKeepsPartitions {
 	private static final int masterPort = 26000;
 	// 避开 TestMQ 26001-26003、TestMQManagerReregister 26101、TestMQConsumerResubscribe 26102、
-	// TestGBD05RouteRewrite 26221/26222。
+	// TestRouteRewrite 26221/26222。
 	private static final int proxyPort = 26231;
 
 	@Test
@@ -55,7 +55,7 @@ public class TestMQManagerRemintKeepsPartitions {
 		var topic = "topicRemintKeeps";
 		var master = new Zeze.MQ.Master.Main(masterHome, masterConfig());
 		var manager = new MQManager(managerHome, managerConfig());
-		var agent = new MasterAgent(Fnd19MqNetTestSupport.clientConfig(masterPort));
+		var agent = new MasterAgent(MqNetTestSupport.clientConfig(masterPort));
 		MQProducer producer = null;
 		MQConsumer consumer = null;
 		try {

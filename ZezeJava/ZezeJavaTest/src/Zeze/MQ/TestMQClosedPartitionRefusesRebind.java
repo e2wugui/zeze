@@ -39,14 +39,14 @@ public class TestMQClosedPartitionRefusesRebind {
 		try {
 			// 先落 3 条积压再构造：构造装载即入内存队列（无绑定不推送）。
 			for (long id = 0; id < 3; ++id)
-				file.appendMessage(Fnd19MqTestSupport.messageOf(id));
+				file.appendMessage(MqTestSupport.messageOf(id));
 			Queue<BMessage.Data> queue = new ConcurrentLinkedQueue<>();
 			file.fillMessage(queue, 0, 3);
 			var single = new MQSingle(new MQPartition(null), "topic", 0, file);
 			// 构造形态核查：积压在队（等价"积压已装载、重排在途"的交叠前提）。
 			single.close(); // removePartition→close：closed 置位、bindSocket=null
 
-			var fake = new Fnd19MqTestSupport.FakeSocket(new Service("TestMQClosedPartitionRefusesRebind"));
+			var fake = new MqTestSupport.FakeSocket(new Service("TestMQClosedPartitionRefusesRebind"));
 			single.bind(9L, fake); // 交叠窗口内晚到的 arrangeConsumer 重绑
 
 			Assertions.assertNull(getField(single, "bindSocket"),

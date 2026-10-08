@@ -30,7 +30,7 @@ import org.junit.jupiter.api.io.TempDir;
  * 末非0xFF字节+1截断）的key时，服务端 seekForPrev(上界) 的闭语义（<=target）会落在该边界key上，
  * 首个循环前缀过滤失败即误判桶尾，本桶目标前缀的记录被静默跳过（0条+桶尾）。
  * Walk/WalkKey 是公开 rpc，任意客户端可用普通用户前缀触发；框架内建前缀（4字节表id）因
- * 不写空用户key而不可达，属协议契约层缺陷（对齐 TestGAC02PrefixWalkPositioning 的补充边界）。
+ * 不写空用户key而不可达，属协议契约层缺陷（对齐 TestPrefixWalkPositioning 的补充边界）。
  * 拓扑：单桶[Empty,Empty)端口19250-19252，数据=prefix(1)×1、prefix(2)×2、边界key×1、prefix(3)×1。
  */
 @Fast
@@ -125,8 +125,8 @@ public class TestPrefixWalkDescEqualUpperBoundKey {
 		var agent = new Dbh2Agent(RAFT);
 		Dbh2AgentManager manager = null;
 		try {
-			manager = new Dbh2AgentManager(new Fnd19GADStubSupport.NullServiceAgent(),
-					Config.load(Fnd19GADStubSupport.writeRemoteCommitConfig(tempDir).toString()), 831);
+			manager = new Dbh2AgentManager(new Dbh2AgentStubSupport.NullServiceAgent(),
+					Config.load(Dbh2AgentStubSupport.writeRemoteCommitConfig(tempDir).toString()), 831);
 
 			setBucketMeta(agent, db, table, Binary.Empty, Binary.Empty);
 			put(agent, db, table, List.of(

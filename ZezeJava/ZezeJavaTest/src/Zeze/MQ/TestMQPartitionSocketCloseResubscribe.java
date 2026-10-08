@@ -65,8 +65,8 @@ public class TestMQPartitionSocketCloseResubscribe {
 		field.setAccessible(true);
 		field.set(partition, subscriptions);
 		var service = new Service("TestMQPartitionSocketCloseResubscribe");
-		var oldSocket = new Fnd19MqTestSupport.FakeSocket(service);
-		var newSocket = new Fnd19MqTestSupport.FakeSocket(service);
+		var oldSocket = new MqTestSupport.FakeSocket(service);
+		var newSocket = new MqTestSupport.FakeSocket(service);
 		partition.subscribe(oldSocket, 1);
 		subscriptions.afterNext = () -> partition.subscribe(newSocket, 1);
 
