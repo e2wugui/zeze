@@ -26,9 +26,11 @@ import org.junit.jupiter.api.Test;
  * 且不破坏条目保留与锁释放。
  * 注：文件放在 src/Zeze/Component/ 但声明 package Zeze.Component——需要直接调用
  * protected的rpc处理器的包内测试缝（与TestDelayRemoveOnTimer同款先例）。
- * rpc不绑定连接，SendResultCode对null sender只记warn日志；结果码经resultCode字段观察，
- * sendResultDone是volatile，本测试全走SendResultCode路径（先赋值resultCode再置位），轮询可见性有保证；
- * 注意trySendResultCode路径是先置位后赋值，不提供该保证。
+ * rpc不绑定连接，SendResultCode对null sender只记warn日志；结果码经resultCode字段观察。
+ * 可见性契约：Rpc.sendResultCode的CAS置位（sendResultDone）先于resultCode写入——这是
+ * 产品侧有意序（只有CAS赢家写字段，输家不得污染赢家在途encode），故见位后首读resultCode
+ * 可能是陈旧0（2026-10-09批r5实证：-1应答被读成裸0假红）；awaitResult对非0读值做
+ * 有界重读收敛，期望0的断言与陈旧0同值不受影响。
  */
 @Fast
 public class TestThreadingRWLockDowngrade {
@@ -57,7 +59,13 @@ public class TestThreadingRWLockDowngrade {
 		return r;
 	}
 
-	/** 等SimulateThread异步执行完动作并应答（resultCode在sendResultDone=true之前赋值）。 */
+	/**
+	 * 等SimulateThread异步执行完动作并应答。sendResultDone的CAS仲裁先于resultCode写入
+	 * （Rpc.sendResultCode有意序，见类注释），见位后首读可能是陈旧0——非0读值重读收敛
+	 * （写侧两store相邻，一旦调度恢复即落值；100ms窗远大于满载调度抖动）；读稳定0即接受
+	 * （期望0的断言与陈旧0同值，无假绿放大：真非0应答被读成0的窗口=写侧相邻语句间的
+	 * 调度间隙，与修复前的假红窗口同宽，且本测试的0期望全部有后续行为断言兜底）。
+	 */
 	private static long awaitResult(ReadWriteLockOperate r) throws InterruptedException {
 		var deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
 		while (!r.isSendResultDone()) {
@@ -65,7 +73,13 @@ public class TestThreadingRWLockDowngrade {
 				throw new AssertionError("timeout waiting rwlock operate result: " + r.Argument.getOperateType());
 			Thread.sleep(10);
 		}
-		return r.getResultCode();
+		var code = r.getResultCode();
+		var settle = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(100);
+		while (code == 0 && System.nanoTime() < settle) {
+			Thread.sleep(5);
+			code = r.getResultCode();
+		}
+		return code;
 	}
 
 	// 写→读降级后先exitWrite：writeHold清零时readHold仍=1，refs条目必须保留，
