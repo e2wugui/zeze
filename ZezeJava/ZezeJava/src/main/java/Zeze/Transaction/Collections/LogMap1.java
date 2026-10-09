@@ -59,20 +59,26 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		return exist;
 	}
 
-	public final void putAll(@NotNull Map<? extends K, ? extends V> m) {
+	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
 		var old = getValue();
 		var newMap = old.plusAll(m);
 		if (newMap != old) {
 			setValue(newMap);
 			// 只记值真实变化的键：值未变的键混入replaced是幻影增量，误导增量驱动的监听器。
+			// 变化判定按系覆写：1系值不可变用equals；2系值可变须用身份（见LogMap2）。
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
-				if (!java.util.Objects.equals(old.get(k), e.getValue())) {
+				if (isValueChanged(old.get(k), e.getValue())) {
 					removed.remove(k);
 					replaced.put(k, e.getValue());
 				}
 			}
 		}
+	}
+
+	/** putAll的值变化判定：1系值不可变，equals相等即无变化。 */
+	protected boolean isValueChanged(V oldValue, V newValue) {
+		return !java.util.Objects.equals(oldValue, newValue);
 	}
 
 	public final @Nullable V remove(@NotNull K key) {

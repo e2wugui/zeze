@@ -2,6 +2,7 @@ package Zeze.Transaction.Collections;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -65,6 +66,15 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			for (var e : changedWithKey.entrySet())
 				getReplaced().put(e.getKey(), (V)e.getValue().getThis());
 		}
+	}
+
+	@Override
+	protected boolean isValueChanged(V oldValue, V newValue) {
+		// 2系值可变，按身份判定（1系的equals过滤只对不可变值成立）：原位修改（changed按
+		// 身份关联当前值）后再putAll一个与修改后内容equals相等的新实例时，equals过滤
+		// 不记replaced，changed又因旧bean非当前值被丢弃——该键增量整体丢失，
+		// follower/History回放停在旧值。身份不同即记replaced，编码携带完整新值。
+		return oldValue != newValue;
 	}
 
 	@Override

@@ -64,20 +64,26 @@ public class LogSortedMap1<K extends Comparable<K>, V> extends LogSortedMap<K, V
 		return exist;
 	}
 
-	public final void putAll(@NotNull Map<? extends K, ? extends V> m) {
+	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
 		var old = getValue();
 		var newMap = old.plusAll(m);
 		if (newMap != old) {
 			setValue(newMap);
 			// 输入可能包含多个比较器等价的键，必须记最终值而非中间输入值。
+			// 变化判定按系覆写：1系值不可变用equals；2系值可变须用身份（见LogSortedMap2）。
 			for (K k : m.keySet()) {
 				V v = newMap.get(k);
-				if (!java.util.Objects.equals(old.get(k), v)) {
+				if (isValueChanged(old.get(k), v)) {
 					removed.remove(k);
 					replaced.put(k, v);
 				}
 			}
 		}
+	}
+
+	/** putAll的值变化判定：1系值不可变，equals相等即无变化。 */
+	protected boolean isValueChanged(V oldValue, V newValue) {
+		return !java.util.Objects.equals(oldValue, newValue);
 	}
 
 	public final @Nullable V remove(@NotNull K key) {
