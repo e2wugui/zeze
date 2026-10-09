@@ -65,6 +65,9 @@ public final class Task {
 	private static volatile ExecutorService threadPoolDefault;
 	private static volatile ScheduledExecutorService threadPoolScheduled;
 	private static volatile ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
+	// 数据库IO并行池：flush/reduce等阻塞DB操作退出ForkJoinPool.commonPool——commonPool面向CPU任务，
+	// 阻塞任务互抢可整体停摆并拖垮进程内其他parallelStream使用者。与三个默认池同生命周期。
+	private static volatile java.util.concurrent.ForkJoinPool threadPoolDbIo;
 	// volatile: 运行期可被替换（如热替换/应用层定制日志），需对读线程立即可见
 	public static volatile @Nullable ILogAction logAction = Task::DefaultLogAction;
 
@@ -152,6 +155,30 @@ public final class Task {
 		return threadPoolCritical;
 	}
 
+	// 注意：shutdown 后返回 null（同上），调用方需判空
+	public static java.util.concurrent.ForkJoinPool getDbIoPool() {
+		return threadPoolDbIo;
+	}
+
+	// 在数据库IO并行池中执行阻塞型并行流的终端操作：提交线程阻塞等待，
+	// 流的分裂发生在池内worker上（parallelStream默认走commonPool）。
+	public static void runInDbIoPool(@NotNull Action0 action) {
+		var pool = threadPoolDbIo;
+		if (pool == null)
+			throw new IllegalStateException("Task thread pools not initialized or shut down: dbIo pool is null");
+		try {
+			pool.submit(() -> {
+				action.run();
+				return null;
+			}).get();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw Task.forceThrow(e);
+		} catch (java.util.concurrent.ExecutionException e) {
+			throw Task.forceThrow(e.getCause() != null ? e.getCause() : e);
+		}
+	}
+
 	/**
 	 * 停止Task里面包含的默认的三个线程池,default,scheduled,critical。
 	 * 幂等：池未初始化或已停止（字段为null）时跳过，不抛异常。
@@ -182,6 +209,7 @@ public final class Task {
 		ScheduledExecutorService scheduledTmp;
 		ExecutorService defaultTmp;
 		ExecutorService criticalTmp;
+		java.util.concurrent.ForkJoinPool dbIoTmp;
 		taskLock.lock();
 		try {
 			scheduledTmp = threadPoolScheduled;
@@ -207,6 +235,14 @@ public final class Task {
 					criticalTmp.shutdownNow();
 				else
 					criticalTmp.shutdown();
+			}
+			dbIoTmp = threadPoolDbIo;
+			if (dbIoTmp != null) {
+				threadPoolDbIo = null;
+				if (now)
+					dbIoTmp.shutdownNow();
+				else
+					dbIoTmp.shutdown();
 			}
 		} finally {
 			taskLock.unlock();
@@ -236,6 +272,8 @@ public final class Task {
 			timeout += "await threadPoolDefault timeout,";
 		if (criticalTmp != null && !criticalTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
 			timeout += "await threadPoolCritical timeout,";
+		if (dbIoTmp != null && !dbIoTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
+			timeout += "await threadPoolDbIo timeout,";
 		if (!timeout.isEmpty())
 			throw new TimeoutException(timeout);
 	}
@@ -268,6 +306,11 @@ public final class Task {
 			new ThreadFactoryWithName(threadNamePrefix, Thread.NORM_PRIORITY, USE_VIRTUAL_THREAD));
 	}
 
+	// 数据库IO并行池：并行度对齐核数，daemon worker（FJ默认）。
+	private static java.util.concurrent.ForkJoinPool newDbIoPool() {
+		return new java.util.concurrent.ForkJoinPool(Runtime.getRuntime().availableProcessors());
+	}
+
 	// 关键线程池, 不使用虚拟线程时设为普通优先级+2, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
 	public static @NotNull ExecutorService newCriticalThreadPool(@NotNull String threadNamePrefix) {
 		if (USE_UNLIMITED_VIRTUAL_THREAD && isVirtualThreadEnabled()) {
@@ -290,6 +333,7 @@ public final class Task {
 			threadPoolDefault = pool;
 			threadPoolScheduled = scheduled;
 			threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
+			threadPoolDbIo = newDbIoPool();
 			ThreadDiagnosable.startDiagnose(30_000);
 		} finally {
 			taskLock.unlock();
@@ -344,6 +388,7 @@ public final class Task {
 			} else
 				threadPoolScheduled = scheduled;
 			threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
+			threadPoolDbIo = newDbIoPool();
 			ThreadDiagnosable.startDiagnose(30_000);
 			return true;
 		} finally {

@@ -564,7 +564,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		// 第一轮parallelStream的多个worker会并发add拿锁失败的记录，必须线程安全。
 		var remain = Collections.synchronizedList(new ArrayList<KV<Lockey, Record1<K, V>>>(cache.getDataMap().size()));
 		logger.info("ReduceInvalidAllLocalOnly Table={} CacheSize={}", getName(), cache.getDataMap().size());
-		cache.getDataMap().entrySet().parallelStream().forEach((e) -> {
+		// 专用dbIo池：reduce/flush走阻塞DB IO，退出commonPool（阻塞任务互抢可整体停摆）。
+		Zeze.Util.Task.runInDbIoPool(() -> cache.getDataMap().entrySet().parallelStream().forEach((e) -> {
 			var k = e.getKey();
 			var v = e.getValue();
 			if (globalAgent.getGlobalCacheManagerHashIndex(encodeGlobalKey(k)) == GlobalCacheManagerHashIndex) {
@@ -594,11 +595,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					remain.add(KV.create(lockey, v));
 				}
 			}
-		});
+		}));
 
 		if (!remain.isEmpty()) {
 			logger.info("ReduceInvalidAllLocalOnly Table={} Remain={}", getName(), remain.size());
-			remain.parallelStream().forEach((e) -> {
+			Zeze.Util.Task.runInDbIoPool(() -> remain.parallelStream().forEach((e) -> {
 				var k = e.getKey();
 				k.enterWriteLock();
 				try {
@@ -615,7 +616,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				} finally {
 					k.exitWriteLock();
 				}
-			});
+			}));
 		}
 	}
 

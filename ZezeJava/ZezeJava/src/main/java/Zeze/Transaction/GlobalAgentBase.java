@@ -128,11 +128,12 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 
 		@Override
 		public void run() {
-			zeze.getDatabases().values().parallelStream().forEach(database ->
+			// 专用dbIo池：reduce含阻塞DB IO，退出commonPool。
+			Zeze.Util.Task.runInDbIoPool(() -> zeze.getDatabases().values().parallelStream().forEach(database ->
 					database.getTables().parallelStream().forEach(table -> {
 						if (!table.isMemory())
 							table.reduceInvalidAllLocalOnly(globalIndex);
-					}));
+					})));
 			logger.warn("Global.Releaser Checkpoint Start ...");
 			zeze.checkpointRun();
 			logger.warn("Global.Releaser Checkpoint End .");

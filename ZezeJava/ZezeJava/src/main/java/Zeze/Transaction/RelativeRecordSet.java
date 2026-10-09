@@ -556,14 +556,16 @@ public final class RelativeRecordSet extends ReentrantLock {
 			break;
 
 		case MultiThread:
-			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> {
+			// 专用dbIo池：flush是阻塞DB IO，commonPool面向CPU任务，阻塞互抢可整体停摆
+			// 并拖垮进程内其他parallelStream使用者。
+			Zeze.Util.Task.runInDbIoPool(() -> checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> {
 				try {
 					flush(checkpoint, rrs);
 				} catch (Throwable ex) { // logger.error
 					// lambda内必须捕获：逃逸会取消parallelStream尚未启动的任务并传播出去。
 					Checkpoint.logger.error("flushWhenCheckpoint(MultiThread) flush fail, keep for next checkpoint", ex);
 				}
-			});
+			}));
 			break;
 
 		case SingleThreadMerge: {
@@ -587,7 +589,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 		case MultiThreadMerge: {
 			var flushSetMap = new ConcurrentHashMap<Thread, FlushSet>();
-			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> {
+			// 同MultiThread：专用dbIo池承载阻塞flush（FlushSet按worker线程归属，池worker同样成立）。
+			Zeze.Util.Task.runInDbIoPool(() -> checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> {
 				var fs = parallelFlushSet(checkpoint, flushSetMap);
 				if (fs.add(rrs)) {
 					try {
@@ -595,10 +598,10 @@ public final class RelativeRecordSet extends ReentrantLock {
 					} catch (Throwable ex) { // logger.error
 						Checkpoint.logger.error("flushWhenCheckpoint(MultiThreadMerge) FlushSet flush fail, keep for next checkpoint", ex);
 						// 同SingleThreadMerge：丢弃毒化积累，本线程后续rrs换新FlushSet（computeIfAbsent不会替换，用put）。
-						flushSetMap.put(Thread.currentThread(), new FlushSet(checkpoint));
+							flushSetMap.put(Thread.currentThread(), new FlushSet(checkpoint));
 					}
 				}
-			});
+			}));
 			for (var fs : flushSetMap.values())
 				flushTail(fs);
 		}
