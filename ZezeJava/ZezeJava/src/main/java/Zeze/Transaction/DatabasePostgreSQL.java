@@ -174,6 +174,150 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		}
 	}
 
+	// 过程体由启动时 CREATE OR REPLACE 自动下发（见OperatesPostgreSQL构造器）。
+	// plpgsql块级EXCEPTION用于控制流：RAISE EXCEPTION 'ROLLBACK'借助子事务回滚撤销
+	// 本函数内的已写行并保留ret_value（调用方autoCommit，无外部事务可依赖）。
+	// 但WHEN OTHERS必须条件重抛：函数体内的真实错误（死锁40P01、约束违反、磁盘错误）
+	// 静默吞掉后函数以ret_value=1正常返回，Java侧只能抛"Unknown Error"，
+	// 依赖"deadlock detected"消息的64次重试循环永远不可达。
+	static final String PROC_SAVE_DATA_WITH_SAME_VERSION_SQL = """
+			CREATE OR REPLACE FUNCTION _ZezeSaveDataWithSameVersion_(
+			    IN    in_id BYTEA,
+			    IN    in_data BYTEA,
+			    INOUT inout_version BIGINT,
+			    OUT   ret_value INTEGER
+			)
+			LANGUAGE plpgsql
+			AS $$
+			DECLARE\s
+			  old_ver BIGINT;
+			  row_count INTEGER;
+			BEGIN
+			    ret_value := 1;
+			    SELECT version INTO old_ver FROM _ZezeDataWithVersion_ WHERE id=in_id;
+			    GET DIAGNOSTICS row_count = ROW_COUNT;
+			    IF row_count > 0 THEN
+			        IF old_ver <> inout_version THEN
+			            ret_value := 2;
+			            RAISE EXCEPTION 'ROLLBACK';
+			            RETURN;
+			        END IF;
+			        old_ver := old_ver + 1;
+			        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver WHERE id=in_id;
+			        GET DIAGNOSTICS row_count = ROW_COUNT;
+			        IF row_count = 1 THEN
+			            inout_version := old_ver;
+			            ret_value := 0;
+			            RETURN;
+			        END IF;
+			        ret_value := 3;
+			        RAISE EXCEPTION 'ROLLBACK';
+			        RETURN;
+			    END IF;
+			    INSERT INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version) ON CONFLICT (id) DO NOTHING;
+			    GET DIAGNOSTICS row_count = ROW_COUNT;
+			    IF row_count = 1 THEN
+			      ret_value := 0;
+			      RETURN;
+			    END IF;
+			    ret_value := 4;
+			    RAISE EXCEPTION 'ROLLBACK';
+			    RETURN;
+			EXCEPTION WHEN OTHERS THEN
+			    IF SQLERRM <> 'ROLLBACK' THEN
+			        RAISE;
+			    END IF;
+			END;
+			$$;
+			""";
+
+	static final String PROC_SET_IN_USE_SQL = """
+			CREATE OR REPLACE FUNCTION _ZezeSetInUse_(
+			    IN  in_local_id INTEGER,
+			    IN  in_global BYTEA,
+			    OUT ret_value INTEGER
+			)
+			LANGUAGE plpgsql
+			AS $$
+			DECLARE
+			    cur_global BYTEA;
+			    empty_bin BYTEA := E'\\\\x'::bytea;
+			    instance_count INTEGER;
+			    row_count INTEGER;
+			BEGIN
+			    ret_value := 1;
+			    IF exists (SELECT 1 FROM _ZezeInstances_ WHERE localid=in_local_id) THEN
+			        ret_value := 2;
+			        RAISE EXCEPTION 'ROLLBACK';
+			        RETURN;
+			    END IF;
+			    INSERT INTO _ZezeInstances_ VALUES(in_local_id) ON CONFLICT (localid) DO NOTHING;
+			    GET DIAGNOSTICS row_count = ROW_COUNT;
+			    IF row_count = 0 THEN
+			        ret_value := 3;
+			        RAISE EXCEPTION 'ROLLBACK';
+			        RETURN;
+			    END IF;
+			    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
+			    GET DIAGNOSTICS row_count = ROW_COUNT;
+			    IF row_count > 0 THEN
+			        IF cur_global IS DISTINCT FROM in_global THEN
+			            ret_value := 4;
+			            RAISE EXCEPTION 'ROLLBACK';
+			            RETURN;
+			        END IF;
+			    ELSE
+			        INSERT INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0) ON CONFLICT (id) DO NOTHING;
+			    END IF;
+			    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
+			    IF instance_count = 1 THEN
+			        ret_value := 0;
+			        RETURN;
+			    END IF;
+			    IF LENGTH(in_global)=0 THEN
+			        ret_value := 6;
+			        RAISE EXCEPTION 'ROLLBACK';
+			        RETURN;
+			    END IF;
+			    ret_value := 0;
+			    RETURN;
+			EXCEPTION WHEN OTHERS THEN
+			    IF SQLERRM <> 'ROLLBACK' THEN
+			        RAISE;
+			    END IF;
+			END;
+			$$
+			""";
+
+	static final String PROC_CLEAR_IN_USE_SQL = """
+			CREATE OR REPLACE FUNCTION _ZezeClearInUse_(
+			    IN  in_local_id INTEGER,
+			    IN  in_global BYTEA,
+			    OUT ret_value INTEGER
+			)
+			LANGUAGE plpgsql
+			AS $$
+			DECLARE
+			    instance_count INTEGER;
+			    empty_bin BYTEA := E'\\\\x'::bytea;
+			    row_count INTEGER;
+			BEGIN
+			    ret_value := 1;
+			    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;
+			    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
+			    IF instance_count = 0 THEN
+			        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
+			    END IF;
+			    ret_value := 0;
+			    RETURN;
+			EXCEPTION WHEN OTHERS THEN
+			    IF SQLERRM <> 'ROLLBACK' THEN
+			        RAISE;
+			    END IF;
+			END;
+			$$;
+			""";
+
 	private final class OperatesPostgreSQL implements Operates {
 		// 全局启动锁的租期，语义与取值对齐 DatabaseRedis.LOCK_LEASE_SECONDS：
 		// 持锁进程崩溃（kill -9/OOM/断电）后残留的锁最多存活一个租期，之后轮询的
@@ -289,54 +433,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				try (var ps = conn.prepareStatement(tableDataWithVersionSql)) {
 					ps.executeUpdate();
 				}
-				var procSaveDataWithSameVersionSql = """
-						CREATE OR REPLACE FUNCTION _ZezeSaveDataWithSameVersion_(
-						    IN    in_id BYTEA,
-						    IN    in_data BYTEA,
-						    INOUT inout_version BIGINT,
-						    OUT   ret_value INTEGER
-						)
-						LANGUAGE plpgsql
-						AS $$
-						DECLARE\s
-						  old_ver BIGINT;
-						  row_count INTEGER;
-						BEGIN
-						    ret_value := 1;
-						    SELECT version INTO old_ver FROM _ZezeDataWithVersion_ WHERE id=in_id;
-						    GET DIAGNOSTICS row_count = ROW_COUNT;
-						    IF row_count > 0 THEN
-						        IF old_ver <> inout_version THEN
-						            ret_value := 2;
-						            RAISE EXCEPTION 'ROLLBACK';
-						            RETURN;
-						        END IF;
-						        old_ver := old_ver + 1;
-						        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver WHERE id=in_id;
-						        GET DIAGNOSTICS row_count = ROW_COUNT;
-						        IF row_count = 1 THEN
-						            inout_version := old_ver;
-						            ret_value := 0;
-						            RETURN;
-						        END IF;
-						        ret_value := 3;
-						        RAISE EXCEPTION 'ROLLBACK';
-						        RETURN;
-						    END IF;
-						    INSERT INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version) ON CONFLICT (id) DO NOTHING;
-						    GET DIAGNOSTICS row_count = ROW_COUNT;
-						    IF row_count = 1 THEN
-						      ret_value := 0;
-						      RETURN;
-						    END IF;
-						    ret_value := 4;
-						    RAISE EXCEPTION 'ROLLBACK';
-						    RETURN;
-						EXCEPTION WHEN OTHERS THEN
-						END;
-						$$;
-						""";
-				try (var ps = conn.prepareStatement(procSaveDataWithSameVersionSql)) {
+				try (var ps = conn.prepareStatement(PROC_SAVE_DATA_WITH_SAME_VERSION_SQL)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!sqlMessageContains(ex, "tuple concurrently updated"))
@@ -346,92 +443,13 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				try (var ps = conn.prepareStatement(tableInstancesSql)) {
 					ps.executeUpdate();
 				}
-				var procSetInUseSql = """
-					CREATE OR REPLACE FUNCTION _ZezeSetInUse_(
-					    IN  in_local_id INTEGER,
-					    IN  in_global BYTEA,
-					    OUT ret_value INTEGER
-					)
-					LANGUAGE plpgsql
-					AS $$
-					DECLARE
-					    cur_global BYTEA;
-					    empty_bin BYTEA := E'\\\\x'::bytea;
-					    instance_count INTEGER;
-					    row_count INTEGER;
-					BEGIN
-					    ret_value := 1;
-					    IF exists (SELECT 1 FROM _ZezeInstances_ WHERE localid=in_local_id) THEN
-					        ret_value := 2;
-					        RAISE EXCEPTION 'ROLLBACK';
-					        RETURN;
-					    END IF;
-					    INSERT INTO _ZezeInstances_ VALUES(in_local_id) ON CONFLICT (localid) DO NOTHING;
-					    GET DIAGNOSTICS row_count = ROW_COUNT;
-					    IF row_count = 0 THEN
-					        ret_value := 3;
-					        RAISE EXCEPTION 'ROLLBACK';
-					        RETURN;
-					    END IF;
-					    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
-					    GET DIAGNOSTICS row_count = ROW_COUNT;
-					    IF row_count > 0 THEN
-					        IF cur_global IS DISTINCT FROM in_global THEN
-					            ret_value := 4;
-					            RAISE EXCEPTION 'ROLLBACK';
-					            RETURN;
-					        END IF;
-					    ELSE
-					        INSERT INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0) ON CONFLICT (id) DO NOTHING;
-					    END IF;
-					    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
-					    IF instance_count = 1 THEN
-					        ret_value := 0;
-					        RETURN;
-					    END IF;
-					    IF LENGTH(in_global)=0 THEN
-					        ret_value := 6;
-					        RAISE EXCEPTION 'ROLLBACK';
-					        RETURN;
-					    END IF;
-					    ret_value := 0;
-					    RETURN;
-					EXCEPTION WHEN OTHERS THEN
-					END;
-					$$
-					""";
-				try (var ps = conn.prepareStatement(procSetInUseSql)) {
+				try (var ps = conn.prepareStatement(PROC_SET_IN_USE_SQL)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!sqlMessageContains(ex, "tuple concurrently updated"))
 						throw ex;
 				}
-				var procClearInUseSql = """
-					CREATE OR REPLACE FUNCTION _ZezeClearInUse_(
-					    IN  in_local_id INTEGER,
-					    IN  in_global BYTEA,
-					    OUT ret_value INTEGER
-					)
-					LANGUAGE plpgsql
-					AS $$
-					DECLARE
-					    instance_count INTEGER;
-					    empty_bin BYTEA := E'\\\\x'::bytea;
-					    row_count INTEGER;
-					BEGIN
-					    ret_value := 1;
-					    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;
-					    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
-					    IF instance_count = 0 THEN
-					        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
-					    END IF;
-					    ret_value := 0;
-					    RETURN;
-					EXCEPTION WHEN OTHERS THEN
-					END;
-					$$;
-					""";
-				try (var ps = conn.prepareStatement(procClearInUseSql)) {
+				try (var ps = conn.prepareStatement(PROC_CLEAR_IN_USE_SQL)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!sqlMessageContains(ex, "tuple concurrently updated"))
