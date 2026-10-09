@@ -82,6 +82,9 @@ public final class Transaction {
 	private final ArrayList<Savepoint.Action> actions = new ArrayList<>();
 	// 最近一个 redo 轮次的 whileRollback 回调，延迟初始化；重做会重新注册，仅重试耗尽（TooManyTry）终局回滚时触发。
 	private @Nullable ArrayList<Savepoint.Action> redoRollbackActions;
+	// 最近一个以异常形态进入 perform catch 的轮次原始异常（GoBackZeze/内部错误；返回码表达的重做无异常）。
+	// 重试耗尽时随 error 全栈带出并可经 getLastRoundException() 读取；perform() 开始时清零。
+	private @Nullable Throwable lastRoundException;
 	private final TreeMap<TableKey, RecordAccessed> accessedRecords = new TreeMap<>();
 	private Locks locks;
 	private @NotNull TransactionState state = TransactionState.Running;
@@ -137,6 +140,15 @@ public final class Transaction {
 	public @Nullable Procedure getTopProcedure() {
 		var stackSize = procedureStack.size();
 		return stackSize > 0 ? procedureStack.get(stackSize - 1) : null;
+	}
+
+	/**
+	 * 最近一个以异常形态进入重做 catch 的轮次原始异常（如驱动重做的 GoBackZeze）。
+	 * 仅诊断用：末轮可能是无异常的返回码重做，此时保留的是最后一个异常轮；
+	 * perform() 开始时清零，线程复用的事务对象上读到的是最近一笔的结果。
+	 */
+	public @Nullable Throwable getLastRoundException() {
+		return lastRoundException;
 	}
 
 	void reuseTransaction() {
@@ -339,6 +351,7 @@ public final class Transaction {
 			onceResolved.clear(); // 一次性解析缓存的生命周期 = 一次 perform（含redo重试），不跨事务
 		if (redoRollbackActions != null)
 			redoRollbackActions.clear(); // 同上，直接调用 perform 时防止读到上个事务的残留
+		lastRoundException = null; // 同上
 		try {
 			var checkpoint = procedure.getZeze().getCheckpoint();
 			if (checkpoint == null)
@@ -456,6 +469,7 @@ public final class Transaction {
 					} catch (Throwable e) { // logger.error, logger.warn, rethrow AssertionError, ignored
 						// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
 						// 在 unit test 下，异常日志会被记录两次。
+						lastRoundException = e; // 重试耗尽终局诊断：保留最近一轮异常（末轮为返回码重做时保留的是最后一个异常轮）
 						switch (state) {
 						case Running:
 							logger.error("perform({}) exception. run count:{}", procedure, tryCount, e);
@@ -548,7 +562,11 @@ public final class Transaction {
 					return Procedure.Exception;
 				}
 			}
-			logger.error("perform({}): too many try", procedure);
+			// 重试耗尽是严重异常场景：最后异常轮的原始异常全栈带出，调用方无需翻日志定位冲突根因。
+			if (lastRoundException != null)
+				logger.error("perform({}): too many try, last exception:", procedure, lastRoundException);
+			else
+				logger.error("perform({}): too many try", procedure);
 			// 最后一轮回调已被 reuseTransactionForRedo 清空，用暂存的最近一轮回调终局回滚。
 			if (redoRollbackActions != null)
 				actions.addAll(redoRollbackActions);
