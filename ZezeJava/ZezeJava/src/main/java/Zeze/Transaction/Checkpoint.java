@@ -410,7 +410,16 @@ public final class Checkpoint {
 			} catch (Throwable ex) { // logger.error
 				logger.error("Flush Rollback Exception", ex);
 			}
-			throw new RuntimeException(extractTableNames(rs, history), e);
+			// 诊断信息（表名清单）组装失败不得顶掉真正的flush失败原因（记录结构异常时
+			// extractTableNames可能再抛），退化为占位、原始异常保持为cause。
+			String tableNames;
+			try {
+				tableNames = extractTableNames(rs, history);
+			} catch (Throwable diagEx) { // logger.error
+				logger.error("extract table names for flush failure diagnostics failed", diagEx);
+				tableNames = "[table names unavailable]";
+			}
+			throw new RuntimeException(tableNames, e);
 		} finally {
 			for (var t : dts.values()) {
 				try {
