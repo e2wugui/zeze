@@ -219,12 +219,18 @@ public final class JsonReader {
 				if (b != '/') // check comment
 					return false;
 				if ((b = buf[++pos]) == '*') {
-					for (pos++; ; )
-						if (buf[pos++] == '*' && buf[pos] == '/')
+					for (pos++; pos < len; pos++)
+						if (buf[pos] == '*' && pos + 1 < len && buf[pos + 1] == '/') {
+							pos++; // 停在'/'上，外层pos++越过
 							break;
+						}
+					// 未终结的块注释到EOF：按耗尽处理（返回true=纯注释空白），不用越界代替
 				} else
-					while (b != '\n' && ++pos < len)
-						b = buf[pos];
+					for (; pos < len; pos++) { // 行注释：LF/CR/CRLF/Unicode行终止符或EOF都结束
+						int c = buf[pos] & 0xff;
+						if (c == '\n' || c == '\r' || isUnicodeLineSeparator(pos))
+							break;
+					}
 			}
 		return true;
 	}
@@ -300,12 +306,27 @@ public final class JsonReader {
 	private void skipComment() {
 		int b;
 		if ((b = buf[++pos]) == '*') {
-			for (pos++; ; )
-				if (buf[pos++] == '*' && buf[pos] == '/')
-					break;
-		} else
-			while (b != '\n')
-				b = buf[++pos];
+			for (pos++; ; ) {
+				if (pos >= buf.length)
+					return; // 未终结的块注释到EOF：按耗尽处理，后续next()走NUL哨兵
+				if (buf[pos++] == '*' && pos < buf.length && buf[pos] == '/')
+					return; // pos停在关闭'/'上（调用方约定，见skipVar的'/'分支）
+			}
+		}
+		// 行注释：LF/CR/CRLF/Unicode行终止符（U+2028/U+2029）或EOF都结束，
+		// 结束时pos停在线终止符上（与原LF语义一致，调用方按空白越过）；EOF按耗尽。
+		for (; pos < buf.length; pos++) {
+			b = buf[pos] & 0xff;
+			if (b == '\n' || b == '\r' || isUnicodeLineSeparator(pos))
+				return;
+		}
+	}
+
+	// U+2028/U+2029 的UTF-8编码（E2 80 A8/A9）
+	private boolean isUnicodeLineSeparator(int p) {
+		return p + 2 < buf.length && (buf[p] & 0xff) == 0xE2
+				&& (buf[p + 1] & 0xff) == 0x80
+				&& (((buf[p + 2] & 0xff) == 0xA8) || ((buf[p + 2] & 0xff) == 0xA9));
 	}
 
 	public int skipColon() {
