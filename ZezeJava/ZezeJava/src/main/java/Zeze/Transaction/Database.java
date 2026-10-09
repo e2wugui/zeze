@@ -33,9 +33,12 @@ public abstract class Database extends ReentrantLock {
 	// 上限 900 字节（行内 PRIMARY KEY 默认聚集），是最严格的真实限制；MySQL 8 索引前缀 3072、
 	// PostgreSQL btree 索引条目约 2704、MongoDB 索引键 1024，均宽于此值；Memory/Tikv/Redis/RocksDb
 	// 等无此物理限制，但统一预算让表可在后端间自由迁移。
-	// 破坏性变更：由 2712 调小为 900。存量超过 900 的 key 升级后访问将抛异常（赌实际不存在）；
-	// 已建表列宽不会自动收缩，比检查宽，方向安全，无需 Alter。
+	// 预算只约束新写与跨后端迁移预检：读与删除按 eMaxLegacyKeyLength（旧预算上限）放行存量——
+	// 读/删也按900拦截会把存量901..2712的合法key变成不可访问数据，业务无法读取、清理或迁移。
 	public static final int eMaxKeyLength = 900;
+
+	// 存量读/删预算（旧上限）：从允许2712的版本升级后，超900的存量key必须保持可读可删。
+	public static final int eMaxLegacyKeyLength = 2712;
 
 	// KV 表 key 的统一入口检查，两层执法：
 	// 1) 带游标（exclusiveStartKey）的遍历在 AbstractKVTable 的 typed 分页门面（encodeStartKeyChecked）
@@ -49,6 +52,13 @@ public abstract class Database extends ReentrantLock {
 		if (key.size() > eMaxKeyLength)
 			throw new IllegalArgumentException(
 					"key too large for kv table '" + tableName + "': " + key.size() + " > " + eMaxKeyLength);
+	}
+
+	// 读/删路径的预算：放行旧预算内的存量key（新写仍按checkKvKeyLength的900执法）。
+	protected static void checkKvKeyLengthForLegacyAccess(String tableName, ByteBuffer key) {
+		if (key.size() > eMaxLegacyKeyLength)
+			throw new IllegalArgumentException("key too large for kv table legacy access '" + tableName
+					+ "': " + key.size() + " > " + eMaxLegacyKeyLength);
 	}
 
 	static {
@@ -424,7 +434,7 @@ public abstract class Database extends ReentrantLock {
 			if (exclusiveStartKey == null)
 				return null;
 			var encoded = table.encodeKey(exclusiveStartKey);
-			checkKvKeyLength(table.getName(), encoded);
+			checkKvKeyLengthForLegacyAccess(table.getName(), encoded);
 			return encoded;
 		}
 

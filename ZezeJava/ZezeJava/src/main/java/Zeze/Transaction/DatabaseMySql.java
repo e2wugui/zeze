@@ -1306,7 +1306,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			if (dropped)
 				return null;
 
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var k = key.CopyIf();
 			byte[] v = null;
@@ -1330,7 +1330,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			if (dropped)
 				return;
 
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var k = key.CopyIf();
 			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sqlRemove)) {

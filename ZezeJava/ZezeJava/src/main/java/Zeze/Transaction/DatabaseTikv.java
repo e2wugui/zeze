@@ -258,7 +258,7 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public ByteBuffer find(@NotNull ByteBuffer key) {
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			if (distTxn) {
 				// 快照读必须现取 TSO 时间戳：本进程缓存的快照永远看不到其他进程已提交的数据
 				// （多进程接管记录时 cache miss 读到旧值，之后基于旧值覆盖写会丢失对方的更新）。
@@ -277,7 +277,7 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			if (distTxn)
 				((TikvDistTrans)t).delete(addKeyPrefixBB(key));
 			else

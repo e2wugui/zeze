@@ -249,7 +249,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 		@Override
 		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			lock.readLock().lock();
 			try {
 				var value = map.get(key);
@@ -261,7 +261,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 		@Override
 		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			((MemTrans)t).remove(name, key);
 		}
 

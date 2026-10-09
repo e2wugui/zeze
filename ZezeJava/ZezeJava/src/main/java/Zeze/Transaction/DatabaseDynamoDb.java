@@ -260,7 +260,7 @@ public class DatabaseDynamoDb extends Database {
 
 		@Override
 		public ByteBuffer find(@NotNull ByteBuffer key) {
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			var keyPrimary = new HashMap<String, AttributeValue>();
 			keyPrimary.put("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.size())));
 			var req = new GetItemRequest(name, keyPrimary);
@@ -284,7 +284,7 @@ public class DatabaseDynamoDb extends Database {
 
 		@Override
 		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			var myt = (TransDynamoDb)t;
 			myt.remove(name, key);
 		}

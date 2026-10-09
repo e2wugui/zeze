@@ -249,7 +249,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
-			checkKvKeyLength(table.getName(), key);
+			checkKvKeyLengthForLegacyAccess(table.getName(), key);
 			try {
 				var value = table.get(key.Bytes, key.ReadIndex, key.size());
 				return value != null ? ByteBuffer.Wrap(value) : null;
@@ -260,7 +260,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public void remove(@NotNull Transaction txn, @NotNull ByteBuffer key) {
-			checkKvKeyLength(table.getName(), key);
+			checkKvKeyLengthForLegacyAccess(table.getName(), key);
 			((RocksDbTrans)txn).remove(key.CopyIf(), table);
 		}
 

@@ -209,7 +209,7 @@ public class DatabaseMongoDb extends Database {
 			if (dropped)
 				return null;
 
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			var filter = Filters.eq("_id", key.CopyIf());
 			var doc = collection.find(filter).first();
 			if (doc == null)
@@ -243,7 +243,7 @@ public class DatabaseMongoDb extends Database {
 			if (dropped)
 				return;
 
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			var txn = (MongoTrans)t;
 			var filter = new Document("_id", new Binary(key.CopyIf()));
 			var options = new DeleteOptions();

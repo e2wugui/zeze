@@ -491,7 +491,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				return null;
 
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -522,7 +522,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				return;
 
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
-			checkKvKeyLength(name, key);
+			checkKvKeyLengthForLegacyAccess(name, key);
 			var my = (JdbcTrans)t;
 			String sql = "DELETE FROM " + getName() + " WHERE id=?";
 			try (var cmd = my.conn.prepareStatement(sql)) {

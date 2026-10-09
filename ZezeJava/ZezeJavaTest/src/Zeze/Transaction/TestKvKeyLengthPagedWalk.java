@@ -12,12 +12,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * FND3-02 回归：带游标（exclusiveStartKey）的遍历必须在统一入口检查 key 长度预算。
- * 修复前 MySql/SqlServer 的 walkKey/walkDesc/walkKeyDesc 分页变体跳过检查，
- * DatabaseMemory 则全文件一处检查都没有——超长游标 key 要么落库报不含表名的原生错误，
- * 要么在无限制后端上静默无结果。修复后检查收敛到 AbstractKVTable 的 typed 分页门面
- * 与 TableX.walkDatabaseRaw，这里用 Memory 后端 + 未开表的 tAutoKeyRandom（binary key）
- * 逐一验证 12 个入口（检查发生在触及 storage/后端实现之前）。
+ * 带游标（exclusiveStartKey）的遍历必须在统一入口检查 key 长度预算：写预算900
+ * （跨后端迁移上限）只约束新写，读/删/游标按存量预算2712放行（旧预算内的存量key
+ * 必须可读可删可遍历定位，否则合法存量变成不可访问数据）。检查收敛在
+ * AbstractKVTable 的 typed 分页门面与 TableX.walkDatabaseRaw，这里用 Memory 后端 +
+ * 未开表的 tAutoKeyRandom（binary key）逐一验证入口（检查发生在触及 storage 之前）。
  */
 @Fast
 public class TestKvKeyLengthPagedWalk {
@@ -32,7 +31,7 @@ public class TestKvKeyLengthPagedWalk {
 	public void testTypedPagedWalks() throws Exception {
 		var rawTable = rawTable();
 		var t = new tAutoKeyRandom();
-		var bigKey = new Binary(new byte[Database.eMaxKeyLength + 1]);
+		var bigKey = new Binary(new byte[Database.eMaxLegacyKeyLength + 1]); // 读路径按存量预算执法
 
 		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> rawTable.walk(t, bigKey, 1, (k, v) -> true));
@@ -56,7 +55,7 @@ public class TestKvKeyLengthPagedWalk {
 	@Test
 	public void testRawPagedWalks() {
 		var t = new tAutoKeyRandom();
-		var bigKey = ByteBuffer.Wrap(new byte[Database.eMaxKeyLength + 1]);
+		var bigKey = ByteBuffer.Wrap(new byte[Database.eMaxLegacyKeyLength + 1]); // 读路径按存量预算执法
 
 		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> t.walkDatabaseRaw(bigKey, 1, (k, v) -> true));
@@ -85,19 +84,24 @@ public class TestKvKeyLengthPagedWalk {
 	@Test
 	public void testFindReplaceRemove() throws Exception {
 		// find/replace/remove 的执法点在各后端 raw 方法（写主路径 Record1.flush 直呼 raw，
-		// 不经过 typed 门面）；DatabaseMemory 曾是唯一没有检查的后端。
+		// 不经过 typed 门面）；写按900，读/删按存量预算2712。
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseUrl(FastServerIds.URL_TEST_KV_KEY_LENGTH_PAGED_WALK);
 		var db = new DatabaseMemory(null, dbConf);
 		var rawTable = (DatabaseMemory.TableMemory)db.openTable("test_kv_key_length", 1);
 		var t = new tAutoKeyRandom();
-		var bigKey = new Binary(new byte[Database.eMaxKeyLength + 1]);
+		var legacyKey = new Binary(new byte[Database.eMaxKeyLength + 1]); // 901：存量预算内
+		var tooBigKey = new Binary(new byte[Database.eMaxLegacyKeyLength + 1]);
 		var txn = db.beginTransaction();
 
-		Assertions.assertThrows(IllegalArgumentException.class, () -> rawTable.find(t, bigKey));
+		// 存量预算内（901）可读可删；新写（replace）仍按900拒绝
+		Assertions.assertNull(rawTable.find(t, legacyKey), "存量预算内的key必须可读");
+		rawTable.remove(txn, t.encodeKey(legacyKey)); // no-op，不得抛
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> rawTable.replace(txn, t.encodeKey(bigKey), t.encodeKey(bigKey)));
+				() -> rawTable.replace(txn, t.encodeKey(legacyKey), t.encodeKey(legacyKey)));
+		// 超存量预算（2713）读/删照旧拒绝
+		Assertions.assertThrows(IllegalArgumentException.class, () -> rawTable.find(t, tooBigKey));
 		Assertions.assertThrows(IllegalArgumentException.class,
-				() -> rawTable.remove(txn, t.encodeKey(bigKey)));
+				() -> rawTable.remove(txn, t.encodeKey(tooBigKey)));
 	}
 }
