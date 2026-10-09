@@ -10,6 +10,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.HasManagedException;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
@@ -84,11 +85,12 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 			throw new IllegalArgumentException("null value");
 
 		if (isManaged()) {
+			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
+			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			value.initRootInfoWithRedo(rootInfo, this);
 			value.mapKey(key);
 			assert parent() != null;
-			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.put(key, value);
 		}
 		value.mapKey(key);
@@ -114,16 +116,18 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 					throw new IllegalArgumentException("null key");
 				if (e.getValue() == null) // 对齐put与PMap1.putAll：null在托管分支的initRootInfoWithRedo处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null value");
+				if (e.getValue().isManaged()) // 批量原子性：后段项的HasManagedException不得留下已挂接的前段项
+					throw new HasManagedException();
 			}
+			assert parent() != null;
+			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				V v = e.getValue();
 				v.initRootInfoWithRedo(rootInfo, this);
 				v.mapKey(k);
 			}
-			assert parent() != null;
-			var mapLog = (LogSortedMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.putAll(m);
 		} else {
 			for (var e : m.entrySet()) {

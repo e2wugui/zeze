@@ -48,9 +48,10 @@ public final class CollOne<V extends Bean> extends Collection {
 			throw new NullPointerException("value");
 
 		if (isManaged()) {
-			value.initRootInfoWithRedo(rootInfo, this);
+			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
 			var log = (LogOne<V>)Transaction.getCurrentVerifyWrite(this)
 					.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
+			value.initRootInfoWithRedo(rootInfo, this);
 			log.setValue(value);
 		} else
 			this.value = value;

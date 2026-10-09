@@ -10,6 +10,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.HasManagedException;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
@@ -69,10 +70,11 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			throw new IllegalArgumentException("null value");
 
 		if (isManaged()) {
-			value.initRootInfoWithRedo(rootInfo, this);
-			value.mapKey(key);
+			// 先取写权限后挂接（理由同PList2.add）：拒绝路径不得污染输入bean归属。
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
+			value.initRootInfoWithRedo(rootInfo, this);
+			value.mapKey(key);
 			return mapLog.put(key, value);
 		}
 		value.mapKey(key);
@@ -98,15 +100,17 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 					throw new IllegalArgumentException("null key");
 				if (e.getValue() == null) // 对齐put与PMap1.putAll：null在托管分支的initRootInfoWithRedo处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null value");
+				if (e.getValue().isManaged()) // 批量原子性：后段项的HasManagedException不得留下已挂接的前段项
+					throw new HasManagedException();
 			}
+			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			for (var e : m.entrySet()) {
 				K k = e.getKey();
 				V v = e.getValue();
 				v.initRootInfoWithRedo(rootInfo, this);
 				v.mapKey(k);
 			}
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.putAll(m);
 		} else {
 			for (var e : m.entrySet()) {

@@ -11,6 +11,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.HasManagedException;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
@@ -50,9 +51,12 @@ public class PList2<V extends Bean> extends PList<V> {
 			throw new IllegalArgumentException("null item");
 
 		if (isManaged()) {
-			item.initRootInfoWithRedo(rootInfo, this);
+			// 先取写权限后挂接：无当前事务/记录不可写时getCurrentVerifyWrite抛出，
+			// 若先挂接（initRootInfoWithRedo改写bean归属，普通字段写不受回滚保护），
+			// 输入bean永久污染（isManaged=true，复用抛HasManagedException）。
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
+			item.initRootInfoWithRedo(rootInfo, this);
 			return listLog.add(item);
 		}
 		list = list.plus(item);
@@ -99,9 +103,9 @@ public class PList2<V extends Bean> extends PList<V> {
 			var cur = getList();
 			if (index < 0 || index >= cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
-			item.initRootInfoWithRedo(rootInfo, this);
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
+			item.initRootInfoWithRedo(rootInfo, this);
 			return listLog.set(index, item);
 		}
 		V old = list.get(index);
@@ -121,9 +125,9 @@ public class PList2<V extends Bean> extends PList<V> {
 			var cur = getList();
 			if (index < 0 || index > cur.size())
 				throw new IndexOutOfBoundsException("index: " + index + ", size: " + cur.size());
-			item.initRootInfoWithRedo(rootInfo, this);
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
+			item.initRootInfoWithRedo(rootInfo, this);
 			listLog.add(index, item);
 		} else
 			list = list.plus(index, item);
@@ -154,11 +158,13 @@ public class PList2<V extends Bean> extends PList<V> {
 			for (V v : items) {
 				if (v == null) // 对齐非托管分支与add/PList1：null在initRootInfoWithRedo处解引用NPE，先验拒绝
 					throw new IllegalArgumentException("null item");
+				if (v.isManaged()) // 批量原子性：后段项的HasManagedException不得留下已挂接的前段项
+					throw new HasManagedException();
 			}
-			for (V v : items)
-				v.initRootInfoWithRedo(rootInfo, this);
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
+			for (V v : items)
+				v.initRootInfoWithRedo(rootInfo, this);
 			return listLog.addAll(items);
 		}
 		for (V v : items) {
@@ -207,16 +213,18 @@ public class PList2<V extends Bean> extends PList<V> {
 				V newV = operator.apply(v);
 				if (newV == null) // 对齐非托管分支：null在initRootInfoWithRedo或日志路径解引用NPE，先验拒绝
 					throw new IllegalStateException("null item");
+				if (newV != v && newV.isManaged()) // 批量原子性：预检归属
+					throw new HasManagedException();
 				tmpList.add(newV);
 			}
+			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
 			int i = 0;
 			for (V v : origin) {
 				V newV = tmpList.get(i++);
 				if (newV != v)
 					newV.initRootInfoWithRedo(rootInfo, this);
 			}
-			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 			listLog.addAll(tmpList);
 		} else {
