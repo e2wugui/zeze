@@ -47,6 +47,16 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		return msg != null && msg.contains(token);
 	}
 
+	// CREATE TABLE并发竞态：虽有IF NOT EXISTS，对方恰好在检查与创建之间建同名表时
+	// 报duplicate_table(42P07)或pg_class唯一约束(23505)——"tuple concurrently updated"
+	// 令牌属于并发CREATE OR REPLACE FUNCTION，匹配不到会误把竞态当硬错误。
+	// 按SQLState判定，竞态视为表已存在（isNew=false）。
+	private static boolean isConcurrentCreateTableExists(@NotNull SQLException e) {
+		var state = e.getSQLState();
+		return "42P07".equals(state) || "23505".equals(state)
+				|| sqlMessageContains(e, "tuple concurrently updated");
+	}
+
 	private static final ZezeCounter.LabeledObserverCreator postgreObserverCreator
 			= ZezeCounter.instance.allocRunTimeObserverCreator("postgre_operation", "operation");
 
@@ -680,7 +690,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					isNew = !tableAlreadyExistsWarning(ps.getWarnings());
 				}
 			} catch (SQLException e) {
-				if (!sqlMessageContains(e, "tuple concurrently updated"))
+				if (!isConcurrentCreateTableExists(e))
 					throw Task.forceThrow(e);
 				isNew = false;
 			}
@@ -848,11 +858,15 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					try (var stDropPk = conn.prepareStatement("ALTER TABLE " + name + " DROP CONSTRAINT " + pkName)) {
 						stDropPk.executeUpdate();
 					}
-					var sqlMakePk = "ALTER TABLE " + name + " ADD PRIMARY KEY (" + r.currentKeyColumns + ")";
-					logger.info("tryAlter {}", sqlMakePk);
-					try (var stMakePk = conn.prepareStatement(sqlMakePk)) {
-						stMakePk.executeUpdate();
-					}
+				} else {
+					// 旧表无主键：不能静默跳过——无PK的表后续ON CONFLICT upsert报错且远离根因。
+					// 只ADD不DROP（无约束可删），warn标记异常形态。
+					logger.warn("tryAlter {}: no primary key constraint found, will add one", name);
+				}
+				var sqlMakePk = "ALTER TABLE " + name + " ADD PRIMARY KEY (" + r.currentKeyColumns + ")";
+				logger.info("tryAlter {}", sqlMakePk);
+				try (var stMakePk = conn.prepareStatement(sqlMakePk)) {
+					stMakePk.executeUpdate();
 				}
 				conn.commit();
 			} catch (SQLException e) {
@@ -1313,7 +1327,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					isNew = !tableAlreadyExistsWarning(ps.getWarnings());
 				}
 			} catch (SQLException e) {
-				if (!sqlMessageContains(e, "tuple concurrently updated"))
+				if (!isConcurrentCreateTableExists(e))
 					throw Task.forceThrow(e);
 				isNew = false;
 			}
