@@ -92,6 +92,21 @@ public class Vector4 extends Vector3 {
 		return new Vector4(x * m, y * m, z * m, w * m);
 	}
 
+	// 四维加减重载（不覆写三维签名）：继承的add/sub/subtract(Vector3)只运算x/y/z并
+	// 返回Vector3，丢w且降维。新增重载让静态类型为Vector4的实参绑定四维路径；
+	// Vector4实参经Vector3静态类型调用时保持旧三维语义（二进制兼容，见提交说明）。
+	public @NotNull Vector4 add(@NotNull Vector4 b) {
+		return new Vector4(x + b.x, y + b.y, z + b.z, w + b.w);
+	}
+
+	public @NotNull Vector4 sub(@NotNull Vector4 b) {
+		return new Vector4(x - b.x, y - b.y, z - b.z, w - b.w);
+	}
+
+	public @NotNull Vector4 subtract(@NotNull Vector4 b) {
+		return sub(b);
+	}
+
 	@Override
 	public boolean equals(@Nullable Object o) {
 		if (this == o)
