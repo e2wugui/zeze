@@ -769,11 +769,11 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
   }
 
   private class ColumnKeyIterator extends AbstractIterator<C> {
-    // Use the same map type to support TreeMaps with comparators that aren't
-    // consistent with equals().
-    // factory.get() 产出与行 map 同型的新空 map（含 comparator）：containsKey 去重与
-    // backingMap 的键序比较保持同一语义；仅在本迭代器生命周期内使用，不外泄。
-    final Map<C, V> seen = factory.get();
+    // 去重表只存键（HashSet），与行map工厂解耦：factory.get()在GTable2下产出受管
+    // BeanMap2，seen.put(colKey, 活受管value)会对只读迭代中的value bean做mapKey
+    // 字段写并强引用全部唯一列bean。原"同型map"是Guava对comparator与equals不一致
+    // 的TreeMap去重语义保留；zeze的GTable键比较器与equals一致，HashSet语义等价。
+    final Set<C> seen = new java.util.HashSet<>();
     final Iterator<Map<C, V>> mapIterator = backingMap.values().iterator();
     Iterator<Entry<C, V>> entryIterator = Utils.emptyIterator();
 
@@ -783,8 +783,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
       while (true) {
         if (entryIterator.hasNext()) {
           Entry<C, V> entry = entryIterator.next();
-          if (!seen.containsKey(entry.getKey())) {
-            seen.put(entry.getKey(), entry.getValue());
+          if (!seen.contains(entry.getKey())) {
+            seen.add(entry.getKey());
             return entry.getKey();
           }
         } else if (mapIterator.hasNext()) {
