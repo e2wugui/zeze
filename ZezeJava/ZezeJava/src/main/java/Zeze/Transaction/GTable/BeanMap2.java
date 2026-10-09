@@ -264,12 +264,15 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 	public boolean equals(Object _o_) {
 		if (_o_ == this)
 			return true;
-		if (!(_o_ instanceof BeanMap2))
-			return false;
-		@SuppressWarnings("unchecked") var _b_ = (BeanMap2<C, V, VReadOnly>)_o_;
-		if (!pMap2.equals(_b_.pMap2))
-			return false;
-		return true;
+		// 按Map接口内容比较（对称性，理由同PMap族判例）：收窄到BeanMap家族时，
+		// JDK Map反方向按内容相等，HashSet去重/HashMap键命中依赖比较方向。
+		return _o_ instanceof Map && pMap2.equals(_o_);
+	}
+
+	@Override
+	public int hashCode() {
+		// equals内容化后hashCode必须同步内容化（Map契约），否则哈希容器行为未定义。
+		return pMap2.hashCode();
 	}
 
 	@Override
