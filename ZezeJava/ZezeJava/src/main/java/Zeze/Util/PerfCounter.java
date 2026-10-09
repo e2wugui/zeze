@@ -152,6 +152,16 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			return active;
 		}
 
+		/** resetCounter就地清零：保留TableInfo与计数句柄身份（tableCounter交出的
+		 * LongAdderCounter被调用方长期缓存复用，清tableInfoMap会让旧句柄的增量
+		 * 落在脱离收集的孤儿对象上，直到按ID重新查询才恢复统计）。 */
+		void reset() {
+			for (var metric : TableMetric.values()) {
+				counters[metric.ordinal()].reset();
+				lastCounts[metric.ordinal()] = 0;
+			}
+		}
+
 		@NotNull Map<String, Long> snapshotResult() {
 			var m = new LinkedHashMap<String, Long>(lastCounts.length * 2);
 			for (var metric : TableMetric.values())
@@ -499,7 +509,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			protocolInfoMap.clear();
 			procedureInfoMap.clear();
 			procedureTotalMap.clear(); // 单调累计随代际清零重开（差分基准由使用方自建）
-			tableInfoMap.clear();
+			// tableInfoMap不清而就地清零：tableCounter交出的句柄直接指向TableInfo内的
+			// LongAdder并被调用方长期缓存（如Lockey的计数路径），清map后旧句柄增量
+			// 永久脱离收集，重新按ID取得的新句柄才被统计。
+			for (var it = tableInfoMap.entryIterator(); it.moveToNext(); )
+				it.value().reset();
 			// info() 的慢路径同样持有此锁，旧条目与新 clearSerial 不会被组装成同一个 Bound。
 			//noinspection NonAtomicOperationOnVolatileField
 			clearSerial++;
