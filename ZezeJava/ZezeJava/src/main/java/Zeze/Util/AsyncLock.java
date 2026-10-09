@@ -27,6 +27,10 @@ public final class AsyncLock {
 	// 调用方晚于静态初始化set的属性随时可能静默失效)。
 	private final boolean syncDispatch;
 	private volatile int state;
+	// 拒绝兜底的内联驱动线程（见driveRejectedInline）：驱动期间该线程的leave()只清
+	// owner不派发，派发由驱动循环推进——否则runWithLeave→leave→tryNextAsync逐回调
+	// 递归，深队列栈溢出后state==1无人派发，锁永久毒化。
+	private volatile @Nullable Thread inlineDriverThread;
 	private final ConcurrentLinkedQueue<Action0> readyQueue = new ConcurrentLinkedQueue<>();
 	private final ArrayDeque<Action0> waitQueue = new ArrayDeque<>();
 	private @Nullable Action0 current;
@@ -126,11 +130,10 @@ public final class AsyncLock {
 				} catch (RuntimeException e) {
 					// 派发被拒：不回滚不复位——复位后不复查队列，与并发enter的
 					// offer后重试CAS竞态会把回调滞留成无派发者真空（直到下一个enter才自愈）。
-					// 改为就地内联执行（enter快路径本就内联，调用者线程不限），派发链就地
-					// 续走（嵌套深度≤队列长）；回调已实际执行故不重抛（重抛会让调用方二次应答）。
+					// 就地内联续走整个派发链；回调已实际执行故不重抛（重抛会让调用方二次应答）。
 					Task.logger.warn("AsyncLock: dispatch rejected, fallback inline run, {} pending callback(s)",
 							readyQueue.size() + 1, e);
-					runWithLeave(onReady);
+					driveRejectedInline(onReady);
 				}
 				return;
 			}
@@ -140,14 +143,52 @@ public final class AsyncLock {
 		}
 	}
 
+	// 拒绝兜底的循环驱动（借用同步dispatchLoop的所有权协议）：每回调固定栈帧，深队列
+	// 不再递归SOE。驱动线程的leave()只清owner/current、不派发（inlineDriverThread标记），
+	// 派发由本循环推进；整个队列就地内联耗尽后释放派发权，池恢复由其后的正常派发路径
+	// 检测（驱动中逐个探测投递会因逐回调告警日志拖垮深队列）。
+	private void driveRejectedInline(@NotNull Action0 first) {
+		inlineDriverThread = Thread.currentThread();
+		try {
+			var onReady = first;
+			for (; ; ) {
+				try {
+					ownerThread = Thread.currentThread();
+					current = onReady;
+					onReady.run();
+				} catch (Throwable e) { // print stacktrace.
+					Task.logger.error("AsyncLock.inline dispatch exception:", e);
+				} finally {
+					if (ownerThread == Thread.currentThread()) { // 回调内部未显式leave()时就地释放
+						ownerThread = null;
+						current = null;
+					}
+				}
+				onReady = readyQueue.poll();
+				if (onReady == null) {
+					state = 0;
+					if (readyQueue.isEmpty() || !stateHandle.compareAndSet(this, 0, 1)) // retry, rare-path
+						return;
+					onReady = readyQueue.poll();
+					if (onReady == null)
+						return; // CAS胜出后队列被并发取走：他人已接管派发，让位
+				}
+			}
+		} finally {
+			inlineDriverThread = null;
+		}
+	}
+
 	// 释放锁,可能触发其它线程获取锁的回调
 	public void leave() {
 		if (ownerThread != Thread.currentThread())
 			return;
 		ownerThread = null;
 		current = null;
-		if (!syncDispatch)
-			tryNextAsync(); // 同步模式：派发循环独占释放(state==1保持到回调返回)，这里派发会造成重入递归
+		// 同步模式：派发循环独占释放(state==1保持到回调返回)，这里派发会造成重入递归；
+		// 内联驱动（拒绝兜底）同理：派发由driveRejectedInline循环推进。
+		if (!syncDispatch && inlineDriverThread != Thread.currentThread())
+			tryNextAsync();
 	}
 
 	// 在获取锁的情况下,释放锁并等到有通知且获取锁时回调onNotify
