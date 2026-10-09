@@ -415,7 +415,6 @@ public class Schemas implements Serializable {
 		private final ConcurrentHashMap<Integer, Variable> variables = new ConcurrentHashMap<>();
 		private boolean isBeanKey;
 		private transient int keyRefCount;
-		private boolean compatibleChecked;
 		private final ConcurrentHashMap<Integer, Variable> deletedVars = new ConcurrentHashMap<>();
 
 		public final @NotNull ConcurrentHashMap<Integer, Variable> getVariables() {
@@ -456,9 +455,8 @@ public class Schemas implements Serializable {
 		@Override
 		public boolean isCompatible(@NotNull String parent, @Nullable Type other, @NotNull Context context,
 									@Nullable Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
-			if (compatibleChecked)
-				return true;
-
+			// 去重只认本次比较的Context（以previous/current对为键）：实例级缓存会跨比较保留，
+			// 失败的检查也置位，重试（调用方重试/热更失败重试/CAS重读）直接按已检查通过放行。
 			if (other == null) {
 				logger.error("other is null. parent={}, bean={}", parent, getName());
 				return false;
@@ -534,7 +532,6 @@ public class Schemas implements Serializable {
 				}
 			}
 
-			compatibleChecked = true;
 			return res;
 		}
 
