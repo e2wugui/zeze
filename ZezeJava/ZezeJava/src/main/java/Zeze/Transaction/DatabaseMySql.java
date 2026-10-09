@@ -361,6 +361,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					return switch (ps.getInt(4)) {
 						case 0 -> KV.create(ps.getLong(3), true);
 						case 2 -> KV.create(0L, false);
+						// 3=版本条件的UPDATE未命中行：并发写者已抢先，映射false走CAS重读重试
+						case 3 -> KV.create(0L, false);
 						default -> throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error");
 					};
 				}
@@ -405,7 +407,10 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						            LEAVE return_label;
 						        END IF;
 						        SET old_ver = old_ver + 1;
-						        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver WHERE id=in_id;
+						        -- 更新带版本条件：快照读到更新的窗口内并发写者可双双通过前置校验，
+						        -- 无条件UPDATE让后者覆盖前者且双双报成功（丢失更新）。
+						        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver
+						            WHERE id=in_id AND version=inout_version;
 						        SELECT ROW_COUNT() INTO row_count;
 						        IF row_count = 1 THEN
 						            SET inout_version = old_ver;

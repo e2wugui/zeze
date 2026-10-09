@@ -225,6 +225,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return switch (cmd.getInt(4)) {
 						case 0 -> KV.create(cmd.getLong(3), true);
 						case 2 -> KV.create(0L, false);
+						// 3=版本条件的UPDATE未命中行：并发写者已抢先，映射false走CAS重读重试
+						case 3 -> KV.create(0L, false);
 						default -> throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error.");
 					};
 				}
@@ -268,7 +270,9 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						                                return 2
 						                            end
 						                            set @currentversion = @currentversion + 1
-						                            update _ZezeDataWithVersion_ set data = @data, version = @currentversion where id = @id
+						                            -- 更新带版本条件：并发写者双双通过前置校验时，无条件UPDATE丢失更新
+						                            update _ZezeDataWithVersion_ set data = @data, version = @currentversion
+						                                where id = @id and version = @version
 						                            if @@rowcount = 1
 						                            begin
 						                                set @version = @currentversion
