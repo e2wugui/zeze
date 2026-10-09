@@ -713,6 +713,22 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			}
 		}
 
+		// 实际存在的物理列（幂等重放的判定目录）。
+		private java.util.@NotNull HashSet<String> getPhysicalColumns() throws SQLException {
+			var columns = new java.util.HashSet<String>();
+			try (var conn = dataSource.getConnection()) {
+				try (var ps = conn.prepareStatement(
+						"SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ?")) {
+					ps.setString(1, name);
+					try (var rs = ps.executeQuery()) {
+						while (rs.next())
+							columns.add(rs.getString(1));
+					}
+				}
+			}
+			return columns;
+		}
+
 		@Override
 		public void tryAlter() {
 			if (isNew) {
@@ -726,6 +742,22 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			if (r.add.isEmpty() && r.remove.isEmpty() && r.change.isEmpty()) {
 				logger.info("tryAlter no change {}", name);
 				return; // do nothing
+			}
+			// 幂等重放：元数据发布延迟到DDL成功之后（Application.publishSchemas），
+			// DDL成功、发布前崩溃的重启会重算出同一差分——必须按物理列过滤已应用的部分，
+			// 否则ADD COLUMN撞已存在列失败，升级重启卡死。ALTER TABLE单语句原子，
+			// 按表全有/全无，过滤后为空即整表已迁移。
+			try {
+				var physical = getPhysicalColumns();
+				r.add.removeIf(c -> physical.contains(c.name));
+				r.remove.removeIf(c -> !physical.contains(c.name));
+				r.change.removeIf(c -> !physical.contains(c.change.name));
+			} catch (SQLException e) {
+				throw Task.forceThrow(e);
+			}
+			if (r.add.isEmpty() && r.remove.isEmpty() && r.change.isEmpty()) {
+				logger.info("tryAlter no change {} (physical already migrated)", name);
+				return;
 			}
 
 			var sb = new StringBuilder();

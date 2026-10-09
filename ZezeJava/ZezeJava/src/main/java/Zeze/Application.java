@@ -375,6 +375,12 @@ public final class Application extends ReentrantLock {
 			table.tryAlter();
 		}
 		replaceTableRecent.clear();
+		// 热更路径与启动路径同构：DDL成功后才发布元数据（__upgrade_schemas__只检查不保存）。
+		try {
+			publishSchemas();
+		} catch (Exception e) {
+			throw Task.forceThrow(e);
+		}
 	}
 
 	public @NotNull ArrayList<HotUpgradeMemoryTable> __get_upgrade_memory_table__() {
@@ -565,7 +571,8 @@ public final class Application extends ReentrantLock {
 	}
 
 	// 数据库Meta兼容检查，初始化。
-	private void schemasCompatible() throws Exception {
+	// 包内可见：同包回归测试直接驱动检查/发布分界（元数据不得先于物理DDL发布）。
+	void schemasCompatible() throws Exception {
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		if (schemas != null) {
 			schemas.compile();
@@ -573,34 +580,70 @@ public final class Application extends ReentrantLock {
 			var keyOfSchemas = ByteBuffer.Allocate(32);
 			var serverId = conf.getServerId();
 			keyOfSchemas.WriteString("zeze.Schemas.V4." + serverId);
-			while (true) {
-				var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
-				long version = 0;
-				if (dataVersion != null && dataVersion.data != null) {
-					schemasPrevious = new Schemas();
-					try {
-						schemasPrevious.decode(dataVersion.data);
-						schemasPrevious.compile();
-					} catch (Exception ex) {
-						schemasPrevious = null;
-						throw new IllegalStateException("Schemas Implement Changed? serverId=" + serverId, ex);
-					}
-					if (schemas.getAppVersion() < schemasPrevious.getAppVersion()) {
-						logger.info("OldAppVersion Skip.");
-						return; // 当前的发布版本小于先前时，不做任何操作，直接返回。
-					}
-
-					schemas.checkCompatible(schemasPrevious, this);
-					version = dataVersion.version;
+			var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
+			if (dataVersion != null && dataVersion.data != null) {
+				schemasPrevious = new Schemas();
+				try {
+					schemasPrevious.decode(dataVersion.data);
+					schemasPrevious.compile();
+				} catch (Exception ex) {
+					schemasPrevious = null;
+					throw new IllegalStateException("Schemas Implement Changed? serverId=" + serverId, ex);
 				}
-				// schemasPrevious maybe null
+				if (schemas.getAppVersion() < schemasPrevious.getAppVersion()) {
+					logger.info("OldAppVersion Skip.");
+					return; // 当前的发布版本小于先前时，不做任何操作，直接返回。
+				}
 
-				var newData = ByteBuffer.Allocate(1024);
-				schemas.encode(newData);
-				var versionRc = defaultDb.getDirectOperates().saveDataWithSameVersion(keyOfSchemas, newData, version);
-				if (versionRc == null || versionRc.getValue())
-					break;
+				schemas.checkCompatible(schemasPrevious, this);
 			}
+			// schemasPrevious maybe null
+			// 不在此保存：元数据先于物理DDL发布会把目标状态提前当成"已完成"——
+			// 其后开表或ALTER临时失败、进程退出，重启读取的previous已是新版结构，
+			// 差分为空，升级被静默跳过（物理表仍旧结构，SQL按新列读写持续失败）。
+			// 保存延迟到开表与tryAlter成功之后，见publishSchemas。
+		}
+	}
+
+	/**
+	 * 开表与tryAlter全部成功后发布Schemas元数据（CAS重试）。
+	 * 与schemasCompatible同一启动锁内执行；DDL成功、发布前崩溃的重启由
+	 * tryAlter按物理列目录的幂等过滤兜底（差分按information_schema实际列过滤）。
+	 */
+	void publishSchemas() throws Exception {
+		if (schemas == null)
+			return;
+		if (schemasPrevious != null && schemas.getAppVersion() < schemasPrevious.getAppVersion())
+			return; // OldAppVersion Skip：不发布（与schemasCompatible判定一致）。
+		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
+		var keyOfSchemas = ByteBuffer.Allocate(32);
+		var serverId = conf.getServerId();
+		keyOfSchemas.WriteString("zeze.Schemas.V4." + serverId);
+		while (true) {
+			var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
+			long version = 0;
+			if (dataVersion != null && dataVersion.data != null) {
+				schemasPrevious = new Schemas();
+				try {
+					schemasPrevious.decode(dataVersion.data);
+					schemasPrevious.compile();
+				} catch (Exception ex) {
+					schemasPrevious = null;
+					throw new IllegalStateException("Schemas Implement Changed? serverId=" + serverId, ex);
+				}
+				if (schemas.getAppVersion() < schemasPrevious.getAppVersion()) {
+					logger.info("OldAppVersion Skip Publish.");
+					return;
+				}
+				// CAS冲突重读到的版本可能与检查时不同（启动锁之外的并发改动）：重检再发布。
+				schemas.checkCompatible(schemasPrevious, this);
+				version = dataVersion.version;
+			}
+			var newData = ByteBuffer.Allocate(1024);
+			schemas.encode(newData);
+			var versionRc = defaultDb.getDirectOperates().saveDataWithSameVersion(keyOfSchemas, newData, version);
+			if (versionRc == null || versionRc.getValue())
+				break;
 		}
 	}
 
@@ -644,6 +687,10 @@ public final class Application extends ReentrantLock {
 						table.tryAlter();
 					}
 				}
+
+				// DDL全部成功后才发布元数据：发布先于DDL的窗口里失败重启会拿到空差分，
+				// 升级被静默跳过；发布前的崩溃重启由tryAlter的物理列幂等过滤重放兜底。
+				publishSchemas();
 			} finally {
 				defaultDb.getDirectOperates().unlock();
 			}
