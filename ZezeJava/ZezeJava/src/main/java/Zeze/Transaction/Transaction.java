@@ -363,7 +363,19 @@ public final class Transaction {
 								finalRollback(procedure);
 								return Procedure.ErrorSavepoint;
 							}
-							checkResult = lockAndCheck(procedure);
+							// lockAndCheck 单独 try 归类：业务成功后根savepoint必在（size==1），
+							// 其意外异常（如acquire链路的unchecked）若走外层catch会被
+							// "!savepoints.isEmpty()"误判为ErrorSavepoint——不重试且丢失
+							// 真实异常语义；显式失败并保留原始栈。
+							CheckResult lockResult;
+							try {
+								lockResult = lockAndCheck(procedure);
+							} catch (Throwable lcEx) {
+								logger.error("perform({}) lockAndCheck exception. run count:{}", procedure, tryCount, lcEx);
+								finalRollback(procedure);
+								return Procedure.Exception;
+							}
+							checkResult = lockResult;
 							if (checkResult == CheckResult.Success) {
 								if (result == Procedure.Success) {
 									// onz事务执行阶段的2段式同步等待。
@@ -454,7 +466,16 @@ public final class Transaction {
 								finalRollback(procedure);
 								throw (AssertionError)e;
 							}
-							checkResult = lockAndCheck(procedure);
+							// 同上：lockAndCheck在此路径再抛会顶掉原始异常e——单独归类，
+							// 原始异常已在上方记录，这里按内部错误显式失败。
+							try {
+								checkResult = lockAndCheck(procedure);
+							} catch (Throwable lcEx) {
+								logger.error("perform({}) lockAndCheck exception (in exception path). run count:{}",
+										procedure, tryCount, lcEx);
+								finalRollback(procedure);
+								return Procedure.Exception;
+							}
 							if (checkResult == CheckResult.Success) {
 								finalRollback(procedure);
 								return Procedure.Exception;
