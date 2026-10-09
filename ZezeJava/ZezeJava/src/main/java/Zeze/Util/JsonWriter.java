@@ -165,6 +165,17 @@ public final class JsonWriter {
 		return flags >>> 16;
 	}
 
+	// 复杂Map键的子writer：继承深度相关flags并共享剩余深度预算——此前新writer
+	// 从零深度起且丢弃调用方flags，含循环的键图绕过FLAG_THROW_ON_DEPTH_LIMIT
+	// 直接StackOverflowError，超深复杂键也绕过调用方预算。
+	private byte @NotNull [] writeComplexKey(@NotNull Json json, @NotNull Object k) {
+		return new JsonWriter()
+				.setFlags(flags & (FLAG_NO_QUOTE_KEY | FLAG_THROW_ON_DEPTH_LIMIT))
+				.setDepthLimit(Math.max(getDepthLimit() - tabs, 0))
+				.write(json, k)
+				.toBytes();
+	}
+
 	public @NotNull JsonWriter setDepthLimit(int depth) {
 		flags = (flags & FLAG_ALL) | (depth << 16);
 		return this;
@@ -539,7 +550,7 @@ public final class JsonWriter {
 							ensure(s.length() * 6 + 3); // "xxxxxx":
 							write(s, noQuote && !needQuoteKey(s));
 						} else {
-							byte[] keyStr = new JsonWriter().setFlags(FLAG_NO_QUOTE_KEY).write(json, k).toBytes();
+							byte[] keyStr = writeComplexKey(json, k);
 							ensure(keyStr.length * 6 + 3); // "xxxxxx":
 							write(keyStr, false);
 						}
@@ -568,7 +579,7 @@ public final class JsonWriter {
 							ensure(s.length() * 6 + 4); // "xxxxxx":_
 							write(s, noQuote && !needQuoteKey(s));
 						} else {
-							byte[] keyStr = new JsonWriter().setFlags(FLAG_NO_QUOTE_KEY).write(json, k).toBytes();
+							byte[] keyStr = writeComplexKey(json, k);
 							ensure(keyStr.length * 6 + 4); // "xxxxxx":_
 							write(keyStr, false);
 						}
