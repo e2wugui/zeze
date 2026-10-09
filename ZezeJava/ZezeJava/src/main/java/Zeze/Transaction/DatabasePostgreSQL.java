@@ -858,19 +858,20 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 							pkName = rs.getString(1);
 					}
 				}
-				if (pkName != null) {
-					try (var stDropPk = conn.prepareStatement("ALTER TABLE " + name + " DROP CONSTRAINT " + pkName)) {
-						stDropPk.executeUpdate();
+				// key列序未变且已有主键时不重建（整表重写代价）；key变化必然表现为列diff。
+				// 旧表无主键则必须补建：无PK的表后续ON CONFLICT upsert报错且远离根因。
+				if (pkName == null || !r.currentKeyColumns.equals(r.previousKeyColumns)) {
+					if (pkName != null) {
+						try (var stDropPk = conn.prepareStatement("ALTER TABLE " + name + " DROP CONSTRAINT " + pkName)) {
+							stDropPk.executeUpdate();
+						}
+					} else
+						logger.warn("tryAlter {}: no primary key constraint found, will add one", name);
+					var sqlMakePk = "ALTER TABLE " + name + " ADD PRIMARY KEY (" + r.currentKeyColumns + ")";
+					logger.info("tryAlter {}", sqlMakePk);
+					try (var stMakePk = conn.prepareStatement(sqlMakePk)) {
+						stMakePk.executeUpdate();
 					}
-				} else {
-					// 旧表无主键：不能静默跳过——无PK的表后续ON CONFLICT upsert报错且远离根因。
-					// 只ADD不DROP（无约束可删），warn标记异常形态。
-					logger.warn("tryAlter {}: no primary key constraint found, will add one", name);
-				}
-				var sqlMakePk = "ALTER TABLE " + name + " ADD PRIMARY KEY (" + r.currentKeyColumns + ")";
-				logger.info("tryAlter {}", sqlMakePk);
-				try (var stMakePk = conn.prepareStatement(sqlMakePk)) {
-					stMakePk.executeUpdate();
 				}
 				conn.commit();
 			} catch (SQLException e) {

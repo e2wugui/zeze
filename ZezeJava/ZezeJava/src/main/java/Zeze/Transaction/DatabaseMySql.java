@@ -796,8 +796,10 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				sb.append(" CHANGE COLUMN ").append(c.change.name).append(' ')
 						.append(c.name).append(' ').append(c.sqlType);
 			}
-			// TODO 这个有效率问题，最好比对，发现确实key变了，才重建。
-			sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(')');
+			// key列序未变不重建主键：DROP+ADD PRIMARY KEY在InnoDB下是整表拷贝，
+			// 纯value列变更不应付出该代价。key变化必然表现为列diff（varIds排序决定列序）。
+			if (!r.currentKeyColumns.equals(r.previousKeyColumns))
+				sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(')');
 			var sql = sb.toString();
 			logger.info("tryAlter {} {}", table.getName(), sql);
 

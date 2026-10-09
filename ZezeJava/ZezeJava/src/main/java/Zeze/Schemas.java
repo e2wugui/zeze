@@ -893,6 +893,7 @@ public class Schemas implements Serializable {
 		public final @NotNull String tableName;
 		public final ArrayList<Column> current = new ArrayList<>();
 		public String currentKeyColumns;
+		public String previousKeyColumns; // 旧key列序（主键未变时不重建，避免InnoDB整表拷贝）
 		public final ArrayList<Column> previous = new ArrayList<>();
 
 		// diff 结果
@@ -1016,7 +1017,7 @@ public class Schemas implements Serializable {
 		// is null if new table
 		logger.info("current.columns={}", relational.current);
 		if (other != null) {
-			other.buildRelationalColumns(relational.previous, mapping);
+			relational.previousKeyColumns = other.buildRelationalColumns(relational.previous, mapping);
 			logger.info("previous.columns={}", relational.previous);
 			relational.diff();
 		}
