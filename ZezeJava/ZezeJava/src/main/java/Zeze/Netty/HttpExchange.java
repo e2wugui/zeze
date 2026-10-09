@@ -115,9 +115,11 @@ public class HttpExchange {
 
 	protected final @NotNull HttpServer server; // 所属的HttpServer对象,每个对象管理监听端口的所有连接
 	protected final @NotNull ChannelHandlerContext context; // netty的连接上下文,每个连接可能会依次绑定到多个HttpExchange对象
-	protected @Nullable HttpRequest request; // 收到完整HTTP header部分会赋值
+	// request/content可跨线程观察（content()/request()读、releaseContent提前释放、
+	// EventLoop终态释放），volatile保证置空/换EMPTY后及时可见；判后改的原子性由各自释放入口保证
+	protected volatile @Nullable HttpRequest request; // 收到完整HTTP header部分会赋值
 	protected @Nullable HttpHandler handler; // 收到完整HTTP header部分会查找对应handler并赋值
-	protected @NotNull ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
+	protected volatile @NotNull ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
 	protected @Nullable Object userState;
 	protected @Nullable ArrayList<Object> resHeaders; // key,value,key,value,...
 	private @Nullable EmptyBean responseHeadersBean; // 仅事务内修改header时分配独立objectId，this守护
@@ -218,7 +220,8 @@ public class HttpExchange {
 	// 窗口含排队与用户回调执行），close（拒绝/停机/对端断开/空闲超时）不得抢先释放request与content
 	// ——迟到的任务仍会执行onEndStream用户回调，读到空body。置位在EventLoop上（fireEndStreamHandle
 	// 提交前），与close的closeInEventLoop（恒在EventLoop）串行；任务入口/cancel清位，终态释放由
-	// 任务finally幂等兜底（close被并发抢先CAS到2时，任务的close(null)成no-op，只有finally能释放）。
+	// 任务finally经EventLoop投递兜底（唯一执行者见releaseTerminal；close被并发抢先CAS到2时，
+	// 任务的close(null)成no-op，只有finally能释放）。
 	protected volatile boolean endStreamTaskPending;
 	protected boolean willCloseConnection; // true表示close时会关闭连接
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
@@ -466,12 +469,17 @@ public class HttpExchange {
 		return buf;
 	}
 
-	// 用于close前提前释放content数据,如果不再需要用的话
+	// 用于close前提前释放content数据,如果不再需要用的话。
+	// 摘取在锁内原子完成（可能与EventLoop上的终态释放并发，裸判后release会双释放），release在锁外。
 	public void releaseContent() {
-		if (content != Unpooled.EMPTY_BUFFER) {
-			content.release();
+		ByteBuf c;
+		synchronized (this) {
+			c = content;
+			if (c == Unpooled.EMPTY_BUFFER)
+				return;
 			content = Unpooled.EMPTY_BUFFER;
 		}
+		c.release();
 	}
 
 	public @NotNull HttpPostMultipartRequestDecoder contentMultipart() {
@@ -1146,7 +1154,7 @@ public class HttpExchange {
 			// detached==1仍由用户持有，直到用户调用close才释放。
 			endStreamTaskPending = false;
 			if (detached == 2)
-				releaseTerminal();
+				releaseTerminalFromAnyThread();
 		}
 	}
 
@@ -1164,11 +1172,11 @@ public class HttpExchange {
 		// attr是channel级：停机时所有exchange一并终结，跨请求"取走"垂死请求的状态无害
 		//（对方自己的cancel只会拿到null）。
 		var cancel = (Action0)() -> {
-			endStreamTaskPending = false; // 任务被清扫丢弃，不会再有人跑finally：释放权交还close路径
-			if (detached == 0)
-				close(null);
-			else if (detached == 2)
-				releaseTerminal(); // 已被并发close（closeInEventLoop因pending跳过释放）：close(null)成no-op，这里兜底（幂等）；detached==1用户拥有不碰
+				endStreamTaskPending = false; // 任务被清扫丢弃，不会再有人跑finally：释放权交还close路径
+				if (detached == 0)
+					close(null);
+				else if (detached == 2)
+					releaseTerminalFromAnyThread(); // 已被并发close（closeInEventLoop因pending跳过释放）：close(null)成no-op，这里兜底；detached==1用户拥有不碰
 			HttpMultipartHandle.destroyChannelDecoder(this);
 			HttpFileUploadHandle.releaseChannelFileUpload(this);
 		};
@@ -1196,7 +1204,7 @@ public class HttpExchange {
 							close(null);
 						endStreamTaskPending = false;
 						if (detached == 2)
-							releaseTerminal();
+							releaseTerminalFromAnyThread();
 					}
 				}).name(p.getActionName()).dispatchMode(handler.Mode).onCancel(cancel)
 						.executeOneByOne(context.channel().id(), server.task11Executor);
@@ -1378,13 +1386,33 @@ public class HttpExchange {
 			context.close();
 	}
 
-	// 终态释放request与content（幂等）：closeInEventLoop与end-stream任务finally的公共落点
+	// 终态释放request与content：唯一执行者是EventLoop——closeInEventLoop（恒在EL）与
+	// end-stream任务finally/cancel清扫（worker线程，经releaseTerminalFromAnyThread投递）。
+	// EL单线程串行化使"判空→置空→release"天然原子，不存在第二个释放者；
+	// content另有公开的提前释放入口，releaseContent内部自行原子摘取。
 	private void releaseTerminal() {
 		releaseContent();
 		var req = request;
 		if (req != null) {
-			ReferenceCountUtil.release(req);
 			request = null;
+			ReferenceCountUtil.release(req);
+		}
+	}
+
+	// worker线程的终态释放入口：只投递通知，不直接释放——终态释放若可从两个线程
+	// 各自"判空→release→置空"，交错时双双读到非空而双重release（refCnt异常/池化缓冲
+	// 复用后破坏他人请求）。EL已停机拒绝任务时，closeInEventLoop不再可能被调度
+	// （它只经cf listener与EL.execute触发），本线程是剩余唯一释放者，可内联执行。
+	private void releaseTerminalFromAnyThread() {
+		var eventLoop = context.channel().eventLoop();
+		if (eventLoop.inEventLoop()) {
+			releaseTerminal();
+			return;
+		}
+		try {
+			eventLoop.execute(this::releaseTerminal);
+		} catch (RejectedExecutionException e) {
+			releaseTerminal();
 		}
 	}
 
