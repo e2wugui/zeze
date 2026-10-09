@@ -582,7 +582,6 @@ public class Utils {
 
 		@Override
 		public String toString() {
-			// TODO(cpovirk): maybe make this look like the method call does ("Predicates.compose(...)")
 			return p + "(" + f + ")";
 		}
 

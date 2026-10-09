@@ -54,8 +54,6 @@ import javax.annotation.CheckForNull;
  * @since 7.0
  */
 public interface Table<R, C, V> {
-  // TODO(jlevy): Consider adding methods similar to ConcurrentMap methods.
-
   // Accessors
 
   /**

@@ -442,7 +442,6 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
         @SuppressWarnings("EqualsDoesNotCheckParameterClass")
         @Override
         public boolean equals(@CheckForNull Object object) {
-          // TODO(lowasser): identify why this affects GWT tests
           return standardEquals(object);
         }
       };
