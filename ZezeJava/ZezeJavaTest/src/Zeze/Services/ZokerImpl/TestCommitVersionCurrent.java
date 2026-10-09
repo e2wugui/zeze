@@ -54,24 +54,6 @@ public class TestCommitVersionCurrent {
 		return new DistributeManager(distributeDir, servicesDir);
 	}
 
-	/**
-	 * keep语义的等待式断言：暂存rename被AV/索引器瞬态句柄钉住时产品契约是"留待下轮"
-	 * （单轮内3×100ms重试后即放弃，不让commit关键路径久等），commit后立即断言keep是假契约
-	 * （2026-10-09批r10实证：满载下AV窗超300ms，expected [v2,v3] got [v1,...]）。
-	 * 这里替产品走"下轮"：重发prune直至收敛——只放松时序不放松语义，prune坏了永不收敛。
-	 */
-	private static String[] awaitVersions(DistributeManager dm, File servicesDir, String serviceName,
-			String... expected) throws Exception {
-		var svc = new File(servicesDir, serviceName);
-		var last = versionDirs(servicesDir, serviceName);
-		for (var i = 0; i < 30 && !Arrays.equals(expected, last); i++) { // 有界~3s
-			dm.pruneVersions(svc, Files.readString(Path.of(svc.getPath(), DistributeManager.CURRENT_NAME)));
-			Thread.sleep(100);
-			last = versionDirs(servicesDir, serviceName);
-		}
-		return last;
-	}
-
 	/** 全新提交流程：distributes/<svc> → services/<svc>/<v>/（纯新增）→ current 原子切换。 */
 	@Test
 	public void testCommitHappyPathLayout(@TempDir Path tempDir) throws Exception {
@@ -207,16 +189,25 @@ public class TestCommitVersionCurrent {
 		var dm = newManager(distributeDir, servicesDir);
 
 		dm.setKeepVersions(2);
+		// 提交间隔可落在同一系统时间tick内（Windows默认粒度~15.6ms）——版本目录mtime并列时
+		// prune的lastModified降序稳定排序保持listFiles字典序，victim误选v2而非v1（keep语义
+		// "按安装时间保留最近N版"对并列安装时间本无歧义，真实部署版本间隔远超时钟粒度；
+		// 2026-10-09b批×9/40实证：expected [v2,v3] got [v1,v3]形态，rename全程零告警——
+		// 并非AV句柄钉住，是victim选择被并列翻转）。显式阶梯化mtime固化"安装时间"输入
+		// （TestPruneNeverDeletesCurrent的setLastModified先例），断言才对被测keep语义负责。
+		// 基点取now-10s：低于自然提交时刻，后续keep=1相的v4自然mtime（~now）必然最大。
+		var stamp = System.currentTimeMillis() - 10_000;
 		for (var v : new String[]{"v1", "v2", "v3"}) {
 			upload(distributeDir, "svc", v);
 			assertEquals(0, dm.commit("svc", v));
+			assertTrue(new File(servicesDir, "svc/" + v).setLastModified(stamp += 1_000));
 		}
-		assertArrayEquals(new String[]{"v2", "v3"}, awaitVersions(dm, servicesDir, "svc", "v2", "v3"));
+		assertArrayEquals(new String[]{"v2", "v3"}, versionDirs(servicesDir, "svc"));
 
 		dm.setKeepVersions(1);
 		upload(distributeDir, "svc", "v4");
 		assertEquals(0, dm.commit("svc", "v4"));
-		assertArrayEquals(new String[]{"v4"}, awaitVersions(dm, servicesDir, "svc", "v4"));
+		assertArrayEquals(new String[]{"v4"}, versionDirs(servicesDir, "svc"));
 		assertEquals("v4", Files.readString(Path.of(servicesDir.getPath(), "svc", "current")));
 
 		// 0=全保留
