@@ -259,22 +259,20 @@ public class DatabaseTikv extends Database {
 		@Override
 		public ByteBuffer find(@NotNull ByteBuffer key) {
 			checkKvKeyLength(name, key);
-			ByteString value;
 			if (distTxn) {
 				// 快照读必须现取 TSO 时间戳：本进程缓存的快照永远看不到其他进程已提交的数据
 				// （多进程接管记录时 cache miss 读到旧值，之后基于旧值覆盖写会丢失对方的更新）。
 				// find 仅在本地 cache miss、记录失效重载、selectFromDatabase 时被调用，
 				// 一次 TSO 往返（PD get_tso，无批量，约一次小 RPC）的代价换取读到最新已提交数据。
-				value = txnClient.get(addKeyPrefixBS(key), session.getTimestamp().getVersion());
+				ByteString value = txnClient.get(addKeyPrefixBS(key), session.getTimestamp().getVersion());
 				if (value == null)
 					return null;
-			} else {
-				var result = client.get(addKeyPrefixBS(key));
-				if (result.isEmpty())
-					return null;
-				value = result.get();
+				// distTxn 空值=删除标记（TwoPhaseCommitter 对 empty 一律按 Op.Del 提交，无法写入空值）
+				return value.isEmpty() ? null : ByteBuffer.Wrap(value.toByteArray());
 			}
-			return value.isEmpty() ? null : ByteBuffer.Wrap(value.toByteArray());
+			// raw 模式 0 字节值是合法数据（zeze 契约允许，如全默认值记录），只把 key 不存在映射为 null
+			var result = client.get(addKeyPrefixBS(key));
+			return result.isEmpty() ? null : ByteBuffer.Wrap(result.get().toByteArray());
 		}
 
 		@Override
@@ -289,9 +287,13 @@ public class DatabaseTikv extends Database {
 		@Override
 		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
 			checkKvKeyLength(name, key);
-			if (distTxn)
+			if (distTxn) {
+				// distTxn 的 TwoPhaseCommitter 对空值一律按 Op.Del 提交：0字节value的replace
+				// 会静默变成删除（记录丢失）。zeze 契约允许 0 字节值，显式拒绝而不是丢数据。
+				if (value.size() == 0)
+					throw new IllegalStateException("tikv distTxn cannot write empty value. table=" + name);
 				((TikvDistTrans)t).put(addKeyPrefixBB(key), value);
-			else
+			} else
 				((TikvTrans)t).put(addKeyPrefixBS(key), ByteString.copyFrom(value.Bytes, value.ReadIndex, value.size()));
 		}
 
@@ -310,7 +312,7 @@ public class DatabaseTikv extends Database {
 			while (it.hasNext()) {
 				var kv = it.next();
 				var value = kv.getValue();
-				if (value.isEmpty()) // deleted
+				if (distTxn && value.isEmpty()) // distTxn空值=删除标记；raw的0字节值是合法数据
 					continue;
 				countWalked++;
 				if (!callback.handle(kv.getKey().substring(keyPrefixSize).toByteArray(), value.toByteArray()))
@@ -333,7 +335,7 @@ public class DatabaseTikv extends Database {
 				it = client.scan0(startKey, endKey);
 			while (it.hasNext()) {
 				var kv = it.next();
-				if (kv.getValue().isEmpty()) // deleted
+				if (distTxn && kv.getValue().isEmpty()) // distTxn空值=删除标记；raw的0字节值是合法数据
 					continue;
 				countWalked++;
 				if (!callback.handle(kv.getKey().substring(keyPrefixSize).toByteArray()))
@@ -422,8 +424,11 @@ public class DatabaseTikv extends Database {
 		}
 
 		public void delete(ByteString key) {
-			getDatas().put(key, ByteString.EMPTY);
+			// 不写EMPTY占位：raw模式0字节值是合法数据，占位写会把删除伪装成空值写入；
+			// batchDelete直删即可。同key先put后delete时移除put，保持删除终态。
 			getDeleteKeys().add(key);
+			if (datas != null)
+				datas.remove(key);
 		}
 
 		@Override
