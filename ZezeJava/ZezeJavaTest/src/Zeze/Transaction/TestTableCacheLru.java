@@ -375,6 +375,63 @@ public class TestTableCacheLru {
 		}
 	}
 
+	/**
+	 * getOrAdd 换块竞态自校正：开头捕获的 lruHot 在 computeIfAbsent 登记期间被
+	 * timerNewHot 换块（newLruHot）时，新记录落进旧块——旧块不再被当作热访问，
+	 * LRU 序出现统计偏差且不自愈。getOrAdd 必须重读当前块比较，不一致即重登记。
+	 * 用 rigged 热点块在 put 调用点精确注入换块。
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testNewRecordReregisteredAfterRotation() throws Exception {
+		var app = newApp();
+		var table = new Table3();
+		app.addTable("", table);
+		app.start();
+		try {
+			var cache = table.getCache();
+			var key = 108L;
+
+			// 换块注入点：getOrAdd 闭包内 lruHot.put(k, r) 执行时触发 newLruHot
+			var rigged = new RotationOnPutNode();
+			rigged.rotate = () -> {
+				try {
+					invoke(cache, "newLruHot");
+				} catch (ReflectiveOperationException e) {
+					throw new RuntimeException(e);
+				}
+			};
+			set(cache, "lruHot", rigged);
+
+			var got = cache.getOrAdd(key, () -> new Record1<>(table, key, null));
+			var curHot = (ConcurrentHashMap<Long, Record1<Long, BValue>>)get(cache, "lruHot");
+			Assertions.assertNotSame(rigged, curHot, "注入的换块应已生效");
+			// 新记录必须收敛到当前热块（经adjustLru重登记），不得滞留被换下的旧块
+			Assertions.assertSame(got, curHot.get(key), "新记录应登记进当前热块");
+			Assertions.assertSame(curHot, get(got, "lruNode"));
+			Assertions.assertNull(rigged.get(key), "旧块条目应被摘除");
+		} finally {
+			app.stop();
+		}
+	}
+
+	/** rigged 热点块：首次 put 前执行 rotate，在登记调用点注入并发换块。 */
+	@SuppressWarnings("serial")
+	private static final class RotationOnPutNode extends ConcurrentHashMap<Object, Object> {
+		private static final long serialVersionUID = 1L;
+		private volatile boolean armed = true;
+		private volatile Runnable rotate;
+
+		@Override
+		public Object put(Object key, Object value) {
+			if (armed) {
+				armed = false;
+				rotate.run();
+			}
+			return super.put(key, value);
+		}
+	}
+
 	/** rigged 热点块：首次 putIfAbsent 前执行 interleave，在挂起点注入并发交错。 */
 	@SuppressWarnings("serial")
 	private static final class InterleavingNode extends ConcurrentHashMap<Object, Object> {
