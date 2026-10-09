@@ -737,36 +737,84 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		applyLogLevelProperty(); // 显式启动动作（仅显式指定logLevel属性才动配置）
 		config.parseCustomize(this.conf);
 
-		server = new NetServer(this, config);
+		// 全部资源先在局部变量上构造，成功后才发布到字段：构造失败（如UDP端口被占）时
+		// 调用方拿不到实例、无法调stop——遗留的TCP监听与RocksDB目录锁会让同进程重试永久
+		// 受阻（部分成功状态与实际服务状态分叉）。失败按逆序清理，清理异常作suppressed保留。
+		var localServer = new NetServer(this, config);
+		var localThreading = new ThreadingServer(localServer, conf);
+		RocksDatabase localDb = null;
+		AsyncSocket localSocket = null;
+		Id128UdpServer localId128 = null;
+		try {
+			localServer.AddFactoryHandle(EditService.TypeId_, new Service.ProtocolFactoryHandle<>(
+				EditService::new, this::processEditService, TransactionLevel.None, DispatchMode.Critical));
+			localServer.AddFactoryHandle(Subscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
+				Subscribe::new, this::processSubscribe, TransactionLevel.None, DispatchMode.Critical));
+			localServer.AddFactoryHandle(UnSubscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
+				UnSubscribe::new, this::processUnSubscribe, TransactionLevel.None, DispatchMode.Critical));
+			localServer.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
+				KeepAlive::new, null, TransactionLevel.None, DispatchMode.Direct));
+			localServer.AddFactoryHandle(AllocateId.TypeId_, new Service.ProtocolFactoryHandle<>(
+				AllocateId::new, this::processAllocateId, TransactionLevel.None, DispatchMode.Direct));
+			localServer.AddFactoryHandle(SetServerLoad.TypeId_, new Service.ProtocolFactoryHandle<>(
+				SetServerLoad::new, this::processSetLoad, TransactionLevel.None, DispatchMode.Critical));
+			localServer.AddFactoryHandle(Identify.TypeId_, new Service.ProtocolFactoryHandle<>(
+				Identify::new, this::processIdentify, TransactionLevel.None, DispatchMode.Direct));
 
-		server.AddFactoryHandle(EditService.TypeId_, new Service.ProtocolFactoryHandle<>(
-			EditService::new, this::processEditService, TransactionLevel.None, DispatchMode.Critical));
-		server.AddFactoryHandle(Subscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
-			Subscribe::new, this::processSubscribe, TransactionLevel.None, DispatchMode.Critical));
-		server.AddFactoryHandle(UnSubscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
-			UnSubscribe::new, this::processUnSubscribe, TransactionLevel.None, DispatchMode.Critical));
-		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
-			KeepAlive::new, null, TransactionLevel.None, DispatchMode.Direct));
-		server.AddFactoryHandle(AllocateId.TypeId_, new Service.ProtocolFactoryHandle<>(
-			AllocateId::new, this::processAllocateId, TransactionLevel.None, DispatchMode.Direct));
-		server.AddFactoryHandle(SetServerLoad.TypeId_, new Service.ProtocolFactoryHandle<>(
-			SetServerLoad::new, this::processSetLoad, TransactionLevel.None, DispatchMode.Critical));
-		server.AddFactoryHandle(Identify.TypeId_, new Service.ProtocolFactoryHandle<>(
-			Identify::new, this::processIdentify, TransactionLevel.None, DispatchMode.Direct));
+			localThreading.RegisterProtocols(localServer);
 
-		threading = new ThreadingServer(server, conf);
-		threading.RegisterProtocols(server);
+			localDb = new RocksDatabase(Path.of(this.conf.dbHome, autokeys).toString());
+			var localAutoKeyTable = localDb.getOrAddTable("autokey");
+			var id128Table = localDb.getOrAddTable("id128");
 
-		autoKeysDb = new RocksDatabase(Path.of(this.conf.dbHome, autokeys).toString());
-		autoKeyTable = autoKeysDb.getOrAddTable("autokey");
-		var id128Table = autoKeysDb.getOrAddTable("id128");
+			// 允许配置多个acceptor，如果有冲突，通过日志查看。
+			localSocket = localServer.newServerSocket(ipaddress, port,
+				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
+			localServer.start();
+			localId128 = new Id128UdpServer(id128Table, null, port); // todo 先使用和tcp一样的端口.自动选择下一步.
+			localId128.start();
 
-		// 允许配置多个acceptor，如果有冲突，通过日志查看。
-		serverSocket = server.newServerSocket(ipaddress, port,
-			new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
-		server.start();
-		id128Server = new Id128UdpServer(id128Table, null, port); // todo 先使用和tcp一样的端口.自动选择下一步.
-		id128Server.start();
+			// 全部成功，发布完成态到字段
+			server = localServer;
+			threading = localThreading;
+			autoKeysDb = localDb;
+			autoKeyTable = localAutoKeyTable;
+			serverSocket = localSocket;
+			id128Server = localId128;
+		} catch (Throwable e) {
+			if (localId128 != null) {
+				try {
+					localId128.stop();
+				} catch (Throwable ce) {
+					e.addSuppressed(ce);
+				}
+			}
+			if (localSocket != null) {
+				try {
+					localSocket.close();
+				} catch (Throwable ce) {
+					e.addSuppressed(ce);
+				}
+			}
+			try {
+				localServer.stop();
+			} catch (Throwable ce) {
+				e.addSuppressed(ce);
+			}
+			if (localDb != null) {
+				try {
+					localDb.close();
+				} catch (Throwable ce) {
+					e.addSuppressed(ce);
+				}
+			}
+			try {
+				localThreading.close();
+			} catch (Throwable ce) {
+				e.addSuppressed(ce);
+			}
+			throw e;
+		}
 	}
 
 	private static final class AutoKey extends FastLock {
