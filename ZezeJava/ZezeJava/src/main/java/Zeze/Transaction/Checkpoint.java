@@ -30,7 +30,6 @@ public final class Checkpoint {
 	final @NotNull Application zeze;
 	private final @NotNull CheckpointMode mode;
 	private final @NotNull Thread checkpointThread;
-	private final ArrayList<Database> databases = new ArrayList<>();
 	private final FastLock lock = new FastLock();
 	private final Condition cond = lock.newCondition();
 	private int period;
@@ -135,10 +134,8 @@ public final class Checkpoint {
 	}
 
 	public @NotNull Checkpoint add(@NotNull Iterable<Database> databases) {
-		for (var db : databases) {
-			if (!this.databases.contains(db))
-				this.databases.add(db);
-		}
+		// 登记的databases集合从未被读取（flush按relativeRecordSetMap分组），
+		// 保留入口仅为兼容既有调用形态，不再存储。
 		return this;
 	}
 
