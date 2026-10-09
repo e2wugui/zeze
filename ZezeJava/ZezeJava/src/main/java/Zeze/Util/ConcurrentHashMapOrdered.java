@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,7 +20,6 @@ import org.jetbrains.annotations.Nullable;
  * @param <V> value
  */
 public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
-	private final static Object deleted = new Object();
 
 	/**
 	 * queue/map/size 三组件的整体快照：clear 以原子替换 state 完成，三组件间永不出中间态。
@@ -29,12 +29,36 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	 * 下 clear 与 put 的胜负本就未定义），新 state 的计数与内容恒一致。
 	 */
 	private static final class State<K, V> {
-		final @NotNull ConcurrentHashMap<K, V> map;
-		final @NotNull ConcurrentLinkedQueue<K> queue = new ConcurrentLinkedQueue<>();
+		final @NotNull ConcurrentHashMap<K, Entry<K, V>> map;
+		final @NotNull ConcurrentLinkedQueue<Entry<K, V>> queue = new ConcurrentLinkedQueue<>();
 		final @NotNull AtomicInteger size = new AtomicInteger();
 
 		State(int initialCapacity) {
 			map = new ConcurrentHashMap<>(initialCapacity);
+		}
+	}
+
+	/**
+	 * 队列节点持有带身份的条目（key+value+dead），与map的发布解耦：
+	 * put在compute内先入队后发布到map，清理者据map.get(key)==null无法区分
+	 * "未发布"与"已删除"（裸key共用null哨兵时会把发布窗口内的key当已删除永久摘出队列，
+	 * map有条目而遍历永久漏项）。以条目自身状态判定：只有dead条目（remove路径在map的
+	 * bin锁内置位）可被摘出队列；未发布的条目保持在线，遍历弱一致地提前可见或留待下轮。
+	 * 同key删除重插产生新代条目与新的队列节点，旧节点按自身dead身份摘除，不会误杀新一代。
+	 */
+	private static final class Entry<K, V> {
+		final K key;
+		volatile V value;
+		volatile boolean dead;
+
+		Entry(K key, V value) {
+			this.key = key;
+			this.value = value;
+		}
+
+		@Override
+		public String toString() {
+			return String.valueOf(value);
 		}
 	}
 
@@ -61,7 +85,10 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	}
 
 	public boolean containsValue(@NotNull V value) {
-		return state.get().map.containsValue(value);
+		for (var entry : state.get().map.values())
+			if (!entry.dead && Objects.equals(entry.value, value))
+				return true;
+		return false;
 	}
 
 	public void clear() {
@@ -70,7 +97,7 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 
 	public class OrderedIterator implements Iterator<V> {
 		private final @NotNull State<K, V> snapshot = state.get(); // 迭代期间固定在一个整体快照上
-		private final @NotNull Iterator<K> queueIt = snapshot.queue.iterator();
+		private final @NotNull Iterator<Entry<K, V>> queueIt = snapshot.queue.iterator();
 		private K key;
 		private V value;
 
@@ -83,21 +110,16 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 			if (value != null)
 				return true;
 			for (; ; ) {
-				var has = queueIt.hasNext();
-				if (!has)
+				if (!queueIt.hasNext())
 					return false;
-				key = queueIt.next();
-				value = snapshot.map.get(key);
-				while (value == deleted) {
-					if (snapshot.map.remove(key, value)) {
-						value = null;
-						break;
-					}
-					value = snapshot.map.get(key);
+				var entry = queueIt.next();
+				if (entry.dead) {
+					queueIt.remove(); // 回收已删除项
+					continue;
 				}
-				if (value != null)
-					return true;
-				queueIt.remove();
+				key = entry.key;
+				value = entry.value;
+				return true;
 			}
 		}
 
@@ -120,37 +142,28 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	public void foreach(@NotNull BiConsumer<K, V> consumer) {
 		var s = state.get();
 		for (var it = s.queue.iterator(); it.hasNext(); ) {
-			K k = it.next();
-			V v = s.map.get(k);
-			while (v == deleted) {
-				if (s.map.remove(k, v)) {
-					v = null;
-					break;
-				}
-				v = s.map.get(k);
+			var entry = it.next();
+			if (entry.dead) {
+				it.remove(); // 回收已删除项
+				continue;
 			}
-			if (v == null)
-				it.remove();
-			else
-				consumer.accept(k, v);
+			consumer.accept(entry.key, entry.value);
 		}
 	}
 
 	public @Nullable V put(@NotNull K key, @NotNull V value) {
 		var s = state.get();
 		var oldValue = new OutObject<V>();
-		s.map.compute(key, (k, v) -> {
-			if (v == null) {
-				s.queue.add(key); // 第一次加入。只保持第一次的顺序，重复put不加入queue。
-				s.size.incrementAndGet();
-				return value;
+		s.map.compute(key, (k, existing) -> {
+			if (existing != null) {
+				oldValue.value = existing.value;
+				existing.value = value; // 原地改写：队列节点与首次顺序保持不变
+				return existing;
 			}
-			if (v == deleted) {
-				s.size.incrementAndGet();
-				return value;
-			}
-			oldValue.value = v;
-			return value;
+			var entry = new Entry<>(key, value); // 入队与发布必须是同一实例
+			s.queue.add(entry); // 第一次加入。只保持第一次的顺序，重复put不加入queue。
+			s.size.incrementAndGet();
+			return entry;
 		});
 		return oldValue.value;
 	}
@@ -158,25 +171,22 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 	public @Nullable V putIfAbsent(@NotNull K key, @NotNull V value) {
 		var s = state.get();
 		var oldValue = new OutObject<V>();
-		s.map.compute(key, (k, v) -> {
-			if (v == null) {
-				s.queue.add(key);
-				s.size.incrementAndGet();
-				return value;
+		s.map.compute(key, (k, existing) -> {
+			if (existing != null) {
+				oldValue.value = existing.value;
+				return existing; // 已存在：保持现值（与并发remove的交错由bin锁串行化）
 			}
-			if (v == deleted) {
-				s.size.incrementAndGet();
-				return value;
-			}
-			oldValue.value = v;
-			return v;
+			var entry = new Entry<>(key, value);
+			s.queue.add(entry);
+			s.size.incrementAndGet();
+			return entry;
 		});
 		return oldValue.value;
 	}
 
 	public @Nullable V get(@NotNull K key) {
-		V v = state.get().map.get(key);
-		return v == deleted ? null : v;
+		var entry = state.get().map.get(key);
+		return entry != null && !entry.dead ? entry.value : null;
 	}
 
 	public V getOrDefault(@NotNull K key, V defaultValue) {
@@ -186,43 +196,74 @@ public class ConcurrentHashMapOrdered<K, V> implements Iterable<V> {
 
 	public @Nullable V remove(@NotNull K key) {
 		var s = state.get();
-		@SuppressWarnings("unchecked") // 哨兵对象转换：V不可具体化，类型由本类封装保证
-		V old = s.map.replace(key, (V)deleted);
-		if (old == null || old == deleted)
-			return null;
-		s.size.decrementAndGet();
-		return old;
+		var oldValue = new OutObject<V>();
+		s.map.computeIfPresent(key, (k, entry) -> {
+			if (entry.dead)
+				return null; // 与并发remove串行化后的死亡条目：不重复计数
+			oldValue.value = entry.value;
+			entry.dead = true;
+			s.size.decrementAndGet();
+			return null; // 从map移除；队列节点留待遍历回收
+		});
+		return oldValue.value;
 	}
 
 	public boolean remove(@NotNull K key, @NotNull V value) {
 		var s = state.get();
-		@SuppressWarnings("unchecked") // 同上：哨兵对象转换
-		V tombstone = (V)deleted;
-		if (s.map.replace(key, value, tombstone)) {
+		var removed = new boolean[1];
+		s.map.computeIfPresent(key, (k, entry) -> {
+			if (entry.dead)
+				return null; // 防御：死亡条目不该残留map，见Entry注释
+			if (!Objects.equals(entry.value, value))
+				return entry;
+			entry.dead = true;
 			s.size.decrementAndGet();
-			return true;
-		}
-		return false;
+			removed[0] = true;
+			return null;
+		});
+		return removed[0];
 	}
 
 	public @Nullable V replace(@NotNull K key, @NotNull V value) {
 		var s = state.get();
 		var oldValue = new OutObject<V>();
-		s.map.computeIfPresent(key, (__, v) -> {
-			if (v == deleted)
-				return v;
-			oldValue.value = v;
-			return value;
+		s.map.computeIfPresent(key, (k, entry) -> {
+			if (entry.dead)
+				return null;
+			oldValue.value = entry.value;
+			entry.value = value;
+			return entry;
 		});
 		return oldValue.value;
 	}
 
 	public boolean replace(@NotNull K key, @NotNull V oldValue, @NotNull V newValue) {
-		return state.get().map.replace(key, oldValue, newValue);
+		var s = state.get();
+		var replaced = new boolean[1];
+		s.map.computeIfPresent(key, (k, entry) -> {
+			if (entry.dead)
+				return null;
+			if (!Objects.equals(entry.value, oldValue))
+				return entry;
+			entry.value = newValue;
+			replaced[0] = true;
+			return entry;
+		});
+		return replaced[0];
 	}
 
 	@Override
 	public @NotNull String toString() {
-		return state.get().map.toString();
+		var sb = new StringBuilder("{");
+		var first = true;
+		for (var entry : state.get().map.values()) {
+			if (entry.dead)
+				continue;
+			if (!first)
+				sb.append(", ");
+			first = false;
+			sb.append(entry.key).append('=').append(entry.value);
+		}
+		return sb.append('}').toString();
 	}
 }
