@@ -981,20 +981,31 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	public long linkBroken(@NotNull String account, long roleId,
 						   @NotNull String linkName, long linkSid) throws Exception {
-		var onlineShared = getOrAddOnlineShared(roleId);
+		// 先查后建：善后路径不创建状态（对齐Arch版与onSendError判例）——
+		// getOrAddOnlineShared对迟到报告会创建空行并随事务提交残留。
+		var onlineShared = getOnlineShared(roleId);
+		if (onlineShared == null)
+			return 0;
 
 		var local = _tlocal.get(roleId);
 		if (local == null) {
 			// （Game同型，对齐Arch版）：provider崩溃/重启后_tlocal（内存表）丢失，
 			// 但_tOnlineShared行（BOnline.serverId=本机）仍归本机——直接早退让该角色永久
-			// eLogined幽灵在线（isOnline/getLogin误报，不重登则永存）。按serverId归属判定：
-			// 属本机推进eLinkBroken+延迟登出；非本机维持早退。
+			// eLogined幽灵在线（isOnline/getLogin误报，不重登则永存）。
+			// 先核对当前link再善后：重登换链后迟到的旧linkName/linkSid报告不得把当前
+			// 登录链改写成旧值并为其安排登出（与下方非ghost路径的owner核对同一守卫）。
+			var link = onlineShared.getLink();
+			if (!link.getLinkName().equals(linkName) || link.getLinkSid() != linkSid) {
+				logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={} != linkName={}, linkSid={}",
+						multiInstanceName, account, roleId, linkName, linkSid, link.getLinkName(), link.getLinkSid());
+				return 0;
+			}
 			logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={}, roleId not found in tlocal",
 					multiInstanceName, account, roleId, linkName, linkSid);
 			var bOnline = getOnline(roleId);
 			if (bOnline == null || bOnline.getServerId() != providerApp.zeze.getConfig().getServerId())
 				return 0; // 不在本机登录。
-			onlineShared.setLink(new BLink(linkName, linkSid, eLinkBroken));
+			onlineShared.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eLinkBroken));
 			var zezeGhost = providerApp.zeze;
 			zezeGhost.getTimer().schedule(TimerSpec.ofDelay(zezeGhost.getConfig().getOnlineLogoutDelay()).times(1),
 					DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
