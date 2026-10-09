@@ -60,19 +60,25 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	// 全表walk游标抓取：pgjdbc在autoCommit下忽略fetchSize一次拉全量，大表walk有OOM风险。
 	// 事务内setFetchSize启用游标分批；结束恢复autoCommit（Druid回收也会reset，双保险）。
 	// 四个walk族入口（typed/raw × walk/walkKey，分属两个内部表类）共用。
-	@FunctionalInterface
-	interface WalkCursorHandler {
-		long handle(ResultSet rs) throws Exception;
-	}
-
-	private long walkCursor(@NotNull String sql, @NotNull WalkCursorHandler handler) throws Exception {
+	// 提前中断只需rs.close()：pgjdbc关闭portal，服务端立即停止发送，无MySQL流式的KILL善后。
+	// 游标分批下回调处理期间会话处于idle-in-transaction，若部署设置了
+	// idle_in_transaction_session_timeout（vanilla PG默认0，部分托管PG会设）会在批间断连，
+	// 用SET LOCAL在本事务内关闭（随commit自动失效，无需恢复）。
+	private long walkCursor(@NotNull String sql, @NotNull JdbcWalkRow row) throws Exception {
 		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(false);
 			try (var ps = conn.prepareStatement(sql)) {
+				try (var st = conn.createStatement()) {
+					st.execute("SET LOCAL idle_in_transaction_session_timeout=0");
+				}
 				ps.setFetchSize(1000);
-				long count;
+				var count = 0L;
 				try (var rs = ps.executeQuery()) {
-					count = handler.handle(rs);
+					while (rs.next()) {
+						count++;
+						if (!row.handle(rs)) // walk契约：回调返回false中断
+							break;
+					}
 				}
 				conn.commit();
 				return count;
@@ -1053,15 +1059,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				return callback.endWalk(0);
 
 			var s = "SELECT * FROM " + name + orderBy;
-			var count = walkCursor(s, rs -> {
-				var c = 0L;
-				while (rs.next()) {
-					c++;
-					if (!invokeCallback(table, rs, callback, null))
-						break;
-				}
-				return c;
-			});
+			var count = walkCursor(s, rs -> invokeCallback(table, rs, callback, null));
 			return callback.endWalk(count);
 		}
 
@@ -1072,15 +1070,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				return callback.endWalk(0);
 
 			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
-			var count = walkCursor(s, rs -> {
-				var c = 0L;
-				while (rs.next()) {
-					c++;
-					if (!invokeKeyCallback(table, rs, callback, null))
-						break;
-				}
-				return c;
-			});
+			var count = walkCursor(s, rs -> invokeKeyCallback(table, rs, callback, null));
 			return callback.endWalk(count);
 		}
 
@@ -1528,15 +1518,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				return 0;
 
 			var s = "SELECT * FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
-			return walkCursor(s, rs -> {
-				var c = 0L;
-				while (rs.next()) {
-					c++;
-					if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
-						break;
-				}
-				return c;
-			});
+			return walkCursor(s, rs -> callback.handle(rs.getBytes(1), rs.getBytes(2)));
 		}
 
 		private long walkKey(@NotNull TableWalkKeyRaw callback, boolean asc) throws Exception {
@@ -1544,15 +1526,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				return 0;
 
 			var s = "SELECT id FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
-			return walkCursor(s, rs -> {
-				var c = 0L;
-				while (rs.next()) {
-					c++;
-					if (!callback.handle(rs.getBytes(1)))
-						break;
-				}
-				return c;
-			});
+			return walkCursor(s, rs -> callback.handle(rs.getBytes(1)));
 		}
 
 		@Override

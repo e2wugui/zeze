@@ -39,19 +39,80 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	// 全表walk流式抓取：MySQL驱动默认把整个结果集缓冲进内存，大表walk有OOM风险。
 	// setFetchSize(Integer.MIN_VALUE)启用逐行流式（驱动约定，无需url参数）。
 	// 四个walk族入口（typed/raw × walk/walkKey，分属两个内部表类）共用。
-	@FunctionalInterface
-	interface WalkStreamedHandler {
-		long handle(ResultSet rs) throws Exception;
-	}
+	// 流式带来两个必须善后的问题（非流式下不存在）：
+	// 1. 未读完就rs.close()时驱动会同步读完剩余所有行才能归还连接——中断/异常路径
+	//    需先KILL QUERY让服务端停止发送。Statement.cancel()不可用：executeQuery返回后
+	//    流式行消费期间statementExecuting已置false，cancel直接no-op（8.4.0验证）；
+	//    驱动自身的超时中止（CancelQueryTask）也是另开连接发KILL QUERY，此处同法。
+	// 2. 慢回调期间客户端停止读socket超过服务端net_write_timeout（默认60s）会被
+	//    服务端断连——会话级临时调大，结束恢复为全局值（Druid回收不重置会话变量）。
+	//    取值与驱动排空流式残余用的netTimeoutForStreamingResults默认值一致。
+	private static final int WALK_NET_WRITE_TIMEOUT_SECONDS = 600;
 
-	private long walkStreamed(@NotNull String sql, @NotNull WalkStreamedHandler handler) throws Exception {
+	private long walkStreamed(@NotNull String sql, @NotNull JdbcWalkRow row) throws Exception {
 		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
-			ps.setFetchSize(Integer.MIN_VALUE);
-			try (var rs = ps.executeQuery()) {
-				return handler.handle(rs);
+			var connectionId = queryConnectionId(conn); // 连接号须在开始流式前取：流式读取期间该连接不能再执行语句
+			execSql(conn, "SET SESSION net_write_timeout=" + WALK_NET_WRITE_TIMEOUT_SECONDS);
+			try {
+				ps.setFetchSize(Integer.MIN_VALUE);
+				var rs = ps.executeQuery();
+				var count = 0L;
+				var abandoned = false;
+				try {
+					while (rs.next()) {
+						count++;
+						if (!row.handle(rs)) {
+							abandoned = true; // walk契约：回调返回false中断
+							break;
+						}
+					}
+				} catch (Throwable t) {
+					abandoned = true;
+					throw t;
+				} finally {
+					if (abandoned)
+						killQuery(connectionId); // 让服务端停止发送，close才不必读完剩余行
+					try {
+						rs.close();
+					} catch (SQLException e) {
+						if (!abandoned)
+							//noinspection ThrowFromFinallyBlock
+							throw e; // abandoned时KILL会让close收到1317中断包，异常不掩盖主流程
+					}
+				}
+				return count;
+			} finally {
+				try {
+					execSql(conn, "SET SESSION net_write_timeout=DEFAULT");
+				} catch (SQLException e) {
+					// 恢复失败（连接已死）可忽略：服务端会话随之消亡，Druid校验会逐出坏连接
+				}
 			}
 		} catch (SQLException e) {
 			throw Task.forceThrow(e);
+		}
+	}
+
+	private static long queryConnectionId(Connection conn) throws SQLException {
+		try (var st = conn.createStatement(); var rs = st.executeQuery("SELECT CONNECTION_ID()")) {
+			rs.next();
+			return rs.getLong(1);
+		}
+	}
+
+	private static void execSql(Connection conn, String sql) throws SQLException {
+		try (var st = conn.createStatement()) {
+			st.execute(sql);
+		}
+	}
+
+	// KILL QUERY只中止查询、连接仍可用；账号无需特权即可kill自己的线程。尽力而为：
+	// 失败时退回默认行为（close排空剩余行），不阻塞主流程。
+	private void killQuery(long connectionId) {
+		try (var conn = dataSource.getConnection(); var st = conn.createStatement()) {
+			st.execute("KILL QUERY " + connectionId);
+		} catch (SQLException e) {
+			logger.warn("walkStreamed killQuery {} failed, fallback to drain-on-close", connectionId, e);
 		}
 	}
 
@@ -942,15 +1003,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				return callback.endWalk(0);
 
 			var s = "SELECT * FROM " + name + orderBy;
-			var count = walkStreamed(s, rs -> {
-				var c = 0L;
-				while (rs.next()) {
-					c++;
-					if (!invokeCallback(table, rs, callback, null))
-						break;
-				}
-				return c;
-			});
+			var count = walkStreamed(s, rs -> invokeCallback(table, rs, callback, null));
 			return callback.endWalk(count);
 		}
 
@@ -961,15 +1014,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				return callback.endWalk(0);
 
 			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
-			var count = walkStreamed(s, rs -> {
-				var c = 0L;
-				while (rs.next()) {
-					c++;
-					if (!invokeKeyCallback(table, rs, callback, null))
-						break;
-				}
-				return c;
-			});
+			var count = walkStreamed(s, rs -> invokeKeyCallback(table, rs, callback, null));
 			return callback.endWalk(count);
 		}
 
@@ -1417,15 +1462,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				return 0;
 
 			var s = "SELECT * FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
-			return walkStreamed(s, rs -> {
-				var c = 0L;
-				while (rs.next()) {
-					c++;
-					if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
-						break;
-				}
-				return c;
-			});
+			return walkStreamed(s, rs -> callback.handle(rs.getBytes(1), rs.getBytes(2)));
 		}
 
 		private long walkKey(@NotNull TableWalkKeyRaw callback, boolean asc) throws Exception {
@@ -1433,15 +1470,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				return 0;
 
 			var s = "SELECT id FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
-			return walkStreamed(s, rs -> {
-				var c = 0L;
-				while (rs.next()) {
-					c++;
-					if (!callback.handle(rs.getBytes(1)))
-						break;
-				}
-				return c;
-			});
+			return walkStreamed(s, rs -> callback.handle(rs.getBytes(1)));
 		}
 
 		@Override

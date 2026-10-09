@@ -420,19 +420,19 @@ public final class Transaction {
 										// 必须记error；回填哨兵让迟到的redo Commit取到时二次确认。
 										if (onzProcedure != null) {
 											logger.error("onz participant({}) tid={}: coordinator commit decision"
-													+ " delivered and persisted, but local transaction rolled back"
-													+ " while stopping -- cross-cluster divergence, manual check required",
+															+ " delivered and persisted, but local transaction rolled back"
+															+ " while stopping -- cross-cluster divergence, manual check required",
 													procedure.getActionName(), onzProcedure.getOnzTid(), e);
 											onzProcedure.markRolledBackAfterReady();
 										}
-									finalRollback(procedure);
-									return Procedure.Closed;
-								} catch (AssertionError ae) {
-									// whileCommit等终局回调的断言失败：数据已成功落库（回调在提交点之后），
-									// 不进halt路径；向上抛出让测试框架看到失败——终局吞掉会造成单测假绿
-									// （perform静默返回Success）。
-									throw ae;
-								} catch (Throwable ex) { // logger.fatal & halt
+										finalRollback(procedure);
+										return Procedure.Closed;
+									} catch (AssertionError ae) {
+										// whileCommit等终局回调的断言失败：数据已成功落库（回调在提交点之后），
+										// 不进halt路径；向上抛出让测试框架看到失败——终局吞掉会造成单测假绿
+										// （perform静默返回Success）。
+										throw ae;
+									} catch (Throwable ex) { // logger.fatal & halt
 										logger.fatal("finalCommit exception:", ex);
 										// final Commit 不能抛出异常。否则就halt。
 
@@ -542,9 +542,9 @@ public final class Transaction {
 						triggerRedoActions();
 						// retry
 					} finally {
-					// alwaysReleaseLockWhenRedo 的升级统一放在这里：try 正常返回与异常路径
-					// （throwRedo→GoBackZeze 走 catch）共用，且必须先于 reuseTransactionForRedo——
-					// 它按 checkResult 决定是否释放锁。
+						// alwaysReleaseLockWhenRedo 的升级统一放在这里：try 正常返回与异常路径
+						// （throwRedo→GoBackZeze 走 catch）共用，且必须先于 reuseTransactionForRedo——
+						// 它按 checkResult 决定是否释放锁。
 						if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
 							checkResult = CheckResult.RedoAndReleaseLock;
 						reuseTransactionForRedo(checkResult);
@@ -1006,7 +1006,7 @@ public final class Transaction {
 					// 重新从当前 e 继续锁。
 					continue;
 				}
-					// 即使锁内，Record.Global.State 也可能没有提升到需要的水平，需要重新_check_。
+				// 即使锁内，Record.Global.State 也可能没有提升到需要的水平，需要重新_check_。
 				var r = _check_(e.getValue().dirty, e.getValue());
 				switch (r) {
 				case Success:

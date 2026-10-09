@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Objects;
 import Zeze.Application;
@@ -13,6 +14,13 @@ import org.jetbrains.annotations.Nullable;
 /** JDBC 数据库公共基类：统一 Druid 连接池配置与 JdbcTrans 连接事务的借还管理。 */
 public abstract class DatabaseJdbc extends Database {
 	protected final DruidDataSource dataSource = new DruidDataSource();
+
+	// JDBC walk流式抓取的逐行回调（MySQL walkStreamed与PG walkCursor共用）：
+	// 返回false中断walk，计数语义遵循Database.AbstractKVTable.walk契约。
+	@FunctionalInterface
+	public interface JdbcWalkRow {
+		boolean handle(ResultSet rs) throws Exception; // false=中断walk
+	}
 
 	public DatabaseJdbc(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
