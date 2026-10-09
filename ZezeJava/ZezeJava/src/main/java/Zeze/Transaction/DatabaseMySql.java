@@ -36,6 +36,84 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
+	// 注意：MySQL的CREATE PROCEDURE无OR REPLACE语义，构造器对已存在（"already exist"）
+	// 静默跳过——存量库不会自动升级到本过程体（新过程体仅对新库生效）。
+	static final String PROC_SET_IN_USE_SQL = """
+			CREATE PROCEDURE _ZezeSetInUse_(
+			    IN  in_local_id INT,
+			    IN  in_global LONGBLOB,
+			    OUT ret_value INT
+			)
+			return_label:BEGIN
+			    DECLARE cur_global LONGBLOB;
+			    DECLARE empty_bin LONGBLOB;
+			    DECLARE instance_count INT;
+			    DECLARE row_count INT;
+
+			    START TRANSACTION;
+			    SET ret_value=1;
+			    IF exists (SELECT localid FROM _ZezeInstances_ WHERE localid=in_local_id) THEN
+			        SET ret_value=2;
+			        ROLLBACK;
+			        LEAVE return_label;
+			    END IF;
+			    INSERT IGNORE INTO _ZezeInstances_ VALUES(in_local_id);
+			    SELECT ROW_COUNT() INTO row_count;
+			    IF row_count = 0 THEN
+			        SET ret_value=3;
+			        ROLLBACK;
+			        LEAVE return_label;
+			    END IF;
+			    SET empty_bin = BINARY '';
+			    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
+			    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
+			    IF row_count > 0 THEN
+			        IF cur_global <> in_global THEN
+			            SET ret_value=4;
+			            ROLLBACK;
+			            LEAVE return_label;
+			        END IF;
+			    ELSE
+			        INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0);
+			        SELECT ROW_COUNT() INTO row_count;
+			        IF row_count = 0 THEN
+			            -- 并发首启动：事务快照看不到对方未提交的行，INSERT IGNORE被静默忽略。
+			            -- 锁定读取最新已提交版本比较（REPEATABLE READ下普通读仍是旧快照，
+			            -- 检不出对方提交的global，不同global的两实例会双双启动成功）。
+			            SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin FOR UPDATE;
+			            SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=empty_bin FOR UPDATE;
+			            IF row_count > 0 THEN
+			                IF cur_global <> in_global THEN
+			                    SET ret_value=4;
+			                    ROLLBACK;
+			                    LEAVE return_label;
+			                END IF;
+			            ELSE
+			                SET ret_value=5;
+			                ROLLBACK;
+			                LEAVE return_label;
+			            END IF;
+			        END IF;
+			    END IF;
+			    SET instance_count=0;
+			    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
+			    IF instance_count = 1 THEN
+			        SET ret_value=0;
+			        COMMIT;
+			        LEAVE return_label;
+			    END IF;
+			    IF LENGTH(in_global)=0 THEN
+			        SET ret_value=6;
+			        ROLLBACK;
+			        LEAVE return_label;
+			    END IF;
+			    SET ret_value=0;
+			    IF 1=1 THEN
+			        COMMIT;
+			    END IF;
+			    LEAVE return_label;
+			END;""";
+
 	// SQLException.getMessage()无契约保证非null（驱动包装异常、本地化场景可为null），
 	// catch块内直接contains会NPE：本应幂等继续/死锁重试的路径变成启动失败且掩盖原始异常。
 	// 收口为null安全判定：null消息按不匹配处理，走默认抛出路径。
@@ -357,63 +435,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				try (var ps = conn.prepareStatement(tableInstancesSql)) {
 					ps.executeUpdate();
 				}
-				var procSetInUseSql = """
-					CREATE PROCEDURE _ZezeSetInUse_(
-					    IN  in_local_id INT,
-					    IN  in_global LONGBLOB,
-					    OUT ret_value INT
-					)
-					return_label:BEGIN
-					    DECLARE cur_global LONGBLOB;
-					    DECLARE empty_bin LONGBLOB;
-					    DECLARE instance_count INT;
-					    DECLARE row_count INT;
-
-					    START TRANSACTION;
-					    SET ret_value=1;
-					    IF exists (SELECT localid FROM _ZezeInstances_ WHERE localid=in_local_id) THEN
-					        SET ret_value=2;
-					        ROLLBACK;
-					        LEAVE return_label;
-					    END IF;
-					    INSERT IGNORE INTO _ZezeInstances_ VALUES(in_local_id);
-					    SELECT ROW_COUNT() INTO row_count;
-					    IF row_count = 0 THEN
-					        SET ret_value=3;
-					        ROLLBACK;
-					        LEAVE return_label;
-					    END IF;
-					    SET empty_bin = BINARY '';
-					    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
-					    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
-					    IF row_count > 0 THEN
-					        IF cur_global <> in_global THEN
-					            SET ret_value=4;
-					            ROLLBACK;
-					            LEAVE return_label;
-					        END IF;
-					    ELSE
-					        INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0);
-					    END IF;
-					    SET instance_count=0;
-					    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
-					    IF instance_count = 1 THEN
-					        SET ret_value=0;
-					        COMMIT;
-					        LEAVE return_label;
-					    END IF;
-					    IF LENGTH(in_global)=0 THEN
-					        SET ret_value=6;
-					        ROLLBACK;
-					        LEAVE return_label;
-					    END IF;
-					    SET ret_value=0;
-					    IF 1=1 THEN
-					        COMMIT;
-					    END IF;
-					    LEAVE return_label;
-					END;""";
-				try (var ps = conn.prepareStatement(procSetInUseSql)) {
+				try (var ps = conn.prepareStatement(PROC_SET_IN_USE_SQL)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!sqlMessageContains(ex, "already exist"))

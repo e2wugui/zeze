@@ -268,6 +268,24 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			        END IF;
 			    ELSE
 			        INSERT INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0) ON CONFLICT (id) DO NOTHING;
+			        GET DIAGNOSTICS row_count = ROW_COUNT;
+			        IF row_count = 0 THEN
+			            -- 并发首启动：快照读看不到对方未提交的行，插入被DO NOTHING静默丢弃。
+			            -- 必须重读已提交的global并比较，否则不同global的两个实例双双启动成功
+			            --（READ COMMITTED下新语句取新快照，能读到已提交行）。
+			            SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
+			            GET DIAGNOSTICS row_count = ROW_COUNT;
+			            IF row_count > 0 AND cur_global IS DISTINCT FROM in_global THEN
+			                ret_value := 4;
+			                RAISE EXCEPTION 'ROLLBACK';
+			                RETURN;
+			            END IF;
+			            IF row_count = 0 THEN
+			                ret_value := 5;
+			                RAISE EXCEPTION 'ROLLBACK';
+			                RETURN;
+			            END IF;
+			        END IF;
 			    END IF;
 			    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
 			    IF instance_count = 1 THEN
