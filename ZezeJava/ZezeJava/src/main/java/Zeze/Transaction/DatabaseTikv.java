@@ -439,6 +439,10 @@ public class DatabaseTikv extends Database {
 				datas.clear();
 			}
 			if (deleteKeys != null && !deleteKeys.isEmpty()) {
+				// 崩溃窗口声明：raw模式batchPut与batchDelete是两次独立RPC（跨region的
+				// batchPut本身也不原子），进程在两者之间崩溃会留下"put已落、delete丢失"，
+				// 重启后已删记录复活；异常路径安全（保脏重试幂等）。
+				// 需要原子性的部署应使用distTxn模式。
 				//noinspection ConstantConditions
 				client.batchDelete(deleteKeys);
 				deleteKeys.clear();
