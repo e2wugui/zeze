@@ -15,7 +15,8 @@ import org.junit.jupiter.api.Test;
  * T2-F2 回归：MySQL 关系映射表 string key 列原先用未指定排序规则的 VARCHAR(256) 做
  * PRIMARY KEY，默认 *_ci 排序规则下大小写变体 key 被合并（REPLACE 静默删行、
  * find/remove 命中错误行）。修复：DatabaseMySql 覆写 getKeyStringType 返回
- * VARCHAR(256) COLLATE utf8mb4_bin，与 Zeze 缓存的字节比较语义一致。
+ * VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin，与 Zeze 缓存的字节比较
+ * 语义一致；显式字符集避免继承库默认（非utf8mb4库建表报错）。
  * DisableOperates 构造不触库（DruidDataSource 懒连接），建表 SQL 断言不依赖
  * 真实 MySQL；存量表 ALTER 见 docs（database/relational.md）。
  */
@@ -40,7 +41,7 @@ public class TestMysqlKeyStringTypeCollate {
 
 	@Test
 	public void testKeyStringTypeHasBinaryCollation() {
-		assertEquals("VARCHAR(256) COLLATE utf8mb4_bin", db.getKeyStringType(),
+		assertEquals("VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin", db.getKeyStringType(),
 				"MySQL string key 列必须显式二进制排序规则");
 	}
 
