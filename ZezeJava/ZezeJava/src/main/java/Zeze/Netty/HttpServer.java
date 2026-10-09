@@ -759,9 +759,12 @@ public class HttpServer extends ChannelInboundHandlerAdapter implements Closeabl
 		// 慢客户端+大响应（文件/流式）必然越过水位，合法流量被误杀；持续拥塞由checkTimeout0的
 		// 写空闲超时（outboundBuffer无进度）兜底关闭。
 		if (!ch.isWritable())
-			Netty.logger.info("write buffer saturated {} > {} from {}",
-				ch.unsafe().outboundBuffer().totalPendingWriteBytes(),
-				ch.config().getWriteBufferHighWaterMark(), ch.remoteAddress());
+			// 不解引用 unsafe().outboundBuffer()：h2子stream的channel没有TCP
+			// ChannelOutboundBuffer（返回null），日志表达式的NPE会被exceptionCaught
+			// 当协议异常关闭合法下载流。bytesBeforeWritable()对TCP与h2 stream语义一致。
+			Netty.logger.info("write buffer saturated ~{} > {} from {}",
+					ch.bytesBeforeWritable(),
+					ch.config().getWriteBufferHighWaterMark(), ch.remoteAddress());
 		super.channelWritabilityChanged(ctx);
 	}
 
