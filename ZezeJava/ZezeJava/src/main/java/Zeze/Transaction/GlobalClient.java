@@ -36,6 +36,9 @@ public final class GlobalClient extends Service {
 			// 必须携带debugMode：GCM端processReLogin会以本字段覆盖会话的调试豁免，
 			// 漏传即静默清除——断点调试期间闪断重连后daemon超时kick会话回收锁，调试现场被破坏。
 			reLogin.Argument.debugMode = Reflect.inDebugMode;
+			// GCM端processLogin/ReLogin应答前逐key release无界，实例多时应答可能超过RPC默认5s
+			// ——超时触发重连风暴而服务端还在处理；超时可配（默认维持5s）。
+			reLogin.setTimeout(getZeze().getConfig().getGlobalCacheManagerLoginTimeout());
 			logger.debug("GlobalClient Send ReLogin: {}", reLogin.Argument);
 			reLogin.Send(so, (ThisRpc) -> {
 				if (reLogin.isTimeout()) {
@@ -66,6 +69,7 @@ public final class GlobalClient extends Service {
 			login.Argument.serverId = getZeze().getConfig().getServerId();
 			login.Argument.globalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
 			login.Argument.debugMode = Reflect.inDebugMode;
+			login.setTimeout(getZeze().getConfig().getGlobalCacheManagerLoginTimeout()); // 同ReLogin
 			logger.debug("GlobalClient Send Login: {}", login.Argument);
 			login.Send(so, (ThisRpc) -> {
 				if (login.isTimeout() || login.getResultCode() != 0) {

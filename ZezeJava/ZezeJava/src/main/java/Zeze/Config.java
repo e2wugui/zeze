@@ -80,6 +80,10 @@ public final class Config {
 	public ServiceManagerConf serviceManagerConf;
 
 	private int globalCacheManagerPort;
+	// GCM Login/ReLogin 的RPC超时（毫秒）。默认5000与RPC全局默认一致：GCM端
+	// processLogin应答前逐key release无界，实例多时应答可能超过5s——客户端超时
+	// 触发重连风暴而服务端其实还在处理，此场景可调大本值。
+	private int globalCacheManagerLoginTimeout = 5000;
 	private final ConcurrentHashMap<String, TableConf> tableConfMap = new ConcurrentHashMap<>();
 	private TableConf defaultTableConf;
 	private boolean allowReadWhenRecordNotAccessed = true;
@@ -385,6 +389,14 @@ public final class Config {
 		globalCacheManagerPort = value;
 	}
 
+	public int getGlobalCacheManagerLoginTimeout() {
+		return globalCacheManagerLoginTimeout;
+	}
+
+	public void setGlobalCacheManagerLoginTimeout(int value) {
+		globalCacheManagerLoginTimeout = value;
+	}
+
 	public @NotNull ConcurrentHashMap<String, TableConf> getTableConfMap() {
 		return tableConfMap;
 	}
@@ -667,6 +679,10 @@ public final class Config {
 		attr = self.getAttribute("GlobalCacheManagerPort");
 		if (!attr.isBlank())
 			globalCacheManagerPort = Integer.parseInt(attr);
+
+		attr = self.getAttribute("GlobalCacheManagerLoginTimeout");
+		if (!attr.isBlank())
+			globalCacheManagerLoginTimeout = Integer.parseInt(attr);
 
 		attr = self.getAttribute("OnlineLogoutDelay");
 		if (!attr.isBlank())
