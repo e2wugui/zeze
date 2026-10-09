@@ -28,6 +28,10 @@ import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
  * 这样，这个类就不通用了。通用类需要包装，多创建一个对象，还需要包装接口。
  */
 public class TableCache<K extends Comparable<K>, V extends Bean> {
+	// 常量键的统计句柄一次解析终身复用（对齐 Task.runTimeObservers 惯例；观察者内部自带代际重绑）
+	private static final Zeze.Util.ZezeCounter.LongObserver evictAcquireObserver =
+			Zeze.Util.ZezeCounter.instance.getRunTimeObserver("TableCache.evictAcquire");
+
 	private static final @NotNull Logger logger = LogManager.getLogger(TableCache.class);
 	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
 	private static final int SHRINK_NODE_COUNT = 8000; // shrink的目标节点数量
@@ -369,7 +373,13 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			try {
 				// noWait=true时只能连接async版GlobalServer, 而连sync和raft版会出现VerifyGlobalRecordState验证失败
 				// 可能原因是lockey特别容易乱序, sync和raft版需要用队列保证顺序
+				// 此acquire是持三重锁（lockey写锁→fairLock→rrs，外层cleanNowLock）的同步GCM往返：
+				// 每驱逐一条等一个RPC，同键前台事务在lockey上stall。锁内仅做资格判定摘候选、放锁后
+				// 批量acquire的重排涉及协议改动，先度量acquire等待时长暴露stall规模。
+				var evictBegin = Zeze.Util.ZezeCounter.ENABLE ? System.nanoTime() : 0;
 				record.acquire(StateInvalid, false, false);
+				if (evictBegin != 0) // 统计禁用时零开销
+					evictAcquireObserver.observe(System.nanoTime() - evictBegin);
 			} catch (Throwable e) { // logger.error
 				// 降低这个日志级别，因为fastError或者其他原因，会导致大量的日志。而此时这里的错误是可以忽略的。
 				logger.debug("Acquire({}:{}) exception:", record.getTable().getName(), record.getObjectKey(), e);
