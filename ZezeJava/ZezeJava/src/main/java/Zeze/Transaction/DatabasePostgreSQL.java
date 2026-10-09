@@ -143,7 +143,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	}
 
 	// renameTable幂等重跑的判定：to_regclass按search_path解析，与无schema限定的RENAME同名作用域一致。
-	private boolean tableExists(Connection conn, String name) throws SQLException {
+	private static boolean tableExists(Connection conn, String name) throws SQLException {
 		try (var ps = conn.prepareStatement("SELECT to_regclass(?)")) {
 			ps.setString(1, name);
 			try (var rs = ps.executeQuery()) {
@@ -676,7 +676,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	public final class TablePostgreSQLRelational implements Table {
 		private final @NotNull String name;
 		private boolean isNew;
-		private boolean dropped;
+		// volatile：flush线程与drop调用线程可能不同，可见性不得依赖锁外的巧合调度
+		private volatile boolean dropped;
 
 		public TablePostgreSQLRelational(@NotNull String name) {
 			this.name = name; // pg 表名被统一转换成小写的了。
@@ -724,7 +725,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			// pg_class.reltuples 记录的是实际存储的表名：建表 DDL 未加引号时
 			// PG 把标识符折叠为小写（与 tryAlter 查询 information_schema 的写法一致），必须小写化再比较。
 			return dropped ? -1 :
-					queryLong1(dataSource, "SELECT reltuples::bigint AS row_count FROM pg_class WHERE relname = '" + name.toLowerCase() + "';");
+					queryLong1(dataSource, "SELECT reltuples::bigint AS row_count FROM pg_class WHERE relname = '" + name.toLowerCase(java.util.Locale.ROOT) + "';");
 		}
 
 		@Override
@@ -756,7 +757,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			try (var conn = dataSource.getConnection()) {
 				try (var ps = conn.prepareStatement(
 						"SELECT column_name FROM information_schema.columns WHERE table_name = ?")) {
-					ps.setString(1, name.toLowerCase());
+					ps.setString(1, name.toLowerCase(java.util.Locale.ROOT));
 					try (var rs = ps.executeQuery()) {
 						while (rs.next())
 							columns.add(rs.getString(1).toLowerCase(java.util.Locale.ROOT));
@@ -850,7 +851,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				// primary key TODO 优化：确实发生了变化才重建。
 				// 查询主键约束的名字，用来删除。
 				var sqlPkName = "SELECT constraint_name FROM information_schema.table_constraints"
-						+ " WHERE table_name = '" + name.toLowerCase() + "' AND constraint_type = 'PRIMARY KEY';";
+						+ " WHERE table_name = '" + name.toLowerCase(java.util.Locale.ROOT) + "' AND constraint_type = 'PRIMARY KEY';";
 				String pkName = null;
 				try (var stPkName = conn.prepareStatement(sqlPkName)) {
 					try (var rs = stPkName.executeQuery()) {
@@ -915,7 +916,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var st = new SQLStatement();
 			table.encodeKeySQLStatement(st, key);
-			var sql = "SELECT * FROM " + name + " WHERE " + buildKeyWhere(st);
+			var sql = "SELECT 1 FROM " + name + " WHERE " + buildKeyWhere(st) + " LIMIT 1";
+			// 存在性判定不取整行：SELECT 1+LIMIT 1避免大value列的无效传输
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
 				setParams(ps, 1, st.getParams());
 				try (var rs = ps.executeQuery()) {
@@ -1340,7 +1342,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		private final @NotNull String name;
 		private final @NotNull String sqlFind, sqlRemove, sqlReplace;
 		private final boolean isNew;
-		private boolean dropped;
+		// volatile：flush线程与drop调用线程可能不同，可见性不得依赖锁外的巧合调度
+		private volatile boolean dropped;
 
 		public TablePostgreSQL(@NotNull String name) {
 			this.name = name;
@@ -1390,7 +1393,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		public long getSizeApproximation() {
 			// 同上：未加引号建表的标识符在 PG 中折叠为小写存储。
 			return dropped ? -1 :
-					queryLong1(dataSource, "SELECT reltuples FROM pg_class WHERE relname = '" + name.toLowerCase() + "';");
+					queryLong1(dataSource, "SELECT reltuples FROM pg_class WHERE relname = '" + name.toLowerCase(java.util.Locale.ROOT) + "';");
 		}
 
 		@Override

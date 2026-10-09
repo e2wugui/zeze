@@ -221,7 +221,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	}
 
 	// renameTable幂等重跑的判定：查当前schema下表是否存在。
-	private boolean tableExists(Connection conn, String name) throws SQLException {
+	private static boolean tableExists(Connection conn, String name) throws SQLException {
 		try (var ps = conn.prepareStatement(
 				"SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?")) {
 			ps.setString(1, name);
@@ -652,7 +652,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	public final class TableMysqlRelational implements Database.Table {
 		private final @NotNull String name;
 		private boolean isNew;
-		private boolean dropped;
+		// volatile：flush线程与drop调用线程可能不同，可见性不得依赖锁外的巧合调度
+		private volatile boolean dropped;
 
 		public TableMysqlRelational(@NotNull String name) {
 			this.name = name;
@@ -849,7 +850,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var st = new SQLStatement();
 			table.encodeKeySQLStatement(st, key);
-			var sql = "SELECT * FROM " + name + " WHERE " + buildKeyWhere(st);
+			var sql = "SELECT 1 FROM " + name + " WHERE " + buildKeyWhere(st) + " LIMIT 1";
+			// 存在性判定不取整行：SELECT 1+LIMIT 1避免大value列的无效传输
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
 				setParams(ps, 1, st.getParams());
 				try (var rs = ps.executeQuery()) {
@@ -1237,7 +1239,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		private final @NotNull String name;
 		private final @NotNull String sqlFind, sqlRemove, sqlReplace;
 		private final boolean isNew;
-		private boolean dropped;
+		// volatile：flush线程与drop调用线程可能不同，可见性不得依赖锁外的巧合调度
+		private volatile boolean dropped;
 
 		public TableMysql(@NotNull String name) {
 			this.name = name;

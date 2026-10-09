@@ -622,7 +622,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final @Nullable V get(@NotNull K key) {
 		var currentT = Transaction.getCurrent();
-		assert currentT != null;
+		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
+		if (currentT == null)
+			throw new IllegalStateException("no current transaction. table=" + getName());
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("key is null");
@@ -653,7 +655,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final @NotNull V getOrAdd(@NotNull K key, @Nullable OutObject<Boolean> isAdd) {
 		var currentT = Transaction.getCurrent();
-		assert currentT != null;
+		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
+		if (currentT == null)
+			throw new IllegalStateException("no current transaction. table=" + getName());
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("key is null");
@@ -699,7 +703,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			return false;
 
 		var currentT = Transaction.getCurrent();
-		assert currentT != null;
+		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
+		if (currentT == null)
+			throw new IllegalStateException("no current transaction. table=" + getName());
 
 		var tkey = new TableKey(getId(), key);
 		var cr = currentT.getRecordAccessed(tkey);
@@ -718,7 +724,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public final void put(@NotNull K key, @NotNull V value) {
 		var currentT = Transaction.getCurrent();
-		assert currentT != null;
+		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
+		if (currentT == null)
+			throw new IllegalStateException("no current transaction. table=" + getName());
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("key is null");
@@ -746,7 +754,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	// 逻辑几乎和Put一样，故意保持独立实现。
 	public final void remove(@NotNull K key) {
 		var currentT = Transaction.getCurrent();
-		assert currentT != null;
+		// 生产关闭断言后此处裸NPE难定位：显式ISE（与getCurrentVerifyWrite的拒绝语义一致）
+		if (currentT == null)
+			throw new IllegalStateException("no current transaction. table=" + getName());
 		//noinspection ConstantValue
 		if (key == null)
 			throw new IllegalArgumentException("key is null");
