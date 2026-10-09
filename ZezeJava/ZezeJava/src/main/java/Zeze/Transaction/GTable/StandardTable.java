@@ -112,22 +112,13 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
     backingMap.clear();
   }
 
-  private Map<C, V> getOrCreate(R rowKey) {
-    Map<C, V> map = backingMap.get(rowKey);
-    if (map == null) {
-      map = factory.get();
-      backingMap.put(rowKey, map);
-    }
-    return map;
-  }
-
   @Override
   @CheckForNull
   public V put(R rowKey, C columnKey, V value) {
     Utils.checkNotNull(rowKey);
     Utils.checkNotNull(columnKey);
     Utils.checkNotNull(value);
-    // 先写内层再挂外层：getOrCreate先把空行put进外层容器（托管路径当场记LogMap2）后内层
+    // 先写内层再挂外层：先建行（旧getOrCreate形态：空行put进外层容器，托管路径当场记LogMap2）后内层
     // put抛异常（如值bean已受管的HasManagedException）时，catch后继续提交会残留并持久化
     // 幻影空行——对齐PMap2.putAll“先全量校验后入日志”的防边改边记惯例。
     Map<C, V> map = backingMap.get(rowKey);
