@@ -420,16 +420,27 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
 
     Entry<C, V> wrapEntry(final Entry<C, V> entry) {
       return new ForwardingMapEntry<>() {
+        // 值快照：delegate是pcollections不可变entry，转发它的getValue会一直读到旧值——
+        // 调用方setValue成功后，本entry的getValue/equals/hashCode必须反映自己的修改结果。
+        private V value = entry.getValue();
+
         @Override
         protected Entry<C, V> delegate() {
           return entry;
         }
 
         @Override
+        public V getValue() {
+          return value;
+        }
+
+        @Override
         public V setValue(V value) {
           // delegate entry是pcollections不可变（setValue抛UOE）：改走Row.put的事务化put语义，
           // 返回旧值。
-          return Row.this.put(entry.getKey(), Utils.checkNotNull(value));
+          var old = Row.this.put(entry.getKey(), Utils.checkNotNull(value));
+          this.value = value;
+          return old;
         }
 
         @Override
@@ -437,7 +448,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> {
           return standardHashCode();
         }
 
-        @SuppressWarnings("EqualsDoesntCheckParameterClass")
+        @SuppressWarnings("EqualsDoesNotCheckParameterClass")
         @Override
         public boolean equals(@CheckForNull Object object) {
           // TODO(lowasser): identify why this affects GWT tests
