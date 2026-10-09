@@ -255,6 +255,9 @@ public class DatabaseMongoDb extends Database {
 			if (dropped)
 				return 0;
 			var iterable = collection.find();
+			// 序差异声明：Mongo按_id（BSON BinData序：长度→子类型→字节）排序，与其余后端
+			// （MySql/Rocks/Memory的纯字节字典序）不同——变长key下walk序跨后端不一致。
+			// 严格字节序的消费者（如Verify要求严格有序）不应使用Mongo后端。
 			iterable.sort(Sorts.ascending("_id"));
 			long countWalked = 0;
 			try (var cursor = iterable.iterator()) {

@@ -115,8 +115,11 @@ public interface Table<R, C, V> {
   boolean equals(@CheckForNull Object obj);
 
   /**
-   * Returns the hash code for this table. The hash code of a table is defined as the hash code of
-   * its cell view, as returned by {@link #cellSet}.
+   * Returns the hash code for this table.
+   *
+   * <p><b>移植偏离声明</b>：本移植不实现Guava原版"表的哈希码=其cell视图哈希码"的契约——
+   * GTable2（Bean值）的Bean使用全类身份哈希（既定设计），内容相等的两表equals为true
+   * 而hashCode几乎必异。不要把GTable作为哈希容器键使用。
    */
   @Override
   int hashCode();
