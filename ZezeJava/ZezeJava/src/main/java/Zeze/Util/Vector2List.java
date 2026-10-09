@@ -254,12 +254,17 @@ public class Vector2List extends FloatList {
 		if (idx < 0 || idx >= vectorSize())
 			return this;
 		idx = VectorListBounds.index(idx, 2);
-		int lastIdx = count - 2;
+		// 完整末向量起点：count%K有余数时count-K不对齐（会把尾部余数当向量的一部分读取），
+		// 交换后余数保持在尾部（对齐removeVector的余数保留规则）。
+		int lastIdx = (count / 2 - 1) * 2;
 		if (idx >= 0 && idx <= lastIdx) {
 			float[] buf = buffer;
-			count = lastIdx;
-			buf[idx] = buf[lastIdx];
-			buf[idx + 1] = buf[lastIdx + 1];
+			for (int i = 0; i < 2; i++)
+				buf[idx + i] = buf[lastIdx + i];
+			int remainder = count - (lastIdx + 2);
+			if (remainder > 0)
+				System.arraycopy(buf, lastIdx + 2, buf, lastIdx, remainder);
+			count = lastIdx + remainder;
 		}
 		return this;
 	}

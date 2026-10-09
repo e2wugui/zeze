@@ -147,6 +147,9 @@ public interface ZezeCounter {
 
 	/**
 	 * 统计快照（不可变值对象）。不支持周期快照的实现返回空快照。
+	 * 深不可变：两层Map都逐层冻结——只冻结外层时，持有快照者仍可改内层计数
+	 * 污染后续getLast读取；构造输入的别名同样被切断（修改内层抛
+	 * UnsupportedOperationException，属值对象契约的显式行为变化）。
 	 *
 	 * @param procedureResults procedureName -&gt; resultCode -&gt; 最近周期计数（含零计数条目）
 	 * @param tableResults     tableName -&gt; 度量名 -&gt; 最近周期计数
@@ -155,6 +158,17 @@ public interface ZezeCounter {
 	record Snapshot(@NotNull Map<String, @NotNull Map<Long, Long>> procedureResults,
 					@NotNull Map<String, @NotNull Map<String, Long>> tableResults,
 					@NotNull String formattedLog) {
+		// 接口内record的规范构造器隐式public，紧凑形态访问级冲突，显式声明
+		public Snapshot(@NotNull Map<String, @NotNull Map<Long, Long>> procedureResults,
+						@NotNull Map<String, @NotNull Map<String, Long>> tableResults,
+						@NotNull String formattedLog) {
+			this.procedureResults = procedureResults.entrySet().stream().collect(
+					java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey, e -> Map.copyOf(e.getValue())));
+			this.tableResults = tableResults.entrySet().stream().collect(
+					java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey, e -> Map.copyOf(e.getValue())));
+			this.formattedLog = formattedLog;
+		}
+
 		public static final @NotNull Snapshot EMPTY = new Snapshot(Map.of(), Map.of(), "");
 	}
 

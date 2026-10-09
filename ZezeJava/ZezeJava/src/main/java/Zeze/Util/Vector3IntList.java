@@ -274,13 +274,17 @@ public class Vector3IntList extends IntList {
 		if (idx < 0 || idx >= vectorSize())
 			return this;
 		idx = VectorListBounds.index(idx, 3);
-		int lastIdx = count - 3;
+		// 完整末向量起点：count%K有余数时count-K不对齐（会把尾部余数当向量的一部分读取），
+		// 交换后余数保持在尾部（对齐removeVector的余数保留规则）。
+		int lastIdx = (count / 3 - 1) * 3;
 		if (idx >= 0 && idx <= lastIdx) {
 			int[] buf = buffer;
-			count = lastIdx;
-			buf[idx] = buf[lastIdx];
-			buf[idx + 1] = buf[lastIdx + 1];
-			buf[idx + 2] = buf[lastIdx + 2];
+			for (int i = 0; i < 3; i++)
+				buf[idx + i] = buf[lastIdx + i];
+			int remainder = count - (lastIdx + 3);
+			if (remainder > 0)
+				System.arraycopy(buf, lastIdx + 3, buf, lastIdx, remainder);
+			count = lastIdx + remainder;
 		}
 		return this;
 	}
