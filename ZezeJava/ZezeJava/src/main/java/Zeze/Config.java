@@ -47,7 +47,6 @@ public final class Config {
 		SqlServer,
 		Tikv,
 		RocksDb,
-		DynamoDb,
 		Dbh2,
 		Redis,
 		PostgreSQL,
@@ -484,7 +483,6 @@ public final class Config {
 			case Redis -> new Zeze.Transaction.DatabaseRedis(zeze, conf);
 			case PostgreSQL -> new DatabasePostgreSQL(zeze, conf);
 			case MongoDb -> new DatabaseMongoDb(zeze, conf);
-			case DynamoDb -> new Zeze.Transaction.DatabaseDynamoDb(zeze, conf);
 		};
 	}
 
@@ -1079,10 +1077,6 @@ public final class Config {
 				break;
 			case "RocksDB":
 				databaseType = DbType.RocksDb;
-				break;
-			case "DynamoDB":
-				databaseType = DbType.DynamoDb;
-				dynamoConf = new DynamoConf(self);
 				break;
 			case "Dbh2":
 				databaseType = DbType.Dbh2;

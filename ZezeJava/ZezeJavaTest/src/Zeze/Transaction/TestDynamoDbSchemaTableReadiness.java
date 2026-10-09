@@ -69,9 +69,8 @@ public class TestDynamoDbSchemaTableReadiness {
 	}
 
 	private static Config.DatabaseConf config() {
-		var config = new Config.DatabaseConf();
-		config.setDatabaseType(Config.DbType.DynamoDb);
-		return config;
+		// 后端已从 Config 取消注册，直接 new 使用包内构造器注入客户端桩。
+		return new Config.DatabaseConf();
 	}
 
 	private static ByteBuffer key() {
