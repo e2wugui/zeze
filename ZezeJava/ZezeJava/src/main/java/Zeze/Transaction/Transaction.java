@@ -140,6 +140,13 @@ public final class Transaction {
 	}
 
 	void reuseTransaction() {
+		// 防御：正常路径由perform的finally释放；手工create+begin后直接destroy/复用
+		// （不走perform）时锁会静默泄漏——非空即记error并逐个释放。
+		if (!holdLocks.isEmpty()) {
+			logger.error("reuseTransaction with {} held lock(s), releasing defensively", holdLocks.size());
+			holdLocks.forEach(Lockey::exitLock);
+			holdLocks.clear();
+		}
 		tid = null;
 		procedureStack.clear();
 		if (null != logActions)
