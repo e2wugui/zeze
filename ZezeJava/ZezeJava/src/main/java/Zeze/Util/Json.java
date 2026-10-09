@@ -41,6 +41,7 @@ public final class Json implements Cloneable {
 	static final int TYPE_WRAP_FLAG = 0x10; // wrap<1~8>
 	static final int TYPE_LIST_FLAG = 0x20; // Collection<1~12> (parser only needs clear() & add(v))
 	static final int TYPE_MAP_FLAG = 0x30; // Map<String, 1~12> (parser only needs clear() & put(k,v))
+	static final int TYPE_ARRAY_FLAG = 0x40; // T[]<1~10>（写侧的数组输出与读侧适配对称；byte[]走既有字符串codec）
 
 	public interface KeyReader {
 		@NotNull Object parse(@NotNull JsonReader jr, int b) throws ReflectiveOperationException;
@@ -54,7 +55,7 @@ public final class Json implements Cloneable {
 		public final int hash; // for FieldMetaMap
 		public final int type; // defined above
 		public final int offset; // for unsafe access
-		public final @NotNull Class<?> klass; // TYPE_CUSTOM:fieldClass; TYPE_LIST_FLAG/TYPE_MAP_FLAG:subValueClass
+		public final @NotNull Class<?> klass; // TYPE_CUSTOM:fieldClass; TYPE_LIST_FLAG/TYPE_MAP_FLAG:subValueClass; TYPE_ARRAY_FLAG:componentClass
 		transient @Nullable ClassMeta<?> classMeta; // from klass, lazy assigned
 		transient @Nullable FieldMeta next; // for FieldMetaMap
 		public final byte[] name; // field name
@@ -354,6 +355,13 @@ public final class Json implements Cloneable {
 							type = TYPE_MAP_FLAG + TYPE_OBJECT;
 							keyReader = JsonReader::parseStringKey;
 						}
+					} else if (fieldClass.isArray() && fieldClass != byte[].class
+							&& (v = typeMap.get(fieldClass = fieldClass.getComponentType())) != null) {
+						// 普通数组（原始类型/String/Object元素）：写侧输出数组格式，读侧建立
+						// 对称适配（此前TYPE_CUSTOM只收'{'，数组字段静默不读入，null字段还
+						// 报abstract field）。byte[]有专门的字符串codec（getClassMeta(byte[].class)
+						// 注册的parser/writer），保持既有路径；自定义元素数组维持TYPE_CUSTOM。
+						type = TYPE_ARRAY_FLAG + (v & 0xf);
 					} else
 						type = TYPE_CUSTOM;
 					long offset = objectFieldOffset(field);

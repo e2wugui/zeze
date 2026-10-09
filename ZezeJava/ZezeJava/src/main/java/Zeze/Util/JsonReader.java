@@ -380,6 +380,49 @@ public final class JsonReader {
 		return c;
 	}
 
+	/**
+	 * 数组字段读入：按元素类型逐个解析，返回新数组替换字段（与写侧的数组输出对称）。
+	 * 元素null按类型默认值收（原始类型不可存null）；非'['起始宽容返回null
+	 * （对齐parse(Object,int)未知token→null的契约）。
+	 */
+	private @Nullable Object parseArrayField(@NotNull Class<?> componentType, int b) throws ReflectiveOperationException {
+		if (b != '[')
+			return null;
+		if (++depth > maxDepth)
+			throw new IllegalStateException("json nesting depth exceeds " + maxDepth);
+		var list = new ArrayList<>();
+		for (int c = skipNext(); c != ']'; c = skipVar(']'))
+			list.add(parseArrayElement(componentType, c));
+		pos++;
+		depth--;
+		var array = java.lang.reflect.Array.newInstance(componentType, list.size());
+		for (int i = 0; i < list.size(); i++)
+			java.lang.reflect.Array.set(array, i, list.get(i));
+		return array;
+	}
+
+	private @Nullable Object parseArrayElement(@NotNull Class<?> ct, int b) throws ReflectiveOperationException {
+		if (ct == boolean.class)
+			return b == 't';
+		if (ct == int.class)
+			return b == 'n' ? 0 : parseInt();
+		if (ct == long.class)
+			return b == 'n' ? 0L : parseLong();
+		if (ct == double.class)
+			return b == 'n' ? 0.0 : parseDouble();
+		if (ct == float.class)
+			return b == 'n' ? 0f : (float)parseDouble();
+		if (ct == byte.class)
+			return b == 'n' ? (byte)0 : (byte)parseInt();
+		if (ct == short.class)
+			return b == 'n' ? (short)0 : (short)parseInt();
+		if (ct == char.class)
+			return b == 'n' ? (char)0 : (char)parseInt();
+		if (ct == String.class)
+			return b == 'n' ? null : parseString(false);
+		return parse(null, b); // Object等：走通用值解析
+	}
+
 	public <T> @Nullable Collection<T> parseArray(@Nullable Collection<T> c, @NotNull Class<T> elemClass)
 			throws ReflectiveOperationException {
 		return parseArray(Json.instance, c, elemClass);
@@ -569,6 +612,22 @@ public final class JsonReader {
 				if (p == null)
 					unsafe.putObject(obj, offset, p = new Pos());
 				p.pos = pos;
+				break;
+			case TYPE_ARRAY_FLAG + TYPE_BOOLEAN:
+			case TYPE_ARRAY_FLAG + TYPE_BYTE:
+			case TYPE_ARRAY_FLAG + TYPE_SHORT:
+			case TYPE_ARRAY_FLAG + TYPE_CHAR:
+			case TYPE_ARRAY_FLAG + TYPE_INT:
+			case TYPE_ARRAY_FLAG + TYPE_LONG:
+			case TYPE_ARRAY_FLAG + TYPE_FLOAT:
+			case TYPE_ARRAY_FLAG + TYPE_DOUBLE:
+			case TYPE_ARRAY_FLAG + TYPE_STRING:
+			case TYPE_ARRAY_FLAG + TYPE_OBJECT:
+				// 数组字段与写侧对称读入（此前TYPE_CUSTOM只收'{'，数组静默不更新）
+				if (b == 'n')
+					unsafe.putObject(obj, offset, null);
+				else
+					unsafe.putObject(obj, offset, parseArrayField(fm.klass, b));
 				break;
 			case TYPE_CUSTOM:
 				if (b == 'n') { // null（与TYPE_STRING/TYPE_OBJECT分支一致）
