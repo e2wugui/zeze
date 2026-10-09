@@ -1017,19 +1017,58 @@ public final class Application extends ReentrantLock {
 	 * 日志系统异常也不得拦下终态。
 	 */
 	public static void haltAfterCheckpoint(@NotNull Application zeze, int exitCode) {
+		haltWithDeadline(HALT_DEADLINE_MS, () -> {
+			try {
+				zeze.checkpointRun();
+			} catch (Throwable ex) {
+				try {
+					logger.fatal("checkpointRun before halt({}) fail", exitCode, ex);
+				} catch (Throwable ignored) {
+				}
+			}
+			try {
+				LogManager.shutdown();
+			} catch (Throwable ignored) {
+			}
+		}, () -> Runtime.getRuntime().halt(exitCode));
+	}
+
+	/**
+	 * halt前的尽力保存截止时间：必须小于GCM回收本节点权限的余量。
+	 * 超时直接halt，宁可舍弃来不及保存的本地脏值——保存只是尽力，同步等它
+	 * 则阻塞的checkpoint（记录集锁被他人持有、后端IO不返回）可无限延后终止；
+	 * 延后期间他节点已接管权限，本进程继续存活会把旧脏数据刷入共享库。
+	 */
+	static final long HALT_DEADLINE_MS = 30_000;
+
+	/** 独立watchdog保证截止必达：主线程尽力保存后执行终止动作，超时由watchdog执行。
+	 * 终止动作最多执行一次（CAS仲裁；真实halt下进程随第一次执行退出，第二次本不可达）。 */
+	static void haltWithDeadline(long deadlineMs, @NotNull Action0 bestEffort, @NotNull Runnable halt) {
+		var halted = new java.util.concurrent.atomic.AtomicBoolean();
+		Runnable haltOnce = () -> {
+			if (halted.compareAndSet(false, true))
+				halt.run();
+		};
+		var watchdog = Thread.ofPlatform().daemon(true).name("HaltDeadlineWatchdog").unstarted(() -> {
+			try {
+				//noinspection BusyWait
+				Thread.sleep(deadlineMs);
+			} catch (InterruptedException ignored) {
+				return; // 主路径已先完成终止动作
+			}
+			haltOnce.run();
+		});
+		watchdog.start();
 		try {
-			zeze.checkpointRun();
+			bestEffort.run();
 		} catch (Throwable ex) {
 			try {
-				logger.fatal("checkpointRun before halt({}) fail", exitCode, ex);
+				logger.fatal("haltWithDeadline best effort fail", ex);
 			} catch (Throwable ignored) {
 			}
 		}
-		try {
-			LogManager.shutdown();
-		} catch (Throwable ignored) {
-		}
-		Runtime.getRuntime().halt(exitCode);
+		haltOnce.run();
+		watchdog.interrupt(); // 终止动作已由主路径执行（真实halt下进程已退出，此行不可达）
 	}
 
 	public void checkpointRunThread() {
