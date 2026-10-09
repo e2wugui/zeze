@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 public class TestPMap2PutAllAfterInPlaceModify {
 
 	// 动态发号（桌预留100-199段）：本类每轮全量运行消耗2个号。
-	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TAKEOVER_POOL);
+
 
 	private static Application newApp(int serverId) throws Exception {
 		var conf = new Config();
@@ -51,7 +51,7 @@ public class TestPMap2PutAllAfterInPlaceModify {
 
 	@Test
 	public void inPlaceModifyThenPutAllEqualInstanceKeepsDelta() throws Exception {
-		var app = newApp(NextId.getAndIncrement());
+		var app = newApp(FastServerIds.takeoverPoolNext());
 		var table = (tflush)app.getTable("demo_Module1_tflush");
 		try {
 			Assertions.assertEquals(Procedure.Success, app.newProcedure(() -> {

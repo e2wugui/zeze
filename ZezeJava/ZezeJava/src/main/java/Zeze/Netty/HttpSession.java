@@ -248,8 +248,10 @@ public class HttpSession extends AbstractHttpSession {
 			// 按全名ModuleFullName查恒null——过期会话清理永不执行。
 			var httpSession = (HttpSession)context.timer.zeze.getAppBase().getModules().get(HttpSession.ModuleName);
 			if (null != httpSession) {
+				// 扫描语义使用单一cutoff（同一批内一致）；
+				// 删除事务内按cutoff重验（见RemoveBatch）。
 				var now = System.currentTimeMillis();
-				var batch = new RemoveBatch(httpSession.tSession());
+				var batch = new RemoveBatch(httpSession.tSession(), now);
 				httpSession.tSession().walk((key, value) -> {
 					if (value.getExpireTime() <= now)
 						batch.add(key);
@@ -260,12 +262,15 @@ public class HttpSession extends AbstractHttpSession {
 		}
 	}
 
-	private static class RemoveBatch {
+	// 包内可见：同包回归测试直接驱动"扫描→续期→删除"的竞态窗口。
+	static class RemoveBatch {
 		private final @NotNull Zeze.Builtin.HttpSession.tSession tSession;
+		private final long cutoff;
 		private final ArrayList<String> keys = new ArrayList<>();
 
-		public RemoveBatch(@NotNull Zeze.Builtin.HttpSession.tSession tSession) {
+		public RemoveBatch(@NotNull Zeze.Builtin.HttpSession.tSession tSession, long cutoff) {
 			this.tSession = tSession;
+			this.cutoff = cutoff;
 		}
 
 		public void add(@NotNull String key) {
@@ -274,11 +279,16 @@ public class HttpSession extends AbstractHttpSession {
 				tryPerform();
 		}
 
-		private void tryPerform() {
+		void tryPerform() {
 			if (!keys.isEmpty()) {
 				tSession.getZeze().newProcedure(() -> {
-					for (var key : keys)
-						tSession.remove(key);
+					for (var key : keys) {
+						// 删除事务内重验：扫描快照与删除之间被合法续期（expireTime推进到
+						// cutoff之后）的会话不得删除；redo每轮重新读取判定。
+						var session = tSession.get(key);
+						if (session != null && session.getExpireTime() <= cutoff)
+							tSession.remove(key);
+					}
 					return 0;
 				}, "remove http session").call();
 				keys.clear();

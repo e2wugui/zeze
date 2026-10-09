@@ -21,13 +21,12 @@ final class TakeoverTestEnv {
 
 	// Application并发需要不同serverId：本地存储（zeze_cache_<serverId>等）每serverId一份，
 	// @Fast类并行时共用默认0会撞锁（delete failed: zeze_cache_0）。从100起避开伪造死者id(777+)。
-	private static final java.util.concurrent.atomic.AtomicInteger NextServerId =
-			new java.util.concurrent.atomic.AtomicInteger(FastServerIds.TAKEOVER_POOL);
+
 
 	static Config newConf(String mode, long ttl, long scanPeriod) {
 		var conf = new Config();
 		conf.setServiceManager("disable");
-		int serverId = NextServerId.getAndIncrement();
+		int serverId = FastServerIds.takeoverPoolNext();
 		conf.setServerId(serverId);
 		conf.setDefaultTableConf(new Config.TableConf());
 		// DatabaseMemory 的表存储是JVM级静态Map、按DatabaseUrl分桶：默认空url的桶被所有

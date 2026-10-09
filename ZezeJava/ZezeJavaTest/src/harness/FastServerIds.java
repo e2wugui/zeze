@@ -69,6 +69,15 @@ public final class FastServerIds {
 
 	public static final int TAKEOVER_POOL = seg("TakeoverTestEnv.newConf动态池", 100, 100);
 
+	// 动态池共享发号：所有从100-199段取号的测试必须经同一计数器——各自从基点起号
+	// 会在并行@Fast下互撞（FileMutex fail-fast即红）。TakeoverTestEnv与各直接取号测试共用。
+	private static final java.util.concurrent.atomic.AtomicInteger TAKEOVER_POOL_NEXT =
+			new java.util.concurrent.atomic.AtomicInteger(TAKEOVER_POOL);
+
+	public static int takeoverPoolNext() {
+		return TAKEOVER_POOL_NEXT.getAndIncrement();
+	}
+
 	public static final int TEST_AUTO_KEY_INVALIDATE_RANGE = seg("TestAutoKeyInvalidateRange", 200, 7);
 
 	public static final int TEST_DEPARTMENT_TREE_MANAGER_GUARDS = seg("TestDepartmentTreeManagerGuards", 730, 1);

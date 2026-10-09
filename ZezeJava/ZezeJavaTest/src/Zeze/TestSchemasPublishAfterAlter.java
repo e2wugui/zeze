@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Fast
 public class TestSchemasPublishAfterAlter {
 
-	private static final AtomicInteger NextId = new AtomicInteger(FastServerIds.TAKEOVER_POOL);
+
 
 	private static Schemas schemas(int variableCount) {
 		var s = new Schemas();
@@ -64,7 +64,7 @@ public class TestSchemasPublishAfterAlter {
 		conf.setDefaultTableConf(new Config.TableConf());
 		var app = new Application("TestSchemasPublishAfterAlter", conf);
 		var dbConf = new Config.DatabaseConf();
-		dbConf.setDatabaseUrl("schemas_publish_deferred_" + NextId.getAndIncrement());
+		dbConf.setDatabaseUrl("schemas_publish_deferred_" + FastServerIds.takeoverPoolNext());
 		var db = new DatabaseMemory(null, dbConf);
 		app.getDatabases().put("", db);
 
