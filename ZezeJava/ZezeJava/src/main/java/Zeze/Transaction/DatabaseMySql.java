@@ -36,8 +36,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
-	// 注意：MySQL的CREATE PROCEDURE无OR REPLACE语义，构造器对已存在（"already exist"）
-	// 静默跳过——存量库不会自动升级到本过程体（新过程体仅对新库生效）。
+	// 过程体由启动时DROP+CREATE无条件重建（见OperatesMySql构造器），修复可下发存量库。
 	static final String PROC_SET_IN_USE_SQL = """
 			CREATE PROCEDURE _ZezeSetInUse_(
 			    IN  in_local_id INT,
@@ -369,6 +368,11 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		}
 
 		public OperatesMySql() {
+			// MySQL无CREATE OR REPLACE PROCEDURE：无条件DROP后CREATE，等价PG的每次覆盖，
+			// 过程体修复（重读校验、错误传播等）才能随启动下发到存量库；否则CREATE对
+			// "already exist"静默跳过，存量库永远跑旧过程体。DROP与CREATE间崩溃留下
+			// 过程缺失，下次启动重建自愈；启动全程持有tryLock无并发DDL。
+			dropOperatesProcedures();
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				var tableDataWithVersionSql = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_(" +
