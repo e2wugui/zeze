@@ -898,6 +898,11 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				if (p instanceof String s && s.length() > eMaxKeyStringLength)
 					throw new IllegalArgumentException("key string too long for mysql relational table '" + name
 							+ "': " + s.length() + " > " + eMaxKeyStringLength);
+			// 空value段（value bean零变量）拼出"REPLACE t SET k=v, "尾逗号语法错误，毒化整个
+			// flush批次且不含表名；生成的关系表value bean至少有列（appendXXX逐变量无条件追加，
+			// 全默认值不产生空段），本守卫防御未来出现零变量bean的配置，fail-fast并指向表名。
+			if (stValue.getSql().isEmpty())
+				throw new IllegalStateException("mysql relational table '" + name + "' replace with empty value statement");
 			var sql = "REPLACE " + name + " SET " + stKey.getSql() + ", " + stValue.getSql();
 			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sql)) {
 				setParams(ps, 1, stKey.getParams());

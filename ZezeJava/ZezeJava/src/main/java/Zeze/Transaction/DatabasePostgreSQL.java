@@ -986,6 +986,11 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				if (p instanceof String s && s.length() > eMaxKeyStringLength)
 					throw new IllegalArgumentException("key string too long for postgresql relational table '" + name
 							+ "': " + s.length() + " > " + eMaxKeyStringLength);
+			// 同MySQL版判例：空value段（value bean零变量）拼出空列清单+空SET子句的非法
+			// INSERT..ON CONFLICT，毒化flush批次；fail-fast并指向表名。
+			if (stValue.getSql().isEmpty())
+				throw new IllegalStateException("postgresql relational table '" + name
+						+ "' replace with empty value statement");
 			var keyColumns = new ArrayList<String>();
 			var sbKeyValues = new StringBuilder();
 			parseSqlStatement(stKey, keyColumns, sbKeyValues);
