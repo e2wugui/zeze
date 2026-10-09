@@ -211,6 +211,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	// 每事务执行一次；句柄本身线程安全（volatile bound 良性竞争 + LongAdder 聚合），
 	// 共享后 Bound 代际重绑也按 name 摊销。语义不变（契约本就是"同 name 聚合统计"）。
 	private final ConcurrentHashMap<String, ProcedureCounter> procedureCounterMap = new ConcurrentHashMap<>();
+	// 按名称的单调累计执行数（跨收集周期不轮换、不空闲回收）：速率差分
+	// （ProcedureStatistics.Watcher的(total-last)）必须用单调源——周期快照
+	// （getLast().procedureResults()）每轮换新且只含上一周期计数，差分无意义
+	// （稳态恒0永不触发，收集边界恰好落入检查间隔时又把整周期计数当30s速率高估）。
+	private final ConcurrentHashMap<String, LongAdder> procedureTotalMap = new ConcurrentHashMap<>(); // key: procedureName
 	private final LongConcurrentHashMap<TableInfo> tableInfoMap = new LongConcurrentHashMap<>(); // key: tableId
 	private CountInfo[] countInfos = new CountInfo[0];
 	// exclude 随时可配置；已存在的统计条目要等空闲回收才会消失，并发读写安全
@@ -361,6 +366,12 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		return procedureInfoMap.computeIfAbsent(name, ProcedureInfo::new);
 	}
 
+	/** 按名称的单调累计执行数（resetCounter会清零）；名称不存在返回0。 */
+	public long getProcedureTotalCount(@NotNull String name) {
+		var total = procedureTotalMap.get(name);
+		return total != null ? total.sum() : 0;
+	}
+
 	@Override
 	public @NotNull ProcedureCounter allocProcedureCounter(@NotNull String name) {
 		return procedureCounterMap.computeIfAbsent(name, PerfProcedureCounter::new);
@@ -401,6 +412,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		@Override
 		public void end(long resultCode, long timeNs) {
 			info().getOrAddResult(resultCode).increment();
+			procedureTotalMap.computeIfAbsent(name, __ -> new LongAdder()).increment();
 		}
 
 		@Override
@@ -486,6 +498,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			runInfoMap.clear();
 			protocolInfoMap.clear();
 			procedureInfoMap.clear();
+			procedureTotalMap.clear(); // 单调累计随代际清零重开（差分基准由使用方自建）
 			tableInfoMap.clear();
 			// info() 的慢路径同样持有此锁，旧条目与新 clearSerial 不会被组装成同一个 Bound。
 			//noinspection NonAtomicOperationOnVolatileField
