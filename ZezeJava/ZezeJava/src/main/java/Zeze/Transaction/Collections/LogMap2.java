@@ -60,6 +60,10 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@SuppressWarnings("unchecked")
 	public void mergeChangedToReplaced() {
+		// leader-only：解码态的changed为空、changedWithKey才是完整回放日志，merge会把
+		// 解码重建的bean塞进replaced——语义未定义（增量丢失/错挂）且无报错，显式拒绝。
+		if (decoded)
+			throw new IllegalStateException("mergeChangedToReplaced on decoded log (leader-only)");
 		if (!merged) {
 			merged = true;
 			buildChangedWithKey(); // encode 先行时 changedWithKey 已构建（built==true），直接复用
