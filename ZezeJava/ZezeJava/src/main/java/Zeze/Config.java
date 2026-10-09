@@ -288,6 +288,12 @@ public final class Config {
 	}
 
 	public void setCheckpointPeriod(int value) {
+		// 下界夹紧（对齐XML路径parse的下界校验语义）：0/负数使检查点线程await(非正时长)
+		// 立即返回、主循环无sleep忙转（CPU 100%）。程序化配置warn+夹紧到安全下界，不抛出。
+		if (value < 1000) {
+			logger.warn("CheckpointPeriod {} is too small, clamp to 1000 ms", value);
+			value = 1000;
+		}
 		checkpointPeriod = value;
 	}
 
