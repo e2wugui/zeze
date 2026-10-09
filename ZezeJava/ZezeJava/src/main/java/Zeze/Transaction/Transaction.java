@@ -420,9 +420,14 @@ public final class Transaction {
 													procedure.getActionName(), onzProcedure.getOnzTid(), e);
 											onzProcedure.markRolledBackAfterReady();
 										}
-										finalRollback(procedure);
-										return Procedure.Closed;
-									} catch (Throwable ex) { // logger.fatal & halt
+									finalRollback(procedure);
+									return Procedure.Closed;
+								} catch (AssertionError ae) {
+									// whileCommit等终局回调的断言失败：数据已成功落库（回调在提交点之后），
+									// 不进halt路径；向上抛出让测试框架看到失败——终局吞掉会造成单测假绿
+									// （perform静默返回Success）。
+									throw ae;
+								} catch (Throwable ex) { // logger.fatal & halt
 										logger.fatal("finalCommit exception:", ex);
 										// final Commit 不能抛出异常。否则就halt。
 
@@ -761,6 +766,9 @@ public final class Transaction {
 			}
 			cc.notifyListener();
 			triggerCommitActions(proc);
+		} catch (AssertionError ex) {
+			// 测试断言失败必须向上传播（与perform对业务断言的重抛语义一致），终局吞掉会造成假绿。
+			throw ex;
 		} catch (Throwable ex) { // logger.error
 			logger.error("finalCommit({}) exception:", proc, ex);
 		}
@@ -786,6 +794,9 @@ public final class Transaction {
 				}
 			}
 			triggerRollbackActions(procedure);
+		} catch (AssertionError ex) {
+			// 同finalCommit：测试断言失败必须向上传播，终局吞掉会造成假绿。
+			throw ex;
 		} catch (Throwable ex) { // logger.error
 			logger.error("finalRollback({}) exception:", procedure, ex);
 		}

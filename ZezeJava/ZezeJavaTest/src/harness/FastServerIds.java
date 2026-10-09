@@ -193,6 +193,7 @@ public final class FastServerIds {
 	public static final int TEST_RANK_CACHE_CROSS_TRANSACTION = seg("TestRankCacheCrossTransactionPollution", 16382, 1);
 	public static final int TEST_ONLINE_LATE_LINK_BROKEN_GHOST = seg("TestOnlineLateLinkBrokenGhost", 16383, 1);
 	public static final int TEST_TOO_MANY_TRY_LAST_EXCEPTION = seg("TestTooManyTryKeepsLastException", 16375, 1);
+	public static final int TEST_FINAL_CALLBACK_ASSERTION = seg("TestFinalCallbackAssertionError", 16374, 1);
 
 	private FastServerIds() {
 	}
