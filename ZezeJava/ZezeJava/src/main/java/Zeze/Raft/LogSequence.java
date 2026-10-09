@@ -1834,15 +1834,22 @@ public class LogSequence {
 
 		// 5. If leaderCommit > commitIndex,
 		// set commitIndex = min(leaderCommit, index of last new entry)
+		// 提交上限只能取本次AppendEntries证明匹配的尾（空entries时为prevLogIndex）：
+		// 本地lastIndex可能仍带着未被本批覆盖的旧分叉后缀，把它当已提交证明会应用
+		// 旧leader的数据，后续合法的冲突覆盖还会命中"truncate committed entries" fatal。
+		// 心跳可能携带更旧的prevLogIndex，commitIndex单调只增。
 		// leaderCommit未推进但commitIndex>lastApplied时也要尝试apply：上次apply可能因
 		// flush失败中断，静默应答会让follower以"健康"状态一直落后；每次AppendEntries
 		// （含心跳）重试直到追平（apply异常时不发应答）。
 		if (r.Argument.getLeaderCommit() > commitIndex || commitIndex > lastApplied) {
 			if (r.Argument.getLeaderCommit() > commitIndex) {
-				commitIndex = Math.min(r.Argument.getLeaderCommit(), lastRaftLogTermIndex().getIndex());
-				// NodeReady：commitIndex推进即已持有多数派提交的数据，追赶完成的节点由此就绪。
-				// 空闲集群leaderCommit恒定，增长见证不可达，否则该节点永不ready。
-				trySetNodeReady();
+				var newCommitIndex = Math.min(r.Argument.getLeaderCommit(), copyLogIndex);
+				if (newCommitIndex > commitIndex) {
+					commitIndex = newCommitIndex;
+					// NodeReady：commitIndex推进即已持有多数派提交的数据，追赶完成的节点由此就绪。
+					// 空闲集群leaderCommit恒定，增长见证不可达，否则该节点永不ready。
+					trySetNodeReady();
+				}
 			}
 			tryStartApplyTask(readLogForApply(commitIndex, "followerOnAppendEntries"));
 		}
