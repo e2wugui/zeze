@@ -212,8 +212,13 @@ public final class Transaction {
 
 	public void commit() {
 		int saveSize = savepoints.size();
+		if (saveSize < 1)
+			// 对齐rollback的显式报错：手动create+begin后commit/rollback配对失误时
+			// 不应一侧报错、一侧静默放过——静默会拖到perform的ErrorSavepoint检查
+			// 才暴露，难定位。
+			throw new IllegalStateException("commit: savepoints is empty. begin/commit not paired.");
 		if (saveSize > 1)
-			savepoints.get(saveSize - 2).mergeCommitFrom(savepoints.remove(saveSize - 1)); // 嵌套事务，把日志合并到上一层。
+			savepoints.get(saveSize - 2).mergeCommitFrom(savepoints.remove(savepoints.size() - 1)); // 嵌套事务，把日志合并到上一层。
 		// 最外层存储过程提交在 Perform 中处理
 	}
 
