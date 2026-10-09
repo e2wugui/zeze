@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
@@ -66,7 +67,10 @@ public abstract class Database extends ReentrantLock {
 	}
 
 	private final ConcurrentHashMap<String, Zeze.Transaction.Table> tables = new ConcurrentHashMap<>();
-	private final ArrayList<Storage<?, ?>> storages = new ArrayList<>();
+	// CopyOnWriteArrayList：注册（启动open/动态表openDynamicTable）与遍历之外，
+	// 热更路径replaceStorage可在运行期执行。此前裸ArrayList依赖"全部注册先于任何
+	// 遍历"的隐式时序约定；COW让遍历免锁快照消除该约定（遍历多写少，复制开销可忽略）。
+	private final CopyOnWriteArrayList<Storage<?, ?>> storages = new CopyOnWriteArrayList<>();
 	private final @NotNull DatabaseConf conf;
 	private final @NotNull String databaseUrl;
 	private Operates directOperates;
