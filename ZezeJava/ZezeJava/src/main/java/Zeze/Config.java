@@ -567,6 +567,20 @@ public final class Config {
 		}
 	}
 
+	/** 运维手动清理SqlServer存储过程的入口，形态对齐dropMysqlOperatesProcedures。 */
+	public void dropSqlServerOperatesProcedures() {
+		for (var conf : getDatabaseConfMap().values()) {
+			if (conf.databaseType == DbType.SqlServer) {
+				var db = new DatabaseSqlServer(null, conf);
+				try {
+					db.dropOperatesProcedures();
+				} finally {
+					db.close();
+				}
+			}
+		}
+	}
+
 	public void clearOpenDatabaseFlag() {
 		var databaseName = getDefaultTableConf().getDatabaseName();
 		var defDbConf = getDatabaseConfMap().get(databaseName);

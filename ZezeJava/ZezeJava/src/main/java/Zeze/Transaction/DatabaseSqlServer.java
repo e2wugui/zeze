@@ -67,6 +67,30 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 	}
 
+	/**
+	 * 运维手动清理存储过程的入口（对齐 DatabaseMySql/DatabasePostgreSQL 同名方法）。
+	 * SqlServer 过程由启动时 Create or Alter 自动覆盖（无"存量不升级"问题），
+	 * 本方法仅供运维显式清场。SqlServer 的过程对象即 PROCEDURE，语法与MySQL相同。
+	 */
+	public void dropOperatesProcedures() {
+		String[] drops = {
+				"DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_",
+				"DROP PROCEDURE IF EXISTS _ZezeSetInUse_",
+				"DROP PROCEDURE IF EXISTS _ZezeClearInUse_",
+		};
+		try (var conn = dataSource.getConnection()) {
+			conn.setAutoCommit(false);
+			for (var sql : drops) {
+				try (var ps = conn.prepareStatement(sql)) {
+					ps.executeUpdate();
+				}
+			}
+			conn.commit();
+		} catch (SQLException e) {
+			throw Task.forceThrow(e);
+		}
+	}
+
 	private static final ZezeCounter.LabeledObserverCreator sqlserverObserverCreator
 			= ZezeCounter.instance.allocRunTimeObserverCreator("sqlserver_operation", "operation");
 	private static final ZezeCounter.LongObserver sqlserverSelectCounter
