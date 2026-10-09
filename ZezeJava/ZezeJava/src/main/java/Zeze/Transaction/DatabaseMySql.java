@@ -175,8 +175,10 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		// MySQL 出厂默认排序规则 utf8mb4_0900_ai_ci 大小写不敏感，string key 列做
 		// PRIMARY KEY 时大小写变体 key 被合并：REPLACE 冲突先删后插静默丢行、find/remove
 		// 命中错误行。显式二进制排序规则使等值匹配与 Zeze 缓存的字节比较语义一致。
+		// 必须同时显式 CHARACTER SET：COLLATE 不带字符集时继承库默认字符集，
+		// 默认字符集非 utf8mb4 的库上 CREATE TABLE 直接报错。
 		// 存量表的列排序规则不会被新配置改变，需按 docs（database/relational.md）手工 ALTER。
-		return "VARCHAR(256) COLLATE utf8mb4_bin";
+		return "VARCHAR(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin";
 	}
 
 	@Override
