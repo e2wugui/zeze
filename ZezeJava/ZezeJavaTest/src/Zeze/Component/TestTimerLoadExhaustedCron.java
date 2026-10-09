@@ -95,9 +95,11 @@ public class TestTimerLoadExhaustedCron {
 		var timerId = timerIdHolder[0];
 
 		// 表手术：表达式改成已耗尽的过去年份 + backdate nextExpectedTime（模拟停机迟到）
+		var nodeIdHolder = new long[1];
 		rc = app.newProcedure(() -> {
 			var index = tIndexs().get(timerId);
 			assertTrue(index != null, "index行必须存在");
+			nodeIdHolder[0] = index.getNodeId();
 			var node = tNodes().get(index.getNodeId());
 			assertTrue(node != null, "node行必须存在");
 			var cronTimer = (BCronTimer)node.getTimers().get(timerId).getTimerObj().getBean();
@@ -111,19 +113,19 @@ public class TestTimerLoadExhaustedCron {
 		timer.stop();
 		timer.start();
 
-		// 核心断言（红绿双向）：耗尽行必须被摘除——修复前IAE冲出per-timer catch，装载事务
-		// 失败，行残留为每次重启报错+1s延迟的永久死行
+		// 核心断言：耗尽行经统一取消路径清除——只摘node内行会遗留孤儿index（offline
+		// 簿记同理），offline同名重调发现index却找不到custom恒false，名字永久占用。
 		var removedHolder = new boolean[1];
 		rc = app.newProcedure(() -> {
-			var index = tIndexs().get(timerId);
-			assertTrue(index != null, "index行仍在（摘行只清node内的timer行）");
-			var node = tNodes().get(index.getNodeId());
-			assertTrue(node != null, "node行仍在");
-			removedHolder[0] = !node.getTimers().containsKey(timerId);
+			assertTrue(tIndexs().get(timerId) == null,
+					"耗尽cron必须清tIndexs（孤儿index永久占用名字，offline同名重调恒false）");
+			var node = tNodes().get(nodeIdHolder[0]);
+			if (node != null) // 空节点走delayRemove，立即读通常仍在；容忍已被回收
+				removedHolder[0] = !node.getTimers().containsKey(timerId);
 			return Procedure.Success;
 		}, "TestTimerLoadExhaustedCron.verify").call();
 		assertEquals(Procedure.Success, rc);
-		assertTrue(removedHolder[0], "耗尽cron行必须在装载路径被摘除（修复前IAE冲出catch，死行永久残留）");
+		assertTrue(removedHolder[0], "耗尽cron的node内行必须摘除");
 	}
 
 	@SuppressWarnings("unchecked")
