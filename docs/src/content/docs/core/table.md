@@ -159,7 +159,7 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 
 每条记录（**Record** / **Record1**）内部维护一个 `dirty` 标志。数据修改并提交后，记录被标记为脏。刷写流程由 **Checkpoint** 驱动，支持两种模式：
 
-- **CheckpointMode.Immediately** — 事务提交后立即将变更写入数据库，不使用脏标记。
+- **CheckpointMode.Immediately** — 事务提交后立即安排落库（复用脏标记与检查点机制，提交点同步走一次 flush），非同步直写、也不是绕过脏标记的独立路径。
 - **CheckpointMode.Table** — 按表批量刷写。Checkpoint 时遍历脏记录，依次执行 `encode0()`（序列化快照）和 `flush()`（写入数据库），最后 `cleanup()` 清理快照状态。
 
 ### Record 生命周期
