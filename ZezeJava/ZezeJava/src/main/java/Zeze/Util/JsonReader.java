@@ -1547,6 +1547,10 @@ public final class JsonReader {
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;
+								// 尾数为零时溢出指数仍是零（JDK parseDouble("0e999")==0）：
+								// 溢出分支只看指数不看尾数，把零词静默变成饱和值/Infinity。
+								if (i == 0 && d == 0.0)
+									return 0;
 								return minus ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 							}
 							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
@@ -1693,6 +1697,10 @@ public final class JsonReader {
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;
+								// 尾数为零时溢出指数仍是零（JDK parseDouble("0e999")==0）：
+								// 溢出分支只看指数不看尾数，把零词静默变成饱和值/Infinity。
+								if (i == 0 && d == 0.0)
+									return 0L;
 								return minus ? Long.MIN_VALUE : Long.MAX_VALUE;
 							}
 							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
@@ -1838,6 +1846,10 @@ public final class JsonReader {
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;
+								// 尾数为零时溢出指数仍是零（JDK parseDouble("0e999")==0）：
+								// 溢出分支只看指数不看尾数，把零词静默变成饱和值/Infinity。
+								if (i == 0 && d == 0.0)
+									return minus ? -0.0 : 0.0;
 								return minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
 							}
 							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
@@ -1990,6 +2002,10 @@ public final class JsonReader {
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;
+								// 尾数为零时溢出指数仍是零（JDK parseDouble("0e999")==0）：
+								// 溢出分支只看指数不看尾数，把零词静默变成饱和值/Infinity。
+								if (i == 0 && d == 0.0)
+									return minus ? -0.0 : 0.0;
 								return minus ? NEGATIVE_INFINITY : POSITIVE_INFINITY;
 							}
 							break; // p 已指向第一个非数字字符，保持与外层 while 正常退出一致的 pos=p 语义
