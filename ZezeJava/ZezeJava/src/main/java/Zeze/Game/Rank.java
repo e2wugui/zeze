@@ -468,15 +468,22 @@ public class Rank extends AbstractRank {
 			// 锁的职责：freshness双检查 + 重建single-flight（并发miss不重复执行getRankDirect的跨段查询归并）。
 			if (now - rank.getBuildTime() < getRankCacheTimeout(keyHint.getRankType()))
 				return rank;
-			rank.setTableValue(getRankDirect(keyHint, countNeed));
-			// 重建快照含本事务读己之写，回滚则数据从未为真——value立即写（保留读己之写），
-			// 新鲜度盖章延迟到提交后：未提交/回滚条目永不获freshness（后续访问判过期重建自动覆盖污染），
-			// 提交后窗口从提交时刻起算。先value后time的volatile写序天然保持（事务内写value→提交后写time）。
-			Transaction.whileCommit(() -> rank.setBuildTime(System.currentTimeMillis()));
+			var tableValue = getRankDirect(keyHint, countNeed);
+			// 本轮结果只经局部快照返回给调用者（保留同事务读己之写）；缓存的value+time成对
+			// 延迟到提交后发布：回滚条目永不入缓存，另一事务回滚的value也不会被本事务的
+			// 提交盖章（value若在事务内立即写共享对象，A构建、B覆盖后回滚、A提交即成
+			// "回滚值+新戳"）。发布保持先value后time的volatile写序，读者见新time必见新value。
+			Transaction.whileCommit(() -> {
+				rank.setTableValue(tableValue);
+				rank.setBuildTime(System.currentTimeMillis());
+			});
+			var local = new RankTotal(keyHint);
+			local.setTableValue(tableValue);
+			local.setBuildTime(now);
+			return local;
 		} finally {
 			rank.unlock();
 		}
-		return rank;
 	}
 
 	public long getRankPosition(BConcurrentKey keyHint, long roleId) {
