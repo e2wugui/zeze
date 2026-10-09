@@ -272,7 +272,10 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 	@Override
 	public boolean equals(@Nullable Object o) {
-		return o instanceof PList && getList().equals(((PList<?>)o).getList());
+		// 按List接口内容比较（对称性）：收窄到PList家族时，与ArrayList等同内容对象
+		// 比较会出现 p.equals(j)==false 而 j.equals(p)==true，HashSet去重/HashMap键
+		// 命中随比较方向（插入顺序）漂移。getList()（pcollections）的equals按List契约。
+		return o instanceof java.util.List && getList().equals(o);
 	}
 
 	@Override

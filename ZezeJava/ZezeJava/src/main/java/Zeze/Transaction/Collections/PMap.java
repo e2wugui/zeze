@@ -188,7 +188,8 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 
 	@Override
 	public boolean equals(@Nullable Object o) {
-		return o instanceof PMap && getMap().equals(((PMap<?, ?>)o).getMap());
+		// 按Map接口内容比较（对称性，理由同PList）：getMap()的equals按Map契约。
+		return o instanceof java.util.Map && getMap().equals(o);
 	}
 
 	@Override

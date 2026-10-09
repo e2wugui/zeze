@@ -112,7 +112,8 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 
 	@Override
 	public boolean equals(@Nullable Object o) {
-		return o instanceof PSet && getSet().equals(((PSet<?>)o).getSet());
+		// 按Set接口内容比较（对称性，理由同PList）：getSet()的equals按Set契约。
+		return o instanceof java.util.Set && getSet().equals(o);
 	}
 
 	@Override

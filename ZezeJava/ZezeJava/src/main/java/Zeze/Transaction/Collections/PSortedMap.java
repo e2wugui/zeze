@@ -425,7 +425,8 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 
 	@Override
 	public boolean equals(@Nullable Object o) {
-		return o instanceof PSortedMap && getMap().equals(((PSortedMap<?, ?>)o).getMap());
+		// 按Map接口内容比较（对称性，理由同PList）：getMap()的equals按Map契约（序无关）。
+		return o instanceof java.util.Map && getMap().equals(o);
 	}
 
 	@Override
