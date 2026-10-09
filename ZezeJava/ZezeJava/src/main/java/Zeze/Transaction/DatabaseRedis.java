@@ -384,13 +384,23 @@ public class DatabaseRedis extends Database {
 			}
 		}
 
+		// 全家族唯独Redis的读-判-写非服务端原子（其余走存储过程/事务）：热更
+		// （__upgrade_schemas__）不进启动锁，并发save会双双通过版本校验互相覆盖。
+		// Lua单RT原子化：版本是DataWithVersion编码的末8字节，按字节串比较，
+		// 避开Redis Lua 5.1的64位数字精度问题。
+		private static final String SAVE_CAS_LUA = """
+				local cur = redis.call('HGET', KEYS[1], ARGV[1])
+				if cur and string.sub(cur, -8) ~= ARGV[3] then
+					return 0
+				end
+				redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+				return 1
+				""";
+
 		@Override
 		public @NotNull KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
 																  long version) {
 			try (var jedis = pool.getResource()) {
-				var exist = getDataWithVersion(jedis, key.CopyIf());
-				if (exist != null && exist.version != version)
-					return KV.create(version, false);
 				var dv = new DataWithVersion();
 				dv.data = data;
 				// 版本必须递增（对齐 RocksDb/Mongo/Dynamo 实现）：schemasCompatible 的重读重试环
@@ -399,8 +409,12 @@ public class DatabaseRedis extends Database {
 				dv.version = version + 1;
 				var dvBb = ByteBuffer.Allocate();
 				dv.encode(dvBb);
-				jedis.hset(keyDataVersion, key.CopyIf(), dvBb.CopyIf());
-				return KV.create(dv.version, true);
+				var expectedVersion = ByteBuffer.Allocate(Long.BYTES);
+				expectedVersion.WriteLong(version);
+				var written = (Long)jedis.eval(SAVE_CAS_LUA.getBytes(StandardCharsets.UTF_8),
+						java.util.List.of(keyDataVersion),
+						java.util.List.of(key.CopyIf(), dvBb.CopyIf(), expectedVersion.CopyIf()));
+				return written == 1 ? KV.create(dv.version, true) : KV.create(version, false);
 			}
 		}
 
