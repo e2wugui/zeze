@@ -2,6 +2,7 @@ package Zeze.Transaction.Collections;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -122,18 +123,19 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		if (!decoded) {
+		if (!decoded && !changed.isEmpty()) {
 			var curList = getValue();
+			// 下标按身份预建一遍（O(changed+size)）：逐changed线性扫在
+			// 大列表+多处原位修改时encode期CPU放大（O(changed×size)）。
+			// 重复元素取首个出现位置（对齐原线性扫的break语义）。
+			var indexByIdentity = new IdentityHashMap<V, Integer>(curList.size());
+			for (var i = 0; i < curList.size(); i++)
+				indexByIdentity.putIfAbsent(curList.get(i), i);
 			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
 				var e = it.next();
 				var bean = e.getKey().getThis();
-				int idxExist = 0;
-				for (V v : curList) {
-					if (v == bean)
-						break;
-					idxExist++;
-				}
-				if (idxExist >= curList.size() || addSet != null && addSet.contains(bean))
+				var idxExist = indexByIdentity.get(bean);
+				if (idxExist == null || addSet != null && addSet.contains(bean))
 					it.remove();
 				else
 					e.getValue().value = idxExist;
