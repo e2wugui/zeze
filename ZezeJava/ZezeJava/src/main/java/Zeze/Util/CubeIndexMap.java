@@ -194,11 +194,36 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 		tryPerform(index, (index2, cube) -> removeObject(index2, cube, obj));
 	}
 
+	// 每维闭区间端点 [center-range, center+range]：饱和到long边界。裸算
+	// center±range 溢出回绕——终点小于起点（查询静默空结果）或终点为MAX时
+	// ++i 回绕到MIN使 i<=end 恒真（极值中心+零range即死循环）。
+	private static long saturatedAdd(long v, int range) {
+		try {
+			return Math.addExact(v, range);
+		} catch (ArithmeticException e) {
+			return v > 0 ? Long.MAX_VALUE : Long.MIN_VALUE;
+		}
+	}
+
+	private static long saturatedSub(long v, int range) {
+		try {
+			return Math.subtractExact(v, range);
+		} catch (ArithmeticException e) {
+			return v < 0 ? Long.MIN_VALUE : Long.MAX_VALUE;
+		}
+	}
+
 	public final ArrayList<TCube> getCubes(CubeIndex center, int rangeX, int rangeY, int rangeZ) {
+		if (rangeX < 0 || rangeY < 0 || rangeZ < 0)
+			throw new IllegalArgumentException("range < 0: " + rangeX + "," + rangeY + "," + rangeZ);
 		var result = new ArrayList<TCube>();
-		for (long i = center.getX() - rangeX; i <= center.getX() + rangeX; ++i) {
-			for (long j = center.getY() - rangeY; j <= center.getY() + rangeY; ++j) {
-				for (long k = center.getZ() - rangeZ; k <= center.getZ() + rangeZ; ++k) {
+		// 到终点即break的闭区间迭代：终点为MAX时++会回绕，不能依赖 i<=end 终止。
+		long xEnd = saturatedAdd(center.getX(), rangeX);
+		long yEnd = saturatedAdd(center.getY(), rangeY);
+		long zEnd = saturatedAdd(center.getZ(), rangeZ);
+		for (long i = saturatedSub(center.getX(), rangeX); ; ++i) {
+			for (long j = saturatedSub(center.getY(), rangeY); ; ++j) {
+				for (long k = saturatedSub(center.getZ(), rangeZ); ; ++k) {
 					var index = new CubeIndex();
 					index.setX(i);
 					index.setY(j);
@@ -206,8 +231,14 @@ public class CubeIndexMap<TCube extends Cube<TObject>, TObject> {
 					var cube = cubes.get(index);
 					if (cube != null)
 						result.add(cube);
+					if (k == zEnd)
+						break;
 				}
+				if (j == yEnd)
+					break;
 			}
+			if (i == xEnd)
+				break;
 		}
 		return result;
 	}
