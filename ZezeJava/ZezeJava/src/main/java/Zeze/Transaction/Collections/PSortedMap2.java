@@ -248,6 +248,12 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		return copy;
 	}
 
+	/** 深拷贝元素赋值（区别于1系assign的引用共享：2系值可变，别名会让两个容器互相可见修改）。 */
+	public void assign(@NotNull PSortedMap2<K, V> pmap) {
+		clear();
+		putAll(pmap.copy());
+	}
+
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		var tmp = getMap();

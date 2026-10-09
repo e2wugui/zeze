@@ -316,6 +316,12 @@ public class PList2<V extends Bean> extends PList<V> {
 		return copy;
 	}
 
+	/** 深拷贝元素赋值（区别于1系assign的引用共享：2系值可变，别名会让两个容器互相可见修改）。 */
+	public void assign(@NotNull PList2<V> plist) {
+		clear();
+		addAll(plist.copy());
+	}
+
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		var tmp = getList();
