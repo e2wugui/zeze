@@ -1,6 +1,8 @@
 package Zeze.Net;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Net.TcpSocket;
@@ -32,7 +34,12 @@ public class TestServiceAddSocketClosedRejected {
 	public void testClosedSocketRejected() throws Exception {
 		Task.tryInitThreadPool();
 		var service = new BridgeService("test.addsocket.closed");
-		try {
+		// 开放条目对照必须连真监听：连拒绝端口(如127.0.0.1:1)时OS毫秒级回Connection refused，
+		// selector的拒连close与测试体赛跑——快则addSocket按设计拒掉已死socket(:46假红)，
+		// 慢则markClosed被selector先赢、测试的close成no-op，断言插在selector的
+		// markClosed→OnSocketClose.remove窗口里(:49假红)。2026-10-09批r8/r20两形态。
+		// 内核backlog完成TCP握手，client端保持ESTABLISHED直到测试主动close，竞态根除。
+		try (var listener = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
 			// closed条目：登记被拒，按id与计数均不可见
 			var closed = (TcpSocket)service.newClientSocket("127.0.0.1", 1, null, null);
 			closed.close(new IOException("simulate straddled close"));
@@ -42,7 +49,7 @@ public class TestServiceAddSocketClosedRejected {
 			Assertions.assertEquals(0, service.getSocketCount());
 
 			// 开放条目对照：入表成功，移除仍由close链的remove负责（锁不越权）
-			var open = (TcpSocket)service.newClientSocket("127.0.0.1", 1, null, null);
+			var open = (TcpSocket)service.newClientSocket("127.0.0.1", listener.getLocalPort(), null, null);
 			Assertions.assertTrue(service.addSocketForTest(open));
 			Assertions.assertEquals(1, service.getSocketCount());
 			open.close(new IOException("normal close"));
