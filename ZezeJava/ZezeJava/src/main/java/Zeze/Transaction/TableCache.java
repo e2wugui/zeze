@@ -60,11 +60,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		dataMap = new ConcurrentHashMap<>(getCacheInitialCapacity());
 		newLruHot();
 		var newLruHotPeriod = table.getTableConf().getCacheNewLruHotPeriod();
-		timerNewHot = TaskSpec.ofAction(() -> {
-			// 访问很少的时候不创建新的热点。
-			if (lruHot.size() > table.getTableConf().getCacheNewAccessHotThreshold())
-				newLruHot();
-		}).schedulePeriodNow(newLruHotPeriod, newLruHotPeriod);
+		timerNewHot = TaskSpec.ofAction(this::onTimerNewHot).schedulePeriodNow(newLruHotPeriod, newLruHotPeriod);
 		var cleanPeriod = this.table.getTableConf().getCacheCleanPeriod();
 		try {
 			timerClean = TaskSpec.ofAction(this::cleanNow).schedulePeriodNow(cleanPeriod, cleanPeriod);
@@ -105,6 +101,23 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		var newLru = new ConcurrentHashMap<K, Record1<K, V>>(getLruInitialCapacity());
 		lruHot = newLru;
 		lruQueue.add(newLru);
+	}
+
+	/** timerNewHot 周期体：热点块轮换 + lruQueue 收缩。 */
+	void onTimerNewHot() {
+		// 访问很少的时候不创建新的热点。
+		if (lruHot.size() > table.getTableConf().getCacheNewAccessHotThreshold())
+			newLruHot();
+		// 队列节点此前只在cleanNow尾部收缩：两次cleanNow之间节点持续堆积（低流量表/
+		// 长清理周期配置下瞬时内存高于必要值）。这里同样触发收缩；cleanNow正在执行时
+		// 跳过本轮（tryLock不阻塞定时线程，下一拍重试，最终总有一个入口完成收缩）。
+		if (cleanNowLock.tryLock()) {
+			try {
+				tryPollLruQueue();
+			} finally {
+				cleanNowLock.unlock();
+			}
+		}
 	}
 
 	public final @NotNull Record1<K, V> getOrAdd(@NotNull K key, @NotNull Factory<Record1<K, V>> valueFactory) {

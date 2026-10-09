@@ -415,6 +415,40 @@ public class TestTableCacheLru {
 		}
 	}
 
+	/**
+	 * lruQueue 节点收缩此前只在 cleanNow 尾部执行：两次 cleanNow 之间节点持续堆积，
+	 * 低流量表/长清理周期配置下队列增长到超限也只能等下一次 cleanNow 收敛。
+	 * timerNewHot 周期体（onTimerNewHot）同样触发收缩，队列有界不再依赖 cleanNow 调度。
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	public void testNewHotTimerShrinksQueue() throws Exception {
+		var app = newApp();
+		var table = new Table3();
+		app.addTable("", table);
+		app.start();
+		var cache = table.getCache();
+		try {
+			var queue = (ConcurrentLinkedQueue<ConcurrentHashMap<Long, Record1<Long, BValue>>>)
+					(ConcurrentLinkedQueue<?>)get(cache, "lruQueue");
+			queue.clear();
+			for (var i = 0; i < 8641; i++) // MAX_NODE_COUNT+1，超过收缩触发线
+				queue.add(new ConcurrentHashMap<Long, Record1<Long, BValue>>());
+
+			invoke(cache, "onTimerNewHot");
+
+			Assertions.assertTrue(queue.size() <= 8000, // SHRINK_NODE_COUNT
+					"timerNewHot周期体应把队列收缩回目标界内: " + queue.size());
+		} finally {
+			// 恢复队列结构（清掉占位块，lruHot重新入队），避免影响stop流程
+			var queue = (ConcurrentLinkedQueue<ConcurrentHashMap<Long, Record1<Long, BValue>>>)
+					(ConcurrentLinkedQueue<?>)get(cache, "lruQueue");
+			queue.clear();
+			invoke(cache, "newLruHot");
+			app.stop();
+		}
+	}
+
 	/** rigged 热点块：首次 put 前执行 rotate，在登记调用点注入并发换块。 */
 	@SuppressWarnings("serial")
 	private static final class RotationOnPutNode extends ConcurrentHashMap<Object, Object> {

@@ -133,7 +133,7 @@ public final class FastServerIds {
 	public static final int TEST_QUEUE_COMPATIBLE = seg("TestQueueCompatible", 7550, 3);
 	public static final int TEST_INVALID_DIRTY_LOAD = seg("TestInvalidDirtyLoad", 7560, 2);
 	public static final int TEST_APPLY_HELPER_CURSOR_HOLE = seg("TestApplyHelperCursorHole", 7570, 4);
-	public static final int TEST_TABLE_CACHE_LRU = seg("TestTableCacheLru", 7580, 7);
+	public static final int TEST_TABLE_CACHE_LRU = seg("TestTableCacheLru", 7580, 8);
 	public static final int TEST_CROSS_FAMILY_CANCEL = seg("TestCrossFamilyCancel", 7590, 3);
 	public static final int TEST_MEMORY_TABLE_SIZE = seg("TestMemoryTableSize", 7600, 1);
 	public static final int TEST_CHECKPOINT_RUN_THREAD_SENTINEL = seg("TestCheckpointRunThreadSentinel", 7630, 1);
