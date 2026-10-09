@@ -49,9 +49,15 @@ public class TestOnz {
 
 	@AfterEach
 	public void after() throws Exception {
-		// before() 被 Assumption 跳过时 onzServer 尚未创建
-		if (onzServer != null)
+		// before() 被 Assumption 跳过时 onzServer 尚未创建。
+		// 参与方 finalCommit-flush 排空后再停（竞态机理与家族同款，详见
+		// GcOnzE2eTestSupport.awaitOnzFlushSettled 注释——本类不用stopCoordinator样板，
+		// 单独接入同款排空）：2026-10-09批r1的IT halt(543543)即本after立即stop掐断
+		// 在途FlushReady（应答.769 vs flush .783，满载派发排队20ms即命中）。
+		if (onzServer != null) {
+			GcOnzE2eTestSupport.awaitOnzFlushSettled(onzServer);
 			onzServer.stop();
+		}
 		zeze2.Stop();
 	}
 

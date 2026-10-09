@@ -50,9 +50,41 @@ final class GcOnzE2eTestSupport {
 
 	/** after()样板：before()被Assumption跳过时onzServer尚未创建；stop幂等。 */
 	static void stopCoordinator(OnzServer onzServer, App zeze2) throws Exception {
-		if (onzServer != null)
+		if (onzServer != null) {
+			awaitOnzFlushSettled(onzServer);
 			onzServer.stop();
+		}
 		zeze2.Stop();
+	}
+
+	/**
+	 * 参与方 finalCommit-flush 排空后再拆协调者。perform 的业务应答先于参与方事务的
+	 * finalCommit 发出（2026-10-09批r1实证：应答.769、两参与方flush .783——ZezeTaskPool
+	 * 派发排队~20ms），after() 立即 stop 掐断在途 FlushReady：resolveFlushSocket null/
+	 * 非0应答→finalCommit异常→halt(543543) 整IT相陪葬。产品契约"出错即halt比重试稳健"
+	 * （2026-10-09用户裁定），排空责任在测试侧。观察点=OnzAgent 连接的收包计数静默
+	 * 300ms：FlushReady 请求是业务应答之后的最后一批入包（协调者侧事务已结束，走
+	 * OnzAgent.ProcessFlushReadyRequest 的幂等放行应答0）。计数含closed累计（单调），
+	 * 误静默窗口=派发队列静默超过300ms的极端满载，远窄于原先的必然竞态窗口。
+	 * 有界5s，超时不再等——真滞留由产品halt如实暴露，不被掩盖。
+	 */
+	static void awaitOnzFlushSettled(OnzServer onzServer) throws Exception {
+		var agentField = OnzServer.class.getDeclaredField("onzAgent");
+		agentField.setAccessible(true);
+		var service = ((OnzAgent)agentField.get(onzServer)).getService();
+		long lastRecv = -1;
+		long quietSince = System.currentTimeMillis();
+		var deadline = quietSince + 5_000;
+		while (System.currentTimeMillis() < deadline) {
+			service.updateRecvSendSize();
+			var recv = service.getRecvCount();
+			if (recv != lastRecv) {
+				lastRecv = recv;
+				quietSince = System.currentTimeMillis();
+			} else if (System.currentTimeMillis() - quietSince >= 300)
+				return;
+			Thread.sleep(50);
+		}
 	}
 
 	// 同 TestOnz.waitOnzReady：等订阅发现两侧集群并建连（getZezeInstance成功即perform就绪）。
