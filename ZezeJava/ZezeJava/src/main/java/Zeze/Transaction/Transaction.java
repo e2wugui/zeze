@@ -292,13 +292,17 @@ public final class Transaction {
 	}
 
 	public static void whileCommit(@NotNull Runnable action) {
-		//noinspection ConstantConditions
-		getCurrent().runWhileCommit(action);
+		var current = getCurrent();
+		if (current == null) // 事务外裸NPE难定位：显式ISE
+			throw new IllegalStateException("no current transaction for whileCommit");
+		current.runWhileCommit(action);
 	}
 
 	public static void whileRollback(@NotNull Runnable action) {
-		//noinspection ConstantConditions
-		getCurrent().runWhileRollback(action);
+		var current = getCurrent();
+		if (current == null)
+			throw new IllegalStateException("no current transaction for whileRollback");
+		current.runWhileRollback(action);
 	}
 
 	public void runWhileCommit(@NotNull Runnable action) {

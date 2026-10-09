@@ -167,16 +167,19 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	}
 
 	public void dropOperatesProcedures() {
+		// PG端为FUNCTION，DROP PROCEDURE删FUNCTION必错（原先全仓无调用故未暴露）；
+		// 按参数签名DROP FUNCTION。
+		String[] drops = {
+				"DROP FUNCTION IF EXISTS _ZezeSaveDataWithSameVersion_(BYTEA, BYTEA, BIGINT, INTEGER)",
+				"DROP FUNCTION IF EXISTS _ZezeSetInUse_(INTEGER, BYTEA, INTEGER)",
+				"DROP FUNCTION IF EXISTS _ZezeClearInUse_(INTEGER, BYTEA, INTEGER)",
+		};
 		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(false);
-			try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_")) {
-				ps.executeUpdate();
-			}
-			try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSetInUse_")) {
-				ps.executeUpdate();
-			}
-			try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeClearInUse_")) {
-				ps.executeUpdate();
+			for (var sql : drops) {
+				try (var ps = conn.prepareStatement(sql)) {
+					ps.executeUpdate();
+				}
 			}
 			conn.commit();
 		} catch (SQLException e) {

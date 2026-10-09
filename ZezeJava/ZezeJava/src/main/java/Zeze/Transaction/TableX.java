@@ -1258,7 +1258,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				//noinspection BusyWait
 				Thread.sleep(Random.getInstance().nextInt(10) + 5);
 			} catch (InterruptedException e) {
-				logger.error("", e);
+				// 恢复中断标记并退出：吞中断继续自旋会丢失关停信号，调用方可感知
+				Thread.currentThread().interrupt();
+				throw new RuntimeException("selectCopy interrupted", e);
 			}
 		}
 	}

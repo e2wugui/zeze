@@ -286,12 +286,17 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 		@Override
 		public long getSize() {
-			return map.size();
+			lock.readLock().lock();
+			try {
+				return map.size();
+			} finally {
+				lock.readLock().unlock();
+			}
 		}
 
 		@Override
 		public long getSizeApproximation() {
-			return map.size();
+			return getSize();
 		}
 
 		@Override
