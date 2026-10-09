@@ -57,6 +57,33 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				|| sqlMessageContains(e, "tuple concurrently updated");
 	}
 
+	// 全表walk游标抓取：pgjdbc在autoCommit下忽略fetchSize一次拉全量，大表walk有OOM风险。
+	// 事务内setFetchSize启用游标分批；结束恢复autoCommit（Druid回收也会reset，双保险）。
+	// 四个walk族入口（typed/raw × walk/walkKey，分属两个内部表类）共用。
+	@FunctionalInterface
+	interface WalkCursorHandler {
+		long handle(ResultSet rs) throws Exception;
+	}
+
+	private long walkCursor(@NotNull String sql, @NotNull WalkCursorHandler handler) throws Exception {
+		try (var conn = dataSource.getConnection()) {
+			conn.setAutoCommit(false);
+			try (var ps = conn.prepareStatement(sql)) {
+				ps.setFetchSize(1000);
+				long count;
+				try (var rs = ps.executeQuery()) {
+					count = handler.handle(rs);
+				}
+				conn.commit();
+				return count;
+			} finally {
+				conn.setAutoCommit(true);
+			}
+		} catch (SQLException e) {
+			throw Task.forceThrow(e);
+		}
+	}
+
 	private static final ZezeCounter.LabeledObserverCreator postgreObserverCreator
 			= ZezeCounter.instance.allocRunTimeObserverCreator("postgre_operation", "operation");
 
@@ -1009,28 +1036,15 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				return callback.endWalk(0);
 
 			var s = "SELECT * FROM " + name + orderBy;
-			var count = 0L;
-			// 全表walk游标抓取：pgjdbc在autoCommit下忽略fetchSize一次拉全量，
-			// 大表walk有OOM风险。事务内setFetchSize(N)启用游标分批；结束恢复autoCommit
-			//（Druid回收也会reset，双保险）。
-			try (var conn = dataSource.getConnection()) {
-				conn.setAutoCommit(false);
-				try (var ps = conn.prepareStatement(s)) {
-					ps.setFetchSize(1000);
-					try (var rs = ps.executeQuery()) {
-						while (rs.next()) {
-							count++;
-							if (!invokeCallback(table, rs, callback, null))
-								break;
-						}
-					}
-					conn.commit();
-				} finally {
-					conn.setAutoCommit(true);
+			var count = walkCursor(s, rs -> {
+				var c = 0L;
+				while (rs.next()) {
+					c++;
+					if (!invokeCallback(table, rs, callback, null))
+						break;
 				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
+				return c;
+			});
 			return callback.endWalk(count);
 		}
 
@@ -1041,28 +1055,15 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				return callback.endWalk(0);
 
 			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
-			var count = 0L;
-			// 全表walk游标抓取：pgjdbc在autoCommit下忽略fetchSize一次拉全量，
-			// 大表walk有OOM风险。事务内setFetchSize(N)启用游标分批；结束恢复autoCommit
-			//（Druid回收也会reset，双保险）。
-			try (var conn = dataSource.getConnection()) {
-				conn.setAutoCommit(false);
-				try (var ps = conn.prepareStatement(s)) {
-					ps.setFetchSize(1000);
-					try (var rs = ps.executeQuery()) {
-						while (rs.next()) {
-							count++;
-							if (!invokeKeyCallback(table, rs, callback, null))
-								break;
-						}
-					}
-					conn.commit();
-				} finally {
-					conn.setAutoCommit(true);
+			var count = walkCursor(s, rs -> {
+				var c = 0L;
+				while (rs.next()) {
+					c++;
+					if (!invokeKeyCallback(table, rs, callback, null))
+						break;
 				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
+				return c;
+			});
 			return callback.endWalk(count);
 		}
 
@@ -1510,27 +1511,15 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				return 0;
 
 			var s = "SELECT * FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
-			var count = 0L;
-			// 同typed walk：游标抓取防OOM（pgjdbc需事务内setFetchSize）。
-			try (var conn = dataSource.getConnection()) {
-				conn.setAutoCommit(false);
-				try (var ps = conn.prepareStatement(s)) {
-					ps.setFetchSize(1000);
-					try (var rs = ps.executeQuery()) {
-						while (rs.next()) {
-							count++;
-							if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
-								break;
-						}
-					}
-					conn.commit();
-				} finally {
-					conn.setAutoCommit(true);
+			return walkCursor(s, rs -> {
+				var c = 0L;
+				while (rs.next()) {
+					c++;
+					if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
+						break;
 				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
-			return count;
+				return c;
+			});
 		}
 
 		private long walkKey(@NotNull TableWalkKeyRaw callback, boolean asc) throws Exception {
@@ -1538,27 +1527,15 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				return 0;
 
 			var s = "SELECT id FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
-			var count = 0L;
-			// 同typed walk：游标抓取防OOM（pgjdbc需事务内setFetchSize）。
-			try (var conn = dataSource.getConnection()) {
-				conn.setAutoCommit(false);
-				try (var ps = conn.prepareStatement(s)) {
-					ps.setFetchSize(1000);
-					try (var rs = ps.executeQuery()) {
-						while (rs.next()) {
-							count++;
-							if (!callback.handle(rs.getBytes(1)))
-								break;
-						}
-					}
-					conn.commit();
-				} finally {
-					conn.setAutoCommit(true);
+			return walkCursor(s, rs -> {
+				var c = 0L;
+				while (rs.next()) {
+					c++;
+					if (!callback.handle(rs.getBytes(1)))
+						break;
 				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
-			return count;
+				return c;
+			});
 		}
 
 		@Override

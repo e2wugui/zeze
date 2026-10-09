@@ -329,6 +329,12 @@ public final class JsonReader {
 				&& (((buf[p + 2] & 0xff) == 0xA8) || ((buf[p + 2] & 0xff) == 0xA9));
 	}
 
+	// 尾数为零时溢出指数仍是零（JDK parseDouble("0e999")==0）：四个数值解析
+	// 实现的溢出分支只看指数不看尾数，会把零词静默变成饱和值/Infinity。
+	private static boolean isZeroMantissa(long i, double d) {
+		return i == 0 && d == 0.0;
+	}
+
 	public int skipColon() {
 		int b = next();
 		return b == ':' ? skipNext() : b;
@@ -1618,9 +1624,7 @@ public final class JsonReader {
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;
-								// 尾数为零时溢出指数仍是零（JDK parseDouble("0e999")==0）：
-								// 溢出分支只看指数不看尾数，把零词静默变成饱和值/Infinity。
-								if (i == 0 && d == 0.0)
+								if (isZeroMantissa(i, d))
 									return 0;
 								return minus ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 							}
@@ -1768,9 +1772,7 @@ public final class JsonReader {
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;
-								// 尾数为零时溢出指数仍是零（JDK parseDouble("0e999")==0）：
-								// 溢出分支只看指数不看尾数，把零词静默变成饱和值/Infinity。
-								if (i == 0 && d == 0.0)
+								if (isZeroMantissa(i, d))
 									return 0L;
 								return minus ? Long.MIN_VALUE : Long.MAX_VALUE;
 							}
@@ -1917,9 +1919,7 @@ public final class JsonReader {
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;
-								// 尾数为零时溢出指数仍是零（JDK parseDouble("0e999")==0）：
-								// 溢出分支只看指数不看尾数，把零词静默变成饱和值/Infinity。
-								if (i == 0 && d == 0.0)
+								if (isZeroMantissa(i, d))
 									return minus ? -0.0 : 0.0;
 								return minus ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
 							}
@@ -2073,9 +2073,7 @@ public final class JsonReader {
 							while (((b - '0') & 0xff) < 10);
 							if (!expMinus) {
 								pos = p;
-								// 尾数为零时溢出指数仍是零（JDK parseDouble("0e999")==0）：
-								// 溢出分支只看指数不看尾数，把零词静默变成饱和值/Infinity。
-								if (i == 0 && d == 0.0)
+								if (isZeroMantissa(i, d))
 									return minus ? -0.0 : 0.0;
 								return minus ? NEGATIVE_INFINITY : POSITIVE_INFINITY;
 							}

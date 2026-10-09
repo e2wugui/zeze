@@ -36,6 +36,25 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
+	// 全表walk流式抓取：MySQL驱动默认把整个结果集缓冲进内存，大表walk有OOM风险。
+	// setFetchSize(Integer.MIN_VALUE)启用逐行流式（驱动约定，无需url参数）。
+	// 四个walk族入口（typed/raw × walk/walkKey，分属两个内部表类）共用。
+	@FunctionalInterface
+	interface WalkStreamedHandler {
+		long handle(ResultSet rs) throws Exception;
+	}
+
+	private long walkStreamed(@NotNull String sql, @NotNull WalkStreamedHandler handler) throws Exception {
+		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+			ps.setFetchSize(Integer.MIN_VALUE);
+			try (var rs = ps.executeQuery()) {
+				return handler.handle(rs);
+			}
+		} catch (SQLException e) {
+			throw Task.forceThrow(e);
+		}
+	}
+
 	// 过程体由启动时DROP+CREATE无条件重建（见OperatesMySql构造器），修复可下发存量库。
 	static final String PROC_SET_IN_USE_SQL = """
 			CREATE PROCEDURE _ZezeSetInUse_(
@@ -918,21 +937,15 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				return callback.endWalk(0);
 
 			var s = "SELECT * FROM " + name + orderBy;
-			var count = 0L;
-			// 全表walk流式抓取：MySQL驱动默认把整个结果集缓冲进内存，大表walk有OOM风险。
-			// setFetchSize(Integer.MIN_VALUE)启用逐行流式（驱动约定，无需url参数）。
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s)) {
-				ps.setFetchSize(Integer.MIN_VALUE);
-				try (var rs = ps.executeQuery()) {
-					while (rs.next()) {
-						count++;
-						if (!invokeCallback(table, rs, callback, null))
-							break;
-					}
+			var count = walkStreamed(s, rs -> {
+				var c = 0L;
+				while (rs.next()) {
+					c++;
+					if (!invokeCallback(table, rs, callback, null))
+						break;
 				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
+				return c;
+			});
 			return callback.endWalk(count);
 		}
 
@@ -943,20 +956,15 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				return callback.endWalk(0);
 
 			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
-			var count = 0L;
-			// 同walk：全表walk流式抓取防OOM。
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s)) {
-				ps.setFetchSize(Integer.MIN_VALUE);
-				try (var rs = ps.executeQuery()) {
-					while (rs.next()) {
-						count++;
-						if (!invokeKeyCallback(table, rs, callback, null))
-							break;
-					}
+			var count = walkStreamed(s, rs -> {
+				var c = 0L;
+				while (rs.next()) {
+					c++;
+					if (!invokeKeyCallback(table, rs, callback, null))
+						break;
 				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
+				return c;
+			});
 			return callback.endWalk(count);
 		}
 
@@ -1404,21 +1412,15 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				return 0;
 
 			var s = "SELECT * FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
-			var count = 0L;
-			// 同typed walk：流式抓取防OOM。
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s)) {
-				ps.setFetchSize(Integer.MIN_VALUE);
-				try (var rs = ps.executeQuery()) {
-					while (rs.next()) {
-						count++;
-						if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
-							break;
-					}
+			return walkStreamed(s, rs -> {
+				var c = 0L;
+				while (rs.next()) {
+					c++;
+					if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
+						break;
 				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
-			return count;
+				return c;
+			});
 		}
 
 		private long walkKey(@NotNull TableWalkKeyRaw callback, boolean asc) throws Exception {
@@ -1426,21 +1428,15 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				return 0;
 
 			var s = "SELECT id FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
-			var count = 0L;
-			// 同typed walk：流式抓取防OOM。
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s)) {
-				ps.setFetchSize(Integer.MIN_VALUE);
-				try (var rs = ps.executeQuery()) {
-					while (rs.next()) {
-						count++;
-						if (!callback.handle(rs.getBytes(1)))
-							break;
-					}
+			return walkStreamed(s, rs -> {
+				var c = 0L;
+				while (rs.next()) {
+					c++;
+					if (!callback.handle(rs.getBytes(1)))
+						break;
 				}
-			} catch (SQLException e) {
-				throw Task.forceThrow(e);
-			}
-			return count;
+				return c;
+			});
 		}
 
 		@Override
