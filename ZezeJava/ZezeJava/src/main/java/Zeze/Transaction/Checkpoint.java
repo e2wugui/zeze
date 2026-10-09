@@ -377,7 +377,9 @@ public final class Checkpoint {
 				//noinspection DataFlowIssue
 				history.writeOnly(storage.getDatabaseTable(), historyTransaction);
 			}
-			// 提交。
+			// 提交。多库为逐库commit、本地不保证跨库原子：第二库失败时先提交的库已生效，
+			// 崩溃窗口由重启后的checkpoint重放收敛（脏标记未清除的记录重新flush）；
+			// 需要严格跨库原子应单库部署或引入外部协调者，框架不引入XA。
 			for (var t : dts.values())
 				t.commit();
 			localCacheTransaction.commit();

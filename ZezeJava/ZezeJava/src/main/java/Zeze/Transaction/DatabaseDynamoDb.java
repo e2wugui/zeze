@@ -50,8 +50,9 @@ public class DatabaseDynamoDb extends Database {
 
 	private static AmazonDynamoDB createClient(Config.DatabaseConf conf) {
 		var dynamoConf = conf.getDynamoConf();
-		// 这里验证证书是通过配置文件指定的。
-		// 增加参数指定endpoint，用来支持明确的服务器，便于测试。
+		// 证书经配置文件指定的profile解析；endpoint按region解析并启用discovery——
+		// 显式指定endpoint（便于测试指向本地模拟器）需扩展DynamoConf增加endpoint字段，
+		// 当前配置无该字段。
 		return AmazonDynamoDBClientBuilder.standard()
 				.withRegion(dynamoConf.region)
 				.enableEndpointDiscovery()

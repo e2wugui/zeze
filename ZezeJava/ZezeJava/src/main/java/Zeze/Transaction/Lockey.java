@@ -42,6 +42,9 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	 */
 	@Override
 	public Lockey alloc() {
+		// 非公平构造是取舍而非疏忽（对照Record.fairLock的公平锁）：记录锁读多写少、
+		// 持锁区间短，公平锁的排队唤醒开销在吞吐上不划算。代价是极端连续读下写者
+		// 排队较久（非公平锁固有）；若实测出现写者饥饿需公平化，应以基准数据支持再改。
 		rwLock = new ReentrantReadWriteLock();
 		readLockCounter = ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.READ_LOCK);
 		writeLockCounter = ZezeCounter.instance.tableCounter(tableKey.getId(), ZezeCounter.TableMetric.WRITE_LOCK);
@@ -124,6 +127,12 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 		}
 	}
 
+	/**
+	 * 释放当前持有的单一形态锁（与enterLock配对）。
+	 * 契约：仅支持"读或写"单一持有形态。锁升级路径（先enterReadLock再enterWriteLock、
+	 * 读写同持）调用本方法只解写锁，读锁滞留——升级持有须自行enterReadLock/
+	 * exitReadLock配对释放，不得依赖本方法收尾。
+	 */
 	public void exitLock() {
 		if (rwLock.isWriteLockedByCurrentThread()) {
 			rwLock.writeLock().unlock();

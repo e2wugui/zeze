@@ -704,8 +704,16 @@ public abstract class Database extends ReentrantLock {
 		  InsertData(data);
 		  return (CurrentVersion = version, true);
 		*/
-		@Nullable KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
-															long version);
+	/**
+	 * 保存数据（按版本条件更新），返回&lt;新版本, 是否新建插入&gt;。
+	 *
+	 * <p>版本读回契约（已知漂移，同库混用/迁移后端时注意）：插入路径的返回版本依后端而异——
+	 * JDBC系（MySql/PostgreSQL/SqlServer，存储过程实现）返回入参version原值；
+	 * RocksDb/Mongo/Redis/Tikv/Dynamo返回入参+1（CAS重试依赖递增语义）。
+	 * 统一属迁移级改动（需动JDBC存储过程），当前以本声明承载契约。
+	 */
+	@Nullable KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
+														long version);
 
 		@Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key);
 
