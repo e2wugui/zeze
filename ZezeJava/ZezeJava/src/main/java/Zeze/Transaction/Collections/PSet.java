@@ -1,5 +1,6 @@
 package Zeze.Transaction.Collections;
 
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
@@ -99,6 +100,11 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 			public void remove() {
 				if (next == null)
 					throw new IllegalStateException("iterator remove() before next()");
+				// 身份fail-fast（对齐PList判例）：next()返回的元素在迭代期间被外部移除时，
+				// remove退化为静默no-op（错位信号被吞）；contains不相等即响亮失败。
+				// equals相等的不同实例仍可删（集合内容等价，删除语义无害）。
+				if (!getSet().contains(next))
+					throw new ConcurrentModificationException("structural modification during iteration");
 				PSet.this.remove(next);
 				next = null;
 			}

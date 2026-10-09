@@ -3,6 +3,7 @@ package Zeze.Transaction.Collections;
 import java.util.AbstractCollection;
 import java.util.AbstractSet;
 import java.util.Comparator;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -345,7 +346,12 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 					public void remove() {
 						if (next == null)
 							throw new IllegalStateException("iterator remove() before next()");
-						PSortedMap.this.remove(next.getKey());
+						// 身份fail-fast（对齐PList/PMap判例）：同键被外部移除/重put时，
+						// 按键删除会删错条目或静默no-op，不相等即响亮失败。
+						var key = next.getKey();
+						if (getMap().get(key) != next.getValue())
+							throw new ConcurrentModificationException("structural modification during iteration");
+						PSortedMap.this.remove(key);
 						next = null;
 					}
 				};

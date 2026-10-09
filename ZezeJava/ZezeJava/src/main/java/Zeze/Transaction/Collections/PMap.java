@@ -2,6 +2,7 @@ package Zeze.Transaction.Collections;
 
 import java.util.AbstractCollection;
 import java.util.AbstractSet;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -163,7 +164,13 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 					public void remove() {
 						if (next == null)
 							throw new IllegalStateException("iterator remove() before next()");
-						PMap.this.remove(next.getKey());
+						// 身份fail-fast（对齐PList判例）：next()返回的条目在迭代期间被外部结构性
+						// 修改（同键移除/重put成不同值）时，按键删除会删错条目或静默no-op，
+						// 不相等（含键已不存在）即响亮失败。
+						var key = next.getKey();
+						if (getMap().get(key) != next.getValue())
+							throw new ConcurrentModificationException("structural modification during iteration");
+						PMap.this.remove(key);
 						next = null;
 					}
 				};
