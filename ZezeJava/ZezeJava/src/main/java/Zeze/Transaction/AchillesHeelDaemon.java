@@ -276,6 +276,15 @@ public class AchillesHeelDaemon {
 										r.globalIndex, agents.length);
 								break;
 							}
+							// 断点调试豁免（对齐下方本地兜底/ThreadDaemon的!Reflect.inDebugMode判定）：
+							// 调试停顿期间外部Daemon照常发来Release命令，startRelease会释放记录锁、
+							// 打断调试现场（与Login豁免语义一致）。仅跳过本命令处理，keepAlive心跳
+							// 不受影响——Daemon侧destroy按idle心跳判定，不因豁免Release而误杀。
+							if (Reflect.inDebugMode) {
+								logger.warn("ProcessDaemon Release command skipped in debug mode, globalIndex={}",
+										r.globalIndex);
+								break;
+							}
 							try {
 								var agent = agents[r.globalIndex];
 								var config = agent.getConfig();
