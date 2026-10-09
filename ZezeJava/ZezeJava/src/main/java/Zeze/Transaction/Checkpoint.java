@@ -291,6 +291,12 @@ public final class Checkpoint {
 				if (relativeRecordSetMap.isEmpty())
 					break;
 			}
+			// 有界轮耗尽仍有残留脏集=持续落库失败（DB硬故障）：进程即将退出而脏数据
+			// 被静默丢弃。fatal告警残留规模与内容（含记录键），供运维定位；不阻止退出——
+			// 持续失败下无限等待只会把停机变成挂死。
+			if (!relativeRecordSetMap.isEmpty())
+				logger.fatal("final checkpoint end with {} dirty record set(s) unresolved: {}",
+						relativeRecordSetMap.size(), relativeRecordSetMap);
 			break;
 		}
 		logger.info("final checkpoint end.");
