@@ -222,6 +222,29 @@ public class AchillesHeelDaemon {
 			}
 		}
 
+		// 优雅停机注销标记：向所有心跳槽写-1，Monitor见到-1按已注销处理（不Release、
+		// 不destroy）——停机的终检点+关库可超过serverReleaseTimeout，旧语义下idle
+		// 超时即被外部进程destroySubprocess强杀，终检点半途被杀。滚动兼容：旧Monitor
+		// 不识别-1，按极大idle处理，行为与"心跳停止"相同（不劣化）；新Monitor配旧
+		// Server则永远见不到-1，语义不变。
+		private void markShutdownUnregistered() {
+			var bb = ByteBuffer.Allocate(8);
+			bb.WriteLong8(-1);
+			channelLock.lock();
+			try {
+				try (var ignored = channel.lock()) {
+					for (int i = 0; i < agents.length; i++) {
+						mmap.position(i * 8);
+						mmap.put(bb.Bytes, 0, 8);
+					}
+				} catch (Throwable ex) { // logger.error
+					logger.error("markShutdownUnregistered", ex);
+				}
+			} finally {
+				channelLock.unlock();
+			}
+		}
+
 		@Override
 		public void run() {
 			try {
@@ -300,6 +323,17 @@ public class AchillesHeelDaemon {
 							if (idle > config.serverKeepAliveIdleTimeout) {
 								agent.keepAlive();
 							}
+							// 保守本地兜底（对齐ThreadDaemon的同款降级，阈值放大3倍）：外部
+							// Daemon进程死亡/失联时Release命令永不到达——GCM侧globalDaemonTimeout
+							// 后把锁授予他服，本进程仍持本地Modify事务进入静默双写窗口（需双重
+							// 故障）。idle远超serverDaemonTimeout即降级为本地startRelease自愈。
+							if (idle > config.serverDaemonTimeout * 3 && !Reflect.inDebugMode) {
+								if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
+									logger.warn("ProcessDaemon.local fallback startRelease, daemon unreachable. "
+											+ "idle={} > serverDaemonTimeout*3={}", idle, config.serverDaemonTimeout * 3);
+									agent.startRelease(zeze, null);
+								}
+							}
 						} catch (Throwable ex) { // logger.error
 							logger.error("ProcessDaemon.keepAlive globalIndex={}", i, ex);
 						}
@@ -327,6 +361,9 @@ public class AchillesHeelDaemon {
 		}
 
 		public void stopAndJoin() {
+			// 先写注销标记再停线程：心跳停止后Monitor若仍按idle判超时，终检点+关库
+			// 累计超serverReleaseTimeout即被destroySubprocess强杀（见markShutdownUnregistered）。
+			markShutdownUnregistered();
 			running = false;
 			try {
 				join();

@@ -507,6 +507,11 @@ public class Daemon {
 						var config = getConfig(i);
 						if (config == null)
 							continue; // skip not ready global
+						if (activeTime < 0)
+							// 注销标记（优雅停机写入-1）：按已注销处理，不Release、不destroy——
+							// 停机的终检点+关库可超过serverReleaseTimeout，强杀会中断数据保存。
+							// 旧Server不写-1，此分支不可达，语义不变。
+							continue;
 
 						var idle = now - activeTime;
 						if (idle > config.serverReleaseTimeout) {
