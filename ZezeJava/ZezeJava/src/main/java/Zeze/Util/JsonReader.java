@@ -1360,7 +1360,19 @@ public final class JsonReader {
 					p += 4;
 				} else {
 					b = buffer[p++];
-					t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b & 0xff); // b为未掩码byte，转义字符≥0x80时符号扩展成U+FFxx，补掩码与parseKeyHashNoQuot对齐
+					// JSON5行续写：反斜杠后跟LF/CR（含CRLF）或U+2028/U+2029不产生字符，
+					// 消费换行继续字符串（声明支持JSON5；旧实现把换行原样放进结果，
+					// 跨行配置串被静默插入LF）。
+					if (b == '\n' || b == '\r') {
+						if (b == '\r' && p < end && buffer[p] == '\n')
+							p++; // CRLF按一个换行消费
+					} else if ((b & 0xff) == 0xE2 && p + 1 < end && (buffer[p] & 0xff) == 0x80
+							&& (((buffer[p + 1] & 0xff) == 0xA8) || ((buffer[p + 1] & 0xff) == 0xA9))) {
+						p += 2; // U+2028/U+2029按一个换行消费
+					} else {
+						// b为未掩码byte，转义字符≥0x80时符号扩展成U+FFxx，补掩码与parseKeyHashNoQuot对齐
+						t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b & 0xff);
+					}
 				}
 			}
 		}
