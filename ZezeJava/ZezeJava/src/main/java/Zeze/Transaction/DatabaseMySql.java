@@ -915,11 +915,16 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 			var s = "SELECT * FROM " + name + orderBy;
 			var count = 0L;
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
-				while (rs.next()) {
-					count++;
-					if (!invokeCallback(table, rs, callback, null))
-						break;
+			// 全表walk流式抓取：MySQL驱动默认把整个结果集缓冲进内存，大表walk有OOM风险。
+			// setFetchSize(Integer.MIN_VALUE)启用逐行流式（驱动约定，无需url参数）。
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s)) {
+				ps.setFetchSize(Integer.MIN_VALUE);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						count++;
+						if (!invokeCallback(table, rs, callback, null))
+							break;
+					}
 				}
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
@@ -935,11 +940,15 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
 			var count = 0L;
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
-				while (rs.next()) {
-					count++;
-					if (!invokeKeyCallback(table, rs, callback, null))
-						break;
+			// 同walk：全表walk流式抓取防OOM。
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s)) {
+				ps.setFetchSize(Integer.MIN_VALUE);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						count++;
+						if (!invokeKeyCallback(table, rs, callback, null))
+							break;
+					}
 				}
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
@@ -1391,11 +1400,15 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 			var s = "SELECT * FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
 			var count = 0L;
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
-				while (rs.next()) {
-					count++;
-					if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
-						break;
+			// 同typed walk：流式抓取防OOM。
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s)) {
+				ps.setFetchSize(Integer.MIN_VALUE);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						count++;
+						if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
+							break;
+					}
 				}
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
@@ -1409,11 +1422,15 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 			var s = "SELECT id FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
 			var count = 0L;
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
-				while (rs.next()) {
-					count++;
-					if (!callback.handle(rs.getBytes(1)))
-						break;
+			// 同typed walk：流式抓取防OOM。
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s)) {
+				ps.setFetchSize(Integer.MIN_VALUE);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						count++;
+						if (!callback.handle(rs.getBytes(1)))
+							break;
+					}
 				}
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);

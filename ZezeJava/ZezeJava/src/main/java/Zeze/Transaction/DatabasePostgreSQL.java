@@ -1004,11 +1004,23 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 			var s = "SELECT * FROM " + name + orderBy;
 			var count = 0L;
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
-				while (rs.next()) {
-					count++;
-					if (!invokeCallback(table, rs, callback, null))
-						break;
+			// 全表walk游标抓取：pgjdbc在autoCommit下忽略fetchSize一次拉全量，
+			// 大表walk有OOM风险。事务内setFetchSize(N)启用游标分批；结束恢复autoCommit
+			//（Druid回收也会reset，双保险）。
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(false);
+				try (var ps = conn.prepareStatement(s)) {
+					ps.setFetchSize(1000);
+					try (var rs = ps.executeQuery()) {
+						while (rs.next()) {
+							count++;
+							if (!invokeCallback(table, rs, callback, null))
+								break;
+						}
+					}
+					conn.commit();
+				} finally {
+					conn.setAutoCommit(true);
 				}
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
@@ -1024,11 +1036,23 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
 			var count = 0L;
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
-				while (rs.next()) {
-					count++;
-					if (!invokeKeyCallback(table, rs, callback, null))
-						break;
+			// 全表walk游标抓取：pgjdbc在autoCommit下忽略fetchSize一次拉全量，
+			// 大表walk有OOM风险。事务内setFetchSize(N)启用游标分批；结束恢复autoCommit
+			//（Druid回收也会reset，双保险）。
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(false);
+				try (var ps = conn.prepareStatement(s)) {
+					ps.setFetchSize(1000);
+					try (var rs = ps.executeQuery()) {
+						while (rs.next()) {
+							count++;
+							if (!invokeKeyCallback(table, rs, callback, null))
+								break;
+						}
+					}
+					conn.commit();
+				} finally {
+					conn.setAutoCommit(true);
 				}
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
@@ -1480,11 +1504,21 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 			var s = "SELECT * FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
 			var count = 0L;
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
-				while (rs.next()) {
-					count++;
-					if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
-						break;
+			// 同typed walk：游标抓取防OOM（pgjdbc需事务内setFetchSize）。
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(false);
+				try (var ps = conn.prepareStatement(s)) {
+					ps.setFetchSize(1000);
+					try (var rs = ps.executeQuery()) {
+						while (rs.next()) {
+							count++;
+							if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
+								break;
+						}
+					}
+					conn.commit();
+				} finally {
+					conn.setAutoCommit(true);
 				}
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
@@ -1498,11 +1532,21 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 
 			var s = "SELECT id FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
 			var count = 0L;
-			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
-				while (rs.next()) {
-					count++;
-					if (!callback.handle(rs.getBytes(1)))
-						break;
+			// 同typed walk：游标抓取防OOM（pgjdbc需事务内setFetchSize）。
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(false);
+				try (var ps = conn.prepareStatement(s)) {
+					ps.setFetchSize(1000);
+					try (var rs = ps.executeQuery()) {
+						while (rs.next()) {
+							count++;
+							if (!callback.handle(rs.getBytes(1)))
+								break;
+						}
+					}
+					conn.commit();
+				} finally {
+					conn.setAutoCommit(true);
 				}
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
