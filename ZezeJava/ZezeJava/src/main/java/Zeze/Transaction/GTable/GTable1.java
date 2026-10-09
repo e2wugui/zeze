@@ -13,7 +13,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import static Zeze.Util.Json.ensureNotNull;
 
-/** 事务二维表（行键×列键→不可变值）：外层 PMap2 装 BeanMap1 行 Bean。 */
+/** 事务二维表（行键×列键→不可变值）：外层 PMap2 装 BeanMap1 行 Bean。
+ * 键对象（R/C）须实际不可变：键按引用进入容器与日志（Binary 包装不复制底层
+ * bytes），持有键引用再修改会导致哈希漂移与日志错位。 */
 @SuppressWarnings("unchecked")
 public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	// 外层logTypeId/name由(row,col,val)完整身份参与（GTable1专用家族头，与PMap2的
@@ -200,6 +202,11 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		return (Factory<R, C, V>)factory;
 	}
 
+	/**
+	 * 底层受管 Map 的公开出口：仅供生成代码回放（followerApply 需直接建行/清行）与
+	 * 框架内部使用。外部代码勿直接 put——空行（行存在但内层为空）违反 GTable 不变量，
+	 * 会破坏遍历与容量驱逐；常规读写走 Table API。
+	 */
 	public @NotNull PMap2<R, BeanMap1<C, V>> getPMap2() {
 		return pMap2;
 	}

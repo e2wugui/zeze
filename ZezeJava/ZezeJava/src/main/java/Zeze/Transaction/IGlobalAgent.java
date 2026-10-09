@@ -26,6 +26,18 @@ public interface IGlobalAgent {
 
 	}
 
+	/**
+	 * 向 GCM 协商记录权限。
+	 *
+	 * <p>结果码契约：resultCode==0 为成功，resultState 为协商后的状态
+	 * （GlobalCacheManagerConst.StateInvalid/StateShare/StateModify）；
+	 * {@link GlobalCacheManagerConst#AcquireShareFailed}/
+	 * {@link GlobalCacheManagerConst#AcquireModifyFailed} 为协商失败（实现方转为
+	 * throwAbort，不会以返回码形态到达调用方）；其余非零码为环境性失败。
+	 * 注意：各实现（GlobalAgent 与 raft 版）对非零失败码的分类不完全一致，
+	 * 调用方按"零成功、非零失败"处理，保留原始码记日志，勿按具体负值分支。
+	 * reducedTid 非空表示结果与该事务号的 reduce 相关，不适用为 null。
+	 */
 	@Nullable AcquireResult acquire(@NotNull Binary gkey, int state, boolean fresh, boolean noWait);
 
 	int getGlobalCacheManagerHashIndex(@NotNull Binary gkey);

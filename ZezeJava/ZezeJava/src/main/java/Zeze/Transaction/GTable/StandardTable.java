@@ -46,6 +46,11 @@ import javax.annotation.CheckForNull;
  * <p>Note that this implementation is not synchronized. If multiple threads access this table
  * concurrently and one of the threads modifies the table, it must be synchronized externally.
  *
+ * <p>与 Guava/JDK 的差异声明（移植偏离）：迭代为弱一致快照语义——并发结构性修改
+ * 不抛 ConcurrentModificationException（迭代器 remove 仅做身份 fail-fast）；
+ * null 参数按 NPE 拒绝（Utils.checkNotNull），受管 Map 族（PMap1 等）按 IAE 拒绝——
+ * 异常类型不保证统一（NPE 或 IAE），按消息内容定位。
+ *
  * <p>不实现 java.io.Serializable：Guava 移植的事务内脏（backingMap 指向的
  * PMap2 及其 Map2Meta/Factory 含 MethodHandle）不可 Java 序列化，声明恒不可满足，勿再引入。
  *
