@@ -26,11 +26,27 @@ public class HReadOnlyConcurrent {
 
 	@Test
 	public void testBenchmark() throws Exception {
+		// 档一（默认）：脏记录读——记录由 prepare 逐 key 小事务写入后保持已提交未冲刷态
+		// （demo 配置 checkpoint 周期实际关闭），对齐"读近期写入热数据"的真实负载档位。
+		bench("H_ReadOnlyConcurrent", false);
+	}
+
+	@Test
+	public void testBenchmarkClean() throws Exception {
+		// 档二：干净记录读——prepare 后冲刷，读已落盘记录。两档差（实测 ~2.4×）即
+		// 脏读记账成本：每个读事务的 RRS merge + checkpoint map 重登记在并发下的锁车队
+		// （JFR 热点=RelativeRecordSet 公平锁）。两代代码同机制（v1.6.3 同构倒挂）。
+		bench("H_ReadOnlyConcurrent_Clean", true);
+	}
+
+	private void bench(String name, boolean flushAfterPrepare) throws Exception {
 		App.Instance.Stop();
 		App.Instance.Start();
 		try {
 			prepare();
-			MacroBench.run("H_ReadOnlyConcurrent", Warmups, Rounds, TxnCount, () -> {
+			if (flushAfterPrepare)
+				App.Instance.Zeze.checkpointRun();
+			MacroBench.run(name, Warmups, Rounds, TxnCount, () -> {
 				var tasks = new ArrayList<Future<?>>(Batch);
 				for (int i = 0; i < TxnCount; ++i) {
 					final long key = i % Keys;
@@ -68,11 +84,17 @@ public class HReadOnlyConcurrent {
 
 	private static void prepare() throws Exception {
 		clearAll();
-		App.Instance.Zeze.newProcedure(() -> {
-			for (long key = 0; key < Keys; ++key)
-				App.Instance.demo_Module1.getTable1().getOrAdd(key).setLong2(key);
-			return 0L;
-		}, "prepare").call();
+		// 逐 key 小事务预热（对齐真实"读多写少"负载的记录来源形态）：单大事务写 5000 条会
+		// 造出一个 RelativeRecordSet 大编组，此后所有读事务在该编组的公平锁上串行车队
+		// （实测 31.6万 vs 逐key 79.8万，2.5×；JFR 热点=RRS 公平锁+merge）。大编组现象
+		// 是真实的负载病理（全服批量事务后的并发读热点），但其度量属专门变体，不混入本场景。
+		for (long key = 0; key < Keys; ++key) {
+			final long k = key;
+			App.Instance.Zeze.newProcedure(() -> {
+				App.Instance.demo_Module1.getTable1().getOrAdd(k).setLong2(k);
+				return 0L;
+			}, "prepare").call();
+		}
 	}
 
 	private static long Check() {
