@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -39,9 +38,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private Bucket bucket;
 	private TidAllocator tidAllocator;
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
-	private RocksDatabase.Table appliedWatermarkTable;
-	private static final byte[] AppliedWatermarkKey = {0};
-	private static final String UniqueAppliedPrefix = "Zeze.Dbh2.UniqueApplied";
+	private Dbh2AppliedState appliedState;
 	private boolean driveSplitSyncAfterApply;
 	private boolean triggerNoTransactionAfterApply;
 	private boolean publishTidRangeAfterApply;
@@ -329,7 +326,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		// 同步队列依附bucket的meta列族打开，并从落盘状态恢复序号/水位（restore路径同样经此重开）。
 		try {
 			splitSyncTable = bucket.getDb().getOrAddTable("meta");
-			appliedWatermarkTable = bucket.getDb().getOrAddTable("Zeze.Dbh2.AppliedWatermark");
+			appliedState = new Dbh2AppliedState(bucket.getDb());
 		} catch (RocksDBException e) {
 			throw Task.forceThrow(e);
 		}
@@ -359,44 +356,22 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	@Override
 	public @Nullable AppliedWatermark readAppliedWatermark() throws RocksDBException {
-		var bytes = appliedWatermarkTable.get(AppliedWatermarkKey);
-		if (bytes == null)
-			return null;
-		var bb = ByteBuffer.Wrap(bytes);
-		return new AppliedWatermark(bb.ReadLong(), bb.ReadLong());
-	}
-
-	private static String uniqueAppliedTableName(long createTime) {
-		return LogSequence.makeUniqueRequestTableName(UniqueAppliedPrefix,
-				LogSequence.toUniqueRequestKey(new Date(createTime)));
+		return appliedState.readWatermark();
 	}
 
 	@Override
 	public @Nullable UniqueRequestState getUniqueAppliedStub(@NotNull IRaftRpc rpc) throws RocksDBException {
-		var table = bucket.getDb().getTableMap().get(uniqueAppliedTableName(rpc.getCreateTime()));
-		if (table == null)
-			return null;
-		var key = ByteBuffer.Allocate();
-		rpc.getUnique().encode(key);
-		var bytes = table.get(key.Bytes, 0, key.WriteIndex);
-		if (bytes == null)
-			return null;
-		var state = new UniqueRequestState();
-		state.decode(ByteBuffer.Wrap(bytes));
-		return state;
+		return appliedState.getUniqueAppliedStub(rpc);
 	}
 
 	@Override
 	public void removeExpiredUniqueStubTables(long expired) throws Exception {
-		for (var table : bucket.getDb().getTableMap().values()) {
-			var date = LogSequence.parseUniqueRequestDate(UniqueAppliedPrefix, table.getName());
-			if (date != null && date.getTime() < expired)
-				table.drop();
-		}
+		appliedState.removeExpiredUniqueStubTables(expired);
 	}
 
 	@Override
 	public void apply(@NotNull RaftLog holder) throws Exception {
+		var heartbeat = isHeartbeatLog(holder);
 		// ACK只写投递水位，不得插进队列换代与本批提交之间；poll也在此锁下读已提交队列。
 		splitSyncLock.lock();
 		try {
@@ -405,21 +380,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			publishTidRangeAfterApply = false;
 			try {
 				// leader-ready回调可能发起分桶恢复，须等应用完成事实落盘后触发。
-				if (!isHeartbeatLog(holder))
+				if (!heartbeat)
 					super.apply(holder);
 				var batch = bucket.getBatch();
-				if (holder.getLog().getUnique().getRequestId() > 0) {
-					var key = ByteBuffer.Allocate();
-					holder.getLog().getUnique().encode(key);
-					var value = ByteBuffer.encode(new UniqueRequestState(holder, true));
-					bucket.getDb().getOrAddTable(uniqueAppliedTableName(holder.getLog().getCreateTime()))
-							.put(batch, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
-				}
-				var watermark = ByteBuffer.Allocate(16);
-				watermark.WriteLong(holder.getIndex());
-				watermark.WriteLong(holder.getTerm());
-				appliedWatermarkTable.put(batch, AppliedWatermarkKey, 0, AppliedWatermarkKey.length,
-						watermark.Bytes, 0, watermark.WriteIndex);
+				appliedState.addToBatch(holder, batch);
 				batch.commit(bucket.getWriteOptions());
 				if (publishTidRangeAfterApply)
 					tidAllocator.setRange(tidRangeStart, tidRangeEnd);
@@ -434,7 +398,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		} finally {
 			splitSyncLock.unlock();
 		}
-		if (isHeartbeatLog(holder))
+		if (heartbeat)
 			super.apply(holder);
 		if (triggerNoTransactionAfterApply)
 			triggerNoTransactionIf();
@@ -892,7 +856,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				}
 				bucket = null;
 			}
-			appliedWatermarkTable = null;
+			appliedState = null;
 			splitSyncTable = null;
 			splitSyncSeq = splitSyncWatermark = 0;
 		} finally {
