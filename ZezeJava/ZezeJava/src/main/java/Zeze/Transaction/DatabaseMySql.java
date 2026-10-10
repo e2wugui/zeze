@@ -70,8 +70,15 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					abandoned = true;
 					throw t;
 				} finally {
-					if (abandoned)
-						killQuery(connectionId); // 让服务端停止发送，close才不必读完剩余行
+					if (abandoned && !killQuery(connectionId))
+						// 控制通路失败（借取超时/KILL异常）时废弃物理连接：服务端看到TCP断开
+						// 即停止发送并中止查询，避免close同步排空剩余整表。后续rs/close的异常
+						// 属于连接已死，各处已有忽略路径；废弃不掩盖主流程异常。
+						try {
+							conn.abort(Runnable::run);
+						} catch (Throwable e) { // logger.warn
+							logger.warn("walkStreamed abort after kill fail {} exception:", connectionId, e);
+						}
 					try {
 						rs.close();
 					} catch (SQLException e) {
@@ -107,13 +114,54 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	}
 
 	// KILL QUERY只中止查询、连接仍可用；账号无需特权即可kill自己的线程。尽力而为：
-	// 失败时退回默认行为（close排空剩余行），不阻塞主流程。
-	private void killQuery(long connectionId) {
-		try (var conn = dataSource.getConnection(); var st = conn.createStatement()) {
+	// 失败时退回默认行为（close排空剩余行），不阻塞主流程；返回false表示控制通路失败，
+	// 调用方可据此升级到废弃物理连接（见walkStreamed）。
+	// 取消通路必须独立于业务池：业务池被并发walk占满时（maxWait默认-1无限等待），从同一池
+	// 借连接清理会形成互等——每个清理者等第二条连接，而被清理的walk连接必须等清理完成才
+	// 归还，池饱和即永久卡死（maxActive=1的合法配置一次walk即触发）。控制池与业务池容量
+	// 隔离、借取带期限；懒初始化，从未中断walk的库不建控制池。
+	private static final int KILL_CONTROL_MAX_ACTIVE = 2;
+	private static final long KILL_CONTROL_MAX_WAIT_MILLIS = 10_000;
+	private volatile @Nullable DruidDataSource killControlDataSource;
+
+	private DruidDataSource getKillControlDataSource() {
+		var ds = killControlDataSource;
+		if (ds != null)
+			return ds;
+		synchronized (this) {
+			if (killControlDataSource == null) {
+				var dc = getConf().getDruidConf();
+				var control = new DruidDataSource();
+				control.setUrl(getConf().getDatabaseUrl());
+				control.setDriverClassName(dc.driverClassName);
+				control.setUsername(dc.userName);
+				control.setPassword(dc.password);
+				control.setInitialSize(0);
+				control.setMinIdle(0);
+				control.setMaxActive(KILL_CONTROL_MAX_ACTIVE);
+				control.setMaxWait(KILL_CONTROL_MAX_WAIT_MILLIS);
+				killControlDataSource = control;
+			}
+			return killControlDataSource;
+		}
+	}
+
+	private boolean killQuery(long connectionId) {
+		try (var conn = getKillControlDataSource().getConnection(); var st = conn.createStatement()) {
 			st.execute("KILL QUERY " + connectionId);
+			return true;
 		} catch (SQLException e) {
 			logger.warn("walkStreamed killQuery {} failed, fallback to drain-on-close", connectionId, e);
+			return false;
 		}
+	}
+
+	@Override
+	public void close() {
+		super.close();
+		var control = killControlDataSource;
+		if (control != null)
+			control.close();
 	}
 
 	// 过程体由启动时DROP+CREATE无条件重建（见OperatesMySql构造器），修复可下发存量库。
