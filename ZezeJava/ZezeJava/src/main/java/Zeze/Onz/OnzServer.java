@@ -912,6 +912,9 @@ public class OnzServer extends AbstractOnz {
 			// 自动重连，否则服务关socket反而触发无限重连（1s起、上限8s）。
 			for (var connector : instances.values()) {
 				try {
+					var so = connector.getSocket();
+					if (null != so)
+						so.closeGracefully();
 					connector.stop();
 				} catch (Throwable e) {
 					logger.error("stop connector {}", connector.getName(), e);
