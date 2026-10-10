@@ -51,18 +51,6 @@ public final class AsyncLock {
 		return state != 0;
 	}
 
-	public boolean isHeldByCurrentThread() {
-		return ownerThread == Thread.currentThread();
-	}
-
-	public @Nullable Action0 getCurrent() {
-		return current;
-	}
-
-	public void setCurrent(@Nullable Action0 current) {
-		this.current = current;
-	}
-
 	// 获取锁成功时回调onEnter,回调回程中可以leave,回调完成时也会强制leave
 	public void enter(@NotNull Action0 onEnter) {
 		if (syncDispatch) {
@@ -134,6 +122,9 @@ public final class AsyncLock {
 					// 派发被拒：不回滚不复位——复位后不复查队列，与并发enter的
 					// offer后重试CAS竞态会把回调滞留成无派发者真空（直到下一个enter才自愈）。
 					// 就地内联续走整个派发链；回调已实际执行故不重抛（重抛会让调用方二次应答）。
+					// 拒绝当前仅停机窗口可达：Task默认池无界队列（虚拟线程每任务一线程），
+					// 饱和不拒、仅shutdown后拒；经initThreadPool装有界池使饱和拒绝成为
+					// 常态时，本兜底转为热路径，需重估。
 					Task.logger.warn("AsyncLock: dispatch rejected, fallback inline run, {} pending callback(s)",
 							readyQueue.size() + 1, e);
 					driveRejectedInline(onReady);
@@ -168,13 +159,14 @@ public final class AsyncLock {
 					}
 				}
 				onReady = readyQueue.poll();
-				if (onReady == null) {
+				while (onReady == null) {
+					// 队列空：发布释放后按需重获。重获CAS胜出后重取仍空时不得返回——胜出
+					// 即此刻无他人接管派发，带state==1返回将无人推进、锁永久毒化；回环
+					// 再发布直到拿到回调或干净退出（与tryNextAsync尾段语义一致）。
 					state = 0;
 					if (readyQueue.isEmpty() || !stateHandle.compareAndSet(this, 0, 1)) // retry, rare-path
 						return;
 					onReady = readyQueue.poll();
-					if (onReady == null)
-						return; // CAS胜出后队列被并发取走：他人已接管派发，让位
 				}
 			}
 		} finally {
@@ -198,26 +190,11 @@ public final class AsyncLock {
 			tryNextAsync();
 	}
 
-	// 在获取锁的情况下,释放锁并等到有通知且获取锁时回调onNotify
-	public void leaveAndWaitNotify(@NotNull Action0 onNotify) {
-		assert state == 1;
-		waitQueue.addLast(onNotify);
-		leave();
-	}
-
 	// 在获取锁的情况下,释放锁并等到有通知且获取锁时回调自身
 	public void leaveAndWaitNotify() {
 		assert state == 1 && current != null;
 		waitQueue.addFirst(current);
 		leave();
-	}
-
-	// 在获取锁的情况下,发出通知激活等待队列中的一个
-	public void notifyOneWait() {
-		assert state == 1;
-		var onNotify = waitQueue.pollFirst();
-		if (onNotify != null)
-			readyQueue.offer(onNotify);
 	}
 
 	// 在获取锁的情况下,发出通知激活整个等待队列
