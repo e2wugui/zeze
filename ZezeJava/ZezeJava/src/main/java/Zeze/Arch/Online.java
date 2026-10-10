@@ -1492,7 +1492,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				groupLocal.addAll(group.accounts);
 				continue;
 			}
-			transmit.Send(socket);
+			// 发送推迟到提交后（对齐Game.Online.transmitEmbed）：本过程可redo（_tonline读冲突
+			// 触发lockAndCheck重验整轮重执行），事务内直接Send会向远端重复投递；whileCommit在
+			// 最终提交成功后恰好发送一次，redo轮注册的回调随savepoint丢弃。提交后发送失败仅
+			// 记日志（Transaction.triggerActions惯例），transmit本就是fire-and-forget。
+			Transaction.whileCommit(() -> transmit.Send(socket));
 		}
 		assert groupLocal != null;
 		if (!groupLocal.accounts.isEmpty())
