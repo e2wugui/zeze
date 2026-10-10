@@ -1,6 +1,8 @@
 package Zeze.Transaction;
 
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,6 +11,7 @@ import java.sql.SQLWarning;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.StringJoiner;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -35,6 +38,11 @@ import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelationalMapping {
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
+
+	// OperatesMySql三个过程体SQL文本的版本戳行key：data列存SHA-256 hex（见calcOperatesProceduresStamp），
+	// 戳一致时启动跳过过程DDL（见OperatesMySql构造器）。
+	public static final byte[] keyOfOperatesProceduresStamp =
+			("Zeze.OperatesMySql.Procedures.Stamp." + 7362541089214536742L).getBytes(StandardCharsets.UTF_8);
 
 	// 全表walk流式抓取：MySQL驱动默认把整个结果集缓冲进内存，大表walk有OOM风险。
 	// setFetchSize(Integer.MIN_VALUE)启用逐行流式（驱动约定，无需url参数）。
@@ -164,7 +172,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			control.close();
 	}
 
-	// 过程体由启动时DROP+CREATE无条件重建（见OperatesMySql构造器），修复可下发存量库。
+	// 过程体修复（重读校验、错误传播等）通过版本戳变化触发DROP+CREATE下发到存量库（见OperatesMySql构造器）。
 	static final String PROC_SET_IN_USE_SQL = """
 			CREATE PROCEDURE _ZezeSetInUse_(
 			    IN  in_local_id INT,
@@ -259,6 +267,116 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 
 	// 关系映射表 string key 列建表即固定为 VARCHAR(256)（见下方 getKeyStringType 的二进制排序规则覆写）。
 	private static final int eMaxKeyStringLength = 256;
+
+	// 另两个过程体SQL文本常量（_ZezeSetInUse_是PROC_SET_IN_USE_SQL），三者一起参与版本戳计算。
+	private static final String PROC_SAVE_DATA_WITH_SAME_VERSION_SQL = """
+			CREATE PROCEDURE _ZezeSaveDataWithSameVersion_(
+			    IN    in_id VARBINARY(%d),
+			    IN    in_data LONGBLOB,
+			    INOUT inout_version BIGINT,
+			    OUT   ret_value INT
+			)
+			return_label:BEGIN
+			    DECLARE old_ver BIGINT;
+			    DECLARE row_count INT;
+
+			    START TRANSACTION;
+			    SET ret_value=1;
+			    SELECT version INTO old_ver FROM _ZezeDataWithVersion_ WHERE id=in_id;
+			    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=in_id;
+			    IF row_count > 0 THEN
+			        IF old_ver <> inout_version THEN
+			            SET ret_value=2;
+			            ROLLBACK;
+			            LEAVE return_label;
+			        END IF;
+			        SET old_ver = old_ver + 1;
+			        -- 更新带版本条件：快照读到更新的窗口内并发写者可双双通过前置校验，
+			        -- 无条件UPDATE让后者覆盖前者且双双报成功（丢失更新）。
+			        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver
+			            WHERE id=in_id AND version=inout_version;
+			        SELECT ROW_COUNT() INTO row_count;
+			        IF row_count = 1 THEN
+			            SET inout_version = old_ver;
+			            SET ret_value=0;
+			            COMMIT;
+			            LEAVE return_label;
+			        END IF;
+			        SET ret_value=3;
+			        ROLLBACK;
+			        LEAVE return_label;
+			    END IF;
+
+			    INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version);
+			    SELECT ROW_COUNT() INTO row_count;
+			    IF row_count = 1 THEN
+			        SET ret_value=0;
+			        COMMIT;
+			        LEAVE return_label;
+			    END IF;
+			    SET ret_value=4;
+			    IF 1=1 THEN
+			        ROLLBACK;
+			    END IF;
+			    LEAVE return_label;
+			END;""".formatted(eMaxKeyLength);
+
+	private static final String PROC_CLEAR_IN_USE_SQL = """
+			CREATE PROCEDURE _ZezeClearInUse_(
+			    IN  in_local_id int,
+			    IN  in_global LONGBLOB,
+			    OUT ret_value int
+			)
+			return_label:BEGIN
+			    DECLARE instance_count INT;
+			    DECLARE empty_bin LONGBLOB;
+			    DECLARE row_count INT;
+
+			    START TRANSACTION;
+			    SET ret_value=1;
+			    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;
+			    SET instance_count=0;
+			    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
+			    IF instance_count = 0 THEN
+			        SET empty_bin = BINARY '';
+			        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
+			    END IF;
+			    SET ret_value=0;
+			    IF 1=1 THEN
+			        COMMIT;
+			    END IF;
+			    LEAVE return_label;
+			END;""";
+
+	// 版本戳=三个过程体SQL文本的SHA-256（hex）。过程体任何修改都改变戳，从而触发一次DROP+CREATE。
+	private static String calcOperatesProceduresStamp() {
+		var text = PROC_SAVE_DATA_WITH_SAME_VERSION_SQL + "\0" + PROC_SET_IN_USE_SQL + "\0" + PROC_CLEAR_IN_USE_SQL;
+		try {
+			return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+					.digest(text.getBytes(StandardCharsets.UTF_8)));
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalStateException("SHA-256 unavailable", e); // JVM规范保证存在，不可达
+		}
+	}
+
+	// 戳的存取走直连SQL而非存储过程：首启/升级时过程可能尚不存在（鸡生蛋）。
+	private static @Nullable String getOperatesProceduresStamp(Connection conn) throws SQLException {
+		try (var ps = conn.prepareStatement("SELECT data FROM _ZezeDataWithVersion_ WHERE id=?")) {
+			ps.setBytes(1, keyOfOperatesProceduresStamp);
+			try (var rs = ps.executeQuery()) {
+				return rs.next() ? new String(rs.getBytes(1), StandardCharsets.UTF_8) : null;
+			}
+		}
+	}
+
+	private static void writeOperatesProceduresStamp(Connection conn, String stamp) throws SQLException {
+		try (var ps = conn.prepareStatement("REPLACE INTO _ZezeDataWithVersion_ VALUES(?,?,?)")) {
+			ps.setBytes(1, keyOfOperatesProceduresStamp);
+			ps.setBytes(2, stamp.getBytes(StandardCharsets.UTF_8));
+			ps.setLong(3, 0);
+			ps.executeUpdate();
+		}
+	}
 
 	public DatabaseMySql(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
@@ -376,18 +494,32 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	public void dropOperatesProcedures() {
 		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(false);
-			try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_")) {
-				ps.executeUpdate();
-			}
-			try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSetInUse_")) {
-				ps.executeUpdate();
-			}
-			try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeClearInUse_")) {
-				ps.executeUpdate();
-			}
+			dropOperatesProcedures(conn);
 			conn.commit();
 		} catch (SQLException e) {
 			throw Task.forceThrow(e);
+		}
+	}
+
+	// 在给定连接上drop三个过程并清版本戳。OperatesMySql构造器持连接调用——不得再向池借
+	// 第二条连接（maxActive=1的合法配置下两处互等即死锁）；运维入口经无参包装走独立事务。
+	private static void dropOperatesProcedures(Connection conn) throws SQLException {
+		try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_")) {
+			ps.executeUpdate();
+		}
+		try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSetInUse_")) {
+			ps.executeUpdate();
+		}
+		try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeClearInUse_")) {
+			ps.executeUpdate();
+		}
+		// 版本戳一并清除：drop入口语义是"强制下次启动重建"（运维排障用），
+		// 留戳会让下次启动按戳跳过重建、过程持续缺失。表不存在（disableOperates库）时无需清。
+		if (tableExists(conn, "_ZezeDataWithVersion_")) {
+			try (var ps = conn.prepareStatement("DELETE FROM _ZezeDataWithVersion_ WHERE id=?")) {
+				ps.setBytes(1, keyOfOperatesProceduresStamp);
+				ps.executeUpdate();
+			}
 		}
 	}
 
@@ -500,11 +632,13 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		}
 
 		public OperatesMySql() {
-			// MySQL无CREATE OR REPLACE PROCEDURE：无条件DROP后CREATE，等价PG的每次覆盖，
-			// 过程体修复（重读校验、错误传播等）才能随启动下发到存量库；否则CREATE对
-			// "already exist"静默跳过，存量库永远跑旧过程体。DROP与CREATE间崩溃留下
-			// 过程缺失，下次启动重建自愈；启动全程持有tryLock无并发DDL。
-			dropOperatesProcedures();
+			// MySQL无CREATE OR REPLACE PROCEDURE：过程体修复（重读校验、错误传播等）要下发
+			// 存量库只能DROP后CREATE。但无条件每次重建不可取：本DDL在构造器执行，先于启动锁
+			// （atomicOpenDatabase），多实例共享库时DROP与CREATE之间（含崩溃残留）的窗口
+			// 每次启动都出现，干扰正在调用过程的在跑实例。改为版本戳门控：三个过程体SQL文本
+			// 的SHA-256存_ZezeDataWithVersion_专用行，戳一致即跳过全部过程DDL——常态启动零
+			// 过程DDL，仅过程体随版本变更时重建一次（此时仍有短暂缺失窗口，属一次性升级代价）。
+			// 戳在三个CREATE全部成功后写入：中途崩溃留下旧戳/无戳，下次启动重建自愈。
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				var tableDataWithVersionSql = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_(" +
@@ -513,66 +647,21 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				try (var ps = conn.prepareStatement(tableDataWithVersionSql)) {
 					ps.executeUpdate();
 				}
-				var procSaveDataWithSameVersionSql = """
-						CREATE PROCEDURE _ZezeSaveDataWithSameVersion_(
-						    IN    in_id VARBINARY(%d),
-						    IN    in_data LONGBLOB,
-						    INOUT inout_version BIGINT,
-						    OUT   ret_value INT
-						)
-						return_label:BEGIN
-						    DECLARE old_ver BIGINT;
-						    DECLARE row_count INT;
-
-						    START TRANSACTION;
-						    SET ret_value=1;
-						    SELECT version INTO old_ver FROM _ZezeDataWithVersion_ WHERE id=in_id;
-						    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=in_id;
-						    IF row_count > 0 THEN
-						        IF old_ver <> inout_version THEN
-						            SET ret_value=2;
-						            ROLLBACK;
-						            LEAVE return_label;
-						        END IF;
-						        SET old_ver = old_ver + 1;
-						        -- 更新带版本条件：快照读到更新的窗口内并发写者可双双通过前置校验，
-						        -- 无条件UPDATE让后者覆盖前者且双双报成功（丢失更新）。
-						        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver
-						            WHERE id=in_id AND version=inout_version;
-						        SELECT ROW_COUNT() INTO row_count;
-						        IF row_count = 1 THEN
-						            SET inout_version = old_ver;
-						            SET ret_value=0;
-						            COMMIT;
-						            LEAVE return_label;
-						        END IF;
-						        SET ret_value=3;
-						        ROLLBACK;
-						        LEAVE return_label;
-						    END IF;
-
-						    INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version);
-						    SELECT ROW_COUNT() INTO row_count;
-						    IF row_count = 1 THEN
-						        SET ret_value=0;
-						        COMMIT;
-						        LEAVE return_label;
-						    END IF;
-						    SET ret_value=4;
-						    IF 1=1 THEN
-						        ROLLBACK;
-						    END IF;
-						    LEAVE return_label;
-						END;""".formatted(eMaxKeyLength);
-				try (var ps = conn.prepareStatement(procSaveDataWithSameVersionSql)) {
+				var tableInstancesSql = "CREATE TABLE IF NOT EXISTS _ZezeInstances_(localid int NOT NULL PRIMARY KEY)";
+				try (var ps = conn.prepareStatement(tableInstancesSql)) {
+					ps.executeUpdate();
+				}
+				var stamp = calcOperatesProceduresStamp();
+				if (stamp.equals(getOperatesProceduresStamp(conn)))
+					return; // 过程体未变，跳过重建（常态启动路径）
+				// 同一连接上完成drop+create+写戳：不再嵌套借连接（maxActive=1的合法配置下互等死锁）
+				dropOperatesProcedures(conn);
+				// 并发首启动的间隙保护：CREATE撞"already exist"视为对方已建同版本，吞掉继续。
+				try (var ps = conn.prepareStatement(PROC_SAVE_DATA_WITH_SAME_VERSION_SQL)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!sqlMessageContains(ex, "already exist"))
 						throw ex;
-				}
-				var tableInstancesSql = "CREATE TABLE IF NOT EXISTS _ZezeInstances_(localid int NOT NULL PRIMARY KEY)";
-				try (var ps = conn.prepareStatement(tableInstancesSql)) {
-					ps.executeUpdate();
 				}
 				try (var ps = conn.prepareStatement(PROC_SET_IN_USE_SQL)) {
 					ps.executeUpdate();
@@ -580,38 +669,13 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					if (!sqlMessageContains(ex, "already exist"))
 						throw ex;
 				}
-				var procClearInUseSql = """
-					CREATE PROCEDURE _ZezeClearInUse_(
-					    IN  in_local_id int,
-					    IN  in_global LONGBLOB,
-					    OUT ret_value int
-					)
-					return_label:BEGIN
-					    DECLARE instance_count INT;
-					    DECLARE empty_bin LONGBLOB;
-					    DECLARE row_count INT;
-
-					    START TRANSACTION;
-					    SET ret_value=1;
-					    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;
-					    SET instance_count=0;
-					    SELECT count(*) INTO instance_count FROM _ZezeInstances_;
-					    IF instance_count = 0 THEN
-					        SET empty_bin = BINARY '';
-					        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;
-					    END IF;
-					    SET ret_value=0;
-					    IF 1=1 THEN
-					        COMMIT;
-					    END IF;
-					    LEAVE return_label;
-					END;""";
-				try (var ps = conn.prepareStatement(procClearInUseSql)) {
+				try (var ps = conn.prepareStatement(PROC_CLEAR_IN_USE_SQL)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!sqlMessageContains(ex, "already exist"))
 						throw ex;
 				}
+				writeOperatesProceduresStamp(conn, stamp);
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			}
