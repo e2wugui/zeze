@@ -228,8 +228,11 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	/** 深拷贝元素赋值（区别于1系assign的引用共享：2系值可变，别名会让两个容器互相可见修改）。 */
 	public void assign(@NotNull PMap2<K, V> pmap) {
+		if (this == pmap)
+			return; // 自赋值：先clear后copy时源已空，原有内容会永久丢失
+		var copy = pmap.copy(); // 先备输入再发布：copy抛出时目标保持原值
 		clear();
-		putAll(pmap.copy());
+		putAll(copy);
 	}
 
 	@Override

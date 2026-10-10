@@ -318,8 +318,11 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	/** 深拷贝元素赋值（区别于1系assign的引用共享：2系值可变，别名会让两个容器互相可见修改）。 */
 	public void assign(@NotNull PList2<V> plist) {
+		if (this == plist)
+			return; // 自赋值：先clear后copy时源已空，原有内容会永久丢失
+		var copy = plist.copy(); // 先备输入再发布：copy抛出时目标保持原值
 		clear();
-		addAll(plist.copy());
+		addAll(copy);
 	}
 
 	@Override

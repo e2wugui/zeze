@@ -83,4 +83,35 @@ public class TestCollection2AssignDeepCopy {
 		dst.get(1L).setInt_1(22);
 		Assertions.assertEquals(99, src.get(1L).getInt_1());
 	}
+
+	/**
+	 * 自赋值不丢内容：旧实现clear()后再copy(this)时源已空，原有元素永久丢失。
+	 * 先备输入再发布（copy成功后才clear+装回）同时保证copy抛出时目标保持原值。
+	 */
+	@Test
+	public void testSelfAssignKeepsContent() {
+		var list = new PList2<>(BValue.class);
+		var lb = new BValue();
+		lb.setInt_1(1);
+		list.add(lb);
+		list.assign(list);
+		Assertions.assertEquals(1, list.size(), "PList2自赋值不得清空（修复前：clear后copy已空的self）");
+		Assertions.assertEquals(1, list.get(0).getInt_1());
+
+		var map = new PMap2<>(Long.class, BValue.class);
+		var mb = new BValue();
+		mb.setInt_1(2);
+		map.put(1L, mb);
+		map.assign(map);
+		Assertions.assertEquals(1, map.size(), "PMap2自赋值不得清空");
+		Assertions.assertEquals(2, map.get(1L).getInt_1());
+
+		var sorted = new PSortedMap2<>(Long.class, BValue.class);
+		var sb = new BValue();
+		sb.setInt_1(3);
+		sorted.put(1L, sb);
+		sorted.assign(sorted);
+		Assertions.assertEquals(1, sorted.size(), "PSortedMap2自赋值不得清空");
+		Assertions.assertEquals(3, sorted.get(1L).getInt_1());
+	}
 }
