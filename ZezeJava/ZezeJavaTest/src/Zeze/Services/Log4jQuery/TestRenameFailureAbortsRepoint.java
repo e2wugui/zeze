@@ -61,7 +61,7 @@ public class TestRenameFailureAbortsRepoint {
 	@Test
 	public void testRenameFailAbortsRepointAndRegister() throws Exception {
 		var logDir = Files.createTempDirectory("rename-abort");
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
@@ -69,7 +69,7 @@ public class TestRenameFailureAbortsRepoint {
 
 			// log4j轮转的磁盘形态：旧内容改名进rotate名，active名重建承载新内容（时间窗更晚）。
 			Files.move(logDir.resolve(Active), logDir.resolve(Rotated));
-			AtomicFileWriter.replace(logDir.resolve(Active),
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active),
 					buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
 			// rename失败注入：目标名被目录占据（File.renameTo对既存目录跨平台确定性失败）。
 			Files.createDirectory(logDir.resolve(Rotated + ".index"));
@@ -93,14 +93,14 @@ public class TestRenameFailureAbortsRepoint {
 	@Test
 	public void testAbortConvergesAfterObstacleGone() throws Exception {
 		var logDir = Files.createTempDirectory("rename-converge");
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
 			manager.stop();
 
 			Files.move(logDir.resolve(Active), logDir.resolve(Rotated));
-			AtomicFileWriter.replace(logDir.resolve(Active),
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active),
 					buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
 			Files.createDirectory(logDir.resolve(Rotated + ".index"));
 			invokeOnFileCreated(manager, logDir.resolve(Rotated)); // case-1：rename失败，中止
@@ -134,14 +134,14 @@ public class TestRenameFailureAbortsRepoint {
 		assumeTrue(System.getProperty("os.name").toLowerCase().contains("win"),
 				"File.renameTo对既存目标仅Windows确定性失败");
 		var logDir = Files.createTempDirectory("rename-dup");
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
 			manager.stop();
 
 			Files.move(logDir.resolve(Active), logDir.resolve(Rotated));
-			AtomicFileWriter.replace(logDir.resolve(Active),
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active),
 					buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
 
 			invokeOnFileCreated(manager, logDir.resolve(Rotated)); // 第一次case-1：正常轮转

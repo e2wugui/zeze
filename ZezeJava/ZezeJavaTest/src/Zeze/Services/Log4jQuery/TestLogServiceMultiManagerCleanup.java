@@ -72,7 +72,7 @@ public class TestLogServiceMultiManagerCleanup {
 
 		// detector已死的观察：在valid目录创建active文件，泄漏的watch线程会处理CREATE并创建索引。
 		var fmt = DateTimeFormatter.ofPattern("yy-MM-dd HH:mm:ss.SSS");
-		AtomicFileWriter.replace(dirValid.resolve(validConf.logActive),
+		AtomicFileWriter.writeAtomically(dirValid.resolve(validConf.logActive),
 				(fmt.format(LocalDateTime.now()) + " hello\n").getBytes());
 		var activeIndex = dirValid.resolve(validConf.logActive + ".index");
 		var deadline = System.currentTimeMillis() + 1_000;

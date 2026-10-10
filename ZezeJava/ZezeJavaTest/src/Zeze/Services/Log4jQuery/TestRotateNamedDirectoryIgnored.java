@@ -52,7 +52,7 @@ public class TestRotateNamedDirectoryIgnored {
 	@Test
 	public void testRotateNamedDirectoryDoesNotHijackActive() throws Exception {
 		var logDir = Files.createTempDirectory("log4j-rotate-named-directory");
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(Base, "a-", 0, 10, 20)
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(Base, "a-", 0, 10, 20)
 				.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {

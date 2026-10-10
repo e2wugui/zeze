@@ -389,7 +389,7 @@ public final class RaftConfig {
 			var output = new ByteArrayOutputStream();
 			transformer.transform(new DOMSource(xmlDocument), new StreamResult(output));
 			try {
-				AtomicFileWriter.replace(new File(xmlFileName).toPath(), output.toByteArray());
+				AtomicFileWriter.writeAtomically(new File(xmlFileName).toPath(), output.toByteArray());
 			} catch (IOException e) {
 				throw new TransformerException(e);
 			}

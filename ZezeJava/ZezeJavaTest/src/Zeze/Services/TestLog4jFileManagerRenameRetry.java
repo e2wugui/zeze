@@ -145,7 +145,7 @@ public class TestLog4jFileManagerRenameRetry {
 
 	/** 预置与内容配对的active日志索引（两records：time=首条/offset=0，time=次条/offset=首行长度）。 */
 	private static Log4jFileManager newManager(Path logDir) throws Exception {
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines().getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines().getBytes(StandardCharsets.UTF_8));
 		var line0Len = buildLines().indexOf('\n') + 1;
 		try (var ch = FileChannel.open(logDir.resolve(Active + ".index"),
 				StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {

@@ -52,7 +52,7 @@ public class TestRotationSampleGapKeepsTail {
 		var directory = Files.createTempDirectory("log-rotation-sample-gap");
 		Log4jFileManager manager = null;
 		try {
-			AtomicFileWriter.replace(directory.resolve("zeze.log"), line(0, "head").getBytes(StandardCharsets.UTF_8));
+			AtomicFileWriter.writeAtomically(directory.resolve("zeze.log"), line(0, "head").getBytes(StandardCharsets.UTF_8));
 			var conf = new LogServiceConf.LogConf();
 			conf.logActive = "zeze.log";
 			conf.logDir = directory.toString();
@@ -62,7 +62,7 @@ public class TestRotationSampleGapKeepsTail {
 			Files.writeString(directory.resolve("zeze.log"), line(5, "rotated-tail"), StandardOpenOption.APPEND);
 			Files.move(directory.resolve("zeze.log"), directory.resolve("zeze.2026-09-28.log"));
 			// Clock rollback puts the new generation's begin time before the unindexed rotated tail.
-			AtomicFileWriter.replace(directory.resolve("zeze.log"),
+			AtomicFileWriter.writeAtomically(directory.resolve("zeze.log"),
 					(line(2, "active-head") + line(6, "active-tail")).getBytes(StandardCharsets.UTF_8));
 			var callback = Log4jFileManager.class.getDeclaredMethod("onFileCreated", java.nio.file.Path.class);
 			callback.setAccessible(true);

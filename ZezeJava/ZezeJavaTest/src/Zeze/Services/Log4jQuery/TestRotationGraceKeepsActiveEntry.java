@@ -61,7 +61,7 @@ public class TestRotationGraceKeepsActiveEntry {
 	@Test
 	public void testWindowQueryKeepsActiveEntry() throws Exception {
 		var logDir = Files.createTempDirectory("grace-window");
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
@@ -87,7 +87,7 @@ public class TestRotationGraceKeepsActiveEntry {
 					"current.index应为指向被接管索引的滞后链接（与rotate索引同inode）");
 
 			// watch处理CREATE(X)（case-0）：active重建，按新索引登记。
-			AtomicFileWriter.replace(logDir.resolve(Active),
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active),
 					buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
 			invokeOnFileCreated(manager, logDir.resolve(Active));
 			assertEquals(List.of(Rotated, Active), fileNamesOf(manager));
@@ -112,7 +112,7 @@ public class TestRotationGraceKeepsActiveEntry {
 	@Test
 	public void testReconcileGraceDuringBlockedRename() throws Exception {
 		var logDir = Files.createTempDirectory("grace-reconcile");
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
@@ -136,7 +136,7 @@ public class TestRotationGraceKeepsActiveEntry {
 			assertEquals(List.of(Rotated), fileNamesOf(manager), "宽限解除后缺失的active条目按常规摘除");
 
 			// active重建，下一轮对账收敛：R携重建索引在位，active按新内容索引补登。
-			AtomicFileWriter.replace(logDir.resolve(Active),
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active),
 					buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
 			invokeReconcile(manager);
 			assertEquals(List.of(Rotated, Active), fileNamesOf(manager), "收敛：active按新索引补登");

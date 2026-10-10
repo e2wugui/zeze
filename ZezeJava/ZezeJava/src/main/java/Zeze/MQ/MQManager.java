@@ -481,7 +481,7 @@ public class MQManager extends AbstractMQManager {
 			}
 			var id = (System.currentTimeMillis() << 16) | (new SecureRandom().nextInt() & 0xFFFFL);
 			// AtomicFileWriter：fsync+原子rename换版，mint中途崩溃不留半文件。
-			AtomicFileWriter.replace(file.toPath(), Long.toString(id).getBytes(StandardCharsets.UTF_8));
+			AtomicFileWriter.writeAtomically(file.toPath(), Long.toString(id).getBytes(StandardCharsets.UTF_8));
 			return id;
 		} catch (Exception e) {
 			throw new RuntimeException("load or mint managerId failed. home=" + home, e);

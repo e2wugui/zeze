@@ -104,6 +104,6 @@ public class TestR2F1WalkerOwnEntryRemoved {
 		var sb = new StringBuilder();
 		for (var i = 0; i < messages.length; ++i)
 			sb.append(base.plusSeconds(30L * i).format(fmt)).append(' ').append(messages[i]).append('\n');
-		AtomicFileWriter.replace(file, sb.toString().getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(file, sb.toString().getBytes(StandardCharsets.UTF_8));
 	}
 }

@@ -94,7 +94,7 @@ public class ExporterNginxConfig implements IExporter {
 			for (var line : lines)
 				sb.append(line).append("\n");
 			// 原子换版；move失败由failedServices补偿重试。
-			AtomicFileWriter.replace(Path.of(file), sb.toString().getBytes(StandardCharsets.UTF_8));
+			AtomicFileWriter.writeAtomically(Path.of(file), sb.toString().getBytes(StandardCharsets.UTF_8));
 			reload();
 		}
 	}

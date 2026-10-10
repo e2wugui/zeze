@@ -159,7 +159,7 @@ public class TestSeekPickSurvivesConcurrentRemovalShift {
 
 	private static void writeRotate(Path logDir, String name, LocalDateTime base,
 								   String prefix, long... offsetsSeconds) throws Exception {
-		AtomicFileWriter.replace(logDir.resolve(name),
+		AtomicFileWriter.writeAtomically(logDir.resolve(name),
 				buildLines(base, prefix, offsetsSeconds).getBytes(StandardCharsets.UTF_8));
 	}
 

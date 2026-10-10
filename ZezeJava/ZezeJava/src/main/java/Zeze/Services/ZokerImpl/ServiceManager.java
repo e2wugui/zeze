@@ -587,7 +587,7 @@ public class ServiceManager {
 				+ KEY_START + "=" + record.start + "\n"
 				+ KEY_COMMAND + "=" + record.command + "\n"
 				+ KEY_VERSION + "=" + record.version + "\n";
-		AtomicFileWriter.replace(new File(container, RUN_PID_NAME).toPath(), text.getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(new File(container, RUN_PID_NAME).toPath(), text.getBytes(StandardCharsets.UTF_8));
 	}
 
 	/** 从活句柄取现值写盘（startService 拉起路径）：version=launch 时的工作目录名。 */

@@ -19,28 +19,32 @@ public final class AtomicFileWriter {
 	}
 
 	/**
-	 * 流式写入口（大文件不得走内存全量路线）。目标父目录必须已存在。
-	 * 句柄三态：close=换版生效；abort=丢弃temp不算失败；都未调而进程死亡=留.tmp，
+	 * 长生命周期流式句柄入口（大文件不得走内存全量路线）。目标父目录必须已存在。
+	 * 句柄三态：close=换版生效（提交！）；abort=丢弃temp不算失败；都未调而进程死亡=留.tmp，
 	 * tmp皆垃圾，由调用方自行启动清扫。
+	 * <p>
+	 * 仅用于"开-写…-写-关"跨越多个方法的长生命周期流（如Hot.Distribute的jar打包：
+	 * 句柄被注册后跨多次pack写入、很晚才收尾）。一般写文件一律走{@link #writeAtomically}：
+	 * close即提交的句柄语义对try-with-resources是脚枪——主体异常后TWR的close照样发布
+	 * 残缺内容；持有本句柄的调用方必须遵守"任何失败路径先abort后不管close"的纪律。
 	 */
 	public static @NotNull AtomicOutputFile openOutput(@NotNull Path target) throws IOException {
 		return new AtomicOutputFile(target);
 	}
 
 	/**
-	 * 便捷重载：全量内容一次换版（小文件用）。
+	 * 便捷重载：全量内容一次换版（小文件用），语义与Stream版一致。
 	 */
-	public static void replace(@NotNull Path target, byte[] content) throws IOException {
-		try (AtomicOutputFile out = openOutput(target)) {
-			out.write(content);
-		}
+	public static void writeAtomically(@NotNull Path target, byte[] content) throws IOException {
+		writeAtomically(target, out -> out.write(content));
 	}
 
 	/**
 	 * 作用域式原子写：writer正常返回才换版发布；任何Throwable丢弃temp、旧目标保持。
 	 * 流式拼接（如zip）必须走这里而非裸openOutput+try-with-resources：主体中途抛出时
 	 * 底层流写入可能全部成功（流自身无失败记录），close-as-commit防线识别不了
-	 * "内容未完成"，只有作用域知道writer未正常返回。
+	 * "内容未完成"，只有作用域知道writer未正常返回。writer内不得close底层流之外再
+	 * 依赖它（close即提交，之后异常已无法撤销发布）。
 	 */
 	public static void writeAtomically(@NotNull Path target, @NotNull Stream writer) throws IOException {
 		var out = new AtomicOutputFile(target);

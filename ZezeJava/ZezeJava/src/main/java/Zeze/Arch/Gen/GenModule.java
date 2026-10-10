@@ -200,7 +200,7 @@ public final class GenModule extends ReentrantLock {
 					} else
 						System.out.println("      New File: " + file.getAbsolutePath());
 					if (oldBytes == null)
-						AtomicFileWriter.replace(file.toPath(), newBytes);
+						AtomicFileWriter.writeAtomically(file.toPath(), newBytes);
 
 				} catch (Exception e) {
 					throw new IllegalStateException("module class: " + moduleClass.getName(), e);

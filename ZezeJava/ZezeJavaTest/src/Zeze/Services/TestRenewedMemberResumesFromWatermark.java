@@ -138,7 +138,7 @@ public class TestRenewedMemberResumesFromWatermark {
 		for (var i = 0; i < count; ++i)
 			sb.append(Base.plusSeconds(10L * i).format(fmt)).append(' ')
 					.append("marker ").append(tag).append(i).append('\n');
-		AtomicFileWriter.replace(dir.resolve(LogName), sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(dir.resolve(LogName), sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
 	}
 
 	private static int countTag(BResult.Data result, String tag) {

@@ -144,7 +144,7 @@ public class TestEndTimeFilterSurvivesTimeRegression {
 		var fastBase = LocalDateTime.of(2026, 9, 28, 15, 0);
 		var realBase = LocalDateTime.of(2026, 9, 28, 14, 0);
 		// 世代1（快时钟15:00..15:59）。
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(fastBase, "g1-",
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(fastBase, "g1-",
 				0, 600, 1200, 1800, 2400, 3000, 3540).getBytes(java.nio.charset.StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
@@ -153,14 +153,14 @@ public class TestEndTimeFilterSurvivesTimeRegression {
 
 			// 第一次轮转：g1封进R1；新active先写快时钟一条（15:59:30）再回拨写（14:00:1x）。
 			Files.move(logDir.resolve(Active), logDir.resolve("zeze.2026-09-28.log"));
-			AtomicFileWriter.replace(logDir.resolve(Active), (buildLine(fastBase.plusSeconds(3570), "g2-0")
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active), (buildLine(fastBase.plusSeconds(3570), "g2-0")
 					+ buildLine(realBase.plusSeconds(10), "g2-1")
 					+ buildLine(realBase.plusSeconds(40), "g2-2"))
 					.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			invokeOnFileCreated(manager, logDir.resolve("zeze.2026-09-28.log"));
 			// 第二次轮转：g2封进R2；新active首条=回拨后时刻（14:01:00起）。
 			Files.move(logDir.resolve(Active), logDir.resolve("zeze.2026-09-29.log"));
-			AtomicFileWriter.replace(logDir.resolve(Active), buildLines(realBase.plusSeconds(60), "g3-",
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(realBase.plusSeconds(60), "g3-",
 					0, 30).getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			invokeOnFileCreated(manager, logDir.resolve("zeze.2026-09-29.log"));
 
@@ -190,7 +190,7 @@ public class TestEndTimeFilterSurvivesTimeRegression {
 	/** 单文件回退夹具：active内容[15:59:30(pre), 14:00:10(after-a), 14:00:40(after-b)]。 */
 	private static Log4jFileManager newSingleRollbackManager() throws Exception {
 		var logDir = Files.createTempDirectory("log4j-endtime-rollback");
-		AtomicFileWriter.replace(logDir.resolve(Active), (buildLines(BeforeRollback, "pre-rollback", 0)
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), (buildLines(BeforeRollback, "pre-rollback", 0)
 				+ buildLine(AfterRollbackA, "after-rollback-a")
 				+ buildLine(AfterRollbackB, "after-rollback-b"))
 				.getBytes(java.nio.charset.StandardCharsets.UTF_8));

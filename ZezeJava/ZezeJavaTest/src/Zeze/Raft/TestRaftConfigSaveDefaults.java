@@ -17,7 +17,7 @@ public class TestRaftConfigSaveDefaults {
 	@Test
 	public void testResetDefaultsSurvivesSaveAndReload() throws Exception {
 		var path = directory.resolve("raft.xml");
-		AtomicFileWriter.replace(path, """
+		AtomicFileWriter.writeAtomically(path, """
 				<raft Name="127.0.0.1:17650" AppendEntriesTimeout="3000"
 				 LeaderHeartbeatTimer="3200" ElectionRandomMax="1200"
 				 MaxAppendEntriesCount="600" SnapshotLogCount="2000000"

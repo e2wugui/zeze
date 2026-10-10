@@ -29,7 +29,7 @@ public class TestAtomicFileWriterStates {
 		var oldBytes = "old-complete-version".getBytes();
 		var newBytes = "new-complete-version".getBytes();
 
-		AtomicFileWriter.replace(target, oldBytes);
+		AtomicFileWriter.writeAtomically(target, oldBytes);
 		// 模拟"写途中死亡"的等价磁盘状态：temp残留、目标未动
 		Files.write(dir.resolve("state.bin.12345.tmp"), newBytes);
 		assertTrue(Files.exists(dir.resolve("state.bin.12345.tmp")));
@@ -61,10 +61,10 @@ public class TestAtomicFileWriterStates {
 				"只读目标拒replace是Windows语义");
 		var dir = Files.createTempDirectory("atomic-fail-");
 		var target = dir.resolve("ro.conf");
-		AtomicFileWriter.replace(target, "old".getBytes());
+		AtomicFileWriter.writeAtomically(target, "old".getBytes());
 		assertTrue(target.toFile().setReadOnly(), "置目标只读");
 		try {
-			assertThrows(IOException.class, () -> AtomicFileWriter.replace(target, "new".getBytes()),
+			assertThrows(IOException.class, () -> AtomicFileWriter.writeAtomically(target, "new".getBytes()),
 					"目标不可替换时必须失败（不得静默）");
 			assertArrayEquals("old".getBytes(), Files.readAllBytes(target));
 			assertEquals(0, countSuffix(dir, ".tmp"), "失败路径不得残留*.tmp");

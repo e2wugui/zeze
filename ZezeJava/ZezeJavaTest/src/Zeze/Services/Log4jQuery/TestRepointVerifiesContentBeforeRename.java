@@ -67,7 +67,7 @@ public class TestRepointVerifiesContentBeforeRename {
 	public void testUnrelatedRotateNotRepointed() throws Exception {
 		var logDir = Files.createTempDirectory("repoint-mispair");
 		// C1：40行×30s，构造期全量索引（beginTime=C1Base，末行offset≈1.2KB）。
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
@@ -75,7 +75,7 @@ public class TestRepointVerifiesContentBeforeRename {
 
 			// 形态构造：active真删；磁盘放入无关rotate名文件（时间窗更早、内容无关）。
 			Files.delete(logDir.resolve(Active));
-			AtomicFileWriter.replace(logDir.resolve(Junk), buildLines(JunkBase, "junk-", 5).getBytes(StandardCharsets.UTF_8));
+			AtomicFileWriter.writeAtomically(logDir.resolve(Junk), buildLines(JunkBase, "junk-", 5).getBytes(StandardCharsets.UTF_8));
 
 			try (var capture = new TestLogCapture(Log4jFileManager.class, Level.DEBUG)) {
 				// 宽限可观测（查询路径）：窗口内seek打开失败走宽限，修复前静默。
@@ -127,7 +127,7 @@ public class TestRepointVerifiesContentBeforeRename {
 	@Test
 	public void testGenuineMissedRotationStillRepointed() throws Exception {
 		var logDir = Files.createTempDirectory("repoint-genuine");
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
@@ -135,7 +135,7 @@ public class TestRepointVerifiesContentBeforeRename {
 
 			// 漏轮转形态：旧内容（=C1索引描述的内容）改名进rotate名，active重建承载更晚内容。
 			Files.move(logDir.resolve(Active), logDir.resolve(Junk));
-			AtomicFileWriter.replace(logDir.resolve(Active),
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active),
 					buildLines(C1Base.plusHours(1), "c2-", 2).getBytes(StandardCharsets.UTF_8));
 
 			invokeReconcile(manager);

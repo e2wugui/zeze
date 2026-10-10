@@ -53,9 +53,11 @@ public final class AtomicOutputFile extends OutputStream {
 	public void write(int b) throws IOException {
 		try {
 			buffered.write(b);
-		} catch (IOException e) {
+		} catch (Throwable t) {
+			// 放宽到Throwable（precise rethrow保留原类型）：IOException之外的中断
+			// （Error/RuntimeException）同样标记禁止提交——防线①不得只认IOException。
 			writeFailed = true;
-			throw e;
+			throw t;
 		}
 	}
 
@@ -63,9 +65,9 @@ public final class AtomicOutputFile extends OutputStream {
 	public void write(byte[] b, int off, int len) throws IOException {
 		try {
 			buffered.write(b, off, len);
-		} catch (IOException e) {
+		} catch (Throwable t) {
 			writeFailed = true;
-			throw e;
+			throw t;
 		}
 	}
 

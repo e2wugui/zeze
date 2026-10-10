@@ -50,7 +50,7 @@ public class TestCopyTruncateIndexSelfHeal {
 	public void before() throws Exception {
 		Task.tryInitThreadPool();
 		logDir = Files.createTempDirectory("copy-truncate-selfheal");
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		manager = newManager(logDir);
 	}
 
@@ -68,7 +68,7 @@ public class TestCopyTruncateIndexSelfHeal {
 		// copy-truncate 磁盘形态：active 原文件被重写为更短的新内容，索引仍描述旧内容——
 		// 末 offset（~1.2KB）超出新文件长度（~60B）= offset 维判据成立。
 		manager.stop();
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
 
 		invokeReconcile(manager);
 
@@ -88,7 +88,7 @@ public class TestCopyTruncateIndexSelfHeal {
 	@Test
 	public void testOffsetZeroStaleTimeIndexRebuiltOnReconcile() throws Exception {
 		manager.stop();
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
 
 		// 构造采样竞速产物：全新索引文件 + 单记录 {C1Base, 0}，直接装入 active 条目
 		// （绕过装载配对校验，直击运行期对账自检判据）。

@@ -59,7 +59,7 @@ public class TestLinkCleanupSkipsLiveEntries {
 	@Test
 	public void testRotationKeepsLiveIndexLinks() throws Exception {
 		var logDir = Files.createTempDirectory("linkcleanup-links");
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "c1-", 40).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
@@ -69,7 +69,7 @@ public class TestLinkCleanupSkipsLiveEntries {
 			Files.createFile(logDir.resolve("indexLinks").resolve("zeze.log").resolve("0"));
 			// log4j轮转磁盘形态：旧内容改名进rotate名，active重建承载新内容。
 			Files.move(logDir.resolve(Active), logDir.resolve(Rotated));
-			AtomicFileWriter.replace(logDir.resolve(Active),
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active),
 					buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
 
 			invokeOnFileCreated(manager, logDir.resolve(Rotated)); // case-1：改指+补登（补登后同步清理）
@@ -121,14 +121,14 @@ public class TestLinkCleanupSkipsLiveEntries {
 	@Test
 	public void testStaleLinksStillCleaned() throws Exception {
 		var logDir = Files.createTempDirectory("linkcleanup-stale");
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(C1Base, "c1-", 2).getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(C1Base, "c1-", 2).getBytes(StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
 			assertEquals(1, manager.size());
 			manager.stop();
 			Files.createFile(logDir.resolve("indexLinks").resolve("zeze.log").resolve("0")); // stale，无人持有
 			Files.move(logDir.resolve(Active), logDir.resolve(Rotated));
-			AtomicFileWriter.replace(logDir.resolve(Active),
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active),
 					buildLines(C2Base, "c2-", 2).getBytes(StandardCharsets.UTF_8));
 
 			invokeOnFileCreated(manager, logDir.resolve(Rotated));

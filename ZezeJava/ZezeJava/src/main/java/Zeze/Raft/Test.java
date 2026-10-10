@@ -76,20 +76,22 @@ public class Test {
 			}
 			if (logsHandle == null)
 				throw new RocksDBException("column family not found: " + raftName + ".logs");
+			final var logs = logsHandle;
 			var StateMachine = new TestStateMachine();
 			// 代际化后快照不再叫snapshot.dat，固定名检查会静默跳过装载。
 			var snapshot = findDumpSnapshot(db);
 			if (snapshot != null)
 				StateMachine._loadSnapshot(snapshot.toString());
-			try (var dumpFile = AtomicFileWriter.openOutput(Paths.get(db + ".txt"));
-				 var it1 = r1.newIterator(logsHandle, RocksDatabase.getDefaultReadOptions())) {
+			AtomicFileWriter.writeAtomically(Paths.get(db + ".txt"), dumpFile -> {
 				dumpFile.write(String.format("SnapshotCount = %d\n", StateMachine.getCount()).getBytes(StandardCharsets.UTF_8));
-				for (it1.seekToFirst(); it1.isValid(); it1.next()) {
-					var l1 = RaftLog.decode(new Binary(it1.value()), StateMachine::logFactory);
-					dumpFile.write(l1.toString().getBytes(StandardCharsets.UTF_8));
-					dumpFile.write('\n');
+				try (var it1 = r1.newIterator(logs, RocksDatabase.getDefaultReadOptions())) {
+					for (it1.seekToFirst(); it1.isValid(); it1.next()) {
+						var l1 = RaftLog.decode(new Binary(it1.value()), StateMachine::logFactory);
+						dumpFile.write(l1.toString().getBytes(StandardCharsets.UTF_8));
+						dumpFile.write('\n');
+					}
 				}
-			}
+			});
 		} finally {
 			for (var h : cfhs)
 				h.close();
@@ -753,9 +755,8 @@ public class Test {
 						var bb = ByteBuffer.Allocate();
 						logger.info("{} Snapshot Count={}", getRaft().getName(), count);
 						bb.WriteLong(count);
-						try (var file = AtomicFileWriter.openOutput(Paths.get(path))) {
-							file.write(bb.Bytes, bb.ReadIndex, bb.size());
-						}
+					AtomicFileWriter.writeAtomically(Paths.get(path),
+							file -> file.write(bb.Bytes, bb.ReadIndex, bb.size()));
 						getRaft().getLogSequence().commitSnapshot(path, result.lastIncludedIndex);
 						result.success = true;
 					}

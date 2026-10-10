@@ -29,7 +29,7 @@ public class TestAtomicFileWriterCrash {
 			var target = dir.resolve("state.bin");
 			var oldBytes = "old-complete-version".getBytes();
 			var newBytes = "new-complete-version".getBytes();
-			AtomicFileWriter.replace(target, oldBytes);
+			AtomicFileWriter.writeAtomically(target, oldBytes);
 
 			var java = ProcessHandle.current().info().command().orElse("java");
 			var child = new ProcessBuilder(java, "-cp", childClasspath(),

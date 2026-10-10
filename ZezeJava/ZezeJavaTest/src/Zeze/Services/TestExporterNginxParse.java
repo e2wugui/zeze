@@ -28,7 +28,7 @@ public class TestExporterNginxParse {
 	@Test
 	public void testInlineBlockPreservesFollowingConfigurationAndReportsReloadFailure() throws Exception {
 		var cfgFile = tempDir.resolve("nginx.conf");
-		Zeze.Util.AtomicFileWriter.replace(cfgFile,
+		Zeze.Util.AtomicFileWriter.writeAtomically(cfgFile,
 				("upstream svc { server 1.1.1.1:1; } # keep\nserver { listen 8080; }\n"
 						+ "upstream other { server 9.9.9.9:9; }\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
 		var share = new Properties();

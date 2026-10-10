@@ -751,7 +751,7 @@ public class DistributeManager {
 	 * 写 current——任何时刻读到的都是完整的旧版本号或新版本号，无截断/半内容中间态。
 	 */
 	private static void switchCurrent(File svcDir, String versionNo) throws IOException {
-		AtomicFileWriter.replace(new File(svcDir, CURRENT_NAME).toPath(), versionNo.getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(new File(svcDir, CURRENT_NAME).toPath(), versionNo.getBytes(StandardCharsets.UTF_8));
 	}
 
 	/**

@@ -67,7 +67,7 @@ public class TestRotateNewerThanActiveStillQueryable {
 	public void testClockRollbackRotationWindowSearchable() throws Exception {
 		var logDir = Files.createTempDirectory("log4j-rotate-newer-than-active");
 		// 世代1（快时钟）：15:00..15:50每10分钟一条+末条15:59。
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(FastBase, "g1-",
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(FastBase, "g1-",
 				0, 600, 1200, 1800, 2400, 3000, 3540).getBytes(java.nio.charset.StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
@@ -77,14 +77,14 @@ public class TestRotateNewerThanActiveStillQueryable {
 			// 第一次轮转：旧内容rename成R1；新active先以快时钟写一条（15:59:30），
 			// NTP回拨校正后继续写（14:00:1x）——active文件内时间倒退，头部stamp不变。
 			Files.move(logDir.resolve(Active), logDir.resolve(Rotate1));
-			AtomicFileWriter.replace(logDir.resolve(Active), buildLines(FastBase.plusSeconds(3570), "g2-",
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(FastBase.plusSeconds(3570), "g2-",
 					0, -(3570 - 10), -(3570 - 40)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			invokeOnFileCreated(manager, logDir.resolve(Rotate1)); // case-1：条目改指R1+补登新active
 			assertEquals(List.of(Rotate1, Active), fileNamesOf(manager));
 
 			// 第二次轮转：g2内容（横跨回拨点，begin=15:59:30）封进R2；新active首条=14:01:00。
 			Files.move(logDir.resolve(Active), logDir.resolve(Rotate2));
-			AtomicFileWriter.replace(logDir.resolve(Active), buildLines(RealBase.plusSeconds(60), "g3-",
+			AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(RealBase.plusSeconds(60), "g3-",
 					0, 30).getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			invokeOnFileCreated(manager, logDir.resolve(Rotate2)); // case-1：条目改指R2+补登新active
 
@@ -128,7 +128,7 @@ public class TestRotateNewerThanActiveStillQueryable {
 	public void testCopiedFutureRotateSearchableAfterReconcile() throws Exception {
 		var logDir = Files.createTempDirectory("log4j-copied-future-rotate");
 		// active：回拨校正后的正常内容（14:01起3条）。
-		AtomicFileWriter.replace(logDir.resolve(Active), buildLines(RealBase.plusSeconds(60), "a-",
+		AtomicFileWriter.writeAtomically(logDir.resolve(Active), buildLines(RealBase.plusSeconds(60), "a-",
 				0, 30, 60).getBytes(java.nio.charset.StandardCharsets.UTF_8));
 		var manager = newManager(logDir);
 		try {
@@ -136,7 +136,7 @@ public class TestRotateNewerThanActiveStillQueryable {
 			manager.stop();
 
 			// 拷入另一台时钟超前服务器的rotate名文件（内容15:00-15:59）。
-			AtomicFileWriter.replace(logDir.resolve(Copied), buildLines(FastBase, "r-",
+			AtomicFileWriter.writeAtomically(logDir.resolve(Copied), buildLines(FastBase, "r-",
 					0, 600, 1200, 1800, 2400, 3000, 3540).getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			invokeReconcile(manager); // 补登：sampleIndexHead采样+addByContentTime归位（active锚位之前）
 

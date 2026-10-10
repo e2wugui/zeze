@@ -93,7 +93,7 @@ public class Dbh2Manager {
 		raftConfig.setDbHome(dbHome.toString());
 		var file = new File(raftConfig.getDbHome(), "raft.xml");
 		// 原子落盘：Files.writeString默认截断，崩溃留半截xml。
-		AtomicFileWriter.replace(file.toPath(), raftConfigStr.getBytes(StandardCharsets.UTF_8));
+		AtomicFileWriter.writeAtomically(file.toPath(), raftConfigStr.getBytes(StandardCharsets.UTF_8));
 		dbh2s.computeIfAbsent(raftConfig.getSortedNames(), __ -> {
 			var dbh2 = new Dbh2(this, raftConfig.getName(),
 					database, raftConfig,
