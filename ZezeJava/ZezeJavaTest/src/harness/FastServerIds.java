@@ -195,6 +195,7 @@ public final class FastServerIds {
 	public static final int TEST_TOO_MANY_TRY_LAST_EXCEPTION = seg("TestTooManyTryKeepsLastException", 16375, 1);
 	public static final int TEST_FINAL_CALLBACK_ASSERTION = seg("TestFinalCallbackAssertionError", 16374, 1);
 	public static final int TEST_FLUSH_DIAGNOSTICS_KEEP_CAUSE = seg("TestFlushFailureDiagnosticsKeepCause", 16373, 1);
+	public static final int TEST_STOP_GATE_BEFORE_GLOBAL_AGENT = seg("TestStopGateBeforeGlobalAgentStop", 7730, 1);
 
 	private FastServerIds() {
 	}

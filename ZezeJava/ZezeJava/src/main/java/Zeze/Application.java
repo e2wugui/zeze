@@ -900,9 +900,10 @@ public final class Application extends ReentrantLock {
 				achillesHeelDaemon = null;
 			}
 
-			// 先停事务生产组件（delayRemove/safeBatch/timer）并等待在途任务，再关
-			// globalAgent（组件事务可能还需GCM申请锁），最后checkpoint.stopAndJoin作为终检点
-			// 收尾——保证"最后一个提交先于最后一次flush"。终检点之后到达的提交由
+			// 先停事务生产组件（delayRemove/safeBatch/timer）并等待在途任务，再关闭提交
+			// 闸门并由checkpoint.stopAndJoin收尾终检点，最后才关globalAgent（组件事务在
+			// 闸门关闭前可能还需GCM申请锁）——保证"最后一个提交先于最后一次flush"且两者
+			// 都先于NormalClose撤权（见下方"关闸先于撤权"）。关闸后到达的提交由
 			// Transaction.perform/RelativeRecordSet.tryUpdateAndCheckpoint的停机拒绝转为
 			// Closed显式失败，不再静默丢弃（假成功）。
 			if (delayRemove != null) {
@@ -919,29 +920,14 @@ public final class Application extends ReentrantLock {
 				timer = null;
 			}
 
-			// durability-before-downgrade（TableX.reduceInvalid同款不变式）：NormalClose会让
-			// GCM立即释放本server全部记录锁，他进程随后可Acquire并从后台库读旧值改写提交；
-			// 本进程上一个周期检点后累积的脏记录若在释放后才由终检点flush，旧脏值会覆盖他进程
-			// 的新值（跨进程丢更新）。组件已全停（无新事务生产者），先冲刷一轮已注册脏集再释放锁。
-			// 残余窗口（本轮回调内迟到提交，由停机拒绝转Closed）由终检点兜底，量级已从
-			// “整段停机窗口”收敛到“冲刷与NormalClose之间的微窗”。
+			// 关闸先于撤权（durability-before-downgrade，TableX.reduceInvalid同款不变式）：
+			// NormalClose会让GCM立即释放本server全部记录锁，他进程随后可Acquire并从后台库
+			// 读旧值改写提交。若提交闸门在撤权后才关闭，撤权后到关闸前的在途事务仍能取得
+			// 提交使用权并登记脏数据，其flush发生在权限释放之后——旧脏值覆盖他进程新值
+			// （跨进程丢更新）。现在组件全停后：先冲刷一轮已注册脏集，再关闸排空在途提交
+			// 并完成终检点flush（全程权限仍有效），最后才NormalClose撤权。
 			if (globalAgent != null && checkpoint != null)
-				stopStep("checkpointRun before globalAgent stop", this::checkpointRun);
-
-			if (globalAgent != null) {
-				var ga = globalAgent;
-				stopStep("globalAgent.stop", ga::stop);
-				// Releaser（GCM断连/守护Release触发的降级+checkpoint线程）不被stop
-				// 收编，其checkpointRun→flush与下方LocalRocksCacheDb.close+deleteDirectory并发
-				// 存在native UAF类窗口。关库前有界join，超时告警继续。
-				stopStep("globalAgent.awaitReleaser", () -> ga.awaitReleaser(CHECKPOINT_DRAIN_TIMEOUT_MILLIS));
-				globalAgent = null;
-			}
-			if (flushWhenReduceTimerTask != null) {
-				var task = flushWhenReduceTimerTask;
-				stopStep("flushWhenReduceTimerTask.cancel", () -> task.cancel(false));
-				flushWhenReduceTimerTask = null;
-			}
+				stopStep("checkpointRun before close commit gate", this::checkpointRun);
 
 			if (checkpoint != null) {
 				// 先撤销入口；stopAndJoin关闭提交使用权并等待已取得使用权的提交完成登记/落库，
@@ -968,6 +954,22 @@ public final class Application extends ReentrantLock {
 				if (!cp.waitNoActiveFlush(CHECKPOINT_DRAIN_TIMEOUT_MILLIS))
 					logger.error("checkpoint active flush not drained in {}ms, continue to close databases "
 						+ "(risk of close racing in-flight flush)", CHECKPOINT_DRAIN_TIMEOUT_MILLIS);
+			}
+
+			if (flushWhenReduceTimerTask != null) {
+				var task = flushWhenReduceTimerTask;
+				stopStep("flushWhenReduceTimerTask.cancel", () -> task.cancel(false));
+				flushWhenReduceTimerTask = null;
+			}
+
+			if (globalAgent != null) {
+				var ga = globalAgent;
+				stopStep("globalAgent.stop", ga::stop);
+				// Releaser（GCM断连/守护Release触发的降级+checkpoint线程）不被stop
+				// 收编，其checkpointRun→flush与下方LocalRocksCacheDb.close+deleteDirectory并发
+				// 存在native UAF类窗口。关库前有界join，超时告警继续。
+				stopStep("globalAgent.awaitReleaser", () -> ga.awaitReleaser(CHECKPOINT_DRAIN_TIMEOUT_MILLIS));
+				globalAgent = null;
 			}
 
 			// 对账守护与其他周期守护一样须在 stop 中收编：不收编则定时链经 reschedule 无条件
