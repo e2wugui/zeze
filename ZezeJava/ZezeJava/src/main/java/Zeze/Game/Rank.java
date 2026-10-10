@@ -473,8 +473,12 @@ public class Rank extends AbstractRank {
 			// 延迟到提交后发布：回滚条目永不入缓存，另一事务回滚的value也不会被本事务的
 			// 提交盖章（value若在事务内立即写共享对象，A构建、B覆盖后回滚、A提交即成
 			// "回滚值+新戳"）。发布保持先value后time的volatile写序，读者见新time必见新value。
+			// 缓存发布私有copy：局部结果交给了调用方，元素若与缓存共享，调用方改动即污染缓存
+			// 快照；merge出口的copy已保证与表隔离，这里再与局部结果隔离。copy必须在注册
+			// whileCommit之前取好——提交时才copy会带上调用方在本事务内对局部结果的改动。
+			var cachedValue = tableValue.copy();
 			Transaction.whileCommit(() -> {
-				rank.setTableValue(tableValue);
+				rank.setTableValue(cachedValue);
 				rank.setBuildTime(System.currentTimeMillis());
 			});
 			var local = new RankTotal(keyHint);
@@ -630,15 +634,16 @@ public class Rank extends AbstractRank {
 			return result;
 		}
 
-		// 合并过程中，结果是新的 BRankList，List中的 BRankValue 引用到表中。
-		// 最后 Copy 一次。
+		// 合并过程中，结果是新的 BRankList，List中的 BRankValue 引用到表中：中间只读
+		// 借用、截断只作用于新列表，不反复深拷贝。最终top-K在唯一出口copy一次——
+		// 零段/单段/多段对外一致返回独立快照：修改结果元素不得改写表内受管数据，
+		// 缓存值也不能与表共享元素（否则buildTime与内容无法解释为稳定快照）。
 		var it = datas.iterator();
 		BRankList current = it.next();
 		while (it.hasNext()) {
 			current = merge(current, it.next());
 			if (current.getRankList().size() > countNeed) {
-				// 合并中间结果超过需要的数量可以先删除。
-				// 第一个current直接引用table.data，不能删除。
+				// 合并中间结果超过需要的数量可以先删除（current已是merge产物的新列表）。
 				//noinspection ListRemoveInLoop
 				for (int ir = current.getRankList().size() - 1; ir >= countNeed; --ir)
 					current.getRankList().remove(ir);
@@ -649,6 +654,6 @@ public class Rank extends AbstractRank {
 			for (int ir = current.getRankList().size() - 1; ir >= countNeed; --ir)
 				current.getRankList().remove(ir);
 		}
-		return current;
+		return current.copy(); // 唯一出口深拷贝：结果与表彻底别名隔离
 	}
 }

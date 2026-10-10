@@ -196,6 +196,7 @@ public final class FastServerIds {
 	public static final int TEST_FINAL_CALLBACK_ASSERTION = seg("TestFinalCallbackAssertionError", 16374, 1);
 	public static final int TEST_FLUSH_DIAGNOSTICS_KEEP_CAUSE = seg("TestFlushFailureDiagnosticsKeepCause", 16373, 1);
 	public static final int TEST_STOP_GATE_BEFORE_GLOBAL_AGENT = seg("TestStopGateBeforeGlobalAgentStop", 7730, 1);
+	public static final int TEST_RANK_MERGE_SNAPSHOT_INDEPENDENT = seg("TestRankMergeSnapshotIndependent", 7740, 1);
 
 	private FastServerIds() {
 	}
