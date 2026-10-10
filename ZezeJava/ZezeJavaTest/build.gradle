@@ -91,6 +91,9 @@ tasks.register('benchCore', Test) {
     }
     workingDir = projectDir
     jvmArgs '-ea'
+    // v1.6.3 的 B（强冲突）排空速度低（日志风暴+退避睡眠时代），20万在飞任务的事务状态
+    // 撑爆 gradle Test 默认 512m 堆（首跑实证 OOM）。4g 显式声明并记入档案脚注。
+    maxHeapSize = '4g'
     systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
     // v1.6.3 回植：Jupiter 扩展自动发现（harness.TestEnvExtension 自动起 SM/GCM）。
     // 2.x master 用的 LauncherSessionListener 在本分支 gradle 8.14 下发现不了（实证），改走 Jupiter 原生机制。
@@ -98,4 +101,23 @@ tasks.register('benchCore', Test) {
     if (findProperty('useVirtualThread') != null)
         systemProperty 'useVirtualThread', findProperty('useVirtualThread')
     systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
+}
+
+// v1.6.3 回植：benchCore 的平台线程池对照组（对齐 master 2.x benchCorePlatform，仅 F 场景）。
+tasks.register('benchCorePlatform', Test) {
+    group = 'verification'
+    description = '核心基准平台线程对照组（仅 F 调度场景，-DuseVirtualThread=false）。'
+    testClassesDirs = sourceSets.main.output.classesDirs
+    classpath = sourceSets.main.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'bench & core'
+    }
+    filter.includeTestsMatching '*FDispatch*'
+    workingDir = projectDir
+    jvmArgs '-ea'
+    maxHeapSize = '4g'
+    systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
+    systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
+    systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
+    systemProperty 'useVirtualThread', 'false'
 }
