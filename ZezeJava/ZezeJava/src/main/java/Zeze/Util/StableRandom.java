@@ -76,8 +76,6 @@ public class StableRandom {
 	}
 
 	/**
-	 * min和max的差值不能超过(INT_MAX-1)
-	 *
 	 * @param min [INT_MIN, INT_MAX]
 	 * @param max [INT_MIN, INT_MAX]
 	 * @return random [min, max]
@@ -90,7 +88,13 @@ public class StableRandom {
 			min = max;
 			max = t;
 		}
-		return (int)(((next() & 0xffff_ffffL) * (max - min + 1)) >> 32) + min;
+		// 闭区间元素个数可达2^32，int正跨度表示不了：跨度一律long运算。旧的int乘法在
+		// 跨度>=2^31时溢出为负——[0,INT_MAX]产生区间外负数，全宽跨度为0恒返回MIN。
+		// delta<=2^31-1（旧有效范围）时数值与旧算术逐位一致，种子序列不变。
+		long delta = (long)max - min + 1;
+		if (delta == 0x1_0000_0000L)
+			return next(); // 全宽[INT_MIN,INT_MAX]：32位原始值即均匀覆盖
+		return (int)(((next() & 0xffff_ffffL) * delta >> 32) + min);
 	}
 
 	/**
@@ -128,8 +132,6 @@ public class StableRandom {
 	}
 
 	/**
-	 * min和max的差值不能超过(LONG_MAX-1)
-	 *
 	 * @param min [LONG_MIN, LONG_MAX]
 	 * @param max [LONG_MIN, LONG_MAX]
 	 * @return random [min, max]
@@ -142,8 +144,18 @@ public class StableRandom {
 			min = max;
 			max = t;
 		}
+		// 闭区间元素个数可达2^64：跨度long有符号表示不了。delta<=0即无符号跨度>=2^63
+		// （0为全宽）——旧的long算术此时溢出：[0,LONG_MAX]的跨度2^63成负数走进32位
+		// 乘法产生区间外值，全宽跨度为0恒返回MIN。正跨度路径与旧算术一致，种子序列不变。
 		long delta = max - min + 1L;
-		return ((delta <= Integer.MAX_VALUE) ? ((next() & 0xffff_ffffL) * delta) >> 32 : nextLong() % delta) + min;
+		if (delta == 0L)
+			return next64(); // 全宽[LONG_MIN,LONG_MAX]：64位原始值即均匀覆盖
+		if (delta > 0L)
+			return (delta <= Integer.MAX_VALUE)
+					? (((next() & 0xffff_ffffL) * delta) >> 32) + min
+					: nextLong() % delta + min;
+		// 无符号跨度(2^63,2^64)：63位的nextLong()覆盖不了，取全64位原始值做无符号取模。
+		return Long.remainderUnsigned(next64(), delta) + min;
 	}
 
 	/**
