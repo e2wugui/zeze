@@ -204,6 +204,7 @@ public final class FastServerIds {
 	public static final int TEST_RAFT_UNIQUE_REQUEST_APPLY = seg("TestRaftUniqueRequestApply", 7770, 1);
 	// growth=2：跨节点快照去重用相邻两个raftName（source=id、target=id+1）。
 	public static final int TEST_RAFT_SNAPSHOT_REQUEST_DEDUP = seg("TestRaftSnapshotRequestDedup", 7780, 2);
+	public static final int TEST_RECOVERED_APPLIED_PREFIX_PROTECTION = seg("TestRecoveredAppliedPrefixProtection", 7790, 1);
 
 	private FastServerIds() {
 	}

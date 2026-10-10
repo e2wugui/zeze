@@ -501,9 +501,8 @@ public class LogSequence {
 				database.getOrAddTable(tableName).drop();
 		}
 
-		// Rocks状态机库的终态存根表（随数据同批写入、随快照走）按同一日期分桶规则清理。
-		if (raft.getStateMachine() instanceof Rocks rocks)
-			rocks.removeExpiredUniqueStubTables(expired);
+		// 状态机库的终态存根随快照走，按相同日期分桶规则清理。
+		raft.getStateMachine().removeExpiredUniqueStubTables(expired);
 	}
 
 	void cancelPendingAppendLogFutures() throws Exception {
@@ -751,13 +750,10 @@ public class LogSequence {
 		if (!isUniqueRequestCreateTimeValid(create, now, raft.getRaftConfig().getUniqueRequestExpiredDays()))
 			return null;
 
-		// 终态存根优先（Rocks状态机侧，与数据同批原子、随快照走）：日志压缩/恢复后
-		// 仍可查到"已应用+rpcResult"。Dbh2等自定义状态机无此表，走原日志库路径。
-		if (raft.getStateMachine() instanceof Rocks rocks) {
-			var applied = rocks.getUniqueAppliedStub(raftRpc);
-			if (applied != null)
-				return applied;
-		}
+		// 终态存根优先：与业务数据原子提交，恢复或日志压缩后仍可重放原应答。
+		var applied = raft.getStateMachine().getUniqueAppliedStub(raftRpc);
+		if (applied != null)
+			return applied;
 		UniqueRequestState state = openUniqueRequests(raftRpc.getCreateTime()).getRequestState(raftRpc);
 		return state != null ? state : UniqueRequestState.NOT_FOUND;
 	}
@@ -1046,7 +1042,7 @@ public class LogSequence {
 
 			index = raftLog.getIndex() + 1;
 			try {
-				raftLog.getLog().apply(raftLog, raft.getStateMachine());
+				raft.getStateMachine().apply(raftLog);
 			} catch (Rocks.FlushException e) {
 				// flush失败：状态机已记录pendingFlush，lastApplied不推进，重试只重试flush、
 				// 不重放增量，避免双重应用。原始raftLog放回leaderAppendLogs：重试命中它时走
@@ -1057,8 +1053,8 @@ public class LogSequence {
 				}
 				throw e;
 			}
-			// Rocks的终态存根已随状态数据同批提交；其他状态机继续使用日志库的终态存根。
-			if (!(raft.getStateMachine() instanceof Rocks) && raftLog.getLog().getUnique().getRequestId() > 0) {
+			// 支持原子应用的状态机已同批提交存根；其他状态机沿用日志库路径。
+			if (!raft.getStateMachine().hasAtomicAppliedState() && raftLog.getLog().getUnique().getRequestId() > 0) {
 				try {
 					openUniqueRequests(raftLog.getLog().getCreateTime()).apply(raftLog);
 				} catch (RocksDBException e) {
@@ -1371,27 +1367,30 @@ public class LogSequence {
 	 * 校验：水位存在于[firstIndex, lastIndex]且term与日志记录一致（水位行在状态机库、日志在
 	 * 日志库，相互印证可防物理损坏/误拷贝DbHome）。校验不过返回false，调用方走全量恢复
 	 * （loadSnapshot或reset）——升级后首次重启（无水位行）、旧格式库都自然回退。
-	 * 仅Rocks状态机支持；Dbh2等自定义状态机自成一体返回false。调用时须持有raft锁
+	 * 未提供原子水位的状态机返回false。调用时须持有raft锁
 	 * （构造期单线程，天然满足）。
 	 */
 	public boolean tryRecoverFromWatermark() throws RocksDBException {
-		if (!(raft.getStateMachine() instanceof Rocks rocks))
-			return false;
-		var watermark = rocks.readAppliedWatermark();
+		var watermark = raft.getStateMachine().readAppliedWatermark();
 		if (watermark == null || watermark.index() < firstIndex || watermark.index() > lastIndex)
 			return false;
 		var logBytes = readLogBytes(watermark.index());
 		if (logBytes == null)
 			return false;
-		if (RaftLog.decodeTermIndex(logBytes).getTerm() != watermark.term())
+		var header = RaftLog.decodeTermIndex(logBytes);
+		if (header.getTerm() != watermark.term() || header.getIndex() != watermark.index())
 			return false;
 		lastApplied = watermark.index();
-		// commitIndex保持firstIndex起步由Raft流程重新推导（与restore后的语义一致）；
-		// 重放触发机制不变：tryStartApplyTask以lastApplied为起点，(firstIndex, watermark]
-		// 已在盘上、不会被再次应用。
+		// 应用水位证明此前缀已提交，恢复提交下界以保护它不被冲突日志截断。
+		commitIndex = Math.max(commitIndex, lastApplied);
 		logger.info("{} incremental recover from applied watermark: lastApplied={} firstIndex={} lastIndex={}",
 				raft.getName(), lastApplied, firstIndex, lastIndex);
 		return true;
+	}
+
+	/** 调用方持有Raft锁；后台apply可能落后于commitIndex，两个前缀都不能回退。 */
+	boolean isSnapshotStale(long lastIncludedIndex) {
+		return lastIncludedIndex < Math.max(commitIndex, lastApplied);
 	}
 
 	long endReceiveInstallSnapshot(ReceiveSnapshotting.Entry entry, InstallSnapshot r) throws Exception {
@@ -1417,6 +1416,11 @@ public class LogSequence {
 					ReceiveSnapshotting.tryDelete(entry.path, "endReceiveInstallSnapshot");
 					r.Result.setTerm(term);
 					return 0; // leader 发现 term 更高自行退位/回溯重试（见 InstallSnapshotState.processResult）
+				}
+				// 接收期间AppendEntries可能已推进提交或应用状态，旧快照成功忽略。
+				if (isSnapshotStale(r.Argument.getLastIncludedIndex())) {
+					ReceiveSnapshotting.tryDelete(entry.path, "stale snapshot");
+					return 0;
 				}
 				// 本地快照进行中（重阶段在锁外写backupDir）：重置会与快照并发操作同一backupDir，
 				// 且loadSnapshot失败留下"日志已重置、状态机未恢复"的不可自愈状态。应答冲突码，
@@ -1461,14 +1465,6 @@ public class LogSequence {
 				var last = readLog(r.Argument.getLastIncludedIndex());
 				if (last != null && last.getTerm() == r.Argument.getLastIncludedTerm()) {
 					logger.warn("Exist Local Log. Do It Like A Local Snapshot!");
-					// 防御：边界低于commitIndex时复位会回退已apply的数据，正常不会发生
-					// （完好日志会被AppendEntries先行补齐），一旦发生说明别处有bug。
-					if (r.Argument.getLastIncludedIndex() < commitIndex) {
-						logger.fatal("{} InstallSnapshot(ExistLog) LastIncludedIndex={} < commitIndex={},"
-										+ " there must be a bug.",
-								raft.getName(), r.Argument.getLastIncludedIndex(), commitIndex, new Exception());
-						raft.fatalKill();
-					}
 					commitSnapshotNow(entry.path, r.Argument.getLastIncludedIndex());
 					// 恢复语义补全：本分支由"上次同边界收尾中途失败后的重装"进入——收尾在
 					// commitSnapshotNow处崩溃后，logs只含边界日志X而内存索引与状态机停在旧边界。
@@ -1493,13 +1489,6 @@ public class LogSequence {
 					// NodeReady：快照是多数派提交产物，装载成功即持有已提交状态。
 					trySetNodeReady();
 					return 0;
-				}
-				// 防御：边界低于commitIndex时丢弃日志会回退已apply的数据，正常不会发生，
-				// 一旦发生说明别处有bug。
-				if (r.Argument.getLastIncludedIndex() < commitIndex) {
-					logger.fatal("{} InstallSnapshot LastIncludedIndex={} < commitIndex={}, there must be a bug.",
-							raft.getName(), r.Argument.getLastIncludedIndex(), commitIndex, new Exception());
-					raft.fatalKill();
 				}
 				// 7. Discard the entire log：整个删除后下一次AppendEntries找不到prev，
 				// 所以最后一个trunk带上LastIncludedLog，接收者清除log后插入这条边界日志。

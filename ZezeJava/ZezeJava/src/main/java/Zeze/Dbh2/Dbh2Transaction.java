@@ -126,18 +126,23 @@ public class Dbh2Transaction implements Closeable {
 	public void prepareBatch(Bucket bucket) throws RocksDBException {
 		var value = ByteBuffer.encode(batch);
 		var tidBytes = transBlobKey(batch.getTid());
-		bucket.getTrans().put(tidBytes, 0, tidBytes.length, value.Bytes, value.ReadIndex, value.WriteIndex);
+		bucket.put(bucket.getTrans(), tidBytes, 0, tidBytes.length, value.Bytes, value.ReadIndex, value.WriteIndex);
 	}
 
 	/** 墓碑marker落盘：空值put幂等（apply重放/重复墓碑化安全），与blob共存于trans列族，
 	 * loadSnapshot据此分态重建。 */
 	public void markTombstoned(Bucket bucket) throws RocksDBException {
 		var marker = transTombstoneMarkerKey(batch.getTid());
-		bucket.getTrans().put(bucket.getWriteOptions(), marker, 0, marker.length, ByteBuffer.Empty, 0, 0);
+		bucket.put(bucket.getTrans(), marker, 0, marker.length, ByteBuffer.Empty, 0, 0);
 	}
 
 	public void undoBatch(Bucket bucket) throws RocksDBException {
-		// blob与marker同批删除（终局原子）；独立newBatch，不占用apply路径独占的共享batch。
+		if (bucket.isApplying()) {
+			bucket.delete(bucket.getTrans(), transBlobKey(batch.getTid()));
+			bucket.delete(bucket.getTrans(), transTombstoneMarkerKey(batch.getTid()));
+			return;
+		}
+		// 直接调用也保持blob与marker同批删除。
 		try (var b = bucket.getDb().newBatch()) {
 			var tidBytes = transBlobKey(batch.getTid());
 			bucket.getTrans().delete(b, tidBytes, 0, tidBytes.length);
@@ -149,7 +154,8 @@ public class Dbh2Transaction implements Closeable {
 
 	public void commitBatch(Bucket bucket) throws RocksDBException {
 		var b = bucket.getBatch();
-		b.clear();
+		if (!bucket.isApplying())
+			b.clear(); // apply的批次可能已含同步队列，不得清空
 		for (var put : batch.getPuts().entrySet()) {
 			var key = put.getKey();
 			var value = put.getValue();
@@ -165,7 +171,8 @@ public class Dbh2Transaction implements Closeable {
 		var markerBytes = transTombstoneMarkerKey(batch.getTid());
 		bucket.getTrans().delete(b, markerBytes, 0, markerBytes.length);
 
-		b.commit(bucket.getWriteOptions());
+		if (!bucket.isApplying())
+			b.commit(bucket.getWriteOptions());
 	}
 
 	/**

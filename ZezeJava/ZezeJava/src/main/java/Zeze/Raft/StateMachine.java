@@ -3,6 +3,9 @@ package Zeze.Raft;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import Zeze.Util.LongConcurrentHashMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.rocksdb.RocksDBException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -40,6 +43,36 @@ public abstract class StateMachine extends ReentrantLock {
 		logger.fatal("Unknown Log: {}", logTypeId, new Exception());
 		raft.fatalKill();
 		return null;
+	}
+
+	/** 一条日志的应用入口；持久化状态机可将业务修改与应用完成事实同批提交。调用方持有Raft锁。 */
+	public void apply(@NotNull RaftLog log) throws Exception {
+		log.getLog().apply(log, this);
+	}
+
+	/** 内部心跳可能触发leader-ready回调，原子状态机须先提交水位再触发它。 */
+	protected static boolean isHeartbeatLog(RaftLog log) {
+		return log.getLog() instanceof HeartbeatLog;
+	}
+
+	/** 水位必须与该索引的业务数据、终态存根在同一批次提交，不能仅单独记录lastApplied。 */
+	public record AppliedWatermark(long index, long term) {
+	}
+
+	public @Nullable AppliedWatermark readAppliedWatermark() throws RocksDBException {
+		return null;
+	}
+
+	/** 为true时，apply已经将unique终态存根与业务状态原子提交到状态机库。 */
+	public boolean hasAtomicAppliedState() {
+		return false;
+	}
+
+	public @Nullable UniqueRequestState getUniqueAppliedStub(@NotNull IRaftRpc rpc) throws RocksDBException {
+		return null;
+	}
+
+	public void removeExpiredUniqueStubTables(long expired) throws Exception {
 	}
 
 	// 把 StateMachine 里面的数据系列化到 path 指定的文件中。
@@ -96,13 +129,15 @@ public abstract class StateMachine extends ReentrantLock {
 	public abstract void loadSnapshot(String path) throws Exception;
 
 	/**
-	 * 启动恢复钩子：Raft构造器发现已提交快照时调用。默认loadSnapshot全量恢复
-	 * （解压+restore整库拷贝）。需要增量恢复的状态机重写：先打开本地库，内容可
-	 * 自描述校验时跳过restore仅定位重放起点，校验不过回退loadSnapshot。
+	 * 启动恢复钩子：snapshotFile为null表示尚无已提交快照。默认从快照全量恢复，
+	 * 无快照时reset。支持应用水位的状态机先校验本地库，失败再走默认恢复。
 	 * InstallSnapshot的接收路径不走这里（语义不同：必须以传入快照为准）。
 	 */
-	public void recover(String snapshotFile) throws Exception {
-		loadSnapshot(snapshotFile);
+	public void recover(@Nullable String snapshotFile) throws Exception {
+		if (snapshotFile != null)
+			loadSnapshot(snapshotFile);
+		else
+			reset();
 	}
 
 	/**

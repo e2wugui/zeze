@@ -146,6 +146,12 @@ Leader 通过 `AppendEntries` 将日志复制到所有 Follower：
 
 `snapshotCommitDelayed` 配置可以在快照后延时提交，用于保护日志不被过早截断。
 
+### 应用水位恢复
+
+Java `StateMachine` 提供 `apply(RaftLog)`、`readAppliedWatermark()` 和请求终态存根接口。支持原子应用的状态机须将业务修改、水位 `(index, term)` 与终态存根同批提交，并通过 `hasAtomicAppliedState()` 声明该能力；普通状态机保留原日志应用和日志库去重路径。RocksRaft 与 Dbh2 使用状态机库保存水位及终态存根。
+
+Raft 启动时总是调用 `recover(snapshotFile)`，无已提交快照时参数为 `null`。水位校验通过后从该位置恢复 `lastApplied`，同时以水位恢复 `commitIndex` 的下界，防止已应用前缀被冲突日志截断。水位缺失、越界或与日志头不匹配时，状态机回退快照恢复或无快照 reset。收到的 InstallSnapshot 仍走快照装载；边界小于 `max(commitIndex, lastApplied)` 的旧快照成功忽略并清理接收文件，最终安装前再次检查。这样既保护已应用的数据，也保护后台 apply 尚未处理的已提交日志，避免分块接收期间进度推进造成状态回退或误触发致命错误。
+
 ## RaftConfig 配置
 
 RaftConfig 通过 XML 文件加载，支持以下关键参数：

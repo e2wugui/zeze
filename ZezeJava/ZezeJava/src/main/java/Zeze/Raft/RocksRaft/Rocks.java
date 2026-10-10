@@ -149,11 +149,9 @@ public final class Rocks extends StateMachine implements Closeable {
 	// 物理拷贝内容与水位原子一致，不存在"内容超前fence"窗口；FlushException补偿窗口
 	// （内存已改、批次未提交）期间水位停在上一条已提交日志，内容同样停在上一条，仍一致。
 	// 行不存在=升级后首次apply前的理论窗口，checkpoint走legacy回退。
-	public record AppliedWatermark(long index, long term) {
-	}
-
 	private static final byte[] appliedWatermarkKey = {0};
 
+	@Override
 	public @Nullable AppliedWatermark readAppliedWatermark() throws RocksDBException {
 		var bytes = appliedWatermarkTable.get(RocksDatabase.getDefaultReadOptions(),
 				appliedWatermarkKey, 0, appliedWatermarkKey.length);
@@ -161,6 +159,11 @@ public final class Rocks extends StateMachine implements Closeable {
 			return null;
 		var bb = ByteBuffer.Wrap(bytes);
 		return new AppliedWatermark(bb.ReadLong(), bb.ReadLong());
+	}
+
+	@Override
+	public boolean hasAtomicAppliedState() {
+		return true;
 	}
 
 	private void putAppliedWatermark(RocksDatabase.Batch batch, RaftLog raftLog) throws RocksDBException {
@@ -229,6 +232,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	/** 终态存根查询（LogSequence.tryGetRequestState双读的状态机侧）。表不存在返回null。 */
+	@Override
 	public @Nullable UniqueRequestState getUniqueAppliedStub(@NotNull IRaftRpc raftRpc) throws RocksDBException {
 		var table = storage.getTableMap().get(uniqueAppliedTableName(raftRpc.getCreateTime())); // 只读查询不建CF
 		if (table == null)
@@ -245,6 +249,7 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	// 状态机库终态存根表的过期清理（对齐LogSequence.removeExpiredUniqueRequestSet的
 	// 日期分桶TTL）：表名同规则解析，过期即drop整表。
+	@Override
 	public void removeExpiredUniqueStubTables(long expired) throws Exception {
 		for (var tableName : storage.getTableMap().keySet()) {
 			var date = LogSequence.parseUniqueRequestDate(uniqueAppliedTablePrefix, tableName);
@@ -720,7 +725,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	 * 回退全量loadSnapshot——其restore内部重建库，此处openDb幂等无害。
 	 */
 	@Override
-	public void recover(String snapshotFile) throws Exception {
+	public void recover(@Nullable String snapshotFile) throws Exception {
 		try {
 			if (storage == null)
 				openDb();
@@ -731,7 +736,7 @@ public final class Rocks extends StateMachine implements Closeable {
 			logger.warn("{} incremental recover failed, restore committed snapshot: {}",
 					getRaft().getName(), snapshotFile, e);
 		}
-		loadSnapshot(snapshotFile);
+		super.recover(snapshotFile);
 	}
 
 	/**

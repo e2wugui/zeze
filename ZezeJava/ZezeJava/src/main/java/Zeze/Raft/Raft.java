@@ -364,16 +364,10 @@ public final class Raft {
 		registerInternalRpc();
 
 		var snapshot = logSequence.getCommittedSnapshotFile();
-		if (new File(snapshot).isFile()) {
-			// 启动恢复：默认loadSnapshot全量恢复；Rocks重写recover——状态机库内容可由
-			// 应用水位自描述校验时跳过O(库大小)的解压+restore拷贝，仅重放(水位, lastIndex]。
-			long t = System.nanoTime();
-			sm.recover(snapshot);
-			logger.info("Raft {} recover time={}ms", getName(), (System.nanoTime() - t) / 1_000_000);
-		} else {
-			sm.reset();
-			logger.info("Raft {} reset state machine.", getName());
-		}
+		// 首次快照前也可从原子应用水位恢复；默认状态机无快照仍reset。
+		long t = System.nanoTime();
+		sm.recover(new File(snapshot).isFile() ? snapshot : null);
+		logger.info("Raft {} recover time={}ms", getName(), (System.nanoTime() - t) / 1_000_000);
 
 		ShutdownHook.add(this, () -> {
 			logger.info("Raft {} ShutdownHook begin", getName());
@@ -426,6 +420,14 @@ public final class Raft {
 			}
 			leaderId = r.Argument.getLeaderId();
 			logSequence.setLeaderActiveTime(System.currentTimeMillis());
+
+			// 已提交或已应用前缀内的旧快照只需确认，接收安装会回退状态或截断提交日志。
+			// 等于两者上界仍允许重装：同边界失败恢复及去重快照再生成均依赖它。
+			if (logSequence.isSnapshotStale(r.Argument.getLastIncludedIndex())) {
+				receiveSnapshotting.discard(r.Argument.getLastIncludedIndex());
+				r.SendResultCode(0);
+				return 0;
+			}
 
 			// 本地快照进行中（重阶段在锁外写 backupDir）时拒绝新安装的首块：
 			// 接收完成后的状态机重置会与本地快照并发操作同一 backupDir，失败不可自愈。

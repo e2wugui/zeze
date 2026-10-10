@@ -22,7 +22,7 @@ public class LogSplitPut extends Log {
 	}
 
 	public LogSplitPut(SplitPut req) {
-		super(null);
+		super(req);
 		if (null != req)
 			puts = req.Argument;
 	}

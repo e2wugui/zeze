@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -14,14 +15,21 @@ import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Builtin.Dbh2.BSplitPut;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
+import Zeze.Raft.IRaftRpc;
 import Zeze.Raft.Raft;
+import Zeze.Raft.RaftLog;
+import Zeze.Raft.UniqueRequestState;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.TaskSpec;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.WriteOptions;
 
 /**
  * Dbh2 桶的 Raft 状态机：apply 各类日志到桶存储，管理桶内事务与负载统计。
@@ -30,6 +38,15 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	private static final Logger logger = LogManager.getLogger(Dbh2StateMachine.class);
 	private Bucket bucket;
 	private TidAllocator tidAllocator;
+	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
+	private RocksDatabase.Table appliedWatermarkTable;
+	private static final byte[] AppliedWatermarkKey = {0};
+	private static final String UniqueAppliedPrefix = "Zeze.Dbh2.UniqueApplied";
+	private boolean driveSplitSyncAfterApply;
+	private boolean triggerNoTransactionAfterApply;
+	private boolean publishTidRangeAfterApply;
+	private long tidRangeStart;
+	private long tidRangeEnd;
 	private final ConcurrentHashMap<Long, Dbh2Transaction> transactions = new ConcurrentHashMap<>();
 
 	// 分桶事务同步持久队列（dbh2-01）：复用bucket的meta列族，key首字节区分用途（既有meta键
@@ -274,6 +291,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	// 提交先于装载⇒先注册⇒过闸看到非空事务而推迟），内联运行会破坏该序，晚注册事务
 	// 落入迁出键域的写入被收尾deleteToEnd静默丢弃。
 	private void triggerNoTransactionIf() {
+		if (bucket.isApplying()) {
+			triggerNoTransactionAfterApply = true;
+			return;
+		}
 		Runnable handle;
 		noTransactionLock.lock();
 		try {
@@ -303,12 +324,14 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		if (bucket != null)
 			return;
 		bucket = new Bucket(getRaft().getRaftConfig());
+		bucket.setWriteOptions(writeOptions);
 		tidAllocator = new TidAllocator();
 		// 同步队列依附bucket的meta列族打开，并从落盘状态恢复序号/水位（restore路径同样经此重开）。
 		try {
 			splitSyncTable = bucket.getDb().getOrAddTable("meta");
+			appliedWatermarkTable = bucket.getDb().getOrAddTable("Zeze.Dbh2.AppliedWatermark");
 		} catch (RocksDBException e) {
-			throw new RuntimeException(e); // 与Bucket构造同形态：打开期rocksdb失败即建桶失败
+			throw Task.forceThrow(e);
 		}
 		splitSyncSeq = readSplitSyncCounter(SplitSyncSeqKey);
 		splitSyncWatermark = readSplitSyncCounter(SplitSyncWatermarkKey);
@@ -323,12 +346,108 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			commitAgent = new CommitAgent();
 	}
 
+	public void setWriteOptions(WriteOptions options) {
+		writeOptions = options;
+		if (bucket != null)
+			bucket.setWriteOptions(options);
+	}
+
+	@Override
+	public boolean hasAtomicAppliedState() {
+		return true;
+	}
+
+	@Override
+	public @Nullable AppliedWatermark readAppliedWatermark() throws RocksDBException {
+		var bytes = appliedWatermarkTable.get(AppliedWatermarkKey);
+		if (bytes == null)
+			return null;
+		var bb = ByteBuffer.Wrap(bytes);
+		return new AppliedWatermark(bb.ReadLong(), bb.ReadLong());
+	}
+
+	private static String uniqueAppliedTableName(long createTime) {
+		return LogSequence.makeUniqueRequestTableName(UniqueAppliedPrefix,
+				LogSequence.toUniqueRequestKey(new Date(createTime)));
+	}
+
+	@Override
+	public @Nullable UniqueRequestState getUniqueAppliedStub(@NotNull IRaftRpc rpc) throws RocksDBException {
+		var table = bucket.getDb().getTableMap().get(uniqueAppliedTableName(rpc.getCreateTime()));
+		if (table == null)
+			return null;
+		var key = ByteBuffer.Allocate();
+		rpc.getUnique().encode(key);
+		var bytes = table.get(key.Bytes, 0, key.WriteIndex);
+		if (bytes == null)
+			return null;
+		var state = new UniqueRequestState();
+		state.decode(ByteBuffer.Wrap(bytes));
+		return state;
+	}
+
+	@Override
+	public void removeExpiredUniqueStubTables(long expired) throws Exception {
+		for (var table : bucket.getDb().getTableMap().values()) {
+			var date = LogSequence.parseUniqueRequestDate(UniqueAppliedPrefix, table.getName());
+			if (date != null && date.getTime() < expired)
+				table.drop();
+		}
+	}
+
+	@Override
+	public void apply(@NotNull RaftLog holder) throws Exception {
+		// ACK只写投递水位，不得插进队列换代与本批提交之间；poll也在此锁下读已提交队列。
+		splitSyncLock.lock();
+		try {
+			bucket.beginApply();
+			driveSplitSyncAfterApply = triggerNoTransactionAfterApply = false;
+			publishTidRangeAfterApply = false;
+			try {
+				// leader-ready回调可能发起分桶恢复，须等应用完成事实落盘后触发。
+				if (!isHeartbeatLog(holder))
+					super.apply(holder);
+				var batch = bucket.getBatch();
+				if (holder.getLog().getUnique().getRequestId() > 0) {
+					var key = ByteBuffer.Allocate();
+					holder.getLog().getUnique().encode(key);
+					var value = ByteBuffer.encode(new UniqueRequestState(holder, true));
+					bucket.getDb().getOrAddTable(uniqueAppliedTableName(holder.getLog().getCreateTime()))
+							.put(batch, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
+				}
+				var watermark = ByteBuffer.Allocate(16);
+				watermark.WriteLong(holder.getIndex());
+				watermark.WriteLong(holder.getTerm());
+				appliedWatermarkTable.put(batch, AppliedWatermarkKey, 0, AppliedWatermarkKey.length,
+						watermark.Bytes, 0, watermark.WriteIndex);
+				batch.commit(bucket.getWriteOptions());
+				if (publishTidRangeAfterApply)
+					tidAllocator.setRange(tidRangeStart, tidRangeEnd);
+			} catch (Throwable e) {
+				// 内存已改变而批次未完成时不能继续服务或原地重试，沿用dbh2的致命apply语义。
+				logger.fatal("dbh2 apply failed at index={}", holder.getIndex(), e);
+				getRaft().fatalKill();
+				throw Task.forceThrow(e);
+			} finally {
+				bucket.endApply();
+			}
+		} finally {
+			splitSyncLock.unlock();
+		}
+		if (isHeartbeatLog(holder))
+			super.apply(holder);
+		if (triggerNoTransactionAfterApply)
+			triggerNoTransactionIf();
+		if (driveSplitSyncAfterApply)
+			dbh2.driveSplitSync();
+	}
+
 	private long readSplitSyncCounter(byte[] key) {
 		try {
 			var value = splitSyncTable.get(key);
 			return null == value ? 0 : ByteBuffer.Wrap(value).ReadLong8BE();
 		} catch (RocksDBException e) {
-			throw new RuntimeException(e); // 与Bucket构造同形态：打开期rocksdb读失败即建桶失败
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -418,7 +537,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			clearSplitSyncQueue(); // 迁移完结：义务已全部送达（endSplit0门槛），队列随世代消亡
 
 			it.seekToFirst(); // meta已死，安全回收全部数据
-			bucket.getData().deleteToEnd(it);
+			bucket.deleteToEnd(it);
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -437,7 +556,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			clearSplitSyncQueue(); // 迁移完结：义务已全部送达（endSplit0门槛），队列随世代消亡
 
 			it.seek(from.getKeyLast().copyIf()); // meta已收窄，安全回收[M,∞)
-			bucket.getData().deleteToEnd(it);
+			bucket.deleteToEnd(it);
 		} catch (RocksDBException e) {
 			logger.error("", e);
 			getRaft().fatalKill();
@@ -451,7 +570,13 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			var start = bucket.getTid();
 			var end = start + range;
 			bucket.setTid(end);
-			tidAllocator.setRange(start, end);
+			if (bucket.isApplying()) {
+				// volatile区间可绕过Raft锁发号，必须在上界与水位落盘后才发布。
+				publishTidRangeAfterApply = true;
+				tidRangeStart = start;
+				tidRangeEnd = end;
+			} else
+				tidAllocator.setRange(start, end);
 		} catch (RocksDBException ex) {
 			logger.error("", ex);
 			getRaft().fatalKill();
@@ -494,7 +619,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			committingHangWarnedTids.remove(tid); // 悬挂告警集合随事务完结回收（有界性）
 			if (null != txn) {
 				// 分桶中的事务同步：入队（持久、可靠重投）替代原急切rpc（dbh2-01）。入队先于本地
-				// 落盘：两写在同一apply内，崩溃经raft重放整体重演，先后无原子性要求。
+				// 落盘：队列与数据、事务终局、水位在外层apply批次原子提交。
 				enqueueSplitSync(txn.getBatch());
 				txn.commitBatch(bucket);
 			} else {
@@ -569,19 +694,21 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 		if (puts.isEmpty())
 			return;
-		// 记录先写、计数器后写：两写间崩溃时raft重放本条日志，seq按持久计数器重算，同seq重写同内容
-		//（幂等）；极端交错至多多出一条同内容重复记录，重复投递幂等无害。
+		// 记录与计数器加入同一apply批次，提交后才唤醒投递链。
 		var seq = splitSyncSeq + 1;
 		var bb = ByteBuffer.Allocate();
 		new BSplitPut.Data(true, puts).encode(bb);
 		var key = splitSyncRecordKey(seq);
-		splitSyncTable.put(bucket.getWriteOptions(), key, 0, key.length, bb.Bytes, bb.ReadIndex, bb.WriteIndex);
+		bucket.put(splitSyncTable, key, 0, key.length, bb.Bytes, bb.ReadIndex, bb.WriteIndex);
 		splitSyncSeq = seq;
 		var seqBb = ByteBuffer.Allocate(8);
 		seqBb.WriteLong8BE(seq);
-		splitSyncTable.put(bucket.getWriteOptions(), SplitSyncSeqKey, 0, SplitSyncSeqKey.length, seqBb.Bytes, 0, 8);
+		bucket.put(splitSyncTable, SplitSyncSeqKey, 0, SplitSyncSeqKey.length, seqBb.Bytes, 0, 8);
 		// 唤醒投递链（非阻塞；直发还是围栏延迟由Dbh2.driveSplitSync自决）。
-		dbh2.driveSplitSync();
+		if (bucket.isApplying())
+			driveSplitSyncAfterApply = true;
+		else
+			dbh2.driveSplitSync();
 	}
 
 	public static final class SplitSyncBatch {
@@ -602,26 +729,31 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	// 世代戳在读取任何队列状态之前快照：与并发clear（apply线程）的交错中，旧世代记录要么
 	// 携旧戳（ACK被拒，见advanceSplitSyncWatermark）要么已不可见（迭代器晚于删除创建，返回空）。
 	public SplitSyncBatch pollSplitSync(int maxCount) {
-		var generation = splitSyncGeneration;
-		var watermark = splitSyncWatermark;
-		if (watermark >= splitSyncSeq)
-			return null;
-		var puts = new HashMap<Binary, Binary>();
-		long lastSeq = watermark;
-		try (var it = splitSyncTable.iterator()) {
-			it.seek(splitSyncRecordKey(watermark + 1));
-			for (var count = 0; it.isValid() && count < maxCount; it.next()) {
-				var key = it.key();
-				if (key.length != 9 || key[0] != SplitSyncRecordPrefix)
-					break; // 越出记录键域（{6}/{7}或其他meta键）：seq连续下不会发生，防御截断
-				var record = new BSplitPut.Data();
-				record.decode(ByteBuffer.Wrap(it.value()));
-				puts.putAll(record.getPuts());
-				lastSeq = ByteBuffer.Wrap(key, 1, 8).ReadLong8BE();
-				count++;
+		splitSyncLock.lock();
+		try {
+			var generation = splitSyncGeneration;
+			var watermark = splitSyncWatermark;
+			if (watermark >= splitSyncSeq)
+				return null;
+			var puts = new HashMap<Binary, Binary>();
+			long lastSeq = watermark;
+			try (var it = splitSyncTable.iterator()) {
+				it.seek(splitSyncRecordKey(watermark + 1));
+				for (var count = 0; it.isValid() && count < maxCount; it.next()) {
+					var key = it.key();
+					if (key.length != 9 || key[0] != SplitSyncRecordPrefix)
+						break;
+					var record = new BSplitPut.Data();
+					record.decode(ByteBuffer.Wrap(it.value()));
+					puts.putAll(record.getPuts());
+					lastSeq = ByteBuffer.Wrap(key, 1, 8).ReadLong8BE();
+					count++;
+				}
 			}
+			return lastSeq == watermark ? null : new SplitSyncBatch(new BSplitPut.Data(true, puts), lastSeq, generation);
+		} finally {
+			splitSyncLock.unlock();
 		}
-		return lastSeq == watermark ? null : new SplitSyncBatch(new BSplitPut.Data(true, puts), lastSeq, generation);
 	}
 
 	// 投递ACK后推进水位。世代失配=本批取自已清空换代的旧队列（EndSplit/EndMove/SetSplittingMeta
@@ -646,10 +778,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		try {
 			if (seq <= splitSyncWatermark)
 				return;
-			splitSyncWatermark = seq;
 			var bb = ByteBuffer.Allocate(8);
 			bb.WriteLong8BE(seq);
 			splitSyncTable.put(bucket.getWriteOptions(), SplitSyncWatermarkKey, 0, SplitSyncWatermarkKey.length, bb.Bytes, 0, 8);
+			splitSyncWatermark = seq;
 		} finally {
 			splitSyncLock.unlock();
 		}
@@ -673,11 +805,11 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					var key = it.key();
 					if (key.length != 9 || key[0] != SplitSyncRecordPrefix)
 						break;
-					splitSyncTable.delete(bucket.getWriteOptions(), key, 0, key.length);
+					bucket.delete(splitSyncTable, key);
 				}
 			}
-			splitSyncTable.delete(bucket.getWriteOptions(), SplitSyncSeqKey, 0, SplitSyncSeqKey.length);
-			splitSyncTable.delete(bucket.getWriteOptions(), SplitSyncWatermarkKey, 0, SplitSyncWatermarkKey.length);
+			bucket.delete(splitSyncTable, SplitSyncSeqKey);
+			bucket.delete(splitSyncTable, SplitSyncWatermarkKey);
 			splitSyncSeq = 0;
 			splitSyncWatermark = 0;
 			// 单写者=apply线程串行（见字段区线程约束），++无丢失更新，volatile只为跨线程读可见
@@ -738,14 +870,33 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			}
 		}
 		transactions.clear();
+		undonePending.clear();
+		committingHangWarnedTids.clear();
+		noTransactionLock.lock();
+		try {
+			noTransactionHandle = null;
+		} finally {
+			noTransactionLock.unlock();
+		}
 
-		if (bucket != null) {
-			try {
-				bucket.close();
-			} catch (Exception e) {
-				logger.error("", e);
+		splitSyncLock.lock();
+		try {
+			if (splitSyncSeq != 0 || splitSyncWatermark != 0)
+				splitSyncGeneration++; // restore使旧库的在途ACK失效；空队列没有在途批次
+			if (bucket != null) {
+				writeOptions = bucket.getWriteOptions();
+				try {
+					bucket.close();
+				} catch (Exception e) {
+					logger.error("", e);
+				}
+				bucket = null;
 			}
-			bucket = null;
+			appliedWatermarkTable = null;
+			splitSyncTable = null;
+			splitSyncSeq = splitSyncWatermark = 0;
+		} finally {
+			splitSyncLock.unlock();
 		}
 
 		if (null != timer) {
@@ -769,8 +920,30 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 	@Override
 	public void reset() {
-		var path = Path.of(getDbHome(), "statemachine").toAbsolutePath().toFile();
-		LogSequence.deletedDirectoryAndCheck(path, 100);
+		getRaft().lock();
+		try {
+			close();
+			var path = Path.of(getDbHome(), "statemachine").toAbsolutePath().toFile();
+			LogSequence.deletedDirectoryAndCheck(path, 100);
+			openBucket();
+		} catch (Exception e) {
+			throw Task.forceThrow(e);
+		} finally {
+			getRaft().unlock();
+		}
+	}
+
+	@Override
+	public void recover(@Nullable String snapshotFile) throws Exception {
+		try {
+			openBucket();
+			loadTransactions(); // 水位定位前装载，装载失败不能留下超前的lastApplied
+			if (getRaft().getLogSequence().tryRecoverFromWatermark())
+				return;
+		} catch (RocksDBException | IllegalStateException e) {
+			logger.warn("{} local state invalid, recover from snapshot or reset", getRaft().getName(), e);
+		}
+		super.recover(snapshotFile);
 	}
 
 	@Override
@@ -783,7 +956,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		Zeze.Raft.RocksRaft.Rocks.extractZipToDirectory(path, backupDir);
 
 		restore(backupDir);
+		loadTransactions();
+	}
 
+	private void loadTransactions() throws RocksDBException {
 		// load exist transaction
 		// 分态重建：第一遍收集墓碑marker的tid集（trans键形态见Dbh2Transaction），第二遍
 		// 逐blob重建——marker命中走无锁墓碑重建（墓碑窗自装载时刻保守重启，复活能力跨
@@ -795,6 +971,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 				if (null != tid)
 					tombstoned.add(tid);
 			}
+			it.status();
 		}
 		try (var it = bucket.getTrans().iterator()) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
@@ -818,6 +995,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					}
 				}
 			}
+			it.status();
 		}
 	}
 
@@ -828,9 +1006,15 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		Raft raft = getRaft();
 		raft.lock();
 		try {
-			var lastAppliedLog = raft.getLogSequence().lastAppliedLogTermIndex();
-			result.lastIncludedIndex = lastAppliedLog.getIndex();
-			result.lastIncludedTerm = lastAppliedLog.getTerm();
+			var watermark = readAppliedWatermark();
+			if (watermark != null) {
+				result.lastIncludedIndex = watermark.index();
+				result.lastIncludedTerm = watermark.term();
+			} else {
+				var lastAppliedLog = raft.getLogSequence().lastAppliedLogTermIndex();
+				result.lastIncludedIndex = lastAppliedLog.getIndex();
+				result.lastIncludedTerm = lastAppliedLog.getTerm();
+			}
 
 			try (var cp = bucket.getDb().newCheckpoint()) {
 				cp.createCheckpoint(checkpointDir);
@@ -869,7 +1053,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 					var value = e.getValue();
 
 					// replace（空值=墓碑标记）
-					table.put(key.bytesUnsafe(), key.getOffset(), key.size(),
+					bucket.put(table, key.bytesUnsafe(), key.getOffset(), key.size(),
 							value.bytesUnsafe(), value.getOffset(), value.size());
 				}
 				return;
@@ -882,7 +1066,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 
 				// putIfAbsent（墓碑标记非null，恰好阻止迟到的复制复活已删key）
 				if (table.get(key.bytesUnsafe(), key.getOffset(), key.size()) == null) {
-					table.put(key.bytesUnsafe(), key.getOffset(), key.size(),
+					bucket.put(table, key.bytesUnsafe(), key.getOffset(), key.size(),
 							value.bytesUnsafe(), value.getOffset(), value.size());
 				}
 			}

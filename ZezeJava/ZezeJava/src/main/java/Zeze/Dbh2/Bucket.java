@@ -1,15 +1,18 @@
 package Zeze.Dbh2;
 
 import java.nio.file.Path;
+import java.util.Arrays;
 import Zeze.Builtin.Dbh2.BBucketMeta;
 import Zeze.Dbh2.Master.MasterTable;
 import Zeze.Net.Binary;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteOptions;
 
 /**
@@ -22,6 +25,7 @@ public class Bucket {
 	private final RocksDatabase.Table trans;
 	private final RocksDatabase.Table meta;
 	private final RocksDatabase.Batch batch;
+	private Thread applyingThread; // Raft apply独占；其他线程的ACK不加入本批次
 	private WriteOptions writeOptions = RocksDatabase.getDefaultWriteOptions();
 	private volatile BBucketMeta.Data bucketMeta;
 	private volatile BBucketMeta.Data splittingMeta;
@@ -97,7 +101,7 @@ public class Bucket {
 	}
 
 	public void deleteSplittingMeta() throws RocksDBException {
-		meta.delete(metaSplittingKey);
+		delete(meta, metaSplittingKey);
 		splittingMeta = null;
 	}
 
@@ -105,15 +109,61 @@ public class Bucket {
 		return batch;
 	}
 
+	void beginApply() {
+		if (applyingThread != null)
+			throw new IllegalStateException("nested bucket apply");
+		batch.clear();
+		applyingThread = Thread.currentThread();
+	}
+
+	boolean isApplying() {
+		return applyingThread == Thread.currentThread();
+	}
+
+	void endApply() {
+		applyingThread = null;
+		batch.clear();
+	}
+
+	void put(RocksDatabase.Table table, byte[] key, int keyOffset, int keyLength,
+			 byte[] value, int valueOffset, int valueLength) throws RocksDBException {
+		if (isApplying())
+			table.put(batch, key, keyOffset, keyLength, value, valueOffset, valueLength);
+		else
+			table.put(writeOptions, key, keyOffset, keyLength, value, valueOffset, valueLength);
+	}
+
+	void delete(RocksDatabase.Table table, byte[] key) throws RocksDBException {
+		if (isApplying())
+			table.delete(batch, key);
+		else
+			table.delete(writeOptions, key);
+	}
+
+	void deleteToEnd(RocksIterator it) throws RocksDBException {
+		if (!it.isValid())
+			return;
+		var first = it.key();
+		it.seekToLast();
+		var last = it.key();
+		last = Arrays.copyOf(last, last.length + 1); // 与Table.deleteToEnd相同的独占上界
+		if (isApplying())
+			batch.getWriteBatch().deleteRange(data.getCfHandle(), first, last);
+		else
+			data.deleteRange(writeOptions, first, last);
+	}
+
 	public Bucket(RaftConfig raftConfig) {
+		RocksDatabase opening = null;
+		RocksDatabase.Batch openingBatch = null;
 		try {
 			// 读取meta，meta创建在Bucket创建流程中写入。
 			var path = Path.of(raftConfig.getDbHome(), "statemachine").toAbsolutePath().toString();
-			db = new RocksDatabase(path, RocksDatabase.DbType.eRocksDb);
+			db = opening = new RocksDatabase(path, RocksDatabase.DbType.eRocksDb);
 			data = db.getOrAddTable("data");
 			trans = db.getOrAddTable("transaction");
 			meta = db.getOrAddTable("meta");
-			batch = db.newBatch();
+			batch = openingBatch = db.newBatch();
 			var metaValue = meta.get(metaKey);
 			if (null != metaValue) {
 				var bb = ByteBuffer.Wrap(metaValue);
@@ -145,22 +195,37 @@ public class Bucket {
 				var bb = ByteBuffer.Wrap(tidValue);
 				tid = bb.ReadLong();
 			}
-		} catch (RocksDBException ex) {
-			throw new RuntimeException(ex);
+		} catch (Throwable ex) {
+			// 元数据损坏也必须释放句柄，才能回退restore/reset。
+			if (openingBatch != null) {
+				try {
+					openingBatch.close();
+				} catch (Throwable cleanup) {
+					ex.addSuppressed(cleanup);
+				}
+			}
+			if (opening != null) {
+				try {
+					opening.close();
+				} catch (Throwable cleanup) {
+					ex.addSuppressed(cleanup);
+				}
+			}
+			throw Task.forceThrow(ex);
 		}
 	}
 
 	public void setBucketMeta(BBucketMeta.Data bucketMeta) throws RocksDBException {
 		var bb = ByteBuffer.Allocate(32);
 		bucketMeta.encode(bb);
-		meta.put(writeOptions, metaKey, 0, metaKey.length, bb.Bytes, 0, bb.WriteIndex);
+		put(meta, metaKey, 0, metaKey.length, bb.Bytes, 0, bb.WriteIndex);
 		this.bucketMeta = bucketMeta;
 	}
 
 	public void setSplittingMeta(BBucketMeta.Data meta) throws RocksDBException {
 		var bb = ByteBuffer.Allocate(32);
 		meta.encode(bb);
-		this.meta.put(writeOptions, metaSplittingKey, 0, metaSplittingKey.length, bb.Bytes, 0, bb.WriteIndex);
+		put(this.meta, metaSplittingKey, 0, metaSplittingKey.length, bb.Bytes, 0, bb.WriteIndex);
 		this.splittingMeta = meta;
 	}
 
@@ -196,7 +261,7 @@ public class Bucket {
 		if (null != from)
 			from.encode(bb);
 		to.encode(bb);
-		meta.put(writeOptions, metaPendingSettleKey, 0, metaPendingSettleKey.length, bb.Bytes, 0, bb.WriteIndex);
+		put(meta, metaPendingSettleKey, 0, metaPendingSettleKey.length, bb.Bytes, 0, bb.WriteIndex);
 		pendingSettle = new PendingSettle(from, to);
 	}
 
@@ -207,7 +272,7 @@ public class Bucket {
 		var current = pendingSettle;
 		if (null == current || !sameMeta(current.getTo(), to))
 			return;
-		meta.delete(writeOptions, metaPendingSettleKey, 0, metaPendingSettleKey.length);
+		delete(meta, metaPendingSettleKey);
 		pendingSettle = null;
 	}
 
@@ -225,7 +290,7 @@ public class Bucket {
 			this.splitMetaHistory.getBuckets().put(to.getKeyFirst(), to);
 			var bb = ByteBuffer.Allocate();
 			this.splitMetaHistory.encode(bb);
-			meta.put(writeOptions, metaSplitKeyHistory, 0, metaSplitKeyHistory.length, bb.Bytes, 0, bb.WriteIndex);
+			put(meta, metaSplitKeyHistory, 0, metaSplitKeyHistory.length, bb.Bytes, 0, bb.WriteIndex);
 		} finally {
 			splitMetaHistory.unlock();
 		}
@@ -242,7 +307,7 @@ public class Bucket {
 				this.splitMetaHistory.getBuckets().pollLastEntry();
 			var bb = ByteBuffer.Allocate();
 			this.splitMetaHistory.encode(bb);
-			meta.put(writeOptions, metaSplitKeyHistory, 0, metaSplitKeyHistory.length, bb.Bytes, 0, bb.WriteIndex);
+			put(meta, metaSplitKeyHistory, 0, metaSplitKeyHistory.length, bb.Bytes, 0, bb.WriteIndex);
 		} finally {
 			splitMetaHistory.unlock();
 		}
@@ -255,7 +320,7 @@ public class Bucket {
 	public void setTid(long tid) throws RocksDBException {
 		var bb = ByteBuffer.Allocate(9);
 		bb.WriteLong(tid);
-		meta.put(writeOptions, metaTid, 0, metaTid.length, bb.Bytes, 0, bb.WriteIndex);
+		put(meta, metaTid, 0, metaTid.length, bb.Bytes, 0, bb.WriteIndex);
 		this.tid = tid;
 	}
 

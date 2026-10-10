@@ -202,16 +202,16 @@ public class Dbh2 extends AbstractDbh2 implements AutoCloseable {
 
 		try {
 			stateMachine = new Dbh2StateMachine(this);
+			var writeOptions = writeOptionSync ? RocksDatabase.getSyncWriteOptions() : RocksDatabase.getDefaultWriteOptions();
+			stateMachine.setWriteOptions(writeOptions);
 			raft = new Raft(stateMachine, raftName, database, raftConf, config,
 					"Zeze.Dbh2.Server", Dbh2RaftServer::new, taskOneByOne);
 			raft.getServer().getSocketOptions().setInputBufferMaxProtocolSize(100 * 1024 * 1024);
 			raft.getServer().getSocketOptions().setOutputBufferMaxSize(100 * 1024 * 1024);
-			raftConf.setSnapshotCommitDelayed(true);
+			raft.getRaftConfig().setSnapshotCommitDelayed(true);
 			logger.info("newRaft: {}", raft.getName());
 			stateMachine.openBucket();
-			var writeOptions = writeOptionSync ? RocksDatabase.getSyncWriteOptions() : RocksDatabase.getDefaultWriteOptions();
 			raft.getLogSequence().setWriteOptions(writeOptions);
-			stateMachine.getBucket().setWriteOptions(writeOptions);
 
 			RegisterProtocols(raft.getServer());
 			raft.setOnLeaderReady(this::recoverSplitting);

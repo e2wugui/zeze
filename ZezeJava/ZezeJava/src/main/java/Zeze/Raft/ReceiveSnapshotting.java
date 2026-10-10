@@ -111,6 +111,18 @@ final class ReceiveSnapshotting {
 		}
 	}
 
+	/** 提交或应用前缀超过接收边界时作废接收：与写块同持表锁，关文件与摘登记原子互斥。 */
+	void discard(long index) {
+		lock.lock();
+		try {
+			var entry = entries.remove(index);
+			if (entry != null)
+				discard(entry, "stale snapshot");
+		} finally {
+			lock.unlock();
+		}
+	}
+
 	/**
 	 * 接收一个InstallSnapshot数据块（follower侧）。除done块（返回finalizing条目，
 	 * 由调用方收尾后应答）外，所有应答都在表锁内完成（Send为异步队列，不阻塞）。
