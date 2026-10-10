@@ -737,9 +737,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		applyLogLevelProperty(); // 显式启动动作（仅显式指定logLevel属性才动配置）
 		config.parseCustomize(this.conf);
 
-		// 全部资源先在局部变量上构造，成功后才发布到字段：构造失败（如UDP端口被占）时
+		// 全部资源先在局部变量上构造，失败按逆序清理；回调依赖的字段在端口监听前发布
+		// （见下方说明），其余成功后才发布到字段：构造失败（如UDP端口被占）时
 		// 调用方拿不到实例、无法调stop——遗留的TCP监听与RocksDB目录锁会让同进程重试永久
-		// 受阻（部分成功状态与实际服务状态分叉）。失败按逆序清理，清理异常作suppressed保留。
+		// 受阻（部分成功状态与实际服务状态分叉）。清理异常作suppressed保留。
 		var localServer = new NetServer(this, config);
 		var localThreading = new ThreadingServer(localServer, conf);
 		RocksDatabase localDb = null;
@@ -767,6 +768,17 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var localAutoKeyTable = localDb.getOrAddTable("autokey");
 			var id128Table = localDb.getOrAddTable("id128");
 
+			// 回调依赖的字段必须在端口监听前发布：newServerSocket内部bind+OP_ACCEPT即上线
+			// （selector线程是全局已运行的池），随后的网络回调——未认证TCP端口上Direct派发的
+			// processAllocateId读autoKeyTable、Critical派发的isSenderAlive读server、keepalive
+			// 定时器读server.GetSocket——若先于赋值到达即数据竞争/NPE。值尚未产生、仅stop()
+			// 消费的字段（serverSocket/id128Server）保持在末尾发布。ctor中途抛出时早发布字段
+			// 对外不可达（调用方拿不到实例），在跑的accept回调读到的是完成态，随后由逆序清理收尾。
+			server = localServer;
+			threading = localThreading;
+			autoKeysDb = localDb;
+			autoKeyTable = localAutoKeyTable;
+
 			// 允许配置多个acceptor，如果有冲突，通过日志查看。
 			localSocket = localServer.newServerSocket(ipaddress, port,
 				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
@@ -775,10 +787,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			localId128.start();
 
 			// 全部成功，发布完成态到字段
-			server = localServer;
-			threading = localThreading;
-			autoKeysDb = localDb;
-			autoKeyTable = localAutoKeyTable;
 			serverSocket = localSocket;
 			id128Server = localId128;
 		} catch (Throwable e) {
