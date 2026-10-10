@@ -3,6 +3,7 @@ package Zeze.Util;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -26,11 +27,35 @@ public final class AtomicFileWriter {
 		return new AtomicOutputFile(target);
 	}
 
-	/** 便捷重载：全量内容一次换版（小文件用）。 */
+	/**
+	 * 便捷重载：全量内容一次换版（小文件用）。
+	 */
 	public static void replace(@NotNull Path target, byte[] content) throws IOException {
 		try (AtomicOutputFile out = openOutput(target)) {
 			out.write(content);
 		}
+	}
+
+	/**
+	 * 作用域式原子写：writer正常返回才换版发布；任何Throwable丢弃temp、旧目标保持。
+	 * 流式拼接（如zip）必须走这里而非裸openOutput+try-with-resources：主体中途抛出时
+	 * 底层流写入可能全部成功（流自身无失败记录），close-as-commit防线识别不了
+	 * "内容未完成"，只有作用域知道writer未正常返回。
+	 */
+	public static void writeAtomically(@NotNull Path target, @NotNull Stream writer) throws IOException {
+		var out = new AtomicOutputFile(target);
+		try {
+			writer.write(out);
+			out.close(); // 提交；close幂等，writer内已close亦安全
+		} catch (Throwable t) {
+			out.abort(); // 幂等；channel关闭之后才删temp（Windows句柄）
+			throw t;
+		}
+	}
+
+	@FunctionalInterface
+	public interface Stream {
+		void write(@NotNull OutputStream out) throws IOException;
 	}
 
 	/** 对已写完的文件补齐fsync（分块接收等按路径写的落盘收口）：force必须先于任何rename。 */

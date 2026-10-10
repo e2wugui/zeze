@@ -26,6 +26,10 @@ public final class AtomicOutputFile extends OutputStream {
 	private final FileChannel channel;
 	private final OutputStream buffered;
 	private boolean finished;
+	// 写入曾经失败（buffered.write抛出）：close不得发布前缀残缺内容。close防线只认
+	// "流自身的写失败"；调用方主体在写入全部成功后的异常close无法识别（内容未完成
+	// 但流不知道），那类场景由AtomicFileWriter.writeAtomically的作用域裁决。
+	private boolean writeFailed;
 
 	AtomicOutputFile(@NotNull Path target) throws IOException {
 		this.target = target.toAbsolutePath().normalize();
@@ -47,12 +51,22 @@ public final class AtomicOutputFile extends OutputStream {
 
 	@Override
 	public void write(int b) throws IOException {
-		buffered.write(b);
+		try {
+			buffered.write(b);
+		} catch (IOException e) {
+			writeFailed = true;
+			throw e;
+		}
 	}
 
 	@Override
 	public void write(byte[] b, int off, int len) throws IOException {
-		buffered.write(b, off, len);
+		try {
+			buffered.write(b, off, len);
+		} catch (IOException e) {
+			writeFailed = true;
+			throw e;
+		}
 	}
 
 	/** 丢弃temp，不算失败：这次换版没有发生，磁盘保持旧版。 */
@@ -81,6 +95,10 @@ public final class AtomicOutputFile extends OutputStream {
 			return;
 		finished = true;
 		try {
+			if (writeFailed)
+				// 写入曾失败：temp里只有残缺前缀，发布即把旧目标换成坏新版（调用方
+				// 收到写失败异常却已发生换版）。走统一失败清理：删temp、关channel。
+				throw new IOException("AtomicOutputFile: write failed earlier, discard temp instead of publish: " + target);
 			buffered.flush();
 			channel.force(true);
 			inheritPosixAttributesBestEffort(target, temp);

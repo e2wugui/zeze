@@ -463,9 +463,12 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public static void createZipFromDirectory(String sourceDir, String zipFilePath) throws IOException {
-		// 经AtomicFileWriter落盘（保证fsync与原子性）；close幂等，级联close安全。
-		try (var out = AtomicFileWriter.openOutput(Paths.get(zipFilePath));
-			 var zos = new ZipOutputStream(out)) {
+		// 作用域式原子写（writeAtomically）：zip条目复制中途抛出时底层流写入可能全部
+		// 成功（流自身无失败记录），close-as-commit防线识别不了"zip未完成"——裸
+		// openOutput+try-with-resources会把残缺zip替换旧目标。zos不进TWR：zos.close
+		// 级联关闭底层out即提交，失败路径的丢弃必须由writeAtomically的abort统一裁决。
+		AtomicFileWriter.writeAtomically(Paths.get(zipFilePath), out -> {
+			var zos = new ZipOutputStream(out);
 			Path sourcePath = Paths.get(sourceDir);
 			try (var stream = Files.walk(sourcePath)) {
 				stream.filter(path -> !Files.isDirectory(path)).forEach(path -> {
@@ -479,7 +482,8 @@ public final class Rocks extends StateMachine implements Closeable {
 					}
 				});
 			}
-		}
+			zos.close(); // 写中央目录；随后writeAtomically的out.close提交（幂等安全）
+		});
 	}
 
 	public static void extractZipToDirectory(String zipFilePath, String targetDir) throws IOException {
