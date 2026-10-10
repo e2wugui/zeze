@@ -403,7 +403,7 @@ public class Rank extends AbstractRank {
 			return TableValue;
 		}
 
-		public final void setTableValue(BRankList value) {
+		public final void setTableValue(BRankListReadOnly value) {
 			TableValue = value;
 		}
 	}
