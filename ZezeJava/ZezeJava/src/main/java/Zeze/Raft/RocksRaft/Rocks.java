@@ -712,7 +712,27 @@ public final class Rocks extends StateMachine implements Closeable {
 		restore(backupDir);
 	}
 
-
+	/**
+	 * 启动恢复（见StateMachine.recover）：增量恢复需要读状态机库的应用水位，而库在
+	 * Raft构造期尚未openDb——先开库再校验。水位有效（存在于[firstIndex, lastIndex]且
+	 * term与日志一致）时跳过loadSnapshot的O(库大小)解压+restore整库拷贝，仅重放
+	 * (水位, lastIndex]；校验不过（旧格式库无水位行、水位异常、非本raft的DbHome误拷）
+	 * 回退全量loadSnapshot——其restore内部重建库，此处openDb幂等无害。
+	 */
+	@Override
+	public void recover(String snapshotFile) throws Exception {
+		try {
+			if (storage == null)
+				openDb();
+			if (getRaft().getLogSequence().tryRecoverFromWatermark())
+				return;
+		} catch (RocksDBException | IllegalStateException e) {
+			// 损坏的本地库或水位不能阻止从已提交快照重建状态机。
+			logger.warn("{} incremental recover failed, restore committed snapshot: {}",
+					getRaft().getName(), snapshotFile, e);
+		}
+		loadSnapshot(snapshotFile);
+	}
 
 	/**
 	 * 没有快照的时候，Raft 重启后会从头重放全部日志，状态机必须从空库开始，

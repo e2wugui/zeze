@@ -96,6 +96,16 @@ public abstract class StateMachine extends ReentrantLock {
 	public abstract void loadSnapshot(String path) throws Exception;
 
 	/**
+	 * 启动恢复钩子：Raft构造器发现已提交快照时调用。默认loadSnapshot全量恢复
+	 * （解压+restore整库拷贝）。需要增量恢复的状态机重写：先打开本地库，内容可
+	 * 自描述校验时跳过restore仅定位重放起点，校验不过回退loadSnapshot。
+	 * InstallSnapshot的接收路径不走这里（语义不同：必须以传入快照为准）。
+	 */
+	public void recover(String snapshotFile) throws Exception {
+		loadSnapshot(snapshotFile);
+	}
+
+	/**
 	 * 没有快照的时候，stateMachine可能需要重置。
 	 * 需要重置的重载这个方法。
 	 * 比如stateMachine使用RocksDB存储数据的，某些情况下逻辑操作和旧数据相关，需要从空的数据库开始时，重载这个方法先清空数据库。

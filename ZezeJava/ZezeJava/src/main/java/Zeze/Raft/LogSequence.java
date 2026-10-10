@@ -616,8 +616,7 @@ public class LogSequence {
 					try (var itFirst = logs.iterator()) {
 						itFirst.seekToFirst();
 						if (itFirst.isValid()) {
-							firstIndex = RaftLog.decode(new Binary(itFirst.value()),
-								raft.getStateMachine()::logFactory).getIndex();
+							firstIndex = RaftLog.decodeTermIndex(itFirst.value()).getIndex();
 						}
 					}
 				}
@@ -670,7 +669,8 @@ public class LogSequence {
 			// 楔死，且对leader的prevLog=X校验成功，不再触发InstallSnapshot。此时logs只能是半安装
 			// 残留（正常截断永远保留firstIndex处边界日志）：整体丢弃，重置回无快照状态由leader重建。
 			// 破坏性重置放在迭代器关闭之后（列族句柄销毁前必须先关闭其上的迭代器）。
-			if (firstIndex >= 0 && readLog(firstIndex) == null) {
+			// 构造期状态机表模板尚未注册，边界存在性检查不能解码Changes的业务内容。
+			if (firstIndex >= 0 && readLogBytes(firstIndex) == null) {
 				logger.warn("{} crash recovery: no boundary log at firstIndex={}, discard half-installed logs({})."
 								+ " endReceiveInstallSnapshot crashed after boundary saveLog?",
 						raft.getName(), firstIndex, lastIndex);
@@ -1364,7 +1364,35 @@ public class LogSequence {
 		return firstIndex >= 0 ? genSnapshotPath(firstIndex).toString() : getSnapshotFullName();
 	}
 
-
+	/**
+	 * 水位增量恢复：状态机库的内容由应用水位原子自描述（见Rocks.AppliedWatermark——水位与
+	 * 数据、终态存根同一个WriteBatch提交），重启时若水位有效，跳过loadSnapshot的
+	 * O(库大小)解压+restore整库拷贝，lastApplied直接定位到水位，仅重放(水位, lastIndex]。
+	 * 校验：水位存在于[firstIndex, lastIndex]且term与日志记录一致（水位行在状态机库、日志在
+	 * 日志库，相互印证可防物理损坏/误拷贝DbHome）。校验不过返回false，调用方走全量恢复
+	 * （loadSnapshot或reset）——升级后首次重启（无水位行）、旧格式库都自然回退。
+	 * 仅Rocks状态机支持；Dbh2等自定义状态机自成一体返回false。调用时须持有raft锁
+	 * （构造期单线程，天然满足）。
+	 */
+	public boolean tryRecoverFromWatermark() throws RocksDBException {
+		if (!(raft.getStateMachine() instanceof Rocks rocks))
+			return false;
+		var watermark = rocks.readAppliedWatermark();
+		if (watermark == null || watermark.index() < firstIndex || watermark.index() > lastIndex)
+			return false;
+		var logBytes = readLogBytes(watermark.index());
+		if (logBytes == null)
+			return false;
+		if (RaftLog.decodeTermIndex(logBytes).getTerm() != watermark.term())
+			return false;
+		lastApplied = watermark.index();
+		// commitIndex保持firstIndex起步由Raft流程重新推导（与restore后的语义一致）；
+		// 重放触发机制不变：tryStartApplyTask以lastApplied为起点，(firstIndex, watermark]
+		// 已在盘上、不会被再次应用。
+		logger.info("{} incremental recover from applied watermark: lastApplied={} firstIndex={} lastIndex={}",
+				raft.getName(), lastApplied, firstIndex, lastIndex);
+		return true;
+	}
 
 	long endReceiveInstallSnapshot(ReceiveSnapshotting.Entry entry, InstallSnapshot r) throws Exception {
 		logsAvailable = false; // cancel RemoveLogBefore

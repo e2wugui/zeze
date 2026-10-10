@@ -365,9 +365,11 @@ public final class Raft {
 
 		var snapshot = logSequence.getCommittedSnapshotFile();
 		if (new File(snapshot).isFile()) {
+			// 启动恢复：默认loadSnapshot全量恢复；Rocks重写recover——状态机库内容可由
+			// 应用水位自描述校验时跳过O(库大小)的解压+restore拷贝，仅重放(水位, lastIndex]。
 			long t = System.nanoTime();
-			sm.loadSnapshot(snapshot);
-			logger.info("Raft {} LoadSnapshot time={}ms", getName(), (System.nanoTime() - t) / 1_000_000);
+			sm.recover(snapshot);
+			logger.info("Raft {} recover time={}ms", getName(), (System.nanoTime() - t) / 1_000_000);
 		} else {
 			sm.reset();
 			logger.info("Raft {} reset state machine.", getName());
