@@ -403,6 +403,12 @@ public final class Rocks extends StateMachine implements Closeable {
 		}
 	}
 
+	/**
+	 * 存在"已应用未收尾"的补偿登记（{@link #markApplied}空标记或flush失败的pending记录）时
+	 * 返回null推迟本次快照：此时存储内容已包含lastApplied之后日志的数据而lastApplied未推进，
+	 * 带此内容的快照会在恢复重放后缀时双重应用非幂等增量（list按索引追加等）。
+	 * apply重试收尾（登记清空、lastApplied推进）后的trySnapshot会再次触发。
+	 */
 	public String checkpoint(SnapshotResult result) throws RocksDBException {
 		var checkpointDir = Paths.get(getDbHome(), "checkpoint_" + System.currentTimeMillis()).toString();
 
@@ -410,6 +416,12 @@ public final class Rocks extends StateMachine implements Closeable {
 		Raft raft = getRaft();
 		raft.lock();
 		try {
+			// checkpoint与tryApply同持raft锁，登记/清除pending的窗口与这里的检查互斥，无竞争。
+			if (!pendingFlushApplies.isEmpty()) {
+				logger.info("snapshot deferred: {} pending apply(s) unfinished, storage may ahead of lastApplied={}",
+						pendingFlushApplies.size(), raft.getLogSequence().getLastApplied());
+				return null;
+			}
 			var lastAppliedLog = raft.getLogSequence().lastAppliedLogTermIndex();
 			result.lastIncludedIndex = lastAppliedLog.getIndex();
 			result.lastIncludedTerm = lastAppliedLog.getTerm();
@@ -522,6 +534,11 @@ public final class Rocks extends StateMachine implements Closeable {
 		long t0 = System.nanoTime();
 		SnapshotResult result = new SnapshotResult();
 		var cpHome = checkpoint(result);
+		if (cpHome == null) {
+			// checkpoint推迟（存在未收尾的pending应用窗口）：不产生快照文件、不commitSnapshot
+			// （firstIndex不推进），按未成功返回；推迟理由已在checkpoint内记录日志。
+			return result;
+		}
 
 		long t1 = System.nanoTime();
 		var backupDir = Paths.get(getDbHome(), "backup").toString();
