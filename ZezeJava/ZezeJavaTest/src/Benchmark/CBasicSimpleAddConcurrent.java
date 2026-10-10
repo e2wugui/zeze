@@ -1,47 +1,54 @@
 package Benchmark;
+import harness.Bench;
+import harness.MacroBench;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.concurrent.Future;
-import Zeze.Transaction.DispatchMode;
-import Zeze.Util.PerfCounter;
+import Zeze.Util.Task;
 import demo.App;
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("NewClassNamingConvention")
-public class CBasicSimpleAddConcurrent extends TestCase {
-	public final static int AddCount = 500_000;
+@Bench
+@Tag("core")
+public class CBasicSimpleAddConcurrent {
+	public final static int AddCount = 1_000_000;
 	public final static int ConcurrentLevel = 5_000;
+	public static final int Batch = 200;
+	public static final int Warmups = 2;
+	public static final int Rounds = 5;
 
+	@Test
 	public void testBenchmark() throws Exception {
+		App.Instance.Stop();
 		App.Instance.Start();
 		try {
-			for (int i = 0; i < ConcurrentLevel; ++i) {
-				final long k = i;
-				App.Instance.Zeze.newProcedure(() -> Remove(k), "remove").call();
-			}
-			ArrayList<Future<Long>> tasks = new ArrayList<>(AddCount);
-			System.out.println("benchmark start...");
-			var b = new Zeze.Util.Benchmark();
-			for (int i = 0; i < AddCount; ++i) {
-				final int c = i % ConcurrentLevel;
-				tasks.add(Zeze.Util.Task.runUnsafe(App.Instance.Zeze.newProcedure(() -> Add(c), "Add"), DispatchMode.Normal));
-				if ((i+1) % 200 == 0) {
-					for (var task : tasks)
-						task.get();
-					tasks.clear();
+			MacroBench.run("C_Concurrent", Warmups, Rounds, AddCount, () -> {
+				for (long k = 0; k < ConcurrentLevel; ++k) {
+					final long rk = k;
+					App.Instance.Zeze.newProcedure(() -> Remove(rk), "remove").call();
 				}
-			}
-			//b.Report(this.getClass().getName(), AddCount);
-			for (var task : tasks) {
-				task.get();
-			}
-			b.report(this.getClass().getName(), AddCount);
-			System.out.println(PerfCounter.instance().getLogAndReset());
+				// v1.6.3 回植：TaskSpec→Task.runUnsafe（同 B 场景注）
+				var tasks = new ArrayList<Future<?>>(Batch);
+				for (int i = 0; i < AddCount; ++i) {
+					final long key = i % ConcurrentLevel;
+					tasks.add(Task.runUnsafe(() ->
+							App.Instance.Zeze.newProcedure(() -> Add(key), "Add").call(), "Add"));
+					if ((i + 1) % Batch == 0) {
+						for (var task : tasks)
+							task.get();
+						tasks.clear();
+					}
+				}
+				for (var task : tasks)
+					task.get();
+			});
 			App.Instance.Zeze.newProcedure(CBasicSimpleAddConcurrent::Check, "check").call();
-			for (long i = 0; i < ConcurrentLevel; ++i) {
-				final long k = i;
-				App.Instance.Zeze.newProcedure(() -> Remove(k), "remove").call();
+			for (long k = 0; k < ConcurrentLevel; ++k) {
+				final long rk = k;
+				App.Instance.Zeze.newProcedure(() -> Remove(rk), "remove").call();
 			}
 		} finally {
 			//App.Instance.Stop();
@@ -54,8 +61,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
 			var r = App.Instance.demo_Module1.getTable1().getOrAdd(i);
 			sum += r.getLong2();
 		}
-		Assert.assertEquals(AddCount, sum);
-		//System.out.println(r.getLong2());
+		Assertions.assertEquals(AddCount, sum);
 		return 0;
 	}
 
@@ -69,7 +75,6 @@ public class CBasicSimpleAddConcurrent extends TestCase {
 	private static long Add(long key) {
 		var r = App.Instance.demo_Module1.getTable1().getOrAdd(key);
 		r.setLong2(r.getLong2() + 1);
-		//System.out.println("Add=" + key);
 		return 0;
 	}
 

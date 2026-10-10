@@ -15,6 +15,14 @@ dependencies {
     // for test
     implementation 'junit:junit:4.13.2'
 
+    // v1.6.3 回植（bench/backport-v1.6.3 分支专用，不进 master）：2.x 基准场景用 JUnit5
+    // 注解驱动（@Test/@Tag），本版 src 挂在 main 源集故走 implementation；jupiter 5.x 与
+    // 本版 gradle 8.14 兼容（junit6 需要更新的 launcher 集成，未经此构建验证）。
+    implementation 'org.junit.jupiter:junit-jupiter-api:5.11.4'
+    runtimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.11.4'
+    // TestEnvLauncherListener（ServiceLoader 注册）编译也需要 launcher api（对齐 master 2.x 的写法）
+    implementation 'org.junit.platform:junit-platform-launcher:1.11.4'
+
     // for GTable
     //implementation 'com.google.guava:guava:33.4.0-jre'
 
@@ -66,4 +74,28 @@ sourceSets {
             srcDir "Gen"
         }
     }
+}
+
+// v1.6.3 回植（bench/backport-v1.6.3 分支专用）：核心宏观基准车道，语义对齐 master 2.x
+// 的 benchCore——@Bench+@Tag("core") 过滤、benchTag 命名、MacroBench 写 bench-results/。
+// 差异：本版 src 在 main 源集（v2 才重构为 test 源集），任务直接用 main 输出。
+// 场景字母序执行（A→B→C→D→E2→E→F→G）：E/E2 的 Stop+Start(custom cfg) 切换库配置，
+// 固定顺序避免后场景继承非默认配置。
+tasks.register('benchCore', Test) {
+    group = 'verification'
+    description = '核心宏观基准（多轮+JSON 留档，-PbenchTag=xxx 命名运行）。'
+    testClassesDirs = sourceSets.main.output.classesDirs
+    classpath = sourceSets.main.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'bench & core'
+    }
+    workingDir = projectDir
+    jvmArgs '-ea'
+    systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
+    // v1.6.3 回植：Jupiter 扩展自动发现（harness.TestEnvExtension 自动起 SM/GCM）。
+    // 2.x master 用的 LauncherSessionListener 在本分支 gradle 8.14 下发现不了（实证），改走 Jupiter 原生机制。
+    systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
+    if (findProperty('useVirtualThread') != null)
+        systemProperty 'useVirtualThread', findProperty('useVirtualThread')
+    systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
 }
