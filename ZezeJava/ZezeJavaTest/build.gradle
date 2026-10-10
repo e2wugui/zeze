@@ -202,6 +202,9 @@ tasks.register('benchCore', Test) {
     }
     workingDir = projectDir
     jvmArgs '-ea'
+    // 跨版本对比公平性：v1.6.3 回植分支的 benchCore 因 B 场景在飞任务驻留量大需 4g（回植分支
+    // 已显式设 4g）。默认保持 512m 不变（final 时代口径）；对齐跨代对比时 -PbenchHeap=4g。
+    maxHeapSize = (findProperty('benchHeap') ?: '512m')
     systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
     // 池型对照透传：-PuseVirtualThread=false 走平台线程池（对齐 benchCorePlatform，可全场景）
     if (findProperty('useVirtualThread') != null)

@@ -203,15 +203,60 @@ Zeze 使用后台 key-value 数据库保存数据，记录读取和写入是作�
 
 ## Benchmark
 
-基准体系分两层（2026-09 重建，`ZezeJavaTest`）：
+基准体系分两层（`ZezeJavaTest`）：
 
-* **宏观场景**：`gradlew :ZezeJavaTest:benchCore [-PbenchTag=名]`。`@Bench+@Tag("core")` 六场景
-  （A 单线程 / B 强冲突 / C 一般并发 / D 容器事务 / E checkpoint 稳态 / F 调度形态），多轮迭代取中位数，
-  JSON 留档 `bench-results/<benchTag>/`（gitignored）。F 的平台线程池对照组：`gradlew benchCorePlatform`。
+* **宏观场景**：`gradlew :ZezeJavaTest:benchCore [-PbenchTag=名]`。`@Bench+@Tag("core")` 十场景：
+  A 单线程 / B 强冲突 / C 一般并发 / D 容器事务 / E checkpoint 稳态 / E2 RocksDB 哨兵 /
+  F 调度形态（虚拟/平台）/ G 缓存压力 / H 只读并发 / I MMO-lite 负载画像 / J 网络 Rpc 回环，
+  多轮迭代取中位数，JSON 留档 `bench-results/<benchTag>/`（gitignored）。
+  F 的平台线程池对照组：`gradlew benchCorePlatform`。跨版本对比公平性可 `-PbenchHeap=4g`
+  （默认 512m 不变；v1.6.3 回植分支因 B 场景在飞任务驻留量大固定 4g）。
 * **微基准**：`gradlew :ZezeJavaTest:jmh [-PjmhFilter=正则]`（JMH，`src-jmh` 源集，Serialize/Collections/Conflict 三族）。
 * **对比判定**：`java -cp ZezeJavaTest/build/classes/java/test harness.BenchCompare <目录A> <目录B>`，
-  宏观以中位数变化 > 3×合成噪声判显著，JMH 以置信区间不重叠判显著。绝对数机器相关不进文档，
-  同机同配置 before/after 对比才有意义。
+  宏观以中位数变化 > 3×合成噪声判显著，JMH 以置信区间不重叠判显著。绝对数进本文档时必须带机器脚注；
+  同机同配置 before/after 对比才构成改进证据，文档绝对数与 bench-results 留档为准。
+
+### 四时点档案（v1.6.3 → HEAD，2026-10-11 实测）
+
+机器脚注：16C/JDK21/Windows，同机同日；v1.6.3 走回植分支 `bench/backport-v1.6.3`
+（4g 堆，TaskSpec→Task.runUnsafe 等价改写，I 场景排行榜 psortedmap→map15 同型承载）；
+baseline=2026-09-28 基建落成时，final=2026-09-29 三轮优化后（512m）；
+HEAD 两列（512m/4g）均为当日实测。单位 ops/s（中位数）。
+
+| 场景 | v1.6.3 | baseline | final | HEAD(512m) | HEAD(4g) |
+|---|---:|---:|---:|---:|---:|
+| A 单线程简单事务 | 122.5万 | 176.1万 | 149.3万 | 143.2万 | 122.5万 |
+| B 强冲突（480线程踩1key） | **1.26万** | 2.53万 | 25.5万 | 27.0万 | 21.8万 |
+| C 一般并发（5000key 派发） | 88.6万 | 77.0万 | 89.9万 | 56.7万 | 75.0万 |
+| D 容器事务 | 54.4万 | 59.0万 | 69.4万 | 66.2万 | 60.4万 |
+| E flush MultiThreadMerge | 62.4万 | 68.1万 | 85.9万 | 79.7万 | 71.7万 |
+| E flush SingleThread | 7.96万 | 7.85万 | 8.81万 | 6.66万 | 7.71万 |
+| E2 RocksDB 哨兵 | 47.2万 | 15.1万 | 12.9万 | 18.5万 | 18.0万 |
+| F 派发池（虚拟线程） | 83.6万 | 74.6万 | 88.1万 | 79.7万 | 75.1万 |
+| F 派发池（平台线程） | 62.2万 | 54.8万 | 65.5万 | 50.2万 | — |
+| G 缓存压力（miss/装载/驱逐） | 35.6万 | — | 37.2万 | 46.0万 | 43.2万 |
+| H 只读并发（2.x 新增） | 34.1万 | — | — | 29.4万 | 28.5万 |
+| I MMO-lite 混合画像（2.x 新增） | 31.6万 | — | — | 30.2万 | 32.1万 |
+| J 网络 Rpc 回环 256B（2.x 新增） | 20.3万 | — | — | 19.5万 | 20.6万 |
+
+**跨版本结论（v1.6.3 → 2.x HEAD）**：
+
+* **B 强冲突提升约 20×**（1.26万→27万/s）：2.x 累计的冲突路径工作（重试日志限频是其中
+  数量级最大的一笔，另含锁句柄缓存等）。这是两代间最大的单项差距。
+* **H 只读慢于 C 写是结构性的，非回归**：v1.6.3 与 HEAD 的 H/C 比值同构（0.39 vs 0.40）——
+  只读事务在并发派发下的单笔成本约为写事务的 2.5×（读锁/快照路径），两代一致。
+  读多写少负载的容量规划应按此折算，优化属设计级（Fresh 队列之外的第二候选）。
+* 网络 Rpc 回环（J）与 MMO 混合画像（I）两代持平——net 层与混合事务负载无跨代退化。
+* E2 哨兵 v1.6.3 反而快 2.5×（RocksDB 版本与写路径配置跨代漂移，哨兵口径只看数量级是否塌，
+  不进显著性判定）。
+* G 缓存压力 HEAD 较 final +24%（37.2万→46.0万，快照 CopyIf 收编后的持续收益在当日环境放大）。
+
+**HEAD vs final 复测判定（592 提交，2026-09-29→10-11）**：
+
+* B +6%、G +24%、D/A 在噪声带内——无回归。
+* **C -18%（冷机单测 73.5万 vs 89.9万，>3×stdev）——未决偏置**：同日 JMH addSameKey
+  （172.6万 vs final 189.4万，CI 内）与派发层（F_Action +30%）均无回归证据，微观无缺陷可定位；
+  标记改日冷机专用会话复测再裁。E 族（E_MTM -7%、E_ST -24%）当日整体偏低，盘态敏感记录在案。
 
 **相对结论**（2026-09，JDK21，16 核 Windows；数字为比值非绝对值）：
 
