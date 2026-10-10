@@ -426,6 +426,26 @@ public final class JsonReader {
 			return b == 'n' ? (char)0 : (char)parseInt();
 		if (ct == String.class)
 			return b == 'n' ? null : parseString(false);
+		// 包装类型数组组件：元数据(typeMap)接受包装类型，编码与原始数组相同（Json侧
+		// v&0xf抹掉WRAP标志），元素解析须与字段级TYPE_WRAP分支同语义——null保留、
+		// 数值转换同原始类型。修复前落入通用Object解析（得到Long/Double等不兼容
+		// 对象），Array.set报array element type mismatch，自己的Writer输出读不回。
+		if (ct == Integer.class)
+			return b == 'n' ? null : parseInt();
+		if (ct == Long.class)
+			return b == 'n' ? null : parseLong();
+		if (ct == Double.class)
+			return b == 'n' ? null : parseDouble();
+		if (ct == Float.class)
+			return b == 'n' ? null : (float)parseDouble();
+		if (ct == Byte.class)
+			return b == 'n' ? null : (byte)parseInt();
+		if (ct == Short.class)
+			return b == 'n' ? null : (short)parseInt();
+		if (ct == Character.class)
+			return b == 'n' ? null : (char)parseInt();
+		if (ct == Boolean.class)
+			return b == 'n' ? null : b == 't';
 		return parse(null, b); // Object等：走通用值解析
 	}
 
