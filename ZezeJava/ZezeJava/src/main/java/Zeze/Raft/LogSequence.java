@@ -500,6 +500,10 @@ public class LogSequence {
 			else
 				database.getOrAddTable(tableName).drop();
 		}
+
+		// Rocks状态机库的终态存根表（随数据同批写入、随快照走）按同一日期分桶规则清理。
+		if (raft.getStateMachine() instanceof Rocks rocks)
+			rocks.removeExpiredUniqueStubTables(expired);
 	}
 
 	void cancelPendingAppendLogFutures() throws Exception {
@@ -613,7 +617,7 @@ public class LogSequence {
 						itFirst.seekToFirst();
 						if (itFirst.isValid()) {
 							firstIndex = RaftLog.decode(new Binary(itFirst.value()),
-									raft.getStateMachine()::logFactory).getIndex();
+								raft.getStateMachine()::logFactory).getIndex();
 						}
 					}
 				}
@@ -747,6 +751,13 @@ public class LogSequence {
 		if (!isUniqueRequestCreateTimeValid(create, now, raft.getRaftConfig().getUniqueRequestExpiredDays()))
 			return null;
 
+		// 终态存根优先（Rocks状态机侧，与数据同批原子、随快照走）：日志压缩/恢复后
+		// 仍可查到"已应用+rpcResult"。Dbh2等自定义状态机无此表，走原日志库路径。
+		if (raft.getStateMachine() instanceof Rocks rocks) {
+			var applied = rocks.getUniqueAppliedStub(raftRpc);
+			if (applied != null)
+				return applied;
+		}
 		UniqueRequestState state = openUniqueRequests(raftRpc.getCreateTime()).getRequestState(raftRpc);
 		return state != null ? state : UniqueRequestState.NOT_FOUND;
 	}
@@ -769,12 +780,13 @@ public class LogSequence {
 	}
 
 	// 唯一请求存根按天建表，表名：<raftName>.unique.<yyyy>.<M>.<d>，key由toUniqueRequestKey生成。
-	static String makeUniqueRequestTableName(String raftName, long key) {
+	// public static：Rocks（状态机库终态存根）复用同一命名规则，两侧表名一致仅库不同。
+	public static String makeUniqueRequestTableName(String raftName, long key) {
 		return raftName + ".unique." + (key >> 16) + '.' + ((key >> 8) & 0xff) + '.' + (key & 0xff);
 	}
 
 	// 解析唯一请求存根表名中的日期（当天0点）；不是本raft的unique表（前缀不匹配或日期非法）返回null。
-	static Date parseUniqueRequestDate(String raftName, String tableName) {
+	public static Date parseUniqueRequestDate(String raftName, String tableName) {
 		var prefix = raftName + ".unique.";
 		if (!tableName.startsWith(prefix))
 			return null;
@@ -791,7 +803,7 @@ public class LogSequence {
 	}
 
 	@SuppressWarnings("deprecation")
-	static long toUniqueRequestKey(Date date) {
+	public static long toUniqueRequestKey(Date date) {
 		return ((date.getYear() + 1900L) << 16) + ((date.getMonth() + 1) << 8) + date.getDate();
 	}
 
@@ -1011,11 +1023,7 @@ public class LogSequence {
 		return Procedure.CancelException;
 	}
 
-	// 测试钩子（一次性）：非null时在unique存根写之前执行并自动置null，注入存根写失败，
-	// 验证apply成功后存根写失败的重试不重放增量。仅测试使用。
-	Action0 testHookBeforeUniqueApply;
-
-	// 一次性测试注入：appendLog内存根写之后、日志写/提交之前抛出——
+	// 测试钩子（一次性）：非null时在appendLog内存根写之后、日志写/提交之前抛出——
 	// 合批前=两笔独立写，此位置失败留孤儿存根；合批后=组装失败两笔同弃（try-with-resources
 	// 丢弃未提交batch）。
 	Action0 testHookBetweenStubAndLog;
@@ -1049,38 +1057,20 @@ public class LogSequence {
 				}
 				throw e;
 			}
-			var hasUniqueRequest = raftLog.getLog().getUnique().getRequestId() > 0;
-			// Rocks状态机才有pendingFlush补偿（Dbh2等自定义StateMachine的apply重试语义自成一体）。
-			var smRocks = raft.getStateMachine() instanceof Rocks rocks ? rocks : null;
-			if (hasUniqueRequest && smRocks != null)
-				// apply已完整成功，其后到lastApplied推进之间的收尾步骤（unique存根写）失败时，
-				// 登记"已应用"补偿：重试经takePendingFlush命中→no-op flush短路，不重放非幂等
-				// 增量（list按索引追加等重放一次即双重应用）。正常收尾后在lastApplied推进处清除。
-				smRocks.markApplied(raftLog.getIndex(), raftLog.getTerm());
-			try {
-				if (hasUniqueRequest) {
-					var hook = testHookBeforeUniqueApply;
-					if (hook != null) {
-						testHookBeforeUniqueApply = null; // 一次性
-						hook.run(); // 测试注入存根写失败（RocksDBException）
-					}
+			// Rocks的终态存根已随状态数据同批提交；其他状态机继续使用日志库的终态存根。
+			if (!(raft.getStateMachine() instanceof Rocks) && raftLog.getLog().getUnique().getRequestId() > 0) {
+				try {
 					openUniqueRequests(raftLog.getLog().getCreateTime()).apply(raftLog);
+				} catch (RocksDBException e) {
+					// 保留原始leader请求及其回调，沿用非Rocks状态机的应用重试语义。
+					if (raftLog.isLeaderRequest() && leaderAppendLogs.putIfAbsent(raftLog.getIndex(), raftLog) != null) {
+						logger.fatal("LeaderAppendLogs.TryAdd Fail. Index={}", raftLog.getIndex(), new Exception());
+						raft.fatalKill();
+					}
+					throw e;
 				}
-			} catch (RocksDBException e) {
-				// 重试的pending路径会take消费标记：补回，保持"已应用"事实直到存根写成功；
-				// raftLog放回理由同上flush失败分支（否则重试用解码的新对象，回调丢失，
-				// 业务线程等满超时拿到假失败）。
-				if (smRocks != null)
-					smRocks.markApplied(raftLog.getIndex(), raftLog.getTerm());
-				if (raftLog.isLeaderRequest() && leaderAppendLogs.putIfAbsent(raftLog.getIndex(), raftLog) != null) {
-					logger.fatal("LeaderAppendLogs.TryAdd Fail. Index={}", raftLog.getIndex(), new Exception());
-					raft.fatalKill();
-				}
-				throw e;
 			}
 			lastApplied = raftLog.getIndex(); // 循环可能退出，在这里修改。
-			if (hasUniqueRequest && smRocks != null)
-				smRocks.clearAppliedMark(raftLog.getIndex());
 			if (isDebugEnabled && lastIndex - lastApplied < 10) {
 				logger.debug("{}-{} {} RequestId={} LastIndex={} LastApplied={} Count={}",
 						raft.getName(), raft.isLeader(), raft.getRaftConfig().getDbHome(),
@@ -1373,6 +1363,8 @@ public class LogSequence {
 	public String getCommittedSnapshotFile() {
 		return firstIndex >= 0 ? genSnapshotPath(firstIndex).toString() : getSnapshotFullName();
 	}
+
+
 
 	long endReceiveInstallSnapshot(ReceiveSnapshotting.Entry entry, InstallSnapshot r) throws Exception {
 		logsAvailable = false; // cancel RemoveLogBefore

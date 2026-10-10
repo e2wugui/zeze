@@ -7,8 +7,9 @@ import Zeze.Serialize.Serializable;
 
 /**
  * 唯一请求存根状态：日志位置、是否已应用与已编码应答，用于重复请求检测与 RaftApplied 回放。
+ * public：Rocks（状态机库终态存根）与LogSequence（日志库pre-apply存根）两侧共用同一编码。
  */
-class UniqueRequestState implements Serializable {
+public class UniqueRequestState implements Serializable {
 	public static final UniqueRequestState NOT_FOUND = new UniqueRequestState();
 
 	private long logIndex;

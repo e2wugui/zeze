@@ -197,6 +197,13 @@ public final class FastServerIds {
 	public static final int TEST_FLUSH_DIAGNOSTICS_KEEP_CAUSE = seg("TestFlushFailureDiagnosticsKeepCause", 16373, 1);
 	public static final int TEST_STOP_GATE_BEFORE_GLOBAL_AGENT = seg("TestStopGateBeforeGlobalAgentStop", 7730, 1);
 	public static final int TEST_RANK_MERGE_SNAPSHOT_INDEPENDENT = seg("TestRankMergeSnapshotIndependent", 7740, 1);
+	// Raft headless测试族：raftName与节点端口按30000+id派生（RaftHeadlessSupport.raftName），
+	// 本族占端口37750-37782，已核与全树固定端口无重叠。
+	public static final int TEST_RAFT_APPLIED_WATERMARK = seg("TestRaftAppliedWatermark", 7750, 1);
+	public static final int TEST_RAFT_INCREMENTAL_RECOVER = seg("TestRaftIncrementalRecover", 7760, 1);
+	public static final int TEST_RAFT_UNIQUE_REQUEST_APPLY = seg("TestRaftUniqueRequestApply", 7770, 1);
+	// growth=2：跨节点快照去重用相邻两个raftName（source=id、target=id+1）。
+	public static final int TEST_RAFT_SNAPSHOT_REQUEST_DEDUP = seg("TestRaftSnapshotRequestDedup", 7780, 2);
 
 	private FastServerIds() {
 	}

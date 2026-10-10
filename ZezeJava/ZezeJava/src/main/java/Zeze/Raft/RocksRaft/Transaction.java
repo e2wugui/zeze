@@ -277,7 +277,7 @@ public final class Transaction {
 			// 上次leaderApply已完成内存变更但flush失败：内存已是最终状态，
 			// 只重试flush。不能重跑下面的日志迭代：业务线程超时回滚后savepoints可能已清空。
 			try {
-				rocks.flush(pending, changes);
+				rocks.flush(pending, changes, false, holder);
 			} catch (Rocks.FlushException e) {
 				// 重试再失败的重登记用转移语义（addReference=false）：补偿持有的
 				// 计数随消费原样移入新登记，在用保护横跨补偿生命周期不断档；原"先endAccess
@@ -307,7 +307,7 @@ public final class Transaction {
 			}
 		}
 		try {
-			rocks.flush(rs, changes);
+			rocks.flush(rs, changes, false, holder);
 		} catch (Rocks.FlushException e) {
 			// 内存已变更但落盘失败：记录已应用的记录集合，等下次apply重试时只flush，
 			// 避免重试经readLog解码走增量followerApply造成双重应用。
