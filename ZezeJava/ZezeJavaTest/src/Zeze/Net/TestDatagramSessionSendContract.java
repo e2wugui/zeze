@@ -1,7 +1,9 @@
 package Zeze.Net;
 
 import harness.Fast;
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 
 import Zeze.Net.Rpc;
 import Zeze.Net.RpcSocketDisposedException;
@@ -9,6 +11,7 @@ import Zeze.Net.Service;
 import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
 import demo.Module1.BValue;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -131,6 +134,45 @@ public class TestDatagramSessionSendContract {
 					"close必须在飞Rpc立即失败（RpcSocketDisposedException），实际=" + cause);
 		} finally {
 			service.stop();
+		}
+	}
+
+	// 非阻塞channel.send缓冲满时返回0（数据报被丢，无异常），旧实现把它当成功——
+	// 接口谎报"已发出"，上层Rpc只能干等超时。修复后sendTo如实传播false：
+	// Send返回false、不close（缓冲满≠通道死亡），Rpc立即失败并清理上下文（fail-fast）。
+	@Test
+	public void testBufferFullSendReturnsFalse() throws Exception {
+		Task.tryInitThreadPool();
+		var service = new Service("datagram-send.d");
+		try {
+			var socket = new ZeroSendDatagramSocket(service); // 真实bind；sendTo模拟缓冲满返回0
+			var session = socket.createSessionServer(
+					new InetSocketAddress("127.0.0.1", 1), null, ReplayAttackPolicy.AllowDisorder);
+			Assertions.assertFalse(session.Send(new byte[]{1, 2, 3}, 0, 3), "缓冲满（send返回0）必须如实false");
+			Assertions.assertFalse(session.isClosed(), "缓冲满不等于通道死亡，不得close");
+			Assertions.assertFalse(session.Send(new NoReplyRpc()), "Protocol重载同样返回false");
+			Assertions.assertFalse(session.isClosed(), "Protocol缓冲满同样不close");
+
+			// 上层收益：Rpc不再白等60s超时，future立即以Send Fail失败且上下文被清理
+			var future = new NoReplyRpc().SendForWait(session, 60_000);
+			Assertions.assertTrue(future.isCompletedExceptionally(), "发送失败future必须立即失败（不再等超时）");
+			Assertions.assertTrue(service.getRpcContextsToSender(session).isEmpty(),
+					"缓冲满路径同样清理rpcContexts");
+			socket.close();
+		} finally {
+			service.stop();
+		}
+	}
+
+	/** 模拟发送缓冲满：覆盖sendTo(byte[])返回false（等价非阻塞send返回0），其余真实。 */
+	private static final class ZeroSendDatagramSocket extends DatagramSocket {
+		ZeroSendDatagramSocket(@NotNull Service service) throws IOException {
+			super(service, new InetSocketAddress(0));
+		}
+
+		@Override
+		public boolean sendTo(@NotNull SocketAddress peer, byte @NotNull [] packet, int offset, int size) {
+			return false;
 		}
 	}
 }

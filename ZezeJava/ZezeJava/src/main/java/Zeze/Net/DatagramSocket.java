@@ -72,22 +72,24 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		return null;
 	}
 
-	public void sendTo(@NotNull SocketAddress peer, @NotNull java.nio.ByteBuffer bb) throws IOException {
-		datagramChannel.send(bb, peer);
+	// 非阻塞channel.send返回0表示数据报未发出（发送缓冲满时被丢），必须如实传播给调用方：
+	// 谎报成功会让上层Rpc白等超时、AsyncSocket的发送计数失真。返回true=已交给内核发出。
+	public boolean sendTo(@NotNull SocketAddress peer, @NotNull java.nio.ByteBuffer bb) throws IOException {
+		return datagramChannel.send(bb, peer) > 0;
 	}
 
-	public void sendTo(@NotNull SocketAddress peer, byte @NotNull [] packet, int offset, int size) throws IOException {
-		datagramChannel.send(java.nio.ByteBuffer.wrap(packet, offset, size), peer);
+	public boolean sendTo(@NotNull SocketAddress peer, byte @NotNull [] packet, int offset, int size) throws IOException {
+		return sendTo(peer, java.nio.ByteBuffer.wrap(packet, offset, size));
 	}
 
-	public void sendTo(@NotNull SocketAddress peer, @NotNull Serializable p) throws IOException {
+	public boolean sendTo(@NotNull SocketAddress peer, @NotNull Serializable p) throws IOException {
 		int preAllocSize = p.preAllocSize();
 		var bb = ByteBuffer.Allocate(Math.min(preAllocSize, 65536));
 		p.encode(bb);
 		int size = bb.WriteIndex;
 		if (size > preAllocSize)
 			p.preAllocSize(size);
-		datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, 0, size), peer);
+		return sendTo(peer, java.nio.ByteBuffer.wrap(bb.Bytes, 0, size));
 	}
 
 	// close后拒绝新建（close在锁内置空selectionKey，双侧同锁封死竞态——

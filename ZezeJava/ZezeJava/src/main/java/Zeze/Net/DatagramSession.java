@@ -104,13 +104,13 @@ public class DatagramSession extends AsyncSocket {
 		}
 		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送；UDP 语义下不保证发送顺序。
 		try {
-			socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
+			if (!socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex))
+				return false; // 非阻塞send返回0：发送缓冲满，数据报未发出。通道仍健康，不close，区别于IOException
 		} catch (IOException e) {
 			// 履行AsyncSocket布尔契约（对齐TcpSocket）：IO失败close并返回false，
 			// 不抛RuntimeException——否则上层Rpc.Send在addRpcContext之后、清理之前被异常
 			// 穿透，rpcContexts条目永久泄漏（无超时定时器兜底）。UDP非阻塞send的现实IOException
-			// 基本只有ClosedChannelException（会话随channel生死），close不过激；丢包/缓冲满
-			// 表现为send返回0而非异常，属UDP允许丢包语义。
+			// 基本只有ClosedChannelException（会话随channel生死），close不过激。
 			close(e);
 			return false;
 		}
@@ -148,7 +148,8 @@ public class DatagramSession extends AsyncSocket {
 		}
 		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送；UDP 语义下不保证发送顺序。
 		try {
-			socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
+			if (!socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex))
+				return false; // 同Send(byte[],int,int)：缓冲满未发出，如实返回false
 		} catch (IOException e) {
 			close(e); // 同Send(byte[],int,int)：布尔契约，不抛RuntimeException
 			return false;
