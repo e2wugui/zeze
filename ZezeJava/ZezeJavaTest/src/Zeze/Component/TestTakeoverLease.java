@@ -56,10 +56,16 @@ public class TestTakeoverLease {
 			Assertions.assertTrue(lease[1] > System.currentTimeMillis() && lease[1] <= System.currentTimeMillis() + ttl + 100,
 					"expireAt≈now+TTL, lease=" + lease[1]);
 
-			// renew：睡过两个renew周期，expireAt被推后，epoch不变。
+			// renew：等待式——renew定时器（TTL/3≈666ms）持续幂等触发，固定sleep(1500)在满载
+			// 调度停摆≥窗口时可能一次都没跑（2026-10-10批r3实证：renewed==expireBefore相等即红，
+			// a4d1e68b1同族第三处）；轮询至expireAt被推后（有界10s，renew机制坏了才超时=真红）。
 			var expireBefore = lease[1];
-			Thread.sleep(1500);
-			var renewed = readLease(app, serverId);
+			var renewed = new long[]{lease[0], expireBefore};
+			var deadline = System.currentTimeMillis() + 10_000;
+			while (renewed[1] <= expireBefore && System.currentTimeMillis() < deadline) {
+				Thread.sleep(100);
+				renewed = readLease(app, serverId);
+			}
 			Assertions.assertEquals(lease[0], renewed[0], "renew不得改epoch");
 			Assertions.assertTrue(renewed[1] > expireBefore, "renew应推后expireAt: " + renewed[1] + " vs " + expireBefore);
 			Assertions.assertTrue(renewed[1] > System.currentTimeMillis(), "续约后不得过期");
