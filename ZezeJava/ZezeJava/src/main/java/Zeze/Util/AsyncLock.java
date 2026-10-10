@@ -34,9 +34,6 @@ public final class AsyncLock {
 	// owner不派发，派发由驱动循环推进——否则runWithLeave→leave→tryNextAsync逐回调
 	// 递归，深队列栈溢出后state==1无人派发，锁永久毒化。
 	private volatile @Nullable Thread inlineDriverThread;
-	// 测试钩子（一次性）：非null时在拒绝兜底驱动"队列耗尽、state=0发布后"的边界执行并
-	// 自动置null——用于确定性复现驱动交接交错（旧驱动停在此处，新线程接管派发）。仅测试使用。
-	Action0 testHookAtInlineDriverEmptyBoundary;
 	private final ConcurrentLinkedQueue<Action0> readyQueue = new ConcurrentLinkedQueue<>();
 	private final ArrayDeque<Action0> waitQueue = new ArrayDeque<>();
 	private @Nullable Action0 current;
@@ -173,15 +170,6 @@ public final class AsyncLock {
 				onReady = readyQueue.poll();
 				if (onReady == null) {
 					state = 0;
-					var hook = testHookAtInlineDriverEmptyBoundary;
-					if (hook != null) {
-						testHookAtInlineDriverEmptyBoundary = null; // 一次性
-						try {
-							hook.run(); // 测试注入：确定性停在"state=0已发布、驱动尚未退场"的交接窗口
-						} catch (Exception e) {
-							throw Task.forceThrow(e);
-						}
-					}
 					if (readyQueue.isEmpty() || !stateHandle.compareAndSet(this, 0, 1)) // retry, rare-path
 						return;
 					onReady = readyQueue.poll();
