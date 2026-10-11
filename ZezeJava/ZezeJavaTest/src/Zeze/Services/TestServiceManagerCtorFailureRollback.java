@@ -24,13 +24,31 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Fast
 public class TestServiceManagerCtorFailureRollback {
 
+	/** 冲突口禁用OS派发（DatagramSocket(0)恰好落在49152-65535临时端口带，出站连接的源端口
+	 * 也从该带派发——冲突口的TCP侧被狙时构造先死在TCP bind上，异常类型错位成
+	 * TcpSocket包装的IllegalStateException而非被测的UDP BindException；2026-10-09b r38/
+	 * 2026-10-11 r10两现立案）。带外选口+双栈探测：手工带（31930-31960，避开Onz GC的
+	 * 31850-31911与31000）无临时端口狙击面，UDP/TCP双栈都可绑才选中（排除与其他测试
+	 * 固定TCP口撞车复现同款异常类型错位）。 */
+	private static int probeConflictPort(InetAddress loop) throws Exception {
+		for (var port = 31930; port <= 31960; port++) {
+			try (var udp = new DatagramSocket(new InetSocketAddress(loop, port));
+					var tcp = new ServerSocket(port, 1, loop)) {
+				return port;
+			} catch (BindException e) {
+				// 本口被占（UDP或TCP任一栈），试下一个
+			}
+		}
+		throw new IllegalStateException("probe band 31930-31960 exhausted");
+	}
+
 	@Test
 	public void udpConflictConstructorFailureReleasesTcpAndDb() throws Exception {
 		Task.tryInitThreadPool();
 		var loop = InetAddress.getLoopbackAddress();
 		// autokeys参数是相对dbHome(默认".")的子目录名，必须用相对路径
 		var dbDir = new java.io.File("sm_ctor_rollback_test_db");
-		try (var udp = new DatagramSocket(new InetSocketAddress(loop, 0))) {
+		try (var udp = new DatagramSocket(new InetSocketAddress(loop, probeConflictPort(loop)))) {
 			int port = udp.getLocalPort();
 
 			Throwable failure = null;
