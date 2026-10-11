@@ -11,6 +11,8 @@ import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.History.History;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
+import Zeze.Util.PropertiesHelper;
+import Zeze.Util.ZezeCounter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,8 +33,28 @@ public final class RelativeRecordSet extends ReentrantLock {
 	private @Nullable Set<OnzProcedure> onzProcedures;
 	private volatile @Nullable History history;
 
+	// RRS锁等待观测（提交/落库双通道）：Profiler通道在生产慢事务(≥3s)时间线内按过程名
+	// 归因（对齐Record.enterFairLock的RecordWaitFairLock惯例）；ZezeCounter通道聚合分布，
+	// 供bench dump（collectAndReset().formattedLog()）与运行时巡检。句柄一次解析终身复用
+	// （对齐Checkpoint.RunOnceObserver惯例）。
+	private static final ZezeCounter.LongObserver CommitLockWaitObserver =
+			ZezeCounter.instance.getRunTimeObserver("RRS.commitLockWait");
+	private static final ZezeCounter.LongObserver FlushLockWaitObserver =
+			ZezeCounter.instance.getRunTimeObserver("RRS.flushLockWait");
+	// FlushSet整组取锁总等待告警阈值（系统属性，毫秒）：非公平锁下flusher等待是统计性
+	// 安全（无理论上界，见构造器注释），本告警是饿死风险的观测兜底——只告警不介入。
+	private static final long FlushLockWaitWarnNanos =
+			PropertiesHelper.getLong("zeze.rrsFlushLockWaitWarnMs", 1000) * 1_000_000L;
+
 	RelativeRecordSet() {
-		super(true);
+		// 非公平构造是取舍而非疏忽（对照Record.fairLock的公平锁、Lockey.alloc同例）：等待者以
+		// 并发提交事务为主，公平锁的FIFO交接在高并发提交下实测车队化（同日A/B：B +35%、
+		// 脏读 +91%、flush +8~25%，口径见BENCHMARK.md第六轮）。编组语义不变（多重取锁按id
+		// 全序防死锁）。代价是flusher等待从公平锁的确定性上界降为统计性安全——AQS排队FIFO
+		// 保证入队后排名单调前进，饿死需在队头无限连输到达race（无机制维持、零概率但无理论
+		// 上界）；观测兜底=RRS.commitLockWait/flushLockWait聚合 + FlushSet取锁总等待告警
+		// （zeze.rrsFlushLockWaitWarnMs）+ RrsWaitLock慢事务时间线。
+		super(false);
 	}
 
 	public @Nullable History getHistory() {
@@ -114,6 +136,33 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	boolean tryLockWhenIdle() {
 		return !hasQueuedThreads() && tryLock();
+	}
+
+	// 提交路径取锁：快路tryLock（非公平锁下与lock()首CAS等价，无争零额外开销）；
+	// 慢路进Profiler（慢事务时间线按过程名归因）+ ZezeCounter聚合等待分布。
+	private static void lockCommit(@NotNull RelativeRecordSet rrs) {
+		if (rrs.tryLock())
+			return;
+		var timeBegin = System.nanoTime();
+		try (var ignored = Profiler.begin("RrsWaitLock", rrs.id)) {
+			rrs.lock();
+		} finally {
+			CommitLockWaitObserver.observe(System.nanoTime() - timeBegin);
+		}
+	}
+
+	// 落库路径取锁：返回本次等待纳秒（供FlushSet整组累计告警）。flusher线程无当前
+	// 事务，Profiler.begin安全no-op；聚合走ZezeCounter。
+	private static long lockFlush(@NotNull RelativeRecordSet rrs) {
+		if (rrs.tryLock())
+			return 0;
+		var timeBegin = System.nanoTime();
+		try (var ignored = Profiler.begin("RrsWaitLock", rrs.id)) {
+			rrs.lock();
+		}
+		var waited = System.nanoTime() - timeBegin;
+		FlushLockWaitObserver.observe(waited);
+		return waited;
 	}
 
 	/**
@@ -412,7 +461,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 											@NotNull TreeMap<Long, RelativeRecordSet> all,
 											@NotNull RelativeRecordSet rrs,
 											@NotNull HashSet<Record> transAccessRecords) {
-		rrs.lock();
+		lockCommit(rrs);
 		var mergeTo = rrs.mergeTo;
 		if (mergeTo != null) {
 			rrs.unlock();
@@ -468,12 +517,18 @@ public final class RelativeRecordSet extends ReentrantLock {
 			var locks = new ArrayList<RelativeRecordSet>(n);
 			try {
 				var nr = 0;
+				long lockWaited = 0;
 				for (var rrs : sortedRrs.values()) {
-					rrs.lock();
+					lockWaited += lockFlush(rrs);
 					locks.add(rrs);
 					//noinspection DataFlowIssue
 					nr += rrs.recordSet.size();
 				}
+				if (lockWaited > FlushLockWaitWarnNanos)
+					Checkpoint.logger.warn(
+							"FlushSet acquire {} rrs locks waited {}ms: flusher排队超阈值(zeze.rrsFlushLockWaitWarnMs)，"
+									+ "查RRS.flushLockWait聚合分布与RrsWaitLock慢事务时间线",
+							locks.size(), lockWaited / 1_000_000);
 				var rs = new ArrayList<Record>(nr);
 				var onzProcedures = new HashSet<OnzProcedure>();
 				History history = null;
@@ -525,7 +580,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		// 编码统一由 Checkpoint.flush 锁内 encode0 承担。不得锁外 encodeN 预编码：
 		// 它与并发轮的 writeOnly/commitDone、并发事务 merge 存在桶级交错：搬运者
 		// 拿锁后发现 rrs 已 deleted/merged 而跳过 flush，滞留条目永不落库。
-		rrs.lock();
+		lockFlush(rrs);
 		try {
 			if (rrs.mergeTo == null) {
 				checkpoint.flush(rrs);
@@ -640,7 +695,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	private static @Nullable RelativeRecordSet flushWhenReduce(@NotNull RelativeRecordSet rrs,
 															   @NotNull Checkpoint checkpoint) {
-		rrs.lock();
+		lockFlush(rrs);
 		try {
 			var mergeTo = rrs.mergeTo;
 			if (mergeTo == null) {
