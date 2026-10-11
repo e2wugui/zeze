@@ -215,7 +215,9 @@ final class PlayerSim implements Runnable {
 
 	private void heartbeat(long now) {
 		if (world.call(rec, OpRecorder.OpType.heartbeat, "GameSim.Heartbeat", () -> {
-			world.tSession.getOrAdd(roleId).setLastActive(now);
+			var session = world.tSession.get(roleId); // 会话行建点在 login；踢线后缺行=本轮跳过
+			if (session != null)
+				session.setLastActive(now);
 			return 0L;
 		})) {
 			lastActiveGameMs = now;
@@ -240,7 +242,9 @@ final class PlayerSim implements Runnable {
 
 	private void applyLoot(LootEvent e) {
 		world.call(rec, OpRecorder.OpType.loot, "GameSim.Loot", () -> {
-			var role = world.tRole.getOrAdd(roleId);
+			var role = world.tRole.get(roleId); // 角色必有；getOrAdd 仅限建点（login）
+			if (role == null)
+				return 0L;
 			role.setExp(role.getExp() + e.exp);
 			int oldLevel = role.getLevel();
 			while (role.getExp() >= GameConfig.expToNext(role.getLevel())) { // 升级曲线
@@ -248,10 +252,12 @@ final class PlayerSim implements Runnable {
 				role.setLevel(role.getLevel() + 1);
 			}
 			if (role.getLevel() != oldLevel)
-				submitRank(world.tRank, 2L, oldLevel * RANK_KEY_SCALE + roleId, role.getLevel() * RANK_KEY_SCALE + roleId); // 等级榜
+				world.rank.updateRank((int)roleId, world.levelBoard, roleId,
+						new Zeze.Builtin.Game.Rank.BValueLong(role.getLevel())); // 等级榜
 			long before = role.getDamageTotal();
 			role.setDamageTotal(before + e.damage);
-			submitRank(world.tRank, 1L, before * RANK_KEY_SCALE + roleId, (before + e.damage) * RANK_KEY_SCALE + roleId); // 伤害榜
+			world.rank.updateRank((int)roleId, world.damageBoard, roleId,
+					new Zeze.Builtin.Game.Rank.BValueLong(before + e.damage)); // 伤害榜（模块内自处理旧键移除）
 			if (e.itemId != 0 && insertItem(role, e.itemId, e.count) >= 0)
 				Zeze.Transaction.Transaction.whileCommit(() ->
 						world.ledger.item(e.itemId, e.count)); // 背包满不入=未注入即未销毁，两侧都不记
@@ -269,7 +275,9 @@ final class PlayerSim implements Runnable {
 
 	private void applyDeath(DeathEvent e) {
 		world.call(rec, OpRecorder.OpType.loot, "GameSim.DeathPenalty", () -> {
-			var role = world.tRole.getOrAdd(roleId);
+			var role = world.tRole.get(roleId);
+			if (role == null)
+				return 0L;
 			final long loss = Math.min(role.getMoney(), e.moneyLoss);
 			role.setMoney(role.getMoney() - loss);
 			Zeze.Transaction.Transaction.whileCommit(() -> { // 系统销毁
@@ -286,8 +294,10 @@ final class PlayerSim implements Runnable {
 			return; // 拒绝（决策点）
 		int payBack = 5 + rng.nextInt(20); // 还价金币（决策点）
 		world.call(rec, OpRecorder.OpType.trade, "GameSim.Trade", () -> {
-			var roleA = world.tRole.getOrAdd(o.from);
-			var roleB = world.tRole.getOrAdd(roleId);
+			var roleA = world.tRole.get(o.from);
+			var roleB = world.tRole.get(roleId);
+			if (roleA == null || roleB == null)
+				return 0L; // 极端时序下对方未建角：放弃
 			if (roleB.getMoney() < payBack)
 				return 0L;
 			var bagA = roleA.getBag();
@@ -355,7 +365,9 @@ final class PlayerSim implements Runnable {
 		if (slot < 0 || hpMirror >= GameConfig.PlayerMaxHp * 7 / 10)
 			return; // 没药或血量健康：不产生事务（避免空事务放大固定提交成本）
 		world.call(rec, OpRecorder.OpType.usePotion, "GameSim.UsePotion", () -> {
-			var role = world.tRole.getOrAdd(roleId);
+			var role = world.tRole.get(roleId);
+			if (role == null)
+				return 0L;
 			var bag = role.getBag();
 			var item = bag.get(slot);
 			if (item == null || item.getItemId() != GameConfig.ItemPotion) {
@@ -377,7 +389,9 @@ final class PlayerSim implements Runnable {
 		if (slot < 0)
 			return;
 		world.call(rec, OpRecorder.OpType.equipChange, "GameSim.Equip", () -> {
-			var role = world.tRole.getOrAdd(roleId);
+			var role = world.tRole.get(roleId);
+			if (role == null)
+				return 0L;
 			var bag = role.getBag();
 			var item = bag.get(slot);
 			if (item == null || item.getItemId() != GameConfig.ItemWeapon)
@@ -424,7 +438,9 @@ final class PlayerSim implements Runnable {
 		if (slot < 0)
 			return;
 		world.call(rec, OpRecorder.OpType.sellShop, "GameSim.SellShop", () -> {
-			var role = world.tRole.getOrAdd(roleId);
+			var role = world.tRole.get(roleId);
+			if (role == null)
+				return 0L;
 			var item = role.getBag().get(slot);
 			if (item == null)
 				return 0L; // 镜像过期
@@ -460,7 +476,9 @@ final class PlayerSim implements Runnable {
 			var m = world.tMail.get(key);
 			if (m == null)
 				return 0L; // 已被领（重复通知防御）：丢弃
-			var role = world.tRole.getOrAdd(roleId);
+			var role = world.tRole.get(roleId);
+			if (role == null)
+				return 0L;
 			for (var entry : m.getItems().entrySet()) { // 先验证附件全可入包
 				var it = entry.getValue();
 				if (findSlotFor(role, it.getItemId(), it.getCount()) < 0) {
@@ -496,7 +514,9 @@ final class PlayerSim implements Runnable {
 		long friend = friendIds[rng.nextInt(friendIds.length)];
 		long key = world.allocMailKey(); // 号段事务外预分配
 		world.call(rec, OpRecorder.OpType.mailSend, "GameSim.MailSend", () -> {
-			var role = world.tRole.getOrAdd(roleId);
+			var role = world.tRole.get(roleId);
+			if (role == null)
+				return 0L;
 			if (role.getMoney() < 10)
 				return 0L;
 			var item = role.getBag().get(slot);
@@ -619,18 +639,6 @@ final class PlayerSim implements Runnable {
 
 	private static int itemAddHp(int itemId) {
 		return itemId == GameConfig.ItemPotion ? 30 : 0;
-	}
-
-	/** 排行键=score×2^20+roleId（roleId<2^20 保证唯一、按键有序即按分排序） */
-	static final long RANK_KEY_SCALE = 1_048_576L;
-
-	/** 排行提交：删旧键放新键；容量 100 超出删最低分 */
-	private static void submitRank(demo.Game.tRank tRank, long boardId, long oldKey, long newKey) {
-		var entries = tRank.getOrAdd(boardId).getEntries();
-		entries.remove(oldKey);
-		entries.put(newKey, newKey % RANK_KEY_SCALE); // value=roleId（低 20 位）
-		if (entries.size() > 100)
-			entries.remove(entries.firstKey());
 	}
 
 	/** 事务内重同步背包/装备镜像（本线程读写） */

@@ -227,16 +227,12 @@
 			<variable id="3" name="Items" type="map[int, BItem]"/>
 			<variable id="4" name="Claimed" type="bool"/>
 		</bean>
-		<bean name="BRank">
-			<variable id="1" name="Entries" type="sortedmap[long, long]"/>
-		</bean>
 		<bean name="BSession">
 			<variable id="1" name="LastActive" type="long"/>
 			<variable id="2" name="RoomId" type="int"/>
 		</bean>
 		<table name="tRole" key="long" value="BRole"/>
 		<table name="tMail" key="long" value="BMail"/>
-		<table name="tRank" key="long" value="BRank"/>
 		<table name="tSession" key="long" value="BSession" memory="true"/>
 	</module>
 

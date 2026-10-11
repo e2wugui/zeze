@@ -6,11 +6,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 import Zeze.Application;
+import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Config;
+import Zeze.Game.Rank;
 import Zeze.Util.DaemonTimer;
 import Zeze.Util.Action0;
 import demo.Game.tMail;
-import demo.Game.tRank;
 import demo.Game.tRole;
 import demo.Game.tSession;
 
@@ -29,9 +30,12 @@ public final class GameWorld {
 	public final Ledger ledger = new Ledger();
 	public final tRole tRole;
 	public final tMail tMail;
-	public final tRank tRank;
 	public final tSession tSession;
 	public final Application zeze;
+	// 排行=内置 Zeze.Game.Rank 模块（真实组件口径：分片并发榜+快照合并+容量管理开箱即用）
+	public final Rank rank;
+	public final BConcurrentKey levelBoard;
+	public final BConcurrentKey damageBoard;
 
 	// 在线注册（roleId -> 玩家）；与 tSession 行集恒等（守恒#3）
 	public final ConcurrentHashMap<Long, PlayerSim> online = new ConcurrentHashMap<>();
@@ -77,12 +81,16 @@ public final class GameWorld {
 		zeze = new Application("GameSim", config);
 		tRole = new tRole();
 		tMail = new tMail();
-		tRank = new tRank();
 		tSession = new tSession();
+		// Rank 模块初始化：基类直构（Rank.create 是 redirect 生成子类，裸环境写不进本地表）
+		// ——GameRankFactory 同包工厂（先例 TestRankCountNeedKey.newRank）；
+		// RegisterZezeTables 必须先于 start()（坑#2）
+		rank = Zeze.Game.GameRankFactory.createLocal(zeze);
+		levelBoard = Rank.newRankKey(GameConfig.RankTypeLevel, BConcurrentKey.TimeTypeTotal);
+		damageBoard = Rank.newRankKey(GameConfig.RankTypeDamage, BConcurrentKey.TimeTypeTotal);
 		// 坑#2：addTable 必须先于 start()
 		zeze.addTable("", tRole);
 		zeze.addTable("", tMail);
-		zeze.addTable("", tRank);
 		zeze.addTable("", tSession);
 		sysRecorder = OpRecorder.createSystem();
 		hbScanner = new DaemonTimer("GameSim.HbScan", cfg.wall(GameConfig.HbScanPeriodMs),

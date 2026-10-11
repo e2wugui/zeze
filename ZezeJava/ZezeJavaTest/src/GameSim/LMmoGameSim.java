@@ -240,9 +240,9 @@ public class LMmoGameSim {
 		Assertions.assertEquals(world.mailsInserted() - world.mailsClaimed(), mailRows[0],
 				"邮件对账: inserted-claimed=" + (world.mailsInserted() - world.mailsClaimed()) + " rows=" + mailRows[0]);
 
-		// #4 榜单一致（伤害榜=DamageTotal top100；等级榜=升过级角色的 level top100）
-		assertBoard(world, 1L, damageKeys);
-		assertBoard(world, 2L, levelKeys);
+		// #4 榜单一致（Rank 模块口径：伤害榜=DamageTotal、等级榜=升过级角色的 level，容量 100）
+		assertRank(world, world.damageBoard, damageKeys, "damage");
+		assertRank(world, world.levelBoard, levelKeys, "level");
 	}
 
 	private static void mergeItem(HashMap<Integer, Long> into,
@@ -251,25 +251,40 @@ public class LMmoGameSim {
 			into.merge(e.getValue().getItemId(), (long)e.getValue().getCount(), Long::sum);
 	}
 
-	/** 榜上键集 == 候选集 top100 键集（键=score×2^20+roleId） */
-	private static void assertBoard(GameWorld world, long boardId, ArrayList<long[]> scoreRole) {
+	/** Rank 模块榜单语义验证：榜条数==min(100,候选)；榜内分值==角色表现值；
+	 * 高于截断分的条数与重算一致（同分按模块插入序进榜，不做集合级比较） */
+	private static void assertRank(GameWorld world, Zeze.Builtin.Game.Rank.BConcurrentKey board,
+								   ArrayList<long[]> scoreRole, String what) {
 		scoreRole.sort((a, b) -> {
-			// 键空间语义对齐：key=score×2^20+roleId 升序取末 100 = 分数降序、同分 roleId 降序
-			int c = Long.compare(b[0], a[0]);
-			return c != 0 ? c : Long.compare(b[1], a[1]);
+			int c = Long.compare(b[0], a[0]); // 分数降序
+			return c != 0 ? c : Long.compare(a[1], b[1]);
 		});
-		var expect = new TreeSet<Long>();
-		for (int i = 0; i < Math.min(100, scoreRole.size()); i++)
-			expect.add(scoreRole.get(i)[0] * PlayerSim.RANK_KEY_SCALE + scoreRole.get(i)[1]);
-		var actual = new TreeSet<Long>();
+		int expectCount = Math.min(100, scoreRole.size());
+		long cutoff = scoreRole.isEmpty() ? 0 : scoreRole.get(expectCount - 1)[0];
+		var entries = new ArrayList<long[]>(); // [roleId, score]
 		world.zeze.newProcedure(() -> {
-			var entries = world.tRank.getOrAdd(boardId).getEntriesReadOnly();
-			for (var k : entries.keySet())
-				actual.add(k);
+			for (var e : world.rank.getRankTotal(board).getTableValue().getRankListReadOnly()) {
+				var score = ((Zeze.Builtin.Game.Rank.BValueLongReadOnly)e.getDynamicReadOnly().getBean()).getValue();
+				entries.add(new long[]{e.getRoleId(), score});
+			}
 			return 0L;
-		}, "GameSim.VerifyBoard").call();
-		Assertions.assertEquals(expect, actual, "榜单一致 board=" + boardId
-				+ " expect=" + expect.size() + " actual=" + actual.size());
+		}, "GameSim.VerifyRank").call();
+		Assertions.assertEquals(expectCount, entries.size(), what + " 榜条数");
+		var roleScore = new HashMap<Long, Long>();
+		for (var kv : scoreRole)
+			roleScore.put(kv[1], kv[0]);
+		long aboveExpect = 0;
+		for (var sr : scoreRole)
+			if (sr[0] > cutoff)
+				++aboveExpect;
+		long aboveActual = 0;
+		for (var e : entries) {
+			Assertions.assertEquals(roleScore.get(e[0]), e[1],
+					what + " 榜内分值须等于角色表现值 role=" + e[0]);
+			if (e[1] > cutoff)
+				++aboveActual;
+		}
+		Assertions.assertEquals(aboveExpect, aboveActual, what + " 高于截断分条数");
 	}
 
 	/** 清场（对齐 MacroBench 轮自包含精神：下场测试零残留） */
@@ -281,8 +296,6 @@ public class LMmoGameSim {
 			}
 			for (long k = 0; k < world.mailSeqValue(); k++)
 				world.tMail.remove(k);
-			world.tRank.remove(1L);
-			world.tRank.remove(2L);
 			return 0L;
 		}, "GameSim.Clear").call();
 	}
