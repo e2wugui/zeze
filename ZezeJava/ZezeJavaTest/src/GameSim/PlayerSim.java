@@ -239,6 +239,7 @@ final class PlayerSim implements Runnable {
 	private void applyLoot(LootEvent e) {
 		var item = new int[]{e.itemId, e.count}; // 事务内可能因背包满降级为不入
 		if (!world.call(rec, OpRecorder.OpType.loot, "GameSim.Loot", () -> {
+			item[0] = e.itemId; // 每轮重置（重试轮放弃时防上轮残留幻影记账）
 			var role = world.tRole.getOrAdd(roleId);
 			role.setExp(role.getExp() + e.exp);
 			int oldLevel = role.getLevel();
@@ -271,6 +272,7 @@ final class PlayerSim implements Runnable {
 	private void applyDeath(DeathEvent e) {
 		var paid = new long[]{0};
 		if (!world.call(rec, OpRecorder.OpType.loot, "GameSim.DeathPenalty", () -> {
+			paid[0] = 0; // 每轮重置
 			var role = world.tRole.getOrAdd(roleId);
 			long loss = Math.min(role.getMoney(), e.moneyLoss);
 			role.setMoney(role.getMoney() - loss);
@@ -290,6 +292,7 @@ final class PlayerSim implements Runnable {
 		int payBack = 5 + rng.nextInt(20); // 还价金币（决策点）
 		var moved = new int[]{0};
 		if (!world.call(rec, OpRecorder.OpType.trade, "GameSim.Trade", () -> {
+			moved[0] = 0; // 每轮重置（重试轮要约过期走放弃时，防上轮 moved 残留）
 			var roleA = world.tRole.getOrAdd(o.from);
 			var roleB = world.tRole.getOrAdd(roleId);
 			if (roleB.getMoney() < payBack)
@@ -364,6 +367,7 @@ final class PlayerSim implements Runnable {
 			return; // 没药或血量健康：不产生事务（避免空事务放大固定提交成本）
 		var used = new boolean[1];
 		if (!world.call(rec, OpRecorder.OpType.usePotion, "GameSim.UsePotion", () -> {
+			used[0] = false; // 每轮重置
 			var role = world.tRole.getOrAdd(roleId);
 			var bag = role.getBag();
 			var item = bag.get(slot);
@@ -390,6 +394,7 @@ final class PlayerSim implements Runnable {
 			return;
 		var eq = new boolean[1];
 		if (!world.call(rec, OpRecorder.OpType.equipChange, "GameSim.Equip", () -> {
+			eq[0] = false; // 每轮重置
 			var role = world.tRole.getOrAdd(roleId);
 			var bag = role.getBag();
 			var item = bag.get(slot);
@@ -441,6 +446,7 @@ final class PlayerSim implements Runnable {
 			return;
 		var gain = new long[]{0, 0, 0}; // itemId, count, money
 		if (!world.call(rec, OpRecorder.OpType.sellShop, "GameSim.SellShop", () -> {
+			gain[0] = gain[1] = gain[2] = 0; // 每轮重置（重试轮镜像过期走放弃时，防上轮售价残留）
 			var role = world.tRole.getOrAdd(roleId);
 			var item = role.getBag().get(slot);
 			if (item == null)
@@ -478,6 +484,8 @@ final class PlayerSim implements Runnable {
 		var state = new int[]{ST_MISSING}; // 事务结局：missing/claimed/full
 		var mailMoney = new long[1];
 		if (!world.call(rec, OpRecorder.OpType.mailClaim, "GameSim.MailClaim", () -> {
+			state[0] = ST_MISSING; // 每轮重置
+			mailMoney[0] = 0;
 			var m = world.tMail.get(key);
 			if (m == null) {
 				return 0L; // 已被领（重复通知防御）：丢弃
@@ -525,6 +533,7 @@ final class PlayerSim implements Runnable {
 		long key = world.allocMailKey(); // 号段事务外预分配
 		var sent = new boolean[1];
 		if (!world.call(rec, OpRecorder.OpType.mailSend, "GameSim.MailSend", () -> {
+			sent[0] = false; // 每轮重置
 			var role = world.tRole.getOrAdd(roleId);
 			if (role.getMoney() < 10)
 				return 0L;
