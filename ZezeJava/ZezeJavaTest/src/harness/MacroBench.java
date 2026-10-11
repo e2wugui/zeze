@@ -112,4 +112,26 @@ public final class MacroBench {
 			return "unknown";
 		}
 	}
+
+	// ===== L 场景（时长窗口/分位口径）复用的留档基建 =====
+
+	/** 自定义 JSON 留档：与宏观数字同目录约定（bench-results/&lt;tag&gt;/&lt;name&gt;.json） */
+	public static void writeRawJson(String name, String body) throws IOException {
+		var tag = System.getProperty("bench.tag", "adhoc");
+		var dir = Path.of("bench-results", tag);
+		Files.createDirectories(dir);
+		Files.writeString(dir.resolve(name + ".json"), body, StandardCharsets.UTF_8);
+	}
+
+	public static String git() {
+		return gitSha();
+	}
+
+	/** 中位数（MacroBench 主口径同式），供自定义留档复用 */
+	public static double median(double[] xs) {
+		var sorted = xs.clone();
+		Arrays.sort(sorted);
+		int n = sorted.length;
+		return n % 2 == 1 ? sorted[n / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+	}
 }

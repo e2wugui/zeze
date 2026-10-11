@@ -13,6 +13,9 @@ import java.util.stream.Stream;
  * <p>宏观（MacroBench JSON）：按文件名配对，median 对比；|Δ| &gt; 3×√(stdevA²+stdevB²) 判显著
  * （IMPROVED/REGRESSED），否则 NOISE。约定 dirA=before、dirB=after。
  *
+ * <p>游戏模拟（L_MmoGameSim.json，flat key "op.&lt;name&gt;.p50_us" 等）：每 op 的延迟分位
+ * 做无门槛百分比对照（信息性输出，不进回归判定——吞吐 median 仍是唯一门）。
+ *
  * <p>微基准（jmh-*.json，JMH 自身格式）：score±scoreError 置信区间不重叠判显著。
  */
 public final class BenchCompare {
@@ -26,6 +29,7 @@ public final class BenchCompare {
 		}
 		int regressions = 0;
 		regressions += compareMacro(Path.of(args[0]), Path.of(args[1]));
+		regressions += compareOps(Path.of(args[0]), Path.of(args[1]));
 		regressions += compareJmh(Path.of(args[0]), Path.of(args[1]));
 		System.exit(regressions > 0 ? 1 : 0);
 	}
@@ -62,6 +66,31 @@ public final class BenchCompare {
 					fa.getFileName(), medianA, medianB, deltaPct, noise, verdict);
 		}
 		return regressions;
+	}
+
+	private static int compareOps(Path dirA, Path dirB) throws IOException {
+		var fa = dirA.resolve("L_MmoGameSim.json");
+		var fb = dirB.resolve("L_MmoGameSim.json");
+		if (!Files.exists(fa) || !Files.exists(fb))
+			return 0;
+		String ta = Files.readString(fa), tb = Files.readString(fb);
+		var fields = List.of("op.loot.tps", "op.loot.p50_us", "op.loot.p95_us", "op.heartbeat.p95_us",
+				"op.friendQuery.p50_us", "op.friendQuery.p95_us", "op.mailClaim.p95_us", "op.trade.p95_us");
+		System.out.println("=== Game ops (informational, no gate) ===");
+		for (var k : fields) {
+			if (!ta.contains("\"" + k + "\"") || !tb.contains("\"" + k + "\""))
+				continue;
+			double va, vb;
+			try {
+				va = textDouble(ta, k, 0, Integer.MAX_VALUE);
+				vb = textDouble(tb, k, 0, Integer.MAX_VALUE);
+			} catch (IllegalStateException missing) {
+				continue;
+			}
+			double pct = 100 * (vb - va) / va;
+			System.out.printf("%-42s %14.1f -> %14.1f  %+7.2f%%%n", k, va, vb, pct);
+		}
+		return 0;
 	}
 
 	private static int compareJmh(Path dirA, Path dirB) throws IOException {

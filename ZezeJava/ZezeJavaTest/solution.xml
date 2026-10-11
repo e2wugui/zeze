@@ -200,6 +200,46 @@
 		</bean>
 	</module>
 
+	<!-- L 场景（LMmoGameSim）MMO-lite 游戏模拟的持久世界 schema：大厅域事务落库；
+	     房间域战斗状态机在内存（GameSim 包内纯 Java），不经任何表。 -->
+	<module name="Game" id="5">
+		<bean name="BItem">
+			<variable id="1" name="ItemId" type="int"/>
+			<variable id="2" name="Count" type="int"/>
+			<variable id="3" name="Atk" type="int"/>
+			<variable id="4" name="Def" type="int"/>
+			<variable id="5" name="AddHp" type="int"/>
+			<variable id="6" name="Price" type="int"/>
+		</bean>
+		<bean name="BRole">
+			<variable id="1" name="Level" type="int"/>
+			<variable id="2" name="Exp" type="long"/>
+			<variable id="3" name="Money" type="long"/>
+			<variable id="4" name="Hp" type="int"/>
+			<variable id="5" name="DamageTotal" type="long"/>
+			<variable id="6" name="Bag" type="map[int, BItem]"/>
+			<variable id="7" name="Equip" type="map[int, BItem]"/>
+			<variable id="8" name="Friends" type="map[long, int]"/>
+		</bean>
+		<bean name="BMail">
+			<variable id="1" name="From" type="long"/>
+			<variable id="2" name="Money" type="long"/>
+			<variable id="3" name="Items" type="map[int, BItem]"/>
+			<variable id="4" name="Claimed" type="bool"/>
+		</bean>
+		<bean name="BRank">
+			<variable id="1" name="Entries" type="sortedmap[long, long]"/>
+		</bean>
+		<bean name="BSession">
+			<variable id="1" name="LastActive" type="long"/>
+			<variable id="2" name="RoomId" type="int"/>
+		</bean>
+		<table name="tRole" key="long" value="BRole"/>
+		<table name="tMail" key="long" value="BMail"/>
+		<table name="tRank" key="long" value="BRank"/>
+		<table name="tSession" key="long" value="BSession" memory="true"/>
+	</module>
+
 	<module name="ModuleGTable" id="100">
 		<bean name="BValue">
 			<variable id="1" name="gTable" type="gtable[int, int, int]"/>
@@ -222,6 +262,8 @@
 	GenTables 选择生成哪些表格（Table），如果为空，那就生成那些没有配置gen属性的table，可以用','分开指定多个名字
 	-->
 	<project name="ZezeJavaTest" GenDir="Gen" SrcDir="src" platform="java" GenTables="" MappingClass="true">
+		<!-- L 场景 MMO-lite 游戏模拟的纯表模块（无协议），project 级引用 -->
+		<module ref="Game"/>
 		<!--
 		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
 		<module ref="Module2"/>

@@ -176,6 +176,7 @@ public class App extends Zeze.AppBase {
 
     public demo.TestServer TestServer;
 
+    public demo.Game.ModuleGame demo_Game;
     public demo.web.ModuleWeb demo_web;
     public demo.Module1.ModuleModule1 demo_Module1;
     public demo.Module1.Module11.ModuleModule11 demo_Module1_Module11;
@@ -218,6 +219,7 @@ public class App extends Zeze.AppBase {
 
     public static Class<?>[] redirectModuleClasses() {
         return new Class[] {
+            demo.Game.ModuleGame.class,
             demo.web.ModuleWeb.class,
             demo.Module1.ModuleModule1.class,
             demo.Module1.Module11.ModuleModule11.class,
@@ -235,37 +237,42 @@ public class App extends Zeze.AppBase {
             Zeze.initialize(this);
             var _modules_ = createRedirectModules(redirectModuleClasses());
 
-            demo_web = (demo.web.ModuleWeb)_modules_[0];
+            demo_Game = (demo.Game.ModuleGame)_modules_[0];
+            demo_Game.Initialize(this);
+            if (modules.put(demo_Game.getFullName(), demo_Game) != null)
+                throw new IllegalStateException("duplicate module name: demo_Game");
+
+            demo_web = (demo.web.ModuleWeb)_modules_[1];
             demo_web.Initialize(this);
             if (modules.put(demo_web.getFullName(), demo_web) != null)
                 throw new IllegalStateException("duplicate module name: demo_web");
 
-            demo_Module1 = (demo.Module1.ModuleModule1)_modules_[1];
+            demo_Module1 = (demo.Module1.ModuleModule1)_modules_[2];
             demo_Module1.Initialize(this);
             if (modules.put(demo_Module1.getFullName(), demo_Module1) != null)
                 throw new IllegalStateException("duplicate module name: demo_Module1");
 
-            demo_Module1_Module11 = (demo.Module1.Module11.ModuleModule11)_modules_[2];
+            demo_Module1_Module11 = (demo.Module1.Module11.ModuleModule11)_modules_[3];
             demo_Module1_Module11.Initialize(this);
             if (modules.put(demo_Module1_Module11.getFullName(), demo_Module1_Module11) != null)
                 throw new IllegalStateException("duplicate module name: demo_Module1_Module11");
 
-            demo_M6 = (demo.M6.ModuleM6)_modules_[3];
+            demo_M6 = (demo.M6.ModuleM6)_modules_[4];
             demo_M6.Initialize(this);
             if (modules.put(demo_M6.getFullName(), demo_M6) != null)
                 throw new IllegalStateException("duplicate module name: demo_M6");
 
-            demo_M6_M7 = (demo.M6.M7.ModuleM7)_modules_[4];
+            demo_M6_M7 = (demo.M6.M7.ModuleM7)_modules_[5];
             demo_M6_M7.Initialize(this);
             if (modules.put(demo_M6_M7.getFullName(), demo_M6_M7) != null)
                 throw new IllegalStateException("duplicate module name: demo_M6_M7");
 
-            TaskTest_TaskExt = (TaskTest.TaskExt.ModuleTaskExt)_modules_[5];
+            TaskTest_TaskExt = (TaskTest.TaskExt.ModuleTaskExt)_modules_[6];
             TaskTest_TaskExt.Initialize(this);
             if (modules.put(TaskTest_TaskExt.getFullName(), TaskTest_TaskExt) != null)
                 throw new IllegalStateException("duplicate module name: TaskTest_TaskExt");
 
-            demo_ModuleGTable = (demo.ModuleGTable.ModuleModuleGTable)_modules_[6];
+            demo_ModuleGTable = (demo.ModuleGTable.ModuleModuleGTable)_modules_[7];
             demo_ModuleGTable.Initialize(this);
             if (modules.put(demo_ModuleGTable.getFullName(), demo_ModuleGTable) != null)
                 throw new IllegalStateException("duplicate module name: demo_ModuleGTable");
@@ -286,6 +293,7 @@ public class App extends Zeze.AppBase {
             demo_Module1_Module11 = null;
             demo_Module1 = null;
             demo_web = null;
+            demo_Game = null;
             modules.clear();
         } finally {
             unlock();
@@ -313,6 +321,7 @@ public class App extends Zeze.AppBase {
     public void startModules() throws Exception {
         lock();
         try {
+            demo_Game.Start(this);
             demo_web.Start(this);
             demo_Module1.Start(this);
             demo_Module1_Module11.Start(this);
@@ -329,6 +338,7 @@ public class App extends Zeze.AppBase {
     public void startLastModules() throws Exception {
         lock();
         try {
+            demo_Game.StartLast();
             demo_web.StartLast();
             demo_Module1.StartLast();
             demo_Module1_Module11.StartLast();
@@ -360,6 +370,8 @@ public class App extends Zeze.AppBase {
                 demo_Module1.Stop(this);
             if (demo_web != null)
                 demo_web.Stop(this);
+            if (demo_Game != null)
+                demo_Game.Stop(this);
         } finally {
             unlock();
         }
@@ -384,6 +396,8 @@ public class App extends Zeze.AppBase {
                 demo_Module1.StopBefore();
             if (demo_web != null)
                 demo_web.StopBefore();
+            if (demo_Game != null)
+                demo_Game.StopBefore();
         } finally {
             unlock();
         }

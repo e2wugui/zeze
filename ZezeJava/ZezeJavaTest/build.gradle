@@ -240,6 +240,36 @@ tasks.register('benchCorePlatform', Test) {
     mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('extraTest'), tasks.named('bench'), tasks.named('benchCore')
 }
 
+// gradle benchGame：L 场景 MMO-lite 游戏模拟（@Bench + @Tag("game")）。
+// 独立 JVM 车道（5000 虚拟线程世界不与 core 场景互扰）；时长窗口+延迟分位 JSON 留档。
+// 旋钮：-PgamePlayers=5000 -PgameK=20 -PgameMinutes=10（游戏时间每窗口分钟）-PbenchHeap=4g。
+tasks.register('benchGame', Test) {
+    group = 'verification'
+    description = 'MMO-lite 游戏模拟基准（真实游戏逻辑+5000虚拟线程+真人节奏×K，-PgameK=20）。'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'bench & game'
+    }
+    workingDir = projectDir
+    jvmArgs '-ea'
+    maxHeapSize = (findProperty('benchHeap') ?: '2g')
+    if (findProperty('benchJvmExtra') != null)
+        jvmArgs findProperty('benchJvmExtra').toString().split(' ')
+    systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
+    if (findProperty('gamePlayers') != null)
+        systemProperty 'game.players', findProperty('gamePlayers')
+    if (findProperty('gameK') != null)
+        systemProperty 'game.k', findProperty('gameK')
+    if (findProperty('gameMinutes') != null)
+        systemProperty 'game.minutes', findProperty('gameMinutes')
+    if (findProperty('gameRounds') != null)
+        systemProperty 'game.rounds', findProperty('gameRounds')
+    if (findProperty('gameWarmups') != null)
+        systemProperty 'game.warmups', findProperty('gameWarmups')
+    mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('extraTest'), tasks.named('bench'), tasks.named('benchCore')
+}
+
 // JMH 微基准源集：编译依赖 test 源集输出（demo/Gen 生成的 bean 与表）+ test 编译类路径。
 // 手动源集而非 me.champeau.jmh 插件：gradle 9.7 兼容性未验证，且仓库镜像源不含 gradle 插件门户。
 // 源码放 src-jmh（对齐 src-hot 先例）：test 源集 srcDirs=['src'] 递归包含子目录，放 src/ 下会被 test 编译误收。
@@ -326,9 +356,9 @@ def cleanTestResidue = tasks.register('cleanTestResidue') {
 tasks.withType(Test).configureEach {
     finalizedBy cleanTestResidue
     // BenchSocket 等测试分配大 ByteBuffer，默认 512m 堆会 OOM；对齐 IDEA 运行时的大堆。
-    // benchCore/benchCorePlatform 豁免本兜底：它们的堆由 -PbenchHeap 在注册处控制（默认 2g），
+    // benchCore/benchCorePlatform/benchGame 豁免本兜底：它们的堆由 -PbenchHeap 在注册处控制（默认 2g），
     // 此处统一覆盖曾使该参数失效（实证 -PbenchHeap=4g 时测试 JVM 仍为 -Xmx2g）。
-    if (!(name in ['benchCore', 'benchCorePlatform']))
+    if (!(name in ['benchCore', 'benchCorePlatform', 'benchGame']))
         maxHeapSize = '2g'
     testLogging {
         events 'failed', 'skipped'

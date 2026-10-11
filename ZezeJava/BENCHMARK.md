@@ -9,8 +9,10 @@
 :: ZezeJava 目录下
 gradlew.bat :ZezeJavaTest:benchCore [-PbenchTag=名]           :: 核心宏观基准（多轮+JSON 留档）
 gradlew.bat :ZezeJavaTest:benchCorePlatform [-PbenchTag=名]   :: F 调度场景平台线程池对照
+gradlew.bat :ZezeJavaTest:benchGame [-PbenchTag=名]           :: L 游戏模拟基准（独立车道）
 gradlew.bat :ZezeJavaTest:benchCore -PbenchHeap=4g ...        :: 跨版本对比公平堆（默认 2g，对齐历史存档真实口径）
 gradlew.bat :ZezeJavaTest:benchCore -PbenchJvmExtra="-XX:StartFlightRecording=..." :: JFR/系统属性等诊断透传
+gradlew.bat :ZezeJavaTest:benchGame -PgamePlayers=5000 -PgameK=20 -PgameMinutes=10 :: L 旋钮（在线数/时间缩放/窗口游戏分钟）
 gradlew.bat :ZezeJavaTest:jmh -PjmhFilter=正则 [-PjmhExtraArgs="-prof gc"]          :: JMH 微基准
 gradlew.bat :ZezeJavaTest:test / integrationTest              :: 每轮门禁
 ```
@@ -34,8 +36,49 @@ gradlew.bat :ZezeJavaTest:test / integrationTest              :: 每轮门禁
 | I MMO-lite 画像 | IMmoLiteWorkload | 背包/房间/排行/邮件/会话五件套混合（30/20/20/20/10） |
 | J 网络 Rpc 回环 | JSocketRpcLoopback | 纯 Zeze.Net 层 256B 定长往返，64 深度流水线 |
 | K 洪水下 checkpoint 竞争 | KCheckpointUnderCommitFlood | 派发池提交洪水与并发 flush 争 RRS 锁（flusher 饿死探针；观测 RRS.flushLockWait/FlushSet 告警） |
+| L MMO-lite 游戏模拟 | GameSim.LMmoGameSim | 真实游戏逻辑全模拟（@Tag("game") 独立车道 benchGame，见下节） |
 
 微基准（src-jmh）：Serialize / Collections / Conflict / ReadOnly 四族。
+
+## L 场景设计（LMmoGameSim，ZezeJavaTest/src/GameSim/）
+
+一个真的 MMO-lite 游戏模拟世界，不是"几个变量"的画像——目标是对真实负载优化，
+核心机制（编组/脏读记账/热 key 争用/大事务/纯读提交簿记）必须在真实业务形态下暴露。
+
+- **架构铁律**：房间=内存态战斗状态机（BattleRoom 纯 Java：tick/伤害公式/掷骰/respawn 全不经
+  Zeze），战斗只产生**结果事务**；一切落库事务发生在大厅。单写者亲和：本角色记录全部由本人
+  虚拟线程写（交易例外：受要约方一笔事务写双方）。心跳超时踢线是唯一 DaemonTimer 用法
+  （扫描走内存镜像，踢人才落事务）。
+- **七系统**：角色生命周期（login/心跳 15s/logout）、背包物品（loot/用药/穿脱/卖店）、PVE 战斗、
+  P2P 交易（offer/accept 双边换）、双排行（等级/伤害 psortedmap 热key）、邮件（系统 fan-out 大事务/
+  P2P/附件领取）、好友在线查询（**纯读事务**）。砍：聊天/公会/商城。
+- **驱动**：每玩家一虚拟线程（默认 5000 在线，roleId 即种子），per-player RNG 只在决策点（事务外）
+  推进——重试重跑事务体不重耗随机数；loot 参数由房间掷骰定死后投递事件。
+- **节奏**：真人交互频率 × 时间缩放旋钮 K（所有 think time/tick/周期 ÷K；K=1 真人档校准，
+  默认 K=20 → 数万 txn/s 量级）。指标=总事务吞吐中位数（同日 A/B、3×噪声协议照旧）
+  + 每 op 延迟分位（JSON flat key `op.<name>.p50/p95/p99_us`，BenchCompare 信息性对照）。
+- **窗口制**：世界连续运行，窗口=测量区间（默认 10 游戏分钟=K20 下 30s 墙钟，预热 1+测量 3 取中位）；
+  操作归属以发起时窗口为准，窗口翻转后 2s 宽限收割。窗口内偏移 5 游戏分钟触发系统邮件 fan-out。
+- **守恒验证**（停机后单只读事务对账，影子账本只记系统注入/销毁）：货币/物品守恒、会话无泄漏、
+  榜单与重算一致（键=score×2^20+roleId，同分取大 roleId——与键空间序对齐）、邮件 inserted−claimed=存量。
+  测量轮内断言=事务非零返回/异常为零。
+- **配置口径**：裸 Config 程序化构造（不 load xml——补默认值会点亮 Onz 服务，disable SM 下 NPE）；
+  Memory 库、单进程本地锁、缓存 10 万（G 场景专测 thrashing）、checkpoint 30s 墙钟（交叠进画像）。
+- **已实锤的坑**：① Zeze bean 所有权（HasManagedException）——受管 bean 不得跨容器搬移，
+  一律"取值重建"；② PMap.put 同键替换=旧堆叠整槽蒸发——入包必须走堆叠合并的 insertItem
+  （守恒律实锤抓住）；③ 过程体异常会逃逸 newProcedure().call()（不转错误码），事务包装需自带
+  try-catch 计 error；④ CompletableFuture.get 轮询 TimeoutException 是设计内节奏，勿计错误；
+  ⑤ Windows 下 String.format %n=\r\n 会破坏尾部去逗号裁剪——JSON 手拼用显式 \n。
+- **已知口径瑕疵**：窗口计数含 ~2s 宽限期跨界渗漏（下一窗口起步样本计入上一窗口，系统性高估
+  ~1/15，恒定偏差不碍同日 A/B 对比）；跨日/跨机绝对数与宏观场景同规则。
+
+### L 基线档案（2026-10-11，首次留档）
+
+5000 在线 / K=20 / 10 游戏分钟窗口 ×3：**总事务中位 45,700 txn/s**（轮间 cv 0.8%）。
+分位画像暴露的第一优化靶：**loot p95=13.8ms / p99=33ms**（战斗结果事务写排行双榜热 key，
+~31k puts/s 打单一 psortedmap——真实负载形态的热 key 串行化）；mailFanout（5000 行大事务）
+p95=82.6ms；其余 op p95 均 <250µs。角色级货币对账网曾实锤两处记账 bug（trade 静默放弃路径
+记账、PMap 同键覆盖），守恒验证即验收标准。
 
 ## 判定协议
 
