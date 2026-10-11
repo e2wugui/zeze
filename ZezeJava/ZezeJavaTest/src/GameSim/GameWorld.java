@@ -186,19 +186,19 @@ public final class GameWorld {
 				item.setPrice(5);
 				m.getItems().put(0, item);
 			}
+			// 外部副作用（计数/账本/邮箱通知）登记到提交点：redo 轮作废重登记，仅最终提交轮执行
+			Zeze.Transaction.Transaction.whileCommit(() -> {
+				mailsInserted.add(cfg.players);
+				ledger.money(50L * cfg.players);
+				ledger.item(GameConfig.ItemPotion, 2L * cfg.players);
+				for (long roleId = 0; roleId < cfg.players; roleId++)
+					onlineNotify(roleId, base + roleId); // 键 base+roleId
+			});
 			return 0L;
 		}, "GameSim.MailFanout").call();
 		sysRecorder.record(OpRecorder.OpType.mailFanout, win, t0);
-		if (rc != 0) {
+		if (rc != 0)
 			sysRecorder.error(OpRecorder.OpType.mailFanout);
-			return;
-		}
-		mailsInserted.add(cfg.players);
-		ledger.money(50L * cfg.players);
-		ledger.item(GameConfig.ItemPotion, 2L * cfg.players);
-		// 通知各玩家邮箱（提交后）：键 base+roleId
-		for (long roleId = 0; roleId < cfg.players; roleId++)
-			onlineNotify(roleId, base + roleId);
 	}
 
 	/** P2P 发信方提交后调用；系统邮件同样走这里 */
