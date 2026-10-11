@@ -103,6 +103,33 @@ tasks.register('benchCore', Test) {
     systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
 }
 
+// v1.6.3 回植：L 场景 MMO-lite 游戏模拟（对齐 master 2.x benchGame 车道）。
+// 旋钮：-PgamePlayers=5000 -PgameK=20 -PgameMinutes=10（-PgameRounds/-PgameWarmups）。
+tasks.register('benchGame', Test) {
+    group = 'verification'
+    description = 'MMO-lite 游戏模拟基准（真实游戏逻辑+5000虚拟线程+真人节奏×K）。'
+    testClassesDirs = sourceSets.main.output.classesDirs
+    classpath = sourceSets.main.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'bench & game'
+    }
+    workingDir = projectDir
+    jvmArgs '-ea'
+    maxHeapSize = (findProperty('benchHeap') ?: '2g')
+    systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
+    systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
+    if (findProperty('gamePlayers') != null)
+        systemProperty 'game.players', findProperty('gamePlayers')
+    if (findProperty('gameK') != null)
+        systemProperty 'game.k', findProperty('gameK')
+    if (findProperty('gameMinutes') != null)
+        systemProperty 'game.minutes', findProperty('gameMinutes')
+    if (findProperty('gameRounds') != null)
+        systemProperty 'game.rounds', findProperty('gameRounds')
+    if (findProperty('gameWarmups') != null)
+        systemProperty 'game.warmups', findProperty('gameWarmups')
+}
+
 // v1.6.3 回植：benchCore 的平台线程池对照组（对齐 master 2.x benchCorePlatform，仅 F 场景）。
 tasks.register('benchCorePlatform', Test) {
     group = 'verification'
