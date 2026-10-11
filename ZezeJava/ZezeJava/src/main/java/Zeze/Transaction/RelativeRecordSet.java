@@ -47,6 +47,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 	private static final long FlushLockWaitWarnNanos =
 			PropertiesHelper.getLong("zeze.rrsFlushLockWaitWarnMs", 1000) * 1_000_000L;
 
+	/** 纯读事务豁免（P2，zeze.rrs.readExempt）：无脏写提交不触碰 rrs 锁/合并/重注册。
+	 * 单进程形态（Application.singleProcess，SM=disable）自动启用；属性=true 供多进程部署
+	 * 显式开启（全局缓存同步语义未论证，自担风险）。 */
+	private static final boolean ReadExemptEnabled = PropertiesHelper.getBool("zeze.rrs.readExempt", false);
+
 	RelativeRecordSet() {
 		// 非公平构造是取舍而非疏忽（对照Record.fairLock的公平锁、Lockey.alloc同例）：等待者以
 		// 并发提交事务为主，公平锁的FIFO交接在高并发提交下实测车队化（同日A/B：B +35%、
@@ -239,13 +244,15 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 		// CheckpointMode.Table
 		boolean needFlushNow = onzProcedure != null; // 此参数存在即表示Onz.eFlushImmediately。
-		var all = new TreeMap<Long, RelativeRecordSet>();
 		var transAccessRecords = new HashSet<Record>();
 		boolean allRead = true;
+		boolean hasDirtyWrite = false;
 		for (var ar : trans.getAccessedRecords().values()) {
 			var record = ar.atomicTupleRecord.record();
 			if (ar.dirty || record.getDirty())
 				allRead = false;
+			if (ar.dirty)
+				hasDirtyWrite = true;
 
 			if (record.getTable().getTableConf().getCheckpointWhenCommit()) {
 				// 修改了需要马上提交的记录。
@@ -255,6 +262,30 @@ public final class RelativeRecordSet extends ReentrantLock {
 			}
 			// 读写都需要收集。
 			transAccessRecords.add(record);
+		}
+
+		// 纯读事务豁免（P2）：无脏写、无onz、无CheckpointWhenCommit 的提交不触碰 rrs 锁/合并/
+		// 重注册（TreeMap 也不再构建）。启用条件=单进程形态自动（SM=disable 无协调方）或属性
+		// zeze.rrs.readExempt 强制。协议论证（仅单进程）：读者无落库分组需求——读值稳定性由
+		// 记录锁保证（flush 的 encode 走 volatile 脏值快照，不依赖 rrs 锁对读者可见性）；被读
+		// 合并的集合从未被同一事务共写，独立 flush 不破坏写原子性；脏集注册由写者完成，读者
+		// 重注册是幂等冗余；停机拒绝只保护脏数据通道，纯读无脏数据（空事务先例：不取许可证）。
+		// 全局缓存同步（多进程）部署未论证——多进程形态不自动启用。
+		// 实证见 BENCHMARK.md L 节：K=80 同日 ABBA +17.6%、H 脏读 +110%（脏≈干净代差抹平）；
+		// 巨型编组时代读边（好友查询）是编组耦合的生长引擎。
+		if ((procedure.getZeze().singleProcess || ReadExemptEnabled) && !hasDirtyWrite && onzProcedure == null) {
+			if (trans.getAccessedRecords().isEmpty()) {
+				commit.run(); // 空事务分支对齐：不取许可证、不调收集器（whileCommit 语义保持）
+			} else {
+				collectChanges.beforeApply(); // 取号在应用前，顺序与原路径一致
+				commit.run(); // 监听者/whileCommit/Changes 与 setNotFresh 语义保持
+				collectChanges.afterApply(); // 纯读无 PutLog，LogChanges 恒 null（防御性容忍丢弃）
+			}
+			return;
+		}
+
+		var all = new TreeMap<Long, RelativeRecordSet>();
+		for (var record : transAccessRecords) {
 			var volatileRrs = record.getRelativeRecordSet();
 			all.putIfAbsent(volatileRrs.id, volatileRrs);
 		}

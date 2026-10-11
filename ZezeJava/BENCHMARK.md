@@ -13,6 +13,7 @@ gradlew.bat :ZezeJavaTest:benchGame [-PbenchTag=名]           :: L 游戏模拟
 gradlew.bat :ZezeJavaTest:benchCore -PbenchHeap=4g ...        :: 跨版本对比公平堆（默认 2g，对齐历史存档真实口径）
 gradlew.bat :ZezeJavaTest:benchCore -PbenchJvmExtra="-XX:StartFlightRecording=..." :: JFR/系统属性等诊断透传
 gradlew.bat :ZezeJavaTest:benchGame -PgamePlayers=5000 -PgameK=20 -PgameMinutes=10 :: L 旋钮（在线数/时间缩放/窗口游戏分钟）
+gradlew.bat :ZezeJavaTest:benchGame -PbenchJvmExtra="-Dgame.slowLogMs=5" :: L 诊断旋钮（慢op时间线；反事实: -Dgame.checkpointPeriodMs/-Dgame.fanoutOff。默认全关=基线口径。核心侧 checkpoint 轮 trace 系一次性诊断已回退，复活方案见裁决节）
 gradlew.bat :ZezeJavaTest:jmh -PjmhFilter=正则 [-PjmhExtraArgs="-prof gc"]          :: JMH 微基准
 gradlew.bat :ZezeJavaTest:test / integrationTest              :: 每轮门禁
 ```
@@ -70,7 +71,8 @@ MMO-lite 游戏模拟世界：真实游戏逻辑承载访问模式，核心机�
 
 **节奏档（K=20，5000 人/10 游戏分钟×3）**：master 36,660 txn/s 中位（cv ~1.4%）；
 per-op 最大分位：mailFanout p95≈66ms（5000 行大事务）、loot p95=602µs/p99=2.6ms、
-heartbeat p99 ~150-190ms（不随负载缩放，30s 周期 checkpoint 停顿嫌疑，未裁决）。
+heartbeat 尾延迟**已裁决为周期 checkpoint 轮所致（双证，见下节）**；所有 op 类型 max 同落
+200-294ms 一档（同一全局停顿）。节奏档吞吐不付这个代价（offered 固定），代价全在尾延迟。
 
 **容量档（K 梯度，同日顺序跑）**：K=20→40 吞吐 1.98× 纯线性且 p50 仍 µs 级（两档均空闲），
 膝点在 K=40~80 之间：
@@ -86,6 +88,72 @@ heartbeat p99 ~150-190ms（不随负载缩放，30s 周期 checkpoint 停顿嫌�
   （K=80 心跳 65%、loot p50 94ms=同点 master 4 倍），平台 ≈9 万量级——**容量代差 ≈1.3×、
   K=80 同点交付 1.39×**。K=20 的 1.00× 是"同 offered 双方足额交付"口径：延迟对比有效、
   容量对比无效，容量口径须 K≥80。
+
+### checkpoint 停顿裁决（2026-10-12，双证收口）
+
+hb 尾延迟元凶=**周期 checkpoint 轮（30s 墙钟）**，mailFanout 无罪。诊断工具=休眠旋钮
+（慢 op 时间线 `game.slowLogMs`+checkpoint 轮 trace `zeze.checkpointTrace`，与
+ZezeJavaTest/log/zeze.log 毫秒时间戳同流相位相关；反事实旋钮 `game.checkpointPeriodMs`/
+`game.fanoutOff`，默认全关=基线）。裁决收口后**核心侧 trace 已随 P1 一并回退**
+（复活方案：Checkpoint.run 轮起止打点 + flushInternal 阶段计时，均在 `zeze.checkpointTrace`
+属性门后）；GameSim 侧旋钮保留（后续循环复用）。
+
+- **时间线证**：84% 慢 op（>5ms）落在轮起点 ±2s 内；轮近场 hb p50=123ms vs 远场 11ms
+  （10×）；轮时长 101-210ms 与尾深同量级。
+- **反事实证**（周期拉到 10 分钟，测量段零周期轮）：hb p99 34.5→0.76ms、max 294→18.5ms、
+  测量窗慢 op 22.6k→2.4k；fanout 对齐率仅 175/60k（无罪释放，反事实 B 不需要）。
+- **附带发现**：①免冲刷下登录潮窗脏集无人收割，慢 op 反增 10×（57.5k 全在预热窗）——
+  checkpoint 是必要周期成本，优化方向是"降轮的代价"不是"废轮"；②周期轮 leftoverRrs
+  逐轮走高（13→40），flush 追不上再脏化——**首轮优化靶=flush 路径（E/E2/K 隔离环境
+  优化，L K=80 同日 A/B 主判）**。
+
+**flush 路径解剖（2026-10-12，P1 前置诊断）**：巨型编组是停顿的物质基础——每轮 topSizes
+≈[35k, 5000, …]：一个 ~3.5 万记录的 RRS（tMail 24.7k + tRole/tSession 各 5k + trank 256；
+全库连通分量：rank 分片记录与 role 同事务共写，传递闭包吞并全世界），占脏记录 80%+ 且逐轮
+增长。FlushSet 一组一锁横跨整个存储事务：锁内 encode0 23-153ms（**占 60-65%**）+ 写主库/
+本地 Rocks 镜像 42-67ms（串行，镜像事务非线程安全）；MultiThreadMerge 的组间并行对单编组
+无效。提交侧 `tryUpdateAndCheckpoint` **读写事务都全量锁**（"读写都需要收集"）——
+friendQuery（40% 操作）纯读也在轮内排队。Memory 库部署仍无条件写本地 Rocks 镜像
+（Application 有数据库即开 `zeze_cache_<serverId>`）。诊断工具=checkpoint trace 扩展
+（`zeze.checkpointTrace`：轮起点 sets/records/topSizes/largestTables + 组级 encodeMs/writeMs，
+一次性使用后随 P1 回退撤除）。
+
+### 容量档 A/A 噪声带（2026-10-12，同日背靠背 master×2）
+
+- **K=80 主判档**：run-to-run 差 1.4%、轮内 cv 3.5-4.3% → 显著性门槛=3× 轮内噪声 ≈**13%**。
+- **K=160 信息档**：轮内 cv 21-31%（rounds 86k~191k）、首窗口系统性偏低（过载踢线风暴
+  自适应），run-to-run 5.2%——超 5% 红线，**永不做门禁**；当日中位 172-182k 较 10-12
+  档案（122,487）跨日漂移 +45%，"平台"量级在深度过载区跨日不可比。
+- 当日 K=80 中位 125-127k（较档案 119,221 跨日 +5%）；hb p99 99-139ms——checkpoint
+  尾在容量档同样在场。
+
+### P2 纯读事务免编组（2026-10-12 落地，readExempt）
+
+**改动**：无脏写、无 onz、无 CheckpointWhenCommit 的提交不再触碰 rrs 锁/合并/重注册
+（`zeze.rrs.readExempt`；**单进程形态（SM=disable）自动启用**，多进程保守走原路径，
+属性可显式强开）。协议论证：读者无落库分组需求——读值稳定性由记录锁保证（flush encode
+走 volatile 快照）；被读合并的集合从未被同一事务共写，独立 flush 不破坏写原子性；脏集
+注册由写者完成，读者重注册是幂等冗余；空事务先例（不取提交许可证）。全量功能测试
+双态（开/关）绿。
+
+**证据（同日，同二进制切属性）**：
+- L K=80 ABBA 四跑：**118,952→139,873（+17.6%，过 13% 门禁）**，最差 on 跑仍高于最好
+  off 跑 10.8%；hb p99 211/162ms→17.8/10.5ms、friendQuery p99 44.5/55.3ms→0.15/0.82ms
+  （读彻底离场）、loot p50 7.0/17.8ms→0.03ms——**K=80 去饱和**。
+- H 脏读档 46.98万→98.72万（**+110%**），脏读≈干净读（987k vs 980k）——**3.7-4.1×
+  结构代差抹平**（H 场景 SM 启用，走属性强开；默认值不变）。
+- K=20 护栏：吞吐 36,871→36,883 持平（offered 限制）、hb p99 2.21→0.02ms。
+
+**新容量曲线（readExempt 默认生效后重立基线）**：K=20=36,970（cv 0.44%，尾部塌方：
+hbP99 0.02/fqP99 0.07/lootP95 0.15ms）；K=80=138,501（不饱和）；K=160=168,858~193,550
+（loot p50 0.05ms，不饱和）；**K=320=272,372~308,946（loot p50 55-61ms=饱和，轮内峰值
+40.2 万）**。膝点从 (40,80] 移到 **(160,320]**，平台 **≥30 万 txn/s ≈ 旧平台 12.2 万的
+2.2-2.6×**。残留：K=320 下 hb p99 17-19ms（写者仍停顿，Fresh 队列靶）、首窗口低垂
+（登录潮形态不变）。
+
+**机制**：旧协议里纯读事务全量锁+合并+重注册——读边（好友查询，40% 操作）是巨型编组
+的耦合生长引擎，且读者重注册让脏集永不离开 flush 地图。豁免后：读离场（排队人口 -40%）、
+编组停止经读边生长、H 的脏读记账结构成本消失。
 
 ## 判定协议
 
@@ -185,8 +253,22 @@ heartbeat p99 ~150-190ms（不随负载缩放，30s 周期 checkpoint 停顿嫌�
   交替顺序+空事务放大）；实际负载编组数双峰，保序插入乱序到达 O(n²)；大编组重复场景
   TreeMap 近免费（键=RRS id 而非记录，10万记录 2 编组=2 Entry）。**TreeMap 是唯一无
   坏形态的版本，保留。**
-- 挂起候选：纯读事务免编组合并/免重登记（协议语义需论证）；Fresh 队列（等业务同 key
-  冲突量级）。
+- **锁内并行 encode（P1）：尝试后回退（2026-10-12，代码全撤含旋钮）**：≥1024 记录的组在
+  锁内用 commonPool 并行 encode0——巨组 encode 90ms→4ms、锁窗 ~140→30ms。但 K=80 ABBA
+  （同二进制切 `zeze.encodeParallelMin`，4 跑抵消顺序）：**吞吐 -3.3%、hb p99
+  100/162ms→280/315ms（2-3× 恶化）**——饱和区 15 线程 CPU 突发抢占提交线程，锁窗口缩短
+  ≠停顿减轻；K=20 护栏混合（p95/中段 p99 变好、极端尾变差）；E SingleThread 两序一致
+  +11%、E MTM/E2/K 噪声内无回归。教训：锁窗时长与 CPU 集中度是两个独立的停顿源，
+  饱和态必须同时治——继续缩窗收益有限，指向 Fresh 队列（提交者根本不进入等待）。
+- **纯读事务免编组（P2，2026-10-12）**：无脏写提交不再触碰 rrs 锁/合并/重注册；单进程
+  （SM=disable）自动启用。L K=80 **+17.6%**（ABBA 过门禁）、平台 12.2万→**≥30 万
+  （2.2-2.6×）**、膝点 (40,80]→(160,320]；H 脏读 **+110%**（脏≈干净，代差抹平）；
+  K=20 hb p99 2.21→0.02ms。机制：读边是编组耦合的生长引擎+读者重注册让脏集永驻
+  flush 地图（证据链见 L 节 P2 小节）。
+- 挂起候选（更新 2026-10-12）：**Fresh 队列/追加不等待**——P2 后写者仍在轮内停顿
+  （K=320 hb p99 17-19ms、巨型编组仍经 rank 写耦合存在），P1 负结果证明缩锁窗不够，
+  提交者须根本不进入等待；**新饱和源画像**——K=320 饱和态 loot p50 55-61ms 的构成
+  （锁/调度/分配）待 profile；有界 worker 并行 encode（低优先）。
 
 
 ## 相对结论（2026-09 起，比值非绝对值）
