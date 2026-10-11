@@ -3,6 +3,7 @@ package Zeze.Raft;
 import java.io.File;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
@@ -414,9 +415,15 @@ public class TestDbh2IncrementalRecover {
 		var argumentFile = home.resolve("crash.args");
 		var output = home.resolve("crash.output");
 		// argfile 避免 Windows 命令行长度限制，测试工作进程的全运行时 classpath 原样传给子进程。
+		// 编码必须用 native.encoding（非UTF-8）：java launcher 按系统本地代码页解码 @argfile
+		//（JEP 400 只改 file.encoding，launcher 的 argfile 解码走 native）——UTF-8 写入时
+		// classpath 里非 ASCII 路径条目（本机用户目录下的 gradle 缓存 jar、@TempDir 的 home
+		// 参数）全部乱码失效，子进程呈现"Zeze类(纯ASCII路径)能加载、log4j(用户名路径)
+		// NoClassDefFoundError"（2026-10-11批30/30确定性红；UTF-8/GBK双盲测实证）。
 		Files.writeString(argumentFile, "-ea\n-cp\n" + quoteArgument(childClasspath()) + "\n"
 				+ CrashLauncher.class.getName() + "\n" + quoteArgument(home.toString()) + "\n"
-				+ phase + "\n" + createTime + "\n" + operation + "\n", StandardCharsets.UTF_8);
+				+ phase + "\n" + createTime + "\n" + operation + "\n",
+				Charset.forName(System.getProperty("native.encoding", "UTF-8")));
 		var javaCommand = ProcessHandle.current().info().command().orElse("java");
 		var process = new ProcessBuilder(javaCommand, "@" + argumentFile)
 				.redirectErrorStream(true).redirectOutput(output.toFile()).start();
