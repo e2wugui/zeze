@@ -203,8 +203,10 @@ tasks.register('benchCore', Test) {
     workingDir = projectDir
     jvmArgs '-ea'
     // 跨版本对比公平性：v1.6.3 回植分支的 benchCore 因 B 场景在飞任务驻留量大需 4g（回植分支
-    // 已显式设 4g）。默认保持 512m 不变（final 时代口径）；对齐跨代对比时 -PbenchHeap=4g。
-    maxHeapSize = (findProperty('benchHeap') ?: '512m')
+    // 已显式设 4g）；对齐跨代对比时 -PbenchHeap=4g。默认 2g：历史存档实际全跑在 2g——本文件
+    // 末尾 withType(Test).configureEach 曾统一覆盖 maxHeapSize 使本参数失效（已修，bench 任务
+    // 豁免该兜底），512m 口径从未真实发生过，2g 保持纵向可比。
+    maxHeapSize = (findProperty('benchHeap') ?: '2g')
     // 诊断透传：-PbenchJvmExtra="-XX:StartFlightRecording=..."（JFR/异步剖析器按需）
     if (findProperty('benchJvmExtra') != null)
         jvmArgs findProperty('benchJvmExtra').toString().split(' ')
@@ -231,7 +233,7 @@ tasks.register('benchCorePlatform', Test) {
     filter.includeTestsMatching '*FDispatch*'
     workingDir = projectDir
     jvmArgs '-ea'
-    maxHeapSize = (findProperty('benchHeap') ?: '512m')
+    maxHeapSize = (findProperty('benchHeap') ?: '2g') // 同 benchCore：默认对齐历史真实口径
     systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
     systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
     systemProperty 'useVirtualThread', 'false'
@@ -323,8 +325,11 @@ def cleanTestResidue = tasks.register('cleanTestResidue') {
 }
 tasks.withType(Test).configureEach {
     finalizedBy cleanTestResidue
-    // BenchSocket 等测试分配大 ByteBuffer，默认 512m 堆会 OOM；对齐 IDEA 运行时的大堆
-    maxHeapSize = '2g'
+    // BenchSocket 等测试分配大 ByteBuffer，默认 512m 堆会 OOM；对齐 IDEA 运行时的大堆。
+    // benchCore/benchCorePlatform 豁免本兜底：它们的堆由 -PbenchHeap 在注册处控制（默认 2g），
+    // 此处统一覆盖曾使该参数失效（实证 -PbenchHeap=4g 时测试 JVM 仍为 -Xmx2g）。
+    if (!(name in ['benchCore', 'benchCorePlatform']))
+        maxHeapSize = '2g'
     testLogging {
         events 'failed', 'skipped'
         exceptionFormat 'full'
