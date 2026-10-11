@@ -33,14 +33,11 @@ public class LMmoGameSim {
 		OpRecorder.init(cfg.players);
 		var world = new GameWorld(cfg);
 		world.start();
-		var players = new PlayerSim[cfg.players];
 		var threads = new Thread[cfg.players];
 		try {
 			try {
-				for (int i = 0; i < cfg.players; i++) {
-					players[i] = new PlayerSim(world, i);
-					threads[i] = Thread.ofVirtual().name("gs-player-" + i).start(players[i]);
-				}
+				for (int i = 0; i < cfg.players; i++)
+					threads[i] = Thread.ofVirtual().name("gs-player-" + i).start(new PlayerSim(world, i));
 				for (int w = 0; w < cfg.warmups; w++)
 					runWindow(world, cfg, 0); // 预热：世界继续跑，统计静默
 				var tps = new double[cfg.rounds];

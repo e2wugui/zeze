@@ -16,6 +16,9 @@ import java.util.concurrent.TimeUnit;
  * Hp 不进守恒口径。
  */
 final class PlayerSim implements Runnable {
+	private static final org.apache.logging.log4j.Logger logger =
+			org.apache.logging.log4j.LogManager.getLogger(PlayerSim.class);
+
 	final GameWorld world;
 	final GameConfig cfg;
 	final long roleId;
@@ -109,8 +112,8 @@ final class PlayerSim implements Runnable {
 				step();
 			} catch (Throwable e) {
 				// 玩家循环异常兜底计入 errors 总账（借用心跳桶；首例打印堆栈定位）
-				if (world.markLoopError())
-					e.printStackTrace();
+				if (world.markLoopError()) // 首例带栈，后续仅计数（防刷屏）
+					logger.error("player loop exception (first)", e);
 				rec.error(OpRecorder.OpType.heartbeat);
 			}
 		}
@@ -138,7 +141,7 @@ final class PlayerSim implements Runnable {
 			} catch (java.util.concurrent.ExecutionException e) {
 				// 房间 future 只会正常完成（防御）
 				if (world.markLoopError())
-					e.printStackTrace();
+					logger.error("room future exception (first)", e);
 			}
 			return;
 		}
@@ -215,7 +218,8 @@ final class PlayerSim implements Runnable {
 
 	private void heartbeat(long now) {
 		if (world.call(rec, OpRecorder.OpType.heartbeat, "GameSim.Heartbeat", () -> {
-			var session = world.tSession.get(roleId); // 会话行建点在 login；踢线后缺行=本轮跳过
+			// session 是生命周期态（可被踢线移除）：缺行合法、本轮跳过——与 role 的建号不变量不同
+			var session = world.tSession.get(roleId);
 			if (session != null)
 				session.setLastActive(now);
 			return 0L;
@@ -275,9 +279,7 @@ final class PlayerSim implements Runnable {
 
 	private void applyDeath(DeathEvent e) {
 		world.call(rec, OpRecorder.OpType.loot, "GameSim.DeathPenalty", () -> {
-			var role = world.tRole.get(roleId);
-			if (role == null)
-				return 0L;
+			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
 			final long loss = Math.min(role.getMoney(), e.moneyLoss);
 			role.setMoney(role.getMoney() - loss);
 			Zeze.Transaction.Transaction.whileCommit(() -> { // 系统销毁
@@ -294,10 +296,10 @@ final class PlayerSim implements Runnable {
 			return; // 拒绝（决策点）
 		int payBack = 5 + rng.nextInt(20); // 还价金币（决策点）
 		world.call(rec, OpRecorder.OpType.trade, "GameSim.Trade", () -> {
+			// 不变量链：要约只在提议方在线时入队（tradePropose 查 online 注册），
+			// 在线⇒已建角，角色一经创建不删——get 缺行=NPE 自然进错误账本，不静默吞
 			var roleA = world.tRole.get(o.from);
 			var roleB = world.tRole.get(roleId);
-			if (roleA == null || roleB == null)
-				return 0L; // 极端时序下对方未建角：放弃
 			if (roleB.getMoney() < payBack)
 				return 0L;
 			var bagA = roleA.getBag();
@@ -349,9 +351,7 @@ final class PlayerSim implements Runnable {
 	/** 好友在线状态查询：纯读事务（读提交簿记的真实载体） */
 	private void friendQuery() {
 		world.call(rec, OpRecorder.OpType.friendQuery, "GameSim.FriendQuery", () -> {
-			var role = world.tRole.get(roleId);
-			if (role == null)
-				return 0L;
+			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
 			int n = 0;
 			for (var id : role.getFriendsReadOnly().keySet())
 				if (world.tSession.get(id) != null)
@@ -365,9 +365,7 @@ final class PlayerSim implements Runnable {
 		if (slot < 0 || hpMirror >= GameConfig.PlayerMaxHp * 7 / 10)
 			return; // 没药或血量健康：不产生事务（避免空事务放大固定提交成本）
 		world.call(rec, OpRecorder.OpType.usePotion, "GameSim.UsePotion", () -> {
-			var role = world.tRole.get(roleId);
-			if (role == null)
-				return 0L;
+			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
 			var bag = role.getBag();
 			var item = bag.get(slot);
 			if (item == null || item.getItemId() != GameConfig.ItemPotion) {
@@ -389,9 +387,7 @@ final class PlayerSim implements Runnable {
 		if (slot < 0)
 			return;
 		world.call(rec, OpRecorder.OpType.equipChange, "GameSim.Equip", () -> {
-			var role = world.tRole.get(roleId);
-			if (role == null)
-				return 0L;
+			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
 			var bag = role.getBag();
 			var item = bag.get(slot);
 			if (item == null || item.getItemId() != GameConfig.ItemWeapon)
@@ -438,9 +434,7 @@ final class PlayerSim implements Runnable {
 		if (slot < 0)
 			return;
 		world.call(rec, OpRecorder.OpType.sellShop, "GameSim.SellShop", () -> {
-			var role = world.tRole.get(roleId);
-			if (role == null)
-				return 0L;
+			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
 			var item = role.getBag().get(slot);
 			if (item == null)
 				return 0L; // 镜像过期
@@ -476,9 +470,7 @@ final class PlayerSim implements Runnable {
 			var m = world.tMail.get(key);
 			if (m == null)
 				return 0L; // 已被领（重复通知防御）：丢弃
-			var role = world.tRole.get(roleId);
-			if (role == null)
-				return 0L;
+			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
 			for (var entry : m.getItems().entrySet()) { // 先验证附件全可入包
 				var it = entry.getValue();
 				if (findSlotFor(role, it.getItemId(), it.getCount()) < 0) {
@@ -514,9 +506,7 @@ final class PlayerSim implements Runnable {
 		long friend = friendIds[rng.nextInt(friendIds.length)];
 		long key = world.allocMailKey(); // 号段事务外预分配
 		world.call(rec, OpRecorder.OpType.mailSend, "GameSim.MailSend", () -> {
-			var role = world.tRole.get(roleId);
-			if (role == null)
-				return 0L;
+			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
 			if (role.getMoney() < 10)
 				return 0L;
 			var item = role.getBag().get(slot);

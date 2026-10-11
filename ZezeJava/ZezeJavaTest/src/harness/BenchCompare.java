@@ -75,7 +75,8 @@ public final class BenchCompare {
 			return 0;
 		String ta = Files.readString(fa), tb = Files.readString(fb);
 		var fields = List.of("op.loot.tps", "op.loot.p50_us", "op.loot.p95_us", "op.heartbeat.p95_us",
-				"op.friendQuery.p50_us", "op.friendQuery.p95_us", "op.mailClaim.p95_us", "op.trade.p95_us");
+				"op.friendQuery.p50_us", "op.friendQuery.p95_us", "op.mailClaim.p95_us", "op.trade.p95_us",
+				"op.mailFanout.p95_us");
 		System.out.println("=== Game ops (informational, no gate) ===");
 		for (var k : fields) {
 			if (!ta.contains("\"" + k + "\"") || !tb.contains("\"" + k + "\""))

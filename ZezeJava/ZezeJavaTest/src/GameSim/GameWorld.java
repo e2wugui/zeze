@@ -26,6 +26,9 @@ import demo.Game.tSession;
  * 乐观锁重试重跑事务体不得产生任何外逸副作用。
  */
 public final class GameWorld {
+	private static final org.apache.logging.log4j.Logger logger =
+			org.apache.logging.log4j.LogManager.getLogger(GameWorld.class);
+
 	public final GameConfig cfg;
 	public final Ledger ledger = new Ledger();
 	public final tRole tRole;
@@ -132,8 +135,8 @@ public final class GameWorld {
 			// （设计内传播）——此 catch 只兜这两类，非承重（首例打印堆栈）
 			rec.record(op, win, t0);
 			rec.error(op);
-			if (markLoopError())
-				e.printStackTrace();
+			if (markLoopError()) // 首例带栈，后续仅计数（防刷屏）
+				logger.error("procedure escape exception (first)", e);
 			return false;
 		}
 		rec.record(op, win, t0);
