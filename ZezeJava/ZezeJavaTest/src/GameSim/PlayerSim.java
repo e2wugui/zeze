@@ -171,19 +171,21 @@ final class PlayerSim implements Runnable {
 				insertItem(role, GameConfig.ItemArmor, 1);
 				for (long fid : friendIds)
 					role.getFriends().put(fid, 0);
+				// 外部副作用（影子账本）一律 whileCommit：redo 轮回调作废、重放重新登记，
+				// 仅最终提交轮执行一次——"最终轮快照==最终轮实况"由框架保证，无 holder 残留
+				Zeze.Transaction.Transaction.whileCommit(() -> {
+					world.ledger.money(1000);
+					world.ledger.roleMoney(roleId, 1000);
+					world.ledger.item(GameConfig.ItemPotion, 5);
+					world.ledger.item(GameConfig.ItemWeapon, 1);
+					world.ledger.item(GameConfig.ItemArmor, 1);
+				});
 			}
 			world.tSession.getOrAdd(roleId).setLastActive(world.gameNow());
 			resyncMirror(role);
 			return 0L;
 		})) {
 			return;
-		}
-		if (Boolean.TRUE.equals(isAdd.value)) { // 新角色系统注入：建号补贴（守恒记账）
-			world.ledger.money(1000);
-			world.ledger.roleMoney(roleId, 1000);
-			world.ledger.item(GameConfig.ItemPotion, 5);
-			world.ledger.item(GameConfig.ItemWeapon, 1);
-			world.ledger.item(GameConfig.ItemArmor, 1);
 		}
 		loggedIn = true;
 		world.online.put(roleId, this);
@@ -237,9 +239,7 @@ final class PlayerSim implements Runnable {
 	}
 
 	private void applyLoot(LootEvent e) {
-		var item = new int[]{e.itemId, e.count}; // 事务内可能因背包满降级为不入
-		if (!world.call(rec, OpRecorder.OpType.loot, "GameSim.Loot", () -> {
-			item[0] = e.itemId; // 每轮重置（重试轮放弃时防上轮残留幻影记账）
+		world.call(rec, OpRecorder.OpType.loot, "GameSim.Loot", () -> {
 			var role = world.tRole.getOrAdd(roleId);
 			role.setExp(role.getExp() + e.exp);
 			int oldLevel = role.getLevel();
@@ -252,37 +252,32 @@ final class PlayerSim implements Runnable {
 			long before = role.getDamageTotal();
 			role.setDamageTotal(before + e.damage);
 			submitRank(world.tRank, 1L, before * RANK_KEY_SCALE + roleId, (before + e.damage) * RANK_KEY_SCALE + roleId); // 伤害榜
-			if (item[0] != 0 && insertItem(role, item[0], item[1]) < 0)
-				item[0] = 0; // 背包满：物品不入（未注入即未销毁，守恒两侧都不记）
-			if (e.money > 0)
+			if (e.itemId != 0 && insertItem(role, e.itemId, e.count) >= 0)
+				Zeze.Transaction.Transaction.whileCommit(() ->
+						world.ledger.item(e.itemId, e.count)); // 背包满不入=未注入即未销毁，两侧都不记
+			if (e.money > 0) {
 				role.setMoney(role.getMoney() + e.money);
+				Zeze.Transaction.Transaction.whileCommit(() -> {
+					world.ledger.money(e.money);
+					world.ledger.roleMoney(roleId, e.money);
+				});
+			}
 			resyncMirror(role);
 			return 0L;
-		})) {
-			return;
-		}
-		if (e.money > 0) {
-			world.ledger.money(e.money);
-			world.ledger.roleMoney(roleId, e.money);
-		}
-		if (item[0] != 0)
-			world.ledger.item(item[0], item[1]);
+		});
 	}
 
 	private void applyDeath(DeathEvent e) {
-		var paid = new long[]{0};
-		if (!world.call(rec, OpRecorder.OpType.loot, "GameSim.DeathPenalty", () -> {
-			paid[0] = 0; // 每轮重置
+		world.call(rec, OpRecorder.OpType.loot, "GameSim.DeathPenalty", () -> {
 			var role = world.tRole.getOrAdd(roleId);
-			long loss = Math.min(role.getMoney(), e.moneyLoss);
+			final long loss = Math.min(role.getMoney(), e.moneyLoss);
 			role.setMoney(role.getMoney() - loss);
-			paid[0] = loss;
+			Zeze.Transaction.Transaction.whileCommit(() -> { // 系统销毁
+				world.ledger.money(-loss);
+				world.ledger.roleMoney(roleId, -loss);
+			});
 			return 0L;
-		})) {
-			return;
-		}
-		world.ledger.money(-paid[0]); // 系统销毁
-		world.ledger.roleMoney(roleId, -paid[0]);
+		});
 	}
 
 	/** 交易：受要约方一笔事务写双方（要约参数已过期即静默放弃——过期是常态非错误） */
@@ -290,9 +285,7 @@ final class PlayerSim implements Runnable {
 		if (rng.nextInt(100) >= 80)
 			return; // 拒绝（决策点）
 		int payBack = 5 + rng.nextInt(20); // 还价金币（决策点）
-		var moved = new int[]{0};
-		if (!world.call(rec, OpRecorder.OpType.trade, "GameSim.Trade", () -> {
-			moved[0] = 0; // 每轮重置（重试轮要约过期走放弃时，防上轮 moved 残留）
+		world.call(rec, OpRecorder.OpType.trade, "GameSim.Trade", () -> {
 			var roleA = world.tRole.getOrAdd(o.from);
 			var roleB = world.tRole.getOrAdd(roleId);
 			if (roleB.getMoney() < payBack)
@@ -310,19 +303,15 @@ final class PlayerSim implements Runnable {
 			roleA.setMoney(roleA.getMoney() - o.money + payBack);
 			insertItem(roleB, o.itemId, o.count);
 			roleB.setMoney(roleB.getMoney() - payBack + o.money);
-			moved[0] = o.count;
+			// 角色间转移：全局守恒不记，按角色账记（诊断口径）；登记在变更点，
+			// 静默放弃路径（返回 0 也是"成功"）不会走到这里
+			Zeze.Transaction.Transaction.whileCommit(() -> {
+				world.ledger.roleMoney(o.from, -o.money + payBack);
+				world.ledger.roleMoney(roleId, o.money - payBack);
+			});
 			resyncMirror(roleB);
 			return 0L;
-		})) {
-			return;
-		}
-		// 角色间转移：全局守恒不记，按角色账记（诊断口径）——必须 moved 门控：
-		// 静默放弃（要约过期/背包满）返回 0 也是"成功"，无 DB 变动不可记账
-		// （角色级对账网实锤：放弃路径记账造成双向小额漂移）
-		if (moved[0] != 0) {
-			world.ledger.roleMoney(o.from, -o.money + payBack);
-			world.ledger.roleMoney(roleId, o.money - payBack);
-		}
+		});
 	}
 
 	// ===== 大厅活动（权重分派，决策全在事务外）=====
@@ -365,9 +354,7 @@ final class PlayerSim implements Runnable {
 		int slot = findMirrorSlot(GameConfig.ItemPotion);
 		if (slot < 0 || hpMirror >= GameConfig.PlayerMaxHp * 7 / 10)
 			return; // 没药或血量健康：不产生事务（避免空事务放大固定提交成本）
-		var used = new boolean[1];
-		if (!world.call(rec, OpRecorder.OpType.usePotion, "GameSim.UsePotion", () -> {
-			used[0] = false; // 每轮重置
+		world.call(rec, OpRecorder.OpType.usePotion, "GameSim.UsePotion", () -> {
 			var role = world.tRole.getOrAdd(roleId);
 			var bag = role.getBag();
 			var item = bag.get(slot);
@@ -376,25 +363,20 @@ final class PlayerSim implements Runnable {
 			}
 			removeAt(bag, slot, 1);
 			role.setHp(Math.min(GameConfig.PlayerMaxHp, role.getHp() + 30));
+			Zeze.Transaction.Transaction.whileCommit(() -> {
+				hpMirror = Math.min(GameConfig.PlayerMaxHp, hpMirror + 30);
+				world.ledger.item(GameConfig.ItemPotion, -1); // 系统销毁
+			});
 			resyncMirror(role);
-			used[0] = true;
 			return 0L;
-		})) {
-			return;
-		}
-		if (used[0]) {
-			hpMirror = Math.min(GameConfig.PlayerMaxHp, hpMirror + 30);
-			world.ledger.item(GameConfig.ItemPotion, -1); // 系统销毁
-		}
+		});
 	}
 
 	private void equipChange() {
 		int slot = findMirrorSlot(GameConfig.ItemWeapon);
 		if (slot < 0)
 			return;
-		var eq = new boolean[1];
-		if (!world.call(rec, OpRecorder.OpType.equipChange, "GameSim.Equip", () -> {
-			eq[0] = false; // 每轮重置
+		world.call(rec, OpRecorder.OpType.equipChange, "GameSim.Equip", () -> {
 			var role = world.tRole.getOrAdd(roleId);
 			var bag = role.getBag();
 			var item = bag.get(slot);
@@ -418,14 +400,11 @@ final class PlayerSim implements Runnable {
 				placeItem(role, slot, GameConfig.ItemWeapon, oldCount, oldAtk, oldDef, oldAddHp, oldPrice);
 			}
 			placeEquip(role, item);
+			Zeze.Transaction.Transaction.whileCommit(() ->
+					equipAtk = 10); // 武器攻击加成（换装即等值，简化）
 			resyncMirror(role);
-			eq[0] = true;
 			return 0L;
-		})) {
-			return;
-		}
-		if (eq[0])
-			equipAtk = 10; // 武器攻击加成（换装即等值，简化）
+		});
 	}
 
 	/** 数值重建上架装备栏（不搬 bean） */
@@ -444,28 +423,24 @@ final class PlayerSim implements Runnable {
 		int slot = pickMirrorOccupied();
 		if (slot < 0)
 			return;
-		var gain = new long[]{0, 0, 0}; // itemId, count, money
-		if (!world.call(rec, OpRecorder.OpType.sellShop, "GameSim.SellShop", () -> {
-			gain[0] = gain[1] = gain[2] = 0; // 每轮重置（重试轮镜像过期走放弃时，防上轮售价残留）
+		world.call(rec, OpRecorder.OpType.sellShop, "GameSim.SellShop", () -> {
 			var role = world.tRole.getOrAdd(roleId);
 			var item = role.getBag().get(slot);
 			if (item == null)
 				return 0L; // 镜像过期
-			gain[0] = item.getItemId();
-			gain[1] = item.getCount();
-			gain[2] = (long)item.getPrice() * item.getCount();
-			role.setMoney(role.getMoney() + gain[2]);
+			final int itemId = item.getItemId();
+			final int count = item.getCount();
+			final long money = (long)item.getPrice() * item.getCount();
+			role.setMoney(role.getMoney() + money);
 			role.getBag().remove(slot);
+			Zeze.Transaction.Transaction.whileCommit(() -> { // 卖店=系统注入金币、销毁物品
+				world.ledger.money(money);
+				world.ledger.roleMoney(roleId, money);
+				world.ledger.item(itemId, -count);
+			});
 			resyncMirror(role);
 			return 0L;
-		})) {
-			return;
-		}
-		if (gain[1] > 0) { // 卖店=系统注入金币、销毁物品
-			world.ledger.money(gain[2]);
-			world.ledger.roleMoney(roleId, gain[2]);
-			world.ledger.item((int)gain[0], -gain[1]);
-		}
+		});
 	}
 
 	private static int itemPrice(int itemId) {
@@ -481,21 +456,17 @@ final class PlayerSim implements Runnable {
 		if (mailbox.isEmpty())
 			return;
 		long key = mailbox.poll();
-		var state = new int[]{ST_MISSING}; // 事务结局：missing/claimed/full
-		var mailMoney = new long[1];
 		if (!world.call(rec, OpRecorder.OpType.mailClaim, "GameSim.MailClaim", () -> {
-			state[0] = ST_MISSING; // 每轮重置
-			mailMoney[0] = 0;
 			var m = world.tMail.get(key);
-			if (m == null) {
+			if (m == null)
 				return 0L; // 已被领（重复通知防御）：丢弃
-			}
 			var role = world.tRole.getOrAdd(roleId);
 			for (var entry : m.getItems().entrySet()) { // 先验证附件全可入包
 				var it = entry.getValue();
 				if (findSlotFor(role, it.getItemId(), it.getCount()) < 0) {
-					state[0] = ST_FULL;
-					return 0L; // 背包满：整封跳过（重塞队尾）
+					Zeze.Transaction.Transaction.whileCommit(() ->
+							mailbox.add(key)); // 背包满：整封跳过，提交后重塞队尾稍后再试
+					return 0L;
 				}
 			}
 			for (var entry : m.getItems().entrySet()) {
@@ -503,25 +474,18 @@ final class PlayerSim implements Runnable {
 				insertItem(role, it.getItemId(), it.getCount()); // 堆叠合并（容量已在探测步验证）
 			}
 			role.setMoney(role.getMoney() + m.getMoney());
-			mailMoney[0] = m.getMoney();
+			final long mailMoney = m.getMoney();
 			world.tMail.remove(key);
+			Zeze.Transaction.Transaction.whileCommit(() -> {
+				world.addMailClaimed();
+				world.ledger.roleMoney(roleId, mailMoney);
+			});
 			resyncMirror(role);
-			state[0] = ST_CLAIMED;
 			return 0L;
 		})) {
-			mailbox.add(key); // 事务失败（非放弃）：邮件保留重试
-			return;
+			mailbox.add(key); // 事务失败（回滚路径，回调不触发）：邮件保留重试
 		}
-		if (state[0] == ST_CLAIMED) {
-			world.addMailClaimed();
-			world.ledger.roleMoney(roleId, mailMoney[0]);
-		}
-		else if (state[0] == ST_FULL)
-			mailbox.add(key); // 背包满：稍后再试
-		// ST_MISSING：丢弃
 	}
-
-	private static final int ST_MISSING = 0, ST_CLAIMED = 1, ST_FULL = 2;
 
 	private void mailSend() {
 		if (friendIds.length == 0 || mailboxFull())
@@ -531,9 +495,7 @@ final class PlayerSim implements Runnable {
 			return;
 		long friend = friendIds[rng.nextInt(friendIds.length)];
 		long key = world.allocMailKey(); // 号段事务外预分配
-		var sent = new boolean[1];
-		if (!world.call(rec, OpRecorder.OpType.mailSend, "GameSim.MailSend", () -> {
-			sent[0] = false; // 每轮重置
+		world.call(rec, OpRecorder.OpType.mailSend, "GameSim.MailSend", () -> {
 			var role = world.tRole.getOrAdd(roleId);
 			if (role.getMoney() < 10)
 				return 0L;
@@ -552,17 +514,14 @@ final class PlayerSim implements Runnable {
 			attach.setAddHp(30);
 			attach.setPrice(5);
 			m.getItems().put(0, attach);
+			Zeze.Transaction.Transaction.whileCommit(() -> {
+				world.ledger.roleMoney(roleId, -10);
+				world.addMailInserted();
+				world.onlineNotify(friend, key); // 提交后通知（角色↔邮件转移，守恒不记）
+			});
 			resyncMirror(role);
-			sent[0] = true;
 			return 0L;
-		})) {
-			return;
-		}
-		if (sent[0]) {
-			world.ledger.roleMoney(roleId, -10);
-			world.addMailInserted();
-			world.onlineNotify(friend, key); // 提交后通知（角色↔邮件转移，守恒不记）
-		}
+		});
 	}
 
 	private void tradePropose() {

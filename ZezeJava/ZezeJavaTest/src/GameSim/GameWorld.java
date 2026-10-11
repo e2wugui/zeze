@@ -119,7 +119,9 @@ public final class GameWorld {
 		try {
 			rc = zeze.newProcedure(body, name).call();
 		} catch (Throwable e) {
-			// 过程体异常会逃逸 call()（不转错误码）：计为该 op 的 error（首例打印堆栈）
+			// 过程体异常由 Procedure.call() 统一转错误码 Procedure.Exception（错误账本走下方
+			// rc≠0 路径）；真正逃逸 call() 的只有 AssertionError（单测兼容重抛）与 GoBackZeze
+			// （设计内传播）——此 catch 只兜这两类，非承重（首例打印堆栈）
 			rec.record(op, win, t0);
 			rec.error(op);
 			if (markLoopError())
@@ -186,19 +188,19 @@ public final class GameWorld {
 				item.setPrice(5);
 				m.getItems().put(0, item);
 			}
+			// 外部副作用（计数/账本/邮箱通知）登记到提交点：redo 轮作废重登记，仅最终提交轮执行
+			Zeze.Transaction.Transaction.whileCommit(() -> {
+				mailsInserted.add(cfg.players);
+				ledger.money(50L * cfg.players);
+				ledger.item(GameConfig.ItemPotion, 2L * cfg.players);
+				for (long roleId = 0; roleId < cfg.players; roleId++)
+					onlineNotify(roleId, base + roleId); // 键 base+roleId
+			});
 			return 0L;
 		}, "GameSim.MailFanout").call();
 		sysRecorder.record(OpRecorder.OpType.mailFanout, win, t0);
-		if (rc != 0) {
+		if (rc != 0)
 			sysRecorder.error(OpRecorder.OpType.mailFanout);
-			return;
-		}
-		mailsInserted.add(cfg.players);
-		ledger.money(50L * cfg.players);
-		ledger.item(GameConfig.ItemPotion, 2L * cfg.players);
-		// 通知各玩家邮箱（提交后）：键 base+roleId
-		for (long roleId = 0; roleId < cfg.players; roleId++)
-			onlineNotify(roleId, base + roleId);
 	}
 
 	/** P2P 发信方提交后调用；系统邮件同样走这里 */
