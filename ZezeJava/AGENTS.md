@@ -11,6 +11,9 @@ gradlew.bat :ZezeJavaTest:integrationTest  :: 全量功能测试（自动在进�
 gradlew.bat :ZezeJavaTest:bench            :: 吞吐基准（@Bench 标注的类）
 ```
 
+核心基准的跑法（benchCore/jmh/benchHeap/benchJvmExtra）、判定协议（3×stdev、同日 A/B）、
+四时点档案与结论：[BENCHMARK.md](BENCHMARK.md)（单一真相源）。
+
 ## 单类/单方法验证（--tests）
 
 **用通配符（或简单类名）形式**，三个测试任务通用：

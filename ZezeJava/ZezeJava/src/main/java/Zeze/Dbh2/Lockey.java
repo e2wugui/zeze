@@ -25,7 +25,7 @@ public class Lockey implements Zeze.Util.Lockey<Lockey>{
 	}
 
 	@Override
-	public Lockey alloc() {
+	public @NotNull Lockey alloc() {
 		this.semaphore = new Semaphore(1);
 		return this;
 	}

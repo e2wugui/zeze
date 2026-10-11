@@ -7,6 +7,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+
 import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.History.History;
 import Zeze.Onz.OnzProcedure;
@@ -352,7 +353,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 					groupResult.computeIfAbsent(r.getTable().getName(), __ -> new ArrayList<>()).add(r.getObjectKey());
 			}
 			Checkpoint.logger.info("locked.size={} trans.size={}\nlocked:{}\ntrans:{}\nresult:{}",
-					groupLocked.size(), groupTrans.size(), groupLocked, groupTrans, groupResult);
+				groupLocked.size(), groupTrans.size(), groupLocked, groupTrans, groupResult);
 		}
 	}
 
@@ -360,7 +361,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	private static void build(@NotNull Transaction trans, @NotNull TreeMap<String, ArrayList<Object>> groupTrans) {
 		for (var ar : trans.getAccessedRecords().values()) {
 			groupTrans.computeIfAbsent(ar.atomicTupleRecord.record().getTable().getName(), __ -> new ArrayList<>())
-					.add(ar.atomicTupleRecord.record().getObjectKey());
+				.add(ar.atomicTupleRecord.record().getObjectKey());
 		}
 	}
 
@@ -653,7 +654,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 					} catch (Throwable ex) { // logger.error
 						Checkpoint.logger.error("flushWhenCheckpoint(MultiThreadMerge) FlushSet flush fail, keep for next checkpoint", ex);
 						// 同SingleThreadMerge：丢弃毒化积累，本线程后续rrs换新FlushSet（computeIfAbsent不会替换，用put）。
-							flushSetMap.put(Thread.currentThread(), new FlushSet(checkpoint));
+						flushSetMap.put(Thread.currentThread(), new FlushSet(checkpoint));
 					}
 				}
 			}));

@@ -231,6 +231,7 @@ tasks.register('benchCorePlatform', Test) {
     filter.includeTestsMatching '*FDispatch*'
     workingDir = projectDir
     jvmArgs '-ea'
+    maxHeapSize = (findProperty('benchHeap') ?: '512m')
     systemProperty 'bench.tag', (findProperty('benchTag') ?: 'adhoc')
     systemProperty 'junit.jupiter.testclass.order.default', 'org.junit.jupiter.api.ClassOrderer$ClassName'
     systemProperty 'useVirtualThread', 'false'

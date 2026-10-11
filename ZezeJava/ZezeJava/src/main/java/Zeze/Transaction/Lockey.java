@@ -41,7 +41,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	 * 创建真正的锁对象。
 	 */
 	@Override
-	public Lockey alloc() {
+	public @NotNull Lockey alloc() {
 		// 非公平构造是取舍而非疏忽（对照Record.fairLock的公平锁）：记录锁读多写少、
 		// 持锁区间短，公平锁的排队唤醒开销在吞吐上不划算。代价是极端连续读下写者
 		// 排队较久（非公平锁固有）；若实测出现写者饥饿需公平化，应以基准数据支持再改。

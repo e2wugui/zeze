@@ -3,17 +3,9 @@ package Zeze.Transaction;
 import Zeze.History.Helper;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.LogOne;
 import Zeze.Transaction.Collections.LogOneMeta;
-import Zeze.Transaction.Database;
-import Zeze.Transaction.IGlobalAgent;
-import Zeze.Transaction.Log;
-import Zeze.Transaction.Record;
-import Zeze.Transaction.RecordAccessed;
-import Zeze.Transaction.Table;
-import Zeze.Transaction.TableKey;
 import harness.Fast;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
@@ -60,12 +52,12 @@ public class TestLogOneDeclaredTypeMeta {
 	private static Record.RootInfo newRootInfo() {
 		var record = new Record(null) {
 			@Override
-			public Table getTable() {
+			public @NotNull Table getTable() {
 				throw new UnsupportedOperationException();
 			}
 
 			@Override
-			public Object getObjectKey() {
+			public @NotNull Object getObjectKey() {
 				throw new UnsupportedOperationException();
 			}
 
@@ -83,11 +75,11 @@ public class TestLogOneDeclaredTypeMeta {
 			}
 
 			@Override
-			public void flush(Database.Transaction t, Database.Transaction lct) {
+			public void flush(Database.Transaction t, Database.@NotNull Transaction lct) {
 			}
 
 			@Override
-			public void commit(RecordAccessed accessed) {
+			public void commit(@NotNull RecordAccessed accessed) {
 			}
 
 			@Override

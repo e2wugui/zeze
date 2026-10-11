@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 import harness.Fast;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -7,12 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Transaction.Collections.CollOne;
 import Zeze.Transaction.Collections.LogOne;
-import Zeze.Transaction.Database;
-import Zeze.Transaction.IGlobalAgent;
-import Zeze.Transaction.Record;
-import Zeze.Transaction.RecordAccessed;
-import Zeze.Transaction.Table;
-import Zeze.Transaction.TableKey;
 
 @Fast
 public class TestCollOneFollowerApply {
@@ -22,12 +17,12 @@ public class TestCollOneFollowerApply {
 		// Record是抽象类，这里只需要它作为RootInfo的载体，桩掉抽象方法即可。
 		var record = new Record(null) {
 			@Override
-			public Table getTable() {
+			public @NotNull Table getTable() {
 				throw new UnsupportedOperationException();
 			}
 
 			@Override
-			public Object getObjectKey() {
+			public @NotNull Object getObjectKey() {
 				throw new UnsupportedOperationException();
 			}
 
@@ -45,11 +40,11 @@ public class TestCollOneFollowerApply {
 			}
 
 			@Override
-			public void flush(Database.Transaction t, Database.Transaction lct) {
+			public void flush(Database.Transaction t, Database.@NotNull Transaction lct) {
 			}
 
 			@Override
-			public void commit(RecordAccessed accessed) {
+			public void commit(@NotNull RecordAccessed accessed) {
 			}
 
 			@Override
