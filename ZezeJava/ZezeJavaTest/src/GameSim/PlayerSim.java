@@ -247,8 +247,6 @@ final class PlayerSim implements Runnable {
 	private void applyLoot(LootEvent e) {
 		world.call(rec, OpRecorder.OpType.loot, "GameSim.Loot", () -> {
 			var role = world.tRole.get(roleId); // 角色必有；getOrAdd 仅限建点（login）
-			if (role == null)
-				return 0L;
 			role.setExp(role.getExp() + e.exp);
 			int oldLevel = role.getLevel();
 			while (role.getExp() >= GameConfig.expToNext(role.getLevel())) { // 升级曲线
