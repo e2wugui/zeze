@@ -60,7 +60,7 @@ gradlew.bat :ZezeJavaTest:test / integrationTest              :: 每轮门禁
 默认对齐 2g），"两列均 4g"的旧表述失真；两列堆不一致为已知口径瑕疵，跨代结论按量级引用，
 严格 4g/4g 复测待补。v1.6.3=回植分支 `bench/backport-v1.6.3`
 （TaskSpec→Task.runUnsafe 等价改写，I 场景排行榜 psortedmap→map15 同型承载），
-2026-10-11=当日 master 实测（含 RRS 非公平锁优化 47cb6be85）。单位 ops/s（中位数），
+2026-10-11=当日 master 实测（含 RRS 非公平锁优化 07171e5a7）。单位 ops/s（中位数），
 括号内为相对 v1.6.3 倍数。
 
 | 场景 | v1.6.3 | 2026-10-11 |
@@ -92,7 +92,7 @@ gradlew.bat :ZezeJavaTest:test / integrationTest              :: 每轮门禁
   事务提交时走 RelativeRecordSet 公平锁合并 + checkpoint 编组 map 重登记，并发锁车队；
   干净记录走孤立 RRS 快路。单线程微基准无此成本，纯并发现象。生产启示：全服批量事务后的
   并发读（如批发邮件后的背包读）会踩此罚金；缓解=批后 checkpointRun 冲散编组、缩短
-  CheckpointPeriod。**第六轮已落 RRS 非公平锁（47cb6be85，公平锁早于 2022-03 初始导入、
+  CheckpointPeriod。**第六轮已落 RRS 非公平锁（07171e5a7，公平锁早于 2022-03 初始导入、
   引入无论证，2024-01 仅为字段内联重构）：脏读 +91%、B +35%、全线赢或平**；纯读事务
   免编组合并/免重登记为剩余设计级候选。**第七轮补强（同日）**：非公平的代价是 flusher
   等待从确定性上界降为统计性安全，配套把观测兜底补齐——RRS 锁等待埋点
