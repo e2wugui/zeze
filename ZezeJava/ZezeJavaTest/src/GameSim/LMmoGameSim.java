@@ -76,17 +76,24 @@ public class LMmoGameSim {
 	/** 一个窗口：翻窗口号、调度系统邮件、睡满窗口墙钟后翻到下一窗口 */
 	private static void runWindow(GameWorld world, GameConfig cfg, int windowId) throws Exception {
 		world.windowId = windowId;
-		// 系统邮件 fan-out：窗口内偏移时刻触发（预热窗口也触发保持邮件经济；统计口径以 world.windowId 为准）
-		Thread.ofVirtual().start(() -> {
-			try {
-				Thread.sleep(cfg.wall(GameConfig.MailFanoutAtMs));
-				if (!world.stopped)
-					world.systemMailFanout();
-			} catch (InterruptedException ignored) {
-			}
-		});
+		if (TimelineLog.enabled)
+			TimelineLog.event("window start id=" + windowId);
+		// 系统邮件 fan-out：窗口内偏移时刻触发（预热窗口也触发保持邮件经济；统计口径以 world.windowId 为准）。
+		// 休眠旋钮 game.fanoutOff（默认 false=基线）：裁决反事实 B 静默 fanout 专用
+		if (!cfg.fanoutOff) {
+			Thread.ofVirtual().start(() -> {
+				try {
+					Thread.sleep(cfg.wall(GameConfig.MailFanoutAtMs));
+					if (!world.stopped)
+						world.systemMailFanout();
+				} catch (InterruptedException ignored) {
+				}
+			});
+		}
 		Thread.sleep(cfg.wall(cfg.windowMinutes * 60_000L));
 		world.windowId = windowId + 1; // 立即开下一窗口（连续世界）；宽限期在收割侧
+		if (TimelineLog.enabled)
+			TimelineLog.event("window flip to=" + (windowId + 1));
 	}
 
 	private static long[] diff(long[] before, long[] after) {

@@ -79,8 +79,9 @@ public final class GameWorld {
 		dbConf.setDatabaseType(Config.DbType.Memory);
 		dbConf.setDatabaseUrl("");
 		config.getDatabaseConfMap().put("", dbConf);
-		// 检查点真实周期：核心基准配置 6000000=事实关闭；L 按 30 秒墙钟周期冲刷（checkpoint 交叠进画像）
-		config.setCheckpointPeriod(30_000);
+		// 检查点真实周期：核心基准配置 6000000=事实关闭；L 按 30 秒墙钟周期冲刷（checkpoint 交叠进画像）。
+		// 休眠旋钮 game.checkpointPeriodMs（默认 30s=基线）：裁决反事实 A 拉长周期专用
+		config.setCheckpointPeriod(cfg.checkpointPeriodMs);
 		zeze = new Application("GameSim", config);
 		tRole = new tRole();
 		tMail = new tMail();
@@ -101,6 +102,10 @@ public final class GameWorld {
 	}
 
 	public void start() throws Exception {
+		if (TimelineLog.enabled)
+			TimelineLog.event("world start epochMs=" + System.currentTimeMillis()
+					+ " players=" + cfg.players + " k=" + cfg.timeScaleK
+					+ " cpPeriodMs=" + cfg.checkpointPeriodMs + " fanoutOff=" + cfg.fanoutOff);
 		zeze.start();
 		hbScanner.start();
 	}
@@ -108,6 +113,8 @@ public final class GameWorld {
 	/** 停世界（玩家线程退出、定时器停），数据库保持可用——对账事务在其后、stop() 之前跑 */
 	public void shutdown() {
 		stopped = true;
+		if (TimelineLog.enabled)
+			TimelineLog.event("world shutdown");
 		hbScanner.stop();
 	}
 
@@ -140,6 +147,11 @@ public final class GameWorld {
 			return false;
 		}
 		rec.record(op, win, t0);
+		if (TimelineLog.enabled) { // 诊断跑才开（game.slowLogMs），基线零开销
+			long us = (System.nanoTime() - t0) / 1000;
+			if (us >= TimelineLog.thresholdUs)
+				TimelineLog.slowOp(op.name(), us, win);
+		}
 		if (rc != 0)
 			rec.error(op);
 		return rc == 0;
@@ -156,12 +168,14 @@ public final class GameWorld {
 				continue;
 			// 过载（或滞留）玩家：移除会话行+注册，玩家线程下次 step 发现 kicked 重登
 			if (call(sysRecorder, OpRecorder.OpType.hbScan, "GameSim.HbKick", () -> {
-				tSession.remove(p.roleId);
-				return 0L;
-			})) {
+					tSession.remove(p.roleId);
+					return 0L;
+				})) {
 				online.remove(p.roleId, p);
 				p.kicked = true;
-			}
+				if (TimelineLog.enabled)
+					TimelineLog.event("kick role=" + p.roleId + " lastActive=" + p.lastActiveGameMs);
+				}
 		}
 	}
 
@@ -186,6 +200,8 @@ public final class GameWorld {
 		long base = mailSeq.getAndAdd(cfg.players); // 号段事务外预分配
 		int win = windowId;
 		long t0 = System.nanoTime();
+		if (TimelineLog.enabled) // 相位证据：fanout 起止时刻（每窗口一次的大事务）
+			TimelineLog.event("fanout start win=" + win);
 		long rc = zeze.newProcedure(() -> {
 			for (long roleId = 0; roleId < cfg.players; roleId++) {
 				var m = tMail.getOrAdd(base + roleId);
@@ -210,6 +226,8 @@ public final class GameWorld {
 			return 0L;
 		}, "GameSim.MailFanout").call();
 		sysRecorder.record(OpRecorder.OpType.mailFanout, win, t0);
+		if (TimelineLog.enabled)
+			TimelineLog.event("fanout end win=" + win + " us=" + (System.nanoTime() - t0) / 1000 + " rc=" + rc);
 		if (rc != 0)
 			sysRecorder.error(OpRecorder.OpType.mailFanout);
 	}

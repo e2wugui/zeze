@@ -19,6 +19,11 @@ public final class GameConfig {
 	public final int warmups;
 	public final int rounds;
 
+	// ===== 诊断休眠旋钮（默认值=基线行为，裁决协议专用，见 BENCHMARK.md L 节）=====
+	public final int checkpointPeriodMs; // game.checkpointPeriodMs：反事实 A（拉长周期看 p99 尖峰是否消失）
+	public final boolean fanoutOff;      // game.fanoutOff：反事实 B（系统邮件 fan-out 静默）
+	public final int slowLogMs;          // game.slowLogMs：慢操作时间线阈值（0=关，见 TimelineLog）
+
 	// ===== 节奏（游戏时间）=====
 	public static final long HeartbeatPeriodMs = 15_000;   // 心跳周期
 	public static final long HeartbeatTimeoutMs = 45_000;  // 超时踢线阈值（超过即过载信号）
@@ -68,6 +73,9 @@ public final class GameConfig {
 		windowMinutes = PropertiesHelper.getInt("game.minutes", 10);
 		warmups = PropertiesHelper.getInt("game.warmups", 1);
 		rounds = PropertiesHelper.getInt("game.rounds", 3);
+		checkpointPeriodMs = PropertiesHelper.getInt("game.checkpointPeriodMs", 30_000);
+		fanoutOff = PropertiesHelper.getBool("game.fanoutOff", false);
+		slowLogMs = PropertiesHelper.getInt("game.slowLogMs", 0);
 	}
 
 	/** 游戏毫秒 → 墙钟毫秒（休眠用） */
