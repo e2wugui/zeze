@@ -144,24 +144,26 @@ public final class RelativeRecordSet extends ReentrantLock {
 	private static void lockCommit(@NotNull RelativeRecordSet rrs) {
 		if (rrs.tryLock())
 			return;
-		var timeBegin = System.nanoTime();
+		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try (var ignored = Profiler.begin("RrsWaitLock", rrs.id)) {
 			rrs.lock();
 		} finally {
-			CommitLockWaitObserver.observe(System.nanoTime() - timeBegin);
+			if (timeBegin != 0)
+				CommitLockWaitObserver.observe(System.nanoTime() - timeBegin);
 		}
 	}
 
 	// 落库路径取锁：返回本次等待纳秒（供FlushSet整组累计告警）。flusher线程无当前
-	// 事务，Profiler.begin安全no-op；聚合走ZezeCounter。
+	// 事务，Profiler.begin安全no-op；聚合走ZezeCounter。统计禁用时返回0——FlushSet的
+	// 饿死告警与聚合同源于等待时长，随统计开关一起静默（禁用态典型为压测基线，不收告警噪音）。
 	private static long lockFlush(@NotNull RelativeRecordSet rrs) {
 		if (rrs.tryLock())
 			return 0;
-		var timeBegin = System.nanoTime();
+		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try (var ignored = Profiler.begin("RrsWaitLock", rrs.id)) {
 			rrs.lock();
 		}
-		var waited = System.nanoTime() - timeBegin;
+		var waited = timeBegin != 0 ? System.nanoTime() - timeBegin : 0;
 		FlushLockWaitObserver.observe(waited);
 		return waited;
 	}
