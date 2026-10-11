@@ -118,7 +118,8 @@ public final class GameWorld {
 		try {
 			rc = zeze.newProcedure(body, name).call();
 		} catch (Throwable e) {
-			// 过程体异常会逃逸 call()（不转错误码）：计为该 op 的 error（首例打印堆栈）
+			// 过程体异常由 Procedure.call() 统一转错误码（错误账本走下方 rc≠0 路径）；
+			// 逃逸仅 AssertionError（单测兼容重抛）与 GoBackZeze——此 catch 只兜这两类，非承重
 			rec.record(op, win, t0);
 			rec.error(op);
 			if (markLoopError())
