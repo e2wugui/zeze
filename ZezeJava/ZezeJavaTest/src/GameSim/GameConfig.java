@@ -43,15 +43,22 @@ public final class GameConfig {
 	public static final int PlayerMaxHp = 100;
 	public static final long RoomTickMs = 1_500;
 
+	// 榜类型（内置 Zeze.Game.Rank 模块的 rankType，app 内自定义号段）
+	public static final int RankTypeLevel = 1001;
+	public static final int RankTypeDamage = 1002;
+
 	// ===== 大厅活动权重（发呆时按 RNG 挑选；战斗 loot 等事件驱动不在此列）=====
-	public static final int WFriendQuery = 25;
+	// loot 降频（用户口径）：冒险权重 30→10（补给好友查询）——怪血加倍是伪杠杆：
+	// 房间时长同比拉长、在房 DPS 等比上升，击杀率闭环自平衡（实测 hp×2 仅 -37%）；
+	// 权重才是正杠杆（进房率直接决定总战斗 DPS）
+	public static final int WFriendQuery = 40;
 	public static final int WUsePotion = 8;
 	public static final int WEquipChange = 5;
 	public static final int WSellShop = 10;
 	public static final int WMailClaim = 12;
 	public static final int WMailSend = 4;
 	public static final int WTrade = 6;
-	public static final int WAdventure = 30;
+	public static final int WAdventure = 10;
 	public static final int WIdleSum = WFriendQuery + WUsePotion + WEquipChange + WSellShop
 			+ WMailClaim + WMailSend + WTrade + WAdventure;
 
