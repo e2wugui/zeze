@@ -25,7 +25,9 @@ namespace Zeze.Gen.java
             foreach (var var in vars)
             {
                 var varType = var.VariableType;
-                if (varType is TypeCollection or TypeMap)
+                // TypeSortedMap 的 buildString 分支用 _i2_ 但不继承 TypeMap/TypeCollection：
+                // 仅含 sortedmap 的 bean 会漏声明 _i2_（生成不可编译代码）
+                if (varType is TypeCollection or TypeMap or TypeSortedMap)
                 {
                     maxLevel = 2;
                     break;
