@@ -118,6 +118,7 @@ public class Profiler {
 		ArrayList<Context> cs;
 		Context c;
 		if (n >= (cs = contexts).size())
+			//noinspection resource
 			cs.add(c = new Context());
 		else
 			c = cs.get(n);
