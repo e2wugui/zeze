@@ -23,7 +23,6 @@ public final class OpRecorder {
 	// per-线程 per-窗口槽 per-op 缓冲（窗口奇偶双缓冲）：[slot][op] -> 样本数组
 	private final long[][][] samples = new long[2][OP_COUNT][];
 	private final int[][] lens = new int[2][OP_COUNT];
-	private volatile int myWindow;
 
 	// 全程计数（按窗口快照差值取每窗口速率；errors 记事务返回非 0）
 	final AtomicLong[] counts = new AtomicLong[OP_COUNT];
@@ -60,11 +59,8 @@ public final class OpRecorder {
 		counts[op.ordinal()].incrementAndGet();
 		if (windowId <= 0)
 			return;
-		int slot = windowId & 1;
+		int slot = windowId & 1; // 窗口奇偶双缓冲：槽位由窗口号直接派生（旧槽由 harness 收割后清零）
 		int opIdx = op.ordinal();
-		if (myWindow != windowId) { // 窗口翻转：换槽（旧槽由 harness 收割后清零）
-			myWindow = windowId;
-		}
 		long us = (System.nanoTime() - startNanos) / 1000;
 		long[] buf = samples[slot][opIdx];
 		if (buf == null) {
