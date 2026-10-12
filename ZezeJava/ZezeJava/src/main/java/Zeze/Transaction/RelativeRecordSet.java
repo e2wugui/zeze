@@ -47,10 +47,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 	private static final long FlushLockWaitWarnNanos =
 			PropertiesHelper.getLong("zeze.rrsFlushLockWaitWarnMs", 1000) * 1_000_000L;
 
-	/** 纯读事务豁免（P2，zeze.rrs.readExempt）：无脏写提交不触碰 rrs 锁/合并/重注册。
-	 * 单进程形态（Application.singleProcess，SM=disable）自动启用；属性=true 供多进程部署
-	 * 显式开启（全局缓存同步语义未论证，自担风险）。 */
-	private static final boolean ReadExemptEnabled = PropertiesHelper.getBool("zeze.rrs.readExempt", false);
+	/** 纯读事务快路（P2）：默认开；zeze.rrs.readFastPath=false 恢复全量 rrs 路径（逃生门）。 */
+	private static final boolean ReadFastPath = PropertiesHelper.getBool("zeze.rrs.readFastPath", true);
 
 	RelativeRecordSet() {
 		// 非公平构造是取舍而非疏忽（对照Record.fairLock的公平锁、Lockey.alloc同例）：等待者以
@@ -247,12 +245,17 @@ public final class RelativeRecordSet extends ReentrantLock {
 		var transAccessRecords = new HashSet<Record>();
 		boolean allRead = true;
 		boolean hasDirtyWrite = false;
+		boolean hasUnregisteredDirty = false;
 		for (var ar : trans.getAccessedRecords().values()) {
 			var record = ar.atomicTupleRecord.record();
 			if (ar.dirty || record.getDirty())
 				allRead = false;
 			if (ar.dirty)
 				hasDirtyWrite = true;
+			// oldTable倒库在读路径标脏且孤立未注册（写者脏必已编组——_merge_先于setDirty），
+			// 其落库注册只能由老路径提交完成，快路必须让位。
+			if (record.getDirty() && record.getRelativeRecordSet().getRecordSet() == null)
+				hasUnregisteredDirty = true;
 
 			if (record.getTable().getTableConf().getCheckpointWhenCommit()) {
 				// 修改了需要马上提交的记录。
@@ -264,16 +267,12 @@ public final class RelativeRecordSet extends ReentrantLock {
 			transAccessRecords.add(record);
 		}
 
-		// 纯读事务豁免（P2）：无脏写、无onz、无CheckpointWhenCommit 的提交不触碰 rrs 锁/合并/
-		// 重注册（TreeMap 也不再构建）。启用条件=单进程形态自动（SM=disable 无协调方）或属性
-		// zeze.rrs.readExempt 强制。协议论证（仅单进程）：读者无落库分组需求——读值稳定性由
-		// 记录锁保证（flush 的 encode 走 volatile 脏值快照，不依赖 rrs 锁对读者可见性）；被读
-		// 合并的集合从未被同一事务共写，独立 flush 不破坏写原子性；脏集注册由写者完成，读者
-		// 重注册是幂等冗余；停机拒绝只保护脏数据通道，纯读无脏数据（空事务先例：不取许可证）。
-		// 全局缓存同步（多进程）部署未论证——多进程形态不自动启用。
-		// 实证见 BENCHMARK.md L 节：K=80 同日 ABBA +17.6%、H 脏读 +110%（脏≈干净代差抹平）；
-		// 巨型编组时代读边（好友查询）是编组耦合的生长引擎。
-		if ((procedure.getZeze().singleProcess || ReadExemptEnabled) && !hasDirtyWrite && onzProcedure == null) {
+		// 纯读事务快路（P2）：无脏写、无未注册脏、无onz 的提交不触碰 rrs 锁/合并/重注册。
+		// 安全性：读者无落库分组需求——读值稳定性由记录锁保证，脏集注册由写者完成，读者
+		// 合并/重注册是冗余；单进程与多进程（GCM reduce 先落库后降级、整组刷原子性由
+		// 写者编组边保持）均成立。唯一例外是 oldTable 读路径脏（见上），注册通道只在老路径。
+		// 论证与实证：BENCHMARK.md L 节（K=80 +17.6%、H 脏读 +110%）。
+		if (ReadFastPath && !hasDirtyWrite && !hasUnregisteredDirty && onzProcedure == null) {
 			if (trans.getAccessedRecords().isEmpty()) {
 				commit.run(); // 空事务分支对齐：不取许可证、不调收集器（whileCommit 语义保持）
 			} else {

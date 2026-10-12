@@ -80,8 +80,6 @@ public final class Application extends ReentrantLock {
 
 	private final @NotNull String projectName;
 	private final @NotNull Config conf;
-	/** 单进程形态（ServiceManager=disable）：纯读事务免编组自动启用（见 RelativeRecordSet） */
-	public final boolean singleProcess;
 	// 已发 gid 落库对账账本，实例维度：不同 history 发号名的 gid 数值空间重叠，进程级共享会跨 app 误核销。
 	// 构造期创建、final、停机不置 null——afterApply 在飞窗口依赖它穿过 historyModule 置 null 的停机窗口。
 	private final @NotNull PendingGidLedger pendingGidLedger;
@@ -233,10 +231,6 @@ public final class Application extends ReentrantLock {
 	public Application(@NotNull String projectName, @Nullable Config config) throws Exception {
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
-		// 单进程形态（ServiceManager=disable：本应用无多进程协调方）——纯读事务免编组的
-		// 自动启用条件（语义论证与实证见 RelativeRecordSet.tryUpdateAndCheckpoint、BENCHMARK.md L 节）；
-		// 多进程部署保守走原路径
-		singleProcess = "disable".equals(conf.getServiceManager());
 		pendingGidLedger = new PendingGidLedger(projectName);
 		if (conf.getServerId() > 0x3FFF) // 16383 encoded size = 2 bytes
 			throw new IllegalStateException("serverId too big. > 16383.");

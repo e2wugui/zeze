@@ -206,6 +206,7 @@ public final class FastServerIds {
 	// growth=2：跨节点快照去重用相邻两个raftName（source=id、target=id+1）。
 	public static final int TEST_RAFT_SNAPSHOT_REQUEST_DEDUP = seg("TestRaftSnapshotRequestDedup", 7780, 2);
 	public static final int TEST_RECOVERED_APPLIED_PREFIX_PROTECTION = seg("TestRecoveredAppliedPrefixProtection", 7790, 1);
+	public static final int TEST_RRS_READ_FAST_PATH_OLD_TABLE = seg("TestRrsReadFastPathOldTableMigration", 7800, 1);
 
 	private FastServerIds() {
 	}
