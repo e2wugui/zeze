@@ -9,7 +9,7 @@ Zeze 的 Java 实现:基于一致性缓存的分布式事务应用框架。框�
 | `ZezeJava` | 框架本体(artifact: `com.zezeno:zeze-java`) |
 | `ZezeJavaTest` | 测试与使用示例(`src/demo` 是完整的 App 示例) |
 | `ZezexJava` | client / linkd / server 三进程示例工程 |
-| `ZokerManager` | 日志查询管理服务 |
+| `../projects/ZokerManager` | 日志查询管理服务(独立构建,composite 消费本工程源码) |
 | `test` | 手工测试场景脚本(bat) |
 | `scripts/cue` | 监控配置 |
 

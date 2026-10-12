@@ -1,0 +1,10 @@
+rootProject.name = 'ZokerManager'
+
+// composite 消费同仓 ZezeJava（源码 HEAD 同步）：ZezeJava 未挂 maven-publish，
+// 以显式替换规则把 com.zezeno:zeze-java 定位到其 :ZezeJava 子工程。
+// 方向必须单一（本构建 → ZezeJava）：ZezeJava 侧不得反向 includeBuild 本工程（composite 环）。
+includeBuild('../../ZezeJava') {
+    dependencySubstitution {
+        substitute module('com.zezeno:zeze-java') using project(':ZezeJava')
+    }
+}
