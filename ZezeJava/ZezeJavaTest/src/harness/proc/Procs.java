@@ -1,5 +1,6 @@
 package harness.proc;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,15 +22,15 @@ public final class Procs {
 	}
 
 	/** spec 的 args= 值（不含 command= 的可执行名）：-cp、classpath、主类与附加参数，
-	 * 按空白分隔（parseLaunchSpec 契约），classpath 含空格时 fail-loud；
-	 * 路径反斜杠按 Properties 语义双写转义。 */
+	 * 按空白分隔（parseLaunchSpec 契约不支持引号），路径反斜杠按 Properties 语义双写转义。
+	 * classpath 经 {@link #specFreeClasspath()} 剔除含空格条目（IDEA runner 注入的
+	 * Program Files rt jar 等）——空白分隔协议承载不了空格，fail-loud 会挡死 IDE 内
+	 * 运行的全部进程编排用例；被剔除的只是 runner 注入件，harness.proc.* 主类纯 JDK
+	 * 自包含不依赖它们。 */
 	public static String specArgs(String main, String... args) {
-		var cp = System.getProperty("java.class.path");
-		if (cp != null && cp.contains(" "))
-			throw new IllegalStateException("java.class.path 含空格，空白分隔的 spec args 无法承载：" + cp);
 		var parts = new ArrayList<String>();
 		parts.add("-cp");
-		parts.add(cp);
+		parts.add(specFreeClasspath());
 		parts.add("harness.proc." + main);
 		parts.addAll(List.of(args));
 		return String.join(" ", parts).replace("\\", "\\\\");
@@ -39,16 +40,26 @@ public final class Procs {
 		return java.nio.file.Path.of(System.getProperty("java.home"), "bin", bin).toString();
 	}
 
-	/** 直接 ProcessBuilder 用的完整命令行。 */
-	public static List<String> command(String main, String... args) {
+	/** spec args 可承载的 classpath：剔除含空格的条目（契约按空白分隔、不支持引号——
+	 * 含空格条目整条不可表达）。正常构建（gradle/命令行）路径无空格，恒等返回原值。 */
+	private static String specFreeClasspath() {
 		var cp = System.getProperty("java.class.path");
-		//noinspection StringConcatenationMissingWhitespace
-		if (cp != null && cp.contains(" "))
-			throw new IllegalStateException("java.class.path 含空格，空白分隔的 spec args 无法承载：" + cp);
+		if (cp == null || !cp.contains(" "))
+			return cp;
+		var kept = new ArrayList<String>();
+		for (var entry : cp.split(File.pathSeparator))
+			if (!entry.contains(" "))
+				kept.add(entry);
+		return String.join(File.pathSeparator, kept);
+	}
+
+	/** 直接 ProcessBuilder 用的完整命令行：列表参数逐个原样传递（含空格路径安全——
+	 * JDK 侧负责引号处理，不经 spec 的空白分隔协议，无需 specArgs 的空格防线）。 */
+	public static List<String> command(String main, String... args) {
 		var cmd = new ArrayList<String>();
 		cmd.add(JAVAW);
 		cmd.add("-cp");
-		cmd.add(cp);
+		cmd.add(System.getProperty("java.class.path"));
 		cmd.add("harness.proc." + main);
 		cmd.addAll(List.of(args));
 		return cmd;
