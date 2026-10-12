@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GradleSettings">
+    <option name="linkedExternalProjectsSettings">
+      <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/../../ZezeJava" name="zeze-java">
+                <projects>
+                  <project path="$PROJECT_DIR$/../../ZezeJava" />
+                  <project path="$PROJECT_DIR$/../../ZezeJava/ZezeJava" />
+                  <project path="$PROJECT_DIR$/../../ZezeJava/ZezeJavaTest" />
+                  <project path="$PROJECT_DIR$/../../ZezeJava/ZezexJava" />
+                  <project path="$PROJECT_DIR$/../../ZezeJava/ZezexJava/client" />
+                  <project path="$PROJECT_DIR$/../../ZezeJava/ZezexJava/linkd" />
+                  <project path="$PROJECT_DIR$/../../ZezeJava/ZezexJava/server" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="gradleJvm" value="#JAVA_HOME" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/../../ZezeJava" />
+            <option value="$PROJECT_DIR$/../../ZezeJava/ZezeJava" />
+            <option value="$PROJECT_DIR$/../../ZezeJava/ZezeJavaTest" />
+            <option value="$PROJECT_DIR$/../../ZezeJava/ZezexJava" />
+            <option value="$PROJECT_DIR$/../../ZezeJava/ZezexJava/client" />
+            <option value="$PROJECT_DIR$/../../ZezeJava/ZezexJava/linkd" />
+            <option value="$PROJECT_DIR$/../../ZezeJava/ZezexJava/server" />
+            <option value="$PROJECT_DIR$" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+    </option>
+  </component>
+</project>
