@@ -17,9 +17,12 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * /api/query 处理器：把查询请求转发给指定日志服务器并回传结果。
+ * 留档（审计裁量）：query 是无会话状态的透传，不设 search/browse 的同 IP 在飞守卫与速率
+ * 限制——默认回环/Token 信任域内可接受；若未来开放到更低信任面，需在此补每 IP 并发上限。
  */
 public class QueryHandle implements HttpEndStreamHandle {
 	private static final Logger logger = LogManager.getLogger(QueryHandle.class);
+
 	@Override
 	public void onEndStream(HttpExchange x) throws Exception {
 		// token门（FND29 zokermanager-02）：配置了Token则校验Authorization头，未通过已回401。
@@ -35,7 +38,19 @@ public class QueryHandle implements HttpEndStreamHandle {
 			byte[] bytes = new byte[readableBytes];
 			content.readBytes(bytes);
 			String str = new String(bytes, StandardCharsets.UTF_8);
-			QueryParam queryParam = Json.parse(str, QueryParam.class);
+			// 空 body/纯空白（Json.parse 产 null）与畸形 JSON 入口即拒（对齐 search/browse）：
+			// 裸解引用 null 会 NPE 落入兜底 catch 坍缩 system error，无指向。
+			QueryParam queryParam;
+			try {
+				queryParam = Json.parse(str, QueryParam.class);
+			} catch (Exception e) {
+				queryParam = null;
+			}
+			if (queryParam == null) {
+				x.sendJson(HttpResponseStatus.OK,
+						Json.toCompactString(BaseResponse.errorResult("invalid request body")));
+				return;
+			}
 			LogAgent logAgent = LogAgentManager.getInstance().getLogAgent();
 			String serverName = queryParam.getServerName();
 			// serverName 入口预校验（对称 search/browse 的注册表比对）：缺字段/空白/未注册名
@@ -63,7 +78,7 @@ public class QueryHandle implements HttpEndStreamHandle {
 			x.sendJson(HttpResponseStatus.OK, Json.toCompactString(BaseResponse.succResult(result)));
 		} catch (Exception e) {
 			x.sendJson(HttpResponseStatus.OK,
-					Json.toCompactString(BaseResponse.errorResult(SearchLogHandle.knownRejectionDesc(e))));
+					Json.toCompactString(BaseResponse.errorResult(SearchBrowse.knownRejectionDesc(e))));
 			logger.error("/api/query failed", e);
 		}
 	}

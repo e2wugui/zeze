@@ -55,7 +55,7 @@ public class TestQueryRejectsMissingJson {
 		Task.tryInitThreadPool();
 		var netty = new Netty(1);
 		var server = new HttpServer();
-		server.addHandler("/api/query", 1024, TransactionLevel.Serializable, DispatchMode.Normal,
+		server.addHandler("/api/query", 1024, TransactionLevel.None, DispatchMode.Normal,
 				new QueryHandle());
 		var client = HttpClient.newHttpClient();
 		try (var unused = installRecordingAgent()) {

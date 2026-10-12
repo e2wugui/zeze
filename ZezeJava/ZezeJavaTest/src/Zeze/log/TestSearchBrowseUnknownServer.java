@@ -57,7 +57,7 @@ public class TestSearchBrowseUnknownServer {
 		Task.tryInitThreadPool();
 		var netty = new Netty(1);
 		var server = new HttpServer();
-		server.addHandler("/api/search", 1024, TransactionLevel.Serializable, DispatchMode.Normal,
+		server.addHandler("/api/search", 1024, TransactionLevel.None, DispatchMode.Normal,
 				new SearchLogHandle());
 		var client = HttpClient.newHttpClient();
 		try (var unused = installEmptyRegistryAgent()) {
@@ -87,7 +87,7 @@ public class TestSearchBrowseUnknownServer {
 		Task.tryInitThreadPool();
 		var netty = new Netty(1);
 		var server = new HttpServer();
-		server.addHandler("/api/browse", 1024, TransactionLevel.Serializable, DispatchMode.Normal,
+		server.addHandler("/api/browse", 1024, TransactionLevel.None, DispatchMode.Normal,
 				new BrowseLogHandle());
 		var client = HttpClient.newHttpClient();
 		try (var unused = installEmptyRegistryAgent()) {

@@ -14,7 +14,6 @@ sourceSets {
     main {
         java {
             srcDir "src"
-            srcDir "Gen"
         }
     }
 }

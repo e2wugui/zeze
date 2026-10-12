@@ -32,7 +32,7 @@ import harness.Fast;
  * {@code BaseResponse.errorResult("invalid limit")}，不触会话层。
  *
  * <p>驱动方式：真回环 HttpServer 挂生产同款处理器（对齐 TestZokerManagerBindAndToken
- * 的真 HTTP 形态；注册形态对齐 LogAgentManager：Serializable+Normal）。本环境无
+ * 的真 HTTP 形态；注册形态对齐 LogAgentManager：None+Normal）。本环境无
  * LogAgent（LogAgentManager.getInstance()==null）——畸形 limit 若漏过校验会进到
  * getLogAgent() 抛 NPE 落入 catch，desc 为 "system error" 而非 "invalid limit"，
  * 恰构成红/绿判别；"空成功"应答形态需真 LogAgent/LogService（不在直测面，
@@ -52,7 +52,7 @@ public class TestSearchBrowseInvalidLimit {
 		Task.tryInitThreadPool();
 		var netty = new Netty(1);
 		var server = new HttpServer();
-		server.addHandler("/api/search", 1024, TransactionLevel.Serializable, DispatchMode.Normal,
+		server.addHandler("/api/search", 1024, TransactionLevel.None, DispatchMode.Normal,
 				new SearchLogHandle());
 		var client = HttpClient.newHttpClient();
 		try {
@@ -85,7 +85,7 @@ public class TestSearchBrowseInvalidLimit {
 		Task.tryInitThreadPool();
 		var netty = new Netty(1);
 		var server = new HttpServer();
-		server.addHandler("/api/browse", 1024, TransactionLevel.Serializable, DispatchMode.Normal,
+		server.addHandler("/api/browse", 1024, TransactionLevel.None, DispatchMode.Normal,
 				new BrowseLogHandle());
 		var client = HttpClient.newHttpClient();
 		try {

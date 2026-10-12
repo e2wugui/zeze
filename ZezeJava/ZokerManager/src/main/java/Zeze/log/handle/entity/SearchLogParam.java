@@ -17,6 +17,9 @@ import Zeze.Util.Json;
 public class SearchLogParam {
 	// HTTP处理器并发parse，formatter必须不可变线程安全（SimpleDateFormat共享实例会竞争错乱）。
 	// 语义对齐SimpleDateFormat默认时区。
+	// 时区部署约束：beginTime/endTime 按本进程（ZokerManager）本地时区换算 epoch，而日志行时间戳
+	// 由各日志服务器按其本地时区解析——同机/同时区部署（现役形态）无偏移；跨时区集群的窗口过滤
+	// 会整体偏移两机时区差。跨时区部署须保证 ZokerManager 与各日志服务器同时区（或改造为显式时区参数）。
 	private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 	private String serverName;

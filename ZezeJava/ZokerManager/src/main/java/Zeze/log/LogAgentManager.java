@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import java.io.File;
 import Zeze.Config;
 import Zeze.Netty.HttpEndStreamHandle;
 import Zeze.Netty.HttpServer;
@@ -16,8 +17,12 @@ import Zeze.log.handle.SearchLogHandle;
  * 日志查询代理管理：持有 LogAgent，并注册查询 HTTP 服务的各 API 路由与静态页面。
  */
 public class LogAgentManager {
+	// 静态资源根：相对路径随进程 CWD 解析（与 server.xml 同为工作目录相对——部署以本目录为 CWD 启动）。
+	private static final String WEB_ROOT = "web";
+
 	private static LogAgentManager logAgentManager;
-	public static HttpServer httpServer;
+	// 包内可见（非 public）：同包直测（TestAdminPortBindFailureFailsFast 等）注入/复位此静态引用。
+	static HttpServer httpServer;
 	// 管理口 event loop 线程组：进程形态由进程生命周期持有；stop（启动失败清理）关闭。
 	private static Netty adminNetty;
 	private static ZokerManagerConf conf;
@@ -111,7 +116,12 @@ public class LogAgentManager {
 		addHandler("/api/browse", new BrowseLogHandle());
 		addHandler("/api/search", new SearchLogHandle());
 		addHandler("/api/query", new QueryHandle());
-		httpServer.addFileHandler("/", "web");
+		// 根路径直出 index.html：文件前缀 handler 对空 subPath 命中的是目录（canListPath=false）→
+		// 404，浏览器地址栏裸 "/" 将无页面。精确 handler 优先于前缀匹配；sendFile 全路径自收尾
+		// （缺文件回 404，同文件服务语义）；与下方文件服务同根（WEB_ROOT），零拷贝非阻塞可 Direct。
+		httpServer.addHandler("/", 0, TransactionLevel.None, DispatchMode.Direct,
+				x -> x.sendFile(new File(WEB_ROOT, "index.html")));
+		httpServer.addFileHandler("/", WEB_ROOT);
 		var future = httpServer.start(netty, conf.bind, port);
 		future.awaitUninterruptibly();
 		if (!future.isSuccess()) {
@@ -130,7 +140,10 @@ public class LogAgentManager {
 	// 认证不收敛请求体大小。
 	private static final int API_MAX_CONTENT_LENGTH = 1024 * 1024;
 
+	// 事务级别显式 None：本 HttpServer 无 Application（noProcedure=true），任何事务级别都不会
+	// 产生事务包裹——写 Serializable 是无效配置且误导读者以为有事务语义。Normal 派发必须保留：
+	// 处理器含 60s 级 RPC 等待，不得占 EventLoop。
 	private static void addHandler(String path, HttpEndStreamHandle handle) {
-		httpServer.addHandler(path, API_MAX_CONTENT_LENGTH, TransactionLevel.Serializable, DispatchMode.Normal, handle);
+		httpServer.addHandler(path, API_MAX_CONTENT_LENGTH, TransactionLevel.None, DispatchMode.Normal, handle);
 	}
 }

@@ -46,7 +46,7 @@ public class TestAdminApiRejectsForeignOrigin {
 		Task.tryInitThreadPool();
 		var netty = new Netty(1);
 		var server = new HttpServer();
-		server.addHandler("/api/search", 1024, TransactionLevel.Serializable, DispatchMode.Normal,
+		server.addHandler("/api/search", 1024, TransactionLevel.None, DispatchMode.Normal,
 				new SearchLogHandle());
 		try {
 			int port = ((InetSocketAddress)server.start(netty, "127.0.0.1", 0)
@@ -67,7 +67,7 @@ public class TestAdminApiRejectsForeignOrigin {
 		Task.tryInitThreadPool();
 		var netty = new Netty(1);
 		var server = new HttpServer();
-		server.addHandler("/api/search", 1024, TransactionLevel.Serializable, DispatchMode.Normal,
+		server.addHandler("/api/search", 1024, TransactionLevel.None, DispatchMode.Normal,
 				new SearchLogHandle());
 		try {
 			int port = ((InetSocketAddress)server.start(netty, "127.0.0.1", 0)
@@ -88,7 +88,7 @@ public class TestAdminApiRejectsForeignOrigin {
 		Task.tryInitThreadPool();
 		var netty = new Netty(1);
 		var server = new HttpServer();
-		server.addHandler("/api/search", 1024, TransactionLevel.Serializable, DispatchMode.Normal,
+		server.addHandler("/api/search", 1024, TransactionLevel.None, DispatchMode.Normal,
 				new SearchLogHandle());
 		try {
 			int port = ((InetSocketAddress)server.start(netty, "127.0.0.1", 0)

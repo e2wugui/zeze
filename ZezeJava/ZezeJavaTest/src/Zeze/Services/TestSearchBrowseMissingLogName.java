@@ -223,9 +223,9 @@ public class TestSearchBrowseMissingLogName {
 			}
 			logService = new LogService(newConfig(logServicePort, logDir, twoLogs));
 			logService.start();
-			server.addHandler("/api/search", 1024, TransactionLevel.Serializable, DispatchMode.Normal,
+			server.addHandler("/api/search", 1024, TransactionLevel.None, DispatchMode.Normal,
 					new SearchLogHandle());
-			server.addHandler("/api/browse", 1024, TransactionLevel.Serializable, DispatchMode.Normal,
+			server.addHandler("/api/browse", 1024, TransactionLevel.None, DispatchMode.Normal,
 					new BrowseLogHandle());
 			int port = ((InetSocketAddress)server.start(netty, "127.0.0.1", 0)
 					.sync().channel().localAddress()).getPort();

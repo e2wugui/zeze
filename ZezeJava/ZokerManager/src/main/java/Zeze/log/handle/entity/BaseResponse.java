@@ -5,7 +5,6 @@ package Zeze.log.handle.entity;
  */
 public class BaseResponse<T> {
 	public static final int SUCC = 200;
-	public static final int REDIRECT_INDEX = 400;
 	public static final int ERROR = 500;
 
 	private static final String SUCC_STR = "success";
