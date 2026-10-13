@@ -69,8 +69,11 @@ public class TestServiceManagerCtorFailureRollback {
 
 			// DB目录锁必须已释放：同目录二次构造应再次失败在UDP bind——
 			// 若第一失败遗留目录锁，第二次会在RocksDatabase构造处抛锁占用而非BindException。
+			// 取口同走 probeConflictPort（2026-10-13b r3 三现立案：此处残留裸 DatagramSocket(0)，
+			// OS派发口落临时端口带时TCP侧被出站连接狙死，二次失败错位成IllegalStateException，
+			// 与首次修复同机制——修时序族/取口族要扫同测试全部姊妹调用点，又一例）。
 			Throwable secondFailure = null;
-			try (var udp2 = new DatagramSocket(new InetSocketAddress(loop, 0))) {
+			try (var udp2 = new DatagramSocket(new InetSocketAddress(loop, probeConflictPort(loop)))) {
 				try {
 					new ServiceManagerServer(loop, udp2.getLocalPort(), new Config(), dbDir.getPath());
 				} catch (Throwable e) {

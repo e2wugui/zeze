@@ -71,6 +71,10 @@ public final class GameWorld {
 		// 先例 TestCacheDirLock.newConf）。单进程模式：无 GCM/无服务发现，本地锁。
 		var config = new Config();
 		config.setServiceManager("disable");
+		// 独占 serverId（FastServerIds 单点登记）：bench 车道是串行共享 JVM，车道内 harness 环境
+		// 与他类 Application 已持默认 serverId=0 的 zeze_cache_0.lock——裸 Config 默认 0 会撞
+		// FileMutex 同 JVM 双取秒拒（2026-10-13b bench 5/5 确定性红首暴露）。
+		config.setServerId(harness.FastServerIds.GAMESIM_WORLD);
 		var tableConf = new Config.TableConf();
 		// 真实服缓存充裕（G 场景专测 thrashing，L 不混入该形态）：工作集 ~2万记录，给 10 万
 		tableConf.setCacheCapacity(100_000);

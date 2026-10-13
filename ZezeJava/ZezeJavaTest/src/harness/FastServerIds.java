@@ -79,6 +79,10 @@ public final class FastServerIds {
 	}
 
 	public static final int TEST_AUTO_KEY_INVALIDATE_RANGE = seg("TestAutoKeyInvalidateRange", 200, 7);
+	// bench 车道（串行共享 JVM，harness 环境与他类 Application 常驻）也入本表：LMmoGameSim 的
+	// GameWorld 曾裸 Config 默认 serverId=0，撞车道内 zeze_cache_0.lock（FileMutex 同 JVM 双取秒拒，
+	// 2026-10-13b 五轮 5/5 确定性红——bench 首次真跑即暴露）。
+	public static final int GAMESIM_WORLD = seg("GameSim.GameWorld(LMmoGameSim,bench)", 210, 1);
 
 	public static final int TEST_DEPARTMENT_TREE_MANAGER_GUARDS = seg("TestDepartmentTreeManagerGuards", 730, 1);
 	public static final int TEST_DEPARTMENT_TREE_ROOT_GUARDS = seg("TestDepartmentTreeRootGuards", 733, 1);
