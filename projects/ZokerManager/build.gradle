@@ -47,8 +47,10 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:2.0.18'
     implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.26.0'
 
-    // @NotNull/@Nullable 标记（ZezeJava 侧为 implementation，跨构建不透传，此处自带）
+    // @NotNull/@Nullable 标记（ZezeJava 侧为 implementation，跨构建不透传，此处自带；
+    // compileOnly 不进测试编译类路径，随迁测试代码（StubSocket 等）同样标注，测试侧另挂 testCompileOnly）
     compileOnly 'org.jetbrains:annotations:26.1.0'
+    testCompileOnly 'org.jetbrains:annotations:26.1.0'
 
     // for test (JUnit 6 / Jupiter；fastjson2 为随迁用例的 JSON 断言依赖，版本对齐 ZezeJavaTest；
     // log4j-core 为 TestLogCapture 的 appender 捕获工具所需)
