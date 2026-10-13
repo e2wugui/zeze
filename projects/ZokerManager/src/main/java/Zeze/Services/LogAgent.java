@@ -38,7 +38,9 @@ public class LogAgent extends AbstractLogAgent {
 		return logConf;
 	}
 
-	void applyOnChanged(@NotNull BEditService edit) {
+	/** SM 推送接缝：把 ServiceManager 的服务增删应用到连接表。嵌入宿主/测试在 disable SM 的
+	 * 自包含形态下经此手工模拟推送（原包私有——测试随迁跨包后放开，ZokerManager 自有类）。 */
+	public void applyOnChanged(@NotNull BEditService edit) {
 		for (var r : edit.getRemove()) {
 			client.onSmRemoved(r);
 		}

@@ -115,7 +115,7 @@ sourceSets {
 }
 
 // gradle test：只跑自包含测试（@Fast / @Tag("fast")），不依赖任何外部进程。
-// @Extra（不常用功能族：history/dbh2/mq/rocketmq/log4jquery；zoker 族已随 ZokerManager
+// @Extra（不常用功能族：history/dbh2/mq/rocketmq；zoker 与 log4jquery 族已随 ZokerManager
 // 迁至 projects/ZokerManager 自有构建）被排除——它们由
 // extraTest 按需执行，不进默认链（test.bat 亦不含）。
 tasks.named('test', Test) {
@@ -153,14 +153,14 @@ tasks.register('integrationTest', Test) {
     mustRunAfter tasks.named('test')
 }
 
-// gradle extraTest：不常用功能族（@Extra：history/dbh2/mq/rocketmq/log4jquery，
-// 242 类；zoker 族已随 ZokerManager 迁至 projects/ZokerManager 自有构建）按需附加车道——
-// 移出 test 快速车道与 integrationTest 全量车道，默认链
+// gradle extraTest：不常用功能族（@Extra：history/dbh2/mq/rocketmq，
+// 181 类；zoker 与 log4jquery 族已随 ZokerManager 迁至 projects/ZokerManager 自有构建）
+// 按需附加车道——移出 test 快速车道与 integrationTest 全量车道，默认链
 // （test.bat: test→integrationTest→bench）不含本任务。同 IT 不并行（族内共享
 // dbhome/固定端口），zeze.test.env 不设 off（族内有依赖进程内 SM 的用例）。
 tasks.register('extraTest', Test) {
     group = 'verification'
-    description = '不常用功能族附加测试（@Extra：history/dbh2/mq/rocketmq/log4jquery）。'
+    description = '不常用功能族附加测试（@Extra：history/dbh2/mq/rocketmq）。'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform {

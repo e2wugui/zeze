@@ -37,5 +37,10 @@ echo -------- Gen python\solution.xml ...
 Gen.exe solution.xml
 cd ..
 
+cd projects\ZokerManager
+echo -------- Gen projects\ZokerManager\solution.zoker.xml ...
+Gen.exe solution.zoker.xml
+cd ..\..
+
 echo -------- Gen done!
 pause

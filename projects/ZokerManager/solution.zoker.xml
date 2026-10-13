@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- ZokerManager 日志服务栈的生成定义（自 ZezeJava/solution.zeze.xml 物理迁出，2026-10-13）。
+     保名设计：solution 名仍为 "Zeze" 且以 Builtin(id=11000) 包装层承载 def，
+     模块全名保持 Zeze.Builtin.LogService、ModuleId 11035 与协议 TypeId 零漂移。
+     LogService def 零外部 bean 引用，本 solution 独立成立（不 import ZezeJava solution）。
+     生成物分治：Builtin beans/协议走独立 GenDir="Gen"（ZezexJava 先例，陈旧清理限定 Gen 子树，
+     build.gradle 挂 srcDir 'Gen'）；Abstract 骨架按 MakerComponent 设计固定写 SrcDir/PackagePath
+     （与手写实现同放）。 -->
+<solution name="Zeze" ModuleIdAllowRanges="11000-11999">
+	<module name="Builtin" id="11000">
+		<module name="LogService" id="11035" UseData="true"  DefaultTransactionLevel="None">
+			<bean name="BCondition">
+				<enum name="ContainsAll" value="0"/>
+				<enum name="ContainsAny" value="1"/>
+				<enum name="ContainsNone" value="2"/>
+
+				<variable id="1" name="BeginTime" type="long"/>
+				<variable id="2" name="EndTime" type="long"/>
+				<variable id="3" name="Words" type="list[string]"/>
+				<variable id="4" name="ContainsType" type="int"/>
+				<variable id="5" name="Pattern" type="string"/>
+			</bean>
+
+			<bean name="BLog">
+				<variable id="1" name="Time" type="long"/>
+				<variable id="2" name="Log" type="string"/>
+			</bean>
+			<bean name="BResult">
+				<variable id="1" name="Logs" type="list[BLog]"/>
+				<variable id="2" name="Remain" type="bool"/>
+			</bean>
+
+			<bean name="BSession">
+				<variable id="1" name="Id" type="long"/>
+			</bean>
+
+			<bean name="BNewSession">
+				<variable id="1" name="LogName" type="string"/>
+			</bean>
+
+			<bean name="BBrowse">
+				<variable id="1" name="Id" type="long"/>
+				<variable id="2" name="Limit" type="int"/>
+				<variable id="3" name="OffsetFactor" type="float"/>
+				<variable id="4" name="Reset" type="bool"/>
+				<variable id="5" name="Condition" type="BCondition"/>
+			</bean>
+
+			<bean name="BSearch">
+				<variable id="1" name="Id" type="long"/>
+				<variable id="2" name="Limit" type="int"/>
+				<variable id="3" name="Reset" type="bool"/>
+				<variable id="4" name="Condition" type="BCondition"/>
+			</bean>
+
+			<bean name="BJson">
+				<variable id="1" name="Json" type="string"/>
+			</bean>
+
+			<rpc name="NewSession"  argument="BNewSession" result="BSession" handle="server"/>
+			<rpc name="CloseSession" argument="BSession" handle="server"/>
+			<rpc name="Browse" argument="BBrowse" result="BResult" handle="server"/>
+			<rpc name="Search" argument="BSearch" result="BResult" handle="server"/>
+
+			<rpc name="Query" argument="BJson" result="BJson" handle="server"/>
+
+		</module>
+	</module>
+
+	<component name="LogService"
+		GenDir="Gen"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.LogService"/>
+		</service>
+	</component>
+
+	<component name="LogAgent"
+		GenDir="Gen"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.LogService"/>
+		</service>
+	</component>
+</solution>
