@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Net.Binary;
-import Zeze.Services.ZokerImpl.FileBin;
+import Zeze.Util.FileBin;
 
 /**
  * 管理发布文件，支持命令行直接发布并最终提交。

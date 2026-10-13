@@ -27,10 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Extra
 public class TestLaunchSpecBackslash {
 
-	private static ServiceManager.LaunchSpec parse(Path versionDir, String content) throws IOException {
+	private static ProcessManager.LaunchSpec parse(Path versionDir, String content) throws IOException {
 		Files.createDirectories(versionDir);
-		Files.writeString(versionDir.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), content);
-		return ServiceManager.parseLaunchSpec(versionDir.toFile());
+		Files.writeString(versionDir.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), content);
+		return ProcessManager.parseLaunchSpec(versionDir.toFile());
 	}
 
 	/** 核心红点：Windows 路径 command 原样保留（修复前：C:\srv\app.exe → C:srvapp.exe）。 */
@@ -79,7 +79,7 @@ public class TestLaunchSpecBackslash {
 	public void testErrorShapesUnchanged(@TempDir Path tempDir) throws Exception {
 		var missing = tempDir.resolve("none").toFile();
 		Files.createDirectories(missing.toPath());
-		assertThrows(FileNotFoundException.class, () -> ServiceManager.parseLaunchSpec(missing));
+		assertThrows(FileNotFoundException.class, () -> ProcessManager.parseLaunchSpec(missing));
 
 		assertThrows(IOException.class, () -> parse(tempDir.resolve("v1"), "args=x\n"));
 		assertThrows(IOException.class, () -> parse(tempDir.resolve("v2"), "command=   \n"));

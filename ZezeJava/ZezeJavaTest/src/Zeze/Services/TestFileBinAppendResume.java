@@ -7,7 +7,7 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 
 import Zeze.Net.Binary;
-import Zeze.Services.ZokerImpl.FileBin;
+import Zeze.Util.FileBin;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

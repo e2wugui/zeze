@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * （{@code testStopUnverifiedPidFileNotKilled}：指纹不符绝不按裸 pid 领养/误杀）与保留字
  * 扩展（{@code testCommitRunPidReserved}：versionNo=run.pid 变体占据容器根身份文件位置）。</p>
  *
- * <p>直构 ServiceManager（包内构造器）。真进程编排按 FND19 降级档：Windows 最小真进程形态
+ * <p>直构 ProcessManager（包内构造器）。真进程编排按 FND19 降级档：Windows 最小真进程形态
  * （ping 当保活睡眠器），非 Windows 跳过真进程用例；纯文件用例全平台可跑。</p>
  */
 @Fast
@@ -83,7 +83,7 @@ public class TestCrossRestartBehavior {
 		var v1 = Files.createDirectories(svc.resolve("v1"));
 		Files.writeString(svc.resolve(DistributeManager.CURRENT_NAME), "v1");
 		if (null != props)
-			Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), props);
+			Files.writeString(v1.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), props);
 	}
 
 	private static Path runPidPath(File servicesDir) {
@@ -111,7 +111,7 @@ public class TestCrossRestartBehavior {
 		return r;
 	}
 
-	private static String listState(ServiceManager sm) {
+	private static String listState(ProcessManager sm) {
 		var out = new ArrayList<BService.Data>();
 		sm.listService(out);
 		assertEquals(1, out.size());
@@ -126,7 +126,7 @@ public class TestCrossRestartBehavior {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 
 		assertEquals(0, sm.startService(startReq()));
 		var spawned = sm.getProcessForTest("svc");
@@ -154,7 +154,7 @@ public class TestCrossRestartBehavior {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 		assertEquals(0, sm.startService(startReq()));
 		var spawned = sm.getProcessForTest("svc");
 		assertNotNull(spawned);
@@ -165,7 +165,7 @@ public class TestCrossRestartBehavior {
 		assertFalse(Files.exists(runPidPath(servicesDir)), "停毕条件删除 run.pid");
 	}
 
-	// ---------- 跨 Zoker 重启（全新 ServiceManager=内存记账清零，盘上身份仍在） ----------
+	// ---------- 跨 Zoker 重启（全新 ProcessManager=内存记账清零，盘上身份仍在） ----------
 
 	/** stop 条目缺失先解析 run.pid 再判 not-running——领养句柄能真停孤儿。
 	 * 修复前红点：Stopped/not-running 幂等谎言 + 原进程未被杀。 */
@@ -174,17 +174,17 @@ public class TestCrossRestartBehavior {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
-		var sm1 = new ServiceManager(servicesDir);
+		var sm1 = new ProcessManager(servicesDir);
 		assertEquals(0, sm1.startService(startReq()));
 		var spawned = sm1.getProcessForTest("svc");
 		assertNotNull(spawned);
 
-		// 模拟 Zoker 重启：全新 ServiceManager（另一张空账）
-		var sm2 = new ServiceManager(servicesDir);
+		// 模拟 Zoker 重启：全新 ProcessManager（另一张空账）
+		var sm2 = new ProcessManager(servicesDir);
 		var stop = stopReq(true);
 		sm2.stopService(stop);
 		assertEquals("svc", stop.Result.getServiceName());
-		assertEquals(ServiceManager.STATE_FORCE_KILLED, stop.Result.getState(),
+		assertEquals(ProcessManager.STATE_FORCE_KILLED, stop.Result.getState(),
 				"条目缺失≠not-running：领养句柄直接进入停机三态路径");
 		assertFalse(spawned.isAlive(), "孤儿必须被真停");
 		assertFalse(Files.exists(runPidPath(servicesDir)), "停毕清理盘上身份");
@@ -197,16 +197,16 @@ public class TestCrossRestartBehavior {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
-		var sm1 = new ServiceManager(servicesDir);
+		var sm1 = new ProcessManager(servicesDir);
 		assertEquals(0, sm1.startService(startReq()));
 		var spawned = sm1.getProcessForTest("svc");
 		assertNotNull(spawned);
 
-		var sm2 = new ServiceManager(servicesDir);
+		var sm2 = new ProcessManager(servicesDir);
 		var r = startReq();
 		assertEquals(0, sm2.startService(r));
 		assertEquals("svc", r.Result.getServiceName());
-		assertEquals(ServiceManager.STATE_RUNNING, r.Result.getState());
+		assertEquals(ProcessManager.STATE_RUNNING, r.Result.getState());
 		assertTrue(r.Result.getPs().contains("adopted"),
 				"领养返回必须 Ps 标记 adopted+pid: " + r.Result.getPs());
 		var entry = sm2.getProcessForTest("svc");
@@ -236,10 +236,10 @@ public class TestCrossRestartBehavior {
 			var runPid = runPidPath(servicesDir);
 			Files.writeString(runPid,
 					"pid=" + stranger.pid() + "\nstart=1999-01-01T00:00:00Z\ncommand=stale\n");
-			var sm = new ServiceManager(servicesDir);
+			var sm = new ProcessManager(servicesDir);
 			var stop = stopReq(true);
 			sm.stopService(stop);
-			assertEquals(ServiceManager.STATE_STOPPED, stop.Result.getState());
+			assertEquals(ProcessManager.STATE_STOPPED, stop.Result.getState());
 			assertEquals("not-running", stop.Result.getPs());
 			assertTrue(stranger.isAlive(), "指纹不符绝不按裸 pid 误杀");
 			assertFalse(Files.exists(runPid), "不符残留必须清理（不留给下次对账）");

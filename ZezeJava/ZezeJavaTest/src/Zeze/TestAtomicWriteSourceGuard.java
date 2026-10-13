@@ -53,7 +53,7 @@ public class TestAtomicWriteSourceGuard {
 			"Zeze/MQ/MQFileWithIndex.java", // MQ流式存储（追加+索引，既有自愈）
 			"Zeze/Services/Daemon.java", // 运维临时文件
 			"Zeze/Services/Log4jQuery/LogIndex.java", // 索引重建（可再生）
-			"Zeze/Services/ZokerImpl/FileBin.java", // Zoker流式存储（候选迁移点）
+			"Zeze/Util/FileBin.java", // Zoker/Hot流式断点续传（offset回退truncate是协议语义，原子rename模型不适用；ex-ZokerImpl/ZokerImpl.FileBin随迁移改路径）
 			"Zeze/Transaction/AchillesHeelDaemon.java", // 记录文件（可再生）
 			"Zeze/Arch/LinkdProvider.java", // 诊断dump（可再生）
 			"Zeze/Arch/LinkdProviderService.java", // 诊断dump（可再生）

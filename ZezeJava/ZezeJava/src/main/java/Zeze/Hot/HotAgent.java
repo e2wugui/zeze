@@ -5,14 +5,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
+// 文件上传三协议用本模块（HotDistribute 11033）自己的：此前误 import Zeze.Builtin.Zoker 同名
+// 协议（11037），TypeId 不同，两端（HotManager 只注册 hotDistribute、本 Service 只注册
+// AbstractHotAgent 的 11033 工厂）都无该帧的工厂，远程发布上传必超时。
+import Zeze.Builtin.HotDistribute.AppendFile;
+import Zeze.Builtin.HotDistribute.CloseFile;
 import Zeze.Builtin.HotDistribute.Commit;
 import Zeze.Builtin.HotDistribute.Commit2;
+import Zeze.Builtin.HotDistribute.OpenFile;
 import Zeze.Builtin.HotDistribute.PrepareDistribute;
 import Zeze.Builtin.HotDistribute.TryDistribute;
 import Zeze.Builtin.HotDistribute.TryRollback;
-import Zeze.Builtin.Zoker.AppendFile;
-import Zeze.Builtin.Zoker.CloseFile;
-import Zeze.Builtin.Zoker.OpenFile;
 import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Net.Binary;

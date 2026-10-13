@@ -1,4 +1,4 @@
-package Zeze.Services.ZokerImpl;
+package Zeze.Util;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -11,17 +11,17 @@ import java.io.RandomAccessFile;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import Zeze.Net.Binary;
-import Zeze.Util.Task;
 
 /**
- * 单个分发文件在 Zoker 侧的传输载体：RandomAccessFile 断点续传，边写边维护全量 md5 供 CloseFile 校验。
+ * 单个分发文件的传输载体（Zoker 的 DistributeManager 与 Hot 的 Zeze.Hot.DistributeManager 共用）：
+ * RandomAccessFile 断点续传，边写边维护全量 md5 供 CloseFile 校验。
  *
  * <p><b>线程安全（zoker-04）</b>：实例可被多连接共享（open 幂等复用同一 FileBin），共享的可变状态
  * （os/randFile 的写指针、共享 MessageDigest——JDK 明示非线程安全）在并发 append/truncate/md5Digest/close
  * 交错下会使 seek/write 与 digest 累计搅乱（CloseFile 校验必失败触发删档重传）。四个方法以实例监视器序化：
  * 交错要么完整串行（等值断点续传常态，md5 与写入同源一致）要么退化为先后到达（close 后 append 得
  * IOException→eAppendOffset，客户端重开重传）——消除交错中间态。监视器是叶子锁（方法内不再取其他锁），
- * 调用方（DistributeManager）的全部 append/close 均在 filesBySocket 锁外执行，无锁序交互。
+ * 调用方的全部 append/close 均在各自的 files 锁外执行，无锁序交互。
  * per-file 粒度：仅共享同一文件的连接互斥，阻塞窗口=单次 append（truncate 路径含全量 md5 重算，
  * 与该文件自身的续传代价同阶）。</p>
  */

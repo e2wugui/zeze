@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 import Zeze.Builtin.Zoker.ListService;
 import Zeze.Config;
 import Zeze.Services.ZokerImpl.DistributeManager;
-import Zeze.Services.ZokerImpl.ServiceManager;
+import Zeze.Services.ZokerImpl.ProcessManager;
 import Zeze.Services.ZokerImpl.ZokerService;
 
 /**
@@ -20,7 +20,7 @@ public class Zoker extends AbstractZoker {
 
 	private final ZokerService serverWithConnector; // Zoker是server，但它主动连接ZokerAgent
 	private final DistributeManager distributeManager;
-	private final ServiceManager processManager;
+	private final ProcessManager processManager;
 	private final File serviceDir;
 	private final File distributeDir;
 	private final File zokerDir;
@@ -39,7 +39,7 @@ public class Zoker extends AbstractZoker {
 		// implement
 		distributeManager = new DistributeManager(this);
 		serverWithConnector = new ZokerService(config, distributeManager);
-		processManager = new ServiceManager(this);
+		processManager = new ProcessManager(this);
 		RegisterProtocols(serverWithConnector);
 	}
 
@@ -52,7 +52,7 @@ public class Zoker extends AbstractZoker {
 	}
 
 	/** 供 DistributeManager.pruneVersions 查询运行中服务的在用版本（进程身份 run.pid）。 */
-	public ServiceManager getProcessManager() {
+	public ProcessManager getProcessManager() {
 		return processManager;
 	}
 

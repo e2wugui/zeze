@@ -61,7 +61,7 @@ public class TestSubprocessOutputNoFreeze {
 		Files.writeString(servicesDir.resolve("svc").resolve(DistributeManager.CURRENT_NAME), "v1");
 		// harness.proc.Flood 写 ~256KB（约 4×64KB 管道缓冲）即退出——输出的持续产生
 		// +自行退出正是"无人读管道"的探针形态；javaw 无窗（GUI 子系统）。
-		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
+		Files.writeString(v1.resolve(ProcessManager.SERVICE_PROPERTIES_NAME),
 				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Flood") + "\n");
 	}
 
@@ -77,7 +77,7 @@ public class TestSubprocessOutputNoFreeze {
 	public void testBigOutputSubprocessCompletes() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "长输出子进程形态为Windows命令（cmd for 循环 echo）");
 		layoutBigOutputService(tempDir);
-		var sm = new ServiceManager(tempDir.resolve("services").toFile());
+		var sm = new ProcessManager(tempDir.resolve("services").toFile());
 
 		assertEquals(0, sm.startService(startReq()));
 		var entry = sm.getProcessForTest("svc");
@@ -93,7 +93,7 @@ public class TestSubprocessOutputNoFreeze {
 		for (var i = 0; i < 100 && null != sm.getProcessForTest("svc"); i++)
 			Thread.sleep(50);
 		assertNull(sm.getProcessForTest("svc"), "子进程退出后记账条目收殓");
-		var runPid = tempDir.resolve("services").resolve("svc").resolve(ServiceManager.RUN_PID_NAME);
+		var runPid = tempDir.resolve("services").resolve("svc").resolve(ProcessManager.RUN_PID_NAME);
 		for (var i = 0; i < 100 && Files.exists(runPid); i++)
 			Thread.sleep(50);
 		assertTrue(!Files.exists(runPid), "退出后盘上身份条件删除");
@@ -106,9 +106,9 @@ public class TestSubprocessOutputNoFreeze {
 		var servicesDir = tempDir.resolve("services");
 		var v1 = Files.createDirectories(servicesDir.resolve("svc").resolve("v1"));
 		Files.writeString(servicesDir.resolve("svc").resolve(DistributeManager.CURRENT_NAME), "v1");
-		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
+		Files.writeString(v1.resolve(ProcessManager.SERVICE_PROPERTIES_NAME),
 				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "30000") + "\n");
-		var sm = new ServiceManager(servicesDir.toFile());
+		var sm = new ProcessManager(servicesDir.toFile());
 
 		assertEquals(0, sm.startService(startReq()));
 		var entry = sm.getProcessForTest("svc");

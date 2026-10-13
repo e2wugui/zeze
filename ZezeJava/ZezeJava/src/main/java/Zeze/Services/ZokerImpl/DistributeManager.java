@@ -24,6 +24,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Services.Zoker;
 import Zeze.Util.AtomicFileWriter;
+import Zeze.Util.FileBin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
@@ -473,7 +474,7 @@ public class DistributeManager {
 	static boolean isReservedVersionName(String name) {
 		var folded = foldVersionName(name);
 		return folded.equals(foldVersionName(CURRENT_NAME))
-				|| folded.equals(foldVersionName(ServiceManager.RUN_PID_NAME))
+				|| folded.equals(foldVersionName(ProcessManager.RUN_PID_NAME))
 				|| isDeletingStageName(name);
 	}
 
@@ -490,7 +491,7 @@ public class DistributeManager {
 	 * （跨大小写 exists 命中、renameTo 落盘名脱尾点占位），
 	 * 即"请求文本"与"盘上实际目录名"可能是同一物理实体的两个拼写。所有需要"请求名与盘上名
 	 * 判同"的位置（保留字碰撞 {@link #isReservedVersionName}、现役保护 pruneVersions、
-	 * 指针规范化 commitLocked、commitLocks 键、ServiceManager 的 opsLocks/processes 记账键
+	 * 指针规范化 commitLocked、commitLocks 键、ProcessManager 的 opsLocks/processes 记账键
 	 * （serviceKey 单点）、files/filesBySocket 记账键（fileKey 单点，FND26 zoker-02）、
 	 * barrier 前缀比对的段折叠 {@link #foldBarrierPath}、清单残留清理判同
 	 * pruneUnlistedFiles（FND29 zoker-01））必须统一用本折叠，
@@ -1172,7 +1173,7 @@ public class DistributeManager {
 	 *
 	 * <p>调用方须保证容器目录在管理范围内（services/&lt;svc&gt;，经 isSafePathSegment 校验的
 	 * 单段服务名拼出）——本方法只校验指针<b>内容</b>是单段名，不校验传入的容器目录自身边界
-	 * （入口校验在 {@code ServiceManager.startService}，这里不重复设防）。</p>
+	 * （入口校验在 {@code ProcessManager.startService}，这里不重复设防）。</p>
 	 */
 	public static @Nullable File currentVersionDir(File serviceContainerDir) {
 		var current = new File(serviceContainerDir, CURRENT_NAME);
@@ -1209,15 +1210,15 @@ public class DistributeManager {
 	 * <p><b>在用版本保护</b>：运行中服务的进程身份（run.pid 的 version 行，launch 时落盘）
 	 * 指向的版本目录同样不进清理面——服务不随 current 切换重启时仍从旧版本目录运行，
 	 * 误删即拆运行中服务的文件（Linux 惰性加载失败；Windows 句柄锁目录使 deleteTree
-	 * 恒 false）。判据读取与 startService 的 writeRunPid 经 ServiceManager.opsLocks 互斥
+	 * 恒 false）。判据读取与 startService 的 writeRunPid 经 ProcessManager.opsLocks 互斥
 	 * （见方法体，zoker-02）——launch→writeRunPid 窗口内 run.pid 还是旧身份，无互斥时
 	 * 正在启动的版本目录会被当非在用删除。版本不可知（旧格式身份）时整体跳过本服务：
 	 * 宁可不回收空间也不删在用目录。直构形态（zoker==null）无进程身份可查，保护不生效。</p>
 	 */
 	void pruneVersions(File svcDir, String currentVersion) {
 		var keep = keepVersions;
-		// zoker-02：prune 段纳入与 start/stop 同粒度互斥（ServiceManager.opsLocks，键同
-		// foldVersionName 折叠——ServiceManager.serviceKey 单点）。start 持锁的 launch→writeRunPid 窗口内
+		// zoker-02：prune 段纳入与 start/stop 同粒度互斥（ProcessManager.opsLocks，键同
+		// foldVersionName 折叠——ProcessManager.serviceKey 单点）。start 持锁的 launch→writeRunPid 窗口内
 		// run.pid 是旧身份，本判据读到 null/旧版本就会把正在启动的版本目录当非在用删除
 		// （进程炸/NoClassDefFound，两个 RPC 各自"成功"的静默错账）；共锁后 start 必先在锁内落盘
 		// 新身份，prune 判得到它。锁序 commitLocks→opsLocks 单向嵌套（调用方 commit 全程持
@@ -1234,7 +1235,7 @@ public class DistributeManager {
 			pruneLocked(svcDir, currentVersion, keep, null);
 	}
 
-	private static void pruneLocked(File svcDir, String currentVersion, int keep, @Nullable ServiceManager processManager) {
+	private static void pruneLocked(File svcDir, String currentVersion, int keep, @Nullable ProcessManager processManager) {
 		var listFiles = svcDir.listFiles();
 		if (null == listFiles)
 			return;

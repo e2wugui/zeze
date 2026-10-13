@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * FND19 GE-D01：服务启停生命周期闭合（拍板方案A：service.properties 部署描述文件约定）。
- * 直构 ServiceManager（包内构造器，不依赖 Zoker 网络服务）。真进程编排按降级档用
+ * 直构 ProcessManager（包内构造器，不依赖 Zoker 网络服务）。真进程编排按降级档用
  * Windows 最小真进程形态（ping 当保活睡眠器、cmd /c exit N 拿确定退出码），
  * 非Windows跳过真进程用例；纯解析/错误码用例全平台可跑。
  */
@@ -66,7 +66,7 @@ public class TestServiceLifecycle {
 		var v1 = Files.createDirectories(svc.resolve("v1"));
 		Files.writeString(svc.resolve(DistributeManager.CURRENT_NAME), "v1");
 		if (null != props)
-			Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), props);
+			Files.writeString(v1.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), props);
 	}
 
 	private static StartService startReq() {
@@ -82,7 +82,7 @@ public class TestServiceLifecycle {
 		return r;
 	}
 
-	private static String listState(ServiceManager sm) {
+	private static String listState(ProcessManager sm) {
 		var out = new ArrayList<BService.Data>();
 		sm.listService(out);
 		assertEquals(1, out.size());
@@ -94,7 +94,7 @@ public class TestServiceLifecycle {
 	@Test
 	public void testNoDescriptorRejected() throws Exception {
 		var servicesDir = servicesDir(tempDir);
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 		// 服务容器存在但从未 commit（无 current 指针）→ 描述文件必然缺失
 		Files.createDirectories(servicesDir.toPath().resolve("svc"));
 		assertEquals(NO_PROPS, sm.startService(startReq()));
@@ -103,7 +103,7 @@ public class TestServiceLifecycle {
 		assertEquals(NO_PROPS, sm.startService(startReq()));
 		// 描述文件存在但缺 command 键（描述不完整=没有可用的部署描述）
 		Files.writeString(servicesDir.toPath().resolve("svc").resolve("v1")
-				.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), "# no command here\n");
+				.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), "# no command here\n");
 		assertEquals(NO_PROPS, sm.startService(startReq()));
 	}
 
@@ -112,7 +112,7 @@ public class TestServiceLifecycle {
 	public void testStartFailOnBadCommand() throws Exception {
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=zeze-nonexistent-exe-0123456789");
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 		assertEquals(START_FAIL, sm.startService(startReq()));
 	}
 
@@ -121,8 +121,8 @@ public class TestServiceLifecycle {
 	@Test
 	public void testParseLaunchSpecCommandOnly() throws Exception {
 		var dir = Files.createDirectories(tempDir.resolve("v1"));
-		Files.writeString(dir.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), "command=java\n");
-		var spec = ServiceManager.parseLaunchSpec(dir.toFile());
+		Files.writeString(dir.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), "command=java\n");
+		var spec = ProcessManager.parseLaunchSpec(dir.toFile());
 		assertEquals(dir.toFile(), spec.workingDir);
 		assertEquals(java.util.List.of("java"), spec.command);
 		assertTrue(spec.env.isEmpty());
@@ -132,13 +132,13 @@ public class TestServiceLifecycle {
 	public void testParseLaunchSpecFull() throws Exception {
 		var dir = Files.createDirectories(tempDir.resolve("v1"));
 		// Properties格式：#注释、键值对；args空白分隔；env为k=v逗号分隔（值内可含空格）
-		Files.writeString(dir.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), """
+		Files.writeString(dir.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), """
 				# deployment descriptor
 				command=java
 				args=-Xmx1g  -jar   app.jar
 				env=LANG=C.UTF-8,FOO=bar baz
 				""");
-		var spec = ServiceManager.parseLaunchSpec(dir.toFile());
+		var spec = ProcessManager.parseLaunchSpec(dir.toFile());
 		assertEquals(java.util.List.of("java", "-Xmx1g", "-jar", "app.jar"), spec.command,
 				"args空白分隔（多余空白收敛）");
 		assertEquals(2, spec.env.size());
@@ -150,13 +150,13 @@ public class TestServiceLifecycle {
 	public void testParseLaunchSpecMalformed() throws Exception {
 		var dir = Files.createDirectories(tempDir.resolve("v1"));
 		// 文件缺失
-		assertThrows(IOException.class, () -> ServiceManager.parseLaunchSpec(dir.toFile()));
+		assertThrows(IOException.class, () -> ProcessManager.parseLaunchSpec(dir.toFile()));
 		// command 为空
-		Files.writeString(dir.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), "args=-x\n");
-		assertThrows(IOException.class, () -> ServiceManager.parseLaunchSpec(dir.toFile()));
+		Files.writeString(dir.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), "args=-x\n");
+		assertThrows(IOException.class, () -> ProcessManager.parseLaunchSpec(dir.toFile()));
 		// env 条目缺 '='
-		Files.writeString(dir.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), "command=java\nenv=BADENTRY\n");
-		assertThrows(IOException.class, () -> ServiceManager.parseLaunchSpec(dir.toFile()));
+		Files.writeString(dir.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), "command=java\nenv=BADENTRY\n");
+		assertThrows(IOException.class, () -> ProcessManager.parseLaunchSpec(dir.toFile()));
 	}
 
 	// ---------- 真进程编排（Windows 最小真进程形态；非Windows跳过） ----------
@@ -167,16 +167,16 @@ public class TestServiceLifecycle {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping/cmd）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 
 		var r = startReq();
 		assertEquals(0, sm.startService(r));
 		assertEquals("svc", r.Result.getServiceName());
-		assertEquals(ServiceManager.STATE_RUNNING, r.Result.getState());
+		assertEquals(ProcessManager.STATE_RUNNING, r.Result.getState());
 		var process = sm.getProcessForTest("svc");
 		assertNotNull(process);
 		assertTrue(process.isAlive());
-		assertEquals(ServiceManager.STATE_RUNNING, listState(sm), "listService 以 isAlive 判 Running");
+		assertEquals(ProcessManager.STATE_RUNNING, listState(sm), "listService 以 isAlive 判 Running");
 
 		// 已运行再 start：幂等复用现役句柄，不重复拉起
 		assertEquals(0, sm.startService(startReq()));
@@ -186,13 +186,13 @@ public class TestServiceLifecycle {
 		var stop = stopReq(false);
 		sm.stopService(stop);
 		assertEquals("svc", stop.Result.getServiceName());
-		assertTrue(ServiceManager.STATE_FORCE_KILLED.equals(stop.Result.getState())
-						|| ServiceManager.STATE_STOPPED.equals(stop.Result.getState()),
+		assertTrue(ProcessManager.STATE_FORCE_KILLED.equals(stop.Result.getState())
+						|| ProcessManager.STATE_STOPPED.equals(stop.Result.getState()),
 				"stop结局必须是Force-Killed/Stopped之一: " + stop.Result.getState());
 		assertTrue(stop.Result.getPs().contains("exit="), "Ps必须携带退出码: " + stop.Result.getPs());
 		assertFalse(process.isAlive());
 		assertNull(sm.getProcessForTest("svc"), "stop后条目清除");
-		assertNotEquals(ServiceManager.STATE_RUNNING, listState(sm), "停机后不报running");
+		assertNotEquals(ProcessManager.STATE_RUNNING, listState(sm), "停机后不报running");
 	}
 
 	/** 死条目（onExit回调未及清理的窗口）：listService 不报 Running；再 start 替换重启。 */
@@ -201,20 +201,20 @@ public class TestServiceLifecycle {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping/cmd）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 
 		// 注入死句柄：cmd /c exit 7 自然退出（修复前 computeIfAbsent 命中死句柄报 running 且永不重启）
 		var dead = new ProcessBuilder(Procs.command("Exit", "7")).start();
 		assertTrue(dead.waitFor(10, TimeUnit.SECONDS));
 		sm.putProcessForTest("svc", dead);
 
-		assertEquals(ServiceManager.STATE_STOPPED, listState(sm), "条目在但进程死=Stopped不报running");
+		assertEquals(ProcessManager.STATE_STOPPED, listState(sm), "条目在但进程死=Stopped不报running");
 		assertEquals(0, sm.startService(startReq()), "对死条目再start必须能重新拉起");
 		var relaunched = sm.getProcessForTest("svc");
 		assertNotNull(relaunched);
 		assertNotSame(dead, relaunched, "死句柄被替换");
 		assertTrue(relaunched.isAlive());
-		assertEquals(ServiceManager.STATE_RUNNING, listState(sm));
+		assertEquals(ProcessManager.STATE_RUNNING, listState(sm));
 
 		// 清理
 		sm.stopService(stopReq(true));
@@ -225,14 +225,14 @@ public class TestServiceLifecycle {
 	@Test
 	public void testStopDeadHandleReportsNaturalExitCode() throws Exception {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（cmd）");
-		var sm = new ServiceManager(servicesDir(tempDir));
+		var sm = new ProcessManager(servicesDir(tempDir));
 		var dead = new ProcessBuilder(Procs.command("Exit", "7")).start();
 		assertTrue(dead.waitFor(10, TimeUnit.SECONDS));
 		sm.putProcessForTest("svc", dead);
 
 		var stop = stopReq(false);
 		sm.stopService(stop);
-		assertEquals(ServiceManager.STATE_STOPPED, stop.Result.getState());
+		assertEquals(ProcessManager.STATE_STOPPED, stop.Result.getState());
 		assertEquals("exit=7", stop.Result.getPs());
 		assertNull(sm.getProcessForTest("svc"));
 	}
@@ -240,11 +240,11 @@ public class TestServiceLifecycle {
 	/** 未运行就 stop（从未启动/已停止/已被onExit清理）：幂等成功。 */
 	@Test
 	public void testStopNotRunningIdempotent() throws Exception {
-		var sm = new ServiceManager(servicesDir(tempDir));
+		var sm = new ProcessManager(servicesDir(tempDir));
 		var stop = stopReq(true);
 		sm.stopService(stop);
 		assertEquals("svc", stop.Result.getServiceName());
-		assertEquals(ServiceManager.STATE_STOPPED, stop.Result.getState());
+		assertEquals(ProcessManager.STATE_STOPPED, stop.Result.getState());
 		assertEquals("not-running", stop.Result.getPs());
 	}
 
@@ -256,7 +256,7 @@ public class TestServiceLifecycle {
 		// Nap 2000 当延迟自然退出（~2s）：Exit 毫秒级即死，onExit收殓跑赢下一行的
 		// assertNotNull（test40-4实证round14红）——前提断言需要进程确定存活过断言时刻。
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "2000") + "\n");
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 
 		assertEquals(0, sm.startService(startReq()));
 		assertNotNull(sm.getProcessForTest("svc"));
@@ -267,7 +267,7 @@ public class TestServiceLifecycle {
 			Thread.sleep(50);
 		assertNull(sm.getProcessForTest("svc"), "退出监控必须清理processes条目");
 		// 死条目清理后无记账：按 Stopped 汇报（zoker-11：空串超协议契约），不报 running
-		assertEquals(ServiceManager.STATE_STOPPED, listState(sm), "死条目清理后不报running");
+		assertEquals(ProcessManager.STATE_STOPPED, listState(sm), "死条目清理后不报running");
 	}
 
 	/** env 真注入进程环境（可观察形态：env 变量命中时 cmd 以退出码5退出）。 */
@@ -279,7 +279,7 @@ public class TestServiceLifecycle {
 		// assertNotNull（test40-4实证round20红）——需要条目在断言时刻确定在场以取句柄验退出码。
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs="
 				+ Procs.specArgs("NapEnv", "2000", "ZEZE_SVC_LIFECYCLE", "hit", "5") + "\nenv=ZEZE_SVC_LIFECYCLE=hit\n");
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 
 		assertEquals(0, sm.startService(startReq()));
 		var process = sm.getProcessForTest("svc");

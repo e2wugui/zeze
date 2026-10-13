@@ -69,7 +69,7 @@ public class TestStartStopMutex {
 		var svc = servicesDir.toPath().resolve("svc");
 		var v1 = Files.createDirectories(svc.resolve("v1"));
 		Files.writeString(svc.resolve(DistributeManager.CURRENT_NAME), "v1");
-		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), props);
+		Files.writeString(v1.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), props);
 	}
 
 	private static StartService startReq() {
@@ -86,8 +86,8 @@ public class TestStartStopMutex {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static ConcurrentHashMap<String, Object> opsLocksOf(ServiceManager sm) throws Exception {
-		Field field = ServiceManager.class.getDeclaredField("opsLocks");
+	private static ConcurrentHashMap<String, Object> opsLocksOf(ProcessManager sm) throws Exception {
+		Field field = ProcessManager.class.getDeclaredField("opsLocks");
 		field.setAccessible(true);
 		return (ConcurrentHashMap<String, Object>)field.get(sm);
 	}
@@ -178,7 +178,7 @@ public class TestStartStopMutex {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 
 		// 摆"已拉起"形态：真进程 + 记账注入慢死假句柄 + 盘上真实身份（指纹可核）
 		var real = new ProcessBuilder(Procs.command("Nap", "60000")).start();
@@ -187,8 +187,8 @@ public class TestStartStopMutex {
 			var startInstant = ProcessHandle.of(real.pid()).orElseThrow()
 					.info().startInstant().map(Object::toString).orElse("");
 			assertFalse(startInstant.isEmpty(), "探针前提：真进程 startInstant 可得");
-			ServiceManager.writeRunPid(container,
-					new ServiceManager.RunPidRecord(real.pid(), startInstant, "slow-die"));
+			ProcessManager.writeRunPid(container,
+					new ProcessManager.RunPidRecord(real.pid(), startInstant, "slow-die"));
 			sm.putProcessForTest("svc", new SlowDieProcess(real, 1_500));
 
 			var stopReceipt = new AtomicReference<StopService>();
@@ -220,10 +220,10 @@ public class TestStartStopMutex {
 			assertFalse(tStop.isAlive(), "stop 应有界完成");
 			assertFalse(tStart.isAlive(), "start 应有界完成（互斥等待亦不得无界）");
 
-			assertEquals(ServiceManager.STATE_FORCE_KILLED, stopReceipt.get().Result.getState(),
+			assertEquals(ProcessManager.STATE_FORCE_KILLED, stopReceipt.get().Result.getState(),
 					"stop 正常收殓慢死进程");
 			assertEquals(0, startCode[0], "start 应成功");
-			assertEquals(ServiceManager.STATE_RUNNING, startReceipt.get().Result.getState());
+			assertEquals(ProcessManager.STATE_RUNNING, startReceipt.get().Result.getState());
 
 			// 终局不变式（GE-C02 本案）：start 回执 Running ⇒ 服务真活着。
 			// 修复前红：领养条目随进程死亡被 watchExit 收殓 → 条目 null；或收殓未及 → isAlive=false。
@@ -235,7 +235,7 @@ public class TestStartStopMutex {
 			// 收尾：停掉修复路径重新拉起的进程（receipt 断言+条目收殓有界等待）
 			var stop = stopReq(true);
 			sm.stopService(stop);
-			assertEquals(ServiceManager.STATE_FORCE_KILLED, stop.Result.getState());
+			assertEquals(ProcessManager.STATE_FORCE_KILLED, stop.Result.getState());
 			for (var i = 0; i < 100 && null != sm.getProcessForTest("svc"); i++)
 				Thread.sleep(50);
 			assertNull(sm.getProcessForTest("svc"), "收尾停止后记账条目收殓");
@@ -249,7 +249,7 @@ public class TestStartStopMutex {
 	@Test
 	public void testStartAndStopHoldOpsLock() throws Exception {
 		var servicesDir = servicesDir(tempDir);
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 		assertEquals(NO_PROPS, sm.startService(startReq()), "无布局→错误码（锁内路径）");
 
 		var locks = opsLocksOf(sm);
@@ -283,7 +283,7 @@ public class TestStartStopMutex {
 	@Test
 	public void testOpsLocksCaseFolding() throws Exception {
 		var servicesDir = servicesDir(tempDir);
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 		assertEquals(NO_PROPS, sm.startService(startReq()));
 		var upper = new StartService();
 		upper.Argument.setServiceName("Svc");

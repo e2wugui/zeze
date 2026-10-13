@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 外加容器根身份文件不在版本清理面（pruneVersions 只纳入目录）的布局回归钉。
  * 本类引用修复侧新符号（adoptOrphans/RunPidRecord/writeRunPid/AdoptedProcess），
  * 基线行为红由 {@link TestCrossRestartBehavior}（零新符号）承担。
- * 直构 ServiceManager；真进程用例 Windows 形态（FND19 降级档），纯文件用例全平台。
+ * 直构 ProcessManager；真进程用例 Windows 形态（FND19 降级档），纯文件用例全平台。
  */
 @Fast
 @Extra
@@ -70,11 +70,11 @@ public class TestOrphanAdoptionScan {
 		var svc = servicesDir.toPath().resolve("svc");
 		var v1 = Files.createDirectories(svc.resolve("v1"));
 		Files.writeString(svc.resolve(DistributeManager.CURRENT_NAME), "v1");
-		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), props);
+		Files.writeString(v1.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), props);
 	}
 
 	private static Path runPidPath(File servicesDir) {
-		return servicesDir.toPath().resolve("svc").resolve(ServiceManager.RUN_PID_NAME);
+		return servicesDir.toPath().resolve("svc").resolve(ProcessManager.RUN_PID_NAME);
 	}
 
 	private static File svcContainer(File servicesDir) throws IOException {
@@ -96,7 +96,7 @@ public class TestOrphanAdoptionScan {
 		return r;
 	}
 
-	private static String listState(ServiceManager sm) {
+	private static String listState(ProcessManager sm) {
 		var out = new ArrayList<BService.Data>();
 		sm.listService(out);
 		assertEquals(1, out.size());
@@ -117,21 +117,21 @@ public class TestOrphanAdoptionScan {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
-		var sm1 = new ServiceManager(servicesDir);
+		var sm1 = new ProcessManager(servicesDir);
 		assertEquals(0, sm1.startService(startReq()));
 		var spawned = sm1.getProcessForTest("svc");
 		assertNotNull(spawned);
 
-		// 模拟 Zoker 重启：全新 ServiceManager（内存记账清零），盘上身份仍在
-		var sm2 = new ServiceManager(servicesDir);
+		// 模拟 Zoker 重启：全新 ProcessManager（内存记账清零），盘上身份仍在
+		var sm2 = new ProcessManager(servicesDir);
 		// 无记账条目按 Stopped 汇报（FND24 zoker-11：空串超协议契约 "Running,Stopped"）
-		assertEquals(ServiceManager.STATE_STOPPED, listState(sm2), "对账前=旧世界幻觉（孤儿不可见）");
+		assertEquals(ProcessManager.STATE_STOPPED, listState(sm2), "对账前=旧世界幻觉（孤儿不可见）");
 		sm2.adoptOrphans();
 
-		assertEquals(ServiceManager.STATE_RUNNING, listState(sm2), "启动对账后孤儿可见");
+		assertEquals(ProcessManager.STATE_RUNNING, listState(sm2), "启动对账后孤儿可见");
 		var entry = sm2.getProcessForTest("svc");
 		assertNotNull(entry);
-		assertTrue(entry instanceof ServiceManager.AdoptedProcess, "领养形态装账（AdoptedProcess）");
+		assertTrue(entry instanceof ProcessManager.AdoptedProcess, "领养形态装账（AdoptedProcess）");
 		assertEquals(spawned.pid(), entry.pid(), "领养的必须是 run.pid 指认的原进程");
 		assertTrue(entry.isAlive());
 
@@ -144,7 +144,7 @@ public class TestOrphanAdoptionScan {
 		// stop 能真停（不再 not-running 幂等谎言）
 		var stop = stopReq(true);
 		sm2.stopService(stop);
-		assertEquals(ServiceManager.STATE_FORCE_KILLED, stop.Result.getState());
+		assertEquals(ProcessManager.STATE_FORCE_KILLED, stop.Result.getState());
 		assertTrue(stop.Result.getPs().contains("pid="), "领养句柄 Ps 以 pid 表达（无 exitValue）: "
 				+ stop.Result.getPs());
 		assertFalse(spawned.isAlive(), "领养句柄必须能真杀原进程");
@@ -157,16 +157,16 @@ public class TestOrphanAdoptionScan {
 		Assumptions.assumeTrue(WINDOWS, "最小真进程形态为Windows命令（ping）");
 		var servicesDir = servicesDir(tempDir);
 		layoutVersion(servicesDir, "command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
-		var sm1 = new ServiceManager(servicesDir);
+		var sm1 = new ProcessManager(servicesDir);
 		assertEquals(0, sm1.startService(startReq()));
 		var spawned = sm1.getProcessForTest("svc");
 		assertNotNull(spawned);
 
-		var sm2 = new ServiceManager(servicesDir);
+		var sm2 = new ProcessManager(servicesDir);
 		assertEquals(0, sm2.startService(startReq()));
 		var entry = sm2.getProcessForTest("svc");
 		assertNotNull(entry);
-		assertTrue(entry instanceof ServiceManager.AdoptedProcess, "start 查重领养装账");
+		assertTrue(entry instanceof ProcessManager.AdoptedProcess, "start 查重领养装账");
 		assertEquals(spawned.pid(), entry.pid(), "绝不双启");
 		assertTrue(spawned.isAlive());
 
@@ -179,15 +179,15 @@ public class TestOrphanAdoptionScan {
 	public void testScanCleansDeadResidue() throws Exception {
 		var servicesDir = servicesDir(tempDir);
 		var container = svcContainer(servicesDir);
-		ServiceManager.writeRunPid(container,
-				new ServiceManager.RunPidRecord(deadProcessPid(), "2020-01-01T00:00:00Z", "gone"));
+		ProcessManager.writeRunPid(container,
+				new ProcessManager.RunPidRecord(deadProcessPid(), "2020-01-01T00:00:00Z", "gone"));
 
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 		sm.adoptOrphans();
 		assertNull(sm.getProcessForTest("svc"), "死 pid 不领养");
 		assertFalse(Files.exists(runPidPath(servicesDir)), "死 pid 残留清理（对账收敛残局）");
 		// 死条目清理后无记账：按 Stopped 汇报（zoker-11 契约），不再回空串
-		assertEquals(ServiceManager.STATE_STOPPED, listState(sm));
+		assertEquals(ProcessManager.STATE_STOPPED, listState(sm));
 	}
 
 	/** 损坏文件（不可解析）：对账清理、不领养（全平台纯文件用例）。 */
@@ -196,7 +196,7 @@ public class TestOrphanAdoptionScan {
 		var servicesDir = servicesDir(tempDir);
 		svcContainer(servicesDir); // 先建容器目录再摆损坏文件
 		Files.writeString(runPidPath(servicesDir), "this is not a pid file\nno key value\n");
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 		sm.adoptOrphans();
 		assertNull(sm.getProcessForTest("svc"), "损坏身份不领养");
 		assertFalse(Files.exists(runPidPath(servicesDir)), "损坏残留清理");
@@ -211,9 +211,9 @@ public class TestOrphanAdoptionScan {
 		var stranger = new ProcessBuilder(Procs.command("Nap", "60000")).start();
 		try {
 			// 记录 stranger 的 pid 但 startInstant 是错的——同 pid 已是另一个进程实例
-			ServiceManager.writeRunPid(container,
-					new ServiceManager.RunPidRecord(stranger.pid(), "1999-01-01T00:00:00Z", "stale"));
-			var sm = new ServiceManager(servicesDir);
+			ProcessManager.writeRunPid(container,
+					new ProcessManager.RunPidRecord(stranger.pid(), "1999-01-01T00:00:00Z", "stale"));
+			var sm = new ProcessManager(servicesDir);
 			sm.adoptOrphans();
 			assertNull(sm.getProcessForTest("svc"), "指纹不符绝不领养（宁可失明不误杀）");
 			assertFalse(Files.exists(runPidPath(servicesDir)), "不符残留清理");
@@ -232,8 +232,8 @@ public class TestOrphanAdoptionScan {
 		var container = svcContainer(servicesDir);
 		var stranger = new ProcessBuilder(Procs.command("Nap", "60000")).start();
 		try {
-			ServiceManager.writeRunPid(container, new ServiceManager.RunPidRecord(stranger.pid(), "", ""));
-			var sm = new ServiceManager(servicesDir);
+			ProcessManager.writeRunPid(container, new ProcessManager.RunPidRecord(stranger.pid(), "", ""));
+			var sm = new ProcessManager(servicesDir);
 			sm.adoptOrphans();
 			assertNull(sm.getProcessForTest("svc"), "指纹不可核实=失明不领养（绝不按裸 pid 领养）");
 			assertTrue(Files.exists(runPidPath(servicesDir)),
@@ -257,13 +257,13 @@ public class TestOrphanAdoptionScan {
 			var liveStart = ProcessHandle.of(stranger.pid()).orElseThrow()
 					.info().startInstant().map(Object::toString).orElse("");
 			assertFalse(liveStart.isEmpty());
-			ServiceManager.writeRunPid(container,
-					new ServiceManager.RunPidRecord(stranger.pid(), liveStart, "totally-different-command"));
-			var sm = new ServiceManager(servicesDir);
+			ProcessManager.writeRunPid(container,
+					new ProcessManager.RunPidRecord(stranger.pid(), liveStart, "totally-different-command"));
+			var sm = new ProcessManager(servicesDir);
 			sm.adoptOrphans();
 			var entry = sm.getProcessForTest("svc");
 			assertNotNull(entry, "startInstant 核实通过即领养（command 只告警不否决）");
-			assertTrue(entry instanceof ServiceManager.AdoptedProcess);
+			assertTrue(entry instanceof ProcessManager.AdoptedProcess);
 			assertEquals(stranger.pid(), entry.pid());
 			assertTrue(stranger.isAlive());
 		} finally {
@@ -280,7 +280,7 @@ public class TestOrphanAdoptionScan {
 		Files.createDirectories(svcDir.resolve("v1"));
 		Files.createDirectories(svcDir.resolve("v2"));
 		Files.writeString(svcDir.resolve(DistributeManager.CURRENT_NAME), "v2");
-		ServiceManager.writeRunPid(svcDir.toFile(), new ServiceManager.RunPidRecord(12345L, "x", "y"));
+		ProcessManager.writeRunPid(svcDir.toFile(), new ProcessManager.RunPidRecord(12345L, "x", "y"));
 
 		var dm = new DistributeManager(tempDir.resolve("distributes").toFile(), servicesDir);
 		dm.setKeepVersions(1);

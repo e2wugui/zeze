@@ -23,10 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @Extra
 public class TestLaunchSpecBom {
 
-	private static ServiceManager.LaunchSpec parse(Path versionDir, String content) throws IOException {
+	private static ProcessManager.LaunchSpec parse(Path versionDir, String content) throws IOException {
 		Files.createDirectories(versionDir);
-		Files.writeString(versionDir.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), content);
-		return ServiceManager.parseLaunchSpec(versionDir.toFile());
+		Files.writeString(versionDir.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), content);
+		return ProcessManager.parseLaunchSpec(versionDir.toFile());
 	}
 
 	/** 核心红点：BOM+CRLF（记事本保存形态）的 command/args/env 全部正常解析。 */

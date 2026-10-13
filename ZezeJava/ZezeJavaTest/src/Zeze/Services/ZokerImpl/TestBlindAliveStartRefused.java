@@ -38,20 +38,20 @@ public class TestBlindAliveStartRefused {
 		var v1 = Files.createDirectories(svc.resolve("v1"));
 		Files.writeString(svc.resolve(DistributeManager.CURRENT_NAME), "v1");
 		// javaw（GUI 子系统）=无窗真进程：修复路径若误走拉起分支必然成功，红点不被 eNoServiceProperties 掩盖。
-		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
+		Files.writeString(v1.resolve(ProcessManager.SERVICE_PROPERTIES_NAME),
 				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Exit", "0") + "\n");
 
 		// 失明身份：start 行空串（写入时不可得）+ pid 存活（本测试 JVM）
-		ServiceManager.writeRunPid(svc.toFile(), new ServiceManager.RunPidRecord(
+		ProcessManager.writeRunPid(svc.toFile(), new ProcessManager.RunPidRecord(
 				ProcessHandle.current().pid(), "", "evidence-command", "v1"));
 
-		var sm = new ServiceManager(servicesDir.toFile());
+		var sm = new ProcessManager(servicesDir.toFile());
 		var r = new StartService();
 		r.Argument.setServiceName("svc");
 		assertEquals(START_FAIL, sm.startService(r), "失明存活必须拒绝启动（拉新=同服务双实例）");
 
 		assertNull(sm.getProcessForTest("svc"), "拒绝=状态零变更：不装账");
-		assertTrue(Files.exists(svc.resolve(ServiceManager.RUN_PID_NAME)),
+		assertTrue(Files.exists(svc.resolve(ProcessManager.RUN_PID_NAME)),
 				"拒绝=状态零变更：run.pid 保留（证据留给人工，处置入口=start 的拒绝日志）");
 	}
 }

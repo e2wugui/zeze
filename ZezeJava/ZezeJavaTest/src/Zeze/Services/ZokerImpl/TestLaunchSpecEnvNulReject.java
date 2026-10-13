@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * 不校验的 JDK（本仓测试 JVM Adoptium 25，红阶段实测）NUL 静默通过 putAll 进入子进程
  * 环境块（静默损坏）。修复：解析期拒绝（IOException→eNoServiceProperties，归入既有
  * "env 条目非法"类别），错误位置精确到条目，两种 JDK 形态都闭合。
- * 纯文件直构（parseLaunchSpec 包内静态）+ServiceManager 直构，全平台确定性；
+ * 纯文件直构（parseLaunchSpec 包内静态）+ProcessManager 直构，全平台确定性；
  * 修复前红点：解析不抛（NUL 入 spec.env）；startService 红形态随 JDK（IAE 逃逸或 eStartFail）。
  */
 @Fast
@@ -34,10 +34,10 @@ public class TestLaunchSpecEnvNulReject {
 
 	private static final long NO_SERVICE_PROPERTIES = IModule.errorCode(Zoker.ModuleId, Zoker.eNoServiceProperties);
 
-	private static ServiceManager.LaunchSpec parse(Path versionDir, String content) throws IOException {
+	private static ProcessManager.LaunchSpec parse(Path versionDir, String content) throws IOException {
 		Files.createDirectories(versionDir);
-		Files.writeString(versionDir.resolve(ServiceManager.SERVICE_PROPERTIES_NAME), content);
-		return ServiceManager.parseLaunchSpec(versionDir.toFile());
+		Files.writeString(versionDir.resolve(ProcessManager.SERVICE_PROPERTIES_NAME), content);
+		return ProcessManager.parseLaunchSpec(versionDir.toFile());
 	}
 
 	/** 核心红点：值嵌入 NUL——解析期必须拒绝（修复前原样入 spec.env，launch 期 IAE）。 */
@@ -62,10 +62,10 @@ public class TestLaunchSpecEnvNulReject {
 		var servicesDir = tempDir.resolve("services");
 		var v1 = Files.createDirectories(servicesDir.resolve("svc").resolve("v1"));
 		Files.writeString(servicesDir.resolve("svc").resolve(DistributeManager.CURRENT_NAME), "v1");
-		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
+		Files.writeString(v1.resolve(ProcessManager.SERVICE_PROPERTIES_NAME),
 				"command=no-such-command\nenv=A=B\u0000C\n");
 
-		var sm = new ServiceManager(servicesDir.toFile());
+		var sm = new ProcessManager(servicesDir.toFile());
 		var r = new StartService();
 		r.Argument.setServiceName("svc");
 		assertEquals(NO_SERVICE_PROPERTIES, sm.startService(r),

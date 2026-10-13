@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * FND20 GE-C01：startService 入口的 serviceName 单段校验（RCE 链断链）。
- * 直构 ServiceManager（包内构造器，不依赖 Zoker 网络服务）。
+ * 直构 ProcessManager（包内构造器，不依赖 Zoker 网络服务）。
  * 机制链：serviceName 无校验时经 loadLaunchSpec→currentVersionDir 可把容器目录解析到
  * services/ 之外（".."逃逸），与 open 写入的 distributes 内容组合成完整 RCE 链——
  * {@link #testEscapeToDistributesRejected} 在 services 同级摆好攻击现场（distributes/evil/v1
@@ -57,11 +57,11 @@ public class TestStartServicePathGuard {
 		// 这些内容本来就是网络可达的可写面）
 		var evil = tempDir.resolve("distributes").resolve("evil");
 		Files.createDirectories(evil.resolve("v1"));
-		Files.writeString(evil.resolve("v1").resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
+		Files.writeString(evil.resolve("v1").resolve(ProcessManager.SERVICE_PROPERTIES_NAME),
 				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Exit", "0") + "\n");
 		Files.writeString(evil.resolve(DistributeManager.CURRENT_NAME), "v1");
 
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 		// 案卷原始逃逸形态
 		assertEquals(NO_PROPS, sm.startService(startReq("../distributes/evil")),
 				"逃逸到 distributes 的 serviceName 必须被入口拒绝");
@@ -74,7 +74,7 @@ public class TestStartServicePathGuard {
 	/** 守卫矩阵：分隔符/盘符/./.. 非单段名拒绝（部分在修复前也碰巧无副作用，回归固化）。 */
 	@Test
 	public void testUnsafeSegmentMatrix(@TempDir Path tempDir) throws Exception {
-		var sm = new ServiceManager(servicesDir(tempDir));
+		var sm = new ProcessManager(servicesDir(tempDir));
 		for (var name : new String[]{"a/b", "a\\b", "C:\\x", "..", ".", ""})
 			assertEquals(NO_PROPS, sm.startService(startReq(name)), "unsafe: '" + name + "'");
 	}
@@ -90,9 +90,9 @@ public class TestStartServicePathGuard {
 		var svc = servicesDir.toPath().resolve("svc");
 		Files.createDirectories(svc.resolve("v1"));
 		Files.writeString(svc.resolve(DistributeManager.CURRENT_NAME), "v1");
-		Files.writeString(svc.resolve("v1").resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
+		Files.writeString(svc.resolve("v1").resolve(ProcessManager.SERVICE_PROPERTIES_NAME),
 				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Exit", "0") + "\n");
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 		assertEquals(0, sm.startService(startReq("svc")));
 		// 等进程退出（工作目录=版本目录，Windows 上存活期间锁住 @TempDir 无法清理）
 		var process = sm.getProcessForTest("svc");

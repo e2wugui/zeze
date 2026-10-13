@@ -321,7 +321,7 @@ public class ZokerAgent extends AbstractZokerAgent {
         var r = new StartService();
         r.Argument.setServiceName(serviceName);
         // 服务端 start 与 stop 共用 opsLocks 互斥：并发 stop 同服务时先排队停机窗口（最长
-        // 10s 优雅+10s 强杀，ServiceManager），加之 launch 与 run.pid 落盘（fsync）——默认 5s
+        // 10s 优雅+10s 强杀，ProcessManager），加之 launch 与 run.pid 落盘（fsync）——默认 5s
         // 会把排队后照常完成的启动当失败（stopService/openFile/commit 同族），60s=部署级操作裕量。
         r.SendForWait(zoker, 60_000).await();
         if (r.getResultCode() != 0)
@@ -334,7 +334,7 @@ public class ZokerAgent extends AbstractZokerAgent {
         var r = new StopService();
         r.Argument.setServiceName(serviceName);
         r.Argument.setForce(force);
-        // 服务端 stop 三态最坏路径 10s 优雅+10s 强杀（ServiceManager），默认 5s 超时会让
+        // 服务端 stop 三态最坏路径 10s 优雅+10s 强杀（ProcessManager），默认 5s 超时会让
         // Force-Killed/Alive-After-Force 两态不可达（迟到结果包被丢上下文）。60s=最坏路径3倍裕量。
         r.SendForWait(zoker, 60_000).await();
         if (r.getResultCode() != 0)

@@ -57,16 +57,16 @@ public class TestRunPidDeleteRacesConcurrentStart {
 		var svc = servicesDir.toPath().resolve("svc");
 		var v1 = Files.createDirectories(svc.resolve("v1"));
 		Files.writeString(svc.resolve(DistributeManager.CURRENT_NAME), "v1");
-		Files.writeString(v1.resolve(ServiceManager.SERVICE_PROPERTIES_NAME),
+		Files.writeString(v1.resolve(ProcessManager.SERVICE_PROPERTIES_NAME),
 				"command=" + Procs.specJavaw() + "\nargs=" + Procs.specArgs("Nap", "60000") + "\n");
 
 		// 已退出的旧进程（真死 pid）：删除线程要比对的"自己的"身份。
 		var exited = new ProcessBuilder(Procs.command("Exit", "0")).start();
 		assertTrue(exited.waitFor(10, TimeUnit.SECONDS));
-		ServiceManager.writeRunPid(svc.toFile(), new ServiceManager.RunPidRecord(
+		ProcessManager.writeRunPid(svc.toFile(), new ProcessManager.RunPidRecord(
 				exited.pid(), "2020-01-01T00:00:00Z", "javaw", "v1"));
 
-		var sm = new ServiceManager(servicesDir);
+		var sm = new ProcessManager(servicesDir);
 
 		// 注入点内在删除线程上发起并发 start：红路径（删除无锁）start 立即完成写入
 		// 新身份后删除醒来误删；绿路径（删除持 opsLocks）start 阻塞在锁上，注入点的
@@ -97,11 +97,11 @@ public class TestRunPidDeleteRacesConcurrentStart {
 			starter.join(30_000);
 			assertEquals(0L, startResult.get(), "并发 start 必须成功");
 
-			var runPid = svc.resolve(ServiceManager.RUN_PID_NAME);
+			var runPid = svc.resolve(ProcessManager.RUN_PID_NAME);
 			assertTrue(Files.isRegularFile(runPid),
 					"新身份不得被旧身份的条件删除误删（修复前：新 pid 的 run.pid 被删，"
 							+ "prune 在用保护与防双启同时失守）");
-			var rec = ServiceManager.RunPidRecord.parse(Files.readString(runPid));
+			var rec = ProcessManager.RunPidRecord.parse(Files.readString(runPid));
 			assertNotNull(rec);
 			assertEquals(sm.getProcessForTest("svc").pid(), rec.pid, "盘上身份必须是新拉起进程的 pid");
 		} finally {

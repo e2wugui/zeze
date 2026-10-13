@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import Zeze.Net.Binary;
-import Zeze.Services.ZokerImpl.FileBin;
+import Zeze.Util.FileBin;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

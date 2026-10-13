@@ -71,8 +71,8 @@ import org.jetbrains.annotations.Nullable;
  * 退出码——ProcessHandle 无 exitValue，而 Ps=exit=N 是三态契约；适配后两种形态
  * 同型同语义，差异只在退出码/管道不可得）。零协议面变更。</p>
  */
-public class ServiceManager {
-	private static final Logger logger = LogManager.getLogger(ServiceManager.class);
+public class ProcessManager {
+	private static final Logger logger = LogManager.getLogger(ProcessManager.class);
 
 	/** 现役版本目录下的部署描述文件名，随分发内容自带。 */
 	static final String SERVICE_PROPERTIES_NAME = "service.properties";
@@ -134,13 +134,13 @@ public class ServiceManager {
 	// 无攻击面放大。
 	private final ConcurrentHashMap<String, Object> opsLocks = new ConcurrentHashMap<>();
 
-	public ServiceManager(Zoker zoker) {
+	public ProcessManager(Zoker zoker) {
 		this.zoker = zoker;
 		this.serviceDir = zoker.getServiceDir();
 	}
 
 	/** 直构测试形态：不依赖 Zoker（网络服务），直接给定 services/ 布局根目录。 */
-	ServiceManager(File serviceDir) {
+	ProcessManager(File serviceDir) {
 		this.zoker = null;
 		this.serviceDir = serviceDir;
 	}
