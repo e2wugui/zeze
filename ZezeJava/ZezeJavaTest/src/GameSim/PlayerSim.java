@@ -133,6 +133,8 @@ final class PlayerSim implements Runnable {
 		long now = world.gameNow();
 		if (now - lastActiveGameMs >= GameConfig.HeartbeatPeriodMs)
 			heartbeat(now);
+		if (rng.nextInt(100) < 30) // 决策点：30% 穿/脱装备（单玩家纯本地事务）
+			wearEquip();
 		if (inRoom) {
 			// 等房间结束（带超时轮询停机信号）；轮询超时是设计内节奏，不计错误
 			try {
@@ -378,6 +380,40 @@ final class PlayerSim implements Runnable {
 				hpMirror = Math.min(GameConfig.PlayerMaxHp, hpMirror + 30);
 				world.ledger.item(GameConfig.ItemPotion, -1); // 系统销毁
 			});
+			resyncMirror(role);
+			return 0L;
+		});
+	}
+
+	/** 穿装备（每 step 30% 概率，单玩家纯本地事务）：穿/脱切换——没穿且背包有武器→穿上，
+	 * 已穿→脱回背包。只碰 tRole[roleId] 自己的行（bag/equip 都是 role bean 内的容器，
+	 * 不触碰任何共享行）；bag↔equip 移动不改变物品守恒两侧（对账时 bag+equip 都计入）。
+	 * 与 equipChange（大厅活动权重的换装）互不影响。 */
+	private void wearEquip() {
+		// 决策点（事务外，用镜像）：没穿且背包没武器=无事可做，不产生事务
+		// （避免空事务放大固定提交成本，usePotion 先例）
+		boolean worn = equipAtk > 0;
+		if (!worn && findMirrorSlot(GameConfig.ItemWeapon) < 0)
+			return;
+		world.call(rec, OpRecorder.OpType.equip, "GameSim.Wear", () -> {
+			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
+			var equip = role.getEquip();
+			if (equip.get(0) == null) {
+				// 穿：权威复查（镜像可能被 trade 改过背包），过期则静默跳过（常态防御）
+				int slot = findMirrorSlot(GameConfig.ItemWeapon);
+				var item = role.getBag().get(slot);
+				if (item == null || item.getItemId() != GameConfig.ItemWeapon)
+					return 0L;
+				role.getBag().remove(slot);
+				placeEquip(role, item); // 数值重建上架（不搬 bean，equipChange 同款）
+			} else {
+				// 脱：背包需有空位（容量探测，不改动），满则本轮跳过
+				var old = equip.get(0);
+				if (findSlotFor(role, GameConfig.ItemWeapon, old.getCount()) < 0)
+					return 0L;
+				equip.remove(0);
+				insertItem(role, GameConfig.ItemWeapon, old.getCount()); // 数值重建回包
+			}
 			resyncMirror(role);
 			return 0L;
 		});

@@ -16,7 +16,7 @@ public final class OpRecorder {
 
 	/** 事务类型=玩家可见操作类型（rank/exp 合并在 loot 事务内，不单列） */
 	public enum OpType {
-		login, logout, heartbeat, hbScan, loot, usePotion, equipChange, sellShop,
+		login, logout, heartbeat, hbScan, loot, usePotion, equipChange, equip, sellShop,
 		trade, mailSend, mailClaim, mailFanout, friendQuery
 	}
 
