@@ -12,7 +12,7 @@ gradlew.bat :ZezeJavaTest:benchCorePlatform [-PbenchTag=名]   :: F 调度场景
 gradlew.bat :ZezeJavaTest:benchGame [-PbenchTag=名]           :: L 游戏模拟基准（独立车道）
 gradlew.bat :ZezeJavaTest:benchCore -PbenchHeap=4g ...        :: 跨版本对比公平堆（默认 2g，对齐历史存档真实口径）
 gradlew.bat :ZezeJavaTest:benchCore -PbenchJvmExtra="-XX:StartFlightRecording=..." :: JFR/系统属性等诊断透传
-gradlew.bat :ZezeJavaTest:benchGame -PgamePlayers=5000 -PgameK=20 -PgameMinutes=10 :: L 旋钮（在线数/时间缩放/窗口游戏分钟）
+gradlew.bat :ZezeJavaTest:benchGame -PgamePlayers=5000 -PgameMinutes=10 :: L 旋钮（负载=在线数；gameK 默认4封顶一般不动）
 gradlew.bat :ZezeJavaTest:benchGame -PbenchJvmExtra="-Dgame.slowLogMs=5" :: L 诊断旋钮（慢op时间线；反事实 checkpointPeriodMs/fanoutOff；默认关=基线）
 gradlew.bat :ZezeJavaTest:jmh -PjmhFilter=正则 [-PjmhExtraArgs="-prof gc"]          :: JMH 微基准
 gradlew.bat :ZezeJavaTest:test / integrationTest              :: 每轮门禁
@@ -52,8 +52,10 @@ MMO-lite 游戏模拟世界：真实游戏逻辑承载访问模式，核心机�
 - **七系统**：角色生命周期（login/心跳 15s/logout）、背包物品、PVE 战斗、P2P 交易（双边
   原子换）、双排行（**内置 Zeze.Game.Rank 128 分片**——勿手搓单记录榜制造热 key）、邮件
   （系统 fan-out 大事务）、好友在线查询（**纯读事务**）。砍：聊天/公会/商城。
-- **驱动与档位**：每玩家一虚拟线程（默认 5000 在线）；per-player RNG 只在决策点（事务外）
-  推进。**K=20 节奏档**（延迟画像，offered 即天花板）、**K≥80 容量档**（压力/平台）。
+- **驱动与档位**：每玩家一虚拟线程；per-player RNG 只在决策点（事务外）推进。
+  **负载旋钮=在线数**（-PgamePlayers，2026-10-14 口径）：**K=4 节奏档**——单玩家真人
+  节奏×4 封顶；单用户更高频会让同一玩家相邻事务挤进彼此并发窗口、redo 随 K 人为放大，
+  不符合"扩容=加用户"的真实负载形态，旧 K≥80 梯度容量档废弃（容量/平台改用大在线数）。
 - **指标**：总吞吐中位（同日 A/B、3×噪声协议）+ 每 op 延迟分位（JSON `op.<name>.p50/p95/p99_us`）。
 - **窗口制**：世界连续运行，窗口=10 游戏分钟（预热 1+测量 3 取中位）；操作归属以发起时
   窗口为准，翻转后 2s 宽限收割。已知瑕疵：宽限渗漏系统性高估 ~1/15（恒定，不碍同日 A/B）。
@@ -64,7 +66,8 @@ MMO-lite 游戏模拟世界：真实游戏逻辑承载访问模式，核心机�
 
 ## L 档案（2026-10-12）
 
-### 容量基线（pre-P2 口径）
+### 容量基线（pre-P2 口径；**2026-10-14 起本节 K 梯度方法已废弃**——K 只调单玩家节奏且
+默认封顶 4，容量/平台改用大在线数，下表留作历史档案与跨代对比参考）
 
 节奏档（K=20，5000 人）：master 36,660 txn/s 中位（cv ~1.4%）；mailFanout p95≈66ms
 （5000 行大事务）、loot p95=602µs/p99=2.6ms、心跳尾延迟归因周期 checkpoint 轮（见下节）。
@@ -80,6 +83,48 @@ MMO-lite 游戏模拟世界：真实游戏逻辑承载访问模式，核心机�
 
 master 平台 ≈12.2 万 txn/s；v1.6.3 平台 ≈9 万（容量代差 ≈1.3×、K=80 同点交付 1.39×）。
 K=20 的 1.00× 是"同 offered 双方足额交付"口径：延迟对比有效、容量对比无效，容量口径须 K≥80。
+
+### 容量阶梯（players 口径，2026-10-14，K=4 固定节奏）
+
+同日顺序跑（-PbenchHeap=4g 统一口径，bench-results/p*/ 留档）：
+
+| players | 中位 txn/s | 相对上轮 | 人均 txn/s | cv | loot p50/p95 | 守恒 |
+|---:|---:|---:|---:|---:|---|---|
+| 5,000 | 7,165 | — | 1.433 | 0.28% | 33µs/~120µs | 绿 |
+| 10,000 | 14,327 | 2.00× | 1.433 | 0.25% | 51µs/~150µs | 绿 |
+| 20,000 | 28,500 | 1.99× | 1.425 | 0.18% | 60µs/~178µs | 绿 |
+| 40,000 | 48,175 | 1.69× | 1.204 | ~5% | 102µs/269ms(r3) | **红**（见下） |
+| 80,000 | 38,810 | **0.81×** | 0.485 | 23.5% | 132µs/25.2s(r3) | 绿 |
+
+- **线性区 ≤20k**（人均 1.43 恒定）；**膝点 20k~40k**；**饱和交付 ≈48-49k txn/s**（p40000 峰值轮
+  49,209 与 p80000 首轮 49,331 一致）；**p80000 过载崩塌**：轮内逐轮 -21%/-30%、loot p95 指数
+  爆炸（128ms→2s→25.2s）——脏集膨胀×checkpoint 巨轮的恶性循环，压得越多交付越少。
+- **额定建议**：单机（8 核/Memory 库）额定 ≤20,000 在线，峰值 30-40k。
+- **p40000 守恒失败一次（立案）**：`货币守恒 ledger=249,807,748 role+mail=499,615,496`——
+  **精确 2 倍**、逐角色网 #0 全过（每角色 DB==roleMoneyOf）、p80000 反而全绿 → 非确定性
+  口径 bug 排除，**过载区竞态一次**（形态与 2026-10-12 前"全局差 100 罕见竞态"不同族）。
+  嫌疑面：注入流（建号补贴/fanout whileCommit）在过载 redo 下漏记 moneyNet 但双侧 DB 完整，
+  或对账读侧异常。复现抓手：p40000 重跑 + ledger/mail 侧拆解打点（moneyNet 分流计数）。
+
+### redo 两源消除：rank 512 分片 + friendQuery 脏读（2026-10-14）
+
+针对上表的 redo 主源定向修复：**①伤害榜分片 128→512**（`GameWorld` 构造
+`rank.setFuncConcurrentLevel(→512)`；loot 每笔必写榜，players/128 在数万在线时同分片
+数百人共写一行；concurrentLevel 变更=旧榜失效需清重建，GameSim 空库起跑无迁移面）；
+**②friendQuery 好友 session 改 `selectDirty`**（显示性数据容忍稍旧值，脏读不注册读集，
+消除"20 好友×心跳 3.75s"的常态冲突面；先例 Zeze.Game.Online 在线判定同款）。
+
+| players | 前 median | 后 median | Δ | loot p50 | loot p95 | fq p95 | 守恒 |
+|---:|---:|---:|---:|---|---|---|---|
+| 20,000 | 28,500 | 28,578 | +0.3% | 60→34µs | 178→108µs | 91→**41µs** | 绿 |
+| 40,000 | 48,175(红) | **55,395** | **+15%** | 102→34µs | 269ms→111µs | →35µs | **绿** |
+| 80,000 | 38,810(崩塌) | 49,274(崩塌) | 首轮 49.3k→61.1k | 132→54µs | 崩塌同形态 | →63µs | fastfail |
+
+- **线性区 20k→40k**（p40000 扩展比 1.69×→**1.94×**），**稳定平台 48-49k→55k+**
+  （p40000 cv3.5% 稳定交付；p80000 首轮峰值 61,137 后逐轮崩塌——过载区死法两形态：
+  守恒红（前）与 fastfail 543543（后），均已表征，不再深挖）。
+- p40000 上批的守恒 2× 竞态本轮未复现（redo 风暴面缩小的方向一致；单轮证据，立案不销）。
+- 留档 bench-results/p20000-r512、p40000-r512、p80000-r512。
 
 ### checkpoint 停顿裁决
 

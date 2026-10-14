@@ -609,6 +609,10 @@ public class Rank extends AbstractRank {
 
 	private BRankList getRankDirect(BConcurrentKey keyHint, int countNeed) {
 		// rebuild
+		// 【不能用 selectDirty+null跳过】：isMemory 表的 selectDirty 在缓存 miss 时只查本地
+		// Rocks 镜像（TableX.selectDirty），已提交未 checkpoint 的数据读不到——redirect 多 app
+		// 场景（写方缓存有、查方缓存无）分片被静默丢弃，TestRank.testRank 100 分片仅读 37 实锤。
+		// getRankDirect 是精确 top-N 快照，必须走 getOrAdd 的 storage 装载路径。
 		ArrayList<BRankList> datas = new ArrayList<>();
 		int concurrentLevel = getConcurrentLevel(keyHint.getRankType());
 		for (int i = 0; i < concurrentLevel; ++i) {

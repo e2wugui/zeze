@@ -180,6 +180,9 @@ tasks.register('extraTest', Test) {
 tasks.register('bench', Test) {
     group = 'verification'
     description = '吞吐基准（@Bench 标注）。'
+    // 基准时长可超 test 车道 300s 护栏（junit-platform.properties 全局默认；system property
+    // 优先于 classpath properties 文件）——bench 家族统一放宽到 1h，防挂死由外层看门狗兜底。
+    systemProperty 'junit.jupiter.execution.timeout.default', '3600 s'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform {
@@ -197,6 +200,7 @@ tasks.register('bench', Test) {
 tasks.register('benchCore', Test) {
     group = 'verification'
     description = '核心宏观基准（多轮+JSON 留档，-PbenchTag=xxx 命名运行）。'
+    systemProperty 'junit.jupiter.execution.timeout.default', '3600 s' // 同 bench：基准放宽 300s 护栏
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform {
@@ -227,6 +231,7 @@ tasks.register('benchCore', Test) {
 tasks.register('benchCorePlatform', Test) {
     group = 'verification'
     description = '核心基准平台线程对照组（仅 F 调度场景，-DuseVirtualThread=false）。'
+    systemProperty 'junit.jupiter.execution.timeout.default', '3600 s' // 同 bench：基准放宽 300s 护栏
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform {
@@ -243,11 +248,14 @@ tasks.register('benchCorePlatform', Test) {
 }
 
 // gradle benchGame：L 场景 MMO-lite 游戏模拟（@Bench + @Tag("game")）。
-// 独立 JVM 车道（5000 虚拟线程世界不与 core 场景互扰）；时长窗口+延迟分位 JSON 留档。
-// 旋钮：-PgamePlayers=5000 -PgameK=20 -PgameMinutes=10（游戏时间每窗口分钟）-PbenchHeap=4g。
+// 独立 JVM 车道（虚拟线程世界不与 core 场景互扰）；时长窗口+延迟分位 JSON 留档。
+// 负载模型（2026-10-14 口径）：压力只靠 -PgamePlayers 提升；gameK=单玩家节奏缩放、
+// 默认 4 封顶（单用户高频会放大并发 redo 失真，旧 K=20/80/160 梯度容量档废弃）。
+// 旋钮：-PgamePlayers=5000 -PgameK=4 -PgameMinutes=10（游戏时间每窗口分钟）-PbenchHeap=4g。
 tasks.register('benchGame', Test) {
     group = 'verification'
-    description = 'MMO-lite 游戏模拟基准（真实游戏逻辑+5000虚拟线程+真人节奏×K，-PgameK=20）。'
+    description = 'MMO-lite 游戏模拟基准（真实游戏逻辑+虚拟线程玩家+真人节奏×4封顶，负载=-PgamePlayers）。'
+    systemProperty 'junit.jupiter.execution.timeout.default', '3600 s' // K=4 窗口墙钟 150s×4轮≈10min，超 300s 护栏（2026-10-14 实证掐死）
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform {

@@ -346,13 +346,16 @@ final class PlayerSim implements Runnable {
 			adventure();
 	}
 
-	/** 好友在线状态查询：纯读事务（读提交簿记的真实载体） */
+	/** 好友在线状态查询：纯读事务（读提交簿记的真实载体）。
+	 * 好友 session 用 selectDirty（脏读，不注册读集）：在线状态是显示性数据、稍旧值可接受；
+	 * 走读集校验时 20 个好友的心跳写（K=4 下每 3.75s/人）是本事务的常态冲突源，
+	 * redo 全花在"看不看得见"这种无所谓一致性的判断上——脏读消除整个冲突面。 */
 	private void friendQuery() {
 		world.call(rec, OpRecorder.OpType.friendQuery, "GameSim.FriendQuery", () -> {
 			var role = world.tRole.get(roleId); // 建号后不变存在：缺行=NPE 自然进错误账本
 			int n = 0;
 			for (var id : role.getFriendsReadOnly().keySet())
-				if (world.tSession.get(id) != null)
+				if (world.tSession.selectDirty(id) != null)
 					++n;
 			return 0L;
 		});

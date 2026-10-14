@@ -4,6 +4,7 @@ import harness.MacroBench;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -12,7 +13,8 @@ import java.util.HashMap;
 import java.util.TreeSet;
 
 /**
- * L 场景：MMO-lite 游戏模拟（真实游戏逻辑 + 5000 虚拟线程玩家 + 真人节奏×K 缩放）。
+ * L 场景：MMO-lite 游戏模拟（真实游戏逻辑 + 虚拟线程玩家 + 真人节奏×4 封顶；
+ * 负载=在线数提升，见 GameConfig 负载模型注记）。
  *
  * <p>时长窗口制：世界连续运行，窗口=测量区间（预热窗口不计）；玩家操作以发起时窗口归属，
  * 窗口结束翻转后留宽限期再收割。指标=总事务吞吐中位数（同日 A/B、3×噪声协议沿用）
@@ -28,6 +30,9 @@ public class LMmoGameSim {
 	private static final long HarvestGraceMs = 2_000;
 
 	@Test
+	@Timeout(3600) // K=4 窗口墙钟 150s×4轮≈10min，超 junit-platform.properties 全局 300s 护栏：
+	// IDEA Run 不经 gradle 车道的 systemProperty 覆盖，注解优先级最高、两车道通吃；
+	// 全局 300s 护栏（test 车道防挂死）不动。
 	public void testBenchmark() throws Exception {
 		var cfg = new GameConfig();
 		OpRecorder.init(cfg.players);

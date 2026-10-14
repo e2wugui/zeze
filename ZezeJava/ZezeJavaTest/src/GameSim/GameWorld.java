@@ -94,6 +94,10 @@ public final class GameWorld {
 		// ——GameRankFactory 同包工厂（先例 TestRankCountNeedKey.newRank）；
 		// RegisterZezeTables 必须先于 start()（坑#2）
 		rank = Zeze.Game.GameRankFactory.createLocal(zeze);
+		// 榜分片并发 128→512：loot 每笔必写伤害榜，players/128 在数万在线时同分片数百人
+		// 共写一行成 redo 主源；512 把同分片人数降到 1/4。concurrentLevel 变更=旧榜数据
+		// 失效需清重建（Rank.getConcurrentLevel 注释警示）——GameSim 每轮空库起跑无迁移面。
+		rank.setFuncConcurrentLevel(rankType -> 512);
 		levelBoard = Rank.newRankKey(GameConfig.RankTypeLevel, BConcurrentKey.TimeTypeTotal);
 		damageBoard = Rank.newRankKey(GameConfig.RankTypeDamage, BConcurrentKey.TimeTypeTotal);
 		// 坑#2：addTable 必须先于 start()
