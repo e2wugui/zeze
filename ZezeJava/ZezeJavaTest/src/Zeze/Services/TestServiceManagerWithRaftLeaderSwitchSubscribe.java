@@ -8,10 +8,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import Zeze.Builtin.ServiceManagerWithRaft.BSession;
 import Zeze.Raft.Agent;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RocksRaft.Rocks;
+import Zeze.Raft.RocksRaft.Table;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BSubscribeArgument;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
@@ -166,6 +168,16 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 					Thread.sleep(200);
 				}
 
+				// FND5-32 确定性同步点（2026-10-14 修）：上方 getLeader() 收敛只是 raft 层 LeaderIs
+				// 到达，订阅者应用层 Login（接管session行、写入新sessionId）可能仍在途——此刻手工
+				// reconcile 会把仍挂死socket的订阅行判死清行（cleanupSessionRow 归属校验在行未被
+				// 接管时通过，行删即订阅消失：agent 重登不重发 Subscribe，订阅持久在服务端行里），
+				// 后续 Edit 永不达；行幸存时 Edit 也可能发布于重登前面推向死 socket 且无补发。
+				// 等行活（GetSocket 非空，与 reconcile 判死条件互补）再走 reconcile+注册，两模式
+				// 同闭。历史：09-23/09-25/10-14 三现曾被误判"raft 负载族"（同步点绑定代理事件，
+				// 09-19 TakeoverSuspect 同款范式违例）。
+				waitSubscriberSessionLive(newLeaderIdx, "UnitTest.LeaderSwitch.Subscriber", 30_000);
+
 				// 确定性走判死路径：反射直调新leader的reconcileSessions（周期60s）。
 				// 迁移完成后行必须存活：GetSocket(新sessionId)非空，不会被清除。
 				var reconcile = ServiceManagerWithRaft.class.getDeclaredMethod("reconcileSessions");
@@ -204,6 +216,40 @@ public class TestServiceManagerWithRaftLeaderSwitchSubscribe {
 		f.setAccessible(true);
 		var leader = ((Agent)f.get(agent)).getLeader();
 		return leader != null ? leader.getName() : null;
+	}
+
+	/**
+	 * 等待订阅者 session 行在指定 leader 上复活：应用层 Login 已接管行（行内 sessionId 已换成
+	 * 新连接），GetSocket(row.sessionId) 非空——与 reconcileSessions 的判死条件（GetSocket==null
+	 * 即死行）互补，成立后 reconcile 必不清行、Edit 必投递到活 socket。walk 在事务外读快照
+	 * （reconcileSessions 同款）；行不存在（周期对账抢先清行=订阅真丢失）或行持续死（Login
+	 * 未接管）超时显式红。RocksRaft Table.get 需事务上下文，故用 walk。
+	 */
+	@SuppressWarnings("unchecked")
+	private static void waitSubscriberSessionLive(int leaderIdx, String sessionName, long timeoutMs) throws Exception {
+		Field f = ServiceManagerWithRaft.class.getDeclaredField("tableSession");
+		f.setAccessible(true);
+		var table = (Table<String, BSession>)f.get(servers.get(leaderIdx));
+		var server = rocksList.get(leaderIdx).getRaft().getServer();
+		long deadline = System.currentTimeMillis() + timeoutMs;
+		while (true) {
+			var exists = new boolean[1];
+			var live = new boolean[1];
+			table.walk((name, row) -> {
+				if (!sessionName.equals(name))
+					return true;
+				exists[0] = true;
+				live[0] = server.GetSocket(row.getSessionId()) != null;
+				return false;
+			});
+			if (live[0])
+				return;
+			Assertions.assertTrue(System.currentTimeMillis() < deadline,
+					"订阅者会话须在新leader上复活（行在但socket死=Login未接管session行"
+							+ (exists[0] ? "" : "；行不存在=已被对账清行") + "）");
+			//noinspection BusyWait
+			Thread.sleep(100);
+		}
 	}
 
 	private static void waitIdentity(ConcurrentLinkedQueue<String> seen, String identity,
