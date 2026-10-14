@@ -208,11 +208,20 @@ public final class GameWorld {
 		long base = mailSeq.getAndAdd(cfg.players); // 号段事务外预分配
 		int win = windowId;
 		long t0 = System.nanoTime();
-		if (TimelineLog.enabled) // 相位证据：fanout 起止时刻（每窗口一次的大事务）
+		if (TimelineLog.enabled) // 相位证据：fanout 起止时刻（每窗口一次的全员邮件）
 			TimelineLog.event("fanout start win=" + win);
-		long rc = zeze.newProcedure(() -> {
-			for (long roleId = 0; roleId < cfg.players; roleId++) {
-				var m = tMail.getOrAdd(base + roleId);
+		// 事务划分原则：每玩家一个微事务（插自己的邮件行+自己的账本/通知）——
+		// 单大事务持有全表读写集数百 ms（p40k 实测 fanout 78ms→数百 ms），与全服
+		// mailClaim/mailSend/tRole 写互撞推高 redo，且是 checkpoint 巨型 RRS 的物质基础
+		// （flush 解剖：tMail 24.7k 行占脏记录 80%+）。拆分后每事务自洽：守恒两侧
+		// （邮件行+ledger 注入）同事务，部分失败不影响其余（op 计 errors 总账）。
+		long errors = 0;
+		for (long roleId = 0; roleId < cfg.players; roleId++) {
+			final long mailKey = base + roleId;
+			final long r = roleId;
+			long txnT0 = System.nanoTime();
+			long rc = zeze.newProcedure(() -> {
+				var m = tMail.getOrAdd(mailKey);
 				m.setFrom(0);
 				m.setMoney(50);
 				m.getItems().clear();
@@ -222,21 +231,25 @@ public final class GameWorld {
 				item.setAddHp(30);
 				item.setPrice(5);
 				m.getItems().put(0, item);
-			}
-			// 外部副作用（计数/账本/邮箱通知）登记到提交点：redo 轮作废重登记，仅最终提交轮执行
-			Zeze.Transaction.Transaction.whileCommit(() -> {
-				mailsInserted.add(cfg.players);
-				ledger.money(50L * cfg.players);
-				ledger.item(GameConfig.ItemPotion, 2L * cfg.players);
-				for (long roleId = 0; roleId < cfg.players; roleId++)
-					onlineNotify(roleId, base + roleId); // 键 base+roleId
-			});
-			return 0L;
-		}, "GameSim.MailFanout").call();
-		sysRecorder.record(OpRecorder.OpType.mailFanout, win, t0);
+				// 外部副作用（计数/账本/邮箱通知）登记到提交点：redo 轮作废重登记，仅最终提交轮执行
+				Zeze.Transaction.Transaction.whileCommit(() -> {
+					mailsInserted.increment();
+					ledger.money(50);
+					ledger.item(GameConfig.ItemPotion, 2);
+					onlineNotify(r, mailKey);
+				});
+				return 0L;
+			}, "GameSim.MailFanout").call();
+			// 统计按真实事务数：每微事务 record（计数+单事务延迟）——与其他 op 的
+			// "单事务延迟分位"口径统一（旧单大事务记全程是特例）；全程耗时见 TimelineLog 相位打点
+			if (rc == 0)
+				sysRecorder.record(OpRecorder.OpType.mailFanout, win, txnT0);
+			else
+				++errors;
+		}
 		if (TimelineLog.enabled)
-			TimelineLog.event("fanout end win=" + win + " us=" + (System.nanoTime() - t0) / 1000 + " rc=" + rc);
-		if (rc != 0)
+			TimelineLog.event("fanout end win=" + win + " us=" + (System.nanoTime() - t0) / 1000 + " errors=" + errors);
+		if (errors != 0)
 			sysRecorder.error(OpRecorder.OpType.mailFanout);
 	}
 
