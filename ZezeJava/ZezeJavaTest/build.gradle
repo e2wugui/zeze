@@ -249,12 +249,14 @@ tasks.register('benchCorePlatform', Test) {
 
 // gradle benchGame：L 场景 MMO-lite 游戏模拟（@Bench + @Tag("game")）。
 // 独立 JVM 车道（虚拟线程世界不与 core 场景互扰）；时长窗口+延迟分位 JSON 留档。
-// 负载模型（2026-10-14 口径）：压力只靠 -PgamePlayers 提升；gameK=单玩家节奏缩放、
-// 默认 4 封顶（单用户高频会放大并发 redo 失真，旧 K=20/80/160 梯度容量档废弃）。
-// 旋钮：-PgamePlayers=5000 -PgameK=4 -PgameMinutes=10（游戏时间每窗口分钟）-PbenchHeap=4g。
+// 负载模型（2026-10-14 终版）：gameK=单玩家节奏缩放（默认 10——同一玩家事务在其虚拟线程内
+// 串行无自我并发，redo 由全局密度×共享行提交率决定，主源 rank 分片已 512 化缓解，
+// K=14 实测人均 5.09 txn/s 延迟反降）；容量以 -PgamePlayers 为主旋钮，
+// 旧 K=20/80/160 梯度容量档废弃。K 越小窗口墙钟越长（600s/K），注意 300s 护栏已放宽。
+// 旋钮：-PgamePlayers=5000 -PgameK=10 -PgameMinutes=10（游戏时间每窗口分钟）-PbenchHeap=4g。
 tasks.register('benchGame', Test) {
     group = 'verification'
-    description = 'MMO-lite 游戏模拟基准（真实游戏逻辑+虚拟线程玩家+真人节奏×4封顶，负载=-PgamePlayers）。'
+    description = 'MMO-lite 游戏模拟基准（真实游戏逻辑+虚拟线程玩家+K=10节奏，负载=-PgamePlayers）。'
     systemProperty 'junit.jupiter.execution.timeout.default', '3600 s' // K=4 窗口墙钟 150s×4轮≈10min，超 300s 护栏（2026-10-14 实证掐死）
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath

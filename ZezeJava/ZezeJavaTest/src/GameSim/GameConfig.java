@@ -9,12 +9,13 @@ import Zeze.Util.PropertiesHelper;
  * 休眠/周期处统一 ÷K 折算墙钟（K=时间缩放旋钮，K=1 即真人节奏档）。
  *
  * <p>旋钮经 system property 透传（gradle benchGame -PgamePlayers=… 映射为 game.players）：
- * game.players（默认 5000 在线）、game.k（默认 4）、game.minutes（每轮游戏分钟，默认 10）。
+ * game.players（默认 5000 在线）、game.k（默认 10）、game.minutes（每轮游戏分钟，默认 10）。
  *
- * <p>负载模型（2026-10-14 口径）：**压力只靠在线数提升**（-PgamePlayers）。K 只是单玩家
- * 节奏缩放、默认 4 封顶——单用户更高频会让同一玩家的相邻事务挤进彼此的并发窗口，
- * redo/冲突随 K 人为放大，不符合"扩容=加用户"的真实负载形态（旧 K=20/80/160 梯度
- * 容量档因此废弃）。
+ * <p>负载模型（2026-10-14 终版，K=10）：单用户高频的 redo 顾虑实证解除——同一玩家的
+ * 事务在其虚拟线程内串行（同步 call 返回才进下一步），不存在自我并发；redo 由全局密度
+ * ×共享行提交率决定，主源 rank 分片行已 512 化缓解（K=14 实测人均 5.09 txn/s、延迟反降）。
+ * 容量以在线数为主旋钮（-PgamePlayers），K 调整单玩家操作强度；旧 K=20/80/160 梯度
+ * 容量档废弃不变。
  */
 public final class GameConfig {
 	// ===== 基准旋钮 =====
@@ -74,7 +75,7 @@ public final class GameConfig {
 
 	public GameConfig() {
 		players = PropertiesHelper.getInt("game.players", 5000);
-		timeScaleK = PropertiesHelper.getInt("game.k", 4);
+		timeScaleK = PropertiesHelper.getInt("game.k", 10);
 		windowMinutes = PropertiesHelper.getInt("game.minutes", 10);
 		warmups = PropertiesHelper.getInt("game.warmups", 1);
 		rounds = PropertiesHelper.getInt("game.rounds", 3);
