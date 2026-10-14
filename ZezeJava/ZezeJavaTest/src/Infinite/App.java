@@ -151,6 +151,9 @@ public class App {
 		clearDbTable(app.demo_Module1.getTable1());
 		clearDbTable(app.demo_Module1.getTflush());
 		clearDbTable(app.demo_Module1.getTableCoverHistory());
+		clearDbTable(app.demo_ModuleGTable.getGTable());
+		clearDbTable(app.demo_ModuleGTable.getGTable2());
+
 		//noinspection DataFlowIssue
 		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_Timer_tNodeRoot"));
 		//noinspection DataFlowIssue

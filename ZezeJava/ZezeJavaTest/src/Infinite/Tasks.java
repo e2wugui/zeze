@@ -19,6 +19,7 @@ import Zeze.Util.OutLong;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.ZezeCounter;
+import demo.Bean1;
 import demo.Module1.BSimple;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Assertions;
@@ -140,6 +141,7 @@ public final class Tasks {
 		taskFactorys.add(new TaskFactory(tflushInt1Trade::new, 100));
 		taskFactorys.add(new TaskFactory(tflushInt1TradeConcurrentVerify::new, 100));
 		taskFactorys.add(new TaskFactory(tContainerLog::new, 50));
+		taskFactorys.add(new TaskFactory(tGTableLog::new, 30));
 
 		taskFactorys.sort(Comparator.comparingInt(a -> a.Weight));
 		for (var task : taskFactorys)
@@ -168,6 +170,42 @@ public final class Tasks {
 			} catch (Exception e) {
 				Simulate.logger.error("verify exception:", e);
 			}
+		}
+	}
+
+	static class tGTableLog extends Task {
+		@Override
+		long process() {
+			var key = Keys.iterator().next();
+			var value = App.demo_ModuleGTable.getGTable().getOrAdd(key);
+			value.getGTable().put(
+				Random.getInstance().nextInt(5),
+				Random.getInstance().nextInt(5),
+				Random.getInstance().nextInt());
+			value.getGTable2().put(
+				Random.getInstance().nextInt(5),
+				String.valueOf(Random.getInstance().nextInt(5)),
+				Random.getInstance().nextInt());
+			value.getGTable3().put(
+				Random.getInstance().nextInt(5),
+				Random.getInstance().nextInt(5),
+				demo.ModuleGTable.BValue.newDynamicBean_GTable3());
+			var table3dynamic = demo.ModuleGTable.BValue.newDynamicBean_GTable3();
+			table3dynamic.setBean(new demo.ModuleGTable.Bean1());
+			value.getGTable3().put(
+				Random.getInstance().nextInt(5),
+				Random.getInstance().nextInt(5),
+				table3dynamic);
+			value.getGTable4().put(
+				Random.getInstance().nextInt(5),
+				String.valueOf(Random.getInstance().nextInt(5)),
+				demo.ModuleGTable.BValue.newDynamicBean_GTable4());
+			var value2 = App.demo_ModuleGTable.getGTable2().getOrAdd(key);
+			value2.getGTable().put(
+				Random.getInstance().nextInt(5),
+				Random.getInstance().nextInt(5),
+				new demo.ModuleGTable.Bean1());
+			return 0;
 		}
 	}
 
