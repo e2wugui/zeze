@@ -279,6 +279,8 @@ tasks.register('benchGame', Test) {
         systemProperty 'game.rounds', findProperty('gameRounds')
     if (findProperty('gameWarmups') != null)
         systemProperty 'game.warmups', findProperty('gameWarmups')
+    if (findProperty('gameCheckpointPeriodMs') != null) // 诊断旋钮：RRS 膨胀×checkpoint 周期实验（默认 30000=基线）
+        systemProperty 'game.checkpointPeriodMs', findProperty('gameCheckpointPeriodMs')
     mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('extraTest'), tasks.named('bench'), tasks.named('benchCore')
 }
 
