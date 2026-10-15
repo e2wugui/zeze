@@ -65,7 +65,10 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String RAFT_NAME = "rac_sm_test";
 
-	private static final int[] ports = new int[3];
+	// SM raft 族固定段 31970-31999（迁出 freePort 动态口：2026-10-15 负载批实锤 TOCTOU
+	// 并发双开——并行类先后分到同口，后开者 RocksDB LOCK 撞活集群；对齐 019872719
+	// Onz 迁段先例）。本类基点 31988：31988-31990。
+	private static final int[] ports = {31988, 31989, 31990};
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
@@ -126,8 +129,6 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 		int cpuCount = Runtime.getRuntime().availableProcessors();
 		if (Zeze.Net.Selectors.getInstance().getCount() < cpuCount)
 			Zeze.Net.Selectors.getInstance().add(cpuCount - Zeze.Net.Selectors.getInstance().getCount());
-		for (int i = 0; i < ports.length; i++)
-			ports[i] = freePort();
 		raftXmlFile = Files.createTempFile(RAFT_NAME, ".xml");
 		Files.writeString(raftXmlFile, raftXmlString());
 		var nodeNames = new ArrayList<String>();
@@ -185,19 +186,6 @@ public class TestServiceManagerWithRaftResponseAfterCommit {
 		for (int port : ports)
 			sb.append("\t<node Host=\"127.0.0.1\" Port=\"").append(port).append("\"/>\n");
 		return sb.append("</raft>\n").toString();
-	}
-
-	private static final java.util.HashSet<Integer> usedPorts = new java.util.HashSet<>();
-
-	private static int freePort() throws Exception {
-		// Windows 上快速关闭重开可能拿到同一个临时端口：去重，否则同一 raft 配置内
-		// 出现 duplicate node，集群装配直接失败（3 节点测试并行时实测触发）。
-		while (true) {
-			try (var socket = new ServerSocket(0)) {
-				if (usedPorts.add(socket.getLocalPort()))
-					return socket.getLocalPort();
-			}
-		}
 	}
 
 	private static Rocks leaderRocks() {

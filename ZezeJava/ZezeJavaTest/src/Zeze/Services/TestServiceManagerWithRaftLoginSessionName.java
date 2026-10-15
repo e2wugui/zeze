@@ -52,13 +52,15 @@ public class TestServiceManagerWithRaftLoginSessionName {
 	private static final String RAFT_NAME = "blank_session_sm_test";
 	private static final String VALID_SESSION = "UnitTest.BlankSession.Agent";
 
-	private static final int[] ports = new int[3];
+	// SM raft 族固定段 31970-31999（迁出 freePort 动态口：2026-10-15 负载批实锤 TOCTOU
+	// 并发双开——并行类先后分到同口，后开者 RocksDB LOCK 撞活集群；对齐 019872719
+	// Onz 迁段先例）。本类基点 31985：31985-31987。
+	private static final int[] ports = {31985, 31986, 31987};
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
 	private static Path raftXmlFile;
 	private static final AtomicLong requestIds = new AtomicLong();
-	private static final HashSet<Integer> usedPorts = new HashSet<>();
 
 	/** 裸协议raft客户端：仅需Login应答与LeaderIs解码。 */
 	private static final class Peer extends HandshakeClient {
@@ -101,8 +103,6 @@ public class TestServiceManagerWithRaftLoginSessionName {
 		int cpuCount = Runtime.getRuntime().availableProcessors();
 		if (Zeze.Net.Selectors.getInstance().getCount() < cpuCount)
 			Zeze.Net.Selectors.getInstance().add(cpuCount - Zeze.Net.Selectors.getInstance().getCount());
-		for (int i = 0; i < ports.length; i++)
-			ports[i] = freePort();
 		raftXmlFile = Files.createTempFile(RAFT_NAME, ".xml");
 		Files.writeString(raftXmlFile, raftXmlString());
 		var nodeNames = new ArrayList<String>();
@@ -271,17 +271,6 @@ public class TestServiceManagerWithRaftLoginSessionName {
 		for (int port : ports)
 			sb.append("\t<node Host=\"127.0.0.1\" Port=\"").append(port).append("\"/>\n");
 		return sb.append("</raft>\n").toString();
-	}
-
-	private static int freePort() throws Exception {
-		// Windows上快速关闭重开可能拿到同一个临时端口：去重，否则同一raft配置内出现
-		// duplicate node，集群装配直接失败（3节点测试并行时实测触发）。
-		while (true) {
-			try (var socket = new ServerSocket(0)) {
-				if (usedPorts.add(socket.getLocalPort()))
-					return socket.getLocalPort();
-			}
-		}
 	}
 
 	private static int leaderPort() {

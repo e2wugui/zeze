@@ -36,7 +36,10 @@ public class TestServiceManagerWithRaftEditRollback {
 	private static final SmRaftFatalGuard fatalGuard = new SmRaftFatalGuard();
 	private static final String RAFT_NAME = "edit_rollback_sm_test";
 
-	private static final int[] ports = new int[3];
+	// SM raft 族固定段 31970-31999（迁出 freePort 动态口：2026-10-15 负载批实锤 TOCTOU
+	// 并发双开——并行类先后分到同口，后开者 RocksDB LOCK 撞活集群；对齐 019872719
+	// Onz 迁段先例）。本类基点 31979：31979-31981。
+	private static final int[] ports = {31979, 31980, 31981};
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
@@ -48,16 +51,6 @@ public class TestServiceManagerWithRaftEditRollback {
 		int cpuCount = Runtime.getRuntime().availableProcessors();
 		if (Zeze.Net.Selectors.getInstance().getCount() < cpuCount)
 			Zeze.Net.Selectors.getInstance().add(cpuCount - Zeze.Net.Selectors.getInstance().getCount());
-		var used = new java.util.HashSet<Integer>();
-		for (int i = 0; i < ports.length; i++)
-			while (true) {
-				try (var socket = new ServerSocket(0)) {
-					if (used.add(socket.getLocalPort())) {
-						ports[i] = socket.getLocalPort();
-						break;
-					}
-				}
-			}
 		raftXmlFile = Files.createTempFile(RAFT_NAME, ".xml");
 		Files.writeString(raftXmlFile, raftXmlString());
 		var nodeNames = new ArrayList<String>();

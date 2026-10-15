@@ -46,7 +46,10 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 	private static final String RAFT_NAME = "session_close_retry_sm_test";
 	private static final String SESSION_NAME = "UnitTest.SessionCloseRetry.Agent";
 
-	private static final int[] ports = new int[3];
+	// SM raft 族固定段 31970-31999（迁出 freePort 动态口：2026-10-15 负载批实锤 TOCTOU
+	// 并发双开——并行类先后分到同口，后开者 RocksDB LOCK 撞活集群；对齐 019872719
+	// Onz 迁段先例）。本类基点 31991：31991-31993。
+	private static final int[] ports = {31991, 31992, 31993};
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
@@ -101,8 +104,6 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 		int cpuCount = Runtime.getRuntime().availableProcessors();
 		if (Zeze.Net.Selectors.getInstance().getCount() < cpuCount)
 			Zeze.Net.Selectors.getInstance().add(cpuCount - Zeze.Net.Selectors.getInstance().getCount());
-		for (int i = 0; i < ports.length; i++)
-			ports[i] = freePort();
 		raftXmlFile = Files.createTempFile(RAFT_NAME, ".xml");
 		Files.writeString(raftXmlFile, raftXmlString());
 		var nodeNames = new ArrayList<String>();
@@ -157,17 +158,6 @@ public class TestServiceManagerWithRaftSessionCloseRetry {
 		for (int port : ports)
 			sb.append("\t<node Host=\"127.0.0.1\" Port=\"").append(port).append("\"/>\n");
 		return sb.append("</raft>\n").toString();
-	}
-
-	private static final java.util.HashSet<Integer> usedPorts = new java.util.HashSet<>();
-
-	private static int freePort() throws Exception {
-		while (true) {
-			try (var socket = new ServerSocket(0)) {
-				if (usedPorts.add(socket.getLocalPort()))
-					return socket.getLocalPort();
-			}
-		}
 	}
 
 	private static void fillRocksList() throws Exception {

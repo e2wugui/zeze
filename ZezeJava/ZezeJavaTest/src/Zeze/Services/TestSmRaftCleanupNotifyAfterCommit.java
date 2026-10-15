@@ -41,7 +41,10 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 	private static final String SESSION_A = "UnitTest.CleanupNotify.Reg";
 	private static final String SESSION_B = "UnitTest.CleanupNotify.Sub";
 
-	private static final int[] ports = new int[3];
+	// SM raft 族固定段 31970-31999（迁出 freePort 动态口：2026-10-15 负载批实锤 TOCTOU
+	// 并发双开——并行类先后分到同口，后开者 RocksDB LOCK 撞活集群；对齐 019872719
+	// Onz 迁段先例）。本类基点 31994：31994-31996。
+	private static final int[] ports = {31994, 31995, 31996};
 	private static final ArrayList<ServiceManagerWithRaft> servers = new ArrayList<>();
 	private static final ArrayList<Rocks> rocksList = new ArrayList<>();
 	private static final ArrayList<String> dbHomes = new ArrayList<>();
@@ -53,9 +56,6 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 		int cpuCount = Runtime.getRuntime().availableProcessors();
 		if (Zeze.Net.Selectors.getInstance().getCount() < cpuCount)
 			Zeze.Net.Selectors.getInstance().add(cpuCount - Zeze.Net.Selectors.getInstance().getCount());
-		var used = new java.util.HashSet<Integer>();
-		for (int i = 0; i < ports.length; i++)
-			ports[i] = probePort(used);
 		raftXmlFile = Files.createTempFile(RAFT_NAME, ".xml");
 		Files.writeString(raftXmlFile, raftXmlString());
 		var nodeNames = new ArrayList<String>();
@@ -117,20 +117,6 @@ public class TestSmRaftCleanupNotifyAfterCommit {
 	}
 
 	/** a5专属端口段探测（去重：同一raft配置内出现duplicate node会装配失败）。 */
-	private static int probePort(java.util.HashSet<Integer> used) throws IOException {
-		for (int port = 28640; port < 28699; port++) {
-			if (!used.contains(port)) {
-				try (var ignore = new ServerSocket(port)) {
-					if (used.add(port))
-						return port;
-				} catch (IOException e) {
-					// 端口被占，探测下一个
-				}
-			}
-		}
-		throw new IOException("no free port in [28640,28699)");
-	}
-
 	@Test
 	@Timeout(300)
 	public void testCleanupNotifySentOnlyAfterCommit() throws Exception {
