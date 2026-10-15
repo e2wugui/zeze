@@ -118,6 +118,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		try {
 			var identify = new Identify();
 			identify.Argument.serverId = config.getServerId();
+			identify.Argument.version = config.getServerVersion();
 			raftClient.send(identify, __ -> 0L);
 		} catch (Throwable ex) {
 			logger.error("OnLoginSuccess.Identify", ex);
@@ -203,6 +204,13 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	protected long ProcessSuspectRequest(@NotNull Suspect r) {
 		var on = onSuspect;
 		if (on != null) {
+			// version过滤（防御层，主过滤在SM梯队广播侧）：本进程版本低于死者=永不参与（数据降级防护）。
+			if (config.getServerVersion() < r.Argument.version) {
+				logger.debug("ProcessSuspectRequest ignored: myVersion={} < deadVersion={} serverId={}",
+						config.getServerVersion(), r.Argument.version, r.Argument.serverId);
+				r.SendResult();
+				return Procedure.Success;
+			}
 			try {
 				on.run(r.Argument.serverId);
 			} catch (Throwable e) {
@@ -211,6 +219,19 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		}
 		r.SendResult();
 		return Procedure.Success;
+	}
+
+	@Override
+	public void sendTakeoverDone(int deadServerId) {
+		try {
+			var done = new Zeze.Builtin.ServiceManagerWithRaft.TakeoverDone();
+			done.Argument.deadServerId = deadServerId;
+			done.Argument.takerServerId = config.getServerId();
+			done.Argument.takerVersion = config.getServerVersion();
+			raftClient.send(done, __ -> 0L);
+		} catch (Throwable ex) {
+			logger.debug("sendTakeoverDone", ex);
+		}
 	}
 
 	// Direct：Edit推送与Subscribe应答（dispatchRpcResponse内联）同在IO线程按TCP接收序串行应用，

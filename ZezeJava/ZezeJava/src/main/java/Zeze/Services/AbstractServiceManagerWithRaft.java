@@ -57,6 +57,14 @@ public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
             service.AddFactoryHandle(47340913872071L, factoryHandle); // 11022, 1784335559
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.TakeoverDone.class, Zeze.Builtin.ServiceManagerWithRaft.TakeoverDone.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.TakeoverDone::new;
+            factoryHandle.Handle = this::ProcessTakeoverDoneRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessTakeoverDoneRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessTakeoverDoneRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47341005839277L, factoryHandle); // 11022, 1876302765
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.Edit.class, Zeze.Builtin.ServiceManagerWithRaft.Edit.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.Edit::new;
             factoryHandle.Handle = this::ProcessEditRequest;
@@ -96,6 +104,7 @@ public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
         service.getFactorys().remove(47341226054794L);
         service.getFactorys().remove(47341070237685L);
         service.getFactorys().remove(47340913872071L);
+        service.getFactorys().remove(47341005839277L);
         service.getFactorys().remove(47340950705715L);
         service.getFactorys().remove(47342529828679L);
         service.getFactorys().remove(47340271484727L);
@@ -124,6 +133,7 @@ public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
     protected abstract long ProcessLoginRequest(Zeze.Builtin.ServiceManagerWithRaft.Login r) throws Exception;
     protected abstract long ProcessAllocateIdRequest(Zeze.Builtin.ServiceManagerWithRaft.AllocateId r) throws Exception;
     protected abstract long ProcessIdentifyRequest(Zeze.Builtin.ServiceManagerWithRaft.Identify r) throws Exception;
+    protected abstract long ProcessTakeoverDoneRequest(Zeze.Builtin.ServiceManagerWithRaft.TakeoverDone r) throws Exception;
     protected abstract long ProcessEditRequest(Zeze.Builtin.ServiceManagerWithRaft.Edit r) throws Exception;
     protected abstract long ProcessSetServerLoadRequest(Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad r) throws Exception;
     protected abstract long ProcessSubscribeRequest(Zeze.Builtin.ServiceManagerWithRaft.Subscribe r) throws Exception;

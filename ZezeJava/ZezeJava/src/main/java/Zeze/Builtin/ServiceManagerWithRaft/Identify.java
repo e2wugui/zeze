@@ -1,7 +1,10 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.ServiceManagerWithRaft;
 
-// Takeover租约接管（对齐非raft版）：Identify上报serverId，断线广播Suspect提示；裁决在应用库tTakeoverLease
+/*
+Takeover租约接管（对齐非raft版）：Identify上报serverId(+version)，断线按version梯队广播Suspect提示；
+			     裁决在应用库tTakeoverLease；接管完成GS回TakeoverDone，SM据此停止梯队升档
+*/
 public class Identify extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.BIdentify, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11022;
     public static final int ProtocolId_ = 1940701173;

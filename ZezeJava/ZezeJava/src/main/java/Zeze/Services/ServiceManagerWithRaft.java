@@ -92,6 +92,11 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	public void close() {
+		// 关停清理：取消全部Takeover梯队升档定时器（900s级长定时器挂着会拖死JVM收尾）。
+		for (var tier : suspectTiers.values())
+			if (tier.timer != null)
+				tier.timer.cancel(false);
+		suspectTiers.clear();
 		reconcileDaemon.stop(); // 有界等待在飞一轮（预算=timeoutMs+5s）；超预算逃逸轮由closed+锁屏障挡
 		closed = true;
 		// SM锁是raft侧所有存储过程体的串行点且全程持有：先置closed再过一次锁屏障——拿到锁时
@@ -317,6 +322,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		// Identify上报的serverId；-1=未上报。断线时据此广播Suspect。
 		// 仅内存：换leader后agent重新Login+Identify（raftOnSetLeader），无需raft持久化。
 		private volatile int identifyServerId = -1;
+		private volatile long identifyVersion = -1; // Identify上报的进程数据格式版本；-1=未上报（旧客户端按0）。断线时据此做接管梯队。
 
 		public Session(String name, long sessionId) {
 			this.name = name;
@@ -361,25 +367,14 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		public void onClose() {
 			cancelKeepAlive();
 
-			// Suspect广播：立即、不延迟、不挑选目标（对齐非raft版）。仅是提示（hint），
-			// 接收方转化为takeover.tryTransfer，由租约表裁决；未过期租约会被安排到过期时刻精确重试。
-			// 短暂掉线误判不存在：接管前租约必须过期，死者重启会claim新epoch。
+			// Suspect梯队广播（首档==死者version；档间超时升序逐档；低于死者version的永不通知；
+			// TakeoverDone回执即停）。仅是提示（hint），接收方转化为takeover.tryTransfer，由租约表
+			// 裁决；未过期租约会被安排到过期时刻精确重试。短暂掉线误判不存在：接管前租约必须
+			// 过期，死者重启会claim新epoch。
 			var suspectServerId = identifyServerId;
 			if (suspectServerId >= 0) {
-				try {
-					rocks.getRaft().getServer().foreach(so -> {
-						if (so.getSessionId() == sessionId)
-							return; // 刚断线的会话本身不报信
-						var netSession = (Session)so.getUserState();
-						if (netSession == null)
-							return; // raft节点间连接没有Login过
-						var suspect = new Suspect();
-						suspect.Argument.serverId = suspectServerId;
-						so.Send(suspect);
-					});
-				} catch (Exception e) {
-					logger.warn("Suspect broadcast for serverId={} failed", suspectServerId, e);
-				}
+				var deadVersion = identifyVersion >= 0 ? identifyVersion : 0; // 未上报version（旧客户端）按0
+				startSuspectTier(suspectServerId, sessionId, deadVersion);
 			}
 
 			cleanupSessionRow(name, sessionId);
@@ -567,8 +562,104 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var netSession = (Session)r.getSender().getUserState();
 		if (netSession != null) {
 			netSession.identifyServerId = r.Argument.serverId;
-			logger.info("{}: Identify serverId={}", r.getSender(), r.Argument.serverId);
+			netSession.identifyVersion = r.Argument.version;
+			logger.info("{}: Identify serverId={} version={}", r.getSender(), r.Argument.serverId, r.Argument.version);
 		}
+		r.SendResult();
+		return 0;
+	}
+
+	// ===== Takeover version 梯队通知（语义与实现要点对齐非raft版 ServiceManagerServer） =====
+	// ①首档==死者version；②档间超时无TakeoverDone回执升到更高存活version的最小值；③低于
+	// 死者version的永不通知；④回执即停。失败界定=超时（重复Suspect由已接管者幂等空转消化）；
+	// 内存态：leader切换/进程重启即失，由GS侧Takeover.scan周期兜底。
+	// 档间超时(毫秒)：默认900s=1.5×GS的TakeoverTtl默认值(600s)，GS的Ttl改小时应同比调整。
+	public volatile long takeoverNotifyStepMs = 900_000;
+
+	private static final class SuspectTier {
+		final long deadVersion;
+		volatile long tierVersion;
+		volatile @Nullable java.util.concurrent.Future<?> timer;
+		SuspectTier(long deadVersion, long tierVersion) {
+			this.deadVersion = deadVersion;
+			this.tierVersion = tierVersion;
+		}
+	}
+
+	private final java.util.concurrent.ConcurrentHashMap<Integer, SuspectTier> suspectTiers = new java.util.concurrent.ConcurrentHashMap<>();
+
+	/** 梯队广播一档：只发 identifyVersion==tierVersion 的存活会话（死者会话与未Identify排除）。 */
+	private void broadcastSuspectTier(int deadServerId, long deadSessionId, long deadVersion, long tierVersion) {
+		var suspect = new Suspect();
+		suspect.Argument.serverId = deadServerId;
+		suspect.Argument.version = deadVersion;
+		try {
+			rocks.getRaft().getServer().foreach(so -> {
+				if (so.getSessionId() == deadSessionId)
+					return; // 刚断线的会话本身不报信
+				var netSession = (Session)so.getUserState();
+				if (netSession == null)
+					return; // raft节点间连接没有Login过
+				if (netSession.identifyServerId < 0 || netSession.identifyVersion != tierVersion)
+					return; // 梯队过滤（需求①③）
+				so.Send(suspect);
+			});
+		} catch (Exception e) {
+			logger.warn("Suspect tier broadcast for serverId={} tier={} failed", deadServerId, tierVersion, e);
+		}
+	}
+
+	/** onClose入口：广播首档（==死者version）并安排升档链。 */
+	private void startSuspectTier(int deadServerId, long deadSessionId, long deadVersion) {
+		var tier = new SuspectTier(deadVersion, deadVersion);
+		var old = suspectTiers.put(deadServerId, tier);
+		if (old != null && old.timer != null)
+			old.timer.cancel(false); // 死者反复闪断：新周期覆盖旧升档链
+		broadcastSuspectTier(deadServerId, deadSessionId, deadVersion, deadVersion);
+		scheduleNextTier(deadServerId, deadSessionId, tier);
+	}
+
+	/** 档间超时：无回执升到"更高存活version的最小值"；没有更高档=放弃（scan兜底）。 */
+	private void scheduleNextTier(int deadServerId, long deadSessionId, SuspectTier tier) {
+		tier.timer = Zeze.Util.Task.scheduleUnsafe(takeoverNotifyStepMs, () -> {
+			var cur = suspectTiers.get(deadServerId);
+			if (cur != tier)
+				return; // 已被回执移除/被新周期覆盖
+			var next = new long[]{Long.MAX_VALUE};
+			final var deadSessionIdRef = deadSessionId;
+			try {
+				rocks.getRaft().getServer().foreach(so -> {
+					if (so.getSessionId() == deadSessionIdRef)
+						return;
+					var netSession = (Session)so.getUserState();
+					if (netSession == null || netSession.identifyServerId < 0)
+						return;
+					var v = netSession.identifyVersion;
+					if (v > cur.tierVersion && v < next[0])
+						next[0] = v; // 下一档=更高存活version的最小值（需求②升序）
+				});
+			} catch (Exception e) {
+				logger.warn("Suspect tier scan for serverId={} failed", deadServerId, e);
+			}
+			if (next[0] == Long.MAX_VALUE) {
+				suspectTiers.remove(deadServerId, cur); // 没有更高档：放弃升档
+				logger.info("Suspect tier exhausted for serverId={} lastTier={}", deadServerId, cur.tierVersion);
+				return;
+			}
+			cur.tierVersion = next[0];
+			broadcastSuspectTier(deadServerId, deadSessionIdRef, cur.deadVersion, next[0]);
+			scheduleNextTier(deadServerId, deadSessionIdRef, cur);
+		});
+	}
+
+	@Override
+	protected long ProcessTakeoverDoneRequest(TakeoverDone r) {
+		var tier = suspectTiers.remove(r.Argument.deadServerId);
+		if (tier != null && tier.timer != null)
+			tier.timer.cancel(false);
+		logger.info("TakeoverDone serverId={} taker={} version={} tier={}",
+				r.Argument.deadServerId, r.Argument.takerServerId, r.Argument.takerVersion,
+				tier == null ? -1 : tier.tierVersion);
 		r.SendResult();
 		return 0;
 	}

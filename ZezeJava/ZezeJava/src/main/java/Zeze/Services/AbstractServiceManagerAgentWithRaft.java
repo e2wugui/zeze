@@ -56,6 +56,13 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
             service.AddFactoryHandle(47340913872071L, factoryHandle); // 11022, 1784335559
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.TakeoverDone.class, Zeze.Builtin.ServiceManagerWithRaft.TakeoverDone.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.TakeoverDone::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessTakeoverDoneResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessTakeoverDoneResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47341005839277L, factoryHandle); // 11022, 1876302765
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.Edit.class, Zeze.Builtin.ServiceManagerWithRaft.Edit.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.Edit::new;
             factoryHandle.Handle = this::ProcessEditRequest;
@@ -93,6 +100,7 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
         service.getFactorys().remove(47341226054794L);
         service.getFactorys().remove(47341070237685L);
         service.getFactorys().remove(47340913872071L);
+        service.getFactorys().remove(47341005839277L);
         service.getFactorys().remove(47340950705715L);
         service.getFactorys().remove(47342529828679L);
         service.getFactorys().remove(47340271484727L);

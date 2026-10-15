@@ -179,6 +179,7 @@ public final class Agent extends AbstractAgent {
 		try {
 			var identify = new Identify();
 			identify.Argument.serverId = config.getServerId();
+			identify.Argument.version = config.getServerVersion();
 			identify.Send(client.getSocket());
 		} catch (Throwable ex) {
 			logger.debug("OnConnected.Identify", ex);
@@ -309,9 +310,15 @@ public final class Agent extends AbstractAgent {
 
 	// Suspect仅是提示：转化为onSuspect回调（应用接takeover.tryTransfer），
 	// 租约未过期时tryTransfer内部安排到过期时刻精确重试，不会误接管。
+	// version过滤（防御层，主过滤在SM梯队广播侧）：本进程版本低于死者=永不参与（数据降级防护）。
 	private long processSuspect(@NotNull Suspect r) {
 		var on = onSuspect;
 		if (on != null) {
+			if (config.getServerVersion() < r.Argument.version) {
+				logger.debug("processSuspect ignored: myVersion={} < deadVersion={} serverId={}",
+						config.getServerVersion(), r.Argument.version, r.Argument.serverId);
+				return 0;
+			}
 			try {
 				on.run(r.Argument.serverId);
 			} catch (Throwable e) {
@@ -319,6 +326,19 @@ public final class Agent extends AbstractAgent {
 			}
 		}
 		return 0;
+	}
+
+	@Override
+	public void sendTakeoverDone(int deadServerId) {
+		try {
+			var done = new TakeoverDone();
+			done.Argument.deadServerId = deadServerId;
+			done.Argument.takerServerId = config.getServerId();
+			done.Argument.takerVersion = config.getServerVersion();
+			done.Send(client.getSocket());
+		} catch (Throwable ex) {
+			logger.debug("sendTakeoverDone", ex);
+		}
 	}
 
 	public Agent(@NotNull Config config) throws Exception {

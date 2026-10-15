@@ -451,9 +451,16 @@ public class Takeover extends AbstractTakeover {
 			return; // 立碑事务失败：保持过期态，扫描兜底
 		if (retryAt.value > 0)
 			scheduleRetryAt(deadServerId, retryAt.value);
-		else if (transferredTotal > 0)
-			logger.info("Takeover: transfer complete, serverId={} total={} scopes={}",
-					deadServerId, transferredTotal, scopeNames());
+		else {
+			if (transferredTotal > 0)
+				logger.info("Takeover: transfer complete, serverId={} total={} scopes={}",
+						deadServerId, transferredTotal, scopeNames());
+			// 梯队回执：立墓碑完成（veto/failed/复活分支已在上方return不至此）——通知SM停止
+			// version梯队升档。幂等重入（补发丢失回执）也走这里：transferAll幂等0+墓碑已立。
+			var sm = zeze.getServiceManager();
+			if (sm != null)
+				sm.sendTakeoverDone(deadServerId);
+		}
 	}
 
 	/** 单scope搬运事务：重验租约后transferAll；源root的事务内清空防止跨进程重复搬运。 */

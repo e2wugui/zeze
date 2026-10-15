@@ -7,6 +7,7 @@
 	<external bean="Zeze.Services.ServiceManager.BAllocateIdArgument"/>
 	<external bean="Zeze.Services.ServiceManager.BAllocateIdResult"/>
 	<external bean="Zeze.Services.ServiceManager.BIdentify"/>
+	<external bean="Zeze.Services.ServiceManager.BTakeoverDone"/>
 	<external bean="Zeze.Services.ServiceManager.BServerLoad"/>
 	<external bean="Zeze.Services.ServiceManager.BServiceInfo"/>
 	<external bean="Zeze.Services.ServiceManager.BServiceInfos"/>
@@ -1121,9 +1122,11 @@
 
 			<rpc name="AllocateId" argument="Zeze.Services.ServiceManager.BAllocateIdArgument" result="Zeze.Services.ServiceManager.BAllocateIdResult" base="Zeze.Raft.RaftRpc" handle="server"/>
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="client"/>
-			<!-- Takeover租约接管（对齐非raft版）：Identify上报serverId，断线广播Suspect提示；裁决在应用库tTakeoverLease -->
+			<!-- Takeover租约接管（对齐非raft版）：Identify上报serverId(+version)，断线按version梯队广播Suspect提示；
+			     裁决在应用库tTakeoverLease；接管完成GS回TakeoverDone，SM据此停止梯队升档 -->
 			<rpc name="Identify" argument="Zeze.Services.ServiceManager.BIdentify" base="Zeze.Raft.RaftRpc" handle="server"/>
 			<rpc name="Suspect" argument="Zeze.Services.ServiceManager.BIdentify" base="Zeze.Raft.RaftRpc" handle="client"/>
+			<rpc name="TakeoverDone" argument="Zeze.Services.ServiceManager.BTakeoverDone" base="Zeze.Raft.RaftRpc" handle="server"/>
 			<rpc name="Edit" argument="Zeze.Services.ServiceManager.BEditService" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="SetServerLoad" argument="Zeze.Services.ServiceManager.BServerLoad" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="Subscribe" argument="Zeze.Services.ServiceManager.BSubscribeArgument" result="Zeze.Services.ServiceManager.BSubscribeResult" base="Zeze.Raft.RaftRpc" handle="server">

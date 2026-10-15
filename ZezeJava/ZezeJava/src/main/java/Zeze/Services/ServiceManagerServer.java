@@ -177,6 +177,11 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	public static final class Conf implements Config.ICustomize {
 		public int keepAlivePeriod = -1;
+		// Takeover梯队通知的档间超时(毫秒)：当前档广播后等待TakeoverDone回执的窗口，
+		// 超时升到下一档（更高version中的最小）。默认900s=1.5×GS的TakeoverTtl默认值(600s)——
+		// 部署把GS的Ttl改小时此值应同比调整（对齐1.5倍，给"租约剩余+搬运"完整机会窗口，
+		// 偏小会让高版本提前进场与同版本分食scope）。
+		public long takeoverNotifyStepMs = 900_000;
 		public int retryNotifyDelayWhenNotAllReady = 30 * 1000;
 		public @NotNull String dbHome = ".";
 
@@ -297,6 +302,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		private final ConcurrentHashMap<String, BSubscribeInfo> subscribes = new ConcurrentHashMap<>();
 		private final @Nullable Future<?> keepAliveTimerTask;
 		private volatile int identifyServerId = -1; // Identify上报的serverId；-1=未上报。断线时据此广播Suspect。
+		private volatile long identifyVersion = -1; // Identify上报的进程数据格式版本；-1=未上报（旧客户端按0）。断线时据此做接管梯队。
 
 		public Session(@NotNull ServiceManagerServer sm, long sid) {
 			serviceManager = sm;
@@ -339,21 +345,13 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			if (keepAliveTimerTask != null)
 				keepAliveTimerTask.cancel(false);
 
-			// Suspect广播：立即、不延迟、不挑选、不取SM锁（避免锁序问题）。仅是提示，
-			// 由租约表裁决：未过期租约会被接收方安排到过期时刻精确重试。
+			// Suspect梯队广播（首档==死者version；档间超时升序逐档；低于死者version的永不通知；
+			// TakeoverDone回执即停）：立即、不取SM锁（避免锁序问题）。仅是提示，由租约表裁决：
+			// 未过期租约会被接收方安排到过期时刻精确重试。
 			var suspectServerId = identifyServerId;
 			if (suspectServerId >= 0) {
-				try {
-					serviceManager.server.foreach(so -> {
-						if (so.getSessionId() == sessionId)
-							return; // 刚断线的会话本身不报信（发给它会得到submitAction错误日志）
-						var suspect = new Suspect();
-						suspect.Argument.serverId = suspectServerId;
-						so.Send(suspect);
-					});
-				} catch (Exception e) {
-					logger.warn("Suspect broadcast for serverId={} failed", suspectServerId, e);
-				}
+				var deadVersion = identifyVersion >= 0 ? identifyVersion : 0; // 未上报version（旧客户端）按0
+				serviceManager.startSuspectTier(suspectServerId, sessionId, deadVersion);
 			}
 
 			var notifies = new HashMap<AsyncSocket, EditService>();
@@ -709,13 +707,113 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		var session = (Session)r.getSender().getUserState();
 		if (session != null) {
 			session.identifyServerId = r.Argument.serverId;
-			logger.info("{}: Identify serverId={}", r.getSender(), r.Argument.serverId);
+			session.identifyVersion = r.Argument.version;
+			logger.info("{}: Identify serverId={} version={}", r.getSender(), r.Argument.serverId, r.Argument.version);
 		}
+		return 0;
+	}
+
+	// ===== Takeover version 梯队通知 =====
+	// 需求：①优先与死者同version的server争抢；②该档全部失败（超时无回执）后按version升序逐档；
+	// ③永不通知低于死者version的server（数据降级防护）；④任一档收到TakeoverDone回执即停止。
+	// 失败界定=档间超时（广播模式下SM无逐GS结果，回执是唯一成功信号；超时可能误升档——
+	// 重复Suspect由已接管者tryTransfer幂等命中墓碑空转消化）。状态为内存态：SM重启即失，
+	// 丢通知由GS侧Takeover.scan周期兜底（Suspect本就只是加速器）。
+	private static final class SuspectTier {
+		final long deadVersion;
+		volatile long tierVersion; // 已广播到的档位
+		volatile @Nullable java.util.concurrent.Future<?> timer;
+		SuspectTier(long deadVersion, long tierVersion) {
+			this.deadVersion = deadVersion;
+			this.tierVersion = tierVersion;
+		}
+	}
+
+	private final ConcurrentHashMap<Integer, SuspectTier> suspectTiers = new ConcurrentHashMap<>();
+
+	/** 梯队广播一档：只发 identifyVersion==tierVersion 的存活会话（死者会话排除）。 */
+	private void broadcastSuspectTier(int deadServerId, long deadSessionId, long deadVersion, long tierVersion) {
+		var suspect = new Suspect();
+		suspect.Argument.serverId = deadServerId;
+		suspect.Argument.version = deadVersion;
+		try {
+			server.foreach(so -> {
+				if (so.getSessionId() == deadSessionId)
+					return; // 刚断线的会话本身不报信
+				var netSession = (Session)so.getUserState();
+				if (netSession == null || netSession.identifyServerId < 0)
+					return; // 未Identify的会话不参与
+				if (netSession.identifyVersion != tierVersion)
+					return; // 梯队过滤（需求①③）
+				so.Send(suspect);
+			});
+		} catch (Exception e) {
+			logger.warn("Suspect tier broadcast for serverId={} tier={} failed", deadServerId, tierVersion, e);
+		}
+	}
+
+	/** onClose入口：广播首档（==死者version）并安排升档链。 */
+	private void startSuspectTier(int deadServerId, long deadSessionId, long deadVersion) {
+		var tier = new SuspectTier(deadVersion, deadVersion);
+		var old = suspectTiers.put(deadServerId, tier);
+		if (old != null && old.timer != null)
+			old.timer.cancel(false); // 死者反复闪断：新周期覆盖旧升档链
+		broadcastSuspectTier(deadServerId, deadSessionId, deadVersion, deadVersion);
+		scheduleNextTier(deadServerId, deadSessionId, tier);
+	}
+
+	/** 档间超时：无回执升到"更高存活version的最小值"；没有更高档=放弃（scan兜底）。 */
+	private void scheduleNextTier(int deadServerId, long deadSessionId, SuspectTier tier) {
+		tier.timer = Task.scheduleUnsafe(conf.takeoverNotifyStepMs, () -> {
+			var cur = suspectTiers.get(deadServerId);
+			if (cur != tier)
+				return; // 已被回执移除/被新周期覆盖
+			var next = new long[]{Long.MAX_VALUE};
+			final var deadSessionIdRef = deadSessionId;
+			try {
+				server.foreach(so -> {
+					if (so.getSessionId() == deadSessionIdRef)
+						return;
+					var netSession = (Session)so.getUserState();
+					if (netSession == null || netSession.identifyServerId < 0)
+						return;
+					var v = netSession.identifyVersion;
+					if (v > cur.tierVersion && v < next[0])
+						next[0] = v; // 下一档=更高存活version的最小值（需求②升序）
+				});
+			} catch (Exception e) {
+				logger.warn("Suspect tier scan for serverId={} failed", deadServerId, e);
+			}
+			if (next[0] == Long.MAX_VALUE) {
+				suspectTiers.remove(deadServerId, cur); // 没有更高档：放弃升档
+				logger.info("Suspect tier exhausted for serverId={} lastTier={}", deadServerId, cur.tierVersion);
+				return;
+			}
+			cur.tierVersion = next[0];
+			broadcastSuspectTier(deadServerId, deadSessionIdRef, cur.deadVersion, next[0]);
+			scheduleNextTier(deadServerId, deadSessionIdRef, cur);
+		});
+	}
+
+	// 只写session上字段（Direct派发内完成、无锁）。回执到达即整条梯队停止（需求④）。
+	@SuppressWarnings("MethodMayBeStatic")
+	private long processTakeoverDone(@NotNull TakeoverDone r) {
+		var tier = suspectTiers.remove(r.Argument.deadServerId);
+		if (tier != null && tier.timer != null)
+			tier.timer.cancel(false);
+		logger.info("TakeoverDone serverId={} taker={} version={} tier={}",
+				r.Argument.deadServerId, r.Argument.takerServerId, r.Argument.takerVersion,
+				tier == null ? -1 : tier.tierVersion);
 		return 0;
 	}
 
 	@Override
 	public void close() {
+		// 关停清理：取消全部Takeover梯队升档定时器（900s级长定时器挂着会拖死JVM收尾）。
+		for (var tier : suspectTiers.values())
+			if (tier.timer != null)
+				tier.timer.cancel(false);
+		suspectTiers.clear();
 		try {
 			stop();
 		} catch (Exception e) {
@@ -761,6 +859,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				SetServerLoad::new, this::processSetLoad, TransactionLevel.None, DispatchMode.Critical));
 			localServer.AddFactoryHandle(Identify.TypeId_, new Service.ProtocolFactoryHandle<>(
 				Identify::new, this::processIdentify, TransactionLevel.None, DispatchMode.Direct));
+			localServer.AddFactoryHandle(TakeoverDone.TypeId_, new Service.ProtocolFactoryHandle<>(
+				TakeoverDone::new, this::processTakeoverDone, TransactionLevel.None, DispatchMode.Direct));
 
 			localThreading.RegisterProtocols(localServer);
 

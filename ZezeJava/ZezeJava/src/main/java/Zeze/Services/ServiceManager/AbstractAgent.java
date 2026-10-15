@@ -69,6 +69,14 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		return config;
 	}
 
+	/**
+	 * Takeover全部scope搬运完成（立墓碑）后上报SM：SM据此停止version梯队升档。
+	 * fire-and-forget：丢失由梯队超时升档的重复Suspect兜底（已接管者tryTransfer幂等空转，
+	 * 并经此路径补发回执自愈）。默认空实现（无SM连接时）；子类按所连SM版型发对应协议。
+	 */
+	public void sendTakeoverDone(int deadServerId) {
+	}
+
 	public @Nullable Action1<BEditService> getOnChanged() {
 		return onChanged;
 	}
