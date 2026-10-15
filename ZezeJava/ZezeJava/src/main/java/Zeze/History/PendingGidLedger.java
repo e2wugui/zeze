@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
  * 已发 gid 的落库对账账本，每个 Application 一个实例：不同 history 发号名的 gid 数值空间
  * 重叠，进程级共享账本会跨 app 互相覆盖/误核销。gid 在 Transaction.finalCommit 的
  * beforeApply 取号即登记（登记先于数据应用——取号失败=干净失败不入账，成功后任何失败
- * 都留下"已发号未核销"痕迹），tHistory 行随数据库事务提交成功由 History.commitDone 核销；
+ * 都留下"已发号未核销"痕迹），tHistory 行随数据库事务提交成功由 History.onPersisted 核销；
  * 登记后超龄未核销 = 数据已应用而历史行未落库的确定性缺口，周期对账将其显式化为 error
  * 告警（每 gid 一次），不自动修复。
  * 覆盖边界：进程重启即失——重启窗口的缺口靠消费端空洞老化+离线 Verify 兜底。
@@ -47,7 +47,7 @@ public final class PendingGidLedger {
 			sweepDaemon.start();
 	}
 
-	/** tHistory 行提交成功（History.commitDone）核销该 gid 的登记。 */
+	/** tHistory 行提交成功（History.onPersisted）核销该 gid 的登记。 */
 	void retire(@NotNull Id128 gid) {
 		pendingCommitGids.remove(gid);
 	}

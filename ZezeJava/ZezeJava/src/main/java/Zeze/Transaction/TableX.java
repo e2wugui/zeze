@@ -7,8 +7,6 @@ import java.util.Collections;
 import java.util.function.Supplier;
 import Zeze.Application;
 import Zeze.Component.AutoKey;
-import Zeze.History.ApplyTable;
-import Zeze.History.IApplyDatabase;
 import Zeze.Net.Binary;
 import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
@@ -1396,8 +1394,4 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			oldCache.close(); // 关闭旧cache的周期定时器（newLruHot/cleanNow），否则定时任务泄漏且强引用旧dataMap无法GC。
 	}
 
-	@Override
-	public @NotNull ApplyTable<K, V> createApplyTable(@NotNull IApplyDatabase applyDb) {
-		return new ApplyTable<>(this, applyDb);
-	}
 }

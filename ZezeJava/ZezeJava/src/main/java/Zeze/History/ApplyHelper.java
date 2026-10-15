@@ -157,7 +157,7 @@ public class ApplyHelper extends FastLock {
 							var originTable = zeze.getTable(tableName);
 							if (null == originTable)
 								throw new RuntimeException("table not found. name=" + tableName);
-							return originTable.createApplyTable(dbApplied);
+							return ApplyTable.create(originTable, dbApplied);
 						});
 						touched.computeIfAbsent(applyTable, __ -> new HashSet<>()).add(r.getKey());
 						var affectKeys = result.computeIfAbsent(applyTable, __ -> new HashSet<>());

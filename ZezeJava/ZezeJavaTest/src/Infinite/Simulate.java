@@ -50,10 +50,18 @@ public final class Simulate {
 	}
 
 	@BeforeEach
+	public void Before(org.junit.jupiter.api.TestInfo info) throws Exception {
+		before(!info.getTestMethod().orElseThrow().getName().equals("testNoHistory"));
+	}
+
 	public void Before() throws Exception {
+		before(true);
+	}
+
+	private void before(boolean history) throws Exception {
 		After();
 		for (int serverId = 10; serverId < AppCount + 10; serverId++)
-			Apps.add(new App(serverId));
+			Apps.add(new App(serverId, history));
 
 		for (var app : Apps)
 			app.Start();
@@ -93,9 +101,6 @@ public final class Simulate {
 
 	@Test
 	public void testNoHistory() throws Exception {
-		for (var app : Apps) {
-			app.app.getZeze().getConfig().setHistory(""); // disable history
-		}
 		try {
 			testMain();
 		} finally {

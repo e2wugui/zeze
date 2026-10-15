@@ -79,6 +79,8 @@ public class TestApplyCursorPersistence {
 	private static Application newApp(int serverId) throws Exception {
 		var conf = new Config();
 		conf.setServiceManager("disable");
+		conf.setTakeoverMode("off");
+		conf.setHistory("TestApplyCursorPersistence");
 		conf.setServerId(serverId);
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
@@ -88,7 +90,8 @@ public class TestApplyCursorPersistence {
 		appliedConf.setName(APPLIED_DB_NAME);
 		appliedConf.setDatabaseUrl("apply_cursor_applied_" + serverId);
 		conf.getDatabaseConfMap().put(APPLIED_DB_NAME, appliedConf);
-		return new Application("TestApplyCursorPersistence_" + serverId, conf);
+		var app = new Application("TestApplyCursorPersistence_" + serverId, conf);
+		return app;
 	}
 
 	// 直写tHistory底层存储（对齐TestApplyHelperCursorHole）：空changes——本测试聚焦
@@ -121,7 +124,7 @@ public class TestApplyCursorPersistence {
 
 			// 首轮：应用10、11，游标随记录事务持久化到__cursor__。
 			var db1 = new CountingApplyDb(app);
-			var helper1 = new ApplyHelper(app, app.getHistoryModule().getHistoryTable(), db1, 20_000, 600_000);
+			var helper1 = new ApplyHelper(app, Zeze.History.HistoryModule.get(app).getHistoryTable(), db1, 20_000, 600_000);
 			assertNull(helper1.getExclusiveStartKey(), "空库首启游标为null");
 			insertHistory(app, new Id128(0, 10), old);
 			insertHistory(app, new Id128(0, 11), old);
@@ -131,7 +134,7 @@ public class TestApplyCursorPersistence {
 
 			// 模拟重启：新ApplyDatabaseZeze（同一持久库）+新ApplyHelper。
 			var db2 = new CountingApplyDb(app);
-			var helper2 = new ApplyHelper(app, app.getHistoryModule().getHistoryTable(), db2, 20_000, 600_000);
+			var helper2 = new ApplyHelper(app, Zeze.History.HistoryModule.get(app).getHistoryTable(), db2, 20_000, 600_000);
 			assertEquals(new Id128(0, 11), helper2.getExclusiveStartKey(),
 					"游标必须从持久化后端恢复（修复前为null，重启后从表头整段重放）");
 
@@ -144,7 +147,7 @@ public class TestApplyCursorPersistence {
 
 			// 再次"重启"：12也已持久化。
 			var db3 = new CountingApplyDb(app);
-			var helper3 = new ApplyHelper(app, app.getHistoryModule().getHistoryTable(), db3, 20_000, 600_000);
+			var helper3 = new ApplyHelper(app, Zeze.History.HistoryModule.get(app).getHistoryTable(), db3, 20_000, 600_000);
 			assertEquals(new Id128(0, 12), helper3.getExclusiveStartKey());
 		} finally {
 			app.stop();
@@ -157,7 +160,7 @@ public class TestApplyCursorPersistence {
 		var app = newApp(SERVER_ID_MEMORY);
 		try {
 			app.start();
-			var helper = new ApplyHelper(app, app.getHistoryModule().getHistoryTable(),
+			var helper = new ApplyHelper(app, Zeze.History.HistoryModule.get(app).getHistoryTable(),
 					new Zeze.History.ApplyDatabaseMemory(), 20_000, 600_000);
 			assertNull(helper.getExclusiveStartKey(), "内存后端游标为null（重启即空，天然一致）");
 			var old = System.currentTimeMillis() - 60_000;

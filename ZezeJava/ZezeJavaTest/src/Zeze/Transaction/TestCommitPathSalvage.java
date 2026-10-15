@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import Zeze.Application;
-import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Config;
 import Zeze.Util.FuncLong;
 
@@ -112,22 +111,59 @@ public class TestCommitPathSalvage {
 						record.commit(ar); // finalCommit 的应用效果：setSoftValue + 置脏
 				}
 			};
-			RelativeRecordSet.HistoryChangesCollector collect = new RelativeRecordSet.HistoryChangesCollector() {
+			IHistory history = !failCollect ? null : new IHistory() {
 				@Override
-				public void beforeApply() {
+				public void registerLogs(Iterable<Table> tables) {
 				}
 
 				@Override
-				public BLogChanges.Data afterApply() {
-					if (failCollect)
+				public void afterOpen() {
+				}
+
+				@Override
+				public PreparedCommit prepareCommit(Procedure procedure) {
+					return changes -> {
 						throw new RuntimeException("FND8-18 simulated post-apply collect fail");
-					return null;
+					};
+				}
+
+				@Override
+				public void close() {
 				}
 			};
-			RelativeRecordSet.tryUpdateAndCheckpoint(trans, proc, commit, null, collect);
+			RelativeRecordSet.tryUpdateAndCheckpoint(trans, proc, commit, null,
+					Changes.createIfNeeded(trans, failCollect), history);
 			return null;
 		} finally {
 			Transaction.destroy();
+		}
+	}
+
+	@Test
+	public void testImmediatelyCollectFailureIsNotReportedAsSuccess() throws Exception {
+		try {
+			startApp(CheckpointMode.Immediately, "capture_fail", null);
+			var ex = Assertions.assertThrows(RuntimeException.class, () -> runManualCommit(1L, 20L, true),
+					"业务补刷不能把历史采集失败转换成成功");
+			Assertions.assertTrue(ex.getMessage().contains("post-apply"));
+		} finally {
+			if (app != null)
+				stopApp();
+		}
+	}
+
+	@Test
+	public void testCommitWithoutHistoryCollector() throws Exception {
+		for (var mode : CheckpointMode.values()) {
+			try {
+				startApp(mode, "without_history_collector_" + mode, null);
+				Assertions.assertNull(runManualCommit(1L, 20L, false));
+				app.getCheckpoint().runOnce();
+				Assertions.assertEquals(Long.valueOf(20L), dbValue(1L), "无历史收集器时仍正常提交与落库");
+			} finally {
+				if (app != null)
+					stopApp();
+			}
 		}
 	}
 

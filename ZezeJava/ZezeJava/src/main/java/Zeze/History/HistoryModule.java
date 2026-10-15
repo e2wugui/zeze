@@ -1,20 +1,130 @@
 package Zeze.History;
 
+import java.util.Map;
+import java.util.Set;
 import Zeze.Application;
 import Zeze.Builtin.HistoryModule.tHistory;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
+import Zeze.Transaction.Changes;
+import Zeze.Transaction.IHistory;
+import Zeze.Transaction.Procedure;
+import Zeze.Transaction.ProtocolProcedure;
+import Zeze.Transaction.Table;
+import Zeze.Util.Id128;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 回放消费链为实验特性：内存后端、不跨重启、仅进程内演示。
  * 持久化后端机制（ApplyDatabaseZeze，含游标/记录级原子单元）保留但未接线——
  * 接线需要配置通道与affects输出契约设计。
  */
-public class HistoryModule extends AbstractHistoryModule {
+public class HistoryModule extends AbstractHistoryModule implements IHistory {
 	private final Application zeze;
-	private HttpServer httpServer;
-	private final ApplyHelper applyHelper;
+	private final String historyName;
+	private @Nullable HttpServer httpServer;
+	private @Nullable ApplyHelper applyHelper;
+	private volatile @Nullable PendingGidLedger pendingGidLedger;
+	private volatile boolean closed;
+	private boolean tablesRegistered;
+
+	/** 工具入口只取已有模块，关闭配置时不隐式创建。 */
+	public static @NotNull HistoryModule get(@NotNull Application zeze) {
+		if (zeze.getHistory() instanceof HistoryModule module)
+			return module;
+		throw new IllegalStateException("History is not initialized for " + zeze.getProjectName());
+	}
+
+	public @NotNull String getHistoryName() {
+		return historyName;
+	}
+
+	private void ensureOpen() {
+		if (closed)
+			throw new IllegalStateException("History is closed");
+	}
+
+	public @NotNull PendingGidLedger getPendingGidLedger() {
+		// 已创建的账本不与在飞回放争锁，首次创建仍与关闭互斥。
+		var ledger = pendingGidLedger;
+		if (ledger != null) {
+			ensureOpen();
+			return ledger;
+		}
+		lock();
+		try {
+			ensureOpen();
+			if (pendingGidLedger == null)
+				pendingGidLedger = new PendingGidLedger(zeze.getProjectName());
+			return pendingGidLedger;
+		} finally {
+			unlock();
+		}
+	}
+
+	@Override
+	public void registerLogs(@NotNull Iterable<Table> tables) throws Exception {
+		Helper.registerTableLogs(tables);
+	}
+
+	@Override
+	public void afterOpen() {
+		OwnerCheck.verify(this);
+	}
+
+	@Override
+	public @NotNull PreparedCommit prepareCommit(@NotNull Procedure procedure) throws CommitRejectedException {
+		if (procedure.getZeze() != zeze)
+			throw new IllegalArgumentException("procedure belongs to another Application");
+		var ledger = getPendingGidLedger();
+		var gid = allocateAndRegisterGid(procedure, ledger);
+		return new PreparedCommit() {
+			private boolean captured;
+
+			@Override
+			public @NotNull IHistory.PendingHistory capture(@NotNull Changes changes) {
+				if (captured)
+					throw new IllegalStateException("history commit already captured");
+				captured = true;
+				var data = procedure instanceof ProtocolProcedure pp
+						? History.buildLogChanges(gid, changes, pp.getProtocolClassName(), pp.getProtocolRawArgument())
+						: History.buildLogChanges(gid, changes, null, null);
+				return new History(_tHistory, ledger, data);
+			}
+		};
+	}
+
+	/** 取号和登记共同构成应用数据前的准备阶段，受控失败只在这里转换。 */
+	private @NotNull Id128 allocateAndRegisterGid(@NotNull Procedure procedure, @NotNull PendingGidLedger ledger)
+			throws CommitRejectedException {
+		try {
+			var sm = zeze.getServiceManager();
+			if (sm == null)
+				throw new IllegalStateException("History requires a ServiceManager with Id128 allocation");
+			var gid = sm.getUsableTid128CacheFuture(historyName).get().next();
+			ledger.register(gid, System.nanoTime());
+			return gid;
+		} catch (Exception ex) {
+			if (ex instanceof InterruptedException)
+				Thread.currentThread().interrupt();
+			throw new CommitRejectedException("history gid allocation failed: " + procedure.getActionName(), ex);
+		}
+	}
+
+	/** 在模块锁内完成回放，关闭不会与访问业务库的在飞回放交错。 */
+	public Map<ApplyTable<?, ?>, Set<Object>> apply(int count) throws Exception {
+		lock();
+		try {
+			ensureOpen();
+			if (applyHelper == null)
+				applyHelper = new ApplyHelper(zeze, _tHistory, new ApplyDatabaseMemory(), 20_000);
+			return applyHelper.apply(count);
+		} finally {
+			unlock();
+		}
+	}
 
 	// 需要应用调用一下开启分析服务（host=null绑任意地址）。
 	public void startHttpServer(Netty netty, int port) throws Exception {
@@ -31,6 +141,7 @@ public class HistoryModule extends AbstractHistoryModule {
 	public void startHttpServer(Netty netty, String host, int port) throws Exception {
 		lock();
 		try {
+			ensureOpen();
 			if (null != httpServer)
 				return; // skip duplicate start
 
@@ -50,13 +161,23 @@ public class HistoryModule extends AbstractHistoryModule {
 		}
 	}
 
+	/** 只停止 HTTP 分析服务；模块整体生命周期由 close 管理。 */
 	public void stop() {
+		final HttpServer server;
 		lock();
 		try {
-			if (null != httpServer) {
-				httpServer.close();
+			server = httpServer;
+		} finally {
+			unlock();
+		}
+		if (server == null)
+			return;
+		// close 会等待 HTTP handler 排空，handler 可能正在等待模块锁。
+		server.close();
+		lock();
+		try {
+			if (httpServer == server)
 				httpServer = null;
-			}
 		} finally {
 			unlock();
 		}
@@ -64,11 +185,52 @@ public class HistoryModule extends AbstractHistoryModule {
 
 	public HistoryModule(Application zeze) {
 		this.zeze = zeze;
+		historyName = zeze.getConfig().getHistory();
 		RegisterZezeTables(zeze);
+		tablesRegistered = true;
+	}
 
-		// 内存后端：不跨重启，重启后回放副本与游标一起归零（类文档的实验边界）。
-		var dbApplied = new ApplyDatabaseMemory();
-		applyHelper = new ApplyHelper(zeze, _tHistory, dbApplied, 20_000);
+	@Override
+	public void close() {
+		final PendingGidLedger ledger;
+		lock();
+		try {
+			closed = true;
+			ledger = pendingGidLedger;
+			applyHelper = null;
+		} finally {
+			unlock();
+		}
+		Throwable failure = closeStep(null, this::stop);
+		if (ledger != null)
+			failure = closeStep(failure, ledger::stop);
+		failure = closeStep(failure, this::unregisterTables);
+		if (failure != null)
+			throw new IllegalStateException("History close failed", failure);
+	}
+
+	private void unregisterTables() {
+		lock();
+		try {
+			if (tablesRegistered) {
+				UnRegisterZezeTables(zeze);
+				tablesRegistered = false;
+			}
+		} finally {
+			unlock();
+		}
+	}
+
+	private static @Nullable Throwable closeStep(@Nullable Throwable failure, @NotNull Runnable action) {
+		try {
+			action.run();
+		} catch (Throwable ex) {
+			if (failure == null)
+				return ex;
+			if (failure != ex)
+				failure.addSuppressed(ex);
+		}
+		return failure;
 	}
 
 	public Application getZeze() {
@@ -96,7 +258,7 @@ public class HistoryModule extends AbstractHistoryModule {
 		}
 
 		// 实验边界：本批affects（受影响表与键）丢弃，恒答OK——回放链不承诺增量输出契约。
-		applyHelper.apply(countValue);
+		apply(countValue);
 
 		x.sendPlainText(HttpResponseStatus.OK, "OK");
 	}

@@ -33,13 +33,16 @@ public class TestApplyHelperCursorHole {
 	private static Application newApp() throws Exception {
 		var conf = new Config();
 		conf.setServiceManager("disable");
+		conf.setTakeoverMode("off");
+		conf.setHistory("TestApplyHelperCursorHole");
 		int serverId = NextServerId.getAndIncrement();
 		conf.setServerId(serverId);
 		conf.setDefaultTableConf(new Config.TableConf());
 		var dbConf = new Config.DatabaseConf();
 		dbConf.setDatabaseUrl("history_apply_test_" + serverId);
 		conf.getDatabaseConfMap().putIfAbsent("", dbConf); // Memory库，独立url=独立存储
-		return new Application("TestApplyHelperCursorHole", conf);
+		var app = new Application("TestApplyHelperCursorHole", conf);
+		return app;
 	}
 
 	// 直接向底层存储写一条历史记录：模拟Checkpoint flush的落库效果（绕开TableX缓存），
@@ -68,7 +71,7 @@ public class TestApplyHelperCursorHole {
 		var app = newApp();
 		try {
 			app.start();
-			var helper = new ApplyHelper(app, app.getHistoryModule().getHistoryTable(),
+			var helper = new ApplyHelper(app, Zeze.History.HistoryModule.get(app).getHistoryTable(),
 					new ApplyDatabaseMemory(), 20_000, 600_000);
 
 			var old = System.currentTimeMillis() - 60_000; // 全部满足 endTime=now-20s
@@ -96,7 +99,7 @@ public class TestApplyHelperCursorHole {
 		try {
 			app.start();
 			// holeGraceMs=100：空洞老化100ms后按永久空洞（进程崩溃/发号作废）越过。
-			var helper = new ApplyHelper(app, app.getHistoryModule().getHistoryTable(),
+			var helper = new ApplyHelper(app, Zeze.History.HistoryModule.get(app).getHistoryTable(),
 					new ApplyDatabaseMemory(), 20_000, 100);
 
 			var old = System.currentTimeMillis() - 60_000;
@@ -121,7 +124,7 @@ public class TestApplyHelperCursorHole {
 		var app = newApp();
 		try {
 			app.start();
-			var helper = new ApplyHelper(app, app.getHistoryModule().getHistoryTable(),
+			var helper = new ApplyHelper(app, Zeze.History.HistoryModule.get(app).getHistoryTable(),
 					new ApplyDatabaseMemory(), 20_000, 600_000);
 
 			// 从头消费（游标null）：首key不是1，表前缀无法判断空洞，不得卡死。
@@ -142,7 +145,7 @@ public class TestApplyHelperCursorHole {
 		var app = newApp();
 		try {
 			app.start();
-			var helper = new ApplyHelper(app, app.getHistoryModule().getHistoryTable(),
+			var helper = new ApplyHelper(app, Zeze.History.HistoryModule.get(app).getHistoryTable(),
 					new ApplyDatabaseMemory(), 20_000, 600_000);
 
 			// 连续key中混入时间未到的记录：游标停在它前面（原有endTime行为不回归）。

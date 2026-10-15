@@ -41,6 +41,40 @@ gradlew.bat :ZezeJavaTest:test / integrationTest              :: 每轮门禁
 
 微基准（src-jmh）：Serialize / Collections / Conflict / ReadOnly 四族。
 
+## History 关闭路径（2026-10-15）
+
+同机同日 A/B，Windows 11 / Corretto 21.0.5 / 2g 堆 / 单线程，复用
+`Benchmark.CollectionsBench.containerPutEntry`，每 fork 预热 3×1s、测量 5×1s，
+共 2 fork，`-prof gc`。两侧均使用默认关闭的 History、无 ChangeListener、Memory 库。
+
+```bat
+gradlew.bat :ZezeJavaTest:jmh "-PjmhFilter=Benchmark.CollectionsBench.containerPutEntry" "-PjmhFork=2" "-PjmhWi=3" "-PjmhI=5" "-PjmhW=1s" "-PjmhR=1s" "-PjmhExtraArgs=-prof gc" "-PbenchTag=history-off-before"
+:: 修改后相同命令，仅 benchTag 改为 history-off-after
+```
+
+| 改动 | 修改前 → 修改后 | 判定 |
+|---|---|---|
+| 无变更消费者时跳过 Changes 创建与后续收集遍历 | 3009.04 → 2912.65 B/op（-96.39 B/op，-3.20%） | 保留；分配降幅超过两侧最大样本标准差的 3 倍（最大约 16.85 B/op） |
+| 同一组的吞吐观测 | 905,930 → 1,236,981 ops/s | 修改前波动较大，未通过 3×stdev 判据，不认定吞吐增益 |
+
+分配量为整个容器事务的成本，不能解释为关闭 History 仍额外消耗约 2913 B/op。
+这次同时使 HistoryModule / tHistory 按配置初始化、PendingGidLedger 首次使用才创建，
+消除了默认关闭时对应的固定资源；上述热路径基准不量化启动耗时或固定内存节省。
+原始结果（gitignored）：`ZezeJavaTest/bench-results/jmh-history-off-before.json` 与
+`ZezeJavaTest/bench-results/jmh-history-off-after.json`。
+
+后续拆分监听器与 History 收集：关闭 History 时不再创建 `HistoryChangesCollector`，
+有监听器时直接执行共享变更采集。相同命令同日再次 A/B（tag 为
+`history-collector-before` / `history-collector-after`）：2912.31 → 2880.72 B/op，
+再减少 31.59 B/op（1.08%），超过两侧最大样本标准差的 3 倍（最大约 1.94 B/op），保留。
+本组吞吐仍波动较大，不认定吞吐增益。原始 JSON 同样保存于
+`ZezeJavaTest/bench-results/jmh-<tag>.json`。
+
+完成 IHistory 接口拆分及重构后，使用相同参数再次验证关闭路径（tag：
+`history-plugin-refactor-after`）：2880.72 → 2880.83 B/op，差异约 0.11 B/op，
+落在样本波动内，未观察到本轮接口拆分增加事务分配。该数值仍是整个容器事务的
+分配量，不是关闭 History 的额外成本；本次不据此认定吞吐变化。
+
 ## L 场景设计（LMmoGameSim，ZezeJavaTest/src/GameSim/）
 
 MMO-lite 游戏模拟世界：真实游戏逻辑承载访问模式，核心机制（编组/脏读记账/分片冲突/

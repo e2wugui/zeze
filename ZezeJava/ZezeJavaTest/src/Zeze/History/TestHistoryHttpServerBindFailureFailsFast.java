@@ -41,6 +41,8 @@ public class TestHistoryHttpServerBindFailureFailsFast {
 	public void setUp() throws Exception {
 		var conf = new Config();
 		conf.setServiceManager("disable");
+		conf.setTakeoverMode("off");
+		conf.setHistory("TestHistoryHttpServerBindFailureFailsFast");
 		conf.setServerId(SERVER_ID);
 		conf.setDefaultTableConf(new Config.TableConf()); // 裸Config不会补默认值
 		var dbConf = new Config.DatabaseConf();
@@ -53,7 +55,7 @@ public class TestHistoryHttpServerBindFailureFailsFast {
 
 	@AfterEach
 	public void tearDown() throws Exception {
-		app.getHistoryModule().stop();
+		Zeze.History.HistoryModule.get(app).stop();
 		app.stop();
 	}
 
@@ -64,7 +66,7 @@ public class TestHistoryHttpServerBindFailureFailsFast {
 	@Test
 	public void bindFailureThrowsAndRetryAfterFixIsNotLatched() throws Exception {
 		Task.tryInitThreadPool();
-		var hm = app.getHistoryModule();
+		var hm = Zeze.History.HistoryModule.get(app);
 		try (var netty = new Netty()) {
 			// 红①：坏地址（TEST-NET-1，本机必不存在）bind 必失败——原实现静默返回。
 			var ex = assertThrows(IllegalStateException.class,

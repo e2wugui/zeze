@@ -2,14 +2,13 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
-import Zeze.Builtin.HistoryModule.BLogChanges;
-import Zeze.History.History;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.PropertiesHelper;
@@ -32,7 +31,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	private @Nullable HashSet<Record> recordSet;
 	private volatile @Nullable RelativeRecordSet mergeTo; // 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
 	private @Nullable Set<OnzProcedure> onzProcedures;
-	private volatile @Nullable History history;
+	private volatile @Nullable IHistory.PendingHistory history;
 
 	// RRS锁等待观测（提交/落库双通道）：Profiler通道在生产慢事务(≥3s)时间线内按过程名
 	// 归因（对齐Record.enterFairLock的RecordWaitFairLock惯例）；ZezeCounter通道聚合分布，
@@ -61,16 +60,21 @@ public final class RelativeRecordSet extends ReentrantLock {
 		super(false);
 	}
 
-	public @Nullable History getHistory() {
+	public @Nullable IHistory.PendingHistory getHistory() {
 		return history;
 	}
 
-	void addLogChanges(@NotNull BLogChanges.Data logChanges) {
-		var h = history;
-		if (h == null)
-			history = new History(logChanges);
-		else
-			h.addLogChanges(logChanges); // 这是锁内的，可以不考虑这个警告。
+	void addHistory(@NotNull IHistory.PendingHistory pending) {
+		var currentHistory = history;
+		if (currentHistory == null)
+			history = pending;
+		else {
+			try {
+				currentHistory.mergeFrom(pending);
+			} catch (Throwable ex) {
+				throw new IllegalStateException("history buffer merge failed", ex);
+			}
+		}
 	}
 
 	@Nullable HashSet<Record> getRecordSet() {
@@ -107,8 +111,9 @@ public final class RelativeRecordSet extends ReentrantLock {
 		if (rrs == this) // 这个方法仅用于合并其他rrs
 			throw new IllegalStateException("Merge Self! " + rrs);
 
-		//noinspection NonAtomicOperationOnVolatileField
-		history = History.merge(history, rrs.history);
+		var pending = rrs.history;
+		if (pending != null)
+			addHistory(pending);
 
 		if (rrs.recordSet == null)
 			return; // 孤立记录，后面单独合并。
@@ -171,33 +176,32 @@ public final class RelativeRecordSet extends ReentrantLock {
 		return waited;
 	}
 
-	/**
-	 * 历史变更收集的两阶段契约：取号（含段耗尽的续段分配）在日志应用（commit.run）之前，
-	 * 走查与编码在应用之后。取号是对 Id128 发号服务的阻塞等待，若发生在应用之后，失败时
-	 * 数据已生效而 tHistory 永久缺失（gid 未消费，键空间连空洞都没有，回放端无从感知），
-	 * Immediately 模式补刷后更是吞异常报假成功——前移到应用前，失败=事务未应用即干净失败
-	 * （{@code Transaction.RejectHistoryAllocFailed}，RejectWhileStopping 同款路径），历史
-	 * 与数据同生共死。取号成功立即入对账账本（PendingGidLedger.register）：此后任何失败
-	 * （应用/收集/落库）都留下"已发号未核销"痕迹。走查/编码必须后置：Record.collect 对
-	 * Put/Remove 的分类读 ar.committedPutLog，它由应用期（PutLog.commit）填充——前置走查
-	 * 会把 put 误分类为 edit（监听者拿到 null LogBean、History 编码错误）。beforeApply 的
-	 * 门控（isHistory && anyDirty）与走查后的 History 分支门（isHistory && records非空）
-	 * 精确等价：isHistory 下 collectRecord 无早退、每个 dirty 记录必登记；!isHistory 时
-	 * records 仍会因监听者登记而非空，但 History 分支被 isHistory 挡住，不参与等价。
-	 */
-	interface HistoryChangesCollector {
-		/** commit.run() 之前调用：isHistory 且有 dirty 记录时阻塞取号（含续段分配）并
-		 * 入对账账本，失败干净拒绝；不做任何走查。 */
-		void beforeApply() throws Exception;
+	private static @Nullable IHistory.PreparedCommit prepareHistory(@NotNull Procedure procedure,
+			@Nullable Changes changes, @Nullable IHistory history) throws IHistory.CommitRejectedException {
+		if (history == null || changes == null)
+			return null;
+		return Objects.requireNonNull(history.prepareCommit(procedure), "History.prepareCommit returned null");
+	}
 
-		/** commit.run() 之后调用：走查日志建 Changes（供监听者与 History），用已解析的
-		 * gid 编码日志变更；未解析 gid（历史关闭或无记录）时返回 null。 */
-		@Nullable BLogChanges.Data afterApply();
+	private static @Nullable IHistory.PendingHistory collectAndCaptureHistory(@NotNull Transaction trans,
+			@Nullable Changes changes, @Nullable IHistory.PreparedCommit prepared) {
+		try {
+			if (changes != null)
+				trans.collectChanges(changes);
+			if (prepared == null)
+				return null;
+			return Objects.requireNonNull(prepared.capture(changes), "History.capture returned null");
+		} catch (Throwable ex) {
+			// 数据已应用。包成普通异常，不能落入只服务于终局回调断言的 AssertionError 旁路。
+			if (prepared != null)
+				throw new IllegalStateException("history post-apply capture failed", ex);
+			throw ex;
+		}
 	}
 
 	static void tryUpdateAndCheckpoint(@NotNull Transaction trans, @NotNull Procedure procedure,
 									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
-									   @NotNull HistoryChangesCollector collectChanges) throws Exception {
+									   @Nullable Changes changes, @Nullable IHistory historyPlugin) throws Exception {
 		var checkpoint = procedure.getZeze().getCheckpoint();
 		// 入口终检点检查：所有模式（含空事务）停机后统一显式拒绝（Closed语义）。
 		if (checkpoint == null)
@@ -209,24 +213,26 @@ public final class RelativeRecordSet extends ReentrantLock {
 			if (!checkpoint.tryBeginCommit())
 				throw new Transaction.RejectWhileStopping("commit rejected while stopping: " + procedure.getActionName());
 			try {
-				collectChanges.beforeApply(); // 取号在应用前（HistoryChangesCollector）：失败时数据未应用
+				var prepared = prepareHistory(procedure, changes, historyPlugin);
 				commit.run();
-				BLogChanges.Data logChanges = null;
+				IHistory.PendingHistory pending = null;
 				try {
-					logChanges = collectChanges.afterApply();
-					checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
+					pending = collectAndCaptureHistory(trans, changes, prepared);
+					checkpoint.flush(trans, onzProcedure, pending);
 				} catch (Throwable ex) {
 					// 修改已应用（commit.run）而收集/落库失败——runOnce对Immediately是no-op，
 					// perform的halt兜底刷不到这批"已应用未落库"的数据。趁记录锁未释放（holdLocks在
-					// finalCommit返回后才清）用同一入口做一次受控补刷：成功则数据已落库，fatal记原异常
-					// 后吞掉继续；再失败则重抛原异常走halt（DB硬故障，明确接受丢失）。
+					// finalCommit返回后才清）用同一入口做一次受控补刷。完整历史已形成时补刷成功可继续；
+					// 采集失败尚无完整历史，即使业务补刷成功也须重抛并走 fatal。
 					// 提交使用权使同步补刷与停机终检点互斥，不会在修改应用后失去补刷通道。
 					try {
-						checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
+						checkpoint.flush(trans, onzProcedure, pending);
 					} catch (Throwable ex2) { // logger.fatal
 						Checkpoint.logger.fatal("Immediately commit flush fail, salvage flush fail again, accept loss", ex2);
 						throw ex;
 					}
+					if (prepared != null && pending == null)
+						throw ex; // 采集失败尚无完整历史，补刷成功也必须进入 fatal。
 					Checkpoint.logger.fatal("Immediately commit flush fail, salvage flush success, data saved", ex);
 				}
 			} finally {
@@ -273,13 +279,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 		// 写者编组边保持）均成立。唯一例外是 oldTable 读路径脏（见上），注册通道只在老路径。
 		// 论证与实证：BENCHMARK.md L 节（K=80 +17.6%、H 脏读 +110%）。
 		if (ReadFastPath && !hasDirtyWrite && !hasUnregisteredDirty && onzProcedure == null) {
-			if (trans.getAccessedRecords().isEmpty()) {
-				commit.run(); // 空事务分支对齐：不取许可证、不调收集器（whileCommit 语义保持）
-			} else {
-				collectChanges.beforeApply(); // 取号在应用前，顺序与原路径一致
-				commit.run(); // 监听者/whileCommit/Changes 与 setNotFresh 语义保持
-				collectChanges.afterApply(); // 纯读无 PutLog，LogChanges 恒 null（防御性容忍丢弃）
-			}
+			// Changes 仅为脏记录创建；纯读及空事务都没有变更或历史需要采集。
+			commit.run(); // 保持 setNotFresh 和提交回调语义。
 			return;
 		}
 
@@ -301,13 +302,13 @@ public final class RelativeRecordSet extends ReentrantLock {
 					throw new Transaction.RejectWhileStopping("commit rejected while stopping: " + procedure.getActionName());
 				try {
 					var mergedSet = _merge_(locked, trans, allRead);
-					collectChanges.beforeApply(); // 取号在应用前（HistoryChangesCollector）：失败时数据未应用
+					var prepared = prepareHistory(procedure, changes, historyPlugin);
 					commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
 					mergedSet.addOnzProcedures(onzProcedure);
 					try {
-						var logChanges = collectChanges.afterApply();
-						if (logChanges != null)
-							mergedSet.addLogChanges(logChanges); // History存在并且开启，则加入rrs。
+						var pending = collectAndCaptureHistory(trans, changes, prepared);
+						if (pending != null)
+							mergedSet.addHistory(pending);
 
 						if (needFlushNow) {
 							if (mergedSet.recordSet != null) {
@@ -564,15 +565,21 @@ public final class RelativeRecordSet extends ReentrantLock {
 							locks.size(), lockWaited / 1_000_000);
 				var rs = new ArrayList<Record>(nr);
 				var onzProcedures = new HashSet<OnzProcedure>();
-				History history = null;
+				IHistory.PendingHistory history = null;
 				for (var rrs : sortedRrs.values()) {
 					if (rrs.mergeTo != null)
 						continue; // merged or deleted
 					rs.addAll(rrs.recordSet);
-					// combine（非 merge）只读组装快照，不写成员 rrs 的自有 History 容器：
+					// 首个成员创建快照，后续只向快照合并，不写成员 rrs 的自有历史容器：
 					// 失败轮回滚后成员容器原样保留，重试轮无论怎么重分组，每个快照的写入/核销
 					// 集合恒等于本轮成员集合——不会带出幽灵 tHistory 行、不会跨组核销别人的 gid。
-					history = History.combine(history, rrs.getHistory());
+					var member = rrs.getHistory();
+					if (member != null) {
+						if (history == null)
+							history = member.snapshot();
+						else
+							history.mergeFrom(member);
+					}
 					// 恢复onz聚集（判空后addAll，直接addAll(null)会NPE）：
 					// 正常流程带onz的rrs恒为flush-now（needFlushNow=onzProcedure!=null）不进
 					// relativeRecordSetMap，此处恒为空集；唯一的真实到达路径是失败
@@ -611,7 +618,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	static void flush(@NotNull Checkpoint checkpoint, @NotNull RelativeRecordSet rrs) {
 
 		// 编码统一由 Checkpoint.flush 锁内 encode0 承担。不得锁外 encodeN 预编码：
-		// 它与并发轮的 writeOnly/commitDone、并发事务 merge 存在桶级交错：搬运者
+		// 它与并发轮的 writeOnly/onPersisted、并发事务 merge 存在桶级交错：搬运者
 		// 拿锁后发现 rrs 已 deleted/merged 而跳过 flush，滞留条目永不落库。
 		lockFlush(rrs);
 		try {

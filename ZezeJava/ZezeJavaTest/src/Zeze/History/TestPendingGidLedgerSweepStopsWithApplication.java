@@ -42,10 +42,10 @@ public class TestPendingGidLedgerSweepStopsWithApplication {
 	}
 
 	/** 账本对账守护的关门态（反射读私有 sweepDaemon——不为主流程增设只读访问面）。 */
-	private static boolean sweepDaemonShutdown(Application app) throws Exception {
+	private static boolean sweepDaemonShutdown(PendingGidLedger ledger) throws Exception {
 		Field field = PendingGidLedger.class.getDeclaredField("sweepDaemon");
 		field.setAccessible(true);
-		var timer = (DaemonTimer) field.get(app.getPendingGidLedger());
+		var timer = (DaemonTimer) field.get(ledger);
 		return timer.isShutdown();
 	}
 
@@ -64,15 +64,16 @@ public class TestPendingGidLedgerSweepStopsWithApplication {
 	public void testSweepDaemonStopsAfterApplicationStop() throws Exception {
 		var url = "history_ledger_sweep_stop_" + SERVER_ID;
 		var app = newApp(SERVER_ID, url, "TestLedgerSweepStops");
+		var ledger = HistoryModule.get(app).getPendingGidLedger();
 		try {
 			app.start();
 			// 首笔登记（Transaction.finalCommit beforeApply 的同一入口）惰性启动守护。
-			app.getPendingGidLedger().register(new Id128(System.nanoTime(), 1), System.nanoTime());
-			Assertions.assertFalse(sweepDaemonShutdown(app), "前置：register 后守护链已启动（未关门）");
+			ledger.register(new Id128(System.nanoTime(), 1), System.nanoTime());
+			Assertions.assertFalse(sweepDaemonShutdown(ledger), "前置：register 后守护链已启动（未关门）");
 		} finally {
 			quietStop(app);
 		}
-		Assertions.assertTrue(sweepDaemonShutdown(app),
+		Assertions.assertTrue(sweepDaemonShutdown(ledger),
 				"Application.stop 后对账守护必须停止（修复前定时链永久自续，随实例数无界累积）");
 	}
 
@@ -81,12 +82,13 @@ public class TestPendingGidLedgerSweepStopsWithApplication {
 	public void testStopWithoutRegisterIsIdempotentNoop() throws Exception {
 		var url = "history_ledger_sweep_noop_" + (SERVER_ID + 1);
 		var app = newApp(SERVER_ID + 1, url, "TestLedgerSweepNoop");
+		var ledger = HistoryModule.get(app).getPendingGidLedger();
 		try {
 			app.start();
-			Assertions.assertTrue(sweepDaemonShutdown(app), "前置：无登记守护未启动（构造即关门态）");
+			Assertions.assertTrue(sweepDaemonShutdown(ledger), "前置：无登记守护未启动（构造即关门态）");
 		} finally {
 			quietStop(app);
 		}
-		Assertions.assertTrue(sweepDaemonShutdown(app), "未启动的守护 stop 后保持关门态（幂等无副作用）");
+		Assertions.assertTrue(sweepDaemonShutdown(ledger), "未启动的守护 stop 后保持关门态（幂等无副作用）");
 	}
 }

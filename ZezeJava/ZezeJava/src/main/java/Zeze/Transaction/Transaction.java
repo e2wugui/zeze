@@ -10,12 +10,9 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import Zeze.Application;
-import Zeze.Builtin.HistoryModule.BLogChanges;
-import Zeze.History.History;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Util.Id128;
 import Zeze.Util.Random;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
@@ -409,7 +406,9 @@ public final class Transaction {
 									}
 									try {
 										finalCommit(procedure, flushMode);
-									} catch (RejectWhileStopping e) {
+									} catch (RejectWhileStopping | IHistory.CommitRejectedException e) {
+										if (e instanceof IHistory.CommitRejectedException)
+											logger.error("history prepare rejected: {}", procedure.getActionName(), e);
 										// 终检点已过：tryUpdateAndCheckpoint在应用修改前（或落库前）显式拒绝，
 										// 转为finalRollback+Closed显式失败，不得静默跳过落库后返回Success
 										// （否则已应答的提交丢失）。
@@ -638,13 +637,33 @@ public final class Transaction {
 		this.onzProcedure = onzProcedure;
 	}
 
+	/** History 与监听器共用的变更采集，必须在 PutLog.commit 填充 committedPutLog 后执行。 */
+	void collectChanges(@NotNull Changes changes) {
+		var lastSp = savepoints.getLast();
+		var it = lastSp.logIterator();
+		if (it != null) {
+			while (it.moveToNext()) {
+				var log = it.value();
+				if (log.category() != Log.Category.eHistory)
+					continue;
+				var logBelong = log.getBelong();
+				// 没有 Owner 的日志是特殊测试目的加入的，简单忽略。
+				if (logBelong != null && logBelong.isManaged())
+					changes.collect(logBelong, log);
+			}
+		}
+		for (var ar : accessedRecords.values()) {
+			if (ar.dirty)
+				changes.collectRecord(ar);
+		}
+	}
+
 	private void finalCommit(@NotNull Procedure proc, @Nullable OnzProcedure flushMode) throws Exception {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		proc.getZeze().getProcedureLockWatcher().doWatch(proc, accessedRecords);
 		var lastSp = savepoints.getLast();
-
-		// collect logs and notify listeners
-		var cc = new Changes(this, proc);
+		var history = proc.getZeze().getHistory();
+		var changes = Changes.createIfNeeded(this, history != null);
 		RelativeRecordSet.tryUpdateAndCheckpoint(this, proc, () -> {
 			try {
 				lastSp.mergeCommitActions(actions);
@@ -667,89 +686,7 @@ public final class Transaction {
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
-		}, flushMode, new RelativeRecordSet.HistoryChangesCollector() {
-			// 历史 gid 的整个取号（cache.next()，含段耗尽的续段分配）都在日志应用之前：
-			// 取号若在应用后失败，数据已生效而 tHistory 永久缺失（gid 未消费，键空间连
-			// 空洞都没有，回放端无从感知），Immediately 模式更是补刷后吞异常报假成功。
-			// 任何取号失败=数据未应用即干净失败（RejectHistoryAllocFailed）；成功取号
-			// 立即入账，此后任何失败（应用/收集/落库）都留下账本痕迹（超龄未核销=
-			// 确定性缺口告警）。count=1 的顺序保证不变：取号仍在 rrs 锁内（Table 模式）/
-			// 记录锁持有期（Immediately），SM 按请求到达序发号。
-			private Id128 historyGid;
-
-			@Override
-			public void beforeApply() {
-				// 门控与走查分离：走查/编码必须留在应用后——Record.collect 对 Put/Remove 的
-				// 分类读 ar.committedPutLog，它由应用期（PutLog.commit）填充，前置走查会把
-				// put 误分类为 edit（监听者拿到 null LogBean、History 编码错误）。取号门控用
-				// anyDirty：isHistory 下 collectRecord 对每个 dirty 记录必登记，与走查后的
-				// records 非空精确等价。
-				var zeze = proc.getZeze();
-				if (!zeze.getConfig().isHistory())
-					return;
-				for (var ar : accessedRecords.values()) {
-					if (!ar.dirty)
-						continue;
-					// 上一次分配可能已异常完成（Udp超时毒化），直接get()会抛异常——毒化时
-					// 兜底发起新分配替换。get() 阻塞等待批次，此刻数据尚未应用：任何失败转
-					// RejectHistoryAllocFailed（RejectWhileStopping 同款干净失败路径：
-					// finalRollback+Closed），不把"已应用数据+历史缺失"的静默分歧留给应用后。
-					// 段耗尽的续段分配同样在此（cache.next() 内同步换段）——失败同款干净失败。
-					try {
-						@SuppressWarnings("DataFlowIssue")
-						var future = zeze.getServiceManager().getUsableTid128CacheFuture(zeze.getConfig().getHistory());
-						historyGid = future.get().next();
-						// 取号即入账：gid 消费先于数据应用，此后任何失败（应用/收集/落库）
-						// 都在账本留下"已发号未核销"痕迹（超龄=sweep的确定性缺口告警）。
-						zeze.getPendingGidLedger().register(historyGid, System.nanoTime());
-					} catch (Throwable ex) {
-						logger.error("finalCommit({}) history gid alloc fail before apply:", proc.getActionName(), ex);
-						throw new RejectHistoryAllocFailed("history gid alloc fail before apply: " + proc.getActionName());
-					}
-					break;
-				}
-			}
-
-			@Override
-			public @Nullable BLogChanges.Data afterApply() {
-				var it = lastSp.logIterator();
-				if (it != null) {
-					while (it.moveToNext()) {
-						var log = it.value();
-						if (log.category() != Log.Category.eHistory)
-							continue;
-						var logBelong = log.getBelong();
-						// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
-						if (logBelong != null && logBelong.isManaged()) {
-							// 第一个参数Owner为null，表示bean属于record，到达root了。
-							cc.collect(logBelong, log);
-						}
-					}
-				}
-
-				for (var ar : accessedRecords.values()) {
-					if (ar.dirty)
-						cc.collectRecord(ar);
-				}
-
-				// 门控与原callable同形（isHistory&&records非空）：records 在 !isHistory 时也会
-				// 因监听者登记而非空（collectRecord 对有 listener 的表无早退），不能单看 records。
-				if (proc.getZeze().getConfig().isHistory() && !cc.getRecords().isEmpty()) {
-					var gid = historyGid;
-					// 不变量守卫：isHistory 下门控（anyDirty）与本走查的 records 非空精确等价
-					//（collectRecord 无早退必登记），gid 缺席属不可达形态——宁可响亮失败也
-					// 不静默产出无历史的数据。
-					if (null == gid)
-						throw new IllegalStateException("history changes without gid: " + proc.getActionName());
-					if (proc instanceof ProtocolProcedure pp) {
-						return History.buildLogChanges(gid, cc,
-								pp.getProtocolClassName(), pp.getProtocolRawArgument());
-					}
-					return History.buildLogChanges(gid, cc, null, null);
-				}
-				return null;
-			}
-		});
+		}, flushMode, changes, history);
 
 		// 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
 		// 不支持在回调中再次执行事务。
@@ -769,7 +706,8 @@ public final class Transaction {
 					}
 				}
 			}
-			cc.notifyListener();
+			if (changes != null)
+				changes.notifyListener();
 			triggerCommitActions(proc);
 		} catch (AssertionError ex) {
 			// 测试断言失败必须向上传播（与perform对业务断言的重抛语义一致），终局吞掉会造成假绿。
@@ -1105,18 +1043,4 @@ public final class Transaction {
 		}
 	}
 
-	/**
-	 * 历史 gid 分配失败（日志应用前拒绝，history-01）：继承 RejectWhileStopping 的 perform
-	 * 处理路径（finalRollback+Closed）。抛出点在 commit.run 之前，数据未应用，干净失败回滚，
-	 * 历史与数据同生共死；onz 参与方已收 Commit 决策时的跨集群分歧由既有停机分歧告警覆盖
-	 * （同为"决策已持久化而本地回滚"的暴露点）。
-	 */
-	static final class RejectHistoryAllocFailed extends RejectWhileStopping {
-		@Serial
-		private static final long serialVersionUID = 0L;
-
-		RejectHistoryAllocFailed(@NotNull String msg) {
-			super(msg);
-		}
-	}
 }

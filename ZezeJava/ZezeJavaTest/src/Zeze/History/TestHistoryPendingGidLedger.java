@@ -1,15 +1,18 @@
 package Zeze.History;
 
 import harness.Extra;
+import java.util.ArrayList;
 import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Util.Id128;
 import harness.Fast;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
  * 已发 gid 的落库对账账本（缺口显式化）：gid 在 buildLogChanges 消费即登记，
- * tHistory 行随数据库事务提交由 commitDone 核销；超龄未核销=数据已应用而历史行未落库的
+ * tHistory 行随数据库事务提交由 onPersisted 核销；超龄未核销=数据已应用而历史行未落库的
  * 确定性缺口，周期对账每 gid 告警一次并出账。修复前该形态完全静默（键空间连空洞都可能
  * 不产生，消费端/Verify 均无从感知），回放副本永久分歧。
  * 账龄测量用单调钟（System.nanoTime 基，与消费端空洞老化 ApplyHelper 的同款判据）：
@@ -18,12 +21,29 @@ import org.junit.jupiter.api.Test;
  * 真缺口的告警。
  * 账本为 Application 实例维度：每个 Application 各用一份 PendingGidLedger——不同发号名的
  * 号段计数器都从 (0,0) 起步、gid 数值大量重叠，进程级共享时登记互相覆盖、
- * commitDone 跨 app 误核销。
+ * onPersisted 跨 app 误核销。
  */
 @Fast
 @Extra
 public class TestHistoryPendingGidLedger {
 	private static final long NANO_BASE = System.nanoTime();
+	private final ArrayList<PendingGidLedger> ledgers = new ArrayList<>();
+
+	@BeforeAll
+	public static void initTaskPools() {
+		Zeze.Util.Task.tryInitThreadPool();
+	}
+
+	private PendingGidLedger newLedger(String owner) {
+		var ledger = new PendingGidLedger(owner);
+		ledgers.add(ledger);
+		return ledger;
+	}
+
+	@AfterEach
+	public void stopLedgers() {
+		ledgers.forEach(PendingGidLedger::stop);
+	}
 
 	private static long msToNanos(long millis) {
 		return millis * 1_000_000L;
@@ -32,7 +52,7 @@ public class TestHistoryPendingGidLedger {
 	/** 超龄未核销：告警一次并出账（防重复告警与无界增长）。 */
 	@Test
 	public void testOverdueGidAlertsOnce() {
-		var ledger = new PendingGidLedger("app");
+		var ledger = newLedger("app");
 		var gid = new Id128(NANO_BASE, 1);
 		ledger.register(gid, NANO_BASE - msToNanos(PendingGidLedger.PENDING_ALERT_MILLIS + 60_000));
 		Assertions.assertEquals(1, ledger.sweep(NANO_BASE), "超龄未核销必须告警");
@@ -42,7 +62,7 @@ public class TestHistoryPendingGidLedger {
 	/** 未超龄（覆盖 Checkpoint 周期重试的常态抖动）不告警。 */
 	@Test
 	public void testFreshGidNotAlerted() {
-		var ledger = new PendingGidLedger("app");
+		var ledger = newLedger("app");
 		var gid = new Id128(NANO_BASE, 2);
 		ledger.register(gid, NANO_BASE - msToNanos(1_000));
 		Assertions.assertEquals(0, ledger.sweep(NANO_BASE), "常态抖动窗口内不得告警");
@@ -55,7 +75,7 @@ public class TestHistoryPendingGidLedger {
 	 * 额度被假阳性消耗。 */
 	@Test
 	public void testWallClockForwardJumpProducesNoFalseAlert() {
-		var ledger = new PendingGidLedger("app");
+		var ledger = newLedger("app");
 		var gid = new Id128(NANO_BASE, 3);
 		ledger.register(gid, NANO_BASE);
 		Assertions.assertEquals(0, ledger.sweep(NANO_BASE + msToNanos(1)),
@@ -67,33 +87,34 @@ public class TestHistoryPendingGidLedger {
 	 * 可达分钟级以上），直到墙钟追回，账本检测面在该窗口内失效。 */
 	@Test
 	public void testWallClockBackwardJumpDoesNotDelayTrueGapAlert() {
-		var ledger = new PendingGidLedger("app");
+		var ledger = newLedger("app");
 		var gid = new Id128(NANO_BASE, 4);
 		ledger.register(gid, NANO_BASE - msToNanos(PendingGidLedger.PENDING_ALERT_MILLIS + 60_000));
 		Assertions.assertEquals(1, ledger.sweep(NANO_BASE),
 				"单调账龄超阈值的真缺口必须告警（判龄对墙钟回拨零敏感）");
 	}
 
-	/** tHistory 行提交成功（commitDone 清容器）即核销——正常路径不残留。 */
+	/** tHistory 行提交成功（onPersisted 清容器）即核销——正常路径不残留。 */
 	@Test
 	public void testCommitDoneRetiresGid() {
-		var ledger = new PendingGidLedger("app");
+		var ledger = newLedger("app");
 		var gid = new Id128(NANO_BASE, 5);
 		var data = new BLogChanges.Data();
 		data.setGlobalSerialId(gid);
-		var history = new History(data);
+		var history = new History(new Zeze.Builtin.HistoryModule.tHistory(), ledger, data);
 		ledger.register(gid, NANO_BASE - msToNanos(PendingGidLedger.PENDING_ALERT_MILLIS + 60_000));
-		history.commitDone(ledger);
-		Assertions.assertEquals(0, ledger.sweep(NANO_BASE), "commitDone 核销后不得告警");
+		history.onPersisted();
+		history.onPersisted(); // 重复完成通知必须幂等
+		Assertions.assertEquals(0, ledger.sweep(NANO_BASE), "onPersisted 核销后不得告警");
 	}
 
 	/** 同 JVM 多 Application 各用不同 history 发号名时，两名计数器都从 (0,0) 起步、
-	 * gid 数值大量重叠——一侧 commitDone 的按 gid remove 不得误删另一侧的登记
+	 * gid 数值大量重叠——一侧 onPersisted 的按 gid remove 不得误删另一侧的登记
 	 * （误删则该侧 flush 停滞的真实缺口永远扫不出来，告警面被静默击穿）。 */
 	@Test
 	public void testCrossAppSameNumericGidIsolated() {
-		var app1 = new PendingGidLedger("app1");
-		var app2 = new PendingGidLedger("app2");
+		var app1 = newLedger("app1");
+		var app2 = newLedger("app2");
 		var gid = new Id128(NANO_BASE, 6);
 		// 两个 app 各自登记同一数值 gid（不同发号名，各自独立取号，数值重叠是常态）。
 		app1.register(gid, NANO_BASE - msToNanos(PendingGidLedger.PENDING_ALERT_MILLIS + 60_000));
@@ -101,10 +122,10 @@ public class TestHistoryPendingGidLedger {
 		// app1 侧 tHistory 提交成功，核销自己的登记。
 		var data = new BLogChanges.Data();
 		data.setGlobalSerialId(gid);
-		new History(data).commitDone(app1);
+		new History(new Zeze.Builtin.HistoryModule.tHistory(), app1, data).onPersisted();
 		// app1 已核销干净；app2 的登记必须仍在——超龄对账必须还能扫出它的缺口。
 		Assertions.assertEquals(0, app1.sweep(NANO_BASE), "app1 核销自己的登记后不得告警");
-		Assertions.assertEquals(1, app2.sweep(NANO_BASE), "app2 的登记不得被 app1 的 commitDone 误删");
+		Assertions.assertEquals(1, app2.sweep(NANO_BASE), "app2 的登记不得被 app1 的 onPersisted 误删");
 	}
 
 	/** stop（Application.stop 收编入口）后首个登记重新拉起守护：对齐 DaemonTimer
@@ -113,7 +134,7 @@ public class TestHistoryPendingGidLedger {
 	 * 只读访问面）。 */
 	@Test
 	public void testStopThenRegisterRestartsSweepDaemon() throws Exception {
-		var ledger = new PendingGidLedger("app");
+		var ledger = newLedger("app");
 		var field = PendingGidLedger.class.getDeclaredField("sweepDaemon");
 		field.setAccessible(true);
 		var daemon = (Zeze.Util.DaemonTimer) field.get(ledger);

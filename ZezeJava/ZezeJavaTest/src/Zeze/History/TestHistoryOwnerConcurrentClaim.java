@@ -31,7 +31,7 @@ public class TestHistoryOwnerConcurrentClaim {
 		conf.getDatabaseConfMap().put("", dbConf);
 		var app = new Application(owner, conf);
 		var module = new HistoryModule(app);
-		var moduleField = Application.class.getDeclaredField("historyModule");
+		var moduleField = Application.class.getDeclaredField("history");
 		moduleField.setAccessible(true);
 		moduleField.set(app, module);
 		// Table.open normally binds this field; the protocol only needs the real shared database.

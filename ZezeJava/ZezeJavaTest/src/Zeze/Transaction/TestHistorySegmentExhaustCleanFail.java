@@ -172,10 +172,10 @@ public class TestHistorySegmentExhaustCleanFail {
 			// 首笔：预置段内取号成功，事务成功且 tHistory 落行（gid=(0,0)）。
 			Assertions.assertEquals(Procedure.Success, insert(app, table, KEY, 100), "预置段内取号的事务必须成功");
 			Assertions.assertEquals(100, readValue(app, table, KEY));
-			var historyTable = (Table)app.getHistoryModule().getHistoryTable();
+			var historyTable = (Table)Zeze.History.HistoryModule.get(app).getHistoryTable();
 			//noinspection DataFlowIssue
 			var row = historyTable.getStorage().getDatabaseTable()
-					.find(app.getHistoryModule().getHistoryTable(), new Id128(0, 0));
+					.find(Zeze.History.HistoryModule.get(app).getHistoryTable(), new Id128(0, 0));
 			Assertions.assertNotNull(row, "首笔事务的 tHistory 行必须已落库（Immediately 同步 flush）");
 
 			// 第二笔：段耗尽的续段分配失败——必须数据未应用即干净失败（Closed）。

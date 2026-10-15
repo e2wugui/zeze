@@ -14,6 +14,10 @@ import org.junit.jupiter.api.Test;
 import Zeze.Application;
 import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Config;
+import Zeze.Builtin.HistoryModule.tHistory;
+import Zeze.History.History;
+import Zeze.History.HistoryModule;
+import Zeze.History.PendingGidLedger;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.FuncLong;
 import Zeze.Util.Id128;
@@ -40,6 +44,7 @@ public class TestHistoryFlushCommitBinding {
 
 	private Application app;
 	private FlakyDatabase flaky;
+	private HistoryModule historyModule;
 	private tSimple table;
 
 	private void startApp(String dbSubName) throws Exception {
@@ -55,6 +60,9 @@ public class TestHistoryFlushCommitBinding {
 		conf.getDatabaseConfMap().put("", dbConf);
 
 		app = new Application("TestHistoryFlushCommitBinding", conf);
+		// 只构造刷盘测试使用的模块，Application 保持未安装采集能力。
+		conf.setHistory("TestHistoryFlushCommitBinding");
+		historyModule = new HistoryModule(app);
 
 		// flaky 库入表；tHistory 构造期注册在默认库上（TableConf 无 setter），构造后、
 		// start 前手工改挂（此时 storage 尚未创建，removeTable 的 close 是 no-op）。
@@ -63,8 +71,8 @@ public class TestHistoryFlushCommitBinding {
 		flakyConf.setDatabaseUrl("history_commit_binding_flaky_" + dbSubName);
 		flaky = new FlakyDatabase(flakyConf);
 		app.getDatabases().put("flaky", flaky);
-		app.removeTable("", app.getHistoryModule().getHistoryTable());
-		app.addTable("flaky", app.getHistoryModule().getHistoryTable());
+		app.removeTable("", historyModule.getHistoryTable());
+		app.addTable("flaky", historyModule.getHistoryTable());
 
 		table = new tSimple();
 		app.addTable("flaky", table);
@@ -72,6 +80,8 @@ public class TestHistoryFlushCommitBinding {
 	}
 
 	private void stopApp() throws Exception {
+		app.getCheckpoint().runOnce();
+		historyModule.close();
 		app.stop();
 		app = null;
 		flaky = null;
@@ -103,25 +113,16 @@ public class TestHistoryFlushCommitBinding {
 		var lc = new BLogChanges.Data();
 		lc.setGlobalSerialId(serial.clone());
 		lc.setTimestamp(System.currentTimeMillis());
-		rrs.addLogChanges(lc);
+		rrs.addHistory(new History(historyModule.getHistoryTable(), historyModule.getPendingGidLedger(), lc));
 		return serial;
 	}
 
-	/** 把夹带的 gid 登记进 app 的对账账本（对齐真实路径 buildLogChanges 的 register：
-	 * gid 消费即入账（单调钟基），commitDone 核销）。账本方法为 Zeze.History 包内可见，
-	 * 测试在 Zeze.Transaction 包（FlushSet 为包内类），经反射桥接，仅断言用。 */
-	private static void ledgerRegister(Application app, Id128 gid) throws Exception {
-		var register = Zeze.History.PendingGidLedger.class.getDeclaredMethod("register", Id128.class, long.class);
-		register.setAccessible(true);
-		register.invoke(app.getPendingGidLedger(), gid, System.nanoTime());
-	}
-
-	/** 账本是否仍登记该 gid（未被 commitDone 核销）。 */
-	private static boolean ledgerContains(Application app, Id128 gid) throws Exception {
-		var field = Zeze.History.PendingGidLedger.class.getDeclaredField("pendingCommitGids");
+	/** 账本是否仍登记该 gid（未被 onPersisted 核销）。 */
+	private boolean ledgerContains(Id128 gid) throws Exception {
+		var field = PendingGidLedger.class.getDeclaredField("pendingCommitGids");
 		field.setAccessible(true);
 		@SuppressWarnings("unchecked")
-		var map = (java.util.Map<Id128, Long>)field.get(app.getPendingGidLedger());
+		var map = (java.util.Map<Id128, Long>)field.get(historyModule.getPendingGidLedger());
 		return map.containsKey(gid);
 	}
 
@@ -152,6 +153,7 @@ public class TestHistoryFlushCommitBinding {
 	private void flushFailRetryScenario(CheckpointFlushMode mode) throws Exception {
 		try {
 			startApp(mode.name());
+			app.getConfig().setCheckpointFlushMode(mode);
 			putValue(1, 11);
 
 			var serial = smuggleHistory(1L, 7);
@@ -176,14 +178,14 @@ public class TestHistoryFlushCommitBinding {
 	}
 
 	/** History 容器契约（FND3-51 修复核心）：encode0/writeOnly 只搬运不清空，
-	 * commitDone 绑定提交结果；失败重试的形态（重复 encode0+writeOnly）按系列号幂等。 */
+	 * onPersisted 绑定提交结果；失败重试的形态（重复 encode0+writeOnly）按系列号幂等。 */
 	@Test
 	public void testHistoryContainerContract() throws Exception {
 		var serial = new Id128(0x51D3L, 42);
 		var lc = new BLogChanges.Data();
 		lc.setGlobalSerialId(serial.clone());
 		lc.setTimestamp(System.currentTimeMillis());
-		var history = new Zeze.History.History(lc);
+		var history = new History(new tHistory(), new PendingGidLedger("unit"), lc);
 
 		var conf = new Config.DatabaseConf();
 		conf.setDatabaseType(Config.DbType.Memory);
@@ -205,7 +207,7 @@ public class TestHistoryFlushCommitBinding {
 				txn.close();
 			}
 		}
-		history.commitDone(new Zeze.History.PendingGidLedger("TestHistoryFlushCommitBinding")); // 仅在提交成功后调用
+		history.onPersisted(); // 仅在提交成功后调用
 
 		var keys = new HashSet<ByteBuffer>();
 		table.walk((key, value) -> {
@@ -233,8 +235,9 @@ public class TestHistoryFlushCommitBinding {
 			Assertions.assertNotSame(rrsA, rrsB, "无交集的两条记录必须留在不同 rrs");
 			var g7 = smuggleHistory(1L, 7);
 			var g8 = smuggleHistory(2L, 8);
-			ledgerRegister(app, g7);
-			ledgerRegister(app, g8);
+			var ledger = historyModule.getPendingGidLedger();
+			ledger.register(g7, System.nanoTime());
+			ledger.register(g8, System.nanoTime());
 
 			// 轮1：{A,B} 合并组在提交期毒化失败——失败形态对齐既有语义（回滚、成员留待下轮）。
 			var fs1 = new RelativeRecordSet.FlushSet(app.getCheckpoint());
@@ -254,7 +257,7 @@ public class TestHistoryFlushCommitBinding {
 			Assertions.assertTrue(keys.contains(encodedKey(g7)), "A 自己的历史行必须落库");
 			Assertions.assertFalse(keys.contains(encodedKey(g8)),
 					"B 不在本轮，其 gid 行不得落库（幽灵行：描述永不落库数据的历史）");
-			Assertions.assertTrue(ledgerContains(app, g8),
+			Assertions.assertTrue(ledgerContains(g8),
 					"B 的 gid 登记不得被 A 的组跨组核销（对账账本击穿，缺口永远扫不出来）");
 
 			// 轮3：B 的组此后持续失败——g8 行永不落库，账本登记必须保留（缺口可告警）。
@@ -263,7 +266,7 @@ public class TestHistoryFlushCommitBinding {
 			FlakyDatabase.poisonCommit = true;
 			Assertions.assertThrows(Throwable.class, fs3::flush, "B 的组持续失败");
 			Assertions.assertFalse(tHistoryKeys().contains(encodedKey(g8)), "失败轮不得落历史行");
-			Assertions.assertTrue(ledgerContains(app, g8), "持续失败下账本登记必须保留");
+			Assertions.assertTrue(ledgerContains(g8), "持续失败下账本登记必须保留");
 			Assertions.assertNull(dbValue(2), "B 的数据未落库（与历史行同生共死，不产生分歧）");
 		} finally {
 			FlakyDatabase.poisonCommit = false;
@@ -287,8 +290,10 @@ public class TestHistoryFlushCommitBinding {
 	public void testMergeNoSharedContainer() throws Exception {
 		var gA = new Id128(0x51D3L, 71);
 		var gB = new Id128(0x51D3L, 72);
-		var hA = new Zeze.History.History(logChanges(gA));
-		var hB = new Zeze.History.History(logChanges(gB));
+		var ownerTable = new tHistory();
+		var ownerLedger = new PendingGidLedger("merge-unit");
+		var hA = new History(ownerTable, ownerLedger, logChanges(gA));
+		var hB = new History(ownerTable, ownerLedger, logChanges(gB));
 
 		var conf = new Config.DatabaseConf();
 		conf.setDatabaseType(Config.DbType.Memory);
@@ -298,7 +303,8 @@ public class TestHistoryFlushCommitBinding {
 		var tableA = (FlakyDatabase.FlakyTable)flaky.openTable("unit_tHistory_combine_A", 1);
 		var tableB = (FlakyDatabase.FlakyTable)flaky.openTable("unit_tHistory_combine_B", 1);
 
-		var combined = Zeze.History.History.combine(hA, hB); // FlushSet.flush 的组快照组装
+		var combined = hA.snapshot();
+		combined.mergeFrom(hB); // FlushSet.flush 的组快照组装
 
 		// 失败形态：快照编码落库后回滚（失败轮容器保留在快照里，成员不受波及）。
 		var txn = flaky.beginTransaction();
@@ -317,7 +323,7 @@ public class TestHistoryFlushCommitBinding {
 		} finally {
 			txn2.close();
 		}
-		combined.commitDone(new Zeze.History.PendingGidLedger("TestHistoryFlushCommitBinding"));
+		combined.onPersisted();
 		Assertions.assertEquals(new HashSet<>(java.util.List.of(encodedKey(gA), encodedKey(gB))),
 				walkKeys(tableCombined), "快照必须含双方条目");
 

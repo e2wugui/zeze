@@ -22,8 +22,6 @@ import Zeze.Component.SafeBatch;
 import Zeze.Component.Takeover;
 import Zeze.Component.Timer;
 import Zeze.Dbh2.Dbh2AgentManager;
-import Zeze.History.HistoryModule;
-import Zeze.History.PendingGidLedger;
 import Zeze.Hot.HotHandle;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotUpgradeMemoryTable;
@@ -43,6 +41,7 @@ import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.GlobalAgent;
 import Zeze.Transaction.IGlobalAgent;
+import Zeze.Transaction.IHistory;
 import Zeze.Transaction.Locks;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.ProcedureLockWatcher;
@@ -80,9 +79,6 @@ public final class Application extends ReentrantLock {
 
 	private final @NotNull String projectName;
 	private final @NotNull Config conf;
-	// 已发 gid 落库对账账本，实例维度：不同 history 发号名的 gid 数值空间重叠，进程级共享会跨 app 误核销。
-	// 构造期创建、final、停机不置 null——afterApply 在飞窗口依赖它穿过 historyModule 置 null 的停机窗口。
-	private final @NotNull PendingGidLedger pendingGidLedger;
 	private final @NotNull HashMap<String, Database> databases = new HashMap<>();
 	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Table> tableNameMap = new ConcurrentHashMap<>();
@@ -95,7 +91,7 @@ public final class Application extends ReentrantLock {
 	private Zeze.Collections.Queue.Module queueModule;
 	private DelayRemove delayRemove;
 	private volatile Takeover takeover;
-	private HistoryModule historyModule;
+	private @Nullable IHistory history;
 	private IGlobalAgent globalAgent;
 	private AchillesHeelDaemon achillesHeelDaemon;
 	private DeadlockBreaker deadlockBreaker;
@@ -231,7 +227,6 @@ public final class Application extends ReentrantLock {
 	public Application(@NotNull String projectName, @Nullable Config config) throws Exception {
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();
-		pendingGidLedger = new PendingGidLedger(projectName);
 		if (conf.getServerId() > 0x3FFF) // 16383 encoded size = 2 bytes
 			throw new IllegalStateException("serverId too big. > 16383.");
 		procedureLockWatcher = new ProcedureLockWatcher(this);
@@ -246,7 +241,8 @@ public final class Application extends ReentrantLock {
 			// 自动初始化的组件。
 			autoKey = new AutoKey.Module(this);
 			queueModule = new Zeze.Collections.Queue.Module(this);
-			historyModule = new HistoryModule(this);
+			if (conf.isHistory())
+				history = new Zeze.History.HistoryModule(this);
 			delayRemove = new DelayRemove(this);
 			takeover = new Takeover(this);
 			onz = new Onz(this);
@@ -432,9 +428,9 @@ public final class Application extends ReentrantLock {
 		try {
 			// 与启动期 atomicOpenDatabase 的顺序同构：先注册回放日志工厂再开表，
 			// 注册失败（bean 元数据异常）时 fail-loud 且不留半登记表。
-			if (conf.isHistory()) {
+			if (history != null) {
 				try {
-					Zeze.History.Helper.registerTableLogs(table);
+					history.registerLogs(Collections.singletonList(table));
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -490,13 +486,9 @@ public final class Application extends ReentrantLock {
 		return queueModule;
 	}
 
-	public HistoryModule getHistoryModule() {
-		return historyModule;
-	}
-
-	/** 已发 gid 落库对账账本（每 Application 一份），生命周期同本实例。 */
-	public PendingGidLedger getPendingGidLedger() {
-		return pendingGidLedger;
+	/** 构造期按配置装配，未启用或已停止时返回 null。 */
+	public @Nullable IHistory getHistory() {
+		return history;
 	}
 
 	public DelayRemove getDelayRemove() {
@@ -660,8 +652,8 @@ public final class Application extends ReentrantLock {
 			try {
 				// 由于有了flag，这里实际上就不再会并发了。当然原有的支持并发的代码可以保留。
 				schemasCompatible();
-				if (conf.isHistory())
-					Zeze.History.Helper.registerAllTableLogs(this);
+				if (history != null)
+					history.registerLogs(tableNameMap.values());
 
 				// Open Databases
 				for (var e : databases.entrySet()) {
@@ -675,8 +667,8 @@ public final class Application extends ReentrantLock {
 				// tHistory 物理归属校验：不同发号名的 gid 数值重叠，共享同一物理表经
 				// writeOnly replace 静默互覆——同库多 app 必须同一发号名或为 tHistory
 				// 分库，冲突（含换名重启，需显式迁移）fail-fast。
-				if (conf.isHistory() && historyModule != null)
-					Zeze.History.OwnerCheck.verify(this);
+				if (history != null)
+					history.afterOpen();
 
 				for (var db : getDatabases().values()) {
 					if (!(db instanceof DatabaseRelationalMapping))
@@ -972,9 +964,11 @@ public final class Application extends ReentrantLock {
 				globalAgent = null;
 			}
 
-			// 对账守护与其他周期守护一样须在 stop 中收编：不收编则定时链经 reschedule 无条件
-			// 自续，随实例数无界累积。终检点之后调用——在途行已收尾、停机拒绝使新事务不再产生。
-			stopStep("pendingGidLedger.stop", pendingGidLedger::stop);
+			if (history != null) {
+				var plugin = history;
+				stopStep("history.close", plugin::close);
+				history = null;
+			}
 
 			if (LocalRocksCacheDb != null) {
 				var rocksCacheDb = LocalRocksCacheDb;
@@ -998,15 +992,6 @@ public final class Application extends ReentrantLock {
 				var qm = queueModule;
 				stopStep("queueModule.UnRegisterZezeTables", () -> qm.UnRegisterZezeTables(this));
 				queueModule = null;
-			}
-			if (historyModule != null) {
-				var hm = historyModule;
-				// startHttpServer开启的Netty HttpServer随停机关闭（hist-04）：不收口则端口与
-				// event loop泄漏；其WalkPage会触达tHistory（业务库），必须先于下方db.close。
-				// HistoryModule由Application构造持有，无独立注册面，停机收口只此一处。
-				stopStep("historyModule.stop", hm::stop);
-				stopStep("historyModule.UnRegisterZezeTables", () -> hm.UnRegisterZezeTables(this));
-				historyModule = null;
 			}
 			if (autoKey != null) {
 				stopStep("autoKey.UnRegister", autoKey::UnRegister);

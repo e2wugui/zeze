@@ -8,7 +8,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import Zeze.Application;
-import Zeze.History.History;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FastLock;
@@ -199,7 +198,7 @@ public final class Checkpoint {
 	}
 
 	/**
-	 * 有界等待在飞flush归零（{@link #flush(Iterable, Set, History)}入口inc、finally dec）。
+	 * 有界等待在飞flush归零（{@link #flush(Iterable, Set, IHistory.PendingHistory)}入口inc、finally dec）。
 	 * 停机序列在终检点后、LocalRocksCacheDb.close前调用，超时返回false由调用方告警继续。
 	 * 中断只恢复标志不提前返回：等待本身已有deadline兜底。
 	 */
@@ -299,7 +298,7 @@ public final class Checkpoint {
 		logger.info("final checkpoint end.");
 	}
 
-	public void flush(@NotNull Transaction trans, @Nullable OnzProcedure onzProcedure, @Nullable History history) {
+	public void flush(@NotNull Transaction trans, @Nullable OnzProcedure onzProcedure, @Nullable IHistory.PendingHistory history) {
 		var records = new ArrayList<Record>(trans.getAccessedRecords().size());
 		for (var ar : trans.getAccessedRecords().values()) {
 			if (ar.dirty)
@@ -308,17 +307,17 @@ public final class Checkpoint {
 		flush(records, onzProcedure != null ? Set.of(onzProcedure) : Set.of(), history);
 	}
 
-	private String extractTableNames(Iterable<Record> rs, History history) {
+	private String extractTableNames(Iterable<Record> rs, IHistory.PendingHistory history) {
 		var tables = new HashSet<String>();
 		for (var r : rs)
 			tables.add(r.getTable().getName());
 		if (null != history)
-			tables.add(zeze.getHistoryModule().getHistoryTable().getName());
+			tables.add(history.getTable().getName());
 		return tables.toString();
 	}
 
 	public void flush(@NotNull Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
-					  @Nullable History history) {
+					  @Nullable IHistory.PendingHistory history) {
 		// 在飞计数从首个数据库触碰（LocalRocksCacheDb.beginTransaction）前开始，
 		// 覆盖整个落库过程——stop的waitNoActiveFlush据此等待后才能close/delete目录。
 		synchronized (activeFlushMonitor) {
@@ -337,7 +336,7 @@ public final class Checkpoint {
 	}
 
 	private void flushInternal(@NotNull Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
-							   @Nullable History history) {
+							   @Nullable IHistory.PendingHistory history) {
 		var dts = new IdentityHashMap<Database, Database.Transaction>();
 		Database.Transaction localCacheTransaction = zeze.getLocalRocksCacheDb().beginTransaction();
 
@@ -355,7 +354,7 @@ public final class Checkpoint {
 					}
 				}
 			}
-			var historyTable = zeze.getHistoryModule().getHistoryTable();
+			var historyTable = history != null ? history.getTable() : null;
 			var historyTransaction = history != null
 					? dts.computeIfAbsent(historyTable.getDatabase(), Database::beginTransaction)
 					: null;
@@ -373,7 +372,7 @@ public final class Checkpoint {
 				r.flush(t, localCacheTransaction);
 			}
 			if (history != null) {
-				var storage = ((Table)historyTable).getStorage();
+				var storage = historyTable.getStorage();
 				//noinspection DataFlowIssue
 				history.writeOnly(storage.getDatabaseTable(), historyTransaction);
 			}
@@ -384,7 +383,7 @@ public final class Checkpoint {
 				t.commit();
 			localCacheTransaction.commit();
 			if (history != null)
-				history.commitDone(zeze.getPendingGidLedger()); // tHistory 行已持久化才清容器；失败回滚后保留，重试幂等重写
+				history.onPersisted(); // tHistory 行已持久化才清容器；失败回滚后保留，重试幂等重写
 			try {
 				// 清除编码状态
 				for (var r : rs)

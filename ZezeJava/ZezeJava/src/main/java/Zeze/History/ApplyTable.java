@@ -25,6 +25,12 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	private final @NotNull IApplyTable table;
 	private final @NotNull TableX<K, V> originTable;
 
+	public static @NotNull ApplyTable<?, ?> create(@NotNull Table table, @NotNull IApplyDatabase db) {
+		if (!(table instanceof TableX<?, ?> origin))
+			throw new IllegalArgumentException("history replay requires TableX: " + table.getName());
+		return new ApplyTable<>(origin, db);
+	}
+
 	public ApplyTable(@NotNull TableX<K, V> originTable, @NotNull IApplyDatabase db) {
 		this.originTable = originTable;
 		var tableName = originTable.getName();

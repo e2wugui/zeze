@@ -44,7 +44,7 @@ public class Verify {
 		// null哨兵：(0,0)是合法的首个gid（Tid128Cache对齐TidCache先返后增后，SM从零起grant的段首号
 		// 会真实发放），不能再用零值Id128充当"无前驱"，否则全新部署的首条记录即被误判乱序。
 		var lastK = new OutObject<Id128>();
-		zeze.getHistoryModule().getHistoryTable().walkDatabase((key, value) -> {
+		HistoryModule.get(zeze).getHistoryTable().walkDatabase((key, value) -> {
 			if (lastK.value != null && lastK.value.compareTo(key) >= 0) {
 				logger.error("out of Id128 order: {}, {}", lastK.value, key);
 				// Id128全序是回放确定性前提（游标空洞检测依赖），前提破坏时校验结果不可信，必须中断。
@@ -64,7 +64,7 @@ public class Verify {
 					var originTable = zeze.getTable(tableName);
 					if (originTable == null)
 						throw new RuntimeException("table not found. name=" + tableName);
-					return originTable.createApplyTable(applyDb);
+					return ApplyTable.create(originTable, applyDb);
 				});
 				try {
 					applyTable.apply(r.getKey(), r.getValue());

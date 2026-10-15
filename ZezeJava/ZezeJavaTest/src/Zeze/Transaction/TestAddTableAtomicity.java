@@ -131,10 +131,6 @@ public class TestAddTableAtomicity {
 			throw new UnsupportedOperationException();
 		}
 
-		@Override
-		public @NotNull Zeze.History.ApplyTable<?, ?> createApplyTable(@NotNull Zeze.History.IApplyDatabase applyDb) {
-			throw new UnsupportedOperationException();
-		}
 	}
 
 	@BeforeEach

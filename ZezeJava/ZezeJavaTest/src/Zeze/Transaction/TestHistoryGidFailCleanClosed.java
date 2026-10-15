@@ -10,8 +10,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import Zeze.Application;
 import Zeze.Config;
-import Zeze.Transaction.CheckpointMode;
-import Zeze.Transaction.Procedure;
 import Zeze.Util.FuncLong;
 
 /**
@@ -19,8 +17,8 @@ import Zeze.Util.FuncLong;
  * 日志应用（commit.run）之前——失败时事务在数据未应用前干净回滚（Closed），历史与数据
  * 同生共死。修复前取号在应用之后：Immediately 模式补刷数据后吞掉异常报假成功，
  * tHistory 永久缺失且 gid 未消费（键空间连空洞都没有，回放端无从感知）。
- * 注入形态：运行期翻转 config.setHistory（Infinite.Simulate 同款开关）——开启后
- * ServiceManager=disable 的组合使 getUsableTid128CacheFuture 必失败；关闭后恢复。
+ * 先以关闭 History 的实例写入基线，再用相同持久化库启动启用 History 的实例。
+ * ServiceManager=disable 使取号确定失败；运行期修改配置不能绕过已装配的能力。
  */
 @Fast
 public class TestHistoryGidFailCleanClosed {
@@ -35,9 +33,10 @@ public class TestHistoryGidFailCleanClosed {
 	private Application app;
 	private demo.Module1.tflush table;
 
-	private void startApp() throws Exception {
+	private void startApp(boolean history) throws Exception {
 		var config = new Config();
 		config.setServiceManager("disable"); // history 关闭时无 SM 依赖，可正常启动
+		config.setTakeoverMode("off");
 		config.setCheckpointMode(CheckpointMode.Immediately);
 		config.setServerId(SERVER_ID);
 		config.setDefaultTableConf(new Config.TableConf());
@@ -46,6 +45,8 @@ public class TestHistoryGidFailCleanClosed {
 		dbConf.setDatabaseUrl(tempDir.resolve("dbhome").toString());
 		config.getDatabaseConfMap().put("", dbConf);
 
+		if (history)
+			config.setHistory("UnitTest.HistoryGidAllocFail");
 		app = new Application("TestHistoryGidFailClean", config);
 		table = new demo.Module1.tflush();
 		app.addTable("", table);
@@ -80,21 +81,25 @@ public class TestHistoryGidFailCleanClosed {
 
 	@Test
 	public void testGidFailFailsCleanBeforeApply() throws Exception {
-		startApp();
+		startApp(false);
 		try {
 			// 基线：history 关闭时写事务正常提交
 			Assertions.assertEquals(Procedure.Success, insert(KEY, 100), "history 关闭时基线写必须成功");
 			Assertions.assertEquals(100, readValue(KEY));
 
-			// 开启 history 且取号通道必失败：写事务必须干净失败（Closed），数据不得应用
-			app.getConfig().setHistory("UnitTest.HistoryGidAllocFail");
+			// 下次启动装配 History，取号通道必失败：业务数据应用前干净回滚。
+			app.stop();
+			startApp(true);
 			Assertions.assertEquals(Procedure.Closed, insert(KEY2, 200),
 					"取号失败必须干净失败（修复前：Immediately 补刷数据后吞异常报假成功 Success）");
 			Assertions.assertEquals(-1, readValue(KEY2), "取号失败的事务数据不得应用（未应用即回滚）");
 			Assertions.assertEquals(100, readValue(KEY), "此前已提交的数据不受影响");
 
-			// 关闭 history 恢复：写事务恢复成功
+			// 运行期改配置不能卸载已装配的 History，也不能绕过失败。
 			app.getConfig().setHistory("");
+			Assertions.assertEquals(Procedure.Closed, insert(KEY2, 200));
+			app.stop();
+			startApp(false);
 			Assertions.assertEquals(Procedure.Success, insert(KEY2, 200), "history 关闭后写事务恢复成功");
 			Assertions.assertEquals(200, readValue(KEY2));
 		} finally {

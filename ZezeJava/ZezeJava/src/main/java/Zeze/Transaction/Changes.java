@@ -20,28 +20,36 @@ import org.jetbrains.annotations.Nullable;
 public final class Changes {
 	private static final @NotNull Logger logger = LogManager.getLogger(Changes.class);
 
-	// 惰性字段：无监听者且非 history 的普通事务（绝大多数）里 collect/collectRecord 在
-	// listeners 检查处早退，三个容器全程为空——IdentityHashMap 构造即分配 64 槽背板、
-	// LongHashMap 构造即建表，占单字段事务每笔分配的约三成。null 即空，getBeans 惰性建以保持
-	// 非空契约（Raft/History 消费者直接迭代返回值）。
+	// 无 History、无监听者的提交不创建 Changes；有消费者但无字段日志（如整条 Put）
+	// 时仍无须分配 beans。getBeans 保持返回非空容器的契约。
 	private @Nullable LongHashMap<LogBean> beans; // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
 	private final HashMap<@NotNull TableKey, @NotNull Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
-	private @Nullable IdentityHashMap<@NotNull Table, @NotNull Set<@NotNull ChangeListener>> listeners;
-	private final boolean isHistory;
+	private final @Nullable IdentityHashMap<@NotNull Table, @NotNull Set<@NotNull ChangeListener>> listeners;
+	private final boolean collectAll;
 
-	public Changes(@NotNull Transaction t, Procedure proc) {
-		isHistory = proc.getZeze().getConfig().isHistory();
-		// 建立脏记录的表的监听者的快照，以后收集日志和通知监听者都使用这个快照，避免由于监听者发生变化造成收集和通知不一致。
+	private Changes(boolean collectAll,
+			@Nullable IdentityHashMap<@NotNull Table, @NotNull Set<@NotNull ChangeListener>> listeners) {
+		this.collectAll = collectAll;
+		this.listeners = listeners;
+	}
+
+	/** 先确认脏写，再决定是否全量采集。纯读、无监听器的普通提交不分配 Changes。 */
+	static @Nullable Changes createIfNeeded(@NotNull Transaction t, boolean collectAll) {
+		IdentityHashMap<@NotNull Table, @NotNull Set<@NotNull ChangeListener>> snapshot = null;
+		boolean hasDirty = false;
 		for (var ar : t.getAccessedRecords().values()) {
-			if (ar.dirty) {
-				var listeners = ar.atomicTupleRecord.record().getTable().getChangeListenerMap().getListeners();
-				if (!listeners.isEmpty()) {
-					if (this.listeners == null)
-						this.listeners = new IdentityHashMap<>();
-					this.listeners.putIfAbsent(ar.atomicTupleRecord.record().getTable(), listeners);
-				}
+			if (!ar.dirty)
+				continue;
+			hasDirty = true;
+			var table = ar.atomicTupleRecord.record().getTable();
+			var listeners = table.getChangeListenerMap().getListeners();
+			if (!listeners.isEmpty()) {
+				if (snapshot == null)
+					snapshot = new IdentityHashMap<>();
+				snapshot.putIfAbsent(table, listeners);
 			}
 		}
+		return (collectAll && hasDirty) || snapshot != null ? new Changes(collectAll, snapshot) : null;
 	}
 
 	public @NotNull LongHashMap<LogBean> getBeans() {
@@ -166,7 +174,7 @@ public final class Changes {
 	public void collect(@NotNull Bean recent, @NotNull Log log) {
 		// is table has listener
 		//noinspection DataFlowIssue
-		if (!isHistory && (listeners == null || listeners.get(recent.rootInfo.record().getTable()) == null))
+		if (!collectAll && (listeners == null || listeners.get(recent.rootInfo.record().getTable()) == null))
 			return;
 
 		var belong = log.getBelong();
@@ -204,7 +212,7 @@ public final class Changes {
 
 	public void collectRecord(@NotNull RecordAccessed ar) {
 		// is table has listener
-		if (!isHistory && (listeners == null || listeners.get(ar.atomicTupleRecord.record().getTable()) == null))
+		if (!collectAll && (listeners == null || listeners.get(ar.atomicTupleRecord.record().getTable()) == null))
 			return;
 
 		var tkey = ar.tableKey();

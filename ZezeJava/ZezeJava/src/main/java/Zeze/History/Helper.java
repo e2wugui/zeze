@@ -124,12 +124,13 @@ public class Helper {
 	}
 
 	public static void registerAllTableLogs(@NotNull Application zeze) throws Exception {
+		registerTableLogs(zeze.getTables().values());
+	}
+
+	public static void registerTableLogs(@NotNull Iterable<Table> tables) throws Exception {
 		var result = new DependsResult();
-		for (var db : zeze.getDatabases().values()) {
-			for (var table : db.getTables()) {
-				dependsTable(table, result);
-			}
-		}
+		for (var table : tables)
+			dependsTable(table, result);
 		applyRegistrations(result);
 	}
 

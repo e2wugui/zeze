@@ -31,13 +31,17 @@ public final class OwnerCheck {
 	}
 
 	public static void verify(@NotNull Application zeze) {
+		verify(HistoryModule.get(zeze));
+	}
+
+	static void verify(@NotNull HistoryModule module) {
 		// 经表的实际注册解析数据库（Table.getDatabase）：tHistory 可能被改挂到非配置库
 		//（如测试的 FlakyDatabase），归属检测必须锚定实际物理存储而非配置名。
-		var table = (Zeze.Transaction.Table)zeze.getHistoryModule().getHistoryTable();
+		var table = (Zeze.Transaction.Table)module.getHistoryTable();
 		var db = table.getDatabase();
 		if (db == null)
 			return; // 表未注册到任何库（防御）：无可检面。
-		var name = zeze.getConfig().getHistory();
+		var name = module.getHistoryName();
 		var key = ByteBuffer.Allocate(64);
 		key.WriteString(OWNER_KEY);
 		var ops = db.getDirectOperates();

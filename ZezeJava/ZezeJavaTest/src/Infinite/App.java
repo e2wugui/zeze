@@ -18,12 +18,16 @@ public class App {
 	final CoverHistory coverHistory;
 
 	public App(int serverId) {
+		this(serverId, true);
+	}
+
+	public App(int serverId, boolean history) {
 		config = Config.load("zeze.xml");
 		config.setServerId(serverId);
 		config.setFastRedoWhenConflict(false);
 		config.setCheckpointPeriod(1000);
 		config.getServiceConfMap().remove("Zeze.Onz.Server");
-		config.setHistory("ZezeTest");
+		config.setHistory(history ? "ZezeTest" : "");
 		// DatabaseMemory的表存储按DatabaseUrl静态分桶：zeze.xml默认空url桶与demo.App等
 		// 其他App共享，Simulate批间清表会误清别的App的行（曾把常驻demo.App的Takeover租约
 		// 清掉，后续CsQueue构造stampScope读到行缺失被误判为被接管，System.exit(-1)杀掉
@@ -173,6 +177,7 @@ public class App {
 		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_Collections_Queue_tQueues"));
 		//noinspection DataFlowIssue
 		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_Collections_Queue_tQueueNodes"));
-		clearDbTable(app.getZeze().getHistoryModule().getHistoryTable()); // 必须在最后清空
+		if (app.getZeze().getHistory() != null)
+			clearDbTable(Zeze.History.HistoryModule.get(app.getZeze()).getHistoryTable()); // 必须在最后清空
 	}
 }
