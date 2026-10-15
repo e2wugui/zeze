@@ -1,3 +1,5 @@
+History tid 分配方案，目前是锁内一次一个的分配，性能不行。
+
 DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
 
@@ -7,7 +9,7 @@ Dbh2 simulate.bat 启动比较慢，log断断续续的输出。
 ProviderOverload // todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2024/10/22 v1.4.8 History Compatible & Test; NewSolution; FreeMarker; Thymeleaf; 
+2024/10/22 v1.4.8 History Compatible & Test; NewSolution; FreeMarker; Thymeleaf;
 ------------------------------------------------------------------------------------------------------------------------------
 History Compatible 兼容性；@zl
 NewSolution 新建项目助手; @zl
@@ -18,7 +20,7 @@ FreeMarker 接入，支持Web服务器端渲染。
 Thymeleaf 接入，支持Web服务器端渲染。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2024/5/17 v1.4.7 Histroy; ServiceManager; Id128(udp); TimeAdaptedFund; 
+2024/5/17 v1.4.7 Histroy; ServiceManager; Id128(udp); TimeAdaptedFund;
 ------------------------------------------------------------------------------------------------------------------------------
 History 使用 Id128。
 History 专门的Tid(使用Id128)分配服务器（基于udp）和Agent。
@@ -34,7 +36,7 @@ SM 删除updateService及相关。
 检测内存占用，比如80%，做一次checkpoint。@zl
 
 ------------------------------------------------------------------------------------------------------------------------------
-2024/4/26 v1.4.6 ServiceManager(incompatible); Profiler; decimal; HttpSession; SM.Exporter; 
+2024/4/26 v1.4.6 ServiceManager(incompatible); Profiler; decimal; HttpSession; SM.Exporter;
 ------------------------------------------------------------------------------------------------------------------------------
 ServiceManager 删除启动延迟通知机制；【完成】
 ServiceManager 删除ReadyCommit订阅模式；【完成】
@@ -67,7 +69,7 @@ ThreadDiagnosable 打印中断目标线程的堆栈。
 Service 增加InstanceName，当前用于统计日志的输出，其他地方需要再加上。目前Dbh2RaftServer会设置这个属性。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2024/3/29 v1.4.4 DatabaseRedis; Operates; Dbh2PrefixTable; 
+2024/3/29 v1.4.4 DatabaseRedis; Operates; Dbh2PrefixTable;
 ------------------------------------------------------------------------------------------------------------------------------
 Dbh2.Table 下构建 PrefixTable；
 Dbh2 RocksDB多Table共享；【废弃，参考PrefixTable】
@@ -116,13 +118,13 @@ Global.Releaser reduceInvalidAllLocalOnly不在flush，改成全服checkpoint。
 CheckpointMode 多线程及合并流程改成parallelStream.
 
 ------------------------------------------------------------------------------------------------------------------------------
-2024/2/2 v1.4.1 World.Polygon; 
+2024/2/2 v1.4.1 World.Polygon;
 ------------------------------------------------------------------------------------------------------------------------------
 World Polygon旋转移位。
 World 根据line2d参数计算直线另一端点坐标。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2024/1/19 v1.4.0 Task; Dbh2 Doc; Doc; Bench Global Raft; 
+2024/1/19 v1.4.0 Task; Dbh2 Doc; Doc; Bench Global Raft;
 ------------------------------------------------------------------------------------------------------------------------------
 Dbh2 文档归档
 Task 系统及相关继续完善。任务配置缓存！！！
@@ -173,7 +175,7 @@ BinLogger
 Virtual-Thread 的应用和相关修订。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/11/13 v1.3.6 DeadlockBreaker; Dbh2; Zoker; Raft; 
+2023/11/13 v1.3.6 DeadlockBreaker; Dbh2; Zoker; Raft;
 ------------------------------------------------------------------------------------------------------------------------------
 Raft.Agent.driveOutNotSuggestMajorityLeader
 把 Raft.Agent 包装进函数，用来检测Leader已经产生（有超时），
@@ -222,7 +224,7 @@ PerfCounter 现有的功能，统计次数，时间累计，protocol-recv-send-s
 """
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/10/27 v1.3.5 Raft & Dbh2; For IPV6 Format; Schemas; LogWeb; TableX.walk; 
+2023/10/27 v1.3.5 Raft & Dbh2; For IPV6 Format; Schemas; LogWeb; TableX.walk;
 ------------------------------------------------------------------------------------------------------------------------------
 Protocol.getCriticalLevel 定义和Gen实现。其中Dispatch实现@zl。
 zeze.doc 运维和配置
@@ -271,7 +273,7 @@ raft异地备份分start，restart两个入口。dbh2共享链接master分配管
 Raft/Proxy 多个raft节点运行在一个进程中，允许通过一个代理连接收发协议，共享这个连接，而不用每个节点建立自己的连接。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/10/9 v1.3.4 doc; Dbh2; LogService; TimeCounter; Arch; OverLoad; 
+2023/10/9 v1.3.4 doc; Dbh2; LogService; TimeCounter; Arch; OverLoad;
 ------------------------------------------------------------------------------------------------------------------------------
 【Arch加强】
 二，负载均衡 参考Ribbon
@@ -303,7 +305,7 @@ Log4jQuery 完成核心算法。
 Dbh2 增加 rpcTimeout 配置，用于raft和一般rpc请求。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/9/20 v1.3.3 Hot; Service KeepAlive（java c# c++）; Memory; 
+2023/9/20 v1.3.3 Hot; Service KeepAlive（java c# c++）; Memory;
 ------------------------------------------------------------------------------------------------------------------------------
 0. dbh2.rocks 层调用不允许出错，有点过于相信底层了，怎么解决？出错了现在是abort，改成reset raft？
 reset风险在于，如果多个节点都出错，都reset，最终导致数据状态丢失，无法恢复，而可能问题没那么严重，
@@ -326,13 +328,13 @@ ServiceManager KeepAlive 确认？保留现有的或者改造成新的。
 Online.Local Detect Test【内存表没有马上删除导致size不正确】【修改为commit时马上删除】
 cxx KeepAlive NOT TEST.
 KeepAlive 加入Service层，由Service负责踢掉超时的。Service需要增加回调。
-HotManager 错误处理测试 
+HotManager 错误处理测试
 1. stop 异常；2. _install 异常; 3. upgrade 异常; 4. start 异常;
 * 1-3需要能恢复旧版如常工作，* 4将模块禁用，需要禁
 删除Zeze.Util.Zezex.cs，注释掉Gen参数"ExportConf"
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/9/8 v1.3.2 Hot; Online.Local; StartLast; Rank; 
+2023/9/8 v1.3.2 Hot; Online.Local; StartLast; Rank;
 ------------------------------------------------------------------------------------------------------------------------------
 HotManager 错误处理。
 两个不一样的目标：
@@ -363,7 +365,7 @@ Hot Memory 表格修改测试；Memory改成非，或反之测试。
 Hot install new module need register sm,还需要module config  choice type.
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; CsQueue; CHashMap; 
+2023/8/25 v1.3.1 Hot; EventDispatcher; Memory-Table.SoftReference; CsQueue; CHashMap;
 ------------------------------------------------------------------------------------------------------------------------------
 TestCsQueue
 Zeze.Collections.Queue 不能使用DelayRemove，因为DelayRemove依赖了它。
@@ -465,7 +467,7 @@ Hot TimerRole & TimerAccount
 	这两个handle不会持久化，只发生在本进程中，原来直接传入引用。
 	旧版限制只能非热更模块使用；
 	新版接口如下：
-	scheduleHot(... Class<? extends TimerHandle> handleClass, Class<? extends TimerHandle> handle...) 
+	scheduleHot(... Class<? extends TimerHandle> handleClass, Class<? extends TimerHandle> handle...)
 	方法名字增加Hot，明确区分原有方法，参数改成handleClass。
 直接暴露数据表 @zl
 TODO 模块内的bean跟随module.interface.jar发布。
@@ -541,7 +543,7 @@ Threading timeout max。
 Threading 基本完工。
 
 ------------------------------------------------------------------------------------------------------------------------------
-2023/6/9 v1.2.6 Config.Customize; Dbh2 Lock Options, Walk, CreateTableAsync; 
+2023/6/9 v1.2.6 Config.Customize; Dbh2 Lock Options, Walk, CreateTableAsync;
 ------------------------------------------------------------------------------------------------------------------------------
 Dbb2 方案3 ！！！【重新确认用了方案3】
 Dbh2 接入Zeze：CheckpointFlush 慢。???
@@ -808,7 +810,7 @@ RelationalTableMapping
 	a) Database.Table 增加新方法？Database.TableMapping 新接口？TableX下沉到 find，replace，delete？
 	    倾向于【增加】【下沉方法】。
 	b) TableX.walk<K, V> 使用a)的方案，walk<byte[], byte[]>对于Mapping方式不支持。
-	e) Table为单位配置，还是整个Project配置？Table RelationalMapping="true|false|project" Project RelationalMapping=”true|false" 
+	e) Table为单位配置，还是整个Project配置？Table RelationalMapping="true|false|project" Project RelationalMapping=”true|false"
 	    【这些配置选择在Gen阶段就完成，然后仅在Table的子类实现中提供，不再提供其他配置手段】
 	f) flush-snapshot的问题。编写新的flush流程？或者定义新的snapshotSqlValue?
 	   或者使用原来的snapshotValue，改成Object类型，具体保存什么数据，encode0根据当前表是否映射关系表进行编码，并且最终由Database.Table解释执行。
@@ -1003,7 +1005,7 @@ Table.walkDesc descendingMap.tailMap是什么。
 【2022/12/28】
 
 ------------------------------------------------------------------------------------------------------------------------------
-v1.1.4 ProviderDirectService.WaitDirectServerReady; Timer cancelAlways; ServiceManagerWithRaft; 
+v1.1.4 ProviderDirectService.WaitDirectServerReady; Timer cancelAlways; ServiceManagerWithRaft;
 ------------------------------------------------------------------------------------------------------------------------------
 【全面】升级Zeze到serverdev
 	2. 全面升级Arch。@zl
@@ -1017,7 +1019,7 @@ ProviderDirectService.WaitDirectServerReady
 【2022/12/21】
 
 ------------------------------------------------------------------------------------------------------------------------------
-v1.1.3 ServiceManagerWithRaft; BUG BeginSavepoint; 
+v1.1.3 ServiceManagerWithRaft; BUG BeginSavepoint;
 ------------------------------------------------------------------------------------------------------------------------------
 Global所有版本AchillesHeelDaemon不再总是记录log，仅仅记录有释放锁的session的日志。
 New RocksRaft.Table.selectDirty(); 没有仔细考虑。
@@ -1113,7 +1115,7 @@ tag v1.0.7 Table.DelayRemove; dynamic in collection; Zeze.Util.Cache; New LogDyn
 Table.DelayRemove 删除的实现。
 dynamic is bean? 支持放入容器。@zl
 LogDynamic：encode/decode 【大问题】
-	1. 当整个Bean替换的时候需要传递Bean.Encode 
+	1. 当整个Bean替换的时候需要传递Bean.Encode
 	2. 当Bean发生了编辑时需要传递LogBean。
 	x. 需要像容器一样实现一个专有LogBean管理类。
 Zege c#
@@ -1158,7 +1160,7 @@ ServiceManager::OfflineNotify
 
 Zege
 	GetPublicUserInfo,GetPublicUserPhoto 实现和linkd拦截处理;
-	provider.module.binds.xml，模块默认hash(account); 
+	provider.module.binds.xml，模块默认hash(account);
 	创建账号和登录。
 	Friend 完善：参数检查，权限相关。
 	消息历史基本完工：保存和读取和设置已读。
@@ -1171,7 +1173,7 @@ Zege
 
 conf+cs+net (+ts? +lua?)
 	精简客户端，拷贝部分源码到自己的目录。
-	1. conf+cs 系列化；使用gen命令输出系列化需要的源文件：gen -c ExportConf -ZezeSrcDir ../zeze 
+	1. conf+cs 系列化；使用gen命令输出系列化需要的源文件：gen -c ExportConf -ZezeSrcDir ../zeze
 	2. 拷贝Net目录；在项目中定义宏 USE_CONFCS，这样Net模块就不再依赖事务Bean和存储过程。
 	3. 需要建立一个几乎空的 Zeze.Application，用来传递Config和避免修改Gen.exe。
 	4. 拷贝 Zeze.IModule;Zeze.AppBase;Zeze.Config;Zeze.Util.ResultCode;Zeze.Util.Mission;Zeze.Util.Scheduler。
@@ -1633,8 +1635,8 @@ Arch remove ProviderSessionId；Rename ProviderId to ServerId
 Online Test 【肖丽杨】Java
 RocksRaft Collection.List LogList
 【zl已完成】OpLogs=List<OperateLog>。list中的Bean更新规则：Encode的时indexOf所有的Changed找到索引，Apply=list.get(index).Apply(beanLog)。
-2. c# 1) LoadReporter. 
-3. java 1) LoadReporter. 
+2. c# 1) LoadReporter.
+3. java 1) LoadReporter.
 1. Online Memory Table 可以存储在线相关数据。
    功能
    a) Local.Online.Count
@@ -1714,7 +1716,7 @@ GCTable(每个ServerId一个Queue), rename to DelayRemove
 Component.AutoKey
 java LinkedMap dynamic 动态注册问题。
 换换脑子，写一个java版基于KV的LinkedMap
-async Connector GetReadySocket WaitReady 
+async Connector GetReadySocket WaitReady
 GlobakWithRaft java test【zl】【基本可用了】
 GlobalAgent NormalClose 超时设置。必须加大或者无限等待。
 zeze async await test。remove SimpleThreadPool!
@@ -1726,7 +1728,7 @@ rocksraft 异步测试【raft还有bug，但这个能测试通过】
 Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
 AsyncRocksDb
 AsyncExecutor
-database 异步化 
+database 异步化
 Global With Raft 异步化
 rocksraft 异步化
 raft 异步化
@@ -1751,7 +1753,7 @@ GloblWithRaftAgent c# WaitLoginSuccess
 RocksRaft java
 RocksRaft rrjava
 GlobalRaft Agent.Initialize & Test
-GlobalRaft Agent GetReadySocket() Login ReLogin	
+GlobalRaft Agent GetReadySocket() Login ReLogin
 GlobalRaft GlobalSerialId 问题解决初步想法：由RocksRaft提供AtomicLong实现，每个事务结束，
 成功同步到其他节点。这个Global拿来区分记录申请次数，需要一直递增，可以跳着分配（浪费）。
 细节：lock (Raft) { if (atomiclong.get() > lastAppendLog) doAppendLog; }
