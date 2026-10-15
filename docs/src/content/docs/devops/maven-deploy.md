@@ -44,7 +44,7 @@ gpg --keyserver keyserver.ubuntu.com --send-keys <KEY_ID>
 
 ### pom.xml 关键配置
 
-当前坐标：`com.zezeno:zeze-java:1.6.3-SNAPSHOT`。
+当前坐标：`com.zezeno:zeze-java:2.0.4-SNAPSHOT`。
 
 **distributionManagement** 定义发布目标仓库，正式版本发布到 Sonatype 中央仓库：
 
@@ -70,7 +70,7 @@ gpg --keyserver keyserver.ubuntu.com --send-keys <KEY_ID>
 <plugin>
   <groupId>org.sonatype.central</groupId>
   <artifactId>central-publishing-maven-plugin</artifactId>
-  <version>0.6.0</version>
+  <version>0.12.0</version>
   <extensions>true</extensions>
   <configuration>
     <publishingServerId>central</publishingServerId>
