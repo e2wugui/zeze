@@ -179,7 +179,7 @@ public final class Agent extends AbstractAgent {
 		try {
 			var identify = new Identify();
 			identify.Argument.serverId = config.getServerId();
-			identify.Argument.version = config.getServerVersion();
+			identify.Argument.version = config.getAppMainVersion();
 			identify.Send(client.getSocket());
 		} catch (Throwable ex) {
 			logger.debug("OnConnected.Identify", ex);
@@ -314,9 +314,9 @@ public final class Agent extends AbstractAgent {
 	private long processSuspect(@NotNull Suspect r) {
 		var on = onSuspect;
 		if (on != null) {
-			if (config.getServerVersion() < r.Argument.version) {
+			if (config.getAppMainVersion() < r.Argument.version) {
 				logger.debug("processSuspect ignored: myVersion={} < deadVersion={} serverId={}",
-						config.getServerVersion(), r.Argument.version, r.Argument.serverId);
+						config.getAppMainVersion(), r.Argument.version, r.Argument.serverId);
 				return 0;
 			}
 			try {
@@ -334,7 +334,7 @@ public final class Agent extends AbstractAgent {
 			var done = new TakeoverDone();
 			done.Argument.deadServerId = deadServerId;
 			done.Argument.takerServerId = config.getServerId();
-			done.Argument.takerVersion = config.getServerVersion();
+			done.Argument.takerVersion = config.getAppMainVersion();
 			done.Send(client.getSocket());
 		} catch (Throwable ex) {
 			logger.debug("sendTakeoverDone", ex);

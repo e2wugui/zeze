@@ -118,14 +118,10 @@ public final class Config {
 	private int checkpointTransactionPeriod = 30_0000;
 	private boolean enableGlobalFastFail = false;
 
-	// Takeover 接管租约（attr: TakeoverTtl/TakeoverScanPeriod/TakeoverMode/ServerVersion）。
+	// Takeover 接管租约（attr: TakeoverTtl/TakeoverScanPeriod/TakeoverMode）。
 	private long takeoverTtl = 600 * 1000; // 租约TTL(毫秒)，保守起步，可配小。正常关闭后亦刷新为此宽限期，到期被接管（缩容）。
 	private long takeoverScanPeriod = 30 * 1000; // 扫描兜底周期(毫秒)。
 	private @NotNull String takeoverMode = "on"; // off|dryrun|on；off完全关闭，dryrun只做租约簿记+dry-run日志，on全量接管（默认）。
-	// 进程数据格式版本：接管梯队的参与资格依据（Identify 上报、Suspect 携带）。
-	// 梯队语义：==死者version的server先争抢，全失败后按version升序逐档（档间隔=1.5×TTL），
-	// <死者version的永不参与（防数据降级丢失）。细粒度兜底仍由 scope 级 Veto（不立墓碑留给高版本）承担。
-	private long serverVersion = 0;
 
 	public boolean getEnableGlobalFastFail() {
 		return enableGlobalFastFail;
@@ -149,14 +145,6 @@ public final class Config {
 
 	public void setTakeoverScanPeriod(long value) {
 		takeoverScanPeriod = value;
-	}
-
-	public long getServerVersion() {
-		return serverVersion;
-	}
-
-	public void setServerVersion(long value) {
-		serverVersion = value;
 	}
 
 	public @NotNull String getTakeoverMode() {
@@ -697,10 +685,6 @@ public final class Config {
 		attr = self.getAttribute("TakeoverMode");
 		if (!attr.isBlank())
 			setTakeoverMode(attr);
-
-		attr = self.getAttribute("ServerVersion");
-		if (!attr.isBlank())
-			serverVersion = Long.parseLong(attr);
 
 		noDatabase = self.getAttribute("NoDatabase").trim().equalsIgnoreCase("true");
 

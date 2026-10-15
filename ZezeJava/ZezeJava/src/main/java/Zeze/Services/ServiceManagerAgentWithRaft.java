@@ -118,7 +118,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		try {
 			var identify = new Identify();
 			identify.Argument.serverId = config.getServerId();
-			identify.Argument.version = config.getServerVersion();
+			identify.Argument.version = config.getAppMainVersion();
 			raftClient.send(identify, __ -> 0L);
 		} catch (Throwable ex) {
 			logger.error("OnLoginSuccess.Identify", ex);
@@ -205,9 +205,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		var on = onSuspect;
 		if (on != null) {
 			// version过滤（防御层，主过滤在SM梯队广播侧）：本进程版本低于死者=永不参与（数据降级防护）。
-			if (config.getServerVersion() < r.Argument.version) {
+			if (config.getAppMainVersion() < r.Argument.version) {
 				logger.debug("ProcessSuspectRequest ignored: myVersion={} < deadVersion={} serverId={}",
-						config.getServerVersion(), r.Argument.version, r.Argument.serverId);
+						config.getAppMainVersion(), r.Argument.version, r.Argument.serverId);
 				r.SendResult();
 				return Procedure.Success;
 			}
@@ -227,7 +227,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			var done = new Zeze.Builtin.ServiceManagerWithRaft.TakeoverDone();
 			done.Argument.deadServerId = deadServerId;
 			done.Argument.takerServerId = config.getServerId();
-			done.Argument.takerVersion = config.getServerVersion();
+			done.Argument.takerVersion = config.getAppMainVersion();
 			raftClient.send(done, __ -> 0L);
 		} catch (Throwable ex) {
 			logger.debug("sendTakeoverDone", ex);

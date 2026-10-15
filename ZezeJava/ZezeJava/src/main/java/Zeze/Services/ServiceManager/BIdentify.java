@@ -6,7 +6,7 @@ import Zeze.Serialize.Serializable;
 
 /**
  * Identify/Suspect 参数：serverId + version（进程数据格式版本，接管梯队依据）。
- * Identify 上报时由 GS 填自己的 config.serverVersion；Suspect 广播时填死者的 version。
+ * Identify 上报时由 GS 填自己的 config.getAppMainVersion()；Suspect 广播时填死者的 version。
  */
 public class BIdentify implements Serializable {
 	public int serverId;
