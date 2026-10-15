@@ -160,7 +160,7 @@
 			<plugin>
 				<groupId>io.github.git-commit-id</groupId>
 				<artifactId>git-commit-id-maven-plugin</artifactId>
-				<version>6.0.0</version>
+				<version>7.0.0</version>
 				<executions>
 					<execution>
 						<id>get-the-git-infos</id>
@@ -171,6 +171,7 @@
 					</execution>
 				</executions>
 				<configuration>
+					<useNativeGit>true</useNativeGit>
 					<generateGitPropertiesFile>true</generateGitPropertiesFile>
 					<generateGitPropertiesFilename>${project.build.outputDirectory}/zeze.git.properties</generateGitPropertiesFilename>
 					<includeOnlyProperties>
@@ -203,7 +204,7 @@
 		<jedis.version>5.2.0</jedis.version>
 		<aws-java-sdk-dynamodb.version>1.12.797</aws-java-sdk-dynamodb.version>
 		<fdb-java.version>7.4.6</fdb-java.version>
-		<rocketmq-client.version>4.9.8</rocketmq-client.version>
+		<rocketmq-client.version>5.5.1</rocketmq-client.version>
 		<javaee-api.version>8.0.1</javaee-api.version>
 		<jgrapht-core.version>1.5.3</jgrapht-core.version>
 		<zstd-jni.version>1.5.7-7</zstd-jni.version>
@@ -274,6 +275,13 @@
 		<dependency>
 			<groupId>io.netty</groupId>
 			<artifactId>netty-codec-http</artifactId>
+			<version>${netty.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.netty</groupId>
+			<artifactId>netty-codec-http2</artifactId>
 			<version>${netty.version}</version>
 			<scope>provided</scope>
 		</dependency>
