@@ -1,9 +1,16 @@
 package Zeze.Arch.Gen;
 
 import org.jspecify.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.NullUnmarked;
 
 import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.AnnotatedArrayType;
+import java.lang.reflect.AnnotatedParameterizedType;
+import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Field;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
@@ -198,6 +205,30 @@ final class Gen {
 			return kn != null ? kn.typeName.get() : type.getTypeName().replace('$', '.');
 		}
 		return type.toString().replace('$', '.'); // ParameterizedType
+	}
+
+	String getTypeName(AnnotatedType type) {
+		if (type instanceof AnnotatedArrayType) {
+			var dimensions = new StringBuilder();
+			while (type instanceof AnnotatedArrayType arrayType) {
+				dimensions.append(type.isAnnotationPresent(Nullable.class) ? " @Nullable []" : "[]");
+				type = arrayType.getAnnotatedGenericComponentType();
+			}
+			return getTypeName(type) + dimensions;
+		}
+		var name = getTypeName(type instanceof AnnotatedParameterizedType
+				? ((ParameterizedType)type.getType()).getRawType() : type.getType());
+		if (type.isAnnotationPresent(Nullable.class)) {
+			var qualifierEnd = name.lastIndexOf('.') + 1;
+			name = name.substring(0, qualifierEnd) + "@Nullable " + name.substring(qualifierEnd);
+		}
+		if (type instanceof AnnotatedParameterizedType parameterizedType) {
+			var arguments = new ArrayList<String>();
+			for (var argument : parameterizedType.getAnnotatedActualTypeArguments())
+				arguments.add(getTypeName(argument));
+			name += '<' + String.join(", ", arguments) + '>';
+		}
+		return name;
 	}
 
 	static boolean isAbstract(Class<?> klass) {
@@ -517,6 +548,30 @@ final class Gen {
 	}
 
 	@SuppressWarnings({"SameParameterValue", "ConstantConditions"})
+	private static boolean isNonNullParameter(AnnotatedElement element) {
+		if (!(element instanceof Parameter parameter))
+			return false;
+		var type = parameter.getAnnotatedType();
+		if (type.isAnnotationPresent(Nullable.class))
+			return false;
+		if (type.isAnnotationPresent(NonNull.class))
+			return true;
+		AnnotatedElement scope = parameter.getDeclaringExecutable();
+		while (true) {
+			if (scope.isAnnotationPresent(NullUnmarked.class))
+				return false;
+			if (scope.isAnnotationPresent(NullMarked.class))
+				return true;
+			if (scope instanceof Executable executable)
+				scope = executable.getDeclaringClass();
+			else if (scope instanceof Class<?> owner) {
+				var enclosing = owner.getEnclosingClass();
+				scope = enclosing != null ? enclosing : owner.getPackage();
+			} else
+				return false;
+		}
+	}
+
 	void genEncode(StringBuilderCs sb, String prefix, String bbName, String mName,
 	               String fieldPrefix, List<? extends AnnotatedElement> elements,
 	               @Nullable Parameter redirectKeyParam) throws Exception {
@@ -536,8 +591,8 @@ final class Gen {
 				cls = f.getType();
 				name = fieldPrefix + f.getName();
 			} else
-				throw new IllegalArgumentException("unsupported element type: " + (e != null ? e.getClass().getName() : null));
-			if (!cls.isPrimitive() && e != redirectKeyParam) {
+				throw new IllegalArgumentException("unsupported element type: " + e.getClass().getName());
+			if (!cls.isPrimitive() && e != redirectKeyParam && !isNonNullParameter(e)) {
 				sb.appendLine("{}if ({} == null)", prefix, name);
 				sb.appendLine("{}    {} += 0x{}L;", prefix, mName, Long.toHexString(1L << i));
 			}
@@ -562,9 +617,9 @@ final class Gen {
 				name = fieldPrefix + f.getName();
 				isField = true;
 			} else
-				throw new IllegalArgumentException("unsupported element type: " + (e != null ? e.getClass().getName() : null));
+				throw new IllegalArgumentException("unsupported element type: " + e.getClass().getName());
 			checkGenElement(e, cls, type, isField);
-			if (cls.isPrimitive() || e == redirectKeyParam)
+			if (cls.isPrimitive() || e == redirectKeyParam || isNonNullParameter(e))
 				genEncode(sb, prefix, bbName, cls, type, name);
 			else {
 				if (isField)
@@ -604,7 +659,7 @@ final class Gen {
 				name = fieldPrefix + f.getName();
 				isField = true;
 			} else
-				throw new IllegalArgumentException("unsupported element type: " + (e != null ? e.getClass().getName() : null));
+				throw new IllegalArgumentException("unsupported element type: " + e.getClass().getName());
 			checkGenElement(e, cls, type, isField);
 			if (cls.isPrimitive()) {
 				sb.appendLine("{}if (({} & 0x{}L) == 0) {", prefix, mName, Long.toHexString(1L << i));
@@ -615,7 +670,10 @@ final class Gen {
 				sb.appendLine("{}if (({} & 0x{}L) == 0) {", prefix, mName, Long.toHexString(1L << i));
 				genDecode(sb, prefix1, bbName, cls, type, name, isField);
 				sb.appendLine("{}} else", prefix);
-				sb.appendLine("{}{} = null;", prefix1, name);
+				if (isNonNullParameter(e))
+					sb.appendLine("{}throw new IllegalArgumentException(\"null redirect parameter: {}\");", prefix1, name);
+				else
+					sb.appendLine("{}{} = null;", prefix1, name);
 			}
 			i++;
 		}

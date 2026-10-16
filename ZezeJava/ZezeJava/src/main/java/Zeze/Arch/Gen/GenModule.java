@@ -341,6 +341,12 @@ public final class GenModule extends ReentrantLock {
 		var sb = new StringBuilderCs();
 		sb.appendLine("// auto-generated @" + "formatter:off");
 		sb.appendLine();
+		sb.appendLine("import org.jspecify.annotations.NullMarked;");
+		if (overrides.stream().anyMatch(m -> m.getDefineString().contains("@Nullable")
+				|| Gen.instance.getTypeName(m.method.getAnnotatedReturnType()).contains("@Nullable")))
+			sb.appendLine("import org.jspecify.annotations.Nullable;");
+		sb.appendLine();
+		sb.appendLine("@NullMarked");
 		sb.appendLine("public class {} extends {} {", genClassName, moduleClass.getName());
 		sb.appendLine("    private final Zeze.Arch.RedirectBase _redirect_;");
 		sb.appendLine();
@@ -364,12 +370,12 @@ public final class GenModule extends ReentrantLock {
 					if (m.resultTypeName == null)
 						throw new IllegalStateException("RedirectFuture<> missing result type: "
 								+ moduleClass.getName() + '.' + m.method.getName());
-					returnName = "Zeze.Arch.RedirectFuture<" + m.resultTypeName + '>';
+					returnName = Gen.instance.getTypeName(m.method.getAnnotatedReturnType());
 				} else if (type == RedirectAllFuture.class) {
 					if (m.resultTypeName == null)
 						throw new IllegalStateException("RedirectAllFuture<> missing result type: "
 								+ moduleClass.getName() + '.' + m.method.getName());
-					returnName = "Zeze.Arch.RedirectAllFuture<" + m.resultTypeName + '>';
+					returnName = Gen.instance.getTypeName(m.method.getAnnotatedReturnType());
 				} else {
 					throw new UnsupportedOperationException("Redirect return type Must Be void or RedirectFuture or RedirectAllFuture: "
 							+ moduleClass.getName() + '.' + m.method.getName());
@@ -415,7 +421,7 @@ public final class GenModule extends ReentrantLock {
 				else
 					sb.appendLine("{}_a_.setNoOneByOne(true);", prefix);
 				sb.appendLine("{}_a_.setMethodFullName(\"{}:{}\");", prefix, moduleFullName, m.method.getName());
-				sb.appendLine("{}_a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);", prefix);
+				sb.appendLine("{}_a_.setServiceNamePrefix(java.util.Objects.requireNonNull(_redirect_.providerApp.serverServiceNamePrefix));", prefix);
 				int version = m.annotation instanceof RedirectHash
 						? ((RedirectHash)m.annotation).version()
 						: ((RedirectToServer)m.annotation).version();
@@ -648,7 +654,7 @@ public final class GenModule extends ReentrantLock {
 		sb.appendLine("        _a_.setModuleId({});", moduleId);
 		sb.appendLine("        _a_.setHashCodeConcurrentLevel({});", m.hashOrServerIdParameter.getName());
 		sb.appendLine("        _a_.setMethodFullName(\"{}:{}\");", moduleFullName, m.method.getName());
-		sb.appendLine("        _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);");
+		sb.appendLine("        _a_.setServiceNamePrefix(java.util.Objects.requireNonNull(_redirect_.providerApp.serverServiceNamePrefix));");
 		sb.appendLine("        _a_.setSessionId(_redirect_.providerApp.providerDirectService.addManualContextWithTimeout(_c_, {}));", ((RedirectAll)m.annotation).timeout());
 		int version = ((RedirectAll)m.annotation).version();
 		if (version != 0)

@@ -22,15 +22,11 @@ public class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
         _a_.setHashCode(serverId);
         _a_.setKey(Long.hashCode(_t_.getSessionId()));
         _a_.setMethodFullName("Zeze.Arch.Online:redirectRemoveLocal");
-        _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
+        _a_.setServiceNamePrefix(java.util.Objects.requireNonNull(_redirect_.providerApp.serverServiceNamePrefix));
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
         var _m_ = 0L;
-        if (account == null)
-            _m_ += 0x1L;
         _b_.WriteULong(_m_);
-        if (account != null) {
-            _b_.WriteString(account);
-        }
+        _b_.WriteString(account);
         _a_.setParams(new Zeze.Net.Binary(_b_));
 
         _redirect_.sendVoid(_t_, _p_, "Zeze.Arch.Online:redirectRemoveLocal");
@@ -39,9 +35,9 @@ public class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
     @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public Redirect_Zeze_Arch_Online(Zeze.AppBase _app_) {
         super(_app_);
-        _redirect_ = _app_.getZeze().redirect;
+        _redirect_ = java.util.Objects.requireNonNull(java.util.Objects.requireNonNull(_app_.getZeze()).redirect);
 
-        _app_.getZeze().redirect.handles.put("Zeze.Arch.Online:redirectRemoveLocal", new Zeze.Arch.RedirectHandle(
+        java.util.Objects.requireNonNull(java.util.Objects.requireNonNull(_app_.getZeze()).redirect).handles.put("Zeze.Arch.Online:redirectRemoveLocal", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.None, (_hash_, _params_) -> {
                 String account;
                 var _b_ = _params_.Wrap();
@@ -49,7 +45,7 @@ public class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
                 if ((_m_ & 0x1L) == 0) {
                     account = _b_.ReadString();
                 } else
-                    account = null;
+                    throw new IllegalArgumentException("null redirect parameter: account");
                 super.redirectRemoveLocal(_hash_, account);
                 return null;
             }, null, 0));

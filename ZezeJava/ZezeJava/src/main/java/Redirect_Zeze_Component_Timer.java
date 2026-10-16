@@ -22,15 +22,11 @@ public class Redirect_Zeze_Component_Timer extends Zeze.Component.Timer {
         _a_.setHashCode(serverId);
         _a_.setKey(Long.hashCode(_t_.getSessionId()));
         _a_.setMethodFullName("Zeze.Component.Timer:redirectCancel");
-        _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
+        _a_.setServiceNamePrefix(java.util.Objects.requireNonNull(_redirect_.providerApp.serverServiceNamePrefix));
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
         var _m_ = 0L;
-        if (timerId == null)
-            _m_ += 0x1L;
         _b_.WriteULong(_m_);
-        if (timerId != null) {
-            _b_.WriteString(timerId);
-        }
+        _b_.WriteString(timerId);
         _a_.setParams(new Zeze.Net.Binary(_b_));
 
         _redirect_.sendVoid(_t_, _p_, "Zeze.Component.Timer:redirectCancel");
@@ -39,9 +35,9 @@ public class Redirect_Zeze_Component_Timer extends Zeze.Component.Timer {
     @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public Redirect_Zeze_Component_Timer(Zeze.AppBase _app_) {
         super(_app_);
-        _redirect_ = _app_.getZeze().redirect;
+        _redirect_ = java.util.Objects.requireNonNull(java.util.Objects.requireNonNull(_app_.getZeze()).redirect);
 
-        _app_.getZeze().redirect.handles.put("Zeze.Component.Timer:redirectCancel", new Zeze.Arch.RedirectHandle(
+        java.util.Objects.requireNonNull(java.util.Objects.requireNonNull(_app_.getZeze()).redirect).handles.put("Zeze.Component.Timer:redirectCancel", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.None, (_hash_, _params_) -> {
                 String timerId;
                 var _b_ = _params_.Wrap();
@@ -49,7 +45,7 @@ public class Redirect_Zeze_Component_Timer extends Zeze.Component.Timer {
                 if ((_m_ & 0x1L) == 0) {
                     timerId = _b_.ReadString();
                 } else
-                    timerId = null;
+                    throw new IllegalArgumentException("null redirect parameter: timerId");
                 super.redirectCancel(_hash_, timerId);
                 return null;
             }, null, 0));

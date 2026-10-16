@@ -2,6 +2,7 @@ package Zeze.Arch.Gen;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -193,8 +194,8 @@ final class MethodOverride {
 		if (resultType == null)
 			resultTypeName = null;
 		else {
-			resultTypeName = toShort((resultType == resultClass ?
-					resultClass.getName() : resultType.toString()).replace('$', '.'));
+			resultTypeName = Gen.instance.getTypeName(((AnnotatedParameterizedType)method.getAnnotatedReturnType())
+					.getAnnotatedActualTypeArguments()[0]);
 			if (!Serializable.class.isAssignableFrom(resultClass)) {
 				for (var field : resultClass.getFields()) {
 					if ((field.getModifiers() & ~Modifier.VOLATILE) == Modifier.PUBLIC) // 只允许public和可选的volatile
@@ -204,10 +205,6 @@ final class MethodOverride {
 		}
 	}
 
-	private static String toShort(String typeName) {
-		return typeName.startsWith("java.lang.") && typeName.indexOf('.', 10) < 0 ? typeName.substring(10) : typeName;
-	}
-
 	String getDefineString() {
 		var sb = new StringBuilder();
 		var first = true;
@@ -215,7 +212,7 @@ final class MethodOverride {
 			if (!first)
 				sb.append(", ");
 			first = false;
-			sb.append(Gen.instance.getTypeName(p.getParameterizedType())).append(' ').append(p.getName());
+			sb.append(Gen.instance.getTypeName(p.getAnnotatedType())).append(' ').append(p.getName());
 		}
 		return sb.toString();
 	}

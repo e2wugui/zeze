@@ -1,13 +1,14 @@
 // auto-generated @formatter:off
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 @NullMarked
 public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
     private final Zeze.Arch.RedirectBase _redirect_;
 
     @Override
-    protected void redirectRemoveLocal(int serverId, long roleId, String instanceName) {
+    protected void redirectRemoveLocal(int serverId, long roleId, @Nullable String instanceName) {
         var _t_ = _redirect_.choiceServer(this, serverId, false);
         if (_t_ == null) { // local: loop-back
             _redirect_.runVoid(Zeze.Transaction.TransactionLevel.None,
@@ -22,7 +23,7 @@ public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
         _a_.setHashCode(serverId);
         _a_.setKey(Long.hashCode(_t_.getSessionId()));
         _a_.setMethodFullName("Zeze.Game.Online:redirectRemoveLocal");
-        _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
+        _a_.setServiceNamePrefix(java.util.Objects.requireNonNull(_redirect_.providerApp.serverServiceNamePrefix));
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
         var _m_ = 0L;
         if (instanceName == null)
@@ -40,9 +41,9 @@ public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
     @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public Redirect_Zeze_Game_Online(Zeze.AppBase _app_) {
         super(_app_);
-        _redirect_ = _app_.getZeze().redirect;
+        _redirect_ = java.util.Objects.requireNonNull(java.util.Objects.requireNonNull(_app_.getZeze()).redirect);
 
-        _app_.getZeze().redirect.handles.put("Zeze.Game.Online:redirectRemoveLocal", new Zeze.Arch.RedirectHandle(
+        java.util.Objects.requireNonNull(java.util.Objects.requireNonNull(_app_.getZeze()).redirect).handles.put("Zeze.Game.Online:redirectRemoveLocal", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.None, (_hash_, _params_) -> {
                 long roleId;
                 String instanceName;
