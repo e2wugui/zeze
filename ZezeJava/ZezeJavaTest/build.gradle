@@ -289,6 +289,8 @@ tasks.register('benchGame', Test) {
         systemProperty 'game.bulkRewardPlayers', findProperty('gameBulkRewardPlayers')
     if (findProperty('gameColdLoadRounds') != null)
         systemProperty 'game.coldLoadRounds', findProperty('gameColdLoadRounds')
+    if (findProperty('gamePlistWeight') != null) // PList 内存对照负载权重（0=关=基线）
+        systemProperty 'game.plistWeight', findProperty('gamePlistWeight')
     mustRunAfter tasks.named('test'), tasks.named('integrationTest'), tasks.named('extraTest'), tasks.named('bench'), tasks.named('benchCore')
 }
 

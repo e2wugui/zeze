@@ -35,6 +35,10 @@ public final class tRole extends TableX<Long, demo.Game.BRole>
     public static final int VAR_Bag = 6;
     public static final int VAR_Equip = 7;
     public static final int VAR_Friends = 8;
+    public static final int VAR_Tracks = 9;
+    public static final int VAR_QuestLog = 10;
+    public static final int VAR_GiftLog = 11;
+    public static final int VAR_Warehouse = 12;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {

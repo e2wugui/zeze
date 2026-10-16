@@ -34,6 +34,7 @@ public final class GameConfig {
 	public final int bulkRewardSlots;   // game.bulkRewardSlots：每窗口"批量补偿"物品种类数（0=关；槽位 WarehouseSlotBase+ 起逐窗口递增不覆盖）
 	public final int bulkRewardPlayers; // game.bulkRewardPlayers：每窗口领取批量补偿的玩家数（默认 1000，均匀散布）
 	public final int coldLoadRounds;    // game.coldLoadRounds：停机后全量角色 encode→decode 冷装载回环轮数（0=关）
+	public final int plistWeight;       // game.plistWeight：大厅"PList 追加"活动权重（0=关=基线；PList 内存对照负载，append-only 不做中间插删）
 
 	// ===== 节奏（游戏时间）=====
 	public static final long HeartbeatPeriodMs = 15_000;   // 心跳周期
@@ -45,6 +46,8 @@ public final class GameConfig {
 	public static final long BulkRewardAtMs = 7 * 60_000;  // 每测量窗口内的系统批量补偿时刻（邮件之后，相位不交叠）
 	/** 批量补偿的仓库槽位基址：常规背包只占 0..BagSlots-1，仓库占此基址起（逐窗口递增） */
 	public static final int WarehouseSlotBase = 1000;
+	/** PList 对照负载的单列表封顶（每角色 4 列表：Tracks/QuestLog/GiftLog/Warehouse） */
+	public static final int PlistCapPerList = 150;
 
 	// ===== 背包 =====
 	public static final int BagSlots = 16;
@@ -93,6 +96,7 @@ public final class GameConfig {
 		bulkRewardSlots = PropertiesHelper.getInt("game.bulkRewardSlots", 0);
 		bulkRewardPlayers = PropertiesHelper.getInt("game.bulkRewardPlayers", 1000);
 		coldLoadRounds = PropertiesHelper.getInt("game.coldLoadRounds", 0);
+		plistWeight = PropertiesHelper.getInt("game.plistWeight", 0);
 	}
 
 	/** 游戏毫秒 → 墙钟毫秒（休眠用） */

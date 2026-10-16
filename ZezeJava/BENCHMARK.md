@@ -310,6 +310,15 @@ plusAll"（经典侧 5 文件，RR 侧 raft 路径不动），ktt 下批量构�
 - **裁定（2026-10-16）：默认后端改 ktt**。`zeze.collections.backend` 保留为回退杠杆
   （pcollections=逃生门，kt=中间档）；benchGame 的 collBackend fallback 同步 ktt；
   显式 pcollections 档继续写历史档名 L_MmoGameSim.json（可与旧档案直接配对）。
+- **PList 补测轮（2026-10-16 晚，无 -ea，p/ktt 交替两 pass）**：BRole 增 3×`list[long]`（PList1）
+  +1×`list[BItem]`（PList2），大厅活动权重折入（`game.plistWeight=250`，人均总操作率不变 ~5/s@K10），
+  append-only 单事务单条尾加、封顶 150（中间插删明确不进负载）；实际规模 96~97/列表（目标 100 多，
+  活动混合比略欠，weight≥280 可过）。**驻留：pcollections 858.7MB vs ktt 603.6MB（-29.7%；
+  装载后 262.2 vs 178.8，-31.8%）**——对比无 plist 轮的增量（+150MB vs +89MB @约193万条目）
+  折算 **PList 每条目摊 ~78B vs ~46B（-41%）**。CPU 无回退（TPS 21005 vs 21005；timeline
+  p50 9.5→8µs）；**coldLoad 2666→1297ms（-51%）**（四列表 decode 走 plusAll 单发，ktt builder
+  路径占比放大）；GC 次数/时长 ktt 均低。守恒律含 Warehouse 入库账本全绿。档
+  bench-results/plist{1,2}/。
 - **kotlinx 升 0.5.2 评估：`-ea` 假回退（根因已钉）→ 裁定升级**（2026-10-16）。
   现象：bench 车道（`-ea`）持久化单 op addNew 257→590ns（+130%）、beginCommit1 +100%（两轮复现），
   GameSim 冒烟 bulkReward p50 47→133µs 同向。**根因（源码 diff+javap+四路交替实测钉死）**：

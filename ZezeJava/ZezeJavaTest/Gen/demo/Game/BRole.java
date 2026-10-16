@@ -26,6 +26,22 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
     private static final Zeze.Transaction.Collections.Map1Meta<Long, Integer> meta2_Friends
             = Zeze.Transaction.Collections.Map1Meta.get(Long.class, Integer.class);
 
+    private final Zeze.Transaction.Collections.PList1<Long> _Tracks;
+    private static final Zeze.Transaction.Collections.List1Meta<Long> meta1_Tracks
+            = Zeze.Transaction.Collections.List1Meta.get(Long.class);
+
+    private final Zeze.Transaction.Collections.PList1<Long> _QuestLog;
+    private static final Zeze.Transaction.Collections.List1Meta<Long> meta1_QuestLog
+            = Zeze.Transaction.Collections.List1Meta.get(Long.class);
+
+    private final Zeze.Transaction.Collections.PList1<Long> _GiftLog;
+    private static final Zeze.Transaction.Collections.List1Meta<Long> meta1_GiftLog
+            = Zeze.Transaction.Collections.List1Meta.get(Long.class);
+
+    private final Zeze.Transaction.Collections.PList2<demo.Game.BItem> _Warehouse;
+    private static final Zeze.Transaction.Collections.List2Meta<demo.Game.BItem> meta1_Warehouse
+            = Zeze.Transaction.Collections.List2Meta.get(demo.Game.BItem.class);
+
     private static final java.lang.invoke.VarHandle vh_Level;
     private static final java.lang.invoke.VarHandle vh_Exp;
     private static final java.lang.invoke.VarHandle vh_Money;
@@ -172,6 +188,42 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_Friends);
     }
 
+    public Zeze.Transaction.Collections.PList1<Long> getTracks() {
+        return _Tracks;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getTracksReadOnly() {
+        return new Zeze.Transaction.Collections.PList1ReadOnly<>(_Tracks);
+    }
+
+    public Zeze.Transaction.Collections.PList1<Long> getQuestLog() {
+        return _QuestLog;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getQuestLogReadOnly() {
+        return new Zeze.Transaction.Collections.PList1ReadOnly<>(_QuestLog);
+    }
+
+    public Zeze.Transaction.Collections.PList1<Long> getGiftLog() {
+        return _GiftLog;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PList1ReadOnly<Long> getGiftLogReadOnly() {
+        return new Zeze.Transaction.Collections.PList1ReadOnly<>(_GiftLog);
+    }
+
+    public Zeze.Transaction.Collections.PList2<demo.Game.BItem> getWarehouse() {
+        return _Warehouse;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PList2ReadOnly<demo.Game.BItem, demo.Game.BItemReadOnly> getWarehouseReadOnly() {
+        return new Zeze.Transaction.Collections.PList2ReadOnly<>(_Warehouse);
+    }
+
     @SuppressWarnings("deprecation")
     public BRole() {
         _Bag = new Zeze.Transaction.Collections.PMap2<>(meta2_Bag);
@@ -180,6 +232,14 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         _Equip.variableId(7);
         _Friends = new Zeze.Transaction.Collections.PMap1<>(meta2_Friends);
         _Friends.variableId(8);
+        _Tracks = new Zeze.Transaction.Collections.PList1<>(meta1_Tracks);
+        _Tracks.variableId(9);
+        _QuestLog = new Zeze.Transaction.Collections.PList1<>(meta1_QuestLog);
+        _QuestLog.variableId(10);
+        _GiftLog = new Zeze.Transaction.Collections.PList1<>(meta1_GiftLog);
+        _GiftLog.variableId(11);
+        _Warehouse = new Zeze.Transaction.Collections.PList2<>(meta1_Warehouse);
+        _Warehouse.variableId(12);
     }
 
     @SuppressWarnings("deprecation")
@@ -195,6 +255,14 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         _Equip.variableId(7);
         _Friends = new Zeze.Transaction.Collections.PMap1<>(meta2_Friends);
         _Friends.variableId(8);
+        _Tracks = new Zeze.Transaction.Collections.PList1<>(meta1_Tracks);
+        _Tracks.variableId(9);
+        _QuestLog = new Zeze.Transaction.Collections.PList1<>(meta1_QuestLog);
+        _QuestLog.variableId(10);
+        _GiftLog = new Zeze.Transaction.Collections.PList1<>(meta1_GiftLog);
+        _GiftLog.variableId(11);
+        _Warehouse = new Zeze.Transaction.Collections.PList2<>(meta1_Warehouse);
+        _Warehouse.variableId(12);
     }
 
     @Override
@@ -207,6 +275,10 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         _Bag.clear();
         _Equip.clear();
         _Friends.clear();
+        _Tracks.clear();
+        _QuestLog.clear();
+        _GiftLog.clear();
+        _Warehouse.clear();
         _unknown_ = null;
     }
 
@@ -223,6 +295,12 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         for (var _e_ : _o_._Equip.entrySet())
             _Equip.put(_e_.getKey(), _e_.getValue().copy());
         _Friends.assign(_o_._Friends);
+        _Tracks.assign(_o_._Tracks);
+        _QuestLog.assign(_o_._QuestLog);
+        _GiftLog.assign(_o_._GiftLog);
+        _Warehouse.clear();
+        for (var _e_ : _o_._Warehouse)
+            _Warehouse.add(_e_.copy());
         _unknown_ = _o_._unknown_;
     }
 
@@ -313,7 +391,65 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
             }
             _s_.append(_i1_);
         }
-        _s_.append("}\n");
+        _s_.append("},\n");
+        _s_.append(_i1_).append("Tracks=[");
+        if (!_Tracks.isEmpty()) {
+            _s_.append('\n');
+            int _n_ = 0;
+            for (var _v_ : _Tracks) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Tracks.size()).append("]\n");
+                    break;
+                }
+                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
+            }
+            _s_.append(_i1_);
+        }
+        _s_.append("],\n");
+        _s_.append(_i1_).append("QuestLog=[");
+        if (!_QuestLog.isEmpty()) {
+            _s_.append('\n');
+            int _n_ = 0;
+            for (var _v_ : _QuestLog) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_QuestLog.size()).append("]\n");
+                    break;
+                }
+                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
+            }
+            _s_.append(_i1_);
+        }
+        _s_.append("],\n");
+        _s_.append(_i1_).append("GiftLog=[");
+        if (!_GiftLog.isEmpty()) {
+            _s_.append('\n');
+            int _n_ = 0;
+            for (var _v_ : _GiftLog) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_GiftLog.size()).append("]\n");
+                    break;
+                }
+                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
+            }
+            _s_.append(_i1_);
+        }
+        _s_.append("],\n");
+        _s_.append(_i1_).append("Warehouse=[");
+        if (!_Warehouse.isEmpty()) {
+            _s_.append('\n');
+            int _n_ = 0;
+            for (var _v_ : _Warehouse) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Warehouse.size()).append("]\n");
+                    break;
+                }
+                _s_.append(_i2_).append("Item=");
+                _v_.buildString(_s_, _l_ + 12);
+                _s_.append(",\n");
+            }
+            _s_.append(_i1_);
+        }
+        _s_.append("]\n");
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -425,6 +561,62 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        {
+            var _x_ = _Tracks;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 9, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_) {
+                    _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        {
+            var _x_ = _QuestLog;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 10, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_) {
+                    _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        {
+            var _x_ = _GiftLog;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 11, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_) {
+                    _o_.WriteLong(_v_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
+        {
+            var _x_ = _Warehouse;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 12, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
+                for (var _v_ : _x_) {
+                    _v_.encode(_o_);
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -496,6 +688,46 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
                 _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 9) {
+            var _x_ = _Tracks;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 10) {
+            var _x_ = _QuestLog;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 11) {
+            var _x_ = _GiftLog;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 12) {
+            var _x_ = _Warehouse;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadBean(new demo.Game.BItem(), _t_));
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -524,6 +756,14 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
             return false;
         if (!_Friends.equals(_b_._Friends))
             return false;
+        if (!_Tracks.equals(_b_._Tracks))
+            return false;
+        if (!_QuestLog.equals(_b_._QuestLog))
+            return false;
+        if (!_GiftLog.equals(_b_._GiftLog))
+            return false;
+        if (!_Warehouse.equals(_b_._Warehouse))
+            return false;
         return true;
     }
 
@@ -532,6 +772,10 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         _Bag.initRootInfo(_r_, this);
         _Equip.initRootInfo(_r_, this);
         _Friends.initRootInfo(_r_, this);
+        _Tracks.initRootInfo(_r_, this);
+        _QuestLog.initRootInfo(_r_, this);
+        _GiftLog.initRootInfo(_r_, this);
+        _Warehouse.initRootInfo(_r_, this);
     }
 
     @Override
@@ -539,6 +783,10 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         _Bag.initRootInfoWithRedo(_r_, this);
         _Equip.initRootInfoWithRedo(_r_, this);
         _Friends.initRootInfoWithRedo(_r_, this);
+        _Tracks.initRootInfoWithRedo(_r_, this);
+        _QuestLog.initRootInfoWithRedo(_r_, this);
+        _GiftLog.initRootInfoWithRedo(_r_, this);
+        _Warehouse.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -565,6 +813,22 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
             if (_v_ < 0)
                 return true;
         }
+        for (var _v_ : _Tracks) {
+            if (_v_ < 0)
+                return true;
+        }
+        for (var _v_ : _QuestLog) {
+            if (_v_ < 0)
+                return true;
+        }
+        for (var _v_ : _GiftLog) {
+            if (_v_ < 0)
+                return true;
+        }
+        for (var _v_ : _Warehouse) {
+            if (_v_.negativeCheck())
+                return true;
+        }
         return false;
     }
 
@@ -585,6 +849,10 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
                 case 6: _Bag.followerApply(_v_); break;
                 case 7: _Equip.followerApply(_v_); break;
                 case 8: _Friends.followerApply(_v_); break;
+                case 9: _Tracks.followerApply(_v_); break;
+                case 10: _QuestLog.followerApply(_v_); break;
+                case 11: _GiftLog.followerApply(_v_); break;
+                case 12: _Warehouse.followerApply(_v_); break;
             }
         }
     }
@@ -600,6 +868,10 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         Zeze.Serialize.Helper.decodeJsonMap(this, "Bag", _Bag, _r_.getString(_pn_ + "Bag"));
         Zeze.Serialize.Helper.decodeJsonMap(this, "Equip", _Equip, _r_.getString(_pn_ + "Equip"));
         Zeze.Serialize.Helper.decodeJsonMap(this, "Friends", _Friends, _r_.getString(_pn_ + "Friends"));
+        Zeze.Serialize.Helper.decodeJsonList(_Tracks, Long.class, _r_.getString(_pn_ + "Tracks"));
+        Zeze.Serialize.Helper.decodeJsonList(_QuestLog, Long.class, _r_.getString(_pn_ + "QuestLog"));
+        Zeze.Serialize.Helper.decodeJsonList(_GiftLog, Long.class, _r_.getString(_pn_ + "GiftLog"));
+        Zeze.Serialize.Helper.decodeJsonList(_Warehouse, demo.Game.BItem.class, _r_.getString(_pn_ + "Warehouse"));
     }
 
     @Override
@@ -613,6 +885,10 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         _s_.appendString(_pn_ + "Bag", Zeze.Serialize.Helper.encodeJson(_Bag));
         _s_.appendString(_pn_ + "Equip", Zeze.Serialize.Helper.encodeJson(_Equip));
         _s_.appendString(_pn_ + "Friends", Zeze.Serialize.Helper.encodeJson(_Friends));
+        _s_.appendString(_pn_ + "Tracks", Zeze.Serialize.Helper.encodeJson(_Tracks));
+        _s_.appendString(_pn_ + "QuestLog", Zeze.Serialize.Helper.encodeJson(_QuestLog));
+        _s_.appendString(_pn_ + "GiftLog", Zeze.Serialize.Helper.encodeJson(_GiftLog));
+        _s_.appendString(_pn_ + "Warehouse", Zeze.Serialize.Helper.encodeJson(_Warehouse));
     }
 
     @Override
@@ -626,6 +902,10 @@ public final class BRole extends Zeze.Transaction.Bean implements BRoleReadOnly 
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Bag", "map", "int", "demo.Game.BItem"));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Equip", "map", "int", "demo.Game.BItem"));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "Friends", "map", "long", "int"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "Tracks", "list", "", "long"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "QuestLog", "list", "", "long"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(11, "GiftLog", "list", "", "long"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(12, "Warehouse", "list", "", "demo.Game.BItem"));
         return _v_;
     }
 }

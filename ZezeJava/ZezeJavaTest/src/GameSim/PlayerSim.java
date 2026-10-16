@@ -331,6 +331,12 @@ final class PlayerSim implements Runnable {
 	// ===== 大厅活动（权重分派，决策全在事务外）=====
 
 	private void idleActivity() throws Exception {
+		// PList 内存对照负载：折进大厅活动预算（不另开节奏，人均总操作率维持 ~5/s @K=10）。
+		// weight=0 时零行为变化（基线）。
+		if (world.cfg.plistWeight > 0 && rng.nextInt(GameConfig.WIdleSum + world.cfg.plistWeight) < world.cfg.plistWeight) {
+			timelineAppend();
+			return;
+		}
 		int r = rng.nextInt(GameConfig.WIdleSum);
 		if ((r -= GameConfig.WFriendQuery) < 0)
 			friendQuery();
@@ -348,6 +354,46 @@ final class PlayerSim implements Runnable {
 			tradePropose();
 		else
 			adventure();
+	}
+
+	// ===== PList 内存对照负载（append-only，单事务单条尾加；不做中间插删）=====
+
+	private int plistTurnstile;
+	private long timelineSeq;
+
+	/** 四列表轮转尾加一条：Tracks/QuestLog/GiftLog（PList1&lt;Long&gt;）与 Warehouse（PList2&lt;BItem&gt;）。
+	 * 列表封顶 PlistCapPerList（封顶后本 op 变空事务，保持节奏与统计口径稳定）；
+	 * Warehouse 入库走账本保守恒（同 bulkReward 的 whileCommit 口径）。 */
+	private void timelineAppend() throws Exception {
+		int turn = plistTurnstile++ & 3;
+		if (timelineSeq == 0)
+			timelineSeq = 1_000_000L * (roleId + 1); // 事件 id 大值起步：避开 Long 缓存共享，驻留不失真
+		long eventId = ++timelineSeq;
+		world.call(rec, OpRecorder.OpType.timeline, "GameSim.Timeline", () -> {
+			var role = world.tRole.get(roleId);
+			if (role == null)
+				return 0L;
+			if (turn == 0) {
+				if (role.getTracks().size() < GameConfig.PlistCapPerList)
+					role.getTracks().add(eventId);
+			} else if (turn == 1) {
+				if (role.getQuestLog().size() < GameConfig.PlistCapPerList)
+					role.getQuestLog().add(eventId);
+			} else if (turn == 2) {
+				if (role.getGiftLog().size() < GameConfig.PlistCapPerList)
+					role.getGiftLog().add(eventId);
+			} else {
+				if (role.getWarehouse().size() < GameConfig.PlistCapPerList) {
+					var item = new demo.Game.BItem();
+					item.setItemId((int)(eventId % 3 + 1)); // 药水/武器/护甲轮转
+					item.setCount(1);
+					item.setPrice(5);
+					role.getWarehouse().add(item);
+					Zeze.Transaction.Transaction.whileCommit(() -> world.ledger.item(item.getItemId(), 1));
+				}
+			}
+			return 0L;
+		});
 	}
 
 	/** 好友在线状态查询：纯读事务（读提交簿记的真实载体）。

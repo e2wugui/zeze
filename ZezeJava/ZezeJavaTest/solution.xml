@@ -220,6 +220,12 @@
 			<variable id="6" name="Bag" type="map[int, BItem]"/>
 			<variable id="7" name="Equip" type="map[int, BItem]"/>
 			<variable id="8" name="Friends" type="map[long, int]"/>
+			<!-- 持久化容器 PList 内存对照负载（append-only，单事务单条尾加，cap 见 GameConfig）：
+			     3×PList1(long)（足迹/任务日志/奖励日志）+ 1×PList2(BItem)（仓库流水） -->
+			<variable id="9" name="Tracks" type="list[long]"/>
+			<variable id="10" name="QuestLog" type="list[long]"/>
+			<variable id="11" name="GiftLog" type="list[long]"/>
+			<variable id="12" name="Warehouse" type="list[BItem]"/>
 		</bean>
 		<bean name="BMail">
 			<variable id="1" name="From" type="long"/>

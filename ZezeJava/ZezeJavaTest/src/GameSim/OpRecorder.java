@@ -19,7 +19,7 @@ public final class OpRecorder {
 	/** 事务类型=玩家可见操作类型（rank/exp 合并在 loot 事务内，不单列） */
 	public enum OpType {
 		login, logout, heartbeat, hbScan, loot, usePotion, equipChange, equip, sellShop,
-		trade, mailSend, mailClaim, mailFanout, friendQuery, bulkReward
+		trade, mailSend, mailClaim, mailFanout, friendQuery, bulkReward, timeline
 	}
 
 	// per-线程 per-窗口槽 per-op 缓冲（窗口奇偶双缓冲）：[slot][op] -> 样本数组

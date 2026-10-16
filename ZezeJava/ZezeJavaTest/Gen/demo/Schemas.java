@@ -192,6 +192,38 @@ public class Schemas extends Zeze.Schemas {
             var.valueName = "int";
             bean.addVariable(var);
         }
+        {
+            var var = new Zeze.Schemas.Variable();
+            var.id = 9;
+            var.name = "Tracks";
+            var.typeName = "list";
+            var.valueName = "long";
+            bean.addVariable(var);
+        }
+        {
+            var var = new Zeze.Schemas.Variable();
+            var.id = 10;
+            var.name = "QuestLog";
+            var.typeName = "list";
+            var.valueName = "long";
+            bean.addVariable(var);
+        }
+        {
+            var var = new Zeze.Schemas.Variable();
+            var.id = 11;
+            var.name = "GiftLog";
+            var.typeName = "list";
+            var.valueName = "long";
+            bean.addVariable(var);
+        }
+        {
+            var var = new Zeze.Schemas.Variable();
+            var.id = 12;
+            var.name = "Warehouse";
+            var.typeName = "list";
+            var.valueName = "demo.Game.BItem";
+            bean.addVariable(var);
+        }
         addBean(bean);
     }
 

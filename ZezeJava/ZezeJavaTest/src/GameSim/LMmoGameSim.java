@@ -282,6 +282,7 @@ public class LMmoGameSim {
 		var mailRows = new long[1];
 		var sessionRows = new long[1];
 		var roleMismatches = new ArrayList<String>();
+		var plistTotal = new long[4]; // PList 对照负载规模留档：Tracks/QuestLog/GiftLog/Warehouse 总条目
 		long rc = world.zeze.newProcedure(() -> {
 			for (long r = 0; r < cfg.players; r++) {
 				var role = world.tRole.get(r);
@@ -298,6 +299,12 @@ public class LMmoGameSim {
 					roleMismatches.add("role=" + r + " ledger=" + roleExpect + " db=" + role.getMoney());
 				mergeItem(itemsRole, role.getBag());
 				mergeItem(itemsRole, role.getEquip());
+				for (var it : role.getWarehouse()) // PList2 仓库流水并入物品守恒
+					itemsRole.merge(it.getItemId(), (long)it.getCount(), Long::sum);
+				plistTotal[0] += role.getTracks().size();
+				plistTotal[1] += role.getQuestLog().size();
+				plistTotal[2] += role.getGiftLog().size();
+				plistTotal[3] += role.getWarehouse().size();
 				if (role.getDamageTotal() > 0)
 					damageKeys.add(new long[]{role.getDamageTotal(), r});
 				if (role.getLevel() > 1)
@@ -316,6 +323,10 @@ public class LMmoGameSim {
 		}, "GameSim.Verify").call();
 		Assertions.assertEquals(0, rc, "对账事务失败");
 		var ledger = world.ledger;
+		// PList 负载规模留档（验证"100多"档位达成；不设断言——规模随活动混合比波动）
+		System.out.printf("L_MmoGameSim plist sizes avg/role: Tracks=%.1f QuestLog=%.1f GiftLog=%.1f Warehouse=%.1f%n",
+				(double)plistTotal[0] / cfg.players, (double)plistTotal[1] / cfg.players,
+				(double)plistTotal[2] / cfg.players, (double)plistTotal[3] / cfg.players);
 
 		// #0 逐角色货币对账（比全局更强的网）
 		Assertions.assertTrue(roleMismatches.isEmpty(), "角色货币对账失配: " + roleMismatches);

@@ -26,4 +26,8 @@ public interface BRoleReadOnly {
     Zeze.Transaction.Collections.PMap2ReadOnly<Integer, demo.Game.BItem, demo.Game.BItemReadOnly> getBagReadOnly();
     Zeze.Transaction.Collections.PMap2ReadOnly<Integer, demo.Game.BItem, demo.Game.BItemReadOnly> getEquipReadOnly();
     Zeze.Transaction.Collections.PMap1ReadOnly<Long, Integer> getFriendsReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Long> getTracksReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Long> getQuestLogReadOnly();
+    Zeze.Transaction.Collections.PList1ReadOnly<Long> getGiftLogReadOnly();
+    Zeze.Transaction.Collections.PList2ReadOnly<demo.Game.BItem, demo.Game.BItemReadOnly> getWarehouseReadOnly();
 }
