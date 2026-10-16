@@ -131,7 +131,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				var edit = new BEditService();
 				edit.getAdd().addAll(registers.values());
 				if (!edit.getAdd().isEmpty())
-				editService(edit);
+					editService(edit);
 			}
 		} catch (Throwable ex) {
 				logger.error("OnLoginSuccess.Register, schedule replay retry.", ex);

@@ -1242,7 +1242,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		int globalCacheManagerHashIndex;
 		private volatile long activeTime = System.currentTimeMillis();
 		private volatile long lastErrorTime;
-		private boolean logined = false;
+		private boolean isLoggedIn = false;
 		private volatile boolean debugMode;
 		// 世代号：kick与成功重绑（tryBindSocket）各递增一次（递增点均在session锁内，单写者）。
 		// releaseAsync在发射时捕获、完成段移除前复查：不匹配说明本release针对的世代已被kick
@@ -1286,10 +1286,10 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			try {
 				if (login) {
 					// login 相当于重置，允许再次Login。
-					logined = true;
+					isLoggedIn = true;
 				} else {
 					// relogin 必须login之后才允许ReLogin。这个用来检测Global宕机并重启。
-					if (!logined)
+					if (!isLoggedIn)
 						return false;
 				}
 				if (newSocket.getUserState() != null) {
